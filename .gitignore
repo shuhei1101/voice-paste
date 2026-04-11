@@ -1,0 +1,32 @@
+# 環境変数
+.env
+
+# 仮想環境
+venv/
+.venv/
+
+# Pythonキャッシュ
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# ログ
+log/
+
+# キャッシュ（一時音声ファイル等）
+cache/
+
+# ビルド成果物
+build/
+dist/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

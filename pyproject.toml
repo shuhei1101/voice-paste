@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "voice-paste"
+version = "0.1.0"
+description = "音声入力＆自動貼り付けツール"
+requires-python = ">=3.11"
+dependencies = [
+    "faster-whisper~=1.0",
+    "sounddevice~=0.5",
+    "scipy~=1.13",
+    "pyperclip~=1.9",
+    "pynput~=1.7",
+    "python-dotenv~=1.0",
+]
+
+[project.scripts]
+voice-paste = "voice_paste.main:run"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["voice_paste*"]

@@ -2,6 +2,7 @@
 
 import logging
 import sys
+from datetime import datetime
 from pathlib import Path
 
 from voice_paste.constants import LOG_DIR
@@ -35,7 +36,8 @@ def setup_logger(log_level: str = "INFO") -> logging.Logger:
     logger.addHandler(console_handler)
 
     # ファイルハンドラ
-    log_file = LOG_DIR / "voice_paste.log"
+    ts = datetime.now().strftime("%Y%m%d%H%M%S")
+    log_file = LOG_DIR / f"{ts}_voice_paste.log"
     file_handler = logging.FileHandler(log_file, encoding="utf-8")
     file_handler.setLevel(level)
     file_fmt = logging.Formatter(

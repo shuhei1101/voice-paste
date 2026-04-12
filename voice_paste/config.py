@@ -8,15 +8,21 @@ import os
 
 from voice_paste.constants import (
     ROOT_DIR,
+    RESOURCES_DIR,
     DEFAULT_PROMPT_FILE,
     DEFAULT_WHISPER_MODEL,
     DEFAULT_DEVICE,
     DEFAULT_COMPUTE_TYPE,
 )
 
-# .env が存在しない場合は .env.sample からコピー
+# .env は書き込み可能な ROOT_DIR 配下を参照する（bundle時は exe の隣）
 _env_file = ROOT_DIR / ".env"
 _env_sample = ROOT_DIR / ".env.sample"
+# bundle 実行時、exe の隣に .env.sample が無ければ RESOURCES_DIR 側を探す
+if not _env_sample.exists():
+    _bundled_sample = RESOURCES_DIR.parent / ".env.sample"
+    if _bundled_sample.exists():
+        _env_sample = _bundled_sample
 if not _env_file.exists() and _env_sample.exists():
     shutil.copy(_env_sample, _env_file)
 
@@ -40,11 +46,28 @@ WHISPER_NO_SPEECH_THRESHOLD: float = float(
 )
 
 # --- プロンプトファイル ---
-PROMPT_FILE: Path = Path(os.getenv("PROMPT_FILE", str(DEFAULT_PROMPT_FILE)))
+# 相対パス指定の場合、bundle時は RESOURCES_DIR ベースで解決する
+_prompt_env = os.getenv("PROMPT_FILE")
+if _prompt_env:
+    _prompt_path = Path(_prompt_env)
+    if not _prompt_path.is_absolute():
+        # 開発時は ROOT_DIR からの相対、bundle時は RESOURCES_DIR の親から解決
+        _candidate = ROOT_DIR / _prompt_path
+        if not _candidate.exists() and (RESOURCES_DIR / _prompt_path.name).exists():
+            _candidate = RESOURCES_DIR / _prompt_path.name
+        _prompt_path = _candidate
+    PROMPT_FILE: Path = _prompt_path
+else:
+    PROMPT_FILE = DEFAULT_PROMPT_FILE
 
 # --- 動作設定 ---
-AUTO_PASTE: bool = os.getenv("AUTO_PASTE", "true").lower() == "true"
-AUTO_ENTER: bool = os.getenv("AUTO_ENTER", "true").lower() == "true"
 
 # --- ログ設定 ---
 LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
+
+# --- 常駐モード設定 ---
+RESIDENT_MODE: bool = os.getenv("RESIDENT_MODE", "true").lower() == "true"
+RESIDENT_HOTKEY: str = os.getenv("RESIDENT_HOTKEY", "<ctrl>+<alt>+v")
+CONFIRM_HOTKEY: str = os.getenv("CONFIRM_HOTKEY", "<ctrl>+<alt>+v")
+CONFIRM_PASTE_ONLY_HOTKEY: str = os.getenv("CONFIRM_PASTE_ONLY_HOTKEY", "<alt>+<ctrl>+<shift>+v")
+CANCEL_HOTKEY: str = os.getenv("CANCEL_HOTKEY", "<ctrl>+<alt>+c")

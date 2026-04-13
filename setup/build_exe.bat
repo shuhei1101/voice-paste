@@ -40,8 +40,6 @@ if errorlevel 1 (
 
 echo [%date% %time%] stopping running voice-paste.exe >> "%BAT_LOG%"
 taskkill /f /im voice-paste.exe >nul 2>&1
-echo [%date% %time%] waiting 5s for process cleanup >> "%BAT_LOG%"
-timeout /t 5 /nobreak >nul
 
 echo [%date% %time%] removing previous dist >> "%BAT_LOG%"
 if exist "%PROJECT_ROOT%\dist\voice-paste" rmdir /s /q "%PROJECT_ROOT%\dist\voice-paste" >> "%BAT_LOG%" 2>&1

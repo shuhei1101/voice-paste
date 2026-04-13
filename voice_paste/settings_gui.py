@@ -20,6 +20,8 @@ _MODELS = ["tiny", "base", "small", "medium", "large-v3"]
 _DEVICES = ["cuda", "cpu"]
 _COMPUTE_TYPES = ["float16", "int8", "float32"]
 _LOG_LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR"]
+_WINDOW_POSITIONS = ["center", "top-left", "top-right", "bottom-left", "bottom-right"]
+_BOOL_OPTIONS = ["true", "false"]
 
 # ダークテーマ色
 _BG = "#1e1e1e"
@@ -183,7 +185,7 @@ class SettingsWindow:
         root.resizable(False, False)
         root.configure(bg=_BG)
 
-        w, h = 420, 430
+        w, h = 420, 620
         sx = (root.winfo_screenwidth() - w) // 2
         sy = (root.winfo_screenheight() - h) // 2
         root.geometry(f"{w}x{h}+{sx}+{sy}")
@@ -254,6 +256,21 @@ class SettingsWindow:
         self._cancel_hotkey = hotkey_input(config.CANCEL_HOTKEY, row)
         row += 1
 
+        # コピーのみホットキー
+        label("コピーのみ:", row)
+        self._copy_only_hotkey = hotkey_input(config.COPY_ONLY_HOTKEY, row)
+        row += 1
+
+        # 貼付→送信ディレイ
+        label("送信待機(秒):", row)
+        self._paste_enter_delay = tk.Entry(
+            root, bg=_ENTRY_BG, fg=_FG, insertbackground=_FG,
+            relief="flat", width=8,
+        )
+        self._paste_enter_delay.insert(0, str(config.PASTE_ENTER_DELAY))
+        self._paste_enter_delay.grid(row=row, column=1, sticky="w", padx=12, pady=4)
+        row += 1
+
         # LOG_LEVEL
         label("ログレベル:", row)
         self._log_level = combo(_LOG_LEVELS, config.LOG_LEVEL, row)
@@ -285,6 +302,31 @@ class SettingsWindow:
             row=row, column=0, columnspan=2, sticky="w", padx=12, pady=(2, 8))
         row += 1
 
+        # セパレータ
+        ttk.Separator(root, orient="horizontal").grid(
+            row=row, column=0, columnspan=2, sticky="ew", padx=12, pady=8)
+        row += 1
+
+        # ウィンドウ表示位置
+        label("表示位置:", row)
+        self._window_position = combo(_WINDOW_POSITIONS, config.WINDOW_POSITION, row)
+        row += 1
+
+        # 常に最前面
+        label("常に最前面:", row)
+        self._window_topmost = combo(_BOOL_OPTIONS, str(config.WINDOW_TOPMOST).lower(), row)
+        row += 1
+
+        # カーソル位置のモニター
+        label("カーソル側モニター:", row)
+        self._window_follow_cursor = combo(_BOOL_OPTIONS, str(config.WINDOW_FOLLOW_CURSOR).lower(), row)
+        row += 1
+
+        # ウィンドウ非表示
+        label("ウィンドウ非表示:", row)
+        self._window_hidden = combo(_BOOL_OPTIONS, str(config.WINDOW_HIDDEN).lower(), row)
+        row += 1
+
         # ボタンフレーム
         btn_frame = tk.Frame(root, bg=_BG)
         btn_frame.grid(row=row, column=0, columnspan=2, pady=(4, 12))
@@ -313,10 +355,16 @@ class SettingsWindow:
         _check("CONFIRM_HOTKEY", self._confirm_hotkey.get().strip(), config.CONFIRM_HOTKEY)
         _check("CONFIRM_PASTE_ONLY_HOTKEY", self._confirm_paste_only_hotkey.get().strip(), config.CONFIRM_PASTE_ONLY_HOTKEY)
         _check("CANCEL_HOTKEY", self._cancel_hotkey.get().strip(), config.CANCEL_HOTKEY)
+        _check("COPY_ONLY_HOTKEY", self._copy_only_hotkey.get().strip(), config.COPY_ONLY_HOTKEY)
+        _check("PASTE_ENTER_DELAY", self._paste_enter_delay.get().strip(), str(config.PASTE_ENTER_DELAY))
         _check("LOG_LEVEL", self._log_level.get(), config.LOG_LEVEL)
         _check("WHISPER_MODEL", self._model.get(), config.WHISPER_MODEL)
         _check("WHISPER_DEVICE", self._device.get(), config.WHISPER_DEVICE)
         _check("WHISPER_COMPUTE_TYPE", self._compute.get(), config.WHISPER_COMPUTE_TYPE)
+        _check("WINDOW_POSITION", self._window_position.get(), config.WINDOW_POSITION)
+        _check("WINDOW_TOPMOST", self._window_topmost.get(), str(config.WINDOW_TOPMOST).lower())
+        _check("WINDOW_FOLLOW_CURSOR", self._window_follow_cursor.get(), str(config.WINDOW_FOLLOW_CURSOR).lower())
+        _check("WINDOW_HIDDEN", self._window_hidden.get(), str(config.WINDOW_HIDDEN).lower())
 
         if not changed:
             self._close()
@@ -336,8 +384,20 @@ class SettingsWindow:
             config.CONFIRM_PASTE_ONLY_HOTKEY = changed["CONFIRM_PASTE_ONLY_HOTKEY"]
         if "CANCEL_HOTKEY" in changed:
             config.CANCEL_HOTKEY = changed["CANCEL_HOTKEY"]
+        if "COPY_ONLY_HOTKEY" in changed:
+            config.COPY_ONLY_HOTKEY = changed["COPY_ONLY_HOTKEY"]
+        if "PASTE_ENTER_DELAY" in changed:
+            config.PASTE_ENTER_DELAY = float(changed["PASTE_ENTER_DELAY"])
         if "LOG_LEVEL" in changed:
             config.LOG_LEVEL = changed["LOG_LEVEL"]
+        if "WINDOW_POSITION" in changed:
+            config.WINDOW_POSITION = changed["WINDOW_POSITION"]
+        if "WINDOW_TOPMOST" in changed:
+            config.WINDOW_TOPMOST = changed["WINDOW_TOPMOST"].lower() == "true"
+        if "WINDOW_FOLLOW_CURSOR" in changed:
+            config.WINDOW_FOLLOW_CURSOR = changed["WINDOW_FOLLOW_CURSOR"].lower() == "true"
+        if "WINDOW_HIDDEN" in changed:
+            config.WINDOW_HIDDEN = changed["WINDOW_HIDDEN"].lower() == "true"
 
         self._close()
         self._on_save(changed)

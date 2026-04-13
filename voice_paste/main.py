@@ -2,6 +2,7 @@
 
 import queue
 import threading
+import time
 from pathlib import Path
 from typing import Literal
 
@@ -13,7 +14,8 @@ from voice_paste.audio.recorder import AudioRecorder
 from voice_paste.transcription.whisper_transcriber import WhisperTranscriber
 from voice_paste.input.keyboard_sender import copy_to_clipboard, send_paste, send_enter
 from voice_paste.gui import RecordingModal, ConfirmMode
-from voice_paste.utils import load_prompt
+from voice_paste.utils import load_prompt, load_yogo, build_initial_prompt
+from voice_paste.history import save_history, cleanup_history
 from voice_paste.constants import DEFAULT_AUDIO_TMP
 
 logger = get_logger(__name__)
@@ -22,7 +24,12 @@ logger = get_logger(__name__)
 DispatchCommand = Literal["session", "quit", "settings"]
 
 
-def _run_once(recorder: AudioRecorder, transcriber: WhisperTranscriber, prompt: str) -> None:
+def _run_once(
+    recorder: AudioRecorder,
+    transcriber: WhisperTranscriber,
+    prompt: str,
+    tray_icon: object | None = None,
+) -> None:
     """1 回分の録音→文字起こし→貼り付けフロー。"""
     result: ConfirmMode | None = None
 
@@ -33,29 +40,52 @@ def _run_once(recorder: AudioRecorder, transcriber: WhisperTranscriber, prompt: 
     def on_cancel() -> None:
         logger.info("Cancelled by user.")
 
+    # トレイアイコンを赤(録音中)に
+    if tray_icon:
+        from voice_paste.tray import update_tray_state
+        update_tray_state(tray_icon, "recording")
+
     recorder.start()
     modal = RecordingModal(on_confirm=on_confirm, on_cancel=on_cancel, recorder=recorder)
     modal.show()
 
     if result is None:
         recorder.cancel()
+        if tray_icon:
+            from voice_paste.tray import update_tray_state
+            update_tray_state(tray_icon, "idle")
         logger.info("Session exited without output.")
         return
 
     audio_file: Path = recorder.stop_and_save(DEFAULT_AUDIO_TMP)
 
+    # トレイアイコンを青(文字起こし中)に
+    if tray_icon:
+        from voice_paste.tray import update_tray_state
+        update_tray_state(tray_icon, "transcribing")
+
     text = transcriber.transcribe(audio_file, prompt=prompt)
     logger.info("Transcribed text: %s", text)
+
+    # トレイアイコンをアイドルに戻す
+    if tray_icon:
+        from voice_paste.tray import update_tray_state
+        update_tray_state(tray_icon, "idle")
 
     if not text:
         logger.warning("Transcription result is empty.")
         return
 
+    # 履歴保存
+    save_history(audio_file, text)
+
     copy_to_clipboard(text)
-    send_paste()
+
+    if result in ("paste_enter", "paste_only"):
+        send_paste()
 
     if result == "paste_enter":
-        send_enter()
+        send_enter(delay=config.PASTE_ENTER_DELAY)
 
     logger.info("Session completed successfully. mode=%s", result)
 
@@ -64,25 +94,22 @@ def _run_one_shot() -> None:
     """1 回実行して終了するモード。"""
     recorder = AudioRecorder()
     transcriber = WhisperTranscriber()
-    prompt = load_prompt(config.PROMPT_FILE)
+    raw_prompt = load_prompt(config.PROMPT_FILE)
+    yogo = load_yogo(config.YOGO_FILE)
+    prompt = build_initial_prompt(raw_prompt, yogo)
     _run_once(recorder, transcriber, prompt)
 
 
 def _run_resident() -> None:
     """
     常駐モード。トレイアイコン + グローバルホットキーで録音を起動する。
-
-    アーキテクチャ:
-      - メインスレッド: ディスパッチループを回し、キューから受け取ったセッション要求に
-        応じて ``_run_once`` を実行する。Tk のモーダルはメインスレッドで動かす必要があるため。
-      - pystray: ``run_detached()`` でバックグラウンドスレッドに配置する。
-      - pynput GlobalHotKeys: 別スレッドでリスナー起動。
-      - トリガー経路（ホットキー / トレイメニュー）は全て同じキューへ要求を enqueue する。
     """
     logger.info("Resident mode. Loading model...")
     recorder = AudioRecorder()
     transcriber = WhisperTranscriber()
-    prompt = load_prompt(config.PROMPT_FILE)
+    raw_prompt = load_prompt(config.PROMPT_FILE)
+    yogo = load_yogo(config.YOGO_FILE)
+    prompt = build_initial_prompt(raw_prompt, yogo)
     logger.info("Model loaded. Waiting for hotkey: %s", config.RESIDENT_HOTKEY)
     print(f"[voice-paste] resident mode ready. hotkey={config.RESIDENT_HOTKEY}")
 
@@ -124,11 +151,20 @@ def _run_resident() -> None:
     tray_icon.run_detached()
     hotkey_listener.start()
 
+    # 履歴クリーンアップの間隔（秒）
+    _CLEANUP_INTERVAL = 3600
+    _last_cleanup = time.monotonic()
+
     try:
         while True:
             try:
                 cmd = dispatch_queue.get(timeout=0.5)
             except queue.Empty:
+                # 定期クリーンアップ
+                now = time.monotonic()
+                if now - _last_cleanup >= _CLEANUP_INTERVAL:
+                    cleanup_history()
+                    _last_cleanup = now
                 continue
 
             if cmd == "quit":
@@ -162,7 +198,7 @@ def _run_resident() -> None:
             if cmd == "session":
                 session_active.set()
                 try:
-                    _run_once(recorder, transcriber, prompt)
+                    _run_once(recorder, transcriber, prompt, tray_icon=tray_icon)
                 except Exception:
                     logger.exception("Session failed.")
                 finally:
@@ -184,6 +220,9 @@ def run() -> None:
     """メイン処理フローを実行する。"""
     setup_logger(config.LOG_LEVEL)
     logger.info("voice-paste started. resident=%s", config.RESIDENT_MODE)
+
+    # 起動時に古い履歴を削除
+    cleanup_history()
 
     if config.RESIDENT_MODE:
         _run_resident()

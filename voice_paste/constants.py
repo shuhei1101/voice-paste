@@ -27,11 +27,17 @@ LOG_DIR = ROOT_DIR / "log"
 # デフォルトのプロンプトファイルパス
 DEFAULT_PROMPT_FILE = RESOURCES_DIR / "prompt.txt"
 
+# デフォルトの用語集CSVファイルパス
+DEFAULT_YOGO_FILE = RESOURCES_DIR / "yogo.csv"
+
 # デフォルトのアイコンファイルパス（トレイアイコン用）
 DEFAULT_ICON_FILE = RESOURCES_DIR / "icon.png"
 
 # デフォルトの音声ファイル保存先（一時ファイル。書き込み先）
 DEFAULT_AUDIO_TMP = ROOT_DIR / "cache" / "recording.wav"
+
+# 履歴保存ディレクトリ
+HISTORY_DIR = ROOT_DIR / "history"
 
 # デフォルトのWhisperモデル
 DEFAULT_WHISPER_MODEL = "large-v3"

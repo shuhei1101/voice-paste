@@ -36,9 +36,12 @@ def send_paste() -> None:
     logger.info("Sent Ctrl+V.")
 
 
-def send_enter() -> None:
-    """Enter キーを仮想入力する。"""
-    time.sleep(0.05)
+def send_enter(delay: float = 0.05) -> None:
+    """Enter キーを仮想入力する。
+
+    :param delay: Enter 送信前の待機秒数
+    """
+    time.sleep(delay)
     _keyboard.press(Key.enter)
     _keyboard.release(Key.enter)
-    logger.info("Sent Enter.")
+    logger.info("Sent Enter. (delay=%.2fs)", delay)

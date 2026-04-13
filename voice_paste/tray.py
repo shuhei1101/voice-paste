@@ -4,7 +4,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Literal
 
 from PIL import Image, ImageDraw
 import pystray
@@ -17,19 +17,36 @@ logger = get_logger(__name__)
 # トレイアイコンのデフォルトサイズ
 _ICON_SIZE = 64
 
+# トレイアイコンの状態
+TrayState = Literal["idle", "recording", "transcribing"]
 
-def _generate_default_icon() -> Image.Image:
-    """アイコンファイルが無い場合に青丸アイコンを動的生成する。"""
+# 状態ごとの色: (fill, outline)
+_STATE_COLORS: dict[TrayState, tuple[tuple[int, int, int, int], tuple[int, int, int, int]]] = {
+    "idle": ((255, 255, 255, 255), (180, 180, 180, 255)),         # 白丸
+    "recording": ((220, 40, 40, 255), (255, 255, 255, 255)),      # 赤丸
+    "transcribing": ((0, 120, 212, 255), (255, 255, 255, 255)),   # 青丸
+}
+
+
+def _generate_circle_icon(state: TrayState = "idle") -> Image.Image:
+    """指定された状態の丸アイコンを動的生成する。"""
+    fill, outline = _STATE_COLORS[state]
     image = Image.new("RGBA", (_ICON_SIZE, _ICON_SIZE), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
     margin = 6
     draw.ellipse(
         (margin, margin, _ICON_SIZE - margin, _ICON_SIZE - margin),
-        fill=(0, 120, 212, 255),
-        outline=(255, 255, 255, 255),
+        fill=fill,
+        outline=outline,
         width=3,
     )
     return image
+
+
+def update_tray_state(icon: pystray.Icon, state: TrayState) -> None:
+    """トレイアイコンの状態を更新する。"""
+    icon.icon = _generate_circle_icon(state)
+    logger.debug("Tray icon state changed to: %s", state)
 
 
 def _load_icon_image(icon_path: Path) -> Image.Image:
@@ -41,7 +58,7 @@ def _load_icon_image(icon_path: Path) -> Image.Image:
         except Exception:
             logger.exception("Failed to load icon file, falling back to generated icon.")
     logger.info("Icon file not found, generating default icon.")
-    return _generate_default_icon()
+    return _generate_circle_icon("idle")
 
 
 def _open_log_folder() -> None:

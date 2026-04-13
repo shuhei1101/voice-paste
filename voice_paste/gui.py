@@ -1,5 +1,7 @@
 """録音モーダルウィンドウ（tkinter GUI）モジュール。"""
 
+import ctypes
+import ctypes.wintypes
 import tkinter as tk
 from tkinter import font as tkfont
 from typing import Callable, TYPE_CHECKING, Literal
@@ -15,7 +17,7 @@ from voice_paste.logger import get_logger
 logger = get_logger(__name__)
 
 # 録音結果の種別
-ConfirmMode = Literal["paste_enter", "paste_only"]
+ConfirmMode = Literal["paste_enter", "paste_only", "copy_only"]
 
 # 波形アニメーション設定
 _WAVE_UPDATE_MS = 50       # 更新間隔（ms）
@@ -25,6 +27,70 @@ _WAVE_BAR_GAP = 3          # バー間隔（px）
 _WAVE_MAX_HEIGHT = 160     # バーの最大高さ（px）
 _WAVE_MIN_HEIGHT = 3       # バーの最小高さ（px）
 _WAVE_COLOR = "#0078d4"    # バーの色
+
+# ダークテーマ色
+_BG = "#1e1e1e"
+_FG = "#e0e0e0"
+_ACCENT = "#0078d4"
+
+
+def _get_cursor_monitor_rect() -> tuple[int, int, int, int]:
+    """カーソルがあるモニターの作業領域 (x, y, w, h) を返す。"""
+    try:
+        pt = ctypes.wintypes.POINT()
+        ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))
+
+        # MONITOR_DEFAULTTONEAREST = 2
+        hmon = ctypes.windll.user32.MonitorFromPoint(pt, 2)
+
+        class MONITORINFO(ctypes.Structure):
+            _fields_ = [
+                ("cbSize", ctypes.c_ulong),
+                ("rcMonitor", ctypes.wintypes.RECT),
+                ("rcWork", ctypes.wintypes.RECT),
+                ("dwFlags", ctypes.c_ulong),
+            ]
+
+        mi = MONITORINFO()
+        mi.cbSize = ctypes.sizeof(MONITORINFO)
+        ctypes.windll.user32.GetMonitorInfoW(hmon, ctypes.byref(mi))
+        rc = mi.rcWork
+        return (rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top)
+    except Exception:
+        logger.warning("Failed to detect cursor monitor, falling back to primary.")
+        return (0, 0, 0, 0)
+
+
+def _calc_window_position(
+    win_w: int,
+    win_h: int,
+    position: str,
+    follow_cursor: bool,
+    root: tk.Tk,
+) -> tuple[int, int]:
+    """ウィンドウの表示座標を計算する。"""
+    margin = 20
+
+    if follow_cursor:
+        mon_x, mon_y, mon_w, mon_h = _get_cursor_monitor_rect()
+        if mon_w == 0:
+            mon_w = root.winfo_screenwidth()
+            mon_h = root.winfo_screenheight()
+    else:
+        mon_x, mon_y = 0, 0
+        mon_w = root.winfo_screenwidth()
+        mon_h = root.winfo_screenheight()
+
+    if position == "top-left":
+        return (mon_x + margin, mon_y + margin)
+    elif position == "top-right":
+        return (mon_x + mon_w - win_w - margin, mon_y + margin)
+    elif position == "bottom-left":
+        return (mon_x + margin, mon_y + mon_h - win_h - margin)
+    elif position == "bottom-right":
+        return (mon_x + mon_w - win_w - margin, mon_y + mon_h - win_h - margin)
+    else:  # center
+        return (mon_x + (mon_w - win_w) // 2, mon_y + (mon_h - win_h) // 2)
 
 
 class RecordingModal:
@@ -57,56 +123,65 @@ class RecordingModal:
         window_width = max(canvas_width + 40, 360)
         window_height = 260
 
-        # ウィンドウを画面中央に配置
-        screen_w = self._root.winfo_screenwidth()
-        screen_h = self._root.winfo_screenheight()
-        x = (screen_w - window_width) // 2
-        y = (screen_h - window_height) // 2
+        # ウィンドウ位置
+        x, y = _calc_window_position(
+            window_width, window_height,
+            config.WINDOW_POSITION,
+            config.WINDOW_FOLLOW_CURSOR,
+            self._root,
+        )
         self._root.geometry(f"{window_width}x{window_height}+{x}+{y}")
-        self._root.configure(bg="#1e1e1e")
-        self._root.attributes("-topmost", True)
+        self._root.configure(bg=_BG)
+        self._root.attributes("-topmost", config.WINDOW_TOPMOST)
+
+        # ウィンドウ非表示モード
+        if config.WINDOW_HIDDEN:
+            self._root.withdraw()
+
+        # ウィンドウ閉じるボタン = キャンセル
+        self._root.protocol("WM_DELETE_WINDOW", self._cancel)
 
         # 波形 Canvas
         self._canvas = tk.Canvas(
             self._root,
             width=canvas_width,
             height=_WAVE_MAX_HEIGHT + 10,
-            bg="#1e1e1e",
+            bg=_BG,
             highlightthickness=0,
         )
         self._canvas.pack(pady=(14, 8))
 
         # ボタンフレーム
-        btn_frame = tk.Frame(self._root, bg="#1e1e1e")
+        btn_frame = tk.Frame(self._root, bg=_BG)
         btn_frame.pack(pady=(0, 12))
 
         btn_font = tkfont.Font(family="Yu Gothic UI", size=10, weight="bold")
 
-        # 確定+Enter ボタン（青）
+        # 貼付+送信 ボタン（青）
         tk.Button(
-            btn_frame, text="確定+Enter", font=btn_font,
+            btn_frame, text="貼付+送信", font=btn_font,
             bg="#0078d4", fg="#ffffff",
             activebackground="#005fa3", activeforeground="#ffffff",
             relief="flat", padx=12, pady=5, cursor="hand2",
             command=lambda: self._confirm("paste_enter"),
         ).pack(side="left", padx=(0, 6))
 
-        # 確定(貼付のみ) ボタン（緑系）
+        # 貼付のみ ボタン（緑系）
         tk.Button(
-            btn_frame, text="確定", font=btn_font,
+            btn_frame, text="貼付のみ", font=btn_font,
             bg="#107c10", fg="#ffffff",
             activebackground="#0b5e0b", activeforeground="#ffffff",
             relief="flat", padx=12, pady=5, cursor="hand2",
             command=lambda: self._confirm("paste_only"),
         ).pack(side="left", padx=(0, 6))
 
-        # 中止ボタン
+        # コピー ボタン（グレー）
         tk.Button(
-            btn_frame, text="中止", font=btn_font,
-            bg="#3a3a3a", fg="#cccccc",
-            activebackground="#555555", activeforeground="#ffffff",
+            btn_frame, text="コピー", font=btn_font,
+            bg="#5c5c5c", fg="#ffffff",
+            activebackground="#777777", activeforeground="#ffffff",
             relief="flat", padx=12, pady=5, cursor="hand2",
-            command=self._cancel,
+            command=lambda: self._confirm("copy_only"),
         ).pack(side="left")
 
         # キーバインド（ウィンドウフォーカス時）
@@ -117,6 +192,7 @@ class RecordingModal:
         self._hotkey_listener = pynput_keyboard.GlobalHotKeys({
             config.CONFIRM_HOTKEY: lambda: self._hotkey_confirm("paste_enter"),
             config.CONFIRM_PASTE_ONLY_HOTKEY: lambda: self._hotkey_confirm("paste_only"),
+            config.COPY_ONLY_HOTKEY: lambda: self._hotkey_confirm("copy_only"),
             config.CANCEL_HOTKEY: self._hotkey_cancel,
         })
         self._hotkey_listener.start()

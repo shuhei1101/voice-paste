@@ -45,24 +45,35 @@ class WhisperTranscriber(Transcribable):
         """
         logger.info("Starting transcription: file=%s", audio_file)
 
+        vad_parameters = {
+            "threshold": config.WHISPER_VAD_THRESHOLD,
+            "min_speech_duration_ms": config.WHISPER_VAD_MIN_SPEECH_MS,
+            "min_silence_duration_ms": config.WHISPER_VAD_MIN_SILENCE_MS,
+        } if config.WHISPER_VAD_FILTER else None
+
         segments, info = self._model.transcribe(
             str(audio_file),
             language=config.WHISPER_LANGUAGE,
             initial_prompt=prompt if prompt else None,
             beam_size=config.WHISPER_BEAM_SIZE,
+            best_of=config.WHISPER_BEST_OF,
             temperature=config.WHISPER_TEMPERATURE,
             vad_filter=config.WHISPER_VAD_FILTER,
+            vad_parameters=vad_parameters,
             condition_on_previous_text=config.WHISPER_CONDITION_ON_PREVIOUS_TEXT,
             no_speech_threshold=config.WHISPER_NO_SPEECH_THRESHOLD,
         )
 
         logger.info(
-            "Transcription info: language=%s, probability=%.2f",
+            "Transcription info: language=%s, probability=%.2f, duration=%.1fs",
             info.language,
             info.language_probability,
+            info.duration,
         )
 
-        # セグメントを結合してテキストを生成
-        result = "".join(segment.text for segment in segments).strip()
-        logger.info("Transcription completed: %d chars", len(result))
+        # セグメントごとに改行で結合
+        lines = [segment.text.strip() for segment in segments]
+        lines = [line for line in lines if line]
+        result = "\n".join(lines)
+        logger.info("Transcription completed: %d chars, %d segments", len(result), len(lines))
         return result

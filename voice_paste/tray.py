@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 from typing import Callable, Literal
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 import pystray
 
 from voice_paste.constants import DEFAULT_ICON_FILE, LOG_DIR
@@ -20,32 +20,68 @@ _ICON_SIZE = 64
 # トレイアイコンの状態
 TrayState = Literal["idle", "recording", "transcribing"]
 
-# 状態ごとの色: (fill, outline)
-_STATE_COLORS: dict[TrayState, tuple[tuple[int, int, int, int], tuple[int, int, int, int]]] = {
-    "idle": ((255, 255, 255, 255), (180, 180, 180, 255)),         # 白丸
-    "recording": ((220, 40, 40, 255), (255, 255, 255, 255)),      # 赤丸
-    "transcribing": ((0, 120, 212, 255), (255, 255, 255, 255)),   # 青丸
+# 状態ごとのマイク本体色
+_STATE_COLORS: dict[TrayState, tuple[int, int, int, int]] = {
+    "idle": (0, 120, 212, 255),         # 青
+    "recording": (220, 40, 40, 255),    # 赤
+    "transcribing": (16, 124, 16, 255), # 緑
 }
 
 
-def _generate_circle_icon(state: TrayState = "idle") -> Image.Image:
-    """指定された状態の丸アイコンを動的生成する。"""
-    fill, outline = _STATE_COLORS[state]
-    image = Image.new("RGBA", (_ICON_SIZE, _ICON_SIZE), (0, 0, 0, 0))
+def _generate_mic_icon(state: TrayState = "idle") -> Image.Image:
+    """マイク+T のトレイアイコンを状態ごとの色で生成する。"""
+    s = _ICON_SIZE
+    mic_color = _STATE_COLORS[state]
+    text_color = (255, 255, 255, 255)
+    part_color = (200, 200, 200, 255)
+
+    image = Image.new("RGBA", (s, s), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
-    margin = 6
-    draw.ellipse(
-        (margin, margin, _ICON_SIZE - margin, _ICON_SIZE - margin),
-        fill=fill,
-        outline=outline,
-        width=3,
+
+    # マイク本体
+    mx, my = s // 2, s // 2 - 5
+    mw, mh = 13, 20
+    draw.rounded_rectangle(
+        (mx - mw, my - mh, mx + mw, my + mh),
+        radius=mw, fill=mic_color,
     )
+
+    # 「T」
+    try:
+        font = ImageFont.truetype("arial.ttf", 22)
+    except Exception:
+        font = ImageFont.load_default()
+    bbox = draw.textbbox((0, 0), "T", font=font)
+    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    draw.text((mx - tw // 2, my - th // 2 - 3), "T", fill=text_color, font=font)
+
+    # アーチ
+    arc_w = 18
+    draw.arc(
+        (mx - arc_w, my - 8, mx + arc_w, my + mh + 10),
+        start=0, end=180, fill=part_color, width=2,
+    )
+
+    # スタンド
+    draw.rectangle((mx - 1, my + mh + 5, mx + 1, my + mh + 15), fill=part_color)
+
+    # 台座
+    draw.rectangle((mx - 8, my + mh + 13, mx + 8, my + mh + 16), fill=part_color)
+
     return image
+
+
+_STATE_TITLES: dict[TrayState, str] = {
+    "idle": "voice-paste: 待機中",
+    "recording": "voice-paste: 録音中",
+    "transcribing": "voice-paste: 文字起こし中",
+}
 
 
 def update_tray_state(icon: pystray.Icon, state: TrayState) -> None:
     """トレイアイコンの状態を更新する。"""
-    icon.icon = _generate_circle_icon(state)
+    icon.icon = _generate_mic_icon(state)
+    icon.title = _STATE_TITLES[state]
     logger.debug("Tray icon state changed to: %s", state)
 
 
@@ -58,7 +94,7 @@ def _load_icon_image(icon_path: Path) -> Image.Image:
         except Exception:
             logger.exception("Failed to load icon file, falling back to generated icon.")
     logger.info("Icon file not found, generating default icon.")
-    return _generate_circle_icon("idle")
+    return _generate_mic_icon("idle")
 
 
 def _open_log_folder() -> None:
@@ -89,7 +125,7 @@ def build_tray_icon(
     :return: 構築済み pystray.Icon インスタンス（未起動）
     """
     image = _load_icon_image(DEFAULT_ICON_FILE)
-    tooltip = f"voice-paste (hotkey: {hotkey})"
+    tooltip = _STATE_TITLES["idle"]
 
     def _on_start(icon: "pystray.Icon", item: "pystray.MenuItem") -> None:
         logger.info("Tray menu: start session requested.")

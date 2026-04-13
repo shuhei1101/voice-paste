@@ -1,5 +1,7 @@
 """定数定義モジュール。"""
 
+VERSION = "1.0.0"
+
 import sys
 from pathlib import Path
 

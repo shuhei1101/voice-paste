@@ -40,6 +40,8 @@ if errorlevel 1 (
 
 echo [%date% %time%] stopping running voice-paste.exe >> "%BAT_LOG%"
 taskkill /f /im voice-paste.exe >nul 2>&1
+echo [%date% %time%] waiting for process cleanup >> "%BAT_LOG%"
+timeout /t 2 /nobreak >nul
 
 echo [%date% %time%] removing previous dist >> "%BAT_LOG%"
 if exist "%PROJECT_ROOT%\dist\voice-paste" rmdir /s /q "%PROJECT_ROOT%\dist\voice-paste" >> "%BAT_LOG%" 2>&1
@@ -57,6 +59,7 @@ python -m PyInstaller ^
     --clean ^
     --windowed ^
     --name voice-paste ^
+    --icon "%PROJECT_ROOT%\resources\icon.ico" ^
     --distpath "%PROJECT_ROOT%\dist" ^
     --workpath "%PROJECT_ROOT%\build" ^
     --specpath "%PROJECT_ROOT%\build" ^
@@ -84,6 +87,14 @@ if not exist "%PROJECT_ROOT%\dist\voice-paste\voice-paste.exe" (
     endlocal & exit /b 1
 )
 echo [%date% %time%] pyinstaller completed >> "%BAT_LOG%"
+
+echo [%date% %time%] copying manual.txt and yogo.csv to dist root >> "%BAT_LOG%"
+if exist "%PROJECT_ROOT%\dist\voice-paste\_internal\resources\manual.txt" (
+    copy /y "%PROJECT_ROOT%\dist\voice-paste\_internal\resources\manual.txt" "%PROJECT_ROOT%\dist\voice-paste\manual.txt" >> "%BAT_LOG%" 2>&1
+)
+if exist "%PROJECT_ROOT%\dist\voice-paste\_internal\resources\yogo.csv" (
+    copy /y "%PROJECT_ROOT%\dist\voice-paste\_internal\resources\yogo.csv" "%PROJECT_ROOT%\dist\voice-paste\yogo.csv" >> "%BAT_LOG%" 2>&1
+)
 
 echo [%date% %time%] build complete: dist\voice-paste\voice-paste.exe >> "%BAT_LOG%"
 echo.

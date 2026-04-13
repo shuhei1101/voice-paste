@@ -27,7 +27,6 @@ DispatchCommand = Literal["session", "quit", "settings"]
 def _run_once(
     recorder: AudioRecorder,
     transcriber: WhisperTranscriber,
-    prompt: str,
     tray_icon: object | None = None,
 ) -> None:
     """1 回分の録音→文字起こし→貼り付けフロー。"""
@@ -59,7 +58,12 @@ def _run_once(
 
     audio_file: Path = recorder.stop_and_save(DEFAULT_AUDIO_TMP)
 
-    # トレイアイコンを青(文字起こし中)に
+    # プロンプト・用語集を毎回読み込み（編集が即反映される）
+    raw_prompt = load_prompt(config.PROMPT_FILE)
+    yogo = load_yogo(config.YOGO_FILE)
+    prompt = build_initial_prompt(raw_prompt, yogo)
+
+    # トレイアイコンを緑(文字起こし中)に
     if tray_icon:
         from voice_paste.tray import update_tray_state
         update_tray_state(tray_icon, "transcribing")
@@ -94,10 +98,7 @@ def _run_one_shot() -> None:
     """1 回実行して終了するモード。"""
     recorder = AudioRecorder()
     transcriber = WhisperTranscriber()
-    raw_prompt = load_prompt(config.PROMPT_FILE)
-    yogo = load_yogo(config.YOGO_FILE)
-    prompt = build_initial_prompt(raw_prompt, yogo)
-    _run_once(recorder, transcriber, prompt)
+    _run_once(recorder, transcriber)
 
 
 def _run_resident() -> None:
@@ -107,9 +108,6 @@ def _run_resident() -> None:
     logger.info("Resident mode. Loading model...")
     recorder = AudioRecorder()
     transcriber = WhisperTranscriber()
-    raw_prompt = load_prompt(config.PROMPT_FILE)
-    yogo = load_yogo(config.YOGO_FILE)
-    prompt = build_initial_prompt(raw_prompt, yogo)
     logger.info("Model loaded. Waiting for hotkey: %s", config.RESIDENT_HOTKEY)
     print(f"[voice-paste] resident mode ready. hotkey={config.RESIDENT_HOTKEY}")
 
@@ -184,7 +182,7 @@ def _run_resident() -> None:
                                 {config.RESIDENT_HOTKEY: request_session}
                             )
                             hotkey_listener.start()
-                            tray_icon.title = f"voice-paste (hotkey: {config.RESIDENT_HOTKEY})"
+                            tray_icon.title = "voice-paste: 待機中"
                             logger.info("Hotkey re-registered: %s", config.RESIDENT_HOTKEY)
 
                     settings_win = SettingsWindow(on_save=_on_settings_saved)
@@ -198,7 +196,7 @@ def _run_resident() -> None:
             if cmd == "session":
                 session_active.set()
                 try:
-                    _run_once(recorder, transcriber, prompt, tray_icon=tray_icon)
+                    _run_once(recorder, transcriber, tray_icon=tray_icon)
                 except Exception:
                     logger.exception("Session failed.")
                 finally:

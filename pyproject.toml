@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "voice-paste"
-version = "0.1.0"
+version = "1.0.0"
 description = "音声入力＆自動貼り付けツール"
 requires-python = ">=3.11"
 dependencies = [

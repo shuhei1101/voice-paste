@@ -66,6 +66,7 @@ else:
     PROMPT_FILE = DEFAULT_PROMPT_FILE
 
 # --- 用語集CSVファイル ---
+# .env指定 → ROOT_DIR直下 → resources内 の優先順で探す
 _yogo_env = os.getenv("YOGO_FILE")
 if _yogo_env:
     _yogo_path = Path(_yogo_env)
@@ -76,7 +77,9 @@ if _yogo_env:
         _yogo_path = _candidate
     YOGO_FILE: Path = _yogo_path
 else:
-    YOGO_FILE = DEFAULT_YOGO_FILE
+    # ROOT_DIR直下にあればそちらを優先（ユーザーが編集しやすい）
+    _yogo_root = ROOT_DIR / "yogo.csv"
+    YOGO_FILE = _yogo_root if _yogo_root.exists() else DEFAULT_YOGO_FILE
 
 # --- 動作設定 ---
 

@@ -19,6 +19,8 @@ if exist "%~dp0venv\Scripts\activate.bat" (
 
 echo [%date% %time%] launching: python -m voice_paste >> "%BAT_LOG%"
 chcp 65001 > nul
+set FOR_DISABLE_CONSOLE_CTRL_HANDLER=1
+set "PATH=%~dp0venv\Lib\site-packages\nvidia\cublas\bin;%~dp0venv\Lib\site-packages\nvidia\cudnn\bin;%~dp0venv\Lib\site-packages\nvidia\cuda_nvrtc\bin;%PATH%"
 python -m voice_paste >> "%BAT_LOG%" 2>&1
 set "EXITCODE=%ERRORLEVEL%"
 echo [%date% %time%] python exited with code %EXITCODE% >> "%BAT_LOG%"

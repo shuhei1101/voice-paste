@@ -26,10 +26,10 @@ def save_history(audio_file: Path, text: str) -> None:
 
     timestamp = now.strftime("%Y%m%d%H%M%S")
 
-    # WAVファイルをコピー
+    # WAVファイルを移動（コピーだとWindowsでファイルロックが残る場合がある）
     if audio_file.exists():
         wav_dest = date_dir / f"{timestamp}_recording.wav"
-        shutil.copy2(audio_file, wav_dest)
+        shutil.move(str(audio_file), wav_dest)
         logger.info("History saved: %s", wav_dest)
 
     # テキストを保存

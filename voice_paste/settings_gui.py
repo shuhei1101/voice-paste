@@ -7,8 +7,11 @@ from typing import Callable
 from pynput import keyboard as pynput_keyboard
 from dotenv import set_key
 
+import shutil
+from tkinter import messagebox
+
 from voice_paste import config
-from voice_paste.constants import ROOT_DIR
+from voice_paste.constants import ROOT_DIR, RESOURCES_DIR
 from voice_paste.logger import get_logger
 
 logger = get_logger(__name__)
@@ -172,8 +175,13 @@ class _HotkeyCapture:
 class SettingsWindow:
     """設定ウィンドウクラス。"""
 
-    def __init__(self, on_save: Callable[[dict[str, str]], None]) -> None:
+    def __init__(
+        self,
+        on_save: Callable[[dict[str, str]], None],
+        on_restart: Callable[[], None] | None = None,
+    ) -> None:
         self._on_save = on_save
+        self._on_restart = on_restart
         self._root: tk.Tk | None = None
         self._hotkey_captures: list[_HotkeyCapture] = []
 
@@ -327,17 +335,35 @@ class SettingsWindow:
         self._window_hidden = combo(_BOOL_OPTIONS, str(config.WINDOW_HIDDEN).lower(), row)
         row += 1
 
+        # 波形感度
+        label("波形の感度:", row)
+        self._wave_gain = tk.Entry(
+            root, bg=_ENTRY_BG, fg=_FG, insertbackground=_FG,
+            relief="flat", width=8,
+        )
+        self._wave_gain.insert(0, str(config.WAVE_GAIN))
+        self._wave_gain.grid(row=row, column=1, sticky="w", padx=12, pady=4)
+        row += 1
+
         # ボタンフレーム
         btn_frame = tk.Frame(root, bg=_BG)
         btn_frame.grid(row=row, column=0, columnspan=2, pady=(4, 12))
 
         tk.Button(btn_frame, text="保存", bg=_ACCENT, fg="#ffffff",
                   activebackground="#005fa3", activeforeground="#ffffff",
-                  relief="flat", padx=18, pady=5, cursor="hand2",
-                  command=self._save).pack(side="left", padx=(0, 8))
+                  relief="flat", padx=14, pady=5, cursor="hand2",
+                  command=self._save).pack(side="left", padx=(0, 6))
+        tk.Button(btn_frame, text="保存+再起動", bg="#107c10", fg="#ffffff",
+                  activebackground="#0b5e0b", activeforeground="#ffffff",
+                  relief="flat", padx=14, pady=5, cursor="hand2",
+                  command=self._save_and_restart).pack(side="left", padx=(0, 6))
+        tk.Button(btn_frame, text="初期化", bg="#a03030", fg="#ffffff",
+                  activebackground="#cc4444", activeforeground="#ffffff",
+                  relief="flat", padx=14, pady=5, cursor="hand2",
+                  command=self._reset).pack(side="left", padx=(0, 6))
         tk.Button(btn_frame, text="キャンセル", bg="#3a3a3a", fg="#cccccc",
                   activebackground="#555555", activeforeground="#ffffff",
-                  relief="flat", padx=18, pady=5, cursor="hand2",
+                  relief="flat", padx=14, pady=5, cursor="hand2",
                   command=self._cancel).pack(side="left")
 
         root.columnconfigure(1, weight=1)
@@ -365,6 +391,7 @@ class SettingsWindow:
         _check("WINDOW_TOPMOST", self._window_topmost.get(), str(config.WINDOW_TOPMOST).lower())
         _check("WINDOW_FOLLOW_CURSOR", self._window_follow_cursor.get(), str(config.WINDOW_FOLLOW_CURSOR).lower())
         _check("WINDOW_HIDDEN", self._window_hidden.get(), str(config.WINDOW_HIDDEN).lower())
+        _check("WAVE_GAIN", self._wave_gain.get().strip(), str(config.WAVE_GAIN))
 
         if not changed:
             self._close()
@@ -373,6 +400,7 @@ class SettingsWindow:
         # .env に書き込み
         for key, val in changed.items():
             set_key(_ENV_FILE, key, val)
+            logger.info("Settings written: %s = %s", key, val)
         logger.info("Settings saved to .env: %s", list(changed.keys()))
 
         # config モジュールの値をランタイム更新（即時反映するもの）
@@ -398,9 +426,49 @@ class SettingsWindow:
             config.WINDOW_FOLLOW_CURSOR = changed["WINDOW_FOLLOW_CURSOR"].lower() == "true"
         if "WINDOW_HIDDEN" in changed:
             config.WINDOW_HIDDEN = changed["WINDOW_HIDDEN"].lower() == "true"
+        if "WAVE_GAIN" in changed:
+            config.WAVE_GAIN = float(changed["WAVE_GAIN"])
 
         self._close()
         self._on_save(changed)
+
+    def _save_and_restart(self) -> None:
+        """設定を保存してアプリを再起動する。"""
+        self._save()
+        # 保存後の.envを確認
+        from pathlib import Path
+        env_content = Path(_ENV_FILE).read_text(encoding="utf-8")
+        for line in env_content.splitlines():
+            if "WAVE_GAIN" in line:
+                logger.info("After save, .env contains: %s", line)
+        logger.info("config.WAVE_GAIN after save: %s", config.WAVE_GAIN)
+        if self._on_restart:
+            self._on_restart()
+
+    def _reset(self) -> None:
+        """設定を初期値に戻す（.env.sample で .env を上書き）。"""
+        if not messagebox.askyesno(
+            "設定の初期化",
+            "すべての設定をデフォルトに戻します。\nよろしいですか？\n\n※反映には再起動が必要です",
+            parent=self._root,
+        ):
+            return
+
+        env_file = ROOT_DIR / ".env"
+        # .env.sample を探す（ROOT_DIR → RESOURCES_DIR）
+        env_sample = ROOT_DIR / ".env.sample"
+        if not env_sample.exists():
+            env_sample = RESOURCES_DIR.parent / ".env.sample"
+        if not env_sample.exists():
+            env_sample = RESOURCES_DIR / ".env.sample"
+
+        if env_sample.exists():
+            shutil.copy(env_sample, env_file)
+            logger.info("Settings reset to defaults from %s", env_sample)
+        else:
+            logger.warning(".env.sample not found, cannot reset.")
+
+        self._close()
 
     def _cancel(self) -> None:
         self._close()

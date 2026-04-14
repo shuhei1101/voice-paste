@@ -1,6 +1,9 @@
 """エントリーポイント。起動フローを制御する高レベルモジュール。"""
 
+import os
 import queue
+import subprocess
+import sys
 import threading
 import time
 from pathlib import Path
@@ -13,7 +16,7 @@ from voice_paste.logger import setup_logger, get_logger
 from voice_paste.audio.recorder import AudioRecorder
 from voice_paste.transcription.whisper_transcriber import WhisperTranscriber
 from voice_paste.input.keyboard_sender import copy_to_clipboard, send_paste, send_enter
-from voice_paste.gui import RecordingModal, ConfirmMode
+from voice_paste.gui import RecordingModal, TranscribingOverlay, ConfirmMode
 from voice_paste.utils import load_prompt, load_yogo, build_initial_prompt
 from voice_paste.history import save_history, cleanup_history
 from voice_paste.constants import DEFAULT_AUDIO_TMP
@@ -21,7 +24,7 @@ from voice_paste.constants import DEFAULT_AUDIO_TMP
 logger = get_logger(__name__)
 
 # ディスパッチキューに流すコマンド種別
-DispatchCommand = Literal["session", "quit", "settings"]
+DispatchCommand = Literal["session", "quit", "settings", "restart"]
 
 
 def _run_once(
@@ -68,8 +71,17 @@ def _run_once(
         from voice_paste.tray import update_tray_state
         update_tray_state(tray_icon, "transcribing")
 
-    text = transcriber.transcribe(audio_file, prompt=prompt)
+    # 文字起こし中オーバーレイ表示
+    overlay = TranscribingOverlay()
+    overlay.show()
+
+    text = transcriber.transcribe(
+        audio_file, prompt=prompt,
+        on_segment=overlay.update,
+    )
     logger.info("Transcribed text: %s", text)
+
+    overlay.close()
 
     # トレイアイコンをアイドルに戻す
     if tray_icon:
@@ -101,6 +113,17 @@ def _run_one_shot() -> None:
     _run_once(recorder, transcriber)
 
 
+def _restart_process() -> None:
+    """現在のプロセスを新しいプロセスで再起動する。"""
+    logger.info("Restarting process: %s %s", sys.executable, sys.argv)
+    # 現在の環境変数をそのまま引き継いで新プロセスを起動
+    subprocess.Popen(
+        [sys.executable] + sys.argv,
+        env=os.environ.copy(),
+    )
+    os._exit(0)
+
+
 def _run_resident() -> None:
     """
     常駐モード。トレイアイコン + グローバルホットキーで録音を起動する。
@@ -125,6 +148,9 @@ def _run_resident() -> None:
     def request_quit() -> None:
         dispatch_queue.put("quit")
 
+    def request_restart() -> None:
+        dispatch_queue.put("restart")
+
     def request_settings() -> None:
         if session_active.is_set():
             logger.warning("Session active. Settings ignored.")
@@ -138,6 +164,7 @@ def _run_resident() -> None:
         hotkey=config.RESIDENT_HOTKEY,
         on_start_session=request_session,
         on_settings=request_settings,
+        on_restart=request_restart,
         on_quit=request_quit,
     )
 
@@ -169,6 +196,11 @@ def _run_resident() -> None:
                 logger.info("Dispatch loop received quit.")
                 break
 
+            if cmd == "restart":
+                logger.info("Dispatch loop received restart.")
+                _restart_process()
+                break  # フォールバック（_restart_processが戻ってきた場合）
+
             if cmd == "settings":
                 session_active.set()
                 try:
@@ -185,7 +217,10 @@ def _run_resident() -> None:
                             tray_icon.title = "voice-paste: 待機中"
                             logger.info("Hotkey re-registered: %s", config.RESIDENT_HOTKEY)
 
-                    settings_win = SettingsWindow(on_save=_on_settings_saved)
+                    settings_win = SettingsWindow(
+                        on_save=_on_settings_saved,
+                        on_restart=_restart_process,
+                    )
                     settings_win.show()
                 except Exception:
                     logger.exception("Settings window failed.")
@@ -218,6 +253,7 @@ def run() -> None:
     """メイン処理フローを実行する。"""
     setup_logger(config.LOG_LEVEL)
     logger.info("voice-paste started. resident=%s", config.RESIDENT_MODE)
+    logger.info("config.WAVE_GAIN=%s", config.WAVE_GAIN)
 
     # 起動時に古い履歴を削除
     cleanup_history()

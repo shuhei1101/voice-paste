@@ -4,6 +4,12 @@ setlocal
 set "LOG_DIR=%~dp0log"
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 
+REM 当日以外の古いログを削除
+for /f %%D in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd"') do set "TODAY=%%D"
+for %%F in ("%LOG_DIR%\*.log") do (
+    echo %%~nF | findstr /b "%TODAY%" >nul || del "%%F" 2>nul
+)
+
 for /f %%I in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMddHHmmss"') do set "TS=%%I"
 set "BAT_LOG=%LOG_DIR%\%TS%_run_tray_bat.log"
 

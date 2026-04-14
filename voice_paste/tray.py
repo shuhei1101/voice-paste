@@ -114,6 +114,7 @@ def build_tray_icon(
     hotkey: str,
     on_start_session: Callable[[], None],
     on_settings: Callable[[], None],
+    on_restart: Callable[[], None],
     on_quit: Callable[[], None],
 ) -> pystray.Icon:
     """
@@ -138,6 +139,11 @@ def build_tray_icon(
         logger.info("Tray menu: settings requested.")
         on_settings()
 
+    def _on_restart(icon: "pystray.Icon", item: "pystray.MenuItem") -> None:
+        logger.info("Tray menu: restart requested.")
+        on_restart()
+        icon.stop()
+
     def _on_quit(icon: "pystray.Icon", item: "pystray.MenuItem") -> None:
         logger.info("Tray menu: quit requested.")
         on_quit()
@@ -148,6 +154,7 @@ def build_tray_icon(
         pystray.MenuItem("ログフォルダを開く", _on_open_log),
         pystray.MenuItem("設定", _on_settings),
         pystray.Menu.SEPARATOR,
+        pystray.MenuItem("再起動", _on_restart),
         pystray.MenuItem("終了", _on_quit),
     )
 

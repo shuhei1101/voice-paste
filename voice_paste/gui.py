@@ -2,6 +2,7 @@
 
 import ctypes
 import ctypes.wintypes
+import time
 import tkinter as tk
 from tkinter import font as tkfont
 from typing import Callable, TYPE_CHECKING, Literal
@@ -240,7 +241,7 @@ class RecordingModal:
             noise = random.uniform(0.5, 1.5) if level > 0.01 else random.uniform(0.8, 1.2)
             target_h = max(
                 _WAVE_MIN_HEIGHT,
-                min(_WAVE_MAX_HEIGHT, level * _WAVE_MAX_HEIGHT * center_factor * noise * 8),
+                min(_WAVE_MAX_HEIGHT, level * _WAVE_MAX_HEIGHT * center_factor * noise * config.WAVE_GAIN),
             )
             self._bar_heights[i] = self._bar_heights[i] * 0.6 + target_h * 0.4
 
@@ -276,3 +277,94 @@ class RecordingModal:
             self._root.destroy()
             self._root = None
         self._on_cancel()
+
+
+class TranscribingOverlay:
+    """文字起こし中の経過表示ウィンドウ。
+
+    mainloop を使わず update() ループで動作するため、
+    メインスレッドで同期的に文字起こしを実行しながら表示を更新できる。
+    """
+
+    def __init__(self) -> None:
+        self._root: tk.Tk | None = None
+        self._status_label: tk.Label | None = None
+        self._elapsed_label: tk.Label | None = None
+        self._start_time: float = 0.0
+        self._dot_count = 0
+        self._last_dot_update: float = 0.0
+
+    def show(self) -> None:
+        """オーバーレイウィンドウを表示する。"""
+        self._root = tk.Tk()
+        self._root.title("voice-paste")
+        self._root.resizable(False, False)
+        self._root.overrideredirect(True)
+
+        win_w, win_h = 300, 120
+        x, y = _calc_window_position(
+            win_w, win_h,
+            config.WINDOW_POSITION,
+            config.WINDOW_FOLLOW_CURSOR,
+            self._root,
+        )
+        self._root.geometry(f"{win_w}x{win_h}+{x}+{y}")
+        self._root.configure(bg=_BG)
+        self._root.attributes("-topmost", config.WINDOW_TOPMOST)
+        self._root.attributes("-alpha", 0.9)
+
+        if config.WINDOW_HIDDEN:
+            self._root.withdraw()
+
+        label_font = tkfont.Font(family="Yu Gothic UI", size=13, weight="bold")
+        info_font = tkfont.Font(family="Yu Gothic UI", size=10)
+        hint_font = tkfont.Font(family="Yu Gothic UI", size=9)
+
+        self._status_label = tk.Label(
+            self._root, text="文字起こし中",
+            font=label_font, bg=_BG, fg=_ACCENT,
+        )
+        self._status_label.pack(pady=(18, 6))
+
+        self._elapsed_label = tk.Label(
+            self._root, text="経過: 0.0秒",
+            font=info_font, bg=_BG, fg="#888888",
+        )
+        self._elapsed_label.pack(pady=(0, 8))
+
+        tk.Label(
+            self._root,
+            text="貼り付けたい場所にカーソルを合わせてください",
+            font=hint_font, bg=_BG, fg="#aaaaaa",
+        ).pack(pady=(0, 6))
+
+        self._start_time = time.monotonic()
+        self._last_dot_update = self._start_time
+        self._root.update()
+
+    def update(self) -> None:
+        """UIを更新する。文字起こしループ中に定期的に呼ぶ。"""
+        if not self._root:
+            return
+
+        now = time.monotonic()
+        elapsed = now - self._start_time
+
+        if self._elapsed_label:
+            self._elapsed_label.configure(text=f"経過: {elapsed:.1f}秒")
+
+        # ドットアニメーション（0.5秒ごと）
+        if now - self._last_dot_update >= 0.5:
+            self._dot_count = (self._dot_count + 1) % 4
+            dots = "." * self._dot_count
+            if self._status_label:
+                self._status_label.configure(text=f"文字起こし中{dots}")
+            self._last_dot_update = now
+
+        self._root.update()
+
+    def close(self) -> None:
+        """ウィンドウを閉じる。"""
+        if self._root:
+            self._root.destroy()
+            self._root = None

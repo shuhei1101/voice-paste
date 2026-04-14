@@ -5,6 +5,7 @@ Implementation: whisper_transcriber.py
 """
 
 from pathlib import Path
+from typing import Callable
 
 from faster_whisper import WhisperModel
 
@@ -35,12 +36,18 @@ class WhisperTranscriber(Transcribable):
         )
         logger.info("WhisperModel initialized successfully.")
 
-    def transcribe(self, audio_file: Path, prompt: str = "") -> str:
+    def transcribe(
+        self,
+        audio_file: Path,
+        prompt: str = "",
+        on_segment: Callable[[], None] | None = None,
+    ) -> str:
         """
         音声ファイルを文字起こしする。
 
         :param audio_file: 文字起こし対象の音声ファイルパス
         :param prompt: Whisperに渡す初期プロンプト（用語集等）
+        :param on_segment: セグメント処理ごとに呼ばれるコールバック（UI更新用）
         :return: 文字起こし結果のテキスト
         """
         logger.info("Starting transcription: file=%s", audio_file)
@@ -71,9 +78,14 @@ class WhisperTranscriber(Transcribable):
             info.duration,
         )
 
-        # セグメントごとに改行で結合
-        lines = [segment.text.strip() for segment in segments]
-        lines = [line for line in lines if line]
+        # セグメントごとに改行で結合（セグメント処理ごとにコールバック）
+        lines: list[str] = []
+        for segment in segments:
+            text = segment.text.strip()
+            if text:
+                lines.append(text)
+            if on_segment:
+                on_segment()
         result = "\n".join(lines)
         logger.info("Transcription completed: %d chars, %d segments", len(result), len(lines))
         return result

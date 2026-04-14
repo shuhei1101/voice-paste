@@ -27,7 +27,7 @@ if not _env_sample.exists():
 if not _env_file.exists() and _env_sample.exists():
     shutil.copy(_env_sample, _env_file)
 
-load_dotenv(_env_file)
+load_dotenv(_env_file, override=True)
 
 # --- Whisper モデル設定 ---
 WHISPER_MODEL: str = os.getenv("WHISPER_MODEL", DEFAULT_WHISPER_MODEL)
@@ -109,3 +109,5 @@ WINDOW_POSITION: str = os.getenv("WINDOW_POSITION", "center")
 WINDOW_FOLLOW_CURSOR: bool = os.getenv("WINDOW_FOLLOW_CURSOR", "true").lower() == "true"
 # ウィンドウを表示せずトレイアイコンだけで状態表示する
 WINDOW_HIDDEN: bool = os.getenv("WINDOW_HIDDEN", "false").lower() == "true"
+# 波形の感度（大きいほど小さい声でも波形が大きく振れる）
+WAVE_GAIN: float = float(os.getenv("WAVE_GAIN", "4"))

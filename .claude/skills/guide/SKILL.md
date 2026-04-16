@@ -14,14 +14,11 @@ user_invocable: true
 
 ## 前提知識
 
-以下の内容は参照ドキュメントを参照すること：
+参照ドキュメントはプロジェクト配下の `CLAUDE.md` に配置されている（関連ディレクトリで作業する際に自動読み込みされる）：
 
-- `references/project_overview.md` — フォルダ構成・アプリケーションフロー
-- `references/settings.md` — .env設定項目・編集方法
-- `references/gui.md` — 録音モーダル・設定ウィンドウ・トレイ
-- `references/transcription.md` — Whisperモデル・文字起こし処理
-- `references/libraries.md` — 使用パッケージ一覧
-- `references/logging.md` — ログ設定・出力先
+- `CLAUDE.md`（プロジェクトルート） — フォルダ構成・アプリケーションフロー・外部ライブラリ
+- `voice_paste/CLAUDE.md` — 設定（.env / config.py / settings_gui.py）・GUI・ログ
+- `voice_paste/transcription/CLAUDE.md` — faster-whisper・文字起こし処理
 
 ---
 
@@ -64,7 +61,7 @@ AI実施タスク:
 入力: なし
 
 AI実施タスク:
-  - `references/project_overview.md` を読み込む
+  - プロジェクトルートの `CLAUDE.md` を読み込む（「フォルダ構成」「アプリケーションフロー」セクション）
   - フォルダ構成とアプリケーションフローの概要をユーザーに説明する
 
 出力: フォルダ構成図・アプリケーションフロー・スレッド構成の説明
@@ -82,7 +79,7 @@ AI実施タスク:
 入力: なし
 
 AI実施タスク:
-  - `references/settings.md` を読み込む
+  - `voice_paste/CLAUDE.md` を読み込む（「設定」セクション）
   - 設定項目一覧と編集方法を説明する
 
 出力: 設定項目テーブル・編集手順
@@ -100,7 +97,7 @@ AI実施タスク:
 入力: なし
 
 AI実施タスク:
-  - `references/gui.md` を読み込む
+  - `voice_paste/CLAUDE.md` を読み込む（「GUI」セクション）
   - ファイル一覧・技術スタック・よくある改修を説明する
 
 出力: GUIファイル一覧・技術スタック・改修ガイド
@@ -118,7 +115,7 @@ AI実施タスク:
 入力: なし
 
 AI実施タスク:
-  - `references/transcription.md` を読み込む
+  - `voice_paste/transcription/CLAUDE.md` を読み込む
   - ファイル一覧・faster-whisper概要・よくある改修を説明する
 
 出力: 文字起こしファイル一覧・faster-whisper概要・改修ガイド
@@ -136,7 +133,7 @@ AI実施タスク:
 入力: なし
 
 AI実施タスク:
-  - `references/libraries.md` を読み込む
+  - プロジェクトルートの `CLAUDE.md` を読み込む（「外部ライブラリ」セクション）
   - ライブラリ一覧と更新・追加方法を説明する
 
 出力: ライブラリテーブル・更新手順
@@ -154,7 +151,7 @@ AI実施タスク:
 入力: なし
 
 AI実施タスク:
-  - `references/logging.md` を読み込む
+  - `voice_paste/CLAUDE.md` を読み込む（「ログ」セクション）
   - ログ設定・出力先・よくある改修を説明する
 
 出力: ログファイル一覧・設定・改修ガイド
@@ -189,7 +186,7 @@ AI実施タスク:
 ## 動作ルール
 
 1. メニューを表示して選択を待つ
-2. 選択された項目の概要を説明する
+2. 選択された項目の概要を説明する（参照先 CLAUDE.md を Read で読む）
 3. ユーザーが具体的な編集を求めたら、該当ファイルを **Read で読んでから** 案内・実装する
 4. 作業後はメインメニューに戻るか聞く
-5. 実装の内部詳細はこのスキルに書かず、必ずソースを読んで最新の状態を確認する
+5. 実装の内部詳細はこのスキルや CLAUDE.md に書かず、必ずソースを読んで最新の状態を確認する

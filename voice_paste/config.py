@@ -9,23 +9,85 @@ import os
 from voice_paste.constants import (
     ROOT_DIR,
     RESOURCES_DIR,
+    LEGACY_ROOT_DIR,
     DEFAULT_PROMPT_FILE,
     DEFAULT_YOGO_FILE,
     DEFAULT_WHISPER_MODEL,
     DEFAULT_DEVICE,
     DEFAULT_COMPUTE_TYPE,
+    _is_frozen,
 )
 
-# .env は書き込み可能な ROOT_DIR 配下を参照する（bundle時は exe の隣）
+
+# ブートストラップ・移行処理は bundle 実行時のみ行う（dev モードでは
+# プロジェクトルートを汚さないため）
+_BOOTSTRAP_ENABLED = _is_frozen()
+
+
+def _migrate_from_legacy(filename: str) -> None:
+    """旧パス（exe隣）にユーザーデータがあれば新パス（%APPDATA%）へ移行する。"""
+    if LEGACY_ROOT_DIR is None or LEGACY_ROOT_DIR == ROOT_DIR:
+        return
+    legacy = LEGACY_ROOT_DIR / filename
+    current = ROOT_DIR / filename
+    if legacy.exists() and not current.exists():
+        try:
+            shutil.move(str(legacy), str(current))
+        except Exception:
+            # 移行失敗時はコピーを試みる（移動元が使用中など）
+            try:
+                shutil.copy2(str(legacy), str(current))
+            except Exception:
+                pass
+
+
+def _bootstrap_from_resources(filename: str) -> None:
+    """バンドル同梱のデフォルトを ROOT_DIR にコピーする（未存在時のみ）。"""
+    dest = ROOT_DIR / filename
+    if dest.exists():
+        return
+    src = RESOURCES_DIR / filename
+    if src.exists():
+        try:
+            shutil.copy2(str(src), str(dest))
+        except Exception:
+            pass
+
+
 _env_file = ROOT_DIR / ".env"
-_env_sample = ROOT_DIR / ".env.sample"
-# bundle 実行時、exe の隣に .env.sample が無ければ RESOURCES_DIR 側を探す
-if not _env_sample.exists():
-    _bundled_sample = RESOURCES_DIR.parent / ".env.sample"
-    if _bundled_sample.exists():
-        _env_sample = _bundled_sample
-if not _env_file.exists() and _env_sample.exists():
-    shutil.copy(_env_sample, _env_file)
+
+if _BOOTSTRAP_ENABLED:
+    # 旧パス（exe隣）からの移行 → バンドル同梱ファイルからのブートストラップ
+    for _name in (".env", "yogo.csv", "prompt.txt"):
+        _migrate_from_legacy(_name)
+
+    # .env は .env.sample からもブートストラップ可能
+    if not _env_file.exists():
+        _env_sample = RESOURCES_DIR / ".env.sample"
+        if not _env_sample.exists():
+            _env_sample = RESOURCES_DIR.parent / ".env.sample"
+        if _env_sample.exists():
+            shutil.copy(_env_sample, _env_file)
+
+    _bootstrap_from_resources("yogo.csv")
+    _bootstrap_from_resources("prompt.txt")
+
+    # history / log / cache ディレクトリも旧パスから移行
+    for _dir in ("history", "log", "cache"):
+        if LEGACY_ROOT_DIR is not None and LEGACY_ROOT_DIR != ROOT_DIR:
+            _legacy_dir = LEGACY_ROOT_DIR / _dir
+            _new_dir = ROOT_DIR / _dir
+            if _legacy_dir.exists() and not _new_dir.exists():
+                try:
+                    shutil.move(str(_legacy_dir), str(_new_dir))
+                except Exception:
+                    pass
+else:
+    # 開発時は .env が無ければ .env.sample から作る（従来動作）
+    if not _env_file.exists():
+        _env_sample = ROOT_DIR / ".env.sample"
+        if _env_sample.exists():
+            shutil.copy(_env_sample, _env_file)
 
 load_dotenv(_env_file, override=True)
 
@@ -50,36 +112,44 @@ WHISPER_NO_SPEECH_THRESHOLD: float = float(
     os.getenv("WHISPER_NO_SPEECH_THRESHOLD", "0.6")
 )
 
+def _resolve_user_file(env_value: str | None, filename: str, default: Path) -> Path:
+    """ユーザー編集ファイルのパスを解決する。
+
+    優先順:
+      1. 環境変数が絶対パス → そのまま使用
+      2. ROOT_DIR / ファイル名（%APPDATA%\\voice-paste 配下を最優先）
+      3. 環境変数が相対パス → ROOT_DIR / 相対パス
+      4. RESOURCES_DIR / ファイル名（バンドル同梱のデフォルト）
+      5. default
+    """
+    root_candidate = ROOT_DIR / filename
+    if env_value:
+        p = Path(env_value)
+        if p.is_absolute():
+            return p
+        if root_candidate.exists():
+            return root_candidate
+        rel_candidate = ROOT_DIR / p
+        if rel_candidate.exists():
+            return rel_candidate
+        bundled = RESOURCES_DIR / p.name
+        if bundled.exists():
+            return bundled
+        return root_candidate
+    if root_candidate.exists():
+        return root_candidate
+    return default
+
+
 # --- プロンプトファイル ---
-# 相対パス指定の場合、bundle時は RESOURCES_DIR ベースで解決する
-_prompt_env = os.getenv("PROMPT_FILE")
-if _prompt_env:
-    _prompt_path = Path(_prompt_env)
-    if not _prompt_path.is_absolute():
-        # 開発時は ROOT_DIR からの相対、bundle時は RESOURCES_DIR の親から解決
-        _candidate = ROOT_DIR / _prompt_path
-        if not _candidate.exists() and (RESOURCES_DIR / _prompt_path.name).exists():
-            _candidate = RESOURCES_DIR / _prompt_path.name
-        _prompt_path = _candidate
-    PROMPT_FILE: Path = _prompt_path
-else:
-    PROMPT_FILE = DEFAULT_PROMPT_FILE
+PROMPT_FILE: Path = _resolve_user_file(
+    os.getenv("PROMPT_FILE"), "prompt.txt", DEFAULT_PROMPT_FILE,
+)
 
 # --- 用語集CSVファイル ---
-# .env指定 → ROOT_DIR直下 → resources内 の優先順で探す
-_yogo_env = os.getenv("YOGO_FILE")
-if _yogo_env:
-    _yogo_path = Path(_yogo_env)
-    if not _yogo_path.is_absolute():
-        _candidate = ROOT_DIR / _yogo_path
-        if not _candidate.exists() and (RESOURCES_DIR / _yogo_path.name).exists():
-            _candidate = RESOURCES_DIR / _yogo_path.name
-        _yogo_path = _candidate
-    YOGO_FILE: Path = _yogo_path
-else:
-    # ROOT_DIR直下にあればそちらを優先（ユーザーが編集しやすい）
-    _yogo_root = ROOT_DIR / "yogo.csv"
-    YOGO_FILE = _yogo_root if _yogo_root.exists() else DEFAULT_YOGO_FILE
+YOGO_FILE: Path = _resolve_user_file(
+    os.getenv("YOGO_FILE"), "yogo.csv", DEFAULT_YOGO_FILE,
+)
 
 # --- 動作設定 ---
 
@@ -93,6 +163,7 @@ CONFIRM_HOTKEY: str = os.getenv("CONFIRM_HOTKEY", "<ctrl>+<alt>+d")
 CONFIRM_PASTE_ONLY_HOTKEY: str = os.getenv("CONFIRM_PASTE_ONLY_HOTKEY", "<ctrl>+<alt>+v")
 CANCEL_HOTKEY: str = os.getenv("CANCEL_HOTKEY", "<ctrl>+<alt>+q")
 COPY_ONLY_HOTKEY: str = os.getenv("COPY_ONLY_HOTKEY", "<ctrl>+<alt>+c")
+PAUSE_HOTKEY: str = os.getenv("PAUSE_HOTKEY", "<ctrl>+<alt>+z")
 
 # 貼付から送信(Enter)までの待機秒数（アプリによってはペースト直後のEnterが無視されるため）
 PASTE_ENTER_DELAY: float = float(os.getenv("PASTE_ENTER_DELAY", "0.5"))

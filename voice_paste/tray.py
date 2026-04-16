@@ -9,7 +9,7 @@ from typing import Callable, Literal
 from PIL import Image, ImageDraw, ImageFont
 import pystray
 
-from voice_paste.constants import DEFAULT_ICON_FILE, LOG_DIR
+from voice_paste.constants import DEFAULT_ICON_FILE, LOG_DIR, ROOT_DIR
 from voice_paste.logger import get_logger
 
 logger = get_logger(__name__)
@@ -110,6 +110,19 @@ def _open_log_folder() -> None:
         logger.exception("Failed to open log folder.")
 
 
+def _open_config_folder() -> None:
+    """エクスプローラーで設定フォルダ（%APPDATA%\\voice-paste）を開く。"""
+    ROOT_DIR.mkdir(parents=True, exist_ok=True)
+    logger.info("Opening config folder: %s", ROOT_DIR)
+    try:
+        if sys.platform.startswith("win"):
+            os.startfile(str(ROOT_DIR))  # type: ignore[attr-defined]
+        else:
+            subprocess.Popen(["xdg-open", str(ROOT_DIR)])
+    except Exception:
+        logger.exception("Failed to open config folder.")
+
+
 def build_tray_icon(
     hotkey: str,
     on_start_session: Callable[[], None],
@@ -135,6 +148,9 @@ def build_tray_icon(
     def _on_open_log(icon: "pystray.Icon", item: "pystray.MenuItem") -> None:
         _open_log_folder()
 
+    def _on_open_config(icon: "pystray.Icon", item: "pystray.MenuItem") -> None:
+        _open_config_folder()
+
     def _on_settings(icon: "pystray.Icon", item: "pystray.MenuItem") -> None:
         logger.info("Tray menu: settings requested.")
         on_settings()
@@ -151,6 +167,7 @@ def build_tray_icon(
 
     menu = pystray.Menu(
         pystray.MenuItem("録音開始", _on_start, default=True),
+        pystray.MenuItem("設定フォルダを開く", _on_open_config),
         pystray.MenuItem("ログフォルダを開く", _on_open_log),
         pystray.MenuItem("設定", _on_settings),
         pystray.Menu.SEPARATOR,

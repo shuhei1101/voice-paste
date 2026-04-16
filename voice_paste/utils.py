@@ -48,6 +48,25 @@ def load_yogo(yogo_file: Path) -> list[tuple[str, str]]:
     return entries
 
 
+def apply_yogo_replacements(text: str, glossary: list[tuple[str, str]]) -> str:
+    """用語集に基づいて文字起こし結果を単純置換する。
+
+    Whisper への initial_prompt はヒントにすぎず採用されないことがあるため、
+    確実に直したい語は後処理でも置換する。
+    """
+    if not text or not glossary:
+        return text
+    result = text
+    replaced: list[str] = []
+    for wrong, correct in glossary:
+        if wrong and wrong in result:
+            result = result.replace(wrong, correct)
+            replaced.append(f"{wrong}→{correct}")
+    if replaced:
+        logger.info("Yogo replacements applied: %s", ", ".join(replaced))
+    return result
+
+
 def build_initial_prompt(prompt: str, glossary: list[tuple[str, str]]) -> str:
     """
     プロンプトと用語集を結合してWhisperのinitial_promptを構築する。
@@ -62,8 +81,15 @@ def build_initial_prompt(prompt: str, glossary: list[tuple[str, str]]) -> str:
         parts.append(prompt)
 
     if glossary:
-        lines = [f"「{wrong}」ではなく「{correct}」" for wrong, correct in glossary]
-        parts.append("以下の用語に注意してください:\n" + "\n".join(lines))
+        lines = [
+            f"「{wrong}」と聞こえたら「{correct}」と表記する"
+            for wrong, correct in glossary
+        ]
+        parts.append(
+            "次の用語は必ず指定の表記で出力してください。"
+            "読み方が一致したら原則として右側の表記に統一します。\n"
+            + "\n".join(lines)
+        )
 
     result = "\n\n".join(parts)
     if result:

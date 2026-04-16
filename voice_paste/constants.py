@@ -2,6 +2,7 @@
 
 VERSION = "1.0.0"
 
+import os
 import sys
 from pathlib import Path
 
@@ -12,25 +13,38 @@ def _is_frozen() -> bool:
 
 
 # リソースディレクトリ（読み取り専用）: 開発時はソースツリー、bundle時は _MEIPASS を参照
+# ROOT_DIR（書き込み可能）: 開発時はプロジェクトルート、bundle時は %APPDATA%\voice-paste
 if _is_frozen():
-    # PyInstaller 実行時: _MEIPASS が展開先ディレクトリ
     _BUNDLE_DIR = Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent))
-    # 書き込み可能ディレクトリは exe の隣に配置
-    _WRITABLE_ROOT = Path(sys.executable).parent
     RESOURCES_DIR = _BUNDLE_DIR / "resources"
-    ROOT_DIR = _WRITABLE_ROOT
+    # ユーザー設定は %APPDATA%\voice-paste に配置
+    # （exe 隣だとアプリ更新時にユーザーデータが消えるため）
+    _appdata = os.getenv("APPDATA")
+    if _appdata:
+        ROOT_DIR = Path(_appdata) / "voice-paste"
+    else:
+        # APPDATA が取れない環境では従来どおり exe の隣
+        ROOT_DIR = Path(sys.executable).parent
+    ROOT_DIR.mkdir(parents=True, exist_ok=True)
+    # exe の隣（旧パス）: 旧バージョンから移行するために保持
+    LEGACY_ROOT_DIR: Path | None = Path(sys.executable).parent
 else:
     ROOT_DIR = Path(__file__).parent.parent
     RESOURCES_DIR = ROOT_DIR / "resources"
+    LEGACY_ROOT_DIR = None
 
 # ログディレクトリ（書き込み先）
 LOG_DIR = ROOT_DIR / "log"
 
 # デフォルトのプロンプトファイルパス
-DEFAULT_PROMPT_FILE = RESOURCES_DIR / "prompt.txt"
+# bundle時: %APPDATA%\voice-paste\prompt.txt（編集可）
+# 開発時: resources/prompt.txt
+DEFAULT_PROMPT_FILE = ROOT_DIR / "prompt.txt" if _is_frozen() else RESOURCES_DIR / "prompt.txt"
 
 # デフォルトの用語集CSVファイルパス
-DEFAULT_YOGO_FILE = RESOURCES_DIR / "yogo.csv"
+# bundle時: %APPDATA%\voice-paste\yogo.csv（編集可）
+# 開発時: resources/yogo.csv
+DEFAULT_YOGO_FILE = ROOT_DIR / "yogo.csv" if _is_frozen() else RESOURCES_DIR / "yogo.csv"
 
 # デフォルトのアイコンファイルパス（トレイアイコン用）
 DEFAULT_ICON_FILE = RESOURCES_DIR / "icon.png"

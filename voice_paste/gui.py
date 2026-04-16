@@ -28,11 +28,14 @@ _WAVE_BAR_GAP = 3          # バー間隔（px）
 _WAVE_MAX_HEIGHT = 160     # バーの最大高さ（px）
 _WAVE_MIN_HEIGHT = 3       # バーの最小高さ（px）
 _WAVE_COLOR = "#0078d4"    # バーの色
+_WAVE_PAUSED_COLOR = "#555555"  # 一時停止中のバーの色
 
 # ダークテーマ色
 _BG = "#1e1e1e"
 _FG = "#e0e0e0"
 _ACCENT = "#0078d4"
+_PAUSE_COLOR = "#e0a000"   # 一時停止ボタン（黄色系）
+_RESUME_COLOR = "#0078d4"  # 再開ボタン（青）
 
 
 def _get_cursor_monitor_rect() -> tuple[int, int, int, int]:
@@ -111,6 +114,7 @@ class RecordingModal:
         self._bar_heights: list[float] = [_WAVE_MIN_HEIGHT] * _WAVE_BAR_COUNT
         self._animation_running = False
         self._hotkey_listener: pynput_keyboard.GlobalHotKeys | None = None
+        self._pause_btn: tk.Button | None = None
 
     def show(self) -> None:
         """モーダルウィンドウを表示する。"""
@@ -122,7 +126,7 @@ class RecordingModal:
         # ウィンドウサイズを計算
         canvas_width = _WAVE_BAR_COUNT * (_WAVE_BAR_WIDTH + _WAVE_BAR_GAP) + _WAVE_BAR_GAP
         window_width = max(canvas_width + 40, 360)
-        window_height = 260
+        window_height = 300
 
         # ウィンドウ位置
         x, y = _calc_window_position(
@@ -152,11 +156,24 @@ class RecordingModal:
         )
         self._canvas.pack(pady=(14, 8))
 
+        # 一時停止ボタンフレーム
+        pause_frame = tk.Frame(self._root, bg=_BG)
+        pause_frame.pack(pady=(0, 6))
+
+        btn_font = tkfont.Font(family="Yu Gothic UI", size=10, weight="bold")
+
+        self._pause_btn = tk.Button(
+            pause_frame, text="⏸ 一時停止", font=btn_font,
+            bg=_PAUSE_COLOR, fg="#ffffff",
+            activebackground="#c08800", activeforeground="#ffffff",
+            relief="flat", padx=16, pady=5, cursor="hand2",
+            command=self._toggle_pause,
+        )
+        self._pause_btn.pack()
+
         # ボタンフレーム
         btn_frame = tk.Frame(self._root, bg=_BG)
         btn_frame.pack(pady=(0, 12))
-
-        btn_font = tkfont.Font(family="Yu Gothic UI", size=10, weight="bold")
 
         # 貼付+送信 ボタン（青）
         tk.Button(
@@ -190,12 +207,15 @@ class RecordingModal:
         self._root.bind("<Escape>", lambda _: self._cancel())
 
         # グローバルホットキーで確定/キャンセル（ウィンドウ非フォーカスでも動作）
-        self._hotkey_listener = pynput_keyboard.GlobalHotKeys({
+        hotkeys = {
             config.CONFIRM_HOTKEY: lambda: self._hotkey_confirm("paste_enter"),
             config.CONFIRM_PASTE_ONLY_HOTKEY: lambda: self._hotkey_confirm("paste_only"),
             config.COPY_ONLY_HOTKEY: lambda: self._hotkey_confirm("copy_only"),
             config.CANCEL_HOTKEY: self._hotkey_cancel,
-        })
+        }
+        if config.PAUSE_HOTKEY and config.PAUSE_HOTKEY not in hotkeys:
+            hotkeys[config.PAUSE_HOTKEY] = self._hotkey_toggle_pause
+        self._hotkey_listener = pynput_keyboard.GlobalHotKeys(hotkeys)
         self._hotkey_listener.start()
 
         # 波形アニメーション開始
@@ -203,6 +223,29 @@ class RecordingModal:
         self._update_wave()
 
         self._root.mainloop()
+
+    def _toggle_pause(self) -> None:
+        """録音の一時停止/再開を切り替える。"""
+        if self._recorder is None:
+            return
+        if self._recorder.is_paused:
+            self._recorder.resume()
+            if self._pause_btn:
+                self._pause_btn.configure(
+                    text="⏸ 一時停止",
+                    bg=_PAUSE_COLOR,
+                    activebackground="#c08800",
+                )
+            logger.info("Recording resumed by user.")
+        else:
+            self._recorder.pause()
+            if self._pause_btn:
+                self._pause_btn.configure(
+                    text="▶ 再開",
+                    bg=_RESUME_COLOR,
+                    activebackground="#005fa3",
+                )
+            logger.info("Recording paused by user.")
 
     def _hotkey_confirm(self, mode: ConfirmMode) -> None:
         """グローバルホットキーからの確定（メインスレッドへ委譲）。"""
@@ -214,6 +257,11 @@ class RecordingModal:
         if self._root:
             self._root.after(0, self._cancel)
 
+    def _hotkey_toggle_pause(self) -> None:
+        """グローバルホットキーからの一時停止/再開（メインスレッドへ委譲）。"""
+        if self._root:
+            self._root.after(0, self._toggle_pause)
+
     def _stop_hotkey_listener(self) -> None:
         if self._hotkey_listener:
             self._hotkey_listener.stop()
@@ -224,7 +272,9 @@ class RecordingModal:
         if not self._animation_running or self._canvas is None or self._root is None:
             return
 
-        if self._recorder is not None:
+        paused = self._recorder is not None and self._recorder.is_paused
+
+        if self._recorder is not None and not paused:
             level = self._recorder.get_level()
         else:
             level = 0.0
@@ -232,6 +282,8 @@ class RecordingModal:
         canvas_w = self._canvas.winfo_width() or (_WAVE_BAR_COUNT * (_WAVE_BAR_WIDTH + _WAVE_BAR_GAP))
         canvas_h = self._canvas.winfo_height() or (_WAVE_MAX_HEIGHT + 10)
         center_y = canvas_h // 2
+
+        bar_color = _WAVE_PAUSED_COLOR if paused else _WAVE_COLOR
 
         import random
         self._canvas.delete("all")
@@ -252,7 +304,7 @@ class RecordingModal:
                 center_y - bar_h / 2,
                 x + _WAVE_BAR_WIDTH,
                 center_y + bar_h / 2,
-                fill=_WAVE_COLOR,
+                fill=bar_color,
                 outline="",
             )
 
@@ -340,10 +392,19 @@ class TranscribingOverlay:
 
         self._start_time = time.monotonic()
         self._last_dot_update = self._start_time
+        self._running = True
         self._root.update()
+        self._tick()
 
-    def update(self) -> None:
-        """UIを更新する。文字起こしループ中に定期的に呼ぶ。"""
+    def _tick(self) -> None:
+        """0.1秒ごとに経過時間とドットアニメーションを自律更新する。"""
+        if not self._running or not self._root:
+            return
+        self._update_ui()
+        self._root.after(100, self._tick)
+
+    def _update_ui(self) -> None:
+        """経過時間・ドットアニメーションを更新する。"""
         if not self._root:
             return
 
@@ -353,7 +414,7 @@ class TranscribingOverlay:
         if self._elapsed_label:
             self._elapsed_label.configure(text=f"経過: {elapsed:.1f}秒")
 
-        # ドットアニメーション（0.5秒ごと）
+        # ドットアニメーション
         if now - self._last_dot_update >= 0.5:
             self._dot_count = (self._dot_count + 1) % 4
             dots = "." * self._dot_count
@@ -363,8 +424,13 @@ class TranscribingOverlay:
 
         self._root.update()
 
+    def update(self) -> None:
+        """UIを更新する。文字起こしループ中に定期的に呼ぶ。"""
+        self._update_ui()
+
     def close(self) -> None:
         """ウィンドウを閉じる。"""
+        self._running = False
         if self._root:
             self._root.destroy()
             self._root = None

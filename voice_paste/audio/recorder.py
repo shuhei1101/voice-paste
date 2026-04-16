@@ -27,6 +27,7 @@ class AudioRecorder:
         self._stream: sd.InputStream | None = None
         # 波形表示用の最新フレームバッファ
         self._latest_frame: np.ndarray = np.zeros(1, dtype="int16")
+        self._paused = False
 
     def get_level(self) -> float:
         """
@@ -38,16 +39,23 @@ class AudioRecorder:
         # int16の最大値（32767）で正規化
         return min(rms / 32767.0, 1.0)
 
+    @property
+    def is_paused(self) -> bool:
+        """録音が一時停止中かどうかを返す。"""
+        return self._paused
+
     def start(self) -> None:
         """録音を開始する。"""
         logger.info("Recording started. sample_rate=%d", self._sample_rate)
         self._frames = []
         self._latest_frame = np.zeros(1, dtype="int16")
+        self._paused = False
 
         def callback(indata: np.ndarray, frames: int, time: object, status: object) -> None:
-            # 録音データをバッファに追加し、最新フレームを更新
             if status:
                 logger.warning("Recording status: %s", status)
+            if self._paused:
+                return
             self._frames.append(indata.copy())
             self._latest_frame = indata.copy()
 
@@ -58,6 +66,19 @@ class AudioRecorder:
             callback=callback,
         )
         self._stream.start()
+
+    def pause(self) -> None:
+        """録音を一時停止する。ストリームは維持したままフレーム蓄積を停止。"""
+        if not self._paused:
+            self._paused = True
+            self._latest_frame = np.zeros(1, dtype="int16")
+            logger.info("Recording paused.")
+
+    def resume(self) -> None:
+        """一時停止を解除して録音を再開する。"""
+        if self._paused:
+            self._paused = False
+            logger.info("Recording resumed.")
 
     def stop_and_save(self, output_path: Path = DEFAULT_AUDIO_TMP) -> Path:
         """

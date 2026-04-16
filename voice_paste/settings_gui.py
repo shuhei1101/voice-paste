@@ -7,8 +7,10 @@ from typing import Callable
 from pynput import keyboard as pynput_keyboard
 from dotenv import set_key
 
+import os
 import shutil
-from tkinter import messagebox
+from pathlib import Path
+from tkinter import filedialog, messagebox
 
 from voice_paste import config
 from voice_paste.constants import ROOT_DIR, RESOURCES_DIR
@@ -188,18 +190,46 @@ class SettingsWindow:
     def show(self) -> None:
         """設定ウィンドウを表示する（mainloop でブロック）。"""
         self._root = tk.Tk()
-        root = self._root
-        root.title("voice-paste 設定")
-        root.resizable(False, False)
-        root.configure(bg=_BG)
+        top = self._root
+        top.title("voice-paste 設定")
+        top.resizable(True, True)
+        top.configure(bg=_BG)
 
-        w, h = 420, 620
-        sx = (root.winfo_screenwidth() - w) // 2
-        sy = (root.winfo_screenheight() - h) // 2
-        root.geometry(f"{w}x{h}+{sx}+{sy}")
-        root.attributes("-topmost", True)
+        w, h = 500, 600
+        sx = (top.winfo_screenwidth() - w) // 2
+        sy = (top.winfo_screenheight() - h) // 2
+        top.geometry(f"{w}x{h}+{sx}+{sy}")
+        top.attributes("-topmost", True)
 
-        root.bind("<Escape>", lambda _: self._cancel())
+        top.bind("<Escape>", lambda _: self._cancel())
+
+        # --- スクロール可能コンテナ ---
+        # ボタンフレーム用の下部領域を先に予約するため、ここではまだ pack しない
+        outer = tk.Frame(top, bg=_BG)
+
+        canvas = tk.Canvas(outer, bg=_BG, highlightthickness=0)
+        vbar = ttk.Scrollbar(outer, orient="vertical", command=canvas.yview)
+        canvas.configure(yscrollcommand=vbar.set)
+        vbar.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True)
+
+        root = tk.Frame(canvas, bg=_BG)
+        canvas_window = canvas.create_window((0, 0), window=root, anchor="nw")
+
+        def _on_root_configure(_event: object) -> None:
+            canvas.configure(scrollregion=canvas.bbox("all"))
+
+        def _on_canvas_configure(event: tk.Event) -> None:
+            canvas.itemconfigure(canvas_window, width=event.width)
+
+        root.bind("<Configure>", _on_root_configure)
+        canvas.bind("<Configure>", _on_canvas_configure)
+
+        def _on_mousewheel(event: tk.Event) -> None:
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        # Windows のホイールは root / canvas どちらでも捕捉する
+        top.bind_all("<MouseWheel>", _on_mousewheel)
 
         # --- スタイル ---
         style = ttk.Style(root)
@@ -269,6 +299,11 @@ class SettingsWindow:
         self._copy_only_hotkey = hotkey_input(config.COPY_ONLY_HOTKEY, row)
         row += 1
 
+        # 一時停止ホットキー
+        label("一時停止:", row)
+        self._pause_hotkey = hotkey_input(config.PAUSE_HOTKEY, row)
+        row += 1
+
         # 貼付→送信ディレイ
         label("送信待機(秒):", row)
         self._paste_enter_delay = tk.Entry(
@@ -335,6 +370,34 @@ class SettingsWindow:
         self._window_hidden = combo(_BOOL_OPTIONS, str(config.WINDOW_HIDDEN).lower(), row)
         row += 1
 
+        # セパレータ（ファイル設定）
+        ttk.Separator(root, orient="horizontal").grid(
+            row=row, column=0, columnspan=2, sticky="ew", padx=12, pady=8)
+        row += 1
+
+        # プロンプトファイルパス
+        label("プロンプトファイル:", row)
+        self._prompt_file = self._file_path_input(
+            root, str(config.PROMPT_FILE), row,
+            on_open=self._open_prompt_file,
+            filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
+        )
+        row += 1
+
+        # 用語集ファイルパス
+        label("用語集ファイル:", row)
+        self._yogo_file = self._file_path_input(
+            root, str(config.YOGO_FILE), row,
+            on_open=self._open_yogo_file,
+            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
+        )
+        row += 1
+
+        # セパレータ
+        ttk.Separator(root, orient="horizontal").grid(
+            row=row, column=0, columnspan=2, sticky="ew", padx=12, pady=8)
+        row += 1
+
         # 波形感度
         label("波形の感度:", row)
         self._wave_gain = tk.Entry(
@@ -345,29 +408,109 @@ class SettingsWindow:
         self._wave_gain.grid(row=row, column=1, sticky="w", padx=12, pady=4)
         row += 1
 
-        # ボタンフレーム
-        btn_frame = tk.Frame(root, bg=_BG)
-        btn_frame.grid(row=row, column=0, columnspan=2, pady=(4, 12))
+        root.columnconfigure(1, weight=1)
 
-        tk.Button(btn_frame, text="保存", bg=_ACCENT, fg="#ffffff",
+        # ボタンフレーム（スクロール外に固定）
+        btn_frame = tk.Frame(top, bg=_BG)
+        btn_frame.pack(side="bottom", fill="x", pady=(4, 12))
+        btn_inner = tk.Frame(btn_frame, bg=_BG)
+        btn_inner.pack()
+
+        tk.Button(btn_inner, text="保存", bg=_ACCENT, fg="#ffffff",
                   activebackground="#005fa3", activeforeground="#ffffff",
                   relief="flat", padx=14, pady=5, cursor="hand2",
                   command=self._save).pack(side="left", padx=(0, 6))
-        tk.Button(btn_frame, text="保存+再起動", bg="#107c10", fg="#ffffff",
+        tk.Button(btn_inner, text="保存+再起動", bg="#107c10", fg="#ffffff",
                   activebackground="#0b5e0b", activeforeground="#ffffff",
                   relief="flat", padx=14, pady=5, cursor="hand2",
                   command=self._save_and_restart).pack(side="left", padx=(0, 6))
-        tk.Button(btn_frame, text="初期化", bg="#a03030", fg="#ffffff",
+        tk.Button(btn_inner, text="初期化", bg="#a03030", fg="#ffffff",
                   activebackground="#cc4444", activeforeground="#ffffff",
                   relief="flat", padx=14, pady=5, cursor="hand2",
                   command=self._reset).pack(side="left", padx=(0, 6))
-        tk.Button(btn_frame, text="キャンセル", bg="#3a3a3a", fg="#cccccc",
+        tk.Button(btn_inner, text="キャンセル", bg="#3a3a3a", fg="#cccccc",
                   activebackground="#555555", activeforeground="#ffffff",
                   relief="flat", padx=14, pady=5, cursor="hand2",
                   command=self._cancel).pack(side="left")
 
-        root.columnconfigure(1, weight=1)
-        root.mainloop()
+        # ボタン領域を下部に確保した上でスクロール領域を残り全体に広げる
+        outer.pack(side="top", fill="both", expand=True)
+
+        top.mainloop()
+
+    def _file_path_input(
+        self,
+        parent: tk.Widget,
+        default: str,
+        row: int,
+        on_open: Callable[[], None],
+        filetypes: list[tuple[str, str]],
+    ) -> tk.Entry:
+        """ファイルパス入力（Entry + 参照 + 開く ボタン）。"""
+        frame = tk.Frame(parent, bg=_BG)
+        frame.grid(row=row, column=1, sticky="ew", padx=12, pady=4)
+
+        entry = tk.Entry(
+            frame, bg=_ENTRY_BG, fg=_FG, insertbackground=_FG,
+            relief="flat", width=26,
+        )
+        entry.insert(0, default)
+        entry.pack(side="left", fill="x", expand=True)
+
+        def _browse() -> None:
+            current = entry.get().strip()
+            if current and Path(current).parent.exists():
+                initial_dir = str(Path(current).parent)
+            else:
+                initial_dir = str(ROOT_DIR)
+            path = filedialog.askopenfilename(
+                parent=self._root,
+                filetypes=filetypes,
+                initialdir=initial_dir,
+            )
+            if path:
+                entry.delete(0, tk.END)
+                entry.insert(0, path)
+
+        tk.Button(
+            frame, text="参照", bg="#3a3a3a", fg="#cccccc",
+            activebackground="#555555", activeforeground="#ffffff",
+            relief="flat", padx=6, cursor="hand2", command=_browse,
+        ).pack(side="left", padx=(4, 0))
+
+        tk.Button(
+            frame, text="開く", bg="#3a3a3a", fg="#cccccc",
+            activebackground="#555555", activeforeground="#ffffff",
+            relief="flat", padx=6, cursor="hand2", command=on_open,
+        ).pack(side="left", padx=(4, 0))
+
+        return entry
+
+    def _open_file_with_default_app(self, path_str: str, label: str) -> None:
+        """既定アプリでファイルを開く。存在しなければ警告を出す。"""
+        p = Path(path_str)
+        if not p.exists():
+            messagebox.showwarning(
+                f"{label}を開けません",
+                f"ファイルが存在しません:\n{p}",
+                parent=self._root,
+            )
+            return
+        try:
+            os.startfile(str(p))
+        except Exception as e:
+            logger.exception("Failed to open file: %s", p)
+            messagebox.showerror(
+                f"{label}を開けません",
+                f"ファイルを開けませんでした:\n{e}",
+                parent=self._root,
+            )
+
+    def _open_prompt_file(self) -> None:
+        self._open_file_with_default_app(self._prompt_file.get().strip(), "プロンプトファイル")
+
+    def _open_yogo_file(self) -> None:
+        self._open_file_with_default_app(self._yogo_file.get().strip(), "用語集ファイル")
 
     def _save(self) -> None:
         """設定を .env に保存し、コールバックを呼ぶ。"""
@@ -382,6 +525,7 @@ class SettingsWindow:
         _check("CONFIRM_PASTE_ONLY_HOTKEY", self._confirm_paste_only_hotkey.get().strip(), config.CONFIRM_PASTE_ONLY_HOTKEY)
         _check("CANCEL_HOTKEY", self._cancel_hotkey.get().strip(), config.CANCEL_HOTKEY)
         _check("COPY_ONLY_HOTKEY", self._copy_only_hotkey.get().strip(), config.COPY_ONLY_HOTKEY)
+        _check("PAUSE_HOTKEY", self._pause_hotkey.get().strip(), config.PAUSE_HOTKEY)
         _check("PASTE_ENTER_DELAY", self._paste_enter_delay.get().strip(), str(config.PASTE_ENTER_DELAY))
         _check("LOG_LEVEL", self._log_level.get(), config.LOG_LEVEL)
         _check("WHISPER_MODEL", self._model.get(), config.WHISPER_MODEL)
@@ -392,6 +536,8 @@ class SettingsWindow:
         _check("WINDOW_FOLLOW_CURSOR", self._window_follow_cursor.get(), str(config.WINDOW_FOLLOW_CURSOR).lower())
         _check("WINDOW_HIDDEN", self._window_hidden.get(), str(config.WINDOW_HIDDEN).lower())
         _check("WAVE_GAIN", self._wave_gain.get().strip(), str(config.WAVE_GAIN))
+        _check("PROMPT_FILE", self._prompt_file.get().strip(), str(config.PROMPT_FILE))
+        _check("YOGO_FILE", self._yogo_file.get().strip(), str(config.YOGO_FILE))
 
         if not changed:
             self._close()
@@ -414,6 +560,8 @@ class SettingsWindow:
             config.CANCEL_HOTKEY = changed["CANCEL_HOTKEY"]
         if "COPY_ONLY_HOTKEY" in changed:
             config.COPY_ONLY_HOTKEY = changed["COPY_ONLY_HOTKEY"]
+        if "PAUSE_HOTKEY" in changed:
+            config.PAUSE_HOTKEY = changed["PAUSE_HOTKEY"]
         if "PASTE_ENTER_DELAY" in changed:
             config.PASTE_ENTER_DELAY = float(changed["PASTE_ENTER_DELAY"])
         if "LOG_LEVEL" in changed:
@@ -428,6 +576,10 @@ class SettingsWindow:
             config.WINDOW_HIDDEN = changed["WINDOW_HIDDEN"].lower() == "true"
         if "WAVE_GAIN" in changed:
             config.WAVE_GAIN = float(changed["WAVE_GAIN"])
+        if "PROMPT_FILE" in changed:
+            config.PROMPT_FILE = Path(changed["PROMPT_FILE"])
+        if "YOGO_FILE" in changed:
+            config.YOGO_FILE = Path(changed["YOGO_FILE"])
 
         self._close()
         self._on_save(changed)

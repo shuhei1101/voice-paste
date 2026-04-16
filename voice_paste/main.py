@@ -17,7 +17,12 @@ from voice_paste.audio.recorder import AudioRecorder
 from voice_paste.transcription.whisper_transcriber import WhisperTranscriber
 from voice_paste.input.keyboard_sender import copy_to_clipboard, send_paste, send_enter
 from voice_paste.gui import RecordingModal, TranscribingOverlay, ConfirmMode
-from voice_paste.utils import load_prompt, load_yogo, build_initial_prompt
+from voice_paste.utils import (
+    load_prompt,
+    load_yogo,
+    build_initial_prompt,
+    apply_yogo_replacements,
+)
 from voice_paste.history import save_history, cleanup_history
 from voice_paste.constants import DEFAULT_AUDIO_TMP
 
@@ -80,6 +85,8 @@ def _run_once(
         on_segment=overlay.update,
     )
     logger.info("Transcribed text: %s", text)
+
+    text = apply_yogo_replacements(text, yogo)
 
     overlay.close()
 

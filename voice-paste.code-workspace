@@ -7,6 +7,9 @@
 			"path": "./dist/voice-paste"
 		},
 		{
+			"path": "../my-plugins"
+		},
+		{
 			"path": "\\\\wsl.localhost\\Ubuntu-24.04\\home\\shuhei2441\\repo\\moji-okoshi"
 		}
 	],

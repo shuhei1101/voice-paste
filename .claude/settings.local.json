@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/shuhe/.claude/skill-memory/**)",
+      "Bash(mkdir -p \"C:/Users/shuhe/.claude/skill-memory/worktree/\")"
+    ]
+  }
+}

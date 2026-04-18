@@ -6,13 +6,14 @@
 
 ## 作業内容
 
-- [ ] `config.py` に AI送信設定を追加（`AI_SEND_N_NAME` / `AI_SEND_N_URL` / `AI_SEND_DELAY` / `AI_SEND_HOTKEY`）
-- [ ] `.env.sample` に設定例を追加（ChatGPT / Google AI）
-- [ ] `gui.py` に AI送信ボタンを動的生成（設定したアプリ数だけ自動追加）
-- [ ] `gui.py` にホットキー `<ctrl>+<alt>+a`（1番目のAIアプリ）を追加
-- [ ] `input/keyboard_sender.py` にAI送信ロジック実装（Edge起動 → 待機 → Ctrl+V → Enter）
-- [ ] `main.py` に `send_to_ai` モード対応を追加
-- [ ] `settings_gui.py` にAI送信設定UIを追加（任意）
+- [x] `config.py` に AI送信設定を追加（`AI_SEND_N_NAME` / `AI_SEND_N_URL` / `AI_SEND_N_HOTKEY` / `AI_SEND_DELAY`）
+- [x] `.env.sample` に設定例を追加（ChatGPT / Google AI、Ctrl+Alt+1/2 デフォルト）
+- [x] `gui.py` に AI送信ボタンを動的生成（設定したアプリ数だけ自動追加）
+- [x] `gui.py` にアプリ毎のホットキー登録（`AI_SEND_N_HOTKEY`）
+- [x] `gui.py` ウィンドウ高さを AI ボタン有無に応じて動的調整
+- [x] `input/keyboard_sender.py` にAI送信ロジック実装（Edge起動 → 待機 → Ctrl+V → Enter）
+- [x] `main.py` に `send_to_ai` モード対応を追加
+- [x] `settings_gui.py` にAI送信設定UIを追加（Name/URL/Hotkey × 2 + Delay）
 
 ## 実装詳細
 

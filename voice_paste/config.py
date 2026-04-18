@@ -168,6 +168,20 @@ PAUSE_HOTKEY: str = os.getenv("PAUSE_HOTKEY", "<ctrl>+<alt>+z")
 # 貼付から送信(Enter)までの待機秒数（アプリによってはペースト直後のEnterが無視されるため）
 PASTE_ENTER_DELAY: float = float(os.getenv("PASTE_ENTER_DELAY", "0.5"))
 
+# --- AI送信設定 ---
+# AI_SEND_1_NAME / AI_SEND_1_URL / AI_SEND_1_HOTKEY, ... で複数設定可
+AI_SEND_DELAY: float = float(os.getenv("AI_SEND_DELAY", "2.5"))
+AI_SEND_APPS: list[dict[str, str]] = []
+_ai_idx = 1
+while True:
+    _name = os.getenv(f"AI_SEND_{_ai_idx}_NAME", "").strip()
+    _url = os.getenv(f"AI_SEND_{_ai_idx}_URL", "").strip()
+    if not _name or not _url:
+        break
+    _hotkey = os.getenv(f"AI_SEND_{_ai_idx}_HOTKEY", f"<ctrl>+<alt>+{_ai_idx}").strip()
+    AI_SEND_APPS.append({"name": _name, "url": _url, "hotkey": _hotkey})
+    _ai_idx += 1
+
 # --- 履歴設定 ---
 HISTORY_ENABLED: bool = os.getenv("HISTORY_ENABLED", "true").lower() == "true"
 HISTORY_RETENTION_DAYS: int = int(os.getenv("HISTORY_RETENTION_DAYS", "1"))

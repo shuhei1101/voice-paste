@@ -186,6 +186,13 @@ class SettingsWindow:
         self._on_restart = on_restart
         self._root: tk.Tk | None = None
         self._hotkey_captures: list[_HotkeyCapture] = []
+        self._ai1_name: tk.Entry | None = None
+        self._ai1_url: tk.Entry | None = None
+        self._ai1_hotkey: _HotkeyCapture | None = None
+        self._ai2_name: tk.Entry | None = None
+        self._ai2_url: tk.Entry | None = None
+        self._ai2_hotkey: _HotkeyCapture | None = None
+        self._ai_delay: tk.Entry | None = None
 
     def show(self) -> None:
         """設定ウィンドウを表示する（mainloop でブロック）。"""
@@ -393,6 +400,59 @@ class SettingsWindow:
         )
         row += 1
 
+        # セパレータ（AI送信設定）
+        ttk.Separator(root, orient="horizontal").grid(
+            row=row, column=0, columnspan=2, sticky="ew", padx=12, pady=8)
+        row += 1
+
+        tk.Label(root, text="AI送信設定", bg=_BG, fg=_ACCENT,
+                 font=("Yu Gothic UI", 10, "bold"), anchor="w").grid(
+            row=row, column=0, columnspan=2, sticky="w", padx=12, pady=(0, 4))
+        row += 1
+
+        def entry_field(default: str, r: int) -> tk.Entry:
+            e = tk.Entry(root, bg=_ENTRY_BG, fg=_FG, insertbackground=_FG,
+                         relief="flat", width=30)
+            e.insert(0, default)
+            e.grid(row=r, column=1, sticky="ew", padx=12, pady=4)
+            return e
+
+        _ai1 = config.AI_SEND_APPS[0] if len(config.AI_SEND_APPS) > 0 else {}
+        _ai2 = config.AI_SEND_APPS[1] if len(config.AI_SEND_APPS) > 1 else {}
+
+        label("AI1 名前:", row)
+        self._ai1_name = entry_field(_ai1.get("name", "ChatGPT"), row)
+        row += 1
+
+        label("AI1 URL:", row)
+        self._ai1_url = entry_field(_ai1.get("url", "https://chatgpt.com"), row)
+        row += 1
+
+        label("AI1 ホットキー:", row)
+        self._ai1_hotkey = hotkey_input(_ai1.get("hotkey", "<ctrl>+<alt>+1"), row)
+        row += 1
+
+        label("AI2 名前:", row)
+        self._ai2_name = entry_field(_ai2.get("name", "Google AI"), row)
+        row += 1
+
+        label("AI2 URL:", row)
+        self._ai2_url = entry_field(_ai2.get("url", "https://gemini.google.com/app"), row)
+        row += 1
+
+        label("AI2 ホットキー:", row)
+        self._ai2_hotkey = hotkey_input(_ai2.get("hotkey", "<ctrl>+<alt>+2"), row)
+        row += 1
+
+        label("AI送信待機(秒):", row)
+        self._ai_delay = tk.Entry(
+            root, bg=_ENTRY_BG, fg=_FG, insertbackground=_FG,
+            relief="flat", width=8,
+        )
+        self._ai_delay.insert(0, str(config.AI_SEND_DELAY))
+        self._ai_delay.grid(row=row, column=1, sticky="w", padx=12, pady=4)
+        row += 1
+
         # セパレータ
         ttk.Separator(root, orient="horizontal").grid(
             row=row, column=0, columnspan=2, sticky="ew", padx=12, pady=8)
@@ -539,14 +599,46 @@ class SettingsWindow:
         _check("PROMPT_FILE", self._prompt_file.get().strip(), str(config.PROMPT_FILE))
         _check("YOGO_FILE", self._yogo_file.get().strip(), str(config.YOGO_FILE))
 
+        # AI送信設定
+        _ai1_cur = config.AI_SEND_APPS[0] if len(config.AI_SEND_APPS) > 0 else {}
+        _ai2_cur = config.AI_SEND_APPS[1] if len(config.AI_SEND_APPS) > 1 else {}
+        _ai1_new = {
+            "name": self._ai1_name.get().strip() if self._ai1_name else "",
+            "url": self._ai1_url.get().strip() if self._ai1_url else "",
+            "hotkey": self._ai1_hotkey.get().strip() if self._ai1_hotkey else "",
+        }
+        _ai2_new = {
+            "name": self._ai2_name.get().strip() if self._ai2_name else "",
+            "url": self._ai2_url.get().strip() if self._ai2_url else "",
+            "hotkey": self._ai2_hotkey.get().strip() if self._ai2_hotkey else "",
+        }
+        if _ai1_new != _ai1_cur:
+            changed["AI_SEND_1_NAME"] = _ai1_new["name"]
+            changed["AI_SEND_1_URL"] = _ai1_new["url"]
+            changed["AI_SEND_1_HOTKEY"] = _ai1_new["hotkey"]
+        if _ai2_new != _ai2_cur:
+            changed["AI_SEND_2_NAME"] = _ai2_new["name"]
+            changed["AI_SEND_2_URL"] = _ai2_new["url"]
+            changed["AI_SEND_2_HOTKEY"] = _ai2_new["hotkey"]
+        _check("AI_SEND_DELAY", self._ai_delay.get().strip() if self._ai_delay else "", str(config.AI_SEND_DELAY))
+
         if not changed:
             self._close()
             return
 
-        # .env に書き込み
+        # .env に書き込み（AI_SEND_N_* は個別にまとめて書く）
+        _ai_keys = {"AI_SEND_1_NAME", "AI_SEND_1_URL", "AI_SEND_1_HOTKEY",
+                    "AI_SEND_2_NAME", "AI_SEND_2_URL", "AI_SEND_2_HOTKEY"}
         for key, val in changed.items():
-            set_key(_ENV_FILE, key, val)
-            logger.info("Settings written: %s = %s", key, val)
+            if key not in _ai_keys:
+                set_key(_ENV_FILE, key, val)
+                logger.info("Settings written: %s = %s", key, val)
+        if any(k in changed for k in _ai_keys):
+            for i, app_new in enumerate([_ai1_new, _ai2_new], start=1):
+                set_key(_ENV_FILE, f"AI_SEND_{i}_NAME", app_new["name"])
+                set_key(_ENV_FILE, f"AI_SEND_{i}_URL", app_new["url"])
+                set_key(_ENV_FILE, f"AI_SEND_{i}_HOTKEY", app_new["hotkey"])
+            logger.info("AI send settings written to .env")
         logger.info("Settings saved to .env: %s", list(changed.keys()))
 
         # config モジュールの値をランタイム更新（即時反映するもの）
@@ -580,6 +672,14 @@ class SettingsWindow:
             config.PROMPT_FILE = Path(changed["PROMPT_FILE"])
         if "YOGO_FILE" in changed:
             config.YOGO_FILE = Path(changed["YOGO_FILE"])
+        if any(k in changed for k in _ai_keys):
+            new_apps = []
+            for app in [_ai1_new, _ai2_new]:
+                if app["name"] and app["url"]:
+                    new_apps.append(app)
+            config.AI_SEND_APPS = new_apps
+        if "AI_SEND_DELAY" in changed:
+            config.AI_SEND_DELAY = float(changed["AI_SEND_DELAY"])
 
         self._close()
         self._on_save(changed)

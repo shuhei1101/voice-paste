@@ -12,13 +12,17 @@ __pycache__/
 *.pyd
 .Python
 
-history/
-
 # ログ
 log/
 
 # キャッシュ（一時音声ファイル等）
 cache/
+
+# 履歴（実行時生成）
+history/
+
+# シングルインスタンス制御
+voice_paste.pid
 
 # ビルド成果物
 build/

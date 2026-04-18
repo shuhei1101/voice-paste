@@ -41,5 +41,5 @@ python -c "import torch; print('[INFO] CUDA available:', torch.cuda.is_available
 
 echo.
 echo [voice-paste] Setup completed successfully!
-echo Run: run.bat
+echo Run: voice-paste.bat
 pause

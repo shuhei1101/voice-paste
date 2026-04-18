@@ -18,13 +18,14 @@ logger = get_logger(__name__)
 _ICON_SIZE = 64
 
 # トレイアイコンの状態
-TrayState = Literal["idle", "recording", "transcribing"]
+TrayState = Literal["idle", "recording", "transcribing", "loading"]
 
 # 状態ごとのマイク本体色
 _STATE_COLORS: dict[TrayState, tuple[int, int, int, int]] = {
     "idle": (0, 120, 212, 255),         # 青
     "recording": (220, 40, 40, 255),    # 赤
     "transcribing": (16, 124, 16, 255), # 緑
+    "loading": (100, 100, 100, 255),    # グレー
 }
 
 
@@ -75,6 +76,7 @@ _STATE_TITLES: dict[TrayState, str] = {
     "idle": "voice-paste: 待機中",
     "recording": "voice-paste: 録音中",
     "transcribing": "voice-paste: 文字起こし中",
+    "loading": "voice-paste: モデル読み込み中...",
 }
 
 

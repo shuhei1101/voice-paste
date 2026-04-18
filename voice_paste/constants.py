@@ -55,6 +55,9 @@ DEFAULT_AUDIO_TMP = ROOT_DIR / "cache" / "recording.wav"
 # 履歴保存ディレクトリ
 HISTORY_DIR = ROOT_DIR / "history"
 
+# シングルインスタンス制御用 PID ファイル
+PID_FILE = ROOT_DIR / "voice_paste.pid"
+
 # デフォルトのWhisperモデル
 DEFAULT_WHISPER_MODEL = "large-v3"
 

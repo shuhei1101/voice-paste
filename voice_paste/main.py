@@ -24,12 +24,42 @@ from voice_paste.utils import (
     apply_yogo_replacements,
 )
 from voice_paste.history import save_history, cleanup_history
-from voice_paste.constants import DEFAULT_AUDIO_TMP
+from voice_paste.constants import DEFAULT_AUDIO_TMP, PID_FILE
 
 logger = get_logger(__name__)
 
 # ディスパッチキューに流すコマンド種別
 DispatchCommand = Literal["session", "quit", "settings", "restart"]
+
+
+def _ensure_single_instance() -> None:
+    """起動時に既存プロセスをキルして単一インスタンスを保証する。"""
+    if PID_FILE.exists():
+        try:
+            old_pid = int(PID_FILE.read_text().strip())
+            if old_pid != os.getpid():
+                result = subprocess.run(
+                    ["taskkill", "/F", "/PID", str(old_pid)],
+                    capture_output=True,
+                )
+                if result.returncode == 0:
+                    logger.info("Killed existing instance (PID=%d).", old_pid)
+                    time.sleep(0.5)
+        except (ValueError, OSError):
+            pass
+
+    PID_FILE.write_text(str(os.getpid()))
+
+    import atexit
+    atexit.register(_cleanup_pid_file)
+
+
+def _cleanup_pid_file() -> None:
+    try:
+        if PID_FILE.exists() and PID_FILE.read_text().strip() == str(os.getpid()):
+            PID_FILE.unlink()
+    except Exception:
+        pass
 
 
 def _run_once(
@@ -135,12 +165,6 @@ def _run_resident() -> None:
     """
     常駐モード。トレイアイコン + グローバルホットキーで録音を起動する。
     """
-    logger.info("Resident mode. Loading model...")
-    recorder = AudioRecorder()
-    transcriber = WhisperTranscriber()
-    logger.info("Model loaded. Waiting for hotkey: %s", config.RESIDENT_HOTKEY)
-    print(f"[voice-paste] resident mode ready. hotkey={config.RESIDENT_HOTKEY}")
-
     # ディスパッチキュー: セッション起動要求 / 終了要求を受け付ける
     dispatch_queue: "queue.Queue[DispatchCommand]" = queue.Queue()
     # 同時セッション抑止フラグ
@@ -164,8 +188,8 @@ def _run_resident() -> None:
             return
         dispatch_queue.put("settings")
 
-    # トレイアイコン構築（遅延 import で one-shot モードへの影響を防ぐ）
-    from voice_paste.tray import build_tray_icon
+    # トレイアイコンをモデル読み込み前に表示（起動中であることをユーザーに示す）
+    from voice_paste.tray import build_tray_icon, update_tray_state
 
     tray_icon = build_tray_icon(
         hotkey=config.RESIDENT_HOTKEY,
@@ -174,13 +198,22 @@ def _run_resident() -> None:
         on_restart=request_restart,
         on_quit=request_quit,
     )
+    tray_icon.run_detached()
+    update_tray_state(tray_icon, "loading")
+
+    # モデル読み込み（トレイ表示後に実行するため起動フィードバックが得られる）
+    logger.info("Resident mode. Loading model...")
+    recorder = AudioRecorder()
+    transcriber = WhisperTranscriber()
+    logger.info("Model loaded. Waiting for hotkey: %s", config.RESIDENT_HOTKEY)
+    print(f"[voice-paste] resident mode ready. hotkey={config.RESIDENT_HOTKEY}")
+
+    update_tray_state(tray_icon, "idle")
 
     # pynput のグローバルホットキーリスナー
     hotkey_listener = pynput_keyboard.GlobalHotKeys(
         {config.RESIDENT_HOTKEY: request_session}
     )
-
-    tray_icon.run_detached()
     hotkey_listener.start()
 
     # 履歴クリーンアップの間隔（秒）
@@ -261,6 +294,8 @@ def run() -> None:
     setup_logger(config.LOG_LEVEL)
     logger.info("voice-paste started. resident=%s", config.RESIDENT_MODE)
     logger.info("config.WAVE_GAIN=%s", config.WAVE_GAIN)
+
+    _ensure_single_instance()
 
     # 起動時に古い履歴を削除
     cleanup_history()

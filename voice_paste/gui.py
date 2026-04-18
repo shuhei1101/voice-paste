@@ -5,7 +5,7 @@ import ctypes.wintypes
 import time
 import tkinter as tk
 from tkinter import font as tkfont
-from typing import Callable, TYPE_CHECKING, Literal
+from typing import Callable, TYPE_CHECKING
 
 from pynput import keyboard as pynput_keyboard
 
@@ -17,8 +17,8 @@ from voice_paste.logger import get_logger
 
 logger = get_logger(__name__)
 
-# 録音結果の種別
-ConfirmMode = Literal["paste_enter", "paste_only", "copy_only"]
+# 録音結果の種別（"paste_enter" / "paste_only" / "copy_only" / "send_to_ai_{N}"）
+ConfirmMode = str
 
 # 波形アニメーション設定
 _WAVE_UPDATE_MS = 50       # 更新間隔（ms）
@@ -202,6 +202,20 @@ class RecordingModal:
             command=lambda: self._confirm("copy_only"),
         ).pack(side="left")
 
+        # AI送信ボタン（設定されたアプリ分だけ追加）
+        if config.AI_SEND_APPS:
+            ai_frame = tk.Frame(self._root, bg=_BG)
+            ai_frame.pack(pady=(0, 10))
+            for idx, app in enumerate(config.AI_SEND_APPS):
+                mode = f"send_to_ai_{idx}"
+                tk.Button(
+                    ai_frame, text=f"→ {app['name']}", font=btn_font,
+                    bg="#6b2fa0", fg="#ffffff",
+                    activebackground="#4e2080", activeforeground="#ffffff",
+                    relief="flat", padx=12, pady=5, cursor="hand2",
+                    command=lambda m=mode: self._confirm(m),
+                ).pack(side="left", padx=(0, 6))
+
         # キーバインド（ウィンドウフォーカス時）
         self._root.bind("<Return>", lambda _: self._confirm("paste_enter"))
         self._root.bind("<Escape>", lambda _: self._cancel())
@@ -215,6 +229,8 @@ class RecordingModal:
         }
         if config.PAUSE_HOTKEY and config.PAUSE_HOTKEY not in hotkeys:
             hotkeys[config.PAUSE_HOTKEY] = self._hotkey_toggle_pause
+        if config.AI_SEND_APPS and config.AI_SEND_HOTKEY not in hotkeys:
+            hotkeys[config.AI_SEND_HOTKEY] = lambda: self._hotkey_confirm("send_to_ai_0")
         self._hotkey_listener = pynput_keyboard.GlobalHotKeys(hotkeys)
         self._hotkey_listener.start()
 

@@ -1,6 +1,9 @@
 """pynput によるキーボード仮想入力モジュール。"""
 
+import shutil
+import subprocess
 import time
+from pathlib import Path
 
 import pyperclip
 from pynput.keyboard import Controller, Key
@@ -45,3 +48,32 @@ def send_enter(delay: float = 0.05) -> None:
     _keyboard.press(Key.enter)
     _keyboard.release(Key.enter)
     logger.info("Sent Enter. (delay=%.2fs)", delay)
+
+
+def _find_msedge() -> str:
+    """msedge.exe のパスを返す。見つからなければ 'msedge' を返す。"""
+    found = shutil.which("msedge")
+    if found:
+        return found
+    for candidate in [
+        r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+        r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+    ]:
+        if Path(candidate).exists():
+            return candidate
+    return "msedge"
+
+
+def send_to_ai(url: str, delay: float = 2.5) -> None:
+    """指定URLのEdge PWAを起動し、クリップボード内容を貼り付けてEnterで送信する。
+
+    :param url: 起動するPWAのURL
+    :param delay: 起動後の待機秒数
+    """
+    msedge = _find_msedge()
+    subprocess.Popen([msedge, f"--app={url}", "--new-window"])
+    logger.info("Launched Edge app: %s, waiting %.1fs", url, delay)
+    time.sleep(delay)
+    send_paste()
+    send_enter(delay=0.3)
+    logger.info("Sent text to AI app: %s", url)

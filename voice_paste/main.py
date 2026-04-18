@@ -15,7 +15,7 @@ from voice_paste import config
 from voice_paste.logger import setup_logger, get_logger
 from voice_paste.audio.recorder import AudioRecorder
 from voice_paste.transcription.whisper_transcriber import WhisperTranscriber
-from voice_paste.input.keyboard_sender import copy_to_clipboard, send_paste, send_enter
+from voice_paste.input.keyboard_sender import copy_to_clipboard, send_paste, send_enter, send_to_ai
 from voice_paste.gui import RecordingModal, TranscribingOverlay, ConfirmMode
 from voice_paste.utils import (
     load_prompt,
@@ -109,6 +109,14 @@ def _run_once(
 
     if result == "paste_enter":
         send_enter(delay=config.PASTE_ENTER_DELAY)
+
+    if result.startswith("send_to_ai_"):
+        try:
+            idx = int(result.split("_")[-1])
+            app = config.AI_SEND_APPS[idx]
+            send_to_ai(url=app["url"], delay=config.AI_SEND_DELAY)
+        except (IndexError, ValueError):
+            logger.error("Invalid send_to_ai mode: %s", result)
 
     logger.info("Session completed successfully. mode=%s", result)
 

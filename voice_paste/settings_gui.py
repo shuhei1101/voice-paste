@@ -187,6 +187,7 @@ class SettingsWindow:
         self._on_restart = on_restart
         self._root: tk.Tk | None = None
         self._hotkey_captures: list[_HotkeyCapture] = []
+        self._paste_key: _HotkeyCapture | None = None
         self._transcription_engine: ttk.Combobox | None = None
         self._openai_api_key: tk.Entry | None = None
         self._ai1_enabled: ttk.Combobox | None = None
@@ -314,6 +315,11 @@ class SettingsWindow:
         # 一時停止ホットキー
         label("一時停止:", row)
         self._pause_hotkey = hotkey_input(config.PAUSE_HOTKEY, row)
+        row += 1
+
+        # 貼り付けキー
+        label("貼り付けキー:", row)
+        self._paste_key = hotkey_input(config.PASTE_KEY, row)
         row += 1
 
         # 貼付→送信ディレイ
@@ -648,6 +654,7 @@ class SettingsWindow:
         _check("CANCEL_HOTKEY", self._cancel_hotkey.get().strip(), config.CANCEL_HOTKEY)
         _check("COPY_ONLY_HOTKEY", self._copy_only_hotkey.get().strip(), config.COPY_ONLY_HOTKEY)
         _check("PAUSE_HOTKEY", self._pause_hotkey.get().strip(), config.PAUSE_HOTKEY)
+        _check("PASTE_KEY", self._paste_key.get().strip() if self._paste_key else "<ctrl>+v", config.PASTE_KEY)
         _check("PASTE_ENTER_DELAY", self._paste_enter_delay.get().strip(), str(config.PASTE_ENTER_DELAY))
         _check("LOG_LEVEL", self._log_level.get(), config.LOG_LEVEL)
         _check("WHISPER_MODEL", self._model.get(), config.WHISPER_MODEL)
@@ -725,6 +732,8 @@ class SettingsWindow:
             config.COPY_ONLY_HOTKEY = changed["COPY_ONLY_HOTKEY"]
         if "PAUSE_HOTKEY" in changed:
             config.PAUSE_HOTKEY = changed["PAUSE_HOTKEY"]
+        if "PASTE_KEY" in changed:
+            config.PASTE_KEY = changed["PASTE_KEY"]
         if "PASTE_ENTER_DELAY" in changed:
             config.PASTE_ENTER_DELAY = float(changed["PASTE_ENTER_DELAY"])
         if "LOG_LEVEL" in changed:

@@ -178,6 +178,9 @@ CANCEL_HOTKEY: str = os.getenv("CANCEL_HOTKEY", "<ctrl>+<alt>+q")
 COPY_ONLY_HOTKEY: str = os.getenv("COPY_ONLY_HOTKEY", "<ctrl>+<alt>+c")
 PAUSE_HOTKEY: str = os.getenv("PAUSE_HOTKEY", "<ctrl>+<alt>+z")
 
+# 貼り付けキー（ターミナルなど Ctrl+Shift+V が必要なアプリ向け）
+PASTE_KEY: str = os.getenv("PASTE_KEY", "<ctrl>+v")
+
 # 貼付から送信(Enter)までの待機秒数（アプリによってはペースト直後のEnterが無視されるため）
 PASTE_ENTER_DELAY: float = float(os.getenv("PASTE_ENTER_DELAY", "0.5"))
 

@@ -12,6 +12,31 @@ logger = get_logger(__name__)
 
 _keyboard = Controller()
 
+# pynput <key> 名 → Key オブジェクト のマッピング
+_MOD_MAP: dict[str, Key] = {
+    "ctrl": Key.ctrl,
+    "shift": Key.shift,
+    "alt": Key.alt,
+    "cmd": Key.cmd,
+    "win": Key.cmd,
+}
+
+
+def _parse_paste_key(paste_key: str) -> tuple[list[Key], str | Key]:
+    """PASTE_KEY 文字列をパースしてモディファイアリストとメインキーに分解する。
+
+    対応フォーマット: `<ctrl>+v` / `<ctrl>+<shift>+v` 等（pynput GlobalHotKeys 形式）
+    """
+    modifiers: list[Key] = []
+    main_key: str | Key = "v"
+    for part in paste_key.split("+"):
+        name = part.strip("<> ").lower()
+        if name in _MOD_MAP:
+            modifiers.append(_MOD_MAP[name])
+        elif name:
+            main_key = name
+    return modifiers, main_key
+
 
 def copy_to_clipboard(text: str) -> None:
     """
@@ -28,12 +53,19 @@ def copy_to_clipboard(text: str) -> None:
 
 
 def send_paste() -> None:
-    """Ctrl+V を仮想入力する。"""
+    """設定された貼り付けキーを仮想入力する（デフォルト: Ctrl+V）。"""
+    from voice_paste import config
+    paste_key = config.PASTE_KEY
+    modifiers, main_key = _parse_paste_key(paste_key)
+
     time.sleep(0.1)  # フォーカス安定待ち
-    with _keyboard.pressed(Key.ctrl):
-        _keyboard.press("v")
-        _keyboard.release("v")
-    logger.info("Sent Ctrl+V.")
+    for mod in modifiers:
+        _keyboard.press(mod)
+    _keyboard.press(main_key)
+    _keyboard.release(main_key)
+    for mod in reversed(modifiers):
+        _keyboard.release(mod)
+    logger.info("Sent paste key: %s", paste_key)
 
 
 def send_enter(delay: float = 0.05) -> None:

@@ -52,6 +52,9 @@ if exist "%PROJECT_ROOT%\dist\voice-paste" (
     endlocal & exit /b 1
 )
 
+echo [%date% %time%] removing build cache >> "%BAT_LOG%"
+if exist "%PROJECT_ROOT%\build" rmdir /s /q "%PROJECT_ROOT%\build" >> "%BAT_LOG%" 2>&1
+
 echo [%date% %time%] running pyinstaller >> "%BAT_LOG%"
 
 python -m PyInstaller ^
@@ -72,6 +75,8 @@ python -m PyInstaller ^
     --collect-all nvidia.cublas ^
     --collect-all nvidia.cudnn ^
     --collect-all nvidia.cuda_nvrtc ^
+    --collect-all openai ^
+    --collect-all httpx ^
     --hidden-import sounddevice ^
     --hidden-import scipy ^
     --hidden-import pynput.keyboard._win32 ^

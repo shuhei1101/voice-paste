@@ -126,7 +126,7 @@ class RecordingModal:
         # ウィンドウサイズを計算
         canvas_width = _WAVE_BAR_COUNT * (_WAVE_BAR_WIDTH + _WAVE_BAR_GAP) + _WAVE_BAR_GAP
         window_width = max(canvas_width + 40, 380)
-        window_height = 300 + (55 if config.AI_SEND_APPS else 0)
+        window_height = 300 + (34 if config.AI_SEND_APPS else 0)
 
         # ウィンドウ位置
         x, y = _calc_window_position(
@@ -173,7 +173,7 @@ class RecordingModal:
 
         # ボタンフレーム
         btn_frame = tk.Frame(self._root, bg=_BG)
-        btn_frame.pack(pady=(0, 12))
+        btn_frame.pack(pady=(0, 6 if config.AI_SEND_APPS else 12))
 
         # 貼付+送信 ボタン（青）
         tk.Button(
@@ -205,19 +205,14 @@ class RecordingModal:
         # AI送信ボタン（設定されたアプリ分だけ追加）
         if config.AI_SEND_APPS:
             ai_frame = tk.Frame(self._root, bg=_BG)
-            ai_frame.pack(pady=(4, 12))
-            ai_font = tkfont.Font(family="Yu Gothic UI", size=11, weight="bold")
+            ai_frame.pack(pady=(0, 12))
             for idx, app in enumerate(config.AI_SEND_APPS):
                 mode = f"send_to_ai_{idx}"
-                hk_label = app.get("hotkey", "").replace("<ctrl>+<alt>+", "C+A+")
-                btn_text = f"→ {app['name']}"
-                if hk_label:
-                    btn_text += f"  [{hk_label}]"
                 tk.Button(
-                    ai_frame, text=btn_text, font=ai_font,
+                    ai_frame, text=app["name"], font=btn_font,
                     bg="#6b2fa0", fg="#ffffff",
                     activebackground="#4e2080", activeforeground="#ffffff",
-                    relief="flat", padx=16, pady=8, cursor="hand2",
+                    relief="flat", padx=12, pady=5, cursor="hand2",
                     command=lambda m=mode: self._confirm(m),
                 ).pack(side="left", padx=(0, 8))
 

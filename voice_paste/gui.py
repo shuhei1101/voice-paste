@@ -366,9 +366,11 @@ class TranscribingOverlay:
         self._root: tk.Tk | None = None
         self._status_label: tk.Label | None = None
         self._elapsed_label: tk.Label | None = None
+        self._remaining_label: tk.Label | None = None
         self._start_time: float = 0.0
         self._dot_count = 0
         self._last_dot_update: float = 0.0
+        self._remaining: float | None = None
 
     def show(self) -> None:
         """オーバーレイウィンドウを表示する。"""
@@ -377,7 +379,7 @@ class TranscribingOverlay:
         self._root.resizable(False, False)
         self._root.overrideredirect(True)
 
-        win_w, win_h = 300, 120
+        win_w, win_h = 300, 140
         x, y = _calc_window_position(
             win_w, win_h,
             config.WINDOW_POSITION,
@@ -406,7 +408,13 @@ class TranscribingOverlay:
             self._root, text="経過: 0.0秒",
             font=info_font, bg=_BG, fg="#888888",
         )
-        self._elapsed_label.pack(pady=(0, 8))
+        self._elapsed_label.pack(pady=(0, 2))
+
+        self._remaining_label = tk.Label(
+            self._root, text="",
+            font=info_font, bg=_BG, fg="#888888",
+        )
+        self._remaining_label.pack(pady=(0, 6))
 
         tk.Label(
             self._root,
@@ -438,6 +446,12 @@ class TranscribingOverlay:
         if self._elapsed_label:
             self._elapsed_label.configure(text=f"経過: {elapsed:.1f}秒")
 
+        if self._remaining_label:
+            if self._remaining is not None:
+                self._remaining_label.configure(text=f"残り: 約{self._remaining:.0f}秒")
+            else:
+                self._remaining_label.configure(text="")
+
         # ドットアニメーション
         if now - self._last_dot_update >= 0.5:
             self._dot_count = (self._dot_count + 1) % 4
@@ -448,8 +462,9 @@ class TranscribingOverlay:
 
         self._root.update()
 
-    def update(self) -> None:
+    def update(self, remaining: float | None = None) -> None:
         """UIを更新する。文字起こしループ中に定期的に呼ぶ。"""
+        self._remaining = remaining
         self._update_ui()
 
     def close(self) -> None:

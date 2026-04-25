@@ -40,7 +40,7 @@ class WhisperTranscriber(Transcribable):
         self,
         audio_file: Path,
         prompt: str = "",
-        on_segment: Callable[[], None] | None = None,
+        on_segment: Callable[[float], None] | None = None,
     ) -> str:
         """
         音声ファイルを文字起こしする。
@@ -85,7 +85,8 @@ class WhisperTranscriber(Transcribable):
             if text:
                 lines.append(text)
             if on_segment:
-                on_segment()
+                remaining = max(0.0, info.duration - segment.end)
+                on_segment(remaining)
         result = "\n".join(lines)
         logger.info("Transcription completed: %d chars, %d segments", len(result), len(lines))
         return result

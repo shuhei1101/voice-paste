@@ -208,4 +208,4 @@ WINDOW_FOLLOW_CURSOR: bool = os.getenv("WINDOW_FOLLOW_CURSOR", "true").lower() =
 # ウィンドウを表示せずトレイアイコンだけで状態表示する
 WINDOW_HIDDEN: bool = os.getenv("WINDOW_HIDDEN", "false").lower() == "true"
 # 波形の感度（大きいほど小さい声でも波形が大きく振れる）
-WAVE_GAIN: float = float(os.getenv("WAVE_GAIN", "4"))
+WAVE_GAIN: float = float(os.getenv("WAVE_GAIN", "50"))

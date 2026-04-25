@@ -63,6 +63,32 @@ def _cleanup_pid_file() -> None:
         pass
 
 
+def _find_edge() -> str | None:
+    """Edge 実行ファイルのパスを返す。見つからなければ None。"""
+    import shutil
+    from pathlib import Path as _Path
+    if shutil.which("msedge"):
+        return "msedge"
+    for candidate in [
+        r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+        r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+    ]:
+        if _Path(candidate).exists():
+            return candidate
+    return None
+
+
+def _open_ai_app(url: str, name: str) -> None:
+    """AI アプリを PWA モードで起動する。Edge が見つからない場合は通常起動。"""
+    edge = _find_edge()
+    if edge:
+        subprocess.Popen([edge, f"--app={url}"])
+        logger.info("Opened AI app via Edge PWA: %s (%s)", name, url)
+    else:
+        subprocess.Popen(["cmd", "/c", "start", "", url])
+        logger.info("Opened AI app via default browser: %s (%s)", name, url)
+
+
 def _create_transcriber() -> Transcribable:
     """設定に応じた文字起こしエンジンを生成する。"""
     if config.TRANSCRIPTION_ENGINE == "openai":
@@ -166,9 +192,7 @@ def _run_once(
         except (ValueError, IndexError):
             logger.warning("Invalid send_to_ai mode: %s", result)
         else:
-            import subprocess
-            subprocess.Popen(["cmd", "/c", "start", "", app["url"]])
-            logger.info("Opened AI app: %s (%s)", app["name"], app["url"])
+            _open_ai_app(app["url"], app["name"])
             time.sleep(config.AI_SEND_DELAY)
             send_paste()
             send_enter(delay=config.PASTE_ENTER_DELAY)

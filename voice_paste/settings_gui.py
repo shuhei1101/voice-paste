@@ -21,6 +21,7 @@ logger = get_logger(__name__)
 _ENV_FILE = str(ROOT_DIR / ".env")
 
 # ドロップダウン選択肢
+_ENGINES = ["local", "openai"]
 _MODELS = ["tiny", "base", "small", "medium", "large-v3"]
 _DEVICES = ["cuda", "cpu"]
 _COMPUTE_TYPES = ["float16", "int8", "float32"]
@@ -186,6 +187,8 @@ class SettingsWindow:
         self._on_restart = on_restart
         self._root: tk.Tk | None = None
         self._hotkey_captures: list[_HotkeyCapture] = []
+        self._transcription_engine: ttk.Combobox | None = None
+        self._openai_api_key: tk.Entry | None = None
         self._ai1_name: tk.Entry | None = None
         self._ai1_url: tk.Entry | None = None
         self._ai1_hotkey: _HotkeyCapture | None = None
@@ -326,7 +329,50 @@ class SettingsWindow:
         self._log_level = combo(_LOG_LEVELS, config.LOG_LEVEL, row)
         row += 1
 
-        # セパレータ
+        # セパレータ（文字起こしエンジン設定）
+        ttk.Separator(root, orient="horizontal").grid(
+            row=row, column=0, columnspan=2, sticky="ew", padx=12, pady=8)
+        row += 1
+
+        tk.Label(root, text="文字起こしエンジン設定", bg=_BG, fg=_ACCENT,
+                 font=("Yu Gothic UI", 10, "bold"), anchor="w").grid(
+            row=row, column=0, columnspan=2, sticky="w", padx=12, pady=(0, 4))
+        row += 1
+
+        # エンジン選択
+        label("エンジン:", row)
+        self._transcription_engine = combo(_ENGINES, config.TRANSCRIPTION_ENGINE, row)
+        row += 1
+
+        # OpenAI API キー
+        label("OpenAI API キー:", row)
+        api_key_frame = tk.Frame(root, bg=_BG)
+        api_key_frame.grid(row=row, column=1, sticky="ew", padx=12, pady=4)
+        self._openai_api_key = tk.Entry(
+            api_key_frame, bg=_ENTRY_BG, fg=_FG, insertbackground=_FG,
+            relief="flat", width=26, show="*",
+        )
+        self._openai_api_key.insert(0, config.OPENAI_API_KEY)
+        self._openai_api_key.pack(side="left", fill="x", expand=True)
+
+        def _toggle_api_key_visibility() -> None:
+            current = self._openai_api_key.cget("show")
+            self._openai_api_key.configure(show="" if current == "*" else "*")
+
+        tk.Button(
+            api_key_frame, text="表示", bg="#3a3a3a", fg="#cccccc",
+            activebackground="#555555", activeforeground="#ffffff",
+            relief="flat", padx=6, cursor="hand2",
+            command=_toggle_api_key_visibility,
+        ).pack(side="left", padx=(4, 0))
+        row += 1
+
+        tk.Label(root, text="(*) エンジン・APIキーの変更は再起動後に反映",
+                 bg=_BG, fg="#888888", font=("", 8)).grid(
+            row=row, column=0, columnspan=2, sticky="w", padx=12, pady=(2, 8))
+        row += 1
+
+        # セパレータ（Whisper設定）
         ttk.Separator(root, orient="horizontal").grid(
             row=row, column=0, columnspan=2, sticky="ew", padx=12, pady=8)
         row += 1
@@ -580,6 +626,12 @@ class SettingsWindow:
             if new_val != old_val:
                 changed[key] = new_val
 
+        _check("TRANSCRIPTION_ENGINE",
+               self._transcription_engine.get() if self._transcription_engine else "local",
+               config.TRANSCRIPTION_ENGINE)
+        _check("OPENAI_API_KEY",
+               self._openai_api_key.get().strip() if self._openai_api_key else "",
+               config.OPENAI_API_KEY)
         _check("RESIDENT_HOTKEY", self._hotkey.get().strip(), config.RESIDENT_HOTKEY)
         _check("CONFIRM_HOTKEY", self._confirm_hotkey.get().strip(), config.CONFIRM_HOTKEY)
         _check("CONFIRM_PASTE_ONLY_HOTKEY", self._confirm_paste_only_hotkey.get().strip(), config.CONFIRM_PASTE_ONLY_HOTKEY)
@@ -642,6 +694,10 @@ class SettingsWindow:
         logger.info("Settings saved to .env: %s", list(changed.keys()))
 
         # config モジュールの値をランタイム更新（即時反映するもの）
+        if "TRANSCRIPTION_ENGINE" in changed:
+            config.TRANSCRIPTION_ENGINE = changed["TRANSCRIPTION_ENGINE"]
+        if "OPENAI_API_KEY" in changed:
+            config.OPENAI_API_KEY = changed["OPENAI_API_KEY"]
         if "RESIDENT_HOTKEY" in changed:
             config.RESIDENT_HOTKEY = changed["RESIDENT_HOTKEY"]
         if "CONFIRM_HOTKEY" in changed:

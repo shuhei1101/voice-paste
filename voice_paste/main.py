@@ -14,6 +14,7 @@ from pynput import keyboard as pynput_keyboard
 from voice_paste import config
 from voice_paste.logger import setup_logger, get_logger
 from voice_paste.audio.recorder import AudioRecorder
+from voice_paste.transcription.transcribable import Transcribable
 from voice_paste.transcription.whisper_transcriber import WhisperTranscriber
 from voice_paste.input.keyboard_sender import copy_to_clipboard, send_paste, send_enter
 from voice_paste.gui import RecordingModal, TranscribingOverlay, ConfirmMode
@@ -62,9 +63,17 @@ def _cleanup_pid_file() -> None:
         pass
 
 
+def _create_transcriber() -> Transcribable:
+    """設定に応じた文字起こしエンジンを生成する。"""
+    if config.TRANSCRIPTION_ENGINE == "openai":
+        from voice_paste.transcription.openai_transcriber import OpenAITranscriber
+        return OpenAITranscriber()
+    return WhisperTranscriber()
+
+
 def _run_once(
     recorder: AudioRecorder,
-    transcriber: WhisperTranscriber,
+    transcriber: Transcribable,
     tray_icon: object | None = None,
 ) -> None:
     """1 回分の録音→文字起こし→貼り付けフロー。"""
@@ -110,10 +119,20 @@ def _run_once(
     overlay = TranscribingOverlay()
     overlay.show()
 
-    text = transcriber.transcribe(
-        audio_file, prompt=prompt,
-        on_segment=overlay.update,
-    )
+    try:
+        text = transcriber.transcribe(
+            audio_file, prompt=prompt,
+            on_segment=overlay.update,
+        )
+    except Exception as e:
+        overlay.close()
+        if tray_icon:
+            from voice_paste.tray import update_tray_state
+            update_tray_state(tray_icon, "idle")
+        logger.exception("Transcription failed.")
+        import tkinter.messagebox as mb
+        mb.showerror("文字起こしエラー", f"文字起こしに失敗しました:\n{e}")
+        return
     logger.info("Transcribed text: %s", text)
 
     text = apply_yogo_replacements(text, yogo)
@@ -146,7 +165,7 @@ def _run_once(
 def _run_one_shot() -> None:
     """1 回実行して終了するモード。"""
     recorder = AudioRecorder()
-    transcriber = WhisperTranscriber()
+    transcriber = _create_transcriber()
     _run_once(recorder, transcriber)
 
 
@@ -202,10 +221,10 @@ def _run_resident() -> None:
     update_tray_state(tray_icon, "loading")
 
     # モデル読み込み（トレイ表示後に実行するため起動フィードバックが得られる）
-    logger.info("Resident mode. Loading model...")
+    logger.info("Resident mode. Loading transcriber (engine=%s)...", config.TRANSCRIPTION_ENGINE)
     recorder = AudioRecorder()
-    transcriber = WhisperTranscriber()
-    logger.info("Model loaded. Waiting for hotkey: %s", config.RESIDENT_HOTKEY)
+    transcriber = _create_transcriber()
+    logger.info("Transcriber loaded. Waiting for hotkey: %s", config.RESIDENT_HOTKEY)
     print(f"[voice-paste] resident mode ready. hotkey={config.RESIDENT_HOTKEY}")
 
     update_tray_state(tray_icon, "idle")

@@ -100,6 +100,10 @@ if _BOOTSTRAP_ENABLED:
     if _env_sample_fallback.exists():
         load_dotenv(_env_sample_fallback, override=False)
 
+# --- 文字起こしエンジン設定 ---
+TRANSCRIPTION_ENGINE: str = os.getenv("TRANSCRIPTION_ENGINE", "local")
+OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+
 # --- Whisper モデル設定 ---
 WHISPER_MODEL: str = os.getenv("WHISPER_MODEL", DEFAULT_WHISPER_MODEL)
 WHISPER_DEVICE: str = os.getenv("WHISPER_DEVICE", DEFAULT_DEVICE)

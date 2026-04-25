@@ -39,8 +39,8 @@ class OpenAITranscriber(Transcribable):
 
         :param audio_file: 文字起こし対象の音声ファイルパス
         :param prompt: Whisper API に渡す initial_prompt（用語集等）
-        :param on_segment: 文字起こし完了時に一度呼ばれるコールバック
-        :return: 文字起こし結果のテキスト
+        :param on_segment: セグメントごとに呼ばれるコールバック（オーバーレイ更新用）
+        :return: 文字起こし結果のテキスト（セグメント間は改行で結合）
         """
         logger.info("Starting OpenAI transcription: file=%s", audio_file)
 
@@ -50,13 +50,27 @@ class OpenAITranscriber(Transcribable):
                 file=f,
                 language=config.WHISPER_LANGUAGE,
                 prompt=prompt if prompt else None,
-                response_format="text",
+                temperature=config.WHISPER_TEMPERATURE,
+                response_format="verbose_json",
             )
 
-        result = response.strip() if isinstance(response, str) else str(response).strip()
+        segments = getattr(response, "segments", None) or []
+        lines: list[str] = []
+        for seg in segments:
+            text = seg.text.strip() if hasattr(seg, "text") else ""
+            if text:
+                lines.append(text)
+            if on_segment:
+                on_segment()
 
-        if on_segment:
-            on_segment()
+        # セグメントが取れない場合は全文テキストにフォールバック
+        if not lines:
+            fallback = getattr(response, "text", "") or ""
+            result = fallback.strip()
+            if on_segment:
+                on_segment()
+        else:
+            result = "\n".join(lines)
 
-        logger.info("OpenAI transcription completed: %d chars", len(result))
+        logger.info("OpenAI transcription completed: %d segments, %d chars", len(lines), len(result))
         return result

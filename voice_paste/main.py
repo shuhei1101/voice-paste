@@ -159,6 +159,20 @@ def _run_once(
     if result == "paste_enter":
         send_enter(delay=config.PASTE_ENTER_DELAY)
 
+    if result.startswith("send_to_ai_"):
+        try:
+            idx = int(result.removeprefix("send_to_ai_"))
+            app = config.AI_SEND_APPS[idx]
+        except (ValueError, IndexError):
+            logger.warning("Invalid send_to_ai mode: %s", result)
+        else:
+            import subprocess
+            subprocess.Popen(["cmd", "/c", "start", "", app["url"]])
+            logger.info("Opened AI app: %s (%s)", app["name"], app["url"])
+            time.sleep(config.AI_SEND_DELAY)
+            send_paste()
+            send_enter(delay=config.PASTE_ENTER_DELAY)
+
     logger.info("Session completed successfully. mode=%s", result)
 
 

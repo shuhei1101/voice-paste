@@ -91,6 +91,15 @@ else:
 
 load_dotenv(_env_file, override=True)
 
+# exe実行時: バンドル同梱の .env.sample を fallback として読み込む
+# ユーザーの .env に存在しないキー（新バージョンで追加された設定）を補完する
+if _BOOTSTRAP_ENABLED:
+    _env_sample_fallback = RESOURCES_DIR / ".env.sample"
+    if not _env_sample_fallback.exists():
+        _env_sample_fallback = RESOURCES_DIR.parent / ".env.sample"
+    if _env_sample_fallback.exists():
+        load_dotenv(_env_sample_fallback, override=False)
+
 # --- Whisper モデル設定 ---
 WHISPER_MODEL: str = os.getenv("WHISPER_MODEL", DEFAULT_WHISPER_MODEL)
 WHISPER_DEVICE: str = os.getenv("WHISPER_DEVICE", DEFAULT_DEVICE)

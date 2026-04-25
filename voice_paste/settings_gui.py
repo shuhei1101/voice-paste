@@ -189,9 +189,11 @@ class SettingsWindow:
         self._hotkey_captures: list[_HotkeyCapture] = []
         self._transcription_engine: ttk.Combobox | None = None
         self._openai_api_key: tk.Entry | None = None
+        self._ai1_enabled: ttk.Combobox | None = None
         self._ai1_name: tk.Entry | None = None
         self._ai1_url: tk.Entry | None = None
         self._ai1_hotkey: _HotkeyCapture | None = None
+        self._ai2_enabled: ttk.Combobox | None = None
         self._ai2_name: tk.Entry | None = None
         self._ai2_url: tk.Entry | None = None
         self._ai2_hotkey: _HotkeyCapture | None = None
@@ -466,6 +468,10 @@ class SettingsWindow:
         _ai1 = config.AI_SEND_APPS[0] if len(config.AI_SEND_APPS) > 0 else {}
         _ai2 = config.AI_SEND_APPS[1] if len(config.AI_SEND_APPS) > 1 else {}
 
+        label("AI1 有効:", row)
+        self._ai1_enabled = combo(_BOOL_OPTIONS, _ai1.get("enabled", "true"), row)
+        row += 1
+
         label("AI1 名前:", row)
         self._ai1_name = entry_field(_ai1.get("name", "ChatGPT"), row)
         row += 1
@@ -476,6 +482,10 @@ class SettingsWindow:
 
         label("AI1 ホットキー:", row)
         self._ai1_hotkey = hotkey_input(_ai1.get("hotkey", "<ctrl>+<alt>+1"), row)
+        row += 1
+
+        label("AI2 有効:", row)
+        self._ai2_enabled = combo(_BOOL_OPTIONS, _ai2.get("enabled", "true"), row)
         row += 1
 
         label("AI2 名前:", row)
@@ -658,20 +668,24 @@ class SettingsWindow:
             "name": self._ai1_name.get().strip() if self._ai1_name else "",
             "url": self._ai1_url.get().strip() if self._ai1_url else "",
             "hotkey": self._ai1_hotkey.get().strip() if self._ai1_hotkey else "",
+            "enabled": self._ai1_enabled.get() if self._ai1_enabled else "true",
         }
         _ai2_new = {
             "name": self._ai2_name.get().strip() if self._ai2_name else "",
             "url": self._ai2_url.get().strip() if self._ai2_url else "",
             "hotkey": self._ai2_hotkey.get().strip() if self._ai2_hotkey else "",
+            "enabled": self._ai2_enabled.get() if self._ai2_enabled else "true",
         }
         if _ai1_new != _ai1_cur:
             changed["AI_SEND_1_NAME"] = _ai1_new["name"]
             changed["AI_SEND_1_URL"] = _ai1_new["url"]
             changed["AI_SEND_1_HOTKEY"] = _ai1_new["hotkey"]
+            changed["AI_SEND_1_ENABLED"] = _ai1_new["enabled"]
         if _ai2_new != _ai2_cur:
             changed["AI_SEND_2_NAME"] = _ai2_new["name"]
             changed["AI_SEND_2_URL"] = _ai2_new["url"]
             changed["AI_SEND_2_HOTKEY"] = _ai2_new["hotkey"]
+            changed["AI_SEND_2_ENABLED"] = _ai2_new["enabled"]
         _check("AI_SEND_DELAY", self._ai_delay.get().strip() if self._ai_delay else "", str(config.AI_SEND_DELAY))
 
         if not changed:
@@ -679,8 +693,8 @@ class SettingsWindow:
             return
 
         # .env に書き込み（AI_SEND_N_* は個別にまとめて書く）
-        _ai_keys = {"AI_SEND_1_NAME", "AI_SEND_1_URL", "AI_SEND_1_HOTKEY",
-                    "AI_SEND_2_NAME", "AI_SEND_2_URL", "AI_SEND_2_HOTKEY"}
+        _ai_keys = {"AI_SEND_1_NAME", "AI_SEND_1_URL", "AI_SEND_1_HOTKEY", "AI_SEND_1_ENABLED",
+                    "AI_SEND_2_NAME", "AI_SEND_2_URL", "AI_SEND_2_HOTKEY", "AI_SEND_2_ENABLED"}
         for key, val in changed.items():
             if key not in _ai_keys:
                 set_key(_ENV_FILE, key, val)
@@ -690,6 +704,7 @@ class SettingsWindow:
                 set_key(_ENV_FILE, f"AI_SEND_{i}_NAME", app_new["name"])
                 set_key(_ENV_FILE, f"AI_SEND_{i}_URL", app_new["url"])
                 set_key(_ENV_FILE, f"AI_SEND_{i}_HOTKEY", app_new["hotkey"])
+                set_key(_ENV_FILE, f"AI_SEND_{i}_ENABLED", app_new["enabled"])
             logger.info("AI send settings written to .env")
         logger.info("Settings saved to .env: %s", list(changed.keys()))
 

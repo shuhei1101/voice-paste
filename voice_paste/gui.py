@@ -123,10 +123,16 @@ class RecordingModal:
         self._root.title("voice-paste")
         self._root.resizable(False, False)
 
+        # 有効なAI送信アプリのみ抽出
+        _active_ai_apps = [
+            (i, app) for i, app in enumerate(config.AI_SEND_APPS)
+            if app.get("enabled", "true") == "true"
+        ]
+
         # ウィンドウサイズを計算
         canvas_width = _WAVE_BAR_COUNT * (_WAVE_BAR_WIDTH + _WAVE_BAR_GAP) + _WAVE_BAR_GAP
         window_width = max(canvas_width + 40, 380)
-        window_height = 300 + (34 if config.AI_SEND_APPS else 0)
+        window_height = 300 + (34 if _active_ai_apps else 0)
 
         # ウィンドウ位置
         x, y = _calc_window_position(
@@ -173,7 +179,7 @@ class RecordingModal:
 
         # ボタンフレーム
         btn_frame = tk.Frame(self._root, bg=_BG)
-        btn_frame.pack(pady=(0, 6 if config.AI_SEND_APPS else 12))
+        btn_frame.pack(pady=(0, 6 if _active_ai_apps else 12))
 
         # 貼付+送信 ボタン（青）
         tk.Button(
@@ -202,11 +208,11 @@ class RecordingModal:
             command=lambda: self._confirm("copy_only"),
         ).pack(side="left")
 
-        # AI送信ボタン（設定されたアプリ分だけ追加）
-        if config.AI_SEND_APPS:
+        # AI送信ボタン（有効なアプリ分だけ追加）
+        if _active_ai_apps:
             ai_frame = tk.Frame(self._root, bg=_BG)
             ai_frame.pack(pady=(0, 12))
-            for idx, app in enumerate(config.AI_SEND_APPS):
+            for idx, app in _active_ai_apps:
                 mode = f"send_to_ai_{idx}"
                 tk.Button(
                     ai_frame, text=app["name"], font=btn_font,
@@ -229,7 +235,7 @@ class RecordingModal:
         }
         if config.PAUSE_HOTKEY and config.PAUSE_HOTKEY not in hotkeys:
             hotkeys[config.PAUSE_HOTKEY] = self._hotkey_toggle_pause
-        for _ai_i, _ai_app in enumerate(config.AI_SEND_APPS):
+        for _ai_i, _ai_app in _active_ai_apps:
             _ai_hk = _ai_app.get("hotkey", "")
             if _ai_hk and _ai_hk not in hotkeys:
                 hotkeys[_ai_hk] = lambda i=_ai_i: self._hotkey_confirm(f"send_to_ai_{i}")

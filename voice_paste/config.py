@@ -192,7 +192,8 @@ while True:
     if not _name or not _url:
         break
     _hotkey = os.getenv(f"AI_SEND_{_ai_idx}_HOTKEY", f"<ctrl>+<alt>+{_ai_idx}").strip()
-    AI_SEND_APPS.append({"name": _name, "url": _url, "hotkey": _hotkey})
+    _enabled = os.getenv(f"AI_SEND_{_ai_idx}_ENABLED", "true").lower() == "true"
+    AI_SEND_APPS.append({"name": _name, "url": _url, "hotkey": _hotkey, "enabled": str(_enabled).lower()})
     _ai_idx += 1
 
 # --- 履歴設定 ---

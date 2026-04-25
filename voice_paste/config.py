@@ -183,7 +183,7 @@ PASTE_ENTER_DELAY: float = float(os.getenv("PASTE_ENTER_DELAY", "0.5"))
 
 # --- AI送信設定 ---
 # AI_SEND_1_NAME / AI_SEND_1_URL / AI_SEND_1_HOTKEY, ... で複数設定可
-AI_SEND_DELAY: float = float(os.getenv("AI_SEND_DELAY", "2.5"))
+AI_SEND_DELAY: float = float(os.getenv("AI_SEND_DELAY", "3.0"))
 AI_SEND_APPS: list[dict[str, str]] = []
 _ai_idx = 1
 while True:

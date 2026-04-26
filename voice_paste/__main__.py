@@ -1,8 +1,23 @@
 """python -m voice_paste のエントリーポイント。"""
 
+import faulthandler
 import os
 import sys
 from pathlib import Path
+
+
+def _enable_faulthandler() -> None:
+    """ネイティブクラッシュ時にスタックトレースをログファイルへ書き出す。"""
+    try:
+        from voice_paste.constants import LOG_DIR
+        LOG_DIR.mkdir(parents=True, exist_ok=True)
+        crash_log = LOG_DIR / "crash.log"
+        faulthandler.enable(file=open(crash_log, "a"), all_threads=True)
+    except Exception:
+        faulthandler.enable(all_threads=True)
+
+
+_enable_faulthandler()
 
 
 def _register_bundled_cuda_dlls() -> None:

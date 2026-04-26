@@ -4,6 +4,7 @@ Interface: transcribable.py
 Implementation: whisper_transcriber.py
 """
 
+import gc
 from pathlib import Path
 from typing import Callable
 
@@ -21,13 +22,17 @@ class WhisperTranscriber(Transcribable):
 
     def __init__(self) -> None:
         """WhisperModel を初期化する。"""
+        self._session_count = 0
+        self._model = self._load_model()
+
+    def _load_model(self) -> WhisperModel:
         logger.info(
             "Initializing WhisperModel: model=%s, device=%s, compute_type=%s",
             config.WHISPER_MODEL,
             config.WHISPER_DEVICE,
             config.WHISPER_COMPUTE_TYPE,
         )
-        self._model = WhisperModel(
+        model = WhisperModel(
             config.WHISPER_MODEL,
             device=config.WHISPER_DEVICE,
             compute_type=config.WHISPER_COMPUTE_TYPE,
@@ -35,6 +40,7 @@ class WhisperTranscriber(Transcribable):
             num_workers=config.WHISPER_NUM_WORKERS,
         )
         logger.info("WhisperModel initialized successfully.")
+        return model
 
     def transcribe(
         self,
@@ -86,4 +92,26 @@ class WhisperTranscriber(Transcribable):
                 on_segment(remaining, info.duration)
         result = "\n".join(lines)
         logger.info("Transcription completed: %d chars, %d segments", len(result), len(lines))
+
+        self._session_count += 1
+        self._maybe_reinit_model()
+
         return result
+
+    def _maybe_reinit_model(self) -> None:
+        """セッション数が閾値に達したらモデルを再初期化してGPUメモリを解放する。"""
+        interval = config.WHISPER_REINIT_INTERVAL
+        if interval <= 0:
+            gc.collect()
+            return
+        if self._session_count % interval == 0:
+            logger.info(
+                "Reinitializing WhisperModel to release GPU memory (session=%d, interval=%d)",
+                self._session_count,
+                interval,
+            )
+            del self._model
+            gc.collect()
+            self._model = self._load_model()
+        else:
+            gc.collect()

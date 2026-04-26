@@ -228,12 +228,18 @@ def _run_one_shot() -> None:
 
 def _restart_process() -> None:
     """現在のプロセスを新しいプロセスで再起動する。"""
-    logger.info("Restarting process: %s %s", sys.executable, sys.argv)
-    # 現在の環境変数をそのまま引き継いで新プロセスを起動
-    subprocess.Popen(
-        [sys.executable] + sys.argv,
-        env=os.environ.copy(),
-    )
+    env = os.environ.copy()
+    # sys.argv[0] からプロジェクトルートを特定し PYTHONPATH に先頭追加する。
+    # これにより venv の editable install より worktree 側のコードが優先され、
+    # worktree で実行中に設定保存で再起動しても同じコードが継続使用される。
+    if sys.argv:
+        script = Path(sys.argv[0])
+        if script.exists():
+            project_root = str(script.parent.parent.resolve())
+            existing = env.get("PYTHONPATH", "")
+            env["PYTHONPATH"] = (project_root + os.pathsep + existing).rstrip(os.pathsep)
+    logger.info("Restarting process: %s %s (PYTHONPATH=%s)", sys.executable, sys.argv, env.get("PYTHONPATH", ""))
+    subprocess.Popen([sys.executable] + sys.argv, env=env)
     os._exit(0)
 
 

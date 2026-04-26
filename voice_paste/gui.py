@@ -4,7 +4,7 @@ import ctypes
 import ctypes.wintypes
 import time
 import tkinter as tk
-from tkinter import font as tkfont
+from tkinter import font as tkfont, ttk
 from typing import Callable, TYPE_CHECKING, Literal
 
 from pynput import keyboard as pynput_keyboard
@@ -115,6 +115,8 @@ class RecordingModal:
         self._animation_running = False
         self._hotkey_listener: pynput_keyboard.GlobalHotKeys | None = None
         self._pause_btn: tk.Button | None = None
+        self._elapsed_label: tk.Label | None = None
+        self._recording_start: float = 0.0
 
     def show(self) -> None:
         """モーダルウィンドウを表示する。"""
@@ -160,7 +162,16 @@ class RecordingModal:
             bg=_BG,
             highlightthickness=0,
         )
-        self._canvas.pack(pady=(14, 8))
+        self._canvas.pack(pady=(14, 2))
+
+        # 録音経過時間ラベル
+        info_font = tkfont.Font(family="Yu Gothic UI", size=9)
+        self._elapsed_label = tk.Label(
+            self._root, text="00:00",
+            font=info_font, bg=_BG, fg="#888888",
+        )
+        self._elapsed_label.pack(pady=(0, 6))
+        self._recording_start = time.monotonic()
 
         # 一時停止ボタンフレーム
         pause_frame = tk.Frame(self._root, bg=_BG)
@@ -332,6 +343,12 @@ class RecordingModal:
                 outline="",
             )
 
+        # 録音経過時間を更新
+        if self._elapsed_label and self._recording_start:
+            elapsed = time.monotonic() - self._recording_start
+            m, s = divmod(int(elapsed), 60)
+            self._elapsed_label.configure(text=f"{m:02d}:{s:02d}")
+
         self._root.after(_WAVE_UPDATE_MS, self._update_wave)
 
     def _confirm(self, mode: ConfirmMode) -> None:
@@ -358,19 +375,22 @@ class RecordingModal:
 class TranscribingOverlay:
     """文字起こし中の経過表示ウィンドウ。
 
-    mainloop を使わず update() ループで動作するため、
-    メインスレッドで同期的に文字起こしを実行しながら表示を更新できる。
+    transcribe() はバックグラウンドスレッドで実行し、
+    メインスレッドが tick() を ~50ms ごとに呼ぶことで UI を滑らかに更新する。
+    update() はスレッドセーフで値のセットのみ行い、tkinter 操作は tick() に委譲する。
     """
 
     def __init__(self) -> None:
         self._root: tk.Tk | None = None
         self._status_label: tk.Label | None = None
         self._elapsed_label: tk.Label | None = None
-        self._remaining_label: tk.Label | None = None
+        self._progress_label: tk.Label | None = None
+        self._progress_bar: ttk.Progressbar | None = None
         self._start_time: float = 0.0
         self._dot_count = 0
         self._last_dot_update: float = 0.0
         self._remaining: float | None = None
+        self._total: float | None = None
 
     def show(self) -> None:
         """オーバーレイウィンドウを表示する。"""
@@ -379,7 +399,7 @@ class TranscribingOverlay:
         self._root.resizable(False, False)
         self._root.overrideredirect(True)
 
-        win_w, win_h = 300, 140
+        win_w, win_h = 300, 180
         x, y = _calc_window_position(
             win_w, win_h,
             config.WINDOW_POSITION,
@@ -402,19 +422,30 @@ class TranscribingOverlay:
             self._root, text="文字起こし中",
             font=label_font, bg=_BG, fg=_ACCENT,
         )
-        self._status_label.pack(pady=(18, 6))
+        self._status_label.pack(pady=(14, 4))
 
         self._elapsed_label = tk.Label(
             self._root, text="経過: 0.0秒",
             font=info_font, bg=_BG, fg="#888888",
         )
-        self._elapsed_label.pack(pady=(0, 2))
+        self._elapsed_label.pack(pady=(0, 4))
 
-        self._remaining_label = tk.Label(
+        self._progress_label = tk.Label(
             self._root, text="",
             font=info_font, bg=_BG, fg="#888888",
         )
-        self._remaining_label.pack(pady=(0, 6))
+        self._progress_label.pack(pady=(0, 4))
+
+        style = ttk.Style(self._root)
+        style.theme_use("clam")
+        style.configure("Trans.Horizontal.TProgressbar",
+                         troughcolor="#2d2d2d", background=_ACCENT,
+                         bordercolor=_BG, lightcolor=_ACCENT, darkcolor=_ACCENT)
+        self._progress_bar = ttk.Progressbar(
+            self._root, style="Trans.Horizontal.TProgressbar",
+            orient="horizontal", length=240, mode="determinate",
+        )
+        self._progress_bar.pack(pady=(0, 8))
 
         tk.Label(
             self._root,
@@ -424,33 +455,30 @@ class TranscribingOverlay:
 
         self._start_time = time.monotonic()
         self._last_dot_update = self._start_time
-        self._running = True
         self._root.update()
-        self._tick()
 
-    def _tick(self) -> None:
-        """0.1秒ごとに経過時間とドットアニメーションを自律更新する。"""
-        if not self._running or not self._root:
-            return
-        self._update_ui()
-        self._root.after(100, self._tick)
+    def set_total(self, total: float) -> None:
+        """transcribe 開始前にWAVの総秒数をセットする（メインスレッドから呼ぶ）。"""
+        self._total = total
+        self._remaining = total
 
-    def _update_ui(self) -> None:
-        """経過時間・ドットアニメーションを更新する。"""
+    def update(self, remaining: float | None = None, total: float | None = None) -> None:
+        """バックグラウンドスレッドから呼ぶ。値のセットのみ（tkinter操作なし）。"""
+        self._remaining = remaining
+        if total is not None:
+            self._total = total
+
+    def tick(self) -> None:
+        """メインスレッドから ~50ms ごとに呼ぶ。UIを更新する。"""
         if not self._root:
             return
 
         now = time.monotonic()
-        elapsed = now - self._start_time
 
+        # 経過時間
         if self._elapsed_label:
+            elapsed = now - self._start_time
             self._elapsed_label.configure(text=f"経過: {elapsed:.1f}秒")
-
-        if self._remaining_label:
-            if self._remaining is not None:
-                self._remaining_label.configure(text=f"残り: 約{self._remaining:.0f}秒")
-            else:
-                self._remaining_label.configure(text="")
 
         # ドットアニメーション
         if now - self._last_dot_update >= 0.5:
@@ -460,16 +488,22 @@ class TranscribingOverlay:
                 self._status_label.configure(text=f"文字起こし中{dots}")
             self._last_dot_update = now
 
-        self._root.update()
+        # 残り時間ラベルと進捗バー
+        if self._progress_label:
+            if self._remaining is not None and self._total is not None and self._total > 0:
+                self._progress_label.configure(
+                    text=f"残り {self._remaining:.0f}秒 / {self._total:.0f}秒"
+                )
+                pct = max(0.0, min(100.0, (self._total - self._remaining) / self._total * 100))
+                if self._progress_bar:
+                    self._progress_bar["value"] = pct
+            else:
+                self._progress_label.configure(text="")
 
-    def update(self, remaining: float | None = None) -> None:
-        """UIを更新する。文字起こしループ中に定期的に呼ぶ。"""
-        self._remaining = remaining
-        self._update_ui()
+        self._root.update()
 
     def close(self) -> None:
         """ウィンドウを閉じる。"""
-        self._running = False
         if self._root:
             self._root.destroy()
             self._root = None

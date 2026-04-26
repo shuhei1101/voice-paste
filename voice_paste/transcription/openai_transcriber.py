@@ -32,7 +32,7 @@ class OpenAITranscriber(Transcribable):
         self,
         audio_file: Path,
         prompt: str = "",
-        on_segment: Callable[[float | None], None] | None = None,
+        on_segment: Callable[[float | None, float | None], None] | None = None,
     ) -> str:
         """
         音声ファイルを OpenAI Whisper API で文字起こしする。
@@ -64,14 +64,14 @@ class OpenAITranscriber(Transcribable):
             if on_segment:
                 seg_end = getattr(seg, "end", None)
                 remaining = max(0.0, total_duration - seg_end) if (total_duration is not None and seg_end is not None) else None
-                on_segment(remaining)
+                on_segment(remaining, total_duration)
 
         # セグメントが取れない場合は全文テキストにフォールバック
         if not lines:
             fallback = getattr(response, "text", "") or ""
             result = fallback.strip()
             if on_segment:
-                on_segment(None)
+                on_segment(None, None)
         else:
             result = "\n".join(lines)
 

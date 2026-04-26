@@ -145,20 +145,43 @@ def _run_once(
     overlay = TranscribingOverlay()
     overlay.show()
 
+    # WAV の総再生時間をオーバーレイに事前セット（最初から全体秒数を表示するため）
     try:
-        text = transcriber.transcribe(
-            audio_file, prompt=prompt,
-            on_segment=overlay.update,
-        )
-    except Exception as e:
+        from scipy.io import wavfile as _wavfile
+        _sr, _data = _wavfile.read(str(audio_file))
+        overlay.set_total(len(_data) / _sr)
+    except Exception:
+        pass
+
+    # transcribe をバックグラウンドスレッドで実行し、メインスレッドで UI を更新する
+    _result: dict = {"text": None, "error": None}
+
+    def _transcribe_bg() -> None:
+        try:
+            _result["text"] = transcriber.transcribe(
+                audio_file, prompt=prompt,
+                on_segment=overlay.update,
+            )
+        except Exception as exc:
+            _result["error"] = exc
+
+    t = threading.Thread(target=_transcribe_bg, daemon=True)
+    t.start()
+    while t.is_alive():
+        overlay.tick()
+        t.join(timeout=0.05)
+
+    if _result["error"]:
         overlay.close()
         if tray_icon:
             from voice_paste.tray import update_tray_state
             update_tray_state(tray_icon, "idle")
-        logger.exception("Transcription failed.")
+        logger.exception("Transcription failed.", exc_info=_result["error"])
         import tkinter.messagebox as mb
-        mb.showerror("文字起こしエラー", f"文字起こしに失敗しました:\n{e}")
+        mb.showerror("文字起こしエラー", f"文字起こしに失敗しました:\n{_result['error']}")
         return
+
+    text: str = _result["text"] or ""
     logger.info("Transcribed text: %s", text)
 
     text = apply_yogo_replacements(text, yogo)

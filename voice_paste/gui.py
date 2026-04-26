@@ -117,6 +117,8 @@ class RecordingModal:
         self._pause_btn: tk.Button | None = None
         self._elapsed_label: tk.Label | None = None
         self._recording_start: float = 0.0
+        self._pause_start: float = 0.0
+        self._total_paused: float = 0.0
 
     def show(self) -> None:
         """モーダルウィンドウを表示する。"""
@@ -264,6 +266,7 @@ class RecordingModal:
         if self._recorder is None:
             return
         if self._recorder.is_paused:
+            self._total_paused += time.monotonic() - self._pause_start
             self._recorder.resume()
             if self._pause_btn:
                 self._pause_btn.configure(
@@ -273,6 +276,7 @@ class RecordingModal:
                 )
             logger.info("Recording resumed by user.")
         else:
+            self._pause_start = time.monotonic()
             self._recorder.pause()
             if self._pause_btn:
                 self._pause_btn.configure(
@@ -345,7 +349,9 @@ class RecordingModal:
 
         # 録音経過時間を更新
         if self._elapsed_label and self._recording_start:
-            elapsed = time.monotonic() - self._recording_start
+            paused = self._recorder is not None and self._recorder.is_paused
+            paused_extra = (time.monotonic() - self._pause_start) if paused else 0.0
+            elapsed = max(0.0, time.monotonic() - self._recording_start - self._total_paused - paused_extra)
             m, s = divmod(int(elapsed), 60)
             self._elapsed_label.configure(text=f"{m:02d}:{s:02d}")
 

@@ -123,9 +123,6 @@ WHISPER_TEMPERATURE: float = float(os.getenv("WHISPER_TEMPERATURE", "0.0"))
 WHISPER_NO_SPEECH_THRESHOLD: float = float(
     os.getenv("WHISPER_NO_SPEECH_THRESHOLD", "0.6")
 )
-# 長時間連続使用時のGPUメモリ枯渇対策: N回ごとにモデルを再初期化する（0=無効）
-WHISPER_REINIT_INTERVAL: int = int(os.getenv("WHISPER_REINIT_INTERVAL", "30"))
-
 def _resolve_user_file(env_value: str | None, filename: str, default: Path) -> Path:
     """ユーザー編集ファイルのパスを解決する。
 

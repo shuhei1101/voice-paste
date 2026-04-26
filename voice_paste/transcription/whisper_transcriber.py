@@ -5,6 +5,7 @@ Implementation: whisper_transcriber.py
 """
 
 import gc
+import threading
 from pathlib import Path
 from typing import Callable
 
@@ -22,8 +23,8 @@ class WhisperTranscriber(Transcribable):
 
     def __init__(self) -> None:
         """WhisperModel を初期化する。"""
-        self._session_count = 0
-        self._model = self._load_model()
+        self._lock = threading.Lock()
+        self._model: WhisperModel = self._load_model()
 
     def _load_model(self) -> WhisperModel:
         logger.info(
@@ -56,62 +57,58 @@ class WhisperTranscriber(Transcribable):
         """
         logger.info("Starting transcription: file=%s", audio_file)
 
-        vad_parameters = {
-            "threshold": config.WHISPER_VAD_THRESHOLD,
-            "min_speech_duration_ms": config.WHISPER_VAD_MIN_SPEECH_MS,
-            "min_silence_duration_ms": config.WHISPER_VAD_MIN_SILENCE_MS,
-        } if config.WHISPER_VAD_FILTER else None
+        with self._lock:
+            vad_parameters = {
+                "threshold": config.WHISPER_VAD_THRESHOLD,
+                "min_speech_duration_ms": config.WHISPER_VAD_MIN_SPEECH_MS,
+                "min_silence_duration_ms": config.WHISPER_VAD_MIN_SILENCE_MS,
+            } if config.WHISPER_VAD_FILTER else None
 
-        segments, info = self._model.transcribe(
-            str(audio_file),
-            language=config.WHISPER_LANGUAGE,
-            beam_size=config.WHISPER_BEAM_SIZE,
-            best_of=config.WHISPER_BEST_OF,
-            temperature=config.WHISPER_TEMPERATURE,
-            vad_filter=config.WHISPER_VAD_FILTER,
-            vad_parameters=vad_parameters,
-            condition_on_previous_text=config.WHISPER_CONDITION_ON_PREVIOUS_TEXT,
-            no_speech_threshold=config.WHISPER_NO_SPEECH_THRESHOLD,
-        )
+            segments, info = self._model.transcribe(
+                str(audio_file),
+                language=config.WHISPER_LANGUAGE,
+                beam_size=config.WHISPER_BEAM_SIZE,
+                best_of=config.WHISPER_BEST_OF,
+                temperature=config.WHISPER_TEMPERATURE,
+                vad_filter=config.WHISPER_VAD_FILTER,
+                vad_parameters=vad_parameters,
+                condition_on_previous_text=config.WHISPER_CONDITION_ON_PREVIOUS_TEXT,
+                no_speech_threshold=config.WHISPER_NO_SPEECH_THRESHOLD,
+            )
 
-        logger.info(
-            "Transcription info: language=%s, probability=%.2f, duration=%.1fs",
-            info.language,
-            info.language_probability,
-            info.duration,
-        )
+            logger.info(
+                "Transcription info: language=%s, probability=%.2f, duration=%.1fs",
+                info.language,
+                info.language_probability,
+                info.duration,
+            )
 
-        # セグメントごとに改行で結合（セグメント処理ごとにコールバック）
-        lines: list[str] = []
-        for segment in segments:
-            text = segment.text.strip()
-            if text:
-                lines.append(text)
-            if on_segment:
-                remaining = max(0.0, info.duration - segment.end)
-                on_segment(remaining, info.duration)
+            lines: list[str] = []
+            for segment in segments:
+                text = segment.text.strip()
+                if text:
+                    lines.append(text)
+                if on_segment:
+                    remaining = max(0.0, info.duration - segment.end)
+                    on_segment(remaining, info.duration)
+
         result = "\n".join(lines)
         logger.info("Transcription completed: %d chars, %d segments", len(result), len(lines))
 
-        self._session_count += 1
-        self._maybe_reinit_model()
+        self._reload_in_background()
 
         return result
 
-    def _maybe_reinit_model(self) -> None:
-        """セッション数が閾値に達したらモデルを再初期化してGPUメモリを解放する。"""
-        interval = config.WHISPER_REINIT_INTERVAL
-        if interval <= 0:
-            gc.collect()
-            return
-        if self._session_count % interval == 0:
-            logger.info(
-                "Reinitializing WhisperModel to release GPU memory (session=%d, interval=%d)",
-                self._session_count,
-                interval,
-            )
-            del self._model
-            gc.collect()
-            self._model = self._load_model()
-        else:
-            gc.collect()
+    def _reload_in_background(self) -> None:
+        """文字起こし完了後、バックグラウンドでモデルを再ロードしGPUメモリを解放する。
+
+        次の transcribe() 呼び出しは self._lock で安全にブロックされる。
+        """
+        def _do_reload() -> None:
+            with self._lock:
+                logger.info("Reloading WhisperModel in background to release GPU memory.")
+                del self._model
+                gc.collect()
+                self._model = self._load_model()
+
+        threading.Thread(target=_do_reload, daemon=True).start()

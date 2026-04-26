@@ -31,14 +31,12 @@ class OpenAITranscriber(Transcribable):
     def transcribe(
         self,
         audio_file: Path,
-        prompt: str = "",
         on_segment: Callable[[float | None, float | None], None] | None = None,
     ) -> str:
         """
         音声ファイルを OpenAI Whisper API で文字起こしする。
 
         :param audio_file: 文字起こし対象の音声ファイルパス
-        :param prompt: Whisper API に渡す initial_prompt（用語集等）
         :param on_segment: セグメントごとに呼ばれるコールバック（オーバーレイ更新用）
         :return: 文字起こし結果のテキスト（セグメント間は改行で結合）
         """
@@ -49,7 +47,6 @@ class OpenAITranscriber(Transcribable):
                 model="whisper-1",
                 file=f,
                 language=config.WHISPER_LANGUAGE,
-                prompt=prompt if prompt else None,
                 temperature=config.WHISPER_TEMPERATURE,
                 response_format="verbose_json",
             )

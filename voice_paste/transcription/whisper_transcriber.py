@@ -39,14 +39,12 @@ class WhisperTranscriber(Transcribable):
     def transcribe(
         self,
         audio_file: Path,
-        prompt: str = "",
         on_segment: Callable[[float | None, float | None], None] | None = None,
     ) -> str:
         """
         音声ファイルを文字起こしする。
 
         :param audio_file: 文字起こし対象の音声ファイルパス
-        :param prompt: Whisperに渡す初期プロンプト（用語集等）
         :param on_segment: セグメント処理ごとに呼ばれるコールバック（UI更新用）
         :return: 文字起こし結果のテキスト
         """
@@ -61,7 +59,6 @@ class WhisperTranscriber(Transcribable):
         segments, info = self._model.transcribe(
             str(audio_file),
             language=config.WHISPER_LANGUAGE,
-            initial_prompt=prompt if prompt else None,
             beam_size=config.WHISPER_BEAM_SIZE,
             best_of=config.WHISPER_BEST_OF,
             temperature=config.WHISPER_TEMPERATURE,

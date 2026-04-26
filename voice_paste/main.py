@@ -19,9 +19,7 @@ from voice_paste.transcription.whisper_transcriber import WhisperTranscriber
 from voice_paste.input.keyboard_sender import copy_to_clipboard, send_paste, send_enter
 from voice_paste.gui import RecordingModal, TranscribingOverlay, ConfirmMode
 from voice_paste.utils import (
-    load_prompt,
     load_yogo,
-    build_initial_prompt,
     apply_yogo_replacements,
 )
 from voice_paste.history import save_history, cleanup_history
@@ -131,10 +129,8 @@ def _run_once(
 
     audio_file: Path = recorder.stop_and_save(DEFAULT_AUDIO_TMP)
 
-    # プロンプト・用語集を毎回読み込み（編集が即反映される）
-    raw_prompt = load_prompt(config.PROMPT_FILE)
+    # 用語集を毎回読み込み（編集が即反映される）
     yogo = load_yogo(config.YOGO_FILE)
-    prompt = build_initial_prompt(raw_prompt, yogo)
 
     # トレイアイコンを緑(文字起こし中)に
     if tray_icon:
@@ -159,7 +155,7 @@ def _run_once(
     def _transcribe_bg() -> None:
         try:
             _result["text"] = transcriber.transcribe(
-                audio_file, prompt=prompt,
+                audio_file,
                 on_segment=overlay.update,
             )
         except Exception as exc:

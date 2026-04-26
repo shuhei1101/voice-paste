@@ -436,15 +436,6 @@ class SettingsWindow:
             row=row, column=0, columnspan=2, sticky="ew", padx=12, pady=8)
         row += 1
 
-        # プロンプトファイルパス
-        label("プロンプトファイル:", row)
-        self._prompt_file = self._file_path_input(
-            root, str(config.PROMPT_FILE), row,
-            on_open=self._open_prompt_file,
-            filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
-        )
-        row += 1
-
         # 用語集ファイルパス
         label("用語集ファイル:", row)
         self._yogo_file = self._file_path_input(
@@ -628,9 +619,6 @@ class SettingsWindow:
                 parent=self._root,
             )
 
-    def _open_prompt_file(self) -> None:
-        self._open_file_with_default_app(self._prompt_file.get().strip(), "プロンプトファイル")
-
     def _open_yogo_file(self) -> None:
         self._open_file_with_default_app(self._yogo_file.get().strip(), "用語集ファイル")
 
@@ -665,7 +653,6 @@ class SettingsWindow:
         _check("WINDOW_FOLLOW_CURSOR", self._window_follow_cursor.get(), str(config.WINDOW_FOLLOW_CURSOR).lower())
         _check("WINDOW_HIDDEN", self._window_hidden.get(), str(config.WINDOW_HIDDEN).lower())
         _check("WAVE_GAIN", self._wave_gain.get().strip(), str(config.WAVE_GAIN))
-        _check("PROMPT_FILE", self._prompt_file.get().strip(), str(config.PROMPT_FILE))
         _check("YOGO_FILE", self._yogo_file.get().strip(), str(config.YOGO_FILE))
 
         # AI送信設定
@@ -748,8 +735,6 @@ class SettingsWindow:
             config.WINDOW_HIDDEN = changed["WINDOW_HIDDEN"].lower() == "true"
         if "WAVE_GAIN" in changed:
             config.WAVE_GAIN = float(changed["WAVE_GAIN"])
-        if "PROMPT_FILE" in changed:
-            config.PROMPT_FILE = Path(changed["PROMPT_FILE"])
         if "YOGO_FILE" in changed:
             config.YOGO_FILE = Path(changed["YOGO_FILE"])
         if any(k in changed for k in _ai_keys):

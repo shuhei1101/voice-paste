@@ -10,7 +10,6 @@ from voice_paste.constants import (
     ROOT_DIR,
     RESOURCES_DIR,
     LEGACY_ROOT_DIR,
-    DEFAULT_PROMPT_FILE,
     DEFAULT_YOGO_FILE,
     DEFAULT_WHISPER_MODEL,
     DEFAULT_DEVICE,
@@ -153,11 +152,6 @@ def _resolve_user_file(env_value: str | None, filename: str, default: Path) -> P
         return root_candidate
     return default
 
-
-# --- プロンプトファイル ---
-PROMPT_FILE: Path = _resolve_user_file(
-    os.getenv("PROMPT_FILE"), "prompt.txt", DEFAULT_PROMPT_FILE,
-)
 
 # --- 用語集CSVファイル ---
 YOGO_FILE: Path = _resolve_user_file(

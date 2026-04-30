@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Read(//c/Users/shuhe/.claude/skill-memory/**)",
-      "Bash(mkdir -p \"C:/Users/shuhe/.claude/skill-memory/worktree/\")"
+      "Bash(mkdir -p \"C:/Users/shuhe/.claude/skill-memory/worktree/\")",
+      "Bash(mkdir -p \"/c/Users/shuhe/.claude/skill-memory/worktree\")",
+      "Bash(git -C \"/c/Users/shuhe/repo/voice-paste\" branch \"10/GPUメモリ枯渇クラッシュ修正\" master)",
+      "Bash(git -C \"/c/Users/shuhe/repo/voice-paste\" worktree add \"C:/Users/shuhe/repo/voice-paste-wt-PR10\" \"10/GPUメモリ枯渇クラッシュ修正\")"
     ]
   }
 }

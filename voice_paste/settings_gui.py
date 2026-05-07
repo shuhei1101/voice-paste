@@ -198,6 +198,10 @@ class SettingsWindow:
         self._ai2_name: tk.Entry | None = None
         self._ai2_url: tk.Entry | None = None
         self._ai2_hotkey: _HotkeyCapture | None = None
+        self._ai3_enabled: ttk.Combobox | None = None
+        self._ai3_name: tk.Entry | None = None
+        self._ai3_url: tk.Entry | None = None
+        self._ai3_hotkey: _HotkeyCapture | None = None
         self._ai_delay: tk.Entry | None = None
 
     def show(self) -> None:
@@ -464,6 +468,7 @@ class SettingsWindow:
 
         _ai1 = config.AI_SEND_APPS[0] if len(config.AI_SEND_APPS) > 0 else {}
         _ai2 = config.AI_SEND_APPS[1] if len(config.AI_SEND_APPS) > 1 else {}
+        _ai3 = config.AI_SEND_APPS[2] if len(config.AI_SEND_APPS) > 2 else {}
 
         label("AI1 有効:", row)
         self._ai1_enabled = combo(_BOOL_OPTIONS, _ai1.get("enabled", "true"), row)
@@ -495,6 +500,22 @@ class SettingsWindow:
 
         label("AI2 ホットキー:", row)
         self._ai2_hotkey = hotkey_input(_ai2.get("hotkey", "<ctrl>+<alt>+2"), row)
+        row += 1
+
+        label("AI3 有効:", row)
+        self._ai3_enabled = combo(_BOOL_OPTIONS, _ai3.get("enabled", "true"), row)
+        row += 1
+
+        label("AI3 名前:", row)
+        self._ai3_name = entry_field(_ai3.get("name", "Claude"), row)
+        row += 1
+
+        label("AI3 URL:", row)
+        self._ai3_url = entry_field(_ai3.get("url", "https://claude.ai/new"), row)
+        row += 1
+
+        label("AI3 ホットキー:", row)
+        self._ai3_hotkey = hotkey_input(_ai3.get("hotkey", "<ctrl>+<alt>+3"), row)
         row += 1
 
         label("AI送信待機(秒):", row)
@@ -658,6 +679,7 @@ class SettingsWindow:
         # AI送信設定
         _ai1_cur = config.AI_SEND_APPS[0] if len(config.AI_SEND_APPS) > 0 else {}
         _ai2_cur = config.AI_SEND_APPS[1] if len(config.AI_SEND_APPS) > 1 else {}
+        _ai3_cur = config.AI_SEND_APPS[2] if len(config.AI_SEND_APPS) > 2 else {}
         _ai1_new = {
             "name": self._ai1_name.get().strip() if self._ai1_name else "",
             "url": self._ai1_url.get().strip() if self._ai1_url else "",
@@ -670,6 +692,12 @@ class SettingsWindow:
             "hotkey": self._ai2_hotkey.get().strip() if self._ai2_hotkey else "",
             "enabled": self._ai2_enabled.get() if self._ai2_enabled else "true",
         }
+        _ai3_new = {
+            "name": self._ai3_name.get().strip() if self._ai3_name else "",
+            "url": self._ai3_url.get().strip() if self._ai3_url else "",
+            "hotkey": self._ai3_hotkey.get().strip() if self._ai3_hotkey else "",
+            "enabled": self._ai3_enabled.get() if self._ai3_enabled else "true",
+        }
         if _ai1_new != _ai1_cur:
             changed["AI_SEND_1_NAME"] = _ai1_new["name"]
             changed["AI_SEND_1_URL"] = _ai1_new["url"]
@@ -680,6 +708,11 @@ class SettingsWindow:
             changed["AI_SEND_2_URL"] = _ai2_new["url"]
             changed["AI_SEND_2_HOTKEY"] = _ai2_new["hotkey"]
             changed["AI_SEND_2_ENABLED"] = _ai2_new["enabled"]
+        if _ai3_new != _ai3_cur:
+            changed["AI_SEND_3_NAME"] = _ai3_new["name"]
+            changed["AI_SEND_3_URL"] = _ai3_new["url"]
+            changed["AI_SEND_3_HOTKEY"] = _ai3_new["hotkey"]
+            changed["AI_SEND_3_ENABLED"] = _ai3_new["enabled"]
         _check("AI_SEND_DELAY", self._ai_delay.get().strip() if self._ai_delay else "", str(config.AI_SEND_DELAY))
 
         if not changed:
@@ -688,13 +721,14 @@ class SettingsWindow:
 
         # .env に書き込み（AI_SEND_N_* は個別にまとめて書く）
         _ai_keys = {"AI_SEND_1_NAME", "AI_SEND_1_URL", "AI_SEND_1_HOTKEY", "AI_SEND_1_ENABLED",
-                    "AI_SEND_2_NAME", "AI_SEND_2_URL", "AI_SEND_2_HOTKEY", "AI_SEND_2_ENABLED"}
+                    "AI_SEND_2_NAME", "AI_SEND_2_URL", "AI_SEND_2_HOTKEY", "AI_SEND_2_ENABLED",
+                    "AI_SEND_3_NAME", "AI_SEND_3_URL", "AI_SEND_3_HOTKEY", "AI_SEND_3_ENABLED"}
         for key, val in changed.items():
             if key not in _ai_keys:
                 set_key(_ENV_FILE, key, val)
                 logger.info("Settings written: %s = %s", key, val)
         if any(k in changed for k in _ai_keys):
-            for i, app_new in enumerate([_ai1_new, _ai2_new], start=1):
+            for i, app_new in enumerate([_ai1_new, _ai2_new, _ai3_new], start=1):
                 set_key(_ENV_FILE, f"AI_SEND_{i}_NAME", app_new["name"])
                 set_key(_ENV_FILE, f"AI_SEND_{i}_URL", app_new["url"])
                 set_key(_ENV_FILE, f"AI_SEND_{i}_HOTKEY", app_new["hotkey"])
@@ -739,7 +773,7 @@ class SettingsWindow:
             config.YOGO_FILE = Path(changed["YOGO_FILE"])
         if any(k in changed for k in _ai_keys):
             new_apps = []
-            for app in [_ai1_new, _ai2_new]:
+            for app in [_ai1_new, _ai2_new, _ai3_new]:
                 if app["name"] and app["url"]:
                     new_apps.append(app)
             config.AI_SEND_APPS = new_apps

@@ -206,3 +206,10 @@ WINDOW_FOLLOW_CURSOR: bool = os.getenv("WINDOW_FOLLOW_CURSOR", "true").lower() =
 WINDOW_HIDDEN: bool = os.getenv("WINDOW_HIDDEN", "false").lower() == "true"
 # 波形の感度（大きいほど小さい声でも波形が大きく振れる）
 WAVE_GAIN: float = float(os.getenv("WAVE_GAIN", "4"))
+
+# --- 録音中音量設定 ---
+RECORDING_VOLUME_ENABLED: bool = os.getenv("RECORDING_VOLUME_ENABLED", "true").lower() == "true"
+# 録音中に下げる音量（%、0–100）
+RECORDING_VOLUME: float = float(os.getenv("RECORDING_VOLUME", "50"))
+# フェード時間（秒）
+RECORDING_VOLUME_FADE_DURATION: float = float(os.getenv("RECORDING_VOLUME_FADE_DURATION", "0.5"))

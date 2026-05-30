@@ -12,40 +12,33 @@ _fade_stop_event: threading.Event = threading.Event()
 _fade_thread: threading.Thread | None = None
 
 
-def _get_interface():
-    """IAudioEndpointVolume COM インターフェースを返す。失敗時は None。"""
-    try:
-        from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
-        from ctypes import cast, POINTER
-        from comtypes import CLSCTX_ALL
+def _get_endpoint_volume():
+    """EndpointVolume COM インターフェースを返す。失敗時は None。
 
-        devices = AudioUtilities.GetSpeakers()
-        interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-        return cast(interface, POINTER(IAudioEndpointVolume))
+    pycaw 20251023 以降は AudioDevice.EndpointVolume を直接使用する。
+    スレッドから呼ぶ前に CoInitialize 済みであること。
+    """
+    try:
+        from pycaw.pycaw import AudioUtilities
+        dev = AudioUtilities.GetSpeakers()
+        return dev.EndpointVolume
     except Exception:
         return None
 
 
 def get_master_volume() -> float:
     """マスター音量を 0.0–100.0 で返す。取得失敗時は -1.0。"""
-    iface = _get_interface()
-    if iface is None:
-        return -1.0
+    import comtypes
+    comtypes.CoInitialize()
     try:
+        iface = _get_endpoint_volume()
+        if iface is None:
+            return -1.0
         return iface.GetMasterVolumeLevelScalar() * 100.0
     except Exception:
         return -1.0
-
-
-def set_master_volume(level: float) -> None:
-    """マスター音量を 0.0–100.0 で設定する。"""
-    iface = _get_interface()
-    if iface is None:
-        return
-    try:
-        iface.SetMasterVolumeLevelScalar(max(0.0, min(100.0, level)) / 100.0, None)
-    except Exception:
-        pass
+    finally:
+        comtypes.CoUninitialize()
 
 
 def fade_volume(target_pct: float, duration: float, steps: int = 30) -> None:
@@ -64,32 +57,35 @@ def fade_volume(target_pct: float, duration: float, steps: int = 30) -> None:
         stop = _fade_stop_event
 
     def _worker() -> None:
-        iface = _get_interface()
-        if iface is None:
-            return
-
+        import comtypes
+        comtypes.CoInitialize()
         try:
+            iface = _get_endpoint_volume()
+            if iface is None:
+                return
+
             current = iface.GetMasterVolumeLevelScalar() * 100.0
+
+            if abs(current - target_pct) < 0.5 or steps <= 0 or duration <= 0:
+                iface.SetMasterVolumeLevelScalar(
+                    max(0.0, min(100.0, target_pct)) / 100.0, None)
+                return
+
+            step_delay = duration / steps
+            delta = (target_pct - current) / steps
+
+            for i in range(1, steps + 1):
+                if stop.is_set():
+                    return
+                level = current + delta * i
+                iface.SetMasterVolumeLevelScalar(
+                    max(0.0, min(100.0, level)) / 100.0, None)
+                if i < steps:
+                    time.sleep(step_delay)
         except Exception:
-            return
-
-        if abs(current - target_pct) < 0.5 or steps <= 0 or duration <= 0:
-            set_master_volume(target_pct)
-            return
-
-        step_delay = duration / steps
-        delta = (target_pct - current) / steps
-
-        for i in range(1, steps + 1):
-            if stop.is_set():
-                return
-            level = current + delta * i
-            try:
-                iface.SetMasterVolumeLevelScalar(max(0.0, min(100.0, level)) / 100.0, None)
-            except Exception:
-                return
-            if i < steps:
-                time.sleep(step_delay)
+            logger.exception("Volume fade failed.")
+        finally:
+            comtypes.CoUninitialize()
 
     with _lock:
         _fade_thread = threading.Thread(target=_worker, daemon=True, name="volume-fade")

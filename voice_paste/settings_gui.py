@@ -561,8 +561,8 @@ class SettingsWindow:
             _BOOL_OPTIONS, str(config.RECORDING_VOLUME_ENABLED).lower(), row)
         row += 1
 
-        # 録音中の音量(%)
-        label("録音中の音量(%):", row)
+        # 録音中の音量比率(%)
+        label("音量比率(%):", row)
         self._recording_volume = tk.Entry(
             root, bg=_ENTRY_BG, fg=_FG, insertbackground=_FG,
             relief="flat", width=8,

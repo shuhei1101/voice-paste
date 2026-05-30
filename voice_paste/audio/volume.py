@@ -27,19 +27,18 @@ def _get_endpoint_volume():
 
 
 def get_master_volume() -> float:
-    """マスター音量を 0.0–100.0 で返す。取得失敗時は -1.0。
-
-    メインスレッドから呼ぶことを前提とする（COM が初期化済みの環境）。
-    """
+    """マスター音量を 0.0–100.0 で返す。取得失敗時は -1.0。"""
+    import comtypes
+    comtypes.CoInitialize()
     try:
-        import comtypes
-        comtypes.CoInitialize()
         iface = _get_endpoint_volume()
         if iface is None:
             return -1.0
         return iface.GetMasterVolumeLevelScalar() * 100.0
     except Exception:
         return -1.0
+    finally:
+        comtypes.CoUninitialize()
 
 
 def fade_volume(target_pct: float, duration: float, steps: int = 30) -> None:

@@ -122,7 +122,9 @@ def _run_once(
             from voice_paste.audio.volume import get_master_volume, fade_volume
             _pre_recording_volume = get_master_volume()
             if _pre_recording_volume >= 0:
-                fade_volume(config.RECORDING_VOLUME, config.RECORDING_VOLUME_FADE_DURATION)
+                # RECORDING_VOLUME は現在の音量に掛けるパーセント比（例: 50 → 現在の半分）
+                _target_volume = _pre_recording_volume * (config.RECORDING_VOLUME / 100.0)
+                fade_volume(_target_volume, config.RECORDING_VOLUME_FADE_DURATION)
         except Exception:
             logger.exception("Failed to fade volume down.")
 

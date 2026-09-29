@@ -19,6 +19,7 @@ dependencies = [
     "Pillow>=11.0",
     "nvidia-cublas-cu12",
     "nvidia-cudnn-cu12>=9,<10",
+    "pycaw>=20220416",
 ]
 
 [project.scripts]

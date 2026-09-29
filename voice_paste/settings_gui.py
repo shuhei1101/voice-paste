@@ -203,6 +203,9 @@ class SettingsWindow:
         self._ai3_url: tk.Entry | None = None
         self._ai3_hotkey: _HotkeyCapture | None = None
         self._ai_delay: tk.Entry | None = None
+        self._recording_volume_enabled: ttk.Combobox | None = None
+        self._recording_volume: tk.Entry | None = None
+        self._recording_volume_fade_duration: tk.Entry | None = None
 
     def show(self) -> None:
         """設定ウィンドウを表示する（mainloop でブロック）。"""
@@ -542,6 +545,42 @@ class SettingsWindow:
         self._wave_gain.grid(row=row, column=1, sticky="w", padx=12, pady=4)
         row += 1
 
+        # セパレータ（録音中音量設定）
+        ttk.Separator(root, orient="horizontal").grid(
+            row=row, column=0, columnspan=2, sticky="ew", padx=12, pady=8)
+        row += 1
+
+        tk.Label(root, text="録音中音量設定", bg=_BG, fg=_ACCENT,
+                 font=("Yu Gothic UI", 10, "bold"), anchor="w").grid(
+            row=row, column=0, columnspan=2, sticky="w", padx=12, pady=(0, 4))
+        row += 1
+
+        # 録音中音量制御 有効/無効
+        label("録音中音量制御:", row)
+        self._recording_volume_enabled = combo(
+            _BOOL_OPTIONS, str(config.RECORDING_VOLUME_ENABLED).lower(), row)
+        row += 1
+
+        # 録音中の音量比率(%)
+        label("音量比率(%):", row)
+        self._recording_volume = tk.Entry(
+            root, bg=_ENTRY_BG, fg=_FG, insertbackground=_FG,
+            relief="flat", width=8,
+        )
+        self._recording_volume.insert(0, str(int(config.RECORDING_VOLUME)))
+        self._recording_volume.grid(row=row, column=1, sticky="w", padx=12, pady=4)
+        row += 1
+
+        # フェード時間(秒)
+        label("フェード時間(秒):", row)
+        self._recording_volume_fade_duration = tk.Entry(
+            root, bg=_ENTRY_BG, fg=_FG, insertbackground=_FG,
+            relief="flat", width=8,
+        )
+        self._recording_volume_fade_duration.insert(0, str(config.RECORDING_VOLUME_FADE_DURATION))
+        self._recording_volume_fade_duration.grid(row=row, column=1, sticky="w", padx=12, pady=4)
+        row += 1
+
         root.columnconfigure(1, weight=1)
 
         # ボタンフレーム（スクロール外に固定）
@@ -675,6 +714,15 @@ class SettingsWindow:
         _check("WINDOW_HIDDEN", self._window_hidden.get(), str(config.WINDOW_HIDDEN).lower())
         _check("WAVE_GAIN", self._wave_gain.get().strip(), str(config.WAVE_GAIN))
         _check("YOGO_FILE", self._yogo_file.get().strip(), str(config.YOGO_FILE))
+        _check("RECORDING_VOLUME_ENABLED",
+               self._recording_volume_enabled.get() if self._recording_volume_enabled else "true",
+               str(config.RECORDING_VOLUME_ENABLED).lower())
+        _check("RECORDING_VOLUME",
+               self._recording_volume.get().strip() if self._recording_volume else "50",
+               str(int(config.RECORDING_VOLUME)))
+        _check("RECORDING_VOLUME_FADE_DURATION",
+               self._recording_volume_fade_duration.get().strip() if self._recording_volume_fade_duration else "0.5",
+               str(config.RECORDING_VOLUME_FADE_DURATION))
 
         # AI送信設定
         _ai1_cur = config.AI_SEND_APPS[0] if len(config.AI_SEND_APPS) > 0 else {}
@@ -771,6 +819,12 @@ class SettingsWindow:
             config.WAVE_GAIN = float(changed["WAVE_GAIN"])
         if "YOGO_FILE" in changed:
             config.YOGO_FILE = Path(changed["YOGO_FILE"])
+        if "RECORDING_VOLUME_ENABLED" in changed:
+            config.RECORDING_VOLUME_ENABLED = changed["RECORDING_VOLUME_ENABLED"].lower() == "true"
+        if "RECORDING_VOLUME" in changed:
+            config.RECORDING_VOLUME = float(changed["RECORDING_VOLUME"])
+        if "RECORDING_VOLUME_FADE_DURATION" in changed:
+            config.RECORDING_VOLUME_FADE_DURATION = float(changed["RECORDING_VOLUME_FADE_DURATION"])
         if any(k in changed for k in _ai_keys):
             new_apps = []
             for app in [_ai1_new, _ai2_new, _ai3_new]:

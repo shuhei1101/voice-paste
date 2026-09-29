@@ -34,3 +34,5 @@ items:
     summary: exe をビルドする
   - page: tkinter.yaml
     summary: 録音の画面・文字起こし中の表示・設定画面を作る
+  - page: Microsoft_Edge.yaml
+    summary: AI チャットの画面をアプリのウィンドウとして開く

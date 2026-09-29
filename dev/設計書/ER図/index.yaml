@@ -1,2 +1,4 @@
 summary: データストアの定義
-items: []
+items:
+  - page: 常駐アプリのファイル.yaml
+    summary: 履歴・一時の録音・PID・ログのファイル

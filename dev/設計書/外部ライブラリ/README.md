@@ -23,3 +23,4 @@
 | [nvidia-cuda-nvrtc-cu12](./nvidia-cuda-nvrtc-cu12.yaml) | GPU での文字起こしに使う NVRTC の DLL |
 | [PyInstaller](./PyInstaller.yaml) | exe をビルドする |
 | [tkinter](./tkinter.yaml) | 録音の画面・文字起こし中の表示・設定画面を作る |
+| [Microsoft_Edge](./Microsoft_Edge.yaml) | AI チャットの画面をアプリのウィンドウとして開く |

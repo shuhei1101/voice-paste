@@ -1,0 +1,87 @@
+title: "ER 図: 常駐アプリのファイル"
+lead: 常駐アプリが書き出して持つファイル（履歴・一時の録音・PID・ログ）。データベースは持たない。置き場の基準はリポジトリの直下（exe では `%APPDATA%\voice-paste`）。
+tables:
+  - name: history/{YYYYMMDD}/{YYYYMMDDHHMMSS}_recording.wav
+    title: 録音の履歴
+    datastore: ファイル（WAV）
+    summary: 届けた回の録音。一時の録音をここへ移す
+    growth: 空でない文字が起きた回ごとに 1 つ増える（`HISTORY_ENABLED=true` のとき）
+    retention: '`HISTORY_RETENTION_DAYS` 日（日付のフォルダごと消す）'
+    deletion: 物理削除（起動時と常駐中の 1 時間ごと）
+    columns:
+      - name: sample_rate
+        title: サンプリングレート
+        type: number
+        description: 16000 Hz
+      - name: channels
+        title: チャンネル数
+        type: number
+        description: 1（モノラル）
+      - name: samples
+        title: 音
+        type: array
+        description: 16 ビット整数の音（一時停止の間の音は含まない）
+  - name: history/{YYYYMMDD}/{YYYYMMDDHHMMSS}_text.txt
+    title: 起こした文字の履歴
+    datastore: ファイル（テキスト、UTF-8）
+    summary: 届けた回の起こした文字（用語集で補正した後）。同じ日時の録音の履歴と対になる
+    growth: 空でない文字が起きた回ごとに 1 つ増える（`HISTORY_ENABLED=true` のとき）
+    retention: '`HISTORY_RETENTION_DAYS` 日（日付のフォルダごと消す）'
+    deletion: 物理削除（起動時と常駐中の 1 時間ごと）
+    columns:
+      - name: text
+        title: 起こした文字
+        type: string
+        description: 区間ごとに改行で区切った文字
+  - name: cache/recording.wav
+    title: 一時の録音
+    datastore: ファイル（WAV）
+    summary: 確定した録音を文字に起こすまで置く
+    growth: 1 つだけで、確定するたびに上書きする
+    retention: 履歴へ移すまで（履歴を残さない設定・文字起こしの失敗・空の結果のときは次の確定まで残る）
+    columns:
+      - name: sample_rate
+        title: サンプリングレート
+        type: number
+        description: 16000 Hz
+      - name: channels
+        title: チャンネル数
+        type: number
+        description: 1（モノラル）
+      - name: samples
+        title: 音
+        type: array
+        description: 16 ビット整数の音
+  - name: '%APPDATA%\voice-paste\voice_paste.pid'
+    title: PID ファイル
+    datastore: ファイル（テキスト）
+    summary: 動いている voice-paste のプロセスの番号。起動の仕方によらず同じ場所を使う（APPDATA が無ければ設定の置き場）
+    growth: 1 つだけで、起動するたびに書き換える
+    deletion: 終了時に、自分の番号が書かれていれば消す
+    columns:
+      - name: pid
+        title: プロセスの番号
+        type: number
+        description: 次の起動がこの番号のプロセスを強制終了する
+  - name: log/{YYYYMMDDHHMMSS}_voice_paste.log
+    title: アプリのログ
+    datastore: ファイル（テキスト、UTF-8）
+    summary: 起動ごとに 1 つ作るアプリのログ（文字起こしワーカーの標準エラーも `[worker]` つきで転送する）
+    growth: 起動ごとに 1 つ増える
+    retention: '`voice-paste.bat` で起動したとき、名前が今日の日付で始まらない `log/*.log` を消す'
+    columns:
+      - name: line
+        title: ログの行
+        type: string
+        description: '`[日時] レベル ロガー名 ファイル:行 - 本文`'
+  - name: log/crash.log ほか
+    title: クラッシュと起動の記録
+    datastore: ファイル（テキスト）
+    summary: ネイティブのクラッシュのスタック（`crash.log`・ワーカーの `worker_crash.log`）、起動のバッチファイルの記録（`{日時}_run_tray_bat.log`）、exe の DLL の登録の記録（`dll_debug.log`）
+    growth: crash.log と worker_crash.log は追記、バッチファイルの記録は起動ごとに 1 つ増える
+    retention: '`voice-paste.bat` で起動したとき、名前が今日の日付で始まらない `log/*.log` を消す（crash.log も含む）'
+    columns:
+      - name: line
+        title: 記録の行
+        type: string
+        description: スタックトレースや起動の手順の行

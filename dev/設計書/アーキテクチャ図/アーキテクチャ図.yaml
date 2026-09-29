@@ -72,9 +72,16 @@ repository:
 subsystems:
   - name: 常駐アプリ
     scope: desktop-app
-    role: ホットキーで録音し、文字起こしした文字列をアクティブなアプリへ貼り付ける Windows 常駐のアプリ
+    role: ホットキーで録音し、文字起こしした文字列をアクティブなアプリへ貼り付ける Windows 常駐のアプリ（ローカルの文字起こしは文字起こしワーカーに任せる）
     runtime: Python 3.11
     runs_on: ユーザーの端末（Windows）
+    implementation: voice_paste/main.py
+  - name: 文字起こしワーカー
+    scope: transcription-worker
+    role: 常駐アプリの子プロセスとしてローカルの Whisper のモデルを持ち、標準入出力の JSON Lines で受けた録音を文字に起こす
+    runtime: Python 3.11
+    runs_on: ユーザーの端末（Windows。常駐アプリが起動し、落ちたら起動し直す）
+    implementation: voice_paste/transcription/whisper_worker.py
 lead: voice-paste のサブシステムと、ユーザー・貼り付け先のアプリ・文字起こしの外部サービスとの境界。
 external_systems:
   - name: OpenAI API
@@ -84,18 +91,21 @@ external_systems:
     cost: 文字起こしの従量課金
     notes:
       事前確認: 起動時に API キーが設定されていることを確かめる（OpenAI を選んでいるときだけ）。到達は文字起こしごとの呼び出しで確かめ、一時的な障害で常駐アプリを止めない。
+    detail: dev/設計書/外部API/OpenAI_API#
   - name: Hugging Face Hub
     purpose: faster-whisper のモデルの取得（手元に無いときだけ）
     direction: 受信のみ
     protocol: HTTPS（faster-whisper が取得する）
     notes:
       事前確認: 文字起こしワーカーの起動時に、モデルを読み込めることを確かめる（手元に無ければその時点で取得する）。
+    detail: dev/設計書/外部API/Hugging_Face_Hub#
   - name: Microsoft Edge
     purpose: AI 送信のボタンで AI チャットの画面を開く
     direction: 送信のみ
     protocol: 子プロセスの起動（`--app={URL}`）
     notes:
       事前確認: 不要。開けなかったときはそのボタンの操作だけが失敗し、音声入力には影響しない。
+    detail: dev/設計書/外部ライブラリ/Microsoft_Edge#
 constraints: |-
   - Windows で動かす（トレイ・ホットキー・クリップボード・キー入力・システムの音量を Windows の機能で扱う）
   - 起動口は `voice-paste.bat`（ユーザーはショートカットから起動する）

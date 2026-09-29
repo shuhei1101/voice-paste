@@ -1,0 +1,30 @@
+title: "python-dotenv"
+kind: "ライブラリ"
+version:
+  current: 1.2.2
+  checked_on: '2026-09-30'
+  source: pyproject.toml（~=1.0）と手元の venv に入っている版
+  pinning: 互換リリースで固定（~=1.0）
+catalogs:
+  - name: API
+    version: 1.2.2
+    entries:
+      - name: load_dotenv
+        kind: 関数
+        purpose: '`.env` を環境変数へ読み込む（上書きするかを指定できる）'
+      - name: set_key
+        kind: 関数
+        purpose: '`.env` の 1 つのキーを書き換える（無ければ足す）'
+lead: '`.env` ファイルを読んで環境変数へ入れ、キーを書き換えるライブラリ。'
+purl: pkg:pypi/python-dotenv
+dependency_scope: 必須
+adoption: 採用
+used_in:
+  - voice_paste/config.py
+  - voice_paste/settings_gui.py
+upstream: theskumar/python-dotenv
+verification:
+  state: 未確認
+  detail: 現状の棚卸しで、コードが使っている範囲を写しただけで、動かしてはいない
+license: BSD-3-Clause（商用利用可）
+official_url: https://github.com/theskumar/python-dotenv

@@ -1,0 +1,237 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: シナリオ
+description: |-
+  単一ユースケース（ユーザーの 1 操作）または複合ユースケース（単一ユースケースの連鎖）の正常・異常シナリオ。
+  1 ファイル = 1 ユースケース = テストの 1 ファイル。外部 API は Mock 前提。
+x-kind: scenario
+x-folder: dev/設計書/シナリオ
+x-cross: scenarios
+x-test-file: test_file
+x-test-file-optional: true
+type: object
+additionalProperties: false
+required:
+- title
+- scenarios
+properties:
+  title:
+    type: string
+    title: タイトル
+    description: 単一ユースケースは機能名、複合ユースケースは業務シナリオの論理名。ファイル名に合わせる。
+  lead:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: 冒頭リード
+    description: |-
+      対象を 1〜3 行で説明する。
+      初回に書いた内容のまま保ち、後から情報を足さない（仕様は各項目に書く）。
+      対象そのものが変わったときだけ書き換える。
+  issue:
+    type: integer
+    title: 対応 Issue
+    description: 起点の Issue の番号。
+  test_file:
+    type: string
+    title: 対応テストファイル
+    description: |-
+      `tests/e2e/{単一ユースケース,複合ユースケース}/…`。
+      エージェントが登場しないユースケースは `tests/integration/{サブシステム名}/…`（規約『V字モデル』）。
+    pattern: ^tests/.+
+  primary_actor:
+    type: string
+    title: 主アクター
+  stakeholders:
+    type: array
+    title: 関係者と関心
+    x-shape: table
+    x-key: name
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - interest
+      properties:
+        name:
+          type: string
+          title: 関係者
+        interest:
+          type: string
+          title: 関心
+  trigger:
+    type: string
+    title: きっかけ
+  preconditions:
+    type: array
+    title: 事前条件
+    x-shape: list
+    items:
+      type: string
+  success_guarantee:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: 成功時に保証すること
+  minimal_guarantee:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: 失敗しても守ること
+  frequency:
+    type: string
+    title: 頻度
+  priority:
+    type: string
+    title: 優先度
+  reading:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: 読み替え
+    description: 1 ファイルで複数のレイヤー・エージェントを代表するときの読み替えの表。
+    x-heading: 読み替え
+  scenarios:
+    type: array
+    title: シナリオ
+    description: 正常・異常のシナリオを並列に並べる。異常の無い機能は `異常シナリオ` を持たない。
+    x-heading: シナリオ
+    x-shape: sections
+    x-key: name
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - setup
+      - flow
+      - expected
+      properties:
+        name:
+          type: string
+          title: シナリオ名
+          description: 基本形は `正常シナリオ`。正常な結末が条件で分かれるときは `正常シナリオ（{条件}）`、異常は `異常シナリオ（{条件}）`。
+          pattern: ^(正常|異常)シナリオ(（.+）)?$
+        setup:
+          type: array
+          title: セットアップ
+          description: |-
+            事前に要るデータ・状態と、分岐・異常を決定的に誘発する入力。
+            `Mock` の行（差し替える依存。差し替えないときも `なし（…）`）を必ず置く。
+          x-heading: セットアップ
+          x-shape: table
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - name
+            - description
+            properties:
+              name:
+                type: string
+                title: セットアップ
+                description: 前提を作る Factory 関数名か状態の名前。`Mock` の行を必ず置く。
+              description:
+                type: string
+                title: 説明
+                description: その前提の意味・役割・依存関係。Mock の行は差し替える依存と応答。
+              notes:
+                type: string
+                title: 補足
+                description: 引数に指定する重要な値・分岐を決定的に誘発する値。
+        flow:
+          $ref: 共通.schema.yaml#/$defs/mermaid
+          title: フロー
+          description: |-
+            単一ユースケースは `sequenceDiagram`、複合ユースケースは単一ユースケースを箱として連鎖させる `flowchart TD`。
+            1 図 = 結末 1 本の一本道。ユーザー視点で観測できる境界まで書く。
+            複合ユースケースの箱のノード名は `{UC名}:{シナリオ名}` にし、`click` で単一ユースケースの節へリンクする。
+          x-heading: フロー
+        expected:
+          type: array
+          title: 期待値
+          description: フローの終了時点で外部から観測できる状態・戻り値。1 要素 = 1 つの確かめ。
+          x-heading: 期待値
+          x-shape: list
+          minItems: 1
+          items:
+            type: string
+        test:
+          $ref: 共通.schema.yaml#/$defs/test
+          description: 対応するテスト関数（`正常シナリオ` → `test_normal` / `正常シナリオ（{条件}）` → `test_normal_when_{条件}` / `異常シナリオ（{条件}）` → `test_error_when_{条件}`。`{条件}` は英訳）。
+          x-test-function: true
+        uses:
+          type: array
+          title: 使う単一ユースケース
+          description: 複合ユースケースの箱が指す単一ユースケースのシナリオ。
+          items:
+            $ref: 共通.schema.yaml#/$defs/ref
+        refs:
+          type: array
+          title: 関連
+          items:
+            $ref: 共通.schema.yaml#/$defs/ref
+        notes:
+          $ref: 共通.schema.yaml#/$defs/notes
+  refs:
+    type: array
+    title: 関連
+    items:
+      $ref: 共通.schema.yaml#/$defs/ref
+  notes:
+    $ref: 共通.schema.yaml#/$defs/notes
+    x-heading: 補足
+    x-shape: sections
+examples:
+- title: プロフィール編集
+  lead: ログイン中のユーザーが自身のプロフィール（氏名・自己紹介・アバター画像）を編集する単一ユースケース。
+  issue: 12
+  test_file: tests/e2e/単一ユースケース/test_profile_edit.py
+  primary_actor: ログイン中のユーザー
+  trigger: プロフィール編集画面を開く
+  preconditions:
+  - ユーザーがログインしている
+  scenarios:
+  - name: 正常シナリオ
+    setup:
+    - name: Mock
+      description: なし（実環境で実行）
+    - name: createUser
+      description: ログイン中のユーザー A
+    - name: createProfile
+      description: ユーザー A に紐づくプロフィール
+      notes: '`visible: true`'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant FE as 画面（フロントエンド）
+        participant BE as バックエンド API
+        participant DB as DB
+
+        U->>FE: プロフィール編集画面を開く
+        FE-->>BE: プロフィールを取得
+        BE-->>FE: 初期値
+        U->>FE: 氏名・自己紹介を編集して保存
+        FE->>BE: プロフィールを更新
+        BE->>DB: 更新
+        BE-->>FE: 200 OK
+        FE-->>U: 詳細画面へ遷移
+      ```
+    expected:
+    - プロフィール表示画面に編集後の氏名・自己紹介が表示されている
+    - DB の該当プロフィールが編集後の値になっている
+    test: test_normal
+  - name: 異常シナリオ（5MB 超の画像アップロード）
+    setup:
+    - name: Mock
+      description: なし（実環境で実行）
+    - name: createUser
+      description: ログイン中のユーザー A
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant FE as 画面（フロントエンド）
+
+        U->>FE: 5MB 超の画像を選択
+        FE->>FE: 入力の検証に失敗
+        FE-->>U: 選択欄の下にエラーを表示
+      ```
+    expected:
+    - エラーが表示され、画像が選ばれていない
+    test: test_error_when_image_too_large

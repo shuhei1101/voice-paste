@@ -1,0 +1,57 @@
+summary: 設計書の書式定義（Schema）
+columns:
+  - key: page
+    title: ページ
+  - key: summary
+    title: 概要
+  - key: target
+    title: 対象実体ファイル
+items:
+  - page: 共通.schema.yaml
+    summary: 種別をまたいで使う型（本文・参照・共通の項目・状態遷移・フローチャート・ER 図）
+    target: 各 Schema の `$ref` の先
+  - page: index.schema.yaml
+    summary: フォルダの直下の目次（README はここから生成する）
+    target: '`dev/**/index.yaml` / `docs/**/index.yaml`'
+  - page: アーキテクチャ図.schema.yaml
+    summary: システム全体図 / リポジトリ構成 / サブシステム一覧 / 外部システム連携
+    target: '`設計書/アーキテクチャ図/アーキテクチャ図.yaml`'
+  - page: 非機能要件.schema.yaml
+    summary: 外部の制約から逆算したアプリ側の決定値 / 未確定
+    target: '`設計書/非機能要件/非機能要件.yaml`'
+  - page: ER図.schema.yaml
+    summary: データストア構造（DB / JSON / YAML）。分類別
+    target: '`設計書/ER図/{分類}.yaml`'
+  - page: モジュール構成.schema.yaml
+    summary: クラス / 関数 / 関数型 / 定数 をドメイン分類でまとめる
+    target: '`設計書/モジュール構成/{サブシステム}/{分類}.{lang}.yaml`'
+  - page: 設定.schema.yaml
+    summary: 設定値 / 環境変数の一覧
+    target: '`設計書/設定/{サブシステム名}.yaml`'
+  - page: 状態遷移.schema.yaml
+    summary: エンティティの取りうる状態と許可された遷移
+    target: '`設計書/状態遷移/{エンティティ名}.yaml`'
+  - page: データフロー.schema.yaml
+    summary: 1 データがシステムの中をどう流れるか（DFD）
+    target: '`設計書/データフロー/{データ名}.yaml`'
+  - page: インターフェース定義.schema.yaml
+    summary: 1 操作の入出力・制約・正常系と異常系のフロー
+    target: '`設計書/インターフェース定義/{サブシステム}/{論理名}.{lang}.yaml`'
+  - page: 画面設計.schema.yaml
+    summary: 1 画面ごとの要素仕様と入力チェック
+    target: '`設計書/画面設計/{画面名}.{lang}.yaml`'
+  - page: 部品設計.schema.yaml
+    summary: 画面の要素が使う部品 1 つの引数・スロット・イベント・状態（= Storybook のストーリー）
+    target: '`設計書/部品設計/{分類}/{部品名}.{lang}.yaml`'
+  - page: シナリオ.schema.yaml
+    summary: 単一 / 複合ユースケースの正常・異常シナリオ
+    target: '`設計書/シナリオ/{単一・複合}/{論理名}.yaml`'
+  - page: テスト実行方法.schema.yaml
+    summary: 各種テストの実行コマンドと前提条件
+    target: '`設計書/テスト/テスト実行方法.yaml`'
+  - page: 外部API.schema.yaml
+    summary: 外部 API の詳細（認証・エンドポイント・調査した不具合と対処法）
+    target: '`設計書/外部API/{API名}.yaml`'
+  - page: 外部ライブラリ.schema.yaml
+    summary: ライブラリの詳細（版・動作確認・API・調査した不具合と対処法）
+    target: '`設計書/外部ライブラリ/{lib名}.yaml`'

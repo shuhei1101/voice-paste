@@ -1,0 +1,408 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: 部品設計
+description: 画面の要素が使う部品 1 つの仕様（引数・スロット・イベント・CSS カスタムプロパティ・状態）。1 ファイル = 1 部品。状態 1 つが Storybook のストーリー 1 つに当たる。
+x-kind: component
+x-folder: dev/設計書/部品設計
+x-cross: args
+x-test-file: test_file
+x-test-file-optional: true
+type: object
+additionalProperties: false
+required:
+- title
+- implementation
+- story
+- states
+properties:
+  title:
+    type: string
+    title: タイトル
+    description: 日本語の部品名。ファイル名に合わせる。
+    examples:
+    - "状態のバッジ"
+    - "列見出し"
+  lead:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: 冒頭リード
+    description: |-
+      部品が何を出すかを 1〜3 行で説明する。
+      初回に書いた内容のまま保ち、後から情報を足さない（仕様は各項目に書く）。
+  implementation:
+    $ref: 共通.schema.yaml#/$defs/implementation
+    title: 実装
+    description: 部品の実装の場所。リポジトリの直下からのファイルのパスに、`#` と部品の名前（マクロ・コンポーネント）を続ける。
+    examples:
+    - "src/ai_monitor/features/plan/screen/templates/macros.html#status_badge"
+  story:
+    type: string
+    title: Storybook
+    description: Storybook のストーリーのタイトル（`{分類}/{部品}` を英数字で。例 `Plan/StatusBadge`）。日本語の名前は `title` から足す。
+    pattern: ^[A-Za-z][A-Za-z0-9]*(/[A-Za-z][A-Za-z0-9]*)+$
+    examples:
+    - "Plan/StatusBadge"
+    - "Common/Topbar"
+  test_file:
+    type: string
+    title: 対応テストファイル
+    description: ストーリーを開いて確かめる結合テストのファイル（規約『V字モデル』）。
+    pattern: ^tests/.+
+    examples:
+    - "tests/integration/storybook/test_計画画面の部品.py"
+  args:
+    type: array
+    title: 引数
+    description: |-
+      部品が受け取る値。引数 1 つ = 1 要素。
+      オブジェクトの子は `parent.child`、配列の要素の子は `parent[].child` で 1 要素に展開する。
+      引数を持たない部品は持たない。
+    x-heading: 引数
+    x-shape: table
+    x-key: name
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - type
+      - description
+      properties:
+        name:
+          type: string
+          title: 名前
+          description: 実装の引数の名前。
+          pattern: ^[A-Za-z_][A-Za-z0-9_]*(\[\])?(\.[A-Za-z_][A-Za-z0-9_]*(\[\])?)*$
+          examples:
+          - "status"
+          - "dep.unresolved"
+          - "items[].label"
+        type:
+          type: string
+          title: 型
+          description: '`文字列` / `整数` / `数値` / `真偽値` / `列挙` / `オブジェクト` / `配列` / `オブジェクトの配列` / `部品`。'
+          examples:
+          - "列挙"
+          - "オブジェクトの配列"
+        required:
+          type: boolean
+          title: 必須
+        default:
+          type: string
+          title: 既定値
+          description: 省略したときの値。必須の引数には書かない。
+          examples:
+          - "false"
+          - "なし（件数を出さない）"
+        choices:
+          type: string
+          title: 選択肢
+          description: 列挙の値と、値の範囲。
+          examples:
+          - "todo・paused・doing・done・dropped"
+          - "0 以上"
+        component:
+          $ref: 共通.schema.yaml#/$defs/ref
+          title: 受ける部品
+          description: 型が `部品` のとき、受け取れる部品設計（`dev/設計書/部品設計/...#`）。
+          examples:
+          - "dev/設計書/部品設計/計画画面/行の番号.html#"
+        enabled_when:
+          type: string
+          title: 有効になる条件
+          description: 他の引数の値によって意味を持つときの条件（例 `filterable` が `true` のとき）。
+          examples:
+          - "`filterable` が `true` のとき"
+        description:
+          type: string
+          title: 説明
+          examples:
+          - "行の状態。色とアイコンを決める"
+        status:
+          $ref: 共通.schema.yaml#/$defs/status
+        notes:
+          $ref: 共通.schema.yaml#/$defs/notes
+  slots:
+    type: array
+    title: スロット
+    description: 使う側が中身を差し込む場所。スロット 1 つ = 1 要素。スロットを持たない部品は持たない。
+    x-heading: スロット
+    x-shape: table
+    x-key: name
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - description
+      properties:
+        name:
+          type: string
+          title: 名前
+          description: 名前の無いスロットは `default`。
+          pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+          examples:
+          - "default"
+          - "actions"
+        description:
+          type: string
+          title: 説明
+          examples:
+          - "見出しの右に並べる操作のボタン"
+        accepts:
+          type: array
+          title: 差し込める部品
+          description: 差し込める部品設計。どれでも差し込めるときは持たない。
+          examples:
+          - ["dev/設計書/部品設計/共通/ボタン.html#"]
+          items:
+            $ref: 共通.schema.yaml#/$defs/ref
+        passes:
+          type: string
+          title: スロットに渡る値
+          description: 差し込んだ中身から使える値（Jinja2 の `caller()` の引数など）。
+          examples:
+          - "`caller(item)` の `item`（行 1 件）"
+  events:
+    type: array
+    title: イベント
+    description: 部品が使う側へ知らせる操作。イベント 1 つ = 1 要素。イベントを持たない部品は持たない。
+    x-heading: イベント
+    x-shape: table
+    x-key: name
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - when
+      - description
+      properties:
+        name:
+          type: string
+          title: イベント
+          examples:
+          - "並べ替え"
+          - "詳細を開く"
+        when:
+          type: string
+          title: 発火の条件
+          examples:
+          - "見出しの文字を押したとき"
+        value:
+          type: string
+          title: 渡す値
+          description: 使う側が受け取る値と、その置き場所（`data-*` 属性など）。
+          examples:
+          - "key（`data-sort`）"
+          - "issue（`data-issue`）"
+        description:
+          type: string
+          title: 説明
+          description: 使う側がそのイベントで何をするか。
+          examples:
+          - "使う側が 既定 → 昇順 → 降順 → 既定 と巡る"
+  css_properties:
+    type: array
+    title: CSS カスタムプロパティ
+    description: 使う側が見た目を変える口。見た目を外から変える口を持たない部品は持たない。
+    x-heading: CSS カスタムプロパティ
+    x-shape: table
+    x-key: name
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - description
+      properties:
+        name:
+          type: string
+          title: 名前
+          pattern: ^--[a-z0-9-]+$
+          examples:
+          - "--badge-bg"
+        syntax:
+          type: string
+          title: 値の書式
+          examples:
+          - "<color>"
+        default:
+          type: string
+          title: 既定値
+          examples:
+          - "var(--bg-subtle)"
+        description:
+          type: string
+          title: 説明
+          examples:
+          - "バッジの地の色"
+  states:
+    type: array
+    title: 状態
+    description: |-
+      確かめる状態（通常・無効・読み込み中・エラー・長文など）。状態 1 つ = Storybook のストーリー 1 つ。
+      開発ドキュメントサーバーでは、行を開くとその状態で上書きする引数が出る。
+    x-heading: 状態
+    x-shape: table
+    x-key: name
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - description
+      properties:
+        name:
+          type: string
+          title: ストーリー名
+          description: 英数字で書く（日本語の名前は Storybook の id が食い違い、ストーリーが見つからなくなる）。
+          pattern: ^[A-Za-z][A-Za-z0-9]*$
+          examples:
+          - "Todo"
+          - "LongList"
+        description:
+          type: string
+          title: 状態
+          description: その状態が何か。
+          examples:
+          - "未着手"
+          - "幅を超える数の未解消の依存（`…` で省略し、全文を `title` に持たせる）"
+        screenshot:
+          type: boolean
+          title: 照合で撮る
+          description: 実装照合・レビューでこのストーリーを撮るか。書かなければ撮る。
+          examples:
+          - false
+        args:
+          type: array
+          title: 上書きする引数
+          description: この状態で渡す引数の値。引数を持たない部品は持たない。
+          x-shape: table
+          x-key: name
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - name
+            - value
+            properties:
+              name:
+                type: string
+                title: 引数
+                description: '`args` の `name`。'
+                examples:
+                - "status"
+              value:
+                type: string
+                title: 値
+                description: JSON として読める値はその型で渡る（`true`・`12`・`["#1598"]` など）。
+                examples:
+                - "todo"
+                - "true"
+                - "[\"#1598\", \"#1840\"]"
+        notes:
+          $ref: 共通.schema.yaml#/$defs/notes
+  uses:
+    type: array
+    title: 使う部品
+    description: この部品が中で使う別の部品。使わない部品は持たない。
+    x-heading: 使う部品
+    x-shape: table
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - component
+      - how
+      properties:
+        component:
+          $ref: 共通.schema.yaml#/$defs/ref
+          title: 部品
+          examples:
+          - "dev/設計書/部品設計/計画画面/アイコン.html#"
+        how:
+          type: string
+          title: 使い方
+          examples:
+          - "停止中の一時停止のアイコン"
+  accessibility:
+    type: array
+    title: アクセシビリティ
+    description: 読み上げ名・キー操作・色に頼らない表し方など、部品が守ること。
+    examples:
+    - ["状態を色だけで伝えない（`label` を必ず出す）"]
+    x-heading: アクセシビリティ
+    x-shape: list
+    items:
+      type: string
+  refs:
+    type: array
+    title: 関連
+    items:
+      $ref: 共通.schema.yaml#/$defs/ref
+  status:
+    $ref: 共通.schema.yaml#/$defs/status
+  visibility:
+    $ref: 共通.schema.yaml#/$defs/visibility
+  introduced:
+    $ref: 共通.schema.yaml#/$defs/introduced
+  aliases:
+    $ref: 共通.schema.yaml#/$defs/aliases
+  notes:
+    $ref: 共通.schema.yaml#/$defs/notes
+examples:
+- title: 列見出し
+  lead: 表の列見出しの中身。見出しの文字（押すと並べ替え）と、絞り込み・固定のボタンを並べる。
+  implementation: src/ai_monitor/features/plan/screen/templates/macros.html#header_controls
+  story: Plan/HeaderControls
+  test_file: tests/integration/storybook/test_計画画面の部品.py
+  args:
+  - name: key
+    type: 文字列
+    required: true
+    description: 列のキー。並べ替え・絞り込み・固定の対象を指す
+  - name: label
+    type: 文字列
+    required: true
+    description: 見出しの文字
+  - name: numeric
+    type: 真偽値
+    required: false
+    default: 'false'
+    description: 数値の列か。右揃えにする
+  - name: filterable
+    type: 真偽値
+    required: false
+    default: 'false'
+    description: 絞り込みのボタンを出すか
+  events:
+  - name: 並べ替え
+    when: 見出しの文字を押したとき
+    value: key（`data-sort`）
+    description: 使う側が 既定 → 昇順 → 降順 → 既定 と巡る
+  - name: 固定
+    when: ピンのボタンを押したとき
+    value: key（`data-pin`）
+    description: 使う側が押した列より左を横スクロールでも固定する
+  states:
+  - name: Text
+    description: 文字の列（絞り込みできる）
+    args:
+    - name: key
+      value: title
+    - name: label
+      value: タイトル
+    - name: filterable
+      value: 'true'
+  - name: Numeric
+    description: 数値の列（右揃えで、絞り込みのボタンを持たない）
+    args:
+    - name: key
+      value: created_at
+    - name: label
+      value: 作成日時
+    - name: numeric
+      value: 'true'
+  accessibility:
+  - 絞り込み・固定のボタンは `aria-pressed` で押した状態を伝える
+  - アイコンだけのボタンに `{label} で絞り込む` などの読み上げ名を付ける

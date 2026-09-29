@@ -1,0 +1,602 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: 外部API
+description: 利用する外部 API 1 つにつき 1 ファイル。そのプロジェクトで使うエンドポイントだけを公式ドキュメントから抜き出す。
+x-kind: external_api
+x-folder: dev/設計書/外部API
+x-cross: endpoints
+type: object
+additionalProperties: false
+required:
+- title
+- version
+- auth
+- endpoints
+properties:
+  title:
+    type: string
+    title: タイトル
+    description: API 名。ファイル名に合わせる。
+  lead:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: 冒頭リード
+    description: |-
+      API が何をするものかを 1〜3 行で要約する。自プロジェクトでの用途は書かない。
+      初回に書いた内容のまま保ち、後から情報を足さない。
+  used_in:
+    type: array
+    title: 使用箇所
+    description: 呼び出す境界層のパス（リポジトリの直下から）。
+    items:
+      type: string
+  verification:
+    type: object
+    title: 動作確認
+    description: 動かして確かめたか。
+    x-shape: attributes
+    additionalProperties: false
+    required:
+    - state
+    properties:
+      state:
+        type: string
+        title: 状態
+        enum:
+        - 済
+        - 未確認
+      date:
+        type: string
+        title: 確認日
+        description: '`YYYY-MM-DD`。'
+        pattern: ^[0-9]{4}-[0-9]{2}-[0-9]{2}$
+      detail:
+        type: string
+        title: 確認内容
+        description: 確かめた内容か、確かめられない理由。
+  version:
+    type: object
+    title: 現在のバージョン情報
+    x-heading: 現在のバージョン情報
+    x-shape: attributes
+    additionalProperties: false
+    required:
+    - api_version
+    - checked_on
+    properties:
+      api_version:
+        type: string
+        title: API バージョン
+        description: header 指定型か URL 埋め込み型かを添える。
+      checked_on:
+        type: string
+        title: 確認日
+        pattern: ^[0-9]{4}-[0-9]{2}-[0-9]{2}$
+      sunset:
+        type: string
+        title: 廃止予定日
+  base_urls:
+    type: array
+    title: ベース URL
+    x-shape: table
+    x-key: env
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - env
+      - url
+      properties:
+        env:
+          type: string
+          title: 環境
+        url:
+          type: string
+          title: URL
+  official_url:
+    type: string
+    title: 公式 URL
+  docs_url:
+    type: string
+    title: 公式ドキュメント
+  terms_url:
+    type: string
+    title: 利用規約
+  contact:
+    type: string
+    title: 連絡先
+  status_page:
+    type: string
+    title: 障害情報の確認先
+  auth:
+    type: object
+    title: 認証セットアップ
+    x-heading: 認証セットアップ
+    additionalProperties: false
+    required:
+    - method
+    properties:
+      method:
+        type: string
+        title: 認証方式
+        description: Bearer / API Key Header / OAuth2 / JWT 等。
+      scopes:
+        type: array
+        title: スコープ
+        items:
+          type: string
+      steps:
+        $ref: 共通.schema.yaml#/$defs/markdown
+        title: 取得手順
+        description: キー取得の公式ページの URL と番号付きの手順。
+      env_vars:
+        type: array
+        title: 環境変数
+        description: '`.env.example` と一致させる。'
+        items:
+          type: string
+      usage:
+        $ref: 共通.schema.yaml#/$defs/markdown
+        title: リクエスト時の利用
+        description: コードブロック。
+  rate_limits:
+    type: array
+    title: レートリミット
+    x-heading: レートリミット
+    x-shape: table
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - target
+      - limit
+      properties:
+        target:
+          type: string
+          title: 対象
+        limit:
+          type: string
+          title: 上限
+          description: 単位（RPM / TPM 等）を付ける。
+        notes:
+          type: string
+          title: 補足
+  retry:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: 再試行
+    description: 超過時のステータスと再試行の方針（Retry-After・Exponential Backoff 等）。
+  pricing:
+    type: array
+    title: 課金単価
+    x-heading: 課金単価
+    x-shape: table
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - target
+      - price
+      properties:
+        target:
+          type: string
+          title: 対象
+        price:
+          type: string
+          title: 単価
+        notes:
+          type: string
+          title: 補足
+  pricing_url:
+    type: string
+    title: 課金の公式ページ
+    description: 課金単価を書くときは必ず持つ。
+  error_format:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: エラー応答の形式
+  pagination:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: ページングの方式
+  timeout:
+    type: string
+    title: タイムアウト
+  endpoints:
+    type: array
+    title: エンドポイント
+    description: このプロジェクトで使うエンドポイント。一覧の表は各エンドポイントのメソッド・パス・用途から生成する。
+    x-heading: エンドポイント
+    x-shape: sections
+    x-key: name
+    x-unique-in-kind: true
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - method
+      - path
+      - summary
+      - status_codes
+      properties:
+        name:
+          type: string
+          title: 名前
+          description: '`{METHOD} {パス}`。パスはベース URL からの相対。'
+        method:
+          type: string
+          title: メソッド
+          enum:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+          - HEAD
+          - OPTIONS
+        path:
+          type: string
+          title: パス
+        summary:
+          $ref: 共通.schema.yaml#/$defs/summary
+          title: 用途
+          description: 1 行の用途。
+        operation_id:
+          type: string
+          title: 操作の識別子
+        tags:
+          type: array
+          title: 分類タグ
+          items:
+            type: string
+        permissions:
+          type: string
+          title: 必要な権限
+        idempotent:
+          type: boolean
+          title: 冪等
+        description:
+          $ref: 共通.schema.yaml#/$defs/markdown
+          title: 説明
+        request:
+          type: array
+          title: リクエスト
+          x-heading: リクエスト
+          x-shape: table
+          x-key: name
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - name
+            - type
+            - description
+            properties:
+              name:
+                type: string
+                title: パラメータ
+                description: オブジェクトの子は `parent.child`、配列の要素の子は `parent[].child`。
+              type:
+                type: string
+                title: 型
+                description: 取りうる値が限られるときは列挙し、各値の意味は補足に書く。
+              required:
+                type: boolean
+                title: 必須
+              default:
+                type: string
+                title: 既定
+                description: 任意のパラメータの省略時の値。
+              description:
+                type: string
+                title: 説明
+              constraints:
+                type: string
+                title: 制限
+              notes:
+                type: string
+                title: 補足
+              location:
+                type: string
+                title: 置き場所
+                enum:
+                - path
+                - query
+                - header
+                - cookie
+                - body
+              format:
+                type: string
+                title: 形式
+              example:
+                type: string
+                title: 例
+              nullable:
+                type: boolean
+                title: 空を許す
+              status:
+                $ref: 共通.schema.yaml#/$defs/status
+        request_example:
+          $ref: 共通.schema.yaml#/$defs/markdown
+          title: リクエスト例
+          description: JSON のコードブロック。body を持たないときはリクエストライン。
+        response:
+          type: array
+          title: レスポンス
+          description: 別のエンドポイントと同形のときは持たず、`same_as` に書く。
+          x-heading: レスポンス
+          x-shape: table
+          x-key: name
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - name
+            - type
+            - description
+            properties:
+              name:
+                type: string
+                title: フィールド
+                description: 返らないことがあるフィールドは `field?` と書き、条件を補足に書く。
+              type:
+                type: string
+                title: 型
+              description:
+                type: string
+                title: 説明
+              constraints:
+                type: string
+                title: 制限
+              notes:
+                type: string
+                title: 補足
+        same_as:
+          type: string
+          title: 同形のレスポンス
+          description: レスポンスが同形のエンドポイントの名前。
+        response_headers:
+          type: array
+          title: 応答のヘッダー
+          x-shape: table
+          x-key: name
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - name
+            - description
+            properties:
+              name:
+                type: string
+                title: ヘッダー
+              description:
+                type: string
+                title: 説明
+              notes:
+                type: string
+                title: 補足
+        response_example:
+          $ref: 共通.schema.yaml#/$defs/markdown
+          title: レスポンス例
+          description: JSON のコードブロック。
+        status_codes:
+          type: array
+          title: ステータスコード
+          description: 正常・異常とも網羅する。
+          x-heading: ステータスコード
+          x-shape: table
+          x-key: code
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - code
+            - condition
+            properties:
+              code:
+                type: string
+                title: ステータスコード
+              condition:
+                type: string
+                title: 発生条件
+              notes:
+                type: string
+                title: 補足
+                description: 再試行の方針など。
+        refs:
+          type: array
+          title: 関連
+          items:
+            $ref: 共通.schema.yaml#/$defs/ref
+        reason:
+          $ref: 共通.schema.yaml#/$defs/reason
+        status:
+          $ref: 共通.schema.yaml#/$defs/status
+        visibility:
+          $ref: 共通.schema.yaml#/$defs/visibility
+        implementation:
+          $ref: 共通.schema.yaml#/$defs/implementation
+        introduced:
+          $ref: 共通.schema.yaml#/$defs/introduced
+        aliases:
+          $ref: 共通.schema.yaml#/$defs/aliases
+        notes:
+          $ref: 共通.schema.yaml#/$defs/notes
+  issues:
+    type: array
+    title: 不具合一覧
+    description: 仕様どおりに使っても期待どおり動かない事象。こちらの使い方の誤りだったものは書かない。解消を確かめたら消す。
+    x-heading: 不具合一覧
+    x-shape: sections
+    x-key: title
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - title
+      - summary
+      - occurred_on
+      - description
+      - workarounds
+      properties:
+        title:
+          type: string
+          title: タイトル
+        summary:
+          $ref: 共通.schema.yaml#/$defs/summary
+          title: 概要
+          description: 1 行で事象を要約する。
+        occurred_on:
+          type: string
+          title: 発生日
+          description: 事象を確認した日（`YYYY-MM-DD`）。再確認して続いていたら更新する。
+          pattern: ^[0-9]{4}-[0-9]{2}-[0-9]{2}$
+        state:
+          type: string
+          title: 状態
+          enum:
+          - 未解決
+          - 回避策あり
+          - 解消済み
+        description:
+          $ref: 共通.schema.yaml#/$defs/markdown
+          title: 概要
+          description: 何が起きるかを事実だけで書く。
+        conditions:
+          type: array
+          title: 条件
+          description: 再現する状況。
+          x-shape: list
+          items:
+            type: string
+        workarounds:
+          type: array
+          title: 対処法
+          x-heading: 対処法
+          x-shape: table
+          x-key: method
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - method
+            - result
+            properties:
+              method:
+                type: string
+                title: 方法
+                description: 回避策が無いときは `回避策なし`。
+              result:
+                type: string
+                title: 結果
+                description: 得られるものと、本来やりたかったことからのずれ。
+              recommended:
+                type: boolean
+                title: 推奨
+                description: 最初に試す 1 案だけ。
+        upstream_issue:
+          type: string
+          title: 上流の Issue
+          description: 上流の Issue の URL。
+        fixed_in:
+          type: string
+          title: 解消版
+          description: 解消した版。達したら回避策を外す候補になる。
+        refs:
+          type: array
+          title: 関連
+          items:
+            $ref: 共通.schema.yaml#/$defs/ref
+        notes:
+          $ref: 共通.schema.yaml#/$defs/notes
+  refs:
+    type: array
+    title: 関連
+    items:
+      $ref: 共通.schema.yaml#/$defs/ref
+  notes:
+    $ref: 共通.schema.yaml#/$defs/notes
+    x-heading: 補足
+    x-shape: sections
+examples:
+- title: OpenAI
+  lead: OpenAI が提供する LLM・埋め込み・音声の API。
+  used_in:
+  - integrations/openai/
+  verification:
+    state: 済
+    date: '2026-01-10'
+    detail: チャットの応答を 1 回取得した
+  version:
+    api_version: v1（URL 埋め込み型）
+    checked_on: '2026-07-24'
+  base_urls:
+  - env: 本番
+    url: https://api.openai.com/v1
+  official_url: https://openai.com/api/
+  docs_url: https://platform.openai.com/docs/api-reference
+  auth:
+    method: Bearer トークン（API キー）
+    steps: |-
+      1. https://platform.openai.com/api-keys を開く
+      2. `Create new secret key` で API キーを作る
+      3. 作ったキーを控える（再表示できない）
+    env_vars:
+    - OPENAI_API_KEY
+  rate_limits:
+  - target: gpt-4o-mini
+    limit: 500 RPM / 200,000 TPM
+    notes: tier 1
+  retry: 超過すると 429 を返す。Exponential Backoff（1 秒 → 2 秒 → 4 秒）で最大 3 回再試行する。
+  pricing:
+  - target: gpt-4o-mini
+    price: 入力 $0.150 / 出力 $0.600（1M トークン）
+  pricing_url: https://openai.com/api/pricing/
+  endpoints:
+  - name: POST /chat/completions
+    method: POST
+    path: /chat/completions
+    summary: チャット形式の LLM の応答を作る
+    request:
+    - name: model
+      type: string
+      required: true
+      location: body
+      description: モデル名
+    - name: messages
+      type: '{ role, content }[]'
+      required: true
+      location: body
+      description: チャットの履歴
+    - name: messages[].role
+      type: '"system" or "user" or "assistant"'
+      required: true
+      location: body
+      description: 送信者の役割
+    - name: temperature
+      type: number
+      required: false
+      default: '1'
+      location: body
+      description: 応答のばらつき
+      constraints: 0〜2
+    request_example: |-
+      ```json
+      {"model": "gpt-4o-mini", "messages": [{"role": "user", "content": "Hello"}]}
+      ```
+    response:
+    - name: choices[].message.content
+      type: string
+      description: 生成されたテキスト
+    - name: usage.prompt_tokens
+      type: number
+      description: 入力のトークン数
+    status_codes:
+    - code: '200'
+      condition: 正常
+    - code: '401'
+      condition: API キーが不正
+    - code: '429'
+      condition: レートリミットの超過
+      notes: Exponential Backoff で最大 3 回再試行する

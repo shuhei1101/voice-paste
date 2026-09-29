@@ -1,0 +1,325 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: 非機能要件
+description: |-
+  外部コンポーネントの制約を踏まえてアプリとして守る値（コンポーネントをまたいで効く要件だけ）。1 プロジェクト 1 ファイル。
+  1 コンポーネント内で閉じる要件は作業 PR の非機能要件に書く（判定フローチャート『非機能要件のレイヤー』）。
+x-kind: nonfunctional
+x-folder: dev/設計書/非機能要件
+x-cross: requirements
+type: object
+additionalProperties: false
+required:
+- title
+- requirements
+properties:
+  title:
+    type: string
+    title: タイトル
+    description: '`非機能要件`。'
+  lead:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: 冒頭リード
+    description: |-
+      対象を 1〜3 行で説明する。
+      初回に書いた内容のまま保ち、後から情報を足さない（仕様は各項目に書く）。
+      対象そのものが変わったときだけ書き換える。
+  requirements:
+    type: array
+    title: 一覧
+    description: |-
+      外部の制約から逆算したアプリの値。決まっていない項目も同じ一覧に置き、決定値を `未確定` にする。
+      未確定だった項目が決まったら同じ要素を書き換える。一覧の表は各要素から生成する。
+    x-heading: 一覧
+    x-shape: sections
+    x-key: name
+    x-unique-in-kind: true
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - category
+      - external_constraint
+      - source_kind
+      - value
+      - rationale
+      properties:
+        name:
+          type: string
+          title: 項目
+          description: 何についての値か。1 項目 = 1 要素。
+        english_name:
+          type: string
+          title: 英語名
+          description: テスト関数・ファイルの名前に使う。
+          pattern: ^[a-z0-9_]+$
+        category:
+          type: string
+          title: カテゴリ
+          description: |-
+            性能 / レート制限 / 可用性 / 耐障害 / セキュリティ / コスト / 保守性 / 動作環境 等。
+            動作環境は対応端末・OS・ブラウザ・画面サイズ・入力方式・通信を 1 項目ずつ置く。
+        external_constraint:
+          type: string
+          title: 外部の制約
+          description: 外部が示す上限・下限・保証値。自主基準は `制限なし`、分からなければ `未確定`。
+        source_kind:
+          type: string
+          title: 出所種別
+          description: 6 種類を 1 つずつ突き合わせ、どれにも当たらないときだけ `制限なし`。
+          enum:
+          - 外部 API の制限
+          - 外部ライブラリの制限
+          - 実行基盤の制限
+          - PC 性能
+          - ユーザー要望
+          - 制限なし
+          - 未確定
+        source:
+          type: string
+          title: 出所
+          description: 外部の制約を書いた設計書の参照・資料の URL・ユーザーの回答コメントの URL。
+        value:
+          type: string
+          title: 決定値
+          description: 実装とテストが参照する値。まだ決められないときは `未確定`。
+        unit:
+          type: string
+          title: 単位
+        rationale:
+          type: string
+          title: 根拠
+          description: 外部の制約そのままでない理由。未確定なら何が分かれば決まるか。
+        measurement:
+          type: string
+          title: 測り方
+          description: 実機での確認に回す項目は、確かめる端末と操作を書く。
+        test_file:
+          type: string
+          title: 対応テスト
+          description: 非機能要件テストのファイル（`tests/nfr/test_{英語名}.py`）。測れない項目・実機での確認に回す項目は持たない。
+          pattern: ^tests/.+
+        overflow:
+          $ref: 共通.schema.yaml#/$defs/markdown
+          title: 超過時の挙動
+          description: 決定値を超えたときに何が起きるか（分割 / 待機 / リトライ / エラー）。黙って切り捨てない。起こり得ないときは持たない。
+          x-heading: 超過時の挙動
+        breakdown:
+          type: array
+          title: 内訳
+          description: 決定値に至る積み上げ（外部の上限からの差し引き、または内側の値の合計）。積み上げの無い項目は持たない。
+          x-heading: 内訳
+          x-shape: table
+          x-key: part
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - part
+            - value
+            properties:
+              part:
+                type: string
+                title: 区分
+              value:
+                type: string
+                title: 値
+              notes:
+                type: string
+                title: 補足
+                description: なぜその値か。
+        tests:
+          type: array
+          title: 非機能要件テスト
+          description: 測れない項目・未確定の項目は持たない。
+          x-heading: 非機能要件テスト
+          x-shape: table
+          x-key: name
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - name
+            - summary
+            - condition
+            - measurement
+            - expected
+            properties:
+              name:
+                type: string
+                title: テスト名
+                description: '`test_{英語名}_when_{条件}`（条件分岐の無い唯一のケースは `test_{英語名}`）。'
+                pattern: ^test_[a-z0-9_]+$
+                x-test-function: true
+              summary:
+                type: string
+                title: 概要
+              condition:
+                type: string
+                title: 条件
+                description: 入力・負荷・回数を数値で。決定値の境界を 1 行以上入れる。
+              measurement:
+                type: string
+                title: 測定方法
+              expected:
+                type: string
+                title: 期待値
+                description: 合否の判定の基準。
+              notes:
+                type: string
+                title: 補足
+        refs:
+          type: array
+          title: 関連
+          items:
+            $ref: 共通.schema.yaml#/$defs/ref
+        reason:
+          $ref: 共通.schema.yaml#/$defs/reason
+        status:
+          $ref: 共通.schema.yaml#/$defs/status
+        visibility:
+          $ref: 共通.schema.yaml#/$defs/visibility
+        implementation:
+          $ref: 共通.schema.yaml#/$defs/implementation
+        introduced:
+          $ref: 共通.schema.yaml#/$defs/introduced
+        aliases:
+          $ref: 共通.schema.yaml#/$defs/aliases
+        notes:
+          $ref: 共通.schema.yaml#/$defs/notes
+  refs:
+    type: array
+    title: 関連
+    items:
+      $ref: 共通.schema.yaml#/$defs/ref
+  notes:
+    $ref: 共通.schema.yaml#/$defs/notes
+    x-heading: 補足
+    x-shape: sections
+examples:
+- title: 非機能要件
+  lead: 外部の制約から逆算したアプリの決定値。
+  requirements:
+  - name: 入力トークン上限
+    english_name: input_limit
+    category: 性能
+    external_constraint: 100 万トークン
+    source_kind: 外部 API の制限
+    source: dev/設計書/外部API/OpenAI#
+    value: 10 万
+    unit: トークン
+    rationale: 内部のシステムプロンプトと出力枠を差し引く
+    measurement: API へ渡ったトークン数を数える
+    test_file: tests/nfr/test_input_limit.py
+    overflow: |-
+      上限を超える入力は送信の前に分割する。
+      分割できない単一のメッセージが超えたときは古い履歴から切り詰め、それでも収まらなければエラーにして呼び出し元へ返す。
+    breakdown:
+    - part: 外部の上限
+      value: 1,000,000
+      notes: モデルのコンテキストウィンドウ
+    - part: 出力枠
+      value: 64,000
+      notes: 最大出力トークン
+    - part: アプリの決定値
+      value: 100,000
+      notes: 入力として受け付ける上限
+    tests:
+    - name: test_input_limit
+      summary: 上限ちょうどの入力
+      condition: 100,000 トークンの入力を 1 回送る
+      measurement: API へ渡ったトークン数
+      expected: 分割されずに 1 回で送られる
+    - name: test_input_limit_when_over
+      summary: 上限を超えた入力
+      condition: 100,001 トークンの入力を 1 回送る
+      measurement: API へ渡ったトークン数
+      expected: 2 回に分かれ、各回が 100,000 以下
+  - name: 応答の待ちの上限
+    english_name: response_wait_limit
+    category: 耐障害
+    external_constraint: 制限なし
+    source_kind: 制限なし
+    value: "30"
+    unit: 秒
+    rationale: 内側の待ち 2 つの合計に余裕を足す（規約『資源の値の決め方』の入れ子の待ち）
+    measurement: 内側の待ちを両方とも上限まで遅らせた要求を 1 回送り、応答までの時間を測る
+    overflow: 上限を超えたら呼び出し元へタイムアウトのエラーを返す。回復は呼び出し元のリトライで待つ
+    breakdown:
+    - part: 内側の待ち（外部 API の呼び出し）
+      value: "10"
+      notes: 外部 API の実測 p99.9 + 余裕
+    - part: 内側の待ち（保存）
+      value: "10"
+      notes: 保存の実測 p99.9 + 余裕
+    - part: 余裕
+      value: "10"
+      notes: 実測が無いため内側の待ちの合計の 50% を仮に置く
+    - part: アプリの決定値
+      value: "30"
+      notes: 内側の待ちの合計 + 余裕
+  - name: 同時接続数
+    category: 性能
+    external_constraint: 未確定
+    source_kind: 未確定
+    value: 未確定
+    rationale: 想定利用者数が決まる Issue「利用者管理」の要件が確定してから決める
+  - name: 対応ブラウザ
+    category: 動作環境
+    external_constraint: Chrome と Edge の最新版
+    source_kind: ユーザー要望
+    source: https://github.com/{owner}/{repo}/issues/{番号}#issuecomment-{ID}
+    value: Chrome と Edge の最新版
+    rationale: 利用者が社内の PC だけで使うため
+    measurement: Chrome と Edge の実機で、全ての画面の操作を最後まで完了できるかを確かめる
+  - name: 最小画面幅
+    english_name: min_viewport_width
+    category: 動作環境
+    external_constraint: "360"
+    source_kind: ユーザー要望
+    source: https://github.com/{owner}/{repo}/issues/{番号}#issuecomment-{ID}
+    value: "360"
+    unit: px
+    rationale: スマホでは閲覧できれば足りる
+    measurement: ブラウザの表示幅を変えて全ての画面を開き、横スクロールの有無を見る
+    test_file: tests/nfr/test_min_viewport_width.py
+    tests:
+    - name: test_min_viewport_width
+      summary: 最小幅での表示
+      condition: 表示幅 360px で全ての画面を開く
+      measurement: 文書の横幅と表示幅
+      expected: 全ての画面で文書の横幅が 360px 以下
+- title: 非機能要件
+  lead: 外部の制約から逆算したゲームの決定値。
+  requirements:
+  - name: 対応端末
+    category: 動作環境
+    external_constraint: Windows の PC と Nintendo Switch
+    source_kind: ユーザー要望
+    source: https://github.com/{owner}/{repo}/issues/{番号}#issuecomment-{ID}
+    value: Windows の PC と Nintendo Switch
+    rationale: 企画の段で決めた販売先
+    measurement: 各端末の実機で、タイトル画面から 1 ステージを最後まで遊べるかを確かめる
+  - name: 入力方式
+    english_name: input_devices
+    category: 動作環境
+    external_constraint: キーボードとゲームパッド
+    source_kind: ユーザー要望
+    source: https://github.com/{owner}/{repo}/issues/{番号}#issuecomment-{ID}
+    value: キーボードとゲームパッド
+    rationale: 対応端末の標準の入力に揃える
+    measurement: 論理操作ごとに、割り当てたキーとボタンの入力を送る
+    test_file: tests/nfr/test_input_devices.py
+    tests:
+    - name: test_input_devices
+      summary: 全ての論理操作の割り当て
+      condition: 論理操作ごとに、キーボードとゲームパッドの割り当てを 1 回ずつ送る
+      measurement: ゲームが受け取った論理操作
+      expected: 全ての論理操作を、どちらの入力からも受け取る
+  - name: 通信
+    category: 動作環境
+    external_constraint: 未確定
+    source_kind: 未確定
+    value: 未確定
+    rationale: オンラインで遊ぶ機能を持つかが企画の段で決まってから決める

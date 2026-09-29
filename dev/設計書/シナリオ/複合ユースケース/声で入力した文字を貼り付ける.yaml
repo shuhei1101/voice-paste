@@ -123,6 +123,9 @@ scenarios:
       - name: 常駐の起動
         description: 常駐モードで起動する
         notes: '`RESIDENT_MODE=true`'
+      - name: 文字起こしのエンジン
+        description: ローカルの Whisper で、無音の区間を除く設定にする
+        notes: '`TRANSCRIPTION_ENGINE=local`・`WHISPER_VAD_FILTER=true`'
       - name: 無音の録音
         description: 何も話さずに録音を確定し、起こした文字が空になるようにする
     flow: |-

@@ -1,0 +1,158 @@
+title: "録音を文字に起こす"
+scenarios:
+  - name: 正常シナリオ
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 文字起こしのエンジン
+        description: ローカルの Whisper を使う
+        notes: '`TRANSCRIPTION_ENGINE=local`'
+      - name: 用語集
+        description: 用語集の CSV（`YOGO_FILE`、既定は `resources/yogo.csv`）に、話す内容で起きる誤変換と正しい表記の行がある
+        notes: 列は `誤変換`・`正しい表記`
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant APP as 常駐アプリ
+        participant FS as 用語集の CSV
+        participant TRAY as トレイ
+        participant OV as 文字起こし中の表示
+        participant WK as 文字起こしワーカー（子プロセス）
+        actor U as ユーザー
+
+        APP->>FS: 用語集を読み直す
+        APP->>TRAY: 緑のアイコンにする（voice-paste: 文字起こし中）
+        APP->>OV: 開く（経過秒数・残り秒数 / 録音の長さ・進捗バー）
+        OV-->>U: 「貼り付けたい場所にカーソルを合わせてください」と出す
+        U->>U: 貼り付けたいアプリの入力欄へカーソルを移す
+        APP->>WK: 録音と設定（言語・ビーム幅・温度・VAD など）を送る
+        loop 区間ごと
+          WK-->>APP: 区間の終わりの時刻
+          APP->>OV: 残り秒数と進捗を更新する
+        end
+        WK-->>APP: 区間ごとの文字を改行でつないだ結果
+        APP->>APP: 用語集の誤変換を正しい表記へ置き換える
+        APP->>OV: 閉じる
+        APP->>TRAY: 青のアイコンにする（voice-paste: 待機中）
+      ```
+    expected:
+      - 起こした文字の中の用語集の誤変換が、正しい表記に置き換わっている
+      - 起こした文字が区間ごとに改行で区切られている
+      - 文字起こし中の表示が閉じ、トレイのアイコンが待機中に戻っている
+      - 起こした文字を届ける へ進む
+  - name: 正常シナリオ（OpenAI で起こす）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows と OpenAI API で実行）
+      - name: 文字起こしのエンジン
+        description: OpenAI を使い、API キーを設定してある
+        notes: '`TRANSCRIPTION_ENGINE=openai`・`OPENAI_API_KEY` に値がある'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant APP as 常駐アプリ
+        participant OV as 文字起こし中の表示
+        participant OAI as OpenAI API
+
+        Note over APP: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
+        APP->>OAI: 録音を送る（モデル whisper-1・区間つきの応答・WHISPER_LANGUAGE・WHISPER_TEMPERATURE）
+        OAI-->>APP: 区間ごとの文字と録音の長さ
+        APP->>OV: 区間ごとに残り秒数と進捗を更新する
+        APP->>APP: 区間の文字を改行でつなぐ（区間が無ければ全文を使う）
+        Note over APP: 用語集での補正から後は 正常シナリオ と同じ
+      ```
+    expected:
+      - 起こした文字の中の用語集の誤変換が、正しい表記に置き換わっている
+      - 文字起こし中の表示が閉じ、トレイのアイコンが待機中に戻っている
+      - 起こした文字を届ける へ進む
+  - name: 正常シナリオ（文字起こしワーカーが落ちる）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 文字起こしのエンジン
+        description: ローカルの Whisper を使う
+        notes: '`TRANSCRIPTION_ENGINE=local`'
+      - name: ワーカーの停止
+        description: 文字起こしの途中で、文字起こしワーカーの子プロセスを外から終わらせる
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant APP as 常駐アプリ
+        participant WK as 文字起こしワーカー（子プロセス）
+        participant WK2 as 新しい文字起こしワーカー
+
+        APP->>WK: 録音と設定を送る
+        WK--xAPP: 応答の途中で終わる
+        APP->>WK2: 子プロセスを起動し直し、モデルを読み込ませる
+        WK2-->>APP: ready
+        APP->>WK2: 同じ録音をもう一度送る（やり直しは 1 回だけ）
+        WK2-->>APP: 文字起こしの結果
+        Note over APP: 用語集での補正から後は 正常シナリオ と同じ
+      ```
+    expected:
+      - 起こした文字が得られ、起こした文字を届ける へ進む
+      - 文字起こしワーカーが新しい子プロセスで動いている
+      - 常駐アプリのプロセスは動き続けている
+  - name: 異常シナリオ（文字起こしに失敗）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 文字起こしの失敗
+        description: OpenAI を使う設定で、端末をネットワークから切り離す
+        notes: '`TRANSCRIPTION_ENGINE=openai`'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant APP as 常駐アプリ
+        participant OV as 文字起こし中の表示
+        participant TRAY as トレイ
+        participant OAI as OpenAI API
+        actor U as ユーザー
+
+        Note over APP: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
+        APP->>OAI: 録音を送る
+        OAI--xAPP: 届かずに例外
+        APP->>OV: 閉じる
+        APP->>TRAY: 青のアイコンにする（voice-paste: 待機中）
+        APP-->>U: 「文字起こしエラー」のダイアログ（文字起こしに失敗しました: {例外の内容}）
+      ```
+    expected:
+      - 「文字起こしエラー」のダイアログに、例外の内容が出ている
+      - 文字起こし中の表示が閉じ、トレイのアイコンが待機中に戻っている
+      - 起こした文字を届ける へ進まず、録音は `cache/recording.wav` に残ったままである
+    notes:
+      同じ結末になる場合: ローカルの Whisper で、ワーカーがエラーを返したときと、やり直したワーカーも落ちたときも、同じダイアログで終わる。
+  - name: 異常シナリオ（文字起こしの結果が空）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 文字起こしのエンジン
+        description: ローカルの Whisper で、無音の区間を除く設定にする
+        notes: '`TRANSCRIPTION_ENGINE=local`・`WHISPER_VAD_FILTER=true`'
+      - name: 無音の録音
+        description: 何も話さずに録音を確定する
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant APP as 常駐アプリ
+        participant OV as 文字起こし中の表示
+        participant TRAY as トレイ
+        participant WK as 文字起こしワーカー（子プロセス）
+
+        Note over APP: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
+        APP->>WK: 録音と設定を送る
+        WK-->>APP: 空の文字
+        APP->>OV: 閉じる
+        APP->>TRAY: 青のアイコンにする（voice-paste: 待機中）
+        APP->>APP: 「Transcription result is empty.」をログに書いて終える
+      ```
+    expected:
+      - ダイアログが出ていない
+      - 起こした文字を届ける へ進まず、履歴にも残らない
+      - 文字起こし中の表示が閉じ、トレイのアイコンが待機中に戻っている
+lead: 確定した録音を設定のエンジンで文字に起こし、用語集で補正するまでの単一ユースケース。
+issue: 3
+primary_actor: 音声入力を使うユーザー
+trigger: 録音する で届け方を選んで録音を確定する
+preconditions:
+  - '`cache/recording.wav` に確定した録音がある'

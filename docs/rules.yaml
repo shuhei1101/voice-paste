@@ -1,0 +1,3 @@
+# voice-paste のルール索引
+# rule: 索引ファイルからの相対パス / paths: 当てるファイルの glob（クォート必須）
+rules: []

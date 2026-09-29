@@ -1,0 +1,190 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: 設定
+description: サブシステム 1 つの設定値・環境変数の一覧。1 ファイル = サブシステム 1 つ。
+x-kind: config
+x-folder: dev/設計書/設定
+x-cross: settings
+type: object
+additionalProperties: false
+required:
+- title
+properties:
+  title:
+    type: string
+    title: タイトル
+    description: '`設定: {サブシステム名}`。'
+    pattern: '^設定: .+$'
+  lead:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: 冒頭リード
+    description: |-
+      設定値の一覧であることと、実装・サンプルのファイルへのポインタ。
+      初回に書いた内容のまま保ち、後から情報を足さない。
+  files:
+    type: array
+    title: ファイル一覧
+    description: 設定ファイルを持たないサブシステムは持たない。
+    x-heading: ファイル一覧
+    x-shape: table
+    x-key: file
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - file
+      - manages
+      properties:
+        file:
+          type: string
+          title: ファイル
+          description: リポジトリの直下からの相対パス・ホーム起点の絶対パス・ファイル名のいずれか。
+        manages:
+          type: string
+          title: 管理する値
+        notes:
+          type: string
+          title: 補足
+  settings:
+    type: array
+    title: キー一覧
+    description: 設定のキー 1 つ = 1 要素。
+    x-heading: キー一覧
+    x-shape: table
+    x-key: key
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - key
+      - title
+      - file
+      - type
+      - description
+      properties:
+        key:
+          type: string
+          title: キー
+          description: 階層はドットで結ぶ（`logging.level`）。配列の要素の子は `parent[].child`。
+        title:
+          type: string
+          title: 論理名
+          description: 業務用語。設計書の中で一意にする。
+        file:
+          type: string
+          title: ファイル
+          description: このキーを持つファイル（`files` の `file`）。
+        type:
+          type: string
+          title: 型
+          description: 取りうる値が限られるときはリテラルの列挙。
+        required:
+          type: boolean
+          title: 必須
+        default:
+          type: string
+          title: 既定値
+          description: 必須のキーには書かない。
+        description:
+          type: string
+          title: 説明
+        missing:
+          type: string
+          title: 欠落時の挙動
+          description: 必須のキーが無いときの挙動（`起動時にエラー` 等）。
+        env_var:
+          type: string
+          title: 環境変数名
+          description: 同じ値を上書きする環境変数。
+        secret:
+          type: boolean
+          title: 秘密
+          description: 秘密の値か。秘密なら例・実値を書かず、表示を伏せる。
+        reload:
+          type: string
+          title: 反映
+          description: '`immediate`（即時）/ `reload`（読み直し）/ `restart`（再起動）。'
+          enum:
+          - immediate
+          - reload
+          - restart
+        allowed:
+          type: string
+          title: 許す値や範囲
+        per_env:
+          type: string
+          title: 環境ごとの値
+        refs:
+          type: array
+          title: 関連
+          items:
+            $ref: 共通.schema.yaml#/$defs/ref
+        reason:
+          $ref: 共通.schema.yaml#/$defs/reason
+        status:
+          $ref: 共通.schema.yaml#/$defs/status
+        visibility:
+          $ref: 共通.schema.yaml#/$defs/visibility
+        implementation:
+          $ref: 共通.schema.yaml#/$defs/implementation
+        introduced:
+          $ref: 共通.schema.yaml#/$defs/introduced
+        aliases:
+          $ref: 共通.schema.yaml#/$defs/aliases
+        notes:
+          $ref: 共通.schema.yaml#/$defs/notes
+  overrides:
+    type: array
+    title: 環境ごとの差分
+    description: 環境ごとのファイルが共通の同名キーを上書きする値。
+    x-heading: 環境ごとの差分
+    x-shape: table
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - file
+      - key
+      - value
+      properties:
+        file:
+          type: string
+          title: ファイル
+          description: '`settings.{環境}.yaml` など。'
+        key:
+          type: string
+          title: キー
+        value:
+          type: string
+          title: 値
+        description:
+          type: string
+          title: 説明
+        notes:
+          type: string
+          title: 補足
+  refs:
+    type: array
+    title: 関連
+    items:
+      $ref: 共通.schema.yaml#/$defs/ref
+  notes:
+    $ref: 共通.schema.yaml#/$defs/notes
+    x-heading: 補足
+    x-shape: sections
+examples:
+- title: '設定: モニター'
+  lead: モニターの設定値一覧。
+  files:
+  - file: config/settings.yaml
+    manages: 共通の設定値（秘匿情報を含む）
+    notes: git 管理外
+  settings:
+  - key: port
+    title: 待受ポート
+    file: config/settings.yaml
+    type: int
+    required: false
+    default: '8765'
+    description: HTTP API の待受ポート
+    reload: restart
+    visibility: user

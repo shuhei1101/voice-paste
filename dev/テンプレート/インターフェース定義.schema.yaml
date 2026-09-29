@@ -1,0 +1,417 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: インターフェース定義
+description: |-
+  1 操作（API エンドポイント / MCP ツール / 画面操作 / 周期・イベント起動の処理）の入出力・制約・正常系と異常系のフロー。
+  1 ファイル = 1 操作 = 結合テストの 1 ファイル。外部依存は Mock 前提。
+x-kind: interface
+x-folder: dev/設計書/インターフェース定義
+x-cross: flows
+x-test-file: test_file
+x-test-file-optional: true
+type: object
+additionalProperties: false
+required:
+- title
+- entry
+- flows
+properties:
+  title:
+    type: string
+    title: タイトル
+    description: 日本語の論理名。ファイル名に合わせる。
+  entry:
+    type: object
+    title: 入口
+    description: 操作の入口。冒頭のメタ情報の行に出す。
+    x-shape: attributes
+    additionalProperties: false
+    required:
+    - kind
+    - value
+    properties:
+      kind:
+        type: string
+        title: 種類
+        description: '`endpoint`（HTTP を返す。値はメソッド + パス）/ `mcp_tool`（MCP ツール名）/ `operation`（呼び出す識別子 + 境界の種別）/ `trigger`（起動契機 + 周期）/ `screen`（画面の実装ファイル）。'
+        enum:
+        - endpoint
+        - mcp_tool
+        - operation
+        - trigger
+        - screen
+      value:
+        type: string
+        title: 値
+        description: 例 `POST /auth/signin` / `add_labels` / heartbeat 周期（`heartbeat_interval_sec` ごと）。
+      api:
+        type: string
+        title: 呼び出し API
+        description: '`screen` のときの呼び出す API（Mock）。'
+  lead:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: 冒頭リード
+    description: |-
+      対象を 1〜3 行で説明する。
+      初回に書いた内容のまま保ち、後から情報を足さない（仕様は各項目に書く）。
+      対象そのものが変わったときだけ書き換える。
+  test_file:
+    type: string
+    title: 対応テストファイル
+    description: 対応する結合テストのファイル（`tests/integration/{サブシステム名}/…`）。
+    pattern: ^tests/.+
+  identifier:
+    type: string
+    title: 識別子
+    description: 操作の識別子（OpenAPI の operationId に当たる）。
+  permissions:
+    type: string
+    title: 必要な権限
+  idempotent:
+    type: boolean
+    title: 冪等
+    description: 同じ要求を繰り返しても結果が変わらないか。
+  side_effects:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: 副作用
+    description: 書き込むデータ・外部への送信。
+  callers:
+    type: array
+    title: 呼び出し元
+    items:
+      $ref: 共通.schema.yaml#/$defs/ref
+  exclusivity:
+    type: string
+    title: 排他
+    description: 同時に呼ばれたときの扱い。
+  request:
+    type: array
+    title: リクエスト
+    description: 呼び出し元から受け取る引数。周期・イベントで自分から動く処理は持たない。
+    x-heading: リクエスト
+    x-shape: table
+    x-key: name
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - type
+      - description
+      - required
+      properties:
+        name:
+          type: string
+          title: パラメータ
+          description: オブジェクトの子は `parent.child`、配列の要素の子は `parent[].child` で 1 フィールド = 1 要素に展開する。
+        type:
+          type: string
+          title: 型
+          description: 実装言語の型名。取りうる値が限られるときはリテラルの列挙。
+        required:
+          type: boolean
+          title: 必須
+        default:
+          type: string
+          title: デフォルト
+          description: 省略時の値。省略できて既定の値が無いときは `なし（{省略時の挙動}）`。
+        location:
+          type: string
+          title: 置き場所
+          description: HTTP のパラメータの置き場所。MCP ツール・関数の引数は `argument`。
+          enum:
+          - path
+          - query
+          - header
+          - cookie
+          - body
+          - argument
+        description:
+          type: string
+          title: 説明
+        constraints:
+          type: string
+          title: 制限
+          description: そのフィールド単体にかかる上限・形式。
+        format:
+          type: string
+          title: 形式
+          description: 文字列の形式（`date-time` / `uri` 等）。
+        example:
+          type: string
+          title: 例
+        nullable:
+          type: boolean
+          title: 空を許す
+        notes:
+          type: string
+          title: 補足
+        status:
+          $ref: 共通.schema.yaml#/$defs/status
+  request_example:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: リクエスト例
+    description: ネスト構造の実形が分かる代表 1 ケース（JSON のコードブロック）。
+  response:
+    type: array
+    title: レスポンス
+    x-heading: レスポンス
+    x-shape: table
+    x-key: name
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - type
+      - description
+      properties:
+        name:
+          type: string
+          title: フィールド
+          description: オブジェクトの子は `parent.child`、配列の要素の子は `parent[].child` で 1 フィールド = 1 要素に展開する。
+        type:
+          type: string
+          title: 型
+          description: 実装言語の型名。取りうる値が限られるときはリテラルの列挙。
+        description:
+          type: string
+          title: 説明
+        constraints:
+          type: string
+          title: 制限
+          description: そのフィールド単体にかかる上限・形式。
+        format:
+          type: string
+          title: 形式
+          description: 文字列の形式（`date-time` / `uri` 等）。
+        example:
+          type: string
+          title: 例
+        notes:
+          type: string
+          title: 補足
+  response_example:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: レスポンス例
+    description: JSON のコードブロック。
+  response_notes:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: レスポンスの注記
+    description: 冪等性など表に載らない挙動（`> [!NOTE]` のコールアウトで出す）。
+  status_codes:
+    type: array
+    title: ステータスコード
+    description: HTTP を返す操作の出口。`exceptions` とどちらか片方だけを持つ。異常の行は異常系のフローと 1:1。
+    x-heading: ステータスコード
+    x-shape: table
+    x-key: code
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - code
+      - condition
+      properties:
+        code:
+          type: string
+          title: ステータスコード
+        condition:
+          type: string
+          title: 発生条件
+        notes:
+          type: string
+          title: 補足
+  exceptions:
+    type: array
+    title: 例外
+    description: HTTP を返さない操作の出口。異常の行は異常系のフローと 1:1。
+    x-heading: 例外
+    x-shape: table
+    x-key: name
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - condition
+      properties:
+        name:
+          type: string
+          title: 例外
+          description: 送出する例外のクラス名。正常終了の行は `なし（正常終了）`。
+        condition:
+          type: string
+          title: 発生条件
+        notes:
+          type: string
+          title: 補足
+  error_format:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: エラーの形式
+    description: エラー応答の形（RFC 9457 の type・title・status・detail 等）。
+  constraints:
+    type: array
+    title: 制約
+    description: 操作全体にかかる制約。関連する項目は制限を設けないときも行を置く。
+    x-heading: 制約
+    x-shape: table
+    x-key: item
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - item
+      - constraint
+      properties:
+        item:
+          type: string
+          title: 項目
+          description: タイムアウト・認可・レート制限・合計サイズ・許可値の定義・周期・閾値など。
+        constraint:
+          type: string
+          title: 制約
+          description: 設けないときも `制限なし` と書く。
+        decided_by:
+          $ref: 共通.schema.yaml#/$defs/ref
+          title: 決定値
+          description: 値の出所になる非機能要件の項目。
+        notes:
+          type: string
+          title: 補足
+  flows:
+    type: array
+    title: フロー
+    description: |-
+      正常系と異常系のフロー。1 フロー = 結合テストの 1 ケース。並びは正常 → 異常。
+      フロー一覧は各フローの名前と概要から生成する。
+    x-heading: フロー
+    x-shape: sections
+    x-key: name
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - summary
+      - setup
+      - flow
+      - expected
+      properties:
+        name:
+          type: string
+          title: フロー名
+          description: 正常の基本形は `正常系`。正常な結末が条件で分かれるときは `正常系（{条件}）`、異常は `異常系（{原因}・{ステータスか例外名}）`。
+          pattern: ^(正常系|異常系)(（.+）)?$
+        summary:
+          $ref: 共通.schema.yaml#/$defs/summary
+          title: 概要
+          description: 1 行でフローの中身を要約する。
+        setup:
+          type: array
+          title: セットアップ
+          description: |-
+            事前に要るデータ・状態と、分岐・異常を決定的に誘発する入力。
+            `Mock` の行（差し替える依存。差し替えないときも `なし（…）`）を必ず置く。
+          x-heading: セットアップ
+          x-shape: table
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - name
+            - description
+            properties:
+              name:
+                type: string
+                title: セットアップ
+                description: 前提を作る Factory 関数名か状態の名前。`Mock` の行を必ず置く。
+              description:
+                type: string
+                title: 説明
+                description: その前提の意味・役割・依存関係。Mock の行は差し替える依存と応答。
+              notes:
+                type: string
+                title: 補足
+                description: 引数に指定する重要な値・分岐を決定的に誘発する値。
+        flow:
+          $ref: 共通.schema.yaml#/$defs/mermaid
+          title: フロー
+          description: |-
+            Mermaid の `sequenceDiagram`。1 図 = 結末 1 本の一本道。
+            登場人物は呼び出し元（バックエンドは `participant クライアント`、フロントエンドは `actor ユーザー`）・インターフェース・外部システムの境界だけ。
+            読み取りと応答は点線 `-->>`、書き込み・操作は実線 `->>`。
+          x-heading: フロー
+        expected:
+          type: array
+          title: 期待値
+          description: フローの終了時点で外部から観測できる状態・戻り値。1 要素 = 1 つの確かめ。
+          x-heading: 期待値
+          x-shape: list
+          minItems: 1
+          items:
+            type: string
+        test:
+          $ref: 共通.schema.yaml#/$defs/test
+          description: 対応する結合テストの関数（`正常系` → `test_normal` / `正常系（{条件}）` → `test_normal_when_{条件}` / `異常系（{条件}）` → `test_error_when_{条件}`。`{条件}` は英訳）。
+          x-test-function: true
+        refs:
+          type: array
+          title: 関連
+          items:
+            $ref: 共通.schema.yaml#/$defs/ref
+        notes:
+          $ref: 共通.schema.yaml#/$defs/notes
+  refs:
+    type: array
+    title: 関連
+    items:
+      $ref: 共通.schema.yaml#/$defs/ref
+  notes:
+    $ref: 共通.schema.yaml#/$defs/notes
+    x-heading: 補足
+    x-shape: sections
+examples:
+- title: タスク作成
+  entry:
+    kind: operation
+    value: '`create_task`（サービス層の公開関数）'
+  lead: タイトルとサブタスクを受け取ってタスクを永続化し、採番済みのタスクを返す。
+  test_file: tests/integration/task/test_create_task.py
+  request:
+  - name: title
+    type: str
+    required: true
+    location: argument
+    description: タスク名
+    constraints: 100 文字以内
+  exceptions:
+  - name: なし（正常終了）
+    condition: 作成成功
+  - name: ValidationError
+    condition: タイトルが 100 文字を超える
+  constraints:
+  - item: タイムアウト
+    constraint: 制限なし
+  flows:
+  - name: 正常系
+    summary: タスクを作成する
+    setup:
+    - name: Mock
+      description: DB を stub に差し替え
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as クライアント
+        participant IF as create_task
+        participant DB as DB
+
+        C->>IF: title
+        IF->>DB: タスクを保存
+        IF-->>C: 採番済みのタスク
+      ```
+    expected:
+    - 採番済みのタスクが返る
+    - DB にタスクが 1 件ある
+    test: test_normal

@@ -1,0 +1,162 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: テスト実行方法
+description: テスト種別ごとの実行コマンドと前提。1 プロジェクト 1 ファイル。
+x-kind: test_procedure
+x-folder: dev/設計書/テスト
+type: object
+additionalProperties: false
+required:
+- title
+- layers
+properties:
+  title:
+    type: string
+    title: タイトル
+    description: '`テスト実行方法`。'
+  lead:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: 冒頭リード
+    description: |-
+      対象を 1〜3 行で説明する。
+      初回に書いた内容のまま保ち、後から情報を足さない（仕様は各項目に書く）。
+      対象そのものが変わったときだけ書き換える。
+  prerequisites:
+    type: array
+    title: 前提
+    description: 全種別に共通の前提（言語ランタイム・依存サービス・環境変数）。
+    x-heading: 前提
+    x-shape: list
+    items:
+      type: string
+  layers:
+    type: array
+    title: テスト種別
+    description: テスト種別ごとの実行コマンド。初期構築では種別だけを作り、コマンドはテストを作る担当が確定させる（確定させるまでは `run_all` を `未確定`）。
+    x-shape: sections
+    x-key: name
+    x-unique-in-kind: true
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - run_all
+      properties:
+        name:
+          type: string
+          title: 種別
+          enum:
+          - 非機能要件テスト
+          - E2E テスト
+          - 結合テスト（フロント）
+          - 結合テスト（バック）
+          - 単体テスト（フロント）
+          - 単体テスト（バック）
+          - 外部疎通テスト
+          - lint
+        description:
+          $ref: 共通.schema.yaml#/$defs/markdown
+          title: 説明
+          description: 使うツールと実行の方式。
+        prerequisites:
+          type: array
+          title: 前提
+          description: 種別に固有の前提（起動しておくもの・Mock の状況・誤実行を防ぐフラグ）。料金・副作用のある種別は必ず書く。
+          x-shape: list
+          items:
+            type: string
+        run_all:
+          $ref: 共通.schema.yaml#/$defs/markdown
+          title: 全件実行
+          description: 1 コマンドのコードブロック（`bash`）。
+        run_one:
+          type: object
+          title: 個別実行
+          additionalProperties: false
+          required:
+          - label
+          - command
+          properties:
+            label:
+              type: string
+              title: 単位
+              description: '`シナリオ` / `画面` / `エンドポイント` / `ファイル` 等。見出しは `個別{単位}実行`。'
+            command:
+              $ref: 共通.schema.yaml#/$defs/markdown
+              title: コマンド
+              description: プレースホルダの形（`{シナリオファイルパス}`）の 1 コマンドのコードブロック。
+        carry_over:
+          $ref: 共通.schema.yaml#/$defs/markdown
+          title: セッションを跨いで走らせる形の実行
+          description: E2E テストだけが持つ。`RUN_DIR` 配下の `results.jsonl` / `done` / `release_head` / `abort` の名前は変えない。
+        monitoring:
+          $ref: 共通.schema.yaml#/$defs/markdown
+          title: 実行中の進行の監視
+          description: E2E テストだけが持つ。
+        abort:
+          $ref: 共通.schema.yaml#/$defs/markdown
+          title: 実行の中断
+          description: 中断の仕方。E2E テストは合図ファイル（`$RUN_DIR/abort`）。
+        duration:
+          type: string
+          title: 所要時間の目安
+        parallel:
+          type: boolean
+          title: 並列にできる
+        external_cost:
+          type: string
+          title: 外部への依存と費用
+        results:
+          type: string
+          title: 結果の置き場所
+        notes:
+          $ref: 共通.schema.yaml#/$defs/notes
+  refs:
+    type: array
+    title: 関連
+    items:
+      $ref: 共通.schema.yaml#/$defs/ref
+  notes:
+    $ref: 共通.schema.yaml#/$defs/notes
+    x-heading: 補足
+    x-shape: sections
+examples:
+- title: テスト実行方法
+  lead: テスト種別ごとの実行コマンドと前提。
+  prerequisites:
+  - Python 3.12 と uv
+  - 'DB: PostgreSQL 16 のローカル起動（`docker compose up -d postgres`）'
+  layers:
+  - name: 単体テスト（バック）
+    description: pytest で実行する。DB / API に依存しない。
+    prerequisites:
+    - 外部依存なし（純粋関数と Mock だけ）
+    run_all: |-
+      ```bash
+      uv run pytest tests/unit/
+      ```
+    run_one:
+      label: ファイル
+      command: |-
+        ```bash
+        uv run pytest {単体テストファイルパス}
+        ```
+    parallel: true
+  - name: 外部疎通テスト
+    description: 実 API に繋いで疎通を確かめる。
+    prerequisites:
+    - 実 API の認証情報を環境変数に設定する
+    - 料金と副作用が出ることを認識した上で実行する
+    - 誤実行を防ぐため `--run-external` を必須にする
+    run_all: |-
+      ```bash
+      uv run pytest tests/external/ --run-external
+      ```
+    run_one:
+      label: テスト
+      command: |-
+        ```bash
+        uv run pytest {外部疎通テストファイルパス} --run-external
+        ```
+    external_cost: テストごとの料金は外部API の設計書の料金を見る

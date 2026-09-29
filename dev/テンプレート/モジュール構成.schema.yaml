@@ -1,0 +1,1228 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: モジュール構成
+description: |-
+  サブシステム × 分類 1 つ分の構成要素（データモデル / クラス / 関数 / 関数型 / 定数 / 画面・コンポーネント / フック / ストア / スタイル）。
+  1 ファイル = 分類 1 つ。分類は業務ドメインの軸で切り、プロセスの入口は専用の分類に切り出す。
+  設計書の中を横断する一覧（ユースケース・役割・コンテナ・種別・名前・概要）は、各要素の項目から生成する。
+  分類を細分化したフォルダは、細分類のページどうしのつながりの図とフォルダ全体の決まりを、束ねの設計書 `全体.yaml`（`diagrams` と `notes`）に置く。
+x-kind: module
+x-folder: dev/設計書/モジュール構成
+x-cross: functions
+x-test-file: test_files
+x-test-file-optional: true
+type: object
+additionalProperties: false
+required:
+- title
+properties:
+  title:
+    type: string
+    title: タイトル
+    description: '`{サブシステム名} / {分類名}`（細分化した分類は `{サブシステム名} / {分類名} / {細分類名}`）。フォルダとファイル名に合わせる。'
+    pattern: ^.+ / .+$
+  lead:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: 冒頭リード
+    description: |-
+      対象を 1〜3 行で説明する。
+      初回に書いた内容のまま保ち、後から情報を足さない（仕様は各項目に書く）。
+      対象そのものが変わったときだけ書き換える。
+  test_files:
+    type: array
+    title: 対応テストファイル
+    description: |-
+      属する物理ファイルごとの単体テストのファイル（1 物理ファイル = 1 テストファイル）。
+      テストのレビューを終えたときに planner が記入する（設計の時点では空でよい）。
+      `テスト基盤` と `ドキュメントサイト` の配下は持たない（規約『V字モデル』）。
+    items:
+      type: string
+      pattern: ^tests/.+
+  external_test_files:
+    type: array
+    title: 対応疎通テストファイル
+    description: |-
+      疎通テスト（`connectivity_tests`）を持つ関数の、外部疎通テストのファイル（`tests/external/` の下）。
+      疎通テストのレビューを終えたときに planner が記入する（設計の時点では空でよい）。
+    items:
+      type: string
+      pattern: ^tests/external/.+
+  directory:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: ディレクトリ構成
+    description: 属するファイルのツリー（コードブロック）。各ファイルの右に主な中身を 1 行で書く。
+    x-heading: ディレクトリ構成
+  diagrams:
+    type: array
+    title: 構成図
+    description: 矢印で繋がる塊 1 つ = 1 枚。1 枚のノードが 15 を超えるときは切り口で分ける。載せる要素が無いときは持たない。
+    x-heading: 構成図
+    x-shape: sections
+    x-key: name
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - diagram
+      properties:
+        name:
+          type: string
+          title: 塊の論理名
+          description: 図が 1 枚なら `全体`。
+        diagram:
+          $ref: 共通.schema.yaml#/$defs/mermaid
+          title: 図
+          description: |-
+            Mermaid の `classDiagram`（次の行に `direction`）。図の中の名前は論理名で書く。
+            定数・先頭 `_` の要素と、他の要素と矢印で繋がらない要素は載せない。
+  data_models:
+    type: array
+    title: データモデル
+    description: プロパティ主体の型（dataclass・BaseModel・TypedDict・TS の type 等）。
+    x-heading: データモデル
+    x-shape: sections
+    x-key: name
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - title
+      - container
+      - summary
+      properties:
+        name: &id001
+          type: string
+          title: 物理名
+          description: ソースコード上の名前。項目のパスで指すときのキー。
+        title: &id002
+          type: string
+          title: 論理名
+          description: 図と見出しに出す名前。
+        container: &id003
+          type: string
+          title: コンテナ
+          description: 所属ファイル（例 `oauth/service.ts`）。
+        usecase: &id004
+          type: string
+          title: ユースケース
+          description: 属するユースケース名。複数で共用するものは `共通`。
+        role: &id005
+          type: string
+          title: 役割
+          description: 設計上のパターン・ロールの短いラベル（`DTO` / `リポジトリ` / `サービス` 等）。
+        summary: &id006
+          $ref: 共通.schema.yaml#/$defs/summary
+          title: 概要
+          description: 1 行で何を担うか。
+        description: &id007
+          $ref: 共通.schema.yaml#/$defs/markdown
+          title: 説明
+        inherits:
+          type: string
+          title: 継承元
+        properties:
+          type: array
+          title: プロパティ
+          x-heading: プロパティ
+          x-shape: table
+          x-key: name
+          items: &id008
+            type: object
+            additionalProperties: false
+            required:
+            - name
+            - type
+            - description
+            properties:
+              name:
+                type: string
+                title: プロパティ名
+              title:
+                type: string
+                title: 論理名
+              type:
+                type: string
+                title: 型
+                description: 取りうる値が有限の文字列はリテラル型で列挙する。
+              access:
+                type: string
+                title: 可視性
+                description: '`public` / `protected` / `private`。可視性の無い言語は `公開` / `内部 (_)` / `非公開 (__)`。'
+              default:
+                type: string
+                title: デフォルト
+                description: 生成時の値。無いときは書かない。
+              description:
+                type: string
+                title: 説明
+              example:
+                type: string
+                title: 例
+              notes:
+                type: string
+                title: 補足
+        methods:
+          type: array
+          title: メソッド
+          x-heading: メソッド
+          x-shape: sections
+          x-key: name
+          items:
+            $ref: '#/$defs/function'
+        refs:
+          type: array
+          title: 関連
+          items:
+            $ref: 共通.schema.yaml#/$defs/ref
+        reason:
+          $ref: 共通.schema.yaml#/$defs/reason
+        status:
+          $ref: 共通.schema.yaml#/$defs/status
+        visibility:
+          $ref: 共通.schema.yaml#/$defs/visibility
+        implementation:
+          $ref: 共通.schema.yaml#/$defs/implementation
+        introduced:
+          $ref: 共通.schema.yaml#/$defs/introduced
+        aliases:
+          $ref: 共通.schema.yaml#/$defs/aliases
+        notes:
+          $ref: 共通.schema.yaml#/$defs/notes
+  enums:
+    type: array
+    title: Enum
+    description: 取りうる値の列挙。`Literal` の型エイリアスも含む。
+    x-heading: Enum
+    x-shape: sections
+    x-key: name
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - title
+      - container
+      - summary
+      properties:
+        name: *id001
+        title: *id002
+        container: *id003
+        usecase: *id004
+        role: *id005
+        summary: *id006
+        description: *id007
+        values:
+          type: array
+          title: 値一覧
+          x-heading: 値一覧
+          x-shape: table
+          x-key: value
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - value
+            - title
+            - description
+            properties:
+              value:
+                type: string
+                title: 値
+                description: 実際に持つ値。
+              member:
+                type: string
+                title: メンバー名
+                description: コード上の識別子。`Literal` のように無いときは書かない。
+              title:
+                type: string
+                title: 論理名
+              description:
+                type: string
+                title: 説明
+              notes:
+                type: string
+                title: 補足
+        refs:
+          type: array
+          title: 関連
+          items:
+            $ref: 共通.schema.yaml#/$defs/ref
+        reason:
+          $ref: 共通.schema.yaml#/$defs/reason
+        status:
+          $ref: 共通.schema.yaml#/$defs/status
+        visibility:
+          $ref: 共通.schema.yaml#/$defs/visibility
+        implementation:
+          $ref: 共通.schema.yaml#/$defs/implementation
+        introduced:
+          $ref: 共通.schema.yaml#/$defs/introduced
+        aliases:
+          $ref: 共通.schema.yaml#/$defs/aliases
+        notes:
+          $ref: 共通.schema.yaml#/$defs/notes
+  classes:
+    type: array
+    title: クラス
+    description: 振る舞いを持つクラス・抽象クラス・インタフェース。
+    x-heading: クラス
+    x-shape: sections
+    x-key: name
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - title
+      - container
+      - summary
+      properties:
+        name: *id001
+        title: *id002
+        container: *id003
+        usecase: *id004
+        role: *id005
+        summary: *id006
+        description: *id007
+        kind:
+          type: string
+          title: 種別
+          enum:
+          - クラス
+          - 抽象クラス
+          - インタフェース
+        inherits:
+          type: string
+          title: 継承元
+        properties:
+          type: array
+          title: プロパティ
+          x-heading: プロパティ
+          x-shape: table
+          x-key: name
+          items: *id008
+        methods:
+          type: array
+          title: メソッド
+          description: インタフェース・抽象クラスの契約のメソッドは引数と戻り値だけを持つ。
+          x-heading: メソッド
+          x-shape: sections
+          x-key: name
+          items:
+            $ref: '#/$defs/function'
+        implementations:
+          type: array
+          title: 実装
+          description: インタフェース・抽象クラスだけが持つ。この契約を満たすクラス。
+          x-heading: 実装
+          x-shape: table
+          x-key: target
+          items: &id009
+            type: object
+            additionalProperties: false
+            required:
+            - target
+            properties:
+              target:
+                type: string
+                title: 実装
+                description: この契約を満たす実装の論理名（別の設計書なら参照）。
+              notes:
+                type: string
+                title: 補足
+                description: どの条件で使われるか。
+        refs:
+          type: array
+          title: 関連
+          items:
+            $ref: 共通.schema.yaml#/$defs/ref
+        reason:
+          $ref: 共通.schema.yaml#/$defs/reason
+        status:
+          $ref: 共通.schema.yaml#/$defs/status
+        visibility:
+          $ref: 共通.schema.yaml#/$defs/visibility
+        implementation:
+          $ref: 共通.schema.yaml#/$defs/implementation
+        introduced:
+          $ref: 共通.schema.yaml#/$defs/introduced
+        aliases:
+          $ref: 共通.schema.yaml#/$defs/aliases
+        notes:
+          $ref: 共通.schema.yaml#/$defs/notes
+  constants:
+    type: array
+    title: 定数
+    description: 定数。単純な即値は `value` だけを持ち、辞書・配列は `entries` を持つ。設定値はここではなく設計書『設定』に書く。
+    x-heading: 定数
+    x-shape: sections
+    x-key: name
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - title
+      - container
+      - summary
+      properties:
+        name: *id001
+        title: *id002
+        container: *id003
+        usecase: *id004
+        role: *id005
+        summary: *id006
+        description: *id007
+        value:
+          type: string
+          title: 値
+          description: 単純な即値。
+        entries:
+          type: array
+          title: 値
+          x-heading: 値
+          x-shape: table
+          x-key: key
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - key
+            - value
+            properties:
+              key:
+                type: string
+                title: キー
+                description: 配列は添字。
+              value:
+                type: string
+                title: 値
+              description:
+                type: string
+                title: 説明
+              notes:
+                type: string
+                title: 補足
+        refs:
+          type: array
+          title: 関連
+          items:
+            $ref: 共通.schema.yaml#/$defs/ref
+        reason:
+          $ref: 共通.schema.yaml#/$defs/reason
+        status:
+          $ref: 共通.schema.yaml#/$defs/status
+        visibility:
+          $ref: 共通.schema.yaml#/$defs/visibility
+        implementation:
+          $ref: 共通.schema.yaml#/$defs/implementation
+        introduced:
+          $ref: 共通.schema.yaml#/$defs/introduced
+        aliases:
+          $ref: 共通.schema.yaml#/$defs/aliases
+        notes:
+          $ref: 共通.schema.yaml#/$defs/notes
+  functions:
+    type: array
+    title: 関数
+    description: 関数・フック。1 関数 = 1 要素で、`container` に所属ファイルを書く。
+    x-heading: 関数
+    x-shape: sections
+    x-key: name
+    items:
+      $ref: '#/$defs/function'
+  function_types:
+    type: array
+    title: 関数型
+    description: 関数のシグネチャの型（DI・Mock の差し替え用）。処理・例外・単体テストは実装の側が持つ。
+    x-heading: 関数型
+    x-shape: sections
+    x-key: name
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - title
+      - container
+      - summary
+      properties:
+        name: *id001
+        title: *id002
+        container: *id003
+        usecase: *id004
+        role: *id005
+        summary: *id006
+        description: *id007
+        args:
+          type: array
+          title: 引数
+          x-heading: 引数
+          x-shape: table
+          x-key: name
+          items: &id010
+            type: object
+            additionalProperties: false
+            required:
+            - name
+            - type
+            - description
+            properties:
+              name:
+                type: string
+                title: 引数名
+                description: コード上の引数名。
+              title:
+                type: string
+                title: 論理名
+              type:
+                type: string
+                title: 型
+                description: 実装言語の型名。取りうる値が限られるときはリテラルの列挙で書く。
+              required:
+                type: boolean
+                title: 必須
+              default:
+                type: string
+                title: デフォルト
+                description: 省略時の値。必須の引数には書かない。
+              passing:
+                type: string
+                title: 渡し方
+                description: '`positional`（位置）/ `keyword`（キーワード引数）/ `injected`（依存の注入）。'
+                enum:
+                - positional
+                - keyword
+                - injected
+              description:
+                type: string
+                title: 説明
+              notes:
+                type: string
+                title: 補足
+        returns:
+          type: object
+          title: 戻り値
+          x-heading: 戻り値
+          x-shape: attributes
+          additionalProperties: false
+          required:
+          - type
+          - description
+          properties:
+            type:
+              type: string
+              title: 型
+            description:
+              type: string
+              title: 説明
+            notes:
+              type: string
+              title: 補足
+        implementations:
+          type: array
+          title: 実装
+          x-heading: 実装
+          x-shape: table
+          x-key: target
+          items: *id009
+        refs:
+          type: array
+          title: 関連
+          items:
+            $ref: 共通.schema.yaml#/$defs/ref
+        reason:
+          $ref: 共通.schema.yaml#/$defs/reason
+        status:
+          $ref: 共通.schema.yaml#/$defs/status
+        visibility:
+          $ref: 共通.schema.yaml#/$defs/visibility
+        implementation:
+          $ref: 共通.schema.yaml#/$defs/implementation
+        introduced:
+          $ref: 共通.schema.yaml#/$defs/introduced
+        aliases:
+          $ref: 共通.schema.yaml#/$defs/aliases
+        notes:
+          $ref: 共通.schema.yaml#/$defs/notes
+  components:
+    type: array
+    title: 画面・コンポーネント
+    description: 画面とコンポーネント（1 定義 = 1 ファイル）。Custom Element は `props` の代わりに `attributes` / `properties` / `events` を持つ。
+    x-heading: 画面・コンポーネント
+    x-shape: sections
+    x-key: name
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - title
+      - container
+      - summary
+      properties:
+        name: *id001
+        title: *id002
+        container: *id003
+        usecase: *id004
+        role: *id005
+        summary: *id006
+        description: *id007
+        kind:
+          type: string
+          title: 種別
+          enum:
+          - 画面
+          - コンポーネント
+        props:
+          type: array
+          title: props
+          x-heading: props
+          x-shape: table
+          x-key: name
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - name
+            - type
+            - description
+            properties:
+              name:
+                type: string
+                title: プロパティ名
+              title:
+                type: string
+                title: 論理名
+              type:
+                type: string
+                title: 型
+              required:
+                type: boolean
+                title: 必須
+              default:
+                type: string
+                title: デフォルト
+              description:
+                type: string
+                title: 説明
+              notes:
+                type: string
+                title: 補足
+        attributes:
+          type: array
+          title: attributes
+          x-heading: attributes
+          x-shape: table
+          x-key: name
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - name
+            - description
+            properties:
+              name:
+                type: string
+                title: 属性名
+              title:
+                type: string
+                title: 論理名
+              type:
+                type: string
+                title: 型
+              description:
+                type: string
+                title: 説明
+              notes:
+                type: string
+                title: 補足
+        properties:
+          type: array
+          title: properties
+          x-heading: properties
+          x-shape: table
+          x-key: name
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - name
+            - description
+            properties:
+              name:
+                type: string
+                title: プロパティ名
+              title:
+                type: string
+                title: 論理名
+              type:
+                type: string
+                title: 型
+              description:
+                type: string
+                title: 説明
+              notes:
+                type: string
+                title: 補足
+        events:
+          type: array
+          title: events
+          x-heading: events
+          x-shape: table
+          x-key: name
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - name
+            - description
+            properties:
+              name:
+                type: string
+                title: イベント名
+              title:
+                type: string
+                title: 論理名
+              detail:
+                type: string
+                title: detail の型
+              description:
+                type: string
+                title: 説明
+              notes:
+                type: string
+                title: 補足
+        state:
+          type: array
+          title: state
+          description: ローカルの状態を持たないときは持たない。
+          x-heading: state
+          x-shape: table
+          x-key: name
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - name
+            - type
+            - description
+            properties:
+              name:
+                type: string
+                title: 状態名
+              title:
+                type: string
+                title: 論理名
+              type:
+                type: string
+                title: 型
+              initial:
+                type: string
+                title: 初期値
+              description:
+                type: string
+                title: 説明
+              notes:
+                type: string
+                title: 補足
+                description: 表現手段（`useState` / `useForm` 等）。
+        unit_tests:
+          type: array
+          title: 単体テスト
+          x-heading: 単体テスト
+          x-shape: table
+          x-key: name
+          items: &id011
+            type: object
+            additionalProperties: false
+            required:
+            - name
+            - case
+            - summary
+            - condition
+            - mock
+            - expected
+            properties:
+              name:
+                type: string
+                title: テスト名
+                description: |-
+                  テスト関数の名前。`test_{関数の物理名}_when_{条件}`（条件分岐の無い唯一のケースは `test_{関数の物理名}`）。
+                  期待値は名前に入れない。先頭が `_` の関数は `_` を外す。
+                pattern: ^test_[a-z0-9_]+$
+                x-test-function: true
+              case:
+                type: string
+                title: 正常/異常
+                enum:
+                - 正常
+                - 異常
+              summary:
+                type: string
+                title: 概要
+              condition:
+                type: string
+                title: 条件
+                description: テストの条件。Mock の応答の設定もここに書く。
+              mock:
+                type: string
+                title: Mock
+                description: 差し替えるファイル外・プロセス外の依存だけ。差し替えないときも `なし` と書く。
+              expected:
+                type: string
+                title: 期待値
+                description: 戻り値・送出する例外と、Mock に渡った引数・呼び出しの有無。
+              exception:
+                type: string
+                title: 対応する例外
+                description: 自関数で送出する例外を確かめる行のとき、対応する例外の行の発生条件の要旨。
+              notes:
+                type: string
+                title: 補足
+        refs:
+          type: array
+          title: 関連
+          items:
+            $ref: 共通.schema.yaml#/$defs/ref
+        reason:
+          $ref: 共通.schema.yaml#/$defs/reason
+        status:
+          $ref: 共通.schema.yaml#/$defs/status
+        visibility:
+          $ref: 共通.schema.yaml#/$defs/visibility
+        implementation:
+          $ref: 共通.schema.yaml#/$defs/implementation
+        introduced:
+          $ref: 共通.schema.yaml#/$defs/introduced
+        aliases:
+          $ref: 共通.schema.yaml#/$defs/aliases
+        notes:
+          $ref: 共通.schema.yaml#/$defs/notes
+  stores:
+    type: array
+    title: ストア
+    description: 状態管理のオブジェクト（Zustand / Redux 等）。
+    x-heading: ストア
+    x-shape: sections
+    x-key: name
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - title
+      - container
+      - summary
+      properties:
+        name: *id001
+        title: *id002
+        container: *id003
+        usecase: *id004
+        role: *id005
+        summary: *id006
+        description: *id007
+        state:
+          type: array
+          title: state
+          x-heading: state
+          x-shape: table
+          x-key: name
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - name
+            - type
+            - description
+            properties:
+              name:
+                type: string
+                title: フィールド名
+              title:
+                type: string
+                title: 論理名
+              type:
+                type: string
+                title: 型
+              initial:
+                type: string
+                title: 初期値
+              description:
+                type: string
+                title: 説明
+              notes:
+                type: string
+                title: 補足
+        actions:
+          type: array
+          title: action
+          x-heading: action
+          x-shape: sections
+          x-key: name
+          items:
+            $ref: '#/$defs/function'
+        refs:
+          type: array
+          title: 関連
+          items:
+            $ref: 共通.schema.yaml#/$defs/ref
+        reason:
+          $ref: 共通.schema.yaml#/$defs/reason
+        status:
+          $ref: 共通.schema.yaml#/$defs/status
+        visibility:
+          $ref: 共通.schema.yaml#/$defs/visibility
+        implementation:
+          $ref: 共通.schema.yaml#/$defs/implementation
+        introduced:
+          $ref: 共通.schema.yaml#/$defs/introduced
+        aliases:
+          $ref: 共通.schema.yaml#/$defs/aliases
+        notes:
+          $ref: 共通.schema.yaml#/$defs/notes
+  styles:
+    type: array
+    title: スタイル
+    description: CSS のクラス群 1 まとまり。
+    x-heading: スタイル
+    x-shape: sections
+    x-key: name
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - title
+      - container
+      - summary
+      properties:
+        name: *id001
+        title: *id002
+        container: *id003
+        usecase: *id004
+        role: *id005
+        summary: *id006
+        description: *id007
+        values:
+          type: array
+          title: 値
+          x-heading: 値
+          x-shape: table
+          x-key: class_name
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - class_name
+            - target
+            - value
+            properties:
+              class_name:
+                type: string
+                title: クラス名
+              target:
+                type: string
+                title: 適用対象
+              value:
+                type: string
+                title: 値
+              notes:
+                type: string
+                title: 補足
+        refs:
+          type: array
+          title: 関連
+          items:
+            $ref: 共通.schema.yaml#/$defs/ref
+        reason:
+          $ref: 共通.schema.yaml#/$defs/reason
+        status:
+          $ref: 共通.schema.yaml#/$defs/status
+        visibility:
+          $ref: 共通.schema.yaml#/$defs/visibility
+        implementation:
+          $ref: 共通.schema.yaml#/$defs/implementation
+        introduced:
+          $ref: 共通.schema.yaml#/$defs/introduced
+        aliases:
+          $ref: 共通.schema.yaml#/$defs/aliases
+        notes:
+          $ref: 共通.schema.yaml#/$defs/notes
+  refs:
+    type: array
+    title: 関連
+    items:
+      $ref: 共通.schema.yaml#/$defs/ref
+  notes:
+    $ref: 共通.schema.yaml#/$defs/notes
+    x-heading: 補足
+    x-shape: sections
+$defs:
+  function:
+    type: object
+    title: 関数
+    description: 関数・メソッド・フック 1 つ。
+    x-shape: sections
+    additionalProperties: false
+    required:
+    - name
+    - title
+    - kind
+    - summary
+    properties:
+      name: *id001
+      title: *id002
+      container: *id003
+      usecase: *id004
+      role: *id005
+      summary: *id006
+      description: *id007
+      kind:
+        type: string
+        title: 種別
+        enum:
+        - 関数
+        - メソッド
+        - フック
+      inherits:
+        type: string
+        title: 継承元
+        description: 実装する関数型・インタフェースの論理名（別の設計書なら参照）。
+      scope:
+        type: string
+        title: 公開範囲
+        description: '`public`（外から呼ぶ）/ `internal`（先頭 `_` などの内部の関数）。'
+        enum:
+        - public
+        - internal
+      is_async:
+        type: boolean
+        title: 非同期
+        description: 非同期関数か。
+      thread_safe:
+        type: boolean
+        title: 並行で呼べる
+        description: 並行で呼んでよいか。
+      side_effects:
+        $ref: 共通.schema.yaml#/$defs/markdown
+        title: 副作用
+        description: 引数の書き換え・外への書き込み。
+      args:
+        type: array
+        title: 引数
+        description: 引数の表。引数の無い関数は持たない。
+        x-heading: 引数
+        x-shape: table
+        x-key: name
+        items: *id010
+      args_example:
+        $ref: 共通.schema.yaml#/$defs/markdown
+        title: 引数例
+        description: 呼び出しのコード 1〜数行（コードブロック）。
+      returns:
+        type: object
+        title: 戻り値
+        x-heading: 戻り値
+        x-shape: attributes
+        additionalProperties: false
+        required:
+        - type
+        - description
+        properties:
+          type:
+            type: string
+            title: 型
+            description: void / None も書く。
+          description:
+            type: string
+            title: 説明
+          notes:
+            type: string
+            title: 補足
+      returns_example:
+        $ref: 共通.schema.yaml#/$defs/markdown
+        title: 戻り値例
+        description: 返り値の実形（コードブロック）。void / None は持たない。
+      process:
+        $ref: 共通.schema.yaml#/$defs/markdown
+        title: 処理
+        description: |-
+          番号付きのステップ。1 ステップ = 意味のある処理の単位。
+          呼び出す関数は文末の括弧内に論理名で添える。
+          択一の分岐は 1 つの番号の下に `- {条件}の場合、{内容}` で並べる。
+          ログは配下に `- `[{レベル}]` {出力する事実}（{値}）` で書く。
+        x-heading: 処理
+      exceptions:
+        type: array
+        title: 例外
+        description: 送出する例外。送出しない関数は持たない。
+        x-heading: 例外
+        x-shape: table
+        x-key: name
+        items:
+          type: object
+          additionalProperties: false
+          required:
+          - name
+          - condition
+          properties:
+            name:
+              type: string
+              title: 例外名
+              description: 送出する例外のクラス名。
+            condition:
+              type: string
+              title: 発生条件
+              description: 送出する条件。同じ例外を複数の箇所から送るときは箇所ごとに別の要素にする。
+            message:
+              type: string
+              title: メッセージ
+            notes:
+              type: string
+              title: 補足
+      test_setup:
+        type: array
+        title: セットアップ
+        description: 複数のテストが共有する準備。
+        x-shape: table
+        x-key: name
+        items:
+          type: object
+          additionalProperties: false
+          required:
+          - name
+          - description
+          properties:
+            name:
+              type: string
+              title: セットアップ
+            description:
+              type: string
+              title: 説明
+            notes:
+              type: string
+              title: 補足
+              description: fixture の物理名など。
+      unit_tests:
+        type: array
+        title: 単体テスト
+        description: |-
+          条件分岐の単位で 1 行以上。自関数で送出する例外は異常の行にする。
+          キャッチせずに伝播する例外には行を置かない。
+        x-heading: 単体テスト
+        x-shape: table
+        x-key: name
+        items: *id011
+      connectivity_tests:
+        type: array
+        title: 疎通テスト
+        description: 実 API を呼ぶラッパーの関数だけが持つ。使うパラメータの値の組を 1 組 = 1 テストで並べる。
+        x-heading: 疎通テスト
+        x-shape: table
+        x-key: name
+        items:
+          type: object
+          additionalProperties: false
+          required:
+          - name
+          - api
+          - summary
+          - checks
+          - cost
+          properties:
+            name:
+              type: string
+              title: テスト名
+              description: '`test_ext_{関数の物理名}_when_{パラメータ値}`。'
+              pattern: ^test_ext_[a-z0-9_]+$
+              x-test-function: external_test_files
+            api:
+              type: string
+              title: 対象 API
+            summary:
+              type: string
+              title: 概要
+            checks:
+              type: string
+              title: 確認内容
+              description: 認証・エンドポイント・使うパラメータの値・応答の形など。
+            cost:
+              type: string
+              title: 料金・副作用
+              description: 1 回あたりの料金と副作用。無いときも `なし` と書く。
+            notes:
+              type: string
+              title: 補足
+      callers:
+        type: array
+        title: 呼び出し元
+        items:
+          $ref: 共通.schema.yaml#/$defs/ref
+      callees:
+        type: array
+        title: 呼び出し先
+        items:
+          $ref: 共通.schema.yaml#/$defs/ref
+      refs:
+        type: array
+        title: 関連
+        items:
+          $ref: 共通.schema.yaml#/$defs/ref
+      reason:
+        $ref: 共通.schema.yaml#/$defs/reason
+      status:
+        $ref: 共通.schema.yaml#/$defs/status
+      visibility:
+        $ref: 共通.schema.yaml#/$defs/visibility
+      implementation:
+        $ref: 共通.schema.yaml#/$defs/implementation
+      introduced:
+        $ref: 共通.schema.yaml#/$defs/introduced
+      aliases:
+        $ref: 共通.schema.yaml#/$defs/aliases
+      notes:
+        $ref: 共通.schema.yaml#/$defs/notes
+examples:
+- title: 設計書 / 種別とSchema
+  lead: 種別の Schema を読み込んで種別の一覧と `$ref` の解決先を持ち、設計書のパスから種別を解決する。
+  test_files:
+  - tests/unit/ai_monitor/features/design_docs/test_schemas.py
+  functions:
+  - name: read_schema_files
+    title: Schemaのファイルの読み込み
+    kind: 関数
+    container: features/design_docs/schemas.py
+    usecase: 共通
+    role: 読み込み
+    summary: 作業ツリーの Schema のファイルを名前 → 中身で読む
+    args:
+    - name: root
+      title: リポジトリの直下
+      type: Path
+      required: true
+      description: Schema を持つリポジトリの直下
+    returns:
+      type: dict[str, str]
+      description: ファイル名 → 中身
+    process: 1. `{root}/{TEMPLATES_DIR}` の直下の `*{SCHEMA_SUFFIX}` をファイル名の順に UTF-8 で読んで返す
+    exceptions:
+    - name: FileNotFoundError
+      condition: '`{root}/{TEMPLATES_DIR}` が無い'
+      message: 標準のメッセージ
+    unit_tests:
+    - name: test_read_schema_files
+      case: 正常
+      summary: 直下の Schema だけを読む
+      condition: 直下に Schema 2 つと md 1 つ、下のフォルダに Schema 1 つ
+      mock: なし（一時ディレクトリ）
+      expected: 直下の Schema 2 つだけ
+    - name: test_read_schema_files_when_missing
+      case: 異常
+      summary: フォルダが無い
+      condition: '`dev/テンプレート` の無い一時ディレクトリ'
+      mock: なし（一時ディレクトリ）
+      expected: '`FileNotFoundError`'
+      exception: フォルダが無い

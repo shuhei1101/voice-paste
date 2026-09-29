@@ -1,0 +1,108 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: 目次
+description: |-
+  フォルダ 1 つの直下の目次。`dev/` と `docs/` の各フォルダに `index.yaml` として置く。
+  README は `index.yaml` から生成して commit する。`index.yaml` を置かないフォルダはドキュメント索引から外れる。
+  画面では辿れるようにしつつ、エージェントのドキュメント索引には載せないフォルダは `docs_index: false` を付ける。
+x-kind: index
+type: object
+additionalProperties: false
+required:
+- summary
+- items
+properties:
+  title:
+    type: string
+    title: タイトル
+    description: '`dev/` と `docs/` の直下だけが持つ見出し。それ以外のフォルダはフォルダの名前を見出しにする。'
+  summary:
+    $ref: 共通.schema.yaml#/$defs/summary
+    title: 概要
+    description: フォルダの 1 行の説明。親の `index.yaml` のこのフォルダの行の `summary` と同じ文言にする。
+  docs_index:
+    type: boolean
+    title: ドキュメント索引に載せるか
+    description: |-
+      `false` のとき、このフォルダの配下のページをエージェントのドキュメント索引に載せない（ビュワーの上タブ・サイドバーには出す）。
+      ルール注入が案内する規約のように、索引で並べると起動プロンプトが太るだけのフォルダに付ける。
+    default: true
+  columns:
+    type: array
+    title: 列
+    description: |-
+      目次の表の列の並びと列名。`page`・`summary`・`group` 以外のキーは、各行が同じキーで値を持つ（例: フェーズ索引の `condition`）。
+      省略したときは、`group` を持つ行があれば `分類`・`ページ`・`概要`、無ければ `ページ`・`概要` の並びにする。
+      ページ名は `page` の列だけが持つ。ページ名を値にする列と、全行が同じ値になる列は置かない。
+      並びは `ページ`・`概要` の順にし、他の列はその後ろに置く（`分類` を持つ目次は `分類` を先頭に置く）。
+    minItems: 2
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - key
+      - title
+      properties:
+        key:
+          type: string
+          title: キー
+          description: 行の項目のキー。
+          pattern: ^[a-z][a-z0-9_]*$
+        title:
+          type: string
+          title: 列名
+          description: 表の見出しに出す名前。
+  items:
+    type: array
+    title: 目次
+    description: |-
+      フォルダの直下のページとサブフォルダ。深い階層はサブフォルダの `index.yaml` が持つ。
+      並びがサイドバーの並びになる（利用頻度・重要度の高い順。同じ種類を連続させる）。
+    x-heading: 目次
+    x-shape: table
+    x-key: page
+    items:
+      type: object
+      additionalProperties:
+        type: string
+        description: '`columns` で並べた、`page`・`summary`・`group` 以外の列の値。'
+      required:
+      - page
+      - summary
+      properties:
+        page:
+          type: string
+          title: ページ
+          description: |-
+            直下のファイル（`{ファイル名}.md`）か、サブフォルダ（`{フォルダ名}/`）。
+            フェーズ索引が共有のフェーズを並べるときだけ、`../` から始まる別のフォルダのページ（`../共通/ターンの返却.md`）を書く。
+          pattern: ^(?:[^/\s][^/]*/?|(?:\.\./)+[^/\s.][^/]*(?:/[^/\s][^/]*)*)$
+        summary:
+          $ref: 共通.schema.yaml#/$defs/summary
+          title: 概要
+          description: 1 行の説明。
+        group:
+          type: string
+          title: 分類
+          description: 行をまとまりで見せるときの分類。サイドバーの見出しになる。行のページ名と同じ値にしない。
+examples:
+- summary: 実体ファイルの書式定義・要件洗い出しの観点集
+  items:
+  - page: 共通.schema.yaml
+    summary: 種別をまたいで使う型
+  - page: 観点/
+    summary: 要件洗い出しの観点集
+- summary: planner のフェーズ索引
+  columns:
+  - key: page
+    title: ページ
+  - key: summary
+    title: 概要
+  - key: condition
+    title: 実行条件
+  items:
+  - page: 初期処理.md
+    summary: 本文・ラベル・自分宛コメントの取得とフェーズの決定
+    condition: 毎ターン最初に必ず実行
+  - page: ../共通/ターンの返却.md
+    summary: ターンの中身が無いまま起こされたときの確認ラベル返却
+    condition: 上のどれにも該当しない

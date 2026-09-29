@@ -1,0 +1,103 @@
+title: "アーキテクチャ図"
+overview:
+  direction: LR
+  nodes:
+    - id: U
+      label: ユーザー
+      shape: stadium
+      kind: actor
+    - id: APP
+      label: 常駐アプリ（トレイ・ホットキー・録音画面）
+      kind: process
+    - id: WORKER
+      label: 文字起こしワーカー（子プロセス）
+      kind: process
+    - id: ENV
+      label: 設定（.env）
+      shape: cylinder
+      kind: store
+    - id: HIST
+      label: 履歴・ログ
+      shape: cylinder
+      kind: store
+    - id: TARGET
+      label: アクティブなアプリ
+      kind: external
+    - id: OPENAI
+      label: OpenAI API
+      kind: external
+    - id: HF
+      label: Hugging Face Hub
+      kind: external
+    - id: EDGE
+      label: Microsoft Edge
+      kind: external
+  edges:
+    - from: U
+      to: APP
+      label: ホットキー・音声
+    - from: APP
+      to: ENV
+      label: 読み書き
+    - from: APP
+      to: WORKER
+      label: 音声ファイル
+    - from: WORKER
+      to: HF
+      label: モデルの取得
+    - from: APP
+      to: OPENAI
+      label: HTTPS
+    - from: APP
+      to: HIST
+      label: 書き込み
+    - from: APP
+      to: TARGET
+      label: 貼り付け
+    - from: APP
+      to: EDGE
+      label: 子プロセス
+  subgraphs:
+    - id: SYS
+      label: voice-paste
+      nodes:
+        - APP
+        - WORKER
+        - ENV
+        - HIST
+repository:
+  style: モノレポ
+  repositories:
+    - name: shuhei1101/voice-paste
+subsystems:
+  - name: 常駐アプリ
+    scope: desktop-app
+    role: ホットキーで録音し、文字起こしした文字列をアクティブなアプリへ貼り付ける Windows 常駐のアプリ
+    runtime: Python 3.11
+    runs_on: ユーザーの端末（Windows）
+lead: voice-paste のサブシステムと、ユーザー・貼り付け先のアプリ・文字起こしの外部サービスとの境界。
+external_systems:
+  - name: OpenAI API
+    purpose: 録音した音声の文字起こし（文字起こしのエンジンに OpenAI を選んだとき）
+    direction: 双方向
+    protocol: HTTPS（openai の Python SDK）
+    cost: 文字起こしの従量課金
+    notes:
+      事前確認: 起動時に API キーが設定されていることを確かめる（OpenAI を選んでいるときだけ）。到達は文字起こしごとの呼び出しで確かめ、一時的な障害で常駐アプリを止めない。
+  - name: Hugging Face Hub
+    purpose: faster-whisper のモデルの取得（手元に無いときだけ）
+    direction: 受信のみ
+    protocol: HTTPS（faster-whisper が取得する）
+    notes:
+      事前確認: 文字起こしワーカーの起動時に、モデルを読み込めることを確かめる（手元に無ければその時点で取得する）。
+  - name: Microsoft Edge
+    purpose: AI 送信のボタンで AI チャットの画面を開く
+    direction: 送信のみ
+    protocol: 子プロセスの起動（`--app={URL}`）
+    notes:
+      事前確認: 不要。開けなかったときはそのボタンの操作だけが失敗し、音声入力には影響しない。
+constraints: |-
+  - Windows で動かす（トレイ・ホットキー・クリップボード・キー入力・システムの音量を Windows の機能で扱う）
+  - 起動口は `voice-paste.bat`（ユーザーはショートカットから起動する）
+  - ローカルの文字起こしは GPU（CUDA）で動かす
+  - ユーザーは master のコードをビルドせずに普段使いしている

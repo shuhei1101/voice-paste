@@ -1,0 +1,29 @@
+title: "faster-whisper"
+kind: "ライブラリ"
+version:
+  current: 1.2.1
+  checked_on: '2026-09-30'
+  source: pyproject.toml（~=1.0）と手元の venv に入っている版
+  pinning: 互換リリースで固定（~=1.0）
+catalogs:
+  - name: API
+    version: 1.2.1
+    entries:
+      - name: WhisperModel
+        kind: クラス
+        purpose: モデル名・デバイス・量子化・CPU スレッド数・ワーカー数を指定してモデルを読み込む（手元に無ければ Hugging Face Hub から取得する）
+      - name: WhisperModel.transcribe
+        kind: メソッド
+        purpose: 音声ファイルを言語・ビーム幅・候補数・温度・VAD・前の区間の文脈・無音の閾値を指定して文字に起こし、区間ごとの文字と音声の長さを返す
+lead: CTranslate2 で Whisper のモデルを動かし、音声を文字に起こすライブラリ。
+purl: pkg:pypi/faster-whisper
+dependency_scope: 必須
+adoption: 採用
+used_in:
+  - voice_paste/transcription/whisper_worker.py
+upstream: SYSTRAN/faster-whisper
+verification:
+  state: 未確認
+  detail: 現状の棚卸しで、コードが使っている範囲を写しただけで、動かしてはいない
+license: MIT（商用利用可）
+official_url: https://github.com/SYSTRAN/faster-whisper

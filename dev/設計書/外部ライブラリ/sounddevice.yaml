@@ -1,0 +1,35 @@
+title: "sounddevice"
+kind: "ライブラリ"
+version:
+  current: 0.5.5
+  checked_on: '2026-09-30'
+  source: pyproject.toml（~=0.5）と手元の venv に入っている版
+  pinning: 互換リリースで固定（~=0.5）
+catalogs:
+  - name: API
+    version: 0.5.5
+    entries:
+      - name: InputStream
+        kind: クラス
+        purpose: サンプリングレート・チャンネル数・型・コールバックを指定して既定のマイクの入力を開く
+      - name: InputStream.start
+        kind: メソッド
+        purpose: 入力を始め、届いた音をコールバックへ渡す
+      - name: InputStream.stop
+        kind: メソッド
+        purpose: 入力を止める
+      - name: InputStream.close
+        kind: メソッド
+        purpose: 入力を閉じる
+lead: PortAudio を通して、マイクやスピーカーの音を NumPy の配列で扱うライブラリ。
+purl: pkg:pypi/sounddevice
+dependency_scope: 必須
+adoption: 採用
+used_in:
+  - voice_paste/audio/recorder.py
+upstream: spatialaudio/python-sounddevice
+verification:
+  state: 未確認
+  detail: 現状の棚卸しで、コードが使っている範囲を写しただけで、動かしてはいない
+license: MIT（商用利用可）
+official_url: https://python-sounddevice.readthedocs.io/

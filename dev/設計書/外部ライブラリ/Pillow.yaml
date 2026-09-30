@@ -1,0 +1,32 @@
+title: "Pillow"
+kind: "ライブラリ"
+version:
+  current: 12.2.0
+  checked_on: '2026-09-30'
+  source: pyproject.toml（>=11.0）と手元の venv に入っている版
+  pinning: 下限だけを固定（>=11.0）
+catalogs:
+  - name: API
+    version: 12.2.0
+    entries:
+      - name: Image.new / Image.open
+        kind: 関数
+        purpose: トレイのアイコンの画像を作る・ファイルから読む
+      - name: ImageDraw.Draw
+        kind: クラス
+        purpose: マイクの形と「T」の文字を状態ごとの色で描く
+      - name: ImageFont.truetype / ImageFont.load_default
+        kind: 関数
+        purpose: アイコンに描く文字のフォントを読む
+lead: 画像の読み書きと描画を行うライブラリ。
+purl: pkg:pypi/pillow
+dependency_scope: 必須
+adoption: 採用
+used_in:
+  - voice_paste/tray.py
+upstream: python-pillow/Pillow
+verification:
+  state: 未確認
+  detail: 現状の棚卸しで、コードが使っている範囲を写しただけで、動かしてはいない
+license: MIT-CMU（商用利用可）
+official_url: https://python-pillow.github.io

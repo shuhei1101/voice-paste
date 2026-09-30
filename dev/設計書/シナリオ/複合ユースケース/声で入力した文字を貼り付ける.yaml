@@ -1,0 +1,164 @@
+title: "声で入力した文字を貼り付ける"
+scenarios:
+  - name: 正常シナリオ
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 常駐の起動
+        description: 常駐モードで起動する
+        notes: '`RESIDENT_MODE=true`'
+      - name: 履歴の保存
+        description: 履歴を残す設定にする
+        notes: '`HISTORY_ENABLED=true`'
+      - name: 録音中の音量
+        description: 録音中にシステム音量を下げる設定にする
+        notes: '`RECORDING_VOLUME_ENABLED=true`'
+      - name: 届け方
+        description: 録音の画面で「貼付+送信」を選ぶ
+    flow: |-
+      ```mermaid
+      flowchart TD
+        U0([ユーザー]) -->|voice-paste.bat を起動| UC1([常駐アプリを起動する:正常シナリオ])
+        UC1 -->|トレイが待機中<br>ホットキーを待つ| UC2([録音する:正常シナリオ])
+        UC2 -->|録音の WAV<br>選んだ届け方| UC3([録音を文字に起こす:正常シナリオ])
+        UC3 -->|用語集で補正した文字| UC4([起こした文字を届ける:正常シナリオ])
+        UC4 --> DONE([貼り付け先に文字が入り<br>常駐アプリは次のホットキーを待つ])
+
+        click UC1 "../単一ユースケース/常駐アプリを起動する.yaml#正常シナリオ"
+        click UC2 "../単一ユースケース/録音する.yaml#正常シナリオ"
+        click UC3 "../単一ユースケース/録音を文字に起こす.yaml#正常シナリオ"
+        click UC4 "../単一ユースケース/起こした文字を届ける.yaml#正常シナリオ"
+      ```
+    expected:
+      - 貼り付け先のアプリの入力欄に起こした文字が入り、Enter が送られている
+      - クリップボードに起こした文字が入っている
+      - '`history/{YYYYMMDD}/` に録音の WAV と起こした文字のテキストがある'
+      - システム音量が録音前の値に戻っている
+      - トレイのアイコンが待機中に戻り、録音開始のホットキーをもう一度受け付ける
+  - name: 正常シナリオ（1 回だけ実行する起動）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 1 回だけの起動
+        description: 常駐しないモードで起動する
+        notes: '`RESIDENT_MODE=false`'
+      - name: 届け方
+        description: 録音の画面で「貼付+送信」を選ぶ
+    flow: |-
+      ```mermaid
+      flowchart TD
+        U0([ユーザー]) -->|voice-paste.bat を起動| UC1([常駐アプリを起動する:正常シナリオ（1 回だけ実行する起動）])
+        UC1 -->|起動と同時に録音を始める| UC2([録音する:正常シナリオ])
+        UC2 -->|録音の WAV<br>選んだ届け方| UC3([録音を文字に起こす:正常シナリオ])
+        UC3 -->|用語集で補正した文字| UC4([起こした文字を届ける:正常シナリオ])
+        UC4 --> DONE([貼り付け先に文字が入り<br>プロセスが終わる])
+
+        click UC1 "../単一ユースケース/常駐アプリを起動する.yaml#正常シナリオ1-回だけ実行する起動"
+        click UC2 "../単一ユースケース/録音する.yaml#正常シナリオ"
+        click UC3 "../単一ユースケース/録音を文字に起こす.yaml#正常シナリオ"
+        click UC4 "../単一ユースケース/起こした文字を届ける.yaml#正常シナリオ"
+      ```
+    expected:
+      - 貼り付け先のアプリの入力欄に起こした文字が入り、Enter が送られている
+      - トレイのアイコンが出ていない
+      - voice-paste のプロセスが終わっている
+  - name: 正常シナリオ（録音を取り消す）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 常駐の起動
+        description: 常駐モードで起動する
+        notes: '`RESIDENT_MODE=true`'
+      - name: 録音中の音量
+        description: 録音中にシステム音量を下げる設定にする
+        notes: '`RECORDING_VOLUME_ENABLED=true`'
+      - name: 取り消し
+        description: 録音の画面を確定せずに閉じる
+        notes: Esc・取り消しのホットキー（`CANCEL_HOTKEY`）・ウィンドウの閉じるボタンのどれか
+    flow: |-
+      ```mermaid
+      flowchart TD
+        U0([ユーザー]) -->|voice-paste.bat を起動| UC1([常駐アプリを起動する:正常シナリオ])
+        UC1 -->|トレイが待機中<br>ホットキーを待つ| UC2([録音する:正常シナリオ（録音を取り消す）])
+        UC2 --> DONE([何も届けずに<br>常駐アプリは次のホットキーを待つ])
+
+        click UC1 "../単一ユースケース/常駐アプリを起動する.yaml#正常シナリオ"
+        click UC2 "../単一ユースケース/録音する.yaml#正常シナリオ録音を取り消す"
+      ```
+    expected:
+      - クリップボードと貼り付け先が録音前のままである
+      - 履歴にこの録音が残っていない
+      - システム音量が録音前の値に戻っている
+      - トレイのアイコンが待機中に戻り、録音開始のホットキーをもう一度受け付ける
+  - name: 異常シナリオ（文字起こしに失敗）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 常駐の起動
+        description: 常駐モードで起動する
+        notes: '`RESIDENT_MODE=true`'
+      - name: 文字起こしの失敗
+        description: 文字起こしのエンジンが例外を返す状態にする
+        notes: '`TRANSCRIPTION_ENGINE=openai` で API に届かない'
+    flow: |-
+      ```mermaid
+      flowchart TD
+        U0([ユーザー]) -->|voice-paste.bat を起動| UC1([常駐アプリを起動する:正常シナリオ])
+        UC1 -->|トレイが待機中<br>ホットキーを待つ| UC2([録音する:正常シナリオ])
+        UC2 -->|録音の WAV<br>選んだ届け方| UC3([録音を文字に起こす:異常シナリオ（文字起こしに失敗）])
+        UC3 --> DONE([エラーのダイアログが出て<br>常駐アプリは次のホットキーを待つ])
+
+        click UC1 "../単一ユースケース/常駐アプリを起動する.yaml#正常シナリオ"
+        click UC2 "../単一ユースケース/録音する.yaml#正常シナリオ"
+        click UC3 "../単一ユースケース/録音を文字に起こす.yaml#異常シナリオ文字起こしに失敗"
+      ```
+    expected:
+      - 「文字起こしエラー」のダイアログが出ている
+      - 貼り付け先に文字が入っておらず、履歴にこの録音が残っていない
+      - トレイのアイコンが待機中に戻り、録音開始のホットキーをもう一度受け付ける
+  - name: 異常シナリオ（文字起こしの結果が空）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 常駐の起動
+        description: 常駐モードで起動する
+        notes: '`RESIDENT_MODE=true`'
+      - name: 文字起こしのエンジン
+        description: ローカルの Whisper で、無音の区間を除く設定にする
+        notes: '`TRANSCRIPTION_ENGINE=local`・`WHISPER_VAD_FILTER=true`'
+      - name: 無音の録音
+        description: 何も話さずに録音を確定し、起こした文字が空になるようにする
+    flow: |-
+      ```mermaid
+      flowchart TD
+        U0([ユーザー]) -->|voice-paste.bat を起動| UC1([常駐アプリを起動する:正常シナリオ])
+        UC1 -->|トレイが待機中<br>ホットキーを待つ| UC2([録音する:正常シナリオ])
+        UC2 -->|録音の WAV<br>選んだ届け方| UC3([録音を文字に起こす:異常シナリオ（文字起こしの結果が空）])
+        UC3 --> DONE([何も届けずに<br>常駐アプリは次のホットキーを待つ])
+
+        click UC1 "../単一ユースケース/常駐アプリを起動する.yaml#正常シナリオ"
+        click UC2 "../単一ユースケース/録音する.yaml#正常シナリオ"
+        click UC3 "../単一ユースケース/録音を文字に起こす.yaml#異常シナリオ文字起こしの結果が空"
+      ```
+    expected:
+      - ダイアログが出ていない
+      - クリップボードと貼り付け先が録音前のままである
+      - 履歴にこの録音が残っていない
+      - トレイのアイコンが待機中に戻り、録音開始のホットキーをもう一度受け付ける
+lead: 常駐アプリがホットキーで録音を始め、話した内容を文字に起こしてアクティブなアプリへ届けるまでの複合ユースケース。
+issue: 3
+primary_actor: 音声入力を使うユーザー
+stakeholders:
+  - name: ユーザー
+    interest: 話した内容が打ち直しなしで貼り付け先に入ること
+trigger: ユーザーが録音開始のホットキー（`RESIDENT_HOTKEY`）を押すか、トレイのメニューの「録音開始」を選ぶ
+preconditions:
+  - Windows の端末で `voice-paste.bat` から起動している
+  - マイクがつながっている
+  - 文字起こしのエンジン（`TRANSCRIPTION_ENGINE`）に要るものがそろっている（`local` は Whisper のモデルと GPU、`openai` は `OPENAI_API_KEY`）
+success_guarantee: |-
+  起こした文字がクリップボードに入り、録音の画面で選んだ届け方で貼り付け先へ入る。
+  録音と起こした文字が履歴に残る（`HISTORY_ENABLED=true` のとき）。
+minimal_guarantee: |-
+  文字起こしに失敗しても常駐アプリは止まらず、次のホットキーを受け付ける。
+  録音中に下げたシステム音量は、録音を確定しても取り消しても録音前の値へ戻る。

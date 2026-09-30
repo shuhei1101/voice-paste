@@ -1,0 +1,37 @@
+title: "tkinter"
+kind: "標準ライブラリ"
+version:
+  current: Python に同梱の版（Python 3.11 以上）
+  checked_on: '2026-09-30'
+  source: pyproject.toml の requires-python（>=3.11）
+catalogs:
+  - name: API
+    version: Python 3.11 以上
+    entries:
+      - name: Tk
+        kind: クラス
+        purpose: 録音の画面・文字起こし中の表示・設定画面のウィンドウを作る（画面ごとに作り直す）
+      - name: Canvas / Label / Button / Entry / Frame
+        kind: クラス
+        purpose: 波形・文言・ボタン・入力欄・区画を置く
+      - name: ttk.Combobox / ttk.Progressbar / ttk.Separator / ttk.Scrollbar / ttk.Style
+        kind: クラス
+        purpose: 選択欄・進捗バー・区切り線・スクロールバーと、暗い配色のスタイル
+      - name: messagebox.showerror / showwarning / askyesno
+        kind: 関数
+        purpose: 文字起こしの失敗・ファイルを開けないことの知らせと、初期化の確認を出す
+      - name: filedialog.askopenfilename
+        kind: 関数
+        purpose: 設定画面で用語集のファイルを選ぶ
+lead: Tcl/Tk でウィンドウの画面を作る Python の標準ライブラリ。
+dependency_scope: 必須
+adoption: 採用
+used_in:
+  - voice_paste/gui.py
+  - voice_paste/settings_gui.py
+  - voice_paste/main.py
+verification:
+  state: 未確認
+  detail: 現状の棚卸しで、コードが使っている範囲を写しただけで、動かしてはいない
+license: Python に同梱（PSF License。商用利用可）
+docs_url: https://docs.python.org/3/library/tkinter.html

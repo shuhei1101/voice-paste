@@ -1,0 +1,126 @@
+title: "起こした文字を届ける"
+scenarios:
+  - name: 正常シナリオ
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 履歴の保存
+        description: 履歴を残す設定にする
+        notes: '`HISTORY_ENABLED=true`'
+      - name: 届け方
+        description: 録音の画面で「貼付+送信」を選んだ
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant APP as 常駐アプリ
+        participant FS as 履歴（history/）
+        participant CB as クリップボード
+        participant TGT as 貼り付け先のアプリ
+
+        APP->>FS: 録音を history/{YYYYMMDD}/{日時}_recording.wav へ移し、文字を {日時}_text.txt に書く
+        APP->>CB: 起こした文字をコピーする
+        APP->>TGT: 0.1 秒待って貼り付けキー（PASTE_KEY、既定 Ctrl+V）を送る
+        APP->>TGT: PASTE_ENTER_DELAY 秒待って Enter を送る
+      ```
+    expected:
+      - 貼り付け先の入力欄に起こした文字が入り、Enter が送られている
+      - クリップボードに起こした文字が入っている
+      - '`history/{YYYYMMDD}/` に `{日時}_recording.wav` と `{日時}_text.txt` があり、`cache/recording.wav` は無くなっている'
+  - name: 正常シナリオ（貼り付けのみ）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 届け方
+        description: 録音の画面で「貼付のみ」を選んだ
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant APP as 常駐アプリ
+        participant CB as クリップボード
+        participant TGT as 貼り付け先のアプリ
+
+        Note over APP: 履歴への保存は 正常シナリオ と同じ
+        APP->>CB: 起こした文字をコピーする
+        APP->>TGT: 0.1 秒待って貼り付けキーを送る
+      ```
+    expected:
+      - 貼り付け先の入力欄に起こした文字が入り、Enter は送られていない
+      - クリップボードに起こした文字が入っている
+  - name: 正常シナリオ（コピーのみ）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 届け方
+        description: 録音の画面で「コピー」を選んだ
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant APP as 常駐アプリ
+        participant CB as クリップボード
+
+        Note over APP: 履歴への保存は 正常シナリオ と同じ
+        APP->>CB: 起こした文字をコピーする
+      ```
+    expected:
+      - クリップボードに起こした文字が入っている
+      - 貼り付けキーも Enter も送られていない
+  - name: 正常シナリオ（AI チャットへ送る）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows と Microsoft Edge で実行）
+      - name: AI 送信の設定
+        description: AI チャットを 1 つ有効にしてある
+        notes: '`AI_SEND_1_NAME`・`AI_SEND_1_URL` に値があり、`AI_SEND_1_ENABLED=true`'
+      - name: 届け方
+        description: 録音の画面で AI の名前のボタンを選んだ
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant APP as 常駐アプリ
+        participant CB as クリップボード
+        participant EDGE as Microsoft Edge
+
+        Note over APP: 履歴への保存は 正常シナリオ と同じ
+        APP->>CB: 起こした文字をコピーする
+        APP->>EDGE: --app={AI_SEND_1_URL} で開く（Edge が見つからなければ既定のブラウザで開く）
+        APP->>APP: AI_SEND_DELAY 秒待つ
+        APP->>EDGE: 貼り付けキーを送る
+        APP->>EDGE: PASTE_ENTER_DELAY 秒待って Enter を送る
+      ```
+    expected:
+      - AI チャットの画面がアプリのウィンドウとして開いている
+      - AI チャットの入力欄に起こした文字が入り、送信されている
+  - name: 正常シナリオ（履歴を残さない）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 履歴の保存
+        description: 履歴を残さない設定にする
+        notes: '`HISTORY_ENABLED=false`'
+      - name: 届け方
+        description: 録音の画面で「貼付+送信」を選んだ
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant APP as 常駐アプリ
+        participant CB as クリップボード
+        participant TGT as 貼り付け先のアプリ
+
+        APP->>APP: 履歴への保存を飛ばす
+        APP->>CB: 起こした文字をコピーする
+        Note over APP: 貼り付けと Enter は 正常シナリオ と同じ
+      ```
+    expected:
+      - 貼り付け先の入力欄に起こした文字が入り、Enter が送られている
+      - '`history/` にこの録音のファイルが無く、録音は `cache/recording.wav` に残っている'
+lead: 起こした文字を履歴に残し、録音の画面で選んだ届け方で貼り付け先へ届ける単一ユースケース。
+issue: 3
+primary_actor: 音声入力を使うユーザー
+trigger: 録音を文字に起こす で空でない文字が起きる
+preconditions:
+  - 貼り付けたいアプリの入力欄にフォーカスがある（貼り付けはその時点のアクティブなウィンドウへ入る）
+notes:
+  クリップボードに書けないとき: |-
+    ほかのアプリがクリップボードを開いたままで書けないと、「Session failed.」をログに書いて次の録音開始を待つ。
+    履歴への保存の後に起きるため、履歴には残るが、貼り付け先には何も入らず、ダイアログも出ない。
+    実機で決定的に起こせないため、シナリオにはしていない。

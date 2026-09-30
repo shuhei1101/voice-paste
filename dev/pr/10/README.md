@@ -23,7 +23,7 @@ RE の後は [#1](https://github.com/shuhei1101/voice-paste/issues/1) でベス�
 ## タスク一覧
 
 - [x] ~~初期構築~~（[#8](https://github.com/shuhei1101/voice-paste/pull/8) で済んでいる）
-- [ ] リバースエンジニアリング
+- [x] リバースエンジニアリング
 - [x] ~~方針決め~~（方針決めを依頼する Issue ではない）
 - [x] ~~PoC 検証~~（コードを変えず、未検証の技術機構に依存しない）
 - [x] 複合ユースケース設計

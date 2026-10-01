@@ -46,3 +46,9 @@ items:
     summary: 設定と API の入出力を検証する
   - page: pyside6-essentials.yaml
     summary: 画面とトレイを出し、ほかのスレッドからメインスレッドへ操作を渡す
+  - page: tomlkit.yaml
+    summary: 設定をコメントを保ったまま TOML で読み書きする
+  - page: platformdirs.yaml
+    summary: 設定・履歴・ログの置き場所を Windows の慣習で引く
+  - page: import-linter.yaml
+    summary: 新しい構成の import の向きを検査する

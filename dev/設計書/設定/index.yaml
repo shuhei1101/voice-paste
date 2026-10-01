@@ -1,4 +1,4 @@
 summary: 設定と環境変数のキー定義
 items:
   - page: 常駐アプリ.yaml
-    summary: 常駐アプリが .env から読む設定の一覧
+    summary: 常駐アプリが .env（voice_paste_legacy）と settings.toml（新しい構成）から読む設定の一覧

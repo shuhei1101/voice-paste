@@ -1,0 +1,31 @@
+title: "platformdirs"
+kind: "ライブラリ"
+version:
+  current: 4.12.2
+  latest: 4.12.2
+  checked_on: '2026-10-01'
+  source: pyproject.toml
+  pinning: 互換リリースで固定（~=4.12）
+catalogs:
+  - name: API
+    version: 4.12.2
+    entries:
+      - name: user_config_dir
+        kind: 関数
+        purpose: 設定の置き場所（Windows で roaming=True は `%APPDATA%\voice-paste`）を引く
+      - name: user_data_dir
+        kind: 関数
+        purpose: 履歴・ログ・一時の音声・トークンの置き場所（Windows で `%LOCALAPPDATA%\voice-paste`）を引く
+lead: OS ごとの慣習に沿った設定・データ・キャッシュの置き場所を返すライブラリ。
+purl: pkg:pypi/platformdirs
+dependency_scope: 必須
+adoption: 採用
+used_in:
+  - src/voice_paste/shared/constants.py
+upstream: tox-dev/platformdirs
+verification:
+  state: 未確認
+  detail: WSL（Linux）では user_config_dir が `~/.config/voice-paste`、user_data_dir が `~/.local/share/voice-paste` を返すことまで確かめた。Windows で `%APPDATA%`・`%LOCALAPPDATA%` を返すことは、実装の単体テストを Windows で回すときに確かめる
+license: MIT（商用利用可）
+official_url: https://github.com/tox-dev/platformdirs
+docs_url: https://platformdirs.readthedocs.io/

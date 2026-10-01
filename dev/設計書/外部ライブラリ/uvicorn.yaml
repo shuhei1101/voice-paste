@@ -4,8 +4,8 @@ version:
   current: 0.54.0
   latest: 0.54.0
   checked_on: '2026-10-01'
-  source: '動作確認に使った版（pyproject.toml へは #16 で書く）'
-  pinning: 未定（#16 で pyproject.toml に書くときに決める）
+  source: pyproject.toml
+  pinning: 互換リリースで固定（~=0.54）
 catalogs:
   - name: API
     version: 0.54.0

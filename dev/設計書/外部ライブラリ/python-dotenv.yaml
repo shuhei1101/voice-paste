@@ -22,6 +22,7 @@ adoption: 採用
 used_in:
   - voice_paste_legacy/config.py
   - voice_paste_legacy/settings_gui.py
+  - src/voice_paste/shared/env_migration.py
 upstream: theskumar/python-dotenv
 verification:
   state: 済

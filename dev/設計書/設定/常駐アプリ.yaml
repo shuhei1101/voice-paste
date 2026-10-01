@@ -792,7 +792,7 @@ settings:
     file: settings.toml
     type: string（パス）
     default: （無し。settings.toml と同じフォルダの yogo.csv）
-    description: 用語集の CSV の場所。キーが無いときは settings.toml と同じフォルダの `yogo.csv` を使う。`.env` の `YOGO_FILE` から写す（相対パスは `.env` のフォルダを基準に絶対パスへ）。
+    description: 用語集の CSV の場所。キーが無いときは settings.toml と同じフォルダの `yogo.csv` を使う。`.env` の `YOGO_FILE` から、voice_paste_legacy と同じ順で `.env` のフォルダを基準に解いた絶対パスを写す（空のときも写し、今の使い方では `resources/yogo.csv` を指す）。
     reload: immediate
     status: planned
     implementation: src/voice_paste/shared/settings.py

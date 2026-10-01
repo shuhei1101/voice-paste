@@ -19,7 +19,7 @@ log/
 cache/
 
 # 履歴（実行時生成）
-history/
+/history/
 
 # シングルインスタンス制御
 voice_paste.pid

@@ -1,0 +1,161 @@
+title: "録音を停止する"
+entry:
+  kind: endpoint
+  value: POST /sessions/{session_id}/stop
+flows:
+  - name: 正常系
+    summary: 録音中のセッションを止める
+    setup:
+      - name: Mock
+        description: マイク・システム音量・トレイを差し替える
+      - name: 録音中のセッション
+        description: 録音を開始する で始めたセッションが録音中
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as クライアント
+        participant IF as POST /sessions/{session_id}/stop
+        participant MIC as マイク
+
+        C->>IF: トークン・session_id
+        IF->>MIC: 録音を止める
+        IF-->>C: 200
+      ```
+    expected:
+      - 200 が返る
+      - セッションが停止中（完了待ち）になっている
+      - システム音量が録音前の値に戻っている
+      - 止めた後に入った音が録音に貯まっていない
+    test: test_normal
+  - name: 正常系（既に止めている）
+    summary: 止めたセッションへの停止は何も変えず 200 を返す
+    setup:
+      - name: Mock
+        description: マイク・システム音量・トレイを差し替える
+      - name: 停止中のセッション
+        description: 一度停止を呼んだセッション
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as クライアント
+        participant IF as POST /sessions/{session_id}/stop
+
+        C->>IF: トークン・session_id
+        IF-->>C: 200
+      ```
+    expected:
+      - 200 が返る
+      - セッションが停止中のままである
+    test: test_normal_when_already_stopped
+  - name: 異常系（トークンが合わない・401）
+    summary: トークンが合わなければ止めない
+    setup:
+      - name: Mock
+        description: マイク・システム音量・トレイを差し替える
+      - name: 録音中のセッション
+        description: 録音を開始する で始めたセッションが録音中
+      - name: トークン
+        description: 今回の起動のものと違うトークン
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as クライアント
+        participant IF as POST /sessions/{session_id}/stop
+        participant LOG as ログ
+
+        C->>IF: 合わないトークン
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書く（トークンは書かない）
+        IF-->>C: 401
+      ```
+    expected:
+      - 401 が返る
+      - セッションが録音中のままである
+      - ログに断った理由と要求元が書かれ、トークンの値は書かれていない
+    test: test_error_when_token_mismatch
+  - name: 異常系（ブラウザからの要求・403）
+    summary: Origin の付いた要求と、Host が待ち受けのホストでない要求を断る
+    setup:
+      - name: Mock
+        description: マイク・システム音量・トレイを差し替える
+      - name: 録音中のセッション
+        description: 録音を開始する で始めたセッションが録音中
+      - name: 要求のヘッダー
+        description: 正しいトークンに Origin を付けるか、Host をほかのホスト名にする
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as クライアント
+        participant IF as POST /sessions/{session_id}/stop
+        participant LOG as ログ
+
+        C->>IF: Origin ありか、ほかの Host
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書く（トークンは書かない）
+        IF-->>C: 403
+      ```
+    expected:
+      - 403 が返る
+      - セッションが録音中のままである
+      - ログに断った理由と要求元が書かれ、トークンの値は書かれていない
+    test: test_error_when_browser_request
+  - name: 異常系（知らないセッション・404）
+    summary: 録音中でも停止中でもないセッションは断る
+    setup:
+      - name: Mock
+        description: マイク・システム音量・トレイを差し替える
+      - name: セッションの ID
+        description: 開始で受け取っていない ID か、完了したセッションの ID
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as クライアント
+        participant IF as POST /sessions/{session_id}/stop
+
+        C->>IF: トークン・知らない session_id
+        IF-->>C: 404
+      ```
+    expected:
+      - 404 が返る
+      - 処理中のほかのセッションがあれば、そのまま続いている
+    test: test_error_when_session_unknown
+lead: API から始めた録音を止め、完了を待つ状態にする。止めた後の音は貯めない。
+identifier: stop_session
+permissions: 今回の起動のトークン
+idempotent: true
+side_effects: マイクの録音を止め、システム音量を録音前の値へ戻す。録音はまだ確定せず、履歴にも残さない。
+exclusivity: セッションは同時に 1 つだけ。止めたセッションも、完了するか 上限で打ち切る（非機能要件のセッションの上限時間。開始からの経過時間で、停止中も数える）で終わるまでは処理中としてほかの開始を断る。
+request:
+  - name: Authorization
+    type: str
+    required: true
+    location: header
+    description: 今回の起動のトークン
+    format: '`Bearer {トークン}`'
+    status: planned
+  - name: session_id
+    type: str
+    required: true
+    location: path
+    description: 開始で受け取ったセッションの ID
+    format: uuid
+    status: planned
+response_notes: |-
+  > [!NOTE]
+  > 止めたセッションへもう一度停止を呼んでも 200 を返し、状態は変わらない。
+status_codes:
+  - code: '200'
+    condition: 録音を止めた（既に止めていたときも）
+  - code: '401'
+    condition: トークンが無いか、今回の起動のものと合わない
+  - code: '403'
+    condition: Origin が付いているか、Host が 127.0.0.1 でも localhost でもない
+  - code: '404'
+    condition: そのセッションが録音中でも停止中でもない（知らない ID・完了済み・上限で打ち切り済み）
+error_format: 録音を開始する と同じ RFC 9457 の `application/problem+json`。
+constraints:
+  - item: 待ち受け
+    constraint: 127.0.0.1 だけ
+  - item: 認可
+    constraint: 起動ごとに作るトークンの一致。Host・Origin の確かめ方は 録音を開始する と同じ
+  - item: タイムアウト
+    constraint: 制限なし
+    notes: マイクを止めるだけで待ちが無い

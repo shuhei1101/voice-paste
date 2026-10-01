@@ -1,0 +1,29 @@
+実行した commit: 344ffcf
+実行したコマンド: venv/Scripts/python.exe -m pytest tests/nfr -v -rs（pytest は venv に無いため PYTHONPATH で足している）
+
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\shuhe\repo\voice-paste\venv\Scripts\python.exe
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\refactor-legacy-move-to-voice-paste-legacy
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 17 items
+
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_history_recordings[20260930010513] PASSED [  5%]
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_history_recordings[20260930013225] PASSED [ 11%]
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_history_recordings[20260930013516] PASSED [ 17%]
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_history_recordings[20260930015326] PASSED [ 23%]
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_history_recordings[20260930015626] PASSED [ 29%]
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_history_recordings[20261001002355] PASSED [ 35%]
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_history_recordings[20261001002531] PASSED [ 41%]
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_history_recordings[20261001002826] PASSED [ 47%]
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_history_recordings[20261001004639] PASSED [ 52%]
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_history_recordings[20261001012715] PASSED [ 58%]
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_correction_only[single_wrong_term_1] PASSED [ 64%]
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_correction_only[single_wrong_term_2] PASSED [ 70%]
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_correction_only[both_wrong_terms] PASSED [ 76%]
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_correction_only[repeated_wrong_term] PASSED [ 82%]
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_correction_only[no_match] PASSED [ 88%]
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_correction_only[empty_text] PASSED [ 94%]
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_correction_only[multiline] PASSED [100%]
+
+============================= 17 passed in 41.93s =============================

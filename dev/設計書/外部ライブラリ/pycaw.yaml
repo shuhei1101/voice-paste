@@ -2,9 +2,9 @@ title: "pycaw"
 kind: "ライブラリ"
 version:
   current: '20251023'
-  checked_on: '2026-09-30'
-  source: pyproject.toml（>=20220416）と手元の venv に入っている版
-  pinning: 下限だけを固定（>=20220416）
+  checked_on: '2026-10-01'
+  source: pyproject.toml（==20251023。普段使いの venv に入っている版）
+  pinning: 版を固定（==20251023。日付の版で API が変わるため。上げるときは音量のアダプタの契約テストを回す）
 catalogs:
   - name: API
     version: '20251023'
@@ -23,7 +23,8 @@ purl: pkg:pypi/pycaw
 dependency_scope: 必須
 adoption: 採用
 used_in:
-  - voice_paste/audio/volume.py
+  - voice_paste_legacy/audio/volume.py
+  - src/voice_paste/integrations/volume/
 upstream: AndreMiras/pycaw
 verification:
   state: 未確認

@@ -20,10 +20,11 @@ purl: pkg:pypi/faster-whisper
 dependency_scope: 必須
 adoption: 採用
 used_in:
-  - voice_paste/transcription/whisper_worker.py
+  - voice_paste_legacy/transcription/whisper_worker.py
 upstream: SYSTRAN/faster-whisper
 verification:
-  state: 未確認
-  detail: 現状の棚卸しで、コードが使っている範囲を写しただけで、動かしてはいない
+  state: 済
+  date: '2026-10-01'
+  detail: ワーカーのサブプロセスで WhisperModel（large-v3・cuda・int8）を読み込み、履歴の録音 10 件を beam_size=10・VAD ありで起こして文字が返ることを確かめた
 license: MIT（商用利用可）
 official_url: https://github.com/SYSTRAN/faster-whisper

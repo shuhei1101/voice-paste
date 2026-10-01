@@ -1,5 +1,5 @@
 title: "設定: 常駐アプリ"
-lead: 常駐アプリが `.env` から読む設定の一覧。読み込みは `voice_paste/config.py`、見本は `.env.sample`、設定画面からの書き込みは `voice_paste/settings_gui.py`。
+lead: 常駐アプリが `.env`（voice_paste_legacy）と `settings.toml`（新しい構成）から読む設定の一覧。`.env` の読み込みは `voice_paste_legacy/config.py`、見本は `.env.sample`、設定画面からの書き込みは `voice_paste_legacy/settings_gui.py`。`settings.toml` の読み書きは `src/voice_paste/shared/settings.py`、見本は `settings.sample.toml`。
 files:
   - file: .env
     manages: 常駐アプリの設定の全部（文字起こし・ホットキー・届け方・AI 送信・履歴・画面・録音中の音量）
@@ -10,6 +10,12 @@ files:
   - file: resources/yogo.csv
     manages: 用語集（誤変換 → 正しい表記）
     notes: 列は `誤変換`・`正しい表記`。録音を確定するたびに読み直す。置き場所は `YOGO_FILE` で変えられる。
+  - file: settings.toml
+    manages: 新しい構成（src/voice_paste/）の設定の全部
+    notes: git の管理外。既定は `%APPDATA%\voice-paste\settings.toml`、`--data-dir` を渡したときはその下。無ければ起動時に既定値で作る。並走の間は `--data-dir` が必須で、普段使いの置き場所には作らない。
+  - file: settings.sample.toml
+    manages: settings.toml の見本と既定値
+    notes: git で管理する。設定のモデルの既定値と一致させる（単体テストで確かめる）。
 settings:
   - key: TRANSCRIPTION_ENGINE
     title: 文字起こしのエンジン
@@ -18,7 +24,7 @@ settings:
     default: local
     description: '`local` は faster-whisper（子プロセス）、`openai` は OpenAI API で文字を起こす。'
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: OPENAI_API_KEY
     title: OpenAI の API キー
     file: .env
@@ -27,7 +33,7 @@ settings:
     description: '`TRANSCRIPTION_ENGINE=openai` のときに使う API キー。空のまま OpenAI を選ぶと起動の処理が止まる。'
     secret: true
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_MODEL
     title: Whisper のモデル
     file: .env
@@ -35,7 +41,7 @@ settings:
     default: large-v3
     description: faster-whisper に読み込ませるモデル。設定画面では tiny / base / small / medium / large-v3 から選ぶ。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_DEVICE
     title: Whisper を動かすデバイス
     file: .env
@@ -43,7 +49,7 @@ settings:
     default: cuda
     description: faster-whisper を GPU（cuda）と CPU のどちらで動かすか。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_COMPUTE_TYPE
     title: Whisper の量子化タイプ
     file: .env
@@ -51,7 +57,7 @@ settings:
     default: float16
     description: faster-whisper の計算の精度。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_CPU_THREADS
     title: Whisper の CPU スレッド数
     file: .env
@@ -59,7 +65,7 @@ settings:
     default: '0'
     description: faster-whisper が使う CPU のスレッド数（0 は自動）。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_NUM_WORKERS
     title: Whisper の並列ワーカー数
     file: .env
@@ -67,7 +73,7 @@ settings:
     default: '1'
     description: faster-whisper の並列のデコードの数。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_BEAM_SIZE
     title: Whisper のビーム幅
     file: .env
@@ -75,7 +81,7 @@ settings:
     default: '10'
     description: ビームサーチの幅。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_BEST_OF
     title: Whisper の候補数
     file: .env
@@ -83,7 +89,7 @@ settings:
     default: '5'
     description: サンプリングの候補の数。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_LANGUAGE
     title: 認識する言語
     file: .env
@@ -91,7 +97,7 @@ settings:
     default: ja
     description: 文字起こしの言語。OpenAI で起こすときもこの値を使う。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_VAD_FILTER
     title: 無音の区間を除くか
     file: .env
@@ -99,7 +105,7 @@ settings:
     default: 'true'
     description: faster-whisper の VAD で無音の区間を除くか。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_VAD_THRESHOLD
     title: VAD の音声の確信度の閾値
     file: .env
@@ -107,7 +113,7 @@ settings:
     default: '0.5'
     description: 音声とみなす確信度の閾値。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_VAD_MIN_SPEECH_MS
     title: VAD の最小の音声の長さ
     file: .env
@@ -115,7 +121,7 @@ settings:
     default: '250'
     description: これより短い音を雑音として除く。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_VAD_MIN_SILENCE_MS
     title: VAD の最小の無音の長さ
     file: .env
@@ -123,7 +129,7 @@ settings:
     default: '2000'
     description: これ以上の無音で区間を区切る（起こした文字の改行の位置に効く）。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_CONDITION_ON_PREVIOUS_TEXT
     title: 前の区間を文脈に使うか
     file: .env
@@ -131,7 +137,7 @@ settings:
     default: 'false'
     description: 前の区間の文字を次の区間の文脈に使うか。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_TEMPERATURE
     title: 文字起こしの温度
     file: .env
@@ -139,7 +145,7 @@ settings:
     default: '0.0'
     description: サンプリングの温度（0.0 は決定的）。OpenAI で起こすときもこの値を使う。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_NO_SPEECH_THRESHOLD
     title: 無音判定の閾値
     file: .env
@@ -147,7 +153,7 @@ settings:
     default: '0.6'
     description: 区間を無音とみなす確信度の閾値。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: YOGO_FILE
     title: 用語集のファイル
     file: .env
@@ -155,7 +161,7 @@ settings:
     default: resources/yogo.csv（exe では %APPDATA%\voice-paste\yogo.csv）
     description: 用語集の CSV の場所。相対パスは設定の置き場から解決する。設定画面の「用語集ファイル」で選べて、「開く」で既定のアプリで開ける。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: LOG_LEVEL
     title: ログのレベル
     file: .env
@@ -163,7 +169,7 @@ settings:
     default: INFO
     description: '`log/` に書くログのレベル。起動時にロガーへ設定するので、設定画面で変えても再起動まで効かない。'
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: RESIDENT_MODE
     title: 常駐モード
     file: .env
@@ -171,7 +177,7 @@ settings:
     default: 'true'
     description: '`true` はトレイに常駐してホットキーを待つ。`false` は 1 回だけ録音から届けるまでを行って終わる。設定画面には無い。'
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: RESIDENT_HOTKEY
     title: 録音開始のホットキー
     file: .env
@@ -179,7 +185,7 @@ settings:
     default: <ctrl>+<alt>+d
     description: 待機中に録音を始めるホットキー。設定画面で保存すると登録し直す。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: CONFIRM_HOTKEY
     title: 確定（貼付+送信）のホットキー
     file: .env
@@ -187,7 +193,7 @@ settings:
     default: <ctrl>+<alt>+d
     description: 録音の画面で「貼付+送信」として確定する。既定では録音開始と同じキーで、同じキーで始めて確定できる。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: CONFIRM_PASTE_ONLY_HOTKEY
     title: 確定（貼付のみ）のホットキー
     file: .env
@@ -195,7 +201,7 @@ settings:
     default: <ctrl>+<alt>+v
     description: 録音の画面で「貼付のみ」として確定する。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: CANCEL_HOTKEY
     title: 録音の取り消しのホットキー
     file: .env
@@ -203,7 +209,7 @@ settings:
     default: <ctrl>+<alt>+q
     description: 録音の画面を確定せずに閉じる。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: COPY_ONLY_HOTKEY
     title: 確定（コピーのみ）のホットキー
     file: .env
@@ -211,7 +217,7 @@ settings:
     default: <ctrl>+<alt>+c
     description: 録音の画面で「コピー」として確定する。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: PAUSE_HOTKEY
     title: 一時停止のホットキー
     file: .env
@@ -219,7 +225,7 @@ settings:
     default: <ctrl>+<alt>+z
     description: 録音を一時停止・再開する。ほかの確定のホットキーと同じキーのときは登録しない。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: PASTE_KEY
     title: 貼り付けキー
     file: .env
@@ -227,7 +233,7 @@ settings:
     default: <ctrl>+v
     description: 貼り付け先へ送る貼り付けのキーの組み合わせ（ターミナル向けに `<ctrl>+<shift>+v` にしてもよい）。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: PASTE_ENTER_DELAY
     title: 貼り付けから送信までの待ち時間
     file: .env
@@ -235,7 +241,7 @@ settings:
     default: '0.5'
     description: 貼り付けてから Enter を送るまで待つ秒数。設定画面の「送信待機（秒）」。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: AI_SEND_{n}_NAME
     title: AI チャットの名前
     file: .env
@@ -243,7 +249,7 @@ settings:
     default: '（.env.sample では 1: ChatGPT / 2: Google AI / 3: Claude）'
     description: 録音の画面に出す AI 送信のボタンの名前。`{n}` は 1 始まりの番号で、名前か URL が空の番号で読み込みを止める。設定画面では 3 件まで扱う。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: AI_SEND_{n}_URL
     title: AI チャットの URL
     file: .env
@@ -251,7 +257,7 @@ settings:
     default: '（.env.sample では 1: https://chatgpt.com / 2: https://gemini.google.com/app / 3: https://claude.ai/new）'
     description: Microsoft Edge の `--app` で開く AI チャットの画面の URL。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: AI_SEND_{n}_HOTKEY
     title: AI チャットへ送るホットキー
     file: .env
@@ -259,7 +265,7 @@ settings:
     default: <ctrl>+<alt>+{n}
     description: 録音の画面で、その AI チャットへ送る届け方として確定する。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: AI_SEND_{n}_ENABLED
     title: AI チャットのボタンを出すか
     file: .env
@@ -267,7 +273,7 @@ settings:
     default: 'true'
     description: '`false` のとき、録音の画面にボタンもホットキーも出さない。'
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: AI_SEND_DELAY
     title: AI チャットを開いてから貼り付けるまでの待ち時間
     file: .env
@@ -275,7 +281,7 @@ settings:
     default: '3.0'
     description: AI チャットの画面を開いてから貼り付けるまで待つ秒数。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: HISTORY_ENABLED
     title: 履歴を残すか
     file: .env
@@ -283,7 +289,7 @@ settings:
     default: 'true'
     description: 録音の WAV と起こした文字を `history/` に残すか。`false` のときは古い履歴の削除も行わない。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: HISTORY_RETENTION_DAYS
     title: 履歴の保持日数
     file: .env
@@ -291,7 +297,7 @@ settings:
     default: '1'
     description: この日数より前の日付の履歴のフォルダを、起動時と常駐中の 1 時間ごとに消す。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WINDOW_TOPMOST
     title: 画面を常に最前面に出すか
     file: .env
@@ -299,7 +305,7 @@ settings:
     default: 'true'
     description: 録音の画面と文字起こし中の表示を最前面に出すか。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WINDOW_POSITION
     title: 画面の表示位置
     file: .env
@@ -307,7 +313,7 @@ settings:
     default: center
     description: 録音の画面と文字起こし中の表示を出す位置（隣の端から 20 px 離す）。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WINDOW_FOLLOW_CURSOR
     title: カーソルのあるモニターに出すか
     file: .env
@@ -315,7 +321,7 @@ settings:
     default: 'true'
     description: '`true` のとき、マウスカーソルのあるモニターの作業領域に画面を出す。'
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WINDOW_HIDDEN
     title: 画面を出さないか
     file: .env
@@ -323,7 +329,7 @@ settings:
     default: 'false'
     description: '`true` のとき、録音の画面も文字起こし中の表示も出さず、トレイの色とホットキーだけで操作する。'
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WAVE_GAIN
     title: 波形の感度
     file: .env
@@ -331,7 +337,7 @@ settings:
     default: '4'
     description: 録音の画面の波形の振れの大きさ。大きいほど小さい声でも大きく振れる。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: RECORDING_VOLUME_ENABLED
     title: 録音中にシステム音量を下げるか
     file: .env
@@ -339,7 +345,7 @@ settings:
     default: 'true'
     description: '`true` のとき、録音を始める前にシステム音量を下げ、録音を終えたら戻す。'
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: RECORDING_VOLUME
     title: 録音中の音量の比率
     file: .env
@@ -347,7 +353,7 @@ settings:
     default: '50'
     description: 録音中のシステム音量を、録音前の音量に対する比率で指定する（50 は半分）。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: RECORDING_VOLUME_FADE_DURATION
     title: 音量のフェード時間
     file: .env
@@ -355,7 +361,464 @@ settings:
     default: '0.5'
     description: 音量を下げるときと戻すときにかける秒数。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
+  - key: transcription.engine
+    title: 使う文字起こしのエンジン
+    file: settings.toml
+    type: "'local_whisper' | 'openai'"
+    default: local_whisper
+    description: '`local_whisper` は文字起こしワーカー（faster-whisper）、`openai` は OpenAI API で文字を起こす。`.env` の `TRANSCRIPTION_ENGINE` から写す（`local` は `local_whisper` へ）。'
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: transcription.local_whisper.model
+    title: ローカルの Whisper のモデル
+    file: settings.toml
+    type: string
+    default: large-v3
+    description: faster-whisper に読み込ませるモデル。`.env` の `WHISPER_MODEL` から写す。
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: transcription.local_whisper.device
+    title: ローカルの Whisper のデバイス
+    file: settings.toml
+    type: "'cuda' | 'cpu'"
+    default: cuda
+    description: GPU（cuda）と CPU のどちらで動かすか。`.env` の `WHISPER_DEVICE` から写す。
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: transcription.local_whisper.compute_type
+    title: ローカルの Whisper の量子化タイプ
+    file: settings.toml
+    type: "'float16' | 'int8' | 'float32'"
+    default: float16
+    description: 計算の精度。`.env` の `WHISPER_COMPUTE_TYPE` から写す。
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: transcription.local_whisper.cpu_threads
+    title: ローカルの Whisper の CPU スレッド数
+    file: settings.toml
+    type: int
+    default: '0'
+    description: 使う CPU のスレッド数（0 は自動）。`.env` の `WHISPER_CPU_THREADS` から写す。
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+    allowed: '>= 0'
+  - key: transcription.local_whisper.num_workers
+    title: ローカルの Whisper の並列ワーカー数
+    file: settings.toml
+    type: int
+    default: '1'
+    description: 並列のデコードの数。`.env` の `WHISPER_NUM_WORKERS` から写す。
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+    allowed: '>= 1'
+  - key: transcription.local_whisper.beam_size
+    title: ローカルの Whisper のビーム幅
+    file: settings.toml
+    type: int
+    default: '10'
+    description: ビームサーチの幅。`.env` の `WHISPER_BEAM_SIZE` から写す。
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+    allowed: '>= 1'
+  - key: transcription.local_whisper.best_of
+    title: ローカルの Whisper の候補数
+    file: settings.toml
+    type: int
+    default: '5'
+    description: サンプリングの候補の数。`.env` の `WHISPER_BEST_OF` から写す。
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+    allowed: '>= 1'
+  - key: transcription.local_whisper.language
+    title: ローカルの Whisper の言語
+    file: settings.toml
+    type: string
+    default: ja
+    description: 文字起こしの言語。`.env` の `WHISPER_LANGUAGE` から写す。
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: transcription.local_whisper.vad_filter
+    title: ローカルの Whisper で無音の区間を除くか
+    file: settings.toml
+    type: bool
+    default: 'true'
+    description: VAD で無音の区間を除くか。`.env` の `WHISPER_VAD_FILTER` から写す。
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: transcription.local_whisper.vad_threshold
+    title: ローカルの Whisper の VAD の閾値
+    file: settings.toml
+    type: float
+    default: '0.5'
+    description: 音声とみなす確信度の閾値。`.env` の `WHISPER_VAD_THRESHOLD` から写す。
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+    allowed: 0〜1
+  - key: transcription.local_whisper.vad_min_speech_ms
+    title: ローカルの Whisper の VAD の最小の音声
+    file: settings.toml
+    type: int（ミリ秒）
+    default: '250'
+    description: これより短い音を雑音として除く。`.env` の `WHISPER_VAD_MIN_SPEECH_MS` から写す。
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+    allowed: '>= 0'
+  - key: transcription.local_whisper.vad_min_silence_ms
+    title: ローカルの Whisper の VAD の最小の無音
+    file: settings.toml
+    type: int（ミリ秒）
+    default: '2000'
+    description: これ以上の無音で区間を区切る（起こした文字の改行の位置に効く）。`.env` の `WHISPER_VAD_MIN_SILENCE_MS` から写す。
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+    allowed: '>= 0'
+  - key: transcription.local_whisper.condition_on_previous_text
+    title: ローカルの Whisper で前の区間を文脈に使うか
+    file: settings.toml
+    type: bool
+    default: 'false'
+    description: 前の区間の文字を次の区間の文脈に使うか。`.env` の `WHISPER_CONDITION_ON_PREVIOUS_TEXT` から写す。
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: transcription.local_whisper.temperature
+    title: ローカルの Whisper の温度
+    file: settings.toml
+    type: float
+    default: '0.0'
+    description: サンプリングの温度（0.0 は決定的）。`.env` の `WHISPER_TEMPERATURE` から写す。
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+    allowed: '>= 0'
+  - key: transcription.local_whisper.no_speech_threshold
+    title: ローカルの Whisper の無音判定の閾値
+    file: settings.toml
+    type: float
+    default: '0.6'
+    description: 区間を無音とみなす確信度の閾値。`.env` の `WHISPER_NO_SPEECH_THRESHOLD` から写す。
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+    allowed: 0〜1
+  - key: transcription.openai.api_key
+    title: OpenAI の文字起こしの API キー
+    file: settings.toml
+    type: string
+    default: （空）
+    description: '`transcription.engine = "openai"` のときに使う API キー。`.env` の `OPENAI_API_KEY` から写す。'
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+    secret: true
+  - key: transcription.openai.model
+    title: OpenAI の文字起こしのモデル
+    file: settings.toml
+    type: string
+    default: whisper-1
+    description: 文字起こしに使うモデル。`.env` に対応するキーは無い（移行では既定値になる）。
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: transcription.openai.language
+    title: OpenAI の文字起こしの言語
+    file: settings.toml
+    type: string
+    default: ja
+    description: 文字起こしの言語（ローカルの Whisper の言語とは別に持つ）。`.env` の `WHISPER_LANGUAGE` から写す。
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: transcription.openai.temperature
+    title: OpenAI の文字起こしの温度
+    file: settings.toml
+    type: float
+    default: '0.0'
+    description: サンプリングの温度（ローカルの Whisper の温度とは別に持つ）。`.env` の `WHISPER_TEMPERATURE` から写す。
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+    allowed: '>= 0'
+  - key: recording.lower_volume
+    title: 録音中に音量を下げるか
+    file: settings.toml
+    type: bool
+    default: 'true'
+    description: '`true` のとき、録音を始める前にシステム音量を下げ、録音を終えたら戻す。`.env` の `RECORDING_VOLUME_ENABLED` から写す。'
+    reload: immediate
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: recording.volume_percent
+    title: 録音中の音量の割合
+    file: settings.toml
+    type: float（%）
+    default: '50'
+    description: 録音中のシステム音量を、録音前の音量に対する割合で指定する（50 は半分）。`.env` の `RECORDING_VOLUME` から写す。
+    reload: immediate
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+    allowed: 0〜100
+  - key: recording.fade_sec
+    title: 音量を変えるときの秒数
+    file: settings.toml
+    type: float（秒）
+    default: '0.5'
+    description: 音量を下げるときと戻すときにかける秒数。`.env` の `RECORDING_VOLUME_FADE_DURATION` から写す。
+    reload: immediate
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+    allowed: '>= 0'
+  - key: recording.hide_window
+    title: 録音中に画面を出さないか
+    file: settings.toml
+    type: bool
+    default: 'false'
+    description: '`true` のとき、録音の画面も文字起こし中の表示も出さず、トレイとホットキーだけで操作する。`.env` の `WINDOW_HIDDEN` から写す。'
+    reload: immediate
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: hotkeys.start
+    title: 録音を始めるホットキー
+    file: settings.toml
+    type: string（pynput の GlobalHotKeys 形式）
+    default: <ctrl>+<alt>+d
+    description: 待機中に録音を始める。`.env` の `RESIDENT_HOTKEY` から写す。
+    reload: immediate
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: hotkeys.pause
+    title: 録音を一時停止するホットキー
+    file: settings.toml
+    type: string（pynput の GlobalHotKeys 形式）
+    default: <ctrl>+<alt>+z
+    description: 録音を一時停止・再開する。`.env` の `PAUSE_HOTKEY` から写す。
+    reload: immediate
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: hotkeys.cancel
+    title: 録音を取り消すホットキー
+    file: settings.toml
+    type: string（pynput の GlobalHotKeys 形式）
+    default: <ctrl>+<alt>+q
+    description: 録音を確定せずに捨てる。`.env` の `CANCEL_HOTKEY` から写す。
+    reload: immediate
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: keyboard.paste_key
+    title: 貼り付けに送るキー
+    file: settings.toml
+    type: string（pynput の GlobalHotKeys 形式）
+    default: <ctrl>+v
+    description: 貼り付け先へ送る貼り付けのキーの組み合わせ。`.env` の `PASTE_KEY` から写す。
+    reload: immediate
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: outputs[].id
+    title: 出力先の ID
+    file: settings.toml
+    type: "'paste_and_send' | 'paste_only' | 'copy_only' | 'ai_chat'"
+    default: 4 件（paste_and_send・paste_only・copy_only・ai_chat の順）
+    description: 出力先の一覧の 1 件がどの出力先かを表す。一覧の中で重ならない。`.env` に対応するキーは無い（移行では既定値になる）。
+    reload: immediate
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: outputs[].enabled
+    title: 出力先がオンか
+    file: settings.toml
+    type: bool
+    default: 'true'
+    description: '`false` の出力先は確定の操作に出さず、ホットキーも登録しない。`.env` に対応するキーは無い（移行では既定値になる）。'
+    reload: immediate
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: outputs[].hotkey
+    title: 出力先で確定するホットキー
+    file: settings.toml
+    type: string（pynput の GlobalHotKeys 形式）
+    default: 'paste_and_send: <ctrl>+<alt>+d / paste_only: <ctrl>+<alt>+v / copy_only: <ctrl>+<alt>+c'
+    description: 録音の画面でこの出力先として確定する（ai_chat は送り先ごとに持ち、この項目を持たない）。`.env` の `CONFIRM_HOTKEY`（paste_and_send）・`CONFIRM_PASTE_ONLY_HOTKEY`（paste_only）・`COPY_ONLY_HOTKEY`（copy_only）から写す。
+    reload: immediate
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: outputs[].enter_delay_sec
+    title: 貼り付けてから送信するまでの秒数
+    file: settings.toml
+    type: float（秒）
+    default: '0.5'
+    description: paste_and_send だけが持つ。貼り付けてから Enter を送るまで待つ秒数。`.env` の `PASTE_ENTER_DELAY` から写す。
+    reload: immediate
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+    allowed: '>= 0'
+  - key: outputs[].open_delay_sec
+    title: AI チャットを開いてから貼り付けるまでの秒数
+    file: settings.toml
+    type: float（秒）
+    default: '3.0'
+    description: ai_chat だけが持つ。AI チャットの画面を開いてから貼り付けるまで待つ秒数。`.env` の `AI_SEND_DELAY` から写す。
+    reload: immediate
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+    allowed: '>= 0'
+  - key: outputs[].targets[].name
+    title: AI チャットの送り先の名前
+    file: settings.toml
+    type: string
+    default: '（1: ChatGPT / 2: Google AI / 3: Claude）'
+    description: ai_chat だけが持つ。画面に出す送り先の名前。`.env` の `AI_SEND_{n}_NAME` から写す。
+    reload: immediate
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+    allowed: 1 文字以上
+  - key: outputs[].targets[].url
+    title: AI チャットの送り先の URL
+    file: settings.toml
+    type: string（URL）
+    default: '（1: https://chatgpt.com / 2: https://gemini.google.com/app / 3: https://claude.ai/new）'
+    description: Microsoft Edge の `--app` で開く AI チャットの画面の URL。`.env` の `AI_SEND_{n}_URL` から写す。
+    reload: immediate
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+    allowed: http か https
+  - key: outputs[].targets[].hotkey
+    title: AI チャットの送り先へ送るホットキー
+    file: settings.toml
+    type: string（pynput の GlobalHotKeys 形式）
+    default: <ctrl>+<alt>+{n}
+    description: 録音の画面で、その送り先へ送る出力先として確定する。`.env` の `AI_SEND_{n}_HOTKEY` から写す。
+    reload: immediate
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: outputs[].targets[].enabled
+    title: AI チャットの送り先を出すか
+    file: settings.toml
+    type: bool
+    default: 'true'
+    description: '`false` のとき、その送り先のボタンもホットキーも出さない。`.env` の `AI_SEND_{n}_ENABLED` から写す。'
+    reload: immediate
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: history.enabled
+    title: 履歴に残すか
+    file: settings.toml
+    type: bool
+    default: 'true'
+    description: 録音の WAV と起こした文字を履歴に残すか。`.env` の `HISTORY_ENABLED` から写す。
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: history.retention_days
+    title: 履歴を残す日数
+    file: settings.toml
+    type: int（日）
+    default: '1'
+    description: この日数より前の日付の履歴を、起動時と常駐中に消す。`.env` の `HISTORY_RETENTION_DAYS` から写す。
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+    allowed: '>= 1'
+  - key: logging.level
+    title: ログに書くレベル
+    file: settings.toml
+    type: "'DEBUG' | 'INFO' | 'WARNING' | 'ERROR'"
+    default: INFO
+    description: ログに書くレベル。`.env` の `LOG_LEVEL` から写す。
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: logging.retention_days
+    title: ログを残す日数
+    file: settings.toml
+    type: int（日）
+    default: '7'
+    description: この日数より前の日付のログを、起動時と常駐中に消す。`.env` に対応するキーは無い（移行では既定値になる）。
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+    allowed: '>= 1'
+  - key: ui.topmost
+    title: 画面を最前面に出すか
+    file: settings.toml
+    type: bool
+    default: 'true'
+    description: 録音の画面と文字起こし中の表示を最前面に出すか。`.env` の `WINDOW_TOPMOST` から写す。
+    reload: immediate
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: ui.position
+    title: 画面を出す位置
+    file: settings.toml
+    type: "'center' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'"
+    default: center
+    description: 録音の画面と文字起こし中の表示を出す位置。`.env` の `WINDOW_POSITION` から写す。
+    reload: immediate
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: ui.follow_cursor
+    title: カーソルのあるモニターに画面を出すか
+    file: settings.toml
+    type: bool
+    default: 'true'
+    description: '`true` のとき、マウスカーソルのあるモニターに画面を出す。`.env` の `WINDOW_FOLLOW_CURSOR` から写す。'
+    reload: immediate
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: ui.wave_gain
+    title: 録音の画面の波形の感度
+    file: settings.toml
+    type: float
+    default: '4'
+    description: 波形の振れの大きさ。大きいほど小さい声でも大きく振れる。`.env` の `WAVE_GAIN` から写す。
+    reload: immediate
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+    allowed: '> 0'
+  - key: glossary_path
+    title: 用語集の CSV の場所
+    file: settings.toml
+    type: string（パス）
+    default: （無し。settings.toml と同じフォルダの yogo.csv）
+    description: 用語集の CSV の場所。キーが無いときは settings.toml と同じフォルダの `yogo.csv` を使う。`.env` の `YOGO_FILE` から、voice_paste_legacy と同じ順で `.env` のフォルダを基準に解いた絶対パスを写す（空のときも写し、今の使い方では `resources/yogo.csv` を指す）。
+    reload: immediate
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: api.port
+    title: API を待ち受けるポート
+    file: settings.toml
+    type: int
+    default: '47823'
+    description: 127.0.0.1 で待ち受けるポート。`.env` に対応するキーは無い（移行では既定値になる）。
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+    allowed: 1024〜65535
+  - key: api.allowed_callback_hosts
+    title: 返送を許すホスト
+    file: settings.toml
+    type: list[string]
+    default: '[]'
+    description: loopback のほかに、起こした文字の返送を許すホスト。`.env` に対応するキーは無い（移行では既定値になる）。
+    reload: restart
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
 notes:
   反映の列の読み方: '`immediate` は設定画面で保存すると動いている常駐アプリに効く項目。`.env` を直接書き換えたときは、どの項目も再起動まで効かない（起動時に 1 度だけ読む）。'
   値の読み方: bool の項目は小文字にして `true` のときだけ真として扱う。数値の項目に数値でない値があると、起動時に設定を読むところで例外になり起動できない。
+  新しい構成の設定への移行: |-
+    `.env` から settings.toml への写し方は `--migrate-env` で行う（`src/voice_paste/shared/env_migration.py` の migrate_env）。`.env` は読むだけで書き換えも改名もしない。
+    `RESIDENT_MODE` は 1 回だけ実行する起動が無くなるため写さない。`.env` に無いキー・空のキーは settings.toml の既定値になる。
+    普段使いの `.env` を移して `.env.migrated` に改名するのは、起動を切り替える #22 の反映作業で 1 度だけ行う。

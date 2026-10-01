@@ -20,11 +20,13 @@ purl: pkg:pypi/python-dotenv
 dependency_scope: 必須
 adoption: 採用
 used_in:
-  - voice_paste/config.py
-  - voice_paste/settings_gui.py
+  - voice_paste_legacy/config.py
+  - voice_paste_legacy/settings_gui.py
+  - src/voice_paste/shared/env_migration.py
 upstream: theskumar/python-dotenv
 verification:
-  state: 未確認
-  detail: 現状の棚卸しで、コードが使っている範囲を写しただけで、動かしてはいない
+  state: 済
+  date: '2026-10-01'
+  detail: load_dotenv（override=True）と dotenv_values で `.env` の値（引用符付きを含む）を読めることを確かめた
 license: BSD-3-Clause（商用利用可）
 official_url: https://github.com/theskumar/python-dotenv

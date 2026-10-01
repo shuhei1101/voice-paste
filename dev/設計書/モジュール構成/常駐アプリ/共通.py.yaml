@@ -1,0 +1,972 @@
+title: "常駐アプリ / 共通"
+lead: どの層からも使う設定のモデル・ログ・例外・置き場所のパスと、feature の間を渡る型を持つ。ほかの層に依存しない。
+directory: |-
+  ```
+  src/voice_paste/shared/
+  ├── __init__.py
+  ├── settings.py       # 設定のモデル（pydantic）、TOML の読み書き（tomlkit）
+  ├── env_migration.py  # .env を読んで設定のモデルへ写す（並走の間と切り替えの反映作業で使う。python-dotenv）
+  ├── logger.py         # 標準の logging の設定。日付ごとのファイルと保持期間での削除
+  ├── errors.py         # 例外の階層
+  ├── constants.py      # アプリ名と置き場所のパス（platformdirs）
+  └── types.py          # feature の間を渡る型（入口・録音・文字起こしの結果）
+  ```
+enums:
+  - name: Entry
+    title: 入口
+    container: shared/types.py
+    usecase: 共通
+    summary: セッションを始めた入口。セッションと出力先が使う
+    values:
+      - value: hotkey
+        title: ホットキー
+        description: 録音開始のホットキー
+      - value: tray
+        title: トレイ
+        description: トレイのメニュー
+      - value: api
+        title: API
+        description: POST /sessions
+    status: planned
+  - name: OutputSettings
+    title: 出力先の設定
+    container: shared/settings.py
+    usecase: 共通
+    summary: 出力先ごとの設定の判別共用体（`Annotated[... | ..., Field(discriminator="id")]`）
+    description: |-
+      呼び出し元へ返す出力先（callback）は API から始めた録音だけが使い、オン・オフを持たないため一覧に置かない。
+      既定の一覧は下の 4 件をこの並びで持つ。
+    values:
+      - value: paste_and_send
+        title: 貼り付けて送信
+        description: PasteAndSendSettings
+      - value: paste_only
+        title: 貼り付けのみ
+        description: PasteOnlySettings
+      - value: copy_only
+        title: コピーのみ
+        description: CopyOnlySettings
+      - value: ai_chat
+        title: AI チャットへ送る
+        description: AiChatSettings
+    status: implemented
+data_models:
+  - name: Recording
+    title: 録音
+    container: shared/types.py
+    usecase: 共通
+    role: DTO
+    summary: 止めた録音の音と形式。録音・セッション・履歴が使う
+    properties:
+      - name: samples
+        type: numpy.ndarray
+        description: モノラルの 16 bit の音
+      - name: sample_rate
+        type: int
+        description: サンプルレート（Hz）
+      - name: duration_sec
+        type: float
+        description: 録音の長さ（一時停止の間を除く）
+    status: planned
+  - name: TranscriptionOutcome
+    title: 文字起こしの結果
+    container: shared/types.py
+    usecase: 共通
+    role: DTO
+    summary: 出力先へ渡す結果。セッションと出力先が使う
+    properties:
+      - name: session_id
+        type: str
+        description: セッションの ID
+      - name: result
+        type: Literal["transcribed", "failed", "truncated"]
+        description: 結果の種類
+      - name: text
+        type: str
+        description: 用語集で補正した文字。空・失敗・打ち切りは空文字
+      - name: error
+        type: str | None
+        description: 失敗の理由
+    status: planned
+  - name: AppPaths
+    title: 置き場所のパス
+    container: shared/constants.py
+    usecase: 共通
+    role: DTO
+    summary: 設定・履歴・ログ・一時の音声・トークンの置き場所
+    description: |-
+      resolve_app_paths で作る。
+      既定は platformdirs で `%APPDATA%\voice-paste\`（設定）と `%LOCALAPPDATA%\voice-paste\`（それ以外）を引く。
+      データの置き場所（`--data-dir`）を渡したときは、全てをその下に置く。並走の間はこれで普段使いの置き場所に触れない。
+      `@dataclass(frozen=True, slots=True, kw_only=True)`。
+    properties:
+      - name: settings_file
+        type: Path
+        description: '`%APPDATA%\voice-paste\settings.toml`（データの置き場所を渡したときは `{data_dir}\settings.toml`）'
+      - name: history_dir
+        type: Path
+        description: '`%LOCALAPPDATA%\voice-paste\history\`（`{data_dir}\history\`）'
+      - name: log_dir
+        type: Path
+        description: '`%LOCALAPPDATA%\voice-paste\log\`（`{data_dir}\log\`）'
+      - name: tmp_dir
+        type: Path
+        description: '`%LOCALAPPDATA%\voice-paste\tmp\`（`{data_dir}\tmp\`。履歴を残さないときの一時の音声）'
+      - name: token_file
+        type: Path
+        description: '`%LOCALAPPDATA%\voice-paste\api_token`（`{data_dir}\api_token`。起動ごとのトークンとポート）'
+    refs:
+      - dev/設計書/外部ライブラリ/platformdirs#
+    status: implemented
+  - name: Settings
+    title: 設定
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: settings.toml の全体。項目ごとに範囲・説明・再起動が要るかの印を持ち、設定画面の欄はこのモデルから組み立てる
+    inherits: pydantic.BaseModel
+    description: |-
+      キーの一つ一つ（型・既定値・範囲・反映）は設計書『設定』の settings.toml の行が持つ。
+      まとまりのモデルも全て `pydantic.BaseModel` で、どれも `model_config = ConfigDict(extra="forbid")` にして知らないキー（書き間違い）を断る。
+      各項目は `Field(description=..., json_schema_extra={"reload": "immediate" | "restart"})` で再起動が要るかの印を持つ。
+      全ての項目に既定値があり、`Settings()` が既定の設定になる。
+    properties:
+      - name: transcription
+        type: TranscriptionSettings
+        description: 使うエンジンと、エンジンごとの設定
+      - name: recording
+        type: RecordingSettings
+        description: 録音中の音量・画面を出さない設定
+      - name: hotkeys
+        type: HotkeySettings
+        description: 録音の開始・一時停止・取り消しのホットキー（確定のホットキーは出力先ごとに持つ）
+      - name: keyboard
+        type: KeyboardSettings
+        description: 貼り付けのキー
+      - name: outputs
+        type: list[OutputSettings]
+        description: 出力先ごとのオン・オフ・確定のホットキー・出力先ごとの設定。ID は重ならない
+      - name: history
+        type: HistorySettings
+        description: 履歴を残すか・保持期間
+      - name: logging
+        type: LoggingSettings
+        description: ログのレベル・保持期間
+      - name: ui
+        type: UiSettings
+        description: 録音の画面の出し方
+      - name: glossary_path
+        type: Path | None
+        default: None
+        description: 用語集の CSV。None は設定ファイルと同じフォルダの yogo.csv
+      - name: api
+        type: ApiSettings
+        description: 待ち受けのポート・返送を許すホスト
+    refs:
+      - dev/設計書/外部ライブラリ/pydantic#
+      - dev/設計書/設定/常駐アプリ#
+    status: implemented
+  - name: TranscriptionSettings
+    title: 文字起こしの設定
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: 使うエンジンと、エンジンごとの設定
+    inherits: pydantic.BaseModel
+    properties:
+      - name: engine
+        type: Literal["local_whisper", "openai"]
+        default: local_whisper
+        description: 使う文字起こしのエンジン（文字起こしの EngineName）
+      - name: local_whisper
+        type: LocalWhisperSettings
+        description: ローカルの Whisper の設定
+      - name: openai
+        type: OpenAISettings
+        description: OpenAI の設定
+    status: implemented
+  - name: LocalWhisperSettings
+    title: ローカルの Whisper の設定
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: 文字起こしワーカーへ渡すモデル・デバイス・量子化・言語・ビーム幅・温度・VAD
+    inherits: pydantic.BaseModel
+    properties:
+      - name: model
+        type: str
+        default: large-v3
+        description: faster-whisper のモデル
+      - name: device
+        type: Literal["cuda", "cpu"]
+        default: cuda
+        description: 動かすデバイス
+      - name: compute_type
+        type: Literal["float16", "int8", "float32"]
+        default: float16
+        description: 計算の精度
+      - name: cpu_threads
+        type: int
+        default: '0'
+        description: CPU のスレッド数（0 は自動）
+      - name: num_workers
+        type: int
+        default: '1'
+        description: 並列のデコードの数
+      - name: beam_size
+        type: int
+        default: '10'
+        description: ビームサーチの幅
+      - name: best_of
+        type: int
+        default: '5'
+        description: サンプリングの候補の数
+      - name: language
+        type: str
+        default: ja
+        description: 認識する言語
+      - name: vad_filter
+        type: bool
+        default: 'True'
+        description: 無音の区間を除くか
+      - name: vad_threshold
+        type: float
+        default: '0.5'
+        description: 音声とみなす確信度の閾値
+      - name: vad_min_speech_ms
+        type: int
+        default: '250'
+        description: これより短い音を雑音として除く（ミリ秒）
+      - name: vad_min_silence_ms
+        type: int
+        default: '2000'
+        description: これ以上の無音で区間を区切る（ミリ秒）
+      - name: condition_on_previous_text
+        type: bool
+        default: 'False'
+        description: 前の区間の文字を次の区間の文脈に使うか
+      - name: temperature
+        type: float
+        default: '0.0'
+        description: サンプリングの温度
+      - name: no_speech_threshold
+        type: float
+        default: '0.6'
+        description: 区間を無音とみなす確信度の閾値
+    status: implemented
+  - name: OpenAISettings
+    title: OpenAI の設定
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: OpenAI の文字起こしの API キー・モデル・言語・温度
+    inherits: pydantic.BaseModel
+    properties:
+      - name: api_key
+        type: SecretStr
+        default: 空
+        description: API キー。ログにも repr にも出さない
+      - name: model
+        type: str
+        default: whisper-1
+        description: 文字起こしのモデル
+      - name: language
+        type: str
+        default: ja
+        description: 認識する言語（ローカルの Whisper の言語とは別に持つ）
+      - name: temperature
+        type: float
+        default: '0.0'
+        description: サンプリングの温度（ローカルの Whisper の温度とは別に持つ）
+    status: implemented
+  - name: RecordingSettings
+    title: 録音の設定
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: 録音中のシステム音量と、画面を出さない設定
+    inherits: pydantic.BaseModel
+    properties:
+      - name: lower_volume
+        type: bool
+        default: 'True'
+        description: 録音中にシステム音量を下げるか
+      - name: volume_percent
+        type: float
+        default: '50'
+        description: 録音中の音量の、録音前の音量に対する割合（0〜100）
+      - name: fade_sec
+        type: float
+        default: '0.5'
+        description: 音量を下げる・戻すときにかける秒数（0 以上）
+      - name: hide_window
+        type: bool
+        default: 'False'
+        description: 録音の画面も文字起こし中の表示も出さず、トレイとホットキーだけで操作するか
+    status: implemented
+  - name: HotkeySettings
+    title: ホットキーの設定
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: 録音の開始・一時停止・取り消しのホットキー（pynput の GlobalHotKeys の書式）
+    inherits: pydantic.BaseModel
+    properties:
+      - name: start
+        type: str
+        default: <ctrl>+<alt>+d
+        description: 録音を始める
+      - name: pause
+        type: str
+        default: <ctrl>+<alt>+z
+        description: 録音を一時停止・再開する
+      - name: cancel
+        type: str
+        default: <ctrl>+<alt>+q
+        description: 録音を取り消す
+    status: implemented
+  - name: KeyboardSettings
+    title: キーボードの設定
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: 貼り付け先へ送る貼り付けのキー
+    inherits: pydantic.BaseModel
+    properties:
+      - name: paste_key
+        type: str
+        default: <ctrl>+v
+        description: 貼り付けのキーの組み合わせ（pynput の書式）
+    status: implemented
+  - name: PasteAndSendSettings
+    title: 貼り付けて送信の設定
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: 出力先 paste_and_send のオン・オフ・確定のホットキー・貼り付けから送信までの間
+    inherits: pydantic.BaseModel
+    properties:
+      - name: id
+        type: Literal["paste_and_send"]
+        default: paste_and_send
+        description: 出力先の ID（OutputSettings の判別子）
+      - name: enabled
+        type: bool
+        default: 'True'
+        description: オンか
+      - name: hotkey
+        type: str
+        default: <ctrl>+<alt>+d
+        description: この出力先で確定するホットキー
+      - name: enter_delay_sec
+        type: float
+        default: '0.5'
+        description: 貼り付けてから Enter を送るまで待つ秒数（0 以上）
+    status: implemented
+  - name: PasteOnlySettings
+    title: 貼り付けのみの設定
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: 出力先 paste_only のオン・オフ・確定のホットキー
+    inherits: pydantic.BaseModel
+    properties:
+      - name: id
+        type: Literal["paste_only"]
+        default: paste_only
+        description: 出力先の ID
+      - name: enabled
+        type: bool
+        default: 'True'
+        description: オンか
+      - name: hotkey
+        type: str
+        default: <ctrl>+<alt>+v
+        description: この出力先で確定するホットキー
+    status: implemented
+  - name: CopyOnlySettings
+    title: コピーのみの設定
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: 出力先 copy_only のオン・オフ・確定のホットキー
+    inherits: pydantic.BaseModel
+    properties:
+      - name: id
+        type: Literal["copy_only"]
+        default: copy_only
+        description: 出力先の ID
+      - name: enabled
+        type: bool
+        default: 'True'
+        description: オンか
+      - name: hotkey
+        type: str
+        default: <ctrl>+<alt>+c
+        description: この出力先で確定するホットキー
+    status: implemented
+  - name: AiChatSettings
+    title: AI チャットへ送る設定
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: 出力先 ai_chat のオン・オフ・開いてから貼り付けるまでの間・送り先の一覧
+    inherits: pydantic.BaseModel
+    properties:
+      - name: id
+        type: Literal["ai_chat"]
+        default: ai_chat
+        description: 出力先の ID
+      - name: enabled
+        type: bool
+        default: 'True'
+        description: オンか
+      - name: open_delay_sec
+        type: float
+        default: '3.0'
+        description: AI チャットの画面を開いてから貼り付けるまで待つ秒数（0 以上）
+      - name: targets
+        type: list[AiChatTarget]
+        default: ChatGPT・Google AI・Claude の 3 件
+        description: 送り先の一覧。確定のホットキーは送り先ごとに持つ
+    status: implemented
+  - name: AiChatTarget
+    title: AI チャットの送り先
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: AI チャットの送り先 1 件
+    inherits: pydantic.BaseModel
+    properties:
+      - name: name
+        type: str
+        description: 画面に出す名前（1 文字以上）
+      - name: url
+        type: str
+        description: Microsoft Edge の `--app` で開く URL（http か https）
+      - name: hotkey
+        type: str
+        description: この送り先へ送る確定のホットキー
+      - name: enabled
+        type: bool
+        default: 'True'
+        description: 画面にボタンを出し、ホットキーを登録するか
+    status: implemented
+  - name: HistorySettings
+    title: 履歴の設定
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: 履歴を残すかと保持期間
+    inherits: pydantic.BaseModel
+    properties:
+      - name: enabled
+        type: bool
+        default: 'True'
+        description: 録音と起こした文字を履歴に残すか
+      - name: retention_days
+        type: int
+        default: '1'
+        description: 保持する日数（1 以上）
+    status: implemented
+  - name: LoggingSettings
+    title: ログの設定
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: ログのレベルと保持期間
+    inherits: pydantic.BaseModel
+    properties:
+      - name: level
+        type: Literal["DEBUG", "INFO", "WARNING", "ERROR"]
+        default: INFO
+        description: ログのレベル
+      - name: retention_days
+        type: int
+        default: '7'
+        description: 日付ごとのログを保持する日数（1 以上）
+    status: implemented
+  - name: UiSettings
+    title: 画面の設定
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: 録音の画面と文字起こし中の表示の出し方
+    inherits: pydantic.BaseModel
+    properties:
+      - name: topmost
+        type: bool
+        default: 'True'
+        description: 常に最前面に出すか
+      - name: position
+        type: Literal["center", "top-left", "top-right", "bottom-left", "bottom-right"]
+        default: center
+        description: 出す位置
+      - name: follow_cursor
+        type: bool
+        default: 'True'
+        description: マウスカーソルのあるモニターに出すか
+      - name: wave_gain
+        type: float
+        default: '4'
+        description: 波形の振れの大きさ（0 より大きい）
+    status: implemented
+  - name: ApiSettings
+    title: API の設定
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: API の待ち受けのポートと、返送を許すホスト
+    inherits: pydantic.BaseModel
+    properties:
+      - name: port
+        type: int
+        default: '47823'
+        description: 127.0.0.1 で待ち受けるポート（1024〜65535）
+      - name: allowed_callback_hosts
+        type: list[str]
+        default: '[]'
+        description: loopback のほかに返送を許すホスト
+    status: implemented
+classes:
+  - name: AppError
+    title: アプリの例外
+    container: shared/errors.py
+    usecase: 共通
+    role: 例外
+    kind: クラス
+    inherits: Exception
+    summary: このアプリが送出する例外の根。API サーバーの例外ハンドラが HTTP のステータスへ変える
+    description: |-
+      | 例外 | 意味 | HTTP |
+      | --- | --- | --- |
+      | `CallbackNotAllowedError` | 返送先が許されない | 400 |
+      | `UnauthorizedError` | トークンが合わない | 401 |
+      | `ForbiddenRequestError` | Origin が付いている・Host が違う | 403 |
+      | `SessionNotFoundError` | セッションが無い・操作できない状態 | 404 |
+      | `SessionBusyError` | ほかのセッションが処理中 | 409 |
+      | `MicrophoneUnavailableError` | マイクを開けない | 503 |
+      | `TranscriptionError` | 文字起こしに失敗した（API へは返さず返送先へ届ける） | - |
+      | `EngineError` | エンジンが失敗した（外部連携が送出し、文字起こしが TranscriptionError に変える） | - |
+      | `DeliveryError` | 出力先へ届けられない | - |
+      | `UnknownOutputError` | 選んだ出力先が一覧に無いかオフ（`DeliveryError` の子） | - |
+      | `VolumeControlError` | システム音量を操作できない | - |
+      | `SettingsError` | 設定の値が合わない（合わないキーをメッセージに並べる） | - |
+      | `StartupError` | 起動に失敗した（エンジンを準備できない・前のプロセスが排他を放さない） | - |
+
+      全ての例外は docstring だけを持つクラスで `shared/errors.py` に置き、親は表に書かない限り `AppError`。
+    status: implemented
+functions:
+  - name: load_settings
+    title: 設定の読み込み
+    kind: 関数
+    container: shared/settings.py
+    usecase: 共通
+    scope: public
+    summary: settings.toml を読んで検証する。無ければ既定値で作る
+    side_effects: settings.toml が無いときだけ、既定値の settings.toml を書く。
+    args:
+      - name: path
+        type: Path
+        required: true
+        passing: positional
+        description: settings.toml
+    returns:
+      type: Settings
+      description: 検証した設定
+    process: |-
+      1. path が無いかを確かめる
+         - 無い場合、既定の Settings を書いて返す（設定の書き戻し）
+           - `[INFO]` 設定ファイルが無いため既定値で作った（path）
+      2. UTF-8 で読み、tomlkit で解釈する
+         - TOMLKitError の場合、SettingsError を送出する
+      3. 文書を素の dict にして Settings.model_validate で検証して返す
+         - pydantic.ValidationError の場合、合わないキーをドット区切り（例 `transcription.local_whisper.beam_size`、出力先は `outputs[0].hotkey`）で並べた SettingsError を送出する
+    exceptions:
+      - name: SettingsError
+        condition: TOML の書式が壊れている
+        message: '設定ファイルを読めない（{path}: {理由}）'
+      - name: SettingsError
+        condition: 値がモデルに合わない・知らないキーがある・出力先の ID が重なる
+        message: '設定の値が合わない（{キー}: {理由}、…）'
+    unit_tests:
+      - name: test_load_settings_when_missing
+        case: 正常
+        summary: 無ければ既定値で作る
+        condition: settings.toml の無い一時フォルダ
+        mock: なし（一時フォルダ）
+        expected: Settings() と等しい設定が返り、settings.toml ができている
+      - name: test_load_settings
+        case: 正常
+        summary: 書いた値を読む
+        condition: transcription.engine = "openai"、outputs が copy_only だけの settings.toml
+        mock: なし（一時フォルダ）
+        expected: engine が openai、outputs が CopyOnlySettings 1 件、書いていない項目は既定値
+      - name: test_load_settings_when_sample_file
+        case: 正常
+        summary: リポジトリの見本は既定値と一致する
+        condition: リポジトリの直下の settings.sample.toml
+        mock: なし
+        expected: Settings() と等しい
+      - name: test_load_settings_when_invalid_value
+        case: 異常
+        summary: 合わない値はキーを示して断る
+        condition: transcription.local_whisper.beam_size = "x"
+        mock: なし（一時フォルダ）
+        expected: SettingsError。メッセージに transcription.local_whisper.beam_size を含む
+        exception: 値がモデルに合わない
+      - name: test_load_settings_when_unknown_key
+        case: 異常
+        summary: 知らないキーを断る
+        condition: recording.volum_percent = 30（書き間違い）
+        mock: なし（一時フォルダ）
+        expected: SettingsError。メッセージに recording.volum_percent を含む
+        exception: 知らないキーがある
+      - name: test_load_settings_when_duplicate_output_id
+        case: 異常
+        summary: 出力先の ID の重なりを断る
+        condition: outputs に copy_only が 2 件
+        mock: なし（一時フォルダ）
+        expected: SettingsError。メッセージに outputs を含む
+        exception: 出力先の ID が重なる
+      - name: test_load_settings_when_broken_toml
+        case: 異常
+        summary: 壊れた TOML を断る
+        condition: '`[recording` で閉じていない'
+        mock: なし（一時フォルダ）
+        expected: SettingsError
+        exception: TOML の書式が壊れている
+    refs:
+      - dev/設計書/外部ライブラリ/tomlkit#
+    status: implemented
+  - name: save_settings
+    title: 設定の書き戻し
+    kind: 関数
+    container: shared/settings.py
+    usecase: 共通
+    scope: public
+    summary: 検証した設定を、コメントを保ったまま tomlkit で書き戻す。再起動が要る項目が変わったかを返す
+    side_effects: path を書く（親のフォルダが無ければ作る）。
+    args:
+      - name: path
+        type: Path
+        required: true
+        passing: positional
+        description: settings.toml
+      - name: settings
+        type: Settings
+        required: true
+        passing: positional
+        description: 書く設定（検証済み）
+    returns:
+      type: bool
+      description: 再起動が要る項目が変わったか
+    process: |-
+      1. path があれば tomlkit で読み、無ければ空の文書にする
+      2. 読んだ文書を Settings として検証し、前の設定にする
+         - 無い場合、前の設定は無しとする
+         - 読めない・検証に通らない場合、内容を空の文書にして前の設定を「全て変わった」とする
+      3. settings を `model_dump(mode="json")` し、API キーは元の値で書く
+      4. 文書の値を再帰で置き換える。表はキーごとに書き換えて既存のコメントと並びを保ち、配列（出力先の一覧・AI チャットの送り先・許すホスト）は丸ごと入れ替える。None の項目（glossary_path）はキーを置かず、文書に既にあれば消す
+      5. 親のフォルダを作り、同じフォルダの一時ファイルに UTF-8 で書いて os.replace で置き換える
+      6. reload が restart の項目のうち、前の設定と値が違うものが 1 つでもあれば True、無ければ False を返す（前の設定が無いときは False）
+    unit_tests:
+      - name: test_save_settings_when_comments
+        case: 正常
+        summary: コメントを保ったまま値を書き換える
+        condition: コメント付きの settings.toml に、hotkeys.start を変えた設定を書く
+        mock: なし（一時フォルダ）
+        expected: 書いた後のファイルに元のコメントが残り、load_settings で新しい値が読める
+      - name: test_save_settings_when_restart_item_changed
+        case: 正常
+        summary: 再起動が要る項目が変われば True
+        condition: transcription.engine を local_whisper から openai へ変えて書く
+        mock: なし（一時フォルダ）
+        expected: 'True'
+      - name: test_save_settings_when_immediate_item_changed
+        case: 正常
+        summary: 即時に効く項目だけなら False
+        condition: hotkeys.start だけを変えて書く
+        mock: なし（一時フォルダ）
+        expected: 'False'
+      - name: test_save_settings_when_missing
+        case: 正常
+        summary: 無ければフォルダごと作る
+        condition: 存在しないフォルダの下の settings.toml、API キーあり
+        mock: なし（一時フォルダ）
+        expected: False。ファイルができ、API キーが元の値で書かれ、glossary_path のキーが無い
+      - name: test_save_settings_when_invalid_existing
+        case: 正常
+        summary: 壊れたファイルは書き直して再起動が要るとする
+        condition: 書式の壊れた settings.toml に既定の設定を書く
+        mock: なし（一時フォルダ）
+        expected: True。load_settings で既定の設定が読める
+      - name: test_save_settings_when_glossary_reset
+        case: 正常
+        summary: 用語集の場所を既定（None）に戻すとキーを消す
+        condition: glossary_path = "C:/x/yogo.csv" を持つ settings.toml に Settings() を書く
+        mock: なし（一時フォルダ）
+        expected: 書いた後のファイルに glossary_path のキーが無く、load_settings の glossary_path が None
+    refs:
+      - dev/設計書/外部ライブラリ/tomlkit#
+    status: implemented
+  - name: setup_logging
+    title: ログの設定
+    kind: 関数
+    container: shared/logger.py
+    usecase: 常駐アプリを起動する
+    scope: public
+    summary: 標準の logging を日付ごとのファイルへ書くようにし、uvicorn のロガーもそこへ寄せる
+    side_effects: ルートロガーと uvicorn のロガーのハンドラを入れ替える。log_dir が無ければ作る。
+    args:
+      - name: log_dir
+        type: Path
+        required: true
+        passing: positional
+        description: ログの置き場所
+      - name: level
+        type: Literal["DEBUG", "INFO", "WARNING", "ERROR"]
+        required: true
+        passing: positional
+        description: ルートロガーのレベル
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. log_dir を作る
+      2. ルートロガーに既にこの関数が付けたハンドラがあれば外す（2 回呼んでも 1 組だけにする）
+      3. 日付ごとのファイルのハンドラ（_DailyFileHandler）を付ける。書くたびにモジュールの `_today()`（今日の `date` を返す内部の関数。単体テストが差し替える）を呼び、`{log_dir}/{YYYY-MM-DD}.log` が変わっていれば開き直す
+      4. 書式は 1 行 1 JSON（JSON Lines）で、ts（ローカルの時刻を UTC オフセット付きの ISO 8601）・level・name・msg・例外があれば exc を持つ（ensure_ascii=False）
+      5. sys.stderr があれば同じ書式で stderr にも出す（pythonw では無い）
+      6. ルートロガーのレベルを level にする
+      7. uvicorn・uvicorn.error・uvicorn.access のロガーのハンドラを外し、propagate を True にする
+    unit_tests:
+      - name: test_setup_logging
+        case: 正常
+        summary: 今日のファイルに JSON Lines で書く
+        condition: level=INFO、日本語の INFO と DEBUG を 1 行ずつ出す
+        mock: なし（一時フォルダ）
+        expected: '{log_dir}/{今日}.log に INFO の 1 行だけがあり、JSON として読めて msg が日本語のまま、ts に UTC オフセットが付く'
+      - name: test_setup_logging_when_called_twice
+        case: 正常
+        summary: 2 回呼んでも二重に書かない
+        condition: setup_logging を 2 回呼んでから 1 行出す
+        mock: なし（一時フォルダ）
+        expected: ファイルに 1 行だけ
+      - name: test_setup_logging_when_date_changed
+        case: 正常
+        summary: 日付が変われば次のファイルへ書く
+        condition: 1 行出した後に今日を翌日へ差し替えて 1 行出す
+        mock: 今日の日付を返す関数（monkeypatch）
+        expected: 2 つの日付のファイルに 1 行ずつ
+      - name: test_setup_logging_when_uvicorn_logger
+        case: 正常
+        summary: uvicorn のログも同じファイルへ寄せる
+        condition: uvicorn.error のロガーにハンドラを 1 つ付けておき、setup_logging の後に uvicorn.error へ INFO を 1 行出す
+        mock: なし（一時フォルダ）
+        expected: uvicorn.error のハンドラが空になり、今日のファイルに name が uvicorn.error の 1 行がある
+    notes:
+      秘密の値: API キーとトークンはログに出さない（SecretStr で持ち、断った要求のログにも含めない）。
+    status: implemented
+  - name: purge_old_logs
+    title: 古いログの削除
+    kind: 関数
+    container: shared/logger.py
+    usecase: 常駐アプリを起動する
+    scope: public
+    summary: 保持期間を過ぎた日付のログだけを消す（今日より前を全て消す今のやり方はやめる）
+    side_effects: log_dir の下のファイルを消す。
+    args:
+      - name: log_dir
+        type: Path
+        required: true
+        passing: positional
+        description: ログの置き場所
+      - name: retention_days
+        type: int
+        required: true
+        passing: positional
+        description: 保持期間
+      - name: today
+        type: date
+        required: true
+        passing: positional
+        description: 今日
+    returns:
+      type: int
+      description: 消したファイルの数
+    process: |-
+      1. log_dir の直下の `YYYY-MM-DD.log` の形の名前のファイルを拾う（それ以外の名前は触らない）
+      2. 日付が today − retention_days 日より前のものを消す
+         - `[INFO]` 古いログを消した（件数）
+    unit_tests:
+      - name: test_purge_old_logs
+        case: 正常
+        summary: 保持期間を過ぎた日付のログだけ消す
+        condition: 保持 1 日、今日・1 日前・2 日前のログ
+        mock: なし（一時フォルダ）
+        expected: 2 日前だけが消え、戻り値が 1
+      - name: test_purge_old_logs_when_other_names
+        case: 正常
+        summary: 日付の形でない名前は消さない
+        condition: 保持 1 日、`notes.log`・`2026-13-40.log`・10 日前のログ
+        mock: なし（一時フォルダ）
+        expected: 10 日前だけが消え、戻り値が 1
+    status: implemented
+  - name: migrate_env
+    title: .env からの移行
+    kind: 関数
+    container: shared/env_migration.py
+    usecase: 共通
+    scope: public
+    summary: voice_paste_legacy の .env を読むだけで、値を settings.toml のキーへ写した Settings を返す
+    description: |-
+      書き込みは呼び出し側が save_settings で行う。`.env` の改名（`.env.migrated`）は起動を切り替える #22 の反映作業で行い、この関数は行わない。
+      `.env` のキーと settings.toml のキーの対応は設計書『設定』の settings.toml の各行の説明が持つ。
+    args:
+      - name: env_path
+        type: Path
+        required: true
+        passing: positional
+        description: 移す元の .env
+    returns:
+      type: Settings
+      description: .env の値を写した設定（.env に無い・空のキーは Settings の既定値。glossary_path だけは常に解いた絶対パス）
+    process: |-
+      1. env_path を python-dotenv の dotenv_values で読む（環境変数へ入れず、ファイルを書かない）
+         - 無い場合、SettingsError を送出する
+      2. 対応表のキーごとに、値があって空でないものだけを settings.toml のキーへ写す
+         - bool のキーは、小文字にして `true` のときだけ真にする（voice_paste_legacy の読み方と同じ）
+         - TRANSCRIPTION_ENGINE は `local` を `local_whisper`、`openai` を `openai` へ写す
+         - WHISPER_LANGUAGE・WHISPER_TEMPERATURE はローカルの Whisper と OpenAI の両方へ写す
+      3. 用語集の場所を voice_paste_legacy/config.py の `_resolve_user_file` と同じ順で解き、絶対パスを glossary_path に写す（YOGO_FILE が空・無いときも写す。基準は env_path のフォルダ）
+         - YOGO_FILE が絶対パスの場合、そのまま
+         - YOGO_FILE が相対パスの場合、`{基準}/yogo.csv` → `{基準}/{YOGO_FILE}` → `{基準}/resources/{YOGO_FILE のファイル名}` のうち最初にあるもの。どれも無ければ `{基準}/yogo.csv`
+         - YOGO_FILE が空・無い場合、`{基準}/yogo.csv` があればそれ、無ければ `{基準}/resources/yogo.csv`
+      4. AI_SEND_{n}_* を n = 1 から順に読み、NAME か URL が空の番号で止めて ai_chat の送り先の一覧にする
+      5. CONFIRM_HOTKEY・CONFIRM_PASTE_ONLY_HOTKEY・COPY_ONLY_HOTKEY・PASTE_ENTER_DELAY・AI_SEND_DELAY を、既定の並びの出力先の一覧へ写す
+      6. 対応表に無いキー（RESIDENT_MODE を含む）は写さずにログへ書く
+         - `[WARNING]` 移さなかった .env のキー（キーの一覧）
+      7. Settings.model_validate で検証して返す
+         - pydantic.ValidationError の場合、合わない値の元の .env のキーを並べた SettingsError を送出する
+    exceptions:
+      - name: SettingsError
+        condition: env_path が無い
+        message: .env が無い（{env_path}）
+      - name: SettingsError
+        condition: TRANSCRIPTION_ENGINE が local・openai のどちらでもない
+        message: '.env の値が合わない（TRANSCRIPTION_ENGINE: {値}）'
+      - name: SettingsError
+        condition: 数値のキーに数値でない値があるなど、写した値がモデルに合わない
+        message: '.env の値が合わない（{.env のキー}: {理由}、…）'
+    unit_tests:
+      - name: test_migrate_env_when_sample
+        case: 正常
+        summary: .env.sample の全キーを写す
+        condition: リポジトリの直下の .env.sample を一時フォルダへ写した .env（一時フォルダに yogo.csv は無い）
+        mock: なし（一時フォルダ）
+        expected: glossary_path が {一時フォルダ}/resources/yogo.csv、それ以外の項目が Settings() と等しい（.env.sample の値と既定値が一致する）。WARNING のログに RESIDENT_MODE が出る
+      - name: test_migrate_env_when_custom_values
+        case: 正常
+        summary: 既定と違う値を対応するキーへ写す
+        condition: 全てのキーに既定と違う値（bool は `False`・`TRUE`、数値、ホットキー、TRANSCRIPTION_ENGINE=openai、OPENAI_API_KEY）を書いた .env
+        mock: なし（一時フォルダ）
+        expected: 設計書『設定』の対応どおりの全項目。`TRUE` は真、`False` は偽、engine は openai、API キーは書いた値
+      - name: test_migrate_env_when_ai_send_gap
+        case: 正常
+        summary: 送り先は空の番号で止める
+        condition: AI_SEND_1・2 があり 3 が無く 4 がある
+        mock: なし（一時フォルダ）
+        expected: ai_chat の送り先が 1・2 の 2 件
+      - name: test_migrate_env_when_relative_glossary
+        case: 正常
+        summary: 相対の用語集は legacy と同じ順で .env のフォルダから解く
+        condition: YOGO_FILE=data/my.csv。parametrize で (1) {.env のフォルダ}/yogo.csv あり (2) data/my.csv だけあり (3) resources/my.csv だけあり (4) どれも無し
+        mock: なし（一時フォルダ）
+        expected: glossary_path が (1) {.env のフォルダ}/yogo.csv (2) {.env のフォルダ}/data/my.csv (3) {.env のフォルダ}/resources/my.csv (4) {.env のフォルダ}/yogo.csv
+      - name: test_migrate_env_when_read_only
+        case: 正常
+        summary: .env に触れない
+        condition: .env.sample を写した .env
+        mock: なし（一時フォルダ）
+        expected: .env の中身と更新時刻が変わらず、.env.migrated が無く、os.environ に .env のキーが入っていない
+      - name: test_migrate_env_when_missing
+        case: 異常
+        summary: .env が無い
+        condition: 存在しないパス
+        mock: なし（一時フォルダ）
+        expected: SettingsError
+        exception: env_path が無い
+      - name: test_migrate_env_when_unknown_engine
+        case: 異常
+        summary: 知らないエンジンを断る
+        condition: TRANSCRIPTION_ENGINE=azure
+        mock: なし（一時フォルダ）
+        expected: SettingsError。メッセージに TRANSCRIPTION_ENGINE を含む
+        exception: TRANSCRIPTION_ENGINE が local・openai のどちらでもない
+      - name: test_migrate_env_when_invalid_number
+        case: 異常
+        summary: 数値に直せない値を元のキーで示す
+        condition: WHISPER_BEAM_SIZE=ten
+        mock: なし（一時フォルダ）
+        expected: SettingsError。メッセージに WHISPER_BEAM_SIZE を含む
+        exception: 写した値がモデルに合わない
+      - name: test_migrate_env_when_empty_glossary
+        case: 正常
+        summary: 空の用語集は legacy と同じく直下の yogo.csv、無ければ resources/yogo.csv を指す
+        condition: YOGO_FILE=（空）。parametrize で (1) {.env のフォルダ}/yogo.csv あり (2) resources/yogo.csv だけあり
+        mock: なし（一時フォルダ）
+        expected: glossary_path が (1) {.env のフォルダ}/yogo.csv (2) {.env のフォルダ}/resources/yogo.csv
+    refs:
+      - dev/設計書/外部ライブラリ/python-dotenv#
+      - dev/設計書/設定/常駐アプリ#
+    status: implemented
+  - name: resolve_app_paths
+    title: 置き場所の解決
+    kind: 関数
+    container: shared/constants.py
+    usecase: 共通
+    scope: public
+    summary: データの置き場所が渡されればその下、無ければ platformdirs で引いた既定の置き場所で AppPaths を作る。フォルダは作らない
+    args:
+      - name: data_dir
+        type: Path | None
+        required: true
+        passing: positional
+        description: データの置き場所（`--data-dir`）。None は既定の置き場所
+    returns:
+      type: AppPaths
+      description: 置き場所のパス
+    process: |-
+      1. data_dir が渡されているか
+         - ある場合、設定・履歴・ログ・一時の音声・トークンを全て data_dir の下に置く
+         - 無い場合、設定は user_config_dir(APP_NAME, appauthor=False, roaming=True)、それ以外は user_data_dir(APP_NAME, appauthor=False) の下に置く
+    unit_tests:
+      - name: test_resolve_app_paths_when_data_dir
+        case: 正常
+        summary: データの置き場所の下に全てを置く
+        condition: data_dir=一時フォルダ
+        mock: なし
+        expected: settings_file が {data_dir}/settings.toml、log_dir が {data_dir}/log など全てが data_dir の下。フォルダは作られていない
+      - name: test_resolve_app_paths_when_default
+        case: 正常
+        summary: 既定は platformdirs の置き場所
+        condition: data_dir=None
+        mock: platformdirs の user_config_dir・user_data_dir（それぞれ一時フォルダの config・local を返す）
+        expected: settings_file が config/settings.toml、それ以外が local の下。user_config_dir に roaming=True が渡る
+    refs:
+      - dev/設計書/外部ライブラリ/platformdirs#
+    status: implemented
+constants:
+  - name: APP_NAME
+    title: アプリ名
+    container: shared/constants.py
+    usecase: 共通
+    summary: 置き場所のフォルダ名に使うアプリの名前
+    value: '"voice-paste"'
+    status: implemented
+test_files:
+  - tests/unit/voice_paste/shared/test_settings.py
+  - tests/unit/voice_paste/shared/test_env_migration.py
+  - tests/unit/voice_paste/shared/test_logger.py
+  - tests/unit/voice_paste/shared/test_constants.py

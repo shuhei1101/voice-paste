@@ -1,2 +1,6 @@
 summary: クラス / 関数 / 関数型 インデックス（単体テストの元）
-items: []
+items:
+  - page: 常駐アプリ/
+    summary: 常駐アプリ（src/voice_paste/）の分類ごとのモジュール構成
+  - page: 文字起こしワーカー/
+    summary: 文字起こしワーカー（子プロセス）のモジュール構成

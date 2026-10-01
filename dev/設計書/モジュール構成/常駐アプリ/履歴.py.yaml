@@ -1,0 +1,122 @@
+title: "常駐アプリ / 履歴"
+lead: 確定した録音と起こした文字を `%LOCALAPPDATA%\voice-paste\history\` に残し、保持期間を過ぎたものを消す。文字起こしの成否より先に録音を残す。
+directory: |-
+  ```
+  src/voice_paste/features/history/
+  ├── __init__.py   # save_recording・append_text・purge_expired の公開
+  └── service.py    # 録音の保存・文字の書き足し・古い履歴の削除
+  ```
+functions:
+  - name: save_recording
+    title: 録音の保存
+    kind: 関数
+    container: features/history/service.py
+    usecase: 録音する
+    scope: public
+    inherits: SaveRecordingFn
+    summary: 履歴を残す設定なら history の日付のフォルダ、残さない設定なら一時の音声のフォルダへ WAV を書く
+    args:
+      - name: session_id
+        type: str
+        required: true
+        passing: positional
+        description: セッションの ID（ファイル名に含める）
+      - name: recording
+        type: Recording
+        required: true
+        passing: positional
+        description: 確定した録音
+      - name: history_enabled
+        type: bool
+        required: true
+        passing: injected
+        description: 履歴を残す設定
+      - name: paths
+        type: AppPaths
+        required: true
+        passing: injected
+        description: 置き場所のパス（共通）
+      - name: now
+        type: Callable[[], datetime]
+        required: true
+        passing: injected
+        description: 今の時刻
+    returns:
+      type: Path
+      description: 書いた WAV（`history/{YYYYMMDD}/{日時}_{session_id}.wav` か `tmp/{session_id}.wav`）
+    unit_tests:
+      - name: test_save_recording
+        case: 正常
+        summary: 日付のフォルダへ書く
+        condition: history_enabled=True、now=2026-10-01 12:00
+        mock: なし（一時フォルダ）
+        expected: history/20261001/ の下に WAV があり、そのパスが返る
+      - name: test_save_recording_when_history_disabled
+        case: 正常
+        summary: 履歴を残さない設定は一時の音声へ書く
+        condition: history_enabled=False
+        mock: なし（一時フォルダ）
+        expected: tmp/ の下に WAV があり、history/ に無い
+    status: planned
+  - name: append_text
+    title: 履歴への文字の書き足し
+    kind: 関数
+    container: features/history/service.py
+    usecase: 録音を文字に起こす
+    scope: public
+    inherits: AppendTextFn
+    summary: 録音と同じ名前の .txt へ起こした文字を書く。一時の音声（履歴を残さない設定）なら何もしない
+    args:
+      - name: audio_path
+        type: Path
+        required: true
+        passing: positional
+        description: 保存した録音
+      - name: text
+        type: str
+        required: true
+        passing: positional
+        description: 起こした文字
+    returns:
+      type: None
+      description: なし
+    status: planned
+  - name: purge_expired
+    title: 古い履歴の削除
+    kind: 関数
+    container: features/history/service.py
+    usecase: 常駐アプリを起動する
+    scope: public
+    summary: フォルダ名の日付が保持期間を過ぎた履歴のフォルダと、残った一時の音声を消す。起動時と非機能要件の削除の間隔ごとに呼ぶ
+    args:
+      - name: retention_days
+        type: int
+        required: true
+        passing: injected
+        description: 保持期間（設定）
+      - name: paths
+        type: AppPaths
+        required: true
+        passing: injected
+        description: 置き場所のパス
+      - name: now
+        type: Callable[[], datetime]
+        required: true
+        passing: injected
+        description: 今の時刻
+    returns:
+      type: int
+      description: 消したフォルダの数
+    process: |-
+      1. history/ の下の `YYYYMMDD` のフォルダのうち、今日 − 保持日数より前のものを消す
+         - 日付でない名前のフォルダは残す
+         - `[INFO]` 古い履歴を消した（消した数）
+      2. tmp/ の下の一時の音声のうち、処理中のセッションでないものを消す
+    unit_tests:
+      - name: test_purge_expired
+        case: 正常
+        summary: 保持期間を過ぎた日付のフォルダだけ消す
+        condition: 保持 1 日、今日・1 日前・2 日前・名前が日付でないフォルダ
+        mock: なし（一時フォルダ）
+        expected: 2 日前だけが消え、戻り値が 1
+    status: planned

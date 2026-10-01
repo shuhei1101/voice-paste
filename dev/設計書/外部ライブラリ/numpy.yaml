@@ -2,9 +2,9 @@ title: "numpy"
 kind: "ライブラリ"
 version:
   current: 2.4.4
-  checked_on: '2026-09-30'
-  source: 手元の venv に入っている版（pyproject.toml には書かれず、scipy などの依存として入る）
-  pinning: 固定していない
+  checked_on: '2026-10-01'
+  source: pyproject.toml（scipy などの依存としても入る）と普段使いの venv に入っている版
+  pinning: 互換リリースで固定（~=2.4）
 catalogs:
   - name: API
     version: 2.4.4
@@ -26,7 +26,8 @@ purl: pkg:pypi/numpy
 dependency_scope: 必須
 adoption: 採用
 used_in:
-  - voice_paste/audio/recorder.py
+  - voice_paste_legacy/audio/recorder.py
+  - src/voice_paste/features/recording/service.py
 upstream: numpy/numpy
 verification:
   state: 未確認

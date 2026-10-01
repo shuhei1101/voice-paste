@@ -4,44 +4,46 @@ scenarios:
     setup:
       - name: Mock
         description: なし（実機の Windows で実行）
-      - name: 履歴の保存
-        description: 履歴を残す設定にする
-        notes: '`HISTORY_ENABLED=true`'
-      - name: 届け方
-        description: 録音の画面で「貼付+送信」を選んだ
+      - name: 出力先
+        description: 「貼り付けて送信」をオンにし、録音する で「貼り付けて送信」を選んだ
     flow: |-
       ```mermaid
       sequenceDiagram
-        participant APP as 常駐アプリ
-        participant FS as 履歴（history/）
+        participant SVC as 常駐サービス
+        participant OUT as 出力先（貼り付けて送信）
         participant CB as クリップボード
         participant TGT as 貼り付け先のアプリ
+        participant TRAY as トレイ
 
-        APP->>FS: 録音を history/{YYYYMMDD}/{日時}_recording.wav へ移し、文字を {日時}_text.txt に書く
-        APP->>CB: 起こした文字をコピーする
-        APP->>TGT: 0.1 秒待って貼り付けキー（PASTE_KEY、既定 Ctrl+V）を送る
-        APP->>TGT: PASTE_ENTER_DELAY 秒待って Enter を送る
+        SVC->>OUT: 起こした文字を渡す
+        OUT->>CB: 起こした文字をコピーする
+        OUT->>TGT: 貼り付けのキーを送る
+        OUT->>TGT: 設定の間を置いて Enter を送る
+        SVC->>SVC: 待機中に戻す
+        SVC->>TRAY: 待機中のアイコンにする
       ```
     expected:
       - 貼り付け先の入力欄に起こした文字が入り、Enter が送られている
       - クリップボードに起こした文字が入っている
-      - '`history/{YYYYMMDD}/` に `{日時}_recording.wav` と `{日時}_text.txt` があり、`cache/recording.wav` は無くなっている'
+      - トレイのアイコンが待機中に戻っている
   - name: 正常シナリオ（貼り付けのみ）
     setup:
       - name: Mock
         description: なし（実機の Windows で実行）
-      - name: 届け方
-        description: 録音の画面で「貼付のみ」を選んだ
+      - name: 出力先
+        description: 「貼り付けのみ」をオンにし、録音する で「貼り付けのみ」を選んだ
     flow: |-
       ```mermaid
       sequenceDiagram
-        participant APP as 常駐アプリ
+        participant SVC as 常駐サービス
+        participant OUT as 出力先（貼り付けのみ）
         participant CB as クリップボード
         participant TGT as 貼り付け先のアプリ
 
-        Note over APP: 履歴への保存は 正常シナリオ と同じ
-        APP->>CB: 起こした文字をコピーする
-        APP->>TGT: 0.1 秒待って貼り付けキーを送る
+        SVC->>OUT: 起こした文字を渡す
+        OUT->>CB: 起こした文字をコピーする
+        OUT->>TGT: 貼り付けのキーを送る
+        Note over SVC: 待機中に戻すのは 正常シナリオ と同じ
       ```
     expected:
       - 貼り付け先の入力欄に起こした文字が入り、Enter は送られていない
@@ -50,77 +52,158 @@ scenarios:
     setup:
       - name: Mock
         description: なし（実機の Windows で実行）
-      - name: 届け方
-        description: 録音の画面で「コピー」を選んだ
+      - name: 出力先
+        description: 「コピーのみ」をオンにし、録音する で「コピーのみ」を選んだ
     flow: |-
       ```mermaid
       sequenceDiagram
-        participant APP as 常駐アプリ
+        participant SVC as 常駐サービス
+        participant OUT as 出力先（コピーのみ）
         participant CB as クリップボード
 
-        Note over APP: 履歴への保存は 正常シナリオ と同じ
-        APP->>CB: 起こした文字をコピーする
+        SVC->>OUT: 起こした文字を渡す
+        OUT->>CB: 起こした文字をコピーする
+        Note over SVC: 待機中に戻すのは 正常シナリオ と同じ
       ```
     expected:
       - クリップボードに起こした文字が入っている
-      - 貼り付けキーも Enter も送られていない
+      - 貼り付けのキーも Enter も送られていない
   - name: 正常シナリオ（AI チャットへ送る）
     setup:
       - name: Mock
         description: なし（実機の Windows と Microsoft Edge で実行）
-      - name: AI 送信の設定
-        description: AI チャットを 1 つ有効にしてある
-        notes: '`AI_SEND_1_NAME`・`AI_SEND_1_URL` に値があり、`AI_SEND_1_ENABLED=true`'
-      - name: 届け方
-        description: 録音の画面で AI の名前のボタンを選んだ
+      - name: 出力先
+        description: 「AI チャットへ送る」をオンにし、送り先の一覧に AI チャットを 1 つ登録して、録音する でその送り先を選んだ
     flow: |-
       ```mermaid
       sequenceDiagram
-        participant APP as 常駐アプリ
+        participant SVC as 常駐サービス
+        participant OUT as 出力先（AI チャットへ送る）
         participant CB as クリップボード
         participant EDGE as Microsoft Edge
 
-        Note over APP: 履歴への保存は 正常シナリオ と同じ
-        APP->>CB: 起こした文字をコピーする
-        APP->>EDGE: --app={AI_SEND_1_URL} で開く（Edge が見つからなければ既定のブラウザで開く）
-        APP->>APP: AI_SEND_DELAY 秒待つ
-        APP->>EDGE: 貼り付けキーを送る
-        APP->>EDGE: PASTE_ENTER_DELAY 秒待って Enter を送る
+        SVC->>OUT: 起こした文字と選んだ送り先を渡す
+        OUT->>CB: 起こした文字をコピーする
+        OUT->>EDGE: 送り先の URL をアプリのウィンドウとして開く（Edge が見つからなければ既定のブラウザで開く）
+        OUT->>OUT: 設定の間を置く
+        OUT->>EDGE: 貼り付けのキーを送り、設定の間を置いて Enter を送る
+        Note over SVC: 待機中に戻すのは 正常シナリオ と同じ
       ```
     expected:
       - AI チャットの画面がアプリのウィンドウとして開いている
       - AI チャットの入力欄に起こした文字が入り、送信されている
-  - name: 正常シナリオ（履歴を残さない）
+  - name: 正常シナリオ（呼び出し元へ返す）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
-      - name: 履歴の保存
-        description: 履歴を残さない設定にする
-        notes: '`HISTORY_ENABLED=false`'
-      - name: 届け方
-        description: 録音の画面で「貼付+送信」を選んだ
+        description: なし（実機の Windows で実行。返送先は 127.0.0.1 で待ち受けるテスト用の受け口）
+      - name: 入口
+        description: API から始めた録音で、起こした文字が得られた
+      - name: ほかの出力先
+        description: 「貼り付けて送信」をオンにしている
     flow: |-
       ```mermaid
       sequenceDiagram
-        participant APP as 常駐アプリ
-        participant CB as クリップボード
-        participant TGT as 貼り付け先のアプリ
+        participant SVC as 常駐サービス
+        participant OUT as 出力先（呼び出し元へ返す）
+        participant CB as 返送先のエンドポイント
+        participant TRAY as トレイ
 
-        APP->>APP: 履歴への保存を飛ばす
-        APP->>CB: 起こした文字をコピーする
-        Note over APP: 貼り付けと Enter は 正常シナリオ と同じ
+        SVC->>OUT: 起こした文字と返送先を渡す
+        OUT->>OUT: 返送先が loopback か設定で許可したホストであることを確かめる
+        OUT->>CB: セッションの ID と起こした文字を送る
+        CB-->>OUT: 受け取った
+        SVC->>SVC: 待機中に戻す
+        SVC->>TRAY: 待機中のアイコンにする
       ```
     expected:
-      - 貼り付け先の入力欄に起こした文字が入り、Enter が送られている
-      - '`history/` にこの録音のファイルが無く、録音は `cache/recording.wav` に残っている'
-lead: 起こした文字を履歴に残し、録音の画面で選んだ届け方で貼り付け先へ届ける単一ユースケース。
-issue: 3
+      - 返送先の受け口に、セッションの ID と起こした文字が 1 回届いている
+      - クリップボードと貼り付け先が届ける前のままである
+      - トレイのアイコンが待機中に戻っている
+  - name: 正常シナリオ（呼び出し元へ空の文字を返す）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行。返送先は 127.0.0.1 で待ち受けるテスト用の受け口）
+      - name: 入口
+        description: API から始めた録音で、文字起こしの結果が空だった
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant OUT as 出力先（呼び出し元へ返す）
+        participant CB as 返送先のエンドポイント
+
+        SVC->>OUT: 空の文字と返送先を渡す
+        OUT->>CB: セッションの ID と空の文字を送る
+        CB-->>OUT: 受け取った
+        Note over SVC: 待機中に戻すのは 正常シナリオ（呼び出し元へ返す） と同じ
+      ```
+    expected:
+      - 返送先の受け口に、セッションの ID と空の文字が 1 回届いている
+      - トレイのアイコンが待機中に戻っている
+  - name: 異常シナリオ（呼び出し元へ失敗を返す）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行。返送先は 127.0.0.1 で待ち受けるテスト用の受け口）
+      - name: 入口
+        description: API から始めた録音で、文字起こしに失敗した
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant OUT as 出力先（呼び出し元へ返す）
+        participant CB as 返送先のエンドポイント
+
+        SVC->>OUT: 文字起こしの失敗と返送先を渡す
+        OUT->>CB: セッションの ID と文字起こしに失敗したことを送る
+        CB-->>OUT: 受け取った
+        Note over SVC: 待機中に戻すのは 正常シナリオ（呼び出し元へ返す） と同じ
+      ```
+    expected:
+      - 返送先の受け口に、セッションの ID と文字起こしに失敗したことが 1 回届いている
+      - トレイのアイコンが待機中に戻っている
+  - name: 異常シナリオ（返送先に届かない）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 入口
+        description: API から始めた録音で、起こした文字が得られた
+      - name: 返送先の停止
+        description: 返送先の受け口を止めておき、送っても届かないようにする
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant OUT as 出力先（呼び出し元へ返す）
+        participant CB as 返送先のエンドポイント
+        participant LOG as ログ
+
+        SVC->>OUT: 起こした文字と返送先を渡す
+        loop 決めた回数まで
+          OUT->>CB: セッションの ID と起こした文字を送る
+          CB--xOUT: 届かない（タイムアウトか接続できない）
+          OUT->>OUT: 決めた間を置く
+        end
+        OUT->>LOG: 返送先に届かなかったこととセッションの ID を書く
+        Note over SVC: 待機中に戻すのは 正常シナリオ（呼び出し元へ返す） と同じ
+      ```
+    expected:
+      - ログに返送先に届かなかったこととセッションの ID が書かれている
+      - 履歴に録音と起こした文字が残っている
+      - トレイのアイコンが待機中に戻り、次の録音を始められる
+    notes:
+      再送の回数と間: 再送の回数・間・タイムアウトは非機能要件で決める。
+lead: 起こした文字を、ホットキーから始めた録音は選んだ出力先へ、API から始めた録音は呼び出し元のエンドポイントへ届ける単一ユースケース。
+issue: 14
 primary_actor: 音声入力を使うユーザー
-trigger: 録音を文字に起こす で空でない文字が起きる
+trigger: 録音を文字に起こす で空でない文字が起きるか、API から始めた録音で空の文字・文字起こしの失敗が渡される
 preconditions:
-  - 貼り付けたいアプリの入力欄にフォーカスがある（貼り付けはその時点のアクティブなウィンドウへ入る）
+  - ホットキー・トレイから始めた録音では、貼り付けたいアプリの入力欄にフォーカスがある（貼り付けはその時点のアクティブなウィンドウへ入る）
+  - API から始めた録音では、開始で指定された返送先のエンドポイントがある
 notes:
+  出力先の選ばれ方: |-
+    ホットキー・トレイから始めた録音は、設定でオンにした出力先（貼り付けて送信・貼り付けのみ・コピーのみ・AI チャットへ送る）のうち、録音する で選んだものへ届ける。
+    API から始めた録音は、呼び出し元へ返す出力先だけを使い、そのほかの出力先はオンでも通さない。
   クリップボードに書けないとき: |-
-    ほかのアプリがクリップボードを開いたままで書けないと、「Session failed.」をログに書いて次の録音開始を待つ。
-    履歴への保存の後に起きるため、履歴には残るが、貼り付け先には何も入らず、ダイアログも出ない。
+    ほかのアプリがクリップボードを開いたままで書けないときは、届けられなかったことをユーザーに知らせ、ログに理由を書く。
+    録音と起こした文字は履歴に残っている。
     実機で決定的に起こせないため、シナリオにはしていない。

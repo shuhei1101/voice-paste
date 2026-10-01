@@ -25,17 +25,17 @@ if exist "%~dp0venv\Scripts\activate.bat" (
     set "PYTHON_EXE=pythonw"
 )
 
-echo [%date% %time%] launching: %PYTHON_EXE% -m voice_paste >> "%BAT_LOG%"
+echo [%date% %time%] launching: %PYTHON_EXE% -m voice_paste_legacy >> "%BAT_LOG%"
 chcp 65001 > nul
 set FOR_DISABLE_CONSOLE_CTRL_HANDLER=1
 set "PATH=%~dp0venv\Lib\site-packages\nvidia\cublas\bin;%~dp0venv\Lib\site-packages\nvidia\cudnn\bin;%~dp0venv\Lib\site-packages\nvidia\cuda_nvrtc\bin;%PATH%"
-start "" "%PYTHON_EXE%" -m voice_paste
+start "" "%PYTHON_EXE%" -m voice_paste_legacy
 set "EXITCODE=%ERRORLEVEL%"
 echo [%date% %time%] launcher exited with code %EXITCODE% >> "%BAT_LOG%"
 
 if not "%EXITCODE%"=="0" (
     echo.
-    echo [ERROR] failed to launch voice_paste with code %EXITCODE%
+    echo [ERROR] failed to launch voice_paste_legacy with code %EXITCODE%
     echo See log: %BAT_LOG%
     pause
 )

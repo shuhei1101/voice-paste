@@ -2,9 +2,9 @@ title: "comtypes"
 kind: "ライブラリ"
 version:
   current: 1.4.16
-  checked_on: '2026-09-30'
-  source: 手元の venv に入っている版（pyproject.toml には書かれず、pycaw の依存として入る）
-  pinning: 固定していない
+  checked_on: '2026-10-01'
+  source: pyproject.toml（pycaw の依存としても入る）と普段使いの venv に入っている版
+  pinning: 互換リリースで固定（~=1.4）
 catalogs:
   - name: API
     version: 1.4.16
@@ -17,7 +17,8 @@ purl: pkg:pypi/comtypes
 dependency_scope: 必須
 adoption: 採用
 used_in:
-  - voice_paste/audio/volume.py
+  - voice_paste_legacy/audio/volume.py
+  - src/voice_paste/integrations/volume/
 upstream: enthought/comtypes
 verification:
   state: 未確認

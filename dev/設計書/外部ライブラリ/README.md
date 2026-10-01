@@ -24,3 +24,11 @@
 | [PyInstaller](./PyInstaller.yaml) | exe をビルドする |
 | [tkinter](./tkinter.yaml) | 録音の画面・文字起こし中の表示・設定画面を作る |
 | [Microsoft_Edge](./Microsoft_Edge.yaml) | AI チャットの画面をアプリのウィンドウとして開く |
+| [fastapi](./fastapi.yaml) | 常駐サービスの API のルートと入出力の検証を組み立てる |
+| [uvicorn](./uvicorn.yaml) | API を 127.0.0.1 で待ち受ける |
+| [httpx](./httpx.yaml) | 起こした文字を呼び出し元のエンドポイントへ返す |
+| [pydantic](./pydantic.yaml) | 設定と API の入出力を検証する |
+| [pyside6-essentials](./pyside6-essentials.yaml) | 画面とトレイを出し、ほかのスレッドからメインスレッドへ操作を渡す |
+| [tomlkit](./tomlkit.yaml) | 設定をコメントを保ったまま TOML で読み書きする |
+| [platformdirs](./platformdirs.yaml) | 設定・履歴・ログの置き場所を Windows の慣習で引く |
+| [import-linter](./import-linter.yaml) | 新しい構成の import の向きを検査する |

@@ -1,0 +1,104 @@
+title: "常駐アプリ / 文字起こし"
+lead: 設定で選んだエンジンで録音を文字に起こす。エンジンは関数型で受け取り、エンジンごとの設定を渡す。
+directory: |-
+  ```
+  src/voice_paste/features/transcription/
+  ├── __init__.py   # transcribe の公開
+  ├── types.py      # エンジンの関数型とエンジンの種類
+  └── service.py    # transcribe（エンジンの選択と失敗の変換）
+  ```
+enums:
+  - name: EngineName
+    title: エンジンの種類
+    container: features/transcription/types.py
+    usecase: 録音を文字に起こす
+    summary: 設定で選ぶ文字起こしのエンジン
+    values:
+      - value: local_whisper
+        title: ローカルの Whisper
+        description: 文字起こしワーカーの子プロセスで起こす
+      - value: openai
+        title: OpenAI
+        description: OpenAI API で起こす
+    status: planned
+function_types:
+  - name: EngineFn
+    title: エンジン
+    container: features/transcription/types.py
+    usecase: 録音を文字に起こす
+    summary: 1 つのエンジンで録音を起こす。エンジンを 1 つ足すときはこの型の実装を足して main.py で登録する
+    args:
+      - name: audio_path
+        type: Path
+        description: 録音の WAV
+      - name: on_progress
+        type: Callable[[float, float], None] | None
+        description: 経過秒と録音の長さ
+    returns:
+      type: list[str]
+      description: 区間ごとの文字
+    implementations:
+      - target: 外部連携の WhisperWorkerClient.transcribe
+        notes: エンジンが local_whisper のとき
+      - target: 外部連携の transcribe_with_openai
+        notes: エンジンが openai のとき
+    status: planned
+functions:
+  - name: transcribe
+    title: 文字起こし
+    kind: 関数
+    container: features/transcription/service.py
+    usecase: 録音を文字に起こす
+    role: サービス
+    scope: public
+    inherits: TranscribeFn
+    summary: 設定のエンジンで録音を起こし、区間を改行でつなぐ
+    args:
+      - name: audio_path
+        type: Path
+        required: true
+        passing: positional
+        description: 録音の WAV
+      - name: on_progress
+        type: Callable[[float, float], None] | None
+        required: false
+        default: None
+        passing: keyword
+        description: 進みの知らせ先
+      - name: engine
+        type: EngineFn
+        required: true
+        passing: injected
+        description: 設定で選んだエンジン（main.py で partial で渡す）
+    returns:
+      type: str
+      description: 区間ごとの文字を改行でつないだもの。無音なら空文字
+    process: |-
+      1. エンジンで録音を起こす（エンジン）
+         - EngineError の場合、理由を持たせた TranscriptionError を送出する
+      2. 空白だけの区間を除き、改行でつなぐ
+         - `[INFO]` 文字に起こした（区間の数・文字数・かかった秒）
+    exceptions:
+      - name: TranscriptionError
+        condition: エンジンが失敗した（ワーカーのやり直しも落ちた・OpenAI に届かない・ワーカーがエラーを返した）
+    unit_tests:
+      - name: test_transcribe
+        case: 正常
+        summary: 区間を改行でつなぐ
+        condition: engine が ["今日は", "晴れ"] を返す
+        mock: engine
+        expected: '"今日は\n晴れ" が返る'
+      - name: test_transcribe_when_empty
+        case: 正常
+        summary: 区間が無ければ空文字
+        condition: engine が [] を返す
+        mock: engine
+        expected: '"" が返る'
+      - name: test_transcribe_when_engine_failed
+        case: 異常
+        summary: エンジンの失敗を TranscriptionError にする
+        condition: engine が EngineError を送出する
+        mock: engine
+        expected: TranscriptionError が送出され、理由が残る
+        exception: エンジンが失敗した
+    status: planned

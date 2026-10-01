@@ -1,0 +1,326 @@
+title: "常駐アプリ / 起動と配線"
+lead: 常駐サービスの入口。単一インスタンスを確かめ、各 feature と外部連携を関数で配線し（composition root）、API・ホットキー・トレイを立てて画面のイベントループを回す。
+directory: |-
+  ```
+  src/voice_paste/
+  ├── __init__.py
+  ├── __main__.py              # python -m voice_paste で main() を呼ぶ（CUDA の DLL のフォルダの登録もここ）
+  ├── main.py                  # parse_args・build_handlers・main
+  └── runtime/
+      └── single_instance.py   # 名前付きのミューテックスと終了の依頼（名前付きのイベント）
+  ```
+
+  リポジトリの直下は `pyproject.toml`・起動のバッチファイル 1 つ・`settings.sample.toml`・`README.md`・`CLAUDE.md`・`src/`・`resources/`・`tests/`・`dev/`・`docs/` に絞る。
+
+  中身をまだ作らない層・feature・出力先（`features/{session,recording,transcription,correction,outputs,history}/`・`features/outputs/{paste_and_send,paste_only,copy_only,ai_chat,callback}/`・`integrations/`・`runtime/`・`server/`・`ui/`）は、import-linter の契約が指せるよう `__init__.py`（docstring 1 行）だけを置く。出力先の `registry.py`・`service.py`・`types.py` はそれぞれを作る Issue が置く。
+diagrams:
+  - name: 依存の向き
+    diagram: |-
+      ```mermaid
+      classDiagram
+        direction TB
+        class 起動と配線
+        class APIサーバー
+        class ホットキーと画面
+        class セッション
+        class 録音
+        class 文字起こし
+        class 補正
+        class 出力先
+        class 履歴
+        class 外部連携
+        class 共通
+        起動と配線 --> APIサーバー
+        起動と配線 --> ホットキーと画面
+        起動と配線 --> セッション
+        起動と配線 --> 外部連携
+        APIサーバー --> セッション : route の集約
+        セッション --> 共通
+        録音 --> 共通
+        文字起こし --> 共通
+        補正 --> 共通
+        出力先 --> 外部連携
+        履歴 --> 共通
+        ホットキーと画面 --> 共通
+        外部連携 --> 共通
+      ```
+data_models:
+  - name: Handlers
+    title: 配線済みの関数の束
+    container: main.py
+    usecase: 常駐アプリを起動する
+    role: DTO
+    summary: 入口（API・ホットキー・画面）が使う配線済みのもの
+    properties:
+      - name: session_manager
+        type: SessionManager
+        description: セッション管理
+      - name: session_api
+        type: SessionApiDeps
+        description: API サーバーへ渡すセッションの API の依存（設定の許可ホストを部分適用した返送先の確かめを含む）
+      - name: settings
+        type: Settings
+        description: 読み込んだ設定
+      - name: start_local_session
+        type: Callable[[Entry], None]
+        description: ホットキー・トレイの開始（SessionManager と notify を部分適用した start_local_session）
+    status: planned
+  - name: CliArgs
+    title: 起動の引数
+    container: main.py
+    usecase: 常駐アプリを起動する
+    role: DTO
+    summary: '`python -m voice_paste` に渡した引数'
+    description: '`@dataclass(frozen=True, slots=True, kw_only=True)`。'
+    properties:
+      - name: data_dir
+        type: Path | None
+        description: データの置き場所（`--data-dir`）。設定・履歴・ログ・一時の音声・トークンをこの下に置く
+      - name: migrate_env
+        type: Path | None
+        description: 設定へ移す .env（`--migrate-env`）。渡されたときだけ移す
+    status: implemented
+functions:
+  - name: build_handlers
+    title: 配線
+    kind: 関数
+    container: main.py
+    usecase: 常駐アプリを起動する
+    role: composition root
+    scope: public
+    summary: 設定からエンジン・録音機・出力先・履歴を組み立て、SessionDeps を作って SessionManager と SessionApiDeps を返す
+    args:
+      - name: settings
+        type: Settings
+        required: true
+        passing: positional
+        description: 設定
+      - name: paths
+        type: AppPaths
+        required: true
+        passing: positional
+        description: 置き場所
+      - name: notify
+        type: NotifyFn
+        required: true
+        passing: positional
+        description: 画面への知らせ
+    returns:
+      type: Handlers
+      description: 配線済みの関数の束
+    process: |-
+      1. 設定のエンジンが local_whisper なら WhisperWorkerClient を作って起動し、openai なら transcribe_with_openai に OpenAI の設定と非機能要件の送る音声ファイルの大きさを部分適用する（文字起こしの engine に渡す）
+         - EngineError・API キーが空の場合、StartupError を送出する
+      2. Recorder に音量のアダプタを渡す
+      3. 出力先の deliver にオンの出力先と OUTPUTS を部分適用し、Session を入口・出力先・返送先に分けて渡すアダプタを作る
+      4. 用語集を文字起こしのたびに読み直す correct を作る（load_glossary → apply_glossary）
+      5. SessionDeps を組み、SessionManager を作る
+      6. SessionManager と、設定の許可ホストを部分適用した is_callback_allowed を SessionApiDeps に束ねる
+      7. start_local_session に SessionManager と notify を部分適用する
+    exceptions:
+      - name: StartupError
+        condition: 文字起こしのエンジンを準備できない
+    status: planned
+  - name: main
+    title: 起動
+    kind: 関数
+    container: main.py
+    usecase: 常駐アプリを起動する
+    scope: public
+    summary: 常駐サービスを起動し、終わるまで画面のイベントループを回す
+    returns:
+      type: int
+      description: 終了コード
+    process: |-
+      1. 名前付きの排他を取る（acquire_single_instance）
+      2. ログを設定する（setup_logging）
+      3. QApplication とトレイを作り、準備中を出す
+      4. 設定を読む（load_settings）
+         - SettingsError の場合、トレイで知らせてログに理由を書き、録音を受け付けずにトレイだけで続ける（5〜8 を飛ばす。古いログと履歴も消さない）
+           - `[ERROR]` 起動に失敗した（理由）
+      5. 設定の保持期間で古いログと履歴を消す（purge_old_logs・purge_expired）
+      6. 配線する（build_handlers）
+         - StartupError の場合、トレイで知らせてログに理由を書き、録音を受け付けずにトレイだけで続ける（7 と 8 を飛ばす）
+           - `[ERROR]` 起動に失敗した（理由）
+      7. トークンを発行し、API サーバーを起動する（issue_token・build_fastapi・ApiServerRunner.start）
+         - False の場合、トレイで API を使えないことを知らせて続ける
+      8. ホットキーの受付を始め（開始は start_local_session、確定・一時停止・取り消しは SessionManager のメソッド）、上限の打ち切りと古い履歴・ログの削除を QTimer で定期に呼ぶ
+      9. トレイを待機中にし、イベントループを回す
+      10. 終了の依頼かトレイの終了で、録音を捨て・API サーバー・ホットキー・ワーカーを止め、トレイを消して終わる
+    status: planned
+    notes:
+      並走の間の処理: |-
+        配線する feature と入口が無い間（#16 から、それぞれを作る Issue まで）は、main(argv: list[str] | None = None) を次の処理にする。各 Issue が上の処理の段を足していく。
+
+        1. 起動の引数を読む（parse_args。argv が None なら sys.argv[1:]）
+        2. 置き場所を決め、ログを INFO で設定する（resolve_app_paths・setup_logging）
+        3. `--migrate-env` が渡されていれば、.env を移して書く（migrate_env・save_settings）
+           - settings.toml が既にある場合、移さずに 1 を返す（書き換えた設定を上書きしない）
+             - `[ERROR]` 設定ファイルが既にあるため .env を移さなかった（設定ファイルのパス）
+           - SettingsError の場合、1 を返す
+             - `[ERROR]` .env を移せなかった（理由）
+           - `[INFO]` .env を設定ファイルへ移した（.env のパス・設定ファイルのパス）
+        4. 設定を読む（load_settings）
+           - SettingsError の場合、1 を返す
+             - `[ERROR]` 起動に失敗した（理由）
+        5. ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログを消す（purge_old_logs）
+        6. 読んだ設定の要点をログに書いて 0 を返す（API キーは書かない）
+           - `[INFO]` 設定を読んだ（設定ファイルのパス・エンジン・オンの出力先の ID）
+
+        `__main__.py` は `sys.exit(main())` だけを呼ぶ（CUDA の DLL の登録は文字起こしを作る #17 が足す）。
+    unit_tests:
+      - name: test_main
+        case: 正常
+        summary: 設定を読んでログに書き 0 を返す
+        condition: --data-dir に空の一時フォルダ
+        mock: なし（一時フォルダ）
+        expected: 0。{data_dir}/settings.toml が既定値ででき、{data_dir}/log/{今日}.log に「設定を読んだ」の行がある
+      - name: test_main_when_migrate_env
+        case: 正常
+        summary: .env を移してから読む
+        condition: --data-dir に空の一時フォルダ、--migrate-env に TRANSCRIPTION_ENGINE=openai と OPENAI_API_KEY=sk-test の .env
+        mock: なし（一時フォルダ）
+        expected: 0。settings.toml の transcription.engine が openai、.env の中身が変わらず .env.migrated が無く、ログに sk-test が出ていない
+      - name: test_main_when_settings_exists_and_migrate_env
+        case: 異常
+        summary: 設定ファイルがあれば移さない
+        condition: hotkeys.start を変えた settings.toml がある data_dir、--migrate-env に .env
+        mock: なし（一時フォルダ）
+        expected: 1。settings.toml が変わらず、ERROR のログが 1 行
+        exception: settings.toml が既にある
+      - name: test_main_when_invalid_settings
+        case: 異常
+        summary: 設定が合わなければ 1 を返す
+        condition: transcription.local_whisper.beam_size = "x" の settings.toml がある data_dir
+        mock: なし（一時フォルダ）
+        expected: 1。ERROR のログに transcription.local_whisper.beam_size が出る
+        exception: SettingsError
+  - name: acquire_single_instance
+    title: 単一インスタンスの確保
+    kind: 関数
+    container: runtime/single_instance.py
+    usecase: 常駐アプリを起動する
+    scope: public
+    summary: 名前付きのミューテックスを取る。取られていれば名前付きのイベントで前のプロセスに終わるよう頼み、解放を待ってから取る
+    args:
+      - name: timeout_sec
+        type: float
+        required: true
+        passing: positional
+        description: 前のプロセスの終わりを待つ上限
+    returns:
+      type: SingleInstanceLock
+      description: 取った排他（終了時に解放する。終了の依頼を待つスレッドも持つ）
+    exceptions:
+      - name: StartupError
+        condition: 上限まで待っても前のプロセスが排他を放さない
+    notes:
+      強制終了しない: プロセスの番号での強制終了はしない（番号を使い回された無関係なプロセスを止めない）。
+    status: planned
+  - name: start_local_session
+    title: ホットキー・トレイからの開始
+    kind: 関数
+    container: main.py
+    usecase: 録音する
+    scope: public
+    summary: SessionManager.start を呼び、断られた理由をユーザーへ知らせる。例外を pynput・画面のスレッドへ漏らさない
+    args:
+      - name: entry
+        type: Entry
+        required: true
+        passing: positional
+        description: hotkey か tray
+      - name: session_manager
+        type: SessionManager
+        required: true
+        passing: injected
+        description: セッション管理
+      - name: notify
+        type: NotifyFn
+        required: true
+        passing: injected
+        description: ユーザーへの知らせ
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. SessionManager.start(entry) を呼ぶ
+         - SessionBusyError の場合、busy を知らせる（ダイアログ）
+         - MicrophoneUnavailableError の場合、microphone_unavailable を知らせる（トレイ）
+         - それ以外の例外の場合、ログに書いて握る
+           - `[ERROR]` 録音を始められなかった（logger.exception）
+    unit_tests:
+      - name: test_start_local_session_when_busy
+        case: 正常
+        summary: 処理中なら busy を知らせる
+        condition: start が SessionBusyError を送出する
+        mock: session_manager・notify
+        expected: notify に busy が渡り、例外が出ない
+      - name: test_start_local_session_when_microphone_unavailable
+        case: 正常
+        summary: マイクを開けなければ microphone_unavailable を知らせる
+        condition: start が MicrophoneUnavailableError を送出する
+        mock: session_manager・notify
+        expected: notify に microphone_unavailable が渡り、例外が出ない
+      - name: test_start_local_session_when_unexpected_error
+        case: 正常
+        summary: 想定外の例外も漏らさない
+        condition: start が RuntimeError を送出する
+        mock: session_manager・notify
+        expected: 例外が出ず、ERROR のログが 1 行出る
+    status: planned
+  - name: parse_args
+    title: 起動の引数の解釈
+    kind: 関数
+    container: main.py
+    usecase: 常駐アプリを起動する
+    scope: public
+    summary: argparse で `--data-dir` と `--migrate-env` を読む
+    args:
+      - name: argv
+        type: list[str]
+        required: true
+        passing: positional
+        description: コマンドの引数（プログラム名を除く）
+    returns:
+      type: CliArgs
+      description: 起動の引数
+    process: |-
+      1. `--data-dir {フォルダ}` と `--migrate-env {ファイル}` を読む
+         - 並走の間（起動を切り替える #22 まで）は `--data-dir` を必須にし、普段使いの既定の置き場所へ書かない
+         - 知らない引数・`--data-dir` が無い場合、argparse が使い方を出して SystemExit(2) で終わる
+    unit_tests:
+      - name: test_parse_args
+        case: 正常
+        summary: データの置き場所だけを読む
+        condition: '["--data-dir", "C:/tmp/vp"]'
+        mock: なし
+        expected: data_dir が Path("C:/tmp/vp")、migrate_env が None
+      - name: test_parse_args_when_migrate_env
+        case: 正常
+        summary: 移す .env も読む
+        condition: '["--data-dir", "C:/tmp/vp", "--migrate-env", "C:/repo/.env"]'
+        mock: なし
+        expected: migrate_env が Path("C:/repo/.env")
+      - name: test_parse_args_when_no_data_dir
+        case: 異常
+        summary: データの置き場所が無ければ終わる
+        condition: '[]'
+        mock: なし
+        expected: SystemExit（code 2）
+    status: implemented
+notes:
+  依存の向き: |-
+    コーディング規約『依存関係管理』のとおり `features`・`server`・`ui` → `integrations`・`runtime` → `shared` とし、上の層へは import しない。
+    `features` どうしと、`features/outputs` の出力先どうしも import しない。セッションはほかの feature を SessionDeps の関数型で受け取り、`main.py` だけが全てを知る。
+    `server` はセッションの route を include_router で集め、SessionApiDeps を app.state に置くためだけに `features/session` を import する。route は `main.py`・`server` を import せず、SessionApiDeps を app.state から受け取る。
+  依存の向きの検査: |-
+    import-linter の契約を pyproject.toml の `[tool.importlinter]`（root_package は `voice_paste`）に置き、単体テストと一緒に `lint-imports` で回す（品質シナリオ 5。コマンドは設計書『テスト実行方法』）。
+
+    | 契約 | 種類 | 中身 |
+    | --- | --- | --- |
+    | 層 | layers | `voice_paste.main` → `voice_paste.server` \| `voice_paste.ui` → `voice_paste.features` → `voice_paste.integrations` \| `voice_paste.runtime` → `voice_paste.shared`（`\|` で並べた層どうしも import しない） |
+    | feature の独立 | independence | `voice_paste.features.*` |
+    | 出力先の独立 | independence | `voice_paste.features.outputs.*`。ignore_imports で `voice_paste.features.outputs.registry -> voice_paste.features.outputs.*`・`voice_paste.features.outputs.service -> voice_paste.features.outputs.registry`・`voice_paste.features.outputs.** -> voice_paste.features.outputs.types` を除く |
+
+    出力先を足すときは `features/outputs/` にサブフォルダを足すだけで契約の対象に入り、契約は直さない。

@@ -1,0 +1,43 @@
+title: "fastapi"
+kind: "フレームワーク"
+version:
+  current: 0.142.2
+  latest: 0.142.2
+  checked_on: '2026-10-01'
+  source: pyproject.toml
+  pinning: マイナー版の中で固定（~=0.142.2。0.x はマイナー版で互換の無い変更が入る）
+catalogs:
+  - name: API
+    version: 0.142.2
+    entries:
+      - name: FastAPI
+        kind: クラス
+        purpose: API のサーバーの app を組み立てる
+      - name: APIRouter
+        kind: クラス
+        purpose: セッションの開始・停止・完了の route を束ねる
+      - name: Depends / Header
+        kind: 関数
+        purpose: トークンの照合と Authorization ヘッダーの受け取り
+      - name: Request / middleware
+        kind: クラス
+        purpose: Host・Origin を確かめて断る
+      - name: exception_handler / RequestValidationError
+        kind: 関数
+        purpose: 例外を RFC 9457 の応答に変える。入力の検証の失敗を既定の 422 でなく 400 にする
+lead: 型ヒントと pydantic で入出力を検証し、OpenAPI を出す Python の Web API フレームワーク。
+purl: pkg:pypi/fastapi
+dependency_scope: 必須
+adoption: 採用
+used_in:
+  - src/voice_paste/server/app.py
+  - src/voice_paste/server/middleware.py
+  - src/voice_paste/server/error_handlers.py
+  - src/voice_paste/features/session/route.py
+upstream: fastapi/fastapi
+verification:
+  state: 済
+  date: '2026-10-01'
+  detail: WSL（Linux・Python 3.12）の一時の仮想環境で、POST /sessions に当たる最小の app を uvicorn で動かした。トークンの一致で 202・不一致で 401、Origin 付きとほかの Host で 403、URI でない callback_url で既定の 422 が返ることを確かめた。Windows の実機では未確認
+license: MIT（商用利用可）
+official_url: https://fastapi.tiangolo.com/

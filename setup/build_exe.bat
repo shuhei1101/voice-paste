@@ -81,7 +81,7 @@ python -m PyInstaller ^
     --hidden-import scipy ^
     --hidden-import pynput.keyboard._win32 ^
     --hidden-import pynput.mouse._win32 ^
-    "%PROJECT_ROOT%\voice_paste\__main__.py" 2>&1 | powershell -NoProfile -Command "[Console]::InputEncoding=[System.Text.Encoding]::UTF8; $input | ForEach-Object { Write-Host $_; Add-Content -LiteralPath '%BAT_LOG%' -Value $_ -Encoding utf8 }"
+    "%PROJECT_ROOT%\voice_paste_legacy\__main__.py" 2>&1 | powershell -NoProfile -Command "[Console]::InputEncoding=[System.Text.Encoding]::UTF8; $input | ForEach-Object { Write-Host $_; Add-Content -LiteralPath '%BAT_LOG%' -Value $_ -Encoding utf8 }"
 
 if not exist "%PROJECT_ROOT%\dist\voice-paste\voice-paste.exe" (
     echo [%date% %time%] pyinstaller failed ^(exe not produced^) >> "%BAT_LOG%"

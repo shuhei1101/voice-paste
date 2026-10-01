@@ -26,7 +26,7 @@ purl: pkg:pypi/sounddevice
 dependency_scope: 必須
 adoption: 採用
 used_in:
-  - voice_paste/audio/recorder.py
+  - voice_paste_legacy/audio/recorder.py
 upstream: spatialaudio/python-sounddevice
 verification:
   state: 未確認

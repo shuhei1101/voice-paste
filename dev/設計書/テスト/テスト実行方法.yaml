@@ -1,12 +1,48 @@
 title: "テスト実行方法"
 layers:
   - name: 単体テスト（バック）
-    run_all: 未確定
+    run_all: |-
+      ```bash
+      venv/Scripts/python.exe -m pytest tests/transcription tests/unit
+      ```
+    description: pytest で実行する。`tests/transcription` は voice_paste_legacy（faster-whisper のモデルは Mock）、`tests/unit` は新しい構成（`src/voice_paste/` をミラーした並び）の単体テスト。
+    prerequisites:
+      - 外部依存なし（GPU も録音も要らない）
+    run_one:
+      label: ファイル
+      command: |-
+        ```bash
+        venv/Scripts/python.exe -m pytest {単体テストファイルパス}
+        ```
   - name: 結合テスト（バック）
     run_all: 未確定
   - name: E2E テスト
     run_all: 未確定
   - name: 非機能要件テスト
-    run_all: 未確定
+    run_all: |-
+      ```bash
+      venv/Scripts/python.exe -m pytest tests/nfr
+      ```
+    description: pytest で実行する。録音・用語集・設定・期待値は git 管理外の `tests/nfr/fixtures/` から読み、今のローカルの Whisper（GPU）で起こす。
+    prerequisites:
+      - Windows と NVIDIA GPU が要る（無い環境では文字起こしのテストを skip する。CUDA の DLL は venv の `Lib/site-packages/nvidia/` から読む）
+      - '`tests/nfr/fixtures/` に録音・用語集・設定・期待値が要る（無ければ skip する）'
+    run_one:
+      label: ファイル
+      command: |-
+        ```bash
+        venv/Scripts/python.exe -m pytest {非機能要件テストファイルパス}
+        ```
   - name: 外部疎通テスト
     run_all: 未確定
+  - name: lint
+    description: import-linter で pyproject.toml の `[tool.importlinter]` の契約（層・feature の独立・出力先の独立）を検査する。単体テストと一緒に回す。
+    prerequisites:
+      - 外部依存なし
+    run_all: |-
+      ```bash
+      venv/Scripts/lint-imports
+      ```
+    results: 契約ごとの KEPT / BROKEN と、破った import の行を標準出力に出す（破れていれば終了コード 1）
+prerequisites:
+  - Windows の Python 3.11 以上の venv（`venv/Scripts/python.exe`）に `pip install -e . --group dev` を済ませる（pip 25.1 以上。pytest と import-linter は pyproject.toml の `[dependency-groups]` の dev から入る）

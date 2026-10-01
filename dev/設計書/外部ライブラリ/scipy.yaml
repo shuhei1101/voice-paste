@@ -20,11 +20,12 @@ purl: pkg:pypi/scipy
 dependency_scope: 必須
 adoption: 採用
 used_in:
-  - voice_paste/audio/recorder.py
-  - voice_paste/main.py
+  - voice_paste_legacy/audio/recorder.py
+  - voice_paste_legacy/main.py
 upstream: scipy/scipy
 verification:
-  state: 未確認
-  detail: 現状の棚卸しで、コードが使っている範囲を写しただけで、動かしてはいない
+  state: 済
+  date: '2026-10-01'
+  detail: scipy.io.wavfile.read / write で 16 kHz・モノラル・16 bit の WAV を読み書きできることを確かめた
 license: BSD-3-Clause（商用利用可）
 official_url: https://scipy.org/

@@ -1,13 +1,11 @@
 title: "常駐アプリ / 外部連携"
-lead: 文字起こしワーカーの子プロセス・OpenAI・システム音量・キーボードとクリップボードを包むアダプタ。feature の関数型を満たし、外の例外をアプリの例外に変える。
+lead: 文字起こしワーカーの子プロセス・システム音量・キーボードとクリップボードを包むアダプタ。feature の関数型を満たし、外の例外をアプリの例外に変える。
 directory: |-
   ```
   src/voice_paste/integrations/
   ├── whisper/
   │   ├── client.py     # WhisperWorkerClient（子プロセスの起動・監視・立て直し・やり直し）
   │   └── worker.py     # 子プロセスの本体（文字起こしワーカーのサブシステム）
-  ├── openai/
-  │   └── client.py     # transcribe_with_openai
   ├── volume/
   │   └── adapter.py    # lower_volume・restore_volume（pycaw を == で固定して包む）
   └── keyboard/
@@ -30,18 +28,79 @@ classes:
         type: LocalWhisperSettings
         access: 内部 (_)
         description: モデル・デバイス・量子化・言語・ビーム幅・温度・VAD
+      - name: _ready_timeout_sec
+        type: float
+        access: 内部 (_)
+        description: 立て直しで ready を待つ上限（非機能要件の文字起こしワーカーの立て直しの時間。main.py が渡す）。起動時の 1 回目にはかけない
+      - name: _log_dir
+        type: Path
+        access: 内部 (_)
+        description: ワーカーが落ちたときのスタックを書くログの置き場所（AppPaths.log_dir）
+      - name: _stop_timeout_sec
+        type: float
+        access: 内部 (_)
+        description: 終わりを待つ時間（非機能要件の文字起こしワーカーの終わりを待つ時間。main.py が渡す）
+      - name: _stopping
+        type: bool
+        access: 内部 (_)
+        default: 'False'
+        description: stop で止めている最中か。立っている間は子プロセスが終わっても立て直さない。start で下ろす
     methods:
       - name: start
         title: 起動
         kind: メソッド
         scope: public
-        summary: 子プロセスを起動し、ready を待つ。待ちきれなければ EngineError
+        summary: 子プロセスを起動し、ready を待つ。起動時の 1 回目はモデルの取得や冷えた読み込みがあるため上限をかけず、立て直しだけ上限をかける
         returns:
           type: None
           description: なし
         exceptions:
           - name: EngineError
-            condition: モデルを読み込めず ready が届かない
+            condition: モデルを読み込めず ready が届かない（error が届いた・子プロセスが終わった・立て直しで上限を過ぎた）
+        process: |-
+          1. _stopping を下ろす
+          2. 子プロセスの環境を作る
+             - venv の `Lib/site-packages/nvidia/{cublas,cudnn,cuda_nvrtc}/bin` のうち存在するものを PATH の先頭へ足す（CUDA の DLL を子プロセスが見つけられるようにする）
+             - 標準入出力を UTF-8 にする
+          3. `python -u -m voice_paste.integrations.whisper.worker` をコンソールを出さずに起動し、標準エラーを別のスレッドで読んでロガーへ流す
+          4. config（モデル・デバイス・量子化・スレッド数・ワーカー数・ログの置き場所）を送り、ready・error・子プロセスの終了のどれかを待つ
+             - ready_timeout_sec が渡されていれば、その間だけ待つ（立て直しの経路）
+             - error が届いた・子プロセスが終わった・上限を過ぎた場合、子プロセスを止めて EngineError を送出する
+             - `[INFO]` 文字起こしワーカーが立ち上がった（pid・かかった秒）
+        unit_tests:
+          - name: test_start
+            case: 正常
+            summary: config を送り ready を受けて立ち上がる
+            condition: 子プロセスが ready を返す
+            mock: subprocess.Popen
+            expected: 最初に送った行が config で、Popen の環境の PATH の先頭に存在する nvidia の bin がある
+          - name: test_start_when_model_load_failed
+            case: 異常
+            summary: ready の代わりに error が届いたら EngineError
+            condition: 子プロセスが error を返して終わる
+            mock: subprocess.Popen
+            expected: EngineError が送出され、理由に error の中身が残る
+            exception: モデルを読み込めず ready が届かない
+          - name: test_start_when_ready_timeout
+            case: 異常
+            summary: 立て直しで ready を待ちきれなければ子プロセスを止めて EngineError
+            condition: ready_timeout_sec=0.1 を渡し（立て直しの経路）、子プロセスは何も返さない
+            mock: subprocess.Popen
+            expected: EngineError が送出され、子プロセスの kill か terminate が呼ばれる
+            exception: モデルを読み込めず ready が届かない（error が届いた・子プロセスが終わった・立て直しで上限を過ぎた）
+          - name: test_start_when_first_ready_is_slow
+            case: 正常
+            summary: 起動時の 1 回目は上限をかけずに ready を待つ
+            condition: ready_timeout_sec を渡さず、子プロセスは _ready_timeout_sec（0.1 にする）より遅れて 0.3 秒後に ready を返す
+            mock: subprocess.Popen
+            expected: 例外が出ずに立ち上がり、子プロセスが止められない
+        args:
+          - name: ready_timeout_sec
+            type: float | None
+            required: false
+            default: None
+            passing: keyword
+            description: ready を待つ上限。None（起動時の 1 回目）は上限をかけない。立て直しでは transcribe が _ready_timeout_sec を渡す
       - name: transcribe
         title: 文字起こし
         kind: メソッド
@@ -65,10 +124,12 @@ classes:
           description: 区間ごとの文字
         process: |-
           1. 録音と設定を 1 行の JSON で送り、区間の進みと結果を読む
-             - 子プロセスが応答の途中で終わった場合、子プロセスを起動し直して同じ録音をもう一度送る（やり直しは 1 回だけ）
+             - 子プロセスが応答の途中で終わった場合、_stopping が立っていれば立て直さずに EngineError を送出する（常駐の終了で止めた）
+             - それ以外で子プロセスが応答の途中で終わった場合、子プロセスを start(ready_timeout_sec=_ready_timeout_sec) で起動し直して同じ録音をもう一度送る（やり直しは 1 回だけ）
                - `[WARNING]` 文字起こしワーカーが落ちたので立て直す（終了コード）
-             - やり直しも落ちた場合、子プロセスをもう一度起動して次の録音に備え、EngineError を送出する
-             - ワーカーがエラーを返した場合、EngineError を送出する
+               - 立て直しで ready が上限までに届かなければ、start が子プロセスを止めて EngineError を送出する
+             - やり直しも落ちた場合、子プロセスを同じ上限でもう一度起動して次の録音に備え、EngineError を送出する
+             - ワーカーがエラーを返した場合、起動し直さずに EngineError を送出する
         exceptions:
           - name: EngineError
             condition: やり直したワーカーも落ちた
@@ -88,70 +149,63 @@ classes:
             mock: subprocess.Popen
             expected: EngineError が送出され、Popen が 3 回呼ばれる
             exception: やり直したワーカーも落ちた
+          - name: test_transcribe
+            case: 正常
+            summary: 進みを知らせ、区間ごとの文字を返す
+            condition: 子プロセスが progress（end=1.0, duration=2.0）・result（["今日は", "晴れ"]）を返す
+            mock: subprocess.Popen
+            expected: '["今日は", "晴れ"] が返り、on_progress が (1.0, 2.0) で 1 回呼ばれ、送った transcribe に設定の言語・ビーム幅・温度・VAD が入る'
+          - name: test_transcribe_when_worker_error
+            case: 異常
+            summary: ワーカーが error を返したら起動し直さずに EngineError
+            condition: 子プロセスが error を返し、動き続ける
+            mock: subprocess.Popen
+            expected: EngineError が送出され、Popen が 1 回だけ呼ばれる
+            exception: ワーカーがエラーを返した
+          - name: test_transcribe_when_restart_ready_timeout
+            case: 異常
+            summary: 立て直しで ready を待ちきれなければ _ready_timeout_sec の後に EngineError
+            condition: _ready_timeout_sec=0.1。1 つ目の子プロセスは応答の途中で終わり、2 つ目は ready を返さない
+            mock: subprocess.Popen
+            expected: EngineError が送出され、2 つ目の子プロセスが止められ、待ちが 1 秒未満で終わる
+            exception: やり直したワーカーも落ちた
+      - name: stop
+        title: 停止
+        kind: メソッド
+        scope: public
+        summary: 子プロセスの標準入力を閉じて終わりを待ち、待ちきれなければ止める。常駐の終了時に main.py が呼ぶ。文字起こしの最中に別のスレッドから呼ばれても、文字起こしの終わりを待たない
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 文字起こしが持つロックを取らずに _stopping を立てる（文字起こしの最中でも待たない。止めた子プロセスを transcribe が「落ちた」と受けて立て直さないようにする）
+          2. 子プロセスが無ければ何もしない
+          3. 標準入力を閉じ、終わりを _stop_timeout_sec 待つ
+             - 終わらなければ terminate して同じ時間待ち、それでも終わらなければ kill する
+               - `[WARNING]` 文字起こしワーカーが終わらないので止めた（terminate / kill）
+        unit_tests:
+          - name: test_stop_when_worker_hangs
+            case: 正常
+            summary: 標準入力を閉じても終わらなければ止める
+            condition: 子プロセスの wait が 1 回目にタイムアウトする
+            mock: subprocess.Popen
+            expected: 標準入力が閉じられ、terminate が呼ばれる
+          - name: test_stop_when_terminate_hangs
+            case: 正常
+            summary: terminate しても終わらなければ kill する
+            condition: _stop_timeout_sec=0.1、子プロセスの wait が 1 回目・2 回目ともタイムアウトする
+            mock: subprocess.Popen
+            expected: terminate の後に kill が呼ばれ、wait がどちらも 0.1 秒で呼ばれる
+          - name: test_stop_when_transcribing
+            case: 正常
+            summary: 文字起こしの最中に止めても _stop_timeout_sec で止まり、立て直さない
+            condition: _stop_timeout_sec=0.1。子プロセスは transcribe に何も返さず、標準入力を閉じても終わらない。別のスレッドで transcribe を呼んでから stop を呼ぶ
+            mock: subprocess.Popen
+            expected: stop が 1 秒未満で戻り、terminate が呼ばれ、transcribe が EngineError を送出し、Popen が 1 回だけ呼ばれる
     refs:
       - dev/設計書/外部ライブラリ/faster-whisper#
-    status: planned
+    status: implemented
 functions:
-  - name: transcribe_with_openai
-    title: OpenAI での文字起こし
-    kind: 関数
-    container: integrations/openai/client.py
-    usecase: 録音を文字に起こす
-    scope: public
-    inherits: EngineFn
-    summary: OpenAI のエンジンの設定（モデル・言語・温度）で録音を送り、区間ごとの文字を返す
-    args:
-      - name: audio_path
-        type: Path
-        required: true
-        passing: positional
-        description: 録音の WAV
-      - name: on_progress
-        type: Callable[[float, float], None] | None
-        required: false
-        default: None
-        passing: keyword
-        description: 区間ごとに知らせる
-      - name: settings
-        type: OpenAISettings
-        required: true
-        passing: injected
-        description: API キー（SecretStr）・モデル・言語・温度
-      - name: max_upload_bytes
-        type: int
-        required: true
-        passing: injected
-        description: 非機能要件の OpenAI API へ送る音声ファイルの大きさの決定値
-    returns:
-      type: list[str]
-      description: 区間ごとの文字（区間が無ければ全文を 1 つ）
-    process: |-
-      1. 録音のファイルの大きさが max_upload_bytes を超えるかを確かめる
-         - 超える場合、送らずに EngineError を送出する
-           - `[WARNING]` 送れる大きさを超えたため送らなかった（大きさ・上限）
-      2. OpenAI のエンジンの設定で録音を送り、区間ごとの文字を返す
-         - API に届かない・エラーを返した場合、EngineError を送出する
-    exceptions:
-      - name: EngineError
-        condition: 録音が max_upload_bytes を超える（送らない）・API に届かない・エラーを返した
-    unit_tests:
-      - name: test_transcribe_with_openai_when_too_large
-        case: 異常
-        summary: 上限を超える録音は送らない
-        condition: max_upload_bytes を 1,000 にし、1,001 バイトの WAV を渡す
-        mock: OpenAI のクライアント
-        expected: EngineError が送出され、クライアントが呼ばれず、WARNING のログが 1 行出る
-        exception: 録音が max_upload_bytes を超える
-    connectivity_tests:
-      - name: test_ext_transcribe_with_openai_when_default_model
-        api: OpenAI API（音声の文字起こし）
-        summary: 既定のモデルで短い録音を起こせる
-        checks: API キーでの認証・区間つきの応答の形
-        cost: 1 秒の録音 1 回分の従量課金
-    refs:
-      - dev/設計書/外部ライブラリ/openai#
-      - dev/設計書/外部API/OpenAI_API#
-    status: planned
   - name: lower_volume
     title: 音量を下げる
     kind: 関数
@@ -241,3 +295,5 @@ functions:
     refs:
       - dev/設計書/外部ライブラリ/pynput#
     status: planned
+test_files:
+  - tests/unit/voice_paste/integrations/whisper/test_client.py

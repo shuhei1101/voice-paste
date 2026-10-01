@@ -34,7 +34,21 @@ layers:
         venv/Scripts/python.exe -m pytest {非機能要件テストファイルパス}
         ```
   - name: 外部疎通テスト
-    run_all: 未確定
+    run_all: |-
+      ```bash
+      venv/Scripts/python.exe -m pytest tests/external --run-external
+      ```
+    description: pytest で実行する。`tests/external/` のテストは `--run-external` を付けたときだけ走り、付けなければ全て skip する。
+    prerequisites:
+      - 接続先の外部サービスの認証情報（API キーなど）を環境変数で渡す（無ければそのテストは skip する）
+      - 従量課金のかかる外部サービスは、実行のたびに課金がかかる
+      - AI はユーザーが実行を許可したときだけ実行する（CI では実行しない）
+    run_one:
+      label: ファイル
+      command: |-
+        ```bash
+        venv/Scripts/python.exe -m pytest {外部疎通テストファイルパス} --run-external
+        ```
   - name: lint
     description: import-linter で pyproject.toml の `[tool.importlinter]` の契約（層・feature の独立・出力先の独立）を検査する。単体テストと一緒に回す。
     prerequisites:

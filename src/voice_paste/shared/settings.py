@@ -14,7 +14,6 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    SecretStr,
     ValidationError,
     field_validator,
 )
@@ -93,32 +92,13 @@ class LocalWhisperSettings(_SettingsModel):
     )
 
 
-class OpenAISettings(_SettingsModel):
-    """OpenAI の文字起こしの設定。"""
-
-    api_key: SecretStr = _item(
-        SecretStr(""), "API キー。ログにも repr にも出さない", reload=RELOAD_RESTART
-    )
-    model: str = _item("whisper-1", "文字起こしのモデル", reload=RELOAD_RESTART)
-    language: str = _item(
-        "ja", "認識する言語（ローカルの Whisper の言語とは別に持つ）", reload=RELOAD_RESTART
-    )
-    temperature: float = _item(
-        0.0,
-        "サンプリングの温度（ローカルの Whisper の温度とは別に持つ）",
-        reload=RELOAD_RESTART,
-        ge=0,
-    )
-
-
 class TranscriptionSettings(_SettingsModel):
     """使うエンジンと、エンジンごとの設定。"""
 
-    engine: Literal["local_whisper", "openai"] = _item(
+    engine: Literal["local_whisper"] = _item(
         "local_whisper", "使う文字起こしのエンジン", reload=RELOAD_RESTART
     )
     local_whisper: LocalWhisperSettings = _group(LocalWhisperSettings, "ローカルの Whisper の設定")
-    openai: OpenAISettings = _group(OpenAISettings, "OpenAI の設定")
 
 
 # === 録音・ホットキー・キーボード ===
@@ -412,11 +392,8 @@ def save_settings(path: Path, settings: Settings) -> bool:
     # 1・2. 既にある設定ファイルを読み、前の設定にする
     document, previous, unreadable = _read_existing(path)
 
-    # 3. 設定を JSON の値にする（API キーは元の値で書く）
+    # 3. 設定を JSON の値にする
     data = settings.model_dump(mode="json", exclude_none=True)
-    data["transcription"]["openai"]["api_key"] = (
-        settings.transcription.openai.api_key.get_secret_value()
-    )
 
     # 4. 文書の値を置き換える
     _merge_into(document, data)

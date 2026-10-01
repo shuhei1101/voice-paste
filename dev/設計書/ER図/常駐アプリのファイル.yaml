@@ -1,5 +1,5 @@
 title: "ER 図: 常駐アプリのファイル"
-lead: 常駐アプリが書き出して持つファイル（履歴・一時の録音・PID・ログ）。データベースは持たない。置き場の基準はリポジトリの直下（exe では `%APPDATA%\voice-paste`）。
+lead: 常駐アプリが書き出して持つファイル（履歴・一時の録音・PID・ログ）。データベースは持たない。置き場の基準はリポジトリの直下（exe では `%APPDATA%\voice-paste`）。新しい構成（`src/voice_paste/`）のファイルは `%LOCALAPPDATA%\voice-paste\` を基準にし、名前の先頭に置き場を書く。
 tables:
   - name: history/{YYYYMMDD}/{YYYYMMDDHHMMSS}_recording.wav
     title: 録音の履歴
@@ -85,3 +85,55 @@ tables:
         title: 記録の行
         type: string
         description: スタックトレースや起動の手順の行
+  - name: '%LOCALAPPDATA%\voice-paste\history\{YYYYMMDD}\{YYYYMMDDHHMMSS}_{session_id}.wav'
+    title: 録音の履歴（新しい構成）
+    datastore: ファイル（WAV）
+    summary: 確定した録音。文字起こしより先に書き、文字起こしに失敗しても結果が空でも残る
+    growth: 録音を確定するたびに 1 つ増える（`history.enabled = true` のとき）
+    retention: '`history.retention_days` 日（日付のフォルダごと消す）'
+    deletion: 物理削除（起動時と、常駐中は非機能要件の削除の間隔ごと）
+    columns:
+      - name: sample_rate
+        title: サンプリングレート
+        type: number
+        description: 録音のサンプルレート（Hz）
+      - name: channels
+        title: チャンネル数
+        type: number
+        description: 1（モノラル）
+      - name: samples
+        title: 音
+        type: array
+        description: 16 ビット整数の音（一時停止の間の音は含まない）
+  - name: '%LOCALAPPDATA%\voice-paste\history\{YYYYMMDD}\{YYYYMMDDHHMMSS}_{session_id}.txt'
+    title: 起こした文字の履歴（新しい構成）
+    datastore: ファイル（テキスト、UTF-8）
+    summary: 起こした文字（用語集で補正した後）。同じ名前の録音の履歴と対になる
+    growth: 文字起こしを終えるたびに 1 つ増える（結果が空でも書く。失敗した回は無い）
+    retention: '`history.retention_days` 日（日付のフォルダごと消す）'
+    deletion: 物理削除（録音の履歴と同じ）
+    columns:
+      - name: text
+        title: 起こした文字
+        type: string
+        description: 区間ごとに改行で区切った文字
+  - name: '%LOCALAPPDATA%\voice-paste\tmp\{session_id}.wav'
+    title: 一時の音声（新しい構成）
+    datastore: ファイル（WAV）
+    summary: 履歴を残さない設定のときに、確定した録音を文字に起こすまで置く
+    growth: 録音を確定するたびに 1 つ増える（`history.enabled = false` のとき）
+    retention: そのセッションの確定後の流れが終わるまで（文字起こしに失敗しても結果が空でも、終わったら消す）
+    deletion: 物理削除（確定後の流れの最後に一時の音声の削除で消す。常駐が落ちた・消せなかったときの取り残しは、古い履歴の削除が処理中のセッションのものを除いて消す）
+    columns:
+      - name: sample_rate
+        title: サンプリングレート
+        type: number
+        description: 録音のサンプルレート（Hz）
+      - name: channels
+        title: チャンネル数
+        type: number
+        description: 1（モノラル）
+      - name: samples
+        title: 音
+        type: array
+        description: 16 ビット整数の音

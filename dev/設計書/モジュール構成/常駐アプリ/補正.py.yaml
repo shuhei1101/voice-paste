@@ -21,7 +21,7 @@ data_models:
       - name: right
         type: str
         description: 正しい表記（CSV の列 `正しい表記`）
-    status: planned
+    status: implemented
 functions:
   - name: load_glossary
     title: 用語集の読み込み
@@ -42,7 +42,9 @@ functions:
     process: |-
       1. ファイルが無ければ空を返す
          - `[WARNING]` 用語集が無い（パス）
-      2. UTF-8（BOM ありも）の CSV を読み、`誤変換` が空の行を飛ばす
+      2. UTF-8（BOM ありも）の CSV を列名で読み、`誤変換`・`正しい表記` の前後の空白を除く
+         - どちらかが空の行は飛ばす（voice_paste_legacy の load_yogo と同じ）
+         - `[INFO]` 用語集を読んだ（パス・行数）
     unit_tests:
       - name: test_load_glossary
         case: 正常
@@ -56,14 +58,26 @@ functions:
         condition: 存在しないパス
         mock: なし
         expected: '[] が返る'
-    status: planned
+      - name: test_load_glossary_when_bom
+        case: 正常
+        summary: BOM つきの CSV も列名で読める
+        condition: BOM つきの UTF-8 で 1 行の CSV
+        mock: なし（一時フォルダ）
+        expected: GlossaryEntry が 1 つ返る
+      - name: test_load_glossary_when_blank_cells
+        case: 正常
+        summary: 空白を除き、どちらかが空の行を飛ばす
+        condition: 「 くろーど , Claude 」・「あいう,」・「,えお」の 3 行の CSV
+        mock: なし（一時フォルダ）
+        expected: GlossaryEntry(wrong="くろーど", right="Claude") だけが返る
+    status: implemented
   - name: apply_glossary
     title: 用語集での補正
     kind: 関数
     container: features/correction/service.py
     usecase: 録音を文字に起こす
     scope: public
-    summary: 誤変換を正しい表記へ置き換える（用語集の行の順）
+    summary: 誤変換を正しい表記へ置き換える（用語集の行の順に、前の行で置き換えた結果へ次の行を当てる）
     args:
       - name: text
         type: str
@@ -85,6 +99,23 @@ functions:
         condition: 「くろーどこーど」→「Claude Code」の行と、それを含む文
         mock: なし
         expected: 「Claude Code」に置き換わった文が返る
+      - name: test_apply_glossary_when_chained
+        case: 正常
+        summary: 前の行で置き換えた結果に次の行を当てる
+        condition: 「A」→「B」、「B」→「C」の順の 2 行と文字「A」
+        mock: なし
+        expected: 「C」が返る
+      - name: test_apply_glossary_when_no_match
+        case: 正常
+        summary: 誤変換を含まなければそのまま
+        condition: 「くろーどこーど」→「Claude Code」の行と文字「今日は晴れ」
+        mock: なし
+        expected: 「今日は晴れ」が返る
     notes:
       特性テスト: 置き換えの結果は、#15 で固める特性テスト（今の実装の入出力）と一致させる（品質シナリオ 2）。
-    status: planned
+    status: implemented
+    process: |-
+      1. 用語集の行の順に、誤変換を含むなら全て正しい表記へ置き換える
+         - `[INFO]` 用語集で置き換えた（置き換えた誤変換 → 正しい表記の並び）
+test_files:
+  - tests/unit/voice_paste/features/correction/test_service.py

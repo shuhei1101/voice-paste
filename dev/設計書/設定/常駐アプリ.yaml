@@ -22,7 +22,7 @@ settings:
     file: .env
     type: "'local' | 'openai'"
     default: local
-    description: '`local` は faster-whisper（子プロセス）、`openai` は OpenAI API で文字を起こす。'
+    description: '`local` は faster-whisper（子プロセス）、`openai` は OpenAI API で文字を起こす。新しい構成は OpenAI を使わないため、`settings.toml` への移行では `openai` をエラーにする。'
     reload: restart
     implementation: voice_paste_legacy/config.py
   - key: OPENAI_API_KEY
@@ -30,7 +30,7 @@ settings:
     file: .env
     type: string
     default: （空）
-    description: '`TRANSCRIPTION_ENGINE=openai` のときに使う API キー。空のまま OpenAI を選ぶと起動の処理が止まる。'
+    description: '`TRANSCRIPTION_ENGINE=openai` のときに使う API キー。空のまま OpenAI を選ぶと起動の処理が止まる。新しい構成は OpenAI を使わないため、`settings.toml` への移行では写さない。'
     secret: true
     reload: restart
     implementation: voice_paste_legacy/config.py
@@ -365,9 +365,9 @@ settings:
   - key: transcription.engine
     title: 使う文字起こしのエンジン
     file: settings.toml
-    type: "'local_whisper' | 'openai'"
+    type: "'local_whisper'"
     default: local_whisper
-    description: '`local_whisper` は文字起こしワーカー（faster-whisper）、`openai` は OpenAI API で文字を起こす。`.env` の `TRANSCRIPTION_ENGINE` から写す（`local` は `local_whisper` へ）。'
+    description: '文字起こしワーカー（faster-whisper）で文字を起こす。エンジンはこれだけで、エンジンを足すときに値を足す。`.env` の `TRANSCRIPTION_ENGINE` の `local` を `local_whisper` へ写す（それ以外は移行のエラー）。'
     reload: restart
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -515,44 +515,6 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
     allowed: 0〜1
-  - key: transcription.openai.api_key
-    title: OpenAI の文字起こしの API キー
-    file: settings.toml
-    type: string
-    default: （空）
-    description: '`transcription.engine = "openai"` のときに使う API キー。`.env` の `OPENAI_API_KEY` から写す。'
-    reload: restart
-    status: implemented
-    implementation: src/voice_paste/shared/settings.py
-    secret: true
-  - key: transcription.openai.model
-    title: OpenAI の文字起こしのモデル
-    file: settings.toml
-    type: string
-    default: whisper-1
-    description: 文字起こしに使うモデル。`.env` に対応するキーは無い（移行では既定値になる）。
-    reload: restart
-    status: implemented
-    implementation: src/voice_paste/shared/settings.py
-  - key: transcription.openai.language
-    title: OpenAI の文字起こしの言語
-    file: settings.toml
-    type: string
-    default: ja
-    description: 文字起こしの言語（ローカルの Whisper の言語とは別に持つ）。`.env` の `WHISPER_LANGUAGE` から写す。
-    reload: restart
-    status: implemented
-    implementation: src/voice_paste/shared/settings.py
-  - key: transcription.openai.temperature
-    title: OpenAI の文字起こしの温度
-    file: settings.toml
-    type: float
-    default: '0.0'
-    description: サンプリングの温度（ローカルの Whisper の温度とは別に持つ）。`.env` の `WHISPER_TEMPERATURE` から写す。
-    reload: restart
-    status: implemented
-    implementation: src/voice_paste/shared/settings.py
-    allowed: '>= 0'
   - key: recording.lower_volume
     title: 録音中に音量を下げるか
     file: settings.toml

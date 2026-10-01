@@ -21,6 +21,7 @@ dependency_scope: 必須
 adoption: 採用
 used_in:
   - voice_paste_legacy/transcription/whisper_worker.py
+  - src/voice_paste/integrations/whisper/worker.py
 upstream: SYSTRAN/faster-whisper
 verification:
   state: 済

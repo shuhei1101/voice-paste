@@ -35,6 +35,7 @@ def test_load_settings(settings_file: Path) -> None:
     """書いた値を読む（正常系）。"""
     from voice_paste.shared.settings import (
         CopyOnlySettings,
+        LocalWhisperSettings,
         Settings,
         TranscriptionSettings,
         load_settings,
@@ -42,7 +43,7 @@ def test_load_settings(settings_file: Path) -> None:
 
     # 準備
     settings_file.write_text(
-        '[transcription]\nengine = "openai"\n\n[[outputs]]\nid = "copy_only"\n',
+        '[transcription.local_whisper]\nmodel = "small"\n\n[[outputs]]\nid = "copy_only"\n',
         encoding="utf-8",
     )
 
@@ -51,7 +52,7 @@ def test_load_settings(settings_file: Path) -> None:
 
     # 検証（書いていない項目は既定値）
     assert settings == Settings(
-        transcription=TranscriptionSettings(engine="openai"),
+        transcription=TranscriptionSettings(local_whisper=LocalWhisperSettings(model="small")),
         outputs=[CopyOnlySettings()],
     )
 
@@ -67,31 +68,61 @@ def test_load_settings_when_sample_file(repo_root: Path) -> None:
     assert settings == Settings()
 
 
-def test_load_settings_when_invalid_value(settings_file: Path) -> None:
+@pytest.mark.parametrize(
+    ("content", "expected_key"),
+    [
+        pytest.param(
+            '[transcription.local_whisper]\nbeam_size = "x"\n',
+            r"transcription\.local_whisper\.beam_size",
+            id="beam_size",
+        ),
+        pytest.param(
+            '[transcription]\nengine = "openai"\n',
+            r"transcription\.engine",
+            id="engine_openai",
+        ),
+    ],
+)
+def test_load_settings_when_invalid_value(
+    settings_file: Path, content: str, expected_key: str
+) -> None:
     """合わない値はキーを示して断る（異常系）。"""
     from voice_paste.shared.errors import SettingsError
     from voice_paste.shared.settings import load_settings
 
     # 準備
-    settings_file.write_text(
-        '[transcription.local_whisper]\nbeam_size = "x"\n', encoding="utf-8"
-    )
+    settings_file.write_text(content, encoding="utf-8")
 
     # 実行・検証
-    with pytest.raises(SettingsError, match=r"transcription\.local_whisper\.beam_size"):
+    with pytest.raises(SettingsError, match=expected_key):
         load_settings(settings_file)
 
 
-def test_load_settings_when_unknown_key(settings_file: Path) -> None:
+@pytest.mark.parametrize(
+    ("content", "expected_key"),
+    [
+        pytest.param(
+            "[recording]\nvolum_percent = 30\n", r"recording\.volum_percent", id="typo"
+        ),
+        pytest.param(
+            '[transcription.openai]\nmodel = "whisper-1"\n',
+            r"transcription\.openai",
+            id="removed_openai_table",
+        ),
+    ],
+)
+def test_load_settings_when_unknown_key(
+    settings_file: Path, content: str, expected_key: str
+) -> None:
     """知らないキーを断る（異常系）。"""
     from voice_paste.shared.errors import SettingsError
     from voice_paste.shared.settings import load_settings
 
     # 準備
-    settings_file.write_text("[recording]\nvolum_percent = 30\n", encoding="utf-8")
+    settings_file.write_text(content, encoding="utf-8")
 
     # 実行・検証
-    with pytest.raises(SettingsError, match=r"recording\.volum_percent"):
+    with pytest.raises(SettingsError, match=expected_key):
         load_settings(settings_file)
 
 
@@ -156,16 +187,19 @@ def test_save_settings_when_comments(settings_file: Path) -> None:
 def test_save_settings_when_restart_item_changed(settings_file: Path) -> None:
     """再起動が要る項目が変われば True（正常系）。"""
     from voice_paste.shared.settings import (
+        LocalWhisperSettings,
         Settings,
         TranscriptionSettings,
         save_settings,
     )
 
-    # 準備
+    # 準備（large-v3 から small へ変える）
     settings_file.write_text(
-        '[transcription]\nengine = "local_whisper"\n', encoding="utf-8"
+        '[transcription.local_whisper]\nmodel = "large-v3"\n', encoding="utf-8"
     )
-    new_settings = Settings(transcription=TranscriptionSettings(engine="openai"))
+    new_settings = Settings(
+        transcription=TranscriptionSettings(local_whisper=LocalWhisperSettings(model="small"))
+    )
 
     # 実行
     restart_required = save_settings(settings_file, new_settings)
@@ -193,22 +227,11 @@ def test_save_settings_when_immediate_item_changed(settings_file: Path) -> None:
 
 def test_save_settings_when_missing(tmp_path: Path) -> None:
     """無ければフォルダごと作る（正常系）。"""
-    from pydantic import SecretStr
-
-    from voice_paste.shared.settings import (
-        OpenAISettings,
-        Settings,
-        TranscriptionSettings,
-        save_settings,
-    )
+    from voice_paste.shared.settings import Settings, save_settings
 
     # 準備
     path = tmp_path / "not_created" / SETTINGS_FILE_NAME
-    new_settings = Settings(
-        transcription=TranscriptionSettings(
-            openai=OpenAISettings(api_key=SecretStr("sk-test"))
-        )
-    )
+    new_settings = Settings()
 
     # 実行
     restart_required = save_settings(path, new_settings)
@@ -216,7 +239,7 @@ def test_save_settings_when_missing(tmp_path: Path) -> None:
     # 検証
     written = tomllib.loads(path.read_text(encoding="utf-8"))
     assert restart_required is False
-    assert written["transcription"]["openai"]["api_key"] == "sk-test"
+    assert path.exists()
     assert "glossary_path" not in written
 
 

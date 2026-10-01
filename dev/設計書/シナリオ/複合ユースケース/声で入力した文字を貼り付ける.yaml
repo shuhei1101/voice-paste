@@ -61,7 +61,7 @@ scenarios:
         description: 履歴を残す設定にする
       - name: 文字起こしの失敗
         description: 文字起こしのエンジンが失敗を返す状態にする
-        notes: エンジンを OpenAI にし、API に届かない状態にする
+        notes: 中身の壊れた録音の WAV を確定し、文字起こしワーカーがエラーを返す状態にする
     flow: |-
       ```mermaid
       flowchart TD
@@ -160,7 +160,7 @@ trigger: ユーザーが録音開始のホットキーを押すか、トレイ�
 preconditions:
   - Windows の端末で、ショートカットから常駐サービスを起動している
   - マイクがつながっている
-  - 設定の文字起こしのエンジンに要るものがそろっている（ローカルの Whisper は Whisper のモデルと GPU、OpenAI は API キー）
+  - 設定の文字起こしのエンジンに要るものがそろっている（ローカルの Whisper のモデルと GPU）
 success_guarantee: |-
   起こした文字が、設定でオンにした出力先で貼り付け先へ入る。
   録音を確定した時点で、録音が履歴に残る（履歴を残す設定のとき）。

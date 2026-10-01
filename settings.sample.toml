@@ -7,7 +7,7 @@
 
 # === 文字起こし ===
 [transcription]
-# 使うエンジン（再起動）。local_whisper または openai
+# 使うエンジン（再起動）。local_whisper
 engine = "local_whisper"
 
 [transcription.local_whisper]
@@ -41,16 +41,6 @@ condition_on_previous_text = false
 temperature = 0.0
 # 区間を無音とみなす確信度の閾値（再起動）。0〜1
 no_speech_threshold = 0.6
-
-[transcription.openai]
-# API キー（再起動）。engine = "openai" のときに使う。ログには出さない
-api_key = ""
-# 文字起こしのモデル（再起動）
-model = "whisper-1"
-# 認識する言語（再起動）。ローカルの Whisper の言語とは別
-language = "ja"
-# サンプリングの温度（再起動）。0 以上。ローカルの Whisper の温度とは別
-temperature = 0.0
 
 # === 録音 ===
 [recording]

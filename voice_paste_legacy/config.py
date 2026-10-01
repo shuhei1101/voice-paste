@@ -6,7 +6,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import os
 
-from voice_paste.constants import (
+from voice_paste_legacy.constants import (
     ROOT_DIR,
     RESOURCES_DIR,
     LEGACY_ROOT_DIR,

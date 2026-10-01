@@ -22,7 +22,7 @@ except Exception:
 
 
 def _log(msg: str) -> None:
-    """stderr 経由で親プロセスにログを送る（親側でvoice_paste loggerに転送される）。"""
+    """stderr 経由で親プロセスにログを送る（親側でvoice_paste_legacy loggerに転送される）。"""
     print(msg, file=sys.stderr, flush=True)
 
 

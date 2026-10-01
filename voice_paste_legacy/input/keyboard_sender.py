@@ -5,8 +5,8 @@ import time
 import pyperclip
 from pynput.keyboard import Controller, Key
 
-from voice_paste.exceptions import ClipboardError
-from voice_paste.logger import get_logger
+from voice_paste_legacy.exceptions import ClipboardError
+from voice_paste_legacy.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -54,7 +54,7 @@ def copy_to_clipboard(text: str) -> None:
 
 def send_paste() -> None:
     """設定された貼り付けキーを仮想入力する（デフォルト: Ctrl+V）。"""
-    from voice_paste import config
+    from voice_paste_legacy import config
     paste_key = config.PASTE_KEY
     modifiers, main_key = _parse_paste_key(paste_key)
 

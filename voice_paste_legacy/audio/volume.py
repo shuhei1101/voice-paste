@@ -3,7 +3,7 @@
 import threading
 import time
 
-from voice_paste.logger import get_logger
+from voice_paste_legacy.logger import get_logger
 
 logger = get_logger(__name__)
 

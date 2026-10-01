@@ -18,7 +18,7 @@ dependency_scope: 必須
 adoption: 採用
 used_in:
   - voice-paste.bat
-  - voice_paste/__main__.py
+  - voice_paste_legacy/__main__.py
   - setup/build_exe.bat
 verification:
   state: 未確認

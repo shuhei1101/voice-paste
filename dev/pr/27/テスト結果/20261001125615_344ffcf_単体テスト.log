@@ -1,0 +1,17 @@
+実行した commit: 344ffcf
+実行したコマンド: venv/Scripts/python.exe -m pytest tests/transcription -v -rs（pytest は venv に無いため PYTHONPATH で足している）
+
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\shuhe\repo\voice-paste\venv\Scripts\python.exe
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\refactor-legacy-move-to-voice-paste-legacy
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 2 items
+
+tests/transcription/test_whisper_transcriber.py::test_transcribe_returns_text SKIPPED [ 50%]
+tests/transcription/test_whisper_transcriber.py::test_transcribe_with_empty_prompt SKIPPED [100%]
+
+=========================== short test summary info ===========================
+SKIPPED [1] tests\transcription\test_whisper_transcriber.py:27: whisper_transcriber.py がサブプロセス版になり WhisperModel を持たないため、移す前から pass しない。#23 で消す
+SKIPPED [1] tests\transcription\test_whisper_transcriber.py:43: whisper_transcriber.py がサブプロセス版になり WhisperModel を持たないため、移す前から pass しない。#23 で消す
+============================= 2 skipped in 0.02s ==============================

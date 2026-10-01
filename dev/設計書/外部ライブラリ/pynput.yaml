@@ -26,10 +26,10 @@ purl: pkg:pypi/pynput
 dependency_scope: 必須
 adoption: 採用
 used_in:
-  - voice_paste/main.py
-  - voice_paste/gui.py
-  - voice_paste/settings_gui.py
-  - voice_paste/input/keyboard_sender.py
+  - voice_paste_legacy/main.py
+  - voice_paste_legacy/gui.py
+  - voice_paste_legacy/settings_gui.py
+  - voice_paste_legacy/input/keyboard_sender.py
 upstream: moses-palmer/pynput
 verification:
   state: 未確認

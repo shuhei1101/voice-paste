@@ -11,7 +11,7 @@ from tests.mocks.mock_externals import MOCK_SEGMENTS, MOCK_INFO, MOCK_TRANSCRIPT
 @pytest.fixture
 def mock_whisper_model():
     """WhisperModel をモック化するフィクスチャ。"""
-    with patch("voice_paste.transcription.whisper_transcriber.WhisperModel") as mock_cls:
+    with patch("voice_paste_legacy.transcription.whisper_transcriber.WhisperModel") as mock_cls:
         mock_instance = MagicMock()
         mock_instance.transcribe.return_value = (MOCK_SEGMENTS, MOCK_INFO)
         mock_cls.return_value = mock_instance
@@ -20,7 +20,7 @@ def mock_whisper_model():
 
 def test_transcribe_returns_text(mock_whisper_model, tmp_path: Path) -> None:
     """文字起こし結果が正しく返されることを確認する。"""
-    from voice_paste.transcription.whisper_transcriber import WhisperTranscriber
+    from voice_paste_legacy.transcription.whisper_transcriber import WhisperTranscriber
 
     # ダミー音声ファイルを作成
     audio_file = tmp_path / "test.wav"
@@ -35,7 +35,7 @@ def test_transcribe_returns_text(mock_whisper_model, tmp_path: Path) -> None:
 
 def test_transcribe_with_empty_prompt(mock_whisper_model, tmp_path: Path) -> None:
     """プロンプトが空の場合、initial_prompt=None で呼ばれることを確認する。"""
-    from voice_paste.transcription.whisper_transcriber import WhisperTranscriber
+    from voice_paste_legacy.transcription.whisper_transcriber import WhisperTranscriber
 
     audio_file = tmp_path / "test.wav"
     audio_file.write_bytes(b"dummy")

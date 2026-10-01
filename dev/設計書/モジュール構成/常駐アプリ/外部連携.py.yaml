@@ -231,10 +231,13 @@ functions:
       type: float
       description: 下げる前の音量（0.0〜1.0）
     process: |-
-      1. COM を初期化し、既定の再生デバイスのマスター音量（0.0〜1.0）を読んで解放する（_open_endpoint_volume）
+      1. 音量のロックを取り、以降をその中で行う
+      2. 進行中のフェードを打ち切る（_cancel_fade）
+      3. 打ち切ったフェードがあればその目標の音量を、無ければ既定の再生デバイスのマスター音量（0.0〜1.0）を COM を初期化して読んだ値を、下げる前の音量にする（_open_endpoint_volume）
+         - 戻している途中に始まった録音でも、戻しの目標（元の音量）を下げる前の音量にする。下げている途中にもう一度下げることは、Recorder が録音中の開始を断るため起きない
          - pycaw・COM が例外を出した場合、VolumeControlError を送出する（理由に元の例外を残す）
-      2. 読んだ音量 × ratio を 0.0〜1.0 に収め、その音量へ変える（_fade_to）
-      3. 読んだ音量を返す
+      4. 下げる前の音量 × ratio を 0.0〜1.0 に収め、その音量へ変える（_fade_to）
+      5. 下げる前の音量を返す
     exceptions:
       - name: VolumeControlError
         condition: 音量を読むときに pycaw・COM が例外を出した
@@ -247,6 +250,12 @@ functions:
         condition: 今の音量 0.8、ratio=0.5・fade_sec=0
         mock: _open_endpoint_volume（音量を持つ偽のインターフェース）
         expected: 0.8 が返り、偽のインターフェースの音量が 0.4 になっている
+      - name: test_lower_volume_when_restoring
+        case: 正常
+        summary: 戻している途中に下げると、戻しの目標の音量を下げる前の音量にする
+        condition: 今の音量 0.4 から restore_volume(0.8, 0.5) の直後に lower_volume(0.5, 0) を呼ぶ
+        mock: _open_endpoint_volume
+        expected: 0.8 が返り、偽のインターフェースの音量が 0.4 で終わり、その後に書き換わらない
       - name: test_lower_volume_when_read_failed
         case: 異常
         summary: 読めなければ VolumeControlError
@@ -304,7 +313,10 @@ functions:
     returns:
       type: None
       description: なし
-    process: 1. volume を 0.0〜1.0 に収め、その音量へ変える（_fade_to。下げている途中のフェードは打ち切る）
+    process: |-
+      1. 音量のロックを取り、以降をその中で行う
+      2. 進行中のフェードを打ち切る（_cancel_fade。下げている途中のフェードを含む）
+      3. volume を 0.0〜1.0 に収め、その音量へ変える（_fade_to）
     exceptions:
       - name: VolumeControlError
         condition: fade_sec が 0 以下で、音量を書くときに pycaw・COM が例外を出した（_fade_to から伝わる）
@@ -377,7 +389,7 @@ functions:
     container: integrations/volume/adapter.py
     usecase: 録音する
     scope: internal
-    summary: 進行中のフェードを打ち切り、目標の音量へ fade_sec をかけて変える。fade_sec が 0 以下なら呼び出しの中ですぐ変える
+    summary: 目標の音量へ fade_sec をかけて変える。fade_sec が 0 以下なら呼び出しの中ですぐ変える。音量のロックを持ち、進行中のフェードを打ち切った後に呼ぶ
     args:
       - name: target
         type: float
@@ -393,10 +405,9 @@ functions:
       type: None
       description: なし
     process: |-
-      1. ロックを取って進行中のフェードに打ち切りを知らせ、終わりを FADE_JOIN_TIMEOUT_SEC まで待つ
-      2. fade_sec が 0 以下なら、COM を初期化して target を書き、解放する
+      1. fade_sec が 0 以下なら、COM を初期化して target を書き、解放する
          - pycaw・COM が例外を出した場合、VolumeControlError を送出する
-      3. fade_sec が正なら、新しい打ち切りの合図を作ってデーモンのスレッドを始める
+      2. fade_sec が正なら、target を進行中のフェードの目標として持ち、新しい打ち切りの合図を作ってデーモンのスレッドを始める
          - スレッドの中で COM を初期化し、今の音量から target までを FADE_STEPS 段に分け、fade_sec / FADE_STEPS 秒ごとに 1 段ずつ書く（今の音量と target の差が 0.005 未満なら 1 回で書く）
          - 打ち切りを知らされたら、次の段を書かずに終わる
          - pycaw・COM が例外を出した場合、そこで終わる
@@ -431,6 +442,28 @@ functions:
       description: 既定の再生デバイスの音量のインターフェース（呼ぶスレッドで COM を初期化しておく）
     refs:
       - dev/設計書/外部ライブラリ/pycaw#
+    status: planned
+  - name: _cancel_fade
+    title: 進行中のフェードを打ち切る
+    kind: 関数
+    container: integrations/volume/adapter.py
+    usecase: 録音する
+    scope: internal
+    summary: 進行中のフェードに打ち切りを知らせて終わりを待ち、そのフェードの目標の音量を返す。音量のロックを持って呼ぶ（フェードのスレッド・打ち切りの合図・目標は _ 付きのモジュール変数で持ち、この関数と _fade_to だけが触る）
+    returns:
+      type: float | None
+      description: 打ち切ったフェードの目標の音量。進行中のフェードが無ければ None
+    process: |-
+      1. フェードのスレッドが動いていなければ、目標を None にして None を返す
+      2. 打ち切りを知らせ、スレッドの終わりを FADE_JOIN_TIMEOUT_SEC まで待つ
+      3. 目標を返し、None に戻す
+    unit_tests:
+      - name: test_cancel_fade_when_idle
+        case: 正常
+        summary: 進行中のフェードが無ければ None
+        condition: フェードを始めていない、または始めたフェードが終わった後に呼ぶ
+        mock: _open_endpoint_volume
+        expected: None が返る
     status: planned
 constants:
   - name: FADE_STEPS

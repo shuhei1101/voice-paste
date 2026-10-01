@@ -49,7 +49,7 @@ enums:
       - value: ai_chat
         title: AI チャットへ送る
         description: AiChatSettings
-    status: planned
+    status: implemented
 data_models:
   - name: Recording
     title: 録音
@@ -117,7 +117,7 @@ data_models:
         description: '`%LOCALAPPDATA%\voice-paste\api_token`（`{data_dir}\api_token`。起動ごとのトークンとポート）'
     refs:
       - dev/設計書/外部ライブラリ/platformdirs#
-    status: planned
+    status: implemented
   - name: Settings
     title: 設定
     container: shared/settings.py
@@ -165,7 +165,7 @@ data_models:
     refs:
       - dev/設計書/外部ライブラリ/pydantic#
       - dev/設計書/設定/常駐アプリ#
-    status: planned
+    status: implemented
   - name: TranscriptionSettings
     title: 文字起こしの設定
     container: shared/settings.py
@@ -184,7 +184,7 @@ data_models:
       - name: openai
         type: OpenAISettings
         description: OpenAI の設定
-    status: planned
+    status: implemented
   - name: LocalWhisperSettings
     title: ローカルの Whisper の設定
     container: shared/settings.py
@@ -253,7 +253,7 @@ data_models:
         type: float
         default: '0.6'
         description: 区間を無音とみなす確信度の閾値
-    status: planned
+    status: implemented
   - name: OpenAISettings
     title: OpenAI の設定
     container: shared/settings.py
@@ -278,7 +278,7 @@ data_models:
         type: float
         default: '0.0'
         description: サンプリングの温度（ローカルの Whisper の温度とは別に持つ）
-    status: planned
+    status: implemented
   - name: RecordingSettings
     title: 録音の設定
     container: shared/settings.py
@@ -303,7 +303,7 @@ data_models:
         type: bool
         default: 'False'
         description: 録音の画面も文字起こし中の表示も出さず、トレイとホットキーだけで操作するか
-    status: planned
+    status: implemented
   - name: HotkeySettings
     title: ホットキーの設定
     container: shared/settings.py
@@ -324,7 +324,7 @@ data_models:
         type: str
         default: <ctrl>+<alt>+q
         description: 録音を取り消す
-    status: planned
+    status: implemented
   - name: KeyboardSettings
     title: キーボードの設定
     container: shared/settings.py
@@ -337,7 +337,7 @@ data_models:
         type: str
         default: <ctrl>+v
         description: 貼り付けのキーの組み合わせ（pynput の書式）
-    status: planned
+    status: implemented
   - name: PasteAndSendSettings
     title: 貼り付けて送信の設定
     container: shared/settings.py
@@ -362,7 +362,7 @@ data_models:
         type: float
         default: '0.5'
         description: 貼り付けてから Enter を送るまで待つ秒数（0 以上）
-    status: planned
+    status: implemented
   - name: PasteOnlySettings
     title: 貼り付けのみの設定
     container: shared/settings.py
@@ -383,7 +383,7 @@ data_models:
         type: str
         default: <ctrl>+<alt>+v
         description: この出力先で確定するホットキー
-    status: planned
+    status: implemented
   - name: CopyOnlySettings
     title: コピーのみの設定
     container: shared/settings.py
@@ -404,7 +404,7 @@ data_models:
         type: str
         default: <ctrl>+<alt>+c
         description: この出力先で確定するホットキー
-    status: planned
+    status: implemented
   - name: AiChatSettings
     title: AI チャットへ送る設定
     container: shared/settings.py
@@ -429,7 +429,7 @@ data_models:
         type: list[AiChatTarget]
         default: ChatGPT・Google AI・Claude の 3 件
         description: 送り先の一覧。確定のホットキーは送り先ごとに持つ
-    status: planned
+    status: implemented
   - name: AiChatTarget
     title: AI チャットの送り先
     container: shared/settings.py
@@ -451,7 +451,7 @@ data_models:
         type: bool
         default: 'True'
         description: 画面にボタンを出し、ホットキーを登録するか
-    status: planned
+    status: implemented
   - name: HistorySettings
     title: 履歴の設定
     container: shared/settings.py
@@ -468,7 +468,7 @@ data_models:
         type: int
         default: '1'
         description: 保持する日数（1 以上）
-    status: planned
+    status: implemented
   - name: LoggingSettings
     title: ログの設定
     container: shared/settings.py
@@ -485,7 +485,7 @@ data_models:
         type: int
         default: '7'
         description: 日付ごとのログを保持する日数（1 以上）
-    status: planned
+    status: implemented
   - name: UiSettings
     title: 画面の設定
     container: shared/settings.py
@@ -510,7 +510,7 @@ data_models:
         type: float
         default: '4'
         description: 波形の振れの大きさ（0 より大きい）
-    status: planned
+    status: implemented
   - name: ApiSettings
     title: API の設定
     container: shared/settings.py
@@ -527,7 +527,7 @@ data_models:
         type: list[str]
         default: '[]'
         description: loopback のほかに返送を許すホスト
-    status: planned
+    status: implemented
 classes:
   - name: AppError
     title: アプリの例外
@@ -555,7 +555,7 @@ classes:
       | `StartupError` | 起動に失敗した（エンジンを準備できない・前のプロセスが排他を放さない） | - |
 
       全ての例外は docstring だけを持つクラスで `shared/errors.py` に置き、親は表に書かない限り `AppError`。
-    status: planned
+    status: implemented
 functions:
   - name: load_settings
     title: 設定の読み込み
@@ -638,7 +638,7 @@ functions:
         exception: TOML の書式が壊れている
     refs:
       - dev/設計書/外部ライブラリ/tomlkit#
-    status: planned
+    status: implemented
   - name: save_settings
     title: 設定の書き戻し
     kind: 関数
@@ -703,7 +703,7 @@ functions:
         expected: True。load_settings で既定の設定が読める
     refs:
       - dev/設計書/外部ライブラリ/tomlkit#
-    status: planned
+    status: implemented
   - name: setup_logging
     title: ログの設定
     kind: 関数
@@ -761,7 +761,7 @@ functions:
         expected: uvicorn.error のハンドラが空になり、今日のファイルに name が uvicorn.error の 1 行がある
     notes:
       秘密の値: API キーとトークンはログに出さない（SecretStr で持ち、断った要求のログにも含めない）。
-    status: planned
+    status: implemented
   - name: purge_old_logs
     title: 古いログの削除
     kind: 関数
@@ -806,7 +806,7 @@ functions:
         condition: 保持 1 日、`notes.log`・`2026-13-40.log`・10 日前のログ
         mock: なし（一時フォルダ）
         expected: 10 日前だけが消え、戻り値が 1
-    status: planned
+    status: implemented
   - name: migrate_env
     title: .env からの移行
     kind: 関数
@@ -914,7 +914,7 @@ functions:
     refs:
       - dev/設計書/外部ライブラリ/python-dotenv#
       - dev/設計書/設定/常駐アプリ#
-    status: planned
+    status: implemented
   - name: resolve_app_paths
     title: 置き場所の解決
     kind: 関数
@@ -950,7 +950,7 @@ functions:
         expected: settings_file が config/settings.toml、それ以外が local の下。user_config_dir に roaming=True が渡る
     refs:
       - dev/設計書/外部ライブラリ/platformdirs#
-    status: planned
+    status: implemented
 constants:
   - name: APP_NAME
     title: アプリ名
@@ -958,7 +958,7 @@ constants:
     usecase: 共通
     summary: 置き場所のフォルダ名に使うアプリの名前
     value: '"voice-paste"'
-    status: planned
+    status: implemented
 test_files:
   - tests/unit/voice_paste/shared/test_settings.py
   - tests/unit/voice_paste/shared/test_env_migration.py

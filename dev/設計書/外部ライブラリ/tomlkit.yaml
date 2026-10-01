@@ -38,7 +38,7 @@ upstream: python-poetry/tomlkit
 verification:
   state: 済
   date: '2026-10-01'
-  detail: WSL（Linux・Python 3.12）で、コメント付きの TOML を parse して値を書き換え、dumps で行頭・行末のコメントが残ることと、表の配列（aot）を丸ごと入れ替えられることを確かめた
+  detail: WSL（Linux・Python 3.12）で、コメント付きの TOML を parse して値を書き換え、dumps で行頭・行末のコメントが残ることと、表の配列（aot）を丸ごと入れ替えられることを確かめた。Windows（Python 3.14.3の一時の venv、tomlkit 0.15.1）で、設定の書き戻しを単体テストで動かし、コメントを保った値の置き換えと、`unwrap()` で素の dict に戻しての検証を確かめた
 license: MIT（商用利用可）
 official_url: https://github.com/python-poetry/tomlkit
 docs_url: https://tomlkit.readthedocs.io/

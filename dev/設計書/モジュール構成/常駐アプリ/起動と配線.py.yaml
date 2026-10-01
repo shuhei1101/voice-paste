@@ -79,7 +79,7 @@ data_models:
       - name: migrate_env
         type: Path | None
         description: 設定へ移す .env（`--migrate-env`）。渡されたときだけ移す
-    status: planned
+    status: implemented
 functions:
   - name: build_handlers
     title: 配線
@@ -308,7 +308,7 @@ functions:
         condition: '[]'
         mock: なし
         expected: SystemExit（code 2）
-    status: planned
+    status: implemented
 notes:
   依存の向き: |-
     コーディング規約『依存関係管理』のとおり `features`・`server`・`ui` → `integrations`・`runtime` → `shared` とし、上の層へは import しない。

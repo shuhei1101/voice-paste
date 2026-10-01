@@ -1,16 +1,29 @@
 """integrations/volume/adapter.py（lower_volume・restore_volume）の契約テスト。
 
 Windows の実機の既定の再生デバイスで pycaw を動かし、pycaw の版が上がって API が変わったことに気づけるようにする。
-実行中はシステム音量が変わり、終わりに実行前の音量へ戻す。既定の再生デバイスが無い環境では skip する。
+実行中はシステム音量が変わり、終わりに実行前の音量へ戻す。
+skip するのは Windows 以外と、既定の再生デバイスが無い環境だけで、pycaw の API の変化は失敗にする。
 """
 
 from __future__ import annotations
 
+import sys
 import time
 from collections.abc import Iterator
 
-import comtypes
 import pytest
+
+if sys.platform != "win32":
+    pytest.skip("音量の契約テストは Windows の実機でだけ実行する", allow_module_level=True)
+
+import comtypes  # noqa: E402 Windows 以外では読み込めないため、skip の後に置く
+from comtypes import COMError  # noqa: E402
+
+E_NOTFOUND = 0x80070490
+"""既定の再生デバイスが無いときに GetSpeakers が送出する COMError の hresult（符号なし）。"""
+
+HRESULT_MASK = 0xFFFFFFFF
+"""COMError の hresult（符号付き）を符号なしにするマスク。"""
 
 VOLUME_BEFORE = 0.6
 LOWERED_VOLUME = 0.3
@@ -46,9 +59,12 @@ def master_volume() -> Iterator[MasterVolume]:
     try:
         try:
             master = MasterVolume()
-            original = master.get()
-        except Exception as error:  # noqa: BLE001 既定の再生デバイスが無い環境の例外の型は決まっていない
-            pytest.skip(f"既定の再生デバイスの音量を読めないため skip する（{error}）")
+        except COMError as error:
+            # 既定の再生デバイスが無い場合だけ skip する。ほかの COMError と pycaw の API の変化は失敗にする
+            if error.hresult & HRESULT_MASK != E_NOTFOUND:
+                raise
+            pytest.skip(f"既定の再生デバイスが無いため skip する（{error}）")
+        original = master.get()
         yield master
         # 進行中のフェードを打ち切ってから、実行前の音量へ戻す
         restore_volume(original, 0)

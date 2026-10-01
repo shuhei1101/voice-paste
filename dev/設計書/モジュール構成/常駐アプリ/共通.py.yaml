@@ -667,7 +667,7 @@ functions:
          - 無い場合、前の設定は無しとする
          - 読めない・検証に通らない場合、内容を空の文書にして前の設定を「全て変わった」とする
       3. settings を `model_dump(mode="json")` し、API キーは元の値で書く
-      4. 文書の値を再帰で置き換える。表はキーごとに書き換えて既存のコメントと並びを保ち、配列（出力先の一覧・AI チャットの送り先・許すホスト）は丸ごと入れ替える。None の項目（glossary_path）はキーを置かない
+      4. 文書の値を再帰で置き換える。表はキーごとに書き換えて既存のコメントと並びを保ち、配列（出力先の一覧・AI チャットの送り先・許すホスト）は丸ごと入れ替える。None の項目（glossary_path）はキーを置かず、文書に既にあれば消す
       5. 親のフォルダを作り、同じフォルダの一時ファイルに UTF-8 で書いて os.replace で置き換える
       6. reload が restart の項目のうち、前の設定と値が違うものが 1 つでもあれば True、無ければ False を返す（前の設定が無いときは False）
     unit_tests:
@@ -701,6 +701,12 @@ functions:
         condition: 書式の壊れた settings.toml に既定の設定を書く
         mock: なし（一時フォルダ）
         expected: True。load_settings で既定の設定が読める
+      - name: test_save_settings_when_glossary_reset
+        case: 正常
+        summary: 用語集の場所を既定（None）に戻すとキーを消す
+        condition: glossary_path = "C:/x/yogo.csv" を持つ settings.toml に Settings() を書く
+        mock: なし（一時フォルダ）
+        expected: 書いた後のファイルに glossary_path のキーが無く、load_settings の glossary_path が None
     refs:
       - dev/設計書/外部ライブラリ/tomlkit#
     status: implemented

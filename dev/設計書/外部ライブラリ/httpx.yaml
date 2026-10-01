@@ -4,8 +4,8 @@ version:
   current: 0.28.1
   latest: 0.28.1
   checked_on: '2026-10-01'
-  source: '動作確認に使った版（openai の依存としても入る。pyproject.toml へは #16 で書く）'
-  pinning: 未定（#16 で pyproject.toml に書くときに決める）
+  source: pyproject.toml（openai の依存としても入る）
+  pinning: マイナー版の中で固定（~=0.28.1。0.x はマイナー版で互換の無い変更が入る）
 catalogs:
   - name: API
     version: 0.28.1

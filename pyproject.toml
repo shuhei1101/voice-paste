@@ -19,12 +19,60 @@ dependencies = [
     "Pillow>=11.0",
     "nvidia-cublas-cu12",
     "nvidia-cudnn-cu12>=9,<10",
-    "pycaw>=20220416",
+    "pycaw==20251023",
+    "fastapi~=0.142.2",
+    "uvicorn~=0.54.0",
+    "httpx~=0.28.1",
+    "pydantic~=2.13",
+    "tomlkit~=0.15.1",
+    "platformdirs~=4.12",
+    "numpy~=2.4",
+    "comtypes~=1.4",
+]
+
+[dependency-groups]
+dev = [
+    "pytest~=9.1",
+    "import-linter~=2.15",
 ]
 
 [project.scripts]
 voice-paste = "voice_paste_legacy.main:run"
 
+[tool.setuptools]
+package-dir = { "" = "src", "voice_paste_legacy" = "voice_paste_legacy" }
+
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["voice_paste_legacy*"]
+where = ["src", "."]
+include = ["voice_paste*"]
+
+[tool.importlinter]
+root_package = "voice_paste"
+
+[[tool.importlinter.contracts]]
+name = "層の向き"
+type = "layers"
+layers = [
+    "voice_paste.main",
+    "voice_paste.server | voice_paste.ui",
+    "voice_paste.features",
+    "voice_paste.integrations | voice_paste.runtime",
+    "voice_paste.shared",
+]
+
+[[tool.importlinter.contracts]]
+name = "feature の独立"
+type = "independence"
+modules = ["voice_paste.features.*"]
+
+[[tool.importlinter.contracts]]
+name = "出力先の独立"
+type = "independence"
+modules = ["voice_paste.features.outputs.*"]
+ignore_imports = [
+    "voice_paste.features.outputs.registry -> voice_paste.features.outputs.*",
+    "voice_paste.features.outputs.service -> voice_paste.features.outputs.registry",
+    "voice_paste.features.outputs.** -> voice_paste.features.outputs.types",
+]
+# registry・service・types は出力先を作る Issue が置くので、今は一致する import が無い
+unmatched_ignore_imports_alerting = "none"

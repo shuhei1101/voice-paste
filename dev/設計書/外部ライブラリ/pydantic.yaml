@@ -4,8 +4,8 @@ version:
   current: 2.13.5
   latest: 2.13.5
   checked_on: '2026-10-01'
-  source: '動作確認に使った版（fastapi・openai の依存としても入る。pyproject.toml へは #16 で書く）'
-  pinning: 未定（#16 で pyproject.toml に書くときに決める）
+  source: pyproject.toml（fastapi・openai の依存としても入る）
+  pinning: 互換リリースで固定（~=2.13）
 catalogs:
   - name: API
     version: 2.13.5
@@ -37,6 +37,6 @@ upstream: pydantic/pydantic
 verification:
   state: 済
   date: '2026-10-01'
-  detail: 'WSL（Linux・Python 3.12）で、AnyHttpUrl の callback_url と Literal の result を持つモデルを FastAPI 経由で検証し、不正な URL を断ることと、返送の中身を受け取れることを確かめた。設定のモデルは #16 で動かす'
+  detail: 'WSL（Linux・Python 3.12）で、AnyHttpUrl の callback_url と Literal の result を持つモデルを FastAPI 経由で検証し、不正な URL を断ることと、返送の中身を受け取れることを確かめた。Windows（Python 3.14.3の一時の venv、pydantic 2.13.5）で、設定のモデル（extra="forbid"、`Field(discriminator="id")` の判別共用体、SecretStr、範囲の制約、`json_schema_extra` の印）を単体テストで動かし、値の検証と `model_dump(mode="json")` が想定どおりであることを確かめた'
 license: MIT（商用利用可）
 official_url: https://docs.pydantic.dev/

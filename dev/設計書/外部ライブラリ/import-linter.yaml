@@ -1,0 +1,38 @@
+title: "import-linter"
+kind: "CLI"
+version:
+  current: '2.15'
+  latest: '2.15'
+  checked_on: '2026-10-01'
+  source: pyproject.toml（[dependency-groups] の dev）
+  pinning: 互換リリースで固定（~=2.15）
+catalogs:
+  - name: コマンド
+    version: '2.15'
+    entries:
+      - name: lint-imports
+        kind: コマンド
+        purpose: pyproject.toml の `[tool.importlinter]` の契約を検査する（破られていれば終了コード 1）
+  - name: 契約の種類
+    version: '2.15'
+    entries:
+      - name: layers
+        kind: 設定
+        purpose: 層の向き（`main` → `server`・`ui` → `features` → `integrations`・`runtime` → `shared`）を検査する
+      - name: independence
+        kind: 設定
+        purpose: feature どうし・出力先どうしが import しないことを検査する
+lead: Python のパッケージの import の向きを契約として書き、守られているかを検査する CLI。
+purl: pkg:pypi/import-linter
+dependency_scope: 開発のみ
+adoption: 採用
+used_in:
+  - pyproject.toml
+upstream: seddonym/import-linter
+verification:
+  state: 済
+  date: '2026-10-01'
+  detail: WSL（Linux・Python 3.12）で、`src/voice_paste/` と同じ並びの空のパッケージに層の契約（`|` で並べた独立の層）と、ワイルドカードの independence の契約（ignore_imports で registry・service・types への import を除く）を書き、守られているとき KEPT、出力先どうしを import すると BROKEN になることを確かめた
+license: BSD-2-Clause（商用利用可）
+official_url: https://github.com/seddonym/import-linter
+docs_url: https://import-linter.readthedocs.io/

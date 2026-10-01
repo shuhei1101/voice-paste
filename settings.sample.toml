@@ -1,0 +1,157 @@
+# voice-paste の設定ファイルの見本（既定値）。
+# 設定のモデルの既定値と一致させてある。
+# 「再起動」と書いた項目は、アプリを再起動してから効く。それ以外は設定画面で保存すると動いているアプリに効く。
+
+# 用語集の CSV の場所。キーが無いときは、この設定ファイルと同じフォルダの yogo.csv を使う
+# glossary_path = "C:\\Users\\name\\yogo.csv"
+
+# === 文字起こし ===
+[transcription]
+# 使うエンジン（再起動）。local_whisper または openai
+engine = "local_whisper"
+
+[transcription.local_whisper]
+# faster-whisper のモデル（再起動）
+model = "large-v3"
+# 動かすデバイス（再起動）。cuda または cpu
+device = "cuda"
+# 計算の精度（再起動）。float16・int8・float32。cuda は float16、cpu は int8 が目安
+compute_type = "float16"
+# CPU のスレッド数（再起動）。0 は自動
+cpu_threads = 0
+# 並列のデコードの数（再起動）。1 以上
+num_workers = 1
+# ビームサーチの幅（再起動）。1 以上。大きいほど精度が上がり、遅くなる
+beam_size = 10
+# サンプリングの候補の数（再起動）。1 以上
+best_of = 5
+# 認識する言語（再起動）
+language = "ja"
+# 無音の区間を除くか（再起動）
+vad_filter = true
+# 音声とみなす確信度の閾値（再起動）。0〜1
+vad_threshold = 0.5
+# これより短い音を雑音として除く、ミリ秒（再起動）。0 以上
+vad_min_speech_ms = 250
+# これ以上の無音で区間を区切る、ミリ秒（再起動）。0 以上。起こした文字の改行の位置に効く
+vad_min_silence_ms = 2000
+# 前の区間の文字を次の区間の文脈に使うか（再起動）。false にすると幻覚を抑えられる
+condition_on_previous_text = false
+# サンプリングの温度（再起動）。0 以上。0.0 は決定的
+temperature = 0.0
+# 区間を無音とみなす確信度の閾値（再起動）。0〜1
+no_speech_threshold = 0.6
+
+[transcription.openai]
+# API キー（再起動）。engine = "openai" のときに使う。ログには出さない
+api_key = ""
+# 文字起こしのモデル（再起動）
+model = "whisper-1"
+# 認識する言語（再起動）。ローカルの Whisper の言語とは別
+language = "ja"
+# サンプリングの温度（再起動）。0 以上。ローカルの Whisper の温度とは別
+temperature = 0.0
+
+# === 録音 ===
+[recording]
+# 録音中にシステム音量を下げるか
+lower_volume = true
+# 録音中の音量の、録音前の音量に対する割合。0〜100（50 は半分）
+volume_percent = 50.0
+# 音量を下げる・戻すときにかける秒数。0 以上
+fade_sec = 0.5
+# 録音の画面も文字起こし中の表示も出さず、トレイとホットキーだけで操作するか
+hide_window = false
+
+# === ホットキー（pynput の GlobalHotKeys の書式） ===
+[hotkeys]
+# 録音を始める
+start = "<ctrl>+<alt>+d"
+# 録音を一時停止・再開する
+pause = "<ctrl>+<alt>+z"
+# 録音を取り消す
+cancel = "<ctrl>+<alt>+q"
+
+[keyboard]
+# 貼り付け先へ送る貼り付けのキー。ターミナル向けには <ctrl>+<shift>+v
+paste_key = "<ctrl>+v"
+
+# === 出力先（id は重ならない。enabled = false の出力先は確定の操作に出さず、ホットキーも登録しない） ===
+[[outputs]]
+# 貼り付けて送信
+id = "paste_and_send"
+enabled = true
+# この出力先で確定するホットキー
+hotkey = "<ctrl>+<alt>+d"
+# 貼り付けてから Enter を送るまで待つ秒数。0 以上
+enter_delay_sec = 0.5
+
+[[outputs]]
+# 貼り付けのみ
+id = "paste_only"
+enabled = true
+hotkey = "<ctrl>+<alt>+v"
+
+[[outputs]]
+# コピーのみ
+id = "copy_only"
+enabled = true
+hotkey = "<ctrl>+<alt>+c"
+
+[[outputs]]
+# AI チャットへ送る
+id = "ai_chat"
+enabled = true
+# AI チャットの画面を開いてから貼り付けるまで待つ秒数。0 以上
+open_delay_sec = 3.0
+
+# AI チャットの送り先（name は 1 文字以上、url は http か https）。enabled = false の送り先はボタンもホットキーも出さない
+[[outputs.targets]]
+name = "ChatGPT"
+url = "https://chatgpt.com"
+hotkey = "<ctrl>+<alt>+1"
+enabled = true
+
+[[outputs.targets]]
+name = "Google AI"
+url = "https://gemini.google.com/app"
+hotkey = "<ctrl>+<alt>+2"
+enabled = true
+
+[[outputs.targets]]
+name = "Claude"
+url = "https://claude.ai/new"
+hotkey = "<ctrl>+<alt>+3"
+enabled = true
+
+# === 履歴 ===
+[history]
+# 録音と起こした文字を履歴に残すか（再起動）
+enabled = true
+# 履歴を保持する日数（再起動）。1 以上
+retention_days = 1
+
+# === ログ ===
+[logging]
+# ログのレベル（再起動）。DEBUG・INFO・WARNING・ERROR
+level = "INFO"
+# 日付ごとのログを保持する日数（再起動）。1 以上
+retention_days = 7
+
+# === 録音の画面と文字起こし中の表示 ===
+[ui]
+# 常に最前面に出すか
+topmost = true
+# 出す位置。center・top-left・top-right・bottom-left・bottom-right
+position = "center"
+# マウスカーソルのあるモニターに出すか
+follow_cursor = true
+# 波形の振れの大きさ。0 より大きい。大きいほど小さい声でも大きく振れる
+wave_gain = 4.0
+
+# === API ===
+[api]
+# 127.0.0.1 で待ち受けるポート（再起動）。1024〜65535
+port = 47823
+# loopback のほかに、起こした文字の返送を許すホスト（再起動）
+allowed_callback_hosts = []

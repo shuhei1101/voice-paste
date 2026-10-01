@@ -3,9 +3,9 @@ layers:
   - name: 単体テスト（バック）
     run_all: |-
       ```bash
-      venv/Scripts/python.exe -m pytest tests/transcription
+      venv/Scripts/python.exe -m pytest tests/transcription tests/unit
       ```
-    description: pytest で実行する。faster-whisper のモデルは Mock にする。
+    description: pytest で実行する。`tests/transcription` は voice_paste_legacy（faster-whisper のモデルは Mock）、`tests/unit` は新しい構成（`src/voice_paste/` をミラーした並び）の単体テスト。
     prerequisites:
       - 外部依存なし（GPU も録音も要らない）
     run_one:
@@ -35,5 +35,14 @@ layers:
         ```
   - name: 外部疎通テスト
     run_all: 未確定
+  - name: lint
+    description: import-linter で pyproject.toml の `[tool.importlinter]` の契約（層・feature の独立・出力先の独立）を検査する。単体テストと一緒に回す。
+    prerequisites:
+      - 外部依存なし
+    run_all: |-
+      ```bash
+      venv/Scripts/lint-imports
+      ```
+    results: 契約ごとの KEPT / BROKEN と、破った import の行を標準出力に出す（破れていれば終了コード 1）
 prerequisites:
-  - Windows の Python 3.11 以上の venv（`venv/Scripts/python.exe`）に `pip install -e .` と `pip install pytest` を済ませる
+  - Windows の Python 3.11 以上の venv（`venv/Scripts/python.exe`）に `pip install -e . --group dev` を済ませる（pip 25.1 以上。pytest と import-linter は pyproject.toml の `[dependency-groups]` の dev から入る）

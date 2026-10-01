@@ -1,0 +1,44 @@
+title: "tomlkit"
+kind: "ライブラリ"
+version:
+  current: 0.15.1
+  latest: 0.15.1
+  checked_on: '2026-10-01'
+  source: pyproject.toml
+  pinning: マイナー版の中で固定（~=0.15.1。0.x はマイナー版で互換の無い変更が入る）
+catalogs:
+  - name: API
+    version: 0.15.1
+    entries:
+      - name: parse
+        kind: 関数
+        purpose: settings.toml をコメントを保った文書として読む
+      - name: dumps
+        kind: 関数
+        purpose: 値を書き換えた文書を文字列に戻す
+      - name: document
+        kind: 関数
+        purpose: 設定ファイルが無いときの空の文書を作る
+      - name: table
+        kind: 関数
+        purpose: まとまりの表を作る
+      - name: aot
+        kind: 関数
+        purpose: 出力先の一覧（表の配列）を作る
+      - name: TOMLKitError
+        kind: 例外
+        purpose: 書式の壊れた settings.toml を読んだときに送出される（SettingsError に変える）
+lead: コメントと書式を保ったまま TOML を読み書きするライブラリ。
+purl: pkg:pypi/tomlkit
+dependency_scope: 必須
+adoption: 採用
+used_in:
+  - src/voice_paste/shared/settings.py
+upstream: python-poetry/tomlkit
+verification:
+  state: 済
+  date: '2026-10-01'
+  detail: WSL（Linux・Python 3.12）で、コメント付きの TOML を parse して値を書き換え、dumps で行頭・行末のコメントが残ることと、表の配列（aot）を丸ごと入れ替えられることを確かめた。Windows（Python 3.14.3の一時の venv、tomlkit 0.15.1）で、設定の書き戻しを単体テストで動かし、コメントを保った値の置き換えと、`unwrap()` で素の dict に戻しての検証を確かめた
+license: MIT（商用利用可）
+official_url: https://github.com/python-poetry/tomlkit
+docs_url: https://tomlkit.readthedocs.io/

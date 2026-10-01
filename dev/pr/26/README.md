@@ -25,7 +25,7 @@
 - [x] ~~リバースエンジニアリング~~（[#10](https://github.com/shuhei1101/voice-paste/pull/10) で現状の設計書が揃っている）
 - [x] ~~方針決め~~（方針決めを依頼する Issue ではない。方針は [#13](https://github.com/shuhei1101/voice-paste/issues/13) で決まっている）
 - [x] ~~PoC 検証~~（設計書だけを起こし、コードを変えない）
-- [ ] 複合ユースケース設計
+- [x] 複合ユースケース設計
 - [x] ~~デザインスタイル選定~~（画面の構成と見た目は [#21](https://github.com/shuhei1101/voice-paste/issues/21) のデザインの工程で決める）
 - [x] ~~画面一覧・画面遷移~~（画面の構成と見た目は [#21](https://github.com/shuhei1101/voice-paste/issues/21) のデザインの工程で決める）
 - [ ] 単一ユースケース設計

@@ -23,8 +23,8 @@ dependencies = [
 ]
 
 [project.scripts]
-voice-paste = "voice_paste.main:run"
+voice-paste = "voice_paste_legacy.main:run"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["voice_paste*"]
+include = ["voice_paste_legacy*"]

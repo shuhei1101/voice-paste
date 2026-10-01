@@ -17,10 +17,10 @@ import threading
 from pathlib import Path
 from typing import Callable
 
-from voice_paste.transcription.transcribable import Transcribable
-from voice_paste.logger import get_logger
-from voice_paste import config
-from voice_paste.constants import LOG_DIR
+from voice_paste_legacy.transcription.transcribable import Transcribable
+from voice_paste_legacy.logger import get_logger
+from voice_paste_legacy import config
+from voice_paste_legacy.constants import LOG_DIR
 
 logger = get_logger(__name__)
 
@@ -68,7 +68,7 @@ class WhisperTranscriber(Transcribable):
             creationflags=creationflags,
         )
 
-        # stderrを別スレッドで読み続けてvoice_pasteのloggerに転送
+        # stderrを別スレッドで読み続けてvoice_paste_legacyのloggerに転送
         self._stderr_thread = threading.Thread(
             target=self._forward_stderr, daemon=True
         )
@@ -94,7 +94,7 @@ class WhisperTranscriber(Transcribable):
         logger.info("Whisper worker subprocess ready (pid=%s).", self._proc.pid)
 
     def _forward_stderr(self) -> None:
-        """ワーカーのstderr出力をvoice_pasteのloggerに転送する。"""
+        """ワーカーのstderr出力をvoice_paste_legacyのloggerに転送する。"""
         proc = self._proc
         if proc is None or proc.stderr is None:
             return

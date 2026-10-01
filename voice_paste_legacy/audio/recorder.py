@@ -6,9 +6,9 @@ import numpy as np
 import sounddevice as sd
 import scipy.io.wavfile as wav
 
-from voice_paste.constants import SAMPLE_RATE, DEFAULT_AUDIO_TMP
-from voice_paste.exceptions import RecordingError
-from voice_paste.logger import get_logger
+from voice_paste_legacy.constants import SAMPLE_RATE, DEFAULT_AUDIO_TMP
+from voice_paste_legacy.exceptions import RecordingError
+from voice_paste_legacy.logger import get_logger
 
 logger = get_logger(__name__)
 

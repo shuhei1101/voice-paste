@@ -7,9 +7,9 @@ Implementation: openai_transcriber.py
 from pathlib import Path
 from typing import Callable
 
-from voice_paste.transcription.transcribable import Transcribable
-from voice_paste.logger import get_logger
-from voice_paste import config
+from voice_paste_legacy.transcription.transcribable import Transcribable
+from voice_paste_legacy.logger import get_logger
+from voice_paste_legacy import config
 
 logger = get_logger(__name__)
 

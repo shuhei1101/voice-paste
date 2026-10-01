@@ -4,9 +4,9 @@ import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from voice_paste import config
-from voice_paste.constants import HISTORY_DIR
-from voice_paste.logger import get_logger
+from voice_paste_legacy import config
+from voice_paste_legacy.constants import HISTORY_DIR
+from voice_paste_legacy.logger import get_logger
 
 logger = get_logger(__name__)
 

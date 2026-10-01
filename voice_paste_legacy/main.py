@@ -11,19 +11,19 @@ from typing import Literal
 
 from pynput import keyboard as pynput_keyboard
 
-from voice_paste import config
-from voice_paste.logger import setup_logger, get_logger
-from voice_paste.audio.recorder import AudioRecorder
-from voice_paste.transcription.transcribable import Transcribable
-from voice_paste.transcription.whisper_transcriber import WhisperTranscriber
-from voice_paste.input.keyboard_sender import copy_to_clipboard, send_paste, send_enter
-from voice_paste.gui import RecordingModal, TranscribingOverlay, ConfirmMode
-from voice_paste.utils import (
+from voice_paste_legacy import config
+from voice_paste_legacy.logger import setup_logger, get_logger
+from voice_paste_legacy.audio.recorder import AudioRecorder
+from voice_paste_legacy.transcription.transcribable import Transcribable
+from voice_paste_legacy.transcription.whisper_transcriber import WhisperTranscriber
+from voice_paste_legacy.input.keyboard_sender import copy_to_clipboard, send_paste, send_enter
+from voice_paste_legacy.gui import RecordingModal, TranscribingOverlay, ConfirmMode
+from voice_paste_legacy.utils import (
     load_yogo,
     apply_yogo_replacements,
 )
-from voice_paste.history import save_history, cleanup_history
-from voice_paste.constants import DEFAULT_AUDIO_TMP, PID_FILE
+from voice_paste_legacy.history import save_history, cleanup_history
+from voice_paste_legacy.constants import DEFAULT_AUDIO_TMP, PID_FILE
 
 logger = get_logger(__name__)
 
@@ -90,7 +90,7 @@ def _open_ai_app(url: str, name: str) -> None:
 def _create_transcriber() -> Transcribable:
     """設定に応じた文字起こしエンジンを生成する。"""
     if config.TRANSCRIPTION_ENGINE == "openai":
-        from voice_paste.transcription.openai_transcriber import OpenAITranscriber
+        from voice_paste_legacy.transcription.openai_transcriber import OpenAITranscriber
         return OpenAITranscriber()
     return WhisperTranscriber()
 
@@ -112,14 +112,14 @@ def _run_once(
 
     # トレイアイコンを赤(録音中)に
     if tray_icon:
-        from voice_paste.tray import update_tray_state
+        from voice_paste_legacy.tray import update_tray_state
         update_tray_state(tray_icon, "recording")
 
     # 録音開始前にシステム音量をフェードダウン
     _pre_recording_volume: float = -1.0
     if config.RECORDING_VOLUME_ENABLED:
         try:
-            from voice_paste.audio.volume import get_master_volume, fade_volume
+            from voice_paste_legacy.audio.volume import get_master_volume, fade_volume
             _pre_recording_volume = get_master_volume()
             if _pre_recording_volume >= 0:
                 # RECORDING_VOLUME は現在の音量に掛けるパーセント比（例: 50 → 現在の半分）
@@ -135,7 +135,7 @@ def _run_once(
     # 録音終了後にシステム音量をフェードアップ（confirm / cancel 共通）
     if config.RECORDING_VOLUME_ENABLED and _pre_recording_volume >= 0:
         try:
-            from voice_paste.audio.volume import fade_volume
+            from voice_paste_legacy.audio.volume import fade_volume
             fade_volume(_pre_recording_volume, config.RECORDING_VOLUME_FADE_DURATION)
         except Exception:
             logger.exception("Failed to fade volume up.")
@@ -143,7 +143,7 @@ def _run_once(
     if result is None:
         recorder.cancel()
         if tray_icon:
-            from voice_paste.tray import update_tray_state
+            from voice_paste_legacy.tray import update_tray_state
             update_tray_state(tray_icon, "idle")
         logger.info("Session exited without output.")
         return
@@ -155,7 +155,7 @@ def _run_once(
 
     # トレイアイコンを緑(文字起こし中)に
     if tray_icon:
-        from voice_paste.tray import update_tray_state
+        from voice_paste_legacy.tray import update_tray_state
         update_tray_state(tray_icon, "transcribing")
 
     # 文字起こし中オーバーレイ表示
@@ -191,7 +191,7 @@ def _run_once(
     if _result["error"]:
         overlay.close()
         if tray_icon:
-            from voice_paste.tray import update_tray_state
+            from voice_paste_legacy.tray import update_tray_state
             update_tray_state(tray_icon, "idle")
         logger.exception("Transcription failed.", exc_info=_result["error"])
         import tkinter.messagebox as mb
@@ -207,7 +207,7 @@ def _run_once(
 
     # トレイアイコンをアイドルに戻す
     if tray_icon:
-        from voice_paste.tray import update_tray_state
+        from voice_paste_legacy.tray import update_tray_state
         update_tray_state(tray_icon, "idle")
 
     if not text:
@@ -292,7 +292,7 @@ def _run_resident() -> None:
         dispatch_queue.put("settings")
 
     # トレイアイコンをモデル読み込み前に表示（起動中であることをユーザーに示す）
-    from voice_paste.tray import build_tray_icon, update_tray_state
+    from voice_paste_legacy.tray import build_tray_icon, update_tray_state
 
     tray_icon = build_tray_icon(
         hotkey=config.RESIDENT_HOTKEY,
@@ -347,7 +347,7 @@ def _run_resident() -> None:
             if cmd == "settings":
                 session_active.set()
                 try:
-                    from voice_paste.settings_gui import SettingsWindow
+                    from voice_paste_legacy.settings_gui import SettingsWindow
 
                     def _on_settings_saved(changed: dict[str, str]) -> None:
                         nonlocal hotkey_listener

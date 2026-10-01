@@ -12,9 +12,9 @@ import shutil
 from pathlib import Path
 from tkinter import filedialog, messagebox
 
-from voice_paste import config
-from voice_paste.constants import ROOT_DIR, RESOURCES_DIR
-from voice_paste.logger import get_logger
+from voice_paste_legacy import config
+from voice_paste_legacy.constants import ROOT_DIR, RESOURCES_DIR
+from voice_paste_legacy.logger import get_logger
 
 logger = get_logger(__name__)
 

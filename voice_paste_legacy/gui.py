@@ -10,10 +10,10 @@ from typing import Callable, TYPE_CHECKING, Literal
 from pynput import keyboard as pynput_keyboard
 
 if TYPE_CHECKING:
-    from voice_paste.audio.recorder import AudioRecorder
+    from voice_paste_legacy.audio.recorder import AudioRecorder
 
-from voice_paste import config
-from voice_paste.logger import get_logger
+from voice_paste_legacy import config
+from voice_paste_legacy.logger import get_logger
 
 logger = get_logger(__name__)
 

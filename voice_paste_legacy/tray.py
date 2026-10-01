@@ -9,8 +9,8 @@ from typing import Callable, Literal
 from PIL import Image, ImageDraw, ImageFont
 import pystray
 
-from voice_paste.constants import DEFAULT_ICON_FILE, LOG_DIR, ROOT_DIR
-from voice_paste.logger import get_logger
+from voice_paste_legacy.constants import DEFAULT_ICON_FILE, LOG_DIR, ROOT_DIR
+from voice_paste_legacy.logger import get_logger
 
 logger = get_logger(__name__)
 

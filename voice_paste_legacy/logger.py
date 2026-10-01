@@ -5,7 +5,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from voice_paste.constants import LOG_DIR
+from voice_paste_legacy.constants import LOG_DIR
 
 
 def setup_logger(log_level: str = "INFO") -> logging.Logger:
@@ -19,7 +19,7 @@ def setup_logger(log_level: str = "INFO") -> logging.Logger:
 
     level = getattr(logging, log_level.upper(), logging.INFO)
 
-    logger = logging.getLogger("voice_paste")
+    logger = logging.getLogger("voice_paste_legacy")
     logger.setLevel(level)
 
     if logger.handlers:
@@ -55,7 +55,7 @@ def get_logger(name: str) -> logging.Logger:
     """
     サブモジュール用のロガーを取得する。
 
-    :param name: モジュール名（例: voice_paste.audio）
+    :param name: モジュール名（例: voice_paste_legacy.audio）
     :return: ロガー
     """
     return logging.getLogger(name)

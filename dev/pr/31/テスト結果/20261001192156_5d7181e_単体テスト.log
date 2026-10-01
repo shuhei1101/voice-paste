@@ -4,20 +4,20 @@ platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0
 rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\refactor-transcription-rebuild-transcription-correction-history
 configfile: pyproject.toml
 plugins: anyio-4.13.0, platformdirs-4.12.2
-collected 83 items
+collected 85 items
 
 tests\transcription\test_whisper_transcriber.py ss                       [  2%]
 tests\unit\voice_paste\features\correction\test_service.py .......       [ 10%]
 tests\unit\voice_paste\features\history\test_service.py ........         [ 20%]
-tests\unit\voice_paste\features\transcription\test_service.py ....       [ 25%]
-tests\unit\voice_paste\integrations\openai\test_client.py ......         [ 32%]
-tests\unit\voice_paste\integrations\whisper\test_client.py ..........    [ 44%]
-tests\unit\voice_paste\integrations\whisper\test_worker.py .....         [ 50%]
-tests\unit\voice_paste\shared\test_constants.py ..                       [ 53%]
-tests\unit\voice_paste\shared\test_env_migration.py .............        [ 68%]
-tests\unit\voice_paste\shared\test_logger.py ......                      [ 75%]
+tests\unit\voice_paste\features\transcription\test_service.py ....       [ 24%]
+tests\unit\voice_paste\integrations\openai\test_client.py ......         [ 31%]
+tests\unit\voice_paste\integrations\whisper\test_client.py ............  [ 45%]
+tests\unit\voice_paste\integrations\whisper\test_worker.py .....         [ 51%]
+tests\unit\voice_paste\shared\test_constants.py ..                       [ 54%]
+tests\unit\voice_paste\shared\test_env_migration.py .............        [ 69%]
+tests\unit\voice_paste\shared\test_logger.py ......                      [ 76%]
 tests\unit\voice_paste\shared\test_settings.py .............             [ 91%]
 tests\unit\voice_paste\test_main.py .......                              [100%]
 
-======================== 81 passed, 2 skipped in 1.37s ========================
+======================== 83 passed, 2 skipped in 1.49s ========================
 exit=0

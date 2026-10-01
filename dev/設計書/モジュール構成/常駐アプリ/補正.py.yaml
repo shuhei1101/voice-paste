@@ -21,7 +21,7 @@ data_models:
       - name: right
         type: str
         description: 正しい表記（CSV の列 `正しい表記`）
-    status: planned
+    status: implemented
 functions:
   - name: load_glossary
     title: 用語集の読み込み
@@ -70,7 +70,7 @@ functions:
         condition: 「 くろーど , Claude 」・「あいう,」・「,えお」の 3 行の CSV
         mock: なし（一時フォルダ）
         expected: GlossaryEntry(wrong="くろーど", right="Claude") だけが返る
-    status: planned
+    status: implemented
   - name: apply_glossary
     title: 用語集での補正
     kind: 関数
@@ -113,7 +113,7 @@ functions:
         expected: 「今日は晴れ」が返る
     notes:
       特性テスト: 置き換えの結果は、#15 で固める特性テスト（今の実装の入出力）と一致させる（品質シナリオ 2）。
-    status: planned
+    status: implemented
     process: |-
       1. 用語集の行の順に、誤変換を含むなら全て正しい表記へ置き換える
          - `[INFO]` 用語集で置き換えた（置き換えた誤変換 → 正しい表記の並び）

@@ -20,7 +20,7 @@ data_models:
       - name: payload
         type: dict
         description: '種類ごとの中身。config: model・device・compute_type・cpu_threads・num_workers・log_dir / transcribe: audio_path・language・beam_size・best_of・temperature・vad_filter・vad_threshold・vad_min_speech_ms・vad_min_silence_ms・condition_on_previous_text・no_speech_threshold / progress: end・duration（秒） / result: segments（前後の空白を除き空でない区間の文字の並び） / error: message'
-    status: planned
+    status: implemented
 functions:
   - name: run_worker
     title: ワーカーの本体
@@ -89,6 +89,6 @@ functions:
         expected: モデルの transcribe が vad_filter=False・vad_parameters=None で呼ばれる
     refs:
       - dev/設計書/外部ライブラリ/faster-whisper#
-    status: planned
+    status: implemented
 test_files:
   - tests/unit/voice_paste/integrations/whisper/test_worker.py

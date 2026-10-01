@@ -57,7 +57,7 @@ functions:
         condition: history_enabled=False
         mock: なし（一時フォルダ）
         expected: tmp/ の下に WAV があり、history/ に無い
-    status: planned
+    status: implemented
     process: |-
       1. 履歴を残す設定かで書き先を決める
          - 残す場合、`history/{now の YYYYMMDD}/{now の YYYYMMDDHHMMSS}_{session_id}.wav`
@@ -91,7 +91,7 @@ functions:
     returns:
       type: None
       description: なし
-    status: planned
+    status: implemented
     process: |-
       1. 録音が `tmp/` の下にあれば何もしない（履歴を残さない設定）
       2. 録音と同じフォルダ・同じ名前の `.txt` へ UTF-8 で文字を書く（空の文字も書く）
@@ -159,7 +159,7 @@ functions:
         condition: tmp/s1.wav・tmp/s2.wav があり、active_session_ids が {"s2"} を返す
         mock: なし（一時フォルダ）
         expected: tmp/s1.wav が消え、tmp/s2.wav が残る
-    status: planned
+    status: implemented
   - name: discard_temporary
     title: 一時の音声の削除
     kind: 関数
@@ -199,6 +199,6 @@ functions:
         condition: history/20261001/20261001120000_s1.wav
         mock: なし（一時フォルダ）
         expected: history/20261001/20261001120000_s1.wav が残る
-    status: planned
+    status: implemented
 test_files:
   - tests/unit/voice_paste/features/history/test_service.py

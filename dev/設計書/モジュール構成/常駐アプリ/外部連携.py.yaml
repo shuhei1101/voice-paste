@@ -184,7 +184,7 @@ classes:
             expected: terminate の後に kill が呼ばれ、wait がどちらも 0.1 秒で呼ばれる
     refs:
       - dev/設計書/外部ライブラリ/faster-whisper#
-    status: planned
+    status: implemented
 functions:
   - name: transcribe_with_openai
     title: OpenAI での文字起こし
@@ -293,7 +293,7 @@ functions:
     refs:
       - dev/設計書/外部ライブラリ/openai#
       - dev/設計書/外部API/OpenAI_API#
-    status: planned
+    status: implemented
   - name: lower_volume
     title: 音量を下げる
     kind: 関数

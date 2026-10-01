@@ -67,7 +67,7 @@ data_models:
       - name: duration_sec
         type: float
         description: 録音の長さ（一時停止の間を除く）
-    status: planned
+    status: implemented
   - name: TranscriptionOutcome
     title: 文字起こしの結果
     container: shared/types.py

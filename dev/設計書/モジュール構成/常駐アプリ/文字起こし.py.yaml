@@ -20,7 +20,7 @@ enums:
       - value: openai
         title: OpenAI
         description: OpenAI API で起こす
-    status: planned
+    status: implemented
 function_types:
   - name: EngineFn
     title: エンジン
@@ -42,7 +42,7 @@ function_types:
         notes: エンジンが local_whisper のとき
       - target: 外部連携の transcribe_with_openai
         notes: エンジンが openai のとき
-    status: planned
+    status: implemented
 functions:
   - name: transcribe
     title: 文字起こし
@@ -107,6 +107,6 @@ functions:
         condition: engine が [" 今日は ", "  ", "晴れ"] を返す
         mock: engine
         expected: '"今日は\n晴れ" が返る'
-    status: planned
+    status: implemented
 test_files:
   - tests/unit/voice_paste/features/transcription/test_service.py

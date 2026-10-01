@@ -462,6 +462,10 @@ def _is_table_like(value: Any) -> bool:
 
 def _merge_into(target: MutableMapping[str, Any], source: dict[str, Any]) -> None:
     """source の値で target を再帰で置き換える。表はキーごとに、配列は丸ごと入れ替える。"""
+    # source に無いキー（None の項目）は消す。知らないキーは検証で断られるので、残るのは None の項目だけ
+    for key in [key for key in target if key not in source]:
+        del target[key]
+
     # 表の後に置くとその表のキーとして読まれる値を、先に並べる
     for key, value in sorted(source.items(), key=lambda entry: _is_table_like(entry[1])):
         existing = target.get(key)

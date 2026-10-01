@@ -58,6 +58,9 @@ data_models:
       - name: settings
         type: Settings
         description: 読み込んだ設定
+      - name: start_local_session
+        type: Callable[[Entry], None]
+        description: ホットキー・トレイの開始（SessionManager と notify を部分適用した start_local_session）
     status: planned
 functions:
   - name: build_handlers
@@ -88,13 +91,14 @@ functions:
       type: Handlers
       description: 配線済みの関数の束
     process: |-
-      1. 設定のエンジンが local_whisper なら WhisperWorkerClient を作って起動し、openai なら transcribe_with_openai に OpenAI の設定を部分適用する（文字起こしの engine に渡す）
+      1. 設定のエンジンが local_whisper なら WhisperWorkerClient を作って起動し、openai なら transcribe_with_openai に OpenAI の設定と非機能要件の送る音声ファイルの大きさを部分適用する（文字起こしの engine に渡す）
          - EngineError・API キーが空の場合、StartupError を送出する
       2. Recorder に音量のアダプタを渡す
       3. 出力先の deliver にオンの出力先と OUTPUTS を部分適用し、Session を入口・出力先・返送先に分けて渡すアダプタを作る
       4. 用語集を文字起こしのたびに読み直す correct を作る（load_glossary → apply_glossary）
       5. SessionDeps を組み、SessionManager を作る
       6. SessionManager と、設定の許可ホストを部分適用した is_callback_allowed を SessionApiDeps に束ねる
+      7. start_local_session に SessionManager と notify を部分適用する
     exceptions:
       - name: StartupError
         condition: 文字起こしのエンジンを準備できない
@@ -111,17 +115,20 @@ functions:
       description: 終了コード
     process: |-
       1. 名前付きの排他を取る（acquire_single_instance）
-      2. ログを設定し、保持期間を過ぎたログと履歴を消す（setup_logging・purge_old_logs・purge_expired）
-      3. 設定を読む（load_settings）
-      4. QApplication とトレイを作り、準備中を出す
-      5. 配線する（build_handlers）
-         - StartupError・SettingsError の場合、トレイで知らせてログに理由を書き、録音を受け付けずにトレイだけで続ける（6 と 7 を飛ばす）
+      2. ログを設定する（setup_logging）
+      3. QApplication とトレイを作り、準備中を出す
+      4. 設定を読む（load_settings）
+         - SettingsError の場合、トレイで知らせてログに理由を書き、録音を受け付けずにトレイだけで続ける（5〜8 を飛ばす。古いログと履歴も消さない）
            - `[ERROR]` 起動に失敗した（理由）
-      6. トークンを発行し、API サーバーを起動する（issue_token・build_fastapi・ApiServerRunner.start）
+      5. 設定の保持期間で古いログと履歴を消す（purge_old_logs・purge_expired）
+      6. 配線する（build_handlers）
+         - StartupError の場合、トレイで知らせてログに理由を書き、録音を受け付けずにトレイだけで続ける（7 と 8 を飛ばす）
+           - `[ERROR]` 起動に失敗した（理由）
+      7. トークンを発行し、API サーバーを起動する（issue_token・build_fastapi・ApiServerRunner.start）
          - False の場合、トレイで API を使えないことを知らせて続ける
-      7. ホットキーの受付を始め、上限の打ち切りと古い履歴・ログの削除を QTimer で定期に呼ぶ
-      8. トレイを待機中にし、イベントループを回す
-      9. 終了の依頼かトレイの終了で、録音を捨て・API サーバー・ホットキー・ワーカーを止め、トレイを消して終わる
+      8. ホットキーの受付を始め（開始は start_local_session、確定・一時停止・取り消しは SessionManager のメソッド）、上限の打ち切りと古い履歴・ログの削除を QTimer で定期に呼ぶ
+      9. トレイを待機中にし、イベントループを回す
+      10. 終了の依頼かトレイの終了で、録音を捨て・API サーバー・ホットキー・ワーカーを止め、トレイを消して終わる
     status: planned
   - name: acquire_single_instance
     title: 単一インスタンスの確保
@@ -144,6 +151,58 @@ functions:
         condition: 上限まで待っても前のプロセスが排他を放さない
     notes:
       強制終了しない: プロセスの番号での強制終了はしない（番号を使い回された無関係なプロセスを止めない）。
+    status: planned
+  - name: start_local_session
+    title: ホットキー・トレイからの開始
+    kind: 関数
+    container: main.py
+    usecase: 録音する
+    scope: public
+    summary: SessionManager.start を呼び、断られた理由をユーザーへ知らせる。例外を pynput・画面のスレッドへ漏らさない
+    args:
+      - name: entry
+        type: Entry
+        required: true
+        passing: positional
+        description: hotkey か tray
+      - name: session_manager
+        type: SessionManager
+        required: true
+        passing: injected
+        description: セッション管理
+      - name: notify
+        type: NotifyFn
+        required: true
+        passing: injected
+        description: ユーザーへの知らせ
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. SessionManager.start(entry) を呼ぶ
+         - SessionBusyError の場合、busy を知らせる（ダイアログ）
+         - MicrophoneUnavailableError の場合、microphone_unavailable を知らせる（トレイ）
+         - それ以外の例外の場合、ログに書いて握る
+           - `[ERROR]` 録音を始められなかった（logger.exception）
+    unit_tests:
+      - name: test_start_local_session_when_busy
+        case: 正常
+        summary: 処理中なら busy を知らせる
+        condition: start が SessionBusyError を送出する
+        mock: session_manager・notify
+        expected: notify に busy が渡り、例外が出ない
+      - name: test_start_local_session_when_microphone_unavailable
+        case: 正常
+        summary: マイクを開けなければ microphone_unavailable を知らせる
+        condition: start が MicrophoneUnavailableError を送出する
+        mock: session_manager・notify
+        expected: notify に microphone_unavailable が渡り、例外が出ない
+      - name: test_start_local_session_when_unexpected_error
+        case: 正常
+        summary: 想定外の例外も漏らさない
+        condition: start が RuntimeError を送出する
+        mock: session_manager・notify
+        expected: 例外が出ず、ERROR のログが 1 行出る
     status: planned
 notes:
   依存の向き: |-

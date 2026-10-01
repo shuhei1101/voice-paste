@@ -145,7 +145,8 @@ classes:
       | `MicrophoneUnavailableError` | マイクを開けない | 503 |
       | `TranscriptionError` | 文字起こしに失敗した（API へは返さず返送先へ届ける） | - |
       | `EngineError` | エンジンが失敗した（外部連携が送出し、文字起こしが TranscriptionError に変える） | - |
-      | `DeliveryError`・`UnknownOutputError` | 出力先へ届けられない | - |
+      | `DeliveryError` | 出力先へ届けられない | - |
+      | `UnknownOutputError` | 選んだ出力先が一覧に無いかオフ（`DeliveryError` の子） | - |
       | `VolumeControlError` | システム音量を操作できない | - |
       | `SettingsError` | 設定の値が合わない | - |
       | `StartupError` | 起動に失敗した（エンジンを準備できない・前のプロセスが排他を放さない） | - |

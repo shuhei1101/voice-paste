@@ -374,6 +374,12 @@ classes:
             condition: ホットキーのセッションが recording
             mock: SessionDeps の全関数
             expected: 状態が paused になり、pause_recording が呼ばれる
+          - name: test_pause_when_api_session
+            case: 正常
+            summary: API のセッションに一時停止のホットキーが来ても変えない
+            condition: API のセッションが recording
+            mock: SessionDeps の全関数
+            expected: pause_recording が呼ばれず、状態が recording のまま
       - name: resume
         title: 再開
         kind: メソッド
@@ -384,7 +390,7 @@ classes:
           type: None
           description: なし
         process: |-
-          1. paused なら、録音した音を貯めるのを再び始めて recording にする
+          1. 入口が api でなく paused なら、録音した音を貯めるのを再び始めて recording にする
              - それ以外の場合、何もしない
       - name: stop
         title: 停止
@@ -449,15 +455,17 @@ classes:
           type: None
           description: なし（結果は出力先へ届く）
         process: |-
-          1. セッションが recording・paused・stopped のどれかであることを確かめる
-             - そうでない場合、SessionNotFoundError を送出する
-          2. stopped でなければ録音を止める（録音の停止）
-          3. 録音を保存し（録音の保存）、状態を transcribing にする
+          1. session_id がある場合（API）、今のセッションの ID と一致し、入口が api で、recording か stopped であることを確かめる
+             - 当たらない場合、SessionNotFoundError を送出する
+          2. session_id が None の場合（ホットキー・トレイ）、今のセッションの入口が api でなく、recording か paused であることを確かめる
+             - 当たらない場合、何もしない（API のセッションに確定のホットキーが来ても変えない）
+          3. stopped でなければ録音を止める（録音の停止）
+          4. 録音を保存し（録音の保存）、状態を transcribing にする
              - `[INFO]` 録音を確定した（セッションの ID・録音の長さ・保存先）
-          4. ワーカースレッドで文字起こしから届けるまでを始める（確定後の流れ）
+          5. ワーカースレッドで文字起こしから届けるまでを始める（確定後の流れ）
         exceptions:
           - name: SessionNotFoundError
-            condition: 今のセッションでないか、確定できる状態でない
+            condition: session_id が今のセッションの ID と合わないか、入口が api でないか、確定できる状態でない（API のとき）
         unit_tests:
           - name: test_complete_when_stopped
             case: 正常
@@ -468,13 +476,26 @@ classes:
           - name: test_complete_when_recording
             case: 正常
             summary: 録音中なら止めてから確定する
-            condition: セッションが recording
+            condition: ホットキーのセッションが recording で、session_id=None
             mock: SessionDeps の全関数。ワーカースレッドは同期で動かす
             expected: stop_recording の後に save_recording が呼ばれる
+          - name: test_complete_when_hotkey_on_api_session
+            case: 正常
+            summary: API のセッションにホットキーの確定が来ても変えない
+            condition: API のセッションが recording で、session_id=None
+            mock: SessionDeps の全関数
+            expected: 例外が出ず、stop_recording・save_recording が呼ばれず、状態が recording のまま
+          - name: test_complete_when_session_id_mismatch
+            case: 異常
+            summary: ID が違えば断る
+            condition: API のセッションが stopped で、別の session_id
+            mock: SessionDeps の全関数
+            expected: SessionNotFoundError が送出され、save_recording が呼ばれない
+            exception: session_id が今のセッションの ID と合わない
           - name: test_complete_when_session_unknown
             case: 異常
-            summary: 知らない・完了済みのセッションは断る
-            condition: transcribing のセッションにもう一度完了が来る
+            summary: 完了済みのセッションは断る
+            condition: transcribing の API のセッションにもう一度完了が来る
             mock: SessionDeps の全関数
             expected: SessionNotFoundError が送出される
             exception: 確定できる状態でない
@@ -488,9 +509,9 @@ classes:
           type: None
           description: なし
         process: |-
-          1. recording か paused なら、録音を捨ててセッションを空にする
+          1. 入口が api でなく、recording か paused なら、録音を捨ててセッションを空にする
              - `[INFO]` 録音を取り消した（セッションの ID）
-             - それ以外の場合、何もしない
+             - それ以外の場合（API のセッションを含む）、何もしない
         unit_tests:
           - name: test_cancel_when_recording
             case: 正常
@@ -498,6 +519,12 @@ classes:
             condition: ホットキーのセッションが recording
             mock: SessionDeps の全関数
             expected: discard_recording が呼ばれ、save_recording が呼ばれず、セッションが空になる
+          - name: test_cancel_when_api_session
+            case: 正常
+            summary: API のセッションに取り消しのホットキーが来ても変えない
+            condition: API のセッションが recording
+            mock: SessionDeps の全関数
+            expected: discard_recording が呼ばれず、状態が recording のまま
       - name: truncate_if_expired
         title: 上限での打ち切り
         kind: メソッド
@@ -567,8 +594,10 @@ classes:
              - `[INFO]` 文字起こしの結果が空だった（セッションの ID）
           5. 状態を delivering にする
           6. result=transcribed を届ける（出力先への配送）
-             - DeliveryError の場合、delivery_failed を知らせる
-          7. セッションを空にして待機中を知らせる
+             - DeliveryError（UnknownOutputError を含む）の場合、delivery_failed を知らせる
+             - 2〜6 で想定外の例外が出た場合、入口が api なら result=failed を届け、それ以外は文字起こしの前後に応じて transcription_failed か delivery_failed を知らせる
+               - `[ERROR]` 確定後の流れで想定外の例外（logger.exception）
+          7. どの経路でも必ず（finally）セッションを空にして待機中を知らせる
         unit_tests:
           - name: test_run_after_confirm
             case: 正常
@@ -600,6 +629,18 @@ classes:
             condition: 入口が api で transcribe が空文字
             mock: SessionDeps の全関数
             expected: deliver に result=transcribed・text="" が渡る
+          - name: test_run_after_confirm_when_deliver_raised_unexpected
+            case: 正常
+            summary: 想定外の例外でもセッションは空になる
+            condition: 入口が hotkey で deliver が RuntimeError を送出する
+            mock: SessionDeps の全関数
+            expected: notify に delivery_failed が渡り、セッションが空になり、続く start が通る
+          - name: test_run_after_confirm_when_unknown_output
+            case: 正常
+            summary: 選んだ出力先が無ければ届けられなかったと知らせる
+            condition: 入口が hotkey で deliver が UnknownOutputError を送出する
+            mock: SessionDeps の全関数
+            expected: notify に delivery_failed が渡り、セッションが空になる
     status: planned
 functions:
   - name: start_session_route

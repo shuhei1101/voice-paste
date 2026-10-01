@@ -120,8 +120,10 @@ constraints:
     constraint: 開始で受け取った callback_url だけ。ホストが loopback か設定で許可したホストであることを送る前にもう一度確かめる
   - item: タイムアウト
     constraint: 非機能要件の返送のタイムアウト
+    decided_by: dev/設計書/非機能要件/非機能要件#requirements[返送のタイムアウトと再送]
   - item: 再送
     constraint: 非機能要件の返送の再送回数と間隔
+    decided_by: dev/設計書/非機能要件/非機能要件#requirements[返送のタイムアウトと再送]
   - item: リダイレクト
     constraint: 追わない
     notes: 許可していないホストへ流れるのを防ぐ

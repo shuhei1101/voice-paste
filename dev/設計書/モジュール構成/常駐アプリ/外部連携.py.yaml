@@ -117,12 +117,31 @@ functions:
         required: true
         passing: injected
         description: API キー（SecretStr）・モデル・言語・温度
+      - name: max_upload_bytes
+        type: int
+        required: true
+        passing: injected
+        description: 非機能要件の OpenAI API へ送る音声ファイルの大きさの決定値
     returns:
       type: list[str]
       description: 区間ごとの文字（区間が無ければ全文を 1 つ）
+    process: |-
+      1. 録音のファイルの大きさが max_upload_bytes を超えるかを確かめる
+         - 超える場合、送らずに EngineError を送出する
+           - `[WARNING]` 送れる大きさを超えたため送らなかった（大きさ・上限）
+      2. OpenAI のエンジンの設定で録音を送り、区間ごとの文字を返す
+         - API に届かない・エラーを返した場合、EngineError を送出する
     exceptions:
       - name: EngineError
-        condition: API に届かない・エラーを返した・送れる大きさ（25 MB）を超えた
+        condition: 録音が max_upload_bytes を超える（送らない）・API に届かない・エラーを返した
+    unit_tests:
+      - name: test_transcribe_with_openai_when_too_large
+        case: 異常
+        summary: 上限を超える録音は送らない
+        condition: max_upload_bytes を 1,000 にし、1,001 バイトの WAV を渡す
+        mock: OpenAI のクライアント
+        expected: EngineError が送出され、クライアントが呼ばれず、WARNING のログが 1 行出る
+        exception: 録音が max_upload_bytes を超える
     connectivity_tests:
       - name: test_ext_transcribe_with_openai_when_default_model
         api: OpenAI API（音声の文字起こし）

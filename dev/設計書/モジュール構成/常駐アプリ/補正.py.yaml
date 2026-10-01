@@ -117,3 +117,5 @@ functions:
     process: |-
       1. 用語集の行の順に、誤変換を含むなら全て正しい表記へ置き換える
          - `[INFO]` 用語集で置き換えた（置き換えた誤変換 → 正しい表記の並び）
+test_files:
+  - tests/unit/voice_paste/features/correction/test_service.py

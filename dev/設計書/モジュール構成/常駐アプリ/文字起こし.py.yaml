@@ -108,3 +108,5 @@ functions:
         mock: engine
         expected: '"今日は\n晴れ" が返る'
     status: planned
+test_files:
+  - tests/unit/voice_paste/features/transcription/test_service.py

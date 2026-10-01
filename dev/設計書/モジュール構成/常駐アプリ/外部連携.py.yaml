@@ -383,3 +383,6 @@ functions:
     refs:
       - dev/設計書/外部ライブラリ/pynput#
     status: planned
+test_files:
+  - tests/unit/voice_paste/integrations/whisper/test_client.py
+  - tests/unit/voice_paste/integrations/openai/test_client.py

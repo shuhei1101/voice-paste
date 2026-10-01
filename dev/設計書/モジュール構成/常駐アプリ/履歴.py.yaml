@@ -200,3 +200,5 @@ functions:
         mock: なし（一時フォルダ）
         expected: history/20261001/20261001120000_s1.wav が残る
     status: planned
+test_files:
+  - tests/unit/voice_paste/features/history/test_service.py

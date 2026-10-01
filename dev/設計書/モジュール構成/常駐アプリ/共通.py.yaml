@@ -583,16 +583,16 @@ functions:
       - name: test_load_settings_when_invalid_value
         case: 異常
         summary: 合わない値はキーを示して断る
-        condition: transcription.local_whisper.beam_size = "x"
+        condition: parametrize で (1) transcription.local_whisper.beam_size = "x" (2) transcription.engine = "openai"（作らないエンジン）
         mock: なし（一時フォルダ）
-        expected: SettingsError。メッセージに transcription.local_whisper.beam_size を含む
+        expected: SettingsError。メッセージに (1) transcription.local_whisper.beam_size (2) transcription.engine を含む
         exception: 値がモデルに合わない
       - name: test_load_settings_when_unknown_key
         case: 異常
         summary: 知らないキーを断る
-        condition: recording.volum_percent = 30（書き間違い）
+        condition: parametrize で (1) recording.volum_percent = 30（書き間違い） (2) [transcription.openai] の表に model = "whisper-1"（消した設定）
         mock: なし（一時フォルダ）
-        expected: SettingsError。メッセージに recording.volum_percent を含む
+        expected: SettingsError。メッセージに (1) recording.volum_percent (2) transcription.openai を含む
         exception: 知らないキーがある
       - name: test_load_settings_when_duplicate_output_id
         case: 異常

@@ -151,6 +151,66 @@ scenarios:
     expected:
       - 完了が見つからないことを表すエラー（404）で返っている
       - 処理中のほかの録音があれば、そのまま続いている
+  - name: 異常シナリオ（マイクを開けない）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 録音中の音量
+        description: 録音中にシステム音量を下げる設定にする
+      - name: マイクの欠落
+        description: 入力の音声デバイスを外しておき、録音の入力を開けないようにする
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant P as 呼び出し元
+        participant API as API のサーバー
+        participant SVC as 常駐サービス
+        participant LOG as ログ
+
+        P->>API: 開始（トークン・返送先）
+        API->>SVC: 画面を出さない録音を始める
+        SVC->>SVC: マイクを開けず、音量を戻して待機中に戻す
+        SVC->>LOG: マイクを開けなかった理由を書く
+        SVC-->>API: 録音を始められなかった
+        API-->>P: 録音を始められないことを表すエラー（503）
+      ```
+    expected:
+      - 開始が録音を始められないことを表すエラー（503）で返っている
+      - 録音が始まっていない
+      - システム音量が録音前の値に戻っている
+      - 続けて開始を呼ぶと、処理中として断られずに受け付けられる
+  - name: 異常シナリオ（完了が来ないまま上限に達する）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行。返送先は 127.0.0.1 で待ち受けるテスト用の受け口）
+      - name: 上限の短縮
+        description: 非機能要件の録音の上限時間を、テストで待てる短い値に差し替える
+      - name: 放置されたセッション
+        description: 開始を呼んだ後、停止も完了も呼ばない
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant P as 呼び出し元
+        participant API as API のサーバー
+        participant SVC as 常駐サービス
+        participant HIST as 履歴
+        participant CB as 返送先のエンドポイント
+
+        P->>API: 開始（トークン・返送先）
+        API-->>P: 受け付けた（セッションの ID）
+        SVC->>SVC: 完了が来ないまま録音の上限時間に達する
+        SVC->>SVC: 録音を止め、音量を戻す
+        SVC->>HIST: 打ち切った録音を履歴に保存する
+        SVC->>CB: セッションの ID と、完了が来ないまま上限で打ち切ったことを送る
+        SVC->>SVC: 待機中に戻す
+      ```
+    expected:
+      - 返送先の受け口に、セッションの ID と上限で打ち切ったことが 1 回届いている
+      - 履歴に打ち切った録音が残っている
+      - システム音量が録音前の値に戻っている
+      - 続けて開始を呼ぶと、次の録音を始められる
+    notes:
+      上限時間: 録音の上限時間は、OpenAI API へ送れる音声の 25 MB と録音の形式から導いて非機能要件に置く。
 lead: 同じ端末のほかのプロセスが API の開始・停止・完了を呼び、画面を出さない録音を始めて確定するまでの単一ユースケース。
 issue: 14
 primary_actor: API を呼ぶほかのプロセス

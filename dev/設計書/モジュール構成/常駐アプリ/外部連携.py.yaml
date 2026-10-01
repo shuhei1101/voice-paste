@@ -42,6 +42,11 @@ classes:
         type: float
         access: 内部 (_)
         description: 終わりを待つ時間（非機能要件の文字起こしワーカーの終わりを待つ時間。main.py が渡す）
+      - name: _stopping
+        type: bool
+        access: 内部 (_)
+        default: 'False'
+        description: stop で止めている最中か。立っている間は子プロセスが終わっても立て直さない。start で下ろす
     methods:
       - name: start
         title: 起動
@@ -55,11 +60,12 @@ classes:
           - name: EngineError
             condition: モデルを読み込めず ready が届かない（error が届いた・子プロセスが終わった・立て直しで上限を過ぎた）
         process: |-
-          1. 子プロセスの環境を作る
+          1. _stopping を下ろす
+          2. 子プロセスの環境を作る
              - venv の `Lib/site-packages/nvidia/{cublas,cudnn,cuda_nvrtc}/bin` のうち存在するものを PATH の先頭へ足す（CUDA の DLL を子プロセスが見つけられるようにする）
              - 標準入出力を UTF-8 にする
-          2. `python -u -m voice_paste.integrations.whisper.worker` をコンソールを出さずに起動し、標準エラーを別のスレッドで読んでロガーへ流す
-          3. config（モデル・デバイス・量子化・スレッド数・ワーカー数・ログの置き場所）を送り、ready・error・子プロセスの終了のどれかを待つ
+          3. `python -u -m voice_paste.integrations.whisper.worker` をコンソールを出さずに起動し、標準エラーを別のスレッドで読んでロガーへ流す
+          4. config（モデル・デバイス・量子化・スレッド数・ワーカー数・ログの置き場所）を送り、ready・error・子プロセスの終了のどれかを待つ
              - ready_timeout_sec が渡されていれば、その間だけ待つ（立て直しの経路）
              - error が届いた・子プロセスが終わった・上限を過ぎた場合、子プロセスを止めて EngineError を送出する
              - `[INFO]` 文字起こしワーカーが立ち上がった（pid・かかった秒）
@@ -120,8 +126,10 @@ classes:
           description: 区間ごとの文字
         process: |-
           1. 録音と設定を 1 行の JSON で送り、区間の進みと結果を読む
-             - 子プロセスが応答の途中で終わった場合、子プロセスを start(ready_timeout_sec=_ready_timeout_sec) で起動し直して同じ録音をもう一度送る（やり直しは 1 回だけ）
+             - 子プロセスが応答の途中で終わった場合、_stopping が立っていれば立て直さずに EngineError を送出する（常駐の終了で止めた）
+             - それ以外で子プロセスが応答の途中で終わった場合、子プロセスを start(ready_timeout_sec=_ready_timeout_sec) で起動し直して同じ録音をもう一度送る（やり直しは 1 回だけ）
                - `[WARNING]` 文字起こしワーカーが落ちたので立て直す（終了コード）
+               - 立て直しで ready が上限までに届かなければ、start が子プロセスを止めて EngineError を送出する
              - やり直しも落ちた場合、子プロセスを同じ上限でもう一度起動して次の録音に備え、EngineError を送出する
              - ワーカーがエラーを返した場合、起動し直さずに EngineError を送出する
         exceptions:
@@ -160,13 +168,14 @@ classes:
         title: 停止
         kind: メソッド
         scope: public
-        summary: 子プロセスの標準入力を閉じて終わりを待ち、待ちきれなければ止める。常駐の終了時に main.py が呼ぶ
+        summary: 子プロセスの標準入力を閉じて終わりを待ち、待ちきれなければ止める。常駐の終了時に main.py が呼ぶ。文字起こしの最中に別のスレッドから呼ばれても、文字起こしの終わりを待たない
         returns:
           type: None
           description: なし
         process: |-
-          1. 子プロセスが無ければ何もしない
-          2. 標準入力を閉じ、終わりを _stop_timeout_sec 待つ
+          1. 文字起こしが持つロックを取らずに _stopping を立てる（文字起こしの最中でも待たない。止めた子プロセスを transcribe が「落ちた」と受けて立て直さないようにする）
+          2. 子プロセスが無ければ何もしない
+          3. 標準入力を閉じ、終わりを _stop_timeout_sec 待つ
              - 終わらなければ terminate して同じ時間待ち、それでも終わらなければ kill する
                - `[WARNING]` 文字起こしワーカーが終わらないので止めた（terminate / kill）
         unit_tests:

@@ -30,7 +30,8 @@ used_in:
   - src/voice_paste/features/recording/client.py
 upstream: spatialaudio/python-sounddevice
 verification:
-  state: 未確認
-  detail: 現状の棚卸しで、コードが使っている範囲を写しただけで、動かしてはいない
+  state: 済
+  date: '2026-10-01'
+  detail: sounddevice 0.5.5 で、既定の入力デバイスを samplerate=16000・channels=1・dtype='int16' のコールバックの InputStream で開いて start し、0.3 秒のあいだに形 (n, 1)・int16・status が空のコールバックが 11 回届き、stop・close で閉じられることを実機で動かした
 license: MIT（商用利用可）
 official_url: https://python-sounddevice.readthedocs.io/

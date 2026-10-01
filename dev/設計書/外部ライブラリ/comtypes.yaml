@@ -21,7 +21,8 @@ used_in:
   - src/voice_paste/integrations/volume/
 upstream: enthought/comtypes
 verification:
-  state: 未確認
-  detail: 現状の棚卸しで、コードが使っている範囲を写しただけで、動かしてはいない
+  state: 済
+  date: '2026-10-01'
+  detail: comtypes 1.4 で、メインのスレッドと別のスレッドのそれぞれで CoInitialize してから pycaw の音量のインターフェースを引いて読み書きでき、CoUninitialize で解放できることを動かした
 license: MIT（商用利用可）
 official_url: https://github.com/enthought/comtypes

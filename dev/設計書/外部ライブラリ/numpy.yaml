@@ -30,7 +30,8 @@ used_in:
   - src/voice_paste/features/recording/service.py
 upstream: numpy/numpy
 verification:
-  state: 未確認
-  detail: 現状の棚卸しで、コードが使っている範囲を写しただけで、動かしてはいない
+  state: 済
+  date: '2026-10-01'
+  detail: numpy 2.4.4 で、int16 の (n, 1) の配列を concatenate でつないで 1 次元にし、RMS を sqrt / mean で求め、長さ 0 の int16 の配列を zeros で作れることを最小のコードで動かした
 license: BSD-3-Clause ほか（0BSD・MIT・Zlib・CC0-1.0 を含む。商用利用可）
 official_url: https://numpy.org/

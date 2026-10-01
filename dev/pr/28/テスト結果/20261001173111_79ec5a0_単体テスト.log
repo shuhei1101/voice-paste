@@ -1,0 +1,57 @@
+実行した commit: 79ec5a0
+実行したコマンド: venv/Scripts/python.exe -m pytest tests/transcription tests/unit -v -rs（普段使いの venv には pytest などが無いため、リポジトリの外の一時の venv で実行した。`pip install -e . --no-deps` のあと pytest・pydantic・tomlkit・platformdirs・python-dotenv・numpy を入れてある）
+
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\shuhe\AppData\Local\Temp\voice-paste-test28\venv\Scripts\python.exe
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\refactor-desktop-app-new-layout-foundation
+configfile: pyproject.toml
+plugins: platformdirs-4.12.2
+collecting ... collected 42 items
+
+tests/transcription/test_whisper_transcriber.py::test_transcribe_returns_text SKIPPED [  2%]
+tests/transcription/test_whisper_transcriber.py::test_transcribe_with_empty_prompt SKIPPED [  4%]
+tests/unit/voice_paste/shared/test_constants.py::test_resolve_app_paths_when_data_dir PASSED [  7%]
+tests/unit/voice_paste/shared/test_constants.py::test_resolve_app_paths_when_default PASSED [  9%]
+tests/unit/voice_paste/shared/test_env_migration.py::test_migrate_env_when_sample PASSED [ 11%]
+tests/unit/voice_paste/shared/test_env_migration.py::test_migrate_env_when_custom_values PASSED [ 14%]
+tests/unit/voice_paste/shared/test_env_migration.py::test_migrate_env_when_ai_send_gap PASSED [ 16%]
+tests/unit/voice_paste/shared/test_env_migration.py::test_migrate_env_when_relative_glossary[root_yogo] PASSED [ 19%]
+tests/unit/voice_paste/shared/test_env_migration.py::test_migrate_env_when_relative_glossary[relative_path] PASSED [ 21%]
+tests/unit/voice_paste/shared/test_env_migration.py::test_migrate_env_when_relative_glossary[resources_file_name] PASSED [ 23%]
+tests/unit/voice_paste/shared/test_env_migration.py::test_migrate_env_when_relative_glossary[none] PASSED [ 26%]
+tests/unit/voice_paste/shared/test_env_migration.py::test_migrate_env_when_read_only PASSED [ 28%]
+tests/unit/voice_paste/shared/test_env_migration.py::test_migrate_env_when_missing PASSED [ 30%]
+tests/unit/voice_paste/shared/test_env_migration.py::test_migrate_env_when_unknown_engine PASSED [ 33%]
+tests/unit/voice_paste/shared/test_env_migration.py::test_migrate_env_when_invalid_number PASSED [ 35%]
+tests/unit/voice_paste/shared/test_env_migration.py::test_migrate_env_when_empty_glossary[root_yogo] PASSED [ 38%]
+tests/unit/voice_paste/shared/test_env_migration.py::test_migrate_env_when_empty_glossary[resources_yogo] PASSED [ 40%]
+tests/unit/voice_paste/shared/test_logger.py::test_setup_logging PASSED  [ 42%]
+tests/unit/voice_paste/shared/test_logger.py::test_setup_logging_when_called_twice PASSED [ 45%]
+tests/unit/voice_paste/shared/test_logger.py::test_setup_logging_when_date_changed PASSED [ 47%]
+tests/unit/voice_paste/shared/test_logger.py::test_setup_logging_when_uvicorn_logger PASSED [ 50%]
+tests/unit/voice_paste/shared/test_logger.py::test_purge_old_logs PASSED [ 52%]
+tests/unit/voice_paste/shared/test_logger.py::test_purge_old_logs_when_other_names PASSED [ 54%]
+tests/unit/voice_paste/shared/test_settings.py::test_load_settings_when_missing PASSED [ 57%]
+tests/unit/voice_paste/shared/test_settings.py::test_load_settings PASSED [ 59%]
+tests/unit/voice_paste/shared/test_settings.py::test_load_settings_when_sample_file PASSED [ 61%]
+tests/unit/voice_paste/shared/test_settings.py::test_load_settings_when_invalid_value PASSED [ 64%]
+tests/unit/voice_paste/shared/test_settings.py::test_load_settings_when_unknown_key PASSED [ 66%]
+tests/unit/voice_paste/shared/test_settings.py::test_load_settings_when_duplicate_output_id PASSED [ 69%]
+tests/unit/voice_paste/shared/test_settings.py::test_load_settings_when_broken_toml PASSED [ 71%]
+tests/unit/voice_paste/shared/test_settings.py::test_save_settings_when_comments PASSED [ 73%]
+tests/unit/voice_paste/shared/test_settings.py::test_save_settings_when_restart_item_changed PASSED [ 76%]
+tests/unit/voice_paste/shared/test_settings.py::test_save_settings_when_immediate_item_changed PASSED [ 78%]
+tests/unit/voice_paste/shared/test_settings.py::test_save_settings_when_missing PASSED [ 80%]
+tests/unit/voice_paste/shared/test_settings.py::test_save_settings_when_invalid_existing PASSED [ 83%]
+tests/unit/voice_paste/test_main.py::test_parse_args PASSED              [ 85%]
+tests/unit/voice_paste/test_main.py::test_parse_args_when_migrate_env PASSED [ 88%]
+tests/unit/voice_paste/test_main.py::test_parse_args_when_no_data_dir PASSED [ 90%]
+tests/unit/voice_paste/test_main.py::test_main PASSED                    [ 92%]
+tests/unit/voice_paste/test_main.py::test_main_when_migrate_env PASSED   [ 95%]
+tests/unit/voice_paste/test_main.py::test_main_when_settings_exists_and_migrate_env PASSED [ 97%]
+tests/unit/voice_paste/test_main.py::test_main_when_invalid_settings PASSED [100%]
+
+=========================== short test summary info ===========================
+SKIPPED [1] tests\transcription\test_whisper_transcriber.py:27: whisper_transcriber.py がサブプロセス版になり WhisperModel を持たないため、移す前から pass しない。#23 で消す
+SKIPPED [1] tests\transcription\test_whisper_transcriber.py:43: whisper_transcriber.py がサブプロセス版になり WhisperModel を持たないため、移す前から pass しない。#23 で消す
+======================== 40 passed, 2 skipped in 0.29s ========================

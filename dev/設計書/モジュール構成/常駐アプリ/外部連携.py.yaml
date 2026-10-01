@@ -490,3 +490,5 @@ constants:
 test_files:
   - tests/unit/voice_paste/integrations/whisper/test_client.py
   - tests/unit/voice_paste/integrations/volume/test_adapter.py
+external_test_files:
+  - tests/external/voice_paste/integrations/volume/test_adapter.py

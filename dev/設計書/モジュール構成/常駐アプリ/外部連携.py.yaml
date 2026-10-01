@@ -1,13 +1,11 @@
 title: "常駐アプリ / 外部連携"
-lead: 文字起こしワーカーの子プロセス・OpenAI・システム音量・キーボードとクリップボードを包むアダプタ。feature の関数型を満たし、外の例外をアプリの例外に変える。
+lead: 文字起こしワーカーの子プロセス・システム音量・キーボードとクリップボードを包むアダプタ。feature の関数型を満たし、外の例外をアプリの例外に変える。
 directory: |-
   ```
   src/voice_paste/integrations/
   ├── whisper/
   │   ├── client.py     # WhisperWorkerClient（子プロセスの起動・監視・立て直し・やり直し）
   │   └── worker.py     # 子プロセスの本体（文字起こしワーカーのサブシステム）
-  ├── openai/
-  │   └── client.py     # transcribe_with_openai
   ├── volume/
   │   └── adapter.py    # lower_volume・restore_volume（pycaw を == で固定して包む）
   └── keyboard/
@@ -208,114 +206,6 @@ classes:
       - dev/設計書/外部ライブラリ/faster-whisper#
     status: implemented
 functions:
-  - name: transcribe_with_openai
-    title: OpenAI での文字起こし
-    kind: 関数
-    container: integrations/openai/client.py
-    usecase: 録音を文字に起こす
-    scope: public
-    inherits: EngineFn
-    summary: OpenAI のエンジンの設定（モデル・言語・温度）で録音を送り、区間ごとの文字を返す
-    args:
-      - name: audio_path
-        type: Path
-        required: true
-        passing: positional
-        description: 録音の WAV
-      - name: on_progress
-        type: Callable[[float, float], None] | None
-        required: false
-        default: None
-        passing: keyword
-        description: 区間ごとに知らせる
-      - name: settings
-        type: OpenAISettings
-        required: true
-        passing: injected
-        description: API キー（SecretStr）・モデル・言語・温度
-      - name: max_upload_bytes
-        type: int
-        required: true
-        passing: injected
-        description: 非機能要件の OpenAI API へ送る音声ファイルの大きさの決定値
-      - name: request_timeout_sec
-        type: float
-        required: true
-        passing: injected
-        description: 1 回の要求のタイムアウト（非機能要件の OpenAI の文字起こしの要求のタイムアウトと再試行。main.py が渡す）
-      - name: max_retries
-        type: int
-        required: true
-        passing: injected
-        description: SDK に任せる再試行の回数の上限（同じ非機能要件。再試行はこの 1 層だけで行う）
-    returns:
-      type: list[str]
-      description: 区間ごとの文字（区間が無ければ全文を 1 つ）
-    process: |-
-      1. API キーが空なら送らずに EngineError を送出する
-      2. 録音のファイルの大きさが max_upload_bytes を超えるかを確かめる
-         - 超える場合、送らずに EngineError を送出する
-           - `[WARNING]` 送れる大きさを超えたため送らなかった（大きさ・上限）
-      3. OpenAI のクライアントを `timeout=request_timeout_sec`・`max_retries=max_retries` で作り、SDK の既定のタイムアウトと再試行に頼らない（再試行は SDK の 1 層だけで、この関数では重ねない）
-      4. OpenAI のエンジンの設定（モデル・言語・温度）で録音を送る
-         - モデルが `whisper-1` なら `response_format="verbose_json"`（区間つき）、それ以外は `"json"`（区間を返さないモデル）
-         - API に届かない・タイムアウトした・エラーを返した場合（再試行を使い切った後）、openai の例外を原因に持たせた EngineError を送出する
-      5. 区間ごとに on_progress（区間の終わり・録音の長さ）を呼び、区間ごとの文字を返す
-         - 区間が無ければ全文を 1 つ返す
-         - `[INFO]` OpenAI で文字に起こした（モデル・区間の数）
-    exceptions:
-      - name: EngineError
-        condition: API キーが空・録音が max_upload_bytes を超える（送らない）・API に届かない・エラーを返した
-    unit_tests:
-      - name: test_transcribe_with_openai_when_too_large
-        case: 異常
-        summary: 上限を超える録音は送らない
-        condition: max_upload_bytes を 1,000 にし、1,001 バイトの WAV を渡す
-        mock: OpenAI のクライアント
-        expected: EngineError が送出され、クライアントが呼ばれず、WARNING のログが 1 行出る
-        exception: 録音が max_upload_bytes を超える
-      - name: test_transcribe_with_openai
-        case: 正常
-        summary: 区間ごとの文字を返し、進みを知らせる
-        condition: モデル whisper-1、応答の区間が「今日は」（end=1.0）・「晴れ」（end=2.0）、長さ 2.0
-        mock: OpenAI のクライアント
-        expected: '["今日は", "晴れ"] が返り、on_progress が 2 回呼ばれ、クライアントへ設定のモデル・言語・温度と verbose_json が渡る'
-      - name: test_transcribe_with_openai_when_not_whisper_1
-        case: 正常
-        summary: 区間を返さないモデルは json で送り、全文を 1 つ返す
-        condition: モデル gpt-4o-transcribe、応答の全文が「今日は晴れ」で区間が無い
-        mock: OpenAI のクライアント
-        expected: '["今日は晴れ"] が返り、クライアントへ json が渡る'
-      - name: test_transcribe_with_openai_when_api_error
-        case: 異常
-        summary: API のエラーを EngineError にする
-        condition: クライアントが openai.APIConnectionError を送出する
-        mock: OpenAI のクライアント
-        expected: EngineError が送出され、原因に openai の例外が残る
-        exception: API に届かない・エラーを返した
-      - name: test_transcribe_with_openai_when_api_key_empty
-        case: 異常
-        summary: API キーが空なら送らない
-        condition: api_key が空の OpenAISettings
-        mock: OpenAI のクライアント
-        expected: EngineError が送出され、クライアントが呼ばれない
-        exception: API キーが空
-      - name: test_transcribe_with_openai_when_timeout_and_retries_given
-        case: 正常
-        summary: タイムアウトと再試行の回数をクライアントへ明示して渡す
-        condition: request_timeout_sec=30.0、max_retries=1
-        mock: OpenAI のクライアント（生成を含む）
-        expected: クライアントが timeout=30.0・max_retries=1 で作られる
-    connectivity_tests:
-      - name: test_ext_transcribe_with_openai_when_default_model
-        api: OpenAI API（音声の文字起こし）
-        summary: 既定のモデルで短い録音を起こせる
-        checks: API キーでの認証が通り、区間ごとの文字（str のリスト）が返り、進みが区間の終わり ≤ 録音の長さの組で知らされること（区間の有無は戻り値から見分けられないため確かめない）
-        cost: 1 秒の録音 1 回分の従量課金
-    refs:
-      - dev/設計書/外部ライブラリ/openai#
-      - dev/設計書/外部API/OpenAI_API#
-    status: implemented
   - name: lower_volume
     title: 音量を下げる
     kind: 関数
@@ -407,6 +297,3 @@ functions:
     status: planned
 test_files:
   - tests/unit/voice_paste/integrations/whisper/test_client.py
-  - tests/unit/voice_paste/integrations/openai/test_client.py
-external_test_files:
-  - tests/external/voice_paste/integrations/openai/test_client.py

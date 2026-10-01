@@ -1,21 +1,5 @@
 title: "非機能要件"
 requirements:
-  - name: OpenAI API へ送る音声ファイルの大きさ
-    english_name: openai_audio_file_size
-    category: 性能
-    external_constraint: 文字起こしの API へアップロードできるファイルは 25 MB まで
-    source_kind: 外部 API の制限
-    source: https://platform.openai.com/docs/guides/speech-to-text
-    value: '20000000'
-    unit: バイト
-    rationale: 外部の上限 25 MB（25,000,000 バイトとして扱う）から安全率 20% を引いた
-    overflow: 送る前に手元で大きさを数え、超えるときは送らずに文字起こしの失敗として扱う（録音は履歴に残る）
-    breakdown:
-      - part: 外部の上限
-        value: 25,000,000 バイト
-      - part: 安全率
-        value: − 5,000,000 バイト
-        notes: 規約『資源の値の決め方』の既定 20%
   - name: 対応 OS
     english_name: supported_os
     category: 動作環境
@@ -37,25 +21,16 @@ requirements:
     external_constraint: 未確定
     source_kind: 未確定
     value: 未確定
-    rationale: ローカルの文字起こしはモデルを取得した後は通信なしで動き、OpenAI の文字起こしは通信が要る。通信なしでの利用を保証するかは方針決めで決める
+    rationale: 文字起こしはローカルの Whisper だけで、モデルを取得した後は通信なしで動く。通信なしでの利用を保証するか（モデルの取得を起動の前提にするか）は方針決めで決める
   - name: API のセッションの上限時間
     english_name: api_session_limit
     category: 耐障害
-    external_constraint: OpenAI API へ送れる音声は 25 MB まで
-    source_kind: 外部 API の制限
-    source: https://platform.openai.com/docs/guides/speech-to-text
+    external_constraint: 制限なし
+    source_kind: 制限なし
     value: '600'
     unit: 秒
-    rationale: 開始からの経過時間（停止中も数える）は録音の長さ以上なので、OpenAI API へ送る音声ファイルの大きさの決定値を録音の形式（16 kHz・モノラル・16 bit = 32,000 バイト/秒）で割った 625 秒を、分の切りの良い 600 秒に切り下げた。放置されたセッションがホットキーと API を塞ぐのをこの時間で解く
+    rationale: '放置されたセッションがホットキーと API を塞ぐのをこの時間で解く。文字起こしはローカルの Whisper だけで、録音の長さに外部の上限は無い。刷新前の履歴の録音の最長（特性テストの録音で 140.8 秒）の 4 倍を超え、貯める録音が 16 kHz・モノラル・16 bit で 19.2 MB に収まる 600 秒にする。上限を変えるかは、API を作る #19 で呼び出し元の使い方が決まったときに見直す'
     overflow: 上限で打ち切り、録音を履歴に残して返送先へ truncated を送る（上限で打ち切る）
-    breakdown:
-      - part: OpenAI API へ送る音声ファイルの大きさ
-        value: 20,000,000 バイト
-      - part: 録音の形式
-        value: ÷ 32,000 バイト/秒 = 625 秒
-        notes: WAV のヘッダー 44 バイトは安全率に収まる
-      - part: 切り下げ
-        value: 600 秒
     measurement: 上限を短い値に差し替えた結合テスト（上限で打ち切る）で、録音中と停止中の両方で打ち切られることを確かめる
   - name: API の開始の応答時間
     english_name: api_start_response_time
@@ -167,15 +142,6 @@ requirements:
     unit: '%'
     rationale: 品質シナリオ 7。pycaw を == で固定し、版を上げたら Windows の実機で契約テストを回して API の変化を全て検知する
     measurement: 音量のアダプタの契約テスト（lower_volume・restore_volume）を Windows の実機で回す
-  - name: OpenAI の文字起こしの要求のタイムアウトと再試行
-    english_name: openai_transcription_timeout
-    category: 耐障害
-    external_constraint: 未確定
-    source_kind: 未確定
-    value: 未確定
-    rationale: '規約『資源の値の決め方』で、タイムアウトは OpenAI の文字起こしの応答時間の実測の p99.9 + 50%、再試行は openai の SDK の 1 層だけで回数の上限を持ち、各回のタイムアウト × 回数が外側の待ちに収まるように導く。SDK の既定（1 回 10 分・2 回まで再試行）には頼らず、transcribe_with_openai へ注入で渡す。応答時間は録音の長さで変わるため、送れる大きさの上限（20,000,000 バイト）までの長さの録音を送って測る。測るには従量課金がかかるため、エンジンを main.py で登録する #19 で、ユーザーの許可を得て測って決める'
-    measurement: 長さの違う録音（短いものから送れる大きさの上限近くまで）を OpenAI へ送り、応答が返るまでの時間を測る
-    overflow: 上限まで再試行しても応答が無ければ EngineError（録音は履歴に残る）
   - name: 文字起こしワーカーの終わりを待つ時間
     english_name: worker_stop_timeout
     category: 保守性

@@ -29,7 +29,7 @@ items:
     summary: 録音と起こした文字の保存と古い履歴の削除
     group: 機能
   - page: 外部連携.py.yaml
-    summary: 文字起こしワーカー・OpenAI・システム音量・キーボードのアダプタ
+    summary: 文字起こしワーカー・システム音量・キーボードのアダプタ
     group: 基盤
   - page: 共通.py.yaml
     summary: 設定のモデル・ログ・例外・置き場所・feature の間を渡る型

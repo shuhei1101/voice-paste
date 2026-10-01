@@ -17,9 +17,6 @@ enums:
       - value: local_whisper
         title: ローカルの Whisper
         description: 文字起こしワーカーの子プロセスで起こす
-      - value: openai
-        title: OpenAI
-        description: OpenAI API で起こす
     status: implemented
 function_types:
   - name: EngineFn
@@ -39,9 +36,7 @@ function_types:
       description: 区間ごとの文字
     implementations:
       - target: 外部連携の WhisperWorkerClient.transcribe
-        notes: エンジンが local_whisper のとき
-      - target: 外部連携の transcribe_with_openai
-        notes: エンジンが openai のとき
+        notes: エンジンが local_whisper のとき（いまのエンジンはこれだけ）
     status: implemented
 functions:
   - name: transcribe
@@ -80,7 +75,7 @@ functions:
          - `[INFO]` 文字に起こした（区間の数・文字数・かかった秒）
     exceptions:
       - name: TranscriptionError
-        condition: エンジンが失敗した（ワーカーのやり直しも落ちた・OpenAI に届かない・ワーカーがエラーを返した）
+        condition: エンジンが失敗した（ワーカーのやり直しも落ちた・ワーカーがエラーを返した）
     unit_tests:
       - name: test_transcribe
         case: 正常

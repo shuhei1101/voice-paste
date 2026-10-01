@@ -40,8 +40,8 @@ layers:
       ```
     description: pytest で実行する。`tests/external/` のテストは `--run-external` を付けたときだけ走り、付けなければ全て skip する。
     prerequisites:
-      - 環境変数 `OPENAI_API_KEY` に OpenAI の API キーが要る（無ければ skip する）
-      - OpenAI の文字起こしの実呼び出しに従量課金がかかる（1 秒の録音 1 回分）
+      - 接続先の外部サービスの認証情報（API キーなど）を環境変数で渡す（無ければそのテストは skip する）
+      - 従量課金のかかる外部サービスは、実行のたびに課金がかかる
       - AI はユーザーが実行を許可したときだけ実行する（CI では実行しない）
     run_one:
       label: ファイル

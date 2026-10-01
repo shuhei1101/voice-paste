@@ -21,7 +21,6 @@ dependency_scope: 必須
 adoption: 採用
 used_in:
   - voice_paste_legacy/transcription/openai_transcriber.py
-  - src/voice_paste/integrations/openai/client.py
 upstream: openai/openai-python
 verification:
   state: 未確認

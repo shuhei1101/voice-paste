@@ -970,3 +970,20 @@ test_files:
   - tests/unit/voice_paste/shared/test_env_migration.py
   - tests/unit/voice_paste/shared/test_logger.py
   - tests/unit/voice_paste/shared/test_constants.py
+function_types:
+  - name: ProgressFn
+    title: 文字起こしの進みの知らせ先
+    container: shared/types.py
+    usecase: 共通
+    summary: 文字起こしの区間の終わりの時刻と録音の長さ（秒）を受け取る。features/transcription と integrations/whisper・integrations/openai が使う（integrations は features を import できないため shared に置く）
+    args:
+      - name: end
+        type: float
+        description: 区間の終わりの時刻（秒）
+      - name: duration
+        type: float
+        description: 録音の長さ（秒）
+    returns:
+      type: None
+      description: なし
+    status: implemented

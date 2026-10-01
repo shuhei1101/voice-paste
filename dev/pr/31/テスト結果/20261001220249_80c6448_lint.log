@@ -14,7 +14,7 @@ $ venv/Scripts/lint-imports
 Contracts
 ---------
 
-Analyzed 37 files, 29 dependencies.
+Analyzed 35 files, 26 dependencies.
 -----------------------------------
 
 層の向き KEPT

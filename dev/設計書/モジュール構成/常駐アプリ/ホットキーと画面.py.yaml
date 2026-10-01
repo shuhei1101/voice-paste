@@ -1,0 +1,92 @@
+title: "常駐アプリ / ホットキーと画面"
+lead: 'グローバルのホットキーの受付（runtime/hotkey）と、PySide6 の画面とトレイ（ui）の入口としての境界。画面の構成・見た目・部品は #21 のデザインの工程で起こす。'
+directory: |-
+  ```
+  src/voice_paste/runtime/
+  └── hotkey.py          # HotkeyListener（pynput の GlobalHotKeys を別のスレッドで動かす）
+  src/voice_paste/ui/
+  ├── bridge.py          # UiBridge（ほかのスレッドからメインスレッドへの Signal）・notify
+  ├── tray.py            # トレイ（メニューの並びは #21）
+  └── windows/           # 録音の画面・文字起こし中の表示・設定画面・ダイアログ（#21）
+  ```
+classes:
+  - name: HotkeyListener
+    title: ホットキーの受付
+    container: runtime/hotkey.py
+    usecase: 録音する
+    role: ランタイム
+    kind: クラス
+    summary: 設定のホットキーを pynput で受け付け、押されたら配線された関数（開始・確定・一時停止・取り消し）を呼ぶ。セッションは import しない
+    methods:
+      - name: start
+        title: 受付の開始
+        kind: メソッド
+        scope: public
+        summary: ホットキーと関数の組を登録して受付を始める
+        args:
+          - name: bindings
+            type: dict[str, Callable[[], None]]
+            required: true
+            passing: positional
+            description: pynput の書式のホットキー → 呼ぶ関数
+        returns:
+          type: None
+          description: なし
+      - name: stop
+        title: 受付の停止
+        kind: メソッド
+        scope: public
+        summary: 受付を止める
+        returns:
+          type: None
+          description: なし
+    refs:
+      - dev/設計書/外部ライブラリ/pynput#
+    status: planned
+  - name: UiBridge
+    title: 画面への橋渡し
+    container: ui/bridge.py
+    usecase: 共通
+    role: アダプタ
+    kind: クラス
+    inherits: PySide6.QtCore.QObject
+    summary: ほかのスレッド（API・ホットキー・ワーカースレッド）からの知らせを Signal でメインスレッドへ渡す。画面の部品はメインスレッドだけが触る
+    properties:
+      - name: notified
+        type: Signal(str, object)
+        description: 知らせの種類と理由
+    refs:
+      - dev/設計書/外部ライブラリ/pyside6-essentials#
+    status: planned
+functions:
+  - name: notify
+    title: ユーザーへの知らせ
+    kind: 関数
+    container: ui/bridge.py
+    usecase: 共通
+    scope: public
+    thread_safe: true
+    inherits: NotifyFn
+    summary: UiBridge.notified を emit して、メインスレッドでトレイのアイコン・ダイアログ・画面を変える
+    args:
+      - name: event
+        type: Literal["state_changed", "busy", "microphone_unavailable", "transcription_failed", "delivery_failed"]
+        required: true
+        passing: positional
+        description: 知らせの種類
+      - name: detail
+        type: str | None
+        required: false
+        default: None
+        passing: positional
+        description: 理由
+    returns:
+      type: None
+      description: なし
+    notes:
+      画面の中身: '各知らせでどの画面・ダイアログをどう出すかは #21 の画面設計で決める。録音の画面は表示中も最前面を保つ（#4）。'
+    status: planned
+notes:
+  画面が触ってよいもの: |-
+    ui は配線された SessionManager のメソッド（開始・一時停止・再開・確定・取り消し）と、共通の設定のモデルだけを呼ぶ。録音・文字起こし・出力先を直に呼ばない。
+    設定画面の欄は Settings のモデルから組み立て、項目を足しても画面の直しが増えないようにする。

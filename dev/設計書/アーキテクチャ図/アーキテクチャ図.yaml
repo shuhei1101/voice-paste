@@ -6,18 +6,22 @@ overview:
       label: ユーザー
       shape: stadium
       kind: actor
+    - id: CALLER
+      label: API の呼び出し元（同じ端末のほかのプロセス）
+      shape: stadium
+      kind: actor
     - id: APP
-      label: 常駐アプリ（トレイ・ホットキー・録音画面）
+      label: 常駐アプリ（API・トレイ・ホットキー・画面）
       kind: process
     - id: WORKER
       label: 文字起こしワーカー（子プロセス）
       kind: process
     - id: ENV
-      label: 設定（.env）
+      label: 設定（settings.toml）
       shape: cylinder
       kind: store
     - id: HIST
-      label: 履歴・ログ
+      label: 履歴・ログ・トークン
       shape: cylinder
       kind: store
     - id: TARGET
@@ -35,13 +39,19 @@ overview:
   edges:
     - from: U
       to: APP
-      label: ホットキー・音声
+      label: ホットキー・トレイ・音声
+    - from: CALLER
+      to: APP
+      label: 開始・停止・完了（127.0.0.1・トークン）
+    - from: APP
+      to: CALLER
+      label: 起こした文字の返送
     - from: APP
       to: ENV
       label: 読み書き
     - from: APP
       to: WORKER
-      label: 音声ファイル
+      label: 録音のパス（JSON Lines）
     - from: WORKER
       to: HF
       label: モデルの取得
@@ -72,16 +82,16 @@ repository:
 subsystems:
   - name: 常駐アプリ
     scope: desktop-app
-    role: ホットキーで録音し、文字起こしした文字列をアクティブなアプリへ貼り付ける Windows 常駐のアプリ（ローカルの文字起こしは文字起こしワーカーに任せる）
+    role: ショートカットから起動する 1 つの常駐サービス。ホットキー・トレイ・API のどの入口からも同じセッション（録音 → 文字起こし → 補正 → 出力先）を同時に 1 つだけ動かし、画面とトレイを出す（ローカルの文字起こしは文字起こしワーカーに任せる）
     runtime: Python 3.11
     runs_on: ユーザーの端末（Windows）
-    implementation: voice_paste/main.py
+    implementation: src/voice_paste/main.py
   - name: 文字起こしワーカー
     scope: transcription-worker
     role: 常駐アプリの子プロセスとしてローカルの Whisper のモデルを持ち、標準入出力の JSON Lines で受けた録音を文字に起こす
     runtime: Python 3.11
     runs_on: ユーザーの端末（Windows。常駐アプリが起動し、落ちたら起動し直す）
-    implementation: voice_paste/transcription/whisper_worker.py
+    implementation: src/voice_paste/integrations/whisper/worker.py
 lead: voice-paste のサブシステムと、ユーザー・貼り付け先のアプリ・文字起こしの外部サービスとの境界。
 external_systems:
   - name: OpenAI API
@@ -106,8 +116,18 @@ external_systems:
     notes:
       事前確認: 不要。開けなかったときはそのボタンの操作だけが失敗し、音声入力には影響しない。
     detail: dev/設計書/外部ライブラリ/Microsoft_Edge#
+  - name: API の呼び出し元
+    purpose: 同じ端末のほかのプロセスが録音を開始・停止・完了し、指定したエンドポイントで起こした文字を受け取る
+    direction: 双方向
+    protocol: HTTP（127.0.0.1・Bearer のトークン。返送は呼び出し元のエンドポイントへ POST）
+    notes:
+      事前確認: 起動時に API の待ち受けを始められたか（uvicorn の started）を確かめ、始められなければトレイで知らせてホットキーだけで続ける。返送先は開始の要求を受けたときに許されるホストかを確かめる。届くかは返送のたびに確かめ、届かなくても常駐アプリを止めない。
+    detail: dev/設計書/インターフェース定義/常駐アプリ/録音を開始する.py#
 constraints: |-
   - Windows で動かす（トレイ・ホットキー・クリップボード・キー入力・システムの音量を Windows の機能で扱う）
-  - 起動口は `voice-paste.bat`（ユーザーはショートカットから起動する）
+  - Windows のショートカットから起動できる（手段はバッチファイルに限らない）
+  - ビルドせず、master のソースをそのまま動かす
+  - Python で書く
+  - API は 127.0.0.1 だけで待ち受け、起動ごとのトークンで照合する
   - ローカルの文字起こしは GPU（CUDA）で動かす
-  - ユーザーは master のコードをビルドせずに普段使いしている
+  - ユーザーは master のコードをビルドせずに普段使いしている（刷新の間は voice_paste_legacy が動き、起動の切り替えは #22）

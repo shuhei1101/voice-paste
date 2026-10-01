@@ -1,0 +1,243 @@
+title: "常駐アプリ / 外部連携"
+lead: 文字起こしワーカーの子プロセス・OpenAI・システム音量・キーボードとクリップボードを包むアダプタ。feature の関数型を満たし、外の例外をアプリの例外に変える。
+directory: |-
+  ```
+  src/voice_paste/integrations/
+  ├── whisper/
+  │   ├── client.py     # WhisperWorkerClient（子プロセスの起動・監視・立て直し・やり直し）
+  │   └── worker.py     # 子プロセスの本体（文字起こしワーカーのサブシステム）
+  ├── openai/
+  │   └── client.py     # transcribe_with_openai
+  ├── volume/
+  │   └── adapter.py    # lower_volume・restore_volume（pycaw を == で固定して包む）
+  └── keyboard/
+      └── sender.py     # copy_to_clipboard・send_paste・send_enter
+  ```
+classes:
+  - name: WhisperWorkerClient
+    title: 文字起こしワーカーの窓口
+    container: integrations/whisper/client.py
+    usecase: 録音を文字に起こす
+    role: アダプタ
+    kind: クラス
+    summary: 文字起こしワーカーの子プロセスを持ち、標準入出力の JSON Lines で録音を渡して結果を受け取る。落ちたら 1 回だけ立て直してやり直す
+    properties:
+      - name: _process
+        type: subprocess.Popen | None
+        access: 内部 (_)
+        description: 子プロセス
+      - name: _settings
+        type: LocalWhisperSettings
+        access: 内部 (_)
+        description: モデル・デバイス・量子化・言語・ビーム幅・温度・VAD
+    methods:
+      - name: start
+        title: 起動
+        kind: メソッド
+        scope: public
+        summary: 子プロセスを起動し、ready を待つ。待ちきれなければ EngineError
+        returns:
+          type: None
+          description: なし
+        exceptions:
+          - name: EngineError
+            condition: モデルを読み込めず ready が届かない
+      - name: transcribe
+        title: 文字起こし
+        kind: メソッド
+        scope: public
+        inherits: EngineFn
+        summary: 録音を子プロセスへ送り、区間ごとの文字を受け取る
+        args:
+          - name: audio_path
+            type: Path
+            required: true
+            passing: positional
+            description: 録音の WAV
+          - name: on_progress
+            type: Callable[[float, float], None] | None
+            required: false
+            default: None
+            passing: keyword
+            description: 区間の終わりの時刻を知らせる
+        returns:
+          type: list[str]
+          description: 区間ごとの文字
+        process: |-
+          1. 録音と設定を 1 行の JSON で送り、区間の進みと結果を読む
+             - 子プロセスが応答の途中で終わった場合、子プロセスを起動し直して同じ録音をもう一度送る（やり直しは 1 回だけ）
+               - `[WARNING]` 文字起こしワーカーが落ちたので立て直す（終了コード）
+             - やり直しも落ちた場合、子プロセスをもう一度起動して次の録音に備え、EngineError を送出する
+             - ワーカーがエラーを返した場合、EngineError を送出する
+        exceptions:
+          - name: EngineError
+            condition: やり直したワーカーも落ちた
+          - name: EngineError
+            condition: ワーカーがエラーを返した
+        unit_tests:
+          - name: test_transcribe_when_worker_crashed_once
+            case: 正常
+            summary: 1 回落ちてもやり直しで結果を得る
+            condition: 1 つ目の子プロセスは応答の途中で終わり、2 つ目は結果を返す
+            mock: subprocess.Popen
+            expected: 結果が返り、Popen が 2 回呼ばれる
+          - name: test_transcribe_when_retry_crashed
+            case: 異常
+            summary: やり直しも落ちたら EngineError、次に備えて起動し直す
+            condition: 2 つの子プロセスがどちらも応答の途中で終わる
+            mock: subprocess.Popen
+            expected: EngineError が送出され、Popen が 3 回呼ばれる
+            exception: やり直したワーカーも落ちた
+    refs:
+      - dev/設計書/外部ライブラリ/faster-whisper#
+    status: planned
+functions:
+  - name: transcribe_with_openai
+    title: OpenAI での文字起こし
+    kind: 関数
+    container: integrations/openai/client.py
+    usecase: 録音を文字に起こす
+    scope: public
+    inherits: EngineFn
+    summary: OpenAI のエンジンの設定（モデル・言語・温度）で録音を送り、区間ごとの文字を返す
+    args:
+      - name: audio_path
+        type: Path
+        required: true
+        passing: positional
+        description: 録音の WAV
+      - name: on_progress
+        type: Callable[[float, float], None] | None
+        required: false
+        default: None
+        passing: keyword
+        description: 区間ごとに知らせる
+      - name: settings
+        type: OpenAISettings
+        required: true
+        passing: injected
+        description: API キー（SecretStr）・モデル・言語・温度
+      - name: max_upload_bytes
+        type: int
+        required: true
+        passing: injected
+        description: 非機能要件の OpenAI API へ送る音声ファイルの大きさの決定値
+    returns:
+      type: list[str]
+      description: 区間ごとの文字（区間が無ければ全文を 1 つ）
+    process: |-
+      1. 録音のファイルの大きさが max_upload_bytes を超えるかを確かめる
+         - 超える場合、送らずに EngineError を送出する
+           - `[WARNING]` 送れる大きさを超えたため送らなかった（大きさ・上限）
+      2. OpenAI のエンジンの設定で録音を送り、区間ごとの文字を返す
+         - API に届かない・エラーを返した場合、EngineError を送出する
+    exceptions:
+      - name: EngineError
+        condition: 録音が max_upload_bytes を超える（送らない）・API に届かない・エラーを返した
+    unit_tests:
+      - name: test_transcribe_with_openai_when_too_large
+        case: 異常
+        summary: 上限を超える録音は送らない
+        condition: max_upload_bytes を 1,000 にし、1,001 バイトの WAV を渡す
+        mock: OpenAI のクライアント
+        expected: EngineError が送出され、クライアントが呼ばれず、WARNING のログが 1 行出る
+        exception: 録音が max_upload_bytes を超える
+    connectivity_tests:
+      - name: test_ext_transcribe_with_openai_when_default_model
+        api: OpenAI API（音声の文字起こし）
+        summary: 既定のモデルで短い録音を起こせる
+        checks: API キーでの認証・区間つきの応答の形
+        cost: 1 秒の録音 1 回分の従量課金
+    refs:
+      - dev/設計書/外部ライブラリ/openai#
+      - dev/設計書/外部API/OpenAI_API#
+    status: planned
+  - name: lower_volume
+    title: 音量を下げる
+    kind: 関数
+    container: integrations/volume/adapter.py
+    usecase: 録音する
+    scope: public
+    inherits: LowerVolumeFn
+    summary: pycaw で今のマスター音量を読み、割合を掛けた音量へ下げる（COM の初期化と終了をこの中で行う）
+    returns:
+      type: float
+      description: 下げる前の音量
+    exceptions:
+      - name: VolumeControlError
+        condition: pycaw・COM が例外を出した
+    notes:
+      契約テスト: pycaw は版で API が変わるため `==` で固定し、Windows の実機でこの関数と restore_volume を動かす契約テストを置く（品質シナリオ 7。依存の版を上げたら回す）。
+    refs:
+      - dev/設計書/外部ライブラリ/pycaw#
+      - dev/設計書/外部ライブラリ/comtypes#
+    status: planned
+  - name: restore_volume
+    title: 音量を戻す
+    kind: 関数
+    container: integrations/volume/adapter.py
+    usecase: 録音する
+    scope: public
+    inherits: RestoreVolumeFn
+    summary: 下げる前の音量へ戻す
+    args:
+      - name: volume
+        type: float
+        required: true
+        passing: positional
+        description: 戻す音量
+    returns:
+      type: None
+      description: なし
+    exceptions:
+      - name: VolumeControlError
+        condition: pycaw・COM が例外を出した
+    status: planned
+  - name: copy_to_clipboard
+    title: クリップボードへの書き込み
+    kind: 関数
+    container: integrations/keyboard/sender.py
+    usecase: 起こした文字を届ける
+    scope: public
+    summary: pyperclip でクリップボードへ書く
+    args:
+      - name: text
+        type: str
+        required: true
+        passing: positional
+        description: 書く文字
+    returns:
+      type: None
+      description: なし
+    exceptions:
+      - name: DeliveryError
+        condition: ほかのアプリがクリップボードを開いたままで書けない
+    refs:
+      - dev/設計書/外部ライブラリ/pyperclip#
+    status: planned
+  - name: send_paste
+    title: 貼り付けのキーの送信
+    kind: 関数
+    container: integrations/keyboard/sender.py
+    usecase: 起こした文字を届ける
+    scope: public
+    summary: pynput で設定の貼り付けのキー（既定 Ctrl+V）を今のアクティブなウィンドウへ送る
+    returns:
+      type: None
+      description: なし
+    refs:
+      - dev/設計書/外部ライブラリ/pynput#
+    status: planned
+  - name: send_enter
+    title: Enter の送信
+    kind: 関数
+    container: integrations/keyboard/sender.py
+    usecase: 起こした文字を届ける
+    scope: public
+    summary: pynput で Enter を送る
+    returns:
+      type: None
+      description: なし
+    refs:
+      - dev/設計書/外部ライブラリ/pynput#
+    status: planned

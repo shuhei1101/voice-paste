@@ -1,0 +1,90 @@
+title: "常駐アプリ / 補正"
+lead: 用語集の誤変換を正しい表記へ置き換える。決まった入力に決まった出力を返し、特性テストの基準になる。
+directory: |-
+  ```
+  src/voice_paste/features/correction/
+  ├── __init__.py   # load_glossary・apply_glossary の公開
+  ├── types.py      # 用語集の行
+  └── service.py    # 用語集の読み込みと置き換え
+  ```
+data_models:
+  - name: GlossaryEntry
+    title: 用語集の行
+    container: features/correction/types.py
+    usecase: 録音を文字に起こす
+    role: DTO
+    summary: 誤変換と正しい表記の組
+    properties:
+      - name: wrong
+        type: str
+        description: 誤変換（CSV の列 `誤変換`）
+      - name: right
+        type: str
+        description: 正しい表記（CSV の列 `正しい表記`）
+    status: planned
+functions:
+  - name: load_glossary
+    title: 用語集の読み込み
+    kind: 関数
+    container: features/correction/service.py
+    usecase: 録音を文字に起こす
+    scope: public
+    summary: 設定の用語集の CSV を読む。文字起こしのたびに読み直す
+    args:
+      - name: path
+        type: Path
+        required: true
+        passing: positional
+        description: 用語集の CSV（設定の 1 項目。既定は %APPDATA%\voice-paste\ の下）
+    returns:
+      type: list[GlossaryEntry]
+      description: 用語集の行。ファイルが無ければ空
+    process: |-
+      1. ファイルが無ければ空を返す
+         - `[WARNING]` 用語集が無い（パス）
+      2. UTF-8（BOM ありも）の CSV を読み、`誤変換` が空の行を飛ばす
+    unit_tests:
+      - name: test_load_glossary
+        case: 正常
+        summary: CSV の行を読む
+        condition: 2 行と空行 1 つの CSV
+        mock: なし（一時フォルダ）
+        expected: GlossaryEntry が 2 つ返る
+      - name: test_load_glossary_when_missing
+        case: 正常
+        summary: ファイルが無ければ空
+        condition: 存在しないパス
+        mock: なし
+        expected: '[] が返る'
+    status: planned
+  - name: apply_glossary
+    title: 用語集での補正
+    kind: 関数
+    container: features/correction/service.py
+    usecase: 録音を文字に起こす
+    scope: public
+    summary: 誤変換を正しい表記へ置き換える（用語集の行の順）
+    args:
+      - name: text
+        type: str
+        required: true
+        passing: positional
+        description: 起こした文字
+      - name: entries
+        type: list[GlossaryEntry]
+        required: true
+        passing: positional
+        description: 用語集の行
+    returns:
+      type: str
+      description: 補正した文字
+    unit_tests:
+      - name: test_apply_glossary
+        case: 正常
+        summary: 誤変換を置き換える
+        condition: 「くろーどこーど」→「Claude Code」の行と、それを含む文
+        mock: なし
+        expected: 「Claude Code」に置き換わった文が返る
+    notes:
+      特性テスト: 置き換えの結果は、#15 で固める特性テスト（今の実装の入出力）と一致させる（品質シナリオ 2）。
+    status: planned

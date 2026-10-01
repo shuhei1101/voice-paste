@@ -1,0 +1,358 @@
+title: "常駐アプリ / 出力先"
+lead: 起こした文字の届け方を出力先ごとのサブフォルダに分け、一覧への登録で足せる形にする。出力先どうしは import しない。
+directory: |-
+  ```
+  src/voice_paste/features/outputs/
+  ├── __init__.py          # deliver・OUTPUTS・is_callback_allowed の公開
+  ├── types.py             # 出力先の関数型・出力先の定義
+  ├── registry.py          # OUTPUTS（出力先の一覧。足すときはここに 1 行足す）
+  ├── service.py           # deliver（入口と設定で出力先を選んで呼ぶ）
+  ├── paste_and_send/      # 貼り付けて送信
+  ├── paste_only/          # 貼り付けのみ
+  ├── copy_only/           # コピーのみ
+  ├── ai_chat/             # AI チャットへ送る（Edge のアプリの画面）
+  └── callback/            # 呼び出し元へ返す（httpx）
+      ├── types.py         # 返送の中身（pydantic）
+      └── service.py       # deliver_to_caller・is_callback_allowed
+  ```
+data_models:
+  - name: OutputSpec
+    title: 出力先の定義
+    container: features/outputs/types.py
+    usecase: 起こした文字を届ける
+    role: DTO
+    summary: 出力先の ID・表示名・届ける関数の組
+    properties:
+      - name: id
+        type: str
+        description: 出力先の ID。設定の出力先の一覧と確定の操作がこの ID で指す
+        example: paste_and_send
+      - name: title
+        type: str
+        description: '画面に出す名前（文言は #21 で決める）'
+      - name: handler
+        type: OutputFn
+        description: 届ける関数
+      - name: api_only
+        type: bool
+        default: 'False'
+        description: API から始めた録音だけが使うか（呼び出し元へ返すだけが True）
+    status: planned
+  - name: CallbackPayload
+    title: 返送の中身
+    container: features/outputs/callback/types.py
+    usecase: 起こした文字を届ける
+    role: スキーマ
+    summary: 呼び出し元へ送る JSON
+    inherits: pydantic.BaseModel
+    properties:
+      - name: session_id
+        type: str
+        description: セッションの ID
+      - name: result
+        type: Literal["transcribed", "failed", "truncated"]
+        description: 結果の種類
+      - name: text
+        type: str
+        description: 起こした文字（空もある）
+      - name: error
+        type: str | None
+        description: 失敗の理由
+    refs:
+      - dev/設計書/インターフェース定義/常駐アプリ/呼び出し元へ返す.py#
+    status: planned
+function_types:
+  - name: OutputFn
+    title: 出力先
+    container: features/outputs/types.py
+    usecase: 起こした文字を届ける
+    summary: 1 つの出力先へ結果を届ける。届けられなければ DeliveryError
+    args:
+      - name: outcome
+        type: TranscriptionOutcome
+        description: 届ける結果
+      - name: target
+        type: str | None
+        description: 出力先に固有の宛先（AI チャットの送り先の ID・返送先の URL）
+    returns:
+      type: None
+      description: なし
+    implementations:
+      - target: paste_and_send
+        notes: クリップボードへ書き、貼り付けのキーと Enter を送る
+      - target: paste_only
+        notes: クリップボードへ書き、貼り付けのキーを送る
+      - target: copy_only
+        notes: クリップボードへ書く
+      - target: send_to_ai_chat
+        notes: Edge のアプリの画面を開いて貼り付けて送る
+      - target: deliver_to_caller
+        notes: 返送先へ POST する。API から始めた録音だけが使う
+    status: planned
+constants:
+  - name: OUTPUTS
+    title: 出力先の一覧
+    container: features/outputs/registry.py
+    usecase: 起こした文字を届ける
+    summary: 登録した出力先。出力先を 1 つ足すときに既存のモジュールで変えるのはここだけ（品質シナリオ 5）
+    entries:
+      - key: '0'
+        value: OutputSpec(id="paste_and_send", handler=paste_and_send)
+        description: 貼り付けて送信
+      - key: '1'
+        value: OutputSpec(id="paste_only", handler=paste_only)
+        description: 貼り付けのみ
+      - key: '2'
+        value: OutputSpec(id="copy_only", handler=copy_only)
+        description: コピーのみ
+      - key: '3'
+        value: OutputSpec(id="ai_chat", handler=send_to_ai_chat)
+        description: AI チャットへ送る
+      - key: '4'
+        value: OutputSpec(id="callback", handler=deliver_to_caller, api_only=True)
+        description: 呼び出し元へ返す
+    status: planned
+functions:
+  - name: deliver
+    title: 出力先への配送
+    kind: 関数
+    container: features/outputs/service.py
+    usecase: 起こした文字を届ける
+    role: サービス
+    scope: public
+    inherits: DeliverFn（main.py でセッションを分けて渡す）
+    summary: 入口と設定で出力先を 1 つ選んで届ける
+    args:
+      - name: entry
+        type: Entry
+        required: true
+        passing: positional
+        description: 入口
+      - name: output_id
+        type: str | None
+        required: true
+        passing: positional
+        description: 確定の操作で選んだ出力先の ID（API のときは None）
+      - name: callback_url
+        type: str | None
+        required: true
+        passing: positional
+        description: 返送先（API のときだけ）
+      - name: outcome
+        type: TranscriptionOutcome
+        required: true
+        passing: positional
+        description: 届ける結果
+      - name: enabled_ids
+        type: frozenset[str]
+        required: true
+        passing: injected
+        description: 設定でオンにした出力先の ID
+      - name: outputs
+        type: Sequence[OutputSpec]
+        required: true
+        passing: injected
+        description: 出力先の一覧（OUTPUTS）
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. 入口が api なら、呼び出し元へ返す出力先を選び、返送先を宛先にする（設定のオン・オフによらない）
+      2. それ以外は、セッションで選んだ出力先を選ぶ
+         - 選んだ出力先が無いかオフの場合、UnknownOutputError を送出する
+      3. 選んだ出力先の関数で届ける
+         - `[INFO]` 届けた（セッションの ID・出力先の ID）
+    exceptions:
+      - name: UnknownOutputError
+        condition: 選んだ出力先が一覧に無いか、設定でオフ
+    unit_tests:
+      - name: test_deliver_when_api_session
+        case: 正常
+        summary: API のセッションは呼び出し元へ返すだけ
+        condition: 入口が api、設定で paste_and_send がオン
+        mock: 各出力先の handler
+        expected: callback の handler だけが返送先と共に呼ばれ、paste_and_send は呼ばれない
+      - name: test_deliver_when_hotkey_session
+        case: 正常
+        summary: ホットキーのセッションは選んだ出力先へ届ける
+        condition: 入口が hotkey、output_id が paste_only でオン
+        mock: 各出力先の handler
+        expected: paste_only の handler だけが呼ばれる
+      - name: test_deliver_when_output_disabled
+        case: 異常
+        summary: オフの出力先は届けない
+        condition: output_id が ai_chat で設定でオフ
+        mock: 各出力先の handler
+        expected: UnknownOutputError が送出される
+        exception: 設定でオフ
+    status: planned
+  - name: is_callback_allowed
+    title: 返送先の確かめ
+    kind: 関数
+    container: features/outputs/callback/service.py
+    usecase: APIで録音を操作する
+    scope: public
+    summary: 返送先のホストが loopback か設定で許可したホストかを確かめる
+    args:
+      - name: url
+        type: str
+        required: true
+        passing: positional
+        description: 返送先
+      - name: allowed_hosts
+        type: frozenset[str]
+        required: true
+        passing: injected
+        description: 設定で許可したホスト
+    returns:
+      type: bool
+      description: 許されるか
+    unit_tests:
+      - name: test_is_callback_allowed_when_loopback
+        case: 正常
+        summary: loopback は許す
+        condition: http://127.0.0.1:9000/x・http://localhost/x・http://[::1]/x
+        mock: なし
+        expected: どれも True
+      - name: test_is_callback_allowed_when_allowed_host
+        case: 正常
+        summary: 許可したホストは許す
+        condition: allowed_hosts にホストがある
+        mock: なし
+        expected: 'True'
+      - name: test_is_callback_allowed_when_other_host
+        case: 正常
+        summary: それ以外は許さない
+        condition: http://example.com/x
+        mock: なし
+        expected: 'False'
+    status: planned
+  - name: deliver_to_caller
+    title: 呼び出し元へ返す
+    kind: 関数
+    container: features/outputs/callback/service.py
+    usecase: 起こした文字を届ける
+    scope: public
+    inherits: OutputFn
+    summary: 返送先へ結果を POST し、届かなければ決めた回数まで再送する
+    args:
+      - name: outcome
+        type: TranscriptionOutcome
+        required: true
+        passing: positional
+        description: 届ける結果
+      - name: target
+        type: str | None
+        required: true
+        passing: positional
+        description: 返送先
+      - name: post
+        type: Callable[[str, dict], int]
+        required: true
+        passing: injected
+        description: httpx で POST してステータスを返す（タイムアウト・リダイレクトを追わない設定済み）
+      - name: retry_count
+        type: int
+        required: true
+        passing: injected
+        description: 非機能要件の返送の再送回数
+      - name: retry_interval_sec
+        type: float
+        required: true
+        passing: injected
+        description: 非機能要件の返送の再送の間隔
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. 返送先が許されるかをもう一度確かめる（返送先の確かめ）
+         - 許されない場合、DeliveryError を送出する
+      2. 返送の中身を作り、1 + 再送回数まで POST する
+         - 2xx なら終える
+         - それ以外・タイムアウト・接続できない場合、間隔を置いて次へ
+           - `[WARNING]` 返送に失敗した（セッションの ID・回数・理由）
+      3. 全て失敗したらログに書いて終える（送出しない。履歴は残っている）
+         - `[ERROR]` 返送先に届かなかった（セッションの ID）
+    exceptions:
+      - name: DeliveryError
+        condition: 返送先が許されない（開始の後に設定が変わった）
+    unit_tests:
+      - name: test_deliver_to_caller
+        case: 正常
+        summary: 1 回で届く
+        condition: post が 200
+        mock: post
+        expected: post が 1 回、session_id・result・text・error を持つ dict で呼ばれる
+      - name: test_deliver_to_caller_when_retry_succeeds
+        case: 正常
+        summary: 再送で届く
+        condition: post が 500 → 200、再送回数 2
+        mock: post・sleep
+        expected: post が 2 回呼ばれ、例外が出ない
+      - name: test_deliver_to_caller_when_unreachable
+        case: 正常
+        summary: 届かなければログに書いて終える
+        condition: post が常に 500、再送回数 2
+        mock: post・sleep
+        expected: post が 3 回呼ばれ、例外が出ず、ERROR のログが 1 行出る
+      - name: test_deliver_to_caller_when_not_allowed
+        case: 異常
+        summary: 許されない返送先へは送らない
+        condition: target が http://example.com/x
+        mock: post
+        expected: DeliveryError が送出され、post が呼ばれない
+        exception: 返送先が許されない
+    refs:
+      - dev/設計書/外部ライブラリ/httpx#
+      - dev/設計書/インターフェース定義/常駐アプリ/呼び出し元へ返す.py#
+    status: planned
+  - name: paste_and_send
+    title: 貼り付けて送信
+    kind: 関数
+    container: features/outputs/paste_and_send/service.py
+    usecase: 起こした文字を届ける
+    scope: public
+    inherits: OutputFn
+    summary: クリップボードへ書き、貼り付けのキーと、設定の間を置いて Enter を送る（外部連携のキーボードを使う）
+    returns:
+      type: None
+      description: なし
+    status: planned
+  - name: paste_only
+    title: 貼り付けのみ
+    kind: 関数
+    container: features/outputs/paste_only/service.py
+    usecase: 起こした文字を届ける
+    scope: public
+    inherits: OutputFn
+    summary: クリップボードへ書き、貼り付けのキーを送る
+    returns:
+      type: None
+      description: なし
+    status: planned
+  - name: copy_only
+    title: コピーのみ
+    kind: 関数
+    container: features/outputs/copy_only/service.py
+    usecase: 起こした文字を届ける
+    scope: public
+    inherits: OutputFn
+    summary: クリップボードへ書く
+    returns:
+      type: None
+      description: なし
+    status: planned
+  - name: send_to_ai_chat
+    title: AI チャットへ送る
+    kind: 関数
+    container: features/outputs/ai_chat/service.py
+    usecase: 起こした文字を届ける
+    scope: public
+    inherits: OutputFn
+    summary: 選んだ送り先（設定の AI チャットの一覧の 1 つ）を Edge のアプリの画面で開き、設定の間を置いて貼り付けて送る
+    returns:
+      type: None
+      description: なし
+    refs:
+      - dev/設計書/外部ライブラリ/Microsoft_Edge#
+    status: planned

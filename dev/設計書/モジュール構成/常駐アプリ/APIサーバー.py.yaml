@@ -1,0 +1,215 @@
+title: "常駐アプリ / APIサーバー"
+lead: FastAPI の app を組み立て、127.0.0.1 での待ち受け・Host・Origin・トークンの守りと、例外の HTTP への変換を持つ。uvicorn を専用のスレッドで動かす。
+directory: |-
+  ```
+  src/voice_paste/server/
+  ├── app.py              # build_fastapi（route の集約・middleware・例外ハンドラ）
+  ├── middleware.py       # RequestGuardMiddleware（Host・Origin・トークン）
+  ├── error_handlers.py   # register_exception_handlers（RFC 9457）
+  ├── token.py            # issue_token（起動ごとのトークンを作りファイルへ書く）
+  └── runner.py           # ApiServerRunner（uvicorn をスレッドで動かし started を確かめる）
+  ```
+classes:
+  - name: RequestGuardMiddleware
+    title: 要求の守り
+    container: server/middleware.py
+    usecase: APIで録音を操作する
+    role: middleware
+    kind: クラス
+    inherits: starlette.middleware.base.BaseHTTPMiddleware
+    summary: 全ての要求で Host・Origin・トークンを確かめ、当たらなければ 403・401 で断る
+    properties:
+      - name: _token
+        type: SecretStr
+        access: 内部 (_)
+        description: 今回の起動のトークン
+      - name: _port
+        type: int
+        access: 内部 (_)
+        description: 待ち受けのポート
+    methods:
+      - name: dispatch
+        title: 要求の確かめ
+        kind: メソッド
+        scope: public
+        is_async: true
+        summary: Origin・Host・Authorization の順に確かめて、通れば次へ渡す
+        args:
+          - name: request
+            type: Request
+            required: true
+            passing: positional
+            description: 要求
+          - name: call_next
+            type: Callable
+            required: true
+            passing: positional
+            description: 次の処理
+        returns:
+          type: Response
+          description: 断ったときは problem+json の応答
+        process: |-
+          1. Origin が付いていれば 403 を返す
+             - `[WARNING]` 断った要求（理由・Host・Origin。トークンは書かない）
+          2. Host が `127.0.0.1:{ポート}` か `localhost:{ポート}` でなければ 403 を返す
+             - `[WARNING]` 同上
+          3. Authorization が `Bearer {トークン}` と定数時間で一致しなければ 401 を返す
+             - `[WARNING]` 同上
+          4. 次の処理へ渡す
+        unit_tests:
+          - name: test_dispatch
+            case: 正常
+            summary: 正しい要求は通す
+            condition: Origin 無し、Host 127.0.0.1:{ポート}、正しいトークン
+            mock: call_next
+            expected: call_next が呼ばれる
+          - name: test_dispatch_when_origin_present
+            case: 正常
+            summary: Origin 付きは 403
+            condition: 'Origin: http://evil.example'
+            mock: call_next
+            expected: 403 が返り、call_next が呼ばれず、WARNING のログにトークンが含まれない
+          - name: test_dispatch_when_host_mismatch
+            case: 正常
+            summary: ほかの Host は 403
+            condition: 'Host: evil.example'
+            mock: call_next
+            expected: 403 が返る
+          - name: test_dispatch_when_token_mismatch
+            case: 正常
+            summary: トークンが合わなければ 401
+            condition: Authorization 無しと、違うトークン
+            mock: call_next
+            expected: どちらも 401 が返る
+    refs:
+      - dev/設計書/外部ライブラリ/fastapi#
+    status: planned
+  - name: ApiServerRunner
+    title: API サーバーの起動
+    container: server/runner.py
+    usecase: 常駐アプリを起動する
+    role: ランタイム
+    kind: クラス
+    summary: uvicorn.Server を専用のスレッドで動かし、待ち受けを始められたかを確かめる
+    methods:
+      - name: start
+        title: 起動
+        kind: メソッド
+        scope: public
+        summary: スレッドで serve() を始め、started が True になるかスレッドが終わるまで待つ
+        args:
+          - name: timeout_sec
+            type: float
+            required: true
+            passing: positional
+            description: 待つ上限
+        returns:
+          type: bool
+          description: 待ち受けを始められたか。uvicorn は待ち受けに失敗しても例外を出さずスレッドを終えるため、戻り値で判断する
+        process: |-
+          1. スレッドで asyncio.run(server.serve()) を始める
+          2. started が True になるか、スレッドが終わるか、timeout_sec が過ぎるまで待つ
+             - started が False のままの場合、False を返す
+               - `[ERROR]` API の待ち受けを始められなかった（ポート）
+        unit_tests:
+          - name: test_start_when_port_in_use
+            case: 正常
+            summary: ポートが使われていれば False
+            condition: 先に同じポートを開いておく
+            mock: なし（127.0.0.1 の空きポート）
+            expected: False が返る
+      - name: stop
+        title: 停止
+        kind: メソッド
+        scope: public
+        summary: should_exit を立ててスレッドの終わりを待つ
+        returns:
+          type: None
+          description: なし
+    refs:
+      - dev/設計書/外部ライブラリ/uvicorn#
+    status: planned
+functions:
+  - name: build_fastapi
+    title: app の組み立て
+    kind: 関数
+    container: server/app.py
+    usecase: 常駐アプリを起動する
+    scope: public
+    summary: セッションの route・要求の守り・例外ハンドラを組み込んだ app を返す
+    args:
+      - name: session_api
+        type: SessionApiDeps
+        required: true
+        passing: positional
+        description: セッションの API の依存（app.state.session_api に置く）
+      - name: token
+        type: SecretStr
+        required: true
+        passing: positional
+        description: 今回の起動のトークン
+      - name: port
+        type: int
+        required: true
+        passing: positional
+        description: 待ち受けのポート
+    returns:
+      type: FastAPI
+      description: 組み立てた app
+    status: planned
+  - name: register_exception_handlers
+    title: 例外ハンドラの登録
+    kind: 関数
+    container: server/error_handlers.py
+    usecase: APIで録音を操作する
+    scope: public
+    summary: 共通の例外を RFC 9457 の application/problem+json へ変える。入力の検証の失敗（RequestValidationError）は既定の 422 でなく 400 にする
+    args:
+      - name: app
+        type: FastAPI
+        required: true
+        passing: positional
+        description: 登録先
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. CallbackNotAllowedError・RequestValidationError → 400、SessionNotFoundError → 404、SessionBusyError → 409、MicrophoneUnavailableError → 503 を登録する
+      2. それ以外の AppError と例外は 500 にする
+         - `[ERROR]` 想定していない例外（logger.exception）
+    unit_tests:
+      - name: test_register_exception_handlers_when_validation_error
+        case: 正常
+        summary: URI でない callback_url は 400
+        condition: TestClient で callback_url="nope" を送る
+        mock: SessionManager
+        expected: 400 と application/problem+json が返る
+      - name: test_register_exception_handlers_when_busy
+        case: 正常
+        summary: SessionBusyError は 409
+        condition: start が SessionBusyError を送出する
+        mock: SessionManager
+        expected: 409 が返る
+    status: planned
+  - name: issue_token
+    title: トークンの発行
+    kind: 関数
+    container: server/token.py
+    usecase: 常駐アプリを起動する
+    scope: public
+    summary: secrets で起動ごとのトークンを作り、ポートと共にトークンのファイル（ユーザーの %LOCALAPPDATA% の下）へ書く
+    args:
+      - name: token_file
+        type: Path
+        required: true
+        passing: positional
+        description: トークンのファイル
+      - name: port
+        type: int
+        required: true
+        passing: positional
+        description: 待ち受けのポート
+    returns:
+      type: SecretStr
+      description: 作ったトークン
+    status: planned

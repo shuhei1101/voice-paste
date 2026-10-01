@@ -1,0 +1,170 @@
+title: "録音を完了する"
+entry:
+  kind: endpoint
+  value: POST /sessions/{session_id}/complete
+flows:
+  - name: 正常系
+    summary: 止めた録音を確定し、文字起こしを始める
+    setup:
+      - name: Mock
+        description: マイク・システム音量・トレイ・文字起こしのエンジンを差し替える。履歴は一時フォルダに書く
+      - name: 停止中のセッション
+        description: 録音を開始する と 録音を停止する を呼んだセッション
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as クライアント
+        participant IF as POST /sessions/{session_id}/complete
+        participant HIST as 履歴
+        participant ENG as 文字起こしのエンジン
+
+        C->>IF: トークン・session_id
+        IF->>HIST: 確定した録音を保存する
+        IF->>ENG: 文字起こしを始める
+        IF-->>C: 202
+      ```
+    expected:
+      - 202 が返る
+      - 履歴に確定した録音がある
+      - 文字起こしのエンジンに録音が渡っている
+    test: test_normal
+  - name: 正常系（録音中から完了する）
+    summary: 停止せずに完了すると、録音を止めてから確定する
+    setup:
+      - name: Mock
+        description: マイク・システム音量・トレイ・文字起こしのエンジンを差し替える。履歴は一時フォルダに書く
+      - name: 録音中のセッション
+        description: 録音を開始する だけを呼んだセッション
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as クライアント
+        participant IF as POST /sessions/{session_id}/complete
+        participant MIC as マイク
+        participant HIST as 履歴
+        participant ENG as 文字起こしのエンジン
+
+        C->>IF: トークン・session_id
+        IF->>MIC: 録音を止める
+        IF->>HIST: 確定した録音を保存する
+        IF->>ENG: 文字起こしを始める
+        IF-->>C: 202
+      ```
+    expected:
+      - 202 が返る
+      - システム音量が録音前の値に戻っている
+      - 履歴に確定した録音がある
+    test: test_normal_when_recording
+  - name: 異常系（トークンが合わない・401）
+    summary: トークンが合わなければ確定しない
+    setup:
+      - name: Mock
+        description: マイク・システム音量・トレイ・文字起こしのエンジンを差し替える
+      - name: 停止中のセッション
+        description: 録音を開始する と 録音を停止する を呼んだセッション
+      - name: トークン
+        description: 今回の起動のものと違うトークン
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as クライアント
+        participant IF as POST /sessions/{session_id}/complete
+        participant LOG as ログ
+
+        C->>IF: 合わないトークン
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書く（トークンは書かない）
+        IF-->>C: 401
+      ```
+    expected:
+      - 401 が返る
+      - セッションが停止中のままで、文字起こしが始まっていない
+      - ログに断った理由と要求元が書かれ、トークンの値は書かれていない
+    test: test_error_when_token_mismatch
+  - name: 異常系（ブラウザからの要求・403）
+    summary: Origin の付いた要求と、Host が待ち受けのホストでない要求を断る
+    setup:
+      - name: Mock
+        description: マイク・システム音量・トレイ・文字起こしのエンジンを差し替える
+      - name: 停止中のセッション
+        description: 録音を開始する と 録音を停止する を呼んだセッション
+      - name: 要求のヘッダー
+        description: 正しいトークンに Origin を付けるか、Host をほかのホスト名にする
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as クライアント
+        participant IF as POST /sessions/{session_id}/complete
+        participant LOG as ログ
+
+        C->>IF: Origin ありか、ほかの Host
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書く（トークンは書かない）
+        IF-->>C: 403
+      ```
+    expected:
+      - 403 が返る
+      - 文字起こしが始まっていない
+      - ログに断った理由と要求元が書かれ、トークンの値は書かれていない
+    test: test_error_when_browser_request
+  - name: 異常系（知らないセッション・404）
+    summary: 録音中でも停止中でもないセッションは断る
+    setup:
+      - name: Mock
+        description: マイク・システム音量・トレイ・文字起こしのエンジンを差し替える
+      - name: セッションの ID
+        description: 開始で受け取っていない ID か、既に完了したセッションの ID
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as クライアント
+        participant IF as POST /sessions/{session_id}/complete
+
+        C->>IF: トークン・知らない session_id
+        IF-->>C: 404
+      ```
+    expected:
+      - 404 が返る
+      - 文字起こしが始まっていない
+      - 処理中のほかのセッションがあれば、そのまま続いている
+    test: test_error_when_session_unknown
+lead: API から始めた録音を確定して履歴に残し、文字起こしを始める。結果は応答ではなく返送先へ届く。
+identifier: complete_session
+permissions: 今回の起動のトークン
+idempotent: false
+side_effects: 録音中なら録音を止めて音量を戻す。確定した録音を履歴に保存し（履歴を残す設定のとき）、文字起こしを始める。終わったら 呼び出し元へ返す が返送先へ送る。
+exclusivity: 完了したセッションは、返送を終えるまで処理中としてほかの開始を断る。同じセッションへの 2 度目の完了は 404。
+request:
+  - name: Authorization
+    type: str
+    required: true
+    location: header
+    description: 今回の起動のトークン
+    format: '`Bearer {トークン}`'
+    status: planned
+  - name: session_id
+    type: str
+    required: true
+    location: path
+    description: 開始で受け取ったセッションの ID
+    format: uuid
+    status: planned
+response_notes: |-
+  > [!NOTE]
+  > 202 は文字起こしを受け付けたことだけを表し、起こした文字・空の文字・失敗は 呼び出し元へ返す が返送先へ届ける。
+status_codes:
+  - code: '202'
+    condition: 録音を確定し、文字起こしを始めた
+  - code: '401'
+    condition: トークンが無いか、今回の起動のものと合わない
+  - code: '403'
+    condition: Origin が付いているか、Host が 127.0.0.1 でも localhost でもない
+  - code: '404'
+    condition: そのセッションが録音中でも停止中でもない（知らない ID・完了済み・上限で打ち切り済み）
+error_format: 録音を開始する と同じ RFC 9457 の `application/problem+json`。
+constraints:
+  - item: 待ち受け
+    constraint: 127.0.0.1 だけ
+  - item: 認可
+    constraint: 起動ごとに作るトークンの一致。Host・Origin の確かめ方は 録音を開始する と同じ
+  - item: タイムアウト
+    constraint: 制限なし
+    notes: 文字起こしを待たずに 202 を返す

@@ -6,18 +6,24 @@ requirements:
     external_constraint: 文字起こしの API へアップロードできるファイルは 25 MB まで
     source_kind: 外部 API の制限
     source: https://platform.openai.com/docs/guides/speech-to-text
-    value: 未確定
-    unit: MB
-    rationale: 録音の形式（サンプルレート・チャンネル）と録音の上限時間が決まれば決まる。現状の値はリバースエンジニアリングで起こし、方針決めで決める
-    overflow: 送る前に手元でファイルの大きさを数える。超えるときの処置（分割かエラー）は方針決めで決める
+    value: '20000000'
+    unit: バイト
+    rationale: 外部の上限 25 MB（25,000,000 バイトとして扱う）から安全率 20% を引いた
+    overflow: 送る前に手元で大きさを数え、超えるときは送らずに文字起こしの失敗として扱う（録音は履歴に残る）
+    breakdown:
+      - part: 外部の上限
+        value: 25,000,000 バイト
+      - part: 安全率
+        value: − 5,000,000 バイト
+        notes: 規約『資源の値の決め方』の既定 20%
   - name: 対応 OS
     english_name: supported_os
     category: 動作環境
-    external_constraint: 未確定
+    external_constraint: 録音・貼り付け・システム音量の操作を Windows の機能（pycaw・Win32）で行う
     source_kind: ユーザー要望
-    source: https://github.com/shuhei1101/voice-paste/issues/6
-    value: 未確定
-    rationale: 立ち上げの構成方針は Windows。対応する版は方針決めで決める
+    source: https://github.com/shuhei1101/voice-paste/blob/develop/dev/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/1_%E7%9B%AE%E7%9A%84%E3%81%A8%E5%88%B6%E7%B4%84.md
+    value: Windows
+    rationale: '方針の制約（Windows のショートカットから起動する・録音と貼り付けは端末の OS の機能）。Linux・Mac は #9 で扱う'
   - name: 入力方式
     english_name: input_method
     category: 動作環境
@@ -32,3 +38,108 @@ requirements:
     source_kind: 未確定
     value: 未確定
     rationale: ローカルの文字起こしはモデルを取得した後は通信なしで動き、OpenAI の文字起こしは通信が要る。通信なしでの利用を保証するかは方針決めで決める
+  - name: API のセッションの上限時間
+    english_name: api_session_limit
+    category: 耐障害
+    external_constraint: OpenAI API へ送れる音声は 25 MB まで
+    source_kind: 外部 API の制限
+    source: https://platform.openai.com/docs/guides/speech-to-text
+    value: '600'
+    unit: 秒
+    rationale: 開始からの経過時間（停止中も数える）は録音の長さ以上なので、OpenAI API へ送る音声ファイルの大きさの決定値を録音の形式（16 kHz・モノラル・16 bit = 32,000 バイト/秒）で割った 625 秒を、分の切りの良い 600 秒に切り下げた。放置されたセッションがホットキーと API を塞ぐのをこの時間で解く
+    overflow: 上限で打ち切り、録音を履歴に残して返送先へ truncated を送る（上限で打ち切る）
+    breakdown:
+      - part: OpenAI API へ送る音声ファイルの大きさ
+        value: 20,000,000 バイト
+      - part: 録音の形式
+        value: ÷ 32,000 バイト/秒 = 625 秒
+        notes: WAV のヘッダー 44 バイトは安全率に収まる
+      - part: 切り下げ
+        value: 600 秒
+    measurement: 上限を短い値に差し替えた結合テスト（上限で打ち切る）で、録音中と停止中の両方で打ち切られることを確かめる
+  - name: API の開始の応答時間
+    english_name: api_start_response_time
+    category: 性能
+    external_constraint: 制限なし
+    source_kind: ユーザー要望
+    source: https://github.com/shuhei1101/voice-paste/blob/develop/dev/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/2_%E5%93%81%E8%B3%AA%E7%9B%AE%E6%A8%99.md
+    value: 未確定
+    unit: ミリ秒
+    rationale: 品質シナリオ 1。仮の値は 500 ミリ秒で、#15 で刷新前の値を測ってから確定する
+    measurement: POST /sessions を 50 回続けて呼び（開始 → 停止 → 完了）、50 回とも返送先に文字が届き、開始の応答時間が決定値以内であることを実機で測る
+  - name: 処理中の開始へのエラーの応答時間
+    english_name: busy_response_time
+    category: 性能
+    external_constraint: 制限なし
+    source_kind: ユーザー要望
+    source: https://github.com/shuhei1101/voice-paste/blob/develop/dev/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/2_%E5%93%81%E8%B3%AA%E7%9B%AE%E6%A8%99.md
+    value: 未確定
+    unit: 秒
+    rationale: 品質シナリオ 6。仮の値は 1 秒で、#15 の測定の後に確定する
+    measurement: ホットキーの録音中に POST /sessions を呼び、409 が決定値以内に返り、2 つ目の録音が始まらないことを測る
+  - name: 話し終えてから貼り付くまでの時間
+    english_name: paste_latency
+    category: 性能
+    external_constraint: 制限なし
+    source_kind: ユーザー要望
+    source: https://github.com/shuhei1101/voice-paste/blob/develop/dev/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/2_%E5%93%81%E8%B3%AA%E7%9B%AE%E6%A8%99.md
+    value: 未確定
+    unit: 秒
+    rationale: '品質シナリオ 3。刷新前の中央値以下にする。刷新前の値は #15 で測る'
+    measurement: 常駐中・ローカルの Whisper（GPU）・モデル読み込み済みで、約 10 秒話してホットキーで止めてから貼り付くまでを新旧それぞれ 20 回、実機で測る
+  - name: 文字起こしワーカーの立て直しの時間
+    english_name: worker_recovery_time
+    category: 耐障害
+    external_constraint: 制限なし
+    source_kind: ユーザー要望
+    source: https://github.com/shuhei1101/voice-paste/blob/develop/dev/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/2_%E5%93%81%E8%B3%AA%E7%9B%AE%E6%A8%99.md
+    value: 未確定
+    unit: 秒
+    rationale: '品質シナリオ 4。仮の値は 30 秒で、モデルの読み込みの時間を #15 で測ってから確定する'
+    measurement: 文字起こしの途中でワーカーを止め、常駐が止まらず録音が履歴に残り、決定値以内に次の録音を受け付けることを実機で測る
+  - name: 刷新の前後での起こした文字の一致
+    english_name: transcription_parity
+    category: 機能適合性
+    external_constraint: 制限なし
+    source_kind: ユーザー要望
+    source: https://github.com/shuhei1101/voice-paste/blob/develop/dev/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/2_%E5%93%81%E8%B3%AA%E7%9B%AE%E6%A8%99.md
+    value: 未確定
+    unit: 件
+    rationale: '品質シナリオ 2。用意した N 件の録音で、補正後の文字が刷新前と N 件一致する。N と録音は #15 で履歴から選んで特性テストに固める'
+    measurement: '#15 の特性テストを新しい構成で回す（一致しない件は差分を記録する）'
+  - name: 返送のタイムアウトと再送
+    english_name: callback_retry
+    category: 耐障害
+    external_constraint: 未確定
+    source_kind: 未確定
+    value: 未確定
+    rationale: '規約『資源の値の決め方』で、タイムアウトは返送先の実測の p99.9 + 余裕、再送は回数の上限つきの指数バックオフ + ジッターで導く。返送先の実測が無いため、API を作る #19 で測って決める'
+    overflow: 再送しても届かなければログに書いて終える（履歴は残る）
+  - name: 常駐中に古い履歴とログを消す間隔
+    english_name: purge_interval
+    category: 保守性
+    external_constraint: 制限なし
+    source_kind: 制限なし
+    value: '24'
+    unit: 時間
+    rationale: 保持期間は日単位なので、1 日ごとに消せば保持期間を過ぎて残るのは最長 1 日に収まる。起動時にも消す
+  - name: 出力先を足すときに変える既存のモジュール
+    english_name: output_extensibility
+    category: 保守性
+    external_constraint: 制限なし
+    source_kind: ユーザー要望
+    source: https://github.com/shuhei1101/voice-paste/blob/develop/dev/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/2_%E5%93%81%E8%B3%AA%E7%9B%AE%E6%A8%99.md
+    value: '1'
+    unit: か所
+    rationale: 品質シナリオ 5。既存のモジュールの変更は出力先の一覧（OUTPUTS）への登録だけにする。出力先どうしの import を import-linter で禁じる
+    measurement: import-linter の出力先の独立の契約が通ることと、出力先を足した PR の差分で確かめる
+  - name: 音量の操作のライブラリの変化の検知
+    english_name: volume_contract_detection
+    category: 保守性
+    external_constraint: pycaw は日付の版で API が変わる
+    source_kind: 外部ライブラリの制限
+    source: https://github.com/AndreMiras/pycaw/blob/main/CHANGELOG.md
+    value: '100'
+    unit: '%'
+    rationale: 品質シナリオ 7。pycaw を == で固定し、版を上げたら Windows の実機で契約テストを回して API の変化を全て検知する
+    measurement: 音量のアダプタの契約テスト（lower_volume・restore_volume）を Windows の実機で回す

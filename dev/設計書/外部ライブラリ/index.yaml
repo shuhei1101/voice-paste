@@ -36,3 +36,13 @@ items:
     summary: 録音の画面・文字起こし中の表示・設定画面を作る
   - page: Microsoft_Edge.yaml
     summary: AI チャットの画面をアプリのウィンドウとして開く
+  - page: fastapi.yaml
+    summary: 常駐サービスの API のルートと入出力の検証を組み立てる
+  - page: uvicorn.yaml
+    summary: API を 127.0.0.1 で待ち受ける
+  - page: httpx.yaml
+    summary: 起こした文字を呼び出し元のエンドポイントへ返す
+  - page: pydantic.yaml
+    summary: 設定と API の入出力を検証する
+  - page: pyside6-essentials.yaml
+    summary: 画面とトレイを出し、ほかのスレッドからメインスレッドへ操作を渡す

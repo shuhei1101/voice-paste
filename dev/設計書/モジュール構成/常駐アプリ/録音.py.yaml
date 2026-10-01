@@ -1,0 +1,160 @@
+title: "常駐アプリ / 録音"
+lead: マイクで録音し、録音中はシステム音量を下げて戻す。入口を問わず同じ録音を使い、画面には触れない。
+directory: |-
+  ```
+  src/voice_paste/features/recording/
+  ├── __init__.py   # Recorder の公開
+  ├── types.py      # 録音・音量の操作の関数型
+  ├── service.py    # Recorder（開始・一時停止・再開・停止・破棄）
+  └── client.py     # sounddevice の入力を開く・閉じる
+  ```
+data_models: []
+function_types:
+  - name: LowerVolumeFn
+    title: 音量を下げる
+    container: features/recording/types.py
+    usecase: 録音する
+    summary: 今の音量に対する割合へ下げ、下げる前の音量を返す
+    args:
+      - name: ratio
+        type: float
+        description: 今の音量に対する割合（0.0・1.0）
+    returns:
+      type: float
+      description: 下げる前の音量
+    implementations:
+      - target: 外部連携の lower_volume（pycaw のアダプタ）
+    status: planned
+  - name: RestoreVolumeFn
+    title: 音量を戻す
+    container: features/recording/types.py
+    usecase: 録音する
+    summary: 下げる前の音量へ戻す
+    args:
+      - name: volume
+        type: float
+        description: 戻す音量
+    returns:
+      type: None
+      description: なし
+    implementations:
+      - target: 外部連携の restore_volume（pycaw のアダプタ）
+    status: planned
+classes:
+  - name: Recorder
+    title: 録音機
+    container: features/recording/service.py
+    usecase: 録音する
+    role: サービス
+    kind: クラス
+    summary: 開いているマイクの入力と貯めた音、下げる前の音量を持つ
+    description: |-
+      マイクの入力（コールバックのストリーム）を長く持つためクラスにする。
+      どの終わり方（停止・破棄・開始の失敗）でも音量を戻す。
+    properties:
+      - name: _lower_volume
+        type: LowerVolumeFn
+        access: 内部 (_)
+        description: 音量を下げる
+      - name: _restore_volume
+        type: RestoreVolumeFn
+        access: 内部 (_)
+        description: 音量を戻す
+      - name: _open_input
+        type: Callable[[Callable[[numpy.ndarray], None]], InputStream]
+        access: 内部 (_)
+        description: マイクの入力を開く（client.py）
+      - name: _volume_ratio
+        type: float | None
+        access: 内部 (_)
+        description: 録音中の音量の割合。None なら下げない
+    methods:
+      - name: start
+        title: 録音の開始
+        kind: メソッド
+        scope: public
+        inherits: StartRecordingFn
+        summary: 音量を下げてマイクを開く。開けなければ音量を戻して送出する
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 音量を下げる設定なら、音量を下げて戻す値を持つ（音量を下げる）
+             - VolumeControlError の場合、音量を下げずに続ける
+               - `[WARNING]` 音量を下げられなかった（理由）
+          2. マイクの入力を開く
+             - 開けない場合、音量を戻し（音量を戻す）、MicrophoneUnavailableError を送出する
+               - `[ERROR]` マイクを開けなかった（デバイス・理由）
+        exceptions:
+          - name: MicrophoneUnavailableError
+            condition: マイクの入力を開けない
+        unit_tests:
+          - name: test_start
+            case: 正常
+            summary: 音量を下げてマイクを開く
+            condition: 音量の割合 0.5
+            mock: lower_volume・restore_volume・open_input
+            expected: lower_volume に 0.5 が渡り、open_input が呼ばれる
+          - name: test_start_when_microphone_unavailable
+            case: 異常
+            summary: マイクを開けなければ音量を戻す
+            condition: open_input が例外を送出する
+            mock: lower_volume・restore_volume・open_input
+            expected: MicrophoneUnavailableError が送出され、restore_volume に下げる前の音量が渡る
+            exception: マイクの入力を開けない
+          - name: test_start_when_volume_control_failed
+            case: 正常
+            summary: 音量を下げられなくても録音は始める
+            condition: lower_volume が VolumeControlError を送出する
+            mock: lower_volume・restore_volume・open_input
+            expected: open_input が呼ばれ、例外が出ない
+      - name: pause
+        title: 一時停止
+        kind: メソッド
+        scope: public
+        summary: 入力は開いたまま、音を貯めるのを止める
+        returns:
+          type: None
+          description: なし
+      - name: resume
+        title: 再開
+        kind: メソッド
+        scope: public
+        summary: 音を貯めるのを再び始める
+        returns:
+          type: None
+          description: なし
+      - name: stop
+        title: 録音の停止
+        kind: メソッド
+        scope: public
+        inherits: StopRecordingFn
+        summary: 入力を閉じ、音量を戻し、貯めた音を返す
+        returns:
+          type: Recording
+          description: 貯めた音
+        unit_tests:
+          - name: test_stop
+            case: 正常
+            summary: 貯めた音を返して音量を戻す
+            condition: 入力に 1 秒分の音を流した後に止める
+            mock: lower_volume・restore_volume・open_input
+            expected: duration_sec が 1.0 の Recording が返り、restore_volume が呼ばれる
+          - name: test_stop_when_paused_between
+            case: 正常
+            summary: 一時停止の間の音は貯めない
+            condition: 1 秒流す → pause → 1 秒流す → resume → 1 秒流す
+            mock: lower_volume・restore_volume・open_input
+            expected: duration_sec が 2.0
+      - name: discard
+        title: 録音の破棄
+        kind: メソッド
+        scope: public
+        summary: 入力を閉じ、音量を戻し、貯めた音を捨てる
+        returns:
+          type: None
+          description: なし
+    refs:
+      - dev/設計書/外部ライブラリ/sounddevice#
+      - dev/設計書/外部ライブラリ/numpy#
+    status: planned

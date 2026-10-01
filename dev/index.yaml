@@ -1,0 +1,11 @@
+title: voice-paste
+summary: voice-paste の開発ドキュメント全体の目次
+items:
+  - page: 設計書/
+    summary: シナリオ / インターフェース定義 / モジュール構成 ほかの設計書と、外部 API・外部ライブラリ・テストの参照資料
+  - page: エージェント運用/
+    summary: 規約・チェックシート・判定フローチャート
+  - page: コーディング規約/
+    summary: 言語・フレームワークの規約
+  - page: テンプレート/
+    summary: 設計書の書式定義（Schema）

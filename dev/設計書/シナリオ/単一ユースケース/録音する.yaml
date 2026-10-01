@@ -1,0 +1,174 @@
+title: "録音する"
+scenarios:
+  - name: 正常シナリオ
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 録音中の音量
+        description: 録音中にシステム音量を今の音量の半分へ下げる
+        notes: '`RECORDING_VOLUME_ENABLED=true`・`RECORDING_VOLUME=50`'
+      - name: 画面の表示
+        description: 録音の画面を出す
+        notes: '`WINDOW_HIDDEN=false`'
+      - name: 届け方
+        description: 「貼付+送信」を押して確定する
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant APP as 常駐アプリ
+        participant TRAY as トレイ
+        participant VOL as システム音量
+        participant MIC as マイク
+        participant GUI as 録音の画面
+        participant FS as 一時ファイル
+
+        U->>APP: 録音開始のホットキーを押す
+        APP->>TRAY: 赤のアイコンにする（voice-paste: 録音中）
+        APP->>VOL: 今の音量の RECORDING_VOLUME % へ、RECORDING_VOLUME_FADE_DURATION 秒かけて下げる
+        APP->>MIC: 録音を始める（16 kHz・モノラル）
+        APP->>GUI: 録音の画面を開く（波形・経過時間・一時停止と届け方のボタン）
+        U->>MIC: 話す
+        GUI-->>U: 声の大きさに合わせて波形が動き、経過時間が進む
+        U->>GUI: 「貼付+送信」を押す
+        GUI->>APP: 届け方（貼付+送信）を渡して閉じる
+        APP->>VOL: 録音前の音量へ戻す
+        APP->>MIC: 録音を止める
+        APP->>FS: cache/recording.wav に保存する
+      ```
+    expected:
+      - 録音の画面が閉じている
+      - '`cache/recording.wav` に話した録音が保存されている'
+      - システム音量が録音前の値に戻っている
+      - 選んだ届け方（貼付+送信）で 録音を文字に起こす へ進む
+  - name: 正常シナリオ（一時停止して再開する）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 一時停止
+        description: 話している途中で「⏸ 一時停止」を押し、一時停止の間も話し、「▶ 再開」を押す
+        notes: 一時停止のホットキー（`PAUSE_HOTKEY`）でも同じ
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant GUI as 録音の画面
+        participant MIC as マイク
+
+        Note over GUI: 録音の画面を開くまでは 正常シナリオ と同じ
+        U->>GUI: 「⏸ 一時停止」を押す
+        GUI->>MIC: 録音した音を貯めるのを止める（入力は開いたまま）
+        GUI-->>U: 波形が灰色になり、経過時間が止まり、ボタンが「▶ 再開」になる
+        U->>GUI: 「▶ 再開」を押す
+        GUI->>MIC: 録音した音を貯めるのを再び始める
+        GUI-->>U: 波形が青に戻り、経過時間が進み、ボタンが「⏸ 一時停止」に戻る
+        Note over GUI: 確定から後は 正常シナリオ と同じ
+      ```
+    expected:
+      - 保存した録音に、一時停止の間に話した声が入っていない
+      - 経過時間が、一時停止の間を除いた長さを示している
+  - name: 正常シナリオ（録音を取り消す）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 録音中の音量
+        description: 録音中にシステム音量を下げる
+        notes: '`RECORDING_VOLUME_ENABLED=true`'
+      - name: 取り消し
+        description: 録音の画面で Esc を押す
+        notes: 取り消しのホットキー（`CANCEL_HOTKEY`）・ウィンドウの閉じるボタンでも同じ
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant APP as 常駐アプリ
+        participant TRAY as トレイ
+        participant VOL as システム音量
+        participant MIC as マイク
+        participant GUI as 録音の画面
+
+        Note over GUI: 録音の画面を開くまでは 正常シナリオ と同じ
+        U->>GUI: Esc を押す
+        GUI->>APP: 取り消しを渡して閉じる
+        APP->>VOL: 録音前の音量へ戻す
+        APP->>MIC: 録音を止め、貯めた音を捨てる
+        APP->>TRAY: 青のアイコンにする（voice-paste: 待機中）
+      ```
+    expected:
+      - 録音の画面が閉じている
+      - '`cache/recording.wav` が書き換わっていない'
+      - システム音量が録音前の値に戻っている
+      - トレイのアイコンが待機中に戻り、文字起こしへ進まない
+  - name: 正常シナリオ（録音の画面を出さない）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 画面の表示
+        description: 録音の画面を出さず、トレイの色だけで状態を示す
+        notes: '`WINDOW_HIDDEN=true`'
+      - name: 届け方
+        description: 確定のホットキー（`CONFIRM_HOTKEY`）で確定する
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant APP as 常駐アプリ
+        participant TRAY as トレイ
+        participant GUI as 録音の画面（非表示）
+
+        U->>APP: 録音開始のホットキーを押す
+        APP->>TRAY: 赤のアイコンにする（voice-paste: 録音中）
+        APP->>GUI: 画面を作るが表示しない（ホットキーの受付だけ行う）
+        U->>GUI: 確定のホットキーを押す
+        GUI->>APP: 届け方（貼付+送信）を渡す
+        Note over APP: 音量を戻して保存するのは 正常シナリオ と同じ
+      ```
+    expected:
+      - 録音中に画面に録音のウィンドウが出ていない
+      - '`cache/recording.wav` に録音が保存され、録音を文字に起こす へ進む'
+  - name: 異常シナリオ（マイクを開けない）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 録音中の音量
+        description: 録音中にシステム音量を下げる
+        notes: '`RECORDING_VOLUME_ENABLED=true`'
+      - name: マイクの欠落
+        description: 入力の音声デバイスを外しておき、録音の入力を開けないようにする
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant APP as 常駐アプリ
+        participant TRAY as トレイ
+        participant VOL as システム音量
+        participant MIC as マイク
+
+        U->>APP: 録音開始のホットキーを押す
+        APP->>TRAY: 赤のアイコンにする（voice-paste: 録音中）
+        APP->>VOL: 音量を下げる
+        APP->>MIC: 録音を始めようとする
+        MIC-->>APP: 入力を開けずに例外
+        APP->>APP: 「Session failed.」をログに書き、次の録音開始を待つ
+      ```
+    expected:
+      - 録音の画面が開かない
+      - システム音量が下げたまま戻らない
+      - トレイのアイコンが赤（録音中）のまま残る
+      - ログに「Session failed.」が書かれている
+      - 録音開始のホットキーをもう一度受け付ける
+lead: 録音開始のホットキーで録音を始め、録音の画面で届け方を選んで確定するか取り消すまでの単一ユースケース。
+issue: 3
+primary_actor: 音声入力を使うユーザー
+trigger: 待機中に録音開始のホットキー（`RESIDENT_HOTKEY`）を押すか、トレイのメニューの「録音開始」を選ぶ
+preconditions:
+  - 常駐アプリが待機中で、録音の画面も設定画面も開いていない（開いている間の録音開始は読み捨てる）
+notes:
+  確定と取り消しの手段: |-
+    | 届け方 | ボタン | キー（画面にフォーカスがあるとき） | ホットキー（どこにフォーカスがあっても） |
+    | --- | --- | --- | --- |
+    | 貼付+送信 | 「貼付+送信」 | Enter | `CONFIRM_HOTKEY` |
+    | 貼付のみ | 「貼付のみ」 | - | `CONFIRM_PASTE_ONLY_HOTKEY` |
+    | コピーのみ | 「コピー」 | - | `COPY_ONLY_HOTKEY` |
+    | AI チャットへ送る | AI の名前のボタン（有効な `AI_SEND_{n}` ごと） | - | `AI_SEND_{n}_HOTKEY` |
+    | 取り消し | ウィンドウの閉じるボタン | Esc | `CANCEL_HOTKEY` |

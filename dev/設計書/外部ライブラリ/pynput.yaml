@@ -1,0 +1,38 @@
+title: "pynput"
+kind: "ライブラリ"
+version:
+  current: 1.8.1
+  checked_on: '2026-09-30'
+  source: pyproject.toml（~=1.7）と手元の venv に入っている版
+  pinning: 互換リリースで固定（~=1.7）
+catalogs:
+  - name: API
+    version: 1.8.1
+    entries:
+      - name: keyboard.GlobalHotKeys
+        kind: クラス
+        purpose: どのウィンドウにフォーカスがあっても、登録したホットキーで関数を呼ぶ（録音開始・録音の画面の確定と取り消し）
+      - name: keyboard.Listener
+        kind: クラス
+        purpose: 設定画面で、押したキーの組み合わせを拾う
+      - name: keyboard.Controller
+        kind: クラス
+        purpose: 貼り付けキーと Enter を仮想的に押して離す
+      - name: keyboard.Key / keyboard.KeyCode
+        kind: 列挙
+        purpose: 修飾キーと通常のキーを表す
+lead: キーボードとマウスの入力を監視し、仮想的に送るライブラリ。
+purl: pkg:pypi/pynput
+dependency_scope: 必須
+adoption: 採用
+used_in:
+  - voice_paste/main.py
+  - voice_paste/gui.py
+  - voice_paste/settings_gui.py
+  - voice_paste/input/keyboard_sender.py
+upstream: moses-palmer/pynput
+verification:
+  state: 未確認
+  detail: 現状の棚卸しで、コードが使っている範囲を写しただけで、動かしてはいない
+license: LGPL-3.0（商用利用可。ライブラリを差し替えられる形で配布する義務がある）
+official_url: https://github.com/moses-palmer/pynput

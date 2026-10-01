@@ -1,0 +1,290 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: アーキテクチャ図
+description: |-
+  システム全体の輪郭（サブシステムの分け方・外部システムとの境界）。1 プロジェクト 1 ファイル。
+  後から変えると全サブシステムに波及するものだけを扱う。
+x-kind: architecture
+x-folder: dev/設計書/アーキテクチャ図
+x-cross: external_systems
+type: object
+additionalProperties: false
+required:
+- title
+- overview
+- repository
+- subsystems
+properties:
+  title:
+    type: string
+    title: タイトル
+    description: '`アーキテクチャ図`。'
+  lead:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: 冒頭リード
+    description: |-
+      対象を 1〜3 行で説明する。
+      初回に書いた内容のまま保ち、後から情報を足さない（仕様は各項目に書く）。
+      対象そのものが変わったときだけ書き換える。
+  overview:
+    $ref: 共通.schema.yaml#/$defs/flowchart
+    title: システム全体図
+    description: |-
+      アクター・サブシステム・外部システムの関係を 1 枚で示す。向きは `LR`。
+      自プロジェクトのサブシステムは枠で囲み、外部システムは枠の外に置く（ノードの `kind` を `external`）。
+      矢印のラベルにはプロトコルか用途を 1 語で書く。モジュール・クラス・エンドポイントは載せない。
+    x-heading: システム全体図
+    x-shape: diagram
+    x-diagram: architecture
+  repository:
+    type: object
+    title: リポジトリ構成
+    x-heading: リポジトリ構成
+    additionalProperties: false
+    required:
+    - style
+    - repositories
+    properties:
+      style:
+        type: string
+        title: 方式
+        enum:
+        - モノレポ
+        - ポリレポ
+      repositories:
+        type: array
+        title: リポジトリ
+        x-shape: table
+        x-key: name
+        minItems: 1
+        items:
+          type: object
+          additionalProperties: false
+          required:
+          - name
+          properties:
+            name:
+              type: string
+              title: リポジトリ
+              description: '`owner/name`。'
+            subsystem:
+              type: string
+              title: サブシステム
+              description: ポリレポのとき。
+      layout:
+        type: string
+        title: 配置
+      notes:
+        type: string
+        title: 補足
+  subsystems:
+    type: array
+    title: サブシステム一覧
+    description: 独立してテスト・デプロイできる単位。増減は作業 PR 単独では決めずエスカレーションする。
+    x-heading: サブシステム一覧
+    x-shape: table
+    x-key: scope
+    x-unique-in-kind: true
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - scope
+      - role
+      - runtime
+      properties:
+        name:
+          type: string
+          title: サブシステム
+          description: 業務的な役割で命名する。
+        scope:
+          type: string
+          title: scope
+          description: 英小文字のケバブケースの識別子。
+          pattern: ^[a-z0-9]+(-[a-z0-9]+)*$
+        role:
+          type: string
+          title: 役割
+          description: 責務の境界が読み取れる 1 行。
+        runtime:
+          type: string
+          title: 言語・ランタイム
+          description: 言語とメジャーバージョンまで。
+        runs_on:
+          type: string
+          title: どこで動くか
+        refs:
+          type: array
+          title: 関連
+          items:
+            $ref: 共通.schema.yaml#/$defs/ref
+        reason:
+          $ref: 共通.schema.yaml#/$defs/reason
+        status:
+          $ref: 共通.schema.yaml#/$defs/status
+        visibility:
+          $ref: 共通.schema.yaml#/$defs/visibility
+        implementation:
+          $ref: 共通.schema.yaml#/$defs/implementation
+        introduced:
+          $ref: 共通.schema.yaml#/$defs/introduced
+        aliases:
+          $ref: 共通.schema.yaml#/$defs/aliases
+        notes:
+          $ref: 共通.schema.yaml#/$defs/notes
+  external_systems:
+    type: array
+    title: 外部システム連携
+    description: 境界を越えて通信する相手。1 要素 = 外部疎通のテスト 1 ファイル。無いときは持たない。
+    x-heading: 外部システム連携
+    x-shape: table
+    x-key: name
+    x-unique-in-kind: true
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - purpose
+      - direction
+      properties:
+        name:
+          type: string
+          title: 外部システム
+          description: |-
+            子プロセスとして起動する CLI も含む。
+            銘柄が決まっていないときは `{種別}（銘柄未定）`。
+        purpose:
+          type: string
+          title: 用途
+        direction:
+          type: string
+          title: 方向
+          enum:
+          - 送信のみ
+          - 受信のみ
+          - 双方向
+        protocol:
+          type: string
+          title: 技術
+          description: プロトコル・形式。
+        detail:
+          $ref: 共通.schema.yaml#/$defs/ref
+          title: 詳細
+          description: |-
+            API なら `設計書/外部API/`、それ以外（SDK・CLI 等）なら `設計書/外部ライブラリ/` の設計書。
+            持たないのは銘柄未定の行と初期構築の段の行だけ（設計書はその外部システムを使い始める設計の段で作る）。
+        test_file:
+          type: string
+          title: 対応非機能要件テスト
+          description: 外部疎通のテストのファイル（`tests/external/test_{名前}.py`）。1 外部システム = 1 ファイル。
+          pattern: ^tests/external/.+
+        cost:
+          type: string
+          title: 料金・副作用
+        refs:
+          type: array
+          title: 関連
+          items:
+            $ref: 共通.schema.yaml#/$defs/ref
+        reason:
+          $ref: 共通.schema.yaml#/$defs/reason
+        status:
+          $ref: 共通.schema.yaml#/$defs/status
+        visibility:
+          $ref: 共通.schema.yaml#/$defs/visibility
+        implementation:
+          $ref: 共通.schema.yaml#/$defs/implementation
+        introduced:
+          $ref: 共通.schema.yaml#/$defs/introduced
+        aliases:
+          $ref: 共通.schema.yaml#/$defs/aliases
+        notes:
+          $ref: 共通.schema.yaml#/$defs/notes
+  quality_goals:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: 品質目標
+    x-heading: 品質目標
+  constraints:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: 制約
+    x-heading: 制約
+  crosscutting:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: 横断の方針
+    x-heading: 横断の方針
+  refs:
+    type: array
+    title: 関連
+    items:
+      $ref: 共通.schema.yaml#/$defs/ref
+  notes:
+    $ref: 共通.schema.yaml#/$defs/notes
+    x-heading: 補足
+    x-shape: sections
+examples:
+- title: アーキテクチャ図
+  lead: TaskFlow のサブシステムと外部システムとの境界。
+  overview:
+    nodes:
+    - id: U
+      label: ユーザー
+      shape: stadium
+      kind: actor
+    - id: FE
+      label: フロントエンド
+      kind: system
+    - id: BE
+      label: バックエンド
+      kind: system
+    - id: DB
+      label: PostgreSQL
+      shape: cylinder
+      kind: store
+    - id: MAIL
+      label: SendGrid
+      kind: external
+    edges:
+    - from: U
+      to: FE
+    - from: FE
+      to: BE
+      label: REST
+    - from: BE
+      to: DB
+    - from: BE
+      to: MAIL
+      label: メール送信
+    subgraphs:
+    - id: SYS
+      label: TaskFlow
+      nodes:
+      - FE
+      - BE
+      - DB
+  repository:
+    style: モノレポ
+    repositories:
+    - name: owner/taskflow
+    layout: '`frontend/` / `backend/`'
+  subsystems:
+  - name: フロントエンド
+    scope: frontend
+    role: 画面の描画とユーザー操作の受付
+    runtime: TypeScript 5 / Node.js 22
+  - name: バックエンド
+    scope: backend
+    role: 業務ロジックと永続化
+    runtime: Python 3.12
+  external_systems:
+  - name: SendGrid
+    purpose: メール送信
+    direction: 送信のみ
+    protocol: HTTPS
+    detail: dev/設計書/外部API/SendGrid#
+    test_file: tests/external/test_sendgrid.py
+    cost: '副作用: 実メールを送る'
+  - name: 認証基盤（銘柄未定）
+    purpose: ユーザー認証
+    direction: 双方向

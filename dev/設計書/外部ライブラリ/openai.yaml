@@ -1,0 +1,29 @@
+title: "openai"
+kind: "ライブラリ"
+version:
+  current: 1.109.1
+  checked_on: '2026-09-30'
+  source: pyproject.toml（~=1.0）と手元の venv に入っている版
+  pinning: 互換リリースで固定（~=1.0）
+catalogs:
+  - name: API
+    version: 1.109.1
+    entries:
+      - name: OpenAI
+        kind: クラス
+        purpose: API キーを渡して API のクライアントを作る
+      - name: audio.transcriptions.create
+        kind: メソッド
+        purpose: 音声ファイル・モデル・言語・温度・応答の形式を渡して、文字起こしの結果（区間・全文・音声の長さ）を受け取る
+lead: OpenAI の API を呼ぶ公式の Python SDK。
+purl: pkg:pypi/openai
+dependency_scope: 必須
+adoption: 採用
+used_in:
+  - voice_paste/transcription/openai_transcriber.py
+upstream: openai/openai-python
+verification:
+  state: 未確認
+  detail: 現状の棚卸しで、コードが使っている範囲を写しただけで、動かしてはいない
+license: Apache-2.0（商用利用可）
+official_url: https://github.com/openai/openai-python

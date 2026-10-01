@@ -1,0 +1,32 @@
+title: "pycaw"
+kind: "ライブラリ"
+version:
+  current: '20251023'
+  checked_on: '2026-09-30'
+  source: pyproject.toml（>=20220416）と手元の venv に入っている版
+  pinning: 下限だけを固定（>=20220416）
+catalogs:
+  - name: API
+    version: '20251023'
+    entries:
+      - name: AudioUtilities.GetSpeakers
+        kind: 関数
+        purpose: 既定の再生デバイスを取る
+      - name: AudioDevice.EndpointVolume
+        kind: プロパティ
+        purpose: 再生デバイスの音量を操作するインターフェースを取る
+      - name: GetMasterVolumeLevelScalar / SetMasterVolumeLevelScalar
+        kind: メソッド
+        purpose: マスター音量を 0.0〜1.0 で読み書きする
+lead: Windows の Core Audio を Python から操作するライブラリ。
+purl: pkg:pypi/pycaw
+dependency_scope: 必須
+adoption: 採用
+used_in:
+  - voice_paste/audio/volume.py
+upstream: AndreMiras/pycaw
+verification:
+  state: 未確認
+  detail: 現状の棚卸しで、コードが使っている範囲を写しただけで、動かしてはいない
+license: MIT（商用利用可）
+official_url: https://github.com/AndreMiras/pycaw

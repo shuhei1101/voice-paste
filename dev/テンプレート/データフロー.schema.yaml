@@ -1,0 +1,219 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: データフロー
+description: |-
+  1 つのデータがシステムをどう流れるか（DFD）。1 ファイル = データ 1 つ。
+  図は各レベルのノードと辺から生成する。実装の関数とは 1:1 に対応させない。
+x-kind: dataflow
+x-folder: dev/設計書/データフロー
+x-cross: dictionary
+type: object
+additionalProperties: false
+required:
+- title
+- levels
+properties:
+  title:
+    type: string
+    title: タイトル
+    description: '`データフロー: {データ名}`。'
+    pattern: '^データフロー: .+$'
+  lead:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: 冒頭リード
+    description: |-
+      対象を 1〜3 行で説明する。
+      初回に書いた内容のまま保ち、後から情報を足さない（仕様は各項目に書く）。
+      対象そのものが変わったときだけ書き換える。
+  source:
+    type: string
+    title: 発生源
+    description: 外部エンティティかシステムの中の処理。
+  sink:
+    type: string
+    title: 出口
+    description: 外部エンティティかデータストア。
+  levels:
+    type: array
+    title: 図
+    description: Level 0（外部の境界）と Level 1（主要な処理とデータストア）は必須。Level 2 は複雑な処理だけ。
+    x-shape: sections
+    x-key: name
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - diagram
+      properties:
+        name:
+          type: string
+          title: レベル
+          description: '`Level 0` / `Level 1` / `Level 2: {親の処理}の分解`。'
+        description:
+          $ref: 共通.schema.yaml#/$defs/markdown
+          title: 説明
+        diagram:
+          $ref: 共通.schema.yaml#/$defs/flowchart
+          title: 図
+          description: |-
+            ノードの `kind` で外部の相手・処理・データストアを分け、辺のラベルに流れるデータの名前を書く。
+            処理は動詞句、データは名詞で書く。1 図の処理は 3〜7 個。信頼境界は枠で描く。
+          x-shape: diagram
+          x-diagram: dataflow
+  dictionary:
+    type: array
+    title: データ辞書
+    description: 処理の境界を越える主要な流れだけ。
+    x-heading: データ辞書
+    x-shape: table
+    x-key: name
+    x-unique-in-kind: true
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - from
+      - to
+      - structure
+      properties:
+        name:
+          type: string
+          title: データフロー名
+        from:
+          type: string
+          title: 発生元
+        to:
+          type: string
+          title: 到達先
+        structure:
+          type: string
+          title: 構造
+          description: ペイロードの型（`{name, email}`）。
+        crosses_boundary:
+          type: boolean
+          title: 信頼境界を越える
+        sensitivity:
+          type: string
+          title: 機密の区分
+          enum:
+          - 個人情報
+          - 機密
+        threats:
+          type: array
+          title: 脅威
+          description: 信頼境界を越える流れの STRIDE の脅威。
+          items:
+            type: string
+            enum:
+            - なりすまし
+            - 改ざん
+            - 否認
+            - 情報漏えい
+            - サービス拒否
+            - 権限昇格
+        volume:
+          type: string
+          title: 頻度と量
+        notes:
+          type: string
+          title: 補足
+  refs:
+    type: array
+    title: 関連
+    items:
+      $ref: 共通.schema.yaml#/$defs/ref
+  notes:
+    $ref: 共通.schema.yaml#/$defs/notes
+    x-heading: 補足
+    x-shape: sections
+examples:
+- title: 'データフロー: 問い合わせメッセージ'
+  lead: '`問い合わせメッセージ` がシステムを流れる過程。'
+  source: 問い合わせ者
+  sink: 問い合わせ DB とサポート担当
+  levels:
+  - name: Level 0
+    diagram:
+      nodes:
+      - id: USER
+        label: 問い合わせ者
+        kind: actor
+      - id: S
+        label: 問い合わせ処理システム
+        shape: circle
+        kind: process
+      - id: SUP
+        label: サポート担当
+        kind: actor
+      edges:
+      - from: USER
+        to: S
+        label: 問い合わせメッセージ
+      - from: S
+        to: SUP
+        label: 問い合わせ通知
+  - name: Level 1
+    diagram:
+      nodes:
+      - id: USER
+        label: 問い合わせ者
+        kind: actor
+      - id: P1
+        label: 1. 受付
+        shape: circle
+        kind: process
+      - id: P2
+        label: 2. 保存
+        shape: circle
+        kind: process
+      - id: DB
+        label: 問い合わせ DB
+        shape: cylinder
+        kind: store
+      - id: P3
+        label: 3. 通知
+        shape: circle
+        kind: process
+      - id: SUP
+        label: サポート担当
+        kind: actor
+      edges:
+      - from: USER
+        to: P1
+        label: 問い合わせメッセージ
+      - from: P1
+        to: P2
+        label: 検証済みメッセージ
+      - from: P2
+        to: DB
+        label: 問い合わせレコード
+      - from: P2
+        to: P3
+        label: 保存完了イベント
+      - from: P3
+        to: SUP
+        label: 通知ペイロード
+      subgraphs:
+      - id: SYS
+        label: '信頼境界: システム'
+        nodes:
+        - P1
+        - P2
+        - DB
+        - P3
+  dictionary:
+  - name: 問い合わせメッセージ
+    from: 問い合わせ者
+    to: 1. 受付
+    structure: '{name, email, subject, body}'
+    crosses_boundary: true
+    sensitivity: 個人情報
+    threats:
+    - 改ざん
+    - 情報漏えい
+  - name: 問い合わせレコード
+    from: 2. 保存
+    to: 問い合わせ DB
+    structure: '{id, name, email, subject, body, received_at}'

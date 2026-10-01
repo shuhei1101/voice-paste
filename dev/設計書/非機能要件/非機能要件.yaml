@@ -1,0 +1,34 @@
+title: "非機能要件"
+requirements:
+  - name: OpenAI API へ送る音声ファイルの大きさ
+    english_name: openai_audio_file_size
+    category: 性能
+    external_constraint: 文字起こしの API へアップロードできるファイルは 25 MB まで
+    source_kind: 外部 API の制限
+    source: https://platform.openai.com/docs/guides/speech-to-text
+    value: 未確定
+    unit: MB
+    rationale: 録音の形式（サンプルレート・チャンネル）と録音の上限時間が決まれば決まる。現状の値はリバースエンジニアリングで起こし、方針決めで決める
+    overflow: 送る前に手元でファイルの大きさを数える。超えるときの処置（分割かエラー）は方針決めで決める
+  - name: 対応 OS
+    english_name: supported_os
+    category: 動作環境
+    external_constraint: 未確定
+    source_kind: ユーザー要望
+    source: https://github.com/shuhei1101/voice-paste/issues/6
+    value: 未確定
+    rationale: 立ち上げの構成方針は Windows。対応する版は方針決めで決める
+  - name: 入力方式
+    english_name: input_method
+    category: 動作環境
+    external_constraint: 未確定
+    source_kind: 未確定
+    value: 未確定
+    rationale: ホットキーとマイクで操作する。対応するマイク・キーの組み合わせはリバースエンジニアリングで現状を起こし、方針決めで決める
+  - name: 通信
+    english_name: network
+    category: 動作環境
+    external_constraint: 未確定
+    source_kind: 未確定
+    value: 未確定
+    rationale: ローカルの文字起こしはモデルを取得した後は通信なしで動き、OpenAI の文字起こしは通信が要る。通信なしでの利用を保証するかは方針決めで決める

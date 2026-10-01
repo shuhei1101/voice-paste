@@ -1,0 +1,326 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: ER 図
+description: |-
+  データストアの構造（DB スキーマ / JSON / YAML）を業務ドメインの分類ごとにまとめる。1 ファイル = 分類 1 つ。
+  全テーブルの一覧と全体図は、各分類のテーブルから横断の一覧として生成する。
+x-kind: er
+x-folder: dev/設計書/ER図
+x-cross: tables
+type: object
+additionalProperties: false
+required:
+- title
+properties:
+  title:
+    type: string
+    title: タイトル
+    description: '`ER 図: {分類名}`。'
+    pattern: '^ER 図: .+$'
+  lead:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: 冒頭リード
+    description: |-
+      対象を 1〜3 行で説明する。
+      初回に書いた内容のまま保ち、後から情報を足さない（仕様は各項目に書く）。
+      対象そのものが変わったときだけ書き換える。
+  overview:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: 概要
+    description: 索引の設計書だけが持つ。データストアの種別と版・物理名の命名規則・全テーブルの共通カラム。
+    x-heading: 概要
+  er:
+    $ref: 共通.schema.yaml#/$defs/er
+    title: ER 図
+    description: 当該分類のテーブル間の関連。他の分類のテーブルは名前だけで置く。テーブルが 2 つ以上あるときに持つ。
+    x-heading: ER 図
+    x-shape: diagram
+    x-diagram: er
+  tables:
+    type: array
+    title: テーブル
+    description: テーブル 1 つ = 1 要素。並びは依存の上流から下流。
+    x-heading: テーブル
+    x-shape: sections
+    x-key: name
+    x-unique-in-kind: true
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - title
+      - datastore
+      - summary
+      - columns
+      properties:
+        name:
+          type: string
+          title: 物理名
+          description: DB は snake_case、JSON / YAML はファイルのパス。
+        title:
+          type: string
+          title: 論理名
+        datastore:
+          type: string
+          title: データストア
+          description: '`PostgreSQL` / `SQLite` / `JSON` / `YAML` 等。'
+        summary:
+          $ref: 共通.schema.yaml#/$defs/summary
+          title: 概要
+          description: 1 行で何を担うか。
+        primary_key:
+          type: string
+          title: 主キー
+          description: 複合キーは `(col_a, col_b)`。
+        scale:
+          type: string
+          title: レコード規模
+          description: 想定行数のオーダー（`～10 万`）。
+        growth:
+          type: string
+          title: 増え方
+        retention:
+          type: string
+          title: 保持期間
+        deletion:
+          type: string
+          title: 削除の方針
+          description: 物理削除か論理削除か。
+        access:
+          type: string
+          title: アクセス方式
+          description: JSON / YAML のとき、全件か キーで引くか。
+        description:
+          $ref: 共通.schema.yaml#/$defs/markdown
+          title: 説明
+        columns:
+          type: array
+          title: カラム
+          x-heading: カラム
+          x-shape: table
+          x-key: name
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - name
+            - title
+            - type
+            - description
+            properties:
+              name:
+                type: string
+                title: 物理名
+              title:
+                type: string
+                title: 論理名
+              type:
+                type: string
+                title: 型
+                description: DB は DBMS のネイティブ型、JSON / YAML は `string` / `number` / `boolean` / `object` / `array`。
+              length:
+                type: string
+                title: 長さ・精度
+                description: 長さ・精度・小数の桁。
+              not_null:
+                type: boolean
+                title: NOT NULL
+              primary_key:
+                type: boolean
+                title: 主キー
+              unique:
+                type: boolean
+                title: 一意
+              foreign_key:
+                type: object
+                title: 外部キー
+                additionalProperties: false
+                required:
+                - table
+                properties:
+                  table:
+                    type: string
+                    title: 参照先
+                    description: '`{分類}/{テーブル名}.{カラム}`（他の分類は分類名を付ける）。'
+                  on_delete:
+                    type: string
+                    title: 削除時の動き
+              check:
+                type: string
+                title: 検査制約
+              default:
+                type: string
+                title: 既定
+              auto:
+                type: string
+                title: 自動で入る値
+                enum:
+                - 採番
+                - 作成日時
+                - 更新日時
+                - 作成者
+              description:
+                type: string
+                title: 説明
+              example:
+                type: string
+                title: 例
+              enum_values:
+                type: string
+                title: 値の選択肢
+                description: '`''a'' / ''b''` の形で値と意味を並べる。'
+              sensitivity:
+                type: string
+                title: 区分
+                description: 個人情報・機密に当たるときだけ書く。
+                enum:
+                - 個人情報
+                - 機密
+              notes:
+                type: string
+                title: 補足
+        indexes:
+          type: array
+          title: インデックス
+          description: 検索に使う追加のインデックスだけ。PK / UK はカラムが持つ。
+          x-heading: インデックス
+          x-shape: table
+          x-key: name
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - name
+            - columns
+            - kind
+            properties:
+              name:
+                type: string
+                title: 名前
+                description: 実 DB と一致させる（`{table}_{column}_{kind}`）。
+              columns:
+                type: string
+                title: カラム
+              kind:
+                type: string
+                title: 種別
+              notes:
+                type: string
+                title: 補足
+        refs:
+          type: array
+          title: 関連
+          items:
+            $ref: 共通.schema.yaml#/$defs/ref
+        reason:
+          $ref: 共通.schema.yaml#/$defs/reason
+        status:
+          $ref: 共通.schema.yaml#/$defs/status
+        visibility:
+          $ref: 共通.schema.yaml#/$defs/visibility
+        implementation:
+          $ref: 共通.schema.yaml#/$defs/implementation
+        introduced:
+          $ref: 共通.schema.yaml#/$defs/introduced
+        aliases:
+          $ref: 共通.schema.yaml#/$defs/aliases
+        notes:
+          $ref: 共通.schema.yaml#/$defs/notes
+  refs:
+    type: array
+    title: 関連
+    items:
+      $ref: 共通.schema.yaml#/$defs/ref
+  notes:
+    $ref: 共通.schema.yaml#/$defs/notes
+    x-heading: 補足
+    x-shape: sections
+examples:
+- title: 'ER 図: タスク'
+  lead: '`タスク` ドメインに属するデータストア構造。'
+  er:
+    entities:
+    - name: ユーザー
+    - name: タスク
+    - name: コメント
+    relations:
+    - from: ユーザー
+      to: タスク
+      cardinality: '||--o{'
+      label: 作成
+    - from: タスク
+      to: コメント
+      cardinality: '||--o{'
+      label: 持つ
+  tables:
+  - name: tasks
+    title: タスク
+    datastore: PostgreSQL
+    summary: ユーザーが管理するタスク
+    primary_key: id
+    scale: ～500 万
+    deletion: '`status=''archived''` で論理削除し、90 日後に物理削除する'
+    columns:
+    - name: id
+      title: ID
+      type: uuid
+      not_null: true
+      primary_key: true
+      default: gen_random_uuid()
+      auto: 採番
+      description: 主キー
+      example: 018f8a...
+    - name: user_id
+      title: ユーザー ID
+      type: uuid
+      not_null: true
+      foreign_key:
+        table: ユーザー/ユーザー.ID
+        on_delete: CASCADE
+      description: 所有ユーザー
+    - name: title
+      title: タイトル
+      type: varchar(200)
+      not_null: true
+      check: 1〜200 文字
+      description: タスクのタイトル
+      example: 週次レポート作成
+    - name: status
+      title: ステータス
+      type: text
+      not_null: true
+      default: '''open'''
+      enum_values: '''open'' = 未着手 / ''done'' = 完了 / ''archived'' = 論理削除'
+      description: タスクの状態
+    indexes:
+    - name: tasks_user_id_ix
+      columns: user_id
+      kind: BTREE
+      notes: ユーザー別の一覧用
+  - name: comments
+    title: コメント
+    datastore: PostgreSQL
+    summary: タスクへのコメント
+    primary_key: id
+    scale: ～1000 万
+    columns:
+    - name: id
+      title: ID
+      type: uuid
+      not_null: true
+      primary_key: true
+      auto: 採番
+      description: 主キー
+    - name: task_id
+      title: タスク ID
+      type: uuid
+      not_null: true
+      foreign_key:
+        table: タスク.ID
+      description: コメント先のタスク
+    - name: body
+      title: 本文
+      type: text
+      not_null: true
+      description: コメントの本文

@@ -1,0 +1,27 @@
+title: "nvidia-cuda-nvrtc-cu12"
+kind: "ライブラリ"
+version:
+  current: 12.9.86
+  checked_on: '2026-09-30'
+  source: 手元の venv に入っている版（pyproject.toml には書かれず、ほかのパッケージの依存として入る）
+  pinning: 固定していない
+catalogs:
+  - name: ファイル
+    version: 12.9.86
+    entries:
+      - name: nvidia/cuda_nvrtc/bin の DLL
+        kind: DLL
+        purpose: ローカルの Whisper を GPU で動かすときに読まれる（起動口がフォルダを PATH と DLL の検索パスに足す）
+lead: CUDA 12 向けの実行時コンパイラ（NVRTC）の DLL を配るパッケージ。
+purl: pkg:pypi/nvidia-cuda-nvrtc-cu12
+dependency_scope: 必須
+adoption: 採用
+used_in:
+  - voice-paste.bat
+  - voice_paste/__main__.py
+  - setup/build_exe.bat
+verification:
+  state: 未確認
+  detail: 現状の棚卸しで、起動口とビルドが参照している範囲を写しただけで、動かしてはいない
+license: NVIDIA の独自のライセンス（LicenseRef-NVIDIA-Proprietary。同梱して配布するときはライセンスの条件を確かめる）
+official_url: https://developer.nvidia.com/cuda-zone

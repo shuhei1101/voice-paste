@@ -1,0 +1,404 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: 画面設計
+description: 1 画面の要素の仕様（表示条件・活性条件・制限・初期値・取得元・送信先・アクション）と入力チェック。1 ファイル = 1 画面。
+x-kind: screen
+x-folder: dev/設計書/画面設計
+x-cross: elements
+x-test-file: test_file
+x-test-file-optional: true
+type: object
+additionalProperties: false
+required:
+- title
+- elements
+properties:
+  title:
+    type: string
+    title: タイトル
+    description: 日本語の画面名。ファイル名に合わせる。
+  screen:
+    type: string
+    title: 画面
+    description: 画面の実装ファイルのパス。
+  mock:
+    type: string
+    title: モック
+    description: 採用したモックの置き場所。
+  lead:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: 冒頭リード
+    description: |-
+      対象を 1〜3 行で説明する。
+      初回に書いた内容のまま保ち、後から情報を足さない（仕様は各項目に書く）。
+      対象そのものが変わったときだけ書き換える。
+  test_file:
+    type: string
+    title: 対応テストファイル
+    description: 対応する結合テストのファイル（規約『V字モデル』）。
+    pattern: ^tests/.+
+  elements:
+    type: array
+    title: 要素一覧
+    description: |-
+      画面の要素 1 つ = 1 要素。ダイアログの中の要素も並べ、位置の先頭にダイアログ名を書く。
+      列の表示・非表示は開発ドキュメントサーバーのユーザーごとの設定で切り替える。
+    x-heading: 要素一覧
+    x-shape: table
+    x-key: name
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - kind
+      - description
+      properties:
+        name:
+          type: string
+          title: 要素
+          description: ボタン・入力欄・ラベル・テーブル等の日本語の論理名。画面の中で一意にする。
+        id:
+          type: string
+          title: 項目 ID
+          description: 画面の中で一意な識別子。テスト・実装から引く。
+        kind:
+          type: string
+          title: 種類
+          description: '`button` / `input` / `select` / `table` / `label` 等。'
+        component:
+          $ref: 共通.schema.yaml#/$defs/ref
+          title: 部品
+          description: 使う部品の部品設計（`dev/設計書/部品設計/...#`）。部品を使わない要素は書かない。
+          examples:
+          - "dev/設計書/部品設計/計画画面/状態のバッジ.html#"
+          - "dev/設計書/部品設計/計画画面/列見出し.html#"
+        args:
+          type: array
+          title: 部品へ渡す引数
+          description: 部品設計の引数へ渡す値。`component` を持つ要素だけが持ち、部品設計の必須の引数を全て並べる。
+          x-shape: table
+          x-key: name
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - name
+            - value
+            properties:
+              name:
+                type: string
+                title: 引数
+                description: 部品設計の `args` の `name`。
+                examples:
+                - "status"
+                - "filterable"
+              value:
+                type: string
+                title: 渡す値
+                description: 固定の値か取得元（`{インターフェース定義の論理名}.{フィールドのパス}`）。
+                examples:
+                - "`計画画面.行の材料[].status`"
+                - "※2 で絞り込みを持つ列なら `true`"
+        slots:
+          type: array
+          title: スロットに差し込む中身
+          description: 部品設計のスロットへ差し込む要素か部品。`component` を持つ要素だけが持つ。
+          x-shape: table
+          x-key: name
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - name
+            - value
+            properties:
+              name:
+                type: string
+                title: スロット
+                description: 部品設計の `slots` の `name`。
+                examples:
+                - "default"
+                - "actions"
+              value:
+                type: string
+                title: 差し込む中身
+                description: 差し込む要素の名前か、部品の部品設計。
+                examples:
+                - "行の番号"
+                - "dev/設計書/部品設計/共通/ボタン.html#"
+        position:
+          type: string
+          title: 位置
+          description: '`>` で区切った入れ子のパス（例 `削除確認ダイアログ > フッター`）。'
+        description:
+          type: string
+          title: 説明
+        label:
+          type: string
+          title: 表示文言
+          description: 画面に固定で出る文字列。
+        placeholder:
+          type: string
+          title: プレースホルダ
+        io:
+          type: string
+          title: 入出力区分
+          enum:
+          - 入力
+          - 表示
+          - 入出力
+        type:
+          type: string
+          title: 型
+          description: 値を持つ要素の型（文字列 / 数値 / 日付 / 真偽値 等）。
+        visible_when:
+          type: string
+          title: 表示条件
+          description: '`常時` か出し分けの条件。'
+        enabled_when:
+          type: string
+          title: 活性条件
+          description: 表示はされるが操作できない条件。
+        required:
+          type: boolean
+          title: 必須
+        required_label:
+          type: string
+          title: 要否の表示
+          description: '`※必須` / `※任意` の出し方。'
+        constraints:
+          type: string
+          title: 制限
+          description: 入力の上限・許容値・形式。
+        min_length:
+          type: integer
+          title: 最小長
+        max_length:
+          type: integer
+          title: 最大長
+        range:
+          type: object
+          title: 値の範囲・刻み
+          additionalProperties: false
+          properties:
+            min:
+              type: string
+              title: 最小
+            max:
+              type: string
+              title: 最大
+            step:
+              type: string
+              title: 刻み
+        pattern:
+          type: string
+          title: 形式
+          description: 正規表現。
+        charset:
+          type: string
+          title: 文字種の扱い
+          description: 受け付ける文字と、制限せず変換するか。
+        width:
+          type: string
+          title: 表示幅
+        display_format:
+          type: string
+          title: 表示形式
+          description: 日付・時刻・数値の表示の形と、表示の例。
+        align:
+          type: string
+          title: 文字揃え
+          enum:
+          - 左
+          - 中央
+          - 右
+        tab_order:
+          type: integer
+          title: タブ順
+        autofocus:
+          type: boolean
+          title: 初期フォーカス
+        initial_state:
+          type: string
+          title: 初期状態
+          enum:
+          - 活性
+          - 非活性
+          - 読み取り専用
+        initial_value:
+          type: string
+          title: 初期値
+          description: 表示時点の値（`空` / 取得値 等）。
+        hint:
+          type: string
+          title: 補助文
+          description: ラベルの下に出す説明。
+        error_message:
+          type: string
+          title: エラーの文言
+          description: 項目ごとの誤りと直し方。
+        autocomplete:
+          type: string
+          title: 入力の目的
+          description: 自動入力の種類（HTML の `autocomplete`）。
+        inputmode:
+          type: string
+          title: 入力モード
+        prefix:
+          type: string
+          title: 接頭辞
+        suffix:
+          type: string
+          title: 接尾辞
+        options:
+          type: string
+          title: 選択肢
+          description: 出所・並び・既定・複数選択の可否・排他入力。
+        sorting:
+          type: string
+          title: 並べ替え・絞り込み
+          description: 表の列のとき、できるかと既定の並び。
+        input_example:
+          type: string
+          title: 入力例
+        source:
+          type: string
+          title: 取得元
+          description: '`{インターフェース定義の論理名}.{フィールドのパス}`。'
+        target:
+          type: string
+          title: 送信先
+          description: '`{インターフェース定義の論理名}.{フィールドのパス}`。変換・合成・除外は括弧書きで添える。'
+        action:
+          type: string
+          title: アクション
+          description: 画面の中で閉じる動きは日本語で書く。送信・画面遷移は `action_ref` に参照で持つ。
+        action_ref:
+          $ref: 共通.schema.yaml#/$defs/ref
+          title: アクションの参照
+          description: 送信を伴う動きはインターフェース定義、画面遷移は遷移先の画面設計。
+        refs:
+          type: array
+          title: 関連
+          items:
+            $ref: 共通.schema.yaml#/$defs/ref
+        reason:
+          $ref: 共通.schema.yaml#/$defs/reason
+        status:
+          $ref: 共通.schema.yaml#/$defs/status
+        visibility:
+          $ref: 共通.schema.yaml#/$defs/visibility
+        implementation:
+          $ref: 共通.schema.yaml#/$defs/implementation
+        introduced:
+          $ref: 共通.schema.yaml#/$defs/introduced
+        aliases:
+          $ref: 共通.schema.yaml#/$defs/aliases
+        notes:
+          $ref: 共通.schema.yaml#/$defs/notes
+  input_checks:
+    type: array
+    title: 入力チェック
+    description: 1 要素 = 1 ケースの入力チェック。無い画面は持たない。
+    x-heading: 入力チェック
+    x-shape: table
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - element
+      - violation
+      - trigger
+      - message
+      - position
+      properties:
+        element:
+          type: string
+          title: 要素
+          description: '`elements` の要素の名前。'
+        violation:
+          type: string
+          title: 違反の条件
+          description: 1 要素に 1 つの違反。
+        trigger:
+          type: string
+          title: 検証の契機
+          description: 入力のたび / フォーカスが外れたとき / 送信ボタンのクリック 等。
+        message:
+          type: string
+          title: エラー文言
+          description: 画面に出る文字列そのまま。
+        position:
+          type: string
+          title: 表示位置
+  refs:
+    type: array
+    title: 関連
+    items:
+      $ref: 共通.schema.yaml#/$defs/ref
+  notes:
+    $ref: 共通.schema.yaml#/$defs/notes
+    x-heading: 補足
+    x-shape: sections
+examples:
+- title: タスク作成画面
+  screen: app/(authenticated)/tasks/new/page.tsx
+  mock: dev/mock/pages/タスク作成/12/a-plan/
+  lead: タスクの新規作成フォーム画面。タスク名・優先度を入力して登録する。
+  test_file: tests/integration/task/test_タスク作成画面.py
+  elements:
+  - name: タスク名入力欄
+    kind: input
+    position: フォーム本体
+    description: タスク名を入力
+    placeholder: '例: 企画書を作る'
+    io: 入力
+    type: 文字列
+    visible_when: 常時
+    required: true
+    max_length: 100
+    constraints: 100 文字以内
+    initial_value: 空（編集時は取得値）
+    source: タスク詳細取得.task.title
+    target: タスク作成.title
+  - name: 優先度選択
+    kind: select
+    position: フォーム本体
+    description: 優先度を選択
+    io: 入力
+    type: 文字列
+    visible_when: 常時
+    options: low / medium / high（既定 medium）
+    initial_value: medium
+    target: タスク作成.priority
+  - name: 優先度のバッジ
+    kind: label
+    component: dev/設計書/部品設計/共通/バッジ.html#
+    args:
+    - name: kind
+      value: 優先度選択の値（low は `muted`、high は `danger`）
+    - name: label
+      value: 優先度の表示名（低 / 中 / 高）
+    position: フォーム本体 > 優先度選択の右
+    description: 選んだ優先度を色つきで出す
+    visible_when: 常時
+  - name: 保存ボタン
+    kind: button
+    position: フッター
+    description: 入力内容でタスクを作成
+    label: 保存
+    visible_when: 常時
+    enabled_when: 必須項目が入力済みで制限の違反が無いとき
+    action_ref: dev/設計書/インターフェース定義/バックエンド/タスク作成.py#
+  input_checks:
+  - element: タスク名入力欄
+    violation: 空
+    trigger: 保存ボタンのクリック
+    message: タスク名を入力してください
+    position: タスク名入力欄の下
+  - element: タスク名入力欄
+    violation: 101 文字以上
+    trigger: 入力のたび
+    message: 100 文字以内で入力してください
+    position: タスク名入力欄の下

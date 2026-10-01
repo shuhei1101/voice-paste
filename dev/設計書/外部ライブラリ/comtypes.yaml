@@ -1,0 +1,26 @@
+title: "comtypes"
+kind: "ライブラリ"
+version:
+  current: 1.4.16
+  checked_on: '2026-09-30'
+  source: 手元の venv に入っている版（pyproject.toml には書かれず、pycaw の依存として入る）
+  pinning: 固定していない
+catalogs:
+  - name: API
+    version: 1.4.16
+    entries:
+      - name: CoInitialize / CoUninitialize
+        kind: 関数
+        purpose: 音量を操作するスレッドごとに COM を初期化し、終わったら解放する
+lead: Windows の COM を Python から呼ぶライブラリ。
+purl: pkg:pypi/comtypes
+dependency_scope: 必須
+adoption: 採用
+used_in:
+  - voice_paste/audio/volume.py
+upstream: enthought/comtypes
+verification:
+  state: 未確認
+  detail: 現状の棚卸しで、コードが使っている範囲を写しただけで、動かしてはいない
+license: MIT（商用利用可）
+official_url: https://github.com/enthought/comtypes

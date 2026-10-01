@@ -63,9 +63,9 @@ requirements:
     external_constraint: 制限なし
     source_kind: ユーザー要望
     source: https://github.com/shuhei1101/voice-paste/blob/develop/dev/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/2_%E5%93%81%E8%B3%AA%E7%9B%AE%E6%A8%99.md
-    value: 未確定
+    value: '500'
     unit: ミリ秒
-    rationale: 品質シナリオ 1。仮の値は 500 ミリ秒で、#15 で刷新前の値を測ってから確定する
+    rationale: '品質シナリオ 1。今のコードに API が無いため、ホットキーを受けてから録音が始まるまでを刷新前（voice_paste_legacy）の値として読み替えた。実測は 20 回で中央値 12.71 ms・最大 40.30 ms（最初の 1 回。これ以外は 13.46 ms 以下）で、仮の値 500 ms を大きく下回る。実測はマイクを使わない計測でマイクを開く時間と HTTP の往復を含まないため、実測から値を導かず仮の値を決定値にする。API を作る #19 で測り直す。測った手順と生の値は PR #27 の dev/pr/27/常駐アプリ.md の `## テスト結果` に残している'
     measurement: POST /sessions を 50 回続けて呼び（開始 → 停止 → 完了）、50 回とも返送先に文字が届き、開始の応答時間が決定値以内であることを実機で測る
   - name: 処理中の開始へのエラーの応答時間
     english_name: busy_response_time
@@ -73,9 +73,9 @@ requirements:
     external_constraint: 制限なし
     source_kind: ユーザー要望
     source: https://github.com/shuhei1101/voice-paste/blob/develop/dev/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/2_%E5%93%81%E8%B3%AA%E7%9B%AE%E6%A8%99.md
-    value: 未確定
+    value: '1'
     unit: 秒
-    rationale: 品質シナリオ 6。仮の値は 1 秒で、#15 の測定の後に確定する
+    rationale: '品質シナリオ 6。今のコードに API が無いため、処理中のホットキーを受けて捨てるまでを刷新前（voice_paste_legacy）の値として読み替えた。実測は 20 回で中央値 0.08 ms・最大 0.13 ms で、仮の値 1 秒を大きく下回る。実測は HTTP の往復と 409 の組み立てを含まないため、実測から値を導かず仮の値を決定値にする。API を作る #19 で測り直す。測った手順と生の値は PR #27 の dev/pr/27/常駐アプリ.md の `## テスト結果` に残している'
     measurement: ホットキーの録音中に POST /sessions を呼び、409 が決定値以内に返り、2 つ目の録音が始まらないことを測る
   - name: 話し終えてから貼り付くまでの時間
     english_name: paste_latency
@@ -83,9 +83,9 @@ requirements:
     external_constraint: 制限なし
     source_kind: ユーザー要望
     source: https://github.com/shuhei1101/voice-paste/blob/develop/dev/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/2_%E5%93%81%E8%B3%AA%E7%9B%AE%E6%A8%99.md
-    value: 未確定
+    value: '1.08'
     unit: 秒
-    rationale: '品質シナリオ 3。刷新前の中央値以下にする。刷新前の値は #15 で測る'
+    rationale: '品質シナリオ 3。刷新前（voice_paste_legacy）の中央値 1,076 ms（20 回。約 10 秒の録音・large-v3・cuda・モデル読み込み済み）を切り上げた値で、新しい構成の中央値がこの値以下になる。区間は録音を止めた時点から貼り付けのキーを押す直前までで、録音の保存・用語集の読み込み・文字起こし・補正・クリップボード・貼り付けの待ち（0.1 秒）を含み、録音中の画面・トレイ・履歴の保存は含まない。測った手順と生の値は PR #27 の dev/pr/27/常駐アプリ.md の `## テスト結果` に残している'
     measurement: 常駐中・ローカルの Whisper（GPU）・モデル読み込み済みで、約 10 秒話してホットキーで止めてから貼り付くまでを新旧それぞれ 20 回、実機で測る
   - name: 文字起こしワーカーの立て直しの時間
     english_name: worker_recovery_time
@@ -93,19 +93,29 @@ requirements:
     external_constraint: 制限なし
     source_kind: ユーザー要望
     source: https://github.com/shuhei1101/voice-paste/blob/develop/dev/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/2_%E5%93%81%E8%B3%AA%E7%9B%AE%E6%A8%99.md
-    value: 未確定
+    value: '10'
     unit: 秒
-    rationale: '品質シナリオ 4。仮の値は 30 秒で、モデルの読み込みの時間を #15 で測ってから確定する'
+    rationale: '品質シナリオ 4。立て直しはワーカーの起動からモデルの読み込みが終わるまでで決まる。刷新前（voice_paste_legacy）の読み込みは 5 回の実測で中央値 4.53 秒・最大 5.02 秒。規約『資源の値の決め方』の余裕（実測の p99.9 の 50%）に倒い、実測の最大を p99.9 の代わりに置いて余裕を足した 7.53 秒を、切りの良い 10 秒へ切り上げた。実測が 5 回で、モデルのファイルが OS のキャッシュに載った状態の値のため、新しい構成のワーカーを #22 で測り直す。測った手順と生の値は PR #27 の dev/pr/27/常駐アプリ.md の `## テスト結果` に残している'
     measurement: 文字起こしの途中でワーカーを止め、常駐が止まらず録音が履歴に残り、決定値以内に次の録音を受け付けることを実機で測る
+    breakdown:
+      - part: モデルの読み込みの実測の最大
+        value: 5.02 秒
+        notes: 刷新前の 5 回の実測（中央値 4.53 秒）
+      - part: 余裕
+        value: + 2.51 秒
+        notes: 実測の 50%（規約『資源の値の決め方』の既定）
+      - part: 切り上げ
+        value: 10 秒
+        notes: 7.53 秒を切りの良い秒数へ
   - name: 刷新の前後での起こした文字の一致
     english_name: transcription_parity
     category: 機能適合性
     external_constraint: 制限なし
     source_kind: ユーザー要望
     source: https://github.com/shuhei1101/voice-paste/blob/develop/dev/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/2_%E5%93%81%E8%B3%AA%E7%9B%AE%E6%A8%99.md
-    value: 未確定
+    value: '10'
     unit: 件
-    rationale: '品質シナリオ 2。用意した N 件の録音で、補正後の文字が刷新前と N 件一致する。N と録音は #15 で履歴から選んで特性テストに固める'
+    rationale: '品質シナリオ 2。履歴から選んだ長さの違う録音 10 件（3.0〜140.8 秒）で、補正後の文字が刷新前（voice_paste_legacy）が返した文字と 10 件一致する。録音・用語集・設定・期待値は git 管理外の `tests/nfr/fixtures/` に置く（作り方は PR #27 の dev/pr/27/常駐アプリ.md の `## テスト結果`）'
     measurement: '#15 の特性テストを新しい構成で回す（一致しない件は差分を記録する）'
     test_file: tests/nfr/test_transcription_parity.py
     tests:

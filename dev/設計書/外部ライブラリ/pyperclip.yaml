@@ -20,7 +20,8 @@ used_in:
   - voice_paste_legacy/input/keyboard_sender.py
 upstream: asweigart/pyperclip
 verification:
-  state: 未確認
-  detail: 現状の棚卸しで、コードが使っている範囲を写しただけで、動かしてはいない
+  state: 済
+  date: '2026-10-01'
+  detail: Windows で pyperclip.copy / paste を呼び、起こした文字をクリップボードへ書いて元の文字へ戻せることを確かめた
 license: BSD（商用利用可）
 official_url: https://github.com/asweigart/pyperclip

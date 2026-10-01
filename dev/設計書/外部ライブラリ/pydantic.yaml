@@ -1,0 +1,42 @@
+title: "pydantic"
+kind: "ライブラリ"
+version:
+  current: 2.13.5
+  latest: 2.13.5
+  checked_on: '2026-10-01'
+  source: '動作確認に使った版（fastapi・openai の依存としても入る。pyproject.toml へは #16 で書く）'
+  pinning: 未定（#16 で pyproject.toml に書くときに決める）
+catalogs:
+  - name: API
+    version: 2.13.5
+    entries:
+      - name: BaseModel
+        kind: クラス
+        purpose: 設定のモデルと、API のリクエスト・レスポンス・返送の中身を定義して検証する
+      - name: Field
+        kind: 関数
+        purpose: 設定の項目ごとに範囲と説明、再起動が要るかの印（json_schema_extra）を持たせる
+      - name: AnyHttpUrl
+        kind: 型
+        purpose: 返送先の URL を検証する
+      - name: SecretStr
+        kind: 型
+        purpose: API キーをログに出さない
+      - name: ValidationError
+        kind: 例外
+        purpose: 設定の値が合わないときに書き込まずに知らせる
+lead: 型ヒントからデータの検証と変換を行う Python のライブラリ。
+purl: pkg:pypi/pydantic
+dependency_scope: 必須
+adoption: 採用
+used_in:
+  - src/voice_paste/shared/settings.py
+  - src/voice_paste/features/session/schemas.py
+  - src/voice_paste/features/outputs/callback/types.py
+upstream: pydantic/pydantic
+verification:
+  state: 済
+  date: '2026-10-01'
+  detail: 'WSL（Linux・Python 3.12）で、AnyHttpUrl の callback_url と Literal の result を持つモデルを FastAPI 経由で検証し、不正な URL を断ることと、返送の中身を受け取れることを確かめた。設定のモデルは #16 で動かす'
+license: MIT（商用利用可）
+official_url: https://docs.pydantic.dev/

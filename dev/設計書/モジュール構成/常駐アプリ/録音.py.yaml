@@ -362,3 +362,6 @@ constants:
     summary: マイクの入力のサンプルレート（Hz）。voice_paste_legacy と同じ値で、文字起こしと履歴が受ける形
     value: '16000'
     status: planned
+test_files:
+  - tests/unit/voice_paste/features/recording/test_service.py
+  - tests/unit/voice_paste/features/recording/test_client.py

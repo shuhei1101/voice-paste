@@ -480,3 +480,6 @@ constants:
     summary: 進行中のフェードを打ち切るときに、そのスレッドの終わりを待つ上限。voice_paste_legacy の fade_volume と同じ値
     value: '1.0'
     status: planned
+test_files:
+  - tests/unit/voice_paste/integrations/whisper/test_client.py
+  - tests/unit/voice_paste/integrations/volume/test_adapter.py

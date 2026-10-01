@@ -68,31 +68,61 @@ def test_load_settings_when_sample_file(repo_root: Path) -> None:
     assert settings == Settings()
 
 
-def test_load_settings_when_invalid_value(settings_file: Path) -> None:
+@pytest.mark.parametrize(
+    ("content", "expected_key"),
+    [
+        pytest.param(
+            '[transcription.local_whisper]\nbeam_size = "x"\n',
+            r"transcription\.local_whisper\.beam_size",
+            id="beam_size",
+        ),
+        pytest.param(
+            '[transcription]\nengine = "openai"\n',
+            r"transcription\.engine",
+            id="engine_openai",
+        ),
+    ],
+)
+def test_load_settings_when_invalid_value(
+    settings_file: Path, content: str, expected_key: str
+) -> None:
     """合わない値はキーを示して断る（異常系）。"""
     from voice_paste.shared.errors import SettingsError
     from voice_paste.shared.settings import load_settings
 
     # 準備
-    settings_file.write_text(
-        '[transcription.local_whisper]\nbeam_size = "x"\n', encoding="utf-8"
-    )
+    settings_file.write_text(content, encoding="utf-8")
 
     # 実行・検証
-    with pytest.raises(SettingsError, match=r"transcription\.local_whisper\.beam_size"):
+    with pytest.raises(SettingsError, match=expected_key):
         load_settings(settings_file)
 
 
-def test_load_settings_when_unknown_key(settings_file: Path) -> None:
+@pytest.mark.parametrize(
+    ("content", "expected_key"),
+    [
+        pytest.param(
+            "[recording]\nvolum_percent = 30\n", r"recording\.volum_percent", id="typo"
+        ),
+        pytest.param(
+            '[transcription.openai]\nmodel = "whisper-1"\n',
+            r"transcription\.openai",
+            id="removed_openai_table",
+        ),
+    ],
+)
+def test_load_settings_when_unknown_key(
+    settings_file: Path, content: str, expected_key: str
+) -> None:
     """知らないキーを断る（異常系）。"""
     from voice_paste.shared.errors import SettingsError
     from voice_paste.shared.settings import load_settings
 
     # 準備
-    settings_file.write_text("[recording]\nvolum_percent = 30\n", encoding="utf-8")
+    settings_file.write_text(content, encoding="utf-8")
 
     # 実行・検証
-    with pytest.raises(SettingsError, match=r"recording\.volum_percent"):
+    with pytest.raises(SettingsError, match=expected_key):
         load_settings(settings_file)
 
 

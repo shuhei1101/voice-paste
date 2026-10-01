@@ -121,13 +121,13 @@ requirements:
     tests:
       - name: test_transcription_parity_when_history_recordings
         summary: 履歴から選んだ録音を、固めた用語集と設定で起こして補正した文字が、刷新前の実装が同じ入力で返した文字と一致する
-        condition: 履歴から選んでローカルのエンジンで起こした 10 件の録音と、写した時点で効いている用語集と `.env` の文字起こしの設定を `tests/nfr/fixtures/` へ写し、その用語集と設定でローカルの Whisper（GPU）で起こして補正する。期待値は、同じ録音・用語集・設定で `voice_paste_legacy` が返した文字を `tests/nfr/fixtures/` に固めたもの
+        condition: 履歴から選んでローカルのエンジンで起こした 10 件の録音と、写した時点で効いている用語集と `.env` の文字起こしの設定を `tests/nfr/fixtures/` へ写し、その用語集と設定で新しい構成の文字起こし（文字起こしワーカーの窓口と transcribe、ローカルの Whisper（GPU））で起こし、新しい構成の補正（load_glossary・apply_glossary）で補正する。期待値は、同じ録音・用語集・設定で `voice_paste_legacy` が返した文字を `tests/nfr/fixtures/` に固めたもの
         measurement: 10 件それぞれで、起こして補正した文字と固めた期待値を比べ、一致した件数を数える（一致しない件は差分を記録する）
         expected: 10 件中 10 件が一致する
         notes: Windows の GPU と `tests/nfr/fixtures/` の録音が要り、どちらかが無い環境では skip する。履歴の文字は録音を選ぶときの目安にだけ使う
       - name: test_transcription_parity_when_correction_only
         summary: 用語集の補正だけを切り出し、決まった入力に決まった出力を返す
-        condition: 誤変換を含む決まった入力の文字列と、`tests/nfr/fixtures/` へ写した用語集を与える。録音と Whisper は使わない
+        condition: 誤変換を含む決まった入力の文字列と、`tests/nfr/fixtures/` へ写した用語集を与え、新しい構成の補正（load_glossary・apply_glossary）で補正する。録音と Whisper は使わない
         measurement: 入力ごとに補正の関数を呼び、返った文字をあらかじめ決めた出力と比べる
         expected: すべての入力で、返った文字が決めた出力と完全に一致する
         notes: '`tests/nfr/fixtures/` の用語集が無い環境では skip する'

@@ -76,7 +76,7 @@ functions:
     process: |-
       1. エンジンで録音を起こす（エンジン）
          - EngineError の場合、理由を持たせた TranscriptionError を送出する
-      2. 空白だけの区間を除き、改行でつなぐ
+      2. 区間ごとに前後の空白を除き、空になった区間を除いて改行でつなぐ
          - `[INFO]` 文字に起こした（区間の数・文字数・かかった秒）
     exceptions:
       - name: TranscriptionError
@@ -101,4 +101,10 @@ functions:
         mock: engine
         expected: TranscriptionError が送出され、理由が残る
         exception: エンジンが失敗した
+      - name: test_transcribe_when_blank_segment
+        case: 正常
+        summary: 区間の前後の空白と空白だけの区間を除く
+        condition: engine が [" 今日は ", "  ", "晴れ"] を返す
+        mock: engine
+        expected: '"今日は\n晴れ" が返る'
     status: planned

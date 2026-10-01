@@ -19,7 +19,7 @@ data_models:
         description: config（常駐 → ワーカー。モデル・デバイス・量子化）/ ready（ワーカー → 常駐）/ transcribe（常駐 → ワーカー。録音のパスと言語・ビーム幅・温度・VAD）/ progress（区間の終わりの時刻）/ result（区間ごとの文字）/ error（理由）
       - name: payload
         type: dict
-        description: 種類ごとの中身
+        description: '種類ごとの中身。config: model・device・compute_type・cpu_threads・num_workers・log_dir / transcribe: audio_path・language・beam_size・best_of・temperature・vad_filter・vad_threshold・vad_min_speech_ms・vad_min_silence_ms・condition_on_previous_text・no_speech_threshold / progress: end・duration（秒） / result: segments（前後の空白を除き空でない区間の文字の並び） / error: message'
     status: planned
 functions:
   - name: run_worker
@@ -49,11 +49,13 @@ functions:
       type: int
       description: 終了コード
     process: |-
-      1. config を読み、モデルを読む
-         - 読めない場合、error を書いて 1 を返す
+      1. config を読み、log_dir の `worker_crash.log` へ faulthandler を向けてからモデルを読む
+         - 最初の行が config でない・モデルを読めない場合、error を書いて 1 を返す
       2. ready を書く
-      3. transcribe を読むたびに、区間ごとに progress を書き、最後に result を書く
-         - 例外の場合、error を書いて次の行を待つ（CUDA のクラッシュはプロセスごと落ち、常駐側が立て直す）
+      3. transcribe を読むたびに、faster-whisper を voice_paste_legacy と同じ引数（VAD がオフなら vad_parameters は渡さない）で呼び、区間ごとに progress、最後に result を書く
+         - 例外・JSON として読めない行・知らない種類の場合、error を書いて次の行を待つ（CUDA のクラッシュはプロセスごと落ち、常駐側が立て直す）
+         - ログは標準エラーへ書き、標準出力にはメッセージだけを書く
+      4. 標準入力が閉じたら 0 を返す
     unit_tests:
       - name: test_run_worker
         case: 正常
@@ -67,6 +69,24 @@ functions:
         condition: load_model が例外を送出する
         mock: load_model
         expected: 出力が error だけで、終了コードが 1
+      - name: test_run_worker_when_transcribe_failed
+        case: 正常
+        summary: 1 件の失敗では終わらず次の行を処理する
+        condition: transcribe を 2 行入れ、モデルは 1 件目で例外、2 件目で 1 区間を返す
+        mock: load_model
+        expected: 出力が ready・error・progress・result の順で、終了コードが 0
+      - name: test_run_worker_when_blank_segment
+        case: 正常
+        summary: 区間の空白を除き、空の区間を result に含めない
+        condition: モデルが「 今日は 」・「 」の 2 区間を返す
+        mock: load_model
+        expected: progress が 2 行、result の segments が ["今日は"]
+      - name: test_run_worker_when_vad_disabled
+        case: 正常
+        summary: VAD がオフなら vad_parameters を渡さない
+        condition: vad_filter=false の transcribe を 1 行入れる
+        mock: load_model
+        expected: モデルの transcribe が vad_filter=False・vad_parameters=None で呼ばれる
     refs:
       - dev/設計書/外部ライブラリ/faster-whisper#
     status: planned

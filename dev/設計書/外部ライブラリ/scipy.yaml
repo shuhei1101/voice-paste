@@ -22,6 +22,7 @@ adoption: 採用
 used_in:
   - voice_paste_legacy/audio/recorder.py
   - voice_paste_legacy/main.py
+  - src/voice_paste/features/history/service.py
 upstream: scipy/scipy
 verification:
   state: 済

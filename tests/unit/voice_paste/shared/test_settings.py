@@ -233,3 +233,19 @@ def test_save_settings_when_invalid_existing(settings_file: Path) -> None:
     # 検証
     assert restart_required is True
     assert load_settings(settings_file) == Settings()
+
+
+def test_save_settings_when_glossary_reset(settings_file: Path) -> None:
+    """用語集の場所を既定（None）に戻すとキーを消す（正常系）。"""
+    from voice_paste.shared.settings import Settings, load_settings, save_settings
+
+    # 準備
+    settings_file.write_text('glossary_path = "C:/x/yogo.csv"\n', encoding="utf-8")
+
+    # 実行
+    save_settings(settings_file, Settings())
+
+    # 検証
+    written = tomllib.loads(settings_file.read_text(encoding="utf-8"))
+    assert "glossary_path" not in written
+    assert load_settings(settings_file).glossary_path is None

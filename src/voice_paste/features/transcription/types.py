@@ -15,9 +15,6 @@ class EngineName(StrEnum):
     LOCAL_WHISPER = "local_whisper"
     """文字起こしワーカーの子プロセスで起こす。"""
 
-    OPENAI = "openai"
-    """OpenAI API で起こす。"""
-
 
 class EngineFn(Protocol):
     """1 つのエンジンで録音を起こす関数。エンジンを足すときはこの型の実装を足して main.py で登録する。"""

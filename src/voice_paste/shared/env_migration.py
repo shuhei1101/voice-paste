@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 ENGINE_ENV_KEY: str = "TRANSCRIPTION_ENGINE"
 """文字起こしのエンジンを書く .env のキー。"""
 
-ENGINE_NAMES: dict[str, str] = {"local": "local_whisper", "openai": "openai"}
+ENGINE_NAMES: dict[str, str] = {"local": "local_whisper"}
 """`.env` のエンジンの値 → settings.toml のエンジンの値。"""
 
 GLOSSARY_ENV_KEY: str = "YOGO_FILE"
@@ -36,7 +36,6 @@ AI_SEND_FIELDS: tuple[str, ...] = ("name", "url", "hotkey", "enabled")
 """AI 送信の設定（`AI_SEND_{n}_*`）が持つ項目。大文字にすると .env のキーの末尾になる。"""
 
 PLAIN_MAPPINGS: dict[str, tuple[str, ...]] = {
-    "OPENAI_API_KEY": ("transcription.openai.api_key",),
     "WHISPER_MODEL": ("transcription.local_whisper.model",),
     "WHISPER_DEVICE": ("transcription.local_whisper.device",),
     "WHISPER_COMPUTE_TYPE": ("transcription.local_whisper.compute_type",),
@@ -44,10 +43,7 @@ PLAIN_MAPPINGS: dict[str, tuple[str, ...]] = {
     "WHISPER_NUM_WORKERS": ("transcription.local_whisper.num_workers",),
     "WHISPER_BEAM_SIZE": ("transcription.local_whisper.beam_size",),
     "WHISPER_BEST_OF": ("transcription.local_whisper.best_of",),
-    "WHISPER_LANGUAGE": (
-        "transcription.local_whisper.language",
-        "transcription.openai.language",
-    ),
+    "WHISPER_LANGUAGE": ("transcription.local_whisper.language",),
     "WHISPER_VAD_FILTER": ("transcription.local_whisper.vad_filter",),
     "WHISPER_VAD_THRESHOLD": ("transcription.local_whisper.vad_threshold",),
     "WHISPER_VAD_MIN_SPEECH_MS": ("transcription.local_whisper.vad_min_speech_ms",),
@@ -55,10 +51,7 @@ PLAIN_MAPPINGS: dict[str, tuple[str, ...]] = {
     "WHISPER_CONDITION_ON_PREVIOUS_TEXT": (
         "transcription.local_whisper.condition_on_previous_text",
     ),
-    "WHISPER_TEMPERATURE": (
-        "transcription.local_whisper.temperature",
-        "transcription.openai.temperature",
-    ),
+    "WHISPER_TEMPERATURE": ("transcription.local_whisper.temperature",),
     "WHISPER_NO_SPEECH_THRESHOLD": ("transcription.local_whisper.no_speech_threshold",),
     "LOG_LEVEL": ("logging.level",),
     "RESIDENT_HOTKEY": ("hotkeys.start",),
@@ -199,7 +192,7 @@ def migrate_env(env_path: Path) -> Settings:
     # 2. 対応表のキーごとに、値があって空でないものだけを写す
     engine = values.get(ENGINE_ENV_KEY)
     if engine:
-        # エンジンは local → local_whisper に読み替える
+        # エンジンは local → local_whisper に読み替える（local 以外は断る）
         if engine not in ENGINE_NAMES:
             raise SettingsError(f".env の値が合わない（{ENGINE_ENV_KEY}: {engine}）")
         _assign(data, "transcription.engine", ENGINE_NAMES[engine])

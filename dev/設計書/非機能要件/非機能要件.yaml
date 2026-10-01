@@ -167,3 +167,22 @@ requirements:
     unit: '%'
     rationale: 品質シナリオ 7。pycaw を == で固定し、版を上げたら Windows の実機で契約テストを回して API の変化を全て検知する
     measurement: 音量のアダプタの契約テスト（lower_volume・restore_volume）を Windows の実機で回す
+  - name: OpenAI の文字起こしの要求のタイムアウトと再試行
+    english_name: openai_transcription_timeout
+    category: 耐障害
+    external_constraint: 未確定
+    source_kind: 未確定
+    value: 未確定
+    rationale: '規約『資源の値の決め方』で、タイムアウトは OpenAI の文字起こしの応答時間の実測の p99.9 + 50%、再試行は openai の SDK の 1 層だけで回数の上限を持ち、各回のタイムアウト × 回数が外側の待ちに収まるように導く。SDK の既定（1 回 10 分・2 回まで再試行）には頬らず、transcribe_with_openai へ注入で渡す。応答時間は録音の長さで変わるため、送れる大きさの上限（20,000,000 バイト）までの長さの録音を送って測る。測るには従量課金がかかるため、エンジンを main.py で登録する #19 で、ユーザーの許可を得て測って決める'
+    measurement: 長さの違う録音（短いものから送れる大きさの上限近くまで）を OpenAI へ送り、応答が返るまでの時間を測る
+    overflow: 上限まで再試行しても応答が無ければ EngineError（録音は履歴に残る）
+  - name: 文字起こしワーカーの終わりを待つ時間
+    english_name: worker_stop_timeout
+    category: 保守性
+    external_constraint: 制限なし
+    source_kind: 制限なし
+    value: '3'
+    unit: 秒
+    rationale: '常駐の終了時に標準入力を閉じてからワーカーが終わるまでと、terminate してから終わるまでを待つ時間。実測が無いため、刷新前（voice_paste_legacy の _stop_worker）の 3 秒（根拠の記録は無い）を仮に置く。新しい構成のワーカーで終わるまでの時間を #22 で立て直しの時間と一緒に測り、規約『資源の値の決め方』の下流を待つタイムアウト（実測の p99.9 + 50%）で決め直す'
+    measurement: モデルを読み込んだワーカーの標準入力を閉じてからプロセスが終わるまでと、terminate から終わるまでを実機で測る
+    overflow: 標準入力を閉じて待ちきれなければ terminate、さらに同じ時間待って終わらなければ kill する

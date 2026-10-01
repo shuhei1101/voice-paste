@@ -3,8 +3,8 @@ lead: 確定した録音と起こした文字を `%LOCALAPPDATA%\voice-paste\his
 directory: |-
   ```
   src/voice_paste/features/history/
-  ├── __init__.py   # save_recording・append_text・purge_expired の公開
-  └── service.py    # 録音の保存・文字の書き足し・古い履歴の削除
+  ├── __init__.py   # save_recording・append_text・discard_temporary・purge_expired の公開
+  └── service.py    # 録音の保存・文字の書き足し・一時の音声の削除・古い履歴の削除
   ```
 functions:
   - name: save_recording
@@ -143,7 +143,7 @@ functions:
       1. history/ の下の `YYYYMMDD` のフォルダのうち、今日 − 保持日数より前のものを消す
          - 日付でない名前のフォルダは残す
          - `[INFO]` 古い履歴を消した（消した数）
-      2. tmp/ の下の一時の音声（`{session_id}.wav`）のうち、ファイル名の session_id が処理中のセッションに無いものを消す
+      2. tmp/ の下に取り残された一時の音声（`{session_id}.wav`。普段は discard_temporary が消し、常駐が落ちたとき・消せなかったときに残る）のうち、ファイル名の session_id が処理中のセッションに無いものを消す
          - 消せないファイル・フォルダは残し、次へ進む
            - `[WARNING]` 古い履歴を消せなかった（パス・理由）
     unit_tests:
@@ -159,4 +159,44 @@ functions:
         condition: tmp/s1.wav・tmp/s2.wav があり、active_session_ids が {"s2"} を返す
         mock: なし（一時フォルダ）
         expected: tmp/s1.wav が消え、tmp/s2.wav が残る
+    status: planned
+  - name: discard_temporary
+    title: 一時の音声の削除
+    kind: 関数
+    container: features/history/service.py
+    usecase: 録音を文字に起こす
+    scope: public
+    summary: 処理を終えた録音が一時の音声（履歴を残さない設定）なら消す。履歴の録音なら何もしない。セッションが確定後の流れの最後に呼ぶ
+    args:
+      - name: audio_path
+        type: Path
+        required: true
+        passing: positional
+        description: 保存した録音
+      - name: paths
+        type: AppPaths
+        required: true
+        passing: injected
+        description: 置き場所のパス（一時の音声かを見分ける）
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. 録音が `tmp/` の下に無ければ何もしない（履歴の録音）
+      2. 録音を消す（既に無ければ何もしない）
+         - 消せない場合、例外を出さずに残す（古い履歴の削除が掃除する）
+           - `[WARNING]` 一時の音声を消せなかった（パス・理由）
+    unit_tests:
+      - name: test_discard_temporary
+        case: 正常
+        summary: 一時の音声を消す
+        condition: tmp/s1.wav
+        mock: なし（一時フォルダ）
+        expected: tmp/s1.wav が消える
+      - name: test_discard_temporary_when_history
+        case: 正常
+        summary: 履歴の録音は消さない
+        condition: history/20261001/20261001120000_s1.wav
+        mock: なし（一時フォルダ）
+        expected: history/20261001/20261001120000_s1.wav が残る
     status: planned

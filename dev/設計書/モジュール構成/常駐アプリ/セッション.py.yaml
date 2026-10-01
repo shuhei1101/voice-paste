@@ -116,6 +116,9 @@ data_models:
       - name: now
         type: Callable[[], datetime]
         description: 今の時刻（テストで差し替える）
+      - name: discard_temporary
+        type: Callable[[Path], None]
+        description: 処理を終えた録音が一時の音声なら消す（履歴の discard_temporary）
     status: planned
   - name: StartSessionRequest
     title: 開始のリクエスト
@@ -597,14 +600,14 @@ classes:
              - DeliveryError（UnknownOutputError を含む）の場合、delivery_failed を知らせる
              - 2〜6 で想定外の例外が出た場合、入口が api なら result=failed を届け、それ以外は文字起こしの前後に応じて transcription_failed か delivery_failed を知らせる
                - `[ERROR]` 確定後の流れで想定外の例外（logger.exception）
-          7. どの経路でも必ず（finally）セッションを空にして待機中を知らせる
+          7. どの経路でも必ず（finally）一時の音声を消し（一時の音声の削除）、セッションを空にして待機中を知らせる
         unit_tests:
           - name: test_run_after_confirm
             case: 正常
             summary: 起こした文字を補正して届ける
             condition: transcribe が「てすと」を返し、correct が「テスト」を返す
             mock: SessionDeps の全関数
-            expected: append_text と deliver に「テスト」が渡り、セッションが空になる
+            expected: append_text と deliver に「テスト」が渡り、discard_temporary に保存した録音が渡り、セッションが空になる
           - name: test_run_after_confirm_when_transcription_failed_from_hotkey
             case: 正常
             summary: ホットキーの失敗は知らせて届けない

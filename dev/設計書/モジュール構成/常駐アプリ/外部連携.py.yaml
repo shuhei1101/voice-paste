@@ -33,30 +33,35 @@ classes:
       - name: _ready_timeout_sec
         type: float
         access: 内部 (_)
-        description: ready を待つ上限（非機能要件の文字起こしワーカーの立て直しの時間。main.py が渡す）
+        description: 立て直しで ready を待つ上限（非機能要件の文字起こしワーカーの立て直しの時間。main.py が渡す）。起動時の 1 回目にはかけない
       - name: _log_dir
         type: Path
         access: 内部 (_)
         description: ワーカーが落ちたときのスタックを書くログの置き場所（AppPaths.log_dir）
+      - name: _stop_timeout_sec
+        type: float
+        access: 内部 (_)
+        description: 終わりを待つ時間（非機能要件の文字起こしワーカーの終わりを待つ時間。main.py が渡す）
     methods:
       - name: start
         title: 起動
         kind: メソッド
         scope: public
-        summary: 子プロセスを起動し、ready を待つ。待ちきれなければ EngineError
+        summary: 子プロセスを起動し、ready を待つ。起動時の 1 回目はモデルの取得や冷えた読み込みがあるため上限をかけず、立て直しだけ上限をかける
         returns:
           type: None
           description: なし
         exceptions:
           - name: EngineError
-            condition: モデルを読み込めず ready が届かない
+            condition: モデルを読み込めず ready が届かない（error が届いた・子プロセスが終わった・立て直しで上限を過ぎた）
         process: |-
           1. 子プロセスの環境を作る
              - venv の `Lib/site-packages/nvidia/{cublas,cudnn,cuda_nvrtc}/bin` のうち存在するものを PATH の先頭へ足す（CUDA の DLL を子プロセスが見つけられるようにする）
              - 標準入出力を UTF-8 にする
           2. `python -u -m voice_paste.integrations.whisper.worker` をコンソールを出さずに起動し、標準エラーを別のスレッドで読んでロガーへ流す
-          3. config（モデル・デバイス・量子化・スレッド数・ワーカー数・ログの置き場所）を送り、_ready_timeout_sec の間 ready を待つ
-             - 待ちきれない・error が届いた・子プロセスが終わった場合、子プロセスを止めて EngineError を送出する
+          3. config（モデル・デバイス・量子化・スレッド数・ワーカー数・ログの置き場所）を送り、ready・error・子プロセスの終了のどれかを待つ
+             - ready_timeout_sec が渡されていれば、その間だけ待つ（立て直しの経路）
+             - error が届いた・子プロセスが終わった・上限を過ぎた場合、子プロセスを止めて EngineError を送出する
              - `[INFO]` 文字起こしワーカーが立ち上がった（pid・かかった秒）
         unit_tests:
           - name: test_start
@@ -74,11 +79,24 @@ classes:
             exception: モデルを読み込めず ready が届かない
           - name: test_start_when_ready_timeout
             case: 異常
-            summary: ready を待ちきれなければ子プロセスを止めて EngineError
-            condition: _ready_timeout_sec を 0.1 にし、子プロセスは何も返さない
+            summary: 立て直しで ready を待ちきれなければ子プロセスを止めて EngineError
+            condition: ready_timeout_sec=0.1 を渡し（立て直しの経路）、子プロセスは何も返さない
             mock: subprocess.Popen
             expected: EngineError が送出され、子プロセスの kill か terminate が呼ばれる
-            exception: モデルを読み込めず ready が届かない
+            exception: モデルを読み込めず ready が届かない（error が届いた・子プロセスが終わった・立て直しで上限を過ぎた）
+          - name: test_start_when_first_ready_is_slow
+            case: 正常
+            summary: 起動時の 1 回目は上限をかけずに ready を待つ
+            condition: ready_timeout_sec を渡さず、子プロセスは _ready_timeout_sec（0.1 にする）より遅れて 0.3 秒後に ready を返す
+            mock: subprocess.Popen
+            expected: 例外が出ずに立ち上がり、子プロセスが止められない
+        args:
+          - name: ready_timeout_sec
+            type: float | None
+            required: false
+            default: None
+            passing: keyword
+            description: ready を待つ上限。None（起動時の 1 回目）は上限をかけない。立て直しでは transcribe が _ready_timeout_sec を渡す
       - name: transcribe
         title: 文字起こし
         kind: メソッド
@@ -102,10 +120,10 @@ classes:
           description: 区間ごとの文字
         process: |-
           1. 録音と設定を 1 行の JSON で送り、区間の進みと結果を読む
-             - 子プロセスが応答の途中で終わった場合、子プロセスを起動し直して同じ録音をもう一度送る（やり直しは 1 回だけ）
+             - 子プロセスが応答の途中で終わった場合、子プロセスを start(ready_timeout_sec=_ready_timeout_sec) で起動し直して同じ録音をもう一度送る（やり直しは 1 回だけ）
                - `[WARNING]` 文字起こしワーカーが落ちたので立て直す（終了コード）
-             - やり直しも落ちた場合、子プロセスをもう一度起動して次の録音に備え、EngineError を送出する
-             - ワーカーがエラーを返した場合、EngineError を送出する
+             - やり直しも落ちた場合、子プロセスを同じ上限でもう一度起動して次の録音に備え、EngineError を送出する
+             - ワーカーがエラーを返した場合、起動し直さずに EngineError を送出する
         exceptions:
           - name: EngineError
             condition: やり直したワーカーも落ちた
@@ -148,8 +166,9 @@ classes:
           description: なし
         process: |-
           1. 子プロセスが無ければ何もしない
-          2. 標準入力を閉じ、終わりを 3 秒待つ
-             - 終わらなければ terminate、それでも終わらなければ kill する
+          2. 標準入力を閉じ、終わりを _stop_timeout_sec 待つ
+             - 終わらなければ terminate して同じ時間待ち、それでも終わらなければ kill する
+               - `[WARNING]` 文字起こしワーカーが終わらないので止めた（terminate / kill）
         unit_tests:
           - name: test_stop_when_worker_hangs
             case: 正常
@@ -157,6 +176,12 @@ classes:
             condition: 子プロセスの wait が 1 回目にタイムアウトする
             mock: subprocess.Popen
             expected: 標準入力が閉じられ、terminate が呼ばれる
+          - name: test_stop_when_terminate_hangs
+            case: 正常
+            summary: terminate しても終わらなければ kill する
+            condition: _stop_timeout_sec=0.1、子プロセスの wait が 1 回目・2 回目ともタイムアウトする
+            mock: subprocess.Popen
+            expected: terminate の後に kill が呼ばれ、wait がどちらも 0.1 秒で呼ばれる
     refs:
       - dev/設計書/外部ライブラリ/faster-whisper#
     status: planned
@@ -191,6 +216,16 @@ functions:
         required: true
         passing: injected
         description: 非機能要件の OpenAI API へ送る音声ファイルの大きさの決定値
+      - name: request_timeout_sec
+        type: float
+        required: true
+        passing: injected
+        description: 1 回の要求のタイムアウト（非機能要件の OpenAI の文字起こしの要求のタイムアウトと再試行。main.py が渡す）
+      - name: max_retries
+        type: int
+        required: true
+        passing: injected
+        description: SDK に任せる再試行の回数の上限（同じ非機能要件。再試行はこの 1 層だけで行う）
     returns:
       type: list[str]
       description: 区間ごとの文字（区間が無ければ全文を 1 つ）
@@ -199,10 +234,11 @@ functions:
       2. 録音のファイルの大きさが max_upload_bytes を超えるかを確かめる
          - 超える場合、送らずに EngineError を送出する
            - `[WARNING]` 送れる大きさを超えたため送らなかった（大きさ・上限）
-      3. OpenAI のエンジンの設定（モデル・言語・温度）で録音を送る
+      3. OpenAI のクライアントを `timeout=request_timeout_sec`・`max_retries=max_retries` で作り、SDK の既定のタイムアウトと再試行に頬らない（再試行は SDK の 1 層だけで、この関数では重ねない）
+      4. OpenAI のエンジンの設定（モデル・言語・温度）で録音を送る
          - モデルが `whisper-1` なら `response_format="verbose_json"`（区間つき）、それ以外は `"json"`（区間を返さないモデル）
-         - API に届かない・エラーを返した場合、openai の例外を原因に持たせた EngineError を送出する
-      4. 区間ごとに on_progress（区間の終わり・録音の長さ）を呼び、区間ごとの文字を返す
+         - API に届かない・タイムアウトした・エラーを返した場合（再試行を使い切った後）、openai の例外を原因に持たせた EngineError を送出する
+      5. 区間ごとに on_progress（区間の終わり・録音の長さ）を呼び、区間ごとの文字を返す
          - 区間が無ければ全文を 1 つ返す
          - `[INFO]` OpenAI で文字に起こした（モデル・区間の数）
     exceptions:
@@ -242,6 +278,12 @@ functions:
         mock: OpenAI のクライアント
         expected: EngineError が送出され、クライアントが呼ばれない
         exception: API キーが空
+      - name: test_transcribe_with_openai_when_timeout_and_retries_given
+        case: 正常
+        summary: タイムアウトと再試行の回数をクライアントへ明示して渡す
+        condition: request_timeout_sec=30.0、max_retries=1
+        mock: OpenAI のクライアント（生成を含む）
+        expected: クライアントが timeout=30.0・max_retries=1 で作られる
     connectivity_tests:
       - name: test_ext_transcribe_with_openai_when_default_model
         api: OpenAI API（音声の文字起こし）

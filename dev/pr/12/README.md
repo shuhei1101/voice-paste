@@ -26,7 +26,7 @@
 
 - [x] ~~初期構築~~（[#8](https://github.com/shuhei1101/voice-paste/pull/8) で済んでいる）
 - [x] ~~リバースエンジニアリング~~（[#10](https://github.com/shuhei1101/voice-paste/pull/10) で済んでいる）
-- [ ] 方針決め
+- [x] 方針決め
 - [x] ~~PoC 検証~~（方針決めを依頼する Issue のため対象外）
 - [x] ~~複合ユースケース設計~~（方針決めを依頼する Issue のため対象外）
 - [x] ~~デザインスタイル選定~~（方針決めを依頼する Issue のため対象外）

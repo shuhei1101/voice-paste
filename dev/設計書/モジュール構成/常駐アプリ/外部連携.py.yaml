@@ -288,7 +288,7 @@ functions:
     refs:
       - dev/設計書/外部ライブラリ/pycaw#
       - dev/設計書/外部ライブラリ/comtypes#
-    status: planned
+    status: implemented
   - name: restore_volume
     title: 音量を戻す
     kind: 関数
@@ -334,7 +334,7 @@ functions:
         checks: 音量 0.6 から lower_volume(0.5, 0) の後に restore_volume(0.6, 0) を呼び、pycaw で読んだ音量が 0.6（誤差 0.01 以内）
         cost: 料金なし。実行中はシステム音量が変わり、終わりに実行前の音量へ戻す
         notes: 既定の再生デバイスが無い環境では skip する
-    status: planned
+    status: implemented
   - name: copy_to_clipboard
     title: クリップボードへの書き込み
     kind: 関数
@@ -429,7 +429,7 @@ functions:
         mock: _open_endpoint_volume
         expected: VolumeControlError が送出される
         exception: fade_sec が 0 以下で、音量を書くときに pycaw・COM が例外を出した
-    status: planned
+    status: implemented
   - name: _open_endpoint_volume
     title: 音量のインターフェースを引く
     kind: 関数
@@ -442,7 +442,7 @@ functions:
       description: 既定の再生デバイスの音量のインターフェース（呼ぶスレッドで COM を初期化しておく）
     refs:
       - dev/設計書/外部ライブラリ/pycaw#
-    status: planned
+    status: implemented
   - name: _cancel_fade
     title: 進行中のフェードを打ち切る
     kind: 関数
@@ -464,7 +464,7 @@ functions:
         condition: フェードを始めていない、または始めたフェードが終わった後に呼ぶ
         mock: _open_endpoint_volume
         expected: None が返る
-    status: planned
+    status: implemented
 constants:
   - name: FADE_STEPS
     title: フェードの段数
@@ -472,14 +472,21 @@ constants:
     usecase: 録音する
     summary: 音量を変えるときに分ける段の数。voice_paste_legacy の fade_volume と同じ値
     value: '30'
-    status: planned
+    status: implemented
   - name: FADE_JOIN_TIMEOUT_SEC
     title: 打ち切ったフェードの終わりを待つ秒数
     container: integrations/volume/adapter.py
     usecase: 録音する
     summary: 進行中のフェードを打ち切るときに、そのスレッドの終わりを待つ上限。voice_paste_legacy の fade_volume と同じ値
     value: '1.0'
-    status: planned
+    status: implemented
+  - name: SINGLE_WRITE_MAX_DELTA
+    title: 1 回で書く音量の差
+    container: integrations/volume/adapter.py
+    usecase: 録音する
+    summary: 今の音量と目標の差がこの値未満なら、段に分けず 1 回で書く
+    value: '0.005'
+    status: implemented
 test_files:
   - tests/unit/voice_paste/integrations/whisper/test_client.py
   - tests/unit/voice_paste/integrations/volume/test_adapter.py

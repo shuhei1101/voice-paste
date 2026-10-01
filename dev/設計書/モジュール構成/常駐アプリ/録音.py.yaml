@@ -27,7 +27,7 @@ function_types:
       description: 下げる前の音量（0.0〜1.0）
     implementations:
       - target: 外部連携の lower_volume（pycaw のアダプタ）
-    status: planned
+    status: implemented
   - name: RestoreVolumeFn
     title: 音量を戻す
     container: features/recording/types.py
@@ -45,7 +45,7 @@ function_types:
       description: なし
     implementations:
       - target: 外部連携の restore_volume（pycaw のアダプタ）
-    status: planned
+    status: implemented
   - name: OpenInputFn
     title: マイクの入力を開く
     container: features/recording/types.py
@@ -60,7 +60,7 @@ function_types:
       description: 開いて始めた入力（stop・close で閉じる）
     implementations:
       - target: 録音の open_input
-    status: planned
+    status: implemented
 classes:
   - name: Recorder
     title: 録音機
@@ -320,7 +320,7 @@ classes:
                - `[WARNING]` 音量を戻せなかった（理由）
     refs:
       - dev/設計書/外部ライブラリ/numpy#
-    status: planned
+    status: implemented
 functions:
   - name: open_input
     title: マイクの入力を開く
@@ -353,7 +353,7 @@ functions:
         expected: samplerate=16000・channels=1・dtype='int16' で作られて start が呼ばれ、on_frames に同じ値の写しが渡る
     refs:
       - dev/設計書/外部ライブラリ/sounddevice#
-    status: planned
+    status: implemented
 constants:
   - name: SAMPLE_RATE
     title: 録音のサンプルレート
@@ -361,7 +361,7 @@ constants:
     usecase: 録音する
     summary: マイクの入力のサンプルレート（Hz）。voice_paste_legacy と同じ値で、文字起こしと履歴が受ける形
     value: '16000'
-    status: planned
+    status: implemented
 test_files:
   - tests/unit/voice_paste/features/recording/test_service.py
   - tests/unit/voice_paste/features/recording/test_client.py

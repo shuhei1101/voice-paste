@@ -148,6 +148,8 @@ classes:
         exceptions:
           - name: MicrophoneUnavailableError
             condition: マイクの入力を開けない
+          - name: RuntimeError
+            condition: 録音中（呼び出し順の誤り）
         unit_tests:
           - name: test_start
             case: 正常
@@ -180,7 +182,7 @@ classes:
             condition: start の後にもう一度 start を呼ぶ
             mock: lower_volume・restore_volume・open_input・get_settings
             expected: RuntimeError が送出され、open_input・lower_volume が 1 回だけ呼ばれる
-            exception: 録音中
+            exception: 録音中（呼び出し順の誤り）
       - name: pause
         title: 一時停止
         kind: メソッド

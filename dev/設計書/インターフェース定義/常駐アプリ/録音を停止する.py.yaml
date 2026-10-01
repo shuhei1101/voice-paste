@@ -61,13 +61,16 @@ flows:
       sequenceDiagram
         participant C as クライアント
         participant IF as POST /sessions/{session_id}/stop
+        participant LOG as ログ
 
         C->>IF: 合わないトークン
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書く（トークンは書かない）
         IF-->>C: 401
       ```
     expected:
       - 401 が返る
       - セッションが録音中のままである
+      - ログに断った理由と要求元が書かれ、トークンの値は書かれていない
     test: test_error_when_token_mismatch
   - name: 異常系（ブラウザからの要求・403）
     summary: Origin の付いた要求と、Host が待ち受けのホストでない要求を断る
@@ -83,13 +86,16 @@ flows:
       sequenceDiagram
         participant C as クライアント
         participant IF as POST /sessions/{session_id}/stop
+        participant LOG as ログ
 
         C->>IF: Origin ありか、ほかの Host
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書く（トークンは書かない）
         IF-->>C: 403
       ```
     expected:
       - 403 が返る
       - セッションが録音中のままである
+      - ログに断った理由と要求元が書かれ、トークンの値は書かれていない
     test: test_error_when_browser_request
   - name: 異常系（知らないセッション・404）
     summary: 録音中でも停止中でもないセッションは断る
@@ -116,7 +122,7 @@ identifier: stop_session
 permissions: 今回の起動のトークン
 idempotent: true
 side_effects: マイクの録音を止め、システム音量を録音前の値へ戻す。録音はまだ確定せず、履歴にも残さない。
-exclusivity: セッションは同時に 1 つだけ。止めたセッションも、完了か上限で終わるまでは処理中としてほかの開始を断る。
+exclusivity: セッションは同時に 1 つだけ。止めたセッションも、完了するか 上限で打ち切る（非機能要件のセッションの上限時間。開始からの経過時間で、停止中も数える）で終わるまでは処理中としてほかの開始を断る。
 request:
   - name: Authorization
     type: str

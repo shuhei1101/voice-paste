@@ -60,13 +60,16 @@ flows:
       sequenceDiagram
         participant C as クライアント
         participant IF as POST /sessions
+        participant LOG as ログ
 
         C->>IF: 合わないトークン
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書く（トークンは書かない）
         IF-->>C: 401
       ```
     expected:
       - 401 が返る
       - 録音が始まっていない
+      - ログに断った理由と要求元が書かれ、トークンの値は書かれていない
     test: test_error_when_token_mismatch
   - name: 異常系（ブラウザからの要求・403）
     summary: Origin の付いた要求と、Host が待ち受けのホストでない要求を断る
@@ -81,13 +84,16 @@ flows:
       sequenceDiagram
         participant C as クライアント
         participant IF as POST /sessions
+        participant LOG as ログ
 
         C->>IF: Origin ありか、ほかの Host
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書く（トークンは書かない）
         IF-->>C: 403
       ```
     expected:
       - 403 が返る
       - 録音が始まっていない
+      - ログに断った理由と要求元が書かれ、トークンの値は書かれていない
     test: test_error_when_browser_request
   - name: 異常系（処理中・409）
     summary: ほかの録音・文字起こしの処理中は開始を断る
@@ -121,16 +127,19 @@ flows:
         participant C as クライアント
         participant IF as POST /sessions
         participant MIC as マイク
+        participant LOG as ログ
 
         C->>IF: トークン・callback_url
         IF->>MIC: 録音を始める
         MIC-->>IF: 開けない
+        IF->>LOG: マイクを開けなかった理由を書く
         IF-->>C: 503
       ```
     expected:
       - 503 が返る
       - システム音量が録音前の値に戻っている
       - 待機中に戻り、続く開始が 409 にならない
+      - ログにマイクを開けなかった理由が書かれている
     test: test_error_when_microphone_unavailable
 lead: 返送先のエンドポイントを受け取り、画面を出さない録音を始めてセッションの ID を返す。
 identifier: start_session
@@ -213,5 +222,5 @@ constraints:
   - item: レート制限
     constraint: 制限なし
     notes: 同時に 1 つだけの排他で足りる
-  - item: 録音の長さ
-    constraint: 非機能要件の録音の上限時間。達したら打ち切って返送先へ知らせる
+  - item: セッションの長さ
+    constraint: 非機能要件のセッションの上限時間（開始からの経過時間。停止中も数える）。達したら 上限で打ち切る

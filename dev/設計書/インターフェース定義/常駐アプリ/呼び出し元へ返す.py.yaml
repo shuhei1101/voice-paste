@@ -1,7 +1,7 @@
 title: "呼び出し元へ返す"
 entry:
   kind: trigger
-  value: API から始めた録音の文字起こしが終わるか、録音の上限時間で打ち切ったときに `POST {callback_url}` を送る
+  value: API から始めた録音の文字起こしが終わるか、上限で打ち切る が打ち切ったときに `POST {callback_url}` を送る
 flows:
   - name: 正常系
     summary: 起こした文字を返送先へ送る
@@ -67,7 +67,7 @@ flows:
       - name: Mock
         description: 返送先を 127.0.0.1 のテスト用の受け口にし、200 を返す
       - name: 打ち切り
-        description: API から始めた録音が、完了が来ないまま録音の上限時間に達した
+        description: 上限で打ち切る が、完了が来ないままセッションの上限時間（開始からの経過時間）に達したセッションを打ち切った
     flow: |-
       ```mermaid
       sequenceDiagram

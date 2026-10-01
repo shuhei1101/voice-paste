@@ -19,5 +19,5 @@ tests\unit\voice_paste\shared\test_logger.py ......                      [ 76%]
 tests\unit\voice_paste\shared\test_settings.py .............             [ 91%]
 tests\unit\voice_paste\test_main.py .......                              [100%]
 
-======================== 83 passed, 2 skipped in 1.49s ========================
+======================== 83 passed, 2 skipped in 1.50s ========================
 exit=0

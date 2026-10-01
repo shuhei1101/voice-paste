@@ -310,7 +310,7 @@ functions:
       - name: test_ext_transcribe_with_openai_when_default_model
         api: OpenAI API（音声の文字起こし）
         summary: 既定のモデルで短い録音を起こせる
-        checks: API キーでの認証・区間つきの応答の形
+        checks: API キーでの認証が通り、区間ごとの文字（str のリスト）が返り、進みが区間の終わり ≤ 録音の長さの組で知らされること（区間の有無は戻り値から見分けられないため確かめない）
         cost: 1 秒の録音 1 回分の従量課金
     refs:
       - dev/設計書/外部ライブラリ/openai#

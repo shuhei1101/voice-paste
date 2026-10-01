@@ -11,6 +11,7 @@ import queue
 import subprocess
 import sys
 import threading
+import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -204,6 +205,12 @@ def silent_worker(process: FakeProcess, message: dict[str, Any]) -> None:
     """何も返さないワーカー。"""
 
 
+def silent_on_transcribe_worker(process: FakeProcess, message: dict[str, Any]) -> None:
+    """ready は返すが、transcribe には何も返さず固まるワーカー。"""
+    if message["type"] == "config":
+        process.reply("ready")
+
+
 def slow_ready_worker(process: FakeProcess, message: dict[str, Any]) -> None:
     """config から少し遅れて ready を返すワーカー。"""
     if message["type"] == "config":
@@ -211,6 +218,36 @@ def slow_ready_worker(process: FakeProcess, message: dict[str, Any]) -> None:
 
 
 # === 共通の準備 ===
+
+
+class BackgroundCall:
+    """別のスレッドで関数を呼び、戻りか例外を持つ（固まる実装でもテストが止まらないよう、待ちに上限をかける）。"""
+
+    def __init__(self, function: Callable[[], Any]) -> None:
+        self.result: Any = None
+        self.error: BaseException | None = None
+        self._thread = threading.Thread(target=self._run, args=(function,), daemon=True)
+        self._thread.start()
+
+    def _run(self, function: Callable[[], Any]) -> None:
+        """関数を呼び、戻りか例外を記録する。"""
+        try:
+            self.result = function()
+        except BaseException as error:  # noqa: BLE001 テストの別スレッドで起きた例外を持ち帰る
+            self.error = error
+
+    def finished_within(self, timeout_sec: float) -> bool:
+        """上限の間に呼びが終わったか。"""
+        self._thread.join(timeout=timeout_sec)
+        return not self._thread.is_alive()
+
+
+def wait_until_received(process: FakeProcess, message_type: str, timeout_sec: float = 2.0) -> None:
+    """子プロセスが指定した種類のメッセージを受け取るまで待つ（上限を過ぎたらテストを落とす）。"""
+    deadline = time.monotonic() + timeout_sec
+    while not any(message["type"] == message_type for message in process.received):
+        assert time.monotonic() < deadline, f"{message_type} が子プロセスへ届かない"
+        time.sleep(0.01)
 
 
 @pytest.fixture
@@ -441,6 +478,29 @@ def test_transcribe_when_worker_error(
     assert len(fake_popen.calls) == 1
 
 
+def test_transcribe_when_restart_ready_timeout(
+    make_client: Callable[..., Any], install_popen: Callable[..., FakePopen]
+) -> None:
+    """立て直しで ready を待ちきれなければ _ready_timeout_sec の後に EngineError にする（異常系）。"""
+    from voice_paste.shared.errors import EngineError
+
+    # 準備（2 つ目の子プロセスは立て直しで ready を返さない）
+    restarted = FakeProcess(silent_worker)
+    install_popen(FakeProcess(crash_on_transcribe_worker), restarted)
+    client = make_client(ready_timeout_sec=READY_TIMEOUT_SEC)
+    client.start()
+
+    # 実行
+    started = time.monotonic()
+    call = BackgroundCall(lambda: client.transcribe(AUDIO_PATH))
+
+    # 検証（上限なく待ち続ける実装では、待ちが終わらない）
+    assert call.finished_within(1.0)
+    assert time.monotonic() - started < 1.0
+    assert isinstance(call.error, EngineError)
+    assert restarted.was_stopped
+
+
 # === stop ===
 
 
@@ -478,3 +538,28 @@ def test_stop_when_terminate_hangs(
     # 検証
     assert process.signals == ["terminate", "kill"]
     assert process.wait_timeouts[:2] == [0.1, 0.1]
+
+
+def test_stop_when_transcribing(
+    make_client: Callable[..., Any], install_popen: Callable[..., FakePopen]
+) -> None:
+    """文字起こしの最中に止めても _stop_timeout_sec で止まり、立て直さない（正常系）。"""
+    from voice_paste.shared.errors import EngineError
+
+    # 準備（子プロセスは transcribe に何も返さず、標準入力を閉じても終わらない）
+    process = FakeProcess(silent_on_transcribe_worker, hangs_on_close=True)
+    fake_popen = install_popen(process)
+    client = make_client(stop_timeout_sec=STOP_TIMEOUT_SEC)
+    client.start()
+    transcription = BackgroundCall(lambda: client.transcribe(AUDIO_PATH))
+    wait_until_received(process, "transcribe")
+
+    # 実行（別のスレッドから止める）
+    stopping = BackgroundCall(client.stop)
+
+    # 検証（文字起こしの終わりを待つ実装では、stop が戻らない）
+    assert stopping.finished_within(1.0)
+    assert "terminate" in process.signals
+    assert transcription.finished_within(1.0)
+    assert isinstance(transcription.error, EngineError)
+    assert len(fake_popen.calls) == 1

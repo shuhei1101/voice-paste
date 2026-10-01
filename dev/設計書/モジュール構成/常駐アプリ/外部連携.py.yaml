@@ -234,7 +234,7 @@ functions:
       2. 録音のファイルの大きさが max_upload_bytes を超えるかを確かめる
          - 超える場合、送らずに EngineError を送出する
            - `[WARNING]` 送れる大きさを超えたため送らなかった（大きさ・上限）
-      3. OpenAI のクライアントを `timeout=request_timeout_sec`・`max_retries=max_retries` で作り、SDK の既定のタイムアウトと再試行に頬らない（再試行は SDK の 1 層だけで、この関数では重ねない）
+      3. OpenAI のクライアントを `timeout=request_timeout_sec`・`max_retries=max_retries` で作り、SDK の既定のタイムアウトと再試行に頼らない（再試行は SDK の 1 層だけで、この関数では重ねない）
       4. OpenAI のエンジンの設定（モデル・言語・温度）で録音を送る
          - モデルが `whisper-1` なら `response_format="verbose_json"`（区間つき）、それ以外は `"json"`（区間を返さないモデル）
          - API に届かない・タイムアウトした・エラーを返した場合（再試行を使い切った後）、openai の例外を原因に持たせた EngineError を送出する

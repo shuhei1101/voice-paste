@@ -56,6 +56,8 @@ class WhisperWorkerClient:
         self._ready_timeout_sec = ready_timeout_sec
         self._log_dir = log_dir
         self._stop_timeout_sec = stop_timeout_sec
+        # stop で止めている最中か。立っている間は子プロセスが終わっても立て直さない（start で下ろす）
+        self._stopping = False
         # 立て直しの中から start を呼ぶため、再入できるロックにする
         self._lock = threading.RLock()
 
@@ -64,6 +66,7 @@ class WhisperWorkerClient:
     def start(self, *, ready_timeout_sec: float | None = None) -> None:
         """子プロセスを起動し、ready を待つ。None（起動時の 1 回目）は待つ上限をかけない。"""
         with self._lock:
+            self._stopping = False
             started = time.perf_counter()
             process = subprocess.Popen(  # noqa: S603 引数は固定で、シェルを通さない
                 [sys.executable, "-u", "-m", WORKER_MODULE],
@@ -151,6 +154,7 @@ class WhisperWorkerClient:
             try:
                 return self._exchange(audio_path, on_progress)
             except _WorkerExitedError:
+                self._raise_if_stopping()
                 logger.warning(f"文字起こしワーカーが落ちたので立て直す（終了コード {self._exit_code()}）")
                 self._restart()
 
@@ -158,6 +162,7 @@ class WhisperWorkerClient:
             try:
                 return self._exchange(audio_path, on_progress)
             except _WorkerExitedError:
+                self._raise_if_stopping()
                 # やり直しも落ちた: 次の録音に備えて起動し直してから知らせる
                 logger.warning(f"文字起こしワーカーが落ちたので立て直す（終了コード {self._exit_code()}）")
                 self._restart()
@@ -195,6 +200,11 @@ class WhisperWorkerClient:
             else:
                 logger.warning(f"知らない種類が届いた（{message.type}）")
 
+    def _raise_if_stopping(self) -> None:
+        """stop で止めている最中なら、立て直さずに EngineError を送出する。"""
+        if self._stopping:
+            raise EngineError("文字起こしワーカーが終了のために止められた") from None
+
     def _restart(self) -> None:
         """子プロセスを止め、立て直しの上限をかけて起動し直す。"""
         self._halt()
@@ -207,26 +217,27 @@ class WhisperWorkerClient:
     # === 停止 ===
 
     def stop(self) -> None:
-        """標準入力を閉じて終わりを待ち、待ちきれなければ terminate・kill で止める。"""
-        with self._lock:
-            process = self._process
-            # 子プロセスが無ければ何もしない
-            if process is None:
-                return
-            self._process = None
-            self._close_stdin(process)
-            try:
-                process.wait(timeout=self._stop_timeout_sec)
-                return
-            except subprocess.TimeoutExpired:
-                logger.warning("文字起こしワーカーが終わらないので止めた（terminate）")
-            process.terminate()
-            try:
-                process.wait(timeout=self._stop_timeout_sec)
-                return
-            except subprocess.TimeoutExpired:
-                logger.warning("文字起こしワーカーが終わらないので止めた（kill）")
-            process.kill()
+        """標準入力を閉じて終わりを待ち、待ちきれなければ terminate・kill で止める。文字起こしの最中でも待たない。"""
+        # 文字起こしが持つロックは取らない（文字起こしの終わりまで止まらないようにする）。
+        # 止めた子プロセスを transcribe が「落ちた」と受けて立て直さないよう、先に印を立てる
+        self._stopping = True
+        process = self._process
+        # 子プロセスが無ければ何もしない
+        if process is None:
+            return
+        self._close_stdin(process)
+        try:
+            process.wait(timeout=self._stop_timeout_sec)
+            return
+        except subprocess.TimeoutExpired:
+            logger.warning("文字起こしワーカーが終わらないので止めた（terminate）")
+        process.terminate()
+        try:
+            process.wait(timeout=self._stop_timeout_sec)
+            return
+        except subprocess.TimeoutExpired:
+            logger.warning("文字起こしワーカーが終わらないので止めた（kill）")
+        process.kill()
 
     def _halt(self) -> None:
         """子プロセスを terminate で止める（待ちきれなければ kill）。応答しない・落ちた子プロセスの片付け用。"""

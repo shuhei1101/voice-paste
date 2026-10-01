@@ -164,6 +164,13 @@ classes:
             mock: subprocess.Popen
             expected: EngineError が送出され、Popen が 1 回だけ呼ばれる
             exception: ワーカーがエラーを返した
+          - name: test_transcribe_when_restart_ready_timeout
+            case: 異常
+            summary: 立て直しで ready を待ちきれなければ _ready_timeout_sec の後に EngineError
+            condition: _ready_timeout_sec=0.1。1 つ目の子プロセスは応答の途中で終わり、2 つ目は ready を返さない
+            mock: subprocess.Popen
+            expected: EngineError が送出され、2 つ目の子プロセスが止められ、待ちが 1 秒未満で終わる
+            exception: やり直したワーカーも落ちた
       - name: stop
         title: 停止
         kind: メソッド
@@ -191,6 +198,12 @@ classes:
             condition: _stop_timeout_sec=0.1、子プロセスの wait が 1 回目・2 回目ともタイムアウトする
             mock: subprocess.Popen
             expected: terminate の後に kill が呼ばれ、wait がどちらも 0.1 秒で呼ばれる
+          - name: test_stop_when_transcribing
+            case: 正常
+            summary: 文字起こしの最中に止めても _stop_timeout_sec で止まり、立て直さない
+            condition: _stop_timeout_sec=0.1。子プロセスは transcribe に何も返さず、標準入力を閉じても終わらない。別のスレッドで transcribe を呼んでから stop を呼ぶ
+            mock: subprocess.Popen
+            expected: stop が 1 秒未満で戻り、terminate が呼ばれ、transcribe が EngineError を送出し、Popen が 1 回だけ呼ばれる
     refs:
       - dev/設計書/外部ライブラリ/faster-whisper#
     status: implemented

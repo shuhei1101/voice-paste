@@ -42,6 +42,7 @@ layers:
     prerequisites:
       - 接続先の外部サービスの認証情報（API キーなど）を環境変数で渡す（無ければそのテストは skip する）
       - 従量課金のかかる外部サービスは、実行のたびに課金がかかる
+      - 音量の契約テスト（`tests/external/voice_paste/integrations/volume/`）は Windows の実機の既定の再生デバイスが要る（無ければ skip する）。実行中はシステム音量が変わり、終わりに実行前の音量へ戻す
       - AI はユーザーが実行を許可したときだけ実行する（CI では実行しない）
     run_one:
       label: ファイル

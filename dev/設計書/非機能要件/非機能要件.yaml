@@ -141,7 +141,7 @@ requirements:
     value: '100'
     unit: '%'
     rationale: 品質シナリオ 7。pycaw を == で固定し、版を上げたら Windows の実機で契約テストを回して API の変化を全て検知する
-    measurement: 音量のアダプタの契約テスト（lower_volume・restore_volume）を Windows の実機で回す
+    measurement: 音量のアダプタの契約テスト（lower_volume・restore_volume の疎通テスト。`tests/external/voice_paste/integrations/volume/test_adapter.py`）を `--run-external` を付けて Windows の実機で回す
   - name: 文字起こしワーカーの終わりを待つ時間
     english_name: worker_stop_timeout
     category: 保守性

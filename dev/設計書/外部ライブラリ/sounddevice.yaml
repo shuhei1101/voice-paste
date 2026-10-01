@@ -27,6 +27,7 @@ dependency_scope: 必須
 adoption: 採用
 used_in:
   - voice_paste_legacy/audio/recorder.py
+  - src/voice_paste/features/recording/client.py
 upstream: spatialaudio/python-sounddevice
 verification:
   state: 未確認

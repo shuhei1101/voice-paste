@@ -25,6 +25,7 @@ used_in:
 upstream: openai/openai-python
 verification:
   state: 未確認
-  detail: 現状の棚卸しで、コードが使っている範囲を写しただけで、動かしてはいない
+  date: '2026-10-01'
+  detail: SDK 側は費用なしで確かめた（通信を差し替えた httpx で、OpenAI(api_key, timeout=30.0, max_retries=1) が作れ、audio.transcriptions.create に whisper-1・language・temperature・response_format="verbose_json" を渡すと multipart の POST /v1/audio/transcriptions が Bearer の認証つきで出て、応答の segments・duration・text を読めること）。API 本体への実呼び出し（認証・モデルごとの response_format の可否）は 1 秒の録音 1 回分の従量課金がかかりユーザーの許可が要るため動かしていない。外部疎通テスト（test_ext_transcribe_with_openai_when_default_model）で確かめる
 license: Apache-2.0（商用利用可）
 official_url: https://github.com/openai/openai-python

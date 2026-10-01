@@ -1,0 +1,248 @@
+title: "常駐アプリ / 共通"
+lead: どの層からも使う設定のモデル・ログ・例外・置き場所のパスと、feature の間を渡る型を持つ。ほかの層に依存しない。
+directory: |-
+  ```
+  src/voice_paste/shared/
+  ├── settings.py    # 設定のモデル（pydantic）、TOML の読み書き（tomlkit）
+  ├── logger.py      # 標準の logging の設定。日付ごとのファイルと保持期間での削除
+  ├── errors.py      # 例外の階層
+  ├── constants.py   # 置き場所のパス（platformdirs）
+  └── types.py       # feature の間を渡る型（入口・録音・文字起こしの結果）
+  ```
+enums:
+  - name: Entry
+    title: 入口
+    container: shared/types.py
+    usecase: 共通
+    summary: セッションを始めた入口。セッションと出力先が使う
+    values:
+      - value: hotkey
+        title: ホットキー
+        description: 録音開始のホットキー
+      - value: tray
+        title: トレイ
+        description: トレイのメニュー
+      - value: api
+        title: API
+        description: POST /sessions
+    status: planned
+data_models:
+  - name: Recording
+    title: 録音
+    container: shared/types.py
+    usecase: 共通
+    role: DTO
+    summary: 止めた録音の音と形式。録音・セッション・履歴が使う
+    properties:
+      - name: samples
+        type: numpy.ndarray
+        description: モノラルの 16 bit の音
+      - name: sample_rate
+        type: int
+        description: サンプルレート（Hz）
+      - name: duration_sec
+        type: float
+        description: 録音の長さ（一時停止の間を除く）
+    status: planned
+  - name: TranscriptionOutcome
+    title: 文字起こしの結果
+    container: shared/types.py
+    usecase: 共通
+    role: DTO
+    summary: 出力先へ渡す結果。セッションと出力先が使う
+    properties:
+      - name: session_id
+        type: str
+        description: セッションの ID
+      - name: result
+        type: Literal["transcribed", "failed", "truncated"]
+        description: 結果の種類
+      - name: text
+        type: str
+        description: 用語集で補正した文字。空・失敗・打ち切りは空文字
+      - name: error
+        type: str | None
+        description: 失敗の理由
+    status: planned
+  - name: AppPaths
+    title: 置き場所のパス
+    container: shared/constants.py
+    usecase: 共通
+    role: DTO
+    summary: 設定・履歴・ログ・一時の音声・トークンの置き場所
+    description: |-
+      既定は platformdirs で `%APPDATA%\voice-paste\`（設定）と `%LOCALAPPDATA%\voice-paste\`（それ以外）を引く。
+      並走の間は開発用の置き場所を渡して普段使いの置き場所に触れない（#16）。
+    properties:
+      - name: settings_file
+        type: Path
+        description: '`%APPDATA%\voice-paste\settings.toml`'
+      - name: history_dir
+        type: Path
+        description: '`%LOCALAPPDATA%\voice-paste\history\`'
+      - name: log_dir
+        type: Path
+        description: '`%LOCALAPPDATA%\voice-paste\log\`'
+      - name: tmp_dir
+        type: Path
+        description: '`%LOCALAPPDATA%\voice-paste\tmp\`（履歴を残さないときの一時の音声）'
+      - name: token_file
+        type: Path
+        description: '`%LOCALAPPDATA%\voice-paste\api_token`（起動ごとのトークンとポート）'
+    refs:
+      - dev/設計書/外部ライブラリ/pydantic#
+    status: planned
+  - name: Settings
+    title: 設定
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: settings.toml の全体。項目ごとに範囲・説明・再起動が要るかの印を持ち、設定画面の欄はこのモデルから組み立てる
+    inherits: pydantic.BaseModel
+    description: 'キーの一つ一つは設計書『設定』で #16 が起こす。ここでは大きなまとまりだけを持つ。'
+    properties:
+      - name: transcription
+        type: TranscriptionSettings
+        description: 使うエンジンと、エンジンごとの設定（local_whisper・openai を分けて持つ）
+      - name: recording
+        type: RecordingSettings
+        description: 録音中の音量の割合・画面を出さない設定
+      - name: hotkeys
+        type: HotkeySettings
+        description: 録音の開始・確定・一時停止・取り消しのホットキー
+      - name: outputs
+        type: list[OutputSettings]
+        description: 出力先の ID とオン・オフ、出力先ごとの設定（AI チャットの送り先の一覧・貼り付けと Enter の間）
+      - name: history
+        type: HistorySettings
+        description: 履歴を残すか・保持期間
+      - name: glossary_path
+        type: Path
+        description: 用語集の CSV（既定は %APPDATA%\voice-paste\ の下）
+      - name: api
+        type: ApiSettings
+        description: 待ち受けのポート・返送を許すホスト
+    refs:
+      - dev/設計書/外部ライブラリ/pydantic#
+    status: planned
+classes:
+  - name: AppError
+    title: アプリの例外
+    container: shared/errors.py
+    usecase: 共通
+    role: 例外
+    kind: クラス
+    inherits: Exception
+    summary: このアプリが送出する例外の根。API サーバーの例外ハンドラが HTTP のステータスへ変える
+    description: |-
+      | 例外 | 意味 | HTTP |
+      | --- | --- | --- |
+      | `CallbackNotAllowedError` | 返送先が許されない | 400 |
+      | `UnauthorizedError` | トークンが合わない | 401 |
+      | `ForbiddenRequestError` | Origin が付いている・Host が違う | 403 |
+      | `SessionNotFoundError` | セッションが無い・操作できない状態 | 404 |
+      | `SessionBusyError` | ほかのセッションが処理中 | 409 |
+      | `MicrophoneUnavailableError` | マイクを開けない | 503 |
+      | `TranscriptionError` | 文字起こしに失敗した（API へは返さず返送先へ届ける） | - |
+      | `EngineError` | エンジンが失敗した（外部連携が送出し、文字起こしが TranscriptionError に変える） | - |
+      | `DeliveryError`・`UnknownOutputError` | 出力先へ届けられない | - |
+      | `VolumeControlError` | システム音量を操作できない | - |
+      | `SettingsError` | 設定の値が合わない | - |
+      | `StartupError` | 起動に失敗した（エンジンを準備できない・前のプロセスが排他を放さない） | - |
+    status: planned
+functions:
+  - name: load_settings
+    title: 設定の読み込み
+    kind: 関数
+    container: shared/settings.py
+    usecase: 共通
+    scope: public
+    summary: settings.toml を読んで検証する。無ければ既定値で作る
+    args:
+      - name: path
+        type: Path
+        required: true
+        passing: positional
+        description: settings.toml
+    returns:
+      type: Settings
+      description: 検証した設定
+    exceptions:
+      - name: SettingsError
+        condition: 値がモデルに合わない（どのキーが合わないかを持たせる）
+    status: planned
+  - name: save_settings
+    title: 設定の書き戻し
+    kind: 関数
+    container: shared/settings.py
+    usecase: 共通
+    scope: public
+    summary: 検証した設定を、コメントを保ったまま tomlkit で書き戻す。再起動が要る項目が変わったかを返す
+    args:
+      - name: path
+        type: Path
+        required: true
+        passing: positional
+        description: settings.toml
+      - name: settings
+        type: Settings
+        required: true
+        passing: positional
+        description: 書く設定（検証済み）
+    returns:
+      type: bool
+      description: 再起動が要る項目が変わったか
+    status: planned
+  - name: setup_logging
+    title: ログの設定
+    kind: 関数
+    container: shared/logger.py
+    usecase: 常駐アプリを起動する
+    scope: public
+    summary: 標準の logging を日付ごとのファイルへ書くようにし、uvicorn のロガーもそこへ寄せる
+    args:
+      - name: log_dir
+        type: Path
+        required: true
+        passing: positional
+        description: ログの置き場所
+    returns:
+      type: None
+      description: なし
+    notes:
+      秘密の値: API キーとトークンはログに出さない（SecretStr で持ち、断った要求のログにも含めない）。
+    status: planned
+  - name: purge_old_logs
+    title: 古いログの削除
+    kind: 関数
+    container: shared/logger.py
+    usecase: 常駐アプリを起動する
+    scope: public
+    summary: 保持期間を過ぎた日付のログだけを消す（今日より前を全て消す今のやり方はやめる）
+    args:
+      - name: log_dir
+        type: Path
+        required: true
+        passing: positional
+        description: ログの置き場所
+      - name: retention_days
+        type: int
+        required: true
+        passing: positional
+        description: 保持期間
+      - name: today
+        type: date
+        required: true
+        passing: positional
+        description: 今日
+    returns:
+      type: int
+      description: 消したファイルの数
+    unit_tests:
+      - name: test_purge_old_logs
+        case: 正常
+        summary: 保持期間を過ぎた日付のログだけ消す
+        condition: 保持 1 日、今日・1 日前・2 日前のログ
+        mock: なし（一時フォルダ）
+        expected: 2 日前だけが消え、戻り値が 1
+    status: planned

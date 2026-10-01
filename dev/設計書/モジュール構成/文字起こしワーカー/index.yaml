@@ -1,0 +1,5 @@
+summary: "文字起こしワーカー（子プロセス）のモジュール構成"
+docs_index: true
+items:
+  - page: ワーカー.py.yaml
+    summary: faster-whisper のモデルを持ち、JSON Lines で受けた録音を起こす

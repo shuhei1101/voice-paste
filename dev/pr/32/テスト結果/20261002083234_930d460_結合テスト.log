@@ -1,0 +1,15 @@
+実行した commit: 930d460
+実行したコマンド: venv/Scripts/python.exe -m pytest tests/external/voice_paste/integrations/volume/test_adapter.py --run-external -v -rs（PYTHONPATH=src でこの worktree の src/voice_paste を読ませた。Windows の実機の既定の再生デバイスで実行）
+
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\shuhe\repo\voice-paste\venv\Scripts\python.exe
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\refactor-recording-rebuild-recording-and-volume
+configfile: pyproject.toml
+plugins: anyio-4.13.0, platformdirs-4.12.2
+collecting ... collected 3 items
+
+tests/external/voice_paste/integrations/volume/test_adapter.py::test_ext_lower_volume_when_no_fade PASSED [ 33%]
+tests/external/voice_paste/integrations/volume/test_adapter.py::test_ext_lower_volume_when_fade PASSED [ 66%]
+tests/external/voice_paste/integrations/volume/test_adapter.py::test_ext_restore_volume_when_no_fade PASSED [100%]
+
+============================== 3 passed in 0.76s ==============================

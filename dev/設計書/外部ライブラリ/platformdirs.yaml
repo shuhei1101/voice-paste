@@ -24,8 +24,9 @@ used_in:
   - src/voice_paste/shared/constants.py
 upstream: tox-dev/platformdirs
 verification:
-  state: 未確認
-  detail: WSL（Linux）では user_config_dir が `~/.config/voice-paste`、user_data_dir が `~/.local/share/voice-paste` を返すことまで確かめた。Windows で `%APPDATA%`・`%LOCALAPPDATA%` を返すことは、実装の単体テストを Windows で回すときに確かめる
+  state: 済
+  date: '2026-10-01'
+  detail: Windows（普段使いの venv の Python 3.14.3）で、一時フォルダへ `pip install --target` で入れた 4.12.2 を使い、`user_config_dir("voice-paste", appauthor=False, roaming=True)` が `C:\Users\{ユーザー}\AppData\Roaming\voice-paste`（`%APPDATA%` の下）、`user_data_dir("voice-paste", appauthor=False)` が `C:\Users\{ユーザー}\AppData\Local\voice-paste`（`%LOCALAPPDATA%` の下）を返すことを確かめた。venv には入れていない
 license: MIT（商用利用可）
 official_url: https://github.com/tox-dev/platformdirs
 docs_url: https://platformdirs.readthedocs.io/

@@ -4,186 +4,168 @@ scenarios:
     setup:
       - name: Mock
         description: なし（実機の Windows で実行）
-      - name: 常駐の起動
-        description: 常駐モードで起動する
-        notes: '`RESIDENT_MODE=true`'
       - name: 文字起こしのエンジン
-        description: ローカルの Whisper を使う
-        notes: '`TRANSCRIPTION_ENGINE=local`'
+        description: ローカルの Whisper を使う設定にする
     flow: |-
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
-        participant BAT as voice-paste.bat
-        participant APP as 常駐アプリ
+        participant SVC as 常駐サービス
+        participant FS as ファイル（ログ・履歴・トークン）
         participant TRAY as トレイ
         participant WK as 文字起こしワーカー（子プロセス）
-        participant FS as ファイル（PID・履歴・ログ）
+        participant API as API のサーバー
 
-        U->>BAT: ショートカットから開く
-        BAT->>FS: log/ のうち今日の日付で始まらないログを消す
-        BAT->>APP: venv の pythonw で voice_paste を起動する（CUDA の DLL のフォルダを PATH に足す）
-        APP->>FS: PID ファイルに自分のプロセスの番号を書く
-        APP->>FS: 保持期間を過ぎた履歴のフォルダを消す
-        APP->>TRAY: 灰色のアイコンを出す（voice-paste: モデル読み込み中...）
-        APP->>WK: 子プロセスを起動し、モデル・デバイス・量子化の設定を送る
-        WK-->>APP: モデルを読み込んだ（ready）
-        APP->>TRAY: 青のアイコンにする（voice-paste: 待機中）
-        APP->>APP: 録音開始のホットキーの受付を始める
+        U->>SVC: ショートカットから起動する
+        SVC->>SVC: 名前付きの排他を取る
+        SVC->>FS: 保持期間を過ぎたログと履歴を消す
+        SVC->>TRAY: 準備中のアイコンを出す
+        SVC->>WK: 子プロセスを起動し、エンジンの設定を送る
+        WK-->>SVC: モデルを読み込んだ（ready）
+        SVC->>FS: 起動ごとのトークンを作り、トークンのファイルに書く
+        SVC->>API: 127.0.0.1 で待ち受けを始める
+        API-->>SVC: 待ち受けを始めた
+        SVC->>SVC: 録音開始のホットキーの受付を始める
+        SVC->>TRAY: 待機中のアイコンにする
       ```
     expected:
-      - 'トレイに青いアイコンが出て、ツールチップが「voice-paste: 待機中」になっている'
-      - 録音開始のホットキー（`RESIDENT_HOTKEY`）を押すと録音の画面が開く
-      - PID ファイル（`%APPDATA%\voice-paste\voice_paste.pid`）に常駐アプリのプロセスの番号が書かれている
+      - トレイのアイコンが待機中になっている
+      - 録音開始のホットキーを押すと録音が始まる
+      - 127.0.0.1 の API が、トークンを付けた要求に応える
+      - トークンのファイル（`%LOCALAPPDATA%\voice-paste\` の下）に今回の起動のトークンが書かれている
       - 文字起こしワーカーの子プロセスが動いている
-  - name: 正常シナリオ（1 回だけ実行する起動）
-    setup:
-      - name: Mock
-        description: なし（実機の Windows で実行）
-      - name: 1 回だけの起動
-        description: 常駐しないモードで起動する
-        notes: '`RESIDENT_MODE=false`'
-    flow: |-
-      ```mermaid
-      sequenceDiagram
-        actor U as ユーザー
-        participant BAT as voice-paste.bat
-        participant APP as voice-paste
-        participant WK as 文字起こしワーカー（子プロセス）
-        participant FS as ファイル（PID・履歴・ログ）
-
-        U->>BAT: ショートカットから開く
-        BAT->>APP: venv の pythonw で voice_paste を起動する
-        APP->>FS: PID ファイルに自分のプロセスの番号を書く
-        APP->>FS: 保持期間を過ぎた履歴のフォルダを消す
-        APP->>WK: 子プロセスを起動し、モデルを読み込ませる
-        WK-->>APP: ready
-        APP->>APP: トレイを出さずに、すぐ録音を始める
-        Note over APP: 録音する から 起こした文字を届ける までを 1 回だけ行う
-        APP->>APP: プロセスを終える
-      ```
-    expected:
-      - トレイにアイコンが出ない
-      - 起動してモデルを読み込んだところで録音の画面が開く
-      - 1 回届け終えるか録音を取り消すと、voice-paste のプロセスが終わる
   - name: 正常シナリオ（OpenAI で文字を起こす）
     setup:
       - name: Mock
         description: なし（実機の Windows で実行）
-      - name: 常駐の起動
-        description: 常駐モードで起動する
-        notes: '`RESIDENT_MODE=true`'
       - name: 文字起こしのエンジン
-        description: OpenAI を使い、API キーを設定してある
-        notes: '`TRANSCRIPTION_ENGINE=openai`・`OPENAI_API_KEY` に値がある'
+        description: OpenAI を使う設定にし、API キーを設定してある
     flow: |-
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
-        participant BAT as voice-paste.bat
-        participant APP as 常駐アプリ
+        participant SVC as 常駐サービス
         participant TRAY as トレイ
 
-        U->>BAT: ショートカットから開く
-        BAT->>APP: venv の pythonw で voice_paste を起動する
-        APP->>TRAY: 灰色のアイコンを出す（voice-paste: モデル読み込み中...）
-        APP->>APP: API キーがあることを確かめ、OpenAI のクライアントを作る
-        APP->>TRAY: 青のアイコンにする（voice-paste: 待機中）
-        APP->>APP: 録音開始のホットキーの受付を始める
+        U->>SVC: ショートカットから起動する
+        SVC->>TRAY: 準備中のアイコンを出す
+        SVC->>SVC: API キーがあることを確かめる
+        Note over SVC: トークン・API の待ち受け・ホットキーは 正常シナリオ と同じ
+        SVC->>TRAY: 待機中のアイコンにする
       ```
     expected:
-      - 'トレイに青いアイコンが出て、ツールチップが「voice-paste: 待機中」になっている'
+      - トレイのアイコンが待機中になっている
       - 文字起こしワーカーの子プロセスが動いていない
       - 起動の時点では OpenAI への通信が起きていない
-  - name: 正常シナリオ（前のプロセスが残っている）
+  - name: 正常シナリオ（前の常駐サービスが動いている）
     setup:
       - name: Mock
         description: なし（実機の Windows で実行）
       - name: 前のプロセス
-        description: 常駐アプリが 1 つ動いており、PID ファイルにその番号が書かれている
+        description: 常駐サービスが 1 つ動いており、名前付きの排他を持っている
     flow: |-
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
-        participant BAT as voice-paste.bat
-        participant APP as 新しい常駐アプリ
-        participant OLD as 前の常駐アプリ
-        participant FS as PID ファイル
+        participant NEW as 新しい常駐サービス
+        participant OLD as 前の常駐サービス
 
-        U->>BAT: ショートカットから開く
-        BAT->>APP: venv の pythonw で voice_paste を起動する
-        APP->>FS: 前のプロセスの番号を読む
-        APP->>OLD: taskkill /F で強制終了し、終わったら 0.5 秒待つ
-        APP->>FS: 自分のプロセスの番号を書く
-        Note over APP: 以降は 正常シナリオ と同じ
+        U->>NEW: ショートカットから起動する
+        NEW->>NEW: 名前付きの排他が取られている
+        NEW->>OLD: 終わるよう頼む（名前付きのイベント）
+        OLD->>OLD: 録音・文字起こしを止め、トレイのアイコンを消して終わる
+        NEW->>NEW: 名前付きの排他を取る
+        Note over NEW: 以降は 正常シナリオ と同じ
       ```
     expected:
-      - 前の常駐アプリのプロセスが終わっている
-      - 新しい常駐アプリのアイコンが待機中（青）で出ている
-      - PID ファイルに新しい常駐アプリの番号が書かれている
+      - 前の常駐サービスのプロセスが終わり、トレイに前のアイコンが残っていない
+      - 新しい常駐サービスのアイコンが待機中で出ている
+      - 常駐サービスのプロセスが 1 つだけ動いている
     notes:
-      読み取れなかったこと: 前のプロセスは `taskkill /F` で強制終了され、トレイのアイコンを消す処理（pystray の `stop()`）を通らない。前のアイコンが通知領域にいつまで残るかは、Windows の通知領域の扱いで決まり、コードからは読み取れない。
-  - name: 正常シナリオ（保持期間を過ぎた履歴がある）
+      起動し直しの手作業: master を取り込んだ後にショートカットから起動し直す使い方を残すため、新しいプロセスが前のプロセスに終わるよう頼む。プロセスの番号での強制終了はしない。
+  - name: 正常シナリオ（保持期間を過ぎた履歴とログがある）
     setup:
       - name: Mock
         description: なし（実機の Windows で実行）
-      - name: 履歴の設定
-        description: 履歴を残し、保持期間を 1 日にする
-        notes: '`HISTORY_ENABLED=true`・`HISTORY_RETENTION_DAYS=1`'
-      - name: 古い履歴
-        description: '`history/` に、今日から 2 日前の日付のフォルダと、今日の日付のフォルダがある'
-        notes: フォルダ名は `YYYYMMDD`
+      - name: 保持期間
+        description: 履歴とログの保持期間を 1 日にする
+      - name: 古い履歴とログ
+        description: 今日から 2 日前の日付の履歴とログと、今日の日付の履歴とログがある
     flow: |-
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
-        participant APP as 常駐アプリ
-        participant FS as 履歴（history/）
+        participant SVC as 常駐サービス
+        participant FS as 履歴・ログ
 
-        U->>APP: voice-paste.bat から起動する
-        APP->>FS: フォルダ名が「今日 - 保持日数」の日付より前の履歴のフォルダを消す
-        Note over APP: 以降は 正常シナリオ と同じ
+        U->>SVC: ショートカットから起動する
+        SVC->>FS: 保持期間を過ぎた履歴とログを消す
+        Note over SVC: 以降は 正常シナリオ と同じ
         loop 常駐中の 1 時間ごと
-          APP->>FS: 同じ条件で古い履歴のフォルダを消す
+          SVC->>FS: 同じ条件で古い履歴とログを消す
         end
       ```
     expected:
-      - 2 日前の日付の履歴のフォルダが消えている
-      - 今日の日付の履歴のフォルダが残っている
+      - 2 日前の日付の履歴とログが消えている
+      - 今日の日付の履歴とログが残っている
   - name: 異常シナリオ（文字起こしのエンジンを準備できない）
     setup:
       - name: Mock
         description: なし（実機の Windows で実行）
-      - name: 常駐の起動
-        description: 常駐モードで起動する
-        notes: '`RESIDENT_MODE=true`'
       - name: API キーの欠落
         description: OpenAI を使う設定にし、API キーを空にする
-        notes: '`TRANSCRIPTION_ENGINE=openai`・`OPENAI_API_KEY=`'
     flow: |-
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
-        participant BAT as voice-paste.bat
-        participant APP as 常駐アプリ
+        participant SVC as 常駐サービス
         participant TRAY as トレイ
+        participant LOG as ログ
 
-        U->>BAT: ショートカットから開く
-        BAT->>APP: venv の pythonw で voice_paste を起動する
-        APP->>TRAY: 灰色のアイコンを出す（voice-paste: モデル読み込み中...）
-        APP->>APP: API キーが空で例外になり、起動の処理が止まる
+        U->>SVC: ショートカットから起動する
+        SVC->>TRAY: 準備中のアイコンを出す
+        SVC->>SVC: API キーが空で、エンジンを準備できない
+        SVC->>LOG: 起動に失敗した理由を書く
+        SVC->>TRAY: 失敗のアイコンにし、起動に失敗したことを知らせる
       ```
     expected:
-      - 録音開始のホットキーを押しても録音の画面が開かない
-      - トレイのアイコンが青（待機中）に変わらない
-      - ダイアログでの知らせが出ない
+      - トレイで起動に失敗したことが知らされている
+      - ログに起動に失敗した理由が書かれている
+      - 常駐サービスのプロセスは終わらず、トレイのメニューから設定を開ける
+      - 録音開始のホットキーを押しても録音が始まらない
     notes:
-      同じ結末になる場合: ローカルの Whisper で、文字起こしワーカーがモデルを読み込めずに ready を返さないときも、同じく起動の処理が止まる。
-      読み取れなかったこと: 止まった後にトレイのアイコンが残るか、プロセスが終わるかは、コードからは読み取れない（pystray の `run_detached` のスレッドによる）。
-lead: '`voice-paste.bat` から常駐アプリを起動し、文字起こしのエンジンを準備して録音開始のホットキーを待つ状態にする単一ユースケース。'
-issue: 3
+      同じ扱いになる失敗: ローカルの Whisper で、文字起こしワーカーがモデルを読み込めずに ready を返さないときも同じ扱いになる。
+  - name: 異常シナリオ（API の待ち受けを始められない）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: ポートの使用中
+        description: API の待ち受けのポートを、ほかのプロセスが先に使っている
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SVC as 常駐サービス
+        participant API as API のサーバー
+        participant TRAY as トレイ
+        participant LOG as ログ
+
+        U->>SVC: ショートカットから起動する
+        Note over SVC: エンジンの準備までは 正常シナリオ と同じ
+        SVC->>API: 127.0.0.1 で待ち受けを始める
+        API-->>SVC: 待ち受けを始められない
+        SVC->>LOG: 待ち受けに失敗した理由を書く
+        SVC->>TRAY: API を使えないことを知らせる
+        SVC->>SVC: 録音開始のホットキーの受付を始める
+      ```
+    expected:
+      - トレイで API を使えないことが知らされている
+      - ログに待ち受けに失敗した理由が書かれている
+      - 録音開始のホットキーを押すと録音が始まる
+lead: 'ショートカットから常駐サービスを起動し、文字起こしのエンジン・API の待ち受け・ホットキーの受付を立てて、録音の開始を待つ状態にする単一ユースケース。'
+issue: 14
 primary_actor: 音声入力を使うユーザー
-trigger: ユーザーが `voice-paste.bat` のショートカットを開く
+trigger: ユーザーが常駐サービスのショートカットを開く
 preconditions:
-  - Windows の端末で、リポジトリの直下に仮想環境 `venv` がある（無ければシステムの `pythonw` で起動する）
-  - リポジトリの直下に `.env` がある（無ければ `.env.sample` を写して作る）
+  - Windows の端末で、リポジトリの直下に仮想環境がある
+  - 設定ファイル（`%APPDATA%\voice-paste\settings.toml`）がある（無ければ既定値で作る）

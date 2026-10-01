@@ -28,7 +28,7 @@
 - [x] 複合ユースケース設計
 - [x] ~~デザインスタイル選定~~（画面の構成と見た目は [#21](https://github.com/shuhei1101/voice-paste/issues/21) のデザインの工程で決める）
 - [x] ~~画面一覧・画面遷移~~（画面の構成と見た目は [#21](https://github.com/shuhei1101/voice-paste/issues/21) のデザインの工程で決める）
-- [ ] 単一ユースケース設計
+- [x] 単一ユースケース設計
 - [x] ~~モック作成~~（画面の構成と見た目は [#21](https://github.com/shuhei1101/voice-paste/issues/21) のデザインの工程で決める）
 - [ ] インターフェース定義設計
 - [x] ~~部品設計~~（画面の構成と見た目は [#21](https://github.com/shuhei1101/voice-paste/issues/21) のデザインの工程で決める）

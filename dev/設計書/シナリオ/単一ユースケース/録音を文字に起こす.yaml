@@ -5,154 +5,197 @@ scenarios:
       - name: Mock
         description: なし（実機の Windows で実行）
       - name: 文字起こしのエンジン
-        description: ローカルの Whisper を使う
-        notes: '`TRANSCRIPTION_ENGINE=local`'
+        description: ローカルの Whisper を使う設定にする
       - name: 用語集
-        description: 用語集の CSV（`YOGO_FILE`、既定は `resources/yogo.csv`）に、話す内容で起きる誤変換と正しい表記の行がある
-        notes: 列は `誤変換`・`正しい表記`
+        description: 設定の用語集に、話す内容で起きる誤変換と正しい表記の行がある
+      - name: 入口
+        description: ホットキーから始めた録音を確定する
     flow: |-
       ```mermaid
       sequenceDiagram
-        participant APP as 常駐アプリ
-        participant FS as 用語集の CSV
+        participant SVC as 常駐サービス
+        participant GL as 用語集
         participant TRAY as トレイ
         participant OV as 文字起こし中の表示
         participant WK as 文字起こしワーカー（子プロセス）
+        participant HIST as 履歴
         actor U as ユーザー
 
-        APP->>FS: 用語集を読み直す
-        APP->>TRAY: 緑のアイコンにする（voice-paste: 文字起こし中）
-        APP->>OV: 開く（経過秒数・残り秒数 / 録音の長さ・進捗バー）
-        OV-->>U: 「貼り付けたい場所にカーソルを合わせてください」と出す
+        SVC->>GL: 用語集を読み直す
+        SVC->>TRAY: 文字起こし中のアイコンにする
+        SVC->>OV: 開く（経過と残りの時間・貼り付けたい場所にカーソルを合わせる案内）
         U->>U: 貼り付けたいアプリの入力欄へカーソルを移す
-        APP->>WK: 録音と設定（言語・ビーム幅・温度・VAD など）を送る
+        SVC->>WK: 録音とローカルの Whisper の設定を送る
         loop 区間ごと
-          WK-->>APP: 区間の終わりの時刻
-          APP->>OV: 残り秒数と進捗を更新する
+          WK-->>SVC: 区間の終わりの時刻
+          SVC->>OV: 残りの時間を更新する
         end
-        WK-->>APP: 区間ごとの文字を改行でつないだ結果
-        APP->>APP: 用語集の誤変換を正しい表記へ置き換える
-        APP->>OV: 閉じる
-        APP->>TRAY: 青のアイコンにする（voice-paste: 待機中）
+        WK-->>SVC: 区間ごとの文字を改行でつないだ結果
+        SVC->>SVC: 用語集の誤変換を正しい表記へ置き換える
+        SVC->>HIST: 起こした文字を録音と同じ履歴に書き足す
+        SVC->>OV: 閉じる
       ```
     expected:
       - 起こした文字の中の用語集の誤変換が、正しい表記に置き換わっている
       - 起こした文字が区間ごとに改行で区切られている
-      - 文字起こし中の表示が閉じ、トレイのアイコンが待機中に戻っている
+      - 履歴に録音と起こした文字がある
+      - 文字起こし中の表示が閉じている
       - 起こした文字を届ける へ進む
+    notes:
+      API から始めた録音: API から始めた録音では、文字起こし中の表示を開かない。それ以外は同じ流れである。
   - name: 正常シナリオ（OpenAI で起こす）
     setup:
       - name: Mock
         description: なし（実機の Windows と OpenAI API で実行）
       - name: 文字起こしのエンジン
-        description: OpenAI を使い、API キーを設定してある
-        notes: '`TRANSCRIPTION_ENGINE=openai`・`OPENAI_API_KEY` に値がある'
+        description: OpenAI を使う設定にし、API キーと OpenAI のエンジンの設定（モデル・言語・温度）を設定してある
     flow: |-
       ```mermaid
       sequenceDiagram
-        participant APP as 常駐アプリ
+        participant SVC as 常駐サービス
         participant OV as 文字起こし中の表示
         participant OAI as OpenAI API
 
-        Note over APP: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
-        APP->>OAI: 録音を送る（モデル whisper-1・区間つきの応答・WHISPER_LANGUAGE・WHISPER_TEMPERATURE）
-        OAI-->>APP: 区間ごとの文字と録音の長さ
-        APP->>OV: 区間ごとに残り秒数と進捗を更新する
-        APP->>APP: 区間の文字を改行でつなぐ（区間が無ければ全文を使う）
-        Note over APP: 用語集での補正から後は 正常シナリオ と同じ
+        Note over SVC: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
+        SVC->>OAI: 録音を送る（OpenAI のエンジンの設定のモデル・言語・温度）
+        OAI-->>SVC: 区間ごとの文字と録音の長さ
+        SVC->>OV: 区間ごとに残りの時間を更新する
+        SVC->>SVC: 区間の文字を改行でつなぐ
+        Note over SVC: 用語集での補正から後は 正常シナリオ と同じ
       ```
     expected:
       - 起こした文字の中の用語集の誤変換が、正しい表記に置き換わっている
-      - 文字起こし中の表示が閉じ、トレイのアイコンが待機中に戻っている
+      - OpenAI への要求が、OpenAI のエンジンの設定のモデル・言語・温度を使っている（ローカルの Whisper の設定を使っていない）
       - 起こした文字を届ける へ進む
   - name: 正常シナリオ（文字起こしワーカーが落ちる）
     setup:
       - name: Mock
         description: なし（実機の Windows で実行）
       - name: 文字起こしのエンジン
-        description: ローカルの Whisper を使う
-        notes: '`TRANSCRIPTION_ENGINE=local`'
+        description: ローカルの Whisper を使う設定にする
       - name: ワーカーの停止
-        description: 文字起こしの途中で、文字起こしワーカーの子プロセスを外から終わらせる
+        description: 文字起こしの途中で、文字起こしワーカーの子プロセスを外から終わらせる（やり直しに立てたワーカーは止めない）
     flow: |-
       ```mermaid
       sequenceDiagram
-        participant APP as 常駐アプリ
+        participant SVC as 常駐サービス
         participant WK as 文字起こしワーカー（子プロセス）
         participant WK2 as 新しい文字起こしワーカー
 
-        APP->>WK: 録音と設定を送る
-        WK--xAPP: 応答の途中で終わる
-        APP->>WK2: 子プロセスを起動し直し、モデルを読み込ませる
-        WK2-->>APP: ready
-        APP->>WK2: 同じ録音をもう一度送る（やり直しは 1 回だけ）
-        WK2-->>APP: 文字起こしの結果
-        Note over APP: 用語集での補正から後は 正常シナリオ と同じ
+        SVC->>WK: 録音と設定を送る
+        WK--xSVC: 応答の途中で終わる
+        SVC->>WK2: 子プロセスを起動し直し、モデルを読み込ませる
+        WK2-->>SVC: ready
+        SVC->>WK2: 同じ録音をもう一度送る（やり直しは 1 回だけ）
+        WK2-->>SVC: 文字起こしの結果
+        Note over SVC: 用語集での補正から後は 正常シナリオ と同じ
       ```
     expected:
       - 起こした文字が得られ、起こした文字を届ける へ進む
       - 文字起こしワーカーが新しい子プロセスで動いている
-      - 常駐アプリのプロセスは動き続けている
+      - 常駐サービスのプロセスが動き続けている
+  - name: 異常シナリオ（やり直したワーカーも落ちる）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 文字起こしのエンジン
+        description: ローカルの Whisper を使う設定にする
+      - name: ワーカーの停止
+        description: 文字起こしの途中で文字起こしワーカーの子プロセスを終わらせ、やり直しに立てたワーカーも終わらせる
+      - name: 入口
+        description: ホットキーから始めた録音を確定する
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant WK2 as やり直しのワーカー
+        participant WK3 as 次の録音のためのワーカー
+        participant OV as 文字起こし中の表示
+        participant TRAY as トレイ
+        actor U as ユーザー
+
+        Note over SVC: 最初のワーカーが落ちてやり直すまでは 正常シナリオ（文字起こしワーカーが落ちる） と同じ
+        WK2--xSVC: 応答の途中で終わる
+        SVC->>WK3: 子プロセスを起動し直し、次の録音に備える
+        SVC->>OV: 閉じる
+        SVC->>TRAY: 待機中のアイコンにする
+        SVC-->>U: 文字起こしに失敗したことを知らせる
+      ```
+    expected:
+      - 文字起こしに失敗したことがユーザーに知らされている
+      - 履歴にこの録音が残っている
+      - 常駐サービスのプロセスが動き続けている
+      - 文字起こしワーカーが新しい子プロセスで動いている
+    notes:
+      API から始めた録音: API から始めた録音では、ユーザーに知らせず、文字起こしの失敗を 起こした文字を届ける へ渡す（異常シナリオ（呼び出し元へ失敗を返す））。
   - name: 異常シナリオ（文字起こしに失敗）
     setup:
       - name: Mock
         description: なし（実機の Windows で実行）
       - name: 文字起こしの失敗
         description: OpenAI を使う設定で、端末をネットワークから切り離す
-        notes: '`TRANSCRIPTION_ENGINE=openai`'
+      - name: 入口
+        description: ホットキーから始めた録音を確定する
     flow: |-
       ```mermaid
       sequenceDiagram
-        participant APP as 常駐アプリ
+        participant SVC as 常駐サービス
+        participant OAI as OpenAI API
         participant OV as 文字起こし中の表示
         participant TRAY as トレイ
-        participant OAI as OpenAI API
+        participant LOG as ログ
         actor U as ユーザー
 
-        Note over APP: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
-        APP->>OAI: 録音を送る
-        OAI--xAPP: 届かずに例外
-        APP->>OV: 閉じる
-        APP->>TRAY: 青のアイコンにする（voice-paste: 待機中）
-        APP-->>U: 「文字起こしエラー」のダイアログ（文字起こしに失敗しました: {例外の内容}）
+        Note over SVC: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
+        SVC->>OAI: 録音を送る
+        OAI--xSVC: 届かない
+        SVC->>LOG: 失敗した理由を書く
+        SVC->>OV: 閉じる
+        SVC->>TRAY: 待機中のアイコンにする
+        SVC-->>U: 文字起こしに失敗したことと理由を知らせる
       ```
     expected:
-      - 「文字起こしエラー」のダイアログに、例外の内容が出ている
-      - 文字起こし中の表示が閉じ、トレイのアイコンが待機中に戻っている
-      - 起こした文字を届ける へ進まず、録音は `cache/recording.wav` に残ったままである
+      - 文字起こしに失敗したことと理由がユーザーに知らされている
+      - 履歴にこの録音が残っている
+      - 起こした文字を届ける へ進まず、トレイのアイコンが待機中に戻っている
     notes:
-      同じ結末になる場合: ローカルの Whisper で、ワーカーがエラーを返したときと、やり直したワーカーも落ちたときも、同じダイアログで終わる。
+      API から始めた録音: API から始めた録音では、ユーザーに知らせず、文字起こしの失敗を 起こした文字を届ける へ渡す（異常シナリオ（呼び出し元へ失敗を返す））。ローカルの Whisper でワーカーがエラーを返したときも同じ扱いになる。
   - name: 異常シナリオ（文字起こしの結果が空）
     setup:
       - name: Mock
         description: なし（実機の Windows で実行）
       - name: 文字起こしのエンジン
         description: ローカルの Whisper で、無音の区間を除く設定にする
-        notes: '`TRANSCRIPTION_ENGINE=local`・`WHISPER_VAD_FILTER=true`'
       - name: 無音の録音
         description: 何も話さずに録音を確定する
+      - name: 入口
+        description: ホットキーから始めた録音を確定する
     flow: |-
       ```mermaid
       sequenceDiagram
-        participant APP as 常駐アプリ
+        participant SVC as 常駐サービス
+        participant WK as 文字起こしワーカー（子プロセス）
         participant OV as 文字起こし中の表示
         participant TRAY as トレイ
-        participant WK as 文字起こしワーカー（子プロセス）
+        participant LOG as ログ
 
-        Note over APP: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
-        APP->>WK: 録音と設定を送る
-        WK-->>APP: 空の文字
-        APP->>OV: 閉じる
-        APP->>TRAY: 青のアイコンにする（voice-paste: 待機中）
-        APP->>APP: 「Transcription result is empty.」をログに書いて終える
+        Note over SVC: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
+        SVC->>WK: 録音と設定を送る
+        WK-->>SVC: 空の文字
+        SVC->>LOG: 結果が空だったことを書く
+        SVC->>OV: 閉じる
+        SVC->>TRAY: 待機中のアイコンにする
       ```
     expected:
       - ダイアログが出ていない
-      - 起こした文字を届ける へ進まず、履歴にも残らない
-      - 文字起こし中の表示が閉じ、トレイのアイコンが待機中に戻っている
+      - 起こした文字を届ける へ進まず、履歴にこの録音が残っている
+      - トレイのアイコンが待機中に戻っている
+    notes:
+      API から始めた録音: API から始めた録音では、空の文字を 起こした文字を届ける へ渡す（正常シナリオ（呼び出し元へ空の文字を返す））。
 lead: 確定した録音を設定のエンジンで文字に起こし、用語集で補正するまでの単一ユースケース。
-issue: 3
+issue: 14
 primary_actor: 音声入力を使うユーザー
-trigger: 録音する で届け方を選んで録音を確定する
+trigger: 録音する で録音を確定する
 preconditions:
-  - '`cache/recording.wav` に確定した録音がある'
+  - 確定した録音が履歴か一時の音声にある
+  - 録音を始めた入口（ホットキー・トレイか API）が分かっている

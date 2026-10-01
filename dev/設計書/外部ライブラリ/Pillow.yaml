@@ -23,7 +23,7 @@ purl: pkg:pypi/pillow
 dependency_scope: 必須
 adoption: 採用
 used_in:
-  - voice_paste/tray.py
+  - voice_paste_legacy/tray.py
 upstream: python-pillow/Pillow
 verification:
   state: 未確認

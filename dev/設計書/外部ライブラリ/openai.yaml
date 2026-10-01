@@ -20,7 +20,7 @@ purl: pkg:pypi/openai
 dependency_scope: 必須
 adoption: 採用
 used_in:
-  - voice_paste/transcription/openai_transcriber.py
+  - voice_paste_legacy/transcription/openai_transcriber.py
 upstream: openai/openai-python
 verification:
   state: 未確認

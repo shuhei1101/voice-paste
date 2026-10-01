@@ -107,6 +107,19 @@ requirements:
     unit: 件
     rationale: '品質シナリオ 2。用意した N 件の録音で、補正後の文字が刷新前と N 件一致する。N と録音は #15 で履歴から選んで特性テストに固める'
     measurement: '#15 の特性テストを新しい構成で回す（一致しない件は差分を記録する）'
+    test_file: tests/nfr/test_transcription_parity.py
+    tests:
+      - name: test_transcription_parity_when_history_recordings
+        summary: 履歴から選んだ録音を起こして補正した文字が、履歴に残っている文字と一致する
+        condition: 履歴（history/）から選んだ 10 件の録音を、ローカルの Whisper（GPU）で起こし、用語集（resources/yogo.csv）で補正する
+        measurement: 10 件それぞれで、起こして補正した文字と履歴に残っている文字を比べ、一致した件数を数える（一致しない件は差分を記録する）
+        expected: 10 件中 10 件が一致する
+        notes: Windows の GPU と履歴の録音が要る。履歴の録音が無い環境では実行しない
+      - name: test_transcription_parity_when_correction_only
+        summary: 用語集の補正だけを切り出し、決まった入力に決まった出力を返す
+        condition: 誤変換を含む決まった入力の文字列と、用語集（resources/yogo.csv）を与える。録音と Whisper は使わない
+        measurement: 入力ごとに補正の関数を呼び、返った文字をあらかじめ決めた出力と比べる
+        expected: すべての入力で、返った文字が決めた出力と完全に一致する
   - name: 返送のタイムアウトと再送
     english_name: callback_retry
     category: 耐障害

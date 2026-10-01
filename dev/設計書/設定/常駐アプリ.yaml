@@ -1,5 +1,5 @@
 title: "設定: 常駐アプリ"
-lead: 常駐アプリが `.env` から読む設定の一覧。読み込みは `voice_paste/config.py`、見本は `.env.sample`、設定画面からの書き込みは `voice_paste/settings_gui.py`。
+lead: 常駐アプリが `.env` から読む設定の一覧。読み込みは `voice_paste_legacy/config.py`、見本は `.env.sample`、設定画面からの書き込みは `voice_paste_legacy/settings_gui.py`。
 files:
   - file: .env
     manages: 常駐アプリの設定の全部（文字起こし・ホットキー・届け方・AI 送信・履歴・画面・録音中の音量）
@@ -18,7 +18,7 @@ settings:
     default: local
     description: '`local` は faster-whisper（子プロセス）、`openai` は OpenAI API で文字を起こす。'
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: OPENAI_API_KEY
     title: OpenAI の API キー
     file: .env
@@ -27,7 +27,7 @@ settings:
     description: '`TRANSCRIPTION_ENGINE=openai` のときに使う API キー。空のまま OpenAI を選ぶと起動の処理が止まる。'
     secret: true
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_MODEL
     title: Whisper のモデル
     file: .env
@@ -35,7 +35,7 @@ settings:
     default: large-v3
     description: faster-whisper に読み込ませるモデル。設定画面では tiny / base / small / medium / large-v3 から選ぶ。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_DEVICE
     title: Whisper を動かすデバイス
     file: .env
@@ -43,7 +43,7 @@ settings:
     default: cuda
     description: faster-whisper を GPU（cuda）と CPU のどちらで動かすか。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_COMPUTE_TYPE
     title: Whisper の量子化タイプ
     file: .env
@@ -51,7 +51,7 @@ settings:
     default: float16
     description: faster-whisper の計算の精度。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_CPU_THREADS
     title: Whisper の CPU スレッド数
     file: .env
@@ -59,7 +59,7 @@ settings:
     default: '0'
     description: faster-whisper が使う CPU のスレッド数（0 は自動）。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_NUM_WORKERS
     title: Whisper の並列ワーカー数
     file: .env
@@ -67,7 +67,7 @@ settings:
     default: '1'
     description: faster-whisper の並列のデコードの数。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_BEAM_SIZE
     title: Whisper のビーム幅
     file: .env
@@ -75,7 +75,7 @@ settings:
     default: '10'
     description: ビームサーチの幅。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_BEST_OF
     title: Whisper の候補数
     file: .env
@@ -83,7 +83,7 @@ settings:
     default: '5'
     description: サンプリングの候補の数。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_LANGUAGE
     title: 認識する言語
     file: .env
@@ -91,7 +91,7 @@ settings:
     default: ja
     description: 文字起こしの言語。OpenAI で起こすときもこの値を使う。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_VAD_FILTER
     title: 無音の区間を除くか
     file: .env
@@ -99,7 +99,7 @@ settings:
     default: 'true'
     description: faster-whisper の VAD で無音の区間を除くか。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_VAD_THRESHOLD
     title: VAD の音声の確信度の閾値
     file: .env
@@ -107,7 +107,7 @@ settings:
     default: '0.5'
     description: 音声とみなす確信度の閾値。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_VAD_MIN_SPEECH_MS
     title: VAD の最小の音声の長さ
     file: .env
@@ -115,7 +115,7 @@ settings:
     default: '250'
     description: これより短い音を雑音として除く。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_VAD_MIN_SILENCE_MS
     title: VAD の最小の無音の長さ
     file: .env
@@ -123,7 +123,7 @@ settings:
     default: '2000'
     description: これ以上の無音で区間を区切る（起こした文字の改行の位置に効く）。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_CONDITION_ON_PREVIOUS_TEXT
     title: 前の区間を文脈に使うか
     file: .env
@@ -131,7 +131,7 @@ settings:
     default: 'false'
     description: 前の区間の文字を次の区間の文脈に使うか。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_TEMPERATURE
     title: 文字起こしの温度
     file: .env
@@ -139,7 +139,7 @@ settings:
     default: '0.0'
     description: サンプリングの温度（0.0 は決定的）。OpenAI で起こすときもこの値を使う。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WHISPER_NO_SPEECH_THRESHOLD
     title: 無音判定の閾値
     file: .env
@@ -147,7 +147,7 @@ settings:
     default: '0.6'
     description: 区間を無音とみなす確信度の閾値。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: YOGO_FILE
     title: 用語集のファイル
     file: .env
@@ -155,7 +155,7 @@ settings:
     default: resources/yogo.csv（exe では %APPDATA%\voice-paste\yogo.csv）
     description: 用語集の CSV の場所。相対パスは設定の置き場から解決する。設定画面の「用語集ファイル」で選べて、「開く」で既定のアプリで開ける。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: LOG_LEVEL
     title: ログのレベル
     file: .env
@@ -163,7 +163,7 @@ settings:
     default: INFO
     description: '`log/` に書くログのレベル。起動時にロガーへ設定するので、設定画面で変えても再起動まで効かない。'
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: RESIDENT_MODE
     title: 常駐モード
     file: .env
@@ -171,7 +171,7 @@ settings:
     default: 'true'
     description: '`true` はトレイに常駐してホットキーを待つ。`false` は 1 回だけ録音から届けるまでを行って終わる。設定画面には無い。'
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: RESIDENT_HOTKEY
     title: 録音開始のホットキー
     file: .env
@@ -179,7 +179,7 @@ settings:
     default: <ctrl>+<alt>+d
     description: 待機中に録音を始めるホットキー。設定画面で保存すると登録し直す。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: CONFIRM_HOTKEY
     title: 確定（貼付+送信）のホットキー
     file: .env
@@ -187,7 +187,7 @@ settings:
     default: <ctrl>+<alt>+d
     description: 録音の画面で「貼付+送信」として確定する。既定では録音開始と同じキーで、同じキーで始めて確定できる。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: CONFIRM_PASTE_ONLY_HOTKEY
     title: 確定（貼付のみ）のホットキー
     file: .env
@@ -195,7 +195,7 @@ settings:
     default: <ctrl>+<alt>+v
     description: 録音の画面で「貼付のみ」として確定する。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: CANCEL_HOTKEY
     title: 録音の取り消しのホットキー
     file: .env
@@ -203,7 +203,7 @@ settings:
     default: <ctrl>+<alt>+q
     description: 録音の画面を確定せずに閉じる。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: COPY_ONLY_HOTKEY
     title: 確定（コピーのみ）のホットキー
     file: .env
@@ -211,7 +211,7 @@ settings:
     default: <ctrl>+<alt>+c
     description: 録音の画面で「コピー」として確定する。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: PAUSE_HOTKEY
     title: 一時停止のホットキー
     file: .env
@@ -219,7 +219,7 @@ settings:
     default: <ctrl>+<alt>+z
     description: 録音を一時停止・再開する。ほかの確定のホットキーと同じキーのときは登録しない。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: PASTE_KEY
     title: 貼り付けキー
     file: .env
@@ -227,7 +227,7 @@ settings:
     default: <ctrl>+v
     description: 貼り付け先へ送る貼り付けのキーの組み合わせ（ターミナル向けに `<ctrl>+<shift>+v` にしてもよい）。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: PASTE_ENTER_DELAY
     title: 貼り付けから送信までの待ち時間
     file: .env
@@ -235,7 +235,7 @@ settings:
     default: '0.5'
     description: 貼り付けてから Enter を送るまで待つ秒数。設定画面の「送信待機（秒）」。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: AI_SEND_{n}_NAME
     title: AI チャットの名前
     file: .env
@@ -243,7 +243,7 @@ settings:
     default: '（.env.sample では 1: ChatGPT / 2: Google AI / 3: Claude）'
     description: 録音の画面に出す AI 送信のボタンの名前。`{n}` は 1 始まりの番号で、名前か URL が空の番号で読み込みを止める。設定画面では 3 件まで扱う。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: AI_SEND_{n}_URL
     title: AI チャットの URL
     file: .env
@@ -251,7 +251,7 @@ settings:
     default: '（.env.sample では 1: https://chatgpt.com / 2: https://gemini.google.com/app / 3: https://claude.ai/new）'
     description: Microsoft Edge の `--app` で開く AI チャットの画面の URL。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: AI_SEND_{n}_HOTKEY
     title: AI チャットへ送るホットキー
     file: .env
@@ -259,7 +259,7 @@ settings:
     default: <ctrl>+<alt>+{n}
     description: 録音の画面で、その AI チャットへ送る届け方として確定する。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: AI_SEND_{n}_ENABLED
     title: AI チャットのボタンを出すか
     file: .env
@@ -267,7 +267,7 @@ settings:
     default: 'true'
     description: '`false` のとき、録音の画面にボタンもホットキーも出さない。'
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: AI_SEND_DELAY
     title: AI チャットを開いてから貼り付けるまでの待ち時間
     file: .env
@@ -275,7 +275,7 @@ settings:
     default: '3.0'
     description: AI チャットの画面を開いてから貼り付けるまで待つ秒数。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: HISTORY_ENABLED
     title: 履歴を残すか
     file: .env
@@ -283,7 +283,7 @@ settings:
     default: 'true'
     description: 録音の WAV と起こした文字を `history/` に残すか。`false` のときは古い履歴の削除も行わない。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: HISTORY_RETENTION_DAYS
     title: 履歴の保持日数
     file: .env
@@ -291,7 +291,7 @@ settings:
     default: '1'
     description: この日数より前の日付の履歴のフォルダを、起動時と常駐中の 1 時間ごとに消す。設定画面には無い。
     reload: restart
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WINDOW_TOPMOST
     title: 画面を常に最前面に出すか
     file: .env
@@ -299,7 +299,7 @@ settings:
     default: 'true'
     description: 録音の画面と文字起こし中の表示を最前面に出すか。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WINDOW_POSITION
     title: 画面の表示位置
     file: .env
@@ -307,7 +307,7 @@ settings:
     default: center
     description: 録音の画面と文字起こし中の表示を出す位置（隣の端から 20 px 離す）。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WINDOW_FOLLOW_CURSOR
     title: カーソルのあるモニターに出すか
     file: .env
@@ -315,7 +315,7 @@ settings:
     default: 'true'
     description: '`true` のとき、マウスカーソルのあるモニターの作業領域に画面を出す。'
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WINDOW_HIDDEN
     title: 画面を出さないか
     file: .env
@@ -323,7 +323,7 @@ settings:
     default: 'false'
     description: '`true` のとき、録音の画面も文字起こし中の表示も出さず、トレイの色とホットキーだけで操作する。'
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: WAVE_GAIN
     title: 波形の感度
     file: .env
@@ -331,7 +331,7 @@ settings:
     default: '4'
     description: 録音の画面の波形の振れの大きさ。大きいほど小さい声でも大きく振れる。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: RECORDING_VOLUME_ENABLED
     title: 録音中にシステム音量を下げるか
     file: .env
@@ -339,7 +339,7 @@ settings:
     default: 'true'
     description: '`true` のとき、録音を始める前にシステム音量を下げ、録音を終えたら戻す。'
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: RECORDING_VOLUME
     title: 録音中の音量の比率
     file: .env
@@ -347,7 +347,7 @@ settings:
     default: '50'
     description: 録音中のシステム音量を、録音前の音量に対する比率で指定する（50 は半分）。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
   - key: RECORDING_VOLUME_FADE_DURATION
     title: 音量のフェード時間
     file: .env
@@ -355,7 +355,7 @@ settings:
     default: '0.5'
     description: 音量を下げるときと戻すときにかける秒数。
     reload: immediate
-    implementation: voice_paste/config.py
+    implementation: voice_paste_legacy/config.py
 notes:
   反映の列の読み方: '`immediate` は設定画面で保存すると動いている常駐アプリに効く項目。`.env` を直接書き換えたときは、どの項目も再起動まで効かない（起動時に 1 度だけ読む）。'
   値の読み方: bool の項目は小文字にして `true` のときだけ真として扱う。数値の項目に数値でない値があると、起動時に設定を読むところで例外になり起動できない。

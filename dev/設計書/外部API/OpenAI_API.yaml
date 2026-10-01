@@ -19,7 +19,7 @@ endpoints:
         condition: SDK が例外を投げ、「文字起こしエラー」のダイアログを出す（ステータスごとの扱いの違いは無い）
 lead: OpenAI のモデルを HTTP で呼ぶ API。音声の文字起こしのエンドポイントを持つ。
 used_in:
-  - voice_paste/transcription/openai_transcriber.py
+  - voice_paste_legacy/transcription/openai_transcriber.py
 verification:
   state: 未確認
   detail: 現状の棚卸しで、コードが呼んでいる範囲を写しただけで、動かしてはいない（呼ぶと従量課金が発生する）

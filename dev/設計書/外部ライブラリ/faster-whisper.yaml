@@ -20,7 +20,7 @@ purl: pkg:pypi/faster-whisper
 dependency_scope: 必須
 adoption: 採用
 used_in:
-  - voice_paste/transcription/whisper_worker.py
+  - voice_paste_legacy/transcription/whisper_worker.py
 upstream: SYSTRAN/faster-whisper
 verification:
   state: 未確認

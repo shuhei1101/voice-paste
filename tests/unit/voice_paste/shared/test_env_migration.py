@@ -11,8 +11,7 @@ import pytest
 
 # 全てのキーに既定と違う値を書いた .env（{glossary} は用語集の絶対パス）
 CUSTOM_ENV_TEMPLATE = """\
-TRANSCRIPTION_ENGINE=openai
-OPENAI_API_KEY=sk-custom
+TRANSCRIPTION_ENGINE=local
 WHISPER_MODEL=small
 WHISPER_DEVICE=cpu
 WHISPER_COMPUTE_TYPE=int8
@@ -99,12 +98,11 @@ def test_migrate_env_when_sample(
     assert settings == Settings(glossary_path=tmp_path / "resources" / "yogo.csv")
     assert "WARNING" in caplog.text
     assert "RESIDENT_MODE" in caplog.text
+    assert "OPENAI_API_KEY" in caplog.text
 
 
 def test_migrate_env_when_custom_values(env_path: Path, tmp_path: Path) -> None:
     """既定と違う値を対応するキーへ写す（正常系）。"""
-    from pydantic import SecretStr
-
     from voice_paste.shared.env_migration import migrate_env
     from voice_paste.shared.settings import (
         AiChatSettings,
@@ -115,7 +113,6 @@ def test_migrate_env_when_custom_values(env_path: Path, tmp_path: Path) -> None:
         KeyboardSettings,
         LocalWhisperSettings,
         LoggingSettings,
-        OpenAISettings,
         PasteAndSendSettings,
         PasteOnlySettings,
         RecordingSettings,
@@ -136,7 +133,6 @@ def test_migrate_env_when_custom_values(env_path: Path, tmp_path: Path) -> None:
     # 検証
     assert settings == Settings(
         transcription=TranscriptionSettings(
-            engine="openai",
             local_whisper=LocalWhisperSettings(
                 model="small",
                 device="cpu",
@@ -153,9 +149,6 @@ def test_migrate_env_when_custom_values(env_path: Path, tmp_path: Path) -> None:
                 condition_on_previous_text=True,
                 temperature=0.2,
                 no_speech_threshold=0.7,
-            ),
-            openai=OpenAISettings(
-                api_key=SecretStr("sk-custom"), language="en", temperature=0.2
             ),
         ),
         recording=RecordingSettings(
@@ -305,13 +298,14 @@ def test_migrate_env_when_missing(env_path: Path) -> None:
         migrate_env(env_path)
 
 
-def test_migrate_env_when_unknown_engine(env_path: Path) -> None:
+@pytest.mark.parametrize("engine", ["openai", "azure"])
+def test_migrate_env_when_unknown_engine(env_path: Path, engine: str) -> None:
     """知らないエンジンを断る（異常系）。"""
     from voice_paste.shared.env_migration import migrate_env
     from voice_paste.shared.errors import SettingsError
 
     # 準備
-    env_path.write_text("TRANSCRIPTION_ENGINE=azure\n", encoding="utf-8")
+    env_path.write_text(f"TRANSCRIPTION_ENGINE={engine}\n", encoding="utf-8")
 
     # 実行・検証
     with pytest.raises(SettingsError, match="TRANSCRIPTION_ENGINE"):

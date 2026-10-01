@@ -77,7 +77,7 @@ def test_main_when_migrate_env(data_dir: Path, tmp_path: Path) -> None:
 
     # 準備
     env_path = tmp_path / ".env"
-    env_content = "TRANSCRIPTION_ENGINE=openai\nOPENAI_API_KEY=sk-test\n"
+    env_content = "WHISPER_MODEL=small\n"
     env_path.write_text(env_content, encoding="utf-8")
 
     # 実行
@@ -85,10 +85,9 @@ def test_main_when_migrate_env(data_dir: Path, tmp_path: Path) -> None:
 
     # 検証
     assert exit_code == 0
-    assert load_settings(data_dir / "settings.toml").transcription.engine == "openai"
+    assert load_settings(data_dir / "settings.toml").transcription.local_whisper.model == "small"
     assert env_path.read_text(encoding="utf-8") == env_content
     assert not (tmp_path / ".env.migrated").exists()
-    assert "sk-test" not in str(read_log_records(data_dir / "log"))
 
 
 def test_main_when_settings_exists_and_migrate_env(data_dir: Path, tmp_path: Path) -> None:
@@ -100,7 +99,7 @@ def test_main_when_settings_exists_and_migrate_env(data_dir: Path, tmp_path: Pat
     settings_file.write_text('[hotkeys]\nstart = "<ctrl>+<alt>+s"\n', encoding="utf-8")
     settings_before = settings_file.read_bytes()
     env_path = tmp_path / ".env"
-    env_path.write_text("TRANSCRIPTION_ENGINE=openai\n", encoding="utf-8")
+    env_path.write_text("WHISPER_MODEL=small\n", encoding="utf-8")
 
     # 実行
     exit_code = main(["--data-dir", str(data_dir), "--migrate-env", str(env_path)])

@@ -17,6 +17,7 @@
   --accent: #1f883d;
   --accent-text: #ffffff;
   --accent-hover: #1c8139;
+  --accent-fg: #0969da;
   --rec: #d1242f;
   --paused: #9a6700;
   --busy: #0969da;
@@ -49,6 +50,7 @@
     --accent: #238636;
     --accent-text: #ffffff;
     --accent-hover: #29903b;
+    --accent-fg: #4493f8;
     --rec: #f85149;
     --paused: #d29922;
     --busy: #4493f8;
@@ -140,7 +142,7 @@ kbd {
   margin-bottom: 8px;
   color: var(--text-2);
   font-size: 13px;
-  a { color: var(--accent); }
+  a { color: var(--accent-fg); }
 }
 
 /* スタイルの説明 */

@@ -44,3 +44,4 @@ mock: dev/mock/pages/settings-discard-dialog/37/a-standard/
 lead: 設定画面で欄を変えたまま取り消す・窓を閉じるときに、変えた値を捨てて閉じるかを確かめるダイアログ。
 refs:
   - dev/設計書/シナリオ/単一ユースケース/設定を変える#
+test_file: tests/integration/ui/test_settings_window.py

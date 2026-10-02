@@ -51,3 +51,4 @@ refs:
   - dev/設計書/シナリオ/単一ユースケース/録音を文字に起こす#
 notes:
   閉じるとき: 届けた・結果が空のときは閉じてトレイだけに戻る。文字起こしに失敗・届けられないときは閉じてトレイの通知で知らせる
+test_file: tests/integration/ui/test_transcribing_indicator.py

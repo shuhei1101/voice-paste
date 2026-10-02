@@ -19,10 +19,11 @@ layers:
       ```bash
       venv/Scripts/python.exe -m pytest tests/integration
       ```
-    description: pytest で実行する。`tests/integration/` の下に、インターフェース定義ごとのファイルを置く。
+    description: pytest で実行する。`tests/integration/` の下に、インターフェース定義ごとのファイルを置き、`tests/integration/ui/` の下に画面設計ごとのファイルを置く。
     prerequisites:
       - 外部依存なし（GPU も実機のマイクも要らない）
-      - マイク・システム音量・トレイ・文字起こしのエンジンは Mock に差し替え、履歴は一時フォルダに書く
+      - マイク・システム音量・文字起こしのエンジンは Mock に差し替え、履歴は一時フォルダに書く
+      - 画面のテスト（`tests/integration/ui/`）は offscreen（`QT_QPA_PLATFORM=offscreen`。`tests/conftest.py` が設定する）の QApplication で開き、操作は QtTest で行う。実機の画面・トレイ・ホットキーは使わず、UiDeps の関数は Mock で受ける
       - 返送先は 127.0.0.1 で待ち受けるテスト用の受け口で、テストが立てる
     run_one:
       label: ファイル

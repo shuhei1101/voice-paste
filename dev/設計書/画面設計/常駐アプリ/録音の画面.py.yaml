@@ -121,3 +121,4 @@ refs:
 notes:
   ホットキー: ボタンと同じ操作は、どこにフォーカスがあってもホットキーで行える（`HotkeyListener`）。窓のキーボードの操作は持たず、窓を押してフォーカスを取った後に Tab で移ったときだけフォーカスの枠を出す
   状態の受け取り: 画面はメインスレッドで `UiBridge.notified` の state_changed を受けて開く・閉じる・状態を替える。経過時間と波形はメインスレッドのタイマーで描き直す
+test_file: tests/integration/ui/test_recording_window.py

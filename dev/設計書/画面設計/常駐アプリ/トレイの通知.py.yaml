@@ -53,3 +53,4 @@ notes:
 
     {理由} は `notify` の `detail` を 1 文で出し、詳しい内容はログに書く。届けられないときは、どの出力先でも同じ見出しで出し、理由を変える。
   通知の操作: PySide6 のトレイの通知（`QSystemTrayIcon.showMessage`）は通知の中にボタンを置けないため、モックの「ログフォルダを開く」は「通知を押す（`messageClicked`）とログフォルダを開く」で実現する
+test_file: tests/integration/ui/test_tray_notification.py

@@ -42,3 +42,4 @@ mock: dev/mock/pages/settings-reset-dialog/37/a-standard/
 lead: 設定画面の「既定に戻す」で、全ての設定を既定の値へ戻すかを確かめるダイアログ。
 refs:
   - dev/設計書/シナリオ/単一ユースケース/設定を変える#
+test_file: tests/integration/ui/test_settings_window.py

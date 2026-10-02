@@ -1088,3 +1088,14 @@ ul.scene-note { padding-left: 20px; }
 
 /* 1 列の格子の見本の窓: 設定画面の欄と同じ幅にする */
 .desk--single .win.settings__form { max-width: 640px; }
+
+/* 切り替えのつまみ: 行が狭くても縮めない */
+.switch input { flex: none; }
+
+/* 中くらいの幅: 欄の名前に幅を残し、設定のキーを折り返す */
+@media (min-width: 641px) {
+  /* 欄の行: 名前の列に最低の幅を持たせる */
+  .row { grid-template-columns: minmax(9em, 1fr) minmax(0, max-content) auto; }
+  /* 設定のキー: 長いキーは列の中で折り返す */
+  .row .key { min-width: 0; overflow-wrap: anywhere; text-align: right; }
+}

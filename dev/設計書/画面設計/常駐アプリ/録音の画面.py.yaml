@@ -33,7 +33,7 @@ elements:
     visible_when: 常時
     display_format: 1 時間未満は `mm:ss`（例 00:42）、1 時間以上は `h:mm:ss`（例 1:02:37）。等幅の数字
     align: 右
-    source: Session.started_at から求めた録音の長さ（一時停止の間を除く）
+    source: 録音の画面が数えるストップウォッチ（出したときに 0 から始め、一時停止の間は止める）
   - name: 波形
     id: waveform
     kind: canvas
@@ -41,7 +41,7 @@ elements:
     description: 録音中の音量を棒の並びで流す。一時停止中は棒を止め、最後の形のまま出す
     io: 表示
     visible_when: 常時
-    source: 録音中の音量（`ui.wave_gain` を掛けた値）
+    source: UiDeps.level（Recorder.level。`ui.wave_gain` を掛けて高さを決める）
     refs:
       - dev/設計書/設定/常駐アプリ#settings[ui.wave_gain]
   - name: 一時停止のボタン

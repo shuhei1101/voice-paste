@@ -4,8 +4,8 @@ version:
   current: 6.11.2
   latest: 6.11.2
   checked_on: '2026-10-01'
-  source: '動作確認に使った版（pyproject.toml へは #21 で書く）'
-  pinning: '未定（画面を作る #21 で pyproject.toml に書くときに決める）'
+  source: 'pyproject.toml'
+  pinning: '`pyside6-essentials~=6.11.2`（パッチの版だけ上げる。PoC で動かした 6.11.2 から、イベントループとスレッドの受け渡しの振る舞いが変わりうるマイナーの版を上げない）'
 catalogs:
   - name: API
     version: 6.11.2
@@ -22,6 +22,18 @@ catalogs:
       - name: QtWidgets.QMessageBox
         kind: クラス
         purpose: 処理中に開始が来た・起動に失敗したなどのダイアログを出す
+      - name: QtCore.QTimer
+        kind: クラス
+        purpose: 波形・経過時間の描き直しと、Python のシグナルのハンドラを動かす空の定期のタイマー
+      - name: QtWidgets.QWidget
+        kind: クラス
+        purpose: 録音の画面・文字起こし中の表示・設定画面の窓（`WA_ShowWithoutActivating` でフォーカスを取らずに出す）
+      - name: QtGui.QGuiApplication.screenAt
+        kind: 関数
+        purpose: カーソルのあるモニターを引く
+      - name: QtTest.QTest
+        kind: クラス
+        purpose: 画面の結合テストでボタンを押し、キーを送る（pytest-qt は使わない）
 lead: Qt 6 の Python バインディング（Qt for Python）のうち、基本のモジュールだけを持つパッケージ。
 purl: pkg:pypi/pyside6-essentials
 dependency_scope: 必須

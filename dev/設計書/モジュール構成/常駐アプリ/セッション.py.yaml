@@ -126,6 +126,9 @@ data_models:
       - name: discard_temporary
         type: Callable[[Path], None]
         description: 処理を終えた録音が一時の音声なら消す（履歴の discard_temporary）
+      - name: report_progress
+        type: ProgressFn
+        description: ホットキー・トレイの録音で、文字起こしの進みを画面へ知らせる（配線では ui の report_progress）
     status: implemented
   - name: StartSessionRequest
     title: 開始のリクエスト
@@ -640,8 +643,8 @@ classes:
         returns:
           type: None
           description: なし
-        process: |-
-          1. 録音を文字に起こす（文字起こし）
+        process: |
+          1. 録音を文字に起こす（文字起こし。入口が api でなければ進みを知らせる関数に report_progress を渡し、api なら None）
              - TranscriptionError の場合、入口が api なら result=failed を届け、それ以外は transcription_failed を知らせて 7 へ
                - `[ERROR]` 文字起こしに失敗した（セッションの ID・理由）
           2. 用語集で補正する（用語集での補正）
@@ -791,6 +794,26 @@ classes:
           1. 失敗を知らせる（入口が api なら result=failed を届け、それ以外は transcription_failed を知らせる）
           2. どの経路でも必ず（finally）待機中を知らせる
         status: implemented
+      - name: current
+        title: 今のセッション
+        summary: 今のセッションを返す。画面が state_changed を受けたときに入口と状態を引く
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        returns:
+          type: Session | None
+          description: 今のセッション（不変）。待機中は None
+        process: 1. ロックの中で今のセッションを読んで返す
+        status: planned
+        notes:
+          単体テスト（単体テスト作成で表に起こす）: |-
+            | テスト名 | 正常/異常 | 条件 | 期待値 |
+            | --- | --- | --- | --- |
+            | test_current_when_idle | 正常 | セッションが無い | None |
+            | test_current_when_recording | 正常 | ホットキーで start した後 | entry が hotkey、state が recording の Session |
+            | test_complete_when_reports_progress | 正常 | ホットキーのセッションを complete し、transcribe の第 2 引数を記録する（ワーカースレッドは同期） | report_progress が渡る。API のセッションでは None |
+
+            この設計書は対応テストファイルを持ち、まだ無いテスト関数の行を書くツールが弾くため、テストを書いた後に `unit_tests` へ移す。
     status: implemented
 functions:
   - name: start_session_route

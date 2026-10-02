@@ -509,7 +509,7 @@ classes:
     kind: クラス
     inherits: Exception
     summary: このアプリが送出する例外の根。API サーバーの例外ハンドラが HTTP のステータスへ変える
-    description: |-
+    description: |
       | 例外 | 意味 | HTTP |
       | --- | --- | --- |
       | `CallbackNotAllowedError` | 返送先が許されない | 400 |
@@ -525,6 +525,7 @@ classes:
       | `VolumeControlError` | システム音量を操作できない | - |
       | `SettingsError` | 設定の値が合わない（合わないキーをメッセージに並べる） | - |
       | `StartupError` | 起動に失敗した（エンジンを準備できない・前のプロセスが排他を放さない） | - |
+      | `HotkeyError` | ホットキーの書式を pynput が読めない | - |
 
       全ての例外は docstring だけを持つクラスで `shared/errors.py` に置き、親は表に書かない限り `AppError`。
     status: implemented
@@ -929,6 +930,40 @@ functions:
     refs:
       - dev/設計書/外部ライブラリ/platformdirs#
     status: implemented
+  - name: find_hotkey_overlaps
+    title: ホットキーの重なりの検出
+    container: shared/settings.py
+    usecase: 設定を変える
+    summary: 受け付けるホットキーのうち、前に並んだものと重なるものを返す。Settings の確かめ（`model_validator(mode="after")`）が呼ぶ
+    kind: 関数
+    scope: public
+    args:
+      - name: settings
+        type: Settings
+        required: true
+        passing: positional
+        description: 確かめる設定
+    returns:
+      type: list[tuple[str, str]]
+      description: （重なったキー, 先に並んだ同じホットキーのキー）の並び。キーは format_error_location と同じ書式（例 `outputs[3].targets[2].hotkey`）
+    process: |-
+      1. 受け付けるホットキーを（キー, 値）でこの順に並べる: `hotkeys.start`・`hotkeys.pause`・`hotkeys.cancel`、オンの出力先の `outputs[].hotkey`、オンの AI チャットの送り先の `outputs[].targets[].hotkey`
+      2. 値を小文字にして、先に並んだものと同じものを集める
+         - `hotkeys.start` と「貼り付けて送信」の `hotkey` が同じ組は重なりにしない（録音中に押すとその出力先で確定する既定）
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/設定画面.py#
+    status: planned
+    notes:
+      Settings の確かめ: Settings に `model_validator(mode="after")` を足し、この関数が返した重なりごとに `PydanticCustomError` を集めた ValidationError を送出する（場所は重なったキー、理由は「{先のキー}と同じホットキー」）。設定画面は list_validation_failures で欄ごとのエラーにする
+      単体テスト（単体テスト作成で表に起こす）: |-
+        この設計書は対応テストファイルを持ち、まだ無いテスト関数の行を書くツールが弾くため、テストを書いた後に `unit_tests` へ移す。
+
+        | テスト名 | 正常/異常 | 条件 | 期待値 |
+        | --- | --- | --- | --- |
+        | test_find_hotkey_overlaps | 正常 | AI チャットの送り先 Claude の hotkey を <ctrl>+<alt>+v（貼り付けのみと同じ）にした設定（model_construct で確かめを飛ばして作る） | [("outputs[3].targets[2].hotkey", "outputs[1].hotkey")] |
+        | test_find_hotkey_overlaps_when_start_equals_paste_and_send | 正常 | Settings()（どちらも <ctrl>+<alt>+d） | [] |
+        | test_find_hotkey_overlaps_when_disabled_output | 正常 | コピーのみをオフにし、その hotkey を <ctrl>+<alt>+z（一時停止と同じ） | [] |
+        | test_settings_when_hotkeys_overlap | 異常 | hotkeys.cancel を <ctrl>+<alt>+z にした dict を Settings.model_validate に渡す | ValidationError。list_validation_failures のキーに hotkeys.cancel、理由に hotkeys.pause |
 constants:
   - name: APP_NAME
     title: アプリ名

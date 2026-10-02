@@ -932,7 +932,7 @@ input[type="number"][aria-invalid="true"], input.wide[aria-invalid="true"] {
 }
 
 /* 一覧を横に流す枠 */
-.targets-wrap { overflow-x: auto; }
+.targets-wrap { position: relative; overflow-x: auto; }
 
 /* アイコンだけのボタン */
 .btn--icon {
@@ -1073,3 +1073,6 @@ ul.scene-note { padding-left: 20px; }
 
 /* 部品のモックの欄の枠 */
 .win.settings__form { padding: 12px; }
+
+/* 入力欄の例示文: 本文と同じ比を保つ */
+::placeholder { color: var(--text-2); opacity: 1; }

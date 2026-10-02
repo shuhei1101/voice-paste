@@ -159,3 +159,4 @@ constraints:
   - item: タイムアウト
     constraint: 制限なし
     notes: マイクを止めるだけで待ちが無い
+test_file: tests/integration/test_stop_session.py

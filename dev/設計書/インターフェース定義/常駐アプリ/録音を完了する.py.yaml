@@ -168,3 +168,4 @@ constraints:
   - item: タイムアウト
     constraint: 制限なし
     notes: 文字起こしを待たずに 202 を返す
+test_file: tests/integration/test_complete_session.py

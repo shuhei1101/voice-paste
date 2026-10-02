@@ -224,3 +224,4 @@ constraints:
     notes: 同時に 1 つだけの排他で足りる
   - item: セッションの長さ
     constraint: 非機能要件のセッションの上限時間（開始からの経過時間。停止中も数える）。達したら 上限で打ち切る
+test_file: tests/integration/test_start_session.py

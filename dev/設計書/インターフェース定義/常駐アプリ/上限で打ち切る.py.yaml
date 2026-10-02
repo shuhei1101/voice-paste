@@ -74,3 +74,4 @@ constraints:
     notes: 経過時間は録音の長さ以上のため、この上限で録音の大きさも抑えられる
   - item: 対象
     constraint: API から始めたセッションだけ。ホットキー・トレイから始めた録音は対象外
+test_file: tests/integration/test_truncate_session.py

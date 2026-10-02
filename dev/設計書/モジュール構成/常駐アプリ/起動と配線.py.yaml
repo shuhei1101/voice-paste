@@ -13,7 +13,7 @@ directory: |-
 
   リポジトリの直下は `pyproject.toml`・起動のバッチファイル 1 つ・`settings.sample.toml`・`README.md`・`CLAUDE.md`・`src/`・`resources/`・`tests/`・`dev/`・`docs/` に絞る。
 
-  中身をまだ作らない層・feature・出力先（`features/{session,recording,transcription,correction,outputs,history}/`・`features/outputs/{paste_and_send,paste_only,copy_only,ai_chat,callback}/`・`integrations/`・`runtime/`・`server/`・`ui/`）は、import-linter の契約が指せるよう `__init__.py`（docstring 1 行）だけを置く。出力先の `registry.py`・`service.py`・`types.py` はそれぞれを作る Issue が置く。
+  中身をまだ作らない層（`ui/`）は、import-linter の契約が指せるよう `__init__.py`（docstring 1 行）だけを置く。
 diagrams:
   - name: 依存の向き
     diagram: |-

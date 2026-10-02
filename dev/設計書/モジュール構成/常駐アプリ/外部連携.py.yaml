@@ -402,6 +402,7 @@ functions:
       description: なし
     process: |-
       1. paste_key を `+` で区切り、`<ctrl>`・`<shift>`・`<alt>`・`<cmd>`・`<win>` を修飾キー、それ以外を主キーにする
+         - 主キーが 1 つでない場合、DeliveryError を送出する（キーを送らない）
       2. FOCUS_SETTLE_SEC だけ待つ（貼り付け先のフォーカスが落ち着くのを待つ）
       3. 修飾キーを順に押し、主キーを押して離し、修飾キーを逆順に離す
          - `[INFO]` 貼り付けのキーを送った（paste_key）
@@ -421,6 +422,9 @@ functions:
         condition: paste_key が `<ctrl>+<shift>+v`
         mock: pynput.keyboard.Controller・time.sleep
         expected: sleep(0.1)・press(ctrl)・press(shift)・press('v')・release('v')・release(shift)・release(ctrl) の順に呼ばれる
+    exceptions:
+      - name: DeliveryError
+        condition: paste_key に主キーが 1 つ無い（修飾キーだけ・主キーが 2 つ以上）
   - name: send_enter
     title: Enter の送信
     kind: 関数

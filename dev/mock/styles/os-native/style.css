@@ -699,6 +699,8 @@ input[aria-invalid="true"] {
   .settings__nav { border-right: 0; border-bottom: 1px solid var(--line); overflow-x: auto; }
   /* 一覧の項目を横並びにする */
   .settings__nav ul { display: flex; }
+  /* 一覧の項目を縮めず、名前を折り返さない */
+  .settings__nav a { white-space: nowrap; }
   /* 欄の行を縦に積む */
   .row { grid-template-columns: 1fr; }
 }

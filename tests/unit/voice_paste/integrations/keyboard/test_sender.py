@@ -99,6 +99,33 @@ def test_send_paste_when_multiple_modifiers(keyboard_calls: MagicMock) -> None:
     ]
 
 
+def test_send_paste_when_spaced_and_uppercase(keyboard_calls: MagicMock) -> None:
+    """キーの前後の空白と大文字を揃えて、同じキーとして送る（正常系）。"""
+    from voice_paste.integrations.keyboard.sender import send_paste
+
+    # 実行
+    send_paste("<Ctrl> + V")
+
+    # 検証
+    assert keyboard_calls.mock_calls == [
+        call.sleep(0.1),
+        call.controller.press(keyboard.Key.ctrl),
+        call.controller.press("v"),
+        call.controller.release("v"),
+        call.controller.release(keyboard.Key.ctrl),
+    ]
+
+
+def test_send_paste_when_no_main_key(keyboard_calls: MagicMock) -> None:
+    """主キーが 1 つ無ければ、キーを送らずに DeliveryError にする（異常系）。"""
+    from voice_paste.integrations.keyboard.sender import send_paste
+
+    # 実行・検証
+    with pytest.raises(DeliveryError):
+        send_paste("<ctrl>")
+    keyboard_calls.controller.press.assert_not_called()
+
+
 # === send_enter ===
 
 

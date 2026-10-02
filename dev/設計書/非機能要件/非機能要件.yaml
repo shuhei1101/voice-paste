@@ -29,9 +29,23 @@ requirements:
     source_kind: 制限なし
     value: '600'
     unit: 秒
-    rationale: '放置されたセッションがホットキーと API を塞ぐのをこの時間で解く。文字起こしはローカルの Whisper だけで、録音の長さに外部の上限は無い。刷新前の履歴の録音の最長（特性テストの録音で 140.8 秒）の 4 倍を超え、貯める録音が 16 kHz・モノラル・16 bit で 19.2 MB に収まる 600 秒にする。上限を変えるかは、API を作る #19 で呼び出し元の使い方が決まったときに見直す'
+    rationale: '放置されたセッションがホットキーと API を塞ぐのをこの時間で解く。文字起こしはローカルの Whisper だけで、録音の長さに外部の上限は無い。刷新前の履歴の録音の最長（特性テストの録音で 140.8 秒）の 4 倍を超え、貯める録音が 16 kHz・モノラル・16 bit で 19.2 MB に収まる 600 秒にする。API を作った #19 で、実機のマイクとシステム音量を使う本物の録音機で確かめた。上限を 3 秒に差し替えたセッションは、録音中は開始から 4.28 秒後・停止中は 3.03 秒後に打ち切られて返送先へ truncated が届き（上限から確かめる間隔の 1 秒までの遅れ）、実機の WAV の大きさから求めた 600 秒分は 19.21〜19.23 MB で、根拠の 19.2 MB と合った（2026-10-02）。決定値は 600 秒のままにする'
     overflow: 上限で打ち切り、録音を履歴に残して返送先へ truncated を送る（上限で打ち切る）
-    measurement: 上限を短い値に差し替えた結合テスト（上限で打ち切る）で、録音中と停止中の両方で打ち切られることを確かめる
+    measurement: 実機のマイクとシステム音量を使う本物の録音機で、上限時間を 3 秒に差し替えた SessionManager を上限のタイマーで回し、録音中と停止中の両方で打ち切られて返送先へ truncated が届くことを確かめる。履歴の WAV の長さと大きさから 600 秒分の大きさを求め、根拠の 19.2 MB と 5% 以内で合うことを確かめる。`--run-e2e` を付けて実行する（Windows 11・NVIDIA GPU）
+    test_file: tests/nfr/test_api_session_limit.py
+    tests:
+      - name: test_api_session_limit_when_recording
+        summary: 録音中のまま上限時間に達したセッションが打ち切られ、返送先へ truncated が届く
+        condition: 上限時間を 3 秒に差し替えた SessionManager を、実機のマイクとシステム音量を使う録音機と上限のタイマー（1 秒ごと）で動かし、API のセッションを始めて何もしない。返送先は 127.0.0.1 のテスト用の受け口
+        measurement: 開始から返送が届くまでの時間と、履歴の WAV の長さ・大きさから求めた 600 秒分の大きさを測る
+        expected: 返送が上限時間（3 秒）以上、3 秒以内の遅れで届いて result=truncated で、600 秒分の大きさが 19.2 MB の 5% 以内
+        notes: --run-e2e が無い環境では skip する
+      - name: test_api_session_limit_when_stopped
+        summary: 停止中のまま上限時間に達したセッションも打ち切られ、返送先へ truncated が届く
+        condition: 上限時間を 3 秒に差し替えた同じ構成で、API のセッションを始めて 1 秒後に停止し、完了を呼ばない
+        measurement: 開始から返送が届くまでの時間と、履歴の WAV の長さ・大きさから求めた 600 秒分の大きさを測る
+        expected: 返送が上限時間（3 秒）以上、3 秒以内の遅れで届いて result=truncated で、600 秒分の大きさが 19.2 MB の 5% 以内
+        notes: --run-e2e が無い環境では skip する
   - name: API の開始の応答時間
     english_name: api_start_response_time
     category: 性能
@@ -40,8 +54,16 @@ requirements:
     source: https://github.com/shuhei1101/voice-paste/blob/develop/dev/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/2_%E5%93%81%E8%B3%AA%E7%9B%AE%E6%A8%99.md
     value: '500'
     unit: ミリ秒
-    rationale: '品質シナリオ 1。今のコードに API が無いため、ホットキーを受けてから録音が始まるまでを刷新前（voice_paste_legacy）の値として読み替えた。実測は 20 回で中央値 12.71 ms・最大 40.30 ms（最初の 1 回。これ以外は 13.46 ms 以下）で、仮の値 500 ms を大きく下回る。実測はマイクを使わない計測でマイクを開く時間と HTTP の往復を含まないため、実測から値を導かず仮の値を決定値にする。API を作る #19 で測り直す。測った手順と生の値は PR #27 の dev/pr/27/常駐アプリ.md の `## テスト結果` に残している'
-    measurement: POST /sessions を 50 回続けて呼び（開始 → 停止 → 完了）、50 回とも返送先に文字が届き、開始の応答時間が決定値以内であることを実機で測る
+    rationale: '品質シナリオ 1。API が無かったため、刷新前（voice_paste_legacy）のホットキーを受けてから録音が始まるまでを読み替えた仮の値 500 ms を決定値にしていた。API を作った #19 で、本物の起動（実機のマイク・ローカルの Whisper）へ開始 → 停止 → 完了を 50 回続けて呼んで測り直した。開始の応答は最小 19.0 ms・中央値 21.0 ms・最大 59.5 ms で、決定値 500 ms を大きく下回り、50 回とも返送先に文字が届いた（2026-10-02）。決定値は 500 ms のままにする'
+    measurement: 本物の起動（python -m voice_paste）へ、実機のマイクで POST /sessions → 停止 → 完了を 50 回続けて呼び（返送が速く終わるよう vad_threshold = 1.0 の設定）、毎回の開始の応答時間を測る。`--run-e2e` を付けて実行する（Windows 11・NVIDIA GPU）
+    test_file: tests/nfr/test_api_start_response_time.py
+    tests:
+      - name: test_api_start_response_time
+        summary: 開始 → 停止 → 完了を 50 回続け、50 回とも返送先に文字が届き、開始の応答が決定値以内である
+        condition: 本物の常駐サービスを vad_threshold = 1.0 の設定で起動し、実機のマイクで 0.3 秒録っては停止・完了を呼ぶことを 50 回続ける。返送先は 127.0.0.1 のテスト用の受け口
+        measurement: 毎回の POST /sessions の応答時間（ミリ秒）を測り、返送先に届いた件数とセッションの ID の重なりを数える
+        expected: 返送が 50 件届いて全て result=transcribed で ID が重ならず、開始の応答時間の最大が 500 ms 以下
+        notes: --run-e2e が無い環境では skip する
   - name: 処理中の開始へのエラーの応答時間
     english_name: busy_response_time
     category: 性能
@@ -50,8 +72,16 @@ requirements:
     source: https://github.com/shuhei1101/voice-paste/blob/develop/dev/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/2_%E5%93%81%E8%B3%AA%E7%9B%AE%E6%A8%99.md
     value: '1'
     unit: 秒
-    rationale: '品質シナリオ 6。今のコードに API が無いため、処理中のホットキーを受けて捨てるまでを刷新前（voice_paste_legacy）の値として読み替えた。実測は 20 回で中央値 0.08 ms・最大 0.13 ms で、仮の値 1 秒を大きく下回る。実測は HTTP の往復と 409 の組み立てを含まないため、実測から値を導かず仮の値を決定値にする。API を作る #19 で測り直す。測った手順と生の値は PR #27 の dev/pr/27/常駐アプリ.md の `## テスト結果` に残している'
-    measurement: ホットキーの録音中に POST /sessions を呼び、409 が決定値以内に返り、2 つ目の録音が始まらないことを測る
+    rationale: '品質シナリオ 6。API が無かったため、刷新前（voice_paste_legacy）の処理中のホットキーを受けて捨てるまでを読み替えた仮の値 1 秒を決定値にしていた。API を作った #19 で、本物の起動（実機のマイク）で API のセッションを処理中にしたまま開始を 20 回呼んで測り直した。409 の応答は最小 1.2 ms・最大 1.6 ms で、決定値 1 秒を大きく下回った（2026-10-02）。ホットキーの受付は新しい構成に無いため（#21）、処理中は API で始めたセッションで測った。決定値は 1 秒のままにする'
+    measurement: 本物の起動へ、API の開始で処理中にしたまま POST /sessions を 20 回呼び、409 の応答時間を測る。2 つ目の録音が始まらないことは、処理中のセッションを完了させた後のログで、セッションを始めたのが 1 回だけであることから確かめる。`--run-e2e` を付けて実行する（Windows 11・NVIDIA GPU）
+    test_file: tests/nfr/test_busy_response_time.py
+    tests:
+      - name: test_busy_response_time
+        summary: 処理中に開始を呼ぶと 409 が決定値以内に返り、2 つ目の録音が始まらない
+        condition: 本物の常駐サービスを起動し、API の開始で処理中にしたまま、開始を 20 回呼ぶ。返送先は 127.0.0.1 のテスト用の受け口
+        measurement: 20 回の応答のステータスと応答時間（ミリ秒）を記録し、処理中のセッションを完了させた後に、常駐サービスのログでセッションを始めた回数を数える
+        expected: 20 回とも 409 で、応答時間の最大が 1000 ms 以下。セッションを始めたのは 1 回だけで、処理中のセッションの返送が 1 件届く
+        notes: 'ホットキーの受付が新しい構成に入る #21 までは、処理中を API で始めたセッションにする。--run-e2e が無い環境では skip する'
   - name: 話し終えてから貼り付くまでの時間
     english_name: paste_latency
     category: 性能

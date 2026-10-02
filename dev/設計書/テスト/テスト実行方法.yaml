@@ -50,17 +50,18 @@ layers:
   - name: 非機能要件テスト
     run_all: |-
       ```bash
-      venv/Scripts/python.exe -m pytest tests/nfr
+      venv/Scripts/python.exe -m pytest tests/nfr --run-e2e
       ```
     description: pytest で実行する。録音・用語集・設定・期待値は git 管理外の `tests/nfr/fixtures/` から読み、今のローカルの Whisper（GPU）で起こす。
     prerequisites:
       - Windows と NVIDIA GPU が要る（無い環境では文字起こしのテストを skip する。CUDA の DLL は venv の `Lib/site-packages/nvidia/` から読む）
       - '`tests/nfr/fixtures/` に録音・用語集・設定・期待値が要る（無ければ skip する）'
+      - API の開始・処理中・セッションの上限時間のテスト（`tests/nfr/test_api_start_response_time.py`・`test_busy_response_time.py`・`test_api_session_limit.py`）は実機のマイクで録音し、システム音量を一時的に下げる。誤実行を防ぐため `--run-e2e` を付けたときだけ走る（付けなければ skip する）
     run_one:
       label: ファイル
       command: |-
         ```bash
-        venv/Scripts/python.exe -m pytest {非機能要件テストファイルパス}
+        venv/Scripts/python.exe -m pytest {非機能要件テストファイルパス} --run-e2e
         ```
   - name: 外部疎通テスト
     run_all: |-

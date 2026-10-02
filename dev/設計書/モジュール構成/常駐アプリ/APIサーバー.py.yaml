@@ -313,3 +313,9 @@ constants:
     summary: secrets.token_urlsafe に渡す乱数のバイト数。256 bit で推測できない長さにする
     value: '32'
     status: planned
+test_files:
+  - tests/unit/voice_paste/server/test_middleware.py
+  - tests/unit/voice_paste/server/test_runner.py
+  - tests/unit/voice_paste/server/test_app.py
+  - tests/unit/voice_paste/server/test_error_handlers.py
+  - tests/unit/voice_paste/server/test_token.py

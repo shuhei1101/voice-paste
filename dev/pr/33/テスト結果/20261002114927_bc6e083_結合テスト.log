@@ -1,0 +1,40 @@
+$ venv/Scripts/python.exe -m pytest tests/integration -v
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\shuhe\repo\voice-paste\venv\Scripts\python.exe
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-session-session-and-api
+configfile: pyproject.toml
+plugins: anyio-4.13.0, platformdirs-4.12.2
+collecting ... collected 30 items
+
+tests/integration/test_complete_session.py::test_normal PASSED           [  3%]
+tests/integration/test_complete_session.py::test_normal_when_recording PASSED [  6%]
+tests/integration/test_complete_session.py::test_error_when_token_mismatch[no_authorization] PASSED [ 10%]
+tests/integration/test_complete_session.py::test_error_when_token_mismatch[wrong_token] PASSED [ 13%]
+tests/integration/test_complete_session.py::test_error_when_browser_request[origin] PASSED [ 16%]
+tests/integration/test_complete_session.py::test_error_when_browser_request[host] PASSED [ 20%]
+tests/integration/test_complete_session.py::test_error_when_session_unknown PASSED [ 23%]
+tests/integration/test_deliver_to_caller.py::test_normal PASSED          [ 26%]
+tests/integration/test_deliver_to_caller.py::test_normal_when_empty PASSED [ 30%]
+tests/integration/test_deliver_to_caller.py::test_normal_when_transcription_failed PASSED [ 33%]
+tests/integration/test_deliver_to_caller.py::test_normal_when_truncated PASSED [ 36%]
+tests/integration/test_deliver_to_caller.py::test_error_when_callback_unreachable PASSED [ 40%]
+tests/integration/test_deliver_to_caller.py::test_normal_when_receiver_waits_one_second PASSED [ 43%]
+tests/integration/test_start_session.py::test_normal PASSED              [ 46%]
+tests/integration/test_start_session.py::test_error_when_callback_not_allowed PASSED [ 50%]
+tests/integration/test_start_session.py::test_error_when_token_mismatch[no_authorization] PASSED [ 53%]
+tests/integration/test_start_session.py::test_error_when_token_mismatch[wrong_token] PASSED [ 56%]
+tests/integration/test_start_session.py::test_error_when_browser_request[origin] PASSED [ 60%]
+tests/integration/test_start_session.py::test_error_when_browser_request[host] PASSED [ 63%]
+tests/integration/test_start_session.py::test_error_when_busy PASSED     [ 66%]
+tests/integration/test_start_session.py::test_error_when_microphone_unavailable PASSED [ 70%]
+tests/integration/test_stop_session.py::test_normal PASSED               [ 73%]
+tests/integration/test_stop_session.py::test_normal_when_already_stopped PASSED [ 76%]
+tests/integration/test_stop_session.py::test_error_when_token_mismatch[no_authorization] PASSED [ 80%]
+tests/integration/test_stop_session.py::test_error_when_token_mismatch[wrong_token] PASSED [ 83%]
+tests/integration/test_stop_session.py::test_error_when_browser_request[origin] PASSED [ 86%]
+tests/integration/test_stop_session.py::test_error_when_browser_request[host] PASSED [ 90%]
+tests/integration/test_stop_session.py::test_error_when_session_unknown PASSED [ 93%]
+tests/integration/test_truncate_session.py::test_normal PASSED           [ 96%]
+tests/integration/test_truncate_session.py::test_normal_when_stopped PASSED [100%]
+
+============================= 30 passed in 18.40s =============================

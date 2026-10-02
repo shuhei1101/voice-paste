@@ -11,8 +11,9 @@ directory: |-
   ├── paste_only/          # 貼り付けのみ
   ├── copy_only/           # コピーのみ
   ├── ai_chat/             # AI チャットへ送る（Edge のアプリの画面）
-  └── callback/            # 呼び出し元へ返す（httpx）
-      ├── types.py         # 返送の中身（pydantic）
+  └── callback/            # 呼び出し元へ返す
+      ├── types.py         # 返送の中身（pydantic）・返送の応答
+      ├── client.py        # post_json（httpx）
       └── service.py       # deliver_to_caller・is_callback_allowed
   ```
 data_models:
@@ -37,7 +38,7 @@ data_models:
         type: bool
         default: 'False'
         description: API から始めた録音だけが使うか（呼び出し元へ返すだけが True）
-    status: planned
+    status: implemented
   - name: CallbackPayload
     title: 返送の中身
     container: features/outputs/callback/types.py
@@ -60,7 +61,22 @@ data_models:
         description: 失敗の理由
     refs:
       - dev/設計書/インターフェース定義/常駐アプリ/呼び出し元へ返す.py#
-    status: planned
+    status: implemented
+  - name: PostResult
+    title: 返送の応答
+    container: features/outputs/callback/types.py
+    usecase: 起こした文字を届ける
+    role: DTO
+    summary: post_json が返す、返送先のステータスと再送までに待つ秒数
+    description: '`@dataclass(frozen=True, slots=True, kw_only=True)`。'
+    properties:
+      - name: status
+        type: int
+        description: 返送先が返したステータス
+      - name: retry_after_sec
+        type: float | None
+        description: Retry-After を秒に直した値。無い・読めないときは None
+    status: implemented
 function_types:
   - name: OutputFn
     title: 出力先
@@ -88,7 +104,7 @@ function_types:
         notes: Edge のアプリの画面を開いて貼り付けて送る
       - target: deliver_to_caller
         notes: 返送先へ POST する。API から始めた録音だけが使う
-    status: planned
+    status: implemented
 constants:
   - name: OUTPUTS
     title: 出力先の一覧
@@ -112,6 +128,8 @@ constants:
         value: OutputSpec(id="callback", handler=deliver_to_caller, api_only=True)
         description: 呼び出し元へ返す
     status: planned
+    notes:
+      並走の間の一覧: '出力先を作り直す #20 までは、呼び出し元へ返す（callback）の 1 行だけを登録する。#20 がほかの 4 行を足す。'
 functions:
   - name: deliver
     title: 出力先への配送
@@ -161,7 +179,7 @@ functions:
       2. それ以外は、セッションで選んだ出力先を選ぶ
          - 選んだ出力先が無いかオフの場合、UnknownOutputError を送出する
       3. 選んだ出力先の関数で届ける
-         - `[INFO]` 届けた（セッションの ID・出力先の ID）
+         - `[INFO]` 出力先へ渡した（セッションの ID・出力先の ID）
     exceptions:
       - name: UnknownOutputError
         condition: 選んだ出力先が一覧に無いか、設定でオフ
@@ -185,7 +203,7 @@ functions:
         mock: 各出力先の handler
         expected: UnknownOutputError が送出される
         exception: 設定でオフ
-    status: planned
+    status: implemented
   - name: is_callback_allowed
     title: 返送先の確かめ
     kind: 関数
@@ -226,7 +244,7 @@ functions:
         condition: http://example.com/x
         mock: なし
         expected: 'False'
-    status: planned
+    status: implemented
   - name: deliver_to_caller
     title: 呼び出し元へ返す
     kind: 関数
@@ -247,32 +265,51 @@ functions:
         passing: positional
         description: 返送先
       - name: post
-        type: Callable[[str, dict], int]
+        type: Callable[[str, dict], PostResult]
         required: true
         passing: injected
-        description: httpx で POST してステータスを返す（タイムアウト・リダイレクトを追わない設定済み）
+        description: 返送先へ JSON を POST してステータスと Retry-After を返す（タイムアウトを部分適用した post_json）
+      - name: allowed_hosts
+        type: frozenset[str]
+        required: true
+        passing: injected
+        description: 設定で許可したホスト
       - name: retry_count
         type: int
         required: true
         passing: injected
         description: 非機能要件の返送の再送回数
-      - name: retry_interval_sec
+      - name: retry_base_sec
         type: float
         required: true
         passing: injected
-        description: 非機能要件の返送の再送の間隔
+        description: 非機能要件の返送の再送の間隔の基数（回ごとに 2 倍にする）
+      - name: sleep
+        type: Callable[[float], None]
+        required: true
+        passing: injected
+        description: 間を置く（time.sleep。テストで差し替える）
+      - name: jitter
+        type: Callable[[float], float]
+        required: true
+        passing: injected
+        description: 0 以上この値以下の乱数を返す（random.uniform(0, x)。テストで差し替える）
     returns:
       type: None
       description: なし
     process: |-
       1. 返送先が許されるかをもう一度確かめる（返送先の確かめ）
          - 許されない場合、DeliveryError を送出する
-      2. 返送の中身を作り、1 + 再送回数まで POST する
+      2. 返送の中身（CallbackPayload）を作り、1 + 再送回数まで POST する
          - 2xx なら終える
-         - それ以外・タイムアウト・接続できない場合、間隔を置いて次へ
+           - `[INFO]` 返送先へ届けた（セッションの ID・result・回数）
+         - 一時的な失敗（5xx・408・429 か DeliveryError。タイムアウト・接続できない）で次の回がある場合、待ちを置いて次へ
+           - 待ちは、Retry-After があればその秒数、無ければ jitter(retry_base_sec × 2^(回数−1))（指数バックオフとフルジッター）
+           - Retry-After が retry_base_sec × 2^(再送回数−1)（待ちの上限）を超える場合、待たずに 3 へ（返送の間はセッションが残り次の開始を断るため、待ちを決めた上限に収める）
            - `[WARNING]` 返送に失敗した（セッションの ID・回数・理由）
-      3. 全て失敗したらログに書いて終える（送出しない。履歴は残っている）
-         - `[ERROR]` 返送先に届かなかった（セッションの ID）
+         - それ以外のステータス（408・429 を除く 4xx など、送り直しても変わらない応答）の場合、再送せずに 3 へ
+      3. 届かなかったらログに書いて終える（送出しない。履歴は残っている）
+         - `[ERROR]` 返送先に届かなかった（セッションの ID・最後の理由）
     exceptions:
       - name: DeliveryError
         condition: 返送先が許されない（開始の後に設定が変わった）
@@ -281,31 +318,49 @@ functions:
         case: 正常
         summary: 1 回で届く
         condition: post が 200
-        mock: post
-        expected: post が 1 回、session_id・result・text・error を持つ dict で呼ばれる
+        mock: post・sleep・jitter
+        expected: post が 1 回、session_id・result・text・error を持つ dict で呼ばれ、sleep が呼ばれない
       - name: test_deliver_to_caller_when_retry_succeeds
         case: 正常
         summary: 再送で届く
-        condition: post が 500 → 200、再送回数 2
-        mock: post・sleep
-        expected: post が 2 回呼ばれ、例外が出ない
+        condition: post が 500 → DeliveryError → 200、再送回数 2、retry_base_sec 1.0、jitter は受けた値をそのまま返す
+        mock: post・sleep・jitter
+        expected: post が 3 回呼ばれ、sleep に 1.0・2.0 がこの順で渡り、例外が出ない
+      - name: test_deliver_to_caller_when_retry_after
+        case: 正常
+        summary: Retry-After に従う
+        condition: post が 429（Retry-After 1.5）→ 200、再送回数 2、retry_base_sec 1.0
+        mock: post・sleep・jitter
+        expected: sleep に 1.5 が渡り、jitter が呼ばれず、post が 2 回呼ばれる
+      - name: test_deliver_to_caller_when_retry_after_too_long
+        case: 正常
+        summary: 待ちの上限を超える Retry-After は待たずに終える
+        condition: post が 503（Retry-After 60）、再送回数 2、retry_base_sec 1.0（待ちの上限 2.0）
+        mock: post・sleep・jitter
+        expected: post が 1 回だけ呼ばれ、sleep が呼ばれず、ERROR のログが 1 行出る
+      - name: test_deliver_to_caller_when_client_error
+        case: 正常
+        summary: 送り直しても変わらない 4xx は再送しない
+        condition: post が 404、再送回数 2
+        mock: post・sleep・jitter
+        expected: post が 1 回だけ呼ばれ、sleep が呼ばれず、ERROR のログが 1 行出る
       - name: test_deliver_to_caller_when_unreachable
         case: 正常
         summary: 届かなければログに書いて終える
         condition: post が常に 500、再送回数 2
-        mock: post・sleep
-        expected: post が 3 回呼ばれ、例外が出ず、ERROR のログが 1 行出る
+        mock: post・sleep・jitter
+        expected: post が 3 回、sleep が 2 回呼ばれ、例外が出ず、ERROR のログが 1 行出る
       - name: test_deliver_to_caller_when_not_allowed
         case: 異常
         summary: 許されない返送先へは送らない
         condition: target が http://example.com/x
-        mock: post
+        mock: post・sleep・jitter
         expected: DeliveryError が送出され、post が呼ばれない
         exception: 返送先が許されない
     refs:
       - dev/設計書/外部ライブラリ/httpx#
       - dev/設計書/インターフェース定義/常駐アプリ/呼び出し元へ返す.py#
-    status: planned
+    status: implemented
   - name: paste_and_send
     title: 貼り付けて送信
     kind: 関数
@@ -356,3 +411,79 @@ functions:
     refs:
       - dev/設計書/外部ライブラリ/Microsoft_Edge#
     status: planned
+  - name: post_json
+    title: 返送先への POST
+    kind: 関数
+    container: features/outputs/callback/client.py
+    usecase: 起こした文字を届ける
+    role: client
+    scope: public
+    summary: httpx で JSON を POST してステータスと Retry-After を返す。タイムアウトと接続できないことは DeliveryError に変える
+    args:
+      - name: url
+        type: str
+        required: true
+        passing: positional
+        description: 返送先
+      - name: payload
+        type: dict
+        required: true
+        passing: positional
+        description: 送る JSON
+      - name: timeout_sec
+        type: float
+        required: true
+        passing: injected
+        description: 非機能要件の返送のタイムアウト
+    returns:
+      type: PostResult
+      description: 返送先が返したステータスと Retry-After
+    process: |-
+      1. httpx.Client(timeout=timeout_sec, follow_redirects=False) で POST する（リダイレクトで許していないホストへ行かない）
+         - httpx.TransportError（タイムアウト・接続できない）の場合、DeliveryError を送出する
+      2. Retry-After を秒に直す（秒数はそのまま、HTTP の日付は今の時刻からの差。負の値は 0 にそろえる。無い・読めない場合は None）
+      3. ステータスと Retry-After を PostResult で返す（2xx 以外でも送出しない）
+    exceptions:
+      - name: DeliveryError
+        condition: タイムアウトか接続できない
+    unit_tests:
+      - name: test_post_json
+        case: 正常
+        summary: JSON を送ってステータスを返す
+        condition: 受け口が 204 を返す
+        mock: httpx.MockTransport
+        expected: status 204・retry_after_sec None が返り、受け口に Content-Type application/json で payload が届いている
+      - name: test_post_json_when_retry_after_seconds
+        case: 正常
+        summary: 秒数の Retry-After を返す
+        condition: '受け口が 429 と Retry-After: 3 を返す'
+        mock: httpx.MockTransport
+        expected: status 429・retry_after_sec 3.0 が返る
+      - name: test_post_json_when_retry_after_invalid
+        case: 正常
+        summary: 読めない Retry-After は None
+        condition: '受け口が 503 と Retry-After: soon を返す'
+        mock: httpx.MockTransport
+        expected: status 503・retry_after_sec None が返る
+      - name: test_post_json_when_redirected
+        case: 正常
+        summary: リダイレクトを追わない
+        condition: 受け口が 307 で別のホストを指す
+        mock: httpx.MockTransport
+        expected: status 307 が返り、別のホストへの要求が出ない
+      - name: test_post_json_when_timeout
+        case: 異常
+        summary: タイムアウトは DeliveryError
+        condition: 受け口が httpx.ReadTimeout を送出する
+        mock: httpx.MockTransport
+        expected: DeliveryError が送出される
+        exception: タイムアウトか接続できない
+      - name: test_post_json_when_retry_after_past_date
+        case: 正常
+        summary: 過去の日付の Retry-After は 0
+        condition: 受け口が 503 と、今より 1 分前の HTTP の日付の Retry-After を返す
+        mock: httpx.MockTransport
+        expected: status 503・retry_after_sec 0.0 が返る
+    refs:
+      - dev/設計書/外部ライブラリ/httpx#
+    status: implemented

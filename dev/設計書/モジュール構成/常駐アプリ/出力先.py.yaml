@@ -133,7 +133,7 @@ constants:
       - key: '4'
         value: OutputSpec(id="callback", title="呼び出し元へ返す", handler=deliver_to_caller, api_only=True)
         description: 呼び出し元へ返す
-    status: planned
+    status: implemented
     notes:
       配線: 各 handler が受け取るクリップボード・キー・ブラウザの操作と設定の値は、main.py が出力先の ID ごとに部分適用する（起動と配線の _wire_outputs）。
 functions:
@@ -447,7 +447,7 @@ functions:
         mock: copy・paste・send_enter・sleep
         expected: DeliveryError が送出され、paste・send_enter が呼ばれない
         exception: クリップボードへ書けない
-    status: planned
+    status: implemented
   - name: paste_only
     title: 貼り付けのみ
     kind: 関数
@@ -501,7 +501,7 @@ functions:
         mock: copy・paste
         expected: DeliveryError が送出され、paste が呼ばれない
         exception: クリップボードへ書けない
-    status: planned
+    status: implemented
   - name: copy_only
     title: コピーのみ
     kind: 関数
@@ -542,7 +542,7 @@ functions:
         condition: outcome.text が「テスト」
         mock: copy
         expected: copy("テスト") が 1 回呼ばれる
-    status: planned
+    status: implemented
   - name: send_to_ai_chat
     title: AI チャットへ送る
     kind: 関数
@@ -634,7 +634,7 @@ functions:
         exception: 画面を開けない
     refs:
       - dev/設計書/外部ライブラリ/Microsoft_Edge#
-    status: planned
+    status: implemented
   - name: post_json
     title: 返送先への POST
     kind: 関数

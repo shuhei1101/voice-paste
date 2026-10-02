@@ -362,7 +362,7 @@ functions:
         condition: ほかのアプリがクリップボードを開いたままで書けない
     refs:
       - dev/設計書/外部ライブラリ/pyperclip#
-    status: planned
+    status: implemented
     unit_tests:
       - name: test_copy_to_clipboard
         case: 正常
@@ -407,7 +407,7 @@ functions:
          - `[INFO]` 貼り付けのキーを送った（paste_key）
     refs:
       - dev/設計書/外部ライブラリ/pynput#
-    status: planned
+    status: implemented
     unit_tests:
       - name: test_send_paste
         case: 正常
@@ -436,7 +436,7 @@ functions:
          - `[INFO]` Enter を送った
     refs:
       - dev/設計書/外部ライブラリ/pynput#
-    status: planned
+    status: implemented
     unit_tests:
       - name: test_send_enter
         case: 正常
@@ -554,7 +554,7 @@ functions:
         condition: Edge も既定のブラウザも起動できない
     refs:
       - dev/設計書/外部ライブラリ/Microsoft_Edge#
-    status: planned
+    status: implemented
     unit_tests:
       - name: test_open_app_window
         case: 正常
@@ -609,14 +609,14 @@ constants:
     usecase: 起こした文字を届ける
     summary: 貼り付けのキーを送る前に待つ秒数。voice_paste_legacy の send_paste と同じ値
     value: '0.1'
-    status: planned
+    status: implemented
   - name: EDGE_PATHS
     title: Edge の既定の置き場所
     container: integrations/browser/opener.py
     usecase: 起こした文字を届ける
     summary: PATH に msedge が無いときに探す Edge の実行ファイル。voice_paste_legacy の _find_edge と同じ並び
     value: (r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe", r"C:\Program Files\Microsoft\Edge\Application\msedge.exe")
-    status: planned
+    status: implemented
 test_files:
   - tests/unit/voice_paste/integrations/whisper/test_client.py
   - tests/unit/voice_paste/integrations/volume/test_adapter.py

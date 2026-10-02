@@ -17,5 +17,5 @@ used_in:
   - voice_paste_legacy/main.py
 verification:
   state: 未確認
-  detail: 現状の棚卸しで、コードが起動している範囲を写しただけで、動かしてはいない
+  detail: Edge の画面を開くと使っているデスクトップに窓が出るため、動かしていない。起動の引数（--app）の組み立てと探し方は単体テストで Mock にして確かめている
 official_url: https://www.microsoft.com/edge

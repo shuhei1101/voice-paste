@@ -434,7 +434,7 @@ functions:
         condition: 配線の後に get_settings が返す設定を paste_key `<ctrl>+<alt>+v`・enter_delay_sec 1.0 に差し替える
         mock: copy_to_clipboard・send_paste・send_enter・open_app_window・time.sleep
         expected: paste_and_send の handler を呼ぶと send_paste に `<ctrl>+<alt>+v`、sleep に 1.0 が渡る
-    status: planned
+    status: implemented
 notes:
   依存の向き: |-
     コーディング規約『依存関係管理』のとおり `features`・`server`・`ui` → `integrations`・`runtime` → `shared` とし、上の層へは import しない。

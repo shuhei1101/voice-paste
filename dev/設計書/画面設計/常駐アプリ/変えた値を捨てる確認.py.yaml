@@ -1,0 +1,46 @@
+title: "変えた値を捨てる確認"
+elements:
+  - name: ダイアログ
+    id: discard_dialog
+    kind: dialog
+    position: 捨てる確認
+    description: 設定画面の上に出すモーダル。窓の題は「voice-paste の設定」。Esc は「設定画面へ戻る」と同じ
+    visible_when: 設定画面で欄を変えたまま「キャンセル」・Esc・窓の閉じるを押したとき。欄を変えていなければ出さずに閉じる
+  - name: 見出し
+    id: discard_title
+    kind: label
+    position: 捨てる確認 > 本体
+    description: 変えた値を捨てて閉じるかを問う
+    label: 変えた値を捨てて閉じますか
+    visible_when: 常時
+  - name: 本文
+    id: discard_body
+    kind: label
+    position: 捨てる確認 > 本体
+    description: 保存していない変更の件数と、閉じると保存されないことを伝える
+    label: 保存していない変更が {件数} 件あります。閉じると、変えた値は保存されません。
+    io: 表示
+    visible_when: 常時
+    source: 設定画面で保存した値から変えた欄の数
+  - name: 捨てて閉じるボタン
+    id: discard_button
+    kind: button
+    position: 捨てる確認 > フッター
+    description: 変えた値を捨て、設定画面を閉じて待機中に戻る
+    label: 捨てて閉じる
+    visible_when: 常時
+    action: ダイアログと設定画面を閉じる（settings.toml は書かない）
+  - name: 設定画面へ戻るボタン
+    id: back_button
+    kind: button
+    position: 捨てる確認 > フッター
+    description: ダイアログだけを閉じ、変えた値を残した設定画面へ戻る。Enter で誤って捨てないよう、最初のフォーカスを置く
+    label: 設定画面へ戻る
+    visible_when: 常時
+    autofocus: true
+    action: ダイアログを閉じる
+screen: src/voice_paste/ui/windows/settings_window.py
+mock: dev/mock/pages/settings-discard-dialog/37/a-standard/
+lead: 設定画面で欄を変えたまま取り消す・窓を閉じるときに、変えた値を捨てて閉じるかを確かめるダイアログ。
+refs:
+  - dev/設計書/シナリオ/単一ユースケース/設定を変える#

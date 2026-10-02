@@ -1,0 +1,130 @@
+title: "録音の画面"
+elements:
+  - name: 窓
+    id: recording_window
+    kind: window
+    position: 窓
+    description: 録音の画面の窓。`ui.follow_cursor` がオンならカーソルのあるモニター、オフなら主のモニターの `ui.position` の位置に出す。`ui.topmost` がオンなら `Qt.WindowStaysOnTopHint` で「常に手前に表示」でないほかのウィンドウより上に残す。出したときはフォーカスを取らず、窓を押したときに前面になってフォーカスを取る
+    visible_when: ホットキー・トレイから始めたセッションが recording か paused の間（`recording.hide_window` がオフのとき）。API から始めた録音では出さない
+    action: 確定・取り消しで閉じ、前面を貼り付け先へ戻す
+    source: UiBridge.notified（state_changed）
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[ui.topmost]
+      - dev/設計書/設定/常駐アプリ#settings[ui.position]
+      - dev/設計書/設定/常駐アプリ#settings[ui.follow_cursor]
+      - dev/設計書/設定/常駐アプリ#settings[recording.hide_window]
+  - name: 状態の表示
+    id: state_label
+    kind: label
+    position: 窓 > 見出し
+    description: 今の録音の状態を、印と文字で出す（色だけで伝えない）
+    io: 表示
+    type: 文字列
+    visible_when: 常時
+    display_format: recording は「録音中」（赤の点）、paused は「一時停止中」
+    source: Session.state
+  - name: 経過時間
+    id: elapsed_label
+    kind: label
+    position: 窓 > 見出し
+    description: 録音を始めてからの経過時間。一時停止中は止めた時点のまま止まる
+    io: 表示
+    type: 時間
+    visible_when: 常時
+    display_format: 1 時間未満は `mm:ss`（例 00:42）、1 時間以上は `h:mm:ss`（例 1:02:37）。等幅の数字
+    align: 右
+    source: Session.started_at から求めた録音の長さ（一時停止の間を除く）
+  - name: 波形
+    id: waveform
+    kind: canvas
+    position: 窓 > 見出しの下
+    description: 録音中の音量を棒の並びで流す。一時停止中は棒を止め、最後の形のまま出す
+    io: 表示
+    visible_when: 常時
+    source: 録音中の音量（`ui.wave_gain` を掛けた値）
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[ui.wave_gain]
+  - name: 一時停止のボタン
+    id: pause_button
+    kind: button
+    position: 窓 > 操作の行
+    description: 録音を一時停止する。名前の横に一時停止のホットキーを出す
+    label: 一時停止 [hotkeys.pause]
+    visible_when: 状態が recording のとき
+    action_ref: dev/設計書/モジュール構成/常駐アプリ/セッション.py#classes[SessionManager].methods[pause]
+  - name: 再開のボタン
+    id: resume_button
+    kind: button
+    position: 窓 > 操作の行
+    description: 一時停止した録音を再開する。一時停止のボタンと同じ場所に出し、同じホットキーを出す
+    label: 再開 [hotkeys.pause]
+    visible_when: 状態が paused のとき
+    action_ref: dev/設計書/モジュール構成/常駐アプリ/セッション.py#classes[SessionManager].methods[resume]
+  - name: 取り消しのボタン
+    id: cancel_button
+    kind: button
+    position: 窓 > 操作の行
+    description: 録音を捨てて窓を閉じ、待機中に戻す
+    label: 取り消す [hotkeys.cancel]
+    visible_when: 常時
+    action: 窓を閉じる
+    action_ref: dev/設計書/モジュール構成/常駐アプリ/セッション.py#classes[SessionManager].methods[cancel]
+  - name: 出力先の見出し
+    id: outputs_heading
+    kind: label
+    position: 窓 > 確定して届ける
+    description: 出力先の確定のボタンの並びの見出し
+    label: 確定して届ける
+    visible_when: オンの出力先（`ai_chat` を除く）が 1 つ以上あるとき
+  - name: 出力先の確定のボタン
+    id: output_button_{output_id}
+    kind: button
+    position: 窓 > 確定して届ける
+    description: 出力先を選んで録音を確定し、文字起こし中の表示へ移る。設定でオンの出力先（`paste_and_send`・`paste_only`・`copy_only`）ごとに設定の並びで 1 つずつ出し、オンのうち一番上のものを主の操作にする。名前の横にその出力先のホットキーを出す
+    label: 貼り付けて送信 / 貼り付けのみ / コピーのみ
+    visible_when: その出力先の `outputs[].enabled` がオンのとき
+    options: '`outputs[]` の並び（paste_and_send・paste_only・copy_only）のうちオンのもの'
+    target: SessionManager.complete.output_id（押したボタンの出力先の ID）
+    action: 窓を閉じる
+    action_ref: dev/設計書/モジュール構成/常駐アプリ/セッション.py#classes[SessionManager].methods[complete]
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[outputs[].enabled]
+      - dev/設計書/設定/常駐アプリ#settings[outputs[].hotkey]
+      - dev/設計書/画面設計/常駐アプリ/文字起こし中の表示.py#
+  - name: AI チャットの見出し
+    id: ai_chat_heading
+    kind: label
+    position: 窓 > AI チャットへ送る
+    description: AI チャットの送り先のボタンの並びの見出し
+    label: AI チャットへ送る
+    visible_when: 出力先 `ai_chat` がオンで、出す送り先が 1 つ以上あるとき
+  - name: AI チャットの送り先のボタン
+    id: ai_chat_button_{n}
+    kind: button
+    position: 窓 > AI チャットへ送る
+    description: AI チャットの送り先を選んで録音を確定し、文字起こし中の表示へ移る。出すとした送り先ごとに設定の並びで 1 つずつ出す。名前はボタンの幅で `…` に省略し、かざすと全体を出す。ホットキーは省略しない
+    label: '{送り先の名前} [送り先のホットキー]'
+    visible_when: 出力先 `ai_chat` がオンで、その送り先の `enabled` がオンのとき
+    options: '`outputs[ai_chat].targets[]` の並びのうち `enabled` がオンのもの'
+    target: SessionManager.complete.output_id（`ai_chat`）と output_target（送り先の URL）
+    action: 窓を閉じる
+    action_ref: dev/設計書/モジュール構成/常駐アプリ/セッション.py#classes[SessionManager].methods[complete]
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[outputs[].targets[].name]
+      - dev/設計書/設定/常駐アプリ#settings[outputs[].targets[].hotkey]
+  - name: 一時停止中の案内
+    id: paused_hint
+    kind: label
+    position: 窓 > 確定のボタンの下
+    description: 一時停止の間の声を録らないことと、一時停止中でも確定できることを伝える
+    label: 一時停止の間に話した声は録らない。確定は一時停止中でも行える。
+    visible_when: 状態が paused のとき
+screen: src/voice_paste/ui/windows/recording_window.py
+mock: dev/mock/pages/recording-window/37/a-standard/
+lead: ホットキー・トレイから始めた録音の間だけ出る小さな窓。状態・経過時間・波形と、一時停止・取り消し・確定の操作を並べる。
+refs:
+  - dev/設計書/シナリオ/単一ユースケース/録音する#
+  - dev/設計書/モジュール構成/常駐アプリ/ホットキーと画面.py#classes[UiBridge]
+notes:
+  ホットキー: ボタンと同じ操作は、どこにフォーカスがあってもホットキーで行える（`HotkeyListener`）。窓のキーボードの操作は持たず、窓を押してフォーカスを取った後に Tab で移ったときだけフォーカスの枠を出す
+  状態の受け取り: 画面はメインスレッドで `UiBridge.notified` の state_changed を受けて開く・閉じる・状態を替える。経過時間と波形はメインスレッドのタイマーで描き直す

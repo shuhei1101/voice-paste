@@ -1,0 +1,210 @@
+title: "設定画面"
+elements:
+  - name: 窓
+    id: settings_window
+    kind: window
+    position: 窓
+    description: 設定画面の窓。窓の題は「voice-paste の設定」。左にまとまりのメニュー、右に欄、下にフッターを置く。窓の閉じる・Esc は「キャンセル」と同じ
+    visible_when: トレイの「設定…」を選んだとき。開いていれば前面に出す
+    width: 最小 720px（欄の名前と設定のキーが語の途中で折り返さない幅）
+    initial_value: 開いたときの settings.toml の値
+    source: Settings（設定のモデル）
+  - name: まとまりのメニュー
+    id: group_menu
+    kind: list
+    position: 窓 > 左
+    description: まとまりを選ぶと、右の欄をそのまとまりに切り替える。切り替えても入れた値は消さない
+    io: 入力
+    visible_when: 常時
+    options: 出力先・ホットキー・録音・文字起こし・画面・履歴とログ・API の順。既定は出力先
+    initial_value: 出力先
+    action: 右の欄を選んだまとまりに切り替える
+  - name: エラーの一覧
+    id: error_summary
+    kind: alert
+    position: 窓 > 右 > 上
+    description: 保存できなかったことと直す欄の件数、欄ごとのエラーを並べる。各行はその欄へのリンクで、押すとその欄のまとまりへ切り替えて欄へフォーカスを移す。出したときにフォーカスを一覧へ移す
+    label: 保存できませんでした。{件数} 件の欄を直してください。
+    visible_when: 保存を押して確かめに通らない欄があったとき。入力の途中では出さない
+    display_format: '1 行 = 「{欄の名前}: {エラー}」'
+  - name: 設定の欄
+    id: field_{key}
+    kind: input
+    position: 窓 > 右 > まとまり
+    description: settings.toml のキー 1 つの欄。設定のモデルの項目から組み立て、欄の名前（設定の設計書の論理名を画面向けにしたもの）と、欄の右に settings.toml のキーを等幅で出す。まとまりと部品は補足の「まとまりと欄」
+    io: 入出力
+    visible_when: その欄のまとまりを選んだとき
+    constraints: 設定の設計書の「許す値や範囲」
+    initial_value: settings.toml の値（無ければ既定の値）
+    source: Settings.{キー}
+    target: Settings.{キー}（保存で settings.toml へ書く）
+    error_message: 欄の下に赤で出す（入力チェック）
+    refs:
+      - dev/設計書/設定/常駐アプリ#
+  - name: 再起動で反映の印
+    id: restart_badge_{key}
+    kind: label
+    position: 窓 > 右 > まとまり > 欄の名前の右
+    description: 反映が restart の欄であることを示す
+    label: 再起動で反映
+    visible_when: 設定の設計書の反映が restart の欄
+    source: 設定の設計書の reload
+  - name: ホットキーの欄
+    id: hotkey_{key}
+    kind: input
+    position: 窓 > 右 > 出力先・ホットキー・AI チャットの送り先
+    description: 押すと入力待ちになり、次に押したキーの組み合わせが入る。Tab と Esc は欄の移動と画面の取り消しに残し、組み合わせには入れない。欄の幅を超える組み合わせは欄の中で横に流す
+    io: 入出力
+    type: 文字列
+    visible_when: その欄のまとまりを選んだとき
+    display_format: 画面では `Ctrl+Alt+D` の形で出し、保存では pynput の書式（`<ctrl>+<alt>+d`）で書く
+    initial_value: settings.toml の値
+    source: Settings.hotkeys.*・Settings.keyboard.paste_key・Settings.outputs[].hotkey・Settings.outputs[].targets[].hotkey
+    target: 同じキー（pynput の書式へ変える）
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[hotkeys.start]
+  - name: 送り先の一覧
+    id: ai_chat_targets
+    kind: table
+    position: 窓 > 右 > 出力先 > AI チャットの送り先
+    description: AI チャットの送り先を 1 行ずつ並べ、行の中で出す（チェックボックス）・名前・URL・ホットキー（ホットキーの欄）を変え、消すボタンで行を消す
+    io: 入出力
+    visible_when: 出力先のまとまりを選んだとき
+    sorting: できない。settings.toml の並びのまま
+    initial_value: settings.toml の `outputs[ai_chat].targets[]`
+    source: Settings.outputs[ai_chat].targets[]
+    target: Settings.outputs[ai_chat].targets[]
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[outputs[].targets[].name]
+      - dev/設計書/設定/常駐アプリ#settings[outputs[].targets[].url]
+  - name: 送り先を足すボタン
+    id: add_target_button
+    kind: button
+    position: 窓 > 右 > 出力先 > 送り先の一覧の下
+    description: 送り先の一覧の末尾に空の行（出すはオン）を足し、名前の欄へフォーカスを移す
+    label: 送り先を足す
+    visible_when: 出力先のまとまりを選んだとき
+    action: 送り先の一覧に行を足す
+  - name: 用語集を選ぶボタン
+    id: pick_glossary_button
+    kind: button
+    position: 窓 > 右 > 文字起こし > 用語集の CSV の欄の右
+    description: ファイルを選ぶダイアログ（CSV）を開き、選んだパスを用語集の CSV の欄へ入れる
+    label: 選ぶ…
+    visible_when: 文字起こしのまとまりを選んだとき
+    target: Settings.glossary_path
+    action: ファイルを選ぶダイアログを開く
+  - name: 再起動の知らせ
+    id: restart_notice
+    kind: label
+    position: 窓 > フッターの上
+    description: 反映が restart の欄を変えたことと、「保存して再起動」ですぐに効くことを伝える
+    label: 「再起動で反映」の設定を {件数} 件変えました。「保存して再起動」で保存すると、すぐに効きます。
+    visible_when: 反映が restart の欄を開いたときの値から変えているとき
+  - name: 既定に戻した知らせ
+    id: reset_notice
+    kind: label
+    position: 窓 > フッターの上
+    description: 既定に戻して保存したことと、再起動が要る設定の件数を伝える
+    label: 既定に戻して保存しました。「再起動で反映」の設定 {件数} 件は、再起動するまで前の値で動きます。
+    visible_when: 既定に戻す確認で「既定に戻す」を押した後で、反映が restart の設定の値が変わったとき。欄を変えると消す
+  - name: 今すぐ再起動のボタン
+    id: restart_now_button
+    kind: button
+    position: 窓 > フッターの上 > 既定に戻した知らせの右
+    description: 設定画面を閉じて常駐アプリを再起動する（トレイの「再起動」と同じ）
+    label: 今すぐ再起動
+    visible_when: 既定に戻した知らせを出しているとき
+    action: 設定画面を閉じて再起動する
+  - name: 既定に戻すボタン
+    id: reset_button
+    kind: button
+    position: 窓 > フッター > 左
+    description: 既定に戻す確認を出す
+    label: 既定に戻す
+    visible_when: 常時
+    action_ref: dev/設計書/画面設計/常駐アプリ/既定に戻す確認.py#
+  - name: キャンセルボタン
+    id: cancel_button
+    kind: button
+    position: 窓 > フッター > 右
+    description: 保存せずに閉じる。欄を変えていれば変えた値を捨てる確認を出し、変えていなければそのまま閉じる
+    label: キャンセル
+    visible_when: 常時
+    action: 欄を変えていなければ設定画面を閉じる
+    action_ref: dev/設計書/画面設計/常駐アプリ/変えた値を捨てる確認.py#
+  - name: 保存して再起動のボタン
+    id: save_and_restart_button
+    kind: button
+    position: 窓 > フッター > 右
+    description: 保存のボタンと同じく確かめてから settings.toml へ書き、設定画面を閉じて常駐アプリを再起動する。確かめに通らなければ書かず、エラーの一覧を出す
+    label: 保存して再起動
+    visible_when: 再起動の知らせを出しているとき
+    action: 保存して再起動する
+  - name: 保存ボタン
+    id: save_button
+    kind: button
+    position: 窓 > フッター > 右端
+    description: 全ての欄を設定のモデルで確かめ、通れば settings.toml へ書いて設定画面を閉じる。反映が immediate の設定（出力先のオン・オフ・ホットキー・`ui.*` を含む）は動いている常駐アプリに効かせ、ホットキーは受付を張り直す。通らなければ書かず、エラーの一覧と欄の下のエラーを出し、入れた値は消さない
+    label: 保存
+    visible_when: 常時
+    action: 確かめて保存し、設定画面を閉じる
+input_checks:
+  - element: 設定の欄
+    violation: 数値の欄に数値でない文字が入っている
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: '数値を入れてください（例: {既定の値}）。'
+    position: その欄の下とエラーの一覧
+  - element: 設定の欄
+    violation: 数値が設定の設計書の許す範囲の外（例 `api.port` が 1024〜65535 の外、日数が 1 未満）
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: '{最小}〜{最大} の値を入れてください。（上限が無ければ「{最小} 以上の値を入れてください。」）'
+    position: その欄の下とエラーの一覧
+  - element: ホットキーの欄
+    violation: ほかのホットキーの欄と同じ組み合わせ（録音を始めると「貼り付けて送信」が同じものは除く）
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: 「{重なった欄の名前}」と同じホットキーです。別のキーにしてください。
+    position: その欄の下とエラーの一覧
+  - element: 送り先の一覧
+    violation: 送り先の名前が空
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: 送り先の名前を入れてください。
+    position: その行の下とエラーの一覧
+  - element: 送り先の一覧
+    violation: 送り先の URL が http:// か https:// で始まらない
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: http:// か https:// で始まる URL を入れてください。
+    position: その行の下とエラーの一覧
+screen: src/voice_paste/ui/windows/settings_window.py
+mock: dev/mock/pages/settings/37/a-standard/
+lead: トレイの「設定…」から開く画面。settings.toml の全てのキーを 7 つのまとまりに並べ、設定のモデルで確かめてから保存する。
+refs:
+  - dev/設計書/シナリオ/単一ユースケース/設定を変える#
+  - dev/設計書/設定/常駐アプリ#
+notes:
+  まとまりと欄: |-
+    | まとまり | キー | 欄の部品 |
+    | --- | --- | --- |
+    | 出力先 | `outputs[].enabled`（paste_and_send・paste_only・copy_only・ai_chat） | チェックボックス。ai_chat 以外は右に `outputs[].hotkey` のホットキーの欄 |
+    | 出力先（送るまでの間） | `outputs[paste_and_send].enter_delay_sec`・`outputs[ai_chat].open_delay_sec`・`outputs[ai_chat].enter_delay_sec` | 数値の欄 |
+    | 出力先（AI チャットの送り先） | `outputs[ai_chat].targets[]` の enabled・name・url・hotkey | 送り先の一覧 |
+    | ホットキー | `hotkeys.start`・`hotkeys.pause`・`hotkeys.cancel`・`keyboard.paste_key` | ホットキーの欄 |
+    | 録音 | `recording.lower_volume`・`recording.hide_window` | チェックボックス |
+    | 録音 | `recording.volume_percent` | つまみ（0〜100、右に %） |
+    | 録音 | `recording.fade_sec` | 数値の欄 |
+    | 文字起こし（エンジン） | `transcription.engine`・`transcription.local_whisper.model` | 選択の欄 |
+    | 文字起こし（エンジン） | `transcription.local_whisper.device`・`transcription.local_whisper.compute_type` | ラジオボタン |
+    | 文字起こし（エンジン） | `transcription.local_whisper.language` | 文字の欄 |
+    | 文字起こし（詳しい調整） | `transcription.local_whisper` の cpu_threads・num_workers・beam_size・best_of・temperature・no_speech_threshold・vad_threshold・vad_min_speech_ms・vad_min_silence_ms | 数値の欄 |
+    | 文字起こし（詳しい調整） | `transcription.local_whisper` の condition_on_previous_text・vad_filter | チェックボックス |
+    | 文字起こし（用語集） | `glossary_path` | 文字の欄と「選ぶ…」 |
+    | 画面 | `ui.topmost`・`ui.follow_cursor` | チェックボックス |
+    | 画面 | `ui.position` | ラジオボタン（中央・左上・右上・左下・右下） |
+    | 画面 | `ui.wave_gain` | 数値の欄 |
+    | 履歴とログ | `history.enabled` | チェックボックス |
+    | 履歴とログ | `history.retention_days`・`logging.retention_days` | 数値の欄 |
+    | 履歴とログ | `logging.level` | ラジオボタン |
+    | API | `api.port` | 数値の欄 |
+    | API | `api.allowed_callback_hosts` | 複数行の文字の欄（1 行 = 1 ホスト） |
+
+    欄の部品は設定のモデルの型から決める（bool → チェックボックス、リテラルの列挙 → ラジオボタンか選択の欄、int・float → 数値の欄、str → 文字の欄、ホットキーの型 → ホットキーの欄）。上の表は欄の並びと、型からは決まらない部品（つまみ・送り先の一覧・用語集の選ぶ…）を決める。

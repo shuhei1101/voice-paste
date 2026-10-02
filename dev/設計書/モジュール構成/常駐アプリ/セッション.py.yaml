@@ -756,6 +756,27 @@ classes:
              - `[ERROR]` 録音を確定できなかった（セッションの ID・理由。logger.exception）
           3. ワーカースレッドで失敗を知らせ、待機中を知らせる（入口が api なら result=failed を届け、それ以外は transcription_failed を知らせる。返送を待つ間もロックを持たない）
         status: implemented
+      - name: _announce_failure
+        title: 確定の失敗の知らせ
+        kind: メソッド
+        scope: internal
+        summary: 確定できなかったセッションの失敗を知らせ、待機中を知らせる。_fail_confirm がワーカースレッドで動かす
+        args:
+          - name: session
+            type: Session
+            required: true
+            description: 確定できなかったセッション
+          - name: reason
+            type: str
+            required: true
+            description: 失敗の理由
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 失敗を知らせる（入口が api なら result=failed を届け、それ以外は transcription_failed を知らせる）
+          2. どの経路でも必ず（finally）待機中を知らせる
+        status: implemented
     status: implemented
 functions:
   - name: start_session_route

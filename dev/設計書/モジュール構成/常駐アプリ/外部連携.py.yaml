@@ -423,6 +423,19 @@ functions:
         condition: paste_key が `<ctrl>+<shift>+v`
         mock: pynput.keyboard.Controller・time.sleep
         expected: sleep(0.1)・press(ctrl)・press(shift)・press('v')・release('v')・release(shift)・release(ctrl) の順に呼ばれる
+      - name: test_send_paste_when_spaced_and_uppercase
+        case: 正常
+        summary: キーの前後の空白と大文字を揃えて同じキーとして送る
+        condition: paste_key が `<Ctrl> + V`
+        mock: pynput.keyboard.Controller・time.sleep
+        expected: sleep(0.1)・press(ctrl)・press('v')・release('v')・release(ctrl) の順に呼ばれる
+      - name: test_send_paste_when_no_main_key
+        case: 異常
+        summary: 主キーが 1 つ無ければキーを送らずに DeliveryError
+        condition: paste_key が `<ctrl>`
+        mock: pynput.keyboard.Controller・time.sleep
+        expected: DeliveryError が送出され、press が呼ばれない
+        exception: paste_key に主キーが 1 つ無い（修飾キーだけ・主キーが 2 つ以上）
     exceptions:
       - name: DeliveryError
         condition: paste_key に主キーが 1 つ無い（修飾キーだけ・主キーが 2 つ以上）

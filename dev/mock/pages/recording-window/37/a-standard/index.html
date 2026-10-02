@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>録音の画面 | voice-paste のモック</title>
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+</head>
+<body>
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">recording-window</a> / <a href="../">37</a> / <span>a-standard</span></nav>
+
+    <!-- 画面の説明 -->
+    <header class="intro">
+      <h1>録音の画面</h1>
+      <p>話している間だけ、カーソルのあるモニターの設定の位置に出る小さな窓。「常に手前に表示」でないほかのウィンドウより上に残る。確定のボタンを押すと、文字起こし中の表示へ移る。</p>
+    </header>
+
+    <div class="desk">
+
+      <!-- 場面: 録音中（出力先と AI チャットの送り先が全てオン） -->
+      <section class="specimen" aria-labelledby="h-rec">
+        <h2 id="h-rec">録音中</h2>
+        <div class="win rec" role="group" aria-label="録音の画面">
+          <div class="rec__head">
+            <span class="state state--rec"><span class="dot" aria-hidden="true"></span>録音中</span>
+            <span class="rec__time num">00:42</span>
+          </div>
+          <div class="wave" aria-hidden="true"><span style="--h:18%"></span><span style="--h:34%"></span><span style="--h:52%"></span><span style="--h:40%"></span><span style="--h:72%"></span><span style="--h:88%"></span><span style="--h:64%"></span><span style="--h:46%"></span><span style="--h:30%"></span><span style="--h:58%"></span><span style="--h:80%"></span><span style="--h:96%"></span><span style="--h:70%"></span><span style="--h:52%"></span><span style="--h:36%"></span><span style="--h:60%"></span><span style="--h:84%"></span><span style="--h:66%"></span><span style="--h:44%"></span><span style="--h:28%"></span><span style="--h:40%"></span><span style="--h:56%"></span><span style="--h:32%"></span><span style="--h:20%"></span></div>
+          <div class="rec__row">
+            <button type="button" class="btn btn--pause">一時停止 <kbd>Ctrl+Alt+Z</kbd></button>
+            <a class="btn btn--quiet btn--danger" href="../../../tray/37/a-standard/index.html">取り消す <kbd>Ctrl+Alt+Q</kbd></a>
+          </div>
+          <p class="group-label">確定して届ける</p>
+          <div class="outs">
+            <a class="btn btn--primary" href="../../../transcribing-indicator/37/a-standard/index.html">貼り付けて送信 <kbd>Ctrl+Alt+D</kbd></a>
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html">貼り付けのみ <kbd>Ctrl+Alt+V</kbd></a>
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html">コピー <kbd>Ctrl+Alt+C</kbd></a>
+          </div>
+          <p class="group-label">AI チャットへ送る</p>
+          <div class="outs outs--ai">
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html">ChatGPT <kbd>Ctrl+Alt+1</kbd></a>
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html">Google AI <kbd>Ctrl+Alt+2</kbd></a>
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html">Claude <kbd>Ctrl+Alt+3</kbd></a>
+          </div>
+        </div>
+      </section>
+
+      <!-- 場面: 一時停止中（波形は止まり、経過時間は止めた時点のまま） -->
+      <section class="specimen" aria-labelledby="h-paused">
+        <h2 id="h-paused">一時停止中</h2>
+        <div class="win rec rec--paused" role="group" aria-label="録音の画面（一時停止中）">
+          <div class="rec__head">
+            <span class="state state--paused"><span class="dot" aria-hidden="true"></span>一時停止中</span>
+            <span class="rec__time num">01:07</span>
+          </div>
+          <div class="wave wave--stopped" aria-hidden="true"></div>
+          <div class="rec__row">
+            <button type="button" class="btn btn--pause">再開 <kbd>Ctrl+Alt+Z</kbd></button>
+            <a class="btn btn--quiet btn--danger" href="../../../tray/37/a-standard/index.html">取り消す <kbd>Ctrl+Alt+Q</kbd></a>
+          </div>
+          <p class="group-label">確定して届ける</p>
+          <div class="outs">
+            <a class="btn btn--primary" href="../../../transcribing-indicator/37/a-standard/index.html">貼り付けて送信 <kbd>Ctrl+Alt+D</kbd></a>
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html">貼り付けのみ <kbd>Ctrl+Alt+V</kbd></a>
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html">コピー <kbd>Ctrl+Alt+C</kbd></a>
+          </div>
+        </div>
+        <p class="scene-note">一時停止の間に話した声は録らない。確定は一時停止中でも行える。</p>
+      </section>
+
+      <!-- 場面: 出力先が少ない（貼り付けのみだけオン、AI チャットはオフ） -->
+      <section class="specimen" aria-labelledby="h-few">
+        <h2 id="h-few">オンの出力先が 1 つ</h2>
+        <div class="win rec" role="group" aria-label="録音の画面（出力先が 1 つ）">
+          <div class="rec__head">
+            <span class="state state--rec"><span class="dot" aria-hidden="true"></span>録音中</span>
+            <span class="rec__time num">00:05</span>
+          </div>
+          <div class="wave" aria-hidden="true"><span style="--h:18%"></span><span style="--h:34%"></span><span style="--h:52%"></span><span style="--h:40%"></span><span style="--h:72%"></span><span style="--h:88%"></span><span style="--h:64%"></span><span style="--h:46%"></span><span style="--h:30%"></span><span style="--h:58%"></span><span style="--h:80%"></span><span style="--h:96%"></span><span style="--h:70%"></span><span style="--h:52%"></span><span style="--h:36%"></span><span style="--h:60%"></span><span style="--h:84%"></span><span style="--h:66%"></span><span style="--h:44%"></span><span style="--h:28%"></span><span style="--h:40%"></span><span style="--h:56%"></span><span style="--h:32%"></span><span style="--h:20%"></span></div>
+          <div class="rec__row">
+            <button type="button" class="btn btn--pause">一時停止 <kbd>Ctrl+Alt+Z</kbd></button>
+            <a class="btn btn--quiet btn--danger" href="../../../tray/37/a-standard/index.html">取り消す <kbd>Ctrl+Alt+Q</kbd></a>
+          </div>
+          <p class="group-label">確定して届ける</p>
+          <div class="outs">
+            <a class="btn btn--primary" href="../../../transcribing-indicator/37/a-standard/index.html">貼り付けのみ <kbd>Ctrl+Alt+V</kbd></a>
+          </div>
+        </div>
+        <p class="scene-note">設定でオンにした出力先だけを出す。オンの出力先のうち上にあるものを主の操作にする。AI チャットへ送るがオフなら、その見出しごと出さない。</p>
+      </section>
+
+      <!-- 場面: 長い時間と長い送り先の名前 -->
+      <section class="specimen" aria-labelledby="h-long">
+        <h2 id="h-long">長い録音・長い送り先の名前</h2>
+        <div class="win rec" role="group" aria-label="録音の画面（長い録音）">
+          <div class="rec__head">
+            <span class="state state--rec"><span class="dot" aria-hidden="true"></span>録音中</span>
+            <span class="rec__time num">1:02:37</span>
+          </div>
+          <div class="wave" aria-hidden="true"><span style="--h:18%"></span><span style="--h:34%"></span><span style="--h:52%"></span><span style="--h:40%"></span><span style="--h:72%"></span><span style="--h:88%"></span><span style="--h:64%"></span><span style="--h:46%"></span><span style="--h:30%"></span><span style="--h:58%"></span><span style="--h:80%"></span><span style="--h:96%"></span><span style="--h:70%"></span><span style="--h:52%"></span><span style="--h:36%"></span><span style="--h:60%"></span><span style="--h:84%"></span><span style="--h:66%"></span><span style="--h:44%"></span><span style="--h:28%"></span><span style="--h:40%"></span><span style="--h:56%"></span><span style="--h:32%"></span><span style="--h:20%"></span></div>
+          <div class="rec__row">
+            <button type="button" class="btn btn--pause">一時停止 <kbd>Ctrl+Alt+Z</kbd></button>
+            <a class="btn btn--quiet btn--danger" href="../../../tray/37/a-standard/index.html">取り消す <kbd>Ctrl+Alt+Q</kbd></a>
+          </div>
+          <p class="group-label">AI チャットへ送る</p>
+          <div class="outs outs--ai">
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html"><span class="clip">社内のナレッジ検索アシスタント</span> <kbd>Ctrl+Alt+1</kbd></a>
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html"><span class="clip">Perplexity</span> <kbd>Ctrl+Alt+2</kbd></a>
+          </div>
+        </div>
+        <p class="scene-note">1 時間を超えたら時も出す。送り先の名前はボタンの幅で省略し、ホットキーは省略しない。</p>
+      </section>
+
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,1251 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>設定画面 | voice-paste のモック</title>
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+  <script src="../../../../refs/37/assets/app.js" defer></script>
+</head>
+<body>
+  <!-- モック専用の操作列: 場面の切り替え（app.js が data-scene の場面だけを出す） -->
+  <nav class="mock-bar" aria-label="場面の切り替え（モック専用）">
+    <span class="mock-bar__label">場面</span>
+    <ul>
+      <li><button type="button" data-scene="normal">開いたところ</button></li>
+      <li><button type="button" data-scene="restart">再起動で反映の設定を変えた</button></li>
+      <li><button type="button" data-scene="error">確かめに通らない</button></li>
+      <li><button type="button" data-scene="after-reset">既定に戻した後</button></li>
+    </ul>
+  </nav>
+
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">settings</a> / <a href="../">37</a> / <span>a-standard</span></nav>
+
+    <!-- 画面の説明 -->
+    <header class="intro">
+      <h1>設定画面</h1>
+      <p>トレイの「設定…」から開く。settings.toml の全てのキーを 7 つのまとまりに並べ、左のメニューで切り替える。欄の右に settings.toml のキーを出す。上の帯で場面を切り替えられる。</p>
+    </header>
+
+    <div class="desk desk--single">
+
+      <!-- 場面: 開いたところ（出力先のまとまり） -->
+      <section class="specimen" data-scene-panel="normal" aria-labelledby="h-normal">
+        <h2 id="h-normal">開いたところ</h2>
+        <div class="win settings settings--full">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり">
+              <ul>
+                <li><a href="#g-outputs-n" aria-current="page">出力先</a></li>
+                <li><a href="#g-hotkeys-n">ホットキー</a></li>
+                <li><a href="#g-recording-n">録音</a></li>
+                <li><a href="#g-transcription-n">文字起こし</a></li>
+                <li><a href="#g-ui-n">画面</a></li>
+                <li><a href="#g-history-n">履歴とログ</a></li>
+                <li><a href="#g-api-n">API</a></li>
+              </ul>
+            </nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定">
+
+              <fieldset id="g-outputs-n" data-group>
+                <legend>出力先</legend>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="o-1"><input type="checkbox" role="switch" id="o-1" name="outputs[paste_and_send].enabled" checked> <span>貼り付けて送信</span></label>
+                  <code class="key">outputs[paste_and_send]</code>
+                  <input type="text" class="hotkey" name="outputs[paste_and_send].hotkey" value="Ctrl+Alt+D" aria-label="貼り付けて送信で確定するホットキー">
+                </div>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="o-2"><input type="checkbox" role="switch" id="o-2" name="outputs[paste_only].enabled" checked> <span>貼り付けのみ</span></label>
+                  <code class="key">outputs[paste_only]</code>
+                  <input type="text" class="hotkey" name="outputs[paste_only].hotkey" value="Ctrl+Alt+V" aria-label="貼り付けのみで確定するホットキー">
+                </div>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="o-3"><input type="checkbox" role="switch" id="o-3" name="outputs[copy_only].enabled" checked> <span>コピーのみ</span></label>
+                  <code class="key">outputs[copy_only]</code>
+                  <input type="text" class="hotkey" name="outputs[copy_only].hotkey" value="Ctrl+Alt+C" aria-label="コピーのみで確定するホットキー">
+                </div>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="o-4"><input type="checkbox" role="switch" id="o-4" name="outputs[ai_chat].enabled" checked> <span>AI チャットへ送る</span></label>
+                  <code class="key">outputs[ai_chat]</code>
+                  <p class="field-help">送り先ごとのホットキーは下の一覧で決める。</p>
+                </div>
+                <h3 class="subhead">送るまでの間</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="f-5">貼り付けてから Enter を送るまでの秒数</label>
+                  <code class="key">outputs[paste_and_send].enter_delay_sec</code>
+                  <input type="number" id="f-5" name="outputs[paste_and_send].enter_delay_sec" value="0.5" step="0.1" min="0">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-6">AI チャットを開いてから貼り付けるまでの秒数</label>
+                  <code class="key">outputs[ai_chat].open_delay_sec</code>
+                  <input type="number" id="f-6" name="outputs[ai_chat].open_delay_sec" value="3.0" step="0.5" min="0">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-7">AI チャットで貼り付けてから Enter を送るまでの秒数</label>
+                  <code class="key">outputs[ai_chat].enter_delay_sec</code>
+                  <input type="number" id="f-7" name="outputs[ai_chat].enter_delay_sec" value="0.5" step="0.1" min="0">
+                </div>
+                <h3 class="subhead">AI チャットの送り先</h3>
+                <div class="targets-wrap" data-reload="immediate">
+                  <table class="targets">
+                    <caption class="sr-only">AI チャットの送り先</caption>
+                    <thead><tr><th scope="col">出す</th><th scope="col">名前</th><th scope="col">URL</th><th scope="col">ホットキー</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+                    <tbody>
+                    <tr>
+                      <td><input type="checkbox" name="outputs[ai_chat].targets[1].enabled" checked aria-label="ChatGPTを録音の画面に出す"></td>
+                      <td><input type="text" name="outputs[ai_chat].targets[1].name" value="ChatGPT" aria-label="送り先 1 の名前"></td>
+                      <td><input type="text" name="outputs[ai_chat].targets[1].url" value="https://chatgpt.com" aria-label="送り先 1 の URL"></td>
+                      <td><input type="text" class="hotkey" name="outputs[ai_chat].targets[1].hotkey" value="Ctrl+Alt+1" aria-label="ChatGPTへ送るホットキー"></td>
+                      <td><button type="button" class="btn btn--icon" aria-label="ChatGPTを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox" name="outputs[ai_chat].targets[2].enabled" checked aria-label="Google AIを録音の画面に出す"></td>
+                      <td><input type="text" name="outputs[ai_chat].targets[2].name" value="Google AI" aria-label="送り先 2 の名前"></td>
+                      <td><input type="text" name="outputs[ai_chat].targets[2].url" value="https://gemini.google.com/app" aria-label="送り先 2 の URL"></td>
+                      <td><input type="text" class="hotkey" name="outputs[ai_chat].targets[2].hotkey" value="Ctrl+Alt+2" aria-label="Google AIへ送るホットキー"></td>
+                      <td><button type="button" class="btn btn--icon" aria-label="Google AIを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox" name="outputs[ai_chat].targets[3].enabled" checked aria-label="Claudeを録音の画面に出す"></td>
+                      <td><input type="text" name="outputs[ai_chat].targets[3].name" value="Claude" aria-label="送り先 3 の名前"></td>
+                      <td><input type="text" name="outputs[ai_chat].targets[3].url" value="https://claude.ai/new" aria-label="送り先 3 の URL"></td>
+                      <td><input type="text" class="hotkey" name="outputs[ai_chat].targets[3].hotkey" value="Ctrl+Alt+3" aria-label="Claudeへ送るホットキー"></td>
+                      <td><button type="button" class="btn btn--icon" aria-label="Claudeを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td>
+                    </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div><button type="button" class="btn">送り先を足す</button></div>
+              </fieldset>
+              <fieldset id="g-hotkeys-n" data-group>
+                <legend>ホットキー</legend>
+                <div class="row" data-reload="immediate">
+                  <label for="f-8">録音を始める</label>
+                  <code class="key">hotkeys.start</code>
+                  <input type="text" class="hotkey" id="f-8" name="hotkeys.start" value="Ctrl+Alt+D">
+                  <p class="field-help">録音中に押すと「貼り付けて送信」で確定する（同じキーのとき）。</p>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-9">一時停止・再開</label>
+                  <code class="key">hotkeys.pause</code>
+                  <input type="text" class="hotkey" id="f-9" name="hotkeys.pause" value="Ctrl+Alt+Z">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-10">取り消す</label>
+                  <code class="key">hotkeys.cancel</code>
+                  <input type="text" class="hotkey" id="f-10" name="hotkeys.cancel" value="Ctrl+Alt+Q">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-11">貼り付けに送るキー</label>
+                  <code class="key">keyboard.paste_key</code>
+                  <input type="text" class="hotkey" id="f-11" name="keyboard.paste_key" value="Ctrl+V">
+                  <p class="field-help">貼り付け先のアプリが Ctrl+V 以外で貼り付けるときに変える。</p>
+                </div>
+                <p class="field-help">出力先ごとの確定のホットキーは「出力先」で変える。欄を押してから、キーの組み合わせを押す。</p>
+              </fieldset>
+              <fieldset id="g-recording-n" data-group>
+                <legend>録音</legend>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="c-12"><input type="checkbox" id="c-12" name="recording.lower_volume" checked> 録音中に音量を下げる</label>
+                  <code class="key">recording.lower_volume</code>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-13">録音中の音量の割合</label>
+                  <code class="key">recording.volume_percent</code>
+                  <span class="range"><input type="range" id="f-13" name="recording.volume_percent" min="0" max="100" value="50"><output class="num">50%</output></span>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-14">音量を変えるときの秒数</label>
+                  <code class="key">recording.fade_sec</code>
+                  <input type="number" id="f-14" name="recording.fade_sec" value="0.5" step="0.1" min="0">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="c-15"><input type="checkbox" id="c-15" name="recording.hide_window"> 録音の画面を出さない</label>
+                  <code class="key">recording.hide_window</code>
+                  <p class="field-help">オンにすると、録音と文字起こしの間はトレイのアイコンとホットキーだけで操作する。</p>
+                </div>
+              </fieldset>
+              <fieldset id="g-transcription-n" data-group>
+                <legend>文字起こし</legend>
+                <h3 class="subhead">エンジン</h3>
+                <div class="row" data-reload="restart">
+                  <label for="f-16">文字起こしのエンジン <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.engine</code>
+                  <select id="f-16" name="transcription.engine"><option selected>local_whisper</option></select>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-17">モデル <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.model</code>
+                  <select id="f-17" name="transcription.local_whisper.model"><option selected>large-v3</option><option>large-v3-turbo</option><option>medium</option><option>small</option><option>base</option></select>
+                </div>
+                <div class="row" data-reload="restart">
+                  <span>デバイス <span class="badge badge--restart">再起動で反映</span></span>
+                  <code class="key">transcription.local_whisper.device</code>
+                  <fieldset class="radios" aria-label="デバイス"><label><input type="radio" name="transcription.local_whisper.device" value="cuda" checked> GPU（cuda）</label><label><input type="radio" name="transcription.local_whisper.device" value="cpu"> CPU</label></fieldset>
+                </div>
+                <div class="row" data-reload="restart">
+                  <span>量子化タイプ <span class="badge badge--restart">再起動で反映</span></span>
+                  <code class="key">transcription.local_whisper.compute_type</code>
+                  <fieldset class="radios" aria-label="量子化タイプ"><label><input type="radio" name="transcription.local_whisper.compute_type" value="float16" checked> float16</label><label><input type="radio" name="transcription.local_whisper.compute_type" value="int8"> int8</label><label><input type="radio" name="transcription.local_whisper.compute_type" value="float32"> float32</label></fieldset>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-22">言語 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.language</code>
+                  <input type="text" class="num" id="f-22" name="transcription.local_whisper.language" value="ja">
+                </div>
+                <h3 class="subhead">詳しい調整</h3>
+                <div class="row" data-reload="restart">
+                  <label for="f-23">CPU スレッド数 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.cpu_threads</code>
+                  <input type="number" id="f-23" name="transcription.local_whisper.cpu_threads" value="0" step="1" min="0">
+                  <p class="field-help">0 は自動。</p>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-24">並列ワーカー数 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.num_workers</code>
+                  <input type="number" id="f-24" name="transcription.local_whisper.num_workers" value="1" step="1" min="1">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-25">ビーム幅 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.beam_size</code>
+                  <input type="number" id="f-25" name="transcription.local_whisper.beam_size" value="10" step="1" min="1">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-26">候補数 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.best_of</code>
+                  <input type="number" id="f-26" name="transcription.local_whisper.best_of" value="5" step="1" min="1">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-27">温度 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.temperature</code>
+                  <input type="number" id="f-27" name="transcription.local_whisper.temperature" value="0.0" step="0.1" min="0">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-28">無音判定の閾値 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.no_speech_threshold</code>
+                  <input type="number" id="f-28" name="transcription.local_whisper.no_speech_threshold" value="0.6" step="0.05" min="0">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label class="check" for="c-29"><input type="checkbox" id="c-29" name="transcription.local_whisper.condition_on_previous_text"> 前の区間を文脈に使う <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.condition_on_previous_text</code>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label class="check" for="c-30"><input type="checkbox" id="c-30" name="transcription.local_whisper.vad_filter" checked> 無音の区間を除く（VAD） <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.vad_filter</code>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-31">VAD の閾値 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.vad_threshold</code>
+                  <input type="number" id="f-31" name="transcription.local_whisper.vad_threshold" value="0.5" step="0.05" min="0">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-32">VAD の最小の音声（ミリ秒） <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.vad_min_speech_ms</code>
+                  <input type="number" id="f-32" name="transcription.local_whisper.vad_min_speech_ms" value="250" step="50" min="0">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-33">VAD の最小の無音（ミリ秒） <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.vad_min_silence_ms</code>
+                  <input type="number" id="f-33" name="transcription.local_whisper.vad_min_silence_ms" value="2000" step="100" min="0">
+                </div>
+                <h3 class="subhead">用語集</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="f-34">用語集の CSV</label>
+                  <code class="key">glossary_path</code>
+                  <span class="pick"><input type="text" class="wide" id="f-34" name="glossary_path" value="" placeholder="settings.toml と同じフォルダの yogo.csv"><button type="button" class="btn">選ぶ…</button></span>
+                  <p class="field-help">空のときは settings.toml と同じフォルダの yogo.csv を読む。録音を文字に起こすたびに読み直す。</p>
+                </div>
+              </fieldset>
+              <fieldset id="g-ui-n" data-group>
+                <legend>画面</legend>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="c-35"><input type="checkbox" id="c-35" name="ui.topmost" checked> 録音の画面を最前面に出す</label>
+                  <code class="key">ui.topmost</code>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <span>録音の画面を出す位置</span>
+                  <code class="key">ui.position</code>
+                  <fieldset class="radios" aria-label="録音の画面を出す位置"><label><input type="radio" name="ui.position" value="center" checked> 中央</label><label><input type="radio" name="ui.position" value="top-left"> 左上</label><label><input type="radio" name="ui.position" value="top-right"> 右上</label><label><input type="radio" name="ui.position" value="bottom-left"> 左下</label><label><input type="radio" name="ui.position" value="bottom-right"> 右下</label></fieldset>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="c-38"><input type="checkbox" id="c-38" name="ui.follow_cursor" checked> カーソルのあるモニターに出す</label>
+                  <code class="key">ui.follow_cursor</code>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-39">波形の感度</label>
+                  <code class="key">ui.wave_gain</code>
+                  <input type="number" id="f-39" name="ui.wave_gain" value="4" step="0.5" min="0.5">
+                </div>
+              </fieldset>
+              <fieldset id="g-history-n" data-group>
+                <legend>履歴とログ</legend>
+                <div class="row" data-reload="restart">
+                  <label class="check" for="c-40"><input type="checkbox" id="c-40" name="history.enabled" checked> 履歴に残す <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">history.enabled</code>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-41">履歴を残す日数 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">history.retention_days</code>
+                  <input type="number" id="f-41" name="history.retention_days" value="1" step="1" min="1">
+                </div>
+                <div class="row" data-reload="restart">
+                  <span>ログに書くレベル <span class="badge badge--restart">再起動で反映</span></span>
+                  <code class="key">logging.level</code>
+                  <fieldset class="radios" aria-label="ログに書くレベル"><label><input type="radio" name="logging.level" value="DEBUG"> DEBUG</label><label><input type="radio" name="logging.level" value="INFO" checked> INFO</label><label><input type="radio" name="logging.level" value="WARNING"> WARNING</label><label><input type="radio" name="logging.level" value="ERROR"> ERROR</label></fieldset>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-44">ログを残す日数 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">logging.retention_days</code>
+                  <input type="number" id="f-44" name="logging.retention_days" value="7" step="1" min="1">
+                </div>
+              </fieldset>
+              <fieldset id="g-api-n" data-group>
+                <legend>API</legend>
+                <div class="row" data-reload="restart">
+                  <label for="f-45">待ち受けるポート <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">api.port</code>
+                  <input type="number" id="f-45" name="api.port" value="47823" step="1" min="1024">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-46">返送を許すホスト <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">api.allowed_callback_hosts</code>
+                  <textarea id="f-46" name="api.allowed_callback_hosts" rows="3" class="wide" placeholder="1 行に 1 つ（例: 192.168.1.20）"></textarea>
+                  <p class="field-help">127.0.0.1 と localhost はいつでも許す。ほかの端末へ返すときだけ足す。</p>
+                </div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <p class="notice" data-restart-notice hidden>「再起動で反映」の設定を変えました。「保存して再起動」で保存すると、すぐに効きます。</p>
+            <div class="settings__actions">
+              <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn" href="../../../tray/37/a-standard/index.html" data-restart-button hidden>保存して再起動</a>
+              <a class="btn btn--primary" href="../../../tray/37/a-standard/index.html">保存</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">ホットキーの欄は、押してからキーの組み合わせを押すと入る。「再起動で反映」の欄を変えると、下に知らせと「保存して再起動」が出る（「文字起こし」などで試せる）。</p>
+      </section>
+
+      <!-- 場面: 再起動で反映の設定を変えた（文字起こしのモデル） -->
+      <section class="specimen" data-scene-panel="restart" aria-labelledby="h-restart">
+        <h2 id="h-restart">再起動で反映の設定を変えた</h2>
+        <div class="win settings settings--full">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり">
+              <ul>
+                <li><a href="#g-outputs-r">出力先</a></li>
+                <li><a href="#g-hotkeys-r">ホットキー</a></li>
+                <li><a href="#g-recording-r">録音</a></li>
+                <li><a href="#g-transcription-r" aria-current="page">文字起こし</a></li>
+                <li><a href="#g-ui-r">画面</a></li>
+                <li><a href="#g-history-r">履歴とログ</a></li>
+                <li><a href="#g-api-r">API</a></li>
+              </ul>
+            </nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定">
+
+              <fieldset id="g-outputs-r" data-group>
+                <legend>出力先</legend>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="o-47"><input type="checkbox" role="switch" id="o-47" name="outputs[paste_and_send].enabled" checked> <span>貼り付けて送信</span></label>
+                  <code class="key">outputs[paste_and_send]</code>
+                  <input type="text" class="hotkey" name="outputs[paste_and_send].hotkey" value="Ctrl+Alt+D" aria-label="貼り付けて送信で確定するホットキー">
+                </div>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="o-48"><input type="checkbox" role="switch" id="o-48" name="outputs[paste_only].enabled" checked> <span>貼り付けのみ</span></label>
+                  <code class="key">outputs[paste_only]</code>
+                  <input type="text" class="hotkey" name="outputs[paste_only].hotkey" value="Ctrl+Alt+V" aria-label="貼り付けのみで確定するホットキー">
+                </div>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="o-49"><input type="checkbox" role="switch" id="o-49" name="outputs[copy_only].enabled" checked> <span>コピーのみ</span></label>
+                  <code class="key">outputs[copy_only]</code>
+                  <input type="text" class="hotkey" name="outputs[copy_only].hotkey" value="Ctrl+Alt+C" aria-label="コピーのみで確定するホットキー">
+                </div>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="o-50"><input type="checkbox" role="switch" id="o-50" name="outputs[ai_chat].enabled" checked> <span>AI チャットへ送る</span></label>
+                  <code class="key">outputs[ai_chat]</code>
+                  <p class="field-help">送り先ごとのホットキーは下の一覧で決める。</p>
+                </div>
+                <h3 class="subhead">送るまでの間</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="f-51">貼り付けてから Enter を送るまでの秒数</label>
+                  <code class="key">outputs[paste_and_send].enter_delay_sec</code>
+                  <input type="number" id="f-51" name="outputs[paste_and_send].enter_delay_sec" value="0.5" step="0.1" min="0">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-52">AI チャットを開いてから貼り付けるまでの秒数</label>
+                  <code class="key">outputs[ai_chat].open_delay_sec</code>
+                  <input type="number" id="f-52" name="outputs[ai_chat].open_delay_sec" value="3.0" step="0.5" min="0">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-53">AI チャットで貼り付けてから Enter を送るまでの秒数</label>
+                  <code class="key">outputs[ai_chat].enter_delay_sec</code>
+                  <input type="number" id="f-53" name="outputs[ai_chat].enter_delay_sec" value="0.5" step="0.1" min="0">
+                </div>
+                <h3 class="subhead">AI チャットの送り先</h3>
+                <div class="targets-wrap" data-reload="immediate">
+                  <table class="targets">
+                    <caption class="sr-only">AI チャットの送り先</caption>
+                    <thead><tr><th scope="col">出す</th><th scope="col">名前</th><th scope="col">URL</th><th scope="col">ホットキー</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+                    <tbody>
+                    <tr>
+                      <td><input type="checkbox" name="outputs[ai_chat].targets[1].enabled" checked aria-label="ChatGPTを録音の画面に出す"></td>
+                      <td><input type="text" name="outputs[ai_chat].targets[1].name" value="ChatGPT" aria-label="送り先 1 の名前"></td>
+                      <td><input type="text" name="outputs[ai_chat].targets[1].url" value="https://chatgpt.com" aria-label="送り先 1 の URL"></td>
+                      <td><input type="text" class="hotkey" name="outputs[ai_chat].targets[1].hotkey" value="Ctrl+Alt+1" aria-label="ChatGPTへ送るホットキー"></td>
+                      <td><button type="button" class="btn btn--icon" aria-label="ChatGPTを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox" name="outputs[ai_chat].targets[2].enabled" checked aria-label="Google AIを録音の画面に出す"></td>
+                      <td><input type="text" name="outputs[ai_chat].targets[2].name" value="Google AI" aria-label="送り先 2 の名前"></td>
+                      <td><input type="text" name="outputs[ai_chat].targets[2].url" value="https://gemini.google.com/app" aria-label="送り先 2 の URL"></td>
+                      <td><input type="text" class="hotkey" name="outputs[ai_chat].targets[2].hotkey" value="Ctrl+Alt+2" aria-label="Google AIへ送るホットキー"></td>
+                      <td><button type="button" class="btn btn--icon" aria-label="Google AIを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox" name="outputs[ai_chat].targets[3].enabled" checked aria-label="Claudeを録音の画面に出す"></td>
+                      <td><input type="text" name="outputs[ai_chat].targets[3].name" value="Claude" aria-label="送り先 3 の名前"></td>
+                      <td><input type="text" name="outputs[ai_chat].targets[3].url" value="https://claude.ai/new" aria-label="送り先 3 の URL"></td>
+                      <td><input type="text" class="hotkey" name="outputs[ai_chat].targets[3].hotkey" value="Ctrl+Alt+3" aria-label="Claudeへ送るホットキー"></td>
+                      <td><button type="button" class="btn btn--icon" aria-label="Claudeを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td>
+                    </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div><button type="button" class="btn">送り先を足す</button></div>
+              </fieldset>
+              <fieldset id="g-hotkeys-r" data-group>
+                <legend>ホットキー</legend>
+                <div class="row" data-reload="immediate">
+                  <label for="f-54">録音を始める</label>
+                  <code class="key">hotkeys.start</code>
+                  <input type="text" class="hotkey" id="f-54" name="hotkeys.start" value="Ctrl+Alt+D">
+                  <p class="field-help">録音中に押すと「貼り付けて送信」で確定する（同じキーのとき）。</p>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-55">一時停止・再開</label>
+                  <code class="key">hotkeys.pause</code>
+                  <input type="text" class="hotkey" id="f-55" name="hotkeys.pause" value="Ctrl+Alt+Z">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-56">取り消す</label>
+                  <code class="key">hotkeys.cancel</code>
+                  <input type="text" class="hotkey" id="f-56" name="hotkeys.cancel" value="Ctrl+Alt+Q">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-57">貼り付けに送るキー</label>
+                  <code class="key">keyboard.paste_key</code>
+                  <input type="text" class="hotkey" id="f-57" name="keyboard.paste_key" value="Ctrl+V">
+                  <p class="field-help">貼り付け先のアプリが Ctrl+V 以外で貼り付けるときに変える。</p>
+                </div>
+                <p class="field-help">出力先ごとの確定のホットキーは「出力先」で変える。欄を押してから、キーの組み合わせを押す。</p>
+              </fieldset>
+              <fieldset id="g-recording-r" data-group>
+                <legend>録音</legend>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="c-58"><input type="checkbox" id="c-58" name="recording.lower_volume" checked> 録音中に音量を下げる</label>
+                  <code class="key">recording.lower_volume</code>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-59">録音中の音量の割合</label>
+                  <code class="key">recording.volume_percent</code>
+                  <span class="range"><input type="range" id="f-59" name="recording.volume_percent" min="0" max="100" value="50"><output class="num">50%</output></span>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-60">音量を変えるときの秒数</label>
+                  <code class="key">recording.fade_sec</code>
+                  <input type="number" id="f-60" name="recording.fade_sec" value="0.5" step="0.1" min="0">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="c-61"><input type="checkbox" id="c-61" name="recording.hide_window"> 録音の画面を出さない</label>
+                  <code class="key">recording.hide_window</code>
+                  <p class="field-help">オンにすると、録音と文字起こしの間はトレイのアイコンとホットキーだけで操作する。</p>
+                </div>
+              </fieldset>
+              <fieldset id="g-transcription-r" data-group>
+                <legend>文字起こし</legend>
+                <h3 class="subhead">エンジン</h3>
+                <div class="row" data-reload="restart">
+                  <label for="f-62">文字起こしのエンジン <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.engine</code>
+                  <select id="f-62" name="transcription.engine"><option selected>local_whisper</option></select>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-63">モデル <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.model</code>
+                  <select id="f-63" name="transcription.local_whisper.model"><option>large-v3</option><option>large-v3-turbo</option><option selected>medium</option><option>small</option><option>base</option></select>
+                  <p class="field-help">変えたモデルは、再起動した後に読み込む。</p>
+                </div>
+                <div class="row" data-reload="restart">
+                  <span>デバイス <span class="badge badge--restart">再起動で反映</span></span>
+                  <code class="key">transcription.local_whisper.device</code>
+                  <fieldset class="radios" aria-label="デバイス"><label><input type="radio" name="transcription.local_whisper.device" value="cuda" checked> GPU（cuda）</label><label><input type="radio" name="transcription.local_whisper.device" value="cpu"> CPU</label></fieldset>
+                </div>
+                <div class="row" data-reload="restart">
+                  <span>量子化タイプ <span class="badge badge--restart">再起動で反映</span></span>
+                  <code class="key">transcription.local_whisper.compute_type</code>
+                  <fieldset class="radios" aria-label="量子化タイプ"><label><input type="radio" name="transcription.local_whisper.compute_type" value="float16" checked> float16</label><label><input type="radio" name="transcription.local_whisper.compute_type" value="int8"> int8</label><label><input type="radio" name="transcription.local_whisper.compute_type" value="float32"> float32</label></fieldset>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-68">言語 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.language</code>
+                  <input type="text" class="num" id="f-68" name="transcription.local_whisper.language" value="ja">
+                </div>
+                <h3 class="subhead">詳しい調整</h3>
+                <div class="row" data-reload="restart">
+                  <label for="f-69">CPU スレッド数 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.cpu_threads</code>
+                  <input type="number" id="f-69" name="transcription.local_whisper.cpu_threads" value="0" step="1" min="0">
+                  <p class="field-help">0 は自動。</p>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-70">並列ワーカー数 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.num_workers</code>
+                  <input type="number" id="f-70" name="transcription.local_whisper.num_workers" value="1" step="1" min="1">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-71">ビーム幅 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.beam_size</code>
+                  <input type="number" id="f-71" name="transcription.local_whisper.beam_size" value="10" step="1" min="1">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-72">候補数 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.best_of</code>
+                  <input type="number" id="f-72" name="transcription.local_whisper.best_of" value="5" step="1" min="1">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-73">温度 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.temperature</code>
+                  <input type="number" id="f-73" name="transcription.local_whisper.temperature" value="0.0" step="0.1" min="0">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-74">無音判定の閾値 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.no_speech_threshold</code>
+                  <input type="number" id="f-74" name="transcription.local_whisper.no_speech_threshold" value="0.6" step="0.05" min="0">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label class="check" for="c-75"><input type="checkbox" id="c-75" name="transcription.local_whisper.condition_on_previous_text"> 前の区間を文脈に使う <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.condition_on_previous_text</code>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label class="check" for="c-76"><input type="checkbox" id="c-76" name="transcription.local_whisper.vad_filter" checked> 無音の区間を除く（VAD） <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.vad_filter</code>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-77">VAD の閾値 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.vad_threshold</code>
+                  <input type="number" id="f-77" name="transcription.local_whisper.vad_threshold" value="0.5" step="0.05" min="0">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-78">VAD の最小の音声（ミリ秒） <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.vad_min_speech_ms</code>
+                  <input type="number" id="f-78" name="transcription.local_whisper.vad_min_speech_ms" value="250" step="50" min="0">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-79">VAD の最小の無音（ミリ秒） <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.vad_min_silence_ms</code>
+                  <input type="number" id="f-79" name="transcription.local_whisper.vad_min_silence_ms" value="2000" step="100" min="0">
+                </div>
+                <h3 class="subhead">用語集</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="f-80">用語集の CSV</label>
+                  <code class="key">glossary_path</code>
+                  <span class="pick"><input type="text" class="wide" id="f-80" name="glossary_path" value="" placeholder="settings.toml と同じフォルダの yogo.csv"><button type="button" class="btn">選ぶ…</button></span>
+                  <p class="field-help">空のときは settings.toml と同じフォルダの yogo.csv を読む。録音を文字に起こすたびに読み直す。</p>
+                </div>
+              </fieldset>
+              <fieldset id="g-ui-r" data-group>
+                <legend>画面</legend>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="c-81"><input type="checkbox" id="c-81" name="ui.topmost" checked> 録音の画面を最前面に出す</label>
+                  <code class="key">ui.topmost</code>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <span>録音の画面を出す位置</span>
+                  <code class="key">ui.position</code>
+                  <fieldset class="radios" aria-label="録音の画面を出す位置"><label><input type="radio" name="ui.position" value="center" checked> 中央</label><label><input type="radio" name="ui.position" value="top-left"> 左上</label><label><input type="radio" name="ui.position" value="top-right"> 右上</label><label><input type="radio" name="ui.position" value="bottom-left"> 左下</label><label><input type="radio" name="ui.position" value="bottom-right"> 右下</label></fieldset>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="c-84"><input type="checkbox" id="c-84" name="ui.follow_cursor" checked> カーソルのあるモニターに出す</label>
+                  <code class="key">ui.follow_cursor</code>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-85">波形の感度</label>
+                  <code class="key">ui.wave_gain</code>
+                  <input type="number" id="f-85" name="ui.wave_gain" value="4" step="0.5" min="0.5">
+                </div>
+              </fieldset>
+              <fieldset id="g-history-r" data-group>
+                <legend>履歴とログ</legend>
+                <div class="row" data-reload="restart">
+                  <label class="check" for="c-86"><input type="checkbox" id="c-86" name="history.enabled" checked> 履歴に残す <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">history.enabled</code>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-87">履歴を残す日数 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">history.retention_days</code>
+                  <input type="number" id="f-87" name="history.retention_days" value="1" step="1" min="1">
+                </div>
+                <div class="row" data-reload="restart">
+                  <span>ログに書くレベル <span class="badge badge--restart">再起動で反映</span></span>
+                  <code class="key">logging.level</code>
+                  <fieldset class="radios" aria-label="ログに書くレベル"><label><input type="radio" name="logging.level" value="DEBUG"> DEBUG</label><label><input type="radio" name="logging.level" value="INFO" checked> INFO</label><label><input type="radio" name="logging.level" value="WARNING"> WARNING</label><label><input type="radio" name="logging.level" value="ERROR"> ERROR</label></fieldset>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-90">ログを残す日数 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">logging.retention_days</code>
+                  <input type="number" id="f-90" name="logging.retention_days" value="7" step="1" min="1">
+                </div>
+              </fieldset>
+              <fieldset id="g-api-r" data-group>
+                <legend>API</legend>
+                <div class="row" data-reload="restart">
+                  <label for="f-91">待ち受けるポート <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">api.port</code>
+                  <input type="number" id="f-91" name="api.port" value="47823" step="1" min="1024">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-92">返送を許すホスト <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">api.allowed_callback_hosts</code>
+                  <textarea id="f-92" name="api.allowed_callback_hosts" rows="3" class="wide" placeholder="1 行に 1 つ（例: 192.168.1.20）"></textarea>
+                  <p class="field-help">127.0.0.1 と localhost はいつでも許す。ほかの端末へ返すときだけ足す。</p>
+                </div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <p class="notice" data-restart-notice>「再起動で反映」の設定を 1 件変えました。「保存して再起動」で保存すると、すぐに効きます。</p>
+            <div class="settings__actions">
+              <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn" href="../../../tray/37/a-standard/index.html" data-restart-button>保存して再起動</a>
+              <a class="btn btn--primary" href="../../../tray/37/a-standard/index.html">保存</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">「保存」でも保存できる。そのときは、再起動するまで前のモデルで文字を起こす。</p>
+      </section>
+
+      <!-- 場面: 確かめに通らない（保存を押した後） -->
+      <section class="specimen" data-scene-panel="error" aria-labelledby="h-error">
+        <h2 id="h-error">確かめに通らない</h2>
+        <div class="win settings settings--full">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり">
+              <ul>
+                <li><a href="#g-outputs-e" aria-current="page">出力先</a></li>
+                <li><a href="#g-hotkeys-e">ホットキー</a></li>
+                <li><a href="#g-recording-e">録音</a></li>
+                <li><a href="#g-transcription-e">文字起こし</a></li>
+                <li><a href="#g-ui-e">画面</a></li>
+                <li><a href="#g-history-e">履歴とログ</a></li>
+                <li><a href="#g-api-e">API</a></li>
+              </ul>
+            </nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定">
+              <div class="error-summary" role="alert" tabindex="-1">
+                保存できませんでした。2 件の欄を直してください。
+                <ul>
+                  <li><a href="#f-97">貼り付けてから Enter を送るまでの秒数: 数値を入れてください</a></li>
+                  <li><a href="#e-claude-hotkey">AI チャットの送り先 Claude のホットキー: 「貼り付けて送信」と同じです</a></li>
+                </ul>
+              </div>
+              <fieldset id="g-outputs-e" data-group>
+                <legend>出力先</legend>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="o-93"><input type="checkbox" role="switch" id="o-93" name="outputs[paste_and_send].enabled" checked> <span>貼り付けて送信</span></label>
+                  <code class="key">outputs[paste_and_send]</code>
+                  <input type="text" class="hotkey" name="outputs[paste_and_send].hotkey" value="Ctrl+Alt+D" aria-label="貼り付けて送信で確定するホットキー">
+                </div>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="o-94"><input type="checkbox" role="switch" id="o-94" name="outputs[paste_only].enabled" checked> <span>貼り付けのみ</span></label>
+                  <code class="key">outputs[paste_only]</code>
+                  <input type="text" class="hotkey" name="outputs[paste_only].hotkey" value="Ctrl+Alt+V" aria-label="貼り付けのみで確定するホットキー">
+                </div>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="o-95"><input type="checkbox" role="switch" id="o-95" name="outputs[copy_only].enabled" checked> <span>コピーのみ</span></label>
+                  <code class="key">outputs[copy_only]</code>
+                  <input type="text" class="hotkey" name="outputs[copy_only].hotkey" value="Ctrl+Alt+C" aria-label="コピーのみで確定するホットキー">
+                </div>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="o-96"><input type="checkbox" role="switch" id="o-96" name="outputs[ai_chat].enabled" checked> <span>AI チャットへ送る</span></label>
+                  <code class="key">outputs[ai_chat]</code>
+                  <p class="field-help">送り先ごとのホットキーは下の一覧で決める。</p>
+                </div>
+                <h3 class="subhead">送るまでの間</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="f-97">貼り付けてから Enter を送るまでの秒数</label>
+                  <code class="key">outputs[paste_and_send].enter_delay_sec</code>
+                  <input type="text" class="num" id="f-97" aria-invalid="true" aria-describedby="f-97-err" name="outputs[paste_and_send].enter_delay_sec" value="abc">
+                  <p class="field-error" id="f-97-err">数値を入れてください（例: 0.5）。</p>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-98">AI チャットを開いてから貼り付けるまでの秒数</label>
+                  <code class="key">outputs[ai_chat].open_delay_sec</code>
+                  <input type="number" id="f-98" name="outputs[ai_chat].open_delay_sec" value="3.0" step="0.5" min="0">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-99">AI チャットで貼り付けてから Enter を送るまでの秒数</label>
+                  <code class="key">outputs[ai_chat].enter_delay_sec</code>
+                  <input type="number" id="f-99" name="outputs[ai_chat].enter_delay_sec" value="0.5" step="0.1" min="0">
+                </div>
+                <h3 class="subhead">AI チャットの送り先</h3>
+                <div class="targets-wrap" data-reload="immediate">
+                  <table class="targets">
+                    <caption class="sr-only">AI チャットの送り先</caption>
+                    <thead><tr><th scope="col">出す</th><th scope="col">名前</th><th scope="col">URL</th><th scope="col">ホットキー</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+                    <tbody>
+                    <tr>
+                      <td><input type="checkbox" name="outputs[ai_chat].targets[1].enabled" checked aria-label="ChatGPTを録音の画面に出す"></td>
+                      <td><input type="text" name="outputs[ai_chat].targets[1].name" value="ChatGPT" aria-label="送り先 1 の名前"></td>
+                      <td><input type="text" name="outputs[ai_chat].targets[1].url" value="https://chatgpt.com" aria-label="送り先 1 の URL"></td>
+                      <td><input type="text" class="hotkey" name="outputs[ai_chat].targets[1].hotkey" value="Ctrl+Alt+1" aria-label="ChatGPTへ送るホットキー"></td>
+                      <td><button type="button" class="btn btn--icon" aria-label="ChatGPTを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox" name="outputs[ai_chat].targets[2].enabled" checked aria-label="Google AIを録音の画面に出す"></td>
+                      <td><input type="text" name="outputs[ai_chat].targets[2].name" value="Google AI" aria-label="送り先 2 の名前"></td>
+                      <td><input type="text" name="outputs[ai_chat].targets[2].url" value="https://gemini.google.com/app" aria-label="送り先 2 の URL"></td>
+                      <td><input type="text" class="hotkey" name="outputs[ai_chat].targets[2].hotkey" value="Ctrl+Alt+2" aria-label="Google AIへ送るホットキー"></td>
+                      <td><button type="button" class="btn btn--icon" aria-label="Google AIを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox" name="outputs[ai_chat].targets[3].enabled" checked aria-label="Claudeを録音の画面に出す"></td>
+                      <td><input type="text" name="outputs[ai_chat].targets[3].name" value="Claude" aria-label="送り先 3 の名前"></td>
+                      <td><input type="text" name="outputs[ai_chat].targets[3].url" value="https://claude.ai/new" aria-label="送り先 3 の URL"></td>
+                      <td><input type="text" class="hotkey" id="e-claude-hotkey" name="outputs[ai_chat].targets[3].hotkey" value="Ctrl+Alt+D" aria-label="Claudeへ送るホットキー" aria-invalid="true" aria-describedby="dup-err"></td>
+                      <td><button type="button" class="btn btn--icon" aria-label="Claudeを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td>
+                    </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="field-error" id="dup-err">Claude のホットキーが「貼り付けて送信」と同じです。別のキーにしてください。</p>
+                <div><button type="button" class="btn">送り先を足す</button></div>
+              </fieldset>
+              <fieldset id="g-hotkeys-e" data-group>
+                <legend>ホットキー</legend>
+                <div class="row" data-reload="immediate">
+                  <label for="f-100">録音を始める</label>
+                  <code class="key">hotkeys.start</code>
+                  <input type="text" class="hotkey" id="f-100" name="hotkeys.start" value="Ctrl+Alt+D">
+                  <p class="field-help">録音中に押すと「貼り付けて送信」で確定する（同じキーのとき）。</p>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-101">一時停止・再開</label>
+                  <code class="key">hotkeys.pause</code>
+                  <input type="text" class="hotkey" id="f-101" name="hotkeys.pause" value="Ctrl+Alt+Z">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-102">取り消す</label>
+                  <code class="key">hotkeys.cancel</code>
+                  <input type="text" class="hotkey" id="f-102" name="hotkeys.cancel" value="Ctrl+Alt+Q">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-103">貼り付けに送るキー</label>
+                  <code class="key">keyboard.paste_key</code>
+                  <input type="text" class="hotkey" id="f-103" name="keyboard.paste_key" value="Ctrl+V">
+                  <p class="field-help">貼り付け先のアプリが Ctrl+V 以外で貼り付けるときに変える。</p>
+                </div>
+                <p class="field-help">出力先ごとの確定のホットキーは「出力先」で変える。欄を押してから、キーの組み合わせを押す。</p>
+              </fieldset>
+              <fieldset id="g-recording-e" data-group>
+                <legend>録音</legend>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="c-104"><input type="checkbox" id="c-104" name="recording.lower_volume" checked> 録音中に音量を下げる</label>
+                  <code class="key">recording.lower_volume</code>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-105">録音中の音量の割合</label>
+                  <code class="key">recording.volume_percent</code>
+                  <span class="range"><input type="range" id="f-105" name="recording.volume_percent" min="0" max="100" value="50"><output class="num">50%</output></span>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-106">音量を変えるときの秒数</label>
+                  <code class="key">recording.fade_sec</code>
+                  <input type="number" id="f-106" name="recording.fade_sec" value="0.5" step="0.1" min="0">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="c-107"><input type="checkbox" id="c-107" name="recording.hide_window"> 録音の画面を出さない</label>
+                  <code class="key">recording.hide_window</code>
+                  <p class="field-help">オンにすると、録音と文字起こしの間はトレイのアイコンとホットキーだけで操作する。</p>
+                </div>
+              </fieldset>
+              <fieldset id="g-transcription-e" data-group>
+                <legend>文字起こし</legend>
+                <h3 class="subhead">エンジン</h3>
+                <div class="row" data-reload="restart">
+                  <label for="f-108">文字起こしのエンジン <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.engine</code>
+                  <select id="f-108" name="transcription.engine"><option selected>local_whisper</option></select>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-109">モデル <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.model</code>
+                  <select id="f-109" name="transcription.local_whisper.model"><option selected>large-v3</option><option>large-v3-turbo</option><option>medium</option><option>small</option><option>base</option></select>
+                </div>
+                <div class="row" data-reload="restart">
+                  <span>デバイス <span class="badge badge--restart">再起動で反映</span></span>
+                  <code class="key">transcription.local_whisper.device</code>
+                  <fieldset class="radios" aria-label="デバイス"><label><input type="radio" name="transcription.local_whisper.device" value="cuda" checked> GPU（cuda）</label><label><input type="radio" name="transcription.local_whisper.device" value="cpu"> CPU</label></fieldset>
+                </div>
+                <div class="row" data-reload="restart">
+                  <span>量子化タイプ <span class="badge badge--restart">再起動で反映</span></span>
+                  <code class="key">transcription.local_whisper.compute_type</code>
+                  <fieldset class="radios" aria-label="量子化タイプ"><label><input type="radio" name="transcription.local_whisper.compute_type" value="float16" checked> float16</label><label><input type="radio" name="transcription.local_whisper.compute_type" value="int8"> int8</label><label><input type="radio" name="transcription.local_whisper.compute_type" value="float32"> float32</label></fieldset>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-114">言語 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.language</code>
+                  <input type="text" class="num" id="f-114" name="transcription.local_whisper.language" value="ja">
+                </div>
+                <h3 class="subhead">詳しい調整</h3>
+                <div class="row" data-reload="restart">
+                  <label for="f-115">CPU スレッド数 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.cpu_threads</code>
+                  <input type="number" id="f-115" name="transcription.local_whisper.cpu_threads" value="0" step="1" min="0">
+                  <p class="field-help">0 は自動。</p>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-116">並列ワーカー数 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.num_workers</code>
+                  <input type="number" id="f-116" name="transcription.local_whisper.num_workers" value="1" step="1" min="1">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-117">ビーム幅 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.beam_size</code>
+                  <input type="number" id="f-117" name="transcription.local_whisper.beam_size" value="10" step="1" min="1">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-118">候補数 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.best_of</code>
+                  <input type="number" id="f-118" name="transcription.local_whisper.best_of" value="5" step="1" min="1">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-119">温度 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.temperature</code>
+                  <input type="number" id="f-119" name="transcription.local_whisper.temperature" value="0.0" step="0.1" min="0">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-120">無音判定の閾値 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.no_speech_threshold</code>
+                  <input type="number" id="f-120" name="transcription.local_whisper.no_speech_threshold" value="0.6" step="0.05" min="0">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label class="check" for="c-121"><input type="checkbox" id="c-121" name="transcription.local_whisper.condition_on_previous_text"> 前の区間を文脈に使う <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.condition_on_previous_text</code>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label class="check" for="c-122"><input type="checkbox" id="c-122" name="transcription.local_whisper.vad_filter" checked> 無音の区間を除く（VAD） <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.vad_filter</code>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-123">VAD の閾値 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.vad_threshold</code>
+                  <input type="number" id="f-123" name="transcription.local_whisper.vad_threshold" value="0.5" step="0.05" min="0">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-124">VAD の最小の音声（ミリ秒） <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.vad_min_speech_ms</code>
+                  <input type="number" id="f-124" name="transcription.local_whisper.vad_min_speech_ms" value="250" step="50" min="0">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-125">VAD の最小の無音（ミリ秒） <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.vad_min_silence_ms</code>
+                  <input type="number" id="f-125" name="transcription.local_whisper.vad_min_silence_ms" value="2000" step="100" min="0">
+                </div>
+                <h3 class="subhead">用語集</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="f-126">用語集の CSV</label>
+                  <code class="key">glossary_path</code>
+                  <span class="pick"><input type="text" class="wide" id="f-126" name="glossary_path" value="" placeholder="settings.toml と同じフォルダの yogo.csv"><button type="button" class="btn">選ぶ…</button></span>
+                  <p class="field-help">空のときは settings.toml と同じフォルダの yogo.csv を読む。録音を文字に起こすたびに読み直す。</p>
+                </div>
+              </fieldset>
+              <fieldset id="g-ui-e" data-group>
+                <legend>画面</legend>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="c-127"><input type="checkbox" id="c-127" name="ui.topmost" checked> 録音の画面を最前面に出す</label>
+                  <code class="key">ui.topmost</code>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <span>録音の画面を出す位置</span>
+                  <code class="key">ui.position</code>
+                  <fieldset class="radios" aria-label="録音の画面を出す位置"><label><input type="radio" name="ui.position" value="center" checked> 中央</label><label><input type="radio" name="ui.position" value="top-left"> 左上</label><label><input type="radio" name="ui.position" value="top-right"> 右上</label><label><input type="radio" name="ui.position" value="bottom-left"> 左下</label><label><input type="radio" name="ui.position" value="bottom-right"> 右下</label></fieldset>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="c-130"><input type="checkbox" id="c-130" name="ui.follow_cursor" checked> カーソルのあるモニターに出す</label>
+                  <code class="key">ui.follow_cursor</code>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-131">波形の感度</label>
+                  <code class="key">ui.wave_gain</code>
+                  <input type="number" id="f-131" name="ui.wave_gain" value="4" step="0.5" min="0.5">
+                </div>
+              </fieldset>
+              <fieldset id="g-history-e" data-group>
+                <legend>履歴とログ</legend>
+                <div class="row" data-reload="restart">
+                  <label class="check" for="c-132"><input type="checkbox" id="c-132" name="history.enabled" checked> 履歴に残す <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">history.enabled</code>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-133">履歴を残す日数 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">history.retention_days</code>
+                  <input type="number" id="f-133" name="history.retention_days" value="1" step="1" min="1">
+                </div>
+                <div class="row" data-reload="restart">
+                  <span>ログに書くレベル <span class="badge badge--restart">再起動で反映</span></span>
+                  <code class="key">logging.level</code>
+                  <fieldset class="radios" aria-label="ログに書くレベル"><label><input type="radio" name="logging.level" value="DEBUG"> DEBUG</label><label><input type="radio" name="logging.level" value="INFO" checked> INFO</label><label><input type="radio" name="logging.level" value="WARNING"> WARNING</label><label><input type="radio" name="logging.level" value="ERROR"> ERROR</label></fieldset>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-136">ログを残す日数 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">logging.retention_days</code>
+                  <input type="number" id="f-136" name="logging.retention_days" value="7" step="1" min="1">
+                </div>
+              </fieldset>
+              <fieldset id="g-api-e" data-group>
+                <legend>API</legend>
+                <div class="row" data-reload="restart">
+                  <label for="f-137">待ち受けるポート <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">api.port</code>
+                  <input type="number" id="f-137" name="api.port" value="47823" step="1" min="1024">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-138">返送を許すホスト <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">api.allowed_callback_hosts</code>
+                  <textarea id="f-138" name="api.allowed_callback_hosts" rows="3" class="wide" placeholder="1 行に 1 つ（例: 192.168.1.20）"></textarea>
+                  <p class="field-help">127.0.0.1 と localhost はいつでも許す。ほかの端末へ返すときだけ足す。</p>
+                </div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <p class="notice" data-restart-notice hidden>「再起動で反映」の設定を変えました。「保存して再起動」で保存すると、すぐに効きます。</p>
+            <div class="settings__actions">
+              <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn" href="../../../tray/37/a-standard/index.html" data-restart-button hidden>保存して再起動</a>
+              <a class="btn btn--primary" href="../../../tray/37/a-standard/index.html">保存</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">保存を押した後に確かめる（入力の途中では出さない）。欄の上にエラーの一覧を出してフォーカスを移し、一覧のリンクから欄へ移れる。入れた値は消さない。</p>
+      </section>
+
+      <!-- 場面: 既定に戻した後 -->
+      <section class="specimen" data-scene-panel="after-reset" id="after-reset" aria-labelledby="h-after">
+        <h2 id="h-after">既定に戻した後</h2>
+        <div class="win settings settings--full">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり">
+              <ul>
+                <li><a href="#g-outputs-a" aria-current="page">出力先</a></li>
+                <li><a href="#g-hotkeys-a">ホットキー</a></li>
+                <li><a href="#g-recording-a">録音</a></li>
+                <li><a href="#g-transcription-a">文字起こし</a></li>
+                <li><a href="#g-ui-a">画面</a></li>
+                <li><a href="#g-history-a">履歴とログ</a></li>
+                <li><a href="#g-api-a">API</a></li>
+              </ul>
+            </nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定">
+
+              <fieldset id="g-outputs-a" data-group>
+                <legend>出力先</legend>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="o-139"><input type="checkbox" role="switch" id="o-139" name="outputs[paste_and_send].enabled" checked> <span>貼り付けて送信</span></label>
+                  <code class="key">outputs[paste_and_send]</code>
+                  <input type="text" class="hotkey" name="outputs[paste_and_send].hotkey" value="Ctrl+Alt+D" aria-label="貼り付けて送信で確定するホットキー">
+                </div>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="o-140"><input type="checkbox" role="switch" id="o-140" name="outputs[paste_only].enabled" checked> <span>貼り付けのみ</span></label>
+                  <code class="key">outputs[paste_only]</code>
+                  <input type="text" class="hotkey" name="outputs[paste_only].hotkey" value="Ctrl+Alt+V" aria-label="貼り付けのみで確定するホットキー">
+                </div>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="o-141"><input type="checkbox" role="switch" id="o-141" name="outputs[copy_only].enabled" checked> <span>コピーのみ</span></label>
+                  <code class="key">outputs[copy_only]</code>
+                  <input type="text" class="hotkey" name="outputs[copy_only].hotkey" value="Ctrl+Alt+C" aria-label="コピーのみで確定するホットキー">
+                </div>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="o-142"><input type="checkbox" role="switch" id="o-142" name="outputs[ai_chat].enabled" checked> <span>AI チャットへ送る</span></label>
+                  <code class="key">outputs[ai_chat]</code>
+                  <p class="field-help">送り先ごとのホットキーは下の一覧で決める。</p>
+                </div>
+                <h3 class="subhead">送るまでの間</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="f-143">貼り付けてから Enter を送るまでの秒数</label>
+                  <code class="key">outputs[paste_and_send].enter_delay_sec</code>
+                  <input type="number" id="f-143" name="outputs[paste_and_send].enter_delay_sec" value="0.5" step="0.1" min="0">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-144">AI チャットを開いてから貼り付けるまでの秒数</label>
+                  <code class="key">outputs[ai_chat].open_delay_sec</code>
+                  <input type="number" id="f-144" name="outputs[ai_chat].open_delay_sec" value="3.0" step="0.5" min="0">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-145">AI チャットで貼り付けてから Enter を送るまでの秒数</label>
+                  <code class="key">outputs[ai_chat].enter_delay_sec</code>
+                  <input type="number" id="f-145" name="outputs[ai_chat].enter_delay_sec" value="0.5" step="0.1" min="0">
+                </div>
+                <h3 class="subhead">AI チャットの送り先</h3>
+                <div class="targets-wrap" data-reload="immediate">
+                  <table class="targets">
+                    <caption class="sr-only">AI チャットの送り先</caption>
+                    <thead><tr><th scope="col">出す</th><th scope="col">名前</th><th scope="col">URL</th><th scope="col">ホットキー</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+                    <tbody>
+                    <tr>
+                      <td><input type="checkbox" name="outputs[ai_chat].targets[1].enabled" checked aria-label="ChatGPTを録音の画面に出す"></td>
+                      <td><input type="text" name="outputs[ai_chat].targets[1].name" value="ChatGPT" aria-label="送り先 1 の名前"></td>
+                      <td><input type="text" name="outputs[ai_chat].targets[1].url" value="https://chatgpt.com" aria-label="送り先 1 の URL"></td>
+                      <td><input type="text" class="hotkey" name="outputs[ai_chat].targets[1].hotkey" value="Ctrl+Alt+1" aria-label="ChatGPTへ送るホットキー"></td>
+                      <td><button type="button" class="btn btn--icon" aria-label="ChatGPTを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox" name="outputs[ai_chat].targets[2].enabled" checked aria-label="Google AIを録音の画面に出す"></td>
+                      <td><input type="text" name="outputs[ai_chat].targets[2].name" value="Google AI" aria-label="送り先 2 の名前"></td>
+                      <td><input type="text" name="outputs[ai_chat].targets[2].url" value="https://gemini.google.com/app" aria-label="送り先 2 の URL"></td>
+                      <td><input type="text" class="hotkey" name="outputs[ai_chat].targets[2].hotkey" value="Ctrl+Alt+2" aria-label="Google AIへ送るホットキー"></td>
+                      <td><button type="button" class="btn btn--icon" aria-label="Google AIを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox" name="outputs[ai_chat].targets[3].enabled" checked aria-label="Claudeを録音の画面に出す"></td>
+                      <td><input type="text" name="outputs[ai_chat].targets[3].name" value="Claude" aria-label="送り先 3 の名前"></td>
+                      <td><input type="text" name="outputs[ai_chat].targets[3].url" value="https://claude.ai/new" aria-label="送り先 3 の URL"></td>
+                      <td><input type="text" class="hotkey" name="outputs[ai_chat].targets[3].hotkey" value="Ctrl+Alt+3" aria-label="Claudeへ送るホットキー"></td>
+                      <td><button type="button" class="btn btn--icon" aria-label="Claudeを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td>
+                    </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div><button type="button" class="btn">送り先を足す</button></div>
+              </fieldset>
+              <fieldset id="g-hotkeys-a" data-group>
+                <legend>ホットキー</legend>
+                <div class="row" data-reload="immediate">
+                  <label for="f-146">録音を始める</label>
+                  <code class="key">hotkeys.start</code>
+                  <input type="text" class="hotkey" id="f-146" name="hotkeys.start" value="Ctrl+Alt+D">
+                  <p class="field-help">録音中に押すと「貼り付けて送信」で確定する（同じキーのとき）。</p>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-147">一時停止・再開</label>
+                  <code class="key">hotkeys.pause</code>
+                  <input type="text" class="hotkey" id="f-147" name="hotkeys.pause" value="Ctrl+Alt+Z">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-148">取り消す</label>
+                  <code class="key">hotkeys.cancel</code>
+                  <input type="text" class="hotkey" id="f-148" name="hotkeys.cancel" value="Ctrl+Alt+Q">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-149">貼り付けに送るキー</label>
+                  <code class="key">keyboard.paste_key</code>
+                  <input type="text" class="hotkey" id="f-149" name="keyboard.paste_key" value="Ctrl+V">
+                  <p class="field-help">貼り付け先のアプリが Ctrl+V 以外で貼り付けるときに変える。</p>
+                </div>
+                <p class="field-help">出力先ごとの確定のホットキーは「出力先」で変える。欄を押してから、キーの組み合わせを押す。</p>
+              </fieldset>
+              <fieldset id="g-recording-a" data-group>
+                <legend>録音</legend>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="c-150"><input type="checkbox" id="c-150" name="recording.lower_volume" checked> 録音中に音量を下げる</label>
+                  <code class="key">recording.lower_volume</code>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-151">録音中の音量の割合</label>
+                  <code class="key">recording.volume_percent</code>
+                  <span class="range"><input type="range" id="f-151" name="recording.volume_percent" min="0" max="100" value="50"><output class="num">50%</output></span>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-152">音量を変えるときの秒数</label>
+                  <code class="key">recording.fade_sec</code>
+                  <input type="number" id="f-152" name="recording.fade_sec" value="0.5" step="0.1" min="0">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="c-153"><input type="checkbox" id="c-153" name="recording.hide_window"> 録音の画面を出さない</label>
+                  <code class="key">recording.hide_window</code>
+                  <p class="field-help">オンにすると、録音と文字起こしの間はトレイのアイコンとホットキーだけで操作する。</p>
+                </div>
+              </fieldset>
+              <fieldset id="g-transcription-a" data-group>
+                <legend>文字起こし</legend>
+                <h3 class="subhead">エンジン</h3>
+                <div class="row" data-reload="restart">
+                  <label for="f-154">文字起こしのエンジン <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.engine</code>
+                  <select id="f-154" name="transcription.engine"><option selected>local_whisper</option></select>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-155">モデル <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.model</code>
+                  <select id="f-155" name="transcription.local_whisper.model"><option selected>large-v3</option><option>large-v3-turbo</option><option>medium</option><option>small</option><option>base</option></select>
+                </div>
+                <div class="row" data-reload="restart">
+                  <span>デバイス <span class="badge badge--restart">再起動で反映</span></span>
+                  <code class="key">transcription.local_whisper.device</code>
+                  <fieldset class="radios" aria-label="デバイス"><label><input type="radio" name="transcription.local_whisper.device" value="cuda" checked> GPU（cuda）</label><label><input type="radio" name="transcription.local_whisper.device" value="cpu"> CPU</label></fieldset>
+                </div>
+                <div class="row" data-reload="restart">
+                  <span>量子化タイプ <span class="badge badge--restart">再起動で反映</span></span>
+                  <code class="key">transcription.local_whisper.compute_type</code>
+                  <fieldset class="radios" aria-label="量子化タイプ"><label><input type="radio" name="transcription.local_whisper.compute_type" value="float16" checked> float16</label><label><input type="radio" name="transcription.local_whisper.compute_type" value="int8"> int8</label><label><input type="radio" name="transcription.local_whisper.compute_type" value="float32"> float32</label></fieldset>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-160">言語 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.language</code>
+                  <input type="text" class="num" id="f-160" name="transcription.local_whisper.language" value="ja">
+                </div>
+                <h3 class="subhead">詳しい調整</h3>
+                <div class="row" data-reload="restart">
+                  <label for="f-161">CPU スレッド数 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.cpu_threads</code>
+                  <input type="number" id="f-161" name="transcription.local_whisper.cpu_threads" value="0" step="1" min="0">
+                  <p class="field-help">0 は自動。</p>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-162">並列ワーカー数 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.num_workers</code>
+                  <input type="number" id="f-162" name="transcription.local_whisper.num_workers" value="1" step="1" min="1">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-163">ビーム幅 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.beam_size</code>
+                  <input type="number" id="f-163" name="transcription.local_whisper.beam_size" value="10" step="1" min="1">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-164">候補数 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.best_of</code>
+                  <input type="number" id="f-164" name="transcription.local_whisper.best_of" value="5" step="1" min="1">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-165">温度 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.temperature</code>
+                  <input type="number" id="f-165" name="transcription.local_whisper.temperature" value="0.0" step="0.1" min="0">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-166">無音判定の閾値 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.no_speech_threshold</code>
+                  <input type="number" id="f-166" name="transcription.local_whisper.no_speech_threshold" value="0.6" step="0.05" min="0">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label class="check" for="c-167"><input type="checkbox" id="c-167" name="transcription.local_whisper.condition_on_previous_text"> 前の区間を文脈に使う <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.condition_on_previous_text</code>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label class="check" for="c-168"><input type="checkbox" id="c-168" name="transcription.local_whisper.vad_filter" checked> 無音の区間を除く（VAD） <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.vad_filter</code>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-169">VAD の閾値 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.vad_threshold</code>
+                  <input type="number" id="f-169" name="transcription.local_whisper.vad_threshold" value="0.5" step="0.05" min="0">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-170">VAD の最小の音声（ミリ秒） <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.vad_min_speech_ms</code>
+                  <input type="number" id="f-170" name="transcription.local_whisper.vad_min_speech_ms" value="250" step="50" min="0">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-171">VAD の最小の無音（ミリ秒） <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.vad_min_silence_ms</code>
+                  <input type="number" id="f-171" name="transcription.local_whisper.vad_min_silence_ms" value="2000" step="100" min="0">
+                </div>
+                <h3 class="subhead">用語集</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="f-172">用語集の CSV</label>
+                  <code class="key">glossary_path</code>
+                  <span class="pick"><input type="text" class="wide" id="f-172" name="glossary_path" value="" placeholder="settings.toml と同じフォルダの yogo.csv"><button type="button" class="btn">選ぶ…</button></span>
+                  <p class="field-help">空のときは settings.toml と同じフォルダの yogo.csv を読む。録音を文字に起こすたびに読み直す。</p>
+                </div>
+              </fieldset>
+              <fieldset id="g-ui-a" data-group>
+                <legend>画面</legend>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="c-173"><input type="checkbox" id="c-173" name="ui.topmost" checked> 録音の画面を最前面に出す</label>
+                  <code class="key">ui.topmost</code>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <span>録音の画面を出す位置</span>
+                  <code class="key">ui.position</code>
+                  <fieldset class="radios" aria-label="録音の画面を出す位置"><label><input type="radio" name="ui.position" value="center" checked> 中央</label><label><input type="radio" name="ui.position" value="top-left"> 左上</label><label><input type="radio" name="ui.position" value="top-right"> 右上</label><label><input type="radio" name="ui.position" value="bottom-left"> 左下</label><label><input type="radio" name="ui.position" value="bottom-right"> 右下</label></fieldset>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="c-176"><input type="checkbox" id="c-176" name="ui.follow_cursor" checked> カーソルのあるモニターに出す</label>
+                  <code class="key">ui.follow_cursor</code>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="f-177">波形の感度</label>
+                  <code class="key">ui.wave_gain</code>
+                  <input type="number" id="f-177" name="ui.wave_gain" value="4" step="0.5" min="0.5">
+                </div>
+              </fieldset>
+              <fieldset id="g-history-a" data-group>
+                <legend>履歴とログ</legend>
+                <div class="row" data-reload="restart">
+                  <label class="check" for="c-178"><input type="checkbox" id="c-178" name="history.enabled" checked> 履歴に残す <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">history.enabled</code>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-179">履歴を残す日数 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">history.retention_days</code>
+                  <input type="number" id="f-179" name="history.retention_days" value="1" step="1" min="1">
+                </div>
+                <div class="row" data-reload="restart">
+                  <span>ログに書くレベル <span class="badge badge--restart">再起動で反映</span></span>
+                  <code class="key">logging.level</code>
+                  <fieldset class="radios" aria-label="ログに書くレベル"><label><input type="radio" name="logging.level" value="DEBUG"> DEBUG</label><label><input type="radio" name="logging.level" value="INFO" checked> INFO</label><label><input type="radio" name="logging.level" value="WARNING"> WARNING</label><label><input type="radio" name="logging.level" value="ERROR"> ERROR</label></fieldset>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-182">ログを残す日数 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">logging.retention_days</code>
+                  <input type="number" id="f-182" name="logging.retention_days" value="7" step="1" min="1">
+                </div>
+              </fieldset>
+              <fieldset id="g-api-a" data-group>
+                <legend>API</legend>
+                <div class="row" data-reload="restart">
+                  <label for="f-183">待ち受けるポート <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">api.port</code>
+                  <input type="number" id="f-183" name="api.port" value="47823" step="1" min="1024">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="f-184">返送を許すホスト <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">api.allowed_callback_hosts</code>
+                  <textarea id="f-184" name="api.allowed_callback_hosts" rows="3" class="wide" placeholder="1 行に 1 つ（例: 192.168.1.20）"></textarea>
+                  <p class="field-help">127.0.0.1 と localhost はいつでも許す。ほかの端末へ返すときだけ足す。</p>
+                </div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <p class="notice">既定に戻して保存しました。「再起動で反映」の設定 3 件は、再起動するまで前の値で動きます。<a class="btn" href="../../../tray/37/a-standard/index.html">今すぐ再起動</a></p>
+            <div class="settings__actions">
+              <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn" href="../../../tray/37/a-standard/index.html" data-restart-button hidden>保存して再起動</a>
+              <a class="btn btn--primary" href="../../../tray/37/a-standard/index.html">保存</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">既定に戻すと、確認の後すぐに settings.toml へ書く。そのため「保存して再起動」ではなく、再起動が要る設定の件数と「今すぐ再起動」を出す。</p>
+      </section>
+
+    </div>
+  </main>
+</body>
+</html>

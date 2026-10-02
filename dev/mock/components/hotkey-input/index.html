@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ホットキーの欄 | voice-paste のモック</title>
+  <link rel="stylesheet" href="../../refs/37/assets/style.css">
+  <script src="../../refs/37/assets/app.js" defer></script>
+</head>
+<body>
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../">components</a> / <span>hotkey-input</span></nav>
+
+    <!-- 部品の説明 -->
+    <header class="intro">
+      <h1>ホットキーの欄</h1>
+      <p>設定画面でホットキーを入れる欄。欄を押すと入力待ちになり、押したキーの組み合わせが入る。Tab と Esc は欄の移動と画面の取り消しに残す。</p>
+    </header>
+
+    <div class="desk">
+
+      <!-- 状態: 通常 -->
+      <section class="specimen" aria-labelledby="h-normal">
+        <h2 id="h-normal">通常</h2>
+        <div class="win settings__form">
+          <div class="row"><label for="k1">録音を始める</label><code class="key">hotkeys.start</code><input type="text" class="hotkey" id="k1" value="Ctrl+Alt+D"></div>
+        </div>
+      </section>
+
+      <!-- 状態: 入力待ち（欄を押した直後） -->
+      <section class="specimen" aria-labelledby="h-wait">
+        <h2 id="h-wait">入力待ち</h2>
+        <div class="win settings__form">
+          <div class="row"><label for="k2">録音を始める</label><code class="key">hotkeys.start</code><input type="text" class="hotkey" id="k2" value="キーを押してください" data-capturing="true" readonly></div>
+        </div>
+      </section>
+
+      <!-- 状態: ほかのホットキーと重なる（保存を押した後） -->
+      <section class="specimen" aria-labelledby="h-error">
+        <h2 id="h-error">ほかと重なる</h2>
+        <div class="win settings__form">
+          <div class="row"><label for="k3">取り消す</label><code class="key">hotkeys.cancel</code><input type="text" class="hotkey" id="k3" value="Ctrl+Alt+Z" aria-invalid="true" aria-describedby="k3-err"><p class="field-error" id="k3-err">「一時停止・再開」と同じホットキーです。別のキーにしてください。</p></div>
+        </div>
+      </section>
+
+      <!-- 状態: 長い組み合わせ -->
+      <section class="specimen" aria-labelledby="h-long">
+        <h2 id="h-long">長い組み合わせ</h2>
+        <div class="win settings__form">
+          <div class="row"><label for="k4">貼り付けに送るキー</label><code class="key">keyboard.paste_key</code><input type="text" class="hotkey" id="k4" value="Ctrl+Shift+Alt+Insert"></div>
+        </div>
+        <p class="scene-note">欄の幅を超える組み合わせは、欄の中で横に流す（省略しない）。</p>
+      </section>
+
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,1075 @@
+/* ===== PR 37 の画面モック: 採用スタイル「開発者ツール」のトークンと部品 ===== */
+
+/* トークン（明るいテーマ）: 面・文字・線・アクセント・状態の色と、角丸・影・書体 */
+:root {
+  color-scheme: light dark;
+  --font-ui: "Segoe UI", "Yu Gothic UI", "Meiryo UI", sans-serif;
+  --font-num: "Cascadia Mono", Consolas, "BIZ UDGothic", monospace;
+  --font-mono: "Cascadia Mono", Consolas, "BIZ UDGothic", monospace;
+  --page: #f6f8fa;
+  --surface: #ffffff;
+  --surface-2: #ffffff;
+  --sunken: #f6f8fa;
+  --text: #1f2328;
+  --text-2: #59636e;
+  --line: #d1d9e0;
+  --line-strong: #d1d9e0;
+  --accent: #1f883d;
+  --accent-text: #ffffff;
+  --accent-hover: #1c8139;
+  --accent-fg: #0969da;
+  --rec: #d1242f;
+  --paused: #9a6700;
+  --busy: #0969da;
+  --ok: #1a7f37;
+  --error: #d1242f;
+  --error-bg: #ffebe9;
+  --notice-bg: #fff8c5;
+  --radius: 6px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 0 rgb(31 35 40 / 0.04), 0 8px 24px rgb(66 74 83 / 0.12);
+  --control-h: 32px;
+  --gap: 10px;
+  --pad: 16px;
+  --time-size: 26px;
+  --time-weight: 500;
+}
+
+/* トークン（暗いテーマ）: OS が暗いときに切り替える */
+@media (prefers-color-scheme: dark) {
+  /* 暗いテーマの面・文字・線・アクセント */
+  :root {
+    --page: #010409;
+    --surface: #0d1117;
+    --surface-2: #151b23;
+    --sunken: #010409;
+    --text: #f0f6fc;
+    --text-2: #9198a1;
+    --line: #3d444d;
+    --line-strong: #3d444d;
+    --accent: #238636;
+    --accent-text: #ffffff;
+    --accent-hover: #29903b;
+    --accent-fg: #4493f8;
+    --rec: #f85149;
+    --paused: #d29922;
+    --busy: #4493f8;
+    --ok: #3fb950;
+    --error: #f85149;
+    --error-bg: #25171c;
+    --notice-bg: #272115;
+    --shadow: 0 0 0 1px #3d444d, 0 8px 24px #010409;
+  }
+}
+
+
+/* ===== 土台 ===== */
+
+/* 箱の大きさに枠線と余白を含める */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ページ全体: デスクトップに見立てた地と本文の書体 */
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  accent-color: var(--accent);
+}
+
+/* 見本の外枠 */
+main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* 読み上げにだけ出す文字 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* 数値: 桁の幅を揃える */
+.num {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+}
+
+/* キーの表示 */
+kbd {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+/* 設定のキー: このスタイルでは画面に出さない */
+.key { display: none; }
+
+/* ===== モック専用の操作列 ===== */
+
+/* スタイル候補の切り替えの帯: 実画面と見分けるため色を変える */
+.mock-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 8px 16px;
+  background: #3b3355;
+  color: #ffffff;
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+  ul { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
+  a { display: block; padding: 4px 10px; border-radius: 4px; color: #e4defa; text-decoration: none; }
+  a:hover { background: rgb(255 255 255 / 0.12); }
+  a[aria-current="page"] { background: #ffffff; color: #3b3355; font-weight: 600; }
+}
+
+/* 帯の見出し */
+.mock-bar__label { opacity: 0.8; }
+
+/* ===== 見出しまわり ===== */
+
+/* パンくず */
+.crumb {
+  margin-bottom: 8px;
+  color: var(--text-2);
+  font-size: 13px;
+  a { color: var(--accent-fg); }
+}
+
+/* スタイルの説明 */
+.intro {
+  margin-bottom: 24px;
+  h1 { margin: 0 0 4px; font-size: 24px; font-weight: 600; }
+  p { margin: 0; max-width: 60em; color: var(--text-2); }
+}
+
+/* 見本を並べる格子 */
+.desk {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 32px 24px;
+  align-items: start;
+}
+
+/* 見本 1 つ: 見出しと窓を縦に積む */
+.specimen {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  h2 { margin: 0; font-size: 13px; font-weight: 600; color: var(--text-2); }
+}
+
+/* 設定画面の見本は横幅いっぱい */
+.specimen--settings { grid-column: 1 / -1; }
+
+/* ===== 窓 ===== */
+
+/* 窓の共通: 面・枠・角丸・影 */
+.win {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* 窓のタイトルバー */
+.titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  padding: 0 8px 0 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* タイトルバーの閉じる印 */
+.titlebar__close {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+}
+
+/* ===== ボタン ===== */
+
+/* ボタンの共通: 高さを揃え、文言とキーを横に並べる */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--control-h);
+  white-space: nowrap;
+  padding: 4px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  &:hover { background: var(--sunken); }
+  &:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+}
+
+/* 主の操作のボタン: アクセントで塗る */
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  kbd { color: inherit; }
+  &:hover { background: var(--accent-hover); }
+}
+
+/* 枠を持たない控えめなボタン */
+.btn--quiet {
+  border-color: transparent;
+  background: transparent;
+}
+
+/* 取り消す操作のボタン: 文字だけを警告の色にする */
+.btn--danger { color: var(--error); }
+
+/* ===== 状態の表示 ===== */
+
+/* 状態の文言: 点と文言を並べる */
+.state {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+/* 状態の点 */
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* 録音中 */
+.state--rec { color: var(--rec); }
+
+/* 一時停止中 */
+.state--paused { color: var(--paused); }
+
+/* 文字起こし中 */
+.state--busy { color: var(--busy); }
+
+/* ===== 録音の画面 ===== */
+
+/* 録音の画面: 小さな浮いた窓 */
+.rec {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  width: min(100%, 360px);
+  padding: var(--pad);
+}
+
+/* 状態と経過時間の行 */
+.rec__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+/* 経過時間 */
+.rec__time {
+  font-size: var(--time-size);
+  font-weight: var(--time-weight);
+  line-height: 1;
+}
+
+/* 一時停止・取り消すの行 */
+.rec__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* 波形: 棒を並べる */
+.wave {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 48px;
+  padding: 0 4px;
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  span { flex: 1; height: var(--h); border-radius: 2px; background: var(--rec); }
+}
+
+/* 一時停止中の点は四角にし、録音中と形でも見分ける */
+.rec--paused .dot { border-radius: 2px; }
+
+/* 出力先のまとまりの見出し */
+.group-label {
+  margin: 4px 0 -4px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* 出力先のボタンを縦に並べる */
+.outs {
+  display: grid;
+  gap: 6px;
+  .btn { justify-content: space-between; }
+}
+
+/* AI チャットの送り先は 3 つを横に並べる */
+.outs--ai {
+  grid-template-columns: repeat(3, 1fr);
+  .btn { flex-direction: column; gap: 0; padding: 6px 4px; }
+}
+
+/* ===== 文字起こし中の表示 ===== */
+
+/* 文字起こし中の窓 */
+.busy {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(100%, 320px);
+  padding: var(--pad);
+}
+
+/* 回る印と状態の行 */
+.busy__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 回る印 */
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--line);
+  border-top-color: var(--busy);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+/* 回る印の動き */
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 動きを減らす設定では止める */
+@media (prefers-reduced-motion: reduce) {
+  /* 回る印を止める */
+  .spinner { animation: none; }
+}
+
+/* 進み具合のバー */
+progress {
+  width: 100%;
+  height: 6px;
+}
+
+/* 経過と残りの行 */
+.busy__meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* 貼り付け先の案内 */
+.hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* ===== トレイ ===== */
+
+/* 状態ごとのアイコンを横に並べる */
+.tray-icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--text-2);
+  li { display: flex; align-items: center; gap: 6px; }
+}
+
+/* トレイのアイコン: 地の円にマイクの線画 */
+.ticon {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--text-2);
+  svg { width: 14px; height: 14px; fill: none; stroke: #ffffff; stroke-width: 1.4; stroke-linecap: round; }
+}
+
+/* 録音中のアイコン */
+.ticon--rec { background: var(--rec); }
+
+/* 文字起こし中のアイコン */
+.ticon--busy { background: var(--busy); }
+
+/* 失敗のアイコン */
+.ticon--error { background: var(--error); }
+
+/* トレイのメニュー */
+.menu {
+  width: min(100%, 260px);
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+}
+
+/* メニューの項目 */
+.menu__item {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: default;
+  &:hover { background: var(--sunken); }
+}
+
+/* 既定の項目（ダブルクリックで動く）は太字 */
+.menu__item--default { font-weight: 600; }
+
+/* メニューの区切り */
+.menu__sep {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--line);
+}
+
+/* トレイの通知 */
+.toast {
+  width: min(100%, 340px);
+  padding: 12px var(--pad);
+}
+
+/* 通知の見出し */
+.toast__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-weight: 600;
+}
+
+/* 通知の本文 */
+.toast__body {
+  margin: 4px 0 0;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+/* ===== ダイアログ ===== */
+
+/* ダイアログの窓 */
+.dialog { width: min(100%, 420px); }
+
+/* アイコンと文言の行 */
+.dialog__main {
+  display: flex;
+  gap: 12px;
+  padding: var(--pad);
+  h3 { margin: 0 0 4px; font-size: 16px; font-weight: 600; }
+  p { margin: 0 0 8px; }
+}
+
+/* 警告の印 */
+.dialog__icon {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: var(--paused);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* 原因の詳細 */
+.detail code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-2);
+  word-break: break-all;
+}
+
+/* ダイアログの操作の行 */
+.dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px var(--pad);
+  border-top: 1px solid var(--line);
+  background: var(--sunken);
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+/* ===== 設定画面 ===== */
+
+/* 設定画面の中身: まとまりの一覧と欄を横に並べる */
+.settings__body {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+}
+
+/* まとまりの一覧 */
+.settings__nav {
+  padding: 8px;
+  border-right: 1px solid var(--line);
+  ul { margin: 0; padding: 0; list-style: none; }
+  a { display: block; padding: 6px 12px; border-radius: var(--radius-sm); color: var(--text); text-decoration: none; }
+  a:hover { background: var(--sunken); }
+  a[aria-current="true"] { background: var(--sunken); font-weight: 600; }
+}
+
+/* 欄の並び */
+.settings__form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: var(--pad) 20px;
+  min-width: 0;
+}
+
+/* まとまり */
+fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+/* まとまりの見出し */
+legend {
+  margin-bottom: 8px;
+  padding: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* 欄の行: 名前・キー・入力を並べる */
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 8px 12px;
+  min-height: 40px;
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+/* 入力欄・選択欄 */
+input[type="text"], select {
+  height: var(--control-h);
+  padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  border-bottom-color: var(--text-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+}
+
+/* ホットキーの入力欄: キーを等幅で出す */
+input.hotkey {
+  width: 130px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* 確かめに通らない欄 */
+input[aria-invalid="true"] {
+  border-color: var(--error);
+  box-shadow: inset 0 -2px 0 var(--error);
+}
+
+/* 欄のエラー文 */
+.field-error {
+  margin: 0;
+  padding: 0 12px;
+  color: var(--error);
+  font-size: 12px;
+}
+
+/* オン・オフの切り替え */
+.switch, .check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 切り替えの部品: チェックボックスをつまみの形にする */
+.switch input {
+  appearance: none;
+  position: relative;
+  width: 40px;
+  height: 20px;
+  margin: 0;
+  border: 1px solid var(--text-2);
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  &::after { content: ""; position: absolute; top: 3px; left: 3px; width: 12px; height: 12px; border-radius: 50%; background: var(--text-2); transition: transform 0.15s; }
+  &:checked { background: var(--accent); border-color: var(--accent); }
+  &:checked::after { transform: translateX(20px); background: var(--accent-text); }
+  &:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+}
+
+/* 範囲の入力と値 */
+.range {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  output { width: 3em; text-align: right; }
+}
+
+/* バッジの共通 */
+.badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: 1px;
+}
+
+/* 採用マーク */
+.badge--ok {
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 13px;
+  vertical-align: 4px;
+}
+
+/* 再起動で反映のバッジ */
+.badge--restart {
+  background: var(--notice-bg);
+  color: var(--text);
+}
+
+/* 保存の行 */
+.settings__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+/* 再起動が要る変更の知らせ */
+.notice {
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--notice-bg);
+  font-size: 13px;
+}
+
+/* キャンセル・保存のボタン */
+.settings__actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ===== 狭い幅 ===== */
+
+/* 狭い幅では設定画面のまとまりの一覧を上に寝かせる */
+@media (max-width: 640px) {
+  /* 一覧と欄を縦に積む */
+  .settings__body { grid-template-columns: 1fr; }
+  /* 一覧を横に並べる */
+  .settings__nav { border-right: 0; border-bottom: 1px solid var(--line); overflow-x: auto; }
+  /* 一覧の項目を横並びにする */
+  .settings__nav ul { display: flex; }
+  /* 一覧の項目を縮めず、名前を折り返さない */
+  .settings__nav a { white-space: nowrap; }
+  /* 欄の行を縦に積む */
+  .row { grid-template-columns: 1fr; }
+}
+
+/* ===== 開発者ツールの味付け ===== */
+
+/* キー: 枠で囲んだ等幅のキーにする */
+kbd {
+  padding: 0 5px;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--sunken);
+  line-height: 18px;
+}
+
+/* 主のボタンの中のキー: 地に溶かす */
+.btn--primary kbd {
+  border-color: rgb(255 255 255 / 0.35);
+  background: transparent;
+}
+
+/* 設定のキー: 欄の名前の横に等幅で出す */
+.key {
+  display: inline;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+/* まとまりの見出し: 下線で区切る */
+legend {
+  width: 100%;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+
+/* 欄の行: 枠を外し、行の間を線で区切る */
+.row {
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+
+/* まとまりの一覧の選択中: 左に印を置かず面で示す */
+.settings__nav a[aria-current="true"] {
+  background: var(--sunken);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+/* 入力欄: 下線を強めない */
+input[type="text"], select {
+  border-bottom-color: var(--line);
+  background: var(--sunken);
+}
+
+/* 波形: 地を持たせず細い棒にする */
+.wave {
+  border: 1px solid var(--line);
+  background: transparent;
+  span { border-radius: 1px; }
+}
+
+/* ===== PR 37 の画面モックで足す部品 ===== */
+
+/* モック専用の操作列の場面の切り替えボタン */
+.mock-bar button {
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #e4defa;
+  font: inherit;
+  cursor: pointer;
+  &:hover { background: rgb(255 255 255 / 0.12); }
+  &[aria-pressed="true"] { background: #ffffff; color: #3b3355; font-weight: 600; }
+}
+
+/* 場面の説明 */
+.scene-note {
+  margin: 0;
+  max-width: 44em;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* 押せないメニューの項目: 薄くし、理由を添える */
+.menu__item[aria-disabled="true"] {
+  color: var(--text-2);
+  cursor: not-allowed;
+  &:hover { background: transparent; }
+}
+
+/* 準備中のアイコン */
+.ticon--prep { background: var(--paused); }
+
+/* 通知の操作の行 */
+.toast__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+/* 通知の発信元 */
+.toast__meta {
+  margin: 0 0 4px;
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+/* ダイアログの後ろの窓を暗くする面 */
+.backdrop {
+  padding: 24px;
+  border-radius: var(--radius);
+  background: rgb(31 35 40 / 0.45);
+}
+
+/* 後ろの窓の代わりの帯 */
+.backdrop__behind {
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+/* 危ない操作のボタン */
+.btn--danger-fill {
+  background: var(--error);
+  border-color: var(--error);
+  color: #ffffff;
+  &:hover { background: var(--error); filter: brightness(0.92); }
+}
+
+/* 設定画面の窓: 高さを持たせ、欄だけを流す */
+.settings--full {
+  display: flex;
+  flex-direction: column;
+  max-height: 680px;
+}
+
+/* 設定画面の中身: 残りの高さを使う */
+.settings--full .settings__body {
+  flex: 1;
+  min-height: 0;
+}
+
+/* 設定画面の欄の並び: 縦に流す */
+.settings--full .settings__form {
+  overflow-y: auto;
+}
+
+/* まとまりの一覧の選択中 */
+.settings__nav a[aria-current="page"] {
+  background: var(--sunken);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-weight: 600;
+}
+
+/* 欄の補足の文 */
+.field-help {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* 欄のエラー文を行の中で出す */
+.row .field-error {
+  grid-column: 1 / -1;
+  padding: 0;
+}
+
+/* 数値の入力欄 */
+input[type="number"] {
+  width: 110px;
+  height: var(--control-h);
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  color: var(--text);
+  font-family: var(--font-mono);
+  &:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 0; }
+}
+
+/* 文字の入力欄（URL・パス・名前）を広くする */
+input.wide { width: min(100%, 320px); }
+
+/* 確かめに通らない数値・文字の欄 */
+input[type="number"][aria-invalid="true"], input.wide[aria-invalid="true"] {
+  border-color: var(--error);
+  box-shadow: inset 0 -2px 0 var(--error);
+}
+
+/* ラジオの並び */
+.radios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  label { display: inline-flex; align-items: center; gap: 4px; }
+}
+
+/* AI チャットの送り先の一覧 */
+.targets {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  th { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; font-weight: 600; color: var(--text-2); font-size: 12px; }
+  td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  input[type="text"] { width: 100%; min-width: 7em; }
+}
+
+/* 一覧を横に流す枠 */
+.targets-wrap { overflow-x: auto; }
+
+/* アイコンだけのボタン */
+.btn--icon {
+  width: var(--control-h);
+  padding: 0;
+  svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+}
+
+/* ホットキーの欄: キーの組み合わせを待っている */
+input.hotkey[data-capturing="true"] {
+  border-color: var(--accent-fg);
+  box-shadow: inset 0 0 0 1px var(--accent-fg);
+  color: var(--text-2);
+}
+
+/* 保存の行: 窓の下に留める */
+.settings--full .settings__foot {
+  padding: 12px 20px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+/* 再起動が要ることの知らせ: 操作を並べる */
+.notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* エラーの一覧 */
+.error-summary {
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--error);
+  border-radius: var(--radius-sm);
+  background: var(--error-bg);
+  font-size: 13px;
+  ul { margin: 4px 0 0; padding-left: 20px; }
+  a { color: var(--error); }
+}
+
+/* 見本の窓を並べる格子を 1 列にする */
+.desk--single { grid-template-columns: 1fr; }
+
+/* リンクで作ったボタン: 下線を消し、文字の色をボタンに合わせる */
+a.btn {
+  text-decoration: none;
+  color: var(--text);
+}
+
+/* リンクで作った主のボタン */
+a.btn--primary { color: var(--accent-text); }
+
+/* リンクで作った取り消すボタン */
+a.btn--danger { color: var(--error); }
+
+/* リンクで作った危ない操作のボタン */
+a.btn--danger-fill { color: #ffffff; }
+
+/* 止まった波形: 中央に細い線だけを引く */
+.wave--stopped {
+  background:
+    linear-gradient(var(--line), var(--line)) center / calc(100% - 8px) 2px no-repeat,
+    transparent;
+}
+
+/* 長い名前をボタンの幅で省略する */
+.clip {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* AI チャットの送り先のボタンの中身を幅に収める */
+.outs--ai .btn { min-width: 0; }
+
+/* リンクで作ったメニューの項目 */
+a.menu__item {
+  color: var(--text);
+  text-decoration: none;
+}
+
+/* まとまりの中の小見出し */
+.subhead {
+  margin: 12px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+/* 保存の行で左右の操作を離す */
+.spacer { flex: 1; }
+
+/* 保存の行の操作を幅いっぱいに並べる */
+.settings--full .settings__actions {
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+/* 保存の行を縦に積む */
+.settings--full .settings__foot {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* 入力欄と「選ぶ…」を並べる */
+.pick {
+  display: inline-flex;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* 複数行の入力欄 */
+textarea {
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  &:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 0; }
+}
+
+/* 短い文字の欄（言語・数値でない値） */
+input.num { width: 110px; font-family: var(--font-mono); }
+
+/* 知らせのダイアログの印 */
+.dialog__icon--info { stroke: var(--busy); }
+
+/* 場面の説明の箇条書き */
+ul.scene-note { padding-left: 20px; }
+
+/* 部品のモックでフォーカスの見た目を見せる */
+.btn.is-focus { outline: 2px solid var(--text); outline-offset: 2px; }
+
+/* 部品のモックの欄の枠 */
+.win.settings__form { padding: 12px; }

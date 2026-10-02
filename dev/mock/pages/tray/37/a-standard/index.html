@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>トレイ | voice-paste のモック</title>
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+</head>
+<body>
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">tray</a> / <a href="../">37</a> / <span>a-standard</span></nav>
+
+    <!-- 画面の説明 -->
+    <header class="intro">
+      <h1>トレイ</h1>
+      <p>常駐アプリの入口。アイコンで状態を示し、右クリックでメニューを開く。アイコンの左クリック（既定の操作）は「録音を始める」と同じ。</p>
+    </header>
+
+    <div class="desk">
+
+      <!-- 場面: 状態ごとのアイコン -->
+      <section class="specimen" aria-labelledby="h-icons">
+        <h2 id="h-icons">状態ごとのアイコン</h2>
+        <ul class="tray-icons" aria-label="トレイのアイコン（状態ごと）">
+          <li><span class="ticon ticon--prep" aria-hidden="true"><svg viewBox="0 0 16 16"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5"/><path d="M3 7.5a5 5 0 0 0 10 0M8 12.5v2"/></svg></span>準備中</li>
+          <li><span class="ticon ticon--idle" aria-hidden="true"><svg viewBox="0 0 16 16"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5"/><path d="M3 7.5a5 5 0 0 0 10 0M8 12.5v2"/></svg></span>待機中</li>
+          <li><span class="ticon ticon--rec" aria-hidden="true"><svg viewBox="0 0 16 16"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5"/><path d="M3 7.5a5 5 0 0 0 10 0M8 12.5v2"/></svg></span>録音中</li>
+          <li><span class="ticon ticon--busy" aria-hidden="true"><svg viewBox="0 0 16 16"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5"/><path d="M3 7.5a5 5 0 0 0 10 0M8 12.5v2"/></svg></span>文字起こし中</li>
+          <li><span class="ticon ticon--error" aria-hidden="true"><svg viewBox="0 0 16 16"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5"/><path d="M3 7.5a5 5 0 0 0 10 0M8 12.5v2"/></svg></span>失敗</li>
+        </ul>
+        <p class="scene-note">アイコンにかざすと「voice-paste: 待機中」のように状態を文字でも出す。色だけで状態を伝えない。失敗は、文字起こしのエンジンを準備できなかった起動のときだけで、次の起動まで続く。</p>
+      </section>
+
+      <!-- 場面: 待機中のメニュー -->
+      <section class="specimen" aria-labelledby="h-idle">
+        <h2 id="h-idle">待機中のメニュー</h2>
+        <ul class="win menu" role="menu" aria-label="トレイのメニュー（待機中）">
+          <li role="none"><a role="menuitem" class="menu__item menu__item--default" href="../../../recording-window/37/a-standard/index.html">録音を始める <kbd>Ctrl+Alt+D</kbd></a></li>
+          <li role="separator" class="menu__sep"></li>
+          <li role="none"><a role="menuitem" class="menu__item" href="../../../settings/37/a-standard/index.html">設定…</a></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">設定フォルダを開く</span></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">ログフォルダを開く</span></li>
+          <li role="separator" class="menu__sep"></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">再起動</span></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">終了</span></li>
+        </ul>
+      </section>
+
+      <!-- 場面: 録音から届けるまでの間のメニュー -->
+      <section class="specimen" aria-labelledby="h-busy">
+        <h2 id="h-busy">録音から届けるまでの間のメニュー</h2>
+        <ul class="win menu" role="menu" aria-label="トレイのメニュー（処理中）">
+          <li role="none"><span role="menuitem" class="menu__item menu__item--default" aria-disabled="true">録音を始める（処理中） <kbd>Ctrl+Alt+D</kbd></span></li>
+          <li role="separator" class="menu__sep"></li>
+          <li role="none"><span role="menuitem" class="menu__item" aria-disabled="true">設定…（処理中）</span></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">設定フォルダを開く</span></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">ログフォルダを開く</span></li>
+          <li role="separator" class="menu__sep"></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">再起動</span></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">終了</span></li>
+        </ul>
+        <p class="scene-note">API から始めた録音の間も同じ。「再起動」・「終了」を選ぶとアイコンはすぐ消え、再起動・終了はその回を届け終えてから行う。</p>
+      </section>
+
+      <!-- 場面: 文字起こしのエンジンを準備できなかった起動のメニュー -->
+      <section class="specimen" aria-labelledby="h-fail">
+        <h2 id="h-fail">準備に失敗した起動のメニュー</h2>
+        <ul class="win menu" role="menu" aria-label="トレイのメニュー（準備に失敗）">
+          <li role="none"><span role="menuitem" class="menu__item menu__item--default" aria-disabled="true">録音を始める（文字起こしの準備に失敗） <kbd>Ctrl+Alt+D</kbd></span></li>
+          <li role="separator" class="menu__sep"></li>
+          <li role="none"><a role="menuitem" class="menu__item" href="../../../settings/37/a-standard/index.html">設定…</a></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">設定フォルダを開く</span></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">ログフォルダを開く</span></li>
+          <li role="separator" class="menu__sep"></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">再起動</span></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">終了</span></li>
+        </ul>
+        <p class="scene-note">設定を直して「再起動」できるよう、「設定…」は押せるまま残す。失敗の理由は<a href="../../../tray-notification/37/a-notification/index.html">トレイの通知</a>で知らせる。</p>
+      </section>
+
+    </div>
+  </main>
+</body>
+</html>

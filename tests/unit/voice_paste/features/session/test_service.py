@@ -255,6 +255,43 @@ def test_complete_when_session_unknown(audio_path: Path, monkeypatch: pytest.Mon
         h.manager.complete(session.id)
 
 
+def test_complete_when_save_failed(audio_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """録音を保存できなければ待機中に戻して呼び出し元へ failed を届ける（異常系）。"""
+    # 準備
+    started = defer_workers(monkeypatch)
+    h = make_harness(audio_path)
+    h.save_recording.side_effect = OSError("録音を保存できない")
+    session = h.manager.start("api", callback_url=CALLBACK_URL)
+
+    # 実行・検証
+    with pytest.raises(OSError, match="録音を保存できない"):
+        h.manager.complete(session.id)
+    assert h.state() is None
+    started[0].run_now()
+    assert h.delivered().result == "failed"
+    assert str(h.manager.start("hotkey").state) == "recording"
+
+
+def test_complete_when_save_failed_from_hotkey(
+    audio_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """ホットキーの録音を保存できなければ待機中に戻して知らせる（異常系）。"""
+    # 準備
+    started = defer_workers(monkeypatch)
+    h = make_harness(audio_path)
+    h.save_recording.side_effect = OSError("録音を保存できない")
+    h.manager.start("hotkey")
+
+    # 実行・検証
+    with pytest.raises(OSError, match="録音を保存できない"):
+        h.manager.complete()
+    assert h.state() is None
+    started[0].run_now()
+    assert "transcription_failed" in h.events()
+    h.deliver.assert_not_called()
+    assert str(h.manager.start("hotkey").state) == "recording"
+
+
 # === cancel ===
 
 
@@ -417,6 +454,29 @@ def test_truncate_if_expired_when_hotkey_session(audio_path: Path) -> None:
 
     # 検証
     assert truncated is False
+
+
+def test_truncate_if_expired_when_save_failed(
+    audio_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """打ち切った録音を保存できなければ待機中に戻して failed を届ける（異常系）。"""
+    # 準備
+    started = defer_workers(monkeypatch)
+    h = make_harness(audio_path)
+    h.save_recording.side_effect = OSError("録音を保存できない")
+    session = h.manager.start("api", callback_url=CALLBACK_URL)
+    h.manager.stop(session.id)
+    h.clock.current = START + LIMIT
+
+    # 実行
+    truncated = h.manager.truncate_if_expired()
+    started[0].run_now()
+
+    # 検証
+    assert truncated is True
+    assert h.state() is None
+    assert h.delivered().result == "failed"
+    assert h.manager.truncate_if_expired() is False
 
 
 # === _run_after_confirm ===

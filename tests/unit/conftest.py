@@ -3,18 +3,10 @@
 from __future__ import annotations
 
 import logging
-import os
 from collections.abc import Iterator
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import pytest
-
-if TYPE_CHECKING:
-    from PySide6.QtWidgets import QApplication
-
-# 画面を使うテストは、窓を実際には出さない offscreen のプラットフォームで動かす（QApplication を作る前に決める）
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 # setup_logging が handlers と propagate を入れ替える uvicorn のロガー
 UVICORN_LOGGER_NAMES = ("uvicorn", "uvicorn.error", "uvicorn.access")
@@ -29,16 +21,6 @@ def _is_pytest_handler(handler: logging.Handler) -> bool:
 def repo_root() -> Path:
     """リポジトリの直下（settings.sample.toml と .env.sample の置き場所）を返す。"""
     return Path(__file__).resolve().parents[2]
-
-
-@pytest.fixture(scope="session")
-def qapp() -> QApplication:
-    """offscreen の QApplication を、テスト全体で 1 つだけ作って返す（最後の窓を閉じても終わらない）。"""
-    from PySide6.QtWidgets import QApplication
-
-    app = QApplication.instance() or QApplication([])
-    app.setQuitOnLastWindowClosed(False)
-    return app
 
 
 @pytest.fixture(autouse=True)

@@ -317,6 +317,8 @@ def test_main_when_invalid_settings(
     assert exit_code == 0
     wiring.tray.set_failed.assert_called_once()
     wiring.tray.show_failure.assert_called_once()
+    assert wiring.tray.show_failure.call_args.args[0] == "settings_invalid"
+    assert "transcription.local_whisper.beam_size" in wiring.tray.show_failure.call_args.args[1]
     assert "transcription.local_whisper.beam_size" in str(
         read_log_records(data_dir / "log", "ERROR")
     )
@@ -352,6 +354,7 @@ def test_main_when_api_unavailable(
 ) -> None:
     """待ち受けを始められなければトークンのファイルを書かずに知らせて続ける（正常系）。"""
     from voice_paste.main import main
+    from voice_paste.shared.settings import Settings
 
     # 準備
     wiring = install_wiring(monkeypatch, qapp, api_started=False)
@@ -365,7 +368,9 @@ def test_main_when_api_unavailable(
     # 検証
     assert exit_code == 0
     assert token_file.read_text(encoding="utf-8") == previous_content
-    assert [c.args[0] for c in wiring.tray.show_failure.call_args_list] == ["api_unavailable"]
+    assert [c.args for c in wiring.tray.show_failure.call_args_list] == [
+        ("api_unavailable", f"ポート {Settings().api.port} で待ち受けを始められません")
+    ]
     wiring.hotkey.start.assert_called_once()
 
 
@@ -596,6 +601,39 @@ def test_build_hotkey_bindings_when_recording() -> None:
     # 検証
     session_manager.complete.assert_called_once_with(output_id="paste_and_send")
     start_local_session.assert_not_called()
+
+
+def test_build_hotkey_bindings_when_recording_without_confirm_output() -> None:
+    """貼り付けて送信がオフなら、録音中の開始のホットキーは何もしない（正常系）。"""
+    from voice_paste.main import build_hotkey_bindings
+    from voice_paste.shared.settings import (
+        AiChatSettings,
+        CopyOnlySettings,
+        PasteAndSendSettings,
+        PasteOnlySettings,
+        Settings,
+    )
+
+    # 準備
+    settings = Settings(
+        outputs=[
+            PasteAndSendSettings(enabled=False),
+            PasteOnlySettings(),
+            CopyOnlySettings(),
+            AiChatSettings(),
+        ]
+    )
+    session_manager = MagicMock()
+    session_manager.current.return_value = make_session("hotkey", "recording")
+    start_local_session = MagicMock()
+    bindings = build_hotkey_bindings(settings, session_manager, start_local_session)
+
+    # 実行
+    bindings["<ctrl>+<alt>+d"]()
+
+    # 検証
+    start_local_session.assert_not_called()
+    session_manager.complete.assert_not_called()
 
 
 def test_build_hotkey_bindings_when_ai_chat_target() -> None:

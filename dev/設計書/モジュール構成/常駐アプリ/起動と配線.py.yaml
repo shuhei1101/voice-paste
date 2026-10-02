@@ -219,7 +219,7 @@ functions:
         summary: 設定が合わなければトレイで知らせて入口を立てない
         condition: transcription.local_whisper.beam_size = "x" の settings.toml がある data_dir。exec_loop はすぐ 0 を返す
         mock: build_handlers・ApiServerRunner・HotkeyListener・Tray
-        expected: 0。Tray.set_failed と Tray.show_failure が呼ばれ、ERROR のログに transcription.local_whisper.beam_size が出、build_handlers・ApiServerRunner・HotkeyListener.start が呼ばれない
+        expected: 0。Tray.set_failed と Tray.show_failure(settings_invalid, 理由) が呼ばれ（理由に transcription.local_whisper.beam_size が出る）、ERROR のログに transcription.local_whisper.beam_size が出、build_handlers・ApiServerRunner・HotkeyListener.start が呼ばれない
         exception: SettingsError
       - name: test_main_when_startup_error
         case: 異常
@@ -233,7 +233,7 @@ functions:
         summary: 待ち受けを始められなければトークンのファイルを書かずに知らせて続ける
         condition: 前回の起動の token_file がある data_dir。ApiServerRunner.start が False を返す。exec_loop はイベントを処理してから 0 を返す
         mock: build_handlers・ApiServerRunner・RepeatingTimer・HotkeyListener・Tray
-        expected: 0。token_file が前回の内容のままで、Tray.show_failure に api_unavailable が渡り、HotkeyListener.start が呼ばれる
+        expected: 0。token_file が前回の内容のままで、Tray.show_failure に api_unavailable と「ポート {ポート} で待ち受けを始められません」が渡り、HotkeyListener.start が呼ばれる
       - name: test_main_when_restart_requested
         case: 正常
         summary: 再起動を頼まれたら片付けた後に起動し直す
@@ -458,16 +458,15 @@ functions:
         condition: コピーのみをオフにした設定
         mock: session_manager・start_local_session
         expected: <ctrl>+<alt>+c が返り値のキーに無い
+      - name: test_build_hotkey_bindings_when_recording_without_confirm_output
+        case: 正常
+        summary: 貼り付けて送信がオフなら、録音中の開始のホットキーは何もしない
+        condition: 貼り付けて送信をオフにした設定、current が hotkey・recording、<ctrl>+<alt>+d の関数を呼ぶ
+        mock: session_manager・start_local_session
+        expected: start_local_session も complete も呼ばれない
     refs:
       - dev/設計書/シナリオ/単一ユースケース/録音する#
     status: implemented
-    notes:
-      単体テスト（実装の差し戻しで表に起こす）: |-
-        この設計書は対応テストファイルを持ち、まだ無いテスト関数の行を書くツールが弾くため、テストを書いた後に `unit_tests` へ移す。
-
-        | テスト名 | 正常/異常 | 条件 | 期待値 |
-        | --- | --- | --- | --- |
-        | test_build_hotkey_bindings_when_recording_without_confirm_output | 正常 | 貼り付けて送信をオフにした設定、current が hotkey・recording、<ctrl>+<alt>+d の関数を呼ぶ | start_local_session も complete も呼ばれない |
   - name: apply_settings
     title: 設定の保存と反映
     container: main.py

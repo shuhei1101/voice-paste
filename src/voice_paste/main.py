@@ -401,17 +401,21 @@ def build_hotkey_bindings(
     )
 
     def on_start() -> None:
-        """ホットキー・トレイの録音中なら出力先で確定し、そうでなければ録音を始める。"""
+        """ホットキー・トレイの録音中なら出力先で確定し（出力先が無ければ何もしない）、そうでなければ録音を始める。"""
         session = session_manager.current()
         is_local_recording = (
             session is not None
             and session.entry != Entry.API
             and session.state in (SessionState.RECORDING, SessionState.PAUSED)
         )
-        if is_local_recording and confirm_output_id is not None:
-            session_manager.complete(output_id=confirm_output_id)
-        else:
-            start_local_session(Entry.HOTKEY)
+        # 自分の録音の最中: 同じホットキーの出力先があればそれで確定し、無ければ何もしない（処理中のダイアログを出さない）
+        if is_local_recording:
+            if confirm_output_id is not None:
+                session_manager.complete(output_id=confirm_output_id)
+            else:
+                logger.debug("録音中の開始のホットキーを無視した（確定する出力先が無い）")
+            return
+        start_local_session(Entry.HOTKEY)
 
     def on_pause() -> None:
         """一時停止中なら再開し、そうでなければ一時停止する。"""
@@ -690,7 +694,7 @@ def _start_services(
     except SettingsError as error:
         logger.error(f"起動に失敗した（{error}）")
         tray.set_failed()
-        tray.show_failure("engine_unavailable", str(error))
+        tray.show_failure("settings_invalid", str(error))
         tray.restart_requested.connect(exit_request.request_restart)
         tray.quit_requested.connect(exit_request.request_quit)
         return
@@ -746,7 +750,7 @@ def _start_services(
         write_token_file(paths.token_file, port, token)
     else:
         # 待ち受けを始められなかった: トークンのファイルは書かず（ほかの起動のトークンを上書きしない）、知らせて続ける
-        ui_notify("api_unavailable", str(port))
+        ui_notify("api_unavailable", f"ポート {port} で待ち受けを始められません")
 
     # 9. ホットキーの受付と上限の打ち切りのタイマーを始め、トレイを待機中にする
     try:

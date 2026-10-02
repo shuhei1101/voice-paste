@@ -30,8 +30,9 @@ type FailureEvent = Literal[
     "delivery_failed",
     "api_unavailable",
     "engine_unavailable",
+    "settings_invalid",
 ]
-"""トレイの通知で知らせる失敗の種類（engine_unavailable は起動の失敗）。"""
+"""トレイの通知で知らせる失敗の種類（engine_unavailable・settings_invalid は起動の失敗）。"""
 
 FAILURE_TITLES: dict[str, str] = {
     "microphone_unavailable": "録音を始められませんでした",
@@ -39,6 +40,7 @@ FAILURE_TITLES: dict[str, str] = {
     "delivery_failed": "届けられませんでした",
     "api_unavailable": "API を使えません",
     "engine_unavailable": "起動に失敗しました",
+    "settings_invalid": "起動に失敗しました",
 }
 """知らせの種類ごとの、通知の見出し。"""
 
@@ -54,10 +56,11 @@ FAILURE_BODY_SUFFIXES: dict[str, str] = {
 }
 """知らせの種類ごとの、理由の後に添える文（履歴に残っていること・次にすること）。"""
 
-ENGINE_BODY_FORMAT: str = (
-    "文字起こしのエンジンを準備できません（{reason}）。設定を直して再起動してください。"
-)
-"""文字起こしのエンジンを準備できなかった起動の通知の本文。"""
+STARTUP_BODY_FORMATS: dict[str, str] = {
+    "engine_unavailable": "文字起こしのエンジンを準備できません（{reason}）。設定を直して再起動してください。",
+    "settings_invalid": "設定ファイルを読めません（{reason}）。設定フォルダの settings.toml を直して再起動してください。",
+}
+"""起動に失敗したときの通知の本文（知らせの種類ごと）。"""
 
 
 class TrayState(StrEnum):
@@ -181,8 +184,8 @@ class Tray(QObject):
         title = FAILURE_TITLES[event]
         if event == "microphone_unavailable":
             body = MICROPHONE_BODY
-        elif event == "engine_unavailable":
-            body = ENGINE_BODY_FORMAT.format(reason=detail)
+        elif event in STARTUP_BODY_FORMATS:
+            body = STARTUP_BODY_FORMATS[event].format(reason=detail)
         else:
             body = (f"{detail}。" if detail else "") + FAILURE_BODY_SUFFIXES[event]
         self._icon.showMessage(

@@ -197,4 +197,4 @@ tests/unit/voice_paste/test_main.py::test_log_notify_when_failure PASSED [100%]
     from starlette.testclient import TestClient as TestClient  # noqa
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-================== 182 passed, 2 skipped, 1 warning in 6.92s ==================
+================== 182 passed, 2 skipped, 1 warning in 7.10s ==================

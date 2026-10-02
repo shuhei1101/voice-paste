@@ -57,11 +57,11 @@ const setupHotkeys = () => {
 
 /** 反映が restart の欄を変えたら「保存して再起動」と知らせを出す */
 const setupRestartNotice = () => {
-  document.querySelectorAll(".settings--full form").forEach((form) => {
-    const notice = form.querySelector("[data-restart-notice]");
-    const button = form.querySelector("[data-restart-button]");
+  document.querySelectorAll(".settings--full").forEach((win) => {
+    const notice = win.querySelector("[data-restart-notice]");
+    const button = win.querySelector("[data-restart-button]");
     if (!notice || !button) return;
-    form.addEventListener("change", (e) => {
+    win.addEventListener("change", (e) => {
       // data-reload="restart" の行の中の変更だけを数える
       if (!e.target.closest('[data-reload="restart"]')) return;
       notice.hidden = false;

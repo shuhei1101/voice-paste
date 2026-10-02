@@ -1079,3 +1079,12 @@ ul.scene-note { padding-left: 20px; }
 
 /* hidden を付けた要素は display の指定によらず隠す */
 [hidden] { display: none !important; }
+
+/* メニューの項目の文言とキーを上下の中央で揃える */
+.menu__item { align-items: center; gap: 12px; }
+
+/* トレイのメニュー: 押せない理由を添えても 1 行に収める幅 */
+.menu { width: min(100%, 320px); }
+
+/* 1 列の格子の見本の窓: 設定画面の欄と同じ幅にする */
+.desk--single .win.settings__form { max-width: 640px; }

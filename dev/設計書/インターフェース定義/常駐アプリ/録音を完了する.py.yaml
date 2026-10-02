@@ -139,14 +139,14 @@ request:
     location: header
     description: 今回の起動のトークン
     format: '`Bearer {トークン}`'
-    status: planned
+    status: implemented
   - name: session_id
     type: str
     required: true
     location: path
     description: 開始で受け取ったセッションの ID
     format: uuid
-    status: planned
+    status: implemented
 response_notes: |-
   > [!NOTE]
   > 202 は文字起こしを受け付けたことだけを表し、起こした文字・空の文字・失敗は 呼び出し元へ返す が返送先へ届ける。

@@ -27,7 +27,7 @@ enums:
       - value: api
         title: API
         description: POST /sessions
-    status: planned
+    status: implemented
   - name: OutputSettings
     title: 出力先の設定
     container: shared/settings.py
@@ -87,7 +87,7 @@ data_models:
       - name: error
         type: str | None
         description: 失敗の理由
-    status: planned
+    status: implemented
   - name: AppPaths
     title: 置き場所のパス
     container: shared/constants.py

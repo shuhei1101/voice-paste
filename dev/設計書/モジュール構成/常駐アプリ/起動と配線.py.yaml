@@ -68,7 +68,7 @@ data_models:
       - name: stop_engine
         type: Callable[[], None]
         description: 文字起こしのエンジンを止める（WhisperWorkerClient.stop）。終了時に呼ぶ
-    status: planned
+    status: implemented
   - name: CliArgs
     title: 起動の引数
     container: main.py
@@ -124,7 +124,7 @@ functions:
     exceptions:
       - name: StartupError
         condition: 文字起こしのエンジンを準備できない
-    status: planned
+    status: implemented
     notes:
       並走の間の配線: 'ホットキーと画面を作る #21 までは 7 を飛ばし、Handlers は start_local_session を持たない。出力先を作り直す #20 までは OUTPUTS が呼び出し元へ返すだけを持つ。'
   - name: main
@@ -154,7 +154,7 @@ functions:
       8. ホットキーの受付を始め（開始は start_local_session、確定・一時停止・取り消しは SessionManager のメソッド）、上限の打ち切りを RepeatingTimer で SESSION_LIMIT_CHECK_INTERVAL_SEC ごとに、古い履歴・ログの削除を定期に呼ぶ
       9. トレイを待機中にし、イベントループを回す
       10. 終了の依頼かトレイの終了で、新しい開始が来ないように入口とタイマー（ホットキー・API サーバー・タイマー）を先に止め、録音を捨て（SessionManager.close）、ワーカーを止め、トレイを消して終わる
-    status: planned
+    status: implemented
     notes:
       並走の間の処理: |-
         画面とホットキーが無い間（画面を作る #21 まで）は、main(argv: list[str] | None = None, *, wait_for_shutdown: Callable[[], None] = wait_for_shutdown_signal) を次の処理にする。各 Issue が上の処理の段を足していく。
@@ -373,7 +373,7 @@ functions:
         expected: WARNING のログに api_unavailable と 47823 が出る
     notes:
       差し替え: '画面を作る #21 で、build_handlers へ渡す notify をホットキーと画面の notify に差し替え、この関数を消す。'
-    status: planned
+    status: implemented
   - name: wait_for_shutdown_signal
     title: 終了の合図の待ち
     kind: 関数
@@ -390,7 +390,7 @@ functions:
          - `[INFO]` 終了の合図を受けた（シグナル）
     notes:
       差し替え: '画面を作る #21 で、イベントループとトレイの終了に差し替え、この関数を消す。'
-    status: planned
+    status: implemented
 notes:
   依存の向き: |-
     コーディング規約『依存関係管理』のとおり `features`・`server`・`ui` → `integrations`・`runtime` → `shared` とし、上の層へは import しない。
@@ -475,7 +475,7 @@ classes:
             condition: start の後に stop を呼び、間隔の 5 倍待つ
             mock: 呼ぶ関数
             expected: stop の後に呼ばれた回数が増えず、スレッドが終わっている
-    status: planned
+    status: implemented
 constants:
   - name: API_START_TIMEOUT_SEC
     title: API の待ち受けの始まりを待つ秒数
@@ -483,39 +483,39 @@ constants:
     usecase: 常駐アプリを起動する
     summary: ApiServerRunner.start が started を待つ上限。uvicorn の起動の実測が無いため仮に置き、結合テストで起動にかかる時間を測って p99.9 + 50% に直す
     value: '5.0'
-    status: planned
+    status: implemented
   - name: SESSION_LIMIT_CHECK_INTERVAL_SEC
     title: 上限での打ち切りを確かめる間隔
     container: main.py
     usecase: APIで録音を操作する
     summary: RepeatingTimer が truncate_if_expired を呼ぶ間隔。打ち切りの遅れはこの間隔までで、API のセッションの上限時間（600 秒）に対して無視できる 1 秒にする
     value: '1.0'
-    status: planned
+    status: implemented
   - name: API_SESSION_LIMIT_SEC
     title: API のセッションの上限時間
     container: main.py
     usecase: APIで録音を操作する
     summary: SessionManager へ渡す上限時間。非機能要件の API のセッションの上限時間の決定値
     value: '600'
-    status: planned
+    status: implemented
   - name: CALLBACK_TIMEOUT_SEC
     title: 返送のタイムアウト
     container: main.py
     usecase: 起こした文字を届ける
     summary: post_json へ渡す 1 回の POST のタイムアウト。非機能要件の返送のタイムアウトと再送の決定値
-    value: 非機能要件の決定値
-    status: planned
+    value: '1.5'
+    status: implemented
   - name: CALLBACK_RETRY_COUNT
     title: 返送の再送回数
     container: main.py
     usecase: 起こした文字を届ける
     summary: 最初の 1 回の後に再送する回数。非機能要件の返送のタイムアウトと再送の決定値
-    value: 非機能要件の決定値
-    status: planned
+    value: '3'
+    status: implemented
   - name: CALLBACK_RETRY_BASE_SEC
     title: 返送の再送の間隔の基数
     container: main.py
     usecase: 起こした文字を届ける
     summary: 再送の間隔の基数（回ごとに 2 倍にし、フルジッターをかける）。非機能要件の返送のタイムアウトと再送の決定値
-    value: 非機能要件の決定値
-    status: planned
+    value: '1.0'
+    status: implemented

@@ -38,7 +38,7 @@ data_models:
         type: bool
         default: 'False'
         description: API から始めた録音だけが使うか（呼び出し元へ返すだけが True）
-    status: planned
+    status: implemented
   - name: CallbackPayload
     title: 返送の中身
     container: features/outputs/callback/types.py
@@ -61,7 +61,7 @@ data_models:
         description: 失敗の理由
     refs:
       - dev/設計書/インターフェース定義/常駐アプリ/呼び出し元へ返す.py#
-    status: planned
+    status: implemented
   - name: PostResult
     title: 返送の応答
     container: features/outputs/callback/types.py
@@ -76,7 +76,7 @@ data_models:
       - name: retry_after_sec
         type: float | None
         description: Retry-After を秒に直した値。無い・読めないときは None
-    status: planned
+    status: implemented
 function_types:
   - name: OutputFn
     title: 出力先
@@ -104,7 +104,7 @@ function_types:
         notes: Edge のアプリの画面を開いて貼り付けて送る
       - target: deliver_to_caller
         notes: 返送先へ POST する。API から始めた録音だけが使う
-    status: planned
+    status: implemented
 constants:
   - name: OUTPUTS
     title: 出力先の一覧
@@ -203,7 +203,7 @@ functions:
         mock: 各出力先の handler
         expected: UnknownOutputError が送出される
         exception: 設定でオフ
-    status: planned
+    status: implemented
   - name: is_callback_allowed
     title: 返送先の確かめ
     kind: 関数
@@ -244,7 +244,7 @@ functions:
         condition: http://example.com/x
         mock: なし
         expected: 'False'
-    status: planned
+    status: implemented
   - name: deliver_to_caller
     title: 呼び出し元へ返す
     kind: 関数
@@ -360,7 +360,7 @@ functions:
     refs:
       - dev/設計書/外部ライブラリ/httpx#
       - dev/設計書/インターフェース定義/常駐アプリ/呼び出し元へ返す.py#
-    status: planned
+    status: implemented
   - name: paste_and_send
     title: 貼り付けて送信
     kind: 関数
@@ -486,4 +486,4 @@ functions:
         expected: status 503・retry_after_sec 0.0 が返る
     refs:
       - dev/設計書/外部ライブラリ/httpx#
-    status: planned
+    status: implemented

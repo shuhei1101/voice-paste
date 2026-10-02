@@ -83,7 +83,7 @@ classes:
             expected: どちらも 401 が返る
     refs:
       - dev/設計書/外部ライブラリ/fastapi#
-    status: planned
+    status: implemented
   - name: ApiServerRunner
     title: API サーバーの起動
     container: server/runner.py
@@ -151,7 +151,7 @@ classes:
             expected: 例外が出ない
     refs:
       - dev/設計書/外部ライブラリ/uvicorn#
-    status: planned
+    status: implemented
     description: |-
       app とポートを受けて `uvicorn.Server`（host は `127.0.0.1` 固定、アクセスログを出さない）を作る。
       待ち受けの成否を戻り値で返すのは、uvicorn が待ち受けに失敗しても例外を出さずスレッドを終えるため。
@@ -191,7 +191,7 @@ functions:
     returns:
       type: FastAPI
       description: 組み立てた app
-    status: planned
+    status: implemented
     process: |-
       1. 自動で作られる文書のページ（docs・redoc・openapi.json）を持たない FastAPI を作る
       2. app.state.session_api にセッションの API の依存を置き、セッションの route（開始・停止・完了）を include_router で集める
@@ -243,7 +243,7 @@ functions:
         condition: start が SessionBusyError を送出する
         mock: SessionManager
         expected: 409 が返る
-    status: planned
+    status: implemented
   - name: write_token_file
     title: トークンのファイルの書き出し
     kind: 関数
@@ -270,7 +270,7 @@ functions:
     returns:
       type: None
       description: なし
-    status: planned
+    status: implemented
     process: |-
       1. `{"port": {ポート}, "token": "{トークン}"}` の JSON を、同じフォルダの一時ファイルに UTF-8 で書いてから token_file へ置き換える（読む側が書きかけを読まない）
          - `[INFO]` トークンのファイルを書いた（パス・ポート。トークンは書かない）
@@ -304,7 +304,7 @@ functions:
         condition: 2 回呼ぶ
         mock: なし
         expected: 2 つの値が違い、どちらも 43 文字以上
-    status: planned
+    status: implemented
 constants:
   - name: TOKEN_BYTES
     title: トークンのバイト数
@@ -312,7 +312,7 @@ constants:
     usecase: 常駐アプリを起動する
     summary: secrets.token_urlsafe に渡す乱数のバイト数。256 bit で推測できない長さにする
     value: '32'
-    status: planned
+    status: implemented
 test_files:
   - tests/unit/voice_paste/server/test_middleware.py
   - tests/unit/voice_paste/server/test_runner.py

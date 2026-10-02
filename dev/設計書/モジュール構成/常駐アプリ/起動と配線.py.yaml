@@ -793,3 +793,8 @@ constants:
     summary: Qt のイベントループの中で Python のシグナルのハンドラが動くようにする空の QTimer の間隔。PoC で 200 ms なら Ctrl+Break から 0.3 秒で終わった
     value: '200'
     status: planned
+test_files:
+  - tests/unit/voice_paste/test_main.py
+  - tests/unit/voice_paste/runtime/test_timer.py
+  - tests/unit/voice_paste/runtime/test_settings_store.py
+  - tests/unit/voice_paste/runtime/test_process.py

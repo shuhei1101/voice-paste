@@ -1,4 +1,4 @@
-"""shared/settings.py（load_settings・save_settings）の単体テスト。"""
+"""shared/settings.py（load_settings・save_settings・find_hotkey_overlaps・Settings の確かめ）の単体テスト。"""
 
 from __future__ import annotations
 
@@ -272,3 +272,98 @@ def test_save_settings_when_glossary_reset(settings_file: Path) -> None:
     written = tomllib.loads(settings_file.read_text(encoding="utf-8"))
     assert "glossary_path" not in written
     assert load_settings(settings_file).glossary_path is None
+
+
+# === find_hotkey_overlaps ===
+
+
+def test_find_hotkey_overlaps() -> None:
+    """前に並んだホットキーと重なるキーを、重なった組で返す（正常系）。"""
+    from voice_paste.shared.settings import (
+        AiChatSettings,
+        AiChatTarget,
+        CopyOnlySettings,
+        PasteAndSendSettings,
+        PasteOnlySettings,
+        Settings,
+        find_hotkey_overlaps,
+    )
+
+    # 準備: AI チャットの送り先 Claude の hotkey を、貼り付けのみと同じにする（確かめを飛ばして作る）
+    targets = [
+        AiChatTarget(name="ChatGPT", url="https://chatgpt.com", hotkey="<ctrl>+<alt>+1"),
+        AiChatTarget(name="Google AI", url="https://gemini.google.com/app", hotkey="<ctrl>+<alt>+2"),
+        AiChatTarget(name="Claude", url="https://claude.ai/new", hotkey="<ctrl>+<alt>+v"),
+    ]
+    settings = Settings.model_construct(
+        outputs=[
+            PasteAndSendSettings(),
+            PasteOnlySettings(),
+            CopyOnlySettings(),
+            AiChatSettings(targets=targets),
+        ]
+    )
+
+    # 実行
+    overlaps = find_hotkey_overlaps(settings)
+
+    # 検証
+    assert overlaps == [("outputs[3].targets[2].hotkey", "outputs[1].hotkey")]
+
+
+def test_find_hotkey_overlaps_when_start_equals_paste_and_send() -> None:
+    """録音の開始と貼り付けて送信が同じキー（既定）は重なりにしない（正常系）。"""
+    from voice_paste.shared.settings import Settings, find_hotkey_overlaps
+
+    # 実行
+    overlaps = find_hotkey_overlaps(Settings())
+
+    # 検証
+    assert overlaps == []
+
+
+def test_find_hotkey_overlaps_when_disabled_output() -> None:
+    """オフの出力先のホットキーは重なりにしない（正常系）。"""
+    from voice_paste.shared.settings import (
+        AiChatSettings,
+        CopyOnlySettings,
+        PasteAndSendSettings,
+        PasteOnlySettings,
+        Settings,
+        find_hotkey_overlaps,
+    )
+
+    # 準備: コピーのみをオフにし、そのホットキーを一時停止と同じ <ctrl>+<alt>+z にする
+    settings = Settings(
+        outputs=[
+            PasteAndSendSettings(),
+            PasteOnlySettings(),
+            CopyOnlySettings(enabled=False, hotkey="<ctrl>+<alt>+z"),
+            AiChatSettings(),
+        ]
+    )
+
+    # 実行
+    overlaps = find_hotkey_overlaps(settings)
+
+    # 検証
+    assert overlaps == []
+
+
+# === Settings の確かめ ===
+
+
+def test_settings_when_hotkeys_overlap() -> None:
+    """ホットキーが重なる設定は、重なったキーと先のキーを持つ ValidationError で断る（異常系）。"""
+    from pydantic import ValidationError
+
+    from voice_paste.shared.settings import Settings, list_validation_failures
+
+    # 実行・検証
+    with pytest.raises(ValidationError) as exc_info:
+        Settings.model_validate({"hotkeys": {"cancel": "<ctrl>+<alt>+z"}})
+    failures = list_validation_failures(exc_info.value)
+    assert len(failures) == 1
+    key, reason = failures[0]
+    assert key == "hotkeys.cancel"
+    assert "hotkeys.pause" in reason

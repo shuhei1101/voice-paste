@@ -538,6 +538,12 @@ classes:
             condition: ホットキーのセッションが recording で、complete(output_id="ai_chat", output_target="https://chatgpt.com")
             mock: SessionDeps の全関数。ワーカースレッドは同期で動かす
             expected: deliver に渡った Session の output_id が ai_chat、output_target が https://chatgpt.com
+          - name: test_complete_when_reports_progress
+            case: 正常
+            summary: ホットキーのセッションには進みを知らせる関数を渡し、API のセッションには渡さない
+            condition: ホットキーのセッションを complete し、transcribe の第 2 引数を記録する。API のセッションでも同じを行う
+            mock: SessionDeps の全関数。ワーカースレッドは同期で動かす
+            expected: ホットキーのセッションで report_progress が渡り、API のセッションでは None
       - name: cancel
         title: 取り消し
         kind: メソッド
@@ -805,15 +811,19 @@ classes:
           description: 今のセッション（不変）。待機中は None
         process: 1. ロックの中で今のセッションを読んで返す
         status: planned
-        notes:
-          単体テスト（単体テスト作成で表に起こす）: |-
-            | テスト名 | 正常/異常 | 条件 | 期待値 |
-            | --- | --- | --- | --- |
-            | test_current_when_idle | 正常 | セッションが無い | None |
-            | test_current_when_recording | 正常 | ホットキーで start した後 | entry が hotkey、state が recording の Session |
-            | test_complete_when_reports_progress | 正常 | ホットキーのセッションを complete し、transcribe の第 2 引数を記録する（ワーカースレッドは同期） | report_progress が渡る。API のセッションでは None |
-
-            この設計書は対応テストファイルを持ち、まだ無いテスト関数の行を書くツールが弾くため、テストを書いた後に `unit_tests` へ移す。
+        unit_tests:
+          - name: test_current_when_idle
+            case: 正常
+            summary: 待機中は None を返す
+            condition: セッションが無い
+            mock: SessionDeps の全関数
+            expected: None
+          - name: test_current_when_recording
+            case: 正常
+            summary: ホットキーで始めた後は入口と状態を持つ Session を返す
+            condition: ホットキーで start した後
+            mock: SessionDeps の全関数
+            expected: entry が hotkey、state が recording の Session
     status: implemented
 functions:
   - name: start_session_route

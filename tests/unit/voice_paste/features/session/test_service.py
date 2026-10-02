@@ -10,6 +10,7 @@ import threading
 from collections.abc import Callable
 from datetime import timedelta
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -652,3 +653,54 @@ def test_close_when_idle(audio_path: Path) -> None:
 
     # 検証
     h.discard_recording.assert_not_called()
+
+
+# === current ===
+
+
+def test_current_when_idle(audio_path: Path) -> None:
+    """セッションが無ければ None を返す（正常系）。"""
+    # 準備
+    h = make_harness(audio_path)
+
+    # 実行
+    session = h.manager.current()
+
+    # 検証
+    assert session is None
+
+
+def test_current_when_recording(audio_path: Path) -> None:
+    """ホットキーで始めた後は、入口と状態を持つセッションを返す（正常系）。"""
+    # 準備
+    h = make_harness(audio_path)
+    h.manager.start("hotkey")
+
+    # 実行
+    session = h.manager.current()
+
+    # 検証
+    assert session is not None
+    assert session.entry == "hotkey"
+    assert str(session.state) == "recording"
+
+
+# === complete（文字起こしの進みの知らせ） ===
+
+
+def test_complete_when_reports_progress(audio_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """ホットキーのセッションを complete すると、文字起こしへ進みを知らせる関数を渡す。API のセッションでは渡さない（正常系）。"""
+    # 準備: ホットキーのセッションと API のセッションを、それぞれ確定して文字起こしの流れを動かす
+    report_progress = MagicMock()
+    hotkey_harness = make_harness(audio_path, report_progress=report_progress)
+    _confirm_hotkey(hotkey_harness, monkeypatch)
+    api_harness = make_harness(audio_path, report_progress=report_progress)
+    _confirm_api(api_harness, monkeypatch)
+
+    # 実行
+    hotkey_harness.manager._run_after_confirm(hotkey_harness.current(), audio_path)
+    api_harness.manager._run_after_confirm(api_harness.current(), audio_path)
+
+    # 検証（transcribe の第 2 引数が進みを知らせる関数）
+    assert hotkey_harness.transcribe.call_args.args[1] is report_progress
+    assert api_harness.transcribe.call_args.args[1] is None

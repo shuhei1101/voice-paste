@@ -954,16 +954,33 @@ functions:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
     status: planned
     notes:
-      Settings の確かめ: Settings に `model_validator(mode="after")` を足し、この関数が返した重なりごとに `PydanticCustomError` を集めた ValidationError を送出する（場所は重なったキー、理由は「{先のキー}と同じホットキー」）。設定画面は list_validation_failures で欄ごとのエラーにする
-      単体テスト（単体テスト作成で表に起こす）: |-
-        この設計書は対応テストファイルを持ち、まだ無いテスト関数の行を書くツールが弾くため、テストを書いた後に `unit_tests` へ移す。
-
-        | テスト名 | 正常/異常 | 条件 | 期待値 |
-        | --- | --- | --- | --- |
-        | test_find_hotkey_overlaps | 正常 | AI チャットの送り先 Claude の hotkey を <ctrl>+<alt>+v（貼り付けのみと同じ）にした設定（model_construct で確かめを飛ばして作る） | [("outputs[3].targets[2].hotkey", "outputs[1].hotkey")] |
-        | test_find_hotkey_overlaps_when_start_equals_paste_and_send | 正常 | Settings()（どちらも <ctrl>+<alt>+d） | [] |
-        | test_find_hotkey_overlaps_when_disabled_output | 正常 | コピーのみをオフにし、その hotkey を <ctrl>+<alt>+z（一時停止と同じ） | [] |
-        | test_settings_when_hotkeys_overlap | 異常 | hotkeys.cancel を <ctrl>+<alt>+z にした dict を Settings.model_validate に渡す | ValidationError。list_validation_failures のキーに hotkeys.cancel、理由に hotkeys.pause |
+      補足: Settings に `model_validator(mode="after")` を足し、この関数が返した重なりごとに `PydanticCustomError` を集めた ValidationError を送出する（場所は重なったキー、理由は「{先のキー}と同じホットキー」）。設定画面は list_validation_failures で欄ごとのエラーにする
+    unit_tests:
+      - name: test_find_hotkey_overlaps
+        case: 正常
+        summary: 前に並んだホットキーと重なるキーを、重なった組で返す
+        condition: AI チャットの送り先 Claude の hotkey を <ctrl>+<alt>+v（貼り付けのみと同じ）にした設定（model_construct で確かめを飛ばして作る）
+        mock: なし
+        expected: '[("outputs[3].targets[2].hotkey", "outputs[1].hotkey")]'
+      - name: test_find_hotkey_overlaps_when_start_equals_paste_and_send
+        case: 正常
+        summary: 録音の開始と貼り付けて送信が同じキー（既定）は重なりにしない
+        condition: Settings()（どちらも <ctrl>+<alt>+d）
+        mock: なし
+        expected: '[]'
+      - name: test_find_hotkey_overlaps_when_disabled_output
+        case: 正常
+        summary: オフの出力先のホットキーは重なりにしない
+        condition: コピーのみをオフにし、その hotkey を <ctrl>+<alt>+z（一時停止と同じ）
+        mock: なし
+        expected: '[]'
+      - name: test_settings_when_hotkeys_overlap
+        case: 異常
+        summary: ホットキーが重なる設定は、重なったキーと先のキーを持つ ValidationError で断る
+        condition: hotkeys.cancel を <ctrl>+<alt>+z にした dict を Settings.model_validate に渡す
+        mock: なし
+        expected: ValidationError。list_validation_failures のキーに hotkeys.cancel、理由に hotkeys.pause
+        exception: ホットキーが重なる
 constants:
   - name: APP_NAME
     title: アプリ名

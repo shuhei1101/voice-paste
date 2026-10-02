@@ -4,7 +4,7 @@ elements:
     id: settings_window
     kind: window
     position: 窓
-    description: 設定画面の窓。窓の題は「voice-paste の設定」。左にまとまりのメニュー、右に欄、下にフッターを置く。窓の閉じる・Esc は「キャンセル」と同じ
+    description: 設定画面の窓。窓の題は「voice-paste の設定」。左にまとまりのメニュー、右に欄、下にフッターを置く。窓の閉じる・Esc は「キャンセル」と同じ。開いている間はホットキーを受け付けず（ホットキーの欄で押したキーで録音や確定が動かない）、閉じると今の設定で受付を始める
     visible_when: トレイの「設定…」を選んだとき。開いていれば前面に出す
     width: 最小 720px（欄の名前と設定のキーが語の途中で折り返さない幅）
     initial_value: 開いたときの settings.toml の値
@@ -145,7 +145,7 @@ elements:
     id: save_button
     kind: button
     position: 窓 > フッター > 右端
-    description: 全ての欄を設定のモデルで確かめ、通れば settings.toml へ書いて設定画面を閉じる。反映が immediate の設定（出力先のオン・オフ・ホットキー・`ui.*` を含む）は動いている常駐アプリに効かせ、ホットキーは受付を張り直す。通らなければ書かず、エラーの一覧と欄の下のエラーを出し、入れた値は消さない
+    description: 全ての欄を設定のモデルで確かめ、ホットキーを受け付けられることも確かめてから settings.toml へ書いて設定画面を閉じる。反映が immediate の設定（出力先のオン・オフ・`ui.*` を含む）は動いている常駐アプリに効かせ、ホットキーは設定画面を閉じたときに新しい設定で受付を張り直す。通らなければ書かず、エラーの一覧と欄の下のエラーを出し、入れた値は消さない
     label: 保存
     visible_when: 常時
     action: 確かめて保存し、設定画面を閉じる
@@ -175,6 +175,11 @@ input_checks:
     trigger: 保存・保存して再起動のボタンのクリック
     message: http:// か https:// で始まる URL を入れてください。
     position: その行の下とエラーの一覧
+  - element: ホットキーの欄
+    violation: pynput が読めない組み合わせ
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: ホットキーを受け付けられませんでした（{理由}）。別のキーにしてください。
+    position: エラーの一覧
 screen: src/voice_paste/ui/windows/settings_window.py
 mock: dev/mock/pages/settings/37/a-standard/
 lead: トレイの「設定…」から開く画面。settings.toml の全てのキーを 7 つのまとまりに並べ、設定のモデルで確かめてから保存する。

@@ -482,38 +482,45 @@ functions:
         required: true
         passing: injected
         description: 今の設定
-      - name: rebind_hotkeys
-        type: Callable[[Settings], None]
+      - name: check_hotkeys
+        type: Callable[[Iterable[str]], None]
         required: true
         passing: injected
-        description: 新しい設定でホットキーの受付を張り直す（build_hotkey_bindings → HotkeyListener.start）
+        description: ホットキーを受け付けられるかの確かめ（validate_hotkeys）
     returns:
       type: bool
       description: 再起動が要る項目が変わったか
     process: |-
-      1. settings.toml へ書く（save_settings）
-      2. SettingsStore を入れ替える（出力先のオン・オフ・録音・用語集・`ui.*` は次の回から新しい値で動く）
-      3. ホットキーの受付を張り直す
-         - HotkeyError の場合、そのまま送出する（設定画面がエラーの一覧に出す）
+      1. 新しい設定で受け付けるホットキー（build_hotkey_bindings のキー）を check_hotkeys で確かめる
+         - HotkeyError の場合、何も書かず入れ替えずにそのまま送出する（設定画面がエラーの一覧に出す）
+      2. settings.toml へ書く（save_settings）
+      3. SettingsStore を入れ替える（出力先のオン・オフ・録音・用語集・`ui.*` は次の回から新しい値で動く。ホットキーは設定画面が閉じたときに resume_hotkeys がこの設定で張り直す）
          - `[INFO]` 設定を保存した（設定ファイルのパス・再起動が要るか）
     exceptions:
-      - name: OSError
-        condition: settings.toml を書けない
       - name: HotkeyError
-        condition: ホットキーの書式を pynput が読めない
+        condition: 新しい設定のホットキーを pynput が読めない（何も書かない）
+      - name: OSError
+        condition: settings.toml を書けない（SettingsStore は入れ替えない）
     unit_tests:
       - name: test_apply_settings
         case: 正常
-        summary: 書いて入れ替え、ホットキーを張り直す
+        summary: 確かめてから書いて入れ替える
         condition: 一時フォルダの settings.toml、コピーのみをオフにした設定
-        mock: rebind_hotkeys
-        expected: False。settings.toml のコピーのみの enabled が false、store.get() が渡した設定、rebind_hotkeys が 1 回呼ばれる
+        mock: check_hotkeys
+        expected: False。check_hotkeys に <ctrl>+<alt>+c を含まないホットキーが渡り、settings.toml のコピーのみの enabled が false、store.get() が渡した設定
       - name: test_apply_settings_when_restart_item_changed
         case: 正常
         summary: 再起動が要る項目の変更を返す
         condition: transcription.local_whisper.model を small にした設定
-        mock: rebind_hotkeys
+        mock: check_hotkeys
         expected: 'True'
+      - name: test_apply_settings_when_hotkey_unavailable
+        case: 異常
+        summary: 受け付けられないホットキーなら何も書かない
+        condition: check_hotkeys が HotkeyError を送出する
+        mock: check_hotkeys
+        expected: HotkeyError が送出され、settings.toml が変わらず、store.get() が前の設定のまま
+        exception: ホットキーを受け付けられない
     refs:
       - dev/設計書/シナリオ/単一ユースケース/設定を変える#
     status: planned
@@ -550,12 +557,18 @@ functions:
         required: true
         passing: positional
         description: QApplication.quit
+      - name: hotkey_listener
+        type: HotkeyListener
+        required: true
+        passing: positional
+        description: ホットキーの受付（設定画面の間は止める）
     returns:
       type: UiDeps
       description: 画面の依存
     process: |-
       1. start に start_local_session(tray)、pause・resume・cancel・current_session に SessionManager のメソッド、complete に output_id・output_target で SessionManager.complete を呼ぶ関数、level に recorder_level、get_settings に SettingsStore.get を渡す
-      2. settings_dir に settings.toml のフォルダ、log_dir にログのフォルダを渡す
+      2. suspend_hotkeys に HotkeyListener.stop、resume_hotkeys に SettingsStore.get の設定で build_hotkey_bindings して HotkeyListener.start を呼ぶ関数を渡す
+      3. settings_dir に settings.toml のフォルダ、log_dir にログのフォルダを渡す
     status: planned
   - name: relaunch
     title: 起動し直し

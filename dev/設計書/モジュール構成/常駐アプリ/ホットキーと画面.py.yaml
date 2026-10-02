@@ -61,7 +61,7 @@ classes:
     methods:
       - name: start
         title: 受付の開始
-        summary: ホットキーと関数の組を登録して受付を始める。動いていれば止めてから張り直す
+        summary: ホットキーと関数の組を登録して受付を始める。動いていれば、新しい受付を作れたときだけ入れ替える
         kind: メソッド
         scope: public
         thread_safe: true
@@ -76,12 +76,13 @@ classes:
           description: なし
         process: |-
           1. ロックを取る
-          2. 動いている受付があれば止め、スレッドの終わりを待つ
-          3. 各関数を例外を握る関数で包む
+          2. 各関数を例外を握る関数で包む
              - 呼んだ関数が例外を出した場合、握って受付を続ける
                - `[ERROR]` ホットキーの処理で想定外の例外（ホットキー。logger.exception）
-          4. `GlobalHotKeys(包んだ組)` を作って始める
-             - ValueError（書式を読めない）の場合、HotkeyError を送出する
+          3. 新しい `GlobalHotKeys(包んだ組)` を先に作る（作るときに pynput が書式を確かめる）
+             - ValueError（書式を読めない）の場合、動いている受付をそのままにして HotkeyError を送出する
+          4. 動いている受付があれば止め、スレッドの終わりを待つ
+          5. 新しい受付を始める
              - `[INFO]` ホットキーの受付を始めた（ホットキーの一覧）
         exceptions:
           - name: HotkeyError
@@ -111,6 +112,13 @@ classes:
             condition: '{"<ctrl>+<nokey>": 関数}'
             mock: なし
             expected: HotkeyError が送出される
+            exception: 書式を読めない
+          - name: test_start_when_invalid_hotkey_while_running
+            case: 異常
+            summary: 張り直しに失敗しても前の受付を止めない
+            condition: '{"<ctrl>+<alt>+d": 関数} で始めた後、{"<ctrl>+<nokey>": 関数} で start を呼ぶ'
+            mock: keyboard.GlobalHotKeys（2 回目の生成が ValueError）
+            expected: HotkeyError が送出され、1 つ目の受付の stop が呼ばれず、動いたまま
             exception: 書式を読めない
       - name: stop
         title: 受付の停止
@@ -290,12 +298,25 @@ classes:
             expected: Tray.hide が呼ばれ、request_quit が呼ばれない
       - name: open_settings
         title: 設定画面を開く
-        summary: 設定画面を開く。開いていれば前面に出す
+        summary: 設定画面を開く。開いていれば前面に出すだけにする。新しく開くときはホットキーの受付を止め、設定画面が閉じたら（保存・取り消し・窓の閉じるのどの経路でも）on_settings_closed を呼ぶ
         kind: メソッド
         scope: public
         returns:
           type: None
           description: なし
+        unit_tests:
+          - name: test_open_settings
+            case: 正常
+            summary: 開いている間はホットキーを止め、閉じると張り直す
+            condition: open_settings を呼び、設定画面を取り消しで閉じる
+            mock: UiDeps の全関数
+            expected: suspend_hotkeys が開くときに 1 回、resume_hotkeys が閉じたときに 1 回呼ばれる
+          - name: test_open_settings_when_already_open
+            case: 正常
+            summary: 開いていれば前面に出すだけ
+            condition: open_settings を 2 回呼ぶ
+            mock: UiDeps の全関数
+            expected: SettingsWindow が 1 つだけで、suspend_hotkeys が 1 回だけ呼ばれる
       - name: on_settings_saved
         title: 保存した設定の反映
         summary: 設定画面が保存した後、録音の画面の出し方とトレイのホットキーの表示を新しい設定に合わせる
@@ -304,6 +325,19 @@ classes:
         returns:
           type: None
           description: なし
+      - name: on_settings_closed
+        title: 設定画面が閉じた
+        summary: 設定画面を手放し、今の設定でホットキーの受付を始める（resume_hotkeys）
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 設定画面を手放す
+          2. resume_hotkeys を呼ぶ
+             - HotkeyError の場合、ホットキーを受け付けないまま続ける（保存した設定は保存の前に受け付けられることを確かめているため、ここに来るのは手で書いた settings.toml だけ）
+               - `[ERROR]` ホットキーを受け付けられなかった（理由）
     refs:
       - dev/設計書/画面設計/常駐アプリ/録音の画面.py#
       - dev/設計書/画面設計/常駐アプリ/文字起こし中の表示.py#
@@ -604,9 +638,11 @@ classes:
           description: 保存できたか
         process: |-
           1. collect した値を Settings.model_validate に渡す
-             - ValidationError の場合、list_validation_failures で欄ごとのエラーにし、エラーの一覧と欄の下のエラーを出して一覧へフォーカスを移し、False を返す（入れた値は消さない）
+             - ValidationError の場合、失敗ごとに to_field_message で欄ごとのエラーにし、エラーの一覧と欄の下のエラーを出して一覧へフォーカスを移し、False を返す（入れた値は消さない）
                - `[INFO]` 設定画面の値が確かめに通らなかった（キーの一覧）
           2. save_settings（UiDeps）で書いて効かせる
+             - HotkeyError の場合、エラーの一覧に「ホットキーを受け付けられませんでした（{理由}）。別のキーにしてください。」を出し、False を返す（settings.toml は書かれていない）
+               - `[WARNING]` 保存するホットキーを受け付けられなかった（理由）
              - OSError の場合、エラーの一覧に「設定ファイルを書けませんでした（{理由}）」を出し、False を返す
                - `[ERROR]` 設定ファイルを書けなかった（logger.exception）
           3. saved を emit し、restart なら restart_requested を emit して窓を閉じ、True を返す
@@ -624,6 +660,13 @@ classes:
             mock: UiDeps.save_settings
             expected: False。save_settings が呼ばれず、エラーの一覧に outputs[0].enter_delay_sec の行が出て、欄の値が abc のまま
             exception: 確かめに通らない
+          - name: test_save_when_hotkey_unavailable
+            case: 異常
+            summary: ホットキーを受け付けられなければエラーを出して閉じない
+            condition: save_settings が HotkeyError を送出する
+            mock: UiDeps.save_settings
+            expected: False。エラーの一覧に「ホットキーを受け付けられませんでした」の行が出て、saved が emit されず、窓が開いたまま
+            exception: ホットキーを受け付けられない
       - name: reset_to_defaults
         title: 既定に戻す
         summary: confirm_reset で確かめ、戻すなら Settings() を書いて欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す
@@ -943,6 +986,42 @@ functions:
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
     status: planned
+  - name: validate_hotkeys
+    title: ホットキーの書式の確かめ
+    container: runtime/hotkey.py
+    usecase: 設定を変える
+    summary: ホットキーを pynput が読めるかを、受付を始めずに確かめる（`keyboard.HotKey.parse`）
+    kind: 関数
+    scope: public
+    args:
+      - name: hotkeys
+        type: Iterable[str]
+        required: true
+        passing: positional
+        description: pynput の書式のホットキー
+    returns:
+      type: None
+      description: なし
+    exceptions:
+      - name: HotkeyError
+        condition: 読めないホットキーがある（メッセージにそのホットキーを出す）
+    unit_tests:
+      - name: test_validate_hotkeys
+        case: 正常
+        summary: 読める書式は通す
+        condition: '["<ctrl>+<alt>+d", "<ctrl>+<shift>+<f5>"]'
+        mock: なし
+        expected: 例外が出ない
+      - name: test_validate_hotkeys_when_invalid
+        case: 異常
+        summary: 読めない書式を断る
+        condition: '["<ctrl>+<nokey>"]'
+        mock: なし
+        expected: HotkeyError が送出され、メッセージに <ctrl>+<nokey> が出る
+        exception: 読めないホットキーがある
+    refs:
+      - dev/設計書/外部ライブラリ/pynput#
+    status: planned
 notes:
   画面が触ってよいもの: |-
     ui は UiDeps の関数（配線された SessionManager のメソッド・音量・設定の読み書き・再起動と終了）と、共通の設定のモデルだけを呼ぶ。録音・文字起こし・出力先を直に呼ばない。
@@ -999,6 +1078,12 @@ data_models:
       - name: request_quit
         type: Callable[[], None]
         description: イベントループを抜ける（QApplication.quit）
+      - name: suspend_hotkeys
+        type: Callable[[], None]
+        description: ホットキーの受付を止める（HotkeyListener.stop）。設定画面を開いている間、欄で押したキーで録音が始まらないようにする
+      - name: resume_hotkeys
+        type: Callable[[], None]
+        description: 今の設定でホットキーの受付を始める（build_hotkey_bindings → HotkeyListener.start）。設定画面を閉じたときに呼ぶ
     status: planned
 enums:
   - name: TrayState

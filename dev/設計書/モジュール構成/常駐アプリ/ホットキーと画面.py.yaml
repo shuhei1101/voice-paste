@@ -443,10 +443,10 @@ classes:
         scope: public
         args:
           - name: event
-            type: Literal["microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable", "engine_unavailable"]
+            type: Literal["microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable", "engine_unavailable", "settings_invalid"]
             required: true
             passing: positional
-            description: 知らせの種類（engine_unavailable は起動の失敗）
+            description: 知らせの種類（engine_unavailable・settings_invalid は起動の失敗）
           - name: detail
             type: str | None
             required: true

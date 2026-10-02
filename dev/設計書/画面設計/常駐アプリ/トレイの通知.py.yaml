@@ -5,7 +5,7 @@ elements:
     kind: notification
     position: 通知
     description: トレイのアイコンから出す Windows の通知。アプリ名は voice-paste。モーダルにせず、作業中のアプリの入力を遮らない
-    visible_when: '`notify` で microphone_unavailable・transcription_failed・delivery_failed・api_unavailable を受けたときと、文字起こしのエンジンを準備できなかった起動のとき'
+    visible_when: '`notify` で microphone_unavailable・transcription_failed・delivery_failed・api_unavailable を受けたときと、文字起こしのエンジンを準備できなかった・設定ファイルを読めなかった起動のとき'
     source: UiBridge.notified（知らせの種類と理由）
     action: 通知を押すとログフォルダを開く。閉じると待機中（トレイ）に戻る
   - name: 見出し
@@ -48,7 +48,8 @@ notes:
     | `transcription_failed` | 文字起こしに失敗しました | {理由}。録音は履歴に残っています。 |
     | `delivery_failed` | 届けられませんでした | {理由}。起こした文字は履歴に残っています。 |
     | `api_unavailable` | API を使えません | {理由}。ホットキーとトレイからの録音は使えます。 |
-    | 文字起こしのエンジンを準備できない | 起動に失敗しました | 文字起こしのエンジンを準備できません（{理由}）。設定を直して再起動してください。 |
+    | 文字起こしのエンジンを準備できない（`engine_unavailable`） | 起動に失敗しました | 文字起こしのエンジンを準備できません（{理由}）。設定を直して再起動してください。 |
+    | 設定ファイルを読めない（`settings_invalid`） | 起動に失敗しました | 設定ファイルを読めません（{理由}）。設定フォルダの settings.toml を直して再起動してください。 |
 
     {理由} は `notify` の `detail` を 1 文で出し、詳しい内容はログに書く。届けられないときは、どの出力先でも同じ見出しで出し、理由を変える。
   通知の操作: PySide6 のトレイの通知（`QSystemTrayIcon.showMessage`）は通知の中にボタンを置けないため、モックの「ログフォルダを開く」は「通知を押す（`messageClicked`）とログフォルダを開く」で実現する

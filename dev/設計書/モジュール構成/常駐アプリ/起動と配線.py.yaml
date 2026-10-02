@@ -160,17 +160,17 @@ functions:
          - `[INFO]` .env を設定ファイルへ移した（.env のパス・設定ファイルのパス）
       4. QApplication（最後の窓を閉じても終わらない）・UiBridge・Tray を作り、build_stylesheet を当ててトレイに準備中を出す。WAKE_INTERVAL_MS ごとの空の QTimer を置き、SIGINT・SIGBREAK で QApplication.quit を呼ぶ
       5. 設定を読む（load_settings）
-         - SettingsError の場合、トレイを失敗にして起動の失敗を通知し、「録音を始める」「設定…」を押せないまま 11 へ（フォルダを開いて settings.toml を直し、再起動できる）
+         - SettingsError の場合、トレイを失敗にして設定を読めないことを通知し（Tray.show_failure(settings_invalid, 理由)）、「録音を始める」「設定…」を押せないまま 11 へ（フォルダを開いて settings.toml を直し、再起動できる）
            - `[ERROR]` 起動に失敗した（理由）
       6. ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログを消す（purge_old_logs）
          - `[INFO]` 設定を読んだ（設定ファイルのパス・エンジン・オンの出力先の ID）
       7. 配線する（build_handlers。notify と report_progress は UiBridge を部分適用した ui のもの）
-         - StartupError の場合、トレイを失敗にして起動の失敗を通知し、「設定…」だけを押せるまま 11 へ（設定画面は読んだ設定で開き、保存は settings.toml へ書くだけにする。Handlers が無いため、UiDeps のうち録音・ホットキーの関数（start・pause・resume・complete・cancel・current_session・level・suspend_hotkeys・resume_hotkeys）は何もしない関数にし、設定画面を閉じてもホットキーの受付を始めない）
+         - StartupError の場合、トレイを失敗にして起動の失敗を通知し（Tray.show_failure(engine_unavailable, 理由)）、「設定…」だけを押せるまま 11 へ（設定画面は読んだ設定で開き、保存は settings.toml へ書くだけにする。Handlers が無いため、UiDeps のうち録音・ホットキーの関数（start・pause・resume・complete・cancel・current_session・level・suspend_hotkeys・resume_hotkeys）は何もしない関数にし、設定画面を閉じてもホットキーの受付を始めない）
            - `[ERROR]` 起動に失敗した（理由）
       8. UiController を作り（build_ui_deps）、UiBridge の知らせの受け手につなぐ（9 で待ち受けを始められない知らせを取りこぼさないよう、API より先に作る）
       9. トークンを作り、API サーバーを起動する（create_token・build_fastapi・ApiServerRunner.start(API_START_TIMEOUT_SEC)）
          - True の場合だけ、トークンのファイルを書く（write_token_file）
-         - False の場合、トークンのファイルを書かずに api_unavailable を知らせて続ける（ホットキーとトレイからの録音は使える）
+         - False の場合、トークンのファイルを書かずに api_unavailable を知らせて続ける（ホットキーとトレイからの録音は使える）。理由は「ポート {ポート} で待ち受けを始められません」の 1 文にする
       10. ホットキーの受付を始め（HotkeyListener.start(build_hotkey_bindings(設定))）、上限の打ち切りを RepeatingTimer で SESSION_LIMIT_CHECK_INTERVAL_SEC ごとに呼ぶ（SessionManager.truncate_if_expired）。トレイを待機中にする
          - HotkeyError の場合、ホットキーを受け付けずに続ける（トレイから録音でき、設定画面で直せる）
            - `[ERROR]` ホットキーを受け付けられなかった（理由）
@@ -420,7 +420,8 @@ functions:
       type: dict[str, Callable[[], None]]
       description: pynput の書式のホットキー → 呼ぶ関数
     process: |-
-      1. `hotkeys.start`: ホットキー・トレイの録音が recording か paused で、同じホットキーのオンの出力先があればその出力先で確定し（complete）、それ以外は start_local_session(hotkey) を呼ぶ
+      1. `hotkeys.start`: ホットキー・トレイの録音が recording か paused のとき、同じホットキーのオンの出力先があればその出力先で確定し（complete）、無ければ何もしない（自分の録音の最中に処理中のダイアログを出さない）。それ以外（待機中・API の録音の最中・自分の録音の文字起こし中）は start_local_session(hotkey) を呼ぶ
+         - `[DEBUG]` 録音中の開始のホットキーを無視した（確定する出力先が無い）
       2. `hotkeys.pause`: paused なら resume、それ以外は pause を呼ぶ
       3. `hotkeys.cancel`: cancel を呼ぶ
       4. オンの出力先の `hotkey`（1 と同じホットキーを除く）: complete(output_id=その出力先の ID) を呼ぶ
@@ -460,6 +461,13 @@ functions:
     refs:
       - dev/設計書/シナリオ/単一ユースケース/録音する#
     status: implemented
+    notes:
+      単体テスト（実装の差し戻しで表に起こす）: |-
+        この設計書は対応テストファイルを持ち、まだ無いテスト関数の行を書くツールが弾くため、テストを書いた後に `unit_tests` へ移す。
+
+        | テスト名 | 正常/異常 | 条件 | 期待値 |
+        | --- | --- | --- | --- |
+        | test_build_hotkey_bindings_when_recording_without_confirm_output | 正常 | 貼り付けて送信をオフにした設定、current が hotkey・recording、<ctrl>+<alt>+d の関数を呼ぶ | start_local_session も complete も呼ばれない |
   - name: apply_settings
     title: 設定の保存と反映
     container: main.py

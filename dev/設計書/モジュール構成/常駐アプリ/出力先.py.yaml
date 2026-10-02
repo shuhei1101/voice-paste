@@ -406,7 +406,7 @@ functions:
         type: Callable[[], None]
         required: true
         passing: injected
-        description: 貼り付けのキーを送る（設定の keyboard.paste_key を部分適用した send_paste）
+        description: 貼り付けのキーを送る（呼ぶたびに設定の keyboard.paste_key を読んで send_paste を呼ぶ）
       - name: send_enter
         type: Callable[[], None]
         required: true
@@ -417,18 +417,18 @@ functions:
         required: true
         passing: injected
         description: 間を置く（time.sleep。テストで差し替える）
-      - name: enter_delay_sec
-        type: float
+      - name: get_enter_delay_sec
+        type: Callable[[], float]
         required: true
         passing: injected
-        description: 貼り付けてから Enter を送るまでの秒数（設定の outputs[paste_and_send].enter_delay_sec）
+        description: 貼り付けてから Enter を送るまでの秒数を返す（呼ぶたびに設定の outputs[paste_and_send].enter_delay_sec を読む）
     returns:
       type: None
       description: なし
     process: |-
       1. outcome.text をクリップボードへ書く
       2. 貼り付けのキーを送る
-      3. enter_delay_sec だけ待ち、Enter を送る
+      3. get_enter_delay_sec() の秒数だけ待ち、Enter を送る
          - 1 が DeliveryError を送出した場合、キーを送らずにそのまま送出する
     exceptions:
       - name: DeliveryError
@@ -437,8 +437,8 @@ functions:
       - name: test_paste_and_send
         case: 正常
         summary: コピー・貼り付け・待ち・Enter の順に送る
-        condition: outcome.text が「テスト」、enter_delay_sec が 0.5
-        mock: copy・paste・send_enter・sleep
+        condition: outcome.text が「テスト」、get_enter_delay_sec が 0.5 を返す
+        mock: copy・paste・send_enter・sleep・get_enter_delay_sec
         expected: copy("テスト")・paste()・sleep(0.5)・send_enter() の順に 1 回ずつ呼ばれる
       - name: test_paste_and_send_when_copy_failed
         case: 異常
@@ -576,7 +576,7 @@ functions:
         type: Callable[[], None]
         required: true
         passing: injected
-        description: 貼り付けのキーを送る（設定の keyboard.paste_key を部分適用した send_paste）
+        description: 貼り付けのキーを送る（呼ぶたびに設定の keyboard.paste_key を読んで send_paste を呼ぶ）
       - name: send_enter
         type: Callable[[], None]
         required: true
@@ -587,16 +587,16 @@ functions:
         required: true
         passing: injected
         description: 間を置く（time.sleep。テストで差し替える）
-      - name: open_delay_sec
-        type: float
+      - name: get_open_delay_sec
+        type: Callable[[], float]
         required: true
         passing: injected
-        description: 画面を開いてから貼り付けるまでの秒数（設定の outputs[ai_chat].open_delay_sec）
-      - name: enter_delay_sec
-        type: float
+        description: 画面を開いてから貼り付けるまでの秒数を返す（呼ぶたびに設定の outputs[ai_chat].open_delay_sec を読む）
+      - name: get_enter_delay_sec
+        type: Callable[[], float]
         required: true
         passing: injected
-        description: 貼り付けてから Enter を送るまでの秒数（設定の outputs[paste_and_send].enter_delay_sec。voice_paste_legacy と同じく貼り付けて送信の間を使う）
+        description: 貼り付けてから Enter を送るまでの秒数を返す（呼ぶたびに設定の outputs[paste_and_send].enter_delay_sec を読む。voice_paste_legacy と同じく貼り付けて送信の間を使う）
     returns:
       type: None
       description: なし
@@ -604,8 +604,8 @@ functions:
       1. target が None の場合、DeliveryError を送出する（送り先を選ばずに確定した）
       2. outcome.text をクリップボードへ書く
       3. target をアプリのウィンドウで開く
-      4. open_delay_sec だけ待ち、貼り付けのキーを送る
-      5. enter_delay_sec だけ待ち、Enter を送る
+      4. get_open_delay_sec() の秒数だけ待ち、貼り付けのキーを送る
+      5. get_enter_delay_sec() の秒数だけ待ち、Enter を送る
          - 2・3 が DeliveryError を送出した場合、そこで止めてそのまま送出する
          - `[INFO]` AI チャットへ送った（セッションの ID・target）
     exceptions:
@@ -615,8 +615,8 @@ functions:
       - name: test_send_to_ai_chat
         case: 正常
         summary: コピー・開く・待ち・貼り付け・待ち・Enter の順に送る
-        condition: outcome.text が「テスト」、target が https://chatgpt.com、open_delay_sec 3.0・enter_delay_sec 0.5
-        mock: copy・open_window・paste・send_enter・sleep
+        condition: outcome.text が「テスト」、target が https://chatgpt.com、get_open_delay_sec が 3.0・get_enter_delay_sec が 0.5 を返す
+        mock: copy・open_window・paste・send_enter・sleep・get_open_delay_sec・get_enter_delay_sec
         expected: copy("テスト")・open_window("https://chatgpt.com")・sleep(3.0)・paste()・sleep(0.5)・send_enter() の順に呼ばれる
       - name: test_send_to_ai_chat_when_no_target
         case: 異常

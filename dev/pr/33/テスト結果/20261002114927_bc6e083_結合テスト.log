@@ -37,4 +37,4 @@ tests/integration/test_stop_session.py::test_error_when_session_unknown PASSED [
 tests/integration/test_truncate_session.py::test_normal PASSED           [ 96%]
 tests/integration/test_truncate_session.py::test_normal_when_stopped PASSED [100%]
 
-============================= 30 passed in 18.45s =============================
+============================= 30 passed in 18.40s =============================

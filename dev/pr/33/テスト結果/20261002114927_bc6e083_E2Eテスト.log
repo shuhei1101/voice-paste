@@ -1,0 +1,13 @@
+$ venv/Scripts/python.exe -m pytest tests/e2e --run-e2e -v
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\shuhe\repo\voice-paste\venv\Scripts\python.exe
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-session-session-and-api
+configfile: pyproject.toml
+plugins: anyio-4.13.0, platformdirs-4.12.2
+collecting ... collected 3 items
+
+tests/e2e/複合ユースケース/test_transcribe_from_other_system.py::test_normal PASSED [ 33%]
+tests/e2e/複合ユースケース/test_transcribe_from_other_system.py::test_normal_when_transcription_empty PASSED [ 66%]
+tests/e2e/複合ユースケース/test_transcribe_from_other_system.py::test_error_when_transcription_failed PASSED [100%]
+
+============================= 3 passed in 30.73s ==============================

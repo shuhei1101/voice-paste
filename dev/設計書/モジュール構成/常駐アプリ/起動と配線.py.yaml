@@ -160,25 +160,26 @@ functions:
          - `[INFO]` .env を設定ファイルへ移した（.env のパス・設定ファイルのパス）
       4. QApplication（最後の窓を閉じても終わらない）・UiBridge・Tray を作り、build_stylesheet を当ててトレイに準備中を出す。WAKE_INTERVAL_MS ごとの空の QTimer を置き、SIGINT・SIGBREAK で QApplication.quit を呼ぶ
       5. 設定を読む（load_settings）
-         - SettingsError の場合、トレイを失敗にして起動の失敗を通知し、「録音を始める」「設定…」を押せないまま 10 へ（フォルダを開いて settings.toml を直し、再起動できる）
+         - SettingsError の場合、トレイを失敗にして起動の失敗を通知し、「録音を始める」「設定…」を押せないまま 11 へ（フォルダを開いて settings.toml を直し、再起動できる）
            - `[ERROR]` 起動に失敗した（理由）
       6. ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログを消す（purge_old_logs）
          - `[INFO]` 設定を読んだ（設定ファイルのパス・エンジン・オンの出力先の ID）
       7. 配線する（build_handlers。notify と report_progress は UiBridge を部分適用した ui のもの）
-         - StartupError の場合、トレイを失敗にして起動の失敗を通知し、「設定…」だけを押せるまま 10 へ（設定画面は読んだ設定で開き、保存は settings.toml へ書くだけにする）
+         - StartupError の場合、トレイを失敗にして起動の失敗を通知し、「設定…」だけを押せるまま 11 へ（設定画面は読んだ設定で開き、保存は settings.toml へ書くだけにする。Handlers が無いため、UiDeps のうち録音・ホットキーの関数（start・pause・resume・complete・cancel・current_session・level・suspend_hotkeys・resume_hotkeys）は何もしない関数にし、設定画面を閉じてもホットキーの受付を始めない）
            - `[ERROR]` 起動に失敗した（理由）
-      8. トークンを作り、API サーバーを起動する（create_token・build_fastapi・ApiServerRunner.start(API_START_TIMEOUT_SEC)）
+      8. UiController を作り（build_ui_deps）、UiBridge の知らせの受け手につなぐ（9 で待ち受けを始められない知らせを取りこぼさないよう、API より先に作る）
+      9. トークンを作り、API サーバーを起動する（create_token・build_fastapi・ApiServerRunner.start(API_START_TIMEOUT_SEC)）
          - True の場合だけ、トークンのファイルを書く（write_token_file）
          - False の場合、トークンのファイルを書かずに api_unavailable を知らせて続ける（ホットキーとトレイからの録音は使える）
-      9. UiController を作り（build_ui_deps）、ホットキーの受付を始め（HotkeyListener.start(build_hotkey_bindings(設定))）、上限の打ち切りを RepeatingTimer で SESSION_LIMIT_CHECK_INTERVAL_SEC ごとに呼ぶ（SessionManager.truncate_if_expired）。トレイを待機中にする
+      10. ホットキーの受付を始め（HotkeyListener.start(build_hotkey_bindings(設定))）、上限の打ち切りを RepeatingTimer で SESSION_LIMIT_CHECK_INTERVAL_SEC ごとに呼ぶ（SessionManager.truncate_if_expired）。トレイを待機中にする
          - HotkeyError の場合、ホットキーを受け付けずに続ける（トレイから録音でき、設定画面で直せる）
            - `[ERROR]` ホットキーを受け付けられなかった（理由）
          - `[INFO]` 常駐サービスを始めた（API のポート）
-      10. イベントループを回す（exec_loop）
-      11. 抜けたら、新しい開始が来ないように入口とタイマー（ホットキー・API サーバー・タイマー）を先に止め、録音を捨て（SessionManager.close）、エンジンを止め、トレイを消す（7 までで立てたものだけ）
+      11. イベントループを回す（exec_loop）
+      12. 抜けたら、新しい開始が来ないように入口とタイマー（ホットキー・API サーバー・タイマー）を先に止め、録音を捨て（SessionManager.close）、エンジンを止め、トレイを消す（8 までで立てたものだけ）
           - `[INFO]` 常駐サービスを終えた
-      12. 再起動を頼まれていれば、同じ引数で起動し直す（relaunch）
-      13. 0 を返す
+      13. 再起動を頼まれていれば、同じ引数で起動し直す（relaunch）
+      14. 0 を返す
     status: implemented
     args:
       - name: argv
@@ -312,7 +313,7 @@ functions:
         condition: start が RuntimeError を送出する
         mock: session_manager・notify
         expected: 例外が出ず、ERROR のログが 1 行出る
-    status: planned
+    status: implemented
   - name: parse_args
     title: 起動の引数の解釈
     kind: 関数
@@ -458,7 +459,7 @@ functions:
         expected: <ctrl>+<alt>+c が返り値のキーに無い
     refs:
       - dev/設計書/シナリオ/単一ユースケース/録音する#
-    status: planned
+    status: implemented
   - name: apply_settings
     title: 設定の保存と反映
     container: main.py
@@ -523,7 +524,7 @@ functions:
         exception: ホットキーを受け付けられない
     refs:
       - dev/設計書/シナリオ/単一ユースケース/設定を変える#
-    status: planned
+    status: implemented
   - name: build_ui_deps
     title: 画面の配線
     container: main.py
@@ -569,7 +570,7 @@ functions:
       1. start に start_local_session(tray)、pause・resume・cancel・current_session に SessionManager のメソッド、complete に output_id・output_target で SessionManager.complete を呼ぶ関数、level に recorder_level、get_settings に SettingsStore.get を渡す
       2. suspend_hotkeys に HotkeyListener.stop、resume_hotkeys に SettingsStore.get の設定で build_hotkey_bindings して HotkeyListener.start を呼ぶ関数を渡す
       3. settings_dir に settings.toml のフォルダ、log_dir にログのフォルダを渡す
-    status: planned
+    status: implemented
   - name: relaunch
     title: 起動し直し
     container: runtime/process.py
@@ -605,7 +606,7 @@ functions:
         mock: subprocess.Popen
         expected: 例外が出ず、ERROR のログが 1 行出る
         exception: 起動できない
-    status: planned
+    status: implemented
 notes:
   依存の向き: |-
     コーディング規約『依存関係管理』のとおり `features`・`server`・`ui` → `integrations`・`runtime` → `shared` とし、上の層へは import しない。
@@ -742,7 +743,7 @@ classes:
             condition: Settings() で作り、recording.volume_percent=30 の設定に replace する
             mock: なし
             expected: get().recording.volume_percent が 30
-    status: planned
+    status: implemented
 constants:
   - name: API_START_TIMEOUT_SEC
     title: API の待ち受けの始まりを待つ秒数
@@ -792,7 +793,7 @@ constants:
     usecase: 常駐アプリを起動する
     summary: Qt のイベントループの中で Python のシグナルのハンドラが動くようにする空の QTimer の間隔。PoC で 200 ms なら Ctrl+Break から 0.3 秒で終わった
     value: '200'
-    status: planned
+    status: implemented
 test_files:
   - tests/unit/voice_paste/test_main.py
   - tests/unit/voice_paste/runtime/test_timer.py

@@ -1,4 +1,4 @@
-"""起動の入口。設定を読み、各 feature を関数で配線し（composition root）、API サーバーを立てて終了の合図を待つ。"""
+"""起動の入口。設定を読み、各 feature を関数で配線し（composition root）、API・ホットキー・トレイを立てて画面のイベントループを回す。"""
 
 from __future__ import annotations
 
@@ -7,15 +7,15 @@ import logging
 import random
 import signal
 import sys
-import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from functools import partial
 from pathlib import Path
-from types import FrameType
-from typing import Literal
+
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtWidgets import QApplication
 
 from voice_paste.features.correction import apply_glossary, load_glossary
 from voice_paste.features.history import append_text, discard_temporary, save_recording
@@ -30,19 +30,29 @@ from voice_paste.features.session import (
     SessionDeps,
     SessionManager,
 )
-from voice_paste.features.session.types import NotifyFn
+from voice_paste.features.session.types import NotifyFn, SessionState
 from voice_paste.features.transcription.service import transcribe
 from voice_paste.integrations.browser.opener import open_app_window
 from voice_paste.integrations.keyboard.sender import copy_to_clipboard, send_enter, send_paste
 from voice_paste.integrations.volume.adapter import lower_volume, restore_volume
 from voice_paste.integrations.whisper.client import WhisperWorkerClient
+from voice_paste.runtime.hotkey import HotkeyListener, validate_hotkeys
+from voice_paste.runtime.process import relaunch
+from voice_paste.runtime.settings_store import SettingsStore
 from voice_paste.runtime.timer import RepeatingTimer
 from voice_paste.server.app import build_fastapi
 from voice_paste.server.runner import ApiServerRunner
 from voice_paste.server.token import create_token, write_token_file
 from voice_paste.shared.constants import AppPaths, resolve_app_paths
 from voice_paste.shared.env_migration import migrate_env
-from voice_paste.shared.errors import EngineError, SettingsError, StartupError
+from voice_paste.shared.errors import (
+    EngineError,
+    HotkeyError,
+    MicrophoneUnavailableError,
+    SessionBusyError,
+    SettingsError,
+    StartupError,
+)
 from voice_paste.shared.logger import local_today, purge_old_logs, setup_logging
 from voice_paste.shared.settings import (
     AiChatSettings,
@@ -51,7 +61,13 @@ from voice_paste.shared.settings import (
     load_settings,
     save_settings,
 )
-from voice_paste.shared.types import TranscriptionOutcome
+from voice_paste.shared.types import Entry, ProgressFn, TranscriptionOutcome
+from voice_paste.ui.bridge import UiBridge, notify, report_progress
+from voice_paste.ui.controller import UiController, UiDeps
+from voice_paste.ui.style import build_stylesheet, is_dark_theme
+from voice_paste.ui.tray import Tray, TrayState
+from voice_paste.ui.windows.recording_window import RecordingWindow
+from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
 
 logger = logging.getLogger(__name__)
 
@@ -91,8 +107,8 @@ WORKER_STOP_TIMEOUT_SEC: float = 3.0
 GLOSSARY_FILE_NAME: str = "yogo.csv"
 """用語集のパスを設定しないときに、設定ファイルと同じフォルダから読む用語集の名前。"""
 
-SHUTDOWN_POLL_SEC: float = 1.0
-"""終了の合図を待つときに、メインスレッドがシグナルを受けられるよう区切る秒数。"""
+WAKE_INTERVAL_MS: int = 200
+"""Qt のイベントループの中で Python のシグナルのハンドラが動くようにする、空の QTimer の間隔。PoC で 200 ms なら Ctrl+Break から 0.3 秒で終わった。"""
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -113,8 +129,14 @@ class Handlers:
     session_api: SessionApiDeps
     """API サーバーへ渡すセッションの API の依存（設定の許可ホストを部分適用した返送先の確かめを含む）。"""
 
-    settings: Settings
-    """読み込んだ設定。"""
+    settings_store: SettingsStore
+    """今効いている設定。出力先・録音・画面はここから読むため、保存した immediate の項目が次の回から効く。"""
+
+    start_local_session: Callable[[Entry], None]
+    """ホットキー・トレイの開始（SessionManager と notify を部分適用した start_local_session）。"""
+
+    recorder_level: Callable[[], float]
+    """録音中の音量（Recorder.level）。録音の画面の波形に使う。"""
 
     stop_engine: Callable[[], None]
     """文字起こしのエンジンを止める。終了時に呼ぶ。"""
@@ -138,43 +160,6 @@ def parse_args(argv: list[str]) -> CliArgs:
     )
     namespace = parser.parse_args(argv)
     return CliArgs(data_dir=namespace.data_dir, migrate_env=namespace.migrate_env)
-
-
-def log_notify(
-    event: Literal[
-        "state_changed",
-        "busy",
-        "microphone_unavailable",
-        "transcription_failed",
-        "delivery_failed",
-        "api_unavailable",
-    ],
-    detail: str | None = None,
-) -> None:
-    """画面とトレイが入るまでの NotifyFn。知らせの種類と理由をログに書く。"""
-    # 状態の変化は INFO、それ以外（失敗・断り）は WARNING
-    level = logging.INFO if event == "state_changed" else logging.WARNING
-    logger.log(level, f"ユーザーへの知らせ（{event}・{detail}）")
-
-
-def wait_for_shutdown_signal() -> None:
-    """Ctrl+C（SIGINT）か Ctrl+Break（SIGBREAK）が来るまで待つ。画面とトレイが入るまでの終わり方。"""
-    stopped = threading.Event()
-
-    def _on_signal(signum: int, _frame: FrameType | None) -> None:
-        """シグナルを受けたら終了の合図を立てる。"""
-        logger.info(f"終了の合図を受けた（シグナル: {signum}）")
-        stopped.set()
-
-    # 1. SIGINT と（あれば）SIGBREAK のハンドラで合図を立てる
-    signal.signal(signal.SIGINT, _on_signal)
-    sigbreak = getattr(signal, "SIGBREAK", None)
-    if sigbreak is not None:
-        signal.signal(sigbreak, _on_signal)
-
-    # 2. 立つまで 1 秒ずつ待つ（メインスレッドがシグナルを受けられるよう、上限なしの wait にしない）
-    while not stopped.wait(SHUTDOWN_POLL_SEC):
-        pass
 
 
 def _local_now() -> datetime:
@@ -276,9 +261,19 @@ def _wire_outputs(get_settings: Callable[[], Settings]) -> tuple[OutputSpec, ...
     )
 
 
-def build_handlers(settings: Settings, paths: AppPaths, notify: NotifyFn) -> Handlers:
+def _glossary_path(settings: Settings, paths: AppPaths) -> Path:
+    """設定の用語集の CSV を返す（設定していなければ、設定ファイルと同じフォルダの用語集）。"""
+    return settings.glossary_path or paths.settings_file.parent / GLOSSARY_FILE_NAME
+
+
+def build_handlers(
+    settings: Settings, paths: AppPaths, notify: NotifyFn, report_progress: ProgressFn
+) -> Handlers:
     """設定からエンジン・録音機・出力先・履歴を組み立て、SessionDeps を作って SessionManager と SessionApiDeps を返す。"""
-    # 1. 設定のエンジン（local_whisper）のワーカーを作って起動する
+    # 1. 設定を SettingsStore に入れる。以降の配線は設定を値でなく SettingsStore.get から読む
+    store = SettingsStore(settings)
+
+    # 2. 設定のエンジン（local_whisper）のワーカーを作って起動する
     engine = WhisperWorkerClient(
         settings=settings.transcription.local_whisper,
         ready_timeout_sec=WORKER_READY_TIMEOUT_SEC,
@@ -290,24 +285,28 @@ def build_handlers(settings: Settings, paths: AppPaths, notify: NotifyFn) -> Han
     except EngineError as error:
         raise StartupError(f"文字起こしのエンジンを準備できませんでした: {error}") from error
 
-    # 2. 録音機に音量とマイクの入力の関数を渡す
+    # 3. 録音機に音量とマイクの入力の関数と、SettingsStore から録音の設定を返す関数を渡す
     recorder = Recorder(
         lower_volume=lower_volume,
         restore_volume=restore_volume,
         open_input=open_input,
-        get_settings=lambda: settings.recording,
+        get_settings=lambda: store.get().recording,
     )
 
-    # 3. 出力先を配線し、Session を分けて渡すアダプタを作る
-    enabled_ids = frozenset(output.id for output in settings.outputs if output.enabled)
-    deliver_session = partial(
-        _deliver_session, enabled_ids=enabled_ids, outputs=_wire_outputs(lambda: settings)
-    )
+    # 4. 出力先を配線し、届けるたびに SettingsStore からオンの出力先の ID を引いて、Session を分けて渡すアダプタを作る
+    wired_outputs = _wire_outputs(store.get)
 
-    # 4. 用語集を文字起こしのたびに読み直す補正を作る
-    glossary_path = settings.glossary_path or paths.settings_file.parent / GLOSSARY_FILE_NAME
+    def deliver_session(session: Session, outcome: TranscriptionOutcome) -> None:
+        """今の設定でオンの出力先へ、Session を分けて届ける。"""
+        enabled_ids = frozenset(output.id for output in store.get().outputs if output.enabled)
+        _deliver_session(session, outcome, enabled_ids=enabled_ids, outputs=wired_outputs)
 
-    # 5. SessionDeps を組み、API のセッションの上限時間と共に SessionManager を作る
+    # 5. 用語集を文字起こしのたびに読み直す補正を作る（読む場所もそのたびに設定から決める）
+    def correct(text: str) -> str:
+        """今の設定の用語集で補正する。"""
+        return _correct(text, glossary_path=_glossary_path(store.get(), paths))
+
+    # 6. SessionDeps を組み、API のセッションの上限時間と共に SessionManager を作る
     deps = SessionDeps(
         start_recording=recorder.start,
         pause_recording=recorder.pause,
@@ -321,107 +320,464 @@ def build_handlers(settings: Settings, paths: AppPaths, notify: NotifyFn) -> Han
             now=_local_now,
         ),
         transcribe=partial(transcribe, engine=engine.transcribe),
-        correct=partial(_correct, glossary_path=glossary_path),
+        correct=correct,
         append_text=partial(append_text, paths=paths),
         deliver=deliver_session,
         notify=notify,
         now=_local_now,
         discard_temporary=partial(discard_temporary, paths=paths),
+        report_progress=report_progress,
     )
     session_manager = SessionManager(deps, timedelta(seconds=API_SESSION_LIMIT_SEC))
 
-    # 6. SessionManager と、設定の許可ホストを部分適用した返送先の確かめを SessionApiDeps に束ねる
+    # 7. SessionManager と、設定の許可ホストを部分適用した返送先の確かめを SessionApiDeps に束ねる
     session_api = SessionApiDeps(
         session_manager=session_manager,
         is_callback_allowed=partial(
             is_callback_allowed, allowed_hosts=frozenset(settings.api.allowed_callback_hosts)
         ),
     )
+
+    # 8. start_local_session に SessionManager と notify を部分適用する
     return Handlers(
         session_manager=session_manager,
         session_api=session_api,
-        settings=settings,
+        settings_store=store,
+        start_local_session=partial(
+            start_local_session, session_manager=session_manager, notify=notify
+        ),
+        recorder_level=recorder.level,
         stop_engine=engine.stop,
     )
+
+
+def start_local_session(
+    entry: Entry | str, *, session_manager: SessionManager, notify: NotifyFn
+) -> None:
+    """SessionManager.start を呼び、断られた理由をユーザーへ知らせる。例外を pynput・画面のスレッドへ漏らさない。"""
+    try:
+        session_manager.start(entry)
+    except SessionBusyError:
+        # 処理中: 処理中のダイアログで知らせる
+        notify("busy", None)
+    except MicrophoneUnavailableError:
+        # マイクを開けない: トレイの通知で知らせる
+        notify("microphone_unavailable", None)
+    except Exception:  # noqa: BLE001 pynput・画面のスレッドへ例外を漏らさないため
+        logger.exception("録音を始められなかった")
+
+
+def _collect_hotkeys(settings: Settings) -> list[str]:
+    """設定で受け付けるホットキー（録音・一時停止・取り消し・オンの出力先・オンの送り先）を、重なりを除いて並べる。"""
+    hotkeys = [settings.hotkeys.start, settings.hotkeys.pause, settings.hotkeys.cancel]
+    for output in settings.outputs:
+        if not output.enabled:
+            continue
+        if isinstance(output, AiChatSettings):
+            hotkeys.extend(target.hotkey for target in output.targets if target.enabled)
+        else:
+            hotkeys.append(output.hotkey)
+    # 空のホットキーは登録しない。重なり（録音の開始と貼り付けて送信）は 1 つにする
+    return list(dict.fromkeys(hotkey for hotkey in hotkeys if hotkey))
+
+
+def build_hotkey_bindings(
+    settings: Settings,
+    session_manager: SessionManager,
+    start_local_session: Callable[[Entry], None],
+) -> dict[str, Callable[[], None]]:
+    """設定のホットキーごとに、押されたときに呼ぶ関数を組む（HotkeyListener.start へ渡す）。"""
+    start_hotkey = settings.hotkeys.start
+    # 録音開始のホットキーと同じキーを持つ、オンの出力先（録音中に押すとその出力先で確定する）
+    confirm_output_id = next(
+        (
+            output.id
+            for output in settings.outputs
+            if output.enabled
+            and not isinstance(output, AiChatSettings)
+            and output.hotkey.lower() == start_hotkey.lower()
+        ),
+        None,
+    )
+
+    def on_start() -> None:
+        """ホットキー・トレイの録音中なら出力先で確定し、そうでなければ録音を始める。"""
+        session = session_manager.current()
+        is_local_recording = (
+            session is not None
+            and session.entry != Entry.API
+            and session.state in (SessionState.RECORDING, SessionState.PAUSED)
+        )
+        if is_local_recording and confirm_output_id is not None:
+            session_manager.complete(output_id=confirm_output_id)
+        else:
+            start_local_session(Entry.HOTKEY)
+
+    def on_pause() -> None:
+        """一時停止中なら再開し、そうでなければ一時停止する。"""
+        session = session_manager.current()
+        if session is not None and session.state == SessionState.PAUSED:
+            session_manager.resume()
+        else:
+            session_manager.pause()
+
+    bindings: dict[str, Callable[[], None]] = {
+        start_hotkey: on_start,
+        settings.hotkeys.pause: on_pause,
+        settings.hotkeys.cancel: session_manager.cancel,
+    }
+    for output in settings.outputs:
+        if not output.enabled:
+            continue
+        if isinstance(output, AiChatSettings):
+            # オンの送り先のホットキー: その送り先の URL で確定する
+            for target in output.targets:
+                if target.enabled:
+                    bindings[target.hotkey] = partial(
+                        session_manager.complete, output_id=output.id, output_target=target.url
+                    )
+        elif output.hotkey.lower() != start_hotkey.lower():
+            # オンの出力先のホットキー（録音開始と同じキーを除く）: その出力先で確定する
+            bindings[output.hotkey] = partial(session_manager.complete, output_id=output.id)
+    # 空のホットキーは登録しない（重なりは Settings の確かめが断っている）
+    return {hotkey: handler for hotkey, handler in bindings.items() if hotkey}
+
+
+def apply_settings(
+    settings: Settings,
+    *,
+    settings_file: Path,
+    store: SettingsStore,
+    check_hotkeys: Callable[[Iterable[str]], None],
+) -> bool:
+    """設定画面で確かめた設定を settings.toml へ書き、反映が immediate の項目を動いている常駐アプリに効かせる。
+
+    新しい設定のホットキーを pynput が読めなければ、何も書かず入れ替えずに HotkeyError を送出する。
+    """
+    # 1. 新しい設定で受け付けるホットキーを確かめる
+    check_hotkeys(_collect_hotkeys(settings))
+
+    # 2. settings.toml へ書く（書けなければ OSError のまま伝え、SettingsStore は入れ替えない）
+    restart_needed = save_settings(settings_file, settings)
+
+    # 3. SettingsStore を入れ替える（ホットキーは設定画面が閉じたときに今の設定で張り直す）
+    store.replace(settings)
+    logger.info(f"設定を保存した（{settings_file}・再起動が要る: {restart_needed}）")
+    return restart_needed
+
+
+def build_ui_deps(
+    handlers: Handlers,
+    paths: AppPaths,
+    save_settings: Callable[[Settings], bool],
+    request_restart: Callable[[], None],
+    request_quit: Callable[[], None],
+    hotkey_listener: HotkeyListener,
+) -> UiDeps:
+    """Handlers と置き場所から、画面・トレイが呼ぶ UiDeps を組む。"""
+    session_manager = handlers.session_manager
+    store = handlers.settings_store
+
+    def complete(output_id: str, output_target: str | None) -> None:
+        """出力先の ID と宛先で録音を確定する。"""
+        session_manager.complete(output_id=output_id, output_target=output_target)
+
+    def resume_hotkeys() -> None:
+        """今の設定でホットキーの受付を始める。"""
+        bindings = build_hotkey_bindings(
+            store.get(), session_manager, handlers.start_local_session
+        )
+        hotkey_listener.start(bindings)
+
+    return UiDeps(
+        start=partial(handlers.start_local_session, Entry.TRAY),
+        pause=session_manager.pause,
+        resume=session_manager.resume,
+        complete=complete,
+        cancel=session_manager.cancel,
+        current_session=session_manager.current,
+        level=handlers.recorder_level,
+        get_settings=store.get,
+        save_settings=save_settings,
+        settings_dir=paths.settings_file.parent,
+        log_dir=paths.log_dir,
+        request_restart=request_restart,
+        request_quit=request_quit,
+        suspend_hotkeys=hotkey_listener.stop,
+        resume_hotkeys=resume_hotkeys,
+    )
+
+
+def _build_idle_ui_deps(
+    settings: Settings,
+    paths: AppPaths,
+    request_restart: Callable[[], None],
+    request_quit: Callable[[], None],
+) -> UiDeps:
+    """エンジンを準備できなかった起動の UiDeps を組む。録音・ホットキーの関数は何もせず、設定画面は読んだ設定で保存だけ行う。"""
+    store = SettingsStore(settings)
+
+    def do_nothing(*_args: object) -> None:
+        """録音・ホットキーの関数の代わりに、何もしない。"""
+
+    return UiDeps(
+        start=do_nothing,
+        pause=do_nothing,
+        resume=do_nothing,
+        complete=do_nothing,
+        cancel=do_nothing,
+        current_session=lambda: None,
+        level=lambda: 0.0,
+        get_settings=store.get,
+        save_settings=partial(
+            apply_settings,
+            settings_file=paths.settings_file,
+            store=store,
+            check_hotkeys=validate_hotkeys,
+        ),
+        settings_dir=paths.settings_file.parent,
+        log_dir=paths.log_dir,
+        request_restart=request_restart,
+        request_quit=request_quit,
+        suspend_hotkeys=do_nothing,
+        resume_hotkeys=do_nothing,
+    )
+
+
+class _ExitRequest:
+    """イベントループを抜ける依頼と、抜けた後に起動し直すかを持つ（長く持つ実行時の状態）。"""
+
+    def __init__(self, app: QApplication) -> None:
+        self._app = app
+        self.restart = False
+
+    def request_restart(self) -> None:
+        """終わった後に起動し直すようにして、イベントループを抜ける。"""
+        self.restart = True
+        self._app.quit()
+
+    def request_quit(self) -> None:
+        """イベントループを抜ける。"""
+        self._app.quit()
+
+
+@dataclass
+class _Running:
+    """片付けで止める、立てたもの（7 までで立てたものだけが入る）。"""
+
+    handlers: Handlers | None = None
+    runner: ApiServerRunner | None = None
+    timer: RepeatingTimer | None = None
+    hotkey_listener: HotkeyListener | None = None
+    controller: UiController | None = None
+    """画面の振り分け。Qt の部品は参照が切れると消えるため、終わりまで持つ。"""
+
+
+def _stop_all(running: _Running, tray: Tray) -> None:
+    """新しい開始が来ないように入口とタイマーを先に止め、録音を捨て、エンジンを止め、トレイを消す。"""
+    if running.hotkey_listener is not None:
+        running.hotkey_listener.stop()
+    if running.timer is not None:
+        running.timer.stop()
+    if running.runner is not None:
+        running.runner.stop()
+    if running.handlers is not None:
+        running.handlers.session_manager.close()
+        running.handlers.stop_engine()
+    tray.hide()
+
+
+def _migrate_env_if_requested(args: CliArgs, paths: AppPaths) -> bool:
+    """`--migrate-env` が渡されていれば .env を設定ファイルへ移す。続けてよければ True、移せなかったら False。"""
+    if args.migrate_env is None:
+        return True
+    # 設定ファイルが既にあれば、書き換えた設定を上書きしないよう移さない
+    if paths.settings_file.exists():
+        logger.error(f"設定ファイルが既にあるため .env を移さなかった（{paths.settings_file}）")
+        return False
+    try:
+        save_settings(paths.settings_file, migrate_env(args.migrate_env))
+    except SettingsError as error:
+        logger.error(f".env を移せなかった（{error}）")
+        return False
+    logger.info(f".env を設定ファイルへ移した（{args.migrate_env}、{paths.settings_file}）")
+    return True
+
+
+def _create_application() -> QApplication:
+    """QApplication（最後の窓を閉じても終わらない）を作る。既にあればそれを使う。"""
+    existing = QApplication.instance()
+    app = existing if isinstance(existing, QApplication) else QApplication(sys.argv)
+    app.setQuitOnLastWindowClosed(False)
+    return app
+
+
+def _install_signal_handlers(app: QApplication) -> QTimer:
+    """SIGINT・SIGBREAK で QApplication.quit を呼ぶ。イベントループの中で Python へ戻る空のタイマーを返す。"""
+    wake_timer = QTimer(app)
+    wake_timer.timeout.connect(lambda: None)
+    wake_timer.start(WAKE_INTERVAL_MS)
+    signal.signal(signal.SIGINT, lambda *_args: app.quit())
+    sigbreak = getattr(signal, "SIGBREAK", None)
+    if sigbreak is not None:
+        signal.signal(sigbreak, lambda *_args: app.quit())
+    return wake_timer
+
+
+def _run_event_loop(app: QApplication) -> int:
+    """イベントループを回す。"""
+    return app.exec()
 
 
 def main(
     argv: list[str] | None = None,
     *,
-    wait_for_shutdown: Callable[[], None] = wait_for_shutdown_signal,
+    exec_loop: Callable[[QApplication], int] = _run_event_loop,
 ) -> int:
-    """常駐サービスを起動し、終了の合図まで待って片付け、終了コードを返す。"""
+    """常駐サービスを起動し、イベントループが終わるまで回して片付け、終了コードを返す。"""
     # 1. 起動の引数を読む
-    args = parse_args(sys.argv[1:] if argv is None else argv)
+    argv_used = sys.argv[1:] if argv is None else argv
+    args = parse_args(argv_used)
 
     # 2. 置き場所を決め、ログを設定する
     paths = resolve_app_paths(args.data_dir)
     setup_logging(paths.log_dir, STARTUP_LOG_LEVEL)
 
     # 3. `--migrate-env` が渡されていれば、.env を移して書く
-    if args.migrate_env is not None:
-        # 設定ファイルが既にあれば、書き換えた設定を上書きしないよう移さない
-        if paths.settings_file.exists():
-            logger.error(f"設定ファイルが既にあるため .env を移さなかった（{paths.settings_file}）")
-            return EXIT_FAILED
-        try:
-            save_settings(paths.settings_file, migrate_env(args.migrate_env))
-        except SettingsError as error:
-            logger.error(f".env を移せなかった（{error}）")
-            return EXIT_FAILED
-        logger.info(f".env を設定ファイルへ移した（{args.migrate_env}、{paths.settings_file}）")
+    if not _migrate_env_if_requested(args, paths):
+        return EXIT_FAILED
 
-    # 4. 設定を読む
+    # 4. QApplication・UiBridge・Tray を作り、スタイルを当ててトレイに準備中を出す
+    app = _create_application()
+    bridge = UiBridge()
+    tray = Tray(paths.settings_file.parent, paths.log_dir)
+    app.setStyleSheet(build_stylesheet(is_dark_theme()))
+    tray.set_state(TrayState.STARTING, busy=False)
+    wake_timer = _install_signal_handlers(app)
+    exit_request = _ExitRequest(app)
+    running = _Running()
+
+    try:
+        _start_services(bridge, tray, paths, exit_request, running)
+        # 10. イベントループを回す
+        exec_loop(app)
+    finally:
+        # 11. 立てたものを止める
+        wake_timer.stop()
+        _stop_all(running, tray)
+        logger.info("常駐サービスを終えた")
+
+    # 12. 再起動を頼まれていれば、同じ引数で起動し直す
+    if exit_request.restart:
+        relaunch(argv_used)
+    return EXIT_OK
+
+
+def _start_services(
+    bridge: UiBridge,
+    tray: Tray,
+    paths: AppPaths,
+    exit_request: _ExitRequest,
+    running: _Running,
+) -> None:
+    """設定を読み、配線し、画面・API・ホットキー・上限のタイマーを立てる。立てたものは running に入れる。"""
+    ui_notify = partial(notify, bridge=bridge)
+    ui_report_progress = partial(report_progress, bridge=bridge)
+
+    # 5. 設定を読む（読めなければトレイを失敗にして知らせ、設定を直して再起動できるようにする）
     try:
         settings = load_settings(paths.settings_file)
     except SettingsError as error:
         logger.error(f"起動に失敗した（{error}）")
-        return EXIT_FAILED
+        tray.set_failed()
+        tray.show_failure("engine_unavailable", str(error))
+        tray.restart_requested.connect(exit_request.request_restart)
+        tray.quit_requested.connect(exit_request.request_quit)
+        return
 
-    # 5. ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログを消す
+    # 6. ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログを消す
     logging.getLogger().setLevel(settings.logging.level)
     purge_old_logs(paths.log_dir, settings.logging.retention_days, local_today())
-
-    # 読んだ設定の要点をログに書く（API キーは書かない）
     enabled_outputs = [output.id for output in settings.outputs if output.enabled]
     logger.info(
         f"設定を読んだ（{paths.settings_file}、エンジン: {settings.transcription.engine}、"
         f"オンの出力先: {', '.join(enabled_outputs)}）"
     )
 
-    # 6. 配線する（エンジンを準備できなければ録音を受け付けられないので終える）
+    # 7. 配線する（エンジンを準備できなければトレイを失敗にして知らせ、設定画面だけを使えるようにする）
     try:
-        handlers = build_handlers(settings, paths, log_notify)
+        handlers = build_handlers(settings, paths, ui_notify, ui_report_progress)
     except StartupError as error:
         logger.error(f"起動に失敗した（{error}）")
-        return EXIT_FAILED
+        tray.set_failed()
+        deps = _build_idle_ui_deps(
+            settings, paths, exit_request.request_restart, exit_request.request_quit
+        )
+        running.controller = _build_controller(bridge, tray, deps)
+        tray.show_failure("engine_unavailable", str(error))
+        return
+    running.handlers = handlers
 
-    # 7. トークンを作り、API サーバーを起動する
+    # 画面を作って知らせの受け手につなぐ（API の待ち受けを始められない知らせを取りこぼさないよう、API より先に）
+    hotkey_listener = HotkeyListener()
+    running.hotkey_listener = hotkey_listener
+    save_settings_fn = partial(
+        apply_settings,
+        settings_file=paths.settings_file,
+        store=handlers.settings_store,
+        check_hotkeys=validate_hotkeys,
+    )
+    deps = build_ui_deps(
+        handlers,
+        paths,
+        save_settings_fn,
+        exit_request.request_restart,
+        exit_request.request_quit,
+        hotkey_listener,
+    )
+    running.controller = _build_controller(bridge, tray, deps)
+
+    # 8. トークンを作り、API サーバーを起動する
     token = create_token()
     port = settings.api.port
-    app = build_fastapi(handlers.session_api, token, port)
-    runner = ApiServerRunner(app, port)
-    if not runner.start(API_START_TIMEOUT_SEC):
-        # 待ち受けを始められなかった: トークンのファイルは書かず（ほかの起動のトークンを上書きしない）、知らせてエンジンを止める
-        log_notify("api_unavailable", str(port))
-        handlers.stop_engine()
-        return EXIT_FAILED
-    write_token_file(paths.token_file, port, token)
+    runner = ApiServerRunner(build_fastapi(handlers.session_api, token, port), port)
+    if runner.start(API_START_TIMEOUT_SEC):
+        running.runner = runner
+        write_token_file(paths.token_file, port, token)
+    else:
+        # 待ち受けを始められなかった: トークンのファイルは書かず（ほかの起動のトークンを上書きしない）、知らせて続ける
+        ui_notify("api_unavailable", str(port))
 
-    # 8. 上限の打ち切りを間隔ごとに呼ぶ
+    # 9. ホットキーの受付と上限の打ち切りのタイマーを始め、トレイを待機中にする
+    try:
+        hotkey_listener.start(
+            build_hotkey_bindings(
+                handlers.settings_store.get(),
+                handlers.session_manager,
+                handlers.start_local_session,
+            )
+        )
+    except HotkeyError as error:
+        logger.error(f"ホットキーを受け付けられなかった（{error}）")
     timer = RepeatingTimer(
         handlers.session_manager.truncate_if_expired, SESSION_LIMIT_CHECK_INTERVAL_SEC
     )
     timer.start()
+    running.timer = timer
+    tray.set_start_hotkey(settings.hotkeys.start)
+    tray.set_state(TrayState.IDLE, busy=False)
     logger.info(f"常駐サービスを始めた（API のポート: {port}）")
 
-    # 9. 終了の合図を待つ
-    wait_for_shutdown()
 
-    # 10. 新しい開始が来ないようにタイマー・API サーバーを先に止め、録音を捨て、エンジンを止める
-    timer.stop()
-    runner.stop()
-    handlers.session_manager.close()
-    handlers.stop_engine()
-    logger.info("常駐サービスを終えた")
-    return EXIT_OK
+def _build_controller(bridge: UiBridge, tray: Tray, deps: UiDeps) -> UiController:
+    """録音の画面・文字起こし中の表示・UiController を作り、UiBridge の知らせの受け手につなぐ。"""
+    controller = UiController(
+        deps,
+        tray=tray,
+        recording_window=RecordingWindow(deps),
+        indicator=TranscribingIndicator(deps),
+    )
+    bridge.notified.connect(controller.on_notified, Qt.ConnectionType.QueuedConnection)
+    bridge.progressed.connect(controller.on_progressed, Qt.ConnectionType.QueuedConnection)
+    tray.set_start_hotkey(deps.get_settings().hotkeys.start)
+    return controller

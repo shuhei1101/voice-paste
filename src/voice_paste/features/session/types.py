@@ -9,7 +9,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
-from voice_paste.shared.types import Entry, Recording, TranscriptionOutcome
+from voice_paste.shared.types import Entry, ProgressFn, Recording, TranscriptionOutcome
 
 if TYPE_CHECKING:
     from voice_paste.features.session.service import SessionManager
@@ -72,7 +72,7 @@ type StopRecordingFn = Callable[[], Recording]
 type SaveRecordingFn = Callable[[str, Recording], Path]
 """セッションの ID と確定した録音を受け、履歴（残さない設定なら一時の音声）へ書いたパスを返す。"""
 
-type TranscribeFn = Callable[[Path, Callable[[float, float], None] | None], str]
+type TranscribeFn = Callable[[Path, ProgressFn | None], str]
 """録音のファイルと進みを知らせる関数を受け、起こした文字を返す。失敗は TranscriptionError。"""
 
 type AppendTextFn = Callable[[Path, str], None]
@@ -140,6 +140,9 @@ class SessionDeps:
 
     discard_temporary: Callable[[Path], None]
     """処理を終えた録音が一時の音声なら消す（履歴の discard_temporary）。"""
+
+    report_progress: ProgressFn
+    """ホットキー・トレイの録音で、文字起こしの進みを画面へ知らせる（配線では ui の report_progress）。"""
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

@@ -16,7 +16,9 @@ from pydantic import (
     Field,
     ValidationError,
     field_validator,
+    model_validator,
 )
+from pydantic_core import InitErrorDetails, PydanticCustomError
 from tomlkit.exceptions import TOMLKitError
 
 from voice_paste.shared.errors import SettingsError
@@ -34,6 +36,17 @@ OUTPUTS_FIELD_NAME: str = "outputs"
 
 OUTPUT_DISCRIMINATOR_INDEX: int = 2
 """出力先の失敗の場所（outputs・添字・判別子の値・…）で、判別子の値が入る位置。"""
+
+HOTKEY_OVERLAP_ERROR_TYPE: str = "hotkey_overlap"
+"""ホットキーが重なるときの ValidationError の種類。理由の文に先のキーを `other` として持つ。"""
+
+START_HOTKEY_KEY: str = "hotkeys.start"
+"""録音の開始のホットキーのキー。貼り付けて送信と同じキーにしてよい（重なりにしない）。"""
+
+PASTE_AND_SEND_ID: str = "paste_and_send"
+"""録音の開始のホットキーと同じキーにしてよい出力先の ID。"""
+
+type _Location = tuple[int | str, ...]
 
 
 def _item(default: Any, description: str, *, reload: str, **constraints: Any) -> Any:
@@ -325,6 +338,79 @@ class Settings(_SettingsModel):
         if duplicated:
             raise ValueError(f"出力先の ID が重なる（{', '.join(duplicated)}）")
         return outputs
+
+    @model_validator(mode="after")
+    def _hotkeys_must_not_overlap(self) -> Settings:
+        """受け付けるホットキーが重ならないことを確かめる（重なったキーごとに欄のエラーにする）。"""
+        overlaps = _find_hotkey_overlap_locations(self)
+        # 重なりがあれば、重なったキーの場所で、先のキーを理由にして断る
+        if overlaps:
+            line_errors: list[InitErrorDetails] = [
+                {
+                    "type": PydanticCustomError(
+                        HOTKEY_OVERLAP_ERROR_TYPE,
+                        "{other}と同じホットキー",
+                        {"other": format_error_location(first_location)},
+                    ),
+                    "loc": location,
+                    "input": None,
+                }
+                for location, first_location in overlaps
+            ]
+            raise ValidationError.from_exception_data(type(self).__name__, line_errors)
+        return self
+
+
+# === ホットキーの重なり ===
+
+
+def _accepted_hotkeys(settings: Settings) -> list[tuple[_Location, str, bool]]:
+    """受け付けるホットキーを（場所, 小文字の値, 貼り付けて送信のホットキーか）で、重なりを見る順に並べる。"""
+    accepted: list[tuple[_Location, str, bool]] = [
+        (("hotkeys", "start"), settings.hotkeys.start.lower(), False),
+        (("hotkeys", "pause"), settings.hotkeys.pause.lower(), False),
+        (("hotkeys", "cancel"), settings.hotkeys.cancel.lower(), False),
+    ]
+    # オンの出力先のホットキー（出力先の判別子の値が場所の 3 つ目に入る）
+    for index, output in enumerate(settings.outputs):
+        if not output.enabled:
+            continue
+        if isinstance(output, AiChatSettings):
+            # オンの AI チャットの送り先ごとのホットキー
+            for target_index, target in enumerate(output.targets):
+                if target.enabled:
+                    location = (OUTPUTS_FIELD_NAME, index, output.id, "targets", target_index, "hotkey")
+                    accepted.append((location, target.hotkey.lower(), False))
+        else:
+            location = (OUTPUTS_FIELD_NAME, index, output.id, "hotkey")
+            accepted.append((location, output.hotkey.lower(), output.id == PASTE_AND_SEND_ID))
+    # 空のホットキーは受け付けないので、重なりを見ない
+    return [item for item in accepted if item[1]]
+
+
+def _find_hotkey_overlap_locations(settings: Settings) -> list[tuple[_Location, _Location]]:
+    """前に並んだものと重なるホットキーの（場所, 先に並んだ同じホットキーの場所）を返す。"""
+    first_location_by_value: dict[str, _Location] = {}
+    overlaps: list[tuple[_Location, _Location]] = []
+    for location, value, is_paste_and_send in _accepted_hotkeys(settings):
+        first_location = first_location_by_value.get(value)
+        # 初めてのホットキーは控える
+        if first_location is None:
+            first_location_by_value[value] = location
+        # 録音の開始と貼り付けて送信が同じキーなのは、録音中に押すとその出力先で確定する既定なので重なりにしない
+        elif is_paste_and_send and format_error_location(first_location) == START_HOTKEY_KEY:
+            continue
+        else:
+            overlaps.append((location, first_location))
+    return overlaps
+
+
+def find_hotkey_overlaps(settings: Settings) -> list[tuple[str, str]]:
+    """前に並んだホットキーと重なるキーを（重なったキー, 先に並んだ同じホットキーのキー）で返す。"""
+    return [
+        (format_error_location(location), format_error_location(first_location))
+        for location, first_location in _find_hotkey_overlap_locations(settings)
+    ]
 
 
 # === 検証の失敗の整形 ===

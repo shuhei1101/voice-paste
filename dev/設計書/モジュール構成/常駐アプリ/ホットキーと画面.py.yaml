@@ -37,7 +37,7 @@ classes:
         description: 文字起こしの区間の終わりの時刻と録音の長さ（秒）
     refs:
       - dev/設計書/外部ライブラリ/pyside6-essentials#
-    status: planned
+    status: implemented
     description: メインスレッドで作り、受け手は `Qt.ConnectionType.QueuedConnection` でつなぐ（PoC で 100/100 がメインスレッドのスロットで動いた）。
   - name: HotkeyListener
     title: ホットキーの受付
@@ -138,7 +138,7 @@ classes:
             expected: 受付の stop と join が 1 回ずつ呼ばれ、2 回目は例外が出ない
     refs:
       - dev/設計書/外部ライブラリ/pynput#
-    status: planned
+    status: implemented
   - name: UiController
     title: 画面の振り分け
     container: ui/controller.py
@@ -155,6 +155,7 @@ classes:
       | recording・paused（hotkey・tray） | 録音中・処理中 | `recording.hide_window` がオフなら出して状態を替える | 閉じる |
       | transcribing・delivering（hotkey・tray） | 文字起こし中・処理中 | 閉じる | `recording.hide_window` がオフなら出す |
       | api のセッション | 録音中か文字起こし中・処理中 | 出さない | 出さない |
+      コンストラクタは UiDeps と、キーワードで tray・recording_window・indicator を受け、トレイの操作（Signal）をつなぐ。
     kind: クラス
     inherits: PySide6.QtCore.QObject
     properties:
@@ -342,7 +343,7 @@ classes:
       - dev/設計書/画面設計/常駐アプリ/録音の画面.py#
       - dev/設計書/画面設計/常駐アプリ/文字起こし中の表示.py#
       - dev/設計書/画面設計/常駐アプリ/トレイ.py#
-    status: planned
+    status: implemented
   - name: Tray
     title: トレイ
     container: ui/tray.py
@@ -352,6 +353,7 @@ classes:
     description: |-
       メニューの並び・文言・押せない条件は画面設計「トレイ」、通知の文言は画面設計「トレイの通知」が持つ。
       アイコンの画像は `resources/tray/{TrayState の値}.png` を起動時に読む。
+      コンストラクタは settings_dir と log_dir（「設定フォルダを開く」「ログフォルダを開く」と、通知を押したときに開くフォルダ）を受ける。
     kind: クラス
     inherits: PySide6.QtCore.QObject
     properties:
@@ -471,7 +473,7 @@ classes:
     refs:
       - dev/設計書/画面設計/常駐アプリ/トレイ.py#
       - dev/設計書/画面設計/常駐アプリ/トレイの通知.py#
-    status: planned
+    status: implemented
   - name: RecordingWindow
     title: 録音の画面
     container: ui/windows/recording_window.py
@@ -482,6 +484,7 @@ classes:
       要素は画面設計「録音の画面」が持つ。
       窓は `Qt.Tool | Qt.FramelessWindowHint`（`ui.topmost` がオンなら `Qt.WindowStaysOnTopHint` を足す）、`WA_ShowWithoutActivating` で出し、出したときにフォーカスを取らない。
       経過時間は窓が持つストップウォッチ（QElapsedTimer を一時停止の間だけ止める）で数え、経過時間と波形は WAVE_INTERVAL_MS ごとの QTimer で描き直す。
+      コンストラクタは UiDeps を受ける。
     kind: クラス
     inherits: PySide6.QtWidgets.QWidget
     properties:
@@ -526,7 +529,7 @@ classes:
           description: なし
     refs:
       - dev/設計書/画面設計/常駐アプリ/録音の画面.py#
-    status: planned
+    status: implemented
     notes:
       テスト: 画面の振る舞い（ボタンで UiDeps の関数が呼ばれること・出し分け）は画面設計を元にした結合テスト（`tests/integration/ui/`）で確かめる。
   - name: TranscribingIndicator
@@ -538,6 +541,7 @@ classes:
     description: |-
       要素は画面設計「文字起こし中の表示」が持つ。窓は `Qt.Tool | Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus` と `WA_ShowWithoutActivating` で出す。
       残りの時間は、進み（区間の終わり ÷ 録音の長さ）と経過から「経過 ÷ 進み − 経過」で見積もる。
+      コンストラクタは UiDeps と、経過を数える時計 clock（秒を返す関数。既定は time.monotonic）を受ける。
     kind: クラス
     inherits: PySide6.QtWidgets.QWidget
     methods:
@@ -585,7 +589,7 @@ classes:
           description: なし
     refs:
       - dev/設計書/画面設計/常駐アプリ/文字起こし中の表示.py#
-    status: planned
+    status: implemented
   - name: SettingsWindow
     title: 設定画面
     container: ui/windows/settings_window.py
@@ -596,6 +600,7 @@ classes:
       要素と入力チェックは画面設計「設定画面」が持つ。
       欄は `Settings.model_fields` を辿って型から部品を決め、欄の名前は各項目の `description`、「再起動で反映」の印は `json_schema_extra` の reload から出す。まとまりと型から決まらない部品は画面設計の補足「まとまりと欄」の表を FIELD_LAYOUT に写す。
       ホットキーの欄は押したキーを format_hotkey の形で出し、parse_hotkey で pynput の書式に戻す。
+      コンストラクタは UiDeps を受ける。欄の部品は設定のキーを使った objectName（`field_{キー}`）を持つ。窓が閉じたら（保存・取り消し・窓の閉じるのどの経路でも）closed を emit する。
     kind: クラス
     inherits: PySide6.QtWidgets.QWidget
     properties:
@@ -613,6 +618,9 @@ classes:
         type: Settings
         access: 内部 (_)
         description: 開いたときの設定（変えた欄の数えと「再起動で反映」の変更の判定に使う）
+      - name: closed
+        type: Signal()
+        description: 窓が閉じた（UiController.on_settings_closed へ）
     methods:
       - name: collect
         title: 欄の値の収集
@@ -685,7 +693,7 @@ classes:
           description: 閉じたか
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
-    status: planned
+    status: implemented
 functions:
   - name: notify
     title: ユーザーへの知らせ
@@ -716,7 +724,7 @@ functions:
     returns:
       type: None
       description: なし
-    status: planned
+    status: implemented
     process: |-
       1. `bridge.notified.emit(event, detail)` を呼ぶ
          - `[INFO]` / `[WARNING]` ユーザーへの知らせ（種類・理由。state_changed は INFO、それ以外は WARNING）
@@ -768,7 +776,7 @@ functions:
         condition: position_sec=3.1、duration_sec=5.0
         mock: なし（progressed に受け手をつなぐ）
         expected: 受け手に (3.1, 5.0) が届く
-    status: planned
+    status: implemented
   - name: place_window
     title: 画面の配置
     container: ui/placement.py
@@ -811,7 +819,7 @@ functions:
     refs:
       - dev/設計書/設定/常駐アプリ#settings[ui.position]
       - dev/設計書/設定/常駐アプリ#settings[ui.follow_cursor]
-    status: planned
+    status: implemented
   - name: build_stylesheet
     title: スタイルシートの組み立て
     container: ui/style.py
@@ -835,7 +843,7 @@ functions:
         condition: dark=True と False
         mock: なし
         expected: それぞれ tokens.toml の dark・light の背景色が入り、`{` と `}` の数が合う
-    status: planned
+    status: implemented
   - name: show_busy_dialog
     title: 処理中のダイアログ
     container: ui/windows/busy_dialog.py
@@ -848,7 +856,7 @@ functions:
       description: なし（モーダルを open で開いてすぐ戻る。exec でメインスレッドを止めない）
     refs:
       - dev/設計書/画面設計/常駐アプリ/処理中のダイアログ.py#
-    status: planned
+    status: implemented
   - name: confirm_discard
     title: 変えた値を捨てる確認
     container: ui/windows/settings_window.py
@@ -872,7 +880,7 @@ functions:
       description: 捨てて閉じるなら True
     refs:
       - dev/設計書/画面設計/常駐アプリ/変えた値を捨てる確認.py#
-    status: planned
+    status: implemented
   - name: confirm_reset
     title: 既定に戻す確認
     container: ui/windows/settings_window.py
@@ -891,7 +899,7 @@ functions:
       description: 戻すなら True
     refs:
       - dev/設計書/画面設計/常駐アプリ/既定に戻す確認.py#
-    status: planned
+    status: implemented
   - name: format_hotkey
     title: ホットキーの表示の形
     container: ui/windows/settings_window.py
@@ -915,7 +923,7 @@ functions:
         condition: <ctrl>+<alt>+d、<ctrl>+<shift>+<f5>
         mock: なし
         expected: Ctrl+Alt+D、Ctrl+Shift+F5
-    status: planned
+    status: implemented
   - name: parse_hotkey
     title: ホットキーの書式への変換
     container: ui/windows/settings_window.py
@@ -945,7 +953,7 @@ functions:
         condition: Ctrl だけ、Esc
         mock: なし
         expected: None
-    status: planned
+    status: implemented
   - name: to_field_message
     title: 欄のエラーの文言
     container: ui/windows/settings_window.py
@@ -985,7 +993,7 @@ functions:
         expected: 1024〜65535 の値を入れてください。
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
-    status: planned
+    status: implemented
   - name: validate_hotkeys
     title: ホットキーの書式の確かめ
     container: runtime/hotkey.py
@@ -1021,7 +1029,7 @@ functions:
         exception: 読めないホットキーがある
     refs:
       - dev/設計書/外部ライブラリ/pynput#
-    status: planned
+    status: implemented
 notes:
   画面が触ってよいもの: |-
     ui は UiDeps の関数（配線された SessionManager のメソッド・音量・設定の読み書き・再起動と終了）と、共通の設定のモデルだけを呼ぶ。録音・文字起こし・出力先を直に呼ばない。
@@ -1084,7 +1092,7 @@ data_models:
       - name: resume_hotkeys
         type: Callable[[], None]
         description: 今の設定でホットキーの受付を始める（build_hotkey_bindings → HotkeyListener.start）。設定画面を閉じたときに呼ぶ
-    status: planned
+    status: implemented
 enums:
   - name: TrayState
     title: トレイの状態
@@ -1114,7 +1122,7 @@ enums:
         description: 文字起こしのエンジンを準備できなかった起動。次の起動まで続く
     refs:
       - dev/設計書/画面設計/常駐アプリ/トレイ.py#
-    status: planned
+    status: implemented
 constants:
   - name: WAVE_INTERVAL_MS
     title: 波形を描き直す間隔
@@ -1122,21 +1130,21 @@ constants:
     usecase: 録音する
     summary: 録音の画面が経過時間と波形を描き直す間隔。PoC で 100 ms ごとのタイマーの発火の間隔の最大が 123 ms だったため、波形が滑らかに流れる 50 ms にしてもメインスレッドを塞がない
     value: '50'
-    status: planned
+    status: implemented
   - name: WAVE_BAR_COUNT
     title: 波形の棒の本数
     container: ui/windows/recording_window.py
     usecase: 録音する
     summary: 録音の画面の波形に並べる棒の本数（モックと同じ）
     value: '24'
-    status: planned
+    status: implemented
   - name: WINDOW_MARGIN_PX
     title: 画面の端の余白
     container: ui/placement.py
     usecase: 録音する
     summary: 録音の画面を作業領域の端に置くときに空ける余白（論理ピクセル）
     value: '24'
-    status: planned
+    status: implemented
 test_files:
   - tests/unit/voice_paste/runtime/test_hotkey.py
   - tests/unit/voice_paste/ui/test_bridge.py

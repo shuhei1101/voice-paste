@@ -135,7 +135,7 @@ class Harness:
 def make_harness(audio_path: Path, *, report_progress: MagicMock | None = None) -> Harness:
     """全ての依存を Mock にした SessionManager を作る。録音の保存先は audio_path。
 
-    report_progress を渡したときだけ、SessionDeps の report_progress（文字起こしの進みの知らせ）に渡す。
+    report_progress は SessionDeps の report_progress（文字起こしの進みの知らせ）。渡さなければ Mock にする。
     """
     from voice_paste.features.session.service import SessionManager
     from voice_paste.features.session.types import SessionDeps
@@ -166,8 +166,11 @@ def make_harness(audio_path: Path, *, report_progress: MagicMock | None = None) 
     for name, mock in mocks.items():
         parent.attach_mock(mock, name)
 
-    progress_deps = {} if report_progress is None else {"report_progress": report_progress}
-    deps = SessionDeps(now=clock, **mocks, **progress_deps)
+    deps = SessionDeps(
+        now=clock,
+        report_progress=MagicMock() if report_progress is None else report_progress,
+        **mocks,
+    )
     return Harness(
         manager=SessionManager(deps, session_limit=LIMIT),
         clock=clock,

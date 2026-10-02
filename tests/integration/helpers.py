@@ -344,6 +344,7 @@ def build_stack(tmp_path: Path) -> Stack:
         notify=notify,
         now=clock,
         discard_temporary=partial(discard_temporary, paths=paths),
+        report_progress=lambda position_sec, duration_sec: None,
     )
     manager = SessionManager(deps, SESSION_LIMIT)
 
@@ -450,6 +451,7 @@ def build_output_stack(
         notify=notify,
         now=clock,
         discard_temporary=partial(discard_temporary, paths=paths),
+        report_progress=lambda position_sec, duration_sec: None,
     )
     return OutputStack(
         manager=SessionManager(deps, SESSION_LIMIT), adapters=adapters, notify=notify, engine=engine

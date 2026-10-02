@@ -810,7 +810,7 @@ classes:
           type: Session | None
           description: 今のセッション（不変）。待機中は None
         process: 1. ロックの中で今のセッションを読んで返す
-        status: planned
+        status: implemented
         unit_tests:
           - name: test_current_when_idle
             case: 正常

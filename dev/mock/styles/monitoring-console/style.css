@@ -201,7 +201,7 @@ kbd {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-text);
-  kbd { color: inherit; opacity: 0.85; }
+  kbd { color: inherit; }
   &:hover { background: var(--accent-hover); }
 }
 

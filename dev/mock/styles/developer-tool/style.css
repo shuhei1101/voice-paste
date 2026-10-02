@@ -660,6 +660,14 @@ input[aria-invalid="true"] {
   vertical-align: 1px;
 }
 
+/* 採用マーク */
+.badge--ok {
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 13px;
+  vertical-align: 4px;
+}
+
 /* 再起動で反映のバッジ */
 .badge--restart {
   background: var(--notice-bg);

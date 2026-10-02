@@ -20,3 +20,5 @@ items:
     summary: 採用済みの外部 API のリファレンス
   - page: 外部ライブラリ/
     summary: 採用済みの外部ライブラリ / 外部ツールのリファレンス
+  - page: デザイン方針.md
+    summary: voice-paste の画面全体に通すデザインの方向性

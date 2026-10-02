@@ -1,0 +1,73 @@
+# 画面の見た目の値（開発者ツールのスタイル）。QSS はここの値で組み立てる
+
+[font]
+# 本文・見出し・ボタンの書体
+ui = ["Segoe UI", "Yu Gothic UI", "Meiryo UI"]
+# 経過時間・ホットキー・設定のキー・エラーの詳細の書体
+mono = ["Cascadia Mono", "Consolas", "BIZ UDGothic"]
+
+[size]
+# 本文の文字の大きさ（px）
+text = 14
+# 案内・補足の文の大きさ（px）
+text_small = 12
+# ホットキー・設定のキーの大きさ（px）
+text_key = 11
+# 録音の画面の経過時間の大きさ（px）
+time = 26
+
+[shape]
+# 窓・ボタン・入力欄の角丸（px）
+radius = 6
+# ボタン・入力欄・選択欄の高さ（px）
+control_height = 32
+# 窓の中の余白（px）
+padding = 16
+# 並べた要素の間（px）
+gap = 10
+
+[motion]
+# 回る印の 1 周の時間（ミリ秒）
+spinner_ms = 900
+# 切り替えのつまみが滑る時間（ミリ秒）
+switch_ms = 150
+
+# 明るいテーマの色
+[color.light]
+bg = "#f6f8fa"
+surface = "#ffffff"
+sunken = "#f6f8fa"
+text = "#1f2328"
+text_muted = "#59636e"
+border = "#d1d9e0"
+primary = "#1f883d"
+primary_hover = "#1c8139"
+on_primary = "#ffffff"
+accent_fg = "#0969da"
+recording = "#d1242f"
+paused = "#9a6700"
+busy = "#0969da"
+success = "#1a7f37"
+danger = "#d1242f"
+danger_bg = "#ffebe9"
+notice_bg = "#fff8c5"
+
+# 暗いテーマの色
+[color.dark]
+bg = "#010409"
+surface = "#0d1117"
+sunken = "#010409"
+text = "#f0f6fc"
+text_muted = "#9198a1"
+border = "#3d444d"
+primary = "#238636"
+primary_hover = "#29903b"
+on_primary = "#ffffff"
+accent_fg = "#4493f8"
+recording = "#f85149"
+paused = "#d29922"
+busy = "#4493f8"
+success = "#3fb950"
+danger = "#f85149"
+danger_bg = "#25171c"
+notice_bg = "#272115"

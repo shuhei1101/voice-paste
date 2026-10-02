@@ -529,6 +529,12 @@ classes:
             mock: SessionDeps の全関数。ワーカースレッドは同期で動かす
             expected: OSError が送出され、セッションが空になり、notify に transcription_failed が渡り、deliver が呼ばれず、続く start が通る
             exception: 録音を保存できない
+          - name: test_complete_when_output_target
+            case: 正常
+            summary: 選んだ出力先の ID と宛先を届けるときの Session に持たせる
+            condition: ホットキーのセッションが recording で、complete(output_id="ai_chat", output_target="https://chatgpt.com")
+            mock: SessionDeps の全関数。ワーカースレッドは同期で動かす
+            expected: deliver に渡った Session の output_id が ai_chat、output_target が https://chatgpt.com
       - name: cancel
         title: 取り消し
         kind: メソッド

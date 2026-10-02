@@ -711,3 +711,11 @@ functions:
     refs:
       - dev/設計書/外部ライブラリ/httpx#
     status: implemented
+test_files:
+  - tests/unit/voice_paste/features/outputs/test_service.py
+  - tests/unit/voice_paste/features/outputs/paste_and_send/test_service.py
+  - tests/unit/voice_paste/features/outputs/paste_only/test_service.py
+  - tests/unit/voice_paste/features/outputs/copy_only/test_service.py
+  - tests/unit/voice_paste/features/outputs/ai_chat/test_service.py
+  - tests/unit/voice_paste/features/outputs/callback/test_service.py
+  - tests/unit/voice_paste/features/outputs/callback/test_client.py

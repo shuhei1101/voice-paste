@@ -1076,3 +1076,6 @@ ul.scene-note { padding-left: 20px; }
 
 /* 入力欄の例示文: 本文と同じ比を保つ */
 ::placeholder { color: var(--text-2); opacity: 1; }
+
+/* hidden を付けた要素は display の指定によらず隠す */
+[hidden] { display: none !important; }

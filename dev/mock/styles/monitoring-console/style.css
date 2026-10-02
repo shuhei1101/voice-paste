@@ -664,6 +664,9 @@ input[aria-invalid="true"] {
   gap: 8px;
 }
 
+/* まとまりの一覧の幅を詰める */
+.settings__body { grid-template-columns: 140px 1fr; }
+
 /* ===== 狭い幅 ===== */
 
 /* 狭い幅では設定画面のまとまりの一覧を上に寝かせる */
@@ -729,9 +732,6 @@ legend { font-size: 13px; }
   background: var(--surface-2);
   color: var(--text);
 }
-
-/* まとまりの一覧の幅を詰める */
-.settings__body { grid-template-columns: 140px 1fr; }
 
 /* 入力欄: 地を沈める */
 input[type="text"], select {

@@ -7,15 +7,21 @@ directory: |-
   ├── types.py             # 出力先の関数型・出力先の定義
   ├── registry.py          # OUTPUTS（出力先の一覧。足すときはここに 1 行足す）
   ├── service.py           # deliver（入口と設定で出力先を選んで呼ぶ）
-  ├── paste_and_send/      # 貼り付けて送信
-  ├── paste_only/          # 貼り付けのみ
-  ├── copy_only/           # コピーのみ
-  ├── ai_chat/             # AI チャットへ送る（Edge のアプリの画面）
+  ├── paste_and_send/
+  │   └── service.py       # paste_and_send（貼り付けて送信）
+  ├── paste_only/
+  │   └── service.py       # paste_only（貼り付けのみ）
+  ├── copy_only/
+  │   └── service.py       # copy_only（コピーのみ）
+  ├── ai_chat/
+  │   └── service.py       # send_to_ai_chat（AI チャットへ送る。Edge のアプリの画面）
   └── callback/            # 呼び出し元へ返す
       ├── types.py         # 返送の中身（pydantic）・返送の応答
       ├── client.py        # post_json（httpx）
       └── service.py       # deliver_to_caller・is_callback_allowed
   ```
+
+  各出力先はクリップボード・キー・ブラウザの操作を関数で受け取り、`integrations` を import しない（main.py が外部連携の copy_to_clipboard・send_paste・send_enter・open_app_window を部分適用する）。
 data_models:
   - name: OutputSpec
     title: 出力先の定義
@@ -89,7 +95,7 @@ function_types:
         description: 届ける結果
       - name: target
         type: str | None
-        description: 出力先に固有の宛先（AI チャットの送り先の ID・返送先の URL）
+        description: 出力先に固有の宛先（AI チャットの送り先の URL・返送先の URL）。持たない出力先は None
     returns:
       type: None
       description: なし
@@ -113,23 +119,23 @@ constants:
     summary: 登録した出力先。出力先を 1 つ足すときに既存のモジュールで変えるのはここだけ（品質シナリオ 5）
     entries:
       - key: '0'
-        value: OutputSpec(id="paste_and_send", handler=paste_and_send)
+        value: OutputSpec(id="paste_and_send", title="貼り付けて送信", handler=paste_and_send)
         description: 貼り付けて送信
       - key: '1'
-        value: OutputSpec(id="paste_only", handler=paste_only)
+        value: OutputSpec(id="paste_only", title="貼り付けのみ", handler=paste_only)
         description: 貼り付けのみ
       - key: '2'
-        value: OutputSpec(id="copy_only", handler=copy_only)
+        value: OutputSpec(id="copy_only", title="コピーのみ", handler=copy_only)
         description: コピーのみ
       - key: '3'
-        value: OutputSpec(id="ai_chat", handler=send_to_ai_chat)
+        value: OutputSpec(id="ai_chat", title="AI チャットへ送る", handler=send_to_ai_chat)
         description: AI チャットへ送る
       - key: '4'
-        value: OutputSpec(id="callback", handler=deliver_to_caller, api_only=True)
+        value: OutputSpec(id="callback", title="呼び出し元へ返す", handler=deliver_to_caller, api_only=True)
         description: 呼び出し元へ返す
     status: planned
     notes:
-      並走の間の一覧: '出力先を作り直す #20 までは、呼び出し元へ返す（callback）の 1 行だけを登録する。#20 がほかの 4 行を足す。'
+      配線: 各 handler が受け取るクリップボード・キー・ブラウザの操作と設定の値は、main.py が出力先の ID ごとに部分適用する（起動と配線の _wire_outputs）。
 functions:
   - name: deliver
     title: 出力先への配送
@@ -151,6 +157,11 @@ functions:
         required: true
         passing: positional
         description: 確定の操作で選んだ出力先の ID（API のときは None）
+      - name: output_target
+        type: str | None
+        required: true
+        passing: positional
+        description: 確定の操作で選んだ出力先に固有の宛先（AI チャットの送り先の URL。持たない出力先と API のときは None）
       - name: callback_url
         type: str | None
         required: true
@@ -176,7 +187,7 @@ functions:
       description: なし
     process: |-
       1. 入口が api なら、呼び出し元へ返す出力先を選び、返送先を宛先にする（設定のオン・オフによらない）
-      2. それ以外は、セッションで選んだ出力先を選ぶ
+      2. それ以外は、セッションで選んだ出力先を選び、output_target を宛先にする
          - 選んだ出力先が無いかオフの場合、UnknownOutputError を送出する
       3. 選んだ出力先の関数で届ける
          - `[INFO]` 出力先へ渡した（セッションの ID・出力先の ID）
@@ -203,6 +214,12 @@ functions:
         mock: 各出力先の handler
         expected: UnknownOutputError が送出される
         exception: 設定でオフ
+      - name: test_deliver_when_output_target
+        case: 正常
+        summary: 選んだ送り先を宛先として渡す
+        condition: 入口が hotkey、output_id が ai_chat でオン、output_target が https://chatgpt.com
+        mock: 各出力先の handler
+        expected: ai_chat の handler だけが outcome と https://chatgpt.com で呼ばれる
     status: implemented
   - name: is_callback_allowed
     title: 返送先の確かめ
@@ -368,10 +385,68 @@ functions:
     usecase: 起こした文字を届ける
     scope: public
     inherits: OutputFn
-    summary: クリップボードへ書き、貼り付けのキーと、設定の間を置いて Enter を送る（外部連携のキーボードを使う）
+    summary: クリップボードへ書き、貼り付けのキーと、設定の間を置いて Enter を送る
+    args:
+      - name: outcome
+        type: TranscriptionOutcome
+        required: true
+        passing: positional
+        description: 届ける結果
+      - name: target
+        type: str | None
+        required: true
+        passing: positional
+        description: 使わない（OutputFn に合わせて受ける）
+      - name: copy
+        type: Callable[[str], None]
+        required: true
+        passing: injected
+        description: クリップボードへ書く（copy_to_clipboard。書けなければ DeliveryError）
+      - name: paste
+        type: Callable[[], None]
+        required: true
+        passing: injected
+        description: 貼り付けのキーを送る（設定の keyboard.paste_key を部分適用した send_paste）
+      - name: send_enter
+        type: Callable[[], None]
+        required: true
+        passing: injected
+        description: Enter を送る
+      - name: sleep
+        type: Callable[[float], None]
+        required: true
+        passing: injected
+        description: 間を置く（time.sleep。テストで差し替える）
+      - name: enter_delay_sec
+        type: float
+        required: true
+        passing: injected
+        description: 貼り付けてから Enter を送るまでの秒数（設定の outputs[paste_and_send].enter_delay_sec）
     returns:
       type: None
       description: なし
+    process: |-
+      1. outcome.text をクリップボードへ書く
+      2. 貼り付けのキーを送る
+      3. enter_delay_sec だけ待ち、Enter を送る
+         - 1 が DeliveryError を送出した場合、キーを送らずにそのまま送出する
+    exceptions:
+      - name: DeliveryError
+        condition: クリップボードへ書けない
+    unit_tests:
+      - name: test_paste_and_send
+        case: 正常
+        summary: コピー・貼り付け・待ち・Enter の順に送る
+        condition: outcome.text が「テスト」、enter_delay_sec が 0.5
+        mock: copy・paste・send_enter・sleep
+        expected: copy("テスト")・paste()・sleep(0.5)・send_enter() の順に 1 回ずつ呼ばれる
+      - name: test_paste_and_send_when_copy_failed
+        case: 異常
+        summary: クリップボードへ書けなければキーを送らない
+        condition: copy が DeliveryError を送出する
+        mock: copy・paste・send_enter・sleep
+        expected: DeliveryError が送出され、paste・send_enter が呼ばれない
+        exception: クリップボードへ書けない
     status: planned
   - name: paste_only
     title: 貼り付けのみ
@@ -381,9 +456,51 @@ functions:
     scope: public
     inherits: OutputFn
     summary: クリップボードへ書き、貼り付けのキーを送る
+    args:
+      - name: outcome
+        type: TranscriptionOutcome
+        required: true
+        passing: positional
+        description: 届ける結果
+      - name: target
+        type: str | None
+        required: true
+        passing: positional
+        description: 使わない（OutputFn に合わせて受ける）
+      - name: copy
+        type: Callable[[str], None]
+        required: true
+        passing: injected
+        description: クリップボードへ書く（copy_to_clipboard）
+      - name: paste
+        type: Callable[[], None]
+        required: true
+        passing: injected
+        description: 貼り付けのキーを送る（設定の keyboard.paste_key を部分適用した send_paste）
     returns:
       type: None
       description: なし
+    process: |-
+      1. outcome.text をクリップボードへ書く
+      2. 貼り付けのキーを送る
+         - 1 が DeliveryError を送出した場合、キーを送らずにそのまま送出する
+    exceptions:
+      - name: DeliveryError
+        condition: クリップボードへ書けない
+    unit_tests:
+      - name: test_paste_only
+        case: 正常
+        summary: コピーして貼り付ける
+        condition: outcome.text が「テスト」
+        mock: copy・paste
+        expected: copy("テスト")・paste() の順に 1 回ずつ呼ばれる
+      - name: test_paste_only_when_copy_failed
+        case: 異常
+        summary: クリップボードへ書けなければ貼り付けない
+        condition: copy が DeliveryError を送出する
+        mock: copy・paste
+        expected: DeliveryError が送出され、paste が呼ばれない
+        exception: クリップボードへ書けない
     status: planned
   - name: copy_only
     title: コピーのみ
@@ -393,9 +510,38 @@ functions:
     scope: public
     inherits: OutputFn
     summary: クリップボードへ書く
+    args:
+      - name: outcome
+        type: TranscriptionOutcome
+        required: true
+        passing: positional
+        description: 届ける結果
+      - name: target
+        type: str | None
+        required: true
+        passing: positional
+        description: 使わない（OutputFn に合わせて受ける）
+      - name: copy
+        type: Callable[[str], None]
+        required: true
+        passing: injected
+        description: クリップボードへ書く（copy_to_clipboard）
     returns:
       type: None
       description: なし
+    process: |-
+      1. outcome.text をクリップボードへ書く
+         - DeliveryError はそのまま送出する
+    exceptions:
+      - name: DeliveryError
+        condition: クリップボードへ書けない
+    unit_tests:
+      - name: test_copy_only
+        case: 正常
+        summary: クリップボードへ書くだけ
+        condition: outcome.text が「テスト」
+        mock: copy
+        expected: copy("テスト") が 1 回呼ばれる
     status: planned
   - name: send_to_ai_chat
     title: AI チャットへ送る
@@ -404,10 +550,88 @@ functions:
     usecase: 起こした文字を届ける
     scope: public
     inherits: OutputFn
-    summary: 選んだ送り先（設定の AI チャットの一覧の 1 つ）を Edge のアプリの画面で開き、設定の間を置いて貼り付けて送る
+    summary: 選んだ送り先（設定の AI チャットの一覧の 1 つ）の URL を Edge のアプリの画面で開き、設定の間を置いて貼り付けて送る
+    args:
+      - name: outcome
+        type: TranscriptionOutcome
+        required: true
+        passing: positional
+        description: 届ける結果
+      - name: target
+        type: str | None
+        required: true
+        passing: positional
+        description: 確定の操作で選んだ送り先の URL
+      - name: copy
+        type: Callable[[str], None]
+        required: true
+        passing: injected
+        description: クリップボードへ書く（copy_to_clipboard）
+      - name: open_window
+        type: Callable[[str], None]
+        required: true
+        passing: injected
+        description: URL をアプリのウィンドウで開く（open_app_window。開けなければ DeliveryError）
+      - name: paste
+        type: Callable[[], None]
+        required: true
+        passing: injected
+        description: 貼り付けのキーを送る（設定の keyboard.paste_key を部分適用した send_paste）
+      - name: send_enter
+        type: Callable[[], None]
+        required: true
+        passing: injected
+        description: Enter を送る
+      - name: sleep
+        type: Callable[[float], None]
+        required: true
+        passing: injected
+        description: 間を置く（time.sleep。テストで差し替える）
+      - name: open_delay_sec
+        type: float
+        required: true
+        passing: injected
+        description: 画面を開いてから貼り付けるまでの秒数（設定の outputs[ai_chat].open_delay_sec）
+      - name: enter_delay_sec
+        type: float
+        required: true
+        passing: injected
+        description: 貼り付けてから Enter を送るまでの秒数（設定の outputs[paste_and_send].enter_delay_sec。voice_paste_legacy と同じく貼り付けて送信の間を使う）
     returns:
       type: None
       description: なし
+    process: |-
+      1. target が None の場合、DeliveryError を送出する（送り先を選ばずに確定した）
+      2. outcome.text をクリップボードへ書く
+      3. target をアプリのウィンドウで開く
+      4. open_delay_sec だけ待ち、貼り付けのキーを送る
+      5. enter_delay_sec だけ待ち、Enter を送る
+         - 2・3 が DeliveryError を送出した場合、そこで止めてそのまま送出する
+         - `[INFO]` AI チャットへ送った（セッションの ID・target）
+    exceptions:
+      - name: DeliveryError
+        condition: 送り先が無い・クリップボードへ書けない・画面を開けない
+    unit_tests:
+      - name: test_send_to_ai_chat
+        case: 正常
+        summary: コピー・開く・待ち・貼り付け・待ち・Enter の順に送る
+        condition: outcome.text が「テスト」、target が https://chatgpt.com、open_delay_sec 3.0・enter_delay_sec 0.5
+        mock: copy・open_window・paste・send_enter・sleep
+        expected: copy("テスト")・open_window("https://chatgpt.com")・sleep(3.0)・paste()・sleep(0.5)・send_enter() の順に呼ばれる
+      - name: test_send_to_ai_chat_when_no_target
+        case: 異常
+        summary: 送り先が無ければ何もしない
+        condition: target が None
+        mock: copy・open_window・paste・send_enter・sleep
+        expected: DeliveryError が送出され、copy・open_window が呼ばれない
+        exception: 送り先が無い
+      - name: test_send_to_ai_chat_when_open_failed
+        case: 異常
+        summary: 画面を開けなければ貼り付けない
+        condition: open_window が DeliveryError を送出する
+        mock: copy・open_window・paste・send_enter・sleep
+        expected: DeliveryError が送出され、paste・send_enter が呼ばれない
+        exception: 画面を開けない
     refs:
       - dev/設計書/外部ライブラリ/Microsoft_Edge#
     status: planned

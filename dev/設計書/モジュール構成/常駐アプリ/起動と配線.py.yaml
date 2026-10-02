@@ -116,7 +116,12 @@ functions:
       1. 設定のエンジン（local_whisper）の WhisperWorkerClient を作って起動し、その transcribe を文字起こしの engine に渡す
          - EngineError の場合、StartupError を送出する
       2. Recorder に音量のアダプタを渡す
-      3. 出力先の deliver にオンの出力先と OUTPUTS を部分適用し、Session を入口・出力先・返送先に分けて渡すアダプタを作る。呼び出し元へ返す出力先には、タイムアウトを部分適用した post_json・設定の許可ホスト・再送の回数と間隔の基数・time.sleep・random.uniform(0, x) を部分適用する
+      3. 出力先の deliver にオンの出力先と OUTPUTS を部分適用し、Session を入口・出力先・出力先に固有の宛先・返送先に分けて渡すアダプタを作る。各出力先には出力先の ID ごとに次を部分適用する（_wire_outputs）
+         - 貼り付けて送信: copy_to_clipboard・設定の keyboard.paste_key を部分適用した send_paste・send_enter・time.sleep・設定の enter_delay_sec
+         - 貼り付けのみ: copy_to_clipboard・部分適用した send_paste
+         - コピーのみ: copy_to_clipboard
+         - AI チャットへ送る: copy_to_clipboard・open_app_window・部分適用した send_paste・send_enter・time.sleep・設定の open_delay_sec・貼り付けて送信の enter_delay_sec
+         - 呼び出し元へ返す: タイムアウトを部分適用した post_json・設定の許可ホスト・再送の回数と間隔の基数・time.sleep・random.uniform(0, x)
       4. 用語集を文字起こしのたびに読み直す correct を作る（load_glossary → apply_glossary）
       5. SessionDeps を組み、API のセッションの上限時間と共に SessionManager を作る
       6. SessionManager と、設定の許可ホストを部分適用した is_callback_allowed を SessionApiDeps に束ねる
@@ -126,7 +131,7 @@ functions:
         condition: 文字起こしのエンジンを準備できない
     status: implemented
     notes:
-      並走の間の配線: 'ホットキーと画面を作る #21 までは 7 を飛ばし、Handlers は start_local_session を持たない。出力先を作り直す #20 までは OUTPUTS が呼び出し元へ返すだけを持つ。'
+      並走の間の配線: 'ホットキーと画面を作る #21 までは 7 を飛ばし、Handlers は start_local_session を持たない。'
   - name: main
     title: 起動
     kind: 関数
@@ -391,6 +396,36 @@ functions:
     notes:
       差し替え: '画面を作る #21 で、イベントループとトレイの終了に差し替え、この関数を消す。'
     status: implemented
+  - name: _wire_outputs
+    title: 出力先の配線
+    kind: 関数
+    container: main.py
+    usecase: 常駐アプリを起動する
+    role: composition root
+    scope: internal
+    summary: OUTPUTS の各出力先の handler に、出力先の ID ごとの外部連携の関数と設定の値を部分適用して返す
+    args:
+      - name: settings
+        type: Settings
+        required: true
+        passing: positional
+        description: 設定（keyboard.paste_key・outputs[]・api.allowed_callback_hosts）
+    returns:
+      type: tuple[OutputSpec, ...]
+      description: handler を配線した出力先の一覧（OUTPUTS と同じ並び）
+    process: |-
+      1. 設定の outputs[] から貼り付けて送信と AI チャットへ送るの設定を id で引く（一覧に無ければそのモデルの既定値）
+      2. keyboard.paste_key を部分適用した send_paste を作る
+      3. OUTPUTS を順に見て、出力先の ID ごとに build_handlers の 3 のとおり部分適用した handler に差し替える
+         - 部分適用の対象に無い ID はそのまま残す
+    unit_tests:
+      - name: test_wire_outputs
+        case: 正常
+        summary: 各出力先に設定の値を配線する
+        condition: keyboard.paste_key が `<ctrl>+<shift>+v`、paste_and_send の enter_delay_sec が 0.2、ai_chat の open_delay_sec が 1.5
+        mock: copy_to_clipboard・send_paste・send_enter・open_app_window・time.sleep
+        expected: 返った一覧の ID が OUTPUTS と同じ並びで、paste_and_send の handler を呼ぶと send_paste に `<ctrl>+<shift>+v`、sleep に 0.2 が渡り、ai_chat の handler を呼ぶと sleep に 1.5・0.2 がこの順に渡る
+    status: planned
 notes:
   依存の向き: |-
     コーディング規約『依存関係管理』のとおり `features`・`server`・`ui` → `integrations`・`runtime` → `shared` とし、上の層へは import しない。

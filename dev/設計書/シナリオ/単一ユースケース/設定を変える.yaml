@@ -35,8 +35,8 @@ scenarios:
       - name: Mock
         description: なし（実機の Windows で実行）
       - name: 変える設定
-        description: 文字起こしのエンジンを `local` から `openai` に変える
-        notes: '`TRANSCRIPTION_ENGINE`。`OPENAI_API_KEY` に値がある'
+        description: Whisper のモデルを別のモデルに変える
+        notes: '`WHISPER_MODEL`。再起動しないと効かない項目'
     flow: |-
       ```mermaid
       sequenceDiagram
@@ -47,16 +47,16 @@ scenarios:
         participant NEW as 新しい常駐アプリ
 
         Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
-        U->>SW: エンジンを openai にして「保存+再起動」を押す
+        U->>SW: Whisper のモデルを変えて「保存+再起動」を押す
         SW->>ENV: 変わったキーだけを書く
         SW->>APP: 画面を閉じ、再起動を求める
         APP->>NEW: 同じ引数で新しいプロセスを起動する
         APP->>APP: 自分のプロセスを終える
-        Note over NEW: 以降は 常駐アプリを起動する の 正常シナリオ（OpenAI で文字を起こす）
+        Note over NEW: 以降は 常駐アプリを起動する の 正常シナリオ（新しいモデルを読み込む）
       ```
     expected:
-      - '`.env` の `TRANSCRIPTION_ENGINE` が `openai` になっている'
-      - 前の常駐アプリのプロセスが終わり、新しいプロセスが OpenAI で文字を起こす
+      - '`.env` の `WHISPER_MODEL` が新しいモデルになっている'
+      - 前の常駐アプリのプロセスが終わり、新しいプロセスが新しいモデルで文字を起こす
   - name: 正常シナリオ（初期化する）
     setup:
       - name: Mock

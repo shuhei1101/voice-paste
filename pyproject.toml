@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "voice-paste"
-version = "0.1.1"
+version = "0.2.0"
 description = "音声入力＆自動貼り付けツール"
 requires-python = ">=3.11"
 dependencies = [
@@ -74,5 +74,5 @@ ignore_imports = [
     "voice_paste.features.outputs.service -> voice_paste.features.outputs.registry",
     "voice_paste.features.outputs.** -> voice_paste.features.outputs.types",
 ]
-# registry・service・types は出力先を作る Issue が置くので、今は一致する import が無い
+# service は一覧を import せず main.py が渡すため、service -> registry の除外には一致する import が無い
 unmatched_ignore_imports_alerting = "none"

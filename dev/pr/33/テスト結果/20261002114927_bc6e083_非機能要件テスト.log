@@ -1,0 +1,20 @@
+$ venv/Scripts/python.exe -m pytest tests/nfr --run-e2e -v -s
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\shuhe\repo\voice-paste\venv\Scripts\python.exe
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-session-session-and-api
+configfile: pyproject.toml
+plugins: anyio-4.13.0, platformdirs-4.12.2
+collecting ... collected 6 items
+
+tests/nfr/test_api_session_limit.py::test_api_session_limit_when_recording api_session_limit: elapsed=4.22s wav=3.95s 126508B projected_600s=19.21MB
+PASSED
+tests/nfr/test_api_session_limit.py::test_api_session_limit_when_stopped api_session_limit: elapsed=3.05s wav=0.99s 31660B projected_600s=19.23MB
+PASSED
+tests/nfr/test_api_start_response_time.py::test_api_start_response_time api_start_response_time: n=50 min=19.1 p50=20.8 max=46.8 ms
+PASSED
+tests/nfr/test_busy_response_time.py::test_busy_response_time busy_response_time: n=20 min=1.0 max=2.0 ms
+PASSED
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_history_recordings[NOTSET] SKIPPED
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_correction_only[NOTSET] SKIPPED
+
+======================== 4 passed, 2 skipped in 42.20s ========================

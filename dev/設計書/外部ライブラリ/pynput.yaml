@@ -33,6 +33,6 @@ used_in:
 upstream: moses-palmer/pynput
 verification:
   state: 未確認
-  detail: 現状の棚卸しで、コードが使っている範囲を写しただけで、動かしてはいない
+  detail: keyboard.Controller の生成と keyboard.Key の ctrl・shift・alt・cmd・enter が 1.8.1 で引けることだけ確かめた（2026-10-02）。キーを送って貼り付け先で受かるかは、今のアクティブなウィンドウへ入力が飛んで使っている画面を壊すため、動かしていない
 license: LGPL-3.0（商用利用可。ライブラリを差し替えられる形で配布する義務がある）
 official_url: https://github.com/moses-palmer/pynput

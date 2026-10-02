@@ -45,7 +45,7 @@ enums:
       - value: delivering
         title: 届け中
         description: 出力先へ届けている
-    status: planned
+    status: implemented
 data_models:
   - name: Session
     title: セッション
@@ -72,7 +72,14 @@ data_models:
       - name: output_id
         type: str | None
         description: ホットキー・トレイから始めた録音で、確定の操作で選んだ出力先の ID
-    status: planned
+      - name: recording
+        type: Recording | None
+        default: None
+        description: API の録音を止めた後、完了までセッションが持つ貯めた音
+      - name: output_target
+        type: str | None
+        description: ホットキー・トレイから始めた録音で、確定の操作で選んだ出力先に固有の宛先（AI チャットの送り先の URL）。持たない出力先は None
+    status: implemented
   - name: SessionDeps
     title: セッションの依存
     container: features/session/types.py
@@ -116,7 +123,10 @@ data_models:
       - name: now
         type: Callable[[], datetime]
         description: 今の時刻（テストで差し替える）
-    status: planned
+      - name: discard_temporary
+        type: Callable[[Path], None]
+        description: 処理を終えた録音が一時の音声なら消す（履歴の discard_temporary）
+    status: implemented
   - name: StartSessionRequest
     title: 開始のリクエスト
     container: features/session/schemas.py
@@ -130,7 +140,7 @@ data_models:
         description: 返送先。ホストが許されるかは route が出力先の is_callback_allowed で確かめる
     refs:
       - dev/設計書/外部ライブラリ/pydantic#
-    status: planned
+    status: implemented
   - name: StartSessionResponse
     title: 開始のレスポンス
     container: features/session/schemas.py
@@ -142,7 +152,7 @@ data_models:
       - name: session_id
         type: str
         description: 始めたセッションの ID
-    status: planned
+    status: implemented
   - name: SessionApiDeps
     title: セッションの API の依存
     container: features/session/types.py
@@ -156,7 +166,7 @@ data_models:
       - name: is_callback_allowed
         type: Callable[[str], bool]
         description: 設定の許可ホストを部分適用した返送先の確かめ（出力先の is_callback_allowed）
-    status: planned
+    status: implemented
 function_types:
   - name: StartRecordingFn
     title: 録音の開始
@@ -168,7 +178,7 @@ function_types:
       description: なし
     implementations:
       - target: 録音の Recorder.start
-    status: planned
+    status: implemented
   - name: StopRecordingFn
     title: 録音の停止
     container: features/session/types.py
@@ -179,7 +189,7 @@ function_types:
       description: 貯めた音（サンプルレートと長さつき）
     implementations:
       - target: 録音の Recorder.stop
-    status: planned
+    status: implemented
   - name: SaveRecordingFn
     title: 録音の保存
     container: features/session/types.py
@@ -197,7 +207,7 @@ function_types:
       description: 書いた WAV のパス
     implementations:
       - target: 履歴の save_recording
-    status: planned
+    status: implemented
   - name: TranscribeFn
     title: 文字起こし
     container: features/session/types.py
@@ -215,7 +225,7 @@ function_types:
       description: 区間ごとの文字を改行でつないだもの（空もある）
     implementations:
       - target: 文字起こしの transcribe
-    status: planned
+    status: implemented
   - name: AppendTextFn
     title: 履歴への文字の書き足し
     container: features/session/types.py
@@ -233,7 +243,7 @@ function_types:
       description: なし
     implementations:
       - target: 履歴の append_text
-    status: planned
+    status: implemented
   - name: DeliverFn
     title: 出力先への配送
     container: features/session/types.py
@@ -252,7 +262,7 @@ function_types:
     implementations:
       - target: 出力先の deliver
         notes: main.py で Session を入口・選んだ出力先・返送先に分けて渡す（出力先はセッションを import しない）
-    status: planned
+    status: implemented
   - name: NotifyFn
     title: ユーザーへの知らせ
     container: features/session/types.py
@@ -260,7 +270,7 @@ function_types:
     summary: 状態の変化と失敗を画面・トレイへ渡す
     args:
       - name: event
-        type: Literal["state_changed", "busy", "microphone_unavailable", "transcription_failed", "delivery_failed"]
+        type: Literal["state_changed", "busy", "microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable"]
         description: 知らせの種類
       - name: detail
         type: str | None
@@ -270,7 +280,7 @@ function_types:
       description: なし
     implementations:
       - target: ホットキーと画面の notify
-    status: planned
+    status: implemented
 classes:
   - name: SessionManager
     title: セッション管理
@@ -451,6 +461,11 @@ classes:
             required: false
             default: None
             description: 確定の操作で選んだ出力先の ID（ホットキー・トレイのとき）
+          - name: output_target
+            type: str | None
+            required: false
+            default: None
+            description: 確定の操作で選んだ出力先に固有の宛先（AI チャットの送り先の URL。ホットキー・トレイのとき）
         returns:
           type: None
           description: なし（結果は出力先へ届く）
@@ -460,8 +475,9 @@ classes:
           2. session_id が None の場合（ホットキー・トレイ）、今のセッションの入口が api でなく、recording か paused であることを確かめる
              - 当たらない場合、何もしない（API のセッションに確定のホットキーが来ても変えない）
           3. stopped でなければ録音を止める（録音の停止）
-          4. 録音を保存し（録音の保存）、状態を transcribing にする
+          4. 録音を保存し（録音の保存）、状態を transcribing にして output_id と output_target をセッションに持たせる
              - `[INFO]` 録音を確定した（セッションの ID・録音の長さ・保存先）
+             - 3〜4 で例外が出た場合、確定の失敗を片付け（確定の失敗）、その例外を送出し直す（API の route は既存のハンドラで 500 を返す）
           5. ワーカースレッドで文字起こしから届けるまでを始める（確定後の流れ）
         exceptions:
           - name: SessionNotFoundError
@@ -499,6 +515,26 @@ classes:
             mock: SessionDeps の全関数
             expected: SessionNotFoundError が送出される
             exception: 確定できる状態でない
+          - name: test_complete_when_save_failed
+            case: 異常
+            summary: 録音を保存できなければ待機中に戻して呼び出し元へ failed を届ける
+            condition: API のセッションが recording で、save_recording が OSError を送出する
+            mock: SessionDeps の全関数。ワーカースレッドは同期で動かす
+            expected: OSError が送出され、セッションが空になり、deliver に result=failed が渡り、続く start が通る
+            exception: 録音を保存できない
+          - name: test_complete_when_save_failed_from_hotkey
+            case: 異常
+            summary: ホットキーの録音を保存できなければ待機中に戻して知らせる
+            condition: ホットキーのセッションが recording で、save_recording が OSError を送出する
+            mock: SessionDeps の全関数。ワーカースレッドは同期で動かす
+            expected: OSError が送出され、セッションが空になり、notify に transcription_failed が渡り、deliver が呼ばれず、続く start が通る
+            exception: 録音を保存できない
+          - name: test_complete_when_output_target
+            case: 正常
+            summary: 選んだ出力先の ID と宛先を届けるときの Session に持たせる
+            condition: ホットキーのセッションが recording で、complete(output_id="ai_chat", output_target="https://chatgpt.com")
+            mock: SessionDeps の全関数。ワーカースレッドは同期で動かす
+            expected: deliver に渡った Session の output_id が ai_chat、output_target が https://chatgpt.com
       - name: cancel
         title: 取り消し
         kind: メソッド
@@ -538,21 +574,34 @@ classes:
           1. API のセッションが recording か stopped で、今の時刻 − started_at が上限時間以上であることを確かめる
              - 当たらない場合、False を返す
           2. recording なら録音を止める（録音の停止）
-          3. 録音を保存する（録音の保存）
-          4. result=truncated を出力先へ届け、セッションを空にする（出力先への配送）
+          3. 録音を保存し（録音の保存）、状態を delivering にする
              - `[WARNING]` 完了が来ないまま上限で打ち切った（セッションの ID・経過時間）
+             - 2〜3 で例外が出た場合、確定の失敗を片付け（確定の失敗）、True を返す（例外は送出しない。上限のタイマーが同じ失敗を繰り返さない）
+          4. ロックを離し、ワーカースレッドで result=truncated を届けるを始める（打ち切りの返送。complete と同じワーカースレッドの起動を使う。返送の再送を待つ間もロックを持たず、その間の開始は 409 ですぐ返る）
           5. True を返す
         unit_tests:
           - name: test_truncate_if_expired_when_recording
             case: 正常
             summary: 録音中のまま上限を過ぎたら打ち切る
-            condition: API のセッションが recording で、now が started_at + 上限
+            condition: API のセッションが recording で、now が started_at + 上限。ワーカースレッドは起動を記録するだけで動かさない
+            mock: SessionDeps の全関数・ワーカースレッドの起動
+            expected: True が返った時点で、stop_recording・save_recording が呼ばれ、状態が delivering で、deliver がまだ呼ばれていない
+          - name: test_truncate_if_expired_when_worker_runs
+            case: 正常
+            summary: ワーカースレッドが打ち切りを届けて片付ける
+            condition: API のセッションが recording で、now が started_at + 上限。ワーカースレッドは同期で動かす
             mock: SessionDeps の全関数
-            expected: True が返り、stop_recording・save_recording が呼ばれ、deliver に result=truncated が渡り、セッションが空になる
+            expected: deliver に result=truncated が渡り、discard_temporary に保存した録音が渡り、セッションが空になる
+          - name: test_truncate_if_expired_when_deliver_blocks
+            case: 正常
+            summary: 返送を待つ間も開始はすぐ 409 になる
+            condition: deliver が threading.Event を待って止まる。打ち切った後に別のスレッドから start を呼ぶ
+            mock: SessionDeps の全関数
+            expected: start が deliver の戻りを待たずに SessionBusyError を送出する
           - name: test_truncate_if_expired_when_stopped
             case: 正常
             summary: 停止中も開始からの経過時間で打ち切る
-            condition: API のセッションが stopped で、now が started_at + 上限
+            condition: API のセッションが stopped で、now が started_at + 上限。ワーカースレッドは同期で動かす
             mock: SessionDeps の全関数
             expected: True が返り、stop_recording が呼ばれず、deliver に result=truncated が渡る
           - name: test_truncate_if_expired_when_within_limit
@@ -567,6 +616,13 @@ classes:
             condition: ホットキーのセッションが上限を過ぎて recording
             mock: SessionDeps の全関数
             expected: False が返る
+          - name: test_truncate_if_expired_when_save_failed
+            case: 異常
+            summary: 打ち切った録音を保存できなければ待機中に戻して failed を届ける
+            condition: API のセッションが stopped で、now が started_at + 上限、save_recording が OSError を送出する
+            mock: SessionDeps の全関数。ワーカースレッドは同期で動かす
+            expected: 例外が出ず True が返り、セッションが空になり、deliver に result=failed が渡り、続く truncate_if_expired が False を返す
+            exception: 録音を保存できない
       - name: _run_after_confirm
         title: 確定後の流れ
         kind: メソッド
@@ -597,14 +653,14 @@ classes:
              - DeliveryError（UnknownOutputError を含む）の場合、delivery_failed を知らせる
              - 2〜6 で想定外の例外が出た場合、入口が api なら result=failed を届け、それ以外は文字起こしの前後に応じて transcription_failed か delivery_failed を知らせる
                - `[ERROR]` 確定後の流れで想定外の例外（logger.exception）
-          7. どの経路でも必ず（finally）セッションを空にして待機中を知らせる
+          7. どの経路でも必ず（finally）一時の音声を消し（一時の音声の削除）、セッションを空にして待機中を知らせる
         unit_tests:
           - name: test_run_after_confirm
             case: 正常
             summary: 起こした文字を補正して届ける
             condition: transcribe が「てすと」を返し、correct が「テスト」を返す
             mock: SessionDeps の全関数
-            expected: append_text と deliver に「テスト」が渡り、セッションが空になる
+            expected: append_text と deliver に「テスト」が渡り、discard_temporary に保存した録音が渡り、セッションが空になる
           - name: test_run_after_confirm_when_transcription_failed_from_hotkey
             case: 正常
             summary: ホットキーの失敗は知らせて届けない
@@ -641,7 +697,101 @@ classes:
             condition: 入口が hotkey で deliver が UnknownOutputError を送出する
             mock: SessionDeps の全関数
             expected: notify に delivery_failed が渡り、セッションが空になる
-    status: planned
+      - name: close
+        title: 終了時の片付け
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        summary: 常駐サービスを終えるときに、残っているセッションの録音を捨てて待機中に戻す
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. ロックを取る
+          2. recording・paused・stopped のセッションが残っていれば、stopped でなければ録音を捨て（録音した音を捨てる）、セッションを空にする
+             - `[WARNING]` 終了のため録音を捨てた（セッションの ID・入口）
+             - transcribing・delivering の場合、何もしない（ワーカースレッドが終わり次第セッションを空にする）
+        unit_tests:
+          - name: test_close_when_recording
+            case: 正常
+            summary: 録音中のセッションは捨てる
+            condition: API のセッションが recording
+            mock: SessionDeps の全関数
+            expected: discard_recording が 1 回呼ばれ、save_recording・deliver が呼ばれず、セッションが空になる
+          - name: test_close_when_idle
+            case: 正常
+            summary: 待機中は何もしない
+            condition: セッションが無い
+            mock: SessionDeps の全関数
+            expected: discard_recording が呼ばれず、例外が出ない
+      - name: _deliver_truncated
+        title: 打ち切りの返送
+        kind: メソッド
+        scope: internal
+        summary: ワーカースレッドで result=truncated を届け、待機中に戻す
+        args:
+          - name: session
+            type: Session
+            required: true
+            description: 打ち切ったセッション
+          - name: audio_path
+            type: Path
+            required: true
+            description: 保存した録音
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. result=truncated を届ける（出力先への配送）
+             - DeliveryError や想定外の例外の場合、ログに書く
+               - `[ERROR]` 打ち切りを届けられなかった（logger.exception）
+          2. どの経路でも必ず（finally）一時の音声を消し（一時の音声の削除）、セッションを空にして待機中を知らせる
+      - name: _fail_confirm
+        title: 確定の失敗
+        kind: メソッド
+        scope: internal
+        summary: 録音の停止か保存に失敗したセッションを片付け、失敗を知らせて待機中に戻す。ロックを持った状態で呼ぶ
+        args:
+          - name: session
+            type: Session
+            required: true
+            description: 確定できなかったセッション
+          - name: error
+            type: Exception
+            required: true
+            description: 停止か保存で出た例外
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. セッションが stopped でなければ、止めていない録音が残っているかもしれないので録音を捨てる（録音した音を捨てる。音量も戻る）
+             - 捨てるのに失敗した場合（既に止まっている等）、握る
+          2. セッションを空にする
+             - `[ERROR]` 録音を確定できなかった（セッションの ID・理由。logger.exception）
+          3. ワーカースレッドで失敗を知らせ、待機中を知らせる（入口が api なら result=failed を届け、それ以外は transcription_failed を知らせる。返送を待つ間もロックを持たない）
+        status: implemented
+      - name: _announce_failure
+        title: 確定の失敗の知らせ
+        kind: メソッド
+        scope: internal
+        summary: 確定できなかったセッションの失敗を知らせ、待機中を知らせる。_fail_confirm がワーカースレッドで動かす
+        args:
+          - name: session
+            type: Session
+            required: true
+            description: 確定できなかったセッション
+          - name: reason
+            type: str
+            required: true
+            description: 失敗の理由
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 失敗を知らせる（入口が api なら result=failed を届け、それ以外は transcription_failed を知らせる）
+          2. どの経路でも必ず（finally）待機中を知らせる
+        status: implemented
+    status: implemented
 functions:
   - name: start_session_route
     title: 開始の route
@@ -684,7 +834,7 @@ functions:
         mock: SessionApiDeps の SessionManager
         expected: CallbackNotAllowedError が送出され、start が呼ばれない
         exception: 返送先のホストが許されない
-    status: planned
+    status: implemented
   - name: stop_session_route
     title: 停止の route
     kind: 関数
@@ -709,7 +859,7 @@ functions:
       description: 200 で返す
     refs:
       - dev/設計書/インターフェース定義/常駐アプリ/録音を停止する.py#
-    status: planned
+    status: implemented
   - name: complete_session_route
     title: 完了の route
     kind: 関数
@@ -734,7 +884,7 @@ functions:
       description: 202 で返す
     refs:
       - dev/設計書/インターフェース定義/常駐アプリ/録音を完了する.py#
-    status: planned
+    status: implemented
   - name: get_session_api_deps
     title: セッションの API の依存の取得
     kind: 関数
@@ -751,4 +901,7 @@ functions:
     returns:
       type: SessionApiDeps
       description: セッションの API の依存
-    status: planned
+    status: implemented
+test_files:
+  - tests/unit/voice_paste/features/session/test_service.py
+  - tests/unit/voice_paste/features/session/test_route.py

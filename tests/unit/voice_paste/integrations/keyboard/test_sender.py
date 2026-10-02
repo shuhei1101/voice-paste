@@ -1,0 +1,143 @@
+"""integrations/keyboard/sender.py（copy_to_clipboard・send_paste・send_enter）の単体テスト。
+
+pyperclip.copy・pynput.keyboard.Controller・time.sleep は Mock に差し替え、実機のクリップボードとキー入力には触れない。
+"""
+
+from __future__ import annotations
+
+from unittest.mock import MagicMock, call
+
+import pyperclip
+import pytest
+from pynput import keyboard
+
+from voice_paste.shared.errors import DeliveryError
+
+
+@pytest.fixture
+def copy_mock(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
+    """pyperclip.copy を差し替えた Mock を返す。"""
+    mock = MagicMock()
+    monkeypatch.setattr(pyperclip, "copy", mock)
+    return mock
+
+
+@pytest.fixture
+def keyboard_calls(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
+    """pynput.keyboard.Controller と time.sleep を差し替え、キーと待ちの呼ばれた順を 1 本の列で持つ親の Mock を返す。
+
+    親の `controller` が Controller のインスタンス、`sleep` が time.sleep。
+    """
+    parent = MagicMock()
+    monkeypatch.setattr(keyboard, "Controller", MagicMock(return_value=parent.controller))
+    monkeypatch.setattr("time.sleep", parent.sleep)
+    return parent
+
+
+# === copy_to_clipboard ===
+
+
+def test_copy_to_clipboard(copy_mock: MagicMock) -> None:
+    """文字をクリップボードへ書く（正常系）。"""
+    from voice_paste.integrations.keyboard.sender import copy_to_clipboard
+
+    # 実行
+    copy_to_clipboard("テスト")
+
+    # 検証
+    copy_mock.assert_called_once_with("テスト")
+
+
+def test_copy_to_clipboard_when_failed(copy_mock: MagicMock) -> None:
+    """クリップボードへ書けなければ DeliveryError にする（異常系）。"""
+    from voice_paste.integrations.keyboard.sender import copy_to_clipboard
+
+    # 準備
+    copy_mock.side_effect = pyperclip.PyperclipException("クリップボードが開けない")
+
+    # 実行・検証
+    with pytest.raises(DeliveryError):
+        copy_to_clipboard("テスト")
+
+
+# === send_paste ===
+
+
+def test_send_paste(keyboard_calls: MagicMock) -> None:
+    """設定の貼り付けのキーを、フォーカスが落ち着くのを待ってから送る（正常系）。"""
+    from voice_paste.integrations.keyboard.sender import send_paste
+
+    # 実行
+    send_paste("<ctrl>+v")
+
+    # 検証
+    assert keyboard_calls.mock_calls == [
+        call.sleep(0.1),
+        call.controller.press(keyboard.Key.ctrl),
+        call.controller.press("v"),
+        call.controller.release("v"),
+        call.controller.release(keyboard.Key.ctrl),
+    ]
+
+
+def test_send_paste_when_multiple_modifiers(keyboard_calls: MagicMock) -> None:
+    """修飾キーが複数でも、押した順の逆に離す（正常系）。"""
+    from voice_paste.integrations.keyboard.sender import send_paste
+
+    # 実行
+    send_paste("<ctrl>+<shift>+v")
+
+    # 検証
+    assert keyboard_calls.mock_calls == [
+        call.sleep(0.1),
+        call.controller.press(keyboard.Key.ctrl),
+        call.controller.press(keyboard.Key.shift),
+        call.controller.press("v"),
+        call.controller.release("v"),
+        call.controller.release(keyboard.Key.shift),
+        call.controller.release(keyboard.Key.ctrl),
+    ]
+
+
+def test_send_paste_when_spaced_and_uppercase(keyboard_calls: MagicMock) -> None:
+    """キーの前後の空白と大文字を揃えて、同じキーとして送る（正常系）。"""
+    from voice_paste.integrations.keyboard.sender import send_paste
+
+    # 実行
+    send_paste("<Ctrl> + V")
+
+    # 検証
+    assert keyboard_calls.mock_calls == [
+        call.sleep(0.1),
+        call.controller.press(keyboard.Key.ctrl),
+        call.controller.press("v"),
+        call.controller.release("v"),
+        call.controller.release(keyboard.Key.ctrl),
+    ]
+
+
+def test_send_paste_when_no_main_key(keyboard_calls: MagicMock) -> None:
+    """主キーが 1 つ無ければ、キーを送らずに DeliveryError にする（異常系）。"""
+    from voice_paste.integrations.keyboard.sender import send_paste
+
+    # 実行・検証
+    with pytest.raises(DeliveryError):
+        send_paste("<ctrl>")
+    keyboard_calls.controller.press.assert_not_called()
+
+
+# === send_enter ===
+
+
+def test_send_enter(keyboard_calls: MagicMock) -> None:
+    """Enter を押して離す（正常系）。"""
+    from voice_paste.integrations.keyboard.sender import send_enter
+
+    # 実行
+    send_enter()
+
+    # 検証
+    assert keyboard_calls.mock_calls == [
+        call.controller.press(keyboard.Key.enter),
+        call.controller.release(keyboard.Key.enter),
+    ]

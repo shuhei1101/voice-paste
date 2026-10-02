@@ -130,14 +130,14 @@ request:
     location: header
     description: 今回の起動のトークン
     format: '`Bearer {トークン}`'
-    status: planned
+    status: implemented
   - name: session_id
     type: str
     required: true
     location: path
     description: 開始で受け取ったセッションの ID
     format: uuid
-    status: planned
+    status: implemented
 response_notes: |-
   > [!NOTE]
   > 止めたセッションへもう一度停止を呼んでも 200 を返し、状態は変わらない。
@@ -159,3 +159,4 @@ constraints:
   - item: タイムアウト
     constraint: 制限なし
     notes: マイクを止めるだけで待ちが無い
+test_file: tests/integration/test_stop_session.py

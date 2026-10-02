@@ -34,29 +34,6 @@ scenarios:
       - 127.0.0.1 の API が、トークンを付けた要求に応える
       - トークンのファイル（`%LOCALAPPDATA%\voice-paste\` の下）に今回の起動のトークンが書かれている
       - 文字起こしワーカーの子プロセスが動いている
-  - name: 正常シナリオ（OpenAI で文字を起こす）
-    setup:
-      - name: Mock
-        description: なし（実機の Windows で実行）
-      - name: 文字起こしのエンジン
-        description: OpenAI を使う設定にし、API キーを設定してある
-    flow: |-
-      ```mermaid
-      sequenceDiagram
-        actor U as ユーザー
-        participant SVC as 常駐サービス
-        participant TRAY as トレイ
-
-        U->>SVC: ショートカットから起動する
-        SVC->>TRAY: 準備中のアイコンを出す
-        SVC->>SVC: API キーがあることを確かめる
-        Note over SVC: トークン・API の待ち受け・ホットキーは 正常シナリオ と同じ
-        SVC->>TRAY: 待機中のアイコンにする
-      ```
-    expected:
-      - トレイのアイコンが待機中になっている
-      - 文字起こしワーカーの子プロセスが動いていない
-      - 起動の時点では OpenAI への通信が起きていない
   - name: 正常シナリオ（前の常駐サービスが動いている）
     setup:
       - name: Mock
@@ -112,19 +89,21 @@ scenarios:
     setup:
       - name: Mock
         description: なし（実機の Windows で実行）
-      - name: API キーの欠落
-        description: OpenAI を使う設定にし、API キーを空にする
+      - name: モデルの読み込みの失敗
+        description: ローカルの Whisper のモデルに存在しない名前を設定し、文字起こしワーカーがモデルを読み込めずに error を返す状態にする
     flow: |-
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
         participant SVC as 常駐サービス
         participant TRAY as トレイ
+        participant WK as 文字起こしワーカー（子プロセス）
         participant LOG as ログ
 
         U->>SVC: ショートカットから起動する
         SVC->>TRAY: 準備中のアイコンを出す
-        SVC->>SVC: API キーが空で、エンジンを準備できない
+        SVC->>WK: 子プロセスを起動し、エンジンの設定を送る
+        WK-->>SVC: モデルを読み込めない（error）
         SVC->>LOG: 起動に失敗した理由を書く
         SVC->>TRAY: 失敗のアイコンにし、起動に失敗したことを知らせる
       ```
@@ -134,7 +113,7 @@ scenarios:
       - 常駐サービスのプロセスは終わらず、トレイのメニューから設定を開ける
       - 録音開始のホットキーを押しても録音が始まらない
     notes:
-      同じ扱いになる失敗: ローカルの Whisper で、文字起こしワーカーがモデルを読み込めずに ready を返さないときも同じ扱いになる。
+      同じ扱いになる失敗: 文字起こしワーカーが ready を返さずに終わったときも同じ扱いになる。
   - name: 異常シナリオ（API の待ち受けを始められない）
     setup:
       - name: Mock

@@ -21,7 +21,8 @@ used_in:
   - src/voice_paste/integrations/volume/
 upstream: enthought/comtypes
 verification:
-  state: 未確認
-  detail: 現状の棚卸しで、コードが使っている範囲を写しただけで、動かしてはいない
+  state: 済
+  date: '2026-10-02'
+  detail: comtypes 1.4.16 で、Windows の実機の音量のアダプタの契約テスト 3 件を --run-external で通した。メインのスレッドとフェードの別スレッドのそれぞれで CoInitialize してから pycaw の音量のインターフェースを引き、読み書きして CoUninitialize で解放できることを確かめた
 license: MIT（商用利用可）
 official_url: https://github.com/enthought/comtypes

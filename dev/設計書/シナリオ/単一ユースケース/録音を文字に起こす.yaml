@@ -43,30 +43,6 @@ scenarios:
       - 起こした文字を届ける へ進む
     notes:
       API から始めた録音: API から始めた録音では、文字起こし中の表示を開かない。それ以外は同じ流れである。
-  - name: 正常シナリオ（OpenAI で起こす）
-    setup:
-      - name: Mock
-        description: なし（実機の Windows と OpenAI API で実行）
-      - name: 文字起こしのエンジン
-        description: OpenAI を使う設定にし、API キーと OpenAI のエンジンの設定（モデル・言語・温度）を設定してある
-    flow: |-
-      ```mermaid
-      sequenceDiagram
-        participant SVC as 常駐サービス
-        participant OV as 文字起こし中の表示
-        participant OAI as OpenAI API
-
-        Note over SVC: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
-        SVC->>OAI: 録音を送る（OpenAI のエンジンの設定のモデル・言語・温度）
-        OAI-->>SVC: 区間ごとの文字と録音の長さ
-        SVC->>OV: 区間ごとに残りの時間を更新する
-        SVC->>SVC: 区間の文字を改行でつなぐ
-        Note over SVC: 用語集での補正から後は 正常シナリオ と同じ
-      ```
-    expected:
-      - 起こした文字の中の用語集の誤変換が、正しい表記に置き換わっている
-      - OpenAI への要求が、OpenAI のエンジンの設定のモデル・言語・温度を使っている（ローカルの Whisper の設定を使っていない）
-      - 起こした文字を届ける へ進む
   - name: 正常シナリオ（文字起こしワーカーが落ちる）
     setup:
       - name: Mock
@@ -131,22 +107,22 @@ scenarios:
       - name: Mock
         description: なし（実機の Windows で実行）
       - name: 文字起こしの失敗
-        description: OpenAI を使う設定で、端末をネットワークから切り離す
+        description: 中身の壊れた録音の WAV を確定し、文字起こしワーカーがエラーを返す状態にする
       - name: 入口
         description: ホットキーから始めた録音を確定する
     flow: |-
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
-        participant OAI as OpenAI API
+        participant WK as 文字起こしワーカー（子プロセス）
         participant OV as 文字起こし中の表示
         participant TRAY as トレイ
         participant LOG as ログ
         actor U as ユーザー
 
         Note over SVC: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
-        SVC->>OAI: 録音を送る
-        OAI--xSVC: 届かない
+        SVC->>WK: 録音と設定を送る
+        WK-->>SVC: エラー（読めない録音）
         SVC->>LOG: 失敗した理由を書く
         SVC->>OV: 閉じる
         SVC->>TRAY: 待機中のアイコンにする
@@ -217,18 +193,18 @@ scenarios:
       - name: Mock
         description: なし（実機の Windows で実行）
       - name: 文字起こしの失敗
-        description: OpenAI を使う設定で、端末をネットワークから切り離す
+        description: 中身の壊れた録音の WAV を確定し、文字起こしワーカーがエラーを返す状態にする
       - name: 入口
         description: API から始めた録音を、API の完了で確定する
     flow: |-
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
-        participant OAI as OpenAI API
+        participant WK as 文字起こしワーカー（子プロセス）
         participant LOG as ログ
 
-        SVC->>OAI: 録音を送る（文字起こし中の表示は開かない）
-        OAI--xSVC: 届かない
+        SVC->>WK: 録音と設定を送る（文字起こし中の表示は開かない）
+        WK-->>SVC: エラー（読めない録音）
         SVC->>LOG: 失敗した理由を書く
         SVC->>SVC: 文字起こしの失敗を 起こした文字を届ける へ渡す
       ```
@@ -237,7 +213,7 @@ scenarios:
       - 履歴にこの録音が残っている
       - ダイアログも文字起こし中の表示も出ていない
     notes:
-      同じ扱いになる失敗: ローカルの Whisper でワーカーがエラーを返したときと、やり直したワーカーも落ちたときも同じ扱いになる。
+      同じ扱いになる失敗: やり直したワーカーも落ちたときも同じ扱いになる。
 lead: 確定した録音を設定のエンジンで文字に起こし、用語集で補正するまでの単一ユースケース。
 issue: 14
 primary_actor: 音声入力を使うユーザー

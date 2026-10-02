@@ -154,21 +154,21 @@ request:
     location: header
     description: 今回の起動のトークン
     format: '`Bearer {トークン}`'
-    status: planned
+    status: implemented
   - name: Host
     type: str
     required: true
     location: header
     description: 待ち受けのホスト
     constraints: '`127.0.0.1:{ポート}` か `localhost:{ポート}`'
-    status: planned
+    status: implemented
   - name: Origin
     type: str
     required: false
     default: なし（付いていれば 403）
     location: header
     description: ブラウザが付ける要求元。付いていてはいけない
-    status: planned
+    status: implemented
   - name: callback_url
     type: str
     required: true
@@ -177,7 +177,7 @@ request:
     constraints: ホストが loopback（127.0.0.0/8・::1・localhost）か、設定で許可したホスト
     format: uri
     example: http://127.0.0.1:9000/voice-paste/result
-    status: planned
+    status: implemented
 request_example: |-
   ```json
   {
@@ -224,3 +224,4 @@ constraints:
     notes: 同時に 1 つだけの排他で足りる
   - item: セッションの長さ
     constraint: 非機能要件のセッションの上限時間（開始からの経過時間。停止中も数える）。達したら 上限で打ち切る
+test_file: tests/integration/test_start_session.py

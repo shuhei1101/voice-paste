@@ -1,17 +1,17 @@
 title: "常駐アプリ / 外部連携"
-lead: 文字起こしワーカーの子プロセス・OpenAI・システム音量・キーボードとクリップボードを包むアダプタ。feature の関数型を満たし、外の例外をアプリの例外に変える。
+lead: 文字起こしワーカーの子プロセス・システム音量・キーボードとクリップボード・AI チャットの画面を開くブラウザを包むアダプタ。feature の関数型を満たし、外の例外をアプリの例外に変える。
 directory: |-
   ```
   src/voice_paste/integrations/
   ├── whisper/
   │   ├── client.py     # WhisperWorkerClient（子プロセスの起動・監視・立て直し・やり直し）
   │   └── worker.py     # 子プロセスの本体（文字起こしワーカーのサブシステム）
-  ├── openai/
-  │   └── client.py     # transcribe_with_openai
   ├── volume/
   │   └── adapter.py    # lower_volume・restore_volume（pycaw を == で固定して包む）
-  └── keyboard/
-      └── sender.py     # copy_to_clipboard・send_paste・send_enter
+  ├── keyboard/
+  │   └── sender.py     # copy_to_clipboard・send_paste・send_enter
+  └── browser/
+      └── opener.py     # open_app_window（Edge の --app で開き、無ければ既定のブラウザ）
   ```
 classes:
   - name: WhisperWorkerClient
@@ -30,18 +30,79 @@ classes:
         type: LocalWhisperSettings
         access: 内部 (_)
         description: モデル・デバイス・量子化・言語・ビーム幅・温度・VAD
+      - name: _ready_timeout_sec
+        type: float
+        access: 内部 (_)
+        description: 立て直しで ready を待つ上限（非機能要件の文字起こしワーカーの立て直しの時間。main.py が渡す）。起動時の 1 回目にはかけない
+      - name: _log_dir
+        type: Path
+        access: 内部 (_)
+        description: ワーカーが落ちたときのスタックを書くログの置き場所（AppPaths.log_dir）
+      - name: _stop_timeout_sec
+        type: float
+        access: 内部 (_)
+        description: 終わりを待つ時間（非機能要件の文字起こしワーカーの終わりを待つ時間。main.py が渡す）
+      - name: _stopping
+        type: bool
+        access: 内部 (_)
+        default: 'False'
+        description: stop で止めている最中か。立っている間は子プロセスが終わっても立て直さない。start で下ろす
     methods:
       - name: start
         title: 起動
         kind: メソッド
         scope: public
-        summary: 子プロセスを起動し、ready を待つ。待ちきれなければ EngineError
+        summary: 子プロセスを起動し、ready を待つ。起動時の 1 回目はモデルの取得や冷えた読み込みがあるため上限をかけず、立て直しだけ上限をかける
         returns:
           type: None
           description: なし
         exceptions:
           - name: EngineError
-            condition: モデルを読み込めず ready が届かない
+            condition: モデルを読み込めず ready が届かない（error が届いた・子プロセスが終わった・立て直しで上限を過ぎた）
+        process: |-
+          1. _stopping を下ろす
+          2. 子プロセスの環境を作る
+             - venv の `Lib/site-packages/nvidia/{cublas,cudnn,cuda_nvrtc}/bin` のうち存在するものを PATH の先頭へ足す（CUDA の DLL を子プロセスが見つけられるようにする）
+             - 標準入出力を UTF-8 にする
+          3. `python -u -m voice_paste.integrations.whisper.worker` をコンソールを出さずに起動し、標準エラーを別のスレッドで読んでロガーへ流す
+          4. config（モデル・デバイス・量子化・スレッド数・ワーカー数・ログの置き場所）を送り、ready・error・子プロセスの終了のどれかを待つ
+             - ready_timeout_sec が渡されていれば、その間だけ待つ（立て直しの経路）
+             - error が届いた・子プロセスが終わった・上限を過ぎた場合、子プロセスを止めて EngineError を送出する
+             - `[INFO]` 文字起こしワーカーが立ち上がった（pid・かかった秒）
+        unit_tests:
+          - name: test_start
+            case: 正常
+            summary: config を送り ready を受けて立ち上がる
+            condition: 子プロセスが ready を返す
+            mock: subprocess.Popen
+            expected: 最初に送った行が config で、Popen の環境の PATH の先頭に存在する nvidia の bin がある
+          - name: test_start_when_model_load_failed
+            case: 異常
+            summary: ready の代わりに error が届いたら EngineError
+            condition: 子プロセスが error を返して終わる
+            mock: subprocess.Popen
+            expected: EngineError が送出され、理由に error の中身が残る
+            exception: モデルを読み込めず ready が届かない
+          - name: test_start_when_ready_timeout
+            case: 異常
+            summary: 立て直しで ready を待ちきれなければ子プロセスを止めて EngineError
+            condition: ready_timeout_sec=0.1 を渡し（立て直しの経路）、子プロセスは何も返さない
+            mock: subprocess.Popen
+            expected: EngineError が送出され、子プロセスの kill か terminate が呼ばれる
+            exception: モデルを読み込めず ready が届かない（error が届いた・子プロセスが終わった・立て直しで上限を過ぎた）
+          - name: test_start_when_first_ready_is_slow
+            case: 正常
+            summary: 起動時の 1 回目は上限をかけずに ready を待つ
+            condition: ready_timeout_sec を渡さず、子プロセスは _ready_timeout_sec（0.1 にする）より遅れて 0.3 秒後に ready を返す
+            mock: subprocess.Popen
+            expected: 例外が出ずに立ち上がり、子プロセスが止められない
+        args:
+          - name: ready_timeout_sec
+            type: float | None
+            required: false
+            default: None
+            passing: keyword
+            description: ready を待つ上限。None（起動時の 1 回目）は上限をかけない。立て直しでは transcribe が _ready_timeout_sec を渡す
       - name: transcribe
         title: 文字起こし
         kind: メソッド
@@ -65,10 +126,12 @@ classes:
           description: 区間ごとの文字
         process: |-
           1. 録音と設定を 1 行の JSON で送り、区間の進みと結果を読む
-             - 子プロセスが応答の途中で終わった場合、子プロセスを起動し直して同じ録音をもう一度送る（やり直しは 1 回だけ）
+             - 子プロセスが応答の途中で終わった場合、_stopping が立っていれば立て直さずに EngineError を送出する（常駐の終了で止めた）
+             - それ以外で子プロセスが応答の途中で終わった場合、子プロセスを start(ready_timeout_sec=_ready_timeout_sec) で起動し直して同じ録音をもう一度送る（やり直しは 1 回だけ）
                - `[WARNING]` 文字起こしワーカーが落ちたので立て直す（終了コード）
-             - やり直しも落ちた場合、子プロセスをもう一度起動して次の録音に備え、EngineError を送出する
-             - ワーカーがエラーを返した場合、EngineError を送出する
+               - 立て直しで ready が上限までに届かなければ、start が子プロセスを止めて EngineError を送出する
+             - やり直しも落ちた場合、子プロセスを同じ上限でもう一度起動して次の録音に備え、EngineError を送出する
+             - ワーカーがエラーを返した場合、起動し直さずに EngineError を送出する
         exceptions:
           - name: EngineError
             condition: やり直したワーカーも落ちた
@@ -88,70 +151,63 @@ classes:
             mock: subprocess.Popen
             expected: EngineError が送出され、Popen が 3 回呼ばれる
             exception: やり直したワーカーも落ちた
+          - name: test_transcribe
+            case: 正常
+            summary: 進みを知らせ、区間ごとの文字を返す
+            condition: 子プロセスが progress（end=1.0, duration=2.0）・result（["今日は", "晴れ"]）を返す
+            mock: subprocess.Popen
+            expected: '["今日は", "晴れ"] が返り、on_progress が (1.0, 2.0) で 1 回呼ばれ、送った transcribe に設定の言語・ビーム幅・温度・VAD が入る'
+          - name: test_transcribe_when_worker_error
+            case: 異常
+            summary: ワーカーが error を返したら起動し直さずに EngineError
+            condition: 子プロセスが error を返し、動き続ける
+            mock: subprocess.Popen
+            expected: EngineError が送出され、Popen が 1 回だけ呼ばれる
+            exception: ワーカーがエラーを返した
+          - name: test_transcribe_when_restart_ready_timeout
+            case: 異常
+            summary: 立て直しで ready を待ちきれなければ _ready_timeout_sec の後に EngineError
+            condition: _ready_timeout_sec=0.1。1 つ目の子プロセスは応答の途中で終わり、2 つ目は ready を返さない
+            mock: subprocess.Popen
+            expected: EngineError が送出され、2 つ目の子プロセスが止められ、待ちが 1 秒未満で終わる
+            exception: やり直したワーカーも落ちた
+      - name: stop
+        title: 停止
+        kind: メソッド
+        scope: public
+        summary: 子プロセスの標準入力を閉じて終わりを待ち、待ちきれなければ止める。常駐の終了時に main.py が呼ぶ。文字起こしの最中に別のスレッドから呼ばれても、文字起こしの終わりを待たない
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 文字起こしが持つロックを取らずに _stopping を立てる（文字起こしの最中でも待たない。止めた子プロセスを transcribe が「落ちた」と受けて立て直さないようにする）
+          2. 子プロセスが無ければ何もしない
+          3. 標準入力を閉じ、終わりを _stop_timeout_sec 待つ
+             - 終わらなければ terminate して同じ時間待ち、それでも終わらなければ kill する
+               - `[WARNING]` 文字起こしワーカーが終わらないので止めた（terminate / kill）
+        unit_tests:
+          - name: test_stop_when_worker_hangs
+            case: 正常
+            summary: 標準入力を閉じても終わらなければ止める
+            condition: 子プロセスの wait が 1 回目にタイムアウトする
+            mock: subprocess.Popen
+            expected: 標準入力が閉じられ、terminate が呼ばれる
+          - name: test_stop_when_terminate_hangs
+            case: 正常
+            summary: terminate しても終わらなければ kill する
+            condition: _stop_timeout_sec=0.1、子プロセスの wait が 1 回目・2 回目ともタイムアウトする
+            mock: subprocess.Popen
+            expected: terminate の後に kill が呼ばれ、wait がどちらも 0.1 秒で呼ばれる
+          - name: test_stop_when_transcribing
+            case: 正常
+            summary: 文字起こしの最中に止めても _stop_timeout_sec で止まり、立て直さない
+            condition: _stop_timeout_sec=0.1。子プロセスは transcribe に何も返さず、標準入力を閉じても終わらない。別のスレッドで transcribe を呼んでから stop を呼ぶ
+            mock: subprocess.Popen
+            expected: stop が 1 秒未満で戻り、terminate が呼ばれ、transcribe が EngineError を送出し、Popen が 1 回だけ呼ばれる
     refs:
       - dev/設計書/外部ライブラリ/faster-whisper#
-    status: planned
+    status: implemented
 functions:
-  - name: transcribe_with_openai
-    title: OpenAI での文字起こし
-    kind: 関数
-    container: integrations/openai/client.py
-    usecase: 録音を文字に起こす
-    scope: public
-    inherits: EngineFn
-    summary: OpenAI のエンジンの設定（モデル・言語・温度）で録音を送り、区間ごとの文字を返す
-    args:
-      - name: audio_path
-        type: Path
-        required: true
-        passing: positional
-        description: 録音の WAV
-      - name: on_progress
-        type: Callable[[float, float], None] | None
-        required: false
-        default: None
-        passing: keyword
-        description: 区間ごとに知らせる
-      - name: settings
-        type: OpenAISettings
-        required: true
-        passing: injected
-        description: API キー（SecretStr）・モデル・言語・温度
-      - name: max_upload_bytes
-        type: int
-        required: true
-        passing: injected
-        description: 非機能要件の OpenAI API へ送る音声ファイルの大きさの決定値
-    returns:
-      type: list[str]
-      description: 区間ごとの文字（区間が無ければ全文を 1 つ）
-    process: |-
-      1. 録音のファイルの大きさが max_upload_bytes を超えるかを確かめる
-         - 超える場合、送らずに EngineError を送出する
-           - `[WARNING]` 送れる大きさを超えたため送らなかった（大きさ・上限）
-      2. OpenAI のエンジンの設定で録音を送り、区間ごとの文字を返す
-         - API に届かない・エラーを返した場合、EngineError を送出する
-    exceptions:
-      - name: EngineError
-        condition: 録音が max_upload_bytes を超える（送らない）・API に届かない・エラーを返した
-    unit_tests:
-      - name: test_transcribe_with_openai_when_too_large
-        case: 異常
-        summary: 上限を超える録音は送らない
-        condition: max_upload_bytes を 1,000 にし、1,001 バイトの WAV を渡す
-        mock: OpenAI のクライアント
-        expected: EngineError が送出され、クライアントが呼ばれず、WARNING のログが 1 行出る
-        exception: 録音が max_upload_bytes を超える
-    connectivity_tests:
-      - name: test_ext_transcribe_with_openai_when_default_model
-        api: OpenAI API（音声の文字起こし）
-        summary: 既定のモデルで短い録音を起こせる
-        checks: API キーでの認証・区間つきの応答の形
-        cost: 1 秒の録音 1 回分の従量課金
-    refs:
-      - dev/設計書/外部ライブラリ/openai#
-      - dev/設計書/外部API/OpenAI_API#
-    status: planned
   - name: lower_volume
     title: 音量を下げる
     kind: 関数
@@ -159,19 +215,82 @@ functions:
     usecase: 録音する
     scope: public
     inherits: LowerVolumeFn
-    summary: pycaw で今のマスター音量を読み、割合を掛けた音量へ下げる（COM の初期化と終了をこの中で行う）
+    thread_safe: true
+    side_effects: 既定の再生デバイスのマスター音量を変える
+    summary: pycaw で今のマスター音量を読み、割合を掛けた音量へ fade_sec をかけて下げ始める
+    args:
+      - name: ratio
+        type: float
+        required: true
+        passing: positional
+        description: 今の音量に対する割合（0.0〜1.0）
+      - name: fade_sec
+        type: float
+        required: true
+        passing: positional
+        description: 下げるのにかける秒数
     returns:
       type: float
-      description: 下げる前の音量
+      description: 下げる前の音量（0.0〜1.0）
+    process: |-
+      1. 音量のロックを取り、以降をその中で行う
+      2. 進行中のフェードを打ち切る（_cancel_fade）
+      3. 打ち切ったフェードがあればその目標の音量を、無ければ既定の再生デバイスのマスター音量（0.0〜1.0）を COM を初期化して読んだ値を、下げる前の音量にする（_open_endpoint_volume）
+         - 戻している途中に始まった録音でも、戻しの目標（元の音量）を下げる前の音量にする。下げている途中にもう一度下げることは、Recorder が録音中の開始を断るため起きない
+         - pycaw・COM が例外を出した場合、VolumeControlError を送出する（理由に元の例外を残す）
+      4. 下げる前の音量 × ratio を 0.0〜1.0 に収め、その音量へ変える（_fade_to）
+      5. 下げる前の音量を返す
     exceptions:
       - name: VolumeControlError
-        condition: pycaw・COM が例外を出した
+        condition: 音量を読むときに pycaw・COM が例外を出した
+      - name: VolumeControlError
+        condition: fade_sec が 0 以下で、音量を書くときに pycaw・COM が例外を出した（_fade_to から伝わる）
+    unit_tests:
+      - name: test_lower_volume
+        case: 正常
+        summary: 今の音量を返し、割合を掛けた音量へ書く
+        condition: 今の音量 0.8、ratio=0.5・fade_sec=0
+        mock: _open_endpoint_volume（音量を持つ偽のインターフェース）
+        expected: 0.8 が返り、偽のインターフェースの音量が 0.4 になっている
+      - name: test_lower_volume_when_restoring
+        case: 正常
+        summary: 戻している途中に下げると、戻しの目標の音量を下げる前の音量にする
+        condition: 今の音量 0.4 から restore_volume(0.8, 0.5) の直後に lower_volume(0.5, 0) を呼ぶ
+        mock: _open_endpoint_volume
+        expected: 0.8 が返り、偽のインターフェースの音量が 0.4 で終わり、その後に書き換わらない
+      - name: test_lower_volume_when_read_failed
+        case: 異常
+        summary: 読めなければ VolumeControlError
+        condition: GetMasterVolumeLevelScalar が COMError を送出する
+        mock: _open_endpoint_volume
+        expected: VolumeControlError が送出され、音量が書かれない
+        exception: 音量を読むときに pycaw・COM が例外を出した
+      - name: test_lower_volume_when_api_changed
+        case: 異常
+        summary: pycaw の API が変わって属性が無ければ VolumeControlError
+        condition: _open_endpoint_volume が AttributeError を送出する
+        mock: _open_endpoint_volume
+        expected: VolumeControlError が送出される
+        exception: 音量を読むときに pycaw・COM が例外を出した
+    connectivity_tests:
+      - name: test_ext_lower_volume_when_no_fade
+        api: pycaw AudioUtilities.GetSpeakers().EndpointVolume の GetMasterVolumeLevelScalar / SetMasterVolumeLevelScalar
+        summary: 実機の既定の再生デバイスで、下げる前の音量を返して割合を掛けた音量へ変える
+        checks: pycaw で音量を 0.6 にしてから lower_volume(0.5, 0) を呼び、0.6 が返り、pycaw で読んだ音量が 0.3（誤差 0.01 以内）
+        cost: 料金なし。実行中はシステム音量が変わり、終わりに実行前の音量へ戻す
+        notes: 既定の再生デバイスが無い環境では skip する
+      - name: test_ext_lower_volume_when_fade
+        api: pycaw AudioUtilities.GetSpeakers().EndpointVolume の GetMasterVolumeLevelScalar / SetMasterVolumeLevelScalar
+        summary: フェードをかけても割合を掛けた音量に届く（別のスレッドでの COM の初期化を含む）
+        checks: 音量 0.6 から lower_volume(0.5, 0.3) を呼び、2 秒以内に pycaw で読んだ音量が 0.3（誤差 0.01 以内）になる
+        cost: 料金なし。実行中はシステム音量が変わり、終わりに実行前の音量へ戻す
+        notes: 既定の再生デバイスが無い環境では skip する
     notes:
-      契約テスト: pycaw は版で API が変わるため `==` で固定し、Windows の実機でこの関数と restore_volume を動かす契約テストを置く（品質シナリオ 7。依存の版を上げたら回す）。
+      契約テスト: pycaw は版で API が変わるため `==` で固定し、この関数と restore_volume の疎通テストを Windows の実機で回す契約テストにする（品質シナリオ 7。依存の版を上げたら回す）。
     refs:
       - dev/設計書/外部ライブラリ/pycaw#
       - dev/設計書/外部ライブラリ/comtypes#
-    status: planned
+    status: implemented
   - name: restore_volume
     title: 音量を戻す
     kind: 関数
@@ -179,20 +298,45 @@ functions:
     usecase: 録音する
     scope: public
     inherits: RestoreVolumeFn
-    summary: 下げる前の音量へ戻す
+    thread_safe: true
+    side_effects: 既定の再生デバイスのマスター音量を変える
+    summary: 下げる前の音量へ fade_sec をかけて戻し始める
     args:
       - name: volume
         type: float
         required: true
         passing: positional
-        description: 戻す音量
+        description: 戻す音量（0.0〜1.0）
+      - name: fade_sec
+        type: float
+        required: true
+        passing: positional
+        description: 戻すのにかける秒数
     returns:
       type: None
       description: なし
+    process: |-
+      1. 音量のロックを取り、以降をその中で行う
+      2. 進行中のフェードを打ち切る（_cancel_fade。下げている途中のフェードを含む）
+      3. volume を 0.0〜1.0 に収め、その音量へ変える（_fade_to）
     exceptions:
       - name: VolumeControlError
-        condition: pycaw・COM が例外を出した
-    status: planned
+        condition: fade_sec が 0 以下で、音量を書くときに pycaw・COM が例外を出した（_fade_to から伝わる）
+    unit_tests:
+      - name: test_restore_volume_when_lowering
+        case: 正常
+        summary: 下げている途中でも戻す音量で終わる
+        condition: 今の音量 0.8 から lower_volume(0.5, 0.5) の直後に restore_volume(0.8, 0.1) を呼び、1 秒待つ
+        mock: _open_endpoint_volume
+        expected: 偽のインターフェースの音量が 0.8 で終わり、その後に書き換わらない
+    connectivity_tests:
+      - name: test_ext_restore_volume_when_no_fade
+        api: pycaw AudioUtilities.GetSpeakers().EndpointVolume の SetMasterVolumeLevelScalar
+        summary: 実機の既定の再生デバイスで、下げた音量を戻す
+        checks: 音量 0.6 から lower_volume(0.5, 0) の後に restore_volume(0.6, 0) を呼び、pycaw で読んだ音量が 0.6（誤差 0.01 以内）
+        cost: 料金なし。実行中はシステム音量が変わり、終わりに実行前の音量へ戻す
+        notes: 既定の再生デバイスが無い環境では skip する
+    status: implemented
   - name: copy_to_clipboard
     title: クリップボードへの書き込み
     kind: 関数
@@ -209,12 +353,37 @@ functions:
     returns:
       type: None
       description: なし
+    process: |-
+      1. pyperclip.copy で text を書く
+         - pyperclip が例外を出した場合、DeliveryError を送出する（理由に元の例外を残す）
+         - `[INFO]` クリップボードへ書いた（文字数）
     exceptions:
       - name: DeliveryError
         condition: ほかのアプリがクリップボードを開いたままで書けない
     refs:
       - dev/設計書/外部ライブラリ/pyperclip#
-    status: planned
+    status: implemented
+    unit_tests:
+      - name: test_copy_to_clipboard
+        case: 正常
+        summary: クリップボードへ書く
+        condition: text が「テスト」
+        mock: pyperclip.copy
+        expected: pyperclip.copy に「テスト」が 1 回渡る
+      - name: test_copy_to_clipboard_when_failed
+        case: 異常
+        summary: 書けなければ DeliveryError
+        condition: pyperclip.copy が pyperclip.PyperclipException を送出する
+        mock: pyperclip.copy
+        expected: DeliveryError が送出される
+        exception: ほかのアプリがクリップボードを開いたままで書けない
+    connectivity_tests:
+      - name: test_ext_copy_to_clipboard
+        api: pyperclip.copy / pyperclip.paste
+        summary: 実機のクリップボードへ書いて読み戻せる
+        checks: copy_to_clipboard("voice-paste のテスト") の後に pyperclip.paste で読んだ文字が一致する
+        cost: 料金なし。実行中はクリップボードの中身が変わり、終わりに実行前の中身へ戻す
+        notes: クリップボードを持たない環境では skip する
   - name: send_paste
     title: 貼り付けのキーの送信
     kind: 関数
@@ -222,22 +391,255 @@ functions:
     usecase: 起こした文字を届ける
     scope: public
     summary: pynput で設定の貼り付けのキー（既定 Ctrl+V）を今のアクティブなウィンドウへ送る
+    args:
+      - name: paste_key
+        type: str
+        required: true
+        passing: positional
+        description: 貼り付けのキー（pynput の GlobalHotKeys の書式。設定の keyboard.paste_key）
     returns:
       type: None
       description: なし
+    process: |-
+      1. paste_key を `+` で区切り、各キーの前後の空白を除いて小文字にする（`<Ctrl> + v` も `<ctrl>+v` と同じに扱う。voice_paste_legacy の _parse_paste_key と同じ）
+      2. `<ctrl>`・`<shift>`・`<alt>`・`<cmd>`・`<win>` を修飾キー、それ以外を主キーにする
+         - 主キーが 1 つでない場合、DeliveryError を送出する（キーを送らない）
+      3. FOCUS_SETTLE_SEC だけ待つ（貼り付け先のフォーカスが落ち着くのを待つ）
+      4. 修飾キーを順に押し、主キーを押して離し、修飾キーを逆順に離す
+         - `[INFO]` 貼り付けのキーを送った（paste_key）
     refs:
       - dev/設計書/外部ライブラリ/pynput#
-    status: planned
+    status: implemented
+    unit_tests:
+      - name: test_send_paste
+        case: 正常
+        summary: 待ってから修飾キーと主キーを順に押して離す
+        condition: paste_key が `<ctrl>+v`
+        mock: pynput.keyboard.Controller・time.sleep
+        expected: sleep(0.1)・press(ctrl)・press('v')・release('v')・release(ctrl) の順に呼ばれる
+      - name: test_send_paste_when_multiple_modifiers
+        case: 正常
+        summary: 修飾キーが 2 つでも逆順に離す
+        condition: paste_key が `<ctrl>+<shift>+v`
+        mock: pynput.keyboard.Controller・time.sleep
+        expected: sleep(0.1)・press(ctrl)・press(shift)・press('v')・release('v')・release(shift)・release(ctrl) の順に呼ばれる
+      - name: test_send_paste_when_spaced_and_uppercase
+        case: 正常
+        summary: キーの前後の空白と大文字を揃えて同じキーとして送る
+        condition: paste_key が `<Ctrl> + V`
+        mock: pynput.keyboard.Controller・time.sleep
+        expected: sleep(0.1)・press(ctrl)・press('v')・release('v')・release(ctrl) の順に呼ばれる
+      - name: test_send_paste_when_no_main_key
+        case: 異常
+        summary: 主キーが 1 つ無ければキーを送らずに DeliveryError
+        condition: paste_key が `<ctrl>`
+        mock: pynput.keyboard.Controller・time.sleep
+        expected: DeliveryError が送出され、press が呼ばれない
+        exception: paste_key に主キーが 1 つ無い（修飾キーだけ・主キーが 2 つ以上）
+    exceptions:
+      - name: DeliveryError
+        condition: paste_key に主キーが 1 つ無い（修飾キーだけ・主キーが 2 つ以上）
   - name: send_enter
     title: Enter の送信
     kind: 関数
     container: integrations/keyboard/sender.py
     usecase: 起こした文字を届ける
     scope: public
-    summary: pynput で Enter を送る
+    summary: pynput で Enter を今のアクティブなウィンドウへ送る（待ちは呼ぶ側が置く）
     returns:
       type: None
       description: なし
+    process: |-
+      1. Enter を押して離す
+         - `[INFO]` Enter を送った
     refs:
       - dev/設計書/外部ライブラリ/pynput#
-    status: planned
+    status: implemented
+    unit_tests:
+      - name: test_send_enter
+        case: 正常
+        summary: Enter を押して離す
+        condition: なし
+        mock: pynput.keyboard.Controller
+        expected: press(Key.enter)・release(Key.enter) の順に 1 回ずつ呼ばれる
+  - name: _fade_to
+    title: 音量を変える
+    kind: 関数
+    container: integrations/volume/adapter.py
+    usecase: 録音する
+    scope: internal
+    summary: 目標の音量へ fade_sec をかけて変える。fade_sec が 0 以下なら呼び出しの中ですぐ変える。音量のロックを持ち、進行中のフェードを打ち切った後に呼ぶ
+    args:
+      - name: target
+        type: float
+        required: true
+        passing: positional
+        description: 目標の音量（0.0〜1.0）
+      - name: fade_sec
+        type: float
+        required: true
+        passing: positional
+        description: かける秒数
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. fade_sec が 0 以下なら、COM を初期化して target を書き、解放する
+         - pycaw・COM が例外を出した場合、VolumeControlError を送出する
+      2. fade_sec が正なら、target を進行中のフェードの目標として持ち、新しい打ち切りの合図を作ってデーモンのスレッドを始める
+         - スレッドの中で COM を初期化し、今の音量から target までを FADE_STEPS 段に分け、fade_sec / FADE_STEPS 秒ごとに 1 段ずつ書く（今の音量と target の差が 0.005 未満なら 1 回で書く）
+         - 打ち切りを知らされたら、次の段を書かずに終わる
+         - pycaw・COM が例外を出した場合、そこで終わる
+           - `[ERROR]` 音量を変えられなかった（理由）
+    exceptions:
+      - name: VolumeControlError
+        condition: fade_sec が 0 以下で、音量を書くときに pycaw・COM が例外を出した
+    unit_tests:
+      - name: test_fade_to
+        case: 正常
+        summary: FADE_STEPS 段で目標の音量に届く
+        condition: 今の音量 0.8、target=0.4・fade_sec=0.1 で呼び、1 秒待つ
+        mock: _open_endpoint_volume
+        expected: 書かれた音量が FADE_STEPS 個で単調に減り、最後が 0.4
+      - name: test_fade_to_when_write_failed
+        case: 異常
+        summary: すぐ変えるときに書けなければ VolumeControlError
+        condition: fade_sec=0、SetMasterVolumeLevelScalar が COMError を送出する
+        mock: _open_endpoint_volume
+        expected: VolumeControlError が送出される
+        exception: fade_sec が 0 以下で、音量を書くときに pycaw・COM が例外を出した
+    status: implemented
+  - name: _open_endpoint_volume
+    title: 音量のインターフェースを引く
+    kind: 関数
+    container: integrations/volume/adapter.py
+    usecase: 録音する
+    scope: internal
+    summary: pycaw の AudioUtilities.GetSpeakers() の EndpointVolume を返す。pycaw の API に触れるのはこの関数と音量の読み書きの 2 つのメソッドだけにする（版を上げたときに直す場所）
+    returns:
+      type: IAudioEndpointVolume
+      description: 既定の再生デバイスの音量のインターフェース（呼ぶスレッドで COM を初期化しておく）
+    refs:
+      - dev/設計書/外部ライブラリ/pycaw#
+    status: implemented
+  - name: _cancel_fade
+    title: 進行中のフェードを打ち切る
+    kind: 関数
+    container: integrations/volume/adapter.py
+    usecase: 録音する
+    scope: internal
+    summary: 進行中のフェードに打ち切りを知らせて終わりを待ち、そのフェードの目標の音量を返す。音量のロックを持って呼ぶ（フェードのスレッド・打ち切りの合図・目標は _ 付きのモジュール変数で持ち、この関数と _fade_to だけが触る）
+    returns:
+      type: float | None
+      description: 打ち切ったフェードの目標の音量。進行中のフェードが無ければ None
+    process: |-
+      1. フェードのスレッドが動いていなければ、目標を None にして None を返す
+      2. 打ち切りを知らせ、スレッドの終わりを FADE_JOIN_TIMEOUT_SEC まで待つ
+      3. 目標を返し、None に戻す
+    unit_tests:
+      - name: test_cancel_fade_when_idle
+        case: 正常
+        summary: 進行中のフェードが無ければ None
+        condition: フェードを始めていない、または始めたフェードが終わった後に呼ぶ
+        mock: _open_endpoint_volume
+        expected: None が返る
+    status: implemented
+  - name: open_app_window
+    title: アプリのウィンドウで開く
+    kind: 関数
+    container: integrations/browser/opener.py
+    usecase: 起こした文字を届ける
+    scope: public
+    summary: URL を Microsoft Edge の `--app` でアプリのウィンドウとして開く。Edge が見つからなければ既定のブラウザで開く
+    args:
+      - name: url
+        type: str
+        required: true
+        passing: positional
+        description: 開く URL（設定の AI チャットの送り先の URL）
+    returns:
+      type: None
+      description: なし（開いた画面の読み込みを待たない）
+    process: |-
+      1. Edge の実行ファイルを探す（PATH の `msedge`、無ければ EDGE_PATHS の順に存在するもの）
+      2. 見つかった場合、`[{Edge}, "--app={url}"]` を subprocess.Popen で起動する
+         - `[INFO]` AI チャットを Edge のアプリのウィンドウで開いた（url）
+      3. 見つからない場合、os.startfile で既定のブラウザで開く
+         - `[INFO]` AI チャットを既定のブラウザで開いた（url）
+         - 2・3 で OSError が出た場合、DeliveryError を送出する（理由に元の例外を残す）
+    exceptions:
+      - name: DeliveryError
+        condition: Edge も既定のブラウザも起動できない
+    refs:
+      - dev/設計書/外部ライブラリ/Microsoft_Edge#
+    status: implemented
+    unit_tests:
+      - name: test_open_app_window
+        case: 正常
+        summary: Edge があれば --app で開く
+        condition: shutil.which が msedge を返す
+        mock: shutil.which・subprocess.Popen・os.startfile
+        expected: Popen に ["msedge", "--app=https://chatgpt.com"] が渡り、os.startfile が呼ばれない
+      - name: test_open_app_window_when_installed_path
+        case: 正常
+        summary: PATH に無くても既定の置き場所の Edge で開く
+        condition: shutil.which が None で、EDGE_PATHS の 2 つ目だけが存在する
+        mock: shutil.which・Path.exists・subprocess.Popen
+        expected: Popen の先頭に EDGE_PATHS の 2 つ目が渡る
+      - name: test_open_app_window_when_edge_missing
+        case: 正常
+        summary: Edge が無ければ既定のブラウザで開く
+        condition: shutil.which が None で、EDGE_PATHS がどれも存在しない
+        mock: shutil.which・Path.exists・subprocess.Popen・os.startfile
+        expected: os.startfile に URL が渡り、Popen が呼ばれない
+      - name: test_open_app_window_when_failed
+        case: 異常
+        summary: 起動できなければ DeliveryError
+        condition: subprocess.Popen が OSError を送出する
+        mock: shutil.which・subprocess.Popen
+        expected: DeliveryError が送出される
+        exception: Edge も既定のブラウザも起動できない
+constants:
+  - name: FADE_STEPS
+    title: フェードの段数
+    container: integrations/volume/adapter.py
+    usecase: 録音する
+    summary: 音量を変えるときに分ける段の数。voice_paste_legacy の fade_volume と同じ値
+    value: '30'
+    status: implemented
+  - name: FADE_JOIN_TIMEOUT_SEC
+    title: 打ち切ったフェードの終わりを待つ秒数
+    container: integrations/volume/adapter.py
+    usecase: 録音する
+    summary: 進行中のフェードを打ち切るときに、そのスレッドの終わりを待つ上限。voice_paste_legacy の fade_volume と同じ値
+    value: '1.0'
+    status: implemented
+  - name: SINGLE_WRITE_MAX_DELTA
+    title: 1 回で書く音量の差
+    container: integrations/volume/adapter.py
+    usecase: 録音する
+    summary: 今の音量と目標の差がこの値未満なら、段に分けず 1 回で書く
+    value: '0.005'
+    status: implemented
+  - name: FOCUS_SETTLE_SEC
+    title: フォーカスが落ち着くまでの待ち
+    container: integrations/keyboard/sender.py
+    usecase: 起こした文字を届ける
+    summary: 貼り付けのキーを送る前に待つ秒数。voice_paste_legacy の send_paste と同じ値
+    value: '0.1'
+    status: implemented
+  - name: EDGE_PATHS
+    title: Edge の既定の置き場所
+    container: integrations/browser/opener.py
+    usecase: 起こした文字を届ける
+    summary: PATH に msedge が無いときに探す Edge の実行ファイル。voice_paste_legacy の _find_edge と同じ並び
+    value: (r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe", r"C:\Program Files\Microsoft\Edge\Application\msedge.exe")
+    status: implemented
+test_files:
+  - tests/unit/voice_paste/integrations/whisper/test_client.py
+  - tests/unit/voice_paste/integrations/volume/test_adapter.py
+  - tests/unit/voice_paste/integrations/keyboard/test_sender.py
+  - tests/unit/voice_paste/integrations/browser/test_opener.py
+external_test_files:
+  - tests/external/voice_paste/integrations/volume/test_adapter.py
+  - tests/external/voice_paste/integrations/keyboard/test_sender.py

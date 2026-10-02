@@ -4,9 +4,9 @@ directory: |-
   ```
   src/voice_paste/features/recording/
   ├── __init__.py   # Recorder の公開
-  ├── types.py      # 録音・音量の操作の関数型
-  ├── service.py    # Recorder（開始・一時停止・再開・停止・破棄）
-  └── client.py     # sounddevice の入力を開く・閉じる
+  ├── types.py      # 音量の操作・マイクの入力を開く関数型
+  ├── service.py    # Recorder（開始・一時停止・再開・停止・破棄・音の大きさ）
+  └── client.py     # sounddevice の入力を開く（open_input）
   ```
 data_models: []
 function_types:
@@ -14,32 +14,53 @@ function_types:
     title: 音量を下げる
     container: features/recording/types.py
     usecase: 録音する
-    summary: 今の音量に対する割合へ下げ、下げる前の音量を返す
+    summary: 今の音量に対する割合へ fade_sec をかけて下げ始め、下げる前の音量を返す
     args:
       - name: ratio
         type: float
-        description: 今の音量に対する割合（0.0・1.0）
+        description: 今の音量に対する割合（0.0〜1.0）
+      - name: fade_sec
+        type: float
+        description: 下げるのにかける秒数（0 なら呼び出しの中ですぐ変える）
     returns:
       type: float
-      description: 下げる前の音量
+      description: 下げる前の音量（0.0〜1.0）
     implementations:
       - target: 外部連携の lower_volume（pycaw のアダプタ）
-    status: planned
+    status: implemented
   - name: RestoreVolumeFn
     title: 音量を戻す
     container: features/recording/types.py
     usecase: 録音する
-    summary: 下げる前の音量へ戻す
+    summary: 下げる前の音量へ fade_sec をかけて戻し始める
     args:
       - name: volume
         type: float
-        description: 戻す音量
+        description: 戻す音量（0.0〜1.0）
+      - name: fade_sec
+        type: float
+        description: 戻すのにかける秒数（0 なら呼び出しの中ですぐ変える）
     returns:
       type: None
       description: なし
     implementations:
       - target: 外部連携の restore_volume（pycaw のアダプタ）
-    status: planned
+    status: implemented
+  - name: OpenInputFn
+    title: マイクの入力を開く
+    container: features/recording/types.py
+    usecase: 録音する
+    summary: 既定のマイクの入力を開いて始め、届いた音を on_frames へ渡す。閉じる操作を持つストリームを返す
+    args:
+      - name: on_frames
+        type: Callable[[numpy.ndarray], None]
+        description: 入力のスレッドから、届いた音（モノラル・int16）を受け取る
+    returns:
+      type: sounddevice.InputStream
+      description: 開いて始めた入力（stop・close で閉じる）
+    implementations:
+      - target: 録音の open_input
+    status: implemented
 classes:
   - name: Recorder
     title: 録音機
@@ -50,7 +71,9 @@ classes:
     summary: 開いているマイクの入力と貯めた音、下げる前の音量を持つ
     description: |-
       マイクの入力（コールバックのストリーム）を長く持つためクラスにする。
-      どの終わり方（停止・破棄・開始の失敗）でも音量を戻す。
+      入力のスレッドが音を貯める処理と、呼び出し元のスレッドの操作を 1 つのロックで守る。
+      どの終わり方（停止・破棄・開始の失敗）でも、下げた音量を 1 回だけ戻す。
+      設定は録音を始めるたびに読み直す（`recording.*` は再起動なしで効く）。
     properties:
       - name: _lower_volume
         type: LowerVolumeFn
@@ -61,13 +84,47 @@ classes:
         access: 内部 (_)
         description: 音量を戻す
       - name: _open_input
-        type: Callable[[Callable[[numpy.ndarray], None]], InputStream]
+        type: OpenInputFn
         access: 内部 (_)
-        description: マイクの入力を開く（client.py）
-      - name: _volume_ratio
+        description: マイクの入力を開く（client.py の open_input）
+      - name: _get_settings
+        type: Callable[[], RecordingSettings]
+        access: 内部 (_)
+        description: 今の録音の設定を返す（main.py が設定の持ち主から引く関数を渡す）
+      - name: _stream
+        type: sounddevice.InputStream | None
+        access: 内部 (_)
+        default: None
+        description: 開いている入力。録音していなければ None
+      - name: _frames
+        type: list[numpy.ndarray]
+        access: 内部 (_)
+        default: '[]'
+        description: 貯めた音
+      - name: _paused
+        type: bool
+        access: 内部 (_)
+        default: 'False'
+        description: 一時停止中か
+      - name: _latest_frame
+        type: numpy.ndarray | None
+        access: 内部 (_)
+        default: None
+        description: 直近に届いた音（音の大きさの元）。一時停止で None に戻す
+      - name: _volume_before
         type: float | None
         access: 内部 (_)
-        description: 録音中の音量の割合。None なら下げない
+        default: None
+        description: 下げる前の音量。下げていなければ None
+      - name: _fade_sec
+        type: float
+        access: 内部 (_)
+        default: '0.0'
+        description: 始めたときに読んだ、音量を変えるときの秒数（戻すときも同じ値を使う）
+      - name: _lock
+        type: threading.Lock
+        access: 内部 (_)
+        description: 入力のスレッドと呼び出し元のスレッドの間で、貯めた音と状態を守る
     methods:
       - name: start
         title: 録音の開始
@@ -79,35 +136,53 @@ classes:
           type: None
           description: なし
         process: |-
-          1. 音量を下げる設定なら、音量を下げて戻す値を持つ（音量を下げる）
-             - VolumeControlError の場合、音量を下げずに続ける
+          1. 録音中（_stream がある）なら RuntimeError を送出する（呼び出し順の誤り。セッションが排他する）
+          2. 設定を読み、貯めた音・一時停止・直近の音を空に戻す
+          3. 設定の lower_volume が真なら、volume_percent / 100 の割合と fade_sec で音量を下げ、返った音量を _volume_before に持つ（音量を下げる）
+             - VolumeControlError の場合、音量を下げずに続ける（_volume_before は None のまま）
                - `[WARNING]` 音量を下げられなかった（理由）
-          2. マイクの入力を開く
-             - 開けない場合、音量を戻し（音量を戻す）、MicrophoneUnavailableError を送出する
-               - `[ERROR]` マイクを開けなかった（デバイス・理由）
+          4. マイクの入力を開く（入力のスレッドから音を受け取る関数を渡す）
+             - 例外の場合、音量を戻し（音量を戻す）、MicrophoneUnavailableError を送出する（理由に元の例外を残す）
+               - `[ERROR]` マイクを開けなかった（理由）
+          5. `[INFO]` 録音を始めた（音量を下げたか）
         exceptions:
           - name: MicrophoneUnavailableError
             condition: マイクの入力を開けない
+          - name: RuntimeError
+            condition: 録音中（呼び出し順の誤り）
         unit_tests:
           - name: test_start
             case: 正常
             summary: 音量を下げてマイクを開く
-            condition: 音量の割合 0.5
-            mock: lower_volume・restore_volume・open_input
-            expected: lower_volume に 0.5 が渡り、open_input が呼ばれる
+            condition: lower_volume=True・volume_percent=50・fade_sec=0.5
+            mock: lower_volume・restore_volume・open_input・get_settings
+            expected: lower_volume に (0.5, 0.5) が渡り、その後に open_input が呼ばれる
+          - name: test_start_when_lower_volume_disabled
+            case: 正常
+            summary: 音量を下げない設定なら音量に触れない
+            condition: lower_volume=False
+            mock: lower_volume・restore_volume・open_input・get_settings
+            expected: open_input が呼ばれ、lower_volume が呼ばれない
           - name: test_start_when_microphone_unavailable
             case: 異常
             summary: マイクを開けなければ音量を戻す
-            condition: open_input が例外を送出する
-            mock: lower_volume・restore_volume・open_input
-            expected: MicrophoneUnavailableError が送出され、restore_volume に下げる前の音量が渡る
+            condition: lower_volume が 0.8 を返し、open_input が例外を送出する
+            mock: lower_volume・restore_volume・open_input・get_settings
+            expected: MicrophoneUnavailableError が送出され、restore_volume に (0.8, fade_sec) が 1 回渡り、続く start が通る
             exception: マイクの入力を開けない
           - name: test_start_when_volume_control_failed
             case: 正常
             summary: 音量を下げられなくても録音は始める
             condition: lower_volume が VolumeControlError を送出する
-            mock: lower_volume・restore_volume・open_input
-            expected: open_input が呼ばれ、例外が出ない
+            mock: lower_volume・restore_volume・open_input・get_settings
+            expected: open_input が呼ばれ、例外が出ず、続く stop で restore_volume が呼ばれない
+          - name: test_start_when_already_recording
+            case: 異常
+            summary: 録音中の開始は断る
+            condition: start の後にもう一度 start を呼ぶ
+            mock: lower_volume・restore_volume・open_input・get_settings
+            expected: RuntimeError が送出され、open_input・lower_volume が 1 回だけ呼ばれる
+            exception: 録音中（呼び出し順の誤り）
       - name: pause
         title: 一時停止
         kind: メソッド
@@ -116,6 +191,14 @@ classes:
         returns:
           type: None
           description: なし
+        process: 1. 一時停止中にし、直近の音を None に戻す（録音していなければ何もしない）
+        unit_tests:
+          - name: test_pause_when_not_recording
+            case: 正常
+            summary: 録音していなければ何もしない
+            condition: start の前に pause を呼ぶ
+            mock: lower_volume・restore_volume・open_input・get_settings
+            expected: 例外が出ず、続く start が通る
       - name: resume
         title: 再開
         kind: メソッド
@@ -124,6 +207,7 @@ classes:
         returns:
           type: None
           description: なし
+        process: 1. 一時停止を解く（録音していなければ何もしない）
       - name: stop
         title: 録音の停止
         kind: メソッド
@@ -132,20 +216,47 @@ classes:
         summary: 入力を閉じ、音量を戻し、貯めた音を返す
         returns:
           type: Recording
-          description: 貯めた音
+          description: 貯めた音（16 kHz・モノラル・int16。貯めた音が無ければ長さ 0 の音）
+        process: |-
+          1. 録音していなければ RuntimeError を送出する
+          2. 入力を閉じて音量を戻す（_close）
+          3. 貯めた音をつないで Recording にする。長さはサンプル数 / サンプルレート
+             - `[INFO]` 録音を止めた（長さ）
+        exceptions:
+          - name: RuntimeError
+            condition: 録音していない（呼び出し順の誤り）
         unit_tests:
           - name: test_stop
             case: 正常
             summary: 貯めた音を返して音量を戻す
-            condition: 入力に 1 秒分の音を流した後に止める
-            mock: lower_volume・restore_volume・open_input
-            expected: duration_sec が 1.0 の Recording が返り、restore_volume が呼ばれる
+            condition: lower_volume が 0.8 を返す。入力に 1 秒分の音を流した後に止める
+            mock: lower_volume・restore_volume・open_input・get_settings
+            expected: duration_sec が 1.0・sample_rate が 16000 の Recording が返り、入力の stop・close が呼ばれ、restore_volume に (0.8, fade_sec) が渡る
           - name: test_stop_when_paused_between
             case: 正常
             summary: 一時停止の間の音は貯めない
             condition: 1 秒流す → pause → 1 秒流す → resume → 1 秒流す
-            mock: lower_volume・restore_volume・open_input
+            mock: lower_volume・restore_volume・open_input・get_settings
             expected: duration_sec が 2.0
+          - name: test_stop_when_no_frames
+            case: 正常
+            summary: 音が届く前に止めたら長さ 0 の音を返す
+            condition: start の直後に stop を呼ぶ
+            mock: lower_volume・restore_volume・open_input・get_settings
+            expected: duration_sec が 0.0 の Recording が返る
+          - name: test_stop_when_restore_failed
+            case: 正常
+            summary: 音量を戻せなくても録音は返す
+            condition: restore_volume が VolumeControlError を送出する
+            mock: lower_volume・restore_volume・open_input・get_settings
+            expected: Recording が返り、例外が出ない
+          - name: test_stop_when_not_recording
+            case: 異常
+            summary: 録音していなければ断る
+            condition: start の前に stop を呼ぶ
+            mock: lower_volume・restore_volume・open_input・get_settings
+            expected: RuntimeError が送出される
+            exception: 録音していない（呼び出し順の誤り）
       - name: discard
         title: 録音の破棄
         kind: メソッド
@@ -154,7 +265,103 @@ classes:
         returns:
           type: None
           description: なし
+        process: |-
+          1. 録音していなければ何もしない
+          2. 入力を閉じて音量を戻し（_close）、貯めた音を空にする
+             - `[INFO]` 録音を捨てた
+        unit_tests:
+          - name: test_discard
+            case: 正常
+            summary: 音を捨てて音量を戻す
+            condition: lower_volume が 0.8 を返す。1 秒流した後に discard、続けて start・stop
+            mock: lower_volume・restore_volume・open_input・get_settings
+            expected: restore_volume に (0.8, fade_sec) が渡り、後の stop の duration_sec に捨てた 1 秒が入らない
+          - name: test_discard_when_not_recording
+            case: 正常
+            summary: 録音していなければ何もしない
+            condition: start の前に discard を呼ぶ
+            mock: lower_volume・restore_volume・open_input・get_settings
+            expected: 例外が出ず、restore_volume が呼ばれない
+      - name: level
+        title: 音の大きさ
+        kind: メソッド
+        scope: public
+        summary: 直近に届いた音の RMS を int16 の最大（32767）で割り、0.0〜1.0 で返す。録音していない・一時停止中・音が届いていなければ 0.0
+        returns:
+          type: float
+          description: 音の大きさ（0.0〜1.0）
+        unit_tests:
+          - name: test_level
+            case: 正常
+            summary: 直近の音の大きさを返す
+            condition: 振幅 16384 の矩形の音を流す
+            mock: lower_volume・restore_volume・open_input・get_settings
+            expected: 0.5 に近い値（誤差 0.01 以内）が返る
+          - name: test_level_when_paused
+            case: 正常
+            summary: 一時停止中は 0
+            condition: 音を流した後に pause
+            mock: lower_volume・restore_volume・open_input・get_settings
+            expected: 0.0 が返る
+      - name: _close
+        title: 入力を閉じて音量を戻す
+        kind: メソッド
+        scope: internal
+        summary: 入力を止めて閉じ、下げた音量があれば戻して _volume_before を None にする
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 入力を stop・close して _stream を None にする
+             - 例外の場合、閉じたものとして続ける
+               - `[WARNING]` マイクの入力を閉じられなかった（理由）
+          2. _volume_before があれば、その音量と _fade_sec で音量を戻し、_volume_before を None にする（戻すのは 1 回だけ）
+             - VolumeControlError の場合、続ける
+               - `[WARNING]` 音量を戻せなかった（理由）
+    refs:
+      - dev/設計書/外部ライブラリ/numpy#
+    status: implemented
+functions:
+  - name: open_input
+    title: マイクの入力を開く
+    kind: 関数
+    container: features/recording/client.py
+    usecase: 録音する
+    scope: public
+    inherits: OpenInputFn
+    summary: 既定の入力デバイスを 16 kHz・モノラル・int16 のコールバックのストリームで開いて始める
+    args:
+      - name: on_frames
+        type: Callable[[numpy.ndarray], None]
+        required: true
+        passing: positional
+        description: 届いた音（形 (フレーム数, 1)）を受け取る
+    returns:
+      type: sounddevice.InputStream
+      description: 始めた入力
+    process: |-
+      1. sounddevice の InputStream を samplerate=SAMPLE_RATE・channels=1・dtype=int16 で作り、コールバックで届いた音の写しを on_frames へ渡す
+         - コールバックに状態（オーバーフロー等）が付いていれば `[WARNING]` 入力の状態（状態）
+      2. start して返す
+         - 作る・始めるときの例外（PortAudioError 等）はそのまま上げる（Recorder が MicrophoneUnavailableError に変える）
+    unit_tests:
+      - name: test_open_input
+        case: 正常
+        summary: 決めた形式で開いて始め、届いた音を渡す
+        condition: InputStream の Mock のコールバックへ 160 フレームの音を渡す
+        mock: sounddevice.InputStream
+        expected: samplerate=16000・channels=1・dtype='int16' で作られて start が呼ばれ、on_frames に同じ値の写しが渡る
     refs:
       - dev/設計書/外部ライブラリ/sounddevice#
-      - dev/設計書/外部ライブラリ/numpy#
-    status: planned
+    status: implemented
+constants:
+  - name: SAMPLE_RATE
+    title: 録音のサンプルレート
+    container: features/recording/client.py
+    usecase: 録音する
+    summary: マイクの入力のサンプルレート（Hz）。voice_paste_legacy と同じ値で、文字起こしと履歴が受ける形
+    value: '16000'
+    status: implemented
+test_files:
+  - tests/unit/voice_paste/features/recording/test_service.py
+  - tests/unit/voice_paste/features/recording/test_client.py

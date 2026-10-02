@@ -27,7 +27,7 @@ enums:
       - value: api
         title: API
         description: POST /sessions
-    status: planned
+    status: implemented
   - name: OutputSettings
     title: 出力先の設定
     container: shared/settings.py
@@ -67,7 +67,7 @@ data_models:
       - name: duration_sec
         type: float
         description: 録音の長さ（一時停止の間を除く）
-    status: planned
+    status: implemented
   - name: TranscriptionOutcome
     title: 文字起こしの結果
     container: shared/types.py
@@ -87,7 +87,7 @@ data_models:
       - name: error
         type: str | None
         description: 失敗の理由
-    status: planned
+    status: implemented
   - name: AppPaths
     title: 置き場所のパス
     container: shared/constants.py
@@ -175,15 +175,12 @@ data_models:
     inherits: pydantic.BaseModel
     properties:
       - name: engine
-        type: Literal["local_whisper", "openai"]
+        type: Literal["local_whisper"]
         default: local_whisper
-        description: 使う文字起こしのエンジン（文字起こしの EngineName）
+        description: 使う文字起こしのエンジン（文字起こしの EngineName）。エンジンはローカルの Whisper だけで、エンジンを足すときに値を足す
       - name: local_whisper
         type: LocalWhisperSettings
         description: ローカルの Whisper の設定
-      - name: openai
-        type: OpenAISettings
-        description: OpenAI の設定
     status: implemented
   - name: LocalWhisperSettings
     title: ローカルの Whisper の設定
@@ -253,31 +250,6 @@ data_models:
         type: float
         default: '0.6'
         description: 区間を無音とみなす確信度の閾値
-    status: implemented
-  - name: OpenAISettings
-    title: OpenAI の設定
-    container: shared/settings.py
-    usecase: 共通
-    role: 設定のモデル
-    summary: OpenAI の文字起こしの API キー・モデル・言語・温度
-    inherits: pydantic.BaseModel
-    properties:
-      - name: api_key
-        type: SecretStr
-        default: 空
-        description: API キー。ログにも repr にも出さない
-      - name: model
-        type: str
-        default: whisper-1
-        description: 文字起こしのモデル
-      - name: language
-        type: str
-        default: ja
-        description: 認識する言語（ローカルの Whisper の言語とは別に持つ）
-      - name: temperature
-        type: float
-        default: '0.0'
-        description: サンプリングの温度（ローカルの Whisper の温度とは別に持つ）
     status: implemented
   - name: RecordingSettings
     title: 録音の設定
@@ -599,9 +571,9 @@ functions:
       - name: test_load_settings
         case: 正常
         summary: 書いた値を読む
-        condition: transcription.engine = "openai"、outputs が copy_only だけの settings.toml
+        condition: transcription.local_whisper.model = "small"、outputs が copy_only だけの settings.toml
         mock: なし（一時フォルダ）
-        expected: engine が openai、outputs が CopyOnlySettings 1 件、書いていない項目は既定値
+        expected: local_whisper.model が small、outputs が CopyOnlySettings 1 件、書いていない項目は既定値
       - name: test_load_settings_when_sample_file
         case: 正常
         summary: リポジトリの見本は既定値と一致する
@@ -611,16 +583,16 @@ functions:
       - name: test_load_settings_when_invalid_value
         case: 異常
         summary: 合わない値はキーを示して断る
-        condition: transcription.local_whisper.beam_size = "x"
+        condition: parametrize で (1) transcription.local_whisper.beam_size = "x" (2) transcription.engine = "openai"（作らないエンジン）
         mock: なし（一時フォルダ）
-        expected: SettingsError。メッセージに transcription.local_whisper.beam_size を含む
+        expected: SettingsError。メッセージに (1) transcription.local_whisper.beam_size (2) transcription.engine を含む
         exception: 値がモデルに合わない
       - name: test_load_settings_when_unknown_key
         case: 異常
         summary: 知らないキーを断る
-        condition: recording.volum_percent = 30（書き間違い）
+        condition: parametrize で (1) recording.volum_percent = 30（書き間違い） (2) [transcription.openai] の表に model = "whisper-1"（消した設定）
         mock: なし（一時フォルダ）
-        expected: SettingsError。メッセージに recording.volum_percent を含む
+        expected: SettingsError。メッセージに (1) recording.volum_percent (2) transcription.openai を含む
         exception: 知らないキーがある
       - name: test_load_settings_when_duplicate_output_id
         case: 異常
@@ -666,7 +638,7 @@ functions:
       2. 読んだ文書を Settings として検証し、前の設定にする
          - 無い場合、前の設定は無しとする
          - 読めない・検証に通らない場合、内容を空の文書にして前の設定を「全て変わった」とする
-      3. settings を `model_dump(mode="json")` し、API キーは元の値で書く
+      3. settings を `model_dump(mode="json")` する
       4. 文書の値を再帰で置き換える。表はキーごとに書き換えて既存のコメントと並びを保ち、配列（出力先の一覧・AI チャットの送り先・許すホスト）は丸ごと入れ替える。None の項目（glossary_path）はキーを置かず、文書に既にあれば消す
       5. 親のフォルダを作り、同じフォルダの一時ファイルに UTF-8 で書いて os.replace で置き換える
       6. reload が restart の項目のうち、前の設定と値が違うものが 1 つでもあれば True、無ければ False を返す（前の設定が無いときは False）
@@ -680,7 +652,7 @@ functions:
       - name: test_save_settings_when_restart_item_changed
         case: 正常
         summary: 再起動が要る項目が変われば True
-        condition: transcription.engine を local_whisper から openai へ変えて書く
+        condition: transcription.local_whisper.model を large-v3 から small へ変えて書く
         mock: なし（一時フォルダ）
         expected: 'True'
       - name: test_save_settings_when_immediate_item_changed
@@ -692,9 +664,9 @@ functions:
       - name: test_save_settings_when_missing
         case: 正常
         summary: 無ければフォルダごと作る
-        condition: 存在しないフォルダの下の settings.toml、API キーあり
+        condition: 存在しないフォルダの下の settings.toml
         mock: なし（一時フォルダ）
-        expected: False。ファイルができ、API キーが元の値で書かれ、glossary_path のキーが無い
+        expected: False。ファイルができ、glossary_path のキーが無い
       - name: test_save_settings_when_invalid_existing
         case: 正常
         summary: 壊れたファイルは書き直して再起動が要るとする
@@ -766,7 +738,7 @@ functions:
         mock: なし（一時フォルダ）
         expected: uvicorn.error のハンドラが空になり、今日のファイルに name が uvicorn.error の 1 行がある
     notes:
-      秘密の値: API キーとトークンはログに出さない（SecretStr で持ち、断った要求のログにも含めない）。
+      秘密の値: トークンはログに出さない（断った要求のログにも含めない）。
     status: implemented
   - name: purge_old_logs
     title: 古いログの削除
@@ -837,15 +809,15 @@ functions:
          - 無い場合、SettingsError を送出する
       2. 対応表のキーごとに、値があって空でないものだけを settings.toml のキーへ写す
          - bool のキーは、小文字にして `true` のときだけ真にする（voice_paste_legacy の読み方と同じ）
-         - TRANSCRIPTION_ENGINE は `local` を `local_whisper`、`openai` を `openai` へ写す
-         - WHISPER_LANGUAGE・WHISPER_TEMPERATURE はローカルの Whisper と OpenAI の両方へ写す
+         - TRANSCRIPTION_ENGINE は `local` を `local_whisper` へ写す。それ以外（`openai` を含む）は SettingsError を送出する
+         - WHISPER_LANGUAGE・WHISPER_TEMPERATURE はローカルの Whisper へ写す
       3. 用語集の場所を voice_paste_legacy/config.py の `_resolve_user_file` と同じ順で解き、絶対パスを glossary_path に写す（YOGO_FILE が空・無いときも写す。基準は env_path のフォルダ）
          - YOGO_FILE が絶対パスの場合、そのまま
          - YOGO_FILE が相対パスの場合、`{基準}/yogo.csv` → `{基準}/{YOGO_FILE}` → `{基準}/resources/{YOGO_FILE のファイル名}` のうち最初にあるもの。どれも無ければ `{基準}/yogo.csv`
          - YOGO_FILE が空・無い場合、`{基準}/yogo.csv` があればそれ、無ければ `{基準}/resources/yogo.csv`
       4. AI_SEND_{n}_* を n = 1 から順に読み、NAME か URL が空の番号で止めて ai_chat の送り先の一覧にする
       5. CONFIRM_HOTKEY・CONFIRM_PASTE_ONLY_HOTKEY・COPY_ONLY_HOTKEY・PASTE_ENTER_DELAY・AI_SEND_DELAY を、既定の並びの出力先の一覧へ写す
-      6. 対応表に無いキー（RESIDENT_MODE を含む）は写さずにログへ書く
+      6. 対応表に無いキー（RESIDENT_MODE・OPENAI_API_KEY を含む）は写さずにログへ書く
          - `[WARNING]` 移さなかった .env のキー（キーの一覧）
       7. Settings.model_validate で検証して返す
          - pydantic.ValidationError の場合、合わない値の元の .env のキーを並べた SettingsError を送出する
@@ -854,7 +826,7 @@ functions:
         condition: env_path が無い
         message: .env が無い（{env_path}）
       - name: SettingsError
-        condition: TRANSCRIPTION_ENGINE が local・openai のどちらでもない
+        condition: TRANSCRIPTION_ENGINE が local でない（openai を含む）
         message: '.env の値が合わない（TRANSCRIPTION_ENGINE: {値}）'
       - name: SettingsError
         condition: 数値のキーに数値でない値があるなど、写した値がモデルに合わない
@@ -865,13 +837,13 @@ functions:
         summary: .env.sample の全キーを写す
         condition: リポジトリの直下の .env.sample を一時フォルダへ写した .env（一時フォルダに yogo.csv は無い）
         mock: なし（一時フォルダ）
-        expected: glossary_path が {一時フォルダ}/resources/yogo.csv、それ以外の項目が Settings() と等しい（.env.sample の値と既定値が一致する）。WARNING のログに RESIDENT_MODE が出る
+        expected: glossary_path が {一時フォルダ}/resources/yogo.csv、それ以外の項目が Settings() と等しい（.env.sample の値と既定値が一致する）。WARNING のログに RESIDENT_MODE と OPENAI_API_KEY が出る
       - name: test_migrate_env_when_custom_values
         case: 正常
         summary: 既定と違う値を対応するキーへ写す
-        condition: 全てのキーに既定と違う値（bool は `False`・`TRUE`、数値、ホットキー、TRANSCRIPTION_ENGINE=openai、OPENAI_API_KEY）を書いた .env
+        condition: 対応表の全てのキーに既定と違う値（bool は `False`・`TRUE`、数値、ホットキー、TRANSCRIPTION_ENGINE=local）を書いた .env
         mock: なし（一時フォルダ）
-        expected: 設計書『設定』の対応どおりの全項目。`TRUE` は真、`False` は偽、engine は openai、API キーは書いた値
+        expected: 設計書『設定』の対応どおりの全項目。`TRUE` は真、`False` は偽、engine は local_whisper
       - name: test_migrate_env_when_ai_send_gap
         case: 正常
         summary: 送り先は空の番号で止める
@@ -900,10 +872,10 @@ functions:
       - name: test_migrate_env_when_unknown_engine
         case: 異常
         summary: 知らないエンジンを断る
-        condition: TRANSCRIPTION_ENGINE=azure
+        condition: TRANSCRIPTION_ENGINE を parametrize で openai・azure
         mock: なし（一時フォルダ）
         expected: SettingsError。メッセージに TRANSCRIPTION_ENGINE を含む
-        exception: TRANSCRIPTION_ENGINE が local・openai のどちらでもない
+        exception: TRANSCRIPTION_ENGINE が local でない（openai を含む）
       - name: test_migrate_env_when_invalid_number
         case: 異常
         summary: 数値に直せない値を元のキーで示す
@@ -970,3 +942,20 @@ test_files:
   - tests/unit/voice_paste/shared/test_env_migration.py
   - tests/unit/voice_paste/shared/test_logger.py
   - tests/unit/voice_paste/shared/test_constants.py
+function_types:
+  - name: ProgressFn
+    title: 文字起こしの進みの知らせ先
+    container: shared/types.py
+    usecase: 共通
+    summary: 文字起こしの区間の終わりの時刻と録音の長さ（秒）を受け取る。features/transcription と integrations/whisper が使う（integrations は features を import できないため shared に置く）
+    args:
+      - name: end
+        type: float
+        description: 区間の終わりの時刻（秒）
+      - name: duration
+        type: float
+        description: 録音の長さ（秒）
+    returns:
+      type: None
+      description: なし
+    status: implemented

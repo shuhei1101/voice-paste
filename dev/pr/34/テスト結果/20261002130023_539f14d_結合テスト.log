@@ -1,0 +1,49 @@
+$ venv/Scripts/python.exe -m pytest tests/integration tests/nfr -v
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\shuhe\repo\voice-paste\venv\Scripts\python.exe
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\refactor-outputs-register-outputs
+configfile: pyproject.toml
+plugins: anyio-4.13.0, platformdirs-4.12.2
+collecting ... collected 39 items
+
+tests/integration/test_complete_session.py::test_normal PASSED           [  2%]
+tests/integration/test_complete_session.py::test_normal_when_recording PASSED [  5%]
+tests/integration/test_complete_session.py::test_error_when_token_mismatch[no_authorization] PASSED [  7%]
+tests/integration/test_complete_session.py::test_error_when_token_mismatch[wrong_token] PASSED [ 10%]
+tests/integration/test_complete_session.py::test_error_when_browser_request[origin] PASSED [ 12%]
+tests/integration/test_complete_session.py::test_error_when_browser_request[host] PASSED [ 15%]
+tests/integration/test_complete_session.py::test_error_when_session_unknown PASSED [ 17%]
+tests/integration/test_deliver_to_caller.py::test_normal PASSED          [ 20%]
+tests/integration/test_deliver_to_caller.py::test_normal_when_empty PASSED [ 23%]
+tests/integration/test_deliver_to_caller.py::test_normal_when_transcription_failed PASSED [ 25%]
+tests/integration/test_deliver_to_caller.py::test_normal_when_truncated PASSED [ 28%]
+tests/integration/test_deliver_to_caller.py::test_error_when_callback_unreachable PASSED [ 30%]
+tests/integration/test_deliver_to_caller.py::test_normal_when_receiver_waits_one_second PASSED [ 33%]
+tests/integration/test_deliver_to_output.py::test_normal_when_paste_and_send PASSED [ 35%]
+tests/integration/test_deliver_to_output.py::test_normal_when_ai_chat PASSED [ 38%]
+tests/integration/test_deliver_to_output.py::test_error_when_output_disabled PASSED [ 41%]
+tests/integration/test_start_session.py::test_normal PASSED              [ 43%]
+tests/integration/test_start_session.py::test_error_when_callback_not_allowed PASSED [ 46%]
+tests/integration/test_start_session.py::test_error_when_token_mismatch[no_authorization] PASSED [ 48%]
+tests/integration/test_start_session.py::test_error_when_token_mismatch[wrong_token] PASSED [ 51%]
+tests/integration/test_start_session.py::test_error_when_browser_request[origin] PASSED [ 53%]
+tests/integration/test_start_session.py::test_error_when_browser_request[host] PASSED [ 56%]
+tests/integration/test_start_session.py::test_error_when_busy PASSED     [ 58%]
+tests/integration/test_start_session.py::test_error_when_microphone_unavailable PASSED [ 61%]
+tests/integration/test_stop_session.py::test_normal PASSED               [ 64%]
+tests/integration/test_stop_session.py::test_normal_when_already_stopped PASSED [ 66%]
+tests/integration/test_stop_session.py::test_error_when_token_mismatch[no_authorization] PASSED [ 69%]
+tests/integration/test_stop_session.py::test_error_when_token_mismatch[wrong_token] PASSED [ 71%]
+tests/integration/test_stop_session.py::test_error_when_browser_request[origin] PASSED [ 74%]
+tests/integration/test_stop_session.py::test_error_when_browser_request[host] PASSED [ 76%]
+tests/integration/test_stop_session.py::test_error_when_session_unknown PASSED [ 79%]
+tests/integration/test_truncate_session.py::test_normal PASSED           [ 82%]
+tests/integration/test_truncate_session.py::test_normal_when_stopped PASSED [ 84%]
+tests/nfr/test_api_session_limit.py::test_api_session_limit_when_recording SKIPPED [ 87%]
+tests/nfr/test_api_session_limit.py::test_api_session_limit_when_stopped SKIPPED [ 89%]
+tests/nfr/test_api_start_response_time.py::test_api_start_response_time SKIPPED [ 92%]
+tests/nfr/test_busy_response_time.py::test_busy_response_time SKIPPED    [ 94%]
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_history_recordings[NOTSET] SKIPPED [ 97%]
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_correction_only[NOTSET] SKIPPED [100%]
+
+======================= 33 passed, 6 skipped in 18.37s ========================

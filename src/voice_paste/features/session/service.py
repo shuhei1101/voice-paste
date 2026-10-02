@@ -133,9 +133,13 @@ class SessionManager:
                 # ホットキー・トレイ: 確定できる録音が無ければ何もしない（API のセッションへの確定のホットキーを含む）
                 return
 
-            # 止めていなければ止めてから、録音を保存して transcribing にする
-            recording = self._stopped_recording(session)
-            audio_path = self._deps.save_recording(session.id, recording)
+            # 止めていなければ止めてから、録音を保存して transcribing にする（失敗したら片付けて送出し直す）
+            try:
+                recording = self._stopped_recording(session)
+                audio_path = self._deps.save_recording(session.id, recording)
+            except Exception as error:
+                self._fail_confirm(session, error)
+                raise
             confirmed = replace(
                 session, state=SessionState.TRANSCRIBING, output_id=output_id, recording=None
             )
@@ -198,8 +202,12 @@ class SessionManager:
                 return False
 
             # 止めていなければ止めてから、録音を保存して delivering にする
-            recording = self._stopped_recording(session)
-            audio_path = self._deps.save_recording(session.id, recording)
+            try:
+                recording = self._stopped_recording(session)
+                audio_path = self._deps.save_recording(session.id, recording)
+            except Exception as error:  # noqa: BLE001 失敗は片付けて知らせ、上限のタイマーが同じ失敗を繰り返さないよう送出しない
+                self._fail_confirm(session, error)
+                return True
             truncated = replace(session, state=SessionState.DELIVERING, recording=None)
             self._session = truncated
             logger.warning(
@@ -253,6 +261,13 @@ class SessionManager:
         finally:
             self._finish(session, audio_path)
 
+    def _announce_failure(self, session: Session, reason: str) -> None:
+        """確定できなかったセッションの失敗を知らせ、待機中を知らせる。"""
+        try:
+            self._report_failure(session, reason, "transcription")
+        finally:
+            self._deps.notify("state_changed", IDLE_DETAIL)
+
     def _deliver_truncated(self, session: Session, audio_path: Path) -> None:
         """打ち切りを届け、待機中に戻す。"""
         outcome = TranscriptionOutcome(
@@ -300,6 +315,22 @@ class SessionManager:
         if session.state == SessionState.STOPPED and session.recording is not None:
             return session.recording
         return self._deps.stop_recording()
+
+    def _fail_confirm(self, session: Session, error: Exception) -> None:
+        """録音の停止か保存に失敗したセッションを片付けて待機中に戻し、失敗の知らせをワーカースレッドで行う。ロックを持って呼ぶ。"""
+        # 1. 止めていない録音が残っているかもしれないので捨てる（音量も戻る。既に止まっていれば握る）
+        if session.state != SessionState.STOPPED:
+            try:
+                self._deps.discard_recording()
+            except Exception:  # noqa: BLE001 失敗の片付けの中の失敗で元の失敗を隠さないため
+                logger.warning(f"録音を捨てられなかった（{session.id}）", exc_info=True)
+
+        # 2. セッションを空にする
+        self._session = None
+        logger.exception(f"録音を確定できなかった（{session.id}・{error}）")
+
+        # 3. 失敗を知らせ、待機中を知らせる（返送を待つ間もロックを持たないようワーカースレッドで行う）
+        self._start_worker(self._announce_failure, session, str(error))
 
     def _change_state(self, session: Session, state: SessionState) -> None:
         """ロックを持った状態で、セッションの状態を書き換えて知らせる。"""

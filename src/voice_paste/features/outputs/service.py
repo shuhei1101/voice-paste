@@ -43,4 +43,4 @@ def deliver(
 
     # 選んだ出力先の関数で届ける
     spec.handler(outcome, target)
-    logger.info(f"届けた（{outcome.session_id}・出力先: {spec.id}）")
+    logger.info(f"出力先へ渡した（{outcome.session_id}・出力先: {spec.id}）")

@@ -755,6 +755,7 @@ classes:
           2. セッションを空にする
              - `[ERROR]` 録音を確定できなかった（セッションの ID・理由。logger.exception）
           3. ワーカースレッドで失敗を知らせ、待機中を知らせる（入口が api なら result=failed を届け、それ以外は transcription_failed を知らせる。返送を待つ間もロックを持たない）
+        status: implemented
     status: implemented
 functions:
   - name: start_session_route
@@ -866,3 +867,6 @@ functions:
       type: SessionApiDeps
       description: セッションの API の依存
     status: implemented
+test_files:
+  - tests/unit/voice_paste/features/session/test_service.py
+  - tests/unit/voice_paste/features/session/test_route.py

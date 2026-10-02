@@ -179,7 +179,7 @@ functions:
       2. それ以外は、セッションで選んだ出力先を選ぶ
          - 選んだ出力先が無いかオフの場合、UnknownOutputError を送出する
       3. 選んだ出力先の関数で届ける
-         - `[INFO]` 届けた（セッションの ID・出力先の ID）
+         - `[INFO]` 出力先へ渡した（セッションの ID・出力先の ID）
     exceptions:
       - name: UnknownOutputError
         condition: 選んだ出力先が一覧に無いか、設定でオフ

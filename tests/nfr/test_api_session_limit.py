@@ -23,6 +23,7 @@ from tests.support.fixtures import receiver  # noqa: F401 フィクスチャと�
 from voice_paste.features.history import append_text, discard_temporary, save_recording
 from voice_paste.features.outputs import OUTPUTS, deliver
 from voice_paste.features.outputs.callback.client import post_json
+from voice_paste.features.outputs.registry import CALLBACK_OUTPUT_ID
 from voice_paste.features.recording import Recorder
 from voice_paste.features.recording.client import open_input
 from voice_paste.features.session import Session, SessionDeps, SessionManager
@@ -88,8 +89,9 @@ def manager(tmp_path: Path, receiver: CallbackReceiver) -> Iterator[SessionManag
         open_input=open_input,
         get_settings=lambda: settings.recording,
     )
+    callback_spec = next(spec for spec in OUTPUTS if spec.id == CALLBACK_OUTPUT_ID)
     callback_handler = partial(
-        OUTPUTS[0].handler,
+        callback_spec.handler,
         post=partial(post_json, timeout_sec=CALLBACK_TIMEOUT_SEC),
         allowed_hosts=frozenset(),
         retry_count=CALLBACK_RETRY_COUNT,
@@ -97,13 +99,14 @@ def manager(tmp_path: Path, receiver: CallbackReceiver) -> Iterator[SessionManag
         sleep=time.sleep,
         jitter=lambda upper: upper,
     )
-    outputs = (replace(OUTPUTS[0], handler=callback_handler),)
+    outputs = (replace(callback_spec, handler=callback_handler),)
 
     def deliver_session(session: Session, outcome: TranscriptionOutcome) -> None:
         """Session を入口・出力先・返送先に分けて出力先の deliver へ渡す。"""
         deliver(
             session.entry,
             session.output_id,
+            session.output_target,
             session.callback_url,
             outcome,
             enabled_ids=frozenset(),

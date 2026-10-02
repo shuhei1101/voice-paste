@@ -541,21 +541,33 @@ classes:
           1. API のセッションが recording か stopped で、今の時刻 − started_at が上限時間以上であることを確かめる
              - 当たらない場合、False を返す
           2. recording なら録音を止める（録音の停止）
-          3. 録音を保存する（録音の保存）
-          4. result=truncated を出力先へ届け、セッションを空にする（出力先への配送）
+          3. 録音を保存し（録音の保存）、状態を delivering にする
              - `[WARNING]` 完了が来ないまま上限で打ち切った（セッションの ID・経過時間）
+          4. ロックを離し、ワーカースレッドで result=truncated を届けるを始める（打ち切りの返送。complete と同じワーカースレッドの起動を使う。返送の再送を待つ間もロックを持たず、その間の開始は 409 ですぐ返る）
           5. True を返す
         unit_tests:
           - name: test_truncate_if_expired_when_recording
             case: 正常
             summary: 録音中のまま上限を過ぎたら打ち切る
-            condition: API のセッションが recording で、now が started_at + 上限
+            condition: API のセッションが recording で、now が started_at + 上限。ワーカースレッドは起動を記録するだけで動かさない
+            mock: SessionDeps の全関数・ワーカースレッドの起動
+            expected: True が返った時点で、stop_recording・save_recording が呼ばれ、状態が delivering で、deliver がまだ呼ばれていない
+          - name: test_truncate_if_expired_when_worker_runs
+            case: 正常
+            summary: ワーカースレッドが打ち切りを届けて片付ける
+            condition: API のセッションが recording で、now が started_at + 上限。ワーカースレッドは同期で動かす
             mock: SessionDeps の全関数
-            expected: True が返り、stop_recording・save_recording が呼ばれ、deliver に result=truncated が渡り、セッションが空になる
+            expected: deliver に result=truncated が渡り、discard_temporary に保存した録音が渡り、セッションが空になる
+          - name: test_truncate_if_expired_when_deliver_blocks
+            case: 正常
+            summary: 返送を待つ間も開始はすぐ 409 になる
+            condition: deliver が threading.Event を待って止まる。打ち切った後に別のスレッドから start を呼ぶ
+            mock: SessionDeps の全関数
+            expected: start が deliver の戻りを待たずに SessionBusyError を送出する
           - name: test_truncate_if_expired_when_stopped
             case: 正常
             summary: 停止中も開始からの経過時間で打ち切る
-            condition: API のセッションが stopped で、now が started_at + 上限
+            condition: API のセッションが stopped で、now が started_at + 上限。ワーカースレッドは同期で動かす
             mock: SessionDeps の全関数
             expected: True が返り、stop_recording が呼ばれず、deliver に result=truncated が渡る
           - name: test_truncate_if_expired_when_within_limit
@@ -671,6 +683,28 @@ classes:
             condition: セッションが無い
             mock: SessionDeps の全関数
             expected: discard_recording が呼ばれず、例外が出ない
+      - name: _deliver_truncated
+        title: 打ち切りの返送
+        kind: メソッド
+        scope: internal
+        summary: ワーカースレッドで result=truncated を届け、待機中に戻す
+        args:
+          - name: session
+            type: Session
+            required: true
+            description: 打ち切ったセッション
+          - name: audio_path
+            type: Path
+            required: true
+            description: 保存した録音
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. result=truncated を届ける（出力先への配送）
+             - DeliveryError や想定外の例外の場合、ログに書く
+               - `[ERROR]` 打ち切りを届けられなかった（logger.exception）
+          2. どの経路でも必ず（finally）一時の音声を消し（一時の音声の削除）、セッションを空にして待機中を知らせる
     status: planned
 functions:
   - name: start_session_route

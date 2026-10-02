@@ -148,11 +148,12 @@ functions:
       6. 配線する（build_handlers）
          - StartupError の場合、トレイで知らせてログに理由を書き、録音を受け付けずにトレイだけで続ける（7 と 8 を飛ばす）
            - `[ERROR]` 起動に失敗した（理由）
-      7. トークンを発行し、API サーバーを起動する（issue_token・build_fastapi・ApiServerRunner.start）
-         - False の場合、api_unavailable を知らせて（トレイ）続ける
+      7. トークンを作り、API サーバーを起動する（create_token・build_fastapi・ApiServerRunner.start）
+         - True の場合だけ、トークンのファイルを書く（write_token_file。ファイルが指すのは常に待ち受けている自分になり、動いているほかの起動のトークンを上書きしない）
+         - False の場合、トークンのファイルを書かずに api_unavailable を知らせて（トレイ）続ける
       8. ホットキーの受付を始め（開始は start_local_session、確定・一時停止・取り消しは SessionManager のメソッド）、上限の打ち切りを RepeatingTimer で SESSION_LIMIT_CHECK_INTERVAL_SEC ごとに、古い履歴・ログの削除を定期に呼ぶ
       9. トレイを待機中にし、イベントループを回す
-      10. 終了の依頼かトレイの終了で、録音を捨て（SessionManager.close）・タイマー・API サーバー・ホットキー・ワーカーを止め、トレイを消して終わる
+      10. 終了の依頼かトレイの終了で、新しい開始が来ないように入口とタイマー（ホットキー・API サーバー・タイマー）を先に止め、録音を捨て（SessionManager.close）、ワーカーを止め、トレイを消して終わる
     status: planned
     notes:
       並走の間の処理: |-
@@ -174,12 +175,13 @@ functions:
         6. 配線する（build_handlers。notify は log_notify）
            - StartupError の場合、1 を返す
              - `[ERROR]` 起動に失敗した（理由）
-        7. トークンを発行し、API サーバーを起動する（issue_token・build_fastapi・ApiServerRunner.start(API_START_TIMEOUT_SEC)）
-           - False の場合、api_unavailable を知らせ、エンジンを止めて 1 を返す（画面とホットキーが無い間は続けても受け付ける入口が無い）
+        7. トークンを作り、API サーバーを起動する（create_token・build_fastapi・ApiServerRunner.start(API_START_TIMEOUT_SEC)）
+           - True の場合だけ、トークンのファイルを書く（write_token_file）
+           - False の場合、トークンのファイルを書かずに api_unavailable を知らせ、エンジンを止めて 1 を返す（画面とホットキーが無い間は続けても受け付ける入口が無い）
         8. 上限の打ち切りを RepeatingTimer で SESSION_LIMIT_CHECK_INTERVAL_SEC ごとに呼ぶ（SessionManager.truncate_if_expired）
            - `[INFO]` 常駐サービスを始めた（API のポート）
         9. 終了の合図を待つ（wait_for_shutdown）
-        10. 録音を捨て（SessionManager.close）、タイマー・API サーバー・エンジンの順に止めて 0 を返す
+        10. 新しい開始が来ないようにタイマー・API サーバーを先に止め、録音を捨て（SessionManager.close）、エンジンを止めて 0 を返す
             - `[INFO]` 常駐サービスを終えた
 
         `__main__.py` は `sys.exit(main())` だけを呼ぶ（CUDA の DLL の場所は、文字起こしワーカーの窓口が子プロセスの PATH へ足す）。
@@ -189,7 +191,7 @@ functions:
         summary: 設定を読んで API を立て、終了の合図で片付けて 0 を返す
         condition: --data-dir に空の一時フォルダ。wait_for_shutdown はすぐ戻る
         mock: build_handlers・ApiServerRunner（start が True）・RepeatingTimer
-        expected: 0。{data_dir}/settings.toml が既定値ででき、{data_dir}/log/{今日}.log に「設定を読んだ」の行があり、token_file があり、SessionManager.close・ApiServerRunner.stop・stop_engine が 1 回ずつ呼ばれる
+        expected: 0。{data_dir}/settings.toml が既定値ででき、{data_dir}/log/{今日}.log に「設定を読んだ」の行があり、token_file があり、RepeatingTimer.stop・ApiServerRunner.stop・SessionManager.close・stop_engine がこの順に 1 回ずつ呼ばれる
       - name: test_main_when_migrate_env
         case: 正常
         summary: .env を移してから読む
@@ -219,10 +221,10 @@ functions:
         exception: StartupError
       - name: test_main_when_api_unavailable
         case: 正常
-        summary: 待ち受けを始められなければ知らせて 1 を返す
-        condition: ApiServerRunner.start が False を返す
+        summary: 待ち受けを始められなければトークンのファイルを書かずに知らせて 1 を返す
+        condition: 前回の起動の token_file がある data_dir。ApiServerRunner.start が False を返す
         mock: build_handlers・ApiServerRunner・log_notify
-        expected: 1。log_notify に api_unavailable が渡り、stop_engine が 1 回呼ばれ、wait_for_shutdown が呼ばれない
+        expected: 1。token_file が前回の内容のままで、log_notify に api_unavailable が渡り、stop_engine が 1 回呼ばれ、wait_for_shutdown が呼ばれない
   - name: acquire_single_instance
     title: 単一インスタンスの確保
     kind: 関数

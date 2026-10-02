@@ -6,7 +6,7 @@ directory: |-
   ├── app.py              # build_fastapi（route の集約・middleware・例外ハンドラ）
   ├── middleware.py       # RequestGuardMiddleware（Host・Origin・トークン）
   ├── error_handlers.py   # register_exception_handlers（RFC 9457）
-  ├── token.py            # issue_token（起動ごとのトークンを作りファイルへ書く）
+  ├── token.py            # create_token・write_token_file（起動ごとのトークンを作り、待ち受けを始めてからファイルへ書く）
   └── runner.py           # ApiServerRunner（uvicorn をスレッドで動かし started を確かめる）
   ```
 classes:
@@ -244,13 +244,13 @@ functions:
         mock: SessionManager
         expected: 409 が返る
     status: planned
-  - name: issue_token
-    title: トークンの発行
+  - name: write_token_file
+    title: トークンのファイルの書き出し
     kind: 関数
     container: server/token.py
     usecase: 常駐アプリを起動する
     scope: public
-    summary: secrets で起動ごとのトークンを作り、ポートと共にトークンのファイル（置き場所の token_file）へ書く
+    summary: 待ち受けを始めた後に、今回のトークンとポートをトークンのファイル（置き場所の token_file）へ書く
     args:
       - name: token_file
         type: Path
@@ -262,28 +262,49 @@ functions:
         required: true
         passing: positional
         description: 待ち受けのポート
+      - name: token
+        type: SecretStr
+        required: true
+        passing: positional
+        description: create_token で作った今回の起動のトークン
+    returns:
+      type: None
+      description: なし
+    status: planned
+    process: |-
+      1. `{"port": {ポート}, "token": "{トークン}"}` の JSON を、同じフォルダの一時ファイルに UTF-8 で書いてから token_file へ置き換える（読む側が書きかけを読まない）
+         - `[INFO]` トークンのファイルを書いた（パス・ポート。トークンは書かない）
+    unit_tests:
+      - name: test_write_token_file
+        case: 正常
+        summary: トークンとポートを書く
+        condition: 一時フォルダの token_file、ポート 47823、create_token で作ったトークン
+        mock: なし（一時フォルダ）
+        expected: token_file の JSON の port が 47823、token が渡したトークンの値と一致し、INFO のログにトークンが含まれない
+      - name: test_write_token_file_when_exists
+        case: 正常
+        summary: 前の起動のファイルを置き換える
+        condition: 別のトークンの token_file がある
+        mock: なし（一時フォルダ）
+        expected: token_file には今回のトークンだけがあり、一時ファイルが残らない
+  - name: create_token
+    title: トークンの作成
+    kind: 関数
+    container: server/token.py
+    usecase: 常駐アプリを起動する
+    scope: public
+    summary: secrets.token_urlsafe(TOKEN_BYTES) で起動ごとのトークンを作る。ファイルには書かない（待ち受けを始めてから write_token_file で書く）
     returns:
       type: SecretStr
       description: 作ったトークン
-    status: planned
-    process: |-
-      1. secrets.token_urlsafe(TOKEN_BYTES) でトークンを作る
-      2. `{"port": {ポート}, "token": "{トークン}"}` の JSON を、同じフォルダの一時ファイルに UTF-8 で書いてから token_file へ置き換える（読む側が書きかけを読まない）
-         - `[INFO]` トークンのファイルを書いた（パス・ポート。トークンは書かない）
-      3. トークンを SecretStr で返す
     unit_tests:
-      - name: test_issue_token
+      - name: test_create_token
         case: 正常
-        summary: トークンとポートを書く
-        condition: 一時フォルダの token_file、ポート 47823
-        mock: なし（一時フォルダ）
-        expected: token_file の JSON の port が 47823、token が返った SecretStr の値と一致し、INFO のログにトークンが含まれない
-      - name: test_issue_token_when_called_twice
-        case: 正常
-        summary: 起動ごとに違うトークンになる
-        condition: 同じ token_file で2 回呼ぶ
-        mock: なし（一時フォルダ）
-        expected: 2 つのトークンが違い、token_file には 2 回目のトークンがある
+        summary: 呼ぶたびに違うトークンになる
+        condition: 2 回呼ぶ
+        mock: なし
+        expected: 2 つの値が違い、どちらも 43 文字以上
+    status: planned
 constants:
   - name: TOKEN_BYTES
     title: トークンのバイト数

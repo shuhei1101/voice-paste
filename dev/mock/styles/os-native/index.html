@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OS 標準（Windows 11） | voice-paste のスタイル候補</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- モック専用の操作列: スタイル候補の切り替え -->
+  <nav class="mock-bar" aria-label="スタイル候補の切り替え（モック専用）">
+    <span class="mock-bar__label">スタイル候補</span>
+    <ul>
+      <li><a href="../developer-tool/index.html">開発者ツール</a></li>
+      <li><a href="../monitoring-console/index.html">監視コンソール × コンパクト</a></li>
+      <li><a href="../os-native/index.html" aria-current="page">OS 標準（Windows 11）</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../">styles</a> <span aria-hidden="true">/</span> <span>os-native</span></nav>
+
+    <!-- スタイルの説明 -->
+    <header class="intro">
+      <h1>OS 標準（Windows 11）</h1>
+      <p>Windows 11 の Fluent 2 に合わせる。OS の明暗に従い、角丸 8px・控えめな影・アクセント 1 色。常駐アプリが OS の一部のように見える。</p>
+    </header>
+
+    <div class="desk">
+
+      <!-- 録音の画面: 録音中と一時停止中 -->
+      <section class="specimen specimen--rec" aria-labelledby="h-rec">
+        <h2 id="h-rec">録音の画面</h2>
+        <div class="win rec" role="group" aria-label="録音の画面">
+          <div class="rec__head">
+            <span class="state state--rec"><span class="dot" aria-hidden="true"></span>録音中</span>
+            <span class="rec__time num">00:42</span>
+          </div>
+          <!-- 波形: 録音中の音量の見本。高さは --h で固定値を渡す -->
+          <div class="wave" aria-hidden="true"><span style="--h:18%"></span><span style="--h:34%"></span><span style="--h:52%"></span><span style="--h:40%"></span><span style="--h:72%"></span><span style="--h:88%"></span><span style="--h:64%"></span><span style="--h:46%"></span><span style="--h:30%"></span><span style="--h:58%"></span><span style="--h:80%"></span><span style="--h:96%"></span><span style="--h:70%"></span><span style="--h:52%"></span><span style="--h:36%"></span><span style="--h:60%"></span><span style="--h:84%"></span><span style="--h:66%"></span><span style="--h:44%"></span><span style="--h:28%"></span><span style="--h:40%"></span><span style="--h:56%"></span><span style="--h:32%"></span><span style="--h:20%"></span></div>
+          <div class="rec__row">
+            <button type="button" class="btn btn--pause">一時停止 <kbd>Ctrl+Alt+Z</kbd></button>
+            <button type="button" class="btn btn--quiet btn--danger">取り消す <kbd>Ctrl+Alt+Q</kbd></button>
+          </div>
+          <p class="group-label">確定して届ける</p>
+          <div class="outs">
+            <button type="button" class="btn btn--primary">貼り付けて送信 <kbd>Ctrl+Alt+D</kbd></button>
+            <button type="button" class="btn">貼り付けのみ <kbd>Ctrl+Alt+V</kbd></button>
+            <button type="button" class="btn">コピー <kbd>Ctrl+Alt+C</kbd></button>
+          </div>
+          <p class="group-label">AI チャットへ送る</p>
+          <div class="outs outs--ai">
+            <button type="button" class="btn">ChatGPT <kbd>Ctrl+Alt+1</kbd></button>
+            <button type="button" class="btn">Google AI <kbd>Ctrl+Alt+2</kbd></button>
+            <button type="button" class="btn">Claude <kbd>Ctrl+Alt+3</kbd></button>
+          </div>
+        </div>
+        <div class="win rec rec--paused" role="group" aria-label="録音の画面（一時停止中）">
+          <div class="rec__head">
+            <span class="state state--paused"><span class="dot" aria-hidden="true"></span>一時停止中</span>
+            <span class="rec__time num">01:07</span>
+          </div>
+          <div class="rec__row">
+            <button type="button" class="btn btn--pause">再開 <kbd>Ctrl+Alt+Z</kbd></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 文字起こし中の表示 -->
+      <section class="specimen specimen--busy" aria-labelledby="h-busy">
+        <h2 id="h-busy">文字起こし中の表示</h2>
+        <div class="win busy" role="status" aria-label="文字起こし中">
+          <div class="busy__head"><span class="spinner" aria-hidden="true"></span><span class="state state--busy">文字起こし中</span></div>
+          <label class="sr-only" for="busy-progress">文字起こしの進み</label>
+          <progress id="busy-progress" max="100" value="62">62%</progress>
+          <div class="busy__meta"><span class="num">経過 3.2 秒</span><span class="num">残り 2 秒 / 5 秒</span></div>
+          <p class="hint">貼り付けたい場所にカーソルを合わせてください</p>
+        </div>
+      </section>
+
+      <!-- トレイ: 状態ごとのアイコン・メニュー・通知 -->
+      <section class="specimen specimen--tray" aria-labelledby="h-tray">
+        <h2 id="h-tray">トレイ</h2>
+        <ul class="tray-icons" aria-label="トレイのアイコン（状態ごと）">
+          <li><span class="ticon ticon--idle" aria-hidden="true"><svg viewBox="0 0 16 16"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5"/><path d="M3 7.5a5 5 0 0 0 10 0M8 12.5v2"/></svg></span>待機中</li>
+          <li><span class="ticon ticon--rec" aria-hidden="true"><svg viewBox="0 0 16 16"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5"/><path d="M3 7.5a5 5 0 0 0 10 0M8 12.5v2"/></svg></span>録音中</li>
+          <li><span class="ticon ticon--busy" aria-hidden="true"><svg viewBox="0 0 16 16"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5"/><path d="M3 7.5a5 5 0 0 0 10 0M8 12.5v2"/></svg></span>文字起こし中</li>
+          <li><span class="ticon ticon--error" aria-hidden="true"><svg viewBox="0 0 16 16"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5"/><path d="M3 7.5a5 5 0 0 0 10 0M8 12.5v2"/></svg></span>失敗</li>
+        </ul>
+        <ul class="win menu" role="menu" aria-label="トレイのメニュー">
+          <li role="menuitem" class="menu__item menu__item--default">録音を始める <kbd>Ctrl+Alt+D</kbd></li>
+          <li role="separator" class="menu__sep"></li>
+          <li role="menuitem" class="menu__item">設定…</li>
+          <li role="menuitem" class="menu__item">設定フォルダを開く</li>
+          <li role="menuitem" class="menu__item">ログフォルダを開く</li>
+          <li role="separator" class="menu__sep"></li>
+          <li role="menuitem" class="menu__item">再起動</li>
+          <li role="menuitem" class="menu__item">終了</li>
+        </ul>
+        <div class="win toast" role="status" aria-label="トレイの通知">
+          <p class="toast__title"><span class="ticon ticon--error" aria-hidden="true"><svg viewBox="0 0 16 16"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5"/><path d="M3 7.5a5 5 0 0 0 10 0M8 12.5v2"/></svg></span>届けられませんでした</p>
+          <p class="toast__body">貼り付け先が見つかりません。起こした文字はクリップボードに残してあります。</p>
+        </div>
+      </section>
+
+      <!-- ダイアログ: マイクを開けない -->
+      <section class="specimen specimen--dialog" aria-labelledby="h-dialog">
+        <h2 id="h-dialog">ダイアログ</h2>
+        <div class="win dialog" role="alertdialog" aria-labelledby="dlg-title" aria-describedby="dlg-body">
+          <div class="titlebar"><span class="titlebar__app">voice-paste</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="dialog__main">
+            <svg class="dialog__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.01"/></svg>
+            <div>
+              <h3 id="dlg-title">マイクを開けません</h3>
+              <p id="dlg-body">録音を始められませんでした。マイクがつながっているか、ほかのアプリが使っていないかを確かめてください。</p>
+              <p class="detail"><code>sounddevice.PortAudioError: Error opening InputStream (-9996)</code></p>
+            </div>
+          </div>
+          <div class="dialog__actions">
+            <button type="button" class="btn">ログフォルダを開く</button>
+            <button type="button" class="btn btn--primary">閉じる</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 設定画面: まとまりの切り替え・オンオフ・ホットキー・検証エラー・再起動で反映 -->
+      <section class="specimen specimen--settings" aria-labelledby="h-settings">
+        <h2 id="h-settings">設定画面</h2>
+        <div class="win settings">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり">
+              <ul>
+                <li><a href="#s-outputs" aria-current="true">出力先</a></li>
+                <li><a href="#s-hotkeys">ホットキー</a></li>
+                <li><a href="#s-recording">録音</a></li>
+                <li><a href="#s-transcription">文字起こし</a></li>
+                <li><a href="#s-ui">画面</a></li>
+                <li><a href="#s-history">履歴とログ</a></li>
+                <li><a href="#s-api">API</a></li>
+              </ul>
+            </nav>
+            <form class="settings__form" action="#" method="post">
+              <fieldset id="s-outputs">
+                <legend>出力先</legend>
+                <div class="row row--switch">
+                  <label class="switch"><input type="checkbox" role="switch" name="outputs.paste_and_send.enabled" checked> <span>貼り付けて送信</span></label>
+                  <code class="key">outputs[paste_and_send]</code>
+                  <input type="text" class="hotkey" name="outputs.paste_and_send.hotkey" value="Ctrl+Alt+D" aria-label="貼り付けて送信のホットキー">
+                </div>
+                <div class="row row--switch">
+                  <label class="switch"><input type="checkbox" role="switch" name="outputs.paste_only.enabled" checked> <span>貼り付けのみ</span></label>
+                  <code class="key">outputs[paste_only]</code>
+                  <input type="text" class="hotkey" name="outputs.paste_only.hotkey" value="Ctrl+Alt+V" aria-label="貼り付けのみのホットキー">
+                </div>
+                <div class="row row--switch">
+                  <label class="switch"><input type="checkbox" role="switch" name="outputs.copy_only.enabled"> <span>コピー</span></label>
+                  <code class="key">outputs[copy_only]</code>
+                  <input type="text" class="hotkey" name="outputs.copy_only.hotkey" value="Ctrl+Alt+D" aria-label="コピーのホットキー" aria-invalid="true" aria-describedby="err-copy">
+                </div>
+                <p class="field-error" id="err-copy">「貼り付けて送信」と同じホットキーです。別のキーにしてください。</p>
+              </fieldset>
+              <fieldset id="s-recording">
+                <legend>録音</legend>
+                <div class="row">
+                  <label class="check"><input type="checkbox" name="recording.lower_volume" checked> 録音中に音量を下げる</label>
+                  <code class="key">recording.lower_volume</code>
+                </div>
+                <div class="row">
+                  <label for="vol">録音中の音量の割合</label>
+                  <code class="key">recording.volume_percent</code>
+                  <span class="range"><input type="range" id="vol" name="recording.volume_percent" min="0" max="100" value="50"><output for="vol" class="num">50%</output></span>
+                </div>
+              </fieldset>
+              <fieldset id="s-transcription">
+                <legend>文字起こし</legend>
+                <div class="row">
+                  <label for="dev">ローカルの Whisper のデバイス <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.device</code>
+                  <select id="dev" name="transcription.local_whisper.device"><option selected>cuda</option><option>cpu</option></select>
+                </div>
+              </fieldset>
+              <div class="settings__foot">
+                <p class="notice" role="status">再起動が要る変更が 1 件あります。保存した後にトレイから再起動してください。</p>
+                <div class="settings__actions">
+                  <button type="button" class="btn">キャンセル</button>
+                  <button type="submit" class="btn btn--primary">保存</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</body>
+</html>

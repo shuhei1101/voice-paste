@@ -76,7 +76,7 @@ body {
   font-family: var(--font-ui);
   font-size: 14px;
   line-height: 1.5;
-  accent-color: var(--accent);
+  accent-color: var(--accent-fg);
 }
 
 /* 見本の外枠 */
@@ -593,7 +593,7 @@ input[type="text"], select {
   background: var(--surface-2);
   color: var(--text);
   font: inherit;
-  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+  &:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 0; }
 }
 
 /* ホットキーの入力欄: キーを等幅で出す */
@@ -636,7 +636,7 @@ input[aria-invalid="true"] {
   background: transparent;
   cursor: pointer;
   &::after { content: ""; position: absolute; top: 3px; left: 3px; width: 12px; height: 12px; border-radius: 50%; background: var(--text-2); transition: transform 0.15s; }
-  &:checked { background: var(--accent); border-color: var(--accent); }
+  &:checked { background: var(--accent-fg); border-color: var(--accent-fg); }
   &:checked::after { transform: translateX(20px); background: var(--accent-text); }
   &:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 }

@@ -66,6 +66,7 @@ class SessionManager:
                 started_at=self._deps.now(),
                 callback_url=callback_url,
                 output_id=None,
+                output_target=None,
             )
             self._session = session
             logger.info(f"セッションを始めた（{session.id}・入口: {session.entry}）")
@@ -112,7 +113,12 @@ class SessionManager:
                 self._session = replace(session, state=SessionState.STOPPED, recording=recording)
                 self._deps.notify("state_changed", str(SessionState.STOPPED))
 
-    def complete(self, session_id: str | None = None, output_id: str | None = None) -> None:
+    def complete(
+        self,
+        session_id: str | None = None,
+        output_id: str | None = None,
+        output_target: str | None = None,
+    ) -> None:
         """録音を確定して保存し、文字起こしから届けるまでをワーカースレッドで始める。"""
         with self._lock:
             session = self._session
@@ -141,7 +147,11 @@ class SessionManager:
                 self._fail_confirm(session, error)
                 raise
             confirmed = replace(
-                session, state=SessionState.TRANSCRIBING, output_id=output_id, recording=None
+                session,
+                state=SessionState.TRANSCRIBING,
+                output_id=output_id,
+                output_target=output_target,
+                recording=None,
             )
             self._session = confirmed
             logger.info(

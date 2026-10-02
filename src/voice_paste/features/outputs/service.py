@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 def deliver(
     entry: Entry | str,
     output_id: str | None,
+    output_target: str | None,
     callback_url: str | None,
     outcome: TranscriptionOutcome,
     *,
@@ -28,7 +29,7 @@ def deliver(
         spec = next((output for output in outputs if output.api_only), None)
         target = callback_url
     else:
-        # それ以外: セッションで選んだ出力先を選ぶ（API 専用のものと、設定でオフのものは選べない）
+        # それ以外: セッションで選んだ出力先を選び、選んだ出力先に固有の宛先を渡す（API 専用のものと、設定でオフのものは選べない）
         spec = next(
             (
                 output
@@ -37,7 +38,7 @@ def deliver(
             ),
             None,
         )
-        target = None
+        target = output_target
     if spec is None:
         raise UnknownOutputError(f"出力先を選べません（入口: {entry}・出力先: {output_id}）")
 

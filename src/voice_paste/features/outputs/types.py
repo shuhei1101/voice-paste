@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from voice_paste.shared.types import TranscriptionOutcome
 
 type OutputFn = Callable[[TranscriptionOutcome, str | None], None]
-"""結果と出力先に固有の宛先（AI チャットの送り先の ID・返送先の URL）を受け、1 つの出力先へ届ける。届けられなければ DeliveryError。"""
+"""結果と出力先に固有の宛先（AI チャットの送り先の URL・返送先の URL。持たない出力先は None）を受け、1 つの出力先へ届ける。届けられなければ DeliveryError。"""
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

@@ -32,6 +32,8 @@ from voice_paste.features.session import (
 )
 from voice_paste.features.session.types import NotifyFn
 from voice_paste.features.transcription.service import transcribe
+from voice_paste.integrations.browser.opener import open_app_window
+from voice_paste.integrations.keyboard.sender import copy_to_clipboard, send_enter, send_paste
 from voice_paste.integrations.volume.adapter import lower_volume, restore_volume
 from voice_paste.integrations.whisper.client import WhisperWorkerClient
 from voice_paste.runtime.timer import RepeatingTimer
@@ -42,7 +44,13 @@ from voice_paste.shared.constants import AppPaths, resolve_app_paths
 from voice_paste.shared.env_migration import migrate_env
 from voice_paste.shared.errors import EngineError, SettingsError, StartupError
 from voice_paste.shared.logger import local_today, purge_old_logs, setup_logging
-from voice_paste.shared.settings import Settings, load_settings, save_settings
+from voice_paste.shared.settings import (
+    AiChatSettings,
+    PasteAndSendSettings,
+    Settings,
+    load_settings,
+    save_settings,
+)
 from voice_paste.shared.types import TranscriptionOutcome
 
 logger = logging.getLogger(__name__)
@@ -195,6 +203,7 @@ def _deliver_session(
     deliver(
         session.entry,
         session.output_id,
+        session.output_target,
         session.callback_url,
         outcome,
         enabled_ids=enabled_ids,
@@ -202,25 +211,69 @@ def _deliver_session(
     )
 
 
-def _wire_outputs(settings: Settings) -> tuple[OutputSpec, ...]:
-    """出力先の一覧のうち、呼び出し元へ返す出力先に再送などの注入を部分適用して返す。"""
-    allowed_hosts = frozenset(settings.api.allowed_callback_hosts)
-    wired: list[OutputSpec] = []
-    for spec in OUTPUTS:
-        # 呼び出し元へ返す出力先だけ、タイムアウトを部分適用した post_json・許可ホスト・再送の設定を渡す
-        if spec.id == CALLBACK_OUTPUT_ID:
-            handler = partial(
-                spec.handler,
-                post=partial(post_json, timeout_sec=CALLBACK_TIMEOUT_SEC),
-                allowed_hosts=allowed_hosts,
-                retry_count=CALLBACK_RETRY_COUNT,
-                retry_base_sec=CALLBACK_RETRY_BASE_SEC,
-                sleep=time.sleep,
-                jitter=_jitter,
-            )
-            spec = replace(spec, handler=handler)
-        wired.append(spec)
-    return tuple(wired)
+def _wire_outputs(get_settings: Callable[[], Settings]) -> tuple[OutputSpec, ...]:
+    """出力先の一覧の各 handler に、出力先の ID ごとの外部連携の関数と設定の値を部分適用して返す。"""
+
+    # 1. 届けるたびに設定を読む関数を作る（反映が immediate の設定を、配線の後に変えても次の届け方に効かせる）
+    def paste() -> None:
+        """設定の貼り付けのキーで貼り付けのキーを送る。"""
+        send_paste(get_settings().keyboard.paste_key)
+
+    def get_enter_delay_sec() -> float:
+        """設定の貼り付けて送信の、貼り付けてから Enter を送るまでの秒数を返す（一覧に無ければ既定値）。"""
+        output = next(
+            (o for o in get_settings().outputs if isinstance(o, PasteAndSendSettings)),
+            PasteAndSendSettings(),
+        )
+        return output.enter_delay_sec
+
+    def get_open_delay_sec() -> float:
+        """設定の AI チャットの、画面を開いてから貼り付けるまでの秒数を返す（一覧に無ければ既定値）。"""
+        output = next(
+            (o for o in get_settings().outputs if isinstance(o, AiChatSettings)),
+            AiChatSettings(),
+        )
+        return output.open_delay_sec
+
+    # 2. 出力先の ID ごとに、handler へ注入するものを決める
+    injections: dict[str, dict[str, object]] = {
+        "paste_and_send": {
+            "copy": copy_to_clipboard,
+            "paste": paste,
+            "send_enter": send_enter,
+            "sleep": time.sleep,
+            "get_enter_delay_sec": get_enter_delay_sec,
+        },
+        "paste_only": {"copy": copy_to_clipboard, "paste": paste},
+        "copy_only": {"copy": copy_to_clipboard},
+        "ai_chat": {
+            "copy": copy_to_clipboard,
+            "open_window": open_app_window,
+            "paste": paste,
+            "send_enter": send_enter,
+            "sleep": time.sleep,
+            "get_open_delay_sec": get_open_delay_sec,
+            # 貼り付けて送信と同じ間を使う
+            "get_enter_delay_sec": get_enter_delay_sec,
+        },
+        # 呼び出し元へ返す出力先は、タイムアウトを部分適用した post_json・許可ホスト・再送の設定を渡す
+        CALLBACK_OUTPUT_ID: {
+            "post": partial(post_json, timeout_sec=CALLBACK_TIMEOUT_SEC),
+            "allowed_hosts": frozenset(get_settings().api.allowed_callback_hosts),
+            "retry_count": CALLBACK_RETRY_COUNT,
+            "retry_base_sec": CALLBACK_RETRY_BASE_SEC,
+            "sleep": time.sleep,
+            "jitter": _jitter,
+        },
+    }
+
+    # 3. 一覧の順のまま、注入するものがある出力先だけ handler を差し替える（無い出力先はそのまま残す）
+    return tuple(
+        replace(spec, handler=partial(spec.handler, **injections[spec.id]))
+        if spec.id in injections
+        else spec
+        for spec in OUTPUTS
+    )
 
 
 def build_handlers(settings: Settings, paths: AppPaths, notify: NotifyFn) -> Handlers:
@@ -248,7 +301,7 @@ def build_handlers(settings: Settings, paths: AppPaths, notify: NotifyFn) -> Han
     # 3. 出力先を配線し、Session を分けて渡すアダプタを作る
     enabled_ids = frozenset(output.id for output in settings.outputs if output.enabled)
     deliver_session = partial(
-        _deliver_session, enabled_ids=enabled_ids, outputs=_wire_outputs(settings)
+        _deliver_session, enabled_ids=enabled_ids, outputs=_wire_outputs(lambda: settings)
     )
 
     # 4. 用語集を文字起こしのたびに読み直す補正を作る

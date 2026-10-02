@@ -56,6 +56,9 @@ class Session:
     output_id: str | None
     """ホットキー・トレイから始めた録音で、確定の操作で選んだ出力先の ID。"""
 
+    output_target: str | None
+    """ホットキー・トレイから始めた録音で、確定の操作で選んだ出力先に固有の宛先（AI チャットの送り先の URL）。持たない出力先は None。"""
+
     recording: Recording | None = None
     """API の録音を止めた後、完了までセッションが持つ貯めた音。"""
 

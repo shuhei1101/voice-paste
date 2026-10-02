@@ -15,9 +15,38 @@ layers:
         venv/Scripts/python.exe -m pytest {単体テストファイルパス}
         ```
   - name: 結合テスト（バック）
-    run_all: 未確定
+    run_all: |-
+      ```bash
+      venv/Scripts/python.exe -m pytest tests/integration
+      ```
+    description: pytest で実行する。`tests/integration/` の下に、インターフェース定義ごとのファイルを置く。
+    prerequisites:
+      - 外部依存なし（GPU も実機のマイクも要らない）
+      - マイク・システム音量・トレイ・文字起こしのエンジンは Mock に差し替え、履歴は一時フォルダに書く
+      - 返送先は 127.0.0.1 で待ち受けるテスト用の受け口で、テストが立てる
+    run_one:
+      label: ファイル
+      command: |-
+        ```bash
+        venv/Scripts/python.exe -m pytest {結合テストファイルパス}
+        ```
   - name: E2E テスト
-    run_all: 未確定
+    run_all: |-
+      ```bash
+      venv/Scripts/python.exe -m pytest tests/e2e --run-e2e
+      ```
+    description: pytest で実行する。`tests/e2e/` の下に、シナリオごとのファイルを置く（複合ユースケースは `tests/e2e/複合ユースケース/test_transcribe_from_other_system.py`）。
+    prerequisites:
+      - Windows の実機とマイクが要る（Mock なし。録音は実機のマイクで取る）
+      - ローカルの Whisper（GPU）で起こす。NVIDIA GPU が要り、CUDA の DLL は venv の `Lib/site-packages/nvidia/` から読む
+      - 返送先は 127.0.0.1 で待ち受けるテスト用の受け口で、テストが立てて返送を受ける
+      - 実行中はマイクで録音する。誤実行を防ぐため `--run-e2e` を必須にする（付けなければ全て skip する）
+    run_one:
+      label: ファイル
+      command: |-
+        ```bash
+        venv/Scripts/python.exe -m pytest {E2Eテストファイルパス} --run-e2e
+        ```
   - name: 非機能要件テスト
     run_all: |-
       ```bash

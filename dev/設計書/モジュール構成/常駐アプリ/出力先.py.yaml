@@ -441,7 +441,7 @@ functions:
     process: |-
       1. httpx.Client(timeout=timeout_sec, follow_redirects=False) で POST する（リダイレクトで許していないホストへ行かない）
          - httpx.TransportError（タイムアウト・接続できない）の場合、DeliveryError を送出する
-      2. Retry-After を秒に直す（秒数はそのまま、HTTP の日付は今の時刻からの差。無い・読めない場合は None）
+      2. Retry-After を秒に直す（秒数はそのまま、HTTP の日付は今の時刻からの差。負の値は 0 にそろえる。無い・読めない場合は None）
       3. ステータスと Retry-After を PostResult で返す（2xx 以外でも送出しない）
     exceptions:
       - name: DeliveryError
@@ -478,6 +478,12 @@ functions:
         mock: httpx.MockTransport
         expected: DeliveryError が送出される
         exception: タイムアウトか接続できない
+      - name: test_post_json_when_retry_after_past_date
+        case: 正常
+        summary: 過去の日付の Retry-After は 0
+        condition: 受け口が 503 と、今より 1 分前の HTTP の日付の Retry-After を返す
+        mock: httpx.MockTransport
+        expected: status 503・retry_after_sec 0.0 が返る
     refs:
       - dev/設計書/外部ライブラリ/httpx#
     status: planned

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import logging
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Literal, get_args, get_origin
@@ -380,6 +381,11 @@ def confirm_reset(parent: QWidget) -> bool:
 # === ホットキーの欄 ===
 
 
+def field_object_name(key: str, widget: QWidget) -> str:
+    """欄の部品の objectName（画面設計の項目 ID。ホットキーの欄は `hotkey_{キー}`、それ以外は `field_{キー}`）を返す。"""
+    return f"{'hotkey' if isinstance(widget, HotkeyEdit) else 'field'}_{key}"
+
+
 class HotkeyEdit(QLineEdit):
     """押すと入力待ちになり、次に押したキーの組み合わせが入るホットキーの欄。
 
@@ -462,7 +468,9 @@ class SettingsWindow(QWidget):
         self.setMinimumWidth(MIN_WIDTH_PX)
         self._build_frame()
         self._populate(self._original)
+        # 開いたときの値を「再起動で反映」の変更の基準にして、知らせを数え直す
         self._restart_baseline = dict(self._baseline)
+        self._refresh_notices()
 
     # --- 窓の枠 ---
 
@@ -590,7 +598,7 @@ class SettingsWindow(QWidget):
     ) -> Field:
         """欄 1 つ（名前・再起動で反映の印・設定のキー・部品・欄の下のエラー）を layout に足して登録する。"""
         reload = reload_of(key)
-        widget.setObjectName(f"field_{key}")
+        widget.setObjectName(field_object_name(key, widget))
         row = QWidget()
         column = QVBoxLayout(row)
         column.setContentsMargins(0, 0, 0, 0)
@@ -618,6 +626,7 @@ class SettingsWindow(QWidget):
         column.addLayout(control)
 
         error_label = QLabel()
+        error_label.setTextFormat(Qt.TextFormat.PlainText)
         error_label.setObjectName(f"error_{key}")
         error_label.setProperty("role", "error")
         error_label.setWordWrap(True)
@@ -788,7 +797,10 @@ class SettingsWindow(QWidget):
         layout.addWidget(heading)
         table = QVBoxLayout()
         self._targets_layout = table
-        layout.addLayout(table)
+        targets_widget = QWidget()
+        targets_widget.setObjectName("ai_chat_targets")
+        targets_widget.setLayout(table)
+        layout.addWidget(targets_widget)
         for target in output.targets:
             self._add_target_row(target, group)
         add_button = QPushButton("送り先を足す")
@@ -816,6 +828,7 @@ class SettingsWindow(QWidget):
         for widget in (enabled, name, url, hotkey_edit, delete_button):
             line.addWidget(widget)
         error_label = QLabel()
+        error_label.setTextFormat(Qt.TextFormat.PlainText)
         error_label.setProperty("role", "error")
         error_label.setWordWrap(True)
         error_label.hide()
@@ -879,7 +892,7 @@ class SettingsWindow(QWidget):
             ):
                 field.key = f"{prefix}.{attribute}"
                 field.label = f"送り先 {position + 1} の{label}"
-                field.widget.setObjectName(f"field_{field.key}")
+                field.widget.setObjectName(field_object_name(field.key, field.widget))
 
     # --- 値の収集 ---
 
@@ -973,13 +986,13 @@ class SettingsWindow(QWidget):
             if field_count
             else "保存できませんでした。"
         )
-        self._error_summary_layout.addWidget(QLabel(title))
+        self._error_summary_layout.addWidget(self._plain_label(title))
         for key, message in rows:
             field = by_key.get(key) if key is not None else None
             if field is None:
-                self._error_summary_layout.addWidget(QLabel(message))
+                self._error_summary_layout.addWidget(self._plain_label(message))
                 continue
-            link = QLabel(f'<a href="{field.key}">{field.label}: {message}</a>')
+            link = QLabel(f'<a href="{field.key}">{html.escape(f"{field.label}: {message}")}</a>')
             link.setTextFormat(Qt.TextFormat.RichText)
             link.linkActivated.connect(self._focus_field)
             self._error_summary_layout.addWidget(link)
@@ -993,6 +1006,13 @@ class SettingsWindow(QWidget):
             field.widget.style().polish(field.widget)
         self._error_summary.show()
         self._error_summary.setFocus()
+
+    @staticmethod
+    def _plain_label(text: str) -> QLabel:
+        """書式を解釈しない（`<ctrl>` などの山括弧を文字のまま出す）ラベルを作る。"""
+        label = QLabel(text)
+        label.setTextFormat(Qt.TextFormat.PlainText)
+        return label
 
     def _focus_field(self, key: str) -> None:
         """エラーの一覧の行から、その欄のまとまりへ切り替えて欄へフォーカスを移す。"""
@@ -1071,23 +1091,26 @@ class SettingsWindow(QWidget):
         self._force_close = True
         self.close()
 
+    def _confirm_close(self) -> bool:
+        """欄を変えていなければそのまま、変えていれば確かめて、閉じてよいかを返す。"""
+        count = self._changed_count()
+        return count == 0 or confirm_discard(self, count)
+
     def try_close(self) -> bool:
         """欄を変えていなければ閉じ、変えていれば確かめて捨てるなら閉じる。閉じたかを返す。"""
-        count = self._changed_count()
-        if count > 0 and not confirm_discard(self, count):
+        if not self._confirm_close():
             return False
         self._force_close = True
         self.close()
         return True
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 Qt の名前
-        """閉じる準備ができていれば閉じて知らせ、そうでなければ確かめる流れ（try_close）に回す。"""
-        if self._force_close:
+        """閉じる準備ができているか、確かめて閉じてよければ閉じて知らせる。"""
+        if self._force_close or self._confirm_close():
             event.accept()
             self.closed.emit()
-            return
-        event.ignore()
-        self.try_close()
+        else:
+            event.ignore()
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802 Qt の名前
         """Esc は「キャンセル」と同じ。"""

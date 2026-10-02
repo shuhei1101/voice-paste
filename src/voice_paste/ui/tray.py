@@ -126,13 +126,15 @@ class Tray(QObject):
         self._icon = QSystemTrayIcon(self)
         menu = QMenu()
         self._menu = menu
-        self._start_action = menu.addAction(START_TEXT)
-        self._settings_action = menu.addAction(SETTINGS_TEXT)
-        open_settings_folder = menu.addAction("設定フォルダを開く")
-        open_log_folder = menu.addAction("ログフォルダを開く")
+        self._start_action = self._add_item(menu, "menu_start", START_TEXT)
+        self._settings_action = self._add_item(menu, "menu_settings", SETTINGS_TEXT)
+        open_settings_folder = self._add_item(
+            menu, "menu_open_settings_folder", "設定フォルダを開く"
+        )
+        open_log_folder = self._add_item(menu, "menu_open_log_folder", "ログフォルダを開く")
         menu.addSeparator()
-        restart_action = menu.addAction("再起動")
-        quit_action = menu.addAction("終了")
+        restart_action = self._add_item(menu, "menu_restart", "再起動")
+        quit_action = self._add_item(menu, "menu_quit", "終了")
 
         self._start_action.triggered.connect(self.start_requested)
         self._settings_action.triggered.connect(self.settings_requested)
@@ -197,6 +199,13 @@ class Tray(QObject):
         self._icon.hide()
 
     # --- 内部 ---
+
+    @staticmethod
+    def _add_item(menu: QMenu, name: str, text: str) -> QAction:
+        """メニューに項目を足し、画面設計の項目 ID を objectName にする。"""
+        action = menu.addAction(text)
+        action.setObjectName(name)
+        return action
 
     def _apply(
         self,

@@ -54,7 +54,7 @@ requirements:
     source: https://github.com/shuhei1101/voice-paste/blob/develop/dev/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/2_%E5%93%81%E8%B3%AA%E7%9B%AE%E6%A8%99.md
     value: '500'
     unit: ミリ秒
-    rationale: '品質シナリオ 1。API が無かったため、刷新前（voice_paste_legacy）のホットキーを受けてから録音が始まるまでを読み替えた仮の値 500 ms を決定値にしていた。API を作った #19 で、本物の起動（実機のマイク・ローカルの Whisper）へ開始 → 停止 → 完了を 50 回続けて呼んで測り直した。開始の応答は最小 19.1 ms・中央値 20.8 ms・最大 46.8 ms で、決定値 500 ms を大きく下回り、50 回とも返送先に文字が届いた（2026-10-02）。決定値は 500 ms のままにする'
+    rationale: '品質シナリオ 1。API が無かったため、刷新前（voice_paste_legacy）のホットキーを受けてから録音が始まるまでを読み替えた仮の値 500 ms を決定値にしていた。API を作った #19 で、本物の起動（実機のマイク・ローカルの Whisper）へ開始 → 停止 → 完了を 50 回続けて呼んで測り直した。開始の応答は最小 19.1 ms・中央値 20.8 ms・最大 46.8 ms で、決定値 500 ms を大きく下回り、50 回とも返送が届いた（起こした文字は空になる設定で測った。2026-10-02）。決定値は 500 ms のままにする'
     measurement: 本物の起動（python -m voice_paste）へ、実機のマイクで POST /sessions → 停止 → 完了を 50 回続けて呼び（返送が速く終わるよう vad_threshold = 1.0 の設定）、毎回の開始の応答時間を測る。`--run-e2e` を付けて実行する（Windows 11・NVIDIA GPU）
     test_file: tests/nfr/test_api_start_response_time.py
     tests:

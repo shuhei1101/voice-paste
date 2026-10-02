@@ -469,6 +469,7 @@ classes:
           3. stopped でなければ録音を止める（録音の停止）
           4. 録音を保存し（録音の保存）、状態を transcribing にする
              - `[INFO]` 録音を確定した（セッションの ID・録音の長さ・保存先）
+             - 3〜4 で例外が出た場合、確定の失敗を片付け（確定の失敗）、その例外を送出し直す（API の route は既存のハンドラで 500 を返す）
           5. ワーカースレッドで文字起こしから届けるまでを始める（確定後の流れ）
         exceptions:
           - name: SessionNotFoundError
@@ -506,6 +507,20 @@ classes:
             mock: SessionDeps の全関数
             expected: SessionNotFoundError が送出される
             exception: 確定できる状態でない
+          - name: test_complete_when_save_failed
+            case: 異常
+            summary: 録音を保存できなければ待機中に戻して呼び出し元へ failed を届ける
+            condition: API のセッションが recording で、save_recording が OSError を送出する
+            mock: SessionDeps の全関数。ワーカースレッドは同期で動かす
+            expected: OSError が送出され、セッションが空になり、deliver に result=failed が渡り、続く start が通る
+            exception: 録音を保存できない
+          - name: test_complete_when_save_failed_from_hotkey
+            case: 異常
+            summary: ホットキーの録音を保存できなければ待機中に戻して知らせる
+            condition: ホットキーのセッションが recording で、save_recording が OSError を送出する
+            mock: SessionDeps の全関数。ワーカースレッドは同期で動かす
+            expected: OSError が送出され、セッションが空になり、notify に transcription_failed が渡り、deliver が呼ばれず、続く start が通る
+            exception: 録音を保存できない
       - name: cancel
         title: 取り消し
         kind: メソッド
@@ -547,6 +562,7 @@ classes:
           2. recording なら録音を止める（録音の停止）
           3. 録音を保存し（録音の保存）、状態を delivering にする
              - `[WARNING]` 完了が来ないまま上限で打ち切った（セッションの ID・経過時間）
+             - 2〜3 で例外が出た場合、確定の失敗を片付け（確定の失敗）、True を返す（例外は送出しない。上限のタイマーが同じ失敗を繰り返さない）
           4. ロックを離し、ワーカースレッドで result=truncated を届けるを始める（打ち切りの返送。complete と同じワーカースレッドの起動を使う。返送の再送を待つ間もロックを持たず、その間の開始は 409 ですぐ返る）
           5. True を返す
         unit_tests:
@@ -586,6 +602,13 @@ classes:
             condition: ホットキーのセッションが上限を過ぎて recording
             mock: SessionDeps の全関数
             expected: False が返る
+          - name: test_truncate_if_expired_when_save_failed
+            case: 異常
+            summary: 打ち切った録音を保存できなければ待機中に戻して failed を届ける
+            condition: API のセッションが stopped で、now が started_at + 上限、save_recording が OSError を送出する
+            mock: SessionDeps の全関数。ワーカースレッドは同期で動かす
+            expected: 例外が出ず True が返り、セッションが空になり、deliver に result=failed が渡り、続く truncate_if_expired が False を返す
+            exception: 録音を保存できない
       - name: _run_after_confirm
         title: 確定後の流れ
         kind: メソッド
@@ -709,6 +732,29 @@ classes:
              - DeliveryError や想定外の例外の場合、ログに書く
                - `[ERROR]` 打ち切りを届けられなかった（logger.exception）
           2. どの経路でも必ず（finally）一時の音声を消し（一時の音声の削除）、セッションを空にして待機中を知らせる
+      - name: _fail_confirm
+        title: 確定の失敗
+        kind: メソッド
+        scope: internal
+        summary: 録音の停止か保存に失敗したセッションを片付け、失敗を知らせて待機中に戻す。ロックを持った状態で呼ぶ
+        args:
+          - name: session
+            type: Session
+            required: true
+            description: 確定できなかったセッション
+          - name: error
+            type: Exception
+            required: true
+            description: 停止か保存で出た例外
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. セッションが stopped でなければ、止めていない録音が残っているかもしれないので録音を捨てる（録音した音を捨てる。音量も戻る）
+             - 捨てるのに失敗した場合（既に止まっている等）、握る
+          2. セッションを空にする
+             - `[ERROR]` 録音を確定できなかった（セッションの ID・理由。logger.exception）
+          3. ワーカースレッドで失敗を知らせ、待機中を知らせる（入口が api なら result=failed を届け、それ以外は transcription_failed を知らせる。返送を待つ間もロックを持たない）
     status: implemented
 functions:
   - name: start_session_route
@@ -820,6 +866,3 @@ functions:
       type: SessionApiDeps
       description: セッションの API の依存
     status: implemented
-test_files:
-  - tests/unit/voice_paste/features/session/test_service.py
-  - tests/unit/voice_paste/features/session/test_route.py

@@ -1,0 +1,173 @@
+[
+  {
+    "by": "break",
+    "wake_ms": 0,
+    "no_tick": false,
+    "exit_sec": 0.249,
+    "returncode": 0,
+    "killed": false,
+    "threads_alive": {
+      "uvicorn": false,
+      "pynput": false
+    }
+  },
+  {
+    "by": "break",
+    "wake_ms": 0,
+    "no_tick": false,
+    "exit_sec": 0.257,
+    "returncode": 0,
+    "killed": false,
+    "threads_alive": {
+      "uvicorn": false,
+      "pynput": false
+    }
+  },
+  {
+    "by": "break",
+    "wake_ms": 0,
+    "no_tick": false,
+    "exit_sec": 0.264,
+    "returncode": 0,
+    "killed": false,
+    "threads_alive": {
+      "uvicorn": false,
+      "pynput": false
+    }
+  },
+  {
+    "by": "break",
+    "wake_ms": 200,
+    "no_tick": false,
+    "exit_sec": 0.262,
+    "returncode": 0,
+    "killed": false,
+    "threads_alive": {
+      "uvicorn": false,
+      "pynput": false
+    }
+  },
+  {
+    "by": "break",
+    "wake_ms": 200,
+    "no_tick": false,
+    "exit_sec": 0.262,
+    "returncode": 0,
+    "killed": false,
+    "threads_alive": {
+      "uvicorn": false,
+      "pynput": false
+    }
+  },
+  {
+    "by": "break",
+    "wake_ms": 200,
+    "no_tick": false,
+    "exit_sec": 0.257,
+    "returncode": 0,
+    "killed": false,
+    "threads_alive": {
+      "uvicorn": false,
+      "pynput": false
+    }
+  },
+  {
+    "by": "break",
+    "wake_ms": 0,
+    "no_tick": true,
+    "exit_sec": 30.011,
+    "returncode": 1,
+    "killed": true,
+    "threads_alive": null
+  },
+  {
+    "by": "break",
+    "wake_ms": 0,
+    "no_tick": true,
+    "exit_sec": 30.015,
+    "returncode": 1,
+    "killed": true,
+    "threads_alive": null
+  },
+  {
+    "by": "break",
+    "wake_ms": 0,
+    "no_tick": true,
+    "exit_sec": 30.008,
+    "returncode": 1,
+    "killed": true,
+    "threads_alive": null
+  },
+  {
+    "by": "break",
+    "wake_ms": 200,
+    "no_tick": true,
+    "exit_sec": 0.224,
+    "returncode": 0,
+    "killed": false,
+    "threads_alive": {
+      "uvicorn": false,
+      "pynput": false
+    }
+  },
+  {
+    "by": "break",
+    "wake_ms": 200,
+    "no_tick": true,
+    "exit_sec": 0.266,
+    "returncode": 0,
+    "killed": false,
+    "threads_alive": {
+      "uvicorn": false,
+      "pynput": false
+    }
+  },
+  {
+    "by": "break",
+    "wake_ms": 200,
+    "no_tick": true,
+    "exit_sec": 0.274,
+    "returncode": 0,
+    "killed": false,
+    "threads_alive": {
+      "uvicorn": false,
+      "pynput": false
+    }
+  },
+  {
+    "by": "tray",
+    "wake_ms": 0,
+    "no_tick": false,
+    "exit_sec": 0.199,
+    "returncode": 0,
+    "killed": false,
+    "threads_alive": {
+      "uvicorn": false,
+      "pynput": false
+    }
+  },
+  {
+    "by": "tray",
+    "wake_ms": 0,
+    "no_tick": false,
+    "exit_sec": 0.201,
+    "returncode": 0,
+    "killed": false,
+    "threads_alive": {
+      "uvicorn": false,
+      "pynput": false
+    }
+  },
+  {
+    "by": "tray",
+    "wake_ms": 0,
+    "no_tick": false,
+    "exit_sec": 0.203,
+    "returncode": 0,
+    "killed": false,
+    "threads_alive": {
+      "uvicorn": false,
+      "pynput": false
+    }
+  }
+]

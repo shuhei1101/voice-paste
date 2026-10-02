@@ -1,0 +1,300 @@
+{
+  "tray": {
+    "available": true,
+    "visible": true,
+    "geometry": [
+      1290,
+      1019,
+      32,
+      48
+    ],
+    "menu_actions": [
+      "終了"
+    ]
+  },
+  "hotkey_pings": {
+    "received": 100,
+    "on_main": 100,
+    "latency_max_ms": 1.3868999667465687,
+    "latency_median_ms": 0.44845009688287973,
+    "tick_gap_max_ms": 112.49700002372265
+  },
+  "api_status": [
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200
+  ],
+  "api_pings": {
+    "received": 100,
+    "on_main": 100,
+    "latency_max_ms": 0.21929992362856865,
+    "latency_median_ms": 0.06160000339150429,
+    "tick_gap_max_ms": 122.86489992402494
+  },
+  "paste_hotkey": [
+    {
+      "focused_before": true,
+      "foreground_after_show": "target",
+      "foreground_at_paste": "target",
+      "pasted": true
+    },
+    {
+      "focused_before": true,
+      "foreground_after_show": "target",
+      "foreground_at_paste": "target",
+      "pasted": true
+    },
+    {
+      "focused_before": true,
+      "foreground_after_show": "target",
+      "foreground_at_paste": "target",
+      "pasted": true
+    },
+    {
+      "focused_before": true,
+      "foreground_after_show": "target",
+      "foreground_at_paste": "target",
+      "pasted": true
+    },
+    {
+      "focused_before": true,
+      "foreground_after_show": "target",
+      "foreground_at_paste": "target",
+      "pasted": true
+    },
+    {
+      "focused_before": true,
+      "foreground_after_show": "target",
+      "foreground_at_paste": "target",
+      "pasted": true
+    },
+    {
+      "focused_before": true,
+      "foreground_after_show": "target",
+      "foreground_at_paste": "target",
+      "pasted": true
+    },
+    {
+      "focused_before": true,
+      "foreground_after_show": "target",
+      "foreground_at_paste": "target",
+      "pasted": true
+    },
+    {
+      "focused_before": true,
+      "foreground_after_show": "target",
+      "foreground_at_paste": "target",
+      "pasted": true
+    },
+    {
+      "focused_before": true,
+      "foreground_after_show": "target",
+      "foreground_at_paste": "target",
+      "pasted": true
+    }
+  ],
+  "paste_button": [
+    {
+      "focused_before": true,
+      "foreground_after_show": "target",
+      "foreground_at_paste": "target",
+      "pasted": true
+    },
+    {
+      "focused_before": true,
+      "foreground_after_show": "recording_window",
+      "foreground_at_paste": "target",
+      "pasted": true
+    },
+    {
+      "focused_before": true,
+      "foreground_after_show": "recording_window",
+      "foreground_at_paste": "target",
+      "pasted": true
+    },
+    {
+      "focused_before": true,
+      "foreground_after_show": "recording_window",
+      "foreground_at_paste": "target",
+      "pasted": true
+    },
+    {
+      "focused_before": true,
+      "foreground_after_show": "recording_window",
+      "foreground_at_paste": "target",
+      "pasted": true
+    },
+    {
+      "focused_before": true,
+      "foreground_after_show": "recording_window",
+      "foreground_at_paste": "target",
+      "pasted": true
+    },
+    {
+      "focused_before": true,
+      "foreground_after_show": "recording_window",
+      "foreground_at_paste": "target",
+      "pasted": true
+    },
+    {
+      "focused_before": true,
+      "foreground_after_show": "recording_window",
+      "foreground_at_paste": "target",
+      "pasted": true
+    },
+    {
+      "focused_before": true,
+      "foreground_after_show": "recording_window",
+      "foreground_at_paste": "target",
+      "pasted": true
+    },
+    {
+      "focused_before": true,
+      "foreground_after_show": "recording_window",
+      "foreground_at_paste": "target",
+      "pasted": true
+    }
+  ],
+  "monitors": [
+    {
+      "screen": "Monitor",
+      "device_pixel_ratio": 1.5,
+      "inside_available_geometry": true,
+      "same_monitor_win32": true
+    }
+  ],
+  "topmost_other_no_fix": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+  ],
+  "topmost_other_with_fix_return_ms": [
+    112.01529996469617,
+    10.516199981793761,
+    10.134299984201789,
+    10.44100010767579,
+    10.520000010728836,
+    10.269800201058388,
+    10.937999933958054,
+    10.263900039717555,
+    10.186400031670928,
+    10.30330010689795
+  ],
+  "topmost_fight_flips_in_3s": 54,
+  "topmost_reshow": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+  ]
+}

@@ -10,12 +10,16 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from unittest.mock import MagicMock
+from typing import TYPE_CHECKING
+from unittest.mock import MagicMock, call
 
 import pytest
 
 from tests.unit.log_helpers import read_log_records
 from voice_paste.shared.errors import StartupError
+
+if TYPE_CHECKING:
+    from voice_paste.features.outputs import OutputSpec
 
 
 @pytest.fixture
@@ -290,3 +294,105 @@ def test_log_notify_when_failure(caplog: pytest.LogCaptureFixture) -> None:
     assert len(warnings) == 1
     assert "api_unavailable" in warnings[0].getMessage()
     assert "47823" in warnings[0].getMessage()
+
+
+# === _wire_outputs ===
+
+
+def _install_adapters(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
+    """main が出力先へ渡す外部連携と time.sleep を偽物に差し替え、呼ばれた順を持つ親の Mock を返す。
+
+    親の `copy_to_clipboard`・`send_paste`・`send_enter`・`open_app_window`・`sleep` がそれぞれの偽物。
+    """
+    import voice_paste.main as main_module
+
+    adapters = MagicMock()
+    monkeypatch.setattr(main_module, "copy_to_clipboard", adapters.copy_to_clipboard)
+    monkeypatch.setattr(main_module, "send_paste", adapters.send_paste)
+    monkeypatch.setattr(main_module, "send_enter", adapters.send_enter)
+    monkeypatch.setattr(main_module, "open_app_window", adapters.open_app_window)
+    monkeypatch.setattr("time.sleep", adapters.sleep)
+    return adapters
+
+
+def _outputs_by_id(wired: tuple[OutputSpec, ...]) -> dict[str, OutputSpec]:
+    """配線した出力先の一覧を、出力先の ID で引ける dict にする。"""
+    return {spec.id: spec for spec in wired}
+
+
+def test_wire_outputs(monkeypatch: pytest.MonkeyPatch) -> None:
+    """各出力先に設定の値を配線する（正常系）。"""
+    from voice_paste.features.outputs import OUTPUTS
+    from voice_paste.main import _wire_outputs
+    from voice_paste.shared.settings import (
+        AiChatSettings,
+        CopyOnlySettings,
+        KeyboardSettings,
+        PasteAndSendSettings,
+        PasteOnlySettings,
+        Settings,
+    )
+    from voice_paste.shared.types import TranscriptionOutcome
+
+    # 準備
+    adapters = _install_adapters(monkeypatch)
+    settings = Settings(
+        keyboard=KeyboardSettings(paste_key="<ctrl>+<shift>+v"),
+        outputs=[
+            PasteAndSendSettings(enter_delay_sec=0.2),
+            PasteOnlySettings(),
+            CopyOnlySettings(),
+            AiChatSettings(open_delay_sec=1.5),
+        ],
+    )
+    outcome = TranscriptionOutcome(
+        session_id="session-1", result="transcribed", text="テスト", error=None
+    )
+
+    # 実行
+    wired = _wire_outputs(lambda: settings)
+    by_id = _outputs_by_id(wired)
+    by_id["paste_and_send"].handler(outcome, None)
+    paste_and_send_sleeps = list(adapters.sleep.mock_calls)
+    adapters.sleep.reset_mock()
+    by_id["ai_chat"].handler(outcome, "https://chatgpt.com")
+    ai_chat_sleeps = list(adapters.sleep.mock_calls)
+
+    # 検証
+    assert [spec.id for spec in wired] == [spec.id for spec in OUTPUTS]
+    adapters.send_paste.assert_called_with("<ctrl>+<shift>+v")
+    assert paste_and_send_sleeps == [call(0.2)]
+    adapters.open_app_window.assert_called_once_with("https://chatgpt.com")
+    assert ai_chat_sleeps == [call(1.5), call(0.2)]
+
+
+def test_wire_outputs_when_settings_changed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """配線の後に変えた設定が次の届け方に効く（正常系）。"""
+    from voice_paste.main import _wire_outputs
+    from voice_paste.shared.settings import (
+        KeyboardSettings,
+        PasteAndSendSettings,
+        Settings,
+    )
+    from voice_paste.shared.types import TranscriptionOutcome
+
+    # 準備
+    adapters = _install_adapters(monkeypatch)
+    get_settings = MagicMock(return_value=Settings())
+    outcome = TranscriptionOutcome(
+        session_id="session-1", result="transcribed", text="テスト", error=None
+    )
+    wired = _wire_outputs(get_settings)
+
+    # 配線の後に設定を差し替える
+    get_settings.return_value = Settings(
+        keyboard=KeyboardSettings(paste_key="<ctrl>+<alt>+v"),
+        outputs=[PasteAndSendSettings(enter_delay_sec=1.0)],
+    )
+
+    # 実行
+    _outputs_by_id(wired)["paste_and_send"].handler(outcome, None)
+
+    # 検証
+    adapters.send_paste.assert_called_once_with("<ctrl>+<alt>+v")
+    adapters.sleep.assert_called_once_with(1.0)

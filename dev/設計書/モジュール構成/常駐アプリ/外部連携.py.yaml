@@ -1,5 +1,5 @@
 title: "常駐アプリ / 外部連携"
-lead: 文字起こしワーカーの子プロセス・システム音量・キーボードとクリップボードを包むアダプタ。feature の関数型を満たし、外の例外をアプリの例外に変える。
+lead: 文字起こしワーカーの子プロセス・システム音量・キーボードとクリップボード・AI チャットの画面を開くブラウザを包むアダプタ。feature の関数型を満たし、外の例外をアプリの例外に変える。
 directory: |-
   ```
   src/voice_paste/integrations/
@@ -8,8 +8,10 @@ directory: |-
   │   └── worker.py     # 子プロセスの本体（文字起こしワーカーのサブシステム）
   ├── volume/
   │   └── adapter.py    # lower_volume・restore_volume（pycaw を == で固定して包む）
-  └── keyboard/
-      └── sender.py     # copy_to_clipboard・send_paste・send_enter
+  ├── keyboard/
+  │   └── sender.py     # copy_to_clipboard・send_paste・send_enter
+  └── browser/
+      └── opener.py     # open_app_window（Edge の --app で開き、無ければ既定のブラウザ）
   ```
 classes:
   - name: WhisperWorkerClient
@@ -351,12 +353,37 @@ functions:
     returns:
       type: None
       description: なし
+    process: |-
+      1. pyperclip.copy で text を書く
+         - pyperclip が例外を出した場合、DeliveryError を送出する（理由に元の例外を残す）
+         - `[INFO]` クリップボードへ書いた（文字数）
     exceptions:
       - name: DeliveryError
         condition: ほかのアプリがクリップボードを開いたままで書けない
     refs:
       - dev/設計書/外部ライブラリ/pyperclip#
-    status: planned
+    status: implemented
+    unit_tests:
+      - name: test_copy_to_clipboard
+        case: 正常
+        summary: クリップボードへ書く
+        condition: text が「テスト」
+        mock: pyperclip.copy
+        expected: pyperclip.copy に「テスト」が 1 回渡る
+      - name: test_copy_to_clipboard_when_failed
+        case: 異常
+        summary: 書けなければ DeliveryError
+        condition: pyperclip.copy が pyperclip.PyperclipException を送出する
+        mock: pyperclip.copy
+        expected: DeliveryError が送出される
+        exception: ほかのアプリがクリップボードを開いたままで書けない
+    connectivity_tests:
+      - name: test_ext_copy_to_clipboard
+        api: pyperclip.copy / pyperclip.paste
+        summary: 実機のクリップボードへ書いて読み戻せる
+        checks: copy_to_clipboard("voice-paste のテスト") の後に pyperclip.paste で読んだ文字が一致する
+        cost: 料金なし。実行中はクリップボードの中身が変わり、終わりに実行前の中身へ戻す
+        notes: クリップボードを持たない環境では skip する
   - name: send_paste
     title: 貼り付けのキーの送信
     kind: 関数
@@ -364,25 +391,77 @@ functions:
     usecase: 起こした文字を届ける
     scope: public
     summary: pynput で設定の貼り付けのキー（既定 Ctrl+V）を今のアクティブなウィンドウへ送る
+    args:
+      - name: paste_key
+        type: str
+        required: true
+        passing: positional
+        description: 貼り付けのキー（pynput の GlobalHotKeys の書式。設定の keyboard.paste_key）
     returns:
       type: None
       description: なし
+    process: |-
+      1. paste_key を `+` で区切り、各キーの前後の空白を除いて小文字にする（`<Ctrl> + v` も `<ctrl>+v` と同じに扱う。voice_paste_legacy の _parse_paste_key と同じ）
+      2. `<ctrl>`・`<shift>`・`<alt>`・`<cmd>`・`<win>` を修飾キー、それ以外を主キーにする
+         - 主キーが 1 つでない場合、DeliveryError を送出する（キーを送らない）
+      3. FOCUS_SETTLE_SEC だけ待つ（貼り付け先のフォーカスが落ち着くのを待つ）
+      4. 修飾キーを順に押し、主キーを押して離し、修飾キーを逆順に離す
+         - `[INFO]` 貼り付けのキーを送った（paste_key）
     refs:
       - dev/設計書/外部ライブラリ/pynput#
-    status: planned
+    status: implemented
+    unit_tests:
+      - name: test_send_paste
+        case: 正常
+        summary: 待ってから修飾キーと主キーを順に押して離す
+        condition: paste_key が `<ctrl>+v`
+        mock: pynput.keyboard.Controller・time.sleep
+        expected: sleep(0.1)・press(ctrl)・press('v')・release('v')・release(ctrl) の順に呼ばれる
+      - name: test_send_paste_when_multiple_modifiers
+        case: 正常
+        summary: 修飾キーが 2 つでも逆順に離す
+        condition: paste_key が `<ctrl>+<shift>+v`
+        mock: pynput.keyboard.Controller・time.sleep
+        expected: sleep(0.1)・press(ctrl)・press(shift)・press('v')・release('v')・release(shift)・release(ctrl) の順に呼ばれる
+      - name: test_send_paste_when_spaced_and_uppercase
+        case: 正常
+        summary: キーの前後の空白と大文字を揃えて同じキーとして送る
+        condition: paste_key が `<Ctrl> + V`
+        mock: pynput.keyboard.Controller・time.sleep
+        expected: sleep(0.1)・press(ctrl)・press('v')・release('v')・release(ctrl) の順に呼ばれる
+      - name: test_send_paste_when_no_main_key
+        case: 異常
+        summary: 主キーが 1 つ無ければキーを送らずに DeliveryError
+        condition: paste_key が `<ctrl>`
+        mock: pynput.keyboard.Controller・time.sleep
+        expected: DeliveryError が送出され、press が呼ばれない
+        exception: paste_key に主キーが 1 つ無い（修飾キーだけ・主キーが 2 つ以上）
+    exceptions:
+      - name: DeliveryError
+        condition: paste_key に主キーが 1 つ無い（修飾キーだけ・主キーが 2 つ以上）
   - name: send_enter
     title: Enter の送信
     kind: 関数
     container: integrations/keyboard/sender.py
     usecase: 起こした文字を届ける
     scope: public
-    summary: pynput で Enter を送る
+    summary: pynput で Enter を今のアクティブなウィンドウへ送る（待ちは呼ぶ側が置く）
     returns:
       type: None
       description: なし
+    process: |-
+      1. Enter を押して離す
+         - `[INFO]` Enter を送った
     refs:
       - dev/設計書/外部ライブラリ/pynput#
-    status: planned
+    status: implemented
+    unit_tests:
+      - name: test_send_enter
+        case: 正常
+        summary: Enter を押して離す
+        condition: なし
+        mock: pynput.keyboard.Controller
+        expected: press(Key.enter)・release(Key.enter) の順に 1 回ずつ呼ばれる
   - name: _fade_to
     title: 音量を変える
     kind: 関数
@@ -465,6 +544,61 @@ functions:
         mock: _open_endpoint_volume
         expected: None が返る
     status: implemented
+  - name: open_app_window
+    title: アプリのウィンドウで開く
+    kind: 関数
+    container: integrations/browser/opener.py
+    usecase: 起こした文字を届ける
+    scope: public
+    summary: URL を Microsoft Edge の `--app` でアプリのウィンドウとして開く。Edge が見つからなければ既定のブラウザで開く
+    args:
+      - name: url
+        type: str
+        required: true
+        passing: positional
+        description: 開く URL（設定の AI チャットの送り先の URL）
+    returns:
+      type: None
+      description: なし（開いた画面の読み込みを待たない）
+    process: |-
+      1. Edge の実行ファイルを探す（PATH の `msedge`、無ければ EDGE_PATHS の順に存在するもの）
+      2. 見つかった場合、`[{Edge}, "--app={url}"]` を subprocess.Popen で起動する
+         - `[INFO]` AI チャットを Edge のアプリのウィンドウで開いた（url）
+      3. 見つからない場合、os.startfile で既定のブラウザで開く
+         - `[INFO]` AI チャットを既定のブラウザで開いた（url）
+         - 2・3 で OSError が出た場合、DeliveryError を送出する（理由に元の例外を残す）
+    exceptions:
+      - name: DeliveryError
+        condition: Edge も既定のブラウザも起動できない
+    refs:
+      - dev/設計書/外部ライブラリ/Microsoft_Edge#
+    status: implemented
+    unit_tests:
+      - name: test_open_app_window
+        case: 正常
+        summary: Edge があれば --app で開く
+        condition: shutil.which が msedge を返す
+        mock: shutil.which・subprocess.Popen・os.startfile
+        expected: Popen に ["msedge", "--app=https://chatgpt.com"] が渡り、os.startfile が呼ばれない
+      - name: test_open_app_window_when_installed_path
+        case: 正常
+        summary: PATH に無くても既定の置き場所の Edge で開く
+        condition: shutil.which が None で、EDGE_PATHS の 2 つ目だけが存在する
+        mock: shutil.which・Path.exists・subprocess.Popen
+        expected: Popen の先頭に EDGE_PATHS の 2 つ目が渡る
+      - name: test_open_app_window_when_edge_missing
+        case: 正常
+        summary: Edge が無ければ既定のブラウザで開く
+        condition: shutil.which が None で、EDGE_PATHS がどれも存在しない
+        mock: shutil.which・Path.exists・subprocess.Popen・os.startfile
+        expected: os.startfile に URL が渡り、Popen が呼ばれない
+      - name: test_open_app_window_when_failed
+        case: 異常
+        summary: 起動できなければ DeliveryError
+        condition: subprocess.Popen が OSError を送出する
+        mock: shutil.which・subprocess.Popen
+        expected: DeliveryError が送出される
+        exception: Edge も既定のブラウザも起動できない
 constants:
   - name: FADE_STEPS
     title: フェードの段数
@@ -487,8 +621,25 @@ constants:
     summary: 今の音量と目標の差がこの値未満なら、段に分けず 1 回で書く
     value: '0.005'
     status: implemented
+  - name: FOCUS_SETTLE_SEC
+    title: フォーカスが落ち着くまでの待ち
+    container: integrations/keyboard/sender.py
+    usecase: 起こした文字を届ける
+    summary: 貼り付けのキーを送る前に待つ秒数。voice_paste_legacy の send_paste と同じ値
+    value: '0.1'
+    status: implemented
+  - name: EDGE_PATHS
+    title: Edge の既定の置き場所
+    container: integrations/browser/opener.py
+    usecase: 起こした文字を届ける
+    summary: PATH に msedge が無いときに探す Edge の実行ファイル。voice_paste_legacy の _find_edge と同じ並び
+    value: (r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe", r"C:\Program Files\Microsoft\Edge\Application\msedge.exe")
+    status: implemented
 test_files:
   - tests/unit/voice_paste/integrations/whisper/test_client.py
   - tests/unit/voice_paste/integrations/volume/test_adapter.py
+  - tests/unit/voice_paste/integrations/keyboard/test_sender.py
+  - tests/unit/voice_paste/integrations/browser/test_opener.py
 external_test_files:
   - tests/external/voice_paste/integrations/volume/test_adapter.py
+  - tests/external/voice_paste/integrations/keyboard/test_sender.py

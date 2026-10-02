@@ -76,6 +76,9 @@ data_models:
         type: Recording | None
         default: None
         description: API の録音を止めた後、完了までセッションが持つ貯めた音
+      - name: output_target
+        type: str | None
+        description: ホットキー・トレイから始めた録音で、確定の操作で選んだ出力先に固有の宛先（AI チャットの送り先の URL）。持たない出力先は None
     status: implemented
   - name: SessionDeps
     title: セッションの依存
@@ -458,6 +461,11 @@ classes:
             required: false
             default: None
             description: 確定の操作で選んだ出力先の ID（ホットキー・トレイのとき）
+          - name: output_target
+            type: str | None
+            required: false
+            default: None
+            description: 確定の操作で選んだ出力先に固有の宛先（AI チャットの送り先の URL。ホットキー・トレイのとき）
         returns:
           type: None
           description: なし（結果は出力先へ届く）
@@ -467,7 +475,7 @@ classes:
           2. session_id が None の場合（ホットキー・トレイ）、今のセッションの入口が api でなく、recording か paused であることを確かめる
              - 当たらない場合、何もしない（API のセッションに確定のホットキーが来ても変えない）
           3. stopped でなければ録音を止める（録音の停止）
-          4. 録音を保存し（録音の保存）、状態を transcribing にする
+          4. 録音を保存し（録音の保存）、状態を transcribing にして output_id と output_target をセッションに持たせる
              - `[INFO]` 録音を確定した（セッションの ID・録音の長さ・保存先）
              - 3〜4 で例外が出た場合、確定の失敗を片付け（確定の失敗）、その例外を送出し直す（API の route は既存のハンドラで 500 を返す）
           5. ワーカースレッドで文字起こしから届けるまでを始める（確定後の流れ）
@@ -521,6 +529,12 @@ classes:
             mock: SessionDeps の全関数。ワーカースレッドは同期で動かす
             expected: OSError が送出され、セッションが空になり、notify に transcription_failed が渡り、deliver が呼ばれず、続く start が通る
             exception: 録音を保存できない
+          - name: test_complete_when_output_target
+            case: 正常
+            summary: 選んだ出力先の ID と宛先を届けるときの Session に持たせる
+            condition: ホットキーのセッションが recording で、complete(output_id="ai_chat", output_target="https://chatgpt.com")
+            mock: SessionDeps の全関数。ワーカースレッドは同期で動かす
+            expected: deliver に渡った Session の output_id が ai_chat、output_target が https://chatgpt.com
       - name: cancel
         title: 取り消し
         kind: メソッド

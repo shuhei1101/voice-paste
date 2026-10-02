@@ -3,6 +3,9 @@
 本物の app（build_fastapi）を ApiServerRunner で 127.0.0.1 の空きポートに立て、httpx で叩く。
 マイク・システム音量・文字起こしのエンジンは偽物にし、履歴は一時フォルダに書く。
 返送先は、テストが 127.0.0.1 に立てる受け口にする。
+
+ホットキー・トレイのセッションが確定で選んだ出力先へ届く結合テストは、API を立てず、
+main.py の配線（_wire_outputs）で作った出力先を使い、キーボード・ブラウザのアダプタと間だけを偽物にする（build_output_stack）。
 """
 
 from __future__ import annotations
@@ -17,16 +20,19 @@ from datetime import UTC, datetime, timedelta
 from functools import partial
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
 
 import httpx
 import numpy as np
+import pytest
 
 from voice_paste.features.correction import apply_glossary
 from voice_paste.features.history import append_text, discard_temporary, save_recording
 from voice_paste.features.outputs import OUTPUTS, deliver, is_callback_allowed
 from voice_paste.features.outputs.callback.client import post_json
+from voice_paste.features.outputs.registry import CALLBACK_OUTPUT_ID
 from voice_paste.features.recording import Recorder
 from voice_paste.features.session import (
     Session,
@@ -35,7 +41,13 @@ from voice_paste.features.session import (
     SessionManager,
 )
 from voice_paste.features.transcription.service import transcribe
-from voice_paste.main import CALLBACK_RETRY_COUNT, CALLBACK_TIMEOUT_SEC
+import voice_paste.main as main_module
+from voice_paste.main import (
+    CALLBACK_RETRY_COUNT,
+    CALLBACK_TIMEOUT_SEC,
+    _deliver_session,
+    _wire_outputs,
+)
 from voice_paste.server.app import build_fastapi
 from voice_paste.server.runner import ApiServerRunner
 from voice_paste.server.token import create_token
@@ -292,8 +304,9 @@ def build_stack(tmp_path: Path) -> Stack:
     )
 
     # 呼び出し元へ返す出力先は、本物のタイムアウトと再送の回数で、再送の間隔だけ短くする
+    callback_spec = next(spec for spec in OUTPUTS if spec.id == CALLBACK_OUTPUT_ID)
     callback_handler = partial(
-        OUTPUTS[0].handler,
+        callback_spec.handler,
         post=partial(post_json, timeout_sec=CALLBACK_TIMEOUT_SEC),
         allowed_hosts=frozenset(),
         retry_count=CALLBACK_RETRY_COUNT,
@@ -301,13 +314,14 @@ def build_stack(tmp_path: Path) -> Stack:
         sleep=time.sleep,
         jitter=lambda upper: upper,
     )
-    outputs = (replace(OUTPUTS[0], handler=callback_handler),)
+    outputs = (replace(callback_spec, handler=callback_handler),)
 
     def deliver_session(session: Session, outcome: TranscriptionOutcome) -> None:
         """Session を入口・出力先・返送先に分けて出力先の deliver へ渡す。"""
         deliver(
             session.entry,
             session.output_id,
+            session.output_target,
             session.callback_url,
             outcome,
             enabled_ids=frozenset(),
@@ -365,3 +379,78 @@ def stop_stack(stack: Stack) -> None:
     stack.runner.stop()
     stack.manager.close()
     stack.receiver.stop()
+
+
+@dataclass
+class OutputStack:
+    """ホットキーのセッションを、配線した出力先へ届ける一式。キーボード・ブラウザのアダプタと間は偽物。"""
+
+    manager: SessionManager
+    adapters: MagicMock
+    """呼ばれた順を 1 本の列で持つ親の Mock。`copy_to_clipboard`・`send_paste`・`send_enter`・`open_app_window`・`sleep` が偽物。"""
+    notify: MagicMock
+    engine: FakeEngine
+
+    def confirm(self, output_id: str, output_target: str | None = None) -> None:
+        """ホットキーのセッションを始め、output_id を選んで確定する。"""
+        self.manager.start("hotkey")
+        self.manager.complete(output_id=output_id, output_target=output_target)
+
+    def wait_for_idle(self) -> bool:
+        """セッションが空（待機中）に戻るまで待ち、戻ったかを返す。"""
+        return wait_until(lambda: self.manager._session is None)
+
+    def events(self) -> list[str]:
+        """notify に渡された知らせの種類を、渡された順に返す。"""
+        return [call.args[0] for call in self.notify.call_args_list]
+
+
+def build_output_stack(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, settings: Settings | None = None
+) -> OutputStack:
+    """ホットキーのセッションが、main.py の配線で作った出力先へ届く SessionManager を作る。"""
+    settings = settings if settings is not None else Settings()
+    paths = resolve_app_paths(tmp_path)
+    clock = Clock(START)
+    microphone = FakeMicrophone()
+    volume = FakeVolume()
+    engine = FakeEngine()
+    notify = MagicMock()
+
+    # キーボード・ブラウザのアダプタと間は、呼ばれた順を 1 本の列で見られる偽物に差し替える
+    adapters = MagicMock()
+    monkeypatch.setattr(main_module, "copy_to_clipboard", adapters.copy_to_clipboard)
+    monkeypatch.setattr(main_module, "send_paste", adapters.send_paste)
+    monkeypatch.setattr(main_module, "send_enter", adapters.send_enter)
+    monkeypatch.setattr(main_module, "open_app_window", adapters.open_app_window)
+    # main.py が出力先へ渡す time.sleep だけを差し替える（待つ側の time.sleep は本物のまま）
+    monkeypatch.setattr(main_module, "time", SimpleNamespace(sleep=adapters.sleep))
+
+    recorder = Recorder(
+        lower_volume=volume.lower_volume,
+        restore_volume=volume.restore_volume,
+        open_input=microphone.open_input,
+        get_settings=lambda: settings.recording,
+    )
+    enabled_ids = frozenset(output.id for output in settings.outputs if output.enabled)
+    deliver_session = partial(
+        _deliver_session, enabled_ids=enabled_ids, outputs=_wire_outputs(lambda: settings)
+    )
+    deps = SessionDeps(
+        start_recording=recorder.start,
+        pause_recording=recorder.pause,
+        resume_recording=recorder.resume,
+        stop_recording=recorder.stop,
+        discard_recording=recorder.discard,
+        save_recording=partial(save_recording, history_enabled=True, paths=paths, now=clock),
+        transcribe=partial(transcribe, engine=engine),
+        correct=lambda text: apply_glossary(text, []),
+        append_text=partial(append_text, paths=paths),
+        deliver=deliver_session,
+        notify=notify,
+        now=clock,
+        discard_temporary=partial(discard_temporary, paths=paths),
+    )
+    return OutputStack(
+        manager=SessionManager(deps, SESSION_LIMIT), adapters=adapters, notify=notify, engine=engine
+    )

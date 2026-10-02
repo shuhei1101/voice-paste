@@ -48,7 +48,7 @@ elements:
     id: pause_button
     kind: button
     position: 窓 > 操作の行
-    description: 録音を一時停止する。名前の横に一時停止のホットキーを出す
+    description: 録音を一時停止する。一時停止の間に話した声は録らない。名前の横に一時停止のホットキーを出す
     label: 一時停止 [hotkeys.pause]
     visible_when: 状態が recording のとき
     action_ref: dev/設計書/モジュール構成/常駐アプリ/セッション.py#classes[SessionManager].methods[pause]
@@ -80,7 +80,7 @@ elements:
     id: output_button_{output_id}
     kind: button
     position: 窓 > 確定して届ける
-    description: 出力先を選んで録音を確定し、文字起こし中の表示へ移る。設定でオンの出力先（`paste_and_send`・`paste_only`・`copy_only`）ごとに設定の並びで 1 つずつ出し、オンのうち一番上のものを主の操作にする。名前の横にその出力先のホットキーを出す
+    description: 出力先を選んで録音を確定し、文字起こし中の表示へ移る。一時停止中でも確定できる。設定でオンの出力先（`paste_and_send`・`paste_only`・`copy_only`）ごとに設定の並びで 1 つずつ出し、オンのうち一番上のものを主の操作にする。名前の横にその出力先のホットキーを出す
     label: 貼り付けて送信 / 貼り付けのみ / コピーのみ
     visible_when: その出力先の `outputs[].enabled` がオンのとき
     options: '`outputs[]` の並び（paste_and_send・paste_only・copy_only）のうちオンのもの'
@@ -102,7 +102,7 @@ elements:
     id: ai_chat_button_{n}
     kind: button
     position: 窓 > AI チャットへ送る
-    description: AI チャットの送り先を選んで録音を確定し、文字起こし中の表示へ移る。出すとした送り先ごとに設定の並びで 1 つずつ出す。名前はボタンの幅で `…` に省略し、かざすと全体を出す。ホットキーは省略しない
+    description: AI チャットの送り先を選んで録音を確定し、文字起こし中の表示へ移る。一時停止中でも確定できる。出すとした送り先ごとに設定の並びで 1 つずつ出す。名前はボタンの幅で `…` に省略し、かざすと全体を出す。ホットキーは省略しない
     label: '{送り先の名前} [送り先のホットキー]'
     visible_when: 出力先 `ai_chat` がオンで、その送り先の `enabled` がオンのとき
     options: '`outputs[ai_chat].targets[]` の並びのうち `enabled` がオンのもの'
@@ -112,13 +112,6 @@ elements:
     refs:
       - dev/設計書/設定/常駐アプリ#settings[outputs[].targets[].name]
       - dev/設計書/設定/常駐アプリ#settings[outputs[].targets[].hotkey]
-  - name: 一時停止中の案内
-    id: paused_hint
-    kind: label
-    position: 窓 > 確定のボタンの下
-    description: 一時停止の間の声を録らないことと、一時停止中でも確定できることを伝える
-    label: 一時停止の間に話した声は録らない。確定は一時停止中でも行える。
-    visible_when: 状態が paused のとき
 screen: src/voice_paste/ui/windows/recording_window.py
 mock: dev/mock/pages/recording-window/37/a-standard/
 lead: ホットキー・トレイから始めた録音の間だけ出る小さな窓。状態・経過時間・波形と、一時停止・取り消し・確定の操作を並べる。

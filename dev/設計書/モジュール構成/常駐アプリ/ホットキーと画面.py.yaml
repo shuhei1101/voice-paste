@@ -504,7 +504,7 @@ classes:
           description: なし
       - name: set_paused
         title: 一時停止の切り替え
-        summary: 状態の表示・一時停止と再開のボタン・一時停止中の案内を替え、経過時間と波形を止める・動かす
+        summary: 状態の表示と一時停止・再開のボタンを替え、経過時間と波形を止める・動かす
         kind: メソッド
         scope: public
         args:

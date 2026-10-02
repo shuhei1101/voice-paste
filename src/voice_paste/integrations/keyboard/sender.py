@@ -39,8 +39,8 @@ def copy_to_clipboard(text: str) -> None:
 
 def send_paste(paste_key: str) -> None:
     """設定の貼り付けのキーを、フォーカスが落ち着くのを待ってから今のアクティブなウィンドウへ送る。"""
-    # 1. 貼り付けのキーを、修飾キーと主キーに分ける
-    tokens = paste_key.split(KEY_SEPARATOR)
+    # 1. 貼り付けのキーを、前後の空白を除いて小文字にしたキーに区切り、修飾キーと主キーに分ける
+    tokens = [token.strip().lower() for token in paste_key.split(KEY_SEPARATOR)]
     modifiers = [MODIFIER_KEYS[token] for token in tokens if token in MODIFIER_KEYS]
     main_keys = [token for token in tokens if token not in MODIFIER_KEYS]
     if len(main_keys) != 1:

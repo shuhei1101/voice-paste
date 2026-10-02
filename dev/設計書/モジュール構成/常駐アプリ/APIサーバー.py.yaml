@@ -112,12 +112,18 @@ classes:
              - started が False のままの場合、False を返す
                - `[ERROR]` API の待ち受けを始められなかった（ポート）
         unit_tests:
+          - name: test_start
+            case: 正常
+            summary: 空きポートなら待ち受けを始める
+            condition: 127.0.0.1 の空きポート
+            mock: なし（GET だけを返す小さな app）
+            expected: True が返り、そのポートへの要求に応答が返る
           - name: test_start_when_port_in_use
             case: 正常
             summary: ポートが使われていれば False
             condition: 先に同じポートを開いておく
             mock: なし（127.0.0.1 の空きポート）
-            expected: False が返る
+            expected: False が返り、ERROR のログが 1 行出る
       - name: stop
         title: 停止
         kind: メソッド
@@ -126,9 +132,38 @@ classes:
         returns:
           type: None
           description: なし
+        process: |-
+          1. スレッドが無ければ何もしない
+          2. should_exit を立て、スレッドの終わりを待つ
+             - `[INFO]` API の待ち受けを止めた（ポート）
+        unit_tests:
+          - name: test_stop
+            case: 正常
+            summary: 止めるとポートが空く
+            condition: start で True が返った後に stop を呼ぶ
+            mock: なし（127.0.0.1 の空きポート）
+            expected: スレッドが終わっており、同じポートを開き直せる
+          - name: test_stop_when_not_started
+            case: 正常
+            summary: 始めていなければ何もしない
+            condition: start を呼ばずに stop を呼ぶ
+            mock: なし
+            expected: 例外が出ない
     refs:
       - dev/設計書/外部ライブラリ/uvicorn#
     status: planned
+    description: |-
+      app とポートを受けて `uvicorn.Server`（host は `127.0.0.1` 固定、アクセスログを出さない）を作る。
+      待ち受けの成否を戻り値で返すのは、uvicorn が待ち受けに失敗しても例外を出さずスレッドを終えるため。
+    properties:
+      - name: _server
+        type: uvicorn.Server
+        access: 内部 (_)
+        description: 127.0.0.1:{ポート} で待ち受ける uvicorn のサーバー
+      - name: _thread
+        type: threading.Thread | None
+        access: 内部 (_)
+        description: serve() を動かすスレッド。start の前は None
 functions:
   - name: build_fastapi
     title: app の組み立て
@@ -157,6 +192,24 @@ functions:
       type: FastAPI
       description: 組み立てた app
     status: planned
+    process: |-
+      1. 自動で作られる文書のページ（docs・redoc・openapi.json）を持たない FastAPI を作る
+      2. app.state.session_api にセッションの API の依存を置き、セッションの route（開始・停止・完了）を include_router で集める
+      3. 例外ハンドラを登録する（register_exception_handlers）
+      4. 要求の守り（RequestGuardMiddleware）にトークンとポートを渡して組み込む
+    unit_tests:
+      - name: test_build_fastapi
+        case: 正常
+        summary: 守りを通った開始がセッション管理へ届く
+        condition: TestClient（base_url は http://127.0.0.1:{ポート}）で正しいトークンと loopback の返送先を付けて POST /sessions
+        mock: SessionManager（start がセッションを返す）・is_callback_allowed
+        expected: 202 と session_id が返り、start が entry=api と返送先で 1 回呼ばれる
+      - name: test_build_fastapi_when_docs_requested
+        case: 正常
+        summary: 文書のページを出さない
+        condition: 正しいトークンで GET /docs と GET /openapi.json
+        mock: SessionManager
+        expected: どちらも 404
   - name: register_exception_handlers
     title: 例外ハンドラの登録
     kind: 関数
@@ -197,7 +250,7 @@ functions:
     container: server/token.py
     usecase: 常駐アプリを起動する
     scope: public
-    summary: secrets で起動ごとのトークンを作り、ポートと共にトークンのファイル（ユーザーの %LOCALAPPDATA% の下）へ書く
+    summary: secrets で起動ごとのトークンを作り、ポートと共にトークンのファイル（置き場所の token_file）へ書く
     args:
       - name: token_file
         type: Path
@@ -212,4 +265,30 @@ functions:
     returns:
       type: SecretStr
       description: 作ったトークン
+    status: planned
+    process: |-
+      1. secrets.token_urlsafe(TOKEN_BYTES) でトークンを作る
+      2. `{"port": {ポート}, "token": "{トークン}"}` の JSON を、同じフォルダの一時ファイルに UTF-8 で書いてから token_file へ置き換える（読む側が書きかけを読まない）
+         - `[INFO]` トークンのファイルを書いた（パス・ポート。トークンは書かない）
+      3. トークンを SecretStr で返す
+    unit_tests:
+      - name: test_issue_token
+        case: 正常
+        summary: トークンとポートを書く
+        condition: 一時フォルダの token_file、ポート 47823
+        mock: なし（一時フォルダ）
+        expected: token_file の JSON の port が 47823、token が返った SecretStr の値と一致し、INFO のログにトークンが含まれない
+      - name: test_issue_token_when_called_twice
+        case: 正常
+        summary: 起動ごとに違うトークンになる
+        condition: 同じ token_file で2 回呼ぶ
+        mock: なし（一時フォルダ）
+        expected: 2 つのトークンが違い、token_file には 2 回目のトークンがある
+constants:
+  - name: TOKEN_BYTES
+    title: トークンのバイト数
+    container: server/token.py
+    usecase: 常駐アプリを起動する
+    summary: secrets.token_urlsafe に渡す乱数のバイト数。256 bit で推測できない長さにする
+    value: '32'
     status: planned

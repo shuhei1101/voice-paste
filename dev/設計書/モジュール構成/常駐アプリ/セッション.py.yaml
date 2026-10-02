@@ -263,7 +263,7 @@ function_types:
     summary: 状態の変化と失敗を画面・トレイへ渡す
     args:
       - name: event
-        type: Literal["state_changed", "busy", "microphone_unavailable", "transcription_failed", "delivery_failed"]
+        type: Literal["state_changed", "busy", "microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable"]
         description: 知らせの種類
       - name: detail
         type: str | None
@@ -644,6 +644,33 @@ classes:
             condition: 入口が hotkey で deliver が UnknownOutputError を送出する
             mock: SessionDeps の全関数
             expected: notify に delivery_failed が渡り、セッションが空になる
+      - name: close
+        title: 終了時の片付け
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        summary: 常駐サービスを終えるときに、残っているセッションの録音を捨てて待機中に戻す
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. ロックを取る
+          2. recording・paused・stopped のセッションが残っていれば、stopped でなければ録音を捨て（録音した音を捨てる）、セッションを空にする
+             - `[WARNING]` 終了のため録音を捨てた（セッションの ID・入口）
+             - transcribing・delivering の場合、何もしない（ワーカースレッドが終わり次第セッションを空にする）
+        unit_tests:
+          - name: test_close_when_recording
+            case: 正常
+            summary: 録音中のセッションは捨てる
+            condition: API のセッションが recording
+            mock: SessionDeps の全関数
+            expected: discard_recording が 1 回呼ばれ、save_recording・deliver が呼ばれず、セッションが空になる
+          - name: test_close_when_idle
+            case: 正常
+            summary: 待機中は何もしない
+            condition: セッションが無い
+            mock: SessionDeps の全関数
+            expected: discard_recording が呼ばれず、例外が出ない
     status: planned
 functions:
   - name: start_session_route

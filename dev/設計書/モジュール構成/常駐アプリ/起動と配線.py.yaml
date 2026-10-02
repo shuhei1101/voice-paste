@@ -7,7 +7,8 @@ directory: |-
   ├── __main__.py              # python -m voice_paste で main() を呼ぶ（CUDA の DLL のフォルダの登録もここ）
   ├── main.py                  # parse_args・build_handlers・main
   └── runtime/
-      └── single_instance.py   # 名前付きのミューテックスと終了の依頼（名前付きのイベント）
+      ├── single_instance.py   # 名前付きのミューテックスと終了の依頼（名前付きのイベント）
+      └── timer.py             # RepeatingTimer（上限での打ち切りを定期に呼ぶ）
   ```
 
   リポジトリの直下は `pyproject.toml`・起動のバッチファイル 1 つ・`settings.sample.toml`・`README.md`・`CLAUDE.md`・`src/`・`resources/`・`tests/`・`dev/`・`docs/` に絞る。
@@ -64,6 +65,9 @@ data_models:
       - name: start_local_session
         type: Callable[[Entry], None]
         description: ホットキー・トレイの開始（SessionManager と notify を部分適用した start_local_session）
+      - name: stop_engine
+        type: Callable[[], None]
+        description: 文字起こしのエンジンを止める（WhisperWorkerClient.stop）。終了時に呼ぶ
     status: planned
   - name: CliArgs
     title: 起動の引数
@@ -112,15 +116,17 @@ functions:
       1. 設定のエンジン（local_whisper）の WhisperWorkerClient を作って起動し、その transcribe を文字起こしの engine に渡す
          - EngineError の場合、StartupError を送出する
       2. Recorder に音量のアダプタを渡す
-      3. 出力先の deliver にオンの出力先と OUTPUTS を部分適用し、Session を入口・出力先・返送先に分けて渡すアダプタを作る
+      3. 出力先の deliver にオンの出力先と OUTPUTS を部分適用し、Session を入口・出力先・返送先に分けて渡すアダプタを作る。呼び出し元へ返す出力先には、タイムアウトを部分適用した post_json・設定の許可ホスト・再送の回数と間隔の基数・time.sleep・random.uniform(0, x) を部分適用する
       4. 用語集を文字起こしのたびに読み直す correct を作る（load_glossary → apply_glossary）
-      5. SessionDeps を組み、SessionManager を作る
+      5. SessionDeps を組み、API のセッションの上限時間と共に SessionManager を作る
       6. SessionManager と、設定の許可ホストを部分適用した is_callback_allowed を SessionApiDeps に束ねる
       7. start_local_session に SessionManager と notify を部分適用する
     exceptions:
       - name: StartupError
         condition: 文字起こしのエンジンを準備できない
     status: planned
+    notes:
+      並走の間の配線: 'ホットキーと画面を作る #21 までは 7 を飛ばし、Handlers は start_local_session を持たない。出力先を作り直す #20 までは OUTPUTS が呼び出し元へ返すだけを持つ。'
   - name: main
     title: 起動
     kind: 関数
@@ -143,14 +149,14 @@ functions:
          - StartupError の場合、トレイで知らせてログに理由を書き、録音を受け付けずにトレイだけで続ける（7 と 8 を飛ばす）
            - `[ERROR]` 起動に失敗した（理由）
       7. トークンを発行し、API サーバーを起動する（issue_token・build_fastapi・ApiServerRunner.start）
-         - False の場合、トレイで API を使えないことを知らせて続ける
-      8. ホットキーの受付を始め（開始は start_local_session、確定・一時停止・取り消しは SessionManager のメソッド）、上限の打ち切りと古い履歴・ログの削除を QTimer で定期に呼ぶ
+         - False の場合、api_unavailable を知らせて（トレイ）続ける
+      8. ホットキーの受付を始め（開始は start_local_session、確定・一時停止・取り消しは SessionManager のメソッド）、上限の打ち切りを RepeatingTimer で SESSION_LIMIT_CHECK_INTERVAL_SEC ごとに、古い履歴・ログの削除を定期に呼ぶ
       9. トレイを待機中にし、イベントループを回す
-      10. 終了の依頼かトレイの終了で、録音を捨て・API サーバー・ホットキー・ワーカーを止め、トレイを消して終わる
+      10. 終了の依頼かトレイの終了で、録音を捨て（SessionManager.close）・タイマー・API サーバー・ホットキー・ワーカーを止め、トレイを消して終わる
     status: planned
     notes:
       並走の間の処理: |-
-        配線する feature と入口が無い間（#16 から、それぞれを作る Issue まで）は、main(argv: list[str] | None = None) を次の処理にする。各 Issue が上の処理の段を足していく。
+        画面とホットキーが無い間（画面を作る #21 まで）は、main(argv: list[str] | None = None, *, wait_for_shutdown: Callable[[], None] = wait_for_shutdown_signal) を次の処理にする。各 Issue が上の処理の段を足していく。
 
         1. 起動の引数を読む（parse_args。argv が None なら sys.argv[1:]）
         2. 置き場所を決め、ログを INFO で設定する（resolve_app_paths・setup_logging）
@@ -164,37 +170,59 @@ functions:
            - SettingsError の場合、1 を返す
              - `[ERROR]` 起動に失敗した（理由）
         5. ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログを消す（purge_old_logs）
-        6. 読んだ設定の要点をログに書いて 0 を返す
            - `[INFO]` 設定を読んだ（設定ファイルのパス・エンジン・オンの出力先の ID）
+        6. 配線する（build_handlers。notify は log_notify）
+           - StartupError の場合、1 を返す
+             - `[ERROR]` 起動に失敗した（理由）
+        7. トークンを発行し、API サーバーを起動する（issue_token・build_fastapi・ApiServerRunner.start(API_START_TIMEOUT_SEC)）
+           - False の場合、api_unavailable を知らせ、エンジンを止めて 1 を返す（画面とホットキーが無い間は続けても受け付ける入口が無い）
+        8. 上限の打ち切りを RepeatingTimer で SESSION_LIMIT_CHECK_INTERVAL_SEC ごとに呼ぶ（SessionManager.truncate_if_expired）
+           - `[INFO]` 常駐サービスを始めた（API のポート）
+        9. 終了の合図を待つ（wait_for_shutdown）
+        10. 録音を捨て（SessionManager.close）、タイマー・API サーバー・エンジンの順に止めて 0 を返す
+            - `[INFO]` 常駐サービスを終えた
 
         `__main__.py` は `sys.exit(main())` だけを呼ぶ（CUDA の DLL の場所は、文字起こしワーカーの窓口が子プロセスの PATH へ足す）。
     unit_tests:
       - name: test_main
         case: 正常
-        summary: 設定を読んでログに書き 0 を返す
-        condition: --data-dir に空の一時フォルダ
-        mock: なし（一時フォルダ）
-        expected: 0。{data_dir}/settings.toml が既定値ででき、{data_dir}/log/{今日}.log に「設定を読んだ」の行がある
+        summary: 設定を読んで API を立て、終了の合図で片付けて 0 を返す
+        condition: --data-dir に空の一時フォルダ。wait_for_shutdown はすぐ戻る
+        mock: build_handlers・ApiServerRunner（start が True）・RepeatingTimer
+        expected: 0。{data_dir}/settings.toml が既定値ででき、{data_dir}/log/{今日}.log に「設定を読んだ」の行があり、token_file があり、SessionManager.close・ApiServerRunner.stop・stop_engine が 1 回ずつ呼ばれる
       - name: test_main_when_migrate_env
         case: 正常
         summary: .env を移してから読む
-        condition: --data-dir に空の一時フォルダ、--migrate-env に WHISPER_MODEL=small の .env
-        mock: なし（一時フォルダ）
+        condition: --data-dir に空の一時フォルダ、--migrate-env に WHISPER_MODEL=small の .env。wait_for_shutdown はすぐ戻る
+        mock: build_handlers・ApiServerRunner（start が True）・RepeatingTimer
         expected: 0。settings.toml の transcription.local_whisper.model が small、.env の中身が変わらず .env.migrated が無い
       - name: test_main_when_settings_exists_and_migrate_env
         case: 異常
         summary: 設定ファイルがあれば移さない
         condition: hotkeys.start を変えた settings.toml がある data_dir、--migrate-env に .env
-        mock: なし（一時フォルダ）
-        expected: 1。settings.toml が変わらず、ERROR のログが 1 行
+        mock: build_handlers
+        expected: 1。settings.toml が変わらず、ERROR のログが 1 行、build_handlers が呼ばれない
         exception: settings.toml が既にある
       - name: test_main_when_invalid_settings
         case: 異常
         summary: 設定が合わなければ 1 を返す
         condition: transcription.local_whisper.beam_size = "x" の settings.toml がある data_dir
-        mock: なし（一時フォルダ）
-        expected: 1。ERROR のログに transcription.local_whisper.beam_size が出る
+        mock: build_handlers
+        expected: 1。ERROR のログに transcription.local_whisper.beam_size が出、build_handlers が呼ばれない
         exception: SettingsError
+      - name: test_main_when_startup_error
+        case: 異常
+        summary: エンジンを準備できなければ 1 を返す
+        condition: build_handlers が StartupError を送出する
+        mock: build_handlers・ApiServerRunner
+        expected: 1。ERROR のログが 1 行、ApiServerRunner が作られない
+        exception: StartupError
+      - name: test_main_when_api_unavailable
+        case: 正常
+        summary: 待ち受けを始められなければ知らせて 1 を返す
+        condition: ApiServerRunner.start が False を返す
+        mock: build_handlers・ApiServerRunner・log_notify
+        expected: 1。log_notify に api_unavailable が渡り、stop_engine が 1 回呼ばれ、wait_for_shutdown が呼ばれない
   - name: acquire_single_instance
     title: 単一インスタンスの確保
     kind: 関数
@@ -309,6 +337,58 @@ functions:
         mock: なし
         expected: SystemExit（code 2）
     status: implemented
+  - name: log_notify
+    title: ログへの知らせ
+    kind: 関数
+    container: main.py
+    usecase: 共通
+    scope: public
+    summary: 画面とトレイが入るまでの NotifyFn。知らせをログに書く
+    args:
+      - name: event
+        type: Literal["state_changed", "busy", "microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable"]
+        required: true
+        passing: positional
+        description: 知らせの種類
+      - name: detail
+        type: str | None
+        required: false
+        default: None
+        passing: positional
+        description: 理由
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. state_changed は INFO、それ以外は WARNING で、種類と理由をログに書く
+         - `[INFO]` / `[WARNING]` ユーザーへの知らせ（種類・理由）
+    unit_tests:
+      - name: test_log_notify_when_failure
+        case: 正常
+        summary: 失敗の知らせは WARNING
+        condition: event=api_unavailable、detail="47823"
+        mock: なし
+        expected: WARNING のログに api_unavailable と 47823 が出る
+    notes:
+      差し替え: '画面を作る #21 で、build_handlers へ渡す notify をホットキーと画面の notify に差し替え、この関数を消す。'
+    status: planned
+  - name: wait_for_shutdown_signal
+    title: 終了の合図の待ち
+    kind: 関数
+    container: main.py
+    usecase: 常駐アプリを起動する
+    scope: public
+    summary: Ctrl+C（SIGINT）か Ctrl+Break（SIGBREAK）が来るまで待つ。画面とトレイが入るまでの終わり方
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. threading.Event を作り、SIGINT と（あれば）SIGBREAK のハンドラで立てる
+      2. 立つまで 1 秒ずつ待つ（メインスレッドがシグナルを受けられるよう、上限なしの wait にしない）
+         - `[INFO]` 終了の合図を受けた（シグナル）
+    notes:
+      差し替え: '画面を作る #21 で、イベントループとトレイの終了に差し替え、この関数を消す。'
+    status: planned
 notes:
   依存の向き: |-
     コーディング規約『依存関係管理』のとおり `features`・`server`・`ui` → `integrations`・`runtime` → `shared` とし、上の層へは import しない。
@@ -324,3 +404,116 @@ notes:
     | 出力先の独立 | independence | `voice_paste.features.outputs.*`。ignore_imports で `voice_paste.features.outputs.registry -> voice_paste.features.outputs.*`・`voice_paste.features.outputs.service -> voice_paste.features.outputs.registry`・`voice_paste.features.outputs.** -> voice_paste.features.outputs.types` を除く |
 
     出力先を足すときは `features/outputs/` にサブフォルダを足すだけで契約の対象に入り、契約は直さない。
+classes:
+  - name: RepeatingTimer
+    title: 定期の呼び出し
+    container: runtime/timer.py
+    usecase: APIで録音を操作する
+    role: ランタイム
+    kind: クラス
+    summary: 渡された関数を専用のデーモンスレッドで一定の間隔ごとに呼ぶ
+    description: |-
+      終わりの合図を threading.Event で持ち、Event.wait(間隔) で待つ。
+      呼んだ関数が例外を出してもスレッドを止めず、logger.exception で残して次の回を待つ（上限での打ち切りが 1 回の失敗で止まらない）。
+    properties:
+      - name: _action
+        type: Callable[[], object]
+        access: 内部 (_)
+        description: 呼ぶ関数
+      - name: _interval_sec
+        type: float
+        access: 内部 (_)
+        description: 呼ぶ間隔
+      - name: _stopped
+        type: threading.Event
+        access: 内部 (_)
+        description: 終わりの合図
+      - name: _thread
+        type: threading.Thread | None
+        access: 内部 (_)
+        description: 呼び出しのスレッド。start の前は None
+    methods:
+      - name: start
+        title: 開始
+        kind: メソッド
+        scope: public
+        summary: スレッドを始め、間隔ごとに関数を呼ぶ
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. デーモンスレッドで、終わりの合図が立つまで「間隔だけ待つ → 関数を呼ぶ」を繰り返す
+             - 関数が例外を出した場合、次の回を待つ
+               - `[ERROR]` 定期の呼び出しで想定外の例外（logger.exception）
+        unit_tests:
+          - name: test_start
+            case: 正常
+            summary: 間隔ごとに呼ぶ
+            condition: 間隔 0.01 秒で始め、呼ばれた回数が 3 になるまで待つ
+            mock: 呼ぶ関数
+            expected: 1 秒以内に 3 回呼ばれる
+          - name: test_start_when_action_raised
+            case: 正常
+            summary: 例外でも止まらない
+            condition: 呼ぶ関数が 1 回目だけ RuntimeError を送出する
+            mock: 呼ぶ関数
+            expected: 2 回目以降も呼ばれ、ERROR のログが 1 行出る
+      - name: stop
+        title: 停止
+        kind: メソッド
+        scope: public
+        summary: 終わりの合図を立て、スレッドの終わりを待つ
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_stop
+            case: 正常
+            summary: 止めた後は呼ばない
+            condition: start の後に stop を呼び、間隔の 5 倍待つ
+            mock: 呼ぶ関数
+            expected: stop の後に呼ばれた回数が増えず、スレッドが終わっている
+    status: planned
+constants:
+  - name: API_START_TIMEOUT_SEC
+    title: API の待ち受けの始まりを待つ秒数
+    container: main.py
+    usecase: 常駐アプリを起動する
+    summary: ApiServerRunner.start が started を待つ上限。uvicorn の起動の実測が無いため仮に置き、結合テストで起動にかかる時間を測って p99.9 + 50% に直す
+    value: '5.0'
+    status: planned
+  - name: SESSION_LIMIT_CHECK_INTERVAL_SEC
+    title: 上限での打ち切りを確かめる間隔
+    container: main.py
+    usecase: APIで録音を操作する
+    summary: RepeatingTimer が truncate_if_expired を呼ぶ間隔。打ち切りの遅れはこの間隔までで、API のセッションの上限時間（600 秒）に対して無視できる 1 秒にする
+    value: '1.0'
+    status: planned
+  - name: API_SESSION_LIMIT_SEC
+    title: API のセッションの上限時間
+    container: main.py
+    usecase: APIで録音を操作する
+    summary: SessionManager へ渡す上限時間。非機能要件の API のセッションの上限時間の決定値
+    value: '600'
+    status: planned
+  - name: CALLBACK_TIMEOUT_SEC
+    title: 返送のタイムアウト
+    container: main.py
+    usecase: 起こした文字を届ける
+    summary: post_json へ渡す 1 回の POST のタイムアウト。非機能要件の返送のタイムアウトと再送の決定値
+    value: 非機能要件の決定値
+    status: planned
+  - name: CALLBACK_RETRY_COUNT
+    title: 返送の再送回数
+    container: main.py
+    usecase: 起こした文字を届ける
+    summary: 最初の 1 回の後に再送する回数。非機能要件の返送のタイムアウトと再送の決定値
+    value: 非機能要件の決定値
+    status: planned
+  - name: CALLBACK_RETRY_BASE_SEC
+    title: 返送の再送の間隔の基数
+    container: main.py
+    usecase: 起こした文字を届ける
+    summary: 再送の間隔の基数（回ごとに 2 倍にし、フルジッターをかける）。非機能要件の返送のタイムアウトと再送の決定値
+    value: 非機能要件の決定値
+    status: planned

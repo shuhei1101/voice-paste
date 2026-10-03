@@ -64,8 +64,9 @@ def _last_registration(app: AppDriver) -> str:
 
 
 def test_normal(start_app: StartApp) -> None:
-    """録音開始のホットキーを別の組み合わせに変えて保存すると、settings.toml だけが変わり、再起動せずに新しい組み合わせで受け付ける（正常シナリオ）。"""
+    """録音開始のホットキーを別の組み合わせに変えて保存すると、settings.toml だけが変わり、再起動せずに新しい組み合わせで録音が始まり、前の組み合わせでは始まらない（正常シナリオ）。ホットキーを押せる環境でだけ動く。"""
     # 準備
+    require_hotkey_driver()
     app = start_app(COMMENTED_SETTINGS)
     before = _settings_file(app).read_text(encoding="utf-8")
     app.open_settings()
@@ -76,37 +77,19 @@ def test_normal(start_app: StartApp) -> None:
     # 実行
     type_keys(NEW_START_HOTKEY)
     app.press("save_button")
-
-    # 検証
-    assert app.wait_window_gone("settings_window")
-    saved = _settings_file(app).read_text(encoding="utf-8")
-    assert _toml(app)["hotkeys"]["start"] == NEW_START_HOTKEY  # type: ignore[index]
-    assert "# E2E: このコメントは保存しても残る" in saved
-    assert "fade_sec = 1.5" in saved
-    assert before != saved
-    assert wait_until(lambda: NEW_START_HOTKEY in _last_registration(app), 10)
-
-
-def test_hotkey_pressed_after_change(start_app: StartApp) -> None:
-    """録音開始のホットキーを変えて保存すると、再起動せずに、新しい組み合わせで録音が始まり、前の組み合わせでは始まらない。ホットキーを押せる環境でだけ動く。"""
-    # 準備
-    require_hotkey_driver()
-    app = start_app()
-    app.open_settings()
-    app.select_group("ホットキー")
-    app.uia.focus(app.uia.wait_find(app.pids, "hotkey_hotkeys.start"))
-    type_keys(NEW_START_HOTKEY)
-    app.press("save_button")
     assert app.wait_window_gone("settings_window")
     assert wait_until(lambda: NEW_START_HOTKEY in _last_registration(app), 10)
-
-    # 実行
     press_hotkey(START_HOTKEY)
     started_by_old = app.window("recording_window") is not None
     press_hotkey(NEW_START_HOTKEY)
     app.wait_window("recording_window")
 
     # 検証
+    saved = _settings_file(app).read_text(encoding="utf-8")
+    assert _toml(app)["hotkeys"]["start"] == NEW_START_HOTKEY  # type: ignore[index]
+    assert "# E2E: このコメントは保存しても残る" in saved
+    assert "fade_sec = 1.5" in saved
+    assert before != saved
     assert not started_by_old
     assert app.tray_state() == RECORDING
     app.press("cancel_button")

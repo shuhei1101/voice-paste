@@ -112,6 +112,7 @@ scenarios:
       ```
     expected:
       - 変えた値を捨てる確認で止まらずに、常駐アプリのプロセスが終わり、終了コードが 0 である
+    test: test_normal_when_quit_with_unsaved_settings
 lead: トレイのアイコンのメニューから、フォルダを開く・再起動する・終了する単一ユースケース。
 issue: 21
 primary_actor: 音声入力を使うユーザー

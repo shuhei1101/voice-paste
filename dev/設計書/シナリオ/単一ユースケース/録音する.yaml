@@ -235,6 +235,7 @@ scenarios:
       ```
     expected:
       - ほかの窓を前面に出すたびに、録音の画面がその窓より上にある
+    test: test_normal_when_other_window_focused
   - name: 正常シナリオ（主のモニターに出す）
     setup:
       - name: Mock
@@ -258,6 +259,7 @@ scenarios:
       ```
     expected:
       - 録音の画面が主のモニターの作業領域の中にある
+    test: test_normal_when_primary_monitor
   - name: 正常シナリオ（カーソルのあるモニターに出す）
     setup:
       - name: Mock
@@ -283,6 +285,7 @@ scenarios:
       ```
     expected:
       - 録音の画面が、録音を始めたときにカーソルのあったモニターの作業領域の中にある（主のモニターとそれ以外のモニターの両方）
+    test: test_normal_when_follow_cursor
 lead: ホットキー・トレイ・API のどれかから録音を始め、確定して履歴に残すか取り消すまでの単一ユースケース。
 issue: 14
 primary_actor: 音声入力を使うユーザー

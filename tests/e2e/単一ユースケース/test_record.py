@@ -293,8 +293,8 @@ def _start_on_monitor_and_cancel(app: AppDriver, monitor: Monitor) -> None:
     app.wait_tray_state(IDLE)
 
 
-def test_recording_window_stays_on_top(start_app: StartApp, paste_target: PasteTarget) -> None:
-    """「常に手前に表示」でないほかの窓を前面に出しても、録音の画面はその上に残る（#4）。"""
+def test_normal_when_other_window_focused(start_app: StartApp, paste_target: PasteTarget) -> None:
+    """「常に手前に表示」でないほかの窓を前面に出しても、録音の画面はその上に残る（正常シナリオ）。"""
     # 準備
     app = start_app(PASTE_AND_SEND_ONLY)
     begin_recording(app)
@@ -307,10 +307,10 @@ def test_recording_window_stays_on_top(start_app: StartApp, paste_target: PasteT
     app.press("cancel_button")
 
 
-def test_recording_window_position_when_primary_monitor(
+def test_normal_when_primary_monitor(
     start_app: StartApp, two_monitors: tuple[Monitor, Monitor]
 ) -> None:
-    """カーソルのあるモニターに出さない設定では、複数のモニターがあっても主のモニターの作業領域に出る。"""
+    """カーソルのあるモニターに出さない設定では、複数のモニターがあっても主のモニターの作業領域に出る（正常シナリオ）。"""
     # 準備
     primary, secondary = two_monitors
     app = start_app(CENTER_SETTINGS_PRIMARY)
@@ -324,10 +324,10 @@ def test_recording_window_position_when_primary_monitor(
     app.press("cancel_button")
 
 
-def test_recording_window_position_when_follow_cursor(
+def test_normal_when_follow_cursor(
     start_app: StartApp, two_monitors: tuple[Monitor, Monitor]
 ) -> None:
-    """カーソルのあるモニターに出す設定では、カーソルのあるモニターの作業領域に出る。ホットキーを押せる環境でだけ動く。"""
+    """カーソルのあるモニターに出す設定では、カーソルのあるモニターの作業領域に出る（正常シナリオ）。ホットキーを押せる環境でだけ動く。"""
     # 準備
     require_hotkey_driver()
     primary, secondary = two_monitors

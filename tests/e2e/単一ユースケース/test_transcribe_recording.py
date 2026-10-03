@@ -171,13 +171,10 @@ def test_error_when_api_failed(start_app: StartApp, receiver: CallbackReceiver) 
     assert app.service.is_running()
 
 
-# === 通知センターの通知（#21 の reviewer の指摘: 実機で確かめる） ===
-
-
-def test_notification_opens_log_folder(
+def test_error_when_notification_clicked_in_center(
     start_app: StartApp, paste_target: PasteTarget, explorer_to_close: list[Path]
 ) -> None:
-    """通知センターに残った失敗の通知を押すと、ログフォルダが開く。"""
+    """通知センターに残った失敗の通知を押すと、ログフォルダが開く（異常シナリオ）。"""
     # 準備（文字起こしに失敗させて通知を出し、通知が畳まれて通知センターに残るのを待つ）
     app = start_app(PASTE_AND_SEND_ONLY + FAILING_ENGINE_SETTINGS)
     log_dir: Path = app.service.data_dir / "log"

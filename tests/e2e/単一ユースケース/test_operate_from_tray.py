@@ -3,15 +3,11 @@
 本物の常駐アプリを起動し、トレイのアイコンを右クリックしてメニューの項目を選ぶ（UI Automation でアイコン・項目を引き、
 マウスでクリックする）。エクスプローラーに開くフォルダは、起動した一時フォルダ（`--data-dir`）の下。
 `--run-e2e` が無ければ skip する。
-
-あわせて、reviewer の指摘（#21）から次の 2 つを実機で確かめる。
-- 設定画面で欄を変えたまま開いている間に、トレイの「終了」・Ctrl+Break で終えたとき、確かめのダイアログで止まらず終わるか
 """
 
 from __future__ import annotations
 
 import json
-import time
 from collections.abc import Callable
 from pathlib import Path
 
@@ -108,43 +104,43 @@ def test_normal_when_quit(start_app: StartApp) -> None:
         app.service.http.post("/sessions", json={"callback_url": "http://127.0.0.1:9/"})
 
 
-# === 設定画面で欄を変えたまま終える（#21 の reviewer の指摘: 実機で確かめる） ===
+# === 設定画面で値を変えたまま終える ===
 
 
-def _open_settings_with_change(app: AppDriver) -> None:
-    """設定画面を開いて欄を書き換える（保存しない）。"""
+def _quit_by_tray_menu(app: AppDriver) -> int | None:
+    """トレイの「終了」を選び、プロセスが終わったときの終了コードを返す（終わらなければ None）。"""
+    app.choose_tray_menu("menu_quit")
+    return app.service.process.returncode if app.wait_exit(EXIT_LIMIT_SEC) else None
+
+
+def _quit_by_ctrl_break(app: AppDriver) -> int | None:
+    """起動したコンソールへ Ctrl+Break を送り、プロセスが終わったときの終了コードを返す（終わらなければ None）。"""
+    exit_code = app.service.shutdown()
+    return exit_code if not app.service.is_running() else None
+
+
+@pytest.mark.parametrize(
+    "quit_app",
+    [
+        pytest.param(_quit_by_tray_menu, id="tray_quit"),
+        pytest.param(_quit_by_ctrl_break, id="ctrl_break"),
+    ],
+)
+def test_normal_when_quit_with_unsaved_settings(
+    start_app: StartApp, quit_app: Callable[[AppDriver], int | None]
+) -> None:
+    """設定画面で値を変えたまま開いている間にトレイの「終了」・Ctrl+Break で終えても、変えた値を捨てる確認で止まらず終わり、終了コードは 0（正常シナリオ）。"""
+    # 準備
+    app = start_app()
     app.open_settings()
     app.select_group("録音")
     app.set_field("recording.fade_sec", "2.5")
 
-
-def test_exit_when_settings_changed_by_tray_quit(start_app: StartApp) -> None:
-    """設定画面で欄を変えたまま開いている間にトレイの「終了」を選んでも、確かめのダイアログで止まらず終わる。"""
-    # 準備
-    app = start_app()
-    _open_settings_with_change(app)
-
     # 実行
-    app.choose_tray_menu("menu_quit")
+    exit_code = quit_app(app)
 
     # 検証
-    stopped = app.wait_exit(EXIT_LIMIT_SEC)
-    assert stopped, (
-        "終了が止まった（変えた値を捨てる確認のダイアログが出ていないか: "
+    assert exit_code == 0, (
+        "確かめのダイアログで止まったか、終了コードが 0 でない（変えた値を捨てる確認のダイアログが出ていないか: "
         f"{app.window('discard_dialog') is not None}）"
     )
-
-
-def test_exit_when_settings_changed_by_ctrl_break(start_app: StartApp) -> None:
-    """設定画面で欄を変えたまま開いている間に Ctrl+Break で終えても、確かめのダイアログで止まらず終わる。"""
-    # 準備
-    app = start_app()
-    _open_settings_with_change(app)
-
-    # 実行
-    started = time.monotonic()
-    exit_code = app.service.shutdown()
-
-    # 検証
-    assert time.monotonic() - started < EXIT_LIMIT_SEC, "終わるまでに時間がかかった（確かめのダイアログで止まっていないか）"
-    assert exit_code == 0

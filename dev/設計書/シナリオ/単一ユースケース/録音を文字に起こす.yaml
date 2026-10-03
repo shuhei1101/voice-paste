@@ -247,6 +247,7 @@ scenarios:
     expected:
       - エクスプローラーでログの置き場所が開いている
       - トレイのアイコンが待機中である
+    test: test_error_when_notification_clicked_in_center
 lead: 確定した録音を設定のエンジンで文字に起こし、用語集で補正するまでの単一ユースケース。
 issue: 14
 primary_actor: 音声入力を使うユーザー

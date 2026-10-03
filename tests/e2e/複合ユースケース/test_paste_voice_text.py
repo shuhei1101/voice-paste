@@ -2,7 +2,7 @@
 
 `python -m voice_paste --data-dir {一時フォルダ}` の本物の起動（Qt のイベントループ・トレイ・ホットキー・実機のマイク・
 ローカルの Whisper）を通し、トレイ・録音の画面を UI Automation で操作して、貼り付け先（別プロセスの入力欄）へ届くまでを確かめる。
-普段使いの `voice_paste_legacy` とリポジトリの直下の `.env`・`history/`・`log/` には触れない。
+普段使いの置き場所（`%APPDATA%\\voice-paste`・`%LOCALAPPDATA%\\voice-paste`）には触れない。
 
 - 録音は、合成したキーでホットキーを押して始める（常駐アプリは環境変数 `VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS=1` で起動し、合成したキーも受ける）
 - 話す音は、スピーカーから読み上げた音をマイクが拾う前提（起こした文字の中身は決め打ちしない）

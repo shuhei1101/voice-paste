@@ -1,15 +1,16 @@
-"""返送先へ httpx で JSON を POST する。"""
+"""送り先へ httpx で JSON を POST する。"""
 
 from __future__ import annotations
 
 import functools
 import ssl
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 
 import httpx
 
-from voice_paste.features.outputs.callback.types import PostResult
+from voice_paste.integrations.http.types import PostResult
 from voice_paste.shared.errors import DeliveryError
 
 
@@ -40,16 +41,22 @@ def _parse_retry_after(value: str | None) -> float | None:
     return max(0.0, (moment - datetime.now(UTC)).total_seconds())
 
 
-def post_json(url: str, payload: dict[str, object], timeout_sec: float) -> PostResult:
+def post_json(
+    url: str,
+    payload: dict[str, object],
+    timeout_sec: float,
+    headers: Mapping[str, str] | None = None,
+) -> PostResult:
     """JSON を POST して、ステータスと Retry-After を返す。タイムアウトと接続できないことは DeliveryError にする。"""
-    # 1. リダイレクトを追わずに POST する（許していないホストへ流れないため）
+    # 1. リダイレクトを追わずに headers を付けて POST する（許していないホストへ行かず、認証のヘッダーを他の先へ流さない）
     try:
         with httpx.Client(
             timeout=timeout_sec, follow_redirects=False, verify=_ssl_context()
         ) as client:
-            response = client.post(url, json=payload)
+            response = client.post(url, json=payload, headers=headers)
     except httpx.TransportError as error:
-        raise DeliveryError(f"返送先へ送れませんでした（{error!r}）") from error
+        # 例外の文には URL もヘッダーも書かず、例外の種類だけを残す（認証の値を出さない）
+        raise DeliveryError(f"送り先へ送れませんでした（{type(error).__name__}）") from error
 
     # 2〜3. Retry-After を秒に直し、2xx 以外でも送出せずにステータスと一緒に返す
     return PostResult(

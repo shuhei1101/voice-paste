@@ -9,6 +9,7 @@ from PySide6.QtCore import QElapsedTimer, QRectF, Qt, QTimer
 from PySide6.QtGui import QFontMetrics, QPainter
 from PySide6.QtWidgets import (
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLayout,
@@ -17,10 +18,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from voice_paste.shared.settings import AiChatSettings, Settings
+from voice_paste.shared.settings import Preset, Settings
 from voice_paste.ui.placement import move_to_configured_position
 from voice_paste.ui.style import theme_color
-from voice_paste.ui.windows.settings_window import OUTPUT_NAMES, format_hotkey
+from voice_paste.ui.windows.settings_window import OUTPUT_NAMES, PRESET_KIND_NAMES, format_hotkey
 
 if TYPE_CHECKING:
     from voice_paste.ui.controller import UiDeps
@@ -40,11 +41,11 @@ WAVE_BAR_MIN_PX: float = 2.0
 WAVE_BAR_GAP_PX: float = 3.0
 """棒の間の幅。"""
 
-AI_CHAT_ID: str = "ai_chat"
-"""AI チャットの出力先の ID。"""
+PRESET_NAME_MAX_PX: int = 120
+"""カスタムプリセットのボタンで、タイトルを `…` に省略する幅。"""
 
-AI_NAME_MAX_PX: int = 120
-"""AI チャットの送り先のボタンで、名前を `…` に省略する幅。"""
+PRESET_COLUMNS: int = 3
+"""カスタムプリセットのボタンを横に並べる数（これを超えたら次の行へ折り返す）。"""
 
 SECONDS_PER_HOUR: int = 3600
 SECONDS_PER_MINUTE: int = 60
@@ -150,10 +151,10 @@ class RecordingWindow(QWidget):
         layout.addWidget(self._outputs_heading)
         self._outputs_layout = QHBoxLayout()
         layout.addLayout(self._outputs_layout)
-        self._ai_heading = self._heading("ai_chat_heading", "AI チャットへ送る")
-        layout.addWidget(self._ai_heading)
-        self._ai_layout = QHBoxLayout()
-        layout.addLayout(self._ai_layout)
+        self._presets_heading = self._heading("presets_heading", "カスタムプリセット")
+        layout.addWidget(self._presets_heading)
+        self._presets_layout = QGridLayout()
+        layout.addLayout(self._presets_layout)
 
     @staticmethod
     def _heading(name: str, text: str) -> QLabel:
@@ -171,13 +172,15 @@ class RecordingWindow(QWidget):
         layout = QHBoxLayout(button)
         layout.setContentsMargins(0, 0, 0, 0)
         text_label = QLabel(text)
-        key_label = QLabel(format_hotkey(hotkey))
-        key_label.setProperty("role", "mono")
-        for label in (text_label, key_label):
-            label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        text_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         layout.addWidget(text_label)
-        layout.addStretch(1)
-        layout.addWidget(key_label)
+        # ホットキーが空のときは、名前だけを出す
+        if hotkey:
+            key_label = QLabel(format_hotkey(hotkey))
+            key_label.setProperty("role", "mono")
+            key_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+            layout.addStretch(1)
+            layout.addWidget(key_label)
         if tooltip:
             button.setToolTip(tooltip)
         return button
@@ -192,8 +195,8 @@ class RecordingWindow(QWidget):
                 widget.deleteLater()
 
     def _rebuild_buttons(self, settings: Settings) -> None:
-        """設定でオンの出力先と AI チャットの送り先のボタンを、設定の並びで組み直す。"""
-        for layout in (self._operations, self._outputs_layout, self._ai_layout):
+        """設定でオンの出力先と有効なカスタムプリセットのボタンを、設定の並びで組み直す。"""
+        for layout in (self._operations, self._outputs_layout, self._presets_layout):
             self._clear(layout)
 
         self._pause_button = self._hotkey_button("pause_button", "一時停止", settings.hotkeys.pause)
@@ -206,46 +209,48 @@ class RecordingWindow(QWidget):
         for button in (self._pause_button, self._resume_button, cancel_button):
             self._operations.addWidget(button)
 
-        # 出力先の確定のボタン（AI チャットを除く。オンのうち一番上のものを主の操作にする）
+        # 出力先の確定のボタン（オンのうち一番上のものを主の操作にする）
         shown_outputs = 0
         for output in settings.outputs:
-            if not output.enabled or isinstance(output, AiChatSettings):
+            if not output.enabled:
                 continue
             button = self._hotkey_button(
                 f"output_button_{output.id}", OUTPUT_NAMES[output.id], output.hotkey
             )
             button.setProperty("primary", shown_outputs == 0)
-            button.clicked.connect(lambda _checked=False, output_id=output.id: self._complete(output_id, None))
+            button.clicked.connect(
+                lambda _checked=False, output_id=output.id: self._complete(output_id, None)
+            )
             self._outputs_layout.addWidget(button)
             shown_outputs += 1
         self._outputs_heading.setVisible(shown_outputs > 0)
 
-        # AI チャットの送り先のボタン（出すとした送り先ごと。名前は幅で省略し、かざすと全体を出す）
-        shown_targets = 0
-        for output in settings.outputs:
-            if not output.enabled or not isinstance(output, AiChatSettings):
-                continue
-            for target in output.targets:
-                if not target.enabled:
+        # カスタムプリセットのボタン（有効なものを、種類の並び（PRESET_KIND_NAMES）の順に、種類の中は設定の並びで。
+        # 3 件ずつ横に並べ、種類の境目でも行を変えない。タイトルは幅で省略し、かざすと全体を出す）
+        shown_presets = 0
+        for kind in PRESET_KIND_NAMES:
+            for preset in settings.presets:
+                if preset.kind != kind or not preset.enabled:
                     continue
                 elided = QFontMetrics(self.font()).elidedText(
-                    target.name, Qt.TextElideMode.ElideRight, AI_NAME_MAX_PX
+                    preset.title, Qt.TextElideMode.ElideRight, PRESET_NAME_MAX_PX
                 )
                 button = self._hotkey_button(
-                    f"ai_chat_button_{shown_targets}", elided, target.hotkey, tooltip=target.name
+                    f"preset_button_{shown_presets}", elided, preset.hotkey, tooltip=preset.title
                 )
                 button.clicked.connect(
-                    lambda _checked=False, url=target.url: self._complete(AI_CHAT_ID, url)
+                    lambda _checked=False, chosen=preset: self._complete(None, chosen)
                 )
-                self._ai_layout.addWidget(button)
-                shown_targets += 1
-        self._ai_heading.setVisible(shown_targets > 0)
+                row, column = divmod(shown_presets, PRESET_COLUMNS)
+                self._presets_layout.addWidget(button, row, column)
+                shown_presets += 1
+        self._presets_heading.setVisible(shown_presets > 0)
 
     # --- 操作 ---
 
-    def _complete(self, output_id: str, output_target: str | None) -> None:
-        """押したボタンの出力先で録音を確定し、窓を閉じる。"""
-        self._deps.complete(output_id, output_target)
+    def _complete(self, output_id: str | None, preset: Preset | None) -> None:
+        """押したボタンの出力先かプリセットで録音を確定し、窓を閉じる。"""
+        self._deps.complete(output_id, preset)
         self.close_window()
 
     def _cancel(self) -> None:
@@ -256,7 +261,7 @@ class RecordingWindow(QWidget):
     # --- 開く・替える・閉じる ---
 
     def open(self) -> None:
-        """新しい録音として経過時間と波形を空にし、設定でオンの出力先と AI チャットの送り先のボタンを組み直して、設定の位置に出す。"""
+        """新しい録音として経過時間と波形を空にし、設定でオンの出力先と有効なカスタムプリセットのボタンを組み直して、設定の位置に出す。"""
         settings = self._deps.get_settings()
         flags = Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint
         if settings.ui.topmost:

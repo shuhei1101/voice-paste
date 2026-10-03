@@ -88,31 +88,34 @@ id = "copy_only"
 enabled = true
 hotkey = "<ctrl>+<alt>+c"
 
-[[outputs]]
-# AI チャットへ送る
-id = "ai_chat"
-enabled = true
-# AI チャットの画面を開いてから貼り付けるまで待つ秒数。0 以上
+# === カスタムプリセット（既定は無し） ===
+# 録音の画面の見出し「カスタムプリセット」の下に、有効なプリセットのボタンが並ぶ。
+# kind = "browser"（ブラウザ添付）と kind = "endpoint"（エンドポイントへ送る）の 2 種類。書く例:
+#
+# [[presets]]
+# kind = "browser"
+# title = "ChatGPT"
+# url = "https://chatgpt.com"
+# hotkey = "<ctrl>+<alt>+1"
+# enabled = true
+# send_enter = true
+#
+# [[presets]]
+# kind = "endpoint"
+# title = "受け口"
+# url = "http://127.0.0.1:9000/hook"
+# hotkey = ""
+# enabled = true
+# authorization = "Bearer {トークン}"
+
+# === プリセットの種類ごとのオプション ===
+[preset_options.browser]
+# 画面を開いてから貼り付けるまで待つ秒数。0 以上
 open_delay_sec = 3.0
 
-# AI チャットの送り先（name は 1 文字以上、url は http か https）。enabled = false の送り先はボタンもホットキーも出さない
-[[outputs.targets]]
-name = "ChatGPT"
-url = "https://chatgpt.com"
-hotkey = "<ctrl>+<alt>+1"
-enabled = true
-
-[[outputs.targets]]
-name = "Google AI"
-url = "https://gemini.google.com/app"
-hotkey = "<ctrl>+<alt>+2"
-enabled = true
-
-[[outputs.targets]]
-name = "Claude"
-url = "https://claude.ai/new"
-hotkey = "<ctrl>+<alt>+3"
-enabled = true
+[preset_options.endpoint]
+# 送るときのタイムアウトの秒数。0.5〜10。この秒数で届かなければ、送り直さずにトレイで知らせる
+timeout_sec = 1.5
 
 # === 履歴 ===
 [history]

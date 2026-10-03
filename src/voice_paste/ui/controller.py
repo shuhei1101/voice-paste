@@ -12,7 +12,7 @@ from PySide6.QtCore import QObject
 
 from voice_paste.features.session.types import Session, SessionState
 from voice_paste.shared.errors import HotkeyError
-from voice_paste.shared.settings import Settings
+from voice_paste.shared.settings import Preset, Settings
 from voice_paste.shared.types import Entry
 from voice_paste.ui.tray import Tray, TrayState
 from voice_paste.ui.windows.busy_dialog import show_busy_dialog
@@ -46,8 +46,8 @@ class UiDeps:
     resume: Callable[[], None]
     """SessionManager.resume。"""
 
-    complete: Callable[[str, str | None], None]
-    """出力先の ID と出力先に固有の宛先で確定する（SessionManager.complete を output_id・output_target で呼ぶ）。"""
+    complete: Callable[[str | None, Preset | None], None]
+    """固定の出力先の ID かカスタムプリセットのどちらかで確定する（SessionManager.complete を output_id・preset で呼ぶ）。"""
 
     cancel: Callable[[], None]
     """SessionManager.cancel。"""

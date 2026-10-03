@@ -147,6 +147,37 @@ scenarios:
       - 設定画面が開いたまま、Enter までの秒数の欄の下にエラーが出て、その欄にフォーカスがある
       - 動いている常駐アプリの設定が変わっていない
     test: test_error_when_invalid_value
+  - name: 正常シナリオ（カスタムプリセットを足す）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 足すプリセット
+        description: 種類「エンドポイントへ送る」で、タイトル・URL・確定のホットキーを入れたプリセットを 1 つ足す
+        notes: 反映は `immediate`
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SW as 設定画面
+        participant MDL as 設定のモデル
+        participant TOML as settings.toml
+        participant APP as 常駐アプリ
+
+        Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
+        U->>SW: 「出力先」のまとまりでカスタムプリセットを足す
+        U->>SW: 種類を「エンドポイントへ送る」にし、タイトル・URL・ホットキーを入れる
+        U->>SW: 「保存」を押す
+        SW->>MDL: 欄の値を確かめる
+        MDL-->>SW: 通った
+        SW->>TOML: プリセットの一覧を、コメントを保ったまま書く
+        SW->>APP: 効かせる
+        APP->>APP: プリセットのホットキーの受付を張り直す
+        SW->>SW: 閉じる
+      ```
+    expected:
+      - '`settings.toml` に足したプリセットが書かれ、ほかのキーとコメントが変わっていない'
+      - 再起動せずに、次の録音の画面にそのプリセットのボタンが出、そのホットキーで確定できる
+      - 設定画面が閉じている
 lead: トレイの「設定…」から設定画面を開き、変えた設定を設定のモデルで確かめてから `settings.toml` に保存する単一ユースケース。
 issue: 21
 primary_actor: 音声入力を使うユーザー

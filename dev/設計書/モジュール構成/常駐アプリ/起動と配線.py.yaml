@@ -179,7 +179,7 @@ functions:
       10. トークンを作り、API サーバーを起動する（create_token・build_fastapi・ApiServerRunner.start(API_START_TIMEOUT_SEC)）
          - True の場合だけ、トークンのファイルを書く（write_token_file）
          - False の場合、トークンのファイルを書かずに api_unavailable を知らせて続ける（ホットキーとトレイからの録音は使える）。理由は「ポート {ポート} で待ち受けを始められません」の 1 文にする
-      11. ホットキーの受付を始め（HotkeyListener.start(build_hotkey_bindings(設定))）、上限の打ち切りを RepeatingTimer で SESSION_LIMIT_CHECK_INTERVAL_SEC ごとに呼ぶ（SessionManager.truncate_if_expired）。古いログと履歴の削除を RepeatingTimer で PURGE_INTERVAL_SEC ごとに呼ぶ（purge_old_files。処理中のセッションの ID は SessionManager.current から引く）。トレイを待機中にする
+      11. ホットキーの受付を始め（HotkeyListener.start(build_hotkey_bindings(設定))）、上限の打ち切りを RepeatingTimer で SESSION_LIMIT_CHECK_INTERVAL_SEC ごとに呼ぶ（SessionManager.truncate_if_expired）。古いログと履歴の削除を RepeatingTimer で PURGE_INTERVAL_SEC ごとに呼ぶ（purge_old_files。設定は呼ぶたびに SettingsStore.get から引き、設定画面で変えた保持期間・履歴を残すかを次の回から効かせる。処理中のセッションの ID は SessionManager.current から引く）。トレイを待機中にする
          - HotkeyListener は、環境変数 `VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS`（ACCEPT_INJECTED_HOTKEYS_ENV）が `1` のときだけ accept_injected=True で作る（E2E がソフトウェアで送ったキーでホットキーを押すため。普段の起動は付けない）
            - `[INFO]` ソフトウェアで送ったキーもホットキーとして受ける
          - HotkeyError の場合、ホットキーを受け付けずに続ける（トレイから録音でき、設定画面で直せる）
@@ -306,10 +306,14 @@ functions:
       1. 名前付きのミューテックスを作る（ctypes で Win32 の CreateMutexW）
       2. 既にあった（ERROR_ALREADY_EXISTS）か
          - ある場合、前のプロセスの終了の依頼のイベントを開いて立て（OpenEventW・SetEvent）、ミューテックスの解放を timeout_sec まで待つ（WaitForSingleObject。前のプロセスが片付けずに落ちて放棄されたミューテックス（WAIT_ABANDONED）も取れたものとして扱う）
+           - イベントを開けない場合（前のプロセスがミューテックスを作ってからイベントを作るまでの間）、OPEN_EVENT_RETRY_INTERVAL_SEC ごとに開き直しながら、同じ上限までミューテックスの解放を待つ（開けたらその時点で立てる）
            - `[INFO]` 前の常駐サービスに終わるよう頼んだ
-           - 上限まで取れない場合、ミューテックスのハンドルを閉じて StartupError を送出する
+           - 上限まで取れない場合、ミューテックスのハンドルを閉じて StartupError を送出する。上限まで一度もイベントを開けなかったときは、理由にその旨を書く
          - 無い場合、そのまま取れている
-      3. 自分の終了の依頼のイベント（自動リセット）を作り、それを待つデーモンスレッドを始めて SingleInstanceLock を返す
+      3. 自分の終了の依頼のイベント（自動リセット）を作り、作った直後に ResetEvent で立ったまま残っていた依頼を消す（同じ名前のイベントは前のプロセスのハンドルが残る間は引き継がれ、取る前に立った依頼は前のプロセス宛てのため）
+      4. 終了の依頼のイベントと、名前の無い自分専用の停止のイベントを WaitForMultipleObjects で待つデーモンスレッドを始めて SingleInstanceLock を返す
+         - 終了の依頼のイベントが立った場合、受け手を 1 回呼んでスレッドを終える（2 回目以降の依頼は、既に終わりに向かっているため受けない）
+         - 停止のイベントが立った場合、受け手を呼ばずにスレッドを終える
          - `[INFO]` 単一インスタンスを確保した（名前）
     unit_tests:
       - name: test_acquire_single_instance
@@ -331,6 +335,18 @@ functions:
         mock: なし（実物の Win32 の名前付きのミューテックスとイベント）
         expected: StartupError。先の SingleInstanceLock は持ったまま
         exception: 上限まで待っても前のプロセスが排他を放さない
+      - name: test_acquire_single_instance_when_taken_over
+        case: 正常
+        summary: 前の持ち主が依頼を受けて放した直後に取ったロックは、受け手を呼ばない
+        condition: test_acquire_single_instance_when_held の流れで後から取ったロックに受け手を渡す。前のロックの受け手は、同じ名前のイベントのハンドルを開いたまま release する
+        mock: なし（実物の Win32 の名前付きのミューテックスとイベント）
+        expected: 後から取ったロックの受け手が 1 秒呼ばれない
+      - name: test_acquire_single_instance_when_event_not_ready
+        case: 正常
+        summary: 前のプロセスのイベントがまだ無くても、開き直して頼む
+        condition: 別のスレッドが CreateMutexW だけで同じ名前のミューテックスを持ち、0.3 秒後に同じ名前の終了の依頼のイベントを作り、立ったら放す。timeout_sec=5 で取る
+        mock: なし（実物の Win32 の名前付きのミューテックスとイベント）
+        expected: SingleInstanceLock が返り、別のスレッドがイベントの立ったことを受けている
   - name: start_local_session
     title: ホットキー・トレイからの開始
     kind: 関数
@@ -911,7 +927,8 @@ classes:
     role: ランタイム
     summary: 取った名前付きのミューテックスと、終了の依頼を待つスレッドを持つ
     description: |-
-      終了の依頼のイベントを専用のデーモンスレッドで待ち、立ったら on_quit_requested で渡された関数を呼ぶ（呼ぶのはそのスレッド。メインスレッドへ渡すのは渡す側の関数が行う）。
+      終了の依頼のイベント（名前付き）と停止のイベント（名前の無い自分専用）を専用のデーモンスレッドで待ち、終了の依頼が立ったら on_quit_requested で渡された関数を 1 回呼んでスレッドを終える（呼ぶのはそのスレッド。メインスレッドへ渡すのは渡す側の関数が行う）。
+      名前付きのイベントは自分では立てない（立てると、ハンドルが残る間に次のプロセスへ依頼が引き継がれる）。
       ミューテックスは取ったスレッド（メインスレッド）で放す。
     kind: クラス
     properties:
@@ -931,6 +948,10 @@ classes:
         type: threading.Thread
         access: 内部 (_)
         description: 終了の依頼を待つスレッド
+      - name: _stop_event
+        type: int
+        access: 内部 (_)
+        description: 待つスレッドを止める、名前の無い自分専用のイベントのハンドル
     methods:
       - name: on_quit_requested
         title: 終了の依頼の受け手の登録
@@ -972,8 +993,8 @@ classes:
           type: None
           description: なし
         process: |-
-          1. 待つスレッドを止める（自分のイベントを立てて抜けさせる合図を付ける）
-          2. ミューテックスを放し（ReleaseMutex）、ミューテックスとイベントのハンドルを閉じる（CloseHandle）
+          1. 停止のイベント（名前の無い自分専用）を立てて待つスレッドを抜けさせ、終わりを待つ（名前付きの終了の依頼のイベントは立てない）
+          2. ミューテックスを放し（ReleaseMutex）、ミューテックス・終了の依頼のイベント・停止のイベントのハンドルを閉じる（CloseHandle）
              - 2 回目以降の呼び出しは何もしない
         unit_tests:
           - name: test_release
@@ -1053,4 +1074,11 @@ constants:
     usecase: 常駐アプリを起動する
     summary: instance_name が名前に使う SHA-256 の 16 進の文字数。置き場所が 1 台に数個のため、16 文字（64 ビット）で重ならない
     value: '16'
+    status: planned
+  - name: OPEN_EVENT_RETRY_INTERVAL_SEC
+    title: 前のプロセスのイベントを開き直す間隔
+    container: runtime/single_instance.py
+    usecase: 常駐アプリを起動する
+    summary: 前のプロセスがミューテックスを作ってからイベントを作るまでの間に OpenEventW が失敗したとき、開き直す間隔。前のプロセスの起動の初めの数ミリ秒の間だけ起こるため、依頼の遅れを 0.1 秒までに抑える
+    value: '0.1'
     status: planned

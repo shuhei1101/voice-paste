@@ -147,7 +147,7 @@ tables:
     deletion: 消さない（次の起動で上書きする。古いトークンは照合で 401 になる）
     access: 全件（呼び出し元が丸ごと読む）
     description: |-
-      置き場所は `shared/constants.py` の `token_file`（並走の間は `--data-dir` の下の `api_token`）。
+      置き場所は `shared/constants.py` の `token_file`（`--data-dir` を渡したときはその下の `api_token`）。
       同じフォルダの一時ファイルに書いてから置き換えるため、読む側が書きかけを読むことはない。
     columns:
       - name: port

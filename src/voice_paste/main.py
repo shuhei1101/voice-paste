@@ -10,16 +10,21 @@ import signal
 import sys
 import time
 from collections.abc import Callable, Iterable
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from functools import partial
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QMetaObject, Qt, QTimer
 from PySide6.QtWidgets import QApplication
 
 from voice_paste.features.correction import apply_glossary, load_glossary
-from voice_paste.features.history import append_text, discard_temporary, save_recording
+from voice_paste.features.history import (
+    append_text,
+    discard_temporary,
+    purge_expired,
+    save_recording,
+)
 from voice_paste.features.outputs import OUTPUTS, OutputSpec, deliver, is_callback_allowed
 from voice_paste.features.outputs.callback.client import post_json
 from voice_paste.features.outputs.registry import CALLBACK_OUTPUT_ID
@@ -40,6 +45,11 @@ from voice_paste.integrations.whisper.client import WhisperWorkerClient
 from voice_paste.runtime.hotkey import HotkeyListener, validate_hotkeys
 from voice_paste.runtime.process import relaunch
 from voice_paste.runtime.settings_store import SettingsStore
+from voice_paste.runtime.single_instance import (
+    SingleInstanceLock,
+    acquire_single_instance,
+    instance_name,
+)
 from voice_paste.runtime.timer import RepeatingTimer
 from voice_paste.server.app import build_fastapi
 from voice_paste.server.runner import ApiServerRunner
@@ -99,10 +109,10 @@ CALLBACK_RETRY_COUNT: int = 3
 CALLBACK_RETRY_BASE_SEC: float = 1.0
 """返送の再送の間隔の基数（回ごとに 2 倍にし、フルジッターをかける）。非機能要件の決定値。"""
 
-WORKER_READY_TIMEOUT_SEC: float = 10.0
+WORKER_READY_TIMEOUT_SEC: float = 27.0
 """文字起こしワーカーの立て直しで ready を待つ上限。非機能要件の文字起こしワーカーの立て直しの時間の決定値。"""
 
-WORKER_STOP_TIMEOUT_SEC: float = 3.0
+WORKER_STOP_TIMEOUT_SEC: float = 2.0
 """文字起こしワーカーの終わりを待つ時間。非機能要件の文字起こしワーカーの終わりを待つ時間の決定値。"""
 
 GLOSSARY_FILE_NAME: str = "yogo.csv"
@@ -113,6 +123,12 @@ ACCEPT_INJECTED_HOTKEYS_ENV: str = "VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS"
 
 WAKE_INTERVAL_MS: int = 200
 """Qt のイベントループの中で Python のシグナルのハンドラが動くようにする、空の QTimer の間隔。PoC で 200 ms なら Ctrl+Break から 0.3 秒で終わった。"""
+
+SINGLE_INSTANCE_TIMEOUT_SEC: float = 54.0
+"""acquire_single_instance に渡す、前のプロセスが排他を放すのを待つ上限。非機能要件の前の常駐サービスの終わりを待つ時間の決定値。"""
+
+PURGE_INTERVAL_SEC: float = 86400.0
+"""RepeatingTimer が purge_old_files を呼ぶ間隔。非機能要件の常駐中に古い履歴とログを消す間隔（24 時間）を秒にした値。"""
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -149,12 +165,12 @@ class Handlers:
 def parse_args(argv: list[str]) -> CliArgs:
     """argparse で `--data-dir` と `--migrate-env` を読む。"""
     parser = argparse.ArgumentParser(prog="voice_paste")
-    # 並走の間は普段使いの置き場所へ書かないよう、置き場所を必須にする
+    # 置き場所が無ければ既定の置き場所を使う（E2E・非機能要件テストは一時フォルダを渡して普段使いに触れない）
     parser.add_argument(
         "--data-dir",
         type=Path,
-        required=True,
-        help="設定・履歴・ログ・一時の音声・トークンを置くフォルダ",
+        default=None,
+        help="設定・履歴・ログ・一時の音声・トークンを置くフォルダ（無ければ既定の置き場所）",
     )
     parser.add_argument(
         "--migrate-env",
@@ -166,9 +182,44 @@ def parse_args(argv: list[str]) -> CliArgs:
     return CliArgs(data_dir=namespace.data_dir, migrate_env=namespace.migrate_env)
 
 
+def _purge_while_running(
+    settings_store: SettingsStore, session_manager: SessionManager, paths: AppPaths
+) -> None:
+    """常駐中の定期の削除。今の設定と、処理中のセッションの ID（一時の音声を残す）を引いて purge_old_files を呼ぶ。"""
+
+    def _active_session_ids() -> set[str]:
+        """処理中のセッションの ID を返す（待機中は空）。"""
+        current = session_manager.current()
+        return set() if current is None else {current.id}
+
+    purge_old_files(settings_store.get(), paths=paths, active_session_ids=_active_session_ids)
+
+
 def _local_now() -> datetime:
     """今の時刻を、この端末のタイムゾーンつきで返す。"""
     return datetime.now(UTC).astimezone()
+
+
+def purge_old_files(
+    settings: Settings,
+    *,
+    paths: AppPaths,
+    active_session_ids: Callable[[], set[str]],
+) -> None:
+    """設定の保持期間を過ぎたログと履歴を消す。"""
+    # 1. 保持期間を過ぎた日付のログを消す
+    purge_old_logs(paths.log_dir, settings.logging.retention_days, local_today())
+
+    # 2. 履歴を残す設定か
+    if settings.history.enabled:
+        # 残す: 保持期間を過ぎた履歴のフォルダと、取り残された一時の音声を消す
+        purge_expired(
+            retention_days=settings.history.retention_days,
+            paths=paths,
+            now=_local_now,
+            active_session_ids=active_session_ids,
+        )
+    # 残さない: 履歴は消さない
 
 
 def _jitter(upper: float) -> float:
@@ -575,7 +626,8 @@ class _Running:
 
     handlers: Handlers | None = None
     runner: ApiServerRunner | None = None
-    timer: RepeatingTimer | None = None
+    timers: list[RepeatingTimer] = field(default_factory=list)
+    """上限の打ち切りと古い履歴・ログの削除の定期の呼び出し（立てた順）。"""
     hotkey_listener: HotkeyListener | None = None
     controller: UiController | None = None
     """画面の振り分け。Qt の部品は参照が切れると消えるため、終わりまで持つ。"""
@@ -585,8 +637,8 @@ def _stop_all(running: _Running, tray: Tray) -> None:
     """新しい開始が来ないように入口とタイマーを先に止め、録音を捨て、エンジンを止め、トレイを消す。"""
     if running.hotkey_listener is not None:
         running.hotkey_listener.stop()
-    if running.timer is not None:
-        running.timer.stop()
+    for timer in running.timers:
+        timer.stop()
     if running.runner is not None:
         running.runner.stop()
     if running.handlers is not None:
@@ -651,12 +703,45 @@ def main(
     paths = resolve_app_paths(args.data_dir)
     setup_logging(paths.log_dir, STARTUP_LOG_LEVEL)
 
-    # 3. `--migrate-env` が渡されていれば、.env を移して書く
-    if not _migrate_env_if_requested(args, paths):
+    # 3. 置き場所ごとの名前で単一インスタンスを確保する（前のプロセスが動いていれば、終わるよう頼んで放されるのを待つ）
+    try:
+        lock = acquire_single_instance(
+            instance_name(paths.settings_file.parent), SINGLE_INSTANCE_TIMEOUT_SEC
+        )
+    except StartupError as error:
+        # トレイを出す前のため、ログにだけ残して終わる
+        logger.error(f"起動に失敗した（{error}）")
         return EXIT_FAILED
 
-    # 4. QApplication・UiBridge・Tray を作り、スタイルを当ててトレイに準備中を出す
+    # 4〜11. 排他を持ったまま起動して回し、どう抜けても最後に排他を放す
+    try:
+        exit_code, restart = _run_service(args, paths, lock, exec_loop)
+    finally:
+        lock.release()
+
+    # 12. 再起動を頼まれていれば、同じ引数で起動し直す（排他を放した後のため、次のプロセスは待たずに取れる）
+    if restart:
+        relaunch(argv_used)
+    return exit_code
+
+
+def _run_service(
+    args: CliArgs,
+    paths: AppPaths,
+    lock: SingleInstanceLock,
+    exec_loop: Callable[[QApplication], int],
+) -> tuple[int, bool]:
+    """排他を持った状態で、.env の移行・画面の用意・起動・イベントループ・片付けを行い、終了コードと再起動の要否を返す。"""
+    # 4. `--migrate-env` が渡されていれば、.env を移して書く
+    if not _migrate_env_if_requested(args, paths):
+        return EXIT_FAILED, False
+
+    # 5. QApplication・UiBridge・Tray を作り、スタイルを当ててトレイに準備中を出す
     app = _create_application()
+    # 後から起動したプロセスに終わるよう頼まれたら、メインスレッドで QApplication.quit を呼ぶ
+    lock.on_quit_requested(
+        lambda: QMetaObject.invokeMethod(app, "quit", Qt.ConnectionType.QueuedConnection)
+    )
     bridge = UiBridge()
     tray = Tray(paths.settings_file.parent, paths.log_dir)
     app.setStyleSheet(build_stylesheet(is_dark_theme()))
@@ -667,18 +752,14 @@ def main(
 
     try:
         _start_services(bridge, tray, paths, exit_request, running)
-        # 10. イベントループを回す
+        # 12. イベントループを回す
         exec_loop(app)
     finally:
-        # 11. 立てたものを止める
+        # 13. 立てたものを止める
         wake_timer.stop()
         _stop_all(running, tray)
         logger.info("常駐サービスを終えた")
-
-    # 12. 再起動を頼まれていれば、同じ引数で起動し直す
-    if exit_request.restart:
-        relaunch(argv_used)
-    return EXIT_OK
+    return EXIT_OK, exit_request.restart
 
 
 def _start_services(
@@ -703,9 +784,9 @@ def _start_services(
         tray.quit_requested.connect(exit_request.request_quit)
         return
 
-    # 6. ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログを消す
+    # 6. ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を消す（処理中のセッションは無いため、一時の音声も全て消す対象にする）
     logging.getLogger().setLevel(settings.logging.level)
-    purge_old_logs(paths.log_dir, settings.logging.retention_days, local_today())
+    purge_old_files(settings, paths=paths, active_session_ids=set)
     enabled_outputs = [output.id for output in settings.outputs if output.enabled]
     logger.info(
         f"設定を読んだ（{paths.settings_file}、エンジン: {settings.transcription.engine}、"
@@ -770,11 +851,23 @@ def _start_services(
         )
     except HotkeyError as error:
         logger.error(f"ホットキーを受け付けられなかった（{error}）")
-    timer = RepeatingTimer(
+    limit_timer = RepeatingTimer(
         handlers.session_manager.truncate_if_expired, SESSION_LIMIT_CHECK_INTERVAL_SEC
     )
-    timer.start()
-    running.timer = timer
+    limit_timer.start()
+    running.timers.append(limit_timer)
+    # 常駐中の古いログと履歴の削除（設定は呼ぶたびに引き、設定画面で変えた保持期間を次の回から効かせる）
+    purge_timer = RepeatingTimer(
+        partial(
+            _purge_while_running,
+            handlers.settings_store,
+            handlers.session_manager,
+            paths,
+        ),
+        PURGE_INTERVAL_SEC,
+    )
+    purge_timer.start()
+    running.timers.append(purge_timer)
     tray.set_start_hotkey(settings.hotkeys.start)
     tray.set_state(TrayState.IDLE, busy=False)
     logger.info(f"常駐サービスを始めた（API のポート: {port}）")

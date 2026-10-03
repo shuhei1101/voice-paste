@@ -88,30 +88,46 @@ requirements:
     external_constraint: 制限なし
     source_kind: ユーザー要望
     source: https://github.com/shuhei1101/voice-paste/blob/develop/dev/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/2_%E5%93%81%E8%B3%AA%E7%9B%AE%E6%A8%99.md
-    value: '1.08'
+    value: '1.59'
     unit: 秒
-    rationale: '品質シナリオ 3。刷新前（voice_paste_legacy）の中央値 1,076 ms（20 回。約 10 秒の録音・large-v3・cuda・モデル読み込み済み）を切り上げた値で、新しい構成の中央値がこの値以下になる。区間は録音を止めた時点から貼り付けのキーを押す直前までで、録音の保存・用語集の読み込み・文字起こし・補正・クリップボード・貼り付けの待ち（0.1 秒）を含み、録音中の画面・トレイ・履歴の保存は含まない。測った手順と生の値は PR #27 の dev/pr/27/常駐アプリ.md の `## テスト結果` に残している'
-    measurement: 常駐中・ローカルの Whisper（GPU）・モデル読み込み済みで、約 10 秒話してホットキーで止めてから貼り付くまでを新旧それぞれ 20 回、実機で測る
+    rationale: '品質シナリオ 3（新しい構成の中央値が、刷新前の中央値以下）。刷新前を PR #27 で測った録音（`20260930010513.wav`）は残っておらず、同じ条件で比べられないため、#22 で履歴の約 10 秒の録音（`20261002212623`）・`.env` の `WHISPER_*`（large-v3・cuda・int8）・`resources/yogo.csv` で刷新前を `scripts/measure_legacy_latency.py` で測り直した。中央値 1,588 ms（20 回。最小 1,239 ms・最大 2,817 ms。2026-10-03、Windows 11・RTX 5070）を切り上げた値で、新しい構成の中央値がこの値以下になる。区間は録音を止めた時点から貼り付けのキーを押す直前までで、録音の保存・用語集の読み込み・文字起こし・補正・クリップボード・貼り付けの待ち（0.1 秒）を含み、録音中の画面・トレイ・履歴の保存は含まない。測った生の値は PR #41 の dev/pr/41/テスト結果/ の非機能要件テストのログに残している'
+    measurement: 常駐中・ローカルの Whisper（GPU）・モデル読み込み済みで、約 10 秒話してホットキーで止めてから貼り付くまでを新旧それぞれ 20 回、実機で測る。新しい構成は build_handlers で配線した SessionManager を、マイクの入力と貼り付けのキーだけを差し替えて通し、刷新前と同じ録音・設定・用語集（`tests/nfr/fixtures/`）で測る。`--run-e2e` を付けて実行する（Windows 11・NVIDIA GPU）
+    tests:
+      - name: test_paste_latency
+        summary: 録音を止めてから貼り付けのキーを押す直前までの中央値が決定値以下である
+        condition: 固めた設定（`tests/nfr/fixtures/whisper.env` の large-v3・cuda・int8）と用語集（`tests/nfr/fixtures/yogo.csv`。`resources/yogo.csv` と同じ）で build_handlers を一時フォルダの置き場所で配線し、モデルの読み込みを待つ。マイクの入力（open_input）は、刷新前を測り直したのと同じ録音（`tests/nfr/fixtures/recordings/latency/20261002212623.wav`）の先頭 10 秒を 1024 フレームずつ渡すもの、音量の操作は何もしないもの、貼り付けのキー（send_paste）は押した時刻だけを控えるものに差し替える。ホットキーの入口でセッションを始め、録音が 10 秒分たまったら貼り付けのみ（paste_only）で確定する。先に捨てる 1 回の後、これを 20 回続ける
+        measurement: SessionManager.complete を呼んだ時点から、差し替えた貼り付けのキーが押された時点までを time.perf_counter で測り、20 回の生の値と中央値・最小・最大を出す
+        expected: 20 回とも貼り付けのキーが押され、中央値が 1.59 秒以下
+        notes: クリップボードは実物を書き換えるため、測る前の文字を控えて測った後に戻す。録音は特性テスト（test_transcription_parity）が拾わない `recordings/latency/` に置く。`--run-e2e` が無い環境・録音が無い環境では skip する
+    test_file: tests/nfr/test_paste_latency.py
   - name: 文字起こしワーカーの立て直しの時間
     english_name: worker_recovery_time
     category: 耐障害
     external_constraint: 制限なし
     source_kind: ユーザー要望
     source: https://github.com/shuhei1101/voice-paste/blob/develop/dev/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/2_%E5%93%81%E8%B3%AA%E7%9B%AE%E6%A8%99.md
-    value: '10'
+    value: '27'
     unit: 秒
-    rationale: '品質シナリオ 4。立て直しはワーカーの起動からモデルの読み込みが終わるまでで決まる。刷新前（voice_paste_legacy）の読み込みは 5 回の実測で中央値 4.53 秒・最大 5.02 秒。規約『資源の値の決め方』の余裕（実測の p99.9 の 50%）に倣い、実測の最大を p99.9 の代わりに置いて余裕を足した 7.53 秒を、切りの良い 10 秒へ切り上げた。実測が 5 回で、モデルのファイルが OS のキャッシュに載った状態の値のため、新しい構成のワーカーを #22 で測り直す。測った手順と生の値は PR #27 の dev/pr/27/常駐アプリ.md の `## テスト結果` に残している'
+    rationale: '品質シナリオ 4（ワーカーが落ちてから 30 秒以内に次の録音を受け付ける）。立て直しはワーカーの起動からモデルの読み込みが終わるまでで決まる。#22 で新しい構成のワーカーを 20 回ずつ 2 回測り、モデルのファイルが OS のキャッシュに載る前の 1 回目が 17.68 秒、キャッシュ済みは中央値 5.09 秒・最大 5.50 秒だった（2026-10-03、Windows 11・RTX 5070）。立ち上げ直後の 1 回目も ready を待ち切れるよう、実測の最大 17.68 秒を p99.9 の代わりに置き、規約『資源の値の決め方』の余裕（実測の 50%）を足した 26.52 秒を切り上げた。品質シナリオ 4 の 30 秒に収まる。`main.py` の WORKER_READY_TIMEOUT_SEC がこの値を使う'
     measurement: 文字起こしの途中でワーカーを止め、常駐が止まらず録音が履歴に残り、決定値以内に次の録音を受け付けることを実機で測る
     breakdown:
       - part: モデルの読み込みの実測の最大
-        value: 5.02 秒
-        notes: 刷新前の 5 回の実測（中央値 4.53 秒）
+        value: 17.68 秒
+        notes: キャッシュに載る前の 1 回目（キャッシュ済みは中央値 5.09 秒・最大 5.50 秒）
       - part: 余裕
-        value: + 2.51 秒
+        value: + 8.84 秒
         notes: 実測の 50%（規約『資源の値の決め方』の既定）
       - part: 切り上げ
-        value: 10 秒
-        notes: 7.53 秒を切りの良い秒数へ
+        value: 27 秒
+        notes: 26.52 秒を秒の単位へ。品質シナリオ 4 の 30 秒以内
+    tests:
+      - name: test_worker_recovery_time
+        summary: 新しい構成のワーカーの起動からモデルの読み込みが終わるまでが決定値以内である
+        condition: 固めた設定（`tests/nfr/fixtures/whisper.env` の large-v3・cuda）で WhisperWorkerClient を作り、start → stop を 20 回続ける
+        measurement: 毎回の start（ワーカーの起動から ready を受けるまで）の時間（秒）を測り、生の値と中央値・最大を出す
+        expected: 20 回とも ready を受け、最大が 27 秒以内
+        notes: 測った最大から規約『資源の値の決め方』で決定値を決め直す。`tests/nfr/fixtures/` が無い環境・GPU が無い環境では skip する
+    test_file: tests/nfr/test_worker_recovery_time.py
   - name: 刷新の前後での起こした文字の一致
     english_name: transcription_parity
     category: 機能適合性
@@ -200,8 +216,56 @@ requirements:
     category: 保守性
     external_constraint: 制限なし
     source_kind: 制限なし
-    value: '3'
+    value: '2'
     unit: 秒
-    rationale: '常駐の終了時に標準入力を閉じてからワーカーが終わるまでと、terminate してから終わるまでを待つ時間。実測が無いため、刷新前（voice_paste_legacy の _stop_worker）の 3 秒（根拠の記録は無い）を仮に置く。新しい構成のワーカーで終わるまでの時間を #22 で立て直しの時間と一緒に測り、規約『資源の値の決め方』の下流を待つタイムアウト（実測の p99.9 + 50%）で決め直す'
+    rationale: '常駐の終了時に標準入力を閉じてからワーカーが終わるまでと、terminate してから終わるまでを待つ時間。#22 で新しい構成のワーカーを 20 回測り、標準入力を閉じてから終わるまでが中央値 0.26 秒・最大 0.81 秒だった（2026-10-03、Windows 11・RTX 5070）。規約『資源の値の決め方』の下流を待つタイムアウトとして、実測の最大を p99.9 の代わりに置いて余裕 50% を足した 1.22 秒を切り上げた。`main.py` の WORKER_STOP_TIMEOUT_SEC がこの値を使う'
     measurement: モデルを読み込んだワーカーの標準入力を閉じてからプロセスが終わるまでと、terminate から終わるまでを実機で測る
     overflow: 標準入力を閉じて待ちきれなければ terminate、さらに同じ時間待って終わらなければ kill する
+    tests:
+      - name: test_worker_stop_timeout
+        summary: モデルを読み込んだワーカーが、標準入力を閉じてから決定値以内に終わる
+        condition: 固めた設定（`tests/nfr/fixtures/whisper.env` の large-v3・cuda）で WhisperWorkerClient を start しては標準入力を閉じることを 20 回続ける
+        measurement: 毎回、標準入力を閉じてからワーカーのプロセスが終わるまでの時間（秒）を測り、生の値と中央値・最大を出す
+        expected: 20 回とも terminate せずに終わり、最大が 2 秒以内
+        notes: 測った最大から規約『資源の値の決め方』の下流を待つタイムアウトで決定値を決め直す。`tests/nfr/fixtures/` が無い環境・GPU が無い環境では skip する
+    test_file: tests/nfr/test_worker_stop_timeout.py
+  - name: 前の常駐サービスの終わりを待つ時間
+    english_name: single_instance_timeout
+    category: 可用性
+    external_constraint: 制限なし
+    source_kind: 制限なし
+    value: '54'
+    unit: 秒
+    rationale: 'ショートカットから起動したときに前の常駐サービスが動いていれば、終わるよう頼んで名前付きの排他が放されるのを待つ上限。前のプロセスがモデルの読み込み中だと、依頼はイベントループが回るまで処理されないため、内側の待ちはワーカーの立て直しの時間（ready を待つ上限 27 秒）と片付けの待ち（API サーバーの停止 5 秒・ワーカーの終わりを待つ 2 秒 × 2 回）の和 36 秒になる。規約『資源の値の決め方』の入れ子の待ちの余裕を足した 54 秒にする。余裕は内側の待ち以外の処理の実測で決めるが、test_single_instance_timeout で測った依頼から確保までの時間は内側の待ち（前のプロセスの読み込みと片付け）を含んでおり、それ以外の処理だけを切り出せないため、既定の内側の合計の 50% を置く。上限を超えると後のプロセスは終わり、前のプロセスもキューの依頼で終わるため、常駐サービスが 0 個になる。#22 の実測（PR #41 の `dev/pr/41/テスト結果/20261003154619_1c1e118_非機能要件テスト.log`、2026-10-03）では、前が待機中なら最大 0.78 秒、前がモデルの読み込み中なら最大 8.10 秒だった（決め直し前の実行の `20261003152550_948b9f5_非機能要件テスト.log` では 0.81 秒・12.64 秒）。文字起こしワーカーの立て直しの時間・終わりを待つ時間を決め直したときは、内訳とこの決定値も導き直す'
+    measurement: 実機で常駐サービスが動いている状態から同じ置き場所でもう 1 つ起動し、終わるよう頼んでから名前付きの排他を取れるまでを測る。`--run-e2e` を付けて実行する（Windows 11・NVIDIA GPU）
+    overflow: 上限までに排他を取れなければ、新しいプロセスは起動に失敗した理由をログに書いて終わる（前のプロセスを番号で強制終了しない）
+    breakdown:
+      - part: ワーカーの立て直しの時間
+        value: 27 秒
+        notes: 前のプロセスがモデルの読み込み中に頼まれたとき、読み込みが終わるまで依頼が処理されない（文字起こしワーカーの立て直しの時間）
+      - part: API サーバーの停止を待つ上限
+        value: + 5 秒
+        notes: server/runner.py の STOP_TIMEOUT_SEC
+      - part: ワーカーの終わりを待つ時間
+        value: + 4 秒
+        notes: 標準入力を閉じてから 2 秒と terminate から 2 秒（文字起こしワーカーの終わりを待つ時間）
+      - part: 余裕
+        value: + 18 秒
+        notes: 内側の待ちの合計の 50%（規約『資源の値の決め方』の既定）
+      - part: 合計
+        value: 54 秒
+        notes: '-'
+    tests:
+      - name: test_single_instance_timeout
+        summary: 常駐中に同じ置き場所でもう 1 つ起動すると、前の常駐サービスが終わり、決定値以内に後のプロセスが排他を取る
+        condition: 固めた設定（`tests/nfr/fixtures/whisper.env` の large-v3・cuda）で `python -m voice_paste --data-dir {一時フォルダ}` を起動して待機中（トークンのファイルが書かれる）を待ち、同じ `--data-dir` でもう 1 つ起動する。これを 10 回続ける
+        measurement: 後のプロセスのログの「前の常駐サービスに終わるよう頼んだ」から「単一インスタンスを確保した」までの時間（秒）を測り、生の値と中央値・最大を出す。前のプロセスが終わったことも確かめる
+        expected: 10 回とも前のプロセスが終わって後のプロセスが待機中になり、常駐サービスのプロセスが 1 つだけで、最大が 54 秒以内
+        notes: 測った値から余裕を決め直す。`--run-e2e` が無い環境・`tests/nfr/fixtures/` が無い環境では skip する
+      - name: test_single_instance_timeout_when_previous_starting
+        summary: 前の常駐サービスがモデルの読み込み中でも、決定値以内に入れ替わり、常駐サービスが 0 個にならない
+        condition: 固めた設定で `python -m voice_paste --data-dir {一時フォルダ}` を起動し、ログに「単一インスタンスを確保した」が出た直後（トークンのファイルが書かれる前の、モデルの読み込み中）に同じ `--data-dir` でもう 1 つ起動する。これを 5 回続ける
+        measurement: 後のプロセスのログの「前の常駐サービスに終わるよう頼んだ」から「単一インスタンスを確保した」までの時間（秒）を測り、生の値と中央値・最大を出す
+        expected: 5 回とも後のプロセスが待機中になり、常駐サービスのプロセスが 1 つだけで、最大が 54 秒以内
+        notes: '`--run-e2e` が無い環境・`tests/nfr/fixtures/` が無い環境では skip する'
+    test_file: tests/nfr/test_single_instance_timeout.py

@@ -38,7 +38,7 @@ dev = [
 ]
 
 [project.scripts]
-voice-paste = "voice_paste_legacy.main:run"
+voice-paste = "voice_paste.main:main"
 
 [tool.setuptools]
 package-dir = { "" = "src", "voice_paste_legacy" = "voice_paste_legacy" }

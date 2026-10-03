@@ -12,7 +12,7 @@ files:
     notes: 列は `誤変換`・`正しい表記`。録音を確定するたびに読み直す。置き場所は `YOGO_FILE` で変えられる。
   - file: settings.toml
     manages: 新しい構成（src/voice_paste/）の設定の全部
-    notes: git の管理外。既定は `%APPDATA%\voice-paste\settings.toml`、`--data-dir` を渡したときはその下。無ければ起動時に既定値で作る。並走の間は `--data-dir` が必須で、普段使いの置き場所には作らない。
+    notes: git の管理外。既定は `%APPDATA%\voice-paste\settings.toml`、`--data-dir` を渡したときはその下。無ければ起動時に既定値で作る。
   - file: settings.sample.toml
     manages: settings.toml の見本と既定値
     notes: git で管理する。設定のモデルの既定値と一致させる（単体テストで確かめる）。

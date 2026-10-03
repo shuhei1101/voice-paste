@@ -51,15 +51,29 @@ def start_app(start_service: Callable[..., RealService]) -> Iterator[Callable[..
     """
     drivers: list[AppDriver] = []
 
-    def _start(extra_settings: str = "", *, wait_idle: bool = True) -> AppDriver:
-        """設定を足して起動し、待機中を待つ。"""
+    def _start(
+        extra_settings: str = "",
+        *,
+        wait_idle: bool = True,
+        port: int | None = None,
+        wait_for_api: bool = True,
+        prepare: Callable[[Path], None] | None = None,
+    ) -> AppDriver:
+        """設定を足して起動し、待機中を待つ。prepare は起動の前に置き場所へファイルを用意する関数。"""
         others = get_uia().tray_tooltips()
         if others:
             pytest.skip(
                 "ほかの voice-paste（普段使いの旧版など）のトレイのアイコンが出ている（ヒント: "
                 f"{', '.join(others)}）。同じ実行ファイルのアイコンは 1 つのボタンにまとまり、この常駐アプリのメニューを開けないため、終了してから実行する"
             )
-        driver = AppDriver(start_service(extra_settings, accept_injected_hotkeys=True))
+        service = start_service(
+            extra_settings,
+            accept_injected_hotkeys=True,
+            port=port,
+            wait_for_api=wait_for_api,
+            prepare=prepare,
+        )
+        driver = AppDriver(service)
         drivers.append(driver)
         if wait_idle:
             driver.wait_tray_state(IDLE)

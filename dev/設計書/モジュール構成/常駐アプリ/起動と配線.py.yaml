@@ -14,6 +14,11 @@ directory: |-
   ```
 
   リポジトリの直下は `pyproject.toml`・起動のバッチファイル 1 つ・`settings.sample.toml`・`README.md`・`CLAUDE.md`・`src/`・`resources/`・`tests/`・`dev/`・`docs/` に絞る。
+
+  起動のバッチファイル（`voice-paste.bat`）は、venv を有効にし、CUDA の DLL（venv の `Lib/site-packages/nvidia/` の `cublas`・`cudnn`・`cuda_nvrtc` の `bin`）を `PATH` に足して、`pythonw -m voice_paste` を引数なしで起動する（コンソールを出さない）。
+  起動の記録（起動した時刻・使った Python・起動の終了コード）は `%LOCALAPPDATA%\voice-paste\log\launcher.log` へ起動ごとに上書きで書く。
+  ログの保持期間の削除（purge_old_logs）は日付の名前のログだけを消すため、上書きで大きさを保ち、日付でログを消す処理は持たない。
+  `pyproject.toml` の `[project.scripts]` の `voice-paste` は `voice_paste.main:main` を指す。
 diagrams:
   - name: 依存の向き
     diagram: |-
@@ -82,7 +87,7 @@ data_models:
     properties:
       - name: data_dir
         type: Path | None
-        description: データの置き場所（`--data-dir`）。設定・履歴・ログ・一時の音声・トークンをこの下に置く
+        description: データの置き場所（`--data-dir`）。渡したときは設定・履歴・ログ・一時の音声・トークンをこの下に置き、渡さなければ None（既定の置き場所）
       - name: migrate_env
         type: Path | None
         description: 設定へ移す .env（`--migrate-env`）。渡されたときだけ移す
@@ -152,36 +157,39 @@ functions:
     process: |-
       1. 起動の引数を読む（parse_args。argv が None なら sys.argv[1:]）
       2. 置き場所を決め、ログを INFO で設定する（resolve_app_paths・setup_logging）
-      3. `--migrate-env` が渡されていれば、.env を移して書く（migrate_env・save_settings）
+      3. 置き場所ごとの名前で単一インスタンスを確保する（instance_name・acquire_single_instance(SINGLE_INSTANCE_TIMEOUT_SEC)）
+         - StartupError の場合、1 を返す（トレイを出す前のため、ログにだけ残す）
+           - `[ERROR]` 起動に失敗した（理由）
+      4. `--migrate-env` が渡されていれば、.env を移して書く（migrate_env・save_settings）
          - settings.toml が既にある場合、1 を返す（書き換えた設定を上書きしない）
            - `[ERROR]` 設定ファイルが既にあるため .env を移さなかった（設定ファイルのパス）
          - SettingsError の場合、1 を返す
            - `[ERROR]` .env を移せなかった（理由）
          - `[INFO]` .env を設定ファイルへ移した（.env のパス・設定ファイルのパス）
-      4. QApplication（最後の窓を閉じても終わらない）・UiBridge・Tray を作り、build_stylesheet を当ててトレイに準備中を出す。WAKE_INTERVAL_MS ごとの空の QTimer を置き、SIGINT・SIGBREAK で QApplication.quit を呼ぶ
-      5. 設定を読む（load_settings）
-         - SettingsError の場合、トレイを失敗にして設定を読めないことを通知し（Tray.show_failure(settings_invalid, 理由)）、「録音を始める」「設定…」を押せないまま 11 へ（フォルダを開いて settings.toml を直し、再起動できる）
+      5. QApplication（最後の窓を閉じても終わらない）・UiBridge・Tray を作り、build_stylesheet を当ててトレイに準備中を出す。WAKE_INTERVAL_MS ごとの空の QTimer を置き、SIGINT・SIGBREAK で QApplication.quit を呼ぶ。後から起動したプロセスに終わるよう頼まれたら、QApplication.quit をメインスレッドで呼ぶ（SingleInstanceLock.on_quit_requested に、QMetaObject.invokeMethod で QApplication.quit をキューに入れる関数を渡す）
+      6. 設定を読む（load_settings）
+         - SettingsError の場合、トレイを失敗にして設定を読めないことを通知し（Tray.show_failure(settings_invalid, 理由)）、「録音を始める」「設定…」を押せないまま 12 へ（フォルダを開いて settings.toml を直し、再起動できる）
            - `[ERROR]` 起動に失敗した（理由）
-      6. ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログを消す（purge_old_logs）
+      7. ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を消す（purge_old_files。処理中のセッションは無いため、一時の音声も全て消す対象にする）
          - `[INFO]` 設定を読んだ（設定ファイルのパス・エンジン・オンの出力先の ID）
-      7. 配線する（build_handlers。notify と report_progress は UiBridge を部分適用した ui のもの）
-         - StartupError の場合、トレイを失敗にして起動の失敗を通知し（Tray.show_failure(engine_unavailable, 理由)）、「設定…」だけを押せるまま 11 へ（設定画面は読んだ設定で開き、保存は settings.toml へ書くだけにする。Handlers が無いため、UiDeps のうち録音・ホットキーの関数（start・pause・resume・complete・cancel・current_session・level・suspend_hotkeys・resume_hotkeys）は何もしない関数にし、設定画面を閉じてもホットキーの受付を始めない）
+      8. 配線する（build_handlers。notify と report_progress は UiBridge を部分適用した ui のもの）
+         - StartupError の場合、トレイを失敗にして起動の失敗を通知し（Tray.show_failure(engine_unavailable, 理由)）、「設定…」だけを押せるまま 12 へ（設定画面は読んだ設定で開き、保存は settings.toml へ書くだけにする。Handlers が無いため、UiDeps のうち録音・ホットキーの関数（start・pause・resume・complete・cancel・current_session・level・suspend_hotkeys・resume_hotkeys）は何もしない関数にし、設定画面を閉じてもホットキーの受付を始めない）
            - `[ERROR]` 起動に失敗した（理由）
-      8. UiController を作り（build_ui_deps）、UiBridge の知らせの受け手につなぐ（9 で待ち受けを始められない知らせを取りこぼさないよう、API より先に作る）
-      9. トークンを作り、API サーバーを起動する（create_token・build_fastapi・ApiServerRunner.start(API_START_TIMEOUT_SEC)）
+      9. UiController を作り（build_ui_deps）、UiBridge の知らせの受け手につなぐ（10 で待ち受けを始められない知らせを取りこぼさないよう、API より先に作る）
+      10. トークンを作り、API サーバーを起動する（create_token・build_fastapi・ApiServerRunner.start(API_START_TIMEOUT_SEC)）
          - True の場合だけ、トークンのファイルを書く（write_token_file）
          - False の場合、トークンのファイルを書かずに api_unavailable を知らせて続ける（ホットキーとトレイからの録音は使える）。理由は「ポート {ポート} で待ち受けを始められません」の 1 文にする
-      10. ホットキーの受付を始め（HotkeyListener.start(build_hotkey_bindings(設定))）、上限の打ち切りを RepeatingTimer で SESSION_LIMIT_CHECK_INTERVAL_SEC ごとに呼ぶ（SessionManager.truncate_if_expired）。トレイを待機中にする
+      11. ホットキーの受付を始め（HotkeyListener.start(build_hotkey_bindings(設定))）、上限の打ち切りを RepeatingTimer で SESSION_LIMIT_CHECK_INTERVAL_SEC ごとに呼ぶ（SessionManager.truncate_if_expired）。古いログと履歴の削除を RepeatingTimer で PURGE_INTERVAL_SEC ごとに呼ぶ（purge_old_files。設定は呼ぶたびに SettingsStore.get から引き、設定画面で変えた保持期間・履歴を残すかを次の回から効かせる。処理中のセッションの ID は SessionManager.current から引く）。トレイを待機中にする
          - HotkeyListener は、環境変数 `VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS`（ACCEPT_INJECTED_HOTKEYS_ENV）が `1` のときだけ accept_injected=True で作る（E2E がソフトウェアで送ったキーでホットキーを押すため。普段の起動は付けない）
            - `[INFO]` ソフトウェアで送ったキーもホットキーとして受ける
          - HotkeyError の場合、ホットキーを受け付けずに続ける（トレイから録音でき、設定画面で直せる）
            - `[ERROR]` ホットキーを受け付けられなかった（理由）
          - `[INFO]` 常駐サービスを始めた（API のポート）
-      11. イベントループを回す（exec_loop）
-      12. 抜けたら、新しい開始が来ないように入口とタイマー（ホットキー・API サーバー・タイマー）を先に止め、録音を捨て（SessionManager.close）、エンジンを止め、トレイを消す（8 までで立てたものだけ）
+      12. イベントループを回す（exec_loop）
+      13. 抜けたら、新しい開始が来ないように入口とタイマー（ホットキー・API サーバー・2 つのタイマー）を先に止め、録音を捨て（SessionManager.close）、エンジンを止め、トレイを消す（9 までで立てたものだけ）。最後に単一インスタンスの排他を放す（SingleInstanceLock.release）
           - `[INFO]` 常駐サービスを終えた
-      13. 再起動を頼まれていれば、同じ引数で起動し直す（relaunch）
-      14. 0 を返す
+      14. 再起動を頼まれていれば、同じ引数で起動し直す（relaunch。排他を放した後に呼ぶため、次のプロセスは待たずに排他を取れる）
+      15. 0 を返す
     status: implemented
     args:
       - name: argv
@@ -202,7 +210,7 @@ functions:
         summary: 設定を読んで API・ホットキー・トレイを立て、イベントループが抜けたら片付けて 0 を返す
         condition: --data-dir に空の一時フォルダ。QT_QPA_PLATFORM=offscreen、環境変数 VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS は無い、exec_loop はすぐ 0 を返す
         mock: build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray
-        expected: 0。{data_dir}/settings.toml が既定値ででき、token_file があり、HotkeyListener が accept_injected=False で作られ、HotkeyListener.start に既定のホットキーが渡り、HotkeyListener.stop・RepeatingTimer.stop・ApiServerRunner.stop・SessionManager.close・stop_engine・Tray.hide がこの順に 1 回ずつ呼ばれる
+        expected: 0。{data_dir}/settings.toml が既定値ででき、token_file があり、HotkeyListener が accept_injected=False で作られ、HotkeyListener.start に既定のホットキーが渡り、RepeatingTimer が SESSION_LIMIT_CHECK_INTERVAL_SEC と PURGE_INTERVAL_SEC の 2 つ作られ、HotkeyListener.stop・2 つの RepeatingTimer.stop・ApiServerRunner.stop・SessionManager.close・stop_engine・Tray.hide がこの順に 1 回ずつ呼ばれ、最後に単一インスタンスの排他が放される（同じ data_dir でもう一度取れる）
       - name: test_main_when_migrate_env
         case: 正常
         summary: .env を移してから読む
@@ -248,6 +256,25 @@ functions:
         condition: --data-dir に空の一時フォルダ、環境変数 VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS=1。exec_loop はすぐ 0 を返す
         mock: build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray
         expected: 0。HotkeyListener が accept_injected=True で作られる
+      - name: test_main_when_no_data_dir
+        case: 正常
+        summary: データの置き場所を渡さなければ既定の置き場所で起動する
+        condition: argv=[]。QT_QPA_PLATFORM=offscreen、exec_loop はすぐ 0 を返す
+        mock: platformdirs の user_config_dir・user_data_dir（それぞれ一時フォルダの config・local を返す）・build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray
+        expected: 0。一時フォルダの config/settings.toml が既定値ででき、local/api_token があり、local/log の下にログが書かれる
+      - name: test_main_when_previous_instance_not_released
+        case: 異常
+        summary: 前のプロセスが排他を放さなければトレイを出さずに終わる
+        condition: acquire_single_instance が StartupError を送出する
+        mock: acquire_single_instance・build_handlers・Tray
+        expected: 1。ERROR のログが 1 行出、Tray・build_handlers が作られない
+        exception: 前のプロセスが排他を放さない
+      - name: test_main_when_quit_requested
+        case: 正常
+        summary: 後から起動したプロセスに頼まれたら片付けて排他を放す
+        condition: --data-dir に空の一時フォルダ。exec_loop の中で、on_quit_requested に渡された関数を別のスレッドから呼び、イベントを処理してから抜ける
+        mock: acquire_single_instance（SingleInstanceLock の代わりを返す）・build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray
+        expected: 0。QApplication.quit がメインスレッドで呼ばれ、stop_engine・Tray.hide の後に SingleInstanceLock.release が 1 回呼ばれ、relaunch が呼ばれない
   - name: acquire_single_instance
     title: 単一インスタンスの確保
     kind: 関数
@@ -256,6 +283,11 @@ functions:
     scope: public
     summary: 名前付きのミューテックスを取る。取られていれば名前付きのイベントで前のプロセスに終わるよう頼み、解放を待ってから取る
     args:
+      - name: name
+        type: str
+        required: true
+        passing: positional
+        description: 排他の名前（instance_name）。ミューテックスは `Local\{name}`、終了の依頼のイベントは `Local\{name}-quit` にする
       - name: timeout_sec
         type: float
         required: true
@@ -263,13 +295,58 @@ functions:
         description: 前のプロセスの終わりを待つ上限
     returns:
       type: SingleInstanceLock
-      description: 取った排他（終了時に解放する。終了の依頼を待つスレッドも持つ）
+      description: 取った排他（終了の依頼を待つスレッドを持つ。終了時に release で放す）
     exceptions:
       - name: StartupError
         condition: 上限まで待っても前のプロセスが排他を放さない
     notes:
       強制終了しない: プロセスの番号での強制終了はしない（番号を使い回された無関係なプロセスを止めない）。
-    status: planned
+    status: implemented
+    process: |-
+      1. 名前付きのミューテックスを作る（ctypes で Win32 の CreateMutexW）
+      2. 既にあった（ERROR_ALREADY_EXISTS）か
+         - ある場合、前のプロセスの終了の依頼のイベントを開いて立て（OpenEventW・SetEvent）、ミューテックスの解放を timeout_sec まで待つ（WaitForSingleObject。前のプロセスが片付けずに落ちて放棄されたミューテックス（WAIT_ABANDONED）も取れたものとして扱う）
+           - イベントを開けない場合（前のプロセスがミューテックスを作ってからイベントを作るまでの間）、OPEN_EVENT_RETRY_INTERVAL_SEC ごとに開き直しながら、同じ上限までミューテックスの解放を待つ（開けたらその時点で立てる）
+           - `[INFO]` 前の常駐サービスに終わるよう頼んだ
+           - 上限まで取れない場合、ミューテックスのハンドルを閉じて StartupError を送出する。上限まで一度もイベントを開けなかったときは、理由にその旨を書く
+         - 無い場合、そのまま取れている
+      3. 自分の終了の依頼のイベント（自動リセット）を作り、作った直後に ResetEvent で立ったまま残っていた依頼を消す（同じ名前のイベントは前のプロセスのハンドルが残る間は引き継がれ、取る前に立った依頼は前のプロセス宛てのため）
+      4. 終了の依頼のイベントと、名前の無い自分専用の停止のイベントを WaitForMultipleObjects で待つデーモンスレッドを始めて SingleInstanceLock を返す
+         - 終了の依頼のイベントが立った場合、受け手を 1 回呼んでスレッドを終える（2 回目以降の依頼は、既に終わりに向かっているため受けない）
+         - 停止のイベントが立った場合、受け手を呼ばずにスレッドを終える
+         - `[INFO]` 単一インスタンスを確保した（名前）
+    unit_tests:
+      - name: test_acquire_single_instance
+        case: 正常
+        summary: ほかに持つプロセスが無ければすぐ取れる
+        condition: 一意の名前（テストごとに uuid を付ける）
+        mock: なし（実物の Win32 の名前付きのミューテックスとイベント）
+        expected: SingleInstanceLock が返り、release の後に同じ名前でもう一度取れる
+      - name: test_acquire_single_instance_when_held
+        case: 正常
+        summary: 持っている側に終わるよう頼み、放されたら取れる
+        condition: 別のスレッドで同じ名前の SingleInstanceLock を先に取り、その on_quit_requested には呼ばれたことを知らせるだけの関数を渡す。知らせを受けたら、取ったスレッドが release する（名前付きのミューテックスは取ったスレッドだけが放せる）。テストのスレッドで timeout_sec=5 で取る
+        mock: なし（実物の Win32 の名前付きのミューテックスとイベント）
+        expected: 先の on_quit_requested が 1 回呼ばれ、後の呼び出しが SingleInstanceLock を返す
+      - name: test_acquire_single_instance_when_not_released
+        case: 異常
+        summary: 上限まで放されなければ StartupError
+        condition: 別のスレッドで同じ名前の SingleInstanceLock を先に取り、頼まれても放さない。テストのスレッドで timeout_sec=0.2 で取る
+        mock: なし（実物の Win32 の名前付きのミューテックスとイベント）
+        expected: StartupError。先の SingleInstanceLock は持ったまま
+        exception: 上限まで待っても前のプロセスが排他を放さない
+      - name: test_acquire_single_instance_when_taken_over
+        case: 正常
+        summary: 前の持ち主が依頼を受けて放した直後に取ったロックは、受け手を呼ばない
+        condition: test_acquire_single_instance_when_held の流れで後から取ったロックに受け手を渡す。先のロックを取ったスレッドは、依頼の知らせを受けたら、同じ名前のイベントのハンドルを開いたまま、3 つ目の依頼として同じ名前のイベントをもう 1 回立ててから release する（立ったままの依頼が残り、acquire_single_instance の ResetEvent が無ければ後のロックの受け手が呼ばれる）
+        mock: なし（実物の Win32 の名前付きのミューテックスとイベント）
+        expected: 後から取ったロックの受け手が 1 秒呼ばれない
+      - name: test_acquire_single_instance_when_event_not_ready
+        case: 正常
+        summary: 前のプロセスのイベントがまだ無くても、開き直して頼む
+        condition: 別のスレッドが CreateMutexW だけで同じ名前のミューテックスを持ち、0.3 秒後に同じ名前の終了の依頼のイベントを作り、立ったら放す。timeout_sec=5 で取る
+        mock: なし（実物の Win32 の名前付きのミューテックスとイベント）
+        expected: SingleInstanceLock が返り、別のスレッドがイベントの立ったことを受けている
   - name: start_local_session
     title: ホットキー・トレイからの開始
     kind: 関数
@@ -339,9 +416,9 @@ functions:
       type: CliArgs
       description: 起動の引数
     process: |-
-      1. `--data-dir {フォルダ}` と `--migrate-env {ファイル}` を読む
-         - 並走の間（起動を切り替える #22 まで）は `--data-dir` を必須にし、普段使いの既定の置き場所へ書かない
-         - 知らない引数・`--data-dir` が無い場合、argparse が使い方を出して SystemExit(2) で終わる
+      1. `--data-dir {フォルダ}` と `--migrate-env {ファイル}` を読む（どちらも任意）
+         - `--data-dir` が無い場合、data_dir を None にする（設定は `%APPDATA%\voice-paste`、それ以外は `%LOCALAPPDATA%\voice-paste` の下。E2E・非機能要件テストは一時フォルダを渡して普段使いの置き場所に触れない）
+         - 知らない引数の場合、argparse が使い方を出して SystemExit(2) で終わる
     unit_tests:
       - name: test_parse_args
         case: 正常
@@ -356,9 +433,15 @@ functions:
         mock: なし
         expected: migrate_env が Path("C:/repo/.env")
       - name: test_parse_args_when_no_data_dir
-        case: 異常
-        summary: データの置き場所が無ければ終わる
+        case: 正常
+        summary: データの置き場所が無ければ既定の置き場所にする
         condition: '[]'
+        mock: なし
+        expected: data_dir が None、migrate_env が None
+      - name: test_parse_args_when_unknown_argument
+        case: 異常
+        summary: 知らない引数なら終わる
+        condition: '["--unknown"]'
         mock: なし
         expected: SystemExit（code 2）
     status: implemented
@@ -622,6 +705,84 @@ functions:
         expected: 例外が出ず、ERROR のログが 1 行出る
         exception: 起動できない
     status: implemented
+  - name: instance_name
+    title: 単一インスタンスの名前
+    container: runtime/single_instance.py
+    usecase: 常駐アプリを起動する
+    summary: 設定の置き場所から、単一インスタンスの排他の名前を作る
+    kind: 関数
+    scope: public
+    args:
+      - name: settings_dir
+        type: Path
+        required: true
+        passing: positional
+        description: 設定ファイルを置くフォルダ（AppPaths.settings_file の親）
+    returns:
+      type: str
+      description: '`voice-paste-{ハッシュ}`（ハッシュは解決した絶対パスを小文字にした文字列の SHA-256 の先頭 16 文字）'
+    process: |-
+      1. settings_dir を解決した絶対パスを小文字にし、SHA-256 の 16 進の先頭 INSTANCE_HASH_LENGTH 文字を `{APP_NAME}-` に続けて返す
+         - 普段使い（既定の置き場所）と E2E・非機能要件テスト（`--data-dir` の一時フォルダ）は別の名前になり、テストの起動が普段使いを終わらせない
+    unit_tests:
+      - name: test_instance_name
+        case: 正常
+        summary: 同じフォルダは大文字・小文字によらず同じ名前になる
+        condition: '`C:/Users/a/AppData/Roaming/voice-paste` と `c:/users/a/appdata/roaming/VOICE-PASTE`'
+        mock: なし
+        expected: 同じ名前で、`voice-paste-` に 16 文字の 16 進が続く
+      - name: test_instance_name_when_other_folder
+        case: 正常
+        summary: 違うフォルダは違う名前になる
+        condition: 既定の置き場所と一時フォルダ
+        mock: なし
+        expected: 名前が違う
+    status: implemented
+  - name: purge_old_files
+    title: 古いログと履歴の削除
+    container: main.py
+    usecase: 常駐アプリを起動する
+    summary: 設定の保持期間を過ぎたログと履歴を消す
+    kind: 関数
+    scope: public
+    args:
+      - name: settings
+        type: Settings
+        required: true
+        passing: positional
+        description: 今の設定（ログと履歴の保持期間・履歴を残すか）
+      - name: paths
+        type: AppPaths
+        required: true
+        passing: keyword
+        description: 置き場所
+      - name: active_session_ids
+        type: Callable[[], set[str]]
+        required: true
+        passing: keyword
+        description: 処理中のセッションの ID を返す関数（一時の音声を消さずに残す）
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. 保持期間を過ぎた日付のログを消す（purge_old_logs(paths.log_dir, settings.logging.retention_days, local_today())）
+      2. 履歴を残す設定（settings.history.enabled）か
+         - 残す場合、保持期間を過ぎた履歴のフォルダと取り残された一時の音声を消す（purge_expired(retention_days=settings.history.retention_days, paths, now=_local_now, active_session_ids)）
+         - 残さない場合、履歴は消さない
+    unit_tests:
+      - name: test_purge_old_files
+        case: 正常
+        summary: ログと履歴の両方を消す
+        condition: history.enabled=true・history.retention_days=1・logging.retention_days=7
+        mock: purge_old_logs・purge_expired
+        expected: purge_old_logs に (log_dir, 7, 今日) が、purge_expired に retention_days=1 と active_session_ids が渡る
+      - name: test_purge_old_files_when_history_disabled
+        case: 正常
+        summary: 履歴を残さない設定ならログだけ消す
+        condition: history.enabled=false
+        mock: purge_old_logs・purge_expired
+        expected: purge_old_logs が 1 回呼ばれ、purge_expired が呼ばれない
+    status: implemented
 notes:
   依存の向き: |-
     コーディング規約『依存関係管理』のとおり `features`・`server`・`ui` → `integrations`・`runtime` → `shared` とし、上の層へは import しない。
@@ -759,6 +920,90 @@ classes:
             mock: なし
             expected: get().recording.volume_percent が 30
     status: implemented
+  - name: SingleInstanceLock
+    title: 単一インスタンスの排他
+    container: runtime/single_instance.py
+    usecase: 常駐アプリを起動する
+    role: ランタイム
+    summary: 取った名前付きのミューテックスと、終了の依頼を待つスレッドを持つ
+    description: |-
+      終了の依頼のイベント（名前付き）と停止のイベント（名前の無い自分専用）を専用のデーモンスレッドで待ち、終了の依頼が立ったら on_quit_requested で渡された関数を 1 回呼んでスレッドを終える（呼ぶのはそのスレッド。メインスレッドへ渡すのは渡す側の関数が行う）。
+      名前付きのイベントは自分では立てない（立てると、ハンドルが残る間に次のプロセスへ依頼が引き継がれる）。
+      ミューテックスは取ったスレッド（メインスレッド）で放す。
+    kind: クラス
+    properties:
+      - name: _mutex
+        type: int
+        access: 内部 (_)
+        description: 名前付きのミューテックスのハンドル
+      - name: _quit_event
+        type: int
+        access: 内部 (_)
+        description: 終了の依頼のイベントのハンドル
+      - name: _on_quit
+        type: Callable[[], None] | None
+        access: 内部 (_)
+        description: 終了を頼まれたときに呼ぶ関数。on_quit_requested の前は None（その間に頼まれたら、渡された時点で呼ぶ）
+      - name: _thread
+        type: threading.Thread
+        access: 内部 (_)
+        description: 終了の依頼を待つスレッド
+      - name: _stop_event
+        type: int
+        access: 内部 (_)
+        description: 待つスレッドを止める、名前の無い自分専用のイベントのハンドル
+    methods:
+      - name: on_quit_requested
+        title: 終了の依頼の受け手の登録
+        summary: 終了を頼まれたときに呼ぶ関数を渡す
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        args:
+          - name: callback
+            type: Callable[[], None]
+            required: true
+            passing: positional
+            description: 終了を頼まれたときに呼ぶ関数
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 受け手を覚える
+             - 既に頼まれていた場合、その場で 1 回呼ぶ
+        unit_tests:
+          - name: test_on_quit_requested
+            case: 正常
+            summary: 頼まれたら受け手を呼ぶ
+            condition: 取った後に受け手を渡し、同じ名前のイベントを立てる
+            mock: 受け手
+            expected: 受け手が 1 秒以内に 1 回呼ばれる
+          - name: test_on_quit_requested_when_already_requested
+            case: 正常
+            summary: 受け手を渡す前に頼まれていても取りこぼさない
+            condition: 取った後、受け手を渡す前にイベントを立てる
+            mock: 受け手
+            expected: 受け手を渡した時点で 1 回呼ばれる
+      - name: release
+        title: 排他の解放
+        summary: 待つスレッドを止め、ミューテックスを放してハンドルを閉じる
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 停止のイベント（名前の無い自分専用）を立てて待つスレッドを抜けさせ、終わりを待つ（名前付きの終了の依頼のイベントは立てない）
+          2. ミューテックスを放し（ReleaseMutex）、ミューテックス・終了の依頼のイベント・停止のイベントのハンドルを閉じる（CloseHandle）
+             - 2 回目以降の呼び出しは何もしない
+        unit_tests:
+          - name: test_release
+            case: 正常
+            summary: 放した後は同じ名前ですぐ取れ、受け手は呼ばれない
+            condition: 取ってから release を 2 回呼ぶ
+            mock: 受け手
+            expected: 同じ名前で timeout_sec=0.1 で取れ、受け手が呼ばれていない
+    status: implemented
 constants:
   - name: API_START_TIMEOUT_SEC
     title: API の待ち受けの始まりを待つ秒数
@@ -809,8 +1054,37 @@ constants:
     summary: Qt のイベントループの中で Python のシグナルのハンドラが動くようにする空の QTimer の間隔。PoC で 200 ms なら Ctrl+Break から 0.3 秒で終わった
     value: '200'
     status: implemented
+  - name: SINGLE_INSTANCE_TIMEOUT_SEC
+    title: 前の常駐サービスの終わりを待つ時間
+    container: main.py
+    usecase: 常駐アプリを起動する
+    summary: acquire_single_instance に渡す、前のプロセスが排他を放すのを待つ上限。非機能要件の前の常駐サービスの終わりを待つ時間の決定値
+    value: '54.0'
+    status: implemented
+  - name: PURGE_INTERVAL_SEC
+    title: 常駐中に古いログと履歴を消す間隔
+    container: main.py
+    usecase: 常駐アプリを起動する
+    summary: RepeatingTimer が purge_old_files を呼ぶ間隔。非機能要件の常駐中に古い履歴とログを消す間隔（24 時間）を秒にした値
+    value: '86400.0'
+    status: implemented
+  - name: INSTANCE_HASH_LENGTH
+    title: 単一インスタンスの名前のハッシュの長さ
+    container: runtime/single_instance.py
+    usecase: 常駐アプリを起動する
+    summary: instance_name が名前に使う SHA-256 の 16 進の文字数。置き場所が 1 台に数個のため、16 文字（64 ビット）で重ならない
+    value: '16'
+    status: implemented
+  - name: OPEN_EVENT_RETRY_INTERVAL_SEC
+    title: 前のプロセスのイベントを開き直す間隔
+    container: runtime/single_instance.py
+    usecase: 常駐アプリを起動する
+    summary: 前のプロセスがミューテックスを作ってからイベントを作るまでの間に OpenEventW が失敗したとき、開き直す間隔。前のプロセスの起動の初めの数ミリ秒の間だけ起こるため、依頼の遅れを 0.1 秒までに抑える
+    value: '0.1'
+    status: implemented
 test_files:
   - tests/unit/voice_paste/test_main.py
   - tests/unit/voice_paste/runtime/test_timer.py
   - tests/unit/voice_paste/runtime/test_settings_store.py
   - tests/unit/voice_paste/runtime/test_process.py
+  - tests/unit/voice_paste/runtime/test_single_instance.py

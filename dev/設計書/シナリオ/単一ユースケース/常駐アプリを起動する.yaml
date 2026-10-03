@@ -34,6 +34,7 @@ scenarios:
       - 127.0.0.1 の API が、トークンを付けた要求に応える
       - トークンのファイル（`%LOCALAPPDATA%\voice-paste\` の下）に今回の起動のトークンが書かれている
       - 文字起こしワーカーの子プロセスが動いている
+    test: test_normal
   - name: 正常シナリオ（前の常駐サービスが動いている）
     setup:
       - name: Mock
@@ -60,6 +61,7 @@ scenarios:
       - 常駐サービスのプロセスが 1 つだけ動いている
     notes:
       起動し直しの手作業: master を取り込んだ後にショートカットから起動し直す使い方を残すため、新しいプロセスが前のプロセスに終わるよう頼む。プロセスの番号での強制終了はしない。
+    test: test_normal_when_previous_running
   - name: 正常シナリオ（保持期間を過ぎた履歴とログがある）
     setup:
       - name: Mock
@@ -85,6 +87,7 @@ scenarios:
     expected:
       - 2 日前の日付の履歴とログが消えている
       - 今日の日付の履歴とログが残っている
+    test: test_normal_when_expired_history_and_logs
   - name: 異常シナリオ（文字起こしのエンジンを準備できない）
     setup:
       - name: Mock
@@ -114,6 +117,7 @@ scenarios:
       - 録音開始のホットキーを押しても録音が始まらない
     notes:
       同じ扱いになる失敗: 文字起こしワーカーが ready を返さずに終わったときも同じ扱いになる。
+    test: test_error_when_engine_unavailable
   - name: 異常シナリオ（API の待ち受けを始められない）
     setup:
       - name: Mock
@@ -141,6 +145,7 @@ scenarios:
       - トレイで API を使えないことが知らされている
       - ログに待ち受けに失敗した理由が書かれている
       - 録音開始のホットキーを押すと録音が始まる
+    test: test_error_when_api_unavailable
 lead: 'ショートカットから常駐サービスを起動し、文字起こしのエンジン・API の待ち受け・ホットキーの受付を立てて、録音の開始を待つ状態にする単一ユースケース。'
 issue: 14
 primary_actor: 音声入力を使うユーザー
@@ -148,3 +153,4 @@ trigger: ユーザーが常駐サービスのショートカットを開く
 preconditions:
   - Windows の端末で、リポジトリの直下に仮想環境がある
   - 設定ファイル（`%APPDATA%\voice-paste\settings.toml`）がある（無ければ既定値で作る）
+test_file: tests/e2e/単一ユースケース/test_start_resident_app.py

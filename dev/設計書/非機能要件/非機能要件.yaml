@@ -91,7 +91,14 @@ requirements:
     value: '1.08'
     unit: 秒
     rationale: '品質シナリオ 3。刷新前（voice_paste_legacy）の中央値 1,076 ms（20 回。約 10 秒の録音・large-v3・cuda・モデル読み込み済み）を切り上げた値で、新しい構成の中央値がこの値以下になる。区間は録音を止めた時点から貼り付けのキーを押す直前までで、録音の保存・用語集の読み込み・文字起こし・補正・クリップボード・貼り付けの待ち（0.1 秒）を含み、録音中の画面・トレイ・履歴の保存は含まない。測った手順と生の値は PR #27 の dev/pr/27/常駐アプリ.md の `## テスト結果` に残している'
-    measurement: 常駐中・ローカルの Whisper（GPU）・モデル読み込み済みで、約 10 秒話してホットキーで止めてから貼り付くまでを新旧それぞれ 20 回、実機で測る
+    measurement: 常駐中・ローカルの Whisper（GPU）・モデル読み込み済みで、約 10 秒話してホットキーで止めてから貼り付くまでを新旧それぞれ 20 回、実機で測る。新しい構成は build_handlers で配線した SessionManager を、マイクの入力と貼り付けのキーだけを差し替えて通し、刷新前と同じ録音・設定・用語集（`tests/nfr/fixtures/`）で測る。`--run-e2e` を付けて実行する（Windows 11・NVIDIA GPU）
+    tests:
+      - name: test_paste_latency
+        summary: 録音を止めてから貼り付けのキーを押す直前までの中央値が決定値以下である
+        condition: 固めた設定（`tests/nfr/fixtures/whisper.env` の large-v3・cuda）と用語集（`tests/nfr/fixtures/yogo.csv`）で build_handlers を一時フォルダの置き場所で配線し、モデルの読み込みを待つ。マイクの入力（open_input）は、刷新前と同じ録音（`tests/nfr/fixtures/recordings/20260930010513.wav`）の先頭 10 秒を 1024 フレームずつ渡すもの、音量の操作は何もしないもの、貼り付けのキー（send_paste）は押した時刻だけを控えるものに差し替える。ホットキーの入口でセッションを始め、録音が 10 秒分たまったら貼り付けのみ（paste_only）で確定する。先に捨てる 1 回の後、これを 20 回続ける
+        measurement: SessionManager.complete を呼んだ時点から、差し替えた貼り付けのキーが押された時点までを time.perf_counter で測り、20 回の生の値と中央値・最小・最大を出す
+        expected: 20 回とも貼り付けのキーが押され、中央値が 1.08 秒以下
+        notes: クリップボードは実物を書き換えるため、測る前の文字を控えて測った後に戻す。`--run-e2e` が無い環境・`tests/nfr/fixtures/` が無い環境では skip する
   - name: 文字起こしワーカーの立て直しの時間
     english_name: worker_recovery_time
     category: 耐障害
@@ -112,6 +119,13 @@ requirements:
       - part: 切り上げ
         value: 10 秒
         notes: 7.53 秒を切りの良い秒数へ
+    tests:
+      - name: test_worker_recovery_time
+        summary: 新しい構成のワーカーの起動からモデルの読み込みが終わるまでが決定値以内である
+        condition: 固めた設定（`tests/nfr/fixtures/whisper.env` の large-v3・cuda）で WhisperWorkerClient を作り、start → stop を 20 回続ける
+        measurement: 毎回の start（ワーカーの起動から ready を受けるまで）の時間（秒）を測り、生の値と中央値・最大を出す
+        expected: 20 回とも ready を受け、最大が 10 秒以内
+        notes: 測った最大から規約『資源の値の決め方』で決定値を決め直す。`tests/nfr/fixtures/` が無い環境・GPU が無い環境では skip する
   - name: 刷新の前後での起こした文字の一致
     english_name: transcription_parity
     category: 機能適合性
@@ -205,3 +219,33 @@ requirements:
     rationale: '常駐の終了時に標準入力を閉じてからワーカーが終わるまでと、terminate してから終わるまでを待つ時間。実測が無いため、刷新前（voice_paste_legacy の _stop_worker）の 3 秒（根拠の記録は無い）を仮に置く。新しい構成のワーカーで終わるまでの時間を #22 で立て直しの時間と一緒に測り、規約『資源の値の決め方』の下流を待つタイムアウト（実測の p99.9 + 50%）で決め直す'
     measurement: モデルを読み込んだワーカーの標準入力を閉じてからプロセスが終わるまでと、terminate から終わるまでを実機で測る
     overflow: 標準入力を閉じて待ちきれなければ terminate、さらに同じ時間待って終わらなければ kill する
+    tests:
+      - name: test_worker_stop_timeout
+        summary: モデルを読み込んだワーカーが、標準入力を閉じてから決定値以内に終わる
+        condition: 固めた設定（`tests/nfr/fixtures/whisper.env` の large-v3・cuda）で WhisperWorkerClient を start しては標準入力を閉じることを 20 回続ける
+        measurement: 毎回、標準入力を閉じてからワーカーのプロセスが終わるまでの時間（秒）を測り、生の値と中央値・最大を出す
+        expected: 20 回とも terminate せずに終わり、最大が 3 秒以内
+        notes: 測った最大から規約『資源の値の決め方』の下流を待つタイムアウトで決定値を決め直す。`tests/nfr/fixtures/` が無い環境・GPU が無い環境では skip する
+  - name: 前の常駐サービスの終わりを待つ時間
+    english_name: single_instance_timeout
+    category: 可用性
+    external_constraint: 制限なし
+    source_kind: 制限なし
+    value: '17'
+    unit: 秒
+    rationale: ショートカットから起動したときに前の常駐サービスが動いていれば、終わるよう頼んで名前付きの排他が放されるのを待つ上限。前のプロセスの片付けの内側の待ち（API サーバーの停止 5 秒・ワーカーの終わりを待つ 3 秒 × 2 回）の合計 11 秒に、規約『資源の値の決め方』の入れ子の待ちの余裕（実測が無いため内側の合計の 50%）を足した 16.5 秒を切り上げた。片付けの実測で余裕を決め直す
+    measurement: 実機で常駐サービスが動いている状態から同じ置き場所でもう 1 つ起動し、終わるよう頼んでから名前付きの排他を取れるまでを測る
+    overflow: 上限までに排他を取れなければ、新しいプロセスは起動に失敗した理由をログに書いて終わる（前のプロセスを番号で強制終了しない）
+    breakdown:
+      - part: API サーバーの停止を待つ上限
+        value: 5 秒
+        notes: server/runner.py の STOP_TIMEOUT_SEC
+      - part: ワーカーの終わりを待つ時間
+        value: + 6 秒
+        notes: 標準入力を閉じてから 3 秒と terminate から 3 秒（文字起こしワーカーの終わりを待つ時間）
+      - part: 余裕
+        value: + 5.5 秒
+        notes: 内側の待ちの合計の 50%（規約『資源の値の決め方』の既定）
+      - part: 切り上げ
+        value: 17 秒
+        notes: 16.5 秒を秒の単位へ

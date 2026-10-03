@@ -9,7 +9,7 @@ items:
   - page: 起こした文字を届ける.yaml
     summary: 起こした文字を、選んだ出力先か API の呼び出し元のエンドポイントへ届ける
   - page: 設定を変える.yaml
-    summary: 設定画面で設定を変えて .env に保存する
+    summary: 設定画面で設定を変えて settings.toml に保存する
   - page: トレイから操作する.yaml
     summary: トレイのメニューからフォルダを開く・再起動する・終了する
   - page: APIで録音を操作する.yaml

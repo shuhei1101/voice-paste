@@ -401,7 +401,7 @@ functions:
       type: None
       description: なし
     process: |-
-      1. paste_key を `+` で区切り、各キーの前後の空白を除いて小文字にする（`<Ctrl> + v` も `<ctrl>+v` と同じに扱う。voice_paste_legacy の _parse_paste_key と同じ）
+      1. paste_key を `+` で区切り、各キーの前後の空白を除いて小文字にする（`<Ctrl> + v` も `<ctrl>+v` と同じに扱う。刷新前と同じ）
       2. `<ctrl>`・`<shift>`・`<alt>`・`<cmd>`・`<win>` を修飾キー、それ以外を主キーにする
          - 主キーが 1 つでない場合、DeliveryError を送出する（キーを送らない）
       3. FOCUS_SETTLE_SEC だけ待つ（貼り付け先のフォーカスが落ち着くのを待つ）
@@ -604,14 +604,14 @@ constants:
     title: フェードの段数
     container: integrations/volume/adapter.py
     usecase: 録音する
-    summary: 音量を変えるときに分ける段の数。voice_paste_legacy の fade_volume と同じ値
+    summary: 音量を変えるときに分ける段の数。刷新前と同じ値
     value: '30'
     status: implemented
   - name: FADE_JOIN_TIMEOUT_SEC
     title: 打ち切ったフェードの終わりを待つ秒数
     container: integrations/volume/adapter.py
     usecase: 録音する
-    summary: 進行中のフェードを打ち切るときに、そのスレッドの終わりを待つ上限。voice_paste_legacy の fade_volume と同じ値
+    summary: 進行中のフェードを打ち切るときに、そのスレッドの終わりを待つ上限。刷新前と同じ値
     value: '1.0'
     status: implemented
   - name: SINGLE_WRITE_MAX_DELTA
@@ -625,14 +625,14 @@ constants:
     title: フォーカスが落ち着くまでの待ち
     container: integrations/keyboard/sender.py
     usecase: 起こした文字を届ける
-    summary: 貼り付けのキーを送る前に待つ秒数。voice_paste_legacy の send_paste と同じ値
+    summary: 貼り付けのキーを送る前に待つ秒数。刷新前と同じ値
     value: '0.1'
     status: implemented
   - name: EDGE_PATHS
     title: Edge の既定の置き場所
     container: integrations/browser/opener.py
     usecase: 起こした文字を届ける
-    summary: PATH に msedge が無いときに探す Edge の実行ファイル。voice_paste_legacy の _find_edge と同じ並び
+    summary: PATH に msedge が無いときに探す Edge の実行ファイル。刷新前と同じ並び
     value: (r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe", r"C:\Program Files\Microsoft\Edge\Application\msedge.exe")
     status: implemented
 test_files:

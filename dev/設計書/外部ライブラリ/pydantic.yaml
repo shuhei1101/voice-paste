@@ -4,7 +4,7 @@ version:
   current: 2.13.5
   latest: 2.13.5
   checked_on: '2026-10-01'
-  source: pyproject.toml（fastapi・openai の依存としても入る）
+  source: pyproject.toml（fastapi の依存としても入る）
   pinning: 互換リリースで固定（~=2.13）
 catalogs:
   - name: API

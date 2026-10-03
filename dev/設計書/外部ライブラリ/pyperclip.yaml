@@ -17,7 +17,7 @@ purl: pkg:pypi/pyperclip
 dependency_scope: 必須
 adoption: 採用
 used_in:
-  - voice_paste_legacy/input/keyboard_sender.py
+  - src/voice_paste/integrations/keyboard/sender.py
 upstream: asweigart/pyperclip
 verification:
   state: 済

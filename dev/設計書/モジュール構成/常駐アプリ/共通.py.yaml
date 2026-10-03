@@ -5,7 +5,6 @@ directory: |-
   src/voice_paste/shared/
   ├── __init__.py
   ├── settings.py       # 設定のモデル（pydantic）、TOML の読み書き（tomlkit）
-  ├── env_migration.py  # .env を読んで設定のモデルへ写す（切り替えの反映作業で使う。python-dotenv）
   ├── logger.py         # 標準の logging の設定。日付ごとのファイルと保持期間での削除
   ├── errors.py         # 例外の階層
   ├── constants.py      # アプリ名と置き場所のパス（platformdirs）
@@ -786,114 +785,6 @@ functions:
         mock: なし（一時フォルダ）
         expected: 10 日前だけが消え、戻り値が 1
     status: implemented
-  - name: migrate_env
-    title: .env からの移行
-    kind: 関数
-    container: shared/env_migration.py
-    usecase: 共通
-    scope: public
-    summary: voice_paste_legacy の .env を読むだけで、値を settings.toml のキーへ写した Settings を返す
-    description: |-
-      書き込みは呼び出し側が save_settings で行う。`.env` の改名（`.env.migrated`）は起動を切り替える #22 の反映作業で行い、この関数は行わない。
-      `.env` のキーと settings.toml のキーの対応は設計書『設定』の settings.toml の各行の説明が持つ。
-    args:
-      - name: env_path
-        type: Path
-        required: true
-        passing: positional
-        description: 移す元の .env
-    returns:
-      type: Settings
-      description: .env の値を写した設定（.env に無い・空のキーは Settings の既定値。glossary_path だけは常に解いた絶対パス）
-    process: |-
-      1. env_path を python-dotenv の dotenv_values で読む（環境変数へ入れず、ファイルを書かない）
-         - 無い場合、SettingsError を送出する
-      2. 対応表のキーごとに、値があって空でないものだけを settings.toml のキーへ写す
-         - bool のキーは、小文字にして `true` のときだけ真にする（voice_paste_legacy の読み方と同じ）
-         - TRANSCRIPTION_ENGINE は `local` を `local_whisper` へ写す。それ以外（`openai` を含む）は SettingsError を送出する
-         - WHISPER_LANGUAGE・WHISPER_TEMPERATURE はローカルの Whisper へ写す
-      3. 用語集の場所を voice_paste_legacy/config.py の `_resolve_user_file` と同じ順で解き、絶対パスを glossary_path に写す（YOGO_FILE が空・無いときも写す。基準は env_path のフォルダ）
-         - YOGO_FILE が絶対パスの場合、そのまま
-         - YOGO_FILE が相対パスの場合、`{基準}/yogo.csv` → `{基準}/{YOGO_FILE}` → `{基準}/resources/{YOGO_FILE のファイル名}` のうち最初にあるもの。どれも無ければ `{基準}/yogo.csv`
-         - YOGO_FILE が空・無い場合、`{基準}/yogo.csv` があればそれ、無ければ `{基準}/resources/yogo.csv`
-      4. AI_SEND_{n}_* を n = 1 から順に読み、NAME か URL が空の番号で止めて ai_chat の送り先の一覧にする
-      5. CONFIRM_HOTKEY・CONFIRM_PASTE_ONLY_HOTKEY・COPY_ONLY_HOTKEY・PASTE_ENTER_DELAY・AI_SEND_DELAY を、既定の並びの出力先の一覧へ写す
-      6. 対応表に無いキー（RESIDENT_MODE・OPENAI_API_KEY を含む）は写さずにログへ書く
-         - `[WARNING]` 移さなかった .env のキー（キーの一覧）
-      7. Settings.model_validate で検証して返す
-         - pydantic.ValidationError の場合、合わない値の元の .env のキーを並べた SettingsError を送出する
-    exceptions:
-      - name: SettingsError
-        condition: env_path が無い
-        message: .env が無い（{env_path}）
-      - name: SettingsError
-        condition: TRANSCRIPTION_ENGINE が local でない（openai を含む）
-        message: '.env の値が合わない（TRANSCRIPTION_ENGINE: {値}）'
-      - name: SettingsError
-        condition: 数値のキーに数値でない値があるなど、写した値がモデルに合わない
-        message: '.env の値が合わない（{.env のキー}: {理由}、…）'
-    unit_tests:
-      - name: test_migrate_env_when_sample
-        case: 正常
-        summary: .env.sample の全キーを写す
-        condition: リポジトリの直下の .env.sample を一時フォルダへ写した .env（一時フォルダに yogo.csv は無い）
-        mock: なし（一時フォルダ）
-        expected: glossary_path が {一時フォルダ}/resources/yogo.csv、それ以外の項目が Settings() と等しい（.env.sample の値と既定値が一致する）。WARNING のログに RESIDENT_MODE と OPENAI_API_KEY が出る
-      - name: test_migrate_env_when_custom_values
-        case: 正常
-        summary: 既定と違う値を対応するキーへ写す
-        condition: 対応表の全てのキーに既定と違う値（bool は `False`・`TRUE`、数値、ホットキー、TRANSCRIPTION_ENGINE=local）を書いた .env
-        mock: なし（一時フォルダ）
-        expected: 設計書『設定』の対応どおりの全項目。`TRUE` は真、`False` は偽、engine は local_whisper
-      - name: test_migrate_env_when_ai_send_gap
-        case: 正常
-        summary: 送り先は空の番号で止める
-        condition: AI_SEND_1・2 があり 3 が無く 4 がある
-        mock: なし（一時フォルダ）
-        expected: ai_chat の送り先が 1・2 の 2 件
-      - name: test_migrate_env_when_relative_glossary
-        case: 正常
-        summary: 相対の用語集は legacy と同じ順で .env のフォルダから解く
-        condition: YOGO_FILE=data/my.csv。parametrize で (1) {.env のフォルダ}/yogo.csv あり (2) data/my.csv だけあり (3) resources/my.csv だけあり (4) どれも無し
-        mock: なし（一時フォルダ）
-        expected: glossary_path が (1) {.env のフォルダ}/yogo.csv (2) {.env のフォルダ}/data/my.csv (3) {.env のフォルダ}/resources/my.csv (4) {.env のフォルダ}/yogo.csv
-      - name: test_migrate_env_when_read_only
-        case: 正常
-        summary: .env に触れない
-        condition: .env.sample を写した .env
-        mock: なし（一時フォルダ）
-        expected: .env の中身と更新時刻が変わらず、.env.migrated が無く、os.environ に .env のキーが入っていない
-      - name: test_migrate_env_when_missing
-        case: 異常
-        summary: .env が無い
-        condition: 存在しないパス
-        mock: なし（一時フォルダ）
-        expected: SettingsError
-        exception: env_path が無い
-      - name: test_migrate_env_when_unknown_engine
-        case: 異常
-        summary: 知らないエンジンを断る
-        condition: TRANSCRIPTION_ENGINE を parametrize で openai・azure
-        mock: なし（一時フォルダ）
-        expected: SettingsError。メッセージに TRANSCRIPTION_ENGINE を含む
-        exception: TRANSCRIPTION_ENGINE が local でない（openai を含む）
-      - name: test_migrate_env_when_invalid_number
-        case: 異常
-        summary: 数値に直せない値を元のキーで示す
-        condition: WHISPER_BEAM_SIZE=ten
-        mock: なし（一時フォルダ）
-        expected: SettingsError。メッセージに WHISPER_BEAM_SIZE を含む
-        exception: 写した値がモデルに合わない
-      - name: test_migrate_env_when_empty_glossary
-        case: 正常
-        summary: 空の用語集は legacy と同じく直下の yogo.csv、無ければ resources/yogo.csv を指す
-        condition: YOGO_FILE=（空）。parametrize で (1) {.env のフォルダ}/yogo.csv あり (2) resources/yogo.csv だけあり
-        mock: なし（一時フォルダ）
-        expected: glossary_path が (1) {.env のフォルダ}/yogo.csv (2) {.env のフォルダ}/resources/yogo.csv
-    refs:
-      - dev/設計書/外部ライブラリ/python-dotenv#
-      - dev/設計書/設定/常駐アプリ#
-    status: implemented
   - name: resolve_app_paths
     title: 置き場所の解決
     kind: 関数
@@ -991,7 +882,6 @@ constants:
     status: implemented
 test_files:
   - tests/unit/voice_paste/shared/test_settings.py
-  - tests/unit/voice_paste/shared/test_env_migration.py
   - tests/unit/voice_paste/shared/test_logger.py
   - tests/unit/voice_paste/shared/test_constants.py
 function_types:

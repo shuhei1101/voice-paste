@@ -16,7 +16,7 @@ endpoints:
         condition: 文字起こしワーカーがモデルを読み込めず ready を返さないため、起動の処理が止まる
 lead: 機械学習のモデルを配るリポジトリのサービス。
 used_in:
-  - voice_paste_legacy/transcription/whisper_worker.py
+  - src/voice_paste/integrations/whisper/worker.py
 verification:
   state: 未確認
   detail: コードは直接呼ばず、faster-whisper がモデルを読み込むときに手元に無ければ取得する。動かしてはいない

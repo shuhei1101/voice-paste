@@ -6,4 +6,4 @@
 
 | ページ | 概要 |
 | --- | --- |
-| [常駐アプリ](./常駐アプリ.yaml) | 常駐アプリが .env（voice_paste_legacy）と settings.toml（新しい構成）から読む設定の一覧 |
+| [常駐アプリ](./常駐アプリ.yaml) | 常駐アプリが settings.toml から読む設定の一覧 |

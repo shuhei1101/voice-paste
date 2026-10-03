@@ -1,18 +1,12 @@
 @echo off
 setlocal
 
-set "LOG_DIR=%~dp0log"
+rem Launcher log: overwritten on every launch (the app purges its own dated logs).
+set "LOG_DIR=%LOCALAPPDATA%\voice-paste\log"
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
+set "BAT_LOG=%LOG_DIR%\launcher.log"
 
-for /f %%D in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd"') do set "TODAY=%%D"
-for %%F in ("%LOG_DIR%\*.log") do (
-    echo %%~nF | findstr /b "%TODAY%" >nul || del "%%F" 2>nul
-)
-
-for /f %%I in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMddHHmmss"') do set "TS=%%I"
-set "BAT_LOG=%LOG_DIR%\%TS%_run_tray_bat.log"
-
-echo [%date% %time%] run_tray.bat start >> "%BAT_LOG%"
+echo [%date% %time%] voice-paste.bat start > "%BAT_LOG%"
 echo [%date% %time%] cwd=%~dp0 >> "%BAT_LOG%"
 
 set "PYTHON_EXE=python"
@@ -25,17 +19,17 @@ if exist "%~dp0venv\Scripts\activate.bat" (
     set "PYTHON_EXE=pythonw"
 )
 
-echo [%date% %time%] launching: %PYTHON_EXE% -m voice_paste_legacy >> "%BAT_LOG%"
+echo [%date% %time%] launching: %PYTHON_EXE% -m voice_paste >> "%BAT_LOG%"
 chcp 65001 > nul
 set FOR_DISABLE_CONSOLE_CTRL_HANDLER=1
 set "PATH=%~dp0venv\Lib\site-packages\nvidia\cublas\bin;%~dp0venv\Lib\site-packages\nvidia\cudnn\bin;%~dp0venv\Lib\site-packages\nvidia\cuda_nvrtc\bin;%PATH%"
-start "" "%PYTHON_EXE%" -m voice_paste_legacy
+start "" "%PYTHON_EXE%" -m voice_paste
 set "EXITCODE=%ERRORLEVEL%"
 echo [%date% %time%] launcher exited with code %EXITCODE% >> "%BAT_LOG%"
 
 if not "%EXITCODE%"=="0" (
     echo.
-    echo [ERROR] failed to launch voice_paste_legacy with code %EXITCODE%
+    echo [ERROR] failed to launch voice_paste with code %EXITCODE%
     echo See log: %BAT_LOG%
     pause
 )

@@ -39,6 +39,7 @@ scenarios:
       - 履歴に話した録音が保存されている
       - システム音量が録音前の値に戻っている
       - 選んだ出力先（貼り付けて送信）で 録音を文字に起こす へ進む
+    test: test_normal
   - name: 正常シナリオ（一時停止して再開する）
     setup:
       - name: Mock
@@ -66,6 +67,7 @@ scenarios:
     expected:
       - 履歴に保存した録音に、一時停止の間に話した声が入っていない
       - 経過時間が、一時停止の間を除いた長さを示している
+    test: test_normal_when_pause_and_resume
   - name: 正常シナリオ（録音を取り消す）
     setup:
       - name: Mock
@@ -97,6 +99,7 @@ scenarios:
       - 履歴にこの録音が残っていない
       - システム音量が録音前の値に戻っている
       - トレイのアイコンが待機中に戻り、文字起こしへ進まない
+    test: test_normal_when_cancel
   - name: 正常シナリオ（録音の画面を出さない）
     setup:
       - name: Mock
@@ -129,6 +132,7 @@ scenarios:
       - 履歴に録音が保存されている
       - システム音量が録音前の値に戻っている
       - 録音を文字に起こす へ進む
+    test: test_normal_when_hide_window
   - name: 正常シナリオ（履歴を残さない）
     setup:
       - name: Mock
@@ -147,6 +151,7 @@ scenarios:
     expected:
       - 履歴にこの録音が残っていない
       - 一時の音声（`%LOCALAPPDATA%\voice-paste\` の下）に録音があり、録音を文字に起こす へ進む
+    test: test_normal_when_history_off
   - name: 異常シナリオ（処理中に開始が来る）
     setup:
       - name: Mock
@@ -170,6 +175,7 @@ scenarios:
       - 処理中の録音が録音中のまま続いている
     notes:
       API から来たとき: API の開始が処理中に来たときは、APIで録音を操作する の 異常シナリオ（処理中に開始が来る） がエラーを返す。
+    test: test_error_when_busy
   - name: 異常シナリオ（マイクを開けない）
     setup:
       - name: Mock
@@ -206,6 +212,7 @@ scenarios:
       - 録音開始のホットキーをもう一度受け付ける
     notes:
       API から来たとき: API の開始でマイクを開けなかったときは、APIで録音を操作する の 異常シナリオ（マイクを開けない） がエラーを返す。
+    test: test_error_when_microphone_missing
 lead: ホットキー・トレイ・API のどれかから録音を始め、確定して履歴に残すか取り消すまでの単一ユースケース。
 issue: 14
 primary_actor: 音声入力を使うユーザー
@@ -218,3 +225,4 @@ notes:
     録音の画面は、設定でオンにした出力先と、出すとした AI チャットの送り先ごとに確定のボタンを並べ、各ボタンの横に同じ操作のホットキーを出す。
     録音の画面を出さない設定では、トレイから始めても画面を出さず、ホットキーだけで操作する。
     API から始めた録音は、API の停止・完了で操作する（APIで録音を操作する）。
+test_file: tests/e2e/単一ユースケース/test_record.py

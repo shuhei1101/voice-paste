@@ -105,6 +105,7 @@ scenarios:
       - API の開始が処理中を表すエラー（409）で返っている
       - 2 つ目の録音が始まっていない
       - ホットキーの録音が録音中のまま続いている
+    test: test_error_when_hotkey_recording
 lead: 同じ端末のほかのプロセスが API で録音を開始・停止・完了し、指定したエンドポイントで起こした文字を受け取るまでの複合ユースケース。
 issue: 14
 primary_actor: API を呼ぶほかのプロセス

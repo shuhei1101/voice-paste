@@ -34,6 +34,7 @@ scenarios:
       - '`settings.toml` の `hotkeys.start` が新しい組み合わせになり、ほかのキーとコメントが変わっていない'
       - 再起動せずに、新しい組み合わせで録音が始まり、前の組み合わせでは始まらない
       - 設定画面が閉じている
+    test: test_normal
   - name: 正常シナリオ（保存して再起動する）
     setup:
       - name: Mock
@@ -66,6 +67,7 @@ scenarios:
     expected:
       - '`settings.toml` の `transcription.local_whisper.model` が新しいモデルになっている'
       - 前の常駐アプリのプロセスが終わり、新しいプロセスが新しいモデルで文字を起こす
+    test: test_normal_when_save_and_restart
   - name: 正常シナリオ（既定に戻す）
     setup:
       - name: Mock
@@ -93,6 +95,7 @@ scenarios:
       - '`settings.toml` の全てのキーが既定の値になっている'
       - 反映が `immediate` のキーは動いている常駐アプリに効き、`restart` のキーは再起動するまで前の値のまま動く
       - 設定画面が開いたまま、欄に既定の値が入っている
+    test: test_normal_when_reset
   - name: 正常シナリオ（取り消す）
     setup:
       - name: Mock
@@ -117,6 +120,7 @@ scenarios:
       - '`settings.toml` が変わっていない'
       - 動いている常駐アプリの設定が変わっていない
       - 設定画面が閉じている
+    test: test_normal_when_cancel
   - name: 異常シナリオ（確かめに通らない値を入れる）
     setup:
       - name: Mock
@@ -142,6 +146,7 @@ scenarios:
       - '`settings.toml` が変わっていない'
       - 設定画面が開いたまま、Enter までの秒数の欄の下にエラーが出て、その欄にフォーカスがある
       - 動いている常駐アプリの設定が変わっていない
+    test: test_error_when_invalid_value
 lead: トレイの「設定…」から設定画面を開き、変えた設定を設定のモデルで確かめてから `settings.toml` に保存する単一ユースケース。
 issue: 21
 primary_actor: 音声入力を使うユーザー
@@ -151,3 +156,4 @@ preconditions:
 notes:
   画面の項目: '`settings.toml` の全てのキーを、出力先・ホットキー・録音・文字起こし・画面・履歴とログ・API の 7 つのまとまりに分け、左のメニューで切り替える。欄は設定のモデルから組み立てる（キーの一覧は 設定/常駐アプリ）。'
   反映の種類: キーごとの反映（`immediate` / `restart`）は 設定/常駐アプリ が持つ。反映が `restart` の欄には「再起動で反映」を出し、そうした欄を変えたときだけ「保存して再起動」を出す。`immediate` の値は保存した時点で動いている常駐アプリに効く。
+test_file: tests/e2e/単一ユースケース/test_change_settings.py

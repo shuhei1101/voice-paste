@@ -17,6 +17,7 @@ scenarios:
       ```
     expected:
       - エクスプローラーでログの置き場所（`%LOCALAPPDATA%\voice-paste\log\`。データの置き場所を渡した起動ではその下の `log\`）が開いている
+    test: test_normal_when_open_log_folder
   - name: 正常シナリオ（設定フォルダを開く）
     setup:
       - name: Mock
@@ -33,6 +34,7 @@ scenarios:
       ```
     expected:
       - エクスプローラーで `settings.toml` のあるフォルダ（`%APPDATA%\voice-paste\`。データの置き場所を渡した起動ではそのフォルダ）が開いている
+    test: test_normal_when_open_settings_folder
   - name: 正常シナリオ（再起動する）
     setup:
       - name: Mock
@@ -57,6 +59,7 @@ scenarios:
     expected:
       - 前の常駐アプリのプロセスが終わっている
       - 新しい常駐アプリが待機中になり、`settings.toml` の今の設定で動いている
+    test: test_normal_when_restart
   - name: 正常シナリオ（終了する）
     setup:
       - name: Mock
@@ -83,6 +86,7 @@ scenarios:
       - トレイから voice-paste のアイコンが消えている
       - 常駐アプリと文字起こしワーカーのプロセスが終わり、常駐アプリの終了コードが 0 である
       - 127.0.0.1 の API が応えない
+    test: test_normal_when_quit
 lead: トレイのアイコンのメニューから、フォルダを開く・再起動する・終了する単一ユースケース。
 issue: 21
 primary_actor: 音声入力を使うユーザー
@@ -94,3 +98,4 @@ notes:
   録音中の操作: |-
     録音から届けるまでの間（API から始めた録音の間を含む）は「録音を始める」と「設定…」を押せなくし、項目名に理由を出す。
     その間に「再起動」・「終了」を選ぶと、トレイのアイコンは選んだ時点で消え、再起動・終了はその回が終わってから行う。
+test_file: tests/e2e/単一ユースケース/test_operate_from_tray.py

@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>録音の画面 | voice-paste のモック</title>
+  <!-- 採用スタイル「開発者ツール」の部品は #37 の共有 CSS、プリセットの部品は #44 の共有 CSS に置く -->
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/44/assets/style.css">
+  <script src="../../../../refs/44/assets/app.js" defer></script>
+</head>
+<body>
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">recording-window</a> / <a href="../">44</a> / <span>a-standard</span></nav>
+
+    <!-- 画面の説明 -->
+    <header class="intro">
+      <h1>録音の画面</h1>
+      <p>#37 の録音の画面の「AI チャットへ送る」の見出しと送り先のボタンを、カスタムプリセットの見出しとボタンに置き換えたもの。ほかは #37 のまま。</p>
+    </header>
+
+    <div class="desk">
+
+      <!-- 場面: 録音中（出すとしたプリセットが 3 件） -->
+      <section class="specimen" aria-labelledby="h-rec">
+        <h2 id="h-rec">録音中（出すとしたプリセットが 3 件）</h2>
+        <div class="win rec" role="group" aria-label="録音の画面">
+          <div class="rec__head">
+            <span class="state state--rec"><span class="dot" aria-hidden="true"></span>録音中</span>
+            <span class="rec__time num">00:42</span>
+          </div>
+          <div class="wave" aria-hidden="true"><span style="--h:18%"></span><span style="--h:34%"></span><span style="--h:52%"></span><span style="--h:40%"></span><span style="--h:72%"></span><span style="--h:88%"></span><span style="--h:64%"></span><span style="--h:46%"></span><span style="--h:30%"></span><span style="--h:58%"></span><span style="--h:80%"></span><span style="--h:96%"></span><span style="--h:70%"></span><span style="--h:52%"></span><span style="--h:36%"></span><span style="--h:60%"></span><span style="--h:84%"></span><span style="--h:66%"></span><span style="--h:44%"></span><span style="--h:28%"></span><span style="--h:40%"></span><span style="--h:56%"></span><span style="--h:32%"></span><span style="--h:20%"></span></div>
+          <div class="rec__row">
+            <button type="button" class="btn btn--pause">一時停止 <kbd>Ctrl+Alt+Z</kbd></button>
+            <a class="btn btn--quiet btn--danger" href="../../../tray/37/a-standard/index.html">取り消す <kbd>Ctrl+Alt+Q</kbd></a>
+          </div>
+          <p class="group-label">確定して届ける</p>
+          <div class="outs">
+            <a class="btn btn--primary" href="../../../transcribing-indicator/37/a-standard/index.html">貼り付けて送信 <kbd>Ctrl+Alt+D</kbd></a>
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html">貼り付けのみ <kbd>Ctrl+Alt+V</kbd></a>
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html">コピーのみ <kbd>Ctrl+Alt+C</kbd></a>
+          </div>
+          <p class="group-label">カスタムプリセット</p>
+          <div class="outs outs--ai outs--presets">
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html" title="ChatGPT"><span class="clip">ChatGPT</span> <kbd>Ctrl+Alt+1</kbd></a>
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html" title="Claude"><span class="clip">Claude</span> <kbd>Ctrl+Alt+3</kbd></a>
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html" title="議事録へ送る"><span class="clip">議事録へ送る</span> <kbd>Ctrl+Alt+4</kbd></a>
+          </div>
+        </div>
+        <p class="scene-note">固定の出力先の下に、設定で出すとしたプリセットを設定の並びで出す（出さないとした Google AI は出ない）。種類（ブラウザで開く・エンドポイントへ送る）によらず同じボタンで、押すと文字起こし中の表示へ移る。</p>
+      </section>
+
+      <!-- 場面: 一時停止中 -->
+      <section class="specimen" aria-labelledby="h-paused">
+        <h2 id="h-paused">一時停止中</h2>
+        <div class="win rec rec--paused" role="group" aria-label="録音の画面（一時停止中）">
+          <div class="rec__head">
+            <span class="state state--paused"><span class="dot" aria-hidden="true"></span>一時停止中</span>
+            <span class="rec__time num">01:07</span>
+          </div>
+          <div class="wave wave--stopped" aria-hidden="true"></div>
+          <div class="rec__row">
+            <button type="button" class="btn btn--pause">再開 <kbd>Ctrl+Alt+Z</kbd></button>
+            <a class="btn btn--quiet btn--danger" href="../../../tray/37/a-standard/index.html">取り消す <kbd>Ctrl+Alt+Q</kbd></a>
+          </div>
+          <p class="group-label">確定して届ける</p>
+          <div class="outs">
+            <a class="btn btn--primary" href="../../../transcribing-indicator/37/a-standard/index.html">貼り付けて送信 <kbd>Ctrl+Alt+D</kbd></a>
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html">貼り付けのみ <kbd>Ctrl+Alt+V</kbd></a>
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html">コピーのみ <kbd>Ctrl+Alt+C</kbd></a>
+          </div>
+          <p class="group-label">カスタムプリセット</p>
+          <div class="outs outs--ai outs--presets">
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html" title="ChatGPT"><span class="clip">ChatGPT</span> <kbd>Ctrl+Alt+1</kbd></a>
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html" title="Claude"><span class="clip">Claude</span> <kbd>Ctrl+Alt+3</kbd></a>
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html" title="議事録へ送る"><span class="clip">議事録へ送る</span> <kbd>Ctrl+Alt+4</kbd></a>
+          </div>
+        </div>
+        <p class="scene-note">一時停止中でもプリセットで確定できる。</p>
+      </section>
+
+      <!-- 場面: 出すプリセットが無い -->
+      <section class="specimen" aria-labelledby="h-none">
+        <h2 id="h-none">出すプリセットが無い</h2>
+        <div class="win rec" role="group" aria-label="録音の画面（プリセットが無い）">
+          <div class="rec__head">
+            <span class="state state--rec"><span class="dot" aria-hidden="true"></span>録音中</span>
+            <span class="rec__time num">00:05</span>
+          </div>
+          <div class="wave" aria-hidden="true"><span style="--h:18%"></span><span style="--h:34%"></span><span style="--h:52%"></span><span style="--h:40%"></span><span style="--h:72%"></span><span style="--h:88%"></span><span style="--h:64%"></span><span style="--h:46%"></span><span style="--h:30%"></span><span style="--h:58%"></span><span style="--h:80%"></span><span style="--h:96%"></span><span style="--h:70%"></span><span style="--h:52%"></span><span style="--h:36%"></span><span style="--h:60%"></span><span style="--h:84%"></span><span style="--h:66%"></span><span style="--h:44%"></span><span style="--h:28%"></span><span style="--h:40%"></span><span style="--h:56%"></span><span style="--h:32%"></span><span style="--h:20%"></span></div>
+          <div class="rec__row">
+            <button type="button" class="btn btn--pause">一時停止 <kbd>Ctrl+Alt+Z</kbd></button>
+            <a class="btn btn--quiet btn--danger" href="../../../tray/37/a-standard/index.html">取り消す <kbd>Ctrl+Alt+Q</kbd></a>
+          </div>
+          <p class="group-label">確定して届ける</p>
+          <div class="outs">
+            <a class="btn btn--primary" href="../../../transcribing-indicator/37/a-standard/index.html">貼り付けて送信 <kbd>Ctrl+Alt+D</kbd></a>
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html">貼り付けのみ <kbd>Ctrl+Alt+V</kbd></a>
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html">コピーのみ <kbd>Ctrl+Alt+C</kbd></a>
+          </div>
+        </div>
+        <p class="scene-note">プリセットが 1 件も無いとき・全て出さないとしたときは、見出しごと出さない。</p>
+      </section>
+
+      <!-- 場面: プリセットが多い・タイトルが長い -->
+      <section class="specimen" aria-labelledby="h-many">
+        <h2 id="h-many">プリセットが多い・タイトルが長い</h2>
+        <div class="win rec" role="group" aria-label="録音の画面（プリセットが多い）">
+          <div class="rec__head">
+            <span class="state state--rec"><span class="dot" aria-hidden="true"></span>録音中</span>
+            <span class="rec__time num">1:02:37</span>
+          </div>
+          <div class="wave" aria-hidden="true"><span style="--h:18%"></span><span style="--h:34%"></span><span style="--h:52%"></span><span style="--h:40%"></span><span style="--h:72%"></span><span style="--h:88%"></span><span style="--h:64%"></span><span style="--h:46%"></span><span style="--h:30%"></span><span style="--h:58%"></span><span style="--h:80%"></span><span style="--h:96%"></span><span style="--h:70%"></span><span style="--h:52%"></span><span style="--h:36%"></span><span style="--h:60%"></span><span style="--h:84%"></span><span style="--h:66%"></span><span style="--h:44%"></span><span style="--h:28%"></span><span style="--h:40%"></span><span style="--h:56%"></span><span style="--h:32%"></span><span style="--h:20%"></span></div>
+          <div class="rec__row">
+            <button type="button" class="btn btn--pause">一時停止 <kbd>Ctrl+Alt+Z</kbd></button>
+            <a class="btn btn--quiet btn--danger" href="../../../tray/37/a-standard/index.html">取り消す <kbd>Ctrl+Alt+Q</kbd></a>
+          </div>
+          <p class="group-label">確定して届ける</p>
+          <div class="outs">
+            <a class="btn btn--primary" href="../../../transcribing-indicator/37/a-standard/index.html">貼り付けて送信 <kbd>Ctrl+Alt+D</kbd></a>
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html">貼り付けのみ <kbd>Ctrl+Alt+V</kbd></a>
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html">コピーのみ <kbd>Ctrl+Alt+C</kbd></a>
+          </div>
+          <p class="group-label">カスタムプリセット</p>
+          <div class="outs outs--ai outs--presets">
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html" title="ChatGPT"><span class="clip">ChatGPT</span> <kbd>Ctrl+Alt+1</kbd></a>
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html" title="Claude"><span class="clip">Claude</span> <kbd>Ctrl+Alt+3</kbd></a>
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html" title="議事録へ送る"><span class="clip">議事録へ送る</span> <kbd>Ctrl+Alt+4</kbd></a>
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html" title="社内のナレッジ検索アシスタント"><span class="clip">社内のナレッジ検索アシスタント</span> <kbd>Ctrl+Alt+5</kbd></a>
+            <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html" title="Slack の下書き"><span class="clip">Slack の下書き</span></a>
+          </div>
+        </div>
+        <p class="scene-note">3 件ずつ横に並べ、4 件目からは次の行へ折り返す。タイトルはボタンの幅で省略し、ホットキーは省略しない。ホットキーの無いプリセットはタイトルだけを出す。</p>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>プリセットの欄 | voice-paste のモック</title>
+  <!-- 採用スタイル「開発者ツール」の部品は #37 の共有 CSS、プリセットの部品は #44 の共有 CSS に置く -->
+  <link rel="stylesheet" href="../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../refs/44/assets/style.css">
+  <script src="../../refs/44/assets/app.js" defer></script>
+</head>
+<body>
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../">components</a> / <span>preset-editor</span></nav>
+
+    <!-- 部品の説明 -->
+    <header class="intro">
+      <h1>プリセットの欄</h1>
+      <p>設定画面の「カスタムプリセット」の 1 件分（案 A の形）。頭に出す・タイトル・並べ替え・消すを置き、下にタイトル・種類・URL・種類ごとの値・確定のホットキーを並べる。</p>
+    </header>
+
+    <div class="desk desk--single">
+
+      <!-- 状態: ブラウザで開く（並びの途中） -->
+      <section class="specimen" aria-labelledby="h-browser">
+        <h2 id="h-browser">ブラウザで開く（並びの途中）</h2>
+        <div class="win settings__form">
+<div class="preset" data-item data-kind-box="c-browser">
+<div class="preset__head"><label class="switch" for="c-browser-shown"><input type="checkbox" role="switch" id="c-browser-shown" name="presets[browser].enabled" aria-label="Claudeを録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="c-browser">Claude</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="Claudeを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="Claudeを下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="Claudeを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="c-browser-title">タイトル</label><input type="text" class="wide" id="c-browser-title" data-title="c-browser" name="presets[browser].title" value="Claude" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><span id="c-browser-kind-label">種類</span><fieldset class="radios" aria-labelledby="c-browser-kind-label"><label><input type="radio" data-kind name="presets[browser].kind" value="browser" checked> ブラウザで開く</label><label><input type="radio" data-kind name="presets[browser].kind" value="endpoint"> エンドポイントへ送る</label></fieldset></div>
+<div class="preset__field"><label for="c-browser-url">URL</label><input type="text" inputmode="url" class="wide" id="c-browser-url" name="presets[browser].url" value="https://claude.ai/new" placeholder="https://"></div>
+<div class="preset__field" data-kind-field="browser"><span>貼り付けた後</span><label class="check" for="c-browser-enter"><input type="checkbox" id="c-browser-enter" name="presets[browser].send_enter" checked> Enter まで送る</label></div>
+<div class="preset__field" data-kind-field="endpoint" hidden><label for="c-browser-auth">Authorization</label><input type="password" class="wide" id="c-browser-auth" name="presets[browser].authorization" value="" autocomplete="off" aria-describedby="c-browser-auth-help"><p class="field-help" id="c-browser-auth-help">空なら付けずに送る。</p></div>
+<div class="preset__field"><label for="c-browser-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="c-browser-hotkey" name="presets[browser].hotkey" value="Ctrl+Alt+3" placeholder="なし"></div>
+</div>
+        </div>
+        <p class="scene-note">種類の下に「Enter まで送る」を出す。既定はオン。</p>
+      </section>
+
+      <!-- 状態: ブラウザで開く・貼り付けだけ -->
+      <section class="specimen" aria-labelledby="h-browser-no-enter">
+        <h2 id="h-browser-no-enter">ブラウザで開く・貼り付けだけ</h2>
+        <div class="win settings__form">
+<div class="preset" data-item data-kind-box="c-browser-no-enter">
+<div class="preset__head"><label class="switch" for="c-browser-no-enter-shown"><input type="checkbox" role="switch" id="c-browser-no-enter-shown" name="presets[browser-no-enter].enabled" aria-label="Claudeを録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="c-browser-no-enter">Claude</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="Claudeを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="Claudeを下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="Claudeを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="c-browser-no-enter-title">タイトル</label><input type="text" class="wide" id="c-browser-no-enter-title" data-title="c-browser-no-enter" name="presets[browser-no-enter].title" value="Claude" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><span id="c-browser-no-enter-kind-label">種類</span><fieldset class="radios" aria-labelledby="c-browser-no-enter-kind-label"><label><input type="radio" data-kind name="presets[browser-no-enter].kind" value="browser" checked> ブラウザで開く</label><label><input type="radio" data-kind name="presets[browser-no-enter].kind" value="endpoint"> エンドポイントへ送る</label></fieldset></div>
+<div class="preset__field"><label for="c-browser-no-enter-url">URL</label><input type="text" inputmode="url" class="wide" id="c-browser-no-enter-url" name="presets[browser-no-enter].url" value="https://claude.ai/new" placeholder="https://"></div>
+<div class="preset__field" data-kind-field="browser"><span>貼り付けた後</span><label class="check" for="c-browser-no-enter-enter"><input type="checkbox" id="c-browser-no-enter-enter" name="presets[browser-no-enter].send_enter"> Enter まで送る</label></div>
+<div class="preset__field" data-kind-field="endpoint" hidden><label for="c-browser-no-enter-auth">Authorization</label><input type="password" class="wide" id="c-browser-no-enter-auth" name="presets[browser-no-enter].authorization" value="" autocomplete="off" aria-describedby="c-browser-no-enter-auth-help"><p class="field-help" id="c-browser-no-enter-auth-help">空なら付けずに送る。</p></div>
+<div class="preset__field"><label for="c-browser-no-enter-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="c-browser-no-enter-hotkey" name="presets[browser-no-enter].hotkey" value="Ctrl+Alt+3" placeholder="なし"></div>
+</div>
+        </div>
+        <p class="scene-note">オフにすると、貼り付けた後に Enter を送らずに止める。</p>
+      </section>
+
+      <!-- 状態: エンドポイントへ送る -->
+      <section class="specimen" aria-labelledby="h-endpoint">
+        <h2 id="h-endpoint">エンドポイントへ送る</h2>
+        <div class="win settings__form">
+<div class="preset" data-item data-kind-box="c-endpoint">
+<div class="preset__head"><label class="switch" for="c-endpoint-shown"><input type="checkbox" role="switch" id="c-endpoint-shown" name="presets[endpoint].enabled" aria-label="議事録へ送るを録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="c-endpoint">議事録へ送る</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="議事録へ送るを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="議事録へ送るを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="議事録へ送るを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="c-endpoint-title">タイトル</label><input type="text" class="wide" id="c-endpoint-title" data-title="c-endpoint" name="presets[endpoint].title" value="議事録へ送る" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><span id="c-endpoint-kind-label">種類</span><fieldset class="radios" aria-labelledby="c-endpoint-kind-label"><label><input type="radio" data-kind name="presets[endpoint].kind" value="browser"> ブラウザで開く</label><label><input type="radio" data-kind name="presets[endpoint].kind" value="endpoint" checked> エンドポイントへ送る</label></fieldset></div>
+<div class="preset__field"><label for="c-endpoint-url">URL</label><input type="text" inputmode="url" class="wide" id="c-endpoint-url" name="presets[endpoint].url" value="https://notes.example.com/api/voice" placeholder="https://"></div>
+<div class="preset__field" data-kind-field="browser" hidden><span>貼り付けた後</span><label class="check" for="c-endpoint-enter"><input type="checkbox" id="c-endpoint-enter" name="presets[endpoint].send_enter" checked> Enter まで送る</label></div>
+<div class="preset__field" data-kind-field="endpoint"><label for="c-endpoint-auth">Authorization</label><input type="password" class="wide" id="c-endpoint-auth" name="presets[endpoint].authorization" value="Bearer sk-example-0000" autocomplete="off" aria-describedby="c-endpoint-auth-help"><p class="field-help" id="c-endpoint-auth-help">空なら付けずに送る。</p></div>
+<div class="preset__field"><label for="c-endpoint-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="c-endpoint-hotkey" name="presets[endpoint].hotkey" value="Ctrl+Alt+4" placeholder="なし"></div>
+</div>
+        </div>
+        <p class="scene-note">種類の下に Authorization を出す。値は伏せ字で出す。末尾の行は「下へ」を押せない。</p>
+      </section>
+
+      <!-- 状態: 出さない -->
+      <section class="specimen" aria-labelledby="h-hidden">
+        <h2 id="h-hidden">出さない</h2>
+        <div class="win settings__form">
+<div class="preset" data-item data-kind-box="c-hidden">
+<div class="preset__head"><label class="switch" for="c-hidden-shown"><input type="checkbox" role="switch" id="c-hidden-shown" name="presets[hidden].enabled" aria-label="Google AIを録音の画面に出す"> <span>出す</span></label><span class="preset__name" data-title-view="c-hidden">Google AI</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="Google AIを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="Google AIを下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="Google AIを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="c-hidden-title">タイトル</label><input type="text" class="wide" id="c-hidden-title" data-title="c-hidden" name="presets[hidden].title" value="Google AI" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><span id="c-hidden-kind-label">種類</span><fieldset class="radios" aria-labelledby="c-hidden-kind-label"><label><input type="radio" data-kind name="presets[hidden].kind" value="browser" checked> ブラウザで開く</label><label><input type="radio" data-kind name="presets[hidden].kind" value="endpoint"> エンドポイントへ送る</label></fieldset></div>
+<div class="preset__field"><label for="c-hidden-url">URL</label><input type="text" inputmode="url" class="wide" id="c-hidden-url" name="presets[hidden].url" value="https://gemini.google.com/app" placeholder="https://"></div>
+<div class="preset__field" data-kind-field="browser"><span>貼り付けた後</span><label class="check" for="c-hidden-enter"><input type="checkbox" id="c-hidden-enter" name="presets[hidden].send_enter" checked> Enter まで送る</label></div>
+<div class="preset__field" data-kind-field="endpoint" hidden><label for="c-hidden-auth">Authorization</label><input type="password" class="wide" id="c-hidden-auth" name="presets[hidden].authorization" value="" autocomplete="off" aria-describedby="c-hidden-auth-help"><p class="field-help" id="c-hidden-auth-help">空なら付けずに送る。</p></div>
+<div class="preset__field"><label for="c-hidden-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="c-hidden-hotkey" name="presets[hidden].hotkey" value="Ctrl+Alt+2" placeholder="なし"></div>
+</div>
+        </div>
+        <p class="scene-note">「出す」をオフにすると、録音の画面にボタンもホットキーも出さない。設定は残る。</p>
+      </section>
+
+      <!-- 状態: 足した直後（1 件だけ） -->
+      <section class="specimen" aria-labelledby="h-new">
+        <h2 id="h-new">足した直後（1 件だけ）</h2>
+        <div class="win settings__form">
+<div class="preset" data-item data-kind-box="c-new">
+<div class="preset__head"><label class="switch" for="c-new-shown"><input type="checkbox" role="switch" id="c-new-shown" name="presets[new].enabled" aria-label="録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="c-new"></span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="プリセットを上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="プリセットを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="プリセットを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="c-new-title">タイトル</label><input type="text" class="wide" id="c-new-title" data-title="c-new" name="presets[new].title" value="" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><span id="c-new-kind-label">種類</span><fieldset class="radios" aria-labelledby="c-new-kind-label"><label><input type="radio" data-kind name="presets[new].kind" value="browser" checked> ブラウザで開く</label><label><input type="radio" data-kind name="presets[new].kind" value="endpoint"> エンドポイントへ送る</label></fieldset></div>
+<div class="preset__field"><label for="c-new-url">URL</label><input type="text" inputmode="url" class="wide" id="c-new-url" name="presets[new].url" value="" placeholder="https://"></div>
+<div class="preset__field" data-kind-field="browser"><span>貼り付けた後</span><label class="check" for="c-new-enter"><input type="checkbox" id="c-new-enter" name="presets[new].send_enter" checked> Enter まで送る</label></div>
+<div class="preset__field" data-kind-field="endpoint" hidden><label for="c-new-auth">Authorization</label><input type="password" class="wide" id="c-new-auth" name="presets[new].authorization" value="" autocomplete="off" aria-describedby="c-new-auth-help"><p class="field-help" id="c-new-auth-help">空なら付けずに送る。</p></div>
+<div class="preset__field"><label for="c-new-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="c-new-hotkey" name="presets[new].hotkey" value="" placeholder="なし"></div>
+</div>
+        </div>
+        <p class="scene-note">タイトルが空の間は、頭に「（タイトル未入力）」と出す。1 件だけのときは並べ替えを押せない。</p>
+      </section>
+
+      <!-- 状態: 確かめに通らない -->
+      <section class="specimen" aria-labelledby="h-error">
+        <h2 id="h-error">確かめに通らない</h2>
+        <div class="win settings__form">
+<div class="preset" data-item data-kind-box="c-error">
+<div class="preset__head"><label class="switch" for="c-error-shown"><input type="checkbox" role="switch" id="c-error-shown" name="presets[error].enabled" aria-label="議事録へ送るを録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="c-error">議事録へ送る</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="議事録へ送るを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="議事録へ送るを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="議事録へ送るを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="c-error-title">タイトル</label><input type="text" class="wide" id="c-error-title" data-title="c-error" name="presets[error].title" value="議事録へ送る" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><span id="c-error-kind-label">種類</span><fieldset class="radios" aria-labelledby="c-error-kind-label"><label><input type="radio" data-kind name="presets[error].kind" value="browser"> ブラウザで開く</label><label><input type="radio" data-kind name="presets[error].kind" value="endpoint" checked> エンドポイントへ送る</label></fieldset></div>
+<div class="preset__field"><label for="c-error-url">URL</label><input type="text" inputmode="url" class="wide" id="c-error-url" name="presets[error].url" value="" placeholder="https://" aria-invalid="true" aria-describedby="c-error-url-err"><p class="field-error" id="c-error-url-err">URL を入れてください（例: https://example.com/hook）。</p></div>
+<div class="preset__field" data-kind-field="browser" hidden><span>貼り付けた後</span><label class="check" for="c-error-enter"><input type="checkbox" id="c-error-enter" name="presets[error].send_enter" checked> Enter まで送る</label></div>
+<div class="preset__field" data-kind-field="endpoint"><label for="c-error-auth">Authorization</label><input type="password" class="wide" id="c-error-auth" name="presets[error].authorization" value="Bearer sk-example-0000" autocomplete="off" aria-describedby="c-error-auth-help"><p class="field-help" id="c-error-auth-help">空なら付けずに送る。</p></div>
+<div class="preset__field"><label for="c-error-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="c-error-hotkey" name="presets[error].hotkey" value="Ctrl+Alt+V" placeholder="なし" aria-invalid="true" aria-describedby="c-error-hotkey-err"><p class="field-error" id="c-error-hotkey-err">「貼り付けのみ」と同じキーです。別のキーにしてください。</p></div>
+</div>
+        </div>
+        <p class="scene-note">保存を押した後に、欄の下にエラーを出す。</p>
+      </section>
+
+      <!-- 状態: 長いタイトル -->
+      <section class="specimen" aria-labelledby="h-long">
+        <h2 id="h-long">長いタイトル</h2>
+        <div class="win settings__form">
+<div class="preset" data-item data-kind-box="c-long">
+<div class="preset__head"><label class="switch" for="c-long-shown"><input type="checkbox" role="switch" id="c-long-shown" name="presets[long].enabled" aria-label="社内のナレッジ検索アシスタント（検証環境）を録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="c-long">社内のナレッジ検索アシスタント（検証環境）</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="社内のナレッジ検索アシスタント（検証環境）を上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="社内のナレッジ検索アシスタント（検証環境）を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="社内のナレッジ検索アシスタント（検証環境）を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="c-long-title">タイトル</label><input type="text" class="wide" id="c-long-title" data-title="c-long" name="presets[long].title" value="社内のナレッジ検索アシスタント（検証環境）" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><span id="c-long-kind-label">種類</span><fieldset class="radios" aria-labelledby="c-long-kind-label"><label><input type="radio" data-kind name="presets[long].kind" value="browser" checked> ブラウザで開く</label><label><input type="radio" data-kind name="presets[long].kind" value="endpoint"> エンドポイントへ送る</label></fieldset></div>
+<div class="preset__field"><label for="c-long-url">URL</label><input type="text" inputmode="url" class="wide" id="c-long-url" name="presets[long].url" value="https://chatgpt.com" placeholder="https://"></div>
+<div class="preset__field" data-kind-field="browser"><span>貼り付けた後</span><label class="check" for="c-long-enter"><input type="checkbox" id="c-long-enter" name="presets[long].send_enter" checked> Enter まで送る</label></div>
+<div class="preset__field" data-kind-field="endpoint" hidden><label for="c-long-auth">Authorization</label><input type="password" class="wide" id="c-long-auth" name="presets[long].authorization" value="" autocomplete="off" aria-describedby="c-long-auth-help"><p class="field-help" id="c-long-auth-help">空なら付けずに送る。</p></div>
+<div class="preset__field"><label for="c-long-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="c-long-hotkey" name="presets[long].hotkey" value="Ctrl+Alt+1" placeholder="なし"></div>
+</div>
+        </div>
+        <p class="scene-note">頭のタイトルは幅で省略し、欄には全文を出す。先頭の行は「上へ」を押せない。</p>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

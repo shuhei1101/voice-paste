@@ -1,0 +1,174 @@
+/* ===== PR 44 の画面モック: カスタムプリセットの一覧とボタン（refs/37 の style.css に重ねる） ===== */
+
+/* プリセットの一覧: 1 件ごとのまとまりを縦に積む */
+.presets {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* プリセット 1 件: 線で囲み、中の欄は線で区切る */
+.preset {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+/* プリセットの頭: 出す・タイトル・並べ替え・消すを並べる */
+.preset__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 8px 4px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* 頭のタイトル: 一覧を流し読みできるように太くし、長ければ省略する */
+.preset__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+/* タイトルが空のときの頭の文言 */
+.preset__name:empty::before {
+  content: "（タイトル未入力）";
+  color: var(--text-2);
+  font-weight: 400;
+}
+
+/* 並べ替え・消すのボタンの並び */
+.preset__tools {
+  display: flex;
+  gap: 4px;
+}
+
+/* プリセットの欄: 名前と入力を 2 列に並べる */
+.preset__field {
+  display: grid;
+  grid-template-columns: 9em minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 12px;
+  min-height: 40px;
+  padding: 4px 12px;
+}
+
+/* 欄の間を線で区切る */
+.preset__field + .preset__field {
+  border-top: 1px solid var(--line);
+}
+
+/* 欄の補足・エラー: 入力の下に出す */
+.preset__field .field-help,
+.preset__field .field-error {
+  grid-column: 2;
+  padding: 0;
+}
+
+/* URL・タイトル・Authorization の入力欄を広くする */
+.preset input.wide {
+  width: min(100%, 420px);
+}
+
+/* 伏せ字の入力欄: 文字の入力欄と同じ見た目にする */
+input[type="password"] {
+  height: var(--control-h);
+  padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  border-bottom-color: var(--text-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: var(--font-mono);
+  &:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 0; }
+}
+
+/* 押せないアイコンのボタン（先頭の上へ・末尾の下へ） */
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  &:hover { background: var(--surface-2); }
+}
+
+/* プリセットが無いときの一覧の代わり */
+.presets-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  p { margin: 0; color: var(--text-2); }
+}
+
+/* 一覧の下の「プリセットを足す」の行 */
+.presets-add {
+  display: flex;
+}
+
+/* 案 B: 一覧の表で選んでいる行 */
+.targets tr[data-selected="true"] td {
+  background: var(--sunken);
+}
+
+/* 案 B: 表のタイトルのボタン: 押すとその行を選ぶ。文字は左に寄せ、長ければ省略する */
+.targets [data-pick] {
+  justify-content: flex-start;
+  max-width: 16em;
+  padding: 4px 6px;
+  font-weight: 600;
+}
+
+/* 案 B: 選んでいる行のタイトルのボタン */
+.targets [data-pick][aria-current="true"] {
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+/* 案 B: 一覧の表の行は押して選べる */
+.targets tr[data-select] {
+  cursor: pointer;
+}
+
+/* 案 B: 表の中の種類とホットキーの文字 */
+.targets .cell-muted {
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+/* 案 B: 表の中の操作のボタンを横に並べる */
+.targets .cell-tools {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+/* 案 B: 選んだプリセットの欄の見出し */
+.preset-detail__title {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+/* 録音の画面: プリセットのボタンを 3 列で並べ、4 件目からは次の行へ折り返す */
+.outs--presets {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* 狭い幅: プリセットの欄の名前と入力を縦に積む */
+@media (max-width: 640px) {
+  /* 欄を 1 列にする */
+  .preset__field { grid-template-columns: 1fr; }
+  /* 補足・エラーも 1 列目に置く */
+  .preset__field .field-help,
+  .preset__field .field-error { grid-column: 1; }
+}

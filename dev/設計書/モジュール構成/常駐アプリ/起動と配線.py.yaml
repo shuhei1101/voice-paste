@@ -338,7 +338,7 @@ functions:
       - name: test_acquire_single_instance_when_taken_over
         case: 正常
         summary: 前の持ち主が依頼を受けて放した直後に取ったロックは、受け手を呼ばない
-        condition: test_acquire_single_instance_when_held の流れで後から取ったロックに受け手を渡す。前のロックの受け手は、同じ名前のイベントのハンドルを開いたまま release する
+        condition: test_acquire_single_instance_when_held の流れで後から取ったロックに受け手を渡す。前のロックの受け手は、同じ名前のイベントのハンドルを開いたまま、3 つ目の依頼として同じ名前のイベントをもう 1 回立ててから release する（立ったままの依頼が残り、acquire_single_instance の ResetEvent が無ければ後のロックの受け手が呼ばれる）
         mock: なし（実物の Win32 の名前付きのミューテックスとイベント）
         expected: 後から取ったロックの受け手が 1 秒呼ばれない
       - name: test_acquire_single_instance_when_event_not_ready

@@ -275,6 +275,15 @@ elements:
     label: プリセットを足す
     visible_when: ブラウザ添付かエンドポイントへ送るのまとまりを選んだとき
     action: プリセットの一覧に 1 件足す
+  - name: プリセットのホットキーを空にするボタン
+    id: preset_hotkey_clear_{n}
+    kind: button
+    position: 窓 > 右 > プリセットの一覧 > まとまり > プリセットのホットキーの欄の右
+    description: プリセットのホットキーの欄を空にする（ホットキーの欄は押したキーが入るため、キーだけでは空にできない）。読み上げの名前は「{タイトル}のホットキーを空にする」（タイトルが空なら「プリセット {何件目か} 件目の…」）
+    label: 空にする
+    visible_when: プリセットごと
+    enabled_when: ホットキーの欄が空でないとき
+    action: ホットキーの欄を空にする（空の欄は「なし」を出す）
 input_checks:
   - element: 設定の欄
     violation: 数値の欄に数値でない文字が入っている

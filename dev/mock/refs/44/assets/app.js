@@ -180,7 +180,17 @@ const setupHotkeys = () => {
   });
 };
 
+/** プリセットの切り替えの文言を、状態に合わせて「有効」「無効」と書き換える */
+const setupEnabledText = () => {
+  document.addEventListener("change", (e) => {
+    if (!e.target.matches("input[data-enabled-switch]")) return;
+    const text = e.target.parentElement.querySelector("[data-enabled-text]");
+    text.textContent = e.target.checked ? "有効" : "無効";
+  });
+};
+
 setupScenes();
 setupGroups();
+setupEnabledText();
 setupPresets();
 setupHotkeys();

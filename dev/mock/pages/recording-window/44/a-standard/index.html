@@ -23,9 +23,9 @@
 
     <div class="desk">
 
-      <!-- 場面: 録音中（出すとしたプリセットが 4 件） -->
+      <!-- 場面: 録音中（有効なプリセットが 4 件） -->
       <section class="specimen" aria-labelledby="h-rec">
-        <h2 id="h-rec">録音中（出すとしたプリセットが 4 件）</h2>
+        <h2 id="h-rec">録音中（有効なプリセットが 4 件）</h2>
         <div class="win rec" role="group" aria-label="録音の画面">
           <div class="rec__head">
             <span class="state state--rec"><span class="dot" aria-hidden="true"></span>録音中</span>
@@ -50,7 +50,7 @@
             <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html" title="社内チャットの下書き"><span class="clip">社内チャットの下書き</span></a>
           </div>
         </div>
-        <p class="scene-note">固定の出力先の下に、出すとしたプリセットを「ブラウザで開く」のタブの並びで出し、続けて「エンドポイントへ送る」のタブの並びで出す（出さないとした Google AI は出ない）。種類によらず同じボタンで、押すと文字起こし中の表示へ移る。</p>
+        <p class="scene-note">固定の出力先の下に、有効なプリセットを「ブラウザ添付」のタブの並びで出し、続けて「エンドポイントへ送る」のタブの並びで出す（無効にした Google AI は出ない）。種類によらず同じボタンで、押すと文字起こし中の表示へ移る。</p>
       </section>
 
       <!-- 場面: 一時停止中 -->
@@ -83,9 +83,9 @@
         <p class="scene-note">一時停止中でもプリセットで確定できる。</p>
       </section>
 
-      <!-- 場面: 出すプリセットが無い -->
+      <!-- 場面: 有効なプリセットが無い -->
       <section class="specimen" aria-labelledby="h-none">
-        <h2 id="h-none">出すプリセットが無い</h2>
+        <h2 id="h-none">有効なプリセットが無い</h2>
         <div class="win rec" role="group" aria-label="録音の画面（プリセットが無い）">
           <div class="rec__head">
             <span class="state state--rec"><span class="dot" aria-hidden="true"></span>録音中</span>
@@ -103,7 +103,7 @@
             <a class="btn" href="../../../transcribing-indicator/37/a-standard/index.html">コピーのみ <kbd>Ctrl+Alt+C</kbd></a>
           </div>
         </div>
-        <p class="scene-note">プリセットが 1 件も無いとき・全て出さないとしたときは、見出しごと出さない。</p>
+        <p class="scene-note">プリセットが 1 件も無いとき・全て無効にしたときは、見出しごと出さない。</p>
       </section>
 
       <!-- 場面: プリセットが多い・タイトルが長い -->

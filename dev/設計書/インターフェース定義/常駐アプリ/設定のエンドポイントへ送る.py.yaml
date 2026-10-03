@@ -107,3 +107,4 @@ notes:
     ```
 refs:
   - dev/設計書/インターフェース定義/常駐アプリ/呼び出し元へ返す.py#notes.送る中身
+test_file: tests/integration/test_deliver_to_endpoint.py

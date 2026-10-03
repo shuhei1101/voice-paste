@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock
 
 import pytest
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QRegularExpression, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
     QListWidget,
     QMessageBox,
     QPlainTextEdit,
+    QAbstractButton,
     QPushButton,
     QRadioButton,
     QSlider,
@@ -133,8 +134,29 @@ def _field_errors(window: QWidget) -> list[str]:
     ]
 
 
+def _panel(window: QWidget, kind: str) -> QWidget:
+    """種類のタブのプリセットの一覧（`preset_list_{kind}`）を引く。"""
+    return find(window, QWidget, f"preset_list_{kind}")
+
+
+def _preset_field(window: QWidget, kind: str, number: int, attribute: str, cls: type = QWidget) -> Any:
+    """種類のタブの number 件目のプリセットの欄（`preset_{項目}_{n}`）を引く。"""
+    found = _panel(window, kind).findChild(cls, f"preset_{attribute}_{number}")
+    assert found is not None, f"{kind} の {number} 件目の {attribute} の欄が無い"
+    return found
+
+
+def _add_preset(window: QWidget, kind: str, title: str, url: str) -> int:
+    """種類のタブの「プリセットを足す」を押し、足した行にタイトルと URL を入れて、その行の番号を返す。"""
+    QTest.mouseClick(find(window, QPushButton, f"add_preset_button_{kind}"), Qt.MouseButton.LeftButton)
+    number = len(_panel(window, kind).findChildren(QLineEdit, QRegularExpression("^preset_title_"))) - 1
+    _preset_field(window, kind, number, "title", QLineEdit).setText(title)
+    _preset_field(window, kind, number, "url", QLineEdit).setText(url)
+    return number
+
+
 def _leaf_keys(settings: Settings) -> list[str]:
-    """設定のキー（outputs の中は除く）を、ドット区切りで全て並べる。"""
+    """設定のキー（outputs・presets の中は除く）を、ドット区切りで全て並べる。"""
     from pydantic import BaseModel
 
     keys: list[str] = []
@@ -146,7 +168,7 @@ def _leaf_keys(settings: Settings) -> list[str]:
             key = f"{prefix}{name}"
             if isinstance(value, BaseModel):
                 _walk(value, f"{key}.")
-            elif name != "outputs":
+            elif name not in ("outputs", "presets"):
                 keys.append(key)
 
     _walk(settings, "")
@@ -169,7 +191,6 @@ def test_settings_window_title_and_width(open_window: Callable[..., Opened]) -> 
 def test_settings_window_initial_value(open_window: Callable[..., Opened]) -> None:
     """開いたときの settings.toml の値を欄に入れる。"""
     from voice_paste.shared.settings import (
-        AiChatSettings,
         CopyOnlySettings,
         HistorySettings,
         HotkeySettings,
@@ -190,7 +211,6 @@ def test_settings_window_initial_value(open_window: Callable[..., Opened]) -> No
             PasteAndSendSettings(enabled=False, enter_delay_sec=0.8),
             PasteOnlySettings(),
             CopyOnlySettings(),
-            AiChatSettings(),
         ],
     )
 
@@ -214,14 +234,24 @@ def test_settings_window_initial_value(open_window: Callable[..., Opened]) -> No
 
 
 def test_group_menu_initial(open_window: Callable[..., Opened]) -> None:
-    """まとまりのメニューは、出力先・ホットキー・録音・文字起こし・画面・履歴とログ・API の順で、既定は出力先。"""
+    """まとまりのメニューは、出力先・ブラウザ添付・エンドポイントへ送る・ホットキー・録音・文字起こし・画面・履歴とログ・API の順で、既定は出力先。"""
     # 実行
     window = open_window().window
 
     # 検証
     menu = find(window, QListWidget, "group_menu")
     names = [menu.item(row).text() for row in range(menu.count())]
-    assert names == ["出力先", "ホットキー", "録音", "文字起こし", "画面", "履歴とログ", "API"]
+    assert names == [
+        "出力先",
+        "ブラウザ添付",
+        "エンドポイントへ送る",
+        "ホットキー",
+        "録音",
+        "文字起こし",
+        "画面",
+        "履歴とログ",
+        "API",
+    ]
     assert menu.currentRow() == 0
     assert _field(window, "outputs[0].enabled").isVisible()
 
@@ -229,12 +259,14 @@ def test_group_menu_initial(open_window: Callable[..., Opened]) -> None:
 @pytest.mark.parametrize(
     ("row", "shown_key", "hidden_key"),
     [
-        (1, "hotkeys.start", "outputs[0].enabled"),
-        (2, "recording.fade_sec", "hotkeys.start"),
-        (3, "transcription.local_whisper.model", "recording.fade_sec"),
-        (4, "ui.wave_gain", "transcription.local_whisper.model"),
-        (5, "history.retention_days", "ui.wave_gain"),
-        (6, "api.port", "history.retention_days"),
+        (1, "preset_options.browser.open_delay_sec", "outputs[0].enabled"),
+        (2, "preset_options.endpoint.timeout_sec", "preset_options.browser.open_delay_sec"),
+        (3, "hotkeys.start", "preset_options.endpoint.timeout_sec"),
+        (4, "recording.fade_sec", "hotkeys.start"),
+        (5, "transcription.local_whisper.model", "recording.fade_sec"),
+        (6, "ui.wave_gain", "transcription.local_whisper.model"),
+        (7, "history.retention_days", "ui.wave_gain"),
+        (8, "api.port", "history.retention_days"),
         (0, "outputs[0].enabled", "api.port"),
     ],
 )
@@ -258,12 +290,12 @@ def test_group_menu_keeps_values(open_window: Callable[..., Opened]) -> None:
     # 準備
     window = open_window().window
     menu = find(window, QListWidget, "group_menu")
-    menu.setCurrentRow(2)
+    menu.setCurrentRow(4)
     _set_text(window, IMMEDIATE_KEY, "1.25")
 
     # 実行
-    menu.setCurrentRow(6)
-    menu.setCurrentRow(2)
+    menu.setCurrentRow(8)
+    menu.setCurrentRow(4)
 
     # 検証
     assert _field(window, IMMEDIATE_KEY, QLineEdit).text() == "1.25"
@@ -335,7 +367,7 @@ def test_field_name_and_key(open_window: Callable[..., Opened]) -> None:
 
     # 準備
     window = open_window().window
-    find(window, QListWidget, "group_menu").setCurrentRow(6)
+    find(window, QListWidget, "group_menu").setCurrentRow(8)
     name = (ApiSettings.model_fields["port"].description or "").split("。")[0]
 
     # 実行
@@ -376,14 +408,13 @@ def test_hotkey_field_initial_value(open_window: Callable[..., Opened]) -> None:
     # 検証
     assert _field(window, "hotkeys.start", QLineEdit).text() == "Ctrl+Alt+D"
     assert _field(window, "hotkeys.pause", QLineEdit).text() == "Ctrl+Alt+Z"
-    assert _field(window, "outputs[3].targets[0].hotkey", QLineEdit).text() == "Ctrl+Alt+1"
 
 
 def test_hotkey_field_action(open_window: Callable[..., Opened]) -> None:
     """ホットキーの欄で押したキーの組み合わせが入り、保存では pynput の書式（`<ctrl>+<alt>+d`）で書く。"""
     # 準備
     window = open_window().window
-    find(window, QListWidget, "group_menu").setCurrentRow(1)
+    find(window, QListWidget, "group_menu").setCurrentRow(3)
 
     # 実行
     _press(
@@ -402,7 +433,7 @@ def test_hotkey_field_when_modifier_only(open_window: Callable[..., Opened]) -> 
     """修飾キーだけでは、組み合わせに入れない。"""
     # 準備
     window = open_window().window
-    find(window, QListWidget, "group_menu").setCurrentRow(1)
+    find(window, QListWidget, "group_menu").setCurrentRow(3)
 
     # 実行
     _press(window, "hotkeys.start", Qt.Key.Key_Control, Qt.KeyboardModifier.ControlModifier)
@@ -415,7 +446,7 @@ def test_hotkey_field_when_tab(open_window: Callable[..., Opened]) -> None:
     """Tab は欄の移動に残し、組み合わせに入れない。"""
     # 準備
     window = open_window().window
-    find(window, QListWidget, "group_menu").setCurrentRow(1)
+    find(window, QListWidget, "group_menu").setCurrentRow(3)
 
     # 実行
     _press(window, "hotkeys.start", Qt.Key.Key_Tab, Qt.KeyboardModifier.NoModifier)
@@ -428,7 +459,7 @@ def test_hotkey_field_when_escape(open_window: Callable[..., Opened]) -> None:
     """Esc は画面の取り消しに残し、組み合わせに入れない（欄を変えていなければ画面を閉じる）。"""
     # 準備
     opened = open_window()
-    find(opened.window, QListWidget, "group_menu").setCurrentRow(1)
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(3)
 
     # 実行
     _press(opened.window, "hotkeys.start", Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
@@ -438,67 +469,244 @@ def test_hotkey_field_when_escape(open_window: Callable[..., Opened]) -> None:
     opened.closed.assert_called_once()
 
 
-# === ai_chat_targets・add_target_button ===
+# === preset_list_{kind}・preset_empty_{kind}・add_preset_button_{kind} ===
+
+KINDS = ("browser", "endpoint")
+"""種類のタブ（ブラウザ添付・エンドポイントへ送る）の種類。"""
 
 
-def test_ai_chat_targets_initial_value(open_window: Callable[..., Opened]) -> None:
-    """送り先の一覧は、settings.toml の送り先を 1 行ずつ、出す・名前・URL・ホットキーで並べる。"""
-    # 実行
+def _settings_with_presets() -> Settings:
+    """ブラウザ添付 2 件とエンドポイントへ送る 1 件のプリセットを持つ設定を作る。"""
+    from voice_paste.shared.settings import BrowserPreset, EndpointPreset, Settings
+
+    return Settings(
+        presets=[
+            EndpointPreset(
+                title="受け口",
+                url="http://127.0.0.1:9000/hook",
+                hotkey="<ctrl>+<alt>+4",
+                authorization="Bearer x",
+            ),
+            BrowserPreset(title="ChatGPT", url="https://chatgpt.com", hotkey="<ctrl>+<alt>+1"),
+            BrowserPreset(title="Claude", url="https://claude.ai/new", send_enter=False),
+        ]
+    )
+
+
+@pytest.mark.parametrize(
+    ("row", "kind", "other"),
+    [(1, "browser", "endpoint"), (2, "endpoint", "browser")],
+    ids=["browser", "endpoint"],
+)
+def test_preset_list_when_visible(
+    open_window: Callable[..., Opened], row: int, kind: str, other: str
+) -> None:
+    """プリセットの一覧は、その種類のタブを選んだときだけ出る（もう一方の種類の一覧は出ない）。"""
+    # 準備
     window = open_window().window
+    assert not _panel(window, kind).isVisible()
+
+    # 実行
+    find(window, QListWidget, "group_menu").setCurrentRow(row)
 
     # 検証
-    table = find(window, QWidget, "ai_chat_targets")
-    assert table.isVisible()
-    assert [_field(window, f"outputs[3].targets[{n}].name", QLineEdit).text() for n in range(3)] == [
-        "ChatGPT",
-        "Google AI",
-        "Claude",
-    ]
-    assert _field(window, "outputs[3].targets[2].url", QLineEdit).text() == "https://claude.ai/new"
-    assert _field(window, "outputs[3].targets[0].enabled", QCheckBox).isChecked()
+    assert _panel(window, kind).isVisible()
+    assert not _panel(window, other).isVisible()
+    assert find(window, QPushButton, f"add_preset_button_{kind}").isVisible()
 
 
-def test_add_target_button_action(open_window: Callable[..., Opened]) -> None:
-    """「送り先を足す」は、送り先の一覧の末尾に空の行（出すはオン）を足し、名前の欄へフォーカスを移す。"""
+@pytest.mark.parametrize(("kind", "name"), [("browser", "ブラウザ添付"), ("endpoint", "エンドポイントへ送る")])
+def test_preset_empty_when_no_presets(open_window: Callable[..., Opened], kind: str, name: str) -> None:
+    """プリセットが 1 件も無いタブには、足すと録音の画面にボタンが出ることを伝える案内を出す。"""
     # 準備
     window = open_window().window
 
     # 実行
-    _click(window, "add_target_button")
+    find(window, QListWidget, "group_menu").setCurrentRow(KINDS.index(kind) + 1)
 
     # 検証
-    assert _field(window, "outputs[3].targets[3].name", QLineEdit).text() == ""
-    assert _field(window, "outputs[3].targets[3].enabled", QCheckBox).isChecked()
-    assert window.focusWidget() is _field(window, "outputs[3].targets[3].name")
+    empty = find(window, QLabel, f"preset_empty_{kind}")
+    assert empty.isVisible()
+    assert empty.text() == (
+        f"{name}のプリセットはまだありません。足すと、録音の画面の「カスタムプリセット」にボタンが出ます。"
+    )
 
 
-def test_ai_chat_targets_delete(open_window: Callable[..., Opened]) -> None:
-    """消すボタンで行を消す。残りの行は並びのまま詰める。"""
-    # 準備
-    window = open_window().window
-    table = find(window, QWidget, "ai_chat_targets")
-
+def test_preset_list_initial_value(open_window: Callable[..., Opened]) -> None:
+    """プリセットの一覧は、そのタブの種類のプリセットを設定の並びで 1 件ずつ並べ、案内は出さない。"""
     # 実行
-    table.findChildren(QPushButton, "delete_target_button")[0].click()
-
-    # 検証
-    names = [target["name"] for target in window.collect()["outputs"][3]["targets"]]
-    assert names == ["Google AI", "Claude"]
-
-
-def test_add_target_button_when_visible(open_window: Callable[..., Opened]) -> None:
-    """「送り先を足す」は出力先のまとまりを選んだときだけ出る。"""
-    # 準備
-    window = open_window().window
-    button = find(window, QPushButton, "add_target_button")
-    shown_in_outputs = button.isVisible()
-
-    # 実行
+    window = open_window(_settings_with_presets()).window
     find(window, QListWidget, "group_menu").setCurrentRow(1)
 
+    # 検証（ブラウザ添付のタブ）
+    assert [_preset_field(window, "browser", n, "title", QLineEdit).text() for n in range(2)] == [
+        "ChatGPT",
+        "Claude",
+    ]
+    assert _preset_field(window, "browser", 0, "url", QLineEdit).text() == "https://chatgpt.com"
+    assert _preset_field(window, "browser", 0, "hotkey", QLineEdit).text() == "Ctrl+Alt+1"
+    assert _preset_field(window, "browser", 1, "hotkey", QLineEdit).text() == ""
+    assert _preset_field(window, "browser", 0, "send_enter", QCheckBox).isChecked()
+    assert not _preset_field(window, "browser", 1, "send_enter", QCheckBox).isChecked()
+    assert not find(window, QLabel, "preset_empty_browser").isVisible()
+    # エンドポイントへ送るのタブ
+    find(window, QListWidget, "group_menu").setCurrentRow(2)
+    assert _preset_field(window, "endpoint", 0, "title", QLineEdit).text() == "受け口"
+    assert _preset_field(window, "endpoint", 0, "hotkey", QLineEdit).text() == "Ctrl+Alt+4"
+
+
+def test_preset_enabled_switch(open_window: Callable[..., Opened]) -> None:
+    """有効の切り替えは、今の状態を文字（有効 / 無効）でも出し、足したプリセットはオン。"""
+    # 準備
+    window = open_window().window
+    find(window, QListWidget, "group_menu").setCurrentRow(1)
+    _add_preset(window, "browser", "ChatGPT", "https://chatgpt.com")
+    switch = _preset_field(window, "browser", 0, "enabled", QCheckBox)
+
+    # 検証（足した直後）
+    assert switch.isChecked()
+    assert switch.text() == "有効"
+
+    # 実行
+    switch.setChecked(False)
+
+    # 検証（切り替えた後）
+    assert switch.text() == "無効"
+    assert window.collect()["presets"][0]["enabled"] is False
+
+
+def test_preset_authorization_field(open_window: Callable[..., Opened]) -> None:
+    """Authorization の欄は伏せ字で、入れた文字を出さない。ブラウザ添付には出ない。"""
+    # 準備
+    window = open_window(_settings_with_presets()).window
+    find(window, QListWidget, "group_menu").setCurrentRow(2)
+
     # 検証
-    assert shown_in_outputs
-    assert not button.isVisible()
+    authorization = _preset_field(window, "endpoint", 0, "authorization", QLineEdit)
+    assert authorization.echoMode() == QLineEdit.EchoMode.Password
+    assert authorization.text() == "Bearer x"
+    assert _panel(window, "browser").findChild(QLineEdit, "preset_authorization_0") is None
+    assert _panel(window, "endpoint").findChild(QCheckBox, "preset_send_enter_0") is None
+
+
+def test_add_preset_button_action(open_window: Callable[..., Opened]) -> None:
+    """「プリセットを足す」は、そのタブの一覧の末尾に空のプリセット（有効、ブラウザ添付は Enter まで送るがオン）を足し、タイトルの欄へフォーカスを移す。"""
+    # 準備
+    window = open_window(_settings_with_presets()).window
+    find(window, QListWidget, "group_menu").setCurrentRow(1)
+
+    # 実行
+    _click(window, "add_preset_button_browser")
+
+    # 検証
+    assert _preset_field(window, "browser", 2, "title", QLineEdit).text() == ""
+    assert _preset_field(window, "browser", 2, "enabled", QCheckBox).isChecked()
+    assert _preset_field(window, "browser", 2, "send_enter", QCheckBox).isChecked()
+    assert window.focusWidget() is _preset_field(window, "browser", 2, "title")
+    assert not find(window, QLabel, "preset_empty_browser").isVisible()
+
+
+def test_preset_move_buttons_action(open_window: Callable[..., Opened]) -> None:
+    """上へ・下へは、同じタブの中でプリセットを 1 つ動かす。先頭の上へ・末尾の下へは押せない。"""
+    # 準備
+    window = open_window(_settings_with_presets()).window
+    find(window, QListWidget, "group_menu").setCurrentRow(1)
+    first_up = _panel(window, "browser").findChild(QAbstractButton, "preset_up_0")
+    last_down = _panel(window, "browser").findChild(QAbstractButton, "preset_down_1")
+    assert first_up is not None
+    assert last_down is not None
+    assert not first_up.isEnabled()
+    assert not last_down.isEnabled()
+
+    # 実行（ChatGPT の「下へ」）
+    _panel(window, "browser").findChild(QAbstractButton, "preset_down_0").click()
+
+    # 検証（ブラウザ添付のタブの中だけが入れ替わる）
+    assert [item["title"] for item in window.collect()["presets"]] == ["Claude", "ChatGPT", "受け口"]
+
+
+def test_preset_remove_button_action(open_window: Callable[..., Opened]) -> None:
+    """消すボタンは、プリセットを一覧から消す（保存するまで settings.toml には書かない）。最後の 1 件を消すと案内が出る。"""
+    # 準備
+    opened = open_window(_settings_with_presets())
+    window = opened.window
+    find(window, QListWidget, "group_menu").setCurrentRow(2)
+
+    # 実行
+    _panel(window, "endpoint").findChild(QAbstractButton, "preset_remove_0").click()
+
+    # 検証
+    assert [item["title"] for item in window.collect()["presets"]] == ["ChatGPT", "Claude"]
+    assert find(window, QLabel, "preset_empty_endpoint").isVisible()
+    opened.deps.save_settings.assert_not_called()
+
+
+def test_preset_hotkey_field_action(open_window: Callable[..., Opened]) -> None:
+    """プリセットのホットキーの欄は、押した組み合わせが入り、保存では pynput の書式で書く。「空にする」で空に戻せる。"""
+    # 準備
+    window = open_window().window
+    find(window, QListWidget, "group_menu").setCurrentRow(1)
+    _add_preset(window, "browser", "ChatGPT", "https://chatgpt.com")
+    edit = _preset_field(window, "browser", 0, "hotkey")
+    clear = _panel(window, "browser").findChild(QAbstractButton, "preset_hotkey_clear_0")
+    assert clear is not None
+    assert not clear.isEnabled()
+
+    # 実行（押す）
+    edit.setFocus()
+    QTest.keyClick(
+        edit,
+        Qt.Key.Key_5,
+        Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier,
+    )
+
+    # 検証（押した後）
+    assert edit.text() == "Ctrl+Alt+5"
+    assert window.collect()["presets"][0]["hotkey"] == "<ctrl>+<alt>+5"
+    assert clear.isEnabled()
+
+    # 実行（空にする）
+    clear.click()
+
+    # 検証（空にした後）
+    assert edit.text() == ""
+    assert window.collect()["presets"][0]["hotkey"] == ""
+
+
+def test_preset_options_fields(open_window: Callable[..., Opened]) -> None:
+    """タブのオプションの欄は、その種類のタブにだけ出る。補助文を欄の下に出す。"""
+    # 実行
+    window = open_window().window
+
+    # 検証
+    assert _field(window, "preset_options.browser.open_delay_sec", QLineEdit).text() == "3.0"
+    assert _field(window, "preset_options.endpoint.timeout_sec", QLineEdit).text() == "1.5"
+    notes = [label.text() for label in window.findChildren(QLabel)]
+    assert "貼り付けてから Enter を送るまでの秒数は「出力先」の値を使う。" in notes
+    assert (
+        "既定は 1.5 秒で、10 秒まで入れられる。この秒数で届かなければ、送り直さずにトレイで知らせる。"
+        in notes
+    )
+
+
+def test_save_collects_presets_in_tab_order(open_window: Callable[..., Opened]) -> None:
+    """保存では、ブラウザ添付のタブの並び → エンドポイントへ送るのタブの並びの順に 1 つの一覧にして書く。"""
+    # 準備
+    opened = open_window(_settings_with_presets())
+    opened.deps.save_settings.return_value = False
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    saved = opened.deps.save_settings.call_args.args[0]
+    assert [(preset.kind, preset.title) for preset in saved.presets] == [
+        ("browser", "ChatGPT"),
+        ("browser", "Claude"),
+        ("endpoint", "受け口"),
+    ]
+    assert saved.presets[2].authorization == "Bearer x"
+    assert saved.presets[1].send_enter is False
 
 
 # === pick_glossary_button ===
@@ -510,7 +718,7 @@ def test_pick_glossary_button_action(
     """「選ぶ…」はファイルを選ぶダイアログ（CSV）を開き、選んだパスを用語集の欄へ入れる。選ばなければ変えない。"""
     # 準備
     window = open_window().window
-    find(window, QListWidget, "group_menu").setCurrentRow(3)
+    find(window, QListWidget, "group_menu").setCurrentRow(5)
     chosen = MagicMock(return_value=("C:/words/yogo.csv", "CSV (*.csv)"))
     monkeypatch.setattr(QFileDialog, "getOpenFileName", chosen)
 
@@ -535,7 +743,7 @@ def test_pick_glossary_button_when_visible(open_window: Callable[..., Opened]) -
     button = find(window, QPushButton, "pick_glossary_button")
 
     # 実行
-    find(window, QListWidget, "group_menu").setCurrentRow(3)
+    find(window, QListWidget, "group_menu").setCurrentRow(5)
 
     # 検証
     assert button.isVisible()
@@ -679,7 +887,8 @@ def test_reset_dialog_content(open_window: Callable[..., Opened]) -> None:
         "title": "voice-paste の設定",
         "text": "全ての設定を既定に戻しますか",
         "body": (
-            "出力先・ホットキー・AI チャットの送り先を含む全ての設定が既定の値になり、元に戻せません。"
+            "出力先・ホットキーを含む全ての設定が既定の値になり、カスタムプリセットは全て消えます。"
+            "元に戻せません。"
             "「再起動で反映」の設定は、再起動するまで今の値で動きます。"
         ),
         "reset": "既定に戻す",
@@ -1031,7 +1240,7 @@ def test_error_summary_row_action(open_window: Callable[..., Opened]) -> None:
     opened = open_window()
     _set_text(opened.window, IMMEDIATE_KEY, "abc")
     _click(opened.window, "save_button")
-    find(opened.window, QListWidget, "group_menu").setCurrentRow(6)
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(8)
     link = next(
         label for label in find(opened.window, QFrame, "error_summary").findChildren(QLabel)
         if "href" in label.text()
@@ -1041,7 +1250,7 @@ def test_error_summary_row_action(open_window: Callable[..., Opened]) -> None:
     link.linkActivated.emit(IMMEDIATE_KEY)
 
     # 検証
-    assert find(opened.window, QListWidget, "group_menu").currentRow() == 2
+    assert find(opened.window, QListWidget, "group_menu").currentRow() == 4
     assert opened.window.focusWidget() is _field(opened.window, IMMEDIATE_KEY)
 
 
@@ -1093,7 +1302,7 @@ def test_input_check_when_hotkey_overlap(open_window: Callable[..., Opened]) -> 
     """ほかのホットキーの欄と同じ組み合わせ: 「「{重なった欄の名前}」と同じホットキーです。別のキーにしてください。」を出す。"""
     # 準備
     opened = open_window()
-    find(opened.window, QListWidget, "group_menu").setCurrentRow(1)
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(3)
     _press(
         opened.window,
         "hotkeys.cancel",
@@ -1111,34 +1320,103 @@ def test_input_check_when_hotkey_overlap(open_window: Callable[..., Opened]) -> 
     opened.deps.save_settings.assert_not_called()
 
 
-def test_input_check_when_target_name_empty(open_window: Callable[..., Opened]) -> None:
-    """送り先の名前が空: 「送り先の名前を入れてください。」をその行の下とエラーの一覧に出す。"""
+def test_input_check_when_preset_title_empty(open_window: Callable[..., Opened]) -> None:
+    """プリセットのタイトルが空: 「タイトルを入れてください。」をその欄の下とエラーの一覧に出す。"""
     # 準備
     opened = open_window()
-    _set_text(opened.window, "outputs[3].targets[0].name", "")
+    _add_preset(opened.window, "browser", "", "https://chatgpt.com")
 
     # 実行
     _click(opened.window, "save_button")
 
     # 検証
-    message = "送り先の名前を入れてください。"
+    message = "タイトルを入れてください。"
     assert _field_errors(opened.window) == [message]
-    assert any(row.endswith(f": {message}") for row in _error_rows(opened.window))
+    assert any(
+        row == f"プリセット 1 件目のタイトル: {message}" for row in _error_rows(opened.window)
+    )
+    opened.deps.save_settings.assert_not_called()
 
 
-def test_input_check_when_target_url_invalid(open_window: Callable[..., Opened]) -> None:
-    """送り先の URL が http:// か https:// で始まらない: 「http:// か https:// で始まる URL を入れてください。」を出す。"""
+@pytest.mark.parametrize(
+    ("url", "message"),
+    [
+        ("", "URL を入れてください（例: https://example.com/hook）。"),
+        ("gemini.google.com", "http:// か https:// で始まる URL を入れてください。"),
+    ],
+    ids=["empty", "no_scheme"],
+)
+def test_input_check_when_preset_url_invalid(
+    open_window: Callable[..., Opened], url: str, message: str
+) -> None:
+    """プリセットの URL が空・http:// か https:// で始まらない: それぞれの文言をその欄の下とエラーの一覧に出す。"""
     # 準備
     opened = open_window()
-    _set_text(opened.window, "outputs[3].targets[1].url", "gemini.google.com")
+    _add_preset(opened.window, "endpoint", "受け口", url)
 
     # 実行
     _click(opened.window, "save_button")
 
     # 検証
-    message = "http:// か https:// で始まる URL を入れてください。"
     assert _field_errors(opened.window) == [message]
     assert any(row.endswith(f": {message}") for row in _error_rows(opened.window))
+
+
+def test_input_check_when_preset_hotkey_overlap(open_window: Callable[..., Opened]) -> None:
+    """プリセットのホットキーが、ほかのプリセットと同じ: 「プリセット「{タイトル}」と同じキーです。別のキーにしてください。」を出す。種類をまたぐときは種類も添える。"""
+    # 準備
+    opened = open_window()
+    for kind, title in (("browser", "ChatGPT"), ("endpoint", "受け口")):
+        _add_preset(opened.window, kind, title, "https://example.com")
+        edit = _preset_field(opened.window, kind, 0, "hotkey")
+        edit.setFocus()
+        QTest.keyClick(
+            edit, Qt.Key.Key_5, Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier
+        )
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    message = "「ブラウザ添付」のプリセット「ChatGPT」と同じキーです。別のキーにしてください。"
+    assert _field_errors(opened.window) == [message]
+    assert any(row.endswith(f": {message}") for row in _error_rows(opened.window))
+    opened.deps.save_settings.assert_not_called()
+
+
+def test_input_check_when_timeout_out_of_range(open_window: Callable[..., Opened]) -> None:
+    """エンドポイントへ送るのタイムアウトが 0.5〜10 の外: 「0.5〜10 の値を入れてください。」を出す。"""
+    # 準備
+    opened = open_window()
+    _set_text(opened.window, "preset_options.endpoint.timeout_sec", "11")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    message = "0.5〜10 の値を入れてください。"
+    assert find(opened.window, QLabel, "error_preset_options.endpoint.timeout_sec").text() == message
+    assert any(row.endswith(f": {message}") for row in _error_rows(opened.window))
+
+
+def test_error_summary_row_action_when_preset(open_window: Callable[..., Opened]) -> None:
+    """プリセットの欄の行を押すと、その種類のタブへ切り替えて欄へフォーカスを移す。"""
+    # 準備
+    opened = open_window()
+    _add_preset(opened.window, "endpoint", "受け口", "")
+    _click(opened.window, "save_button")
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(8)
+    link = next(
+        label for label in find(opened.window, QFrame, "error_summary").findChildren(QLabel)
+        if "href" in label.text()
+    )
+
+    # 実行
+    link.linkActivated.emit("presets[0].url")
+
+    # 検証
+    assert find(opened.window, QListWidget, "group_menu").currentRow() == 2
+    assert opened.window.focusWidget() is _preset_field(opened.window, "endpoint", 0, "url")
 
 
 def test_input_check_when_hotkey_unreadable(open_window: Callable[..., Opened]) -> None:

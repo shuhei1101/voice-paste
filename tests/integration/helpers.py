@@ -31,7 +31,6 @@ import pytest
 from voice_paste.features.correction import apply_glossary
 from voice_paste.features.history import append_text, discard_temporary, save_recording
 from voice_paste.features.outputs import OUTPUTS, deliver, is_callback_allowed
-from voice_paste.features.outputs.callback.client import post_json
 from voice_paste.features.outputs.registry import CALLBACK_OUTPUT_ID
 from voice_paste.features.recording import Recorder
 from voice_paste.features.session import (
@@ -41,18 +40,20 @@ from voice_paste.features.session import (
     SessionManager,
 )
 from voice_paste.features.transcription.service import transcribe
+from voice_paste.integrations.http.client import post_json
 import voice_paste.main as main_module
 from voice_paste.main import (
     CALLBACK_RETRY_COUNT,
     CALLBACK_TIMEOUT_SEC,
     _deliver_session,
     _wire_outputs,
+    _wire_preset_kinds,
 )
 from voice_paste.server.app import build_fastapi
 from voice_paste.server.runner import ApiServerRunner
 from voice_paste.server.token import create_token
 from voice_paste.shared.constants import AppPaths, resolve_app_paths
-from voice_paste.shared.settings import Settings
+from voice_paste.shared.settings import Preset, Settings
 from voice_paste.shared.types import TranscriptionOutcome
 
 SAMPLE_RATE = 16000
@@ -168,6 +169,8 @@ class CallbackReceiver:
 
     def __init__(self) -> None:
         self.received: list[dict[str, Any]] = []
+        self.headers: list[dict[str, str]] = []
+        """届いた要求のヘッダー（小文字の名前）。received と同じ順。"""
         self.statuses: list[int] = []
         """先頭から順に返すステータス。尽きたら default_status を返す。"""
         self.default_status = 200
@@ -181,6 +184,7 @@ class CallbackReceiver:
                 body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
                 with receiver._lock:
                     receiver.received.append(body)
+                    receiver.headers.append({key.lower(): value for key, value in self.headers.items()})
                     status = receiver.statuses.pop(0) if receiver.statuses else receiver.default_status
                 time.sleep(receiver.delay_sec)
                 self.send_response(status)
@@ -321,11 +325,12 @@ def build_stack(tmp_path: Path) -> Stack:
         deliver(
             session.entry,
             session.output_id,
-            session.output_target,
+            session.output_preset,
             session.callback_url,
             outcome,
             enabled_ids=frozenset(),
             outputs=outputs,
+            preset_kinds=(),
         )
 
     deps = SessionDeps(
@@ -392,10 +397,10 @@ class OutputStack:
     notify: MagicMock
     engine: FakeEngine
 
-    def confirm(self, output_id: str, output_target: str | None = None) -> None:
-        """ホットキーのセッションを始め、output_id を選んで確定する。"""
+    def confirm(self, output_id: str | None = None, preset: Preset | None = None) -> None:
+        """ホットキーのセッションを始め、固定の出力先かカスタムプリセットを選んで確定する。"""
         self.manager.start("hotkey")
-        self.manager.complete(output_id=output_id, output_target=output_target)
+        self.manager.complete(output_id=output_id, preset=preset)
 
     def wait_for_idle(self) -> bool:
         """セッションが空（待機中）に戻るまで待ち、戻ったかを返す。"""
@@ -435,7 +440,10 @@ def build_output_stack(
     )
     enabled_ids = frozenset(output.id for output in settings.outputs if output.enabled)
     deliver_session = partial(
-        _deliver_session, enabled_ids=enabled_ids, outputs=_wire_outputs(lambda: settings)
+        _deliver_session,
+        enabled_ids=enabled_ids,
+        outputs=_wire_outputs(lambda: settings),
+        preset_kinds=_wire_preset_kinds(lambda: settings),
     )
     deps = SessionDeps(
         start_recording=recorder.start,

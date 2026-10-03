@@ -31,7 +31,7 @@ PREVIOUS_RUNNING_CYCLES = 10
 PREVIOUS_STARTING_CYCLES = 5
 """前のプロセスがモデルの読み込み中のときに入れ替える回数。"""
 
-WAIT_LIMIT_SEC = 32.0
+WAIT_LIMIT_SEC = 54.0
 """前の常駐サービスの終わりを待つ時間の決定値（秒）。"""
 
 PREVIOUS_EXIT_TIMEOUT_SEC = 10.0

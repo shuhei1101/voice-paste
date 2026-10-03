@@ -47,7 +47,7 @@ RUNS = 20
 WARMUP_RUNS = 1
 """測る前に捨てる回数（モデルを温めた状態で測るため）。"""
 
-LATENCY_LIMIT_SEC = 1.08
+LATENCY_LIMIT_SEC = 1.59
 """話し終えてから貼り付くまでの時間の決定値（秒）。"""
 
 CLIP_SEC = 10

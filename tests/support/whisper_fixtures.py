@@ -20,13 +20,13 @@ RECORDINGS_DIR = FIXTURES_DIR / "recordings"
 YOGO_FILE = FIXTURES_DIR / "yogo.csv"
 WHISPER_ENV_FILE = FIXTURES_DIR / "whisper.env"
 
-PASTE_LATENCY_RECORDING = RECORDINGS_DIR / "20260930010513.wav"
-"""刷新前の話し終えてから貼り付くまでの時間を測った録音（先頭 10 秒を使う）。"""
+PASTE_LATENCY_RECORDING = RECORDINGS_DIR / "latency" / "20261002212623.wav"
+"""話し終えてから貼り付くまでの時間を測る録音（先頭 10 秒を使う）。刷新前を測り直したのと同じ録音。特性テストが拾わないよう `recordings/latency/` に置く。"""
 
-WORKER_READY_TIMEOUT_SEC = 10.0
+WORKER_READY_TIMEOUT_SEC = 27.0
 """非機能要件の文字起こしワーカーの立て直しの時間の決定値。"""
 
-WORKER_STOP_TIMEOUT_SEC = 3.0
+WORKER_STOP_TIMEOUT_SEC = 2.0
 """非機能要件の文字起こしワーカーの終わりを待つ時間の決定値。"""
 
 

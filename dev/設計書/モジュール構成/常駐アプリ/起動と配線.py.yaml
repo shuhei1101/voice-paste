@@ -1060,7 +1060,7 @@ constants:
     usecase: 常駐アプリを起動する
     summary: acquire_single_instance に渡す、前のプロセスが排他を放すのを待つ上限。非機能要件の前の常駐サービスの終わりを待つ時間の決定値
     value: '54.0'
-    status: planned
+    status: implemented
   - name: PURGE_INTERVAL_SEC
     title: 常駐中に古いログと履歴を消す間隔
     container: main.py

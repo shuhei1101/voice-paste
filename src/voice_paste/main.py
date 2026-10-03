@@ -109,10 +109,10 @@ CALLBACK_RETRY_COUNT: int = 3
 CALLBACK_RETRY_BASE_SEC: float = 1.0
 """返送の再送の間隔の基数（回ごとに 2 倍にし、フルジッターをかける）。非機能要件の決定値。"""
 
-WORKER_READY_TIMEOUT_SEC: float = 10.0
+WORKER_READY_TIMEOUT_SEC: float = 27.0
 """文字起こしワーカーの立て直しで ready を待つ上限。非機能要件の文字起こしワーカーの立て直しの時間の決定値。"""
 
-WORKER_STOP_TIMEOUT_SEC: float = 3.0
+WORKER_STOP_TIMEOUT_SEC: float = 2.0
 """文字起こしワーカーの終わりを待つ時間。非機能要件の文字起こしワーカーの終わりを待つ時間の決定値。"""
 
 GLOSSARY_FILE_NAME: str = "yogo.csv"
@@ -124,7 +124,7 @@ ACCEPT_INJECTED_HOTKEYS_ENV: str = "VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS"
 WAKE_INTERVAL_MS: int = 200
 """Qt のイベントループの中で Python のシグナルのハンドラが動くようにする、空の QTimer の間隔。PoC で 200 ms なら Ctrl+Break から 0.3 秒で終わった。"""
 
-SINGLE_INSTANCE_TIMEOUT_SEC: float = 32.0
+SINGLE_INSTANCE_TIMEOUT_SEC: float = 54.0
 """acquire_single_instance に渡す、前のプロセスが排他を放すのを待つ上限。非機能要件の前の常駐サービスの終わりを待つ時間の決定値。"""
 
 PURGE_INTERVAL_SEC: float = 86400.0

@@ -27,7 +27,7 @@ purl: pkg:pypi/httpx
 dependency_scope: 必須
 adoption: 採用
 used_in:
-  - src/voice_paste/features/outputs/callback/service.py
+  - src/voice_paste/integrations/http/client.py
 upstream: encode/httpx
 verification:
   state: 済

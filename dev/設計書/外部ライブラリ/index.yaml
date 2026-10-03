@@ -25,7 +25,7 @@ items:
   - page: tkinter.yaml
     summary: 録音の画面・文字起こし中の表示・設定画面を作る
   - page: Microsoft_Edge.yaml
-    summary: AI チャットの画面をアプリのウィンドウとして開く
+    summary: ブラウザ添付のプリセットの画面をアプリのウィンドウとして開く
   - page: fastapi.yaml
     summary: 常駐サービスの API のルートと入出力の検証を組み立てる
   - page: uvicorn.yaml

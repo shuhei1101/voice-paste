@@ -102,7 +102,7 @@ external_systems:
       事前確認: 文字起こしワーカーの起動時に、モデルを読み込めることを確かめる（手元に無ければその時点で取得する）。
     detail: dev/設計書/外部API/Hugging_Face_Hub#
   - name: Microsoft Edge
-    purpose: AI 送信のボタンで AI チャットの画面を開く
+    purpose: ブラウザ添付のプリセットで確定したときに、プリセットの URL の画面を開く
     direction: 送信のみ
     protocol: 子プロセスの起動（`--app={URL}`）
     notes:

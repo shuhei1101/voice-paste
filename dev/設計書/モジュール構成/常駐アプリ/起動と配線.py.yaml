@@ -127,12 +127,13 @@ functions:
       2. 設定のエンジン（local_whisper）の WhisperWorkerClient を作って起動し、その transcribe を文字起こしの engine に渡す
          - EngineError の場合、StartupError を送出する
       3. Recorder に音量のアダプタと、SettingsStore から録音の設定を返す関数を渡す
-      4. 出力先の deliver に OUTPUTS と、届けるたびに SettingsStore からオンの出力先の ID を引く関数を部分適用し、Session を入口・出力先・出力先に固有の宛先・返送先に分けて渡すアダプタを作る。各出力先には出力先の ID ごとに次を部分適用する（_wire_outputs に SettingsStore.get を渡す）
+      4. 出力先の deliver に、配線した OUTPUTS（_wire_outputs）・配線した PRESET_KINDS（_wire_preset_kinds）と、届けるたびに SettingsStore からオンの出力先の ID を引く関数を部分適用し、Session を入口・出力先の ID・選んだプリセット・返送先に分けて渡すアダプタを作る。各出力先・各種類には次を部分適用する（どちらにも SettingsStore.get を渡す）
          - 貼り付けて送信: copy_to_clipboard・設定の keyboard.paste_key で send_paste を呼ぶ関数・send_enter・time.sleep・設定の enter_delay_sec を返す関数
          - 貼り付けのみ: copy_to_clipboard・send_paste を呼ぶ関数
          - コピーのみ: copy_to_clipboard
-         - AI チャットへ送る: copy_to_clipboard・open_app_window・send_paste を呼ぶ関数・send_enter・time.sleep・設定の open_delay_sec を返す関数・貼り付けて送信の enter_delay_sec を返す関数
-         - 呼び出し元へ返す: タイムアウトを部分適用した post_json・設定の許可ホスト・再送の回数と間隔の基数・time.sleep・random.uniform(0, x)
+         - 呼び出し元へ返す: CALLBACK_TIMEOUT_SEC を部分適用した post_json・設定の許可ホスト・再送の回数と間隔の基数・time.sleep・random.uniform(0, x)
+         - ブラウザ添付（種類）: copy_to_clipboard・open_app_window・send_paste を呼ぶ関数・send_enter・time.sleep・設定の preset_options.browser.open_delay_sec を返す関数・貼り付けて送信の enter_delay_sec を返す関数
+         - エンドポイントへ送る（種類）: post_json・設定の preset_options.endpoint.timeout_sec を返す関数
       5. 用語集を文字起こしのたびに読み直す correct を作る（load_glossary → apply_glossary。読む場所はそのたびに SettingsStore の glossary_path から決める）
       6. SessionDeps を組み（report_progress を含む）、API のセッションの上限時間と共に SessionManager を作る
       7. SessionManager と、設定の許可ホストを部分適用した is_callback_allowed を SessionApiDeps に束ねる
@@ -140,7 +141,7 @@ functions:
     exceptions:
       - name: StartupError
         condition: 文字起こしのエンジンを準備できない
-    status: implemented
+    status: planned
   - name: main
     title: 起動
     kind: 関数
@@ -435,27 +436,26 @@ functions:
       type: tuple[OutputSpec, ...]
       description: handler を配線した出力先の一覧（OUTPUTS と同じ並び）
     process: |-
-      1. 呼ぶたびに get_settings() を読む関数を作る（Recorder の get_settings と同じく、反映が immediate の設定を届けるたびに読む）
+      1. 呼ぶたびに get_settings() を読む関数を作る（Recorder の get_settings と同じく、反映が immediate の設定を届けるたびに読む。_wire_preset_kinds も同じ関数を使う）
          - paste: keyboard.paste_key で send_paste を呼ぶ
          - get_enter_delay_sec: outputs[] の paste_and_send の enter_delay_sec を返す（一覧に無ければそのモデルの既定値）
-         - get_open_delay_sec: outputs[] の ai_chat の open_delay_sec を返す（同上）
-      2. OUTPUTS を順に見て、出力先の ID ごとに build_handlers の 3 のとおり部分適用した handler に差し替える
+      2. OUTPUTS を順に見て、出力先の ID ごとに build_handlers の 4 のとおり部分適用した handler に差し替える
          - 部分適用の対象に無い ID はそのまま残す
          - 呼び出し元へ返すの許可ホストは、この時点の get_settings() から読む
     unit_tests:
       - name: test_wire_outputs
         case: 正常
         summary: 各出力先に設定の値を配線する
-        condition: keyboard.paste_key が `<ctrl>+<shift>+v`、paste_and_send の enter_delay_sec が 0.2、ai_chat の open_delay_sec が 1.5
-        mock: copy_to_clipboard・send_paste・send_enter・open_app_window・time.sleep
-        expected: 返った一覧の ID が OUTPUTS と同じ並びで、paste_and_send の handler を呼ぶと send_paste に `<ctrl>+<shift>+v`、sleep に 0.2 が渡り、ai_chat の handler を呼ぶと sleep に 1.5・0.2 がこの順に渡る
+        condition: keyboard.paste_key が `<ctrl>+<shift>+v`、paste_and_send の enter_delay_sec が 0.2
+        mock: copy_to_clipboard・send_paste・send_enter・time.sleep
+        expected: 返った一覧の ID が OUTPUTS と同じ並びで、paste_and_send の handler を呼ぶと send_paste に `<ctrl>+<shift>+v`、sleep に 0.2 が渡る
       - name: test_wire_outputs_when_settings_changed
         case: 正常
         summary: 配線の後に変えた設定が次の届け方に効く
         condition: 配線の後に get_settings が返す設定を paste_key `<ctrl>+<alt>+v`・enter_delay_sec 1.0 に差し替える
-        mock: copy_to_clipboard・send_paste・send_enter・open_app_window・time.sleep
+        mock: copy_to_clipboard・send_paste・send_enter・time.sleep
         expected: paste_and_send の handler を呼ぶと send_paste に `<ctrl>+<alt>+v`、sleep に 1.0 が渡る
-    status: implemented
+    status: planned
   - name: build_hotkey_bindings
     title: ホットキーの割り当て
     container: main.py
@@ -488,8 +488,10 @@ functions:
       2. `hotkeys.pause`: paused なら resume、それ以外は pause を呼ぶ
       3. `hotkeys.cancel`: cancel を呼ぶ
       4. オンの出力先の `hotkey`（1 と同じホットキーを除く）: complete(output_id=その出力先の ID) を呼ぶ
-      5. オンの AI チャットの送り先の `hotkey`: complete(output_id=ai_chat, output_target=送り先の URL) を呼ぶ
+      5. 有効なプリセットの `hotkey`: complete(preset=そのプリセット) を呼ぶ
          - 空のホットキーは登録しない（重なりは Settings の確かめが断っている）
+
+      apply_settings が確かめる受け付けるホットキーの並び（_collect_hotkeys）も、同じく有効なプリセットの空でない `hotkey` を含める
     unit_tests:
       - name: test_build_hotkey_bindings_when_idle
         case: 正常
@@ -503,12 +505,12 @@ functions:
         condition: Settings()、current が hotkey・recording、<ctrl>+<alt>+d の関数を呼ぶ
         mock: session_manager・start_local_session
         expected: complete(output_id=paste_and_send) が 1 回呼ばれ、start_local_session が呼ばれない
-      - name: test_build_hotkey_bindings_when_ai_chat_target
+      - name: test_build_hotkey_bindings_when_preset
         case: 正常
-        summary: 送り先のホットキーはその URL で確定する
-        condition: Settings()、<ctrl>+<alt>+1 の関数を呼ぶ
+        summary: プリセットのホットキーはそのプリセットで確定する
+        condition: presets に ChatGPT（browser、<ctrl>+<alt>+1）を置いた設定、<ctrl>+<alt>+1 の関数を呼ぶ
         mock: session_manager・start_local_session
-        expected: complete(output_id=ai_chat, output_target=https://chatgpt.com) が呼ばれる
+        expected: complete(preset=ChatGPT のプリセット) が呼ばれる
       - name: test_build_hotkey_bindings_when_paused
         case: 正常
         summary: 一時停止中の一時停止のホットキーは再開する
@@ -527,9 +529,15 @@ functions:
         condition: 貼り付けて送信をオフにした設定、current が hotkey・recording、<ctrl>+<alt>+d の関数を呼ぶ
         mock: session_manager・start_local_session
         expected: start_local_session も complete も呼ばれない
+      - name: test_build_hotkey_bindings_when_preset_not_bound
+        case: 正常
+        summary: 無効のプリセットとホットキーが空のプリセットは登録しない
+        condition: presets に無効のプリセット（<ctrl>+<alt>+7）と、hotkey が空の有効なプリセットを置いた設定
+        mock: session_manager・start_local_session
+        expected: <ctrl>+<alt>+7 と空文字が返り値のキーに無い
     refs:
       - dev/設計書/シナリオ/単一ユースケース/録音する#
-    status: implemented
+    status: planned
   - name: apply_settings
     title: 設定の保存と反映
     container: main.py
@@ -637,10 +645,10 @@ functions:
       type: UiDeps
       description: 画面の依存
     process: |-
-      1. start に start_local_session(tray)、pause・resume・cancel・current_session に SessionManager のメソッド、complete に output_id・output_target で SessionManager.complete を呼ぶ関数、level に recorder_level、get_settings に SettingsStore.get を渡す
+      1. start に start_local_session(tray)、pause・resume・cancel・current_session に SessionManager のメソッド、complete に output_id・preset で SessionManager.complete を呼ぶ関数、level に recorder_level、get_settings に SettingsStore.get を渡す
       2. suspend_hotkeys に HotkeyListener.stop、resume_hotkeys に SettingsStore.get の設定で build_hotkey_bindings して HotkeyListener.start を呼ぶ関数を渡す
       3. settings_dir に settings.toml のフォルダ、log_dir にログのフォルダを渡す
-    status: implemented
+    status: planned
   - name: relaunch
     title: 起動し直し
     container: runtime/process.py
@@ -755,6 +763,45 @@ functions:
         mock: purge_old_logs・purge_expired
         expected: purge_old_logs が 1 回呼ばれ、purge_expired が呼ばれない
     status: implemented
+  - name: _wire_preset_kinds
+    title: プリセットの種類の配線
+    kind: 関数
+    container: main.py
+    usecase: 常駐アプリを起動する
+    role: composition root
+    scope: internal
+    summary: PRESET_KINDS の各種類の handler に、種類ごとの外部連携の関数と設定の値を部分適用して返す
+    args:
+      - name: get_settings
+        type: Callable[[], Settings]
+        required: true
+        passing: positional
+        description: 今の設定を返す（keyboard.paste_key・outputs[]・preset_options を読む）
+    returns:
+      type: tuple[PresetKindSpec, ...]
+      description: handler を配線した種類の一覧（PRESET_KINDS と同じ並び）
+    process: |-
+      1. 呼ぶたびに get_settings() を読む関数を作る（届けるたびに読む。paste・get_enter_delay_sec は _wire_outputs と同じ）
+         - get_open_delay_sec: preset_options.browser.open_delay_sec を返す
+         - get_timeout_sec: preset_options.endpoint.timeout_sec を返す
+      2. PRESET_KINDS を順に見て、種類ごとに build_handlers の 4 のとおり部分適用した handler に差し替える
+         - 部分適用の対象に無い種類はそのまま残す
+    unit_tests:
+      - name: test_wire_preset_kinds
+        case: 正常
+        summary: 各種類に設定の値を配線する
+        condition: preset_options.browser.open_delay_sec が 1.5、paste_and_send の enter_delay_sec が 0.2、preset_options.endpoint.timeout_sec が 2.0
+        mock: copy_to_clipboard・send_paste・send_enter・open_app_window・time.sleep・post_json
+        expected: 返った一覧の kind が PRESET_KINDS と同じ並びで、browser の handler を send_enter True のプリセットで呼ぶと sleep に 1.5・0.2 がこの順に渡り、endpoint の handler を呼ぶと post_json の timeout_sec に 2.0 が渡る
+      - name: test_wire_preset_kinds_when_settings_changed
+        case: 正常
+        summary: 配線の後に変えたタイムアウトが次の送りに効く
+        condition: 配線の後に get_settings が返す設定の preset_options.endpoint.timeout_sec を 5.0 に差し替える
+        mock: post_json
+        expected: endpoint の handler を呼ぶと post_json の timeout_sec に 5.0 が渡る
+    refs:
+      - dev/設計書/モジュール構成/常駐アプリ/出力先.py#constants[PRESET_KINDS]
+    status: planned
 notes:
   依存の向き: |-
     コーディング規約『依存関係管理』のとおり `features`・`server`・`ui` → `integrations`・`runtime` → `shared` とし、上の層へは import しない。
@@ -1054,9 +1101,4 @@ constants:
     summary: 前のプロセスがミューテックスを作ってからイベントを作るまでの間に OpenEventW が失敗したとき、開き直す間隔。前のプロセスの起動の初めの数ミリ秒の間だけ起こるため、依頼の遅れを 0.1 秒までに抑える
     value: '0.1'
     status: implemented
-test_files:
-  - tests/unit/voice_paste/test_main.py
-  - tests/unit/voice_paste/runtime/test_timer.py
-  - tests/unit/voice_paste/runtime/test_settings_store.py
-  - tests/unit/voice_paste/runtime/test_process.py
-  - tests/unit/voice_paste/runtime/test_single_instance.py
+test_files: []

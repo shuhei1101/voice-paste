@@ -1,0 +1,76 @@
+実行した commit: 948b9f5
+実行したコマンド: venv/Scripts/python.exe -m pytest tests/nfr/test_worker_recovery_time.py tests/nfr/test_worker_stop_timeout.py tests/nfr/test_paste_latency.py tests/nfr/test_single_instance_timeout.py --run-e2e -s -v（PYTHONPATH=src でこの worktree の src/voice_paste を読ませた。実機: Windows 11・NVIDIA GeForce RTX 5070。固めた設定・用語集・録音は tests/nfr/fixtures/ に置いた代替）
+
+===== test_worker_recovery_time =====
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\shuhe\repo\voice-paste\venv\Scripts\python.exe
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\refactor-launcher-switch-to-new-structure
+configfile: pyproject.toml
+plugins: anyio-4.13.0, platformdirs-4.12.2
+collecting ... collected 1 item
+
+tests/nfr/test_worker_recovery_time.py::test_worker_recovery_time worker_recovery_time: n=20 raw=[4.86, 5.0, 4.75, 4.72, 4.91, 5.15, 5.13, 4.92, 4.98, 5.08, 5.14, 4.98, 5.34, 5.1, 5.24, 5.26, 5.15, 5.06, 5.5, 5.48] median=5.09 max=5.50 sec
+PASSED
+
+======================== 1 passed in 105.68s (0:01:45) ========================
+
+===== test_worker_stop_timeout =====
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\shuhe\repo\voice-paste\venv\Scripts\python.exe
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\refactor-launcher-switch-to-new-structure
+configfile: pyproject.toml
+plugins: anyio-4.13.0, platformdirs-4.12.2
+collecting ... collected 1 item
+
+tests/nfr/test_worker_stop_timeout.py::test_worker_stop_timeout worker_stop_timeout: n=20 raw=[0.16, 0.26, 0.2, 0.18, 0.52, 0.23, 0.21, 0.23, 0.39, 0.16, 0.19, 0.36, 0.39, 0.81, 0.31, 0.15, 0.26, 0.37, 0.37, 0.37] median=0.26 max=0.81 sec
+PASSED
+
+======================== 1 passed in 146.59s (0:02:26) ========================
+
+===== test_paste_latency =====
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\shuhe\repo\voice-paste\venv\Scripts\python.exe
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\refactor-launcher-switch-to-new-structure
+configfile: pyproject.toml
+plugins: anyio-4.13.0, platformdirs-4.12.2
+collecting ... collected 1 item
+
+tests/nfr/test_paste_latency.py::test_paste_latency paste_latency: n=20 raw=[1.078, 1.139, 1.369, 1.182, 1.218, 1.882, 1.289, 1.393, 1.077, 1.073, 1.349, 1.225, 1.16, 1.075, 1.221, 1.091, 1.068, 1.118, 1.335, 1.203] median=1.193 min=1.068 max=1.882 sec
+FAILED
+
+================================== FAILURES ===================================
+_____________________________ test_paste_latency ______________________________
+tests\nfr\test_paste_latency.py:162: in test_paste_latency
+    assert statistics.median(elapsed_list) <= LATENCY_LIMIT_SEC
+E   assert 1.1928534499602392 <= 1.08
+E    +  where 1.1928534499602392 = <function median at 0x0000014D64BB7690>([1.0778744001872838, 1.139426600188017, 1.3685083999298513, 1.1823604998644441, 1.2183906000573188, 1.8821827999781817, ...])
+E    +    where <function median at 0x0000014D64BB7690> = statistics.median
+=========================== short test summary info ===========================
+FAILED tests/nfr/test_paste_latency.py::test_paste_latency - assert 1.1928534...
+============================= 1 failed in 33.89s ==============================
+
+===== test_single_instance_timeout =====
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\shuhe\repo\voice-paste\venv\Scripts\python.exe
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\refactor-launcher-switch-to-new-structure
+configfile: pyproject.toml
+plugins: anyio-4.13.0, platformdirs-4.12.2
+collecting ... collected 2 items
+
+tests/nfr/test_single_instance_timeout.py::test_single_instance_timeout single_instance_timeout: n=10 raw=[0.81, 0.42, 0.41, 0.43, 0.32, 0.34, 0.29, 0.37, 0.42, 0.58] median=0.41 max=0.81 sec
+PASSED
+tests/nfr/test_single_instance_timeout.py::test_single_instance_timeout_when_previous_starting single_instance_timeout_when_previous_starting: n=5 raw=[5.18, 5.27, 8.13, 6.08, 12.64] median=6.08 max=12.64 sec
+PASSED
+
+======================== 2 passed in 259.14s (0:04:19) ========================
+
+===== 参考: 上の実行より前の別の実行（コミット前の作業ツリー。テストコードは同じ）=====
+
+[test_worker_recovery_time の 1 回目。モデルのファイルが OS のキャッシュに載る前。決定値 10 秒を超えて FAILED]
+worker_recovery_time: n=20 raw=[17.68, 5.75, 5.93, 5.79, 5.47, 5.25, 8.2, 5.77, 7.51, 6.3, 5.77, 5.94, 6.1, 5.95, 6.65, 5.36, 6.58, 5.77, 5.91, 6.29] median=5.93 max=17.68 sec
+
+[test_paste_latency と同じ録音（先頭 10 秒）・同じ設定・同じ用語集で、刷新前（voice_paste_legacy）を scripts/measure_legacy_latency.py で測った値]
+paste_latency（刷新前）: n=20 raw_ms=[2156.79, 1730.02, 1394.67, 1239.34, 1505.21, 1587.29, 1682.93, 1644.87, 1590.82, 1618.12, 1379.32, 1484.2, 1349.76, 1588.24, 1650.02, 1313.79, 1289.94, 1540.59, 2568.72, 2816.96] median=1587.77 min=1239.34 max=2816.96 ms
+
+[文字起こしだけ（WhisperWorkerClient.transcribe、同じ録音の先頭 10 秒を 20 回）]
+transcribe only: median 1.117 min 1.021 max 1.854 sec

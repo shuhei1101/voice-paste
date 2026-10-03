@@ -1,4 +1,4 @@
-実行した commit: be96d79
+実行した commit: 9dbc9a2
 実行したコマンド: venv/Scripts/python.exe -m pytest tests/integration tests/nfr -v -rs（同上。tests/nfr の実機が要るテストは --run-e2e が無いため skip。skip の理由は末尾の一覧）
 
 ============================= test session starts =============================
@@ -274,4 +274,4 @@ SKIPPED [1] tests\nfr\test_transcription_parity.py:58: got empty parameter set f
 SKIPPED [1] tests\nfr\test_transcription_parity.py:80: tests/nfr/fixtures/ の用語集が要る
 SKIPPED [1] tests\nfr\test_worker_recovery_time.py: Windows の NVIDIA GPU と、tests/nfr/fixtures/ の固めた設定（whisper.env）が要る
 SKIPPED [1] tests\nfr\test_worker_stop_timeout.py: Windows の NVIDIA GPU と、tests/nfr/fixtures/ の固めた設定（whisper.env）が要る
-====================== 244 passed, 11 skipped in 29.05s =======================
+====================== 244 passed, 11 skipped in 29.51s =======================

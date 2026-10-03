@@ -1,15 +1,15 @@
 title: "設定のエンドポイントへ送る"
 entry:
   kind: trigger
-  value: ホットキー・トレイから始めた録音を「エンドポイントへ送る」で確定し、空でない文字が起きたときに `POST {outputs[].url}` を送る
+  value: ホットキー・トレイから始めた録音を「エンドポイントへ送る」種類のプリセットで確定し、空でない文字が起きたときに `POST {プリセットの URL}` を送る
 flows:
   - name: 正常系
     summary: 起こした文字を送り先へ送る
     setup:
       - name: Mock
         description: 送り先を 127.0.0.1 のテスト用の受け口にし、200 を返す
-      - name: 設定
-        description: 「エンドポイントへ送る」をオンにし、`url` にテスト用の受け口、`authorization` を空にする
+      - name: プリセット
+        description: 「エンドポイントへ送る」種類で、URL にテスト用の受け口、Authorization を空にした有効なプリセットを選んで確定する
     flow: |-
       ```mermaid
       sequenceDiagram
@@ -24,12 +24,12 @@ flows:
       - 送り先に `Authorization` ヘッダーが届いていない
     test: test_normal
   - name: 正常系（認証のヘッダーを付ける）
-    summary: 設定の値を `Authorization` ヘッダーに入れて送る
+    summary: プリセットの Authorization の値を `Authorization` ヘッダーに入れて送る
     setup:
       - name: Mock
         description: 送り先を 127.0.0.1 のテスト用の受け口にし、200 を返す
-      - name: 設定
-        description: '`authorization` に `Bearer test-token` を入れる'
+      - name: プリセット
+        description: 選んだプリセットの Authorization に `Bearer test-token` を入れる
     flow: |-
       ```mermaid
       sequenceDiagram
@@ -62,7 +62,7 @@ flows:
       - 送り先への送信が 1 回だけ行われている
       - DeliveryError が送出され、セッションが届けられなかったことを知らせて待機中に戻っている
     test: test_error_when_endpoint_unreachable
-lead: 起こした文字を、設定の送り先のエンドポイントへ JSON で 1 回送る。
+lead: 起こした文字を、選んだ「エンドポイントへ送る」プリセットの送り先へ JSON で 1 回送る。
 identifier: deliver_to_endpoint
 idempotent: false
 side_effects: 送り先へ HTTP で 1 回送る。届かなければ送り直さず DeliveryError にし、セッションがトレイで知らせてログに理由を書く。
@@ -75,23 +75,22 @@ exceptions:
     notes: 送り直さない。履歴は残り、常駐サービスは届けられなかったことを知らせて待機中に戻る
 constraints:
   - item: 送り先
-    constraint: 設定の `outputs[]` のこの出力先の `url`（http か https）だけ。ホストは制限しない。届けるたびに設定を読む
+    constraint: 確定で選んだ「エンドポイントへ送る」プリセットの URL（http か https）だけ。ホストは制限しない。届けるときにその時点の設定のプリセットを読む
   - item: 送り先が無いとき
-    constraint: '`url` が空のままではオンにして保存できない（設定の確かめが断る）'
+    constraint: プリセットの URL は必須で、空や http / https 以外では保存できない（設定の確かめが断る）
   - item: 認証
-    constraint: 設定の `authorization` が空でなければ、その値を `Authorization` ヘッダーに入れて送る。空なら付けない。値は秘密としてログに書かない
+    constraint: プリセットの Authorization の値が空でなければ、その値を `Authorization` ヘッダーに入れて送る。空なら付けない。値は秘密としてログに書かない
   - item: タイムアウト
-    constraint: 非機能要件の返送のタイムアウトと同じ値
-    decided_by: dev/設計書/非機能要件/非機能要件#requirements[返送のタイムアウトと再送]
+    constraint: 「エンドポイントへ送る」の全てのプリセットで共通の設定の値（既定 1.5 秒、0 より大きく 10 秒以下）。届けるたびに設定を読む
+    notes: '既定値は呼び出し元へ返すと同じ取り決め（受け取ってから 1 秒以内に 2xx）から導いた値。上限はユーザーが待てる時間として決めた（PR #44 の確認ログ）'
   - item: 再送
     constraint: しない（1 回で届かなければ DeliveryError）
   - item: リダイレクト
     constraint: 追わない
     notes: 認証のヘッダーを設定に書いていない先へ流さない
   - item: 受け口の応答時間
-    constraint: 受け口は受け取ったら 1 秒以内に 2xx を返す。重い処理は 2xx を返した後で行う
-    decided_by: dev/設計書/非機能要件/非機能要件#requirements[返送のタイムアウトと再送]
-    notes: 利用者が用意する受け口との取り決め。呼び出し元へ返すと同じ
+    constraint: 受け口は設定のタイムアウトより早く 2xx を返す。重い処理は 2xx を返した後で行う
+    notes: 利用者が用意する受け口との取り決め。外の受け口（Webhook 等）は応答の速さに合わせてタイムアウトを延ばす
 notes:
   送る中身: |-
     呼び出し元へ返す の `送る中身` と同じ形の `application/json` を送る。

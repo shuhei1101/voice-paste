@@ -1,0 +1,831 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>設定画面 | voice-paste のモック</title>
+  <!-- 採用スタイル「開発者ツール」の部品は #37 の共有 CSS、プリセットの部品は #44 の共有 CSS に置く -->
+  <link rel="stylesheet" href="../../../../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../../../../refs/44/assets/style.css">
+  <script src="../../../../../refs/44/assets/app.js" defer></script>
+</head>
+<body>
+  <!-- モック専用の操作列: 案のタブと、場面の切り替え（app.js が data-scene の場面だけを出す） -->
+  <nav class="mock-bar" aria-label="案と場面の切り替え（モック専用）">
+    <span class="mock-bar__label">案</span>
+    <ul><li><a href="../index.html">案 A</a></li><li><a href="../../b-list-detail/index.html">案 B</a></li><li><a href="./index.html" aria-current="page">案 A / 種類ごとのタブ</a></li></ul>
+    <span class="mock-bar__label">場面</span>
+    <ul><li><button type="button" data-scene="browser-empty">ブラウザで開く: 空の一覧</button></li><li><button type="button" data-scene="browser-filled">ブラウザで開く: 登録した</button></li><li><button type="button" data-scene="browser-error">ブラウザで開く: 確かめに通らない</button></li><li><button type="button" data-scene="endpoint-empty">エンドポイントへ送る: 空の一覧</button></li><li><button type="button" data-scene="endpoint-filled">エンドポイントへ送る: 登録した</button></li><li><button type="button" data-scene="endpoint-error">エンドポイントへ送る: 確かめに通らない</button></li></ul>
+  </nav>
+
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../../">pages</a> / <a href="../../../">settings</a> / <a href="../../">44</a> / <a href="../index.html">a-inline</a> / <span>kind-tabs</span></nav>
+
+    <!-- 画面の説明 -->
+    <header class="intro">
+      <h1>設定画面</h1>
+      <p>案 A を元に、カスタムプリセットを種類ごとに左のメニューの「ブラウザで開く」「エンドポイントへ送る」のタブへ分けたもの。それぞれのタブにプリセットの一覧と、その種類のオプションを置く。「出力先」には固定の出力先と送るまでの間が残る。ほかのまとまりは #37 のまま。</p>
+    </header>
+
+    <div class="desk desk--single">
+
+      <!-- 場面: ブラウザで開く: 空の一覧 -->
+      <section class="specimen" data-scene-panel="browser-empty" aria-labelledby="h-browser-empty">
+        <h2 id="h-browser-empty">ブラウザで開く: 空の一覧</h2>
+        <div class="win settings settings--full">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <!-- まとまりの一覧: 出力先と種類ごとの 2 つのタブを切り替える。ほかは #37 のモックのまま -->
+            <nav class="settings__nav" aria-label="設定のまとまり（ブラウザで開く: 空の一覧）">
+              <ul>
+                <li><a href="#browser-empty-outputs">出力先</a></li><li><a href="#browser-empty-browser" aria-current="page">ブラウザで開く</a></li><li><a href="#browser-empty-endpoint">エンドポイントへ送る</a></li>
+                <li><a href="../../../../settings/37/a-standard/index.html">ホットキー</a></li><li><a href="../../../../settings/37/a-standard/index.html">録音</a></li><li><a href="../../../../settings/37/a-standard/index.html">文字起こし</a></li><li><a href="../../../../settings/37/a-standard/index.html">画面</a></li><li><a href="../../../../settings/37/a-standard/index.html">履歴とログ</a></li><li><a href="../../../../settings/37/a-standard/index.html">API</a></li>
+              </ul>
+            </nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（ブラウザで開く: 空の一覧）">
+              <fieldset id="browser-empty-outputs" data-group>
+                <legend>出力先</legend>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="browser-empty-o1"><input type="checkbox" role="switch" id="browser-empty-o1" name="outputs[paste_and_send].enabled" checked> <span>貼り付けて送信</span></label>
+                  <code class="key">outputs[paste_and_send]</code>
+                  <input type="text" class="hotkey" name="outputs[paste_and_send].hotkey" value="Ctrl+Alt+D" aria-label="貼り付けて送信で確定するホットキー">
+                </div>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="browser-empty-o2"><input type="checkbox" role="switch" id="browser-empty-o2" name="outputs[paste_only].enabled" checked> <span>貼り付けのみ</span></label>
+                  <code class="key">outputs[paste_only]</code>
+                  <input type="text" class="hotkey" name="outputs[paste_only].hotkey" value="Ctrl+Alt+V" aria-label="貼り付けのみで確定するホットキー">
+                </div>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="browser-empty-o3"><input type="checkbox" role="switch" id="browser-empty-o3" name="outputs[copy_only].enabled" checked> <span>コピーのみ</span></label>
+                  <code class="key">outputs[copy_only]</code>
+                  <input type="text" class="hotkey" name="outputs[copy_only].hotkey" value="Ctrl+Alt+C" aria-label="コピーのみで確定するホットキー">
+                </div>
+                <h3 class="subhead">送るまでの間</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="browser-empty-d1">貼り付けてから Enter を送るまでの秒数</label>
+                  <code class="key">outputs[paste_and_send].enter_delay_sec</code>
+                  <input type="number" id="browser-empty-d1" name="outputs[paste_and_send].enter_delay_sec" value="0.5" step="0.1" min="0">
+                  <p class="field-help">「貼り付けて送信」と、「ブラウザで開く」の Enter まで送るプリセットで使う。</p>
+                </div>
+              </fieldset>
+              <fieldset id="browser-empty-browser" data-group>
+                <legend>ブラウザで開く</legend>
+                <h3 class="subhead">カスタムプリセット</h3>
+                <!-- プリセットの一覧: app.js が足す・消す・並べ替えを受ける -->
+                <div id="browser-empty-browser-presets" data-presets data-reload="immediate">
+                  <div class="presets-empty" data-presets-empty><p>ブラウザで開くプリセットはまだありません。足すと、録音の画面の「カスタムプリセット」にボタンが出ます。</p></div>
+                  <ol class="presets" aria-label="ブラウザで開くのカスタムプリセット（上から録音の画面の並び）" data-presets-list hidden>
+
+                  </ol>
+                  <div class="presets-add"><button type="button" class="btn" data-add>プリセットを足す</button></div>
+                  <!-- ひな形: 「プリセットを足す」で一覧の末尾に写す -->
+                  <template data-preset-template="ol.presets"><li class="preset" data-item data-kind-box="__ID__">
+<div class="preset__head"><label class="switch" for="__ID__-shown"><input type="checkbox" role="switch" id="__ID__-shown" name="presets[__ID__].enabled" aria-label="録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="__ID__"></span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="プリセットを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="プリセットを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="プリセットを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="__ID__-title">タイトル</label><input type="text" class="wide" id="__ID__-title" data-title="__ID__" name="browser_presets[__ID__].title" value="" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="__ID__-url">URL</label><input type="text" inputmode="url" class="wide" id="__ID__-url" name="browser_presets[__ID__].url" value="" placeholder="https://"></div>
+<div class="preset__field"><span>貼り付けた後</span><label class="check" for="__ID__-enter"><input type="checkbox" id="__ID__-enter" name="browser_presets[__ID__].send_enter" checked> Enter まで送る</label></div>
+<div class="preset__field"><label for="__ID__-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="__ID__-hotkey" name="browser_presets[__ID__].hotkey" value="" placeholder="なし" aria-describedby="__ID__-hotkey-help"><p class="field-help" id="__ID__-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li></template>
+                </div>
+                <h3 class="subhead">オプション</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="browser-empty-bo1">ブラウザで開いてから貼り付けるまでの秒数</label>
+                  <!-- キーの置き場所はモジュール構成設計で決める。列だけを空けて入力を揃える -->
+                  <span class="key key--pending" aria-hidden="true"></span>
+                  <input type="number" id="browser-empty-bo1" name="browser_presets_open_delay_sec" value="3.0" step="0.5" min="0">
+                  <p class="field-help">貼り付けてから Enter を送るまでの秒数は「出力先」の値を使う。</p>
+                </div>
+              </fieldset>
+              <fieldset id="browser-empty-endpoint" data-group>
+                <legend>エンドポイントへ送る</legend>
+                <h3 class="subhead">カスタムプリセット</h3>
+                <!-- プリセットの一覧: app.js が足す・消す・並べ替えを受ける -->
+                <div id="browser-empty-endpoint-presets" data-presets data-reload="immediate">
+                  <div class="presets-empty" data-presets-empty><p>エンドポイントへ送るプリセットはまだありません。足すと、録音の画面の「カスタムプリセット」にボタンが出ます。</p></div>
+                  <ol class="presets" aria-label="エンドポイントへ送るのカスタムプリセット（上から録音の画面の並び）" data-presets-list hidden>
+
+                  </ol>
+                  <div class="presets-add"><button type="button" class="btn" data-add>プリセットを足す</button></div>
+                  <!-- ひな形: 「プリセットを足す」で一覧の末尾に写す -->
+                  <template data-preset-template="ol.presets"><li class="preset" data-item data-kind-box="__ID__">
+<div class="preset__head"><label class="switch" for="__ID__-shown"><input type="checkbox" role="switch" id="__ID__-shown" name="presets[__ID__].enabled" aria-label="録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="__ID__"></span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="プリセットを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="プリセットを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="プリセットを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="__ID__-title">タイトル</label><input type="text" class="wide" id="__ID__-title" data-title="__ID__" name="endpoint_presets[__ID__].title" value="" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="__ID__-url">URL</label><input type="text" inputmode="url" class="wide" id="__ID__-url" name="endpoint_presets[__ID__].url" value="" placeholder="https://"></div>
+<div class="preset__field"><label for="__ID__-auth">Authorization</label><input type="password" class="wide" id="__ID__-auth" name="endpoint_presets[__ID__].authorization" value="" autocomplete="off" aria-describedby="__ID__-auth-help"><p class="field-help" id="__ID__-auth-help">空なら付けずに送る。</p></div>
+<div class="preset__field"><label for="__ID__-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="__ID__-hotkey" name="endpoint_presets[__ID__].hotkey" value="" placeholder="なし" aria-describedby="__ID__-hotkey-help"><p class="field-help" id="__ID__-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li></template>
+                </div>
+                <h3 class="subhead">オプション</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="browser-empty-eo1">送るときのタイムアウトの秒数</label>
+                  <span class="key key--pending" aria-hidden="true"></span>
+                  <input type="number" id="browser-empty-eo1" name="endpoint_presets_timeout_sec" value="1.5" step="0.5" min="0.5">
+                  <p class="field-help">この秒数で届かなければ、送り直さずにトレイで知らせる。</p>
+                </div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <div class="settings__actions">
+              <a class="btn" href="../../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn btn--primary" href="../../../../tray/37/a-standard/index.html">保存</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">「ブラウザで開く」のタブを開いたところ。プリセットは最初は空。「プリセットを足す」を押すと 1 件足され、タイトルの欄へフォーカスが移る。左のメニューで「出力先」「エンドポイントへ送る」へ切り替えられる。</p>
+      </section>
+
+      <!-- 場面: ブラウザで開く: 登録した -->
+      <section class="specimen" data-scene-panel="browser-filled" aria-labelledby="h-browser-filled">
+        <h2 id="h-browser-filled">ブラウザで開く: 登録した</h2>
+        <div class="win settings settings--full">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <!-- まとまりの一覧: 出力先と種類ごとの 2 つのタブを切り替える。ほかは #37 のモックのまま -->
+            <nav class="settings__nav" aria-label="設定のまとまり（ブラウザで開く: 登録した）">
+              <ul>
+                <li><a href="#browser-filled-outputs">出力先</a></li><li><a href="#browser-filled-browser" aria-current="page">ブラウザで開く</a></li><li><a href="#browser-filled-endpoint">エンドポイントへ送る</a></li>
+                <li><a href="../../../../settings/37/a-standard/index.html">ホットキー</a></li><li><a href="../../../../settings/37/a-standard/index.html">録音</a></li><li><a href="../../../../settings/37/a-standard/index.html">文字起こし</a></li><li><a href="../../../../settings/37/a-standard/index.html">画面</a></li><li><a href="../../../../settings/37/a-standard/index.html">履歴とログ</a></li><li><a href="../../../../settings/37/a-standard/index.html">API</a></li>
+              </ul>
+            </nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（ブラウザで開く: 登録した）">
+              <fieldset id="browser-filled-outputs" data-group>
+                <legend>出力先</legend>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="browser-filled-o1"><input type="checkbox" role="switch" id="browser-filled-o1" name="outputs[paste_and_send].enabled" checked> <span>貼り付けて送信</span></label>
+                  <code class="key">outputs[paste_and_send]</code>
+                  <input type="text" class="hotkey" name="outputs[paste_and_send].hotkey" value="Ctrl+Alt+D" aria-label="貼り付けて送信で確定するホットキー">
+                </div>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="browser-filled-o2"><input type="checkbox" role="switch" id="browser-filled-o2" name="outputs[paste_only].enabled" checked> <span>貼り付けのみ</span></label>
+                  <code class="key">outputs[paste_only]</code>
+                  <input type="text" class="hotkey" name="outputs[paste_only].hotkey" value="Ctrl+Alt+V" aria-label="貼り付けのみで確定するホットキー">
+                </div>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="browser-filled-o3"><input type="checkbox" role="switch" id="browser-filled-o3" name="outputs[copy_only].enabled" checked> <span>コピーのみ</span></label>
+                  <code class="key">outputs[copy_only]</code>
+                  <input type="text" class="hotkey" name="outputs[copy_only].hotkey" value="Ctrl+Alt+C" aria-label="コピーのみで確定するホットキー">
+                </div>
+                <h3 class="subhead">送るまでの間</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="browser-filled-d1">貼り付けてから Enter を送るまでの秒数</label>
+                  <code class="key">outputs[paste_and_send].enter_delay_sec</code>
+                  <input type="number" id="browser-filled-d1" name="outputs[paste_and_send].enter_delay_sec" value="0.5" step="0.1" min="0">
+                  <p class="field-help">「貼り付けて送信」と、「ブラウザで開く」の Enter まで送るプリセットで使う。</p>
+                </div>
+              </fieldset>
+              <fieldset id="browser-filled-browser" data-group>
+                <legend>ブラウザで開く</legend>
+                <h3 class="subhead">カスタムプリセット</h3>
+                <!-- プリセットの一覧: app.js が足す・消す・並べ替えを受ける -->
+                <div id="browser-filled-browser-presets" data-presets data-reload="immediate">
+                  <div class="presets-empty" data-presets-empty hidden><p>ブラウザで開くプリセットはまだありません。足すと、録音の画面の「カスタムプリセット」にボタンが出ます。</p></div>
+                  <ol class="presets" aria-label="ブラウザで開くのカスタムプリセット（上から録音の画面の並び）" data-presets-list>
+<li class="preset" data-item data-kind-box="browser-filled-b1">
+<div class="preset__head"><label class="switch" for="browser-filled-b1-shown"><input type="checkbox" role="switch" id="browser-filled-b1-shown" name="presets[1].enabled" aria-label="ChatGPTを録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="browser-filled-b1">ChatGPT</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="ChatGPTを上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="ChatGPTを下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="ChatGPTを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="browser-filled-b1-title">タイトル</label><input type="text" class="wide" id="browser-filled-b1-title" data-title="browser-filled-b1" name="browser_presets[1].title" value="ChatGPT" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="browser-filled-b1-url">URL</label><input type="text" inputmode="url" class="wide" id="browser-filled-b1-url" name="browser_presets[1].url" value="https://chatgpt.com" placeholder="https://"></div>
+<div class="preset__field"><span>貼り付けた後</span><label class="check" for="browser-filled-b1-enter"><input type="checkbox" id="browser-filled-b1-enter" name="browser_presets[1].send_enter" checked> Enter まで送る</label></div>
+<div class="preset__field"><label for="browser-filled-b1-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="browser-filled-b1-hotkey" name="browser_presets[1].hotkey" value="Ctrl+Alt+1" placeholder="なし" aria-describedby="browser-filled-b1-hotkey-help"><p class="field-help" id="browser-filled-b1-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li>
+<li class="preset" data-item data-kind-box="browser-filled-b2">
+<div class="preset__head"><label class="switch" for="browser-filled-b2-shown"><input type="checkbox" role="switch" id="browser-filled-b2-shown" name="presets[2].enabled" aria-label="Google AIを録音の画面に出す"> <span>出す</span></label><span class="preset__name" data-title-view="browser-filled-b2">Google AI</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="Google AIを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="Google AIを下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="Google AIを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="browser-filled-b2-title">タイトル</label><input type="text" class="wide" id="browser-filled-b2-title" data-title="browser-filled-b2" name="browser_presets[2].title" value="Google AI" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="browser-filled-b2-url">URL</label><input type="text" inputmode="url" class="wide" id="browser-filled-b2-url" name="browser_presets[2].url" value="https://gemini.google.com/app" placeholder="https://"></div>
+<div class="preset__field"><span>貼り付けた後</span><label class="check" for="browser-filled-b2-enter"><input type="checkbox" id="browser-filled-b2-enter" name="browser_presets[2].send_enter" checked> Enter まで送る</label></div>
+<div class="preset__field"><label for="browser-filled-b2-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="browser-filled-b2-hotkey" name="browser_presets[2].hotkey" value="Ctrl+Alt+2" placeholder="なし" aria-describedby="browser-filled-b2-hotkey-help"><p class="field-help" id="browser-filled-b2-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li>
+<li class="preset" data-item data-kind-box="browser-filled-b3">
+<div class="preset__head"><label class="switch" for="browser-filled-b3-shown"><input type="checkbox" role="switch" id="browser-filled-b3-shown" name="presets[3].enabled" aria-label="Claudeを録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="browser-filled-b3">Claude</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="Claudeを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="Claudeを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="Claudeを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="browser-filled-b3-title">タイトル</label><input type="text" class="wide" id="browser-filled-b3-title" data-title="browser-filled-b3" name="browser_presets[3].title" value="Claude" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="browser-filled-b3-url">URL</label><input type="text" inputmode="url" class="wide" id="browser-filled-b3-url" name="browser_presets[3].url" value="https://claude.ai/new" placeholder="https://"></div>
+<div class="preset__field"><span>貼り付けた後</span><label class="check" for="browser-filled-b3-enter"><input type="checkbox" id="browser-filled-b3-enter" name="browser_presets[3].send_enter" checked> Enter まで送る</label></div>
+<div class="preset__field"><label for="browser-filled-b3-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="browser-filled-b3-hotkey" name="browser_presets[3].hotkey" value="Ctrl+Alt+3" placeholder="なし" aria-describedby="browser-filled-b3-hotkey-help"><p class="field-help" id="browser-filled-b3-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li>
+                  </ol>
+                  <div class="presets-add"><button type="button" class="btn" data-add>プリセットを足す</button></div>
+                  <!-- ひな形: 「プリセットを足す」で一覧の末尾に写す -->
+                  <template data-preset-template="ol.presets"><li class="preset" data-item data-kind-box="__ID__">
+<div class="preset__head"><label class="switch" for="__ID__-shown"><input type="checkbox" role="switch" id="__ID__-shown" name="presets[__ID__].enabled" aria-label="録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="__ID__"></span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="プリセットを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="プリセットを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="プリセットを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="__ID__-title">タイトル</label><input type="text" class="wide" id="__ID__-title" data-title="__ID__" name="browser_presets[__ID__].title" value="" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="__ID__-url">URL</label><input type="text" inputmode="url" class="wide" id="__ID__-url" name="browser_presets[__ID__].url" value="" placeholder="https://"></div>
+<div class="preset__field"><span>貼り付けた後</span><label class="check" for="__ID__-enter"><input type="checkbox" id="__ID__-enter" name="browser_presets[__ID__].send_enter" checked> Enter まで送る</label></div>
+<div class="preset__field"><label for="__ID__-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="__ID__-hotkey" name="browser_presets[__ID__].hotkey" value="" placeholder="なし" aria-describedby="__ID__-hotkey-help"><p class="field-help" id="__ID__-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li></template>
+                </div>
+                <h3 class="subhead">オプション</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="browser-filled-bo1">ブラウザで開いてから貼り付けるまでの秒数</label>
+                  <!-- キーの置き場所はモジュール構成設計で決める。列だけを空けて入力を揃える -->
+                  <span class="key key--pending" aria-hidden="true"></span>
+                  <input type="number" id="browser-filled-bo1" name="browser_presets_open_delay_sec" value="3.0" step="0.5" min="0">
+                  <p class="field-help">貼り付けてから Enter を送るまでの秒数は「出力先」の値を使う。</p>
+                </div>
+              </fieldset>
+              <fieldset id="browser-filled-endpoint" data-group>
+                <legend>エンドポイントへ送る</legend>
+                <h3 class="subhead">カスタムプリセット</h3>
+                <!-- プリセットの一覧: app.js が足す・消す・並べ替えを受ける -->
+                <div id="browser-filled-endpoint-presets" data-presets data-reload="immediate">
+                  <div class="presets-empty" data-presets-empty hidden><p>エンドポイントへ送るプリセットはまだありません。足すと、録音の画面の「カスタムプリセット」にボタンが出ます。</p></div>
+                  <ol class="presets" aria-label="エンドポイントへ送るのカスタムプリセット（上から録音の画面の並び）" data-presets-list>
+<li class="preset" data-item data-kind-box="browser-filled-e1">
+<div class="preset__head"><label class="switch" for="browser-filled-e1-shown"><input type="checkbox" role="switch" id="browser-filled-e1-shown" name="presets[1].enabled" aria-label="議事録へ送るを録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="browser-filled-e1">議事録へ送る</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="議事録へ送るを上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="議事録へ送るを下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="議事録へ送るを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="browser-filled-e1-title">タイトル</label><input type="text" class="wide" id="browser-filled-e1-title" data-title="browser-filled-e1" name="endpoint_presets[1].title" value="議事録へ送る" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="browser-filled-e1-url">URL</label><input type="text" inputmode="url" class="wide" id="browser-filled-e1-url" name="endpoint_presets[1].url" value="https://notes.example.com/api/voice" placeholder="https://"></div>
+<div class="preset__field"><label for="browser-filled-e1-auth">Authorization</label><input type="password" class="wide" id="browser-filled-e1-auth" name="endpoint_presets[1].authorization" value="Bearer sk-example-0000" autocomplete="off" aria-describedby="browser-filled-e1-auth-help"><p class="field-help" id="browser-filled-e1-auth-help">空なら付けずに送る。</p></div>
+<div class="preset__field"><label for="browser-filled-e1-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="browser-filled-e1-hotkey" name="endpoint_presets[1].hotkey" value="Ctrl+Alt+4" placeholder="なし" aria-describedby="browser-filled-e1-hotkey-help"><p class="field-help" id="browser-filled-e1-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li>
+<li class="preset" data-item data-kind-box="browser-filled-e2">
+<div class="preset__head"><label class="switch" for="browser-filled-e2-shown"><input type="checkbox" role="switch" id="browser-filled-e2-shown" name="presets[2].enabled" aria-label="社内チャットの下書きを録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="browser-filled-e2">社内チャットの下書き</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="社内チャットの下書きを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="社内チャットの下書きを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="社内チャットの下書きを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="browser-filled-e2-title">タイトル</label><input type="text" class="wide" id="browser-filled-e2-title" data-title="browser-filled-e2" name="endpoint_presets[2].title" value="社内チャットの下書き" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="browser-filled-e2-url">URL</label><input type="text" inputmode="url" class="wide" id="browser-filled-e2-url" name="endpoint_presets[2].url" value="https://chat.example.com/hooks/draft" placeholder="https://"></div>
+<div class="preset__field"><label for="browser-filled-e2-auth">Authorization</label><input type="password" class="wide" id="browser-filled-e2-auth" name="endpoint_presets[2].authorization" value="" autocomplete="off" aria-describedby="browser-filled-e2-auth-help"><p class="field-help" id="browser-filled-e2-auth-help">空なら付けずに送る。</p></div>
+<div class="preset__field"><label for="browser-filled-e2-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="browser-filled-e2-hotkey" name="endpoint_presets[2].hotkey" value="" placeholder="なし" aria-describedby="browser-filled-e2-hotkey-help"><p class="field-help" id="browser-filled-e2-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li>
+                  </ol>
+                  <div class="presets-add"><button type="button" class="btn" data-add>プリセットを足す</button></div>
+                  <!-- ひな形: 「プリセットを足す」で一覧の末尾に写す -->
+                  <template data-preset-template="ol.presets"><li class="preset" data-item data-kind-box="__ID__">
+<div class="preset__head"><label class="switch" for="__ID__-shown"><input type="checkbox" role="switch" id="__ID__-shown" name="presets[__ID__].enabled" aria-label="録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="__ID__"></span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="プリセットを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="プリセットを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="プリセットを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="__ID__-title">タイトル</label><input type="text" class="wide" id="__ID__-title" data-title="__ID__" name="endpoint_presets[__ID__].title" value="" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="__ID__-url">URL</label><input type="text" inputmode="url" class="wide" id="__ID__-url" name="endpoint_presets[__ID__].url" value="" placeholder="https://"></div>
+<div class="preset__field"><label for="__ID__-auth">Authorization</label><input type="password" class="wide" id="__ID__-auth" name="endpoint_presets[__ID__].authorization" value="" autocomplete="off" aria-describedby="__ID__-auth-help"><p class="field-help" id="__ID__-auth-help">空なら付けずに送る。</p></div>
+<div class="preset__field"><label for="__ID__-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="__ID__-hotkey" name="endpoint_presets[__ID__].hotkey" value="" placeholder="なし" aria-describedby="__ID__-hotkey-help"><p class="field-help" id="__ID__-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li></template>
+                </div>
+                <h3 class="subhead">オプション</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="browser-filled-eo1">送るときのタイムアウトの秒数</label>
+                  <span class="key key--pending" aria-hidden="true"></span>
+                  <input type="number" id="browser-filled-eo1" name="endpoint_presets_timeout_sec" value="1.5" step="0.5" min="0.5">
+                  <p class="field-help">この秒数で届かなければ、送り直さずにトレイで知らせる。</p>
+                </div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <div class="settings__actions">
+              <a class="btn" href="../../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn btn--primary" href="../../../../tray/37/a-standard/index.html">保存</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">今の AI チャットの送り先（ChatGPT・Google AI・Claude）は、このタブのプリセットに読み替えて出る。上から順に録音の画面のボタンに並ぶ。オプションはこの種類の全てのプリセットで使う。</p>
+      </section>
+
+      <!-- 場面: ブラウザで開く: 確かめに通らない -->
+      <section class="specimen" data-scene-panel="browser-error" aria-labelledby="h-browser-error">
+        <h2 id="h-browser-error">ブラウザで開く: 確かめに通らない</h2>
+        <div class="win settings settings--full">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <!-- まとまりの一覧: 出力先と種類ごとの 2 つのタブを切り替える。ほかは #37 のモックのまま -->
+            <nav class="settings__nav" aria-label="設定のまとまり（ブラウザで開く: 確かめに通らない）">
+              <ul>
+                <li><a href="#browser-error-outputs">出力先</a></li><li><a href="#browser-error-browser" aria-current="page">ブラウザで開く</a></li><li><a href="#browser-error-endpoint">エンドポイントへ送る</a></li>
+                <li><a href="../../../../settings/37/a-standard/index.html">ホットキー</a></li><li><a href="../../../../settings/37/a-standard/index.html">録音</a></li><li><a href="../../../../settings/37/a-standard/index.html">文字起こし</a></li><li><a href="../../../../settings/37/a-standard/index.html">画面</a></li><li><a href="../../../../settings/37/a-standard/index.html">履歴とログ</a></li><li><a href="../../../../settings/37/a-standard/index.html">API</a></li>
+              </ul>
+            </nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（ブラウザで開く: 確かめに通らない）">
+              <div class="error-summary" role="alert" tabindex="-1">
+                保存できませんでした。3 件の欄を直してください。
+                <ul>
+                  <li><a href="#browser-error-b2-title">プリセット 2 件目のタイトル: タイトルを入れてください</a></li>
+                  <li><a href="#browser-error-b2-hotkey">プリセット 2 件目の確定のホットキー: プリセット「ChatGPT」と同じキーです</a></li>
+                  <li><a href="#browser-error-b3-url">プリセット「Claude」の URL: http:// か https:// で始まる URL を入れてください</a></li>
+                </ul>
+              </div>
+              <fieldset id="browser-error-outputs" data-group>
+                <legend>出力先</legend>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="browser-error-o1"><input type="checkbox" role="switch" id="browser-error-o1" name="outputs[paste_and_send].enabled" checked> <span>貼り付けて送信</span></label>
+                  <code class="key">outputs[paste_and_send]</code>
+                  <input type="text" class="hotkey" name="outputs[paste_and_send].hotkey" value="Ctrl+Alt+D" aria-label="貼り付けて送信で確定するホットキー">
+                </div>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="browser-error-o2"><input type="checkbox" role="switch" id="browser-error-o2" name="outputs[paste_only].enabled" checked> <span>貼り付けのみ</span></label>
+                  <code class="key">outputs[paste_only]</code>
+                  <input type="text" class="hotkey" name="outputs[paste_only].hotkey" value="Ctrl+Alt+V" aria-label="貼り付けのみで確定するホットキー">
+                </div>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="browser-error-o3"><input type="checkbox" role="switch" id="browser-error-o3" name="outputs[copy_only].enabled" checked> <span>コピーのみ</span></label>
+                  <code class="key">outputs[copy_only]</code>
+                  <input type="text" class="hotkey" name="outputs[copy_only].hotkey" value="Ctrl+Alt+C" aria-label="コピーのみで確定するホットキー">
+                </div>
+                <h3 class="subhead">送るまでの間</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="browser-error-d1">貼り付けてから Enter を送るまでの秒数</label>
+                  <code class="key">outputs[paste_and_send].enter_delay_sec</code>
+                  <input type="number" id="browser-error-d1" name="outputs[paste_and_send].enter_delay_sec" value="0.5" step="0.1" min="0">
+                  <p class="field-help">「貼り付けて送信」と、「ブラウザで開く」の Enter まで送るプリセットで使う。</p>
+                </div>
+              </fieldset>
+              <fieldset id="browser-error-browser" data-group>
+                <legend>ブラウザで開く</legend>
+                <h3 class="subhead">カスタムプリセット</h3>
+                <!-- プリセットの一覧: app.js が足す・消す・並べ替えを受ける -->
+                <div id="browser-error-browser-presets" data-presets data-reload="immediate">
+                  <div class="presets-empty" data-presets-empty hidden><p>ブラウザで開くプリセットはまだありません。足すと、録音の画面の「カスタムプリセット」にボタンが出ます。</p></div>
+                  <ol class="presets" aria-label="ブラウザで開くのカスタムプリセット（上から録音の画面の並び）" data-presets-list>
+<li class="preset" data-item data-kind-box="browser-error-b1">
+<div class="preset__head"><label class="switch" for="browser-error-b1-shown"><input type="checkbox" role="switch" id="browser-error-b1-shown" name="presets[1].enabled" aria-label="ChatGPTを録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="browser-error-b1">ChatGPT</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="ChatGPTを上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="ChatGPTを下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="ChatGPTを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="browser-error-b1-title">タイトル</label><input type="text" class="wide" id="browser-error-b1-title" data-title="browser-error-b1" name="browser_presets[1].title" value="ChatGPT" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="browser-error-b1-url">URL</label><input type="text" inputmode="url" class="wide" id="browser-error-b1-url" name="browser_presets[1].url" value="https://chatgpt.com" placeholder="https://"></div>
+<div class="preset__field"><span>貼り付けた後</span><label class="check" for="browser-error-b1-enter"><input type="checkbox" id="browser-error-b1-enter" name="browser_presets[1].send_enter" checked> Enter まで送る</label></div>
+<div class="preset__field"><label for="browser-error-b1-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="browser-error-b1-hotkey" name="browser_presets[1].hotkey" value="Ctrl+Alt+1" placeholder="なし" aria-describedby="browser-error-b1-hotkey-help"><p class="field-help" id="browser-error-b1-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li>
+<li class="preset" data-item data-kind-box="browser-error-b2">
+<div class="preset__head"><label class="switch" for="browser-error-b2-shown"><input type="checkbox" role="switch" id="browser-error-b2-shown" name="presets[2].enabled" aria-label="録音の画面に出す"> <span>出す</span></label><span class="preset__name" data-title-view="browser-error-b2"></span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="プリセットを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="プリセットを下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="プリセットを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="browser-error-b2-title">タイトル</label><input type="text" class="wide" id="browser-error-b2-title" data-title="browser-error-b2" name="browser_presets[2].title" value="" placeholder="録音の画面のボタンに出す名前" aria-invalid="true" aria-describedby="browser-error-b2-title-err"><p class="field-error" id="browser-error-b2-title-err">タイトルを入れてください。</p></div>
+<div class="preset__field"><label for="browser-error-b2-url">URL</label><input type="text" inputmode="url" class="wide" id="browser-error-b2-url" name="browser_presets[2].url" value="https://gemini.google.com/app" placeholder="https://"></div>
+<div class="preset__field"><span>貼り付けた後</span><label class="check" for="browser-error-b2-enter"><input type="checkbox" id="browser-error-b2-enter" name="browser_presets[2].send_enter" checked> Enter まで送る</label></div>
+<div class="preset__field"><label for="browser-error-b2-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="browser-error-b2-hotkey" name="browser_presets[2].hotkey" value="Ctrl+Alt+1" placeholder="なし" aria-describedby="browser-error-b2-hotkey-help" aria-invalid="true" aria-describedby="browser-error-b2-hotkey-err"><p class="field-help" id="browser-error-b2-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p><p class="field-error" id="browser-error-b2-hotkey-err">プリセット「ChatGPT」と同じキーです。別のキーにしてください。</p></div>
+</li>
+<li class="preset" data-item data-kind-box="browser-error-b3">
+<div class="preset__head"><label class="switch" for="browser-error-b3-shown"><input type="checkbox" role="switch" id="browser-error-b3-shown" name="presets[3].enabled" aria-label="Claudeを録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="browser-error-b3">Claude</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="Claudeを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="Claudeを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="Claudeを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="browser-error-b3-title">タイトル</label><input type="text" class="wide" id="browser-error-b3-title" data-title="browser-error-b3" name="browser_presets[3].title" value="Claude" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="browser-error-b3-url">URL</label><input type="text" inputmode="url" class="wide" id="browser-error-b3-url" name="browser_presets[3].url" value="claude.ai/new" placeholder="https://" aria-invalid="true" aria-describedby="browser-error-b3-url-err"><p class="field-error" id="browser-error-b3-url-err">http:// か https:// で始まる URL を入れてください。</p></div>
+<div class="preset__field"><span>貼り付けた後</span><label class="check" for="browser-error-b3-enter"><input type="checkbox" id="browser-error-b3-enter" name="browser_presets[3].send_enter" checked> Enter まで送る</label></div>
+<div class="preset__field"><label for="browser-error-b3-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="browser-error-b3-hotkey" name="browser_presets[3].hotkey" value="Ctrl+Alt+3" placeholder="なし" aria-describedby="browser-error-b3-hotkey-help"><p class="field-help" id="browser-error-b3-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li>
+                  </ol>
+                  <div class="presets-add"><button type="button" class="btn" data-add>プリセットを足す</button></div>
+                  <!-- ひな形: 「プリセットを足す」で一覧の末尾に写す -->
+                  <template data-preset-template="ol.presets"><li class="preset" data-item data-kind-box="__ID__">
+<div class="preset__head"><label class="switch" for="__ID__-shown"><input type="checkbox" role="switch" id="__ID__-shown" name="presets[__ID__].enabled" aria-label="録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="__ID__"></span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="プリセットを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="プリセットを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="プリセットを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="__ID__-title">タイトル</label><input type="text" class="wide" id="__ID__-title" data-title="__ID__" name="browser_presets[__ID__].title" value="" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="__ID__-url">URL</label><input type="text" inputmode="url" class="wide" id="__ID__-url" name="browser_presets[__ID__].url" value="" placeholder="https://"></div>
+<div class="preset__field"><span>貼り付けた後</span><label class="check" for="__ID__-enter"><input type="checkbox" id="__ID__-enter" name="browser_presets[__ID__].send_enter" checked> Enter まで送る</label></div>
+<div class="preset__field"><label for="__ID__-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="__ID__-hotkey" name="browser_presets[__ID__].hotkey" value="" placeholder="なし" aria-describedby="__ID__-hotkey-help"><p class="field-help" id="__ID__-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li></template>
+                </div>
+                <h3 class="subhead">オプション</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="browser-error-bo1">ブラウザで開いてから貼り付けるまでの秒数</label>
+                  <!-- キーの置き場所はモジュール構成設計で決める。列だけを空けて入力を揃える -->
+                  <span class="key key--pending" aria-hidden="true"></span>
+                  <input type="number" id="browser-error-bo1" name="browser_presets_open_delay_sec" value="3.0" step="0.5" min="0">
+                  <p class="field-help">貼り付けてから Enter を送るまでの秒数は「出力先」の値を使う。</p>
+                </div>
+              </fieldset>
+              <fieldset id="browser-error-endpoint" data-group>
+                <legend>エンドポイントへ送る</legend>
+                <h3 class="subhead">カスタムプリセット</h3>
+                <!-- プリセットの一覧: app.js が足す・消す・並べ替えを受ける -->
+                <div id="browser-error-endpoint-presets" data-presets data-reload="immediate">
+                  <div class="presets-empty" data-presets-empty hidden><p>エンドポイントへ送るプリセットはまだありません。足すと、録音の画面の「カスタムプリセット」にボタンが出ます。</p></div>
+                  <ol class="presets" aria-label="エンドポイントへ送るのカスタムプリセット（上から録音の画面の並び）" data-presets-list>
+<li class="preset" data-item data-kind-box="browser-error-e1">
+<div class="preset__head"><label class="switch" for="browser-error-e1-shown"><input type="checkbox" role="switch" id="browser-error-e1-shown" name="presets[1].enabled" aria-label="議事録へ送るを録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="browser-error-e1">議事録へ送る</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="議事録へ送るを上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="議事録へ送るを下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="議事録へ送るを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="browser-error-e1-title">タイトル</label><input type="text" class="wide" id="browser-error-e1-title" data-title="browser-error-e1" name="endpoint_presets[1].title" value="議事録へ送る" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="browser-error-e1-url">URL</label><input type="text" inputmode="url" class="wide" id="browser-error-e1-url" name="endpoint_presets[1].url" value="https://notes.example.com/api/voice" placeholder="https://"></div>
+<div class="preset__field"><label for="browser-error-e1-auth">Authorization</label><input type="password" class="wide" id="browser-error-e1-auth" name="endpoint_presets[1].authorization" value="Bearer sk-example-0000" autocomplete="off" aria-describedby="browser-error-e1-auth-help"><p class="field-help" id="browser-error-e1-auth-help">空なら付けずに送る。</p></div>
+<div class="preset__field"><label for="browser-error-e1-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="browser-error-e1-hotkey" name="endpoint_presets[1].hotkey" value="Ctrl+Alt+4" placeholder="なし" aria-describedby="browser-error-e1-hotkey-help"><p class="field-help" id="browser-error-e1-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li>
+<li class="preset" data-item data-kind-box="browser-error-e2">
+<div class="preset__head"><label class="switch" for="browser-error-e2-shown"><input type="checkbox" role="switch" id="browser-error-e2-shown" name="presets[2].enabled" aria-label="社内チャットの下書きを録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="browser-error-e2">社内チャットの下書き</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="社内チャットの下書きを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="社内チャットの下書きを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="社内チャットの下書きを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="browser-error-e2-title">タイトル</label><input type="text" class="wide" id="browser-error-e2-title" data-title="browser-error-e2" name="endpoint_presets[2].title" value="社内チャットの下書き" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="browser-error-e2-url">URL</label><input type="text" inputmode="url" class="wide" id="browser-error-e2-url" name="endpoint_presets[2].url" value="https://chat.example.com/hooks/draft" placeholder="https://"></div>
+<div class="preset__field"><label for="browser-error-e2-auth">Authorization</label><input type="password" class="wide" id="browser-error-e2-auth" name="endpoint_presets[2].authorization" value="" autocomplete="off" aria-describedby="browser-error-e2-auth-help"><p class="field-help" id="browser-error-e2-auth-help">空なら付けずに送る。</p></div>
+<div class="preset__field"><label for="browser-error-e2-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="browser-error-e2-hotkey" name="endpoint_presets[2].hotkey" value="" placeholder="なし" aria-describedby="browser-error-e2-hotkey-help"><p class="field-help" id="browser-error-e2-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li>
+                  </ol>
+                  <div class="presets-add"><button type="button" class="btn" data-add>プリセットを足す</button></div>
+                  <!-- ひな形: 「プリセットを足す」で一覧の末尾に写す -->
+                  <template data-preset-template="ol.presets"><li class="preset" data-item data-kind-box="__ID__">
+<div class="preset__head"><label class="switch" for="__ID__-shown"><input type="checkbox" role="switch" id="__ID__-shown" name="presets[__ID__].enabled" aria-label="録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="__ID__"></span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="プリセットを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="プリセットを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="プリセットを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="__ID__-title">タイトル</label><input type="text" class="wide" id="__ID__-title" data-title="__ID__" name="endpoint_presets[__ID__].title" value="" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="__ID__-url">URL</label><input type="text" inputmode="url" class="wide" id="__ID__-url" name="endpoint_presets[__ID__].url" value="" placeholder="https://"></div>
+<div class="preset__field"><label for="__ID__-auth">Authorization</label><input type="password" class="wide" id="__ID__-auth" name="endpoint_presets[__ID__].authorization" value="" autocomplete="off" aria-describedby="__ID__-auth-help"><p class="field-help" id="__ID__-auth-help">空なら付けずに送る。</p></div>
+<div class="preset__field"><label for="__ID__-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="__ID__-hotkey" name="endpoint_presets[__ID__].hotkey" value="" placeholder="なし" aria-describedby="__ID__-hotkey-help"><p class="field-help" id="__ID__-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li></template>
+                </div>
+                <h3 class="subhead">オプション</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="browser-error-eo1">送るときのタイムアウトの秒数</label>
+                  <span class="key key--pending" aria-hidden="true"></span>
+                  <input type="number" id="browser-error-eo1" name="endpoint_presets_timeout_sec" value="1.5" step="0.5" min="0.5">
+                  <p class="field-help">この秒数で届かなければ、送り直さずにトレイで知らせる。</p>
+                </div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <div class="settings__actions">
+              <a class="btn" href="../../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn btn--primary" href="../../../../tray/37/a-standard/index.html">保存</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">保存を押した後に確かめる。タイトルが空・URL が http:// か https:// で始まらない・確定のホットキーがほかと重なるときに通らない。入れた値は消さない。</p>
+      </section>
+
+      <!-- 場面: エンドポイントへ送る: 空の一覧 -->
+      <section class="specimen" data-scene-panel="endpoint-empty" aria-labelledby="h-endpoint-empty">
+        <h2 id="h-endpoint-empty">エンドポイントへ送る: 空の一覧</h2>
+        <div class="win settings settings--full">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <!-- まとまりの一覧: 出力先と種類ごとの 2 つのタブを切り替える。ほかは #37 のモックのまま -->
+            <nav class="settings__nav" aria-label="設定のまとまり（エンドポイントへ送る: 空の一覧）">
+              <ul>
+                <li><a href="#endpoint-empty-outputs">出力先</a></li><li><a href="#endpoint-empty-browser">ブラウザで開く</a></li><li><a href="#endpoint-empty-endpoint" aria-current="page">エンドポイントへ送る</a></li>
+                <li><a href="../../../../settings/37/a-standard/index.html">ホットキー</a></li><li><a href="../../../../settings/37/a-standard/index.html">録音</a></li><li><a href="../../../../settings/37/a-standard/index.html">文字起こし</a></li><li><a href="../../../../settings/37/a-standard/index.html">画面</a></li><li><a href="../../../../settings/37/a-standard/index.html">履歴とログ</a></li><li><a href="../../../../settings/37/a-standard/index.html">API</a></li>
+              </ul>
+            </nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（エンドポイントへ送る: 空の一覧）">
+              <fieldset id="endpoint-empty-outputs" data-group>
+                <legend>出力先</legend>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="endpoint-empty-o1"><input type="checkbox" role="switch" id="endpoint-empty-o1" name="outputs[paste_and_send].enabled" checked> <span>貼り付けて送信</span></label>
+                  <code class="key">outputs[paste_and_send]</code>
+                  <input type="text" class="hotkey" name="outputs[paste_and_send].hotkey" value="Ctrl+Alt+D" aria-label="貼り付けて送信で確定するホットキー">
+                </div>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="endpoint-empty-o2"><input type="checkbox" role="switch" id="endpoint-empty-o2" name="outputs[paste_only].enabled" checked> <span>貼り付けのみ</span></label>
+                  <code class="key">outputs[paste_only]</code>
+                  <input type="text" class="hotkey" name="outputs[paste_only].hotkey" value="Ctrl+Alt+V" aria-label="貼り付けのみで確定するホットキー">
+                </div>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="endpoint-empty-o3"><input type="checkbox" role="switch" id="endpoint-empty-o3" name="outputs[copy_only].enabled" checked> <span>コピーのみ</span></label>
+                  <code class="key">outputs[copy_only]</code>
+                  <input type="text" class="hotkey" name="outputs[copy_only].hotkey" value="Ctrl+Alt+C" aria-label="コピーのみで確定するホットキー">
+                </div>
+                <h3 class="subhead">送るまでの間</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="endpoint-empty-d1">貼り付けてから Enter を送るまでの秒数</label>
+                  <code class="key">outputs[paste_and_send].enter_delay_sec</code>
+                  <input type="number" id="endpoint-empty-d1" name="outputs[paste_and_send].enter_delay_sec" value="0.5" step="0.1" min="0">
+                  <p class="field-help">「貼り付けて送信」と、「ブラウザで開く」の Enter まで送るプリセットで使う。</p>
+                </div>
+              </fieldset>
+              <fieldset id="endpoint-empty-browser" data-group>
+                <legend>ブラウザで開く</legend>
+                <h3 class="subhead">カスタムプリセット</h3>
+                <!-- プリセットの一覧: app.js が足す・消す・並べ替えを受ける -->
+                <div id="endpoint-empty-browser-presets" data-presets data-reload="immediate">
+                  <div class="presets-empty" data-presets-empty><p>ブラウザで開くプリセットはまだありません。足すと、録音の画面の「カスタムプリセット」にボタンが出ます。</p></div>
+                  <ol class="presets" aria-label="ブラウザで開くのカスタムプリセット（上から録音の画面の並び）" data-presets-list hidden>
+
+                  </ol>
+                  <div class="presets-add"><button type="button" class="btn" data-add>プリセットを足す</button></div>
+                  <!-- ひな形: 「プリセットを足す」で一覧の末尾に写す -->
+                  <template data-preset-template="ol.presets"><li class="preset" data-item data-kind-box="__ID__">
+<div class="preset__head"><label class="switch" for="__ID__-shown"><input type="checkbox" role="switch" id="__ID__-shown" name="presets[__ID__].enabled" aria-label="録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="__ID__"></span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="プリセットを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="プリセットを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="プリセットを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="__ID__-title">タイトル</label><input type="text" class="wide" id="__ID__-title" data-title="__ID__" name="browser_presets[__ID__].title" value="" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="__ID__-url">URL</label><input type="text" inputmode="url" class="wide" id="__ID__-url" name="browser_presets[__ID__].url" value="" placeholder="https://"></div>
+<div class="preset__field"><span>貼り付けた後</span><label class="check" for="__ID__-enter"><input type="checkbox" id="__ID__-enter" name="browser_presets[__ID__].send_enter" checked> Enter まで送る</label></div>
+<div class="preset__field"><label for="__ID__-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="__ID__-hotkey" name="browser_presets[__ID__].hotkey" value="" placeholder="なし" aria-describedby="__ID__-hotkey-help"><p class="field-help" id="__ID__-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li></template>
+                </div>
+                <h3 class="subhead">オプション</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="endpoint-empty-bo1">ブラウザで開いてから貼り付けるまでの秒数</label>
+                  <!-- キーの置き場所はモジュール構成設計で決める。列だけを空けて入力を揃える -->
+                  <span class="key key--pending" aria-hidden="true"></span>
+                  <input type="number" id="endpoint-empty-bo1" name="browser_presets_open_delay_sec" value="3.0" step="0.5" min="0">
+                  <p class="field-help">貼り付けてから Enter を送るまでの秒数は「出力先」の値を使う。</p>
+                </div>
+              </fieldset>
+              <fieldset id="endpoint-empty-endpoint" data-group>
+                <legend>エンドポイントへ送る</legend>
+                <h3 class="subhead">カスタムプリセット</h3>
+                <!-- プリセットの一覧: app.js が足す・消す・並べ替えを受ける -->
+                <div id="endpoint-empty-endpoint-presets" data-presets data-reload="immediate">
+                  <div class="presets-empty" data-presets-empty><p>エンドポイントへ送るプリセットはまだありません。足すと、録音の画面の「カスタムプリセット」にボタンが出ます。</p></div>
+                  <ol class="presets" aria-label="エンドポイントへ送るのカスタムプリセット（上から録音の画面の並び）" data-presets-list hidden>
+
+                  </ol>
+                  <div class="presets-add"><button type="button" class="btn" data-add>プリセットを足す</button></div>
+                  <!-- ひな形: 「プリセットを足す」で一覧の末尾に写す -->
+                  <template data-preset-template="ol.presets"><li class="preset" data-item data-kind-box="__ID__">
+<div class="preset__head"><label class="switch" for="__ID__-shown"><input type="checkbox" role="switch" id="__ID__-shown" name="presets[__ID__].enabled" aria-label="録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="__ID__"></span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="プリセットを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="プリセットを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="プリセットを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="__ID__-title">タイトル</label><input type="text" class="wide" id="__ID__-title" data-title="__ID__" name="endpoint_presets[__ID__].title" value="" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="__ID__-url">URL</label><input type="text" inputmode="url" class="wide" id="__ID__-url" name="endpoint_presets[__ID__].url" value="" placeholder="https://"></div>
+<div class="preset__field"><label for="__ID__-auth">Authorization</label><input type="password" class="wide" id="__ID__-auth" name="endpoint_presets[__ID__].authorization" value="" autocomplete="off" aria-describedby="__ID__-auth-help"><p class="field-help" id="__ID__-auth-help">空なら付けずに送る。</p></div>
+<div class="preset__field"><label for="__ID__-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="__ID__-hotkey" name="endpoint_presets[__ID__].hotkey" value="" placeholder="なし" aria-describedby="__ID__-hotkey-help"><p class="field-help" id="__ID__-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li></template>
+                </div>
+                <h3 class="subhead">オプション</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="endpoint-empty-eo1">送るときのタイムアウトの秒数</label>
+                  <span class="key key--pending" aria-hidden="true"></span>
+                  <input type="number" id="endpoint-empty-eo1" name="endpoint_presets_timeout_sec" value="1.5" step="0.5" min="0.5">
+                  <p class="field-help">この秒数で届かなければ、送り直さずにトレイで知らせる。</p>
+                </div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <div class="settings__actions">
+              <a class="btn" href="../../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn btn--primary" href="../../../../tray/37/a-standard/index.html">保存</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">「エンドポイントへ送る」のタブを開いたところ。プリセットは最初は空。</p>
+      </section>
+
+      <!-- 場面: エンドポイントへ送る: 登録した -->
+      <section class="specimen" data-scene-panel="endpoint-filled" aria-labelledby="h-endpoint-filled">
+        <h2 id="h-endpoint-filled">エンドポイントへ送る: 登録した</h2>
+        <div class="win settings settings--full">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <!-- まとまりの一覧: 出力先と種類ごとの 2 つのタブを切り替える。ほかは #37 のモックのまま -->
+            <nav class="settings__nav" aria-label="設定のまとまり（エンドポイントへ送る: 登録した）">
+              <ul>
+                <li><a href="#endpoint-filled-outputs">出力先</a></li><li><a href="#endpoint-filled-browser">ブラウザで開く</a></li><li><a href="#endpoint-filled-endpoint" aria-current="page">エンドポイントへ送る</a></li>
+                <li><a href="../../../../settings/37/a-standard/index.html">ホットキー</a></li><li><a href="../../../../settings/37/a-standard/index.html">録音</a></li><li><a href="../../../../settings/37/a-standard/index.html">文字起こし</a></li><li><a href="../../../../settings/37/a-standard/index.html">画面</a></li><li><a href="../../../../settings/37/a-standard/index.html">履歴とログ</a></li><li><a href="../../../../settings/37/a-standard/index.html">API</a></li>
+              </ul>
+            </nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（エンドポイントへ送る: 登録した）">
+              <fieldset id="endpoint-filled-outputs" data-group>
+                <legend>出力先</legend>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="endpoint-filled-o1"><input type="checkbox" role="switch" id="endpoint-filled-o1" name="outputs[paste_and_send].enabled" checked> <span>貼り付けて送信</span></label>
+                  <code class="key">outputs[paste_and_send]</code>
+                  <input type="text" class="hotkey" name="outputs[paste_and_send].hotkey" value="Ctrl+Alt+D" aria-label="貼り付けて送信で確定するホットキー">
+                </div>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="endpoint-filled-o2"><input type="checkbox" role="switch" id="endpoint-filled-o2" name="outputs[paste_only].enabled" checked> <span>貼り付けのみ</span></label>
+                  <code class="key">outputs[paste_only]</code>
+                  <input type="text" class="hotkey" name="outputs[paste_only].hotkey" value="Ctrl+Alt+V" aria-label="貼り付けのみで確定するホットキー">
+                </div>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="endpoint-filled-o3"><input type="checkbox" role="switch" id="endpoint-filled-o3" name="outputs[copy_only].enabled" checked> <span>コピーのみ</span></label>
+                  <code class="key">outputs[copy_only]</code>
+                  <input type="text" class="hotkey" name="outputs[copy_only].hotkey" value="Ctrl+Alt+C" aria-label="コピーのみで確定するホットキー">
+                </div>
+                <h3 class="subhead">送るまでの間</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="endpoint-filled-d1">貼り付けてから Enter を送るまでの秒数</label>
+                  <code class="key">outputs[paste_and_send].enter_delay_sec</code>
+                  <input type="number" id="endpoint-filled-d1" name="outputs[paste_and_send].enter_delay_sec" value="0.5" step="0.1" min="0">
+                  <p class="field-help">「貼り付けて送信」と、「ブラウザで開く」の Enter まで送るプリセットで使う。</p>
+                </div>
+              </fieldset>
+              <fieldset id="endpoint-filled-browser" data-group>
+                <legend>ブラウザで開く</legend>
+                <h3 class="subhead">カスタムプリセット</h3>
+                <!-- プリセットの一覧: app.js が足す・消す・並べ替えを受ける -->
+                <div id="endpoint-filled-browser-presets" data-presets data-reload="immediate">
+                  <div class="presets-empty" data-presets-empty hidden><p>ブラウザで開くプリセットはまだありません。足すと、録音の画面の「カスタムプリセット」にボタンが出ます。</p></div>
+                  <ol class="presets" aria-label="ブラウザで開くのカスタムプリセット（上から録音の画面の並び）" data-presets-list>
+<li class="preset" data-item data-kind-box="endpoint-filled-b1">
+<div class="preset__head"><label class="switch" for="endpoint-filled-b1-shown"><input type="checkbox" role="switch" id="endpoint-filled-b1-shown" name="presets[1].enabled" aria-label="ChatGPTを録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="endpoint-filled-b1">ChatGPT</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="ChatGPTを上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="ChatGPTを下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="ChatGPTを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="endpoint-filled-b1-title">タイトル</label><input type="text" class="wide" id="endpoint-filled-b1-title" data-title="endpoint-filled-b1" name="browser_presets[1].title" value="ChatGPT" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="endpoint-filled-b1-url">URL</label><input type="text" inputmode="url" class="wide" id="endpoint-filled-b1-url" name="browser_presets[1].url" value="https://chatgpt.com" placeholder="https://"></div>
+<div class="preset__field"><span>貼り付けた後</span><label class="check" for="endpoint-filled-b1-enter"><input type="checkbox" id="endpoint-filled-b1-enter" name="browser_presets[1].send_enter" checked> Enter まで送る</label></div>
+<div class="preset__field"><label for="endpoint-filled-b1-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="endpoint-filled-b1-hotkey" name="browser_presets[1].hotkey" value="Ctrl+Alt+1" placeholder="なし" aria-describedby="endpoint-filled-b1-hotkey-help"><p class="field-help" id="endpoint-filled-b1-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li>
+<li class="preset" data-item data-kind-box="endpoint-filled-b2">
+<div class="preset__head"><label class="switch" for="endpoint-filled-b2-shown"><input type="checkbox" role="switch" id="endpoint-filled-b2-shown" name="presets[2].enabled" aria-label="Google AIを録音の画面に出す"> <span>出す</span></label><span class="preset__name" data-title-view="endpoint-filled-b2">Google AI</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="Google AIを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="Google AIを下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="Google AIを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="endpoint-filled-b2-title">タイトル</label><input type="text" class="wide" id="endpoint-filled-b2-title" data-title="endpoint-filled-b2" name="browser_presets[2].title" value="Google AI" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="endpoint-filled-b2-url">URL</label><input type="text" inputmode="url" class="wide" id="endpoint-filled-b2-url" name="browser_presets[2].url" value="https://gemini.google.com/app" placeholder="https://"></div>
+<div class="preset__field"><span>貼り付けた後</span><label class="check" for="endpoint-filled-b2-enter"><input type="checkbox" id="endpoint-filled-b2-enter" name="browser_presets[2].send_enter" checked> Enter まで送る</label></div>
+<div class="preset__field"><label for="endpoint-filled-b2-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="endpoint-filled-b2-hotkey" name="browser_presets[2].hotkey" value="Ctrl+Alt+2" placeholder="なし" aria-describedby="endpoint-filled-b2-hotkey-help"><p class="field-help" id="endpoint-filled-b2-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li>
+<li class="preset" data-item data-kind-box="endpoint-filled-b3">
+<div class="preset__head"><label class="switch" for="endpoint-filled-b3-shown"><input type="checkbox" role="switch" id="endpoint-filled-b3-shown" name="presets[3].enabled" aria-label="Claudeを録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="endpoint-filled-b3">Claude</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="Claudeを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="Claudeを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="Claudeを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="endpoint-filled-b3-title">タイトル</label><input type="text" class="wide" id="endpoint-filled-b3-title" data-title="endpoint-filled-b3" name="browser_presets[3].title" value="Claude" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="endpoint-filled-b3-url">URL</label><input type="text" inputmode="url" class="wide" id="endpoint-filled-b3-url" name="browser_presets[3].url" value="https://claude.ai/new" placeholder="https://"></div>
+<div class="preset__field"><span>貼り付けた後</span><label class="check" for="endpoint-filled-b3-enter"><input type="checkbox" id="endpoint-filled-b3-enter" name="browser_presets[3].send_enter" checked> Enter まで送る</label></div>
+<div class="preset__field"><label for="endpoint-filled-b3-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="endpoint-filled-b3-hotkey" name="browser_presets[3].hotkey" value="Ctrl+Alt+3" placeholder="なし" aria-describedby="endpoint-filled-b3-hotkey-help"><p class="field-help" id="endpoint-filled-b3-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li>
+                  </ol>
+                  <div class="presets-add"><button type="button" class="btn" data-add>プリセットを足す</button></div>
+                  <!-- ひな形: 「プリセットを足す」で一覧の末尾に写す -->
+                  <template data-preset-template="ol.presets"><li class="preset" data-item data-kind-box="__ID__">
+<div class="preset__head"><label class="switch" for="__ID__-shown"><input type="checkbox" role="switch" id="__ID__-shown" name="presets[__ID__].enabled" aria-label="録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="__ID__"></span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="プリセットを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="プリセットを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="プリセットを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="__ID__-title">タイトル</label><input type="text" class="wide" id="__ID__-title" data-title="__ID__" name="browser_presets[__ID__].title" value="" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="__ID__-url">URL</label><input type="text" inputmode="url" class="wide" id="__ID__-url" name="browser_presets[__ID__].url" value="" placeholder="https://"></div>
+<div class="preset__field"><span>貼り付けた後</span><label class="check" for="__ID__-enter"><input type="checkbox" id="__ID__-enter" name="browser_presets[__ID__].send_enter" checked> Enter まで送る</label></div>
+<div class="preset__field"><label for="__ID__-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="__ID__-hotkey" name="browser_presets[__ID__].hotkey" value="" placeholder="なし" aria-describedby="__ID__-hotkey-help"><p class="field-help" id="__ID__-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li></template>
+                </div>
+                <h3 class="subhead">オプション</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="endpoint-filled-bo1">ブラウザで開いてから貼り付けるまでの秒数</label>
+                  <!-- キーの置き場所はモジュール構成設計で決める。列だけを空けて入力を揃える -->
+                  <span class="key key--pending" aria-hidden="true"></span>
+                  <input type="number" id="endpoint-filled-bo1" name="browser_presets_open_delay_sec" value="3.0" step="0.5" min="0">
+                  <p class="field-help">貼り付けてから Enter を送るまでの秒数は「出力先」の値を使う。</p>
+                </div>
+              </fieldset>
+              <fieldset id="endpoint-filled-endpoint" data-group>
+                <legend>エンドポイントへ送る</legend>
+                <h3 class="subhead">カスタムプリセット</h3>
+                <!-- プリセットの一覧: app.js が足す・消す・並べ替えを受ける -->
+                <div id="endpoint-filled-endpoint-presets" data-presets data-reload="immediate">
+                  <div class="presets-empty" data-presets-empty hidden><p>エンドポイントへ送るプリセットはまだありません。足すと、録音の画面の「カスタムプリセット」にボタンが出ます。</p></div>
+                  <ol class="presets" aria-label="エンドポイントへ送るのカスタムプリセット（上から録音の画面の並び）" data-presets-list>
+<li class="preset" data-item data-kind-box="endpoint-filled-e1">
+<div class="preset__head"><label class="switch" for="endpoint-filled-e1-shown"><input type="checkbox" role="switch" id="endpoint-filled-e1-shown" name="presets[1].enabled" aria-label="議事録へ送るを録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="endpoint-filled-e1">議事録へ送る</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="議事録へ送るを上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="議事録へ送るを下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="議事録へ送るを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="endpoint-filled-e1-title">タイトル</label><input type="text" class="wide" id="endpoint-filled-e1-title" data-title="endpoint-filled-e1" name="endpoint_presets[1].title" value="議事録へ送る" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="endpoint-filled-e1-url">URL</label><input type="text" inputmode="url" class="wide" id="endpoint-filled-e1-url" name="endpoint_presets[1].url" value="https://notes.example.com/api/voice" placeholder="https://"></div>
+<div class="preset__field"><label for="endpoint-filled-e1-auth">Authorization</label><input type="password" class="wide" id="endpoint-filled-e1-auth" name="endpoint_presets[1].authorization" value="Bearer sk-example-0000" autocomplete="off" aria-describedby="endpoint-filled-e1-auth-help"><p class="field-help" id="endpoint-filled-e1-auth-help">空なら付けずに送る。</p></div>
+<div class="preset__field"><label for="endpoint-filled-e1-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="endpoint-filled-e1-hotkey" name="endpoint_presets[1].hotkey" value="Ctrl+Alt+4" placeholder="なし" aria-describedby="endpoint-filled-e1-hotkey-help"><p class="field-help" id="endpoint-filled-e1-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li>
+<li class="preset" data-item data-kind-box="endpoint-filled-e2">
+<div class="preset__head"><label class="switch" for="endpoint-filled-e2-shown"><input type="checkbox" role="switch" id="endpoint-filled-e2-shown" name="presets[2].enabled" aria-label="社内チャットの下書きを録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="endpoint-filled-e2">社内チャットの下書き</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="社内チャットの下書きを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="社内チャットの下書きを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="社内チャットの下書きを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="endpoint-filled-e2-title">タイトル</label><input type="text" class="wide" id="endpoint-filled-e2-title" data-title="endpoint-filled-e2" name="endpoint_presets[2].title" value="社内チャットの下書き" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="endpoint-filled-e2-url">URL</label><input type="text" inputmode="url" class="wide" id="endpoint-filled-e2-url" name="endpoint_presets[2].url" value="https://chat.example.com/hooks/draft" placeholder="https://"></div>
+<div class="preset__field"><label for="endpoint-filled-e2-auth">Authorization</label><input type="password" class="wide" id="endpoint-filled-e2-auth" name="endpoint_presets[2].authorization" value="" autocomplete="off" aria-describedby="endpoint-filled-e2-auth-help"><p class="field-help" id="endpoint-filled-e2-auth-help">空なら付けずに送る。</p></div>
+<div class="preset__field"><label for="endpoint-filled-e2-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="endpoint-filled-e2-hotkey" name="endpoint_presets[2].hotkey" value="" placeholder="なし" aria-describedby="endpoint-filled-e2-hotkey-help"><p class="field-help" id="endpoint-filled-e2-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li>
+                  </ol>
+                  <div class="presets-add"><button type="button" class="btn" data-add>プリセットを足す</button></div>
+                  <!-- ひな形: 「プリセットを足す」で一覧の末尾に写す -->
+                  <template data-preset-template="ol.presets"><li class="preset" data-item data-kind-box="__ID__">
+<div class="preset__head"><label class="switch" for="__ID__-shown"><input type="checkbox" role="switch" id="__ID__-shown" name="presets[__ID__].enabled" aria-label="録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="__ID__"></span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="プリセットを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="プリセットを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="プリセットを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="__ID__-title">タイトル</label><input type="text" class="wide" id="__ID__-title" data-title="__ID__" name="endpoint_presets[__ID__].title" value="" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="__ID__-url">URL</label><input type="text" inputmode="url" class="wide" id="__ID__-url" name="endpoint_presets[__ID__].url" value="" placeholder="https://"></div>
+<div class="preset__field"><label for="__ID__-auth">Authorization</label><input type="password" class="wide" id="__ID__-auth" name="endpoint_presets[__ID__].authorization" value="" autocomplete="off" aria-describedby="__ID__-auth-help"><p class="field-help" id="__ID__-auth-help">空なら付けずに送る。</p></div>
+<div class="preset__field"><label for="__ID__-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="__ID__-hotkey" name="endpoint_presets[__ID__].hotkey" value="" placeholder="なし" aria-describedby="__ID__-hotkey-help"><p class="field-help" id="__ID__-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li></template>
+                </div>
+                <h3 class="subhead">オプション</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="endpoint-filled-eo1">送るときのタイムアウトの秒数</label>
+                  <span class="key key--pending" aria-hidden="true"></span>
+                  <input type="number" id="endpoint-filled-eo1" name="endpoint_presets_timeout_sec" value="1.5" step="0.5" min="0.5">
+                  <p class="field-help">この秒数で届かなければ、送り直さずにトレイで知らせる。</p>
+                </div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <div class="settings__actions">
+              <a class="btn" href="../../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn btn--primary" href="../../../../tray/37/a-standard/index.html">保存</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">1 件ごとに Authorization を持てる（伏せ字。空なら付けずに送る）。確定のホットキーは空にでき、空なら録音の画面のボタンだけで選ぶ。</p>
+      </section>
+
+      <!-- 場面: エンドポイントへ送る: 確かめに通らない -->
+      <section class="specimen" data-scene-panel="endpoint-error" aria-labelledby="h-endpoint-error">
+        <h2 id="h-endpoint-error">エンドポイントへ送る: 確かめに通らない</h2>
+        <div class="win settings settings--full">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <!-- まとまりの一覧: 出力先と種類ごとの 2 つのタブを切り替える。ほかは #37 のモックのまま -->
+            <nav class="settings__nav" aria-label="設定のまとまり（エンドポイントへ送る: 確かめに通らない）">
+              <ul>
+                <li><a href="#endpoint-error-outputs">出力先</a></li><li><a href="#endpoint-error-browser">ブラウザで開く</a></li><li><a href="#endpoint-error-endpoint" aria-current="page">エンドポイントへ送る</a></li>
+                <li><a href="../../../../settings/37/a-standard/index.html">ホットキー</a></li><li><a href="../../../../settings/37/a-standard/index.html">録音</a></li><li><a href="../../../../settings/37/a-standard/index.html">文字起こし</a></li><li><a href="../../../../settings/37/a-standard/index.html">画面</a></li><li><a href="../../../../settings/37/a-standard/index.html">履歴とログ</a></li><li><a href="../../../../settings/37/a-standard/index.html">API</a></li>
+              </ul>
+            </nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（エンドポイントへ送る: 確かめに通らない）">
+              <div class="error-summary" role="alert" tabindex="-1">
+                保存できませんでした。2 件の欄を直してください。
+                <ul>
+                  <li><a href="#endpoint-error-e1-url">プリセット「議事録へ送る」の URL: URL を入れてください</a></li>
+                  <li><a href="#endpoint-error-e2-hotkey">プリセット「社内チャットの下書き」の確定のホットキー: 「ブラウザで開く」のプリセット「Claude」と同じキーです</a></li>
+                </ul>
+              </div>
+              <fieldset id="endpoint-error-outputs" data-group>
+                <legend>出力先</legend>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="endpoint-error-o1"><input type="checkbox" role="switch" id="endpoint-error-o1" name="outputs[paste_and_send].enabled" checked> <span>貼り付けて送信</span></label>
+                  <code class="key">outputs[paste_and_send]</code>
+                  <input type="text" class="hotkey" name="outputs[paste_and_send].hotkey" value="Ctrl+Alt+D" aria-label="貼り付けて送信で確定するホットキー">
+                </div>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="endpoint-error-o2"><input type="checkbox" role="switch" id="endpoint-error-o2" name="outputs[paste_only].enabled" checked> <span>貼り付けのみ</span></label>
+                  <code class="key">outputs[paste_only]</code>
+                  <input type="text" class="hotkey" name="outputs[paste_only].hotkey" value="Ctrl+Alt+V" aria-label="貼り付けのみで確定するホットキー">
+                </div>
+                <div class="row row--switch" data-reload="immediate">
+                  <label class="switch" for="endpoint-error-o3"><input type="checkbox" role="switch" id="endpoint-error-o3" name="outputs[copy_only].enabled" checked> <span>コピーのみ</span></label>
+                  <code class="key">outputs[copy_only]</code>
+                  <input type="text" class="hotkey" name="outputs[copy_only].hotkey" value="Ctrl+Alt+C" aria-label="コピーのみで確定するホットキー">
+                </div>
+                <h3 class="subhead">送るまでの間</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="endpoint-error-d1">貼り付けてから Enter を送るまでの秒数</label>
+                  <code class="key">outputs[paste_and_send].enter_delay_sec</code>
+                  <input type="number" id="endpoint-error-d1" name="outputs[paste_and_send].enter_delay_sec" value="0.5" step="0.1" min="0">
+                  <p class="field-help">「貼り付けて送信」と、「ブラウザで開く」の Enter まで送るプリセットで使う。</p>
+                </div>
+              </fieldset>
+              <fieldset id="endpoint-error-browser" data-group>
+                <legend>ブラウザで開く</legend>
+                <h3 class="subhead">カスタムプリセット</h3>
+                <!-- プリセットの一覧: app.js が足す・消す・並べ替えを受ける -->
+                <div id="endpoint-error-browser-presets" data-presets data-reload="immediate">
+                  <div class="presets-empty" data-presets-empty hidden><p>ブラウザで開くプリセットはまだありません。足すと、録音の画面の「カスタムプリセット」にボタンが出ます。</p></div>
+                  <ol class="presets" aria-label="ブラウザで開くのカスタムプリセット（上から録音の画面の並び）" data-presets-list>
+<li class="preset" data-item data-kind-box="endpoint-error-b1">
+<div class="preset__head"><label class="switch" for="endpoint-error-b1-shown"><input type="checkbox" role="switch" id="endpoint-error-b1-shown" name="presets[1].enabled" aria-label="ChatGPTを録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="endpoint-error-b1">ChatGPT</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="ChatGPTを上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="ChatGPTを下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="ChatGPTを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="endpoint-error-b1-title">タイトル</label><input type="text" class="wide" id="endpoint-error-b1-title" data-title="endpoint-error-b1" name="browser_presets[1].title" value="ChatGPT" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="endpoint-error-b1-url">URL</label><input type="text" inputmode="url" class="wide" id="endpoint-error-b1-url" name="browser_presets[1].url" value="https://chatgpt.com" placeholder="https://"></div>
+<div class="preset__field"><span>貼り付けた後</span><label class="check" for="endpoint-error-b1-enter"><input type="checkbox" id="endpoint-error-b1-enter" name="browser_presets[1].send_enter" checked> Enter まで送る</label></div>
+<div class="preset__field"><label for="endpoint-error-b1-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="endpoint-error-b1-hotkey" name="browser_presets[1].hotkey" value="Ctrl+Alt+1" placeholder="なし" aria-describedby="endpoint-error-b1-hotkey-help"><p class="field-help" id="endpoint-error-b1-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li>
+<li class="preset" data-item data-kind-box="endpoint-error-b2">
+<div class="preset__head"><label class="switch" for="endpoint-error-b2-shown"><input type="checkbox" role="switch" id="endpoint-error-b2-shown" name="presets[2].enabled" aria-label="Google AIを録音の画面に出す"> <span>出す</span></label><span class="preset__name" data-title-view="endpoint-error-b2">Google AI</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="Google AIを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="Google AIを下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="Google AIを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="endpoint-error-b2-title">タイトル</label><input type="text" class="wide" id="endpoint-error-b2-title" data-title="endpoint-error-b2" name="browser_presets[2].title" value="Google AI" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="endpoint-error-b2-url">URL</label><input type="text" inputmode="url" class="wide" id="endpoint-error-b2-url" name="browser_presets[2].url" value="https://gemini.google.com/app" placeholder="https://"></div>
+<div class="preset__field"><span>貼り付けた後</span><label class="check" for="endpoint-error-b2-enter"><input type="checkbox" id="endpoint-error-b2-enter" name="browser_presets[2].send_enter" checked> Enter まで送る</label></div>
+<div class="preset__field"><label for="endpoint-error-b2-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="endpoint-error-b2-hotkey" name="browser_presets[2].hotkey" value="Ctrl+Alt+2" placeholder="なし" aria-describedby="endpoint-error-b2-hotkey-help"><p class="field-help" id="endpoint-error-b2-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li>
+<li class="preset" data-item data-kind-box="endpoint-error-b3">
+<div class="preset__head"><label class="switch" for="endpoint-error-b3-shown"><input type="checkbox" role="switch" id="endpoint-error-b3-shown" name="presets[3].enabled" aria-label="Claudeを録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="endpoint-error-b3">Claude</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="Claudeを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="Claudeを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="Claudeを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="endpoint-error-b3-title">タイトル</label><input type="text" class="wide" id="endpoint-error-b3-title" data-title="endpoint-error-b3" name="browser_presets[3].title" value="Claude" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="endpoint-error-b3-url">URL</label><input type="text" inputmode="url" class="wide" id="endpoint-error-b3-url" name="browser_presets[3].url" value="https://claude.ai/new" placeholder="https://"></div>
+<div class="preset__field"><span>貼り付けた後</span><label class="check" for="endpoint-error-b3-enter"><input type="checkbox" id="endpoint-error-b3-enter" name="browser_presets[3].send_enter" checked> Enter まで送る</label></div>
+<div class="preset__field"><label for="endpoint-error-b3-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="endpoint-error-b3-hotkey" name="browser_presets[3].hotkey" value="Ctrl+Alt+3" placeholder="なし" aria-describedby="endpoint-error-b3-hotkey-help"><p class="field-help" id="endpoint-error-b3-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li>
+                  </ol>
+                  <div class="presets-add"><button type="button" class="btn" data-add>プリセットを足す</button></div>
+                  <!-- ひな形: 「プリセットを足す」で一覧の末尾に写す -->
+                  <template data-preset-template="ol.presets"><li class="preset" data-item data-kind-box="__ID__">
+<div class="preset__head"><label class="switch" for="__ID__-shown"><input type="checkbox" role="switch" id="__ID__-shown" name="presets[__ID__].enabled" aria-label="録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="__ID__"></span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="プリセットを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="プリセットを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="プリセットを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="__ID__-title">タイトル</label><input type="text" class="wide" id="__ID__-title" data-title="__ID__" name="browser_presets[__ID__].title" value="" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="__ID__-url">URL</label><input type="text" inputmode="url" class="wide" id="__ID__-url" name="browser_presets[__ID__].url" value="" placeholder="https://"></div>
+<div class="preset__field"><span>貼り付けた後</span><label class="check" for="__ID__-enter"><input type="checkbox" id="__ID__-enter" name="browser_presets[__ID__].send_enter" checked> Enter まで送る</label></div>
+<div class="preset__field"><label for="__ID__-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="__ID__-hotkey" name="browser_presets[__ID__].hotkey" value="" placeholder="なし" aria-describedby="__ID__-hotkey-help"><p class="field-help" id="__ID__-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li></template>
+                </div>
+                <h3 class="subhead">オプション</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="endpoint-error-bo1">ブラウザで開いてから貼り付けるまでの秒数</label>
+                  <!-- キーの置き場所はモジュール構成設計で決める。列だけを空けて入力を揃える -->
+                  <span class="key key--pending" aria-hidden="true"></span>
+                  <input type="number" id="endpoint-error-bo1" name="browser_presets_open_delay_sec" value="3.0" step="0.5" min="0">
+                  <p class="field-help">貼り付けてから Enter を送るまでの秒数は「出力先」の値を使う。</p>
+                </div>
+              </fieldset>
+              <fieldset id="endpoint-error-endpoint" data-group>
+                <legend>エンドポイントへ送る</legend>
+                <h3 class="subhead">カスタムプリセット</h3>
+                <!-- プリセットの一覧: app.js が足す・消す・並べ替えを受ける -->
+                <div id="endpoint-error-endpoint-presets" data-presets data-reload="immediate">
+                  <div class="presets-empty" data-presets-empty hidden><p>エンドポイントへ送るプリセットはまだありません。足すと、録音の画面の「カスタムプリセット」にボタンが出ます。</p></div>
+                  <ol class="presets" aria-label="エンドポイントへ送るのカスタムプリセット（上から録音の画面の並び）" data-presets-list>
+<li class="preset" data-item data-kind-box="endpoint-error-e1">
+<div class="preset__head"><label class="switch" for="endpoint-error-e1-shown"><input type="checkbox" role="switch" id="endpoint-error-e1-shown" name="presets[1].enabled" aria-label="議事録へ送るを録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="endpoint-error-e1">議事録へ送る</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="議事録へ送るを上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="議事録へ送るを下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="議事録へ送るを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="endpoint-error-e1-title">タイトル</label><input type="text" class="wide" id="endpoint-error-e1-title" data-title="endpoint-error-e1" name="endpoint_presets[1].title" value="議事録へ送る" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="endpoint-error-e1-url">URL</label><input type="text" inputmode="url" class="wide" id="endpoint-error-e1-url" name="endpoint_presets[1].url" value="" placeholder="https://" aria-invalid="true" aria-describedby="endpoint-error-e1-url-err"><p class="field-error" id="endpoint-error-e1-url-err">URL を入れてください（例: https://example.com/hook）。</p></div>
+<div class="preset__field"><label for="endpoint-error-e1-auth">Authorization</label><input type="password" class="wide" id="endpoint-error-e1-auth" name="endpoint_presets[1].authorization" value="Bearer sk-example-0000" autocomplete="off" aria-describedby="endpoint-error-e1-auth-help"><p class="field-help" id="endpoint-error-e1-auth-help">空なら付けずに送る。</p></div>
+<div class="preset__field"><label for="endpoint-error-e1-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="endpoint-error-e1-hotkey" name="endpoint_presets[1].hotkey" value="Ctrl+Alt+4" placeholder="なし" aria-describedby="endpoint-error-e1-hotkey-help"><p class="field-help" id="endpoint-error-e1-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li>
+<li class="preset" data-item data-kind-box="endpoint-error-e2">
+<div class="preset__head"><label class="switch" for="endpoint-error-e2-shown"><input type="checkbox" role="switch" id="endpoint-error-e2-shown" name="presets[2].enabled" aria-label="社内チャットの下書きを録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="endpoint-error-e2">社内チャットの下書き</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="社内チャットの下書きを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="社内チャットの下書きを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="社内チャットの下書きを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="endpoint-error-e2-title">タイトル</label><input type="text" class="wide" id="endpoint-error-e2-title" data-title="endpoint-error-e2" name="endpoint_presets[2].title" value="社内チャットの下書き" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="endpoint-error-e2-url">URL</label><input type="text" inputmode="url" class="wide" id="endpoint-error-e2-url" name="endpoint_presets[2].url" value="https://chat.example.com/hooks/draft" placeholder="https://"></div>
+<div class="preset__field"><label for="endpoint-error-e2-auth">Authorization</label><input type="password" class="wide" id="endpoint-error-e2-auth" name="endpoint_presets[2].authorization" value="" autocomplete="off" aria-describedby="endpoint-error-e2-auth-help"><p class="field-help" id="endpoint-error-e2-auth-help">空なら付けずに送る。</p></div>
+<div class="preset__field"><label for="endpoint-error-e2-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="endpoint-error-e2-hotkey" name="endpoint_presets[2].hotkey" value="Ctrl+Alt+3" placeholder="なし" aria-describedby="endpoint-error-e2-hotkey-help" aria-invalid="true" aria-describedby="endpoint-error-e2-hotkey-err"><p class="field-help" id="endpoint-error-e2-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p><p class="field-error" id="endpoint-error-e2-hotkey-err">「ブラウザで開く」のプリセット「Claude」と同じキーです。別のキーにしてください。</p></div>
+</li>
+                  </ol>
+                  <div class="presets-add"><button type="button" class="btn" data-add>プリセットを足す</button></div>
+                  <!-- ひな形: 「プリセットを足す」で一覧の末尾に写す -->
+                  <template data-preset-template="ol.presets"><li class="preset" data-item data-kind-box="__ID__">
+<div class="preset__head"><label class="switch" for="__ID__-shown"><input type="checkbox" role="switch" id="__ID__-shown" name="presets[__ID__].enabled" aria-label="録音の画面に出す" checked> <span>出す</span></label><span class="preset__name" data-title-view="__ID__"></span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="プリセットを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="プリセットを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="プリセットを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__field"><label for="__ID__-title">タイトル</label><input type="text" class="wide" id="__ID__-title" data-title="__ID__" name="endpoint_presets[__ID__].title" value="" placeholder="録音の画面のボタンに出す名前"></div>
+<div class="preset__field"><label for="__ID__-url">URL</label><input type="text" inputmode="url" class="wide" id="__ID__-url" name="endpoint_presets[__ID__].url" value="" placeholder="https://"></div>
+<div class="preset__field"><label for="__ID__-auth">Authorization</label><input type="password" class="wide" id="__ID__-auth" name="endpoint_presets[__ID__].authorization" value="" autocomplete="off" aria-describedby="__ID__-auth-help"><p class="field-help" id="__ID__-auth-help">空なら付けずに送る。</p></div>
+<div class="preset__field"><label for="__ID__-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="__ID__-hotkey" name="endpoint_presets[__ID__].hotkey" value="" placeholder="なし" aria-describedby="__ID__-hotkey-help"><p class="field-help" id="__ID__-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+</li></template>
+                </div>
+                <h3 class="subhead">オプション</h3>
+                <div class="row" data-reload="immediate">
+                  <label for="endpoint-error-eo1">送るときのタイムアウトの秒数</label>
+                  <span class="key key--pending" aria-hidden="true"></span>
+                  <input type="number" id="endpoint-error-eo1" name="endpoint_presets_timeout_sec" value="1.5" step="0.5" min="0.5">
+                  <p class="field-help">この秒数で届かなければ、送り直さずにトレイで知らせる。</p>
+                </div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <div class="settings__actions">
+              <a class="btn" href="../../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn btn--primary" href="../../../../tray/37/a-standard/index.html">保存</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">URL が空のときと、確定のホットキーがもう一方のタブのプリセットと重なるときにも通らない（重なりは種類をまたいで確かめる）。</p>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

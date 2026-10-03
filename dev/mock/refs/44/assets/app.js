@@ -1,4 +1,4 @@
-// PR 44 の画面モックの動き（場面の切り替え・プリセットの種類の切り替え・足す・消す・並べ替え・選ぶ・ホットキーの入力）
+// PR 44 の画面モックの動き（場面の切り替え・設定のまとまりの切り替え・プリセットの種類の切り替え・足す・消す・並べ替え・選ぶ・ホットキーの入力）
 
 /** モック専用の操作列のボタンで、data-scene が一致する場面だけを出す */
 const setupScenes = () => {
@@ -11,6 +11,29 @@ const setupScenes = () => {
   };
   buttons.forEach((b) => b.addEventListener("click", () => show(b.dataset.scene)));
   if (buttons.length > 0) show(buttons[0].dataset.scene);
+};
+
+/** 設定画面の左のメニューで、窓の中のまとまり（# で指すリンク）を切り替える */
+const setupGroups = () => {
+  document.querySelectorAll(".settings--full").forEach((win) => {
+    const links = [...win.querySelectorAll('.settings__nav a[href^="#"]')];
+    const groups = win.querySelectorAll("fieldset[data-group]");
+    if (groups.length === 0) return;
+    const select = (id) => {
+      links.forEach((a) => {
+        // 選んだまとまりのリンクにだけ aria-current を付ける
+        if (a.getAttribute("href") === `#${id}`) a.setAttribute("aria-current", "page");
+        else a.removeAttribute("aria-current");
+      });
+      groups.forEach((g) => { g.hidden = g.id !== id; });
+    };
+    links.forEach((a) => a.addEventListener("click", (e) => {
+      e.preventDefault();
+      select(a.getAttribute("href").slice(1));
+    }));
+    const current = win.querySelector('.settings__nav a[aria-current="page"]');
+    if (current) select(current.getAttribute("href").slice(1));
+  });
 };
 
 /** 種類のラジオに合わせて、その種類の欄だけを出す */
@@ -158,5 +181,6 @@ const setupHotkeys = () => {
 };
 
 setupScenes();
+setupGroups();
 setupPresets();
 setupHotkeys();

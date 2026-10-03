@@ -10,13 +10,16 @@ from __future__ import annotations
 
 import logging
 import signal
+import threading
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock, call
 
 import pytest
+from PySide6.QtCore import QTimer
 
 from tests.unit.log_helpers import read_log_records
 from tests.unit.voice_paste.ui.helpers import make_session
@@ -25,8 +28,18 @@ from voice_paste.shared.errors import StartupError
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QApplication
 
+    from tests.unit.voice_paste.runtime.helpers import BackgroundAcquire
     from voice_paste.features.outputs import OutputSpec
     from voice_paste.ui.controller import UiDeps
+
+ACQUIRE_WAIT_SEC = 5.0
+"""別のスレッドで排他を取れるかが決まるのを待つ上限。"""
+
+SHORT_ACQUIRE_TIMEOUT_SEC = 0.5
+"""放されているはずの排他を取るときの待つ上限。"""
+
+QUIT_LOOP_TIMEOUT_MS = 5000
+"""終了を頼まれてもイベントループが抜けないときに、諦めて抜ける上限（ミリ秒）。"""
 
 SIGNAL_NAMES = ("SIGINT", "SIGBREAK")
 DEFAULT_HOTKEYS = {
@@ -180,6 +193,72 @@ def exit_after_events(app: QApplication) -> int:
     return 0
 
 
+def timer_interval(timer_call: Any) -> float:
+    """RepeatingTimer を作った呼び出しから、呼ぶ間隔（秒）を取り出す。"""
+    if len(timer_call.args) > 1:
+        return timer_call.args[1]
+    return timer_call.kwargs["interval_sec"]
+
+
+def record_lock_release(monkeypatch: pytest.MonkeyPatch, wiring: Wiring) -> None:
+    """SingleInstanceLock.release が呼ばれたことを、止める操作の記録（wiring.calls）へ足す。本物の release も呼ぶ。"""
+    from voice_paste.runtime.single_instance import SingleInstanceLock
+
+    original_release = SingleInstanceLock.release
+
+    def _release(self: SingleInstanceLock) -> None:
+        """記録してから本物の release を呼ぶ。"""
+        wiring.calls.append("lock.release")
+        original_release(self)
+
+    monkeypatch.setattr(SingleInstanceLock, "release", _release)
+
+
+def spy_quit_thread(monkeypatch: pytest.MonkeyPatch, app: QApplication) -> list[bool]:
+    """Python から呼ばれた QApplication.quit が、メインスレッドで呼ばれたか（呼ばれた順）を控える。本物の quit も呼ぶ。"""
+    on_main_thread: list[bool] = []
+    original_quit = app.quit
+
+    def _quit() -> None:
+        """呼んだスレッドを控えてから本物の quit を呼ぶ。"""
+        on_main_thread.append(threading.current_thread() is threading.main_thread())
+        original_quit()
+
+    monkeypatch.setattr(app, "quit", _quit)
+    return on_main_thread
+
+
+def make_exec_loop_with_quit_request(
+    lock: MagicMock, gave_up: list[bool]
+) -> Callable[[QApplication], int]:
+    """別のスレッドから終了を頼まれてから、本物のイベントループを回す exec_loop を作る。
+
+    頼みが効かずにループが抜けないときのために、上限で諦めて抜け、gave_up に True を足す。
+    """
+
+    def _exec_loop(app: QApplication) -> int:
+        """on_quit_requested に渡された関数を別のスレッドから呼び、ループを回す。"""
+        on_quit = lock.on_quit_requested.call_args.args[0]
+        thread = threading.Thread(target=on_quit)
+        thread.start()
+        thread.join()
+
+        def _give_up() -> None:
+            """上限まで抜けなかったことを控えて、ループを抜ける。"""
+            gave_up.append(True)
+            app.quit()
+
+        give_up_timer = QTimer()
+        give_up_timer.setSingleShot(True)
+        give_up_timer.timeout.connect(_give_up)
+        give_up_timer.start(QUIT_LOOP_TIMEOUT_MS)
+        exit_code = app.exec()
+        give_up_timer.stop()
+        return exit_code
+
+    return _exec_loop
+
+
 # === parse_args ===
 
 
@@ -207,29 +286,50 @@ def test_parse_args_when_migrate_env() -> None:
 
 
 def test_parse_args_when_no_data_dir() -> None:
-    """データの置き場所が無ければ終わる（異常系）。"""
+    """データの置き場所が無ければ既定の置き場所にする（正常系）。"""
+    from voice_paste.main import parse_args
+
+    # 実行
+    args = parse_args([])
+
+    # 検証
+    assert args.data_dir is None
+    assert args.migrate_env is None
+
+
+def test_parse_args_when_unknown_argument() -> None:
+    """知らない引数なら終わる（異常系）。"""
     from voice_paste.main import parse_args
 
     # 実行・検証
     with pytest.raises(SystemExit) as exc_info:
-        parse_args([])
+        parse_args(["--unknown"])
     assert exc_info.value.code == 2
 
 
 # === main ===
 
 
-def test_main(data_dir: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplication) -> None:
+def test_main(
+    data_dir: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    qapp: QApplication,
+    background_acquire: Callable[[str, float], BackgroundAcquire],
+) -> None:
     """設定を読んで API・ホットキー・トレイを立て、イベントループが抜けたら片付けて 0 を返す（正常系）。"""
-    from voice_paste.main import main
+    from voice_paste.main import PURGE_INTERVAL_SEC, SESSION_LIMIT_CHECK_INTERVAL_SEC, main
+    from voice_paste.runtime.single_instance import instance_name
     from voice_paste.shared.settings import Settings, load_settings
 
     # 準備
     wiring = install_wiring(monkeypatch, qapp)
+    record_lock_release(monkeypatch, wiring)
     monkeypatch.delenv("VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS", raising=False)
 
     # 実行
     exit_code = main(["--data-dir", str(data_dir)], exec_loop=exit_after_events)
+    reacquired = background_acquire(instance_name(data_dir), SHORT_ACQUIRE_TIMEOUT_SEC)
+    reacquired_decided = reacquired.wait(ACQUIRE_WAIT_SEC)
 
     # 検証
     assert exit_code == 0
@@ -237,14 +337,22 @@ def test_main(data_dir: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplicatio
     assert (data_dir / "api_token").exists()
     assert set(wiring.hotkey.start.call_args.args[0]) == DEFAULT_HOTKEYS
     assert wiring.hotkey_class.call_args.kwargs == {"accept_injected": False}
+    assert [timer_interval(c) for c in wiring.timer_class.call_args_list] == [
+        SESSION_LIMIT_CHECK_INTERVAL_SEC,
+        PURGE_INTERVAL_SEC,
+    ]
     assert wiring.calls == [
         "hotkey.stop",
+        "timer.stop",
         "timer.stop",
         "runner.stop",
         "session_manager.close",
         "stop_engine",
         "tray.hide",
+        "lock.release",
     ]
+    assert reacquired_decided
+    assert reacquired.error is None
 
 
 def test_main_when_accept_injected_hotkeys(
@@ -413,18 +521,97 @@ def test_main_when_restart_requested(
     # 実行
     exit_code = main(argv, exec_loop=_request_restart)
 
-    # 検証
+    # 検証: 起動し直しは、API とエンジンを止めた後に 1 回だけ
     assert exit_code == 0
     wiring.relaunch.assert_called_once_with(argv)
+    assert wiring.calls.index("relaunch") > wiring.calls.index("runner.stop")
+    assert wiring.calls.index("relaunch") > wiring.calls.index("stop_engine")
+
+
+def test_main_when_no_data_dir(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplication
+) -> None:
+    """データの置き場所を渡さなければ既定の置き場所で起動する（正常系）。"""
+    import voice_paste.shared.constants as constants_module
+    from voice_paste.main import main
+    from voice_paste.shared.settings import Settings, load_settings
+
+    # 準備: platformdirs の置き場所を、一時フォルダの config・local へ向ける
+    config_dir = tmp_path / "config"
+    local_dir = tmp_path / "local"
+    install_wiring(monkeypatch, qapp)
+    monkeypatch.setattr(constants_module, "user_config_dir", lambda *_a, **_k: str(config_dir))
+    monkeypatch.setattr(constants_module, "user_data_dir", lambda *_a, **_k: str(local_dir))
+
+    # 実行
+    exit_code = main([], exec_loop=exit_after_events)
+
+    # 検証
+    assert exit_code == 0
+    assert load_settings(config_dir / "settings.toml") == Settings()
+    assert (local_dir / "api_token").exists()
+    assert list((local_dir / "log").glob("*.log"))
+
+
+def test_main_when_previous_instance_not_released(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplication
+) -> None:
+    """前のプロセスが排他を放さなければトレイを出さずに終わる（異常系）。"""
+    import voice_paste.main as main_module
+    from voice_paste.main import main
+
+    # 準備
+    wiring = install_wiring(monkeypatch, qapp)
+    monkeypatch.setattr(
+        main_module,
+        "acquire_single_instance",
+        MagicMock(side_effect=StartupError("前の常駐サービスが終わらない")),
+    )
+
+    # 実行
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=exit_after_events)
+
+    # 検証
+    assert exit_code == 1
+    assert len(read_log_records(data_dir / "log", "ERROR")) == 1
+    wiring.tray_class.assert_not_called()
+    wiring.build_handlers.assert_not_called()
+
+
+def test_main_when_quit_requested(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplication
+) -> None:
+    """後から起動したプロセスに頼まれたら片付けて排他を放す（正常系）。"""
+    import voice_paste.main as main_module
+    from voice_paste.main import main
+
+    # 準備: 排他は偽物（SingleInstanceLock の代わり）を返し、放したことを止める操作の記録へ足す
+    wiring = install_wiring(monkeypatch, qapp)
+    lock = MagicMock()
+    lock.release.side_effect = lambda: wiring.calls.append("lock.release")
+    monkeypatch.setattr(main_module, "acquire_single_instance", MagicMock(return_value=lock))
+    gave_up: list[bool] = []
+    quit_on_main_thread = spy_quit_thread(monkeypatch, qapp)
+    exec_loop = make_exec_loop_with_quit_request(lock, gave_up)
+
+    # 実行
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=exec_loop)
+
+    # 検証: 頼みでイベントループが抜け（上限で諦めていない）、止めた後に排他を 1 回だけ放し、起動し直さない
+    assert exit_code == 0
+    assert gave_up == []
+    assert False not in quit_on_main_thread
     assert wiring.calls == [
         "hotkey.stop",
+        "timer.stop",
         "timer.stop",
         "runner.stop",
         "session_manager.close",
         "stop_engine",
         "tray.hide",
-        "relaunch",
+        "lock.release",
     ]
+    wiring.relaunch.assert_not_called()
 
 
 # === start_local_session ===
@@ -814,3 +1001,69 @@ def test_apply_settings_when_hotkey_unavailable(tmp_path: Path) -> None:
         )
     assert settings_file.read_bytes() == settings_before
     assert store.get() == previous_settings
+
+
+# === purge_old_files ===
+
+TODAY = date(2026, 10, 3)
+"""purge_old_logs へ渡る今日として固定する日付。"""
+
+
+def _install_purges(monkeypatch: pytest.MonkeyPatch) -> tuple[MagicMock, MagicMock]:
+    """main が使う purge_old_logs・purge_expired と今日の日付を差し替え、2 つの偽物を返す。"""
+    import voice_paste.main as main_module
+
+    purge_old_logs = MagicMock()
+    purge_expired = MagicMock()
+    monkeypatch.setattr(main_module, "purge_old_logs", purge_old_logs)
+    monkeypatch.setattr(main_module, "purge_expired", purge_expired)
+    monkeypatch.setattr(main_module, "local_today", lambda: TODAY)
+    return purge_old_logs, purge_expired
+
+
+def test_purge_old_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """ログと履歴の両方を消す（正常系）。"""
+    from voice_paste.main import purge_old_files
+    from voice_paste.shared.constants import resolve_app_paths
+    from voice_paste.shared.settings import HistorySettings, LoggingSettings, Settings
+
+    # 準備
+    purge_old_logs, purge_expired = _install_purges(monkeypatch)
+    paths = resolve_app_paths(tmp_path)
+    settings = Settings(
+        history=HistorySettings(enabled=True, retention_days=1),
+        logging=LoggingSettings(retention_days=7),
+    )
+    active_session_ids = MagicMock(return_value={"session-1"})
+
+    # 実行
+    purge_old_files(settings, paths=paths, active_session_ids=active_session_ids)
+
+    # 検証
+    purge_old_logs.assert_called_once_with(paths.log_dir, 7, TODAY)
+    purge_expired.assert_called_once()
+    assert purge_expired.call_args.kwargs["retention_days"] == 1
+    assert purge_expired.call_args.kwargs["paths"] == paths
+    assert purge_expired.call_args.kwargs["active_session_ids"] is active_session_ids
+
+
+def test_purge_old_files_when_history_disabled(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """履歴を残さない設定ならログだけ消す（正常系）。"""
+    from voice_paste.main import purge_old_files
+    from voice_paste.shared.constants import resolve_app_paths
+    from voice_paste.shared.settings import HistorySettings, Settings
+
+    # 準備
+    purge_old_logs, purge_expired = _install_purges(monkeypatch)
+    settings = Settings(history=HistorySettings(enabled=False))
+
+    # 実行
+    purge_old_files(
+        settings, paths=resolve_app_paths(tmp_path), active_session_ids=MagicMock(return_value=set())
+    )
+
+    # 検証
+    purge_old_logs.assert_called_once()
+    purge_expired.assert_not_called()

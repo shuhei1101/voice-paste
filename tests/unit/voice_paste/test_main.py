@@ -266,37 +266,24 @@ def make_exec_loop_with_quit_request(
 
 def test_parse_args() -> None:
     """データの置き場所だけを読む（正常系）。"""
-    from voice_paste.main import parse_args
+    from voice_paste.main import CliArgs, parse_args
 
     # 実行
     args = parse_args(["--data-dir", "C:/tmp/vp"])
 
     # 検証
-    assert args.data_dir == Path("C:/tmp/vp")
-    assert args.migrate_env is None
-
-
-def test_parse_args_when_migrate_env() -> None:
-    """移す .env も読む（正常系）。"""
-    from voice_paste.main import parse_args
-
-    # 実行
-    args = parse_args(["--data-dir", "C:/tmp/vp", "--migrate-env", "C:/repo/.env"])
-
-    # 検証
-    assert args.migrate_env == Path("C:/repo/.env")
+    assert args == CliArgs(data_dir=Path("C:/tmp/vp"))
 
 
 def test_parse_args_when_no_data_dir() -> None:
     """データの置き場所が無ければ既定の置き場所にする（正常系）。"""
-    from voice_paste.main import parse_args
+    from voice_paste.main import CliArgs, parse_args
 
     # 実行
     args = parse_args([])
 
     # 検証
-    assert args.data_dir is None
-    assert args.migrate_env is None
+    assert args == CliArgs(data_dir=None)
 
 
 def test_parse_args_when_unknown_argument() -> None:
@@ -373,59 +360,6 @@ def test_main_when_accept_injected_hotkeys(
     # 検証
     assert exit_code == 0
     assert wiring.hotkey_class.call_args.kwargs == {"accept_injected": True}
-
-
-def test_main_when_migrate_env(
-    data_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplication
-) -> None:
-    """.env を移してから読む（正常系）。"""
-    from voice_paste.main import main
-    from voice_paste.shared.settings import load_settings
-
-    # 準備
-    install_wiring(monkeypatch, qapp)
-    env_path = tmp_path / ".env"
-    env_content = "WHISPER_MODEL=small\n"
-    env_path.write_text(env_content, encoding="utf-8")
-
-    # 実行
-    exit_code = main(
-        ["--data-dir", str(data_dir), "--migrate-env", str(env_path)],
-        exec_loop=exit_after_events,
-    )
-
-    # 検証
-    assert exit_code == 0
-    assert load_settings(data_dir / "settings.toml").transcription.local_whisper.model == "small"
-    assert env_path.read_text(encoding="utf-8") == env_content
-    assert not (tmp_path / ".env.migrated").exists()
-
-
-def test_main_when_settings_exists_and_migrate_env(
-    data_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplication
-) -> None:
-    """設定ファイルがあれば移さない（異常系）。"""
-    from voice_paste.main import main
-
-    # 準備
-    wiring = install_wiring(monkeypatch, qapp)
-    settings_file = data_dir / "settings.toml"
-    settings_file.write_text('[hotkeys]\nstart = "<ctrl>+<alt>+s"\n', encoding="utf-8")
-    settings_before = settings_file.read_bytes()
-    env_path = tmp_path / ".env"
-    env_path.write_text("WHISPER_MODEL=small\n", encoding="utf-8")
-
-    # 実行
-    exit_code = main(
-        ["--data-dir", str(data_dir), "--migrate-env", str(env_path)],
-        exec_loop=exit_after_events,
-    )
-
-    # 検証
-    assert exit_code == 1
-    assert settings_file.read_bytes() == settings_before
-    assert len(read_log_records(data_dir / "log", "ERROR")) == 1
-    wiring.build_handlers.assert_not_called()
 
 
 def test_main_when_invalid_settings(

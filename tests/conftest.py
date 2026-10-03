@@ -6,8 +6,6 @@ from typing import TYPE_CHECKING
 import pytest
 from unittest.mock import patch
 
-from tests.mocks.mock_env import MOCK_ENV
-
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QApplication
 
@@ -48,13 +46,6 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     for item in items:
         if item.get_closest_marker(REAL_MACHINE_MARKER) is not None:
             item.add_marker(skip_marker)
-
-
-@pytest.fixture(autouse=True)
-def mock_environment(monkeypatch: pytest.MonkeyPatch) -> None:
-    """全テストに環境変数モックを適用する。"""
-    for key, value in MOCK_ENV.items():
-        monkeypatch.setenv(key, value)
 
 
 @pytest.fixture(scope="session")

@@ -34,7 +34,8 @@ enums:
     summary: 出力先ごとの設定の判別共用体（`Annotated[... | ..., Field(discriminator="id")]`）
     description: |-
       呼び出し元へ返す出力先（callback）は API から始めた録音だけが使い、オン・オフを持たないため一覧に置かない。
-      既定の一覧は下の 4 件をこの並びで持つ。
+      既定の一覧は下の 3 件をこの並びで持つ。
+      `id = "ai_chat"` の項目は、検証の前に migrate_ai_chat がカスタムプリセットへ読み替えて外す。
     values:
       - value: paste_and_send
         title: 貼り付けて送信
@@ -45,9 +46,24 @@ enums:
       - value: copy_only
         title: コピーのみ
         description: CopyOnlySettings
-      - value: ai_chat
-        title: AI チャットへ送る
-        description: AiChatSettings
+    status: implemented
+  - name: Preset
+    title: カスタムプリセット
+    container: shared/settings.py
+    usecase: 共通
+    summary: プリセットの種類ごとの設定の判別共用体（`Annotated[... | ..., Field(discriminator="kind")]`）
+    description: |-
+      種類を足すときは、種類の設定のモデルを 1 つ作ってここに足し、出力先の PRESET_KINDS と画面の種類の名前に登録する。
+      セッションは確定の操作で選んだプリセットをこの型の写しとして持ち、出力先へ渡す。
+    values:
+      - value: browser
+        title: ブラウザ添付
+        description: BrowserPreset
+      - value: endpoint
+        title: エンドポイントへ送る
+        description: EndpointPreset
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[presets[].kind]
     status: implemented
 data_models:
   - name: Recording
@@ -161,6 +177,13 @@ data_models:
       - name: api
         type: ApiSettings
         description: 待ち受けのポート・返送を許すホスト
+      - name: presets
+        type: list[Preset]
+        default: '[]'
+        description: カスタムプリセットの一覧。種類ごとの並びが、設定画面のタブと録音の画面のボタンの並びになる
+      - name: preset_options
+        type: PresetOptions
+        description: プリセットの種類ごとのオプション
     refs:
       - dev/設計書/外部ライブラリ/pydantic#
       - dev/設計書/設定/常駐アプリ#
@@ -376,53 +399,6 @@ data_models:
         default: <ctrl>+<alt>+c
         description: この出力先で確定するホットキー
     status: implemented
-  - name: AiChatSettings
-    title: AI チャットへ送る設定
-    container: shared/settings.py
-    usecase: 共通
-    role: 設定のモデル
-    summary: 出力先 ai_chat のオン・オフ・開いてから貼り付けるまでの間・送り先の一覧
-    inherits: pydantic.BaseModel
-    properties:
-      - name: id
-        type: Literal["ai_chat"]
-        default: ai_chat
-        description: 出力先の ID
-      - name: enabled
-        type: bool
-        default: 'True'
-        description: オンか
-      - name: open_delay_sec
-        type: float
-        default: '3.0'
-        description: AI チャットの画面を開いてから貼り付けるまで待つ秒数（0 以上）
-      - name: targets
-        type: list[AiChatTarget]
-        default: ChatGPT・Google AI・Claude の 3 件
-        description: 送り先の一覧。確定のホットキーは送り先ごとに持つ
-    status: implemented
-  - name: AiChatTarget
-    title: AI チャットの送り先
-    container: shared/settings.py
-    usecase: 共通
-    role: 設定のモデル
-    summary: AI チャットの送り先 1 件
-    inherits: pydantic.BaseModel
-    properties:
-      - name: name
-        type: str
-        description: 画面に出す名前（1 文字以上）
-      - name: url
-        type: str
-        description: Microsoft Edge の `--app` で開く URL（http か https）
-      - name: hotkey
-        type: str
-        description: この送り先へ送る確定のホットキー
-      - name: enabled
-        type: bool
-        default: 'True'
-        description: 画面にボタンを出し、ホットキーを登録するか
-    status: implemented
   - name: HistorySettings
     title: 履歴の設定
     container: shared/settings.py
@@ -499,6 +475,120 @@ data_models:
         default: '[]'
         description: loopback のほかに返送を許すホスト
     status: implemented
+  - name: BrowserPreset
+    title: ブラウザ添付のプリセット
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: ブラウザ添付の種類のプリセット 1 件
+    inherits: pydantic.BaseModel
+    description: '`model_config = ConfigDict(extra="forbid", frozen=True)`（セッションが写しとして持つため変えられないようにする）。'
+    properties:
+      - name: kind
+        type: Literal["browser"]
+        default: browser
+        description: プリセットの種類（Preset の判別子）
+      - name: title
+        type: str
+        description: 録音の画面のボタンに出す名前（1 文字以上）
+      - name: url
+        type: str
+        description: Microsoft Edge の `--app` で開く URL（`^https?://`）
+      - name: hotkey
+        type: str
+        default: '""'
+        description: このプリセットで確定するホットキー。空なら登録しない
+      - name: enabled
+        type: bool
+        default: 'True'
+        description: 録音の画面にボタンを出し、ホットキーを登録するか
+      - name: send_enter
+        type: bool
+        default: 'True'
+        description: 貼り付けた後に Enter まで送るか
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[presets[].kind]
+    status: implemented
+  - name: EndpointPreset
+    title: エンドポイントへ送るのプリセット
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: エンドポイントへ送るの種類のプリセット 1 件
+    inherits: pydantic.BaseModel
+    description: '`model_config = ConfigDict(extra="forbid", frozen=True)`。authorization は `Field(repr=False)` にして、設定やセッションを repr でログに出しても値が出ないようにする（SecretStr は model_dump(mode="json") で伏せ字になり settings.toml へ書き戻せないため使わない）。'
+    properties:
+      - name: kind
+        type: Literal["endpoint"]
+        default: endpoint
+        description: プリセットの種類（Preset の判別子）
+      - name: title
+        type: str
+        description: 録音の画面のボタンに出す名前（1 文字以上）
+      - name: url
+        type: str
+        description: 起こした文字を POST する送り先（`^https?://`）
+      - name: hotkey
+        type: str
+        default: '""'
+        description: このプリセットで確定するホットキー。空なら登録しない
+      - name: enabled
+        type: bool
+        default: 'True'
+        description: 録音の画面にボタンを出し、ホットキーを登録するか
+      - name: authorization
+        type: str
+        default: '""'
+        description: 空でなければ `Authorization` ヘッダーにそのまま入れる値（秘密。repr に出さない）
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[presets[].authorization]
+    status: implemented
+  - name: PresetOptions
+    title: プリセットの種類のオプション
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: 種類ごとに、その種類の全てのプリセットで使う設定
+    inherits: pydantic.BaseModel
+    properties:
+      - name: browser
+        type: BrowserPresetOptions
+        description: ブラウザ添付のオプション
+      - name: endpoint
+        type: EndpointPresetOptions
+        description: エンドポイントへ送るのオプション
+    status: implemented
+  - name: BrowserPresetOptions
+    title: ブラウザ添付のオプション
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: ブラウザ添付の全てのプリセットで使う、開いてから貼り付けるまでの間
+    inherits: pydantic.BaseModel
+    properties:
+      - name: open_delay_sec
+        type: float
+        default: '3.0'
+        description: 画面を開いてから貼り付けるまで待つ秒数（0 以上）
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[preset_options.browser.open_delay_sec]
+    status: implemented
+  - name: EndpointPresetOptions
+    title: エンドポイントへ送るのオプション
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: エンドポイントへ送るの全てのプリセットで使う、送るときのタイムアウト
+    inherits: pydantic.BaseModel
+    properties:
+      - name: timeout_sec
+        type: float
+        default: '1.5'
+        description: 送るときのタイムアウトの秒数（`ge=0.5, le=10`。既定・範囲は非機能要件）
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[preset_options.endpoint.timeout_sec]
+      - dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送るときのタイムアウト]
+    status: implemented
 classes:
   - name: AppError
     title: アプリの例外
@@ -552,8 +642,9 @@ functions:
            - `[INFO]` 設定ファイルが無いため既定値で作った（path）
       2. UTF-8 で読み、tomlkit で解釈する
          - TOMLKitError の場合、SettingsError を送出する
-      3. 文書を素の dict にして Settings.model_validate で検証して返す
-         - pydantic.ValidationError の場合、合わないキーをドット区切り（例 `transcription.local_whisper.beam_size`、出力先は `outputs[0].hotkey`）で並べた SettingsError を送出する
+      3. 文書を素の dict にし、古い AI チャットの設定を読み替える（migrate_ai_chat。settings.toml は書き換えない）
+      4. Settings.model_validate で検証して返す
+         - pydantic.ValidationError の場合、合わないキーをドット区切り（例 `transcription.local_whisper.beam_size`、出力先は `outputs[0].hotkey`、プリセットは `presets[0].url`）で並べた SettingsError を送出する
     exceptions:
       - name: SettingsError
         condition: TOML の書式が壊れている
@@ -608,6 +699,19 @@ functions:
         mock: なし（一時フォルダ）
         expected: SettingsError
         exception: TOML の書式が壊れている
+      - name: test_load_settings_when_ai_chat_remains
+        case: 正常
+        summary: 古い AI チャットの設定が残っていても読め、プリセットに読み替える
+        condition: outputs に id = "ai_chat"・open_delay_sec = 2.0・targets に ChatGPT（enabled true）と Claude（enabled false）を書いた settings.toml
+        mock: なし（一時フォルダ）
+        expected: outputs に ai_chat が無く、presets が ChatGPT（enabled True）・Claude（enabled False）の BrowserPreset 2 件（同じ title・url・hotkey、send_enter True）、preset_options.browser.open_delay_sec が 2.0。settings.toml の中身は読む前と同じ
+      - name: test_load_settings_when_invalid_preset
+        case: 異常
+        summary: 合わないプリセットはキーを示して断る
+        condition: presets に kind = "endpoint"・url = "ftp://x" の 1 件
+        mock: なし（一時フォルダ）
+        expected: SettingsError。メッセージに presets[0] と url を含む
+        exception: 値がモデルに合わない
     refs:
       - dev/設計書/外部ライブラリ/tomlkit#
     status: implemented
@@ -635,11 +739,11 @@ functions:
       description: 再起動が要る項目が変わったか
     process: |-
       1. path があれば tomlkit で読み、無ければ空の文書にする
-      2. 読んだ文書を Settings として検証し、前の設定にする
+      2. 読んだ文書を、古い AI チャットの設定を読み替えてから（migrate_ai_chat）Settings として検証し、前の設定にする
          - 無い場合、前の設定は無しとする
          - 読めない・検証に通らない場合、内容を空の文書にして前の設定を「全て変わった」とする
       3. settings を `model_dump(mode="json")` する
-      4. 文書の値を再帰で置き換える。表はキーごとに書き換えて既存のコメントと並びを保ち、配列（出力先の一覧・AI チャットの送り先・許すホスト）は丸ごと入れ替える。None の項目（glossary_path）はキーを置かず、文書に既にあれば消す
+      4. 文書の値を再帰で置き換える。表はキーごとに書き換えて既存のコメントと並びを保ち、配列（出力先の一覧・プリセットの一覧・許すホスト）は丸ごと入れ替える（出力先の一覧を入れ替えるので、文書に残っていた `id = "ai_chat"` の項目も消える）。None の項目（glossary_path）はキーを置かず、文書に既にあれば消す
       5. 親のフォルダを作り、同じフォルダの一時ファイルに UTF-8 で書いて os.replace で置き換える
       6. reload が restart の項目のうち、前の設定と値が違うものが 1 つでもあれば True、無ければ False を返す（前の設定が無いときは False）
     unit_tests:
@@ -679,6 +783,12 @@ functions:
         condition: glossary_path = "C:/x/yogo.csv" を持つ settings.toml に Settings() を書く
         mock: なし（一時フォルダ）
         expected: 書いた後のファイルに glossary_path のキーが無く、load_settings の glossary_path が None
+      - name: test_save_settings_when_ai_chat_remains
+        case: 正常
+        summary: 読み替えた設定を保存すると、ai_chat の項目が消えてプリセットとして書かれる
+        condition: outputs に id = "ai_chat" と送り先 2 件を書いた settings.toml を load_settings で読み、そのまま書く
+        mock: なし（一時フォルダ）
+        expected: False。書いた後のファイルの outputs に ai_chat が無く、presets に同じ title・url・hotkey・enabled の kind = "browser" が 2 件あり、preset_options.browser.open_delay_sec が読み替えた値
     refs:
       - dev/設計書/外部ライブラリ/tomlkit#
     status: implemented
@@ -836,9 +946,9 @@ functions:
         description: 確かめる設定
     returns:
       type: list[tuple[str, str]]
-      description: （重なったキー, 先に並んだ同じホットキーのキー）の並び。キーは format_error_location と同じ書式（例 `outputs[3].targets[2].hotkey`）
+      description: （重なったキー, 先に並んだ同じホットキーのキー）の並び。キーは format_error_location と同じ書式（例 `presets[2].hotkey`）
     process: |-
-      1. 受け付けるホットキーを（キー, 値）でこの順に並べる: `hotkeys.start`・`hotkeys.pause`・`hotkeys.cancel`、オンの出力先の `outputs[].hotkey`、オンの AI チャットの送り先の `outputs[].targets[].hotkey`（空のホットキーは受け付けないので並べない）
+      1. 受け付けるホットキーを（キー, 値）でこの順に並べる: `hotkeys.start`・`hotkeys.pause`・`hotkeys.cancel`、オンの出力先の `outputs[].hotkey`、有効なプリセットの `presets[].hotkey`（種類をまたいで 1 つの並び。空のホットキーは受け付けないので並べない）
       2. 値を小文字にして、先に並んだものと同じものを集める
          - `hotkeys.start` と「貼り付けて送信」の `hotkey` が同じ組は重なりにしない（録音中に押すとその出力先で確定する既定）
     refs:
@@ -850,9 +960,15 @@ functions:
       - name: test_find_hotkey_overlaps
         case: 正常
         summary: 前に並んだホットキーと重なるキーを、重なった組で返す
-        condition: AI チャットの送り先 Claude の hotkey を <ctrl>+<alt>+v（貼り付けのみと同じ）にした設定（model_construct で確かめを飛ばして作る）
+        condition: presets に 2 件を置き、2 件目の hotkey を <ctrl>+<alt>+v（貼り付けのみと同じ）にした設定（model_construct で確かめを飛ばして作る）
         mock: なし
-        expected: '[("outputs[3].targets[2].hotkey", "outputs[1].hotkey")]'
+        expected: '[("presets[1].hotkey", "outputs[1].hotkey")]'
+      - name: test_find_hotkey_overlaps_when_presets_of_different_kinds
+        case: 正常
+        summary: 種類をまたいだプリセットどうしの重なりを返す
+        condition: presets が [browser（<ctrl>+<alt>+3）, endpoint（<ctrl>+<alt>+3）]
+        mock: なし
+        expected: '[("presets[1].hotkey", "presets[0].hotkey")]'
       - name: test_find_hotkey_overlaps_when_start_equals_paste_and_send
         case: 正常
         summary: 録音の開始と貼り付けて送信が同じキー（既定）は重なりにしない
@@ -861,8 +977,14 @@ functions:
         expected: '[]'
       - name: test_find_hotkey_overlaps_when_disabled_output
         case: 正常
-        summary: オフの出力先のホットキーは重なりにしない
-        condition: コピーのみをオフにし、その hotkey を <ctrl>+<alt>+z（一時停止と同じ）
+        summary: オフの出力先・無効のプリセットのホットキーは重なりにしない
+        condition: parametrize で (1) コピーのみをオフにし、その hotkey を <ctrl>+<alt>+z（一時停止と同じ） (2) 無効のプリセットの hotkey を <ctrl>+<alt>+z
+        mock: なし
+        expected: どちらも []
+      - name: test_find_hotkey_overlaps_when_empty_preset_hotkeys
+        case: 正常
+        summary: 空のホットキーのプリセットどうしは重なりにしない
+        condition: presets に hotkey が空の 2 件
         mock: なし
         expected: '[]'
       - name: test_settings_when_hotkeys_overlap
@@ -872,6 +994,55 @@ functions:
         mock: なし
         expected: ValidationError。list_validation_failures のキーに hotkeys.cancel、理由に hotkeys.pause
         exception: ホットキーが重なる
+  - name: migrate_ai_chat
+    title: 古い AI チャットの設定の読み替え
+    kind: 関数
+    container: shared/settings.py
+    usecase: 常駐アプリを起動する
+    scope: public
+    summary: settings.toml を素の dict にしたものから `id = "ai_chat"` の出力先を外し、送り先をブラウザ添付のプリセットへ読み替えた dict を返す。load_settings と save_settings が検証の前に呼ぶ
+    args:
+      - name: document
+        type: dict[str, Any]
+        required: true
+        passing: positional
+        description: settings.toml を素の dict にしたもの（書き換えない）
+    returns:
+      type: dict[str, Any]
+      description: 読み替えた dict。ai_chat の項目が無ければ document と同じ中身
+    process: |-
+      1. outputs の中の `id = "ai_chat"` の項目を探す
+         - 無い場合（outputs が無い・配列でないも含む）、document をそのまま返す（検証は Settings に任せる）
+      2. その項目の targets（無ければ、前の既定の ChatGPT・Google AI・Claude の 3 件）を並びのまま、`{kind: "browser", title: name, url, hotkey, enabled: 項目の enabled かつ target の enabled, send_enter: true}` にして、既にある presets の後ろに足す
+      3. その項目に open_delay_sec があり、preset_options.browser.open_delay_sec が無ければ、その値を入れる
+      4. outputs からその項目を外した新しい dict を返す
+         - `[INFO]` 古い AI チャットの設定をプリセットへ読み替えた（件数）
+    unit_tests:
+      - name: test_migrate_ai_chat
+        case: 正常
+        summary: 送り先をブラウザ添付のプリセットにし、ai_chat を外す
+        condition: outputs が [paste_and_send, ai_chat（open_delay_sec 2.0、targets に ChatGPT と Claude（enabled false））]
+        mock: なし
+        expected: outputs が [paste_and_send]、presets が ChatGPT（enabled true）・Claude（enabled false）の kind browser・send_enter true の 2 件、preset_options.browser.open_delay_sec が 2.0。元の dict は変わらない
+      - name: test_migrate_ai_chat_when_output_disabled
+        case: 正常
+        summary: オフの AI チャットの送り先は無効のプリセットにする
+        condition: ai_chat の enabled が false、targets の enabled がどれも true
+        mock: なし
+        expected: presets がどれも enabled false
+      - name: test_migrate_ai_chat_when_targets_missing
+        case: 正常
+        summary: targets の無い ai_chat は前の既定の 3 件をプリセットにする
+        condition: ai_chat が id だけを持つ
+        mock: なし
+        expected: presets が ChatGPT（<ctrl>+<alt>+1）・Google AI（<ctrl>+<alt>+2）・Claude（<ctrl>+<alt>+3）の 3 件
+      - name: test_migrate_ai_chat_when_absent
+        case: 正常
+        summary: ai_chat が無ければ変えない
+        condition: outputs が [paste_only] だけ、または outputs が無い
+        mock: なし
+        expected: document と同じ中身が返る
+    status: implemented
 constants:
   - name: APP_NAME
     title: アプリ名

@@ -146,6 +146,32 @@ scenarios:
       - ログに待ち受けに失敗した理由が書かれている
       - 録音開始のホットキーを押すと録音が始まる
     test: test_error_when_api_unavailable
+  - name: 正常シナリオ（古い AI チャットの設定が残っている）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 古い設定
+        description: '`settings.toml` の `outputs` に `id = "ai_chat"` の項目と送り先（`targets[]`）を 2 つ書いておく（うち 1 つは出さない）'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SVC as 常駐サービス
+        participant TOML as settings.toml
+        participant TRAY as トレイ
+
+        U->>SVC: ショートカットから起動する
+        SVC->>TOML: 設定を読む
+        SVC->>SVC: ai_chat の送り先を、ブラウザ添付の種類のプリセットへ読み替える
+        Note over SVC: 以降は 正常シナリオ と同じ
+        SVC->>TRAY: 待機中のアイコンにする
+      ```
+    expected:
+      - トレイのアイコンが待機中になっている（起動が止まらない）
+      - 録音の画面に、出すとした送り先と同じタイトル・ホットキーのプリセットのボタンだけが出る
+      - そのボタンで確定すると、送り先の URL を開いて貼り付け、Enter まで送る
+      - 起動しただけでは `settings.toml` が書き換わっていない
+    test: test_normal_when_old_ai_chat_settings_remain
 lead: 'ショートカットから常駐サービスを起動し、文字起こしのエンジン・API の待ち受け・ホットキーの受付を立てて、録音の開始を待つ状態にする単一ユースケース。'
 issue: 14
 primary_actor: 音声入力を使うユーザー

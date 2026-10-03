@@ -25,8 +25,14 @@ from voice_paste.features.history import (
     purge_expired,
     save_recording,
 )
-from voice_paste.features.outputs import OUTPUTS, OutputSpec, deliver, is_callback_allowed
-from voice_paste.features.outputs.callback.client import post_json
+from voice_paste.features.outputs import (
+    OUTPUTS,
+    PRESET_KINDS,
+    OutputSpec,
+    PresetKindSpec,
+    deliver,
+    is_callback_allowed,
+)
 from voice_paste.features.outputs.registry import CALLBACK_OUTPUT_ID
 from voice_paste.features.recording import Recorder
 from voice_paste.features.recording.client import open_input
@@ -39,6 +45,7 @@ from voice_paste.features.session import (
 from voice_paste.features.session.types import NotifyFn, SessionState
 from voice_paste.features.transcription.service import transcribe
 from voice_paste.integrations.browser.opener import open_app_window
+from voice_paste.integrations.http.client import post_json
 from voice_paste.integrations.keyboard.sender import copy_to_clipboard, send_enter, send_paste
 from voice_paste.integrations.volume.adapter import lower_volume, restore_volume
 from voice_paste.integrations.whisper.client import WhisperWorkerClient
@@ -65,8 +72,8 @@ from voice_paste.shared.errors import (
 )
 from voice_paste.shared.logger import local_today, purge_old_logs, setup_logging
 from voice_paste.shared.settings import (
-    AiChatSettings,
     PasteAndSendSettings,
+    Preset,
     Settings,
     load_settings,
     save_settings,
@@ -230,42 +237,50 @@ def _deliver_session(
     *,
     enabled_ids: frozenset[str],
     outputs: tuple[OutputSpec, ...],
+    preset_kinds: tuple[PresetKindSpec, ...],
 ) -> None:
-    """Session を入口・選んだ出力先・返送先に分けて、出力先の deliver へ渡す（出力先はセッションを import しない）。"""
+    """Session を入口・選んだ出力先・選んだプリセット・返送先に分けて、出力先の deliver へ渡す（出力先はセッションを import しない）。"""
     deliver(
         session.entry,
         session.output_id,
-        session.output_target,
+        session.output_preset,
         session.callback_url,
         outcome,
         enabled_ids=enabled_ids,
         outputs=outputs,
+        preset_kinds=preset_kinds,
     )
 
 
-def _wire_outputs(get_settings: Callable[[], Settings]) -> tuple[OutputSpec, ...]:
-    """出力先の一覧の各 handler に、出力先の ID ごとの外部連携の関数と設定の値を部分適用して返す。"""
+def _make_paste(get_settings: Callable[[], Settings]) -> Callable[[], None]:
+    """呼ぶたびに設定の貼り付けのキーで貼り付けのキーを送る関数を作る。"""
 
-    # 1. 届けるたびに設定を読む関数を作る（反映が immediate の設定を、配線の後に変えても次の届け方に効かせる）
     def paste() -> None:
         """設定の貼り付けのキーで貼り付けのキーを送る。"""
         send_paste(get_settings().keyboard.paste_key)
 
+    return paste
+
+
+def _make_get_enter_delay_sec(get_settings: Callable[[], Settings]) -> Callable[[], float]:
+    """呼ぶたびに設定の貼り付けて送信の、貼り付けてから Enter を送るまでの秒数を返す関数を作る。"""
+
     def get_enter_delay_sec() -> float:
-        """設定の貼り付けて送信の、貼り付けてから Enter を送るまでの秒数を返す（一覧に無ければ既定値）。"""
+        """設定の貼り付けて送信の enter_delay_sec を返す（一覧に無ければ既定値）。"""
         output = next(
             (o for o in get_settings().outputs if isinstance(o, PasteAndSendSettings)),
             PasteAndSendSettings(),
         )
         return output.enter_delay_sec
 
-    def get_open_delay_sec() -> float:
-        """設定の AI チャットの、画面を開いてから貼り付けるまでの秒数を返す（一覧に無ければ既定値）。"""
-        output = next(
-            (o for o in get_settings().outputs if isinstance(o, AiChatSettings)),
-            AiChatSettings(),
-        )
-        return output.open_delay_sec
+    return get_enter_delay_sec
+
+
+def _wire_outputs(get_settings: Callable[[], Settings]) -> tuple[OutputSpec, ...]:
+    """出力先の一覧の各 handler に、出力先の ID ごとの外部連携の関数と設定の値を部分適用して返す。"""
+    # 1. 届けるたびに設定を読む関数を作る（反映が immediate の設定を、配線の後に変えても次の届け方に効かせる）
+    paste = _make_paste(get_settings)
+    get_enter_delay_sec = _make_get_enter_delay_sec(get_settings)
 
     # 2. 出力先の ID ごとに、handler へ注入するものを決める
     injections: dict[str, dict[str, object]] = {
@@ -278,16 +293,6 @@ def _wire_outputs(get_settings: Callable[[], Settings]) -> tuple[OutputSpec, ...
         },
         "paste_only": {"copy": copy_to_clipboard, "paste": paste},
         "copy_only": {"copy": copy_to_clipboard},
-        "ai_chat": {
-            "copy": copy_to_clipboard,
-            "open_window": open_app_window,
-            "paste": paste,
-            "send_enter": send_enter,
-            "sleep": time.sleep,
-            "get_open_delay_sec": get_open_delay_sec,
-            # 貼り付けて送信と同じ間を使う
-            "get_enter_delay_sec": get_enter_delay_sec,
-        },
         # 呼び出し元へ返す出力先は、タイムアウトを部分適用した post_json・許可ホスト・再送の設定を渡す
         CALLBACK_OUTPUT_ID: {
             "post": partial(post_json, timeout_sec=CALLBACK_TIMEOUT_SEC),
@@ -305,6 +310,44 @@ def _wire_outputs(get_settings: Callable[[], Settings]) -> tuple[OutputSpec, ...
         if spec.id in injections
         else spec
         for spec in OUTPUTS
+    )
+
+
+def _wire_preset_kinds(get_settings: Callable[[], Settings]) -> tuple[PresetKindSpec, ...]:
+    """プリセットの種類の一覧の各 handler に、種類ごとの外部連携の関数と設定の値を部分適用して返す。"""
+    # 1. 届けるたびに設定を読む関数を作る
+    paste = _make_paste(get_settings)
+    get_enter_delay_sec = _make_get_enter_delay_sec(get_settings)
+
+    def get_open_delay_sec() -> float:
+        """設定のブラウザ添付の、画面を開いてから貼り付けるまでの秒数を返す。"""
+        return get_settings().preset_options.browser.open_delay_sec
+
+    def get_timeout_sec() -> float:
+        """設定のエンドポイントへ送るの、送るときのタイムアウトの秒数を返す。"""
+        return get_settings().preset_options.endpoint.timeout_sec
+
+    # 2. 種類ごとに、handler へ注入するものを決める
+    injections: dict[str, dict[str, object]] = {
+        "browser": {
+            "copy": copy_to_clipboard,
+            "open_window": open_app_window,
+            "paste": paste,
+            "send_enter": send_enter,
+            "sleep": time.sleep,
+            "get_open_delay_sec": get_open_delay_sec,
+            # 貼り付けて送信と同じ間を使う
+            "get_enter_delay_sec": get_enter_delay_sec,
+        },
+        "endpoint": {"post": post_json, "get_timeout_sec": get_timeout_sec},
+    }
+
+    # 3. 一覧の順のまま、注入するものがある種類だけ handler を差し替える（無い種類はそのまま残す）
+    return tuple(
+        replace(spec, handler=partial(spec.handler, **injections[spec.kind]))
+        if spec.kind in injections
+        else spec
+        for spec in PRESET_KINDS
     )
 
 
@@ -340,13 +383,20 @@ def build_handlers(
         get_settings=lambda: store.get().recording,
     )
 
-    # 4. 出力先を配線し、届けるたびに SettingsStore からオンの出力先の ID を引いて、Session を分けて渡すアダプタを作る
+    # 4. 出力先とプリセットの種類を配線し、届けるたびに SettingsStore からオンの出力先の ID を引いて、Session を分けて渡すアダプタを作る
     wired_outputs = _wire_outputs(store.get)
+    wired_preset_kinds = _wire_preset_kinds(store.get)
 
     def deliver_session(session: Session, outcome: TranscriptionOutcome) -> None:
         """今の設定でオンの出力先へ、Session を分けて届ける。"""
         enabled_ids = frozenset(output.id for output in store.get().outputs if output.enabled)
-        _deliver_session(session, outcome, enabled_ids=enabled_ids, outputs=wired_outputs)
+        _deliver_session(
+            session,
+            outcome,
+            enabled_ids=enabled_ids,
+            outputs=wired_outputs,
+            preset_kinds=wired_preset_kinds,
+        )
 
     # 5. 用語集を文字起こしのたびに読み直す補正を作る（読む場所もそのたびに設定から決める）
     def correct(text: str) -> str:
@@ -415,15 +465,10 @@ def start_local_session(
 
 
 def _collect_hotkeys(settings: Settings) -> list[str]:
-    """設定で受け付けるホットキー（録音・一時停止・取り消し・オンの出力先・オンの送り先）を、重なりを除いて並べる。"""
+    """設定で受け付けるホットキー（録音・一時停止・取り消し・オンの出力先・有効なプリセット）を、重なりを除いて並べる。"""
     hotkeys = [settings.hotkeys.start, settings.hotkeys.pause, settings.hotkeys.cancel]
-    for output in settings.outputs:
-        if not output.enabled:
-            continue
-        if isinstance(output, AiChatSettings):
-            hotkeys.extend(target.hotkey for target in output.targets if target.enabled)
-        else:
-            hotkeys.append(output.hotkey)
+    hotkeys.extend(output.hotkey for output in settings.outputs if output.enabled)
+    hotkeys.extend(preset.hotkey for preset in settings.presets if preset.enabled)
     # 空のホットキーは登録しない。重なり（録音の開始と貼り付けて送信）は 1 つにする
     return list(dict.fromkeys(hotkey for hotkey in hotkeys if hotkey))
 
@@ -440,9 +485,7 @@ def build_hotkey_bindings(
         (
             output.id
             for output in settings.outputs
-            if output.enabled
-            and not isinstance(output, AiChatSettings)
-            and output.hotkey.lower() == start_hotkey.lower()
+            if output.enabled and output.hotkey.lower() == start_hotkey.lower()
         ),
         None,
     )
@@ -478,18 +521,13 @@ def build_hotkey_bindings(
         settings.hotkeys.cancel: session_manager.cancel,
     }
     for output in settings.outputs:
-        if not output.enabled:
-            continue
-        if isinstance(output, AiChatSettings):
-            # オンの送り先のホットキー: その送り先の URL で確定する
-            for target in output.targets:
-                if target.enabled:
-                    bindings[target.hotkey] = partial(
-                        session_manager.complete, output_id=output.id, output_target=target.url
-                    )
-        elif output.hotkey.lower() != start_hotkey.lower():
-            # オンの出力先のホットキー（録音開始と同じキーを除く）: その出力先で確定する
+        # オンの出力先のホットキー（録音開始と同じキーを除く）: その出力先で確定する
+        if output.enabled and output.hotkey.lower() != start_hotkey.lower():
             bindings[output.hotkey] = partial(session_manager.complete, output_id=output.id)
+    for preset in settings.presets:
+        # 有効なプリセットのホットキー: そのプリセットで確定する
+        if preset.enabled:
+            bindings[preset.hotkey] = partial(session_manager.complete, preset=preset)
     # 空のホットキーは登録しない（重なりは Settings の確かめが断っている）
     return {hotkey: handler for hotkey, handler in bindings.items() if hotkey}
 
@@ -529,9 +567,9 @@ def build_ui_deps(
     session_manager = handlers.session_manager
     store = handlers.settings_store
 
-    def complete(output_id: str, output_target: str | None) -> None:
-        """出力先の ID と宛先で録音を確定する。"""
-        session_manager.complete(output_id=output_id, output_target=output_target)
+    def complete(output_id: str | None, preset: Preset | None) -> None:
+        """固定の出力先の ID かカスタムプリセットで録音を確定する。"""
+        session_manager.complete(output_id=output_id, preset=preset)
 
     def resume_hotkeys() -> None:
         """今の設定でホットキーの受付を始める。"""

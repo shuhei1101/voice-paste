@@ -18,6 +18,7 @@ from voice_paste.shared.errors import (
     SessionNotFoundError,
     TranscriptionError,
 )
+from voice_paste.shared.settings import Preset
 from voice_paste.shared.types import Entry, Recording, TranscriptionOutcome
 
 logger = logging.getLogger(__name__)
@@ -71,7 +72,7 @@ class SessionManager:
                 started_at=self._deps.now(),
                 callback_url=callback_url,
                 output_id=None,
-                output_target=None,
+                output_preset=None,
             )
             self._session = session
             logger.info(f"セッションを始めた（{session.id}・入口: {session.entry}）")
@@ -122,7 +123,7 @@ class SessionManager:
         self,
         session_id: str | None = None,
         output_id: str | None = None,
-        output_target: str | None = None,
+        preset: Preset | None = None,
     ) -> None:
         """録音を確定して保存し、文字起こしから届けるまでをワーカースレッドで始める。"""
         with self._lock:
@@ -155,7 +156,7 @@ class SessionManager:
                 session,
                 state=SessionState.TRANSCRIBING,
                 output_id=output_id,
-                output_target=output_target,
+                output_preset=preset,
                 recording=None,
             )
             self._session = confirmed

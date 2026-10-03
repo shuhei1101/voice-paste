@@ -7,7 +7,8 @@ from collections.abc import Callable
 from http import HTTPStatus
 from urllib.parse import urlparse
 
-from voice_paste.features.outputs.callback.types import CallbackPayload, PostResult
+from voice_paste.features.outputs.types import ResultPayload
+from voice_paste.integrations.http.types import PostResult
 from voice_paste.shared.errors import DeliveryError
 from voice_paste.shared.types import TranscriptionOutcome
 
@@ -56,9 +57,7 @@ def deliver_to_caller(
         raise DeliveryError("返送先が許されていません")
 
     # 2. 返送の中身を作り、1 + 再送回数まで POST する
-    payload = CallbackPayload(
-        session_id=outcome.session_id, result=outcome.result, text=outcome.text, error=outcome.error
-    ).model_dump()
+    payload = ResultPayload.from_outcome(outcome).model_dump()
     # 返送の間はセッションが残り次の開始を断るため、待ちはこの上限に収める
     max_wait_sec = retry_base_sec * BACKOFF_FACTOR ** (retry_count - 1)
     reason = ""

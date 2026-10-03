@@ -1,4 +1,4 @@
-"""main.py（parse_args・main・start_local_session・build_hotkey_bindings・apply_settings・_wire_outputs）の単体テスト。
+"""main.py（parse_args・main・start_local_session・build_hotkey_bindings・apply_settings・_wire_outputs・_wire_preset_kinds）の単体テスト。
 
 main の配線（build_handlers）・API サーバー（ApiServerRunner）・上限の打ち切りのタイマー（RepeatingTimer）・
 ホットキーの受付（HotkeyListener）・トレイ（Tray）・起動し直し（relaunch）は偽物に差し替え、
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from PySide6.QtWidgets import QApplication
 
     from tests.unit.voice_paste.runtime.helpers import BackgroundAcquire
-    from voice_paste.features.outputs import OutputSpec
+    from voice_paste.features.outputs import OutputSpec, PresetKindSpec
     from voice_paste.ui.controller import UiDeps
 
 ACQUIRE_WAIT_SEC = 5.0
@@ -48,9 +48,6 @@ DEFAULT_HOTKEYS = {
     "<ctrl>+<alt>+q",
     "<ctrl>+<alt>+v",
     "<ctrl>+<alt>+c",
-    "<ctrl>+<alt>+1",
-    "<ctrl>+<alt>+2",
-    "<ctrl>+<alt>+3",
 }
 """既定の設定で受け付けるホットキー（録音の開始と貼り付けて送信は同じキー）。"""
 
@@ -611,17 +608,21 @@ def test_start_local_session_when_unexpected_error(caplog: pytest.LogCaptureFixt
 
 
 def _install_adapters(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
-    """main が出力先へ渡す外部連携と time.sleep を偽物に差し替え、呼ばれた順を持つ親の Mock を返す。
+    """main が出力先・プリセットの種類へ渡す外部連携と time.sleep を偽物に差し替え、呼ばれた順を持つ親の Mock を返す。
 
-    親の `copy_to_clipboard`・`send_paste`・`send_enter`・`open_app_window`・`sleep` がそれぞれの偽物。
+    親の `copy_to_clipboard`・`send_paste`・`send_enter`・`open_app_window`・`post_json`・`sleep` がそれぞれの偽物。
+    `post_json` は 200 を返す。
     """
     import voice_paste.main as main_module
+    from voice_paste.integrations.http.types import PostResult
 
     adapters = MagicMock()
+    adapters.post_json.return_value = PostResult(status=200, retry_after_sec=None)
     monkeypatch.setattr(main_module, "copy_to_clipboard", adapters.copy_to_clipboard)
     monkeypatch.setattr(main_module, "send_paste", adapters.send_paste)
     monkeypatch.setattr(main_module, "send_enter", adapters.send_enter)
     monkeypatch.setattr(main_module, "open_app_window", adapters.open_app_window)
+    monkeypatch.setattr(main_module, "post_json", adapters.post_json)
     monkeypatch.setattr("time.sleep", adapters.sleep)
     return adapters
 
@@ -631,12 +632,16 @@ def _outputs_by_id(wired: tuple[OutputSpec, ...]) -> dict[str, OutputSpec]:
     return {spec.id: spec for spec in wired}
 
 
+def _kinds_by_name(wired: tuple[PresetKindSpec, ...]) -> dict[str, PresetKindSpec]:
+    """配線したプリセットの種類の一覧を、種類で引ける dict にする。"""
+    return {spec.kind: spec for spec in wired}
+
+
 def test_wire_outputs(monkeypatch: pytest.MonkeyPatch) -> None:
     """各出力先に設定の値を配線する（正常系）。"""
     from voice_paste.features.outputs import OUTPUTS
     from voice_paste.main import _wire_outputs
     from voice_paste.shared.settings import (
-        AiChatSettings,
         CopyOnlySettings,
         KeyboardSettings,
         PasteAndSendSettings,
@@ -649,12 +654,7 @@ def test_wire_outputs(monkeypatch: pytest.MonkeyPatch) -> None:
     adapters = _install_adapters(monkeypatch)
     settings = Settings(
         keyboard=KeyboardSettings(paste_key="<ctrl>+<shift>+v"),
-        outputs=[
-            PasteAndSendSettings(enter_delay_sec=0.2),
-            PasteOnlySettings(),
-            CopyOnlySettings(),
-            AiChatSettings(open_delay_sec=1.5),
-        ],
+        outputs=[PasteAndSendSettings(enter_delay_sec=0.2), PasteOnlySettings(), CopyOnlySettings()],
     )
     outcome = TranscriptionOutcome(
         session_id="session-1", result="transcribed", text="テスト", error=None
@@ -662,19 +662,12 @@ def test_wire_outputs(monkeypatch: pytest.MonkeyPatch) -> None:
 
     # 実行
     wired = _wire_outputs(lambda: settings)
-    by_id = _outputs_by_id(wired)
-    by_id["paste_and_send"].handler(outcome, None)
-    paste_and_send_sleeps = list(adapters.sleep.mock_calls)
-    adapters.sleep.reset_mock()
-    by_id["ai_chat"].handler(outcome, "https://chatgpt.com")
-    ai_chat_sleeps = list(adapters.sleep.mock_calls)
+    _outputs_by_id(wired)["paste_and_send"].handler(outcome, None)
 
     # 検証
     assert [spec.id for spec in wired] == [spec.id for spec in OUTPUTS]
-    adapters.send_paste.assert_called_with("<ctrl>+<shift>+v")
-    assert paste_and_send_sleeps == [call(0.2)]
-    adapters.open_app_window.assert_called_once_with("https://chatgpt.com")
-    assert ai_chat_sleeps == [call(1.5), call(0.2)]
+    adapters.send_paste.assert_called_once_with("<ctrl>+<shift>+v")
+    adapters.sleep.assert_called_once_with(0.2)
 
 
 def test_wire_outputs_when_settings_changed(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -707,6 +700,90 @@ def test_wire_outputs_when_settings_changed(monkeypatch: pytest.MonkeyPatch) -> 
     # 検証
     adapters.send_paste.assert_called_once_with("<ctrl>+<alt>+v")
     adapters.sleep.assert_called_once_with(1.0)
+
+
+# === _wire_preset_kinds ===
+
+
+def test_wire_preset_kinds(monkeypatch: pytest.MonkeyPatch) -> None:
+    """各種類に設定の値を配線する（正常系）。"""
+    from voice_paste.features.outputs import PRESET_KINDS
+    from voice_paste.main import _wire_preset_kinds
+    from voice_paste.shared.settings import (
+        BrowserPreset,
+        BrowserPresetOptions,
+        EndpointPreset,
+        EndpointPresetOptions,
+        PasteAndSendSettings,
+        PresetOptions,
+        Settings,
+    )
+    from voice_paste.shared.types import TranscriptionOutcome
+
+    # 準備
+    adapters = _install_adapters(monkeypatch)
+    settings = Settings(
+        outputs=[PasteAndSendSettings(enter_delay_sec=0.2)],
+        preset_options=PresetOptions(
+            browser=BrowserPresetOptions(open_delay_sec=1.5),
+            endpoint=EndpointPresetOptions(timeout_sec=2.0),
+        ),
+    )
+    outcome = TranscriptionOutcome(
+        session_id="session-1", result="transcribed", text="テスト", error=None
+    )
+
+    # 実行
+    wired = _wire_preset_kinds(lambda: settings)
+    by_kind = _kinds_by_name(wired)
+    by_kind["browser"].handler(
+        outcome, BrowserPreset(title="ChatGPT", url="https://chatgpt.com", send_enter=True)
+    )
+    browser_sleeps = list(adapters.sleep.mock_calls)
+    by_kind["endpoint"].handler(
+        outcome, EndpointPreset(title="受け口", url="http://127.0.0.1:9000/hook")
+    )
+
+    # 検証
+    assert [spec.kind for spec in wired] == [spec.kind for spec in PRESET_KINDS]
+    assert browser_sleeps == [call(1.5), call(0.2)]
+    adapters.open_app_window.assert_called_once_with("https://chatgpt.com")
+    adapters.post_json.assert_called_once()
+    assert adapters.post_json.call_args.args[2] == 2.0
+
+
+def test_wire_preset_kinds_when_settings_changed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """配線の後に変えたタイムアウトが次の送りに効く（正常系）。"""
+    from voice_paste.main import _wire_preset_kinds
+    from voice_paste.shared.settings import (
+        EndpointPreset,
+        EndpointPresetOptions,
+        PresetOptions,
+        Settings,
+    )
+    from voice_paste.shared.types import TranscriptionOutcome
+
+    # 準備
+    adapters = _install_adapters(monkeypatch)
+    get_settings = MagicMock(return_value=Settings())
+    outcome = TranscriptionOutcome(
+        session_id="session-1", result="transcribed", text="テスト", error=None
+    )
+    wired = _wire_preset_kinds(get_settings)
+
+    # 配線の後に設定を差し替える
+    get_settings.return_value = Settings(
+        preset_options=PresetOptions(endpoint=EndpointPresetOptions(timeout_sec=5.0))
+    )
+
+    # 実行
+    _kinds_by_name(wired)["endpoint"].handler(
+        outcome, EndpointPreset(title="受け口", url="http://127.0.0.1:9000/hook")
+    )
+
+    # 検証
+    adapters.post_json.assert_called_once()
+    assert adapters.post_json.call_args.args[2] == 5.0
 
 
 # === build_hotkey_bindings ===
@@ -754,7 +831,6 @@ def test_build_hotkey_bindings_when_recording_without_confirm_output() -> None:
     """貼り付けて送信がオフなら、録音中の開始のホットキーは何もしない（正常系）。"""
     from voice_paste.main import build_hotkey_bindings
     from voice_paste.shared.settings import (
-        AiChatSettings,
         CopyOnlySettings,
         PasteAndSendSettings,
         PasteOnlySettings,
@@ -763,12 +839,7 @@ def test_build_hotkey_bindings_when_recording_without_confirm_output() -> None:
 
     # 準備
     settings = Settings(
-        outputs=[
-            PasteAndSendSettings(enabled=False),
-            PasteOnlySettings(),
-            CopyOnlySettings(),
-            AiChatSettings(),
-        ]
+        outputs=[PasteAndSendSettings(enabled=False), PasteOnlySettings(), CopyOnlySettings()]
     )
     session_manager = MagicMock()
     session_manager.current.return_value = make_session("hotkey", "recording")
@@ -783,23 +854,47 @@ def test_build_hotkey_bindings_when_recording_without_confirm_output() -> None:
     session_manager.complete.assert_not_called()
 
 
-def test_build_hotkey_bindings_when_ai_chat_target() -> None:
-    """送り先のホットキーはその URL で確定する（正常系）。"""
+def test_build_hotkey_bindings_when_preset() -> None:
+    """プリセットのホットキーはそのプリセットで確定する（正常系）。"""
     from voice_paste.main import build_hotkey_bindings
-    from voice_paste.shared.settings import Settings
+    from voice_paste.shared.settings import BrowserPreset, Settings
 
     # 準備
+    preset = BrowserPreset(title="ChatGPT", url="https://chatgpt.com", hotkey="<ctrl>+<alt>+1")
     session_manager = MagicMock()
     start_local_session = MagicMock()
-    bindings = build_hotkey_bindings(Settings(), session_manager, start_local_session)
+    bindings = build_hotkey_bindings(
+        Settings(presets=[preset]), session_manager, start_local_session
+    )
 
     # 実行
     bindings["<ctrl>+<alt>+1"]()
 
     # 検証
-    session_manager.complete.assert_called_once_with(
-        output_id="ai_chat", output_target="https://chatgpt.com"
+    session_manager.complete.assert_called_once_with(preset=preset)
+
+
+def test_build_hotkey_bindings_when_preset_not_bound() -> None:
+    """無効のプリセットとホットキーが空のプリセットは登録しない（正常系）。"""
+    from voice_paste.main import build_hotkey_bindings
+    from voice_paste.shared.settings import BrowserPreset, EndpointPreset, Settings
+
+    # 準備
+    settings = Settings(
+        presets=[
+            BrowserPreset(
+                title="ChatGPT", url="https://chatgpt.com", hotkey="<ctrl>+<alt>+7", enabled=False
+            ),
+            EndpointPreset(title="受け口", url="http://127.0.0.1:9000/hook"),
+        ]
     )
+
+    # 実行
+    bindings = build_hotkey_bindings(settings, MagicMock(), MagicMock())
+
+    # 検証
+    assert "<ctrl>+<alt>+7" not in bindings
+    assert "" not in bindings
 
 
 def test_build_hotkey_bindings_when_paused() -> None:
@@ -824,7 +919,6 @@ def test_build_hotkey_bindings_when_output_disabled() -> None:
     """オフの出力先のホットキーは登録しない（正常系）。"""
     from voice_paste.main import build_hotkey_bindings
     from voice_paste.shared.settings import (
-        AiChatSettings,
         CopyOnlySettings,
         PasteAndSendSettings,
         PasteOnlySettings,
@@ -833,12 +927,7 @@ def test_build_hotkey_bindings_when_output_disabled() -> None:
 
     # 準備
     settings = Settings(
-        outputs=[
-            PasteAndSendSettings(),
-            PasteOnlySettings(),
-            CopyOnlySettings(enabled=False),
-            AiChatSettings(),
-        ]
+        outputs=[PasteAndSendSettings(), PasteOnlySettings(), CopyOnlySettings(enabled=False)]
     )
 
     # 実行
@@ -856,7 +945,6 @@ def test_apply_settings(tmp_path: Path) -> None:
     from voice_paste.main import apply_settings
     from voice_paste.runtime.settings_store import SettingsStore
     from voice_paste.shared.settings import (
-        AiChatSettings,
         CopyOnlySettings,
         PasteAndSendSettings,
         PasteOnlySettings,
@@ -869,12 +957,7 @@ def test_apply_settings(tmp_path: Path) -> None:
     store = SettingsStore(load_settings(settings_file))
     check_hotkeys = MagicMock()
     new_settings = Settings(
-        outputs=[
-            PasteAndSendSettings(),
-            PasteOnlySettings(),
-            CopyOnlySettings(enabled=False),
-            AiChatSettings(),
-        ]
+        outputs=[PasteAndSendSettings(), PasteOnlySettings(), CopyOnlySettings(enabled=False)]
     )
 
     # 実行

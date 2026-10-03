@@ -18,6 +18,18 @@ NO_SPEECH_SETTINGS = "[transcription.local_whisper]\nvad_threshold = 1.0\n"
 FAILING_ENGINE_SETTINGS = '[transcription.local_whisper]\nlanguage = "xx"\n'
 """存在しない言語コード（ワーカーが文字起こしでエラーを返し、起こすのに失敗する）。"""
 
+PRESET_BUTTON = "preset_button_0"
+"""録音の画面の、1 つ目のカスタムプリセットのボタンの項目 ID。"""
+
+BROWSER_OPEN_DELAY_SETTINGS = "[preset_options.browser]\nopen_delay_sec = 6.0\n"
+"""ブラウザ添付で画面を開いてから貼り付けるまでの秒数（Edge の起動を待てる長さにする）。"""
+
+BROWSER_APPLIED_TIMEOUT_SEC = 120.0
+"""確定から開き先の画面の入力欄に文字が入るまで待つ上限。"""
+
+SLOW_RECEIVER_SEC = 3.0
+"""受け口が受け取ってから応えるまで待つ秒数（エンドポイントへ送るの既定のタイムアウト 1.5 秒より長く、送っても届かない送り先にする）。"""
+
 SPEECH_TEXT = "これはテストです"
 """録音中にスピーカーから読み上げる文。マイクがその音を拾う前提で、起こした文字の中身は決め打ちしない。"""
 
@@ -106,3 +118,20 @@ def record_via_api(app: AppDriver, receiver: CallbackReceiver) -> tuple[str, dic
     time.sleep(API_QUIET_SEC)
     assert len(receiver.received) == 1
     return session_id, receiver.received[0]
+
+
+def browser_preset_settings(url: str, *, send_enter: bool) -> str:
+    """URL を開く、ブラウザ添付のプリセット 1 つと、画面を開いてから貼り付けるまでの間の設定。"""
+    return (
+        "[[presets]]\n"
+        'kind = "browser"\n'
+        'title = "E2E ブラウザ"\n'
+        f'url = "{url}"\n'
+        f"send_enter = {str(send_enter).lower()}\n\n" + BROWSER_OPEN_DELAY_SETTINGS
+    )
+
+
+def endpoint_preset_settings(url: str) -> str:
+    """URL へ送る、エンドポイントへ送るのプリセット 1 つの設定。"""
+    return f'[[presets]]\nkind = "endpoint"\ntitle = "E2E 受け口"\nurl = "{url}"\n'
+

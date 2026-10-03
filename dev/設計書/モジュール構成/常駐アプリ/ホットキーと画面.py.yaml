@@ -15,7 +15,8 @@ directory: |-
       ├── recording_window.py       # RecordingWindow
       ├── transcribing_indicator.py # TranscribingIndicator
       ├── busy_dialog.py            # show_busy_dialog
-      └── settings_window.py        # SettingsWindow・confirm_discard・confirm_reset
+      ├── settings_window.py        # SettingsWindow・confirm_discard・confirm_reset・PRESET_KIND_NAMES
+      └── settings_presets.py       # PresetListPanel（設定画面の種類ごとのタブのプリセットの一覧）
   resources/tray/
   └── starting.png・idle.png・recording.png・transcribing.png・failed.png  # トレイのアイコン（状態ごと）
   ```
@@ -527,7 +528,7 @@ classes:
     methods:
       - name: open
         title: 画面を出す
-        summary: 新しい録音として経過時間と波形を空にし、設定でオンの出力先と AI チャットの送り先のボタンを組み直して、設定の位置に出す（place_window）
+        summary: 新しい録音として経過時間と波形を空にし、設定でオンの出力先のボタンと、有効なカスタムプリセットのボタン（browser・endpoint の順に presets[] の並び。3 件ごとに折り返す）を組み直して、設定の位置に出す（place_window）。プリセットのボタンは押すと UiDeps.complete(None, そのプリセット) を呼ぶ
         kind: メソッド
         scope: public
         returns:
@@ -623,12 +624,14 @@ classes:
     container: ui/windows/settings_window.py
     usecase: 設定を変える
     role: 画面
-    summary: Settings のモデルから欄を組み立て、7 つのまとまりに並べ、保存で確かめてから書く
+    summary: Settings のモデルから欄を組み立て、9 つのまとまりに並べ、保存で確かめてから書く
     description: |-
       要素と入力チェックは画面設計「設定画面」が持つ。
       欄は `Settings.model_fields` を辿って型から部品を決め、欄の名前は各項目の `description`、「再起動で反映」の印は `json_schema_extra` の reload から出す。まとまりと型から決まらない部品は画面設計の補足「まとまりと欄」の表を FIELD_LAYOUT に写す。
+      カスタムプリセットは、PRESET_KIND_NAMES の種類ごとにまとまり（「出力先」のすぐ下のタブ）を 1 つ作り、その中に PresetListPanel とその種類の preset_options の欄を置く。Authorization の欄は `QLineEdit.EchoMode.Password` にする。
+      エラーの一覧のプリセットの行は、失敗の場所 `presets[{n}].{項目}` を「プリセット「{タイトル}」の{欄の名前}」（タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」）にし、押すとそのタブへ切り替えて PresetListPanel.focus_field で欄へフォーカスを移す。
       ホットキーの欄は押したキーを format_hotkey の形で出し、parse_hotkey で pynput の書式に戻す。
-      コンストラクタは UiDeps を受ける。欄の部品は設定のキーを使った objectName（`field_{キー}`）を持つ。窓が閉じたら（保存・取り消し・窓の閉じるのどの経路でも）closed を emit する。
+      コンストラクタは UiDeps を受ける。欄の部品は設定のキーを使った objectName（`field_{キー}`。プリセットの欄は画面設計の項目 ID）を持つ。窓が閉じたら（保存・取り消し・窓の閉じるのどの経路でも）closed を emit する。
     kind: クラス
     inherits: PySide6.QtWidgets.QWidget
     properties:
@@ -657,7 +660,7 @@ classes:
         scope: internal
         returns:
           type: dict[str, Any]
-          description: Settings.model_validate へ渡す値
+          description: Settings.model_validate へ渡す値。presets はブラウザ添付のタブの並び → エンドポイントへ送るのタブの並びの順（各 PresetListPanel.collect をつなぐ）
       - name: save
         title: 保存
         summary: 欄の値を設定のモデルで確かめ、通れば書いて効かせる。通らなければエラーを出す
@@ -703,6 +706,19 @@ classes:
             mock: UiDeps.save_settings
             expected: False。エラーの一覧に「ホットキーを受け付けられませんでした」の行が出て、saved が emit されず、窓が開いたまま
             exception: ホットキーを受け付けられない
+          - name: test_save_when_presets
+            case: 正常
+            summary: タブごとのプリセットを 1 つの一覧にして書く
+            condition: エンドポイントへ送るのタブでプリセットを 1 件足し、ブラウザ添付のタブでも 1 件足して（どちらもタイトル・URL を入れる）save(restart=False)
+            mock: UiDeps.save_settings
+            expected: True。save_settings に渡った Settings の presets が [browser の 1 件, endpoint の 1 件] の順
+          - name: test_save_when_preset_invalid
+            case: 異常
+            summary: タイトルが空のプリセットは書かずにエラーを出す
+            condition: ブラウザ添付のタブでプリセットを 1 件足し、URL だけ入れて save(restart=False)
+            mock: UiDeps.save_settings
+            expected: 'False。save_settings が呼ばれず、エラーの一覧に「プリセット 1 件目のタイトル: タイトルを入れてください。」の行が出る'
+            exception: 確かめに通らない
       - name: reset_to_defaults
         title: 既定に戻す
         summary: confirm_reset で確かめ、戻すなら Settings() を書いて欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す
@@ -719,6 +735,98 @@ classes:
         returns:
           type: bool
           description: 閉じたか
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/設定画面.py#
+    status: implemented
+  - name: PresetListPanel
+    title: プリセットの一覧
+    container: ui/windows/settings_presets.py
+    usecase: 設定を変える
+    role: 画面の部品
+    kind: クラス
+    inherits: PySide6.QtWidgets.QWidget
+    summary: 設定画面の 1 つの種類のタブに置く、プリセットのまとまりの縦の並びと「プリセットを足す」。足す・消す・上へ・下へを受ける
+    description: |-
+      要素（有効の切り替え・タイトル・URL・Enter まで送る・Authorization・確定のホットキー・上へ・下へ・消す・足す・空の案内）と読み上げの名前は画面設計「設定画面」が持つ。
+      種類ごとに違う欄（browser は Enter まで送る、endpoint は Authorization）は、種類の設定のモデル（BrowserPreset・EndpointPreset）の共通でない項目から組み立てる。
+      並べ替え・足す・消すはこの部品の中だけを変え、settings.toml へは設定画面の保存で書く。
+    properties:
+      - name: kind
+        type: str
+        description: この一覧が持つプリセットの種類（browser・endpoint）
+      - name: changed
+        type: Signal()
+        description: 足す・消す・並べ替え・欄の入力で値が変わった（設定画面が変えた欄の数えに使う）
+    methods:
+      - name: set_presets
+        title: 一覧に入れる
+        kind: メソッド
+        scope: public
+        summary: 渡したプリセット（この種類のものだけ）で一覧を作り直す。空なら空の案内を出す
+        args:
+          - name: presets
+            type: Sequence[Preset]
+            required: true
+            passing: positional
+            description: この種類のプリセット（設定の presets[] の並び）
+        returns:
+          type: None
+          description: なし
+      - name: collect
+        title: 一覧の値の収集
+        kind: メソッド
+        scope: public
+        summary: 今の並びのプリセットを settings.toml と同じ形の dict の並びにする（kind を含める。ホットキーは parse_hotkey で pynput の書式に戻し、空は空文字）
+        returns:
+          type: list[dict[str, Any]]
+          description: この種類のプリセットの並び
+        unit_tests:
+          - name: test_preset_list_panel_collect
+            case: 正常
+            summary: 入れたプリセットをそのまま集める
+            condition: kind endpoint の一覧に、hotkey <ctrl>+<alt>+4・authorization Bearer x のプリセットと hotkey が空のプリセットを set_presets する
+            mock: なし（offscreen）
+            expected: collect が 2 件を同じ並びで返し、kind が endpoint、1 件目の hotkey が <ctrl>+<alt>+4・authorization が Bearer x、2 件目の hotkey が空文字
+          - name: test_preset_list_panel_move
+            case: 正常
+            summary: 下へで並びを入れ替える
+            condition: A・B の 2 件で、A の「下へ」を押す
+            mock: なし（offscreen）
+            expected: collect のタイトルが B・A の順
+      - name: add_preset
+        title: プリセットを足す
+        kind: メソッド
+        scope: public
+        summary: 末尾に空のプリセット（有効。browser は Enter まで送るがオン）を足し、タイトルの欄へフォーカスを移して changed を emit する。「プリセットを足す」が呼ぶ
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_preset_list_panel_add_preset
+            case: 正常
+            summary: 足したプリセットは有効で Enter まで送る
+            condition: kind browser の空の一覧で add_preset を呼ぶ
+            mock: なし（offscreen）
+            expected: collect が 1 件（enabled True・send_enter True・title・url・hotkey が空）を返し、changed が 1 回 emit される
+      - name: focus_field
+        title: 欄へフォーカスを移す
+        kind: メソッド
+        scope: public
+        summary: この一覧の中の何件目かと項目の名前で欄を探し、フォーカスを移す（エラーの一覧の行を押したとき）
+        args:
+          - name: position
+            type: int
+            required: true
+            passing: positional
+            description: この一覧の中の何件目か（0 から）
+          - name: field
+            type: str
+            required: true
+            passing: positional
+            description: 項目の名前（title・url・hotkey など）
+        returns:
+          type: None
+          description: なし
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
     status: implemented
@@ -999,12 +1107,12 @@ functions:
       type: str
       description: 欄の下とエラーの一覧に出す文言
     process: |-
-      1. type で文言を選ぶ
+      1. type と場所で文言を選ぶ
          - float_parsing・int_parsing・int_from_float: 「数値を入れてください（例: {既定の値}）。」
          - greater_than_equal・less_than_equal・greater_than: 「{最小}〜{最大} の値を入れてください。」（上限が無ければ「{最小} 以上の値を入れてください。」）
-         - string_too_short（送り先の名前）: 「送り先の名前を入れてください。」
-         - URL の形が合わない: 「http:// か https:// で始まる URL を入れてください。」
-         - hotkey_overlap（find_hotkey_overlaps）: 「「{重なった欄の名前}」と同じホットキーです。別のキーにしてください。」
+         - string_too_short（プリセットのタイトル）: 「タイトルを入れてください。」
+         - URL の形が合わない（プリセットの URL）: 空なら「URL を入れてください（例: https://example.com/hook）。」、空でなければ「http:// か https:// で始まる URL を入れてください。」
+         - hotkey_overlap（find_hotkey_overlaps）: 重なった先がプリセットなら「プリセット「{タイトル}」と同じキーです。別のキーにしてください。」（もう一方の種類のプリセットなら「「{種類}」のプリセット「{タイトル}」と同じキーです。別のキーにしてください。」）、それ以外は「「{重なった欄の名前}」と同じホットキーです。別のキーにしてください。」
          - それ以外: pydantic の msg をそのまま出す
     unit_tests:
       - name: test_to_field_message_when_not_number
@@ -1019,6 +1127,12 @@ functions:
         condition: api.port に 80
         mock: なし
         expected: 1024〜65535 の値を入れてください。
+      - name: test_to_field_message_when_preset_url_empty
+        case: 正常
+        summary: プリセットの URL が空
+        condition: presets[0] を kind endpoint・url が空にした Settings.model_validate の失敗
+        mock: なし
+        expected: 'URL を入れてください（例: https://example.com/hook）。'
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
     status: implemented
@@ -1086,7 +1200,7 @@ data_models:
         description: SessionManager.resume
       - name: complete
         type: Callable[[str, str | None], None]
-        description: 出力先の ID と出力先に固有の宛先で確定する（SessionManager.complete を output_id・output_target で呼ぶ）
+        description: 固定の出力先の ID かカスタムプリセットのどちらかで確定する（SessionManager.complete を output_id・preset で呼ぶ）
       - name: cancel
         type: Callable[[], None]
         description: SessionManager.cancel
@@ -1182,3 +1296,4 @@ test_files:
   - tests/unit/voice_paste/ui/test_style.py
   - tests/unit/voice_paste/ui/windows/test_transcribing_indicator.py
   - tests/unit/voice_paste/ui/windows/test_settings_window.py
+  - tests/unit/voice_paste/ui/windows/test_settings_presets.py

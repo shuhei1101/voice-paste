@@ -9,7 +9,7 @@ catalogs:
     entries:
       - name: msedge --app={URL}
         kind: コマンド
-        purpose: AI チャットの画面をアプリのウィンドウとして開く（`msedge` が PATH に無ければ Program Files の既定の場所を探し、無ければ既定のブラウザで URL を開く）
+        purpose: ブラウザ添付のプリセットの画面をアプリのウィンドウとして開く（`msedge` が PATH に無ければ Program Files の既定の場所を探し、無ければ既定のブラウザで URL を開く）
 lead: Windows に入っている Web ブラウザ。`--app` でページをアプリのウィンドウとして開ける。
 dependency_scope: 任意
 adoption: 採用

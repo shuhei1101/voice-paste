@@ -15,12 +15,15 @@ from pathlib import Path
 
 import pytest
 
+from tests.integration.helpers import CallbackReceiver
 from tests.support.app_driver import IDLE, RECORDING, START_HOTKEY, AppDriver
 from tests.support.desktop import (
     press_hotkey,
+    speak,
     type_keys,
     wait_until,
 )
+from tests.support.flows import SPEECH_TEXT, wait_processed
 
 pytestmark = pytest.mark.real_machine
 
@@ -44,6 +47,15 @@ RESTART_KEY = "transcription.local_whisper.beam_size"
 
 HOTKEY_REGISTERED_LOG = "ホットキーの受付を始めた"
 """ホットキーの受付を始めたときのログの言葉。"""
+
+PRESET_TITLE = "E2E 受け口"
+"""足すプリセットのタイトル。"""
+
+PRESET_HOTKEY = "<ctrl>+<alt>+8"
+"""足すプリセットの確定のホットキー。"""
+
+PRESET_DELIVER_TIMEOUT_SEC = 120.0
+"""プリセットのホットキーで確定してから、送り先に届くまで待つ上限。"""
 
 
 def _settings_file(app: AppDriver) -> Path:
@@ -182,3 +194,50 @@ def test_error_when_invalid_value(start_app: StartApp) -> None:
     assert app.window("error_summary") is not None
     assert app.window("settings_window") is not None
     assert _settings_file(app).read_bytes() == before
+
+
+def test_normal_when_preset_added(start_app: StartApp, receiver: CallbackReceiver) -> None:
+    """「エンドポイントへ送る」のまとまりでプリセットを足して保存すると、settings.toml に書かれ、再起動せずに次の録音の画面にそのボタンが出て、そのホットキーで確定できる（正常シナリオ）。"""
+    # 準備
+    app = start_app(COMMENTED_SETTINGS)
+    app.open_settings()
+    app.select_group("エンドポイントへ送る")
+
+    # 実行（足して、タイトル・URL・確定のホットキーを入れて、保存する）
+    app.press("add_preset_button_endpoint")
+    app.set_text("preset_title_0", PRESET_TITLE)
+    app.set_text("preset_url_0", receiver.url)
+    app.uia.focus(app.uia.wait_find(app.pids, "preset_hotkey_0"))
+    type_keys(PRESET_HOTKEY)
+    app.press("save_button")
+
+    # 検証（settings.toml・設定画面）
+    assert app.wait_window_gone("settings_window")
+    saved = _settings_file(app).read_text(encoding="utf-8")
+    presets = _toml(app)["presets"]
+    assert presets == [  # type: ignore[comparison-overlap]
+        {
+            "kind": "endpoint",
+            "title": PRESET_TITLE,
+            "url": receiver.url,
+            "hotkey": PRESET_HOTKEY,
+            "enabled": True,
+            "authorization": "",
+        }
+    ]
+    assert "# E2E: このコメントは保存しても残る" in saved
+    assert "fade_sec = 1.5" in saved
+    assert "wave_gain = 2.0" in saved
+
+    # 検証（再起動せずに、次の録音の画面にボタンが出て、そのホットキーで確定できる）
+    assert wait_until(lambda: PRESET_HOTKEY in _last_registration(app), 10)
+    press_hotkey(START_HOTKEY)
+    app.wait_window("recording_window")
+    assert PRESET_TITLE in app.texts("preset_button_0")
+    speak(SPEECH_TEXT)
+    press_hotkey(PRESET_HOTKEY)
+    assert app.wait_window_gone("recording_window")
+    assert wait_until(lambda: len(receiver.received) >= 1, PRESET_DELIVER_TIMEOUT_SEC)
+    wait_processed(app)
+    assert len(receiver.received) == 1
+    assert receiver.received[0]["result"] == "transcribed"

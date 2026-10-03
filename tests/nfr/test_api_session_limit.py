@@ -22,7 +22,7 @@ from tests.integration.helpers import CallbackReceiver, wait_until
 from tests.support.fixtures import receiver  # noqa: F401 フィクスチャとして使う
 from voice_paste.features.history import append_text, discard_temporary, save_recording
 from voice_paste.features.outputs import OUTPUTS, deliver
-from voice_paste.features.outputs.callback.client import post_json
+from voice_paste.integrations.http.client import post_json
 from voice_paste.features.outputs.registry import CALLBACK_OUTPUT_ID
 from voice_paste.features.recording import Recorder
 from voice_paste.features.recording.client import open_input
@@ -106,11 +106,12 @@ def manager(tmp_path: Path, receiver: CallbackReceiver) -> Iterator[SessionManag
         deliver(
             session.entry,
             session.output_id,
-            session.output_target,
+            session.output_preset,
             session.callback_url,
             outcome,
             enabled_ids=frozenset(),
             outputs=outputs,
+            preset_kinds=(),
         )
 
     deps = SessionDeps(

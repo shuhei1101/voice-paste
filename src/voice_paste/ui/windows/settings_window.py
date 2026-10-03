@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import logging
+import re
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Literal, get_args, get_origin
 
@@ -30,10 +31,9 @@ from voice_paste.shared.errors import HotkeyError
 from voice_paste.shared.settings import (
     HOTKEY_OVERLAP_ERROR_TYPE,
     OUTPUTS_FIELD_NAME,
+    PRESETS_FIELD_NAME,
     RELOAD_IMMEDIATE,
     RELOAD_RESTART,
-    AiChatSettings,
-    AiChatTarget,
     CopyOnlySettings,
     PasteAndSendSettings,
     PasteOnlySettings,
@@ -58,6 +58,11 @@ from voice_paste.ui.windows.settings_fields import (
     set_nested,
     value_at,
 )
+from voice_paste.ui.windows.settings_presets import (
+    PRESET_FIELD_LABELS,
+    PRESET_MODELS,
+    PresetListPanel,
+)
 
 if TYPE_CHECKING:
     from voice_paste.ui.controller import UiDeps
@@ -70,8 +75,12 @@ WINDOW_TITLE: str = "voice-paste の設定"
 MIN_WIDTH_PX: int = 720
 """設定画面の最小の幅（欄の名前と設定のキーが語の途中で折り返さない幅）。"""
 
+PRESET_KIND_NAMES: dict[str, str] = {"browser": "ブラウザ添付", "endpoint": "エンドポイントへ送る"}
+"""カスタムプリセットの種類ごとの画面の名前（設定画面のタブの名前）。種類の並びが、タブと録音の画面のボタンの並びになる。"""
+
 GROUP_NAMES: tuple[str, ...] = (
     "出力先",
+    *PRESET_KIND_NAMES.values(),
     "ホットキー",
     "録音",
     "文字起こし",
@@ -83,6 +92,8 @@ GROUP_NAMES: tuple[str, ...] = (
 
 FIELD_LAYOUT: dict[str, tuple[str, ...]] = {
     "出力先": (OUTPUTS_FIELD_NAME,),
+    PRESET_KIND_NAMES["browser"]: (PRESETS_FIELD_NAME, "preset_options.browser.open_delay_sec"),
+    PRESET_KIND_NAMES["endpoint"]: (PRESETS_FIELD_NAME, "preset_options.endpoint.timeout_sec"),
     "ホットキー": ("hotkeys.start", "hotkeys.pause", "hotkeys.cancel", "keyboard.paste_key"),
     "録音": (
         "recording.lower_volume",
@@ -123,7 +134,7 @@ FIELD_LAYOUT: dict[str, tuple[str, ...]] = {
 HOTKEY_KEYS: frozenset[str] = frozenset(
     {"hotkeys.start", "hotkeys.pause", "hotkeys.cancel", "keyboard.paste_key"}
 )
-"""ホットキーの欄にするキー（出力先・送り先の hotkey は出力先の欄が同じ部品にする）。"""
+"""ホットキーの欄にするキー（出力先・プリセットの hotkey は出力先・プリセットの欄が同じ部品にする）。"""
 
 SLIDER_KEYS: frozenset[str] = frozenset({"recording.volume_percent"})
 """つまみにするキー。"""
@@ -135,7 +146,6 @@ OUTPUT_NAMES: dict[str, str] = {
     "paste_and_send": "貼り付けて送信",
     "paste_only": "貼り付けのみ",
     "copy_only": "コピーのみ",
-    "ai_chat": "AI チャットへ送る",
 }
 """出力先の ID ごとの画面の名前。"""
 
@@ -143,7 +153,6 @@ OUTPUT_MODELS: dict[str, type[BaseModel]] = {
     "paste_and_send": PasteAndSendSettings,
     "paste_only": PasteOnlySettings,
     "copy_only": CopyOnlySettings,
-    "ai_chat": AiChatSettings,
 }
 """出力先の ID ごとの設定のモデル（失敗の場所の判別子から既定の値を引く）。"""
 
@@ -199,6 +208,23 @@ RANGE_ERROR_TYPES: frozenset[str] = frozenset(
     {"greater_than_equal", "less_than_equal", "greater_than", "less_than"}
 )
 """数値が範囲の外のときの失敗の種類。"""
+
+PRESET_KEY_PATTERN: re.Pattern[str] = re.compile(rf"^{PRESETS_FIELD_NAME}\[(\d+)\]\.(\w+)$")
+"""プリセットの欄の失敗のキー（`presets[2].url`）を、設定の全体の中の添字と項目の名前に分ける。"""
+
+PRESET_URL_EXAMPLE: str = "https://example.com/hook"
+"""プリセットの URL が空のときの文言に出す例。"""
+
+OPTION_NOTES: dict[str, str] = {
+    "preset_options.browser.open_delay_sec": "貼り付けてから Enter を送るまでの秒数は「出力先」の値を使う。",
+    "preset_options.endpoint.timeout_sec": (
+        "既定は 1.5 秒で、10 秒まで入れられる。この秒数で届かなければ、送り直さずにトレイで知らせる。"
+    ),
+    f"{OUTPUTS_FIELD_NAME}[0].enter_delay_sec": (
+        "「貼り付けて送信」と、「ブラウザ添付」の Enter まで送るプリセットで使う。"
+    ),
+}
+"""欄の下に出す補助文（欄のキーごと）。"""
 
 
 # === ホットキーの表示・読み取り ===
@@ -256,17 +282,23 @@ def parse_hotkey(combination: QKeyCombination) -> str | None:
 
 
 def _field_info_at(location: tuple[int | str, ...]) -> FieldInfo | None:
-    """pydantic の失敗の場所に当たる、設定のモデルの項目を引く（出力先の判別子の値から出力先のモデルを選ぶ）。"""
+    """pydantic の失敗の場所に当たる、設定のモデルの項目を引く（判別子の値から出力先・プリセットのモデルを選ぶ）。"""
     model: Any = Settings
     info: FieldInfo | None = None
+    list_name: str | None = None
+    previous: int | str | None = None
     for part in location:
         # 添字は何もせず、次の名前へ進む
         if isinstance(part, int):
+            previous = part
             continue
-        # 出力先の判別子の値なら、出力先のモデルに替える
-        if part in OUTPUT_MODELS:
-            model = OUTPUT_MODELS[part]
-            continue
+        # 一覧の添字の次の名前が判別子の値なら、出力先・プリセットのモデルに替える
+        if isinstance(previous, int):
+            discriminated = OUTPUT_MODELS if list_name == OUTPUTS_FIELD_NAME else PRESET_MODELS
+            if part in discriminated:
+                model = discriminated[part]
+                previous = part
+                continue
         # 一覧の項目なら、要素のモデルに替える
         if get_origin(model) is list:
             model = get_args(model)[0]
@@ -275,6 +307,8 @@ def _field_info_at(location: tuple[int | str, ...]) -> FieldInfo | None:
             return None
         info = fields[part]
         model = info.annotation
+        list_name = part
+        previous = part
     return info
 
 
@@ -314,11 +348,18 @@ def to_field_message(
     if error_type in RANGE_ERROR_TYPES and info is not None:
         return _range_text(info)
     if error_type == "string_too_short":
-        return "送り先の名前を入れてください。"
+        return "タイトルを入れてください。"
     if error_type == "string_pattern_mismatch":
+        # 空なら入れてもらい、空でなければ形を直してもらう
+        if not error.get("input"):
+            return f"URL を入れてください（例: {PRESET_URL_EXAMPLE}）。"
         return "http:// か https:// で始まる URL を入れてください。"
     if error_type == HOTKEY_OVERLAP_ERROR_TYPE:
-        return f"「{name_of(error['ctx']['other'])}」と同じホットキーです。別のキーにしてください。"
+        other = error["ctx"]["other"]
+        # 重なった先がプリセットなら、プリセットの呼び方で示す
+        if other.startswith(f"{PRESETS_FIELD_NAME}["):
+            return f"{name_of(other)}と同じキーです。別のキーにしてください。"
+        return f"「{name_of(other)}」と同じホットキーです。別のキーにしてください。"
     return str(error["msg"])
 
 
@@ -370,7 +411,8 @@ def confirm_reset(parent: QWidget) -> bool:
         dialog_name="reset_dialog",
         heading="全ての設定を既定に戻しますか",
         body=(
-            "出力先・ホットキー・AI チャットの送り先を含む全ての設定が既定の値になり、元に戻せません。"
+            "出力先・ホットキーを含む全ての設定が既定の値になり、カスタムプリセットは全て消えます。"
+            "元に戻せません。"
             "「再起動で反映」の設定は、再起動するまで今の値で動きます。"
         ),
         accept_text="既定に戻す",
@@ -405,6 +447,11 @@ class HotkeyEdit(QLineEdit):
         """今のホットキー（pynput の書式）。"""
         return self._hotkey
 
+    def clear_hotkey(self) -> None:
+        """ホットキーを空にする（空のホットキーは登録しない）。"""
+        self._hotkey = ""
+        self.setText("")
+
     def event(self, event: QEvent) -> bool:
         """Ctrl などを含む組み合わせが画面のショートカットに取られないよう、欄で受ける。"""
         if event.type() == QEvent.Type.ShortcutOverride:
@@ -426,16 +473,8 @@ class HotkeyEdit(QLineEdit):
 # === 設定画面 ===
 
 
-class _TargetRow:
-    """AI チャットの送り先の 1 行（出す・名前・URL・ホットキー・消すボタン）。"""
-
-    def __init__(self, container: QWidget, fields: list[Field]) -> None:
-        self.container = container
-        self.fields = fields
-
-
 class SettingsWindow(QWidget):
-    """Settings のモデルから欄を組み立て、7 つのまとまりに並べ、保存で確かめてから書く設定画面。
+    """Settings のモデルから欄を組み立て、9 つのまとまりに並べ、保存で確かめてから書く設定画面。
 
     欄の名前は各項目の description、「再起動で反映」の印は json_schema_extra の reload から出す。
     まとまりと型から決まらない部品は FIELD_LAYOUT と各キーの集合で決める。
@@ -457,9 +496,8 @@ class SettingsWindow(QWidget):
         self._original = deps.get_settings()
         self._fields: list[Field] = []
         self._static: dict[str, Any] = {}
-        self._target_rows: list[_TargetRow] = []
-        self._targets_layout: QVBoxLayout | None = None
-        self._ai_chat_index: int | None = None
+        self._panels: dict[str, PresetListPanel] = {}
+        self._panel_groups: dict[str, int] = {}
         self._baseline: dict[str, Any] = {}
         self._restart_baseline: dict[str, Any] = {}
         self._force_close = False
@@ -556,9 +594,8 @@ class SettingsWindow(QWidget):
             page.deleteLater()
         self._fields = []
         self._static = {}
-        self._target_rows = []
-        self._targets_layout = None
-        self._ai_chat_index = None
+        self._panels = {}
+        self._panel_groups = {}
 
         # 2. まとまりごとの頁に、並びのとおり欄を足す
         for group, name in enumerate(GROUP_NAMES):
@@ -567,6 +604,8 @@ class SettingsWindow(QWidget):
             for key in FIELD_LAYOUT[name]:
                 if key == OUTPUTS_FIELD_NAME:
                     self._add_outputs(layout, settings, group)
+                elif key == PRESETS_FIELD_NAME:
+                    self._add_presets(layout, settings, name, group)
                 elif key == "glossary_path":
                     self._add_glossary(layout, settings, group)
                 else:
@@ -658,6 +697,17 @@ class SettingsWindow(QWidget):
         self._register(
             layout, key=key, label=label, widget=widget, get=get, group=group, extras=extras
         )
+        self._add_note(layout, OPTION_NOTES.get(key))
+
+    @staticmethod
+    def _add_note(layout: QVBoxLayout, note: str | None) -> None:
+        """欄の下に補助文を出す（補助文が無ければ何もしない）。"""
+        if note is None:
+            return
+        label = QLabel(note)
+        label.setProperty("role", "muted")
+        label.setWordWrap(True)
+        layout.addWidget(label)
 
     @staticmethod
     def _model_field_info(key: str) -> FieldInfo:
@@ -728,7 +778,7 @@ class SettingsWindow(QWidget):
         )
 
     def _add_outputs(self, layout: QVBoxLayout, settings: Settings, group: int) -> None:
-        """出力先ごとの欄（オン・ホットキー・送るまでの間・AI チャットの送り先の一覧）を足す。"""
+        """出力先ごとの欄（オン・確定のホットキー・貼り付けて送信の送るまでの間）を足す。"""
         for index, output in enumerate(settings.outputs):
             prefix = f"{OUTPUTS_FIELD_NAME}[{index}]"
             name = OUTPUT_NAMES[output.id]
@@ -747,23 +797,19 @@ class SettingsWindow(QWidget):
                 get=enabled.isChecked,
                 group=group,
             )
-            # 出力先ごとの確定のホットキー（AI チャットは送り先ごとに持つ）
-            if not isinstance(output, AiChatSettings):
-                hotkey_edit = HotkeyEdit(output.hotkey)
-                self._register(
-                    inner,
-                    key=f"{prefix}.hotkey",
-                    label=f"{name}のホットキー",
-                    widget=hotkey_edit,
-                    get=lambda edit=hotkey_edit: edit.hotkey,
-                    group=group,
-                )
-            # 送るまでの間
+            # 出力先ごとの確定のホットキー
+            hotkey_edit = HotkeyEdit(output.hotkey)
+            self._register(
+                inner,
+                key=f"{prefix}.hotkey",
+                label=f"{name}のホットキー",
+                widget=hotkey_edit,
+                get=lambda edit=hotkey_edit: edit.hotkey,
+                group=group,
+            )
+            # 貼り付けて送信だけが持つ、送るまでの間
             if isinstance(output, PasteAndSendSettings):
                 self._add_delay(inner, prefix, "enter_delay_sec", output, group)
-            if isinstance(output, AiChatSettings):
-                self._add_delay(inner, prefix, "open_delay_sec", output, group)
-                self._add_targets(inner, index, output, group)
             layout.addWidget(frame)
 
     def _add_delay(
@@ -785,125 +831,43 @@ class SettingsWindow(QWidget):
             get=lambda: line.text().strip(),
             group=group,
         )
+        self._add_note(layout, OPTION_NOTES.get(name))
 
-    def _add_targets(
-        self, layout: QVBoxLayout, index: int, output: AiChatSettings, group: int
+    def _add_presets(
+        self, layout: QVBoxLayout, settings: Settings, group_name: str, group: int
     ) -> None:
-        """AI チャットの送り先の一覧（1 行ずつ出す・名前・URL・ホットキー・消すボタン）と「送り先を足す」を足す。"""
-        self._ai_chat_index = index
-        self._static[f"{OUTPUTS_FIELD_NAME}[{index}].targets"] = []
-        heading = QLabel("AI チャットの送り先")
-        heading.setProperty("role", "heading")
-        layout.addWidget(heading)
-        table = QVBoxLayout()
-        self._targets_layout = table
-        targets_widget = QWidget()
-        targets_widget.setObjectName("ai_chat_targets")
-        targets_widget.setLayout(table)
-        layout.addWidget(targets_widget)
-        for target in output.targets:
-            self._add_target_row(target, group)
-        add_button = QPushButton("送り先を足す")
-        add_button.setObjectName("add_target_button")
-        add_button.clicked.connect(lambda: self._add_new_target(group))
-        layout.addWidget(add_button, alignment=Qt.AlignmentFlag.AlignLeft)
-
-    def _add_target_row(self, target: AiChatTarget, group: int) -> _TargetRow:
-        """送り先の 1 行を一覧の末尾に足す。"""
-        assert self._targets_layout is not None  # noqa: S101 送り先の一覧は出力先の欄と一緒に作る
-        container = QWidget()
-        column = QVBoxLayout(container)
-        column.setContentsMargins(0, 0, 0, 0)
-        line = QHBoxLayout()
-        column.addLayout(line)
-
-        enabled = make_check_box("出す", target.enabled)
-        name = make_line_edit(target.name)
-        name.setPlaceholderText("名前")
-        url = make_line_edit(target.url)
-        url.setPlaceholderText("https://")
-        hotkey_edit = HotkeyEdit(target.hotkey)
-        delete_button = QPushButton("消す")
-        delete_button.setObjectName("delete_target_button")
-        for widget in (enabled, name, url, hotkey_edit, delete_button):
-            line.addWidget(widget)
-        error_label = QLabel()
-        error_label.setTextFormat(Qt.TextFormat.PlainText)
-        error_label.setProperty("role", "error")
-        error_label.setWordWrap(True)
-        error_label.hide()
-        column.addWidget(error_label)
-
-        row_fields = [
-            Field(
-                key="",
-                label="",
-                reload=RELOAD_IMMEDIATE,
-                widget=widget,
-                get=get,
-                group=group,
-                error_label=error_label,
-            )
-            for widget, get in (
-                (enabled, enabled.isChecked),
-                (name, lambda: name.text().strip()),
-                (url, lambda: url.text().strip()),
-                (hotkey_edit, lambda: hotkey_edit.hotkey),
-            )
-        ]
-        row = _TargetRow(container, row_fields)
-        self._target_rows.append(row)
-        self._targets_layout.addWidget(container)
-        for widget in (enabled, name, url, hotkey_edit):
-            connect_changed(widget, self._on_field_changed)
-        delete_button.clicked.connect(lambda: self._remove_target_row(row))
-        self._reindex_targets()
-        return row
-
-    def _add_new_target(self, group: int) -> None:
-        """空の行（出すはオン）を一覧の末尾に足し、名前の欄へフォーカスを移す。"""
-        row = self._add_target_row(AiChatTarget.model_construct(name="", url="", hotkey="", enabled=True), group)
-        row.fields[1].widget.setFocus()
-        self._on_field_changed()
-
-    def _remove_target_row(self, row: _TargetRow) -> None:
-        """送り先の行を一覧から消す。"""
-        self._target_rows.remove(row)
-        row.container.setParent(None)
-        row.container.deleteLater()
-        self._reindex_targets()
-        self._on_field_changed()
-
-    def _reindex_targets(self) -> None:
-        """送り先の行の並びに合わせて、各欄のキー・名前・部品の名前を付け直す。"""
-        if self._ai_chat_index is None:
-            return
-        for position, row in enumerate(self._target_rows):
-            prefix = f"{OUTPUTS_FIELD_NAME}[{self._ai_chat_index}].targets[{position}]"
-            for field, (attribute, label) in zip(
-                row.fields,
-                (
-                    ("enabled", "出す"),
-                    ("name", "名前"),
-                    ("url", "URL"),
-                    ("hotkey", "ホットキー"),
-                ),
-                strict=True,
-            ):
-                field.key = f"{prefix}.{attribute}"
-                field.label = f"送り先 {position + 1} の{label}"
-                field.widget.setObjectName(field_object_name(field.key, field.widget))
+        """タブの種類のカスタムプリセットの一覧（足す・消す・並べ替え）を足す。"""
+        kind = next(kind for kind, name in PRESET_KIND_NAMES.items() if name == group_name)
+        panel = PresetListPanel(kind)
+        panel.set_presets([preset for preset in settings.presets if preset.kind == kind])
+        panel.changed.connect(self._on_field_changed)
+        self._panels[kind] = panel
+        self._panel_groups[kind] = group
+        layout.addWidget(panel)
 
     # --- 値の収集 ---
 
     def _all_fields(self) -> list[Field]:
-        """全ての欄（送り先の行の欄を含む）を、並びの順に返す。"""
-        return [*self._fields, *(field for row in self._target_rows for field in row.fields)]
+        """プリセットの一覧を除く全ての欄を、並びの順に返す。"""
+        return list(self._fields)
+
+    def _preset_values(self) -> list[tuple[str, int, dict[str, Any]]]:
+        """全てのプリセットを（種類, そのタブの中の何件目か, 値）で、設定の presets の並び（種類の並びの順）で返す。"""
+        return [
+            (kind, position, item)
+            for kind in PRESET_KIND_NAMES
+            if kind in self._panels
+            for position, item in enumerate(self._panels[kind].collect())
+        ]
 
     def _flat_values(self) -> dict[str, Any]:
-        """全ての欄の値を、設定のキーごとに返す。"""
+        """全ての欄の値を、設定のキーごとに返す（プリセットは種類・何件目・項目ごと）。"""
         values = {field.key: field.get() for field in self._all_fields()}
         values.update({key: value for key, value in self._static.items() if key.endswith(".id")})
+        for kind, position, item in self._preset_values():
+            values.update(
+                {f"{PRESETS_FIELD_NAME}.{kind}[{position}].{name}": value for name, value in item.items()}
+            )
         return values
 
     def collect(self) -> dict[str, Any]:
@@ -914,6 +878,8 @@ class SettingsWindow(QWidget):
             set_nested(data, key, value)
         for field in self._all_fields():
             set_nested(data, field.key, field.get())
+        # プリセットは、種類のタブの並びの順に 1 つの一覧にする
+        data[PRESETS_FIELD_NAME] = [item for _kind, _position, item in self._preset_values()]
         return data
 
     def _changed_count(self) -> int:
@@ -932,8 +898,33 @@ class SettingsWindow(QWidget):
             and current.get(field.key) != self._restart_baseline.get(field.key)
         )
 
-    def _label_of(self, key: str) -> str:
-        """設定のキーの欄の名前を返す（無ければキーのまま）。"""
+    def _locate_preset(self, key: str) -> tuple[str, int, str, str] | None:
+        """プリセットの欄のキー（`presets[2].url`）を、（種類, そのタブの中の何件目か, 項目の名前, タイトル）にする。プリセットの欄でなければ None。"""
+        matched = PRESET_KEY_PATTERN.match(key)
+        if matched is None or matched.group(2) not in PRESET_FIELD_LABELS:
+            return None
+        presets = self._preset_values()
+        index = int(matched.group(1))
+        if index >= len(presets):
+            return None
+        kind, position, item = presets[index]
+        return kind, position, matched.group(2), str(item["title"])
+
+    @staticmethod
+    def _preset_name(position: int, title: str) -> str:
+        """プリセットの呼び方（タイトルがあれば「タイトル」、空ならそのタブの中の何件目か）。"""
+        return f"プリセット「{title}」" if title else f"プリセット {position + 1} 件目"
+
+    def _label_of(self, key: str, relative_to: str | None = None) -> str:
+        """設定のキーの欄の名前を返す（無ければキーのまま）。プリセットは、relative_to のキーと別の種類なら種類も添える。"""
+        located = self._locate_preset(key)
+        if located is not None:
+            kind, position, _attribute, title = located
+            name = self._preset_name(position, title)
+            own = self._locate_preset(relative_to) if relative_to is not None else None
+            if own is not None and own[0] != kind:
+                return f"「{PRESET_KIND_NAMES[kind]}」の{name}"
+            return name
         for field in self._all_fields():
             if field.key == key:
                 return field.label
@@ -968,6 +959,8 @@ class SettingsWindow(QWidget):
             if widget is not None:
                 widget.deleteLater()
         self._error_summary.hide()
+        for panel in self._panels.values():
+            panel.clear_errors()
         for field in self._all_fields():
             if field.error_label is not None:
                 field.error_label.clear()
@@ -980,7 +973,13 @@ class SettingsWindow(QWidget):
         """エラーの一覧（行 = 欄の名前: エラー。欄があれば行は欄へのリンク）を出し、欄の下にもエラーを出す。"""
         self._clear_errors()
         by_key = {field.key: field for field in self._all_fields()}
-        field_count = len({key for key, _message in rows if key in by_key})
+        field_count = len(
+            {
+                key
+                for key, _message in rows
+                if key is not None and (key in by_key or self._locate_preset(key) is not None)
+            }
+        )
         title = (
             f"保存できませんでした。{field_count} 件の欄を直してください。"
             if field_count
@@ -989,6 +988,17 @@ class SettingsWindow(QWidget):
         self._error_summary_layout.addWidget(self._plain_label(title))
         for key, message in rows:
             field = by_key.get(key) if key is not None else None
+            located = self._locate_preset(key) if key is not None else None
+            # プリセットの欄: 一覧の行（欄へのリンク）と、欄の下のエラーを出す
+            if located is not None and key is not None:
+                kind, position, attribute, title = located
+                label = f"{self._preset_name(position, title)}の{PRESET_FIELD_LABELS[attribute]}"
+                link = QLabel(f'<a href="{key}">{html.escape(f"{label}: {message}")}</a>')
+                link.setTextFormat(Qt.TextFormat.RichText)
+                link.linkActivated.connect(self._focus_field)
+                self._error_summary_layout.addWidget(link)
+                self._panels[kind].show_error(position, attribute, message)
+                continue
             if field is None:
                 self._error_summary_layout.addWidget(self._plain_label(message))
                 continue
@@ -1016,6 +1026,13 @@ class SettingsWindow(QWidget):
 
     def _focus_field(self, key: str) -> None:
         """エラーの一覧の行から、その欄のまとまりへ切り替えて欄へフォーカスを移す。"""
+        located = self._locate_preset(key)
+        # プリセットの欄: その種類のタブへ切り替えて、一覧の欄へフォーカスを移す
+        if located is not None:
+            kind, position, attribute, _title = located
+            self._group_menu.setCurrentRow(self._panel_groups[kind])
+            self._panels[kind].focus_field(position, attribute)
+            return
         for field in self._all_fields():
             if field.key == key:
                 self._group_menu.setCurrentRow(field.group)
@@ -1033,7 +1050,12 @@ class SettingsWindow(QWidget):
             failures = [
                 (
                     format_error_location(tuple(failure["loc"])),
-                    to_field_message(failure, name_of=self._label_of),
+                    to_field_message(
+                        failure,
+                        name_of=lambda other, own=format_error_location(tuple(failure["loc"])): (
+                            self._label_of(other, own)
+                        ),
+                    ),
                 )
                 for failure in error.errors()
             ]

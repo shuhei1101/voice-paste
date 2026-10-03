@@ -321,6 +321,9 @@ scenarios:
         description: なし（実機の Windows で実行）
       - name: 貼り付け先
         description: 「常に手前に表示」でない窓（貼り付け先の入力欄）を前面に出してから、録音開始のホットキーで録音を始める
+      - name: 隠している間の操作
+        description: 録音の画面を隠している間に行う操作
+        notes: 何もしない・一時停止のホットキーで一時停止する の 2 通り。parametrize で並べる
       - name: 戻す手段
         description: 隠した録音の画面を戻す
         notes: トレイのアイコンの左クリック・トレイのメニューの「録音の画面を出す」・録音開始のホットキーの 3 通り。parametrize で並べる。録音開始のホットキーと同じホットキーの出力先を持たない設定にする
@@ -328,18 +331,20 @@ scenarios:
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
+        participant IN as 入口（トレイ・ホットキー）
         participant SVC as 常駐サービス
         participant GUI as 録音の画面
-        participant TRAY as トレイ
         participant MIC as マイク
 
-        U->>SVC: 録音開始のホットキーを押す
+        U->>IN: 録音開始のホットキーを押す
+        IN->>SVC: 録音を始める
         SVC->>GUI: 録音の画面を開く
         U->>GUI: 録音の画面を隠す
         GUI-->>U: 録音の画面が消え、前面が貼り付け先へ戻る
-        U->>MIC: 話し続ける（録音は続く）
-        U->>TRAY: 録音の画面を戻す（トレイのアイコン・メニュー、または録音開始のホットキー）
-        TRAY->>GUI: フォーカスを取らずに録音の画面を出す
+        U->>MIC: 話し続ける（録音は続く。一時停止した場合は止まる）
+        U->>IN: 録音の画面を戻す（トレイのアイコン・メニュー、または録音開始のホットキー）
+        IN->>SVC: 録音の画面を戻す
+        SVC->>GUI: フォーカスを取らずに録音の画面を出す
         GUI-->>U: 隠していた間を含む経過時間と、今の状態を示す
         Note over GUI: 確定から後は 正常シナリオ と同じ
       ```
@@ -349,6 +354,7 @@ scenarios:
       - 戻した録音の画面の経過時間が、隠していた間を含む長さを示している
       - 戻した後も前面が貼り付け先の窓のまま
       - 履歴に保存した録音に、隠していた間に話した声が入っている
+      - 隠している間に一時停止した場合、戻した録音の画面が一時停止中を示し、経過時間が一時停止した時点で止まっている
   - name: 正常シナリオ（隠したまま確定する）
     setup:
       - name: Mock
@@ -373,6 +379,33 @@ scenarios:
       ```
     expected:
       - 隠したままでも確定のホットキーで確定でき、選んだ出力先で 録音を文字に起こす へ進む
+      - 次の録音では、録音の画面がいつもどおり出ている
+  - name: 正常シナリオ（隠したまま取り消す）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 取り消し
+        description: 録音の画面を隠した後、戻さずに取り消しのホットキーで取り消す
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SVC as 常駐サービス
+        participant GUI as 録音の画面
+        participant MIC as マイク
+        participant TRAY as トレイ
+
+        Note over GUI: 録音の画面を隠すまでは 正常シナリオ（録音の画面を隠して戻す） と同じ
+        U->>SVC: 取り消しのホットキーを押す
+        SVC->>MIC: 録音を止め、貯めた音を捨てる
+        SVC->>SVC: 待機中に戻す
+        SVC->>TRAY: 待機中のアイコンにする
+        U->>SVC: 録音開始のホットキーで次の録音を始める
+        SVC->>GUI: 録音の画面を開く
+      ```
+    expected:
+      - 履歴にこの録音が残っておらず、文字起こしへ進まない
+      - トレイのアイコンが待機中に戻っている
       - 次の録音では、録音の画面がいつもどおり出ている
 lead: ホットキー・トレイ・API のどれかから録音を始め、確定して履歴に残すか取り消すまでの単一ユースケース。
 issue: 14

@@ -171,6 +171,7 @@ scenarios:
       - 録音の画面に、出すとした送り先と同じタイトル・ホットキーのプリセットのボタンだけが出る
       - そのボタンで確定すると、送り先の URL を開いて貼り付け、Enter まで送る
       - 起動しただけでは `settings.toml` が書き換わっていない
+    test: test_normal_when_old_ai_chat_settings_remain
 lead: 'ショートカットから常駐サービスを起動し、文字起こしのエンジン・API の待ち受け・ホットキーの受付を立てて、録音の開始を待つ状態にする単一ユースケース。'
 issue: 14
 primary_actor: 音声入力を使うユーザー

@@ -92,6 +92,7 @@ scenarios:
     expected:
       - プリセットの URL の画面がアプリのウィンドウとして開いている
       - その画面の入力欄に起こした文字が入り、送信されている
+    test: test_normal_when_browser_preset
   - name: 正常シナリオ（呼び出し元へ返す）
     setup:
       - name: Mock
@@ -216,6 +217,7 @@ scenarios:
       - 送り先の受け口に、セッションの ID と起こした文字が 1 回届いている
       - クリップボードと貼り付け先が届ける前のままである
       - トレイのアイコンが待機中に戻っている
+    test: test_normal_when_endpoint_preset
   - name: 異常シナリオ（送り先に届かない）
     setup:
       - name: Mock
@@ -247,6 +249,7 @@ scenarios:
       - 送り先へ送ったのは 1 回だけである（送り直さない）
       - 履歴に録音と起こした文字が残っている
       - トレイのアイコンが待機中に戻り、次の録音を始められる
+    test: test_error_when_endpoint_unreachable
   - name: 正常シナリオ（ブラウザ添付のプリセット・貼り付けだけ）
     setup:
       - name: Mock
@@ -271,6 +274,7 @@ scenarios:
     expected:
       - プリセットの URL の画面がアプリのウィンドウとして開いている
       - その画面の入力欄に起こした文字が入り、送信はされていない
+    test: test_normal_when_browser_preset_without_enter
 lead: 起こした文字を、ホットキーから始めた録音は選んだ出力先へ、API から始めた録音は呼び出し元のエンドポイントへ届ける単一ユースケース。
 issue: 14
 primary_actor: 音声入力を使うユーザー
@@ -286,3 +290,4 @@ notes:
     ほかのアプリがクリップボードを開いたままで書けないときは、届けられなかったことをユーザーに知らせ、ログに理由を書く。
     録音と起こした文字は履歴に残っている。
     実機で決定的に起こせないため、シナリオにはしていない。
+test_file: tests/e2e/単一ユースケース/test_deliver_text.py

@@ -178,6 +178,7 @@ scenarios:
       - '`settings.toml` に足したプリセットが書かれ、ほかのキーとコメントが変わっていない'
       - 再起動せずに、次の録音の画面にそのプリセットのボタンが出、そのホットキーで確定できる
       - 設定画面が閉じている
+    test: test_normal_when_preset_added
 lead: トレイの「設定…」から設定画面を開き、変えた設定を設定のモデルで確かめてから `settings.toml` に保存する単一ユースケース。
 issue: 21
 primary_actor: 音声入力を使うユーザー

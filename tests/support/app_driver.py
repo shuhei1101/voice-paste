@@ -259,7 +259,11 @@ class AppDriver:
 
     def set_field(self, key: str, text: str) -> None:
         """設定画面の文字の欄（field_{キー}）に文字を入れる。"""
-        element = self.uia.wait_find(self.pids, f"field_{key}", WINDOW_TIMEOUT_SEC)
+        self.set_text(f"field_{key}", text)
+
+    def set_text(self, name: str, text: str) -> None:
+        """項目 ID の文字の欄（preset_title_0 など）に文字を入れる。"""
+        element = self.uia.wait_find(self.pids, name, WINDOW_TIMEOUT_SEC)
         self.uia.set_value(element, text)
 
     def field_value(self, key: str) -> str:

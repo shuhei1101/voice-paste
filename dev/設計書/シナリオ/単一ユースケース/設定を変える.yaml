@@ -152,7 +152,7 @@ scenarios:
       - name: Mock
         description: なし（実機の Windows で実行）
       - name: 足すプリセット
-        description: 種類「エンドポイントへ送る」で、タイトル・URL・確定のホットキーを入れたプリセットを 1 つ足す
+        description: 「エンドポイントへ送る」のまとまり（タブ）で、タイトル・URL・確定のホットキーを入れたプリセットを 1 つ足す
         notes: 反映は `immediate`
     flow: |-
       ```mermaid
@@ -164,8 +164,8 @@ scenarios:
         participant APP as 常駐アプリ
 
         Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
-        U->>SW: 「出力先」のまとまりでカスタムプリセットを足す
-        U->>SW: 種類を「エンドポイントへ送る」にし、タイトル・URL・ホットキーを入れる
+        U->>SW: 「エンドポイントへ送る」のまとまりで「プリセットを足す」を押す
+        U->>SW: タイトル・URL・確定のホットキーを入れる
         U->>SW: 「保存」を押す
         SW->>MDL: 欄の値を確かめる
         MDL-->>SW: 通った

@@ -1,0 +1,19 @@
+$ venv/Scripts/lint-imports
+=============
+Import Linter
+=============
+
+
+---------
+Contracts
+---------
+
+Analyzed 78 files, 135 dependencies.
+------------------------------------
+
+‘w‚ÌŒü‚« KEPT
+feature ‚Ì“Æ—§ KEPT
+o—Íæ‚Ì“Æ—§ KEPT (7 ignored imports)
+‰æ–Ê‚©‚ç feature ‚Ì’†‚Ö KEPT (1 ignored import)
+
+Contracts: 4 kept, 0 broken.

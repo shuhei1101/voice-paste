@@ -21,4 +21,4 @@ tests\integration\ui\test_transcribing_indicator.py .................    [ 80%]
 tests\integration\ui\test_tray.py ..........................             [ 92%]
 tests\integration\ui\test_tray_notification.py .................         [100%]
 
-============================ 222 passed in 26.20s =============================
+============================ 222 passed in 26.02s =============================

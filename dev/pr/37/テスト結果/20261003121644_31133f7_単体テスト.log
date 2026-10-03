@@ -4,7 +4,7 @@ platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0
 rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\design-ui-rebuild-with-pyside6
 configfile: pyproject.toml
 plugins: anyio-4.13.0, platformdirs-4.12.2
-collected 267 items
+collected 269 items
 
 tests\transcription\test_whisper_transcriber.py ss                       [  0%]
 tests\unit\voice_paste\features\correction\test_service.py .......       [  3%]
@@ -16,34 +16,34 @@ tests\unit\voice_paste\features\outputs\callback\test_service.py ....... [ 12%]
 tests\unit\voice_paste\features\outputs\copy_only\test_service.py .      [ 14%]
 tests\unit\voice_paste\features\outputs\paste_and_send\test_service.py . [ 14%]
 .                                                                        [ 15%]
-tests\unit\voice_paste\features\outputs\paste_only\test_service.py ..    [ 16%]
+tests\unit\voice_paste\features\outputs\paste_only\test_service.py ..    [ 15%]
 tests\unit\voice_paste\features\outputs\test_service.py ....             [ 17%]
 tests\unit\voice_paste\features\recording\test_client.py .               [ 17%]
 tests\unit\voice_paste\features\recording\test_service.py .............. [ 23%]
 .                                                                        [ 23%]
 tests\unit\voice_paste\features\session\test_route.py .                  [ 23%]
 tests\unit\voice_paste\features\session\test_service.py ................ [ 29%]
-......................                                                   [ 38%]
+......................                                                   [ 37%]
 tests\unit\voice_paste\features\transcription\test_service.py ....       [ 39%]
-tests\unit\voice_paste\integrations\browser\test_opener.py ....          [ 41%]
+tests\unit\voice_paste\integrations\browser\test_opener.py ....          [ 40%]
 tests\unit\voice_paste\integrations\keyboard\test_sender.py .......      [ 43%]
-tests\unit\voice_paste\integrations\volume\test_adapter.py .........     [ 47%]
+tests\unit\voice_paste\integrations\volume\test_adapter.py .........     [ 46%]
 tests\unit\voice_paste\integrations\whisper\test_client.py ............  [ 51%]
 tests\unit\voice_paste\integrations\whisper\test_worker.py .....         [ 53%]
-tests\unit\voice_paste\runtime\test_hotkey.py ........                   [ 56%]
+tests\unit\voice_paste\runtime\test_hotkey.py .........                  [ 56%]
 tests\unit\voice_paste\runtime\test_process.py ..                        [ 57%]
 tests\unit\voice_paste\runtime\test_settings_store.py .                  [ 57%]
 tests\unit\voice_paste\runtime\test_timer.py ...                         [ 58%]
 tests\unit\voice_paste\server\test_app.py ...                            [ 59%]
 tests\unit\voice_paste\server\test_error_handlers.py ..                  [ 60%]
 tests\unit\voice_paste\server\test_middleware.py .....                   [ 62%]
-tests\unit\voice_paste\server\test_runner.py ....                        [ 64%]
+tests\unit\voice_paste\server\test_runner.py ....                        [ 63%]
 tests\unit\voice_paste\server\test_token.py ...                          [ 65%]
 tests\unit\voice_paste\shared\test_constants.py ..                       [ 65%]
 tests\unit\voice_paste\shared\test_env_migration.py ..............       [ 71%]
 tests\unit\voice_paste\shared\test_logger.py ......                      [ 73%]
 tests\unit\voice_paste\shared\test_settings.py ...................       [ 80%]
-tests\unit\voice_paste\test_main.py ........................             [ 89%]
+tests\unit\voice_paste\test_main.py .........................            [ 89%]
 tests\unit\voice_paste\ui\test_bridge.py ...                             [ 90%]
 tests\unit\voice_paste\ui\test_controller.py ..........                  [ 94%]
 tests\unit\voice_paste\ui\test_placement.py ..                           [ 95%]
@@ -58,4 +58,4 @@ tests\unit\voice_paste\ui\windows\test_transcribing_indicator.py .       [100%]
     from starlette.testclient import TestClient as TestClient  # noqa
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-================== 265 passed, 2 skipped, 1 warning in 7.58s ==================
+================== 267 passed, 2 skipped, 1 warning in 7.35s ==================

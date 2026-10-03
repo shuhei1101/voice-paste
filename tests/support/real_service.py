@@ -43,6 +43,41 @@ def _free_port() -> int:
         return int(probe.getsockname()[1])
 
 
+def read_log_records(data_dir: Path) -> list[dict[str, Any]]:
+    """data_dir のログ（JSON Lines）の全ての行を、書かれた順に読む。"""
+    return [
+        json.loads(line)
+        for log_file in sorted((data_dir / "log").glob("*.log"))
+        for line in log_file.read_text(encoding="utf-8").splitlines()
+        if line.startswith("{")
+    ]
+
+
+def spawn_process(
+    data_dir: Path,
+    *,
+    accept_injected_hotkeys: bool = False,
+    stdout_name: str = "stdout.log",
+) -> subprocess.Popen[bytes]:
+    """このリポジトリの src で `python -m voice_paste --data-dir {data_dir}` を、新しいプロセスグループで起動する。
+
+    終了の合図 Ctrl+Break を送れるよう新しいプロセスグループにする。標準出力は data_dir の stdout_name へ書く
+    （同じ data_dir で続けて起動するときは、前のプロセスの出力を消さないよう名前を変える）。
+    """
+    env = dict(os.environ, PYTHONPATH=str(SOURCE_DIR), PYTHONIOENCODING="utf-8")
+    if accept_injected_hotkeys:
+        env[ACCEPT_INJECTED_HOTKEYS_ENV] = "1"
+    stdout = (data_dir / stdout_name).open("wb")
+    return subprocess.Popen(  # noqa: S603 自分のインタープリタでこのリポジトリのモジュールを起動する
+        [sys.executable, "-m", "voice_paste", "--data-dir", str(data_dir)],
+        env=env,
+        cwd=REPO_ROOT,
+        stdout=stdout,
+        stderr=subprocess.STDOUT,
+        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+    )
+
+
 @dataclass
 class RealService:
     """起動した本物の常駐サービス。"""
@@ -61,33 +96,46 @@ class RealService:
         extra_settings: str = "",
         accept_injected_hotkeys: bool = False,
         startup_timeout_sec: float = STARTUP_TIMEOUT_SEC,
+        port: int | None = None,
+        wait_for_api: bool = True,
     ) -> RealService:
         """data_dir に設定を書いて常駐サービスを起動し、トークンのファイルが書かれるまで待つ。
 
         accept_injected_hotkeys が True なら、合成したキーもホットキーとして受ける起動にする（画面・ホットキーの E2E 用）。
+        port を渡せばそのポートを、無ければ空きポートを API の待ち受けにする。
+        wait_for_api が False なら、トークンのファイルを待たずに返す（起動に失敗する・API を使えない起動の確認用。
+        返す RealService のトークンは空）。
         """
-        # 1. API のポートを空きポートにした設定を書く（extra_settings は TOML の続き）
+        # 1. API のポートを書いた設定を置く（extra_settings は TOML の続き）
         data_dir.mkdir(parents=True, exist_ok=True)
-        port = _free_port()
+        api_port = _free_port() if port is None else port
         (data_dir / "settings.toml").write_text(
-            f"[api]\nport = {port}\n\n{extra_settings}\n", encoding="utf-8"
+            f"[api]\nport = {api_port}\n\n{extra_settings}\n", encoding="utf-8"
         )
 
-        # 2. このリポジトリの src を使って、新しいプロセスグループで起動する（終了の合図 Ctrl+Break を送れるように）
-        env = dict(os.environ, PYTHONPATH=str(SOURCE_DIR), PYTHONIOENCODING="utf-8")
-        if accept_injected_hotkeys:
-            env[ACCEPT_INJECTED_HOTKEYS_ENV] = "1"
-        stdout = (data_dir / "stdout.log").open("wb")
-        process = subprocess.Popen(  # noqa: S603 自分のインタープリタでこのリポジトリのモジュールを起動する
-            [sys.executable, "-m", "voice_paste", "--data-dir", str(data_dir)],
-            env=env,
-            cwd=REPO_ROOT,
-            stdout=stdout,
-            stderr=subprocess.STDOUT,
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
-        )
+        # 2. 起動する
+        process = spawn_process(data_dir, accept_injected_hotkeys=accept_injected_hotkeys)
+        if not wait_for_api:
+            base_url = f"http://{LOOPBACK}:{api_port}"
+            http = httpx.Client(base_url=base_url, timeout=REQUEST_TIMEOUT_SEC)
+            return cls(data_dir=data_dir, process=process, token="", port=api_port, http=http)
 
         # 3. トークンのファイル（待ち受けを始めた後に書かれる）を待つ
+        return cls.attach(data_dir, process, startup_timeout_sec=startup_timeout_sec)
+
+    @classmethod
+    def attach(
+        cls,
+        data_dir: Path,
+        process: subprocess.Popen[bytes],
+        *,
+        startup_timeout_sec: float = STARTUP_TIMEOUT_SEC,
+    ) -> RealService:
+        """起動したプロセスのトークンのファイルが書かれるまで待ち、読んだトークンとポートで API を呼べる RealService にする。
+
+        data_dir に前の起動のトークンのファイルが残っていれば、それを読んでしまう。
+        同じ置き場所で続けて起動したときは、後のプロセスが待機中になったのを確かめてから呼ぶ。
+        """
         token_file = data_dir / TOKEN_FILE_NAME
         deadline = time.monotonic() + startup_timeout_sec
         while not token_file.exists():
@@ -98,8 +146,11 @@ class RealService:
                 )
             time.sleep(POLL_SEC)
         info = json.loads(token_file.read_text(encoding="utf-8"))
-        http = httpx.Client(base_url=f"http://{LOOPBACK}:{info['port']}", timeout=REQUEST_TIMEOUT_SEC)
-        return cls(data_dir=data_dir, process=process, token=info["token"], port=info["port"], http=http)
+        base_url = f"http://{LOOPBACK}:{info['port']}"
+        http = httpx.Client(base_url=base_url, timeout=REQUEST_TIMEOUT_SEC)
+        return cls(
+            data_dir=data_dir, process=process, token=info["token"], port=info["port"], http=http
+        )
 
     @staticmethod
     def _tail(path: Path) -> str:
@@ -127,12 +178,7 @@ class RealService:
 
     def log_records(self) -> list[dict[str, Any]]:
         """常駐サービスのログ（JSON Lines）の全ての行を読む。"""
-        return [
-            json.loads(line)
-            for log_file in sorted((self.data_dir / "log").glob("*.log"))
-            for line in log_file.read_text(encoding="utf-8").splitlines()
-            if line.startswith("{")
-        ]
+        return read_log_records(self.data_dir)
 
     def history_files(self, suffix: str) -> list[Path]:
         """履歴に残ったファイルのうち、拡張子が suffix のものを返す。"""

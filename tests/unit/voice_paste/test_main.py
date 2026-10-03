@@ -214,18 +214,20 @@ def record_lock_release(monkeypatch: pytest.MonkeyPatch, wiring: Wiring) -> None
     monkeypatch.setattr(SingleInstanceLock, "release", _release)
 
 
-def spy_quit_thread(monkeypatch: pytest.MonkeyPatch, app: QApplication) -> list[bool]:
-    """Python から呼ばれた QApplication.quit が、メインスレッドで呼ばれたか（呼ばれた順）を控える。本物の quit も呼ぶ。"""
+def record_about_to_quit_threads(app: QApplication) -> tuple[list[bool], Callable[[], None]]:
+    """QApplication.aboutToQuit を受けたスレッドが、メインスレッドだったか（受けた順）を控える。控えの一覧と、受けるのをやめる関数を返す。
+
+    invokeMethod は C++ の quit スロットを直に呼ぶため、Python の属性に差し替えた quit は呼ばれない。
+    quit がイベントループを抜けさせるときに出る aboutToQuit は、quit を呼んだスレッドでなく、ループを回すスレッドで受ける。
+    """
     on_main_thread: list[bool] = []
-    original_quit = app.quit
 
-    def _quit() -> None:
-        """呼んだスレッドを控えてから本物の quit を呼ぶ。"""
+    def _on_about_to_quit() -> None:
+        """受けたスレッドがメインスレッドかを控える。"""
         on_main_thread.append(threading.current_thread() is threading.main_thread())
-        original_quit()
 
-    monkeypatch.setattr(app, "quit", _quit)
-    return on_main_thread
+    app.aboutToQuit.connect(_on_about_to_quit)
+    return on_main_thread, lambda: app.aboutToQuit.disconnect(_on_about_to_quit)
 
 
 def make_exec_loop_with_quit_request(
@@ -591,16 +593,20 @@ def test_main_when_quit_requested(
     lock.release.side_effect = lambda: wiring.calls.append("lock.release")
     monkeypatch.setattr(main_module, "acquire_single_instance", MagicMock(return_value=lock))
     gave_up: list[bool] = []
-    quit_on_main_thread = spy_quit_thread(monkeypatch, qapp)
+    about_to_quit_on_main_thread, stop_recording_quit = record_about_to_quit_threads(qapp)
     exec_loop = make_exec_loop_with_quit_request(lock, gave_up)
 
     # 実行
-    exit_code = main(["--data-dir", str(data_dir)], exec_loop=exec_loop)
+    try:
+        exit_code = main(["--data-dir", str(data_dir)], exec_loop=exec_loop)
+    finally:
+        stop_recording_quit()
 
-    # 検証: 頼みでイベントループが抜け（上限で諦めていない）、止めた後に排他を 1 回だけ放し、起動し直さない
+    # 検証: 頼みでイベントループが抜け（上限で諦めていない）、quit がメインスレッドで 1 回だけ効き、
+    # 止めた後に排他を 1 回だけ放し、起動し直さない
     assert exit_code == 0
     assert gave_up == []
-    assert False not in quit_on_main_thread
+    assert about_to_quit_on_main_thread == [True]
     assert wiring.calls == [
         "hotkey.stop",
         "timer.stop",

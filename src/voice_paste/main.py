@@ -124,7 +124,7 @@ ACCEPT_INJECTED_HOTKEYS_ENV: str = "VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS"
 WAKE_INTERVAL_MS: int = 200
 """Qt のイベントループの中で Python のシグナルのハンドラが動くようにする、空の QTimer の間隔。PoC で 200 ms なら Ctrl+Break から 0.3 秒で終わった。"""
 
-SINGLE_INSTANCE_TIMEOUT_SEC: float = 17.0
+SINGLE_INSTANCE_TIMEOUT_SEC: float = 32.0
 """acquire_single_instance に渡す、前のプロセスが排他を放すのを待つ上限。非機能要件の前の常駐サービスの終わりを待つ時間の決定値。"""
 
 PURGE_INTERVAL_SEC: float = 86400.0

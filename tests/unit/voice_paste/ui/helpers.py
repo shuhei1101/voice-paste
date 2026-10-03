@@ -79,5 +79,5 @@ def make_session(entry: str, state: str) -> Session:
         started_at=SESSION_STARTED_AT,
         callback_url=None,
         output_id=None,
-        output_target=None,
+        output_preset=None,
     )

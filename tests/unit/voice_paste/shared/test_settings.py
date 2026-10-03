@@ -1,4 +1,4 @@
-"""shared/settings.py（load_settings・save_settings・find_hotkey_overlaps・Settings の確かめ）の単体テスト。"""
+"""shared/settings.py（load_settings・save_settings・find_hotkey_overlaps・migrate_ai_chat・Settings の確かめ）の単体テスト。"""
 
 from __future__ import annotations
 
@@ -155,6 +155,62 @@ def test_load_settings_when_broken_toml(settings_file: Path) -> None:
         load_settings(settings_file)
 
 
+def test_load_settings_when_ai_chat_remains(settings_file: Path) -> None:
+    """古い AI チャットの設定が残っていても読め、プリセットに読み替える（正常系）。"""
+    from voice_paste.shared.settings import BrowserPreset, load_settings
+
+    # 準備
+    content = (
+        '[[outputs]]\nid = "paste_only"\n\n'
+        '[[outputs]]\nid = "ai_chat"\nopen_delay_sec = 2.0\n\n'
+        '[[outputs.targets]]\nname = "ChatGPT"\nurl = "https://chatgpt.com"\n'
+        'hotkey = "<ctrl>+<alt>+1"\nenabled = true\n\n'
+        '[[outputs.targets]]\nname = "Claude"\nurl = "https://claude.ai/new"\n'
+        'hotkey = "<ctrl>+<alt>+3"\nenabled = false\n'
+    )
+    settings_file.write_text(content, encoding="utf-8")
+
+    # 実行
+    settings = load_settings(settings_file)
+
+    # 検証
+    assert [output.id for output in settings.outputs] == ["paste_only"]
+    assert settings.presets == [
+        BrowserPreset(
+            title="ChatGPT",
+            url="https://chatgpt.com",
+            hotkey="<ctrl>+<alt>+1",
+            enabled=True,
+            send_enter=True,
+        ),
+        BrowserPreset(
+            title="Claude",
+            url="https://claude.ai/new",
+            hotkey="<ctrl>+<alt>+3",
+            enabled=False,
+            send_enter=True,
+        ),
+    ]
+    assert settings.preset_options.browser.open_delay_sec == 2.0
+    assert settings_file.read_text(encoding="utf-8") == content
+
+
+def test_load_settings_when_invalid_preset(settings_file: Path) -> None:
+    """合わないプリセットはキーを示して断る（異常系）。"""
+    from voice_paste.shared.errors import SettingsError
+    from voice_paste.shared.settings import load_settings
+
+    # 準備
+    settings_file.write_text(
+        '[[presets]]\nkind = "endpoint"\ntitle = "受け口"\nurl = "ftp://x"\n',
+        encoding="utf-8",
+    )
+
+    # 実行・検証
+    with pytest.raises(SettingsError, match=r"presets\[0\].*url"):
+        load_settings(settings_file)
+
+
 # === save_settings ===
 
 
@@ -274,14 +330,46 @@ def test_save_settings_when_glossary_reset(settings_file: Path) -> None:
     assert load_settings(settings_file).glossary_path is None
 
 
+def test_save_settings_when_ai_chat_remains(settings_file: Path) -> None:
+    """読み替えた設定を保存すると、ai_chat の項目が消えてプリセットとして書かれる（正常系）。"""
+    from voice_paste.shared.settings import load_settings, save_settings
+
+    # 準備
+    settings_file.write_text(
+        '[[outputs]]\nid = "paste_only"\n\n'
+        '[[outputs]]\nid = "ai_chat"\nopen_delay_sec = 2.0\n\n'
+        '[[outputs.targets]]\nname = "ChatGPT"\nurl = "https://chatgpt.com"\n'
+        'hotkey = "<ctrl>+<alt>+1"\nenabled = true\n\n'
+        '[[outputs.targets]]\nname = "Claude"\nurl = "https://claude.ai/new"\n'
+        'hotkey = "<ctrl>+<alt>+3"\nenabled = false\n',
+        encoding="utf-8",
+    )
+    loaded = load_settings(settings_file)
+
+    # 実行
+    restart_required = save_settings(settings_file, loaded)
+
+    # 検証
+    written = tomllib.loads(settings_file.read_text(encoding="utf-8"))
+    assert restart_required is False
+    assert [output["id"] for output in written["outputs"]] == ["paste_only"]
+    assert [
+        (preset["kind"], preset["title"], preset["url"], preset["hotkey"], preset["enabled"])
+        for preset in written["presets"]
+    ] == [
+        ("browser", "ChatGPT", "https://chatgpt.com", "<ctrl>+<alt>+1", True),
+        ("browser", "Claude", "https://claude.ai/new", "<ctrl>+<alt>+3", False),
+    ]
+    assert written["preset_options"]["browser"]["open_delay_sec"] == 2.0
+
+
 # === find_hotkey_overlaps ===
 
 
 def test_find_hotkey_overlaps() -> None:
     """前に並んだホットキーと重なるキーを、重なった組で返す（正常系）。"""
     from voice_paste.shared.settings import (
-        AiChatSettings,
-        AiChatTarget,
+        BrowserPreset,
         CopyOnlySettings,
         PasteAndSendSettings,
         PasteOnlySettings,
@@ -289,18 +377,36 @@ def test_find_hotkey_overlaps() -> None:
         find_hotkey_overlaps,
     )
 
-    # 準備: AI チャットの送り先 Claude の hotkey を、貼り付けのみと同じにする（確かめを飛ばして作る）
-    targets = [
-        AiChatTarget(name="ChatGPT", url="https://chatgpt.com", hotkey="<ctrl>+<alt>+1"),
-        AiChatTarget(name="Google AI", url="https://gemini.google.com/app", hotkey="<ctrl>+<alt>+2"),
-        AiChatTarget(name="Claude", url="https://claude.ai/new", hotkey="<ctrl>+<alt>+v"),
-    ]
+    # 準備: 2 件目のプリセットの hotkey を、貼り付けのみと同じにする（確かめを飛ばして作る）
     settings = Settings.model_construct(
-        outputs=[
-            PasteAndSendSettings(),
-            PasteOnlySettings(),
-            CopyOnlySettings(),
-            AiChatSettings(targets=targets),
+        outputs=[PasteAndSendSettings(), PasteOnlySettings(), CopyOnlySettings()],
+        presets=[
+            BrowserPreset(title="ChatGPT", url="https://chatgpt.com", hotkey="<ctrl>+<alt>+1"),
+            BrowserPreset(title="Claude", url="https://claude.ai/new", hotkey="<ctrl>+<alt>+v"),
+        ],
+    )
+
+    # 実行
+    overlaps = find_hotkey_overlaps(settings)
+
+    # 検証
+    assert overlaps == [("presets[1].hotkey", "outputs[1].hotkey")]
+
+
+def test_find_hotkey_overlaps_when_presets_of_different_kinds() -> None:
+    """種類をまたいだプリセットどうしの重なりを返す（正常系）。"""
+    from voice_paste.shared.settings import (
+        BrowserPreset,
+        EndpointPreset,
+        Settings,
+        find_hotkey_overlaps,
+    )
+
+    # 準備
+    settings = Settings.model_construct(
+        presets=[
+            BrowserPreset(title="ChatGPT", url="https://chatgpt.com", hotkey="<ctrl>+<alt>+3"),
+            EndpointPreset(title="受け口", url="http://127.0.0.1:9000/hook", hotkey="<ctrl>+<alt>+3"),
         ]
     )
 
@@ -308,7 +414,7 @@ def test_find_hotkey_overlaps() -> None:
     overlaps = find_hotkey_overlaps(settings)
 
     # 検証
-    assert overlaps == [("outputs[3].targets[2].hotkey", "outputs[1].hotkey")]
+    assert overlaps == [("presets[1].hotkey", "presets[0].hotkey")]
 
 
 def test_find_hotkey_overlaps_when_start_equals_paste_and_send() -> None:
@@ -322,24 +428,58 @@ def test_find_hotkey_overlaps_when_start_equals_paste_and_send() -> None:
     assert overlaps == []
 
 
-def test_find_hotkey_overlaps_when_disabled_output() -> None:
-    """オフの出力先のホットキーは重なりにしない（正常系）。"""
-    from voice_paste.shared.settings import (
-        AiChatSettings,
-        CopyOnlySettings,
-        PasteAndSendSettings,
-        PasteOnlySettings,
-        Settings,
-        find_hotkey_overlaps,
-    )
+@pytest.mark.parametrize(
+    "document",
+    [
+        pytest.param(
+            {
+                "outputs": [
+                    {"id": "paste_and_send"},
+                    {"id": "paste_only"},
+                    {"id": "copy_only", "enabled": False, "hotkey": "<ctrl>+<alt>+z"},
+                ]
+            },
+            id="disabled_output",
+        ),
+        pytest.param(
+            {
+                "presets": [
+                    {
+                        "kind": "browser",
+                        "title": "ChatGPT",
+                        "url": "https://chatgpt.com",
+                        "hotkey": "<ctrl>+<alt>+z",
+                        "enabled": False,
+                    }
+                ]
+            },
+            id="disabled_preset",
+        ),
+    ],
+)
+def test_find_hotkey_overlaps_when_disabled_output(document: dict[str, object]) -> None:
+    """オフの出力先・無効のプリセットのホットキーは重なりにしない（正常系）。"""
+    from voice_paste.shared.settings import Settings, find_hotkey_overlaps
 
-    # 準備: コピーのみをオフにし、そのホットキーを一時停止と同じ <ctrl>+<alt>+z にする
+    # 準備: ホットキーを一時停止と同じ <ctrl>+<alt>+z にしたものをオフ・無効にする
+    settings = Settings.model_validate(document)
+
+    # 実行
+    overlaps = find_hotkey_overlaps(settings)
+
+    # 検証
+    assert overlaps == []
+
+
+def test_find_hotkey_overlaps_when_empty_preset_hotkeys() -> None:
+    """空のホットキーのプリセットどうしは重なりにしない（正常系）。"""
+    from voice_paste.shared.settings import BrowserPreset, Settings, find_hotkey_overlaps
+
+    # 準備
     settings = Settings(
-        outputs=[
-            PasteAndSendSettings(),
-            PasteOnlySettings(),
-            CopyOnlySettings(enabled=False, hotkey="<ctrl>+<alt>+z"),
-            AiChatSettings(),
+        presets=[
+            BrowserPreset(title="ChatGPT", url="https://chatgpt.com"),
+            BrowserPreset(title="Claude", url="https://claude.ai/new"),
         ]
     )
 
@@ -348,6 +488,141 @@ def test_find_hotkey_overlaps_when_disabled_output() -> None:
 
     # 検証
     assert overlaps == []
+
+
+# === migrate_ai_chat ===
+
+AI_CHAT_DOCUMENT = {
+    "outputs": [
+        {"id": "paste_and_send"},
+        {
+            "id": "ai_chat",
+            "open_delay_sec": 2.0,
+            "targets": [
+                {
+                    "name": "ChatGPT",
+                    "url": "https://chatgpt.com",
+                    "hotkey": "<ctrl>+<alt>+1",
+                    "enabled": True,
+                },
+                {
+                    "name": "Claude",
+                    "url": "https://claude.ai/new",
+                    "hotkey": "<ctrl>+<alt>+3",
+                    "enabled": False,
+                },
+            ],
+        },
+    ]
+}
+"""古い AI チャットの設定（送り先 2 件、開くまでの間 2.0 秒）を持つ settings.toml を素の dict にしたもの。"""
+
+
+def test_migrate_ai_chat() -> None:
+    """送り先をブラウザ添付のプリセットにし、ai_chat を外す（正常系）。"""
+    import copy
+
+    from voice_paste.shared.settings import migrate_ai_chat
+
+    # 準備
+    document = copy.deepcopy(AI_CHAT_DOCUMENT)
+
+    # 実行
+    migrated = migrate_ai_chat(document)
+
+    # 検証
+    assert migrated["outputs"] == [{"id": "paste_and_send"}]
+    assert migrated["presets"] == [
+        {
+            "kind": "browser",
+            "title": "ChatGPT",
+            "url": "https://chatgpt.com",
+            "hotkey": "<ctrl>+<alt>+1",
+            "enabled": True,
+            "send_enter": True,
+        },
+        {
+            "kind": "browser",
+            "title": "Claude",
+            "url": "https://claude.ai/new",
+            "hotkey": "<ctrl>+<alt>+3",
+            "enabled": False,
+            "send_enter": True,
+        },
+    ]
+    assert migrated["preset_options"]["browser"]["open_delay_sec"] == 2.0
+    assert document == AI_CHAT_DOCUMENT
+
+
+def test_migrate_ai_chat_when_output_disabled() -> None:
+    """オフの AI チャットの送り先は無効のプリセットにする（正常系）。"""
+    from voice_paste.shared.settings import migrate_ai_chat
+
+    # 準備
+    document = {
+        "outputs": [
+            {
+                "id": "ai_chat",
+                "enabled": False,
+                "targets": [
+                    {
+                        "name": "ChatGPT",
+                        "url": "https://chatgpt.com",
+                        "hotkey": "<ctrl>+<alt>+1",
+                        "enabled": True,
+                    },
+                    {
+                        "name": "Claude",
+                        "url": "https://claude.ai/new",
+                        "hotkey": "<ctrl>+<alt>+3",
+                        "enabled": True,
+                    },
+                ],
+            }
+        ]
+    }
+
+    # 実行
+    migrated = migrate_ai_chat(document)
+
+    # 検証
+    assert [preset["enabled"] for preset in migrated["presets"]] == [False, False]
+
+
+def test_migrate_ai_chat_when_targets_missing() -> None:
+    """targets の無い ai_chat は前の既定の 3 件をプリセットにする（正常系）。"""
+    from voice_paste.shared.settings import migrate_ai_chat
+
+    # 準備
+    document = {"outputs": [{"id": "ai_chat"}]}
+
+    # 実行
+    migrated = migrate_ai_chat(document)
+
+    # 検証
+    assert [(preset["title"], preset["hotkey"]) for preset in migrated["presets"]] == [
+        ("ChatGPT", "<ctrl>+<alt>+1"),
+        ("Google AI", "<ctrl>+<alt>+2"),
+        ("Claude", "<ctrl>+<alt>+3"),
+    ]
+
+
+@pytest.mark.parametrize(
+    "document",
+    [
+        pytest.param({"outputs": [{"id": "paste_only"}]}, id="without_ai_chat"),
+        pytest.param({}, id="without_outputs"),
+    ],
+)
+def test_migrate_ai_chat_when_absent(document: dict[str, object]) -> None:
+    """ai_chat が無ければ変えない（正常系）。"""
+    from voice_paste.shared.settings import migrate_ai_chat
+
+    # 実行
+    migrated = migrate_ai_chat(document)
+
+    # 検証
+    assert migrated == document
 
 
 # === Settings の確かめ ===

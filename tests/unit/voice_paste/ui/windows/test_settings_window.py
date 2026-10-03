@@ -13,9 +13,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
-from PySide6.QtCore import QKeyCombination, Qt
+from PySide6.QtCore import QKeyCombination, QRegularExpression, Qt
 from PySide6.QtGui import QTextDocument
-from PySide6.QtWidgets import QLabel, QLineEdit, QSlider, QWidget
+from PySide6.QtWidgets import QAbstractButton, QLabel, QLineEdit, QSlider, QWidget
 
 from tests.unit.voice_paste.ui.helpers import make_ui_deps
 
@@ -68,6 +68,19 @@ def _error_summary_text(window: SettingsWindow) -> str:
             document.setHtml(label.text())
             lines.append(document.toPlainText())
     return "\n".join(lines)
+
+
+def _add_preset(window: SettingsWindow, kind: str, *, title: str, url: str) -> None:
+    """種類のタブの「プリセットを足す」を押し、足したプリセットのタイトルと URL の欄に値を入れる。"""
+    button = window.findChild(QAbstractButton, f"add_preset_button_{kind}")
+    assert button is not None, f"add_preset_button_{kind} のボタンが無い"
+    button.click()
+    panel = window.findChild(QWidget, f"preset_list_{kind}")
+    assert panel is not None, f"preset_list_{kind} の一覧が無い"
+    for field, value in (("title", title), ("url", url)):
+        edits = panel.findChildren(QLineEdit, QRegularExpression(f"^preset_{field}_"))
+        assert len(edits) == 1, f"preset_{field}_ の欄が 1 つでない"
+        edits[0].setText(value)
 
 
 # === save ===
@@ -128,6 +141,40 @@ def test_save_when_hotkey_unavailable(opened: Opened) -> None:
     assert "ホットキーを受け付けられませんでした" in _error_summary_text(opened.window)
     assert saved_count == []
     assert opened.window.isVisible()
+
+
+def test_save_when_presets(opened: Opened) -> None:
+    """タブごとのプリセットを 1 つの一覧にして書く（正常系）。"""
+    # 準備（エンドポイントへ送るのタブ → ブラウザ添付のタブの順に足す）
+    _add_preset(opened.window, "endpoint", title="受け口", url="http://127.0.0.1:9000/hook")
+    _add_preset(opened.window, "browser", title="ChatGPT", url="https://chatgpt.com")
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is True
+    saved_settings = opened.deps.save_settings.call_args.args[0]
+    assert [(preset.kind, preset.title) for preset in saved_settings.presets] == [
+        ("browser", "ChatGPT"),
+        ("endpoint", "受け口"),
+    ]
+
+
+def test_save_when_preset_invalid(opened: Opened) -> None:
+    """タイトルが空のプリセットは書かずにエラーを出す（異常系）。"""
+    # 準備（URL だけ入れる）
+    _add_preset(opened.window, "browser", title="", url="https://chatgpt.com")
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is False
+    opened.deps.save_settings.assert_not_called()
+    assert "プリセット 1 件目のタイトル: タイトルを入れてください。" in _error_summary_text(
+        opened.window
+    )
 
 
 # === format_hotkey ===
@@ -214,3 +261,21 @@ def test_to_field_message_when_out_of_range() -> None:
 
     # 検証
     assert message == "1024〜65535 の値を入れてください。"
+
+
+def test_to_field_message_when_preset_url_empty() -> None:
+    """プリセットの URL が空（正常系）。"""
+    from pydantic import ValidationError
+
+    from voice_paste.shared.settings import Settings
+    from voice_paste.ui.windows.settings_window import to_field_message
+
+    # 準備
+    with pytest.raises(ValidationError) as exc_info:
+        Settings.model_validate({"presets": [{"kind": "endpoint", "title": "受け口", "url": ""}]})
+
+    # 実行
+    message = to_field_message(exc_info.value.errors()[0])
+
+    # 検証
+    assert message == "URL を入れてください（例: https://example.com/hook）。"

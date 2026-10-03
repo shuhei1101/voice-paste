@@ -215,21 +215,24 @@ def test_complete_when_recording(audio_path: Path, monkeypatch: pytest.MonkeyPat
     assert names.index("stop_recording") < names.index("save_recording")
 
 
-def test_complete_when_output_target(audio_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """確定の操作で選んだ出力先の ID と宛先を、届けるときの Session に持たせる（正常系）。"""
+def test_complete_when_preset(audio_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """選んだプリセットを、届けるときの Session に持たせる（正常系）。"""
+    from voice_paste.shared.settings import BrowserPreset
+
     # 準備
     defer_workers(monkeypatch)
     h = make_harness(audio_path)
     h.manager.start("hotkey")
+    preset = BrowserPreset(title="ChatGPT", url="https://chatgpt.com")
 
     # 実行
-    h.manager.complete(output_id="ai_chat", output_target="https://chatgpt.com")
+    h.manager.complete(preset=preset)
     h.manager._run_after_confirm(h.current(), audio_path)
 
     # 検証
     delivered_session = h.deliver.call_args.args[0]
-    assert delivered_session.output_id == "ai_chat"
-    assert delivered_session.output_target == "https://chatgpt.com"
+    assert delivered_session.output_id is None
+    assert delivered_session.output_preset == preset
 
 
 def test_complete_when_hotkey_on_api_session(audio_path: Path) -> None:

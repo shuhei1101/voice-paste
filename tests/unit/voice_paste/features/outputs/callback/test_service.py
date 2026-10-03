@@ -28,7 +28,7 @@ def _outcome() -> object:
 
 def _result(status: int, retry_after_sec: float | None = None) -> object:
     """返送先の応答（ステータスと Retry-After の秒数）を作る。"""
-    from voice_paste.features.outputs.callback.types import PostResult
+    from voice_paste.integrations.http.types import PostResult
 
     return PostResult(status=status, retry_after_sec=retry_after_sec)
 

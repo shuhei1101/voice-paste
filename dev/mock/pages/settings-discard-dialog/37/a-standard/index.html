@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>変えた値を捨てる確認 | voice-paste のモック</title>
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+</head>
+<body>
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">settings-discard-dialog</a> / <a href="../">37</a> / <span>a-standard</span></nav>
+
+    <!-- 画面の説明 -->
+    <header class="intro">
+      <h1>変えた値を捨てる確認</h1>
+      <p>設定画面で欄を変えたまま「キャンセル」・Esc・窓の閉じるを押すと出る。欄を変えていなければ出さずに閉じる。</p>
+    </header>
+
+    <div class="desk desk--single">
+
+      <!-- 場面: 変えた値を捨てて閉じるか -->
+      <section class="specimen" aria-labelledby="h-dis">
+        <h2 id="h-dis">変えた値を捨てて閉じるか</h2>
+        <div class="backdrop">
+          <p class="backdrop__behind">voice-paste の設定（後ろで開いたまま）</p>
+          <div class="win dialog" role="alertdialog" aria-labelledby="d-dis" aria-describedby="b-dis">
+            <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+            <div class="dialog__main">
+              <svg class="dialog__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.01"/></svg>
+              <div>
+                <h3 id="d-dis">変えた値を捨てて閉じますか</h3>
+                <p id="b-dis">保存していない変更が 3 件あります。閉じると、変えた値は保存されません。</p>
+              </div>
+            </div>
+            <div class="dialog__actions">
+              <a class="btn" href="../../../tray/37/a-standard/index.html">捨てて閉じる</a>
+              <a class="btn btn--primary" href="../../../settings/37/a-standard/index.html">設定画面へ戻る</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">最初のフォーカスは「設定画面へ戻る」に置き、Enter で誤って捨てないようにする。Esc は「設定画面へ戻る」と同じ。</p>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

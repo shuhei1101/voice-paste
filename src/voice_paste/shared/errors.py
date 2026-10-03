@@ -57,3 +57,7 @@ class SettingsError(AppError):
 
 class StartupError(AppError):
     """起動に失敗した。"""
+
+
+class HotkeyError(AppError):
+    """ホットキーの書式を pynput が読めない。"""

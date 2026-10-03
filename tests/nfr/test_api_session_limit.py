@@ -129,6 +129,7 @@ def manager(tmp_path: Path, receiver: CallbackReceiver) -> Iterator[SessionManag
         notify=lambda event, detail=None: None,
         now=_local_now,
         discard_temporary=partial(discard_temporary, paths=paths),
+        report_progress=lambda position_sec, duration_sec: None,
     )
     session_manager = SessionManager(deps, timedelta(seconds=SHORT_LIMIT_SEC))
     timer = RepeatingTimer(

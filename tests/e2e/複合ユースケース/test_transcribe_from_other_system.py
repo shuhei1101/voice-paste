@@ -18,6 +18,8 @@ import pyperclip
 import pytest
 
 from tests.integration.helpers import CallbackReceiver, wait_until
+from tests.support.app_driver import RECORDING, AppDriver
+from tests.support.flows import begin_recording
 from tests.support.real_service import RealService
 
 pytestmark = pytest.mark.real_machine
@@ -125,3 +127,27 @@ def test_error_when_transcription_failed(
     assert session_id in recording.name
     assert service.is_running()
     assert service.start_session(receiver.url)[0].status_code == 202
+
+
+def test_error_when_hotkey_recording(
+    start_app: Callable[..., AppDriver], receiver: CallbackReceiver
+) -> None:
+    """ホットキー・トレイの録音中に API の開始を呼ぶと 409 で断られ、その録音は続く（異常シナリオ）。
+
+    録音は、ホットキーで始める。
+    """
+    # 準備
+    app = start_app()
+    begin_recording(app)
+    app.wait_tray_state(RECORDING)
+
+    # 実行
+    response, _elapsed_ms = app.service.start_session(receiver.url)
+
+    # 検証
+    assert response.status_code == 409
+    assert app.tray_state() == RECORDING
+    assert app.window("recording_window") is not None
+    assert receiver.received == []
+    app.press("cancel_button")
+    assert app.wait_window_gone("recording_window")

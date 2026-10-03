@@ -30,6 +30,7 @@ scenarios:
       - 履歴に録音と起こした文字がある
       - システム音量が録音前の値に戻っている
       - トレイのアイコンが待機中に戻り、録音開始のホットキーをもう一度受け付ける
+    test: test_normal
   - name: 正常シナリオ（録音を取り消す）
     setup:
       - name: Mock
@@ -53,6 +54,7 @@ scenarios:
       - 履歴にこの録音が残っていない
       - システム音量が録音前の値に戻っている
       - トレイのアイコンが待機中に戻り、録音開始のホットキーをもう一度受け付ける
+    test: test_normal_when_cancel
   - name: 異常シナリオ（文字起こしに失敗）
     setup:
       - name: Mock
@@ -79,6 +81,7 @@ scenarios:
       - 貼り付け先に文字が入っていない
       - 履歴にこの録音が残っている
       - トレイのアイコンが待機中に戻り、録音開始のホットキーをもう一度受け付ける
+    test: test_error_when_transcription_failed
   - name: 異常シナリオ（やり直したワーカーも落ちる）
     setup:
       - name: Mock
@@ -104,6 +107,7 @@ scenarios:
       - 文字起こしに失敗したことがユーザーに知らされている
       - 履歴にこの録音が残っている
       - 文字起こしワーカーが新しい子プロセスで動いている
+    test: test_error_when_worker_dies_again
   - name: 異常シナリオ（文字起こしの結果が空）
     setup:
       - name: Mock
@@ -130,6 +134,7 @@ scenarios:
       - クリップボードと貼り付け先が録音前のままである
       - 履歴にこの録音が残っている
       - トレイのアイコンが待機中に戻り、録音開始のホットキーをもう一度受け付ける
+    test: test_error_when_transcription_empty
   - name: 異常シナリオ（API の処理中にホットキーを押す）
     setup:
       - name: Mock
@@ -150,6 +155,7 @@ scenarios:
       - 処理中のため録音を始められないことがダイアログで知らされている
       - 2 つ目の録音が始まっていない
       - API の録音が録音中のまま続いている
+    test: test_error_when_api_session_busy
 lead: 常駐サービスがホットキーで録音を始め、話した内容を文字に起こしてアクティブなアプリへ届けるまでの複合ユースケース。
 issue: 14
 primary_actor: 音声入力を使うユーザー
@@ -168,3 +174,4 @@ minimal_guarantee: |-
   文字起こしに失敗しても、文字起こしワーカーが落ちても、常駐サービスは止まらず次のホットキーを受け付ける。
   確定した録音は、文字起こしの成否によらず履歴に残る（履歴を残す設定のとき）。
   録音中に下げたシステム音量は、録音を確定しても取り消しても録音前の値へ戻る。
+test_file: tests/e2e/複合ユースケース/test_paste_voice_text.py

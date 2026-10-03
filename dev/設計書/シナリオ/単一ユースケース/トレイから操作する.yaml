@@ -12,11 +12,12 @@ scenarios:
         participant EXP as エクスプローラー
 
         U->>TRAY: 「ログフォルダを開く」を選ぶ
-        TRAY->>TRAY: log/ が無ければ作る
-        TRAY->>EXP: log/ を開く
+        TRAY->>TRAY: ログの置き場所が無ければ作る
+        TRAY->>EXP: ログの置き場所を開く
       ```
     expected:
-      - エクスプローラーで `log/` が開いている
+      - エクスプローラーでログの置き場所（`%LOCALAPPDATA%\voice-paste\log\`。データの置き場所を渡した起動ではその下の `log\`）が開いている
+    test: test_normal_when_open_log_folder
   - name: 正常シナリオ（設定フォルダを開く）
     setup:
       - name: Mock
@@ -29,10 +30,11 @@ scenarios:
         participant EXP as エクスプローラー
 
         U->>TRAY: 「設定フォルダを開く」を選ぶ
-        TRAY->>EXP: 設定の置き場（.env のあるフォルダ）を開く
+        TRAY->>EXP: settings.toml のあるフォルダを開く
       ```
     expected:
-      - エクスプローラーで `.env` のあるフォルダが開いている（`voice-paste.bat` から起動したときはリポジトリの直下）
+      - エクスプローラーで `settings.toml` のあるフォルダ（`%APPDATA%\voice-paste\`。データの置き場所を渡した起動ではそのフォルダ）が開いている
+    test: test_normal_when_open_settings_folder
   - name: 正常シナリオ（再起動する）
     setup:
       - name: Mock
@@ -49,13 +51,15 @@ scenarios:
 
         U->>TRAY: 「再起動」を選ぶ
         TRAY->>APP: 再起動を求め、アイコンを消す
-        APP->>NEW: 同じ引数で新しいプロセスを起動する（リポジトリのコードを優先して読む）
+        APP->>APP: ホットキーの受付・API の待ち受け・文字起こしワーカーを止める
+        APP->>NEW: 同じ引数で新しいプロセスを起動する
         APP->>APP: 自分のプロセスを終える
         Note over NEW: 以降は 常駐アプリを起動する の 正常シナリオ
       ```
     expected:
       - 前の常駐アプリのプロセスが終わっている
-      - 新しい常駐アプリが待機中になり、`.env` の今の設定で動いている
+      - 新しい常駐アプリが待機中になり、`settings.toml` の今の設定で動いている
+    test: test_normal_when_restart
   - name: 正常シナリオ（終了する）
     setup:
       - name: Mock
@@ -68,28 +72,56 @@ scenarios:
         actor U as ユーザー
         participant TRAY as トレイ
         participant APP as 常駐アプリ
+        participant API as API のサーバー
         participant WK as 文字起こしワーカー（子プロセス）
-        participant FS as PID ファイル
 
         U->>TRAY: 「終了」を選ぶ
         TRAY->>APP: 終了を求め、アイコンを消す
         APP->>APP: ホットキーの受付を止める
+        APP->>API: 待ち受けを止める
         APP->>WK: 終了を送り、終わらなければ止める
-        APP->>FS: 自分の番号が書かれていれば消す
         APP->>APP: プロセスを終える
       ```
     expected:
       - トレイから voice-paste のアイコンが消えている
-      - 常駐アプリと文字起こしワーカーのプロセスが終わっている
-      - PID ファイルが消えている
+      - 常駐アプリと文字起こしワーカーのプロセスが終わり、常駐アプリの終了コードが 0 である
+      - 127.0.0.1 の API が応えない
+    test: test_normal_when_quit
+  - name: 正常シナリオ（設定画面で値を変えたまま終了する）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 設定画面
+        description: 設定画面を開いて欄の値を変え、保存していない
+      - name: 終え方
+        description: トレイの「終了」と、起動したコンソールの Ctrl+Break の 2 通り
+        notes: parametrize で並べる
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant TRAY as トレイ
+        participant APP as 常駐アプリ
+        participant SW as 設定画面
+
+        U->>TRAY: 「終了」を選ぶ（または Ctrl+Break）
+        TRAY->>APP: 終了を求める
+        APP->>SW: 変えた値を捨てる確認を出さずに閉じる
+        APP->>APP: プロセスを終える
+        Note over APP: 以降は 正常シナリオ（終了する） と同じ
+      ```
+    expected:
+      - 変えた値を捨てる確認で止まらずに、常駐アプリのプロセスが終わり、終了コードが 0 である
+    test: test_normal_when_quit_with_unsaved_settings
 lead: トレイのアイコンのメニューから、フォルダを開く・再起動する・終了する単一ユースケース。
-issue: 3
+issue: 21
 primary_actor: 音声入力を使うユーザー
 trigger: トレイの voice-paste のアイコンを右クリックしてメニューを開く
 preconditions:
-  - 常駐アプリが常駐モードで動いている
+  - 常駐アプリが動いていて、トレイにアイコンが出ている
 notes:
-  メニューの項目: 上から「録音開始」（アイコンの既定の操作）・「設定フォルダを開く」・「ログフォルダを開く」・「設定」・区切り・「再起動」・「終了」。「録音開始」は 録音する、「設定」は 設定を変える が扱う。
+  メニューの項目: 「録音を始める」（アイコンの既定の操作）・「設定…」・「設定フォルダを開く」・「ログフォルダを開く」・「再起動」・「終了」。「録音を始める」は 録音する、「設定…」は 設定を変える が扱う。
   録音中の操作: |-
-    録音から届けるまでの間に「再起動」・「終了」を選ぶと、トレイのアイコンは選んだ時点で消える。
-    録音から届けるまではアイコンの無いまま続き、再起動・終了はその回が終わってから行う。
+    録音から届けるまでの間（API から始めた録音の間を含む）は「録音を始める」と「設定…」を押せなくし、項目名に理由を出す。
+    その間に「再起動」・「終了」を選ぶと、トレイのアイコンは選んだ時点で消え、再起動・終了はその回が終わってから行う。
+test_file: tests/e2e/単一ユースケース/test_operate_from_tray.py

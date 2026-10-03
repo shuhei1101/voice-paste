@@ -28,6 +28,7 @@ dependencies = [
     "platformdirs~=4.12",
     "numpy~=2.4",
     "comtypes~=1.4",
+    "pyside6-essentials~=6.11.2",
 ]
 
 [dependency-groups]
@@ -76,3 +77,12 @@ ignore_imports = [
 ]
 # service は一覧を import せず main.py が渡すため、service -> registry の除外には一致する import が無い
 unmatched_ignore_imports_alerting = "none"
+
+[[tool.importlinter.contracts]]
+name = "画面から feature の中へ"
+type = "forbidden"
+source_modules = ["voice_paste.ui"]
+forbidden_modules = ["voice_paste.features", "voice_paste.integrations"]
+ignore_imports = [
+    "voice_paste.ui.** -> voice_paste.features.session.types",
+]

@@ -1,0 +1,82 @@
+title: "トレイ"
+elements:
+  - name: トレイのアイコン
+    id: tray_icon
+    kind: icon
+    position: タスクバーの通知領域
+    description: 状態ごとに同梱した画像（`resources/` の下）を出し分ける。失敗は録音中と同じ赤の地にマイクの斜線を入れ、色だけでなく形でも分ける。左クリック（既定の操作）は「録音を始める」と同じ。右クリックでメニューを開く
+    io: 表示
+    visible_when: 起動してから終了まで
+    options: 準備中・待機中・録音中・文字起こし中・失敗（文字起こしのエンジンを準備できなかった起動のときだけで、次の起動まで続く）
+    source: UiBridge.notified（state_changed）と起動の結果
+    action_ref: dev/設計書/モジュール構成/常駐アプリ/セッション.py#classes[SessionManager].methods[start]
+  - name: アイコンのヒント
+    id: tray_tooltip
+    kind: tooltip
+    position: トレイのアイコン
+    description: アイコンにかざすと状態を文字で出す
+    io: 表示
+    visible_when: アイコンにかざしたとき
+    display_format: 'voice-paste: {状態}（例 voice-paste: 待機中）'
+  - name: 録音を始める
+    id: menu_start
+    kind: menu_item
+    position: メニュー > 1 番目
+    description: 録音を始める。後の流れは録音開始のホットキーと同じで、`recording.hide_window` がオンなら録音の画面を出さない。右に録音開始のホットキーを出す。既定の項目として太字で出し、押せないときは太字を外す
+    label: 録音を始める [hotkeys.start]（処理中は「録音を始める（処理中）」、準備に失敗した起動では「録音を始める（準備に失敗）」）
+    visible_when: 常時
+    enabled_when: 待機中のとき。録音から届けるまでの間（API から始めた録音の間を含む）と、文字起こしのエンジンを準備できなかった起動では押せない
+    action_ref: dev/設計書/モジュール構成/常駐アプリ/セッション.py#classes[SessionManager].methods[start]
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/録音の画面.py#
+  - name: 設定…
+    id: menu_settings
+    kind: menu_item
+    position: メニュー > 2 番目
+    description: 設定画面を開く。文字起こしのエンジンを準備できなかった起動でも、設定を直して再起動できるよう押せるまま残す
+    label: 設定…（処理中は「設定…（処理中）」）
+    visible_when: 常時
+    enabled_when: 録音から届けるまでの間（API から始めた録音の間を含む）でないとき
+    action_ref: dev/設計書/画面設計/常駐アプリ/設定画面.py#
+  - name: 設定フォルダを開く
+    id: menu_open_settings_folder
+    kind: menu_item
+    position: メニュー > 3 番目
+    description: settings.toml のあるフォルダをエクスプローラーで開く
+    label: 設定フォルダを開く
+    visible_when: 常時
+    action: 設定のフォルダを開く
+  - name: ログフォルダを開く
+    id: menu_open_log_folder
+    kind: menu_item
+    position: メニュー > 4 番目
+    description: ログのフォルダをエクスプローラーで開く
+    label: ログフォルダを開く
+    visible_when: 常時
+    action: ログのフォルダを開く
+  - name: 再起動
+    id: menu_restart
+    kind: menu_item
+    position: メニュー > 区切りの後 > 5 番目
+    description: 常駐アプリを再起動する（処理中の扱いは補足）
+    label: 再起動
+    visible_when: 常時
+    action: 常駐アプリを再起動する
+  - name: 終了
+    id: menu_quit
+    kind: menu_item
+    position: メニュー > 6 番目
+    description: 常駐アプリを終了する（処理中の扱いは補足）
+    label: 終了
+    visible_when: 常時
+    action: 常駐アプリを終了する
+screen: src/voice_paste/ui/tray.py
+mock: dev/mock/pages/tray/37/a-standard/
+lead: 常駐アプリの入口。アイコンで状態を示し、右クリックでメニューを開く。
+refs:
+  - dev/設計書/シナリオ/単一ユースケース/トレイから操作する#
+  - dev/設計書/シナリオ/単一ユースケース/常駐アプリを起動する#
+  - dev/設計書/画面設計/常駐アプリ/トレイの通知.py#
+notes:
+  処理中の再起動・終了: 録音から届けるまでの間（API から始めた録音の間を含む）に「再起動」・「終了」を選ぶと、アイコンはその時点で消し、再起動・終了はその回を届け終えてから行う
+test_file: tests/integration/ui/test_tray.py

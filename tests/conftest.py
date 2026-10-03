@@ -1,9 +1,18 @@
 """pytest 共通フィクスチャ定義。"""
 
+import os
+from typing import TYPE_CHECKING
+
 import pytest
 from unittest.mock import patch
 
 from tests.mocks.mock_env import MOCK_ENV
+
+if TYPE_CHECKING:
+    from PySide6.QtWidgets import QApplication
+
+# 画面を使うテストは、窓を実際には出さない offscreen のプラットフォームで動かす（QApplication を作る前に決める）
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 
 RUN_E2E_OPTION: str = "--run-e2e"
@@ -46,3 +55,13 @@ def mock_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     """全テストに環境変数モックを適用する。"""
     for key, value in MOCK_ENV.items():
         monkeypatch.setenv(key, value)
+
+
+@pytest.fixture(scope="session")
+def qapp() -> "QApplication":
+    """offscreen の QApplication を、テスト全体で 1 つだけ作って返す（最後の窓を閉じても終わらない）。"""
+    from PySide6.QtWidgets import QApplication
+
+    app = QApplication.instance() or QApplication([])
+    app.setQuitOnLastWindowClosed(False)
+    return app

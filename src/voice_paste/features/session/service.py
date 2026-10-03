@@ -43,6 +43,11 @@ class SessionManager:
         self._lock = threading.Lock()
         self._session_limit = session_limit
 
+    def current(self) -> Session | None:
+        """今のセッションを返す（待機中は None）。画面が state_changed を受けたときに入口と状態を引く。"""
+        with self._lock:
+            return self._session
+
     # === 開始・一時停止・再開 ===
 
     def start(self, entry: Entry | str, callback_url: str | None = None) -> Session:
@@ -239,7 +244,9 @@ class SessionManager:
         try:
             # 1. 録音を文字に起こす
             try:
-                text = self._deps.transcribe(audio_path, None)
+                # API の録音は画面を出さないので、進みを知らせる関数を渡さない
+                on_progress = None if is_api else self._deps.report_progress
+                text = self._deps.transcribe(audio_path, on_progress)
             except TranscriptionError as error:
                 logger.error(f"文字起こしに失敗した（{session.id}・{error}）")
                 self._report_failure(session, str(error), stage)

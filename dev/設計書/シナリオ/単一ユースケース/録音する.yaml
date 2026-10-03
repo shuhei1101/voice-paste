@@ -39,6 +39,7 @@ scenarios:
       - 履歴に話した録音が保存されている
       - システム音量が録音前の値に戻っている
       - 選んだ出力先（貼り付けて送信）で 録音を文字に起こす へ進む
+    test: test_normal
   - name: 正常シナリオ（一時停止して再開する）
     setup:
       - name: Mock
@@ -66,6 +67,7 @@ scenarios:
     expected:
       - 履歴に保存した録音に、一時停止の間に話した声が入っていない
       - 経過時間が、一時停止の間を除いた長さを示している
+    test: test_normal_when_pause_and_resume
   - name: 正常シナリオ（録音を取り消す）
     setup:
       - name: Mock
@@ -97,17 +99,18 @@ scenarios:
       - 履歴にこの録音が残っていない
       - システム音量が録音前の値に戻っている
       - トレイのアイコンが待機中に戻り、文字起こしへ進まない
+    test: test_normal_when_cancel
   - name: 正常シナリオ（録音の画面を出さない）
     setup:
       - name: Mock
         description: なし（実機の Windows で実行）
       - name: 画面を出さない録音
-        description: APIで録音を操作する が録音を始めるか、録音の画面を出さない設定でホットキーから始める
+        description: APIで録音を操作する が録音を始めるか、録音の画面を出さない設定でホットキーかトレイから始める
         notes: API から始めた録音は、設定によらず画面を出さない
     flow: |-
       ```mermaid
       sequenceDiagram
-        participant IN as 入口（API かホットキー）
+        participant IN as 入口（API・ホットキー・トレイ）
         participant SVC as 常駐サービス
         participant TRAY as トレイ
         participant VOL as システム音量
@@ -129,6 +132,7 @@ scenarios:
       - 履歴に録音が保存されている
       - システム音量が録音前の値に戻っている
       - 録音を文字に起こす へ進む
+    test: test_normal_when_hide_window
   - name: 正常シナリオ（履歴を残さない）
     setup:
       - name: Mock
@@ -147,6 +151,7 @@ scenarios:
     expected:
       - 履歴にこの録音が残っていない
       - 一時の音声（`%LOCALAPPDATA%\voice-paste\` の下）に録音があり、録音を文字に起こす へ進む
+    test: test_normal_when_history_off
   - name: 異常シナリオ（処理中に開始が来る）
     setup:
       - name: Mock
@@ -170,6 +175,7 @@ scenarios:
       - 処理中の録音が録音中のまま続いている
     notes:
       API から来たとき: API の開始が処理中に来たときは、APIで録音を操作する の 異常シナリオ（処理中に開始が来る） がエラーを返す。
+    test: test_error_when_busy
   - name: 異常シナリオ（マイクを開けない）
     setup:
       - name: Mock
@@ -206,6 +212,80 @@ scenarios:
       - 録音開始のホットキーをもう一度受け付ける
     notes:
       API から来たとき: API の開始でマイクを開けなかったときは、APIで録音を操作する の 異常シナリオ（マイクを開けない） がエラーを返す。
+    test: test_error_when_microphone_missing
+  - name: 正常シナリオ（ほかの窓を前面に出す）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: ほかの窓
+        description: 「常に手前に表示」でない窓（貼り付け先の入力欄）を開いておく
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SVC as 常駐サービス
+        participant GUI as 録音の画面
+        participant WIN as ほかの窓
+
+        U->>SVC: 録音を始める
+        SVC->>GUI: 録音の画面を開く（表示中は最前面を保つ）
+        U->>WIN: 前面に出す（繰り返す）
+        GUI->>GUI: ほかの窓より上に残る
+        U->>GUI: 「取り消す」で閉じる
+      ```
+    expected:
+      - ほかの窓を前面に出すたびに、録音の画面がその窓より上にある
+    test: test_normal_when_other_window_focused
+  - name: 正常シナリオ（主のモニターに出す）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: モニター
+        description: モニターを 2 枚以上つなぐ
+        notes: 1 枚なら枚数を出して skip する
+      - name: 表示位置
+        description: カーソルのあるモニターに出さない設定にし、カーソルを主でないモニターに置く
+        notes: '`ui.follow_cursor = false`'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SVC as 常駐サービス
+        participant GUI as 録音の画面
+
+        U->>SVC: 録音を始める
+        SVC->>GUI: 主のモニターの作業領域の、設定の位置に開く
+        U->>GUI: 「取り消す」で閉じる
+      ```
+    expected:
+      - 録音の画面が主のモニターの作業領域の中にある
+    test: test_normal_when_primary_monitor
+  - name: 正常シナリオ（カーソルのあるモニターに出す）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: モニター
+        description: モニターを 2 枚以上つなぐ
+        notes: 1 枚なら枚数を出して skip する。拡大率の違うモニターをつないだ環境でも流す
+      - name: 表示位置
+        description: カーソルのあるモニターに出す設定にする
+        notes: '`ui.follow_cursor = true`'
+      - name: 入口
+        description: 主のモニターと、それ以外のモニターの中央にカーソルを置いて、それぞれ録音開始のホットキーを押す
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SVC as 常駐サービス
+        participant GUI as 録音の画面
+
+        U->>SVC: カーソルを置いたモニターで録音開始のホットキーを押す
+        SVC->>GUI: カーソルのあるモニターの作業領域の、設定の位置に開く
+        U->>GUI: 「取り消す」で閉じる
+      ```
+    expected:
+      - 録音の画面が、録音を始めたときにカーソルのあったモニターの作業領域の中にある（主のモニターとそれ以外のモニターの両方）
+    test: test_normal_when_follow_cursor
 lead: ホットキー・トレイ・API のどれかから録音を始め、確定して履歴に残すか取り消すまでの単一ユースケース。
 issue: 14
 primary_actor: 音声入力を使うユーザー
@@ -214,7 +294,8 @@ preconditions:
   - 常駐サービスが待機中で、ほかの録音・文字起こしを処理していない（処理中なら 異常シナリオ（処理中に開始が来る））
 notes:
   確定・一時停止・取り消しの手段: |-
-    ホットキー・トレイから始めた録音は、録音の画面の操作と、どこにフォーカスがあっても効くホットキーで確定・一時停止・取り消しを行う。
-    確定の操作は、設定でオンにした出力先のどれへ届けるかを選ぶ。
-    画面の並び・見た目・ホットキーの割り当ては #21 のデザインの工程で決める。
+    ホットキー・トレイから始めた録音は、録音の画面のボタンと、どこにフォーカスがあっても効くホットキーで確定・一時停止・取り消しを行う。
+    録音の画面は、設定でオンにした出力先と、出すとした AI チャットの送り先ごとに確定のボタンを並べ、各ボタンの横に同じ操作のホットキーを出す。
+    録音の画面を出さない設定では、トレイから始めても画面を出さず、ホットキーだけで操作する。
     API から始めた録音は、API の停止・完了で操作する（APIで録音を操作する）。
+test_file: tests/e2e/単一ユースケース/test_record.py

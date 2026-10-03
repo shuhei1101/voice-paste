@@ -4,8 +4,8 @@ version:
   current: 6.11.2
   latest: 6.11.2
   checked_on: '2026-10-01'
-  source: '動作確認に使った版（pyproject.toml へは #21 で書く）'
-  pinning: '未定（画面を作る #21 で pyproject.toml に書くときに決める）'
+  source: 'pyproject.toml'
+  pinning: '`pyside6-essentials~=6.11.2`（パッチの版だけ上げる。PoC で動かした 6.11.2 から、イベントループとスレッドの受け渡しの振る舞いが変わりうるマイナーの版を上げない）'
 catalogs:
   - name: API
     version: 6.11.2
@@ -22,6 +22,18 @@ catalogs:
       - name: QtWidgets.QMessageBox
         kind: クラス
         purpose: 処理中に開始が来た・起動に失敗したなどのダイアログを出す
+      - name: QtCore.QTimer
+        kind: クラス
+        purpose: 波形・経過時間の描き直しと、Python のシグナルのハンドラを動かす空の定期のタイマー
+      - name: QtWidgets.QWidget
+        kind: クラス
+        purpose: 録音の画面・文字起こし中の表示・設定画面の窓（`WA_ShowWithoutActivating` でフォーカスを取らずに出す）
+      - name: QtGui.QGuiApplication.screenAt
+        kind: 関数
+        purpose: カーソルのあるモニターを引く
+      - name: QtTest.QTest
+        kind: クラス
+        purpose: 画面の結合テストでボタンを押し、キーを送る（pytest-qt は使わない）
 lead: Qt 6 の Python バインディング（Qt for Python）のうち、基本のモジュールだけを持つパッケージ。
 purl: pkg:pypi/pyside6-essentials
 dependency_scope: 必須
@@ -30,7 +42,7 @@ used_in:
   - src/voice_paste/ui/
 verification:
   state: 済
-  date: '2026-10-01'
-  detail: 'WSL（Linux・Python 3.12・QT_QPA_PLATFORM=offscreen）で、ほかのスレッドから emit した Signal がメインスレッドのスロットで受け取られることを確かめた。トレイは offscreen では使えず（isSystemTrayAvailable が False）、Windows の実機でのトレイ・最前面・モニターの判定は #21 で確かめる'
+  date: '2026-10-02'
+  detail: 'Windows の実機（拡大率 150% のモニター 1 枚）で 6.11.2 を動かした PoC（#39）で、ホットキー・API のスレッドから emit した Signal がメインスレッドのスロットで受け取られること（100/100）、画面が固まらないこと（発火の間隔の最大 123 ms）、トレイのアイコンとメニューが出ること、`screenAt(QCursor.pos())` の作業領域に窓が出ること、`WindowStaysOnTopHint` の窓が「常に手前に表示」でない窓より上に残ること、200 ms の空のタイマーがあれば Ctrl+Break で 0.3 秒で終わることを確かめた（結果は PR #37 の計画書の PoC 結果）。複数のモニター・拡大率の違うモニターでの表示位置は測れていない（実機の E2E で確かめる）'
 license: LGPL-3.0（商用利用可。ライブラリを差し替えられる形で配布する義務があるが、配布用のビルドは持たない）
 official_url: https://doc.qt.io/qtforpython-6/

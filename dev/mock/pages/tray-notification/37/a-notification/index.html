@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>トレイの通知（案 A） | voice-paste のモック</title>
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+</head>
+<body>
+  <!-- モック専用の操作列: 同じ階層の案の切り替え -->
+  <nav class="mock-bar" aria-label="案の切り替え（モック専用）">
+    <span class="mock-bar__label">案</span>
+    <ul>
+      <li><a href="../a-notification/index.html" aria-current="page">A: 全てトレイの通知</a></li>
+      <li><a href="../b-dialog/index.html">B: 文字起こし・届けるの失敗はダイアログ</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">tray-notification</a> / <a href="../">37</a> / <span>a-notification</span></nav>
+
+    <!-- 画面の説明 -->
+    <header class="intro">
+      <h1>トレイの通知（案 A）</h1>
+      <p>裏の処理で起きた失敗を、全て Windows の通知で知らせる。通知は数秒で畳まれ、通知センターに残る。操作は「ログフォルダを開く」の 1 つ。</p>
+    </header>
+
+    <div class="desk">
+
+      <!-- 場面: マイクを開けない -->
+      <section class="specimen" aria-labelledby="h-mic">
+        <h2 id="h-mic">マイクを開けない</h2>
+        <div class="win toast" role="status" aria-labelledby="t-mic">
+          <p class="toast__meta">voice-paste</p>
+          <p class="toast__title" id="t-mic"><span class="ticon ticon--error" aria-hidden="true"><svg viewBox="0 0 16 16"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5"/><path d="M3 7.5a5 5 0 0 0 10 0M8 12.5v2"/><path d="M2 2l12 12"/></svg></span>録音を始められませんでした</p>
+          <p class="toast__body">マイクを開けません。マイクがつながっているか、ほかのアプリが使っていないかを確かめてください。</p>
+          <div class="toast__actions"><a class="btn" href="../../../tray/37/a-standard/index.html">ログフォルダを開く</a></div>
+        </div>
+        <p class="scene-note">録音を始めようとしてマイクを開けなかったとき。</p>
+      </section>
+
+      <!-- 場面: 文字起こしに失敗 -->
+      <section class="specimen" aria-labelledby="h-tr">
+        <h2 id="h-tr">文字起こしに失敗</h2>
+        <div class="win toast" role="status" aria-labelledby="t-tr">
+          <p class="toast__meta">voice-paste</p>
+          <p class="toast__title" id="t-tr"><span class="ticon ticon--error" aria-hidden="true"><svg viewBox="0 0 16 16"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5"/><path d="M3 7.5a5 5 0 0 0 10 0M8 12.5v2"/><path d="M2 2l12 12"/></svg></span>文字起こしに失敗しました</p>
+          <p class="toast__body">録音を読めませんでした。録音は履歴に残っています。</p>
+          <div class="toast__actions"><a class="btn" href="../../../tray/37/a-standard/index.html">ログフォルダを開く</a></div>
+        </div>
+        <p class="scene-note">理由を 1 文で出し、詳しい内容はログに書く。</p>
+      </section>
+
+      <!-- 場面: 届けられない -->
+      <section class="specimen" aria-labelledby="h-dl">
+        <h2 id="h-dl">届けられない</h2>
+        <div class="win toast" role="status" aria-labelledby="t-dl">
+          <p class="toast__meta">voice-paste</p>
+          <p class="toast__title" id="t-dl"><span class="ticon ticon--error" aria-hidden="true"><svg viewBox="0 0 16 16"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5"/><path d="M3 7.5a5 5 0 0 0 10 0M8 12.5v2"/><path d="M2 2l12 12"/></svg></span>届けられませんでした</p>
+          <p class="toast__body">クリップボードに書けませんでした（ほかのアプリが使っています）。起こした文字は履歴に残っています。</p>
+          <div class="toast__actions"><a class="btn" href="../../../tray/37/a-standard/index.html">ログフォルダを開く</a></div>
+        </div>
+        <p class="scene-note">貼り付け・AI チャットのどの出力先でも同じ見出しで出し、理由を変える。</p>
+      </section>
+
+      <!-- 場面: API の待ち受けに失敗 -->
+      <section class="specimen" aria-labelledby="h-api">
+        <h2 id="h-api">API の待ち受けに失敗</h2>
+        <div class="win toast" role="status" aria-labelledby="t-api">
+          <p class="toast__meta">voice-paste</p>
+          <p class="toast__title" id="t-api"><span class="ticon ticon--error" aria-hidden="true"><svg viewBox="0 0 16 16"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5"/><path d="M3 7.5a5 5 0 0 0 10 0M8 12.5v2"/><path d="M2 2l12 12"/></svg></span>API を使えません</p>
+          <p class="toast__body">ポート 47823 をほかのアプリが使っています。ホットキーとトレイからの録音は使えます。</p>
+          <div class="toast__actions"><a class="btn" href="../../../tray/37/a-standard/index.html">ログフォルダを開く</a></div>
+        </div>
+        <p class="scene-note">起動の途中で出る。常駐アプリは動き続ける。</p>
+      </section>
+
+      <!-- 場面: 文字起こしのエンジンを準備できない -->
+      <section class="specimen" aria-labelledby="h-eng">
+        <h2 id="h-eng">文字起こしのエンジンを準備できない</h2>
+        <div class="win toast" role="status" aria-labelledby="t-eng">
+          <p class="toast__meta">voice-paste</p>
+          <p class="toast__title" id="t-eng"><span class="ticon ticon--error" aria-hidden="true"><svg viewBox="0 0 16 16"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5"/><path d="M3 7.5a5 5 0 0 0 10 0M8 12.5v2"/><path d="M2 2l12 12"/></svg></span>起動に失敗しました</p>
+          <p class="toast__body">文字起こしのエンジンを準備できません（モデル large-v4 が見つかりません）。設定を直して再起動してください。</p>
+          <div class="toast__actions"><a class="btn" href="../../../tray/37/a-standard/index.html">ログフォルダを開く</a></div>
+        </div>
+        <p class="scene-note">トレイのアイコンは失敗のまま残る。</p>
+      </section>
+
+    </div>
+  </main>
+</body>
+</html>

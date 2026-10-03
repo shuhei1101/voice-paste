@@ -14,7 +14,7 @@ lead: Windows に入っている Web ブラウザ。`--app` でページをア�
 dependency_scope: 任意
 adoption: 採用
 used_in:
-  - voice_paste_legacy/main.py
+  - src/voice_paste/integrations/browser/opener.py
 verification:
   state: 未確認
   detail: Edge の画面を開くと使っているデスクトップに窓が出るため、動かしていない。起動の引数（--app）の組み立てと探し方は単体テストで Mock にして確かめている

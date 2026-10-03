@@ -27,9 +27,7 @@ lead: Tcl/Tk でウィンドウの画面を作る Python の標準ライブラ�
 dependency_scope: 必須
 adoption: 採用
 used_in:
-  - voice_paste_legacy/gui.py
-  - voice_paste_legacy/settings_gui.py
-  - voice_paste_legacy/main.py
+  - tests/support/paste_target.py
 verification:
   state: 未確認
   detail: 現状の棚卸しで、コードが使っている範囲を写しただけで、動かしてはいない

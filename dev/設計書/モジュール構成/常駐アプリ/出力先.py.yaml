@@ -596,7 +596,7 @@ functions:
         type: Callable[[], float]
         required: true
         passing: injected
-        description: 貼り付けてから Enter を送るまでの秒数を返す（呼ぶたびに設定の outputs[paste_and_send].enter_delay_sec を読む。voice_paste_legacy と同じく貼り付けて送信の間を使う）
+        description: 貼り付けてから Enter を送るまでの秒数を返す（呼ぶたびに設定の outputs[paste_and_send].enter_delay_sec を読む。刷新前と同じく貼り付けて送信の間を使う）
     returns:
       type: None
       description: なし

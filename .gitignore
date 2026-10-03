@@ -1,5 +1,6 @@
 # 環境変数
 .env
+.env.migrated
 
 # 仮想環境
 venv/

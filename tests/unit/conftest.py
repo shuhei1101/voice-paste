@@ -19,7 +19,7 @@ def _is_pytest_handler(handler: logging.Handler) -> bool:
 
 @pytest.fixture
 def repo_root() -> Path:
-    """リポジトリの直下（settings.sample.toml と .env.sample の置き場所）を返す。"""
+    """リポジトリの直下（settings.sample.toml の置き場所）を返す。"""
     return Path(__file__).resolve().parents[2]
 
 

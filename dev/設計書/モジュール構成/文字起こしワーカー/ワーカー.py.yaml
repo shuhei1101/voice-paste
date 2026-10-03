@@ -52,7 +52,7 @@ functions:
       1. config を読み、log_dir の `worker_crash.log` へ faulthandler を向けてからモデルを読む
          - 最初の行が config でない・モデルを読めない場合、error を書いて 1 を返す
       2. ready を書く
-      3. transcribe を読むたびに、faster-whisper を voice_paste_legacy と同じ引数（VAD がオフなら vad_parameters は渡さない）で呼び、区間ごとに progress、最後に result を書く
+      3. transcribe を読むたびに、faster-whisper を刷新前と同じ引数（VAD がオフなら vad_parameters は渡さない）で呼び、区間ごとに progress、最後に result を書く
          - 例外・JSON として読めない行・知らない種類の場合、error を書いて次の行を待つ（CUDA のクラッシュはプロセスごと落ち、常駐側が立て直す）
          - ログは標準エラーへ書き、標準出力にはメッセージだけを書く
       4. 標準入力が閉じたら 0 を返す

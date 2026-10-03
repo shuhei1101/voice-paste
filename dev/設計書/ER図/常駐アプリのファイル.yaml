@@ -1,92 +1,8 @@
 title: "ER 図: 常駐アプリのファイル"
-lead: 常駐アプリが書き出して持つファイル（履歴・一時の録音・PID・ログ）。データベースは持たない。置き場の基準はリポジトリの直下（exe では `%APPDATA%\voice-paste`）。新しい構成（`src/voice_paste/`）のファイルは `%LOCALAPPDATA%\voice-paste\` を基準にし、名前の先頭に置き場を書く。
+lead: 常駐アプリが書き出して持つファイル（履歴・一時の音声・トークン・ログ）。データベースは持たない。`%LOCALAPPDATA%\voice-paste\` を基準にし、名前の先頭に置き場を書く。
 tables:
-  - name: history/{YYYYMMDD}/{YYYYMMDDHHMMSS}_recording.wav
-    title: 録音の履歴
-    datastore: ファイル（WAV）
-    summary: 届けた回の録音。一時の録音をここへ移す
-    growth: 空でない文字が起きた回ごとに 1 つ増える（`HISTORY_ENABLED=true` のとき）
-    retention: '`HISTORY_RETENTION_DAYS` 日（日付のフォルダごと消す）'
-    deletion: 物理削除（起動時と常駐中の 1 時間ごと）
-    columns:
-      - name: sample_rate
-        title: サンプリングレート
-        type: number
-        description: 16000 Hz
-      - name: channels
-        title: チャンネル数
-        type: number
-        description: 1（モノラル）
-      - name: samples
-        title: 音
-        type: array
-        description: 16 ビット整数の音（一時停止の間の音は含まない）
-  - name: history/{YYYYMMDD}/{YYYYMMDDHHMMSS}_text.txt
-    title: 起こした文字の履歴
-    datastore: ファイル（テキスト、UTF-8）
-    summary: 届けた回の起こした文字（用語集で補正した後）。同じ日時の録音の履歴と対になる
-    growth: 空でない文字が起きた回ごとに 1 つ増える（`HISTORY_ENABLED=true` のとき）
-    retention: '`HISTORY_RETENTION_DAYS` 日（日付のフォルダごと消す）'
-    deletion: 物理削除（起動時と常駐中の 1 時間ごと）
-    columns:
-      - name: text
-        title: 起こした文字
-        type: string
-        description: 区間ごとに改行で区切った文字
-  - name: cache/recording.wav
-    title: 一時の録音
-    datastore: ファイル（WAV）
-    summary: 確定した録音を文字に起こすまで置く
-    growth: 1 つだけで、確定するたびに上書きする
-    retention: 履歴へ移すまで（履歴を残さない設定・文字起こしの失敗・空の結果のときは次の確定まで残る）
-    columns:
-      - name: sample_rate
-        title: サンプリングレート
-        type: number
-        description: 16000 Hz
-      - name: channels
-        title: チャンネル数
-        type: number
-        description: 1（モノラル）
-      - name: samples
-        title: 音
-        type: array
-        description: 16 ビット整数の音
-  - name: '%APPDATA%\voice-paste\voice_paste.pid'
-    title: PID ファイル
-    datastore: ファイル（テキスト）
-    summary: 動いている voice-paste のプロセスの番号。起動の仕方によらず同じ場所を使う（APPDATA が無ければ設定の置き場）
-    growth: 1 つだけで、起動するたびに書き換える
-    deletion: 終了時に、自分の番号が書かれていれば消す
-    columns:
-      - name: pid
-        title: プロセスの番号
-        type: number
-        description: 次の起動がこの番号のプロセスを強制終了する
-  - name: log/{YYYYMMDDHHMMSS}_voice_paste.log
-    title: アプリのログ
-    datastore: ファイル（テキスト、UTF-8）
-    summary: 起動ごとに 1 つ作るアプリのログ（文字起こしワーカーの標準エラーも `[worker]` つきで転送する）
-    growth: 起動ごとに 1 つ増える
-    retention: '`voice-paste.bat` で起動したとき、名前が今日の日付で始まらない `log/*.log` を消す'
-    columns:
-      - name: line
-        title: ログの行
-        type: string
-        description: '`[日時] レベル ロガー名 ファイル:行 - 本文`'
-  - name: log/crash.log ほか
-    title: クラッシュと起動の記録
-    datastore: ファイル（テキスト）
-    summary: ネイティブのクラッシュのスタック（`crash.log`・ワーカーの `worker_crash.log`）、起動のバッチファイルの記録（`{日時}_run_tray_bat.log`）、exe の DLL の登録の記録（`dll_debug.log`）
-    growth: crash.log と worker_crash.log は追記、バッチファイルの記録は起動ごとに 1 つ増える
-    retention: '`voice-paste.bat` で起動したとき、名前が今日の日付で始まらない `log/*.log` を消す（crash.log も含む）'
-    columns:
-      - name: line
-        title: 記録の行
-        type: string
-        description: スタックトレースや起動の手順の行
   - name: '%LOCALAPPDATA%\voice-paste\history\{YYYYMMDD}\{YYYYMMDDHHMMSS}_{session_id}.wav'
-    title: 録音の履歴（新しい構成）
+    title: 録音の履歴
     datastore: ファイル（WAV）
     summary: 確定した録音。文字起こしより先に書き、文字起こしに失敗しても結果が空でも残る
     growth: 録音を確定するたびに 1 つ増える（`history.enabled = true` のとき）
@@ -106,7 +22,7 @@ tables:
         type: array
         description: 16 ビット整数の音（一時停止の間の音は含まない）
   - name: '%LOCALAPPDATA%\voice-paste\history\{YYYYMMDD}\{YYYYMMDDHHMMSS}_{session_id}.txt'
-    title: 起こした文字の履歴（新しい構成）
+    title: 起こした文字の履歴
     datastore: ファイル（テキスト、UTF-8）
     summary: 起こした文字（用語集で補正した後）。同じ名前の録音の履歴と対になる
     growth: 文字起こしを終えるたびに 1 つ増える（結果が空でも書く。失敗した回は無い）
@@ -118,7 +34,7 @@ tables:
         type: string
         description: 区間ごとに改行で区切った文字
   - name: '%LOCALAPPDATA%\voice-paste\tmp\{session_id}.wav'
-    title: 一時の音声（新しい構成）
+    title: 一時の音声
     datastore: ファイル（WAV）
     summary: 履歴を残さない設定のときに、確定した録音を文字に起こすまで置く
     growth: 録音を確定するたびに 1 つ増える（`history.enabled = false` のとき）
@@ -138,7 +54,7 @@ tables:
         type: array
         description: 16 ビット整数の音
   - name: '%LOCALAPPDATA%\voice-paste\api_token'
-    title: API のトークンのファイル（新しい構成）
+    title: API のトークンのファイル
     datastore: JSON
     summary: 起動ごとに作る API のトークンと待ち受けのポート。同じユーザーのほかのプロセスが読んで API を呼ぶ
     scale: 1 件
@@ -160,3 +76,43 @@ tables:
         type: string
         not_null: true
         description: '今回の起動のトークン。`Authorization: Bearer {トークン}` で付ける'
+  - name: '%LOCALAPPDATA%\voice-paste\log\{YYYY-MM-DD}.log'
+    title: アプリのログ
+    datastore: ファイル（テキスト、UTF-8）
+    summary: 日付ごとに追記するアプリのログ（文字起こしワーカーの標準エラーも転送する）
+    growth: 日付が変わるたびに 1 つ増える
+    retention: '`logging.retention_days` 日'
+    deletion: 物理削除（起動時と、常駐中は非機能要件の削除の間隔ごと。`YYYY-MM-DD.log` の名前のファイルだけを消す）
+    columns:
+      - name: ts
+        title: 日時
+        type: string
+        description: ローカルの時刻（UTC オフセット付きの ISO 8601）
+      - name: level
+        title: レベル
+        type: string
+        description: ログのレベル
+      - name: name
+        title: ロガー名
+        type: string
+        description: 書いたロガーの名前
+      - name: msg
+        title: 本文
+        type: string
+        description: ログの本文
+      - name: exc
+        title: 例外
+        type: string
+        description: 例外のスタックトレース（例外があるときだけ）
+    description: 1 行 1 JSON で書く。
+  - name: '%LOCALAPPDATA%\voice-paste\log\worker_crash.log ほか'
+    title: クラッシュと起動の記録
+    datastore: ファイル（テキスト）
+    summary: 文字起こしワーカーのネイティブのクラッシュのスタック（`worker_crash.log`）と、起動のバッチファイルの記録（`launcher.log`）
+    growth: worker_crash.log は追記、launcher.log は起動ごとに上書きする
+    retention: 消さない（日付の名前を持たないため、ログの保持期間の削除の対象にならない）
+    columns:
+      - name: line
+        title: 記録の行
+        type: string
+        description: スタックトレースや起動の手順の行

@@ -359,7 +359,7 @@ constants:
     title: 録音のサンプルレート
     container: features/recording/client.py
     usecase: 録音する
-    summary: マイクの入力のサンプルレート（Hz）。voice_paste_legacy と同じ値で、文字起こしと履歴が受ける形
+    summary: マイクの入力のサンプルレート（Hz）。刷新前と同じ値で、文字起こしと履歴が受ける形
     value: '16000'
     status: implemented
 test_files:

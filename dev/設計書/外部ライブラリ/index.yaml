@@ -2,8 +2,6 @@ summary: 採用済みの外部ライブラリ / 外部ツールのリファレ�
 items:
   - page: faster-whisper.yaml
     summary: ローカルの Whisper で音声を文字に起こす
-  - page: openai.yaml
-    summary: OpenAI の文字起こしの API を呼ぶ SDK
   - page: sounddevice.yaml
     summary: マイクの入力を開いて録音する
   - page: scipy.yaml
@@ -14,12 +12,6 @@ items:
     summary: 起こした文字をクリップボードへ書く
   - page: pynput.yaml
     summary: ホットキーを受け付け、貼り付けのキーを仮想的に送る
-  - page: python-dotenv.yaml
-    summary: .env を読み書きする
-  - page: pystray.yaml
-    summary: システムトレイにアイコンとメニューを出す
-  - page: Pillow.yaml
-    summary: トレイのアイコンの画像を描く
   - page: pycaw.yaml
     summary: Windows のシステム音量を読み書きする
   - page: comtypes.yaml
@@ -30,8 +22,6 @@ items:
     summary: GPU での文字起こしに使う cuDNN の DLL
   - page: nvidia-cuda-nvrtc-cu12.yaml
     summary: GPU での文字起こしに使う NVRTC の DLL
-  - page: PyInstaller.yaml
-    summary: exe をビルドする
   - page: tkinter.yaml
     summary: 録音の画面・文字起こし中の表示・設定画面を作る
   - page: Microsoft_Edge.yaml

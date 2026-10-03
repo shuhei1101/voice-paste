@@ -88,9 +88,6 @@ data_models:
       - name: data_dir
         type: Path | None
         description: データの置き場所（`--data-dir`）。渡したときは設定・履歴・ログ・一時の音声・トークンをこの下に置き、渡さなければ None（既定の置き場所）
-      - name: migrate_env
-        type: Path | None
-        description: 設定へ移す .env（`--migrate-env`）。渡されたときだけ移す
     status: implemented
 functions:
   - name: build_handlers
@@ -160,36 +157,30 @@ functions:
       3. 置き場所ごとの名前で単一インスタンスを確保する（instance_name・acquire_single_instance(SINGLE_INSTANCE_TIMEOUT_SEC)）
          - StartupError の場合、1 を返す（トレイを出す前のため、ログにだけ残す）
            - `[ERROR]` 起動に失敗した（理由）
-      4. `--migrate-env` が渡されていれば、.env を移して書く（migrate_env・save_settings）
-         - settings.toml が既にある場合、1 を返す（書き換えた設定を上書きしない）
-           - `[ERROR]` 設定ファイルが既にあるため .env を移さなかった（設定ファイルのパス）
-         - SettingsError の場合、1 を返す
-           - `[ERROR]` .env を移せなかった（理由）
-         - `[INFO]` .env を設定ファイルへ移した（.env のパス・設定ファイルのパス）
-      5. QApplication（最後の窓を閉じても終わらない）・UiBridge・Tray を作り、build_stylesheet を当ててトレイに準備中を出す。WAKE_INTERVAL_MS ごとの空の QTimer を置き、SIGINT・SIGBREAK で QApplication.quit を呼ぶ。後から起動したプロセスに終わるよう頼まれたら、QApplication.quit をメインスレッドで呼ぶ（SingleInstanceLock.on_quit_requested に、QMetaObject.invokeMethod で QApplication.quit をキューに入れる関数を渡す）
-      6. 設定を読む（load_settings）
-         - SettingsError の場合、トレイを失敗にして設定を読めないことを通知し（Tray.show_failure(settings_invalid, 理由)）、「録音を始める」「設定…」を押せないまま 12 へ（フォルダを開いて settings.toml を直し、再起動できる）
+      4. QApplication（最後の窓を閉じても終わらない）・UiBridge・Tray を作り、build_stylesheet を当ててトレイに準備中を出す。WAKE_INTERVAL_MS ごとの空の QTimer を置き、SIGINT・SIGBREAK で QApplication.quit を呼ぶ。後から起動したプロセスに終わるよう頼まれたら、QApplication.quit をメインスレッドで呼ぶ（SingleInstanceLock.on_quit_requested に、QMetaObject.invokeMethod で QApplication.quit をキューに入れる関数を渡す）
+      5. 設定を読む（load_settings）
+         - SettingsError の場合、トレイを失敗にして設定を読めないことを通知し（Tray.show_failure(settings_invalid, 理由)）、「録音を始める」「設定…」を押せないまま 11 へ（フォルダを開いて settings.toml を直し、再起動できる）
            - `[ERROR]` 起動に失敗した（理由）
-      7. ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を消す（purge_old_files。処理中のセッションは無いため、一時の音声も全て消す対象にする）
+      6. ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を消す（purge_old_files。処理中のセッションは無いため、一時の音声も全て消す対象にする）
          - `[INFO]` 設定を読んだ（設定ファイルのパス・エンジン・オンの出力先の ID）
-      8. 配線する（build_handlers。notify と report_progress は UiBridge を部分適用した ui のもの）
-         - StartupError の場合、トレイを失敗にして起動の失敗を通知し（Tray.show_failure(engine_unavailable, 理由)）、「設定…」だけを押せるまま 12 へ（設定画面は読んだ設定で開き、保存は settings.toml へ書くだけにする。Handlers が無いため、UiDeps のうち録音・ホットキーの関数（start・pause・resume・complete・cancel・current_session・level・suspend_hotkeys・resume_hotkeys）は何もしない関数にし、設定画面を閉じてもホットキーの受付を始めない）
+      7. 配線する（build_handlers。notify と report_progress は UiBridge を部分適用した ui のもの）
+         - StartupError の場合、トレイを失敗にして起動の失敗を通知し（Tray.show_failure(engine_unavailable, 理由)）、「設定…」だけを押せるまま 11 へ（設定画面は読んだ設定で開き、保存は settings.toml へ書くだけにする。Handlers が無いため、UiDeps のうち録音・ホットキーの関数（start・pause・resume・complete・cancel・current_session・level・suspend_hotkeys・resume_hotkeys）は何もしない関数にし、設定画面を閉じてもホットキーの受付を始めない）
            - `[ERROR]` 起動に失敗した（理由）
-      9. UiController を作り（build_ui_deps）、UiBridge の知らせの受け手につなぐ（10 で待ち受けを始められない知らせを取りこぼさないよう、API より先に作る）
-      10. トークンを作り、API サーバーを起動する（create_token・build_fastapi・ApiServerRunner.start(API_START_TIMEOUT_SEC)）
+      8. UiController を作り（build_ui_deps）、UiBridge の知らせの受け手につなぐ（9 で待ち受けを始められない知らせを取りこぼさないよう、API より先に作る）
+      9. トークンを作り、API サーバーを起動する（create_token・build_fastapi・ApiServerRunner.start(API_START_TIMEOUT_SEC)）
          - True の場合だけ、トークンのファイルを書く（write_token_file）
          - False の場合、トークンのファイルを書かずに api_unavailable を知らせて続ける（ホットキーとトレイからの録音は使える）。理由は「ポート {ポート} で待ち受けを始められません」の 1 文にする
-      11. ホットキーの受付を始め（HotkeyListener.start(build_hotkey_bindings(設定))）、上限の打ち切りを RepeatingTimer で SESSION_LIMIT_CHECK_INTERVAL_SEC ごとに呼ぶ（SessionManager.truncate_if_expired）。古いログと履歴の削除を RepeatingTimer で PURGE_INTERVAL_SEC ごとに呼ぶ（purge_old_files。設定は呼ぶたびに SettingsStore.get から引き、設定画面で変えた保持期間・履歴を残すかを次の回から効かせる。処理中のセッションの ID は SessionManager.current から引く）。トレイを待機中にする
+      10. ホットキーの受付を始め（HotkeyListener.start(build_hotkey_bindings(設定))）、上限の打ち切りを RepeatingTimer で SESSION_LIMIT_CHECK_INTERVAL_SEC ごとに呼ぶ（SessionManager.truncate_if_expired）。古いログと履歴の削除を RepeatingTimer で PURGE_INTERVAL_SEC ごとに呼ぶ（purge_old_files。設定は呼ぶたびに SettingsStore.get から引き、設定画面で変えた保持期間・履歴を残すかを次の回から効かせる。処理中のセッションの ID は SessionManager.current から引く）。トレイを待機中にする
          - HotkeyListener は、環境変数 `VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS`（ACCEPT_INJECTED_HOTKEYS_ENV）が `1` のときだけ accept_injected=True で作る（E2E がソフトウェアで送ったキーでホットキーを押すため。普段の起動は付けない）
            - `[INFO]` ソフトウェアで送ったキーもホットキーとして受ける
          - HotkeyError の場合、ホットキーを受け付けずに続ける（トレイから録音でき、設定画面で直せる）
            - `[ERROR]` ホットキーを受け付けられなかった（理由）
          - `[INFO]` 常駐サービスを始めた（API のポート）
-      12. イベントループを回す（exec_loop）
-      13. 抜けたら、新しい開始が来ないように入口とタイマー（ホットキー・API サーバー・2 つのタイマー）を先に止め、録音を捨て（SessionManager.close）、エンジンを止め、トレイを消す（9 までで立てたものだけ）。最後に単一インスタンスの排他を放す（SingleInstanceLock.release）
+      11. イベントループを回す（exec_loop）
+      12. 抜けたら、新しい開始が来ないように入口とタイマー（ホットキー・API サーバー・2 つのタイマー）を先に止め、録音を捨て（SessionManager.close）、エンジンを止め、トレイを消す（8 までで立てたものだけ）。最後に単一インスタンスの排他を放す（SingleInstanceLock.release）
           - `[INFO]` 常駐サービスを終えた
-      14. 再起動を頼まれていれば、同じ引数で起動し直す（relaunch。排他を放した後に呼ぶため、次のプロセスは待たずに排他を取れる）
-      15. 0 を返す
+      13. 再起動を頼まれていれば、同じ引数で起動し直す（relaunch。排他を放した後に呼ぶため、次のプロセスは待たずに排他を取れる）
+      14. 0 を返す
     status: implemented
     args:
       - name: argv
@@ -211,19 +202,6 @@ functions:
         condition: --data-dir に空の一時フォルダ。QT_QPA_PLATFORM=offscreen、環境変数 VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS は無い、exec_loop はすぐ 0 を返す
         mock: build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray
         expected: 0。{data_dir}/settings.toml が既定値ででき、token_file があり、HotkeyListener が accept_injected=False で作られ、HotkeyListener.start に既定のホットキーが渡り、RepeatingTimer が SESSION_LIMIT_CHECK_INTERVAL_SEC と PURGE_INTERVAL_SEC の 2 つ作られ、HotkeyListener.stop・2 つの RepeatingTimer.stop・ApiServerRunner.stop・SessionManager.close・stop_engine・Tray.hide がこの順に 1 回ずつ呼ばれ、最後に単一インスタンスの排他が放される（同じ data_dir でもう一度取れる）
-      - name: test_main_when_migrate_env
-        case: 正常
-        summary: .env を移してから読む
-        condition: --data-dir に空の一時フォルダ、--migrate-env に WHISPER_MODEL=small の .env。exec_loop はすぐ 0 を返す
-        mock: build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray
-        expected: 0。settings.toml の transcription.local_whisper.model が small、.env の中身が変わらない
-      - name: test_main_when_settings_exists_and_migrate_env
-        case: 異常
-        summary: 設定ファイルがあれば移さない
-        condition: hotkeys.start を変えた settings.toml がある data_dir、--migrate-env に .env
-        mock: build_handlers
-        expected: 1。settings.toml が変わらず、ERROR のログが 1 行、build_handlers が呼ばれない
-        exception: settings.toml が既にある
       - name: test_main_when_invalid_settings
         case: 異常
         summary: 設定が合わなければトレイで知らせて入口を立てない
@@ -405,7 +383,7 @@ functions:
     container: main.py
     usecase: 常駐アプリを起動する
     scope: public
-    summary: argparse で `--data-dir` と `--migrate-env` を読む
+    summary: argparse で `--data-dir` を読む
     args:
       - name: argv
         type: list[str]
@@ -416,7 +394,7 @@ functions:
       type: CliArgs
       description: 起動の引数
     process: |-
-      1. `--data-dir {フォルダ}` と `--migrate-env {ファイル}` を読む（どちらも任意）
+      1. `--data-dir {フォルダ}` を読む（任意）
          - `--data-dir` が無い場合、data_dir を None にする（設定は `%APPDATA%\voice-paste`、それ以外は `%LOCALAPPDATA%\voice-paste` の下。E2E・非機能要件テストは一時フォルダを渡して普段使いの置き場所に触れない）
          - 知らない引数の場合、argparse が使い方を出して SystemExit(2) で終わる
     unit_tests:
@@ -425,19 +403,13 @@ functions:
         summary: データの置き場所だけを読む
         condition: '["--data-dir", "C:/tmp/vp"]'
         mock: なし
-        expected: data_dir が Path("C:/tmp/vp")、migrate_env が None
-      - name: test_parse_args_when_migrate_env
-        case: 正常
-        summary: 移す .env も読む
-        condition: '["--data-dir", "C:/tmp/vp", "--migrate-env", "C:/repo/.env"]'
-        mock: なし
-        expected: migrate_env が Path("C:/repo/.env")
+        expected: data_dir が Path("C:/tmp/vp")
       - name: test_parse_args_when_no_data_dir
         case: 正常
         summary: データの置き場所が無ければ既定の置き場所にする
         condition: '[]'
         mock: なし
-        expected: data_dir が None、migrate_env が None
+        expected: data_dir が None
       - name: test_parse_args_when_unknown_argument
         case: 異常
         summary: 知らない引数なら終わる

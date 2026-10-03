@@ -301,7 +301,7 @@ functions:
         condition: 上限まで待っても前のプロセスが排他を放さない
     notes:
       強制終了しない: プロセスの番号での強制終了はしない（番号を使い回された無関係なプロセスを止めない）。
-    status: planned
+    status: implemented
     process: |-
       1. 名前付きのミューテックスを作る（ctypes で Win32 の CreateMutexW）
       2. 既にあった（ERROR_ALREADY_EXISTS）か
@@ -737,7 +737,7 @@ functions:
         condition: 既定の置き場所と一時フォルダ
         mock: なし
         expected: 名前が違う
-    status: planned
+    status: implemented
   - name: purge_old_files
     title: 古いログと履歴の削除
     container: main.py
@@ -782,7 +782,7 @@ functions:
         condition: history.enabled=false
         mock: purge_old_logs・purge_expired
         expected: purge_old_logs が 1 回呼ばれ、purge_expired が呼ばれない
-    status: planned
+    status: implemented
 notes:
   依存の向き: |-
     コーディング規約『依存関係管理』のとおり `features`・`server`・`ui` → `integrations`・`runtime` → `shared` とし、上の層へは import しない。
@@ -1003,7 +1003,7 @@ classes:
             condition: 取ってから release を 2 回呼ぶ
             mock: 受け手
             expected: 同じ名前で timeout_sec=0.1 で取れ、受け手が呼ばれていない
-    status: planned
+    status: implemented
 constants:
   - name: API_START_TIMEOUT_SEC
     title: API の待ち受けの始まりを待つ秒数
@@ -1060,28 +1060,28 @@ constants:
     usecase: 常駐アプリを起動する
     summary: acquire_single_instance に渡す、前のプロセスが排他を放すのを待つ上限。非機能要件の前の常駐サービスの終わりを待つ時間の決定値
     value: '17.0'
-    status: planned
+    status: implemented
   - name: PURGE_INTERVAL_SEC
     title: 常駐中に古いログと履歴を消す間隔
     container: main.py
     usecase: 常駐アプリを起動する
     summary: RepeatingTimer が purge_old_files を呼ぶ間隔。非機能要件の常駐中に古い履歴とログを消す間隔（24 時間）を秒にした値
     value: '86400.0'
-    status: planned
+    status: implemented
   - name: INSTANCE_HASH_LENGTH
     title: 単一インスタンスの名前のハッシュの長さ
     container: runtime/single_instance.py
     usecase: 常駐アプリを起動する
     summary: instance_name が名前に使う SHA-256 の 16 進の文字数。置き場所が 1 台に数個のため、16 文字（64 ビット）で重ならない
     value: '16'
-    status: planned
+    status: implemented
   - name: OPEN_EVENT_RETRY_INTERVAL_SEC
     title: 前のプロセスのイベントを開き直す間隔
     container: runtime/single_instance.py
     usecase: 常駐アプリを起動する
     summary: 前のプロセスがミューテックスを作ってからイベントを作るまでの間に OpenEventW が失敗したとき、開き直す間隔。前のプロセスの起動の初めの数ミリ秒の間だけ起こるため、依頼の遅れを 0.1 秒までに抑える
     value: '0.1'
-    status: planned
+    status: implemented
 test_files:
   - tests/unit/voice_paste/test_main.py
   - tests/unit/voice_paste/runtime/test_timer.py

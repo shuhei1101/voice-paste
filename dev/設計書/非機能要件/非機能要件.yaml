@@ -99,6 +99,7 @@ requirements:
         measurement: SessionManager.complete を呼んだ時点から、差し替えた貼り付けのキーが押された時点までを time.perf_counter で測り、20 回の生の値と中央値・最小・最大を出す
         expected: 20 回とも貼り付けのキーが押され、中央値が 1.59 秒以下
         notes: クリップボードは実物を書き換えるため、測る前の文字を控えて測った後に戻す。録音は特性テスト（test_transcription_parity）が拾わない `recordings/latency/` に置く。`--run-e2e` が無い環境・録音が無い環境では skip する
+    test_file: tests/nfr/test_paste_latency.py
   - name: 文字起こしワーカーの立て直しの時間
     english_name: worker_recovery_time
     category: 耐障害
@@ -126,6 +127,7 @@ requirements:
         measurement: 毎回の start（ワーカーの起動から ready を受けるまで）の時間（秒）を測り、生の値と中央値・最大を出す
         expected: 20 回とも ready を受け、最大が 27 秒以内
         notes: 測った最大から規約『資源の値の決め方』で決定値を決め直す。`tests/nfr/fixtures/` が無い環境・GPU が無い環境では skip する
+    test_file: tests/nfr/test_worker_recovery_time.py
   - name: 刷新の前後での起こした文字の一致
     english_name: transcription_parity
     category: 機能適合性
@@ -226,6 +228,7 @@ requirements:
         measurement: 毎回、標準入力を閉じてからワーカーのプロセスが終わるまでの時間（秒）を測り、生の値と中央値・最大を出す
         expected: 20 回とも terminate せずに終わり、最大が 2 秒以内
         notes: 測った最大から規約『資源の値の決め方』の下流を待つタイムアウトで決定値を決め直す。`tests/nfr/fixtures/` が無い環境・GPU が無い環境では skip する
+    test_file: tests/nfr/test_worker_stop_timeout.py
   - name: 前の常駐サービスの終わりを待つ時間
     english_name: single_instance_timeout
     category: 可用性
@@ -265,3 +268,4 @@ requirements:
         measurement: 後のプロセスのログの「前の常駐サービスに終わるよう頼んだ」から「単一インスタンスを確保した」までの時間（秒）を測り、生の値と中央値・最大を出す
         expected: 5 回とも後のプロセスが待機中になり、常駐サービスのプロセスが 1 つだけで、最大が 54 秒以内
         notes: '`--run-e2e` が無い環境・`tests/nfr/fixtures/` が無い環境では skip する'
+    test_file: tests/nfr/test_single_instance_timeout.py

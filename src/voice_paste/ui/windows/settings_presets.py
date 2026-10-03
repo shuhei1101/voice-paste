@@ -39,6 +39,12 @@ PRESET_FIELD_LABELS: dict[str, str] = {
 }
 """プリセットの項目ごとの、画面の欄の名前（エラーの一覧にも出す）。"""
 
+TITLE_PLACEHOLDER: str = "録音の画面のボタンに出す名前"
+"""タイトルの欄のプレースホルダ。"""
+
+UNTITLED_TEXT: str = "（タイトル未入力）"
+"""タイトルが空のときに、まとまりの頭に出す表示。"""
+
 ENABLED_TEXT: str = "有効"
 DISABLED_TEXT: str = "無効"
 """有効の切り替えの右に出す、今の状態の文字。"""
@@ -208,39 +214,39 @@ class PresetListPanel(QWidget):
         from voice_paste.ui.windows.settings_window import HotkeyEdit
 
         title = str(value["title"])
-        name = _preset_name(position, title)
         frame = QFrame()
         frame.setProperty("role", "surface")
         column = QVBoxLayout(frame)
 
-        # 頭: 有効の切り替えと今の状態の文字・タイトル・上へ・下へ・消す
+        # 頭: 有効の切り替えと今の状態の文字・入れたタイトルの表示・上へ・下へ・消す
         head = QHBoxLayout()
         enabled = QCheckBox(ENABLED_TEXT if value["enabled"] else DISABLED_TEXT)
         enabled.setChecked(bool(value["enabled"]))
-        enabled.setAccessibleName(f"{name}を有効にする")
         enabled.toggled.connect(
             lambda checked, box=enabled: box.setText(ENABLED_TEXT if checked else DISABLED_TEXT)
         )
-        title_edit = QLineEdit(title)
-        title_edit.setPlaceholderText("タイトル")
-        up_button = self._operation_button("↑", f"{name}を上へ", "preset_up", position)
+        heading = QLabel()
+        heading.setObjectName(f"preset_heading_{position}")
+        heading.setProperty("role", "heading")
+        up_button = self._operation_button("↑", "preset_up", position)
         up_button.setEnabled(position > 0)
         up_button.clicked.connect(lambda: self._move(position, -1))
-        down_button = self._operation_button("↓", f"{name}を下へ", "preset_down", position)
+        down_button = self._operation_button("↓", "preset_down", position)
         down_button.setEnabled(not last)
         down_button.clicked.connect(lambda: self._move(position, 1))
-        remove_button = self._operation_button("×", f"{name}を消す", "preset_remove", position)
+        remove_button = self._operation_button("×", "preset_remove", position)
         remove_button.clicked.connect(lambda: self._remove(position))
-        for widget in (enabled, title_edit):
-            head.addWidget(widget, 1 if widget is title_edit else 0)
+        head.addWidget(enabled)
+        head.addWidget(heading, 1)
         for button in (up_button, down_button, remove_button):
             head.addWidget(button)
         column.addLayout(head)
 
+        # 欄: タイトル・URL・種類ごとに違う欄・確定のホットキー（どれも名前を見せる）
+        title_edit = QLineEdit(title)
+        title_edit.setPlaceholderText(TITLE_PLACEHOLDER)
         widgets: dict[str, QWidget] = {"enabled": enabled, "title": title_edit}
         row = _PresetRow(frame, widgets)
-        self._add_error_label(column, row, "title")
-        # URL・種類ごとに違う欄・確定のホットキー
         url_edit = QLineEdit(str(value["url"]))
         url_edit.setPlaceholderText("https://")
         widgets["url"] = url_edit
@@ -248,16 +254,34 @@ class PresetListPanel(QWidget):
             widgets[attribute] = self._extra_widget(attribute, value[attribute])
         hotkey_edit = HotkeyEdit(str(value["hotkey"]))
         widgets["hotkey"] = hotkey_edit
+        clear_button = QPushButton("空にする")
+        clear_button.setObjectName(f"preset_hotkey_clear_{position}")
+        clear_button.clicked.connect(hotkey_edit.clear_hotkey)
 
+        self._add_field(column, row, "title", title_edit, ())
         for attribute in ("url", *self._extra_attributes(), "hotkey"):
-            widget = widgets[attribute]
-            extras = ()
-            if attribute == "hotkey":
-                clear_button = QPushButton("空にする")
-                clear_button.setObjectName(f"preset_hotkey_clear_{position}")
-                clear_button.clicked.connect(lambda _checked=False, edit=hotkey_edit: edit.clear_hotkey())
-                extras = (clear_button,)
-            self._add_field(column, row, attribute, widget, extras)
+            extras = (clear_button,) if attribute == "hotkey" else ()
+            self._add_field(column, row, attribute, widgets[attribute], extras)
+
+        def sync_names() -> None:
+            """入れたタイトルで、頭の表示と、操作の読み上げの名前を合わせる（空なら何件目か）。"""
+            current = title_edit.text().strip()
+            name = _preset_name(position, current)
+            heading.setText(current or UNTITLED_TEXT)
+            enabled.setAccessibleName(f"{name}を有効にする")
+            up_button.setAccessibleName(f"{name}を上へ")
+            down_button.setAccessibleName(f"{name}を下へ")
+            remove_button.setAccessibleName(f"{name}を消す")
+            clear_button.setAccessibleName(f"{name}のホットキーを空にする")
+
+        def sync_clear_button() -> None:
+            """ホットキーの欄が空でないときだけ「空にする」を押せるようにする。"""
+            clear_button.setEnabled(bool(hotkey_edit.hotkey))
+
+        title_edit.textChanged.connect(lambda _text: sync_names())
+        hotkey_edit.textChanged.connect(lambda _text: sync_clear_button())
+        sync_names()
+        sync_clear_button()
 
         for attribute, widget in widgets.items():
             widget.setObjectName(f"preset_{attribute}_{position}")
@@ -266,11 +290,10 @@ class PresetListPanel(QWidget):
         self._rows_layout.addWidget(frame)
 
     @staticmethod
-    def _operation_button(text: str, accessible_name: str, prefix: str, position: int) -> QPushButton:
-        """上へ・下へ・消すのボタンを作る（見た目は印、読み上げの名前は動作とプリセットの名前）。"""
+    def _operation_button(text: str, prefix: str, position: int) -> QPushButton:
+        """上へ・下へ・消すのボタンを作る（見た目は印。読み上げの名前は入れたタイトルに合わせて付ける）。"""
         button = QPushButton(text)
         button.setObjectName(f"{prefix}_{position}")
-        button.setAccessibleName(accessible_name)
         return button
 
     @staticmethod
@@ -297,6 +320,7 @@ class PresetListPanel(QWidget):
         if not isinstance(widget, QCheckBox):
             label = QLabel(PRESET_FIELD_LABELS[attribute])
             label.setProperty("role", "heading")
+            label.setBuddy(widget)
             column.addWidget(label)
         control = QHBoxLayout()
         control.addWidget(widget, 1)

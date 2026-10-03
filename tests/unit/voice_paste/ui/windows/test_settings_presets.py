@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QRegularExpression
-from PySide6.QtWidgets import QAbstractButton
+from PySide6.QtWidgets import QAbstractButton, QLabel, QLineEdit
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QApplication
@@ -97,3 +97,75 @@ def test_preset_list_panel_add_preset(qapp: QApplication) -> None:
     assert collected[0]["url"] == ""
     assert collected[0]["hotkey"] == ""
     assert changed_count == [1]
+
+
+def test_preset_list_panel_title_field_has_name(qapp: QApplication) -> None:
+    """タイトルの欄は「タイトル」の名前を見せ、プレースホルダは画面設計の文言（正常系）。"""
+    from voice_paste.ui.windows.settings_presets import PresetListPanel
+
+    # 準備
+    panel = PresetListPanel("browser")
+
+    # 実行
+    panel.add_preset()
+
+    # 検証
+    title_edit = panel.findChild(QLineEdit, "preset_title_0")
+    assert title_edit is not None
+    assert title_edit.placeholderText() == "録音の画面のボタンに出す名前"
+    labels = [label for label in panel.findChildren(QLabel) if label.buddy() is title_edit]
+    assert [label.text() for label in labels] == ["タイトル"]
+
+
+def test_preset_list_panel_heading_follows_title(qapp: QApplication) -> None:
+    """頭の表示と操作の読み上げの名前は、入れたタイトルに合わせて替わる（正常系）。"""
+    from voice_paste.ui.windows.settings_presets import PresetListPanel
+
+    # 準備
+    panel = PresetListPanel("browser")
+    panel.add_preset()
+    heading = panel.findChild(QLabel, "preset_heading_0")
+    title_edit = panel.findChild(QLineEdit, "preset_title_0")
+    assert heading is not None
+    assert title_edit is not None
+    assert heading.text() == "（タイトル未入力）"
+    assert _buttons(panel, "preset_remove_")[0].accessibleName() == "プリセット 1 件目を消す"
+
+    # 実行
+    title_edit.setText("ChatGPT")
+
+    # 検証
+    assert heading.text() == "ChatGPT"
+    assert _buttons(panel, "preset_remove_")[0].accessibleName() == "ChatGPTを消す"
+    assert _buttons(panel, "preset_up_")[0].accessibleName() == "ChatGPTを上へ"
+    assert _buttons(panel, "preset_down_")[0].accessibleName() == "ChatGPTを下へ"
+    enabled = panel.findChild(QAbstractButton, "preset_enabled_0")
+    assert enabled is not None
+    assert enabled.accessibleName() == "ChatGPTを有効にする"
+
+
+def test_preset_list_panel_hotkey_clear_button(qapp: QApplication) -> None:
+    """「空にする」はホットキーの欄が空でないときだけ押せ、押すと空になる（正常系）。"""
+    from voice_paste.shared.settings import BrowserPreset
+    from voice_paste.ui.windows.settings_presets import PresetListPanel
+
+    # 準備
+    panel = PresetListPanel("browser")
+    panel.set_presets(
+        [
+            BrowserPreset(title="A", url="https://a.example", hotkey="<ctrl>+<alt>+4"),
+            BrowserPreset(title="B", url="https://b.example"),
+        ]
+    )
+    clear_buttons = _buttons(panel, "preset_hotkey_clear_")
+
+    # 検証（押せる条件と読み上げの名前）
+    assert [button.isEnabled() for button in clear_buttons] == [True, False]
+    assert clear_buttons[0].accessibleName() == "Aのホットキーを空にする"
+
+    # 実行
+    clear_buttons[0].click()
+
+    # 検証（押した後）
+    assert panel.collect()[0]["hotkey"] == ""
+    assert clear_buttons[0].isEnabled() is False

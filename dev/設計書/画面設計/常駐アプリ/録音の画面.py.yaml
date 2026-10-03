@@ -80,10 +80,10 @@ elements:
     id: output_button_{output_id}
     kind: button
     position: 窓 > 確定して届ける
-    description: 出力先を選んで録音を確定し、文字起こし中の表示へ移る。一時停止中でも確定できる。設定でオンの出力先（`paste_and_send`・`paste_only`・`copy_only`）ごとに設定の並びで 1 つずつ出し、オンのうち一番上のものを主の操作にする。名前の横にその出力先のホットキーを出す
-    label: 貼り付けて送信 / 貼り付けのみ / コピーのみ
+    description: 出力先を選んで録音を確定し、文字起こし中の表示へ移る。一時停止中でも確定できる。設定でオンの出力先（`paste_and_send`・`paste_only`・`copy_only`・`endpoint`）ごとに設定の並びで 1 つずつ出し、オンのうち一番上のものを主の操作にする。名前の横にその出力先のホットキーを出す
+    label: 貼り付けて送信 / 貼り付けのみ / コピーのみ / エンドポイントへ送る
     visible_when: その出力先の `outputs[].enabled` がオンのとき
-    options: '`outputs[]` の並び（paste_and_send・paste_only・copy_only）のうちオンのもの'
+    options: '`outputs[]` の並び（paste_and_send・paste_only・copy_only・endpoint）のうちオンのもの'
     target: SessionManager.complete.output_id（押したボタンの出力先の ID）
     action: 窓を閉じる
     action_ref: dev/設計書/モジュール構成/常駐アプリ/セッション.py#classes[SessionManager].methods[complete]

@@ -241,8 +241,8 @@ settings:
   - key: outputs[].id
     title: 出力先の ID
     file: settings.toml
-    type: "'paste_and_send' | 'paste_only' | 'copy_only' | 'ai_chat'"
-    default: 4 件（paste_and_send・paste_only・copy_only・ai_chat の順）
+    type: "'paste_and_send' | 'paste_only' | 'copy_only' | 'ai_chat' | 'endpoint'"
+    default: 5 件（paste_and_send・paste_only・copy_only・ai_chat・endpoint の順）
     description: 出力先の一覧の 1 件がどの出力先かを表す。一覧の中で重ならない。
     reload: immediate
     status: implemented
@@ -251,7 +251,7 @@ settings:
     title: 出力先がオンか
     file: settings.toml
     type: bool
-    default: 'true'
+    default: 'true（endpoint だけ false）'
     description: '`false` の出力先は確定の操作に出さず、ホットキーも登録しない。'
     reload: immediate
     status: implemented
@@ -260,7 +260,7 @@ settings:
     title: 出力先で確定するホットキー
     file: settings.toml
     type: string（pynput の GlobalHotKeys 形式）
-    default: 'paste_and_send: <ctrl>+<alt>+d / paste_only: <ctrl>+<alt>+v / copy_only: <ctrl>+<alt>+c'
+    default: 'paste_and_send: <ctrl>+<alt>+d / paste_only: <ctrl>+<alt>+v / copy_only: <ctrl>+<alt>+c / endpoint: <ctrl>+<alt>+e'
     description: 録音の画面でこの出力先として確定する（ai_chat は送り先ごとに持ち、この項目を持たない）。
     reload: immediate
     status: implemented
@@ -426,5 +426,29 @@ settings:
     reload: restart
     status: implemented
     implementation: src/voice_paste/shared/settings.py
+  - key: outputs[].url
+    title: エンドポイントへ送る送り先の URL
+    file: settings.toml
+    type: string（URL）
+    default: 空文字
+    description: endpoint だけが持つ。起こした文字を POST する送り先。
+    reload: immediate
+    allowed: 空か http / https。`enabled` がオンのときは空にできない
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+    refs:
+      - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送る.py#
+  - key: outputs[].authorization
+    title: 送り先へ付ける Authorization ヘッダー
+    file: settings.toml
+    type: string
+    default: 空文字
+    description: endpoint だけが持つ。空でなければ `Authorization` ヘッダーにそのまま入れて送る（例 `Bearer {トークン}`）。空なら付けない。
+    secret: true
+    reload: immediate
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+    refs:
+      - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送る.py#
 notes:
   反映の列の読み方: '`immediate` は設定画面で保存すると動いている常駐アプリに効く項目。`settings.toml` を直接書き換えたときは、どの項目も再起動まで効かない（起動時に 1 度だけ読む）。'

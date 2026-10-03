@@ -180,6 +180,16 @@ input_checks:
     trigger: 保存・保存して再起動のボタンのクリック
     message: ホットキーを受け付けられませんでした（{理由}）。別のキーにしてください。
     position: エラーの一覧
+  - element: 設定の欄
+    violation: 「エンドポイントへ送る」がオンで、`outputs[endpoint].url` が空
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: オンにするときは送り先の URL を入れてください。
+    position: その欄の下とエラーの一覧
+  - element: 設定の欄
+    violation: '`outputs[endpoint].url` が空でなく、http:// か https:// で始まらない'
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: http:// か https:// で始まる URL を入れてください。
+    position: その欄の下とエラーの一覧
 screen: src/voice_paste/ui/windows/settings_window.py
 mock: dev/mock/pages/settings/37/a-standard/
 lead: トレイの「設定…」から開く画面。settings.toml の全てのキーを 7 つのまとまりに並べ、設定のモデルで確かめてから保存する。
@@ -190,9 +200,11 @@ notes:
   まとまりと欄: |-
     | まとまり | キー | 欄の部品 |
     | --- | --- | --- |
-    | 出力先 | `outputs[].enabled`（paste_and_send・paste_only・copy_only・ai_chat） | チェックボックス。ai_chat 以外は右に `outputs[].hotkey` のホットキーの欄 |
+    | 出力先 | `outputs[].enabled`（paste_and_send・paste_only・copy_only・ai_chat・endpoint） | チェックボックス。ai_chat 以外は右に `outputs[].hotkey` のホットキーの欄 |
     | 出力先（送るまでの間） | `outputs[paste_and_send].enter_delay_sec`・`outputs[ai_chat].open_delay_sec`・`outputs[ai_chat].enter_delay_sec` | 数値の欄 |
     | 出力先（AI チャットの送り先） | `outputs[ai_chat].targets[]` の enabled・name・url・hotkey | 送り先の一覧 |
+    | 出力先（エンドポイントへ送る） | `outputs[endpoint].url` | 文字の欄 |
+    | 出力先（エンドポイントへ送る） | `outputs[endpoint].authorization` | 伏せ字の文字の欄（入れた文字を出さない） |
     | ホットキー | `hotkeys.start`・`hotkeys.pause`・`hotkeys.cancel`・`keyboard.paste_key` | ホットキーの欄 |
     | 録音 | `recording.lower_volume`・`recording.hide_window` | チェックボックス |
     | 録音 | `recording.volume_percent` | つまみ（0〜100、右に %） |
@@ -212,5 +224,5 @@ notes:
     | API | `api.port` | 数値の欄 |
     | API | `api.allowed_callback_hosts` | 複数行の文字の欄（1 行 = 1 ホスト） |
 
-    欄の部品は設定のモデルの型から決める（bool → チェックボックス、リテラルの列挙 → ラジオボタンか選択の欄、int・float → 数値の欄、str → 文字の欄、ホットキーの型 → ホットキーの欄）。上の表は欄の並びと、型からは決まらない部品（つまみ・送り先の一覧・用語集の選ぶ…）を決める。
+    欄の部品は設定のモデルの型から決める（bool → チェックボックス、リテラルの列挙 → ラジオボタンか選択の欄、int・float → 数値の欄、str → 文字の欄、ホットキーの型 → ホットキーの欄）。上の表は欄の並びと、型からは決まらない部品（つまみ・送り先の一覧・用語集の選ぶ…・伏せ字の欄）を決める。
 test_file: tests/integration/ui/test_settings_window.py

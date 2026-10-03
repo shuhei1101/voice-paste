@@ -241,9 +241,9 @@ settings:
   - key: outputs[].id
     title: 出力先の ID
     file: settings.toml
-    type: "'paste_and_send' | 'paste_only' | 'copy_only' | 'ai_chat' | 'endpoint'"
-    default: 5 件（paste_and_send・paste_only・copy_only・ai_chat・endpoint の順）
-    description: 出力先の一覧の 1 件がどの出力先かを表す。一覧の中で重ならない。
+    type: "'paste_and_send' | 'paste_only' | 'copy_only'"
+    default: 3 件（paste_and_send・paste_only・copy_only の順）
+    description: 出力先の一覧の 1 件がどの出力先かを表す。一覧の中で重ならない。`id = "ai_chat"` の項目は、読み込むときに送り先（`targets[]`）をブラウザ添付種類のカスタムプリセットへ読み替えて外す。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -251,7 +251,7 @@ settings:
     title: 出力先がオンか
     file: settings.toml
     type: bool
-    default: 'true（endpoint だけ false）'
+    default: 'true'
     description: '`false` の出力先は確定の操作に出さず、ホットキーも登録しない。'
     reload: immediate
     status: implemented
@@ -260,8 +260,8 @@ settings:
     title: 出力先で確定するホットキー
     file: settings.toml
     type: string（pynput の GlobalHotKeys 形式）
-    default: 'paste_and_send: <ctrl>+<alt>+d / paste_only: <ctrl>+<alt>+v / copy_only: <ctrl>+<alt>+c / endpoint: <ctrl>+<alt>+e'
-    description: 録音の画面でこの出力先として確定する（ai_chat は送り先ごとに持ち、この項目を持たない）。
+    default: 'paste_and_send: <ctrl>+<alt>+d / paste_only: <ctrl>+<alt>+v / copy_only: <ctrl>+<alt>+c'
+    description: 録音の画面でこの出力先として確定する。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -270,7 +270,7 @@ settings:
     file: settings.toml
     type: float（秒）
     default: '0.5'
-    description: paste_and_send だけが持つ。貼り付けてから Enter を送るまで待つ秒数。
+    description: paste_and_send だけが持つ。貼り付けてから Enter を送るまで待つ秒数。ブラウザ添付種類の、Enter まで送るプリセットでも使う。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -280,9 +280,9 @@ settings:
     file: settings.toml
     type: float（秒）
     default: '3.0'
-    description: ai_chat だけが持つ。AI チャットの画面を開いてから貼り付けるまで待つ秒数。
+    description: ai_chat だけが持つ。読み込むときに `preset_options.browser.open_delay_sec` へ読み替え、保存では書かない。
     reload: immediate
-    status: implemented
+    status: deprecated
     implementation: src/voice_paste/shared/settings.py
     allowed: '>= 0'
   - key: outputs[].targets[].name
@@ -290,9 +290,9 @@ settings:
     file: settings.toml
     type: string
     default: '（1: ChatGPT / 2: Google AI / 3: Claude）'
-    description: ai_chat だけが持つ。画面に出す送り先の名前。
+    description: ai_chat だけが持つ。読み込むときにブラウザ添付種類のプリセットの `presets[].title` へ読み替え、保存では書かない。
     reload: immediate
-    status: implemented
+    status: deprecated
     implementation: src/voice_paste/shared/settings.py
     allowed: 1 文字以上
   - key: outputs[].targets[].url
@@ -300,9 +300,9 @@ settings:
     file: settings.toml
     type: string（URL）
     default: '（1: https://chatgpt.com / 2: https://gemini.google.com/app / 3: https://claude.ai/new）'
-    description: Microsoft Edge の `--app` で開く AI チャットの画面の URL。
+    description: ai_chat だけが持つ。読み込むときにブラウザ添付種類のプリセットの `presets[].url` へ読み替え、保存では書かない。
     reload: immediate
-    status: implemented
+    status: deprecated
     implementation: src/voice_paste/shared/settings.py
     allowed: http か https
   - key: outputs[].targets[].hotkey
@@ -310,18 +310,18 @@ settings:
     file: settings.toml
     type: string（pynput の GlobalHotKeys 形式）
     default: <ctrl>+<alt>+{n}
-    description: 録音の画面で、その送り先へ送る出力先として確定する。
+    description: ai_chat だけが持つ。読み込むときにブラウザ添付種類のプリセットの `presets[].hotkey` へ読み替え、保存では書かない。
     reload: immediate
-    status: implemented
+    status: deprecated
     implementation: src/voice_paste/shared/settings.py
   - key: outputs[].targets[].enabled
     title: AI チャットの送り先を出すか
     file: settings.toml
     type: bool
     default: 'true'
-    description: '`false` のとき、その送り先のボタンもホットキーも出さない。'
+    description: 'ai_chat だけが持つ。読み込むときにブラウザ添付種類のプリセットの `presets[].enabled` へ読み替え、保存では書かない。'
     reload: immediate
-    status: implemented
+    status: deprecated
     implementation: src/voice_paste/shared/settings.py
   - key: history.enabled
     title: 履歴に残すか
@@ -426,19 +426,64 @@ settings:
     reload: restart
     status: implemented
     implementation: src/voice_paste/shared/settings.py
-  - key: outputs[].url
-    title: エンドポイントへ送る送り先の URL
+  - key: presets[].kind
+    title: カスタムプリセットの種類
+    file: settings.toml
+    type: "'browser' | 'endpoint'"
+    default: （既定のプリセットは無く、`presets` は空の一覧）
+    description: プリセットの届け方。`browser` はブラウザ添付（URL をアプリのウィンドウで開いて貼り付ける）、`endpoint` はエンドポイントへ送る（URL へ JSON で POST する）。設定画面は種類ごとのタブに分けて並べ、録音の画面は browser・endpoint の順に、それぞれ `presets[]` の並びで出す。
+    reload: immediate
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+  - key: presets[].title
+    title: カスタムプリセットのタイトル
+    file: settings.toml
+    type: string
+    description: 録音の画面のボタンに出す名前。
+    reload: immediate
+    allowed: 1 文字以上
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+  - key: presets[].url
+    title: カスタムプリセットの URL
     file: settings.toml
     type: string（URL）
-    default: 空文字
-    description: endpoint だけが持つ。起こした文字を POST する送り先。
+    description: browser は Microsoft Edge の `--app` で開く画面の URL、endpoint は起こした文字を POST する送り先。
     reload: immediate
-    allowed: 空か http / https。`enabled` がオンのときは空にできない
+    allowed: http か https
     status: planned
     implementation: src/voice_paste/shared/settings.py
     refs:
       - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送る.py#
-  - key: outputs[].authorization
+  - key: presets[].hotkey
+    title: カスタムプリセットで確定するホットキー
+    file: settings.toml
+    type: string（pynput の GlobalHotKeys 形式）
+    default: 空文字
+    description: 録音の画面でこのプリセットとして確定する。空ならホットキーを登録せず、録音の画面のボタンだけで選ぶ。
+    reload: immediate
+    allowed: 空か、ほかのホットキーと重ならない組み合わせ
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+  - key: presets[].enabled
+    title: カスタムプリセットが有効か
+    file: settings.toml
+    type: bool
+    default: 'true'
+    description: '`false` のとき、録音の画面のボタンを出さず、ホットキーも登録しない。'
+    reload: immediate
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+  - key: presets[].send_enter
+    title: 貼り付けた後に Enter まで送るか
+    file: settings.toml
+    type: bool
+    default: 'true'
+    description: browser だけが持つ。`true` なら貼り付けてから `outputs[paste_and_send].enter_delay_sec` の秒数を置いて Enter を送り、`false` なら貼り付けで止める。
+    reload: immediate
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+  - key: presets[].authorization
     title: 送り先へ付ける Authorization ヘッダー
     file: settings.toml
     type: string
@@ -449,6 +494,29 @@ settings:
     status: planned
     implementation: src/voice_paste/shared/settings.py
     refs:
+      - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送る.py#
+  - key: preset_options.browser.open_delay_sec
+    title: ブラウザで開いてから貼り付けるまでの秒数
+    file: settings.toml
+    type: float（秒）
+    default: '3.0'
+    description: ブラウザ添付種類の全てのプリセットで使う。画面を開いてから貼り付けるまで待つ秒数。
+    reload: immediate
+    allowed: '>= 0'
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+  - key: preset_options.endpoint.timeout_sec
+    title: エンドポイントへ送るときのタイムアウトの秒数
+    file: settings.toml
+    type: float（秒）
+    default: '1.5'
+    description: エンドポイントへ送る種類の全てのプリセットで使う。この秒数で届かなければ送り直さず、届けられなかったことを知らせる。
+    reload: immediate
+    allowed: 0.5〜10
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+    refs:
+      - dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送るときのタイムアウト]
       - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送る.py#
 notes:
   反映の列の読み方: '`immediate` は設定画面で保存すると動いている常駐アプリに効く項目。`settings.toml` を直接書き換えたときは、どの項目も再起動まで効かない（起動時に 1 度だけ読む）。'

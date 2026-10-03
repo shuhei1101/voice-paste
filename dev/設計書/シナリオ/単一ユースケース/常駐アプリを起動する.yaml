@@ -162,7 +162,7 @@ scenarios:
 
         U->>SVC: ショートカットから起動する
         SVC->>TOML: 設定を読む
-        SVC->>SVC: ai_chat の送り先を、ブラウザで開く種類のプリセットへ読み替える
+        SVC->>SVC: ai_chat の送り先を、ブラウザ添付の種類のプリセットへ読み替える
         Note over SVC: 以降は 正常シナリオ と同じ
         SVC->>TRAY: 待機中のアイコンにする
       ```

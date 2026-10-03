@@ -75,15 +75,15 @@ elements:
     position: 窓 > 確定して届ける
     description: 出力先の確定のボタンの並びの見出し
     label: 確定して届ける
-    visible_when: オンの出力先（`ai_chat` を除く）が 1 つ以上あるとき
+    visible_when: オンの出力先が 1 つ以上あるとき
   - name: 出力先の確定のボタン
     id: output_button_{output_id}
     kind: button
     position: 窓 > 確定して届ける
-    description: 出力先を選んで録音を確定し、文字起こし中の表示へ移る。一時停止中でも確定できる。設定でオンの出力先（`paste_and_send`・`paste_only`・`copy_only`・`endpoint`）ごとに設定の並びで 1 つずつ出し、オンのうち一番上のものを主の操作にする。名前の横にその出力先のホットキーを出す
-    label: 貼り付けて送信 / 貼り付けのみ / コピーのみ / エンドポイントへ送る
+    description: 出力先を選んで録音を確定し、文字起こし中の表示へ移る。一時停止中でも確定できる。設定でオンの出力先（`paste_and_send`・`paste_only`・`copy_only`）ごとに設定の並びで 1 つずつ出し、オンのうち一番上のものを主の操作にする。名前の横にその出力先のホットキーを出す
+    label: 貼り付けて送信 / 貼り付けのみ / コピーのみ
     visible_when: その出力先の `outputs[].enabled` がオンのとき
-    options: '`outputs[]` の並び（paste_and_send・paste_only・copy_only・endpoint）のうちオンのもの'
+    options: '`outputs[]` の並び（paste_and_send・paste_only・copy_only）のうちオンのもの'
     target: SessionManager.complete.output_id（押したボタンの出力先の ID）
     action: 窓を閉じる
     action_ref: dev/設計書/モジュール構成/常駐アプリ/セッション.py#classes[SessionManager].methods[complete]
@@ -91,29 +91,31 @@ elements:
       - dev/設計書/設定/常駐アプリ#settings[outputs[].enabled]
       - dev/設計書/設定/常駐アプリ#settings[outputs[].hotkey]
       - dev/設計書/画面設計/常駐アプリ/文字起こし中の表示.py#
-  - name: AI チャットの見出し
-    id: ai_chat_heading
+  - name: カスタムプリセットの見出し
+    id: presets_heading
     kind: label
-    position: 窓 > AI チャットへ送る
-    description: AI チャットの送り先のボタンの並びの見出し
-    label: AI チャットへ送る
-    visible_when: 出力先 `ai_chat` がオンで、出す送り先が 1 つ以上あるとき
-  - name: AI チャットの送り先のボタン
-    id: ai_chat_button_{n}
+    position: 窓 > カスタムプリセット
+    description: カスタムプリセットのボタンの並びの見出し。出力先の確定のボタンの並びの下に置く
+    label: カスタムプリセット
+    visible_when: 有効なプリセット（`presets[].enabled` がオン）が 1 つ以上あるとき。1 つも無ければ見出しごと出さない
+  - name: カスタムプリセットのボタン
+    id: preset_button_{n}
     kind: button
-    position: 窓 > AI チャットへ送る
-    description: AI チャットの送り先を選んで録音を確定し、文字起こし中の表示へ移る。一時停止中でも確定できる。出すとした送り先ごとに設定の並びで 1 つずつ出す。名前はボタンの幅で `…` に省略し、かざすと全体を出す。ホットキーは省略しない
-    label: '{送り先の名前} [送り先のホットキー]'
-    visible_when: 出力先 `ai_chat` がオンで、その送り先の `enabled` がオンのとき
-    options: '`outputs[ai_chat].targets[]` の並びのうち `enabled` がオンのもの'
-    target: SessionManager.complete.output_id（`ai_chat`）と output_target（送り先の URL）
+    position: 窓 > カスタムプリセット
+    description: プリセットを選んで録音を確定し、文字起こし中の表示へ移る。一時停止中でも確定できる。種類によらず同じボタンにする。有効なプリセットごとに 1 つずつ出し、3 件ずつ横に並べて 4 件目から次の行へ折り返す（種類の境目でも行を変えない）。タイトルはボタンの幅で `…` に省略し、かざすと全体を出す。ホットキーは省略せず、空のプリセットはタイトルだけを出す
+    label: '{プリセットのタイトル} [プリセットのホットキー]'
+    visible_when: そのプリセットの `presets[].enabled` がオンのとき
+    options: '`presets[]` のうち `kind` が browser のものを並びのまま出し、続けて endpoint のものを並びのまま出す。無効のものは出さない'
+    target: SessionManager.complete（押したボタンのプリセット）
     action: 窓を閉じる
     action_ref: dev/設計書/モジュール構成/常駐アプリ/セッション.py#classes[SessionManager].methods[complete]
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[outputs[].targets[].name]
-      - dev/設計書/設定/常駐アプリ#settings[outputs[].targets[].hotkey]
+      - dev/設計書/設定/常駐アプリ#settings[presets[].title]
+      - dev/設計書/設定/常駐アプリ#settings[presets[].hotkey]
+      - dev/設計書/設定/常駐アプリ#settings[presets[].enabled]
+      - dev/設計書/画面設計/常駐アプリ/文字起こし中の表示.py#
 screen: src/voice_paste/ui/windows/recording_window.py
-mock: dev/mock/pages/recording-window/37/a-standard/
+mock: dev/mock/pages/recording-window/44/a-standard/
 lead: ホットキー・トレイから始めた録音の間だけ出る小さな窓。状態・経過時間・波形と、一時停止・取り消し・確定の操作を並べる。
 refs:
   - dev/設計書/シナリオ/単一ユースケース/録音する#

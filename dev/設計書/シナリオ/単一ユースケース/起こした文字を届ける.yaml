@@ -68,17 +68,17 @@ scenarios:
     expected:
       - クリップボードに起こした文字が入っている
       - 貼り付けのキーも Enter も送られていない
-  - name: 正常シナリオ（ブラウザで開くプリセット）
+  - name: 正常シナリオ（ブラウザ添付のプリセット）
     setup:
       - name: Mock
         description: なし（実機の Windows と Microsoft Edge で実行）
       - name: プリセット
-        description: 種類「ブラウザで開く」・Enter まで送るをオンにしたプリセットを 1 つ足し、録音する でそのプリセットを選んだ
+        description: 種類「ブラウザ添付」・Enter まで送るをオンにしたプリセットを 1 つ足し、録音する でそのプリセットを選んだ
     flow: |-
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
-        participant OUT as プリセット（ブラウザで開く）
+        participant OUT as プリセット（ブラウザ添付）
         participant CB as クリップボード
         participant EDGE as Microsoft Edge
 
@@ -247,17 +247,17 @@ scenarios:
       - 送り先へ送ったのは 1 回だけである（送り直さない）
       - 履歴に録音と起こした文字が残っている
       - トレイのアイコンが待機中に戻り、次の録音を始められる
-  - name: 正常シナリオ（ブラウザで開くプリセット・貼り付けだけ）
+  - name: 正常シナリオ（ブラウザ添付のプリセット・貼り付けだけ）
     setup:
       - name: Mock
         description: なし（実機の Windows と Microsoft Edge で実行）
       - name: プリセット
-        description: 種類「ブラウザで開く」・Enter まで送るをオフにしたプリセットを 1 つ足し、録音する でそのプリセットを選んだ
+        description: 種類「ブラウザ添付」・Enter まで送るをオフにしたプリセットを 1 つ足し、録音する でそのプリセットを選んだ
     flow: |-
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
-        participant OUT as プリセット（ブラウザで開く）
+        participant OUT as プリセット（ブラウザ添付）
         participant CB as クリップボード
         participant EDGE as Microsoft Edge
 
@@ -280,7 +280,7 @@ preconditions:
   - API から始めた録音では、開始で指定された返送先のエンドポイントがある
 notes:
   出力先の選ばれ方: |-
-    ホットキー・トレイから始めた録音は、設定でオンにした固定の出力先（貼り付けて送信・貼り付けのみ・コピーのみ）と、出すとしたカスタムプリセット（ブラウザで開く・エンドポイントへ送る）のうち、録音する で選んだものへ届ける。
+    ホットキー・トレイから始めた録音は、設定でオンにした固定の出力先（貼り付けて送信・貼り付けのみ・コピーのみ）と、有効にしたカスタムプリセット（ブラウザ添付・エンドポイントへ送る）のうち、録音する で選んだものへ届ける。
     API から始めた録音は、呼び出し元へ返す出力先だけを使い、そのほかの出力先とプリセットはオンでも通さない。
   クリップボードに書けないとき: |-
     ほかのアプリがクリップボードを開いたままで書けないときは、届けられなかったことをユーザーに知らせ、ログに理由を書く。

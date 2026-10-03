@@ -9,14 +9,10 @@ description = "音声入力＆自動貼り付けツール"
 requires-python = ">=3.11"
 dependencies = [
     "faster-whisper~=1.0",
-    "openai~=1.0",
     "sounddevice~=0.5",
     "scipy~=1.13",
     "pyperclip~=1.9",
     "pynput~=1.7",
-    "python-dotenv~=1.0",
-    "pystray~=0.19",
-    "Pillow>=11.0",
     "nvidia-cublas-cu12",
     "nvidia-cudnn-cu12>=9,<10",
     "pycaw==20251023",
@@ -41,10 +37,10 @@ dev = [
 voice-paste = "voice_paste.main:main"
 
 [tool.setuptools]
-package-dir = { "" = "src", "voice_paste_legacy" = "voice_paste_legacy" }
+package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
-where = ["src", "."]
+where = ["src"]
 include = ["voice_paste*"]
 
 [tool.importlinter]

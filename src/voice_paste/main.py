@@ -55,7 +55,6 @@ from voice_paste.server.app import build_fastapi
 from voice_paste.server.runner import ApiServerRunner
 from voice_paste.server.token import create_token, write_token_file
 from voice_paste.shared.constants import AppPaths, resolve_app_paths
-from voice_paste.shared.env_migration import migrate_env
 from voice_paste.shared.errors import (
     EngineError,
     HotkeyError,
@@ -136,7 +135,6 @@ class CliArgs:
     """`python -m voice_paste` に渡した引数。"""
 
     data_dir: Path | None
-    migrate_env: Path | None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -163,7 +161,7 @@ class Handlers:
 
 
 def parse_args(argv: list[str]) -> CliArgs:
-    """argparse で `--data-dir` と `--migrate-env` を読む。"""
+    """argparse で `--data-dir` を読む。"""
     parser = argparse.ArgumentParser(prog="voice_paste")
     # 置き場所が無ければ既定の置き場所を使う（E2E・非機能要件テストは一時フォルダを渡して普段使いに触れない）
     parser.add_argument(
@@ -172,14 +170,8 @@ def parse_args(argv: list[str]) -> CliArgs:
         default=None,
         help="設定・履歴・ログ・一時の音声・トークンを置くフォルダ（無ければ既定の置き場所）",
     )
-    parser.add_argument(
-        "--migrate-env",
-        type=Path,
-        default=None,
-        help="設定ファイルへ移す .env",
-    )
     namespace = parser.parse_args(argv)
-    return CliArgs(data_dir=namespace.data_dir, migrate_env=namespace.migrate_env)
+    return CliArgs(data_dir=namespace.data_dir)
 
 
 def _purge_while_running(
@@ -647,23 +639,6 @@ def _stop_all(running: _Running, tray: Tray) -> None:
     tray.hide()
 
 
-def _migrate_env_if_requested(args: CliArgs, paths: AppPaths) -> bool:
-    """`--migrate-env` が渡されていれば .env を設定ファイルへ移す。続けてよければ True、移せなかったら False。"""
-    if args.migrate_env is None:
-        return True
-    # 設定ファイルが既にあれば、書き換えた設定を上書きしないよう移さない
-    if paths.settings_file.exists():
-        logger.error(f"設定ファイルが既にあるため .env を移さなかった（{paths.settings_file}）")
-        return False
-    try:
-        save_settings(paths.settings_file, migrate_env(args.migrate_env))
-    except SettingsError as error:
-        logger.error(f".env を移せなかった（{error}）")
-        return False
-    logger.info(f".env を設定ファイルへ移した（{args.migrate_env}、{paths.settings_file}）")
-    return True
-
-
 def _create_application() -> QApplication:
     """QApplication（最後の窓を閉じても終わらない）を作る。既にあればそれを使う。"""
     existing = QApplication.instance()
@@ -715,7 +690,7 @@ def main(
 
     # 4〜11. 排他を持ったまま起動して回し、どう抜けても最後に排他を放す
     try:
-        exit_code, restart = _run_service(args, paths, lock, exec_loop)
+        exit_code, restart = _run_service(paths, lock, exec_loop)
     finally:
         lock.release()
 
@@ -726,16 +701,11 @@ def main(
 
 
 def _run_service(
-    args: CliArgs,
     paths: AppPaths,
     lock: SingleInstanceLock,
     exec_loop: Callable[[QApplication], int],
 ) -> tuple[int, bool]:
-    """排他を持った状態で、.env の移行・画面の用意・起動・イベントループ・片付けを行い、終了コードと再起動の要否を返す。"""
-    # 4. `--migrate-env` が渡されていれば、.env を移して書く
-    if not _migrate_env_if_requested(args, paths):
-        return EXIT_FAILED, False
-
+    """排他を持った状態で、画面の用意・起動・イベントループ・片付けを行い、終了コードと再起動の要否を返す。"""
     # 5. QApplication・UiBridge・Tray を作り、スタイルを当ててトレイに準備中を出す
     app = _create_application()
     # 後から起動したプロセスに終わるよう頼まれたら、メインスレッドで QApplication.quit を呼ぶ

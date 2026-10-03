@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
-from dotenv import dotenv_values
 
 if TYPE_CHECKING:
     from voice_paste.shared.settings import LocalWhisperSettings
@@ -28,6 +27,12 @@ WORKER_READY_TIMEOUT_SEC = 27.0
 
 WORKER_STOP_TIMEOUT_SEC = 2.0
 """非機能要件の文字起こしワーカーの終わりを待つ時間の決定値。"""
+
+QUOTES = ("'", '"')
+"""固めた設定の値を囲んでよい引用符。"""
+
+MIN_QUOTED_LENGTH = 2
+"""引用符で囲まれた値の最短の長さ（開きと閉じの 2 文字）。"""
 
 
 def _to_bool(value: str) -> bool:
@@ -61,14 +66,32 @@ requires_real_whisper = pytest.mark.skipif(
 """固めた設定・GPU が無い環境で、ローカルの Whisper を使う実機のテストを skip するマーカー。"""
 
 
+def _read_env_values(path: Path) -> dict[str, str]:
+    """`KEY=VALUE` の行を key と value の辞書にして返す（空行と `#` で始まる行は飛ばし、値が同じ種類の引用符で囲まれていれば外す）。"""
+    values: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        # 空行とコメントの行は読まない
+        if not stripped or stripped.startswith("#"):
+            continue
+        # 最初の `=` で key と value に分ける
+        key, _, value = stripped.partition("=")
+        value = value.strip()
+        # 同じ種類の引用符で囲まれた値は、引用符を外す
+        if len(value) >= MIN_QUOTED_LENGTH and value[0] == value[-1] and value[0] in QUOTES:
+            value = value[1:-1]
+        values[key.strip()] = value
+    return values
+
+
 def load_local_whisper_settings() -> LocalWhisperSettings:
     """固めた設定（whisper.env）を、ローカルの Whisper の設定にして返す。"""
     from voice_paste.shared.settings import LocalWhisperSettings
 
-    env_values = dotenv_values(WHISPER_ENV_FILE)
+    env_values = _read_env_values(WHISPER_ENV_FILE)
     return LocalWhisperSettings(
         **{
-            field: parse(env_values[key] or "")
+            field: parse(env_values[key])
             for key, (field, parse) in LOCAL_WHISPER_FIELDS.items()
         }
     )

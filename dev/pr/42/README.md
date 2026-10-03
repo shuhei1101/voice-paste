@@ -1,0 +1,1 @@
+# voice_paste_legacy と配布用のビルド・移行用の仕組みを消す

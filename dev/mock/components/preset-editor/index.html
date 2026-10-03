@@ -32,7 +32,7 @@
 <div class="preset__field"><label for="c-browser-title">タイトル</label><input type="text" class="wide" id="c-browser-title" data-title="c-browser" name="browser_presets[browser].title" value="Claude" placeholder="録音の画面のボタンに出す名前"></div>
 <div class="preset__field"><label for="c-browser-url">URL</label><input type="text" inputmode="url" class="wide" id="c-browser-url" name="browser_presets[browser].url" value="https://claude.ai/new" placeholder="https://"></div>
 <div class="preset__field"><span>貼り付けた後</span><label class="check" for="c-browser-enter"><input type="checkbox" id="c-browser-enter" name="browser_presets[browser].send_enter" checked> Enter まで送る</label></div>
-<div class="preset__field"><label for="c-browser-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="c-browser-hotkey" name="browser_presets[browser].hotkey" value="Ctrl+Alt+3" placeholder="なし" aria-describedby="c-browser-hotkey-help"><p class="field-help" id="c-browser-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+<div class="preset__field"><label for="c-browser-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="c-browser-hotkey" name="browser_presets[browser].hotkey" value="Ctrl+Alt+3" placeholder="なし"></div>
 </div>
         </div>
         <p class="scene-note">URL の下に「Enter まで送る」を出す。既定はオン。</p>
@@ -47,7 +47,7 @@
 <div class="preset__field"><label for="c-browser-no-enter-title">タイトル</label><input type="text" class="wide" id="c-browser-no-enter-title" data-title="c-browser-no-enter" name="browser_presets[browser-no-enter].title" value="Claude" placeholder="録音の画面のボタンに出す名前"></div>
 <div class="preset__field"><label for="c-browser-no-enter-url">URL</label><input type="text" inputmode="url" class="wide" id="c-browser-no-enter-url" name="browser_presets[browser-no-enter].url" value="https://claude.ai/new" placeholder="https://"></div>
 <div class="preset__field"><span>貼り付けた後</span><label class="check" for="c-browser-no-enter-enter"><input type="checkbox" id="c-browser-no-enter-enter" name="browser_presets[browser-no-enter].send_enter"> Enter まで送る</label></div>
-<div class="preset__field"><label for="c-browser-no-enter-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="c-browser-no-enter-hotkey" name="browser_presets[browser-no-enter].hotkey" value="Ctrl+Alt+3" placeholder="なし" aria-describedby="c-browser-no-enter-hotkey-help"><p class="field-help" id="c-browser-no-enter-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+<div class="preset__field"><label for="c-browser-no-enter-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="c-browser-no-enter-hotkey" name="browser_presets[browser-no-enter].hotkey" value="Ctrl+Alt+3" placeholder="なし"></div>
 </div>
         </div>
         <p class="scene-note">オフにすると、貼り付けた後に Enter を送らずに止める。</p>
@@ -62,7 +62,7 @@
 <div class="preset__field"><label for="c-endpoint-title">タイトル</label><input type="text" class="wide" id="c-endpoint-title" data-title="c-endpoint" name="endpoint_presets[endpoint].title" value="議事録へ送る" placeholder="録音の画面のボタンに出す名前"></div>
 <div class="preset__field"><label for="c-endpoint-url">URL</label><input type="text" inputmode="url" class="wide" id="c-endpoint-url" name="endpoint_presets[endpoint].url" value="https://notes.example.com/api/voice" placeholder="https://"></div>
 <div class="preset__field"><label for="c-endpoint-auth">Authorization</label><input type="password" class="wide" id="c-endpoint-auth" name="endpoint_presets[endpoint].authorization" value="Bearer sk-example-0000" autocomplete="off" aria-describedby="c-endpoint-auth-help"><p class="field-help" id="c-endpoint-auth-help">空なら付けずに送る。</p></div>
-<div class="preset__field"><label for="c-endpoint-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="c-endpoint-hotkey" name="endpoint_presets[endpoint].hotkey" value="Ctrl+Alt+4" placeholder="なし" aria-describedby="c-endpoint-hotkey-help"><p class="field-help" id="c-endpoint-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+<div class="preset__field"><label for="c-endpoint-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="c-endpoint-hotkey" name="endpoint_presets[endpoint].hotkey" value="Ctrl+Alt+4" placeholder="なし"></div>
 </div>
         </div>
         <p class="scene-note">URL の下に Authorization を出す。値は伏せ字で出す。先頭の行は「上へ」を押せない。</p>
@@ -77,7 +77,7 @@
 <div class="preset__field"><label for="c-no-hotkey-title">タイトル</label><input type="text" class="wide" id="c-no-hotkey-title" data-title="c-no-hotkey" name="endpoint_presets[no-hotkey].title" value="社内チャットの下書き" placeholder="録音の画面のボタンに出す名前"></div>
 <div class="preset__field"><label for="c-no-hotkey-url">URL</label><input type="text" inputmode="url" class="wide" id="c-no-hotkey-url" name="endpoint_presets[no-hotkey].url" value="https://chat.example.com/hooks/draft" placeholder="https://"></div>
 <div class="preset__field"><label for="c-no-hotkey-auth">Authorization</label><input type="password" class="wide" id="c-no-hotkey-auth" name="endpoint_presets[no-hotkey].authorization" value="" autocomplete="off" aria-describedby="c-no-hotkey-auth-help"><p class="field-help" id="c-no-hotkey-auth-help">空なら付けずに送る。</p></div>
-<div class="preset__field"><label for="c-no-hotkey-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="c-no-hotkey-hotkey" name="endpoint_presets[no-hotkey].hotkey" value="" placeholder="なし" aria-describedby="c-no-hotkey-hotkey-help"><p class="field-help" id="c-no-hotkey-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+<div class="preset__field"><label for="c-no-hotkey-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="c-no-hotkey-hotkey" name="endpoint_presets[no-hotkey].hotkey" value="" placeholder="なし"></div>
 </div>
         </div>
         <p class="scene-note">確定のホットキーは空にできる。空なら録音の画面のボタンだけで選ぶ。末尾の行は「下へ」を押せない。</p>
@@ -92,7 +92,7 @@
 <div class="preset__field"><label for="c-hidden-title">タイトル</label><input type="text" class="wide" id="c-hidden-title" data-title="c-hidden" name="browser_presets[hidden].title" value="Google AI" placeholder="録音の画面のボタンに出す名前"></div>
 <div class="preset__field"><label for="c-hidden-url">URL</label><input type="text" inputmode="url" class="wide" id="c-hidden-url" name="browser_presets[hidden].url" value="https://gemini.google.com/app" placeholder="https://"></div>
 <div class="preset__field"><span>貼り付けた後</span><label class="check" for="c-hidden-enter"><input type="checkbox" id="c-hidden-enter" name="browser_presets[hidden].send_enter" checked> Enter まで送る</label></div>
-<div class="preset__field"><label for="c-hidden-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="c-hidden-hotkey" name="browser_presets[hidden].hotkey" value="Ctrl+Alt+2" placeholder="なし" aria-describedby="c-hidden-hotkey-help"><p class="field-help" id="c-hidden-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+<div class="preset__field"><label for="c-hidden-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="c-hidden-hotkey" name="browser_presets[hidden].hotkey" value="Ctrl+Alt+2" placeholder="なし"></div>
 </div>
         </div>
         <p class="scene-note">「出す」をオフにすると、録音の画面にボタンもホットキーも出さない。設定は残る。</p>
@@ -107,7 +107,7 @@
 <div class="preset__field"><label for="c-new-title">タイトル</label><input type="text" class="wide" id="c-new-title" data-title="c-new" name="browser_presets[new].title" value="" placeholder="録音の画面のボタンに出す名前"></div>
 <div class="preset__field"><label for="c-new-url">URL</label><input type="text" inputmode="url" class="wide" id="c-new-url" name="browser_presets[new].url" value="" placeholder="https://"></div>
 <div class="preset__field"><span>貼り付けた後</span><label class="check" for="c-new-enter"><input type="checkbox" id="c-new-enter" name="browser_presets[new].send_enter" checked> Enter まで送る</label></div>
-<div class="preset__field"><label for="c-new-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="c-new-hotkey" name="browser_presets[new].hotkey" value="" placeholder="なし" aria-describedby="c-new-hotkey-help"><p class="field-help" id="c-new-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+<div class="preset__field"><label for="c-new-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="c-new-hotkey" name="browser_presets[new].hotkey" value="" placeholder="なし"></div>
 </div>
         </div>
         <p class="scene-note">タイトルが空の間は、頭に「（タイトル未入力）」と出す。1 件だけのときは並べ替えを押せない。</p>
@@ -122,7 +122,7 @@
 <div class="preset__field"><label for="c-error-title">タイトル</label><input type="text" class="wide" id="c-error-title" data-title="c-error" name="browser_presets[error].title" value="" placeholder="録音の画面のボタンに出す名前" aria-invalid="true" aria-describedby="c-error-title-err"><p class="field-error" id="c-error-title-err">タイトルを入れてください。</p></div>
 <div class="preset__field"><label for="c-error-url">URL</label><input type="text" inputmode="url" class="wide" id="c-error-url" name="browser_presets[error].url" value="claude.ai/new" placeholder="https://" aria-invalid="true" aria-describedby="c-error-url-err"><p class="field-error" id="c-error-url-err">http:// か https:// で始まる URL を入れてください。</p></div>
 <div class="preset__field"><span>貼り付けた後</span><label class="check" for="c-error-enter"><input type="checkbox" id="c-error-enter" name="browser_presets[error].send_enter" checked> Enter まで送る</label></div>
-<div class="preset__field"><label for="c-error-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="c-error-hotkey" name="browser_presets[error].hotkey" value="Ctrl+Alt+3" placeholder="なし" aria-describedby="c-error-hotkey-help"><p class="field-help" id="c-error-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+<div class="preset__field"><label for="c-error-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="c-error-hotkey" name="browser_presets[error].hotkey" value="Ctrl+Alt+3" placeholder="なし"></div>
 </div>
         </div>
         <p class="scene-note">保存を押した後に、欄の下にエラーを出す。タイトルが空のとき、URL が http:// か https:// で始まらないときに通らない。</p>
@@ -137,7 +137,7 @@
 <div class="preset__field"><label for="c-dup-title">タイトル</label><input type="text" class="wide" id="c-dup-title" data-title="c-dup" name="endpoint_presets[dup].title" value="社内チャットの下書き" placeholder="録音の画面のボタンに出す名前"></div>
 <div class="preset__field"><label for="c-dup-url">URL</label><input type="text" inputmode="url" class="wide" id="c-dup-url" name="endpoint_presets[dup].url" value="https://chat.example.com/hooks/draft" placeholder="https://"></div>
 <div class="preset__field"><label for="c-dup-auth">Authorization</label><input type="password" class="wide" id="c-dup-auth" name="endpoint_presets[dup].authorization" value="" autocomplete="off" aria-describedby="c-dup-auth-help"><p class="field-help" id="c-dup-auth-help">空なら付けずに送る。</p></div>
-<div class="preset__field"><label for="c-dup-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="c-dup-hotkey" name="endpoint_presets[dup].hotkey" value="Ctrl+Alt+3" placeholder="なし" aria-describedby="c-dup-hotkey-help" aria-invalid="true" aria-describedby="c-dup-hotkey-err"><p class="field-help" id="c-dup-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p><p class="field-error" id="c-dup-hotkey-err">「ブラウザで開く」のプリセット「Claude」と同じキーです。別のキーにしてください。</p></div>
+<div class="preset__field"><label for="c-dup-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="c-dup-hotkey" name="endpoint_presets[dup].hotkey" value="Ctrl+Alt+3" placeholder="なし" aria-invalid="true" aria-describedby="c-dup-hotkey-err"><p class="field-error" id="c-dup-hotkey-err">「ブラウザで開く」のプリセット「Claude」と同じキーです。別のキーにしてください。</p></div>
 </div>
         </div>
         <p class="scene-note">ほかのプリセット（種類をまたぐものを含む）・固定の出力先・録音のホットキーと重なると通らない。</p>
@@ -152,7 +152,7 @@
 <div class="preset__field"><label for="c-long-title">タイトル</label><input type="text" class="wide" id="c-long-title" data-title="c-long" name="browser_presets[long].title" value="社内のナレッジ検索アシスタント（検証環境）" placeholder="録音の画面のボタンに出す名前"></div>
 <div class="preset__field"><label for="c-long-url">URL</label><input type="text" inputmode="url" class="wide" id="c-long-url" name="browser_presets[long].url" value="https://chatgpt.com" placeholder="https://"></div>
 <div class="preset__field"><span>貼り付けた後</span><label class="check" for="c-long-enter"><input type="checkbox" id="c-long-enter" name="browser_presets[long].send_enter" checked> Enter まで送る</label></div>
-<div class="preset__field"><label for="c-long-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="c-long-hotkey" name="browser_presets[long].hotkey" value="Ctrl+Alt+1" placeholder="なし" aria-describedby="c-long-hotkey-help"><p class="field-help" id="c-long-hotkey-help">空ならホットキーを持たず、録音の画面のボタンだけで選ぶ。</p></div>
+<div class="preset__field"><label for="c-long-hotkey">確定のホットキー</label><input type="text" class="hotkey" id="c-long-hotkey" name="browser_presets[long].hotkey" value="Ctrl+Alt+1" placeholder="なし"></div>
 </div>
         </div>
         <p class="scene-note">頭のタイトルは幅で省略し、欄には全文を出す。</p>

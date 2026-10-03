@@ -172,6 +172,8 @@ functions:
          - True の場合だけ、トークンのファイルを書く（write_token_file）
          - False の場合、トークンのファイルを書かずに api_unavailable を知らせて続ける（ホットキーとトレイからの録音は使える）。理由は「ポート {ポート} で待ち受けを始められません」の 1 文にする
       10. ホットキーの受付を始め（HotkeyListener.start(build_hotkey_bindings(設定))）、上限の打ち切りを RepeatingTimer で SESSION_LIMIT_CHECK_INTERVAL_SEC ごとに呼ぶ（SessionManager.truncate_if_expired）。トレイを待機中にする
+         - HotkeyListener は、環境変数 `VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS`（ACCEPT_INJECTED_HOTKEYS_ENV）が `1` のときだけ accept_injected=True で作る（E2E がソフトウェアで送ったキーでホットキーを押すため。普段の起動は付けない）
+           - `[INFO]` ソフトウェアで送ったキーもホットキーとして受ける
          - HotkeyError の場合、ホットキーを受け付けずに続ける（トレイから録音でき、設定画面で直せる）
            - `[ERROR]` ホットキーを受け付けられなかった（理由）
          - `[INFO]` 常駐サービスを始めた（API のポート）

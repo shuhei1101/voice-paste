@@ -11,6 +11,7 @@ import re
 from collections.abc import Callable
 
 import pytest
+from pynput import keyboard
 
 START_KEY = "<ctrl>+<alt>+d"
 INVALID_KEY = "<ctrl>+<nokey>"
@@ -51,6 +52,35 @@ def listeners(monkeypatch: pytest.MonkeyPatch) -> list[FakeGlobalHotKeys]:
     return created
 
 
+class FakeListener:
+    """pynput.keyboard.Listener の偽物。on_press・on_release と、start・stop・join の呼ばれた順を覚える。"""
+
+    def __init__(
+        self,
+        on_press: Callable[[keyboard.Key | keyboard.KeyCode | None], None],
+        on_release: Callable[[keyboard.Key | keyboard.KeyCode | None], None],
+    ) -> None:
+        self.on_press = on_press
+        self.on_release = on_release
+        self.calls: list[str] = []
+
+    def canonical(self, key: keyboard.Key | keyboard.KeyCode | None) -> keyboard.Key | keyboard.KeyCode | None:
+        """受けたキーをそのまま返す。"""
+        return key
+
+    def start(self) -> None:
+        """受付を始めたことを覚える。"""
+        self.calls.append("start")
+
+    def stop(self) -> None:
+        """受付を止めたことを覚える。"""
+        self.calls.append("stop")
+
+    def join(self, timeout: float | None = None) -> None:
+        """スレッドの終わりを待ったことを覚える。"""
+        self.calls.append("join")
+
+
 class CountingHandler:
     """呼ばれた回数を覚える関数。raise_always が True なら、呼ばれるたびに例外を出す。"""
 
@@ -83,6 +113,41 @@ def test_start(listeners: list[FakeGlobalHotKeys]) -> None:
     # 検証
     assert handler.count == 1
     assert listeners[0].calls == ["start"]
+
+
+def test_start_when_accept_injected(
+    listeners: list[FakeGlobalHotKeys], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """ソフトウェアで送ったキーも受ける設定では、Listener でキーを受けて関数を呼び、GlobalHotKeys は作らない（正常系）。"""
+    from voice_paste.runtime.hotkey import HotkeyListener
+
+    # 準備
+    plain_listeners: list[FakeListener] = []
+
+    def _factory(
+        on_press: Callable[[keyboard.Key | keyboard.KeyCode | None], None],
+        on_release: Callable[[keyboard.Key | keyboard.KeyCode | None], None],
+    ) -> FakeListener:
+        """偽物を作って控える。"""
+        fake = FakeListener(on_press, on_release)
+        plain_listeners.append(fake)
+        return fake
+
+    monkeypatch.setattr("pynput.keyboard.Listener", _factory)
+    handler = CountingHandler()
+    listener = HotkeyListener(accept_injected=True)
+
+    # 実行
+    listener.start({START_KEY: handler})
+    fake = plain_listeners[0]
+    fake.on_press(keyboard.Key.ctrl)
+    fake.on_press(keyboard.Key.alt)
+    fake.on_press(keyboard.KeyCode.from_char("d"))
+
+    # 検証
+    assert handler.count == 1
+    assert fake.calls == ["start"]
+    assert listeners == []
 
 
 def test_start_when_restarted(listeners: list[FakeGlobalHotKeys]) -> None:

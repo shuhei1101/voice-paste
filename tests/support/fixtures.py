@@ -25,9 +25,11 @@ def start_service(tmp_path: Path) -> Iterator[Callable[..., RealService]]:
     """本物の常駐サービスを起動する関数を返す。起動したサービスは、テストの後に終わらせる。"""
     started: list[RealService] = []
 
-    def _start(extra_settings: str = "") -> RealService:
+    def _start(extra_settings: str = "", *, accept_injected_hotkeys: bool = False) -> RealService:
         service = RealService.launch(
-            tmp_path / f"data{len(started)}", extra_settings=extra_settings
+            tmp_path / f"data{len(started)}",
+            extra_settings=extra_settings,
+            accept_injected_hotkeys=accept_injected_hotkeys,
         )
         started.append(service)
         return service

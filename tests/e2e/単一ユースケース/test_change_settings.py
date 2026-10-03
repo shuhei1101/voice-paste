@@ -18,7 +18,6 @@ import pytest
 from tests.support.app_driver import IDLE, RECORDING, START_HOTKEY, AppDriver
 from tests.support.desktop import (
     press_hotkey,
-    require_hotkey_driver,
     type_keys,
     wait_until,
 )
@@ -64,9 +63,8 @@ def _last_registration(app: AppDriver) -> str:
 
 
 def test_normal(start_app: StartApp) -> None:
-    """録音開始のホットキーを別の組み合わせに変えて保存すると、settings.toml だけが変わり、再起動せずに新しい組み合わせで録音が始まり、前の組み合わせでは始まらない（正常シナリオ）。ホットキーを押せる環境でだけ動く。"""
+    """録音開始のホットキーを別の組み合わせに変えて保存すると、settings.toml だけが変わり、再起動せずに新しい組み合わせで録音が始まり、前の組み合わせでは始まらない（正常シナリオ）。"""
     # 準備
-    require_hotkey_driver()
     app = start_app(COMMENTED_SETTINGS)
     before = _settings_file(app).read_text(encoding="utf-8")
     app.open_settings()

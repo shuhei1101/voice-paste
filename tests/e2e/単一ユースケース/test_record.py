@@ -1,7 +1,7 @@
 """単一ユースケース「録音する」の E2E テスト。
 
-本物の常駐アプリを起動し、トレイ・録音の画面を UI Automation で操作する（録音の始め方・話す音・
-ホットキーを押せる環境かどうかは、複合ユースケース「声で入力した文字を貼り付ける」と同じ）。
+本物の常駐アプリを起動し、トレイ・録音の画面を UI Automation で操作する（録音の始め方・話す音は、
+複合ユースケース「声で入力した文字を貼り付ける」と同じ）。
 実機のマイクで録音し、システム音量を一時的に下げる（`--run-e2e` が無ければ skip する）。
 
 次の 2 つは、実機の環境を整えたときだけ動く（整っていなければ理由を出して skip する）。
@@ -32,7 +32,6 @@ from tests.support.desktop import (
     monitors,
     move_cursor,
     press_hotkey,
-    require_hotkey_driver,
     speak,
     wait_until,
     z_order,
@@ -206,8 +205,7 @@ def test_normal_when_history_off(start_app: StartApp, paste_target: PasteTarget)
 
 def test_error_when_busy(start_app: StartApp, receiver: CallbackReceiver) -> None:
     """API から始めた録音が録音中のときに録音開始のホットキーを押すと、処理中のダイアログで知らせ、録音は続く（異常シナリオ）。"""
-    # 準備（ホットキーを押せる環境でだけ動く）
-    require_hotkey_driver()
+    # 準備
     app = start_app()
     response, _elapsed_ms = app.service.start_session(receiver.url)
     assert response.status_code == 202
@@ -327,9 +325,8 @@ def test_normal_when_primary_monitor(
 def test_normal_when_follow_cursor(
     start_app: StartApp, two_monitors: tuple[Monitor, Monitor]
 ) -> None:
-    """カーソルのあるモニターに出す設定では、カーソルのあるモニターの作業領域に出る（正常シナリオ）。ホットキーを押せる環境でだけ動く。"""
+    """カーソルのあるモニターに出す設定では、カーソルのあるモニターの作業領域に出る（正常シナリオ）。"""
     # 準備
-    require_hotkey_driver()
     primary, secondary = two_monitors
     app = start_app(CENTER_SETTINGS_FOLLOW_CURSOR)
 

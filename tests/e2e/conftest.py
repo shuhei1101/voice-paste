@@ -59,7 +59,7 @@ def start_app(start_service: Callable[..., RealService]) -> Iterator[Callable[..
                 "ほかの voice-paste（普段使いの旧版など）のトレイのアイコンが出ている（ヒント: "
                 f"{', '.join(others)}）。同じ実行ファイルのアイコンは 1 つのボタンにまとまり、この常駐アプリのメニューを開けないため、終了してから実行する"
             )
-        driver = AppDriver(start_service(extra_settings))
+        driver = AppDriver(start_service(extra_settings, accept_injected_hotkeys=True))
         drivers.append(driver)
         if wait_idle:
             driver.wait_tray_state(IDLE)

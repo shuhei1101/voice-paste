@@ -22,6 +22,8 @@ import httpx
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_DIR = REPO_ROOT / "src"
 TOKEN_FILE_NAME = "api_token"
+ACCEPT_INJECTED_HOTKEYS_ENV = "VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS"
+"""`1` のときだけ、合成したキーもホットキーとして受ける環境変数（常駐アプリの側の名前と同じ）。"""
 STARTUP_TIMEOUT_SEC = 120.0
 """常駐サービスがトークンのファイルを書くまで（モデルの読み込みを含む）待つ上限。"""
 
@@ -53,9 +55,17 @@ class RealService:
 
     @classmethod
     def launch(
-        cls, data_dir: Path, *, extra_settings: str = "", startup_timeout_sec: float = STARTUP_TIMEOUT_SEC
+        cls,
+        data_dir: Path,
+        *,
+        extra_settings: str = "",
+        accept_injected_hotkeys: bool = False,
+        startup_timeout_sec: float = STARTUP_TIMEOUT_SEC,
     ) -> RealService:
-        """data_dir に設定を書いて常駐サービスを起動し、トークンのファイルが書かれるまで待つ。"""
+        """data_dir に設定を書いて常駐サービスを起動し、トークンのファイルが書かれるまで待つ。
+
+        accept_injected_hotkeys が True なら、合成したキーもホットキーとして受ける起動にする（画面・ホットキーの E2E 用）。
+        """
         # 1. API のポートを空きポートにした設定を書く（extra_settings は TOML の続き）
         data_dir.mkdir(parents=True, exist_ok=True)
         port = _free_port()
@@ -65,6 +75,8 @@ class RealService:
 
         # 2. このリポジトリの src を使って、新しいプロセスグループで起動する（終了の合図 Ctrl+Break を送れるように）
         env = dict(os.environ, PYTHONPATH=str(SOURCE_DIR), PYTHONIOENCODING="utf-8")
+        if accept_injected_hotkeys:
+            env[ACCEPT_INJECTED_HOTKEYS_ENV] = "1"
         stdout = (data_dir / "stdout.log").open("wb")
         process = subprocess.Popen(  # noqa: S603 自分のインタープリタでこのリポジトリのモジュールを起動する
             [sys.executable, "-m", "voice_paste", "--data-dir", str(data_dir)],

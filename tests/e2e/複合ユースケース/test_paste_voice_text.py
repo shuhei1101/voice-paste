@@ -4,7 +4,7 @@
 ローカルの Whisper）を通し、トレイ・録音の画面を UI Automation で操作して、貼り付け先（別プロセスの入力欄）へ届くまでを確かめる。
 普段使いの `voice_paste_legacy` とリポジトリの直下の `.env`・`history/`・`log/` には触れない。
 
-- 録音は、ホットキーを押せる環境（環境変数 `VOICE_PASTE_E2E_HOTKEY_DRIVER`）ではホットキーで、そうでなければトレイのメニューから始める
+- 録音は、合成したキーでホットキーを押して始める（常駐アプリは環境変数 `VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS=1` で起動し、合成したキーも受ける）
 - 話す音は、スピーカーから読み上げた音をマイクが拾う前提（起こした文字の中身は決め打ちしない）
 - 実機のマイクで録音し、システム音量を一時的に下げる（`--run-e2e` が無ければ skip する）
 """
@@ -22,7 +22,6 @@ from tests.support.desktop import (
     PasteTarget,
     master_volume,
     press_hotkey,
-    require_hotkey_driver,
     wait_until,
 )
 from tests.support.flows import (
@@ -168,8 +167,7 @@ def test_error_when_api_session_busy(
     start_app: StartApp, receiver: CallbackReceiver
 ) -> None:
     """API の録音の処理中に録音開始のホットキーを押すと、処理中のダイアログが出て API の録音は続く（異常シナリオ）。"""
-    # 準備（ホットキーを押せる環境でだけ動く）
-    require_hotkey_driver()
+    # 準備
     app = start_app()
     response, _elapsed_ms = app.service.start_session(receiver.url)
     assert response.status_code == 202

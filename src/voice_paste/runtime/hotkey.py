@@ -35,13 +35,37 @@ def validate_hotkeys(hotkeys: Iterable[str]) -> None:
             raise HotkeyError(f"ホットキーを読めません（{hotkey}）") from error
 
 
+def _build_injected_listener(bindings: dict[str, Callable[[], None]]) -> keyboard.Listener:
+    """ソフトウェアで送ったキーも受ける受付を作る（GlobalHotKeys は送ったキーを捨てるため、HotKey を自分で回す）。"""
+    # 1. 各ホットキーの HotKey を作る（書式を読めなければ ValueError）
+    hotkeys = [
+        keyboard.HotKey(keyboard.HotKey.parse(hotkey), handler)
+        for hotkey, handler in bindings.items()
+    ]
+
+    # 2. 押した・離したキーを、送ったキーかどうかに関わらず全ての HotKey へ渡す
+    def _on_press(key: keyboard.Key | keyboard.KeyCode | None) -> None:
+        """押されたキーを全ての HotKey へ渡す。"""
+        for hotkey in hotkeys:
+            hotkey.press(listener.canonical(key))
+
+    def _on_release(key: keyboard.Key | keyboard.KeyCode | None) -> None:
+        """離されたキーを全ての HotKey へ渡す。"""
+        for hotkey in hotkeys:
+            hotkey.release(listener.canonical(key))
+
+    listener = keyboard.Listener(on_press=_on_press, on_release=_on_release)
+    return listener
+
+
 class HotkeyListener:
     """設定のホットキーを pynput で受け付け、押されたら配線された関数を呼ぶ。セッションは import しない。"""
 
-    def __init__(self) -> None:
-        """受付はまだ始めない。"""
-        self._listener: keyboard.GlobalHotKeys | None = None
+    def __init__(self, *, accept_injected: bool = False) -> None:
+        """受付はまだ始めない。accept_injected が True なら、ソフトウェアで送ったキーもホットキーとして受ける。"""
+        self._listener: keyboard.Listener | None = None
         self._lock = threading.Lock()
+        self._accept_injected = accept_injected
 
     def start(self, bindings: dict[str, Callable[[], None]]) -> None:
         """ホットキーと関数の組を登録して受付を始める。動いていれば、新しい受付を作れたときだけ入れ替える。"""
@@ -51,7 +75,11 @@ class HotkeyListener:
 
             # 2. 新しい受付を先に作る（作るときに pynput が書式を確かめる。読めなければ動いている受付はそのまま）
             try:
-                new_listener = keyboard.GlobalHotKeys(guarded)
+                new_listener: keyboard.Listener = (
+                    _build_injected_listener(guarded)
+                    if self._accept_injected
+                    else keyboard.GlobalHotKeys(guarded)
+                )
             except ValueError as error:
                 raise HotkeyError(f"ホットキーを読めません（{error}）") from error
 

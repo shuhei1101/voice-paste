@@ -4,8 +4,8 @@
   `QApplication.{親の objectName}….{objectName}` の形で、画面設計の項目 ID が末尾に出る
 - ボタン・欄・チェックボックスは UI Automation のパターン（Invoke・Value・Toggle・SelectionItem）で操作し、
   トレイのアイコンの右クリックとメニューの選択だけマウスで行う
-- 録音開始のホットキーは、合成したキー（SendInput）を pynput の GlobalHotKeys が無視するため、
-  物理のキー入力を作れる外部のコマンド（環境変数 `VOICE_PASTE_E2E_HOTKEY_DRIVER`）があるときだけ押せる
+- 録音開始のホットキーは、合成したキー（SendInput）で押す。常駐アプリは環境変数 `VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS=1` で起動し、
+  合成したキーもホットキーとして受ける
 """
 
 from __future__ import annotations
@@ -13,7 +13,6 @@ from __future__ import annotations
 import ctypes
 import json
 import os
-import shlex
 import subprocess
 import sys
 import time
@@ -37,9 +36,6 @@ import win32con  # noqa: E402
 import win32gui  # noqa: E402
 import win32process  # noqa: E402
 from pynput import keyboard  # noqa: E402
-
-HOTKEY_DRIVER_ENV = "VOICE_PASTE_E2E_HOTKEY_DRIVER"
-"""物理のキー入力を作る外部コマンド（`{hotkey}` に pynput の書式のホットキーを入れて実行する）を指定する環境変数。"""
 
 NO_MICROPHONE_ENV = "VOICE_PASTE_E2E_NO_MICROPHONE"
 """録音の入力の音声デバイスを外した環境で実行するときに `1` を指定する環境変数。"""
@@ -433,10 +429,7 @@ def move_cursor(x: int, y: int) -> None:
 
 
 def type_keys(hotkey: str) -> None:
-    """合成したキー（SendInput）で、pynput の書式のキーの組み合わせを押す。ホットキーの欄・通知センターなどの操作用。
-
-    GlobalHotKeys は合成したキーを無視するため、常駐アプリのホットキーを動かす用途には使えない（`press_hotkey`）。
-    """
+    """合成したキー（SendInput）で、pynput の書式のキーの組み合わせを押す。"""
     controller = keyboard.Controller()
     keys = keyboard.HotKey.parse(hotkey)
     for key in keys:
@@ -453,27 +446,9 @@ def open_notification_center() -> None:
     time.sleep(PAUSE_AFTER_CLICK_SEC * 3)
 
 
-def hotkey_driver_available() -> bool:
-    """物理のキー入力を作る外部コマンドが指定されているか。"""
-    return bool(os.environ.get(HOTKEY_DRIVER_ENV))
-
-
-def require_hotkey_driver() -> None:
-    """物理のキー入力を作る外部コマンドが無ければ、理由を出してテストを skip する。"""
-    if not hotkey_driver_available():
-        pytest.skip(
-            "ホットキーは、合成したキー（SendInput）を GlobalHotKeys が無視するため、"
-            f"物理のキー入力を作れるコマンドを環境変数 {HOTKEY_DRIVER_ENV}（`{{hotkey}}` を含める）で指定したときだけ押せる"
-        )
-
-
 def press_hotkey(hotkey: str) -> None:
-    """常駐アプリのホットキー（pynput の書式）を、外部のコマンド（物理のキー入力）で押す。"""
-    require_hotkey_driver()
-    template = os.environ[HOTKEY_DRIVER_ENV]
-    subprocess.run(  # noqa: S603 コマンドはテストを動かす人が環境変数で決め、ホットキーは固定の値
-        shlex.split(template.format(hotkey=hotkey), posix=False), check=True, timeout=30
-    )
+    """常駐アプリのホットキー（pynput の書式）を、合成したキーで押す（常駐アプリは合成したキーを受ける起動にしてある）。"""
+    type_keys(hotkey)
     time.sleep(PAUSE_AFTER_CLICK_SEC)
 
 

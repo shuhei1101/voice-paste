@@ -34,13 +34,12 @@ RECORD_SEC = 2.0
 """話さずに録音を続ける秒数。"""
 
 
-def begin_recording(app: AppDriver, paste: PasteTarget | None = None) -> str:
-    """録音を始め、録音の画面が出たら貼り付け先を前面に戻す。始めた入口（hotkey か tray）を返す。"""
-    entry = app.start_recording()
+def begin_recording(app: AppDriver, paste: PasteTarget | None = None) -> None:
+    """録音を始め、録音の画面が出たら貼り付け先を前面に戻す。"""
+    app.start_recording()
     app.wait_window("recording_window")
     if paste is not None:
         paste.focus()
-    return entry
 
 
 def speak_and_confirm(

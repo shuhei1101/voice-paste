@@ -1,7 +1,6 @@
 """実機の常駐アプリ（`python -m voice_paste --data-dir {一時フォルダ}`）を、画面・トレイから操作・観測する。
 
-画面設計の項目 ID（objectName）で部品を引き、UI Automation で操作する。録音は、ホットキーを押せる環境
-（物理のキー入力を作る外部コマンドがある）ならホットキーで、そうでなければトレイのメニューから始める。
+画面設計の項目 ID（objectName）で部品を引き、UI Automation で操作する。録音は、合成したキーでホットキーを押して始める。
 """
 
 from __future__ import annotations
@@ -18,7 +17,6 @@ from tests.support.desktop import (
     _elements,
     descendants,
     get_uia,
-    hotkey_driver_available,
     kill_tree,
     press_hotkey,
     processes_with,
@@ -191,13 +189,9 @@ class AppDriver:
 
     # --- 録音 ---
 
-    def start_recording(self) -> str:
-        """録音を始める。ホットキーを押せる環境ではホットキー、そうでなければトレイのメニュー。始めた入口（hotkey か tray）を返す。"""
-        if hotkey_driver_available():
-            press_hotkey(START_HOTKEY)
-            return "hotkey"
-        self.choose_tray_menu("menu_start")
-        return "tray"
+    def start_recording(self) -> None:
+        """録音開始のホットキーを押して録音を始める。"""
+        press_hotkey(START_HOTKEY)
 
     def window(self, name: str) -> Any | None:
         """画面（recording_window・transcribing_indicator・settings_window・busy_dialog）の部品を引く。"""

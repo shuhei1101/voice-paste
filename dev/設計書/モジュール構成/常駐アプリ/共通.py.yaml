@@ -1051,7 +1051,10 @@ constants:
     summary: 置き場所のフォルダ名に使うアプリの名前
     value: '"voice-paste"'
     status: implemented
-test_files: []
+test_files:
+  - tests/unit/voice_paste/shared/test_settings.py
+  - tests/unit/voice_paste/shared/test_logger.py
+  - tests/unit/voice_paste/shared/test_constants.py
 function_types:
   - name: ProgressFn
     title: 文字起こしの進みの知らせ先

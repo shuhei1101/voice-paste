@@ -727,7 +727,12 @@ constants:
     summary: PATH に msedge が無いときに探す Edge の実行ファイル。刷新前と同じ並び
     value: (r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe", r"C:\Program Files\Microsoft\Edge\Application\msedge.exe")
     status: implemented
-test_files: []
+test_files:
+  - tests/unit/voice_paste/integrations/whisper/test_client.py
+  - tests/unit/voice_paste/integrations/volume/test_adapter.py
+  - tests/unit/voice_paste/integrations/keyboard/test_sender.py
+  - tests/unit/voice_paste/integrations/browser/test_opener.py
+  - tests/unit/voice_paste/integrations/http/test_client.py
 external_test_files:
   - tests/external/voice_paste/integrations/volume/test_adapter.py
   - tests/external/voice_paste/integrations/keyboard/test_sender.py

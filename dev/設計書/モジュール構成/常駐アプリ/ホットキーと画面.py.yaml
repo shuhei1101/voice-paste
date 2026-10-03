@@ -1287,4 +1287,13 @@ constants:
     summary: 録音の画面を作業領域の端に置くときに空ける余白（論理ピクセル）
     value: '24'
     status: implemented
-test_files: []
+test_files:
+  - tests/unit/voice_paste/runtime/test_hotkey.py
+  - tests/unit/voice_paste/ui/test_bridge.py
+  - tests/unit/voice_paste/ui/test_controller.py
+  - tests/unit/voice_paste/ui/test_tray.py
+  - tests/unit/voice_paste/ui/test_placement.py
+  - tests/unit/voice_paste/ui/test_style.py
+  - tests/unit/voice_paste/ui/windows/test_transcribing_indicator.py
+  - tests/unit/voice_paste/ui/windows/test_settings_window.py
+  - tests/unit/voice_paste/ui/windows/test_settings_presets.py

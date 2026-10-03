@@ -935,4 +935,6 @@ functions:
       type: SessionApiDeps
       description: セッションの API の依存
     status: implemented
-test_files: []
+test_files:
+  - tests/unit/voice_paste/features/session/test_service.py
+  - tests/unit/voice_paste/features/session/test_route.py

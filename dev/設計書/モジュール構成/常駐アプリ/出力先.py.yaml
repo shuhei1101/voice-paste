@@ -778,4 +778,12 @@ functions:
       - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送る.py#
       - dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送るときのタイムアウト]
     status: planned
-test_files: []
+test_files:
+  - tests/unit/voice_paste/features/outputs/test_service.py
+  - tests/unit/voice_paste/features/outputs/test_types.py
+  - tests/unit/voice_paste/features/outputs/paste_and_send/test_service.py
+  - tests/unit/voice_paste/features/outputs/paste_only/test_service.py
+  - tests/unit/voice_paste/features/outputs/copy_only/test_service.py
+  - tests/unit/voice_paste/features/outputs/browser/test_service.py
+  - tests/unit/voice_paste/features/outputs/endpoint/test_service.py
+  - tests/unit/voice_paste/features/outputs/callback/test_service.py

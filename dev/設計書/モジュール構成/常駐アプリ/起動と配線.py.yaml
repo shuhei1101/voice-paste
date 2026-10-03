@@ -1101,4 +1101,9 @@ constants:
     summary: 前のプロセスがミューテックスを作ってからイベントを作るまでの間に OpenEventW が失敗したとき、開き直す間隔。前のプロセスの起動の初めの数ミリ秒の間だけ起こるため、依頼の遅れを 0.1 秒までに抑える
     value: '0.1'
     status: implemented
-test_files: []
+test_files:
+  - tests/unit/voice_paste/test_main.py
+  - tests/unit/voice_paste/runtime/test_timer.py
+  - tests/unit/voice_paste/runtime/test_settings_store.py
+  - tests/unit/voice_paste/runtime/test_process.py
+  - tests/unit/voice_paste/runtime/test_single_instance.py

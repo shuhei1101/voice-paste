@@ -72,6 +72,16 @@
   padding: 0;
 }
 
+/* 種類のラジオ: 横に並べる */
+.preset .radios {
+  flex-direction: row;
+}
+
+/* 設定のキーがまだ決まっていない欄で、キーの列を空けて入力を右に揃える */
+.key--pending {
+  display: block;
+}
+
 /* URL・タイトル・Authorization の入力欄を広くする */
 .preset input.wide {
   width: min(100%, 420px);
@@ -127,6 +137,18 @@ input[type="password"] {
   font-weight: 600;
 }
 
+/* 案 B: タイトルが空のときのタイトルのボタンの文言 */
+.targets [data-pick] .clip:empty::before {
+  content: "（タイトル未入力）";
+  color: var(--text-2);
+  font-weight: 400;
+}
+
+/* 案 B: 狭い幅でも表の見出しを折り返さず、表ごと横に流す */
+.targets th {
+  white-space: nowrap;
+}
+
 /* 案 B: 選んでいる行のタイトルのボタン */
 .targets [data-pick][aria-current="true"] {
   background: var(--surface-2);
@@ -153,7 +175,7 @@ input[type="password"] {
 
 /* 案 B: 選んだプリセットの欄の見出し */
 .preset-detail__title {
-  margin: 4px 0 0;
+  margin: 12px 0 0;
   font-size: 13px;
   font-weight: 600;
   color: var(--text-2);

@@ -433,7 +433,7 @@ settings:
     default: （既定のプリセットは無く、`presets` は空の一覧）
     description: プリセットの届け方。`browser` はブラウザ添付（URL をアプリのウィンドウで開いて貼り付ける）、`endpoint` はエンドポイントへ送る（URL へ JSON で POST する）。設定画面は種類ごとのタブに分けて並べ、録音の画面は browser・endpoint の順に、それぞれ `presets[]` の並びで出す。
     reload: immediate
-    status: planned
+    status: implemented
     implementation: src/voice_paste/shared/settings.py
   - key: presets[].title
     title: カスタムプリセットのタイトル
@@ -442,7 +442,7 @@ settings:
     description: 録音の画面のボタンに出す名前。
     reload: immediate
     allowed: 1 文字以上
-    status: planned
+    status: implemented
     implementation: src/voice_paste/shared/settings.py
   - key: presets[].url
     title: カスタムプリセットの URL
@@ -451,7 +451,7 @@ settings:
     description: browser は Microsoft Edge の `--app` で開く画面の URL、endpoint は起こした文字を POST する送り先。
     reload: immediate
     allowed: http か https
-    status: planned
+    status: implemented
     implementation: src/voice_paste/shared/settings.py
     refs:
       - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送る.py#
@@ -463,7 +463,7 @@ settings:
     description: 録音の画面でこのプリセットとして確定する。空ならホットキーを登録せず、録音の画面のボタンだけで選ぶ。
     reload: immediate
     allowed: 空か、ほかのホットキーと重ならない組み合わせ
-    status: planned
+    status: implemented
     implementation: src/voice_paste/shared/settings.py
   - key: presets[].enabled
     title: カスタムプリセットが有効か
@@ -472,7 +472,7 @@ settings:
     default: 'true'
     description: '`false` のとき、録音の画面のボタンを出さず、ホットキーも登録しない。'
     reload: immediate
-    status: planned
+    status: implemented
     implementation: src/voice_paste/shared/settings.py
   - key: presets[].send_enter
     title: 貼り付けた後に Enter まで送るか
@@ -481,7 +481,7 @@ settings:
     default: 'true'
     description: browser だけが持つ。`true` なら貼り付けてから `outputs[paste_and_send].enter_delay_sec` の秒数を置いて Enter を送り、`false` なら貼り付けで止める。
     reload: immediate
-    status: planned
+    status: implemented
     implementation: src/voice_paste/shared/settings.py
   - key: presets[].authorization
     title: 送り先へ付ける Authorization ヘッダー
@@ -491,7 +491,7 @@ settings:
     description: endpoint だけが持つ。空でなければ `Authorization` ヘッダーにそのまま入れて送る（例 `Bearer {トークン}`）。空なら付けない。
     secret: true
     reload: immediate
-    status: planned
+    status: implemented
     implementation: src/voice_paste/shared/settings.py
     refs:
       - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送る.py#
@@ -503,7 +503,7 @@ settings:
     description: ブラウザ添付種類の全てのプリセットで使う。画面を開いてから貼り付けるまで待つ秒数。
     reload: immediate
     allowed: '>= 0'
-    status: planned
+    status: implemented
     implementation: src/voice_paste/shared/settings.py
   - key: preset_options.endpoint.timeout_sec
     title: エンドポイントへ送るときのタイムアウトの秒数
@@ -513,7 +513,7 @@ settings:
     description: エンドポイントへ送る種類の全てのプリセットで使う。この秒数で届かなければ送り直さず、届けられなかったことを知らせる。
     reload: immediate
     allowed: 0.5〜10
-    status: planned
+    status: implemented
     implementation: src/voice_paste/shared/settings.py
     refs:
       - dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送るときのタイムアウト]

@@ -46,7 +46,7 @@ enums:
       - value: copy_only
         title: コピーのみ
         description: CopyOnlySettings
-    status: planned
+    status: implemented
   - name: Preset
     title: カスタムプリセット
     container: shared/settings.py
@@ -64,7 +64,7 @@ enums:
         description: EndpointPreset
     refs:
       - dev/設計書/設定/常駐アプリ#settings[presets[].kind]
-    status: planned
+    status: implemented
 data_models:
   - name: Recording
     title: 録音
@@ -187,7 +187,7 @@ data_models:
     refs:
       - dev/設計書/外部ライブラリ/pydantic#
       - dev/設計書/設定/常駐アプリ#
-    status: planned
+    status: implemented
   - name: TranscriptionSettings
     title: 文字起こしの設定
     container: shared/settings.py
@@ -508,7 +508,7 @@ data_models:
         description: 貼り付けた後に Enter まで送るか
     refs:
       - dev/設計書/設定/常駐アプリ#settings[presets[].kind]
-    status: planned
+    status: implemented
   - name: EndpointPreset
     title: エンドポイントへ送るのプリセット
     container: shared/settings.py
@@ -542,7 +542,7 @@ data_models:
         description: 空でなければ `Authorization` ヘッダーにそのまま入れる値（秘密。repr に出さない）
     refs:
       - dev/設計書/設定/常駐アプリ#settings[presets[].authorization]
-    status: planned
+    status: implemented
   - name: PresetOptions
     title: プリセットの種類のオプション
     container: shared/settings.py
@@ -557,7 +557,7 @@ data_models:
       - name: endpoint
         type: EndpointPresetOptions
         description: エンドポイントへ送るのオプション
-    status: planned
+    status: implemented
   - name: BrowserPresetOptions
     title: ブラウザ添付のオプション
     container: shared/settings.py
@@ -572,7 +572,7 @@ data_models:
         description: 画面を開いてから貼り付けるまで待つ秒数（0 以上）
     refs:
       - dev/設計書/設定/常駐アプリ#settings[preset_options.browser.open_delay_sec]
-    status: planned
+    status: implemented
   - name: EndpointPresetOptions
     title: エンドポイントへ送るのオプション
     container: shared/settings.py
@@ -588,7 +588,7 @@ data_models:
     refs:
       - dev/設計書/設定/常駐アプリ#settings[preset_options.endpoint.timeout_sec]
       - dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送るときのタイムアウト]
-    status: planned
+    status: implemented
 classes:
   - name: AppError
     title: アプリの例外
@@ -714,7 +714,7 @@ functions:
         exception: 値がモデルに合わない
     refs:
       - dev/設計書/外部ライブラリ/tomlkit#
-    status: planned
+    status: implemented
   - name: save_settings
     title: 設定の書き戻し
     kind: 関数
@@ -791,7 +791,7 @@ functions:
         expected: False。書いた後のファイルの outputs に ai_chat が無く、presets に同じ title・url・hotkey・enabled の kind = "browser" が 2 件あり、preset_options.browser.open_delay_sec が読み替えた値
     refs:
       - dev/設計書/外部ライブラリ/tomlkit#
-    status: planned
+    status: implemented
   - name: setup_logging
     title: ログの設定
     kind: 関数
@@ -953,7 +953,7 @@ functions:
          - `hotkeys.start` と「貼り付けて送信」の `hotkey` が同じ組は重なりにしない（録音中に押すとその出力先で確定する既定）
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
-    status: planned
+    status: implemented
     notes:
       補足: Settings に `model_validator(mode="after")` を足し、この関数が返した重なりごとに `PydanticCustomError` を集めた ValidationError を送出する（場所は重なったキー、理由は「{先のキー}と同じホットキー」）。設定画面は list_validation_failures で欄ごとのエラーにする
     unit_tests:
@@ -1042,7 +1042,7 @@ functions:
         condition: outputs が [paste_only] だけ、または outputs が無い
         mock: なし
         expected: document と同じ中身が返る
-    status: planned
+    status: implemented
 constants:
   - name: APP_NAME
     title: アプリ名

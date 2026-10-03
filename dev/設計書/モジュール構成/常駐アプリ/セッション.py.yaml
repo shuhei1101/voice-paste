@@ -79,7 +79,7 @@ data_models:
       - name: output_preset
         type: Preset | None
         description: ホットキー・トレイから始めた録音で、確定の操作で選んだカスタムプリセット（確定したときの設定の写し）。固定の出力先を選んだときと API のときは None
-    status: planned
+    status: implemented
   - name: SessionDeps
     title: セッションの依存
     container: features/session/types.py

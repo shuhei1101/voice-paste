@@ -558,7 +558,7 @@ classes:
           description: なし
     refs:
       - dev/設計書/画面設計/常駐アプリ/録音の画面.py#
-    status: planned
+    status: implemented
     notes:
       テスト: 画面の振る舞い（ボタンで UiDeps の関数が呼ばれること・出し分け）は画面設計を元にした結合テスト（`tests/integration/ui/`）で確かめる。
   - name: TranscribingIndicator
@@ -737,7 +737,7 @@ classes:
           description: 閉じたか
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
-    status: planned
+    status: implemented
   - name: PresetListPanel
     title: プリセットの一覧
     container: ui/windows/settings_presets.py
@@ -829,7 +829,7 @@ classes:
           description: なし
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
-    status: planned
+    status: implemented
 functions:
   - name: notify
     title: ユーザーへの知らせ
@@ -1135,7 +1135,7 @@ functions:
         expected: 'URL を入れてください（例: https://example.com/hook）。'
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
-    status: planned
+    status: implemented
   - name: validate_hotkeys
     title: ホットキーの書式の確かめ
     container: runtime/hotkey.py
@@ -1234,7 +1234,7 @@ data_models:
       - name: resume_hotkeys
         type: Callable[[], None]
         description: 今の設定でホットキーの受付を始める（build_hotkey_bindings → HotkeyListener.start）。設定画面を閉じたときに呼ぶ
-    status: planned
+    status: implemented
 enums:
   - name: TrayState
     title: トレイの状態

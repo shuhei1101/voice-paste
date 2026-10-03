@@ -141,7 +141,7 @@ functions:
     exceptions:
       - name: StartupError
         condition: 文字起こしのエンジンを準備できない
-    status: planned
+    status: implemented
   - name: main
     title: 起動
     kind: 関数
@@ -455,7 +455,7 @@ functions:
         condition: 配線の後に get_settings が返す設定を paste_key `<ctrl>+<alt>+v`・enter_delay_sec 1.0 に差し替える
         mock: copy_to_clipboard・send_paste・send_enter・time.sleep
         expected: paste_and_send の handler を呼ぶと send_paste に `<ctrl>+<alt>+v`、sleep に 1.0 が渡る
-    status: planned
+    status: implemented
   - name: build_hotkey_bindings
     title: ホットキーの割り当て
     container: main.py
@@ -537,7 +537,7 @@ functions:
         expected: <ctrl>+<alt>+7 と空文字が返り値のキーに無い
     refs:
       - dev/設計書/シナリオ/単一ユースケース/録音する#
-    status: planned
+    status: implemented
   - name: apply_settings
     title: 設定の保存と反映
     container: main.py
@@ -648,7 +648,7 @@ functions:
       1. start に start_local_session(tray)、pause・resume・cancel・current_session に SessionManager のメソッド、complete に output_id・preset で SessionManager.complete を呼ぶ関数、level に recorder_level、get_settings に SettingsStore.get を渡す
       2. suspend_hotkeys に HotkeyListener.stop、resume_hotkeys に SettingsStore.get の設定で build_hotkey_bindings して HotkeyListener.start を呼ぶ関数を渡す
       3. settings_dir に settings.toml のフォルダ、log_dir にログのフォルダを渡す
-    status: planned
+    status: implemented
   - name: relaunch
     title: 起動し直し
     container: runtime/process.py
@@ -801,7 +801,7 @@ functions:
         expected: endpoint の handler を呼ぶと post_json の timeout_sec に 5.0 が渡る
     refs:
       - dev/設計書/モジュール構成/常駐アプリ/出力先.py#constants[PRESET_KINDS]
-    status: planned
+    status: implemented
 notes:
   依存の向き: |-
     コーディング規約『依存関係管理』のとおり `features`・`server`・`ui` → `integrations`・`runtime` → `shared` とし、上の層へは import しない。

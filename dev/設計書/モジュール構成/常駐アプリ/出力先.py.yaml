@@ -63,7 +63,7 @@ data_models:
       - name: handler
         type: PresetFn
         description: 届ける関数
-    status: planned
+    status: implemented
   - name: ResultPayload
     title: 送る中身
     container: features/outputs/types.py
@@ -108,7 +108,7 @@ data_models:
     refs:
       - dev/設計書/インターフェース定義/常駐アプリ/呼び出し元へ返す.py#
       - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送る.py#
-    status: planned
+    status: implemented
 function_types:
   - name: OutputFn
     title: 出力先
@@ -155,7 +155,7 @@ function_types:
         notes: ブラウザ添付。Edge のアプリの画面を開いて貼り付け、設定によって Enter まで送る
       - target: deliver_to_endpoint
         notes: エンドポイントへ送る。プリセットの URL へ JSON を 1 回 POST する
-    status: planned
+    status: implemented
 constants:
   - name: OUTPUTS
     title: 出力先の一覧
@@ -175,7 +175,7 @@ constants:
       - key: '3'
         value: OutputSpec(id="callback", title="呼び出し元へ返す", handler=deliver_to_caller, api_only=True)
         description: 呼び出し元へ返す
-    status: planned
+    status: implemented
     notes:
       配線: 各 handler が受け取るクリップボード・キー・ブラウザの操作と設定の値は、main.py が出力先の ID ごとに部分適用する（起動と配線の _wire_outputs）。
   - name: PRESET_KINDS
@@ -192,7 +192,7 @@ constants:
         description: エンドポイントへ送る
     notes:
       配線: 各 handler が受け取るクリップボード・キー・ブラウザ・HTTP の操作と設定の値は、main.py が種類ごとに部分適用する（起動と配線の _wire_preset_kinds）。
-    status: planned
+    status: implemented
 functions:
   - name: deliver
     title: 出力先への配送
@@ -290,7 +290,7 @@ functions:
         mock: 各種類の handler
         expected: UnknownOutputError が送出される
         exception: 種類が一覧に無い
-    status: planned
+    status: implemented
   - name: is_callback_allowed
     title: 返送先の確かめ
     kind: 関数
@@ -447,7 +447,7 @@ functions:
     refs:
       - dev/設計書/外部ライブラリ/httpx#
       - dev/設計書/インターフェース定義/常駐アプリ/呼び出し元へ返す.py#
-    status: planned
+    status: implemented
   - name: paste_and_send
     title: 貼り付けて送信
     kind: 関数
@@ -702,7 +702,7 @@ functions:
         exception: 画面を開けない
     refs:
       - dev/設計書/外部ライブラリ/Microsoft_Edge#
-    status: planned
+    status: implemented
   - name: deliver_to_endpoint
     title: エンドポイントへ送る
     kind: 関数
@@ -777,7 +777,7 @@ functions:
     refs:
       - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送る.py#
       - dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送るときのタイムアウト]
-    status: planned
+    status: implemented
 test_files:
   - tests/unit/voice_paste/features/outputs/test_service.py
   - tests/unit/voice_paste/features/outputs/test_types.py

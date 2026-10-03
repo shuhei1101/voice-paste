@@ -575,7 +575,7 @@ functions:
         condition: Edge も既定のブラウザも起動できない
     refs:
       - dev/設計書/外部ライブラリ/Microsoft_Edge#
-    status: planned
+    status: implemented
     unit_tests:
       - name: test_open_app_window
         case: 正常
@@ -690,7 +690,7 @@ functions:
         exception: タイムアウトか接続できない
     refs:
       - dev/設計書/外部ライブラリ/httpx#
-    status: planned
+    status: implemented
 constants:
   - name: FADE_STEPS
     title: フェードの段数
@@ -751,7 +751,7 @@ data_models:
       - name: retry_after_sec
         type: float | None
         description: Retry-After を秒に直した値。無い・読めないときは None
-    status: planned
+    status: implemented
 function_types:
   - name: PostJsonFn
     title: JSON の POST
@@ -777,4 +777,4 @@ function_types:
     implementations:
       - target: post_json
         notes: httpx で送る
-    status: planned
+    status: implemented

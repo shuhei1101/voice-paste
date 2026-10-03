@@ -213,6 +213,76 @@ scenarios:
     notes:
       API から来たとき: API の開始でマイクを開けなかったときは、APIで録音を操作する の 異常シナリオ（マイクを開けない） がエラーを返す。
     test: test_error_when_microphone_missing
+  - name: 正常シナリオ（ほかの窓を前面に出す）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: ほかの窓
+        description: 「常に手前に表示」でない窓（貼り付け先の入力欄）を開いておく
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SVC as 常駐サービス
+        participant GUI as 録音の画面
+        participant WIN as ほかの窓
+
+        U->>SVC: 録音を始める
+        SVC->>GUI: 録音の画面を開く（表示中は最前面を保つ）
+        U->>WIN: 前面に出す（繰り返す）
+        GUI->>GUI: ほかの窓より上に残る
+        U->>GUI: 「取り消す」で閉じる
+      ```
+    expected:
+      - ほかの窓を前面に出すたびに、録音の画面がその窓より上にある
+  - name: 正常シナリオ（主のモニターに出す）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: モニター
+        description: モニターを 2 枚以上つなぐ
+        notes: 1 枚なら枚数を出して skip する
+      - name: 表示位置
+        description: カーソルのあるモニターに出さない設定にし、カーソルを主でないモニターに置く
+        notes: '`ui.follow_cursor = false`'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SVC as 常駐サービス
+        participant GUI as 録音の画面
+
+        U->>SVC: 録音を始める
+        SVC->>GUI: 主のモニターの作業領域の、設定の位置に開く
+        U->>GUI: 「取り消す」で閉じる
+      ```
+    expected:
+      - 録音の画面が主のモニターの作業領域の中にある
+  - name: 正常シナリオ（カーソルのあるモニターに出す）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: モニター
+        description: モニターを 2 枚以上つなぐ
+        notes: 1 枚なら枚数を出して skip する。拡大率の違うモニターをつないだ環境でも流す
+      - name: 表示位置
+        description: カーソルのあるモニターに出す設定にする
+        notes: '`ui.follow_cursor = true`'
+      - name: 入口
+        description: 主のモニターと、それ以外のモニターの中央にカーソルを置いて、それぞれ録音開始のホットキーを押す
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SVC as 常駐サービス
+        participant GUI as 録音の画面
+
+        U->>SVC: カーソルを置いたモニターで録音開始のホットキーを押す
+        SVC->>GUI: カーソルのあるモニターの作業領域の、設定の位置に開く
+        U->>GUI: 「取り消す」で閉じる
+      ```
+    expected:
+      - 録音の画面が、録音を始めたときにカーソルのあったモニターの作業領域の中にある（主のモニターとそれ以外のモニターの両方）
 lead: ホットキー・トレイ・API のどれかから録音を始め、確定して履歴に残すか取り消すまでの単一ユースケース。
 issue: 14
 primary_actor: 音声入力を使うユーザー

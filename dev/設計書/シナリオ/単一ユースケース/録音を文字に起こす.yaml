@@ -223,6 +223,30 @@ scenarios:
     notes:
       同じ扱いになる失敗: やり直したワーカーも落ちたときも同じ扱いになる。
     test: test_error_when_api_failed
+  - name: 異常シナリオ（失敗の通知を通知センターから押す）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 文字起こしの失敗
+        description: 異常シナリオ（文字起こしに失敗） と同じ状態にして失敗の通知を出す
+      - name: 通知センター
+        description: 通知が畳まれて通知センターに残るまで待ち、通知センターを開く
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant NC as 通知センター
+        participant TRAY as トレイ
+        participant EXP as エクスプローラー
+
+        Note over TRAY: 失敗を知らせるまでは 異常シナリオ（文字起こしに失敗） と同じ
+        U->>NC: 残った失敗の通知を押す
+        NC->>TRAY: 通知が押されたことを渡す
+        TRAY->>EXP: ログの置き場所を開く
+      ```
+    expected:
+      - エクスプローラーでログの置き場所が開いている
+      - トレイのアイコンが待機中である
 lead: 確定した録音を設定のエンジンで文字に起こし、用語集で補正するまでの単一ユースケース。
 issue: 14
 primary_actor: 音声入力を使うユーザー

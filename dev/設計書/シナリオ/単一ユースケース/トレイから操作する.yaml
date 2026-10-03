@@ -87,6 +87,31 @@ scenarios:
       - 常駐アプリと文字起こしワーカーのプロセスが終わり、常駐アプリの終了コードが 0 である
       - 127.0.0.1 の API が応えない
     test: test_normal_when_quit
+  - name: 正常シナリオ（設定画面で値を変えたまま終了する）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 設定画面
+        description: 設定画面を開いて欄の値を変え、保存していない
+      - name: 終え方
+        description: トレイの「終了」と、起動したコンソールの Ctrl+Break の 2 通り
+        notes: parametrize で並べる
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant TRAY as トレイ
+        participant APP as 常駐アプリ
+        participant SW as 設定画面
+
+        U->>TRAY: 「終了」を選ぶ（または Ctrl+Break）
+        TRAY->>APP: 終了を求める
+        APP->>SW: 変えた値を捨てる確認を出さずに閉じる
+        APP->>APP: プロセスを終える
+        Note over APP: 以降は 正常シナリオ（終了する） と同じ
+      ```
+    expected:
+      - 変えた値を捨てる確認で止まらずに、常駐アプリのプロセスが終わり、終了コードが 0 である
 lead: トレイのアイコンのメニューから、フォルダを開く・再起動する・終了する単一ユースケース。
 issue: 21
 primary_actor: 音声入力を使うユーザー

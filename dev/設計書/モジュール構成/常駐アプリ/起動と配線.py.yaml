@@ -200,9 +200,9 @@ functions:
       - name: test_main
         case: 正常
         summary: 設定を読んで API・ホットキー・トレイを立て、イベントループが抜けたら片付けて 0 を返す
-        condition: --data-dir に空の一時フォルダ。QT_QPA_PLATFORM=offscreen、exec_loop はすぐ 0 を返す
+        condition: --data-dir に空の一時フォルダ。QT_QPA_PLATFORM=offscreen、環境変数 VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS は無い、exec_loop はすぐ 0 を返す
         mock: build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray
-        expected: 0。{data_dir}/settings.toml が既定値ででき、token_file があり、HotkeyListener.start に既定のホットキーが渡り、HotkeyListener.stop・RepeatingTimer.stop・ApiServerRunner.stop・SessionManager.close・stop_engine・Tray.hide がこの順に 1 回ずつ呼ばれる
+        expected: 0。{data_dir}/settings.toml が既定値ででき、token_file があり、HotkeyListener が accept_injected=False で作られ、HotkeyListener.start に既定のホットキーが渡り、HotkeyListener.stop・RepeatingTimer.stop・ApiServerRunner.stop・SessionManager.close・stop_engine・Tray.hide がこの順に 1 回ずつ呼ばれる
       - name: test_main_when_migrate_env
         case: 正常
         summary: .env を移してから読む
@@ -242,6 +242,12 @@ functions:
         condition: exec_loop の中で UiDeps.request_restart を呼ぶ
         mock: build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray・relaunch
         expected: 0。relaunch が ApiServerRunner.stop と stop_engine の後に、同じ argv で 1 回呼ばれる
+      - name: test_main_when_accept_injected_hotkeys
+        case: 正常
+        summary: 環境変数が 1 なら、ソフトウェアで送ったキーもホットキーとして受ける受付を作る
+        condition: --data-dir に空の一時フォルダ、環境変数 VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS=1。exec_loop はすぐ 0 を返す
+        mock: build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray
+        expected: 0。HotkeyListener が accept_injected=True で作られる
   - name: acquire_single_instance
     title: 単一インスタンスの確保
     kind: 関数

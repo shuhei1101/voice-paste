@@ -127,6 +127,12 @@ classes:
             mock: keyboard.GlobalHotKeys（2 回目の生成が ValueError）
             expected: HotkeyError が送出され、1 つ目の受付の stop が呼ばれず、動いたまま
             exception: 書式を読めない
+          - name: test_start_when_accept_injected
+            case: 正常
+            summary: ソフトウェアで送ったキーも受ける設定では、Listener でキーを受けて関数を呼ぶ
+            condition: 'HotkeyListener(accept_injected=True) に {"<ctrl>+<alt>+d": 関数} で始め、差し替えた keyboard.Listener の on_press に Ctrl・Alt・D を順に渡す'
+            mock: keyboard.Listener・keyboard.GlobalHotKeys
+            expected: 関数が 1 回呼ばれ、Listener の start が呼ばれ、GlobalHotKeys が作られない
       - name: stop
         title: 受付の停止
         summary: 受付を止め、スレッドの終わりを待つ。動いていなければ何もしない

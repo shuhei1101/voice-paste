@@ -220,7 +220,12 @@ class UiController(QObject):
             TrayState.RECORDING if in_recording else TrayState.TRANSCRIBING, busy=True
         )
         if session.entry == Entry.API:
-            self._tray.set_recording_window(RecordingWindowState.NO_WINDOW)
+            # 録音中は画面を出さない録音、文字起こし中は録音していない
+            self._tray.set_recording_window(
+                RecordingWindowState.NO_WINDOW
+                if in_recording
+                else RecordingWindowState.NOT_RECORDING
+            )
             return
 
         # ホットキー・トレイのセッション: 画面を出さない設定でなければ、状態の画面を出す

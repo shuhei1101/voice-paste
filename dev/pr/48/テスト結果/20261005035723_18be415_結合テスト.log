@@ -1,0 +1,28 @@
+$ venv/Scripts/python.exe -m pytest tests/integration
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\fix-recording-window-move-hide-close
+configfile: pyproject.toml
+plugins: anyio-4.13.0, platformdirs-4.12.2
+collected 289 items
+
+tests\integration\test_complete_session.py .......                       [  2%]
+tests\integration\test_deliver_to_caller.py ......                       [  4%]
+tests\integration\test_deliver_to_endpoint.py ...                        [  5%]
+tests\integration\test_deliver_to_output.py ....                         [  6%]
+tests\integration\test_settings_migration.py .                           [  7%]
+tests\integration\test_start_session.py ........                         [ 10%]
+tests\integration\test_stop_session.py .......                           [ 12%]
+tests\integration\test_truncate_session.py ..                            [ 13%]
+tests\integration\ui\test_busy_dialog.py ..........                      [ 16%]
+tests\integration\ui\test_recording_window.py .......................... [ 25%]
+....................................                                     [ 38%]
+tests\integration\ui\test_settings_window.py ........................... [ 47%]
+....................................................................     [ 70%]
+tests\integration\ui\test_transcribing_indicator.py .................... [ 77%]
+...                                                                      [ 78%]
+tests\integration\ui\test_tray.py ...................................... [ 92%]
+......                                                                   [ 94%]
+tests\integration\ui\test_tray_notification.py .................         [100%]
+
+============================ 289 passed in 35.42s =============================

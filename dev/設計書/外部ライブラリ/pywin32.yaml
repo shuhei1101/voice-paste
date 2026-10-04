@@ -31,6 +31,9 @@ catalogs:
       - name: win32con
         kind: 定数
         purpose: マウス・キー・ウィンドウの操作に渡す定数（MOUSEEVENTF_*・KEYEVENTF_KEYUP・VK_MENU・SW_SHOW・WM_CLOSE）
+      - name: win32com.client.Dispatch
+        kind: 関数
+        purpose: COM のオブジェクトを名前で作って呼ぶ（Shell.Application でエクスプローラーの窓を引いて閉じ、SAPI.SpVoice で文字を読み上げる）
 lead: Windows の API（Win32）を Python から呼ぶライブラリ。
 purl: pkg:pypi/pywin32
 dependency_scope: 開発のみ
@@ -42,7 +45,7 @@ upstream: mhammond/pywin32
 verification:
   state: 済
   date: '2026-10-05'
-  detail: 新しく作った Windows の venv（Python 3.14）へ `pip install "pywin32~=312.0"` で入れ、`win32api`・`win32con`・`win32gui`・`win32process` を import できることを確かめた（入った版は 312）
+  detail: 新しく作った Windows の venv（Python 3.14）へ `pip install "pywin32~=312.0"` で入れ、`win32api`・`win32con`・`win32gui`・`win32process`・`win32com.client` を import でき、`win32com.client.Dispatch` で `Shell.Application` と `SAPI.SpVoice` を作れることを確かめた（入った版は 312）
 license: PSF（商用利用可）
 official_url: https://github.com/mhammond/pywin32
 docs_url: https://mhammond.github.io/pywin32/

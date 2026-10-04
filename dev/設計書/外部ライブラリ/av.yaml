@@ -13,7 +13,6 @@ catalogs:
       - name: av.open
         kind: 関数
         purpose: ファイルやストリームを開き、音声・動画のコンテナを返す（faster-whisper が録音を読むときに呼ぶ）
-        description: "av 19.0.1 では `metadata_errors` を渡すと `TypeError: open() got an unexpected keyword argument 'metadata_errors'` になる。"
         params:
           - name: file
             type: str | Path | file-like

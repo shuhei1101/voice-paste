@@ -34,6 +34,9 @@ catalogs:
       - name: QtTest.QTest
         kind: クラス
         purpose: 画面の結合テストでボタンを押し、キーを送る（pytest-qt は使わない）
+      - name: QtGui.QWindow.startSystemMove
+        kind: 関数
+        purpose: 録音の画面を見出しの行のドラッグで動かす（枠なしの窓を `QWidget.windowHandle()` から動かす）
 lead: Qt 6 の Python バインディング（Qt for Python）のうち、基本のモジュールだけを持つパッケージ。
 purl: pkg:pypi/pyside6-essentials
 dependency_scope: 必須

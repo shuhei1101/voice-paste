@@ -602,6 +602,30 @@ classes:
             condition: set_recording_window(shown)
             mock: なし（offscreen の QApplication）
             expected: 「録音の画面を出す（表示中）」が押せず、太字でない
+          - name: test_set_recording_window_when_no_window
+            case: 正常
+            summary: 画面を出さない録音では理由を添えて押せなくする
+            condition: set_recording_window(no_window)
+            mock: なし（offscreen の QApplication）
+            expected: 「録音の画面を出す（画面を出さない録音）」が押せず、太字でない
+          - name: test_set_recording_window_when_not_recording
+            case: 正常
+            summary: 録音していないときは理由を添えて押せなくする
+            condition: set_recording_window(not_recording)
+            mock: なし（offscreen の QApplication）
+            expected: 「録音の画面を出す（録音していません）」が押せず、太字でない
+          - name: test_icon_click_when_window_hidden
+            case: 正常
+            summary: 隠している間のアイコンの左クリックは、録音の画面を戻す知らせを出す
+            condition: set_state(RECORDING, busy=True)・set_recording_window(hidden) の後、アイコンの activated(Trigger) を送る
+            mock: なし（show_window_requested・start_requested に受け手をつなぐ）
+            expected: show_window_requested が 1 回 emit され、start_requested が emit されない
+          - name: test_icon_click_when_window_shown
+            case: 正常
+            summary: 録音の画面が出ている間のアイコンの左クリックは何もしない
+            condition: set_state(RECORDING, busy=True)・set_recording_window(shown) の後、アイコンの activated(Trigger) を送る
+            mock: なし（show_window_requested・start_requested に受け手をつなぐ）
+            expected: show_window_requested も start_requested も emit されない
         status: planned
     refs:
       - dev/設計書/画面設計/常駐アプリ/トレイ.py#

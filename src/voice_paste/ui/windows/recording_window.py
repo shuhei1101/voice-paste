@@ -133,7 +133,7 @@ class HeadRow(QWidget):
     """見出しの行。どこをつかんでも（子のボタンの上を除く）押したまま動かすと窓を動かす。"""
 
     drag_started = Signal()
-    """窓の移動を OS に任せた（その回に窓を動かした印を立てる合図）。"""
+    """窓の移動を OS に任せる直前（動かす前の位置を控える合図）。"""
 
     def __init__(self) -> None:
         super().__init__()
@@ -147,8 +147,8 @@ class HeadRow(QWidget):
         """左ボタンで押したら、OS に窓の移動を任せる（動かしている間も録音と経過時間は止めない）。"""
         handle = self.window().windowHandle()
         if event.button() == Qt.MouseButton.LeftButton and handle is not None:
-            handle.startSystemMove()
             self.drag_started.emit()
+            handle.startSystemMove()
             event.accept()
             return
         super().mousePressEvent(event)
@@ -238,8 +238,7 @@ class RecordingWindow(QWidget):
         self._stopwatch = QElapsedTimer()
         self._accumulated_ms = 0
         self._running = False
-        self._moved = False
-        self._opened_at = QPoint()
+        self._drag_origin: QPoint | None = None
         self.setObjectName("recording_window")
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         self._build()
@@ -261,7 +260,7 @@ class RecordingWindow(QWidget):
 
         # 見出しの行: つかむ印・状態・経過時間・隠す・×（行のどこをつかんでも窓を動かせる）
         head_row = HeadRow()
-        head_row.drag_started.connect(self._mark_moved)
+        head_row.drag_started.connect(self._remember_drag_origin)
         header = QHBoxLayout(head_row)
         header.setContentsMargins(4, 4, 4, 4)
         header.setSpacing(HEAD_TOOLS_GAP_PX)
@@ -449,8 +448,7 @@ class RecordingWindow(QWidget):
         self._elapsed_label.setText(format_clock(0))
 
         move_to_configured_position(self, settings.ui)
-        self._moved = False
-        self._opened_at = self.pos()
+        self._drag_origin = None
         self.show()
         self._timer.start(WAVE_INTERVAL_MS)
 
@@ -486,14 +484,15 @@ class RecordingWindow(QWidget):
 
     def moved_position(self) -> QPoint | None:
         """その回に窓を動かしていれば窓の左上の座標（隠していれば隠す前の位置）を、動かしていなければ None を返す。"""
-        # つかんだだけで位置が変わっていない回は、動かしていないものとして扱う
-        if self._moved and self.pos() != self._opened_at:
+        # つかむ前の位置から変わっていない回（つかんだだけ）は、動かしていないものとして扱う
+        if self._drag_origin is not None and self.pos() != self._drag_origin:
             return self.pos()
         return None
 
-    def _mark_moved(self) -> None:
-        """見出しの行をつかんで窓を動かしたことを控える（open で下ろす）。"""
-        self._moved = True
+    def _remember_drag_origin(self) -> None:
+        """見出しの行をつかんだ回の、最初につかむ前の位置を控える（open で下ろす）。"""
+        if self._drag_origin is None:
+            self._drag_origin = self.pos()
 
     def _show_state(self, *, paused: bool) -> None:
         """状態の表示（印と文字）と、一時停止・再開のどちらのボタンを出すかを替える。"""

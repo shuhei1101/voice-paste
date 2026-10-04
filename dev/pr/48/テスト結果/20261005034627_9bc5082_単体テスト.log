@@ -4,7 +4,7 @@ platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0
 rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\fix-recording-window-move-hide-close
 configfile: pyproject.toml
 plugins: anyio-4.13.0, platformdirs-4.12.2
-collected 307 items
+collected 308 items
 
 tests\unit\voice_paste\features\correction\test_service.py .......       [  2%]
 tests\unit\voice_paste\features\history\test_service.py ........         [  4%]
@@ -31,9 +31,9 @@ tests\unit\voice_paste\integrations\keyboard\test_sender.py .......      [ 39%]
 tests\unit\voice_paste\integrations\volume\test_adapter.py .........     [ 42%]
 tests\unit\voice_paste\integrations\whisper\test_client.py ............  [ 46%]
 tests\unit\voice_paste\integrations\whisper\test_worker.py .....         [ 48%]
-tests\unit\voice_paste\runtime\test_hotkey.py .........                  [ 51%]
+tests\unit\voice_paste\runtime\test_hotkey.py .........                  [ 50%]
 tests\unit\voice_paste\runtime\test_process.py ..                        [ 51%]
-tests\unit\voice_paste\runtime\test_settings_store.py .                  [ 52%]
+tests\unit\voice_paste\runtime\test_settings_store.py .                  [ 51%]
 tests\unit\voice_paste\runtime\test_single_instance.py ..........        [ 55%]
 tests\unit\voice_paste\runtime\test_timer.py ...                         [ 56%]
 tests\unit\voice_paste\server\test_app.py ...                            [ 57%]
@@ -47,7 +47,7 @@ tests\unit\voice_paste\shared\test_settings.py ......................... [ 72%]
 .....                                                                    [ 74%]
 tests\unit\voice_paste\test_main.py ...............................      [ 84%]
 tests\unit\voice_paste\ui\test_bridge.py ...                             [ 85%]
-tests\unit\voice_paste\ui\test_controller.py ...............             [ 90%]
+tests\unit\voice_paste\ui\test_controller.py ................            [ 90%]
 tests\unit\voice_paste\ui\test_placement.py ..                           [ 90%]
 tests\unit\voice_paste\ui\test_style.py .                                [ 91%]
 tests\unit\voice_paste\ui\test_tray.py .........                         [ 94%]
@@ -61,4 +61,4 @@ tests\unit\voice_paste\ui\windows\test_transcribing_indicator.py .       [100%]
     from starlette.testclient import TestClient as TestClient  # noqa
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-======================= 307 passed, 1 warning in 10.11s =======================
+======================= 308 passed, 1 warning in 9.61s ========================

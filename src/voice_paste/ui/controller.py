@@ -14,7 +14,7 @@ from voice_paste.features.session.types import Session, SessionState
 from voice_paste.shared.errors import HotkeyError
 from voice_paste.shared.settings import Preset, Settings
 from voice_paste.shared.types import Entry
-from voice_paste.ui.tray import Tray, TrayState
+from voice_paste.ui.tray import RecordingWindowState, Tray, TrayState
 from voice_paste.ui.windows.busy_dialog import show_busy_dialog
 from voice_paste.ui.windows.recording_window import RecordingWindow
 from voice_paste.ui.windows.settings_window import SettingsWindow
@@ -106,8 +106,11 @@ class UiController(QObject):
         self._settings_window: SettingsWindow | None = None
         self._pending_exit: Literal["restart", "quit"] | None = None
         self._recording_shown = False
+        self._recording_hidden = False
         self._indicator_shown = False
         tray.start_requested.connect(deps.start)
+        tray.show_window_requested.connect(self.show_recording)
+        recording_window.hide_requested.connect(self.hide_recording)
         tray.settings_requested.connect(self.open_settings)
         tray.restart_requested.connect(lambda: self.request_exit("restart"))
         tray.quit_requested.connect(lambda: self.request_exit("quit"))
@@ -118,6 +121,8 @@ class UiController(QObject):
             self._apply_session()
         elif event == "busy":
             show_busy_dialog()
+        elif event == "show_recording_window":
+            self.show_recording()
         elif event in FAILURE_EVENTS:
             self._tray.show_failure(event, detail)  # type: ignore[arg-type]
         else:
@@ -167,6 +172,24 @@ class UiController(QObject):
             # 保存の前に受け付けられることを確かめているため、ここに来るのは手で書いた settings.toml だけ
             logger.error(f"ホットキーを受け付けられなかった（{error}）")
 
+    def hide_recording(self) -> None:
+        """RecordingWindow.hide_requested のスロット。その回の録音の画面を隠し、トレイの「録音の画面を出す」を押せるようにする。"""
+        # 出ていない（画面を出さない録音・すでに隠している）: 何もしない
+        if not self._recording_shown or self._recording_hidden:
+            return
+        self._recording_window.hide_window()
+        self._recording_hidden = True
+        self._tray.set_recording_window(RecordingWindowState.HIDDEN)
+
+    def show_recording(self) -> None:
+        """隠した録音の画面を、隠す前の位置にフォーカスを取らずに戻す。"""
+        # 隠していない（画面を出さない録音・API の録音・すでに出ている）: 何もしない
+        if not self._recording_hidden:
+            return
+        self._recording_hidden = False
+        self._recording_window.restore()
+        self._tray.set_recording_window(RecordingWindowState.SHOWN)
+
     # --- 内部 ---
 
     def _exit(self, kind: Literal["restart", "quit"]) -> None:
@@ -185,6 +208,7 @@ class UiController(QObject):
             self._tray.set_state(TrayState.IDLE, busy=False)
             self._close_recording()
             self._close_indicator()
+            self._tray.set_recording_window(RecordingWindowState.NOT_RECORDING)
             if self._pending_exit is not None:
                 pending, self._pending_exit = self._pending_exit, None
                 self._exit(pending)
@@ -196,6 +220,7 @@ class UiController(QObject):
             TrayState.RECORDING if in_recording else TrayState.TRANSCRIBING, busy=True
         )
         if session.entry == Entry.API:
+            self._tray.set_recording_window(RecordingWindowState.NO_WINDOW)
             return
 
         # ホットキー・トレイのセッション: 画面を出さない設定でなければ、状態の画面を出す
@@ -204,14 +229,26 @@ class UiController(QObject):
             self._close_indicator()
             if show_windows:
                 self._show_recording(paused=session.state == SessionState.PAUSED)
+            self._tray.set_recording_window(self._recording_window_state(show_windows))
         else:
+            # 録音の画面の最後の位置（動かした位置・隠していれば隠す前の位置）を、閉じる前に引く
+            last_position = (
+                self._recording_window.last_position() if self._recording_shown else None
+            )
             self._close_recording()
             if show_windows and not self._indicator_shown:
-                self._indicator.open()
+                self._indicator.open(at=last_position)
                 self._indicator_shown = True
+            self._tray.set_recording_window(RecordingWindowState.NOT_RECORDING)
+
+    def _recording_window_state(self, show_windows: bool) -> RecordingWindowState:
+        """録音中のトレイの「録音の画面を出す」の状態（画面を出さない設定なら出さない録音、出す設定なら隠しているか出ているか）。"""
+        if not show_windows:
+            return RecordingWindowState.NO_WINDOW
+        return RecordingWindowState.HIDDEN if self._recording_hidden else RecordingWindowState.SHOWN
 
     def _show_recording(self, *, paused: bool) -> None:
-        """録音の画面を出す（出ていれば一時停止の表示だけ替える）。"""
+        """録音の画面を出す（出ていれば一時停止の表示だけ替える。隠していても窓は出さず、状態の表示だけ替える）。"""
         if self._recording_shown:
             self._recording_window.set_paused(paused)
             return
@@ -220,9 +257,10 @@ class UiController(QObject):
         self._recording_window.set_paused(paused)
 
     def _close_recording(self) -> None:
-        """録音の画面を閉じる。"""
+        """録音の画面を閉じる（隠した印も下ろす）。"""
         self._recording_window.close_window()
         self._recording_shown = False
+        self._recording_hidden = False
 
     def _close_indicator(self) -> None:
         """文字起こし中の表示を閉じる。"""

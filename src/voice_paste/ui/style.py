@@ -62,6 +62,20 @@ QPushButton[primary="true"] {
 }
 QPushButton[primary="true"]:hover { background-color: @primary_hover@; }
 QPushButton QLabel { background: transparent; }
+QWidget[role="head_row"] { background-color: transparent; border-radius: @radius@px; }
+QWidget[role="head_row"]:hover { background-color: @sunken@; }
+QPushButton[role="head_button"], QPushButton[role="head_close"] {
+    background-color: transparent;
+    border: 1px solid transparent;
+    min-height: 0;
+    padding: 0;
+}
+QPushButton[role="head_button"]:hover { background-color: @surface@; border-color: @border@; }
+QPushButton[role="head_close"]:hover { background-color: @danger_bg@; border-color: @danger@; }
+QPushButton[role="head_button"]:pressed, QPushButton[role="head_close"]:pressed {
+    background-color: @sunken@;
+}
+QFrame[role="head_divider"] { background-color: @border@; border: none; }
 QLineEdit, QPlainTextEdit, QComboBox {
     background-color: @sunken@;
     color: @text@;

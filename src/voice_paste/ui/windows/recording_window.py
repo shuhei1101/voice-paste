@@ -5,8 +5,18 @@ from __future__ import annotations
 from collections import deque
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QElapsedTimer, QRectF, Qt, QTimer
-from PySide6.QtGui import QFontMetrics, QPainter
+from PySide6.QtCore import (
+    QElapsedTimer,
+    QEvent,
+    QLineF,
+    QPoint,
+    QPointF,
+    QRectF,
+    Qt,
+    QTimer,
+    Signal,
+)
+from PySide6.QtGui import QEnterEvent, QFontMetrics, QMouseEvent, QPaintEvent, QPainter, QPen
 from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
@@ -54,6 +64,31 @@ SECONDS_PER_MINUTE: int = 60
 MSEC_PER_SECOND: int = 1000
 """1 秒のミリ秒。"""
 
+HEAD_BUTTON_SIZE_PX: int = 28
+"""見出しの行の「隠す」「×」のボタンの一辺。"""
+
+HEAD_BUTTON_GLYPH_HALF_PX: float = 4.5
+"""「隠す」の横線・「×」の斜めの線の、中心から端までの長さ。"""
+
+HEAD_BUTTON_PEN_PX: float = 1.5
+"""「隠す」「×」の線の太さ。"""
+
+HEAD_DIVIDER_HEIGHT_PX: int = 16
+"""「隠す」と「×」の間の区切りの線の高さ。"""
+
+HEAD_TOOLS_GAP_PX: int = 6
+"""「隠す」「×」と区切りの線の間の幅（押し違えないよう空ける）。"""
+
+GRIP_SIZE: tuple[int, int] = (12, 16)
+"""つかむ印の幅と高さ。"""
+
+GRIP_DOT_RADIUS_PX: float = 1.4
+"""つかむ印の点の半径。"""
+
+GRIP_COLUMNS: tuple[float, ...] = (3.0, 9.0)
+GRIP_ROWS: tuple[float, ...] = (3.0, 8.0, 13.0)
+"""つかむ印の点を置く列と段の座標（2 列 3 段）。"""
+
 
 def format_clock(elapsed_ms: int) -> str:
     """経過時間を、1 時間未満は `mm:ss`、1 時間以上は `h:mm:ss` にする。"""
@@ -94,12 +129,102 @@ class Waveform(QWidget):
             painter.drawRoundedRect(rect, 1.5, 1.5)
 
 
+class HeadRow(QWidget):
+    """見出しの行。どこをつかんでも（子のボタンの上を除く）押したまま動かすと窓を動かす。"""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setObjectName("head_row")
+        self.setProperty("role", "head_row")
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground)
+        self.setCursor(Qt.CursorShape.SizeAllCursor)
+        self.setToolTip("ドラッグで動かす")
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802 Qt の名前
+        """左ボタンで押したら、OS に窓の移動を任せる（動かしている間も録音と経過時間は止めない）。"""
+        handle = self.window().windowHandle()
+        if event.button() == Qt.MouseButton.LeftButton and handle is not None:
+            handle.startSystemMove()
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802 Qt の名前
+        """かざしたら、つかむ印を濃くするために子を描き直す。"""
+        super().enterEvent(event)
+        for child in self.findChildren(GripIcon):
+            child.update()
+
+    def leaveEvent(self, event: QEvent) -> None:  # noqa: N802 Qt の名前
+        """外れたら、つかむ印を戻すために子を描き直す。"""
+        super().leaveEvent(event)
+        for child in self.findChildren(GripIcon):
+            child.update()
+
+
+class GripIcon(QWidget):
+    """窓をつかめることを示す、点を 2 列 3 段に並べた印。見出しの行にかざしている間は濃くする。"""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setFixedSize(*GRIP_SIZE)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+
+    def paintEvent(self, event: object) -> None:  # noqa: N802 Qt の名前
+        """点を 6 つ描く。"""
+        row = self.parentWidget()
+        hovered = row is not None and row.underMouse()
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(theme_color("text" if hovered else "text_muted"))
+        for y in GRIP_ROWS:
+            for x in GRIP_COLUMNS:
+                painter.drawEllipse(QPointF(x, y), GRIP_DOT_RADIUS_PX, GRIP_DOT_RADIUS_PX)
+
+
+class HeadButton(QPushButton):
+    """見出しの行の、枠を持たないアイコンのボタン（「隠す」の横線・「×」）。かざすと面を出す。"""
+
+    def __init__(self, name: str, *, close: bool) -> None:
+        super().__init__()
+        self.setObjectName(name)
+        self.setProperty("role", "head_close" if close else "head_button")
+        self.setFixedSize(HEAD_BUTTON_SIZE_PX, HEAD_BUTTON_SIZE_PX)
+        self.setCursor(Qt.CursorShape.ArrowCursor)
+        self._close = close
+
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802 Qt の名前
+        """面と枠を描いた後、線を描く（かざしている間は濃く、「×」は警告の色にする）。"""
+        super().paintEvent(event)
+        if self.underMouse():
+            color = theme_color("danger" if self._close else "text")
+        else:
+            color = theme_color("text_muted")
+        pen = QPen(color, HEAD_BUTTON_PEN_PX)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(pen)
+        cx, cy, half = self.width() / 2, self.height() / 2, HEAD_BUTTON_GLYPH_HALF_PX
+        # 「×」は斜めの 2 本、「隠す」は横の 1 本（最小化の形）
+        if self._close:
+            painter.drawLine(QLineF(cx - half, cy - half, cx + half, cy + half))
+            painter.drawLine(QLineF(cx + half, cy - half, cx - half, cy + half))
+        else:
+            painter.drawLine(QLineF(cx - half, cy, cx + half, cy))
+
+
 class RecordingWindow(QWidget):
     """状態・経過時間・波形と、一時停止・取り消し・確定のボタンを並べる小さな窓。
 
     窓は Tool・枠なしで、出したときにフォーカスを取らない（`ui.topmost` がオンなら最前面）。
     経過時間は窓が持つストップウォッチで数え、経過時間と波形は WAVE_INTERVAL_MS ごとのタイマーで描き直す。
+    見出しの行（状態・経過時間・隠す・×）は、隠す・× の外を押したまま動かすと窓を動かす。
     """
+
+    hide_requested = Signal()
+    """「隠す」のボタンが押された（隠すのは UiController）。"""
 
     def __init__(self, deps: UiDeps) -> None:
         """確定・一時停止・取り消し・音量・設定を受ける関数の束を受ける。"""
@@ -128,17 +253,37 @@ class RecordingWindow(QWidget):
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(10)
 
-        header = QHBoxLayout()
+        # 見出しの行: つかむ印・状態・経過時間・隠す・×（行のどこをつかんでも窓を動かせる）
+        head_row = HeadRow()
+        header = QHBoxLayout(head_row)
+        header.setContentsMargins(4, 4, 4, 4)
+        header.setSpacing(HEAD_TOOLS_GAP_PX)
+        header.addWidget(GripIcon())
         self._state_label = QLabel()
         self._state_label.setObjectName("state_label")
+        self._state_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         header.addWidget(self._state_label)
         header.addStretch(1)
         self._elapsed_label = QLabel(format_clock(0))
         self._elapsed_label.setObjectName("elapsed_label")
         self._elapsed_label.setProperty("role", "time")
         self._elapsed_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self._elapsed_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         header.addWidget(self._elapsed_label)
-        layout.addLayout(header)
+        self._hide_button = HeadButton("hide_button", close=False)
+        self._hide_button.setAccessibleName("録音の画面を隠す")
+        self._hide_button.clicked.connect(self.hide_requested)
+        header.addWidget(self._hide_button)
+        divider = QFrame()
+        divider.setObjectName("head_divider")
+        divider.setProperty("role", "head_divider")
+        divider.setFixedSize(1, HEAD_DIVIDER_HEIGHT_PX)
+        header.addWidget(divider)
+        self._close_button = HeadButton("close_button", close=True)
+        self._close_button.setAccessibleName("取り消す")
+        self._close_button.clicked.connect(self._cancel)
+        header.addWidget(self._close_button)
+        layout.addWidget(head_row)
 
         self._waveform = Waveform(self._levels)
         layout.addWidget(self._waveform)
@@ -246,6 +391,24 @@ class RecordingWindow(QWidget):
                 shown_presets += 1
         self._presets_heading.setVisible(shown_presets > 0)
 
+    def _update_head_tooltips(self, settings: Settings) -> None:
+        """「隠す」には戻し方を、「×」には取り消しのホットキーを、かざしたときの説明に添える。"""
+        start = settings.hotkeys.start
+        # 録音開始と同じホットキーの出力先がある設定では、ホットキーは確定に使われるため、トレイのアイコンだけで戻す
+        confirms_with_start = any(
+            output.enabled and output.hotkey.lower() == start.lower() for output in settings.outputs
+        )
+        restore_by = (
+            "トレイのアイコンで戻す"
+            if confirms_with_start or not start
+            else f"トレイのアイコンか {format_hotkey(start)} で戻す"
+        )
+        self._hide_button.setToolTip(f"録音の画面を隠す（{restore_by}）")
+        cancel = settings.hotkeys.cancel
+        self._close_button.setToolTip(
+            f"取り消す（{format_hotkey(cancel)}）" if cancel else "取り消す"
+        )
+
     # --- 操作 ---
 
     def _complete(self, output_id: str | None, preset: Preset | None) -> None:
@@ -268,6 +431,7 @@ class RecordingWindow(QWidget):
             flags |= Qt.WindowType.WindowStaysOnTopHint
         self.setWindowFlags(flags)
         self._rebuild_buttons(settings)
+        self._update_head_tooltips(settings)
 
         self._levels.extend([0.0] * WAVE_BAR_COUNT)
         self._waveform.paused = False
@@ -298,6 +462,22 @@ class RecordingWindow(QWidget):
         self._timer.stop()
         self._running = False
         self.hide()
+
+    def hide_window(self) -> None:
+        """その回の録音を続けたまま窓を隠す。ストップウォッチは止めず、描き直しのタイマーだけを止める。窓の位置は残す。"""
+        self._timer.stop()
+        self.hide()
+
+    def restore(self) -> None:
+        """隠した窓を、経過時間・波形・ボタンを組み直さずに、隠す前の位置へフォーカスを取らずに出し、描き直しのタイマーを動かす。"""
+        # 隠している間に進んだ経過時間を先に描き直してから出す
+        self._tick()
+        self.show()
+        self._timer.start(WAVE_INTERVAL_MS)
+
+    def last_position(self) -> QPoint:
+        """窓の最後の左上の座標を返す（動かしていれば動かした位置、隠していれば隠す前の位置）。"""
+        return self.pos()
 
     def _show_state(self, *, paused: bool) -> None:
         """状態の表示（印と文字）と、一時停止・再開のどちらのボタンを出すかを替える。"""

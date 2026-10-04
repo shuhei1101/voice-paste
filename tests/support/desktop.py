@@ -328,24 +328,26 @@ class Uia:
 
     # --- トレイ ---
 
-    def tray_tooltips(self) -> list[str]:
-        """トレイのアイコンのヒントの状態の名前を並べる（`voice-paste: 待機中` なら `待機中`）。
+    def tray_tooltips(self, *, include_hidden: bool = False) -> list[str]:
+        """トレイのアイコンのヒントの今の状態の名前を、アイコンごとに 1 つ並べる（`voice-paste: 待機中` なら `待機中`）。
 
-        まずタスクバーのボタン（隠れたアイコンは 1 つのボタンにヒントが並ぶ）から読む。
-        読めなければ隠れたアイコンの一覧を開いて、一覧の中のボタンから読む。
+        まずタスクバーのボタンから読む。読めなければ隠れたアイコンの一覧を開いて、一覧の中のボタンから読む。
+        include_hidden が真のときは、タスクバーで読めても一覧を開いて読み、両方の今の状態を並べる。
         普段使いの旧版の常駐アプリのアイコンのヒントも並ぶ。
         """
-        tooltips = self._tooltips_of(self._tray_buttons())
-        if tooltips:
-            return tooltips
-        return self._hidden_tray_tooltips()
+        if not include_hidden:
+            tooltips = self._tooltips_of(self._tray_buttons())
+            if tooltips:
+                return tooltips
+        # 一覧を開いている間は、タスクバーのボタンも同じ探し方で読める
+        return self._hidden_tray_tooltips() or self._tooltips_of(self._tray_buttons())
 
     def tray_icon_buttons(self) -> list[Any]:
-        """トレイのアイコンのボタン（ヒントが `voice-paste:` で 1 つだけのもの）を並べる。
+        """トレイのアイコンのボタン（名前が `voice-paste:` で始まるもの）を並べる。
 
         タスクバーに出ていなければ、隠れたアイコンの一覧（オーバーフロー）を開いて探す。
         """
-        icons = self._single_icons()
+        icons = self._icons()
         if icons:
             return icons
         chevron = self._hidden_icons_button()
@@ -353,7 +355,7 @@ class Uia:
             return []
         self.click_center(chevron)
         time.sleep(PAUSE_AFTER_CLICK_SEC * 2)
-        return self._single_icons()
+        return self._icons()
 
     def _hidden_tray_tooltips(self) -> list[str]:
         """隠れたアイコンの一覧を開いてヒントの状態を読み、読んだ後は一覧を閉じて開く前の前面のウィンドウへ戻す。"""
@@ -393,20 +395,23 @@ class Uia:
 
     @staticmethod
     def _tooltips_of(buttons: Iterable[Any]) -> list[str]:
-        """トレイのボタンの名前から、ヒントの状態の名前を並べる。"""
+        """トレイのボタンの名前から、アイコンごとの今の状態の名前（名前の最後のヒント）を並べる。
+
+        Windows はボタンの名前に、アイコンを出した時点のヒントと今のヒントを並べる（`voice-paste: 準備中 voice-paste: 待機中`）。
+        """
         tooltips: list[str] = []
         for button in buttons:
-            for part in str(button.CurrentName).split(TRAY_TOOLTIP_PREFIX):
-                if part.strip():
-                    tooltips.append(part.strip())
+            current = str(button.CurrentName).split(TRAY_TOOLTIP_PREFIX)[-1].strip()
+            if current:
+                tooltips.append(current)
         return tooltips
 
-    def _single_icons(self) -> list[Any]:
-        """ヒントが `voice-paste:` で始まり、アイコン 1 つ分のボタンを並べる。"""
+    def _icons(self) -> list[Any]:
+        """名前が `voice-paste:` で始まる、アイコン 1 つ分のボタンを並べる（名前に並ぶヒントの数では絞らない）。"""
         return [
             button
             for button in self._tray_buttons()
-            if str(button.CurrentName).count(TRAY_TOOLTIP_PREFIX) == 1
+            if str(button.CurrentName).strip().startswith(TRAY_TOOLTIP_PREFIX)
         ]
 
     def _tray_buttons(self) -> list[Any]:

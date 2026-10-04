@@ -132,6 +132,9 @@ class Waveform(QWidget):
 class HeadRow(QWidget):
     """見出しの行。どこをつかんでも（子のボタンの上を除く）押したまま動かすと窓を動かす。"""
 
+    drag_started = Signal()
+    """窓の移動を OS に任せた（その回に窓を動かした印を立てる合図）。"""
+
     def __init__(self) -> None:
         super().__init__()
         self.setObjectName("head_row")
@@ -145,6 +148,7 @@ class HeadRow(QWidget):
         handle = self.window().windowHandle()
         if event.button() == Qt.MouseButton.LeftButton and handle is not None:
             handle.startSystemMove()
+            self.drag_started.emit()
             event.accept()
             return
         super().mousePressEvent(event)
@@ -234,6 +238,8 @@ class RecordingWindow(QWidget):
         self._stopwatch = QElapsedTimer()
         self._accumulated_ms = 0
         self._running = False
+        self._moved = False
+        self._opened_at = QPoint()
         self.setObjectName("recording_window")
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         self._build()
@@ -255,6 +261,7 @@ class RecordingWindow(QWidget):
 
         # 見出しの行: つかむ印・状態・経過時間・隠す・×（行のどこをつかんでも窓を動かせる）
         head_row = HeadRow()
+        head_row.drag_started.connect(self._mark_moved)
         header = QHBoxLayout(head_row)
         header.setContentsMargins(4, 4, 4, 4)
         header.setSpacing(HEAD_TOOLS_GAP_PX)
@@ -442,6 +449,8 @@ class RecordingWindow(QWidget):
         self._elapsed_label.setText(format_clock(0))
 
         move_to_configured_position(self, settings.ui)
+        self._moved = False
+        self._opened_at = self.pos()
         self.show()
         self._timer.start(WAVE_INTERVAL_MS)
 
@@ -470,14 +479,21 @@ class RecordingWindow(QWidget):
 
     def restore(self) -> None:
         """隠した窓を、経過時間・波形・ボタンを組み直さずに、隠す前の位置へフォーカスを取らずに出し、描き直しのタイマーを動かす。"""
-        # 隠している間に進んだ経過時間を先に描き直してから出す
-        self._tick()
+        # 隠している間に進んだ（一時停止していれば止まった）経過時間を先に描き直してから出す
+        self._refresh_clock()
         self.show()
         self._timer.start(WAVE_INTERVAL_MS)
 
-    def last_position(self) -> QPoint:
-        """窓の最後の左上の座標を返す（動かしていれば動かした位置、隠していれば隠す前の位置）。"""
-        return self.pos()
+    def moved_position(self) -> QPoint | None:
+        """その回に窓を動かしていれば窓の左上の座標（隠していれば隠す前の位置）を、動かしていなければ None を返す。"""
+        # つかんだだけで位置が変わっていない回は、動かしていないものとして扱う
+        if self._moved and self.pos() != self._opened_at:
+            return self.pos()
+        return None
+
+    def _mark_moved(self) -> None:
+        """見出しの行をつかんで窓を動かしたことを控える（open で下ろす）。"""
+        self._moved = True
 
     def _show_state(self, *, paused: bool) -> None:
         """状態の表示（印と文字）と、一時停止・再開のどちらのボタンを出すかを替える。"""
@@ -488,12 +504,16 @@ class RecordingWindow(QWidget):
         self._pause_button.setVisible(not paused)
         self._resume_button.setVisible(paused)
 
+    def _refresh_clock(self) -> None:
+        """経過時間のラベルを、貯めた経過（数えている間はストップウォッチの経過も足す）で描き直す。"""
+        elapsed_ms = self._accumulated_ms + (self._stopwatch.elapsed() if self._running else 0)
+        self._elapsed_label.setText(format_clock(elapsed_ms))
+
     def _tick(self) -> None:
         """経過時間と波形を描き直す（一時停止の間は止める）。"""
         if not self._running:
             return
-        elapsed_ms = self._accumulated_ms + self._stopwatch.elapsed()
-        self._elapsed_label.setText(format_clock(elapsed_ms))
+        self._refresh_clock()
         gain = self._deps.get_settings().ui.wave_gain
         self._levels.append(min(self._deps.level() * gain, 1.0))
         self._waveform.update()

@@ -236,13 +236,13 @@ class UiController(QObject):
                 self._show_recording(paused=session.state == SessionState.PAUSED)
             self._tray.set_recording_window(self._recording_window_state(show_windows))
         else:
-            # 録音の画面の最後の位置（動かした位置・隠していれば隠す前の位置）を、閉じる前に引く
-            last_position = (
-                self._recording_window.last_position() if self._recording_shown else None
+            # その回に録音の画面を動かしていれば、動かした位置（隠していれば隠す前の位置）を閉じる前に引く
+            moved_position = (
+                self._recording_window.moved_position() if self._recording_shown else None
             )
             self._close_recording()
             if show_windows and not self._indicator_shown:
-                self._indicator.open(at=last_position)
+                self._indicator.open(at=moved_position)
                 self._indicator_shown = True
             self._tray.set_recording_window(RecordingWindowState.NOT_RECORDING)
 

@@ -720,7 +720,7 @@ classes:
         returns:
           type: QPoint | None
           description: その回に動かした窓の左上の座標。動かしていなければ None
-        status: planned
+        status: implemented
     refs:
       - dev/設計書/画面設計/常駐アプリ/録音の画面.py#
     status: implemented

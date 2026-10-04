@@ -315,6 +315,7 @@ scenarios:
       - 録音の画面が、ドラッグを放した位置にある
       - 動かしている間も録音が続き、経過時間が止まっていない
       - 動かした後も録音の画面のボタンで確定でき、録音を文字に起こす へ進む
+    test: test_normal_when_move_window
   - name: 正常シナリオ（録音の画面を隠して戻す）
     setup:
       - name: Mock
@@ -355,6 +356,7 @@ scenarios:
       - 戻した後も前面が貼り付け先の窓のまま
       - 履歴に保存した録音に、隠していた間に話した声が入っている
       - 隠している間に一時停止した場合、戻した録音の画面が一時停止中を示し、経過時間が一時停止した時点で止まっている
+    test: test_normal_when_hide_and_restore
   - name: 正常シナリオ（隠したまま確定する）
     setup:
       - name: Mock
@@ -380,6 +382,7 @@ scenarios:
     expected:
       - 隠したままでも確定のホットキーで確定でき、選んだ出力先で 録音を文字に起こす へ進む
       - 次の録音では、録音の画面がいつもどおり出ている
+    test: test_normal_when_confirm_while_hidden
   - name: 正常シナリオ（隠したまま取り消す）
     setup:
       - name: Mock
@@ -407,6 +410,7 @@ scenarios:
       - 履歴にこの録音が残っておらず、文字起こしへ進まない
       - トレイのアイコンが待機中に戻っている
       - 次の録音では、録音の画面がいつもどおり出ている
+    test: test_normal_when_cancel_while_hidden
 lead: ホットキー・トレイ・API のどれかから録音を始め、確定して履歴に残すか取り消すまでの単一ユースケース。
 issue: 14
 primary_actor: 音声入力を使うユーザー

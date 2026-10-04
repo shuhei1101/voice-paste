@@ -490,6 +490,11 @@ def force_foreground(hwnd: int) -> None:
     time.sleep(PAUSE_AFTER_CLICK_SEC)
 
 
+def foreground_hwnd() -> int:
+    """今の前面のウィンドウのハンドルを返す。"""
+    return int(win32gui.GetForegroundWindow())
+
+
 def foreground_title() -> str:
     """今の前面のウィンドウの題を返す。"""
     return str(win32gui.GetWindowText(win32gui.GetForegroundWindow()))

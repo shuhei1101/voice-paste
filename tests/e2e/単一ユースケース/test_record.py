@@ -35,6 +35,7 @@ from tests.support.desktop import (
     Monitor,
     PasteTarget,
     drag,
+    foreground_hwnd,
     foreground_title,
     master_volume,
     monitors,
@@ -461,7 +462,11 @@ def test_normal_when_hide_and_restore(
     else:
         assert "録音中" in app.label("state_label")
         assert abs(elapsed_sec - wall_sec) <= ELAPSED_TOLERANCE_SEC
-    assert _paste_target_is_foreground()
+    # 戻した録音の画面はフォーカスを取らない。録音開始のホットキーで戻したときは、前面が貼り付け先のまま
+    # （トレイを操作して戻したときは、トレイの操作で前面がタスクバー側へ移るため、貼り付け先かは問わない）
+    assert foreground_hwnd() != app.recording_hwnd()
+    if means == "start_hotkey":
+        assert _paste_target_is_foreground()
 
     # 実行・検証（戻した後も確定でき、隠していた間に話した声が録られている）
     app.press(PASTE_AND_SEND_BUTTON)

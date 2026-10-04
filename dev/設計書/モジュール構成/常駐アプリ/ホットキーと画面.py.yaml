@@ -184,7 +184,10 @@ classes:
       | recording・paused（hotkey・tray） | 録音中・処理中 | `recording.hide_window` がオフなら出して状態を替える | 閉じる |
       | transcribing・delivering（hotkey・tray） | 文字起こし中・処理中 | 閉じる | `recording.hide_window` がオフなら出す |
       | api のセッション | 録音中か文字起こし中・処理中 | 出さない | 出さない |
-      コンストラクタは UiDeps と、キーワードで tray・recording_window・indicator を受け、トレイの操作（Signal）をつなぐ。
+
+      録音の画面をその回だけ隠した間（`_recording_hidden`）は、recording・paused の知らせを受けても窓を出さず、状態の表示だけを替える（RecordingWindow.set_paused）。セッションが recording・paused を抜けたら隠した印を下ろす。
+      トレイの「録音の画面を出す」は、今のセッションと隠した印から RecordingWindowState を決めて Tray.set_recording_window で替える（hotkey・tray の recording・paused で隠していれば hidden、出していれば shown、`recording.hide_window` がオンか api の録音なら no_window、それ以外は not_recording）。
+      コンストラクタは UiDeps と、キーワードで tray・recording_window・indicator を受け、トレイの操作と録音の画面の「隠す」（Signal）をつなぐ。
     kind: クラス
     inherits: PySide6.QtCore.QObject
     properties:
@@ -212,6 +215,10 @@ classes:
         type: Literal["restart", "quit"] | None
         access: 内部 (_)
         description: 処理中に選ばれ、待機中になったら行う再起動・終了
+      - name: _recording_hidden
+        type: bool
+        access: 内部 (_)
+        description: その回の録音の画面を「隠す」で隠しているか
     methods:
       - name: on_notified
         title: 知らせの受け取り
@@ -235,8 +242,12 @@ classes:
         process: |-
           1. state_changed の場合、今のセッションを引き（current_session）、説明の表のとおりにトレイ・録音の画面・文字起こし中の表示を変える
              - セッションが無く、待たせた再起動・終了がある場合、それを行う（request_restart か request_quit）
+             - 録音の画面を隠している場合、窓は出さずに状態の表示だけを替える（RecordingWindow.set_paused）
+             - transcribing・delivering で文字起こし中の表示を出す場合、録音の画面の最後の位置（RecordingWindow.last_position）を渡す（TranscribingIndicator.open）
+             - 最後に、トレイの「録音の画面を出す」を今の状態に合わせる（Tray.set_recording_window）
           2. busy の場合、処理中のダイアログを出す（show_busy_dialog）
-          3. microphone_unavailable・transcription_failed・delivery_failed・api_unavailable の場合、トレイの通知を出す（Tray.show_failure）
+          3. show_recording_window の場合、隠した録音の画面を戻す（show_recording）
+          4. microphone_unavailable・transcription_failed・delivery_failed・api_unavailable の場合、トレイの通知を出す（Tray.show_failure）
              - それ以外の種類の場合、何もしない
                - `[WARNING]` 知らない知らせを受けた（種類）
         unit_tests:
@@ -276,6 +287,24 @@ classes:
             condition: event=delivery_failed、detail="クリップボードに書けない"
             mock: Tray
             expected: Tray.show_failure(delivery_failed, クリップボードに書けない) が呼ばれる
+          - name: test_on_notified_when_recording_hidden
+            case: 正常
+            summary: 隠した録音の画面は、一時停止しても出さずに状態だけ替える
+            condition: hide_recording の後、current_session が hotkey・paused を返す state_changed を受ける
+            mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
+            expected: RecordingWindow.set_paused(True) が呼ばれ、RecordingWindow.open・restore が呼ばれず、Tray.set_recording_window(hidden) が呼ばれる
+          - name: test_on_notified_when_transcribing_after_hidden
+            case: 正常
+            summary: 隠したまま確定した回も、文字起こし中の表示を録音の画面の最後の位置に出す
+            condition: hide_recording の後、current_session が hotkey・transcribing を返す state_changed を受ける。RecordingWindow.last_position が QPoint(300, 200) を返す
+            mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
+            expected: TranscribingIndicator.open(at=QPoint(300, 200)) が呼ばれ、Tray.set_recording_window(not_recording) が呼ばれる
+          - name: test_on_notified_when_show_recording_window
+            case: 正常
+            summary: ホットキーからの指示で隠した録音の画面を戻す
+            condition: hide_recording の後、event=show_recording_window
+            mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
+            expected: RecordingWindow.restore が 1 回呼ばれ、Tray.set_recording_window(shown) が呼ばれる
       - name: on_progressed
         title: 進みの受け取り
         summary: UiBridge.progressed のスロット。文字起こし中の表示が出ていれば進みを渡す
@@ -368,6 +397,46 @@ classes:
           2. resume_hotkeys を呼ぶ
              - HotkeyError の場合、ホットキーを受け付けないまま続ける（保存した設定は保存の前に受け付けられることを確かめているため、ここに来るのは手で書いた settings.toml だけ）
                - `[ERROR]` ホットキーを受け付けられなかった（理由）
+      - name: hide_recording
+        title: 録音の画面を隠す
+        summary: RecordingWindow.hide_requested のスロット。その回の録音の画面を隠し、トレイの「録音の画面を出す」を押せるようにする
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 録音の画面が出ていない場合、何もしない
+          2. 窓を隠し（RecordingWindow.hide_window）、隠した印を立てる
+          3. トレイを hidden にする（Tray.set_recording_window）
+        unit_tests:
+          - name: test_hide_recording
+            case: 正常
+            summary: 録音の画面を隠してトレイの項目を押せるようにする
+            condition: current_session が hotkey・recording を返す state_changed で画面を出した後、hide_recording を呼ぶ
+            mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
+            expected: RecordingWindow.hide_window が 1 回呼ばれ、Tray.set_recording_window(hidden) が呼ばれる
+        status: planned
+      - name: show_recording
+        title: 隠した録音の画面を戻す
+        summary: トレイの「録音の画面を出す」・アイコンの左クリック（Tray.show_window_requested）と、録音開始のホットキー（show_recording_window の知らせ）から呼ぶ。隠した録音の画面を、隠す前の位置にフォーカスを取らずに戻す
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 録音の画面を隠していない場合、何もしない（画面を出さない設定の録音・API の録音・すでに出ている画面を含む）
+          2. 隠した印を下ろし、窓を戻す（RecordingWindow.restore）
+          3. トレイを shown にする（Tray.set_recording_window）
+        unit_tests:
+          - name: test_show_recording_when_not_hidden
+            case: 正常
+            summary: 隠していなければ何もしない
+            condition: current_session が hotkey・recording を返す state_changed で画面を出した後、show_recording を呼ぶ
+            mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
+            expected: RecordingWindow.restore が呼ばれない
+        status: planned
     refs:
       - dev/設計書/画面設計/常駐アプリ/録音の画面.py#
       - dev/設計書/画面設計/常駐アプリ/文字起こし中の表示.py#
@@ -383,6 +452,7 @@ classes:
       メニューの並び・文言・押せない条件は画面設計「トレイ」、通知の文言は画面設計「トレイの通知」が持つ。
       アイコンの画像は `resources/tray/{TrayState の値}.png` を起動時に読む。
       コンストラクタは settings_dir と log_dir（「設定フォルダを開く」「ログフォルダを開く」と、通知を押したときに開くフォルダ）を受ける。
+      アイコンの左クリックは、「録音の画面を出す」が押せれば show_window_requested、「録音を始める」が押せれば start_requested を emit し、どちらも押せなければ何もしない。
     kind: クラス
     inherits: PySide6.QtCore.QObject
     properties:
@@ -406,6 +476,9 @@ classes:
         type: bool
         access: 内部 (_)
         description: 文字起こしのエンジンを準備できなかった起動か。立つと次の起動まで失敗のまま
+      - name: show_window_requested
+        type: Signal()
+        description: 「録音の画面を出す」・録音の画面を隠している間のアイコンの左クリック
     methods:
       - name: set_state
         title: 状態の切り替え
@@ -499,6 +572,37 @@ classes:
         returns:
           type: None
           description: なし
+      - name: set_recording_window
+        title: 録音の画面を出す項目の切り替え
+        summary: 「録音の画面を出す」の文言・押せるか・太字を、録音の画面の状態に合わせる
+        kind: メソッド
+        scope: public
+        args:
+          - name: state
+            type: RecordingWindowState
+            required: true
+            passing: positional
+            description: 録音の画面の状態
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. hidden の場合、「録音の画面を出す」を押せるようにし、太字にする
+          2. それ以外の場合、押せなくして太字を外し、状態ごとの理由を添える（shown：（表示中）、no_window：（画面を出さない録音）、not_recording：（録音していません））
+        unit_tests:
+          - name: test_set_recording_window_when_hidden
+            case: 正常
+            summary: 隠している間は項目を押せ、太字にする
+            condition: set_state(RECORDING, busy=True) の後に set_recording_window(hidden)
+            mock: なし（offscreen の QApplication）
+            expected: 「録音の画面を出す」が押せて太字、「録音を始める（処理中）」が太字でない
+          - name: test_set_recording_window_when_shown
+            case: 正常
+            summary: 画面が出ている間は理由を添えて押せなくする
+            condition: set_recording_window(shown)
+            mock: なし（offscreen の QApplication）
+            expected: 「録音の画面を出す（表示中）」が押せず、太字でない
+        status: planned
     refs:
       - dev/設計書/画面設計/常駐アプリ/トレイ.py#
       - dev/設計書/画面設計/常駐アプリ/トレイの通知.py#
@@ -513,6 +617,7 @@ classes:
       要素は画面設計「録音の画面」が持つ。
       窓は `Qt.Tool | Qt.FramelessWindowHint`（`ui.topmost` がオンなら `Qt.WindowStaysOnTopHint` を足す）、`WA_ShowWithoutActivating` で出し、出したときにフォーカスを取らない。
       経過時間は窓が持つストップウォッチ（QElapsedTimer を一時停止の間だけ止める）で数え、経過時間と波形は WAVE_INTERVAL_MS ごとの QTimer で描き直す。
+      見出しの行（状態・経過時間・隠す・×）は、隠す・× の外を押したまま動かすと `QWindow.startSystemMove` で窓を動かす。× は「取り消す」と同じく UiDeps.cancel を呼んで閉じ、「隠す」は hide_requested を emit する（隠すのは UiController）。
       コンストラクタは UiDeps を受ける。
     kind: クラス
     inherits: PySide6.QtWidgets.QWidget
@@ -525,6 +630,9 @@ classes:
         type: collections.deque[float]
         access: 内部 (_)
         description: 波形に描く直近の音量（WAVE_BAR_COUNT 本分）
+      - name: hide_requested
+        type: Signal()
+        description: 「隠す」のボタンが押された
     methods:
       - name: open
         title: 画面を出す
@@ -556,6 +664,33 @@ classes:
         returns:
           type: None
           description: なし
+      - name: hide_window
+        title: 画面を隠す
+        summary: その回の録音を続けたまま窓を隠す。ストップウォッチは止めず、描き直しのタイマーだけを止める。窓の位置は残す
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+        status: planned
+      - name: restore
+        title: 隠した画面を戻す
+        summary: 経過時間・波形・ボタンを組み直さずに、隠す前の位置へフォーカスを取らずに出し、描き直しのタイマーを動かす
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+        status: planned
+      - name: last_position
+        title: 最後の位置
+        summary: 窓の最後の左上の座標を返す（動かしていれば動かした位置、隠していれば隠す前の位置）
+        kind: メソッド
+        scope: public
+        returns:
+          type: QPoint
+          description: 窓の左上の座標
+        status: planned
     refs:
       - dev/設計書/画面設計/常駐アプリ/録音の画面.py#
     status: implemented
@@ -576,9 +711,16 @@ classes:
     methods:
       - name: open
         title: 表示を出す
-        summary: 経過を 0 にして進みを隠し、録音の画面と同じ位置に出す
+        summary: 経過を 0 にして進みを隠し、録音の画面と同じ位置に出す。at を渡されたらその座標に、渡されなければ設定の位置（place_window）に出す
         kind: メソッド
         scope: public
+        args:
+          - name: at
+            type: QPoint | None
+            required: false
+            default: None
+            passing: keyword
+            description: 出す左上の座標（録音の画面の最後の位置）
         returns:
           type: None
           description: なし
@@ -842,10 +984,10 @@ functions:
     summary: UiBridge.notified を emit して、メインスレッドでトレイのアイコン・ダイアログ・画面を変える
     args:
       - name: event
-        type: Literal["state_changed", "busy", "microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable"]
+        type: Literal["state_changed", "busy", "microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable", "show_recording_window"]
         required: true
         passing: positional
-        description: 知らせの種類
+        description: 知らせの種類（show_recording_window は、録音開始のホットキーで隠した録音の画面を戻す指示）
       - name: detail
         type: str | None
         required: false
@@ -863,7 +1005,7 @@ functions:
     status: implemented
     process: |-
       1. `bridge.notified.emit(event, detail)` を呼ぶ
-         - `[INFO]` / `[WARNING]` ユーザーへの知らせ（種類・理由。state_changed は INFO、それ以外は WARNING）
+         - `[INFO]` / `[WARNING]` ユーザーへの知らせ（種類・理由。state_changed と show_recording_window は INFO、それ以外は WARNING）
     unit_tests:
       - name: test_notify
         case: 正常
@@ -1265,6 +1407,31 @@ enums:
     refs:
       - dev/設計書/画面設計/常駐アプリ/トレイ.py#
     status: implemented
+  - name: RecordingWindowState
+    title: 録音の画面の状態
+    container: ui/tray.py
+    usecase: 録音する
+    summary: トレイの「録音の画面を出す」の出し分け
+    values:
+      - value: hidden
+        member: HIDDEN
+        title: 隠している
+        description: hotkey・tray の recording・paused で、その回の録音の画面を隠している。項目を押せる
+      - value: shown
+        member: SHOWN
+        title: 表示中
+        description: hotkey・tray の recording・paused で、録音の画面が出ている
+      - value: no_window
+        member: NO_WINDOW
+        title: 画面を出さない録音
+        description: '`recording.hide_window` がオンの録音か、api の録音'
+      - value: not_recording
+        member: NOT_RECORDING
+        title: 録音していない
+        description: 待機中・文字起こし中・準備に失敗した起動
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/トレイ.py#elements[録音の画面を出す]
+    status: planned
 constants:
   - name: WAVE_INTERVAL_MS
     title: 波形を描き直す間隔

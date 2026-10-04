@@ -416,7 +416,7 @@ classes:
             condition: current_session が hotkey・recording を返す state_changed で画面を出した後、hide_recording を呼ぶ
             mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
             expected: RecordingWindow.hide_window が 1 回呼ばれ、Tray.set_recording_window(hidden) が呼ばれる
-        status: planned
+        status: implemented
       - name: show_recording
         title: 隠した録音の画面を戻す
         summary: トレイの「録音の画面を出す」・アイコンの左クリック（Tray.show_window_requested）と、録音開始のホットキー（show_recording_window の知らせ）から呼ぶ。隠した録音の画面を、隠す前の位置にフォーカスを取らずに戻す
@@ -436,7 +436,7 @@ classes:
             condition: current_session が hotkey・recording を返す state_changed で画面を出した後、show_recording を呼ぶ
             mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
             expected: RecordingWindow.restore が呼ばれない
-        status: planned
+        status: implemented
     refs:
       - dev/設計書/画面設計/常駐アプリ/録音の画面.py#
       - dev/設計書/画面設計/常駐アプリ/文字起こし中の表示.py#
@@ -626,7 +626,7 @@ classes:
             condition: set_state(RECORDING, busy=True)・set_recording_window(shown) の後、アイコンの activated(Trigger) を送る
             mock: なし（show_window_requested・start_requested に受け手をつなぐ）
             expected: show_window_requested も start_requested も emit されない
-        status: planned
+        status: implemented
     refs:
       - dev/設計書/画面設計/常駐アプリ/トレイ.py#
       - dev/設計書/画面設計/常駐アプリ/トレイの通知.py#
@@ -696,7 +696,7 @@ classes:
         returns:
           type: None
           description: なし
-        status: planned
+        status: implemented
       - name: restore
         title: 隠した画面を戻す
         summary: 経過時間・波形・ボタンを組み直さずに、隠す前の位置へフォーカスを取らずに出し、描き直しのタイマーを動かす
@@ -705,7 +705,7 @@ classes:
         returns:
           type: None
           description: なし
-        status: planned
+        status: implemented
       - name: last_position
         title: 最後の位置
         summary: 窓の最後の左上の座標を返す（動かしていれば動かした位置、隠していれば隠す前の位置）
@@ -714,7 +714,7 @@ classes:
         returns:
           type: QPoint
           description: 窓の左上の座標
-        status: planned
+        status: implemented
     refs:
       - dev/設計書/画面設計/常駐アプリ/録音の画面.py#
     status: implemented
@@ -1455,7 +1455,7 @@ enums:
         description: 待機中・文字起こし中・準備に失敗した起動
     refs:
       - dev/設計書/画面設計/常駐アプリ/トレイ.py#elements[録音の画面を出す]
-    status: planned
+    status: implemented
 constants:
   - name: WAVE_INTERVAL_MS
     title: 波形を描き直す間隔

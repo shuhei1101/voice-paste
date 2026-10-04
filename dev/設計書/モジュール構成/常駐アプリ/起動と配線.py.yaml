@@ -645,12 +645,17 @@ functions:
         required: true
         passing: positional
         description: ホットキーの受付（設定画面の間は止める）
+      - name: show_recording_window
+        type: Callable[[], None]
+        required: true
+        passing: positional
+        description: 隠した録音の画面を戻す指示（notify に show_recording_window と bridge を部分適用したもの。resume_hotkeys が build_hotkey_bindings へ渡す）
     returns:
       type: UiDeps
       description: 画面の依存
     process: |-
       1. start に start_local_session(tray)、pause・resume・cancel・current_session に SessionManager のメソッド、complete に output_id・preset で SessionManager.complete を呼ぶ関数、level に recorder_level、get_settings に SettingsStore.get を渡す
-      2. suspend_hotkeys に HotkeyListener.stop、resume_hotkeys に SettingsStore.get の設定で build_hotkey_bindings して HotkeyListener.start を呼ぶ関数を渡す
+      2. suspend_hotkeys に HotkeyListener.stop、resume_hotkeys に SettingsStore.get の設定と show_recording_window で build_hotkey_bindings して HotkeyListener.start を呼ぶ関数を渡す
       3. settings_dir に settings.toml のフォルダ、log_dir にログのフォルダを渡す
     status: implemented
   - name: relaunch

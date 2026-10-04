@@ -28,3 +28,23 @@ verification:
   detail: ワーカーのサブプロセスで WhisperModel（large-v3・cuda・int8）を読み込み、履歴の録音 10 件を beam_size=10・VAD ありで起こして文字が返ることを確かめた
 license: MIT（商用利用可）
 official_url: https://github.com/SYSTRAN/faster-whisper
+issues:
+  - title: av 19 で録音を読むときに TypeError になる
+    summary: av 19 では faster-whisper 1.2.1 の av.open(..., metadata_errors="ignore") が TypeError になり、文字起こしが毎回失敗する
+    occurred_on: '2026-10-05'
+    state: 回避策あり
+    description: |-
+      av 19.0.1 が入った環境で faster-whisper 1.2.1 に録音を渡すと、録音を読む `av.open(input_file, mode="r", metadata_errors="ignore")` が `TypeError: open() got an unexpected keyword argument 'metadata_errors'` で失敗し、文字起こしが毎回失敗する。
+      faster-whisper 1.2.1 は `av>=11` と下限しか宣言しないため、依存を入れ直すと最新の av 19 が入る。
+      av 18.1.0 では同じ録音が読める（faster-whisper 1.2.1 と av 18.1.0 / 19.0.1 の組で `decode_audio` を呼んで確かめた）。
+      上流では master で修正済み（コミット 2ce7f9d）だが、リリースは 1.2.1 のまま（2026-10-05 時点）。
+    conditions:
+      - faster-whisper 1.2.1
+      - av 19 以降（19.0.1 で確認）
+    workarounds:
+      - method: '`pyproject.toml` の `dependencies` に `av>=11,<19` を宣言する'
+        result: 新しく作った venv でも av 19 未満が入り、文字起こしが通る。faster-whisper が av 19 に対応した版を出すまで av の上限を外せない
+        recommended: true
+    upstream_issue: https://github.com/SYSTRAN/faster-whisper/issues/1589
+    refs:
+      - dev/設計書/外部ライブラリ/av#

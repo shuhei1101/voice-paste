@@ -181,14 +181,14 @@ def test_on_notified_when_recording_hidden(qapp: QApplication, tmp_path: Path) -
 
 
 def test_on_notified_when_transcribing_after_hidden(qapp: QApplication, tmp_path: Path) -> None:
-    """隠したまま確定した回も、文字起こし中の表示を録音の画面の最後の位置に出す（正常系）。"""
+    """動かして隠したまま確定した回も、文字起こし中の表示を動かした位置に出す（正常系）。"""
     from voice_paste.ui.tray import RecordingWindowState
 
-    # 準備: 画面を出して隠し、録音の画面の最後の位置を (300, 200) にする
+    # 準備: 画面を出して隠し、動かした位置を (300, 200) にする
     parts = _make_controller(tmp_path)
     _open_recording_window(parts)
     parts.controller.hide_recording()
-    parts.recording_window.last_position.return_value = QPoint(300, 200)
+    parts.recording_window.moved_position.return_value = QPoint(300, 200)
     parts.deps.current_session.return_value = make_session("hotkey", "transcribing")
 
     # 実行
@@ -216,6 +216,21 @@ def test_on_notified_when_show_recording_window(qapp: QApplication, tmp_path: Pa
     # 検証
     parts.recording_window.restore.assert_called_once()
     parts.tray.set_recording_window.assert_called_with(RecordingWindowState.SHOWN)
+
+
+def test_on_notified_when_transcribing_without_move(qapp: QApplication, tmp_path: Path) -> None:
+    """動かしていない回は、文字起こし中の表示を設定の位置に出す（正常系）。"""
+    # 準備: 画面を出し、動かしていない（動かした位置が None）まま確定する
+    parts = _make_controller(tmp_path)
+    _open_recording_window(parts)
+    parts.recording_window.moved_position.return_value = None
+    parts.deps.current_session.return_value = make_session("hotkey", "transcribing")
+
+    # 実行
+    parts.controller.on_notified("state_changed", None)
+
+    # 検証
+    parts.indicator.open.assert_called_once_with(at=None)
 
 
 # === request_exit ===

@@ -6,7 +6,7 @@ import time
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QRectF, Qt, QTimer
+from PySide6.QtCore import QPoint, QRectF, Qt, QTimer
 from PySide6.QtGui import QPainter, QPen
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QProgressBar, QVBoxLayout, QWidget
 
@@ -155,8 +155,8 @@ class TranscribingIndicator(QWidget):
         hint.setProperty("role", "muted")
         layout.addWidget(hint)
 
-    def open(self) -> None:
-        """経過を 0 にして進みを隠し、録音の画面と同じ位置に出す。"""
+    def open(self, *, at: QPoint | None = None) -> None:
+        """経過を 0 にして進みを隠し、at の座標（録音の画面の最後の位置）か、渡されなければ設定の位置に出す。"""
         settings = self._deps.get_settings()
         flags = Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint
         flags |= Qt.WindowType.WindowDoesNotAcceptFocus
@@ -170,7 +170,12 @@ class TranscribingIndicator(QWidget):
         self._progress_bar.hide()
         self._refresh_time()
 
-        move_to_configured_position(self, settings.ui)
+        # 座標を渡された: その位置へ／渡されなかった: 設定の位置へ
+        if at is not None:
+            self.adjustSize()
+            self.move(at)
+        else:
+            move_to_configured_position(self, settings.ui)
         self.show()
         self._spinner.start()
         self._timer.start(TICK_MSEC)

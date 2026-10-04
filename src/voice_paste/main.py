@@ -477,6 +477,7 @@ def build_hotkey_bindings(
     settings: Settings,
     session_manager: SessionManager,
     start_local_session: Callable[[Entry], None],
+    show_recording_window: Callable[[], None],
 ) -> dict[str, Callable[[], None]]:
     """設定のホットキーごとに、押されたときに呼ぶ関数を組む（HotkeyListener.start へ渡す）。"""
     start_hotkey = settings.hotkeys.start
@@ -491,19 +492,19 @@ def build_hotkey_bindings(
     )
 
     def on_start() -> None:
-        """ホットキー・トレイの録音中なら出力先で確定し（出力先が無ければ何もしない）、そうでなければ録音を始める。"""
+        """ホットキー・トレイの録音中なら出力先で確定し（出力先が無ければ隠した録音の画面を戻す指示を出す）、そうでなければ録音を始める。"""
         session = session_manager.current()
         is_local_recording = (
             session is not None
             and session.entry != Entry.API
             and session.state in (SessionState.RECORDING, SessionState.PAUSED)
         )
-        # 自分の録音の最中: 同じホットキーの出力先があればそれで確定し、無ければ何もしない（処理中のダイアログを出さない）
+        # 自分の録音の最中: 同じホットキーの出力先があればそれで確定し、無ければ隠した録音の画面を戻す指示を出す（処理中のダイアログを出さない。隠していなければ UiController が何もしない）
         if is_local_recording:
             if confirm_output_id is not None:
                 session_manager.complete(output_id=confirm_output_id)
             else:
-                logger.debug("録音中の開始のホットキーを無視した（確定する出力先が無い）")
+                show_recording_window()
             return
         start_local_session(Entry.HOTKEY)
 
@@ -562,6 +563,7 @@ def build_ui_deps(
     request_restart: Callable[[], None],
     request_quit: Callable[[], None],
     hotkey_listener: HotkeyListener,
+    show_recording_window: Callable[[], None],
 ) -> UiDeps:
     """Handlers と置き場所から、画面・トレイが呼ぶ UiDeps を組む。"""
     session_manager = handlers.session_manager
@@ -574,7 +576,7 @@ def build_ui_deps(
     def resume_hotkeys() -> None:
         """今の設定でホットキーの受付を始める。"""
         bindings = build_hotkey_bindings(
-            store.get(), session_manager, handlers.start_local_session
+            store.get(), session_manager, handlers.start_local_session, show_recording_window
         )
         hotkey_listener.start(bindings)
 
@@ -780,6 +782,7 @@ def _start_services(
     """設定を読み、配線し、画面・API・ホットキー・上限のタイマーを立てる。立てたものは running に入れる。"""
     ui_notify = partial(notify, bridge=bridge)
     ui_report_progress = partial(report_progress, bridge=bridge)
+    show_recording_window = partial(notify, "show_recording_window", bridge=bridge)
 
     # 5. 設定を読む（読めなければトレイを失敗にして知らせ、設定を直して再起動できるようにする）
     try:
@@ -834,6 +837,7 @@ def _start_services(
         exit_request.request_restart,
         exit_request.request_quit,
         hotkey_listener,
+        show_recording_window,
     )
     running.controller = _build_controller(bridge, tray, deps)
 
@@ -855,6 +859,7 @@ def _start_services(
                 handlers.settings_store.get(),
                 handlers.session_manager,
                 handlers.start_local_session,
+                show_recording_window,
             )
         )
     except HotkeyError as error:

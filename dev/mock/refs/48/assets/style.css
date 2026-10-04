@@ -1,0 +1,228 @@
+/* ===== PR 48 の画面モック: 録音の画面の見出しの行（つかんで動かす・隠す・×）と画面の上の位置（refs/37 の style.css に重ねる） ===== */
+
+/* ===== 見出しの行 ===== */
+
+/* 見出しの行: つかむ印・状態・経過時間・隠す・× を横に並べ、行全体をつかんで動かせる */
+.rec__head--move {
+  position: relative;
+  align-items: center;
+  gap: 6px;
+  margin: -8px -8px 0;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  cursor: move;
+  &:hover { background: var(--sunken); }
+}
+
+/* モックで見せる、見出しの行にかざした見た目 */
+.rec__head--move.is-hover { background: var(--sunken); }
+
+/* 状態の文言: 経過時間と操作を右へ寄せる */
+.rec__head--move .state { margin-right: auto; }
+
+/* つかむ印: 点を 2 列 3 段に並べた線画 */
+.grip {
+  flex: none;
+  width: 12px;
+  height: 16px;
+  color: var(--text-2);
+  fill: currentColor;
+}
+
+/* 見出しの行にかざしたときのつかむ印 */
+.rec__head--move:hover .grip, .rec__head--move.is-hover .grip { color: var(--text); }
+
+/* 隠す・× の並び: 押し違えないよう間を空け、間に区切りの線を置く */
+.head-tools {
+  display: flex;
+  gap: 13px;
+  margin-left: 4px;
+  cursor: default;
+}
+
+/* 見出しの行のアイコンのボタン: 枠を持たず、かざすと面を出す */
+.btn--head {
+  position: relative;
+  color: var(--text-2);
+  &:hover { background: var(--surface); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); }
+}
+
+/* モックで見せる、ボタンにかざした見た目 */
+.btn--head.is-hover { background: var(--surface); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); }
+
+/* モックで見せる、ボタンを押している見た目 */
+.btn--head.is-active { background: var(--sunken); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); }
+
+/* × のボタン: かざすと取り消すと同じ警告の色にする */
+.btn--close {
+  &:hover { background: var(--error-bg); color: var(--error); box-shadow: inset 0 0 0 1px var(--error); }
+}
+
+/* × の左の区切りの線: 隠すとの間の中央に置く */
+.btn--close::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: -7px;
+  width: 1px;
+  background: var(--line);
+}
+
+/* モックで見せる、× にかざした見た目 */
+.btn--close.is-hover { background: var(--error-bg); color: var(--error); box-shadow: inset 0 0 0 1px var(--error); }
+
+/* ボタンの説明（Qt のツールチップ）: ボタンの下に出す */
+.tip {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 1;
+  width: max-content;
+  max-width: 260px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: left;
+  white-space: normal;
+}
+
+/* ===== 画面の上の位置 ===== */
+
+/* デスクトップの見立て: 作業領域と下のタスクバー */
+.screen {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--page);
+}
+
+/* 貼り付け先の窓の見立て */
+.screen__app {
+  position: absolute;
+  top: 8%;
+  left: 5%;
+  width: 52%;
+  height: 58%;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: 11px;
+}
+
+/* 前面にある貼り付け先の窓: 線を強める */
+.screen__app--front { border-color: var(--text-2); color: var(--text); }
+
+/* 貼り付け先の入力欄の見立て */
+.screen__field {
+  margin-top: 6px;
+  height: 18px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--sunken);
+}
+
+/* 録音の画面と文字起こし中の表示の小さな見立て */
+.mini {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 34%;
+  padding: 5px 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  font-size: 11px;
+  .state { gap: 4px; font-weight: 600; }
+  .dot { width: 7px; height: 7px; }
+}
+
+/* 出した位置（設定の位置: 右下）の見立て */
+.mini--start { right: 4%; bottom: 18%; }
+
+/* 動かした位置（右上）の見立て */
+.mini--moved { right: 6%; top: 6%; }
+
+/* 小さな見立ての一時停止中の点: 録音中と形でも見分ける */
+.mini .state--paused .dot { border-radius: 2px; }
+
+/* 小さな見立ての見出しの行 */
+.mini__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+/* 小さな見立ての中身の線 */
+.mini__line {
+  height: 6px;
+  border-radius: 2px;
+  background: var(--line);
+}
+
+/* 動かす前の位置: 点線の枠だけを残す */
+.mini--ghost {
+  border-style: dashed;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-2);
+}
+
+/* 動かした向きの矢印 */
+.screen__arrow {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: var(--text-2);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* タスクバーの見立て: 下の線で区切り、右端にトレイを置く */
+.screen__taskbar {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  height: 14%;
+  padding: 0 8px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+/* タスクバーのトレイのアイコンを小さくする */
+.screen__taskbar .ticon {
+  width: 16px;
+  height: 16px;
+  svg { width: 11px; height: 11px; }
+}
+
+/* 狭い幅: 小さな見立ての文字が詰まらないよう幅を広げる */
+@media (max-width: 480px) {
+  /* 見立ての窓を広げる */
+  .mini { width: 46%; }
+  /* 貼り付け先の窓を狭め、見立ての窓と重ねない */
+  .screen__app { width: 40%; }
+}

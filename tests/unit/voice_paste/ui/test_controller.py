@@ -1,4 +1,4 @@
-"""ui/controller.py（UiController の on_notified・request_exit・open_settings）の単体テスト。
+"""ui/controller.py（UiController の on_notified・request_exit・open_settings・hide_recording・show_recording）の単体テスト。
 
 UiDeps の関数・トレイ・録音の画面・文字起こし中の表示は Mock に差し替える（設定画面だけは本物を開く）。
 画面を使うため offscreen の QApplication（conftest の qapp）で動かす。
@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
+from PySide6.QtCore import QPoint
 
 from tests.unit.voice_paste.ui.helpers import make_session, make_ui_deps
 
@@ -51,6 +52,12 @@ def _make_controller(tmp_path: Path, *, settings: Settings | None = None) -> Par
         recording_window=recording_window,
         indicator=indicator,
     )
+
+
+def _open_recording_window(parts: Parts) -> None:
+    """ホットキーの録音を知らせて、録音の画面を出した状態にする。"""
+    parts.deps.current_session.return_value = make_session("hotkey", "recording")
+    parts.controller.on_notified("state_changed", None)
 
 
 # === on_notified ===
@@ -151,6 +158,81 @@ def test_on_notified_when_failure(qapp: QApplication, tmp_path: Path) -> None:
     parts.tray.show_failure.assert_called_once_with("delivery_failed", "クリップボードに書けない")
 
 
+def test_on_notified_when_recording_hidden(qapp: QApplication, tmp_path: Path) -> None:
+    """隠した録音の画面は、一時停止しても出さずに状態だけ替える（正常系）。"""
+    from voice_paste.ui.tray import RecordingWindowState
+
+    # 準備: 画面を出して隠した後、隠した状態の呼び出しだけを数える
+    parts = _make_controller(tmp_path)
+    _open_recording_window(parts)
+    parts.controller.hide_recording()
+    parts.recording_window.reset_mock()
+    parts.tray.reset_mock()
+    parts.deps.current_session.return_value = make_session("hotkey", "paused")
+
+    # 実行
+    parts.controller.on_notified("state_changed", None)
+
+    # 検証
+    parts.recording_window.set_paused.assert_called_with(True)
+    parts.recording_window.open.assert_not_called()
+    parts.recording_window.restore.assert_not_called()
+    parts.tray.set_recording_window.assert_called_with(RecordingWindowState.HIDDEN)
+
+
+def test_on_notified_when_transcribing_after_hidden(qapp: QApplication, tmp_path: Path) -> None:
+    """動かして隠したまま確定した回も、文字起こし中の表示を動かした位置に出す（正常系）。"""
+    from voice_paste.ui.tray import RecordingWindowState
+
+    # 準備: 画面を出して隠し、動かした位置を (300, 200) にする
+    parts = _make_controller(tmp_path)
+    _open_recording_window(parts)
+    parts.controller.hide_recording()
+    parts.recording_window.moved_position.return_value = QPoint(300, 200)
+    parts.deps.current_session.return_value = make_session("hotkey", "transcribing")
+
+    # 実行
+    parts.controller.on_notified("state_changed", None)
+
+    # 検証
+    parts.indicator.open.assert_called_once_with(at=QPoint(300, 200))
+    parts.tray.set_recording_window.assert_called_with(RecordingWindowState.NOT_RECORDING)
+
+
+def test_on_notified_when_show_recording_window(qapp: QApplication, tmp_path: Path) -> None:
+    """ホットキーからの指示で隠した録音の画面を戻す（正常系）。"""
+    from voice_paste.ui.tray import RecordingWindowState
+
+    # 準備: 画面を出して隠した後、隠した状態の呼び出しだけを数える
+    parts = _make_controller(tmp_path)
+    _open_recording_window(parts)
+    parts.controller.hide_recording()
+    parts.recording_window.reset_mock()
+    parts.tray.reset_mock()
+
+    # 実行
+    parts.controller.on_notified("show_recording_window", None)
+
+    # 検証
+    parts.recording_window.restore.assert_called_once()
+    parts.tray.set_recording_window.assert_called_with(RecordingWindowState.SHOWN)
+
+
+def test_on_notified_when_transcribing_without_move(qapp: QApplication, tmp_path: Path) -> None:
+    """動かしていない回は、文字起こし中の表示を設定の位置に出す（正常系）。"""
+    # 準備: 画面を出し、動かしていない（動かした位置が None）まま確定する
+    parts = _make_controller(tmp_path)
+    _open_recording_window(parts)
+    parts.recording_window.moved_position.return_value = None
+    parts.deps.current_session.return_value = make_session("hotkey", "transcribing")
+
+    # 実行
+    parts.controller.on_notified("state_changed", None)
+
+    # 検証
+    parts.indicator.open.assert_called_once_with(at=None)
+
+
 # === request_exit ===
 
 
@@ -217,3 +299,38 @@ def test_open_settings_when_already_open(qapp: QApplication, tmp_path: Path) -> 
     assert parts.controller._settings_window is first_window
     parts.deps.suspend_hotkeys.assert_called_once()
     first_window.try_close()
+
+
+# === hide_recording ===
+
+
+def test_hide_recording(qapp: QApplication, tmp_path: Path) -> None:
+    """録音の画面を隠してトレイの項目を押せるようにする（正常系）。"""
+    from voice_paste.ui.tray import RecordingWindowState
+
+    # 準備
+    parts = _make_controller(tmp_path)
+    _open_recording_window(parts)
+
+    # 実行
+    parts.controller.hide_recording()
+
+    # 検証
+    parts.recording_window.hide_window.assert_called_once()
+    parts.tray.set_recording_window.assert_called_with(RecordingWindowState.HIDDEN)
+
+
+# === show_recording ===
+
+
+def test_show_recording_when_not_hidden(qapp: QApplication, tmp_path: Path) -> None:
+    """隠していなければ何もしない（正常系）。"""
+    # 準備
+    parts = _make_controller(tmp_path)
+    _open_recording_window(parts)
+
+    # 実行
+    parts.controller.show_recording()
+
+    # 検証
+    parts.recording_window.restore.assert_not_called()

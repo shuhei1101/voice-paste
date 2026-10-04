@@ -479,12 +479,16 @@ functions:
         required: true
         passing: positional
         description: ホットキー・トレイの開始
+      - name: show_recording_window
+        type: Callable[[], None]
+        required: true
+        passing: positional
+        description: 隠した録音の画面を戻す指示（notify に show_recording_window と bridge を部分適用したもの。ホットキーのスレッドから呼ぶ）
     returns:
       type: dict[str, Callable[[], None]]
       description: pynput の書式のホットキー → 呼ぶ関数
     process: |-
-      1. `hotkeys.start`: ホットキー・トレイの録音が recording か paused のとき、同じホットキーのオンの出力先があればその出力先で確定し（complete）、無ければ何もしない（自分の録音の最中に処理中のダイアログを出さない）。それ以外（待機中・API の録音の最中・自分の録音の文字起こし中）は start_local_session(hotkey) を呼ぶ
-         - `[DEBUG]` 録音中の開始のホットキーを無視した（確定する出力先が無い）
+      1. `hotkeys.start`: ホットキー・トレイの録音が recording か paused のとき、同じホットキーのオンの出力先があればその出力先で確定し（complete）、無ければ隠した録音の画面を戻す指示を出す（show_recording_window。隠していなければ UiController が何もしない。自分の録音の最中に処理中のダイアログを出さない）。それ以外（待機中・API の録音の最中・自分の録音の文字起こし中）は start_local_session(hotkey) を呼ぶ
       2. `hotkeys.pause`: paused なら resume、それ以外は pause を呼ぶ
       3. `hotkeys.cancel`: cancel を呼ぶ
       4. オンの出力先の `hotkey`（1 と同じホットキーを除く）: complete(output_id=その出力先の ID) を呼ぶ
@@ -503,8 +507,8 @@ functions:
         case: 正常
         summary: 録音中の開始のホットキーは貼り付けて送信で確定する
         condition: Settings()、current が hotkey・recording、<ctrl>+<alt>+d の関数を呼ぶ
-        mock: session_manager・start_local_session
-        expected: complete(output_id=paste_and_send) が 1 回呼ばれ、start_local_session が呼ばれない
+        mock: session_manager・start_local_session・show_recording_window
+        expected: complete(output_id=paste_and_send) が 1 回呼ばれ、start_local_session も show_recording_window も呼ばれない
       - name: test_build_hotkey_bindings_when_preset
         case: 正常
         summary: プリセットのホットキーはそのプリセットで確定する
@@ -525,10 +529,10 @@ functions:
         expected: <ctrl>+<alt>+c が返り値のキーに無い
       - name: test_build_hotkey_bindings_when_recording_without_confirm_output
         case: 正常
-        summary: 貼り付けて送信がオフなら、録音中の開始のホットキーは何もしない
+        summary: 貼り付けて送信がオフなら、録音中の開始のホットキーは録音の画面を戻す指示を出す
         condition: 貼り付けて送信をオフにした設定、current が hotkey・recording、<ctrl>+<alt>+d の関数を呼ぶ
-        mock: session_manager・start_local_session
-        expected: start_local_session も complete も呼ばれない
+        mock: session_manager・start_local_session・show_recording_window
+        expected: show_recording_window が 1 回呼ばれ、start_local_session も complete も呼ばれない
       - name: test_build_hotkey_bindings_when_preset_not_bound
         case: 正常
         summary: 無効のプリセットとホットキーが空のプリセットは登録しない
@@ -641,12 +645,17 @@ functions:
         required: true
         passing: positional
         description: ホットキーの受付（設定画面の間は止める）
+      - name: show_recording_window
+        type: Callable[[], None]
+        required: true
+        passing: positional
+        description: 隠した録音の画面を戻す指示（notify に show_recording_window と bridge を部分適用したもの。resume_hotkeys が build_hotkey_bindings へ渡す）
     returns:
       type: UiDeps
       description: 画面の依存
     process: |-
       1. start に start_local_session(tray)、pause・resume・cancel・current_session に SessionManager のメソッド、complete に output_id・preset で SessionManager.complete を呼ぶ関数、level に recorder_level、get_settings に SettingsStore.get を渡す
-      2. suspend_hotkeys に HotkeyListener.stop、resume_hotkeys に SettingsStore.get の設定で build_hotkey_bindings して HotkeyListener.start を呼ぶ関数を渡す
+      2. suspend_hotkeys に HotkeyListener.stop、resume_hotkeys に SettingsStore.get の設定と show_recording_window で build_hotkey_bindings して HotkeyListener.start を呼ぶ関数を渡す
       3. settings_dir に settings.toml のフォルダ、log_dir にログのフォルダを渡す
     status: implemented
   - name: relaunch

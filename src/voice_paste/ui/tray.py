@@ -91,11 +91,36 @@ STATE_NAMES: dict[TrayState, str] = {
 }
 """状態ごとの、ヒントに出す名前。"""
 
+
+class RecordingWindowState(StrEnum):
+    """トレイの「録音の画面を出す」の出し分け。"""
+
+    HIDDEN = "hidden"
+    """隠している（ホットキー・トレイの recording・paused で、その回の録音の画面を隠している。項目を押せる）。"""
+
+    SHOWN = "shown"
+    """表示中（ホットキー・トレイの recording・paused で、録音の画面が出ている）。"""
+
+    NO_WINDOW = "no_window"
+    """画面を出さない録音（`recording.hide_window` がオンの録音か、API の録音）。"""
+
+    NOT_RECORDING = "not_recording"
+    """録音していない（待機中・文字起こし中・準備に失敗した起動）。"""
+
+
 START_TEXT: str = "録音を始める"
+SHOW_WINDOW_TEXT: str = "録音の画面を出す"
 SETTINGS_TEXT: str = "設定…"
 BUSY_SUFFIX: str = "（処理中）"
 FAILED_SUFFIX: str = "（準備に失敗）"
-"""メニューの「録音を始める」「設定…」の文言と、押せない理由の添え字。"""
+"""メニューの「録音を始める」「録音の画面を出す」「設定…」の文言と、押せない理由の添え字。"""
+
+SHOW_WINDOW_REASONS: dict[RecordingWindowState, str] = {
+    RecordingWindowState.SHOWN: "（表示中）",
+    RecordingWindowState.NO_WINDOW: "（画面を出さない録音）",
+    RecordingWindowState.NOT_RECORDING: "（録音していません）",
+}
+"""「録音の画面を出す」を押せないときに、項目名へ添える理由（隠している間は押せるため添えない）。"""
 
 
 class Tray(QObject):
@@ -113,6 +138,9 @@ class Tray(QObject):
     quit_requested = Signal()
     """「終了」。"""
 
+    show_window_requested = Signal()
+    """「録音の画面を出す」・録音の画面を隠している間のアイコンの左クリック。"""
+
     def __init__(self, settings_dir: Path, log_dir: Path) -> None:
         """設定とログのフォルダを受け、準備中のアイコンとメニューを出す。"""
         super().__init__()
@@ -121,12 +149,15 @@ class Tray(QObject):
         self._failed = False
         self._start_hotkey = ""
         self._start_label = START_TEXT
+        self._window_state = RecordingWindowState.NOT_RECORDING
         self._icons = {state: QIcon(str(TRAY_ICON_DIR / f"{state.value}.png")) for state in TrayState}
 
         self._icon = QSystemTrayIcon(self)
         menu = QMenu()
         self._menu = menu
         self._start_action = self._add_item(menu, "menu_start", START_TEXT)
+        self._show_window_action = self._add_item(menu, "menu_show_window", SHOW_WINDOW_TEXT)
+        menu.addSeparator()
         self._settings_action = self._add_item(menu, "menu_settings", SETTINGS_TEXT)
         open_settings_folder = self._add_item(
             menu, "menu_open_settings_folder", "設定フォルダを開く"
@@ -137,6 +168,7 @@ class Tray(QObject):
         quit_action = self._add_item(menu, "menu_quit", "終了")
 
         self._start_action.triggered.connect(self.start_requested)
+        self._show_window_action.triggered.connect(self.show_window_requested)
         self._settings_action.triggered.connect(self.settings_requested)
         open_settings_folder.triggered.connect(lambda: self._open_folder(self._settings_dir))
         open_log_folder.triggered.connect(self._open_log_folder)
@@ -147,6 +179,7 @@ class Tray(QObject):
         self._icon.activated.connect(self._on_activated)
         self._icon.messageClicked.connect(self._open_log_folder)
         self.set_state(TrayState.STARTING, busy=False)
+        self.set_recording_window(RecordingWindowState.NOT_RECORDING)
         self._icon.show()
 
     def set_state(self, state: TrayState, *, busy: bool) -> None:
@@ -180,6 +213,21 @@ class Tray(QObject):
         """「録音を始める」の右に出すホットキー（pynput の書式）を替える。"""
         self._start_hotkey = hotkey
         self._apply_start_text()
+
+    def set_recording_window(self, state: RecordingWindowState) -> None:
+        """「録音の画面を出す」の文言・押せるか・太字を、録音の画面の状態に合わせる。"""
+        self._window_state = state
+        # 1. 隠している間は押せるようにし、アイコンの左クリックと同じ操作の既定の項目として太字にする
+        if state is RecordingWindowState.HIDDEN:
+            text, enabled = SHOW_WINDOW_TEXT, True
+        # 2. それ以外は、状態ごとの理由を添えて押せなくし、太字を外す
+        else:
+            text, enabled = SHOW_WINDOW_TEXT + SHOW_WINDOW_REASONS[state], False
+        self._show_window_action.setText(text)
+        self._show_window_action.setEnabled(enabled)
+        font = self._show_window_action.font()
+        font.setBold(enabled)
+        self._show_window_action.setFont(font)
 
     def show_failure(self, event: FailureEvent, detail: str | None) -> None:
         """知らせの種類の見出しと本文で Windows の通知を出す。通知を押すとログフォルダを開く。"""
@@ -235,8 +283,14 @@ class Tray(QObject):
         self._start_action.setText(self._start_label + suffix)
 
     def _on_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
-        """アイコンの左クリックは、「録音を始める」が押せるときだけ録音を始める。"""
-        if reason == QSystemTrayIcon.ActivationReason.Trigger and self._start_action.isEnabled():
+        """アイコンの左クリックは、録音の画面を隠している間は画面を戻し、そうでなければ「録音を始める」が押せるときだけ録音を始める。"""
+        if reason != QSystemTrayIcon.ActivationReason.Trigger:
+            return
+        # 隠している: 録音の画面を戻す
+        if self._window_state is RecordingWindowState.HIDDEN:
+            self.show_window_requested.emit()
+        # 待機中: 録音を始める（それ以外の録音から届けるまでの間は何もしない）
+        elif self._start_action.isEnabled():
             self.start_requested.emit()
 
     def _open_log_folder(self) -> None:

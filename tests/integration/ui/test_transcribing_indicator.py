@@ -11,12 +11,15 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QPoint, Qt
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QLabel, QProgressBar
 
-from tests.integration.ui.helpers import FakeClock, Ui, find, make_ui_deps
+from tests.integration.ui.helpers import FakeClock, Ui, find, grab_head_row, make_ui_deps
 
 if TYPE_CHECKING:
+    from unittest.mock import MagicMock
+
     from PySide6.QtWidgets import QApplication
 
     from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
@@ -112,6 +115,115 @@ def test_transcribing_indicator_position(make_ui: Callable[..., Ui]) -> None:
 
     # 検証
     assert ui.indicator.pos() == ui.recording_window.pos()
+
+
+def test_transcribing_indicator_position_when_at(make_ui: Callable[..., Ui]) -> None:
+    """座標を渡されたら、その座標に出る。"""
+    # 実行
+    ui = make_ui()
+    ui.indicator.open(at=QPoint(300, 200))
+
+    # 検証
+    assert ui.indicator.pos() == QPoint(300, 200)
+
+
+def test_transcribing_indicator_position_when_not_moved(make_ui: Callable[..., Ui]) -> None:
+    """録音の画面を動かしていない回は、設定の位置（右下は作業領域の右下から 24px）に出る。"""
+    from voice_paste.shared.settings import Settings, UiSettings
+
+    # 準備
+    ui = make_ui(Settings(ui=UiSettings(position="bottom-right")))
+    ui.notify_state("hotkey", "recording")
+
+    # 実行
+    ui.notify_state("hotkey", "transcribing")
+
+    # 検証
+    available = QGuiApplication.primaryScreen().availableGeometry()
+    indicator = ui.indicator
+    assert indicator.x() + indicator.width() == available.left() + available.width() - 24
+    assert indicator.y() + indicator.height() == available.top() + available.height() - 24
+
+
+def test_transcribing_indicator_position_when_only_pressed(
+    make_ui: Callable[..., Ui], system_move: MagicMock
+) -> None:
+    """録音の画面の見出しの行を押しただけで動かしていない回も、設定の位置に出る。"""
+    from voice_paste.shared.settings import Settings, UiSettings
+
+    # 準備
+    ui = make_ui(Settings(ui=UiSettings(position="bottom-right")))
+    ui.notify_state("hotkey", "recording")
+    grab_head_row(ui.recording_window)
+
+    # 実行
+    ui.notify_state("hotkey", "transcribing")
+
+    # 検証
+    available = QGuiApplication.primaryScreen().availableGeometry()
+    assert ui.indicator.x() + ui.indicator.width() == available.left() + available.width() - 24
+
+
+def test_transcribing_indicator_position_when_moved(
+    make_ui: Callable[..., Ui], system_move: MagicMock
+) -> None:
+    """録音の画面を動かした回は、確定した時点の録音の画面の位置に出る。"""
+    # 準備
+    ui = make_ui()
+    ui.notify_state("hotkey", "recording")
+    window = ui.recording_window
+    grab_head_row(window)
+    window.move(window.pos() + QPoint(80, 60))
+    moved_to = window.pos()
+
+    # 実行
+    ui.notify_state("hotkey", "transcribing")
+
+    # 検証
+    assert ui.indicator.pos() == moved_to
+
+
+def test_transcribing_indicator_position_when_moved_and_hidden(
+    make_ui: Callable[..., Ui], system_move: MagicMock
+) -> None:
+    """動かして隠したまま確定した回は、隠す前の位置に出る。"""
+    # 準備
+    ui = make_ui()
+    ui.notify_state("hotkey", "recording")
+    window = ui.recording_window
+    grab_head_row(window)
+    window.move(window.pos() + QPoint(80, 60))
+    moved_to = window.pos()
+    ui.controller.hide_recording()
+
+    # 実行
+    ui.notify_state("hotkey", "transcribing")
+
+    # 検証
+    assert ui.indicator.pos() == moved_to
+
+
+def test_transcribing_indicator_position_when_next_recording(
+    make_ui: Callable[..., Ui], system_move: MagicMock
+) -> None:
+    """動かした位置はその回だけ使い、次の回の文字起こし中の表示は設定の位置に出る。"""
+    from voice_paste.shared.settings import Settings, UiSettings
+
+    # 準備
+    ui = make_ui(Settings(ui=UiSettings(position="bottom-right")))
+    ui.notify_state("hotkey", "recording")
+    grab_head_row(ui.recording_window)
+    ui.recording_window.move(ui.recording_window.pos() + QPoint(-200, -150))
+    ui.notify_state("hotkey", "transcribing")
+    ui.notify_state(None)
+    ui.notify_state("hotkey", "recording")
+
+    # 実行
+    ui.notify_state("hotkey", "transcribing")
+
+    # 検証
+    available = QGuiApplication.primaryScreen().availableGeometry()
+    assert ui.indicator.x() + ui.indicator.width() == available.left() + available.width() - 24
 
 
 # === state_label・paste_hint ===

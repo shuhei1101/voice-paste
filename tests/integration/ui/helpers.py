@@ -12,7 +12,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, TypeVar
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QLabel, QMessageBox, QPushButton, QWidget
 
 from tests.unit.voice_paste.ui.helpers import FakeClock, make_session, make_ui_deps
@@ -39,6 +40,13 @@ def find(root: QWidget, cls: type[WidgetT], name: str) -> WidgetT:
 def button_texts(button: QPushButton) -> list[str]:
     """ボタンの中に並んだ文字（名前・ホットキー）を、並びの順に返す。"""
     return [label.text() for label in button.findChildren(QLabel)]
+
+
+def grab_head_row(window: RecordingWindow) -> None:
+    """録音の画面の見出しの行（head_row）の中ほどを押して放す（窓の移動は startSystemMove に任せる）。"""
+    row = find(window, QWidget, "head_row")
+    QTest.mousePress(row, Qt.MouseButton.LeftButton, pos=row.rect().center())
+    QTest.mouseRelease(row, Qt.MouseButton.LeftButton, pos=row.rect().center())
 
 
 @dataclass

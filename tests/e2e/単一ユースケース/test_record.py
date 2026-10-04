@@ -21,12 +21,21 @@ import pytest
 from scipy.io import wavfile
 
 from tests.integration.helpers import CallbackReceiver
-from tests.support.app_driver import IDLE, RECORDING, START_HOTKEY, AppDriver
+from tests.support.app_driver import (
+    CANCEL_HOTKEY,
+    IDLE,
+    PAUSE_HOTKEY,
+    RECORDING,
+    START_HOTKEY,
+    AppDriver,
+)
 from tests.support.desktop import (
     NO_MICROPHONE_ENV,
     PASTE_TARGET_TITLE,
     Monitor,
     PasteTarget,
+    drag,
+    foreground_hwnd,
     foreground_title,
     master_volume,
     monitors,
@@ -66,6 +75,9 @@ PAUSE_SEC = 3.0
 ELAPSED_TOLERANCE_SEC = 2.0
 """経過時間の表示と実際の長さの許す差。"""
 
+FOREGROUND_TIMEOUT_SEC = 5.0
+"""前面が貼り付け先の窓に戻るのを待つ上限。"""
+
 
 def _elapsed_seconds(text: str) -> int:
     """録音の画面の経過時間（mm:ss か h:mm:ss）を秒にする。"""
@@ -79,6 +91,11 @@ def _wav_duration_sec(path: Path) -> float:
     """録音の WAV の長さ（秒）を返す。"""
     sample_rate, samples = wavfile.read(path)
     return float(len(samples)) / float(sample_rate)
+
+
+def _paste_target_is_foreground() -> bool:
+    """前面が貼り付け先の窓に戻る（または保たれる）まで待ち、戻ったかを返す。"""
+    return wait_until(lambda: foreground_title() == PASTE_TARGET_TITLE, FOREGROUND_TIMEOUT_SEC)
 
 
 def test_normal(start_app: StartApp, paste_target: PasteTarget) -> None:
@@ -137,10 +154,11 @@ def test_normal_when_pause_and_resume(start_app: StartApp, paste_target: PasteTa
     assert _wav_duration_sec(recording) <= wall_sec - paused_sec + ELAPSED_TOLERANCE_SEC
 
 
+@pytest.mark.parametrize("button", ["cancel_button", "close_button"], ids=["cancel", "close"])
 def test_normal_when_cancel(
-    start_app: StartApp, paste_target: PasteTarget, clipboard_sentinel: str
+    start_app: StartApp, paste_target: PasteTarget, clipboard_sentinel: str, button: str
 ) -> None:
-    """録音の画面の「取り消す」で、録音を捨てて音量を戻し、待機中に戻る（正常シナリオ）。"""
+    """録音の画面の「取り消す」のボタンと閉じるボタン（×）で、録音を捨てて音量を戻し、前面を貼り付け先へ戻して、待機中に戻る（正常シナリオ）。"""
     # 準備
     app = start_app(PASTE_AND_SEND_ONLY + HALF_VOLUME_SETTINGS)
     volume_before = master_volume()
@@ -148,7 +166,7 @@ def test_normal_when_cancel(
     assert wait_volume_lowered(volume_before)
 
     # 実行
-    app.press("cancel_button")
+    app.press(button)
 
     # 検証
     assert app.wait_window_gone("recording_window")
@@ -156,6 +174,7 @@ def test_normal_when_cancel(
     assert app.service.history_files(".wav") == []
     assert pyperclip.paste() == clipboard_sentinel
     assert wait_volume_restored(volume_before)
+    assert _paste_target_is_foreground()
 
 
 def test_normal_when_hide_window(start_app: StartApp, receiver: CallbackReceiver) -> None:
@@ -333,3 +352,174 @@ def test_normal_when_follow_cursor(
     # 実行・検証（それぞれのモニターにカーソルを置いて録音を始める）
     _start_on_monitor_and_cancel(app, primary)
     _start_on_monitor_and_cancel(app, secondary)
+
+
+# === 録音の画面を動かす・隠して戻す ===
+
+MOVE_DISTANCE_PX = (200, 150)
+"""録音の画面をドラッグで動かす距離（横・縦。物理ピクセル）。"""
+
+MOVE_TOLERANCE_PX = 8
+"""ドラッグで動いた距離と、動かした距離の許す差。"""
+
+HIDDEN_SEC = 3.0
+"""録音の画面を隠したまま話し続ける秒数。"""
+
+START_HOTKEY_FREE_SETTINGS = '[[outputs]]\nid = "paste_and_send"\nhotkey = "<ctrl>+<alt>+s"\n'
+"""録音開始のホットキーと同じホットキーの出力先を持たない設定（録音開始のホットキーで隠した画面を戻せる）。"""
+
+RESTORE_MEANS = ["tray_icon", "tray_menu", "start_hotkey"]
+"""隠した録音の画面を戻す手段。"""
+
+
+def _shift_inside(rect: tuple[int, int, int, int]) -> tuple[int, int]:
+    """録音の画面を MOVE_DISTANCE_PX だけ動かして作業領域に収まる向きを選び、動かす量（横・縦）を返す。"""
+    work = next(monitor for monitor in monitors() if monitor.contains(rect)).work
+    dx, dy = MOVE_DISTANCE_PX
+    dx = -dx if rect[0] - dx >= work[0] and rect[2] + dx > work[2] else dx
+    dy = -dy if rect[1] - dy >= work[1] and rect[3] + dy > work[3] else dy
+    return dx, dy
+
+
+def _restore_window(app: AppDriver, means: str) -> None:
+    """隠した録音の画面を、手段（トレイのアイコンの左クリック・メニューの「録音の画面を出す」・録音開始のホットキー）で戻す。"""
+    if means == "tray_icon":
+        app.click_tray_icon()
+    elif means == "tray_menu":
+        app.choose_tray_menu("menu_show_window")
+    else:
+        press_hotkey(START_HOTKEY)
+    app.wait_window("recording_window")
+
+
+def _hide_window(app: AppDriver) -> None:
+    """録音の画面の「隠す」を押し、画面が消えて、トレイが録音中のまま、前面が貼り付け先へ戻るのを確かめる。"""
+    app.press("hide_button")
+    assert app.wait_window_gone("recording_window")
+    assert app.tray_state() == RECORDING
+    assert _paste_target_is_foreground()
+
+
+def test_normal_when_move_window(start_app: StartApp, paste_target: PasteTarget) -> None:
+    """録音の画面の見出しの行をドラッグすると、放した位置へ動き、録音も経過時間も止まらず、動かした後も録音の画面のボタンで確定できる（正常シナリオ）。"""
+    # 準備（起こした文字は貼り付けず、録音の長さだけを見る）
+    app = start_app(PASTE_AND_SEND_ONLY + NO_SPEECH_SETTINGS)
+    begin_recording(app, paste_target)
+    before = app.recording_rect()
+    elapsed_before = _elapsed_seconds(app.label("elapsed_label"))
+    dx, dy = _shift_inside(before)
+    grab = app.uia.center(app.wait_window("state_label"))
+
+    # 実行
+    drag(grab, (grab[0] + dx, grab[1] + dy))
+    time.sleep(1.5)
+
+    # 検証（位置と、録音が続いていること）
+    after = app.recording_rect()
+    assert abs(after[0] - before[0] - dx) <= MOVE_TOLERANCE_PX
+    assert abs(after[1] - before[1] - dy) <= MOVE_TOLERANCE_PX
+    assert _elapsed_seconds(app.label("elapsed_label")) > elapsed_before
+    assert app.tray_state() == RECORDING
+
+    # 実行・検証（動かした後も確定できる）
+    speak_and_confirm(app)
+    assert app.wait_window_gone("recording_window")
+    wait_processed(app)
+    assert len(app.service.history_files(".wav")) == 1
+
+
+@pytest.mark.parametrize("means", RESTORE_MEANS)
+@pytest.mark.parametrize("pause", [False, True], ids=["nothing", "pause"])
+def test_normal_when_hide_and_restore(
+    start_app: StartApp, paste_target: PasteTarget, pause: bool, means: str
+) -> None:
+    """録音の画面を隠しても録音は続き、戻すと隠していた間を含む経過時間と今の状態のまま、フォーカスを取らずに出る。隠している間に一時停止すると、戻した画面が一時停止中を示し、経過時間はそのとき止まっている（正常シナリオ）。"""
+    # 準備（起こした文字は貼り付けず、録音の長さだけを見る）
+    settings = START_HOTKEY_FREE_SETTINGS if means == "start_hotkey" else PASTE_AND_SEND_ONLY
+    app = start_app(settings + NO_SPEECH_SETTINGS)
+    started_at = time.monotonic()
+    begin_recording(app, paste_target)
+
+    # 実行（隠して、隠している間に話すか一時停止し、戻す）
+    _hide_window(app)
+    hidden_at = time.monotonic()
+    if pause:
+        press_hotkey(PAUSE_HOTKEY)
+        paused_elapsed_sec = time.monotonic() - started_at
+        time.sleep(HIDDEN_SEC)
+    else:
+        speak(SPEECH_TEXT)
+        time.sleep(HIDDEN_SEC)
+    hidden_sec = time.monotonic() - hidden_at
+    _restore_window(app, means)
+    wall_sec = time.monotonic() - started_at
+
+    # 検証（戻した画面の経過時間・状態と、前面）
+    elapsed_sec = _elapsed_seconds(app.label("elapsed_label"))
+    if pause:
+        assert "一時停止中" in app.label("state_label")
+        assert abs(elapsed_sec - paused_elapsed_sec) <= ELAPSED_TOLERANCE_SEC
+    else:
+        assert "録音中" in app.label("state_label")
+        assert abs(elapsed_sec - wall_sec) <= ELAPSED_TOLERANCE_SEC
+    # 戻した録音の画面はフォーカスを取らない。録音開始のホットキーで戻したときは、前面が貼り付け先のまま
+    # （トレイを操作して戻したときは、トレイの操作で前面がタスクバー側へ移るため、貼り付け先かは問わない）
+    assert foreground_hwnd() != app.recording_hwnd()
+    if means == "start_hotkey":
+        assert _paste_target_is_foreground()
+
+    # 実行・検証（戻した後も確定でき、隠していた間に話した声が録られている）
+    app.press(PASTE_AND_SEND_BUTTON)
+    assert app.wait_window_gone("recording_window")
+    wait_processed(app)
+    [recording] = app.service.history_files(".wav")
+    if not pause:
+        assert _wav_duration_sec(recording) >= hidden_sec - ELAPSED_TOLERANCE_SEC
+
+
+def test_normal_when_confirm_while_hidden(start_app: StartApp, paste_target: PasteTarget) -> None:
+    """録音の画面を隠したまま確定のホットキー（貼り付けて送信）で確定でき、文字起こしへ進み、次の録音では録音の画面がいつもどおり出る（正常シナリオ）。"""
+    # 準備
+    app = start_app(PASTE_AND_SEND_ONLY)
+    begin_recording(app, paste_target)
+    _hide_window(app)
+    speak(SPEECH_TEXT)
+
+    # 実行（既定の設定では、録音開始のホットキーが「貼り付けて送信」のホットキー）
+    press_hotkey(START_HOTKEY)
+
+    # 検証（確定して文字起こしへ進む）
+    assert wait_pasted(paste_target), "文字起こしへ進んでいない（スピーカーの音をマイクが拾えない環境ではないか）"
+    wait_processed(app)
+    assert len(app.service.history_files(".wav")) == 1
+
+    # 実行・検証（次の録音では録音の画面が出る）
+    begin_recording(app, paste_target)
+    assert app.window("recording_window") is not None
+    app.press("cancel_button")
+    assert app.wait_window_gone("recording_window")
+
+
+def test_normal_when_cancel_while_hidden(
+    start_app: StartApp, paste_target: PasteTarget, clipboard_sentinel: str
+) -> None:
+    """録音の画面を隠したまま取り消しのホットキーで取り消すと、録音を捨てて待機中に戻り、次の録音では録音の画面がいつもどおり出る（正常シナリオ）。"""
+    # 準備
+    app = start_app(PASTE_AND_SEND_ONLY)
+    begin_recording(app, paste_target)
+    _hide_window(app)
+
+    # 実行
+    press_hotkey(CANCEL_HOTKEY)
+
+    # 検証（取り消されて文字起こしへ進まない）
+    app.wait_tray_state(IDLE)
+    assert app.service.history_files(".wav") == []
+    assert pyperclip.paste() == clipboard_sentinel
+
+    # 実行・検証（次の録音では録音の画面が出る）
+    begin_recording(app, paste_target)
+    assert app.window("recording_window") is not None
+    app.press("cancel_button")
+    assert app.wait_window_gone("recording_window")
+    app.wait_tray_state(IDLE)

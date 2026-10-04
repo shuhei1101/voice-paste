@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>トレイ | voice-paste のモック</title>
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+</head>
+<body>
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">tray</a> / <a href="../">48</a> / <span>a-show-item</span></nav>
+
+    <!-- 画面の説明 -->
+    <header class="intro">
+      <h1>トレイ</h1>
+      <p>#37 のトレイのメニューの「録音を始める」の下に「録音の画面を出す」を足したもの。隠した録音の画面を戻すときだけ押せ、そのあいだはアイコンの左クリックも同じ操作になる。アイコンとほかの項目は #37 のまま。</p>
+    </header>
+
+    <div class="desk">
+
+      <!-- 場面: 録音中（録音の画面を隠している） -->
+      <section class="specimen" aria-labelledby="h-hidden">
+        <h2 id="h-hidden">録音中（録音の画面を隠している）</h2>
+        <ul class="win menu" role="menu" aria-label="トレイのメニュー（録音の画面を隠している）">
+          <li role="none"><span role="menuitem" class="menu__item" aria-disabled="true">録音を始める（処理中） <kbd>Ctrl+Alt+D</kbd></span></li>
+          <li role="none"><a role="menuitem" class="menu__item menu__item--default" href="../../../recording-window/48/a-head-controls/index.html#h-restored">録音の画面を出す</a></li>
+          <li role="separator" class="menu__sep"></li>
+          <li role="none"><span role="menuitem" class="menu__item" aria-disabled="true">設定…（処理中）</span></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">設定フォルダを開く</span></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">ログフォルダを開く</span></li>
+          <li role="separator" class="menu__sep"></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">再起動</span></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">終了</span></li>
+        </ul>
+        <p class="scene-note">アイコンの左クリックが「録音の画面を出す」と同じになるため、この項目を既定の項目（太字）にする。録音の画面は隠す前の位置に、フォーカスを取らずに出る。</p>
+      </section>
+
+      <!-- 場面: 録音中（録音の画面が出ている） -->
+      <section class="specimen" aria-labelledby="h-shown">
+        <h2 id="h-shown">録音中（録音の画面が出ている）</h2>
+        <ul class="win menu" role="menu" aria-label="トレイのメニュー（録音の画面が出ている）">
+          <li role="none"><span role="menuitem" class="menu__item" aria-disabled="true">録音を始める（処理中） <kbd>Ctrl+Alt+D</kbd></span></li>
+          <li role="none"><span role="menuitem" class="menu__item" aria-disabled="true">録音の画面を出す（表示中）</span></li>
+          <li role="separator" class="menu__sep"></li>
+          <li role="none"><span role="menuitem" class="menu__item" aria-disabled="true">設定…（処理中）</span></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">設定フォルダを開く</span></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">ログフォルダを開く</span></li>
+          <li role="separator" class="menu__sep"></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">再起動</span></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">終了</span></li>
+        </ul>
+        <p class="scene-note">録音の画面が出ているあいだは押せず、項目名に理由を出す。アイコンの左クリックは #37 と同じく何もしない。</p>
+      </section>
+
+      <!-- 場面: 画面を出さない録音（設定で出さない・API から始めた） -->
+      <section class="specimen" aria-labelledby="h-nowindow">
+        <h2 id="h-nowindow">画面を出さない録音</h2>
+        <ul class="win menu" role="menu" aria-label="トレイのメニュー（画面を出さない録音）">
+          <li role="none"><span role="menuitem" class="menu__item" aria-disabled="true">録音を始める（処理中） <kbd>Ctrl+Alt+D</kbd></span></li>
+          <li role="none"><span role="menuitem" class="menu__item" aria-disabled="true">録音の画面を出す（画面を出さない録音）</span></li>
+          <li role="separator" class="menu__sep"></li>
+          <li role="none"><span role="menuitem" class="menu__item" aria-disabled="true">設定…（処理中）</span></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">設定フォルダを開く</span></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">ログフォルダを開く</span></li>
+          <li role="separator" class="menu__sep"></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">再起動</span></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">終了</span></li>
+        </ul>
+        <p class="scene-note">録音の画面を出さない設定の録音と、API から始めた録音。戻す画面が無いため押せず、アイコンの左クリックも何もしない。</p>
+      </section>
+
+      <!-- 場面: 待機中・文字起こし中 -->
+      <section class="specimen" aria-labelledby="h-idle">
+        <h2 id="h-idle">待機中・文字起こし中</h2>
+        <ul class="win menu" role="menu" aria-label="トレイのメニュー（待機中）">
+          <li role="none"><a role="menuitem" class="menu__item menu__item--default" href="../../../recording-window/48/a-head-controls/index.html">録音を始める <kbd>Ctrl+Alt+D</kbd></a></li>
+          <li role="none"><span role="menuitem" class="menu__item" aria-disabled="true">録音の画面を出す（録音していません）</span></li>
+          <li role="separator" class="menu__sep"></li>
+          <li role="none"><a role="menuitem" class="menu__item" href="../../../settings/37/a-standard/index.html">設定…</a></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">設定フォルダを開く</span></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">ログフォルダを開く</span></li>
+          <li role="separator" class="menu__sep"></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">再起動</span></li>
+          <li role="none"><span role="menuitem" class="menu__item" tabindex="-1">終了</span></li>
+        </ul>
+        <p class="scene-note">待機中のメニュー。文字起こし中は「録音を始める」と「設定…」が #37 のとおり（処理中）になり、「録音の画面を出す」は同じく（録音していません）で押せない。準備に失敗した起動も同じく押せない。</p>
+      </section>
+
+    </div>
+  </main>
+</body>
+</html>

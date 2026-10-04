@@ -9,6 +9,9 @@ from PySide6.QtCore import QObject, Signal
 
 logger = logging.getLogger(__name__)
 
+INFO_EVENTS: frozenset[str] = frozenset({"state_changed", "show_recording_window"})
+"""ログを INFO で出す知らせの種類（それ以外は失敗・断りで WARNING）。"""
+
 
 class UiBridge(QObject):
     """ほかのスレッドからの知らせを Signal でメインスレッドへ渡す。画面の部品はメインスレッドだけが触る。
@@ -31,14 +34,15 @@ def notify(
         "transcription_failed",
         "delivery_failed",
         "api_unavailable",
+        "show_recording_window",
     ],
     detail: str | None = None,
     *,
     bridge: UiBridge,
 ) -> None:
     """UiBridge.notified を emit して、メインスレッドでトレイのアイコン・ダイアログ・画面を変える。"""
-    # 状態の変化は INFO、それ以外（失敗・断り）は WARNING
-    level = logging.INFO if event == "state_changed" else logging.WARNING
+    # 状態の変化と録音の画面を戻す指示は INFO、それ以外（失敗・断り）は WARNING
+    level = logging.INFO if event in INFO_EVENTS else logging.WARNING
     logger.log(level, f"ユーザーへの知らせ（{event}・{detail}）")
     bridge.notified.emit(event, detail)
 

@@ -76,11 +76,12 @@ def start_app(start_service: Callable[..., RealService]) -> Iterator[Callable[..
         prepare: Callable[[Path], None] | None = None,
     ) -> AppDriver:
         """設定を足して起動し、待機中を待つ。prepare は起動の前に置き場所へファイルを用意する関数。"""
-        others = get_uia().tray_tooltips()
+        # タスクバーで読めても、隠れたアイコンの一覧の中のアイコンを読み落とさない
+        others = get_uia().tray_tooltips(include_hidden=True)
         if others:
             pytest.skip(
-                "ほかの voice-paste（普段使いの旧版など）のトレイのアイコンが出ている（ヒント: "
-                f"{', '.join(others)}）。同じ実行ファイルのアイコンは 1 つのボタンにまとまり、この常駐アプリのメニューを開けないため、終了してから実行する"
+                "ほかの voice-paste（普段使いの旧版など）のトレイのアイコンが出ている（今のヒント: "
+                f"{', '.join(others)}）。ホットキーを両方が受け、この常駐アプリのアイコンと見分けにくいため、終了してから実行する"
             )
         service = start_service(
             extra_settings,

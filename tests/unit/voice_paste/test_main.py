@@ -798,7 +798,7 @@ def test_build_hotkey_bindings_when_idle() -> None:
     session_manager = MagicMock()
     session_manager.current.return_value = None
     start_local_session = MagicMock()
-    bindings = build_hotkey_bindings(Settings(), session_manager, start_local_session)
+    bindings = build_hotkey_bindings(Settings(), session_manager, start_local_session, MagicMock())
 
     # 実行
     bindings["<ctrl>+<alt>+d"]()
@@ -817,7 +817,10 @@ def test_build_hotkey_bindings_when_recording() -> None:
     session_manager = MagicMock()
     session_manager.current.return_value = make_session("hotkey", "recording")
     start_local_session = MagicMock()
-    bindings = build_hotkey_bindings(Settings(), session_manager, start_local_session)
+    show_recording_window = MagicMock()
+    bindings = build_hotkey_bindings(
+        Settings(), session_manager, start_local_session, show_recording_window
+    )
 
     # 実行
     bindings["<ctrl>+<alt>+d"]()
@@ -825,10 +828,11 @@ def test_build_hotkey_bindings_when_recording() -> None:
     # 検証
     session_manager.complete.assert_called_once_with(output_id="paste_and_send")
     start_local_session.assert_not_called()
+    show_recording_window.assert_not_called()
 
 
 def test_build_hotkey_bindings_when_recording_without_confirm_output() -> None:
-    """貼り付けて送信がオフなら、録音中の開始のホットキーは何もしない（正常系）。"""
+    """貼り付けて送信がオフなら、録音中の開始のホットキーは録音の画面を戻す指示を出す（正常系）。"""
     from voice_paste.main import build_hotkey_bindings
     from voice_paste.shared.settings import (
         CopyOnlySettings,
@@ -844,12 +848,16 @@ def test_build_hotkey_bindings_when_recording_without_confirm_output() -> None:
     session_manager = MagicMock()
     session_manager.current.return_value = make_session("hotkey", "recording")
     start_local_session = MagicMock()
-    bindings = build_hotkey_bindings(settings, session_manager, start_local_session)
+    show_recording_window = MagicMock()
+    bindings = build_hotkey_bindings(
+        settings, session_manager, start_local_session, show_recording_window
+    )
 
     # 実行
     bindings["<ctrl>+<alt>+d"]()
 
     # 検証
+    show_recording_window.assert_called_once()
     start_local_session.assert_not_called()
     session_manager.complete.assert_not_called()
 
@@ -864,7 +872,7 @@ def test_build_hotkey_bindings_when_preset() -> None:
     session_manager = MagicMock()
     start_local_session = MagicMock()
     bindings = build_hotkey_bindings(
-        Settings(presets=[preset]), session_manager, start_local_session
+        Settings(presets=[preset]), session_manager, start_local_session, MagicMock()
     )
 
     # 実行
@@ -890,7 +898,7 @@ def test_build_hotkey_bindings_when_preset_not_bound() -> None:
     )
 
     # 実行
-    bindings = build_hotkey_bindings(settings, MagicMock(), MagicMock())
+    bindings = build_hotkey_bindings(settings, MagicMock(), MagicMock(), MagicMock())
 
     # 検証
     assert "<ctrl>+<alt>+7" not in bindings
@@ -905,7 +913,7 @@ def test_build_hotkey_bindings_when_paused() -> None:
     # 準備
     session_manager = MagicMock()
     session_manager.current.return_value = make_session("hotkey", "paused")
-    bindings = build_hotkey_bindings(Settings(), session_manager, MagicMock())
+    bindings = build_hotkey_bindings(Settings(), session_manager, MagicMock(), MagicMock())
 
     # 実行
     bindings["<ctrl>+<alt>+z"]()
@@ -931,7 +939,7 @@ def test_build_hotkey_bindings_when_output_disabled() -> None:
     )
 
     # 実行
-    bindings = build_hotkey_bindings(settings, MagicMock(), MagicMock())
+    bindings = build_hotkey_bindings(settings, MagicMock(), MagicMock(), MagicMock())
 
     # 検証
     assert "<ctrl>+<alt>+c" not in bindings

@@ -319,9 +319,10 @@ class Uia:
             element = self.automation.GetRootElement().FindFirst(
                 self.client.TreeScope_Descendants, condition
             )
-            if element is not None:
+            # 見つからなければ comtypes は None でなく空のポインタを返す（真偽は偽）
+            if element:
                 holder.append(element)
-            return element is not None
+            return bool(element)
 
         return holder[-1] if wait_until(_found, timeout_sec) else None
 

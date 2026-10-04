@@ -44,3 +44,5 @@ items:
     summary: 新しい構成の import の向きを検査する
   - page: av.yaml
     summary: faster-whisper が録音を読むために使う、FFmpeg の Python バインディング
+  - page: pywin32.yaml
+    summary: テストが Windows のウィンドウ・マウス・キーを操作する

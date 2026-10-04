@@ -30,5 +30,6 @@
 | [platformdirs](./platformdirs.yaml) | 設定・履歴・ログの置き場所を Windows の慣習で引く |
 | [import-linter](./import-linter.yaml) | 新しい構成の import の向きを検査する |
 | [av](./av.yaml) | faster-whisper が録音を読むために使う、FFmpeg の Python バインディング |
+| [pywin32](./pywin32.yaml) | テストが Windows のウィンドウ・マウス・キーを操作する |
 
 <!-- /table -->

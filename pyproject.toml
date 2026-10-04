@@ -9,6 +9,7 @@ description = "音声入力＆自動貼り付けツール"
 requires-python = ">=3.11"
 dependencies = [
     "faster-whisper~=1.0",
+    "av>=11,<19",
     "sounddevice~=0.5",
     "scipy~=1.13",
     "pyperclip~=1.9",
@@ -31,6 +32,7 @@ dependencies = [
 dev = [
     "pytest~=9.1",
     "import-linter~=2.15",
+    "pywin32~=312.0",
 ]
 
 [project.scripts]

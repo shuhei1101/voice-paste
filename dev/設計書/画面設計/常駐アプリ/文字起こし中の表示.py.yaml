@@ -4,7 +4,7 @@ elements:
     id: transcribing_indicator
     kind: window
     position: 窓
-    description: 文字起こし中の表示の窓。録音の画面と同じ位置に出し、フォーカスを取らない（貼り付け先の入力欄からフォーカスを奪わない）。録音の画面を動かした回は確定した時点の録音の画面の位置に、隠したまま確定した回も隠す前の位置に出す
+    description: 文字起こし中の表示の窓。録音の画面と同じ設定の位置に出し、フォーカスを取らない（貼り付け先の入力欄からフォーカスを奪わない）。録音の画面を動かした回は、確定した時点の録音の画面の位置（隠したまま確定した回は隠す前の位置）に出す
     visible_when: ホットキー・トレイから始めたセッションが transcribing か delivering の間（`recording.hide_window` がオフのとき）。API から始めた録音では出さない
     source: UiBridge.notified（state_changed）
     refs:

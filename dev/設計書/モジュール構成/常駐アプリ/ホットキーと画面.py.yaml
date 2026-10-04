@@ -243,7 +243,7 @@ classes:
           1. state_changed の場合、今のセッションを引き（current_session）、説明の表のとおりにトレイ・録音の画面・文字起こし中の表示を変える
              - セッションが無く、待たせた再起動・終了がある場合、それを行う（request_restart か request_quit）
              - 録音の画面を隠している場合、窓は出さずに状態の表示だけを替える（RecordingWindow.set_paused）
-             - transcribing・delivering で文字起こし中の表示を出す場合、録音の画面の最後の位置（RecordingWindow.last_position）を渡す（TranscribingIndicator.open）
+             - transcribing・delivering で文字起こし中の表示を出す場合、その回に録音の画面を動かしていれば動かした位置（RecordingWindow.moved_position）を渡す。動かしていなければ渡さず、設定の位置に出す（TranscribingIndicator.open）
              - 最後に、トレイの「録音の画面を出す」を今の状態に合わせる（Tray.set_recording_window）
           2. busy の場合、処理中のダイアログを出す（show_busy_dialog）
           3. show_recording_window の場合、隠した録音の画面を戻す（show_recording）
@@ -295,8 +295,8 @@ classes:
             expected: RecordingWindow.set_paused(True) が呼ばれ、RecordingWindow.open・restore が呼ばれず、Tray.set_recording_window(hidden) が呼ばれる
           - name: test_on_notified_when_transcribing_after_hidden
             case: 正常
-            summary: 隠したまま確定した回も、文字起こし中の表示を録音の画面の最後の位置に出す
-            condition: hide_recording の後、current_session が hotkey・transcribing を返す state_changed を受ける。RecordingWindow.last_position が QPoint(300, 200) を返す
+            summary: 動かして隠したまま確定した回も、文字起こし中の表示を動かした位置に出す
+            condition: hide_recording の後、current_session が hotkey・transcribing を返す state_changed を受ける。RecordingWindow.moved_position が QPoint(300, 200) を返す
             mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
             expected: TranscribingIndicator.open(at=QPoint(300, 200)) が呼ばれ、Tray.set_recording_window(not_recording) が呼ばれる
           - name: test_on_notified_when_show_recording_window
@@ -305,6 +305,12 @@ classes:
             condition: hide_recording の後、event=show_recording_window
             mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
             expected: RecordingWindow.restore が 1 回呼ばれ、Tray.set_recording_window(shown) が呼ばれる
+          - name: test_on_notified_when_transcribing_without_move
+            case: 正常
+            summary: 動かしていない回は、文字起こし中の表示を設定の位置に出す
+            condition: current_session が hotkey・recording を返す state_changed の後、hotkey・transcribing を返す state_changed を受ける。RecordingWindow.moved_position が None を返す
+            mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
+            expected: TranscribingIndicator.open(at=None) が呼ばれる
       - name: on_progressed
         title: 進みの受け取り
         summary: UiBridge.progressed のスロット。文字起こし中の表示が出ていれば進みを渡す
@@ -641,7 +647,7 @@ classes:
       要素は画面設計「録音の画面」が持つ。
       窓は `Qt.Tool | Qt.FramelessWindowHint`（`ui.topmost` がオンなら `Qt.WindowStaysOnTopHint` を足す）、`WA_ShowWithoutActivating` で出し、出したときにフォーカスを取らない。
       経過時間は窓が持つストップウォッチ（QElapsedTimer を一時停止の間だけ止める）で数え、経過時間と波形は WAVE_INTERVAL_MS ごとの QTimer で描き直す。
-      見出しの行（状態・経過時間・隠す・×）は、隠す・× の外を押したまま動かすと `QWindow.startSystemMove` で窓を動かす。× は「取り消す」と同じく UiDeps.cancel を呼んで閉じ、「隠す」は hide_requested を emit する（隠すのは UiController）。
+      見出しの行（状態・経過時間・隠す・×）は、隠す・× の外を押したまま動かすと `QWindow.startSystemMove` で窓を動かし、その回に動かした印を立てる（open で下ろす）。× は「取り消す」と同じく UiDeps.cancel を呼んで閉じ、「隠す」は hide_requested を emit する（隠すのは UiController）。
       コンストラクタは UiDeps を受ける。
     kind: クラス
     inherits: PySide6.QtWidgets.QWidget
@@ -706,15 +712,15 @@ classes:
           type: None
           description: なし
         status: implemented
-      - name: last_position
-        title: 最後の位置
-        summary: 窓の最後の左上の座標を返す（動かしていれば動かした位置、隠していれば隠す前の位置）
+      - name: moved_position
+        title: 動かした位置
+        summary: その回に窓を動かしていれば、窓の左上の座標（隠していれば隠す前の位置）を返す。動かしていなければ None を返す
         kind: メソッド
         scope: public
         returns:
-          type: QPoint
-          description: 窓の左上の座標
-        status: implemented
+          type: QPoint | None
+          description: その回に動かした窓の左上の座標。動かしていなければ None
+        status: planned
     refs:
       - dev/設計書/画面設計/常駐アプリ/録音の画面.py#
     status: implemented
@@ -735,7 +741,7 @@ classes:
     methods:
       - name: open
         title: 表示を出す
-        summary: 経過を 0 にして進みを隠し、録音の画面と同じ位置に出す。at を渡されたらその座標に、渡されなければ設定の位置（place_window）に出す
+        summary: 経過を 0 にして進みを隠して出す。at を渡されたらその座標（その回に動かした録音の画面の位置）に、渡されなければ設定の位置（place_window）に出す
         kind: メソッド
         scope: public
         args:
@@ -744,7 +750,7 @@ classes:
             required: false
             default: None
             passing: keyword
-            description: 出す左上の座標（録音の画面の最後の位置）
+            description: 出す左上の座標（その回に動かした録音の画面の位置）
         returns:
           type: None
           description: なし

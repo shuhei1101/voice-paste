@@ -55,6 +55,8 @@ PAUSE_AFTER_CLICK_SEC = 0.3
 POWERSHELL_TIMEOUT_SEC = 30.0
 MOUSE_SETTLE_SEC = 0.05
 KEY_SETTLE_SEC = 0.05
+DRAG_STEPS = 20
+"""ドラッグで、始点から終点まで分けて動かす回数。"""
 
 
 def wait_until(condition: Callable[[], Any], timeout_sec: float = UI_TIMEOUT_SEC) -> bool:
@@ -426,6 +428,21 @@ def move_cursor(x: int, y: int) -> None:
     """マウスのカーソルを動かす。"""
     win32api.SetCursorPos((x, y))
     time.sleep(MOUSE_SETTLE_SEC)
+
+
+def drag(start: tuple[int, int], end: tuple[int, int]) -> None:
+    """マウスの左ボタンを start で押し、end まで少しずつ動かして放す（窓のドラッグ）。座標は物理ピクセル。"""
+    win32api.SetCursorPos(start)
+    time.sleep(MOUSE_SETTLE_SEC)
+    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
+    time.sleep(MOUSE_SETTLE_SEC)
+    for step in range(1, DRAG_STEPS + 1):
+        x = start[0] + (end[0] - start[0]) * step // DRAG_STEPS
+        y = start[1] + (end[1] - start[1]) * step // DRAG_STEPS
+        win32api.SetCursorPos((x, y))
+        time.sleep(MOUSE_SETTLE_SEC)
+    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
+    time.sleep(PAUSE_AFTER_CLICK_SEC)
 
 
 def type_keys(hotkey: str) -> None:

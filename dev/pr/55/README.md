@@ -1,0 +1,1 @@
+# faster-whisper と組める PyAV の版を依存に宣言する

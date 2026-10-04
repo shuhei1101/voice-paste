@@ -1,0 +1,55 @@
+title: "pywin32"
+kind: "ライブラリ"
+version:
+  current: '312'
+  latest: '312'
+  checked_on: '2026-10-05'
+  source: pyproject.toml の [dependency-groups].dev（~=312.0）
+  pinning: 互換リリースの範囲で固定（~=312.0。dev グループの既存の行に揃える。pywin32 の版は整数 1 つなので、小数点以下を添えて 312.* の範囲にする）
+catalogs:
+  - name: API
+    version: '312'
+    entries:
+      - name: win32api.SetCursorPos / mouse_event / keybd_event
+        kind: 関数
+        purpose: マウスの位置を動かし、ボタンとキーの押下を合成する
+      - name: win32api.EnumDisplayMonitors / GetMonitorInfo
+        kind: 関数
+        purpose: モニターの一覧と各モニターの領域を取る
+      - name: win32gui.EnumWindows / FindWindow / GetWindowText / IsWindowVisible
+        kind: 関数
+        purpose: ウィンドウを列挙して探し、題名と表示の有無を読む
+      - name: win32gui.GetForegroundWindow / SetForegroundWindow / ShowWindow
+        kind: 関数
+        purpose: 前面のウィンドウを読み、ウィンドウを前面に戻して表示する
+      - name: win32gui.PostMessage
+        kind: 関数
+        purpose: ウィンドウへメッセージを送る（WM_CLOSE で閉じる）
+      - name: win32process.GetWindowThreadProcessId
+        kind: 関数
+        purpose: ウィンドウを持つプロセスの ID を取る
+      - name: win32con
+        kind: 定数
+        purpose: マウス・キー・ウィンドウの操作に渡す定数（MOUSEEVENTF_*・KEYEVENTF_KEYUP・VK_MENU・SW_SHOW・WM_CLOSE）
+      - name: win32com.client.Dispatch
+        kind: 関数
+        purpose: COM のオブジェクトを名前で作って呼ぶ（Shell.Application でエクスプローラーの窓を引いて閉じ、SAPI.SpVoice で文字を読み上げる）
+lead: Windows の API（Win32）を Python から呼ぶライブラリ。
+purl: pkg:pypi/pywin32
+dependency_scope: 開発のみ
+adoption: 採用
+used_in:
+  - tests/support/desktop.py
+  - tests/support/browser_target.py
+upstream: mhammond/pywin32
+verification:
+  state: 済
+  date: '2026-10-05'
+  detail: 新しく作った Windows の venv（Python 3.14）へ `pip install "pywin32~=312.0"` で入れ、`win32api`・`win32con`・`win32gui`・`win32process`・`win32com.client` を import でき、`win32com.client.Dispatch` で `Shell.Application` と `SAPI.SpVoice` を作れることを確かめた（入った版は 312）
+license: PSF（商用利用可）
+official_url: https://github.com/mhammond/pywin32
+docs_url: https://mhammond.github.io/pywin32/
+install: |-
+  ```bash
+  pip install -e . --group dev
+  ```

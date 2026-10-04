@@ -48,6 +48,9 @@ AUTOMATION_CLSID = "{ff48dba4-60ef-4201-aa87-54103eef594e}"
 HIDDEN_ICONS_BUTTON_NAMES = ("非表示のアイコンを表示する", "隠れているインジケーターを表示する", "Show Hidden Icons")
 """隠れたアイコンの一覧を開くボタンの名前（Windows の版・言語ごと）。"""
 
+CLOSE_POPUP_HOTKEY = "<esc>"
+"""開いたポップアップ（隠れたアイコンの一覧）を閉じるキー。"""
+
 TRAY_TOOLTIP_PREFIX = "voice-paste:"
 """トレイのアイコンのヒントの先頭（`voice-paste: 待機中` など）。"""
 
@@ -316,9 +319,10 @@ class Uia:
             element = self.automation.GetRootElement().FindFirst(
                 self.client.TreeScope_Descendants, condition
             )
-            if element is not None:
+            # 見つからなければ comtypes は None でなく空のポインタを返す（真偽は偽）
+            if element:
                 holder.append(element)
-            return element is not None
+            return bool(element)
 
         return holder[-1] if wait_until(_found, timeout_sec) else None
 
@@ -327,15 +331,14 @@ class Uia:
     def tray_tooltips(self) -> list[str]:
         """トレイのアイコンのヒントの状態の名前を並べる（`voice-paste: 待機中` なら `待機中`）。
 
-        隠れたアイコンの一覧を開かずに、タスクバーのボタン（隠れたアイコンは 1 つのボタンにヒントが並ぶ）から読む。
+        まずタスクバーのボタン（隠れたアイコンは 1 つのボタンにヒントが並ぶ）から読む。
+        読めなければ隠れたアイコンの一覧を開いて、一覧の中のボタンから読む。
         普段使いの旧版の常駐アプリのアイコンのヒントも並ぶ。
         """
-        tooltips: list[str] = []
-        for button in self._tray_buttons():
-            for part in str(button.CurrentName).split(TRAY_TOOLTIP_PREFIX):
-                if part.strip():
-                    tooltips.append(part.strip())
-        return tooltips
+        tooltips = self._tooltips_of(self._tray_buttons())
+        if tooltips:
+            return tooltips
+        return self._hidden_tray_tooltips()
 
     def tray_icon_buttons(self) -> list[Any]:
         """トレイのアイコンのボタン（ヒントが `voice-paste:` で 1 つだけのもの）を並べる。
@@ -345,20 +348,58 @@ class Uia:
         icons = self._single_icons()
         if icons:
             return icons
+        chevron = self._hidden_icons_button()
+        if chevron is None:
+            return []
+        self.click_center(chevron)
+        time.sleep(PAUSE_AFTER_CLICK_SEC * 2)
+        return self._single_icons()
+
+    def _hidden_tray_tooltips(self) -> list[str]:
+        """隠れたアイコンの一覧を開いてヒントの状態を読み、読んだ後は一覧を閉じて開く前の前面のウィンドウへ戻す。"""
+        chevron = self._hidden_icons_button()
+        if chevron is None:
+            # 隠れたアイコンの一覧を開くボタンが無い: 読めるヒントは無い
+            return []
+        previous = foreground_hwnd()
+        self.invoke(chevron)
+        time.sleep(PAUSE_AFTER_CLICK_SEC)
+        try:
+            return self._tooltips_of(self._tray_buttons())
+        finally:
+            # 一覧が前面に出ているときだけ Escape で閉じる（出ていなければ、ほかのウィンドウへ Escape を送らない）
+            if foreground_hwnd() != previous:
+                type_keys(CLOSE_POPUP_HOTKEY)
+                time.sleep(PAUSE_AFTER_CLICK_SEC)
+            # 閉じても前面が戻らないときは、開く前の前面のウィンドウを前面に戻す
+            if foreground_hwnd() != previous and win32gui.IsWindow(previous):
+                force_foreground(previous)
+
+    def _hidden_icons_button(self) -> Any | None:
+        """隠れたアイコンの一覧を開くボタンを返す（無ければ None）。"""
         for name in HIDDEN_ICONS_BUTTON_NAMES:
             condition = self.automation.CreatePropertyConditionEx(
                 self.client.UIA_NamePropertyId,
                 name,
                 self.client.PropertyConditionFlags_MatchSubstring,
             )
-            chevron = self.automation.GetRootElement().FindFirst(
+            button = self.automation.GetRootElement().FindFirst(
                 self.client.TreeScope_Descendants, condition
             )
-            if chevron is not None:
-                self.click_center(chevron)
-                time.sleep(PAUSE_AFTER_CLICK_SEC * 2)
-                return self._single_icons()
-        return []
+            # 見つからなければ comtypes は None でなく空のポインタを返す（真偽は偽）
+            if button:
+                return button
+        return None
+
+    @staticmethod
+    def _tooltips_of(buttons: Iterable[Any]) -> list[str]:
+        """トレイのボタンの名前から、ヒントの状態の名前を並べる。"""
+        tooltips: list[str] = []
+        for button in buttons:
+            for part in str(button.CurrentName).split(TRAY_TOOLTIP_PREFIX):
+                if part.strip():
+                    tooltips.append(part.strip())
+        return tooltips
 
     def _single_icons(self) -> list[Any]:
         """ヒントが `voice-paste:` で始まり、アイコン 1 つ分のボタンを並べる。"""

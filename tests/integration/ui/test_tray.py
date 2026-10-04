@@ -24,6 +24,8 @@ if TYPE_CHECKING:
 
 MENU_ORDER = (
     "menu_start",
+    "menu_show_window",
+    "",
     "menu_settings",
     "menu_open_settings_folder",
     "menu_open_log_folder",
@@ -152,11 +154,56 @@ def test_tray_icon_left_click(make_ui: Callable[..., Ui]) -> None:
     started.assert_called_once()
 
 
+def test_tray_icon_left_click_when_window_hidden(make_ui: Callable[..., Ui]) -> None:
+    """録音の画面を隠している間の左クリックは、「録音の画面を出す」と同じ（録音は始めない）。"""
+    # 準備
+    ui = make_ui()
+    _hide_recording(ui)
+
+    # 実行
+    ui.tray._icon.activated.emit(QSystemTrayIcon.ActivationReason.Trigger)
+
+    # 検証
+    assert ui.recording_window.isVisible()
+    ui.deps.start.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("entry", "state", "hide_window"),
+    [
+        pytest.param("hotkey", "recording", False, id="window_shown"),
+        pytest.param("hotkey", "recording", True, id="hide_window_setting"),
+        pytest.param("api", "recording", False, id="api_recording"),
+        pytest.param("hotkey", "transcribing", False, id="transcribing"),
+    ],
+)
+def test_tray_icon_left_click_when_not_hidden(
+    make_ui: Callable[..., Ui], entry: str, state: str, hide_window: bool
+) -> None:
+    """録音から届けるまでの間で、録音の画面を隠していないときの左クリックは何もしない。"""
+    from voice_paste.shared.settings import RecordingSettings, Settings
+
+    # 準備
+    ui = make_ui(Settings(recording=RecordingSettings(hide_window=hide_window)))
+    ui.notify_state(entry, state)
+    visible = ui.recording_window.isVisible()
+    show_requested = MagicMock()
+    ui.tray.show_window_requested.connect(show_requested)
+
+    # 実行
+    ui.tray._icon.activated.emit(QSystemTrayIcon.ActivationReason.Trigger)
+
+    # 検証
+    show_requested.assert_not_called()
+    ui.deps.start.assert_not_called()
+    assert ui.recording_window.isVisible() is visible
+
+
 # === menu ===
 
 
 def test_menu_order(make_ui: Callable[..., Ui]) -> None:
-    """メニューは、録音を始める・設定…・設定フォルダを開く・ログフォルダを開く・区切り・再起動・終了の順に並ぶ。"""
+    """メニューは、録音を始める・録音の画面を出す・区切り・設定…・設定フォルダを開く・ログフォルダを開く・区切り・再起動・終了の順に並ぶ。"""
     # 実行
     ui = make_ui()
 
@@ -237,6 +284,164 @@ def test_menu_start_action(make_ui: Callable[..., Ui]) -> None:
 
     # 検証
     ui.deps.start.assert_called_once()
+
+
+# === menu_show_window ===
+
+
+def _hide_recording(ui: Ui) -> None:
+    """ホットキーの録音の画面を出し、その回だけ隠す。"""
+    ui.notify_state("hotkey", "recording")
+    ui.controller.hide_recording()
+
+
+def test_menu_show_window_when_hidden(make_ui: Callable[..., Ui]) -> None:
+    """隠している間は「録音の画面を出す」を押せ、既定の項目として太字で出す（「録音を始める」は太字でない）。"""
+    # 準備
+    ui = make_ui()
+
+    # 実行
+    _hide_recording(ui)
+
+    # 検証
+    action = _action(ui.tray, "menu_show_window")
+    assert action.text() == "録音の画面を出す"
+    assert action.isEnabled()
+    assert action.font().bold()
+    assert not _action(ui.tray, "menu_start").font().bold()
+
+
+def test_menu_show_window_when_shown(make_ui: Callable[..., Ui]) -> None:
+    """録音の画面が出ている間は「録音の画面を出す（表示中）」にして押せず、太字を外す。"""
+    # 準備
+    ui = make_ui()
+
+    # 実行
+    ui.notify_state("hotkey", "recording")
+
+    # 検証
+    action = _action(ui.tray, "menu_show_window")
+    assert action.text() == "録音の画面を出す（表示中）"
+    assert not action.isEnabled()
+    assert not action.font().bold()
+
+
+def test_menu_show_window_when_hide_window_setting(make_ui: Callable[..., Ui]) -> None:
+    """画面を出さない設定の録音の間は「録音の画面を出す（画面を出さない録音）」にして押せない。"""
+    from voice_paste.shared.settings import RecordingSettings, Settings
+
+    # 準備
+    ui = make_ui(Settings(recording=RecordingSettings(hide_window=True)))
+
+    # 実行
+    ui.notify_state("hotkey", "recording")
+
+    # 検証
+    action = _action(ui.tray, "menu_show_window")
+    assert action.text() == "録音の画面を出す（画面を出さない録音）"
+    assert not action.isEnabled()
+
+
+@pytest.mark.parametrize("state", ["recording", "paused"])
+def test_menu_show_window_when_api_session(make_ui: Callable[..., Ui], state: str) -> None:
+    """API から始めた録音の間は「録音の画面を出す（画面を出さない録音）」にして押せない。"""
+    # 準備
+    ui = make_ui()
+
+    # 実行
+    ui.notify_state("api", state)
+
+    # 検証
+    action = _action(ui.tray, "menu_show_window")
+    assert action.text() == "録音の画面を出す（画面を出さない録音）"
+    assert not action.isEnabled()
+
+
+@pytest.mark.parametrize(
+    ("entry", "state"),
+    [
+        pytest.param(None, None, id="idle"),
+        pytest.param("hotkey", "transcribing", id="hotkey_transcribing"),
+        pytest.param("tray", "delivering", id="tray_delivering"),
+        pytest.param("api", "transcribing", id="api_transcribing"),
+    ],
+)
+def test_menu_show_window_when_not_recording(
+    make_ui: Callable[..., Ui], entry: str | None, state: str | None
+) -> None:
+    """待機中・文字起こし中は「録音の画面を出す（録音していません）」にして押せない。"""
+    # 準備
+    ui = make_ui()
+    ui.notify_state("hotkey", "recording")
+
+    # 実行
+    ui.notify_state(entry, state)
+
+    # 検証
+    action = _action(ui.tray, "menu_show_window")
+    assert action.text() == "録音の画面を出す（録音していません）"
+    assert not action.isEnabled()
+
+
+def test_menu_show_window_when_failed(make_ui: Callable[..., Ui]) -> None:
+    """文字起こしのエンジンを準備できなかった起動では「録音の画面を出す（録音していません）」にして押せない。"""
+    from voice_paste.ui.tray import TrayState
+
+    # 準備
+    ui = make_ui()
+
+    # 実行
+    ui.tray.set_failed()
+    ui.tray.set_state(TrayState.IDLE, busy=False)
+
+    # 検証
+    action = _action(ui.tray, "menu_show_window")
+    assert action.text() == "録音の画面を出す（録音していません）"
+    assert not action.isEnabled()
+
+
+def test_menu_show_window_when_next_recording(make_ui: Callable[..., Ui]) -> None:
+    """隠すのはその回だけで、次の録音では「録音の画面を出す（表示中）」に戻る。"""
+    # 準備
+    ui = make_ui()
+    _hide_recording(ui)
+    ui.notify_state(None)
+
+    # 実行
+    ui.notify_state("hotkey", "recording")
+
+    # 検証
+    assert _action(ui.tray, "menu_show_window").text() == "録音の画面を出す（表示中）"
+
+
+def test_menu_show_window_when_paused_while_hidden(make_ui: Callable[..., Ui]) -> None:
+    """隠している間に一時停止しても、押せるまま残る。"""
+    # 準備
+    ui = make_ui()
+    _hide_recording(ui)
+
+    # 実行
+    ui.notify_state("hotkey", "paused")
+
+    # 検証
+    action = _action(ui.tray, "menu_show_window")
+    assert action.text() == "録音の画面を出す"
+    assert action.isEnabled()
+
+
+def test_menu_show_window_action(make_ui: Callable[..., Ui]) -> None:
+    """「録音の画面を出す」を選ぶと、隠した録音の画面を戻し、項目は「（表示中）」に替わる。"""
+    # 準備
+    ui = make_ui()
+    _hide_recording(ui)
+
+    # 実行
+    _action(ui.tray, "menu_show_window").trigger()
+
+    # 検証
+    assert ui.recording_window.isVisible()
+    assert _action(ui.tray, "menu_show_window").text() == "録音の画面を出す（表示中）"
+    ui.deps.start.assert_not_called()
 
 
 # === menu_settings ===

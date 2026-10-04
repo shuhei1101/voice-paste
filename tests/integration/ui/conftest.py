@@ -5,8 +5,10 @@ from __future__ import annotations
 from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING
+from unittest.mock import MagicMock
 
 import pytest
+from PySide6.QtGui import QWindow
 
 from tests.integration.ui.helpers import Ui, build_ui
 
@@ -30,3 +32,11 @@ def make_ui(qapp: QApplication, tmp_path: Path) -> Iterator[Callable[..., Ui]]:
     yield _make
     for ui in built:
         ui.close()
+
+
+@pytest.fixture
+def system_move(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
+    """QWindow.startSystemMove を、OS に窓の移動を任せず呼ばれたことだけを控える偽物に替える。"""
+    start_system_move = MagicMock(return_value=True)
+    monkeypatch.setattr(QWindow, "startSystemMove", start_system_move)
+    return start_system_move

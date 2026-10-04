@@ -8,14 +8,15 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from typing import TYPE_CHECKING
+from unittest.mock import MagicMock
 
 import pytest
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QLabel, QPushButton, QWidget
 
-from tests.integration.ui.helpers import Ui, button_texts, find
+from tests.integration.ui.helpers import Ui, button_texts, find, grab_head_row, no_modal
 
 if TYPE_CHECKING:
     from voice_paste.shared.settings import Settings
@@ -592,4 +593,324 @@ def test_preset_button_action(make_ui: Callable[..., Ui], paused: bool) -> None:
 
     # 検証
     ui.deps.complete.assert_called_once_with(None, claude)
+    assert not ui.recording_window.isVisible()
+
+
+# === head_row ===
+
+
+def test_head_row_layout(make_ui: Callable[..., Ui]) -> None:
+    """見出しの行に、左端のつかむ印・状態の表示・経過時間・隠すと×のボタンを並べる。"""
+    from voice_paste.ui.windows.recording_window import GripIcon
+
+    # 実行
+    ui = _opened(make_ui)
+
+    # 検証
+    row = find(ui.recording_window, QWidget, "head_row")
+    assert isinstance(row.layout().itemAt(0).widget(), GripIcon)
+    for name, cls in (
+        ("state_label", QLabel),
+        ("elapsed_label", QLabel),
+        ("hide_button", QPushButton),
+        ("close_button", QPushButton),
+    ):
+        assert row.isAncestorOf(find(ui.recording_window, cls, name))
+
+
+def test_head_row_cursor(make_ui: Callable[..., Ui]) -> None:
+    """行にかざすと、カーソルが移動の形になる。"""
+    # 実行
+    ui = _opened(make_ui)
+
+    # 検証
+    row = find(ui.recording_window, QWidget, "head_row")
+    assert row.cursor().shape() == Qt.CursorShape.SizeAllCursor
+
+
+@pytest.mark.parametrize(
+    "label", [None, "state_label", "elapsed_label"], ids=["blank", "state", "elapsed"]
+)
+def test_head_row_action(
+    make_ui: Callable[..., Ui], system_move: MagicMock, label: str | None
+) -> None:
+    """行のどこをつかんでも（状態の表示・経過時間の上を含む）、窓の移動を OS に任せる（ドラッグで窓を動かす）。"""
+    # 準備
+    ui = _opened(make_ui)
+    row = find(ui.recording_window, QWidget, "head_row")
+    grabbed = row.rect().center()
+    if label is not None:
+        target = find(ui.recording_window, QLabel, label)
+        grabbed = target.mapTo(row, target.rect().center())
+
+    # 実行
+    QTest.mousePress(row, Qt.MouseButton.LeftButton, pos=grabbed)
+
+    # 検証
+    system_move.assert_called_once_with()
+
+
+def test_head_row_action_when_buttons_pressed(
+    make_ui: Callable[..., Ui], system_move: MagicMock
+) -> None:
+    """隠す・× の上はつかめない（押しても窓の移動を始めない）。"""
+    # 準備
+    ui = _opened(make_ui)
+
+    # 実行
+    QTest.mouseClick(
+        find(ui.recording_window, QPushButton, "hide_button"), Qt.MouseButton.LeftButton
+    )
+    ui.recording_window.open()
+    QTest.mouseClick(
+        find(ui.recording_window, QPushButton, "close_button"), Qt.MouseButton.LeftButton
+    )
+
+    # 検証
+    system_move.assert_not_called()
+
+
+def test_head_row_action_does_not_stop_recording(
+    make_ui: Callable[..., Ui], system_move: MagicMock
+) -> None:
+    """動かしている間も録音と経過時間は止めない。"""
+    # 準備
+    ui = _opened(make_ui)
+
+    # 実行
+    grab_head_row(ui.recording_window)
+    QTest.qWait(1200)
+
+    # 検証
+    assert find(ui.recording_window, QLabel, "elapsed_label").text() == "00:01"
+    ui.deps.pause.assert_not_called()
+    ui.deps.cancel.assert_not_called()
+    assert ui.recording_window.isVisible()
+
+
+def test_moved_position_when_dragged(make_ui: Callable[..., Ui], system_move: MagicMock) -> None:
+    """窓を動かした回は、放した位置を返す。"""
+    # 準備
+    ui = _opened(make_ui)
+    window = ui.recording_window
+    grab_head_row(window)
+
+    # 実行
+    window.move(window.pos() + QPoint(60, 40))
+
+    # 検証
+    assert window.moved_position() == window.pos()
+
+
+def test_moved_position_when_not_grabbed(make_ui: Callable[..., Ui]) -> None:
+    """見出しの行をつかんでいない回は、None を返す。"""
+    # 実行
+    ui = _opened(make_ui)
+
+    # 検証
+    assert ui.recording_window.moved_position() is None
+
+
+def test_moved_position_when_only_pressed(
+    make_ui: Callable[..., Ui], system_move: MagicMock
+) -> None:
+    """見出しの行を押しただけで位置が変わらない回は、None を返す。"""
+    # 準備
+    ui = _opened(make_ui)
+
+    # 実行
+    grab_head_row(ui.recording_window)
+
+    # 検証
+    assert ui.recording_window.moved_position() is None
+
+
+def test_moved_position_when_shifted_after_open(
+    make_ui: Callable[..., Ui], system_move: MagicMock
+) -> None:
+    """出した後に OS が窓の位置をずらしても、つかんだだけの回は None を返す。"""
+    # 準備
+    ui = _opened(make_ui)
+    window = ui.recording_window
+    window.move(window.pos() + QPoint(8, 8))
+
+    # 実行
+    grab_head_row(window)
+
+    # 検証
+    assert window.moved_position() is None
+
+
+def test_moved_position_when_reopened(make_ui: Callable[..., Ui], system_move: MagicMock) -> None:
+    """動かした位置はその回だけ使い、次の録音は設定の位置に出す。"""
+    from voice_paste.shared.settings import UiSettings
+
+    # 準備
+    ui = _opened(make_ui, _settings(ui=UiSettings(position="top-left")))
+    window = ui.recording_window
+    grab_head_row(window)
+    window.move(window.pos() + QPoint(120, 90))
+    window.close_window()
+
+    # 実行
+    window.open()
+
+    # 検証
+    available = QGuiApplication.primaryScreen().availableGeometry()
+    assert window.pos() == QPoint(available.left() + 24, available.top() + 24)
+    assert window.moved_position() is None
+
+
+# === hide_button ===
+
+
+def test_hide_button_label(make_ui: Callable[..., Ui]) -> None:
+    """かざすと戻し方を添えた説明を出す。録音開始と同じホットキーの出力先がある設定（既定）では、トレイのアイコンで戻す。"""
+    # 実行
+    ui = _opened(make_ui)
+
+    # 検証
+    hide = find(ui.recording_window, QPushButton, "hide_button")
+    assert hide.toolTip() == "録音の画面を隠す（トレイのアイコンで戻す）"
+    assert hide.accessibleName() == "録音の画面を隠す"
+
+
+def test_hide_button_label_when_start_hotkey_is_free(make_ui: Callable[..., Ui]) -> None:
+    """録音開始と同じホットキーの出力先が無い設定では、トレイのアイコンか録音開始のホットキーで戻すと添える。"""
+    from voice_paste.shared.settings import HotkeySettings
+
+    # 実行
+    ui = _opened(make_ui, _settings(hotkeys=HotkeySettings(start="<ctrl>+<alt>+r")))
+
+    # 検証
+    hide = find(ui.recording_window, QPushButton, "hide_button")
+    assert hide.toolTip() == "録音の画面を隠す（トレイのアイコンか Ctrl+Alt+R で戻す）"
+
+
+def test_hide_button_action(make_ui: Callable[..., Ui]) -> None:
+    """その回だけ録音の画面を隠す。セッションの状態・録音は止めず、確定・一時停止・取り消しを呼ばない。"""
+    # 準備
+    ui = make_ui()
+    ui.notify_state("hotkey", "recording")
+
+    # 実行
+    QTest.mouseClick(
+        find(ui.recording_window, QPushButton, "hide_button"), Qt.MouseButton.LeftButton
+    )
+
+    # 検証
+    assert not ui.recording_window.isVisible()
+    ui.deps.pause.assert_not_called()
+    ui.deps.cancel.assert_not_called()
+    ui.deps.complete.assert_not_called()
+
+
+def test_hide_button_action_then_next_recording(make_ui: Callable[..., Ui]) -> None:
+    """隠すのはその回だけで、次の録音ではいつもどおり出す。"""
+    # 準備
+    ui = make_ui()
+    ui.notify_state("hotkey", "recording")
+    QTest.mouseClick(
+        find(ui.recording_window, QPushButton, "hide_button"), Qt.MouseButton.LeftButton
+    )
+    ui.notify_state(None)
+
+    # 実行
+    ui.notify_state("hotkey", "recording")
+
+    # 検証
+    assert ui.recording_window.isVisible()
+
+
+def test_hide_button_action_when_paused_while_hidden(make_ui: Callable[..., Ui]) -> None:
+    """隠している間に一時停止しても、窓は出さない。戻すと一時停止中を示し、経過時間は一時停止した時点で止まっている。"""
+    # 準備
+    ui = make_ui()
+    ui.notify_state("hotkey", "recording")
+    QTest.qWait(1200)
+    ui.controller.hide_recording()
+    QTest.qWait(1200)
+
+    # 実行
+    ui.notify_state("hotkey", "paused")
+    hidden_after_pause = not ui.recording_window.isVisible()
+    QTest.qWait(1200)
+    ui.controller.show_recording()
+
+    # 検証
+    window = ui.recording_window
+    assert hidden_after_pause
+    assert window.isVisible()
+    assert "一時停止中" in find(window, QLabel, "state_label").text()
+    assert find(window, QLabel, "elapsed_label").text() == "00:02"
+
+
+def test_hide_button_action_then_restore(
+    make_ui: Callable[..., Ui], system_move: MagicMock
+) -> None:
+    """隠した画面を戻すと、隠す前の位置に、経過時間と状態を保ったまま出る。窓の作りはフォーカスを取らない出し方のまま。"""
+    # 準備
+    ui = make_ui()
+    ui.notify_state("hotkey", "recording")
+    window = ui.recording_window
+    grab_head_row(window)
+    window.move(window.pos() + QPoint(70, 50))
+    moved_to = window.pos()
+    QTest.qWait(1200)
+    ui.controller.hide_recording()
+    QTest.qWait(1200)
+
+    # 実行
+    ui.controller.show_recording()
+
+    # 検証
+    assert window.isVisible()
+    assert window.pos() == moved_to
+    assert find(window, QLabel, "elapsed_label").text() == "00:02"
+    assert window.testAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+
+
+def test_hide_button_action_when_hide_window_setting(make_ui: Callable[..., Ui]) -> None:
+    """画面を出さない設定の録音では、戻す操作をしても窓を出さない。"""
+    from voice_paste.shared.settings import RecordingSettings
+
+    # 準備
+    ui = make_ui(_settings(recording=RecordingSettings(hide_window=True)))
+    ui.notify_state("hotkey", "recording")
+
+    # 実行
+    ui.controller.show_recording()
+
+    # 検証
+    assert not ui.recording_window.isVisible()
+
+
+# === close_button ===
+
+
+def test_close_button_label(make_ui: Callable[..., Ui]) -> None:
+    """かざすと「取り消す」と取り消しのホットキーを添えた説明を出す。"""
+    # 実行
+    ui = _opened(make_ui)
+
+    # 検証
+    close = find(ui.recording_window, QPushButton, "close_button")
+    assert close.toolTip() == "取り消す（Ctrl+Alt+Q）"
+    assert close.accessibleName() == "取り消す"
+
+
+def test_close_button_action(make_ui: Callable[..., Ui]) -> None:
+    """「取り消す」のボタンと同じく録音を捨て（SessionManager.cancel）、窓を閉じる。確認は挟まない。"""
+    # 準備
+    ui = _opened(make_ui)
+
+    # 実行
+    with no_modal():
+        QTest.mouseClick(
+            find(ui.recording_window, QPushButton, "close_button"), Qt.MouseButton.LeftButton
+        )
+
+    # 検証
+    ui.deps.cancel.assert_called_once()
+    ui.deps.complete.assert_not_called()
     assert not ui.recording_window.isVisible()

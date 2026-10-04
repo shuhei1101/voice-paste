@@ -4,6 +4,8 @@
 
 ## 目次
 
+<!-- table: data -->
+
 | ページ | 概要 |
 | --- | --- |
 | [faster-whisper](./faster-whisper.yaml) | ローカルの Whisper で音声を文字に起こす |
@@ -27,3 +29,6 @@
 | [tomlkit](./tomlkit.yaml) | 設定をコメントを保ったまま TOML で読み書きする |
 | [platformdirs](./platformdirs.yaml) | 設定・履歴・ログの置き場所を Windows の慣習で引く |
 | [import-linter](./import-linter.yaml) | 新しい構成の import の向きを検査する |
+| [av](./av.yaml) | faster-whisper が録音を読むために使う、FFmpeg の Python バインディング |
+
+<!-- /table -->

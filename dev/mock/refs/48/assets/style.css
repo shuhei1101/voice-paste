@@ -32,10 +32,10 @@
 /* 見出しの行にかざしたときのつかむ印 */
 .rec__head--move:hover .grip, .rec__head--move.is-hover .grip { color: var(--text); }
 
-/* 隠す・× の並び: 押せない隙間を作らない */
+/* 隠す・× の並び: 押し違えないよう間を空け、間に区切りの線を置く */
 .head-tools {
   display: flex;
-  gap: 2px;
+  gap: 13px;
   margin-left: 4px;
   cursor: default;
 }
@@ -56,6 +56,17 @@
 /* × のボタン: かざすと取り消すと同じ警告の色にする */
 .btn--close {
   &:hover { background: var(--error-bg); color: var(--error); box-shadow: inset 0 0 0 1px var(--error); }
+}
+
+/* × の左の区切りの線: 隠すとの間の中央に置く */
+.btn--close::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: -7px;
+  width: 1px;
+  background: var(--line);
 }
 
 /* モックで見せる、× にかざした見た目 */

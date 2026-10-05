@@ -24,6 +24,8 @@ SOURCE_DIR = REPO_ROOT / "src"
 TOKEN_FILE_NAME = "api_token"
 ACCEPT_INJECTED_HOTKEYS_ENV = "VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS"
 """`1` のときだけ、合成したキーもホットキーとして受ける環境変数（常駐アプリの側の名前と同じ）。"""
+QT_PLATFORM_ENV = "QT_QPA_PLATFORM"
+"""Qt が画面の出し先を選ぶ環境変数。`offscreen` だと画面もトレイのアイコンも実機に出ない。"""
 STARTUP_TIMEOUT_SEC = 120.0
 """常駐サービスがトークンのファイルを書くまで（モデルの読み込みを含む）待つ上限。"""
 
@@ -63,8 +65,11 @@ def spawn_process(
 
     終了の合図 Ctrl+Break を送れるよう新しいプロセスグループにする。標準出力は data_dir の stdout_name へ書く
     （同じ data_dir で続けて起動するときは、前のプロセスの出力を消さないよう名前を変える）。
+    pytest のプロセスが `QT_QPA_PLATFORM` を持っていても渡さず、常駐アプリは実機の画面で起動する。
     """
     env = dict(os.environ, PYTHONPATH=str(SOURCE_DIR), PYTHONIOENCODING="utf-8")
+    # 結合テストの画面のための offscreen を受け継ぐと、画面もトレイも実機に出ないため外す
+    env.pop(QT_PLATFORM_ENV, None)
     if accept_injected_hotkeys:
         env[ACCEPT_INJECTED_HOTKEYS_ENV] = "1"
     stdout = (data_dir / stdout_name).open("wb")

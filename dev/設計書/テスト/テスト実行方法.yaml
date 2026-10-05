@@ -101,3 +101,4 @@ layers:
     results: 契約ごとの KEPT / BROKEN と、破った import の行を標準出力に出す（破れていれば終了コード 1）
 prerequisites:
   - Windows の Python 3.11 以上の venv（`venv/Scripts/python.exe`）に `pip install -e . --group dev` を済ませる（pip 25.1 以上。pytest と import-linter と pywin32 は pyproject.toml の `[dependency-groups]` の dev から入る）
+  - 実機のテスト（E2E・非機能要件テスト）が起こす常駐アプリへは `QT_QPA_PLATFORM` を渡さず（pytest のプロセスに `tests/conftest.py` の `offscreen` が入っていても外して）、実機の画面で起動する

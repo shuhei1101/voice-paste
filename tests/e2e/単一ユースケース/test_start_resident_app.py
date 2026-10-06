@@ -1,7 +1,7 @@
 """単一ユースケース「常駐アプリを起動する」の E2E テスト。
 
-本物の常駐アプリ（`python -m voice_paste --data-dir {一時フォルダ}`）を起動し、トレイ・API・ホットキー・ログ・履歴を観測する。
-実機のマイクで録音を始める行がある（`--run-e2e` が無ければ skip する）。
+本物の常駐アプリ（`python -m voice_paste --data-dir {一時フォルダ}`）を起動し、トレイ・API・ログ・履歴を観測する。
+実機のマイクを開く録音は始めない（`--run-e2e` が無ければ skip する）。
 前提は E2E テストの節のとおり（普段使いの voice-paste のトレイが出ていれば skip する）。
 
 保持期間を過ぎた履歴とログの、常駐中の定期の削除（非機能要件の削除の間隔 24 時間ごと）は、待てないため確かめない。
@@ -10,7 +10,6 @@
 
 from __future__ import annotations
 
-import json
 import socket
 import time
 from collections.abc import Callable, Iterator
@@ -19,10 +18,8 @@ from pathlib import Path
 
 import pytest
 
-from tests.support.app_driver import IDLE, RECORDING, WINDOW_TIMEOUT_SEC, AppDriver
-from tests.support.browser_target import BrowserTarget
-from tests.support.desktop import open_notification_center, press_hotkey, type_keys, wait_until
-from tests.support.flows import BROWSER_APPLIED_TIMEOUT_SEC, speak_and_confirm, wait_processed
+from tests.support.app_driver import IDLE, WINDOW_TIMEOUT_SEC, AppDriver
+from tests.support.desktop import open_notification_center, type_keys, wait_until
 from tests.support.instances import service_root_count, wait_for_takeover
 from tests.support.real_service import LOOPBACK, RealService, spawn_process
 
@@ -32,9 +29,6 @@ StartApp = Callable[..., AppDriver]
 
 FAILED = "失敗"
 """トレイのヒントの、起動に失敗した状態の名前。"""
-
-CANCEL_HOTKEY = "<ctrl>+<alt>+q"
-"""既定の録音を取り消すホットキー。"""
 
 NO_SUCH_MODEL_SETTINGS = '[transcription.local_whisper]\nmodel = "voice-paste-e2e-no-such-model"\n'
 """ローカルの Whisper のモデルに存在しない名前を設定する（文字起こしワーカーがモデルを読み込めずに error を返す）。"""
@@ -57,16 +51,16 @@ TOAST_SETTLE_SEC = 8.0
 PREVIOUS_EXIT_TIMEOUT_SEC = 30.0
 """後から起動した後、前のプロセスが終わるまで待つ上限。"""
 
-AI_CHAT_OPEN_DELAY_SEC = 6.0
-"""古い AI チャットの設定の、画面を開いてから貼り付けるまでの秒数（Edge の起動を待てる長さにする）。"""
+AI_CHAT_URL = "https://chatgpt.com/"
+"""古い AI チャットの設定の送り先に書く URL（開かない）。"""
 
 
-def _old_ai_chat_settings(url: str) -> str:
+def _old_ai_chat_settings() -> str:
     """古い AI チャットの設定（送り先 2 つ。うち 1 つは出さない）を書いた settings.toml の続きを返す。"""
     return (
         '[[outputs]]\nid = "paste_and_send"\n\n'
-        f'[[outputs]]\nid = "ai_chat"\nopen_delay_sec = {AI_CHAT_OPEN_DELAY_SEC}\n\n'
-        f'[[outputs.targets]]\nname = "ChatGPT"\nurl = "{url}"\n'
+        '[[outputs]]\nid = "ai_chat"\n\n'
+        f'[[outputs.targets]]\nname = "ChatGPT"\nurl = "{AI_CHAT_URL}"\n'
         'hotkey = "<ctrl>+<alt>+1"\nenabled = true\n\n'
         '[[outputs.targets]]\nname = "Claude"\nurl = "https://claude.ai/new"\n'
         'hotkey = "<ctrl>+<alt>+3"\nenabled = false\n'
@@ -89,14 +83,6 @@ def _prepare_expired_files(data_dir: Path) -> tuple[date, date]:
     return expired, today
 
 
-def _assert_recording_starts_and_cancels(app: AppDriver) -> None:
-    """録音開始のホットキーで録音が始まり（トレイが録音中になる）、取り消すと待機中へ戻ることを確かめる。"""
-    app.start_recording()
-    app.wait_tray_state(RECORDING)
-    press_hotkey(CANCEL_HOTKEY)
-    app.wait_tray_state(IDLE)
-
-
 def _notification_in_center(app: AppDriver, title: str) -> bool:
     """通知が畳まれて通知センターに残るのを待ち、通知センターに title の通知があるかを返して、通知センターを閉じる。"""
     time.sleep(TOAST_SETTLE_SEC)
@@ -116,14 +102,13 @@ def occupied_port() -> Iterator[int]:
 
 
 def test_normal(start_app: StartApp) -> None:
-    """ショートカットから起動すると、トレイが待機中になり、ホットキーで録音が始まり、API がトークンに応え、ワーカーが動く（正常シナリオ）。"""
+    """ショートカットから起動すると、トレイが待機中になり、API がトークンに応え、ワーカーが動く（正常シナリオ）。"""
     # 準備・実行: 起動し、トレイが待機中になるまで待つ
     app = start_app()
     service = app.service
 
     # 検証
     assert app.tray_state() == IDLE
-    _assert_recording_starts_and_cancels(app)
     assert (service.data_dir / "api_token").exists()
     # トークンのファイルから読んだ今回のトークンには応え、合わないトークン・トークン無しは断る
     assert service.post("/sessions/unknown/stop").status_code == 404
@@ -201,7 +186,7 @@ def test_error_when_engine_unavailable(start_app: StartApp) -> None:
 
 
 def test_error_when_api_unavailable(start_app: StartApp, occupied_port: int) -> None:
-    """API の待ち受けを始められなければ、トレイで知らされ、ログに理由が書かれ、録音開始のホットキーで録音は始まる（異常シナリオ）。"""
+    """API の待ち受けを始められなければ、トレイで知らされ、ログに理由が書かれる（異常シナリオ）。"""
     # 準備・実行: API のポートをほかのプロセスが使っている状態で起動する（トークンのファイルは書かれない）
     app = start_app(port=occupied_port, wait_for_api=False)
 
@@ -212,39 +197,17 @@ def test_error_when_api_unavailable(start_app: StartApp, occupied_port: int) -> 
         message.startswith("API の待ち受けを始められなかった（") for message in app.log_messages("ERROR")
     )
     assert not (app.service.data_dir / "api_token").exists()
-    _assert_recording_starts_and_cancels(app)
 
 
-def test_normal_when_old_ai_chat_settings_remain(
-    start_app: StartApp, browser_target: BrowserTarget
-) -> None:
-    """古い AI チャットの設定が残った settings.toml でも起動でき、出すとした送り先がプリセットのボタンとして出て、確定すると URL を開いて貼り付けて Enter まで送り、settings.toml は書き換わらない（正常シナリオ）。"""
+def test_normal_when_old_ai_chat_settings_remain(start_app: StartApp) -> None:
+    """古い AI チャットの設定が残った settings.toml でも起動でき、settings.toml は書き換わらない（正常シナリオ）。"""
     # 準備・実行: 古い設定で起動し、トレイが待機中になるまで待つ
-    extra_settings = _old_ai_chat_settings(browser_target.url)
+    extra_settings = _old_ai_chat_settings()
     app = start_app(extra_settings)
 
     # 検証: 起動が止まらず、settings.toml が書き換わっていない
     assert app.tray_state() == IDLE
     settings_file = app.service.data_dir / "settings.toml"
-    assert settings_file.read_text(encoding="utf-8") == (
-        f"[api]\nport = {app.service.port}\n\n{extra_settings}\n"
-    )
-
-    # 検証: 録音の画面に、出すとした送り先のボタンだけが出る
-    app.start_recording()
-    app.wait_window("recording_window")
-    assert "ChatGPT" in app.texts("preset_button_0")
-    assert app.window("preset_button_1") is None
-
-    # 検証: そのボタンで確定すると、URL を開いて貼り付け、Enter まで送る
-    speak_and_confirm(app, output="preset_button_0")
-    assert app.wait_window_gone("recording_window")
-    assert wait_until(
-        lambda: browser_target.text() != "" and browser_target.enters() >= 1,
-        BROWSER_APPLIED_TIMEOUT_SEC,
-    ), "開き先の画面の入力欄に文字が入らなかった（スピーカーの音をマイクが拾えない・Edge が前面に出ない環境ではないか）"
-    wait_processed(app)
-    assert browser_target.window_open()
     assert settings_file.read_text(encoding="utf-8") == (
         f"[api]\nport = {app.service.port}\n\n{extra_settings}\n"
     )

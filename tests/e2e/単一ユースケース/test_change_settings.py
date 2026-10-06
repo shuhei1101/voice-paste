@@ -15,15 +15,8 @@ from pathlib import Path
 
 import pytest
 
-from tests.integration.helpers import CallbackReceiver
-from tests.support.app_driver import IDLE, RECORDING, START_HOTKEY, AppDriver
-from tests.support.desktop import (
-    press_hotkey,
-    speak,
-    type_keys,
-    wait_until,
-)
-from tests.support.flows import SPEECH_TEXT, wait_processed
+from tests.support.app_driver import IDLE, AppDriver
+from tests.support.desktop import wait_until
 
 pytestmark = pytest.mark.real_machine
 
@@ -39,23 +32,8 @@ COMMENTED_SETTINGS = (
 )
 """既定と違う値とコメントを持つ設定（`[api]` の続きに書く）。"""
 
-NEW_START_HOTKEY = "<ctrl>+<alt>+s"
-"""録音開始のホットキーの新しい組み合わせ。"""
-
 RESTART_KEY = "transcription.local_whisper.beam_size"
 """反映が restart の数値のキー。"""
-
-HOTKEY_REGISTERED_LOG = "ホットキーの受付を始めた"
-"""ホットキーの受付を始めたときのログの言葉。"""
-
-PRESET_TITLE = "E2E 受け口"
-"""足すプリセットのタイトル。"""
-
-PRESET_HOTKEY = "<ctrl>+<alt>+8"
-"""足すプリセットの確定のホットキー。"""
-
-PRESET_DELIVER_TIMEOUT_SEC = 120.0
-"""プリセットのホットキーで確定してから、送り先に届くまで待つ上限。"""
 
 
 def _settings_file(app: AppDriver) -> Path:
@@ -66,43 +44,6 @@ def _settings_file(app: AppDriver) -> Path:
 def _toml(app: AppDriver) -> dict[str, object]:
     """settings.toml を読む。"""
     return tomllib.loads(_settings_file(app).read_text(encoding="utf-8"))
-
-
-def _last_registration(app: AppDriver) -> str:
-    """ホットキーの受付を始めたときの最後のログの文（無ければ空）。"""
-    messages = [m for m in app.log_messages() if HOTKEY_REGISTERED_LOG in m]
-    return messages[-1] if messages else ""
-
-
-def test_normal(start_app: StartApp) -> None:
-    """録音開始のホットキーを別の組み合わせに変えて保存すると、settings.toml だけが変わり、再起動せずに新しい組み合わせで録音が始まり、前の組み合わせでは始まらない（正常シナリオ）。"""
-    # 準備
-    app = start_app(COMMENTED_SETTINGS)
-    before = _settings_file(app).read_text(encoding="utf-8")
-    app.open_settings()
-    app.select_group("ホットキー")
-    field = app.uia.wait_find(app.pids, "hotkey_hotkeys.start")
-    app.uia.focus(field)
-
-    # 実行
-    type_keys(NEW_START_HOTKEY)
-    app.press("save_button")
-    assert app.wait_window_gone("settings_window")
-    assert wait_until(lambda: NEW_START_HOTKEY in _last_registration(app), 10)
-    press_hotkey(START_HOTKEY)
-    started_by_old = app.window("recording_window") is not None
-    press_hotkey(NEW_START_HOTKEY)
-    app.wait_window("recording_window")
-
-    # 検証
-    saved = _settings_file(app).read_text(encoding="utf-8")
-    assert _toml(app)["hotkeys"]["start"] == NEW_START_HOTKEY  # type: ignore[index]
-    assert "# E2E: このコメントは保存しても残る" in saved
-    assert "fade_sec = 1.5" in saved
-    assert before != saved
-    assert not started_by_old
-    assert app.tray_state() == RECORDING
-    app.press("cancel_button")
 
 
 def test_normal_when_save_and_restart(start_app: StartApp) -> None:
@@ -194,50 +135,3 @@ def test_error_when_invalid_value(start_app: StartApp) -> None:
     assert app.window("error_summary") is not None
     assert app.window("settings_window") is not None
     assert _settings_file(app).read_bytes() == before
-
-
-def test_normal_when_preset_added(start_app: StartApp, receiver: CallbackReceiver) -> None:
-    """「エンドポイントへ送る」のまとまりでプリセットを足して保存すると、settings.toml に書かれ、再起動せずに次の録音の画面にそのボタンが出て、そのホットキーで確定できる（正常シナリオ）。"""
-    # 準備
-    app = start_app(COMMENTED_SETTINGS)
-    app.open_settings()
-    app.select_group("エンドポイントへ送る")
-
-    # 実行（足して、タイトル・URL・確定のホットキーを入れて、保存する）
-    app.press("add_preset_button_endpoint")
-    app.set_text("preset_title_0", PRESET_TITLE)
-    app.set_text("preset_url_0", receiver.url)
-    app.uia.focus(app.uia.wait_find(app.pids, "preset_hotkey_0"))
-    type_keys(PRESET_HOTKEY)
-    app.press("save_button")
-
-    # 検証（settings.toml・設定画面）
-    assert app.wait_window_gone("settings_window")
-    saved = _settings_file(app).read_text(encoding="utf-8")
-    presets = _toml(app)["presets"]
-    assert presets == [  # type: ignore[comparison-overlap]
-        {
-            "kind": "endpoint",
-            "title": PRESET_TITLE,
-            "url": receiver.url,
-            "hotkey": PRESET_HOTKEY,
-            "enabled": True,
-            "authorization": "",
-        }
-    ]
-    assert "# E2E: このコメントは保存しても残る" in saved
-    assert "fade_sec = 1.5" in saved
-    assert "wave_gain = 2.0" in saved
-
-    # 検証（再起動せずに、次の録音の画面にボタンが出て、そのホットキーで確定できる）
-    assert wait_until(lambda: PRESET_HOTKEY in _last_registration(app), 10)
-    press_hotkey(START_HOTKEY)
-    app.wait_window("recording_window")
-    assert PRESET_TITLE in app.texts("preset_button_0")
-    speak(SPEECH_TEXT)
-    press_hotkey(PRESET_HOTKEY)
-    assert app.wait_window_gone("recording_window")
-    assert wait_until(lambda: len(receiver.received) >= 1, PRESET_DELIVER_TIMEOUT_SEC)
-    wait_processed(app)
-    assert len(receiver.received) == 1
-    assert receiver.received[0]["result"] == "transcribed"

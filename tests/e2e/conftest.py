@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import shutil
 from collections.abc import Callable, Iterator
 from pathlib import Path
 
@@ -10,8 +9,7 @@ import pyperclip
 import pytest
 
 from tests.support.app_driver import IDLE, AppDriver
-from tests.support.browser_target import BrowserTarget
-from tests.support.desktop import PasteTarget, close_explorer, get_uia
+from tests.support.desktop import close_explorer, get_uia
 from tests.support.fixtures import receiver, start_inprocess, start_service  # noqa: F401 フィクスチャとして使う
 from tests.support.real_service import RealService
 
@@ -26,28 +24,6 @@ def clipboard_sentinel() -> Iterator[str]:
     pyperclip.copy(CLIPBOARD_SENTINEL)
     yield CLIPBOARD_SENTINEL
     pyperclip.copy(original)
-
-
-@pytest.fixture
-def paste_target(tmp_path: Path) -> Iterator[PasteTarget]:
-    """貼り付け先（別プロセスの入力欄）を出して前面に置く。テストの後に閉じる。"""
-    target = PasteTarget(tmp_path / "paste_target.json")
-    yield target
-    target.close()
-
-
-@pytest.fixture
-def browser_target() -> Iterator[BrowserTarget]:
-    """ブラウザ添付のプリセットの開き先を 127.0.0.1 に立てる。Edge が無ければ skip する。テストの後に開いた窓を閉じて止める。"""
-    from voice_paste.integrations.browser.opener import EDGE_COMMAND, EDGE_PATHS
-
-    if shutil.which(EDGE_COMMAND) is None and not any(Path(path).exists() for path in EDGE_PATHS):
-        pytest.skip("Microsoft Edge が見つからない（ブラウザ添付はアプリのウィンドウとして Edge で開く）")
-    target = BrowserTarget()
-    target.start()
-    yield target
-    target.close_window()
-    target.stop()
 
 
 @pytest.fixture

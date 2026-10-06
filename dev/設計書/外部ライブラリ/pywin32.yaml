@@ -40,7 +40,7 @@ dependency_scope: 開発のみ
 adoption: 採用
 used_in:
   - tests/support/desktop.py
-  - tests/support/browser_target.py
+  - tests/support/inprocess.py
 upstream: mhammond/pywin32
 verification:
   state: 済

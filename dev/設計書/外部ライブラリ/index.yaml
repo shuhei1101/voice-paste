@@ -22,8 +22,6 @@ items:
     summary: GPU での文字起こしに使う cuDNN の DLL
   - page: nvidia-cuda-nvrtc-cu12.yaml
     summary: GPU での文字起こしに使う NVRTC の DLL
-  - page: tkinter.yaml
-    summary: 録音の画面・文字起こし中の表示・設定画面を作る
   - page: Microsoft_Edge.yaml
     summary: ブラウザ添付のプリセットの画面をアプリのウィンドウとして開く
   - page: fastapi.yaml

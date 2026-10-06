@@ -33,10 +33,6 @@ WORKER_COMMAND = "voice_paste.integrations.whisper.worker"
 START_HOTKEY = "<ctrl>+<alt>+d"
 """既定の録音開始のホットキー。"""
 
-PAUSE_HOTKEY = "<ctrl>+<alt>+z"
-CANCEL_HOTKEY = "<ctrl>+<alt>+q"
-"""既定の一時停止・取り消しのホットキー。"""
-
 STATE_NAMES = ("準備中", "待機中", "録音中", "文字起こし中", "失敗")
 """トレイのヒントの状態の名前（画面設計「トレイ」）。"""
 
@@ -170,12 +166,6 @@ class AppDriver:
         self.uia.click_center(icon, right=True)
         self.uia.wait_find(self.pids, "menu_start", WINDOW_TIMEOUT_SEC)
 
-    def click_tray_icon(self) -> None:
-        """トレイのアイコンを左クリックする（既定の操作）。"""
-        icon = self.own_tray_icon()
-        assert icon is not None, "この常駐アプリのトレイのアイコンが見つからない"
-        self.uia.click_center(icon)
-
     def choose_tray_menu(self, item: str) -> None:
         """トレイのメニューを開いて、項目 ID（menu_start など）の項目を選ぶ。"""
         self.open_tray_menu()
@@ -240,14 +230,6 @@ class AppDriver:
     def label(self, name: str) -> str:
         """項目 ID のラベルの文字（名前）を返す。"""
         return str(self.uia.wait_find(self.pids, name, WINDOW_TIMEOUT_SEC).CurrentName)
-
-    def recording_rect(self) -> tuple[int, int, int, int]:
-        """録音の画面の矩形（左・上・右・下。物理ピクセル）を返す。"""
-        return self.uia.rect(self.wait_window("recording_window"))
-
-    def recording_hwnd(self) -> int:
-        """録音の画面のウィンドウハンドルを返す。"""
-        return int(self.wait_window("recording_window").CurrentNativeWindowHandle)
 
     # --- 設定画面 ---
 

@@ -19,7 +19,6 @@
 | [nvidia-cublas-cu12](./nvidia-cublas-cu12.yaml) | GPU での文字起こしに使う cuBLAS の DLL |
 | [nvidia-cudnn-cu12](./nvidia-cudnn-cu12.yaml) | GPU での文字起こしに使う cuDNN の DLL |
 | [nvidia-cuda-nvrtc-cu12](./nvidia-cuda-nvrtc-cu12.yaml) | GPU での文字起こしに使う NVRTC の DLL |
-| [tkinter](./tkinter.yaml) | 録音の画面・文字起こし中の表示・設定画面を作る |
 | [Microsoft_Edge](./Microsoft_Edge.yaml) | ブラウザ添付のプリセットの画面をアプリのウィンドウとして開く |
 | [fastapi](./fastapi.yaml) | 常駐サービスの API のルートと入出力の検証を組み立てる |
 | [uvicorn](./uvicorn.yaml) | API を 127.0.0.1 で待ち受ける |

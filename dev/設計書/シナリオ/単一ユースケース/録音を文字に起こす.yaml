@@ -45,7 +45,6 @@ scenarios:
       API から始めた録音: API から始めた録音では、文字起こし中の表示を開かない。それ以外は同じ流れである。
       録音の画面を出さない設定: 録音の画面を出さない設定でホットキー・トレイから始めた録音も、文字起こし中の表示を開かず、トレイのアイコンだけが状態を示す。
       文字起こし中の表示: フォーカスを取らずに開き、貼り付けたいアプリの入力欄からフォーカスを奪わない。
-    test: test_normal
   - name: 正常シナリオ（文字起こしワーカーが落ちる）
     setup:
       - name: Mock
@@ -73,7 +72,6 @@ scenarios:
       - 起こした文字が得られ、起こした文字を届ける へ進む
       - 文字起こしワーカーが新しい子プロセスで動いている
       - 常駐サービスのプロセスが動き続けている
-    test: test_normal_when_worker_dies
   - name: 異常シナリオ（やり直したワーカーも落ちる）
     setup:
       - name: Mock
@@ -106,7 +104,6 @@ scenarios:
       - 履歴にこの録音が残っている
       - 常駐サービスのプロセスが動き続けている
       - 文字起こしワーカーが新しい子プロセスで動いている
-    test: test_error_when_worker_dies_again
   - name: 異常シナリオ（文字起こしに失敗）
     setup:
       - name: Mock
@@ -137,7 +134,6 @@ scenarios:
       - 文字起こしに失敗したことと理由がユーザーに知らされている
       - 履歴にこの録音が残っている
       - 起こした文字を届ける へ進まず、トレイのアイコンが待機中に戻っている
-    test: test_error_when_transcription_failed
   - name: 異常シナリオ（文字起こしの結果が空）
     setup:
       - name: Mock
@@ -168,7 +164,6 @@ scenarios:
       - ダイアログが出ていない
       - 起こした文字を届ける へ進まず、履歴にこの録音が残っている
       - トレイのアイコンが待機中に戻っている
-    test: test_error_when_transcription_empty
   - name: 正常シナリオ（API から始めた録音の結果が空）
     setup:
       - name: Mock
@@ -195,7 +190,6 @@ scenarios:
       - 空の文字が 起こした文字を届ける へ渡されている
       - 履歴にこの録音が残っている
       - ダイアログも文字起こし中の表示も出ていない
-    test: test_normal_when_api_empty
   - name: 異常シナリオ（API から始めた録音の文字起こしに失敗）
     setup:
       - name: Mock
@@ -222,7 +216,6 @@ scenarios:
       - ダイアログも文字起こし中の表示も出ていない
     notes:
       同じ扱いになる失敗: やり直したワーカーも落ちたときも同じ扱いになる。
-    test: test_error_when_api_failed
   - name: 異常シナリオ（失敗の通知を通知センターから押す）
     setup:
       - name: Mock
@@ -247,7 +240,6 @@ scenarios:
     expected:
       - エクスプローラーでログの置き場所が開いている
       - トレイのアイコンが待機中である
-    test: test_error_when_notification_clicked_in_center
 lead: 確定した録音を設定のエンジンで文字に起こし、用語集で補正するまでの単一ユースケース。
 issue: 14
 primary_actor: 音声入力を使うユーザー
@@ -255,4 +247,5 @@ trigger: 録音する で録音を確定する
 preconditions:
   - 確定した録音が履歴か一時の音声にある
   - 録音を始めた入口（ホットキー・トレイか API）が分かっている
-test_file: tests/e2e/単一ユースケース/test_transcribe_recording.py
+notes:
+  E2E のテスト: 全シナリオが録音を始め、実機のマイクを開くため、E2E のテストを置かない（#65）。録音から届けるまでは、複合ユースケース「声で入力した文字を貼り付ける」「ほかのシステムから録音を文字に起こす」の E2E が、録音のファイルを内部で渡して確かめる

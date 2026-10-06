@@ -12,17 +12,13 @@ from __future__ import annotations
 
 import ctypes
 import json
-import os
 import subprocess
-import sys
 import time
 import urllib.parse
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-
-import pytest
 
 # UI Automation の座標・マウスの座標・ウィンドウの座標を同じ物理ピクセルにそろえる（拡大率のあるモニターで位置がずれないように）
 try:
@@ -36,9 +32,6 @@ import win32con  # noqa: E402
 import win32gui  # noqa: E402
 import win32process  # noqa: E402
 from pynput import keyboard  # noqa: E402
-
-NO_MICROPHONE_ENV = "VOICE_PASTE_E2E_NO_MICROPHONE"
-"""録音の入力の音声デバイスを外した環境で実行するときに `1` を指定する環境変数。"""
 
 POLL_SEC = 0.1
 UI_TIMEOUT_SEC = 20.0
@@ -58,8 +51,6 @@ PAUSE_AFTER_CLICK_SEC = 0.3
 POWERSHELL_TIMEOUT_SEC = 30.0
 MOUSE_SETTLE_SEC = 0.05
 KEY_SETTLE_SEC = 0.05
-DRAG_STEPS = 20
-"""ドラッグで、始点から終点まで分けて動かす回数。"""
 
 
 def wait_until(condition: Callable[[], Any], timeout_sec: float = UI_TIMEOUT_SEC) -> bool:
@@ -470,27 +461,6 @@ def click(x: int, y: int, *, right: bool = False) -> None:
     time.sleep(PAUSE_AFTER_CLICK_SEC)
 
 
-def move_cursor(x: int, y: int) -> None:
-    """マウスのカーソルを動かす。"""
-    win32api.SetCursorPos((x, y))
-    time.sleep(MOUSE_SETTLE_SEC)
-
-
-def drag(start: tuple[int, int], end: tuple[int, int]) -> None:
-    """マウスの左ボタンを start で押し、end まで少しずつ動かして放す（窓のドラッグ）。座標は物理ピクセル。"""
-    win32api.SetCursorPos(start)
-    time.sleep(MOUSE_SETTLE_SEC)
-    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
-    time.sleep(MOUSE_SETTLE_SEC)
-    for step in range(1, DRAG_STEPS + 1):
-        x = start[0] + (end[0] - start[0]) * step // DRAG_STEPS
-        y = start[1] + (end[1] - start[1]) * step // DRAG_STEPS
-        win32api.SetCursorPos((x, y))
-        time.sleep(MOUSE_SETTLE_SEC)
-    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
-    time.sleep(PAUSE_AFTER_CLICK_SEC)
-
-
 def type_keys(hotkey: str) -> None:
     """合成したキー（SendInput）で、pynput の書式のキーの組み合わせを押す。"""
     controller = keyboard.Controller()
@@ -518,13 +488,6 @@ def press_hotkey(hotkey: str) -> None:
 # === ウィンドウ・モニター・エクスプローラー ===
 
 
-def z_order(hwnd: int) -> int:
-    """最前面からの重なりの順（0 が最前面）。見つからなければ大きな値を返す。"""
-    order: list[int] = []
-    win32gui.EnumWindows(lambda handle, _extra: order.append(handle), None)
-    return order.index(hwnd) if hwnd in order else len(order)
-
-
 def force_foreground(hwnd: int) -> None:
     """ウィンドウを前面に出す（Alt を押して前面への切り替えの制限を外してから出す）。"""
     win32api.keybd_event(win32con.VK_MENU, 0, 0, 0)
@@ -539,41 +502,6 @@ def force_foreground(hwnd: int) -> None:
 def foreground_hwnd() -> int:
     """今の前面のウィンドウのハンドルを返す。"""
     return int(win32gui.GetForegroundWindow())
-
-
-def foreground_title() -> str:
-    """今の前面のウィンドウの題を返す。"""
-    return str(win32gui.GetWindowText(win32gui.GetForegroundWindow()))
-
-
-@dataclass(frozen=True)
-class Monitor:
-    """接続しているモニター。"""
-
-    work: tuple[int, int, int, int]
-    """作業領域（左・上・右・下。物理ピクセル）。"""
-
-    primary: bool
-    """主のモニターか。"""
-
-    def contains(self, rect: tuple[int, int, int, int]) -> bool:
-        """矩形（左・上・右・下）が作業領域に収まっているか。"""
-        left, top, right, bottom = self.work
-        return rect[0] >= left and rect[1] >= top and rect[2] <= right and rect[3] <= bottom
-
-    def center(self) -> tuple[int, int]:
-        """作業領域の中心の座標。"""
-        left, top, right, bottom = self.work
-        return (left + right) // 2, (top + bottom) // 2
-
-
-def monitors() -> list[Monitor]:
-    """接続しているモニターを並べる。"""
-    result: list[Monitor] = []
-    for handle, _dc, _rect in win32api.EnumDisplayMonitors():
-        info = win32api.GetMonitorInfo(handle)
-        result.append(Monitor(tuple(info["Work"]), bool(info["Flags"] & 1)))  # type: ignore[arg-type]
-    return result
 
 
 def explorer_locations() -> list[Path]:
@@ -598,79 +526,3 @@ def close_explorer(folder: Path) -> None:
         url = str(getattr(window, "LocationURL", "") or "")
         if url.startswith("file:///") and Path(urllib.parse.unquote(url[len("file:///"):])) == folder:
             window.Quit()
-
-
-# === 音量・クリップボード・音声 ===
-
-
-def master_volume() -> float:
-    """既定の再生デバイスのマスター音量（0.0〜1.0）を読む。"""
-    comtypes.CoInitialize()
-    try:
-        from pycaw.pycaw import AudioUtilities
-
-        return float(AudioUtilities.GetSpeakers().EndpointVolume.GetMasterVolumeLevelScalar())
-    finally:
-        comtypes.CoUninitialize()
-
-
-def speak(text: str) -> None:
-    """Windows の音声合成（SAPI）で、スピーカーから text を読み上げる（読み終わるまで待つ）。マイクがその音を拾う前提。"""
-    import win32com.client
-
-    win32com.client.Dispatch("SAPI.SpVoice").Speak(text)
-
-
-# === 貼り付け先 ===
-
-
-PASTE_TARGET_TITLE = "voice-paste E2E paste target"
-"""貼り付け先の窓の題。"""
-
-PASTE_TARGET_SCRIPT = Path(__file__).with_name("paste_target.py")
-
-
-class PasteTarget:
-    """貼り付け先（別プロセスの入力欄）。入力欄の中身と Enter の回数を、ファイルへ書き出す。"""
-
-    def __init__(self, state_file: Path) -> None:
-        self.state_file = state_file
-        self.process = subprocess.Popen(  # noqa: S603 自分のインタープリタでテスト用のスクリプトを起動する
-            [sys.executable, str(PASTE_TARGET_SCRIPT), str(state_file), PASTE_TARGET_TITLE]
-        )
-        assert wait_until(lambda: self._hwnd() != 0, UI_TIMEOUT_SEC), "貼り付け先の窓が出なかった"
-        self.focus()
-
-    def _hwnd(self) -> int:
-        """貼り付け先の窓のハンドルを返す（無ければ 0）。"""
-        return int(win32gui.FindWindow(None, PASTE_TARGET_TITLE))
-
-    def focus(self) -> None:
-        """貼り付け先を前面に出して入力欄にフォーカスを置く。"""
-        force_foreground(self._hwnd())
-
-    def hwnd(self) -> int:
-        """貼り付け先の窓のハンドルを返す。"""
-        return self._hwnd()
-
-    def _state(self) -> dict[str, Any]:
-        """書き出された入力欄の状態を読む（まだ無ければ空）。"""
-        if not self.state_file.exists():
-            return {"text": "", "enters": 0}
-        try:
-            return dict(json.loads(self.state_file.read_text(encoding="utf-8")))
-        except json.JSONDecodeError:
-            return {"text": "", "enters": 0}
-
-    def text(self) -> str:
-        """入力欄の中身。"""
-        return str(self._state()["text"])
-
-    def enters(self) -> int:
-        """入力欄で受けた Enter の回数。"""
-        return int(self._state()["enters"])
-
-    def close(self) -> None:
-        """貼り付け先を閉じる。"""
-        self.process.kill()
-        self.process.wait()

@@ -3,7 +3,8 @@ scenarios:
   - name: 正常シナリオ
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行。返送先は 127.0.0.1 で待ち受けるテスト用の受け口）
+        description: 録音の入力・システム音量・貼り付けのキーを差し替える（常駐アプリは pytest のプロセスの中で build_handlers で配線し、API は build_fastapi で組み立てた app を 127.0.0.1 で待ち受けさせる。返送先は 127.0.0.1 で待ち受けるテスト用の受け口）
+        notes: 録音の入力は、テストの中で Windows の音声合成（SAPI）で決めた文を書き出した WAV を流す（マイクを開かない）。音量は何もせず、貼り付けのキーは送らずに控える
       - name: 履歴の保存
         description: 履歴を残す設定にする
       - name: 出力先
@@ -24,22 +25,22 @@ scenarios:
         click UC4 "../単一ユースケース/起こした文字を届ける.yaml#正常シナリオ呼び出し元へ返す"
       ```
     expected:
-      - 返送先の受け口に、用語集で補正した文字が 1 回届いている
-      - 録音の画面が出ていない
-      - クリップボードと貼り付け先が録音前のままである
+      - 返送先の受け口に、用語集で補正した文字が 1 回届き、書き出した文の言葉を含む
+      - クリップボードが録音前のままで、貼り付けのキーが送られていない
       - 履歴に録音と起こした文字がある
       - 続けて API の開始を呼ぶと、次の録音を始められる
     test: test_normal
   - name: 正常シナリオ（文字起こしの結果が空）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行。返送先は 127.0.0.1 で待ち受けるテスト用の受け口）
+        description: 録音の入力・システム音量・貼り付けのキーを差し替える（常駐アプリは pytest のプロセスの中で build_handlers で配線し、API は build_fastapi で組み立てた app を 127.0.0.1 で待ち受けさせる。返送先は 127.0.0.1 で待ち受けるテスト用の受け口）
+        notes: 音量は何もせず、貼り付けのキーは送らずに控える
       - name: 履歴の保存
         description: 履歴を残す設定にする
       - name: 文字起こしのエンジン
         description: ローカルの Whisper で、無音の区間を除く設定にする
       - name: 無音の録音
-        description: 開始から完了まで何も話さず、起こした文字が空になるようにする
+        description: 開始から完了まで録音の入力に無音の WAV を流し、起こした文字が空になるようにする
     flow: |-
       ```mermaid
       flowchart TD
@@ -62,7 +63,8 @@ scenarios:
   - name: 異常シナリオ（文字起こしに失敗）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行。返送先は 127.0.0.1 で待ち受けるテスト用の受け口）
+        description: 録音の入力・システム音量・貼り付けのキーを差し替える（常駐アプリは pytest のプロセスの中で build_handlers で配線し、API は build_fastapi で組み立てた app を 127.0.0.1 で待ち受けさせる。返送先は 127.0.0.1 で待ち受けるテスト用の受け口）
+        notes: 録音の入力は、テストの中で Windows の音声合成（SAPI）で決めた文を書き出した WAV を流す（マイクを開かない）。音量は何もせず、貼り付けのキーは送らずに控える
       - name: 履歴の保存
         description: 履歴を残す設定にする
       - name: 文字起こしの失敗
@@ -85,14 +87,15 @@ scenarios:
     expected:
       - 返送先の受け口に、文字起こしに失敗したことが 1 回届いている
       - 履歴にこの録音が残っている
-      - 常駐サービスのプロセスが動き続けており、続けて API の開始を呼ぶと次の録音を始められる
+      - セッションの管理が動き続けており、続けて API の開始を呼ぶと次の録音を始められる
     test: test_error_when_transcription_failed
   - name: 異常シナリオ（ホットキーの録音中に開始を呼ぶ）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
+        description: 録音の入力・システム音量・貼り付けのキー・通知を差し替える（常駐アプリは pytest のプロセスの中で build_handlers で配線し、API は build_fastapi で組み立てた app を 127.0.0.1 で待ち受けさせる）
+        notes: 録音の入力は、テストの中で Windows の音声合成（SAPI）で決めた文を書き出した WAV を流す（マイクを開かない）。音量は何もせず、貼り付けのキーは送らずに控え、通知は控える
       - name: ホットキーの録音
-        description: ユーザーがホットキーで録音を始め、確定する前にほかのプロセスが API の開始を呼ぶ
+        description: ホットキーの入口から録音を始め、確定する前に API の開始を呼ぶ
     flow: |-
       ```mermaid
       flowchart TD

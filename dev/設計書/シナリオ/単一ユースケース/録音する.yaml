@@ -39,7 +39,6 @@ scenarios:
       - 履歴に話した録音が保存されている
       - システム音量が録音前の値に戻っている
       - 選んだ出力先（貼り付けて送信）で 録音を文字に起こす へ進む
-    test: test_normal
   - name: 正常シナリオ（一時停止して再開する）
     setup:
       - name: Mock
@@ -67,7 +66,6 @@ scenarios:
     expected:
       - 履歴に保存した録音に、一時停止の間に話した声が入っていない
       - 経過時間が、一時停止の間を除いた長さを示している
-    test: test_normal_when_pause_and_resume
   - name: 正常シナリオ（録音を取り消す）
     setup:
       - name: Mock
@@ -103,7 +101,6 @@ scenarios:
       - システム音量が録音前の値に戻っている
       - トレイのアイコンが待機中に戻り、文字起こしへ進まない
       - 前面が録音を始める前の貼り付け先の窓に戻っている
-    test: test_normal_when_cancel
   - name: 正常シナリオ（録音の画面を出さない）
     setup:
       - name: Mock
@@ -136,7 +133,6 @@ scenarios:
       - 履歴に録音が保存されている
       - システム音量が録音前の値に戻っている
       - 録音を文字に起こす へ進む
-    test: test_normal_when_hide_window
   - name: 正常シナリオ（履歴を残さない）
     setup:
       - name: Mock
@@ -155,7 +151,6 @@ scenarios:
     expected:
       - 履歴にこの録音が残っていない
       - 一時の音声（`%LOCALAPPDATA%\voice-paste\` の下）に録音があり、録音を文字に起こす へ進む
-    test: test_normal_when_history_off
   - name: 異常シナリオ（処理中に開始が来る）
     setup:
       - name: Mock
@@ -179,7 +174,6 @@ scenarios:
       - 処理中の録音が録音中のまま続いている
     notes:
       API から来たとき: API の開始が処理中に来たときは、APIで録音を操作する の 異常シナリオ（処理中に開始が来る） がエラーを返す。
-    test: test_error_when_busy
   - name: 異常シナリオ（マイクを開けない）
     setup:
       - name: Mock
@@ -216,7 +210,6 @@ scenarios:
       - 録音開始のホットキーをもう一度受け付ける
     notes:
       API から来たとき: API の開始でマイクを開けなかったときは、APIで録音を操作する の 異常シナリオ（マイクを開けない） がエラーを返す。
-    test: test_error_when_microphone_missing
   - name: 正常シナリオ（ほかの窓を前面に出す）
     setup:
       - name: Mock
@@ -239,7 +232,6 @@ scenarios:
       ```
     expected:
       - ほかの窓を前面に出すたびに、録音の画面がその窓より上にある
-    test: test_normal_when_other_window_focused
   - name: 正常シナリオ（主のモニターに出す）
     setup:
       - name: Mock
@@ -263,7 +255,6 @@ scenarios:
       ```
     expected:
       - 録音の画面が主のモニターの作業領域の中にある
-    test: test_normal_when_primary_monitor
   - name: 正常シナリオ（カーソルのあるモニターに出す）
     setup:
       - name: Mock
@@ -289,7 +280,6 @@ scenarios:
       ```
     expected:
       - 録音の画面が、録音を始めたときにカーソルのあったモニターの作業領域の中にある（主のモニターとそれ以外のモニターの両方）
-    test: test_normal_when_follow_cursor
   - name: 正常シナリオ（録音の画面を動かす）
     setup:
       - name: Mock
@@ -315,7 +305,6 @@ scenarios:
       - 録音の画面が、ドラッグを放した位置にある
       - 動かしている間も録音が続き、経過時間が止まっていない
       - 動かした後も録音の画面のボタンで確定でき、録音を文字に起こす へ進む
-    test: test_normal_when_move_window
   - name: 正常シナリオ（録音の画面を隠して戻す）
     setup:
       - name: Mock
@@ -357,7 +346,6 @@ scenarios:
       - 録音開始のホットキーで戻した場合、戻した後も前面が貼り付け先の窓のまま（トレイのアイコン・メニューで戻すと、操作した時点で Windows が前面をタスクバーかメニューへ移すため、貼り付け先のままではない）
       - 履歴に保存した録音に、隠していた間に話した声が入っている
       - 隠している間に一時停止した場合、戻した録音の画面が一時停止中を示し、経過時間が一時停止した時点で止まっている
-    test: test_normal_when_hide_and_restore
   - name: 正常シナリオ（隠したまま確定する）
     setup:
       - name: Mock
@@ -383,7 +371,6 @@ scenarios:
     expected:
       - 隠したままでも確定のホットキーで確定でき、選んだ出力先で 録音を文字に起こす へ進む
       - 次の録音では、録音の画面がいつもどおり出ている
-    test: test_normal_when_confirm_while_hidden
   - name: 正常シナリオ（隠したまま取り消す）
     setup:
       - name: Mock
@@ -411,7 +398,6 @@ scenarios:
       - 履歴にこの録音が残っておらず、文字起こしへ進まない
       - トレイのアイコンが待機中に戻っている
       - 次の録音では、録音の画面がいつもどおり出ている
-    test: test_normal_when_cancel_while_hidden
 lead: ホットキー・トレイ・API のどれかから録音を始め、確定して履歴に残すか取り消すまでの単一ユースケース。
 issue: 14
 primary_actor: 音声入力を使うユーザー
@@ -427,4 +413,4 @@ notes:
     録音の画面はドラッグで動かせ、閉じるボタン（×）は「取り消す」と同じく働く。
     録音中にその回だけ録音の画面を隠せ、隠している間もホットキーで確定・一時停止・取り消しを行える。
     隠した録音の画面は、トレイのアイコンの左クリック・トレイのメニューの「録音の画面を出す」・録音開始のホットキー（同じホットキーの出力先が無いとき）で戻す。
-test_file: tests/e2e/単一ユースケース/test_record.py
+  E2E のテスト: 全シナリオが録音を始め、実機のマイクを開くため、E2E のテストを置かない（#65）。録音から届けるまでは、複合ユースケース「声で入力した文字を貼り付ける」「ほかのシステムから録音を文字に起こす」の E2E が、録音のファイルを内部で渡して確かめる

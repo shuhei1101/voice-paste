@@ -12,7 +12,7 @@ import pytest
 from tests.support.app_driver import IDLE, AppDriver
 from tests.support.browser_target import BrowserTarget
 from tests.support.desktop import PasteTarget, close_explorer, get_uia
-from tests.support.fixtures import receiver, start_service  # noqa: F401 フィクスチャとして使う
+from tests.support.fixtures import receiver, start_inprocess, start_service  # noqa: F401 フィクスチャとして使う
 from tests.support.real_service import RealService
 
 CLIPBOARD_SENTINEL = "voice-paste-e2e-clipboard-sentinel"

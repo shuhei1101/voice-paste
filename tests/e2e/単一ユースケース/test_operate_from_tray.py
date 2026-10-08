@@ -39,6 +39,14 @@ def _token(data_dir: Path) -> str | None:
         return None
 
 
+def _settings_bytes(data_dir: Path) -> bytes | None:
+    """settings.toml の中身を読む（まだ無ければ None）。"""
+    try:
+        return (data_dir / "settings.toml").read_bytes()
+    except OSError:
+        return None
+
+
 def test_normal_when_open_log_folder(start_app: StartApp, explorer_to_close: list[Path]) -> None:
     """「ログフォルダを開く」を選ぶと、エクスプローラーでログの置き場所が開く（正常シナリオ）。"""
     # 準備
@@ -144,3 +152,29 @@ def test_normal_when_quit_with_unsaved_settings(
         "確かめのダイアログで止まったか、終了コードが 0 でない（変えた値を捨てる確認のダイアログが出ていないか: "
         f"{app.window('discard_dialog') is not None}）"
     )
+
+
+def test_normal_when_restart_with_unsaved_settings(start_app: StartApp) -> None:
+    """設定画面で値を変えたままトレイの「再起動」を選んでも、変えた値を捨てる確認で止まらず前のプロセスが終わり、新しい常駐アプリが待機中になる。変えた値は保存されない（正常シナリオ）。"""
+    # 準備
+    app = start_app()
+    data_dir = app.service.data_dir
+    settings_before = _settings_bytes(data_dir)
+    old_token = _token(data_dir)
+    app.open_settings()
+    app.select_group("録音")
+    app.set_field("recording.fade_sec", "2.5")
+
+    # 実行
+    app.choose_tray_menu("menu_restart")
+
+    # 検証
+    assert app.wait_exit(EXIT_LIMIT_SEC), (
+        "確かめのダイアログで止まって前のプロセスが終わらなかった（変えた値を捨てる確認のダイアログが出ていないか: "
+        f"{app.window('discard_dialog') is not None}）"
+    )
+    assert wait_until(lambda: _token(data_dir) not in (None, old_token), RESTART_TIMEOUT_SEC), (
+        "新しい常駐アプリが待ち受けを始めなかった"
+    )
+    assert wait_until(lambda: app.tray_state() == "待機中", RESTART_TIMEOUT_SEC)
+    assert _settings_bytes(data_dir) == settings_before, "設定画面で変えた値が settings.toml に保存された"

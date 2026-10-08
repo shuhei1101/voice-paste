@@ -1126,6 +1126,11 @@ class SettingsWindow(QWidget):
         self.close()
         return True
 
+    def close_without_confirm(self) -> None:
+        """変えた値を捨てる確認を出さずに閉じる（変えた値は保存しない）。アプリの終了・再起動のときに UiController が呼ぶ。"""
+        self._force_close = True
+        self.close()
+
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 Qt の名前
         """閉じる準備ができているか、確かめて閉じてよければ閉じて知らせる。"""
         if self._force_close or self._confirm_close():

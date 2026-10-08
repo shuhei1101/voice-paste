@@ -40,4 +40,4 @@ release PR [#52](https://github.com/shuhei1101/voice-paste/pull/52)（Sprint v0.
 - [x] 単体テスト作成
 - [x] 実装
 - [x] ~~結合テスト作成~~（インターフェース定義と画面設計を変えない）
-- [ ] E2E テスト作成
+- [x] E2E テスト作成

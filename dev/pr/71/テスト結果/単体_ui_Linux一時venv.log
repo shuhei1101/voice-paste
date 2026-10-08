@@ -1,0 +1,73 @@
+# 単体テスト（Linux の一時 venv で流した ui のみ。Windows の venv では未実行）
+
+$ pytest tests/unit/voice_paste/ui -v
+============================= test session starts ==============================
+platform linux -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0 -- /tmp/claude-1000/-mnt-c-Users-shuhe-repo-voice-paste/072801c9-62b5-464f-90a1-3aeafe440038/scratchpad/linvenv/bin/python
+rootdir: /mnt/c/Users/shuhe/repo/voice-paste/.claude/worktrees/fix-ui-quit-with-unsaved-settings
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.12.4
+collecting ... collected 52 items
+tests/unit/voice_paste/ui/test_bridge.py::test_notify PASSED             [  1%]
+tests/unit/voice_paste/ui/test_bridge.py::test_notify_from_other_thread PASSED [  3%]
+tests/unit/voice_paste/ui/test_bridge.py::test_report_progress PASSED    [  5%]
+tests/unit/voice_paste/ui/test_controller.py::test_on_notified_when_recording PASSED [  7%]
+tests/unit/voice_paste/ui/test_controller.py::test_on_notified_when_hidden_window PASSED [  9%]
+tests/unit/voice_paste/ui/test_controller.py::test_on_notified_when_api_session PASSED [ 11%]
+tests/unit/voice_paste/ui/test_controller.py::test_on_notified_when_idle_with_pending_quit PASSED [ 13%]
+tests/unit/voice_paste/ui/test_controller.py::test_on_notified_when_busy PASSED [ 15%]
+tests/unit/voice_paste/ui/test_controller.py::test_on_notified_when_failure PASSED [ 17%]
+tests/unit/voice_paste/ui/test_controller.py::test_on_notified_when_recording_hidden PASSED [ 19%]
+tests/unit/voice_paste/ui/test_controller.py::test_on_notified_when_transcribing_after_hidden PASSED [ 21%]
+tests/unit/voice_paste/ui/test_controller.py::test_on_notified_when_show_recording_window PASSED [ 23%]
+tests/unit/voice_paste/ui/test_controller.py::test_on_notified_when_transcribing_without_move PASSED [ 25%]
+tests/unit/voice_paste/ui/test_controller.py::test_request_exit_when_idle PASSED [ 26%]
+tests/unit/voice_paste/ui/test_controller.py::test_request_exit_when_busy PASSED [ 28%]
+tests/unit/voice_paste/ui/test_controller.py::test_open_settings PASSED  [ 30%]
+tests/unit/voice_paste/ui/test_controller.py::test_open_settings_when_already_open PASSED [ 32%]
+tests/unit/voice_paste/ui/test_controller.py::test_hide_recording PASSED [ 34%]
+tests/unit/voice_paste/ui/test_controller.py::test_show_recording_when_not_hidden PASSED [ 36%]
+tests/unit/voice_paste/ui/test_controller.py::test_event_filter_when_quit_with_settings_open PASSED [ 38%]
+tests/unit/voice_paste/ui/test_controller.py::test_event_filter_when_quit_without_settings PASSED [ 40%]
+tests/unit/voice_paste/ui/test_placement.py::test_place_window_when_center PASSED [ 42%]
+tests/unit/voice_paste/ui/test_placement.py::test_place_window_when_bottom_right PASSED [ 44%]
+tests/unit/voice_paste/ui/test_style.py::test_build_stylesheet PASSED    [ 46%]
+tests/unit/voice_paste/ui/test_tray.py::test_set_state_when_busy PASSED  [ 48%]
+tests/unit/voice_paste/ui/test_tray.py::test_set_state_when_failed PASSED [ 50%]
+tests/unit/voice_paste/ui/test_tray.py::test_show_failure PASSED         [ 51%]
+tests/unit/voice_paste/ui/test_tray.py::test_set_recording_window_when_hidden PASSED [ 53%]
+tests/unit/voice_paste/ui/test_tray.py::test_set_recording_window_when_shown PASSED [ 55%]
+tests/unit/voice_paste/ui/test_tray.py::test_set_recording_window_when_no_window PASSED [ 57%]
+tests/unit/voice_paste/ui/test_tray.py::test_set_recording_window_when_not_recording PASSED [ 59%]
+tests/unit/voice_paste/ui/test_tray.py::test_icon_click_when_window_hidden PASSED [ 61%]
+tests/unit/voice_paste/ui/test_tray.py::test_icon_click_when_window_shown PASSED [ 63%]
+tests/unit/voice_paste/ui/windows/test_settings_presets.py::test_preset_list_panel_collect PASSED [ 65%]
+tests/unit/voice_paste/ui/windows/test_settings_presets.py::test_preset_list_panel_move PASSED [ 67%]
+tests/unit/voice_paste/ui/windows/test_settings_presets.py::test_preset_list_panel_add_preset PASSED [ 69%]
+tests/unit/voice_paste/ui/windows/test_settings_presets.py::test_preset_list_panel_title_field_has_name PASSED [ 71%]
+tests/unit/voice_paste/ui/windows/test_settings_presets.py::test_preset_list_panel_heading_follows_title PASSED [ 73%]
+tests/unit/voice_paste/ui/windows/test_settings_presets.py::test_preset_list_panel_hotkey_clear_button PASSED [ 75%]
+tests/unit/voice_paste/ui/windows/test_settings_window.py::test_save PASSED [ 76%]
+tests/unit/voice_paste/ui/windows/test_settings_window.py::test_save_when_invalid PASSED [ 78%]
+tests/unit/voice_paste/ui/windows/test_settings_window.py::test_save_when_hotkey_unavailable PASSED [ 80%]
+tests/unit/voice_paste/ui/windows/test_settings_window.py::test_save_when_presets PASSED [ 82%]
+tests/unit/voice_paste/ui/windows/test_settings_window.py::test_save_when_preset_invalid PASSED [ 84%]
+tests/unit/voice_paste/ui/windows/test_settings_window.py::test_close_without_confirm PASSED [ 86%]
+tests/unit/voice_paste/ui/windows/test_settings_window.py::test_format_hotkey PASSED [ 88%]
+tests/unit/voice_paste/ui/windows/test_settings_window.py::test_parse_hotkey PASSED [ 90%]
+tests/unit/voice_paste/ui/windows/test_settings_window.py::test_parse_hotkey_when_modifier_only PASSED [ 92%]
+tests/unit/voice_paste/ui/windows/test_settings_window.py::test_to_field_message_when_not_number PASSED [ 94%]
+tests/unit/voice_paste/ui/windows/test_settings_window.py::test_to_field_message_when_out_of_range PASSED [ 96%]
+tests/unit/voice_paste/ui/windows/test_settings_window.py::test_to_field_message_when_preset_url_empty PASSED [ 98%]
+tests/unit/voice_paste/ui/windows/test_transcribing_indicator.py::test_set_progress PASSED [100%]
+============================== 52 passed in 2.28s ==============================
+
+$ lint-imports
+Analyzed 82 files, 152 dependencies.
+------------------------------------
+
+層の向き KEPT
+feature の独立 KEPT
+出力先の独立 KEPT (10 ignored imports)
+画面から feature の中へ KEPT (1 ignored import)
+
+Contracts: 4 kept, 0 broken.

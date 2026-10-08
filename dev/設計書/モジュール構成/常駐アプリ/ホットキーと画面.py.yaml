@@ -480,7 +480,7 @@ classes:
             condition: 設定画面を開かずに QEvent.Quit を渡す
             mock: UiDeps の全関数
             expected: False を返し、resume_hotkeys が呼ばれない
-        status: planned
+        status: implemented
     refs:
       - dev/設計書/画面設計/常駐アプリ/録音の画面.py#
       - dev/設計書/画面設計/常駐アプリ/文字起こし中の表示.py#
@@ -961,7 +961,7 @@ classes:
             condition: 欄の値を変えてから close_without_confirm を呼ぶ
             mock: UiDeps の全関数・confirm_discard
             expected: confirm_discard が呼ばれず、closed が 1 回知らされ、save_settings が呼ばれない
-        status: planned
+        status: implemented
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
     status: implemented

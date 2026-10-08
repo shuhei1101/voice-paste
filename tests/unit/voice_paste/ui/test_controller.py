@@ -1,4 +1,4 @@
-"""ui/controller.py（UiController の on_notified・request_exit・open_settings・hide_recording・show_recording）の単体テスト。
+"""ui/controller.py（UiController の on_notified・request_exit・open_settings・hide_recording・show_recording・eventFilter）の単体テスト。
 
 UiDeps の関数・トレイ・録音の画面・文字起こし中の表示は Mock に差し替える（設定画面だけは本物を開く）。
 画面を使うため offscreen の QApplication（conftest の qapp）で動かす。
@@ -12,7 +12,8 @@ from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
-from PySide6.QtCore import QPoint
+from PySide6.QtCore import QEvent, QPoint, QTimer
+from PySide6.QtWidgets import QSlider, QWidget
 
 from tests.unit.voice_paste.ui.helpers import make_session, make_ui_deps
 
@@ -21,6 +22,12 @@ if TYPE_CHECKING:
 
     from voice_paste.shared.settings import Settings
     from voice_paste.ui.controller import UiController, UiDeps
+
+NEW_VOLUME_PERCENT = 30
+QUIT_TIMEOUT_MS = 2000
+"""終了で抜けられないときにイベントループを止めるまでの時間。"""
+QUIT_TIMEOUT_EXIT_CODE = -1
+"""QUIT_TIMEOUT_MS で止めたときのイベントループの終了コード。"""
 
 
 @dataclass
@@ -334,3 +341,51 @@ def test_show_recording_when_not_hidden(qapp: QApplication, tmp_path: Path) -> N
 
     # 検証
     parts.recording_window.restore.assert_not_called()
+
+
+# === eventFilter ===
+
+
+def test_event_filter_when_quit_with_settings_open(
+    qapp: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """設定画面を開いて欄を変えたまま終了しても、確かめずに閉じてイベントループを抜ける（正常系）。"""
+    # 準備: 設定画面を開いて欄を変え、捨てる確認が出たら「捨てない」と答える
+    confirm_discard = MagicMock(return_value=False)
+    monkeypatch.setattr("voice_paste.ui.windows.settings_window.confirm_discard", confirm_discard)
+    parts = _make_controller(tmp_path)
+    parts.controller.open_settings()
+    settings_window = parts.controller._settings_window
+    assert settings_window is not None
+    volume = settings_window.findChild(QWidget, "field_recording.volume_percent")
+    assert isinstance(volume, QSlider)
+    volume.setValue(NEW_VOLUME_PERCENT)
+    timeout = QTimer()
+    timeout.setSingleShot(True)
+    timeout.timeout.connect(lambda: qapp.exit(QUIT_TIMEOUT_EXIT_CODE))
+
+    # 実行: イベントループの中で終了を頼む（抜けられなければ時間切れで止める）
+    QTimer.singleShot(0, qapp.quit)
+    timeout.start(QUIT_TIMEOUT_MS)
+    exit_code = qapp.exec()
+    timeout.stop()
+    settings_window.hide()
+
+    # 検証
+    confirm_discard.assert_not_called()
+    assert parts.controller._settings_window is None
+    assert exit_code == 0
+    parts.deps.save_settings.assert_not_called()
+
+
+def test_event_filter_when_quit_without_settings(qapp: QApplication, tmp_path: Path) -> None:
+    """設定画面を開いていなければ何もしない（正常系）。"""
+    # 準備
+    parts = _make_controller(tmp_path)
+
+    # 実行
+    result = parts.controller.eventFilter(qapp, QEvent(QEvent.Type.Quit))
+
+    # 検証
+    assert result is False
+    parts.deps.resume_hotkeys.assert_not_called()

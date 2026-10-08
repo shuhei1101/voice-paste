@@ -1,7 +1,7 @@
 """画面設計「トレイの通知」を元にした結合テスト。
 
 本物のトレイと UiController をつなぎ、Windows の通知（QSystemTrayIcon.showMessage）は差し替えて、見出しと本文を確かめる。
-通知を押したときの振る舞い（messageClicked）は offscreen で確かめる。畳まれる前の通知を押したときは実機の E2E に残す。
+通知を押したときの振る舞い（messageClicked）は offscreen で確かめる。畳まれる前の通知を押したときは確かめていない。
 """
 
 from __future__ import annotations

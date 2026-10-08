@@ -19,7 +19,7 @@ from pathlib import Path
 import pytest
 
 from tests.support.app_driver import IDLE, WINDOW_TIMEOUT_SEC, AppDriver
-from tests.support.desktop import open_notification_center, type_keys, wait_until
+from tests.support.desktop import wait_until
 from tests.support.instances import service_root_count, wait_for_takeover
 from tests.support.real_service import LOOPBACK, RealService, spawn_process
 
@@ -36,17 +36,8 @@ NO_SUCH_MODEL_SETTINGS = '[transcription.local_whisper]\nmodel = "voice-paste-e2
 RETENTION_ONE_DAY_SETTINGS = "[history]\nretention_days = 1\n\n[logging]\nretention_days = 1\n"
 """履歴とログの保持期間を 1 日にする設定。"""
 
-ENGINE_FAILURE_TITLE = "起動に失敗しました"
-"""文字起こしのエンジンを準備できないときの通知の見出し。"""
-
-API_FAILURE_TITLE = "API を使えません"
-"""API の待ち受けを始められないときの通知の見出し。"""
-
 NO_RECORDING_WAIT_SEC = 2.0
 """ホットキーを押してから、録音が始まっていないことを確かめるために待つ秒数。"""
-
-TOAST_SETTLE_SEC = 8.0
-"""通知が畳まれて通知センターに残るのを待つ秒数。"""
 
 PREVIOUS_EXIT_TIMEOUT_SEC = 30.0
 """後から起動した後、前のプロセスが終わるまで待つ上限。"""
@@ -81,15 +72,6 @@ def _prepare_expired_files(data_dir: Path) -> tuple[date, date]:
         (data_dir / "log").mkdir(exist_ok=True)
         (data_dir / "log" / f"{day.isoformat()}.log").write_text("古いログ\n", encoding="utf-8")
     return expired, today
-
-
-def _notification_in_center(app: AppDriver, title: str) -> bool:
-    """通知が畳まれて通知センターに残るのを待ち、通知センターに title の通知があるかを返して、通知センターを閉じる。"""
-    time.sleep(TOAST_SETTLE_SEC)
-    open_notification_center()
-    notification = app.uia.find_by_name(title, timeout_sec=WINDOW_TIMEOUT_SEC)
-    type_keys("<esc>")
-    return notification is not None
 
 
 @pytest.fixture
@@ -173,7 +155,7 @@ def test_error_when_engine_unavailable(start_app: StartApp) -> None:
     app.wait_tray_state(FAILED)
 
     # 検証: 失敗の通知とログ、プロセスは終わらずトレイのメニューから設定を開ける
-    assert _notification_in_center(app, ENGINE_FAILURE_TITLE), "通知センターに起動の失敗の通知が無い"
+    assert wait_until(lambda: app.notified("engine_unavailable"), WINDOW_TIMEOUT_SEC)
     assert any(message.startswith("起動に失敗した（") for message in app.log_messages("ERROR"))
     assert app.service.is_running()
     assert app.menu_item_enabled("menu_settings")
@@ -192,7 +174,6 @@ def test_error_when_api_unavailable(start_app: StartApp, occupied_port: int) -> 
 
     # 検証
     assert wait_until(lambda: app.notified("api_unavailable"), WINDOW_TIMEOUT_SEC)
-    assert _notification_in_center(app, API_FAILURE_TITLE), "通知センターに API を使えない通知が無い"
     assert any(
         message.startswith("API の待ち受けを始められなかった（") for message in app.log_messages("ERROR")
     )

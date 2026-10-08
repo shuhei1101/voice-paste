@@ -174,7 +174,7 @@ classes:
     usecase: 共通
     role: ランタイム
     summary: UiBridge の知らせを受けて、トレイ・録音の画面・文字起こし中の表示・ダイアログを開く・閉じる・替える。処理中に選ばれた再起動・終了を待たせる
-    description: |
+    description: |-
       画面とトレイを長く持つためクラスにする。全てのメソッドはメインスレッドで呼ぶ。
       セッションの状態と画面の対応:
 
@@ -480,6 +480,7 @@ classes:
             condition: 設定画面を開かずに QEvent.Quit を渡す
             mock: UiDeps の全関数
             expected: False を返し、resume_hotkeys が呼ばれない
+        status: planned
     refs:
       - dev/設計書/画面設計/常駐アプリ/録音の画面.py#
       - dev/設計書/画面設計/常駐アプリ/文字起こし中の表示.py#
@@ -960,6 +961,7 @@ classes:
             condition: 欄の値を変えてから close_without_confirm を呼ぶ
             mock: UiDeps の全関数・confirm_discard
             expected: confirm_discard が呼ばれず、closed が 1 回知らされ、save_settings が呼ばれない
+        status: planned
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
     status: implemented

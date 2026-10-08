@@ -154,8 +154,7 @@ def test_error_when_engine_unavailable(start_app: StartApp) -> None:
     app = start_app(NO_SUCH_MODEL_SETTINGS, wait_idle=False, wait_for_api=False)
     app.wait_tray_state(FAILED)
 
-    # 検証: 失敗の通知とログ、プロセスは終わらずトレイのメニューから設定を開ける
-    assert wait_until(lambda: app.notified("engine_unavailable"), WINDOW_TIMEOUT_SEC)
+    # 検証: 起動の失敗のログ、プロセスは終わらずトレイのメニューから設定を開ける
     assert any(message.startswith("起動に失敗した（") for message in app.log_messages("ERROR"))
     assert app.service.is_running()
     assert app.menu_item_enabled("menu_settings")

@@ -503,13 +503,13 @@ functions:
       - name: test_build_hotkey_bindings_when_idle
         case: 正常
         summary: 待機中の開始のホットキーは録音を始める
-        condition: Settings()、current が None、<ctrl>+<alt>+d の関数を呼ぶ
+        condition: SETTINGS_MODEL()、current が None、<ctrl>+<alt>+d の関数を呼ぶ
         mock: session_manager・start_local_session
         expected: start_local_session(hotkey) が 1 回呼ばれ、complete が呼ばれない
       - name: test_build_hotkey_bindings_when_recording
         case: 正常
         summary: 録音中の開始のホットキーは貼り付けて送信で確定する
-        condition: Settings()、current が hotkey・recording、<ctrl>+<alt>+d の関数を呼ぶ
+        condition: SETTINGS_MODEL()、current が hotkey・recording、<ctrl>+<alt>+d の関数を呼ぶ
         mock: session_manager・start_local_session・show_recording_window
         expected: complete(output_id=paste_and_send) が 1 回呼ばれ、start_local_session も show_recording_window も呼ばれない
       - name: test_build_hotkey_bindings_when_preset
@@ -950,7 +950,7 @@ classes:
           - name: test_replace
             case: 正常
             summary: 入れ替えた設定を読める
-            condition: Settings() で作り、recording.volume_percent=30 の設定に replace する
+            condition: SETTINGS_MODEL() で作り、recording.volume_percent=30 の設定に replace する
             mock: なし
             expected: get().recording.volume_percent が 30
     status: implemented

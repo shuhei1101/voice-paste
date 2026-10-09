@@ -126,7 +126,6 @@ data_models:
       各項目は `Field(description=..., json_schema_extra={"reload": "immediate" | "restart"})` で再起動が要るかの印を持つ。
       出力先ごとの設定のモデルは出力先が持ち（shared は features を import しない）、アプリが使う設定のモデルは build_settings_model がこのモデルを継いで組み立てる（main.py の SETTINGS_MODEL）。組み立てたモデルでは全ての項目に既定値があり、`SETTINGS_MODEL()` が既定の設定になる。
       設定を受ける関数・画面は型としては Settings を使い、既定値・検証には受けた設定のモデル（`type(settings)`）を使う。
-      この設計書の単体テストの `Settings()` は、今の出力先のモデル（PasteAndSendSettings・PasteOnlySettings・CopyOnlySettings）をこの並びで build_settings_model に渡したモデルの既定値を指す。
     properties:
       - name: transcription
         type: TranscriptionSettings
@@ -602,7 +601,7 @@ functions:
         summary: 無ければ既定値で作る
         condition: settings.toml の無い一時フォルダ
         mock: なし（一時フォルダ）
-        expected: Settings() と等しい設定が返り、settings.toml ができている
+        expected: SETTINGS_MODEL() と等しい設定が返り、settings.toml ができている
       - name: test_load_settings
         case: 正常
         summary: 書いた値を読む
@@ -614,7 +613,7 @@ functions:
         summary: リポジトリの見本は既定値と一致する
         condition: リポジトリの直下の settings.sample.toml
         mock: なし
-        expected: Settings() と等しい
+        expected: SETTINGS_MODEL() と等しい
       - name: test_load_settings_when_invalid_value
         case: 異常
         summary: 合わない値はキーを示して断る
@@ -724,7 +723,7 @@ functions:
       - name: test_save_settings_when_glossary_reset
         case: 正常
         summary: 用語集の場所を既定（None）に戻すとキーを消す
-        condition: glossary_path = "C:/x/yogo.csv" を持つ settings.toml に Settings() を書く
+        condition: glossary_path = "C:/x/yogo.csv" を持つ settings.toml に SETTINGS_MODEL() を書く
         mock: なし（一時フォルダ）
         expected: 書いた後のファイルに glossary_path のキーが無く、load_settings の glossary_path が None
       - name: test_save_settings_when_ai_chat_remains
@@ -916,7 +915,7 @@ functions:
       - name: test_find_hotkey_overlaps_when_start_equals_paste_and_send
         case: 正常
         summary: 録音の開始と貼り付けて送信が同じキー（既定）は重なりにしない
-        condition: Settings()（どちらも <ctrl>+<alt>+d）
+        condition: SETTINGS_MODEL()（どちらも <ctrl>+<alt>+d）
         mock: なし
         expected: '[]'
       - name: test_find_hotkey_overlaps_when_disabled_output
@@ -1006,7 +1005,7 @@ functions:
     process: |-
       1. 各モデルの id の既定値を集める
          - 空か、重なる ID がある場合、ValueError を送出する（登録の誤り。起動の前に単体テストで止める）
-      2. outputs の型を、モデルが 2 つ以上なら `Annotated[Union[...], Field(discriminator="id")]`、1 つならそのモデルの list にする（失敗の場所は今と同じく添字の次に判別子の値が入り、format_error_location が外す）
+      2. outputs の型を、モデルの数によらず `list[Annotated[Union[...], Field(discriminator="id")]]` にする（モデルが 1 つでも判別共用体にし、失敗の場所に添字の次の判別子の値を入れる。format_error_location がそれを外す）
       3. outputs の既定を、各モデルを引数なしで作った一覧（渡した並び）にする。説明・反映の印は Settings の outputs のものを引き継ぐ
       4. Settings を継いだモデルを `pydantic.create_model` で作り、output_models に ID → モデルを入れて返す（確かめは Settings のものを引き継ぐ）
     exceptions:
@@ -1028,9 +1027,9 @@ functions:
       - name: test_build_settings_model_when_single_output
         case: 正常
         summary: 出力先が 1 つでも組み立てられる
-        condition: 試しのモデル a だけを渡す
+        condition: '試しのモデル a だけを渡して組み立て、outputs = [{id: a, hotkey: 1}]（hotkey が文字列でない）を model_validate する'
         mock: なし
-        expected: 既定値の outputs が [a のモデル]
+        expected: 既定値の outputs が [a のモデル]。model_validate は ValidationError で、list_validation_failures のキーが outputs[0].hotkey
       - name: test_build_settings_model_when_duplicate_id
         case: 異常
         summary: ID が重なる登録を断る

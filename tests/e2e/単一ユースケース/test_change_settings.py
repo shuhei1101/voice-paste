@@ -82,7 +82,8 @@ def test_normal_when_save_and_restart(start_app: StartApp) -> None:
 
 def test_normal_when_reset(start_app: StartApp) -> None:
     """「既定に戻す」で確認に答えると、全てのキーが既定の値で書かれ、設定画面は開いたまま欄に既定の値が入る（正常シナリオ）。"""
-    from voice_paste.shared.settings import Settings, load_settings
+    from voice_paste.main import SETTINGS_MODEL
+    from voice_paste.shared.settings import load_settings
 
     # 準備
     app = start_app(COMMENTED_SETTINGS)
@@ -93,7 +94,9 @@ def test_normal_when_reset(start_app: StartApp) -> None:
     app.press_in("reset_dialog", "reset_button")
 
     # 検証
-    assert wait_until(lambda: load_settings(_settings_file(app)) == Settings(), 15)
+    assert wait_until(
+        lambda: load_settings(_settings_file(app), SETTINGS_MODEL) == SETTINGS_MODEL(), 15
+    )
     assert app.window("settings_window") is not None
     app.select_group("録音")
     assert app.field_value("recording.fade_sec") == "0.5"

@@ -30,6 +30,9 @@ if TYPE_CHECKING:
 
     from tests.unit.voice_paste.runtime.helpers import BackgroundAcquire
     from voice_paste.features.outputs import OutputSpec, PresetKindSpec
+    from voice_paste.features.outputs.types import OutputDeps
+    from voice_paste.shared.settings import Settings
+    from voice_paste.shared.types import TranscriptionOutcome
     from voice_paste.ui.controller import UiDeps
 
 ACQUIRE_WAIT_SEC = 5.0
@@ -303,9 +306,14 @@ def test_main(
     background_acquire: Callable[[str, float], BackgroundAcquire],
 ) -> None:
     """設定を読んで API・ホットキー・トレイを立て、イベントループが抜けたら片付けて 0 を返す（正常系）。"""
-    from voice_paste.main import PURGE_INTERVAL_SEC, SESSION_LIMIT_CHECK_INTERVAL_SEC, main
+    from voice_paste.main import (
+        PURGE_INTERVAL_SEC,
+        SESSION_LIMIT_CHECK_INTERVAL_SEC,
+        SETTINGS_MODEL,
+        main,
+    )
     from voice_paste.runtime.single_instance import instance_name
-    from voice_paste.shared.settings import Settings, load_settings
+    from voice_paste.shared.settings import load_settings
 
     # 準備
     wiring = install_wiring(monkeypatch, qapp)
@@ -319,7 +327,7 @@ def test_main(
 
     # 検証
     assert exit_code == 0
-    assert load_settings(data_dir / "settings.toml") == Settings()
+    assert load_settings(data_dir / "settings.toml", SETTINGS_MODEL) == SETTINGS_MODEL()
     assert (data_dir / "api_token").exists()
     assert set(wiring.hotkey.start.call_args.args[0]) == DEFAULT_HOTKEYS
     assert wiring.hotkey_class.call_args.kwargs == {"accept_injected": False}
@@ -466,8 +474,8 @@ def test_main_when_no_data_dir(
 ) -> None:
     """データの置き場所を渡さなければ既定の置き場所で起動する（正常系）。"""
     import voice_paste.shared.constants as constants_module
-    from voice_paste.main import main
-    from voice_paste.shared.settings import Settings, load_settings
+    from voice_paste.main import SETTINGS_MODEL, main
+    from voice_paste.shared.settings import load_settings
 
     # 準備: platformdirs の置き場所を、一時フォルダの config・local へ向ける
     config_dir = tmp_path / "config"
@@ -481,7 +489,7 @@ def test_main_when_no_data_dir(
 
     # 検証
     assert exit_code == 0
-    assert load_settings(config_dir / "settings.toml") == Settings()
+    assert load_settings(config_dir / "settings.toml", SETTINGS_MODEL) == SETTINGS_MODEL()
     assert (local_dir / "api_token").exists()
     assert list((local_dir / "log").glob("*.log"))
 
@@ -637,32 +645,55 @@ def _kinds_by_name(wired: tuple[PresetKindSpec, ...]) -> dict[str, PresetKindSpe
     return {spec.kind: spec for spec in wired}
 
 
-def test_wire_outputs(monkeypatch: pytest.MonkeyPatch) -> None:
+def _outcome() -> TranscriptionOutcome:
+    """届ける結果（起こした文字「テスト」）を作る。"""
+    from voice_paste.shared.types import TranscriptionOutcome as OutcomeModel
+
+    return OutcomeModel(session_id="session-1", result="transcribed", text="テスト", error=None)
+
+
+def _make_output_deps(adapters: MagicMock, get_settings: Callable[[], Settings]) -> OutputDeps:
+    """外部連携を adapters の偽物にした OutputDeps を作る。paste は呼ぶたびに今の設定の paste_key で send_paste を呼ぶ。"""
+    from voice_paste.features.outputs.types import OutputDeps as OutputDepsModel
+
+    return OutputDepsModel(
+        copy=adapters.copy_to_clipboard,
+        paste=lambda: adapters.send_paste(get_settings().keyboard.paste_key),
+        send_enter=adapters.send_enter,
+        sleep=adapters.sleep,
+        jitter=adapters.jitter,
+        post=adapters.post_json,
+        get_settings=get_settings,
+    )
+
+
+def _trial_handler(
+    outcome: TranscriptionOutcome, target: str | None, *, copy: Callable[[str], None]
+) -> None:
+    """試しの出力先の届ける関数。起こした文字をクリップボードへ書くだけ。"""
+    copy(outcome.text)
+
+
+def test_wire_outputs(settings_model: type[Settings]) -> None:
     """各出力先に設定の値を配線する（正常系）。"""
     from voice_paste.features.outputs import OUTPUTS
+    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
+    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
+    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
     from voice_paste.main import _wire_outputs
-    from voice_paste.shared.settings import (
-        CopyOnlySettings,
-        KeyboardSettings,
-        PasteAndSendSettings,
-        PasteOnlySettings,
-        Settings,
-    )
-    from voice_paste.shared.types import TranscriptionOutcome
+    from voice_paste.shared.settings import KeyboardSettings
 
     # 準備
-    adapters = _install_adapters(monkeypatch)
-    settings = Settings(
+    adapters = MagicMock()
+    settings = settings_model(
         keyboard=KeyboardSettings(paste_key="<ctrl>+<shift>+v"),
         outputs=[PasteAndSendSettings(enter_delay_sec=0.2), PasteOnlySettings(), CopyOnlySettings()],
     )
-    outcome = TranscriptionOutcome(
-        session_id="session-1", result="transcribed", text="テスト", error=None
-    )
+    deps = _make_output_deps(adapters, lambda: settings)
 
     # 実行
-    wired = _wire_outputs(lambda: settings)
-    _outputs_by_id(wired)["paste_and_send"].handler(outcome, None)
+    wired = _wire_outputs(deps, OUTPUTS)
+    _outputs_by_id(wired)["paste_and_send"].handler(_outcome(), None)
 
     # 検証
     assert [spec.id for spec in wired] == [spec.id for spec in OUTPUTS]
@@ -670,36 +701,55 @@ def test_wire_outputs(monkeypatch: pytest.MonkeyPatch) -> None:
     adapters.sleep.assert_called_once_with(0.2)
 
 
-def test_wire_outputs_when_settings_changed(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_wire_outputs_when_settings_changed(settings_model: type[Settings]) -> None:
     """配線の後に変えた設定が次の届け方に効く（正常系）。"""
+    from voice_paste.features.outputs import OUTPUTS
+    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
     from voice_paste.main import _wire_outputs
-    from voice_paste.shared.settings import (
-        KeyboardSettings,
-        PasteAndSendSettings,
-        Settings,
-    )
-    from voice_paste.shared.types import TranscriptionOutcome
+    from voice_paste.shared.settings import KeyboardSettings
 
     # 準備
-    adapters = _install_adapters(monkeypatch)
-    get_settings = MagicMock(return_value=Settings())
-    outcome = TranscriptionOutcome(
-        session_id="session-1", result="transcribed", text="テスト", error=None
-    )
-    wired = _wire_outputs(get_settings)
+    adapters = MagicMock()
+    get_settings = MagicMock(return_value=settings_model())
+    deps = _make_output_deps(adapters, get_settings)
+    wired = _wire_outputs(deps, OUTPUTS)
 
     # 配線の後に設定を差し替える
-    get_settings.return_value = Settings(
+    get_settings.return_value = settings_model(
         keyboard=KeyboardSettings(paste_key="<ctrl>+<alt>+v"),
         outputs=[PasteAndSendSettings(enter_delay_sec=1.0)],
     )
 
     # 実行
-    _outputs_by_id(wired)["paste_and_send"].handler(outcome, None)
+    _outputs_by_id(wired)["paste_and_send"].handler(_outcome(), None)
 
     # 検証
     adapters.send_paste.assert_called_once_with("<ctrl>+<alt>+v")
     adapters.sleep.assert_called_once_with(1.0)
+
+
+def test_wire_outputs_when_registered_output(settings_model: type[Settings]) -> None:
+    """登録しただけの出力先も、その inject が選んだもので配線される（正常系）。"""
+    from voice_paste.features.outputs import OUTPUTS, OutputSpec
+    from voice_paste.main import _wire_outputs
+
+    # 準備: OUTPUTS の後ろに、inject が copy だけを選ぶ試しの出力先を足す
+    adapters = MagicMock()
+    deps = _make_output_deps(adapters, lambda: settings_model())
+    trial = OutputSpec(
+        id="trial",
+        title="試し",
+        handler=_trial_handler,  # type: ignore[arg-type] 注入する関数は _wire_outputs が部分適用する
+        inject=lambda output_deps: {"copy": output_deps.copy},
+    )
+
+    # 実行
+    wired = _wire_outputs(deps, (*OUTPUTS, trial))
+    wired[-1].handler(_outcome(), None)
+
+    # 検証
+    assert wired[-1].id == "trial"
+    adapters.copy_to_clipboard.assert_called_once_with("テスト")
 
 
 # === _wire_preset_kinds ===
@@ -708,13 +758,13 @@ def test_wire_outputs_when_settings_changed(monkeypatch: pytest.MonkeyPatch) -> 
 def test_wire_preset_kinds(monkeypatch: pytest.MonkeyPatch) -> None:
     """各種類に設定の値を配線する（正常系）。"""
     from voice_paste.features.outputs import PRESET_KINDS
+    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
     from voice_paste.main import _wire_preset_kinds
     from voice_paste.shared.settings import (
         BrowserPreset,
         BrowserPresetOptions,
         EndpointPreset,
         EndpointPresetOptions,
-        PasteAndSendSettings,
         PresetOptions,
         Settings,
     )
@@ -789,16 +839,17 @@ def test_wire_preset_kinds_when_settings_changed(monkeypatch: pytest.MonkeyPatch
 # === build_hotkey_bindings ===
 
 
-def test_build_hotkey_bindings_when_idle() -> None:
+def test_build_hotkey_bindings_when_idle(settings_model: type[Settings]) -> None:
     """待機中の開始のホットキーは録音を始める（正常系）。"""
     from voice_paste.main import build_hotkey_bindings
-    from voice_paste.shared.settings import Settings
 
     # 準備
     session_manager = MagicMock()
     session_manager.current.return_value = None
     start_local_session = MagicMock()
-    bindings = build_hotkey_bindings(Settings(), session_manager, start_local_session, MagicMock())
+    bindings = build_hotkey_bindings(
+        settings_model(), session_manager, start_local_session, MagicMock()
+    )
 
     # 実行
     bindings["<ctrl>+<alt>+d"]()
@@ -808,10 +859,9 @@ def test_build_hotkey_bindings_when_idle() -> None:
     session_manager.complete.assert_not_called()
 
 
-def test_build_hotkey_bindings_when_recording() -> None:
+def test_build_hotkey_bindings_when_recording(settings_model: type[Settings]) -> None:
     """録音中の開始のホットキーは貼り付けて送信で確定する（正常系）。"""
     from voice_paste.main import build_hotkey_bindings
-    from voice_paste.shared.settings import Settings
 
     # 準備
     session_manager = MagicMock()
@@ -819,7 +869,7 @@ def test_build_hotkey_bindings_when_recording() -> None:
     start_local_session = MagicMock()
     show_recording_window = MagicMock()
     bindings = build_hotkey_bindings(
-        Settings(), session_manager, start_local_session, show_recording_window
+        settings_model(), session_manager, start_local_session, show_recording_window
     )
 
     # 実行
@@ -831,18 +881,17 @@ def test_build_hotkey_bindings_when_recording() -> None:
     show_recording_window.assert_not_called()
 
 
-def test_build_hotkey_bindings_when_recording_without_confirm_output() -> None:
+def test_build_hotkey_bindings_when_recording_without_confirm_output(
+    settings_model: type[Settings],
+) -> None:
     """貼り付けて送信がオフなら、録音中の開始のホットキーは録音の画面を戻す指示を出す（正常系）。"""
+    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
+    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
+    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
     from voice_paste.main import build_hotkey_bindings
-    from voice_paste.shared.settings import (
-        CopyOnlySettings,
-        PasteAndSendSettings,
-        PasteOnlySettings,
-        Settings,
-    )
 
     # 準備
-    settings = Settings(
+    settings = settings_model(
         outputs=[PasteAndSendSettings(enabled=False), PasteOnlySettings(), CopyOnlySettings()]
     )
     session_manager = MagicMock()
@@ -862,17 +911,17 @@ def test_build_hotkey_bindings_when_recording_without_confirm_output() -> None:
     session_manager.complete.assert_not_called()
 
 
-def test_build_hotkey_bindings_when_preset() -> None:
+def test_build_hotkey_bindings_when_preset(settings_model: type[Settings]) -> None:
     """プリセットのホットキーはそのプリセットで確定する（正常系）。"""
     from voice_paste.main import build_hotkey_bindings
-    from voice_paste.shared.settings import BrowserPreset, Settings
+    from voice_paste.shared.settings import BrowserPreset
 
     # 準備
     preset = BrowserPreset(title="ChatGPT", url="https://chatgpt.com", hotkey="<ctrl>+<alt>+1")
     session_manager = MagicMock()
     start_local_session = MagicMock()
     bindings = build_hotkey_bindings(
-        Settings(presets=[preset]), session_manager, start_local_session, MagicMock()
+        settings_model(presets=[preset]), session_manager, start_local_session, MagicMock()
     )
 
     # 実行
@@ -882,13 +931,13 @@ def test_build_hotkey_bindings_when_preset() -> None:
     session_manager.complete.assert_called_once_with(preset=preset)
 
 
-def test_build_hotkey_bindings_when_preset_not_bound() -> None:
+def test_build_hotkey_bindings_when_preset_not_bound(settings_model: type[Settings]) -> None:
     """無効のプリセットとホットキーが空のプリセットは登録しない（正常系）。"""
     from voice_paste.main import build_hotkey_bindings
-    from voice_paste.shared.settings import BrowserPreset, EndpointPreset, Settings
+    from voice_paste.shared.settings import BrowserPreset, EndpointPreset
 
     # 準備
-    settings = Settings(
+    settings = settings_model(
         presets=[
             BrowserPreset(
                 title="ChatGPT", url="https://chatgpt.com", hotkey="<ctrl>+<alt>+7", enabled=False
@@ -905,15 +954,14 @@ def test_build_hotkey_bindings_when_preset_not_bound() -> None:
     assert "" not in bindings
 
 
-def test_build_hotkey_bindings_when_paused() -> None:
+def test_build_hotkey_bindings_when_paused(settings_model: type[Settings]) -> None:
     """一時停止中の一時停止のホットキーは再開する（正常系）。"""
     from voice_paste.main import build_hotkey_bindings
-    from voice_paste.shared.settings import Settings
 
     # 準備
     session_manager = MagicMock()
     session_manager.current.return_value = make_session("hotkey", "paused")
-    bindings = build_hotkey_bindings(Settings(), session_manager, MagicMock(), MagicMock())
+    bindings = build_hotkey_bindings(settings_model(), session_manager, MagicMock(), MagicMock())
 
     # 実行
     bindings["<ctrl>+<alt>+z"]()
@@ -923,18 +971,15 @@ def test_build_hotkey_bindings_when_paused() -> None:
     session_manager.pause.assert_not_called()
 
 
-def test_build_hotkey_bindings_when_output_disabled() -> None:
+def test_build_hotkey_bindings_when_output_disabled(settings_model: type[Settings]) -> None:
     """オフの出力先のホットキーは登録しない（正常系）。"""
+    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
+    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
+    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
     from voice_paste.main import build_hotkey_bindings
-    from voice_paste.shared.settings import (
-        CopyOnlySettings,
-        PasteAndSendSettings,
-        PasteOnlySettings,
-        Settings,
-    )
 
     # 準備
-    settings = Settings(
+    settings = settings_model(
         outputs=[PasteAndSendSettings(), PasteOnlySettings(), CopyOnlySettings(enabled=False)]
     )
 
@@ -948,23 +993,20 @@ def test_build_hotkey_bindings_when_output_disabled() -> None:
 # === apply_settings ===
 
 
-def test_apply_settings(tmp_path: Path) -> None:
+def test_apply_settings(tmp_path: Path, settings_model: type[Settings]) -> None:
     """確かめてから書いて入れ替える（正常系）。"""
+    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
+    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
+    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
     from voice_paste.main import apply_settings
     from voice_paste.runtime.settings_store import SettingsStore
-    from voice_paste.shared.settings import (
-        CopyOnlySettings,
-        PasteAndSendSettings,
-        PasteOnlySettings,
-        Settings,
-        load_settings,
-    )
+    from voice_paste.shared.settings import load_settings
 
     # 準備
     settings_file = tmp_path / "settings.toml"
-    store = SettingsStore(load_settings(settings_file))
+    store = SettingsStore(load_settings(settings_file, settings_model))
     check_hotkeys = MagicMock()
-    new_settings = Settings(
+    new_settings = settings_model(
         outputs=[PasteAndSendSettings(), PasteOnlySettings(), CopyOnlySettings(enabled=False)]
     )
 
@@ -977,25 +1019,26 @@ def test_apply_settings(tmp_path: Path) -> None:
     assert restart_needed is False
     check_hotkeys.assert_called_once()
     assert "<ctrl>+<alt>+c" not in set(check_hotkeys.call_args.args[0])
-    assert load_settings(settings_file) == new_settings
+    assert load_settings(settings_file, settings_model) == new_settings
     assert store.get() == new_settings
 
 
-def test_apply_settings_when_restart_item_changed(tmp_path: Path) -> None:
+def test_apply_settings_when_restart_item_changed(
+    tmp_path: Path, settings_model: type[Settings]
+) -> None:
     """再起動が要る項目の変更を返す（正常系）。"""
     from voice_paste.main import apply_settings
     from voice_paste.runtime.settings_store import SettingsStore
     from voice_paste.shared.settings import (
         LocalWhisperSettings,
-        Settings,
         TranscriptionSettings,
         load_settings,
     )
 
     # 準備
     settings_file = tmp_path / "settings.toml"
-    store = SettingsStore(load_settings(settings_file))
-    new_settings = Settings(
+    store = SettingsStore(load_settings(settings_file, settings_model))
+    new_settings = settings_model(
         transcription=TranscriptionSettings(local_whisper=LocalWhisperSettings(model="small"))
     )
 
@@ -1008,16 +1051,18 @@ def test_apply_settings_when_restart_item_changed(tmp_path: Path) -> None:
     assert restart_needed is True
 
 
-def test_apply_settings_when_hotkey_unavailable(tmp_path: Path) -> None:
+def test_apply_settings_when_hotkey_unavailable(
+    tmp_path: Path, settings_model: type[Settings]
+) -> None:
     """受け付けられないホットキーなら何も書かない（異常系）。"""
     from voice_paste.main import apply_settings
     from voice_paste.runtime.settings_store import SettingsStore
     from voice_paste.shared.errors import HotkeyError
-    from voice_paste.shared.settings import HotkeySettings, Settings, load_settings
+    from voice_paste.shared.settings import HotkeySettings, load_settings
 
     # 準備
     settings_file = tmp_path / "settings.toml"
-    previous_settings = load_settings(settings_file)
+    previous_settings = load_settings(settings_file, settings_model)
     settings_before = settings_file.read_bytes()
     store = SettingsStore(previous_settings)
     check_hotkeys = MagicMock(side_effect=HotkeyError("<ctrl>+<nokey> を読めない"))
@@ -1025,7 +1070,7 @@ def test_apply_settings_when_hotkey_unavailable(tmp_path: Path) -> None:
     # 実行・検証
     with pytest.raises(HotkeyError):
         apply_settings(
-            Settings(hotkeys=HotkeySettings(start="<ctrl>+<nokey>")),
+            settings_model(hotkeys=HotkeySettings(start="<ctrl>+<nokey>")),
             settings_file=settings_file,
             store=store,
             check_hotkeys=check_hotkeys,

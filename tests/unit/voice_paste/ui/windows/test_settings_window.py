@@ -23,6 +23,7 @@ from tests.unit.voice_paste.ui.helpers import make_ui_deps
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QApplication
 
+    from voice_paste.shared.settings import Settings
     from voice_paste.ui.controller import UiDeps
     from voice_paste.ui.windows.settings_window import SettingsWindow
 
@@ -249,16 +250,15 @@ def test_parse_hotkey_when_modifier_only() -> None:
 # === to_field_message ===
 
 
-def test_to_field_message_when_not_number() -> None:
+def test_to_field_message_when_not_number(settings_model: type[Settings]) -> None:
     """数値でない文字（正常系）。"""
     from pydantic import ValidationError
 
-    from voice_paste.shared.settings import Settings
     from voice_paste.ui.windows.settings_window import to_field_message
 
     # 準備
     with pytest.raises(ValidationError) as exc_info:
-        Settings.model_validate(
+        settings_model.model_validate(
             {"outputs": [{"id": "paste_and_send", "enter_delay_sec": "abc"}]}
         )
 

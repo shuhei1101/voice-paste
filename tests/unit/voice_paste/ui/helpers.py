@@ -19,6 +19,13 @@ if TYPE_CHECKING:
 
 SESSION_STARTED_AT = datetime(2026, 10, 3, 12, 0, tzinfo=UTC)
 
+OUTPUT_TITLES = {
+    "paste_and_send": "貼り付けて送信",
+    "paste_only": "貼り付けのみ",
+    "copy_only": "コピーのみ",
+}
+"""画面に出す出力先の名前（出力先の ID → 名前。API 専用の出力先を除く）。"""
+
 
 class FakeClock:
     """進められる経過の時計（秒）。文字起こし中の表示の clock に渡す。"""
@@ -34,8 +41,8 @@ class FakeClock:
 def make_ui_deps(
     tmp_path: Path, *, settings: Settings | None = None, **overrides: Any
 ) -> UiDeps:
-    """全ての関数を Mock にした UiDeps を作る。settings は get_settings が返す設定、overrides は項目ごとの差し替え。"""
-    from voice_paste.shared.settings import Settings as SettingsModel
+    """全ての関数を Mock にした UiDeps を作る。settings は get_settings が返す設定（既定は既定の出力先を持つ設定）、overrides は項目ごとの差し替え。"""
+    from voice_paste.main import SETTINGS_MODEL
     from voice_paste.ui.controller import UiDeps as UiDepsModel
 
     fields: dict[str, Any] = {
@@ -46,7 +53,7 @@ def make_ui_deps(
         "cancel": MagicMock(return_value=None),
         "current_session": MagicMock(return_value=None),
         "level": MagicMock(return_value=0.0),
-        "get_settings": MagicMock(return_value=settings or SettingsModel()),
+        "get_settings": MagicMock(return_value=settings or SETTINGS_MODEL()),
         "save_settings": MagicMock(return_value=False),
         "settings_dir": tmp_path,
         "log_dir": tmp_path / "log",
@@ -54,6 +61,7 @@ def make_ui_deps(
         "request_quit": MagicMock(return_value=None),
         "suspend_hotkeys": MagicMock(return_value=None),
         "resume_hotkeys": MagicMock(return_value=None),
+        "output_titles": OUTPUT_TITLES,
     }
     fields.update(overrides)
     return UiDepsModel(**fields)

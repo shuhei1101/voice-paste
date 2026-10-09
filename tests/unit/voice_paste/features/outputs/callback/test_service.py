@@ -1,4 +1,4 @@
-"""features/outputs/callback/service.py（is_callback_allowed・deliver_to_caller）の単体テスト。
+"""features/outputs/callback/service.py（is_callback_allowed・deliver_to_caller・inject_callback）の単体テスト。
 
 POST（post）・間を置く関数（sleep）・乱数（jitter）は Mock にして、再送の回数と待ちを確かめる。
 """
@@ -10,6 +10,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from tests.unit.voice_paste.features.outputs.helpers import make_output_deps
 from voice_paste.shared.errors import DeliveryError
 
 TARGET = "http://127.0.0.1:9000/result"
@@ -217,3 +218,39 @@ def test_deliver_to_caller_when_not_allowed() -> None:
     with pytest.raises(DeliveryError):
         _deliver(post, sleep, jitter, target="http://example.com/x")
     post.assert_not_called()
+
+
+# === inject_callback ===
+
+
+def test_inject_callback() -> None:
+    """返送の決定値と設定の許可ホストを渡す（正常系）。"""
+    from voice_paste.features.outputs.callback.service import inject_callback
+    from voice_paste.shared.settings import ApiSettings, Settings
+
+    # 準備
+    deps = make_output_deps(
+        get_settings=MagicMock(
+            return_value=Settings(api=ApiSettings(allowed_callback_hosts=["host.local"]))
+        )
+    )
+
+    # 実行
+    injected = inject_callback(deps)
+    injected["post"]("http://host.local/x", {"text": "テスト"})
+
+    # 検証
+    assert set(injected) == {
+        "post",
+        "allowed_hosts",
+        "retry_count",
+        "retry_base_sec",
+        "sleep",
+        "jitter",
+    }
+    assert injected["allowed_hosts"] == frozenset({"host.local"})
+    assert injected["retry_count"] == 3
+    assert injected["retry_base_sec"] == 1.0
+    assert injected["sleep"] is deps.sleep
+    assert injected["jitter"] is deps.jitter
+    deps.post.assert_called_once_with("http://host.local/x", {"text": "テスト"}, timeout_sec=1.5)

@@ -4,16 +4,21 @@ directory: |-
   ```
   src/voice_paste/
   ├── __init__.py
-  ├── __main__.py              # python -m voice_paste で main() を呼ぶ（CUDA の DLL のフォルダの登録もここ）
-  ├── main.py                  # parse_args・build_handlers・main
+  ├── __main__.py              # python -m voice_paste で main() を呼ぶ
+  ├── main.py                  # parse_args・build_handlers・build_ui_deps・apply_settings・start_local_session・main
   └── runtime/
       ├── single_instance.py   # 名前付きのミューテックスと終了の依頼（名前付きのイベント）
+      ├── settings_store.py    # SettingsStore（動いている間の今の設定）
+      ├── process.py           # relaunch（同じ引数で起動し直す）
       └── timer.py             # RepeatingTimer（上限での打ち切りを定期に呼ぶ）
   ```
 
   リポジトリの直下は `pyproject.toml`・起動のバッチファイル 1 つ・`settings.sample.toml`・`README.md`・`CLAUDE.md`・`src/`・`resources/`・`tests/`・`dev/`・`docs/` に絞る。
 
-  中身をまだ作らない層（`ui/`）は、import-linter の契約が指せるよう `__init__.py`（docstring 1 行）だけを置く。
+  起動のバッチファイル（`voice-paste.bat`）は、venv を有効にし、CUDA の DLL（venv の `Lib/site-packages/nvidia/` の `cublas`・`cudnn`・`cuda_nvrtc` の `bin`）を `PATH` に足して、`pythonw -m voice_paste` を引数なしで起動する（コンソールを出さない）。
+  起動の記録（起動した時刻・使った Python・起動の終了コード）は `%LOCALAPPDATA%\voice-paste\log\launcher.log` へ起動ごとに上書きで書く。
+  ログの保持期間の削除（purge_old_logs）は日付の名前のログだけを消すため、上書きで大きさを保ち、日付でログを消す処理は持たない。
+  `pyproject.toml` の `[project.scripts]` の `voice-paste` は `voice_paste.main:main` を指す。
 diagrams:
   - name: 依存の向き
     diagram: |-
@@ -59,12 +64,15 @@ data_models:
       - name: session_api
         type: SessionApiDeps
         description: API サーバーへ渡すセッションの API の依存（設定の許可ホストを部分適用した返送先の確かめを含む）
-      - name: settings
-        type: Settings
-        description: 読み込んだ設定
+      - name: settings_store
+        type: SettingsStore
+        description: 今効いている設定。出力先・録音・画面はここから読むため、保存した immediate の項目が次の回から効く
       - name: start_local_session
         type: Callable[[Entry], None]
         description: ホットキー・トレイの開始（SessionManager と notify を部分適用した start_local_session）
+      - name: recorder_level
+        type: Callable[[], float]
+        description: 録音中の音量（Recorder.level）。録音の画面の波形に使う
       - name: stop_engine
         type: Callable[[], None]
         description: 文字起こしのエンジンを止める（WhisperWorkerClient.stop）。終了時に呼ぶ
@@ -79,10 +87,7 @@ data_models:
     properties:
       - name: data_dir
         type: Path | None
-        description: データの置き場所（`--data-dir`）。設定・履歴・ログ・一時の音声・トークンをこの下に置く
-      - name: migrate_env
-        type: Path | None
-        description: 設定へ移す .env（`--migrate-env`）。渡されたときだけ移す
+        description: データの置き場所（`--data-dir`）。渡したときは設定・履歴・ログ・一時の音声・トークンをこの下に置き、渡さなければ None（既定の置き場所）
     status: implemented
 functions:
   - name: build_handlers
@@ -109,29 +114,31 @@ functions:
         required: true
         passing: positional
         description: 画面への知らせ
+      - name: report_progress
+        type: ProgressFn
+        required: true
+        passing: positional
+        description: 文字起こしの進みの知らせ（ui の report_progress）
     returns:
       type: Handlers
       description: 配線済みの関数の束
     process: |-
-      1. 設定のエンジン（local_whisper）の WhisperWorkerClient を作って起動し、その transcribe を文字起こしの engine に渡す
+      1. 設定を SettingsStore に入れる。以降の配線は設定を値でなく SettingsStore.get から読む（保存した immediate の項目を次の回から効かせる）
+      2. 設定のエンジン（local_whisper）の WhisperWorkerClient を作って起動し、その transcribe を文字起こしの engine に渡す
          - EngineError の場合、StartupError を送出する
-      2. Recorder に音量のアダプタを渡す
-      3. 出力先の deliver にオンの出力先と OUTPUTS を部分適用し、Session を入口・出力先・出力先に固有の宛先・返送先に分けて渡すアダプタを作る。各出力先には出力先の ID ごとに次を部分適用する（_wire_outputs に設定を返す関数を渡す）
-         - 貼り付けて送信: copy_to_clipboard・設定の keyboard.paste_key で send_paste を呼ぶ関数・send_enter・time.sleep・設定の enter_delay_sec を返す関数
-         - 貼り付けのみ: copy_to_clipboard・send_paste を呼ぶ関数
-         - コピーのみ: copy_to_clipboard
-         - AI チャットへ送る: copy_to_clipboard・open_app_window・send_paste を呼ぶ関数・send_enter・time.sleep・設定の open_delay_sec を返す関数・貼り付けて送信の enter_delay_sec を返す関数
-         - 呼び出し元へ返す: タイムアウトを部分適用した post_json・設定の許可ホスト・再送の回数と間隔の基数・time.sleep・random.uniform(0, x)
-      4. 用語集を文字起こしのたびに読み直す correct を作る（load_glossary → apply_glossary）
-      5. SessionDeps を組み、API のセッションの上限時間と共に SessionManager を作る
-      6. SessionManager と、設定の許可ホストを部分適用した is_callback_allowed を SessionApiDeps に束ねる
-      7. start_local_session に SessionManager と notify を部分適用する
+      3. Recorder に音量のアダプタと、SettingsStore から録音の設定を返す関数を渡す
+      4. 出力先の deliver に、配線した OUTPUTS（_wire_outputs）・配線した PRESET_KINDS（_wire_preset_kinds）と、届けるたびに SettingsStore からオンの出力先の ID を引く関数を部分適用し、Session を入口・出力先の ID・選んだプリセット・返送先に分けて渡すアダプタを作る
+         - 出力先には OutputDeps（copy_to_clipboard・設定の keyboard.paste_key で send_paste を呼ぶ関数・send_enter・time.sleep・random.uniform(0, x)・post_json・SettingsStore.get）を渡し、各出力先の inject が選ぶ
+         - ブラウザ添付（種類）: copy_to_clipboard・open_app_window・send_paste を呼ぶ関数・send_enter・time.sleep・設定の preset_options.browser.open_delay_sec を返す関数・貼り付けて送信の enter_delay_sec を返す関数（read_enter_delay_sec）
+         - エンドポイントへ送る（種類）: post_json・設定の preset_options.endpoint.timeout_sec を返す関数
+      5. 用語集を文字起こしのたびに読み直す correct を作る（load_glossary → apply_glossary。読む場所はそのたびに SettingsStore の glossary_path から決める）
+      6. SessionDeps を組み（report_progress を含む）、API のセッションの上限時間と共に SessionManager を作る
+      7. SessionManager と、設定の許可ホストを部分適用した is_callback_allowed を SessionApiDeps に束ねる
+      8. start_local_session に SessionManager と notify を部分適用する
     exceptions:
       - name: StartupError
         condition: 文字起こしのエンジンを準備できない
     status: implemented
-    notes:
-      並走の間の配線: 'ホットキーと画面を作る #21 までは 7 を飛ばし、Handlers は start_local_session を持たない。'
   - name: main
     title: 起動
     kind: 関数
@@ -143,93 +150,107 @@ functions:
       type: int
       description: 終了コード
     process: |-
-      1. 名前付きの排他を取る（acquire_single_instance）
-      2. ログを設定する（setup_logging）
-      3. QApplication とトレイを作り、準備中を出す
-      4. 設定を読む（load_settings）
-         - SettingsError の場合、トレイで知らせてログに理由を書き、録音を受け付けずにトレイだけで続ける（5〜8 を飛ばす。古いログと履歴も消さない）
+      1. 起動の引数を読む（parse_args。argv が None なら sys.argv[1:]）
+      2. 置き場所を決め、ログを INFO で設定する（resolve_app_paths・setup_logging）
+      3. 置き場所ごとの名前で単一インスタンスを確保する（instance_name・acquire_single_instance(SINGLE_INSTANCE_TIMEOUT_SEC)）
+         - StartupError の場合、1 を返す（トレイを出す前のため、ログにだけ残す）
            - `[ERROR]` 起動に失敗した（理由）
-      5. 設定の保持期間で古いログと履歴を消す（purge_old_logs・purge_expired）
-      6. 配線する（build_handlers）
-         - StartupError の場合、トレイで知らせてログに理由を書き、録音を受け付けずにトレイだけで続ける（7 と 8 を飛ばす）
+      4. QApplication（最後の窓を閉じても終わらない）・UiBridge・Tray を作り、build_stylesheet を当ててトレイに準備中を出す。WAKE_INTERVAL_MS ごとの空の QTimer を置き、SIGINT・SIGBREAK で QApplication.quit を呼ぶ。後から起動したプロセスに終わるよう頼まれたら、QApplication.quit をメインスレッドで呼ぶ（SingleInstanceLock.on_quit_requested に、QMetaObject.invokeMethod で QApplication.quit をキューに入れる関数を渡す）
+      5. 設定を読む（load_settings(settings_file, SETTINGS_MODEL)）
+         - SettingsError の場合、トレイを失敗にして設定を読めないことを通知し（Tray.show_failure(settings_invalid, 理由)）、「録音を始める」「設定…」を押せないまま 11 へ（フォルダを開いて settings.toml を直し、再起動できる）
            - `[ERROR]` 起動に失敗した（理由）
-      7. トークンを作り、API サーバーを起動する（create_token・build_fastapi・ApiServerRunner.start）
-         - True の場合だけ、トークンのファイルを書く（write_token_file。ファイルが指すのは常に待ち受けている自分になり、動いているほかの起動のトークンを上書きしない）
-         - False の場合、トークンのファイルを書かずに api_unavailable を知らせて（トレイ）続ける
-      8. ホットキーの受付を始め（開始は start_local_session、確定・一時停止・取り消しは SessionManager のメソッド）、上限の打ち切りを RepeatingTimer で SESSION_LIMIT_CHECK_INTERVAL_SEC ごとに、古い履歴・ログの削除を定期に呼ぶ
-      9. トレイを待機中にし、イベントループを回す
-      10. 終了の依頼かトレイの終了で、新しい開始が来ないように入口とタイマー（ホットキー・API サーバー・タイマー）を先に止め、録音を捨て（SessionManager.close）、ワーカーを止め、トレイを消して終わる
+      6. ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を消す（purge_old_files。処理中のセッションは無いため、一時の音声も全て消す対象にする）
+         - `[INFO]` 設定を読んだ（設定ファイルのパス・エンジン・オンの出力先の ID）
+      7. 配線する（build_handlers。notify と report_progress は UiBridge を部分適用した ui のもの）
+         - StartupError の場合、トレイを失敗にして起動の失敗を通知し（Tray.show_failure(engine_unavailable, 理由)）、「設定…」だけを押せるまま 11 へ（設定画面は読んだ設定で開き、保存は settings.toml へ書くだけにする。Handlers が無いため、UiDeps のうち録音・ホットキーの関数（start・pause・resume・complete・cancel・current_session・level・suspend_hotkeys・resume_hotkeys）は何もしない関数にし、設定画面を閉じてもホットキーの受付を始めない）
+           - `[ERROR]` 起動に失敗した（理由）
+      8. UiController を作り（build_ui_deps）、UiBridge の知らせの受け手につなぐ（9 で待ち受けを始められない知らせを取りこぼさないよう、API より先に作る）
+      9. トークンを作り、API サーバーを起動する（create_token・build_fastapi・ApiServerRunner.start(API_START_TIMEOUT_SEC)）
+         - True の場合だけ、トークンのファイルを書く（write_token_file）
+         - False の場合、トークンのファイルを書かずに api_unavailable を知らせて続ける（ホットキーとトレイからの録音は使える）。理由は「ポート {ポート} で待ち受けを始められません」の 1 文にする
+      10. ホットキーの受付を始め（HotkeyListener.start(build_hotkey_bindings(設定))）、上限の打ち切りを RepeatingTimer で SESSION_LIMIT_CHECK_INTERVAL_SEC ごとに呼ぶ（SessionManager.truncate_if_expired）。古いログと履歴の削除を RepeatingTimer で PURGE_INTERVAL_SEC ごとに呼ぶ（purge_old_files。設定は呼ぶたびに SettingsStore.get から引き、設定画面で変えた保持期間・履歴を残すかを次の回から効かせる。処理中のセッションの ID は SessionManager.current から引く）。トレイを待機中にする
+         - HotkeyListener は、環境変数 `VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS`（ACCEPT_INJECTED_HOTKEYS_ENV）が `1` のときだけ accept_injected=True で作る（E2E がソフトウェアで送ったキーでホットキーを押すため。普段の起動は付けない）
+           - `[INFO]` ソフトウェアで送ったキーもホットキーとして受ける
+         - HotkeyError の場合、ホットキーを受け付けずに続ける（トレイから録音でき、設定画面で直せる）
+           - `[ERROR]` ホットキーを受け付けられなかった（理由）
+         - `[INFO]` 常駐サービスを始めた（API のポート）
+      11. イベントループを回す（exec_loop）
+      12. 抜けたら、新しい開始が来ないように入口とタイマー（ホットキー・API サーバー・2 つのタイマー）を先に止め、録音を捨て（SessionManager.close）、エンジンを止め、トレイを消す（8 までで立てたものだけ）。最後に単一インスタンスの排他を放す（SingleInstanceLock.release）
+          - `[INFO]` 常駐サービスを終えた
+      13. 再起動を頼まれていれば、同じ引数で起動し直す（relaunch。排他を放した後に呼ぶため、次のプロセスは待たずに排他を取れる）
+      14. 0 を返す
     status: implemented
-    notes:
-      並走の間の処理: |-
-        画面とホットキーが無い間（画面を作る #21 まで）は、main(argv: list[str] | None = None, *, wait_for_shutdown: Callable[[], None] = wait_for_shutdown_signal) を次の処理にする。各 Issue が上の処理の段を足していく。
-
-        1. 起動の引数を読む（parse_args。argv が None なら sys.argv[1:]）
-        2. 置き場所を決め、ログを INFO で設定する（resolve_app_paths・setup_logging）
-        3. `--migrate-env` が渡されていれば、.env を移して書く（migrate_env・save_settings）
-           - settings.toml が既にある場合、移さずに 1 を返す（書き換えた設定を上書きしない）
-             - `[ERROR]` 設定ファイルが既にあるため .env を移さなかった（設定ファイルのパス）
-           - SettingsError の場合、1 を返す
-             - `[ERROR]` .env を移せなかった（理由）
-           - `[INFO]` .env を設定ファイルへ移した（.env のパス・設定ファイルのパス）
-        4. 設定を読む（load_settings）
-           - SettingsError の場合、1 を返す
-             - `[ERROR]` 起動に失敗した（理由）
-        5. ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログを消す（purge_old_logs）
-           - `[INFO]` 設定を読んだ（設定ファイルのパス・エンジン・オンの出力先の ID）
-        6. 配線する（build_handlers。notify は log_notify）
-           - StartupError の場合、1 を返す
-             - `[ERROR]` 起動に失敗した（理由）
-        7. トークンを作り、API サーバーを起動する（create_token・build_fastapi・ApiServerRunner.start(API_START_TIMEOUT_SEC)）
-           - True の場合だけ、トークンのファイルを書く（write_token_file）
-           - False の場合、トークンのファイルを書かずに api_unavailable を知らせ、エンジンを止めて 1 を返す（画面とホットキーが無い間は続けても受け付ける入口が無い）
-        8. 上限の打ち切りを RepeatingTimer で SESSION_LIMIT_CHECK_INTERVAL_SEC ごとに呼ぶ（SessionManager.truncate_if_expired）
-           - `[INFO]` 常駐サービスを始めた（API のポート）
-        9. 終了の合図を待つ（wait_for_shutdown）
-        10. 新しい開始が来ないようにタイマー・API サーバーを先に止め、録音を捨て（SessionManager.close）、エンジンを止めて 0 を返す
-            - `[INFO]` 常駐サービスを終えた
-
-        `__main__.py` は `sys.exit(main())` だけを呼ぶ（CUDA の DLL の場所は、文字起こしワーカーの窓口が子プロセスの PATH へ足す）。
+    args:
+      - name: argv
+        type: list[str] | None
+        required: false
+        default: None
+        passing: positional
+        description: コマンドの引数。None なら sys.argv[1:]
+      - name: exec_loop
+        type: Callable[[QApplication], int]
+        required: false
+        default: QApplication.exec を呼ぶ関数
+        passing: keyword
+        description: イベントループを回す関数。テストではすぐ抜ける関数を渡す
     unit_tests:
       - name: test_main
         case: 正常
-        summary: 設定を読んで API を立て、終了の合図で片付けて 0 を返す
-        condition: --data-dir に空の一時フォルダ。wait_for_shutdown はすぐ戻る
-        mock: build_handlers・ApiServerRunner（start が True）・RepeatingTimer
-        expected: 0。{data_dir}/settings.toml が既定値ででき、{data_dir}/log/{今日}.log に「設定を読んだ」の行があり、token_file があり、RepeatingTimer.stop・ApiServerRunner.stop・SessionManager.close・stop_engine がこの順に 1 回ずつ呼ばれる
-      - name: test_main_when_migrate_env
-        case: 正常
-        summary: .env を移してから読む
-        condition: --data-dir に空の一時フォルダ、--migrate-env に WHISPER_MODEL=small の .env。wait_for_shutdown はすぐ戻る
-        mock: build_handlers・ApiServerRunner（start が True）・RepeatingTimer
-        expected: 0。settings.toml の transcription.local_whisper.model が small、.env の中身が変わらず .env.migrated が無い
-      - name: test_main_when_settings_exists_and_migrate_env
-        case: 異常
-        summary: 設定ファイルがあれば移さない
-        condition: hotkeys.start を変えた settings.toml がある data_dir、--migrate-env に .env
-        mock: build_handlers
-        expected: 1。settings.toml が変わらず、ERROR のログが 1 行、build_handlers が呼ばれない
-        exception: settings.toml が既にある
+        summary: 設定を読んで API・ホットキー・トレイを立て、イベントループが抜けたら片付けて 0 を返す
+        condition: --data-dir に空の一時フォルダ。QT_QPA_PLATFORM=offscreen、環境変数 VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS は無い、exec_loop はすぐ 0 を返す
+        mock: build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray
+        expected: 0。{data_dir}/settings.toml が既定値ででき、token_file があり、HotkeyListener が accept_injected=False で作られ、HotkeyListener.start に既定のホットキーが渡り、RepeatingTimer が SESSION_LIMIT_CHECK_INTERVAL_SEC と PURGE_INTERVAL_SEC の 2 つ作られ、HotkeyListener.stop・2 つの RepeatingTimer.stop・ApiServerRunner.stop・SessionManager.close・stop_engine・Tray.hide がこの順に 1 回ずつ呼ばれ、最後に単一インスタンスの排他が放される（同じ data_dir でもう一度取れる）
       - name: test_main_when_invalid_settings
         case: 異常
-        summary: 設定が合わなければ 1 を返す
-        condition: transcription.local_whisper.beam_size = "x" の settings.toml がある data_dir
-        mock: build_handlers
-        expected: 1。ERROR のログに transcription.local_whisper.beam_size が出、build_handlers が呼ばれない
+        summary: 設定が合わなければトレイで知らせて入口を立てない
+        condition: transcription.local_whisper.beam_size = "x" の settings.toml がある data_dir。exec_loop はすぐ 0 を返す
+        mock: build_handlers・ApiServerRunner・HotkeyListener・Tray
+        expected: 0。Tray.set_failed と Tray.show_failure(settings_invalid, 理由) が呼ばれ（理由に transcription.local_whisper.beam_size が出る）、ERROR のログに transcription.local_whisper.beam_size が出、build_handlers・ApiServerRunner・HotkeyListener.start が呼ばれない
         exception: SettingsError
       - name: test_main_when_startup_error
         case: 異常
-        summary: エンジンを準備できなければ 1 を返す
-        condition: build_handlers が StartupError を送出する
-        mock: build_handlers・ApiServerRunner
-        expected: 1。ERROR のログが 1 行、ApiServerRunner が作られない
+        summary: エンジンを準備できなければトレイを失敗にして続ける
+        condition: build_handlers が StartupError を送出する。exec_loop はすぐ 0 を返す
+        mock: build_handlers・ApiServerRunner・HotkeyListener・Tray
+        expected: 0。Tray.set_failed と Tray.show_failure(engine_unavailable) が呼ばれ、ApiServerRunner が作られず、HotkeyListener.start が呼ばれない
         exception: StartupError
       - name: test_main_when_api_unavailable
         case: 正常
-        summary: 待ち受けを始められなければトークンのファイルを書かずに知らせて 1 を返す
-        condition: 前回の起動の token_file がある data_dir。ApiServerRunner.start が False を返す
-        mock: build_handlers・ApiServerRunner・log_notify
-        expected: 1。token_file が前回の内容のままで、log_notify に api_unavailable が渡り、stop_engine が 1 回呼ばれ、wait_for_shutdown が呼ばれない
+        summary: 待ち受けを始められなければトークンのファイルを書かずに知らせて続ける
+        condition: 前回の起動の token_file がある data_dir。ApiServerRunner.start が False を返す。exec_loop はイベントを処理してから 0 を返す
+        mock: build_handlers・ApiServerRunner・RepeatingTimer・HotkeyListener・Tray
+        expected: 0。token_file が前回の内容のままで、Tray.show_failure に api_unavailable と「ポート {ポート} で待ち受けを始められません」が渡り、HotkeyListener.start が呼ばれる
+      - name: test_main_when_restart_requested
+        case: 正常
+        summary: 再起動を頼まれたら片付けた後に起動し直す
+        condition: exec_loop の中で UiDeps.request_restart を呼ぶ
+        mock: build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray・relaunch
+        expected: 0。relaunch が ApiServerRunner.stop と stop_engine の後に、同じ argv で 1 回呼ばれる
+      - name: test_main_when_accept_injected_hotkeys
+        case: 正常
+        summary: 環境変数が 1 なら、ソフトウェアで送ったキーもホットキーとして受ける受付を作る
+        condition: --data-dir に空の一時フォルダ、環境変数 VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS=1。exec_loop はすぐ 0 を返す
+        mock: build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray
+        expected: 0。HotkeyListener が accept_injected=True で作られる
+      - name: test_main_when_no_data_dir
+        case: 正常
+        summary: データの置き場所を渡さなければ既定の置き場所で起動する
+        condition: argv=[]。QT_QPA_PLATFORM=offscreen、exec_loop はすぐ 0 を返す
+        mock: platformdirs の user_config_dir・user_data_dir（それぞれ一時フォルダの config・local を返す）・build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray
+        expected: 0。一時フォルダの config/settings.toml が既定値ででき、local/api_token があり、local/log の下にログが書かれる
+      - name: test_main_when_previous_instance_not_released
+        case: 異常
+        summary: 前のプロセスが排他を放さなければトレイを出さずに終わる
+        condition: acquire_single_instance が StartupError を送出する
+        mock: acquire_single_instance・build_handlers・Tray
+        expected: 1。ERROR のログが 1 行出、Tray・build_handlers が作られない
+        exception: 前のプロセスが排他を放さない
+      - name: test_main_when_quit_requested
+        case: 正常
+        summary: 後から起動したプロセスに頼まれたら片付けて排他を放す
+        condition: --data-dir に空の一時フォルダ。exec_loop の中で、on_quit_requested に渡された関数を別のスレッドから呼び、イベントを処理してから抜ける
+        mock: acquire_single_instance（SingleInstanceLock の代わりを返す）・build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray
+        expected: 0。QApplication.quit がメインスレッドで呼ばれ、stop_engine・Tray.hide の後に SingleInstanceLock.release が 1 回呼ばれ、relaunch が呼ばれない
   - name: acquire_single_instance
     title: 単一インスタンスの確保
     kind: 関数
@@ -238,6 +259,11 @@ functions:
     scope: public
     summary: 名前付きのミューテックスを取る。取られていれば名前付きのイベントで前のプロセスに終わるよう頼み、解放を待ってから取る
     args:
+      - name: name
+        type: str
+        required: true
+        passing: positional
+        description: 排他の名前（instance_name）。ミューテックスは `Local\{name}`、終了の依頼のイベントは `Local\{name}-quit` にする
       - name: timeout_sec
         type: float
         required: true
@@ -245,13 +271,58 @@ functions:
         description: 前のプロセスの終わりを待つ上限
     returns:
       type: SingleInstanceLock
-      description: 取った排他（終了時に解放する。終了の依頼を待つスレッドも持つ）
+      description: 取った排他（終了の依頼を待つスレッドを持つ。終了時に release で放す）
     exceptions:
       - name: StartupError
         condition: 上限まで待っても前のプロセスが排他を放さない
     notes:
       強制終了しない: プロセスの番号での強制終了はしない（番号を使い回された無関係なプロセスを止めない）。
-    status: planned
+    status: implemented
+    process: |-
+      1. 名前付きのミューテックスを作る（ctypes で Win32 の CreateMutexW）
+      2. 既にあった（ERROR_ALREADY_EXISTS）か
+         - ある場合、前のプロセスの終了の依頼のイベントを開いて立て（OpenEventW・SetEvent）、ミューテックスの解放を timeout_sec まで待つ（WaitForSingleObject。前のプロセスが片付けずに落ちて放棄されたミューテックス（WAIT_ABANDONED）も取れたものとして扱う）
+           - イベントを開けない場合（前のプロセスがミューテックスを作ってからイベントを作るまでの間）、OPEN_EVENT_RETRY_INTERVAL_SEC ごとに開き直しながら、同じ上限までミューテックスの解放を待つ（開けたらその時点で立てる）
+           - `[INFO]` 前の常駐サービスに終わるよう頼んだ
+           - 上限まで取れない場合、ミューテックスのハンドルを閉じて StartupError を送出する。上限まで一度もイベントを開けなかったときは、理由にその旨を書く
+         - 無い場合、そのまま取れている
+      3. 自分の終了の依頼のイベント（自動リセット）を作り、作った直後に ResetEvent で立ったまま残っていた依頼を消す（同じ名前のイベントは前のプロセスのハンドルが残る間は引き継がれ、取る前に立った依頼は前のプロセス宛てのため）
+      4. 終了の依頼のイベントと、名前の無い自分専用の停止のイベントを WaitForMultipleObjects で待つデーモンスレッドを始めて SingleInstanceLock を返す
+         - 終了の依頼のイベントが立った場合、受け手を 1 回呼んでスレッドを終える（2 回目以降の依頼は、既に終わりに向かっているため受けない）
+         - 停止のイベントが立った場合、受け手を呼ばずにスレッドを終える
+         - `[INFO]` 単一インスタンスを確保した（名前）
+    unit_tests:
+      - name: test_acquire_single_instance
+        case: 正常
+        summary: ほかに持つプロセスが無ければすぐ取れる
+        condition: 一意の名前（テストごとに uuid を付ける）
+        mock: なし（実物の Win32 の名前付きのミューテックスとイベント）
+        expected: SingleInstanceLock が返り、release の後に同じ名前でもう一度取れる
+      - name: test_acquire_single_instance_when_held
+        case: 正常
+        summary: 持っている側に終わるよう頼み、放されたら取れる
+        condition: 別のスレッドで同じ名前の SingleInstanceLock を先に取り、その on_quit_requested には呼ばれたことを知らせるだけの関数を渡す。知らせを受けたら、取ったスレッドが release する（名前付きのミューテックスは取ったスレッドだけが放せる）。テストのスレッドで timeout_sec=5 で取る
+        mock: なし（実物の Win32 の名前付きのミューテックスとイベント）
+        expected: 先の on_quit_requested が 1 回呼ばれ、後の呼び出しが SingleInstanceLock を返す
+      - name: test_acquire_single_instance_when_not_released
+        case: 異常
+        summary: 上限まで放されなければ StartupError
+        condition: 別のスレッドで同じ名前の SingleInstanceLock を先に取り、頼まれても放さない。テストのスレッドで timeout_sec=0.2 で取る
+        mock: なし（実物の Win32 の名前付きのミューテックスとイベント）
+        expected: StartupError。先の SingleInstanceLock は持ったまま
+        exception: 上限まで待っても前のプロセスが排他を放さない
+      - name: test_acquire_single_instance_when_taken_over
+        case: 正常
+        summary: 前の持ち主が依頼を受けて放した直後に取ったロックは、受け手を呼ばない
+        condition: test_acquire_single_instance_when_held の流れで後から取ったロックに受け手を渡す。先のロックを取ったスレッドは、依頼の知らせを受けたら、同じ名前のイベントのハンドルを開いたまま、3 つ目の依頼として同じ名前のイベントをもう 1 回立ててから release する（立ったままの依頼が残り、acquire_single_instance の ResetEvent が無ければ後のロックの受け手が呼ばれる）
+        mock: なし（実物の Win32 の名前付きのミューテックスとイベント）
+        expected: 後から取ったロックの受け手が 1 秒呼ばれない
+      - name: test_acquire_single_instance_when_event_not_ready
+        case: 正常
+        summary: 前のプロセスのイベントがまだ無くても、開き直して頼む
+        condition: 別のスレッドが CreateMutexW だけで同じ名前のミューテックスを持ち、0.3 秒後に同じ名前の終了の依頼のイベントを作り、立ったら放す。timeout_sec=5 で取る
+        mock: なし（実物の Win32 の名前付きのミューテックスとイベント）
+        expected: SingleInstanceLock が返り、別のスレッドがイベントの立ったことを受けている
   - name: start_local_session
     title: ホットキー・トレイからの開始
     kind: 関数
@@ -303,14 +374,14 @@ functions:
         condition: start が RuntimeError を送出する
         mock: session_manager・notify
         expected: 例外が出ず、ERROR のログが 1 行出る
-    status: planned
+    status: implemented
   - name: parse_args
     title: 起動の引数の解釈
     kind: 関数
     container: main.py
     usecase: 常駐アプリを起動する
     scope: public
-    summary: argparse で `--data-dir` と `--migrate-env` を読む
+    summary: argparse で `--data-dir` を読む
     args:
       - name: argv
         type: list[str]
@@ -321,80 +392,28 @@ functions:
       type: CliArgs
       description: 起動の引数
     process: |-
-      1. `--data-dir {フォルダ}` と `--migrate-env {ファイル}` を読む
-         - 並走の間（起動を切り替える #22 まで）は `--data-dir` を必須にし、普段使いの既定の置き場所へ書かない
-         - 知らない引数・`--data-dir` が無い場合、argparse が使い方を出して SystemExit(2) で終わる
+      1. `--data-dir {フォルダ}` を読む（任意）
+         - `--data-dir` が無い場合、data_dir を None にする（設定は `%APPDATA%\voice-paste`、それ以外は `%LOCALAPPDATA%\voice-paste` の下。E2E・非機能要件テストは一時フォルダを渡して普段使いの置き場所に触れない）
+         - 知らない引数の場合、argparse が使い方を出して SystemExit(2) で終わる
     unit_tests:
       - name: test_parse_args
         case: 正常
         summary: データの置き場所だけを読む
         condition: '["--data-dir", "C:/tmp/vp"]'
         mock: なし
-        expected: data_dir が Path("C:/tmp/vp")、migrate_env が None
-      - name: test_parse_args_when_migrate_env
-        case: 正常
-        summary: 移す .env も読む
-        condition: '["--data-dir", "C:/tmp/vp", "--migrate-env", "C:/repo/.env"]'
-        mock: なし
-        expected: migrate_env が Path("C:/repo/.env")
+        expected: data_dir が Path("C:/tmp/vp")
       - name: test_parse_args_when_no_data_dir
-        case: 異常
-        summary: データの置き場所が無ければ終わる
+        case: 正常
+        summary: データの置き場所が無ければ既定の置き場所にする
         condition: '[]'
         mock: なし
-        expected: SystemExit（code 2）
-    status: implemented
-  - name: log_notify
-    title: ログへの知らせ
-    kind: 関数
-    container: main.py
-    usecase: 共通
-    scope: public
-    summary: 画面とトレイが入るまでの NotifyFn。知らせをログに書く
-    args:
-      - name: event
-        type: Literal["state_changed", "busy", "microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable"]
-        required: true
-        passing: positional
-        description: 知らせの種類
-      - name: detail
-        type: str | None
-        required: false
-        default: None
-        passing: positional
-        description: 理由
-    returns:
-      type: None
-      description: なし
-    process: |-
-      1. state_changed は INFO、それ以外は WARNING で、種類と理由をログに書く
-         - `[INFO]` / `[WARNING]` ユーザーへの知らせ（種類・理由）
-    unit_tests:
-      - name: test_log_notify_when_failure
-        case: 正常
-        summary: 失敗の知らせは WARNING
-        condition: event=api_unavailable、detail="47823"
+        expected: data_dir が None
+      - name: test_parse_args_when_unknown_argument
+        case: 異常
+        summary: 知らない引数なら終わる
+        condition: '["--unknown"]'
         mock: なし
-        expected: WARNING のログに api_unavailable と 47823 が出る
-    notes:
-      差し替え: '画面を作る #21 で、build_handlers へ渡す notify をホットキーと画面の notify に差し替え、この関数を消す。'
-    status: implemented
-  - name: wait_for_shutdown_signal
-    title: 終了の合図の待ち
-    kind: 関数
-    container: main.py
-    usecase: 常駐アプリを起動する
-    scope: public
-    summary: Ctrl+C（SIGINT）か Ctrl+Break（SIGBREAK）が来るまで待つ。画面とトレイが入るまでの終わり方
-    returns:
-      type: None
-      description: なし
-    process: |-
-      1. threading.Event を作り、SIGINT と（あれば）SIGBREAK のハンドラで立てる
-      2. 立つまで 1 秒ずつ待つ（メインスレッドがシグナルを受けられるよう、上限なしの wait にしない）
-         - `[INFO]` 終了の合図を受けた（シグナル）
-    notes:
-      差し替え: '画面を作る #21 で、イベントループとトレイの終了に差し替え、この関数を消す。'
+        expected: SystemExit（code 2）
     status: implemented
   - name: _wire_outputs
     title: 出力先の配線
@@ -403,43 +422,407 @@ functions:
     usecase: 常駐アプリを起動する
     role: composition root
     scope: internal
-    summary: OUTPUTS の各出力先の handler に、出力先の ID ごとの外部連携の関数と設定の値を部分適用して返す
+    summary: OUTPUTS の各出力先の handler に、その出力先の inject が OutputDeps から選んだものを部分適用して返す（出力先の ID ごとの表を持たない）
+    args:
+      - name: deps
+        type: OutputDeps
+        required: true
+        passing: positional
+        description: 外部連携の関数と今の設定（build_handlers が組む）
+      - name: outputs
+        type: Sequence[OutputSpec]
+        required: true
+        passing: positional
+        description: 配線する出力先の一覧（OUTPUTS。テストでは試しの出力先を渡す）
+    returns:
+      type: tuple[OutputSpec, ...]
+      description: handler を配線した出力先の一覧（outputs と同じ並び）
+    process: |-
+      1. outputs を順に見て、spec.inject(deps) が返したものを spec.handler に部分適用した handler に差し替える（何も返さない出力先はそのまま残る）
+    unit_tests:
+      - name: test_wire_outputs
+        case: 正常
+        summary: 各出力先に設定の値を配線する
+        condition: keyboard.paste_key が `<ctrl>+<shift>+v`、paste_and_send の enter_delay_sec が 0.2 の設定を返す OutputDeps と OUTPUTS を渡す
+        mock: copy_to_clipboard・send_paste・send_enter・time.sleep
+        expected: 返った一覧の ID が OUTPUTS と同じ並びで、paste_and_send の handler を呼ぶと send_paste に `<ctrl>+<shift>+v`、sleep に 0.2 が渡る
+      - name: test_wire_outputs_when_settings_changed
+        case: 正常
+        summary: 配線の後に変えた設定が次の届け方に効く
+        condition: 配線の後に get_settings が返す設定を paste_key `<ctrl>+<alt>+v`・enter_delay_sec 1.0 に差し替える
+        mock: copy_to_clipboard・send_paste・send_enter・time.sleep
+        expected: paste_and_send の handler を呼ぶと send_paste に `<ctrl>+<alt>+v`、sleep に 1.0 が渡る
+      - name: test_wire_outputs_when_registered_output
+        case: 正常
+        summary: 登録しただけの出力先も、その inject が選んだもので配線される
+        condition: 'OUTPUTS の後ろに、inject が {"copy": deps.copy} を返す試しの出力先を足した一覧を渡す'
+        mock: copy_to_clipboard
+        expected: 返った一覧の最後が試しの出力先で、その handler を呼ぶと copy_to_clipboard に起こした文字が渡る
+    status: implemented
+  - name: build_hotkey_bindings
+    title: ホットキーの割り当て
+    container: main.py
+    usecase: 録音する
+    summary: 設定のホットキーごとに、押されたときに呼ぶ関数を組む（HotkeyListener.start へ渡す）
+    kind: 関数
+    scope: public
+    args:
+      - name: settings
+        type: Settings
+        required: true
+        passing: positional
+        description: 今の設定
+      - name: session_manager
+        type: SessionManager
+        required: true
+        passing: positional
+        description: セッション管理
+      - name: start_local_session
+        type: Callable[[Entry], None]
+        required: true
+        passing: positional
+        description: ホットキー・トレイの開始
+      - name: show_recording_window
+        type: Callable[[], None]
+        required: true
+        passing: positional
+        description: 隠した録音の画面を戻す指示（notify に show_recording_window と bridge を部分適用したもの。ホットキーのスレッドから呼ぶ）
+    returns:
+      type: dict[str, Callable[[], None]]
+      description: pynput の書式のホットキー → 呼ぶ関数
+    process: |-
+      1. `hotkeys.start`: ホットキー・トレイの録音が recording か paused のとき、同じホットキーのオンの出力先があればその出力先で確定し（complete）、無ければ隠した録音の画面を戻す指示を出す（show_recording_window。隠していなければ UiController が何もしない。自分の録音の最中に処理中のダイアログを出さない）。それ以外（待機中・API の録音の最中・自分の録音の文字起こし中）は start_local_session(hotkey) を呼ぶ
+      2. `hotkeys.pause`: paused なら resume、それ以外は pause を呼ぶ
+      3. `hotkeys.cancel`: cancel を呼ぶ
+      4. オンの出力先の `hotkey`（1 と同じホットキーを除く）: complete(output_id=その出力先の ID) を呼ぶ
+      5. 有効なプリセットの `hotkey`: complete(preset=そのプリセット) を呼ぶ
+         - 空のホットキーは登録しない（重なりは Settings の確かめが断っている）
+
+      apply_settings が確かめる受け付けるホットキーの並び（_collect_hotkeys）も、同じく有効なプリセットの空でない `hotkey` を含める
+    unit_tests:
+      - name: test_build_hotkey_bindings_when_idle
+        case: 正常
+        summary: 待機中の開始のホットキーは録音を始める
+        condition: SETTINGS_MODEL()、current が None、<ctrl>+<alt>+d の関数を呼ぶ
+        mock: session_manager・start_local_session
+        expected: start_local_session(hotkey) が 1 回呼ばれ、complete が呼ばれない
+      - name: test_build_hotkey_bindings_when_recording
+        case: 正常
+        summary: 録音中の開始のホットキーは貼り付けて送信で確定する
+        condition: SETTINGS_MODEL()、current が hotkey・recording、<ctrl>+<alt>+d の関数を呼ぶ
+        mock: session_manager・start_local_session・show_recording_window
+        expected: complete(output_id=paste_and_send) が 1 回呼ばれ、start_local_session も show_recording_window も呼ばれない
+      - name: test_build_hotkey_bindings_when_preset
+        case: 正常
+        summary: プリセットのホットキーはそのプリセットで確定する
+        condition: presets に ChatGPT（browser、<ctrl>+<alt>+1）を置いた設定、<ctrl>+<alt>+1 の関数を呼ぶ
+        mock: session_manager・start_local_session
+        expected: complete(preset=ChatGPT のプリセット) が呼ばれる
+      - name: test_build_hotkey_bindings_when_paused
+        case: 正常
+        summary: 一時停止中の一時停止のホットキーは再開する
+        condition: current が hotkey・paused、<ctrl>+<alt>+z の関数を呼ぶ
+        mock: session_manager・start_local_session
+        expected: resume が 1 回呼ばれ、pause が呼ばれない
+      - name: test_build_hotkey_bindings_when_output_disabled
+        case: 正常
+        summary: オフの出力先のホットキーは登録しない
+        condition: コピーのみをオフにした設定
+        mock: session_manager・start_local_session
+        expected: <ctrl>+<alt>+c が返り値のキーに無い
+      - name: test_build_hotkey_bindings_when_recording_without_confirm_output
+        case: 正常
+        summary: 貼り付けて送信がオフなら、録音中の開始のホットキーは録音の画面を戻す指示を出す
+        condition: 貼り付けて送信をオフにした設定、current が hotkey・recording、<ctrl>+<alt>+d の関数を呼ぶ
+        mock: session_manager・start_local_session・show_recording_window
+        expected: show_recording_window が 1 回呼ばれ、start_local_session も complete も呼ばれない
+      - name: test_build_hotkey_bindings_when_preset_not_bound
+        case: 正常
+        summary: 無効のプリセットとホットキーが空のプリセットは登録しない
+        condition: presets に無効のプリセット（<ctrl>+<alt>+7）と、hotkey が空の有効なプリセットを置いた設定
+        mock: session_manager・start_local_session
+        expected: <ctrl>+<alt>+7 と空文字が返り値のキーに無い
+    refs:
+      - dev/設計書/シナリオ/単一ユースケース/録音する#
+    status: implemented
+  - name: apply_settings
+    title: 設定の保存と反映
+    container: main.py
+    usecase: 設定を変える
+    summary: 設定画面で確かめた設定を settings.toml へ書き、反映が immediate の項目を動いている常駐アプリに効かせる（UiDeps.save_settings）
+    kind: 関数
+    scope: public
+    args:
+      - name: settings
+        type: Settings
+        required: true
+        passing: positional
+        description: 保存する設定
+      - name: settings_file
+        type: Path
+        required: true
+        passing: injected
+        description: settings.toml
+      - name: store
+        type: SettingsStore
+        required: true
+        passing: injected
+        description: 今の設定
+      - name: check_hotkeys
+        type: Callable[[Iterable[str]], None]
+        required: true
+        passing: injected
+        description: ホットキーを受け付けられるかの確かめ（validate_hotkeys）
+    returns:
+      type: bool
+      description: 再起動が要る項目が変わったか
+    process: |-
+      1. 新しい設定で受け付けるホットキー（build_hotkey_bindings のキー）を check_hotkeys で確かめる
+         - HotkeyError の場合、何も書かず入れ替えずにそのまま送出する（設定画面がエラーの一覧に出す）
+      2. settings.toml へ書く（save_settings）
+      3. SettingsStore を入れ替える（出力先のオン・オフ・録音・用語集・`ui.*` は次の回から新しい値で動く。ホットキーは設定画面が閉じたときに resume_hotkeys がこの設定で張り直す）
+         - `[INFO]` 設定を保存した（設定ファイルのパス・再起動が要るか）
+    exceptions:
+      - name: HotkeyError
+        condition: 新しい設定のホットキーを pynput が読めない（何も書かない）
+      - name: OSError
+        condition: settings.toml を書けない（SettingsStore は入れ替えない）
+    unit_tests:
+      - name: test_apply_settings
+        case: 正常
+        summary: 確かめてから書いて入れ替える
+        condition: 一時フォルダの settings.toml、コピーのみをオフにした設定
+        mock: check_hotkeys
+        expected: False。check_hotkeys に <ctrl>+<alt>+c を含まないホットキーが渡り、settings.toml のコピーのみの enabled が false、store.get() が渡した設定
+      - name: test_apply_settings_when_restart_item_changed
+        case: 正常
+        summary: 再起動が要る項目の変更を返す
+        condition: transcription.local_whisper.model を small にした設定
+        mock: check_hotkeys
+        expected: 'True'
+      - name: test_apply_settings_when_hotkey_unavailable
+        case: 異常
+        summary: 受け付けられないホットキーなら何も書かない
+        condition: check_hotkeys が HotkeyError を送出する
+        mock: check_hotkeys
+        expected: HotkeyError が送出され、settings.toml が変わらず、store.get() が前の設定のまま
+        exception: ホットキーを受け付けられない
+    refs:
+      - dev/設計書/シナリオ/単一ユースケース/設定を変える#
+    status: implemented
+  - name: build_ui_deps
+    title: 画面の配線
+    container: main.py
+    usecase: 共通
+    summary: Handlers と置き場所から、画面・トレイが呼ぶ UiDeps を組む
+    kind: 関数
+    scope: public
+    args:
+      - name: handlers
+        type: Handlers
+        required: true
+        passing: positional
+        description: 配線済みの関数
+      - name: paths
+        type: AppPaths
+        required: true
+        passing: positional
+        description: 置き場所
+      - name: save_settings
+        type: Callable[[Settings], bool]
+        required: true
+        passing: positional
+        description: apply_settings を部分適用したもの
+      - name: request_restart
+        type: Callable[[], None]
+        required: true
+        passing: positional
+        description: 再起動を記録してイベントループを抜ける
+      - name: request_quit
+        type: Callable[[], None]
+        required: true
+        passing: positional
+        description: QApplication.quit
+      - name: hotkey_listener
+        type: HotkeyListener
+        required: true
+        passing: positional
+        description: ホットキーの受付（設定画面の間は止める）
+      - name: show_recording_window
+        type: Callable[[], None]
+        required: true
+        passing: positional
+        description: 隠した録音の画面を戻す指示（notify に show_recording_window と bridge を部分適用したもの。resume_hotkeys が build_hotkey_bindings へ渡す）
+    returns:
+      type: UiDeps
+      description: 画面の依存
+    process: |-
+      1. start に start_local_session(tray)、pause・resume・cancel・current_session に SessionManager のメソッド、complete に output_id・preset で SessionManager.complete を呼ぶ関数、level に recorder_level、get_settings に SettingsStore.get を渡す
+      2. suspend_hotkeys に HotkeyListener.stop、resume_hotkeys に SettingsStore.get の設定と show_recording_window で build_hotkey_bindings して HotkeyListener.start を呼ぶ関数を渡す
+      3. settings_dir に settings.toml のフォルダ、log_dir にログのフォルダを渡す
+      4. output_titles に、OUTPUTS のうち api_only でない出力先の ID → title を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
+    status: implemented
+  - name: relaunch
+    title: 起動し直し
+    container: runtime/process.py
+    usecase: トレイから操作する
+    summary: 同じ Python と引数で `python -m voice_paste` を切り離したプロセスとして起動する。片付けを終えた後に呼ぶ（API のポートとエンジンを放してから次を立てる）
+    kind: 関数
+    scope: public
+    args:
+      - name: argv
+        type: list[str]
+        required: true
+        passing: positional
+        description: 起動の引数（プログラム名を除く）
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. `subprocess.Popen([sys.executable, "-m", "voice_paste", *argv], creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP, close_fds=True)` で起動する
+         - OSError の場合、ログに書いて握る（終わり方は変えない）
+           - `[ERROR]` 起動し直せなかった（logger.exception）
+         - `[INFO]` 起動し直した（引数）
+    unit_tests:
+      - name: test_relaunch
+        case: 正常
+        summary: 同じ引数で切り離して起動する
+        condition: argv=["--data-dir", "C:/tmp/vp"]
+        mock: subprocess.Popen
+        expected: Popen に [sys.executable, "-m", "voice_paste", "--data-dir", "C:/tmp/vp"] と DETACHED_PROCESS が渡る
+      - name: test_relaunch_when_failed
+        case: 異常
+        summary: 起動できなくても例外を漏らさない
+        condition: Popen が OSError を送出する
+        mock: subprocess.Popen
+        expected: 例外が出ず、ERROR のログが 1 行出る
+        exception: 起動できない
+    status: implemented
+  - name: instance_name
+    title: 単一インスタンスの名前
+    container: runtime/single_instance.py
+    usecase: 常駐アプリを起動する
+    summary: 設定の置き場所から、単一インスタンスの排他の名前を作る
+    kind: 関数
+    scope: public
+    args:
+      - name: settings_dir
+        type: Path
+        required: true
+        passing: positional
+        description: 設定ファイルを置くフォルダ（AppPaths.settings_file の親）
+    returns:
+      type: str
+      description: '`voice-paste-{ハッシュ}`（ハッシュは解決した絶対パスを小文字にした文字列の SHA-256 の先頭 16 文字）'
+    process: |-
+      1. settings_dir を解決した絶対パスを小文字にし、SHA-256 の 16 進の先頭 INSTANCE_HASH_LENGTH 文字を `{APP_NAME}-` に続けて返す
+         - 普段使い（既定の置き場所）と E2E・非機能要件テスト（`--data-dir` の一時フォルダ）は別の名前になり、テストの起動が普段使いを終わらせない
+    unit_tests:
+      - name: test_instance_name
+        case: 正常
+        summary: 同じフォルダは大文字・小文字によらず同じ名前になる
+        condition: '`C:/Users/a/AppData/Roaming/voice-paste` と `c:/users/a/appdata/roaming/VOICE-PASTE`'
+        mock: なし
+        expected: 同じ名前で、`voice-paste-` に 16 文字の 16 進が続く
+      - name: test_instance_name_when_other_folder
+        case: 正常
+        summary: 違うフォルダは違う名前になる
+        condition: 既定の置き場所と一時フォルダ
+        mock: なし
+        expected: 名前が違う
+    status: implemented
+  - name: purge_old_files
+    title: 古いログと履歴の削除
+    container: main.py
+    usecase: 常駐アプリを起動する
+    summary: 設定の保持期間を過ぎたログと履歴を消す
+    kind: 関数
+    scope: public
+    args:
+      - name: settings
+        type: Settings
+        required: true
+        passing: positional
+        description: 今の設定（ログと履歴の保持期間・履歴を残すか）
+      - name: paths
+        type: AppPaths
+        required: true
+        passing: keyword
+        description: 置き場所
+      - name: active_session_ids
+        type: Callable[[], set[str]]
+        required: true
+        passing: keyword
+        description: 処理中のセッションの ID を返す関数（一時の音声を消さずに残す）
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. 保持期間を過ぎた日付のログを消す（purge_old_logs(paths.log_dir, settings.logging.retention_days, local_today())）
+      2. 履歴を残す設定（settings.history.enabled）か
+         - 残す場合、保持期間を過ぎた履歴のフォルダと取り残された一時の音声を消す（purge_expired(retention_days=settings.history.retention_days, paths, now=_local_now, active_session_ids)）
+         - 残さない場合、履歴は消さない
+    unit_tests:
+      - name: test_purge_old_files
+        case: 正常
+        summary: ログと履歴の両方を消す
+        condition: history.enabled=true・history.retention_days=1・logging.retention_days=7
+        mock: purge_old_logs・purge_expired
+        expected: purge_old_logs に (log_dir, 7, 今日) が、purge_expired に retention_days=1 と active_session_ids が渡る
+      - name: test_purge_old_files_when_history_disabled
+        case: 正常
+        summary: 履歴を残さない設定ならログだけ消す
+        condition: history.enabled=false
+        mock: purge_old_logs・purge_expired
+        expected: purge_old_logs が 1 回呼ばれ、purge_expired が呼ばれない
+    status: implemented
+  - name: _wire_preset_kinds
+    title: プリセットの種類の配線
+    kind: 関数
+    container: main.py
+    usecase: 常駐アプリを起動する
+    role: composition root
+    scope: internal
+    summary: PRESET_KINDS の各種類の handler に、種類ごとの外部連携の関数と設定の値を部分適用して返す
     args:
       - name: get_settings
         type: Callable[[], Settings]
         required: true
         passing: positional
-        description: 今の設定を返す（keyboard.paste_key・outputs[]・api.allowed_callback_hosts を読む）
+        description: 今の設定を返す（keyboard.paste_key・outputs[]・preset_options を読む）
     returns:
-      type: tuple[OutputSpec, ...]
-      description: handler を配線した出力先の一覧（OUTPUTS と同じ並び）
+      type: tuple[PresetKindSpec, ...]
+      description: handler を配線した種類の一覧（PRESET_KINDS と同じ並び）
     process: |-
-      1. 呼ぶたびに get_settings() を読む関数を作る（Recorder の get_settings と同じく、反映が immediate の設定を届けるたびに読む）
+      1. 呼ぶたびに get_settings() を読む関数を作る（届けるたびに読む）
          - paste: keyboard.paste_key で send_paste を呼ぶ
-         - get_enter_delay_sec: outputs[] の paste_and_send の enter_delay_sec を返す（一覧に無ければそのモデルの既定値）
-         - get_open_delay_sec: outputs[] の ai_chat の open_delay_sec を返す（同上）
-      2. OUTPUTS を順に見て、出力先の ID ごとに build_handlers の 3 のとおり部分適用した handler に差し替える
-         - 部分適用の対象に無い ID はそのまま残す
-         - 呼び出し元へ返すの許可ホストは、この時点の get_settings() から読む
+         - get_enter_delay_sec: read_enter_delay_sec(get_settings())（貼り付けて送信の秒数）
+         - get_open_delay_sec: preset_options.browser.open_delay_sec を返す
+         - get_timeout_sec: preset_options.endpoint.timeout_sec を返す
+      2. PRESET_KINDS を順に見て、種類ごとに build_handlers の 4 のとおり部分適用した handler に差し替える
+         - 部分適用の対象に無い種類はそのまま残す
     unit_tests:
-      - name: test_wire_outputs
+      - name: test_wire_preset_kinds
         case: 正常
-        summary: 各出力先に設定の値を配線する
-        condition: keyboard.paste_key が `<ctrl>+<shift>+v`、paste_and_send の enter_delay_sec が 0.2、ai_chat の open_delay_sec が 1.5
-        mock: copy_to_clipboard・send_paste・send_enter・open_app_window・time.sleep
-        expected: 返った一覧の ID が OUTPUTS と同じ並びで、paste_and_send の handler を呼ぶと send_paste に `<ctrl>+<shift>+v`、sleep に 0.2 が渡り、ai_chat の handler を呼ぶと sleep に 1.5・0.2 がこの順に渡る
-      - name: test_wire_outputs_when_settings_changed
+        summary: 各種類に設定の値を配線する
+        condition: preset_options.browser.open_delay_sec が 1.5、paste_and_send の enter_delay_sec が 0.2、preset_options.endpoint.timeout_sec が 2.0
+        mock: copy_to_clipboard・send_paste・send_enter・open_app_window・time.sleep・post_json
+        expected: 返った一覧の kind が PRESET_KINDS と同じ並びで、browser の handler を send_enter True のプリセットで呼ぶと sleep に 1.5・0.2 がこの順に渡り、endpoint の handler を呼ぶと post_json の timeout_sec に 2.0 が渡る
+      - name: test_wire_preset_kinds_when_settings_changed
         case: 正常
-        summary: 配線の後に変えた設定が次の届け方に効く
-        condition: 配線の後に get_settings が返す設定を paste_key `<ctrl>+<alt>+v`・enter_delay_sec 1.0 に差し替える
-        mock: copy_to_clipboard・send_paste・send_enter・open_app_window・time.sleep
-        expected: paste_and_send の handler を呼ぶと send_paste に `<ctrl>+<alt>+v`、sleep に 1.0 が渡る
+        summary: 配線の後に変えたタイムアウトが次の送りに効く
+        condition: 配線の後に get_settings が返す設定の preset_options.endpoint.timeout_sec を 5.0 に差し替える
+        mock: post_json
+        expected: endpoint の handler を呼ぶと post_json の timeout_sec に 5.0 が渡る
+    refs:
+      - dev/設計書/モジュール構成/常駐アプリ/出力先.py#constants[PRESET_KINDS]
     status: implemented
 notes:
   依存の向き: |-
     コーディング規約『依存関係管理』のとおり `features`・`server`・`ui` → `integrations`・`runtime` → `shared` とし、上の層へは import しない。
     `features` どうしと、`features/outputs` の出力先どうしも import しない。セッションはほかの feature を SessionDeps の関数型で受け取り、`main.py` だけが全てを知る。
     `server` はセッションの route を include_router で集め、SessionApiDeps を app.state に置くためだけに `features/session` を import する。route は `main.py`・`server` を import せず、SessionApiDeps を app.state から受け取る。
+    `ui` は `features` の中を直に呼ばず、UiDeps の関数と `shared` の設定のモデルだけを使う。型としては `features.session.types`（Session・SessionState）だけを import する。`runtime/hotkey.py` はセッションを import せず、`main.py` が渡す関数を呼ぶ。
   依存の向きの検査: |-
     import-linter の契約を pyproject.toml の `[tool.importlinter]`（root_package は `voice_paste`）に置き、単体テストと一緒に `lint-imports` で回す（品質シナリオ 5。コマンドは設計書『テスト実行方法』）。
 
@@ -448,6 +831,7 @@ notes:
     | 層 | layers | `voice_paste.main` → `voice_paste.server` \| `voice_paste.ui` → `voice_paste.features` → `voice_paste.integrations` \| `voice_paste.runtime` → `voice_paste.shared`（`\|` で並べた層どうしも import しない） |
     | feature の独立 | independence | `voice_paste.features.*` |
     | 出力先の独立 | independence | `voice_paste.features.outputs.*`。ignore_imports で `voice_paste.features.outputs.registry -> voice_paste.features.outputs.*`・`voice_paste.features.outputs.service -> voice_paste.features.outputs.registry`・`voice_paste.features.outputs.** -> voice_paste.features.outputs.types` を除く |
+    | 画面から feature の中へ | forbidden | source_modules は `voice_paste.ui`、forbidden_modules は `voice_paste.features`・`voice_paste.integrations`。ignore_imports で `voice_paste.ui.** -> voice_paste.features.session.types` を除く |
 
     出力先を足すときは `features/outputs/` にサブフォルダを足すだけで契約の対象に入り、契約は直さない。
 classes:
@@ -520,6 +904,140 @@ classes:
             mock: 呼ぶ関数
             expected: stop の後に呼ばれた回数が増えず、スレッドが終わっている
     status: implemented
+  - name: SettingsStore
+    title: 今の設定
+    container: runtime/settings_store.py
+    usecase: 設定を変える
+    role: ランタイム
+    summary: 動いている間の今の設定を 1 つ持ち、設定画面で保存した設定に入れ替える
+    description: 出力先・録音・用語集・画面は設定を値で持たず、使うたびに get で読む。Settings は不変として扱い、入れ替えるだけにする。
+    kind: クラス
+    properties:
+      - name: _settings
+        type: Settings
+        access: 内部 (_)
+        description: 今の設定
+      - name: _lock
+        type: threading.Lock
+        access: 内部 (_)
+        description: 入れ替えと読み出しを 1 つずつにする
+    methods:
+      - name: get
+        title: 読む
+        summary: 今の設定を返す
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        returns:
+          type: Settings
+          description: 今の設定
+      - name: replace
+        title: 入れ替える
+        summary: 今の設定を入れ替える
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        args:
+          - name: settings
+            type: Settings
+            required: true
+            passing: positional
+            description: 新しい設定
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_replace
+            case: 正常
+            summary: 入れ替えた設定を読める
+            condition: SETTINGS_MODEL() で作り、recording.volume_percent=30 の設定に replace する
+            mock: なし
+            expected: get().recording.volume_percent が 30
+    status: implemented
+  - name: SingleInstanceLock
+    title: 単一インスタンスの排他
+    container: runtime/single_instance.py
+    usecase: 常駐アプリを起動する
+    role: ランタイム
+    summary: 取った名前付きのミューテックスと、終了の依頼を待つスレッドを持つ
+    description: |-
+      終了の依頼のイベント（名前付き）と停止のイベント（名前の無い自分専用）を専用のデーモンスレッドで待ち、終了の依頼が立ったら on_quit_requested で渡された関数を 1 回呼んでスレッドを終える（呼ぶのはそのスレッド。メインスレッドへ渡すのは渡す側の関数が行う）。
+      名前付きのイベントは自分では立てない（立てると、ハンドルが残る間に次のプロセスへ依頼が引き継がれる）。
+      ミューテックスは取ったスレッド（メインスレッド）で放す。
+    kind: クラス
+    properties:
+      - name: _mutex
+        type: int
+        access: 内部 (_)
+        description: 名前付きのミューテックスのハンドル
+      - name: _quit_event
+        type: int
+        access: 内部 (_)
+        description: 終了の依頼のイベントのハンドル
+      - name: _on_quit
+        type: Callable[[], None] | None
+        access: 内部 (_)
+        description: 終了を頼まれたときに呼ぶ関数。on_quit_requested の前は None（その間に頼まれたら、渡された時点で呼ぶ）
+      - name: _thread
+        type: threading.Thread
+        access: 内部 (_)
+        description: 終了の依頼を待つスレッド
+      - name: _stop_event
+        type: int
+        access: 内部 (_)
+        description: 待つスレッドを止める、名前の無い自分専用のイベントのハンドル
+    methods:
+      - name: on_quit_requested
+        title: 終了の依頼の受け手の登録
+        summary: 終了を頼まれたときに呼ぶ関数を渡す
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        args:
+          - name: callback
+            type: Callable[[], None]
+            required: true
+            passing: positional
+            description: 終了を頼まれたときに呼ぶ関数
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 受け手を覚える
+             - 既に頼まれていた場合、その場で 1 回呼ぶ
+        unit_tests:
+          - name: test_on_quit_requested
+            case: 正常
+            summary: 頼まれたら受け手を呼ぶ
+            condition: 取った後に受け手を渡し、同じ名前のイベントを立てる
+            mock: 受け手
+            expected: 受け手が 1 秒以内に 1 回呼ばれる
+          - name: test_on_quit_requested_when_already_requested
+            case: 正常
+            summary: 受け手を渡す前に頼まれていても取りこぼさない
+            condition: 取った後、受け手を渡す前にイベントを立てる
+            mock: 受け手
+            expected: 受け手を渡した時点で 1 回呼ばれる
+      - name: release
+        title: 排他の解放
+        summary: 待つスレッドを止め、ミューテックスを放してハンドルを閉じる
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 停止のイベント（名前の無い自分専用）を立てて待つスレッドを抜けさせ、終わりを待つ（名前付きの終了の依頼のイベントは立てない）
+          2. ミューテックスを放し（ReleaseMutex）、ミューテックス・終了の依頼のイベント・停止のイベントのハンドルを閉じる（CloseHandle）
+             - 2 回目以降の呼び出しは何もしない
+        unit_tests:
+          - name: test_release
+            case: 正常
+            summary: 放した後は同じ名前ですぐ取れ、受け手は呼ばれない
+            condition: 取ってから release を 2 回呼ぶ
+            mock: 受け手
+            expected: 同じ名前で timeout_sec=0.1 で取れ、受け手が呼ばれていない
+    status: implemented
 constants:
   - name: API_START_TIMEOUT_SEC
     title: API の待ち受けの始まりを待つ秒数
@@ -542,24 +1060,51 @@ constants:
     summary: SessionManager へ渡す上限時間。非機能要件の API のセッションの上限時間の決定値
     value: '600'
     status: implemented
-  - name: CALLBACK_TIMEOUT_SEC
-    title: 返送のタイムアウト
+  - name: WAKE_INTERVAL_MS
+    title: Python へ戻る間隔
     container: main.py
-    usecase: 起こした文字を届ける
-    summary: post_json へ渡す 1 回の POST のタイムアウト。非機能要件の返送のタイムアウトと再送の決定値
-    value: '1.5'
+    usecase: 常駐アプリを起動する
+    summary: Qt のイベントループの中で Python のシグナルのハンドラが動くようにする空の QTimer の間隔。PoC で 200 ms なら Ctrl+Break から 0.3 秒で終わった
+    value: '200'
     status: implemented
-  - name: CALLBACK_RETRY_COUNT
-    title: 返送の再送回数
+  - name: SINGLE_INSTANCE_TIMEOUT_SEC
+    title: 前の常駐サービスの終わりを待つ時間
     container: main.py
-    usecase: 起こした文字を届ける
-    summary: 最初の 1 回の後に再送する回数。非機能要件の返送のタイムアウトと再送の決定値
-    value: '3'
+    usecase: 常駐アプリを起動する
+    summary: acquire_single_instance に渡す、前のプロセスが排他を放すのを待つ上限。非機能要件の前の常駐サービスの終わりを待つ時間の決定値
+    value: '54.0'
     status: implemented
-  - name: CALLBACK_RETRY_BASE_SEC
-    title: 返送の再送の間隔の基数
+  - name: PURGE_INTERVAL_SEC
+    title: 常駐中に古いログと履歴を消す間隔
     container: main.py
-    usecase: 起こした文字を届ける
-    summary: 再送の間隔の基数（回ごとに 2 倍にし、フルジッターをかける）。非機能要件の返送のタイムアウトと再送の決定値
-    value: '1.0'
+    usecase: 常駐アプリを起動する
+    summary: RepeatingTimer が purge_old_files を呼ぶ間隔。非機能要件の常駐中に古い履歴とログを消す間隔（24 時間）を秒にした値
+    value: '86400.0'
     status: implemented
+  - name: INSTANCE_HASH_LENGTH
+    title: 単一インスタンスの名前のハッシュの長さ
+    container: runtime/single_instance.py
+    usecase: 常駐アプリを起動する
+    summary: instance_name が名前に使う SHA-256 の 16 進の文字数。置き場所が 1 台に数個のため、16 文字（64 ビット）で重ならない
+    value: '16'
+    status: implemented
+  - name: OPEN_EVENT_RETRY_INTERVAL_SEC
+    title: 前のプロセスのイベントを開き直す間隔
+    container: runtime/single_instance.py
+    usecase: 常駐アプリを起動する
+    summary: 前のプロセスがミューテックスを作ってからイベントを作るまでの間に OpenEventW が失敗したとき、開き直す間隔。前のプロセスの起動の初めの数ミリ秒の間だけ起こるため、依頼の遅れを 0.1 秒までに抑える
+    value: '0.1'
+    status: implemented
+  - name: SETTINGS_MODEL
+    title: アプリの設定のモデル
+    container: main.py
+    usecase: 常駐アプリを起動する
+    summary: OUTPUTS のうち settings_model を持つ出力先のモデルを OUTPUTS の並びで build_settings_model に渡して組み立てた設定のモデル。load_settings と既定の設定はこれを使う
+    value: build_settings_model([spec.settings_model for spec in OUTPUTS if spec.settings_model is not None])
+    status: planned
+test_files:
+  - tests/unit/voice_paste/test_main.py
+  - tests/unit/voice_paste/runtime/test_timer.py
+  - tests/unit/voice_paste/runtime/test_settings_store.py
+  - tests/unit/voice_paste/runtime/test_process.py
+  - tests/unit/voice_paste/runtime/test_single_instance.py

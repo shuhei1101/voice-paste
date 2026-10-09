@@ -1,0 +1,369 @@
+title: "設定画面"
+elements:
+  - name: 窓
+    id: settings_window
+    kind: window
+    position: 窓
+    description: 設定画面の窓。窓の題は「voice-paste の設定」。左にまとまりのメニュー、右に欄、下にフッターを置く。窓の閉じる・Esc は「キャンセル」と同じ。開いている間はホットキーを受け付けず（ホットキーの欄で押したキーで録音や確定が動かない）、閉じると今の設定で受付を始める
+    visible_when: トレイの「設定…」を選んだとき。開いていれば前面に出す
+    width: 最小 720px（欄の名前と設定のキーが語の途中で折り返さない幅）
+    initial_value: 開いたときの settings.toml の値
+    source: Settings（設定のモデル）
+  - name: まとまりのメニュー
+    id: group_menu
+    kind: list
+    position: 窓 > 左
+    description: まとまりを選ぶと、右の欄をそのまとまりに切り替える。切り替えても入れた値は消さない
+    io: 入力
+    visible_when: 常時
+    options: 出力先・ブラウザ添付・エンドポイントへ送る・ホットキー・録音・文字起こし・画面・履歴とログ・API の順。既定は出力先
+    initial_value: 出力先
+    action: 右の欄を選んだまとまりに切り替える
+  - name: エラーの一覧
+    id: error_summary
+    kind: alert
+    position: 窓 > 右 > 上
+    description: 保存できなかったことと直す欄の件数、欄ごとのエラーを並べる。各行はその欄へのリンクで、押すとその欄のまとまりへ切り替えて欄へフォーカスを移す。出したときにフォーカスを一覧へ移す
+    label: 保存できませんでした。{件数} 件の欄を直してください。
+    visible_when: 保存を押して確かめに通らない欄があったとき。入力の途中では出さない
+    display_format: '1 行 = 「{欄の名前}: {エラー}」。プリセットの欄は「プリセット「{タイトル}」の{欄の名前}」、タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」'
+  - name: 設定の欄
+    id: field_{key}
+    kind: input
+    position: 窓 > 右 > まとまり
+    description: settings.toml のキー 1 つの欄。設定のモデルの項目から組み立て、欄の名前（設定の設計書の論理名を画面向けにしたもの）と、欄の右に settings.toml のキーを等幅で出す。まとまりと部品は補足の「まとまりと欄」
+    io: 入出力
+    visible_when: その欄のまとまりを選んだとき
+    constraints: 設定の設計書の「許す値や範囲」
+    initial_value: settings.toml の値（無ければ既定の値）
+    source: Settings.{キー}
+    target: Settings.{キー}（保存で settings.toml へ書く）
+    error_message: 欄の下に赤で出す（入力チェック）
+    refs:
+      - dev/設計書/設定/常駐アプリ#
+  - name: 再起動で反映の印
+    id: restart_badge_{key}
+    kind: label
+    position: 窓 > 右 > まとまり > 欄の名前の右
+    description: 反映が restart の欄であることを示す
+    label: 再起動で反映
+    visible_when: 設定の設計書の反映が restart の欄
+    source: 設定の設計書の reload
+  - name: ホットキーの欄
+    id: hotkey_{key}
+    kind: input
+    position: 窓 > 右 > 出力先・ホットキー・ブラウザ添付・エンドポイントへ送る
+    description: 押すと入力待ちになり、次に押したキーの組み合わせが入る。Tab と Esc は欄の移動と画面の取り消しに残し、組み合わせには入れない。欄の幅を超える組み合わせは欄の中で横に流す
+    io: 入出力
+    type: 文字列
+    visible_when: その欄のまとまりを選んだとき
+    display_format: 画面では `Ctrl+Alt+D` の形で出し、保存では pynput の書式（`<ctrl>+<alt>+d`）で書く
+    initial_value: settings.toml の値
+    source: Settings.hotkeys.*・Settings.keyboard.paste_key・Settings.outputs[].hotkey・Settings.presets[].hotkey
+    target: 同じキー（pynput の書式へ変える）
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[hotkeys.start]
+  - name: 用語集を選ぶボタン
+    id: pick_glossary_button
+    kind: button
+    position: 窓 > 右 > 文字起こし > 用語集の CSV の欄の右
+    description: ファイルを選ぶダイアログ（CSV）を開き、選んだパスを用語集の CSV の欄へ入れる
+    label: 選ぶ…
+    visible_when: 文字起こしのまとまりを選んだとき
+    target: Settings.glossary_path
+    action: ファイルを選ぶダイアログを開く
+  - name: 再起動の知らせ
+    id: restart_notice
+    kind: label
+    position: 窓 > フッターの上
+    description: 反映が restart の欄を変えたことと、「保存して再起動」ですぐに効くことを伝える
+    label: 「再起動で反映」の設定を {件数} 件変えました。「保存して再起動」で保存すると、すぐに効きます。
+    visible_when: 反映が restart の欄を開いたときの値から変えているとき
+  - name: 既定に戻した知らせ
+    id: reset_notice
+    kind: label
+    position: 窓 > フッターの上
+    description: 既定に戻して保存したことと、再起動が要る設定の件数を伝える
+    label: 既定に戻して保存しました。「再起動で反映」の設定 {件数} 件は、再起動するまで前の値で動きます。
+    visible_when: 既定に戻す確認で「既定に戻す」を押した後で、反映が restart の設定の値が変わったとき。欄を変えると消す
+  - name: 今すぐ再起動のボタン
+    id: restart_now_button
+    kind: button
+    position: 窓 > フッターの上 > 既定に戻した知らせの右
+    description: 設定画面を閉じて常駐アプリを再起動する（トレイの「再起動」と同じ）
+    label: 今すぐ再起動
+    visible_when: 既定に戻した知らせを出しているとき
+    action: 設定画面を閉じて再起動する
+  - name: 既定に戻すボタン
+    id: reset_button
+    kind: button
+    position: 窓 > フッター > 左
+    description: 既定に戻す確認を出す
+    label: 既定に戻す
+    visible_when: 常時
+    action_ref: dev/設計書/画面設計/常駐アプリ/既定に戻す確認.py#
+  - name: キャンセルボタン
+    id: cancel_button
+    kind: button
+    position: 窓 > フッター > 右
+    description: 保存せずに閉じる。欄を変えていれば変えた値を捨てる確認を出し、変えていなければそのまま閉じる
+    label: キャンセル
+    visible_when: 常時
+    action: 欄を変えていなければ設定画面を閉じる
+    action_ref: dev/設計書/画面設計/常駐アプリ/変えた値を捨てる確認.py#
+  - name: 保存して再起動のボタン
+    id: save_and_restart_button
+    kind: button
+    position: 窓 > フッター > 右
+    description: 保存のボタンと同じく確かめてから settings.toml へ書き、設定画面を閉じて常駐アプリを再起動する。確かめに通らなければ書かず、エラーの一覧を出す
+    label: 保存して再起動
+    visible_when: 再起動の知らせを出しているとき
+    action: 保存して再起動する
+  - name: 保存ボタン
+    id: save_button
+    kind: button
+    position: 窓 > フッター > 右端
+    description: 全ての欄を設定のモデルで確かめ、ホットキーを受け付けられることも確かめてから settings.toml へ書いて設定画面を閉じる。反映が immediate の設定（出力先のオン・オフ・`ui.*` を含む）は動いている常駐アプリに効かせ、ホットキーは設定画面を閉じたときに新しい設定で受付を張り直す。通らなければ書かず、エラーの一覧と欄の下のエラーを出し、入れた値は消さない
+    label: 保存
+    visible_when: 常時
+    action: 確かめて保存し、設定画面を閉じる
+  - name: プリセットの一覧
+    id: preset_list_{kind}
+    kind: list
+    position: 窓 > 右 > ブラウザ添付・エンドポイントへ送る > カスタムプリセット
+    description: そのタブの種類のプリセットを 1 件ずつ、全ての欄を開いたまとまりで縦に積む。まとまりの頭に有効の切り替え・タイトル・上へ・下へ・消すのボタンを並べ、下にタイトル・URL・種類ごとの欄・確定のホットキーの欄を置く。見出しは「カスタムプリセット」
+    io: 入出力
+    visible_when: ブラウザ添付かエンドポイントへ送るのまとまりを選んだとき（選んだタブの種類だけを出す）
+    sorting: 上へ・下へのボタンで、同じ種類の中だけで並べ替える。既定は settings.toml の並び
+    initial_value: settings.toml の `presets[]` のうち `kind` がそのタブの種類のもの
+    source: Settings.presets[]（kind で絞る）
+    target: Settings.presets[]（ブラウザ添付のタブの並び → エンドポイントへ送るのタブの並びの順で書く）
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[presets[].kind]
+  - name: プリセットが無いときの案内
+    id: preset_empty_{kind}
+    kind: label
+    position: 窓 > 右 > ブラウザ添付・エンドポイントへ送る > カスタムプリセット
+    description: そのタブにプリセットが 1 件も無いことと、足すと録音の画面に出ることを伝える
+    label: '{種類}のプリセットはまだありません。足すと、録音の画面の「カスタムプリセット」にボタンが出ます。'
+    visible_when: そのタブの種類のプリセットが 1 件も無いとき
+  - name: プリセットの有効の切り替え
+    id: preset_enabled_{n}
+    kind: switch
+    position: 窓 > 右 > プリセットの一覧 > まとまりの頭 > 左
+    description: プリセットを有効・無効に切り替える。切り替えの右に今の状態を文字で出す（色だけで伝えない）。読み上げの名前は状態を含まない「{タイトル}を有効にする」（タイトルが空なら「プリセット {そのタブの中の何件目か} 件目を有効にする」。エラーの一覧の呼び方とそろえる）にし、状態はスイッチのオン・オフで伝える。無効のプリセットは録音の画面に出さず、ホットキーも登録しない
+    label: 有効 / 無効
+    io: 入出力
+    type: 真偽値
+    visible_when: プリセットごと
+    initial_value: settings.toml の値（足したプリセットはオン）
+    source: Settings.presets[].enabled
+    target: Settings.presets[].enabled
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[presets[].enabled]
+  - name: プリセットのタイトルの欄
+    id: preset_title_{n}
+    kind: input
+    position: 窓 > 右 > プリセットの一覧 > まとまり
+    description: 録音の画面のボタンに出す名前。入れた値をまとまりの頭のタイトルにも出す
+    label: タイトル
+    placeholder: 録音の画面のボタンに出す名前
+    io: 入出力
+    type: 文字列
+    visible_when: プリセットごと
+    required: true
+    min_length: 1
+    initial_value: settings.toml の値（足したプリセットは空）
+    source: Settings.presets[].title
+    target: Settings.presets[].title
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[presets[].title]
+  - name: プリセットの URL の欄
+    id: preset_url_{n}
+    kind: input
+    position: 窓 > 右 > プリセットの一覧 > まとまり
+    description: ブラウザ添付は開く画面の URL、エンドポイントへ送るは送り先の URL
+    label: URL
+    placeholder: https://
+    io: 入出力
+    type: 文字列
+    visible_when: プリセットごと
+    required: true
+    constraints: http:// か https:// で始まる
+    initial_value: settings.toml の値（足したプリセットは空）
+    source: Settings.presets[].url
+    target: Settings.presets[].url
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[presets[].url]
+  - name: Enter まで送るの切り替え
+    id: preset_send_enter_{n}
+    kind: checkbox
+    position: 窓 > 右 > ブラウザ添付 > プリセットの一覧 > まとまり > 貼り付けた後
+    description: オンなら貼り付けてから Enter まで送り、オフなら貼り付けで止める
+    label: Enter まで送る
+    io: 入出力
+    type: 真偽値
+    visible_when: ブラウザ添付のプリセットごと
+    initial_value: settings.toml の値（足したプリセットはオン）
+    source: Settings.presets[].send_enter
+    target: Settings.presets[].send_enter
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[presets[].send_enter]
+  - name: Authorization の欄
+    id: preset_authorization_{n}
+    kind: input
+    position: 窓 > 右 > エンドポイントへ送る > プリセットの一覧 > まとまり
+    description: 送り先へ付ける `Authorization` ヘッダーの値。伏せ字の欄で、入れた文字を出さない
+    label: Authorization
+    io: 入出力
+    type: 文字列
+    visible_when: エンドポイントへ送るのプリセットごと
+    required: false
+    initial_value: settings.toml の値（足したプリセットは空）
+    hint: 空なら付けずに送る。
+    source: Settings.presets[].authorization
+    target: Settings.presets[].authorization
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[presets[].authorization]
+  - name: プリセットのホットキーの欄
+    id: preset_hotkey_{n}
+    kind: input
+    position: 窓 > 右 > プリセットの一覧 > まとまり
+    description: ホットキーの欄と同じく押したキーの組み合わせが入る。空にでき、空のプリセットは録音の画面のボタンだけで選ぶ
+    label: 確定のホットキー
+    placeholder: なし
+    io: 入出力
+    type: 文字列
+    visible_when: プリセットごと
+    required: false
+    initial_value: settings.toml の値（足したプリセットは空）
+    source: Settings.presets[].hotkey
+    target: Settings.presets[].hotkey（空は空文字で書く）
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[presets[].hotkey]
+  - name: プリセットを上へのボタン
+    id: preset_up_{n}
+    kind: button
+    position: 窓 > 右 > プリセットの一覧 > まとまりの頭 > 右
+    description: プリセットを同じタブの中で 1 つ上へ動かす。録音の画面のボタンの並びもこの順になる
+    label: '{タイトル}を上へ（読み上げの名前。見た目は上向きの印）'
+    visible_when: プリセットごと
+    enabled_when: そのタブの先頭のプリセットでないとき
+    action: プリセットを 1 つ上へ動かす
+  - name: プリセットを下へのボタン
+    id: preset_down_{n}
+    kind: button
+    position: 窓 > 右 > プリセットの一覧 > まとまりの頭 > 右
+    description: プリセットを同じタブの中で 1 つ下へ動かす
+    label: '{タイトル}を下へ（読み上げの名前。見た目は下向きの印）'
+    visible_when: プリセットごと
+    enabled_when: そのタブの末尾のプリセットでないとき
+    action: プリセットを 1 つ下へ動かす
+  - name: プリセットを消すボタン
+    id: preset_remove_{n}
+    kind: button
+    position: 窓 > 右 > プリセットの一覧 > まとまりの頭 > 右端
+    description: プリセットを一覧から消す。保存するまで settings.toml には書かず、キャンセルで戻せる
+    label: '{タイトル}を消す（読み上げの名前。見た目は消す印）'
+    visible_when: プリセットごと
+    action: プリセットを一覧から消す
+  - name: プリセットを足すボタン
+    id: add_preset_button_{kind}
+    kind: button
+    position: 窓 > 右 > ブラウザ添付・エンドポイントへ送る > プリセットの一覧の下
+    description: そのタブの種類の空のプリセット（有効、ブラウザ添付は Enter まで送るがオン）を一覧の末尾に足し、タイトルの欄へフォーカスを移す
+    label: プリセットを足す
+    visible_when: ブラウザ添付かエンドポイントへ送るのまとまりを選んだとき
+    action: プリセットの一覧に 1 件足す
+  - name: プリセットのホットキーを空にするボタン
+    id: preset_hotkey_clear_{n}
+    kind: button
+    position: 窓 > 右 > プリセットの一覧 > まとまり > プリセットのホットキーの欄の右
+    description: プリセットのホットキーの欄を空にする（ホットキーの欄は押したキーが入るため、キーだけでは空にできない）。読み上げの名前は「{タイトル}のホットキーを空にする」（タイトルが空なら「プリセット {何件目か} 件目の…」）
+    label: 空にする
+    visible_when: プリセットごと
+    enabled_when: ホットキーの欄が空でないとき
+    action: ホットキーの欄を空にする（空の欄は「なし」を出す）
+input_checks:
+  - element: 設定の欄
+    violation: 数値の欄に数値でない文字が入っている
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: '数値を入れてください（例: {既定の値}）。'
+    position: その欄の下とエラーの一覧
+  - element: 設定の欄
+    violation: 数値が設定の設計書の許す範囲の外（例 `api.port` が 1024〜65535 の外、日数が 1 未満、`preset_options.endpoint.timeout_sec` が 0.5〜10 の外）
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: '{最小}〜{最大} の値を入れてください。（上限が無ければ「{最小} 以上の値を入れてください。」）'
+    position: その欄の下とエラーの一覧
+  - element: ホットキーの欄
+    violation: ほかのホットキーの欄と同じ組み合わせ（録音を始めると「貼り付けて送信」が同じものは除く）
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: 「{重なった欄の名前}」と同じホットキーです。別のキーにしてください。
+    position: その欄の下とエラーの一覧
+  - element: プリセットのホットキーの欄
+    violation: ほかのプリセットのホットキーと同じ組み合わせ（種類をまたいで確かめる。空どうしは重なりとしない）
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: プリセット「{重なったプリセットのタイトル}」と同じキーです。別のキーにしてください。（もう一方のタブのプリセットなら「「{種類}」のプリセット「{タイトル}」と同じキーです。別のキーにしてください。」）
+    position: その欄の下とエラーの一覧
+  - element: プリセットのホットキーの欄
+    violation: プリセット以外のホットキーの欄（`hotkeys.*`・`keyboard.paste_key`・`outputs[].hotkey`）と同じ組み合わせ
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: 「{重なった欄の名前}」と同じホットキーです。別のキーにしてください。
+    position: その欄の下とエラーの一覧
+  - element: ホットキーの欄
+    violation: pynput が読めない組み合わせ
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: ホットキーを受け付けられませんでした（{理由}）。別のキーにしてください。
+    position: エラーの一覧
+  - element: プリセットのタイトルの欄
+    violation: 空
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: タイトルを入れてください。
+    position: その欄の下とエラーの一覧
+  - element: プリセットの URL の欄
+    violation: 空
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: 'URL を入れてください（例: https://example.com/hook）。'
+    position: その欄の下とエラーの一覧
+  - element: プリセットの URL の欄
+    violation: 空でなく、http:// か https:// で始まらない
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: http:// か https:// で始まる URL を入れてください。
+    position: その欄の下とエラーの一覧
+screen: src/voice_paste/ui/windows/settings_window.py
+mock: dev/mock/pages/settings/44/a-inline/kind-tabs/
+lead: トレイの「設定…」から開く画面。settings.toml の全てのキーを 9 つのまとまりに並べ、設定のモデルで確かめてから保存する。
+refs:
+  - dev/設計書/シナリオ/単一ユースケース/設定を変える#
+  - dev/設計書/設定/常駐アプリ#
+notes:
+  まとまりと欄: |-
+    | まとまり | キー | 欄の部品 |
+    | --- | --- | --- |
+    | 出力先 | `outputs[].enabled`（paste_and_send・paste_only・copy_only） | チェックボックス。右に `outputs[].hotkey` のホットキーの欄 |
+    | 出力先（送るまでの間） | `outputs[paste_and_send].enter_delay_sec` | 数値の欄。補助文「「貼り付けて送信」と、「ブラウザ添付」の Enter まで送るプリセットで使う。」 |
+    | ブラウザ添付（カスタムプリセット） | `presets[]` のうち `kind = "browser"` の enabled・title・url・send_enter・hotkey | プリセットの一覧 |
+    | ブラウザ添付（オプション） | `preset_options.browser.open_delay_sec` | 数値の欄。補助文「貼り付けてから Enter を送るまでの秒数は「出力先」の値を使う。」 |
+    | エンドポイントへ送る（カスタムプリセット） | `presets[]` のうち `kind = "endpoint"` の enabled・title・url・authorization・hotkey | プリセットの一覧 |
+    | エンドポイントへ送る（オプション） | `preset_options.endpoint.timeout_sec` | 数値の欄（0.5 刻み）。補助文「既定は 1.5 秒で、10 秒まで入れられる。この秒数で届かなければ、送り直さずにトレイで知らせる。」 |
+    | ホットキー | `hotkeys.start`・`hotkeys.pause`・`hotkeys.cancel`・`keyboard.paste_key` | ホットキーの欄 |
+    | 録音 | `recording.lower_volume`・`recording.hide_window` | チェックボックス |
+    | 録音 | `recording.volume_percent` | つまみ（0〜100、右に %） |
+    | 録音 | `recording.fade_sec` | 数値の欄 |
+    | 文字起こし（エンジン） | `transcription.engine`・`transcription.local_whisper.model` | 選択の欄 |
+    | 文字起こし（エンジン） | `transcription.local_whisper.device`・`transcription.local_whisper.compute_type` | ラジオボタン |
+    | 文字起こし（エンジン） | `transcription.local_whisper.language` | 文字の欄 |
+    | 文字起こし（詳しい調整） | `transcription.local_whisper` の cpu_threads・num_workers・beam_size・best_of・temperature・no_speech_threshold・vad_threshold・vad_min_speech_ms・vad_min_silence_ms | 数値の欄 |
+    | 文字起こし（詳しい調整） | `transcription.local_whisper` の condition_on_previous_text・vad_filter | チェックボックス |
+    | 文字起こし（用語集） | `glossary_path` | 文字の欄と「選ぶ…」 |
+    | 画面 | `ui.topmost`・`ui.follow_cursor` | チェックボックス |
+    | 画面 | `ui.position` | ラジオボタン（中央・左上・右上・左下・右下） |
+    | 画面 | `ui.wave_gain` | 数値の欄 |
+    | 履歴とログ | `history.enabled` | チェックボックス |
+    | 履歴とログ | `history.retention_days`・`logging.retention_days` | 数値の欄 |
+    | 履歴とログ | `logging.level` | ラジオボタン |
+    | API | `api.port` | 数値の欄 |
+    | API | `api.allowed_callback_hosts` | 複数行の文字の欄（1 行 = 1 ホスト） |
+
+    欄の部品は設定のモデルの型から決める（bool → チェックボックス、リテラルの列挙 → ラジオボタンか選択の欄、int・float → 数値の欄、str → 文字の欄、ホットキーの型 → ホットキーの欄）。上の表は欄の並びと、型からは決まらない部品（つまみ・プリセットの一覧・用語集の選ぶ…）を決める。
+test_file: tests/integration/ui/test_settings_window.py

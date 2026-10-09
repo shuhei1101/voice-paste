@@ -33,6 +33,9 @@ overview:
     - id: EDGE
       label: Microsoft Edge
       kind: external
+    - id: EP
+      label: 設定の送り先のエンドポイント
+      kind: external
   edges:
     - from: U
       to: APP
@@ -61,6 +64,9 @@ overview:
     - from: APP
       to: EDGE
       label: 子プロセス
+    - from: APP
+      to: EP
+      label: 起こした文字（POST）
   subgraphs:
     - id: SYS
       label: voice-paste
@@ -96,7 +102,7 @@ external_systems:
       事前確認: 文字起こしワーカーの起動時に、モデルを読み込めることを確かめる（手元に無ければその時点で取得する）。
     detail: dev/設計書/外部API/Hugging_Face_Hub#
   - name: Microsoft Edge
-    purpose: AI 送信のボタンで AI チャットの画面を開く
+    purpose: ブラウザ添付のプリセットで確定したときに、プリセットの URL の画面を開く
     direction: 送信のみ
     protocol: 子プロセスの起動（`--app={URL}`）
     notes:
@@ -109,6 +115,13 @@ external_systems:
     notes:
       事前確認: 起動時に API の待ち受けを始められたか（uvicorn の started）を確かめ、始められなければトレイで知らせてホットキーだけで続ける。返送先は開始の要求を受けたときに許されるホストかを確かめる。届くかは返送のたびに確かめ、届かなくても常駐アプリを止めない。
     detail: dev/設計書/インターフェース定義/常駐アプリ/録音を開始する.py#
+  - name: 設定の送り先のエンドポイント
+    purpose: ホットキー・トレイから始めた録音を「エンドポイントへ送る」種類のカスタムプリセットで確定したときに、起こした文字を受け取る
+    direction: 送信のみ
+    protocol: HTTP / HTTPS の POST（プリセットの URL。任意で `Authorization` ヘッダー）
+    notes:
+      事前確認: 不要。届くかは送るたびに確かめ、届かなければトレイで知らせて常駐アプリを止めない。
+    detail: dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送る.py#
 constraints: |-
   - Windows で動かす（トレイ・ホットキー・クリップボード・キー入力・システムの音量を Windows の機能で扱う）
   - Windows のショートカットから起動できる（手段はバッチファイルに限らない）
@@ -116,4 +129,4 @@ constraints: |-
   - Python で書く
   - API は 127.0.0.1 だけで待ち受け、起動ごとのトークンで照合する
   - ローカルの文字起こしは GPU（CUDA）で動かす
-  - ユーザーは master のコードをビルドせずに普段使いしている（刷新の間は voice_paste_legacy が動き、起動の切り替えは #22）
+  - ユーザーは master のコードをビルドせずに普段使いしている（ショートカットは起動のバッチファイルから常駐アプリを起動する）

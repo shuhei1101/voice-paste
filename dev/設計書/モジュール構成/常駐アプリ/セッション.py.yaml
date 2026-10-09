@@ -76,9 +76,9 @@ data_models:
         type: Recording | None
         default: None
         description: API の録音を止めた後、完了までセッションが持つ貯めた音
-      - name: output_target
-        type: str | None
-        description: ホットキー・トレイから始めた録音で、確定の操作で選んだ出力先に固有の宛先（AI チャットの送り先の URL）。持たない出力先は None
+      - name: output_preset
+        type: Preset | None
+        description: ホットキー・トレイから始めた録音で、確定の操作で選んだカスタムプリセット（確定したときの設定の写し）。固定の出力先を選んだときと API のときは None
     status: implemented
   - name: SessionDeps
     title: セッションの依存
@@ -126,6 +126,9 @@ data_models:
       - name: discard_temporary
         type: Callable[[Path], None]
         description: 処理を終えた録音が一時の音声なら消す（履歴の discard_temporary）
+      - name: report_progress
+        type: ProgressFn
+        description: ホットキー・トレイの録音で、文字起こしの進みを画面へ知らせる（配線では ui の report_progress）
     status: implemented
   - name: StartSessionRequest
     title: 開始のリクエスト
@@ -461,11 +464,11 @@ classes:
             required: false
             default: None
             description: 確定の操作で選んだ出力先の ID（ホットキー・トレイのとき）
-          - name: output_target
-            type: str | None
+          - name: preset
+            type: Preset | None
             required: false
             default: None
-            description: 確定の操作で選んだ出力先に固有の宛先（AI チャットの送り先の URL。ホットキー・トレイのとき）
+            description: 確定の操作で選んだカスタムプリセット（ホットキー・トレイのとき。output_id とはどちらか 1 つだけを渡す）
         returns:
           type: None
           description: なし（結果は出力先へ届く）
@@ -475,7 +478,7 @@ classes:
           2. session_id が None の場合（ホットキー・トレイ）、今のセッションの入口が api でなく、recording か paused であることを確かめる
              - 当たらない場合、何もしない（API のセッションに確定のホットキーが来ても変えない）
           3. stopped でなければ録音を止める（録音の停止）
-          4. 録音を保存し（録音の保存）、状態を transcribing にして output_id と output_target をセッションに持たせる
+          4. 録音を保存し（録音の保存）、状態を transcribing にして output_id と preset（output_preset）をセッションに持たせる
              - `[INFO]` 録音を確定した（セッションの ID・録音の長さ・保存先）
              - 3〜4 で例外が出た場合、確定の失敗を片付け（確定の失敗）、その例外を送出し直す（API の route は既存のハンドラで 500 を返す）
           5. ワーカースレッドで文字起こしから届けるまでを始める（確定後の流れ）
@@ -529,12 +532,18 @@ classes:
             mock: SessionDeps の全関数。ワーカースレッドは同期で動かす
             expected: OSError が送出され、セッションが空になり、notify に transcription_failed が渡り、deliver が呼ばれず、続く start が通る
             exception: 録音を保存できない
-          - name: test_complete_when_output_target
+          - name: test_complete_when_preset
             case: 正常
-            summary: 選んだ出力先の ID と宛先を届けるときの Session に持たせる
-            condition: ホットキーのセッションが recording で、complete(output_id="ai_chat", output_target="https://chatgpt.com")
+            summary: 選んだプリセットを届けるときの Session に持たせる
+            condition: ホットキーのセッションが recording で、complete(preset=BrowserPreset(title="ChatGPT", url="https://chatgpt.com"))
             mock: SessionDeps の全関数。ワーカースレッドは同期で動かす
-            expected: deliver に渡った Session の output_id が ai_chat、output_target が https://chatgpt.com
+            expected: deliver に渡った Session の output_id が None、output_preset が渡したプリセット
+          - name: test_complete_when_reports_progress
+            case: 正常
+            summary: ホットキーのセッションには進みを知らせる関数を渡し、API のセッションには渡さない
+            condition: ホットキーのセッションを complete し、transcribe の第 2 引数を記録する。API のセッションでも同じを行う
+            mock: SessionDeps の全関数。ワーカースレッドは同期で動かす
+            expected: ホットキーのセッションで report_progress が渡り、API のセッションでは None
       - name: cancel
         title: 取り消し
         kind: メソッド
@@ -640,8 +649,8 @@ classes:
         returns:
           type: None
           description: なし
-        process: |-
-          1. 録音を文字に起こす（文字起こし）
+        process: |
+          1. 録音を文字に起こす（文字起こし。入口が api でなければ進みを知らせる関数に report_progress を渡し、api なら None）
              - TranscriptionError の場合、入口が api なら result=failed を届け、それ以外は transcription_failed を知らせて 7 へ
                - `[ERROR]` 文字起こしに失敗した（セッションの ID・理由）
           2. 用語集で補正する（用語集での補正）
@@ -791,6 +800,30 @@ classes:
           1. 失敗を知らせる（入口が api なら result=failed を届け、それ以外は transcription_failed を知らせる）
           2. どの経路でも必ず（finally）待機中を知らせる
         status: implemented
+      - name: current
+        title: 今のセッション
+        summary: 今のセッションを返す。画面が state_changed を受けたときに入口と状態を引く
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        returns:
+          type: Session | None
+          description: 今のセッション（不変）。待機中は None
+        process: 1. ロックの中で今のセッションを読んで返す
+        status: implemented
+        unit_tests:
+          - name: test_current_when_idle
+            case: 正常
+            summary: 待機中は None を返す
+            condition: セッションが無い
+            mock: SessionDeps の全関数
+            expected: None
+          - name: test_current_when_recording
+            case: 正常
+            summary: ホットキーで始めた後は入口と状態を持つ Session を返す
+            condition: ホットキーで start した後
+            mock: SessionDeps の全関数
+            expected: entry が hotkey、state が recording の Session
     status: implemented
 functions:
   - name: start_session_route

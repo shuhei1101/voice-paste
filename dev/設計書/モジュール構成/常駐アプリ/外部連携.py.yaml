@@ -1,5 +1,5 @@
 title: "常駐アプリ / 外部連携"
-lead: 文字起こしワーカーの子プロセス・システム音量・キーボードとクリップボード・AI チャットの画面を開くブラウザを包むアダプタ。feature の関数型を満たし、外の例外をアプリの例外に変える。
+lead: 文字起こしワーカーの子プロセス・システム音量・キーボードとクリップボード・ブラウザ添付の画面を開くブラウザ・HTTP の POST を包むアダプタ。feature の関数型を満たし、外の例外をアプリの例外に変える。
 directory: |-
   ```
   src/voice_paste/integrations/
@@ -10,8 +10,11 @@ directory: |-
   │   └── adapter.py    # lower_volume・restore_volume（pycaw を == で固定して包む）
   ├── keyboard/
   │   └── sender.py     # copy_to_clipboard・send_paste・send_enter
-  └── browser/
-      └── opener.py     # open_app_window（Edge の --app で開き、無ければ既定のブラウザ）
+  ├── browser/
+  │   └── opener.py     # open_app_window（Edge の --app で開き、無ければ既定のブラウザ）
+  └── http/
+      ├── types.py      # PostResult・PostJsonFn
+      └── client.py     # post_json（httpx）
   ```
 classes:
   - name: WhisperWorkerClient
@@ -401,7 +404,7 @@ functions:
       type: None
       description: なし
     process: |-
-      1. paste_key を `+` で区切り、各キーの前後の空白を除いて小文字にする（`<Ctrl> + v` も `<ctrl>+v` と同じに扱う。voice_paste_legacy の _parse_paste_key と同じ）
+      1. paste_key を `+` で区切り、各キーの前後の空白を除いて小文字にする（`<Ctrl> + v` も `<ctrl>+v` と同じに扱う。刷新前と同じ）
       2. `<ctrl>`・`<shift>`・`<alt>`・`<cmd>`・`<win>` を修飾キー、それ以外を主キーにする
          - 主キーが 1 つでない場合、DeliveryError を送出する（キーを送らない）
       3. FOCUS_SETTLE_SEC だけ待つ（貼り付け先のフォーカスが落ち着くのを待つ）
@@ -556,16 +559,16 @@ functions:
         type: str
         required: true
         passing: positional
-        description: 開く URL（設定の AI チャットの送り先の URL）
+        description: 開く URL（確定の操作で選んだブラウザ添付のプリセットの URL）
     returns:
       type: None
       description: なし（開いた画面の読み込みを待たない）
     process: |-
       1. Edge の実行ファイルを探す（PATH の `msedge`、無ければ EDGE_PATHS の順に存在するもの）
       2. 見つかった場合、`[{Edge}, "--app={url}"]` を subprocess.Popen で起動する
-         - `[INFO]` AI チャットを Edge のアプリのウィンドウで開いた（url）
+         - `[INFO]` URL を Edge のアプリのウィンドウで開いた（url）
       3. 見つからない場合、os.startfile で既定のブラウザで開く
-         - `[INFO]` AI チャットを既定のブラウザで開いた（url）
+         - `[INFO]` URL を既定のブラウザで開いた（url）
          - 2・3 で OSError が出た場合、DeliveryError を送出する（理由に元の例外を残す）
     exceptions:
       - name: DeliveryError
@@ -599,19 +602,108 @@ functions:
         mock: shutil.which・subprocess.Popen
         expected: DeliveryError が送出される
         exception: Edge も既定のブラウザも起動できない
+  - name: post_json
+    title: JSON の POST
+    kind: 関数
+    container: integrations/http/client.py
+    usecase: 起こした文字を届ける
+    role: client
+    scope: public
+    inherits: PostJsonFn
+    summary: httpx で JSON を POST してステータスと Retry-After を返す。タイムアウトと接続できないことは DeliveryError に変える
+    args:
+      - name: url
+        type: str
+        required: true
+        passing: positional
+        description: 送り先
+      - name: payload
+        type: dict[str, object]
+        required: true
+        passing: positional
+        description: 送る JSON
+      - name: timeout_sec
+        type: float
+        required: true
+        passing: positional
+        description: 1 回の POST のタイムアウト（呼び出し元へ返すは非機能要件の返送のタイムアウトを部分適用し、エンドポイントへ送るは設定の値を渡す）
+      - name: headers
+        type: Mapping[str, str]
+        required: false
+        default: 空の辞書
+        passing: positional
+        description: 付けるヘッダー（Authorization など。値はログと例外の文に書かない）
+    returns:
+      type: PostResult
+      description: 送り先が返したステータスと Retry-After
+    process: |-
+      1. httpx.Client(timeout=timeout_sec, follow_redirects=False) で headers を付けて POST する（リダイレクトで許していないホストへ行かず、認証のヘッダーを他の先へ流さない）
+         - httpx.TransportError（タイムアウト・接続できない）の場合、DeliveryError を送出する
+      2. Retry-After を秒に直す（秒数はそのまま、HTTP の日付は今の時刻からの差。負の値は 0 にそろえる。無い・読めない場合は None）
+      3. ステータスと Retry-After を PostResult で返す（2xx 以外でも送出しない）
+    exceptions:
+      - name: DeliveryError
+        condition: タイムアウトか接続できない
+    unit_tests:
+      - name: test_post_json
+        case: 正常
+        summary: JSON を送ってステータスを返す
+        condition: 受け口が 204 を返す
+        mock: httpx.MockTransport
+        expected: status 204・retry_after_sec None が返り、受け口に Content-Type application/json で payload が届いている
+      - name: test_post_json_when_headers
+        case: 正常
+        summary: 渡したヘッダーを付けて送る
+        condition: 'headers に {"Authorization": "Bearer test-token"} を渡す'
+        mock: httpx.MockTransport
+        expected: '受け口に Authorization: Bearer test-token が届いている'
+      - name: test_post_json_when_retry_after_seconds
+        case: 正常
+        summary: 秒数の Retry-After を返す
+        condition: '受け口が 429 と Retry-After: 3 を返す'
+        mock: httpx.MockTransport
+        expected: status 429・retry_after_sec 3.0 が返る
+      - name: test_post_json_when_retry_after_invalid
+        case: 正常
+        summary: 読めない Retry-After は None
+        condition: '受け口が 503 と Retry-After: soon を返す'
+        mock: httpx.MockTransport
+        expected: status 503・retry_after_sec None が返る
+      - name: test_post_json_when_retry_after_past_date
+        case: 正常
+        summary: 過去の日付の Retry-After は 0
+        condition: 受け口が 503 と、今より 1 分前の HTTP の日付の Retry-After を返す
+        mock: httpx.MockTransport
+        expected: status 503・retry_after_sec 0.0 が返る
+      - name: test_post_json_when_redirected
+        case: 正常
+        summary: リダイレクトを追わない
+        condition: 受け口が 307 で別のホストを指す
+        mock: httpx.MockTransport
+        expected: status 307 が返り、別のホストへの要求が出ない
+      - name: test_post_json_when_timeout
+        case: 異常
+        summary: タイムアウトは DeliveryError
+        condition: 受け口が httpx.ReadTimeout を送出する
+        mock: httpx.MockTransport
+        expected: DeliveryError が送出される
+        exception: タイムアウトか接続できない
+    refs:
+      - dev/設計書/外部ライブラリ/httpx#
+    status: implemented
 constants:
   - name: FADE_STEPS
     title: フェードの段数
     container: integrations/volume/adapter.py
     usecase: 録音する
-    summary: 音量を変えるときに分ける段の数。voice_paste_legacy の fade_volume と同じ値
+    summary: 音量を変えるときに分ける段の数。刷新前と同じ値
     value: '30'
     status: implemented
   - name: FADE_JOIN_TIMEOUT_SEC
     title: 打ち切ったフェードの終わりを待つ秒数
     container: integrations/volume/adapter.py
     usecase: 録音する
-    summary: 進行中のフェードを打ち切るときに、そのスレッドの終わりを待つ上限。voice_paste_legacy の fade_volume と同じ値
+    summary: 進行中のフェードを打ち切るときに、そのスレッドの終わりを待つ上限。刷新前と同じ値
     value: '1.0'
     status: implemented
   - name: SINGLE_WRITE_MAX_DELTA
@@ -625,14 +717,14 @@ constants:
     title: フォーカスが落ち着くまでの待ち
     container: integrations/keyboard/sender.py
     usecase: 起こした文字を届ける
-    summary: 貼り付けのキーを送る前に待つ秒数。voice_paste_legacy の send_paste と同じ値
+    summary: 貼り付けのキーを送る前に待つ秒数。刷新前と同じ値
     value: '0.1'
     status: implemented
   - name: EDGE_PATHS
     title: Edge の既定の置き場所
     container: integrations/browser/opener.py
     usecase: 起こした文字を届ける
-    summary: PATH に msedge が無いときに探す Edge の実行ファイル。voice_paste_legacy の _find_edge と同じ並び
+    summary: PATH に msedge が無いときに探す Edge の実行ファイル。刷新前と同じ並び
     value: (r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe", r"C:\Program Files\Microsoft\Edge\Application\msedge.exe")
     status: implemented
 test_files:
@@ -640,6 +732,49 @@ test_files:
   - tests/unit/voice_paste/integrations/volume/test_adapter.py
   - tests/unit/voice_paste/integrations/keyboard/test_sender.py
   - tests/unit/voice_paste/integrations/browser/test_opener.py
+  - tests/unit/voice_paste/integrations/http/test_client.py
 external_test_files:
   - tests/external/voice_paste/integrations/volume/test_adapter.py
   - tests/external/voice_paste/integrations/keyboard/test_sender.py
+data_models:
+  - name: PostResult
+    title: POST の応答
+    container: integrations/http/types.py
+    usecase: 起こした文字を届ける
+    role: DTO
+    summary: post_json が返す、送り先のステータスと再送までに待つ秒数
+    description: '`@dataclass(frozen=True, slots=True, kw_only=True)`。'
+    properties:
+      - name: status
+        type: int
+        description: 送り先が返したステータス
+      - name: retry_after_sec
+        type: float | None
+        description: Retry-After を秒に直した値。無い・読めないときは None
+    status: implemented
+function_types:
+  - name: PostJsonFn
+    title: JSON の POST
+    container: integrations/http/types.py
+    usecase: 起こした文字を届ける
+    summary: 送り先へ JSON を POST してステータスと Retry-After を返す。タイムアウト・接続できないことは DeliveryError
+    args:
+      - name: url
+        type: str
+        description: 送り先
+      - name: payload
+        type: dict[str, object]
+        description: 送る JSON
+      - name: timeout_sec
+        type: float
+        description: 1 回の POST のタイムアウト
+      - name: headers
+        type: Mapping[str, str]
+        description: 付けるヘッダー
+    returns:
+      type: PostResult
+      description: 送り先が返したステータスと Retry-After
+    implementations:
+      - target: post_json
+        notes: httpx で送る
+    status: implemented

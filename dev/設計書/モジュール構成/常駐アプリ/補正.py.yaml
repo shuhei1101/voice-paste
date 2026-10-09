@@ -43,7 +43,7 @@ functions:
       1. ファイルが無ければ空を返す
          - `[WARNING]` 用語集が無い（パス）
       2. UTF-8（BOM ありも）の CSV を列名で読み、`誤変換`・`正しい表記` の前後の空白を除く
-         - どちらかが空の行は飛ばす（voice_paste_legacy の load_yogo と同じ）
+         - どちらかが空の行は飛ばす（刷新前と同じ）
          - `[INFO]` 用語集を読んだ（パス・行数）
     unit_tests:
       - name: test_load_glossary

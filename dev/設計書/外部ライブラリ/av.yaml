@@ -1,0 +1,91 @@
+title: "av"
+kind: "ライブラリ"
+version:
+  current: 18.1.0
+  latest: 19.0.1
+  checked_on: '2026-10-05'
+  source: pyproject.toml（`av>=11,<19`）と、新しく作った venv に入る版
+  pinning: '`>=11,<19`。下限は faster-whisper 1.2.1 の `Requires-Dist: av>=11` に揃え、上限は av 19 が faster-whisper 1.2.1 の `av.open(..., metadata_errors="ignore")` を受け付けない不具合のため（faster-whisper の設計書の不具合一覧）。faster-whisper が av 19 に対応した版を出したら上限を外す'
+catalogs:
+  - name: API
+    version: 18.1.0
+    entries:
+      - name: av.open
+        kind: 関数
+        purpose: ファイルやストリームを開き、音声・動画のコンテナを返す（faster-whisper が録音を読むときに呼ぶ）
+        params:
+          - name: file
+            type: str | Path | file-like
+            required: true
+            description: 開くファイルかストリーム
+          - name: mode
+            type: '"r" | "w"'
+            default: '"r"'
+            description: 読みか書きか
+          - name: format
+            type: str | None
+            default: None（自動判定）
+            description: 使う形式
+          - name: options
+            type: dict[str, str] | None
+            default: None
+            description: コンテナと全ストリームへ渡すオプション
+          - name: container_options
+            type: dict[str, str] | None
+            default: None
+            description: コンテナへ渡すオプション
+          - name: stream_options
+            type: list[str] | None
+            default: None
+            description: 各ストリームへ渡すオプション
+          - name: metadata_encoding
+            type: str
+            default: '"utf-8"'
+            description: メタデータを読み書きするときの文字コード
+          - name: metadata_errors
+            type: str
+            default: '"strict"'
+            description: メタデータの文字コードのエラーの扱い（`str.encode` と同じ）
+            notes: faster-whisper 1.2.1 は `"ignore"` を渡す。av 19.0.1 は受け付けない
+          - name: buffer_size
+            type: int
+            default: '32768'
+            description: Python の入出力のバッファの大きさ（バイト）。file-like のときだけ効く
+          - name: timeout
+            type: float | tuple | None
+            default: None
+            description: データを待つ秒数。`(開く, 読む)` の組でも指定できる
+          - name: io_open
+            type: Callable | None
+            default: None
+            description: 追加のファイルを開く独自の入出力
+          - name: hwaccel
+            type: HWAccel | None
+            default: None
+            description: ハードウェアデコードの設定
+        params_example: |-
+          ```python
+          import av
+
+          with av.open("recording.wav", mode="r", metadata_errors="ignore") as container:
+              for frame in container.decode(audio=0):
+                  ...
+          ```
+        returns:
+          - name: '-'
+            type: InputContainer（mode が "r"）/ OutputContainer（"w"）
+            description: 開いたコンテナ
+lead: FFmpeg の Python バインディング（PyAV）。音声・動画のファイルやストリームを開いて、読み書きする。
+purl: pkg:pypi/av
+dependency_scope: 必須
+adoption: 採用
+used_in:
+  - src/voice_paste/integrations/whisper/worker.py
+upstream: PyAV-Org/PyAV
+verification:
+  state: 済
+  date: '2026-10-05'
+  detail: Linux の使い捨ての venv で、faster-whisper 1.2.1 と av 18.1.0 の組が 1 秒の WAV を decode_audio で読めること（av.open が metadata_errors="ignore" を受け付けること）と、av 19.0.1 の組では TypeError になることを最小のコードで動かした
+license: BSD-3-Clause（商用利用可）
+official_url: https://github.com/PyAV-Org/PyAV
+docs_url: https://pyav.basswood.io

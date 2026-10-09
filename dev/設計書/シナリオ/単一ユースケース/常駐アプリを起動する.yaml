@@ -3,7 +3,7 @@ scenarios:
   - name: 正常シナリオ
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
       - name: 文字起こしのエンジン
         description: ローカルの Whisper を使う設定にする
     flow: |-
@@ -34,10 +34,11 @@ scenarios:
       - 127.0.0.1 の API が、トークンを付けた要求に応える
       - トークンのファイル（`%LOCALAPPDATA%\voice-paste\` の下）に今回の起動のトークンが書かれている
       - 文字起こしワーカーの子プロセスが動いている
+    test: test_normal
   - name: 正常シナリオ（前の常駐サービスが動いている）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
+        description: マウス・キーボード・Windows のシェル。常駐アプリを別プロセスで 2 つ起動し、操作はしない（補足『E2E のテスト』）
       - name: 前のプロセス
         description: 常駐サービスが 1 つ動いており、名前付きの排他を持っている
     flow: |-
@@ -60,10 +61,11 @@ scenarios:
       - 常駐サービスのプロセスが 1 つだけ動いている
     notes:
       起動し直しの手作業: master を取り込んだ後にショートカットから起動し直す使い方を残すため、新しいプロセスが前のプロセスに終わるよう頼む。プロセスの番号での強制終了はしない。
+    test: test_normal_when_previous_running
   - name: 正常シナリオ（保持期間を過ぎた履歴とログがある）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
       - name: 保持期間
         description: 履歴とログの保持期間を 1 日にする
       - name: 古い履歴とログ
@@ -85,10 +87,11 @@ scenarios:
     expected:
       - 2 日前の日付の履歴とログが消えている
       - 今日の日付の履歴とログが残っている
+    test: test_normal_when_expired_history_and_logs
   - name: 異常シナリオ（文字起こしのエンジンを準備できない）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
       - name: モデルの読み込みの失敗
         description: ローカルの Whisper のモデルに存在しない名前を設定し、文字起こしワーカーがモデルを読み込めずに error を返す状態にする
     flow: |-
@@ -114,10 +117,11 @@ scenarios:
       - 録音開始のホットキーを押しても録音が始まらない
     notes:
       同じ扱いになる失敗: 文字起こしワーカーが ready を返さずに終わったときも同じ扱いになる。
+    test: test_error_when_engine_unavailable
   - name: 異常シナリオ（API の待ち受けを始められない）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
       - name: ポートの使用中
         description: API の待ち受けのポートを、ほかのプロセスが先に使っている
     flow: |-
@@ -141,6 +145,33 @@ scenarios:
       - トレイで API を使えないことが知らされている
       - ログに待ち受けに失敗した理由が書かれている
       - 録音開始のホットキーを押すと録音が始まる
+    test: test_error_when_api_unavailable
+  - name: 正常シナリオ（古い AI チャットの設定が残っている）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+      - name: 古い設定
+        description: '`settings.toml` の `outputs` に `id = "ai_chat"` の項目と送り先（`targets[]`）を 2 つ書いておく（うち 1 つは出さない）'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SVC as 常駐サービス
+        participant TOML as settings.toml
+        participant TRAY as トレイ
+
+        U->>SVC: ショートカットから起動する
+        SVC->>TOML: 設定を読む
+        SVC->>SVC: ai_chat の送り先を、ブラウザ添付の種類のプリセットへ読み替える
+        Note over SVC: 以降は 正常シナリオ と同じ
+        SVC->>TRAY: 待機中のアイコンにする
+      ```
+    expected:
+      - トレイのアイコンが待機中になっている（起動が止まらない）
+      - 録音の画面に、出すとした送り先と同じタイトル・ホットキーのプリセットのボタンだけが出る
+      - そのボタンで確定すると、送り先の URL を開いて貼り付け、Enter まで送る
+      - 起動しただけでは `settings.toml` が書き換わっていない
+    test: test_normal_when_old_ai_chat_settings_remain
 lead: 'ショートカットから常駐サービスを起動し、文字起こしのエンジン・API の待ち受け・ホットキーの受付を立てて、録音の開始を待つ状態にする単一ユースケース。'
 issue: 14
 primary_actor: 音声入力を使うユーザー
@@ -148,3 +179,13 @@ trigger: ユーザーが常駐サービスのショートカットを開く
 preconditions:
   - Windows の端末で、リポジトリの直下に仮想環境がある
   - 設定ファイル（`%APPDATA%\voice-paste\settings.toml`）がある（無ければ既定値で作る）
+test_file: tests/e2e/単一ユースケース/test_start_resident_app.py
+notes:
+  E2E のテスト: |-
+    正常シナリオと「API の待ち受けを始められない」の期待値「録音開始のホットキーを押すと録音が始まる」と、「古い AI チャットの設定が残っている」の期待値のうちプリセットのボタンと確定して送るまでの 2 つは、録音を始めて実機のマイクを開くため、E2E では確かめない（#65）。「古い AI チャットの設定が残っている」の E2E は、起動が止まらないことと `settings.toml` が書き換わっていないことだけを確かめる。ホットキーの入口から録音を始めることは、複合ユースケース「声で入力した文字を貼り付ける」の E2E が確かめる
+
+    E2E は実機のマウス・キーボードを使わず、Windows のシェル（タスクバーのトレイ・通知・エクスプローラー）を読まない（#75）。
+    常駐アプリは pytest のプロセスの中で `main()` から起動し（`--data-dir` の一時フォルダ、Qt は offscreen で画面に出さない）、トレイの状態はトレイのアイコンのヒントの文字で、知らせはログで確かめる。
+    トレイのメニューは項目を trigger して選び、画面のボタン・欄はクリックとキーを Qt のイベントで渡す。
+    ホットキーの受付は差し替え、ホットキーが押された体で登録された関数を呼ぶ。「文字起こしのエンジンを準備できない」の「録音開始のホットキーを押しても録音が始まらない」は、ホットキーの受付が始まっていないことで確かめる。
+    「前の常駐サービスが動いている」は、別プロセスで 2 つ起動し、ログ・トークンのファイル・プロセスで確かめる。前のアイコンが残っていないことは、前のプロセスが片付けでアイコンを消して終わったことで確かめる

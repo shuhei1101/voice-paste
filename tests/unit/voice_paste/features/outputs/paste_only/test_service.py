@@ -1,4 +1,4 @@
-"""features/outputs/paste_only/service.py（paste_only）の単体テスト。
+"""features/outputs/paste_only/service.py（paste_only・inject_paste_only）の単体テスト。
 
 クリップボード（copy）と貼り付けのキー（paste）は、呼ばれた順を 1 本の列で見られる Mock にして、順序と引数を確かめる。
 """
@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, call
 
 import pytest
 
+from tests.unit.voice_paste.features.outputs.helpers import make_output_deps
 from voice_paste.shared.errors import DeliveryError
 from voice_paste.shared.types import TranscriptionOutcome
 
@@ -46,3 +47,22 @@ def test_paste_only_when_copy_failed() -> None:
     with pytest.raises(DeliveryError, match="クリップボードへ書けない"):
         paste_only(_outcome(), None, copy=copy, paste=paste)
     paste.assert_not_called()
+
+
+# === inject_paste_only ===
+
+
+def test_inject_paste_only() -> None:
+    """copy・paste だけを渡す（正常系）。"""
+    from voice_paste.features.outputs.paste_only.service import inject_paste_only
+
+    # 準備
+    deps = make_output_deps()
+
+    # 実行
+    injected = inject_paste_only(deps)
+
+    # 検証
+    assert set(injected) == {"copy", "paste"}
+    assert injected["copy"] is deps.copy
+    assert injected["paste"] is deps.paste

@@ -4,8 +4,7 @@ directory: |-
   ```
   src/voice_paste/shared/
   ├── __init__.py
-  ├── settings.py       # 設定のモデル（pydantic）、TOML の読み書き（tomlkit）
-  ├── env_migration.py  # .env を読んで設定のモデルへ写す（並走の間と切り替えの反映作業で使う。python-dotenv）
+  ├── settings.py       # 設定のモデル（pydantic）と出力先の設定の共通の親・設定のモデルの組み立て、TOML の読み書き（tomlkit）
   ├── logger.py         # 標準の logging の設定。日付ごとのファイルと保持期間での削除
   ├── errors.py         # 例外の階層
   ├── constants.py      # アプリ名と置き場所のパス（platformdirs）
@@ -28,27 +27,23 @@ enums:
         title: API
         description: POST /sessions
     status: implemented
-  - name: OutputSettings
-    title: 出力先の設定
+  - name: Preset
+    title: カスタムプリセット
     container: shared/settings.py
     usecase: 共通
-    summary: 出力先ごとの設定の判別共用体（`Annotated[... | ..., Field(discriminator="id")]`）
+    summary: プリセットの種類ごとの設定の判別共用体（`Annotated[... | ..., Field(discriminator="kind")]`）
     description: |-
-      呼び出し元へ返す出力先（callback）は API から始めた録音だけが使い、オン・オフを持たないため一覧に置かない。
-      既定の一覧は下の 4 件をこの並びで持つ。
+      種類を足すときは、種類の設定のモデルを 1 つ作ってここに足し、出力先の PRESET_KINDS と画面の種類の名前に登録する。
+      セッションは確定の操作で選んだプリセットをこの型の写しとして持ち、出力先へ渡す。
     values:
-      - value: paste_and_send
-        title: 貼り付けて送信
-        description: PasteAndSendSettings
-      - value: paste_only
-        title: 貼り付けのみ
-        description: PasteOnlySettings
-      - value: copy_only
-        title: コピーのみ
-        description: CopyOnlySettings
-      - value: ai_chat
-        title: AI チャットへ送る
-        description: AiChatSettings
+      - value: browser
+        title: ブラウザ添付
+        description: BrowserPreset
+      - value: endpoint
+        title: エンドポイントへ送る
+        description: EndpointPreset
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[presets[].kind]
     status: implemented
 data_models:
   - name: Recording
@@ -97,7 +92,7 @@ data_models:
     description: |-
       resolve_app_paths で作る。
       既定は platformdirs で `%APPDATA%\voice-paste\`（設定）と `%LOCALAPPDATA%\voice-paste\`（それ以外）を引く。
-      データの置き場所（`--data-dir`）を渡したときは、全てをその下に置く。並走の間はこれで普段使いの置き場所に触れない。
+      データの置き場所（`--data-dir`）を渡したときは、全てをその下に置く。E2E・非機能要件テストはこれで普段使いの置き場所に触れない。
       `@dataclass(frozen=True, slots=True, kw_only=True)`。
     properties:
       - name: settings_file
@@ -129,7 +124,8 @@ data_models:
       キーの一つ一つ（型・既定値・範囲・反映）は設計書『設定』の settings.toml の行が持つ。
       まとまりのモデルも全て `pydantic.BaseModel` で、どれも `model_config = ConfigDict(extra="forbid")` にして知らないキー（書き間違い）を断る。
       各項目は `Field(description=..., json_schema_extra={"reload": "immediate" | "restart"})` で再起動が要るかの印を持つ。
-      全ての項目に既定値があり、`Settings()` が既定の設定になる。
+      出力先ごとの設定のモデルは出力先が持ち（shared は features を import しない）、アプリが使う設定のモデルは build_settings_model がこのモデルを継いで組み立てる（main.py の SETTINGS_MODEL）。組み立てたモデルでは全ての項目に既定値があり、`SETTINGS_MODEL()` が既定の設定になる。
+      設定を受ける関数・画面は型としては Settings を使い、既定値・検証には受けた設定のモデル（`type(settings)`）を使う。
     properties:
       - name: transcription
         type: TranscriptionSettings
@@ -144,8 +140,8 @@ data_models:
         type: KeyboardSettings
         description: 貼り付けのキー
       - name: outputs
-        type: list[OutputSettings]
-        description: 出力先ごとのオン・オフ・確定のホットキー・出力先ごとの設定。ID は重ならない
+        type: list[OutputSettingsBase]
+        description: 出力先ごとのオン・オフ・確定のホットキー・出力先ごとの設定。ID は重ならない。このモデルでは既定が空で、build_settings_model が出力先のモデルの判別共用体（`id` で見分ける）と既定の一覧に差し替える。値は `SerializeAsAny` で各出力先のモデルの項目ごと書き出す
       - name: history
         type: HistorySettings
         description: 履歴を残すか・保持期間
@@ -162,6 +158,17 @@ data_models:
       - name: api
         type: ApiSettings
         description: 待ち受けのポート・返送を許すホスト
+      - name: presets
+        type: list[Preset]
+        default: '[]'
+        description: カスタムプリセットの一覧。種類ごとの並びが、設定画面のタブと録音の画面のボタンの並びになる
+      - name: preset_options
+        type: PresetOptions
+        description: プリセットの種類ごとのオプション
+      - name: output_models
+        type: ClassVar[Mapping[str, type[OutputSettingsBase]]]
+        default: '{}'
+        description: 出力先の ID → 設定のモデル。build_settings_model が組み立てたモデルに入る。設定画面が失敗の場所の判別子の値から出力先のモデルを引く
     refs:
       - dev/設計書/外部ライブラリ/pydantic#
       - dev/設計書/設定/常駐アプリ#
@@ -310,120 +317,6 @@ data_models:
         default: <ctrl>+v
         description: 貼り付けのキーの組み合わせ（pynput の書式）
     status: implemented
-  - name: PasteAndSendSettings
-    title: 貼り付けて送信の設定
-    container: shared/settings.py
-    usecase: 共通
-    role: 設定のモデル
-    summary: 出力先 paste_and_send のオン・オフ・確定のホットキー・貼り付けから送信までの間
-    inherits: pydantic.BaseModel
-    properties:
-      - name: id
-        type: Literal["paste_and_send"]
-        default: paste_and_send
-        description: 出力先の ID（OutputSettings の判別子）
-      - name: enabled
-        type: bool
-        default: 'True'
-        description: オンか
-      - name: hotkey
-        type: str
-        default: <ctrl>+<alt>+d
-        description: この出力先で確定するホットキー
-      - name: enter_delay_sec
-        type: float
-        default: '0.5'
-        description: 貼り付けてから Enter を送るまで待つ秒数（0 以上）
-    status: implemented
-  - name: PasteOnlySettings
-    title: 貼り付けのみの設定
-    container: shared/settings.py
-    usecase: 共通
-    role: 設定のモデル
-    summary: 出力先 paste_only のオン・オフ・確定のホットキー
-    inherits: pydantic.BaseModel
-    properties:
-      - name: id
-        type: Literal["paste_only"]
-        default: paste_only
-        description: 出力先の ID
-      - name: enabled
-        type: bool
-        default: 'True'
-        description: オンか
-      - name: hotkey
-        type: str
-        default: <ctrl>+<alt>+v
-        description: この出力先で確定するホットキー
-    status: implemented
-  - name: CopyOnlySettings
-    title: コピーのみの設定
-    container: shared/settings.py
-    usecase: 共通
-    role: 設定のモデル
-    summary: 出力先 copy_only のオン・オフ・確定のホットキー
-    inherits: pydantic.BaseModel
-    properties:
-      - name: id
-        type: Literal["copy_only"]
-        default: copy_only
-        description: 出力先の ID
-      - name: enabled
-        type: bool
-        default: 'True'
-        description: オンか
-      - name: hotkey
-        type: str
-        default: <ctrl>+<alt>+c
-        description: この出力先で確定するホットキー
-    status: implemented
-  - name: AiChatSettings
-    title: AI チャットへ送る設定
-    container: shared/settings.py
-    usecase: 共通
-    role: 設定のモデル
-    summary: 出力先 ai_chat のオン・オフ・開いてから貼り付けるまでの間・送り先の一覧
-    inherits: pydantic.BaseModel
-    properties:
-      - name: id
-        type: Literal["ai_chat"]
-        default: ai_chat
-        description: 出力先の ID
-      - name: enabled
-        type: bool
-        default: 'True'
-        description: オンか
-      - name: open_delay_sec
-        type: float
-        default: '3.0'
-        description: AI チャットの画面を開いてから貼り付けるまで待つ秒数（0 以上）
-      - name: targets
-        type: list[AiChatTarget]
-        default: ChatGPT・Google AI・Claude の 3 件
-        description: 送り先の一覧。確定のホットキーは送り先ごとに持つ
-    status: implemented
-  - name: AiChatTarget
-    title: AI チャットの送り先
-    container: shared/settings.py
-    usecase: 共通
-    role: 設定のモデル
-    summary: AI チャットの送り先 1 件
-    inherits: pydantic.BaseModel
-    properties:
-      - name: name
-        type: str
-        description: 画面に出す名前（1 文字以上）
-      - name: url
-        type: str
-        description: Microsoft Edge の `--app` で開く URL（http か https）
-      - name: hotkey
-        type: str
-        description: この送り先へ送る確定のホットキー
-      - name: enabled
-        type: bool
-        default: 'True'
-        description: 画面にボタンを出し、ホットキーを登録するか
-    status: implemented
   - name: HistorySettings
     title: 履歴の設定
     container: shared/settings.py
@@ -500,6 +393,140 @@ data_models:
         default: '[]'
         description: loopback のほかに返送を許すホスト
     status: implemented
+  - name: BrowserPreset
+    title: ブラウザ添付のプリセット
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: ブラウザ添付の種類のプリセット 1 件
+    inherits: pydantic.BaseModel
+    description: '`model_config = ConfigDict(extra="forbid", frozen=True)`（セッションが写しとして持つため変えられないようにする）。'
+    properties:
+      - name: kind
+        type: Literal["browser"]
+        default: browser
+        description: プリセットの種類（Preset の判別子）
+      - name: title
+        type: str
+        description: 録音の画面のボタンに出す名前（1 文字以上）
+      - name: url
+        type: str
+        description: Microsoft Edge の `--app` で開く URL（`^https?://`）
+      - name: hotkey
+        type: str
+        default: '""'
+        description: このプリセットで確定するホットキー。空なら登録しない
+      - name: enabled
+        type: bool
+        default: 'True'
+        description: 録音の画面にボタンを出し、ホットキーを登録するか
+      - name: send_enter
+        type: bool
+        default: 'True'
+        description: 貼り付けた後に Enter まで送るか
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[presets[].kind]
+    status: implemented
+  - name: EndpointPreset
+    title: エンドポイントへ送るのプリセット
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: エンドポイントへ送るの種類のプリセット 1 件
+    inherits: pydantic.BaseModel
+    description: '`model_config = ConfigDict(extra="forbid", frozen=True)`。authorization は `Field(repr=False)` にして、設定やセッションを repr でログに出しても値が出ないようにする（SecretStr は model_dump(mode="json") で伏せ字になり settings.toml へ書き戻せないため使わない）。'
+    properties:
+      - name: kind
+        type: Literal["endpoint"]
+        default: endpoint
+        description: プリセットの種類（Preset の判別子）
+      - name: title
+        type: str
+        description: 録音の画面のボタンに出す名前（1 文字以上）
+      - name: url
+        type: str
+        description: 起こした文字を POST する送り先（`^https?://`）
+      - name: hotkey
+        type: str
+        default: '""'
+        description: このプリセットで確定するホットキー。空なら登録しない
+      - name: enabled
+        type: bool
+        default: 'True'
+        description: 録音の画面にボタンを出し、ホットキーを登録するか
+      - name: authorization
+        type: str
+        default: '""'
+        description: 空でなければ `Authorization` ヘッダーにそのまま入れる値（秘密。repr に出さない）
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[presets[].authorization]
+    status: implemented
+  - name: PresetOptions
+    title: プリセットの種類のオプション
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: 種類ごとに、その種類の全てのプリセットで使う設定
+    inherits: pydantic.BaseModel
+    properties:
+      - name: browser
+        type: BrowserPresetOptions
+        description: ブラウザ添付のオプション
+      - name: endpoint
+        type: EndpointPresetOptions
+        description: エンドポイントへ送るのオプション
+    status: implemented
+  - name: BrowserPresetOptions
+    title: ブラウザ添付のオプション
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: ブラウザ添付の全てのプリセットで使う、開いてから貼り付けるまでの間
+    inherits: pydantic.BaseModel
+    properties:
+      - name: open_delay_sec
+        type: float
+        default: '3.0'
+        description: 画面を開いてから貼り付けるまで待つ秒数（0 以上）
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[preset_options.browser.open_delay_sec]
+    status: implemented
+  - name: EndpointPresetOptions
+    title: エンドポイントへ送るのオプション
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: エンドポイントへ送るの全てのプリセットで使う、送るときのタイムアウト
+    inherits: pydantic.BaseModel
+    properties:
+      - name: timeout_sec
+        type: float
+        default: '1.5'
+        description: 送るときのタイムアウトの秒数（`ge=0.5, le=10`。既定・範囲は非機能要件）
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[preset_options.endpoint.timeout_sec]
+      - dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送るときのタイムアウト]
+    status: implemented
+  - name: OutputSettingsBase
+    title: 出力先の設定の共通の親
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: 出力先ごとの設定のモデルが継ぐ、どの出力先も持つ ID・オン・オフ・確定のホットキー
+    description: 出力先のモデルは `id` を `Literal["{出力先の ID}"]` に絞り、全ての項目に既定値を持たせる（既定の出力先の一覧は各モデルを引数なしで作る）。ホットキーの重なり・確定のホットキー・設定画面の共通の欄はこの 3 項目だけを読む。このほかの項目は設定画面が型から欄を組み立て、`json_schema_extra` の note があれば欄の下に出す
+    inherits: pydantic.BaseModel
+    properties:
+      - name: id
+        type: str
+        description: 出力先の ID（設定の outputs[] の判別子）
+      - name: enabled
+        type: bool
+        default: 'True'
+        description: オンか
+      - name: hotkey
+        type: str
+        description: この出力先で確定するホットキー
+    status: planned
 classes:
   - name: AppError
     title: アプリの例外
@@ -509,7 +536,7 @@ classes:
     kind: クラス
     inherits: Exception
     summary: このアプリが送出する例外の根。API サーバーの例外ハンドラが HTTP のステータスへ変える
-    description: |-
+    description: |
       | 例外 | 意味 | HTTP |
       | --- | --- | --- |
       | `CallbackNotAllowedError` | 返送先が許されない | 400 |
@@ -525,6 +552,7 @@ classes:
       | `VolumeControlError` | システム音量を操作できない | - |
       | `SettingsError` | 設定の値が合わない（合わないキーをメッセージに並べる） | - |
       | `StartupError` | 起動に失敗した（エンジンを準備できない・前のプロセスが排他を放さない） | - |
+      | `HotkeyError` | ホットキーの書式を pynput が読めない | - |
 
       全ての例外は docstring だけを持つクラスで `shared/errors.py` に置き、親は表に書かない限り `AppError`。
     status: implemented
@@ -543,17 +571,23 @@ functions:
         required: true
         passing: positional
         description: settings.toml
+      - name: model
+        type: type[Settings]
+        required: true
+        passing: positional
+        description: 検証に使う設定のモデル（main.py の SETTINGS_MODEL）
     returns:
       type: Settings
       description: 検証した設定
     process: |-
       1. path が無いかを確かめる
-         - 無い場合、既定の Settings を書いて返す（設定の書き戻し）
+         - 無い場合、model() を書いて返す（設定の書き戻し）
            - `[INFO]` 設定ファイルが無いため既定値で作った（path）
       2. UTF-8 で読み、tomlkit で解釈する
          - TOMLKitError の場合、SettingsError を送出する
-      3. 文書を素の dict にして Settings.model_validate で検証して返す
-         - pydantic.ValidationError の場合、合わないキーをドット区切り（例 `transcription.local_whisper.beam_size`、出力先は `outputs[0].hotkey`）で並べた SettingsError を送出する
+      3. 文書を素の dict にし、古い AI チャットの設定を読み替える（migrate_ai_chat。settings.toml は書き換えない）
+      4. model.model_validate で検証して返す
+         - pydantic.ValidationError の場合、合わないキーをドット区切り（例 `transcription.local_whisper.beam_size`、出力先は `outputs[0].hotkey`、プリセットは `presets[0].url`）で並べた SettingsError を送出する
     exceptions:
       - name: SettingsError
         condition: TOML の書式が壊れている
@@ -567,7 +601,7 @@ functions:
         summary: 無ければ既定値で作る
         condition: settings.toml の無い一時フォルダ
         mock: なし（一時フォルダ）
-        expected: Settings() と等しい設定が返り、settings.toml ができている
+        expected: SETTINGS_MODEL() と等しい設定が返り、settings.toml ができている
       - name: test_load_settings
         case: 正常
         summary: 書いた値を読む
@@ -579,7 +613,7 @@ functions:
         summary: リポジトリの見本は既定値と一致する
         condition: リポジトリの直下の settings.sample.toml
         mock: なし
-        expected: Settings() と等しい
+        expected: SETTINGS_MODEL() と等しい
       - name: test_load_settings_when_invalid_value
         case: 異常
         summary: 合わない値はキーを示して断る
@@ -608,6 +642,19 @@ functions:
         mock: なし（一時フォルダ）
         expected: SettingsError
         exception: TOML の書式が壊れている
+      - name: test_load_settings_when_ai_chat_remains
+        case: 正常
+        summary: 古い AI チャットの設定が残っていても読め、プリセットに読み替える
+        condition: outputs に id = "ai_chat"・open_delay_sec = 2.0・targets に ChatGPT（enabled true）と Claude（enabled false）を書いた settings.toml
+        mock: なし（一時フォルダ）
+        expected: outputs に ai_chat が無く、presets が ChatGPT（enabled True）・Claude（enabled False）の BrowserPreset 2 件（同じ title・url・hotkey、send_enter True）、preset_options.browser.open_delay_sec が 2.0。settings.toml の中身は読む前と同じ
+      - name: test_load_settings_when_invalid_preset
+        case: 異常
+        summary: 合わないプリセットはキーを示して断る
+        condition: presets に kind = "endpoint"・url = "ftp://x" の 1 件
+        mock: なし（一時フォルダ）
+        expected: SettingsError。メッセージに presets[0] と url を含む
+        exception: 値がモデルに合わない
     refs:
       - dev/設計書/外部ライブラリ/tomlkit#
     status: implemented
@@ -635,11 +682,11 @@ functions:
       description: 再起動が要る項目が変わったか
     process: |-
       1. path があれば tomlkit で読み、無ければ空の文書にする
-      2. 読んだ文書を Settings として検証し、前の設定にする
+      2. 読んだ文書を、古い AI チャットの設定を読み替えてから（migrate_ai_chat）settings と同じ設定のモデル（`type(settings)`）で検証し、前の設定にする
          - 無い場合、前の設定は無しとする
          - 読めない・検証に通らない場合、内容を空の文書にして前の設定を「全て変わった」とする
       3. settings を `model_dump(mode="json")` する
-      4. 文書の値を再帰で置き換える。表はキーごとに書き換えて既存のコメントと並びを保ち、配列（出力先の一覧・AI チャットの送り先・許すホスト）は丸ごと入れ替える。None の項目（glossary_path）はキーを置かず、文書に既にあれば消す
+      4. 文書の値を再帰で置き換える。表はキーごとに書き換えて既存のコメントと並びを保ち、配列（出力先の一覧・プリセットの一覧・許すホスト）は丸ごと入れ替える（出力先の一覧を入れ替えるので、文書に残っていた `id = "ai_chat"` の項目も消える）。None の項目（glossary_path）はキーを置かず、文書に既にあれば消す
       5. 親のフォルダを作り、同じフォルダの一時ファイルに UTF-8 で書いて os.replace で置き換える
       6. reload が restart の項目のうち、前の設定と値が違うものが 1 つでもあれば True、無ければ False を返す（前の設定が無いときは False）
     unit_tests:
@@ -676,9 +723,15 @@ functions:
       - name: test_save_settings_when_glossary_reset
         case: 正常
         summary: 用語集の場所を既定（None）に戻すとキーを消す
-        condition: glossary_path = "C:/x/yogo.csv" を持つ settings.toml に Settings() を書く
+        condition: glossary_path = "C:/x/yogo.csv" を持つ settings.toml に SETTINGS_MODEL() を書く
         mock: なし（一時フォルダ）
         expected: 書いた後のファイルに glossary_path のキーが無く、load_settings の glossary_path が None
+      - name: test_save_settings_when_ai_chat_remains
+        case: 正常
+        summary: 読み替えた設定を保存すると、ai_chat の項目が消えてプリセットとして書かれる
+        condition: outputs に id = "ai_chat" と送り先 2 件を書いた settings.toml を load_settings で読み、そのまま書く
+        mock: なし（一時フォルダ）
+        expected: False。書いた後のファイルの outputs に ai_chat が無く、presets に同じ title・url・hotkey・enabled の kind = "browser" が 2 件あり、preset_options.browser.open_delay_sec が読み替えた値
     refs:
       - dev/設計書/外部ライブラリ/tomlkit#
     status: implemented
@@ -785,114 +838,6 @@ functions:
         mock: なし（一時フォルダ）
         expected: 10 日前だけが消え、戻り値が 1
     status: implemented
-  - name: migrate_env
-    title: .env からの移行
-    kind: 関数
-    container: shared/env_migration.py
-    usecase: 共通
-    scope: public
-    summary: voice_paste_legacy の .env を読むだけで、値を settings.toml のキーへ写した Settings を返す
-    description: |-
-      書き込みは呼び出し側が save_settings で行う。`.env` の改名（`.env.migrated`）は起動を切り替える #22 の反映作業で行い、この関数は行わない。
-      `.env` のキーと settings.toml のキーの対応は設計書『設定』の settings.toml の各行の説明が持つ。
-    args:
-      - name: env_path
-        type: Path
-        required: true
-        passing: positional
-        description: 移す元の .env
-    returns:
-      type: Settings
-      description: .env の値を写した設定（.env に無い・空のキーは Settings の既定値。glossary_path だけは常に解いた絶対パス）
-    process: |-
-      1. env_path を python-dotenv の dotenv_values で読む（環境変数へ入れず、ファイルを書かない）
-         - 無い場合、SettingsError を送出する
-      2. 対応表のキーごとに、値があって空でないものだけを settings.toml のキーへ写す
-         - bool のキーは、小文字にして `true` のときだけ真にする（voice_paste_legacy の読み方と同じ）
-         - TRANSCRIPTION_ENGINE は `local` を `local_whisper` へ写す。それ以外（`openai` を含む）は SettingsError を送出する
-         - WHISPER_LANGUAGE・WHISPER_TEMPERATURE はローカルの Whisper へ写す
-      3. 用語集の場所を voice_paste_legacy/config.py の `_resolve_user_file` と同じ順で解き、絶対パスを glossary_path に写す（YOGO_FILE が空・無いときも写す。基準は env_path のフォルダ）
-         - YOGO_FILE が絶対パスの場合、そのまま
-         - YOGO_FILE が相対パスの場合、`{基準}/yogo.csv` → `{基準}/{YOGO_FILE}` → `{基準}/resources/{YOGO_FILE のファイル名}` のうち最初にあるもの。どれも無ければ `{基準}/yogo.csv`
-         - YOGO_FILE が空・無い場合、`{基準}/yogo.csv` があればそれ、無ければ `{基準}/resources/yogo.csv`
-      4. AI_SEND_{n}_* を n = 1 から順に読み、NAME か URL が空の番号で止めて ai_chat の送り先の一覧にする
-      5. CONFIRM_HOTKEY・CONFIRM_PASTE_ONLY_HOTKEY・COPY_ONLY_HOTKEY・PASTE_ENTER_DELAY・AI_SEND_DELAY を、既定の並びの出力先の一覧へ写す
-      6. 対応表に無いキー（RESIDENT_MODE・OPENAI_API_KEY を含む）は写さずにログへ書く
-         - `[WARNING]` 移さなかった .env のキー（キーの一覧）
-      7. Settings.model_validate で検証して返す
-         - pydantic.ValidationError の場合、合わない値の元の .env のキーを並べた SettingsError を送出する
-    exceptions:
-      - name: SettingsError
-        condition: env_path が無い
-        message: .env が無い（{env_path}）
-      - name: SettingsError
-        condition: TRANSCRIPTION_ENGINE が local でない（openai を含む）
-        message: '.env の値が合わない（TRANSCRIPTION_ENGINE: {値}）'
-      - name: SettingsError
-        condition: 数値のキーに数値でない値があるなど、写した値がモデルに合わない
-        message: '.env の値が合わない（{.env のキー}: {理由}、…）'
-    unit_tests:
-      - name: test_migrate_env_when_sample
-        case: 正常
-        summary: .env.sample の全キーを写す
-        condition: リポジトリの直下の .env.sample を一時フォルダへ写した .env（一時フォルダに yogo.csv は無い）
-        mock: なし（一時フォルダ）
-        expected: glossary_path が {一時フォルダ}/resources/yogo.csv、それ以外の項目が Settings() と等しい（.env.sample の値と既定値が一致する）。WARNING のログに RESIDENT_MODE と OPENAI_API_KEY が出る
-      - name: test_migrate_env_when_custom_values
-        case: 正常
-        summary: 既定と違う値を対応するキーへ写す
-        condition: 対応表の全てのキーに既定と違う値（bool は `False`・`TRUE`、数値、ホットキー、TRANSCRIPTION_ENGINE=local）を書いた .env
-        mock: なし（一時フォルダ）
-        expected: 設計書『設定』の対応どおりの全項目。`TRUE` は真、`False` は偽、engine は local_whisper
-      - name: test_migrate_env_when_ai_send_gap
-        case: 正常
-        summary: 送り先は空の番号で止める
-        condition: AI_SEND_1・2 があり 3 が無く 4 がある
-        mock: なし（一時フォルダ）
-        expected: ai_chat の送り先が 1・2 の 2 件
-      - name: test_migrate_env_when_relative_glossary
-        case: 正常
-        summary: 相対の用語集は legacy と同じ順で .env のフォルダから解く
-        condition: YOGO_FILE=data/my.csv。parametrize で (1) {.env のフォルダ}/yogo.csv あり (2) data/my.csv だけあり (3) resources/my.csv だけあり (4) どれも無し
-        mock: なし（一時フォルダ）
-        expected: glossary_path が (1) {.env のフォルダ}/yogo.csv (2) {.env のフォルダ}/data/my.csv (3) {.env のフォルダ}/resources/my.csv (4) {.env のフォルダ}/yogo.csv
-      - name: test_migrate_env_when_read_only
-        case: 正常
-        summary: .env に触れない
-        condition: .env.sample を写した .env
-        mock: なし（一時フォルダ）
-        expected: .env の中身と更新時刻が変わらず、.env.migrated が無く、os.environ に .env のキーが入っていない
-      - name: test_migrate_env_when_missing
-        case: 異常
-        summary: .env が無い
-        condition: 存在しないパス
-        mock: なし（一時フォルダ）
-        expected: SettingsError
-        exception: env_path が無い
-      - name: test_migrate_env_when_unknown_engine
-        case: 異常
-        summary: 知らないエンジンを断る
-        condition: TRANSCRIPTION_ENGINE を parametrize で openai・azure
-        mock: なし（一時フォルダ）
-        expected: SettingsError。メッセージに TRANSCRIPTION_ENGINE を含む
-        exception: TRANSCRIPTION_ENGINE が local でない（openai を含む）
-      - name: test_migrate_env_when_invalid_number
-        case: 異常
-        summary: 数値に直せない値を元のキーで示す
-        condition: WHISPER_BEAM_SIZE=ten
-        mock: なし（一時フォルダ）
-        expected: SettingsError。メッセージに WHISPER_BEAM_SIZE を含む
-        exception: 写した値がモデルに合わない
-      - name: test_migrate_env_when_empty_glossary
-        case: 正常
-        summary: 空の用語集は legacy と同じく直下の yogo.csv、無ければ resources/yogo.csv を指す
-        condition: YOGO_FILE=（空）。parametrize で (1) {.env のフォルダ}/yogo.csv あり (2) resources/yogo.csv だけあり
-        mock: なし（一時フォルダ）
-        expected: glossary_path が (1) {.env のフォルダ}/yogo.csv (2) {.env のフォルダ}/resources/yogo.csv
-    refs:
-      - dev/設計書/外部ライブラリ/python-dotenv#
-      - dev/設計書/設定/常駐アプリ#
-    status: implemented
   - name: resolve_app_paths
     title: 置き場所の解決
     kind: 関数
@@ -929,6 +874,170 @@ functions:
     refs:
       - dev/設計書/外部ライブラリ/platformdirs#
     status: implemented
+  - name: find_hotkey_overlaps
+    title: ホットキーの重なりの検出
+    container: shared/settings.py
+    usecase: 設定を変える
+    summary: 受け付けるホットキーのうち、前に並んだものと重なるものを返す。Settings の確かめ（`model_validator(mode="after")`）が呼ぶ
+    kind: 関数
+    scope: public
+    args:
+      - name: settings
+        type: Settings
+        required: true
+        passing: positional
+        description: 確かめる設定
+    returns:
+      type: list[tuple[str, str]]
+      description: （重なったキー, 先に並んだ同じホットキーのキー）の並び。キーは format_error_location と同じ書式（例 `presets[2].hotkey`）
+    process: |-
+      1. 受け付けるホットキーを（キー, 値）でこの順に並べる: `hotkeys.start`・`hotkeys.pause`・`hotkeys.cancel`、オンの出力先の `outputs[].hotkey`、有効なプリセットの `presets[].hotkey`（種類をまたいで 1 つの並び。空のホットキーは受け付けないので並べない）
+      2. 値を小文字にして、先に並んだものと同じものを集める
+         - `hotkeys.start` と「貼り付けて送信」の `hotkey` が同じ組は重なりにしない（録音中に押すとその出力先で確定する既定）
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/設定画面.py#
+    status: implemented
+    notes:
+      補足: Settings に `model_validator(mode="after")` を足し、この関数が返した重なりごとに `PydanticCustomError` を集めた ValidationError を送出する（場所は重なったキー、理由は「{先のキー}と同じホットキー」）。設定画面は list_validation_failures で欄ごとのエラーにする
+    unit_tests:
+      - name: test_find_hotkey_overlaps
+        case: 正常
+        summary: 前に並んだホットキーと重なるキーを、重なった組で返す
+        condition: presets に 2 件を置き、2 件目の hotkey を <ctrl>+<alt>+v（貼り付けのみと同じ）にした設定（model_construct で確かめを飛ばして作る）
+        mock: なし
+        expected: '[("presets[1].hotkey", "outputs[1].hotkey")]'
+      - name: test_find_hotkey_overlaps_when_presets_of_different_kinds
+        case: 正常
+        summary: 種類をまたいだプリセットどうしの重なりを返す
+        condition: presets が [browser（<ctrl>+<alt>+3）, endpoint（<ctrl>+<alt>+3）]
+        mock: なし
+        expected: '[("presets[1].hotkey", "presets[0].hotkey")]'
+      - name: test_find_hotkey_overlaps_when_start_equals_paste_and_send
+        case: 正常
+        summary: 録音の開始と貼り付けて送信が同じキー（既定）は重なりにしない
+        condition: SETTINGS_MODEL()（どちらも <ctrl>+<alt>+d）
+        mock: なし
+        expected: '[]'
+      - name: test_find_hotkey_overlaps_when_disabled_output
+        case: 正常
+        summary: オフの出力先・無効のプリセットのホットキーは重なりにしない
+        condition: parametrize で (1) コピーのみをオフにし、その hotkey を <ctrl>+<alt>+z（一時停止と同じ） (2) 無効のプリセットの hotkey を <ctrl>+<alt>+z
+        mock: なし
+        expected: どちらも []
+      - name: test_find_hotkey_overlaps_when_empty_preset_hotkeys
+        case: 正常
+        summary: 空のホットキーのプリセットどうしは重なりにしない
+        condition: presets に hotkey が空の 2 件
+        mock: なし
+        expected: '[]'
+      - name: test_settings_when_hotkeys_overlap
+        case: 異常
+        summary: ホットキーが重なる設定は、重なったキーと先のキーを持つ ValidationError で断る
+        condition: hotkeys.cancel を <ctrl>+<alt>+z にした dict を Settings.model_validate に渡す
+        mock: なし
+        expected: ValidationError。list_validation_failures のキーに hotkeys.cancel、理由に hotkeys.pause
+        exception: ホットキーが重なる
+  - name: migrate_ai_chat
+    title: 古い AI チャットの設定の読み替え
+    kind: 関数
+    container: shared/settings.py
+    usecase: 常駐アプリを起動する
+    scope: public
+    summary: settings.toml を素の dict にしたものから `id = "ai_chat"` の出力先を外し、送り先をブラウザ添付のプリセットへ読み替えた dict を返す。load_settings と save_settings が検証の前に呼ぶ
+    args:
+      - name: document
+        type: dict[str, Any]
+        required: true
+        passing: positional
+        description: settings.toml を素の dict にしたもの（書き換えない）
+    returns:
+      type: dict[str, Any]
+      description: 読み替えた dict。ai_chat の項目が無ければ document と同じ中身
+    process: |-
+      1. outputs の中の `id = "ai_chat"` の項目を探す
+         - 無い場合（outputs が無い・配列でないも含む）、document をそのまま返す（検証は Settings に任せる）
+      2. その項目の targets（無ければ、前の既定の ChatGPT・Google AI・Claude の 3 件）を並びのまま、`{kind: "browser", title: name, url, hotkey, enabled: 項目の enabled かつ target の enabled, send_enter: true}` にして、既にある presets の後ろに足す
+      3. その項目に open_delay_sec があり、preset_options.browser.open_delay_sec が無ければ、その値を入れる
+      4. outputs からその項目を外した新しい dict を返す
+         - `[INFO]` 古い AI チャットの設定をプリセットへ読み替えた（件数）
+    unit_tests:
+      - name: test_migrate_ai_chat
+        case: 正常
+        summary: 送り先をブラウザ添付のプリセットにし、ai_chat を外す
+        condition: outputs が [paste_and_send, ai_chat（open_delay_sec 2.0、targets に ChatGPT と Claude（enabled false））]
+        mock: なし
+        expected: outputs が [paste_and_send]、presets が ChatGPT（enabled true）・Claude（enabled false）の kind browser・send_enter true の 2 件、preset_options.browser.open_delay_sec が 2.0。元の dict は変わらない
+      - name: test_migrate_ai_chat_when_output_disabled
+        case: 正常
+        summary: オフの AI チャットの送り先は無効のプリセットにする
+        condition: ai_chat の enabled が false、targets の enabled がどれも true
+        mock: なし
+        expected: presets がどれも enabled false
+      - name: test_migrate_ai_chat_when_targets_missing
+        case: 正常
+        summary: targets の無い ai_chat は前の既定の 3 件をプリセットにする
+        condition: ai_chat が id だけを持つ
+        mock: なし
+        expected: presets が ChatGPT（<ctrl>+<alt>+1）・Google AI（<ctrl>+<alt>+2）・Claude（<ctrl>+<alt>+3）の 3 件
+      - name: test_migrate_ai_chat_when_absent
+        case: 正常
+        summary: ai_chat が無ければ変えない
+        condition: outputs が [paste_only] だけ、または outputs が無い
+        mock: なし
+        expected: document と同じ中身が返る
+    status: implemented
+  - name: build_settings_model
+    title: 設定のモデルの組み立て
+    kind: 関数
+    container: shared/settings.py
+    usecase: 共通
+    scope: public
+    summary: 出力先の設定のモデルを受け、outputs をその判別共用体と既定の一覧にした Settings の子のモデルを返す
+    args:
+      - name: output_models
+        type: Sequence[type[OutputSettingsBase]]
+        required: true
+        passing: positional
+        description: 出力先の設定のモデル（OUTPUTS の並び。この並びが既定の一覧の並びになる）
+    returns:
+      type: type[Settings]
+      description: 組み立てた設定のモデル
+    process: |-
+      1. 各モデルの id の既定値を集める
+         - 空か、重なる ID がある場合、ValueError を送出する（登録の誤り。起動の前に単体テストで止める）
+      2. outputs の型を、モデルの数によらず `list[Annotated[Union[...], Field(discriminator="id")]]` にする（モデルが 1 つでも判別共用体にし、失敗の場所に添字の次の判別子の値を入れる。format_error_location がそれを外す）
+      3. outputs の既定を、各モデルを引数なしで作った一覧（渡した並び）にする。説明・反映の印は Settings の outputs のものを引き継ぐ
+      4. Settings を継いだモデルを `pydantic.create_model` で作り、output_models に ID → モデルを入れて返す（確かめは Settings のものを引き継ぐ）
+    exceptions:
+      - name: ValueError
+        condition: モデルが空か、ID が重なる
+    unit_tests:
+      - name: test_build_settings_model
+        case: 正常
+        summary: 渡したモデルで outputs を検証し、既定の一覧をその並びで持つ
+        condition: '試しのモデル 2 つ（ID a・b。b だけ delay_sec: float = 1.0 を持つ）を渡し、返ったモデルで既定値を作り、outputs = [{id: b, hotkey: <ctrl>+<alt>+b, delay_sec: 2.0}] の dict を model_validate する'
+        mock: なし
+        expected: '既定値の outputs が [a のモデル, b のモデル] の順で、model_validate の outputs[0] が b のモデル（delay_sec 2.0）、model_dump(mode="json") の outputs[0] に delay_sec があり、output_models が {a: a のモデル, b: b のモデル}'
+      - name: test_build_settings_model_when_unknown_output
+        case: 異常
+        summary: 渡していない出力先の ID を断る
+        condition: '試しのモデル a・b で組み立て、outputs = [{id: c}] を model_validate する'
+        mock: なし
+        expected: ValidationError。list_validation_failures のキーが outputs[0] で始まる
+      - name: test_build_settings_model_when_single_output
+        case: 正常
+        summary: 出力先が 1 つでも組み立てられる
+        condition: '試しのモデル a だけを渡して組み立て、outputs = [{id: a, hotkey: 1}]（hotkey が文字列でない）を model_validate する'
+        mock: なし
+        expected: 既定値の outputs が [a のモデル]。model_validate は ValidationError で、list_validation_failures のキーが outputs[0].hotkey
+      - name: test_build_settings_model_when_duplicate_id
+        case: 異常
+        summary: ID が重なる登録を断る
+        condition: ID がどちらも a の試しのモデル 2 つを渡す
+        mock: なし
+        expected: ValueError
+        exception: ID が重なる
+    status: planned
 constants:
   - name: APP_NAME
     title: アプリ名
@@ -939,7 +1048,6 @@ constants:
     status: implemented
 test_files:
   - tests/unit/voice_paste/shared/test_settings.py
-  - tests/unit/voice_paste/shared/test_env_migration.py
   - tests/unit/voice_paste/shared/test_logger.py
   - tests/unit/voice_paste/shared/test_constants.py
 function_types:

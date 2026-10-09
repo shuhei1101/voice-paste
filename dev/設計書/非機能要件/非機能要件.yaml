@@ -29,14 +29,14 @@ requirements:
     source_kind: 制限なし
     value: '600'
     unit: 秒
-    rationale: '放置されたセッションがホットキーと API を塞ぐのをこの時間で解く。文字起こしはローカルの Whisper だけで、録音の長さに外部の上限は無い。刷新前の履歴の録音の最長（特性テストの録音で 140.8 秒）の 4 倍を超え、貯める録音が 16 kHz・モノラル・16 bit で 19.2 MB に収まる 600 秒にする。API を作った #19 で、実機のマイクとシステム音量を使う本物の録音機で確かめた。上限を 3 秒に差し替えたセッションは、録音中は開始から 4.22 秒後・停止中は 3.05 秒後に打ち切られて返送先へ truncated が届き（上限から確かめる間隔の 1 秒までの遅れ）、実機の WAV の大きさから求めた 600 秒分は 19.21〜19.23 MB で、根拠の 19.2 MB と合った（2026-10-02）。決定値は 600 秒のままにする'
+    rationale: '放置されたセッションがホットキーと API を塞ぐのをこの時間で解く。文字起こしはローカルの Whisper だけで、録音の長さに外部の上限は無い。刷新前の履歴の録音の最長（特性テストの録音で 140.8 秒）の 4 倍を超え、貯める録音が 16 kHz・モノラル・16 bit で 19.2 MB に収まる 600 秒にする。API を作った #19 で、実機のマイクとシステム音量を使う本物の録音機で確かめた。上限を 3 秒に差し替えたセッションは、録音中は開始から 4.22 秒後・停止中は 3.05 秒後に打ち切られて返送先へ truncated が届き（上限から確かめる間隔の 1 秒までの遅れ）、実機の WAV の大きさから求めた 600 秒分は 19.21〜19.23 MB で、根拠の 19.2 MB と合った（2026-10-02）。#65 で録音の入力を無音の WAV を実時間で流すものに差し替えて測り直し、録音中は 3.05 秒・停止中は 3.03 秒で打ち切られ、600 秒分は 19.21・19.23 MB だった（2026-10-06）。決定値は 600 秒のままにする'
     overflow: 上限で打ち切り、録音を履歴に残して返送先へ truncated を送る（上限で打ち切る）
-    measurement: 実機のマイクとシステム音量を使う本物の録音機で、上限時間を 3 秒に差し替えた SessionManager を上限のタイマーで回し、録音中と停止中の両方で打ち切られて返送先へ truncated が届くことを確かめる。履歴の WAV の長さと大きさから 600 秒分の大きさを求め、根拠の 19.2 MB と 5% 以内で合うことを確かめる。`--run-e2e` を付けて実行する（Windows 11・NVIDIA GPU）
+    measurement: 録音の入力を、テストの中で書き出した無音の WAV（16 kHz・モノラル・16 bit）を実時間で流すものに、システム音量を何もしないものに差し替えた録音機で（実機のマイクを開かない）、上限時間を 3 秒に差し替えた SessionManager を上限のタイマーで回し、録音中と停止中の両方で打ち切られて返送先へ truncated が届くことを確かめる。履歴の WAV の長さと大きさから 600 秒分の大きさを求め、根拠の 19.2 MB と 5% 以内で合うことを確かめる。`--run-e2e` を付けて実行する（Windows 11）
     test_file: tests/nfr/test_api_session_limit.py
     tests:
       - name: test_api_session_limit_when_recording
         summary: 録音中のまま上限時間に達したセッションが打ち切られ、返送先へ truncated が届く
-        condition: 上限時間を 3 秒に差し替えた SessionManager を、実機のマイクとシステム音量を使う録音機と上限のタイマー（1 秒ごと）で動かし、API のセッションを始めて何もしない。返送先は 127.0.0.1 のテスト用の受け口
+        condition: 上限時間を 3 秒に差し替えた SessionManager を、録音の入力を無音の WAV を実時間で流すものに、システム音量を何もしないものに差し替えた録音機と上限のタイマー（1 秒ごと）で動かし、API のセッションを始めて何もしない。返送先は 127.0.0.1 のテスト用の受け口
         measurement: 開始から返送が届くまでの時間と、履歴の WAV の長さ・大きさから求めた 600 秒分の大きさを測る
         expected: 返送が上限時間（3 秒）以上、3 秒以内の遅れで届いて result=truncated で、600 秒分の大きさが 19.2 MB の 5% 以内
         notes: --run-e2e が無い環境では skip する
@@ -54,13 +54,13 @@ requirements:
     source: https://github.com/shuhei1101/voice-paste/blob/develop/dev/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/2_%E5%93%81%E8%B3%AA%E7%9B%AE%E6%A8%99.md
     value: '500'
     unit: ミリ秒
-    rationale: '品質シナリオ 1。API が無かったため、刷新前（voice_paste_legacy）のホットキーを受けてから録音が始まるまでを読み替えた仮の値 500 ms を決定値にしていた。API を作った #19 で、本物の起動（実機のマイク・ローカルの Whisper）へ開始 → 停止 → 完了を 50 回続けて呼んで測り直した。開始の応答は最小 19.1 ms・中央値 20.8 ms・最大 46.8 ms で、決定値 500 ms を大きく下回り、50 回とも返送が届いた（起こした文字は空になる設定で測った。2026-10-02）。決定値は 500 ms のままにする'
-    measurement: 本物の起動（python -m voice_paste）へ、実機のマイクで POST /sessions → 停止 → 完了を 50 回続けて呼び（返送が速く終わるよう vad_threshold = 1.0 の設定）、毎回の開始の応答時間を測る。`--run-e2e` を付けて実行する（Windows 11・NVIDIA GPU）
+    rationale: '品質シナリオ 1。API が無かったため、刷新前（voice_paste_legacy）のホットキーを受けてから録音が始まるまでを読み替えた仮の値 500 ms を決定値にしていた。API を作った #19 で、本物の起動（実機のマイク・ローカルの Whisper）へ開始 → 停止 → 完了を 50 回続けて呼んで測り直した。開始の応答は最小 19.1 ms・中央値 20.8 ms・最大 46.8 ms で、決定値 500 ms を大きく下回り、50 回とも返送が届いた（起こした文字は空になる設定で測った。2026-10-02）。#65 で pytest のプロセスの中で配線し、録音の入力を無音の WAV に差し替えて測り直し、開始の応答は最小 1.9 ms・中央値 2.4 ms・最大 7.8 ms だった（2026-10-06）。決定値は 500 ms のままにする'
+    measurement: pytest のプロセスの中で build_handlers で配線し、録音の入力をテストの中で書き出した無音の WAV を流すものに、システム音量を何もしないものに差し替える（実機のマイクを開かない）。build_fastapi で組み立てた app を 127.0.0.1 で待ち受けさせ、POST /sessions → 停止 → 完了を 50 回続けて呼び（返送が速く終わるよう vad_threshold = 1.0 の設定）、毎回の開始の応答時間を測る。`--run-e2e` を付けて実行する（Windows 11・NVIDIA GPU）
     test_file: tests/nfr/test_api_start_response_time.py
     tests:
       - name: test_api_start_response_time
         summary: 開始 → 停止 → 完了を 50 回続け、50 回とも返送先に文字が届き、開始の応答が決定値以内である
-        condition: 本物の常駐サービスを vad_threshold = 1.0 の設定で起動し、実機のマイクで 0.3 秒録っては停止・完了を呼ぶことを 50 回続ける。返送先は 127.0.0.1 のテスト用の受け口
+        condition: pytest のプロセスの中で配線した常駐サービスを vad_threshold = 1.0 の設定で立て、録音の入力に無音の WAV を流しながら 0.3 秒録っては停止・完了を呼ぶことを 50 回続ける。返送先は 127.0.0.1 のテスト用の受け口
         measurement: 毎回の POST /sessions の応答時間（ミリ秒）を測り、返送先に届いた件数とセッションの ID の重なりを数える
         expected: 返送が 50 件届いて全て result=transcribed で ID が重ならず、開始の応答時間の最大が 500 ms 以下
         notes: --run-e2e が無い環境では skip する
@@ -72,13 +72,13 @@ requirements:
     source: https://github.com/shuhei1101/voice-paste/blob/develop/dev/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/2_%E5%93%81%E8%B3%AA%E7%9B%AE%E6%A8%99.md
     value: '1'
     unit: 秒
-    rationale: '品質シナリオ 6。API が無かったため、刷新前（voice_paste_legacy）の処理中のホットキーを受けて捨てるまでを読み替えた仮の値 1 秒を決定値にしていた。API を作った #19 で、本物の起動（実機のマイク）で API のセッションを処理中にしたまま開始を 20 回呼んで測り直した。409 の応答は最小 1.0 ms・最大 2.0 ms で、決定値 1 秒を大きく下回った（2026-10-02）。ホットキーの受付は新しい構成に無いため（#21）、処理中は API で始めたセッションで測った。決定値は 1 秒のままにする'
-    measurement: 本物の起動へ、API の開始で処理中にしたまま POST /sessions を 20 回呼び、409 の応答時間を測る。2 つ目の録音が始まらないことは、処理中のセッションを完了させた後のログで、セッションを始めたのが 1 回だけであることから確かめる。`--run-e2e` を付けて実行する（Windows 11・NVIDIA GPU）
+    rationale: '品質シナリオ 6。API が無かったため、刷新前（voice_paste_legacy）の処理中のホットキーを受けて捨てるまでを読み替えた仮の値 1 秒を決定値にしていた。API を作った #19 で、本物の起動（実機のマイク）で API のセッションを処理中にしたまま開始を 20 回呼んで測り直した。409 の応答は最小 1.0 ms・最大 2.0 ms で、決定値 1 秒を大きく下回った（2026-10-02）。ホットキーの受付は新しい構成に無いため（#21）、処理中は API で始めたセッションで測った。#65 で pytest のプロセスの中で配線し、録音の入力を無音の WAV に差し替えて測り直し、409 の応答は最小 1.0 ms・最大 1.6 ms だった（2026-10-06）。決定値は 1 秒のままにする'
+    measurement: pytest のプロセスの中で build_handlers で配線し、録音の入力をテストの中で書き出した無音の WAV を流すものに、システム音量を何もしないものに差し替える（実機のマイクを開かない）。build_fastapi で組み立てた app を 127.0.0.1 で待ち受けさせ、API の開始で処理中にしたまま POST /sessions を 20 回呼び、409 の応答時間を測る。2 つ目の録音が始まらないことは、処理中のセッションを完了させた後のログで、セッションを始めたのが 1 回だけであることから確かめる。`--run-e2e` を付けて実行する（Windows 11・NVIDIA GPU）
     test_file: tests/nfr/test_busy_response_time.py
     tests:
       - name: test_busy_response_time
         summary: 処理中に開始を呼ぶと 409 が決定値以内に返り、2 つ目の録音が始まらない
-        condition: 本物の常駐サービスを起動し、API の開始で処理中にしたまま、開始を 20 回呼ぶ。返送先は 127.0.0.1 のテスト用の受け口
+        condition: pytest のプロセスの中で配線した常駐サービスを立て、録音の入力に無音の WAV を流しながら API の開始で処理中にしたまま、開始を 20 回呼ぶ。返送先は 127.0.0.1 のテスト用の受け口
         measurement: 20 回の応答のステータスと応答時間（ミリ秒）を記録し、処理中のセッションを完了させた後に、常駐サービスのログでセッションを始めた回数を数える
         expected: 20 回とも 409 で、応答時間の最大が 1000 ms 以下。セッションを始めたのは 1 回だけで、処理中のセッションの返送が 1 件届く
         notes: 'ホットキーの受付が新しい構成に入る #21 までは、処理中を API で始めたセッションにする。--run-e2e が無い環境では skip する'
@@ -88,30 +88,46 @@ requirements:
     external_constraint: 制限なし
     source_kind: ユーザー要望
     source: https://github.com/shuhei1101/voice-paste/blob/develop/dev/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/2_%E5%93%81%E8%B3%AA%E7%9B%AE%E6%A8%99.md
-    value: '1.08'
+    value: '1.59'
     unit: 秒
-    rationale: '品質シナリオ 3。刷新前（voice_paste_legacy）の中央値 1,076 ms（20 回。約 10 秒の録音・large-v3・cuda・モデル読み込み済み）を切り上げた値で、新しい構成の中央値がこの値以下になる。区間は録音を止めた時点から貼り付けのキーを押す直前までで、録音の保存・用語集の読み込み・文字起こし・補正・クリップボード・貼り付けの待ち（0.1 秒）を含み、録音中の画面・トレイ・履歴の保存は含まない。測った手順と生の値は PR #27 の dev/pr/27/常駐アプリ.md の `## テスト結果` に残している'
-    measurement: 常駐中・ローカルの Whisper（GPU）・モデル読み込み済みで、約 10 秒話してホットキーで止めてから貼り付くまでを新旧それぞれ 20 回、実機で測る
+    rationale: '品質シナリオ 3（新しい構成の中央値が、刷新前の中央値以下）。刷新前を PR #27 で測った録音（`20260930010513.wav`）は残っておらず、同じ条件で比べられないため、#22 で履歴の約 10 秒の録音（`20261002212623`）・`.env` の `WHISPER_*`（large-v3・cuda・int8）・`resources/yogo.csv` で刷新前を `scripts/measure_legacy_latency.py` で測り直した。中央値 1,588 ms（20 回。最小 1,239 ms・最大 2,817 ms。2026-10-03、Windows 11・RTX 5070）を切り上げた値で、新しい構成の中央値がこの値以下になる。区間は録音を止めた時点から貼り付けのキーを押す直前までで、録音の保存・用語集の読み込み・文字起こし・補正・クリップボード・貼り付けの待ち（0.1 秒）を含み、録音中の画面・トレイ・履歴の保存は含まない。測った生の値は PR #41 の dev/pr/41/テスト結果/ の非機能要件テストのログに残している'
+    measurement: 常駐中・ローカルの Whisper（GPU）・モデル読み込み済みで、約 10 秒話してホットキーで止めてから貼り付くまでを新旧それぞれ 20 回、実機で測る。新しい構成は build_handlers で配線した SessionManager を、マイクの入力と貼り付けのキーだけを差し替えて通し、刷新前と同じ録音・設定・用語集（`tests/nfr/fixtures/`）で測る。`--run-e2e` を付けて実行する（Windows 11・NVIDIA GPU）
+    tests:
+      - name: test_paste_latency
+        summary: 録音を止めてから貼り付けのキーを押す直前までの中央値が決定値以下である
+        condition: 固めた設定（`tests/nfr/fixtures/whisper.env` の large-v3・cuda・int8）と用語集（`tests/nfr/fixtures/yogo.csv`。`resources/yogo.csv` と同じ）で build_handlers を一時フォルダの置き場所で配線し、モデルの読み込みを待つ。マイクの入力（open_input）は、刷新前を測り直したのと同じ録音（`tests/nfr/fixtures/recordings/latency/20261002212623.wav`）の先頭 10 秒を 1024 フレームずつ渡すもの、音量の操作は何もしないもの、貼り付けのキー（send_paste）は押した時刻だけを控えるものに差し替える。ホットキーの入口でセッションを始め、録音が 10 秒分たまったら貼り付けのみ（paste_only）で確定する。先に捨てる 1 回の後、これを 20 回続ける
+        measurement: SessionManager.complete を呼んだ時点から、差し替えた貼り付けのキーが押された時点までを time.perf_counter で測り、20 回の生の値と中央値・最小・最大を出す
+        expected: 20 回とも貼り付けのキーが押され、中央値が 1.59 秒以下
+        notes: クリップボードは実物を書き換えるため、測る前の文字を控えて測った後に戻す。録音は特性テスト（test_transcription_parity）が拾わない `recordings/latency/` に置く。`--run-e2e` が無い環境・録音が無い環境では skip する
+    test_file: tests/nfr/test_paste_latency.py
   - name: 文字起こしワーカーの立て直しの時間
     english_name: worker_recovery_time
     category: 耐障害
     external_constraint: 制限なし
     source_kind: ユーザー要望
     source: https://github.com/shuhei1101/voice-paste/blob/develop/dev/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/2_%E5%93%81%E8%B3%AA%E7%9B%AE%E6%A8%99.md
-    value: '10'
+    value: '27'
     unit: 秒
-    rationale: '品質シナリオ 4。立て直しはワーカーの起動からモデルの読み込みが終わるまでで決まる。刷新前（voice_paste_legacy）の読み込みは 5 回の実測で中央値 4.53 秒・最大 5.02 秒。規約『資源の値の決め方』の余裕（実測の p99.9 の 50%）に倣い、実測の最大を p99.9 の代わりに置いて余裕を足した 7.53 秒を、切りの良い 10 秒へ切り上げた。実測が 5 回で、モデルのファイルが OS のキャッシュに載った状態の値のため、新しい構成のワーカーを #22 で測り直す。測った手順と生の値は PR #27 の dev/pr/27/常駐アプリ.md の `## テスト結果` に残している'
+    rationale: '品質シナリオ 4（ワーカーが落ちてから 30 秒以内に次の録音を受け付ける）。立て直しはワーカーの起動からモデルの読み込みが終わるまでで決まる。#22 で新しい構成のワーカーを 20 回ずつ 2 回測り、モデルのファイルが OS のキャッシュに載る前の 1 回目が 17.68 秒、キャッシュ済みは中央値 5.09 秒・最大 5.50 秒だった（2026-10-03、Windows 11・RTX 5070）。立ち上げ直後の 1 回目も ready を待ち切れるよう、実測の最大 17.68 秒を p99.9 の代わりに置き、規約『資源の値の決め方』の余裕（実測の 50%）を足した 26.52 秒を切り上げた。品質シナリオ 4 の 30 秒に収まる。`main.py` の WORKER_READY_TIMEOUT_SEC がこの値を使う'
     measurement: 文字起こしの途中でワーカーを止め、常駐が止まらず録音が履歴に残り、決定値以内に次の録音を受け付けることを実機で測る
     breakdown:
       - part: モデルの読み込みの実測の最大
-        value: 5.02 秒
-        notes: 刷新前の 5 回の実測（中央値 4.53 秒）
+        value: 17.68 秒
+        notes: キャッシュに載る前の 1 回目（キャッシュ済みは中央値 5.09 秒・最大 5.50 秒）
       - part: 余裕
-        value: + 2.51 秒
+        value: + 8.84 秒
         notes: 実測の 50%（規約『資源の値の決め方』の既定）
       - part: 切り上げ
-        value: 10 秒
-        notes: 7.53 秒を切りの良い秒数へ
+        value: 27 秒
+        notes: 26.52 秒を秒の単位へ。品質シナリオ 4 の 30 秒以内
+    tests:
+      - name: test_worker_recovery_time
+        summary: 新しい構成のワーカーの起動からモデルの読み込みが終わるまでが決定値以内である
+        condition: 固めた設定（`tests/nfr/fixtures/whisper.env` の large-v3・cuda）で WhisperWorkerClient を作り、start → stop を 20 回続ける
+        measurement: 毎回の start（ワーカーの起動から ready を受けるまで）の時間（秒）を測り、生の値と中央値・最大を出す
+        expected: 20 回とも ready を受け、最大が 27 秒以内
+        notes: 測った最大から規約『資源の値の決め方』で決定値を決め直す。`tests/nfr/fixtures/` が無い環境・GPU が無い環境では skip する
+    test_file: tests/nfr/test_worker_recovery_time.py
   - name: 刷新の前後での起こした文字の一致
     english_name: transcription_parity
     category: 機能適合性
@@ -184,7 +200,14 @@ requirements:
     value: '1'
     unit: か所
     rationale: 品質シナリオ 5。既存のモジュールの変更は出力先の一覧（OUTPUTS）への登録だけにする。出力先どうしの import を import-linter で禁じる
-    measurement: import-linter の出力先の独立の契約が通ることと、出力先を足した PR の差分で確かめる
+    measurement: import-linter の出力先の独立の契約が通ることと、試しの出力先を OUTPUTS への登録だけで足したときに設定・ホットキー・画面・届けに乗ることを確かめる
+    test_file: tests/nfr/test_output_extensibility.py
+    tests:
+      - name: test_output_extensibility
+        summary: 試しの出力先を OUTPUTS の並びへの登録だけで足すと、設定の読み書き・確定のホットキー・設定画面の欄・録音の画面のボタン・届けに乗る
+        condition: 'OUTPUTS の後ろに、試しの設定のモデル（ID try_output・hotkey <ctrl>+<alt>+t・delay_sec: float = 1.0）と handler・inject を持つ OutputSpec を足した一覧から、main.py と同じ手順で設定のモデル・配線・UiDeps を組む。src/ のファイルは変えない'
+        measurement: 既定の設定を一時フォルダに書いて読み直し、build_hotkey_bindings・設定画面・録音の画面（offscreen）・deliver にその設定を渡す
+        expected: 読み直した設定の outputs の最後が試しの出力先（delay_sec 1.0）、<ctrl>+<alt>+t がホットキーに登録され、設定画面に outputs[3].enabled・outputs[3].hotkey・outputs[3].delay_sec の欄があり、録音の画面に試しの出力先のボタンが出て、output_id=try_output で deliver すると試しの handler が inject の渡したものと共に呼ばれる
   - name: 音量の操作のライブラリの変化の検知
     english_name: volume_contract_detection
     category: 保守性
@@ -200,8 +223,82 @@ requirements:
     category: 保守性
     external_constraint: 制限なし
     source_kind: 制限なし
-    value: '3'
+    value: '2'
     unit: 秒
-    rationale: '常駐の終了時に標準入力を閉じてからワーカーが終わるまでと、terminate してから終わるまでを待つ時間。実測が無いため、刷新前（voice_paste_legacy の _stop_worker）の 3 秒（根拠の記録は無い）を仮に置く。新しい構成のワーカーで終わるまでの時間を #22 で立て直しの時間と一緒に測り、規約『資源の値の決め方』の下流を待つタイムアウト（実測の p99.9 + 50%）で決め直す'
+    rationale: '常駐の終了時に標準入力を閉じてからワーカーが終わるまでと、terminate してから終わるまでを待つ時間。#22 で新しい構成のワーカーを 20 回測り、標準入力を閉じてから終わるまでが中央値 0.26 秒・最大 0.81 秒だった（2026-10-03、Windows 11・RTX 5070）。規約『資源の値の決め方』の下流を待つタイムアウトとして、実測の最大を p99.9 の代わりに置いて余裕 50% を足した 1.22 秒を切り上げた。`main.py` の WORKER_STOP_TIMEOUT_SEC がこの値を使う'
     measurement: モデルを読み込んだワーカーの標準入力を閉じてからプロセスが終わるまでと、terminate から終わるまでを実機で測る
     overflow: 標準入力を閉じて待ちきれなければ terminate、さらに同じ時間待って終わらなければ kill する
+    tests:
+      - name: test_worker_stop_timeout
+        summary: モデルを読み込んだワーカーが、標準入力を閉じてから決定値以内に終わる
+        condition: 固めた設定（`tests/nfr/fixtures/whisper.env` の large-v3・cuda）で WhisperWorkerClient を start しては標準入力を閉じることを 20 回続ける
+        measurement: 毎回、標準入力を閉じてからワーカーのプロセスが終わるまでの時間（秒）を測り、生の値と中央値・最大を出す
+        expected: 20 回とも terminate せずに終わり、最大が 2 秒以内
+        notes: 測った最大から規約『資源の値の決め方』の下流を待つタイムアウトで決定値を決め直す。`tests/nfr/fixtures/` が無い環境・GPU が無い環境では skip する
+    test_file: tests/nfr/test_worker_stop_timeout.py
+  - name: 前の常駐サービスの終わりを待つ時間
+    english_name: single_instance_timeout
+    category: 可用性
+    external_constraint: 制限なし
+    source_kind: 制限なし
+    value: '54'
+    unit: 秒
+    rationale: 'ショートカットから起動したときに前の常駐サービスが動いていれば、終わるよう頼んで名前付きの排他が放されるのを待つ上限。前のプロセスがモデルの読み込み中だと、依頼はイベントループが回るまで処理されないため、内側の待ちはワーカーの立て直しの時間（ready を待つ上限 27 秒）と片付けの待ち（API サーバーの停止 5 秒・ワーカーの終わりを待つ 2 秒 × 2 回）の和 36 秒になる。規約『資源の値の決め方』の入れ子の待ちの余裕を足した 54 秒にする。余裕は内側の待ち以外の処理の実測で決めるが、test_single_instance_timeout で測った依頼から確保までの時間は内側の待ち（前のプロセスの読み込みと片付け）を含んでおり、それ以外の処理だけを切り出せないため、既定の内側の合計の 50% を置く。上限を超えると後のプロセスは終わり、前のプロセスもキューの依頼で終わるため、常駐サービスが 0 個になる。#22 の実測（PR #41 の `dev/pr/41/テスト結果/20261003154619_1c1e118_非機能要件テスト.log`、2026-10-03）では、前が待機中なら最大 0.78 秒、前がモデルの読み込み中なら最大 8.10 秒だった（決め直し前の実行の `20261003152550_948b9f5_非機能要件テスト.log` では 0.81 秒・12.64 秒）。文字起こしワーカーの立て直しの時間・終わりを待つ時間を決め直したときは、内訳とこの決定値も導き直す'
+    measurement: 実機で常駐サービスが動いている状態から同じ置き場所でもう 1 つ起動し、終わるよう頼んでから名前付きの排他を取れるまでを測る。`--run-e2e` を付けて実行する（Windows 11・NVIDIA GPU）
+    overflow: 上限までに排他を取れなければ、新しいプロセスは起動に失敗した理由をログに書いて終わる（前のプロセスを番号で強制終了しない）
+    breakdown:
+      - part: ワーカーの立て直しの時間
+        value: 27 秒
+        notes: 前のプロセスがモデルの読み込み中に頼まれたとき、読み込みが終わるまで依頼が処理されない（文字起こしワーカーの立て直しの時間）
+      - part: API サーバーの停止を待つ上限
+        value: + 5 秒
+        notes: server/runner.py の STOP_TIMEOUT_SEC
+      - part: ワーカーの終わりを待つ時間
+        value: + 4 秒
+        notes: 標準入力を閉じてから 2 秒と terminate から 2 秒（文字起こしワーカーの終わりを待つ時間）
+      - part: 余裕
+        value: + 18 秒
+        notes: 内側の待ちの合計の 50%（規約『資源の値の決め方』の既定）
+      - part: 合計
+        value: 54 秒
+        notes: '-'
+    tests:
+      - name: test_single_instance_timeout
+        summary: 常駐中に同じ置き場所でもう 1 つ起動すると、前の常駐サービスが終わり、決定値以内に後のプロセスが排他を取る
+        condition: 固めた設定（`tests/nfr/fixtures/whisper.env` の large-v3・cuda）で `python -m voice_paste --data-dir {一時フォルダ}` を起動して待機中（トークンのファイルが書かれる）を待ち、同じ `--data-dir` でもう 1 つ起動する。これを 10 回続ける
+        measurement: 後のプロセスのログの「前の常駐サービスに終わるよう頼んだ」から「単一インスタンスを確保した」までの時間（秒）を測り、生の値と中央値・最大を出す。前のプロセスが終わったことも確かめる
+        expected: 10 回とも前のプロセスが終わって後のプロセスが待機中になり、常駐サービスのプロセスが 1 つだけで、最大が 54 秒以内
+        notes: 測った値から余裕を決め直す。`--run-e2e` が無い環境・`tests/nfr/fixtures/` が無い環境では skip する
+      - name: test_single_instance_timeout_when_previous_starting
+        summary: 前の常駐サービスがモデルの読み込み中でも、決定値以内に入れ替わり、常駐サービスが 0 個にならない
+        condition: 固めた設定で `python -m voice_paste --data-dir {一時フォルダ}` を起動し、ログに「単一インスタンスを確保した」が出た直後（トークンのファイルが書かれる前の、モデルの読み込み中）に同じ `--data-dir` でもう 1 つ起動する。これを 5 回続ける
+        measurement: 後のプロセスのログの「前の常駐サービスに終わるよう頼んだ」から「単一インスタンスを確保した」までの時間（秒）を測り、生の値と中央値・最大を出す
+        expected: 5 回とも後のプロセスが待機中になり、常駐サービスのプロセスが 1 つだけで、最大が 54 秒以内
+        notes: '`--run-e2e` が無い環境・`tests/nfr/fixtures/` が無い環境では skip する'
+    test_file: tests/nfr/test_single_instance_timeout.py
+  - name: エンドポイントへ送るときのタイムアウト
+    english_name: endpoint_timeout
+    category: 耐障害
+    external_constraint: 利用者が用意する受け口は受け取ってから 1 秒以内に 2xx を返す（呼び出し元へ返すと同じ取り決め）。外の受け口（Webhook 等）には課せない
+    source_kind: ユーザー要望
+    source: https://github.com/shuhei1101/voice-paste/pull/44#discussion_r4173735056
+    value: 既定 1.5 秒・設定できる範囲 0.5〜10 秒
+    unit: 秒
+    rationale: '規約『資源の値の決め方』で導く。受け口は利用者ごとに違い実測できないため、既定値は公開仕様の値として呼び出し元へ返すと同じ取り決め（受け取ってから 1 秒以内に 2xx）に余裕 50% を足した 1.5 秒にする（「返送のタイムアウトと再送」と同じ導き方）。外の受け口はこの取り決めを守らないので、設定で延ばせるようにする。上限はユーザーが待てる時間として 10 秒と決めた（PR #44 の確認ログ）。ホットキー・トレイの録音は届け終えるまで待機中に戻らず、その間は次の録音を始められない。下限は、127.0.0.1 の往復だけの実測の最大 62.58 ms に余裕 50% を足した約 94 ms を上回り、受け口の処理の分も含めて誤って届かない扱いにならないよう、設定画面の欄の刻みと同じ 0.5 秒にする。届かなければ送り直さない（インターフェース定義『設定のエンドポイントへ送る』）'
+    overflow: 設定の秒数で届かなければ送り直さず DeliveryError にし、トレイで知らせてログに理由を書く。範囲の外の値は設定の確かめが断り、保存できない
+    measurement: 結合テストで、127.0.0.1 のテスト用の受け口が 1 秒待ってから 2xx を返すときに既定の 1.5 秒で 1 回で届き、設定の秒数より遅く返すときに DeliveryError になることを確かめる
+    breakdown:
+      - part: 受け口が 2xx を返すまでの取り決め
+        value: 1 秒
+        notes: インターフェース定義『設定のエンドポイントへ送る』の受け口の応答時間（呼び出し元へ返すと同じ）
+      - part: 余裕
+        value: + 0.5 秒
+        notes: 取り決めの 50%（規約『資源の値の決め方』の既定）
+      - part: 既定値
+        value: 1.5 秒
+      - part: 上限
+        value: 10 秒
+        notes: 'ユーザーが待てる時間（PR #44 の確認ログ）。届け終えるまで次の録音を始められない時間の上限'
+      - part: 下限
+        value: 0.5 秒
+        notes: 127.0.0.1 の往復の実測の最大 62.58 ms（「返送のタイムアウトと再送」の測り方）に余裕 50% を足した約 94 ms を上回り、設定画面の欄の刻みとそろえる

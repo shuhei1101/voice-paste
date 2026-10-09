@@ -4,9 +4,6 @@
 			"path": "."
 		},
 		{
-			"path": "./dist/voice-paste"
-		},
-		{
 			"path": "../my-plugins"
 		},
 		{

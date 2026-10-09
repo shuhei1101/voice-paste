@@ -1,0 +1,19 @@
+summary: "常駐アプリの録音の画面・文字起こし中の表示・トレイ・設定画面とダイアログ"
+docs_index: true
+items:
+  - page: 録音の画面.py.yaml
+    summary: 録音中の状態・経過時間・波形と、一時停止・取り消し・出力先を選んでの確定
+  - page: 文字起こし中の表示.py.yaml
+    summary: 確定から届けるまでの経過と残りの時間を、フォーカスを取らずに出す
+  - page: トレイ.py.yaml
+    summary: 状態ごとのアイコンと、録音・設定・フォルダ・再起動・終了のメニュー
+  - page: トレイの通知.py.yaml
+    summary: 裏の処理で起きた失敗を Windows の通知で知らせる
+  - page: 処理中のダイアログ.py.yaml
+    summary: API の録音の処理中に録音開始のホットキーを押したときに、始められない理由を知らせる
+  - page: 設定画面.py.yaml
+    summary: settings.toml の全てのキーを 7 つのまとまりに並べ、確かめてから保存する
+  - page: 変えた値を捨てる確認.py.yaml
+    summary: 設定画面で変えた値を捨てて閉じるかを確かめる
+  - page: 既定に戻す確認.py.yaml
+    summary: 全ての設定を既定の値へ戻すかを確かめる

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>既定に戻す確認 | voice-paste のモック</title>
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+</head>
+<body>
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">settings-reset-dialog</a> / <a href="../">37</a> / <span>a-standard</span></nav>
+
+    <!-- 画面の説明 -->
+    <header class="intro">
+      <h1>既定に戻す確認</h1>
+      <p>設定画面の「既定に戻す」を押すと出る。戻すと全てのキーを既定の値で書き、設定画面に戻って既定の値を欄に入れる。</p>
+    </header>
+
+    <div class="desk desk--single">
+
+      <!-- 場面: 全ての設定を既定に戻すか -->
+      <section class="specimen" aria-labelledby="h-rst">
+        <h2 id="h-rst">全ての設定を既定に戻すか</h2>
+        <div class="backdrop">
+          <p class="backdrop__behind">voice-paste の設定（後ろで開いたまま）</p>
+          <div class="win dialog" role="alertdialog" aria-labelledby="d-rst" aria-describedby="b-rst">
+            <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+            <div class="dialog__main">
+              <svg class="dialog__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.01"/></svg>
+              <div>
+                <h3 id="d-rst">全ての設定を既定に戻しますか</h3>
+                <p id="b-rst">出力先・ホットキー・AI チャットの送り先を含む全ての設定が既定の値になり、元に戻せません。「再起動で反映」の設定は、再起動するまで今の値で動きます。</p>
+              </div>
+            </div>
+            <div class="dialog__actions">
+              <a class="btn" href="../../../settings/37/a-standard/index.html">設定画面へ戻る</a>
+              <a class="btn btn--danger-fill" href="../../../settings/37/a-standard/index.html#after-reset">既定に戻す</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">最初のフォーカスは「設定画面へ戻る」に置く。戻した後の設定画面は、<a href="../../../settings/37/a-standard/index.html">設定画面</a>の「既定に戻した後」の場面。</p>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

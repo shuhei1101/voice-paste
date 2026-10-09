@@ -3,132 +3,193 @@ scenarios:
   - name: 正常シナリオ
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
       - name: 変える設定
         description: 録音開始のホットキーを別のキーの組み合わせに変える
-        notes: '`RESIDENT_HOTKEY`'
+        notes: '`hotkeys.start`。反映は `immediate`'
     flow: |-
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
         participant TRAY as トレイ
-        participant APP as 常駐アプリ
         participant SW as 設定画面
-        participant ENV as .env
+        participant MDL as 設定のモデル
+        participant TOML as settings.toml
+        participant APP as 常駐アプリ
 
-        U->>TRAY: 「設定」を選ぶ
-        TRAY->>APP: 設定画面を開く要求
-        APP->>SW: 「voice-paste 設定」を最前面で開く（今の設定を欄に入れる）
-        U->>SW: 「録音開始」の「入力」を押し、新しいキーの組み合わせを押す
-        SW-->>U: 押した組み合わせを表示する
+        U->>TRAY: 「設定…」を選ぶ
+        TRAY->>SW: 開く（設定のモデルから欄を組み立て、今の値を入れる）
+        U->>SW: 「ホットキー」のまとまりを選ぶ
+        U->>SW: 録音開始の欄で新しいキーの組み合わせを押す
+        SW-->>U: 押した組み合わせを欄に出す
         U->>SW: 「保存」を押す
-        SW->>ENV: 変わったキーだけを書く
-        SW->>APP: 変わった設定を実行中の設定へ反映し、画面を閉じる
-        APP->>APP: 録音開始のホットキーを登録し直す
+        SW->>MDL: 欄の値を確かめる
+        MDL-->>SW: 通った
+        SW->>TOML: 変わった値を、コメントを保ったまま書く
+        SW->>APP: 反映が immediate の値を動いている常駐アプリに効かせる
+        APP->>APP: ホットキーの受付を張り直す
+        SW->>SW: 閉じる
       ```
     expected:
-      - '`.env` の `RESIDENT_HOTKEY` が新しい組み合わせになっている'
-      - 再起動せずに、新しい組み合わせで録音の画面が開き、前の組み合わせでは開かない
+      - '`settings.toml` の `hotkeys.start` が新しい組み合わせになり、ほかのキーとコメントが変わっていない'
+      - 再起動せずに、新しい組み合わせで録音が始まり、前の組み合わせでは始まらない
       - 設定画面が閉じている
   - name: 正常シナリオ（保存して再起動する）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
       - name: 変える設定
-        description: Whisper のモデルを別のモデルに変える
-        notes: '`WHISPER_MODEL`。再起動しないと効かない項目'
+        description: ローカルの Whisper のモデルを別のモデルに変える
+        notes: '`transcription.local_whisper.model`。反映は `restart`'
     flow: |-
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
         participant SW as 設定画面
-        participant ENV as .env
+        participant MDL as 設定のモデル
+        participant TOML as settings.toml
         participant APP as 常駐アプリ
         participant NEW as 新しい常駐アプリ
 
         Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
-        U->>SW: Whisper のモデルを変えて「保存+再起動」を押す
-        SW->>ENV: 変わったキーだけを書く
-        SW->>APP: 画面を閉じ、再起動を求める
+        U->>SW: 「文字起こし」のまとまりでモデルを変える
+        SW-->>U: 欄に「再起動で反映」を出し、「保存して再起動」を出す
+        U->>SW: 「保存して再起動」を押す
+        SW->>MDL: 欄の値を確かめる
+        MDL-->>SW: 通った
+        SW->>TOML: 変わった値を書く
+        SW->>APP: 閉じて再起動を求める
         APP->>NEW: 同じ引数で新しいプロセスを起動する
         APP->>APP: 自分のプロセスを終える
         Note over NEW: 以降は 常駐アプリを起動する の 正常シナリオ（新しいモデルを読み込む）
       ```
     expected:
-      - '`.env` の `WHISPER_MODEL` が新しいモデルになっている'
+      - '`settings.toml` の `transcription.local_whisper.model` が新しいモデルになっている'
       - 前の常駐アプリのプロセスが終わり、新しいプロセスが新しいモデルで文字を起こす
-  - name: 正常シナリオ（初期化する）
+    test: test_normal_when_save_and_restart
+  - name: 正常シナリオ（既定に戻す）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
       - name: 変えた設定
-        description: '`.env` に `.env.sample` と違う値がある'
+        description: '`settings.toml` に既定と違う値がある'
     flow: |-
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
         participant SW as 設定画面
-        participant ENV as .env
+        participant DLG as 既定に戻す確認
+        participant TOML as settings.toml
+        participant APP as 常駐アプリ
 
         Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
-        U->>SW: 「初期化」を押す
-        SW-->>U: 「設定の初期化」の確認（反映には再起動が必要です）
-        U->>SW: 「はい」を押す
-        SW->>ENV: .env.sample で上書きする
-        SW->>SW: 画面を閉じる
+        U->>SW: 「既定に戻す」を押す
+        SW->>DLG: 全ての設定を既定の値へ戻すかを確かめる
+        U->>DLG: 「既定に戻す」を押す
+        DLG->>TOML: 全てのキーを既定の値で書く
+        DLG->>APP: 反映が immediate の値を動いている常駐アプリに効かせる
+        DLG->>SW: 戻り、既定の値を欄に入れる
       ```
     expected:
-      - '`.env` の中身が `.env.sample` と同じになっている'
-      - 動いている常駐アプリは、再起動するまで前の設定のまま動く
+      - '`settings.toml` の全てのキーが既定の値になっている'
+      - 反映が `immediate` のキーは動いている常駐アプリに効き、`restart` のキーは再起動するまで前の値のまま動く
+      - 設定画面が開いたまま、欄に既定の値が入っている
+    test: test_normal_when_reset
   - name: 正常シナリオ（取り消す）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
       - name: 取り消し
-        description: 欄を書き換えてから「キャンセル」を押す
-        notes: Esc でも同じ
+        description: 欄を書き換えてから「キャンセル」を押し、確認で「捨てて閉じる」を選ぶ
+        notes: Esc・窓を閉じるでも同じ。欄を変えていなければ確認を出さずに閉じる
     flow: |-
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
         participant SW as 設定画面
+        participant DLG as 変えた値を捨てる確認
 
         Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
         U->>SW: 欄を書き換えて「キャンセル」を押す
-        SW->>SW: 何も書かずに画面を閉じる
+        SW->>DLG: 変えた値を捨てて閉じるかを確かめる
+        U->>DLG: 「捨てて閉じる」を押す
+        DLG->>SW: 何も書かずに閉じる
       ```
     expected:
-      - '`.env` が変わっていない'
+      - '`settings.toml` が変わっていない'
       - 動いている常駐アプリの設定が変わっていない
-  - name: 異常シナリオ（数値の欄に数値でない値を入れる）
+      - 設定画面が閉じている
+    test: test_normal_when_cancel
+  - name: 異常シナリオ（確かめに通らない値を入れる）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
-      - name: 数値でない値
-        description: 「送信待機（秒）」に `abc` を入れて「保存」を押す
-        notes: '`PASTE_ENTER_DELAY`'
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+      - name: 通らない値
+        description: 「出力先」のまとまりで、貼り付けて送信の Enter までの秒数に `abc` を入れて「保存」を押す
+        notes: '`outputs[].enter_delay_sec`'
     flow: |-
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
         participant SW as 設定画面
-        participant ENV as .env
+        participant MDL as 設定のモデル
+        participant TOML as settings.toml
 
         Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
-        U->>SW: 「送信待機（秒）」を abc にして「保存」を押す
-        SW->>ENV: 値を確かめずに PASTE_ENTER_DELAY=abc を書く
-        SW->>SW: 実行中の設定へ数値として反映しようとして例外になる
+        U->>SW: Enter までの秒数を abc にして「保存」を押す
+        SW->>MDL: 欄の値を確かめる
+        MDL-->>SW: 通らない（数値でない）
+        SW-->>U: その欄の下にエラーを出し、最初のエラーの欄へフォーカスを移す
       ```
     expected:
-      - '`.env` に `PASTE_ENTER_DELAY` の数値でない値が書かれている'
-      - 設定画面が閉じずに残り、入力の誤りは画面に出ない
-      - 次に起動すると、設定を読むところで例外になり起動できない
-lead: トレイの「設定」から設定画面を開き、変えた設定を `.env` に保存する単一ユースケース。
-issue: 3
+      - '`settings.toml` が変わっていない'
+      - 設定画面が開いたまま、Enter までの秒数の欄の下にエラーが出て、その欄にフォーカスがある
+      - 動いている常駐アプリの設定が変わっていない
+    test: test_error_when_invalid_value
+  - name: 正常シナリオ（カスタムプリセットを足す）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+      - name: 足すプリセット
+        description: 「エンドポイントへ送る」のまとまり（タブ）で、タイトル・URL・確定のホットキーを入れたプリセットを 1 つ足す
+        notes: 反映は `immediate`
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SW as 設定画面
+        participant MDL as 設定のモデル
+        participant TOML as settings.toml
+        participant APP as 常駐アプリ
+
+        Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
+        U->>SW: 「エンドポイントへ送る」のまとまりで「プリセットを足す」を押す
+        U->>SW: タイトル・URL・確定のホットキーを入れる
+        U->>SW: 「保存」を押す
+        SW->>MDL: 欄の値を確かめる
+        MDL-->>SW: 通った
+        SW->>TOML: プリセットの一覧を、コメントを保ったまま書く
+        SW->>APP: 効かせる
+        APP->>APP: プリセットのホットキーの受付を張り直す
+        SW->>SW: 閉じる
+      ```
+    expected:
+      - '`settings.toml` に足したプリセットが書かれ、ほかのキーとコメントが変わっていない'
+      - 再起動せずに、次の録音の画面にそのプリセットのボタンが出、そのホットキーで確定できる
+      - 設定画面が閉じている
+lead: トレイの「設定…」から設定画面を開き、変えた設定を設定のモデルで確かめてから `settings.toml` に保存する単一ユースケース。
+issue: 21
 primary_actor: 音声入力を使うユーザー
-trigger: トレイのメニューの「設定」を選ぶ
+trigger: トレイのメニューの「設定…」を選ぶ
 preconditions:
-  - 常駐アプリが待機中である（録音や文字起こしの間に「設定」を選んでも開かない）
+  - 常駐アプリが待機中である（録音から届けるまでの間は、API から始めた録音の間を含めて、トレイの「設定…」を押せない）
 notes:
-  画面の項目: 上から、ホットキー（録音開始・録音確定・確定（貼付のみ）・録音キャンセル・コピーのみ・一時停止）・貼り付けキー・送信待機（秒）・ログレベル、文字起こしエンジン設定（エンジン・OpenAI API キー）、Whisper のモデル・デバイス・量子化タイプ、画面の表示位置・常に最前面・カーソル側モニター・ウィンドウ非表示、用語集ファイル、AI 送信設定（AI1〜AI3 の有効・名前・URL・ホットキー、AI 送信待機（秒））、波形の感度、録音中音量設定（録音中音量制御・音量比率（%）・フェード時間（秒））。
-  再起動しないと効かない項目: 文字起こしのエンジン・OpenAI API キー・Whisper のモデル・デバイス・量子化タイプは、保存しても動いている文字起こしのエンジンを作り直さない。画面にも「再起動後に反映」と出している。そのほかの項目は、保存した時点で動いている常駐アプリにも効く。
+  画面の項目: '`settings.toml` の全てのキーを、出力先・ホットキー・録音・文字起こし・画面・履歴とログ・API の 7 つのまとまりに分け、左のメニューで切り替える。欄は設定のモデルから組み立てる（キーの一覧は 設定/常駐アプリ）。'
+  反映の種類: キーごとの反映（`immediate` / `restart`）は 設定/常駐アプリ が持つ。反映が `restart` の欄には「再起動で反映」を出し、そうした欄を変えたときだけ「保存して再起動」を出す。`immediate` の値は保存した時点で動いている常駐アプリに効く。
+  E2E のテスト: |-
+    正常シナリオと「カスタムプリセットを足す」は、変えた設定で録音を始めて実機のマイクを開くため、E2E のテストを置かない（#65）
+
+    E2E の常駐アプリの起こし方と操作の渡し方は、常駐アプリを起動する の補足『E2E のテスト』と同じ。
+    設定画面はトレイの「設定…」を trigger して開き、まとまりのメニュー・欄・ボタンはクリックとキーを Qt のイベントで渡す。
+    「保存して再起動する」で起動し直す新しいプロセスは別プロセスで動き（Qt は offscreen）、ログとトークンのファイルで確かめる
+test_file: tests/e2e/単一ユースケース/test_change_settings.py

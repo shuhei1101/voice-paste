@@ -2,21 +2,28 @@
 
 from __future__ import annotations
 
+import copy
 import logging
+import operator
 import os
 import tempfile
-from collections.abc import MutableMapping
+from collections.abc import Mapping, MutableMapping, Sequence
+from functools import reduce
 from pathlib import Path
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, ClassVar, Literal
 
 import tomlkit
 from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    SerializeAsAny,
     ValidationError,
+    create_model,
     field_validator,
+    model_validator,
 )
+from pydantic_core import InitErrorDetails, PydanticCustomError
 from tomlkit.exceptions import TOMLKitError
 
 from voice_paste.shared.errors import SettingsError
@@ -32,8 +39,47 @@ RELOAD_RESTART: str = "restart"
 OUTPUTS_FIELD_NAME: str = "outputs"
 """出力先の一覧を持つ Settings の項目名。"""
 
+PRESETS_FIELD_NAME: str = "presets"
+"""カスタムプリセットの一覧を持つ Settings の項目名。"""
+
+DISCRIMINATED_LIST_FIELD_NAMES: tuple[str, ...] = (OUTPUTS_FIELD_NAME, PRESETS_FIELD_NAME)
+"""判別共用体の一覧を持つ Settings の項目名。失敗の場所に添字の次の判別子の値が入る。"""
+
 OUTPUT_DISCRIMINATOR_INDEX: int = 2
-"""出力先の失敗の場所（outputs・添字・判別子の値・…）で、判別子の値が入る位置。"""
+"""判別共用体の一覧の失敗の場所（項目名・添字・判別子の値・…）で、判別子の値が入る位置。"""
+
+HOTKEY_OVERLAP_ERROR_TYPE: str = "hotkey_overlap"
+"""ホットキーが重なるときの ValidationError の種類。理由の文に先のキーを `other` として持つ。"""
+
+START_HOTKEY_KEY: str = "hotkeys.start"
+"""録音の開始のホットキーのキー。貼り付けて送信と同じキーにしてよい（重なりにしない）。"""
+
+PASTE_AND_SEND_ID: str = "paste_and_send"
+"""録音の開始のホットキーと同じキーにしてよい出力先の ID。"""
+
+URL_PATTERN: str = r"^https?://"
+"""プリセットの URL の形（http か https で始まる）。"""
+
+ENDPOINT_TIMEOUT_DEFAULT_SEC: float = 1.5
+"""エンドポイントへ送るときのタイムアウトの既定（秒）。"""
+
+ENDPOINT_TIMEOUT_MIN_SEC: float = 0.5
+"""エンドポイントへ送るときのタイムアウトの下限（秒）。"""
+
+ENDPOINT_TIMEOUT_MAX_SEC: float = 10
+"""エンドポイントへ送るときのタイムアウトの上限（秒）。"""
+
+AI_CHAT_ID: str = "ai_chat"
+"""前の版の AI チャットの出力先の ID。読み込むときにカスタムプリセットへ読み替える。"""
+
+DEFAULT_AI_CHAT_TARGETS: tuple[dict[str, str], ...] = (
+    {"name": "ChatGPT", "url": "https://chatgpt.com", "hotkey": "<ctrl>+<alt>+1"},
+    {"name": "Google AI", "url": "https://gemini.google.com/app", "hotkey": "<ctrl>+<alt>+2"},
+    {"name": "Claude", "url": "https://claude.ai/new", "hotkey": "<ctrl>+<alt>+3"},
+)
+"""前の版の AI チャットの既定の送り先（targets が無いときの読み替えの元）。"""
+
+type _Location = tuple[int | str, ...]
 
 
 def _item(default: Any, description: str, *, reload: str, **constraints: Any) -> Any:
@@ -144,96 +190,110 @@ class KeyboardSettings(_SettingsModel):
 # === 出力先 ===
 
 
-class PasteAndSendSettings(_SettingsModel):
-    """出力先 paste_and_send（貼り付けて送信）の設定。"""
+class OutputSettingsBase(_SettingsModel):
+    """出力先ごとの設定のモデルが継ぐ、どの出力先も持つ ID・オン・オフ・確定のホットキー。"""
 
-    id: Literal["paste_and_send"] = _item(
-        "paste_and_send", "出力先の ID（OutputSettings の判別子）", reload=RELOAD_IMMEDIATE
-    )
+    id: str = _item(..., "出力先の ID（設定の outputs[] の判別子）", reload=RELOAD_IMMEDIATE)
     enabled: bool = _item(True, "オンか", reload=RELOAD_IMMEDIATE)
-    hotkey: str = _item(
-        "<ctrl>+<alt>+d", "この出力先で確定するホットキー", reload=RELOAD_IMMEDIATE
+    hotkey: str = _item(..., "この出力先で確定するホットキー", reload=RELOAD_IMMEDIATE)
+
+
+# === カスタムプリセット ===
+
+
+class _PresetModel(_SettingsModel):
+    """セッションが確定したときの写しとして持つため、変えられないカスタムプリセットの共通の親。"""
+
+    model_config = ConfigDict(frozen=True)
+
+
+class BrowserPreset(_PresetModel):
+    """ブラウザ添付の種類のプリセット 1 件。"""
+
+    kind: Literal["browser"] = _item(
+        "browser", "プリセットの種類（Preset の判別子）", reload=RELOAD_IMMEDIATE
     )
-    enter_delay_sec: float = _item(
-        0.5, "貼り付けてから Enter を送るまで待つ秒数", reload=RELOAD_IMMEDIATE, ge=0
+    title: str = _item(
+        ..., "録音の画面のボタンに出す名前（1 文字以上）", reload=RELOAD_IMMEDIATE, min_length=1
     )
-
-
-class PasteOnlySettings(_SettingsModel):
-    """出力先 paste_only（貼り付けのみ）の設定。"""
-
-    id: Literal["paste_only"] = _item("paste_only", "出力先の ID", reload=RELOAD_IMMEDIATE)
-    enabled: bool = _item(True, "オンか", reload=RELOAD_IMMEDIATE)
-    hotkey: str = _item(
-        "<ctrl>+<alt>+v", "この出力先で確定するホットキー", reload=RELOAD_IMMEDIATE
-    )
-
-
-class CopyOnlySettings(_SettingsModel):
-    """出力先 copy_only（コピーのみ）の設定。"""
-
-    id: Literal["copy_only"] = _item("copy_only", "出力先の ID", reload=RELOAD_IMMEDIATE)
-    enabled: bool = _item(True, "オンか", reload=RELOAD_IMMEDIATE)
-    hotkey: str = _item(
-        "<ctrl>+<alt>+c", "この出力先で確定するホットキー", reload=RELOAD_IMMEDIATE
-    )
-
-
-class AiChatTarget(_SettingsModel):
-    """AI チャットの送り先 1 件。"""
-
-    name: str = _item(..., "画面に出す名前（1 文字以上）", reload=RELOAD_IMMEDIATE, min_length=1)
     url: str = _item(
         ...,
         "Microsoft Edge の `--app` で開く URL（http か https）",
         reload=RELOAD_IMMEDIATE,
-        pattern=r"^https?://",
+        pattern=URL_PATTERN,
     )
-    hotkey: str = _item(..., "この送り先へ送る確定のホットキー", reload=RELOAD_IMMEDIATE)
+    hotkey: str = _item(
+        "", "このプリセットで確定するホットキー。空なら登録しない", reload=RELOAD_IMMEDIATE
+    )
     enabled: bool = _item(
-        True, "画面にボタンを出し、ホットキーを登録するか", reload=RELOAD_IMMEDIATE
+        True, "録音の画面にボタンを出し、ホットキーを登録するか", reload=RELOAD_IMMEDIATE
+    )
+    send_enter: bool = _item(
+        True, "貼り付けた後に Enter まで送るか", reload=RELOAD_IMMEDIATE
     )
 
 
-def _default_ai_chat_targets() -> list[AiChatTarget]:
-    """既定の送り先（ChatGPT・Google AI・Claude）を返す。"""
-    return [
-        AiChatTarget(name="ChatGPT", url="https://chatgpt.com", hotkey="<ctrl>+<alt>+1"),
-        AiChatTarget(
-            name="Google AI", url="https://gemini.google.com/app", hotkey="<ctrl>+<alt>+2"
-        ),
-        AiChatTarget(name="Claude", url="https://claude.ai/new", hotkey="<ctrl>+<alt>+3"),
-    ]
+class EndpointPreset(_PresetModel):
+    """エンドポイントへ送るの種類のプリセット 1 件。"""
 
-
-class AiChatSettings(_SettingsModel):
-    """出力先 ai_chat（AI チャットへ送る）の設定。"""
-
-    id: Literal["ai_chat"] = _item("ai_chat", "出力先の ID", reload=RELOAD_IMMEDIATE)
-    enabled: bool = _item(True, "オンか", reload=RELOAD_IMMEDIATE)
-    open_delay_sec: float = _item(
-        3.0,
-        "AI チャットの画面を開いてから貼り付けるまで待つ秒数",
+    kind: Literal["endpoint"] = _item(
+        "endpoint", "プリセットの種類（Preset の判別子）", reload=RELOAD_IMMEDIATE
+    )
+    title: str = _item(
+        ..., "録音の画面のボタンに出す名前（1 文字以上）", reload=RELOAD_IMMEDIATE, min_length=1
+    )
+    url: str = _item(
+        ...,
+        "起こした文字を POST する送り先（http か https）",
         reload=RELOAD_IMMEDIATE,
-        ge=0,
+        pattern=URL_PATTERN,
     )
-    targets: list[AiChatTarget] = Field(
-        default_factory=_default_ai_chat_targets,
-        description="送り先の一覧。確定のホットキーは送り先ごとに持つ",
-        json_schema_extra={"reload": RELOAD_IMMEDIATE},
+    hotkey: str = _item(
+        "", "このプリセットで確定するホットキー。空なら登録しない", reload=RELOAD_IMMEDIATE
+    )
+    enabled: bool = _item(
+        True, "録音の画面にボタンを出し、ホットキーを登録するか", reload=RELOAD_IMMEDIATE
+    )
+    # repr に出さない: 設定やセッションを repr でログに出しても値が出ないようにする
+    authorization: str = _item(
+        "",
+        "空でなければ Authorization ヘッダーにそのまま入れる値（秘密）",
+        reload=RELOAD_IMMEDIATE,
+        repr=False,
     )
 
 
-OutputSettings = Annotated[
-    PasteAndSendSettings | PasteOnlySettings | CopyOnlySettings | AiChatSettings,
-    Field(discriminator="id"),
-]
-"""出力先ごとの設定の判別共用体（`id` で見分ける）。"""
+Preset = Annotated[BrowserPreset | EndpointPreset, Field(discriminator="kind")]
+"""カスタムプリセットの種類ごとの設定の判別共用体（`kind` で見分ける）。"""
 
 
-def _default_outputs() -> list[OutputSettings]:
-    """既定の出力先の一覧（paste_and_send・paste_only・copy_only・ai_chat の順）を返す。"""
-    return [PasteAndSendSettings(), PasteOnlySettings(), CopyOnlySettings(), AiChatSettings()]
+class BrowserPresetOptions(_SettingsModel):
+    """ブラウザ添付の全てのプリセットで使う、開いてから貼り付けるまでの間。"""
+
+    open_delay_sec: float = _item(
+        3.0, "画面を開いてから貼り付けるまで待つ秒数", reload=RELOAD_IMMEDIATE, ge=0
+    )
+
+
+class EndpointPresetOptions(_SettingsModel):
+    """エンドポイントへ送るの全てのプリセットで使う、送るときのタイムアウト。"""
+
+    timeout_sec: float = _item(
+        ENDPOINT_TIMEOUT_DEFAULT_SEC,
+        "送るときのタイムアウトの秒数",
+        reload=RELOAD_IMMEDIATE,
+        ge=ENDPOINT_TIMEOUT_MIN_SEC,
+        le=ENDPOINT_TIMEOUT_MAX_SEC,
+    )
+
+
+class PresetOptions(_SettingsModel):
+    """プリセットの種類ごとに、その種類の全てのプリセットで使う設定。"""
+
+    browser: BrowserPresetOptions = _group(BrowserPresetOptions, "ブラウザ添付のオプション")
+    endpoint: EndpointPresetOptions = _group(
+        EndpointPresetOptions, "エンドポイントへ送るのオプション"
+    )
 
 
 # === 履歴・ログ・画面・API ===
@@ -300,8 +360,8 @@ class Settings(_SettingsModel):
         HotkeySettings, "録音の開始・一時停止・取り消しのホットキー"
     )
     keyboard: KeyboardSettings = _group(KeyboardSettings, "貼り付けのキー")
-    outputs: list[OutputSettings] = Field(
-        default_factory=_default_outputs,
+    outputs: list[SerializeAsAny[OutputSettingsBase]] = Field(
+        default_factory=list,
         description="出力先ごとのオン・オフ・確定のホットキー・出力先ごとの設定。ID は重ならない",
         json_schema_extra={"reload": RELOAD_IMMEDIATE},
     )
@@ -314,10 +374,21 @@ class Settings(_SettingsModel):
         reload=RELOAD_IMMEDIATE,
     )
     api: ApiSettings = _group(ApiSettings, "待ち受けのポート・返送を許すホスト")
+    presets: list[Preset] = Field(
+        default_factory=list,
+        description="カスタムプリセットの一覧。種類ごとの並びが、設定画面のタブと録音の画面のボタンの並びになる",
+        json_schema_extra={"reload": RELOAD_IMMEDIATE},
+    )
+    preset_options: PresetOptions = _group(PresetOptions, "プリセットの種類ごとのオプション")
+
+    output_models: ClassVar[Mapping[str, type[OutputSettingsBase]]] = {}
+    """出力先の ID → 設定のモデル。build_settings_model が組み立てたモデルに入る。"""
 
     @field_validator(OUTPUTS_FIELD_NAME)
     @classmethod
-    def _output_ids_must_be_unique(cls, outputs: list[OutputSettings]) -> list[OutputSettings]:
+    def _output_ids_must_be_unique(
+        cls, outputs: list[OutputSettingsBase]
+    ) -> list[OutputSettingsBase]:
         """出力先の ID が一覧の中で重ならないことを確かめる。"""
         ids = [output.id for output in outputs]
         duplicated = sorted({output_id for output_id in ids if ids.count(output_id) > 1})
@@ -326,6 +397,109 @@ class Settings(_SettingsModel):
             raise ValueError(f"出力先の ID が重なる（{', '.join(duplicated)}）")
         return outputs
 
+    @model_validator(mode="after")
+    def _hotkeys_must_not_overlap(self) -> Settings:
+        """受け付けるホットキーが重ならないことを確かめる（重なったキーごとに欄のエラーにする）。"""
+        overlaps = _find_hotkey_overlap_locations(self)
+        # 重なりがあれば、重なったキーの場所で、先のキーを理由にして断る
+        if overlaps:
+            line_errors: list[InitErrorDetails] = [
+                {
+                    "type": PydanticCustomError(
+                        HOTKEY_OVERLAP_ERROR_TYPE,
+                        "{other}と同じホットキー",
+                        {"other": format_error_location(first_location)},
+                    ),
+                    "loc": location,
+                    "input": None,
+                }
+                for location, first_location in overlaps
+            ]
+            raise ValidationError.from_exception_data(type(self).__name__, line_errors)
+        return self
+
+
+# === 設定のモデルの組み立て ===
+
+
+def build_settings_model(output_models: Sequence[type[OutputSettingsBase]]) -> type[Settings]:
+    """出力先の設定のモデルを受け、outputs をその判別共用体と既定の一覧にした Settings の子のモデルを返す。"""
+    # 1. 各モデルの id の既定値を集める（空か重なるなら登録の誤りなので断る）
+    ids = [model.model_fields["id"].default for model in output_models]
+    duplicated = sorted({output_id for output_id in ids if ids.count(output_id) > 1})
+    if not ids:
+        raise ValueError("出力先の設定のモデルが 1 つも無い")
+    if duplicated:
+        raise ValueError(f"出力先の設定のモデルの ID が重なる（{', '.join(duplicated)}）")
+
+    # 2. outputs の型を判別共用体にする（モデルが 1 つでも判別共用体にし、失敗の場所に添字の次の判別子の値を入れる）
+    union = reduce(operator.or_, output_models)
+    outputs_type = list[Annotated[union, Field(discriminator="id")]]
+
+    # 3. outputs の既定を、各モデルを引数なしで作った一覧にする（説明・反映の印は Settings のものを引き継ぐ）
+    base_field = Settings.model_fields[OUTPUTS_FIELD_NAME]
+    outputs_field = Field(
+        default_factory=lambda: [model() for model in output_models],
+        description=base_field.description,
+        json_schema_extra=base_field.json_schema_extra,
+    )
+
+    # 4. Settings を継いだモデルを作り、ID → モデルを入れる
+    settings_model = create_model(
+        "AppSettings", __base__=Settings, outputs=(outputs_type, outputs_field)
+    )
+    settings_model.output_models = dict(zip(ids, output_models, strict=True))
+    return settings_model
+
+
+# === ホットキーの重なり ===
+
+
+def _accepted_hotkeys(settings: Settings) -> list[tuple[_Location, str, bool]]:
+    """受け付けるホットキーを（場所, 小文字の値, 貼り付けて送信のホットキーか）で、重なりを見る順に並べる。"""
+    accepted: list[tuple[_Location, str, bool]] = [
+        (("hotkeys", "start"), settings.hotkeys.start.lower(), False),
+        (("hotkeys", "pause"), settings.hotkeys.pause.lower(), False),
+        (("hotkeys", "cancel"), settings.hotkeys.cancel.lower(), False),
+    ]
+    # オンの出力先のホットキー（出力先の判別子の値が場所の 3 つ目に入る）
+    for index, output in enumerate(settings.outputs):
+        if output.enabled:
+            location = (OUTPUTS_FIELD_NAME, index, output.id, "hotkey")
+            accepted.append((location, output.hotkey.lower(), output.id == PASTE_AND_SEND_ID))
+    # 有効なプリセットのホットキー（種類をまたいで 1 つの並び。判別子の値が場所の 3 つ目に入る）
+    for index, preset in enumerate(settings.presets):
+        if preset.enabled:
+            location = (PRESETS_FIELD_NAME, index, preset.kind, "hotkey")
+            accepted.append((location, preset.hotkey.lower(), False))
+    # 空のホットキーは受け付けないので、重なりを見ない
+    return [item for item in accepted if item[1]]
+
+
+def _find_hotkey_overlap_locations(settings: Settings) -> list[tuple[_Location, _Location]]:
+    """前に並んだものと重なるホットキーの（場所, 先に並んだ同じホットキーの場所）を返す。"""
+    first_location_by_value: dict[str, _Location] = {}
+    overlaps: list[tuple[_Location, _Location]] = []
+    for location, value, is_paste_and_send in _accepted_hotkeys(settings):
+        first_location = first_location_by_value.get(value)
+        # 初めてのホットキーは控える
+        if first_location is None:
+            first_location_by_value[value] = location
+        # 録音の開始と貼り付けて送信が同じキーなのは、録音中に押すとその出力先で確定する既定なので重なりにしない
+        elif is_paste_and_send and format_error_location(first_location) == START_HOTKEY_KEY:
+            continue
+        else:
+            overlaps.append((location, first_location))
+    return overlaps
+
+
+def find_hotkey_overlaps(settings: Settings) -> list[tuple[str, str]]:
+    """前に並んだホットキーと重なるキーを（重なったキー, 先に並んだ同じホットキーのキー）で返す。"""
+    return [
+        (format_error_location(location), format_error_location(first_location))
+        for location, first_location in _find_hotkey_overlap_locations(settings)
+    ]
+
 
 # === 検証の失敗の整形 ===
 
@@ -333,10 +507,10 @@ class Settings(_SettingsModel):
 def format_error_location(location: tuple[int | str, ...]) -> str:
     """pydantic の失敗の場所をドット区切り（添字は `[0]`）のキーにする。"""
     parts = list(location)
-    # 出力先の判別共用体は、添字の次に判別子の値（paste_only など）が入るので外す
+    # 出力先・プリセットの判別共用体は、添字の次に判別子の値（paste_only・browser など）が入るので外す
     if (
         len(parts) > OUTPUT_DISCRIMINATOR_INDEX
-        and parts[0] == OUTPUTS_FIELD_NAME
+        and parts[0] in DISCRIMINATED_LIST_FIELD_NAMES
         and isinstance(parts[1], int)
     ):
         del parts[OUTPUT_DISCRIMINATOR_INDEX]
@@ -357,15 +531,68 @@ def list_validation_failures(error: ValidationError) -> list[tuple[str, str]]:
     return [(format_error_location(failure["loc"]), failure["msg"]) for failure in error.errors()]
 
 
+# === 古い AI チャットの設定の読み替え ===
+
+
+def migrate_ai_chat(document: dict[str, Any]) -> dict[str, Any]:
+    """`id = "ai_chat"` の出力先を外し、送り先をブラウザ添付のプリセットへ読み替えた dict を返す。"""
+    # 1. outputs の中の ai_chat の項目を探す
+    outputs = document.get(OUTPUTS_FIELD_NAME)
+    # outputs が無い・配列でないときは、検証を Settings に任せる
+    if not isinstance(outputs, list):
+        return document
+    ai_chats = [
+        output for output in outputs if isinstance(output, dict) and output.get("id") == AI_CHAT_ID
+    ]
+    # ai_chat が無ければ変えない
+    if not ai_chats:
+        return document
+
+    migrated = copy.deepcopy(document)
+    presets = list(migrated.get(PRESETS_FIELD_NAME, []))
+    for ai_chat in copy.deepcopy(ai_chats):
+        # 2. 送り先（無ければ前の既定の 3 件）を並びのまま、ブラウザ添付のプリセットにして足す
+        targets = ai_chat.get("targets")
+        if targets is None:
+            targets = [{**target, "enabled": True} for target in DEFAULT_AI_CHAT_TARGETS]
+        output_enabled = ai_chat.get("enabled", True)
+        presets.extend(
+            {
+                "kind": "browser",
+                "title": target.get("name"),
+                "url": target.get("url"),
+                "hotkey": target.get("hotkey", ""),
+                "enabled": bool(output_enabled and target.get("enabled", True)),
+                "send_enter": True,
+            }
+            for target in targets
+        )
+
+        # 3. 開くまでの間を、ブラウザ添付のオプションへ移す（既にあればそちらを使う）
+        if "open_delay_sec" in ai_chat:
+            browser_options = migrated.setdefault("preset_options", {}).setdefault("browser", {})
+            browser_options.setdefault("open_delay_sec", ai_chat["open_delay_sec"])
+
+    # 4. ai_chat の項目を外す
+    migrated[PRESETS_FIELD_NAME] = presets
+    migrated[OUTPUTS_FIELD_NAME] = [
+        output
+        for output in outputs
+        if not (isinstance(output, dict) and output.get("id") == AI_CHAT_ID)
+    ]
+    logger.info(f"古い AI チャットの設定をプリセットへ読み替えた（{len(presets)} 件）")
+    return migrated
+
+
 # === 読み込み ===
 
 
-def load_settings(path: Path) -> Settings:
-    """settings.toml を読んで検証する。無ければ既定値で作る。"""
+def load_settings(path: Path, model: type[Settings]) -> Settings:
+    """settings.toml を読んで model で検証する。無ければ既定値で作る。"""
     # 1. 設定ファイルが無いか
     if not path.exists():
         # 無い: 既定の設定を書いて返す
-        settings = Settings()
+        settings = model()
         save_settings(path, settings)
         logger.info(f"設定ファイルが無いため既定値で作った（{path}）")
         return settings
@@ -378,7 +605,7 @@ def load_settings(path: Path) -> Settings:
 
     # 3. 素の dict にして検証する
     try:
-        return Settings.model_validate(document.unwrap())
+        return model.model_validate(migrate_ai_chat(document.unwrap()))
     except ValidationError as error:
         failures = "、".join(f"{key}: {reason}" for key, reason in list_validation_failures(error))
         raise SettingsError(f"設定の値が合わない（{failures}）") from error
@@ -390,7 +617,7 @@ def load_settings(path: Path) -> Settings:
 def save_settings(path: Path, settings: Settings) -> bool:
     """検証した設定をコメントを保ったまま書き戻し、再起動が要る項目が変わったかを返す。"""
     # 1・2. 既にある設定ファイルを読み、前の設定にする
-    document, previous, unreadable = _read_existing(path)
+    document, previous, unreadable = _read_existing(path, type(settings))
 
     # 3. 設定を JSON の値にする
     data = settings.model_dump(mode="json", exclude_none=True)
@@ -411,15 +638,17 @@ def save_settings(path: Path, settings: Settings) -> bool:
     return _restart_item_changed(previous, settings)
 
 
-def _read_existing(path: Path) -> tuple[tomlkit.TOMLDocument, Settings | None, bool]:
-    """既にある settings.toml を（文書, 前の設定, 読めないか）にして返す。"""
+def _read_existing(
+    path: Path, model: type[Settings]
+) -> tuple[tomlkit.TOMLDocument, Settings | None, bool]:
+    """既にある settings.toml を model で検証し、（文書, 前の設定, 読めないか）にして返す。"""
     # 設定ファイルが無いか
     if not path.exists():
         return tomlkit.document(), None, False
 
     try:
         document = tomlkit.parse(path.read_text(encoding="utf-8"))
-        return document, Settings.model_validate(document.unwrap()), False
+        return document, model.model_validate(migrate_ai_chat(document.unwrap())), False
     except (TOMLKitError, ValidationError):
         # 読めない・検証に通らない: 内容を空の文書にして書き直す
         return tomlkit.document(), None, True

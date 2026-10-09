@@ -1,8 +1,9 @@
 """API のセッションの上限時間（api_session_limit）の非機能要件テスト。
 
-実機のマイクとシステム音量を使う本物の録音機で、上限時間を短い値に差し替えたセッションを、録音中と停止中の両方で
-打ち切り、返送先へ truncated が届くことを確かめる。あわせて、実機で録った WAV の大きさから 600 秒分の録音の大きさを
-求め、決定値の根拠（16 kHz・モノラル・16 bit で 19.2 MB）と合うことを確かめる。
+録音の入力を無音の WAV を実時間で流すもの、システム音量を何もしないものに差し替えた録音機（実機のマイクを開かず、
+GPU を使わない）で、上限時間を短い値に差し替えたセッションを、録音中と停止中の両方で打ち切り、返送先へ truncated が
+届くことを確かめる。あわせて、履歴の WAV の大きさから 600 秒分の録音の大きさを求め、決定値の根拠（16 kHz・モノラル・
+16 bit で 19.2 MB）と合うことを確かめる。
 `--run-e2e` が無ければ skip する。
 """
 
@@ -20,25 +21,22 @@ import pytest
 
 from tests.integration.helpers import CallbackReceiver, wait_until
 from tests.support.fixtures import receiver  # noqa: F401 フィクスチャとして使う
+from tests.support.inprocess import ignore_lower_volume, ignore_restore_volume, silence_input
 from voice_paste.features.history import append_text, discard_temporary, save_recording
 from voice_paste.features.outputs import OUTPUTS, deliver
-from voice_paste.features.outputs.callback.client import post_json
+from voice_paste.integrations.http.client import post_json
 from voice_paste.features.outputs.registry import CALLBACK_OUTPUT_ID
 from voice_paste.features.recording import Recorder
-from voice_paste.features.recording.client import open_input
 from voice_paste.features.session import Session, SessionDeps, SessionManager
-from voice_paste.integrations.volume.adapter import lower_volume, restore_volume
-from voice_paste.main import (
-    API_SESSION_LIMIT_SEC,
+from voice_paste.features.outputs.callback.service import (
     CALLBACK_RETRY_BASE_SEC,
     CALLBACK_RETRY_COUNT,
     CALLBACK_TIMEOUT_SEC,
-    SESSION_LIMIT_CHECK_INTERVAL_SEC,
 )
+from voice_paste.main import API_SESSION_LIMIT_SEC, SESSION_LIMIT_CHECK_INTERVAL_SEC, SETTINGS_MODEL
 from voice_paste.runtime.timer import RepeatingTimer
 from voice_paste.shared.constants import resolve_app_paths
 from voice_paste.shared.errors import EngineError
-from voice_paste.shared.settings import Settings
 from voice_paste.shared.types import TranscriptionOutcome
 
 pytestmark = pytest.mark.real_machine
@@ -46,8 +44,11 @@ pytestmark = pytest.mark.real_machine
 SHORT_LIMIT_SEC = 3.0
 """テストで待てる短い上限時間（決定値 600 秒の代わり）。"""
 
+SILENCE_SEC = 10.0
+"""実時間で流す無音の WAV の長さ（上限時間と打ち切りの遅れより長くする）。"""
+
 STOP_AFTER_SEC = 1.0
-"""停止中の打ち切りで、開始から停止までマイクで録る秒数。"""
+"""停止中の打ち切りで、開始から停止まで無音を流して録る秒数。"""
 
 TRUNCATE_MARGIN_SEC = 3.0
 """打ち切りが上限時間から遅れてよい秒数（確かめる間隔と返送の分）。"""
@@ -78,15 +79,15 @@ def _local_now() -> datetime:
 
 @pytest.fixture
 def manager(tmp_path: Path, receiver: CallbackReceiver) -> Iterator[SessionManager]:  # noqa: F811
-    """実機のマイクとシステム音量を使う本物の録音機で、上限時間を短くした SessionManager を作り、上限のタイマーを回す。"""
+    """入力を無音の WAV を実時間で流すもの・システム音量を何もしないものに差し替えた録音機で、上限時間を短くした SessionManager を作り、上限のタイマーを回す。"""
     from voice_paste.features.transcription.service import transcribe
 
     paths = resolve_app_paths(tmp_path)
-    settings = Settings()
+    settings = SETTINGS_MODEL()
     recorder = Recorder(
-        lower_volume=lower_volume,
-        restore_volume=restore_volume,
-        open_input=open_input,
+        lower_volume=ignore_lower_volume,
+        restore_volume=ignore_restore_volume,
+        open_input=silence_input(tmp_path, seconds=SILENCE_SEC, realtime=True),
         get_settings=lambda: settings.recording,
     )
     callback_spec = next(spec for spec in OUTPUTS if spec.id == CALLBACK_OUTPUT_ID)
@@ -106,11 +107,12 @@ def manager(tmp_path: Path, receiver: CallbackReceiver) -> Iterator[SessionManag
         deliver(
             session.entry,
             session.output_id,
-            session.output_target,
+            session.output_preset,
             session.callback_url,
             outcome,
             enabled_ids=frozenset(),
             outputs=outputs,
+            preset_kinds=(),
         )
 
     deps = SessionDeps(
@@ -129,6 +131,7 @@ def manager(tmp_path: Path, receiver: CallbackReceiver) -> Iterator[SessionManag
         notify=lambda event, detail=None: None,
         now=_local_now,
         discard_temporary=partial(discard_temporary, paths=paths),
+        report_progress=lambda position_sec, duration_sec: None,
     )
     session_manager = SessionManager(deps, timedelta(seconds=SHORT_LIMIT_SEC))
     timer = RepeatingTimer(

@@ -11,7 +11,7 @@ import logging
 import pytest
 
 from tests.integration.helpers import START, SESSION_LIMIT, Stack
-from voice_paste.main import CALLBACK_RETRY_COUNT
+from voice_paste.features.outputs.callback.service import CALLBACK_RETRY_COUNT
 from voice_paste.shared.errors import EngineError
 
 RECEIVER_DELAY_SEC = 1.0

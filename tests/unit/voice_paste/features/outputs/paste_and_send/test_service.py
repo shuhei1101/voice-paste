@@ -1,4 +1,4 @@
-"""features/outputs/paste_and_send/service.py（paste_and_send）の単体テスト。
+"""features/outputs/paste_and_send/service.py（paste_and_send・read_enter_delay_sec・inject_paste_and_send）の単体テスト。
 
 クリップボード（copy）・貼り付けのキー（paste）・Enter（send_enter）・間（sleep）は、
 呼ばれた順を 1 本の列で見られる Mock にして、順序と引数を確かめる。
@@ -10,6 +10,7 @@ from unittest.mock import MagicMock, call
 
 import pytest
 
+from tests.unit.voice_paste.features.outputs.helpers import make_output_deps
 from voice_paste.shared.errors import DeliveryError
 from voice_paste.shared.types import TranscriptionOutcome
 
@@ -73,3 +74,69 @@ def test_paste_and_send_when_copy_failed() -> None:
         )
     paste.assert_not_called()
     send_enter.assert_not_called()
+
+
+# === read_enter_delay_sec ===
+
+
+def test_read_enter_delay_sec() -> None:
+    """貼り付けて送信の秒数を返す（正常系）。"""
+    from voice_paste.features.outputs.paste_and_send.service import read_enter_delay_sec
+    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
+    from voice_paste.shared.settings import Settings
+
+    # 準備
+    settings = Settings(outputs=[PasteAndSendSettings(enter_delay_sec=0.2)])
+
+    # 実行
+    seconds = read_enter_delay_sec(settings)
+
+    # 検証
+    assert seconds == 0.2
+
+
+def test_read_enter_delay_sec_when_missing() -> None:
+    """一覧に無ければ既定値を返す（正常系）。"""
+    from voice_paste.features.outputs.paste_and_send.service import read_enter_delay_sec
+    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
+    from voice_paste.shared.settings import Settings
+
+    # 準備
+    settings = Settings(outputs=[PasteOnlySettings()])
+
+    # 実行
+    seconds = read_enter_delay_sec(settings)
+
+    # 検証
+    assert seconds == 0.5
+
+
+# === inject_paste_and_send ===
+
+
+def test_inject_paste_and_send() -> None:
+    """呼ぶたびに今の設定の秒数を返す関数を渡す（正常系）。"""
+    from voice_paste.features.outputs.paste_and_send.service import inject_paste_and_send
+    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
+    from voice_paste.shared.settings import Settings
+
+    # 準備
+    get_settings = MagicMock(
+        return_value=Settings(outputs=[PasteAndSendSettings(enter_delay_sec=0.2)])
+    )
+    deps = make_output_deps(get_settings=get_settings)
+
+    # 実行: 取り出した後に設定を差し替え、前後で秒数を読む
+    injected = inject_paste_and_send(deps)
+    seconds_before = injected["get_enter_delay_sec"]()
+    get_settings.return_value = Settings(outputs=[PasteAndSendSettings(enter_delay_sec=1.0)])
+    seconds_after = injected["get_enter_delay_sec"]()
+
+    # 検証
+    assert set(injected) == {"copy", "paste", "send_enter", "sleep", "get_enter_delay_sec"}
+    assert injected["copy"] is deps.copy
+    assert injected["paste"] is deps.paste
+    assert injected["send_enter"] is deps.send_enter
+    assert injected["sleep"] is deps.sleep
+    assert seconds_before == 0.2
+    assert seconds_after == 1.0

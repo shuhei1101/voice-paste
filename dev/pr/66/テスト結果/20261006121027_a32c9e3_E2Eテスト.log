@@ -1,0 +1,20 @@
+$ venv/Scripts/python.exe -m pytest tests/e2e/複合ユースケース --run-e2e -v
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\shuhe\repo\voice-paste\venv\Scripts\python.exe
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\test-e2e-drop-real-microphone
+configfile: pyproject.toml
+plugins: anyio-4.13.0, platformdirs-4.12.2
+collecting ... collected 10 items
+
+tests/e2e/複合ユースケース/test_paste_voice_text.py::test_normal PASSED  [ 10%]
+tests/e2e/複合ユースケース/test_paste_voice_text.py::test_normal_when_cancel PASSED [ 20%]
+tests/e2e/複合ユースケース/test_paste_voice_text.py::test_error_when_transcription_failed PASSED [ 30%]
+tests/e2e/複合ユースケース/test_paste_voice_text.py::test_error_when_worker_dies_again PASSED [ 40%]
+tests/e2e/複合ユースケース/test_paste_voice_text.py::test_error_when_transcription_empty PASSED [ 50%]
+tests/e2e/複合ユースケース/test_paste_voice_text.py::test_error_when_api_session_busy PASSED [ 60%]
+tests/e2e/複合ユースケース/test_transcribe_from_other_system.py::test_normal PASSED [ 70%]
+tests/e2e/複合ユースケース/test_transcribe_from_other_system.py::test_normal_when_transcription_empty PASSED [ 80%]
+tests/e2e/複合ユースケース/test_transcribe_from_other_system.py::test_error_when_transcription_failed PASSED [ 90%]
+tests/e2e/複合ユースケース/test_transcribe_from_other_system.py::test_error_when_hotkey_recording PASSED [100%]
+
+============================= 10 passed in 52.53s =============================

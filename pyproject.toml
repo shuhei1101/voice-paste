@@ -4,19 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "voice-paste"
-version = "0.2.0"
+version = "0.3.0"
 description = "音声入力＆自動貼り付けツール"
 requires-python = ">=3.11"
 dependencies = [
     "faster-whisper~=1.0",
-    "openai~=1.0",
+    "av>=11,<19",
     "sounddevice~=0.5",
     "scipy~=1.13",
     "pyperclip~=1.9",
     "pynput~=1.7",
-    "python-dotenv~=1.0",
-    "pystray~=0.19",
-    "Pillow>=11.0",
     "nvidia-cublas-cu12",
     "nvidia-cudnn-cu12>=9,<10",
     "pycaw==20251023",
@@ -28,22 +25,24 @@ dependencies = [
     "platformdirs~=4.12",
     "numpy~=2.4",
     "comtypes~=1.4",
+    "pyside6-essentials~=6.11.2",
 ]
 
 [dependency-groups]
 dev = [
     "pytest~=9.1",
     "import-linter~=2.15",
+    "pywin32~=312.0",
 ]
 
 [project.scripts]
-voice-paste = "voice_paste_legacy.main:run"
+voice-paste = "voice_paste.main:main"
 
 [tool.setuptools]
-package-dir = { "" = "src", "voice_paste_legacy" = "voice_paste_legacy" }
+package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
-where = ["src", "."]
+where = ["src"]
 include = ["voice_paste*"]
 
 [tool.importlinter]
@@ -76,3 +75,12 @@ ignore_imports = [
 ]
 # service は一覧を import せず main.py が渡すため、service -> registry の除外には一致する import が無い
 unmatched_ignore_imports_alerting = "none"
+
+[[tool.importlinter.contracts]]
+name = "画面から feature の中へ"
+type = "forbidden"
+source_modules = ["voice_paste.ui"]
+forbidden_modules = ["voice_paste.features", "voice_paste.integrations"]
+ignore_imports = [
+    "voice_paste.ui.** -> voice_paste.features.session.types",
+]

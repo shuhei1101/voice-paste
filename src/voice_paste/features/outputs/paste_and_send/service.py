@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 
+from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
+from voice_paste.features.outputs.types import OutputDeps
+from voice_paste.shared.settings import Settings
 from voice_paste.shared.types import TranscriptionOutcome
 
 
@@ -27,3 +30,28 @@ def paste_and_send(
     # 3. 設定の間だけ待ち、Enter を送る
     sleep(get_enter_delay_sec())
     send_enter()
+
+
+def read_enter_delay_sec(settings: Settings) -> float:
+    """設定の outputs[] の貼り付けて送信の、貼り付けてから Enter を送るまでの秒数を返す（一覧に無ければ既定値）。"""
+    output = next(
+        (o for o in settings.outputs if isinstance(o, PasteAndSendSettings)),
+        PasteAndSendSettings(),
+    )
+    return output.enter_delay_sec
+
+
+def inject_paste_and_send(deps: OutputDeps) -> Mapping[str, object]:
+    """paste_and_send に部分適用する copy・paste・send_enter・sleep・get_enter_delay_sec を返す。"""
+
+    def get_enter_delay_sec() -> float:
+        """呼ぶたびに今の設定の貼り付けて送信の秒数を返す。"""
+        return read_enter_delay_sec(deps.get_settings())
+
+    return {
+        "copy": deps.copy,
+        "paste": deps.paste,
+        "send_enter": deps.send_enter,
+        "sleep": deps.sleep,
+        "get_enter_delay_sec": get_enter_delay_sec,
+    }

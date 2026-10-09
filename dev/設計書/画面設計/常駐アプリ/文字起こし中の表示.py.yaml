@@ -1,0 +1,54 @@
+title: "文字起こし中の表示"
+elements:
+  - name: 窓
+    id: transcribing_indicator
+    kind: window
+    position: 窓
+    description: 文字起こし中の表示の窓。録音の画面と同じ設定の位置に出し、フォーカスを取らない（貼り付け先の入力欄からフォーカスを奪わない）。録音の画面を動かした回は、確定した時点の録音の画面の位置（隠したまま確定した回は隠す前の位置）に出す
+    visible_when: ホットキー・トレイから始めたセッションが transcribing か delivering の間（`recording.hide_window` がオフのとき）。API から始めた録音では出さない
+    source: UiBridge.notified（state_changed）
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[recording.hide_window]
+  - name: 状態の表示
+    id: state_label
+    kind: label
+    position: 窓 > 見出し
+    description: 文字起こし中であることを、回る印と文字で出す
+    label: 文字起こし中
+    visible_when: 常時
+  - name: 進みのバー
+    id: progress_bar
+    kind: progress
+    position: 窓 > 見出しの下
+    description: 文字起こしの進みを割合で出す
+    label: 文字起こしの進み
+    io: 表示
+    type: 数値（%）
+    visible_when: 最初の区間の終わりが届いてから（それまでは回る印だけを出す）
+    display_format: 整数の %（例 62%）
+    source: 文字起こしの経過（起こし終えた区間の終わり ÷ 録音の長さ）
+  - name: 経過と残りの時間
+    id: time_label
+    kind: label
+    position: 窓 > 進みのバーの下
+    description: 確定してからの経過と、見積もった残りの時間・全体の時間
+    io: 表示
+    type: 時間
+    visible_when: 常時
+    display_format: 「経過 3.2 秒 残り 2 秒 / 5 秒」。1 分以上は「3 分 06 秒」。残りが分かるまでは「経過 1.4 秒 残りを計っています」
+    source: 文字起こしの経過
+  - name: 貼り付けの案内
+    id: paste_hint
+    kind: label
+    position: 窓 > 下
+    description: 貼り付けたい場所にカーソルを合わせるよう案内する
+    label: 貼り付けたい場所にカーソルを合わせてください
+    visible_when: 常時
+screen: src/voice_paste/ui/windows/transcribing_indicator.py
+mock: dev/mock/pages/transcribing-indicator/37/a-standard/
+lead: 確定から届けるまで、録音の画面と同じ位置に出る小さな表示。文字起こしの経過と残りの時間を出し、操作を持たない。
+refs:
+  - dev/設計書/シナリオ/単一ユースケース/録音を文字に起こす#
+notes:
+  閉じるとき: 届けた・結果が空のときは閉じてトレイだけに戻る。文字起こしに失敗・届けられないときは閉じてトレイの通知で知らせる
+test_file: tests/integration/ui/test_transcribing_indicator.py

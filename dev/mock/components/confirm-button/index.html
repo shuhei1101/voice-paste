@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>確定のボタン | voice-paste のモック</title>
+  <link rel="stylesheet" href="../../refs/37/assets/style.css">
+</head>
+<body>
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../">components</a> / <span>confirm-button</span></nav>
+
+    <!-- 部品の説明 -->
+    <header class="intro">
+      <h1>確定のボタン</h1>
+      <p>録音の画面で出力先・AI チャットの送り先を選んで確定するボタン。名前と、同じ操作のホットキーを並べる。</p>
+    </header>
+
+    <div class="desk">
+
+      <!-- 状態: 主の操作と通常 -->
+      <section class="specimen" aria-labelledby="h-normal">
+        <h2 id="h-normal">主の操作と通常</h2>
+        <div class="win rec">
+          <div class="outs">
+            <button type="button" class="btn btn--primary">貼り付けて送信 <kbd>Ctrl+Alt+D</kbd></button>
+            <button type="button" class="btn">貼り付けのみ <kbd>Ctrl+Alt+V</kbd></button>
+          </div>
+        </div>
+        <p class="scene-note">主の操作は、オンの出力先のうち上にある 1 つだけにする。</p>
+      </section>
+
+      <!-- 状態: フォーカス -->
+      <section class="specimen" aria-labelledby="h-focus">
+        <h2 id="h-focus">フォーカス</h2>
+        <div class="win rec">
+          <div class="outs">
+            <button type="button" class="btn is-focus">コピーのみ <kbd>Ctrl+Alt+C</kbd></button>
+          </div>
+        </div>
+        <p class="scene-note">録音の画面は、出したときはフォーカスを取らず、貼り付け先の入力欄のフォーカスを奪わない。窓を押すと前面になってフォーカスを取り、そこから Tab で移ったときに枠を出す。確定・取り消しで閉じると、前面は貼り付け先へ戻る。</p>
+      </section>
+
+      <!-- 状態: AI チャットの送り先（縦に名前とキー） -->
+      <section class="specimen" aria-labelledby="h-ai">
+        <h2 id="h-ai">AI チャットの送り先</h2>
+        <div class="win rec">
+          <div class="outs outs--ai">
+            <button type="button" class="btn">ChatGPT <kbd>Ctrl+Alt+1</kbd></button>
+            <button type="button" class="btn" title="社内のナレッジ検索アシスタント"><span class="clip">社内のナレッジ検索アシスタント</span> <kbd>Ctrl+Alt+2</kbd></button>
+            <button type="button" class="btn">Claude <kbd>Ctrl+Alt+3</kbd></button>
+          </div>
+        </div>
+        <p class="scene-note">長い名前はボタンの幅で省略し、かざすと全体を出す。ホットキーは省略しない。</p>
+      </section>
+
+    </div>
+  </main>
+</body>
+</html>

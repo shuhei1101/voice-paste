@@ -10,51 +10,26 @@ from __future__ import annotations
 import json
 import shutil
 import sys
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
-from dotenv import dotenv_values
+
+from tests.support.whisper_fixtures import (
+    FIXTURES_DIR,
+    RECORDINGS_DIR,
+    WORKER_READY_TIMEOUT_SEC,
+    WORKER_STOP_TIMEOUT_SEC,
+    YOGO_FILE,
+    load_local_whisper_settings,
+)
 
 if TYPE_CHECKING:
     from voice_paste.integrations.whisper.client import WhisperWorkerClient
 
-FIXTURES_DIR = Path(__file__).parent / "fixtures"
-RECORDINGS_DIR = FIXTURES_DIR / "recordings"
 EXPECTED_DIR = FIXTURES_DIR / "expected"
-YOGO_FILE = FIXTURES_DIR / "yogo.csv"
-WHISPER_ENV_FILE = FIXTURES_DIR / "whisper.env"
 CORRECTION_CASES_FILE = FIXTURES_DIR / "correction_cases.json"
-
-# 非機能要件の決定値（文字起こしワーカーの立て直しの時間・終わりを待つ時間）
-WORKER_READY_TIMEOUT_SEC = 10.0
-WORKER_STOP_TIMEOUT_SEC = 3.0
-
-
-def _to_bool(value: str) -> bool:
-    """true / false の文字を bool にする（刷新前の config.py と同じ規則）。"""
-    return value.lower() == "true"
-
-
-# 固めた設定（.env の変数）と、対応する LocalWhisperSettings の項目・型への変換
-LOCAL_WHISPER_FIELDS: dict[str, tuple[str, Callable[[str], object]]] = {
-    "WHISPER_MODEL": ("model", str),
-    "WHISPER_DEVICE": ("device", str),
-    "WHISPER_COMPUTE_TYPE": ("compute_type", str),
-    "WHISPER_CPU_THREADS": ("cpu_threads", int),
-    "WHISPER_NUM_WORKERS": ("num_workers", int),
-    "WHISPER_BEAM_SIZE": ("beam_size", int),
-    "WHISPER_BEST_OF": ("best_of", int),
-    "WHISPER_LANGUAGE": ("language", str),
-    "WHISPER_VAD_FILTER": ("vad_filter", _to_bool),
-    "WHISPER_VAD_THRESHOLD": ("vad_threshold", float),
-    "WHISPER_VAD_MIN_SPEECH_MS": ("vad_min_speech_ms", int),
-    "WHISPER_VAD_MIN_SILENCE_MS": ("vad_min_silence_ms", int),
-    "WHISPER_CONDITION_ON_PREVIOUS_TEXT": ("condition_on_previous_text", _to_bool),
-    "WHISPER_TEMPERATURE": ("temperature", float),
-    "WHISPER_NO_SPEECH_THRESHOLD": ("no_speech_threshold", float),
-}
 
 RECORDINGS = sorted(RECORDINGS_DIR.glob("*.wav"))
 CORRECTION_CASES: list[dict[str, str]] = (
@@ -68,17 +43,9 @@ CORRECTION_CASES: list[dict[str, str]] = (
 def worker_client(tmp_path_factory: pytest.TempPathFactory) -> Iterator[WhisperWorkerClient]:
     """固めた設定で文字起こしワーカーの窓口を立てる。ワーカーは終了時に止める。"""
     from voice_paste.integrations.whisper.client import WhisperWorkerClient
-    from voice_paste.shared.settings import LocalWhisperSettings
 
-    env_values = dotenv_values(WHISPER_ENV_FILE)
-    settings = LocalWhisperSettings(
-        **{
-            field: parse(env_values[key] or "")
-            for key, (field, parse) in LOCAL_WHISPER_FIELDS.items()
-        }
-    )
     client = WhisperWorkerClient(
-        settings=settings,
+        settings=load_local_whisper_settings(),
         ready_timeout_sec=WORKER_READY_TIMEOUT_SEC,
         log_dir=tmp_path_factory.mktemp("log"),
         stop_timeout_sec=WORKER_STOP_TIMEOUT_SEC,

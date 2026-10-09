@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 
+from voice_paste.features.outputs.types import OutputDeps
 from voice_paste.shared.types import TranscriptionOutcome
 
 
@@ -20,3 +21,8 @@ def paste_only(
 
     # 2. 貼り付けのキーを送る
     paste()
+
+
+def inject_paste_only(deps: OutputDeps) -> Mapping[str, object]:
+    """paste_only に部分適用する copy・paste を返す。"""
+    return {"copy": deps.copy, "paste": deps.paste}

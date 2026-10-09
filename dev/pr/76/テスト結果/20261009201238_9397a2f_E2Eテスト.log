@@ -1,0 +1,37 @@
+$ venv/Scripts/python.exe -m pytest tests/e2e --run-e2e -v
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\shuhe\repo\voice-paste\venv\Scripts\python.exe
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\test-e2e-no-real-mouse-keyboard
+configfile: pyproject.toml
+plugins: anyio-4.13.0, platformdirs-4.12.2
+collecting ... collected 27 items
+
+tests/e2e/単一ユースケース/test_change_settings.py::test_normal_when_save_and_restart PASSED [  3%]
+tests/e2e/単一ユースケース/test_change_settings.py::test_normal_when_reset PASSED [  7%]
+tests/e2e/単一ユースケース/test_change_settings.py::test_normal_when_cancel PASSED [ 11%]
+tests/e2e/単一ユースケース/test_change_settings.py::test_error_when_invalid_value PASSED [ 14%]
+tests/e2e/単一ユースケース/test_operate_from_tray.py::test_normal_when_open_log_folder PASSED [ 18%]
+tests/e2e/単一ユースケース/test_operate_from_tray.py::test_normal_when_open_settings_folder PASSED [ 22%]
+tests/e2e/単一ユースケース/test_operate_from_tray.py::test_normal_when_restart PASSED [ 25%]
+tests/e2e/単一ユースケース/test_operate_from_tray.py::test_normal_when_quit PASSED [ 29%]
+tests/e2e/単一ユースケース/test_operate_from_tray.py::test_normal_when_quit_with_unsaved_settings[tray_quit] PASSED [ 33%]
+tests/e2e/単一ユースケース/test_operate_from_tray.py::test_normal_when_quit_with_unsaved_settings[ctrl_break] PASSED [ 37%]
+tests/e2e/単一ユースケース/test_operate_from_tray.py::test_normal_when_restart_with_unsaved_settings PASSED [ 40%]
+tests/e2e/単一ユースケース/test_start_resident_app.py::test_normal PASSED [ 44%]
+tests/e2e/単一ユースケース/test_start_resident_app.py::test_normal_when_previous_running PASSED [ 48%]
+tests/e2e/単一ユースケース/test_start_resident_app.py::test_normal_when_expired_history_and_logs PASSED [ 51%]
+tests/e2e/単一ユースケース/test_start_resident_app.py::test_error_when_engine_unavailable PASSED [ 55%]
+tests/e2e/単一ユースケース/test_start_resident_app.py::test_error_when_api_unavailable PASSED [ 59%]
+tests/e2e/単一ユースケース/test_start_resident_app.py::test_normal_when_old_ai_chat_settings_remain PASSED [ 62%]
+tests/e2e/複合ユースケース/test_paste_voice_text.py::test_normal PASSED  [ 66%]
+tests/e2e/複合ユースケース/test_paste_voice_text.py::test_normal_when_cancel PASSED [ 70%]
+tests/e2e/複合ユースケース/test_paste_voice_text.py::test_error_when_transcription_failed PASSED [ 74%]
+tests/e2e/複合ユースケース/test_paste_voice_text.py::test_error_when_worker_dies_again PASSED [ 77%]
+tests/e2e/複合ユースケース/test_paste_voice_text.py::test_error_when_transcription_empty PASSED [ 81%]
+tests/e2e/複合ユースケース/test_paste_voice_text.py::test_error_when_api_session_busy PASSED [ 85%]
+tests/e2e/複合ユースケース/test_transcribe_from_other_system.py::test_normal PASSED [ 88%]
+tests/e2e/複合ユースケース/test_transcribe_from_other_system.py::test_normal_when_transcription_empty PASSED [ 92%]
+tests/e2e/複合ユースケース/test_transcribe_from_other_system.py::test_error_when_transcription_failed PASSED [ 96%]
+tests/e2e/複合ユースケース/test_transcribe_from_other_system.py::test_error_when_hotkey_recording PASSED [100%]
+
+======================= 27 passed in 162.72s (0:02:42) ========================

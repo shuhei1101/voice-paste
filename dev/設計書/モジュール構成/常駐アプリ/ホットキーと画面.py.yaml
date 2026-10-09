@@ -3,46 +3,24 @@ lead: 'グローバルのホットキーの受付（runtime/hotkey）と、PySid
 directory: |-
   ```
   src/voice_paste/runtime/
-  └── hotkey.py          # HotkeyListener（pynput の GlobalHotKeys を別のスレッドで動かす）
+  └── hotkey.py                     # HotkeyListener（pynput の GlobalHotKeys を別のスレッドで動かす）
   src/voice_paste/ui/
-  ├── bridge.py          # UiBridge（ほかのスレッドからメインスレッドへの Signal）・notify
-  ├── tray.py            # トレイ（メニューの並びは #21）
-  └── windows/           # 録音の画面・文字起こし中の表示・設定画面・ダイアログ（#21）
+  ├── bridge.py                     # UiBridge（ほかのスレッドからメインスレッドへの Signal）・notify・report_progress
+  ├── controller.py                 # UiController（知らせを画面・トレイへ振り分ける）・UiDeps
+  ├── tray.py                       # Tray（アイコン・メニュー・通知）・TrayState
+  ├── placement.py                  # place_window（カーソルのあるモニターの設定の位置）
+  ├── style.py                      # build_stylesheet（tokens.toml から QSS を作る）
+  ├── tokens.toml                   # 色・書体・余白のトークン（デザイン方針）
+  └── windows/
+      ├── recording_window.py       # RecordingWindow
+      ├── transcribing_indicator.py # TranscribingIndicator
+      ├── busy_dialog.py            # show_busy_dialog
+      ├── settings_window.py        # SettingsWindow・confirm_discard・confirm_reset・PRESET_KIND_NAMES
+      └── settings_presets.py       # PresetListPanel（設定画面の種類ごとのタブのプリセットの一覧）
+  resources/tray/
+  └── starting.png・idle.png・recording.png・transcribing.png・failed.png  # トレイのアイコン（状態ごと）
   ```
 classes:
-  - name: HotkeyListener
-    title: ホットキーの受付
-    container: runtime/hotkey.py
-    usecase: 録音する
-    role: ランタイム
-    kind: クラス
-    summary: 設定のホットキーを pynput で受け付け、押されたら配線された関数（開始・確定・一時停止・取り消し）を呼ぶ。セッションは import しない
-    methods:
-      - name: start
-        title: 受付の開始
-        kind: メソッド
-        scope: public
-        summary: ホットキーと関数の組を登録して受付を始める
-        args:
-          - name: bindings
-            type: dict[str, Callable[[], None]]
-            required: true
-            passing: positional
-            description: pynput の書式のホットキー → 呼ぶ関数
-        returns:
-          type: None
-          description: なし
-      - name: stop
-        title: 受付の停止
-        kind: メソッド
-        scope: public
-        summary: 受付を止める
-        returns:
-          type: None
-          description: なし
-    refs:
-      - dev/設計書/外部ライブラリ/pynput#
-    status: planned
   - name: UiBridge
     title: 画面への橋渡し
     container: ui/bridge.py
@@ -54,10 +32,1033 @@ classes:
     properties:
       - name: notified
         type: Signal(str, object)
-        description: 知らせの種類と理由
+        description: 知らせの種類と理由（str | None）
+      - name: progressed
+        type: Signal(float, float)
+        description: 文字起こしの区間の終わりの時刻と録音の長さ（秒）
     refs:
       - dev/設計書/外部ライブラリ/pyside6-essentials#
-    status: planned
+    status: implemented
+    description: メインスレッドで作り、受け手は `Qt.ConnectionType.QueuedConnection` でつなぐ（PoC で 100/100 がメインスレッドのスロットで動いた）。
+  - name: HotkeyListener
+    title: ホットキーの受付
+    container: runtime/hotkey.py
+    usecase: 録音する
+    role: ランタイム
+    summary: 設定のホットキーを pynput で受け付け、押されたら配線された関数を呼ぶ。セッションは import しない
+    description: |-
+      受付のスレッド（`pynput.keyboard.GlobalHotKeys`）を 1 つだけ持ち、張り直すときは止めてから新しく立てる。
+      呼ぶ関数は pynput のスレッドで動くため、例外を握ってログに書き、受付を止めない。
+      `GlobalHotKeys` はソフトウェアで送ったキー（SendInput）を捨てる。E2E の起動では `accept_injected` を立て、`keyboard.Listener` で各ホットキーの `keyboard.HotKey` を自分で回して、送ったキーも受ける。
+    kind: クラス
+    properties:
+      - name: _listener
+        type: keyboard.Listener | None
+        access: 内部 (_)
+        description: 動いている受付。start の前と stop の後は None
+      - name: _lock
+        type: threading.Lock
+        access: 内部 (_)
+        description: start・stop を 1 つずつにする
+      - name: _accept_injected
+        type: bool
+        access: 内部 (_)
+        description: ソフトウェアで送ったキーもホットキーとして受けるか。E2E の起動だけ True
+    methods:
+      - name: start
+        title: 受付の開始
+        summary: ホットキーと関数の組を登録して受付を始める。動いていれば、新しい受付を作れたときだけ入れ替える
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        args:
+          - name: bindings
+            type: dict[str, Callable[[], None]]
+            required: true
+            passing: positional
+            description: pynput の書式のホットキー → 呼ぶ関数
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. ロックを取る
+          2. 各関数を例外を握る関数で包む
+             - 呼んだ関数が例外を出した場合、握って受付を続ける
+               - `[ERROR]` ホットキーの処理で想定外の例外（ホットキー。logger.exception）
+          3. 新しい受付を先に作る（作るときに pynput が書式を確かめる）
+             - `_accept_injected` が False の場合、`GlobalHotKeys(包んだ組)`
+             - `_accept_injected` が True の場合、各ホットキーの `keyboard.HotKey(HotKey.parse(ホットキー), 包んだ関数)` を作り、押した・離したキーを `injected` に関わらず `canonical` して渡す `keyboard.Listener`
+             - ValueError（書式を読めない）の場合、動いている受付をそのままにして HotkeyError を送出する
+          4. 動いている受付があれば止め、スレッドの終わりを待つ
+          5. 新しい受付を始める
+             - `[INFO]` ホットキーの受付を始めた（ホットキーの一覧）
+        exceptions:
+          - name: HotkeyError
+            condition: ホットキーの書式を pynput が読めない
+        unit_tests:
+          - name: test_start
+            case: 正常
+            summary: 登録したホットキーで関数を呼ぶ
+            condition: '{"<ctrl>+<alt>+d": 関数} で始め、差し替えた GlobalHotKeys に渡った関数を呼ぶ'
+            mock: keyboard.GlobalHotKeys
+            expected: 関数が 1 回呼ばれる
+          - name: test_start_when_restarted
+            case: 正常
+            summary: 張り直すと前の受付を止める
+            condition: start を 2 回呼ぶ
+            mock: keyboard.GlobalHotKeys
+            expected: 1 つ目の受付の stop と join が呼ばれ、2 つ目だけが動いている
+          - name: test_start_when_handler_raised
+            case: 正常
+            summary: 関数の例外で受付を止めない
+            condition: 登録した関数が RuntimeError を送出する
+            mock: keyboard.GlobalHotKeys
+            expected: 例外が漏れず、ERROR のログが 1 行出て、もう一度呼ぶとまた呼ばれる
+          - name: test_start_when_invalid_hotkey
+            case: 異常
+            summary: 読めない書式は断る
+            condition: '{"<ctrl>+<nokey>": 関数}'
+            mock: なし
+            expected: HotkeyError が送出される
+            exception: 書式を読めない
+          - name: test_start_when_invalid_hotkey_while_running
+            case: 異常
+            summary: 張り直しに失敗しても前の受付を止めない
+            condition: '{"<ctrl>+<alt>+d": 関数} で始めた後、{"<ctrl>+<nokey>": 関数} で start を呼ぶ'
+            mock: keyboard.GlobalHotKeys（2 回目の生成が ValueError）
+            expected: HotkeyError が送出され、1 つ目の受付の stop が呼ばれず、動いたまま
+            exception: 書式を読めない
+          - name: test_start_when_accept_injected
+            case: 正常
+            summary: ソフトウェアで送ったキーも受ける設定では、Listener でキーを受けて関数を呼ぶ
+            condition: 'HotkeyListener(accept_injected=True) に {"<ctrl>+<alt>+d": 関数} で始め、差し替えた keyboard.Listener の on_press に Ctrl・Alt・D を順に渡す'
+            mock: keyboard.Listener・keyboard.GlobalHotKeys
+            expected: 関数が 1 回呼ばれ、Listener の start が呼ばれ、GlobalHotKeys が作られない
+      - name: stop
+        title: 受付の停止
+        summary: 受付を止め、スレッドの終わりを待つ。動いていなければ何もしない
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_stop
+            case: 正常
+            summary: 止めた後は動いていない
+            condition: start の後に stop を 2 回呼ぶ
+            mock: keyboard.GlobalHotKeys
+            expected: 受付の stop と join が 1 回ずつ呼ばれ、2 回目は例外が出ない
+      - name: __init__
+        title: 受付の用意
+        summary: 受付はまだ始めない
+        kind: メソッド
+        scope: public
+        args:
+          - name: accept_injected
+            type: bool
+            required: false
+            default: 'False'
+            passing: keyword
+            description: ソフトウェアで送ったキーも受けるか
+        returns:
+          type: None
+          description: なし
+    refs:
+      - dev/設計書/外部ライブラリ/pynput#
+    status: implemented
+  - name: UiController
+    title: 画面の振り分け
+    container: ui/controller.py
+    usecase: 共通
+    role: ランタイム
+    summary: UiBridge の知らせを受けて、トレイ・録音の画面・文字起こし中の表示・ダイアログを開く・閉じる・替える。処理中に選ばれた再起動・終了を待たせる
+    description: |-
+      画面とトレイを長く持つためクラスにする。全てのメソッドはメインスレッドで呼ぶ。
+      セッションの状態と画面の対応:
+
+      | 今のセッション | トレイ | 録音の画面 | 文字起こし中の表示 |
+      | --- | --- | --- | --- |
+      | 無い | 待機中（押せない項目を戻す） | 閉じる | 閉じる |
+      | recording・paused（hotkey・tray） | 録音中・処理中 | `recording.hide_window` がオフなら出して状態を替える | 閉じる |
+      | transcribing・delivering（hotkey・tray） | 文字起こし中・処理中 | 閉じる | `recording.hide_window` がオフなら出す |
+      | api のセッション | 録音中か文字起こし中・処理中 | 出さない | 出さない |
+
+      録音の画面をその回だけ隠した間（`_recording_hidden`）は、recording・paused の知らせを受けても窓を出さず、状態の表示だけを替える（RecordingWindow.set_paused）。セッションが recording・paused を抜けたら隠した印を下ろす。
+      トレイの「録音の画面を出す」は、今のセッションと隠した印から RecordingWindowState を決めて Tray.set_recording_window で替える（hotkey・tray の recording・paused で隠していれば hidden、出していれば shown、`recording.hide_window` がオンか api の録音なら no_window、それ以外は not_recording）。
+      コンストラクタは UiDeps と、キーワードで tray・recording_window・indicator を受け、トレイの操作と録音の画面の「隠す」（Signal）をつなぐ。あわせて QApplication に自分をイベントフィルタとして入れ、アプリの終了で設定画面を確かめずに閉じる（eventFilter）。
+    kind: クラス
+    inherits: PySide6.QtCore.QObject
+    properties:
+      - name: _deps
+        type: UiDeps
+        access: 内部 (_)
+        description: 配線済みの関数
+      - name: _tray
+        type: Tray
+        access: 内部 (_)
+        description: トレイ
+      - name: _recording_window
+        type: RecordingWindow
+        access: 内部 (_)
+        description: 録音の画面
+      - name: _indicator
+        type: TranscribingIndicator
+        access: 内部 (_)
+        description: 文字起こし中の表示
+      - name: _settings_window
+        type: SettingsWindow | None
+        access: 内部 (_)
+        description: 開いている設定画面
+      - name: _pending_exit
+        type: Literal["restart", "quit"] | None
+        access: 内部 (_)
+        description: 処理中に選ばれ、待機中になったら行う再起動・終了
+      - name: _recording_hidden
+        type: bool
+        access: 内部 (_)
+        description: その回の録音の画面を「隠す」で隠しているか
+    methods:
+      - name: on_notified
+        title: 知らせの受け取り
+        summary: UiBridge.notified のスロット。知らせの種類ごとに画面とトレイを変える
+        kind: メソッド
+        scope: public
+        args:
+          - name: event
+            type: str
+            required: true
+            passing: positional
+            description: 知らせの種類
+          - name: detail
+            type: str | None
+            required: true
+            passing: positional
+            description: 理由
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. state_changed の場合、今のセッションを引き（current_session）、説明の表のとおりにトレイ・録音の画面・文字起こし中の表示を変える
+             - セッションが無く、待たせた再起動・終了がある場合、それを行う（request_restart か request_quit）
+             - 録音の画面を隠している場合、窓は出さずに状態の表示だけを替える（RecordingWindow.set_paused）
+             - transcribing・delivering で文字起こし中の表示を出す場合、その回に録音の画面を動かしていれば動かした位置（RecordingWindow.moved_position）を渡す。動かしていなければ渡さず、設定の位置に出す（TranscribingIndicator.open）
+             - 最後に、トレイの「録音の画面を出す」を今の状態に合わせる（Tray.set_recording_window）
+          2. busy の場合、処理中のダイアログを出す（show_busy_dialog）
+          3. show_recording_window の場合、隠した録音の画面を戻す（show_recording）
+          4. microphone_unavailable・transcription_failed・delivery_failed・api_unavailable の場合、トレイの通知を出す（Tray.show_failure）
+             - それ以外の種類の場合、何もしない
+               - `[WARNING]` 知らない知らせを受けた（種類）
+        unit_tests:
+          - name: test_on_notified_when_recording
+            case: 正常
+            summary: ホットキーの録音で録音の画面を出す
+            condition: current_session が hotkey・recording を返す。hide_window はオフ
+            mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
+            expected: Tray.set_state(RECORDING, busy=True)・RecordingWindow.open・TranscribingIndicator.close が呼ばれる
+          - name: test_on_notified_when_hidden_window
+            case: 正常
+            summary: 画面を出さない設定では録音の画面を出さない
+            condition: current_session が hotkey・recording、recording.hide_window がオン
+            mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
+            expected: Tray.set_state(RECORDING, busy=True) が呼ばれ、RecordingWindow.open が呼ばれない
+          - name: test_on_notified_when_api_session
+            case: 正常
+            summary: API の録音では画面を出さない
+            condition: current_session が api・transcribing を返す
+            mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
+            expected: Tray.set_state(TRANSCRIBING, busy=True) が呼ばれ、TranscribingIndicator.open が呼ばれない
+          - name: test_on_notified_when_idle_with_pending_quit
+            case: 正常
+            summary: 待たせた終了を待機中で行う
+            condition: 処理中に request_exit("quit") を呼んだ後、current_session が None で state_changed を受ける
+            mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
+            expected: request_quit が 1 回呼ばれる
+          - name: test_on_notified_when_busy
+            case: 正常
+            summary: 処理中のダイアログを出す
+            condition: event=busy
+            mock: show_busy_dialog・Tray
+            expected: show_busy_dialog が 1 回呼ばれる
+          - name: test_on_notified_when_failure
+            case: 正常
+            summary: 失敗をトレイの通知で知らせる
+            condition: event=delivery_failed、detail="クリップボードに書けない"
+            mock: Tray
+            expected: Tray.show_failure(delivery_failed, クリップボードに書けない) が呼ばれる
+          - name: test_on_notified_when_recording_hidden
+            case: 正常
+            summary: 隠した録音の画面は、一時停止しても出さずに状態だけ替える
+            condition: hide_recording の後、current_session が hotkey・paused を返す state_changed を受ける
+            mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
+            expected: RecordingWindow.set_paused(True) が呼ばれ、RecordingWindow.open・restore が呼ばれず、Tray.set_recording_window(hidden) が呼ばれる
+          - name: test_on_notified_when_transcribing_after_hidden
+            case: 正常
+            summary: 動かして隠したまま確定した回も、文字起こし中の表示を動かした位置に出す
+            condition: hide_recording の後、current_session が hotkey・transcribing を返す state_changed を受ける。RecordingWindow.moved_position が QPoint(300, 200) を返す
+            mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
+            expected: TranscribingIndicator.open(at=QPoint(300, 200)) が呼ばれ、Tray.set_recording_window(not_recording) が呼ばれる
+          - name: test_on_notified_when_show_recording_window
+            case: 正常
+            summary: ホットキーからの指示で隠した録音の画面を戻す
+            condition: hide_recording の後、event=show_recording_window
+            mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
+            expected: RecordingWindow.restore が 1 回呼ばれ、Tray.set_recording_window(shown) が呼ばれる
+          - name: test_on_notified_when_transcribing_without_move
+            case: 正常
+            summary: 動かしていない回は、文字起こし中の表示を設定の位置に出す
+            condition: current_session が hotkey・recording を返す state_changed の後、hotkey・transcribing を返す state_changed を受ける。RecordingWindow.moved_position が None を返す
+            mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
+            expected: TranscribingIndicator.open(at=None) が呼ばれる
+      - name: on_progressed
+        title: 進みの受け取り
+        summary: UiBridge.progressed のスロット。文字起こし中の表示が出ていれば進みを渡す
+        kind: メソッド
+        scope: public
+        args:
+          - name: position_sec
+            type: float
+            required: true
+            passing: positional
+            description: 起こし終えた区間の終わりの時刻
+          - name: duration_sec
+            type: float
+            required: true
+            passing: positional
+            description: 録音の長さ
+        returns:
+          type: None
+          description: なし
+      - name: request_exit
+        title: 再起動・終了の依頼
+        summary: トレイ・設定画面からの再起動・終了。待機中ならすぐ行い、処理中ならアイコンを消してその回が終わるまで待つ
+        kind: メソッド
+        scope: public
+        args:
+          - name: kind
+            type: Literal["restart", "quit"]
+            required: true
+            passing: positional
+            description: 再起動か終了か
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 今のセッションが無ければ、すぐに request_restart か request_quit を呼ぶ
+          2. あれば待たせる依頼に記録し、トレイのアイコンを消す（Tray.hide）
+             - `[INFO]` 処理中のため再起動・終了を待たせた（種類・セッションの ID）
+        unit_tests:
+          - name: test_request_exit_when_idle
+            case: 正常
+            summary: 待機中ならすぐ再起動する
+            condition: current_session が None、kind=restart
+            mock: UiDeps の全関数・Tray
+            expected: request_restart が 1 回呼ばれ、Tray.hide が呼ばれない
+          - name: test_request_exit_when_busy
+            case: 正常
+            summary: 処理中はアイコンを消して待たせる
+            condition: current_session が hotkey・transcribing、kind=quit
+            mock: UiDeps の全関数・Tray
+            expected: Tray.hide が呼ばれ、request_quit が呼ばれない
+      - name: open_settings
+        title: 設定画面を開く
+        summary: 設定画面を開く。開いていれば前面に出すだけにする。新しく開くときはホットキーの受付を止め、設定画面が閉じたら（保存・取り消し・窓の閉じるのどの経路でも）on_settings_closed を呼ぶ
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_open_settings
+            case: 正常
+            summary: 開いている間はホットキーを止め、閉じると張り直す
+            condition: open_settings を呼び、設定画面を取り消しで閉じる
+            mock: UiDeps の全関数
+            expected: suspend_hotkeys が開くときに 1 回、resume_hotkeys が閉じたときに 1 回呼ばれる
+          - name: test_open_settings_when_already_open
+            case: 正常
+            summary: 開いていれば前面に出すだけ
+            condition: open_settings を 2 回呼ぶ
+            mock: UiDeps の全関数
+            expected: SettingsWindow が 1 つだけで、suspend_hotkeys が 1 回だけ呼ばれる
+      - name: on_settings_saved
+        title: 保存した設定の反映
+        summary: 設定画面が保存した後、録音の画面の出し方とトレイのホットキーの表示を新しい設定に合わせる
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+      - name: on_settings_closed
+        title: 設定画面が閉じた
+        summary: 設定画面を手放し、今の設定でホットキーの受付を始める（resume_hotkeys）
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 設定画面を手放す
+          2. resume_hotkeys を呼ぶ
+             - HotkeyError の場合、ホットキーを受け付けないまま続ける（保存した設定は保存の前に受け付けられることを確かめているため、ここに来るのは手で書いた settings.toml だけ）
+               - `[ERROR]` ホットキーを受け付けられなかった（理由）
+      - name: hide_recording
+        title: 録音の画面を隠す
+        summary: RecordingWindow.hide_requested のスロット。その回の録音の画面を隠し、トレイの「録音の画面を出す」を押せるようにする
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 録音の画面が出ていない場合、何もしない
+          2. 窓を隠し（RecordingWindow.hide_window）、隠した印を立てる
+          3. トレイを hidden にする（Tray.set_recording_window）
+        unit_tests:
+          - name: test_hide_recording
+            case: 正常
+            summary: 録音の画面を隠してトレイの項目を押せるようにする
+            condition: current_session が hotkey・recording を返す state_changed で画面を出した後、hide_recording を呼ぶ
+            mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
+            expected: RecordingWindow.hide_window が 1 回呼ばれ、Tray.set_recording_window(hidden) が呼ばれる
+        status: implemented
+      - name: show_recording
+        title: 隠した録音の画面を戻す
+        summary: トレイの「録音の画面を出す」・アイコンの左クリック（Tray.show_window_requested）と、録音開始のホットキー（show_recording_window の知らせ）から呼ぶ。隠した録音の画面を、隠す前の位置にフォーカスを取らずに戻す
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 録音の画面を隠していない場合、何もしない（画面を出さない設定の録音・API の録音・すでに出ている画面を含む）
+          2. 隠した印を下ろし、窓を戻す（RecordingWindow.restore）
+          3. トレイを shown にする（Tray.set_recording_window）
+        unit_tests:
+          - name: test_show_recording_when_not_hidden
+            case: 正常
+            summary: 隠していなければ何もしない
+            condition: current_session が hotkey・recording を返す state_changed で画面を出した後、show_recording を呼ぶ
+            mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
+            expected: RecordingWindow.restore が呼ばれない
+        status: implemented
+      - name: eventFilter
+        title: アプリの終了を受ける
+        summary: QApplication に届く QEvent.Quit を受け、開いている設定画面を確かめずに閉じる（イベントは止めない）。コンストラクタで QApplication に自分を入れる
+        kind: メソッド
+        scope: public
+        args:
+          - name: watched
+            type: QObject
+            required: true
+            passing: positional
+            description: イベントの宛先
+          - name: event
+            type: QEvent
+            required: true
+            passing: positional
+            description: 届いたイベント
+        returns:
+          type: bool
+          description: 常に False（イベントを先へ渡す）
+        process: |-
+          1. QEvent.Quit で、設定画面を開いていれば SettingsWindow.close_without_confirm を呼ぶ
+             - QApplication.quit は窓へ閉じる要求を送る前に QEvent.Quit をアプリのイベントフィルタへ渡すため、トレイの「終了」・「再起動」・SIGINT・SIGBREAK・後から起動したプロセスからの依頼のどれでも、変えた値を捨てる確認を出さずに閉じてイベントループを抜ける
+             - 閉じると on_settings_closed がホットキーの受付を張り直すが、抜けた後の片付け（_stop_all）で止める
+          2. False を返す
+        unit_tests:
+          - name: test_event_filter_when_quit_with_settings_open
+            case: 正常
+            summary: 設定画面を開いて欄を変えたまま終了しても、確かめずに閉じてイベントループを抜ける
+            condition: open_settings で開いて欄の値を変え、イベントループを回して QApplication.quit を呼ぶ
+            mock: UiDeps の全関数・confirm_discard
+            expected: confirm_discard が呼ばれず、設定画面が閉じ、イベントループを抜け、save_settings が呼ばれない
+          - name: test_event_filter_when_quit_without_settings
+            case: 正常
+            summary: 設定画面を開いていなければ何もしない
+            condition: 設定画面を開かずに QEvent.Quit を渡す
+            mock: UiDeps の全関数
+            expected: False を返し、resume_hotkeys が呼ばれない
+        status: implemented
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/録音の画面.py#
+      - dev/設計書/画面設計/常駐アプリ/文字起こし中の表示.py#
+      - dev/設計書/画面設計/常駐アプリ/トレイ.py#
+    status: implemented
+  - name: Tray
+    title: トレイ
+    container: ui/tray.py
+    usecase: トレイから操作する
+    role: 画面
+    summary: QSystemTrayIcon で状態ごとのアイコン・メニュー・通知を出す。選ばれた操作は Signal で伝える
+    description: |-
+      メニューの並び・文言・押せない条件は画面設計「トレイ」、通知の文言は画面設計「トレイの通知」が持つ。
+      アイコンの画像は `resources/tray/{TrayState の値}.png` を起動時に読む。
+      コンストラクタは settings_dir と log_dir（「設定フォルダを開く」「ログフォルダを開く」と、通知を押したときに開くフォルダ）を受ける。
+      アイコンの左クリックは、「録音の画面を出す」が押せれば show_window_requested、「録音を始める」が押せれば start_requested を emit し、どちらも押せなければ何もしない。
+    kind: クラス
+    inherits: PySide6.QtCore.QObject
+    properties:
+      - name: start_requested
+        type: Signal()
+        description: 「録音を始める」・アイコンの左クリック
+      - name: settings_requested
+        type: Signal()
+        description: 「設定…」
+      - name: restart_requested
+        type: Signal()
+        description: 「再起動」
+      - name: quit_requested
+        type: Signal()
+        description: 「終了」
+      - name: _icon
+        type: QSystemTrayIcon
+        access: 内部 (_)
+        description: トレイのアイコン
+      - name: _failed
+        type: bool
+        access: 内部 (_)
+        description: 文字起こしのエンジンを準備できなかった起動か。立つと次の起動まで失敗のまま
+      - name: show_window_requested
+        type: Signal()
+        description: 「録音の画面を出す」・録音の画面を隠している間のアイコンの左クリック
+    methods:
+      - name: set_state
+        title: 状態の切り替え
+        summary: アイコン・ヒント・メニューの押せる項目と文言を状態に合わせる
+        kind: メソッド
+        scope: public
+        args:
+          - name: state
+            type: TrayState
+            required: true
+            passing: positional
+            description: アイコンの状態
+          - name: busy
+            type: bool
+            required: true
+            passing: keyword
+            description: 録音から届けるまでの間か（「録音を始める」「設定…」を「（処理中）」で押せなくする）
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 失敗の起動なら、状態を FAILED のままにし、「録音を始める（準備に失敗）」を押せなくして「設定…」は押せるままにする
+          2. それ以外は、状態の画像とヒント（voice-paste: {状態の名前}）に替え、busy なら「録音を始める（処理中）」「設定…（処理中）」を押せなくする
+          3. 「録音を始める」は押せるときだけ太字にする
+        unit_tests:
+          - name: test_set_state_when_busy
+            case: 正常
+            summary: 処理中は録音と設定を押せなくする
+            condition: set_state(TRANSCRIBING, busy=True)
+            mock: なし（offscreen の QApplication）
+            expected: '「録音を始める（処理中）」と「設定…（処理中）」が押せず、「録音を始める」が太字でなく、ヒントが voice-paste: 文字起こし中'
+          - name: test_set_state_when_failed
+            case: 正常
+            summary: 失敗の起動では設定だけ押せる
+            condition: set_failed() の後に set_state(IDLE, busy=False)
+            mock: なし（offscreen の QApplication）
+            expected: '「録音を始める（準備に失敗）」が押せず、「設定…」が押せ、ヒントが voice-paste: 失敗'
+      - name: set_failed
+        title: 失敗の起動にする
+        summary: 文字起こしのエンジンを準備できなかった起動として、アイコンを失敗にする
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+      - name: set_start_hotkey
+        title: 録音開始のホットキーの表示
+        summary: 「録音を始める」の右に出すホットキーを替える（表示の形は format_hotkey）
+        kind: メソッド
+        scope: public
+        args:
+          - name: hotkey
+            type: str
+            required: true
+            passing: positional
+            description: pynput の書式のホットキー
+        returns:
+          type: None
+          description: なし
+      - name: show_failure
+        title: 失敗の通知
+        summary: 知らせの種類の見出しと本文で Windows の通知を出す（showMessage）。通知を押すとログフォルダを開く
+        kind: メソッド
+        scope: public
+        args:
+          - name: event
+            type: Literal["microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable", "engine_unavailable", "settings_invalid"]
+            required: true
+            passing: positional
+            description: 知らせの種類（engine_unavailable・settings_invalid は起動の失敗）
+          - name: detail
+            type: str | None
+            required: true
+            passing: positional
+            description: 理由
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_show_failure
+            case: 正常
+            summary: 種類ごとの文言で通知する
+            condition: show_failure("transcription_failed", "録音を読めませんでした")
+            mock: QSystemTrayIcon.showMessage
+            expected: 見出し「文字起こしに失敗しました」、本文「録音を読めませんでした。録音は履歴に残っています。」で呼ばれる
+      - name: hide
+        title: アイコンを消す
+        summary: トレイのアイコンを消す（処理中に再起動・終了を選んだときと、終わるとき）
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+      - name: set_recording_window
+        title: 録音の画面を出す項目の切り替え
+        summary: 「録音の画面を出す」の文言・押せるか・太字を、録音の画面の状態に合わせる
+        kind: メソッド
+        scope: public
+        args:
+          - name: state
+            type: RecordingWindowState
+            required: true
+            passing: positional
+            description: 録音の画面の状態
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. hidden の場合、「録音の画面を出す」を押せるようにし、太字にする
+          2. それ以外の場合、押せなくして太字を外し、状態ごとの理由を添える（shown：（表示中）、no_window：（画面を出さない録音）、not_recording：（録音していません））
+        unit_tests:
+          - name: test_set_recording_window_when_hidden
+            case: 正常
+            summary: 隠している間は項目を押せ、太字にする
+            condition: set_state(RECORDING, busy=True) の後に set_recording_window(hidden)
+            mock: なし（offscreen の QApplication）
+            expected: 「録音の画面を出す」が押せて太字、「録音を始める（処理中）」が太字でない
+          - name: test_set_recording_window_when_shown
+            case: 正常
+            summary: 画面が出ている間は理由を添えて押せなくする
+            condition: set_recording_window(shown)
+            mock: なし（offscreen の QApplication）
+            expected: 「録音の画面を出す（表示中）」が押せず、太字でない
+          - name: test_set_recording_window_when_no_window
+            case: 正常
+            summary: 画面を出さない録音では理由を添えて押せなくする
+            condition: set_recording_window(no_window)
+            mock: なし（offscreen の QApplication）
+            expected: 「録音の画面を出す（画面を出さない録音）」が押せず、太字でない
+          - name: test_set_recording_window_when_not_recording
+            case: 正常
+            summary: 録音していないときは理由を添えて押せなくする
+            condition: set_recording_window(not_recording)
+            mock: なし（offscreen の QApplication）
+            expected: 「録音の画面を出す（録音していません）」が押せず、太字でない
+          - name: test_icon_click_when_window_hidden
+            case: 正常
+            summary: 隠している間のアイコンの左クリックは、録音の画面を戻す知らせを出す
+            condition: set_state(RECORDING, busy=True)・set_recording_window(hidden) の後、アイコンの activated(Trigger) を送る
+            mock: なし（show_window_requested・start_requested に受け手をつなぐ）
+            expected: show_window_requested が 1 回 emit され、start_requested が emit されない
+          - name: test_icon_click_when_window_shown
+            case: 正常
+            summary: 録音の画面が出ている間のアイコンの左クリックは何もしない
+            condition: set_state(RECORDING, busy=True)・set_recording_window(shown) の後、アイコンの activated(Trigger) を送る
+            mock: なし（show_window_requested・start_requested に受け手をつなぐ）
+            expected: show_window_requested も start_requested も emit されない
+        status: implemented
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/トレイ.py#
+      - dev/設計書/画面設計/常駐アプリ/トレイの通知.py#
+    status: implemented
+  - name: RecordingWindow
+    title: 録音の画面
+    container: ui/windows/recording_window.py
+    usecase: 録音する
+    role: 画面
+    summary: 状態・経過時間・波形と、一時停止・取り消し・確定のボタンを並べる小さな窓
+    description: |-
+      要素は画面設計「録音の画面」が持つ。
+      窓は `Qt.Tool | Qt.FramelessWindowHint`（`ui.topmost` がオンなら `Qt.WindowStaysOnTopHint` を足す）、`WA_ShowWithoutActivating` で出し、出したときにフォーカスを取らない。
+      経過時間は窓が持つストップウォッチ（QElapsedTimer を一時停止の間だけ止める）で数え、経過時間と波形は WAVE_INTERVAL_MS ごとの QTimer で描き直す。
+      見出しの行（状態・経過時間・隠す・×）は、隠す・× の外を押したまま動かすと `QWindow.startSystemMove` で窓を動かし、その回に動かした印を立てる（open で下ろす）。× は「取り消す」と同じく UiDeps.cancel を呼んで閉じ、「隠す」は hide_requested を emit する（隠すのは UiController）。
+      コンストラクタは UiDeps を受ける。
+    kind: クラス
+    inherits: PySide6.QtWidgets.QWidget
+    properties:
+      - name: _deps
+        type: UiDeps
+        access: 内部 (_)
+        description: 確定・一時停止・取り消し・音量・設定
+      - name: _levels
+        type: collections.deque[float]
+        access: 内部 (_)
+        description: 波形に描く直近の音量（WAVE_BAR_COUNT 本分）
+      - name: hide_requested
+        type: Signal()
+        description: 「隠す」のボタンが押された
+    methods:
+      - name: open
+        title: 画面を出す
+        summary: 新しい録音として経過時間と波形を空にし、設定でオンの出力先のボタン（名前は UiDeps.output_titles）と、有効なカスタムプリセットのボタン（browser・endpoint の順に presets[] の並び。3 件ごとに折り返す）を組み直して、設定の位置に出す（place_window）。プリセットのボタンは押すと UiDeps.complete(None, そのプリセット) を呼ぶ
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+      - name: set_paused
+        title: 一時停止の切り替え
+        summary: 状態の表示と一時停止・再開のボタンを替え、経過時間と波形を止める・動かす
+        kind: メソッド
+        scope: public
+        args:
+          - name: paused
+            type: bool
+            required: true
+            passing: positional
+            description: 一時停止中か
+        returns:
+          type: None
+          description: なし
+      - name: close_window
+        title: 画面を閉じる
+        summary: タイマーを止めて窓を隠す
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+      - name: hide_window
+        title: 画面を隠す
+        summary: その回の録音を続けたまま窓を隠す。ストップウォッチは止めず、描き直しのタイマーだけを止める。窓の位置は残す
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+        status: implemented
+      - name: restore
+        title: 隠した画面を戻す
+        summary: 経過時間・波形・ボタンを組み直さずに、隠す前の位置へフォーカスを取らずに出し、描き直しのタイマーを動かす
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+        status: implemented
+      - name: moved_position
+        title: 動かした位置
+        summary: その回に窓を動かしていれば、窓の左上の座標（隠していれば隠す前の位置）を返す。動かしていなければ None を返す
+        kind: メソッド
+        scope: public
+        returns:
+          type: QPoint | None
+          description: その回に動かした窓の左上の座標。動かしていなければ None
+        status: implemented
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/録音の画面.py#
+    status: implemented
+    notes:
+      テスト: 画面の振る舞い（ボタンで UiDeps の関数が呼ばれること・出し分け）は画面設計を元にした結合テスト（`tests/integration/ui/`）で確かめる。
+  - name: TranscribingIndicator
+    title: 文字起こし中の表示
+    container: ui/windows/transcribing_indicator.py
+    usecase: 録音を文字に起こす
+    role: 画面
+    summary: 確定から届けるまで、経過と残りの時間・進みをフォーカスを取らずに出す
+    description: |-
+      要素は画面設計「文字起こし中の表示」が持つ。窓は `Qt.Tool | Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus` と `WA_ShowWithoutActivating` で出す。
+      残りの時間は、進み（区間の終わり ÷ 録音の長さ）と経過から「経過 ÷ 進み − 経過」で見積もる。
+      コンストラクタは UiDeps と、経過を数える時計 clock（秒を返す関数。既定は time.monotonic）を受ける。
+    kind: クラス
+    inherits: PySide6.QtWidgets.QWidget
+    methods:
+      - name: open
+        title: 表示を出す
+        summary: 経過を 0 にして進みを隠して出す。at を渡されたらその座標（その回に動かした録音の画面の位置）に、渡されなければ設定の位置（place_window）に出す
+        kind: メソッド
+        scope: public
+        args:
+          - name: at
+            type: QPoint | None
+            required: false
+            default: None
+            passing: keyword
+            description: 出す左上の座標（その回に動かした録音の画面の位置）
+        returns:
+          type: None
+          description: なし
+      - name: set_progress
+        title: 進みの反映
+        summary: 進みのバーと残りの時間を書き換える
+        kind: メソッド
+        scope: public
+        args:
+          - name: position_sec
+            type: float
+            required: true
+            passing: positional
+            description: 起こし終えた区間の終わりの時刻
+          - name: duration_sec
+            type: float
+            required: true
+            passing: positional
+            description: 録音の長さ
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_set_progress
+            case: 正常
+            summary: 進みと残りを出す
+            condition: 経過 3.0 秒のときに set_progress(3.1, 5.0)
+            mock: 経過を返す時計
+            expected: 進みのバーが 62、経過と残りの時間が「経過 3.0 秒 残り 2 秒 / 5 秒」
+      - name: close_window
+        title: 表示を閉じる
+        summary: タイマーを止めて窓を隠す
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/文字起こし中の表示.py#
+    status: implemented
+  - name: SettingsWindow
+    title: 設定画面
+    container: ui/windows/settings_window.py
+    usecase: 設定を変える
+    role: 画面
+    summary: Settings のモデルから欄を組み立て、9 つのまとまりに並べ、保存で確かめてから書く
+    description: |-
+      要素と入力チェックは画面設計「設定画面」が持つ。
+      欄は `Settings.model_fields` を辿って型から部品を決め、欄の名前は各項目の `description`、「再起動で反映」の印は `json_schema_extra` の reload から出す。まとまりと型から決まらない部品は画面設計の補足「まとまりと欄」の表を FIELD_LAYOUT に写す。
+      設定のモデルは開いたときの設定のモデル（`type(設定)`。main.py の SETTINGS_MODEL）を使い、失敗の場所の判別子の値から出力先のモデルをその output_models で引く。
+      出力先は outputs[] の 1 件ごとに、名前を UiDeps.output_titles から引いて「オン」と「ホットキー」の欄を置き、その出力先のモデルが id・enabled・hotkey のほかに持つ項目（貼り付けて送信の enter_delay_sec など）を型から決めた部品で並べる。その項目の `json_schema_extra` に note があれば欄の下に出す（出力先の ID ごとの分け方を持たない）。
+      カスタムプリセットは、PRESET_KIND_NAMES の種類ごとにまとまり（「出力先」のすぐ下のタブ）を 1 つ作り、その中に PresetListPanel とその種類の preset_options の欄を置く。Authorization の欄は `QLineEdit.EchoMode.Password` にする。
+      エラーの一覧のプリセットの行は、失敗の場所 `presets[{n}].{項目}` を「プリセット「{タイトル}」の{欄の名前}」（タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」）にし、押すとそのタブへ切り替えて PresetListPanel.focus_field で欄へフォーカスを移す。
+      ホットキーの欄は押したキーを format_hotkey の形で出し、parse_hotkey で pynput の書式に戻す。
+      コンストラクタは UiDeps を受ける。欄の部品は設定のキーを使った objectName（`field_{キー}`。プリセットの欄は画面設計の項目 ID）を持つ。窓が閉じたら（保存・取り消し・窓の閉じるのどの経路でも）closed を emit する。
+    kind: クラス
+    inherits: PySide6.QtWidgets.QWidget
+    properties:
+      - name: saved
+        type: Signal()
+        description: 保存した（UiController.on_settings_saved へ）
+      - name: restart_requested
+        type: Signal()
+        description: 「保存して再起動」「今すぐ再起動」
+      - name: _deps
+        type: UiDeps
+        access: 内部 (_)
+        description: 設定の読み書き
+      - name: _original
+        type: Settings
+        access: 内部 (_)
+        description: 開いたときの設定（変えた欄の数えと「再起動で反映」の変更の判定に使う）
+      - name: closed
+        type: Signal()
+        description: 窓が閉じた（UiController.on_settings_closed へ）
+    methods:
+      - name: collect
+        title: 欄の値の収集
+        summary: 全ての欄の値を settings.toml と同じ形の dict にする
+        kind: メソッド
+        scope: internal
+        returns:
+          type: dict[str, Any]
+          description: Settings.model_validate へ渡す値。presets はブラウザ添付のタブの並び → エンドポイントへ送るのタブの並びの順（各 PresetListPanel.collect をつなぐ）
+      - name: save
+        title: 保存
+        summary: 欄の値を設定のモデルで確かめ、通れば書いて効かせる。通らなければエラーを出す
+        kind: メソッド
+        scope: public
+        args:
+          - name: restart
+            type: bool
+            required: true
+            passing: keyword
+            description: 保存の後に再起動するか（「保存して再起動」）
+        returns:
+          type: bool
+          description: 保存できたか
+        process: |-
+          1. collect した値を Settings.model_validate に渡す
+             - ValidationError の場合、失敗ごとに to_field_message で欄ごとのエラーにし、エラーの一覧と欄の下のエラーを出して一覧へフォーカスを移し、False を返す（入れた値は消さない）
+               - `[INFO]` 設定画面の値が確かめに通らなかった（キーの一覧）
+          2. save_settings（UiDeps）で書いて効かせる
+             - HotkeyError の場合、エラーの一覧に「ホットキーを受け付けられませんでした（{理由}）。別のキーにしてください。」を出し、False を返す（settings.toml は書かれていない）
+               - `[WARNING]` 保存するホットキーを受け付けられなかった（理由）
+             - OSError の場合、エラーの一覧に「設定ファイルを書けませんでした（{理由}）」を出し、False を返す
+               - `[ERROR]` 設定ファイルを書けなかった（logger.exception）
+          3. saved を emit し、restart なら restart_requested を emit して窓を閉じ、True を返す
+        unit_tests:
+          - name: test_save
+            case: 正常
+            summary: 通った値を書く
+            condition: 「録音中の音量の割合」を 30 にして save(restart=False)
+            mock: UiDeps.save_settings
+            expected: True。save_settings に recording.volume_percent=30 の Settings が渡り、saved が 1 回 emit される
+          - name: test_save_when_invalid
+            case: 異常
+            summary: 通らなければ書かずにエラーを出す
+            condition: 「貼り付けてから Enter を送るまでの秒数」に abc
+            mock: UiDeps.save_settings
+            expected: False。save_settings が呼ばれず、エラーの一覧に outputs[0].enter_delay_sec の行が出て、欄の値が abc のまま
+            exception: 確かめに通らない
+          - name: test_save_when_hotkey_unavailable
+            case: 異常
+            summary: ホットキーを受け付けられなければエラーを出して閉じない
+            condition: save_settings が HotkeyError を送出する
+            mock: UiDeps.save_settings
+            expected: False。エラーの一覧に「ホットキーを受け付けられませんでした」の行が出て、saved が emit されず、窓が開いたまま
+            exception: ホットキーを受け付けられない
+          - name: test_save_when_presets
+            case: 正常
+            summary: タブごとのプリセットを 1 つの一覧にして書く
+            condition: エンドポイントへ送るのタブでプリセットを 1 件足し、ブラウザ添付のタブでも 1 件足して（どちらもタイトル・URL を入れる）save(restart=False)
+            mock: UiDeps.save_settings
+            expected: True。save_settings に渡った Settings の presets が [browser の 1 件, endpoint の 1 件] の順
+          - name: test_save_when_preset_invalid
+            case: 異常
+            summary: タイトルが空のプリセットは書かずにエラーを出す
+            condition: ブラウザ添付のタブでプリセットを 1 件足し、URL だけ入れて save(restart=False)
+            mock: UiDeps.save_settings
+            expected: 'False。save_settings が呼ばれず、エラーの一覧に「プリセット 1 件目のタイトル: タイトルを入れてください。」の行が出る'
+            exception: 確かめに通らない
+      - name: reset_to_defaults
+        title: 既定に戻す
+        summary: confirm_reset で確かめ、戻すなら開いたときの設定と同じ設定のモデルの既定値（`type(開いたときの設定)()`）を書いて欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+      - name: try_close
+        title: 取り消し
+        summary: 欄を変えていなければ閉じ、変えていれば confirm_discard で確かめて捨てるなら閉じる。closeEvent・Esc・キャンセルが呼ぶ
+        kind: メソッド
+        scope: public
+        returns:
+          type: bool
+          description: 閉じたか
+      - name: close_without_confirm
+        title: 確かめずに閉じる
+        summary: 変えた値を捨てる確認を出さずに閉じる（変えた値は保存しない）。アプリの終了・再起動のときに UiController が呼ぶ
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+        process: 1. 強制で閉じる印（`_force_close`）を立てて窓を閉じる。closeEvent は確認を出さずに閉じ、closed を知らせる
+        unit_tests:
+          - name: test_close_without_confirm
+            case: 正常
+            summary: 欄を変えたままでも確認を出さずに閉じる
+            condition: 欄の値を変えてから close_without_confirm を呼ぶ
+            mock: UiDeps の全関数・confirm_discard
+            expected: confirm_discard が呼ばれず、closed が 1 回知らされ、save_settings が呼ばれない
+        status: implemented
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/設定画面.py#
+    status: implemented
+  - name: PresetListPanel
+    title: プリセットの一覧
+    container: ui/windows/settings_presets.py
+    usecase: 設定を変える
+    role: 画面の部品
+    kind: クラス
+    inherits: PySide6.QtWidgets.QWidget
+    summary: 設定画面の 1 つの種類のタブに置く、プリセットのまとまりの縦の並びと「プリセットを足す」。足す・消す・上へ・下へを受ける
+    description: |-
+      要素（有効の切り替え・タイトル・URL・Enter まで送る・Authorization・確定のホットキー・上へ・下へ・消す・足す・空の案内）と読み上げの名前は画面設計「設定画面」が持つ。
+      種類ごとに違う欄（browser は Enter まで送る、endpoint は Authorization）は、種類の設定のモデル（BrowserPreset・EndpointPreset）の共通でない項目から組み立てる。
+      並べ替え・足す・消すはこの部品の中だけを変え、settings.toml へは設定画面の保存で書く。
+    properties:
+      - name: kind
+        type: str
+        description: この一覧が持つプリセットの種類（browser・endpoint）
+      - name: changed
+        type: Signal()
+        description: 足す・消す・並べ替え・欄の入力で値が変わった（設定画面が変えた欄の数えに使う）
+    methods:
+      - name: set_presets
+        title: 一覧に入れる
+        kind: メソッド
+        scope: public
+        summary: 渡したプリセット（この種類のものだけ）で一覧を作り直す。空なら空の案内を出す
+        args:
+          - name: presets
+            type: Sequence[Preset]
+            required: true
+            passing: positional
+            description: この種類のプリセット（設定の presets[] の並び）
+        returns:
+          type: None
+          description: なし
+      - name: collect
+        title: 一覧の値の収集
+        kind: メソッド
+        scope: public
+        summary: 今の並びのプリセットを settings.toml と同じ形の dict の並びにする（kind を含める。ホットキーは parse_hotkey で pynput の書式に戻し、空は空文字）
+        returns:
+          type: list[dict[str, Any]]
+          description: この種類のプリセットの並び
+        unit_tests:
+          - name: test_preset_list_panel_collect
+            case: 正常
+            summary: 入れたプリセットをそのまま集める
+            condition: kind endpoint の一覧に、hotkey <ctrl>+<alt>+4・authorization Bearer x のプリセットと hotkey が空のプリセットを set_presets する
+            mock: なし（offscreen）
+            expected: collect が 2 件を同じ並びで返し、kind が endpoint、1 件目の hotkey が <ctrl>+<alt>+4・authorization が Bearer x、2 件目の hotkey が空文字
+          - name: test_preset_list_panel_move
+            case: 正常
+            summary: 下へで並びを入れ替える
+            condition: A・B の 2 件で、A の「下へ」を押す
+            mock: なし（offscreen）
+            expected: collect のタイトルが B・A の順
+      - name: add_preset
+        title: プリセットを足す
+        kind: メソッド
+        scope: public
+        summary: 末尾に空のプリセット（有効。browser は Enter まで送るがオン）を足し、タイトルの欄へフォーカスを移して changed を emit する。「プリセットを足す」が呼ぶ
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_preset_list_panel_add_preset
+            case: 正常
+            summary: 足したプリセットは有効で Enter まで送る
+            condition: kind browser の空の一覧で add_preset を呼ぶ
+            mock: なし（offscreen）
+            expected: collect が 1 件（enabled True・send_enter True・title・url・hotkey が空）を返し、changed が 1 回 emit される
+      - name: focus_field
+        title: 欄へフォーカスを移す
+        kind: メソッド
+        scope: public
+        summary: この一覧の中の何件目かと項目の名前で欄を探し、フォーカスを移す（エラーの一覧の行を押したとき）
+        args:
+          - name: position
+            type: int
+            required: true
+            passing: positional
+            description: この一覧の中の何件目か（0 から）
+          - name: field
+            type: str
+            required: true
+            passing: positional
+            description: 項目の名前（title・url・hotkey など）
+        returns:
+          type: None
+          description: なし
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/設定画面.py#
+    status: implemented
 functions:
   - name: notify
     title: ユーザーへの知らせ
@@ -70,23 +1071,491 @@ functions:
     summary: UiBridge.notified を emit して、メインスレッドでトレイのアイコン・ダイアログ・画面を変える
     args:
       - name: event
-        type: Literal["state_changed", "busy", "microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable"]
+        type: Literal["state_changed", "busy", "microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable", "show_recording_window"]
         required: true
         passing: positional
-        description: 知らせの種類
+        description: 知らせの種類（show_recording_window は、録音開始のホットキーで隠した録音の画面を戻す指示）
       - name: detail
         type: str | None
         required: false
         default: None
         passing: positional
         description: 理由
+      - name: bridge
+        type: UiBridge
+        required: true
+        passing: injected
+        description: メインスレッドで作った橋渡し
     returns:
       type: None
       description: なし
-    notes:
-      画面の中身: '各知らせでどの画面・ダイアログをどう出すかは #21 の画面設計で決める。録音の画面は表示中も最前面を保つ（#4）。'
-    status: planned
+    status: implemented
+    process: |-
+      1. `bridge.notified.emit(event, detail)` を呼ぶ
+         - `[INFO]` / `[WARNING]` ユーザーへの知らせ（種類・理由。state_changed と show_recording_window は INFO、それ以外は WARNING）
+    unit_tests:
+      - name: test_notify
+        case: 正常
+        summary: 知らせを Signal で渡す
+        condition: event=delivery_failed、detail="クリップボードに書けない"
+        mock: なし（notified に受け手をつなぐ）
+        expected: 受け手に (delivery_failed, クリップボードに書けない) が届き、WARNING のログが 1 行出る
+      - name: test_notify_from_other_thread
+        case: 正常
+        summary: ほかのスレッドからの知らせをメインスレッドで受ける
+        condition: threading.Thread から notify(state_changed) を呼び、イベントループを回す
+        mock: なし（QueuedConnection の受け手）
+        expected: 受け手がメインスレッドで 1 回呼ばれる
+  - name: report_progress
+    title: 文字起こしの進みの知らせ
+    container: ui/bridge.py
+    usecase: 録音を文字に起こす
+    summary: UiBridge.progressed を emit して、文字起こし中の表示の進みを変える
+    kind: 関数
+    inherits: ProgressFn
+    scope: public
+    thread_safe: true
+    args:
+      - name: position_sec
+        type: float
+        required: true
+        passing: positional
+        description: 起こし終えた区間の終わりの時刻
+      - name: duration_sec
+        type: float
+        required: true
+        passing: positional
+        description: 録音の長さ
+      - name: bridge
+        type: UiBridge
+        required: true
+        passing: injected
+        description: メインスレッドで作った橋渡し
+    returns:
+      type: None
+      description: なし
+    unit_tests:
+      - name: test_report_progress
+        case: 正常
+        summary: 進みを Signal で渡す
+        condition: position_sec=3.1、duration_sec=5.0
+        mock: なし（progressed に受け手をつなぐ）
+        expected: 受け手に (3.1, 5.0) が届く
+    status: implemented
+  - name: place_window
+    title: 画面の配置
+    container: ui/placement.py
+    usecase: 録音する
+    summary: 設定のモニター（カーソルのあるモニターか主のモニター）の作業領域の、設定の位置に窓を置く左上の座標を返す
+    kind: 関数
+    scope: public
+    args:
+      - name: window_size
+        type: QSize
+        required: true
+        passing: positional
+        description: 窓の大きさ
+      - name: available
+        type: QRect
+        required: true
+        passing: positional
+        description: 置くモニターの作業領域（呼ぶ側が `QGuiApplication.screenAt(QCursor.pos())` か主のモニターから引く）
+      - name: position
+        type: Literal["center", "top-left", "top-right", "bottom-left", "bottom-right"]
+        required: true
+        passing: positional
+        description: ui.position
+    returns:
+      type: QPoint
+      description: 窓の左上。端に置くときは作業領域から WINDOW_MARGIN_PX だけ離す
+    unit_tests:
+      - name: test_place_window_when_center
+        case: 正常
+        summary: 中央に置く
+        condition: 窓 400x200、作業領域 (0, 0, 1920, 1040)、center
+        mock: なし
+        expected: (760, 420)
+      - name: test_place_window_when_bottom_right
+        case: 正常
+        summary: 右下に余白を空けて置く
+        condition: 窓 400x200、作業領域 (1920, 0, 2560, 1400)、bottom-right
+        mock: なし
+        expected: (1920 + 2560 - 400 - WINDOW_MARGIN_PX, 1400 - 200 - WINDOW_MARGIN_PX)
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[ui.position]
+      - dev/設計書/設定/常駐アプリ#settings[ui.follow_cursor]
+    status: implemented
+  - name: build_stylesheet
+    title: スタイルシートの組み立て
+    container: ui/style.py
+    usecase: 共通
+    summary: tokens.toml（デザイン方針の色・書体・余白）を QSS に埋め、アプリ全体のスタイルシートを返す。部品ごとに色・書体を直書きしない
+    kind: 関数
+    scope: public
+    args:
+      - name: dark
+        type: bool
+        required: true
+        passing: positional
+        description: OS が暗いテーマか（`QGuiApplication.styleHints().colorScheme()`）
+    returns:
+      type: str
+      description: QApplication.setStyleSheet へ渡す QSS
+    unit_tests:
+      - name: test_build_stylesheet
+        case: 正常
+        summary: 明暗ごとのトークンを埋める
+        condition: dark=True と False
+        mock: なし
+        expected: それぞれ tokens.toml の dark・light の背景色が入り、`{` と `}` の数が合う
+    status: implemented
+  - name: show_busy_dialog
+    title: 処理中のダイアログ
+    container: ui/windows/busy_dialog.py
+    usecase: 録音する
+    summary: 「常に手前に表示」の QMessageBox で、処理中のため録音を始められないことを知らせる。既に出ていれば前面に出すだけにする
+    kind: 関数
+    scope: public
+    returns:
+      type: None
+      description: なし（モーダルを open で開いてすぐ戻る。exec でメインスレッドを止めない）
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/処理中のダイアログ.py#
+    status: implemented
+  - name: confirm_discard
+    title: 変えた値を捨てる確認
+    container: ui/windows/settings_window.py
+    usecase: 設定を変える
+    summary: 変えた値を捨てて閉じるかを QMessageBox で確かめる。最初のフォーカスと Esc は「設定画面へ戻る」
+    kind: 関数
+    scope: public
+    args:
+      - name: parent
+        type: QWidget
+        required: true
+        passing: positional
+        description: 設定画面
+      - name: changed_count
+        type: int
+        required: true
+        passing: positional
+        description: 保存していない変更の件数
+    returns:
+      type: bool
+      description: 捨てて閉じるなら True
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/変えた値を捨てる確認.py#
+    status: implemented
+  - name: confirm_reset
+    title: 既定に戻す確認
+    container: ui/windows/settings_window.py
+    usecase: 設定を変える
+    summary: 全ての設定を既定に戻すかを QMessageBox で確かめる。最初のフォーカスと Esc は「設定画面へ戻る」
+    kind: 関数
+    scope: public
+    args:
+      - name: parent
+        type: QWidget
+        required: true
+        passing: positional
+        description: 設定画面
+    returns:
+      type: bool
+      description: 戻すなら True
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/既定に戻す確認.py#
+    status: implemented
+  - name: format_hotkey
+    title: ホットキーの表示の形
+    container: ui/windows/settings_window.py
+    usecase: 設定を変える
+    summary: pynput の書式（`<ctrl>+<alt>+d`）を画面の形（`Ctrl+Alt+D`）にする。録音の画面・トレイも使う
+    kind: 関数
+    scope: public
+    args:
+      - name: hotkey
+        type: str
+        required: true
+        passing: positional
+        description: pynput の書式
+    returns:
+      type: str
+      description: 画面の形
+    unit_tests:
+      - name: test_format_hotkey
+        case: 正常
+        summary: 修飾キーと文字を画面の形にする
+        condition: <ctrl>+<alt>+d、<ctrl>+<shift>+<f5>
+        mock: なし
+        expected: Ctrl+Alt+D、Ctrl+Shift+F5
+    status: implemented
+  - name: parse_hotkey
+    title: ホットキーの書式への変換
+    container: ui/windows/settings_window.py
+    usecase: 設定を変える
+    summary: ホットキーの欄で押されたキーの組み合わせ（QKeyCombination）を pynput の書式にする
+    kind: 関数
+    scope: public
+    args:
+      - name: combination
+        type: QKeyCombination
+        required: true
+        passing: positional
+        description: 押されたキー
+    returns:
+      type: str | None
+      description: pynput の書式。修飾キーだけ・Tab・Esc のときは None（欄に入れない）
+    unit_tests:
+      - name: test_parse_hotkey
+        case: 正常
+        summary: 押されたキーを pynput の書式にする
+        condition: Ctrl+Alt+D、Ctrl+Shift+F5
+        mock: なし
+        expected: <ctrl>+<alt>+d、<ctrl>+<shift>+<f5>
+      - name: test_parse_hotkey_when_modifier_only
+        case: 正常
+        summary: 修飾キーだけは入れない
+        condition: Ctrl だけ、Esc
+        mock: なし
+        expected: None
+    status: implemented
+  - name: to_field_message
+    title: 欄のエラーの文言
+    container: ui/windows/settings_window.py
+    usecase: 設定を変える
+    summary: pydantic の失敗 1 件を、画面設計「設定画面」の入力チェックの文言にする
+    kind: 関数
+    scope: public
+    args:
+      - name: error
+        type: pydantic_core.ErrorDetails
+        required: true
+        passing: positional
+        description: ValidationError.errors() の 1 件
+      - name: model
+        type: type[Settings]
+        required: true
+        passing: keyword
+        description: 失敗の場所から項目（既定値・範囲）を引く設定のモデル。出力先の項目はその output_models から引く。SettingsWindow は開いたときの設定のモデル（`type(設定)`）を渡す（ui は features・main を import しない）
+    returns:
+      type: str
+      description: 欄の下とエラーの一覧に出す文言
+    process: |-
+      1. type と場所で文言を選ぶ
+         - float_parsing・int_parsing・int_from_float: 「数値を入れてください（例: {既定の値}）。」
+         - greater_than_equal・less_than_equal・greater_than: 「{最小}〜{最大} の値を入れてください。」（上限が無ければ「{最小} 以上の値を入れてください。」）
+         - string_too_short（プリセットのタイトル）: 「タイトルを入れてください。」
+         - URL の形が合わない（プリセットの URL）: 空なら「URL を入れてください（例: https://example.com/hook）。」、空でなければ「http:// か https:// で始まる URL を入れてください。」
+         - hotkey_overlap（find_hotkey_overlaps）: 重なった先がプリセットなら「プリセット「{タイトル}」と同じキーです。別のキーにしてください。」（もう一方の種類のプリセットなら「「{種類}」のプリセット「{タイトル}」と同じキーです。別のキーにしてください。」）、それ以外は「「{重なった欄の名前}」と同じホットキーです。別のキーにしてください。」
+         - それ以外: pydantic の msg をそのまま出す
+    unit_tests:
+      - name: test_to_field_message_when_not_number
+        case: 正常
+        summary: 数値でない文字
+        condition: outputs[0].enter_delay_sec に abc を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
+        mock: なし
+        expected: '数値を入れてください（例: 0.5）。'
+      - name: test_to_field_message_when_out_of_range
+        case: 正常
+        summary: 範囲の外
+        condition: api.port に 80 を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
+        mock: なし
+        expected: 1024〜65535 の値を入れてください。
+      - name: test_to_field_message_when_preset_url_empty
+        case: 正常
+        summary: プリセットの URL が空
+        condition: presets[0] を kind endpoint・url が空にした SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
+        mock: なし
+        expected: 'URL を入れてください（例: https://example.com/hook）。'
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/設定画面.py#
+    status: implemented
+  - name: validate_hotkeys
+    title: ホットキーの書式の確かめ
+    container: runtime/hotkey.py
+    usecase: 設定を変える
+    summary: ホットキーを pynput が読めるかを、受付を始めずに確かめる（`keyboard.HotKey.parse`）
+    kind: 関数
+    scope: public
+    args:
+      - name: hotkeys
+        type: Iterable[str]
+        required: true
+        passing: positional
+        description: pynput の書式のホットキー
+    returns:
+      type: None
+      description: なし
+    exceptions:
+      - name: HotkeyError
+        condition: 読めないホットキーがある（メッセージにそのホットキーを出す）
+    unit_tests:
+      - name: test_validate_hotkeys
+        case: 正常
+        summary: 読める書式は通す
+        condition: '["<ctrl>+<alt>+d", "<ctrl>+<shift>+<f5>"]'
+        mock: なし
+        expected: 例外が出ない
+      - name: test_validate_hotkeys_when_invalid
+        case: 異常
+        summary: 読めない書式を断る
+        condition: '["<ctrl>+<nokey>"]'
+        mock: なし
+        expected: HotkeyError が送出され、メッセージに <ctrl>+<nokey> が出る
+        exception: 読めないホットキーがある
+    refs:
+      - dev/設計書/外部ライブラリ/pynput#
+    status: implemented
 notes:
   画面が触ってよいもの: |-
-    ui は配線された SessionManager のメソッド（開始・一時停止・再開・確定・取り消し）と、共通の設定のモデルだけを呼ぶ。録音・文字起こし・出力先を直に呼ばない。
+    ui は UiDeps の関数（配線された SessionManager のメソッド・音量・設定の読み書き・再起動と終了）と、共通の設定のモデルだけを呼ぶ。録音・文字起こし・出力先を直に呼ばない。
     設定画面の欄は Settings のモデルから組み立て、項目を足しても画面の直しが増えないようにする。
+  スレッド: |-
+    画面の部品はメインスレッド（Qt のイベントループ）だけが触る。API・ホットキー・ワーカーのスレッドからは notify・report_progress で UiBridge の Signal を emit するだけにする。
+    ホットキーが呼ぶ関数は SessionManager（ロックで守られている）だけを呼び、画面は state_changed の知らせで変える。
+  テスト: 画面を使う単体テスト・結合テストは `QT_QPA_PLATFORM=offscreen` で QApplication を 1 つ作り、操作は PySide6 の QtTest（QTest）で行う。画面の振る舞いは画面設計を元にした結合テスト（`tests/integration/ui/`）で確かめる。
+data_models:
+  - name: UiDeps
+    title: 画面の依存
+    container: ui/controller.py
+    usecase: 共通
+    role: DTO
+    summary: 画面・トレイが呼ぶ配線済みの関数。ui は features を import せず、main.py がこの束を渡す
+    description: '`@dataclass(frozen=True, slots=True, kw_only=True)`。'
+    properties:
+      - name: start
+        type: Callable[[], None]
+        description: トレイからの録音の開始（entry=tray を部分適用した start_local_session）
+      - name: pause
+        type: Callable[[], None]
+        description: SessionManager.pause
+      - name: resume
+        type: Callable[[], None]
+        description: SessionManager.resume
+      - name: complete
+        type: Callable[[str, str | None], None]
+        description: 固定の出力先の ID かカスタムプリセットのどちらかで確定する（SessionManager.complete を output_id・preset で呼ぶ）
+      - name: cancel
+        type: Callable[[], None]
+        description: SessionManager.cancel
+      - name: current_session
+        type: Callable[[], Session | None]
+        description: SessionManager.current
+      - name: level
+        type: Callable[[], float]
+        description: 録音中の音量（0.0〜1.0。Recorder.level）
+      - name: get_settings
+        type: Callable[[], Settings]
+        description: 今効いている設定（SettingsStore.get）
+      - name: save_settings
+        type: Callable[[Settings], bool]
+        description: 設定を書いて効かせ、再起動が要る項目が変わったかを返す（apply_settings）
+      - name: settings_dir
+        type: Path
+        description: settings.toml のあるフォルダ
+      - name: log_dir
+        type: Path
+        description: ログのフォルダ
+      - name: request_restart
+        type: Callable[[], None]
+        description: 終わった後に起動し直すようにしてイベントループを抜ける
+      - name: request_quit
+        type: Callable[[], None]
+        description: イベントループを抜ける（QApplication.quit）
+      - name: suspend_hotkeys
+        type: Callable[[], None]
+        description: ホットキーの受付を止める（HotkeyListener.stop）。設定画面を開いている間、欄で押したキーで録音が始まらないようにする
+      - name: resume_hotkeys
+        type: Callable[[], None]
+        description: 今の設定でホットキーの受付を始める（build_hotkey_bindings → HotkeyListener.start）。設定画面を閉じたときに呼ぶ
+      - name: output_titles
+        type: Mapping[str, str]
+        description: 画面に出す出力先の名前（出力先の ID → OUTPUTS の title。API 専用の出力先を除く）。設定画面の欄と録音の画面のボタンが引く
+    status: implemented
+enums:
+  - name: TrayState
+    title: トレイの状態
+    container: ui/tray.py
+    usecase: トレイから操作する
+    summary: トレイのアイコンとヒントの出し分け。値は `resources/tray/{値}.png` のファイル名
+    values:
+      - value: starting
+        member: STARTING
+        title: 準備中
+        description: 起動してから待機中になるまで
+      - value: idle
+        member: IDLE
+        title: 待機中
+        description: セッションが無い
+      - value: recording
+        member: RECORDING
+        title: 録音中
+        description: recording・paused・stopped
+      - value: transcribing
+        member: TRANSCRIBING
+        title: 文字起こし中
+        description: transcribing・delivering
+      - value: failed
+        member: FAILED
+        title: 失敗
+        description: 文字起こしのエンジンを準備できなかった起動。次の起動まで続く
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/トレイ.py#
+    status: implemented
+  - name: RecordingWindowState
+    title: 録音の画面の状態
+    container: ui/tray.py
+    usecase: 録音する
+    summary: トレイの「録音の画面を出す」の出し分け
+    values:
+      - value: hidden
+        member: HIDDEN
+        title: 隠している
+        description: hotkey・tray の recording・paused で、その回の録音の画面を隠している。項目を押せる
+      - value: shown
+        member: SHOWN
+        title: 表示中
+        description: hotkey・tray の recording・paused で、録音の画面が出ている
+      - value: no_window
+        member: NO_WINDOW
+        title: 画面を出さない録音
+        description: '`recording.hide_window` がオンの録音か、api の録音'
+      - value: not_recording
+        member: NOT_RECORDING
+        title: 録音していない
+        description: 待機中・文字起こし中・準備に失敗した起動
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/トレイ.py#elements[録音の画面を出す]
+    status: implemented
+constants:
+  - name: WAVE_INTERVAL_MS
+    title: 波形を描き直す間隔
+    container: ui/windows/recording_window.py
+    usecase: 録音する
+    summary: 録音の画面が経過時間と波形を描き直す間隔。PoC で 100 ms ごとのタイマーの発火の間隔の最大が 123 ms だったため、波形が滑らかに流れる 50 ms にしてもメインスレッドを塞がない
+    value: '50'
+    status: implemented
+  - name: WAVE_BAR_COUNT
+    title: 波形の棒の本数
+    container: ui/windows/recording_window.py
+    usecase: 録音する
+    summary: 録音の画面の波形に並べる棒の本数（モックと同じ）
+    value: '24'
+    status: implemented
+  - name: WINDOW_MARGIN_PX
+    title: 画面の端の余白
+    container: ui/placement.py
+    usecase: 録音する
+    summary: 録音の画面を作業領域の端に置くときに空ける余白（論理ピクセル）
+    value: '24'
+    status: implemented
+test_files:
+  - tests/unit/voice_paste/runtime/test_hotkey.py
+  - tests/unit/voice_paste/ui/test_bridge.py
+  - tests/unit/voice_paste/ui/test_controller.py
+  - tests/unit/voice_paste/ui/test_tray.py
+  - tests/unit/voice_paste/ui/test_placement.py
+  - tests/unit/voice_paste/ui/test_style.py
+  - tests/unit/voice_paste/ui/windows/test_transcribing_indicator.py
+  - tests/unit/voice_paste/ui/windows/test_settings_window.py
+  - tests/unit/voice_paste/ui/windows/test_settings_presets.py

@@ -9,7 +9,8 @@ from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
-from voice_paste.shared.types import Entry, Recording, TranscriptionOutcome
+from voice_paste.shared.settings import Preset
+from voice_paste.shared.types import Entry, ProgressFn, Recording, TranscriptionOutcome
 
 if TYPE_CHECKING:
     from voice_paste.features.session.service import SessionManager
@@ -56,8 +57,8 @@ class Session:
     output_id: str | None
     """ホットキー・トレイから始めた録音で、確定の操作で選んだ出力先の ID。"""
 
-    output_target: str | None
-    """ホットキー・トレイから始めた録音で、確定の操作で選んだ出力先に固有の宛先（AI チャットの送り先の URL）。持たない出力先は None。"""
+    output_preset: Preset | None
+    """ホットキー・トレイから始めた録音で、確定の操作で選んだカスタムプリセット（確定したときの設定の写し）。固定の出力先を選んだときと API のときは None。"""
 
     recording: Recording | None = None
     """API の録音を止めた後、完了までセッションが持つ貯めた音。"""
@@ -72,7 +73,7 @@ type StopRecordingFn = Callable[[], Recording]
 type SaveRecordingFn = Callable[[str, Recording], Path]
 """セッションの ID と確定した録音を受け、履歴（残さない設定なら一時の音声）へ書いたパスを返す。"""
 
-type TranscribeFn = Callable[[Path, Callable[[float, float], None] | None], str]
+type TranscribeFn = Callable[[Path, ProgressFn | None], str]
 """録音のファイルと進みを知らせる関数を受け、起こした文字を返す。失敗は TranscriptionError。"""
 
 type AppendTextFn = Callable[[Path, str], None]
@@ -140,6 +141,9 @@ class SessionDeps:
 
     discard_temporary: Callable[[Path], None]
     """処理を終えた録音が一時の音声なら消す（履歴の discard_temporary）。"""
+
+    report_progress: ProgressFn
+    """ホットキー・トレイの録音で、文字起こしの進みを画面へ知らせる（配線では ui の report_progress）。"""
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

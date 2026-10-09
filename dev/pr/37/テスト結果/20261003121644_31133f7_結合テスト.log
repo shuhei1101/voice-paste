@@ -1,0 +1,24 @@
+$ venv/Scripts/python.exe -m pytest tests/integration
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\design-ui-rebuild-with-pyside6
+configfile: pyproject.toml
+plugins: anyio-4.13.0, platformdirs-4.12.2
+collected 222 items
+
+tests\integration\test_complete_session.py .......                       [  3%]
+tests\integration\test_deliver_to_caller.py ......                       [  5%]
+tests\integration\test_deliver_to_output.py ...                          [  7%]
+tests\integration\test_start_session.py ........                         [ 10%]
+tests\integration\test_stop_session.py .......                           [ 13%]
+tests\integration\test_truncate_session.py ..                            [ 14%]
+tests\integration\ui\test_busy_dialog.py ..........                      [ 19%]
+tests\integration\ui\test_recording_window.py .......................... [ 31%]
+.............                                                            [ 36%]
+tests\integration\ui\test_settings_window.py ........................... [ 49%]
+.....................................................                    [ 72%]
+tests\integration\ui\test_transcribing_indicator.py .................    [ 80%]
+tests\integration\ui\test_tray.py ..........................             [ 92%]
+tests\integration\ui\test_tray_notification.py .................         [100%]
+
+============================ 222 passed in 26.02s =============================

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ダイアログで知らせる（案 B） | voice-paste のモック</title>
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+</head>
+<body>
+  <!-- モック専用の操作列: 同じ階層の案の切り替え -->
+  <nav class="mock-bar" aria-label="案の切り替え（モック専用）">
+    <span class="mock-bar__label">案</span>
+    <ul>
+      <li><a href="../a-notification/index.html">A: 全てトレイの通知</a></li>
+      <li><a href="../b-dialog/index.html" aria-current="page">B: 文字起こし・届けるの失敗はダイアログ</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">tray-notification</a> / <a href="../">37</a> / <span>b-dialog</span></nav>
+
+    <!-- 画面の説明 -->
+    <header class="intro">
+      <h1>ダイアログで知らせる（案 B）</h1>
+      <p>文字起こしに失敗・届けられないの 2 つだけをダイアログで知らせる。マイク・API・エンジンの準備の失敗は案 A と同じ通知で知らせる。</p>
+    </header>
+
+    <div class="desk">
+
+      <!-- 場面: 文字起こしに失敗 -->
+      <section class="specimen" aria-labelledby="h-tr">
+        <h2 id="h-tr">文字起こしに失敗</h2>
+        <div class="win dialog" role="alertdialog" aria-labelledby="d-tr" aria-describedby="b-tr">
+          <div class="titlebar"><span class="titlebar__app">voice-paste</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="dialog__main">
+            <svg class="dialog__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.01"/></svg>
+            <div>
+              <h3 id="d-tr">文字起こしに失敗しました</h3>
+              <p id="b-tr">録音を読めませんでした。録音は履歴に残っています。</p>
+              <p class="detail"><code>TranscriptionError: invalid WAV header</code></p>
+            </div>
+          </div>
+          <div class="dialog__actions">
+            <a class="btn" href="../../../tray/37/a-standard/index.html">ログフォルダを開く</a>
+            <a class="btn btn--primary" href="../../../tray/37/a-standard/index.html">閉じる</a>
+          </div>
+        </div>
+        <p class="scene-note">「常に手前に表示」で出し、閉じるまで残る。ダイアログが出ていても、次の録音は始められる。</p>
+      </section>
+
+      <!-- 場面: 届けられない -->
+      <section class="specimen" aria-labelledby="h-dl">
+        <h2 id="h-dl">届けられない</h2>
+        <div class="win dialog" role="alertdialog" aria-labelledby="d-dl" aria-describedby="b-dl">
+          <div class="titlebar"><span class="titlebar__app">voice-paste</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="dialog__main">
+            <svg class="dialog__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.01"/></svg>
+            <div>
+              <h3 id="d-dl">届けられませんでした</h3>
+              <p id="b-dl">クリップボードに書けませんでした（ほかのアプリが使っています）。起こした文字は履歴に残っています。</p>
+              <p class="detail"><code>pyperclip.PyperclipWindowsException: Error calling OpenClipboard</code></p>
+            </div>
+          </div>
+          <div class="dialog__actions">
+            <a class="btn" href="../../../tray/37/a-standard/index.html">ログフォルダを開く</a>
+            <a class="btn btn--primary" href="../../../tray/37/a-standard/index.html">閉じる</a>
+          </div>
+        </div>
+        <p class="scene-note">「常に手前に表示」で出し、閉じるまで残る。ダイアログが出ていても、次の録音は始められる。</p>
+      </section>
+
+      <!-- 場面: ほかの知らせ -->
+      <section class="specimen" aria-labelledby="h-others">
+        <h2 id="h-others">ほかの知らせ</h2>
+        <p class="scene-note">マイクを開けない・API の待ち受けに失敗・文字起こしのエンジンを準備できないは、<a href="../a-notification/index.html">案 A</a> と同じトレイの通知で知らせる。</p>
+      </section>
+
+    </div>
+  </main>
+</body>
+</html>

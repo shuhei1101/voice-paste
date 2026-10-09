@@ -9,12 +9,12 @@ catalogs:
     entries:
       - name: msedge --app={URL}
         kind: コマンド
-        purpose: AI チャットの画面をアプリのウィンドウとして開く（`msedge` が PATH に無ければ Program Files の既定の場所を探し、無ければ既定のブラウザで URL を開く）
+        purpose: ブラウザ添付のプリセットの画面をアプリのウィンドウとして開く（`msedge` が PATH に無ければ Program Files の既定の場所を探し、無ければ既定のブラウザで URL を開く）
 lead: Windows に入っている Web ブラウザ。`--app` でページをアプリのウィンドウとして開ける。
 dependency_scope: 任意
 adoption: 採用
 used_in:
-  - voice_paste_legacy/main.py
+  - src/voice_paste/integrations/browser/opener.py
 verification:
   state: 未確認
   detail: Edge の画面を開くと使っているデスクトップに窓が出るため、動かしていない。起動の引数（--app）の組み立てと探し方は単体テストで Mock にして確かめている

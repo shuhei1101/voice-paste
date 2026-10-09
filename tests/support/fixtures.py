@@ -10,6 +10,7 @@ import pytest
 from tests.integration.helpers import CallbackReceiver
 from tests.support.inprocess import InProcessApp, WavInput, start_inprocess_app
 from tests.support.real_service import RealService
+from tests.support.resident_app import kill_service_processes_for
 from voice_paste.shared.settings import Settings
 
 
@@ -24,13 +25,12 @@ def receiver() -> Iterator[CallbackReceiver]:
 
 @pytest.fixture
 def start_service(tmp_path: Path) -> Iterator[Callable[..., RealService]]:
-    """本物の常駐サービスを起動する関数を返す。起動したサービスは、テストの後に終わらせる。"""
+    """本物の常駐サービスを起動する関数を返す。起動したサービスは、テストの後に終わらせる（同じ置き場所で後から起動したプロセスも止める）。"""
     started: list[RealService] = []
 
     def _start(
         extra_settings: str = "",
         *,
-        accept_injected_hotkeys: bool = False,
         port: int | None = None,
         wait_for_api: bool = True,
         prepare: Callable[[Path], None] | None = None,
@@ -43,7 +43,6 @@ def start_service(tmp_path: Path) -> Iterator[Callable[..., RealService]]:
         service = RealService.launch(
             data_dir,
             extra_settings=extra_settings,
-            accept_injected_hotkeys=accept_injected_hotkeys,
             port=port,
             wait_for_api=wait_for_api,
         )
@@ -53,6 +52,7 @@ def start_service(tmp_path: Path) -> Iterator[Callable[..., RealService]]:
     yield _start
     for service in started:
         service.shutdown()
+        kill_service_processes_for(service.data_dir)
 
 
 @pytest.fixture

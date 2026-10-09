@@ -3,7 +3,7 @@ scenarios:
   - name: 正常シナリオ
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
       - name: 変える設定
         description: 録音開始のホットキーを別のキーの組み合わせに変える
         notes: '`hotkeys.start`。反映は `immediate`'
@@ -37,7 +37,7 @@ scenarios:
   - name: 正常シナリオ（保存して再起動する）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
       - name: 変える設定
         description: ローカルの Whisper のモデルを別のモデルに変える
         notes: '`transcription.local_whisper.model`。反映は `restart`'
@@ -70,7 +70,7 @@ scenarios:
   - name: 正常シナリオ（既定に戻す）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
       - name: 変えた設定
         description: '`settings.toml` に既定と違う値がある'
     flow: |-
@@ -98,7 +98,7 @@ scenarios:
   - name: 正常シナリオ（取り消す）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
       - name: 取り消し
         description: 欄を書き換えてから「キャンセル」を押し、確認で「捨てて閉じる」を選ぶ
         notes: Esc・窓を閉じるでも同じ。欄を変えていなければ確認を出さずに閉じる
@@ -123,7 +123,7 @@ scenarios:
   - name: 異常シナリオ（確かめに通らない値を入れる）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
       - name: 通らない値
         description: 「出力先」のまとまりで、貼り付けて送信の Enter までの秒数に `abc` を入れて「保存」を押す
         notes: '`outputs[].enter_delay_sec`'
@@ -149,7 +149,7 @@ scenarios:
   - name: 正常シナリオ（カスタムプリセットを足す）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
       - name: 足すプリセット
         description: 「エンドポイントへ送る」のまとまり（タブ）で、タイトル・URL・確定のホットキーを入れたプリセットを 1 つ足す
         notes: 反映は `immediate`
@@ -186,5 +186,10 @@ preconditions:
 notes:
   画面の項目: '`settings.toml` の全てのキーを、出力先・ホットキー・録音・文字起こし・画面・履歴とログ・API の 7 つのまとまりに分け、左のメニューで切り替える。欄は設定のモデルから組み立てる（キーの一覧は 設定/常駐アプリ）。'
   反映の種類: キーごとの反映（`immediate` / `restart`）は 設定/常駐アプリ が持つ。反映が `restart` の欄には「再起動で反映」を出し、そうした欄を変えたときだけ「保存して再起動」を出す。`immediate` の値は保存した時点で動いている常駐アプリに効く。
-  E2E のテスト: 正常シナリオと「カスタムプリセットを足す」は、変えた設定で録音を始めて実機のマイクを開くため、E2E のテストを置かない（#65）
+  E2E のテスト: |-
+    正常シナリオと「カスタムプリセットを足す」は、変えた設定で録音を始めて実機のマイクを開くため、E2E のテストを置かない（#65）
+
+    E2E の常駐アプリの起こし方と操作の渡し方は、常駐アプリを起動する の補足『E2E のテスト』と同じ。
+    設定画面はトレイの「設定…」を trigger して開き、まとまりのメニュー・欄・ボタンはクリックとキーを Qt のイベントで渡す。
+    「保存して再起動する」で起動し直す新しいプロセスは別プロセスで動き（Qt は offscreen）、ログとトークンのファイルで確かめる
 test_file: tests/e2e/単一ユースケース/test_change_settings.py

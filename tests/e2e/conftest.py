@@ -7,11 +7,15 @@ from pathlib import Path
 
 import pyperclip
 import pytest
+from PySide6.QtWidgets import QApplication
 
-from tests.support.app_driver import IDLE, AppDriver
-from tests.support.desktop import close_explorer, get_uia
 from tests.support.fixtures import receiver, start_inprocess, start_service  # noqa: F401 フィクスチャとして使う
-from tests.support.real_service import RealService
+from tests.support.resident_app import (
+    Case,
+    ResidentApp,
+    kill_service_processes_for,
+    run_resident_app,
+)
 
 CLIPBOARD_SENTINEL = "voice-paste-e2e-clipboard-sentinel"
 """録音の前にクリップボードへ置く目印の文字。"""
@@ -27,51 +31,37 @@ def clipboard_sentinel() -> Iterator[str]:
 
 
 @pytest.fixture
-def explorer_to_close() -> Iterator[list[Path]]:
-    """テストで開いたフォルダのエクスプローラーを、テストの後に閉じる。開いたフォルダのパスを入れて使う。"""
-    folders: list[Path] = []
-    yield folders
-    for folder in folders:
-        close_explorer(folder)
+def run_app(
+    qapp: QApplication, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> Iterator[Callable[..., ResidentApp]]:
+    """常駐アプリを pytest のプロセスの中で `main()` から起動し、ケースを進めて、結果を返す関数を返す。
 
-
-@pytest.fixture
-def start_app(start_service: Callable[..., RealService]) -> Iterator[Callable[..., AppDriver]]:  # noqa: F811
-    """本物の常駐アプリを起動し、トレイが待機中になるまで待って、画面・トレイを操作する AppDriver を返す関数を返す。
-
-    再起動で起動し直したプロセスも、テストの後に止める。
+    再起動で起動し直したプロセスは、テストの後に止める。
     """
-    drivers: list[AppDriver] = []
+    data_dirs: list[Path] = []
 
-    def _start(
-        extra_settings: str = "",
+    def _run(
+        case: Case,
         *,
-        wait_idle: bool = True,
+        extra_settings: str = "",
         port: int | None = None,
-        wait_for_api: bool = True,
         prepare: Callable[[Path], None] | None = None,
-    ) -> AppDriver:
-        """設定を足して起動し、待機中を待つ。prepare は起動の前に置き場所へファイルを用意する関数。"""
-        # タスクバーで読めても、隠れたアイコンの一覧の中のアイコンを読み落とさない
-        others = get_uia().tray_tooltips(include_hidden=True)
-        if others:
-            pytest.skip(
-                "ほかの voice-paste（普段使いの旧版など）のトレイのアイコンが出ている（今のヒント: "
-                f"{', '.join(others)}）。ホットキーを両方が受け、この常駐アプリのアイコンと見分けにくいため、終了してから実行する"
-            )
-        service = start_service(
-            extra_settings,
-            accept_injected_hotkeys=True,
+        expect_exit: bool = False,
+    ) -> ResidentApp:
+        """一時フォルダを置き場所にして起動し、case を進める。"""
+        data_dir = tmp_path / f"app{len(data_dirs)}"
+        data_dirs.append(data_dir)
+        return run_resident_app(
+            case,
+            qapp=qapp,
+            monkeypatch=monkeypatch,
+            data_dir=data_dir,
+            extra_settings=extra_settings,
             port=port,
-            wait_for_api=wait_for_api,
             prepare=prepare,
+            expect_exit=expect_exit,
         )
-        driver = AppDriver(service)
-        drivers.append(driver)
-        if wait_idle:
-            driver.wait_tray_state(IDLE)
-        return driver
 
-    yield _start
-    for driver in drivers:
-        AppDriver.kill_service_processes_for(driver.service.data_dir)
+    yield _run
+    for data_dir in data_dirs:
+        kill_service_processes_for(data_dir)

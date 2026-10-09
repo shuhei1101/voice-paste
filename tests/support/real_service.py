@@ -1,7 +1,8 @@
 """実機のテスト（E2E・実機の非機能要件テスト）が使う、本物の常駐サービスの起動と API の呼び出し。
 
-`python -m voice_paste --data-dir {一時フォルダ}` を子プロセスとして起動し（build_handlers の配線・実機のマイク・
-ローカルの Whisper を通る）、トークンのファイルを読んで API を叩く。
+`python -m voice_paste --data-dir {一時フォルダ}` を子プロセスとして起動し（build_handlers の配線・
+ローカルの Whisper を通る。Qt は offscreen で、画面もトレイのアイコンも実機に出ない）、トークンのファイルを読んで API を叩く。
+録音開始のホットキーは普段使わない組み合わせにして起動し、ユーザーの打鍵で実機のマイクを開く録音を始めない。
 """
 
 from __future__ import annotations
@@ -22,10 +23,12 @@ import httpx
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_DIR = REPO_ROOT / "src"
 TOKEN_FILE_NAME = "api_token"
-ACCEPT_INJECTED_HOTKEYS_ENV = "VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS"
-"""`1` のときだけ、合成したキーもホットキーとして受ける環境変数（常駐アプリの側の名前と同じ）。"""
 QT_PLATFORM_ENV = "QT_QPA_PLATFORM"
 """Qt が画面の出し先を選ぶ環境変数。`offscreen` だと画面もトレイのアイコンも実機に出ない。"""
+QT_PLATFORM_OFFSCREEN = "offscreen"
+"""画面もトレイのアイコンも実機に出さない Qt のプラットフォーム。"""
+UNUSED_START_HOTKEY = "<ctrl>+<alt>+<shift>+<f12>"
+"""テストの常駐アプリが録音開始に受ける、普段使わないホットキー（既定のままだと、ユーザーの打鍵で録音が始まる）。"""
 STARTUP_TIMEOUT_SEC = 120.0
 """常駐サービスがトークンのファイルを書くまで（モデルの読み込みを含む）待つ上限。"""
 
@@ -38,11 +41,35 @@ POLL_SEC = 0.1
 LOG_TAIL_CHARS = 3000
 
 
-def _free_port() -> int:
+def free_port() -> int:
     """127.0.0.1 の空きポートを 1 つ返す。"""
     with socket.socket() as probe:
         probe.bind((LOOPBACK, 0))
         return int(probe.getsockname()[1])
+
+
+def read_token_file(data_dir: Path) -> dict[str, Any] | None:
+    """data_dir の起動ごとのトークンのファイル（トークンとポート）を読む。まだ無い・書きかけなら None。"""
+    try:
+        info = json.loads((data_dir / TOKEN_FILE_NAME).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return dict(info) if isinstance(info, dict) else None
+
+
+def post_to_api(
+    http: httpx.Client,
+    token: str,
+    path: str,
+    *,
+    json_body: dict[str, str] | None = None,
+    headers: dict[str, str] | None = None,
+    authorized: bool = True,
+) -> httpx.Response:
+    """API へ POST する。authorized なら起動ごとのトークンを付ける。"""
+    merged = {"Authorization": f"Bearer {token}"} if authorized else {}
+    merged.update(headers or {})
+    return http.post(path, json=json_body, headers=merged)
 
 
 def read_log_records(data_dir: Path) -> list[dict[str, Any]]:
@@ -55,23 +82,30 @@ def read_log_records(data_dir: Path) -> list[dict[str, Any]]:
     ]
 
 
+def settings_text(api_port: int, extra_settings: str = "") -> str:
+    """テストの常駐アプリの settings.toml の中身（API のポートと、録音開始のホットキー。extra_settings は TOML の続き）。"""
+    return (
+        f'[api]\nport = {api_port}\n\n[hotkeys]\nstart = "{UNUSED_START_HOTKEY}"\n\n{extra_settings}\n'
+    )
+
+
 def spawn_process(
     data_dir: Path,
     *,
-    accept_injected_hotkeys: bool = False,
     stdout_name: str = "stdout.log",
 ) -> subprocess.Popen[bytes]:
     """このリポジトリの src で `python -m voice_paste --data-dir {data_dir}` を、新しいプロセスグループで起動する。
 
     終了の合図 Ctrl+Break を送れるよう新しいプロセスグループにする。標準出力は data_dir の stdout_name へ書く
     （同じ data_dir で続けて起動するときは、前のプロセスの出力を消さないよう名前を変える）。
-    pytest のプロセスが `QT_QPA_PLATFORM` を持っていても渡さず、常駐アプリは実機の画面で起動する。
+    常駐アプリは offscreen で起動し、画面もトレイのアイコンも実機に出さない。
     """
-    env = dict(os.environ, PYTHONPATH=str(SOURCE_DIR), PYTHONIOENCODING="utf-8")
-    # 結合テストの画面のための offscreen を受け継ぐと、画面もトレイも実機に出ないため外す
-    env.pop(QT_PLATFORM_ENV, None)
-    if accept_injected_hotkeys:
-        env[ACCEPT_INJECTED_HOTKEYS_ENV] = "1"
+    env = dict(
+        os.environ,
+        PYTHONPATH=str(SOURCE_DIR),
+        PYTHONIOENCODING="utf-8",
+        **{QT_PLATFORM_ENV: QT_PLATFORM_OFFSCREEN},
+    )
     stdout = (data_dir / stdout_name).open("wb")
     return subprocess.Popen(  # noqa: S603 自分のインタープリタでこのリポジトリのモジュールを起動する
         [sys.executable, "-m", "voice_paste", "--data-dir", str(data_dir)],
@@ -99,27 +133,25 @@ class RealService:
         data_dir: Path,
         *,
         extra_settings: str = "",
-        accept_injected_hotkeys: bool = False,
         startup_timeout_sec: float = STARTUP_TIMEOUT_SEC,
         port: int | None = None,
         wait_for_api: bool = True,
     ) -> RealService:
         """data_dir に設定を書いて常駐サービスを起動し、トークンのファイルが書かれるまで待つ。
 
-        accept_injected_hotkeys が True なら、合成したキーもホットキーとして受ける起動にする（画面・ホットキーの E2E 用）。
         port を渡せばそのポートを、無ければ空きポートを API の待ち受けにする。
         wait_for_api が False なら、トークンのファイルを待たずに返す（起動に失敗する・API を使えない起動の確認用。
         返す RealService のトークンは空）。
         """
         # 1. API のポートを書いた設定を置く（extra_settings は TOML の続き）
         data_dir.mkdir(parents=True, exist_ok=True)
-        api_port = _free_port() if port is None else port
+        api_port = free_port() if port is None else port
         (data_dir / "settings.toml").write_text(
-            f"[api]\nport = {api_port}\n\n{extra_settings}\n", encoding="utf-8"
+            settings_text(api_port, extra_settings), encoding="utf-8"
         )
 
         # 2. 起動する
-        process = spawn_process(data_dir, accept_injected_hotkeys=accept_injected_hotkeys)
+        process = spawn_process(data_dir)
         if not wait_for_api:
             base_url = f"http://{LOOPBACK}:{api_port}"
             http = httpx.Client(base_url=base_url, timeout=REQUEST_TIMEOUT_SEC)
@@ -171,9 +203,14 @@ class RealService:
         authorized: bool = True,
     ) -> httpx.Response:
         """API へ POST する。authorized なら起動ごとのトークンを付ける。"""
-        merged = {"Authorization": f"Bearer {self.token}"} if authorized else {}
-        merged.update(headers or {})
-        return self.http.post(path, json=json_body, headers=merged)
+        return post_to_api(
+            self.http,
+            self.token,
+            path,
+            json_body=json_body,
+            headers=headers,
+            authorized=authorized,
+        )
 
     def start_session(self, callback_url: str) -> tuple[httpx.Response, float]:
         """API の開始を呼び、応答と、応答までにかかったミリ秒を返す。"""

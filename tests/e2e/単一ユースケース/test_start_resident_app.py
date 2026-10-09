@@ -1,8 +1,9 @@
 """単一ユースケース「常駐アプリを起動する」の E2E テスト。
 
-本物の常駐アプリ（`python -m voice_paste --data-dir {一時フォルダ}`）を起動し、トレイ・API・ログ・履歴を観測する。
-実機のマイクを開く録音は始めない（`--run-e2e` が無ければ skip する）。
-前提は E2E テストの節のとおり（普段使いの voice-paste のトレイが出ていれば skip する）。
+常駐アプリを pytest のプロセスの中で `main()` から起動し（`--data-dir` の一時フォルダ、Qt は offscreen）、
+トレイのヒント・API・ログ・履歴を観測する。実機のマウス・キーボードは使わず、実機のマイクを開く録音は始めない。
+「前の常駐サービスが動いている」だけは、別プロセスで 2 つ起動して、ログ・トークンのファイル・プロセスで確かめる
+（`--run-e2e` が無ければ skip する）。
 
 保持期間を過ぎた履歴とログの、常駐中の定期の削除（非機能要件の削除の間隔 24 時間ごと）は、待てないため確かめない。
 起動時の削除だけを確かめる。
@@ -11,24 +12,27 @@
 from __future__ import annotations
 
 import socket
-import time
 from collections.abc import Callable, Iterator
 from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
 
-from tests.support.app_driver import IDLE, WINDOW_TIMEOUT_SEC, AppDriver
-from tests.support.desktop import wait_until
+from tests.integration.helpers import wait_until
 from tests.support.instances import service_root_count, wait_for_takeover
-from tests.support.real_service import LOOPBACK, RealService, spawn_process
+from tests.support.real_service import (
+    LOOPBACK,
+    UNUSED_START_HOTKEY,
+    RealService,
+    read_log_records,
+    settings_text,
+    spawn_process,
+)
+from tests.support.resident_app import FAILED, IDLE, UI_TIMEOUT_SEC, ResidentApp
 
 pytestmark = pytest.mark.real_machine
 
-StartApp = Callable[..., AppDriver]
-
-FAILED = "失敗"
-"""トレイのヒントの、起動に失敗した状態の名前。"""
+RunApp = Callable[..., ResidentApp]
 
 NO_SUCH_MODEL_SETTINGS = '[transcription.local_whisper]\nmodel = "voice-paste-e2e-no-such-model"\n'
 """ローカルの Whisper のモデルに存在しない名前を設定する（文字起こしワーカーがモデルを読み込めずに error を返す）。"""
@@ -36,11 +40,11 @@ NO_SUCH_MODEL_SETTINGS = '[transcription.local_whisper]\nmodel = "voice-paste-e2
 RETENTION_ONE_DAY_SETTINGS = "[history]\nretention_days = 1\n\n[logging]\nretention_days = 1\n"
 """履歴とログの保持期間を 1 日にする設定。"""
 
-NO_RECORDING_WAIT_SEC = 2.0
-"""ホットキーを押してから、録音が始まっていないことを確かめるために待つ秒数。"""
-
 PREVIOUS_EXIT_TIMEOUT_SEC = 30.0
 """後から起動した後、前のプロセスが終わるまで待つ上限。"""
+
+PREVIOUS_FINISHED_MESSAGE = "常駐サービスを終えた"
+"""片付けを終えた（トレイのアイコンを消した後）プロセスが書くログの文。"""
 
 AI_CHAT_URL = "https://chatgpt.com/"
 """古い AI チャットの設定の送り先に書く URL（開かない）。"""
@@ -83,111 +87,125 @@ def occupied_port() -> Iterator[int]:
         yield int(occupier.getsockname()[1])
 
 
-def test_normal(start_app: StartApp) -> None:
+def test_normal(run_app: RunApp) -> None:
     """ショートカットから起動すると、トレイが待機中になり、API がトークンに応え、ワーカーが動く（正常シナリオ）。"""
-    # 準備・実行: 起動し、トレイが待機中になるまで待つ
-    app = start_app()
-    service = app.service
 
-    # 検証
-    assert app.tray_state() == IDLE
-    assert (service.data_dir / "api_token").exists()
-    # トークンのファイルから読んだ今回のトークンには応え、合わないトークン・トークン無しは断る
-    assert service.post("/sessions/unknown/stop").status_code == 404
-    assert service.post("/sessions/unknown/stop", authorized=False).status_code == 401
-    assert (
-        service.post(
-            "/sessions/unknown/stop", headers={"Authorization": "Bearer previous-start-token"}
-        ).status_code
-        == 401
-    )
-    assert app.worker_processes() != []
+    def case(app: ResidentApp) -> None:
+        """起動した常駐アプリの、トレイ・トークン・API・ワーカー・ホットキーの受付を確かめる。"""
+        # 検証
+        assert app.tray_state() == IDLE
+        assert (app.data_dir / "api_token").exists()
+        # トークンのファイルから読んだ今回のトークンには応え、合わないトークン・トークン無しは断る
+        assert app.post("/sessions/unknown/stop").status_code == 404
+        assert app.post("/sessions/unknown/stop", authorized=False).status_code == 401
+        assert (
+            app.post(
+                "/sessions/unknown/stop", headers={"Authorization": "Bearer previous-start-token"}
+            ).status_code
+            == 401
+        )
+        assert app.worker_pids() != set()
+        # 録音開始のホットキーの受付が始まっている（押して録音を始めることは確かめない）
+        assert app.hotkeys is not None
+        assert UNUSED_START_HOTKEY in app.hotkeys.bindings
+
+    # 準備・実行: 起動し、イベントループの中で確かめる
+    run_app(case)
 
 
-def test_normal_when_previous_running(start_app: StartApp) -> None:
+def test_normal_when_previous_running(start_service: Callable[..., RealService]) -> None:
     """常駐中にもう一度起動すると、前の常駐サービスが終わり、新しい常駐サービスが待機中で出て、プロセスが 1 つだけになる（正常シナリオ）。"""
-    # 準備: 前の常駐サービスを起動する
-    previous = start_app()
-    data_dir = previous.service.data_dir
+    # 準備: 前の常駐サービスを別プロセスで起動する
+    previous = start_service()
+    data_dir = previous.data_dir
 
-    # 実行: 同じ置き場所でもう 1 つ起動し、入れ替わって立ち上がるまで待つ
-    second_process = spawn_process(
-        data_dir, accept_injected_hotkeys=True, stdout_name="stdout_second.log"
-    )
+    # 実行: 同じ置き場所でもう 1 つ起動し、入れ替わって立ち上がる（待機中のアイコンにした後のログ）まで待つ
+    second_process = spawn_process(data_dir, stdout_name="stdout_second.log")
     wait_for_takeover(data_dir, second_process)
-    current = AppDriver(RealService.attach(data_dir, second_process))
-    current.wait_tray_state(IDLE)
 
-    # 検証: 前のプロセスが終わり、トレイに前のアイコンが残らず待機中のアイコンが 1 つだけで、プロセスが 1 つだけ
-    assert previous.wait_exit(PREVIOUS_EXIT_TIMEOUT_SEC), "前の常駐サービスが終わらなかった"
-    assert previous.service.process.returncode == 0
-    assert [name for name in current.uia.tray_tooltips() if name == IDLE] == [IDLE]
-    assert current.tray_state() == IDLE
+    # 検証: 前のプロセスが片付けでトレイのアイコンを消して終わり、後のプロセスが動き、プロセスが 1 つだけ
+    assert wait_until(lambda: not previous.is_running(), PREVIOUS_EXIT_TIMEOUT_SEC), (
+        "前の常駐サービスが終わらなかった"
+    )
+    assert previous.process.returncode == 0
+    assert PREVIOUS_FINISHED_MESSAGE in [str(record["msg"]) for record in read_log_records(data_dir)]
+    assert second_process.poll() is None
     assert service_root_count(data_dir) == 1
 
 
-def test_normal_when_expired_history_and_logs(start_app: StartApp) -> None:
+def test_normal_when_expired_history_and_logs(run_app: RunApp) -> None:
     """保持期間を過ぎた日付の履歴とログは起動時に消え、今日の日付のものは残る（正常シナリオ）。"""
-    # 準備: 保持期間を 1 日にし、2 日前と今日の日付の履歴とログを置いて起動する
+    # 準備: 保持期間を 1 日にし、2 日前と今日の履歴とログを置いて起動する
     dates: list[tuple[date, date]] = []
 
-    def _prepare(data_dir: Path) -> None:
+    def prepare(data_dir: Path) -> None:
         """起動の前に、2 日前と今日の履歴とログを置く。"""
         dates.append(_prepare_expired_files(data_dir))
 
-    app = start_app(RETENTION_ONE_DAY_SETTINGS, prepare=_prepare)
-    data_dir = app.service.data_dir
-    expired, today = dates[0]
+    def case(app: ResidentApp) -> None:
+        """起動時に、2 日前の履歴とログが消え、今日のものが残っていることを確かめる。"""
+        expired, today = dates[0]
+        # 検証
+        assert not (app.data_dir / "history" / expired.strftime("%Y%m%d")).exists()
+        assert not (app.data_dir / "log" / f"{expired.isoformat()}.log").exists()
+        assert (app.data_dir / "history" / today.strftime("%Y%m%d")).is_dir()
+        assert len(list((app.data_dir / "history" / today.strftime("%Y%m%d")).iterdir())) == 2
+        today_log = app.data_dir / "log" / f"{today.isoformat()}.log"
+        assert today_log.read_text(encoding="utf-8").startswith("古いログ\n")
 
-    # 検証
-    assert not (data_dir / "history" / expired.strftime("%Y%m%d")).exists()
-    assert not (data_dir / "log" / f"{expired.isoformat()}.log").exists()
-    assert (data_dir / "history" / today.strftime("%Y%m%d")).is_dir()
-    assert len(list((data_dir / "history" / today.strftime("%Y%m%d")).iterdir())) == 2
-    today_log = data_dir / "log" / f"{today.isoformat()}.log"
-    assert today_log.read_text(encoding="utf-8").startswith("古いログ\n")
+    # 実行
+    run_app(case, extra_settings=RETENTION_ONE_DAY_SETTINGS, prepare=prepare)
 
 
-def test_error_when_engine_unavailable(start_app: StartApp) -> None:
+def test_error_when_engine_unavailable(run_app: RunApp) -> None:
     """文字起こしのエンジンを準備できなければ、トレイで起動の失敗が知らされ、ログに理由が書かれ、設定を開けて、録音は始まらない（異常シナリオ）。"""
+
+    def case(app: ResidentApp) -> None:
+        """起動に失敗した状態のトレイ・ログ・メニュー・ホットキーの受付を確かめる。"""
+        # 検証: 起動の失敗がトレイに出て、ログに書かれ、プロセスは終わらずトレイのメニューから設定を開ける
+        assert app.tray_state() == FAILED
+        assert any(message.startswith("起動に失敗した（") for message in app.log_messages("ERROR"))
+        assert app.menu_item_enabled("menu_settings")
+        # 録音開始のホットキーの受付が始まっていないため、押しても録音が始まらない
+        assert app.hotkeys is None
+        assert app.window("recording_window") is None
+        assert not (app.data_dir / "api_token").exists()
+
     # 準備・実行: 存在しないモデルの名前で起動する（トークンのファイルは書かれない）
-    app = start_app(NO_SUCH_MODEL_SETTINGS, wait_idle=False, wait_for_api=False)
-    app.wait_tray_state(FAILED)
-
-    # 検証: 起動の失敗のログ、プロセスは終わらずトレイのメニューから設定を開ける
-    assert any(message.startswith("起動に失敗した（") for message in app.log_messages("ERROR"))
-    assert app.service.is_running()
-    assert app.menu_item_enabled("menu_settings")
-    # 録音開始のホットキーを押しても録音が始まらない
-    app.start_recording()
-    time.sleep(NO_RECORDING_WAIT_SEC)
-    assert app.tray_state() == FAILED
-    assert app.window("recording_window") is None
-    assert not (app.service.data_dir / "api_token").exists()
+    run_app(case, extra_settings=NO_SUCH_MODEL_SETTINGS)
 
 
-def test_error_when_api_unavailable(start_app: StartApp, occupied_port: int) -> None:
+def test_error_when_api_unavailable(run_app: RunApp, occupied_port: int) -> None:
     """API の待ち受けを始められなければ、トレイで知らされ、ログに理由が書かれる（異常シナリオ）。"""
+
+    def case(app: ResidentApp) -> None:
+        """API を使えない知らせ・ログ・ホットキーの受付を確かめる。"""
+        # 検証
+        assert app.wait_until(lambda: app.notified("api_unavailable"), UI_TIMEOUT_SEC)
+        assert any(
+            message.startswith("API の待ち受けを始められなかった（")
+            for message in app.log_messages("ERROR")
+        )
+        assert not (app.data_dir / "api_token").exists()
+        # 録音開始のホットキーの受付が始まっている（押して録音を始めることは確かめない）
+        assert app.hotkeys is not None
+        assert UNUSED_START_HOTKEY in app.hotkeys.bindings
+
     # 準備・実行: API のポートをほかのプロセスが使っている状態で起動する（トークンのファイルは書かれない）
-    app = start_app(port=occupied_port, wait_for_api=False)
-
-    # 検証
-    assert wait_until(lambda: app.notified("api_unavailable"), WINDOW_TIMEOUT_SEC)
-    assert any(
-        message.startswith("API の待ち受けを始められなかった（") for message in app.log_messages("ERROR")
-    )
-    assert not (app.service.data_dir / "api_token").exists()
+    run_app(case, port=occupied_port)
 
 
-def test_normal_when_old_ai_chat_settings_remain(start_app: StartApp) -> None:
+def test_normal_when_old_ai_chat_settings_remain(run_app: RunApp) -> None:
     """古い AI チャットの設定が残った settings.toml でも起動でき、settings.toml は書き換わらない（正常シナリオ）。"""
-    # 準備・実行: 古い設定で起動し、トレイが待機中になるまで待つ
+    # 準備
     extra_settings = _old_ai_chat_settings()
-    app = start_app(extra_settings)
 
-    # 検証: 起動が止まらず、settings.toml が書き換わっていない
-    assert app.tray_state() == IDLE
-    settings_file = app.service.data_dir / "settings.toml"
-    assert settings_file.read_text(encoding="utf-8") == (
-        f"[api]\nport = {app.service.port}\n\n{extra_settings}\n"
-    )
+    def case(app: ResidentApp) -> None:
+        """起動が止まらず、settings.toml が書き換わっていないことを確かめる。"""
+        # 検証
+        assert app.tray_state() == IDLE
+        settings_file = app.data_dir / "settings.toml"
+        assert settings_file.read_text(encoding="utf-8") == settings_text(app.port, extra_settings)
+
+    # 実行: 古い設定で起動する
+    run_app(case, extra_settings=extra_settings)

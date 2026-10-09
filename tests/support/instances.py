@@ -14,8 +14,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from tests.support.app_driver import AppDriver
 from tests.support.real_service import POLL_SEC, read_log_records
+from tests.support.resident_app import service_processes_for
 
 ASKED_MESSAGE = "前の常駐サービスに終わるよう頼んだ"
 """後のプロセスが、前のプロセスの終了の依頼を立てたときのログの文。"""
@@ -107,8 +107,15 @@ def wait_for_acquired(data_dir: Path, process: subprocess.Popen[bytes], timeout_
         time.sleep(POLL_SEC)
 
 
+def started_count(data_dir: Path) -> int:
+    """data_dir のログに「常駐サービスを始めた」が書かれた回数を返す（再起動で起動し直したプロセスの分を含む）。"""
+    return sum(
+        str(record["msg"]).startswith(STARTED_PREFIX) for record in read_log_records(data_dir)
+    )
+
+
 def service_root_count(data_dir: Path) -> int:
     """data_dir で動いている常駐サービスの数を返す（venv の python.exe は本体を子に持つため、親が同じ一覧に無いものを数える）。"""
-    processes = AppDriver.service_processes_for(data_dir)
+    processes = service_processes_for(data_dir)
     pids = {process.pid for process in processes}
     return sum(1 for process in processes if process.parent_pid not in pids)

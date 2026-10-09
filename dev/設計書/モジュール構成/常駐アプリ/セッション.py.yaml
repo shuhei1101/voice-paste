@@ -1,5 +1,5 @@
 title: "常駐アプリ / セッション"
-lead: 録音から出力までの 1 回分の流れ（セッション）の状態と、入口をまたいで同時に 1 つだけ動かす排他を持つ。録音・文字起こし・補正・出力先・履歴は関数型越しに受け取り、API の route もここに置く。
+lead: 録音から出力までの 1 回分の流れ（セッション）の状態と、入口をまたいで同時に 1 つだけ動かす排他を持つ。録音・文字起こし・補正・出力先・履歴は関数型越しに受け取り、API の route もここに置く。API の連続録音では、区切った区間を区切った順に起こして返し、最後に終わりを返す。
 directory: |-
   ```
   src/voice_paste/features/session/
@@ -32,7 +32,7 @@ enums:
     values:
       - value: recording
         title: 録音中
-        description: マイクで録音している
+        description: マイクで録音している（連続録音では、区切った区間を起こして返しながら録音を続けている）
       - value: paused
         title: 一時停止中
         description: ホットキー・トレイから始めた録音を一時停止している（再開できる）
@@ -41,7 +41,7 @@ enums:
         description: API から始めた録音を止め、完了を待っている
       - value: transcribing
         title: 文字起こし中
-        description: 確定した録音を文字に起こしている
+        description: 確定した録音を文字に起こしている（連続録音では、完了か上限の後に残りの区間と終わりを返している）
       - value: delivering
         title: 届け中
         description: 出力先へ届けている
@@ -79,6 +79,14 @@ data_models:
       - name: output_preset
         type: Preset | None
         description: ホットキー・トレイから始めた録音で、確定の操作で選んだカスタムプリセット（確定したときの設定の写し）。固定の出力先を選んだときと API のときは None
+      - name: continuous
+        type: bool
+        default: 'False'
+        description: API の連続録音か
+      - name: segment_count
+        type: int
+        default: '0'
+        description: 連続録音でこれまでに区切った区間の数（最後に付けた通し番号）
     status: implemented
   - name: SessionDeps
     title: セッションの依存
@@ -129,6 +137,12 @@ data_models:
       - name: report_progress
         type: ProgressFn
         description: ホットキー・トレイの録音で、文字起こしの進みを画面へ知らせる（配線では ui の report_progress）
+      - name: start_continuous_recording
+        type: StartContinuousRecordingFn
+        description: 連続録音を始める（音量を下げ、マイクを開き、区切った区間を渡し先へ渡す）
+      - name: stop_continuous_recording
+        type: Callable[[], None]
+        description: 連続録音を止めて音量を戻し、区間に切り出していない話し声を最後の区間として渡し終えてから戻る（録音の stop_continuous）
     status: implemented
   - name: StartSessionRequest
     title: 開始のリクエスト
@@ -141,6 +155,10 @@ data_models:
       - name: callback_url
         type: AnyHttpUrl
         description: 返送先。ホストが許されるかは route が出力先の is_callback_allowed で確かめる
+      - name: continuous
+        type: bool
+        default: 'False'
+        description: 連続録音にするか（省略時は 1 回の録音）
     refs:
       - dev/設計書/外部ライブラリ/pydantic#
     status: implemented
@@ -170,6 +188,19 @@ data_models:
         type: Callable[[str], bool]
         description: 設定の許可ホストを部分適用した返送先の確かめ（出力先の is_callback_allowed）
     status: implemented
+  - name: ContinuousEnd
+    title: 連続録音の終わりの印
+    container: features/session/types.py
+    usecase: APIで録音を操作する
+    role: DTO
+    summary: 連続録音の区間の待ち行列へ、全ての区間の後ろに積む終わりの印。終わった理由を持つ
+    properties:
+      - name: result
+        type: Literal["completed", "truncated"]
+        description: 完了か、上限での打ち切りか
+    status: planned
+    introduced:
+      pr: 78
 function_types:
   - name: StartRecordingFn
     title: 録音の開始
@@ -204,7 +235,10 @@ function_types:
         description: セッションの ID
       - name: recording
         type: Recording
-        description: 確定した録音
+        description: 確定した録音（連続録音では区間の音）
+      - name: segment_number
+        type: int | None
+        description: 連続録音の区間の通し番号。それ以外は None
     returns:
       type: Path
       description: 書いた WAV のパス
@@ -284,6 +318,23 @@ function_types:
     implementations:
       - target: ホットキーと画面の notify
     status: implemented
+  - name: StartContinuousRecordingFn
+    title: 連続録音の開始
+    container: features/session/types.py
+    usecase: APIで録音を操作する
+    summary: 音量を下げてマイクを開き、区切った区間を区切った順に on_segment へ渡す。開けなければ音量を戻して MicrophoneUnavailableError を送出する
+    args:
+      - name: on_segment
+        type: OnSegmentFn
+        description: 区切った区間の渡し先（録音の区切りのスレッドから呼ばれる）
+    returns:
+      type: None
+      description: なし
+    implementations:
+      - target: 録音の Recorder.start_continuous（main.py が設定の api.continuous.min_silence_sec を部分適用する）
+    status: planned
+    introduced:
+      pr: 78
 classes:
   - name: SessionManager
     title: セッション管理
@@ -294,8 +345,18 @@ classes:
     summary: セッションを同時に 1 つだけ持ち、入口からの操作で状態を進める
     description: |-
       長期に持つランタイム状態（今のセッションとロック）を持つためクラスにする。
-      全てのメソッドは `threading.Lock` の中で状態を確かめて書き換える（API・ホットキー・トレイ・上限のタイマーが別のスレッドから呼ぶ）。
+      全てのメソッドは `threading.Lock` の中で状態を確かめて書き換える（API・ホットキー・トレイ・上限のタイマー・録音の区切りのスレッドが別のスレッドから呼ぶ）。
       文字起こしから届けるまでは専用のワーカースレッドで動かし、終わったらセッションを空にして待機中に戻す。
+      API の連続録音では、開始でワーカースレッドを 1 つ立て、録音が区切った区間を待ち行列経由で区切った順に起こして返す（録音は続ける）。完了か上限で録音を止め、最後の区間の後ろに終わりを返してから待機中に戻す。
+
+      ```mermaid
+      stateDiagram-v2
+        [*] --> recording : start(continuous=True)
+        recording --> recording : 区間を受ける（_on_segment。起こして返すのはワーカースレッド）
+        recording --> transcribing : complete / 上限で打ち切る（最後の区間を区切る）
+        transcribing --> [*] : 残りの区間と終わりを返した
+        recording --> [*] : close（終了。返さない）
+      ```
     properties:
       - name: _deps
         type: SessionDeps
@@ -313,6 +374,15 @@ classes:
         type: timedelta
         access: 内部 (_)
         description: API のセッションの上限時間（非機能要件）
+      - name: _continuous_session_limit
+        type: timedelta
+        access: 内部 (_)
+        description: 連続録音のセッションの上限時間（設定の api.continuous.session_limit_sec。main.py が渡す）
+      - name: _segments
+        type: queue.Queue[tuple[int, Segment] | ContinuousEnd | None] | None
+        access: 内部 (_)
+        default: None
+        description: 連続録音の区間（通し番号つき）を区切った順にワーカースレッドへ渡す待ち行列。ContinuousEnd は終わりの印、None は終了で返さずにやめる印。連続録音でなければ None
     methods:
       - name: start
         title: 開始
@@ -330,6 +400,11 @@ classes:
             required: false
             default: None
             description: API のときの返送先
+          - name: continuous
+            type: bool
+            required: false
+            default: 'False'
+            description: 連続録音にするか（API のときだけ True になる）
         returns:
           type: Session
           description: 始めたセッション（状態は recording）
@@ -338,11 +413,14 @@ classes:
           2. セッションが残っているかを確かめる
              - 残っている場合、SessionBusyError を送出する
                - `[INFO]` 処理中のため開始を断った（入口・処理中のセッションの ID）
-          3. 録音を始める（録音の開始）
-             - MicrophoneUnavailableError の場合、そのまま送出する（音量は録音の開始が戻している。セッションは作らない）
-          4. セッションを作り、状態を recording にする
-          5. 状態の変化を知らせる（ユーザーへの知らせ）
-             - `[INFO]` セッションを始めた（セッションの ID・入口）
+          3. 録音を始める
+             - continuous が True の場合、区間の待ち行列を作り、連続録音を始める（連続録音の開始。区間の渡し先は _on_segment）
+             - それ以外の場合、録音を始める（録音の開始）
+             - MicrophoneUnavailableError の場合、待ち行列を捨て、そのまま送出する（音量は録音の開始が戻している。セッションは作らない）
+          4. セッションを作り（continuous を持たせる）、状態を recording にする
+          5. continuous が True なら、区間を起こして返すワーカースレッドを始める（_run_segments）
+          6. 状態の変化を知らせる（ユーザーへの知らせ）
+             - `[INFO]` セッションを始めた（セッションの ID・入口・連続録音か）
         exceptions:
           - name: SessionBusyError
             condition: ほかのセッションが残っている
@@ -368,6 +446,12 @@ classes:
             condition: start_recording が MicrophoneUnavailableError を送出する
             mock: SessionDeps の全関数
             expected: MicrophoneUnavailableError が伝わり、セッションが無いままで、続く start が通る
+          - name: test_start_when_continuous
+            case: 正常
+            summary: 連続録音を始める
+            condition: セッションが無い。continuous=True
+            mock: SessionDeps の全関数
+            expected: continuous が True の recording のセッションが返り、start_continuous_recording が 1 回呼ばれ、start_recording が呼ばれない
       - name: pause
         title: 一時停止
         kind: メソッド
@@ -422,11 +506,14 @@ classes:
         process: |-
           1. セッションの ID が今のセッションと合い、recording か stopped であることを確かめる
              - 合わない場合、SessionNotFoundError を送出する
-          2. recording なら録音を止め（録音の停止）、貯めた音をセッションに持たせて stopped にする
+          2. 連続録音なら、止めずに SessionConflictError を送出する（409 に変わる。連続録音は完了で終える）
+          3. recording なら録音を止め（録音の停止）、貯めた音をセッションに持たせて stopped にする
              - stopped の場合、何もしない
         exceptions:
           - name: SessionNotFoundError
             condition: 今のセッションでないか、recording でも stopped でもない
+          - name: SessionConflictError
+            condition: 今のセッションが連続録音
         unit_tests:
           - name: test_stop_when_recording
             case: 正常
@@ -447,6 +534,13 @@ classes:
             mock: SessionDeps の全関数
             expected: SessionNotFoundError が送出される
             exception: 今のセッションでない
+          - name: test_stop_when_continuous
+            case: 異常
+            summary: 連続録音は止めずに断る
+            condition: 連続録音のセッションが recording
+            mock: SessionDeps の全関数
+            expected: SessionConflictError が送出され、stop_recording・stop_continuous_recording が呼ばれず、状態が recording のまま
+            exception: 今のセッションが連続録音
       - name: complete
         title: 完了（確定）
         kind: メソッド
@@ -477,11 +571,12 @@ classes:
              - 当たらない場合、SessionNotFoundError を送出する
           2. session_id が None の場合（ホットキー・トレイ）、今のセッションの入口が api でなく、recording か paused であることを確かめる
              - 当たらない場合、何もしない（API のセッションに確定のホットキーが来ても変えない）
-          3. stopped でなければ録音を止める（録音の停止）
-          4. 録音を保存し（録音の保存）、状態を transcribing にして output_id と preset（output_preset）をセッションに持たせる
+          3. 連続録音なら、連続録音の終わり方（_finish_continuous_recording、終わった理由は completed）で終え、以降は行わない
+          4. stopped でなければ録音を止める（録音の停止）
+          5. 録音を保存し（録音の保存。segment_number は None）、状態を transcribing にして output_id と preset（output_preset）をセッションに持たせる
              - `[INFO]` 録音を確定した（セッションの ID・録音の長さ・保存先）
-             - 3〜4 で例外が出た場合、確定の失敗を片付け（確定の失敗）、その例外を送出し直す（API の route は既存のハンドラで 500 を返す）
-          5. ワーカースレッドで文字起こしから届けるまでを始める（確定後の流れ）
+             - 4〜5 で例外が出た場合、確定の失敗を片付け（確定の失敗）、その例外を送出し直す（API の route は既存のハンドラで 500 を返す）
+          6. ワーカースレッドで文字起こしから届けるまでを始める（確定後の流れ）
         exceptions:
           - name: SessionNotFoundError
             condition: session_id が今のセッションの ID と合わないか、入口が api でないか、確定できる状態でない（API のとき）
@@ -544,6 +639,18 @@ classes:
             condition: ホットキーのセッションを complete し、transcribe の第 2 引数を記録する。API のセッションでも同じを行う
             mock: SessionDeps の全関数。ワーカースレッドは同期で動かす
             expected: ホットキーのセッションで report_progress が渡り、API のセッションでは None
+          - name: test_complete_when_continuous
+            case: 正常
+            summary: 連続録音を完了すると、最後の区間の後ろに completed を届けて待機中に戻る
+            condition: 連続録音のセッションが recording で区間を 1 つ受けた後。stop_continuous_recording は渡された on_segment へ区間を 1 つ渡してから戻る。ワーカースレッドの終わりを待つ
+            mock: SessionDeps の全関数
+            expected: deliver に segment_number=1・2 の transcribed と、その後に result=completed・segment_count=2 がこの順に渡り、セッションが空になる。同じ ID への 2 度目の complete は SessionNotFoundError
+          - name: test_complete_when_continuous_without_segments
+            case: 正常
+            summary: 区間が無いまま完了すると segment_count=0 の completed だけを届ける
+            condition: 連続録音のセッションが recording で区間を受けていない。stop_continuous_recording は区間を渡さない
+            mock: SessionDeps の全関数
+            expected: deliver に result=completed・segment_count=0 だけが渡り、save_recording・transcribe が呼ばれない
       - name: cancel
         title: 取り消し
         kind: メソッド
@@ -580,14 +687,16 @@ classes:
           type: bool
           description: 打ち切ったか
         process: |-
-          1. API のセッションが recording か stopped で、今の時刻 − started_at が上限時間以上であることを確かめる
+          1. API のセッションが recording か stopped で、今の時刻 − started_at が上限時間（連続録音は _continuous_session_limit、それ以外は _session_limit）以上であることを確かめる
              - 当たらない場合、False を返す
-          2. recording なら録音を止める（録音の停止）
-          3. 録音を保存し（録音の保存）、状態を delivering にする
+          2. 連続録音なら、連続録音の終わり方（_finish_continuous_recording、終わった理由は truncated）で終え、True を返す
              - `[WARNING]` 完了が来ないまま上限で打ち切った（セッションの ID・経過時間）
-             - 2〜3 で例外が出た場合、確定の失敗を片付け（確定の失敗）、True を返す（例外は送出しない。上限のタイマーが同じ失敗を繰り返さない）
-          4. ロックを離し、ワーカースレッドで result=truncated を届けるを始める（打ち切りの返送。complete と同じワーカースレッドの起動を使う。返送の再送を待つ間もロックを持たず、その間の開始は 409 ですぐ返る）
-          5. True を返す
+          3. recording なら録音を止める（録音の停止）
+          4. 録音を保存し（録音の保存）、状態を delivering にする
+             - `[WARNING]` 完了が来ないまま上限で打ち切った（セッションの ID・経過時間）
+             - 3〜4 で例外が出た場合、確定の失敗を片付け（確定の失敗）、True を返す（例外は送出しない。上限のタイマーが同じ失敗を繰り返さない）
+          5. ロックを離し、ワーカースレッドで result=truncated を届けるを始める（打ち切りの返送。complete と同じワーカースレッドの起動を使う。返送の再送を待つ間もロックを持たず、その間の開始は 409 ですぐ返る）
+          6. True を返す
         unit_tests:
           - name: test_truncate_if_expired_when_recording
             case: 正常
@@ -632,6 +741,12 @@ classes:
             mock: SessionDeps の全関数。ワーカースレッドは同期で動かす
             expected: 例外が出ず True が返り、セッションが空になり、deliver に result=failed が渡り、続く truncate_if_expired が False を返す
             exception: 録音を保存できない
+          - name: test_truncate_if_expired_when_continuous
+            case: 正常
+            summary: 連続録音は連続録音の上限時間で打ち切り、残りの区間の後ろに truncated を届ける
+            condition: 1 回の録音の上限 600 秒・連続録音の上限 3600 秒。連続録音のセッションが recording で、now を started_at + 601 秒と + 3600 秒にして呼ぶ。stop_continuous_recording は区間を 1 つ渡してから戻る
+            mock: SessionDeps の全関数
+            expected: 601 秒では False が返って recording のまま、3600 秒では True が返り、deliver に segment_number=1 の transcribed の後で result=truncated・segment_count=1 が渡る
       - name: _run_after_confirm
         title: 確定後の流れ
         kind: メソッド
@@ -717,7 +832,8 @@ classes:
           description: なし
         process: |-
           1. ロックを取る
-          2. recording・paused・stopped のセッションが残っていれば、stopped でなければ録音を捨て（録音した音を捨てる）、セッションを空にする
+          2. recording・paused・stopped のセッションが残っていれば、stopped でなければ録音を捨て（録音した音を捨てる。連続録音は区切りのスレッドも止まる）、セッションを空にする
+             - 連続録音なら、区間の待ち行列へ None を積む（ワーカースレッドは残りの区間と終わりを返さずに終える）
              - `[WARNING]` 終了のため録音を捨てた（セッションの ID・入口）
              - transcribing・delivering の場合、何もしない（ワーカースレッドが終わり次第セッションを空にする）
         unit_tests:
@@ -733,6 +849,12 @@ classes:
             condition: セッションが無い
             mock: SessionDeps の全関数
             expected: discard_recording が呼ばれず、例外が出ない
+          - name: test_close_when_continuous
+            case: 正常
+            summary: 連続録音を捨て、残りの区間と終わりを返さない
+            condition: 連続録音のセッションが recording
+            mock: SessionDeps の全関数
+            expected: discard_recording が 1 回呼ばれ、deliver に completed・truncated が渡らず、セッションが空になる
       - name: _deliver_truncated
         title: 打ち切りの返送
         kind: メソッド
@@ -824,6 +946,149 @@ classes:
             condition: ホットキーで start した後
             mock: SessionDeps の全関数
             expected: entry が hotkey、state が recording の Session
+      - name: _finish_continuous_recording
+        title: 連続録音の終わり方
+        kind: メソッド
+        scope: internal
+        summary: 連続録音を transcribing にしてからロックを離して録音を止め、最後の区間の後ろに終わりの印を積む。ロックを持って呼び、戻るときにはロックを離している
+        description: 録音を止めると、区切りのスレッドが最後の区間を _on_segment へ渡す（_on_segment はロックを取る）ため、状態を書き換えた後にロックを離してから止める。先に transcribing にするので、同じセッションへの 2 度目の完了・打ち切りは通らない。
+        args:
+          - name: session
+            type: Session
+            required: true
+            description: 連続録音のセッション（recording）
+          - name: result
+            type: Literal["completed", "truncated"]
+            required: true
+            description: 終わった理由
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 状態を transcribing にして知らせ、区間の待ち行列を控えてロックを離す
+          2. 連続録音を止める（stop_continuous_recording。戻るまでに最後の区間が _on_segment へ渡る）
+             - 例外の場合、そのまま 3 へ進む（そこまでに区切った区間と終わりは返す）
+               - `[ERROR]` 連続録音を止められなかった（logger.exception）
+          3. 待ち行列へ ContinuousEnd(result) を積む
+             - `[INFO]` 連続録音を終えた（セッションの ID・終わった理由）
+        status: planned
+        introduced:
+          pr: 78
+      - name: _on_segment
+        title: 区間の受け取り
+        kind: メソッド
+        scope: internal
+        inherits: OnSegmentFn
+        summary: 録音が区切った区間に通し番号を付け、区間の待ち行列へ積む（録音の区切りのスレッドから呼ばれる）
+        args:
+          - name: segment
+            type: Segment
+            required: true
+            description: 区切った区間
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. ロックを取り、今のセッションが連続録音で recording か transcribing（完了・上限で止めている最中）であることを確かめる
+             - 当たらない場合（終了で捨てた後など）、区間を捨てる
+               - `[WARNING]` 連続録音でないため区間を捨てた
+          2. segment_count を 1 つ増やしてセッションに持たせ、(通し番号, 区間) を待ち行列へ積む
+             - `[INFO]` 区間を受けた（セッションの ID・通し番号・長さ・区切った理由）
+        unit_tests:
+          - name: test_on_segment_numbers_in_order
+            case: 正常
+            summary: 区間に 1 から順に通し番号を付ける
+            condition: 連続録音のセッションが recording。start_continuous_recording に渡された on_segment へ区間を 3 つ渡す。ワーカースレッドの処理を待つ
+            mock: SessionDeps の全関数
+            expected: save_recording に segment_number=1・2・3 がこの順に渡り、セッションの segment_count が 3
+          - name: test_on_segment_when_not_continuous
+            case: 正常
+            summary: 連続録音でなければ区間を捨てる
+            condition: 終了（close）でセッションを空にした後に on_segment へ区間を渡す
+            mock: SessionDeps の全関数
+            expected: save_recording・deliver が呼ばれない
+        status: planned
+        introduced:
+          pr: 78
+      - name: _run_segments
+        title: 区間を起こして返す
+        kind: メソッド
+        scope: internal
+        summary: ワーカースレッドで、区間の待ち行列を区切った順に 1 つずつ処理し、終わりの印で終わりを返して待機中に戻す
+        description: 前の区間の返送（再送を含む）を終えてから次の区間を処理するので、返送は通し番号の順に届き、終わりは全ての区間の後ろになる。
+        args:
+          - name: session_id
+            type: str
+            required: true
+            description: 連続録音のセッションの ID
+          - name: segments
+            type: queue.Queue[tuple[int, Segment] | ContinuousEnd | None]
+            required: true
+            description: 区間の待ち行列
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 待ち行列から 1 つずつ取り出す
+             - (通し番号, 区間) の場合、区間を処理して（_process_segment）次へ
+             - ContinuousEnd の場合、終わった理由と今の segment_count で終わり（result=completed か truncated）を届けて 3 へ
+               - 届けられない場合、ログに書き 3 へ
+                 - `[ERROR]` 連続録音の終わりを届けられなかった（logger.exception）
+             - None の場合（終了で捨てた）、届けずに終える（セッションは close が空にしている）
+          2. 1 を繰り返す
+          3. セッションを空にして待機中を知らせる
+             - `[INFO]` セッションを終えた（セッションの ID）
+        unit_tests:
+          - name: test_run_segments_when_transcription_failed
+            case: 異常
+            summary: 区間の文字起こしに失敗しても、その区間の failed を返して次の区間へ進む
+            condition: 連続録音で区間を 3 つ渡し、transcribe が 2 つ目だけ TranscriptionError を送出する。その後に complete
+            mock: SessionDeps の全関数
+            expected: deliver に segment_number=1 の transcribed・2 の failed（理由つき）・3 の transcribed・completed（segment_count=3）がこの順に渡る
+            exception: '-'
+          - name: test_run_segments_when_deliver_blocks
+            case: 正常
+            summary: 前の区間の返送を待つ間も区間を受け、順を崩さずに返す
+            condition: deliver が 1 つ目の区間だけ threading.Event を待って止まる。その間に区間を 2 つ渡してから Event を立てる
+            mock: SessionDeps の全関数
+            expected: on_segment が待たずに戻り、deliver に segment_number=1・2・3 がこの順に渡る
+        status: planned
+        introduced:
+          pr: 78
+      - name: _process_segment
+        title: 区間の処理
+        kind: メソッド
+        scope: internal
+        summary: 1 区間を保存 → 文字起こし → 補正 → 履歴への書き足し → 返す。失敗はその区間の failed として返し、連続録音は止めない
+        args:
+          - name: session_id
+            type: str
+            required: true
+            description: 連続録音のセッションの ID
+          - name: number
+            type: int
+            required: true
+            description: 区間の通し番号
+          - name: segment
+            type: Segment
+            required: true
+            description: 区間
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 区間の音を保存する（録音の保存。segment_number に通し番号）
+          2. 文字に起こす（文字起こし。進みを知らせる関数は None）
+          3. 用語集で補正し、区間の録音と同じ履歴に書き足す
+          4. result=transcribed・segment_number=通し番号で届ける（結果が空でも届ける）
+             - 1〜3 で例外（TranscriptionError を含む）が出た場合、result=failed・segment_number=通し番号・理由で届ける
+               - `[ERROR]` 区間の文字起こしに失敗した（セッションの ID・通し番号・理由）
+             - 届けるときの例外の場合、ログに書いて次の区間へ進む
+               - `[ERROR]` 区間を届けられなかった（logger.exception）
+          5. どの経路でも必ず（finally）、保存した区間が一時の音声なら消す（一時の音声の削除）
+        status: planned
+        introduced:
+          pr: 78
     status: implemented
 functions:
   - name: start_session_route
@@ -852,7 +1117,7 @@ functions:
     process: |-
       1. 返送先のホストが許されるかを確かめる（出力先の is_callback_allowed）
          - 許されない場合、CallbackNotAllowedError を送出する（400 に変わる）
-      2. SessionManager.start(entry="api", callback_url) を呼ぶ（SessionBusyError は 409、MicrophoneUnavailableError は 503 に変わる）
+      2. SessionManager.start(entry="api", callback_url, continuous=body.continuous) を呼ぶ（SessionBusyError は 409、MicrophoneUnavailableError は 503 に変わる）
       3. セッションの ID を返す
     exceptions:
       - name: CallbackNotAllowedError
@@ -867,6 +1132,12 @@ functions:
         mock: SessionApiDeps の SessionManager
         expected: CallbackNotAllowedError が送出され、start が呼ばれない
         exception: 返送先のホストが許されない
+      - name: test_start_session_route_when_continuous
+        case: 正常
+        summary: continuous を SessionManager.start へ渡す
+        condition: 'body が {callback_url: http://127.0.0.1:9000/r, continuous: true}。省いた body も送る'
+        mock: SessionApiDeps の SessionManager
+        expected: start に continuous=True が渡り、省いたときは continuous=False が渡る
     status: implemented
   - name: stop_session_route
     title: 停止の route

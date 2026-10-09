@@ -219,6 +219,56 @@ data_models:
         default: <ctrl>+<alt>+c
         description: この出力先で確定するホットキー
     status: planned
+  - name: CallbackPayload
+    title: 呼び出し元へ返す中身
+    container: features/outputs/types.py
+    usecase: 起こした文字を届ける
+    role: スキーマ
+    summary: 呼び出し元へ返すが送る JSON。送る中身に、連続録音の区間の通し番号と区間の数を足す
+    description: 設定のエンドポイントへ送る中身（ResultPayload）は変えないため、呼び出し元へ返すときだけこの子を使う。
+    inherits: ResultPayload
+    properties:
+      - name: result
+        type: Literal["transcribed", "failed", "truncated", "completed"]
+        description: 結果の種類（completed は連続録音だけ）
+      - name: segment_number
+        type: int | None
+        description: 連続録音の区間の通し番号。それ以外は None
+      - name: segment_count
+        type: int | None
+        description: 連続録音の終わり（completed・truncated）の区間の数。それ以外は None
+    methods:
+      - name: from_outcome
+        title: 結果から作る
+        kind: メソッド
+        summary: 結果から返す中身を作る（@classmethod）
+        args:
+          - name: outcome
+            type: TranscriptionOutcome
+            required: true
+            passing: positional
+            description: 届ける結果
+        returns:
+          type: CallbackPayload
+          description: outcome の session_id・result・text・error・segment_number・segment_count を写した中身
+        unit_tests:
+          - name: test_callback_payload_from_outcome
+            case: 正常
+            summary: 区間の結果を写す
+            condition: session_id が s1・result が transcribed・text が「テスト」・segment_number が 2 の outcome
+            mock: なし
+            expected: 'model_dump() が {session_id: s1, result: transcribed, text: テスト, error: None, segment_number: 2, segment_count: None}'
+          - name: test_callback_payload_from_outcome_when_single
+            case: 正常
+            summary: 1 回の録音の結果は通し番号と区間の数が None
+            condition: segment_number・segment_count を持たない transcribed の outcome
+            mock: なし
+            expected: segment_number・segment_count が None
+    refs:
+      - dev/設計書/インターフェース定義/常駐アプリ/呼び出し元へ返す.py#
+    status: planned
+    introduced:
+      pr: 78
 function_types:
   - name: OutputFn
     title: 出力先
@@ -541,16 +591,16 @@ functions:
     process: |-
       1. 返送先が許されるかをもう一度確かめる（返送先の確かめ）
          - 許されない場合、DeliveryError を送出する
-      2. 送る中身（ResultPayload.from_outcome）を作り、1 + 再送回数まで POST する
+      2. 返す中身（CallbackPayload.from_outcome）を作り、1 + 再送回数まで POST する
          - 2xx なら終える
-           - `[INFO]` 返送先へ届けた（セッションの ID・result・回数）
+           - `[INFO]` 返送先へ届けた（セッションの ID・result・区間の通し番号（あれば）・回数）
          - 一時的な失敗（5xx・408・429 か DeliveryError。タイムアウト・接続できない）で次の回がある場合、待ちを置いて次へ
            - 待ちは、Retry-After があればその秒数、無ければ jitter(retry_base_sec × 2^(回数−1))（指数バックオフとフルジッター）
            - Retry-After が retry_base_sec × 2^(再送回数−1)（待ちの上限）を超える場合、待たずに 3 へ（返送の間はセッションが残り次の開始を断るため、待ちを決めた上限に収める）
-           - `[WARNING]` 返送に失敗した（セッションの ID・回数・理由）
+           - `[WARNING]` 返送に失敗した（セッションの ID・区間の通し番号（あれば）・回数・理由）
          - それ以外のステータス（408・429 を除く 4xx など、送り直しても変わらない応答）の場合、再送せずに 3 へ
-      3. 届かなかったらログに書いて終える（送出しない。履歴は残っている）
-         - `[ERROR]` 返送先に届かなかった（セッションの ID・最後の理由）
+      3. 届かなかったらログに書いて終える（送出しない。履歴は残っている。連続録音は次の区間へ進む）
+         - `[ERROR]` 返送先に届かなかった（セッションの ID・区間の通し番号（あれば）・最後の理由）
     exceptions:
       - name: DeliveryError
         condition: 返送先が許されない（開始の後に設定が変わった）
@@ -598,6 +648,12 @@ functions:
         mock: post・sleep・jitter
         expected: DeliveryError が送出され、post が呼ばれない
         exception: 返送先が許されない
+      - name: test_deliver_to_caller_when_segment
+        case: 正常
+        summary: 連続録音の区間は通し番号を付けて送る
+        condition: segment_number=3 の transcribed の outcome。post が 200 を返す
+        mock: post・sleep・jitter
+        expected: post に segment_number=3・segment_count=None を含む中身が 1 回渡る
     refs:
       - dev/設計書/外部ライブラリ/httpx#
       - dev/設計書/インターフェース定義/常駐アプリ/呼び出し元へ返す.py#

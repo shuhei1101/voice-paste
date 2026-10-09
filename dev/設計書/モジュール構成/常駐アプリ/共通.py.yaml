@@ -74,14 +74,22 @@ data_models:
         type: str
         description: セッションの ID
       - name: result
-        type: Literal["transcribed", "failed", "truncated"]
-        description: 結果の種類
+        type: Literal["transcribed", "failed", "truncated", "completed"]
+        description: 結果の種類。completed は連続録音を完了し、全ての区間を届け終えたときだけ
       - name: text
         type: str
-        description: 用語集で補正した文字。空・失敗・打ち切りは空文字
+        description: 用語集で補正した文字。空・失敗・打ち切り・完了は空文字
       - name: error
         type: str | None
         description: 失敗の理由
+      - name: segment_number
+        type: int | None
+        default: None
+        description: 連続録音の区間の通し番号（1 始まり）。連続録音の transcribed・failed だけが持つ
+      - name: segment_count
+        type: int | None
+        default: None
+        description: 連続録音で区切った区間の数。連続録音の completed・truncated だけが持つ
     status: implemented
   - name: AppPaths
     title: 置き場所のパス
@@ -392,6 +400,10 @@ data_models:
         type: list[str]
         default: '[]'
         description: loopback のほかに返送を許すホスト
+      - name: continuous
+        type: ContinuousSettings
+        default: ContinuousSettings()
+        description: 連続録音の区切りと上限時間
     status: implemented
   - name: BrowserPreset
     title: ブラウザ添付のプリセット
@@ -527,6 +539,44 @@ data_models:
         type: str
         description: この出力先で確定するホットキー
     status: planned
+  - name: Segment
+    title: 区間
+    container: shared/types.py
+    usecase: 録音する
+    role: DTO
+    summary: 連続録音で区切った 1 区間の音。録音が作り、セッションが受ける（feature の間を渡るため shared に置く）
+    properties:
+      - name: recording
+        type: Recording
+        description: 区間の音（16 kHz・モノラル・int16）
+      - name: reason
+        type: Literal["silence", "max_length", "flush"]
+        description: '区切った理由。silence: 話し声の後の無音、max_length: 区間の最大の長さ、flush: 録音を止めたときの残り'
+    status: planned
+    introduced:
+      pr: 78
+  - name: ContinuousSettings
+    title: 連続録音の設定
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: API で始めた連続録音の区切りの無音の長さと上限時間（settings.toml の [api.continuous]）
+    inherits: pydantic.BaseModel
+    properties:
+      - name: min_silence_sec
+        type: float
+        default: '2.0'
+        description: 話し声の後にこの秒数以上無音が続いたところで区切る（0.5〜10）
+      - name: session_limit_sec
+        type: int
+        default: '14400'
+        description: 連続録音を、完了が来ないまま開始からこの秒数で打ち切る（60〜86400）
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[api.continuous.min_silence_sec]
+      - dev/設計書/設定/常駐アプリ#settings[api.continuous.session_limit_sec]
+    status: planned
+    introduced:
+      pr: 78
 classes:
   - name: AppError
     title: アプリの例外
@@ -544,6 +594,7 @@ classes:
       | `ForbiddenRequestError` | Origin が付いている・Host が違う | 403 |
       | `SessionNotFoundError` | セッションが無い・操作できない状態 | 404 |
       | `SessionBusyError` | ほかのセッションが処理中 | 409 |
+      | `SessionConflictError` | セッションの種類がその操作を受けない（連続録音への停止） | 409 |
       | `MicrophoneUnavailableError` | マイクを開けない | 503 |
       | `TranscriptionError` | 文字起こしに失敗した（API へは返さず返送先へ届ける） | - |
       | `EngineError` | エンジンが失敗した（外部連携が送出し、文字起こしが TranscriptionError に変える） | - |
@@ -1067,3 +1118,18 @@ function_types:
       type: None
       description: なし
     status: implemented
+  - name: OnSegmentFn
+    title: 区間の受け取り先
+    container: shared/types.py
+    usecase: 録音する
+    summary: 区切った区間を区切った順に受け取る。録音の区切りのスレッドから呼ばれる。録音が呼び、セッションが渡す（feature の間を渡るため shared に置く）
+    args:
+      - name: segment
+        type: Segment
+        description: 区切った区間
+    returns:
+      type: None
+      description: なし
+    status: planned
+    introduced:
+      pr: 78

@@ -15,12 +15,24 @@ catalogs:
       - name: WhisperModel.transcribe
         kind: メソッド
         purpose: 音声ファイルを言語・ビーム幅・候補数・温度・VAD・前の区間の文脈・無音の閾値を指定して文字に起こし、区間ごとの文字と音声の長さを返す
+      - name: faster_whisper.vad.get_vad_model
+        kind: 関数
+        purpose: 同梱の Silero VAD（assets/silero_vad_v6.onnx）を onnxruntime の CPU で読み、セッションを持つ SileroVADModel を返す
+        description: '常駐アプリのプロセスで、連続録音の話し声の判定に使う。`SileroVADModel.__call__` は呼ぶたびに LSTM の状態を 0 に戻すため、戻り値の `session`（onnxruntime.InferenceSession）を `run(None, {"input": (1, 576) の float32, "h": (1, 1, 128), "c": (1, 1, 128)})` で直接呼び、状態を呼び出し側で持ち越す（PoC #80 で確かめた形）。`faster_whisper.vad` を import するとパッケージの `__init__`（ctranslate2 を含む）も読まれる。'
+        returns:
+          - name: '-'
+            type: SileroVADModel
+            description: session 属性に onnxruntime.InferenceSession（入力 input・h・c、出力 確率・h・c）を持つ
+        status: planned
+        introduced:
+          pr: 78
 lead: CTranslate2 で Whisper のモデルを動かし、音声を文字に起こすライブラリ。
 purl: pkg:pypi/faster-whisper
 dependency_scope: 必須
 adoption: 採用
 used_in:
   - src/voice_paste/integrations/whisper/worker.py
+  - src/voice_paste/integrations/vad/adapter.py
 upstream: SYSTRAN/faster-whisper
 verification:
   state: 済

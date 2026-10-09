@@ -1,11 +1,13 @@
 title: "常駐アプリ / 外部連携"
-lead: 文字起こしワーカーの子プロセス・システム音量・キーボードとクリップボード・ブラウザ添付の画面を開くブラウザ・HTTP の POST を包むアダプタ。feature の関数型を満たし、外の例外をアプリの例外に変える。
+lead: 文字起こしワーカーの子プロセス・システム音量・キーボードとクリップボード・ブラウザ添付の画面を開くブラウザ・HTTP の POST・話し声の判定（Silero VAD）を包むアダプタ。feature の関数型を満たし、外の例外をアプリの例外に変える。
 directory: |-
   ```
   src/voice_paste/integrations/
   ├── whisper/
   │   ├── client.py     # WhisperWorkerClient（子プロセスの起動・監視・立て直し・やり直し）
   │   └── worker.py     # 子プロセスの本体（文字起こしワーカーのサブシステム）
+  ├── vad/
+  │   └── adapter.py    # load_vad_session・StreamingVad（faster-whisper 同梱の Silero VAD を窓ごとに流す）
   ├── volume/
   │   └── adapter.py    # lower_volume・restore_volume（pycaw を == で固定して包む）
   ├── keyboard/
@@ -210,6 +212,71 @@ classes:
     refs:
       - dev/設計書/外部ライブラリ/faster-whisper#
     status: implemented
+  - name: StreamingVad
+    title: 流して使う VAD
+    container: integrations/vad/adapter.py
+    usecase: 録音する
+    role: アダプタ
+    kind: クラス
+    summary: Silero VAD の ONNX のセッションで、512 サンプルの窓ごとに話し声の確率を返す。LSTM の状態と前の窓の末尾を次の窓へ持ち越す
+    description: |-
+      窓をまたいで状態（h・c・前の 64 サンプル）を持ち越すためクラスにする。連続録音を始めるたびに新しく作り、状態を持ち越さない。
+      faster-whisper の `SileroVADModel.__call__` は呼ぶたびに状態を 0 に戻すため、セッションだけを借りて状態をこちらで持つ（PoC #80 で、一度に渡した `get_speech_timestamps` と同じ区切りになることを確かめた）。
+      録音の区切りのスレッドからだけ呼ぶ（並行で呼ばない）。
+    properties:
+      - name: _session
+        type: onnxruntime.InferenceSession
+        access: 内部 (_)
+        description: Silero VAD のセッション（load_vad_session が読んだものを共有する）
+      - name: _h
+        type: numpy.ndarray
+        access: 内部 (_)
+        description: LSTM の状態 h（形 VAD_STATE_SHAPE・float32。初めは 0）
+      - name: _c
+        type: numpy.ndarray
+        access: 内部 (_)
+        description: LSTM の状態 c（形 VAD_STATE_SHAPE・float32。初めは 0）
+      - name: _context
+        type: numpy.ndarray
+        access: 内部 (_)
+        description: 前の窓の末尾 VAD_CONTEXT サンプル（初めは 0）
+    methods:
+      - name: __call__
+        title: 話し声の確率
+        kind: メソッド
+        scope: public
+        inherits: SpeechProbabilityFn
+        summary: 1 窓（512 サンプル・float32・-1.0〜1.0）の話し声の確率を返し、状態を次の窓へ持ち越す
+        args:
+          - name: window
+            type: numpy.ndarray
+            required: true
+            description: 512 サンプルの音（float32）
+        returns:
+          type: float
+          description: 話し声の確率（0.0〜1.0）
+        process: |-
+          1. 前の窓の末尾と窓をつないだ (1, 576) の入力を作る
+          2. セッションを input・h・c で動かし、確率と新しい h・c を受ける
+          3. 窓の末尾 VAD_CONTEXT サンプルを持ち越し、確率を返す
+        unit_tests:
+          - name: test_streaming_vad_carries_state
+            case: 正常
+            summary: 状態を次の窓へ持ち越す
+            condition: セッションの Mock が確率 0.9 と、呼ぶたびに違う h・c を返す。2 窓を続けて渡す
+            mock: onnxruntime.InferenceSession
+            expected: 0.9 が返り、2 回目の run に 1 回目が返した h・c と、1 窓目の末尾 64 サンプルで始まる形 (1, 576) の入力が渡る
+          - name: test_streaming_vad_starts_fresh
+            case: 正常
+            summary: 新しく作ると状態を持ち越さない
+            condition: 同じセッションで 2 つ作り、それぞれに 1 窓を渡す
+            mock: onnxruntime.InferenceSession
+            expected: どちらの run にも 0 の h・c が渡る
+    refs:
+      - dev/設計書/外部ライブラリ/faster-whisper#
+    status: planned
+    introduced:
+      pr: 78
 functions:
   - name: lower_volume
     title: 音量を下げる
@@ -691,6 +758,44 @@ functions:
     refs:
       - dev/設計書/外部ライブラリ/httpx#
     status: implemented
+  - name: load_vad_session
+    title: VAD のセッションの読み込み
+    container: integrations/vad/adapter.py
+    usecase: 録音する
+    role: アダプタ
+    kind: 関数
+    scope: public
+    summary: faster-whisper に同梱の Silero VAD（ONNX）を CPU で読み、セッションを返す
+    description: faster-whisper を関数の中で import する（起動の配線で 1 回だけ呼ぶ。テストでは差し替える）。
+    returns:
+      type: onnxruntime.InferenceSession
+      description: Silero VAD のセッション
+    process: |-
+      1. faster_whisper.vad の get_vad_model を呼び、その session を返す
+         - 例外の場合、StartupError を送出する（理由に元の例外を残す）
+           - `[ERROR]` VAD を読めなかった（理由）
+    exceptions:
+      - name: StartupError
+        condition: VAD のモデルを読めない（faster-whisper・onnxruntime が無い・モデルのファイルが無い）
+    unit_tests:
+      - name: test_load_vad_session
+        case: 正常
+        summary: 同梱のモデルのセッションを返す
+        condition: get_vad_model の Mock が session を持つものを返す
+        mock: faster_whisper.vad.get_vad_model
+        expected: その session が返る
+      - name: test_load_vad_session_when_failed
+        case: 異常
+        summary: 読めなければ起動の失敗にする
+        condition: get_vad_model が RuntimeError を送出する
+        mock: faster_whisper.vad.get_vad_model
+        expected: StartupError が送出される
+        exception: VAD のモデルを読めない
+    refs:
+      - dev/設計書/外部ライブラリ/faster-whisper#
+    status: planned
+    introduced:
+      pr: 78
 constants:
   - name: FADE_STEPS
     title: フェードの段数
@@ -727,6 +832,24 @@ constants:
     summary: PATH に msedge が無いときに探す Edge の実行ファイル。刷新前と同じ並び
     value: (r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe", r"C:\Program Files\Microsoft\Edge\Application\msedge.exe")
     status: implemented
+  - name: VAD_CONTEXT
+    title: VAD の持ち越しのサンプル数
+    container: integrations/vad/adapter.py
+    usecase: 録音する
+    summary: Silero VAD が前の窓から持ち越す文脈のサンプル数（faster-whisper の context_size_samples と同じ）
+    value: '64'
+    status: planned
+    introduced:
+      pr: 78
+  - name: VAD_STATE_SHAPE
+    title: VAD の状態の形
+    container: integrations/vad/adapter.py
+    usecase: 録音する
+    summary: Silero VAD の LSTM の状態 h・c の形
+    value: (1, 1, 128)
+    status: planned
+    introduced:
+      pr: 78
 test_files:
   - tests/unit/voice_paste/integrations/whisper/test_client.py
   - tests/unit/voice_paste/integrations/volume/test_adapter.py

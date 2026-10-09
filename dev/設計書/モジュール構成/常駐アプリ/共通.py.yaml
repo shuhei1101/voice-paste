@@ -4,7 +4,7 @@ directory: |-
   ```
   src/voice_paste/shared/
   ├── __init__.py
-  ├── settings.py       # 設定のモデル（pydantic）、TOML の読み書き（tomlkit）
+  ├── settings.py       # 設定のモデル（pydantic）と出力先の設定の共通の親・設定のモデルの組み立て、TOML の読み書き（tomlkit）
   ├── logger.py         # 標準の logging の設定。日付ごとのファイルと保持期間での削除
   ├── errors.py         # 例外の階層
   ├── constants.py      # アプリ名と置き場所のパス（platformdirs）
@@ -26,26 +26,6 @@ enums:
       - value: api
         title: API
         description: POST /sessions
-    status: implemented
-  - name: OutputSettings
-    title: 出力先の設定
-    container: shared/settings.py
-    usecase: 共通
-    summary: 出力先ごとの設定の判別共用体（`Annotated[... | ..., Field(discriminator="id")]`）
-    description: |-
-      呼び出し元へ返す出力先（callback）は API から始めた録音だけが使い、オン・オフを持たないため一覧に置かない。
-      既定の一覧は下の 3 件をこの並びで持つ。
-      `id = "ai_chat"` の項目は、検証の前に migrate_ai_chat がカスタムプリセットへ読み替えて外す。
-    values:
-      - value: paste_and_send
-        title: 貼り付けて送信
-        description: PasteAndSendSettings
-      - value: paste_only
-        title: 貼り付けのみ
-        description: PasteOnlySettings
-      - value: copy_only
-        title: コピーのみ
-        description: CopyOnlySettings
     status: implemented
   - name: Preset
     title: カスタムプリセット
@@ -144,7 +124,9 @@ data_models:
       キーの一つ一つ（型・既定値・範囲・反映）は設計書『設定』の settings.toml の行が持つ。
       まとまりのモデルも全て `pydantic.BaseModel` で、どれも `model_config = ConfigDict(extra="forbid")` にして知らないキー（書き間違い）を断る。
       各項目は `Field(description=..., json_schema_extra={"reload": "immediate" | "restart"})` で再起動が要るかの印を持つ。
-      全ての項目に既定値があり、`Settings()` が既定の設定になる。
+      出力先ごとの設定のモデルは出力先が持ち（shared は features を import しない）、アプリが使う設定のモデルは build_settings_model がこのモデルを継いで組み立てる（main.py の SETTINGS_MODEL）。組み立てたモデルでは全ての項目に既定値があり、`SETTINGS_MODEL()` が既定の設定になる。
+      設定を受ける関数・画面は型としては Settings を使い、既定値・検証には受けた設定のモデル（`type(settings)`）を使う。
+      この設計書の単体テストの `Settings()` は、今の出力先のモデル（PasteAndSendSettings・PasteOnlySettings・CopyOnlySettings）をこの並びで build_settings_model に渡したモデルの既定値を指す。
     properties:
       - name: transcription
         type: TranscriptionSettings
@@ -159,8 +141,8 @@ data_models:
         type: KeyboardSettings
         description: 貼り付けのキー
       - name: outputs
-        type: list[OutputSettings]
-        description: 出力先ごとのオン・オフ・確定のホットキー・出力先ごとの設定。ID は重ならない
+        type: list[OutputSettingsBase]
+        description: 出力先ごとのオン・オフ・確定のホットキー・出力先ごとの設定。ID は重ならない。このモデルでは既定が空で、build_settings_model が出力先のモデルの判別共用体（`id` で見分ける）と既定の一覧に差し替える。値は `SerializeAsAny` で各出力先のモデルの項目ごと書き出す
       - name: history
         type: HistorySettings
         description: 履歴を残すか・保持期間
@@ -184,6 +166,10 @@ data_models:
       - name: preset_options
         type: PresetOptions
         description: プリセットの種類ごとのオプション
+      - name: output_models
+        type: ClassVar[Mapping[str, type[OutputSettingsBase]]]
+        default: '{}'
+        description: 出力先の ID → 設定のモデル。build_settings_model が組み立てたモデルに入る。設定画面が失敗の場所の判別子の値から出力先のモデルを引く
     refs:
       - dev/設計書/外部ライブラリ/pydantic#
       - dev/設計書/設定/常駐アプリ#
@@ -331,73 +317,6 @@ data_models:
         type: str
         default: <ctrl>+v
         description: 貼り付けのキーの組み合わせ（pynput の書式）
-    status: implemented
-  - name: PasteAndSendSettings
-    title: 貼り付けて送信の設定
-    container: shared/settings.py
-    usecase: 共通
-    role: 設定のモデル
-    summary: 出力先 paste_and_send のオン・オフ・確定のホットキー・貼り付けから送信までの間
-    inherits: pydantic.BaseModel
-    properties:
-      - name: id
-        type: Literal["paste_and_send"]
-        default: paste_and_send
-        description: 出力先の ID（OutputSettings の判別子）
-      - name: enabled
-        type: bool
-        default: 'True'
-        description: オンか
-      - name: hotkey
-        type: str
-        default: <ctrl>+<alt>+d
-        description: この出力先で確定するホットキー
-      - name: enter_delay_sec
-        type: float
-        default: '0.5'
-        description: 貼り付けてから Enter を送るまで待つ秒数（0 以上）
-    status: implemented
-  - name: PasteOnlySettings
-    title: 貼り付けのみの設定
-    container: shared/settings.py
-    usecase: 共通
-    role: 設定のモデル
-    summary: 出力先 paste_only のオン・オフ・確定のホットキー
-    inherits: pydantic.BaseModel
-    properties:
-      - name: id
-        type: Literal["paste_only"]
-        default: paste_only
-        description: 出力先の ID
-      - name: enabled
-        type: bool
-        default: 'True'
-        description: オンか
-      - name: hotkey
-        type: str
-        default: <ctrl>+<alt>+v
-        description: この出力先で確定するホットキー
-    status: implemented
-  - name: CopyOnlySettings
-    title: コピーのみの設定
-    container: shared/settings.py
-    usecase: 共通
-    role: 設定のモデル
-    summary: 出力先 copy_only のオン・オフ・確定のホットキー
-    inherits: pydantic.BaseModel
-    properties:
-      - name: id
-        type: Literal["copy_only"]
-        default: copy_only
-        description: 出力先の ID
-      - name: enabled
-        type: bool
-        default: 'True'
-        description: オンか
-      - name: hotkey
-        type: str
-        default: <ctrl>+<alt>+c
-        description: この出力先で確定するホットキー
     status: implemented
   - name: HistorySettings
     title: 履歴の設定
@@ -589,6 +508,26 @@ data_models:
       - dev/設計書/設定/常駐アプリ#settings[preset_options.endpoint.timeout_sec]
       - dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送るときのタイムアウト]
     status: implemented
+  - name: OutputSettingsBase
+    title: 出力先の設定の共通の親
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: 出力先ごとの設定のモデルが継ぐ、どの出力先も持つ ID・オン・オフ・確定のホットキー
+    description: 出力先のモデルは `id` を `Literal["{出力先の ID}"]` に絞り、全ての項目に既定値を持たせる（既定の出力先の一覧は各モデルを引数なしで作る）。ホットキーの重なり・確定のホットキー・設定画面の共通の欄はこの 3 項目だけを読む。このほかの項目は設定画面が型から欄を組み立て、`json_schema_extra` の note があれば欄の下に出す
+    inherits: pydantic.BaseModel
+    properties:
+      - name: id
+        type: str
+        description: 出力先の ID（設定の outputs[] の判別子）
+      - name: enabled
+        type: bool
+        default: 'True'
+        description: オンか
+      - name: hotkey
+        type: str
+        description: この出力先で確定するホットキー
+    status: planned
 classes:
   - name: AppError
     title: アプリの例外
@@ -633,17 +572,22 @@ functions:
         required: true
         passing: positional
         description: settings.toml
+      - name: model
+        type: type[Settings]
+        required: true
+        passing: positional
+        description: 検証に使う設定のモデル（main.py の SETTINGS_MODEL）
     returns:
       type: Settings
       description: 検証した設定
     process: |-
       1. path が無いかを確かめる
-         - 無い場合、既定の Settings を書いて返す（設定の書き戻し）
+         - 無い場合、model() を書いて返す（設定の書き戻し）
            - `[INFO]` 設定ファイルが無いため既定値で作った（path）
       2. UTF-8 で読み、tomlkit で解釈する
          - TOMLKitError の場合、SettingsError を送出する
       3. 文書を素の dict にし、古い AI チャットの設定を読み替える（migrate_ai_chat。settings.toml は書き換えない）
-      4. Settings.model_validate で検証して返す
+      4. model.model_validate で検証して返す
          - pydantic.ValidationError の場合、合わないキーをドット区切り（例 `transcription.local_whisper.beam_size`、出力先は `outputs[0].hotkey`、プリセットは `presets[0].url`）で並べた SettingsError を送出する
     exceptions:
       - name: SettingsError
@@ -739,7 +683,7 @@ functions:
       description: 再起動が要る項目が変わったか
     process: |-
       1. path があれば tomlkit で読み、無ければ空の文書にする
-      2. 読んだ文書を、古い AI チャットの設定を読み替えてから（migrate_ai_chat）Settings として検証し、前の設定にする
+      2. 読んだ文書を、古い AI チャットの設定を読み替えてから（migrate_ai_chat）settings と同じ設定のモデル（`type(settings)`）で検証し、前の設定にする
          - 無い場合、前の設定は無しとする
          - 読めない・検証に通らない場合、内容を空の文書にして前の設定を「全て変わった」とする
       3. settings を `model_dump(mode="json")` する
@@ -1043,6 +987,58 @@ functions:
         mock: なし
         expected: document と同じ中身が返る
     status: implemented
+  - name: build_settings_model
+    title: 設定のモデルの組み立て
+    kind: 関数
+    container: shared/settings.py
+    usecase: 共通
+    scope: public
+    summary: 出力先の設定のモデルを受け、outputs をその判別共用体と既定の一覧にした Settings の子のモデルを返す
+    args:
+      - name: output_models
+        type: Sequence[type[OutputSettingsBase]]
+        required: true
+        passing: positional
+        description: 出力先の設定のモデル（OUTPUTS の並び。この並びが既定の一覧の並びになる）
+    returns:
+      type: type[Settings]
+      description: 組み立てた設定のモデル
+    process: |-
+      1. 各モデルの id の既定値を集める
+         - 空か、重なる ID がある場合、ValueError を送出する（登録の誤り。起動の前に単体テストで止める）
+      2. outputs の型を、モデルが 2 つ以上なら `Annotated[Union[...], Field(discriminator="id")]`、1 つならそのモデルの list にする（失敗の場所は今と同じく添字の次に判別子の値が入り、format_error_location が外す）
+      3. outputs の既定を、各モデルを引数なしで作った一覧（渡した並び）にする。説明・反映の印は Settings の outputs のものを引き継ぐ
+      4. Settings を継いだモデルを `pydantic.create_model` で作り、output_models に ID → モデルを入れて返す（確かめは Settings のものを引き継ぐ）
+    exceptions:
+      - name: ValueError
+        condition: モデルが空か、ID が重なる
+    unit_tests:
+      - name: test_build_settings_model
+        case: 正常
+        summary: 渡したモデルで outputs を検証し、既定の一覧をその並びで持つ
+        condition: '試しのモデル 2 つ（ID a・b。b だけ delay_sec: float = 1.0 を持つ）を渡し、返ったモデルで既定値を作り、outputs = [{id: b, hotkey: <ctrl>+<alt>+b, delay_sec: 2.0}] の dict を model_validate する'
+        mock: なし
+        expected: '既定値の outputs が [a のモデル, b のモデル] の順で、model_validate の outputs[0] が b のモデル（delay_sec 2.0）、model_dump(mode="json") の outputs[0] に delay_sec があり、output_models が {a: a のモデル, b: b のモデル}'
+      - name: test_build_settings_model_when_unknown_output
+        case: 異常
+        summary: 渡していない出力先の ID を断る
+        condition: '試しのモデル a・b で組み立て、outputs = [{id: c}] を model_validate する'
+        mock: なし
+        expected: ValidationError。list_validation_failures のキーが outputs[0] で始まる
+      - name: test_build_settings_model_when_single_output
+        case: 正常
+        summary: 出力先が 1 つでも組み立てられる
+        condition: 試しのモデル a だけを渡す
+        mock: なし
+        expected: 既定値の outputs が [a のモデル]
+      - name: test_build_settings_model_when_duplicate_id
+        case: 異常
+        summary: ID が重なる登録を断る
+        condition: ID がどちらも a の試しのモデル 2 つを渡す
+        mock: なし
+        expected: ValueError
+        exception: ID が重なる
+    status: planned
 constants:
   - name: APP_NAME
     title: アプリ名

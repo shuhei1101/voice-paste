@@ -35,7 +35,7 @@ release PR [#52](https://github.com/shuhei1101/voice-paste/pull/52)（Sprint v0.
 - [x] ~~インターフェース定義設計~~（影響なし: API の入出力を変えない）
 - [x] ~~部品設計~~（画面を変えない）
 - [x] ~~画面設計~~（画面を変えない）
-- [ ] モジュール構成設計
+- [x] ~~モジュール構成設計~~（影響なし: 常駐アプリのクラス・関数を変えない。直すのはテストとその支えのコード。`HotkeyListener` の `accept_injected` を「E2E の起動だけ」使うとする記述は、口ごと消す [#67](https://github.com/shuhei1101/voice-paste/issues/67) で直す）
 - [ ] ドキュメント修正
 - [ ] 単体テスト作成
 - [ ] 実装

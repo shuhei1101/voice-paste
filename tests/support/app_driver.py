@@ -46,8 +46,8 @@ STATE_TIMEOUT_SEC = 120.0
 
 WINDOW_TIMEOUT_SEC = 20.0
 EXIT_TIMEOUT_SEC = 30.0
-TRAY_POSITION_TOLERANCE_PX = 4
-"""トレイのアイコンの位置が同じとみなす差。"""
+TRAY_MENU_PROBE_TIMEOUT_SEC = 3.0
+"""候補のアイコンを右クリックして、この常駐アプリのメニューが出るのを待つ上限。"""
 
 
 class AppDriver:
@@ -65,8 +65,6 @@ class AppDriver:
         self.uia = uia or get_uia()
         self._baseline = Counter(baseline_tooltips or [])
         self._pids: list[int] = []
-        self._tray_center: tuple[int, int] | None = None
-        """この常駐アプリのトレイのアイコンの中心（普段使いの旧版のアイコンと見分けるため、メニューを開いて確かめた位置を覚える）。"""
 
     # --- プロセス ---
 
@@ -110,33 +108,33 @@ class AppDriver:
 
     # --- トレイ ---
 
-    @staticmethod
-    def _near(first: tuple[int, int], second: tuple[int, int]) -> bool:
-        """2 つの座標がほぼ同じか。"""
-        return abs(first[0] - second[0]) <= TRAY_POSITION_TOLERANCE_PX and (
-            abs(first[1] - second[1]) <= TRAY_POSITION_TOLERANCE_PX
-        )
+    def _open_own_tray_menu(self) -> bool:
+        """候補のアイコンを順に右クリックし、この常駐アプリのメニューが出たところで止めて真を返す（出なければ偽）。
 
-    def own_tray_icon(self) -> Any | None:
-        """この常駐アプリのトレイのアイコンを返す（無ければ None）。
-
-        ヒントが同じ形の旧版のアイコンが並ぶことがあるため、初めに右クリックでメニューを開き、
-        この常駐アプリのメニュー（menu_start）が出るアイコンを選んで、その位置を覚える。
+        ヒントが同じ形の旧版のアイコンや前のケースのアイコンが並ぶことがあるため、アイコンは位置で覚えず、
+        この常駐アプリのメニュー（menu_start）が出るかで毎回選ぶ。
         """
         buttons = self.uia.tray_icon_buttons()
-        if self._tray_center is not None:
-            for button in buttons:
-                if self._near(self.uia.center(button), self._tray_center):
-                    return button
-            return None
-        for button in buttons:
-            self.uia.click_center(button, right=True)
-            if wait_until(lambda: self.uia.find(self.pids, "menu_start") is not None, 3.0):
-                self._tray_center = self.uia.center(button)
-                self.close_menu()
-                return button
+        index = 0
+        while index < len(buttons):
+            count = len(buttons)
+            self.uia.click_center(buttons[index], right=True)
+            if wait_until(
+                lambda: self.uia.find(self.pids, "menu_start") is not None,
+                TRAY_MENU_PROBE_TIMEOUT_SEC,
+            ):
+                # この常駐アプリのメニューが出た
+                return True
             self.close_menu()
-        return None
+            # 一覧が閉じていることがあるため、開き直して候補を並べ直す
+            buttons = self.uia.tray_icon_buttons()
+            if len(buttons) < count:
+                # 試した候補が消えて位置が詰まった: 試した順の数え方が外れるため、先頭から試し直す
+                index = 0
+            else:
+                # 試した候補が残っている: 並びは変わらないので次の候補へ進む
+                index += 1
+        return False
 
     def _own_tooltips(self) -> list[str]:
         """今のトレイのアイコンのヒントから、起動する前からあったもの（旧版のアイコン）を除き、この常駐アプリの状態の名前だけを並べる。"""
@@ -160,11 +158,8 @@ class AppDriver:
         )
 
     def open_tray_menu(self) -> None:
-        """トレイのアイコンを右クリックしてメニューを開く。"""
-        icon = self.own_tray_icon()
-        assert icon is not None, "この常駐アプリのトレイのアイコンが見つからない"
-        self.uia.click_center(icon, right=True)
-        self.uia.wait_find(self.pids, "menu_start", WINDOW_TIMEOUT_SEC)
+        """トレイのアイコンを右クリックして、この常駐アプリのメニューを開く。"""
+        assert self._open_own_tray_menu(), "この常駐アプリのトレイのアイコンが見つからない"
 
     def choose_tray_menu(self, item: str) -> None:
         """トレイのメニューを開いて、項目 ID（menu_start など）の項目を選ぶ。"""

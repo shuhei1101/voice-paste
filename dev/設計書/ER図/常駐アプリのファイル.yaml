@@ -5,7 +5,7 @@ tables:
     title: 録音の履歴
     datastore: ファイル（WAV）
     summary: 確定した録音。文字起こしより先に書き、文字起こしに失敗しても結果が空でも残る
-    growth: 録音を確定するたびに 1 つ増える（`history.enabled = true` のとき）
+    growth: 録音を確定するたびに 1 つ増える（`history.enabled = true` のとき）。連続録音では区間を区切るたびに 1 つ増える
     retention: '`history.retention_days` 日（日付のフォルダごと消す）'
     deletion: 物理削除（起動時と、常駐中は非機能要件の削除の間隔ごと）
     columns:
@@ -21,6 +21,7 @@ tables:
         title: 音
         type: array
         description: 16 ビット整数の音（一時停止の間の音は含まない）
+    description: 連続録音の区間は、同じセッションの区間を分けるためにファイル名の末尾へ通し番号を付ける（`{YYYYMMDDHHMMSS}_{session_id}_{通し番号}.wav`。日時は区間を区切った時刻）。
   - name: '%LOCALAPPDATA%\voice-paste\history\{YYYYMMDD}\{YYYYMMDDHHMMSS}_{session_id}.txt'
     title: 起こした文字の履歴
     datastore: ファイル（テキスト、UTF-8）
@@ -33,6 +34,7 @@ tables:
         title: 起こした文字
         type: string
         description: 区間ごとに改行で区切った文字
+    description: 連続録音の区間は、区間の録音と同じ名前（`{YYYYMMDDHHMMSS}_{session_id}_{通し番号}.txt`）に書く。
   - name: '%LOCALAPPDATA%\voice-paste\tmp\{session_id}.wav'
     title: 一時の音声
     datastore: ファイル（WAV）

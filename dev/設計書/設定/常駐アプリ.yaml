@@ -518,5 +518,34 @@ settings:
     refs:
       - dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送るときのタイムアウト]
       - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送る.py#
+  - key: api.continuous.min_silence_sec
+    title: 連続録音を区切る無音の長さ
+    file: settings.toml
+    type: float（秒）
+    default: '2.0'
+    description: API で始めた連続録音で、話し声の後にこの秒数以上無音が続いたところで区間を区切る。
+    reload: restart
+    allowed: 0.5〜10
+    reason: PoC（#80）で 2.0 秒のとき、間 2.1 秒の文は区切り、間 1.0 秒の文は区切らないことを確かめた
+    refs:
+      - dev/設計書/インターフェース定義/常駐アプリ/録音を開始する.py#
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+    introduced:
+      pr: 78
+  - key: api.continuous.session_limit_sec
+    title: 連続録音のセッションの上限時間
+    file: settings.toml
+    type: int（秒）
+    default: '14400'
+    description: API で始めた連続録音を、完了が来ないまま開始からこの秒数が経ったところで打ち切る。
+    reload: restart
+    allowed: 60〜86400
+    refs:
+      - dev/設計書/非機能要件/非機能要件#requirements[連続録音のセッションの上限時間]
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+    introduced:
+      pr: 78
 notes:
   反映の列の読み方: '`immediate` は設定画面で保存すると動いている常駐アプリに効く項目。`settings.toml` を直接書き換えたときは、どの項目も再起動まで効かない（起動時に 1 度だけ読む）。'

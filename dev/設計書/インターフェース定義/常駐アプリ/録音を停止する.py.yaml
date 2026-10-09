@@ -117,7 +117,27 @@ flows:
       - 404 が返る
       - 処理中のほかのセッションがあれば、そのまま続いている
     test: test_error_when_session_unknown
-lead: API から始めた録音を止め、完了を待つ状態にする。止めた後の音は貯めない。
+  - name: 異常系（連続録音のセッション・409）
+    summary: 連続録音のセッションは止めずに断る
+    setup:
+      - name: Mock
+        description: マイク・システム音量・トレイを差し替える
+      - name: 連続録音のセッション
+        description: 録音を開始する を continuous=true で呼んだセッションが録音中
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as クライアント
+        participant IF as POST /sessions/{session_id}/stop
+
+        C->>IF: トークン・連続録音の session_id
+        IF-->>C: 409
+      ```
+    expected:
+      - 409 が返り、detail に連続録音は完了で終えることが書かれている
+      - セッションが録音中のままで、区切りを続けている
+    test: test_error_when_continuous
+lead: API から始めた録音を止め、完了を待つ状態にする。止めた後の音は貯めない。連続録音のセッションは止めずに 409 で断る。
 identifier: stop_session
 permissions: 今回の起動のトークン
 idempotent: true
@@ -150,6 +170,9 @@ status_codes:
     condition: Origin が付いているか、Host が 127.0.0.1 でも localhost でもない
   - code: '404'
     condition: そのセッションが録音中でも停止中でもない（知らない ID・完了済み・上限で打ち切り済み）
+  - code: '409'
+    condition: そのセッションが連続録音（continuous=true で始めた）
+    notes: 連続録音は止めずに区切り続け、完了で終える。止めたまま完了を待つ状態を持たない
 error_format: 録音を開始する と同じ RFC 9457 の `application/problem+json`。
 constraints:
   - item: 待ち受け

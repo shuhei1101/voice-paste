@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -82,6 +82,9 @@ class UiDeps:
 
     resume_hotkeys: Callable[[], None]
     """今の設定でホットキーの受付を始める（設定画面を閉じたときに呼ぶ）。"""
+
+    output_titles: Mapping[str, str]
+    """画面に出す出力先の名前（出力先の ID → 名前。API 専用の出力先を除く）。設定画面の欄と録音の画面のボタンが引く。"""
 
 
 class UiController(QObject):

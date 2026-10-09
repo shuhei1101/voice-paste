@@ -4,18 +4,22 @@ from __future__ import annotations
 
 import copy
 import logging
+import operator
 import os
 import tempfile
-from collections.abc import MutableMapping
+from collections.abc import Mapping, MutableMapping, Sequence
+from functools import reduce
 from pathlib import Path
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, ClassVar, Literal
 
 import tomlkit
 from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    SerializeAsAny,
     ValidationError,
+    create_model,
     field_validator,
     model_validator,
 )
@@ -186,51 +190,12 @@ class KeyboardSettings(_SettingsModel):
 # === 出力先 ===
 
 
-class PasteAndSendSettings(_SettingsModel):
-    """出力先 paste_and_send（貼り付けて送信）の設定。"""
+class OutputSettingsBase(_SettingsModel):
+    """出力先ごとの設定のモデルが継ぐ、どの出力先も持つ ID・オン・オフ・確定のホットキー。"""
 
-    id: Literal["paste_and_send"] = _item(
-        "paste_and_send", "出力先の ID（OutputSettings の判別子）", reload=RELOAD_IMMEDIATE
-    )
+    id: str = _item(..., "出力先の ID（設定の outputs[] の判別子）", reload=RELOAD_IMMEDIATE)
     enabled: bool = _item(True, "オンか", reload=RELOAD_IMMEDIATE)
-    hotkey: str = _item(
-        "<ctrl>+<alt>+d", "この出力先で確定するホットキー", reload=RELOAD_IMMEDIATE
-    )
-    enter_delay_sec: float = _item(
-        0.5, "貼り付けてから Enter を送るまで待つ秒数", reload=RELOAD_IMMEDIATE, ge=0
-    )
-
-
-class PasteOnlySettings(_SettingsModel):
-    """出力先 paste_only（貼り付けのみ）の設定。"""
-
-    id: Literal["paste_only"] = _item("paste_only", "出力先の ID", reload=RELOAD_IMMEDIATE)
-    enabled: bool = _item(True, "オンか", reload=RELOAD_IMMEDIATE)
-    hotkey: str = _item(
-        "<ctrl>+<alt>+v", "この出力先で確定するホットキー", reload=RELOAD_IMMEDIATE
-    )
-
-
-class CopyOnlySettings(_SettingsModel):
-    """出力先 copy_only（コピーのみ）の設定。"""
-
-    id: Literal["copy_only"] = _item("copy_only", "出力先の ID", reload=RELOAD_IMMEDIATE)
-    enabled: bool = _item(True, "オンか", reload=RELOAD_IMMEDIATE)
-    hotkey: str = _item(
-        "<ctrl>+<alt>+c", "この出力先で確定するホットキー", reload=RELOAD_IMMEDIATE
-    )
-
-
-OutputSettings = Annotated[
-    PasteAndSendSettings | PasteOnlySettings | CopyOnlySettings,
-    Field(discriminator="id"),
-]
-"""出力先ごとの設定の判別共用体（`id` で見分ける）。"""
-
-
-def _default_outputs() -> list[OutputSettings]:
-    """既定の出力先の一覧（paste_and_send・paste_only・copy_only の順）を返す。"""
-    return [PasteAndSendSettings(), PasteOnlySettings(), CopyOnlySettings()]
+    hotkey: str = _item(..., "この出力先で確定するホットキー", reload=RELOAD_IMMEDIATE)
 
 
 # === カスタムプリセット ===
@@ -395,8 +360,8 @@ class Settings(_SettingsModel):
         HotkeySettings, "録音の開始・一時停止・取り消しのホットキー"
     )
     keyboard: KeyboardSettings = _group(KeyboardSettings, "貼り付けのキー")
-    outputs: list[OutputSettings] = Field(
-        default_factory=_default_outputs,
+    outputs: list[SerializeAsAny[OutputSettingsBase]] = Field(
+        default_factory=list,
         description="出力先ごとのオン・オフ・確定のホットキー・出力先ごとの設定。ID は重ならない",
         json_schema_extra={"reload": RELOAD_IMMEDIATE},
     )
@@ -416,9 +381,14 @@ class Settings(_SettingsModel):
     )
     preset_options: PresetOptions = _group(PresetOptions, "プリセットの種類ごとのオプション")
 
+    output_models: ClassVar[Mapping[str, type[OutputSettingsBase]]] = {}
+    """出力先の ID → 設定のモデル。build_settings_model が組み立てたモデルに入る。"""
+
     @field_validator(OUTPUTS_FIELD_NAME)
     @classmethod
-    def _output_ids_must_be_unique(cls, outputs: list[OutputSettings]) -> list[OutputSettings]:
+    def _output_ids_must_be_unique(
+        cls, outputs: list[OutputSettingsBase]
+    ) -> list[OutputSettingsBase]:
         """出力先の ID が一覧の中で重ならないことを確かめる。"""
         ids = [output.id for output in outputs]
         duplicated = sorted({output_id for output_id in ids if ids.count(output_id) > 1})
@@ -447,6 +417,39 @@ class Settings(_SettingsModel):
             ]
             raise ValidationError.from_exception_data(type(self).__name__, line_errors)
         return self
+
+
+# === 設定のモデルの組み立て ===
+
+
+def build_settings_model(output_models: Sequence[type[OutputSettingsBase]]) -> type[Settings]:
+    """出力先の設定のモデルを受け、outputs をその判別共用体と既定の一覧にした Settings の子のモデルを返す。"""
+    # 1. 各モデルの id の既定値を集める（空か重なるなら登録の誤りなので断る）
+    ids = [model.model_fields["id"].default for model in output_models]
+    duplicated = sorted({output_id for output_id in ids if ids.count(output_id) > 1})
+    if not ids:
+        raise ValueError("出力先の設定のモデルが 1 つも無い")
+    if duplicated:
+        raise ValueError(f"出力先の設定のモデルの ID が重なる（{', '.join(duplicated)}）")
+
+    # 2. outputs の型を判別共用体にする（モデルが 1 つでも判別共用体にし、失敗の場所に添字の次の判別子の値を入れる）
+    union = reduce(operator.or_, output_models)
+    outputs_type = list[Annotated[union, Field(discriminator="id")]]
+
+    # 3. outputs の既定を、各モデルを引数なしで作った一覧にする（説明・反映の印は Settings のものを引き継ぐ）
+    base_field = Settings.model_fields[OUTPUTS_FIELD_NAME]
+    outputs_field = Field(
+        default_factory=lambda: [model() for model in output_models],
+        description=base_field.description,
+        json_schema_extra=base_field.json_schema_extra,
+    )
+
+    # 4. Settings を継いだモデルを作り、ID → モデルを入れる
+    settings_model = create_model(
+        "AppSettings", __base__=Settings, outputs=(outputs_type, outputs_field)
+    )
+    settings_model.output_models = dict(zip(ids, output_models, strict=True))
+    return settings_model
 
 
 # === ホットキーの重なり ===
@@ -584,12 +587,12 @@ def migrate_ai_chat(document: dict[str, Any]) -> dict[str, Any]:
 # === 読み込み ===
 
 
-def load_settings(path: Path) -> Settings:
-    """settings.toml を読んで検証する。無ければ既定値で作る。"""
+def load_settings(path: Path, model: type[Settings]) -> Settings:
+    """settings.toml を読んで model で検証する。無ければ既定値で作る。"""
     # 1. 設定ファイルが無いか
     if not path.exists():
         # 無い: 既定の設定を書いて返す
-        settings = Settings()
+        settings = model()
         save_settings(path, settings)
         logger.info(f"設定ファイルが無いため既定値で作った（{path}）")
         return settings
@@ -602,7 +605,7 @@ def load_settings(path: Path) -> Settings:
 
     # 3. 素の dict にして検証する
     try:
-        return Settings.model_validate(migrate_ai_chat(document.unwrap()))
+        return model.model_validate(migrate_ai_chat(document.unwrap()))
     except ValidationError as error:
         failures = "、".join(f"{key}: {reason}" for key, reason in list_validation_failures(error))
         raise SettingsError(f"設定の値が合わない（{failures}）") from error
@@ -614,7 +617,7 @@ def load_settings(path: Path) -> Settings:
 def save_settings(path: Path, settings: Settings) -> bool:
     """検証した設定をコメントを保ったまま書き戻し、再起動が要る項目が変わったかを返す。"""
     # 1・2. 既にある設定ファイルを読み、前の設定にする
-    document, previous, unreadable = _read_existing(path)
+    document, previous, unreadable = _read_existing(path, type(settings))
 
     # 3. 設定を JSON の値にする
     data = settings.model_dump(mode="json", exclude_none=True)
@@ -635,15 +638,17 @@ def save_settings(path: Path, settings: Settings) -> bool:
     return _restart_item_changed(previous, settings)
 
 
-def _read_existing(path: Path) -> tuple[tomlkit.TOMLDocument, Settings | None, bool]:
-    """既にある settings.toml を（文書, 前の設定, 読めないか）にして返す。"""
+def _read_existing(
+    path: Path, model: type[Settings]
+) -> tuple[tomlkit.TOMLDocument, Settings | None, bool]:
+    """既にある settings.toml を model で検証し、（文書, 前の設定, 読めないか）にして返す。"""
     # 設定ファイルが無いか
     if not path.exists():
         return tomlkit.document(), None, False
 
     try:
         document = tomlkit.parse(path.read_text(encoding="utf-8"))
-        return document, Settings.model_validate(migrate_ai_chat(document.unwrap())), False
+        return document, model.model_validate(migrate_ai_chat(document.unwrap())), False
     except (TOMLKitError, ValidationError):
         # 読めない・検証に通らない: 内容を空の文書にして書き直す
         return tomlkit.document(), None, True

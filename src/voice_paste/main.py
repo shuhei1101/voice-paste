@@ -9,7 +9,7 @@ import random
 import signal
 import sys
 import time
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from functools import partial
@@ -28,12 +28,13 @@ from voice_paste.features.history import (
 from voice_paste.features.outputs import (
     OUTPUTS,
     PRESET_KINDS,
+    OutputDeps,
     OutputSpec,
     PresetKindSpec,
     deliver,
     is_callback_allowed,
 )
-from voice_paste.features.outputs.registry import CALLBACK_OUTPUT_ID
+from voice_paste.features.outputs.paste_and_send import read_enter_delay_sec
 from voice_paste.features.recording import Recorder
 from voice_paste.features.recording.client import open_input
 from voice_paste.features.session import (
@@ -72,9 +73,9 @@ from voice_paste.shared.errors import (
 )
 from voice_paste.shared.logger import local_today, purge_old_logs, setup_logging
 from voice_paste.shared.settings import (
-    PasteAndSendSettings,
     Preset,
     Settings,
+    build_settings_model,
     load_settings,
     save_settings,
 )
@@ -106,15 +107,6 @@ SESSION_LIMIT_CHECK_INTERVAL_SEC: float = 1.0
 API_SESSION_LIMIT_SEC: int = 600
 """API のセッションの上限時間。非機能要件の API のセッションの上限時間の決定値。"""
 
-CALLBACK_TIMEOUT_SEC: float = 1.5
-"""返送の 1 回の POST のタイムアウト。非機能要件の返送のタイムアウトと再送の決定値。"""
-
-CALLBACK_RETRY_COUNT: int = 3
-"""返送を最初の 1 回の後に再送する回数。非機能要件の返送のタイムアウトと再送の決定値。"""
-
-CALLBACK_RETRY_BASE_SEC: float = 1.0
-"""返送の再送の間隔の基数（回ごとに 2 倍にし、フルジッターをかける）。非機能要件の決定値。"""
-
 WORKER_READY_TIMEOUT_SEC: float = 27.0
 """文字起こしワーカーの立て直しで ready を待つ上限。非機能要件の文字起こしワーカーの立て直しの時間の決定値。"""
 
@@ -132,6 +124,11 @@ WAKE_INTERVAL_MS: int = 200
 
 SINGLE_INSTANCE_TIMEOUT_SEC: float = 54.0
 """acquire_single_instance に渡す、前のプロセスが排他を放すのを待つ上限。非機能要件の前の常駐サービスの終わりを待つ時間の決定値。"""
+
+SETTINGS_MODEL: type[Settings] = build_settings_model(
+    [spec.settings_model for spec in OUTPUTS if spec.settings_model is not None]
+)
+"""アプリの設定のモデル。OUTPUTS の設定のモデルを OUTPUTS の並びで組み立てたもので、設定の読み込みと既定の設定はこれを使う。"""
 
 PURGE_INTERVAL_SEC: float = 86400.0
 """RepeatingTimer が purge_old_files を呼ぶ間隔。非機能要件の常駐中に古い履歴とログを消す間隔（24 時間）を秒にした値。"""
@@ -262,62 +259,24 @@ def _make_paste(get_settings: Callable[[], Settings]) -> Callable[[], None]:
     return paste
 
 
-def _make_get_enter_delay_sec(get_settings: Callable[[], Settings]) -> Callable[[], float]:
-    """呼ぶたびに設定の貼り付けて送信の、貼り付けてから Enter を送るまでの秒数を返す関数を作る。"""
-
-    def get_enter_delay_sec() -> float:
-        """設定の貼り付けて送信の enter_delay_sec を返す（一覧に無ければ既定値）。"""
-        output = next(
-            (o for o in get_settings().outputs if isinstance(o, PasteAndSendSettings)),
-            PasteAndSendSettings(),
-        )
-        return output.enter_delay_sec
-
-    return get_enter_delay_sec
-
-
-def _wire_outputs(get_settings: Callable[[], Settings]) -> tuple[OutputSpec, ...]:
-    """出力先の一覧の各 handler に、出力先の ID ごとの外部連携の関数と設定の値を部分適用して返す。"""
-    # 1. 届けるたびに設定を読む関数を作る（反映が immediate の設定を、配線の後に変えても次の届け方に効かせる）
-    paste = _make_paste(get_settings)
-    get_enter_delay_sec = _make_get_enter_delay_sec(get_settings)
-
-    # 2. 出力先の ID ごとに、handler へ注入するものを決める
-    injections: dict[str, dict[str, object]] = {
-        "paste_and_send": {
-            "copy": copy_to_clipboard,
-            "paste": paste,
-            "send_enter": send_enter,
-            "sleep": time.sleep,
-            "get_enter_delay_sec": get_enter_delay_sec,
-        },
-        "paste_only": {"copy": copy_to_clipboard, "paste": paste},
-        "copy_only": {"copy": copy_to_clipboard},
-        # 呼び出し元へ返す出力先は、タイムアウトを部分適用した post_json・許可ホスト・再送の設定を渡す
-        CALLBACK_OUTPUT_ID: {
-            "post": partial(post_json, timeout_sec=CALLBACK_TIMEOUT_SEC),
-            "allowed_hosts": frozenset(get_settings().api.allowed_callback_hosts),
-            "retry_count": CALLBACK_RETRY_COUNT,
-            "retry_base_sec": CALLBACK_RETRY_BASE_SEC,
-            "sleep": time.sleep,
-            "jitter": _jitter,
-        },
-    }
-
-    # 3. 一覧の順のまま、注入するものがある出力先だけ handler を差し替える（無い出力先はそのまま残す）
-    return tuple(
-        replace(spec, handler=partial(spec.handler, **injections[spec.id]))
-        if spec.id in injections
-        else spec
-        for spec in OUTPUTS
-    )
+def _wire_outputs(deps: OutputDeps, outputs: Sequence[OutputSpec]) -> tuple[OutputSpec, ...]:
+    """各出力先の handler に、その出力先の inject が OutputDeps から選んだものを部分適用して返す（出力先の ID ごとの表は持たない）。"""
+    wired: list[OutputSpec] = []
+    for spec in outputs:
+        injected = spec.inject(deps)
+        # 注入するものがある出力先だけ handler を差し替える（無い出力先はそのまま残す）
+        wired.append(replace(spec, handler=partial(spec.handler, **injected)) if injected else spec)
+    return tuple(wired)
 
 
 def _wire_preset_kinds(get_settings: Callable[[], Settings]) -> tuple[PresetKindSpec, ...]:
     """プリセットの種類の一覧の各 handler に、種類ごとの外部連携の関数と設定の値を部分適用して返す。"""
     # 1. 届けるたびに設定を読む関数を作る
     paste = _make_paste(get_settings)
-    get_enter_delay_sec = _make_get_enter_delay_sec(get_settings)
+
+    def get_enter_delay_sec() -> float:
+        """設定の貼り付けて送信の、貼り付けてから Enter を送るまでの秒数を返す。"""
+        return read_enter_delay_sec(get_settings())
 
     def get_open_delay_sec() -> float:
         """設定のブラウザ添付の、画面を開いてから貼り付けるまでの秒数を返す。"""
@@ -384,7 +343,16 @@ def build_handlers(
     )
 
     # 4. 出力先とプリセットの種類を配線し、届けるたびに SettingsStore からオンの出力先の ID を引いて、Session を分けて渡すアダプタを作る
-    wired_outputs = _wire_outputs(store.get)
+    output_deps = OutputDeps(
+        copy=copy_to_clipboard,
+        paste=_make_paste(store.get),
+        send_enter=send_enter,
+        sleep=time.sleep,
+        jitter=_jitter,
+        post=post_json,
+        get_settings=store.get,
+    )
+    wired_outputs = _wire_outputs(output_deps, OUTPUTS)
     wired_preset_kinds = _wire_preset_kinds(store.get)
 
     def deliver_session(session: Session, outcome: TranscriptionOutcome) -> None:
@@ -556,6 +524,11 @@ def apply_settings(
     return restart_needed
 
 
+def _output_titles() -> dict[str, str]:
+    """画面に出す出力先の名前（出力先の ID → 名前。API 専用の出力先を除く）を返す。"""
+    return {spec.id: spec.title for spec in OUTPUTS if not spec.api_only}
+
+
 def build_ui_deps(
     handlers: Handlers,
     paths: AppPaths,
@@ -596,6 +569,7 @@ def build_ui_deps(
         request_quit=request_quit,
         suspend_hotkeys=hotkey_listener.stop,
         resume_hotkeys=resume_hotkeys,
+        output_titles=_output_titles(),
     )
 
 
@@ -632,6 +606,7 @@ def _build_idle_ui_deps(
         request_quit=request_quit,
         suspend_hotkeys=do_nothing,
         resume_hotkeys=do_nothing,
+        output_titles=_output_titles(),
     )
 
 
@@ -786,7 +761,7 @@ def _start_services(
 
     # 5. 設定を読む（読めなければトレイを失敗にして知らせ、設定を直して再起動できるようにする）
     try:
-        settings = load_settings(paths.settings_file)
+        settings = load_settings(paths.settings_file, SETTINGS_MODEL)
     except SettingsError as error:
         logger.error(f"起動に失敗した（{error}）")
         tray.set_failed()

@@ -31,7 +31,7 @@ from PySide6.QtWidgets import (
 from voice_paste.shared.settings import Preset, Settings
 from voice_paste.ui.placement import move_to_configured_position
 from voice_paste.ui.style import theme_color
-from voice_paste.ui.windows.settings_window import OUTPUT_NAMES, PRESET_KIND_NAMES, format_hotkey
+from voice_paste.ui.windows.settings_window import PRESET_KIND_NAMES, format_hotkey
 
 if TYPE_CHECKING:
     from voice_paste.ui.controller import UiDeps
@@ -366,7 +366,7 @@ class RecordingWindow(QWidget):
             if not output.enabled:
                 continue
             button = self._hotkey_button(
-                f"output_button_{output.id}", OUTPUT_NAMES[output.id], output.hotkey
+                f"output_button_{output.id}", self._deps.output_titles[output.id], output.hotkey
             )
             button.setProperty("primary", shown_outputs == 0)
             button.clicked.connect(

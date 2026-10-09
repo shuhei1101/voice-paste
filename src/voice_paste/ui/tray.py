@@ -22,7 +22,7 @@ TOOLTIP_PREFIX: str = "voice-paste: "
 """アイコンのヒントの先頭。"""
 
 FAILURE_MESSAGE_MSEC: int = 10_000
-"""失敗の通知を出しておく時間（ミリ秒）。通知は数秒で畳まれ、通知センターに残る。"""
+"""失敗の通知を出しておく時間（ミリ秒）。通知は数秒で畳まれ、通知センターには残らない。"""
 
 type FailureEvent = Literal[
     "microphone_unavailable",

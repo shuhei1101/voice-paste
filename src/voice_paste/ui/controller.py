@@ -8,7 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from PySide6.QtCore import QObject
+from PySide6.QtCore import QEvent, QObject
+from PySide6.QtWidgets import QApplication
 
 from voice_paste.features.session.types import Session, SessionState
 from voice_paste.shared.errors import HotkeyError
@@ -114,6 +115,9 @@ class UiController(QObject):
         tray.settings_requested.connect(self.open_settings)
         tray.restart_requested.connect(lambda: self.request_exit("restart"))
         tray.quit_requested.connect(lambda: self.request_exit("quit"))
+        app = QApplication.instance()
+        if app is not None:
+            app.installEventFilter(self)
 
     def on_notified(self, event: str, detail: str | None) -> None:
         """UiBridge.notified のスロット。知らせの種類ごとに画面とトレイを変える。"""
@@ -132,6 +136,13 @@ class UiController(QObject):
         """UiBridge.progressed のスロット。文字起こし中の表示が出ていれば進みを渡す。"""
         if self._indicator_shown:
             self._indicator.set_progress(position_sec, duration_sec)
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802 Qt の名前
+        """QApplication に届く QEvent.Quit を受け、開いている設定画面を確かめずに閉じる。イベントは止めない。"""
+        # QApplication.quit は窓へ閉じる要求を送る前に Quit を渡すため、ここで閉じれば確認で止まらずに抜ける
+        if event.type() == QEvent.Type.Quit and self._settings_window is not None:
+            self._settings_window.close_without_confirm()
+        return False
 
     def request_exit(self, kind: Literal["restart", "quit"]) -> None:
         """トレイ・設定画面からの再起動・終了。待機中ならすぐ行い、処理中ならアイコンを消してその回が終わるまで待つ。"""

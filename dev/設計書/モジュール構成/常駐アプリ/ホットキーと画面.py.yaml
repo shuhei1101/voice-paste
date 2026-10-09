@@ -704,7 +704,7 @@ classes:
     methods:
       - name: open
         title: 画面を出す
-        summary: 新しい録音として経過時間と波形を空にし、設定でオンの出力先のボタンと、有効なカスタムプリセットのボタン（browser・endpoint の順に presets[] の並び。3 件ごとに折り返す）を組み直して、設定の位置に出す（place_window）。プリセットのボタンは押すと UiDeps.complete(None, そのプリセット) を呼ぶ
+        summary: 新しい録音として経過時間と波形を空にし、設定でオンの出力先のボタン（名前は UiDeps.output_titles）と、有効なカスタムプリセットのボタン（browser・endpoint の順に presets[] の並び。3 件ごとに折り返す）を組み直して、設定の位置に出す（place_window）。プリセットのボタンは押すと UiDeps.complete(None, そのプリセット) を呼ぶ
         kind: メソッド
         scope: public
         returns:
@@ -838,6 +838,8 @@ classes:
     description: |-
       要素と入力チェックは画面設計「設定画面」が持つ。
       欄は `Settings.model_fields` を辿って型から部品を決め、欄の名前は各項目の `description`、「再起動で反映」の印は `json_schema_extra` の reload から出す。まとまりと型から決まらない部品は画面設計の補足「まとまりと欄」の表を FIELD_LAYOUT に写す。
+      設定のモデルは開いたときの設定のモデル（`type(設定)`。main.py の SETTINGS_MODEL）を使い、失敗の場所の判別子の値から出力先のモデルをその output_models で引く。
+      出力先は outputs[] の 1 件ごとに、名前を UiDeps.output_titles から引いて「オン」と「ホットキー」の欄を置き、その出力先のモデルが id・enabled・hotkey のほかに持つ項目（貼り付けて送信の enter_delay_sec など）を型から決めた部品で並べる。その項目の `json_schema_extra` に note があれば欄の下に出す（出力先の ID ごとの分け方を持たない）。
       カスタムプリセットは、PRESET_KIND_NAMES の種類ごとにまとまり（「出力先」のすぐ下のタブ）を 1 つ作り、その中に PresetListPanel とその種類の preset_options の欄を置く。Authorization の欄は `QLineEdit.EchoMode.Password` にする。
       エラーの一覧のプリセットの行は、失敗の場所 `presets[{n}].{項目}` を「プリセット「{タイトル}」の{欄の名前}」（タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」）にし、押すとそのタブへ切り替えて PresetListPanel.focus_field で欄へフォーカスを移す。
       ホットキーの欄は押したキーを format_hotkey の形で出し、parse_hotkey で pynput の書式に戻す。
@@ -931,7 +933,7 @@ classes:
             exception: 確かめに通らない
       - name: reset_to_defaults
         title: 既定に戻す
-        summary: confirm_reset で確かめ、戻すなら Settings() を書いて欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す
+        summary: confirm_reset で確かめ、戻すなら開いたときの設定と同じ設定のモデルの既定値（`type(開いたときの設定)()`）を書いて欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す
         kind: メソッド
         scope: public
         returns:
@@ -1330,6 +1332,11 @@ functions:
         required: true
         passing: positional
         description: ValidationError.errors() の 1 件
+      - name: model
+        type: type[Settings]
+        required: true
+        passing: keyword
+        description: 失敗の場所から項目（既定値・範囲）を引く設定のモデル。出力先の項目はその output_models から引く。SettingsWindow は開いたときの設定のモデル（`type(設定)`）を渡す（ui は features・main を import しない）
     returns:
       type: str
       description: 欄の下とエラーの一覧に出す文言
@@ -1345,19 +1352,19 @@ functions:
       - name: test_to_field_message_when_not_number
         case: 正常
         summary: 数値でない文字
-        condition: outputs[0].enter_delay_sec に abc を入れた Settings.model_validate の失敗
+        condition: outputs[0].enter_delay_sec に abc を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
         mock: なし
         expected: '数値を入れてください（例: 0.5）。'
       - name: test_to_field_message_when_out_of_range
         case: 正常
         summary: 範囲の外
-        condition: api.port に 80
+        condition: api.port に 80 を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
         mock: なし
         expected: 1024〜65535 の値を入れてください。
       - name: test_to_field_message_when_preset_url_empty
         case: 正常
         summary: プリセットの URL が空
-        condition: presets[0] を kind endpoint・url が空にした Settings.model_validate の失敗
+        condition: presets[0] を kind endpoint・url が空にした SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
         mock: なし
         expected: 'URL を入れてください（例: https://example.com/hook）。'
     refs:
@@ -1461,6 +1468,9 @@ data_models:
       - name: resume_hotkeys
         type: Callable[[], None]
         description: 今の設定でホットキーの受付を始める（build_hotkey_bindings → HotkeyListener.start）。設定画面を閉じたときに呼ぶ
+      - name: output_titles
+        type: Mapping[str, str]
+        description: 画面に出す出力先の名前（出力先の ID → OUTPUTS の title。API 専用の出力先を除く）。設定画面の欄と録音の画面のボタンが引く
     status: implemented
 enums:
   - name: TrayState

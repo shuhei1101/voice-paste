@@ -8,6 +8,7 @@ from __future__ import annotations
 import tomllib
 from pathlib import Path
 
+from voice_paste.main import SETTINGS_MODEL
 from voice_paste.shared.settings import load_settings, save_settings
 
 AI_CHAT_SETTINGS = """\
@@ -59,7 +60,7 @@ def test_normal_when_ai_chat_remains(tmp_path: Path) -> None:
     path.write_text(AI_CHAT_SETTINGS, encoding="utf-8")
 
     # 実行（読んで、そのまま保存する）
-    settings = load_settings(path)
+    settings = load_settings(path, SETTINGS_MODEL)
     loaded_presets = [
         (preset.kind, preset.title, preset.url, preset.hotkey, preset.enabled)
         for preset in settings.presets
@@ -82,4 +83,4 @@ def test_normal_when_ai_chat_remains(tmp_path: Path) -> None:
     assert written["preset_options"]["browser"]["open_delay_sec"] == 2.0
     assert 'id = "ai_chat"' not in path.read_text(encoding="utf-8")
     # 書き直した設定を読み直しても、同じプリセットになる
-    assert [p.title for p in load_settings(path).presets] == ["ChatGPT", "Google AI", "Claude"]
+    assert [p.title for p in load_settings(path, SETTINGS_MODEL).presets] == ["ChatGPT", "Google AI", "Claude"]

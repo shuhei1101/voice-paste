@@ -2,6 +2,7 @@
 
 単一インスタンスの排他（実物の Win32 の名前付きのミューテックスとイベント）を使うテストが、
 名前・取ったロック・開いたハンドルを後始末つきで扱えるようにする。
+アプリが使う設定のモデル（main.py の SETTINGS_MODEL）も返す。
 """
 
 from __future__ import annotations
@@ -15,6 +16,16 @@ import pytest
 if TYPE_CHECKING:
     from tests.unit.voice_paste.runtime.helpers import BackgroundAcquire, OtherProcessHolder
     from voice_paste.runtime.single_instance import SingleInstanceLock
+    from voice_paste.shared.settings import Settings
+
+
+@pytest.fixture
+def settings_model() -> type[Settings]:
+    """アプリが使う設定のモデル（main.py の SETTINGS_MODEL）を返す。既定の出力先の一覧を持つ。"""
+    # テストの本体で import し、実装が無いときはそのテストが ImportError で落ちるようにする
+    from voice_paste.main import SETTINGS_MODEL
+
+    return SETTINGS_MODEL
 
 
 @pytest.fixture

@@ -273,7 +273,7 @@ settings:
     description: paste_and_send だけが持つ。貼り付けてから Enter を送るまで待つ秒数。ブラウザ添付種類の、Enter まで送るプリセットでも使う。
     reload: immediate
     status: implemented
-    implementation: src/voice_paste/shared/settings.py
+    implementation: src/voice_paste/features/outputs/paste_and_send/settings.py
     allowed: '>= 0'
   - key: outputs[].open_delay_sec
     title: AI チャットを開いてから貼り付けるまでの秒数

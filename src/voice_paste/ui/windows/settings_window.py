@@ -5,10 +5,10 @@ from __future__ import annotations
 import html
 import logging
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any, Literal, get_args, get_origin
 
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 from pydantic.fields import FieldInfo
 from PySide6.QtCore import QEvent, QKeyCombination, Qt, Signal
 from PySide6.QtGui import QCloseEvent, QKeyEvent
@@ -34,9 +34,7 @@ from voice_paste.shared.settings import (
     PRESETS_FIELD_NAME,
     RELOAD_IMMEDIATE,
     RELOAD_RESTART,
-    CopyOnlySettings,
-    PasteAndSendSettings,
-    PasteOnlySettings,
+    OutputSettingsBase,
     Settings,
     format_error_location,
 )
@@ -142,19 +140,11 @@ SLIDER_KEYS: frozenset[str] = frozenset({"recording.volume_percent"})
 COMBO_KEYS: frozenset[str] = frozenset({"transcription.engine", "transcription.local_whisper.model"})
 """選択の欄にするキー。"""
 
-OUTPUT_NAMES: dict[str, str] = {
-    "paste_and_send": "貼り付けて送信",
-    "paste_only": "貼り付けのみ",
-    "copy_only": "コピーのみ",
-}
-"""出力先の ID ごとの画面の名前。"""
+OUTPUT_COMMON_FIELD_NAMES: frozenset[str] = frozenset(OutputSettingsBase.model_fields)
+"""全ての出力先が持つ項目（id・enabled・hotkey）。出力先の欄はこれ以外の項目を、型から決めた部品で並べる。"""
 
-OUTPUT_MODELS: dict[str, type[BaseModel]] = {
-    "paste_and_send": PasteAndSendSettings,
-    "paste_only": PasteOnlySettings,
-    "copy_only": CopyOnlySettings,
-}
-"""出力先の ID ごとの設定のモデル（失敗の場所の判別子から既定の値を引く）。"""
+OUTPUT_NOTE_KEY: str = "note"
+"""項目の json_schema_extra で、欄の下に出す補助文を持つキー。"""
 
 MODIFIER_NAMES: dict[str, str] = {"ctrl": "Ctrl", "alt": "Alt", "shift": "Shift", "cmd": "Win"}
 """pynput の修飾キーの名前ごとの、画面の名前。"""
@@ -220,9 +210,6 @@ OPTION_NOTES: dict[str, str] = {
     "preset_options.endpoint.timeout_sec": (
         "既定は 1.5 秒で、10 秒まで入れられる。この秒数で届かなければ、送り直さずにトレイで知らせる。"
     ),
-    f"{OUTPUTS_FIELD_NAME}[0].enter_delay_sec": (
-        "「貼り付けて送信」と、「ブラウザ添付」の Enter まで送るプリセットで使う。"
-    ),
 }
 """欄の下に出す補助文（欄のキーごと）。"""
 
@@ -281,9 +268,11 @@ def parse_hotkey(combination: QKeyCombination) -> str | None:
 # === 欄のエラーの文言 ===
 
 
-def _field_info_at(location: tuple[int | str, ...]) -> FieldInfo | None:
-    """pydantic の失敗の場所に当たる、設定のモデルの項目を引く（判別子の値から出力先・プリセットのモデルを選ぶ）。"""
-    model: Any = Settings
+def _field_info_at(
+    location: tuple[int | str, ...], settings_model: type[Settings]
+) -> FieldInfo | None:
+    """pydantic の失敗の場所に当たる、settings_model の項目を引く（判別子の値から出力先・プリセットのモデルを選ぶ）。"""
+    model: Any = settings_model
     info: FieldInfo | None = None
     list_name: str | None = None
     previous: int | str | None = None
@@ -294,7 +283,11 @@ def _field_info_at(location: tuple[int | str, ...]) -> FieldInfo | None:
             continue
         # 一覧の添字の次の名前が判別子の値なら、出力先・プリセットのモデルに替える
         if isinstance(previous, int):
-            discriminated = OUTPUT_MODELS if list_name == OUTPUTS_FIELD_NAME else PRESET_MODELS
+            discriminated: Mapping[str, Any] = (
+                settings_model.output_models
+                if list_name == OUTPUTS_FIELD_NAME
+                else PRESET_MODELS
+            )
             if part in discriminated:
                 model = discriminated[part]
                 previous = part
@@ -335,14 +328,15 @@ def _range_text(info: FieldInfo) -> str:
 
 
 def to_field_message(
-    error: Any, *, name_of: Callable[[str], str] = lambda key: key
+    error: Any, *, model: type[Settings], name_of: Callable[[str], str] = lambda key: key
 ) -> str:
     """pydantic の失敗 1 件を、画面設計「設定画面」の入力チェックの文言にする。
 
+    model は失敗の場所から項目（既定値・範囲）を引く設定のモデル。
     name_of は設定のキーから欄の名前を引く関数（ホットキーが重なった欄の名前を出すのに使う）。
     """
     error_type = error["type"]
-    info = _field_info_at(tuple(error["loc"]))
+    info = _field_info_at(tuple(error["loc"]), model)
     if error_type in NUMBER_ERROR_TYPES and info is not None:
         return f"数値を入れてください（例: {info.get_default(call_default_factory=True)}）。"
     if error_type in RANGE_ERROR_TYPES and info is not None:
@@ -494,6 +488,7 @@ class SettingsWindow(QWidget):
         super().__init__()
         self._deps = deps
         self._original = deps.get_settings()
+        self._settings_model = type(self._original)
         self._fields: list[Field] = []
         self._static: dict[str, Any] = {}
         self._panels: dict[str, PresetListPanel] = {}
@@ -709,10 +704,9 @@ class SettingsWindow(QWidget):
         label.setWordWrap(True)
         layout.addWidget(label)
 
-    @staticmethod
-    def _model_field_info(key: str) -> FieldInfo:
+    def _model_field_info(self, key: str) -> FieldInfo:
         """設定のキーに当たる、設定のモデルの項目を引く。"""
-        info = _field_info_at(tuple(key_tokens(key)))
+        info = _field_info_at(tuple(key_tokens(key)), self._settings_model)
         if info is None:
             raise KeyError(f"設定のモデルに無いキーです（{key}）")
         return info
@@ -778,10 +772,10 @@ class SettingsWindow(QWidget):
         )
 
     def _add_outputs(self, layout: QVBoxLayout, settings: Settings, group: int) -> None:
-        """出力先ごとの欄（オン・確定のホットキー・貼り付けて送信の送るまでの間）を足す。"""
+        """出力先ごとの欄（オン・確定のホットキーと、その出力先のモデルが持つ固有の項目）を足す。"""
         for index, output in enumerate(settings.outputs):
             prefix = f"{OUTPUTS_FIELD_NAME}[{index}]"
-            name = OUTPUT_NAMES[output.id]
+            name = self._deps.output_titles[output.id]
             self._static[f"{prefix}.id"] = output.id
 
             frame = QFrame()
@@ -807,31 +801,36 @@ class SettingsWindow(QWidget):
                 get=lambda edit=hotkey_edit: edit.hotkey,
                 group=group,
             )
-            # 貼り付けて送信だけが持つ、送るまでの間
-            if isinstance(output, PasteAndSendSettings):
-                self._add_delay(inner, prefix, "enter_delay_sec", output, group)
+            # その出力先のモデルだけが持つ項目（貼り付けて送信の送るまでの間など）
+            for field_name, info in type(output).model_fields.items():
+                if field_name not in OUTPUT_COMMON_FIELD_NAMES:
+                    self._add_output_field(inner, prefix, field_name, info, output, group)
             layout.addWidget(frame)
 
-    def _add_delay(
+    def _add_output_field(
         self,
         layout: QVBoxLayout,
         prefix: str,
         name: str,
-        output: BaseModel,
+        info: FieldInfo,
+        output: OutputSettingsBase,
         group: int,
     ) -> None:
-        """出力先の、送るまでの間（秒）の数値の欄を足す。"""
-        info = type(output).model_fields[name]
-        line = make_line_edit(str(getattr(output, name)))
+        """出力先に固有の項目 1 つの欄を、項目の型から決めた部品で足す（補助文があれば欄の下に出す）。"""
+        key = f"{prefix}.{name}"
+        widget, get, extras = self._widget_for(key, info, getattr(output, name))
         self._register(
             layout,
-            key=f"{prefix}.{name}",
+            key=key,
             label=(info.description or name).split("。")[0],
-            widget=line,
-            get=lambda: line.text().strip(),
+            widget=widget,
+            get=get,
             group=group,
+            extras=extras,
         )
-        self._add_note(layout, OPTION_NOTES.get(name))
+        extra = info.json_schema_extra
+        note = extra.get(OUTPUT_NOTE_KEY) if isinstance(extra, dict) else None
+        self._add_note(layout, note if isinstance(note, str) else None)
 
     def _add_presets(
         self, layout: QVBoxLayout, settings: Settings, group_name: str, group: int
@@ -1045,13 +1044,14 @@ class SettingsWindow(QWidget):
         """欄の値を設定のモデルで確かめ、通れば書いて効かせる。通らなければエラーを出す。"""
         # 1. 欄の値を設定のモデルで確かめる（通らなければ欄ごとのエラーにして、入れた値は消さない）
         try:
-            settings = Settings.model_validate(self.collect())
+            settings = self._settings_model.model_validate(self.collect())
         except ValidationError as error:
             failures = [
                 (
                     format_error_location(tuple(failure["loc"])),
                     to_field_message(
                         failure,
+                        model=self._settings_model,
                         name_of=lambda other, own=format_error_location(tuple(failure["loc"])): (
                             self._label_of(other, own)
                         ),
@@ -1090,7 +1090,7 @@ class SettingsWindow(QWidget):
         """確かめて、戻すなら既定の設定を書いて欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す。"""
         if not confirm_reset(self):
             return
-        defaults = Settings()
+        defaults = self._settings_model()
         self._deps.save_settings(defaults)
         self._clear_errors()
         self._populate(defaults)

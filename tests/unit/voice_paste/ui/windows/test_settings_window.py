@@ -23,6 +23,7 @@ from tests.unit.voice_paste.ui.helpers import make_ui_deps
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QApplication
 
+    from voice_paste.shared.settings import Settings
     from voice_paste.ui.controller import UiDeps
     from voice_paste.ui.windows.settings_window import SettingsWindow
 
@@ -249,57 +250,56 @@ def test_parse_hotkey_when_modifier_only() -> None:
 # === to_field_message ===
 
 
-def test_to_field_message_when_not_number() -> None:
+def test_to_field_message_when_not_number(settings_model: type[Settings]) -> None:
     """数値でない文字（正常系）。"""
     from pydantic import ValidationError
 
-    from voice_paste.shared.settings import Settings
     from voice_paste.ui.windows.settings_window import to_field_message
 
     # 準備
     with pytest.raises(ValidationError) as exc_info:
-        Settings.model_validate(
+        settings_model.model_validate(
             {"outputs": [{"id": "paste_and_send", "enter_delay_sec": "abc"}]}
         )
 
     # 実行
-    message = to_field_message(exc_info.value.errors()[0])
+    message = to_field_message(exc_info.value.errors()[0], model=settings_model)
 
     # 検証
     assert message == "数値を入れてください（例: 0.5）。"
 
 
-def test_to_field_message_when_out_of_range() -> None:
+def test_to_field_message_when_out_of_range(settings_model: type[Settings]) -> None:
     """範囲の外（正常系）。"""
     from pydantic import ValidationError
 
-    from voice_paste.shared.settings import Settings
     from voice_paste.ui.windows.settings_window import to_field_message
 
     # 準備
     with pytest.raises(ValidationError) as exc_info:
-        Settings.model_validate({"api": {"port": 80}})
+        settings_model.model_validate({"api": {"port": 80}})
 
     # 実行
-    message = to_field_message(exc_info.value.errors()[0])
+    message = to_field_message(exc_info.value.errors()[0], model=settings_model)
 
     # 検証
     assert message == "1024〜65535 の値を入れてください。"
 
 
-def test_to_field_message_when_preset_url_empty() -> None:
+def test_to_field_message_when_preset_url_empty(settings_model: type[Settings]) -> None:
     """プリセットの URL が空（正常系）。"""
     from pydantic import ValidationError
 
-    from voice_paste.shared.settings import Settings
     from voice_paste.ui.windows.settings_window import to_field_message
 
     # 準備
     with pytest.raises(ValidationError) as exc_info:
-        Settings.model_validate({"presets": [{"kind": "endpoint", "title": "受け口", "url": ""}]})
+        settings_model.model_validate(
+            {"presets": [{"kind": "endpoint", "title": "受け口", "url": ""}]}
+        )
 
     # 実行
-    message = to_field_message(exc_info.value.errors()[0])
+    message = to_field_message(exc_info.value.errors()[0], model=settings_model)
 
     # 検証
     assert message == "URL を入れてください（例: https://example.com/hook）。"

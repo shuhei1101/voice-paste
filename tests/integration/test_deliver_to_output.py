@@ -10,15 +10,11 @@ from collections.abc import Callable
 from unittest.mock import call
 
 from tests.integration.helpers import OutputStack
-from voice_paste.shared.settings import (
-    BrowserPreset,
-    BrowserPresetOptions,
-    CopyOnlySettings,
-    PasteAndSendSettings,
-    PasteOnlySettings,
-    PresetOptions,
-    Settings,
-)
+from voice_paste.main import SETTINGS_MODEL
+from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
+from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
+from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
+from voice_paste.shared.settings import BrowserPreset, BrowserPresetOptions, PresetOptions, Settings
 
 CHAT_URL = "https://chatgpt.com"
 
@@ -48,7 +44,7 @@ def test_normal_when_browser_preset(
     """ブラウザ添付のプリセットを選んで確定すると、その URL を開いて貼り付けて Enter まで送る（正常系）。"""
     # 準備
     preset = BrowserPreset(title="ChatGPT", url=CHAT_URL)
-    stack = output_stack(Settings(presets=[preset]))
+    stack = output_stack(SETTINGS_MODEL(presets=[preset]))
 
     # 実行
     stack.confirm(preset=preset)
@@ -72,7 +68,7 @@ def test_normal_when_browser_preset_without_enter(
     """Enter まで送らないブラウザ添付のプリセットを選んで確定すると、貼り付けで止まる（正常系）。"""
     # 準備
     preset = BrowserPreset(title="ChatGPT", url=CHAT_URL, send_enter=False)
-    settings = Settings(
+    settings = SETTINGS_MODEL(
         presets=[preset],
         preset_options=PresetOptions(browser=BrowserPresetOptions(open_delay_sec=1.0)),
     )
@@ -95,7 +91,7 @@ def test_normal_when_browser_preset_without_enter(
 def test_error_when_output_disabled(output_stack: Callable[[Settings | None], OutputStack]) -> None:
     """設定でオフの出力先を選んで確定すると、届けずに delivery_failed を知らせて待機中に戻る（異常系）。"""
     # 準備
-    settings = Settings(
+    settings = SETTINGS_MODEL(
         outputs=[PasteAndSendSettings(), PasteOnlySettings(), CopyOnlySettings(enabled=False)]
     )
     stack = output_stack(settings)

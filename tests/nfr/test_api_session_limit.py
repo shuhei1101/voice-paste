@@ -28,17 +28,15 @@ from voice_paste.integrations.http.client import post_json
 from voice_paste.features.outputs.registry import CALLBACK_OUTPUT_ID
 from voice_paste.features.recording import Recorder
 from voice_paste.features.session import Session, SessionDeps, SessionManager
-from voice_paste.main import (
-    API_SESSION_LIMIT_SEC,
+from voice_paste.features.outputs.callback.service import (
     CALLBACK_RETRY_BASE_SEC,
     CALLBACK_RETRY_COUNT,
     CALLBACK_TIMEOUT_SEC,
-    SESSION_LIMIT_CHECK_INTERVAL_SEC,
 )
+from voice_paste.main import API_SESSION_LIMIT_SEC, SESSION_LIMIT_CHECK_INTERVAL_SEC, SETTINGS_MODEL
 from voice_paste.runtime.timer import RepeatingTimer
 from voice_paste.shared.constants import resolve_app_paths
 from voice_paste.shared.errors import EngineError
-from voice_paste.shared.settings import Settings
 from voice_paste.shared.types import TranscriptionOutcome
 
 pytestmark = pytest.mark.real_machine
@@ -85,7 +83,7 @@ def manager(tmp_path: Path, receiver: CallbackReceiver) -> Iterator[SessionManag
     from voice_paste.features.transcription.service import transcribe
 
     paths = resolve_app_paths(tmp_path)
-    settings = Settings()
+    settings = SETTINGS_MODEL()
     recorder = Recorder(
         lower_volume=ignore_lower_volume,
         restore_volume=ignore_restore_volume,

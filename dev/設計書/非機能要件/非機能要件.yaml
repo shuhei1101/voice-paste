@@ -200,7 +200,14 @@ requirements:
     value: '1'
     unit: か所
     rationale: 品質シナリオ 5。既存のモジュールの変更は出力先の一覧（OUTPUTS）への登録だけにする。出力先どうしの import を import-linter で禁じる
-    measurement: import-linter の出力先の独立の契約が通ることと、出力先を足した PR の差分で確かめる
+    measurement: import-linter の出力先の独立の契約が通ることと、試しの出力先を OUTPUTS への登録だけで足したときに設定・ホットキー・画面・届けに乗ることを確かめる
+    test_file: tests/nfr/test_output_extensibility.py
+    tests:
+      - name: test_output_extensibility
+        summary: 試しの出力先を OUTPUTS の並びへの登録だけで足すと、設定の読み書き・確定のホットキー・設定画面の欄・録音の画面のボタン・届けに乗る
+        condition: 'OUTPUTS の後ろに、試しの設定のモデル（ID try_output・hotkey <ctrl>+<alt>+t・delay_sec: float = 1.0）と handler・inject を持つ OutputSpec を足した一覧から、main.py と同じ手順で設定のモデル・配線・UiDeps を組む。src/ のファイルは変えない'
+        measurement: 既定の設定を一時フォルダに書いて読み直し、build_hotkey_bindings・設定画面・録音の画面（offscreen）・deliver にその設定を渡す
+        expected: 読み直した設定の outputs の最後が試しの出力先（delay_sec 1.0）、<ctrl>+<alt>+t がホットキーに登録され、設定画面に outputs[3].enabled・outputs[3].hotkey・outputs[3].delay_sec の欄があり、録音の画面に試しの出力先のボタンが出て、output_id=try_output で deliver すると試しの handler が inject の渡したものと共に呼ばれる
   - name: 音量の操作のライブラリの変化の検知
     english_name: volume_contract_detection
     category: 保守性

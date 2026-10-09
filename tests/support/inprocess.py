@@ -31,17 +31,13 @@ from tests.support.desktop import ProcessInfo, kill_tree, processes_with
 from voice_paste.features.recording.client import SAMPLE_RATE
 from voice_paste.features.session import SessionManager
 from voice_paste.integrations.whisper.client import WORKER_MODULE
-from voice_paste.main import API_START_TIMEOUT_SEC, Handlers
+from voice_paste.main import API_START_TIMEOUT_SEC, SETTINGS_MODEL, Handlers
 from voice_paste.server.app import build_fastapi
 from voice_paste.server.runner import ApiServerRunner
 from voice_paste.server.token import create_token
 from voice_paste.shared.constants import AppPaths, resolve_app_paths
-from voice_paste.shared.settings import (
-    LocalWhisperSettings,
-    PasteAndSendSettings,
-    Settings,
-    TranscriptionSettings,
-)
+from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
+from voice_paste.shared.settings import LocalWhisperSettings, Settings, TranscriptionSettings
 from voice_paste.shared.types import Entry, Recording
 
 SPEECH_TEXT = "これはテストです"
@@ -288,13 +284,13 @@ def make_settings(
     *, only_paste_and_send: bool = False, vad_threshold: float | None = None
 ) -> Settings:
     """既定の設定から、出力先を貼り付けて送信だけにするか、無音の区間を除く閾値を変えた設定を作る。"""
-    outputs = [PasteAndSendSettings()] if only_paste_and_send else Settings().outputs
+    outputs = [PasteAndSendSettings()] if only_paste_and_send else SETTINGS_MODEL().outputs
     local_whisper = (
         LocalWhisperSettings()
         if vad_threshold is None
         else LocalWhisperSettings(vad_threshold=vad_threshold)
     )
-    return Settings(outputs=outputs, transcription=TranscriptionSettings(local_whisper=local_whisper))
+    return SETTINGS_MODEL(outputs=outputs, transcription=TranscriptionSettings(local_whisper=local_whisper))
 
 
 def free_port() -> int:

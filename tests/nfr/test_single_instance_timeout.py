@@ -13,14 +13,14 @@ from pathlib import Path
 
 import pytest
 
-from tests.support.app_driver import AppDriver
-from tests.support.desktop import wait_until
+from tests.integration.helpers import wait_until
 from tests.support.instances import (
     service_root_count,
     wait_for_acquired,
     wait_for_takeover,
 )
 from tests.support.real_service import RealService, spawn_process
+from tests.support.resident_app import kill_service_processes_for
 from tests.support.whisper_fixtures import local_whisper_toml, requires_real_whisper
 
 pytestmark = [pytest.mark.real_machine, requires_real_whisper]
@@ -68,7 +68,7 @@ def _replace_once(data_dir: Path, *, previous_starting: bool) -> float:
         return takeover.wait_sec
     finally:
         first.shutdown()
-        AppDriver.kill_service_processes_for(data_dir)
+        kill_service_processes_for(data_dir)
 
 
 def _report(name: str, waits: list[float]) -> None:

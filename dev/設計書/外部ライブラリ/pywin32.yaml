@@ -10,33 +10,14 @@ catalogs:
   - name: API
     version: '312'
     entries:
-      - name: win32api.EnumDisplayMonitors / GetMonitorInfo
-        kind: 関数
-        purpose: モニターの一覧と各モニターの領域を取る
-      - name: win32gui.EnumWindows / FindWindow / GetWindowText / IsWindowVisible
-        kind: 関数
-        purpose: ウィンドウを列挙して探し、題名と表示の有無を読む
-      - name: win32gui.GetForegroundWindow / SetForegroundWindow / ShowWindow
-        kind: 関数
-        purpose: 前面のウィンドウを読み、ウィンドウを前面に戻して表示する
-      - name: win32gui.PostMessage
-        kind: 関数
-        purpose: ウィンドウへメッセージを送る（WM_CLOSE で閉じる）
-      - name: win32process.GetWindowThreadProcessId
-        kind: 関数
-        purpose: ウィンドウを持つプロセスの ID を取る
-      - name: win32con
-        kind: 定数
-        purpose: ウィンドウの操作に渡す定数（SW_SHOW・WM_CLOSE）
       - name: win32com.client.Dispatch
         kind: 関数
-        purpose: COM のオブジェクトを名前で作って呼ぶ（Shell.Application でエクスプローラーの窓を引いて閉じ、SAPI.SpVoice で文字を読み上げる）
+        purpose: COM のオブジェクトを名前で作って呼ぶ（SAPI.SpVoice で文字を読み上げ、SAPI.SpFileStream へ書き出す）
 lead: Windows の API（Win32）を Python から呼ぶライブラリ。
 purl: pkg:pypi/pywin32
 dependency_scope: 開発のみ
 adoption: 採用
 used_in:
-  - tests/support/desktop.py
   - tests/support/inprocess.py
 upstream: mhammond/pywin32
 verification:

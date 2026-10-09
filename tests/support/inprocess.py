@@ -27,7 +27,7 @@ from scipy.signal import resample_poly
 
 import voice_paste.main as main_module
 from tests.integration.helpers import wait_until
-from tests.support.desktop import ProcessInfo, kill_tree, processes_with
+from tests.support.processes import ProcessInfo, kill_tree, processes_with
 from voice_paste.features.recording.client import SAMPLE_RATE
 from voice_paste.features.session import SessionManager
 from voice_paste.integrations.whisper.client import WORKER_MODULE

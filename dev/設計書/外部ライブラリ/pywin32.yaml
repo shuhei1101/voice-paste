@@ -10,9 +10,6 @@ catalogs:
   - name: API
     version: '312'
     entries:
-      - name: win32api.SetCursorPos / mouse_event / keybd_event
-        kind: 関数
-        purpose: マウスの位置を動かし、ボタンとキーの押下を合成する
       - name: win32api.EnumDisplayMonitors / GetMonitorInfo
         kind: 関数
         purpose: モニターの一覧と各モニターの領域を取る
@@ -30,7 +27,7 @@ catalogs:
         purpose: ウィンドウを持つプロセスの ID を取る
       - name: win32con
         kind: 定数
-        purpose: マウス・キー・ウィンドウの操作に渡す定数（MOUSEEVENTF_*・KEYEVENTF_KEYUP・VK_MENU・SW_SHOW・WM_CLOSE）
+        purpose: ウィンドウの操作に渡す定数（SW_SHOW・WM_CLOSE）
       - name: win32com.client.Dispatch
         kind: 関数
         purpose: COM のオブジェクトを名前で作って呼ぶ（Shell.Application でエクスプローラーの窓を引いて閉じ、SAPI.SpVoice で文字を読み上げる）

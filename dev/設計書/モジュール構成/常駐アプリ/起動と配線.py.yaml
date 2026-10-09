@@ -127,12 +127,9 @@ functions:
       2. 設定のエンジン（local_whisper）の WhisperWorkerClient を作って起動し、その transcribe を文字起こしの engine に渡す
          - EngineError の場合、StartupError を送出する
       3. Recorder に音量のアダプタと、SettingsStore から録音の設定を返す関数を渡す
-      4. 出力先の deliver に、配線した OUTPUTS（_wire_outputs）・配線した PRESET_KINDS（_wire_preset_kinds）と、届けるたびに SettingsStore からオンの出力先の ID を引く関数を部分適用し、Session を入口・出力先の ID・選んだプリセット・返送先に分けて渡すアダプタを作る。各出力先・各種類には次を部分適用する（どちらにも SettingsStore.get を渡す）
-         - 貼り付けて送信: copy_to_clipboard・設定の keyboard.paste_key で send_paste を呼ぶ関数・send_enter・time.sleep・設定の enter_delay_sec を返す関数
-         - 貼り付けのみ: copy_to_clipboard・send_paste を呼ぶ関数
-         - コピーのみ: copy_to_clipboard
-         - 呼び出し元へ返す: CALLBACK_TIMEOUT_SEC を部分適用した post_json・設定の許可ホスト・再送の回数と間隔の基数・time.sleep・random.uniform(0, x)
-         - ブラウザ添付（種類）: copy_to_clipboard・open_app_window・send_paste を呼ぶ関数・send_enter・time.sleep・設定の preset_options.browser.open_delay_sec を返す関数・貼り付けて送信の enter_delay_sec を返す関数
+      4. 出力先の deliver に、配線した OUTPUTS（_wire_outputs）・配線した PRESET_KINDS（_wire_preset_kinds）と、届けるたびに SettingsStore からオンの出力先の ID を引く関数を部分適用し、Session を入口・出力先の ID・選んだプリセット・返送先に分けて渡すアダプタを作る
+         - 出力先には OutputDeps（copy_to_clipboard・設定の keyboard.paste_key で send_paste を呼ぶ関数・send_enter・time.sleep・random.uniform(0, x)・post_json・SettingsStore.get）を渡し、各出力先の inject が選ぶ
+         - ブラウザ添付（種類）: copy_to_clipboard・open_app_window・send_paste を呼ぶ関数・send_enter・time.sleep・設定の preset_options.browser.open_delay_sec を返す関数・貼り付けて送信の enter_delay_sec を返す関数（read_enter_delay_sec）
          - エンドポイントへ送る（種類）: post_json・設定の preset_options.endpoint.timeout_sec を返す関数
       5. 用語集を文字起こしのたびに読み直す correct を作る（load_glossary → apply_glossary。読む場所はそのたびに SettingsStore の glossary_path から決める）
       6. SessionDeps を組み（report_progress を含む）、API のセッションの上限時間と共に SessionManager を作る
@@ -159,7 +156,7 @@ functions:
          - StartupError の場合、1 を返す（トレイを出す前のため、ログにだけ残す）
            - `[ERROR]` 起動に失敗した（理由）
       4. QApplication（最後の窓を閉じても終わらない）・UiBridge・Tray を作り、build_stylesheet を当ててトレイに準備中を出す。WAKE_INTERVAL_MS ごとの空の QTimer を置き、SIGINT・SIGBREAK で QApplication.quit を呼ぶ。後から起動したプロセスに終わるよう頼まれたら、QApplication.quit をメインスレッドで呼ぶ（SingleInstanceLock.on_quit_requested に、QMetaObject.invokeMethod で QApplication.quit をキューに入れる関数を渡す）
-      5. 設定を読む（load_settings）
+      5. 設定を読む（load_settings(settings_file, SETTINGS_MODEL)）
          - SettingsError の場合、トレイを失敗にして設定を読めないことを通知し（Tray.show_failure(settings_invalid, 理由)）、「録音を始める」「設定…」を押せないまま 11 へ（フォルダを開いて settings.toml を直し、再起動できる）
            - `[ERROR]` 起動に失敗した（理由）
       6. ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を消す（purge_old_files。処理中のセッションは無いため、一時の音声も全て消す対象にする）
@@ -425,28 +422,28 @@ functions:
     usecase: 常駐アプリを起動する
     role: composition root
     scope: internal
-    summary: OUTPUTS の各出力先の handler に、出力先の ID ごとの外部連携の関数と設定の値を部分適用して返す
+    summary: OUTPUTS の各出力先の handler に、その出力先の inject が OutputDeps から選んだものを部分適用して返す（出力先の ID ごとの表を持たない）
     args:
-      - name: get_settings
-        type: Callable[[], Settings]
+      - name: deps
+        type: OutputDeps
         required: true
         passing: positional
-        description: 今の設定を返す（keyboard.paste_key・outputs[]・api.allowed_callback_hosts を読む）
+        description: 外部連携の関数と今の設定（build_handlers が組む）
+      - name: outputs
+        type: Sequence[OutputSpec]
+        required: true
+        passing: positional
+        description: 配線する出力先の一覧（OUTPUTS。テストでは試しの出力先を渡す）
     returns:
       type: tuple[OutputSpec, ...]
-      description: handler を配線した出力先の一覧（OUTPUTS と同じ並び）
+      description: handler を配線した出力先の一覧（outputs と同じ並び）
     process: |-
-      1. 呼ぶたびに get_settings() を読む関数を作る（Recorder の get_settings と同じく、反映が immediate の設定を届けるたびに読む。_wire_preset_kinds も同じ関数を使う）
-         - paste: keyboard.paste_key で send_paste を呼ぶ
-         - get_enter_delay_sec: outputs[] の paste_and_send の enter_delay_sec を返す（一覧に無ければそのモデルの既定値）
-      2. OUTPUTS を順に見て、出力先の ID ごとに build_handlers の 4 のとおり部分適用した handler に差し替える
-         - 部分適用の対象に無い ID はそのまま残す
-         - 呼び出し元へ返すの許可ホストは、この時点の get_settings() から読む
+      1. outputs を順に見て、spec.inject(deps) が返したものを spec.handler に部分適用した handler に差し替える（何も返さない出力先はそのまま残る）
     unit_tests:
       - name: test_wire_outputs
         case: 正常
         summary: 各出力先に設定の値を配線する
-        condition: keyboard.paste_key が `<ctrl>+<shift>+v`、paste_and_send の enter_delay_sec が 0.2
+        condition: keyboard.paste_key が `<ctrl>+<shift>+v`、paste_and_send の enter_delay_sec が 0.2 の設定を返す OutputDeps と OUTPUTS を渡す
         mock: copy_to_clipboard・send_paste・send_enter・time.sleep
         expected: 返った一覧の ID が OUTPUTS と同じ並びで、paste_and_send の handler を呼ぶと send_paste に `<ctrl>+<shift>+v`、sleep に 0.2 が渡る
       - name: test_wire_outputs_when_settings_changed
@@ -455,6 +452,12 @@ functions:
         condition: 配線の後に get_settings が返す設定を paste_key `<ctrl>+<alt>+v`・enter_delay_sec 1.0 に差し替える
         mock: copy_to_clipboard・send_paste・send_enter・time.sleep
         expected: paste_and_send の handler を呼ぶと send_paste に `<ctrl>+<alt>+v`、sleep に 1.0 が渡る
+      - name: test_wire_outputs_when_registered_output
+        case: 正常
+        summary: 登録しただけの出力先も、その inject が選んだもので配線される
+        condition: 'OUTPUTS の後ろに、inject が {"copy": deps.copy} を返す試しの出力先を足した一覧を渡す'
+        mock: copy_to_clipboard
+        expected: 返った一覧の最後が試しの出力先で、その handler を呼ぶと copy_to_clipboard に起こした文字が渡る
     status: implemented
   - name: build_hotkey_bindings
     title: ホットキーの割り当て
@@ -657,6 +660,7 @@ functions:
       1. start に start_local_session(tray)、pause・resume・cancel・current_session に SessionManager のメソッド、complete に output_id・preset で SessionManager.complete を呼ぶ関数、level に recorder_level、get_settings に SettingsStore.get を渡す
       2. suspend_hotkeys に HotkeyListener.stop、resume_hotkeys に SettingsStore.get の設定と show_recording_window で build_hotkey_bindings して HotkeyListener.start を呼ぶ関数を渡す
       3. settings_dir に settings.toml のフォルダ、log_dir にログのフォルダを渡す
+      4. output_titles に、OUTPUTS のうち api_only でない出力先の ID → title を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
     status: implemented
   - name: relaunch
     title: 起動し直し
@@ -790,7 +794,9 @@ functions:
       type: tuple[PresetKindSpec, ...]
       description: handler を配線した種類の一覧（PRESET_KINDS と同じ並び）
     process: |-
-      1. 呼ぶたびに get_settings() を読む関数を作る（届けるたびに読む。paste・get_enter_delay_sec は _wire_outputs と同じ）
+      1. 呼ぶたびに get_settings() を読む関数を作る（届けるたびに読む）
+         - paste: keyboard.paste_key で send_paste を呼ぶ
+         - get_enter_delay_sec: read_enter_delay_sec(get_settings())（貼り付けて送信の秒数）
          - get_open_delay_sec: preset_options.browser.open_delay_sec を返す
          - get_timeout_sec: preset_options.endpoint.timeout_sec を返す
       2. PRESET_KINDS を順に見て、種類ごとに build_handlers の 4 のとおり部分適用した handler に差し替える
@@ -1054,27 +1060,6 @@ constants:
     summary: SessionManager へ渡す上限時間。非機能要件の API のセッションの上限時間の決定値
     value: '600'
     status: implemented
-  - name: CALLBACK_TIMEOUT_SEC
-    title: 返送のタイムアウト
-    container: main.py
-    usecase: 起こした文字を届ける
-    summary: post_json へ渡す 1 回の POST のタイムアウト。非機能要件の返送のタイムアウトと再送の決定値
-    value: '1.5'
-    status: implemented
-  - name: CALLBACK_RETRY_COUNT
-    title: 返送の再送回数
-    container: main.py
-    usecase: 起こした文字を届ける
-    summary: 最初の 1 回の後に再送する回数。非機能要件の返送のタイムアウトと再送の決定値
-    value: '3'
-    status: implemented
-  - name: CALLBACK_RETRY_BASE_SEC
-    title: 返送の再送の間隔の基数
-    container: main.py
-    usecase: 起こした文字を届ける
-    summary: 再送の間隔の基数（回ごとに 2 倍にし、フルジッターをかける）。非機能要件の返送のタイムアウトと再送の決定値
-    value: '1.0'
-    status: implemented
   - name: WAKE_INTERVAL_MS
     title: Python へ戻る間隔
     container: main.py
@@ -1110,6 +1095,13 @@ constants:
     summary: 前のプロセスがミューテックスを作ってからイベントを作るまでの間に OpenEventW が失敗したとき、開き直す間隔。前のプロセスの起動の初めの数ミリ秒の間だけ起こるため、依頼の遅れを 0.1 秒までに抑える
     value: '0.1'
     status: implemented
+  - name: SETTINGS_MODEL
+    title: アプリの設定のモデル
+    container: main.py
+    usecase: 常駐アプリを起動する
+    summary: OUTPUTS のうち settings_model を持つ出力先のモデルを OUTPUTS の並びで build_settings_model に渡して組み立てた設定のモデル。load_settings と既定の設定はこれを使う
+    value: build_settings_model([spec.settings_model for spec in OUTPUTS if spec.settings_model is not None])
+    status: planned
 test_files:
   - tests/unit/voice_paste/test_main.py
   - tests/unit/voice_paste/runtime/test_timer.py

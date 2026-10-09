@@ -1,4 +1,4 @@
-"""ui/windows/settings_window.py（SettingsWindow の save、format_hotkey・parse_hotkey・to_field_message）の単体テスト。
+"""ui/windows/settings_window.py（SettingsWindow の save・close_without_confirm、format_hotkey・parse_hotkey・to_field_message）の単体テスト。
 
 画面を使うため offscreen の QApplication（conftest の qapp）で動かす。UiDeps の関数は Mock に差し替える。
 欄は画面設計の項目 ID（field_{キー}・error_summary）の objectName で引く。キーは設定のキーで、エラーの一覧と同じ書式（`outputs[0].enter_delay_sec`）。
@@ -11,6 +11,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
+from unittest.mock import MagicMock
 
 import pytest
 from PySide6.QtCore import QKeyCombination, QRegularExpression, Qt
@@ -175,6 +176,29 @@ def test_save_when_preset_invalid(opened: Opened) -> None:
     assert "プリセット 1 件目のタイトル: タイトルを入れてください。" in _error_summary_text(
         opened.window
     )
+
+
+# === close_without_confirm ===
+
+
+def test_close_without_confirm(opened: Opened, monkeypatch: pytest.MonkeyPatch) -> None:
+    """欄を変えたままでも確認を出さずに閉じる（正常系）。"""
+    # 準備: 欄を変え、捨てる確認が出たら「捨てない」と答える
+    confirm_discard = MagicMock(return_value=False)
+    monkeypatch.setattr("voice_paste.ui.windows.settings_window.confirm_discard", confirm_discard)
+    closed_count: list[int] = []
+    opened.window.closed.connect(lambda: closed_count.append(1))
+    volume = _field(opened.window, "recording.volume_percent")
+    assert isinstance(volume, QSlider)
+    volume.setValue(NEW_VOLUME_PERCENT)
+
+    # 実行
+    opened.window.close_without_confirm()
+
+    # 検証
+    confirm_discard.assert_not_called()
+    assert closed_count == [1]
+    opened.deps.save_settings.assert_not_called()
 
 
 # === format_hotkey ===

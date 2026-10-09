@@ -419,12 +419,6 @@ class Uia:
         found = self.automation.GetRootElement().FindAll(self.client.TreeScope_Descendants, both)
         return _elements(found)
 
-    @staticmethod
-    def center(element: Any) -> tuple[int, int]:
-        """部品の中心の座標。"""
-        left, top, right, bottom = Uia.rect(element)
-        return (left + right) // 2, (top + bottom) // 2
-
 
 @dataclass
 class _UiaHolder:

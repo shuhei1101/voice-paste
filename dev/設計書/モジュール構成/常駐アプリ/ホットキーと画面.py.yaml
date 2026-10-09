@@ -1332,6 +1332,11 @@ functions:
         required: true
         passing: positional
         description: ValidationError.errors() の 1 件
+      - name: model
+        type: type[Settings]
+        required: true
+        passing: keyword
+        description: 失敗の場所から項目（既定値・範囲）を引く設定のモデル。出力先の項目はその output_models から引く。SettingsWindow は開いたときの設定のモデル（`type(設定)`）を渡す（ui は features・main を import しない）
     returns:
       type: str
       description: 欄の下とエラーの一覧に出す文言
@@ -1347,19 +1352,19 @@ functions:
       - name: test_to_field_message_when_not_number
         case: 正常
         summary: 数値でない文字
-        condition: outputs[0].enter_delay_sec に abc を入れた Settings.model_validate の失敗
+        condition: outputs[0].enter_delay_sec に abc を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
         mock: なし
         expected: '数値を入れてください（例: 0.5）。'
       - name: test_to_field_message_when_out_of_range
         case: 正常
         summary: 範囲の外
-        condition: api.port に 80
+        condition: api.port に 80 を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
         mock: なし
         expected: 1024〜65535 の値を入れてください。
       - name: test_to_field_message_when_preset_url_empty
         case: 正常
         summary: プリセットの URL が空
-        condition: presets[0] を kind endpoint・url が空にした Settings.model_validate の失敗
+        condition: presets[0] を kind endpoint・url が空にした SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
         mock: なし
         expected: 'URL を入れてください（例: https://example.com/hook）。'
     refs:

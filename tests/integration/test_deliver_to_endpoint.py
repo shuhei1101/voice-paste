@@ -14,6 +14,7 @@ import pytest
 
 from tests.integration.helpers import CallbackReceiver, OutputStack
 from tests.support.fixtures import receiver  # noqa: F401 フィクスチャとして使う
+from voice_paste.main import SETTINGS_MODEL
 from voice_paste.shared.settings import EndpointPreset, Settings
 
 AUTHORIZATION = "Bearer test-token"
@@ -34,7 +35,7 @@ def test_normal(
     """起こした文字を送り先へ送る（正常系）。"""
     # 準備
     preset = _preset(receiver)
-    stack = output_stack(Settings(presets=[preset]))
+    stack = output_stack(SETTINGS_MODEL(presets=[preset]))
 
     # 実行
     stack.confirm(preset=preset)
@@ -59,7 +60,7 @@ def test_normal_when_authorization_set(
     # 準備
     caplog.set_level(logging.DEBUG)
     preset = _preset(receiver, AUTHORIZATION)
-    stack = output_stack(Settings(presets=[preset]))
+    stack = output_stack(SETTINGS_MODEL(presets=[preset]))
 
     # 実行
     stack.confirm(preset=preset)
@@ -78,7 +79,7 @@ def test_error_when_endpoint_unreachable(
     # 準備
     receiver.default_status = 500
     preset = _preset(receiver)
-    stack = output_stack(Settings(presets=[preset]))
+    stack = output_stack(SETTINGS_MODEL(presets=[preset]))
 
     # 実行
     stack.confirm(preset=preset)

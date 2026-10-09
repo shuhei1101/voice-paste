@@ -34,6 +34,7 @@ from PySide6.QtWidgets import (
 )
 
 from tests.integration.ui.helpers import ModalDriver, Ui, find, make_ui_deps, no_modal
+from voice_paste.main import SETTINGS_MODEL
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QApplication
@@ -190,19 +191,13 @@ def test_settings_window_title_and_width(open_window: Callable[..., Opened]) -> 
 
 def test_settings_window_initial_value(open_window: Callable[..., Opened]) -> None:
     """開いたときの settings.toml の値を欄に入れる。"""
-    from voice_paste.shared.settings import (
-        CopyOnlySettings,
-        HistorySettings,
-        HotkeySettings,
-        PasteAndSendSettings,
-        PasteOnlySettings,
-        RecordingSettings,
-        Settings,
-        UiSettings,
-    )
+    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
+    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
+    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
+    from voice_paste.shared.settings import HistorySettings, HotkeySettings, RecordingSettings, Settings, UiSettings
 
     # 準備
-    settings = Settings(
+    settings = SETTINGS_MODEL(
         recording=RecordingSettings(fade_sec=1.5, hide_window=True, volume_percent=35),
         ui=UiSettings(position="top-left"),
         hotkeys=HotkeySettings(start="<ctrl>+<alt>+s"),
@@ -312,7 +307,7 @@ def test_field_for_every_setting_key(open_window: Callable[..., Opened]) -> None
     window = open_window().window
 
     # 検証
-    for key in _leaf_keys(Settings()):
+    for key in _leaf_keys(SETTINGS_MODEL()):
         assert window.findChild(QWidget, f"field_{key}") or window.findChild(
             QWidget, f"hotkey_{key}"
         ), f"{key} の欄が無い"
@@ -479,7 +474,7 @@ def _settings_with_presets() -> Settings:
     """ブラウザ添付 2 件とエンドポイントへ送る 1 件のプリセットを持つ設定を作る。"""
     from voice_paste.shared.settings import BrowserPreset, EndpointPreset, Settings
 
-    return Settings(
+    return SETTINGS_MODEL(
         presets=[
             EndpointPreset(
                 title="受け口",
@@ -852,7 +847,7 @@ def _settings_with_small_model() -> Settings:
     """文字起こしのモデルを既定から変えた設定（既定に戻すと「再起動で反映」の設定が 1 件変わる）。"""
     from voice_paste.shared.settings import LocalWhisperSettings, Settings, TranscriptionSettings
 
-    return Settings(
+    return SETTINGS_MODEL(
         transcription=TranscriptionSettings(local_whisper=LocalWhisperSettings(model="small"))
     )
 
@@ -931,7 +926,7 @@ def test_reset_dialog_when_reset(open_window: Callable[..., Opened]) -> None:
 
     # 検証
     driver.verify()
-    opened.deps.save_settings.assert_called_once_with(Settings())
+    opened.deps.save_settings.assert_called_once_with(SETTINGS_MODEL())
     assert _field(opened.window, IMMEDIATE_KEY, QLineEdit).text() == "0.5"
     assert opened.window.isVisible()
 
@@ -1183,7 +1178,7 @@ def test_save_button_when_default(open_window: Callable[..., Opened]) -> None:
     _click(opened.window, "save_button")
 
     # 検証
-    opened.deps.save_settings.assert_called_once_with(Settings())
+    opened.deps.save_settings.assert_called_once_with(SETTINGS_MODEL())
 
 
 def test_save_button_when_invalid(open_window: Callable[..., Opened]) -> None:

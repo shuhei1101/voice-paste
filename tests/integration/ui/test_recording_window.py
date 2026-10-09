@@ -17,6 +17,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QLabel, QPushButton, QWidget
 
 from tests.integration.ui.helpers import Ui, button_texts, find, grab_head_row, no_modal
+from voice_paste.main import SETTINGS_MODEL
 
 if TYPE_CHECKING:
     from voice_paste.shared.settings import Settings
@@ -33,10 +34,8 @@ def _opened(make_ui: Callable[..., Ui], settings: Settings | None = None) -> Ui:
 
 
 def _settings(**groups: object) -> Settings:
-    """グループごとの設定（recording・ui・outputs・hotkeys）を差し替えた Settings を作る。"""
-    from voice_paste.shared.settings import Settings
-
-    return Settings(**groups)
+    """グループごとの設定（recording・ui・outputs・hotkeys）を差し替えた設定を作る。"""
+    return SETTINGS_MODEL(**groups)
 
 
 # === recording_window ===
@@ -333,11 +332,9 @@ def test_outputs_heading_when_outputs_on(make_ui: Callable[..., Ui]) -> None:
 
 def test_outputs_heading_when_outputs_off(make_ui: Callable[..., Ui]) -> None:
     """出力先が全てオフなら、見出しを出さない。"""
-    from voice_paste.shared.settings import (
-        CopyOnlySettings,
-        PasteAndSendSettings,
-        PasteOnlySettings,
-    )
+    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
+    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
+    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
 
     # 実行
     ui = _opened(
@@ -378,11 +375,9 @@ def test_output_buttons_when_all_on(make_ui: Callable[..., Ui]) -> None:
 
 def test_output_buttons_when_some_off(make_ui: Callable[..., Ui]) -> None:
     """オフの出力先のボタンは出さない。"""
-    from voice_paste.shared.settings import (
-        CopyOnlySettings,
-        PasteAndSendSettings,
-        PasteOnlySettings,
-    )
+    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
+    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
+    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
 
     # 実行
     ui = _opened(
@@ -405,11 +400,9 @@ def test_output_buttons_when_some_off(make_ui: Callable[..., Ui]) -> None:
 
 def test_output_buttons_primary(make_ui: Callable[..., Ui]) -> None:
     """オンのうち一番上の出力先のボタンを、主の操作にする。"""
-    from voice_paste.shared.settings import (
-        CopyOnlySettings,
-        PasteAndSendSettings,
-        PasteOnlySettings,
-    )
+    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
+    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
+    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
 
     # 実行（一番上の貼り付けて送信をオフにする）
     ui = _opened(

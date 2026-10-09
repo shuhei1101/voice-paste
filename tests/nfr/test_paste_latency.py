@@ -102,8 +102,9 @@ def _measure_once(handlers: Handlers, pressed_at: list[float], pasted: threading
 def test_paste_latency(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """録音を止めてから貼り付けのキーを押す直前までの中央値が決定値以下である（実機）。"""
     import voice_paste.main as main_module
+    from voice_paste.main import SETTINGS_MODEL
     from voice_paste.shared.constants import resolve_app_paths
-    from voice_paste.shared.settings import Settings, TranscriptionSettings
+    from voice_paste.shared.settings import TranscriptionSettings
 
     # 準備: 差し替えるもの（マイクの入力・音量・貼り付けのキー）
     clip = _load_clip()
@@ -128,7 +129,7 @@ def test_paste_latency(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(main_module, "send_paste", _send_paste)
 
     # 準備: 固めた設定と用語集で配線し、モデルの読み込みを待つ（クリップボードは測った後に戻す）
-    settings = Settings(
+    settings = SETTINGS_MODEL(
         transcription=TranscriptionSettings(local_whisper=load_local_whisper_settings()),
         glossary_path=YOGO_FILE,
     )

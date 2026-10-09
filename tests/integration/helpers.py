@@ -42,10 +42,15 @@ from voice_paste.features.session import (
 from voice_paste.features.transcription.service import transcribe
 from voice_paste.integrations.http.client import post_json
 import voice_paste.main as main_module
-from voice_paste.main import (
+from voice_paste.features.outputs.callback.service import (
     CALLBACK_RETRY_COUNT,
     CALLBACK_TIMEOUT_SEC,
+)
+from voice_paste.features.outputs.types import OutputDeps
+from voice_paste.main import (
+    SETTINGS_MODEL,
     _deliver_session,
+    _make_paste,
     _wire_outputs,
     _wire_preset_kinds,
 )
@@ -290,7 +295,7 @@ def _free_port() -> int:
 def build_stack(tmp_path: Path) -> Stack:
     """偽物を差し込んだセッションを、本物の app と ApiServerRunner で立てる。"""
     paths = resolve_app_paths(tmp_path)
-    settings = Settings()
+    settings = SETTINGS_MODEL()
     clock = Clock(START)
     microphone = FakeMicrophone()
     volume = FakeVolume()
@@ -415,7 +420,7 @@ def build_output_stack(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, settings: Settings | None = None
 ) -> OutputStack:
     """ホットキーのセッションが、main.py の配線で作った出力先へ届く SessionManager を作る。"""
-    settings = settings if settings is not None else Settings()
+    settings = settings if settings is not None else SETTINGS_MODEL()
     paths = resolve_app_paths(tmp_path)
     clock = Clock(START)
     microphone = FakeMicrophone()
@@ -439,10 +444,20 @@ def build_output_stack(
         get_settings=lambda: settings.recording,
     )
     enabled_ids = frozenset(output.id for output in settings.outputs if output.enabled)
+    # main.py の build_handlers と同じ束を、偽物にした外部連携で組む
+    output_deps = OutputDeps(
+        copy=adapters.copy_to_clipboard,
+        paste=_make_paste(lambda: settings),
+        send_enter=adapters.send_enter,
+        sleep=adapters.sleep,
+        jitter=lambda upper: upper,
+        post=post_json,
+        get_settings=lambda: settings,
+    )
     deliver_session = partial(
         _deliver_session,
         enabled_ids=enabled_ids,
-        outputs=_wire_outputs(lambda: settings),
+        outputs=_wire_outputs(output_deps, OUTPUTS),
         preset_kinds=_wire_preset_kinds(lambda: settings),
     )
     deps = SessionDeps(

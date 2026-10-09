@@ -319,7 +319,7 @@ requirements:
         summary: 完了が来ないまま上限時間に達した連続録音が打ち切られ、返送先へ truncated と区間の数が届く
         condition: 連続録音の上限時間を 3 秒に差し替えた SessionManager を、録音の入力を 1 秒の話し声の後に無音が続く WAV を実時間で流すものに、システム音量を何もしないものに差し替えた録音機と上限のタイマー（1 秒ごと）で動かし、continuous=true で API のセッションを始めて完了を呼ばない。返送先は 127.0.0.1 のテスト用の受け口
         measurement: 開始から終わりの返送が届くまでの時間と、届いた返送の中身を記録する
-        expected: 終わりの返送が上限時間（3 秒）以上、上限時間 + 確かめる間隔（1 秒）+ 区切ってから返送が届くまでの時間の決定値（3 秒）以内に届いて result=truncated・segment_count=1 で、その前に segment=1 の返送が届いている。続けて呼んだ開始が 202 になる
+        expected: 終わりの返送が上限時間（3 秒）以上、上限時間 + 確かめる間隔（1 秒）+ 区切ってから返送が届くまでの時間の決定値（3 秒）以内に届いて result=truncated・segment_count=1 で、その前に segment_number=1 の返送が届いている。続けて呼んだ開始が 202 になる
         notes: --run-e2e が無い環境では skip する
     status: planned
     introduced:

@@ -90,7 +90,7 @@ flows:
     expected:
       - マイクの録音が止まり、システム音量が録音前の値に戻っている
       - 履歴に通し番号 1 と 2 の区間の録音がある
-      - 呼び出し元へ返す に、segment=2 の区間の後で result=truncated・segment_count=2 が渡っている
+      - 呼び出し元へ返す に、segment_number=2 の区間の後で result=truncated・segment_count=2 が渡っている
       - ログに打ち切ったことと session_id が書かれている
       - 終わりを渡した後、待機中に戻り、続く開始が 409 にならない
     test: test_normal_when_continuous

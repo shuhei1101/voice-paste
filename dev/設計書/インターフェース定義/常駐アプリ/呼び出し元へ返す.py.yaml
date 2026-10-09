@@ -93,13 +93,13 @@ flows:
         participant IF as 呼び出し元へ返す
         participant CB as 返送先
 
-        IF->>CB: POST session_id・result=transcribed・segment=1・text
+        IF->>CB: POST session_id・result=transcribed・segment_number=1・text
         CB-->>IF: 200
-        IF->>CB: POST session_id・result=transcribed・segment=2・text
+        IF->>CB: POST session_id・result=transcribed・segment_number=2・text
         CB-->>IF: 200
       ```
     expected:
-      - 返送先に segment=1 と segment=2 の区間の文字が、この順に 1 回ずつ届いている
+      - 返送先に segment_number=1 と segment_number=2 の区間の文字が、この順に 1 回ずつ届いている
       - segment_count が null である
       - セッションが終わらず、連続録音が続いている
     test: test_normal_when_continuous_segment
@@ -116,14 +116,14 @@ flows:
         participant IF as 呼び出し元へ返す
         participant CB as 返送先
 
-        IF->>CB: POST session_id・result=failed・segment=2・error
+        IF->>CB: POST session_id・result=failed・segment_number=2・error
         CB-->>IF: 200
-        IF->>CB: POST session_id・result=transcribed・segment=3・text
+        IF->>CB: POST session_id・result=transcribed・segment_number=3・text
         CB-->>IF: 200
       ```
     expected:
-      - 返送先に segment=2 の result=failed と失敗の理由が 1 回届いている
-      - その後に segment=3 の区間の文字が届いている
+      - 返送先に segment_number=2 の result=failed と失敗の理由が 1 回届いている
+      - その後に segment_number=3 の区間の文字が届いている
     test: test_normal_when_continuous_segment_failed
   - name: 正常系（連続録音を完了した）
     summary: 最後の区間を送った後に、完了したことと区間の数を送る
@@ -138,20 +138,20 @@ flows:
         participant IF as 呼び出し元へ返す
         participant CB as 返送先
 
-        IF->>CB: POST session_id・result=transcribed・segment=2・text
+        IF->>CB: POST session_id・result=transcribed・segment_number=2・text
         CB-->>IF: 200
         IF->>CB: POST session_id・result=completed・segment_count=2
         CB-->>IF: 200
       ```
     expected:
-      - 返送先に、segment=2 の区間の後で result=completed・segment_count=2 が 1 回届いている
+      - 返送先に、segment_number=2 の区間の後で result=completed・segment_count=2 が 1 回届いている
       - セッションが終わり、待機中に戻っている
     test: test_normal_when_continuous_completed
   - name: 異常系（連続録音の区間が返送先に届かない・ログに書いて次の区間へ進む）
     summary: 決めた回数まで再送しても届かない区間はログに書き、次の区間を送る
     setup:
       - name: Mock
-        description: 返送先を 127.0.0.1 のテスト用の受け口にし、segment=2 の返送にだけ常に 500 を返す
+        description: 返送先を 127.0.0.1 のテスト用の受け口にし、segment_number=2 の返送にだけ常に 500 を返す
       - name: 再送の設定
         description: 再送の間隔をテストで待てる短い値に差し替える
       - name: 文字起こしの結果
@@ -164,17 +164,17 @@ flows:
         participant LOG as ログ
 
         loop 決めた回数まで
-          IF->>CB: POST session_id・result=transcribed・segment=2・text
+          IF->>CB: POST session_id・result=transcribed・segment_number=2・text
           CB-->>IF: 500
         end
-        IF->>LOG: 届かなかったことと session_id・segment=2 を書く
-        IF->>CB: POST session_id・result=transcribed・segment=3・text
+        IF->>LOG: 届かなかったことと session_id・segment_number=2 を書く
+        IF->>CB: POST session_id・result=transcribed・segment_number=3・text
         CB-->>IF: 200
       ```
     expected:
-      - segment=2 の送信が決めた回数だけ行われている
-      - ログに届かなかったことと session_id・segment=2 が書かれている
-      - segment=3 の区間の文字がその後に届いている
+      - segment_number=2 の送信が決めた回数だけ行われている
+      - ログに届かなかったことと session_id・segment_number=2 が書かれている
+      - segment_number=3 の区間の文字がその後に届いている
       - セッションが終わらず、連続録音が続いている
     test: test_error_when_continuous_segment_unreachable
   - name: 異常系（返送先に届かない・ログに書いて終える）
@@ -232,7 +232,7 @@ constraints:
     decided_by: dev/設計書/非機能要件/非機能要件#requirements[返送のタイムアウトと再送]
     notes: 呼び出し元との取り決め。返送のタイムアウトはこの時間から導く
   - item: 重なって届く返送
-    constraint: 受け口が 2xx を返す前にタイムアウトすると、同じ中身が同じ session_id（連続録音の区間は同じ session_id と segment）で再送される。受け口は session_id（連続録音は session_id と segment、終わりは session_id と result）で重複を見分ける
+    constraint: 受け口が 2xx を返す前にタイムアウトすると、同じ中身が同じ session_id（連続録音の区間は同じ session_id と segment_number）で再送される。受け口は session_id（連続録音は session_id と segment_number、終わりは session_id と result）で重複を見分ける
     notes: 常駐アプリが送るのは 1 セッション（連続録音は 1 区間・終わり）につき 1 つの中身だけで、届いたかを確かめられないときだけ同じ中身を送り直す
   - item: 終了で捨てた録音
     constraint: 常駐サービスの終了で捨てた録音（録音中・停止中の API のセッション）は返送しない
@@ -251,10 +251,10 @@ notes:
     | `result` | `Literal["transcribed", "failed", "truncated", "completed"]` | `transcribed`: 起こした文字（空を含む）を得た。`failed`: 文字起こしに失敗した。`truncated`: 完了が来ないまま上限で打ち切った。`completed`: 連続録音を完了し、全ての区間を送り終えた（連続録音だけ） |
     | `text` | `str` | 用語集で補正した文字。`transcribed` で結果が空のときと、`failed`・`truncated`・`completed` のときは空文字 |
     | `error` | `str \| None` | `failed` のときの理由。それ以外は `null` |
-    | `segment` | `int \| None` | 連続録音の区間の通し番号（1 から 1 ずつ増える）。連続録音の `transcribed`・`failed` のときだけ入り、それ以外は `null` |
+    | `segment_number` | `int \| None` | 連続録音の区間の通し番号（1 から 1 ずつ増える）。連続録音の `transcribed`・`failed` のときだけ入り、それ以外は `null` |
     | `segment_count` | `int \| None` | 連続録音で区切った区間の数（届かなかった区間も含む。区間が無ければ 0）。連続録音の `completed`・`truncated` のときだけ入り、それ以外は `null` |
 
-    `continuous` を指定しない開始では、`segment`・`segment_count` は常に `null` で、それ以外の中身は今までと同じ。
+    `continuous` を指定しない開始では、`segment_number`・`segment_count` は常に `null` で、それ以外の中身は今までと同じ。
 
     ```json
     {
@@ -262,7 +262,7 @@ notes:
       "result": "transcribed",
       "text": "今日の会議は 15 時からです。",
       "error": null,
-      "segment": null,
+      "segment_number": null,
       "segment_count": null
     }
     ```
@@ -275,7 +275,7 @@ notes:
       "result": "transcribed",
       "text": "今日の会議は 15 時からです。",
       "error": null,
-      "segment": 1,
+      "segment_number": 1,
       "segment_count": null
     }
     ```
@@ -286,7 +286,7 @@ notes:
       "result": "completed",
       "text": "",
       "error": null,
-      "segment": null,
+      "segment_number": null,
       "segment_count": 3
     }
     ```

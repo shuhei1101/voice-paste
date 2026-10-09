@@ -1,0 +1,535 @@
+[
+  {
+    "scene": "詰めて続ける",
+    "duration_sec": 26.88,
+    "target_gaps": [
+      2.1,
+      2.1,
+      2.1,
+      2.1,
+      2.1
+    ],
+    "measured_gaps": [
+      2.09,
+      2.09,
+      2.09,
+      2.1,
+      2.1
+    ],
+    "expected_segments": 6,
+    "segments": [
+      {
+        "index": 1,
+        "reason": "無音",
+        "start_sec": 0.72,
+        "end_sec": 2.57,
+        "speech_start_sec": 1.02,
+        "speech_end_sec": 2.27,
+        "length_sec": 1.85,
+        "transcribe_sec": 0.92,
+        "ratio": 0.495,
+        "latency_sec": 0.92,
+        "text": "今日はいい天気ですね。"
+      },
+      {
+        "index": 2,
+        "reason": "無音",
+        "start_sec": 4.08,
+        "end_sec": 6.7,
+        "speech_start_sec": 4.38,
+        "speech_end_sec": 6.4,
+        "length_sec": 2.62,
+        "transcribe_sec": 0.4,
+        "ratio": 0.154,
+        "latency_sec": 0.4,
+        "text": "午後から会議の資料をまとめます。"
+      },
+      {
+        "index": 3,
+        "reason": "無音",
+        "start_sec": 8.24,
+        "end_sec": 11.72,
+        "speech_start_sec": 8.54,
+        "speech_end_sec": 11.42,
+        "length_sec": 3.48,
+        "transcribe_sec": 0.48,
+        "ratio": 0.137,
+        "latency_sec": 0.48,
+        "text": "新しいゲームの発売日が近づいてきました。"
+      },
+      {
+        "index": 4,
+        "reason": "無音",
+        "start_sec": 13.24,
+        "end_sec": 17.0,
+        "speech_start_sec": 13.54,
+        "speech_end_sec": 16.7,
+        "length_sec": 3.77,
+        "transcribe_sec": 0.49,
+        "ratio": 0.131,
+        "latency_sec": 0.49,
+        "text": "このボスは右側から攻撃すると倒しやすいです。"
+      },
+      {
+        "index": 5,
+        "reason": "無音",
+        "start_sec": 18.52,
+        "end_sec": 21.8,
+        "speech_start_sec": 18.82,
+        "speech_end_sec": 21.5,
+        "length_sec": 3.29,
+        "transcribe_sec": 0.43,
+        "ratio": 0.132,
+        "latency_sec": 0.43,
+        "text": "少し休憩してからもう一度挑戦します。"
+      },
+      {
+        "index": 6,
+        "reason": "完了",
+        "start_sec": 23.38,
+        "end_sec": 26.85,
+        "speech_start_sec": 23.68,
+        "speech_end_sec": 25.89,
+        "length_sec": 3.47,
+        "transcribe_sec": 0.34,
+        "ratio": 0.099,
+        "latency_sec": 0.35,
+        "text": "配信を見てくれてありがとうございます。"
+      }
+    ],
+    "order": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "max_queue": 1,
+    "vad_ms_mean": 0.132,
+    "vad_ms_max": 0.594,
+    "reference_bounds": [
+      [
+        1.02,
+        2.27
+      ],
+      [
+        4.38,
+        6.4
+      ],
+      [
+        8.54,
+        11.42
+      ],
+      [
+        13.54,
+        16.7
+      ],
+      [
+        18.82,
+        21.5
+      ],
+      [
+        23.68,
+        26.88
+      ]
+    ],
+    "boundary_diffs": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.99
+    ],
+    "check_boundaries": true,
+    "check_cer": true,
+    "check_latency": true,
+    "cer_joined": 0.0,
+    "cer_whole": 0.0,
+    "joined_text": "今日はいい天気ですね。午後から会議の資料をまとめます。新しいゲームの発売日が近づいてきました。このボスは右側から攻撃すると倒しやすいです。少し休憩してからもう一度挑戦します。配信を見てくれてありがとうございます。",
+    "whole_text": "今日はいい天気ですね。午後から会議の資料をまとめます。新しいゲームの発売日が近づいてきました。このボスは右側から攻撃すると倒しやすいです。少し休憩してからもう一度挑戦します。配信を見てくれてありがとうございます。",
+    "judgement": {
+      "間の作り": true,
+      "区切りの正しさ": true,
+      "判定の一致": false,
+      "境目での欠け": true,
+      "追いつき": true,
+      "順": true
+    }
+  },
+  {
+    "scene": "区切らない間",
+    "duration_sec": 23.58,
+    "target_gaps": [
+      1.0,
+      2.1,
+      1.0,
+      2.1,
+      1.0
+    ],
+    "measured_gaps": [
+      0.99,
+      2.09,
+      0.99,
+      2.1,
+      1.0
+    ],
+    "expected_segments": 3,
+    "segments": [
+      {
+        "index": 1,
+        "reason": "無音",
+        "start_sec": 0.72,
+        "end_sec": 5.61,
+        "speech_start_sec": 1.02,
+        "speech_end_sec": 5.31,
+        "length_sec": 4.89,
+        "transcribe_sec": 0.64,
+        "ratio": 0.132,
+        "latency_sec": 0.64,
+        "text": "今日はいい天気ですね。午後から会議の資料をまとめます。"
+      },
+      {
+        "index": 2,
+        "reason": "無音",
+        "start_sec": 7.12,
+        "end_sec": 14.8,
+        "speech_start_sec": 7.42,
+        "speech_end_sec": 14.5,
+        "length_sec": 7.67,
+        "transcribe_sec": 0.77,
+        "ratio": 0.1,
+        "latency_sec": 0.77,
+        "text": "新しいゲームの発売日が近づいてきました。このボスは右側から攻撃すると倒しやすいです。"
+      },
+      {
+        "index": 3,
+        "reason": "完了",
+        "start_sec": 16.31,
+        "end_sec": 23.55,
+        "speech_start_sec": 16.61,
+        "speech_end_sec": 22.59,
+        "length_sec": 7.24,
+        "transcribe_sec": 0.58,
+        "ratio": 0.08,
+        "latency_sec": 0.58,
+        "text": "少し休憩してからもう一度挑戦します。配信を見てくれてありがとうございます。"
+      }
+    ],
+    "order": [
+      1,
+      2,
+      3
+    ],
+    "max_queue": 1,
+    "vad_ms_mean": 0.155,
+    "vad_ms_max": 0.471,
+    "reference_bounds": [
+      [
+        1.02,
+        5.31
+      ],
+      [
+        7.42,
+        14.5
+      ],
+      [
+        16.61,
+        23.58
+      ]
+    ],
+    "boundary_diffs": [
+      0.0,
+      0.0,
+      0.99
+    ],
+    "check_boundaries": true,
+    "check_cer": true,
+    "check_latency": false,
+    "cer_joined": 0.0,
+    "cer_whole": 0.0,
+    "joined_text": "今日はいい天気ですね。午後から会議の資料をまとめます。新しいゲームの発売日が近づいてきました。このボスは右側から攻撃すると倒しやすいです。少し休憩してからもう一度挑戦します。配信を見てくれてありがとうございます。",
+    "whole_text": "今日はいい天気ですね。午後から会議の資料をまとめます。新しいゲームの発売日が近づいてきました。このボスは右側から攻撃すると倒しやすいです。少し休憩してからもう一度挑戦します。配信を見てくれてありがとうございます。",
+    "judgement": {
+      "間の作り": true,
+      "区切りの正しさ": true,
+      "判定の一致": false,
+      "境目での欠け": true,
+      "追いつき": null,
+      "順": true
+    }
+  },
+  {
+    "scene": "話し続ける",
+    "duration_sec": 49.37,
+    "target_gaps": [],
+    "measured_gaps": [
+      0.92,
+      0.48,
+      0.89,
+      0.44,
+      0.92,
+      0.47,
+      0.89,
+      0.45,
+      0.9,
+      0.45,
+      0.9,
+      0.45,
+      0.98,
+      0.49
+    ],
+    "expected_segments": 2,
+    "segments": [
+      {
+        "index": 1,
+        "reason": "最大の長さ",
+        "start_sec": 0.69,
+        "end_sec": 29.01,
+        "speech_start_sec": 0.99,
+        "speech_end_sec": 29.01,
+        "length_sec": 28.32,
+        "transcribe_sec": 2.53,
+        "ratio": 0.089,
+        "latency_sec": 2.53,
+        "text": "ここからは少し長めに話し続けます。最初のステージは森の中にあって、敵の数はそれほど多くありません。ただし木の陰から急に飛び出してくる敵がいるので、周りをよく見ながら進む必要があります。途中で回復のアイテムを拾えるので、体力が減っていても焦らずに進めば大丈夫です。森を抜けると大きな橋があり、その先に最初のボスが待っています。"
+      },
+      {
+        "index": 2,
+        "reason": "完了",
+        "start_sec": 29.01,
+        "end_sec": 49.34,
+        "speech_start_sec": 29.01,
+        "speech_end_sec": 48.38,
+        "length_sec": 20.34,
+        "transcribe_sec": 1.88,
+        "ratio": 0.093,
+        "latency_sec": 1.88,
+        "text": "ボスは3回攻撃した後に隙ができるので、そのタイミングで近づいて攻撃します。慣れてくると攻撃を避けながら反撃できるようになるので、何度か挑戦してみてください。次のステージは洞窟で、暗くて道が分かりにくいので地図を見ながら進みます。"
+      }
+    ],
+    "order": [
+      1,
+      2
+    ],
+    "max_queue": 1,
+    "vad_ms_mean": 0.131,
+    "vad_ms_max": 1.022,
+    "reference_bounds": [
+      [
+        0.99,
+        28.58
+      ],
+      [
+        29.47,
+        49.37
+      ]
+    ],
+    "boundary_diffs": [
+      0.43,
+      0.99
+    ],
+    "check_boundaries": false,
+    "check_cer": true,
+    "check_latency": true,
+    "cer_joined": 0.0115,
+    "cer_whole": 0.0115,
+    "joined_text": "ここからは少し長めに話し続けます。最初のステージは森の中にあって、敵の数はそれほど多くありません。ただし木の陰から急に飛び出してくる敵がいるので、周りをよく見ながら進む必要があります。途中で回復のアイテムを拾えるので、体力が減っていても焦らずに進めば大丈夫です。森を抜けると大きな橋があり、その先に最初のボスが待っています。ボスは3回攻撃した後に隙ができるので、そのタイミングで近づいて攻撃します。慣れてくると攻撃を避けながら反撃できるようになるので、何度か挑戦してみてください。次のステージは洞窟で、暗くて道が分かりにくいので地図を見ながら進みます。",
+    "whole_text": "ここからは少し長めに話し続けます。最初のステージは森の中にあって、敵の数はそれほど多くありません。ただし木の陰から急に飛び出してくる敵がいるので、周りをよく見ながら進む必要があります。途中で回復のアイテムを拾えるので、体力が減っていても焦らずに進めば大丈夫です。森を抜けると大きな橋があり、その先に最初のボスが待っています。ボスは3回攻撃した後に隙ができるので、そのタイミングで近づいて攻撃します。慣れてくると攻撃を避けながら反撃できるようになるので、何度か挑戦してみてください。次のステージは洞窟で、暗くて道が分かりにくいので地図を見ながら進みます。",
+    "judgement": {
+      "間の作り": null,
+      "区切りの正しさ": true,
+      "判定の一致": null,
+      "境目での欠け": true,
+      "追いつき": true,
+      "順": true
+    }
+  },
+  {
+    "scene": "背景音（ノイズ）",
+    "duration_sec": 26.88,
+    "target_gaps": [],
+    "measured_gaps": [],
+    "expected_segments": 6,
+    "segments": [
+      {
+        "index": 1,
+        "reason": "無音",
+        "start_sec": 0.72,
+        "end_sec": 2.64,
+        "speech_start_sec": 1.02,
+        "speech_end_sec": 2.34,
+        "length_sec": 1.91,
+        "transcribe_sec": 0.33,
+        "ratio": 0.171,
+        "latency_sec": 0.33,
+        "text": "今日はいい天気ですね"
+      },
+      {
+        "index": 2,
+        "reason": "無音",
+        "start_sec": 4.12,
+        "end_sec": 6.64,
+        "speech_start_sec": 4.42,
+        "speech_end_sec": 6.34,
+        "length_sec": 2.52,
+        "transcribe_sec": 0.41,
+        "ratio": 0.162,
+        "latency_sec": 0.41,
+        "text": "午後から会議の資料をまとめます"
+      },
+      {
+        "index": 3,
+        "reason": "無音",
+        "start_sec": 8.24,
+        "end_sec": 17.0,
+        "speech_start_sec": 8.54,
+        "speech_end_sec": 16.7,
+        "length_sec": 8.76,
+        "transcribe_sec": 0.85,
+        "ratio": 0.097,
+        "latency_sec": 0.85,
+        "text": "新しいゲームの発売日が近づいてきましたこのボスは右側から攻撃すると倒しやすいです"
+      },
+      {
+        "index": 4,
+        "reason": "無音",
+        "start_sec": 18.64,
+        "end_sec": 21.77,
+        "speech_start_sec": 18.94,
+        "speech_end_sec": 21.47,
+        "length_sec": 3.13,
+        "transcribe_sec": 0.44,
+        "ratio": 0.14,
+        "latency_sec": 0.44,
+        "text": "少し休憩してからもう一度挑戦します。"
+      },
+      {
+        "index": 5,
+        "reason": "完了",
+        "start_sec": 23.35,
+        "end_sec": 26.85,
+        "speech_start_sec": 23.65,
+        "speech_end_sec": 25.82,
+        "length_sec": 3.5,
+        "transcribe_sec": 0.33,
+        "ratio": 0.093,
+        "latency_sec": 0.33,
+        "text": "配信を見てくれてありがとうございます。"
+      }
+    ],
+    "order": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "max_queue": 1,
+    "vad_ms_mean": 0.133,
+    "vad_ms_max": 0.557,
+    "reference_bounds": [
+      [
+        1.02,
+        2.34
+      ],
+      [
+        4.42,
+        6.34
+      ],
+      [
+        8.54,
+        16.7
+      ],
+      [
+        18.94,
+        21.47
+      ],
+      [
+        23.65,
+        26.88
+      ]
+    ],
+    "boundary_diffs": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.06
+    ],
+    "check_boundaries": false,
+    "check_cer": false,
+    "check_latency": false,
+    "cer_joined": null,
+    "cer_whole": null,
+    "joined_text": "今日はいい天気ですね午後から会議の資料をまとめます新しいゲームの発売日が近づいてきましたこのボスは右側から攻撃すると倒しやすいです少し休憩してからもう一度挑戦します。配信を見てくれてありがとうございます。",
+    "whole_text": "",
+    "judgement": {
+      "間の作り": null,
+      "区切りの正しさ": false,
+      "判定の一致": null,
+      "境目での欠け": null,
+      "追いつき": null,
+      "順": true
+    }
+  },
+  {
+    "scene": "背景音（人の声）",
+    "duration_sec": 26.88,
+    "target_gaps": [],
+    "measured_gaps": [
+      1.62,
+      1.38,
+      1.59,
+      0.9,
+      0.47
+    ],
+    "expected_segments": null,
+    "segments": [
+      {
+        "index": 1,
+        "reason": "完了",
+        "start_sec": 0.0,
+        "end_sec": 26.85,
+        "speech_start_sec": 0.13,
+        "speech_end_sec": 26.85,
+        "length_sec": 26.85,
+        "transcribe_sec": 2.15,
+        "ratio": 0.08,
+        "latency_sec": 2.15,
+        "text": "敵が近づいてきたぞ。気をつけろ。午後から会議の資料をまとめます。新しいゲームの発売日が近づいてきました。このボスは右側から攻撃すると倒しやすいです。敵が近づいてきたぞ。気をつけろ。こっちの道は行き止まりだ。配信を見てくれてありがとうございます。"
+      }
+    ],
+    "order": [
+      1
+    ],
+    "max_queue": 1,
+    "vad_ms_mean": 0.131,
+    "vad_ms_max": 0.538,
+    "reference_bounds": [
+      [
+        0.13,
+        26.88
+      ]
+    ],
+    "boundary_diffs": [
+      0.03
+    ],
+    "check_boundaries": false,
+    "check_cer": false,
+    "check_latency": false,
+    "cer_joined": null,
+    "cer_whole": null,
+    "joined_text": "敵が近づいてきたぞ。気をつけろ。午後から会議の資料をまとめます。新しいゲームの発売日が近づいてきました。このボスは右側から攻撃すると倒しやすいです。敵が近づいてきたぞ。気をつけろ。こっちの道は行き止まりだ。配信を見てくれてありがとうございます。",
+    "whole_text": "",
+    "judgement": {
+      "間の作り": null,
+      "区切りの正しさ": null,
+      "判定の一致": null,
+      "境目での欠け": null,
+      "追いつき": null,
+      "順": true
+    }
+  }
+]

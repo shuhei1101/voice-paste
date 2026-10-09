@@ -1,0 +1,27 @@
+$ venv/Scripts/python.exe -m pytest tests/nfr --run-e2e
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\fix-outputs-register-only-in-outputs
+configfile: pyproject.toml
+plugins: anyio-4.13.0, platformdirs-4.12.2
+collected 12 items
+
+tests\nfr\test_api_session_limit.py ..                                   [ 16%]
+tests\nfr\test_api_start_response_time.py .                              [ 25%]
+tests\nfr\test_busy_response_time.py .                                   [ 33%]
+tests\nfr\test_output_extensibility.py .                                 [ 41%]
+tests\nfr\test_paste_latency.py s                                        [ 50%]
+tests\nfr\test_single_instance_timeout.py ss                             [ 66%]
+tests\nfr\test_transcription_parity.py ss                                [ 83%]
+tests\nfr\test_worker_recovery_time.py s                                 [ 91%]
+tests\nfr\test_worker_stop_timeout.py s                                  [100%]
+
+=========================== short test summary info ===========================
+SKIPPED [1] tests\nfr\test_paste_latency.py:102: Windows の NVIDIA GPU と、tests/nfr/fixtures/ の固めた設定（whisper.env）が要る
+SKIPPED [1] tests\nfr\test_single_instance_timeout.py:82: Windows の NVIDIA GPU と、tests/nfr/fixtures/ の固めた設定（whisper.env）が要る
+SKIPPED [1] tests\nfr\test_single_instance_timeout.py:96: Windows の NVIDIA GPU と、tests/nfr/fixtures/ の固めた設定（whisper.env）が要る
+SKIPPED [1] tests\nfr\test_transcription_parity.py:58: got empty parameter set for (recording)
+SKIPPED [1] tests\nfr\test_transcription_parity.py:80: tests/nfr/fixtures/ の用語集が要る
+SKIPPED [1] tests\nfr\test_worker_recovery_time.py:32: Windows の NVIDIA GPU と、tests/nfr/fixtures/ の固めた設定（whisper.env）が要る
+SKIPPED [1] tests\nfr\test_worker_stop_timeout.py:49: Windows の NVIDIA GPU と、tests/nfr/fixtures/ の固めた設定（whisper.env）が要る
+======================== 5 passed, 7 skipped in 35.84s ========================

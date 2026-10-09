@@ -36,5 +36,5 @@ develop の今の実装では、設定のモデル（`shared/settings.py`）・�
 - [x] ~~ドキュメント修正~~（設計書のほかに更新するページが無い）
 - [x] 単体テスト作成
 - [x] 実装
-- [ ] 結合テスト作成
+- [x] 結合テスト作成
 - [ ] E2E テスト作成（シナリオは変わらない。既定の設定を `Settings()` で比べている既存の `test_change_settings.py` を `SETTINGS_MODEL` に直す）

@@ -272,6 +272,111 @@ scenarios:
     expected:
       - プリセットの URL の画面がアプリのウィンドウとして開いている
       - その画面の入力欄に起こした文字が入り、送信はされていない
+  - name: 正常シナリオ（区間ごとに呼び出し元へ返す）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行。返送先は 127.0.0.1 で待ち受けるテスト用の受け口）
+      - name: 入口
+        description: 連続録音で、区間の文字が通し番号つきで得られた
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant OUT as 出力先（呼び出し元へ返す）
+        participant CB as 返送先のエンドポイント
+
+        loop 区間ごと（通し番号の順）
+          SVC->>OUT: 区間の文字・通し番号・返送先を渡す
+          OUT->>OUT: 返送先が loopback か設定で許可したホストであることを確かめる
+          OUT->>CB: セッションの ID・通し番号・区間の文字を送る
+          CB-->>OUT: 受け取った
+        end
+      ```
+    expected:
+      - 返送先の受け口に、区間ごとにセッションの ID・通し番号・区間の文字が 1 回ずつ届いている
+      - 届いた順が通し番号の順である
+      - クリップボードと貼り付け先が届ける前のままである
+    notes:
+      順の保ち方: 前の区間の返送を終えて（届かなかったときは再送を終えて）から次の区間を送る。
+  - name: 正常シナリオ（連続録音の終わりを返す）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行。返送先は 127.0.0.1 で待ち受けるテスト用の受け口）
+      - name: 入口
+        description: 連続録音が完了か上限で終わり、最後の区間まで届け終えた（区間が 1 つも無い場合を含む）
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant OUT as 出力先（呼び出し元へ返す）
+        participant CB as 返送先のエンドポイント
+        participant TRAY as トレイ
+
+        SVC->>OUT: 終わった理由（完了か上限での打ち切り）と区間の数を渡す
+        OUT->>CB: セッションの ID・終わった理由・区間の数を送る
+        CB-->>OUT: 受け取った
+        SVC->>SVC: 待機中に戻す
+        SVC->>TRAY: 待機中のアイコンにする
+      ```
+    expected:
+      - 返送先の受け口に、最後の区間の返送の後で、セッションの ID・終わった理由・区間の数が 1 回届いている
+      - 区間の数が、届けた区間の通し番号の最後の値と一致する（区間が無ければ 0）
+      - トレイのアイコンが待機中に戻り、次の録音を始められる
+  - name: 異常シナリオ（区間の失敗を呼び出し元へ返す）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行。返送先は 127.0.0.1 で待ち受けるテスト用の受け口）
+      - name: 入口
+        description: 連続録音で、ある区間の文字起こしが失敗した
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant OUT as 出力先（呼び出し元へ返す）
+        participant CB as 返送先のエンドポイント
+
+        SVC->>OUT: 区間の失敗・通し番号・返送先を渡す
+        OUT->>CB: セッションの ID・通し番号・失敗した理由を送る
+        CB-->>OUT: 受け取った
+        Note over SVC: 連続録音は続け、次の区間を 正常シナリオ（区間ごとに呼び出し元へ返す） のとおり届ける
+      ```
+    expected:
+      - 返送先の受け口に、失敗した区間のセッションの ID・通し番号・失敗した理由が 1 回届いている
+      - その後の区間の文字が通し番号の順に届いている
+  - name: 異常シナリオ（区間の返送先に届かない）
+    setup:
+      - name: Mock
+        description: 返送先の受け口を、通し番号 2 の区間の返送にだけ常に 500 を返すようにする
+      - name: 再送の設定
+        description: 返送の再送の間隔をテストで待てる短い値に差し替える
+      - name: 入口
+        description: 連続録音で、通し番号 1・2・3 の区間の文字が得られた
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant OUT as 出力先（呼び出し元へ返す）
+        participant CB as 返送先のエンドポイント
+        participant LOG as ログ
+
+        SVC->>OUT: 通し番号 2 の区間の文字を渡す
+        loop 決めた回数まで
+          OUT->>CB: セッションの ID・通し番号 2・区間の文字を送る
+          CB-->>OUT: 500
+          OUT->>OUT: 決めた間を置く
+        end
+        OUT->>LOG: 返送先に届かなかったこととセッションの ID・通し番号を書く
+        SVC->>OUT: 通し番号 3 の区間の文字を渡す
+        OUT->>CB: セッションの ID・通し番号 3・区間の文字を送る
+        CB-->>OUT: 受け取った
+      ```
+    expected:
+      - 通し番号 2 の区間の返送が、決めた回数だけ送られている
+      - ログに、届かなかったこととセッションの ID・通し番号 2 が書かれている
+      - 通し番号 3 の区間の文字がその後に届いている
+      - 連続録音は止まっていない
+    notes:
+      再送の回数と間: 再送の回数・間・タイムアウトは 1 回の録音の返送と同じ非機能要件の値を使う。
 lead: 起こした文字を、ホットキーから始めた録音は選んだ出力先へ、API から始めた録音は呼び出し元のエンドポイントへ届ける単一ユースケース。
 issue: 14
 primary_actor: 音声入力を使うユーザー

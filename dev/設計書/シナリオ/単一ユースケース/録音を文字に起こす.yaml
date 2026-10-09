@@ -236,6 +236,65 @@ scenarios:
     expected:
       - エクスプローラーでログの置き場所が開いている
       - トレイのアイコンが待機中である
+  - name: 正常シナリオ（区間を区切った順に起こす）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 文字起こしのエンジン
+        description: ローカルの Whisper を使う設定にする
+      - name: 入口
+        description: 連続録音が、前の区間を起こしている間に次の区間を区切る
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant Q as 区間の待ち行列
+        participant GL as 用語集
+        participant WK as 文字起こしワーカー（子プロセス）
+        participant HIST as 履歴
+
+        SVC->>Q: 区切った区間を通し番号つきで積む（録音は続ける）
+        loop 待ち行列に区間がある間
+          Q-->>SVC: 区切った順に 1 つ取り出す
+          SVC->>WK: 区間の録音とローカルの Whisper の設定を送る（文字起こし中の表示は開かない）
+          WK-->>SVC: 区間の文字
+          SVC->>GL: 用語集の誤変換を正しい表記へ置き換える
+          SVC->>HIST: 起こした文字を区間の録音と同じ履歴に書き足す
+          SVC->>SVC: 区間の文字を通し番号つきで 起こした文字を届ける へ渡す
+        end
+      ```
+    expected:
+      - 区間の文字が区切った順に 起こした文字を届ける へ渡されている
+      - 区間を起こしている間もマイクの録音が続いている
+      - 区間の文字の中の用語集の誤変換が、正しい表記に置き換わっている
+      - 履歴に区間ごとの録音と起こした文字がある
+      - 文字起こし中の表示が開いていない
+  - name: 異常シナリオ（区間の文字起こしに失敗）
+    setup:
+      - name: Mock
+        description: 文字起こしを、通し番号 2 の区間だけ失敗を返すように差し替える
+      - name: 入口
+        description: 連続録音が 3 つの区間を区切る
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant WK as 文字起こしワーカー（子プロセス）
+        participant LOG as ログ
+
+        SVC->>WK: 通し番号 2 の区間の録音を送る
+        WK-->>SVC: エラー
+        SVC->>LOG: 失敗した理由と通し番号を書く
+        SVC->>SVC: 区間の失敗を通し番号つきで 起こした文字を届ける へ渡す
+        SVC->>WK: 通し番号 3 の区間の録音を送る（連続録音は続ける）
+      ```
+    expected:
+      - 通し番号 2 の区間の失敗が 起こした文字を届ける へ渡されている
+      - 通し番号 3 の区間がその後に起こされている
+      - 履歴に通し番号 2 の区間の録音が残っている
+      - ログに失敗した理由と通し番号が書かれている
+    notes:
+      同じ扱いになる失敗: やり直したワーカーも落ちたときも同じ扱いになる。
 lead: 確定した録音を設定のエンジンで文字に起こし、用語集で補正するまでの単一ユースケース。
 issue: 14
 primary_actor: 音声入力を使うユーザー

@@ -23,8 +23,9 @@ used_in:
   - src/voice_paste/integrations/vad/adapter.py
 upstream: microsoft/onnxruntime
 verification:
-  state: 未確認
-  detail: 'PoC #80 では faster-whisper の get_vad_model が返すセッションを使った。faster-whisper の assets/silero_vad_v6.onnx を InferenceSession で直接開く形は実装で確かめる'
+  state: 済
+  date: '2026-10-10'
+  detail: '作業 PR #78 の venv（Windows・onnxruntime 1.25.0）で、`importlib.util.find_spec("faster_whisper").submodule_search_locations[0]` に `assets/silero_vad_v6.onnx` をつなぎ、SessionOptions（inter_op 1・intra_op 1・mem arena 無し・log 4）と CPUExecutionProvider で開いた。入力は `input`（seq_len, 576）・`h`・`c`（どちらも 1, 1, 128）、出力は `speech_probs`・`hn`・`cn` で、`run(None, {input: (1, 576), h, c})` で確率 (1,) と次の h・c (1, 1, 128) が返った。開いた後も `faster_whisper`・`ctranslate2` は `sys.modules` に無く、プロセスに CUDA の DLL も無い（[レビューでの確認](https://github.com/shuhei1101/voice-paste/pull/78#discussion_r4235543437)）'
 license: MIT（商用利用可）
 official_url: https://onnxruntime.ai/
 docs_url: https://onnxruntime.ai/docs/api/python/api_summary.html

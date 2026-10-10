@@ -1,7 +1,7 @@
 title: "呼び出し元へ返す"
 entry:
   kind: trigger
-  value: API から始めた録音の文字起こしが終わるか、上限で打ち切る が打ち切ったときに `POST {callback_url}` を送る。連続録音では、区間の文字起こしが終わるたびと、完了か上限の後に全ての区間を送り終えたときに送る
+  value: API から始めた録音の文字起こしが終わるか、上限で打ち切る が打ち切ったときに `POST {callback_url}` を送る。連続録音では、区間の文字起こしが終わるたびと、完了か上限か区切りの失敗で録音が止まった後に全ての区間を送り終えたときに送る
 flows:
   - name: 正常系
     summary: 起こした文字を返送先へ送る
@@ -147,6 +147,28 @@ flows:
       - 返送先に、segment_number=2 の区間の後で result=completed・segment_count=2 が 1 回届いている
       - セッションが終わり、待機中に戻っている
     test: test_normal_when_continuous_completed
+  - name: 正常系（連続録音が区切りの失敗で止まった）
+    summary: 区切りに失敗して録音が止まった連続録音で、それまでの区間を送った後に、失敗したことと理由・区間の数を送る
+    setup:
+      - name: Mock
+        description: 返送先を 127.0.0.1 のテスト用の受け口にし、200 を返す
+      - name: 連続録音の終わり
+        description: 連続録音で通し番号 1・2 の区間を送った後、区切り（話し声の判定）が例外を送出して録音が止まった
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant IF as 呼び出し元へ返す
+        participant CB as 返送先
+
+        IF->>CB: POST session_id・result=transcribed・segment_number=2・text
+        CB-->>IF: 200
+        IF->>CB: POST session_id・result=failed・segment_count=2・error
+        CB-->>IF: 200
+      ```
+    expected:
+      - 返送先に、segment_number=2 の区間の後で result=failed・segment_number=null・segment_count=2 と失敗の理由が 1 回届いている
+      - セッションが終わり、待機中に戻っている（同じ ID への完了は 404）
+    test: test_normal_when_continuous_segmenter_failed
   - name: 異常系（連続録音の区間が返送先に届かない・ログに書いて次の区間へ進む）
     summary: 決めた回数まで再送しても届かない区間はログに書き、次の区間を送る
     setup:
@@ -248,11 +270,11 @@ notes:
     | フィールド | 型 | 説明 |
     | --- | --- | --- |
     | `session_id` | `str`（uuid） | 開始で返したセッションの ID |
-    | `result` | `Literal["transcribed", "failed", "truncated", "completed"]` | `transcribed`: 起こした文字（空を含む）を得た。`failed`: 文字起こしに失敗した。`truncated`: 完了が来ないまま上限で打ち切った。`completed`: 連続録音を完了し、全ての区間を送り終えた（連続録音だけ） |
+    | `result` | `Literal["transcribed", "failed", "truncated", "completed"]` | `transcribed`: 起こした文字（空を含む）を得た。`failed`: 文字起こしに失敗した（連続録音で `segment_number` が `null` のときは、区切りに失敗して録音が止まり、全ての区間を送り終えた）。`truncated`: 完了が来ないまま上限で打ち切った。`completed`: 連続録音を完了し、全ての区間を送り終えた（連続録音だけ） |
     | `text` | `str` | 用語集で補正した文字。`transcribed` で結果が空のときと、`failed`・`truncated`・`completed` のときは空文字 |
     | `error` | `str \| None` | `failed` のときの理由。それ以外は `null` |
-    | `segment_number` | `int \| None` | 連続録音の区間の通し番号（1 から 1 ずつ増える）。連続録音の `transcribed`・`failed` のときだけ入り、それ以外は `null` |
-    | `segment_count` | `int \| None` | 連続録音で区切った区間の数（届かなかった区間も含む。区間が無ければ 0）。連続録音の `completed`・`truncated` のときだけ入り、それ以外は `null` |
+    | `segment_number` | `int \| None` | 連続録音の区間の通し番号（1 から 1 ずつ増える）。連続録音の `transcribed` と区間の `failed` のときだけ入り、それ以外は `null` |
+    | `segment_count` | `int \| None` | 連続録音で区切った区間の数（届かなかった区間も含む。区間が無ければ 0）。連続録音の終わり（`completed`・`truncated`、区切りの失敗で止まったときの `failed`）だけに入り、それ以外は `null` |
 
     `continuous` を指定しない開始では、`segment_number`・`segment_count` は常に `null` で、それ以外の中身は今までと同じ。
 

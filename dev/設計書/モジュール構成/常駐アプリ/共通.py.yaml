@@ -89,7 +89,7 @@ data_models:
       - name: segment_count
         type: int | None
         default: None
-        description: 連続録音で区切った区間の数。連続録音の completed・truncated だけが持つ
+        description: 連続録音で区切った区間の数。連続録音の終わり（completed・truncated、区切りに失敗して止めたときの failed）だけが持つ
     status: implemented
   - name: AppPaths
     title: 置き場所のパス
@@ -1127,6 +1127,21 @@ function_types:
       - name: segment
         type: Segment
         description: 区切った区間
+    returns:
+      type: None
+      description: なし
+    status: planned
+    introduced:
+      pr: 78
+  - name: OnContinuousFailedFn
+    title: 連続録音の失敗の知らせ先
+    container: shared/types.py
+    usecase: 録音する
+    summary: 区切りに失敗して連続録音を止めたことを、理由を添えて受け取る。録音の区切りのスレッドから呼ばれる。録音が呼び、セッションが渡す
+    args:
+      - name: reason
+        type: str
+        description: 失敗の理由
     returns:
       type: None
       description: なし

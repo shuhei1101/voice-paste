@@ -196,8 +196,12 @@ data_models:
     summary: 連続録音の区間の待ち行列へ、全ての区間の後ろに積む終わりの印。終わった理由を持つ
     properties:
       - name: result
-        type: Literal["completed", "truncated"]
-        description: 完了か、上限での打ち切りか
+        type: Literal["completed", "truncated", "failed"]
+        description: 完了・上限での打ち切り・区切りの失敗のどれで終えたか
+      - name: error
+        type: str | None
+        default: None
+        description: failed のときの理由
     status: planned
     introduced:
       pr: 78
@@ -327,6 +331,9 @@ function_types:
       - name: on_segment
         type: OnSegmentFn
         description: 区切った区間の渡し先（録音の区切りのスレッドから呼ばれる）
+      - name: on_failed
+        type: OnContinuousFailedFn
+        description: 区切りに失敗して録音を止めたことの知らせ先（録音の区切りのスレッドから呼ばれる）
     returns:
       type: None
       description: なし
@@ -414,7 +421,7 @@ classes:
              - 残っている場合、SessionBusyError を送出する
                - `[INFO]` 処理中のため開始を断った（入口・処理中のセッションの ID）
           3. 録音を始める
-             - continuous が True の場合、区間の待ち行列を作り、連続録音を始める（連続録音の開始。区間の渡し先は _on_segment）
+             - continuous が True の場合、区間の待ち行列を作り、連続録音を始める（連続録音の開始。区間の渡し先は _on_segment、失敗の知らせ先は _on_continuous_failed）
              - それ以外の場合、録音を始める（録音の開始）
              - MicrophoneUnavailableError の場合、待ち行列を捨て、そのまま送出する（音量は録音の開始が戻している。セッションは作らない）
           4. セッションを作り（continuous を持たせる）、状態を recording にする
@@ -1031,7 +1038,7 @@ classes:
         process: |-
           1. 待ち行列から 1 つずつ取り出す
              - (通し番号, 区間) の場合、区間を処理して（_process_segment）次へ
-             - ContinuousEnd の場合、終わった理由と今の segment_count で終わり（result=completed か truncated）を届けて 3 へ
+             - ContinuousEnd の場合、終わった理由（completed・truncated・failed）・error と今の segment_count で終わりを届けて 3 へ（segment_number は None）
                - 届けられない場合、ログに書き 3 へ
                  - `[ERROR]` 連続録音の終わりを届けられなかった（logger.exception）
              - None の場合（終了で捨てた）、届けずに終える（セッションは close が空にしている）
@@ -1086,6 +1093,35 @@ classes:
              - 届けるときの例外の場合、ログに書いて次の区間へ進む
                - `[ERROR]` 区間を届けられなかった（logger.exception）
           5. どの経路でも必ず（finally）、保存した区間が一時の音声なら消す（一時の音声の削除）
+        status: planned
+        introduced:
+          pr: 78
+      - name: _on_continuous_failed
+        title: 連続録音の失敗の受け取り
+        kind: メソッド
+        scope: internal
+        inherits: OnContinuousFailedFn
+        summary: 区切りに失敗して録音が止まった連続録音を、それまでの区間の後ろに failed の終わりを返して終える（録音の区切りのスレッドから呼ばれる）
+        args:
+          - name: reason
+            type: str
+            required: true
+            description: 失敗の理由
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. ロックを取り、今のセッションが連続録音で recording であることを確かめる
+             - 当たらない場合（完了・上限・終了で既に終えている）、何もしない
+          2. 状態を transcribing にして知らせ、区間の待ち行列へ ContinuousEnd(result=failed, error=理由) を積む（録音は録音が止めている）
+             - `[ERROR]` 連続録音が区切りの失敗で止まった（セッションの ID・理由）
+        unit_tests:
+          - name: test_on_continuous_failed
+            case: 異常
+            summary: それまでの区間の後ろに failed の終わりを届けて待機中に戻る
+            condition: 連続録音のセッションが recording で区間を 2 つ受けた後、start_continuous_recording に渡された on_failed を「VAD の失敗」で呼ぶ。ワーカースレッドの終わりを待つ
+            mock: SessionDeps の全関数
+            expected: deliver に segment_number=1・2 の transcribed の後で result=failed・segment_number=None・segment_count=2・error=「VAD の失敗」が渡り、セッションが空になり、続く start が通る。同じ ID への complete は SessionNotFoundError
         status: planned
         introduced:
           pr: 78

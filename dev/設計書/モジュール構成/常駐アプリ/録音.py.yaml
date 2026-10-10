@@ -382,6 +382,10 @@ classes:
             type: OnSegmentFn
             required: true
             description: 区切った区間を受け取る（区切りのスレッドから呼ばれる）
+          - name: on_failed
+            type: OnContinuousFailedFn
+            required: true
+            description: 区切りに失敗して連続録音を止めたことを受け取る（区切りのスレッドから呼ばれる）
           - name: min_silence_sec
             type: float
             required: true
@@ -393,9 +397,9 @@ classes:
         process: |-
           1. start と同じく、録音中なら RuntimeError を送出し、設定を読んで音量を下げる
           2. 新しい話し声の判定（_create_speech_detector）と on_segment・min_silence_sec で Segmenter を作り、音の待ち行列を空で作る
-          3. 区切りのスレッドを始める（待ち行列から音を取り出して Segmenter.feed へ渡し、終わりの印で Segmenter.flush を呼んで終える）
-             - feed・flush の例外の場合、スレッドを終える（入力は開いたまま。完了か上限で閉じる）
-               - `[ERROR]` 連続録音の区切りに失敗した（理由）
+          3. 区切りのスレッドを始める（待ち行列から音を取り出して Segmenter.feed へ渡し、終わりの印で Segmenter.flush を呼んで終える。捨てる印では flush せずに終える）
+             - feed・flush の例外の場合、そこで連続録音を終える。入力を閉じて音量を戻し（_close。入力は待ち行列へ積めなくなり、音は貯まらない）、待ち行列を空にして、on_failed に理由を渡してスレッドを終える（それまでに渡した区間はそのまま）
+               - `[ERROR]` 連続録音の区切りに失敗したため録音を止めた（logger.exception）
           4. マイクの入力を開く（_on_frames は音を待ち行列へ積む）
              - 例外の場合、区切りのスレッドを flush せずに止め、音量を戻して MicrophoneUnavailableError を送出する
                - `[ERROR]` マイクを開けなかった（理由）
@@ -419,6 +423,12 @@ classes:
             mock: lower_volume・restore_volume・open_input・get_settings・create_speech_detector・on_segment
             expected: MicrophoneUnavailableError が送出され、restore_volume に (0.8, fade_sec) が 1 回渡り、on_segment が呼ばれず、区切りのスレッドが残らない
             exception: マイクの入力を開けない
+          - name: test_start_continuous_when_segmenter_failed
+            case: 異常
+            summary: 区切りに失敗したら入力を閉じて音量を戻し、on_failed に知らせる
+            condition: 話し声の判定が 3 窓目で RuntimeError を送出する。lower_volume が 0.8 を返す。1 秒分の音を流す
+            mock: lower_volume・restore_volume・open_input・get_settings・create_speech_detector・on_segment・on_failed
+            expected: on_failed に理由が 1 回渡り、入力の stop・close が呼ばれ、restore_volume に (0.8, fade_sec) が渡り、その後に入力へ流した音が待ち行列に貯まらず、続く start が通る
       - name: stop_continuous
         title: 連続録音の停止
         kind: メソッド
@@ -429,7 +439,7 @@ classes:
           type: None
           description: なし
         process: |-
-          1. 連続録音していなければ RuntimeError を送出する
+          1. 連続録音していなければ RuntimeError を送出する（区切りに失敗して自ら止めた後を含む）
           2. 入力を閉じて音量を戻す（_close）
           3. 待ち行列へ終わりの印を積み、区切りのスレッドの終わりを待つ（スレッドが残りの音を feed し、flush で最後の区間を渡す）
           4. 待ち行列とスレッドを手放す

@@ -7,7 +7,7 @@ directory: |-
   │   ├── client.py     # WhisperWorkerClient（子プロセスの起動・監視・立て直し・やり直し）
   │   └── worker.py     # 子プロセスの本体（文字起こしワーカーのサブシステム）
   ├── vad/
-  │   └── adapter.py    # load_vad_session・StreamingVad（faster-whisper 同梱の Silero VAD を窓ごとに流す）
+  │   └── adapter.py    # load_vad_session・StreamingVad（faster-whisper 同梱の Silero VAD を onnxruntime で窓ごとに流す）
   ├── volume/
   │   └── adapter.py    # lower_volume・restore_volume（pycaw を == で固定して包む）
   ├── keyboard/
@@ -221,7 +221,7 @@ classes:
     summary: Silero VAD の ONNX のセッションで、512 サンプルの窓ごとに話し声の確率を返す。LSTM の状態と前の窓の末尾を次の窓へ持ち越す
     description: |-
       窓をまたいで状態（h・c・前の 64 サンプル）を持ち越すためクラスにする。連続録音を始めるたびに新しく作り、状態を持ち越さない。
-      faster-whisper の `SileroVADModel.__call__` は呼ぶたびに状態を 0 に戻すため、セッションだけを借りて状態をこちらで持つ（PoC #80 で、一度に渡した `get_speech_timestamps` と同じ区切りになることを確かめた）。
+      セッションへの入出力の形は faster-whisper の SileroVADModel と同じで、状態を呼ぶたびに 0 に戻さずに持ち越す点だけが違う（PoC #80 で、一度に渡した `get_speech_timestamps` と同じ区切りになることを確かめた）。
       録音の区切りのスレッドからだけ呼ぶ（並行で呼ばない）。
     properties:
       - name: _session
@@ -273,7 +273,7 @@ classes:
             mock: onnxruntime.InferenceSession
             expected: どちらの run にも 0 の h・c が渡る
     refs:
-      - dev/設計書/外部ライブラリ/faster-whisper#
+      - dev/設計書/外部ライブラリ/onnxruntime#
     status: planned
     introduced:
       pr: 78
@@ -765,33 +765,35 @@ functions:
     role: アダプタ
     kind: 関数
     scope: public
-    summary: faster-whisper に同梱の Silero VAD（ONNX）を CPU で読み、セッションを返す
-    description: faster-whisper を関数の中で import する（起動の配線で 1 回だけ呼ぶ。テストでは差し替える）。
+    summary: faster-whisper に同梱の Silero VAD（ONNX）を、faster-whisper を import せずに onnxruntime の CPU で開き、セッションを返す
+    description: faster_whisper を import するとパッケージの `__init__` が ctranslate2 と CUDA の DLL を常駐サービスに読み込み、文字起こしワーカーを子プロセスに隔離した構造の決定（`dev/pr/12/方針決め/4_構造の決定.md`）に反する。そのため `importlib.util.find_spec` でパッケージの場所だけを引いてモデルのファイルを開く（`find_spec` は `__init__` を実行しない）。起動の配線で 1 回だけ呼ぶ。
     returns:
       type: onnxruntime.InferenceSession
       description: Silero VAD のセッション
     process: |-
-      1. faster_whisper.vad の get_vad_model を呼び、その session を返す
-         - 例外の場合、StartupError を送出する（理由に元の例外を残す）
+      1. `importlib.util.find_spec("faster_whisper")` の submodule_search_locations からパッケージの場所を引き、VAD_MODEL_RELATIVE_PATH をつなぐ
+      2. onnxruntime の SessionOptions（inter_op_num_threads=1・intra_op_num_threads=1・enable_cpu_mem_arena=False・log_severity_level=4）と CPUExecutionProvider で InferenceSession を開いて返す
+         - パッケージが見つからない・モデルのファイルが無い・開けない場合、StartupError を送出する（理由に元の例外を残す）
            - `[ERROR]` VAD を読めなかった（理由）
     exceptions:
       - name: StartupError
-        condition: VAD のモデルを読めない（faster-whisper・onnxruntime が無い・モデルのファイルが無い）
+        condition: VAD のモデルを開けない（faster-whisper のパッケージが無い・モデルのファイルが無い・onnxruntime が開けない）
     unit_tests:
       - name: test_load_vad_session
         case: 正常
-        summary: 同梱のモデルのセッションを返す
-        condition: get_vad_model の Mock が session を持つものを返す
-        mock: faster_whisper.vad.get_vad_model
-        expected: その session が返る
-      - name: test_load_vad_session_when_failed
+        summary: 同梱のモデルを CPU で開き、faster_whisper を import しない
+        condition: find_spec を一時フォルダ（assets/silero_vad_v6.onnx を置く）を指すものに、InferenceSession を Mock に差し替える
+        mock: importlib.util.find_spec・onnxruntime.InferenceSession
+        expected: InferenceSession にそのファイルのパスと providers=["CPUExecutionProvider"] が渡って返り、sys.modules に faster_whisper が入っていない
+      - name: test_load_vad_session_when_model_missing
         case: 異常
-        summary: 読めなければ起動の失敗にする
-        condition: get_vad_model が RuntimeError を送出する
-        mock: faster_whisper.vad.get_vad_model
-        expected: StartupError が送出される
-        exception: VAD のモデルを読めない
+        summary: モデルのファイルが無ければ起動の失敗にする
+        condition: find_spec が None を返す場合と、フォルダにモデルのファイルが無い場合
+        mock: importlib.util.find_spec
+        expected: どちらも StartupError が送出される
+        exception: VAD のモデルを開けない
     refs:
+      - dev/設計書/外部ライブラリ/onnxruntime#
       - dev/設計書/外部ライブラリ/faster-whisper#
     status: planned
     introduced:
@@ -847,6 +849,17 @@ constants:
     usecase: 録音する
     summary: Silero VAD の LSTM の状態 h・c の形
     value: (1, 1, 128)
+    status: planned
+    introduced:
+      pr: 78
+  - name: VAD_MODEL_RELATIVE_PATH
+    title: VAD のモデルの置き場所
+    container: integrations/vad/adapter.py
+    usecase: 録音する
+    summary: faster-whisper のパッケージからの Silero VAD のモデルの置き場所（faster-whisper 1.2.1 の get_vad_model が開くものと同じ）
+    value: '"assets/silero_vad_v6.onnx"'
+    refs:
+      - dev/設計書/外部ライブラリ/faster-whisper#
     status: planned
     introduced:
       pr: 78

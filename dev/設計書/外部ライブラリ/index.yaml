@@ -44,3 +44,5 @@ items:
     summary: faster-whisper が録音を読むために使う、FFmpeg の Python バインディング
   - page: pywin32.yaml
     summary: テストが Windows のウィンドウ・マウス・キーを操作する
+  - page: onnxruntime.yaml
+    summary: 連続録音の話し声を Silero VAD の ONNX で判定する

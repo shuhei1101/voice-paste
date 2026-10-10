@@ -1,0 +1,30 @@
+title: "onnxruntime"
+kind: "ライブラリ"
+version:
+  current: 1.25.0
+  checked_on: '2026-10-10'
+  source: 普段使いの venv に faster-whisper の依存として入っている版。直接使うため pyproject.toml の依存に足す
+  pinning: 互換リリースで固定（~=1.25）
+catalogs:
+  - name: API
+    version: 1.25.0
+    entries:
+      - name: SessionOptions
+        kind: クラス
+        purpose: 推論のスレッド数を 1 にし、ログを抑える（faster-whisper の SileroVADModel と同じ inter_op_num_threads=1・intra_op_num_threads=1・enable_cpu_mem_arena=False・log_severity_level=4）
+      - name: InferenceSession
+        kind: クラス
+        purpose: Silero VAD の ONNX を CPUExecutionProvider で開き、run(None, {input, h, c}) で窓ごとの話し声の確率と次の状態を求める
+lead: ONNX 形式のモデルを CPU・GPU で推論する実行環境。
+purl: pkg:pypi/onnxruntime
+dependency_scope: 必須
+adoption: 採用
+used_in:
+  - src/voice_paste/integrations/vad/adapter.py
+upstream: microsoft/onnxruntime
+verification:
+  state: 未確認
+  detail: 'PoC #80 では faster-whisper の get_vad_model が返すセッションを使った。faster-whisper の assets/silero_vad_v6.onnx を InferenceSession で直接開く形は実装で確かめる'
+license: MIT（商用利用可）
+official_url: https://onnxruntime.ai/
+docs_url: https://onnxruntime.ai/docs/api/python/api_summary.html

@@ -16,7 +16,7 @@
 /* 見本の窓が見本の列より広いときは、見本の中で横に流す。窓の影が切れないよう余白を取る */
 .specimen__scroll {
   overflow-x: auto;
-  padding: 2px 8px 12px 2px;
+  padding: 2px 16px 12px 2px;
 }
 
 /* プリセットのボタン: 3 列の幅を中身から決め、4 件目からは次の行へ折り返す */
@@ -70,3 +70,9 @@
 
 /* モックで見せる、主の操作のボタンにかざした見た目 */
 .btn--primary.is-hover { background: var(--accent-hover); }
+
+/* 狭い幅: 既定の幅（360px）の窓が見本の右端に付かないよう、窓を縮めて見せる */
+@media (max-width: 480px) {
+  /* 窓を 8 割の大きさで見せる */
+  .rec--fit { zoom: 0.8; }
+}

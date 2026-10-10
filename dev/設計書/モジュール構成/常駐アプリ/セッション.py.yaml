@@ -839,9 +839,10 @@ classes:
           description: なし
         process: |-
           1. ロックを取る
-          2. recording・paused・stopped のセッションが残っていれば、stopped でなければ録音を捨て（録音した音を捨てる。連続録音は区切りのスレッドも止まる）、セッションを空にする
-             - 連続録音なら、区間の待ち行列へ None を積む（ワーカースレッドは残りの区間と終わりを返さずに終える）
+          2. recording・paused・stopped のセッションが残っていれば、セッションを空にする
              - `[WARNING]` 終了のため録音を捨てた（セッションの ID・入口）
+             - 連続録音の場合、区間の待ち行列へ None を積み（ワーカースレッドは残りの区間と終わりを返さずに終える）、ロックを離してから録音を捨てる（録音した音を捨てる。区切りのスレッドの終わりを待つため、ロックを持ったまま待つと _on_segment と待ち合う。離した後に届いた区間は、_on_segment がセッションが空なので捨てる）
+             - それ以外で stopped でなければ、ロックを持ったまま録音を捨てる（録音した音を捨てる）
              - transcribing・delivering の場合、何もしない（ワーカースレッドが終わり次第セッションを空にする）
         unit_tests:
           - name: test_close_when_recording
@@ -858,10 +859,10 @@ classes:
             expected: discard_recording が呼ばれず、例外が出ない
           - name: test_close_when_continuous
             case: 正常
-            summary: 連続録音を捨て、残りの区間と終わりを返さない
-            condition: 連続録音のセッションが recording
+            summary: 連続録音を捨て、残りの区間と終わりを返さない。区切りのスレッドが区間を渡している最中でも戻る
+            condition: 連続録音のセッションが recording。discard_recording は、別のスレッドから start_continuous_recording に渡された on_segment を呼んで、その終わりを待ってから戻る（区切りのスレッドの終わりを待つ Recorder.discard を模す）。close には 5 秒の制限をかける
             mock: SessionDeps の全関数
-            expected: discard_recording が 1 回呼ばれ、deliver に completed・truncated が渡らず、セッションが空になる
+            expected: close が 5 秒以内に戻り、discard_recording が 1 回呼ばれ、save_recording と deliver（completed・truncated を含む）が呼ばれず、セッションが空になる
       - name: _deliver_truncated
         title: 打ち切りの返送
         kind: メソッド

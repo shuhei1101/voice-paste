@@ -1,0 +1,89 @@
+/* ===== PR 82 の画面モック: 録音の画面のボタンのホットキーを切らずに出す（refs/37・44・48 の style.css に重ねる） ===== */
+
+/* ===== 窓の幅 ===== */
+
+/* 録音の画面: 中のボタンが要る幅まで広がる。既定の幅より狭くはしない */
+.rec--fit {
+  width: max-content;
+  min-width: 360px;
+}
+
+/* 見本の窓が見本の列より広いときは、見本の中で横に流す */
+.specimen__scroll {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+/* プリセットのボタン: 3 列の幅を中身から決め、4 件目からは次の行へ折り返す */
+.rec--fit .outs--presets {
+  grid-template-columns: repeat(3, auto);
+}
+
+/* プリセットのボタンの中身を省略しない */
+.rec--fit .outs--ai .btn {
+  min-width: max-content;
+}
+
+/* ===== 案 A: 名前の下にホットキー ===== */
+
+/* ボタン: 名前とホットキーを縦に 2 段で積む */
+.keys-below .btn--hk {
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  min-height: 44px;
+  padding: 4px 12px;
+}
+
+/* 固定の出力先のボタンも 2 段で中央に揃える */
+.keys-below .outs .btn--hk {
+  justify-content: center;
+}
+
+/* ホットキー: 枠を持たず、小さく薄い等幅の文字にする */
+.keys-below .btn--hk kbd {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--text-2);
+}
+
+/* 主の操作のボタンの中のホットキー: 地の上で読める濃さにする */
+.keys-below .btn--primary.btn--hk kbd {
+  color: inherit;
+  opacity: 0.85;
+}
+
+/* 取り消すのボタンの中のホットキー: 名前と同じ警告の色を薄く当てる */
+.keys-below .btn--danger.btn--hk kbd {
+  color: inherit;
+  opacity: 0.8;
+}
+
+/* ===== 案 B: 名前の右にホットキー ===== */
+
+/* プリセットのボタン: 名前とホットキーを横に並べる */
+.keys-right .outs--ai .btn--hk {
+  flex-direction: row;
+  gap: 8px;
+  padding: 4px 12px;
+}
+
+/* ===== 部品のカタログ ===== */
+
+/* 部品の見本: ボタンだけを置く地 */
+.parts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px;
+}
+
+/* モックで見せる、かざした見た目 */
+.btn.is-hover { background: var(--sunken); }
+
+/* モックで見せる、主の操作のボタンにかざした見た目 */
+.btn--primary.is-hover { background: var(--accent-hover); }

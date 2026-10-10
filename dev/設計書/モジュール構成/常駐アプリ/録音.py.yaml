@@ -559,7 +559,7 @@ classes:
           - name: test_feed_cuts_at_silence
             case: 正常
             summary: 話し声の後の無音が区切る長さに達したら区切る
-            condition: 確率を 1 秒分 0.9、続いて 2.5 秒分 0.0 にする。min_silence_sec=2.0。16 kHz の音を 1024 フレームずつ渡す
+            condition: 確率を 0.5 秒分 0.0、1 秒分 0.9、続いて 2.5 秒分 0.0 にする（話し声の前の余白を取れるように先頭に無音を置く）。min_silence_sec=2.0。16 kHz の音を 1024 フレームずつ渡す
             mock: detect_speech・on_segment
             expected: on_segment に reason=silence の区間が 1 つ渡り、その長さが「話し声の前の余白 SEGMENT_PAD_SEC + 1 秒 + 話し声の後の余白 SEGMENT_PAD_SEC」に 1 窓の誤差で合う
           - name: test_feed_keeps_short_pause
@@ -789,3 +789,4 @@ constants:
 test_files:
   - tests/unit/voice_paste/features/recording/test_service.py
   - tests/unit/voice_paste/features/recording/test_client.py
+  - tests/unit/voice_paste/features/recording/test_segmenter.py

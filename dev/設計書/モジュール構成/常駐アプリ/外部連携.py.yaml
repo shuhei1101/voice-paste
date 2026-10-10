@@ -869,6 +869,7 @@ test_files:
   - tests/unit/voice_paste/integrations/keyboard/test_sender.py
   - tests/unit/voice_paste/integrations/browser/test_opener.py
   - tests/unit/voice_paste/integrations/http/test_client.py
+  - tests/unit/voice_paste/integrations/vad/test_adapter.py
 external_test_files:
   - tests/external/voice_paste/integrations/volume/test_adapter.py
   - tests/external/voice_paste/integrations/keyboard/test_sender.py

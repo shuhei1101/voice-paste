@@ -52,6 +52,50 @@ def test_normal_when_recording(stack: Stack) -> None:
     assert len(stack.recordings()) == 1
 
 
+def test_normal_when_continuous(stack: Stack) -> None:
+    """連続録音を完了すると、録音を止め、区間に切り出していない話し声を最後の区間として区切る（正常系）。"""
+    # 準備: 区間を 1 つ区切った後、話し声が続いている間に完了を呼ぶ
+    stack.set_segments(1, tail=0.9)
+    session_id = stack.start_session(continuous=True)
+    stack.feed_segments(1)
+    assert stack.wait_for_received(1)
+    stack.microphone.feed(1.0)
+
+    # 実行
+    response = stack.post(f"/sessions/{session_id}/complete")
+    again = stack.post(f"/sessions/{session_id}/complete")
+
+    # 検証
+    assert response.status_code == 202
+    assert stack.microphone.streams[0].closed
+    assert stack.volume.level == VOLUME_BEFORE
+    assert stack.wait_for_idle()
+    recordings = stack.recordings()
+    assert [path.stem.rsplit("_", 1)[1] for path in recordings] == ["1", "2"]
+    assert stack.engine.audio_paths == recordings
+    assert again.status_code == 404
+
+
+def test_normal_when_continuous_without_speech(stack: Stack) -> None:
+    """話し声が残っていない連続録音を完了すると、最後の区間を作らずに終える（正常系）。"""
+    # 準備: 無音だけを流す
+    stack.set_segments(0)
+    session_id = stack.start_session(continuous=True)
+    stack.microphone.feed(3.0)
+
+    # 実行
+    response = stack.post(f"/sessions/{session_id}/complete")
+
+    # 検証
+    assert response.status_code == 202
+    assert stack.wait_for_idle()
+    assert stack.recordings() == []
+    assert stack.engine.audio_paths == []
+    assert [(p["result"], p["segment_number"], p["segment_count"]) for p in stack.receiver.received] == [
+        ("completed", None, 0)
+    ]
+
+
 @pytest.mark.parametrize("headers", TOKEN_MISMATCH_HEADERS)
 def test_error_when_token_mismatch(
     stack: Stack, caplog: pytest.LogCaptureFixture, headers: dict[str, str]

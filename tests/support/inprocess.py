@@ -14,7 +14,7 @@ import os
 import socket
 import threading
 import time
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -37,7 +37,15 @@ from voice_paste.server.runner import ApiServerRunner
 from voice_paste.server.token import create_token
 from voice_paste.shared.constants import AppPaths, resolve_app_paths
 from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
-from voice_paste.shared.settings import LocalWhisperSettings, Settings, TranscriptionSettings
+from voice_paste.runtime.timer import RepeatingTimer
+from voice_paste.shared.errors import TranscriptionError
+from voice_paste.shared.settings import (
+    ApiSettings,
+    ContinuousSettings,
+    LocalWhisperSettings,
+    Settings,
+    TranscriptionSettings,
+)
 from voice_paste.shared.types import Entry, Recording
 
 SPEECH_TEXT = "これはテストです"
@@ -60,6 +68,12 @@ VOLUME_BEFORE = 0.8
 
 SILENCE_SEC = 2.0
 """何も話さない録音として流す無音の長さ。"""
+
+TRIM_AMPLITUDE = 200
+"""読み上げた音の前後の無音を削るとき、これ以下の振れ幅を無音とみなす（int16）。"""
+
+PLAYED_OUT_TIMEOUT_SEC = 180.0
+"""実時間で流す録音の入力が全ての音を渡し終えるまで待つ上限。"""
 
 PROCESSED_TIMEOUT_SEC = 120.0
 """確定した録音の処理（文字起こし・届ける）が終わるまで待つ上限（ワーカーの立て直しを含む）。"""
@@ -146,6 +160,35 @@ def silence_input(
     return WavInput(samples, realtime=realtime)
 
 
+def _trim_silence(samples: np.ndarray) -> np.ndarray:
+    """音の前後の無音（振れ幅が TRIM_AMPLITUDE 以下）を削る。"""
+    loud = np.flatnonzero(np.abs(samples.astype(np.int32)) > TRIM_AMPLITUDE)
+    assert loud.size > 0
+    return samples[loud[0] : loud[-1] + 1]
+
+
+def speech_sequence_input(
+    tmp_path: Path, texts: Sequence[str], *, gap_sec: float, tail_silence_sec: float = 0.0
+) -> WavInput:
+    """texts を 1 文ずつ読み上げ、前後の無音を削って gap_sec の無音を挟んでつないだ WAV を、実時間で流す録音の入力を作る。
+
+    最後の文の後に tail_silence_sec 秒の無音を足す（流し終えた後も無音を流し続けたいとき）。
+    """
+    # 1. 1 文ずつ読み上げて前後の無音を削り、文と文の間に gap_sec の無音を挟んで並べる
+    gap = np.zeros(round(SAMPLE_RATE * gap_sec), dtype=np.int16)
+    pieces: list[np.ndarray] = []
+    for index, text in enumerate(texts):
+        spoken = _trim_silence(read_wav(synthesize_speech(text, tmp_path / f"sentence{index}.wav")))
+        # 2 文目以降は、前の文との間に無音を挟む
+        if pieces:
+            pieces.append(gap)
+        pieces.append(spoken)
+
+    # 2. 最後の文の後に流し続ける無音を足して 1 本につなぐ
+    pieces.append(np.zeros(round(SAMPLE_RATE * tail_silence_sec), dtype=np.int16))
+    return WavInput(np.concatenate(pieces), realtime=True)
+
+
 # === 差し替えるもの ===
 
 
@@ -155,6 +198,8 @@ class _InputStream:
     def __init__(self) -> None:
         self._stopped = threading.Event()
         self._thread: threading.Thread | None = None
+        self.finished = threading.Event()
+        """全ての音を渡し終えたか、止められて流すのをやめると立つ。"""
 
     def feed_in_realtime(
         self, samples: np.ndarray, on_frames: Callable[[np.ndarray], None]
@@ -163,10 +208,13 @@ class _InputStream:
 
         def _run() -> None:
             """止められるか音が尽きるまで、1 塊を渡しては 1 塊分の時間を待つ。"""
-            for chunk in _chunks(samples):
-                on_frames(chunk)
-                if self._stopped.wait(CHUNK_FRAMES / SAMPLE_RATE):
-                    return
+            try:
+                for chunk in _chunks(samples):
+                    on_frames(chunk)
+                    if self._stopped.wait(CHUNK_FRAMES / SAMPLE_RATE):
+                        return
+            finally:
+                self.finished.set()
 
         self._thread = threading.Thread(target=_run, daemon=True)
         self._thread.start()
@@ -194,17 +242,31 @@ class WavInput:
         self.samples = samples
         self.realtime = realtime
         self.open_count = 0
+        self._last_stream: _InputStream | None = None
 
     def __call__(self, on_frames: Callable[[np.ndarray], None]) -> _InputStream:
         """入力を開く。realtime ならスレッドで実時間で、そうでなければ開く中で全ての音を渡す。"""
         self.open_count += 1
         stream = _InputStream()
+        self._last_stream = stream
         if self.realtime:
             stream.feed_in_realtime(self.samples, on_frames)
         else:
             for chunk in _chunks(self.samples):
                 on_frames(chunk)
+            stream.finished.set()
         return stream
+
+    def wait_played_out(self, timeout_sec: float = PLAYED_OUT_TIMEOUT_SEC) -> bool:
+        """最後に開かれた入力が全ての音を渡し終えるまで待ち、渡し終えたかを返す（開かれていなければ False）。"""
+        if self._last_stream is None:
+            return False
+        return self._last_stream.finished.wait(timeout_sec)
+
+    @property
+    def duration_sec(self) -> float:
+        """流す音の長さ（秒）。"""
+        return len(self.samples) / SAMPLE_RATE
 
 
 def ignore_lower_volume(_ratio: float, _fade_sec: float) -> float:
@@ -261,7 +323,11 @@ class Notifications:
 
     def has(self, event: str) -> bool:
         """知らせの種類 event が控えにあるか。"""
-        return any(kind == event for kind, _detail in self.events)
+        return self.count(event) > 0
+
+    def count(self, event: str) -> int:
+        """知らせの種類 event が控えに何回あるか。"""
+        return sum(kind == event for kind, _detail in self.events)
 
 
 def break_saved_recordings(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -277,20 +343,50 @@ def break_saved_recordings(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(main_module, "save_recording", _save_broken)
 
 
+def fail_transcription_of_segment(monkeypatch: pytest.MonkeyPatch, segment_number: int) -> None:
+    """連続録音の通し番号 segment_number の区間だけ文字起こしに失敗させる（ほかの区間は本物で起こす）。"""
+    original = main_module.transcribe
+
+    def _transcribe(audio_path: Path, on_progress: Any = None, **options: Any) -> str:
+        """区間の録音の名前の末尾が通し番号なので、対象の区間なら失敗させ、ほかは本物で起こす。"""
+        if audio_path.stem.endswith(f"_{segment_number}"):
+            raise TranscriptionError(f"区間 {segment_number} の文字起こしに失敗させた")
+        return original(audio_path, on_progress, **options)
+
+    monkeypatch.setattr(main_module, "transcribe", _transcribe)
+
+
 # === 配線した常駐アプリ ===
 
 
 def make_settings(
-    *, only_paste_and_send: bool = False, vad_threshold: float | None = None
+    *,
+    only_paste_and_send: bool = False,
+    vad_threshold: float | None = None,
+    continuous_session_limit_sec: int | None = None,
 ) -> Settings:
-    """既定の設定から、出力先を貼り付けて送信だけにするか、無音の区間を除く閾値を変えた設定を作る。"""
+    """既定の設定から、出力先を貼り付けて送信だけにするか、無音の区間を除く閾値・連続録音のセッションの上限時間を変えた設定を作る。
+
+    連続録音のセッションの上限時間は、設定で許す下限（60 秒）より短い値も、テストで待てるよう検査を通さずに入れる。
+    """
     outputs = [PasteAndSendSettings()] if only_paste_and_send else SETTINGS_MODEL().outputs
     local_whisper = (
         LocalWhisperSettings()
         if vad_threshold is None
         else LocalWhisperSettings(vad_threshold=vad_threshold)
     )
-    return SETTINGS_MODEL(outputs=outputs, transcription=TranscriptionSettings(local_whisper=local_whisper))
+    api = ApiSettings()
+    if continuous_session_limit_sec is not None:
+        continuous = ContinuousSettings.model_construct(
+            min_silence_sec=ContinuousSettings().min_silence_sec,
+            session_limit_sec=continuous_session_limit_sec,
+        )
+        api = ApiSettings(continuous=continuous)
+    return SETTINGS_MODEL(
+        outputs=outputs,
+        transcription=TranscriptionSettings(local_whisper=local_whisper),
+        api=api,
+    )
 
 
 def free_port() -> int:
@@ -312,7 +408,7 @@ class InProcessApi:
         self,
         path: str,
         *,
-        json_body: dict[str, str] | None = None,
+        json_body: dict[str, object] | None = None,
         headers: dict[str, str] | None = None,
         authorized: bool = True,
     ) -> httpx.Response:
@@ -321,10 +417,16 @@ class InProcessApi:
         merged.update(headers or {})
         return self.http.post(path, json=json_body, headers=merged)
 
-    def start_session(self, callback_url: str) -> tuple[httpx.Response, float]:
-        """API の開始を呼び、応答と、応答までにかかったミリ秒を返す。"""
+    def start_session(
+        self, callback_url: str, *, continuous: bool = False
+    ) -> tuple[httpx.Response, float]:
+        """API の開始（continuous なら連続録音）を呼び、応答と、応答までにかかったミリ秒を返す。"""
         started = time.perf_counter()
-        response = self.post("/sessions", json_body={"callback_url": callback_url})
+        body: dict[str, object] = {"callback_url": callback_url}
+        # 連続録音のときだけ continuous を指定する（指定しない開始は 1 回の録音）
+        if continuous:
+            body["continuous"] = True
+        response = self.post("/sessions", json_body=body)
         return response, (time.perf_counter() - started) * 1000
 
     def close(self) -> None:
@@ -344,6 +446,7 @@ class InProcessApp:
     keys: KeyLog
     notifications: Notifications
     api: InProcessApi | None = None
+    limit_timer: RepeatingTimer | None = None
 
     @property
     def manager(self) -> SessionManager:
@@ -372,8 +475,17 @@ class InProcessApp:
         self.api = InProcessApi(runner=runner, http=http, token=token.get_secret_value())
         return self.api
 
+    def start_limit_timer(self) -> None:
+        """常駐中と同じ間隔で、上限時間を過ぎた API のセッションを打ち切るタイマーを回す。"""
+        self.limit_timer = RepeatingTimer(
+            self.manager.truncate_if_expired, main_module.SESSION_LIMIT_CHECK_INTERVAL_SEC
+        )
+        self.limit_timer.start()
+
     def close(self) -> None:
-        """API を止め、残った録音を捨て、文字起こしのエンジンを止める。"""
+        """上限のタイマーと API を止め、残った録音を捨て、文字起こしのエンジンを止める。"""
+        if self.limit_timer is not None:
+            self.limit_timer.stop()
         if self.api is not None:
             self.api.close()
         self.manager.close()

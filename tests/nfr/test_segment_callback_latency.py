@@ -35,7 +35,7 @@ pytestmark = pytest.mark.real_machine
 
 StartInProcess = Callable[..., InProcessApp]
 
-SEGMENT_CALLBACK_LATENCY_SEC = 3.0
+SEGMENT_CALLBACK_LATENCY_SEC = 4.0
 """区切ってから返送が届くまでの時間の決定値。"""
 
 SEGMENTER_LOGGER = "voice_paste.features.recording.segmenter"

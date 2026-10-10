@@ -10,7 +10,7 @@
 
 /* 見本を並べる格子: 広がった窓が収まるよう、列を広く取る */
 .desk--wide {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 540px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 640px), 1fr));
 }
 
 /* 見本の窓が見本の列より広いときは、見本の中で横に流す。窓の影が切れないよう余白を取る */

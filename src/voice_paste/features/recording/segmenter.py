@@ -28,7 +28,7 @@ SHORT_SILENCE_SEC: float = 0.098
 SEGMENT_PAD_SEC: float = 0.3
 """話し声の前後に残す余白（秒。言葉の頭と尾を切らないため）。"""
 
-MAX_SEGMENT_SEC: float = 30.0
+MAX_SEGMENT_SEC: float = 20.0
 """無音が来ないままこの長さ（秒）に達したら区切る。非機能要件の区間の最大の長さの決定値。"""
 
 INT16_SCALE: float = 32768.0

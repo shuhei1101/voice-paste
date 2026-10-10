@@ -572,9 +572,9 @@ classes:
           - name: test_feed_cuts_at_max_length
             case: 正常
             summary: 無音が来ないまま最大の長さに達したら、直近の短い無音の中で区切る
-            condition: 確率を 0.9 にし、20 秒の位置だけ 0.2 を 0.2 秒挟んで MAX_SEGMENT_SEC を超えて流す
+            condition: 確率を 0.9 にし、12 秒の位置だけ 0.2 を 0.2 秒挟んで MAX_SEGMENT_SEC を超えて流す
             mock: detect_speech・on_segment
-            expected: on_segment に reason=max_length の区間が渡り、その終わりが 20 秒の無音の中にあり、長さが MAX_SEGMENT_SEC 以下
+            expected: on_segment に reason=max_length の区間が渡り、その終わりが 12 秒の無音の中にあり、長さが MAX_SEGMENT_SEC 以下
           - name: test_feed_cuts_at_max_length_without_pause
             case: 正常
             summary: 短い無音も無ければ最大の長さの位置で区切る
@@ -792,7 +792,7 @@ constants:
     container: features/recording/segmenter.py
     usecase: 録音する
     summary: 無音が来ないままこの長さ（秒）に達したら区切る。非機能要件の区間の最大の長さの決定値
-    value: '30.0'
+    value: '20.0'
     refs:
       - dev/設計書/非機能要件/非機能要件#requirements[区間の最大の長さ]
     status: planned

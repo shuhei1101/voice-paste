@@ -10,7 +10,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
 from voice_paste.shared.settings import Preset
-from voice_paste.shared.types import Entry, ProgressFn, Recording, TranscriptionOutcome
+from voice_paste.shared.types import (
+    Entry,
+    OnContinuousFailedFn,
+    OnSegmentFn,
+    ProgressFn,
+    Recording,
+    TranscriptionOutcome,
+)
 
 if TYPE_CHECKING:
     from voice_paste.features.session.service import SessionManager
@@ -20,7 +27,7 @@ class SessionState(StrEnum):
     """セッションがどこまで進んだか。"""
 
     RECORDING = "recording"
-    """マイクで録音している。"""
+    """マイクで録音している（連続録音では、区切った区間を起こして返しながら録音を続けている）。"""
 
     PAUSED = "paused"
     """ホットキー・トレイから始めた録音を一時停止している（再開できる）。"""
@@ -29,7 +36,7 @@ class SessionState(StrEnum):
     """API から始めた録音を止め、完了を待っている。"""
 
     TRANSCRIBING = "transcribing"
-    """確定した録音を文字に起こしている。"""
+    """確定した録音を文字に起こしている（連続録音では、完了か上限の後に残りの区間と終わりを返している）。"""
 
     DELIVERING = "delivering"
     """出力先へ届けている。"""
@@ -63,6 +70,12 @@ class Session:
     recording: Recording | None = None
     """API の録音を止めた後、完了までセッションが持つ貯めた音。"""
 
+    continuous: bool = False
+    """API の連続録音か。"""
+
+    segment_count: int = 0
+    """連続録音でこれまでに区切った区間の数（最後に付けた通し番号）。"""
+
 
 type StartRecordingFn = Callable[[], None]
 """音量を下げてマイクを開く。開けなければ音量を戻して MicrophoneUnavailableError を送出する。"""
@@ -70,8 +83,11 @@ type StartRecordingFn = Callable[[], None]
 type StopRecordingFn = Callable[[], Recording]
 """録音を止めて音量を戻し、貯めた音を返す。"""
 
-type SaveRecordingFn = Callable[[str, Recording], Path]
-"""セッションの ID と確定した録音を受け、履歴（残さない設定なら一時の音声）へ書いたパスを返す。"""
+type SaveRecordingFn = Callable[[str, Recording, int | None], Path]
+"""セッションの ID と確定した録音（連続録音では区間の音）と区間の通し番号（連続録音でなければ None）を受け、履歴（残さない設定なら一時の音声）へ書いたパスを返す。"""
+
+type StartContinuousRecordingFn = Callable[[OnSegmentFn, OnContinuousFailedFn], None]
+"""区間の渡し先と区切りの失敗の知らせ先を受け、音量を下げてマイクを開き、区切った区間を区切った順に渡す。開けなければ音量を戻して MicrophoneUnavailableError を送出する。"""
 
 type TranscribeFn = Callable[[Path, ProgressFn | None], str]
 """録音のファイルと進みを知らせる関数を受け、起こした文字を返す。失敗は TranscriptionError。"""
@@ -145,6 +161,12 @@ class SessionDeps:
     report_progress: ProgressFn
     """ホットキー・トレイの録音で、文字起こしの進みを画面へ知らせる（配線では ui の report_progress）。"""
 
+    start_continuous_recording: StartContinuousRecordingFn
+    """連続録音を始める（音量を下げ、マイクを開き、区切った区間を渡し先へ渡す）。"""
+
+    stop_continuous_recording: Callable[[], None]
+    """連続録音を止めて音量を戻し、区間に切り出していない話し声を最後の区間として渡し終えてから戻る。"""
+
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class SessionApiDeps:
@@ -155,3 +177,14 @@ class SessionApiDeps:
 
     is_callback_allowed: Callable[[str], bool]
     """設定の許可ホストを部分適用した返送先の確かめ（出力先の is_callback_allowed）。"""
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ContinuousEnd:
+    """連続録音の区間の待ち行列へ、全ての区間の後ろに積む終わりの印。"""
+
+    result: Literal["completed", "truncated", "failed"]
+    """完了・上限での打ち切り・区切りの失敗のどれで終えたか。"""
+
+    error: str | None = None
+    """failed のときの理由。"""

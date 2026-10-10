@@ -48,6 +48,7 @@ from voice_paste.features.transcription.service import transcribe
 from voice_paste.integrations.browser.opener import open_app_window
 from voice_paste.integrations.http.client import post_json
 from voice_paste.integrations.keyboard.sender import copy_to_clipboard, send_enter, send_paste
+from voice_paste.integrations.vad.adapter import StreamingVad, load_vad_session
 from voice_paste.integrations.volume.adapter import lower_volume, restore_volume
 from voice_paste.integrations.whisper.client import WhisperWorkerClient
 from voice_paste.runtime.hotkey import HotkeyListener, validate_hotkeys
@@ -334,15 +335,23 @@ def build_handlers(
     except EngineError as error:
         raise StartupError(f"文字起こしのエンジンを準備できませんでした: {error}") from error
 
-    # 3. 録音機に音量とマイクの入力の関数と、SettingsStore から録音の設定を返す関数を渡す
+    # 3. 連続録音の話し声の判定に使う VAD のセッションを 1 回だけ読む（読めなければ立ち上げたエンジンを止めて起動の失敗にする）
+    try:
+        vad_session = load_vad_session()
+    except StartupError:
+        engine.stop()
+        raise
+
+    # 4. 録音機に音量とマイクの入力の関数と、SettingsStore から録音の設定を返す関数と、VAD のセッションを部分適用した話し声の判定を作る関数を渡す
     recorder = Recorder(
         lower_volume=lower_volume,
         restore_volume=restore_volume,
         open_input=open_input,
         get_settings=lambda: store.get().recording,
+        create_speech_detector=partial(StreamingVad, vad_session),
     )
 
-    # 4. 出力先とプリセットの種類を配線し、届けるたびに SettingsStore からオンの出力先の ID を引いて、Session を分けて渡すアダプタを作る
+    # 5. 出力先とプリセットの種類を配線し、届けるたびに SettingsStore からオンの出力先の ID を引いて、Session を分けて渡すアダプタを作る
     output_deps = OutputDeps(
         copy=copy_to_clipboard,
         paste=_make_paste(store.get),
@@ -366,12 +375,12 @@ def build_handlers(
             preset_kinds=wired_preset_kinds,
         )
 
-    # 5. 用語集を文字起こしのたびに読み直す補正を作る（読む場所もそのたびに設定から決める）
+    # 6. 用語集を文字起こしのたびに読み直す補正を作る（読む場所もそのたびに設定から決める）
     def correct(text: str) -> str:
         """今の設定の用語集で補正する。"""
         return _correct(text, glossary_path=_glossary_path(store.get(), paths))
 
-    # 6. SessionDeps を組み、API のセッションの上限時間と共に SessionManager を作る
+    # 7. SessionDeps を組み、API のセッションの上限時間と連続録音の上限時間（起動時の設定。再起動で効く）と共に SessionManager を作る
     deps = SessionDeps(
         start_recording=recorder.start,
         pause_recording=recorder.pause,
@@ -392,10 +401,19 @@ def build_handlers(
         now=_local_now,
         discard_temporary=partial(discard_temporary, paths=paths),
         report_progress=report_progress,
+        start_continuous_recording=partial(
+            recorder.start_continuous,
+            min_silence_sec=settings.api.continuous.min_silence_sec,
+        ),
+        stop_continuous_recording=recorder.stop_continuous,
     )
-    session_manager = SessionManager(deps, timedelta(seconds=API_SESSION_LIMIT_SEC))
+    session_manager = SessionManager(
+        deps,
+        timedelta(seconds=API_SESSION_LIMIT_SEC),
+        timedelta(seconds=settings.api.continuous.session_limit_sec),
+    )
 
-    # 7. SessionManager と、設定の許可ホストを部分適用した返送先の確かめを SessionApiDeps に束ねる
+    # 8. SessionManager と、設定の許可ホストを部分適用した返送先の確かめを SessionApiDeps に束ねる
     session_api = SessionApiDeps(
         session_manager=session_manager,
         is_callback_allowed=partial(
@@ -403,7 +421,7 @@ def build_handlers(
         ),
     )
 
-    # 8. start_local_session に SessionManager と notify を部分適用する
+    # 9. start_local_session に SessionManager と notify を部分適用する
     return Handlers(
         session_manager=session_manager,
         session_api=session_api,

@@ -27,6 +27,10 @@ class SessionBusyError(AppError):
     """ほかのセッションが処理中。"""
 
 
+class SessionConflictError(AppError):
+    """セッションの種類がその操作を受けない（連続録音への停止）。"""
+
+
 class MicrophoneUnavailableError(AppError):
     """マイクを開けない。"""
 

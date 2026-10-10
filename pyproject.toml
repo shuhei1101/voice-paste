@@ -24,6 +24,7 @@ dependencies = [
     "tomlkit~=0.15.1",
     "platformdirs~=4.12",
     "numpy~=2.4",
+    "onnxruntime~=1.25",
     "comtypes~=1.4",
     "pyside6-essentials~=6.11.2",
 ]

@@ -11,6 +11,9 @@ class StartSessionRequest(BaseModel):
     callback_url: AnyHttpUrl
     """返送先。ホストが許されるかは route が出力先の is_callback_allowed で確かめる。"""
 
+    continuous: bool = False
+    """連続録音にするか。true なら完了まで録音を止めず、区間ごとに返送先へ送る。省略時は 1 回の録音。"""
+
 
 class StartSessionResponse(BaseModel):
     """POST /sessions の 202 の body。"""

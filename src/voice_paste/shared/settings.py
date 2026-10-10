@@ -332,8 +332,27 @@ class UiSettings(_SettingsModel):
     )
 
 
+class ContinuousSettings(_SettingsModel):
+    """API で始めた連続録音の、区切りの無音の長さとセッションの上限時間。"""
+
+    min_silence_sec: float = _item(
+        2.0,
+        "連続録音を区切る無音の長さ（0.5〜10 秒）。話し声の後にこの秒数以上無音が続いたところで区間を区切る",
+        reload=RELOAD_RESTART,
+        ge=0.5,
+        le=10,
+    )
+    session_limit_sec: int = _item(
+        14400,
+        "連続録音のセッションの上限時間（60〜86400 秒）。完了が来ないまま開始からこの秒数が経ったところで打ち切る",
+        reload=RELOAD_RESTART,
+        ge=60,
+        le=86400,
+    )
+
+
 class ApiSettings(_SettingsModel):
-    """API の待ち受けのポートと、返送を許すホスト。"""
+    """API の待ち受けのポートと、返送を許すホスト、連続録音の設定。"""
 
     port: int = _item(
         47823,
@@ -346,6 +365,9 @@ class ApiSettings(_SettingsModel):
         default_factory=list,
         description="loopback のほかに返送を許すホスト",
         json_schema_extra={"reload": RELOAD_RESTART},
+    )
+    continuous: ContinuousSettings = _group(
+        ContinuousSettings, "連続録音の区切りと上限時間"
     )
 
 

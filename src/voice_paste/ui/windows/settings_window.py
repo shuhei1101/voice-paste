@@ -125,7 +125,12 @@ FIELD_LAYOUT: dict[str, tuple[str, ...]] = {
         "logging.retention_days",
         "logging.level",
     ),
-    "API": ("api.port", "api.allowed_callback_hosts"),
+    "API": (
+        "api.port",
+        "api.allowed_callback_hosts",
+        "api.continuous.min_silence_sec",
+        "api.continuous.session_limit_sec",
+    ),
 }
 """まとまりごとの欄の並び。型から決まる部品はそのまま使い、型から決まらない部品は下の集合で決める。"""
 

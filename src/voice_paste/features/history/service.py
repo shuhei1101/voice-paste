@@ -27,6 +27,9 @@ AUDIO_SUFFIX: str = ".wav"
 TEXT_SUFFIX: str = ".txt"
 """起こした文字のファイルの拡張子。"""
 
+SEGMENT_SEPARATOR: str = "_"
+"""ファイル名で、session_id と連続録音の区間の通し番号を区切る文字。"""
+
 
 def _is_temporary(audio_path: Path, paths: AppPaths) -> bool:
     """録音が一時の音声（`tmp/` の下）か。"""
@@ -47,24 +50,26 @@ def _parse_date_folder(name: str) -> datetime | None:
 def save_recording(
     session_id: str,
     recording: Recording,
+    segment_number: int | None = None,
     *,
     history_enabled: bool,
     paths: AppPaths,
     now: Callable[[], datetime],
 ) -> Path:
-    """確定した録音を履歴か一時の音声へ WAV で書き、書いたパスを返す。"""
-    # 1. 履歴を残す設定かで書き先を決める
+    """確定した録音を履歴か一時の音声へ WAV で書き、書いたパスを返す。連続録音の区間は通し番号を付けた名前で書く。"""
+    # 1. 履歴を残す設定かで書き先を決める（区間なら、拡張子の前に通し番号を付ける）
+    segment_suffix = "" if segment_number is None else f"{SEGMENT_SEPARATOR}{segment_number}"
     if history_enabled:
         # 残す: 日付のフォルダの下に、日時と session_id の名前で書く
         current = now()
         audio_path = (
             paths.history_dir
             / current.strftime(DATE_FOLDER_FORMAT)
-            / f"{current.strftime(TIMESTAMP_FORMAT)}_{session_id}{AUDIO_SUFFIX}"
+            / f"{current.strftime(TIMESTAMP_FORMAT)}_{session_id}{segment_suffix}{AUDIO_SUFFIX}"
         )
     else:
         # 残さない: 一時の音声のフォルダへ書く
-        audio_path = paths.tmp_dir / f"{session_id}{AUDIO_SUFFIX}"
+        audio_path = paths.tmp_dir / f"{session_id}{segment_suffix}{AUDIO_SUFFIX}"
 
     # 2. 書き先のフォルダを作り、録音をモノラルの 16 bit の WAV で書く
     audio_path.parent.mkdir(parents=True, exist_ok=True)
@@ -128,8 +133,8 @@ def _purge_leftover_temporary(paths: AppPaths, active_session_ids: set[str]) -> 
         return
 
     for audio_path in paths.tmp_dir.glob(f"*{AUDIO_SUFFIX}"):
-        # ファイル名の session_id が処理中のセッションにあれば残す
-        if audio_path.stem in active_session_ids:
+        # ファイル名の session_id（区間なら区切り文字より前）が処理中のセッションにあれば残す
+        if audio_path.stem.split(SEGMENT_SEPARATOR)[0] in active_session_ids:
             continue
         try:
             audio_path.unlink()

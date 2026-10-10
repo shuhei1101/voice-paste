@@ -42,7 +42,7 @@ class Segmenter:
     """届いた音を VAD_WINDOW サンプルの窓に組み直し、窓ごとの話し声の確率から区間を切り出して区切った順に渡す。
 
     窓をまたいで区切りの状態（話し声の始まり・無音の候補・前の区切り）と、前の区切り以降の音を持ち続けるためクラスにする。
-    区切ったら区切りより前の音を手放し、持つ音は区間の最大の長さ程度に収める。
+    区切ったら区切りより前の音を手放し、話し声の途中でない間は余白より前の音を手放して、持つ音は区間の最大の長さ程度に収める。
     区切りのスレッドからだけ呼ぶ（並行で呼ばない）。
     """
 
@@ -88,6 +88,7 @@ class Segmenter:
             self._pending = self._pending[VAD_WINDOW:]
             self._step(self._detect_speech(window))
             self._position += VAD_WINDOW
+            self._discard_idle_audio()
 
     def flush(self) -> None:
         """話し声の途中なら、そこまでを最後の区間として渡す（窓に満たない末尾の音も含める）。"""
@@ -95,6 +96,19 @@ class Segmenter:
             return
         self._emit(self._audio_start + self._audio.size, "flush")
         self._triggered = False
+
+    def _discard_idle_audio(self) -> None:
+        """話し声の途中でない間、次の窓から話し声が始まっても足りるよう余白だけを残して、それより前の音を手放す。"""
+        # 話し声の途中は、区間の始まりから貯め続ける
+        if self._triggered:
+            return
+
+        # 次の区間の始まりは「話し声の始まり − 余白」なので、判定し終えた位置より余白の前の音は要らない
+        keep_from = self._position - self._pad_samples
+        drop = keep_from - self._audio_start
+        if drop > 0:
+            self._audio = self._audio[drop:]
+            self._audio_start = keep_from
 
     def _step(self, probability: float) -> None:
         """1 窓の確率で区切りの状態を進め、区切りが決まれば区間を渡す。"""

@@ -26,6 +26,8 @@ if TYPE_CHECKING:
     from voice_paste.features.recording.segmenter import Segmenter
 
 WINDOW_SAMPLES = 512
+# 話し声の前に残す余白（0.3 秒）のサンプル数
+PAD_SAMPLES = 4800
 # 前の余白（0.3 秒）+ 話し声 1 秒 + 後ろの余白（0.3 秒）のサンプル数
 SILENCE_CUT_SAMPLES = 25600
 # 20 秒と 20.2 秒の位置（サンプル数）
@@ -151,6 +153,53 @@ def test_feed_does_not_drop_samples() -> None:
     assert len(sink.segments) == 3
     assert speech_window_values(phases) <= all_values(sink.segments)
     assert shared_values(sink.segments) == set()
+
+
+def test_feed_trims_audio_when_silence_only() -> None:
+    """話し声を含まない間は、貯める音を余白 + 窓 1〜2 つ分に収める（正常系）。"""
+    # 準備: 常に無音と判定し、60 秒流す
+    phases = [(0.0, windows(60.0))]
+    sink = SegmentSink()
+    segmenter = _make_segmenter(ScriptedDetector(phases), sink, min_silence_sec=2.0)
+
+    # 実行
+    feed_all(segmenter, phases_audio(phases))
+
+    # 検証
+    assert segmenter._audio.size <= PAD_SAMPLES + 2 * WINDOW_SAMPLES
+    assert sink.segments == []
+
+
+def test_feed_trims_audio_when_silent_after_cut() -> None:
+    """無音で区切った後に無音が続いても、貯める音を余白 + 窓 1〜2 つ分に収める（正常系）。"""
+    # 準備: 1 秒の話し声の後に、区切る長さ（2 秒）を超えて 59 秒の無音を流す
+    phases = [(0.9, windows(1.0)), (0.0, windows(59.0))]
+    sink = SegmentSink()
+    segmenter = _make_segmenter(ScriptedDetector(phases), sink, min_silence_sec=2.0)
+
+    # 実行
+    feed_all(segmenter, phases_audio(phases))
+
+    # 検証
+    assert sink.reasons() == ["silence"]
+    assert segmenter._audio.size <= PAD_SAMPLES + 2 * WINDOW_SAMPLES
+
+
+def test_feed_keeps_head_pad_after_trim() -> None:
+    """無音を長く流した後の話し声でも、話し声の前の余白まで区間に含める（正常系）。"""
+    # 準備: 30 秒の無音、1 秒の話し声、2.5 秒の無音（区切る長さは 2 秒）。音は窓ごとに連番の値を入れる
+    phases = [(0.0, windows(30.0)), (0.9, windows(1.0)), (0.0, windows(2.5))]
+    sink = SegmentSink()
+    segmenter = _make_segmenter(ScriptedDetector(phases), sink, min_silence_sec=2.0)
+
+    # 実行
+    feed_all(segmenter, phases_audio(phases, numbered=True))
+
+    # 検証: 前の余白 + 話し声 1 秒 + 後ろの余白に 1 窓の誤差で合い、話し声の窓が全て含まれる
+    assert sink.reasons() == ["silence"]
+    length = sink.segments[0].recording.samples.size
+    assert length == pytest.approx(SILENCE_CUT_SAMPLES, abs=WINDOW_SAMPLES)
+    assert speech_window_values(phases) <= all_values(sink.segments)
 
 
 # === flush ===

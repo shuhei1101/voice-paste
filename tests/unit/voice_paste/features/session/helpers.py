@@ -7,11 +7,12 @@ SessionDeps の関数は呼び出しを覚える Mock に、時刻は進めら�
 from __future__ import annotations
 
 import threading
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -20,12 +21,15 @@ import pytest
 if TYPE_CHECKING:
     from voice_paste.features.session.service import SessionManager
     from voice_paste.features.session.types import Session
-    from voice_paste.shared.types import TranscriptionOutcome
+    from voice_paste.shared.types import Segment, TranscriptionOutcome
 
 SAMPLE_RATE = 16000
 START = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
 LIMIT = timedelta(seconds=600)
+CONTINUOUS_LIMIT = timedelta(seconds=3600)
 CALLBACK_URL = "http://127.0.0.1:9000/result"
+WAIT_SEC = 3.0
+POLL_SEC = 0.01
 
 
 class Clock:
@@ -107,6 +111,8 @@ class Harness:
     deliver: MagicMock
     notify: MagicMock
     discard_temporary: MagicMock
+    start_continuous_recording: MagicMock
+    stop_continuous_recording: MagicMock
 
     def call_names(self) -> list[str]:
         """SessionDeps の関数が呼ばれた順に、関数の名前を返す。"""
@@ -119,6 +125,41 @@ class Harness:
     def delivered(self) -> TranscriptionOutcome:
         """deliver に最後に渡された結果を返す。"""
         return self.deliver.call_args.args[1]
+
+    def on_segment(self) -> Callable[[Segment], None]:
+        """start_continuous_recording に渡された、区間の渡し先を返す。"""
+        return self.start_continuous_recording.call_args.args[0]  # type: ignore[no-any-return]
+
+    def on_failed(self) -> Callable[[str], None]:
+        """start_continuous_recording に渡された、区切りの失敗の知らせ先を返す。"""
+        return self.start_continuous_recording.call_args.args[1]  # type: ignore[no-any-return]
+
+    def outcome_rows(self) -> list[tuple[str, int | None, int | None]]:
+        """deliver に渡された結果を渡された順に、(result, segment_number, segment_count) の並びで返す。"""
+        return [
+            (outcome.result, outcome.segment_number, outcome.segment_count)
+            for outcome in (call.args[1] for call in self.deliver.call_args_list)
+        ]
+
+    def saved_segment_numbers(self) -> list[int | None]:
+        """save_recording に渡された区間の通し番号を、渡された順に返す（位置引数でもキーワード引数でも読む）。"""
+        return [
+            call.args[2] if len(call.args) > 2 else call.kwargs.get("segment_number")
+            for call in self.save_recording.call_args_list
+        ]
+
+    def wait_for(self, condition: Callable[[], bool], timeout: float = WAIT_SEC) -> bool:
+        """condition が真になるのを timeout 秒まで待ち、真になったかを返す。"""
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if condition():
+                return True
+            time.sleep(POLL_SEC)
+        return condition()
+
+    def wait_until_idle(self, timeout: float = WAIT_SEC) -> bool:
+        """セッションが空（待機中）になるのを timeout 秒まで待ち、空になったかを返す。"""
+        return self.wait_for(lambda: self.manager.current() is None, timeout)
 
     def current(self) -> Session:
         """今のセッションを返す（無ければ失敗させる）。"""
@@ -160,6 +201,8 @@ def make_harness(audio_path: Path, *, report_progress: MagicMock | None = None) 
         "deliver": MagicMock(return_value=None),
         "notify": MagicMock(return_value=None),
         "discard_temporary": MagicMock(return_value=None),
+        "start_continuous_recording": MagicMock(return_value=None),
+        "stop_continuous_recording": MagicMock(return_value=None),
     }
     # 呼ばれた順を 1 本の列で見られるよう、1 つの親にぶら下げる
     parent = MagicMock()
@@ -172,9 +215,23 @@ def make_harness(audio_path: Path, *, report_progress: MagicMock | None = None) 
         **mocks,
     )
     return Harness(
-        manager=SessionManager(deps, session_limit=LIMIT),
+        manager=SessionManager(
+            deps, session_limit=LIMIT, continuous_session_limit=CONTINUOUS_LIMIT
+        ),
         clock=clock,
         audio_path=audio_path,
         parent=parent,
         **mocks,
     )
+
+
+def make_segment(reason: Literal["silence", "max_length", "flush"] = "silence") -> Segment:
+    """連続録音の区間（1 秒の無音の音）を作る。"""
+    from voice_paste.shared.types import Recording, Segment
+
+    recording = Recording(
+        samples=np.zeros(SAMPLE_RATE, dtype=np.int16),
+        sample_rate=SAMPLE_RATE,
+        duration_sec=1.0,
+    )
+    return Segment(recording=recording, reason=reason)

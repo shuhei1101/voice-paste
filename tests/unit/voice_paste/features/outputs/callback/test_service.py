@@ -27,6 +27,19 @@ def _outcome() -> object:
     )
 
 
+def _segment_outcome(segment_number: int) -> object:
+    """連続録音の区間（起こした文字「てすと」・通し番号つき）の結果を作る。"""
+    from voice_paste.shared.types import TranscriptionOutcome
+
+    return TranscriptionOutcome(
+        session_id="session-1",
+        result="transcribed",
+        text="てすと",
+        error=None,
+        segment_number=segment_number,
+    )
+
+
 def _result(status: int, retry_after_sec: float | None = None) -> object:
     """返送先の応答（ステータスと Retry-After の秒数）を作る。"""
     from voice_paste.integrations.http.types import PostResult
@@ -39,12 +52,18 @@ def _identity_jitter() -> MagicMock:
     return MagicMock(side_effect=lambda upper: upper)
 
 
-def _deliver(post: MagicMock, sleep: MagicMock, jitter: MagicMock, target: str = TARGET) -> None:
-    """deliver_to_caller を、再送回数 2・間隔の基数 1.0 秒・許可ホスト無しで呼ぶ。"""
+def _deliver(
+    post: MagicMock,
+    sleep: MagicMock,
+    jitter: MagicMock,
+    target: str = TARGET,
+    outcome: object | None = None,
+) -> None:
+    """deliver_to_caller を、再送回数 2・間隔の基数 1.0 秒・許可ホスト無しで呼ぶ（結果を渡さなければ起こした文字の結果）。"""
     from voice_paste.features.outputs.callback.service import deliver_to_caller
 
     deliver_to_caller(
-        _outcome(),
+        _outcome() if outcome is None else outcome,
         target,
         post=post,
         allowed_hosts=frozenset(),
@@ -120,9 +139,40 @@ def test_deliver_to_caller() -> None:
     # 検証
     post.assert_called_once_with(
         TARGET,
-        {"session_id": "session-1", "result": "transcribed", "text": "てすと", "error": None},
+        {
+            "session_id": "session-1",
+            "result": "transcribed",
+            "text": "てすと",
+            "error": None,
+            "segment_number": None,
+            "segment_count": None,
+        },
     )
     sleep.assert_not_called()
+
+
+def test_deliver_to_caller_when_segment() -> None:
+    """連続録音の区間は通し番号を付けて送る（正常系）。"""
+    # 準備
+    post = MagicMock(return_value=_result(200))
+    sleep = MagicMock()
+    jitter = _identity_jitter()
+
+    # 実行
+    _deliver(post, sleep, jitter, outcome=_segment_outcome(3))
+
+    # 検証
+    post.assert_called_once_with(
+        TARGET,
+        {
+            "session_id": "session-1",
+            "result": "transcribed",
+            "text": "てすと",
+            "error": None,
+            "segment_number": 3,
+            "segment_count": None,
+        },
+    )
 
 
 def test_deliver_to_caller_when_retry_succeeds() -> None:

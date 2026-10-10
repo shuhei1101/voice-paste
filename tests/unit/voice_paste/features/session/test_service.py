@@ -1,26 +1,30 @@
-"""features/session/service.py（SessionManager の start・pause・stop・complete・cancel・truncate_if_expired・_run_after_confirm・close）の単体テスト。
+"""features/session/service.py（SessionManager の start・pause・stop・complete・cancel・truncate_if_expired・_run_after_confirm・close・連続録音の _on_segment・_run_segments・_on_continuous_failed）の単体テスト。
 
 SessionDeps の関数は全て Mock に差し替える。
 ワーカースレッドは、起動を覚えるだけの偽物（defer_workers）に差し替えて、テストが動かすタイミングを決める。
+連続録音のワーカースレッドは本物を動かし、区間の返送が届くのを待って確かめる。
 """
 
 from __future__ import annotations
 
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from datetime import timedelta
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
 
 from tests.unit.voice_paste.features.session.helpers import (
     CALLBACK_URL,
+    CONTINUOUS_LIMIT,
     LIMIT,
     START,
     Harness,
     defer_workers,
     make_harness,
+    make_segment,
 )
 from voice_paste.shared.errors import (
     MicrophoneUnavailableError,
@@ -30,13 +34,27 @@ from voice_paste.shared.errors import (
     UnknownOutputError,
 )
 
+if TYPE_CHECKING:
+    from voice_paste.features.session.types import Session
+    from voice_paste.shared.types import TranscriptionOutcome
+
 WAIT_SEC = 2.0
+CLOSE_LIMIT_SEC = 5.0
+EARLY_TRUNCATE = timedelta(seconds=601)
 
 
 @pytest.fixture
 def audio_path(tmp_path: Path) -> Path:
     """save_recording が返す録音のパスを返す。"""
     return tmp_path / "20261001120000_s1.wav"
+
+
+@pytest.fixture
+def continuous_harness(audio_path: Path) -> Iterator[Harness]:
+    """連続録音のワーカースレッドを本物で動かす Harness を返す。テストの後に終了で片付け、ワーカースレッドを残さない。"""
+    h = make_harness(audio_path)
+    yield h
+    h.manager.close()
 
 
 def _confirm_hotkey(h: Harness, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -707,3 +725,276 @@ def test_complete_when_reports_progress(audio_path: Path, monkeypatch: pytest.Mo
     # 検証（transcribe の第 2 引数が進みを知らせる関数）
     assert hotkey_harness.transcribe.call_args.args[1] is report_progress
     assert api_harness.transcribe.call_args.args[1] is None
+
+
+# === start（連続録音） ===
+
+
+def test_start_when_continuous(continuous_harness: Harness) -> None:
+    """連続録音を始める（正常系）。"""
+    # 準備
+    h = continuous_harness
+
+    # 実行
+    session = h.manager.start("api", callback_url=CALLBACK_URL, continuous=True)
+
+    # 検証
+    assert session.continuous is True
+    assert str(session.state) == "recording"
+    h.start_continuous_recording.assert_called_once()
+    h.start_recording.assert_not_called()
+
+
+# === stop（連続録音） ===
+
+
+def test_stop_when_continuous(continuous_harness: Harness) -> None:
+    """連続録音は止めずに断る（異常系）。"""
+    from voice_paste.shared.errors import SessionConflictError
+
+    # 準備
+    h = continuous_harness
+    session = h.manager.start("api", callback_url=CALLBACK_URL, continuous=True)
+
+    # 実行・検証
+    with pytest.raises(SessionConflictError, match="連続録音"):
+        h.manager.stop(session.id)
+    h.stop_recording.assert_not_called()
+    h.stop_continuous_recording.assert_not_called()
+    assert h.state() == "recording"
+
+
+# === complete（連続録音） ===
+
+
+def test_complete_when_continuous(continuous_harness: Harness) -> None:
+    """連続録音を完了すると、最後の区間の後ろに completed を届けて待機中に戻る（正常系）。"""
+    # 準備: 区間を 1 つ受けた後、止めるときにもう 1 つ区間を渡す
+    h = continuous_harness
+    session = h.manager.start("api", callback_url=CALLBACK_URL, continuous=True)
+    h.on_segment()(make_segment())
+    h.stop_continuous_recording.side_effect = lambda: h.on_segment()(make_segment())
+
+    # 実行
+    h.manager.complete(session.id)
+    idle = h.wait_until_idle()
+
+    # 検証
+    assert idle
+    assert h.outcome_rows() == [
+        ("transcribed", 1, None),
+        ("transcribed", 2, None),
+        ("completed", None, 2),
+    ]
+    with pytest.raises(SessionNotFoundError):
+        h.manager.complete(session.id)
+
+
+def test_complete_when_continuous_without_segments(continuous_harness: Harness) -> None:
+    """区間が無いまま完了すると segment_count=0 の completed だけを届ける（正常系）。"""
+    # 準備
+    h = continuous_harness
+    session = h.manager.start("api", callback_url=CALLBACK_URL, continuous=True)
+
+    # 実行
+    h.manager.complete(session.id)
+    idle = h.wait_until_idle()
+
+    # 検証
+    assert idle
+    assert h.outcome_rows() == [("completed", None, 0)]
+    h.save_recording.assert_not_called()
+    h.transcribe.assert_not_called()
+
+
+# === truncate_if_expired（連続録音） ===
+
+
+def test_truncate_if_expired_when_continuous(continuous_harness: Harness) -> None:
+    """連続録音は連続録音の上限時間で打ち切り、残りの区間の後ろに truncated を届ける（正常系）。"""
+    # 準備: 1 回の録音の上限は 600 秒、連続録音の上限は 3600 秒。止めるときに区間を 1 つ渡す
+    h = continuous_harness
+    h.manager.start("api", callback_url=CALLBACK_URL, continuous=True)
+    h.stop_continuous_recording.side_effect = lambda: h.on_segment()(make_segment())
+
+    # 実行
+    h.clock.current = START + EARLY_TRUNCATE
+    early = h.manager.truncate_if_expired()
+    state_after_early = h.state()
+    h.clock.current = START + CONTINUOUS_LIMIT
+    late = h.manager.truncate_if_expired()
+    idle = h.wait_until_idle()
+
+    # 検証
+    assert early is False
+    assert state_after_early == "recording"
+    assert late is True
+    assert idle
+    assert h.outcome_rows() == [("transcribed", 1, None), ("truncated", None, 1)]
+
+
+# === close（連続録音） ===
+
+
+def test_close_when_continuous(continuous_harness: Harness) -> None:
+    """連続録音を捨て、残りの区間と終わりを返さない。区切りのスレッドが区間を渡している最中でも戻る（正常系）。"""
+    # 準備: discard_recording は別のスレッドから on_segment を呼び、その終わりを待つ（区切りのスレッドの終わりを待つ Recorder.discard を模す）
+    h = continuous_harness
+    h.manager.start("api", callback_url=CALLBACK_URL, continuous=True)
+
+    def _discard() -> None:
+        passing = threading.Thread(target=h.on_segment(), args=(make_segment(),), daemon=True)
+        passing.start()
+        passing.join(timeout=WAIT_SEC * 5)
+
+    h.discard_recording.side_effect = _discard
+    closer = threading.Thread(target=h.manager.close, daemon=True)
+
+    # 実行
+    closer.start()
+    closer.join(timeout=CLOSE_LIMIT_SEC)
+
+    # 検証
+    assert not closer.is_alive()
+    h.discard_recording.assert_called_once()
+    h.save_recording.assert_not_called()
+    h.deliver.assert_not_called()
+    assert h.state() is None
+
+
+# === _on_segment ===
+
+
+def test_on_segment_numbers_in_order(continuous_harness: Harness) -> None:
+    """区間に 1 から順に通し番号を付ける（正常系）。"""
+    # 準備
+    h = continuous_harness
+    h.manager.start("api", callback_url=CALLBACK_URL, continuous=True)
+    on_segment = h.on_segment()
+
+    # 実行
+    on_segment(make_segment())
+    on_segment(make_segment())
+    on_segment(make_segment())
+    saved = h.wait_for(lambda: h.save_recording.call_count == 3)
+
+    # 検証
+    assert saved
+    assert h.saved_segment_numbers() == [1, 2, 3]
+    assert h.current().segment_count == 3
+
+
+def test_on_segment_when_not_continuous(continuous_harness: Harness) -> None:
+    """連続録音でなければ区間を捨てる（正常系）。"""
+    # 準備: 終了でセッションを空にした後にする
+    h = continuous_harness
+    h.manager.start("api", callback_url=CALLBACK_URL, continuous=True)
+    on_segment = h.on_segment()
+    h.manager.close()
+
+    # 実行
+    on_segment(make_segment())
+
+    # 検証
+    h.save_recording.assert_not_called()
+    h.deliver.assert_not_called()
+
+
+# === _run_segments ===
+
+
+def test_run_segments_when_transcription_failed(continuous_harness: Harness) -> None:
+    """区間の文字起こしに失敗しても、その区間の failed を返して次の区間へ進む（異常系）。"""
+    # 準備: 区間を 3 つ渡し、2 つ目だけ文字起こしに失敗させる
+    h = continuous_harness
+    h.transcribe.side_effect = ["一つ目", TranscriptionError("二つ目は失敗"), "三つ目"]
+    session = h.manager.start("api", callback_url=CALLBACK_URL, continuous=True)
+    on_segment = h.on_segment()
+    on_segment(make_segment())
+    on_segment(make_segment())
+    on_segment(make_segment())
+
+    # 実行
+    h.manager.complete(session.id)
+    idle = h.wait_until_idle()
+
+    # 検証
+    assert idle
+    assert h.outcome_rows() == [
+        ("transcribed", 1, None),
+        ("failed", 2, None),
+        ("transcribed", 3, None),
+        ("completed", None, 3),
+    ]
+    assert "二つ目は失敗" in h.deliver.call_args_list[1].args[1].error
+
+
+def test_run_segments_when_deliver_blocks(continuous_harness: Harness) -> None:
+    """前の区間の返送を待つ間も区間を受け、順を崩さずに返す（正常系）。"""
+    # 準備: 1 つ目の区間の返送だけが、テストが許すまで止まる
+    h = continuous_harness
+    deliver_entered = threading.Event()
+    release_deliver = threading.Event()
+
+    def _blocking_deliver(_session: Session, outcome: TranscriptionOutcome) -> None:
+        if outcome.segment_number == 1:
+            deliver_entered.set()
+            release_deliver.wait(timeout=WAIT_SEC * 5)
+
+    h.deliver.side_effect = _blocking_deliver
+    h.manager.start("api", callback_url=CALLBACK_URL, continuous=True)
+    on_segment = h.on_segment()
+    on_segment(make_segment())
+    assert deliver_entered.wait(timeout=WAIT_SEC)
+
+    def _pass_two_segments() -> None:
+        on_segment(make_segment())
+        on_segment(make_segment())
+
+    passing = threading.Thread(target=_pass_two_segments, daemon=True)
+
+    # 実行: 返送が止まっている間に区間を 2 つ渡し、その後で返送を許す
+    passing.start()
+    passing.join(timeout=WAIT_SEC)
+    returned = not passing.is_alive()
+    release_deliver.set()
+    delivered = h.wait_for(lambda: h.deliver.call_count == 3)
+
+    # 検証
+    assert returned
+    assert delivered
+    assert h.outcome_rows() == [
+        ("transcribed", 1, None),
+        ("transcribed", 2, None),
+        ("transcribed", 3, None),
+    ]
+
+
+# === _on_continuous_failed ===
+
+
+def test_on_continuous_failed(continuous_harness: Harness) -> None:
+    """それまでの区間の後ろに failed の終わりを届けて待機中に戻る（異常系）。"""
+    # 準備: 区間を 2 つ受けた後にする
+    h = continuous_harness
+    session = h.manager.start("api", callback_url=CALLBACK_URL, continuous=True)
+    on_segment = h.on_segment()
+    on_segment(make_segment())
+    on_segment(make_segment())
+
+    # 実行
+    h.on_failed()("VAD の失敗")
+    idle = h.wait_until_idle()
+
+    # 検証
+    assert idle
+    assert h.outcome_rows() == [
+        ("transcribed", 1, None),
+        ("transcribed", 2, None),
+        ("failed", None, 2),
+    ]
+    assert h.delivered().error == "VAD の失敗"
+    with pytest.raises(SessionNotFoundError):
+        h.manager.complete(session.id)
+    restarted = h.manager.start("hotkey")
+    assert str(restarted.state) == "recording"

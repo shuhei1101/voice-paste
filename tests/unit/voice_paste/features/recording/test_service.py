@@ -1,18 +1,29 @@
-"""features/recording/service.py（Recorder の start・pause・resume・stop・discard・level）の単体テスト。
+"""features/recording/service.py（Recorder の start・pause・resume・stop・discard・level・start_continuous・stop_continuous）の単体テスト。
 
-音量の操作・マイクの入力を開く関数・設定を返す関数は、呼び出しを記録する偽物に差し替える。
+音量の操作・マイクの入力を開く関数・設定を返す関数・話し声の判定を作る関数は、呼び出しを記録する偽物に差し替える。
 マイクの入力は、入力のスレッドの代わりにテストが on_frames へ音を流す。
+連続録音の区切りのスレッドは本物を動かし、区間や失敗の知らせが届くのを待って確かめる。
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
+from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
 
+from tests.unit.voice_paste.features.recording.helpers import (
+    WAIT_SEC,
+    FailureSink,
+    ScriptedDetector,
+    SegmentSink,
+    queued_blocks,
+    segmenter_threads_gone,
+    windows,
+)
 from voice_paste.shared.errors import MicrophoneUnavailableError, VolumeControlError
 from voice_paste.shared.settings import RecordingSettings
 
@@ -23,6 +34,7 @@ SAMPLE_RATE = 16000
 CHUNK_SEC = 0.1
 VOLUME_BEFORE = 0.8
 FADE_SEC = 0.5
+MIN_SILENCE_SEC = 0.5
 
 
 class FakeStream:
@@ -54,6 +66,10 @@ class Harness:
     lower_error: Exception | None = None
     restore_error: Exception | None = None
     open_error: Exception | None = None
+    # 連続録音を始めるたびに呼ばれ、新しい話し声の判定を返す（既定は常に無音と判定する）
+    detector_factory: Callable[[], Callable[[np.ndarray], float]] = field(
+        default=lambda: ScriptedDetector([])
+    )
 
     def feed(self, seconds: float) -> None:
         """今開いている入力へ、無音を seconds 秒分（0.1 秒ずつ）流す。"""
@@ -69,8 +85,10 @@ class Harness:
 
 
 @pytest.fixture
-def harness_factory() -> Callable[..., Harness]:
-    """偽物を注入した Recorder と、その呼び出しの記録を作る関数を返す。"""
+def harness_factory() -> Iterator[Callable[..., Harness]]:
+    """偽物を注入した Recorder と、その呼び出しの記録を作る関数を返す。作った録音機はテストの後に捨てる（区切りのスレッドを残さない）。"""
+    created: list[Harness] = []
+
     def _create(
         *,
         lower_volume: bool = True,
@@ -110,10 +128,15 @@ def harness_factory() -> Callable[..., Harness]:
             restore_volume=fake_restore_volume,
             open_input=fake_open_input,
             get_settings=lambda: settings,
+            create_speech_detector=lambda: harness.detector_factory(),
         )
+        created.append(harness)
         return harness
 
-    return _create
+    yield _create
+
+    for harness in created:
+        harness.recorder.discard()
 
 
 # === start ===
@@ -318,6 +341,26 @@ def test_discard_when_not_recording(harness_factory: Callable[..., Harness]) -> 
     assert harness.restore_calls == []
 
 
+def test_discard_when_continuous(harness_factory: Callable[..., Harness]) -> None:
+    """連続録音を捨てると残りの音を区間にしない（正常系）。"""
+    # 準備
+    harness = harness_factory()
+    harness.detector_factory = lambda: ScriptedDetector([], tail=0.9)
+    sink = SegmentSink()
+    harness.recorder.start_continuous(sink, MagicMock(), min_silence_sec=MIN_SILENCE_SEC)
+    harness.feed(1.0)
+
+    # 実行
+    harness.recorder.discard()
+
+    # 検証
+    assert sink.segments == []
+    assert harness.restore_calls == [(VOLUME_BEFORE, FADE_SEC)]
+    assert segmenter_threads_gone()
+    harness.recorder.start()
+    assert len(harness.streams) == 2
+
+
 # === level ===
 
 
@@ -348,3 +391,121 @@ def test_level_when_paused(harness_factory: Callable[..., Harness]) -> None:
 
     # 検証
     assert level == 0.0
+
+
+# === start_continuous ===
+
+
+def test_start_continuous(harness_factory: Callable[..., Harness]) -> None:
+    """届いた音が区切りへ流れ、区間が on_segment へ渡る（正常系）。"""
+    # 準備: 最初の 1 秒だけ話し声と判定し、その後は無音と判定する
+    harness = harness_factory()
+    harness.detector_factory = lambda: ScriptedDetector([(0.9, windows(1.0))])
+    sink = SegmentSink()
+
+    # 実行
+    harness.recorder.start_continuous(sink, MagicMock(), min_silence_sec=MIN_SILENCE_SEC)
+    harness.feed(2.0)
+    arrived = sink.arrived.wait(timeout=WAIT_SEC)
+
+    # 検証
+    assert arrived
+    assert sink.reasons() == ["silence"]
+    assert harness.lower_calls == [(0.5, FADE_SEC)]
+    assert harness.streams[0].stop_calls == 0
+    assert harness.streams[0].close_calls == 0
+
+
+def test_start_continuous_when_microphone_unavailable(
+    harness_factory: Callable[..., Harness],
+) -> None:
+    """マイクを開けなければ区切りのスレッドを止めて音量を戻す（異常系）。"""
+    # 準備
+    harness = harness_factory()
+    harness.open_error = OSError("マイクが無い")
+    sink = SegmentSink()
+
+    # 実行・検証
+    with pytest.raises(MicrophoneUnavailableError, match="マイク"):
+        harness.recorder.start_continuous(sink, MagicMock(), min_silence_sec=MIN_SILENCE_SEC)
+    assert harness.restore_calls == [(VOLUME_BEFORE, FADE_SEC)]
+    assert sink.segments == []
+    assert segmenter_threads_gone()
+
+
+def test_start_continuous_when_segmenter_failed(harness_factory: Callable[..., Harness]) -> None:
+    """区切りに失敗したら入力を閉じて音量を戻し、on_failed に知らせる（異常系）。"""
+    # 準備: 3 窓目の判定で例外を送出する
+    harness = harness_factory()
+    harness.detector_factory = lambda: ScriptedDetector(
+        [], fail_on_call=3, error=RuntimeError("VAD が落ちた")
+    )
+    failures = FailureSink()
+    harness.recorder.start_continuous(MagicMock(), failures, min_silence_sec=MIN_SILENCE_SEC)
+
+    # 実行
+    harness.feed(1.0)
+    notified = failures.arrived.wait(timeout=WAIT_SEC)
+    harness.feed(1.0)
+
+    # 検証
+    assert notified
+    assert len(failures.reasons) == 1
+    assert "VAD が落ちた" in failures.reasons[0]
+    assert harness.streams[0].stop_calls == 1
+    assert harness.streams[0].close_calls == 1
+    assert harness.restore_calls == [(VOLUME_BEFORE, FADE_SEC)]
+    assert queued_blocks(harness.recorder) == 0
+    harness.recorder.start()
+    assert len(harness.streams) == 2
+
+
+# === stop_continuous ===
+
+
+def test_stop_continuous(harness_factory: Callable[..., Harness]) -> None:
+    """話し声の途中で止めると、残りを最後の区間として渡してから戻る（正常系）。"""
+    # 準備: 常に話し声と判定する
+    harness = harness_factory()
+    harness.detector_factory = lambda: ScriptedDetector([], tail=0.9)
+    sink = SegmentSink()
+    harness.recorder.start_continuous(sink, MagicMock(), min_silence_sec=MIN_SILENCE_SEC)
+    harness.feed(1.0)
+
+    # 実行
+    harness.recorder.stop_continuous()
+
+    # 検証
+    assert sink.reasons() == ["flush"]
+    assert harness.streams[0].stop_calls == 1
+    assert harness.streams[0].close_calls == 1
+    assert harness.restore_calls == [(VOLUME_BEFORE, FADE_SEC)]
+    harness.recorder.start()
+    assert len(harness.streams) == 2
+
+
+def test_stop_continuous_when_no_speech(harness_factory: Callable[..., Harness]) -> None:
+    """話し声が無ければ区間を渡さない（正常系）。"""
+    # 準備: 常に無音と判定する
+    harness = harness_factory()
+    harness.detector_factory = lambda: ScriptedDetector([], tail=0.0)
+    sink = SegmentSink()
+    harness.recorder.start_continuous(sink, MagicMock(), min_silence_sec=MIN_SILENCE_SEC)
+    harness.feed(2.0)
+
+    # 実行
+    harness.recorder.stop_continuous()
+
+    # 検証
+    assert sink.segments == []
+
+
+def test_stop_continuous_when_not_recording(harness_factory: Callable[..., Harness]) -> None:
+    """連続録音していなければ断る（異常系）。"""
+    # 準備: 連続でない録音を始める
+    harness = harness_factory()
+    harness.recorder.start()
+
+    # 実行・検証
+    with pytest.raises(RuntimeError, match="連続録音"):
+        harness.recorder.stop_continuous()

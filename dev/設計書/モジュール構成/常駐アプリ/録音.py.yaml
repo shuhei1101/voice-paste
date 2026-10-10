@@ -555,6 +555,7 @@ classes:
         process: |-
           1. block を 1 次元にして _audio に足し、INT16_SCALE で割った float32 を _pending に足す
           2. _pending が VAD_WINDOW 以上ある間、先頭の 1 窓を取り出して話し声の確率を求め、_step で状態を進めて _position を VAD_WINDOW 進める
+          3. 1 窓進めるたびに _discard_idle_audio で話し声の無い間の音を手放す
         unit_tests:
           - name: test_feed_cuts_at_silence
             case: 正常
@@ -592,6 +593,24 @@ classes:
             condition: 話し声と区切る無音を 3 回繰り返し、音には位置が分かる連番の値を入れる。最後に flush
             mock: detect_speech・on_segment
             expected: 区間が 3 つ渡り、話し声の窓の値が全ていずれかの区間に含まれ、区間どうしが重ならない
+          - name: test_feed_trims_audio_when_silence_only
+            case: 正常
+            summary: 話し声を含まない間は、貯める音を余白 + 窓 1〜2 つ分に収める
+            condition: 確率を常に 0.0 にして 60 秒流す。min_silence_sec=2.0
+            mock: detect_speech・on_segment
+            expected: _audio の長さが SEGMENT_PAD_SEC + 窓 2 つ分以下で、on_segment が呼ばれない
+          - name: test_feed_trims_audio_when_silent_after_cut
+            case: 正常
+            summary: 無音で区切った後に無音が続いても、貯める音を余白 + 窓 1〜2 つ分に収める
+            condition: 確率を 1 秒分 0.9、続いて 59 秒分 0.0 にする。min_silence_sec=2.0
+            mock: detect_speech・on_segment
+            expected: on_segment に reason=silence の区間が 1 つ渡り、流し終えた後の _audio の長さが SEGMENT_PAD_SEC + 窓 2 つ分以下
+          - name: test_feed_keeps_head_pad_after_trim
+            case: 正常
+            summary: 無音を長く流して音を手放した後の話し声でも、話し声の前の余白まで区間に含める
+            condition: 確率を 30 秒分 0.0、1 秒分 0.9、続いて 2.5 秒分 0.0 にする。min_silence_sec=2.0。音には位置が分かる連番の値を入れる
+            mock: detect_speech・on_segment
+            expected: on_segment に reason=silence の区間が 1 つ渡り、長さが「SEGMENT_PAD_SEC + 1 秒 + SEGMENT_PAD_SEC」に 1 窓の誤差で合い、話し声の窓の値が全て区間に含まれる
       - name: flush
         title: 残りを区切る
         kind: メソッド
@@ -623,6 +642,17 @@ classes:
             condition: 区切った直後に flush
             mock: detect_speech・on_segment
             expected: flush では on_segment が呼ばれない
+      - name: _discard_idle_audio
+        title: 話し声の無い間の音を手放す
+        kind: メソッド
+        scope: internal
+        summary: 話し声の途中でない間、判定し終えた位置 − SEGMENT_PAD_SEC より前の音を手放す
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 話し声の途中なら何もしない（区間の始まりから貯め続ける）
+          2. _position − SEGMENT_PAD_SEC より前の音を _audio から捨て、_audio_start をその位置へ進める（次の区間の始まりは「話し声の始まり − SEGMENT_PAD_SEC」なので、それより前の音は要らない）
       - name: _step
         title: 状態を進める
         kind: メソッド

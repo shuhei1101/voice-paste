@@ -958,26 +958,28 @@ classes:
         title: 連続録音の終わり方
         kind: メソッド
         scope: internal
-        summary: 連続録音を transcribing にしてからロックを離して録音を止め、最後の区間の後ろに終わりの印を積む。ロックを持って呼び、戻るときにはロックを離している
+        summary: 連続録音を transcribing にしてからロックを離して録音を止め、最後の区間の後ろに終わりの印を積む。ロックを持たずに呼び、終えられたかを返す
         description: 録音を止めると、区切りのスレッドが最後の区間を _on_segment へ渡す（_on_segment はロックを取る）ため、状態を書き換えた後にロックを離してから止める。先に transcribing にするので、同じセッションへの 2 度目の完了・打ち切りは通らない。
         args:
-          - name: session
-            type: Session
+          - name: session_id
+            type: str
             required: true
-            description: 連続録音のセッション（recording）
+            description: 終える連続録音のセッションの ID
           - name: result
             type: Literal["completed", "truncated"]
             required: true
             description: 終わった理由
         returns:
-          type: None
-          description: なし
+          type: bool
+          description: 終えられたか（既に終えていれば False。呼び元は完了なら SessionNotFoundError、打ち切りなら何もしない）
         process: |-
-          1. 状態を transcribing にして知らせ、区間の待ち行列を控えてロックを離す
-          2. 連続録音を止める（stop_continuous_recording。戻るまでに最後の区間が _on_segment へ渡る）
-             - 例外の場合、そのまま 3 へ進む（そこまでに区切った区間と終わりは返す）
+          1. ロックを取り、今のセッションが session_id の連続録音で recording であることを確かめる
+             - 当たらない場合（既に終えている）、False を返す
+          2. 状態を transcribing にして知らせ、区間の待ち行列を控えてロックを離す
+          3. 連続録音を止める（stop_continuous_recording。戻るまでに最後の区間が _on_segment へ渡る）
+             - 例外の場合、そのまま 4 へ進む（そこまでに区切った区間と終わりは返す）
                - `[ERROR]` 連続録音を止められなかった（logger.exception）
-          3. 待ち行列へ ContinuousEnd(result) を積む
+          4. 待ち行列へ ContinuousEnd(result) を積み、True を返す
              - `[INFO]` 連続録音を終えた（セッションの ID・終わった理由）
         status: planned
         introduced:
@@ -1025,10 +1027,10 @@ classes:
         summary: ワーカースレッドで、区間の待ち行列を区切った順に 1 つずつ処理し、終わりの印で終わりを返して待機中に戻す
         description: 前の区間の返送（再送を含む）を終えてから次の区間を処理するので、返送は通し番号の順に届き、終わりは全ての区間の後ろになる。
         args:
-          - name: session_id
-            type: str
+          - name: session
+            type: Session
             required: true
-            description: 連続録音のセッションの ID
+            description: 始めたときの連続録音のセッション（返送に使う。close で空になった後も処理中の区間を届けられる）
           - name: segments
             type: queue.Queue[tuple[int, Segment] | ContinuousEnd | None]
             required: true
@@ -1038,8 +1040,8 @@ classes:
           description: なし
         process: |-
           1. 待ち行列から 1 つずつ取り出す
-             - (通し番号, 区間) の場合、区間を処理して（_process_segment）次へ
-             - ContinuousEnd の場合、終わった理由（completed・truncated・failed）・error と今の segment_count で終わりを届けて 3 へ（segment_number は None）
+             - (通し番号, 区間) の場合、区間を処理して（_process_segment）、処理した最後の通し番号を控えて次へ
+             - ContinuousEnd の場合、終わった理由（completed・truncated・failed）・error と、処理した最後の通し番号（区間が無ければ 0）を segment_count にして終わりを届けて 3 へ（segment_number は None）
                - 届けられない場合、ログに書き 3 へ
                  - `[ERROR]` 連続録音の終わりを届けられなかった（logger.exception）
              - None の場合（終了で捨てた）、届けずに終える（セッションは close が空にしている）

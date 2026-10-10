@@ -165,7 +165,7 @@ classes:
         type: queue.Queue[numpy.ndarray | None] | None
         access: 内部 (_)
         default: None
-        description: 連続録音で、入力のスレッドから区切りのスレッドへ渡す音の待ち行列（None は終わりの印）。連続録音でなければ None
+        description: 連続録音で、入力のスレッドから区切りのスレッドへ渡す音の待ち行列（None は残りを区切って終える印、固定の空の配列 _DISCARD_MARK は残りを区間にせずに終える印）。連続録音でなければ None
       - name: _segment_thread
         type: threading.Thread | None
         access: 内部 (_)

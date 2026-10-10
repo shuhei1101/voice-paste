@@ -1062,6 +1062,12 @@ classes:
             condition: deliver が 1 つ目の区間だけ threading.Event を待って止まる。その間に区間を 2 つ渡してから Event を立てる
             mock: SessionDeps の全関数
             expected: on_segment が待たずに戻り、deliver に segment_number=1・2・3 がこの順に渡る
+          - name: test_run_segments_when_deliver_raised
+            case: 異常
+            summary: 区間を届けるときに例外が出ても、ログに書いて次の区間へ進む
+            condition: deliver が segment_number=2 の区間だけ RuntimeError を送出する。区間を 3 つ渡す
+            mock: SessionDeps の全関数
+            expected: deliver に segment_number=3 の区間が渡り、`[ERROR]` 区間を届けられなかったことがログに書かれ、連続録音は録音中のまま
         status: planned
         introduced:
           pr: 78

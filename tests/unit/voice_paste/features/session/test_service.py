@@ -7,6 +7,7 @@ SessionDeps の関数は全て Mock に差し替える。
 
 from __future__ import annotations
 
+import logging
 import threading
 from collections.abc import Callable, Iterator
 from datetime import timedelta
@@ -968,6 +969,43 @@ def test_run_segments_when_deliver_blocks(continuous_harness: Harness) -> None:
         ("transcribed", 2, None),
         ("transcribed", 3, None),
     ]
+
+
+def test_run_segments_when_deliver_raised(
+    continuous_harness: Harness, caplog: pytest.LogCaptureFixture
+) -> None:
+    """区間を届けるときに例外が出ても、ログに書いて次の区間へ進む（異常系）。"""
+    # 準備: 2 つ目の区間の返送だけが RuntimeError を送出する
+    h = continuous_harness
+
+    def _raising_deliver(_session: Session, outcome: TranscriptionOutcome) -> None:
+        if outcome.segment_number == 2:
+            raise RuntimeError("返送先に届かない")
+
+    h.deliver.side_effect = _raising_deliver
+    caplog.set_level(logging.ERROR)
+    h.manager.start("api", callback_url=CALLBACK_URL, continuous=True)
+    on_segment = h.on_segment()
+
+    # 実行: 区間を 3 つ渡す
+    on_segment(make_segment())
+    on_segment(make_segment())
+    on_segment(make_segment())
+    delivered = h.wait_for(lambda: h.deliver.call_count == 3)
+
+    # 検証
+    assert delivered
+    assert h.outcome_rows() == [
+        ("transcribed", 1, None),
+        ("transcribed", 2, None),
+        ("transcribed", 3, None),
+    ]
+    error_messages = [
+        record.getMessage() for record in caplog.records if record.levelno == logging.ERROR
+    ]
+    assert len(error_messages) == 1
+    assert "区間を届けられなかった" in error_messages[0]
+    assert h.state() == "recording"
 
 
 # === _on_continuous_failed ===

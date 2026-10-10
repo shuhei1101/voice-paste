@@ -8,10 +8,15 @@
   min-width: 360px;
 }
 
-/* 見本の窓が見本の列より広いときは、見本の中で横に流す */
+/* 見本を並べる格子: 広がった窓が収まるよう、列を広く取る */
+.desk--wide {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 540px), 1fr));
+}
+
+/* 見本の窓が見本の列より広いときは、見本の中で横に流す。窓の影が切れないよう余白を取る */
 .specimen__scroll {
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding: 2px 8px 12px 2px;
 }
 
 /* プリセットのボタン: 3 列の幅を中身から決め、4 件目からは次の行へ折り返す */
@@ -50,16 +55,10 @@
   color: var(--text-2);
 }
 
-/* 主の操作のボタンの中のホットキー: 地の上で読める濃さにする */
-.keys-below .btn--primary.btn--hk kbd {
-  color: inherit;
-  opacity: 0.85;
-}
-
-/* 取り消すのボタンの中のホットキー: 名前と同じ警告の色を薄く当てる */
+/* 主の操作・取り消すのボタンの中のホットキー: 名前と同じ色にし、地の上で読めるようにする */
+.keys-below .btn--primary.btn--hk kbd,
 .keys-below .btn--danger.btn--hk kbd {
   color: inherit;
-  opacity: 0.8;
 }
 
 /* ===== 案 B: 名前の右にホットキー ===== */

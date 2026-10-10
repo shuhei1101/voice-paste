@@ -26,10 +26,10 @@ from scipy.io import wavfile
 from scipy.signal import resample_poly
 
 import voice_paste.main as main_module
-from tests.integration.helpers import wait_until
+from tests.integration.helpers import CallbackReceiver, wait_until
 from tests.support.processes import ProcessInfo, kill_tree, processes_with
 from voice_paste.features.recording.client import SAMPLE_RATE
-from voice_paste.features.session import SessionManager
+from voice_paste.features.session import SessionApiDeps, SessionManager
 from voice_paste.integrations.whisper.client import WORKER_MODULE
 from voice_paste.main import API_START_TIMEOUT_SEC, SETTINGS_MODEL, Handlers
 from voice_paste.server.app import build_fastapi
@@ -71,6 +71,35 @@ SILENCE_SEC = 2.0
 
 TRIM_AMPLITUDE = 200
 """読み上げた音の前後の無音を削るとき、これ以下の振れ幅を無音とみなす（int16）。"""
+
+LONG_READING: tuple[tuple[str, str], ...] = (
+    ("今日はいい天気です", "天気"),
+    ("朝ごはんにパンを食べました", "パン"),
+    ("来週の月曜日に会議があります", "会議"),
+    ("犬が公園を走っています", "公園"),
+    ("図書館で本を借りました", "図書館"),
+    ("新しいパソコンを買いました", "パソコン"),
+    ("電車が少し遅れています", "電車"),
+    ("冷たいお茶を飲みました", "お茶"),
+    ("電話番号を教えてください", "電話"),
+    ("週末は家でゆっくり過ごします", "週末"),
+    ("財布を机の上に置きました", "財布"),
+    ("寒いので上着を着ます", "上着"),
+    ("駅前の店でコーヒーを飲みます", "コーヒー"),
+    ("写真を一枚撮ってください", "写真"),
+    ("荷物を玄関に運びました", "荷物"),
+    ("ありがとうございました", "ありがとう"),
+)
+"""話し続けて読み上げる文と、それぞれを起こした文字に含まれるはずの言葉。つなぐと話し声だけで約 28 秒になる。"""
+
+READING_REPEAT_SENTENCES = len(LONG_READING) // 2
+"""話し続ける読み上げを 45 秒以上にするために、LONG_READING の前半をもう 1 回つなぐときの文の数。"""
+
+CONTINUOUS_END_TIMEOUT_SEC = 150.0
+"""連続録音の終わりが返送先へ届くまで待つ上限（区間の文字起こしと上限での打ち切りを含む）。"""
+
+CONTINUOUS_END_QUIET_SEC = 1.5
+"""連続録音の終わりが届いた後、続きが届かないことを確かめるために待つ秒数。"""
 
 PLAYED_OUT_TIMEOUT_SEC = 180.0
 """実時間で流す録音の入力が全ての音を渡し終えるまで待つ上限。"""
@@ -167,26 +196,40 @@ def _trim_silence(samples: np.ndarray) -> np.ndarray:
     return samples[loud[0] : loud[-1] + 1]
 
 
-def speech_sequence_input(
-    tmp_path: Path, texts: Sequence[str], *, gap_sec: float, tail_silence_sec: float = 0.0
-) -> WavInput:
-    """texts を 1 文ずつ読み上げ、前後の無音を削って gap_sec の無音を挟んでつないだ WAV を、実時間で流す録音の入力を作る。
+def long_reading_texts() -> list[str]:
+    """話し続けて読み上げる文を、文の間の無音を含めて 45 秒以上になるよう、LONG_READING の文と、その前半をもう 1 回つないで返す。"""
+    texts = [sentence for sentence, _word in LONG_READING]
+    return texts + texts[:READING_REPEAT_SENTENCES]
 
-    最後の文の後に tail_silence_sec 秒の無音を足す（流し終えた後も無音を流し続けたいとき）。
+
+def speech_timeline_input(
+    tmp_path: Path, items: Sequence[tuple[str, float]], *, tail_silence_sec: float = 0.0
+) -> WavInput:
+    """(文, その文の前に挟む無音の秒数) の並びを 1 文ずつ読み上げ、前後の無音を削ってつないだ WAV を、実時間で流す録音の入力を作る。
+
+    最初の文の前には無音を挟まない。最後の文の後に tail_silence_sec 秒の無音を足す（流し終えた後も無音を流し続けたいとき）。
     """
-    # 1. 1 文ずつ読み上げて前後の無音を削り、文と文の間に gap_sec の無音を挟んで並べる
-    gap = np.zeros(round(SAMPLE_RATE * gap_sec), dtype=np.int16)
+    # 1. 1 文ずつ読み上げて前後の無音を削り、文の前に決めた長さの無音を挟んで並べる
     pieces: list[np.ndarray] = []
-    for index, text in enumerate(texts):
+    for index, (text, gap_before_sec) in enumerate(items):
         spoken = _trim_silence(read_wav(synthesize_speech(text, tmp_path / f"sentence{index}.wav")))
         # 2 文目以降は、前の文との間に無音を挟む
         if pieces:
-            pieces.append(gap)
+            pieces.append(np.zeros(round(SAMPLE_RATE * gap_before_sec), dtype=np.int16))
         pieces.append(spoken)
 
     # 2. 最後の文の後に流し続ける無音を足して 1 本につなぐ
     pieces.append(np.zeros(round(SAMPLE_RATE * tail_silence_sec), dtype=np.int16))
     return WavInput(np.concatenate(pieces), realtime=True)
+
+
+def speech_sequence_input(
+    tmp_path: Path, texts: Sequence[str], *, gap_sec: float, tail_silence_sec: float = 0.0
+) -> WavInput:
+    """texts を 1 文ずつ読み上げ、前後の無音を削って gap_sec の無音を挟んでつないだ WAV を、実時間で流す録音の入力を作る。"""
+    return speech_timeline_input(
+        tmp_path, [(text, gap_sec) for text in texts], tail_silence_sec=tail_silence_sec
+    )
 
 
 # === 差し替えるもの ===
@@ -435,6 +478,40 @@ class InProcessApi:
         self.runner.stop()
 
 
+def serve_api(session_api: SessionApiDeps) -> InProcessApi:
+    """build_fastapi で組み立てた app を 127.0.0.1 の空きポートで待ち受けさせ、叩くクライアントを返す。"""
+    token = create_token()
+    port = free_port()
+    runner = ApiServerRunner(build_fastapi(session_api, token, port), port)
+    assert runner.start(API_START_TIMEOUT_SEC)
+    http = httpx.Client(base_url=f"http://{LOOPBACK}:{port}", timeout=REQUEST_TIMEOUT_SEC)
+    return InProcessApi(runner=runner, http=http, token=token.get_secret_value())
+
+
+def start_continuous(api: InProcessApi, receiver: CallbackReceiver) -> str:
+    """連続録音を指定して API の開始を呼び、202 を確かめてセッションの ID を返す。"""
+    response, _elapsed_ms = api.start_session(receiver.url, continuous=True)
+    assert response.status_code == 202
+    return str(response.json()["session_id"])
+
+
+def complete_session(api: InProcessApi, session_id: str) -> None:
+    """API の完了を呼び、202 を確かめる。"""
+    assert api.post(f"/sessions/{session_id}/complete").status_code == 202
+
+
+def wait_for_continuous_end(
+    receiver: CallbackReceiver, *, offset: int = 0, timeout_sec: float = CONTINUOUS_END_TIMEOUT_SEC
+) -> list[dict[str, Any]]:
+    """連続録音の終わり（通し番号の無い返送）が届くのを待ち、続きが届かないことを確かめて、offset 件目以降に届いた返送を返す。"""
+    assert wait_until(
+        lambda: any(payload["segment_number"] is None for payload in receiver.received[offset:]),
+        timeout_sec,
+    )
+    time.sleep(CONTINUOUS_END_QUIET_SEC)
+    return list(receiver.received[offset:])
+
+
 @dataclass
 class InProcessApp:
     """pytest のプロセスの中で配線した常駐アプリと、差し替えたものの控え。"""
@@ -467,12 +544,7 @@ class InProcessApp:
 
     def start_api(self) -> InProcessApi:
         """build_fastapi で組み立てた app を 127.0.0.1 の空きポートで待ち受けさせ、叩くクライアントを返す。"""
-        token = create_token()
-        port = free_port()
-        runner = ApiServerRunner(build_fastapi(self.handlers.session_api, token, port), port)
-        assert runner.start(API_START_TIMEOUT_SEC)
-        http = httpx.Client(base_url=f"http://{LOOPBACK}:{port}", timeout=REQUEST_TIMEOUT_SEC)
-        self.api = InProcessApi(runner=runner, http=http, token=token.get_secret_value())
+        self.api = serve_api(self.handlers.session_api)
         return self.api
 
     def start_limit_timer(self) -> None:

@@ -10,7 +10,6 @@
 from __future__ import annotations
 
 import logging
-import time
 from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
@@ -18,16 +17,20 @@ from typing import Any
 import pyperclip
 import pytest
 
-from tests.integration.helpers import CallbackReceiver, wait_until
+from tests.integration.helpers import CallbackReceiver
 from tests.support.inprocess import (
+    LONG_READING,
     VOLUME_BEFORE,
     InProcessApi,
     InProcessApp,
+    complete_session,
     fail_transcription_of_segment,
     make_settings,
     read_wav,
     silence_input,
     speech_sequence_input,
+    start_continuous,
+    wait_for_continuous_end,
 )
 from voice_paste.features.outputs.callback import service as callback_service
 from voice_paste.features.outputs.callback.service import CALLBACK_RETRY_COUNT
@@ -40,12 +43,6 @@ pytestmark = pytest.mark.real_machine
 
 StartInProcess = Callable[..., InProcessApp]
 Payload = dict[str, Any]
-
-RECEIVE_TIMEOUT_SEC = 150.0
-"""連続録音の終わりが返送先へ届くまで待つ上限（区間の文字起こしと上限での打ち切りを含む）。"""
-
-QUIET_SEC = 1.5
-"""連続録音の終わりが届いた後、続きが届かないことを確かめるために待つ秒数。"""
 
 SEGMENT_GAP_SEC = 3.0
 """文と文の間に挟む無音の長さ。区切る無音の長さの既定（2 秒）より長くして、文ごとに区切らせる。"""
@@ -78,27 +75,6 @@ THREE_SENTENCES: tuple[tuple[str, str], ...] = (
 )
 """読み上げる 3 文と、それぞれを起こした文字に含まれるはずの言葉。"""
 
-LONG_SENTENCES: tuple[tuple[str, str], ...] = (
-    ("今日はいい天気です", "天気"),
-    ("朝ごはんにパンを食べました", "パン"),
-    ("来週の月曜日に会議があります", "会議"),
-    ("犬が公園を走っています", "公園"),
-    ("図書館で本を借りました", "図書館"),
-    ("新しいパソコンを買いました", "パソコン"),
-    ("電車が少し遅れています", "電車"),
-    ("冷たいお茶を飲みました", "お茶"),
-    ("電話番号を教えてください", "電話"),
-    ("週末は家でゆっくり過ごします", "週末"),
-    ("財布を机の上に置きました", "財布"),
-    ("寒いので上着を着ます", "上着"),
-    ("駅前の店でコーヒーを飲みます", "コーヒー"),
-    ("写真を一枚撮ってください", "写真"),
-    ("荷物を玄関に運びました", "荷物"),
-    ("ありがとうございました", "ありがとう"),
-)
-"""話し続けて読み上げる文と、それぞれを起こした文字に含まれるはずの言葉。区間の最大の長さを超える長さになる。"""
-
-
 def _sentences(pairs: Sequence[tuple[str, str]]) -> list[str]:
     """文と言葉の組から、読み上げる文だけを順に返す。"""
     return [sentence for sentence, _word in pairs]
@@ -107,28 +83,6 @@ def _sentences(pairs: Sequence[tuple[str, str]]) -> list[str]:
 def _words(pairs: Sequence[tuple[str, str]]) -> list[str]:
     """文と言葉の組から、起こした文字に含まれるはずの言葉だけを順に返す。"""
     return [word for _sentence, word in pairs]
-
-
-def _start_continuous(api: InProcessApi, receiver: CallbackReceiver) -> str:
-    """連続録音を指定して API の開始を呼び、セッションの ID を返す。"""
-    response, _elapsed_ms = api.start_session(receiver.url, continuous=True)
-    assert response.status_code == 202
-    return str(response.json()["session_id"])
-
-
-def _complete(api: InProcessApi, session_id: str) -> None:
-    """API の完了を呼ぶ。"""
-    assert api.post(f"/sessions/{session_id}/complete").status_code == 202
-
-
-def _wait_for_end(receiver: CallbackReceiver) -> list[Payload]:
-    """連続録音の終わり（通し番号の無い返送）が届くのを待ち、続きが届かないことを確かめて、届いた全ての返送を返す。"""
-    assert wait_until(
-        lambda: any(payload["segment_number"] is None for payload in receiver.received),
-        RECEIVE_TIMEOUT_SEC,
-    )
-    time.sleep(QUIET_SEC)
-    return list(receiver.received)
 
 
 def _segments(payloads: Sequence[Payload]) -> list[Payload]:
@@ -223,10 +177,10 @@ def test_normal(
     api = app.start_api()
 
     # 実行: 連続録音を始め、読み上げを流し終えたら完了を呼ぶ
-    session_id = _start_continuous(api, receiver)
+    session_id = start_continuous(api, receiver)
     assert app.wav_input.wait_played_out()
-    _complete(api, session_id)
-    payloads = _wait_for_end(receiver)
+    complete_session(api, session_id)
+    payloads = wait_for_continuous_end(receiver)
 
     # 検証
     segments = _segments(payloads)
@@ -248,24 +202,24 @@ def test_normal_when_speaking_without_pause(
     """話し続けて無音が来なくても、区間の最大の長さで区切って届け、完了で終わりが届く（正常シナリオ）。"""
     # 準備: 無音で区切らせず、区間の最大の長さを超えて読み上げ続ける
     wav_input = speech_sequence_input(
-        tmp_path, _sentences(LONG_SENTENCES), gap_sec=SHORT_GAP_SEC
+        tmp_path, _sentences(LONG_READING), gap_sec=SHORT_GAP_SEC
     )
     assert wav_input.duration_sec > MAX_SEGMENT_SEC
     app = start_inprocess(settings=make_settings(), wav_input=wav_input)
     api = app.start_api()
 
     # 実行
-    session_id = _start_continuous(api, receiver)
+    session_id = start_continuous(api, receiver)
     assert app.wav_input.wait_played_out()
-    _complete(api, session_id)
-    payloads = _wait_for_end(receiver)
+    complete_session(api, session_id)
+    payloads = wait_for_continuous_end(receiver)
 
     # 検証
     segments = _segments(payloads)
     assert len(segments) >= 2
     _assert_numbered_in_order(segments, session_id)
     assert _duration_sec(_segment_recordings(app)[0]) <= MAX_SEGMENT_SEC
-    _assert_all_words(segments, _words(LONG_SENTENCES))
+    _assert_all_words(segments, _words(LONG_READING))
     _assert_completed(payloads, session_id, segment_count=len(segments))
 
 
@@ -281,10 +235,10 @@ def test_normal_when_no_speech(
     api = app.start_api()
 
     # 実行: 連続録音を始め、無音を流し終えたら完了を呼ぶ
-    session_id = _start_continuous(api, receiver)
+    session_id = start_continuous(api, receiver)
     assert app.wav_input.wait_played_out()
-    _complete(api, session_id)
-    payloads = _wait_for_end(receiver)
+    complete_session(api, session_id)
+    payloads = wait_for_continuous_end(receiver)
 
     # 検証
     assert _segments(payloads) == []
@@ -312,8 +266,8 @@ def test_error_when_session_limit_reached(
     app.start_limit_timer()
 
     # 実行: 連続録音を始め、完了を呼ばずに上限を待つ
-    session_id = _start_continuous(api, receiver)
-    payloads = _wait_for_end(receiver)
+    session_id = start_continuous(api, receiver)
+    payloads = wait_for_continuous_end(receiver)
 
     # 検証
     segments = _segments(payloads)
@@ -343,7 +297,7 @@ def test_error_when_hotkey_during_continuous_recording(
         ),
     )
     api = app.start_api()
-    session_id = _start_continuous(api, receiver)
+    session_id = start_continuous(api, receiver)
 
     # 実行: 完了を呼ぶ前にホットキーの入口から録音を始める
     app.start_hotkey()
@@ -359,8 +313,8 @@ def test_error_when_hotkey_during_continuous_recording(
     assert session.state == SessionState.RECORDING
     # 完了を呼ぶと、区間の文字と終わりが返送先へ届く
     assert app.wav_input.wait_played_out()
-    _complete(api, session_id)
-    payloads = _wait_for_end(receiver)
+    complete_session(api, session_id)
+    payloads = wait_for_continuous_end(receiver)
     segments = _segments(payloads)
     _assert_numbered_in_order(segments, session_id)
     _assert_each_word(segments, _words(THREE_SENTENCES))
@@ -385,10 +339,10 @@ def test_error_when_segment_transcription_failed(
     api = app.start_api()
 
     # 実行
-    session_id = _start_continuous(api, receiver)
+    session_id = start_continuous(api, receiver)
     assert app.wav_input.wait_played_out()
-    _complete(api, session_id)
-    payloads = _wait_for_end(receiver)
+    complete_session(api, session_id)
+    payloads = wait_for_continuous_end(receiver)
 
     # 検証
     segments = _segments(payloads)
@@ -424,10 +378,10 @@ def test_error_when_segment_callback_unreachable(
     api = app.start_api()
 
     # 実行
-    session_id = _start_continuous(api, receiver)
+    session_id = start_continuous(api, receiver)
     assert app.wav_input.wait_played_out()
-    _complete(api, session_id)
-    payloads = _wait_for_end(receiver)
+    complete_session(api, session_id)
+    payloads = wait_for_continuous_end(receiver)
 
     # 検証: 通し番号 2 の区間の返送が、1 回目と再送の回数だけ送られている
     sent_for_unreachable = [

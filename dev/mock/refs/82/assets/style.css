@@ -31,34 +31,18 @@
 
 /* ===== 案 A: 名前の下にホットキー ===== */
 
-/* ボタン: 名前とホットキーを縦に 2 段で積む */
+/* ボタン: 名前と、枠で囲んだホットキーを縦に 2 段で積む */
 .keys-below .btn--hk {
   flex-direction: column;
   justify-content: center;
-  gap: 1px;
-  min-height: 44px;
+  gap: 2px;
+  min-height: 52px;
   padding: 4px 12px;
 }
 
 /* 固定の出力先のボタンも 2 段で中央に揃える */
 .keys-below .outs .btn--hk {
   justify-content: center;
-}
-
-/* ホットキー: 枠を持たず、小さく薄い等幅の文字にする */
-.keys-below .btn--hk kbd {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  font-size: 11px;
-  line-height: 14px;
-  color: var(--text-2);
-}
-
-/* 主の操作・取り消すのボタンの中のホットキー: 名前と同じ色にし、地の上で読めるようにする */
-.keys-below .btn--primary.btn--hk kbd,
-.keys-below .btn--danger.btn--hk kbd {
-  color: inherit;
 }
 
 /* ===== 案 B: 名前の右にホットキー ===== */

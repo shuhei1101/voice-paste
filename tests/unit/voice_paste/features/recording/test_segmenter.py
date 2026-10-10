@@ -30,11 +30,11 @@ WINDOW_SAMPLES = 512
 PAD_SAMPLES = 4800
 # 前の余白（0.3 秒）+ 話し声 1 秒 + 後ろの余白（0.3 秒）のサンプル数
 SILENCE_CUT_SAMPLES = 25600
-# 20 秒と 20.2 秒の位置（サンプル数）
-PAUSE_START_SAMPLES = 320000
-PAUSE_END_SAMPLES = 323200
-# 区間の最大の長さ（30 秒）のサンプル数
-MAX_SEGMENT_SAMPLES = 480000
+# 12 秒と 12.2 秒の位置（サンプル数）
+PAUSE_START_SAMPLES = 192000
+PAUSE_END_SAMPLES = 195200
+# 区間の最大の長さ（20 秒）のサンプル数
+MAX_SEGMENT_SAMPLES = 320000
 # 1 秒の話し声（31 窓）に、窓に満たない末尾の 100 サンプルを足したサンプル数
 SPEECH_AND_TAIL_SAMPLES = 15972
 
@@ -83,15 +83,15 @@ def test_feed_keeps_short_pause() -> None:
 
 def test_feed_cuts_at_max_length() -> None:
     """無音が来ないまま最大の長さに達したら、直近の短い無音の中で区切る（正常系）。"""
-    # 準備: 話し声が続く中、20 秒の位置に 0.2 秒の短い無音を挟み、最大の長さ（30 秒）を超える 32 秒を流す
-    phases = [(0.9, windows(20.0)), (0.2, windows(0.2)), (0.9, windows(11.8))]
+    # 準備: 話し声が続く中、12 秒の位置に 0.2 秒の短い無音を挟み、最大の長さ（20 秒）を超える 32 秒を流す
+    phases = [(0.9, windows(12.0)), (0.2, windows(0.2)), (0.9, windows(19.8))]
     sink = SegmentSink()
     segmenter = _make_segmenter(ScriptedDetector(phases), sink, min_silence_sec=2.0)
 
     # 実行
     feed_all(segmenter, phases_audio(phases))
 
-    # 検証: 区間の終わり（先頭からのサンプル数）が 20 秒〜20.2 秒の無音の中にある
+    # 検証: 区間の終わり（先頭からのサンプル数）が 12 秒〜12.2 秒の無音の中にある
     assert sink.reasons() == ["max_length"]
     length = sink.segments[0].recording.samples.size
     assert PAUSE_START_SAMPLES <= length <= PAUSE_END_SAMPLES
@@ -99,8 +99,8 @@ def test_feed_cuts_at_max_length() -> None:
 
 def test_feed_cuts_at_max_length_without_pause() -> None:
     """短い無音も無ければ最大の長さの位置で区切る（正常系）。"""
-    # 準備: 常に話し声と判定し、最大の長さ（30 秒）より 1 秒長く流す
-    phases = [(0.9, windows(31.0))]
+    # 準備: 常に話し声と判定し、最大の長さ（20 秒）より 1 秒長く流す
+    phases = [(0.9, windows(21.0))]
     sink = SegmentSink()
     segmenter = _make_segmenter(ScriptedDetector(phases), sink, min_silence_sec=2.0)
 

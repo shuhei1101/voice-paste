@@ -1,0 +1,113 @@
+# 非機能要件テスト（全件）
+# 実行した commit: cdbc814（PR #78 の非機能要件テスト作成。測った値を出すため -s を付けた）
+# 結果: 1 failed（test_segment_callback_latency）・7 passed・7 skipped（tests/nfr/fixtures が無い環境のため。下記）
+
+$ venv/Scripts/python.exe -m pytest tests/nfr --run-e2e -p no:cacheprovider -s -v
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\shuhe\repo\voice-paste\venv\Scripts\python.exe
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-session-continuous-recording
+configfile: pyproject.toml
+plugins: anyio-4.13.0, platformdirs-4.12.2
+collecting ... collected 15 items
+
+tests/nfr/test_api_session_limit.py::test_api_session_limit_when_recording api_session_limit: elapsed=3.27s wav=2.56s 81964B projected_600s=19.21MB
+PASSED
+tests/nfr/test_api_session_limit.py::test_api_session_limit_when_stopped api_session_limit: elapsed=3.04s wav=0.83s 26668B projected_600s=19.23MB
+PASSED
+tests/nfr/test_api_start_response_time.py::test_api_start_response_time api_start_response_time: n=50 min=1.8 p50=2.4 max=7.1 ms
+PASSED
+tests/nfr/test_busy_response_time.py::test_busy_response_time busy_response_time: n=20 min=1.4 max=2.2 ms
+PASSED
+tests/nfr/test_continuous_session_limit.py::test_continuous_session_limit continuous_session_limit: elapsed=3.05s results=[('transcribed', 1, None), ('truncated', None, 1)]
+PASSED
+tests/nfr/test_max_segment_length.py::test_max_segment_length max_segment_length: reading=50.1s segments=['29.87s', '20.21s']
+PASSED
+tests/nfr/test_output_extensibility.py::test_output_extensibility PASSED
+tests/nfr/test_paste_latency.py::test_paste_latency SKIPPED (Windows...)
+tests/nfr/test_segment_callback_latency.py::test_segment_callback_latency segment_callback_latency: #1=0.32s #2=0.33s #3=0.27s #4=0.42s #5=0.43s #6=3.75s #7=2.00s
+FAILED
+tests/nfr/test_single_instance_timeout.py::test_single_instance_timeout SKIPPED
+tests/nfr/test_single_instance_timeout.py::test_single_instance_timeout_when_previous_starting SKIPPED
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_history_recordings[NOTSET] SKIPPED
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_correction_only[NOTSET] SKIPPED
+tests/nfr/test_worker_recovery_time.py::test_worker_recovery_time SKIPPED
+tests/nfr/test_worker_stop_timeout.py::test_worker_stop_timeout SKIPPED
+
+================================== FAILURES ===================================
+________________________ test_segment_callback_latency ________________________
+
+start_inprocess = <function start_inprocess.<locals>._start at 0x000002072516FD70>
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-502/test_segment_callback_latency0')
+receiver = <tests.integration.helpers.CallbackReceiver object at 0x0000020724CAE7B0>
+cut_log = <_CutLog (INFO)>
+
+    def test_segment_callback_latency(
+        start_inprocess: StartInProcess,
+        tmp_path: Path,
+        receiver: CallbackReceiver,
+        cut_log: _CutLog,
+    ) -> None:
+        """区切ってからその区間の返送が届くまでが、どの区間も決定値以内である（実機）。"""
+        # 準備: 受け口が届いた時刻を控えるようにし、温めに 1 文だけを流す入力でサービスを立てる
+        arrivals = _ArrivalList()
+        receiver.received = arrivals
+        app = start_inprocess(
+            settings=make_settings(),
+            wav_input=speech_sequence_input(tmp_path, [SPEECH_TEXT], gap_sec=SEGMENT_GAP_SEC),
+        )
+        api = app.start_api()
+    
+        # 温める: 別の連続録音で 1 区間を起こして、ワーカーを温める
+        warm_session = start_continuous(api, receiver)
+        assert app.wav_input.wait_played_out()
+        complete_session(api, warm_session)
+        wait_for_continuous_end(receiver)
+        assert app.wait_idle()
+        offset = len(receiver.received)
+        cut_log.cuts.clear()
+    
+        # 実行: 5 文の後に 45 秒以上読み上げ続ける入力に替えて連続録音を始め、流し終えたら完了を呼ぶ
+        items = [(sentence, SEGMENT_GAP_SEC) for sentence in SILENCE_SENTENCES]
+        # 話し続ける読み上げの最初の文だけ、前の文との間に区切りの無音の長さより長い間を挟み、後の文は短い間でつなぐ
+        long_texts = long_reading_texts()
+        items.append((long_texts[0], SEGMENT_GAP_SEC))
+        items += [(sentence, SHORT_GAP_SEC) for sentence in long_texts[1:]]
+        app.wav_input.samples = speech_timeline_input(tmp_path, items).samples
+        session_id = start_continuous(api, receiver)
+        assert app.wav_input.wait_played_out()
+        complete_called_at = time.perf_counter()
+        complete_session(api, session_id)
+        wait_for_continuous_end(receiver, offset=offset)
+    
+        # 検証
+        latencies = _measure_latencies(cut_log, arrivals, offset, complete_called_at)
+        print(  # noqa: T201 測った値を実行の出力に残す
+            "segment_callback_latency: "
+            + " ".join(f"#{number}={seconds:.2f}s" for number, seconds in latencies)
+        )
+        assert len(latencies) >= MIN_SEGMENTS
+>       assert max(seconds for _number, seconds in latencies) <= SEGMENT_CALLBACK_LATENCY_SEC
+E       assert 3.750086399988504 <= 3.0
+E        +  where 3.750086399988504 = max(<generator object test_segment_callback_latency.<locals>.<genexpr> at 0x0000020725105380>)
+
+tests\nfr\test_segment_callback_latency.py:177: AssertionError
+------------------------------ Captured log call ------------------------------
+INFO     voice_paste.features.recording.segmenter:segmenter.py:164 区間を区切った（flush・0.9 秒）
+WARNING  voice_paste.features.correction.service:service.py:24 用語集が無い（C:\Users\shuhe\AppData\Local\Temp\pytest-of-shuhe\pytest-502\test_segment_callback_latency0\yogo.csv）
+INFO     voice_paste.features.recording.segmenter:segmenter.py:164 区間を区切った（silence・1.3 秒）
+WARNING  voice_paste.features.correction.service:service.py:24 用語集が無い（C:\Users\shuhe\AppData\Local\Temp\pytest-of-shuhe\pytest-502\test_segment_callback_latency0\yogo.csv）
+INFO     voice_paste.features.recording.segmenter:segmenter.py:164 区間を区切った（silence・1.7 秒）
+WARNING  voice_paste.features.correction.service:service.py:24 用語集が無い（C:\Users\shuhe\AppData\Local\Temp\pytest-of-shuhe\pytest-502\test_segment_callback_latency0\yogo.csv）
+INFO     voice_paste.features.recording.segmenter:segmenter.py:164 区間を区切った（silence・1.8 秒）
+WARNING  voice_paste.features.correction.service:service.py:24 用語集が無い（C:\Users\shuhe\AppData\Local\Temp\pytest-of-shuhe\pytest-502\test_segment_callback_latency0\yogo.csv）
+INFO     voice_paste.features.recording.segmenter:segmenter.py:164 区間を区切った（silence・2.2 秒）
+WARNING  voice_paste.features.correction.service:service.py:24 用語集が無い（C:\Users\shuhe\AppData\Local\Temp\pytest-of-shuhe\pytest-502\test_segment_callback_latency0\yogo.csv）
+INFO     voice_paste.features.recording.segmenter:segmenter.py:164 区間を区切った（silence・2.2 秒）
+WARNING  voice_paste.features.correction.service:service.py:24 用語集が無い（C:\Users\shuhe\AppData\Local\Temp\pytest-of-shuhe\pytest-502\test_segment_callback_latency0\yogo.csv）
+INFO     voice_paste.features.recording.segmenter:segmenter.py:164 区間を区切った（max_length・30.1 秒）
+WARNING  voice_paste.features.correction.service:service.py:24 用語集が無い（C:\Users\shuhe\AppData\Local\Temp\pytest-of-shuhe\pytest-502\test_segment_callback_latency0\yogo.csv）
+INFO     voice_paste.features.recording.segmenter:segmenter.py:164 区間を区切った（flush・20.2 秒）
+WARNING  voice_paste.features.correction.service:service.py:24 用語集が無い（C:\Users\shuhe\AppData\Local\Temp\pytest-of-shuhe\pytest-502\test_segment_callback_latency0\yogo.csv）
+=========================== short test summary info ===========================
+FAILED tests/nfr/test_segment_callback_latency.py::test_segment_callback_latency
+============= 1 failed, 7 passed, 7 skipped in 139.90s (0:02:19) ==============

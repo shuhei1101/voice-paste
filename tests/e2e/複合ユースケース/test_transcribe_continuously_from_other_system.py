@@ -35,7 +35,7 @@ from tests.support.inprocess import (
 from voice_paste.features.outputs.callback import service as callback_service
 from voice_paste.features.outputs.callback.service import CALLBACK_RETRY_COUNT
 from voice_paste.features.recording.client import SAMPLE_RATE
-from voice_paste.features.recording.segmenter import MAX_SEGMENT_SEC
+from voice_paste.features.recording.segmenter import MAX_SEGMENT_SEC, SEGMENT_PAD_SEC
 from voice_paste.features.session.types import SessionState
 from voice_paste.shared.types import Entry
 
@@ -218,7 +218,7 @@ def test_normal_when_speaking_without_pause(
     segments = _segments(payloads)
     assert len(segments) >= 2
     _assert_numbered_in_order(segments, session_id)
-    assert _duration_sec(_segment_recordings(app)[0]) <= MAX_SEGMENT_SEC
+    assert _duration_sec(_segment_recordings(app)[0]) <= MAX_SEGMENT_SEC + SEGMENT_PAD_SEC
     _assert_all_words(segments, _words(LONG_READING))
     _assert_completed(payloads, session_id, segment_count=len(segments))
 

@@ -203,18 +203,22 @@ def long_reading_texts() -> list[str]:
 
 
 def speech_timeline_input(
-    tmp_path: Path, items: Sequence[tuple[str, float]], *, tail_silence_sec: float = 0.0
+    tmp_path: Path,
+    items: Sequence[tuple[str, float]],
+    *,
+    lead_silence_sec: float = 0.0,
+    tail_silence_sec: float = 0.0,
 ) -> WavInput:
     """(文, その文の前に挟む無音の秒数) の並びを 1 文ずつ読み上げ、前後の無音を削ってつないだ WAV を、実時間で流す録音の入力を作る。
 
-    最初の文の前には無音を挟まない。最後の文の後に tail_silence_sec 秒の無音を足す（流し終えた後も無音を流し続けたいとき）。
+    最初の文の前には、文ごとの無音ではなく lead_silence_sec 秒の無音を置く。最後の文の後に tail_silence_sec 秒の無音を足す（流し終えた後も無音を流し続けたいとき）。
     """
-    # 1. 1 文ずつ読み上げて前後の無音を削り、文の前に決めた長さの無音を挟んで並べる
-    pieces: list[np.ndarray] = []
+    # 1. 最初に無音を置き、1 文ずつ読み上げて前後の無音を削り、文の前に決めた長さの無音を挟んで並べる
+    pieces: list[np.ndarray] = [np.zeros(round(SAMPLE_RATE * lead_silence_sec), dtype=np.int16)]
     for index, (text, gap_before_sec) in enumerate(items):
         spoken = _trim_silence(read_wav(synthesize_speech(text, tmp_path / f"sentence{index}.wav")))
         # 2 文目以降は、前の文との間に無音を挟む
-        if pieces:
+        if index > 0:
             pieces.append(np.zeros(round(SAMPLE_RATE * gap_before_sec), dtype=np.int16))
         pieces.append(spoken)
 
@@ -224,11 +228,19 @@ def speech_timeline_input(
 
 
 def speech_sequence_input(
-    tmp_path: Path, texts: Sequence[str], *, gap_sec: float, tail_silence_sec: float = 0.0
+    tmp_path: Path,
+    texts: Sequence[str],
+    *,
+    gap_sec: float,
+    lead_silence_sec: float = 0.0,
+    tail_silence_sec: float = 0.0,
 ) -> WavInput:
     """texts を 1 文ずつ読み上げ、前後の無音を削って gap_sec の無音を挟んでつないだ WAV を、実時間で流す録音の入力を作る。"""
     return speech_timeline_input(
-        tmp_path, [(text, gap_sec) for text in texts], tail_silence_sec=tail_silence_sec
+        tmp_path,
+        [(text, gap_sec) for text in texts],
+        lead_silence_sec=lead_silence_sec,
+        tail_silence_sec=tail_silence_sec,
     )
 
 

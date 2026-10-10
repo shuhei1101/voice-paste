@@ -29,6 +29,24 @@ def test_normal(stack: Stack) -> None:
     assert len(stack.microphone.streams) == 1
 
 
+def test_normal_when_continuous(stack: Stack) -> None:
+    """continuous を指定すると、完了が来るまで止めない録音を始め、セッションの ID を返す（正常系）。"""
+    # 実行
+    response = stack.post(
+        "/sessions", json_body={"callback_url": stack.receiver.url, "continuous": True}
+    )
+    busy = stack.post("/sessions", json_body={"callback_url": stack.receiver.url})
+
+    # 検証
+    assert response.status_code == 202
+    assert response.json()["session_id"] == stack.session().id
+    assert stack.session().continuous is True
+    assert stack.state() == "recording"
+    assert len(stack.microphone.streams) == 1
+    assert not stack.microphone.streams[0].closed
+    assert busy.status_code == 409
+
+
 def test_error_when_callback_not_allowed(stack: Stack) -> None:
     """許可していない返送先では録音を始めない（異常系）。"""
     # 実行

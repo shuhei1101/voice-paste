@@ -1,0 +1,82 @@
+# 単体テスト（既存のテストの回帰確認）
+# 実行した commit: 42e9594（PR #78 の単体テスト作成）
+# 単体テスト作成の工程のため、実装の無いことで落ちる次のテストは除いて実行している。
+#   - 新規のテスト（Segmenter・StreamingVad・load_vad_session・連続録音の各テスト 等）
+#   - 構築が新しい形（Recorder の create_speech_detector・SessionDeps の連続録音の 2 関数・SessionManager の連続録音の上限時間）になった tests/unit/voice_paste/features/recording/test_service.py と features/session/test_service.py の既存のテスト
+#   - 期待値を変えた既存のテスト（test_deliver_to_caller・test_build_fastapi。-k で名前が一致するものだけを除く）
+# 除いたテストは実装の後に全て pass させる（その全 pass のログは実装の工程で置く）。
+
+$ venv/Scripts/python.exe -m pytest tests/unit -p no:cacheprovider \
+    --deselect "tests/unit/voice_paste/features/history/test_service.py::test_purge_expired_keeps_active_segments" \
+    --deselect "tests/unit/voice_paste/features/history/test_service.py::test_save_recording_when_segment" \
+    --deselect "tests/unit/voice_paste/features/outputs/callback/test_service.py::test_deliver_to_caller_when_segment" \
+    --deselect "tests/unit/voice_paste/features/outputs/test_types.py::test_callback_payload_from_outcome" \
+    --deselect "tests/unit/voice_paste/features/outputs/test_types.py::test_callback_payload_from_outcome_when_single" \
+    --deselect "tests/unit/voice_paste/features/recording/test_segmenter.py" \
+    --deselect "tests/unit/voice_paste/features/recording/test_service.py" \
+    --deselect "tests/unit/voice_paste/features/session/test_route.py::test_start_session_route_when_continuous[continuous]" \
+    --deselect "tests/unit/voice_paste/features/session/test_route.py::test_start_session_route_when_continuous[omitted]" \
+    --deselect "tests/unit/voice_paste/features/session/test_service.py" \
+    --deselect "tests/unit/voice_paste/integrations/vad/test_adapter.py" \
+    --deselect "tests/unit/voice_paste/server/test_error_handlers.py::test_register_exception_handlers_when_conflict" \
+    -k "not (test_deliver_to_caller and not when_) and not (test_build_fastapi and not when_docs)"
+
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-session-continuous-recording
+configfile: pyproject.toml
+plugins: anyio-4.13.0, platformdirs-4.12.2
+collected 362 items / 95 deselected / 267 selected
+
+tests\unit\voice_paste\features\correction\test_service.py .......       [  2%]
+tests\unit\voice_paste\features\history\test_service.py ........         [  5%]
+tests\unit\voice_paste\features\outputs\browser\test_service.py ...      [  6%]
+tests\unit\voice_paste\features\outputs\callback\test_service.py ....... [  9%]
+.....                                                                    [ 11%]
+tests\unit\voice_paste\features\outputs\copy_only\test_service.py ..     [ 11%]
+tests\unit\voice_paste\features\outputs\endpoint\test_service.py ....    [ 13%]
+tests\unit\voice_paste\features\outputs\paste_and_send\test_service.py . [ 13%]
+....                                                                     [ 15%]
+tests\unit\voice_paste\features\outputs\paste_only\test_service.py ...   [ 16%]
+tests\unit\voice_paste\features\outputs\test_service.py .....            [ 18%]
+tests\unit\voice_paste\features\outputs\test_types.py .                  [ 18%]
+tests\unit\voice_paste\features\recording\test_client.py .               [ 19%]
+tests\unit\voice_paste\features\session\test_route.py .                  [ 19%]
+tests\unit\voice_paste\features\transcription\test_service.py ....       [ 20%]
+tests\unit\voice_paste\integrations\browser\test_opener.py ....          [ 22%]
+tests\unit\voice_paste\integrations\http\test_client.py .......          [ 25%]
+tests\unit\voice_paste\integrations\keyboard\test_sender.py .......      [ 27%]
+tests\unit\voice_paste\integrations\volume\test_adapter.py .........     [ 31%]
+tests\unit\voice_paste\integrations\whisper\test_client.py ............  [ 35%]
+tests\unit\voice_paste\integrations\whisper\test_worker.py .....         [ 37%]
+tests\unit\voice_paste\runtime\test_hotkey.py .........                  [ 40%]
+tests\unit\voice_paste\runtime\test_process.py ..                        [ 41%]
+tests\unit\voice_paste\runtime\test_settings_store.py .                  [ 41%]
+tests\unit\voice_paste\runtime\test_single_instance.py ..........        [ 45%]
+tests\unit\voice_paste\runtime\test_timer.py ...                         [ 46%]
+tests\unit\voice_paste\server\test_app.py ..                             [ 47%]
+tests\unit\voice_paste\server\test_error_handlers.py ..                  [ 48%]
+tests\unit\voice_paste\server\test_middleware.py .....                   [ 50%]
+tests\unit\voice_paste\server\test_runner.py ....                        [ 51%]
+tests\unit\voice_paste\server\test_token.py ...                          [ 52%]
+tests\unit\voice_paste\shared\test_constants.py ..                       [ 53%]
+tests\unit\voice_paste\shared\test_logger.py ......                      [ 55%]
+tests\unit\voice_paste\shared\test_settings.py ......................... [ 65%]
+.........                                                                [ 68%]
+tests\unit\voice_paste\test_main.py ................................     [ 80%]
+tests\unit\voice_paste\ui\test_bridge.py ...                             [ 81%]
+tests\unit\voice_paste\ui\test_controller.py ..................          [ 88%]
+tests\unit\voice_paste\ui\test_placement.py ..                           [ 89%]
+tests\unit\voice_paste\ui\test_style.py .                                [ 89%]
+tests\unit\voice_paste\ui\test_tray.py .........                         [ 92%]
+tests\unit\voice_paste\ui\windows\test_settings_presets.py ......        [ 95%]
+tests\unit\voice_paste\ui\windows\test_settings_window.py ............   [ 99%]
+tests\unit\voice_paste\ui\windows\test_transcribing_indicator.py .       [100%]
+
+============================== warnings summary ===============================
+..\..\..\venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\shuhe\repo\voice-paste\venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=============== 267 passed, 95 deselected, 1 warning in 10.71s ================

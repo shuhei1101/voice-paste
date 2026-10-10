@@ -75,6 +75,37 @@ def test_save_recording_when_history_disabled(paths: AppPaths) -> None:
     assert not list(paths.history_dir.rglob("*.wav"))
 
 
+def test_save_recording_when_segment(paths: AppPaths) -> None:
+    """区間は通し番号を付けた名前で書き、同じ秒に書いても重ならない（正常系）。"""
+    from voice_paste.features.history.service import save_recording
+    from voice_paste.shared.types import Recording
+
+    # 準備
+    recording = Recording(
+        samples=np.zeros(SAMPLE_RATE, dtype=np.int16), sample_rate=SAMPLE_RATE, duration_sec=1.0
+    )
+
+    # 実行: 履歴を残す設定と残さない設定で、同じ時刻に区間を 2 つずつ書く
+    kept_first = save_recording("s1", recording, 1, history_enabled=True, paths=paths, now=_now)
+    kept_second = save_recording("s1", recording, 2, history_enabled=True, paths=paths, now=_now)
+    temporary_first = save_recording(
+        "s1", recording, 1, history_enabled=False, paths=paths, now=_now
+    )
+    temporary_second = save_recording(
+        "s1", recording, 2, history_enabled=False, paths=paths, now=_now
+    )
+
+    # 検証
+    assert kept_first == paths.history_dir / "20261001" / "20261001120000_s1_1.wav"
+    assert kept_second == paths.history_dir / "20261001" / "20261001120000_s1_2.wav"
+    assert kept_first.exists()
+    assert kept_second.exists()
+    assert temporary_first == paths.tmp_dir / "s1_1.wav"
+    assert temporary_second == paths.tmp_dir / "s1_2.wav"
+    assert temporary_first.exists()
+    assert temporary_second.exists()
+
+
 # === append_text ===
 
 
@@ -171,6 +202,23 @@ def test_purge_expired_when_temporary_left(paths: AppPaths) -> None:
     paths.history_dir.mkdir(parents=True)
     finished = _touch(paths.tmp_dir / "s1.wav")
     active = _touch(paths.tmp_dir / "s2.wav")
+
+    # 実行
+    purge_expired(retention_days=1, paths=paths, now=_now, active_session_ids=lambda: {"s2"})
+
+    # 検証
+    assert not finished.exists()
+    assert active.exists()
+
+
+def test_purge_expired_keeps_active_segments(paths: AppPaths) -> None:
+    """処理中の連続録音の区間の一時の音声は残す（正常系）。"""
+    from voice_paste.features.history.service import purge_expired
+
+    # 準備: 処理中のセッション s2 の区間と、終わったセッション s1 の区間
+    paths.history_dir.mkdir(parents=True)
+    finished = _touch(paths.tmp_dir / "s1_1.wav")
+    active = _touch(paths.tmp_dir / "s2_3.wav")
 
     # 実行
     purge_expired(retention_days=1, paths=paths, now=_now, active_session_ids=lambda: {"s2"})

@@ -27,6 +27,34 @@ flows:
       - セッションが録音中になっている
       - 録音の画面を開いていない
     test: test_normal
+  - name: 正常系（連続録音）
+    summary: continuous=true で、完了が来るまで止めない画面を出さない録音を始め、セッションの ID を返す
+    setup:
+      - name: Mock
+        description: マイク・システム音量・トレイを差し替える（マイクは開ける）
+      - name: 待機中
+        description: ほかの録音・文字起こしを処理していない
+      - name: 要求
+        description: continuous を true にする
+        notes: '`{"callback_url": "http://127.0.0.1:9000/voice-paste/result", "continuous": true}`'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as クライアント
+        participant IF as POST /sessions
+        participant MIC as マイク
+
+        C->>IF: トークン・callback_url・continuous=true
+        IF->>IF: Host・Origin・トークン・返送先を確かめる
+        IF->>MIC: 録音を始める（無音での区切りを始める）
+        IF-->>C: 202・session_id
+      ```
+    expected:
+      - 202 と session_id が返る
+      - セッションが連続録音の録音中になっている
+      - 録音の画面を開いていない
+      - 続く開始が 409 になる
+    test: test_normal_when_continuous
   - name: 異常系（返送先が許可されていない・400）
     summary: 許可していない返送先では録音を始めない
     setup:
@@ -141,11 +169,11 @@ flows:
       - 待機中に戻り、続く開始が 409 にならない
       - ログにマイクを開けなかった理由が書かれている
     test: test_error_when_microphone_unavailable
-lead: 返送先のエンドポイントを受け取り、画面を出さない録音を始めてセッションの ID を返す。
+lead: 返送先のエンドポイントを受け取り、画面を出さない録音を始めてセッションの ID を返す。continuous を指定すると、完了が来るまで録音を止めず、無音で区切った区間ごとに返す連続録音を始める。
 identifier: start_session
 permissions: 今回の起動のトークン（トークンのファイルを読める、同じ端末・同じユーザーのプロセス）
 idempotent: false
-side_effects: マイクの録音を始め、設定で録音中の音量を下げるようにしていればシステム音量を下げる。トレイのアイコンを録音中にする。
+side_effects: マイクの録音を始め、設定で録音中の音量を下げるようにしていればシステム音量を下げる。トレイのアイコンを録音中にする。連続録音では、区切った区間ごとに履歴へ保存し（履歴を残す設定のとき）、文字に起こして 呼び出し元へ返す が返送先へ送る。
 exclusivity: 録音・文字起こしは入口（ホットキー・トレイ・API）をまたいで同時に 1 つだけ。処理中に来た開始は 409 で断る。
 request:
   - name: Authorization
@@ -178,10 +206,19 @@ request:
     format: uri
     example: http://127.0.0.1:9000/voice-paste/result
     status: implemented
+  - name: continuous
+    type: bool
+    required: false
+    default: 'false'
+    location: body
+    description: 連続録音にするか。true なら、完了が来るまで録音を止めず、無音で区切った区間ごとに起こした文字を返送先へ送る。false なら、1 回の録音を確定してから 1 回だけ返す
+    example: 'true'
+    status: planned
 request_example: |-
   ```json
   {
-    "callback_url": "http://127.0.0.1:9000/voice-paste/result"
+    "callback_url": "http://127.0.0.1:9000/voice-paste/result",
+    "continuous": false
   }
   ```
 response:
@@ -223,5 +260,10 @@ constraints:
     constraint: 制限なし
     notes: 同時に 1 つだけの排他で足りる
   - item: セッションの長さ
-    constraint: 非機能要件のセッションの上限時間（開始からの経過時間。停止中も数える）。達したら 上限で打ち切る
+    constraint: continuous が false のときは非機能要件の API のセッションの上限時間、true のときは設定の連続録音のセッションの上限時間（api.continuous.session_limit_sec）。どちらも開始からの経過時間で数え、達したら 上限で打ち切る
+    decided_by: dev/設計書/非機能要件/非機能要件#requirements[連続録音のセッションの上限時間]
+  - item: 区切り
+    constraint: continuous が true のときだけ。話し声の後で、設定の区切る無音の長さ（api.continuous.min_silence_sec）以上無音が続いたところで区切る。無音が来ないまま区間が区間の最大の長さに達したら、直近の短い無音の中（無ければその位置）で区切る。話し声を含まない間は区間にしない
+    decided_by: dev/設計書/非機能要件/非機能要件#requirements[区間の最大の長さ]
+    notes: 話し声か無音かは faster-whisper に同梱の Silero VAD で判定する。背景にノイズがあると区切りの無音をわずかに超える間では区切れず、区間が長くなることがある
 test_file: tests/integration/test_start_session.py

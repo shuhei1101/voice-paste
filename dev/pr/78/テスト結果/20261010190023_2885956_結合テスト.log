@@ -1,0 +1,31 @@
+# 結合テスト（全件）
+# 実行した commit: 2885956（PR #78 の区間の最大の長さを 20 秒にした後の確認）
+
+$ venv/Scripts/python.exe -m pytest tests/integration -p no:cacheprovider
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-session-continuous-recording
+configfile: pyproject.toml
+plugins: anyio-4.13.0, platformdirs-4.12.2
+collected 299 items
+
+tests\integration\test_complete_session.py .........                     [  3%]
+tests\integration\test_deliver_to_caller.py ...........                  [  6%]
+tests\integration\test_deliver_to_endpoint.py ...                        [  7%]
+tests\integration\test_deliver_to_output.py ....                         [  9%]
+tests\integration\test_settings_migration.py .                           [  9%]
+tests\integration\test_start_session.py .........                        [ 12%]
+tests\integration\test_stop_session.py ........                          [ 15%]
+tests\integration\test_truncate_session.py ...                           [ 16%]
+tests\integration\ui\test_busy_dialog.py ..........                      [ 19%]
+tests\integration\ui\test_recording_window.py .......................... [ 28%]
+....................................                                     [ 40%]
+tests\integration\ui\test_settings_window.py ........................... [ 49%]
+....................................................................     [ 71%]
+tests\integration\ui\test_transcribing_indicator.py .................... [ 78%]
+...                                                                      [ 79%]
+tests\integration\ui\test_tray.py ...................................... [ 92%]
+......                                                                   [ 94%]
+tests\integration\ui\test_tray_notification.py .................         [100%]
+
+======================= 299 passed in 206.34s (0:03:26) =======================

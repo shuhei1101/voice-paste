@@ -30,5 +30,6 @@
 | [import-linter](./import-linter.yaml) | 新しい構成の import の向きを検査する |
 | [av](./av.yaml) | faster-whisper が録音を読むために使う、FFmpeg の Python バインディング |
 | [pywin32](./pywin32.yaml) | テストが Windows のウィンドウ・マウス・キーを操作する |
+| [onnxruntime](./onnxruntime.yaml) | 連続録音の話し声を Silero VAD の ONNX で判定する |
 
 <!-- /table -->

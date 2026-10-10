@@ -126,15 +126,16 @@ functions:
       1. 設定を SettingsStore に入れる。以降の配線は設定を値でなく SettingsStore.get から読む（保存した immediate の項目を次の回から効かせる）
       2. 設定のエンジン（local_whisper）の WhisperWorkerClient を作って起動し、その transcribe を文字起こしの engine に渡す
          - EngineError の場合、StartupError を送出する
-      3. Recorder に音量のアダプタと、SettingsStore から録音の設定を返す関数を渡す
-      4. 出力先の deliver に、配線した OUTPUTS（_wire_outputs）・配線した PRESET_KINDS（_wire_preset_kinds）と、届けるたびに SettingsStore からオンの出力先の ID を引く関数を部分適用し、Session を入口・出力先の ID・選んだプリセット・返送先に分けて渡すアダプタを作る
+      3. 連続録音の話し声の判定に使う VAD のセッションを 1 回だけ読む（load_vad_session。StartupError はそのまま送出する）
+      4. Recorder に音量のアダプタと、SettingsStore から録音の設定を返す関数と、VAD のセッションを部分適用した StreamingVad（話し声の判定を作る）を渡す
+      5. 出力先の deliver に、配線した OUTPUTS（_wire_outputs）・配線した PRESET_KINDS（_wire_preset_kinds）と、届けるたびに SettingsStore からオンの出力先の ID を引く関数を部分適用し、Session を入口・出力先の ID・選んだプリセット・返送先に分けて渡すアダプタを作る
          - 出力先には OutputDeps（copy_to_clipboard・設定の keyboard.paste_key で send_paste を呼ぶ関数・send_enter・time.sleep・random.uniform(0, x)・post_json・SettingsStore.get）を渡し、各出力先の inject が選ぶ
          - ブラウザ添付（種類）: copy_to_clipboard・open_app_window・send_paste を呼ぶ関数・send_enter・time.sleep・設定の preset_options.browser.open_delay_sec を返す関数・貼り付けて送信の enter_delay_sec を返す関数（read_enter_delay_sec）
          - エンドポイントへ送る（種類）: post_json・設定の preset_options.endpoint.timeout_sec を返す関数
-      5. 用語集を文字起こしのたびに読み直す correct を作る（load_glossary → apply_glossary。読む場所はそのたびに SettingsStore の glossary_path から決める）
-      6. SessionDeps を組み（report_progress を含む）、API のセッションの上限時間と共に SessionManager を作る
-      7. SessionManager と、設定の許可ホストを部分適用した is_callback_allowed を SessionApiDeps に束ねる
-      8. start_local_session に SessionManager と notify を部分適用する
+      6. 用語集を文字起こしのたびに読み直す correct を作る（load_glossary → apply_glossary。読む場所はそのたびに SettingsStore の glossary_path から決める）
+      7. SessionDeps を組み（report_progress、起動時の設定の api.continuous.min_silence_sec を部分適用した Recorder.start_continuous、Recorder.stop_continuous を含む）、API のセッションの上限時間と、起動時の設定の api.continuous.session_limit_sec の連続録音の上限時間と共に SessionManager を作る（api.continuous.* は再起動で効く）
+      8. SessionManager と、設定の許可ホストを部分適用した is_callback_allowed を SessionApiDeps に束ねる
+      9. start_local_session に SessionManager と notify を部分適用する
     exceptions:
       - name: StartupError
         condition: 文字起こしのエンジンを準備できない

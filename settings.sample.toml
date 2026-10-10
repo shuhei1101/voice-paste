@@ -148,3 +148,10 @@ wave_gain = 4.0
 port = 47823
 # loopback のほかに、起こした文字の返送を許すホスト（再起動）
 allowed_callback_hosts = []
+
+# === 連続録音（API で continuous を指定した録音）===
+[api.continuous]
+# 話し声の後にこの秒数以上無音が続いたところで区間を区切る（再起動）。0.5〜10
+min_silence_sec = 2.0
+# 完了が来ないまま開始からこの秒数が経ったところで打ち切る（再起動）。60〜86400
+session_limit_sec = 14400

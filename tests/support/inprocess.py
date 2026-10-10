@@ -95,6 +95,9 @@ LONG_READING: tuple[tuple[str, str], ...] = (
 READING_REPEAT_SENTENCES = len(LONG_READING) // 2
 """話し続ける読み上げを 45 秒以上にするために、LONG_READING の前半をもう 1 回つなぐときの文の数。"""
 
+SEGMENT_CALLBACK_LATENCY_SEC = 4.0
+"""区切ってから返送が届くまでの時間の決定値。"""
+
 CONTINUOUS_END_TIMEOUT_SEC = 150.0
 """連続録音の終わりが返送先へ届くまで待つ上限（区間の文字起こしと上限での打ち切りを含む）。"""
 

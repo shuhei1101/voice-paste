@@ -19,6 +19,7 @@ import pytest
 from tests.integration.helpers import CallbackReceiver, wait_until
 from tests.support.fixtures import receiver  # noqa: F401 フィクスチャとして使う
 from tests.support.inprocess import (
+    SEGMENT_CALLBACK_LATENCY_SEC,
     SPEECH_TEXT,
     InProcessApi,
     serve_api,
@@ -35,9 +36,6 @@ pytestmark = pytest.mark.real_machine
 
 SHORT_LIMIT_SEC = 3.0
 """テストで待てる短い連続録音の上限時間（決定値 14400 秒の代わり）。"""
-
-SEGMENT_CALLBACK_LATENCY_SEC = 4.0
-"""区切ってから返送が届くまでの時間の決定値。上限での打ち切りの遅れに足す。"""
 
 TAIL_SILENCE_SEC = 10.0
 """話し声を流し終えた後に流し続ける無音の長さ（上限時間と打ち切りの遅れより長くする）。"""

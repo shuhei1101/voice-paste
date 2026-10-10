@@ -20,6 +20,7 @@ import pytest
 from tests.integration.helpers import CallbackReceiver
 from tests.support.fixtures import receiver, start_inprocess  # noqa: F401 フィクスチャとして使う
 from tests.support.inprocess import (
+    SEGMENT_CALLBACK_LATENCY_SEC,
     SPEECH_TEXT,
     InProcessApp,
     complete_session,
@@ -34,9 +35,6 @@ from tests.support.inprocess import (
 pytestmark = pytest.mark.real_machine
 
 StartInProcess = Callable[..., InProcessApp]
-
-SEGMENT_CALLBACK_LATENCY_SEC = 4.0
-"""区切ってから返送が届くまでの時間の決定値。"""
 
 SEGMENTER_LOGGER = "voice_paste.features.recording.segmenter"
 """区切りの部品のロガーの名前。区間を区切るたびに INFO で書く。"""

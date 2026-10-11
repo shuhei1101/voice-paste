@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>録音の画面 | voice-paste のモック</title>
+  <!-- 採用スタイル「開発者ツール」の部品は #37、プリセットのボタンは #44、見出しの行は #48、ホットキーの出し方は #82、配色の案は #94 の共有 CSS に置く -->
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/44/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/48/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/82/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/94/assets/style.css">
+</head>
+<body>
+  <!-- モック専用の操作列: 案のタブ -->
+  <nav class="mock-bar" aria-label="案の切り替え（モック専用）">
+    <span class="mock-bar__label">案</span>
+    <ul><li><a href="../a-cool-gray/index.html">案 A</a></li><li><a href="../b-warm-gray/index.html" aria-current="page">案 B</a></li><li><a href="../c-head-tint/index.html">案 C</a></li></ul>
+  </nav>
+
+  <main class="keys-below">
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">recording-window</a> / <a href="../">94</a> / <span>b-warm-gray</span></nav>
+
+    <!-- 画面の説明 -->
+    <header class="intro">
+      <h1>録音の画面</h1>
+      <p>案 A と同じ考え方で、面を生成り（黄み）のグレー、ダークを茶みの黒にした案。白い背景のアプリとは明るさに加えて色みでも分かれる。並びは #82 の案 A のまま。白・黒の背景のアプリに見立てた地の上に窓を置き、今の配色と並べる。</p>
+    </header>
+
+    <div class="desk desk--wide">
+
+      <!-- 場面: ライト・白い背景のアプリの上 -->
+      <section class="specimen" aria-labelledby="h-light-white">
+        <h2 id="h-light-white">ライト・白い背景のアプリの上</h2>
+        <div class="specimen__scroll">
+        <div class="bgapp bgapp--white pal-warm theme-light">
+          <div class="bgapp__text" aria-hidden="true"><p class="bgapp__title">白い背景のアプリ（エディタ）</p><div class="bgapp__line" style="width:72%"></div><div class="bgapp__line" style="width:88%"></div><div class="bgapp__line" style="width:64%"></div><div class="bgapp__line" style="width:90%"></div><div class="bgapp__line" style="width:58%"></div><div class="bgapp__line" style="width:80%"></div><div class="bgapp__line" style="width:70%"></div><div class="bgapp__line" style="width:92%"></div><div class="bgapp__line" style="width:66%"></div><div class="bgapp__line" style="width:84%"></div><div class="bgapp__line" style="width:60%"></div><div class="bgapp__line" style="width:76%"></div><div class="bgapp__line" style="width:86%"></div><div class="bgapp__line" style="width:62%"></div></div>
+          <div class="win rec rec--fit" role="group" aria-label="録音の画面（ライト・白い背景のアプリの上）">
+            <div class="rec__head rec__head--move" title="ドラッグで動かす">
+              <svg class="grip" viewBox="0 0 12 16" aria-hidden="true"><circle cx="3" cy="3" r="1.4"/><circle cx="9" cy="3" r="1.4"/><circle cx="3" cy="8" r="1.4"/><circle cx="9" cy="8" r="1.4"/><circle cx="3" cy="13" r="1.4"/><circle cx="9" cy="13" r="1.4"/></svg>
+              <span class="state state--rec"><span class="dot" aria-hidden="true"></span>録音中</span>
+              <span class="rec__time num">00:42</span>
+              <span class="head-tools">
+                <a class="btn btn--quiet btn--icon btn--head" href="../../../tray/48/a-show-item/index.html" aria-label="録音の画面を隠す" title="録音の画面を隠す（トレイのアイコンで戻す）"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5h9"/></svg></a>
+                <a class="btn btn--quiet btn--icon btn--head btn--close" href="../../../tray/37/a-standard/index.html" aria-label="取り消す" title="取り消す（Ctrl+Alt+Q）"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></a>
+              </span>
+            </div>
+            <div class="wave" aria-hidden="true"><span style="--h:18%"></span><span style="--h:34%"></span><span style="--h:52%"></span><span style="--h:40%"></span><span style="--h:72%"></span><span style="--h:88%"></span><span style="--h:64%"></span><span style="--h:46%"></span><span style="--h:30%"></span><span style="--h:58%"></span><span style="--h:80%"></span><span style="--h:96%"></span><span style="--h:70%"></span><span style="--h:52%"></span><span style="--h:36%"></span><span style="--h:60%"></span><span style="--h:84%"></span><span style="--h:66%"></span><span style="--h:44%"></span><span style="--h:28%"></span><span style="--h:40%"></span><span style="--h:56%"></span><span style="--h:32%"></span><span style="--h:20%"></span></div>
+            <div class="rec__row">
+              <button class="btn btn--hk btn--pause" type="button">一時停止 <kbd>Ctrl+Alt+Z</kbd></button>
+              <a class="btn btn--hk btn--quiet btn--danger" href="../../../tray/37/a-standard/index.html">取り消す <kbd>Ctrl+Alt+Q</kbd></a>
+            </div>
+            <div class="outs">
+              <a class="btn btn--hk btn--primary" href="../../../transcribing-indicator/37/a-standard/index.html">貼り付けて送信 <kbd>Ctrl+Alt+D</kbd></a>
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">貼り付けのみ <kbd>Ctrl+Alt+V</kbd></a>
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">コピーのみ <kbd>Ctrl+Alt+C</kbd></a>
+            </div>
+            <p class="group-label">カスタムプリセット</p>
+            <div class="outs outs--ai outs--presets">
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">ChatGPT <kbd>Ctrl+Alt+1</kbd></a>
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">Claude <kbd>Ctrl+Alt+3</kbd></a>
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">議事録へ送る <kbd>Ctrl+Alt+4</kbd></a>
+            </div>
+          </div>
+        </div>
+        </div>
+        <p class="scene-note">窓の面は白にせず、濃い縁で白い地との境が分かる。</p>
+      </section>
+      <!-- 場面: 今の配色: ライト・白い背景のアプリの上 -->
+      <section class="specimen" aria-labelledby="h-light-white-now">
+        <h2 id="h-light-white-now">今の配色: ライト・白い背景のアプリの上</h2>
+        <div class="specimen__scroll">
+        <div class="bgapp bgapp--white pal-current theme-light">
+          <div class="bgapp__text" aria-hidden="true"><p class="bgapp__title">白い背景のアプリ（エディタ）</p><div class="bgapp__line" style="width:72%"></div><div class="bgapp__line" style="width:88%"></div><div class="bgapp__line" style="width:64%"></div><div class="bgapp__line" style="width:90%"></div><div class="bgapp__line" style="width:58%"></div><div class="bgapp__line" style="width:80%"></div><div class="bgapp__line" style="width:70%"></div><div class="bgapp__line" style="width:92%"></div><div class="bgapp__line" style="width:66%"></div><div class="bgapp__line" style="width:84%"></div><div class="bgapp__line" style="width:60%"></div><div class="bgapp__line" style="width:76%"></div><div class="bgapp__line" style="width:86%"></div><div class="bgapp__line" style="width:62%"></div></div>
+          <div class="win rec rec--fit" role="group" aria-label="録音の画面（今の配色: ライト・白い背景のアプリの上）">
+            <div class="rec__head rec__head--move" title="ドラッグで動かす">
+              <svg class="grip" viewBox="0 0 12 16" aria-hidden="true"><circle cx="3" cy="3" r="1.4"/><circle cx="9" cy="3" r="1.4"/><circle cx="3" cy="8" r="1.4"/><circle cx="9" cy="8" r="1.4"/><circle cx="3" cy="13" r="1.4"/><circle cx="9" cy="13" r="1.4"/></svg>
+              <span class="state state--rec"><span class="dot" aria-hidden="true"></span>録音中</span>
+              <span class="rec__time num">00:42</span>
+              <span class="head-tools">
+                <a class="btn btn--quiet btn--icon btn--head" href="../../../tray/48/a-show-item/index.html" aria-label="録音の画面を隠す" title="録音の画面を隠す（トレイのアイコンで戻す）"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5h9"/></svg></a>
+                <a class="btn btn--quiet btn--icon btn--head btn--close" href="../../../tray/37/a-standard/index.html" aria-label="取り消す" title="取り消す（Ctrl+Alt+Q）"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></a>
+              </span>
+            </div>
+            <div class="wave" aria-hidden="true"><span style="--h:18%"></span><span style="--h:34%"></span><span style="--h:52%"></span><span style="--h:40%"></span><span style="--h:72%"></span><span style="--h:88%"></span><span style="--h:64%"></span><span style="--h:46%"></span><span style="--h:30%"></span><span style="--h:58%"></span><span style="--h:80%"></span><span style="--h:96%"></span><span style="--h:70%"></span><span style="--h:52%"></span><span style="--h:36%"></span><span style="--h:60%"></span><span style="--h:84%"></span><span style="--h:66%"></span><span style="--h:44%"></span><span style="--h:28%"></span><span style="--h:40%"></span><span style="--h:56%"></span><span style="--h:32%"></span><span style="--h:20%"></span></div>
+            <div class="rec__row">
+              <button class="btn btn--hk btn--pause" type="button">一時停止 <kbd>Ctrl+Alt+Z</kbd></button>
+              <a class="btn btn--hk btn--quiet btn--danger" href="../../../tray/37/a-standard/index.html">取り消す <kbd>Ctrl+Alt+Q</kbd></a>
+            </div>
+            <div class="outs">
+              <a class="btn btn--hk btn--primary" href="../../../transcribing-indicator/37/a-standard/index.html">貼り付けて送信 <kbd>Ctrl+Alt+D</kbd></a>
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">貼り付けのみ <kbd>Ctrl+Alt+V</kbd></a>
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">コピーのみ <kbd>Ctrl+Alt+C</kbd></a>
+            </div>
+            <p class="group-label">カスタムプリセット</p>
+            <div class="outs outs--ai outs--presets">
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">ChatGPT <kbd>Ctrl+Alt+1</kbd></a>
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">Claude <kbd>Ctrl+Alt+3</kbd></a>
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">議事録へ送る <kbd>Ctrl+Alt+4</kbd></a>
+            </div>
+          </div>
+        </div>
+        </div>
+        <p class="scene-note">比べるための今の配色。面が白、縁が淡いグレーで、窓が白い地に溶ける（この見本は Qt で描かない影を外している）。</p>
+      </section>
+      <!-- 場面: ダーク・黒い背景のアプリの上 -->
+      <section class="specimen" aria-labelledby="h-dark-black">
+        <h2 id="h-dark-black">ダーク・黒い背景のアプリの上</h2>
+        <div class="specimen__scroll">
+        <div class="bgapp bgapp--black pal-warm theme-dark">
+          <div class="bgapp__text" aria-hidden="true"><p class="bgapp__title">黒い背景のアプリ（ターミナル）</p><div class="bgapp__line" style="width:72%"></div><div class="bgapp__line" style="width:88%"></div><div class="bgapp__line" style="width:64%"></div><div class="bgapp__line" style="width:90%"></div><div class="bgapp__line" style="width:58%"></div><div class="bgapp__line" style="width:80%"></div><div class="bgapp__line" style="width:70%"></div><div class="bgapp__line" style="width:92%"></div><div class="bgapp__line" style="width:66%"></div><div class="bgapp__line" style="width:84%"></div><div class="bgapp__line" style="width:60%"></div><div class="bgapp__line" style="width:76%"></div><div class="bgapp__line" style="width:86%"></div><div class="bgapp__line" style="width:62%"></div></div>
+          <div class="win rec rec--fit" role="group" aria-label="録音の画面（ダーク・黒い背景のアプリの上）">
+            <div class="rec__head rec__head--move" title="ドラッグで動かす">
+              <svg class="grip" viewBox="0 0 12 16" aria-hidden="true"><circle cx="3" cy="3" r="1.4"/><circle cx="9" cy="3" r="1.4"/><circle cx="3" cy="8" r="1.4"/><circle cx="9" cy="8" r="1.4"/><circle cx="3" cy="13" r="1.4"/><circle cx="9" cy="13" r="1.4"/></svg>
+              <span class="state state--rec"><span class="dot" aria-hidden="true"></span>録音中</span>
+              <span class="rec__time num">00:42</span>
+              <span class="head-tools">
+                <a class="btn btn--quiet btn--icon btn--head" href="../../../tray/48/a-show-item/index.html" aria-label="録音の画面を隠す" title="録音の画面を隠す（トレイのアイコンで戻す）"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5h9"/></svg></a>
+                <a class="btn btn--quiet btn--icon btn--head btn--close" href="../../../tray/37/a-standard/index.html" aria-label="取り消す" title="取り消す（Ctrl+Alt+Q）"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></a>
+              </span>
+            </div>
+            <div class="wave" aria-hidden="true"><span style="--h:18%"></span><span style="--h:34%"></span><span style="--h:52%"></span><span style="--h:40%"></span><span style="--h:72%"></span><span style="--h:88%"></span><span style="--h:64%"></span><span style="--h:46%"></span><span style="--h:30%"></span><span style="--h:58%"></span><span style="--h:80%"></span><span style="--h:96%"></span><span style="--h:70%"></span><span style="--h:52%"></span><span style="--h:36%"></span><span style="--h:60%"></span><span style="--h:84%"></span><span style="--h:66%"></span><span style="--h:44%"></span><span style="--h:28%"></span><span style="--h:40%"></span><span style="--h:56%"></span><span style="--h:32%"></span><span style="--h:20%"></span></div>
+            <div class="rec__row">
+              <button class="btn btn--hk btn--pause" type="button">一時停止 <kbd>Ctrl+Alt+Z</kbd></button>
+              <a class="btn btn--hk btn--quiet btn--danger" href="../../../tray/37/a-standard/index.html">取り消す <kbd>Ctrl+Alt+Q</kbd></a>
+            </div>
+            <div class="outs">
+              <a class="btn btn--hk btn--primary" href="../../../transcribing-indicator/37/a-standard/index.html">貼り付けて送信 <kbd>Ctrl+Alt+D</kbd></a>
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">貼り付けのみ <kbd>Ctrl+Alt+V</kbd></a>
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">コピーのみ <kbd>Ctrl+Alt+C</kbd></a>
+            </div>
+            <p class="group-label">カスタムプリセット</p>
+            <div class="outs outs--ai outs--presets">
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">ChatGPT <kbd>Ctrl+Alt+1</kbd></a>
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">Claude <kbd>Ctrl+Alt+3</kbd></a>
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">議事録へ送る <kbd>Ctrl+Alt+4</kbd></a>
+            </div>
+          </div>
+        </div>
+        </div>
+        <p class="scene-note">面を黒い地より明るくし、明るい縁で境が分かる。</p>
+      </section>
+      <!-- 場面: 今の配色: ダーク・黒い背景のアプリの上 -->
+      <section class="specimen" aria-labelledby="h-dark-black-now">
+        <h2 id="h-dark-black-now">今の配色: ダーク・黒い背景のアプリの上</h2>
+        <div class="specimen__scroll">
+        <div class="bgapp bgapp--black pal-current theme-dark">
+          <div class="bgapp__text" aria-hidden="true"><p class="bgapp__title">黒い背景のアプリ（ターミナル）</p><div class="bgapp__line" style="width:72%"></div><div class="bgapp__line" style="width:88%"></div><div class="bgapp__line" style="width:64%"></div><div class="bgapp__line" style="width:90%"></div><div class="bgapp__line" style="width:58%"></div><div class="bgapp__line" style="width:80%"></div><div class="bgapp__line" style="width:70%"></div><div class="bgapp__line" style="width:92%"></div><div class="bgapp__line" style="width:66%"></div><div class="bgapp__line" style="width:84%"></div><div class="bgapp__line" style="width:60%"></div><div class="bgapp__line" style="width:76%"></div><div class="bgapp__line" style="width:86%"></div><div class="bgapp__line" style="width:62%"></div></div>
+          <div class="win rec rec--fit" role="group" aria-label="録音の画面（今の配色: ダーク・黒い背景のアプリの上）">
+            <div class="rec__head rec__head--move" title="ドラッグで動かす">
+              <svg class="grip" viewBox="0 0 12 16" aria-hidden="true"><circle cx="3" cy="3" r="1.4"/><circle cx="9" cy="3" r="1.4"/><circle cx="3" cy="8" r="1.4"/><circle cx="9" cy="8" r="1.4"/><circle cx="3" cy="13" r="1.4"/><circle cx="9" cy="13" r="1.4"/></svg>
+              <span class="state state--rec"><span class="dot" aria-hidden="true"></span>録音中</span>
+              <span class="rec__time num">00:42</span>
+              <span class="head-tools">
+                <a class="btn btn--quiet btn--icon btn--head" href="../../../tray/48/a-show-item/index.html" aria-label="録音の画面を隠す" title="録音の画面を隠す（トレイのアイコンで戻す）"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5h9"/></svg></a>
+                <a class="btn btn--quiet btn--icon btn--head btn--close" href="../../../tray/37/a-standard/index.html" aria-label="取り消す" title="取り消す（Ctrl+Alt+Q）"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></a>
+              </span>
+            </div>
+            <div class="wave" aria-hidden="true"><span style="--h:18%"></span><span style="--h:34%"></span><span style="--h:52%"></span><span style="--h:40%"></span><span style="--h:72%"></span><span style="--h:88%"></span><span style="--h:64%"></span><span style="--h:46%"></span><span style="--h:30%"></span><span style="--h:58%"></span><span style="--h:80%"></span><span style="--h:96%"></span><span style="--h:70%"></span><span style="--h:52%"></span><span style="--h:36%"></span><span style="--h:60%"></span><span style="--h:84%"></span><span style="--h:66%"></span><span style="--h:44%"></span><span style="--h:28%"></span><span style="--h:40%"></span><span style="--h:56%"></span><span style="--h:32%"></span><span style="--h:20%"></span></div>
+            <div class="rec__row">
+              <button class="btn btn--hk btn--pause" type="button">一時停止 <kbd>Ctrl+Alt+Z</kbd></button>
+              <a class="btn btn--hk btn--quiet btn--danger" href="../../../tray/37/a-standard/index.html">取り消す <kbd>Ctrl+Alt+Q</kbd></a>
+            </div>
+            <div class="outs">
+              <a class="btn btn--hk btn--primary" href="../../../transcribing-indicator/37/a-standard/index.html">貼り付けて送信 <kbd>Ctrl+Alt+D</kbd></a>
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">貼り付けのみ <kbd>Ctrl+Alt+V</kbd></a>
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">コピーのみ <kbd>Ctrl+Alt+C</kbd></a>
+            </div>
+            <p class="group-label">カスタムプリセット</p>
+            <div class="outs outs--ai outs--presets">
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">ChatGPT <kbd>Ctrl+Alt+1</kbd></a>
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">Claude <kbd>Ctrl+Alt+3</kbd></a>
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">議事録へ送る <kbd>Ctrl+Alt+4</kbd></a>
+            </div>
+          </div>
+        </div>
+        </div>
+        <p class="scene-note">比べるための今の配色。面と縁が黒い地に近く、窓の範囲が分かりにくい。</p>
+      </section>
+      <!-- 場面: ライト・一時停止中 -->
+      <section class="specimen" aria-labelledby="h-light-paused">
+        <h2 id="h-light-paused">ライト・一時停止中</h2>
+        <div class="specimen__scroll">
+        <div class="bgapp bgapp--white pal-warm theme-light">
+          <div class="bgapp__text" aria-hidden="true"><p class="bgapp__title">白い背景のアプリ（エディタ）</p><div class="bgapp__line" style="width:72%"></div><div class="bgapp__line" style="width:88%"></div><div class="bgapp__line" style="width:64%"></div><div class="bgapp__line" style="width:90%"></div><div class="bgapp__line" style="width:58%"></div><div class="bgapp__line" style="width:80%"></div><div class="bgapp__line" style="width:70%"></div><div class="bgapp__line" style="width:92%"></div><div class="bgapp__line" style="width:66%"></div><div class="bgapp__line" style="width:84%"></div><div class="bgapp__line" style="width:60%"></div><div class="bgapp__line" style="width:76%"></div><div class="bgapp__line" style="width:86%"></div><div class="bgapp__line" style="width:62%"></div></div>
+          <div class="win rec rec--fit rec--paused" role="group" aria-label="録音の画面（ライト・一時停止中）">
+            <div class="rec__head rec__head--move" title="ドラッグで動かす">
+              <svg class="grip" viewBox="0 0 12 16" aria-hidden="true"><circle cx="3" cy="3" r="1.4"/><circle cx="9" cy="3" r="1.4"/><circle cx="3" cy="8" r="1.4"/><circle cx="9" cy="8" r="1.4"/><circle cx="3" cy="13" r="1.4"/><circle cx="9" cy="13" r="1.4"/></svg>
+              <span class="state state--paused"><span class="dot" aria-hidden="true"></span>一時停止中</span>
+              <span class="rec__time num">02:13</span>
+              <span class="head-tools">
+                <a class="btn btn--quiet btn--icon btn--head" href="../../../tray/48/a-show-item/index.html" aria-label="録音の画面を隠す" title="録音の画面を隠す（トレイのアイコンで戻す）"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5h9"/></svg></a>
+                <a class="btn btn--quiet btn--icon btn--head btn--close" href="../../../tray/37/a-standard/index.html" aria-label="取り消す" title="取り消す（Ctrl+Alt+Q）"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></a>
+              </span>
+            </div>
+            <div class="wave" aria-hidden="true"><span style="--h:18%"></span><span style="--h:34%"></span><span style="--h:52%"></span><span style="--h:40%"></span><span style="--h:72%"></span><span style="--h:88%"></span><span style="--h:64%"></span><span style="--h:46%"></span><span style="--h:30%"></span><span style="--h:58%"></span><span style="--h:80%"></span><span style="--h:96%"></span><span style="--h:70%"></span><span style="--h:52%"></span><span style="--h:36%"></span><span style="--h:60%"></span><span style="--h:84%"></span><span style="--h:66%"></span><span style="--h:44%"></span><span style="--h:28%"></span><span style="--h:40%"></span><span style="--h:56%"></span><span style="--h:32%"></span><span style="--h:20%"></span></div>
+            <div class="rec__row">
+              <button class="btn btn--hk btn--pause" type="button">再開 <kbd>Ctrl+Alt+Z</kbd></button>
+              <a class="btn btn--hk btn--quiet btn--danger" href="../../../tray/37/a-standard/index.html">取り消す <kbd>Ctrl+Alt+Q</kbd></a>
+            </div>
+            <div class="outs">
+              <a class="btn btn--hk btn--primary" href="../../../transcribing-indicator/37/a-standard/index.html">貼り付けて送信 <kbd>Ctrl+Alt+D</kbd></a>
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">貼り付けのみ <kbd>Ctrl+Alt+V</kbd></a>
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">コピーのみ <kbd>Ctrl+Alt+C</kbd></a>
+            </div>
+            <p class="group-label">カスタムプリセット</p>
+            <div class="outs outs--ai outs--presets">
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">ChatGPT <kbd>Ctrl+Alt+1</kbd></a>
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">Claude <kbd>Ctrl+Alt+3</kbd></a>
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">議事録へ送る <kbd>Ctrl+Alt+4</kbd></a>
+            </div>
+          </div>
+        </div>
+        </div>
+        <p class="scene-note">一時停止中の文字・点・波形の色も、新しい面の上で読める濃さにする。</p>
+      </section>
+      <!-- 場面: ダーク・一時停止中 -->
+      <section class="specimen" aria-labelledby="h-dark-paused">
+        <h2 id="h-dark-paused">ダーク・一時停止中</h2>
+        <div class="specimen__scroll">
+        <div class="bgapp bgapp--black pal-warm theme-dark">
+          <div class="bgapp__text" aria-hidden="true"><p class="bgapp__title">黒い背景のアプリ（ターミナル）</p><div class="bgapp__line" style="width:72%"></div><div class="bgapp__line" style="width:88%"></div><div class="bgapp__line" style="width:64%"></div><div class="bgapp__line" style="width:90%"></div><div class="bgapp__line" style="width:58%"></div><div class="bgapp__line" style="width:80%"></div><div class="bgapp__line" style="width:70%"></div><div class="bgapp__line" style="width:92%"></div><div class="bgapp__line" style="width:66%"></div><div class="bgapp__line" style="width:84%"></div><div class="bgapp__line" style="width:60%"></div><div class="bgapp__line" style="width:76%"></div><div class="bgapp__line" style="width:86%"></div><div class="bgapp__line" style="width:62%"></div></div>
+          <div class="win rec rec--fit rec--paused" role="group" aria-label="録音の画面（ダーク・一時停止中）">
+            <div class="rec__head rec__head--move" title="ドラッグで動かす">
+              <svg class="grip" viewBox="0 0 12 16" aria-hidden="true"><circle cx="3" cy="3" r="1.4"/><circle cx="9" cy="3" r="1.4"/><circle cx="3" cy="8" r="1.4"/><circle cx="9" cy="8" r="1.4"/><circle cx="3" cy="13" r="1.4"/><circle cx="9" cy="13" r="1.4"/></svg>
+              <span class="state state--paused"><span class="dot" aria-hidden="true"></span>一時停止中</span>
+              <span class="rec__time num">02:13</span>
+              <span class="head-tools">
+                <a class="btn btn--quiet btn--icon btn--head" href="../../../tray/48/a-show-item/index.html" aria-label="録音の画面を隠す" title="録音の画面を隠す（トレイのアイコンで戻す）"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5h9"/></svg></a>
+                <a class="btn btn--quiet btn--icon btn--head btn--close" href="../../../tray/37/a-standard/index.html" aria-label="取り消す" title="取り消す（Ctrl+Alt+Q）"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></a>
+              </span>
+            </div>
+            <div class="wave" aria-hidden="true"><span style="--h:18%"></span><span style="--h:34%"></span><span style="--h:52%"></span><span style="--h:40%"></span><span style="--h:72%"></span><span style="--h:88%"></span><span style="--h:64%"></span><span style="--h:46%"></span><span style="--h:30%"></span><span style="--h:58%"></span><span style="--h:80%"></span><span style="--h:96%"></span><span style="--h:70%"></span><span style="--h:52%"></span><span style="--h:36%"></span><span style="--h:60%"></span><span style="--h:84%"></span><span style="--h:66%"></span><span style="--h:44%"></span><span style="--h:28%"></span><span style="--h:40%"></span><span style="--h:56%"></span><span style="--h:32%"></span><span style="--h:20%"></span></div>
+            <div class="rec__row">
+              <button class="btn btn--hk btn--pause" type="button">再開 <kbd>Ctrl+Alt+Z</kbd></button>
+              <a class="btn btn--hk btn--quiet btn--danger" href="../../../tray/37/a-standard/index.html">取り消す <kbd>Ctrl+Alt+Q</kbd></a>
+            </div>
+            <div class="outs">
+              <a class="btn btn--hk btn--primary" href="../../../transcribing-indicator/37/a-standard/index.html">貼り付けて送信 <kbd>Ctrl+Alt+D</kbd></a>
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">貼り付けのみ <kbd>Ctrl+Alt+V</kbd></a>
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">コピーのみ <kbd>Ctrl+Alt+C</kbd></a>
+            </div>
+            <p class="group-label">カスタムプリセット</p>
+            <div class="outs outs--ai outs--presets">
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">ChatGPT <kbd>Ctrl+Alt+1</kbd></a>
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">Claude <kbd>Ctrl+Alt+3</kbd></a>
+              <a class="btn btn--hk" href="../../../transcribing-indicator/37/a-standard/index.html">議事録へ送る <kbd>Ctrl+Alt+4</kbd></a>
+            </div>
+          </div>
+        </div>
+        </div>
+        <p class="scene-note">ダークでも同じ。</p>
+      </section>
+      <!-- 色の値の表 -->
+      <section class="specimen specimen--settings" aria-labelledby="h-values">
+        <h2 id="h-values">色の値（tokens.toml の [color.light]・[color.dark]）</h2>
+        <div class="swatches-wrap">
+          <table class="swatches">
+            <thead><tr><th>トークン</th><th>使う場所</th><th>ライト（この案）</th><th>ライト（今）</th><th>ダーク（この案）</th><th>ダーク（今）</th></tr></thead>
+            <tbody>
+              <tr><td><code>bg</code></td><td>地（設定画面の地）</td><td><span class="swatch swatch--changed" style="--c:#ece8df">#ece8df</span></td><td><span class="swatch" style="--c:#f6f8fa">#f6f8fa</span></td><td><span class="swatch swatch--changed" style="--c:#1e1c1a">#1e1c1a</span></td><td><span class="swatch" style="--c:#010409">#010409</span></td></tr>
+              <tr><td><code>surface</code></td><td>窓の面・ボタンの面</td><td><span class="swatch swatch--changed" style="--c:#f4f1ea">#f4f1ea</span></td><td><span class="swatch" style="--c:#ffffff">#ffffff</span></td><td><span class="swatch swatch--changed" style="--c:#262421">#262421</span></td><td><span class="swatch" style="--c:#0d1117">#0d1117</span></td></tr>
+              <tr><td><code>sunken</code></td><td>くぼんだ地（入力欄・キーの枠）</td><td><span class="swatch swatch--changed" style="--c:#ebe6dc">#ebe6dc</span></td><td><span class="swatch" style="--c:#f6f8fa">#f6f8fa</span></td><td><span class="swatch swatch--changed" style="--c:#1e1c1a">#1e1c1a</span></td><td><span class="swatch" style="--c:#010409">#010409</span></td></tr>
+              <tr><td><code>border</code></td><td>中の線（ボタン・欄の区切り）</td><td><span class="swatch swatch--changed" style="--c:#d6cfc2">#d6cfc2</span></td><td><span class="swatch" style="--c:#d1d9e0">#d1d9e0</span></td><td><span class="swatch swatch--changed" style="--c:#48433d">#48433d</span></td><td><span class="swatch" style="--c:#3d444d">#3d444d</span></td></tr>
+              <tr><td><code>frame</code></td><td>窓の外側の縁（新しく足す）</td><td><span class="swatch swatch--changed" style="--c:#8a8173">#8a8173</span></td><td>-</td><td><span class="swatch swatch--changed" style="--c:#8a8278">#8a8278</span></td><td>-</td></tr>
+              <tr><td><code>text</code></td><td>本文</td><td><span class="swatch swatch--changed" style="--c:#1f1d1a">#1f1d1a</span></td><td><span class="swatch" style="--c:#1f2328">#1f2328</span></td><td><span class="swatch swatch--changed" style="--c:#ece6dc">#ece6dc</span></td><td><span class="swatch" style="--c:#f0f6fc">#f0f6fc</span></td></tr>
+              <tr><td><code>text_muted</code></td><td>補足の文</td><td><span class="swatch swatch--changed" style="--c:#5f584d">#5f584d</span></td><td><span class="swatch" style="--c:#59636e">#59636e</span></td><td><span class="swatch swatch--changed" style="--c:#a29a90">#a29a90</span></td><td><span class="swatch" style="--c:#9198a1">#9198a1</span></td></tr>
+              <tr><td><code>accent_fg</code></td><td>リンク・選択</td><td><span class="swatch swatch--changed" style="--c:#0a5cc2">#0a5cc2</span></td><td><span class="swatch" style="--c:#0969da">#0969da</span></td><td><span class="swatch swatch--changed" style="--c:#6ca4f0">#6ca4f0</span></td><td><span class="swatch" style="--c:#4493f8">#4493f8</span></td></tr>
+              <tr><td><code>recording</code></td><td>録音中</td><td><span class="swatch swatch--changed" style="--c:#c4232d">#c4232d</span></td><td><span class="swatch" style="--c:#d1242f">#d1242f</span></td><td><span class="swatch swatch--changed" style="--c:#ff6a69">#ff6a69</span></td><td><span class="swatch" style="--c:#f85149">#f85149</span></td></tr>
+              <tr><td><code>paused</code></td><td>一時停止中</td><td><span class="swatch swatch--changed" style="--c:#7f5900">#7f5900</span></td><td><span class="swatch" style="--c:#9a6700">#9a6700</span></td><td><span class="swatch swatch--changed" style="--c:#d6a03a">#d6a03a</span></td><td><span class="swatch" style="--c:#d29922">#d29922</span></td></tr>
+              <tr><td><code>busy</code></td><td>文字起こし中</td><td><span class="swatch swatch--changed" style="--c:#0a5cc2">#0a5cc2</span></td><td><span class="swatch" style="--c:#0969da">#0969da</span></td><td><span class="swatch swatch--changed" style="--c:#6ca4f0">#6ca4f0</span></td><td><span class="swatch" style="--c:#4493f8">#4493f8</span></td></tr>
+              <tr><td><code>success</code></td><td>成功</td><td><span class="swatch swatch--changed" style="--c:#18742f">#18742f</span></td><td><span class="swatch" style="--c:#1a7f37">#1a7f37</span></td><td><span class="swatch swatch--changed" style="--c:#62b265">#62b265</span></td><td><span class="swatch" style="--c:#3fb950">#3fb950</span></td></tr>
+              <tr><td><code>danger</code></td><td>エラー・取り消す</td><td><span class="swatch swatch--changed" style="--c:#c4232d">#c4232d</span></td><td><span class="swatch" style="--c:#d1242f">#d1242f</span></td><td><span class="swatch swatch--changed" style="--c:#ff6a69">#ff6a69</span></td><td><span class="swatch" style="--c:#f85149">#f85149</span></td></tr>
+              <tr><td><code>danger_bg</code></td><td>エラーの地</td><td><span class="swatch swatch--changed" style="--c:#fbe9e4">#fbe9e4</span></td><td><span class="swatch" style="--c:#ffebe9">#ffebe9</span></td><td><span class="swatch swatch--changed" style="--c:#2e2220">#2e2220</span></td><td><span class="swatch" style="--c:#25171c">#25171c</span></td></tr>
+              <tr><td><code>notice_bg</code></td><td>知らせの地</td><td><span class="swatch swatch--changed" style="--c:#f8efc4">#f8efc4</span></td><td><span class="swatch" style="--c:#fff8c5">#fff8c5</span></td><td><span class="swatch swatch--changed" style="--c:#2f2a1e">#2f2a1e</span></td><td><span class="swatch" style="--c:#272115">#272115</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="scene-note">太字は今の値から変える色。primary・primary_hover・on_primary・on_primary_line は今の値のまま。frame は窓の外側の縁にだけ使い、今は border で描いている。</p>
+      </section>
+
+    </div>
+  </main>
+</body>
+</html>

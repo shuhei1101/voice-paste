@@ -1,0 +1,302 @@
+/* ===== PR 94 の画面モック: 明暗ごとの配色の案と、背景のアプリに見立てた地（refs/37・44・48・82 の style.css に重ねる） ===== */
+
+/* ===== 配色の案 =====
+   トークンの名前は tokens.toml の [color.*] に対応する:
+   --page = bg / --surface = surface / --sunken = sunken / --text = text / --text-2 = text_muted / --line = border
+   --frame は窓の外側の縁に使う、新しく足すトークン（frame）。ボタンの面（--surface-2）と線（--line-strong）は surface・border と同じ値にする */
+
+/* 今の配色（ライト）: 比べるために今の tokens.toml の値を置く */
+.pal-current.theme-light {
+  --page: #f6f8fa;
+  --surface: #ffffff;
+  --surface-2: #ffffff;
+  --sunken: #f6f8fa;
+  --text: #1f2328;
+  --text-2: #59636e;
+  --line: #d1d9e0;
+  --line-strong: #d1d9e0;
+  --frame: #d1d9e0;
+  --accent: #1f883d;
+  --accent-hover: #1c8139;
+  --accent-text: #ffffff;
+  --accent-fg: #0969da;
+  --rec: #d1242f;
+  --paused: #9a6700;
+  --busy: #0969da;
+  --ok: #1a7f37;
+  --error: #d1242f;
+  --error-bg: #ffebe9;
+  --notice-bg: #fff8c5;
+}
+
+/* 今の配色（ダーク） */
+.pal-current.theme-dark {
+  --page: #010409;
+  --surface: #0d1117;
+  --surface-2: #0d1117;
+  --sunken: #010409;
+  --text: #f0f6fc;
+  --text-2: #9198a1;
+  --line: #3d444d;
+  --line-strong: #3d444d;
+  --frame: #3d444d;
+  --accent: #238636;
+  --accent-hover: #29903b;
+  --accent-text: #ffffff;
+  --accent-fg: #4493f8;
+  --rec: #f85149;
+  --paused: #d29922;
+  --busy: #4493f8;
+  --ok: #3fb950;
+  --error: #f85149;
+  --error-bg: #25171c;
+  --notice-bg: #272115;
+}
+
+/* 案 A・案 C（ライト）: 青みのグレーの面に、濃いグレーの縁 */
+.pal-cool.theme-light {
+  --page: #e6eaef;
+  --surface: #eef1f4;
+  --surface-2: #eef1f4;
+  --sunken: #e3e8ed;
+  --text: #1f2328;
+  --text-2: #59636e;
+  --line: #c8d1da;
+  --line-strong: #c8d1da;
+  --frame: #818b98;
+  --accent: #1f883d;
+  --accent-hover: #1c8139;
+  --accent-text: #ffffff;
+  --accent-fg: #0a5cc2;
+  --rec: #cf222e;
+  --paused: #875e00;
+  --busy: #0a5cc2;
+  --ok: #18742f;
+  --error: #cf222e;
+  --error-bg: #ffebe9;
+  --notice-bg: #fff8c5;
+  --head-rec: #fcebec;
+  --head-paused: #f6ecd2;
+}
+
+/* 案 A・案 C（ダーク）: 今より明るい黒の面に、明るいグレーの縁 */
+.pal-cool.theme-dark {
+  --page: #1c2128;
+  --surface: #22272e;
+  --surface-2: #22272e;
+  --sunken: #1c2128;
+  --text: #e6edf3;
+  --text-2: #9198a1;
+  --line: #3d444d;
+  --line-strong: #3d444d;
+  --frame: #768390;
+  --accent: #238636;
+  --accent-hover: #29903b;
+  --accent-text: #ffffff;
+  --accent-fg: #539bf5;
+  --rec: #ff6a69;
+  --paused: #d29922;
+  --busy: #539bf5;
+  --ok: #57ab5a;
+  --error: #ff6a69;
+  --error-bg: #2d2023;
+  --notice-bg: #2e2a1f;
+  --head-rec: #3d2326;
+  --head-paused: #3a3020;
+}
+
+/* 案 B（ライト）: 生成りの面に、濃い茶寄りのグレーの縁 */
+.pal-warm.theme-light {
+  --page: #ece8df;
+  --surface: #f4f1ea;
+  --surface-2: #f4f1ea;
+  --sunken: #ebe6dc;
+  --text: #1f1d1a;
+  --text-2: #5f584d;
+  --line: #d6cfc2;
+  --line-strong: #d6cfc2;
+  --frame: #8a8173;
+  --accent: #1f883d;
+  --accent-hover: #1c8139;
+  --accent-text: #ffffff;
+  --accent-fg: #0a5cc2;
+  --rec: #c4232d;
+  --paused: #7f5900;
+  --busy: #0a5cc2;
+  --ok: #18742f;
+  --error: #c4232d;
+  --error-bg: #fbe9e4;
+  --notice-bg: #f8efc4;
+}
+
+/* 案 B（ダーク）: 茶みの黒の面に、明るい茶寄りのグレーの縁 */
+.pal-warm.theme-dark {
+  --page: #1e1c1a;
+  --surface: #262421;
+  --surface-2: #262421;
+  --sunken: #1e1c1a;
+  --text: #ece6dc;
+  --text-2: #a29a90;
+  --line: #48433d;
+  --line-strong: #48433d;
+  --frame: #8a8278;
+  --accent: #238636;
+  --accent-hover: #29903b;
+  --accent-text: #ffffff;
+  --accent-fg: #6ca4f0;
+  --rec: #ff6a69;
+  --paused: #d6a03a;
+  --busy: #6ca4f0;
+  --ok: #62b265;
+  --error: #ff6a69;
+  --error-bg: #2e2220;
+  --notice-bg: #2f2a1e;
+}
+
+/* 配色の案を当てた見本: 文字とフォームの部品の色を案の値で指定し直す（body で決まった色を受け継がない） */
+.pal-current, .pal-cool, .pal-warm {
+  color: var(--text);
+  accent-color: var(--accent-fg);
+  color-scheme: light;
+}
+
+/* 暗い配色の見本: フォームの部品を暗い見た目で描く */
+.theme-dark {
+  color-scheme: dark;
+}
+
+/* ===== 背景のアプリの見立て ===== */
+
+/* 背景のアプリ: 録音の画面の後ろにある、白か黒の地のアプリ。窓の範囲が地から分かるかを見る */
+.bgapp {
+  position: relative;
+  display: grid;
+  padding: 28px 24px 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+/* 白い背景のアプリ（エディタやブラウザの白い地） */
+.bgapp--white {
+  background: #ffffff;
+  --bgapp-line: #e6e8eb;
+  --bgapp-text: #57606a;
+}
+
+/* 黒い背景のアプリ（ターミナルの黒い地） */
+.bgapp--black {
+  background: #0c0c0c;
+  --bgapp-line: #262626;
+  --bgapp-text: #8b949e;
+}
+
+/* 背景のアプリの中身の見立て: 文の行を後ろに敷く */
+.bgapp__text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 14px;
+  font-size: 11px;
+  color: var(--bgapp-text);
+}
+
+/* 背景のアプリの名前の行 */
+.bgapp__title {
+  margin: 0;
+}
+
+/* 背景のアプリの文の行 */
+.bgapp__line {
+  height: 8px;
+  border-radius: 2px;
+  background: var(--bgapp-line);
+}
+
+/* 背景のアプリの上の窓: 文の行の上に重ねる */
+.bgapp .win {
+  position: relative;
+  justify-self: center;
+}
+
+/* 背景のアプリの上の窓: 縁を frame の色にし、Qt で描かない影を外す */
+.bgapp .win.rec, .bgapp .win.settings {
+  border-color: var(--frame);
+  box-shadow: none;
+}
+
+/* 背景のアプリの上の設定画面: 窓の幅いっぱいに置く */
+.bgapp .win.settings {
+  justify-self: stretch;
+}
+
+/* ===== 録音の画面 ===== */
+
+/* 一時停止中の波形: 棒を一時停止中の色にする */
+.rec--paused .wave span {
+  background: var(--paused);
+}
+
+/* 案 C: 見出しの行に状態の色を薄めた地を敷く */
+.head-tint .rec__head--move {
+  background: var(--head-rec);
+}
+
+/* 案 C: 一時停止中の見出しの行 */
+.head-tint.rec--paused .rec__head--move {
+  background: var(--head-paused);
+}
+
+/* ===== 色の値の表 ===== */
+
+/* 色の値の表: トークンと明暗ごとの値を並べる */
+.swatches {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  th { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; font-weight: 600; color: var(--text-2); white-space: nowrap; }
+  td { padding: 4px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+}
+
+/* 色の値の表を横に流す枠 */
+.swatches-wrap {
+  overflow-x: auto;
+}
+
+/* 色の値: 色の見本と値を並べる */
+.swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+
+/* 色の見本の四角 */
+.swatch::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border: 1px solid rgb(127 127 127 / 0.5);
+  border-radius: 3px;
+  background: var(--c);
+}
+
+/* 今の値から変えた値: 太字で示す */
+.swatch--changed {
+  font-weight: 600;
+}
+
+/* 色の値の表のトークン名 */
+.swatches code {
+  font-family: var(--font-mono);
+}
+
+/* ===== 設定画面 ===== */
+
+/* 設定画面の見本の窓: 高さを中身に任せる */
+.bgapp .settings--full {
+  max-height: none;
+}

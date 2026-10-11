@@ -450,9 +450,9 @@ functions:
       - name: test_wire_outputs_when_settings_changed
         case: 正常
         summary: 配線の後に変えた設定が次の届け方に効く
-        condition: 配線の後に get_settings が返す設定を paste_key `<ctrl>+<alt>+v`・enter_delay_sec 1.0 に差し替える
+        condition: 配線の後に get_settings が返す設定を paste_key `<ctrl>+<alt>+v`・enter_delay_sec 1.0・enter_modifiers ["ctrl"] に差し替える
         mock: copy_to_clipboard・send_paste・send_enter・time.sleep
-        expected: paste_and_send の handler を呼ぶと send_paste に `<ctrl>+<alt>+v`、sleep に 1.0 が渡る
+        expected: paste_and_send の handler を呼ぶと send_paste に `<ctrl>+<alt>+v`、sleep に 1.0、send_enter に ("ctrl",) が渡る
       - name: test_wire_outputs_when_registered_output
         case: 正常
         summary: 登録しただけの出力先も、その inject が選んだもので配線される

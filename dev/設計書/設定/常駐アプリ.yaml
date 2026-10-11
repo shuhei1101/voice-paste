@@ -555,7 +555,7 @@ settings:
     description: paste_and_send だけが持つ。貼り付けて `enter_delay_sec` の秒数を置いた後、並べた修飾キーを押したまま Enter を送る。空なら Enter だけを送る。ブラウザ添付種類の、Enter まで送るプリセットには当てない。
     missing: 空として読む
     reload: immediate
-    allowed: "'ctrl'・'alt'・'shift' のうち重ならない 0〜3 個。並びは問わず、押す順は Ctrl・Alt・Shift に揃える"
+    allowed: "'ctrl'・'alt'・'shift' の値だけ。並びと重なりは問わず、押す順は Ctrl・Alt・Shift に揃える"
     status: planned
     implementation: src/voice_paste/features/outputs/paste_and_send/settings.py
 notes:

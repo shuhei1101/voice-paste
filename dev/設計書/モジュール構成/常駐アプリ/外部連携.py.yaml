@@ -515,23 +515,46 @@ functions:
     container: integrations/keyboard/sender.py
     usecase: 起こした文字を届ける
     scope: public
-    summary: pynput で Enter を今のアクティブなウィンドウへ送る（待ちは呼ぶ側が置く）
+    inherits: SendEnterFn
+    summary: pynput で、渡した修飾キーを押したまま Enter を今のアクティブなウィンドウへ送る（待ちは呼ぶ側が置く）
+    args:
+      - name: modifiers
+        type: Sequence[EnterModifier]
+        required: false
+        default: ()
+        passing: positional
+        description: 一緒に押す修飾キー。並びと重なりは問わない
     returns:
       type: None
       description: なし
     process: |-
-      1. Enter を押して離す
-         - `[INFO]` Enter を送った
+      1. modifiers を ENTER_MODIFIER_KEYS の並び（Ctrl・Alt・Shift）に揃え、重なりを除く
+      2. 修飾キーを順に押し、Enter を押して離し、修飾キーを逆順に離す（修飾キーが無ければ Enter だけ）
+         - 押している途中で例外が起きても、押した修飾キーは離してから送出する（押されたままにしない）
+         - `[INFO]` Enter を送った（修飾キー: {揃えた修飾キー。無ければ「なし」}）
     refs:
       - dev/設計書/外部ライブラリ/pynput#
     status: implemented
     unit_tests:
       - name: test_send_enter
         case: 正常
-        summary: Enter を押して離す
-        condition: なし
+        summary: 修飾キーが無ければ Enter を押して離す
+        condition: 引数なし
         mock: pynput.keyboard.Controller
         expected: press(Key.enter)・release(Key.enter) の順に 1 回ずつ呼ばれる
+      - name: test_send_enter_when_modifiers
+        case: 正常
+        summary: 修飾キーを Ctrl・Alt・Shift の順に押し、逆順に離す
+        condition: modifiers が ("shift", "ctrl", "shift")
+        mock: pynput.keyboard.Controller
+        expected: press(ctrl)・press(shift)・press(Key.enter)・release(Key.enter)・release(shift)・release(ctrl) の順に呼ばれる
+      - name: test_send_enter_when_press_failed
+        case: 異常
+        summary: 途中で失敗しても押した修飾キーを離す
+        condition: modifiers が ("ctrl",)、press(Key.enter) が例外を送出する
+        mock: pynput.keyboard.Controller
+        expected: 例外が送出され、release(ctrl) が呼ばれている
+        exception: キーを押せない
   - name: _fade_to
     title: 音量を変える
     kind: 関数
@@ -863,6 +886,13 @@ constants:
     status: planned
     introduced:
       pr: 78
+  - name: ENTER_MODIFIER_KEYS
+    title: Enter と一緒に押す修飾キーの対応
+    container: integrations/keyboard/sender.py
+    usecase: 起こした文字を届ける
+    summary: EnterModifier の値と押す pynput のキー。並びが押す順（Ctrl・Alt・Shift）
+    value: '{"ctrl": Key.ctrl, "alt": Key.alt, "shift": Key.shift}'
+    status: planned
 test_files:
   - tests/unit/voice_paste/integrations/whisper/test_client.py
   - tests/unit/voice_paste/integrations/volume/test_adapter.py

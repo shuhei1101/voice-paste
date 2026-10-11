@@ -9,13 +9,14 @@ directory: |-
   ├── controller.py                 # UiController（知らせを画面・トレイへ振り分ける）・UiDeps
   ├── tray.py                       # Tray（アイコン・メニュー・通知）・TrayState
   ├── placement.py                  # place_window（カーソルのあるモニターの設定の位置）
-  ├── style.py                      # build_stylesheet（tokens.toml から QSS を作る）・resolve_dark・apply_theme・theme_color（画面の明暗）
+  ├── style.py                      # build_stylesheet（tokens.toml から QSS を作る）・is_dark_theme・resolve_dark・apply_theme・theme_color（画面の明暗）
   ├── tokens.toml                   # 色・書体・余白のトークン（デザイン方針）
   └── windows/
       ├── recording_window.py       # RecordingWindow
       ├── transcribing_indicator.py # TranscribingIndicator
       ├── busy_dialog.py            # show_busy_dialog
       ├── settings_window.py        # SettingsWindow・confirm_discard・confirm_reset・PRESET_KIND_NAMES
+      ├── settings_fields.py        # make_radio_group・selected_radio など設定画面の欄の部品
       └── settings_presets.py       # PresetListPanel（設定画面の種類ごとのタブのプリセットの一覧）
   resources/tray/
   └── starting.png・idle.png・recording.png・transcribing.png・failed.png  # トレイのアイコン（状態ごと）
@@ -691,6 +692,7 @@ classes:
     description: |-
       要素は画面設計「録音の画面」が持つ。
       窓は `Qt.Tool | Qt.FramelessWindowHint`（`ui.topmost` がオンなら `Qt.WindowStaysOnTopHint` を足す）、`WA_ShowWithoutActivating` で出し、出したときにフォーカスを取らない。
+      窓の外側の枠（Surface）の role は `window` にし、縁を frame で描かせる（`surface` は設定画面の中の枠と共有するため使わない）。
       経過時間は窓が持つストップウォッチ（QElapsedTimer を一時停止の間だけ止める）で数え、経過時間と波形は WAVE_INTERVAL_MS ごとの QTimer で描き直す。
       見出しの行（状態・経過時間・隠す・×）は、隠す・× の外を押したまま動かすと `QWindow.startSystemMove` で窓を動かし、その回に動かした印を立てる（open で下ろす）。× は「取り消す」と同じく UiDeps.cancel を呼んで閉じ、「隠す」は hide_requested を emit する（隠すのは UiController）。
       コンストラクタは UiDeps を受ける。
@@ -778,7 +780,7 @@ classes:
     role: 画面
     summary: 確定から届けるまで、経過と残りの時間・進みをフォーカスを取らずに出す
     description: |-
-      要素は画面設計「文字起こし中の表示」が持つ。窓は `Qt.Tool | Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus` と `WA_ShowWithoutActivating` で出す。
+      要素は画面設計「文字起こし中の表示」が持つ。窓は `Qt.Tool | Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus` と `WA_ShowWithoutActivating` で出す。窓の外側の枠の role は `window` にし、縁を frame で描かせる。
       残りの時間は、進み（区間の終わり ÷ 録音の長さ）と経過から「経過 ÷ 進み − 経過」で見積もる。
       コンストラクタは UiDeps と、経過を数える時計 clock（秒を返す関数。既定は time.monotonic）を受ける。
     kind: クラス
@@ -799,6 +801,13 @@ classes:
         returns:
           type: None
           description: なし
+        unit_tests:
+          - name: test_open_when_window_role
+            case: 正常
+            summary: 窓の外側の枠の role が window
+            condition: open する。QT_QPA_PLATFORM=offscreen
+            mock: UiDeps
+            expected: 外側の枠の property("role") が window
       - name: set_progress
         title: 進みの反映
         summary: 進みのバーと残りの時間を書き換える
@@ -844,10 +853,11 @@ classes:
     summary: Settings のモデルから欄を組み立て、9 つのまとまりに並べ、保存で確かめてから書く
     description: |-
       要素と入力チェックは画面設計「設定画面」が持つ。
-      欄は `Settings.model_fields` を辿って型から部品を決め、欄の名前は各項目の `description`、「再起動で反映」の印は `json_schema_extra` の reload から出す。まとまりと型から決まらない部品は画面設計の補足「まとまりと欄」の表を FIELD_LAYOUT に写す。
+      欄は `Settings.model_fields` を辿って型から部品を決め、欄の名前は各項目の `description`、「再起動で反映」の印は `json_schema_extra` の reload から出す。まとまりと型から決まらない部品は画面設計の補足「まとまりと欄」の表を FIELD_LAYOUT に写す（「画面」のまとまりは `ui.theme` を先頭に置く）。
       設定のモデルは開いたときの設定のモデル（`type(設定)`。main.py の SETTINGS_MODEL）を使い、失敗の場所の判別子の値から出力先のモデルをその output_models で引く。
       出力先は outputs[] の 1 件ごとに、名前を UiDeps.output_titles から引いて「オン」と「ホットキー」の欄を置き、その出力先のモデルが id・enabled・hotkey のほかに持つ項目（貼り付けて送信の enter_delay_sec など）を型から決めた部品で並べる。その項目の `json_schema_extra` に note があれば欄の下に出す（出力先の ID ごとの分け方を持たない）。
       リテラルの列挙の一覧（貼り付けて送信の enter_modifiers など）は、列挙の値ごとのチェックボックスを欄の名前の下の行に横に並べ、オンにした値を列挙の並びで一覧にする。チェックボックスの名前はその項目の `json_schema_extra` の choice_labels（無ければ値そのまま）、objectName は `field_{キー}_{値}`。
+      リテラルの列挙の 1 つを選ぶ欄（ui.position・ui.theme など）は make_radio_group にその項目の choice_labels を渡してラジオボタンの名前にし、保存では selected_radio が返す値を設定に入れる。
       カスタムプリセットは、PRESET_KIND_NAMES の種類ごとにまとまり（「出力先」のすぐ下のタブ）を 1 つ作り、その中に PresetListPanel とその種類の preset_options の欄を置く。Authorization の欄は `QLineEdit.EchoMode.Password` にする。
       エラーの一覧のプリセットの行は、失敗の場所 `presets[{n}].{項目}` を「プリセット「{タイトル}」の{欄の名前}」（タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」）にし、押すとそのタブへ切り替えて PresetListPanel.focus_field で欄へフォーカスを移す。
       ホットキーの欄は押したキーを format_hotkey の形で出し、parse_hotkey で pynput の書式に戻す。
@@ -945,6 +955,12 @@ classes:
             condition: 「Enter と一緒に押す修飾キー」の「Shift」と「Ctrl」をこの順にオンにして save(restart=False)
             mock: UiDeps.save_settings
             expected: True。save_settings に渡った Settings の貼り付けて送信の enter_modifiers が ["ctrl", "shift"]。チェックボックスの名前が「Ctrl」「Alt」「Shift」
+          - name: test_save_when_theme
+            case: 正常
+            summary: 明暗の欄で選んだ値を保存する
+            condition: ui.theme=system の設定で開き、「画面」のまとまりの「ライト」を選んで保存する。QT_QPA_PLATFORM=offscreen
+            mock: UiDeps.save_settings
+            expected: save_settings に ui.theme=light の設定が渡る
       - name: reset_to_defaults
         title: 既定に戻す
         summary: confirm_reset で確かめ、戻すなら開いたときの設定と同じ設定のモデルの既定値（`type(開いたときの設定)()`）を書いて欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す
@@ -1203,7 +1219,7 @@ functions:
     title: スタイルシートの組み立て
     container: ui/style.py
     usecase: 共通
-    summary: tokens.toml（デザイン方針の色・書体・余白）を QSS に埋め、アプリ全体のスタイルシートを返す。部品ごとに色・書体を直書きしない。枠なしの窓（録音の画面・文字起こし中の表示）の外側の枚 `QFrame[role="window"]` と `QMenu` は、面を surface、縁を frame の 1px の線で描き、ほかの線は border のままにする
+    summary: tokens.toml（デザイン方針の色・書体・余白）を QSS に埋め、アプリ全体のスタイルシートを返す。部品ごとに色・書体を直書きしない。枠なしの窓（録音の画面・文字起こし中の表示）の外側の枠 `QFrame[role="window"]` と `QMenu` は、面を surface、縁を frame の 1px の線で描き、ほかの線は border のままにする
     kind: 関数
     scope: public
     args:
@@ -1524,7 +1540,7 @@ functions:
     container: ui/style.py
     usecase: 共通
     summary: apply_theme で当てた明暗の組の色のトークンを、描画に使う色で返す
-    description: 録音の画面の状態の印・波形・閉じるボタンと、文字起こし中の表示の回る印が描くたびに呼ぶ。apply_theme をまだ呼んでいなければ OS の明暗（is_dark_theme）の組を使う
+    description: 録音の画面の状態の印・波形・閉じるボタンと、文字起こし中の表示の回る印が描くたびに呼ぶ。今は呼ぶたびに OS の明暗を読むが、apply_theme が控えた `_current_dark` の組を返す形に変える。apply_theme をまだ呼んでいなければ OS の明暗（is_dark_theme）の組を使う
     kind: 関数
     scope: public
     args:
@@ -1543,6 +1559,88 @@ functions:
         condition: name=busy。`_current_dark` が未設定
         mock: is_dark_theme（True）
         expected: tokens.toml の dark の busy の色
+      - name: test_theme_color_when_applied
+        case: 正常
+        summary: apply_theme の後は当てた明暗の組
+        condition: name=busy。apply_theme(app, "light") の後。QT_QPA_PLATFORM=offscreen
+        mock: is_dark_theme（True）
+        expected: tokens.toml の light の busy の色
+    status: planned
+  - name: is_dark_theme
+    title: OS の明暗
+    container: ui/style.py
+    usecase: 共通
+    summary: OS が暗いテーマかを返す（`QGuiApplication.styleHints().colorScheme()` が Dark か）
+    kind: 関数
+    scope: public
+    returns:
+      type: bool
+      description: OS が暗いテーマなら True
+    status: implemented
+  - name: make_radio_group
+    title: ラジオボタンの組の組み立て
+    container: ui/windows/settings_fields.py
+    usecase: 設定を変える
+    summary: リテラルの列挙の 1 つを選ぶ欄のラジオボタンを横に並べた QWidget を返す。ボタンの名前は labels（無ければ値そのまま）にし、値はボタンに持たせて selected_radio で読む。単体テストは test_settings_window.py に置く
+    kind: 関数
+    scope: public
+    args:
+      - name: choices
+        type: tuple[str, ...]
+        required: true
+        passing: positional
+        description: 列挙の値（並べる順）
+      - name: current
+        type: str
+        required: true
+        passing: positional
+        description: 今の値（そのボタンを選んだ状態にする）
+      - name: labels
+        type: Mapping[str, str] | None
+        required: false
+        default: None
+        passing: keyword
+        description: 値 → ボタンの名前（項目の `json_schema_extra` の choice_labels）。無い値は値そのままを名前にする
+    returns:
+      type: QWidget
+      description: ラジオボタンの組
+    unit_tests:
+      - name: test_make_radio_group_when_labels
+        case: 正常
+        summary: ボタンの名前を labels から出す
+        condition: 'choices=(system, light, dark)、current=light、labels={system: Windows の設定に従う, light: ライト, dark: ダーク}。QT_QPA_PLATFORM=offscreen'
+        mock: なし
+        expected: ボタンの名前が「Windows の設定に従う」「ライト」「ダーク」の順で、「ライト」だけが選ばれている
+      - name: test_make_radio_group_when_no_labels
+        case: 正常
+        summary: labels が無ければ値をそのまま名前にする
+        condition: choices=(center, top-left)、current=center、labels なし。QT_QPA_PLATFORM=offscreen
+        mock: なし
+        expected: ボタンの名前が「center」「top-left」で、「center」が選ばれている
+    status: implemented
+  - name: selected_radio
+    title: 選んだラジオボタンの値
+    container: ui/windows/settings_fields.py
+    usecase: 設定を変える
+    summary: make_radio_group の組で選んでいるボタンの値（名前ではなく列挙の値）を返す。単体テストは test_settings_window.py に置く
+    kind: 関数
+    scope: public
+    args:
+      - name: container
+        type: QWidget
+        required: true
+        passing: positional
+        description: make_radio_group が返した組
+    returns:
+      type: str
+      description: 選んでいるボタンの値。どれも選んでいなければ空の文字
+    unit_tests:
+      - name: test_selected_radio_when_labels
+        case: 正常
+        summary: 名前ではなく値を返す
+        condition: test_make_radio_group_when_labels と同じ組で「ダーク」を選ぶ。QT_QPA_PLATFORM=offscreen
+        mock: なし
+        expected: dark
     status: implemented
 notes:
   画面が触ってよいもの: |-

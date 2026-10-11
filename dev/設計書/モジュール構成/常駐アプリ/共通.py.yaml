@@ -388,7 +388,7 @@ data_models:
       - name: theme
         type: Literal["system", "light", "dark"]
         default: system
-        description: 画面の明暗。`system` は OS の明暗に従う。反映は immediate。設定画面の「画面」のまとまりの先頭に出すため、項目の先頭に置く
+        description: 画面の明暗。`system` は OS の明暗に従う。反映は immediate。設定画面は `json_schema_extra` の choice_labels（system → Windows の設定に従う・light → ライト・dark → ダーク）でラジオボタンの名前を出す
       - name: topmost
         type: bool
         default: 'True'

@@ -77,6 +77,9 @@ scenarios:
         description: なし（実機の Windows と Microsoft Edge で実行）
       - name: プリセット
         description: 種類「ブラウザ添付」・Enter まで送るをオンにしたプリセットを 1 つ足し、録音する でそのプリセットを選んだ
+      - name: Enter と一緒に押す修飾キー
+        description: 設定画面の「貼り付けて送信」で Ctrl をオンにした（ブラウザ添付のプリセットには当てない）
+        notes: '`outputs[paste_and_send]` の修飾キーの項目'
     flow: |-
       ```mermaid
       sequenceDiagram
@@ -95,6 +98,7 @@ scenarios:
     expected:
       - プリセットの URL の画面がアプリのウィンドウとして開いている
       - その画面の入力欄に起こした文字が入り、送信されている
+      - Enter は修飾キーを押さずに送られている
   - name: 正常シナリオ（呼び出し元へ返す）
     setup:
       - name: Mock

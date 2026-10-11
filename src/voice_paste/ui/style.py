@@ -77,7 +77,7 @@ QLabel[role="keycap"] {
 QPushButton[primary="true"] QLabel[role="keycap"] {
     color: @on_primary@;
     background-color: transparent;
-    border-color: rgba(255, 255, 255, 90);
+    border-color: @on_primary_line@;
 }
 QWidget[role="head_row"] { background-color: transparent; border-radius: @radius@px; }
 QWidget[role="head_row"]:hover { background-color: @sunken@; }

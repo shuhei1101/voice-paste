@@ -33,14 +33,20 @@ class TranscriptionOutcome:
     session_id: str
     """セッションの ID。"""
 
-    result: Literal["transcribed", "failed", "truncated"]
-    """結果の種類。"""
+    result: Literal["transcribed", "failed", "truncated", "completed"]
+    """結果の種類。completed は連続録音を完了し、全ての区間を届け終えたときだけ。"""
 
     text: str
-    """用語集で補正した文字。空・失敗・打ち切りは空文字。"""
+    """用語集で補正した文字。空・失敗・打ち切り・完了は空文字。"""
 
     error: str | None
     """失敗の理由。"""
+
+    segment_number: int | None = None
+    """連続録音の区間の通し番号（1 始まり）。連続録音の transcribed・failed だけが持つ。"""
+
+    segment_count: int | None = None
+    """連続録音で区切った区間の数。連続録音の終わり（completed・truncated、区切りに失敗して止めたときの failed）だけが持つ。"""
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -55,3 +61,21 @@ class Recording:
 
     duration_sec: float
     """録音の長さ（一時停止の間を除く）。"""
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Segment:
+    """連続録音で区切った 1 区間の音。録音が作り、セッションが受ける。"""
+
+    recording: Recording
+    """区間の音（16 kHz・モノラル・int16）。"""
+
+    reason: Literal["silence", "max_length", "flush"]
+    """区切った理由。silence: 話し声の後の無音、max_length: 区間の最大の長さ、flush: 録音を止めたときの残り。"""
+
+
+type OnSegmentFn = Callable[[Segment], None]
+"""区切った区間を区切った順に受け取る関数。録音の区切りのスレッドから呼ばれる。"""
+
+type OnContinuousFailedFn = Callable[[str], None]
+"""区切りに失敗して連続録音を止めたことを、理由を添えて受け取る関数。録音の区切りのスレッドから呼ばれる。"""

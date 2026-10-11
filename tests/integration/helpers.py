@@ -28,6 +28,7 @@ import httpx
 import numpy as np
 import pytest
 
+from tests.unit.voice_paste.features.recording.helpers import ScriptedDetector, windows
 from voice_paste.features.correction import apply_glossary
 from voice_paste.features.history import append_text, discard_temporary, save_recording
 from voice_paste.features.outputs import OUTPUTS, deliver, is_callback_allowed
@@ -58,6 +59,7 @@ from voice_paste.server.app import build_fastapi
 from voice_paste.server.runner import ApiServerRunner
 from voice_paste.server.token import create_token
 from voice_paste.shared.constants import AppPaths, resolve_app_paths
+from voice_paste.shared.errors import EngineError
 from voice_paste.shared.settings import Preset, Settings
 from voice_paste.shared.types import TranscriptionOutcome
 
@@ -66,6 +68,21 @@ CHUNK_SEC = 0.1
 START = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
 SESSION_LIMIT = timedelta(seconds=2)
 """API のセッションの上限時間。テストで待たずに済むよう、時計を進める量に合わせて短くする。"""
+
+CONTINUOUS_SESSION_LIMIT = timedelta(seconds=5)
+"""連続録音のセッションの上限時間。1 回の録音の上限時間より長くし、時計を進める量で打ち切りを分ける。"""
+
+SPEECH_SEC = 1.0
+"""連続録音の区間の話し声の長さ（話し声の判定の偽物が返す）。"""
+
+CUT_SILENCE_SEC = 2.5
+"""区間を区切る無音の長さ。設定の区切る無音の長さ（既定 2 秒）を超える。"""
+
+CUT_CYCLE_SEC = SPEECH_SEC + CUT_SILENCE_SEC
+"""話し声から区切りまでの音の長さ。これだけ流すと区間が 1 つ区切れる。"""
+
+SEGMENT_PHASES = ((0.9, windows(SPEECH_SEC)), (0.0, windows(CUT_SILENCE_SEC)))
+"""区間が 1 つ区切れる話し声の確率の並び（話し声の後に区切りの無音）。"""
 
 VOLUME_BEFORE = 0.8
 """録音前のシステム音量。"""
@@ -159,14 +176,37 @@ class FakeEngine:
     def __init__(self) -> None:
         self.segments: list[str] = ["てすと"]
         self.error: Exception | None = None
+        self.error_on_calls: set[int] = set()
+        """例外にする呼び出しの番号（1 始まり）。連続録音の区間のうち特定の区間だけを失敗させる。"""
         self.audio_paths: list[Path] = []
 
     def __call__(self, audio_path: Path, *, on_progress: object = None) -> list[str]:
-        """録音のパスを覚え、error があれば送出し、無ければ区間を返す。"""
+        """録音のパスを覚え、error があれば（error_on_calls の番号の呼び出しなら）送出し、無ければ区間を返す。"""
         self.audio_paths.append(audio_path)
         if self.error is not None:
             raise self.error
+        if len(self.audio_paths) in self.error_on_calls:
+            raise EngineError("この区間の文字起こしに失敗した")
         return list(self.segments)
+
+
+@dataclass
+class VadScript:
+    """連続録音を始めるたびに作る話し声の判定の偽物の、確率の並びと失敗の指定。"""
+
+    phases: tuple[tuple[float, int], ...] = ()
+    """(話し声の確率, 窓の数) の並び。"""
+    tail: float = 0.0
+    """並びを使い切った後の確率。"""
+    fail_on_call: int | None = None
+    """この番号（1 始まり）の窓の判定で error を送出する。"""
+    error: Exception | None = None
+
+    def create(self) -> ScriptedDetector:
+        """今の並びで、状態を持たない新しい話し声の判定を作る。"""
+        return ScriptedDetector(
+            self.phases, tail=self.tail, fail_on_call=self.fail_on_call, error=self.error
+        )
 
 
 class CallbackReceiver:
@@ -233,12 +273,13 @@ class Stack:
     notify: MagicMock
     runner: ApiServerRunner
     http: httpx.Client
+    vad: VadScript
 
     def post(
         self,
         path: str,
         *,
-        json_body: dict[str, str] | None = None,
+        json_body: dict[str, object] | None = None,
         headers: dict[str, str] | None = None,
         authorized: bool = True,
     ) -> httpx.Response:
@@ -247,11 +288,23 @@ class Stack:
         merged.update(headers or {})
         return self.http.post(path, json=json_body, headers=merged)
 
-    def start_session(self) -> str:
-        """返送先を受け口にして API の開始を呼び、202 を確かめてセッションの ID を返す。"""
-        response = self.post("/sessions", json_body={"callback_url": self.receiver.url})
+    def start_session(self, *, continuous: bool = False) -> str:
+        """返送先を受け口にして API の開始（continuous なら連続録音）を呼び、202 を確かめてセッションの ID を返す。"""
+        body: dict[str, object] = {"callback_url": self.receiver.url}
+        if continuous:
+            body["continuous"] = True
+        response = self.post("/sessions", json_body=body)
         assert response.status_code == 202
         return str(response.json()["session_id"])
+
+    def set_segments(self, count: int, *, tail: float = 0.0) -> None:
+        """話し声の判定の偽物を、区間が count 個区切れる並び（話し声の後に区切りの無音）にする。tail は並びの後の確率。連続録音を始める前に呼ぶ（判定は始めるたびに今の並びで作る）。"""
+        self.vad.phases = SEGMENT_PHASES * count
+        self.vad.tail = tail
+
+    def feed_segments(self, count: int) -> None:
+        """区間が count 個区切れるだけの音を、今開いている入力へ流す。"""
+        self.microphone.feed(CUT_CYCLE_SEC * count)
 
     def session(self) -> Session | None:
         """今のセッションを返す。無ければ None。"""
@@ -303,13 +356,15 @@ def build_stack(tmp_path: Path) -> Stack:
     receiver = CallbackReceiver()
     receiver.start()
     notify = MagicMock()
+    vad = VadScript()
 
-    # 録音機には偽物の音量とマイクを渡す
+    # 録音機には偽物の音量とマイクと、話し声の判定を作る関数を渡す
     recorder = Recorder(
         lower_volume=volume.lower_volume,
         restore_volume=volume.restore_volume,
         open_input=microphone.open_input,
         get_settings=lambda: settings.recording,
+        create_speech_detector=vad.create,
     )
 
     # 呼び出し元へ返す出力先は、本物のタイムアウトと再送の回数で、再送の間隔だけ短くする
@@ -355,8 +410,12 @@ def build_stack(tmp_path: Path) -> Stack:
         now=clock,
         discard_temporary=partial(discard_temporary, paths=paths),
         report_progress=lambda position_sec, duration_sec: None,
+        start_continuous_recording=partial(
+            recorder.start_continuous, min_silence_sec=settings.api.continuous.min_silence_sec
+        ),
+        stop_continuous_recording=recorder.stop_continuous,
     )
-    manager = SessionManager(deps, SESSION_LIMIT)
+    manager = SessionManager(deps, SESSION_LIMIT, CONTINUOUS_SESSION_LIMIT)
 
     # 本物の app を空きポートに立てる
     token = create_token()
@@ -381,6 +440,7 @@ def build_stack(tmp_path: Path) -> Stack:
         notify=notify,
         runner=runner,
         http=http,
+        vad=vad,
     )
 
 
@@ -442,6 +502,7 @@ def build_output_stack(
         restore_volume=volume.restore_volume,
         open_input=microphone.open_input,
         get_settings=lambda: settings.recording,
+        create_speech_detector=VadScript().create,
     )
     enabled_ids = frozenset(output.id for output in settings.outputs if output.enabled)
     # main.py の build_handlers と同じ束を、偽物にした外部連携で組む
@@ -475,7 +536,14 @@ def build_output_stack(
         now=clock,
         discard_temporary=partial(discard_temporary, paths=paths),
         report_progress=lambda position_sec, duration_sec: None,
+        start_continuous_recording=partial(
+            recorder.start_continuous, min_silence_sec=settings.api.continuous.min_silence_sec
+        ),
+        stop_continuous_recording=recorder.stop_continuous,
     )
     return OutputStack(
-        manager=SessionManager(deps, SESSION_LIMIT), adapters=adapters, notify=notify, engine=engine
+        manager=SessionManager(deps, SESSION_LIMIT, CONTINUOUS_SESSION_LIMIT),
+        adapters=adapters,
+        notify=notify,
+        engine=engine,
     )

@@ -14,6 +14,7 @@ from voice_paste.shared.errors import (
     CallbackNotAllowedError,
     MicrophoneUnavailableError,
     SessionBusyError,
+    SessionConflictError,
     SessionNotFoundError,
 )
 
@@ -76,6 +77,7 @@ def register_exception_handlers(app: FastAPI) -> None:
     )
     app.add_exception_handler(SessionNotFoundError, _handler_for(HTTPStatus.NOT_FOUND))
     app.add_exception_handler(SessionBusyError, _handler_for(HTTPStatus.CONFLICT))
+    app.add_exception_handler(SessionConflictError, _handler_for(HTTPStatus.CONFLICT))
     app.add_exception_handler(
         MicrophoneUnavailableError, _handler_for(HTTPStatus.SERVICE_UNAVAILABLE)
     )

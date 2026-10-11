@@ -12,32 +12,17 @@ from __future__ import annotations
 import time
 import wave
 from collections.abc import Iterator
-from dataclasses import replace
-from datetime import UTC, datetime, timedelta
-from functools import partial
 from pathlib import Path
 
 import pytest
 
 from tests.integration.helpers import CallbackReceiver, wait_until
 from tests.support.fixtures import receiver  # noqa: F401 フィクスチャとして使う
-from tests.support.inprocess import ignore_lower_volume, ignore_restore_volume, silence_input
-from voice_paste.features.history import append_text, discard_temporary, save_recording
-from voice_paste.features.outputs import OUTPUTS, deliver
-from voice_paste.integrations.http.client import post_json
-from voice_paste.features.outputs.registry import CALLBACK_OUTPUT_ID
-from voice_paste.features.recording import Recorder
-from voice_paste.features.session import Session, SessionDeps, SessionManager
-from voice_paste.features.outputs.callback.service import (
-    CALLBACK_RETRY_BASE_SEC,
-    CALLBACK_RETRY_COUNT,
-    CALLBACK_TIMEOUT_SEC,
-)
-from voice_paste.main import API_SESSION_LIMIT_SEC, SESSION_LIMIT_CHECK_INTERVAL_SEC, SETTINGS_MODEL
+from tests.support.inprocess import silence_input
+from tests.support.light_session import build_light_manager
+from voice_paste.features.session import SessionManager
+from voice_paste.main import API_SESSION_LIMIT_SEC, SESSION_LIMIT_CHECK_INTERVAL_SEC
 from voice_paste.runtime.timer import RepeatingTimer
-from voice_paste.shared.constants import resolve_app_paths
-from voice_paste.shared.errors import EngineError
-from voice_paste.shared.types import TranscriptionOutcome
 
 pytestmark = pytest.mark.real_machine
 
@@ -67,73 +52,14 @@ SIZE_TOLERANCE = 0.05
 """実機の WAV から求めた大きさが根拠の値とずれてよい割合。"""
 
 
-def _no_engine(*_args: object, **_kwargs: object) -> list[str]:
-    """打ち切りは文字起こしをしないので、呼ばれたら失敗させる文字起こしのエンジン。"""
-    raise EngineError("打ち切りでは文字起こしを呼ばない")
-
-
-def _local_now() -> datetime:
-    """今の時刻を、この端末のタイムゾーンつきで返す。"""
-    return datetime.now(UTC).astimezone()
-
-
 @pytest.fixture
 def manager(tmp_path: Path, receiver: CallbackReceiver) -> Iterator[SessionManager]:  # noqa: F811
     """入力を無音の WAV を実時間で流すもの・システム音量を何もしないものに差し替えた録音機で、上限時間を短くした SessionManager を作り、上限のタイマーを回す。"""
-    from voice_paste.features.transcription.service import transcribe
-
-    paths = resolve_app_paths(tmp_path)
-    settings = SETTINGS_MODEL()
-    recorder = Recorder(
-        lower_volume=ignore_lower_volume,
-        restore_volume=ignore_restore_volume,
-        open_input=silence_input(tmp_path, seconds=SILENCE_SEC, realtime=True),
-        get_settings=lambda: settings.recording,
+    session_manager = build_light_manager(
+        tmp_path,
+        silence_input(tmp_path, seconds=SILENCE_SEC, realtime=True),
+        session_limit_sec=SHORT_LIMIT_SEC,
     )
-    callback_spec = next(spec for spec in OUTPUTS if spec.id == CALLBACK_OUTPUT_ID)
-    callback_handler = partial(
-        callback_spec.handler,
-        post=partial(post_json, timeout_sec=CALLBACK_TIMEOUT_SEC),
-        allowed_hosts=frozenset(),
-        retry_count=CALLBACK_RETRY_COUNT,
-        retry_base_sec=CALLBACK_RETRY_BASE_SEC,
-        sleep=time.sleep,
-        jitter=lambda upper: upper,
-    )
-    outputs = (replace(callback_spec, handler=callback_handler),)
-
-    def deliver_session(session: Session, outcome: TranscriptionOutcome) -> None:
-        """Session を入口・出力先・返送先に分けて出力先の deliver へ渡す。"""
-        deliver(
-            session.entry,
-            session.output_id,
-            session.output_preset,
-            session.callback_url,
-            outcome,
-            enabled_ids=frozenset(),
-            outputs=outputs,
-            preset_kinds=(),
-        )
-
-    deps = SessionDeps(
-        start_recording=recorder.start,
-        pause_recording=recorder.pause,
-        resume_recording=recorder.resume,
-        stop_recording=recorder.stop,
-        discard_recording=recorder.discard,
-        save_recording=partial(
-            save_recording, history_enabled=True, paths=paths, now=_local_now
-        ),
-        transcribe=partial(transcribe, engine=_no_engine),
-        correct=lambda text: text,
-        append_text=partial(append_text, paths=paths),
-        deliver=deliver_session,
-        notify=lambda event, detail=None: None,
-        now=_local_now,
-        discard_temporary=partial(discard_temporary, paths=paths),
-        report_progress=lambda position_sec, duration_sec: None,
-    )
-    session_manager = SessionManager(deps, timedelta(seconds=SHORT_LIMIT_SEC))
     timer = RepeatingTimer(
         session_manager.truncate_if_expired, SESSION_LIMIT_CHECK_INTERVAL_SEC
     )

@@ -115,3 +115,31 @@ class ResultPayload(BaseModel):
             text=outcome.text,
             error=outcome.error,
         )
+
+
+class CallbackPayload(ResultPayload):
+    """呼び出し元へ返す JSON。ResultPayload に、連続録音の区間の通し番号と区間の数を足す。
+
+    設定のエンドポイントへ送る中身（ResultPayload）は変えないため、呼び出し元へ返すときだけこの子を使う。
+    """
+
+    result: Literal["transcribed", "failed", "truncated", "completed"]  # type: ignore[assignment] 親より結果の種類が 1 つ多い（completed は連続録音だけ）
+    """結果の種類。"""
+
+    segment_number: int | None
+    """連続録音の区間の通し番号。それ以外は None。"""
+
+    segment_count: int | None
+    """連続録音の終わり（completed・truncated・区切りの失敗の failed）の区間の数。それ以外は None。"""
+
+    @classmethod
+    def from_outcome(cls, outcome: TranscriptionOutcome) -> Self:
+        """結果の session_id・result・text・error・segment_number・segment_count を写した中身を作る。"""
+        return cls(
+            session_id=outcome.session_id,
+            result=outcome.result,
+            text=outcome.text,
+            error=outcome.error,
+            segment_number=outcome.segment_number,
+            segment_count=outcome.segment_count,
+        )

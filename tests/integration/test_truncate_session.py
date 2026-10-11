@@ -9,7 +9,13 @@ import logging
 
 import pytest
 
-from tests.integration.helpers import SESSION_LIMIT, START, VOLUME_BEFORE, Stack
+from tests.integration.helpers import (
+    CONTINUOUS_SESSION_LIMIT,
+    SESSION_LIMIT,
+    START,
+    VOLUME_BEFORE,
+    Stack,
+)
 
 
 def test_normal(stack: Stack, caplog: pytest.LogCaptureFixture) -> None:
@@ -51,4 +57,36 @@ def test_normal_when_stopped(stack: Stack) -> None:
     assert stack.wait_for_received(1)
     assert stack.receiver.received[0]["result"] == "truncated"
     assert stack.wait_for_idle()
+    assert stack.post("/sessions", json_body={"callback_url": stack.receiver.url}).status_code == 202
+
+
+def test_normal_when_continuous(stack: Stack, caplog: pytest.LogCaptureFixture) -> None:
+    """連続録音の上限時間に達したら録音を止め、残りの話し声を最後の区間として届けた後に打ち切ったことを知らせる（正常系）。"""
+    # 準備: 区間を 1 つ区切った後、話し声が続いている間に連続録音の上限時間が経つ
+    caplog.set_level(logging.WARNING)
+    stack.set_segments(1, tail=0.9)
+    session_id = stack.start_session(continuous=True)
+    stack.feed_segments(1)
+    assert stack.wait_for_received(1)
+    stack.microphone.feed(1.0)
+    # 1 回の録音の上限時間では打ち切らない
+    stack.clock.current = START + SESSION_LIMIT
+    assert stack.manager.truncate_if_expired() is False
+    stack.clock.current = START + CONTINUOUS_SESSION_LIMIT
+
+    # 実行
+    truncated = stack.manager.truncate_if_expired()
+
+    # 検証
+    assert truncated is True
+    assert stack.microphone.streams[0].closed
+    assert stack.volume.level == VOLUME_BEFORE
+    assert stack.wait_for_idle()
+    assert [path.stem.rsplit("_", 1)[1] for path in stack.recordings()] == ["1", "2"]
+    assert [(p["result"], p["segment_number"], p["segment_count"]) for p in stack.receiver.received] == [
+        ("transcribed", 1, None),
+        ("transcribed", 2, None),
+        ("truncated", None, 2),
+    ]
+    assert session_id in caplog.text
     assert stack.post("/sessions", json_body={"callback_url": stack.receiver.url}).status_code == 202

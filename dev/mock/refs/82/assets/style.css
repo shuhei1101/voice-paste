@@ -1,0 +1,78 @@
+/* ===== PR 82 の画面モック: 録音の画面のボタンのホットキーを切らずに出す（refs/37・44・48 の style.css に重ねる） ===== */
+
+/* ===== 窓の幅 ===== */
+
+/* 録音の画面: 中のボタンが要る幅まで広がる。既定の幅より狭くはしない */
+.rec--fit {
+  width: max-content;
+  min-width: 360px;
+}
+
+/* 見本を並べる格子: 広がった窓が収まるよう、列を広く取る */
+.desk--wide {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 640px), 1fr));
+}
+
+/* 見本の窓が見本の列より広いときは、見本の中で横に流す。窓の影が切れないよう余白を取る */
+.specimen__scroll {
+  overflow-x: auto;
+  padding: 2px 16px 12px 2px;
+}
+
+/* プリセットのボタン: 3 列の幅を中身から決め、4 件目からは次の行へ折り返す */
+.rec--fit .outs--presets {
+  grid-template-columns: repeat(3, auto);
+}
+
+/* プリセットのボタンの中身を省略しない */
+.rec--fit .outs--ai .btn {
+  min-width: max-content;
+}
+
+/* ===== 案 A: 名前の下にホットキー ===== */
+
+/* ボタン: 名前と、枠で囲んだホットキーを縦に 2 段で積む */
+.keys-below .btn--hk {
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-height: 52px;
+  padding: 4px 12px;
+}
+
+/* 固定の出力先のボタンも 2 段で中央に揃える */
+.keys-below .outs .btn--hk {
+  justify-content: center;
+}
+
+/* ===== 案 B: 名前の右にホットキー ===== */
+
+/* プリセットのボタン: 名前とホットキーを横に並べる */
+.keys-right .outs--ai .btn--hk {
+  flex-direction: row;
+  gap: 8px;
+  padding: 4px 12px;
+}
+
+/* ===== 部品のカタログ ===== */
+
+/* 部品の見本: ボタンだけを置く地 */
+.parts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px;
+}
+
+/* モックで見せる、かざした見た目 */
+.btn.is-hover { background: var(--sunken); }
+
+/* モックで見せる、主の操作のボタンにかざした見た目 */
+.btn--primary.is-hover { background: var(--accent-hover); }
+
+/* 狭い幅: 既定の幅（360px）の窓が見本の右端に付かないよう、窓を縮めて見せる */
+@media (max-width: 480px) {
+  /* 窓を 8 割の大きさで見せる */
+  .rec--fit { zoom: 0.8; }
+}

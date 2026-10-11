@@ -35,3 +35,19 @@ def test_register_exception_handlers_when_busy() -> None:
 
     # 検証
     assert response.status_code == 409
+
+
+def test_register_exception_handlers_when_conflict() -> None:
+    """SessionConflictError は 409 で、断った理由を detail に入れる（正常系）。"""
+    from voice_paste.shared.errors import SessionConflictError
+
+    # 準備
+    client, session_manager = make_client()
+    session_manager.stop.side_effect = SessionConflictError("連続録音は完了で終える")
+
+    # 実行
+    response = client.post("/sessions/session-1/stop", headers=AUTHORIZATION)
+
+    # 検証
+    assert response.status_code == 409
+    assert response.json()["detail"] == "連続録音は完了で終える"

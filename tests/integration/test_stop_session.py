@@ -39,6 +39,25 @@ def test_normal(stack: Stack) -> None:
     assert stack.session().recording.samples.size == int(SAMPLE_RATE * FED_SEC)
 
 
+def test_error_when_continuous(stack: Stack) -> None:
+    """連続録音のセッションは止めずに断る（異常系）。"""
+    # 準備
+    stack.set_segments(1)
+    session_id = stack.start_session(continuous=True)
+
+    # 実行
+    response = stack.post(f"/sessions/{session_id}/stop")
+    stack.feed_segments(1)
+
+    # 検証: 409 で連続録音は完了で終えることを伝え、録音は止まらず区切りを続ける
+    assert response.status_code == 409
+    assert "完了" in response.json()["detail"]
+    assert stack.state() == "recording"
+    assert not stack.microphone.streams[0].closed
+    assert stack.wait_for_received(1)
+    assert stack.receiver.received[0]["segment_number"] == 1
+
+
 def test_normal_when_already_stopped(stack: Stack) -> None:
     """止めたセッションへの停止は何も変えず 200 を返す（正常系）。"""
     # 準備

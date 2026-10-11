@@ -14,7 +14,7 @@ import os
 import socket
 import threading
 import time
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -26,10 +26,10 @@ from scipy.io import wavfile
 from scipy.signal import resample_poly
 
 import voice_paste.main as main_module
-from tests.integration.helpers import wait_until
+from tests.integration.helpers import CallbackReceiver, wait_until
 from tests.support.processes import ProcessInfo, kill_tree, processes_with
 from voice_paste.features.recording.client import SAMPLE_RATE
-from voice_paste.features.session import SessionManager
+from voice_paste.features.session import SessionApiDeps, SessionManager
 from voice_paste.integrations.whisper.client import WORKER_MODULE
 from voice_paste.main import API_START_TIMEOUT_SEC, SETTINGS_MODEL, Handlers
 from voice_paste.server.app import build_fastapi
@@ -37,7 +37,15 @@ from voice_paste.server.runner import ApiServerRunner
 from voice_paste.server.token import create_token
 from voice_paste.shared.constants import AppPaths, resolve_app_paths
 from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
-from voice_paste.shared.settings import LocalWhisperSettings, Settings, TranscriptionSettings
+from voice_paste.runtime.timer import RepeatingTimer
+from voice_paste.shared.errors import TranscriptionError
+from voice_paste.shared.settings import (
+    ApiSettings,
+    ContinuousSettings,
+    LocalWhisperSettings,
+    Settings,
+    TranscriptionSettings,
+)
 from voice_paste.shared.types import Entry, Recording
 
 SPEECH_TEXT = "これはテストです"
@@ -60,6 +68,44 @@ VOLUME_BEFORE = 0.8
 
 SILENCE_SEC = 2.0
 """何も話さない録音として流す無音の長さ。"""
+
+TRIM_AMPLITUDE = 200
+"""読み上げた音の前後の無音を削るとき、これ以下の振れ幅を無音とみなす（int16）。"""
+
+LONG_READING: tuple[tuple[str, str], ...] = (
+    ("今日はいい天気です", "天気"),
+    ("朝ごはんにパンを食べました", "パン"),
+    ("来週の月曜日に会議があります", "会議"),
+    ("犬が公園を走っています", "公園"),
+    ("図書館で本を借りました", "図書館"),
+    ("新しいパソコンを買いました", "パソコン"),
+    ("電車が少し遅れています", "電車"),
+    ("冷たいお茶を飲みました", "お茶"),
+    ("電話番号を教えてください", "電話"),
+    ("週末は家でゆっくり過ごします", "週末"),
+    ("財布を机の上に置きました", "財布"),
+    ("寒いので上着を着ます", "上着"),
+    ("駅前の店でコーヒーを飲みます", "コーヒー"),
+    ("写真を一枚撮ってください", "写真"),
+    ("荷物を玄関に運びました", "荷物"),
+    ("ありがとうございました", "ありがとう"),
+)
+"""話し続けて読み上げる文と、それぞれを起こした文字に含まれるはずの言葉。つなぐと話し声だけで約 28 秒になる。"""
+
+READING_REPEAT_SENTENCES = len(LONG_READING) // 2
+"""話し続ける読み上げを 45 秒以上にするために、LONG_READING の前半をもう 1 回つなぐときの文の数。"""
+
+SEGMENT_CALLBACK_LATENCY_SEC = 4.0
+"""区切ってから返送が届くまでの時間の決定値。"""
+
+CONTINUOUS_END_TIMEOUT_SEC = 150.0
+"""連続録音の終わりが返送先へ届くまで待つ上限（区間の文字起こしと上限での打ち切りを含む）。"""
+
+CONTINUOUS_END_QUIET_SEC = 1.5
+"""連続録音の終わりが届いた後、続きが届かないことを確かめるために待つ秒数。"""
+
+PLAYED_OUT_TIMEOUT_SEC = 180.0
+"""実時間で流す録音の入力が全ての音を渡し終えるまで待つ上限。"""
 
 PROCESSED_TIMEOUT_SEC = 120.0
 """確定した録音の処理（文字起こし・届ける）が終わるまで待つ上限（ワーカーの立て直しを含む）。"""
@@ -146,6 +192,61 @@ def silence_input(
     return WavInput(samples, realtime=realtime)
 
 
+def _trim_silence(samples: np.ndarray) -> np.ndarray:
+    """音の前後の無音（振れ幅が TRIM_AMPLITUDE 以下）を削る。"""
+    loud = np.flatnonzero(np.abs(samples.astype(np.int32)) > TRIM_AMPLITUDE)
+    assert loud.size > 0
+    return samples[loud[0] : loud[-1] + 1]
+
+
+def long_reading_texts() -> list[str]:
+    """話し続けて読み上げる文を、文の間の無音を含めて 45 秒以上になるよう、LONG_READING の文と、その前半をもう 1 回つないで返す。"""
+    texts = [sentence for sentence, _word in LONG_READING]
+    return texts + texts[:READING_REPEAT_SENTENCES]
+
+
+def speech_timeline_input(
+    tmp_path: Path,
+    items: Sequence[tuple[str, float]],
+    *,
+    lead_silence_sec: float = 0.0,
+    tail_silence_sec: float = 0.0,
+) -> WavInput:
+    """(文, その文の前に挟む無音の秒数) の並びを 1 文ずつ読み上げ、前後の無音を削ってつないだ WAV を、実時間で流す録音の入力を作る。
+
+    最初の文の前には、文ごとの無音ではなく lead_silence_sec 秒の無音を置く。最後の文の後に tail_silence_sec 秒の無音を足す（流し終えた後も無音を流し続けたいとき）。
+    """
+    # 1. 最初に無音を置き、1 文ずつ読み上げて前後の無音を削り、文の前に決めた長さの無音を挟んで並べる
+    pieces: list[np.ndarray] = [np.zeros(round(SAMPLE_RATE * lead_silence_sec), dtype=np.int16)]
+    for index, (text, gap_before_sec) in enumerate(items):
+        spoken = _trim_silence(read_wav(synthesize_speech(text, tmp_path / f"sentence{index}.wav")))
+        # 2 文目以降は、前の文との間に無音を挟む
+        if index > 0:
+            pieces.append(np.zeros(round(SAMPLE_RATE * gap_before_sec), dtype=np.int16))
+        pieces.append(spoken)
+
+    # 2. 最後の文の後に流し続ける無音を足して 1 本につなぐ
+    pieces.append(np.zeros(round(SAMPLE_RATE * tail_silence_sec), dtype=np.int16))
+    return WavInput(np.concatenate(pieces), realtime=True)
+
+
+def speech_sequence_input(
+    tmp_path: Path,
+    texts: Sequence[str],
+    *,
+    gap_sec: float,
+    lead_silence_sec: float = 0.0,
+    tail_silence_sec: float = 0.0,
+) -> WavInput:
+    """texts を 1 文ずつ読み上げ、前後の無音を削って gap_sec の無音を挟んでつないだ WAV を、実時間で流す録音の入力を作る。"""
+    return speech_timeline_input(
+        tmp_path,
+        [(text, gap_sec) for text in texts],
+        lead_silence_sec=lead_silence_sec,
+        tail_silence_sec=tail_silence_sec,
+    )
+
+
 # === 差し替えるもの ===
 
 
@@ -155,6 +256,8 @@ class _InputStream:
     def __init__(self) -> None:
         self._stopped = threading.Event()
         self._thread: threading.Thread | None = None
+        self.finished = threading.Event()
+        """全ての音を渡し終えたか、止められて流すのをやめると立つ。"""
 
     def feed_in_realtime(
         self, samples: np.ndarray, on_frames: Callable[[np.ndarray], None]
@@ -163,10 +266,13 @@ class _InputStream:
 
         def _run() -> None:
             """止められるか音が尽きるまで、1 塊を渡しては 1 塊分の時間を待つ。"""
-            for chunk in _chunks(samples):
-                on_frames(chunk)
-                if self._stopped.wait(CHUNK_FRAMES / SAMPLE_RATE):
-                    return
+            try:
+                for chunk in _chunks(samples):
+                    on_frames(chunk)
+                    if self._stopped.wait(CHUNK_FRAMES / SAMPLE_RATE):
+                        return
+            finally:
+                self.finished.set()
 
         self._thread = threading.Thread(target=_run, daemon=True)
         self._thread.start()
@@ -194,17 +300,31 @@ class WavInput:
         self.samples = samples
         self.realtime = realtime
         self.open_count = 0
+        self._last_stream: _InputStream | None = None
 
     def __call__(self, on_frames: Callable[[np.ndarray], None]) -> _InputStream:
         """入力を開く。realtime ならスレッドで実時間で、そうでなければ開く中で全ての音を渡す。"""
         self.open_count += 1
         stream = _InputStream()
+        self._last_stream = stream
         if self.realtime:
             stream.feed_in_realtime(self.samples, on_frames)
         else:
             for chunk in _chunks(self.samples):
                 on_frames(chunk)
+            stream.finished.set()
         return stream
+
+    def wait_played_out(self, timeout_sec: float = PLAYED_OUT_TIMEOUT_SEC) -> bool:
+        """最後に開かれた入力が全ての音を渡し終えるまで待ち、渡し終えたかを返す（開かれていなければ False）。"""
+        if self._last_stream is None:
+            return False
+        return self._last_stream.finished.wait(timeout_sec)
+
+    @property
+    def duration_sec(self) -> float:
+        """流す音の長さ（秒）。"""
+        return len(self.samples) / SAMPLE_RATE
 
 
 def ignore_lower_volume(_ratio: float, _fade_sec: float) -> float:
@@ -261,36 +381,72 @@ class Notifications:
 
     def has(self, event: str) -> bool:
         """知らせの種類 event が控えにあるか。"""
-        return any(kind == event for kind, _detail in self.events)
+        return self.count(event) > 0
+
+    def count(self, event: str) -> int:
+        """知らせの種類 event が控えに何回あるか。"""
+        return sum(kind == event for kind, _detail in self.events)
 
 
 def break_saved_recordings(monkeypatch: pytest.MonkeyPatch) -> None:
     """保存した録音の WAV の中身を、読めないものに書き換える（履歴にはファイルが残る）。"""
     original = main_module.save_recording
 
-    def _save_broken(session_id: str, recording: Recording, **options: Any) -> Path:
+    def _save_broken(
+        session_id: str, recording: Recording, segment_number: int | None = None, **options: Any
+    ) -> Path:
         """本物で保存してから、書いたファイルの中身を読めないものにする。"""
-        audio_path = original(session_id, recording, **options)
+        audio_path = original(session_id, recording, segment_number, **options)
         audio_path.write_bytes(BROKEN_WAV_BYTES)
         return audio_path
 
     monkeypatch.setattr(main_module, "save_recording", _save_broken)
 
 
+def fail_transcription_of_segment(monkeypatch: pytest.MonkeyPatch, segment_number: int) -> None:
+    """連続録音の通し番号 segment_number の区間だけ文字起こしに失敗させる（ほかの区間は本物で起こす）。"""
+    original = main_module.transcribe
+
+    def _transcribe(audio_path: Path, on_progress: Any = None, **options: Any) -> str:
+        """区間の録音の名前の末尾が通し番号なので、対象の区間なら失敗させ、ほかは本物で起こす。"""
+        if audio_path.stem.endswith(f"_{segment_number}"):
+            raise TranscriptionError(f"区間 {segment_number} の文字起こしに失敗させた")
+        return original(audio_path, on_progress, **options)
+
+    monkeypatch.setattr(main_module, "transcribe", _transcribe)
+
+
 # === 配線した常駐アプリ ===
 
 
 def make_settings(
-    *, only_paste_and_send: bool = False, vad_threshold: float | None = None
+    *,
+    only_paste_and_send: bool = False,
+    vad_threshold: float | None = None,
+    continuous_session_limit_sec: int | None = None,
 ) -> Settings:
-    """既定の設定から、出力先を貼り付けて送信だけにするか、無音の区間を除く閾値を変えた設定を作る。"""
+    """既定の設定から、出力先を貼り付けて送信だけにするか、無音の区間を除く閾値・連続録音のセッションの上限時間を変えた設定を作る。
+
+    連続録音のセッションの上限時間は、設定で許す下限（60 秒）より短い値も、テストで待てるよう検査を通さずに入れる。
+    """
     outputs = [PasteAndSendSettings()] if only_paste_and_send else SETTINGS_MODEL().outputs
     local_whisper = (
         LocalWhisperSettings()
         if vad_threshold is None
         else LocalWhisperSettings(vad_threshold=vad_threshold)
     )
-    return SETTINGS_MODEL(outputs=outputs, transcription=TranscriptionSettings(local_whisper=local_whisper))
+    api = ApiSettings()
+    if continuous_session_limit_sec is not None:
+        continuous = ContinuousSettings.model_construct(
+            min_silence_sec=ContinuousSettings().min_silence_sec,
+            session_limit_sec=continuous_session_limit_sec,
+        )
+        api = ApiSettings(continuous=continuous)
+    return SETTINGS_MODEL(
+        outputs=outputs,
+        transcription=TranscriptionSettings(local_whisper=local_whisper),
+        api=api,
+    )
 
 
 def free_port() -> int:
@@ -312,7 +468,7 @@ class InProcessApi:
         self,
         path: str,
         *,
-        json_body: dict[str, str] | None = None,
+        json_body: dict[str, object] | None = None,
         headers: dict[str, str] | None = None,
         authorized: bool = True,
     ) -> httpx.Response:
@@ -321,16 +477,56 @@ class InProcessApi:
         merged.update(headers or {})
         return self.http.post(path, json=json_body, headers=merged)
 
-    def start_session(self, callback_url: str) -> tuple[httpx.Response, float]:
-        """API の開始を呼び、応答と、応答までにかかったミリ秒を返す。"""
+    def start_session(
+        self, callback_url: str, *, continuous: bool = False
+    ) -> tuple[httpx.Response, float]:
+        """API の開始（continuous なら連続録音）を呼び、応答と、応答までにかかったミリ秒を返す。"""
         started = time.perf_counter()
-        response = self.post("/sessions", json_body={"callback_url": callback_url})
+        body: dict[str, object] = {"callback_url": callback_url}
+        # 連続録音のときだけ continuous を指定する（指定しない開始は 1 回の録音）
+        if continuous:
+            body["continuous"] = True
+        response = self.post("/sessions", json_body=body)
         return response, (time.perf_counter() - started) * 1000
 
     def close(self) -> None:
         """クライアントを閉じて待ち受けを止める。"""
         self.http.close()
         self.runner.stop()
+
+
+def serve_api(session_api: SessionApiDeps) -> InProcessApi:
+    """build_fastapi で組み立てた app を 127.0.0.1 の空きポートで待ち受けさせ、叩くクライアントを返す。"""
+    token = create_token()
+    port = free_port()
+    runner = ApiServerRunner(build_fastapi(session_api, token, port), port)
+    assert runner.start(API_START_TIMEOUT_SEC)
+    http = httpx.Client(base_url=f"http://{LOOPBACK}:{port}", timeout=REQUEST_TIMEOUT_SEC)
+    return InProcessApi(runner=runner, http=http, token=token.get_secret_value())
+
+
+def start_continuous(api: InProcessApi, receiver: CallbackReceiver) -> str:
+    """連続録音を指定して API の開始を呼び、202 を確かめてセッションの ID を返す。"""
+    response, _elapsed_ms = api.start_session(receiver.url, continuous=True)
+    assert response.status_code == 202
+    return str(response.json()["session_id"])
+
+
+def complete_session(api: InProcessApi, session_id: str) -> None:
+    """API の完了を呼び、202 を確かめる。"""
+    assert api.post(f"/sessions/{session_id}/complete").status_code == 202
+
+
+def wait_for_continuous_end(
+    receiver: CallbackReceiver, *, offset: int = 0, timeout_sec: float = CONTINUOUS_END_TIMEOUT_SEC
+) -> list[dict[str, Any]]:
+    """連続録音の終わり（通し番号の無い返送）が届くのを待ち、続きが届かないことを確かめて、offset 件目以降に届いた返送を返す。"""
+    assert wait_until(
+        lambda: any(payload["segment_number"] is None for payload in receiver.received[offset:]),
+        timeout_sec,
+    )
+    time.sleep(CONTINUOUS_END_QUIET_SEC)
+    return list(receiver.received[offset:])
 
 
 @dataclass
@@ -344,6 +540,7 @@ class InProcessApp:
     keys: KeyLog
     notifications: Notifications
     api: InProcessApi | None = None
+    limit_timer: RepeatingTimer | None = None
 
     @property
     def manager(self) -> SessionManager:
@@ -364,16 +561,20 @@ class InProcessApp:
 
     def start_api(self) -> InProcessApi:
         """build_fastapi で組み立てた app を 127.0.0.1 の空きポートで待ち受けさせ、叩くクライアントを返す。"""
-        token = create_token()
-        port = free_port()
-        runner = ApiServerRunner(build_fastapi(self.handlers.session_api, token, port), port)
-        assert runner.start(API_START_TIMEOUT_SEC)
-        http = httpx.Client(base_url=f"http://{LOOPBACK}:{port}", timeout=REQUEST_TIMEOUT_SEC)
-        self.api = InProcessApi(runner=runner, http=http, token=token.get_secret_value())
+        self.api = serve_api(self.handlers.session_api)
         return self.api
 
+    def start_limit_timer(self) -> None:
+        """常駐中と同じ間隔で、上限時間を過ぎた API のセッションを打ち切るタイマーを回す。"""
+        self.limit_timer = RepeatingTimer(
+            self.manager.truncate_if_expired, main_module.SESSION_LIMIT_CHECK_INTERVAL_SEC
+        )
+        self.limit_timer.start()
+
     def close(self) -> None:
-        """API を止め、残った録音を捨て、文字起こしのエンジンを止める。"""
+        """上限のタイマーと API を止め、残った録音を捨て、文字起こしのエンジンを止める。"""
+        if self.limit_timer is not None:
+            self.limit_timer.stop()
         if self.api is not None:
             self.api.close()
         self.manager.close()

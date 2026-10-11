@@ -31,8 +31,10 @@ def start_session_route(
     if not deps.is_callback_allowed(callback_url):
         raise CallbackNotAllowedError("返送先のホストが許されていません")
 
-    # 2. 録音を始めてセッションの ID を返す（処理中・マイクの失敗は例外ハンドラが HTTP に変える）
-    session = deps.session_manager.start(entry=Entry.API, callback_url=callback_url)
+    # 2. 録音（continuous なら連続録音）を始めてセッションの ID を返す（処理中・マイクの失敗は例外ハンドラが HTTP に変える）
+    session = deps.session_manager.start(
+        entry=Entry.API, callback_url=callback_url, continuous=body.continuous
+    )
     return StartSessionResponse(session_id=session.id)
 
 

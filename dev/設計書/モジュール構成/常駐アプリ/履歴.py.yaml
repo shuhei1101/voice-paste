@@ -41,9 +41,15 @@ functions:
         required: true
         passing: injected
         description: 今の時刻
+      - name: segment_number
+        type: int | None
+        required: false
+        default: None
+        passing: positional
+        description: 連続録音の区間の通し番号。あればファイル名の末尾へ `_{通し番号}` を付ける
     returns:
       type: Path
-      description: 書いた WAV（`history/{YYYYMMDD}/{日時}_{session_id}.wav` か `tmp/{session_id}.wav`）
+      description: 書いた WAV（`history/{YYYYMMDD}/{日時}_{session_id}.wav` か `tmp/{session_id}.wav`。区間は `_{通し番号}` を付けた名前）
     unit_tests:
       - name: test_save_recording
         case: 正常
@@ -57,9 +63,15 @@ functions:
         condition: history_enabled=False
         mock: なし（一時フォルダ）
         expected: tmp/ の下に WAV があり、history/ に無い
+      - name: test_save_recording_when_segment
+        case: 正常
+        summary: 区間は通し番号を付けた名前で書き、同じ秒に書いても重ならない
+        condition: history_enabled=True、now を同じ時刻にして segment_number=1 と 2 を続けて書く。history_enabled=False でも同じく書く
+        mock: なし（一時フォルダ）
+        expected: '`{日時}_{session_id}_1.wav` と `_2.wav` が別々にあり、tmp/ でも `{session_id}_1.wav` と `_2.wav` が別々にある'
     status: implemented
     process: |-
-      1. 履歴を残す設定かで書き先を決める
+      1. 履歴を残す設定かで書き先を決める（segment_number があれば、拡張子の前に `_{segment_number}` を付ける）
          - 残す場合、`history/{now の YYYYMMDD}/{now の YYYYMMDDHHMMSS}_{session_id}.wav`
          - 残さない場合、`tmp/{session_id}.wav`
       2. 書き先のフォルダを作り、録音をモノラルの 16 bit の WAV（scipy）で書く
@@ -143,7 +155,7 @@ functions:
       1. history/ の下の `YYYYMMDD` のフォルダのうち、今日 − 保持日数より前のものを消す
          - 日付でない名前のフォルダは残す
          - `[INFO]` 古い履歴を消した（消した数）
-      2. tmp/ の下に取り残された一時の音声（`{session_id}.wav`。普段は discard_temporary が消し、常駐が落ちたとき・消せなかったときに残る）のうち、ファイル名の session_id が処理中のセッションに無いものを消す
+      2. tmp/ の下に取り残された一時の音声（`{session_id}.wav` か、連続録音の区間の `{session_id}_{通し番号}.wav`。普段は discard_temporary が消し、常駐が落ちたとき・消せなかったときに残る）のうち、ファイル名の session_id（最初の `_` より前）が処理中のセッションに無いものを消す
          - 消せないファイル・フォルダは残し、次へ進む
            - `[WARNING]` 古い履歴を消せなかった（パス・理由）
     unit_tests:
@@ -159,6 +171,12 @@ functions:
         condition: tmp/s1.wav・tmp/s2.wav があり、active_session_ids が {"s2"} を返す
         mock: なし（一時フォルダ）
         expected: tmp/s1.wav が消え、tmp/s2.wav が残る
+      - name: test_purge_expired_keeps_active_segments
+        case: 正常
+        summary: 処理中の連続録音の区間の一時の音声は残す
+        condition: tmp/ に `{処理中の ID}_3.wav` と `{終わった ID}_1.wav` を置き、active_session_ids が処理中の ID だけを返す
+        mock: なし（一時フォルダ）
+        expected: '`{処理中の ID}_3.wav` が残り、`{終わった ID}_1.wav` が消える'
     status: implemented
   - name: discard_temporary
     title: 一時の音声の削除

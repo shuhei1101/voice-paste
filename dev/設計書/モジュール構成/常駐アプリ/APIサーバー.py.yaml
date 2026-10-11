@@ -227,7 +227,7 @@ functions:
       type: None
       description: なし
     process: |-
-      1. CallbackNotAllowedError・RequestValidationError → 400、SessionNotFoundError → 404、SessionBusyError → 409、MicrophoneUnavailableError → 503 を登録する
+      1. CallbackNotAllowedError・RequestValidationError → 400、SessionNotFoundError → 404、SessionBusyError・SessionConflictError → 409、MicrophoneUnavailableError → 503 を登録する
       2. それ以外の AppError と例外は 500 にする
          - `[ERROR]` 想定していない例外（logger.exception）
     unit_tests:
@@ -243,6 +243,12 @@ functions:
         condition: start が SessionBusyError を送出する
         mock: SessionManager
         expected: 409 が返る
+      - name: test_register_exception_handlers_when_conflict
+        case: 正常
+        summary: SessionConflictError は 409
+        condition: stop が SessionConflictError を送出する
+        mock: SessionManager
+        expected: 409 が返り、detail に断った理由が入る
     status: implemented
   - name: write_token_file
     title: トークンのファイルの書き出し

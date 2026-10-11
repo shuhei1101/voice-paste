@@ -8,7 +8,7 @@ from functools import partial
 from http import HTTPStatus
 from urllib.parse import urlparse
 
-from voice_paste.features.outputs.types import OutputDeps, ResultPayload
+from voice_paste.features.outputs.types import CallbackPayload, OutputDeps
 from voice_paste.integrations.http.types import PostResult
 from voice_paste.shared.errors import DeliveryError
 from voice_paste.shared.types import TranscriptionOutcome
@@ -66,8 +66,8 @@ def deliver_to_caller(
     if target is None or not is_callback_allowed(target, allowed_hosts):
         raise DeliveryError("返送先が許されていません")
 
-    # 2. 返送の中身を作り、1 + 再送回数まで POST する
-    payload = ResultPayload.from_outcome(outcome).model_dump()
+    # 2. 返送の中身（連続録音の区間なら通し番号つき）を作り、1 + 再送回数まで POST する
+    payload = CallbackPayload.from_outcome(outcome).model_dump()
     # 返送の間はセッションが残り次の開始を断るため、待ちはこの上限に収める
     max_wait_sec = retry_base_sec * BACKOFF_FACTOR ** (retry_count - 1)
     reason = ""
@@ -83,7 +83,8 @@ def deliver_to_caller(
         else:
             if HTTPStatus.OK <= result.status < HTTPStatus.MULTIPLE_CHOICES:
                 logger.info(
-                    f"返送先へ届けた（{outcome.session_id}・{outcome.result}・{attempt} 回目）"
+                    f"返送先へ届けた（{outcome.session_id}・{outcome.result}"
+                    f"・区間: {outcome.segment_number}・{attempt} 回目）"
                 )
                 return
             retryable = _is_retryable(result.status)
@@ -101,11 +102,17 @@ def deliver_to_caller(
             wait_sec = retry_after_sec
         else:
             wait_sec = jitter(retry_base_sec * BACKOFF_FACTOR ** (attempt - 1))
-        logger.warning(f"返送に失敗した（{outcome.session_id}・{attempt} 回目・{reason}）")
+        logger.warning(
+            f"返送に失敗した（{outcome.session_id}・区間: {outcome.segment_number}"
+            f"・{attempt} 回目・{reason}）"
+        )
         sleep(wait_sec)
 
     # 3. 届かなかったらログに書いて終える（送出しない。履歴は残っている）
-    logger.error(f"返送先に届かなかった（{outcome.session_id}・最後の理由: {reason}）")
+    logger.error(
+        f"返送先に届かなかった（{outcome.session_id}・区間: {outcome.segment_number}"
+        f"・最後の理由: {reason}）"
+    )
 
 
 def inject_callback(deps: OutputDeps) -> Mapping[str, object]:

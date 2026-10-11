@@ -1,0 +1,36 @@
+# 非機能要件テスト（全件）
+# 実行した commit: 7013f92（PR #78 の区切ってから返送が届くまでの時間の決定値を 4 秒にした後の確認。測った値を出すため -s を付けた）
+# 結果: 8 passed・7 skipped（tests/nfr/fixtures が無い環境のため）
+
+$ venv/Scripts/python.exe -m pytest tests/nfr --run-e2e -p no:cacheprovider -s -v
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\shuhe\repo\voice-paste\venv\Scripts\python.exe
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-session-continuous-recording
+configfile: pyproject.toml
+plugins: anyio-4.13.0, platformdirs-4.12.2
+collecting ... collected 15 items
+
+tests/nfr/test_api_session_limit.py::test_api_session_limit_when_recording api_session_limit: elapsed=3.21s wav=2.56s 81964B projected_600s=19.21MB
+PASSED
+tests/nfr/test_api_session_limit.py::test_api_session_limit_when_stopped api_session_limit: elapsed=3.04s wav=0.83s 26668B projected_600s=19.23MB
+PASSED
+tests/nfr/test_api_start_response_time.py::test_api_start_response_time api_start_response_time: n=50 min=1.9 p50=2.3 max=6.4 ms
+PASSED
+tests/nfr/test_busy_response_time.py::test_busy_response_time busy_response_time: n=20 min=1.5 max=2.0 ms
+PASSED
+tests/nfr/test_continuous_session_limit.py::test_continuous_session_limit continuous_session_limit: elapsed=3.04s results=[('transcribed', 1, None), ('truncated', None, 1)]
+PASSED
+tests/nfr/test_max_segment_length.py::test_max_segment_length max_segment_length: reading=51.1s segments=['18.80s', '18.86s', '12.70s']
+PASSED
+tests/nfr/test_output_extensibility.py::test_output_extensibility PASSED
+tests/nfr/test_paste_latency.py::test_paste_latency SKIPPED (Windows...)
+tests/nfr/test_segment_callback_latency.py::test_segment_callback_latency segment_callback_latency: #1=0.32s #2=0.34s #3=0.27s #4=0.39s #5=0.42s #6=3.14s #7=2.17s #8=1.32s
+PASSED
+tests/nfr/test_single_instance_timeout.py::test_single_instance_timeout SKIPPED
+tests/nfr/test_single_instance_timeout.py::test_single_instance_timeout_when_previous_starting SKIPPED
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_history_recordings[NOTSET] SKIPPED
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_correction_only[NOTSET] SKIPPED
+tests/nfr/test_worker_recovery_time.py::test_worker_recovery_time SKIPPED
+tests/nfr/test_worker_stop_timeout.py::test_worker_stop_timeout SKIPPED
+
+================== 8 passed, 7 skipped in 137.80s (0:02:17) ===================

@@ -636,7 +636,7 @@ functions:
          - `[INFO]` URL を Edge のアプリのウィンドウで開いた（url）
       3. 見つからない場合、os.startfile で既定のブラウザで開く
          - `[INFO]` URL を既定のブラウザで開いた（url）
-         - 2・3 で OSError が出た場合、DeliveryError を送出する（理由に元の例外を残す）
+         - 2・3 で OSError が出た場合、DeliveryError を送出する。理由は `ブラウザ添付のプリセットの画面を開けませんでした（{元の例外}）` にし、元の例外を連鎖して残す（トレイの通知の `{理由}` にそのまま出る）
     exceptions:
       - name: DeliveryError
         condition: Edge も既定のブラウザも起動できない
@@ -667,7 +667,7 @@ functions:
         summary: 起動できなければ DeliveryError
         condition: subprocess.Popen が OSError を送出する
         mock: shutil.which・subprocess.Popen
-        expected: DeliveryError が送出される
+        expected: DeliveryError が送出され、理由が `ブラウザ添付のプリセットの画面を開けませんでした（` で始まり「起動できない」を含む（「AI チャット」を含まない）
         exception: Edge も既定のブラウザも起動できない
   - name: post_json
     title: JSON の POST

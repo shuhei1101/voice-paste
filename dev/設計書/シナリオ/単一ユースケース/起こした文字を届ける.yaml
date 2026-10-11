@@ -6,6 +6,9 @@ scenarios:
         description: なし（実機の Windows で実行）
       - name: 出力先
         description: 「貼り付けて送信」をオンにし、録音する で「貼り付けて送信」を選んだ
+      - name: Enter と一緒に押す修飾キー
+        description: 設定画面で Ctrl・Alt・Shift を全てオフにした（既定）
+        notes: '`outputs[paste_and_send]` の修飾キーの項目'
     flow: |-
       ```mermaid
       sequenceDiagram
@@ -377,6 +380,33 @@ scenarios:
       - 連続録音は止まっていない
     notes:
       再送の回数と間: 再送の回数・間・タイムアウトは 1 回の録音の返送と同じ非機能要件の値を使う。
+  - name: 正常シナリオ（Enter と一緒に修飾キーを押す）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 出力先
+        description: 「貼り付けて送信」をオンにし、録音する で「貼り付けて送信」を選んだ
+      - name: Enter と一緒に押す修飾キー
+        description: 設定画面で Ctrl をオンにし、Alt・Shift をオフにした
+        notes: '`outputs[paste_and_send]` の修飾キーの項目'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant OUT as 出力先（貼り付けて送信）
+        participant CB as クリップボード
+        participant TGT as 貼り付け先のアプリ
+
+        SVC->>OUT: 起こした文字を渡す
+        OUT->>CB: 起こした文字をコピーする
+        OUT->>TGT: 貼り付けのキーを送る
+        OUT->>TGT: 設定の間を置いて、Ctrl を押したまま Enter を送る
+        Note over SVC: 待機中に戻すのは 正常シナリオ と同じ
+      ```
+    expected:
+      - 貼り付け先の入力欄に起こした文字が入り、Ctrl+Enter が送られている
+      - Enter を送り終えた後、Ctrl が押されたままになっていない
+      - クリップボードに起こした文字が入っている
 lead: 起こした文字を、ホットキーから始めた録音は選んだ出力先へ、API から始めた録音は呼び出し元のエンドポイントへ届ける単一ユースケース。
 issue: 14
 primary_actor: 音声入力を使うユーザー

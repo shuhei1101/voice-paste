@@ -116,5 +116,8 @@ def test_open_app_window_when_failed(which: MagicMock, popen: MagicMock) -> None
     popen.side_effect = OSError("起動できない")
 
     # 実行・検証
-    with pytest.raises(DeliveryError):
+    with pytest.raises(
+        DeliveryError, match=r"^ブラウザ添付のプリセットの画面を開けませんでした（.*起動できない"
+    ) as exc_info:
         open_app_window(URL)
+    assert "AI チャット" not in str(exc_info.value)

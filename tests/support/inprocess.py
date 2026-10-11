@@ -392,9 +392,11 @@ def break_saved_recordings(monkeypatch: pytest.MonkeyPatch) -> None:
     """保存した録音の WAV の中身を、読めないものに書き換える（履歴にはファイルが残る）。"""
     original = main_module.save_recording
 
-    def _save_broken(session_id: str, recording: Recording, **options: Any) -> Path:
+    def _save_broken(
+        session_id: str, recording: Recording, segment_number: int | None = None, **options: Any
+    ) -> Path:
         """本物で保存してから、書いたファイルの中身を読めないものにする。"""
-        audio_path = original(session_id, recording, **options)
+        audio_path = original(session_id, recording, segment_number, **options)
         audio_path.write_bytes(BROKEN_WAV_BYTES)
         return audio_path
 

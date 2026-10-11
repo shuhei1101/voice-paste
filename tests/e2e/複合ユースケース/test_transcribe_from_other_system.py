@@ -114,6 +114,8 @@ def test_normal_when_transcription_empty(
         "result": "transcribed",
         "text": "",
         "error": None,
+        "segment_number": None,
+        "segment_count": None,
     }
     [recording] = app.history_files(".wav")
     assert session_id in recording.name

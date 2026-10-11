@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
@@ -18,12 +18,22 @@ from PySide6.QtWidgets import QLabel, QPushButton, QWidget
 
 from tests.integration.ui.helpers import Ui, button_texts, find, grab_head_row, no_modal
 from voice_paste.main import SETTINGS_MODEL
+from voice_paste.ui.style import build_stylesheet, is_dark_theme
 
 if TYPE_CHECKING:
+    from PySide6.QtWidgets import QApplication
+
     from voice_paste.shared.settings import Settings
 
 PRESET_COLUMNS = 3
 """カスタムプリセットのボタンを横に並べる数（画面設計の「3 件ずつ横に並べて 4 件目から次の行へ折り返す」）。"""
+
+WINDOW_MIN_WIDTH = 360
+"""録音の画面の既定の幅（画面設計の「窓は既定の幅（360px）より狭くせず」）。"""
+
+LONG_HOTKEY = "<ctrl>+<alt>+<shift>+<f12>"
+LONG_HOTKEY_TEXT = "Ctrl+Alt+Shift+F12"
+"""切れやすい長いホットキーの、設定の書式と画面の形。"""
 
 
 def _opened(make_ui: Callable[..., Ui], settings: Settings | None = None) -> Ui:
@@ -36,6 +46,42 @@ def _opened(make_ui: Callable[..., Ui], settings: Settings | None = None) -> Ui:
 def _settings(**groups: object) -> Settings:
     """グループごとの設定（recording・ui・outputs・hotkeys）を差し替えた設定を作る。"""
     return SETTINGS_MODEL(**groups)
+
+
+@pytest.fixture
+def styled(qapp: QApplication) -> Iterator[None]:
+    """アプリのスタイルシート（tokens.toml から作る QSS）を当てる。ホットキーのキーの枠・余白の分も大きさに数えて確かめるため。"""
+    before = qapp.styleSheet()
+    qapp.setStyleSheet(build_stylesheet(is_dark_theme()))
+    yield
+    qapp.setStyleSheet(before)
+
+
+def _name_and_key(button: QPushButton) -> tuple[QLabel, QLabel | None]:
+    """ボタンの中の名前のラベルと、キー（role=keycap）のラベル（無ければ None）を返す。"""
+    labels = button.findChildren(QLabel)
+    keys = [label for label in labels if label.property("role") == "keycap"]
+    names = [label for label in labels if label.property("role") != "keycap"]
+    assert len(names) == 1
+    return names[0], (keys[0] if keys else None)
+
+
+def _assert_key_below_name(button: QPushButton, expected_key: str) -> None:
+    """ホットキーが、名前の下（2 行目）のキーキャップで、ボタンの中に切れずに描かれることを確かめる。"""
+    name_label, key_label = _name_and_key(button)
+    assert key_label is not None
+    assert key_label.text() == expected_key
+    # 名前の下（2 行目）にある
+    assert key_label.geometry().top() >= name_label.geometry().bottom()
+    # ボタンの中に収まり、文字が切れない幅がある
+    assert button.rect().contains(key_label.geometry())
+    assert key_label.fontMetrics().horizontalAdvance(expected_key) <= key_label.width()
+
+
+def _assert_inside_window(window: QWidget, button: QPushButton) -> None:
+    """ボタン全体が窓の中に収まる（窓の端で切れない）ことを確かめる。"""
+    assert window.rect().contains(button.mapTo(window, button.rect().topLeft()))
+    assert window.rect().contains(button.mapTo(window, button.rect().bottomRight()))
 
 
 # === recording_window ===
@@ -246,7 +292,7 @@ def test_waveform_when_recording(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_pause_button_when_recording(make_ui: Callable[..., Ui]) -> None:
-    """録音中は一時停止のボタンだけを出し、名前の横に一時停止のホットキーを出す。"""
+    """録音中は一時停止のボタンだけを出し、名前の下に一時停止のホットキーを出す。"""
     # 実行
     ui = _opened(make_ui)
 
@@ -293,7 +339,7 @@ def test_pause_button_action(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_cancel_button_label(make_ui: Callable[..., Ui]) -> None:
-    """取り消しのボタンは常に出し、名前の横に取り消しのホットキーを出す。"""
+    """取り消しのボタンは常に出し、名前の下に取り消しのホットキーを出す。"""
     # 実行
     ui = _opened(make_ui)
 
@@ -320,18 +366,19 @@ def test_cancel_button_action(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_outputs_heading_when_outputs_on(make_ui: Callable[..., Ui]) -> None:
-    """オンの出力先があれば、見出し「確定して届ける」を出す。"""
+    """オンの出力先があっても、見出し「確定して届ける」を出さない。"""
     # 実行
     ui = _opened(make_ui)
 
     # 検証
-    heading = find(ui.recording_window, QLabel, "outputs_heading")
-    assert heading.isVisible()
-    assert heading.text() == "確定して届ける"
+    window = ui.recording_window
+    assert window.findChild(QLabel, "outputs_heading") is None
+    assert find(window, QPushButton, "output_button_paste_and_send").isVisible()
+    assert "確定して届ける" not in [label.text() for label in window.findChildren(QLabel)]
 
 
 def test_outputs_heading_when_outputs_off(make_ui: Callable[..., Ui]) -> None:
-    """出力先が全てオフなら、見出しを出さない。"""
+    """出力先が全てオフでも、見出し「確定して届ける」を出さない。"""
     from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
     from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
     from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
@@ -349,11 +396,11 @@ def test_outputs_heading_when_outputs_off(make_ui: Callable[..., Ui]) -> None:
     )
 
     # 検証
-    assert not find(ui.recording_window, QLabel, "outputs_heading").isVisible()
+    assert ui.recording_window.findChild(QLabel, "outputs_heading") is None
 
 
 def test_output_buttons_when_all_on(make_ui: Callable[..., Ui]) -> None:
-    """オンの出力先ごとに、設定の並びで 1 つずつ出し、名前の横にその出力先のホットキーを出す。"""
+    """オンの出力先ごとに、設定の並びで 1 つずつ出し、名前の下にその出力先のホットキーを出す。"""
     # 実行
     ui = _opened(make_ui)
 
@@ -496,7 +543,7 @@ def test_presets_heading_when_all_disabled(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_preset_buttons_order(make_ui: Callable[..., Ui]) -> None:
-    """有効なプリセットごとに 1 つずつ、ブラウザ添付の並び → エンドポイントへ送るの並びの順に出し、名前の横にホットキーを出す。"""
+    """有効なプリセットごとに 1 つずつ、ブラウザ添付の並び → エンドポイントへ送るの並びの順に出し、名前の下にホットキーを出す。"""
     # 実行（設定の並びはエンドポイントが先。ボタンはブラウザ添付が先）
     ui = _opened(
         make_ui,
@@ -587,6 +634,191 @@ def test_preset_button_action(make_ui: Callable[..., Ui], paused: bool) -> None:
     # 検証
     ui.deps.complete.assert_called_once_with(None, claude)
     assert not ui.recording_window.isVisible()
+
+
+# === ボタンのホットキーの出し方（名前の下のキーキャップ・ボタンの大きさ・窓の幅） ===
+
+
+def _long_hotkeys_settings() -> Settings:
+    """一時停止・取り消し・全ての出力先・プリセットのホットキーを、長いものにした設定を作る。"""
+    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
+    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
+    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
+    from voice_paste.shared.settings import HotkeySettings
+
+    return _settings(
+        hotkeys=HotkeySettings(pause="<ctrl>+<alt>+<shift>+<f11>", cancel="<ctrl>+<alt>+<shift>+<f10>"),
+        outputs=[
+            PasteAndSendSettings(hotkey="<ctrl>+<alt>+<shift>+<f9>"),
+            PasteOnlySettings(hotkey="<ctrl>+<alt>+<shift>+<f8>"),
+            CopyOnlySettings(hotkey="<ctrl>+<alt>+<shift>+<f7>"),
+        ],
+        presets=[_browser("ChatGPT", LONG_HOTKEY)],
+    )
+
+
+@pytest.mark.parametrize(
+    ("button_name", "expected_key"),
+    [
+        pytest.param("pause_button", "Ctrl+Alt+Shift+F11", id="pause"),
+        pytest.param("cancel_button", "Ctrl+Alt+Shift+F10", id="cancel"),
+        pytest.param("output_button_paste_and_send", "Ctrl+Alt+Shift+F9", id="paste_and_send"),
+        pytest.param("output_button_paste_only", "Ctrl+Alt+Shift+F8", id="paste_only"),
+        pytest.param("output_button_copy_only", "Ctrl+Alt+Shift+F7", id="copy_only"),
+        pytest.param("preset_button_0", LONG_HOTKEY_TEXT, id="preset"),
+    ],
+)
+def test_hotkey_buttons_key_below_name(
+    styled: None, make_ui: Callable[..., Ui], button_name: str, expected_key: str
+) -> None:
+    """長いホットキーも、名前の下のキーキャップに、ボタンの中で切れずに出す。"""
+    # 実行
+    ui = _opened(make_ui, _long_hotkeys_settings())
+
+    # 検証
+    _assert_key_below_name(find(ui.recording_window, QPushButton, button_name), expected_key)
+
+
+def test_hotkey_buttons_key_below_name_when_paused(styled: None, make_ui: Callable[..., Ui]) -> None:
+    """一時停止中の再開のボタンも、長いホットキーを名前の下のキーキャップに、切れずに出す。"""
+    # 準備
+    ui = _opened(make_ui, _long_hotkeys_settings())
+
+    # 実行
+    ui.recording_window.set_paused(True)
+
+    # 検証
+    _assert_key_below_name(
+        find(ui.recording_window, QPushButton, "resume_button"), "Ctrl+Alt+Shift+F11"
+    )
+
+
+def test_hotkey_buttons_when_hotkey_empty(styled: None, make_ui: Callable[..., Ui]) -> None:
+    """ホットキーが空のプリセットのボタンは名前だけを出し、同じ行のボタンと高さを揃えて、名前を上下の中央に置く。"""
+    # 実行（1 つ目はホットキーあり、2 つ目は空。同じ行に並ぶ）
+    ui = _opened(
+        make_ui, _presets_settings(_browser("ChatGPT", "<ctrl>+<alt>+1"), _browser("Claude"))
+    )
+
+    # 検証
+    window = ui.recording_window
+    with_key = find(window, QPushButton, "preset_button_0")
+    without_key = find(window, QPushButton, "preset_button_1")
+    name_label, key_label = _name_and_key(without_key)
+    assert key_label is None
+    assert without_key.geometry().y() == with_key.geometry().y()
+    assert without_key.height() == with_key.height()
+    assert abs(name_label.geometry().center().y() - without_key.rect().center().y()) <= 1
+
+
+def test_hotkey_buttons_height_when_in_same_row(styled: None, make_ui: Callable[..., Ui]) -> None:
+    """一時停止と取り消しのボタンは、同じ行で同じ高さにそろい、名前とキーの 2 行が入る高さがある。"""
+    # 実行
+    ui = _opened(make_ui)
+
+    # 検証
+    window = ui.recording_window
+    pause = find(window, QPushButton, "pause_button")
+    cancel = find(window, QPushButton, "cancel_button")
+    name_label, key_label = _name_and_key(pause)
+    assert key_label is not None
+    assert pause.height() == cancel.height()
+    assert pause.height() >= name_label.height() + key_label.height()
+
+
+def test_hotkey_buttons_width_when_preset_columns(styled: None, make_ui: Callable[..., Ui]) -> None:
+    """プリセットのボタンの幅は、列ごとにいちばん広いボタンにそろう。"""
+    # 実行（1 列目は短いホットキーと長いホットキー）
+    ui = _opened(
+        make_ui,
+        _presets_settings(
+            _browser("A", "<ctrl>+<alt>+1"),
+            _browser("B"),
+            _browser("C"),
+            _browser("D", LONG_HOTKEY),
+        ),
+    )
+
+    # 検証
+    window = ui.recording_window
+    first_row = find(window, QPushButton, "preset_button_0")
+    second_row = find(window, QPushButton, "preset_button_3")
+    assert first_row.width() == second_row.width()
+    assert first_row.width() >= _name_and_key(second_row)[1].width()
+
+
+def test_recording_window_width_when_narrow(styled: None, make_ui: Callable[..., Ui]) -> None:
+    """ボタンが要る幅が既定の幅（360px）より狭いときは、窓を 360px にする。"""
+    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
+    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
+    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
+
+    # 実行（出力先もプリセットも出さず、一時停止と取り消しだけ）
+    ui = _opened(
+        make_ui,
+        _settings(
+            outputs=[
+                PasteAndSendSettings(enabled=False),
+                PasteOnlySettings(enabled=False),
+                CopyOnlySettings(enabled=False),
+            ]
+        ),
+    )
+
+    # 検証
+    assert ui.recording_window.width() == WINDOW_MIN_WIDTH
+
+
+def test_recording_window_width_when_wide(styled: None, make_ui: Callable[..., Ui]) -> None:
+    """ボタンが要る幅が既定の幅を超えるときは、その幅まで窓を広げ、ボタンを窓の端で切らない。"""
+    # 実行（長いホットキーのプリセットを 3 件、1 行に並べる）
+    ui = _opened(
+        make_ui,
+        _presets_settings(
+            _browser("A", "<ctrl>+<alt>+<shift>+<f12>"),
+            _browser("B", "<ctrl>+<alt>+<shift>+<f11>"),
+            _browser("C", "<ctrl>+<alt>+<shift>+<f10>"),
+        ),
+    )
+
+    # 検証
+    window = ui.recording_window
+    assert window.width() > WINDOW_MIN_WIDTH
+    _assert_inside_window(window, find(window, QPushButton, "preset_button_0"))
+    _assert_inside_window(window, find(window, QPushButton, "preset_button_1"))
+    _assert_inside_window(window, find(window, QPushButton, "preset_button_2"))
+
+
+def test_recording_window_width_when_reopened(styled: None, make_ui: Callable[..., Ui]) -> None:
+    """前の録音で広がった幅を、次の録音の窓へ持ち越さない（ボタンが要る幅へ戻す）。"""
+    # 準備（長いホットキーで広げて閉じる）
+    ui = _opened(
+        make_ui,
+        _presets_settings(
+            _browser("A", "<ctrl>+<alt>+<shift>+<f12>"),
+            _browser("B", "<ctrl>+<alt>+<shift>+<f11>"),
+            _browser("C", "<ctrl>+<alt>+<shift>+<f10>"),
+        ),
+    )
+    assert ui.recording_window.width() > WINDOW_MIN_WIDTH
+    ui.recording_window.close_window()
+
+    # 実行（出力先もプリセットも無い設定で開き直す）
+    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
+    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
+    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
+
+    ui.deps.get_settings.return_value = _settings(
+        outputs=[
+            PasteAndSendSettings(enabled=False),
+            PasteOnlySettings(enabled=False),
+            CopyOnlySettings(enabled=False),
+        ]
+    )
+    ui.recording_window.open()
+
+    # 検証
+    assert ui.recording_window.width() == WINDOW_MIN_WIDTH
 
 
 # === head_row ===

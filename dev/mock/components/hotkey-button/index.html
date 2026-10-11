@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ホットキーを持つボタン | voice-paste のモック</title>
+  <link rel="stylesheet" href="../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../refs/82/assets/style.css">
+</head>
+<body>
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../">components</a> / <span>hotkey-button</span></nav>
+
+    <!-- 部品の説明 -->
+    <header class="intro">
+      <h1>ホットキーを持つボタン</h1>
+      <p>録音の画面の一時停止・再開・取り消す・固定の出力先・カスタムプリセットのボタン。名前と、同じ操作のホットキーを切らずに出す。案 A は名前の下に、案 B は名前の右に、どちらも枠で囲んだキーで出す。どちらもボタンの幅は中身から決める。</p>
+    </header>
+
+    <div class="desk">
+
+      <!-- 案 A: 名前の下にホットキー -->
+        <section class="specimen" aria-labelledby="h-keys-below-normal">
+          <h2 id="h-keys-below-normal">案 A: 通常</h2>
+          <div class="win parts keys-below"><button type="button" class="btn btn--hk">貼り付けのみ <kbd>Ctrl+Alt+V</kbd></button></div>
+        </section>
+        <section class="specimen" aria-labelledby="h-keys-below-hover">
+          <h2 id="h-keys-below-hover">案 A: かざした</h2>
+          <div class="win parts keys-below"><button type="button" class="btn btn--hk is-hover">貼り付けのみ <kbd>Ctrl+Alt+V</kbd></button></div>
+        </section>
+        <section class="specimen" aria-labelledby="h-keys-below-focus">
+          <h2 id="h-keys-below-focus">案 A: フォーカス</h2>
+          <div class="win parts keys-below"><button type="button" class="btn btn--hk is-focus">貼り付けのみ <kbd>Ctrl+Alt+V</kbd></button></div>
+        </section>
+        <section class="specimen" aria-labelledby="h-keys-below-primary">
+          <h2 id="h-keys-below-primary">案 A: 主の操作</h2>
+          <div class="win parts keys-below"><button type="button" class="btn btn--hk btn--primary">貼り付けて送信 <kbd>Ctrl+Alt+D</kbd></button></div>
+        </section>
+        <section class="specimen" aria-labelledby="h-keys-below-danger">
+          <h2 id="h-keys-below-danger">案 A: 取り消す</h2>
+          <div class="win parts keys-below"><button type="button" class="btn btn--hk btn--quiet btn--danger">取り消す <kbd>Ctrl+Alt+Q</kbd></button></div>
+        </section>
+        <section class="specimen" aria-labelledby="h-keys-below-empty">
+          <h2 id="h-keys-below-empty">案 A: ホットキーが空</h2>
+          <div class="win parts keys-below"><button type="button" class="btn btn--hk">Claude</button></div>
+        </section>
+        <section class="specimen" aria-labelledby="h-keys-below-long">
+          <h2 id="h-keys-below-long">案 A: 長いホットキー</h2>
+          <div class="win parts keys-below"><button type="button" class="btn btn--hk">取り消す <kbd>Ctrl+Alt+Shift+F12</kbd></button></div>
+        </section>
+
+      <!-- 案 B: 名前の右にホットキー -->
+        <section class="specimen" aria-labelledby="h-keys-right-normal">
+          <h2 id="h-keys-right-normal">案 B: 通常</h2>
+          <div class="win parts keys-right"><button type="button" class="btn btn--hk">貼り付けのみ <kbd>Ctrl+Alt+V</kbd></button></div>
+        </section>
+        <section class="specimen" aria-labelledby="h-keys-right-hover">
+          <h2 id="h-keys-right-hover">案 B: かざした</h2>
+          <div class="win parts keys-right"><button type="button" class="btn btn--hk is-hover">貼り付けのみ <kbd>Ctrl+Alt+V</kbd></button></div>
+        </section>
+        <section class="specimen" aria-labelledby="h-keys-right-focus">
+          <h2 id="h-keys-right-focus">案 B: フォーカス</h2>
+          <div class="win parts keys-right"><button type="button" class="btn btn--hk is-focus">貼り付けのみ <kbd>Ctrl+Alt+V</kbd></button></div>
+        </section>
+        <section class="specimen" aria-labelledby="h-keys-right-primary">
+          <h2 id="h-keys-right-primary">案 B: 主の操作</h2>
+          <div class="win parts keys-right"><button type="button" class="btn btn--hk btn--primary">貼り付けて送信 <kbd>Ctrl+Alt+D</kbd></button></div>
+        </section>
+        <section class="specimen" aria-labelledby="h-keys-right-danger">
+          <h2 id="h-keys-right-danger">案 B: 取り消す</h2>
+          <div class="win parts keys-right"><button type="button" class="btn btn--hk btn--quiet btn--danger">取り消す <kbd>Ctrl+Alt+Q</kbd></button></div>
+        </section>
+        <section class="specimen" aria-labelledby="h-keys-right-empty">
+          <h2 id="h-keys-right-empty">案 B: ホットキーが空</h2>
+          <div class="win parts keys-right"><button type="button" class="btn btn--hk">Claude</button></div>
+        </section>
+        <section class="specimen" aria-labelledby="h-keys-right-long">
+          <h2 id="h-keys-right-long">案 B: 長いホットキー</h2>
+          <div class="win parts keys-right"><button type="button" class="btn btn--hk">取り消す <kbd>Ctrl+Alt+Shift+F12</kbd></button></div>
+        </section>
+
+    </div>
+  </main>
+</body>
+</html>

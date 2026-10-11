@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock
 
 import pytest
-from PySide6.QtCore import QRegularExpression, Qt
+from PySide6.QtCore import QPoint, QRegularExpression, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -154,6 +154,23 @@ def _add_preset(window: QWidget, kind: str, title: str, url: str) -> int:
     _preset_field(window, kind, number, "title", QLineEdit).setText(title)
     _preset_field(window, kind, number, "url", QLineEdit).setText(url)
     return number
+
+
+def _label_with_text(window: QWidget, text: str) -> QLabel:
+    """文字が text に一致するラベルを引く。"""
+    found = [label for label in window.findChildren(QLabel) if label.text() == text]
+    assert len(found) == 1, f"「{text}」のラベルが 1 つでない"
+    return found[0]
+
+
+def _top_of(widget: QWidget, window: QWidget) -> int:
+    """部品の上端の、窓の中での y 座標を返す。"""
+    return widget.mapTo(window, QPoint(0, 0)).y()
+
+
+def _left_of(widget: QWidget, window: QWidget) -> int:
+    """部品の左端の、窓の中での x 座標を返す。"""
+    return widget.mapTo(window, QPoint(0, 0)).x()
 
 
 def _leaf_keys(settings: Settings) -> list[str]:
@@ -1147,6 +1164,55 @@ def test_discard_dialog_when_unchanged_by_window_close(open_window: Callable[...
     opened.closed.assert_called_once()
 
 
+# === enter_modifiers ===
+
+
+def test_enter_modifiers_when_visible(open_window: Callable[..., Opened]) -> None:
+    """「出力先」のまとまりに、欄の名前「Enter と一緒に押す修飾キー」と、その下の行に「Ctrl」「Alt」「Shift」のチェックボックスを横に並べる。"""
+    # 実行
+    window = open_window().window
+
+    # 検証
+    name_label = _label_with_text(window, "Enter と一緒に押す修飾キー")
+    boxes = [_field(window, f"outputs[0].enter_modifiers_{value}", QCheckBox) for value in ("ctrl", "alt", "shift")]
+    assert name_label.isVisible()
+    assert [box.text() for box in boxes] == ["Ctrl", "Alt", "Shift"]
+    assert all(box.isVisible() for box in boxes)
+    # 名前の下の行に、同じ高さで左から Ctrl・Alt・Shift の順に並ぶ
+    assert all(_top_of(box, window) >= _top_of(name_label, window) + name_label.height() for box in boxes)
+    assert len({_top_of(box, window) for box in boxes}) == 1
+    assert _left_of(boxes[0], window) < _left_of(boxes[1], window) < _left_of(boxes[2], window)
+
+
+def test_enter_modifiers_when_initial_value(open_window: Callable[..., Opened]) -> None:
+    """開いたときの settings.toml の修飾キーだけをオンにして開く（既定は全てオフ）。"""
+    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
+    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
+    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
+
+    # 準備
+    settings = SETTINGS_MODEL(
+        outputs=[PasteAndSendSettings(enter_modifiers=["alt"]), PasteOnlySettings(), CopyOnlySettings()]
+    )
+
+    # 実行
+    default_window = open_window().window
+    window = open_window(settings).window
+
+    # 検証
+    values = ("ctrl", "alt", "shift")
+    assert [_field(default_window, f"outputs[0].enter_modifiers_{v}", QCheckBox).isChecked() for v in values] == [
+        False,
+        False,
+        False,
+    ]
+    assert [_field(window, f"outputs[0].enter_modifiers_{v}", QCheckBox).isChecked() for v in values] == [
+        False,
+        True,
+        False,
+    ]
+
+
 # === save_button ===
 
 
@@ -1165,6 +1231,22 @@ def test_save_button_action(open_window: Callable[..., Opened]) -> None:
     opened.saved.assert_called_once()
     opened.closed.assert_called_once()
     assert not opened.window.isVisible()
+
+
+def test_save_button_when_enter_modifiers(open_window: Callable[..., Opened]) -> None:
+    """オンにした修飾キーを、列挙の並び（Ctrl・Alt・Shift）で settings.toml の enter_modifiers に書く。"""
+    # 準備（Shift → Ctrl の順にオンにする）
+    opened = open_window()
+    _field(opened.window, "outputs[0].enter_modifiers_shift", QCheckBox).setChecked(True)
+    _field(opened.window, "outputs[0].enter_modifiers_ctrl", QCheckBox).setChecked(True)
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    opened.deps.save_settings.assert_called_once()
+    assert opened.deps.save_settings.call_args.args[0].outputs[0].enter_modifiers == ["ctrl", "shift"]
+    opened.saved.assert_called_once()
 
 
 def test_save_button_when_default(open_window: Callable[..., Opened]) -> None:

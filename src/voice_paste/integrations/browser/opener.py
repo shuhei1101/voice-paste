@@ -1,4 +1,4 @@
-"""AI チャットの画面を、Microsoft Edge のアプリのウィンドウ（見つからなければ既定のブラウザ）で開く。"""
+"""ブラウザ添付のプリセットの画面を、Microsoft Edge のアプリのウィンドウ（見つからなければ既定のブラウザ）で開く。"""
 
 from __future__ import annotations
 
@@ -42,9 +42,9 @@ def open_app_window(url: str) -> None:
         else:
             os.startfile(url)  # type: ignore[attr-defined] # Windows にだけある
     except OSError as error:
-        raise DeliveryError(f"AI チャットの画面を開けませんでした（{error}）") from error
+        raise DeliveryError(f"ブラウザ添付のプリセットの画面を開けませんでした（{error}）") from error
 
     if edge is not None:
-        logger.info(f"AI チャットを Edge のアプリのウィンドウで開いた（{url}）")
+        logger.info(f"ブラウザ添付のプリセットの画面を Edge のアプリのウィンドウで開いた（{url}）")
     else:
-        logger.info(f"AI チャットを既定のブラウザで開いた（{url}）")
+        logger.info(f"ブラウザ添付のプリセットの画面を既定のブラウザで開いた（{url}）")

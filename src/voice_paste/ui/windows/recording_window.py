@@ -12,6 +12,7 @@ from PySide6.QtCore import (
     QPoint,
     QPointF,
     QRectF,
+    QSize,
     Qt,
     QTimer,
     Signal,
@@ -24,6 +25,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLayout,
     QPushButton,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -56,6 +58,15 @@ PRESET_NAME_MAX_PX: int = 120
 
 PRESET_COLUMNS: int = 3
 """カスタムプリセットのボタンを横に並べる数（これを超えたら次の行へ折り返す）。"""
+
+WINDOW_MIN_WIDTH_PX: int = 360
+"""録音の画面の既定の幅（ボタンが要る幅がこれを超えるときは、その幅まで広げる）。"""
+
+BUTTON_PADDING_PX: tuple[int, int] = (12, 4)
+"""ホットキーを持つボタンの、左右と上下の余白。"""
+
+BUTTON_KEY_GAP_PX: int = 2
+"""ホットキーを持つボタンの、名前とキーの間の幅。"""
 
 SECONDS_PER_HOUR: int = 3600
 SECONDS_PER_MINUTE: int = 60
@@ -219,6 +230,46 @@ class HeadButton(QPushButton):
             painter.drawLine(QLineF(cx - half, cy, cx + half, cy))
 
 
+class HotkeyButton(QPushButton):
+    """名前を 1 行目に、同じ操作のホットキーを枠で囲んだ等幅のキーで 2 行目に出すボタン。
+
+    ボタンの大きさは、中の名前とキーが要る大きさから決める（QPushButton の sizeHint は中の部品を数えない）。
+    ホットキーが空のときは名前だけを、上下の中央に出す。
+    """
+
+    def __init__(self, name: str, text: str, hotkey: str, *, tooltip: str | None = None) -> None:
+        super().__init__()
+        self.setObjectName(name)
+        self.setProperty("role", "hotkey_button")
+        # 同じ行・同じ列のボタンと高さを揃えるため、行の高さまで伸ばす
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(*BUTTON_PADDING_PX, *BUTTON_PADDING_PX)
+        layout.setSpacing(BUTTON_KEY_GAP_PX)
+        center = Qt.AlignmentFlag.AlignHCenter
+        layout.addStretch(1)
+        text_label = QLabel(text)
+        text_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        layout.addWidget(text_label, 0, center)
+        # ホットキーが空のときは、名前だけを出す
+        if hotkey:
+            key_label = QLabel(format_hotkey(hotkey))
+            key_label.setProperty("role", "keycap")
+            key_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+            layout.addWidget(key_label, 0, center)
+        layout.addStretch(1)
+        if tooltip:
+            self.setToolTip(tooltip)
+
+    def sizeHint(self) -> QSize:  # noqa: N802 Qt の名前
+        """中の名前とキーが要る大きさ（枠の最小の高さを下回らない）を返す。"""
+        return super().sizeHint().expandedTo(self.layout().sizeHint())
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802 Qt の名前
+        """切れないよう、要る大きさを最小の大きさにする。"""
+        return self.sizeHint()
+
+
 class RecordingWindow(QWidget):
     """状態・経過時間・波形と、一時停止・取り消し・確定のボタンを並べる小さな窓。
 
@@ -253,6 +304,8 @@ class RecordingWindow(QWidget):
         outer.setContentsMargins(0, 0, 0, 0)
         frame = QFrame()
         frame.setProperty("role", "surface")
+        # 窓の最小幅は枠に持たせる（窓自身に持たせると、ボタンが要る幅へ広がらない）
+        frame.setMinimumWidth(WINDOW_MIN_WIDTH_PX)
         outer.addWidget(frame)
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(16, 16, 16, 16)
@@ -298,8 +351,6 @@ class RecordingWindow(QWidget):
         self._operations = QHBoxLayout()
         layout.addLayout(self._operations)
 
-        self._outputs_heading = self._heading("outputs_heading", "確定して届ける")
-        layout.addWidget(self._outputs_heading)
         self._outputs_layout = QHBoxLayout()
         layout.addLayout(self._outputs_layout)
         self._presets_heading = self._heading("presets_heading", "カスタムプリセット")
@@ -309,32 +360,11 @@ class RecordingWindow(QWidget):
 
     @staticmethod
     def _heading(name: str, text: str) -> QLabel:
-        """出力先の並びの見出しを作る。"""
+        """カスタムプリセットの並びの見出しを作る。"""
         label = QLabel(text)
         label.setObjectName(name)
         label.setProperty("role", "muted")
         return label
-
-    @staticmethod
-    def _hotkey_button(name: str, text: str, hotkey: str, *, tooltip: str | None = None) -> QPushButton:
-        """名前の右にホットキーを出すボタンを作る（ホットキーは省略しない）。"""
-        button = QPushButton()
-        button.setObjectName(name)
-        layout = QHBoxLayout(button)
-        layout.setContentsMargins(0, 0, 0, 0)
-        text_label = QLabel(text)
-        text_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        layout.addWidget(text_label)
-        # ホットキーが空のときは、名前だけを出す
-        if hotkey:
-            key_label = QLabel(format_hotkey(hotkey))
-            key_label.setProperty("role", "mono")
-            key_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-            layout.addStretch(1)
-            layout.addWidget(key_label)
-        if tooltip:
-            button.setToolTip(tooltip)
-        return button
 
     @staticmethod
     def _clear(layout: QLayout) -> None:
@@ -350,12 +380,12 @@ class RecordingWindow(QWidget):
         for layout in (self._operations, self._outputs_layout, self._presets_layout):
             self._clear(layout)
 
-        self._pause_button = self._hotkey_button("pause_button", "一時停止", settings.hotkeys.pause)
+        self._pause_button = HotkeyButton("pause_button", "一時停止", settings.hotkeys.pause)
         self._pause_button.clicked.connect(self._deps.pause)
-        self._resume_button = self._hotkey_button("resume_button", "再開", settings.hotkeys.pause)
+        self._resume_button = HotkeyButton("resume_button", "再開", settings.hotkeys.pause)
         self._resume_button.clicked.connect(self._deps.resume)
         self._resume_button.hide()
-        cancel_button = self._hotkey_button("cancel_button", "取り消す", settings.hotkeys.cancel)
+        cancel_button = HotkeyButton("cancel_button", "取り消す", settings.hotkeys.cancel)
         cancel_button.clicked.connect(self._cancel)
         for button in (self._pause_button, self._resume_button, cancel_button):
             self._operations.addWidget(button)
@@ -365,7 +395,7 @@ class RecordingWindow(QWidget):
         for output in settings.outputs:
             if not output.enabled:
                 continue
-            button = self._hotkey_button(
+            button = HotkeyButton(
                 f"output_button_{output.id}", self._deps.output_titles[output.id], output.hotkey
             )
             button.setProperty("primary", shown_outputs == 0)
@@ -374,7 +404,6 @@ class RecordingWindow(QWidget):
             )
             self._outputs_layout.addWidget(button)
             shown_outputs += 1
-        self._outputs_heading.setVisible(shown_outputs > 0)
 
         # カスタムプリセットのボタン（有効なものを、種類の並び（PRESET_KIND_NAMES）の順に、種類の中は設定の並びで。
         # 3 件ずつ横に並べ、種類の境目でも行を変えない。タイトルは幅で省略し、かざすと全体を出す）
@@ -386,7 +415,7 @@ class RecordingWindow(QWidget):
                 elided = QFontMetrics(self.font()).elidedText(
                     preset.title, Qt.TextElideMode.ElideRight, PRESET_NAME_MAX_PX
                 )
-                button = self._hotkey_button(
+                button = HotkeyButton(
                     f"preset_button_{shown_presets}", elided, preset.hotkey, tooltip=preset.title
                 )
                 button.clicked.connect(
@@ -447,6 +476,8 @@ class RecordingWindow(QWidget):
         self._show_state(paused=False)
         self._elapsed_label.setText(format_clock(0))
 
+        # ボタンが要る幅・高さに合わせる（前の録音で広がった幅を引きずらない）
+        self.adjustSize()
         move_to_configured_position(self, settings.ui)
         self._drag_origin = None
         self.show()

@@ -62,6 +62,23 @@ QPushButton[primary="true"] {
 }
 QPushButton[primary="true"]:hover { background-color: @primary_hover@; }
 QPushButton QLabel { background: transparent; }
+QPushButton[role="hotkey_button"] { padding: 0; }
+QPushButton[primary="true"] QLabel { color: @on_primary@; }
+QLabel[role="keycap"] {
+    font-family: @font_mono@;
+    font-size: @size_text_key@px;
+    color: @text_muted@;
+    background-color: @sunken@;
+    border: 1px solid @border@;
+    border-bottom: 2px solid @border@;
+    border-radius: @radius@px;
+    padding: 0 5px;
+}
+QPushButton[primary="true"] QLabel[role="keycap"] {
+    color: @on_primary@;
+    background-color: transparent;
+    border-color: rgba(255, 255, 255, 90);
+}
 QWidget[role="head_row"] { background-color: transparent; border-radius: @radius@px; }
 QWidget[role="head_row"]:hover { background-color: @sunken@; }
 QPushButton[role="head_button"], QPushButton[role="head_close"] {

@@ -717,7 +717,7 @@ def test_wire_outputs_when_settings_changed(settings_model: type[Settings]) -> N
     # 配線の後に設定を差し替える
     get_settings.return_value = settings_model(
         keyboard=KeyboardSettings(paste_key="<ctrl>+<alt>+v"),
-        outputs=[PasteAndSendSettings(enter_delay_sec=1.0)],
+        outputs=[PasteAndSendSettings(enter_delay_sec=1.0, enter_modifiers=["ctrl"])],
     )
 
     # 実行
@@ -726,6 +726,7 @@ def test_wire_outputs_when_settings_changed(settings_model: type[Settings]) -> N
     # 検証
     adapters.send_paste.assert_called_once_with("<ctrl>+<alt>+v")
     adapters.sleep.assert_called_once_with(1.0)
+    adapters.send_enter.assert_called_once_with(("ctrl",))
 
 
 def test_wire_outputs_when_registered_output(settings_model: type[Settings]) -> None:

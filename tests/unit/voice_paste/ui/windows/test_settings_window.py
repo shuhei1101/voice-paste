@@ -58,6 +58,13 @@ def _field(window: SettingsWindow, key: str) -> QWidget:
     return widget
 
 
+def _enter_modifier_checkbox(window: SettingsWindow, value: str) -> QAbstractButton:
+    """貼り付けて送信の「Enter と一緒に押す修飾キー」の、値のチェックボックス（objectName が field_{キー}_{値}）を返す。"""
+    checkbox = _field(window, f"outputs[0].enter_modifiers_{value}")
+    assert isinstance(checkbox, QAbstractButton)
+    return checkbox
+
+
 def _error_summary_text(window: SettingsWindow) -> str:
     """エラーの一覧の行（QLabel）の文字を、リンクの書式を外して改行で並べて返す。"""
     summary = window.findChild(QWidget, "error_summary")
@@ -177,6 +184,28 @@ def test_save_when_preset_invalid(opened: Opened) -> None:
     assert "プリセット 1 件目のタイトル: タイトルを入れてください。" in _error_summary_text(
         opened.window
     )
+
+
+def test_save_when_enter_modifiers(opened: Opened) -> None:
+    """オンにした修飾キーを一覧にして書く（正常系）。"""
+    # 準備（Shift → Ctrl の順にオンにする）
+    ctrl = _enter_modifier_checkbox(opened.window, "ctrl")
+    alt = _enter_modifier_checkbox(opened.window, "alt")
+    shift = _enter_modifier_checkbox(opened.window, "shift")
+    shift.setChecked(True)
+    ctrl.setChecked(True)
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証（一覧は列挙の並び）
+    assert result is True
+    opened.deps.save_settings.assert_called_once()
+    assert opened.deps.save_settings.call_args.args[0].outputs[0].enter_modifiers == [
+        "ctrl",
+        "shift",
+    ]
+    assert [ctrl.text(), alt.text(), shift.text()] == ["Ctrl", "Alt", "Shift"]
 
 
 # === close_without_confirm ===

@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Sequence
 
 import pyperclip
 from pynput import keyboard
 
 from voice_paste.shared.errors import DeliveryError
+from voice_paste.shared.types import EnterModifier
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +28,13 @@ MODIFIER_KEYS: dict[str, keyboard.Key] = {
     "<win>": keyboard.Key.cmd,
 }
 """貼り付けのキーの書式の修飾キーと、押す pynput のキー。"""
+
+ENTER_MODIFIER_KEYS: dict[EnterModifier, keyboard.Key] = {
+    "ctrl": keyboard.Key.ctrl,
+    "alt": keyboard.Key.alt,
+    "shift": keyboard.Key.shift,
+}
+"""Enter と一緒に押す修飾キーと、押す pynput のキー。並びが押す順（Ctrl・Alt・Shift）。"""
 
 
 def copy_to_clipboard(text: str) -> None:
@@ -60,9 +69,22 @@ def send_paste(paste_key: str) -> None:
     logger.info(f"貼り付けのキーを送った（{paste_key}）")
 
 
-def send_enter() -> None:
-    """Enter を押して離す。待ちは呼ぶ側が置く。"""
+def send_enter(modifiers: Sequence[EnterModifier] = ()) -> None:
+    """渡した修飾キーを押したまま Enter を押して離す（修飾キーが無ければ Enter だけ）。待ちは呼ぶ側が置く。"""
+    # 1. 修飾キーを Ctrl・Alt・Shift の並びに揃え、重なりを除く
+    ordered = [modifier for modifier in ENTER_MODIFIER_KEYS if modifier in modifiers]
+
+    # 2. 修飾キーを順に押し、Enter を押して離す
     controller = keyboard.Controller()
-    controller.press(keyboard.Key.enter)
-    controller.release(keyboard.Key.enter)
-    logger.info("Enter を送った")
+    pressed: list[keyboard.Key] = []
+    try:
+        for modifier in ordered:
+            controller.press(ENTER_MODIFIER_KEYS[modifier])
+            pressed.append(ENTER_MODIFIER_KEYS[modifier])
+        controller.press(keyboard.Key.enter)
+        controller.release(keyboard.Key.enter)
+    finally:
+        # 途中で失敗しても、押した修飾キーは逆順に離す（押されたままにしない）
+        for key in reversed(pressed):
+            controller.release(key)
+    logger.info(f"Enter を送った（修飾キー: {'+'.join(ordered) or 'なし'}）")

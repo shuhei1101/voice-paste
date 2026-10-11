@@ -547,5 +547,16 @@ settings:
     implementation: src/voice_paste/shared/settings.py
     introduced:
       pr: 78
+  - key: outputs[].enter_modifiers
+    title: Enter と一緒に押す修飾キー
+    file: settings.toml
+    type: list['ctrl' | 'alt' | 'shift']
+    default: '[]'
+    description: paste_and_send だけが持つ。貼り付けて `enter_delay_sec` の秒数を置いた後、並べた修飾キーを押したまま Enter を送る。空なら Enter だけを送る。ブラウザ添付種類の、Enter まで送るプリセットには当てない。
+    missing: 空として読む
+    reload: immediate
+    allowed: "'ctrl'・'alt'・'shift' の値だけ。並びと重なりは問わず、押す順は Ctrl・Alt・Shift に揃える"
+    status: planned
+    implementation: src/voice_paste/features/outputs/paste_and_send/settings.py
 notes:
   反映の列の読み方: '`immediate` は設定画面で保存すると動いている常駐アプリに効く項目。`settings.toml` を直接書き換えたときは、どの項目も再起動まで効かない（起動時に 1 度だけ読む）。'

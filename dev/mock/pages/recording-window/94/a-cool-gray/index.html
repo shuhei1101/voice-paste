@@ -256,7 +256,8 @@
       <!-- 色の値の表 -->
       <section class="specimen specimen--settings" aria-labelledby="h-values">
         <h2 id="h-values">色の値（tokens.toml の [color.light]・[color.dark]）</h2>
-        <div class="swatches-wrap">
+        <!-- 狭い幅で横に流す表: キーボードでも流せるようフォーカスを受ける -->
+        <div class="swatches-wrap" tabindex="0" role="region" aria-labelledby="h-values">
           <table class="swatches">
             <thead><tr><th>トークン</th><th>使う場所</th><th>ライト（この案）</th><th>ライト（今）</th><th>ダーク（この案）</th><th>ダーク（今）</th></tr></thead>
             <tbody>

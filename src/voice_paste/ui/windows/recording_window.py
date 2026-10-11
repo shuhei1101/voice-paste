@@ -230,6 +230,25 @@ class HeadButton(QPushButton):
             painter.drawLine(QLineF(cx - half, cy, cx + half, cy))
 
 
+class Surface(QFrame):
+    """録音の画面の面。幅は既定の幅を下限に、中のボタンが要る幅まで広げる。
+
+    最小の幅は setMinimumWidth で持たせない（持たせると、レイアウトが中のボタンの要る幅を数えなくなる）。
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setProperty("role", "surface")
+
+    def sizeHint(self) -> QSize:  # noqa: N802 Qt の名前
+        """中の大きさか、既定の幅の広い方を返す。"""
+        return super().sizeHint().expandedTo(QSize(WINDOW_MIN_WIDTH_PX, 0))
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802 Qt の名前
+        """中が要る最小の大きさか、既定の幅の広い方を返す。"""
+        return super().minimumSizeHint().expandedTo(QSize(WINDOW_MIN_WIDTH_PX, 0))
+
+
 class HotkeyButton(QPushButton):
     """名前を 1 行目に、同じ操作のホットキーを枠で囲んだ等幅のキーで 2 行目に出すボタン。
 
@@ -302,10 +321,7 @@ class RecordingWindow(QWidget):
         """状態・経過時間・波形・操作の行・確定のボタンの置き場を並べる（ボタンは open が組み直す）。"""
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
-        frame = QFrame()
-        frame.setProperty("role", "surface")
-        # 窓の最小幅は枠に持たせる（窓自身に持たせると、ボタンが要る幅へ広がらない）
-        frame.setMinimumWidth(WINDOW_MIN_WIDTH_PX)
+        frame = Surface()
         outer.addWidget(frame)
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(16, 16, 16, 16)
@@ -368,12 +384,13 @@ class RecordingWindow(QWidget):
 
     @staticmethod
     def _clear(layout: QLayout) -> None:
-        """レイアウトの中の部品を全て外して捨てる。"""
+        """レイアウトの中の部品を全て外して捨てる（外した分の大きさを数え直させる）。"""
         while layout.count():
             item = layout.takeAt(0)
             widget = item.widget()
             if widget is not None:
                 widget.deleteLater()
+        layout.invalidate()
 
     def _rebuild_buttons(self, settings: Settings) -> None:
         """設定でオンの出力先と有効なカスタムプリセットのボタンを、設定の並びで組み直す。"""

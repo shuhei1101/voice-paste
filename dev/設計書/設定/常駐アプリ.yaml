@@ -547,34 +547,15 @@ settings:
     implementation: src/voice_paste/shared/settings.py
     introduced:
       pr: 78
-  - key: outputs[].enter_with_ctrl
-    title: Enter と一緒に Ctrl を押す
+  - key: outputs[].enter_modifiers
+    title: Enter と一緒に押す修飾キー
     file: settings.toml
-    type: bool
-    default: 'false'
-    description: paste_and_send だけが持つ。`true` なら貼り付けて `enter_delay_sec` の秒数を置いた後、Ctrl を押したまま Enter を送る。ブラウザ添付種類の、Enter まで送るプリセットには当てない。
-    missing: '`false` として読む'
+    type: list['ctrl' | 'alt' | 'shift']
+    default: '[]'
+    description: paste_and_send だけが持つ。貼り付けて `enter_delay_sec` の秒数を置いた後、並べた修飾キーを押したまま Enter を送る。空なら Enter だけを送る。ブラウザ添付種類の、Enter まで送るプリセットには当てない。
+    missing: 空として読む
     reload: immediate
-    status: planned
-    implementation: src/voice_paste/features/outputs/paste_and_send/settings.py
-  - key: outputs[].enter_with_alt
-    title: Enter と一緒に Alt を押す
-    file: settings.toml
-    type: bool
-    default: 'false'
-    description: paste_and_send だけが持つ。`true` なら貼り付けて `enter_delay_sec` の秒数を置いた後、Alt を押したまま Enter を送る。ブラウザ添付種類の、Enter まで送るプリセットには当てない。
-    missing: '`false` として読む'
-    reload: immediate
-    status: planned
-    implementation: src/voice_paste/features/outputs/paste_and_send/settings.py
-  - key: outputs[].enter_with_shift
-    title: Enter と一緒に Shift を押す
-    file: settings.toml
-    type: bool
-    default: 'false'
-    description: paste_and_send だけが持つ。`true` なら貼り付けて `enter_delay_sec` の秒数を置いた後、Shift を押したまま Enter を送る。ブラウザ添付種類の、Enter まで送るプリセットには当てない。
-    missing: '`false` として読む'
-    reload: immediate
+    allowed: "'ctrl'・'alt'・'shift' のうち重ならない 0〜3 個。並びは問わず、押す順は Ctrl・Alt・Shift に揃える"
     status: planned
     implementation: src/voice_paste/features/outputs/paste_and_send/settings.py
 notes:

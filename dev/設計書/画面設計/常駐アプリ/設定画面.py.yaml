@@ -342,7 +342,7 @@ notes:
     | --- | --- | --- |
     | 出力先 | `outputs[].enabled`（paste_and_send・paste_only・copy_only） | チェックボックス。右に `outputs[].hotkey` のホットキーの欄 |
     | 出力先（送るまでの間） | `outputs[paste_and_send].enter_delay_sec` | 数値の欄。補助文「「貼り付けて送信」と、「ブラウザ添付」の Enter まで送るプリセットで使う。」 |
-    | 出力先（Enter と一緒に押す修飾キー） | `outputs[paste_and_send].enter_with_ctrl`・`enter_with_alt`・`enter_with_shift` | チェックボックス（Ctrl・Alt・Shift の順に縦に並べる） |
+    | 出力先（Enter と一緒に押す修飾キー） | `outputs[paste_and_send].enter_modifiers` | 欄の名前「Enter と一緒に押す修飾キー」の右に、「Ctrl」「Alt」「Shift」のチェックボックスを横に並べる（オンにしたものを一覧に入れる） |
     | ブラウザ添付（カスタムプリセット） | `presets[]` のうち `kind = "browser"` の enabled・title・url・send_enter・hotkey | プリセットの一覧 |
     | ブラウザ添付（オプション） | `preset_options.browser.open_delay_sec` | 数値の欄。補助文「貼り付けてから Enter を送るまでの秒数は「出力先」の値を使う。」 |
     | エンドポイントへ送る（カスタムプリセット） | `presets[]` のうち `kind = "endpoint"` の enabled・title・url・authorization・hotkey | プリセットの一覧 |

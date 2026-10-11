@@ -1617,7 +1617,8 @@ functions:
         condition: choices=(center, top-left)、current=center、labels なし。QT_QPA_PLATFORM=offscreen
         mock: なし
         expected: ボタンの名前が「center」「top-left」で、「center」が選ばれている
-    status: implemented
+    status: planned
+    description: 今は labels を受けず、列挙の値をそのままボタンの名前にする（`QRadioButton(choice)`）。labels を受けて名前を出し、値をボタンに持たせる形に変える
   - name: selected_radio
     title: 選んだラジオボタンの値
     container: ui/windows/settings_fields.py
@@ -1641,7 +1642,8 @@ functions:
         condition: test_make_radio_group_when_labels と同じ組で「ダーク」を選ぶ。QT_QPA_PLATFORM=offscreen
         mock: なし
         expected: dark
-    status: implemented
+    status: planned
+    description: 今は選んだボタンの名前（text）を返す。make_radio_group がボタンに持たせた値を返す形に変える
 notes:
   画面が触ってよいもの: |-
     ui は UiDeps の関数（配線された SessionManager のメソッド・音量・設定の読み書き・再起動と終了）と、共通の設定のモデルだけを呼ぶ。録音・文字起こし・出力先を直に呼ばない。

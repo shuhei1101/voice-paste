@@ -547,5 +547,35 @@ settings:
     implementation: src/voice_paste/shared/settings.py
     introduced:
       pr: 78
+  - key: outputs[].enter_with_ctrl
+    title: Enter と一緒に Ctrl を押す
+    file: settings.toml
+    type: bool
+    default: 'false'
+    description: paste_and_send だけが持つ。`true` なら貼り付けて `enter_delay_sec` の秒数を置いた後、Ctrl を押したまま Enter を送る。ブラウザ添付種類の、Enter まで送るプリセットには当てない。
+    missing: '`false` として読む'
+    reload: immediate
+    status: planned
+    implementation: src/voice_paste/features/outputs/paste_and_send/settings.py
+  - key: outputs[].enter_with_alt
+    title: Enter と一緒に Alt を押す
+    file: settings.toml
+    type: bool
+    default: 'false'
+    description: paste_and_send だけが持つ。`true` なら貼り付けて `enter_delay_sec` の秒数を置いた後、Alt を押したまま Enter を送る。ブラウザ添付種類の、Enter まで送るプリセットには当てない。
+    missing: '`false` として読む'
+    reload: immediate
+    status: planned
+    implementation: src/voice_paste/features/outputs/paste_and_send/settings.py
+  - key: outputs[].enter_with_shift
+    title: Enter と一緒に Shift を押す
+    file: settings.toml
+    type: bool
+    default: 'false'
+    description: paste_and_send だけが持つ。`true` なら貼り付けて `enter_delay_sec` の秒数を置いた後、Shift を押したまま Enter を送る。ブラウザ添付種類の、Enter まで送るプリセットには当てない。
+    missing: '`false` として読む'
+    reload: immediate
+    status: planned
+    implementation: src/voice_paste/features/outputs/paste_and_send/settings.py
 notes:
   反映の列の読み方: '`immediate` は設定画面で保存すると動いている常駐アプリに効く項目。`settings.toml` を直接書き換えたときは、どの項目も再起動まで効かない（起動時に 1 度だけ読む）。'

@@ -4,6 +4,7 @@ from voice_paste.features.outputs.paste_and_send.service import (
     inject_paste_and_send,
     paste_and_send,
     read_enter_delay_sec,
+    read_enter_modifiers,
 )
 from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
 
@@ -12,4 +13,5 @@ __all__ = [
     "inject_paste_and_send",
     "paste_and_send",
     "read_enter_delay_sec",
+    "read_enter_modifiers",
 ]

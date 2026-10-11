@@ -75,6 +75,8 @@ enabled = true
 hotkey = "<ctrl>+<alt>+d"
 # 貼り付けてから Enter を送るまで待つ秒数。0 以上
 enter_delay_sec = 0.5
+# Enter と一緒に押す修飾キー（"ctrl"・"alt"・"shift"）。空なら Enter だけを送る
+enter_modifiers = []
 
 [[outputs]]
 # 貼り付けのみ

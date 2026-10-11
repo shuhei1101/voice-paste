@@ -2,15 +2,26 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Literal
+from typing import Literal, Protocol
 
 import numpy as np
 
 type ProgressFn = Callable[[float, float], None]
 """文字起こしの区間の終わりの時刻と録音の長さ（秒）を知らせる関数。"""
+
+type EnterModifier = Literal["ctrl", "alt", "shift"]
+"""貼り付けて送信が Enter と一緒に押す修飾キー。出力先の設定と integrations/keyboard が使う。"""
+
+
+class SendEnterFn(Protocol):
+    """渡した修飾キーを押したまま Enter を送る関数。修飾キーを省くと Enter だけを送る。"""
+
+    def __call__(self, modifiers: Sequence[EnterModifier] = ()) -> None:
+        """修飾キーを押したまま Enter を送る。"""
+        ...
 
 
 class Entry(StrEnum):

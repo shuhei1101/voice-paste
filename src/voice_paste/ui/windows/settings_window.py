@@ -6,7 +6,7 @@ import html
 import logging
 import re
 from collections.abc import Callable, Mapping
-from typing import TYPE_CHECKING, Any, Literal, get_args, get_origin
+from typing import TYPE_CHECKING, Any, Literal, TypeAliasType, get_args, get_origin
 
 from pydantic import ValidationError
 from pydantic.fields import FieldInfo
@@ -42,9 +42,11 @@ from voice_paste.ui.windows.settings_fields import (
     SLIDER_MAX,
     WHISPER_MODEL_CHOICES,
     Field,
+    checked_choices,
     connect_changed,
     key_tokens,
     make_check_box,
+    make_check_box_group,
     make_combo,
     make_line_edit,
     make_plain_text,
@@ -150,6 +152,9 @@ OUTPUT_COMMON_FIELD_NAMES: frozenset[str] = frozenset(OutputSettingsBase.model_f
 
 OUTPUT_NOTE_KEY: str = "note"
 """項目の json_schema_extra で、欄の下に出す補助文を持つキー。"""
+
+CHOICE_LABELS_KEY: str = "choice_labels"
+"""項目の json_schema_extra のうち、リテラルの列挙の一覧のチェックボックスの名前（値 → 名前）を持つキー。"""
 
 MODIFIER_NAMES: dict[str, str] = {"ctrl": "Ctrl", "alt": "Alt", "shift": "Shift", "cmd": "Win"}
 """pynput の修飾キーの名前ごとの、画面の名前。"""
@@ -271,6 +276,15 @@ def parse_hotkey(combination: QKeyCombination) -> str | None:
 
 
 # === 欄のエラーの文言 ===
+
+
+def _literal_choices(annotation: Any) -> tuple[str, ...] | None:
+    """リテラルの列挙（`type` 文の別名を含む）の値を並びのまま返す。リテラルでなければ None。"""
+    if isinstance(annotation, TypeAliasType):
+        annotation = annotation.__value__
+    if get_origin(annotation) is Literal:
+        return tuple(get_args(annotation))
+    return None
 
 
 def _field_info_at(
@@ -742,6 +756,12 @@ class SettingsWindow(QWidget):
         if get_origin(annotation) is Literal:
             radios = make_radio_group(tuple(get_args(annotation)), value)
             return radios, lambda: selected_radio(radios), ()
+        if get_origin(annotation) is list and (choices := _literal_choices(get_args(annotation)[0])):
+            # リテラルの列挙の一覧は、値ごとのチェックボックスを横に並べる
+            extra = info.json_schema_extra
+            labels = extra.get(CHOICE_LABELS_KEY, {}) if isinstance(extra, dict) else {}
+            check_boxes = make_check_box_group(key, choices, labels, value)
+            return check_boxes, lambda: checked_choices(check_boxes), ()
         if annotation in (int, float, str):
             line = make_line_edit(str(value))
             return line, lambda: line.text().strip(), ()

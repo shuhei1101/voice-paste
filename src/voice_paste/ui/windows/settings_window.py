@@ -278,15 +278,6 @@ def parse_hotkey(combination: QKeyCombination) -> str | None:
 # === 欄のエラーの文言 ===
 
 
-def _literal_choices(annotation: Any) -> tuple[str, ...] | None:
-    """リテラルの列挙（`type` 文の別名を含む）の値を並びのまま返す。リテラルでなければ None。"""
-    if isinstance(annotation, TypeAliasType):
-        annotation = annotation.__value__
-    if get_origin(annotation) is Literal:
-        return tuple(get_args(annotation))
-    return None
-
-
 def _field_info_at(
     location: tuple[int | str, ...], settings_model: type[Settings]
 ) -> FieldInfo | None:
@@ -484,6 +475,15 @@ class HotkeyEdit(QLineEdit):
 
 
 # === 設定画面 ===
+
+
+def _literal_choices(annotation: Any) -> tuple[str, ...] | None:
+    """リテラルの列挙（`type` 文の別名を含む）の値を並びのまま返す。リテラルでなければ None。"""
+    if isinstance(annotation, TypeAliasType):
+        annotation = annotation.__value__
+    if get_origin(annotation) is Literal:
+        return tuple(get_args(annotation))
+    return None
 
 
 class SettingsWindow(QWidget):

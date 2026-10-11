@@ -48,7 +48,7 @@ elements:
     id: pause_button
     kind: button
     position: 窓 > 操作の行
-    description: 録音を一時停止する。一時停止の間に話した声は録らない。名前の横に一時停止のホットキーを出す
+    description: 録音を一時停止する。一時停止の間に話した声は録らない。名前の下に一時停止のホットキーを出す
     label: 一時停止 [hotkeys.pause]
     visible_when: 状態が recording のとき
     action_ref: dev/設計書/モジュール構成/常駐アプリ/セッション.py#classes[SessionManager].methods[pause]
@@ -64,23 +64,16 @@ elements:
     id: cancel_button
     kind: button
     position: 窓 > 操作の行
-    description: 録音を捨てて窓を閉じ、待機中に戻す
+    description: 録音を捨てて窓を閉じ、待機中に戻す。名前の下に取り消しのホットキーを出す
     label: 取り消す [hotkeys.cancel]
     visible_when: 常時
     action: 窓を閉じる
     action_ref: dev/設計書/モジュール構成/常駐アプリ/セッション.py#classes[SessionManager].methods[cancel]
-  - name: 出力先の見出し
-    id: outputs_heading
-    kind: label
-    position: 窓 > 確定して届ける
-    description: 出力先の確定のボタンの並びの見出し
-    label: 確定して届ける
-    visible_when: オンの出力先が 1 つ以上あるとき
   - name: 出力先の確定のボタン
     id: output_button_{output_id}
     kind: button
-    position: 窓 > 確定して届ける
-    description: 出力先を選んで録音を確定し、文字起こし中の表示へ移る。一時停止中でも確定できる。設定でオンの出力先（`paste_and_send`・`paste_only`・`copy_only`）ごとに設定の並びで 1 つずつ出し、オンのうち一番上のものを主の操作にする。名前の横にその出力先のホットキーを出す
+    position: 窓 > 波形の下 > 出力先の並び
+    description: 出力先を選んで録音を確定し、文字起こし中の表示へ移る。一時停止中でも確定できる。設定でオンの出力先（`paste_and_send`・`paste_only`・`copy_only`）ごとに設定の並びで 1 つずつ、見出しを付けずに操作の行の下へ出し、オンのうち一番上のものを主の操作にする。名前の下にその出力先のホットキーを出す
     label: 貼り付けて送信 / 貼り付けのみ / コピーのみ
     visible_when: その出力先の `outputs[].enabled` がオンのとき
     options: '`outputs[]` の並び（paste_and_send・paste_only・copy_only）のうちオンのもの'
@@ -102,7 +95,7 @@ elements:
     id: preset_button_{n}
     kind: button
     position: 窓 > カスタムプリセット
-    description: プリセットを選んで録音を確定し、文字起こし中の表示へ移る。一時停止中でも確定できる。種類によらず同じボタンにする。有効なプリセットごとに 1 つずつ出し、3 件ずつ横に並べて 4 件目から次の行へ折り返す（種類の境目でも行を変えない）。タイトルはボタンの幅で `…` に省略し、かざすと全体を出す。ホットキーは省略せず、空のプリセットはタイトルだけを出す
+    description: プリセットを選んで録音を確定し、文字起こし中の表示へ移る。一時停止中でも確定できる。種類によらず同じボタンにする。有効なプリセットごとに 1 つずつ出し、3 件ずつ横に並べて 4 件目から次の行へ折り返す（種類の境目でも行を変えない）。タイトルはボタンの幅で `…` に省略し、かざすと全体を出す。名前の下にホットキーを省略せずに出し、空のプリセットはタイトルだけを同じ行のボタンと高さを揃えて上下の中央に出す
     label: '{プリセットのタイトル} [プリセットのホットキー]'
     visible_when: そのプリセットの `presets[].enabled` がオンのとき
     options: '`presets[]` のうち `kind` が browser のものを並びのまま出し、続けて endpoint のものを並びのまま出す。無効のものは出さない'
@@ -144,13 +137,14 @@ elements:
     refs:
       - dev/設計書/設定/常駐アプリ#settings[hotkeys.cancel]
 screen: src/voice_paste/ui/windows/recording_window.py
-mock: dev/mock/pages/recording-window/48/a-head-controls/
+mock: dev/mock/pages/recording-window/82/a-key-below/
 lead: ホットキー・トレイから始めた録音の間だけ出る小さな窓。状態・経過時間・波形と、一時停止・取り消し・確定の操作を並べる。
 refs:
   - dev/設計書/シナリオ/単一ユースケース/録音する#
   - dev/設計書/モジュール構成/常駐アプリ/ホットキーと画面.py#classes[UiBridge]
 notes:
   ホットキー: ボタンと同じ操作は、どこにフォーカスがあってもホットキーで行える（`HotkeyListener`）。窓のキーボードの操作は持たず、窓を押してフォーカスを取った後に Tab で移ったときだけフォーカスの枠を出す
+  ボタンのホットキーの出し方: 一時停止・再開・取り消し・出力先の確定・カスタムプリセットのボタンは、名前を 1 行目に、同じ操作のホットキーを 2 行目に出す。ホットキーは `format_hotkey` で整えた全体を省略せず、枠で囲んだ等幅のキー（キーキャップ風）で出す。ボタンの大きさは中の名前とホットキーが要る大きさから決め、幅は名前とホットキーの長い方にする。窓は既定の幅（360px）より狭くせず、ボタンが要る幅まで広げる。プリセットの列は列ごとにいちばん広いボタンの幅に揃える。ホットキーが空のボタンは名前だけを出す
   状態の受け取り: 画面はメインスレッドで `UiBridge.notified` の state_changed を受けて開く・閉じる・状態を替える。経過時間と波形はメインスレッドのタイマーで描き直す
   隠して戻す: 隠すのはその回の録音の画面だけで、次の録音ではいつもどおり出す（`recording.hide_window` は変えない）。戻すときは、隠したときの経過時間・状態（録音中・一時停止中）のまま、隠す前の位置にフォーカスを取らずに出す。録音開始と同じホットキーの出力先がある設定（既定の設定）では、録音開始のホットキーは今どおりその出力先で確定し、戻すのはトレイだけになる。隠したまま確定した回も、文字起こし中の表示は隠す前の位置に出す
 test_file: tests/integration/ui/test_recording_window.py

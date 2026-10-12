@@ -1484,7 +1484,7 @@ functions:
         expected: それぞれ True と False
     refs:
       - dev/設計書/設定/常駐アプリ#settings[ui.theme]
-    status: planned
+    status: implemented
   - name: apply_theme
     title: 明暗の適用
     container: ui/style.py
@@ -1534,13 +1534,13 @@ functions:
         expected: QApplication.styleSheet() に light の bg が入り、theme_color("surface") が light の surface を返し、出した QWidget.update が呼ばれる
     refs:
       - dev/設計書/設定/常駐アプリ#settings[ui.theme]
-    status: planned
+    status: implemented
   - name: theme_color
     title: 今の明暗の色
     container: ui/style.py
     usecase: 共通
     summary: apply_theme で当てた明暗の組の色のトークンを、描画に使う色で返す
-    description: 録音の画面の状態の印・波形・閉じるボタンと、文字起こし中の表示の回る印が描くたびに呼ぶ。今は呼ぶたびに OS の明暗を読むが、apply_theme が控えた `_current_dark` の組を返す形に変える。apply_theme をまだ呼んでいなければ OS の明暗（is_dark_theme）の組を使う
+    description: 録音の画面の状態の印・波形・閉じるボタンと、文字起こし中の表示の回る印が描くたびに呼ぶ。apply_theme が控えた `_current_dark` の組を返す。apply_theme をまだ呼んでいなければ OS の明暗（is_dark_theme）の組を使う
     kind: 関数
     scope: public
     args:
@@ -1565,7 +1565,7 @@ functions:
         condition: name=busy。apply_theme(app, "light") の後。QT_QPA_PLATFORM=offscreen
         mock: is_dark_theme（True）
         expected: tokens.toml の light の busy の色
-    status: planned
+    status: implemented
   - name: is_dark_theme
     title: OS の明暗
     container: ui/style.py
@@ -1617,8 +1617,7 @@ functions:
         condition: choices=(center, top-left)、current=center、labels なし。QT_QPA_PLATFORM=offscreen
         mock: なし
         expected: ボタンの名前が「center」「top-left」で、「center」が選ばれている
-    status: planned
-    description: 今は labels を受けず、列挙の値をそのままボタンの名前にする（`QRadioButton(choice)`）。labels を受けて名前を出し、値をボタンに持たせる形に変える
+    status: implemented
   - name: selected_radio
     title: 選んだラジオボタンの値
     container: ui/windows/settings_fields.py
@@ -1642,8 +1641,7 @@ functions:
         condition: test_make_radio_group_when_labels と同じ組で「ダーク」を選ぶ。QT_QPA_PLATFORM=offscreen
         mock: なし
         expected: dark
-    status: planned
-    description: 今は選んだボタンの名前（text）を返す。make_radio_group がボタンに持たせた値を返す形に変える
+    status: implemented
 notes:
   画面が触ってよいもの: |-
     ui は UiDeps の関数（配線された SessionManager のメソッド・音量・設定の読み書き・再起動と終了）と、共通の設定のモデルだけを呼ぶ。録音・文字起こし・出力先を直に呼ばない。

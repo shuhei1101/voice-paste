@@ -566,7 +566,7 @@ settings:
     description: 全ての画面（録音の画面・文字起こし中の表示・設定画面・ダイアログ・トレイのメニュー）の明暗。`system` は Windows の明暗に従い、常駐中に Windows の明暗が変わると画面も切り替わる。`light`・`dark` は Windows の明暗によらずその配色にする。
     reload: immediate
     missing: 項目が無い `settings.toml` は `system` として読む
-    status: planned
+    status: implemented
     implementation: src/voice_paste/shared/settings.py
     introduced:
       pr: 94

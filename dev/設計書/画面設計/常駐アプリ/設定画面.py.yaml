@@ -381,7 +381,7 @@ elements:
     initial_value: その用語集の CSV の行。誤変換か正しい表記の片方が空の行も出す（補正はその行を飛ばす）
     sorting: 並べ替えない。CSV の行の順で、足した行は末尾
     source: その用語集の CSV（`glossaries[].path`）
-    target: その用語集の CSV（保存で、表の順に行とオン・オフを書き戻す）
+    target: その用語集の CSV。保存で書き戻すのは、設定画面で行を変えた用語集（誤変換・正しい表記・オン・オフのどれかを変えた、行を足した・消した）と、足した用語集の CSV だけで、表の順に行とオン・オフを書く。行を変えていない用語集の CSV には触れない（`glossary_path` から `glossaries` へ書き移すだけの保存や、ほかのまとまりだけを変えた保存でも触れない）
     status: planned
     refs:
       - dev/設計書/設定/常駐アプリ#settings[glossaries[].path]

@@ -35,7 +35,7 @@ develop の [recording_window.py](https://github.com/shuhei1101/voice-paste/blob
 - [x] 画面設計
 - [x] モジュール構成設計
 - [x] ドキュメント修正（docs/使い方/録音して貼り付ける.md・docs/使い方/起動と設定.md）
-- [ ] 単体テスト作成
+- [x] ~~単体テスト作成~~（差分の `UiSettings.show_hotkeys` と `RecordingWindow.open` に `unit_tests` の行が無く、`RecordingWindow` の振る舞いは結合テストで確かめる）
 - [ ] 実装
 - [ ] 結合テスト作成
 - [x] ~~E2E テスト作成~~（シナリオを変えず、既定の「出す」のまま今の E2E を実行するだけ）

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -13,8 +13,8 @@ from PySide6.QtWidgets import QApplication
 
 from voice_paste.features.session.types import Session, SessionState
 from voice_paste.shared.errors import HotkeyError
-from voice_paste.shared.settings import Preset, Settings
-from voice_paste.shared.types import Entry
+from voice_paste.shared.settings import GlossarySettings, Preset, Settings
+from voice_paste.shared.types import Entry, GlossaryEntry
 from voice_paste.ui.tray import RecordingWindowState, Tray, TrayState
 from voice_paste.ui.windows.busy_dialog import show_busy_dialog
 from voice_paste.ui.windows.recording_window import RecordingWindow
@@ -62,8 +62,8 @@ class UiDeps:
     get_settings: Callable[[], Settings]
     """今効いている設定（SettingsStore.get）。"""
 
-    save_settings: Callable[[Settings], bool]
-    """設定を書いて効かせ、再起動が要る項目が変わったかを返す（apply_settings）。"""
+    save_settings: Callable[[Settings, Mapping[Path, Sequence[GlossaryEntry]]], bool]
+    """設定と、行を変えた用語集の CSV（場所 → 行）を書いて効かせ、再起動が要る項目が変わったかを返す（apply_settings）。"""
 
     settings_dir: Path
     """settings.toml のあるフォルダ。"""
@@ -88,6 +88,15 @@ class UiDeps:
 
     apply_theme: Callable[[], None]
     """今の設定の ui.theme で画面の明暗を当て直す（apply_theme に QApplication と SettingsStore.get の ui.theme を渡したもの）。"""
+
+    list_glossaries: Callable[[], list[GlossarySettings]]
+    """今の設定の用語集の一覧（path は絶対パス。glossaries が空なら今までの用語集の 1 件。resolve_glossaries）。"""
+
+    read_glossary: Callable[[Path], list[GlossaryEntry]]
+    """用語集の CSV の行を、オン・オフと片方が空の行も含めて読む（read_glossary_rows）。読めなければ GlossaryReadError を送出する。"""
+
+    new_glossary_path: Callable[[Collection[Path]], Path]
+    """足す用語集の CSV の場所を、一覧にある場所と重ならないように決める（フォルダを部分適用した next_glossary_path）。"""
 
 
 class UiController(QObject):

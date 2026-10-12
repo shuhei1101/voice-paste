@@ -51,6 +51,12 @@ OUTPUT_DISCRIMINATOR_INDEX: int = 2
 HOTKEY_OVERLAP_ERROR_TYPE: str = "hotkey_overlap"
 """ホットキーが重なるときの ValidationError の種類。理由の文に先のキーを `other` として持つ。"""
 
+GLOSSARY_NAME_OVERLAP_ERROR_TYPE: str = "glossary_name_overlap"
+"""用語集の名前が重なるときの ValidationError の種類。理由の文に重なった名前を `name` として持つ。"""
+
+GLOSSARIES_FIELD_NAME: str = "glossaries"
+"""用語集の一覧を持つ Settings の項目名。"""
+
 START_HOTKEY_KEY: str = "hotkeys.start"
 """録音の開始のホットキーのキー。貼り付けて送信と同じキーにしてよい（重なりにしない）。"""
 
@@ -385,6 +391,20 @@ class ApiSettings(_SettingsModel):
     )
 
 
+class GlossarySettings(_SettingsModel):
+    """用語集 1 つの名前と CSV の場所。"""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    name: str = Field(
+        min_length=1,
+        description="用語集の名前（設定画面の一覧に出す。前後の空白を除いて 1 文字以上。ほかの用語集と重ならない）",
+    )
+    path: Path = Field(
+        description="その用語集の CSV の場所（settings.toml のフォルダからの相対パスか絶対パス）"
+    )
+
+
 class Settings(_SettingsModel):
     """settings.toml の全体。項目ごとに範囲・説明・再起動が要るかの印を持つ。"""
 
@@ -406,7 +426,17 @@ class Settings(_SettingsModel):
     ui: UiSettings = _group(UiSettings, "録音の画面の出し方")
     glossary_path: Path | None = _item(
         None,
-        "用語集の CSV。None は設定ファイルと同じフォルダの yogo.csv",
+        "今までの用語集の CSV。glossaries が空のときだけ使う。None は設定ファイルと同じフォルダの yogo.csv",
+        reload=RELOAD_IMMEDIATE,
+    )
+    glossaries: list[GlossarySettings] = Field(
+        default_factory=list,
+        description="用語集の一覧。並びが設定画面の一覧の並びになる。空のときは glossary_path の CSV を 1 つ目の用語集として扱う",
+        json_schema_extra={"reload": RELOAD_IMMEDIATE},
+    )
+    active_glossary: str | None = _item(
+        None,
+        "補正に使う用語集の名前。None か一覧に無い名前のときは 1 つ目の用語集を使う",
         reload=RELOAD_IMMEDIATE,
     )
     api: ApiSettings = _group(ApiSettings, "待ち受けのポート・返送を許すホスト")
@@ -450,6 +480,27 @@ class Settings(_SettingsModel):
                     "input": None,
                 }
                 for location, first_location in overlaps
+            ]
+            raise ValidationError.from_exception_data(type(self).__name__, line_errors)
+        return self
+
+    @model_validator(mode="after")
+    def _glossary_names_must_be_unique(self) -> Settings:
+        """用語集の名前が重ならないことを確かめる（後ろにある側の名前の欄のエラーにする）。"""
+        overlaps = _find_glossary_name_overlap_locations(self)
+        # 重なりがあれば、後ろにある側の名前の場所で、重なった名前を添えて断る
+        if overlaps:
+            line_errors: list[InitErrorDetails] = [
+                {
+                    "type": PydanticCustomError(
+                        GLOSSARY_NAME_OVERLAP_ERROR_TYPE,
+                        "用語集「{name}」と同じ名前",
+                        {"name": name},
+                    ),
+                    "loc": location,
+                    "input": name,
+                }
+                for location, name in overlaps
             ]
             raise ValidationError.from_exception_data(type(self).__name__, line_errors)
         return self
@@ -534,6 +585,30 @@ def find_hotkey_overlaps(settings: Settings) -> list[tuple[str, str]]:
     return [
         (format_error_location(location), format_error_location(first_location))
         for location, first_location in _find_hotkey_overlap_locations(settings)
+    ]
+
+
+# === 用語集の名前の重なり ===
+
+
+def _find_glossary_name_overlap_locations(settings: Settings) -> list[tuple[_Location, str]]:
+    """前に並んだ用語集と名前が同じ用語集の（名前の場所, 名前）を返す。大文字と小文字は区別する。"""
+    seen: set[str] = set()
+    overlaps: list[tuple[_Location, str]] = []
+    for index, glossary in enumerate(settings.glossaries):
+        # 初めての名前は控え、先に並んだ名前と同じなら重なりとして集める
+        if glossary.name in seen:
+            overlaps.append(((GLOSSARIES_FIELD_NAME, index, "name"), glossary.name))
+        else:
+            seen.add(glossary.name)
+    return overlaps
+
+
+def find_glossary_name_overlaps(settings: Settings) -> list[tuple[str, str]]:
+    """前に並んだ用語集と名前が同じものを（重なったキー, 重なった名前）で返す。"""
+    return [
+        (format_error_location(location), name)
+        for location, name in _find_glossary_name_overlap_locations(settings)
     ]
 
 
@@ -655,8 +730,12 @@ def save_settings(path: Path, settings: Settings) -> bool:
     # 1・2. 既にある設定ファイルを読み、前の設定にする
     document, previous, unreadable = _read_existing(path, type(settings))
 
-    # 3. 設定を JSON の値にする
+    # 3. 設定を JSON の値にする（用語集の場所は、設定のフォルダの下なら相対パスにする）
     data = settings.model_dump(mode="json", exclude_none=True)
+    for glossary in data.get(GLOSSARIES_FIELD_NAME, []):
+        glossary_path = Path(glossary["path"])
+        if glossary_path.is_relative_to(path.parent):
+            glossary["path"] = glossary_path.relative_to(path.parent).as_posix()
 
     # 4. 文書の値を置き換える
     _merge_into(document, data)

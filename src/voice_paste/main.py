@@ -83,7 +83,7 @@ from voice_paste.shared.settings import (
 from voice_paste.shared.types import Entry, ProgressFn, TranscriptionOutcome
 from voice_paste.ui.bridge import UiBridge, notify, report_progress
 from voice_paste.ui.controller import UiController, UiDeps
-from voice_paste.ui.style import build_stylesheet, is_dark_theme
+from voice_paste.ui.style import apply_theme
 from voice_paste.ui.tray import Tray, TrayState
 from voice_paste.ui.windows.recording_window import RecordingWindow
 from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
@@ -555,6 +555,7 @@ def build_ui_deps(
     request_quit: Callable[[], None],
     hotkey_listener: HotkeyListener,
     show_recording_window: Callable[[], None],
+    apply_theme: Callable[[], None],
 ) -> UiDeps:
     """Handlers と置き場所から、画面・トレイが呼ぶ UiDeps を組む。"""
     session_manager = handlers.session_manager
@@ -588,12 +589,24 @@ def build_ui_deps(
         suspend_hotkeys=hotkey_listener.stop,
         resume_hotkeys=resume_hotkeys,
         output_titles=_output_titles(),
+        apply_theme=apply_theme,
     )
+
+
+def _apply_current_theme(app: QApplication, get_settings: Callable[[], Settings]) -> None:
+    """今の設定の ui.theme で画面の明暗を当て直す。"""
+    apply_theme(app, get_settings().ui.theme)
+
+
+def _watch_system_theme(app: QApplication, reapply: Callable[[], None]) -> None:
+    """OS の明暗が変わったときに、画面の明暗を当て直す（ui.theme が system のときに配色が替わる）。"""
+    app.styleHints().colorSchemeChanged.connect(lambda _scheme: reapply())
 
 
 def _build_idle_ui_deps(
     settings: Settings,
     paths: AppPaths,
+    app: QApplication,
     request_restart: Callable[[], None],
     request_quit: Callable[[], None],
 ) -> UiDeps:
@@ -625,6 +638,7 @@ def _build_idle_ui_deps(
         suspend_hotkeys=do_nothing,
         resume_hotkeys=do_nothing,
         output_titles=_output_titles(),
+        apply_theme=partial(_apply_current_theme, app, store.get),
     )
 
 
@@ -747,14 +761,14 @@ def _run_service(
     )
     bridge = UiBridge()
     tray = Tray(paths.settings_file.parent, paths.log_dir)
-    app.setStyleSheet(build_stylesheet(is_dark_theme()))
+    apply_theme(app, "system")
     tray.set_state(TrayState.STARTING, busy=False)
     wake_timer = _install_signal_handlers(app)
     exit_request = _ExitRequest(app)
     running = _Running()
 
     try:
-        _start_services(bridge, tray, paths, exit_request, running)
+        _start_services(app, bridge, tray, paths, exit_request, running)
         # 12. イベントループを回す
         exec_loop(app)
     finally:
@@ -766,6 +780,7 @@ def _run_service(
 
 
 def _start_services(
+    app: QApplication,
     bridge: UiBridge,
     tray: Tray,
     paths: AppPaths,
@@ -788,7 +803,8 @@ def _start_services(
         tray.quit_requested.connect(exit_request.request_quit)
         return
 
-    # 6. ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を消す（処理中のセッションは無いため、一時の音声も全て消す対象にする）
+    # 6. 設定の ui.theme で画面の明暗を当て直し、ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を消す（処理中のセッションは無いため、一時の音声も全て消す対象にする）
+    apply_theme(app, settings.ui.theme)
     logging.getLogger().setLevel(settings.logging.level)
     purge_old_files(settings, paths=paths, active_session_ids=set)
     enabled_outputs = [output.id for output in settings.outputs if output.enabled]
@@ -804,8 +820,9 @@ def _start_services(
         logger.error(f"起動に失敗した（{error}）")
         tray.set_failed()
         deps = _build_idle_ui_deps(
-            settings, paths, exit_request.request_restart, exit_request.request_quit
+            settings, paths, app, exit_request.request_restart, exit_request.request_quit
         )
+        _watch_system_theme(app, deps.apply_theme)
         running.controller = _build_controller(bridge, tray, deps)
         tray.show_failure("engine_unavailable", str(error))
         return
@@ -831,7 +848,9 @@ def _start_services(
         exit_request.request_quit,
         hotkey_listener,
         show_recording_window,
+        partial(_apply_current_theme, app, handlers.settings_store.get),
     )
+    _watch_system_theme(app, deps.apply_theme)
     running.controller = _build_controller(bridge, tray, deps)
 
     # 8. トークンを作り、API サーバーを起動する

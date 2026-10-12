@@ -135,6 +135,8 @@ retention_days = 7
 
 # === 録音の画面と文字起こし中の表示 ===
 [ui]
+# 画面の明暗。system（Windows の設定に従う）・light・dark
+theme = "system"
 # 常に最前面に出すか
 topmost = true
 # 出す位置。center・top-left・top-right・bottom-left・bottom-right

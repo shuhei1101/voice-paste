@@ -86,6 +86,9 @@ class UiDeps:
     output_titles: Mapping[str, str]
     """画面に出す出力先の名前（出力先の ID → 名前。API 専用の出力先を除く）。設定画面の欄と録音の画面のボタンが引く。"""
 
+    apply_theme: Callable[[], None]
+    """今の設定の ui.theme で画面の明暗を当て直す（apply_theme に QApplication と SettingsStore.get の ui.theme を渡したもの）。"""
+
 
 class UiController(QObject):
     """UiBridge の知らせを受けて、トレイ・録音の画面・文字起こし中の表示・ダイアログを開く・閉じる・替える。
@@ -174,7 +177,8 @@ class UiController(QObject):
         window.activateWindow()
 
     def on_settings_saved(self) -> None:
-        """設定画面が保存した後、トレイのホットキーの表示を新しい設定に合わせる（録音の画面は出すたびに設定を読む）。"""
+        """設定画面が保存した後、画面の明暗を当て直し、トレイのホットキーの表示を新しい設定に合わせる（録音の画面は出すたびに設定を読む）。"""
+        self._deps.apply_theme()
         self._tray.set_start_hotkey(self._deps.get_settings().hotkeys.start)
 
     def on_settings_closed(self) -> None:

@@ -317,9 +317,22 @@ class LoggingSettings(_SettingsModel):
     )
 
 
-class UiSettings(_SettingsModel):
-    """録音の画面と文字起こし中の表示の出し方。"""
+THEME_LABELS: dict[str, str] = {
+    "system": "Windows の設定に従う",
+    "light": "ライト",
+    "dark": "ダーク",
+}
+"""画面の明暗の値 → 設定画面のラジオボタンの名前。"""
 
+
+class UiSettings(_SettingsModel):
+    """画面の明暗と、録音の画面・文字起こし中の表示の出し方。"""
+
+    theme: Literal["system", "light", "dark"] = Field(
+        "system",
+        description="画面の明暗。system は Windows の明暗に従う",
+        json_schema_extra={"reload": RELOAD_IMMEDIATE, "choice_labels": THEME_LABELS},
+    )
     topmost: bool = _item(True, "常に最前面に出すか", reload=RELOAD_IMMEDIATE)
     position: Literal["center", "top-left", "top-right", "bottom-left", "bottom-right"] = _item(
         "center", "出す位置", reload=RELOAD_IMMEDIATE

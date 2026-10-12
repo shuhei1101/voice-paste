@@ -122,7 +122,7 @@ class TranscribingIndicator(QWidget):
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         frame = QFrame()
-        frame.setProperty("role", "surface")
+        frame.setProperty("role", "window")
         outer.addWidget(frame)
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(16, 16, 16, 16)

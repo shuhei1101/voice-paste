@@ -589,7 +589,7 @@ settings:
     description: 設定画面の用語集の一覧に出す名前。
     reload: immediate
     allowed: 1 文字以上（前後の空白を除いて）。ほかの用語集と同じ名前にできない（大文字と小文字は区別する）
-    status: planned
+    status: implemented
     implementation: src/voice_paste/shared/settings.py
   - key: glossaries[].path
     title: 用語集の CSV の場所（用語集ごと）
@@ -597,7 +597,7 @@ settings:
     type: string（パス）
     description: その用語集の CSV の場所。相対パスは settings.toml のフォルダから読む。設定画面で足した用語集の CSV は、settings.toml と同じフォルダの `glossaries/glossary_{n}.csv`（n は 1 からの連番。フォルダに残っているファイルの番号は使わない）に作る。一覧から消しても CSV のファイルは消さない。
     reload: immediate
-    status: planned
+    status: implemented
     implementation: src/voice_paste/shared/settings.py
     allowed: settings.toml のフォルダからの相対パスか、絶対パス。設定画面の保存は、settings.toml のフォルダの下の場所を相対パス（区切りは `/`。例 `glossaries/glossary_1.csv`・`yogo.csv`）で、それ以外を絶対パスで書く
   - key: active_glossary
@@ -607,7 +607,7 @@ settings:
     default: （無し。1 つ目の用語集）
     description: 補正に使う用語集の名前（`glossaries[].name`）。補正はこの用語集のオンの行だけを使う。キーが無いとき・名前が一覧に無いときは 1 つ目の用語集を使う。
     reload: immediate
-    status: planned
+    status: implemented
     implementation: src/voice_paste/shared/settings.py
 notes:
   反映の列の読み方: '`immediate` は設定画面で保存すると動いている常駐アプリに効く項目。`settings.toml` を直接書き換えたときは、どの項目も再起動まで効かない（起動時に 1 度だけ読む）。'

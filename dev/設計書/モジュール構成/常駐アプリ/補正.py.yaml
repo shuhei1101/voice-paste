@@ -182,7 +182,7 @@ functions:
         condition: path にフォルダを渡す
         mock: なし（一時フォルダ）
         expected: GlossaryReadError。メッセージが「ファイルを開けません（」で始まる
-    status: planned
+    status: implemented
     exceptions:
       - name: GlossaryReadError
         condition: CSV を開けない・UTF-8 として読めない・見出しに `誤変換` か `正しい表記` の列が無い
@@ -236,7 +236,7 @@ functions:
         condition: 誤変換と正しい表記が空の行を 1 つ含む 2 行を書く
         mock: なし（一時フォルダ）
         expected: 読み戻すと 1 行だけ
-    status: planned
+    status: implemented
   - name: resolve_glossaries
     title: 用語集の一覧の解決
     kind: 関数
@@ -287,7 +287,7 @@ functions:
         condition: glossary_path = terms.csv の設定と、起動したフォルダとは別の settings_dir
         mock: なし（monkeypatch.chdir で起動したフォルダを一時フォルダにする）
         expected: path が起動したフォルダの terms.csv の絶対パス（settings_dir の下ではない）
-    status: planned
+    status: implemented
   - name: pick_active_glossary
     title: 補正に使う用語集の選択
     kind: 関数
@@ -332,7 +332,7 @@ functions:
         condition: 2 件の glossaries と active_glossary = 無い名前
         mock: なし
         expected: 1 件目が返る
-    status: planned
+    status: implemented
   - name: next_glossary_path
     title: 足す用語集の CSV の場所
     kind: 関数
@@ -375,7 +375,7 @@ functions:
         condition: 空の directory と、glossary_1.csv を含む taken
         mock: なし（一時フォルダ）
         expected: glossary_2.csv
-    status: planned
+    status: implemented
 test_files:
   - tests/unit/voice_paste/features/correction/test_service.py
 constants:
@@ -384,4 +384,4 @@ constants:
     container: features/correction/service.py
     value: '"yogo.csv"'
     summary: '`glossaries` も `glossary_path` も無いときに読む、settings.toml と同じフォルダの用語集のファイル名（main.py の GLOSSARY_FILE_NAME を移す）'
-    status: planned
+    status: implemented

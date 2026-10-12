@@ -631,7 +631,7 @@ data_models:
         description: 補正に使うか（CSV の列 `使う`。`0` がオフ）
     refs:
       - dev/設計書/ER図/常駐アプリのファイル#tables[%APPDATA%\voice-paste\glossaries\glossary_{n}.csv]
-    status: planned
+    status: implemented
   - name: GlossarySettings
     title: 用語集の設定
     container: shared/settings.py
@@ -649,7 +649,7 @@ data_models:
     refs:
       - dev/設計書/設定/常駐アプリ#settings[glossaries[].name]
       - dev/設計書/設定/常駐アプリ#settings[glossaries[].path]
-    status: planned
+    status: implemented
 classes:
   - name: AppError
     title: アプリの例外
@@ -1221,7 +1221,7 @@ functions:
         expected: ValidationError。失敗の場所が glossaries[0].name
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
-    status: planned
+    status: implemented
 constants:
   - name: APP_NAME
     title: アプリ名

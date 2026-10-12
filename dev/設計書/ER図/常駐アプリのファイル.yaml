@@ -147,7 +147,7 @@ tables:
         description: その行を補正に使うか。`0` の行だけがオフで、列が無い・空・ほかの値はオン
         enum_values: "'1' = オン / '0' = オフ"
         example: '1'
-    status: planned
+    status: implemented
     implementation: src/voice_paste/features/correction/service.py
     refs:
       - dev/設計書/設定/常駐アプリ#settings[glossaries[].path]

@@ -1135,6 +1135,13 @@ constants:
     summary: OUTPUTS のうち settings_model を持つ出力先のモデルを OUTPUTS の並びで build_settings_model に渡して組み立てた設定のモデル。load_settings と既定の設定はこれを使う
     value: build_settings_model([spec.settings_model for spec in OUTPUTS if spec.settings_model is not None])
     status: planned
+  - name: GLOSSARIES_DIR_NAME
+    title: 足した用語集の CSV を置くフォルダの名前
+    container: main.py
+    usecase: 設定を変える
+    summary: 設定画面で足した用語集の CSV を置く、settings.toml と同じフォルダの下のフォルダの名前。next_glossary_path の directory に渡す
+    value: '"glossaries"'
+    status: implemented
 test_files:
   - tests/unit/voice_paste/test_main.py
   - tests/unit/voice_paste/runtime/test_timer.py

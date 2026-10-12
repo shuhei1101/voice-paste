@@ -287,7 +287,7 @@ elements:
     source: Settings.glossaries[]
     target: Settings.glossaries[]（保存で settings.toml へ書き、`glossary_path` のキーは消す）
     reason: 用語集は再起動の要らない日々の編集で、メニューから直接開けるまとまりにした（確認ログ）
-    status: planned
+    status: implemented
     refs:
       - dev/設計書/設定/常駐アプリ#settings[glossaries[].name]
   - name: 補正に使う用語集の選択
@@ -303,7 +303,7 @@ elements:
     source: Settings.active_glossary
     target: Settings.active_glossary（選んだ用語集の名前）
     action: 選んだ用語集の消すボタンを無効にし、前に選んでいた用語集の消すボタンを有効にする
-    status: planned
+    status: implemented
     refs:
       - dev/設計書/設定/常駐アプリ#settings[active_glossary]
   - name: 用語集の名前のボタン
@@ -314,7 +314,7 @@ elements:
     label: '{名前}（名前が空なら「（名前未入力）」）'
     visible_when: 用語集ごと
     action: 下の用語集の行を、押した用語集のものに切り替える。切り替えても入れた値は消さない
-    status: planned
+    status: implemented
   - name: 用語集の行の数
     id: glossary_count_{n}
     kind: label
@@ -323,7 +323,7 @@ elements:
     io: 表示
     visible_when: 用語集ごと
     display_format: '「{行の数} 行（オン {オンの行の数}）」。例: 「5 行（オン 3）」。CSV を読めなかった用語集は「読めません」'
-    status: planned
+    status: implemented
   - name: 用語集を消すボタン
     id: glossary_remove_{n}
     kind: button
@@ -333,7 +333,7 @@ elements:
     visible_when: 用語集ごと
     enabled_when: 補正に使う用語集でないとき
     action: 用語集を一覧から消す
-    status: planned
+    status: implemented
   - name: 用語集を足すボタン
     id: add_glossary_button
     kind: button
@@ -342,7 +342,7 @@ elements:
     label: 用語集を足す
     visible_when: 用語集のまとまりを選んだとき
     action: 用語集の一覧に 1 件足す
-    status: planned
+    status: implemented
   - name: 用語集の行の見出し
     id: glossary_detail_title
     kind: label
@@ -351,7 +351,7 @@ elements:
     label: 用語集「{名前}」の行（名前が空なら「用語集「（名前未入力）」の行」）
     io: 表示
     visible_when: 用語集のまとまりを選んだとき
-    status: planned
+    status: implemented
   - name: 用語集の名前の欄
     id: glossary_name_{n}
     kind: input
@@ -368,7 +368,7 @@ elements:
     initial_value: settings.toml の値（足した用語集は空）
     source: Settings.glossaries[].name
     target: Settings.glossaries[].name（前後の空白を除く）
-    status: planned
+    status: implemented
     refs:
       - dev/設計書/設定/常駐アプリ#settings[glossaries[].name]
   - name: 用語集の行の表
@@ -382,7 +382,7 @@ elements:
     sorting: 並べ替えない。CSV の行の順で、足した行は末尾
     source: その用語集の CSV（`glossaries[].path`）
     target: その用語集の CSV。保存で書き戻すのは、設定画面で行を変えた用語集（誤変換・正しい表記・オン・オフのどれかを変えた、行を足した・消した）と、足した用語集の CSV だけで、表の順に行とオン・オフを書く。行を変えていない用語集の CSV には触れない（`glossary_path` から `glossaries` へ書き移すだけの保存や、ほかのまとまりだけを変えた保存でも触れない）
-    status: planned
+    status: implemented
     refs:
       - dev/設計書/設定/常駐アプリ#settings[glossaries[].path]
   - name: 行を使うの切り替え
@@ -396,7 +396,7 @@ elements:
     initial_value: CSV のオン・オフの値（列が無い行と、足した行はオン）
     source: その用語集の CSV の行のオン・オフ
     target: その用語集の CSV の行のオン・オフ
-    status: planned
+    status: implemented
   - name: 誤変換の欄
     id: glossary_entry_wrong_{n}
     kind: input
@@ -410,7 +410,7 @@ elements:
     initial_value: CSV の `誤変換` の値（足した行は空）
     source: その用語集の CSV の `誤変換`
     target: その用語集の CSV の `誤変換`（前後の空白を除く）
-    status: planned
+    status: implemented
   - name: 正しい表記の欄
     id: glossary_entry_right_{n}
     kind: input
@@ -424,7 +424,7 @@ elements:
     initial_value: CSV の `正しい表記` の値（足した行は空）
     source: その用語集の CSV の `正しい表記`
     target: その用語集の CSV の `正しい表記`（前後の空白を除く）
-    status: planned
+    status: implemented
   - name: 行を消すボタン
     id: glossary_entry_remove_{n}
     kind: button
@@ -433,7 +433,7 @@ elements:
     label: '{何行目か} 行目を消す（読み上げの名前。見た目は消す印）'
     visible_when: 行ごと
     action: 行を表から消す
-    status: planned
+    status: implemented
   - name: 行が無いときの文
     id: glossary_entries_empty
     kind: label
@@ -442,7 +442,7 @@ elements:
     label: この用語集にはまだ行がありません。
     io: 表示
     visible_when: 行の表を出している用語集に行が 1 つも無いとき（CSV を読めなかった用語集では出さない）
-    status: planned
+    status: implemented
   - name: 行を足すボタン
     id: add_glossary_entry_button
     kind: button
@@ -451,7 +451,7 @@ elements:
     label: 行を足す
     visible_when: 用語集のまとまりを選んだとき
     action: 行の表に 1 行足す
-    status: planned
+    status: implemented
     enabled_when: 行の表を出している用語集の CSV を読めたとき（足した用語集を含む）
   - name: 補正の決まりの凡例
     id: glossary_legend
@@ -461,7 +461,7 @@ elements:
     label: 上の行から順に置き換える。オフの行は補正に使わない。
     io: 表示
     visible_when: 用語集のまとまりを選んだとき
-    status: planned
+    status: implemented
   - name: 読めない用語集の知らせ
     id: glossary_unreadable
     kind: label
@@ -472,7 +472,7 @@ elements:
     visible_when: 行の表を出している用語集の CSV を、設定画面を開いたときに読めなかったとき
     display_format: '{理由} は「ファイルを開けません（{OS のエラー}）」「文字コードが UTF-8 ではありません」「見出しに「誤変換」「正しい表記」の列がありません」のどれか'
     reason: 読めない原因は CSV 1 つの側にあるので、設定画面は開き、ほかの用語集とほかのまとまりは今までどおり使えるようにする。空の用語集として出すと、行を足して保存したときに元の CSV を上書きして中身を失う
-    status: planned
+    status: implemented
 input_checks:
   - element: 設定の欄
     violation: 数値の欄に数値でない文字が入っている

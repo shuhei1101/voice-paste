@@ -1324,7 +1324,7 @@ classes:
         unit_tests: []
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
-    status: planned
+    status: implemented
     notes:
       読めない用語集: |-
         行を読む関数が GlossaryReadError を送出した用語集は、読めない用語集として一覧に残す（設定画面は開く）。行の数は「読めません」、行の表の代わりに「この用語集の CSV を読めませんでした（{理由}）。保存しても、この CSV は書き換えません。」を出し、行を足すボタンを無効にする。名前を変える・補正に使う用語集に選ぶ・一覧から消すはできる。
@@ -1922,7 +1922,7 @@ functions:
         expected: '[] が返る'
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
-    status: planned
+    status: implemented
 notes:
   画面が触ってよいもの: |-
     ui は UiDeps の関数（配線された SessionManager のメソッド・音量・設定の読み書き・再起動と終了）と、共通の設定のモデルだけを呼ぶ。録音・文字起こし・出力先を直に呼ばない。

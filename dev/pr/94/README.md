@@ -35,7 +35,7 @@ develop の [ui/style.py](https://github.com/shuhei1101/voice-paste/blob/develop
 - [x] 画面設計
 - [x] モジュール構成設計
 - [x] ドキュメント修正（docs/使い方/起動と設定.md）
-- [ ] 単体テスト作成
+- [x] 単体テスト作成
 - [ ] 実装
 - [ ] 結合テスト作成
 - [x] ~~E2E テスト作成~~（シナリオを変えず、既定の「Windows の設定に従う」のまま今の E2E を実行するだけ）

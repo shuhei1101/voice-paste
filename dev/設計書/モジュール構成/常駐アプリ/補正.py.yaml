@@ -67,6 +67,12 @@ functions:
         condition: Shift_JIS で書いた 1 行の CSV
         mock: なし（一時フォルダ）
         expected: '[] が返る'
+      - name: test_load_glossary_when_malformed
+        case: 正常
+        summary: csv が解釈できない CSV も空として扱い、例外を上げない
+        condition: 見出しの次の行が「あ,"」で始まり、閉じない引用符の後ろに x を 200000 文字続けた CSV
+        mock: なし（一時フォルダ）
+        expected: '[] が返る'
     status: implemented
   - name: apply_glossary
     title: 用語集での補正
@@ -137,6 +143,7 @@ functions:
          - OSError の場合、理由「ファイルを開けません（{OS のエラー}）」の GlossaryReadError を送出する
          - UnicodeDecodeError の場合、理由「文字コードが UTF-8 ではありません」の GlossaryReadError を送出する
          - 見出しに `誤変換` か `正しい表記` の列が無い場合、理由「見出しに「誤変換」「正しい表記」の列がありません」の GlossaryReadError を送出する
+         - csv.Error の場合（閉じていない引用符の後ろが csv の 1 項目の上限を超えるなど、csv が解釈できない）、理由「CSV の書式が正しくありません（{csv のエラー}）」の GlossaryReadError を送出する
          - 誤変換と正しい表記の両方が空の行は飛ばす（片方だけが空の行は返す）
       3. 列 `使う` の前後の空白を除いた値が `0` の行だけをオフにする（列が無い・空・ほかの値はオン）
     unit_tests:
@@ -182,10 +189,16 @@ functions:
         condition: path にフォルダを渡す
         mock: なし（一時フォルダ）
         expected: GlossaryReadError。メッセージが「ファイルを開けません（」で始まる
+      - name: test_read_glossary_rows_when_malformed
+        case: 異常
+        summary: csv が解釈できない CSV は読めないとする
+        condition: 見出しの次の行が「あ,"」で始まり、閉じない引用符の後ろに x を 200000 文字続けた CSV
+        mock: なし（一時フォルダ）
+        expected: GlossaryReadError。メッセージが「CSV の書式が正しくありません（」で始まる
     status: implemented
     exceptions:
       - name: GlossaryReadError
-        condition: CSV を開けない・UTF-8 として読めない・見出しに `誤変換` か `正しい表記` の列が無い
+        condition: CSV を開けない・UTF-8 として読めない・見出しに `誤変換` か `正しい表記` の列が無い・csv が解釈できない
         message: '{理由}（設定画面がそのまま出す文言）'
   - name: save_glossary
     title: 用語集の書き戻し

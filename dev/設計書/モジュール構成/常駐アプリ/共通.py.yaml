@@ -659,7 +659,7 @@ classes:
     kind: クラス
     inherits: Exception
     summary: このアプリが送出する例外の根。API サーバーの例外ハンドラが HTTP のステータスへ変える
-    description: |
+    description: |-
       | 例外 | 意味 | HTTP |
       | --- | --- | --- |
       | `CallbackNotAllowedError` | 返送先が許されない | 400 |
@@ -677,7 +677,7 @@ classes:
       | `SettingsError` | 設定の値が合わない（合わないキーをメッセージに並べる） | - |
       | `StartupError` | 起動に失敗した（エンジンを準備できない・前のプロセスが排他を放さない） | - |
       | `HotkeyError` | ホットキーの書式を pynput が読めない | - |
-      | `GlossaryReadError` | 用語集の CSV を読めない（開けない・UTF-8 でない・見出しの列が無い。メッセージが設定画面に出す理由になる） | - |
+      | `GlossaryReadError` | 用語集の CSV を読めない（開けない・UTF-8 でない・見出しの列が無い・csv が解釈できない。メッセージが設定画面に出す理由になる） | - |
 
       全ての例外は docstring だけを持つクラスで `shared/errors.py` に置き、親は表に書かない限り `AppError`。
     status: implemented

@@ -1489,11 +1489,14 @@ functions:
     title: 明暗の適用
     container: ui/style.py
     usecase: 共通
-    summary: ui.theme で決めた明暗のスタイルシートをアプリ全体に当て、開いている窓を描き直す
-    description: 今の明暗はモジュールの `_current_dark` に控え、theme_color が読む（書くのはこの関数だけ）。メインスレッドから呼ぶ
+    summary: ui.theme で Qt の明暗を揃え、決めた明暗のスタイルシートをアプリ全体に当て、開いている窓を描き直す
+    description: |-
+      今の明暗はモジュールの `_current_dark` に控え、theme_color が読む（書くのはこの関数だけ）。メインスレッドから呼ぶ。
+      スタイルシートで塗らない部品（設定画面のスクロールバーなど）は style がパレットで描くため、Qt の明暗（`QStyleHints.setColorScheme`。Qt 6.8 から）も揃える。setColorScheme・unsetColorScheme で colorSchemeChanged が出て main からもう一度呼ばれるが、2 回目は同じ値を入れ直すだけでシグナルは出ない。
+      今は Qt の明暗を揃えず、スタイルシートだけを当てている。1 の手順を足す形に変える
     kind: 関数
     scope: public
-    side_effects: QApplication のスタイルシートを替え、`_current_dark` を書き換える
+    side_effects: QApplication の明暗（styleHints の colorScheme）とスタイルシートを替え、`_current_dark` を書き換える
     args:
       - name: app
         type: QApplication
@@ -1509,9 +1512,10 @@ functions:
       type: None
       description: なし
     process: |-
-      1. resolve_dark(theme, is_dark_theme()) で暗い組を使うかを決め、`_current_dark` に控える
-      2. app.setStyleSheet(build_stylesheet(決めた明暗)) を当てる
-      3. 開いている窓（QApplication.topLevelWidgets）を update で描き直す（theme_color で描く状態の印・波形・回る印を新しい組の色にする）
+      1. Qt の明暗を揃える。`light`・`dark` は app.styleHints().setColorScheme(Qt.ColorScheme.Light / Dark)、`system` は app.styleHints().unsetColorScheme() で上書きを外す（外した後に 2 で OS の明暗を読む）
+      2. resolve_dark(theme, is_dark_theme()) で暗い組を使うかを決め、`_current_dark` に控える
+      3. app.setStyleSheet(build_stylesheet(決めた明暗)) を当てる
+      4. 開いている窓（QApplication.topLevelWidgets）を update で描き直す（theme_color で描く状態の印・波形・回る印を新しい組の色にする）
          - `[INFO]` 画面の明暗を当てた（theme・暗い組か）
     unit_tests:
       - name: test_apply_theme_when_dark
@@ -1532,6 +1536,12 @@ functions:
         condition: theme=dark を当てて QWidget を 1 つ出した後、theme=light を当てる。QT_QPA_PLATFORM=offscreen
         mock: is_dark_theme（False）・QWidget.update
         expected: QApplication.styleSheet() に light の bg が入り、theme_color("surface") が light の surface を返し、出した QWidget.update が呼ばれる
+      - name: test_apply_theme_when_color_scheme
+        case: 正常
+        summary: light・dark は Qt の明暗を上書きし、system は上書きを外してから OS の明暗を読む
+        condition: theme=light・dark・system をそれぞれ当てる。QT_QPA_PLATFORM=offscreen
+        mock: app.styleHints()（setColorScheme・unsetColorScheme）・is_dark_theme（False）
+        expected: light は setColorScheme(Qt.ColorScheme.Light)、dark は setColorScheme(Qt.ColorScheme.Dark) が 1 回呼ばれ、unsetColorScheme は呼ばれない。system は unsetColorScheme が is_dark_theme より先に 1 回呼ばれ、setColorScheme は呼ばれない
     refs:
       - dev/設計書/設定/常駐アプリ#settings[ui.theme]
     status: implemented

@@ -3,7 +3,7 @@ lead: 常駐アプリが `settings.toml` から読む設定の一覧。読み書
 files:
   - file: resources/yogo.csv
     manages: 用語集（誤変換 → 正しい表記）
-    notes: 列は `誤変換`・`正しい表記` と、行のオン・オフ（列が無い行はオン）。録音を確定するたびに読み直す。置き場所は `glossary_path` で変えられる。設定画面で足した用語集は `glossaries[].path` の CSV に同じ列で持つ。
+    notes: 列は `誤変換`・`正しい表記` と、行のオン・オフの `使う`（`0` がオフ。列が無い行はオン）。録音を確定するたびに読み直す。置き場所は `glossary_path` で変えられる。設定画面で足した用語集は `glossaries[].path` の CSV に同じ列で持つ（列の定義は ER 図『常駐アプリのファイル』の用語集の CSV）。
   - file: settings.toml
     manages: 新しい構成（src/voice_paste/）の設定の全部
     notes: git の管理外。既定は `%APPDATA%\voice-paste\settings.toml`、`--data-dir` を渡したときはその下。無ければ起動時に既定値で作る。
@@ -588,17 +588,18 @@ settings:
     type: string
     description: 設定画面の用語集の一覧に出す名前。
     reload: immediate
-    allowed: 1 文字以上。ほかの用語集と同じ名前にできない
+    allowed: 1 文字以上（前後の空白を除いて）。ほかの用語集と同じ名前にできない（大文字と小文字は区別する）
     status: planned
     implementation: src/voice_paste/shared/settings.py
   - key: glossaries[].path
     title: 用語集の CSV の場所（用語集ごと）
     file: settings.toml
     type: string（パス）
-    description: その用語集の CSV の場所。設定画面で足した用語集の CSV は、settings.toml と同じフォルダの `glossaries/` の下に作る。一覧から消しても CSV のファイルは消さない。
+    description: その用語集の CSV の場所。相対パスは settings.toml のフォルダから読む。設定画面で足した用語集の CSV は、settings.toml と同じフォルダの `glossaries/glossary_{n}.csv`（n は 1 からの連番。フォルダに残っているファイルの番号は使わない）に作る。一覧から消しても CSV のファイルは消さない。
     reload: immediate
     status: planned
     implementation: src/voice_paste/shared/settings.py
+    allowed: settings.toml のフォルダからの相対パスか、絶対パス。設定画面の保存は、settings.toml のフォルダの下の場所を相対パス（区切りは `/`。例 `glossaries/glossary_1.csv`・`yogo.csv`）で、それ以外を絶対パスで書く
   - key: active_glossary
     title: 補正に使う用語集
     file: settings.toml

@@ -1,27 +1,12 @@
 title: "常駐アプリ / 補正"
-lead: 用語集の誤変換を正しい表記へ置き換える。決まった入力に決まった出力を返し、特性テストの基準になる。
+lead: 用語集の CSV を読み書きし、補正に使う用語集の誤変換を正しい表記へ置き換える。決まった入力に決まった出力を返し、特性テストの基準になる。
 directory: |-
   ```
   src/voice_paste/features/correction/
-  ├── __init__.py   # load_glossary・apply_glossary の公開
-  ├── types.py      # 用語集の行
-  └── service.py    # 用語集の読み込みと置き換え
+  ├── __init__.py   # load_glossary・read_glossary_rows・save_glossary・apply_glossary・resolve_glossaries・pick_active_glossary・next_glossary_path の公開
+  └── service.py    # 用語集の一覧の解決、CSV の読み書き、置き換え
   ```
-data_models:
-  - name: GlossaryEntry
-    title: 用語集の行
-    container: features/correction/types.py
-    usecase: 録音を文字に起こす
-    role: DTO
-    summary: 誤変換と正しい表記の組
-    properties:
-      - name: wrong
-        type: str
-        description: 誤変換（CSV の列 `誤変換`）
-      - name: right
-        type: str
-        description: 正しい表記（CSV の列 `正しい表記`）
-    status: implemented
+data_models: []
 functions:
   - name: load_glossary
     title: 用語集の読み込み
@@ -29,22 +14,20 @@ functions:
     container: features/correction/service.py
     usecase: 録音を文字に起こす
     scope: public
-    summary: 設定の用語集の CSV を読む。文字起こしのたびに読み直す
+    summary: 用語集の CSV から、補正に使う行（オンで、誤変換と正しい表記の両方がある行）を読む。文字起こしのたびに読み直す
     args:
       - name: path
         type: Path
         required: true
         passing: positional
-        description: 用語集の CSV（設定の 1 項目。既定は %APPDATA%\voice-paste\ の下）
+        description: 用語集の CSV（補正に使う用語集の場所。pick_active_glossary が返す path）
     returns:
       type: list[GlossaryEntry]
-      description: 用語集の行。ファイルが無ければ空
+      description: 補正に使う行。ファイルが無ければ空
     process: |-
-      1. ファイルが無ければ空を返す
-         - `[WARNING]` 用語集が無い（パス）
-      2. UTF-8（BOM ありも）の CSV を列名で読み、`誤変換`・`正しい表記` の前後の空白を除く
-         - どちらかが空の行は飛ばす（刷新前と同じ）
-         - `[INFO]` 用語集を読んだ（パス・行数）
+      1. read_glossary_rows で行を読む（ファイルが無ければ空）
+      2. オフの行と、誤変換か正しい表記のどちらかが空の行を飛ばす（どちらかが空の行を飛ばすのは刷新前と同じ）
+         - `[INFO]` 用語集を読んだ（パス・行数・補正に使う行数）
     unit_tests:
       - name: test_load_glossary
         case: 正常
@@ -70,6 +53,12 @@ functions:
         condition: 「 くろーど , Claude 」・「あいう,」・「,えお」の 3 行の CSV
         mock: なし（一時フォルダ）
         expected: GlossaryEntry(wrong="くろーど", right="Claude") だけが返る
+      - name: test_load_glossary_when_disabled_rows
+        case: 正常
+        summary: オフの行を飛ばす
+        condition: 列 `使う` が「1」「0」「（空）」の 3 行の CSV
+        mock: なし（一時フォルダ）
+        expected: 「1」と「（空）」の 2 行だけが返る
     status: implemented
   - name: apply_glossary
     title: 用語集での補正
@@ -117,5 +106,243 @@ functions:
     process: |-
       1. 用語集の行の順に、誤変換を含むなら全て正しい表記へ置き換える
          - `[INFO]` 用語集で置き換えた（置き換えた誤変換 → 正しい表記の並び）
+  - name: read_glossary_rows
+    title: 用語集の行の読み込み
+    kind: 関数
+    container: features/correction/service.py
+    usecase: 設定を変える
+    scope: public
+    summary: 用語集の CSV の行を、オン・オフと片方が空の行も含めて読む。設定画面の行の表と load_glossary が使う
+    args:
+      - name: path
+        type: Path
+        required: true
+        passing: positional
+        description: 用語集の CSV
+    returns:
+      type: list[GlossaryEntry]
+      description: CSV の行の順の行。ファイルが無ければ空
+    process: |-
+      1. ファイルが無ければ空を返す
+         - `[WARNING]` 用語集が無い（パス）
+      2. UTF-8（BOM ありも）の CSV を列名で読み、`誤変換`・`正しい表記` の前後の空白を除く
+         - 誤変換と正しい表記の両方が空の行は飛ばす（片方だけが空の行は返す）
+      3. 列 `使う` の前後の空白を除いた値が `0` の行だけをオフにする（列が無い・空・ほかの値はオン）
+    unit_tests:
+      - name: test_read_glossary_rows
+        case: 正常
+        summary: 行をオン・オフつきで読む
+        condition: '`誤変換,正しい表記,使う` の列で、使うが「1」と「0」の 2 行の CSV'
+        mock: なし（一時フォルダ）
+        expected: enabled が True・False の GlossaryEntry が CSV の順に返る
+      - name: test_read_glossary_rows_when_no_enabled_column
+        case: 正常
+        summary: 列 `使う` が無い CSV の行は全てオン
+        condition: '`誤変換,正しい表記` の 2 列だけの 2 行の CSV'
+        mock: なし（一時フォルダ）
+        expected: 2 行とも enabled が True
+      - name: test_read_glossary_rows_when_half_empty
+        case: 正常
+        summary: 片方が空の行は返し、両方が空の行は飛ばす
+        condition: 「あいう,」「,えお」「,」の 3 行の CSV
+        mock: なし（一時フォルダ）
+        expected: 「あいう,」と「,えお」の 2 行が返る
+      - name: test_read_glossary_rows_when_missing
+        case: 正常
+        summary: ファイルが無ければ空
+        condition: 存在しないパス
+        mock: なし
+        expected: '[] が返る'
+    status: planned
+  - name: save_glossary
+    title: 用語集の書き戻し
+    kind: 関数
+    container: features/correction/service.py
+    usecase: 設定を変える
+    scope: public
+    summary: 用語集の行を CSV へ書く。設定画面で行を変えた用語集と足した用語集だけに呼ぶ
+    side_effects: path を書く（親のフォルダが無ければ作る）。列 `誤変換`・`正しい表記`・`使う` のほかの列は残らない。
+    args:
+      - name: path
+        type: Path
+        required: true
+        passing: positional
+        description: 用語集の CSV
+      - name: entries
+        type: Sequence[GlossaryEntry]
+        required: true
+        passing: positional
+        description: 書く行（表の順）
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. 親のフォルダを作る
+      2. 同じフォルダの一時ファイルに、UTF-8（BOM あり）で見出し `誤変換,正しい表記,使う` と行を書く（使うはオンが `1`、オフが `0`。誤変換と正しい表記の両方が空の行は書かない）
+      3. os.replace で置き換える
+         - `[INFO]` 用語集を書いた（パス・行数）
+    exceptions:
+      - name: OSError
+        condition: CSV を書けない（元の CSV は変わらない）
+    unit_tests:
+      - name: test_save_glossary
+        case: 正常
+        summary: 書いた行を同じ順とオン・オフで読み戻せる
+        condition: オンとオフの 2 行を書き、read_glossary_rows で読む
+        mock: なし（一時フォルダ）
+        expected: 書いた 2 行と同じ GlossaryEntry が同じ順で返る
+      - name: test_save_glossary_when_new_directory
+        case: 正常
+        summary: 親のフォルダが無ければ作る
+        condition: 存在しないフォルダの下のパスに 1 行を書く
+        mock: なし（一時フォルダ）
+        expected: ファイルができ、1 行が読める
+      - name: test_save_glossary_when_both_empty_row
+        case: 正常
+        summary: 両方が空の行は書かない
+        condition: 誤変換と正しい表記が空の行を 1 つ含む 2 行を書く
+        mock: なし（一時フォルダ）
+        expected: 読み戻すと 1 行だけ
+    status: planned
+  - name: resolve_glossaries
+    title: 用語集の一覧の解決
+    kind: 関数
+    container: features/correction/service.py
+    usecase: 共通
+    scope: public
+    summary: 設定から、CSV の場所を絶対パスにした用語集の一覧を返す。`glossaries` が空なら、今までの `glossary_path` の CSV を 1 つ目の用語集にする
+    args:
+      - name: settings
+        type: Settings
+        required: true
+        passing: positional
+        description: 今の設定
+      - name: settings_dir
+        type: Path
+        required: true
+        passing: positional
+        description: settings.toml のあるフォルダ
+    returns:
+      type: list[GlossarySettings]
+      description: 用語集の一覧（1 件以上。path は絶対パス）
+    process: |-
+      1. `glossaries` が空かを確かめる
+         - 空の場合、`glossary_path`（None なら settings_dir の `yogo.csv`。DEFAULT_GLOSSARY_FILE_NAME）を場所にし、名前をそのファイル名から拡張子を除いたものにした 1 件を返す
+      2. `glossaries` の並びのまま、相対パスの path を settings_dir からのパスにして返す（絶対パスはそのまま）
+    unit_tests:
+      - name: test_resolve_glossaries_when_empty
+        case: 正常
+        summary: 一覧が空でキーも無ければ、設定のフォルダの yogo.csv が 1 件目
+        condition: 既定の設定と settings_dir
+        mock: なし
+        expected: 名前が「yogo」、path が settings_dir の yogo.csv の 1 件
+      - name: test_resolve_glossaries_when_legacy_path
+        case: 正常
+        summary: 一覧が空で glossary_path があれば、その CSV が 1 件目
+        condition: glossary_path = C:/x/terms.csv の設定
+        mock: なし
+        expected: 名前が「terms」、path が C:/x/terms.csv の 1 件
+      - name: test_resolve_glossaries_when_relative_path
+        case: 正常
+        summary: 相対パスを設定のフォルダから解決し、絶対パスはそのまま返す
+        condition: path が `glossaries/glossary_1.csv` と絶対パスの 2 件の glossaries
+        mock: なし
+        expected: 1 件目は settings_dir の下の絶対パス、2 件目は元のまま。並びと名前は変わらない
+    status: planned
+  - name: pick_active_glossary
+    title: 補正に使う用語集の選択
+    kind: 関数
+    container: features/correction/service.py
+    usecase: 録音を文字に起こす
+    scope: public
+    summary: 用語集の一覧から、`active_glossary` の名前の用語集を返す。名前が無い・一覧に無いときは 1 件目を返す
+    args:
+      - name: settings
+        type: Settings
+        required: true
+        passing: positional
+        description: 今の設定
+      - name: settings_dir
+        type: Path
+        required: true
+        passing: positional
+        description: settings.toml のあるフォルダ
+    returns:
+      type: GlossarySettings
+      description: 補正に使う用語集（path は絶対パス）
+    process: |-
+      1. resolve_glossaries で一覧を引く
+      2. `active_glossary` と同じ名前の用語集を返す
+         - None か、同じ名前が無い場合、1 件目を返す
+    unit_tests:
+      - name: test_pick_active_glossary
+        case: 正常
+        summary: active_glossary の名前の用語集を返す
+        condition: 「yogo」「会議用」の 2 件と active_glossary = 会議用
+        mock: なし
+        expected: 「会議用」の用語集が返る
+      - name: test_pick_active_glossary_when_unset
+        case: 正常
+        summary: active_glossary が無ければ 1 件目
+        condition: 2 件の glossaries と active_glossary = None
+        mock: なし
+        expected: 1 件目が返る
+      - name: test_pick_active_glossary_when_unknown_name
+        case: 正常
+        summary: 一覧に無い名前なら 1 件目
+        condition: 2 件の glossaries と active_glossary = 無い名前
+        mock: なし
+        expected: 1 件目が返る
+    status: planned
+  - name: next_glossary_path
+    title: 足す用語集の CSV の場所
+    kind: 関数
+    container: features/correction/service.py
+    usecase: 設定を変える
+    scope: public
+    summary: 設定画面で足す用語集の CSV の場所を、今あるファイルとも一覧の用語集とも重ならない連番で決める
+    args:
+      - name: directory
+        type: Path
+        required: true
+        passing: injected
+        description: 足した用語集の CSV を置くフォルダ（settings.toml と同じフォルダの `glossaries`）
+      - name: taken
+        type: Collection[Path]
+        required: true
+        passing: positional
+        description: 設定画面の一覧にある用語集の場所（保存する前に足した分を含む）
+    returns:
+      type: Path
+      description: '`{directory}/glossary_{n}.csv`（絶対パス）'
+    process: 1. n を 1 から順に上げ、`glossary_{n}.csv` が directory に無く、taken にも無い最初の場所を返す（消した用語集の CSV が残っていれば、その番号は使わない。ファイルは作らない）
+    reason: ファイル名を用語集の名前から作ると、名前を変えたときと、消した用語集と同じ名前を足し直したときに、残った CSV と重なる。Windows はファイル名の大文字と小文字を区別しないので、名前の重なりの確かめとも食い違う
+    unit_tests:
+      - name: test_next_glossary_path
+        case: 正常
+        summary: 空のフォルダなら 1 番
+        condition: 存在しない directory と空の taken
+        mock: なし（一時フォルダ）
+        expected: directory の glossary_1.csv
+      - name: test_next_glossary_path_when_file_exists
+        case: 正常
+        summary: 残っている CSV の番号は使わない
+        condition: glossary_1.csv がある directory と空の taken
+        mock: なし（一時フォルダ）
+        expected: glossary_2.csv
+      - name: test_next_glossary_path_when_taken
+        case: 正常
+        summary: 保存する前に足した用語集の場所とも重ねない
+        condition: 空の directory と、glossary_1.csv を含む taken
+        mock: なし（一時フォルダ）
+        expected: glossary_2.csv
+    status: planned
 test_files:
   - tests/unit/voice_paste/features/correction/test_service.py
+constants:
+  - name: DEFAULT_GLOSSARY_FILE_NAME
+    title: 既定の用語集のファイル名
+    container: features/correction/service.py
+    value: '"yogo.csv"'
+    summary: '`glossaries` も `glossary_path` も無いときに読む、settings.toml と同じフォルダの用語集のファイル名（main.py の GLOSSARY_FILE_NAME を移す）'
+    status: planned

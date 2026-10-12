@@ -34,7 +34,7 @@ develop の [ui/style.py](https://github.com/shuhei1101/voice-paste/blob/develop
 - [x] ~~部品設計~~（部品設計を持たないプロジェクトで、部品を作らない）
 - [x] 画面設計
 - [x] モジュール構成設計
-- [ ] ドキュメント修正（docs/使い方/起動と設定.md）
+- [x] ドキュメント修正（docs/使い方/起動と設定.md）
 - [ ] 単体テスト作成
 - [ ] 実装
 - [ ] 結合テスト作成

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -41,11 +41,13 @@ class Parts:
     indicator: MagicMock
 
 
-def _make_controller(tmp_path: Path, *, settings: Settings | None = None) -> Parts:
-    """UiDeps の関数・トレイ・録音の画面・文字起こし中の表示を Mock にした UiController を作る。"""
+def _make_controller(
+    tmp_path: Path, *, settings: Settings | None = None, **deps_overrides: Any
+) -> Parts:
+    """UiDeps の関数・トレイ・録音の画面・文字起こし中の表示を Mock にした UiController を作る。deps_overrides は UiDeps の項目ごとの差し替え。"""
     from voice_paste.ui.controller import UiController
 
-    deps = make_ui_deps(tmp_path, settings=settings)
+    deps = make_ui_deps(tmp_path, settings=settings, **deps_overrides)
     tray = MagicMock()
     recording_window = MagicMock()
     indicator = MagicMock()
@@ -306,6 +308,26 @@ def test_open_settings_when_already_open(qapp: QApplication, tmp_path: Path) -> 
     assert parts.controller._settings_window is first_window
     parts.deps.suspend_hotkeys.assert_called_once()
     first_window.try_close()
+
+
+# === on_settings_saved ===
+
+
+def test_on_settings_saved(qapp: QApplication, tmp_path: Path) -> None:
+    """保存したら明暗を当て直す（正常系）。"""
+    from voice_paste.main import SETTINGS_MODEL
+
+    # 準備: ui.theme=dark の設定が効いている
+    settings = SETTINGS_MODEL.model_validate({"ui": {"theme": "dark"}})
+    apply_theme = MagicMock(return_value=None)
+    parts = _make_controller(tmp_path, settings=settings, apply_theme=apply_theme)
+
+    # 実行
+    parts.controller.on_settings_saved()
+
+    # 検証
+    apply_theme.assert_called_once_with()
+    parts.tray.set_start_hotkey.assert_called_once_with(settings.hotkeys.start)
 
 
 # === hide_recording ===

@@ -1544,7 +1544,7 @@ functions:
         expected: light は setColorScheme(Qt.ColorScheme.Light)、dark は setColorScheme(Qt.ColorScheme.Dark) が 1 回呼ばれ、unsetColorScheme は呼ばれない。system は unsetColorScheme が is_dark_theme より先に 1 回呼ばれ、setColorScheme は呼ばれない
     refs:
       - dev/設計書/設定/常駐アプリ#settings[ui.theme]
-    status: implemented
+    status: planned
   - name: theme_color
     title: 今の明暗の色
     container: ui/style.py

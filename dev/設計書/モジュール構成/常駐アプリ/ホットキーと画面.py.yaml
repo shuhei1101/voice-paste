@@ -1493,7 +1493,6 @@ functions:
     description: |-
       今の明暗はモジュールの `_current_dark` に控え、theme_color が読む（書くのはこの関数だけ）。メインスレッドから呼ぶ。
       スタイルシートで塗らない部品（設定画面のスクロールバーなど）は style がパレットで描くため、Qt の明暗（`QStyleHints.setColorScheme`。Qt 6.8 から）も揃える。setColorScheme・unsetColorScheme で colorSchemeChanged が出て main からもう一度呼ばれるが、2 回目は同じ値を入れ直すだけでシグナルは出ない。
-      今は Qt の明暗を揃えず、スタイルシートだけを当てている。1 の手順を足す形に変える
     kind: 関数
     scope: public
     side_effects: QApplication の明暗（styleHints の colorScheme）とスタイルシートを替え、`_current_dark` を書き換える
@@ -1544,7 +1543,7 @@ functions:
         expected: light は setColorScheme(Qt.ColorScheme.Light)、dark は setColorScheme(Qt.ColorScheme.Dark) が 1 回呼ばれ、unsetColorScheme は呼ばれない。system は unsetColorScheme が is_dark_theme より先に 1 回呼ばれ、setColorScheme は呼ばれない
     refs:
       - dev/設計書/設定/常駐アプリ#settings[ui.theme]
-    status: planned
+    status: implemented
   - name: theme_color
     title: 今の明暗の色
     container: ui/style.py

@@ -193,6 +193,12 @@ _current_dark: bool | None = None
 def apply_theme(app: QApplication, theme: Literal["system", "light", "dark"]) -> None:
     """ui.theme で決めた明暗のスタイルシートをアプリ全体に当て、開いている窓を描き直す。メインスレッドから呼ぶ。"""
     global _current_dark  # noqa: PLW0603
+    # スタイルシートで塗らない部品（スクロールバーなど）は style がパレットで描くため、Qt の明暗も揃える
+    hints = app.styleHints()
+    if theme == "system":
+        hints.unsetColorScheme()
+    else:
+        hints.setColorScheme(Qt.ColorScheme.Dark if theme == "dark" else Qt.ColorScheme.Light)
     dark = resolve_dark(theme, is_dark_theme())
     _current_dark = dark
     app.setStyleSheet(build_stylesheet(dark))

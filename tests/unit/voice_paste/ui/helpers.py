@@ -64,8 +64,19 @@ def make_ui_deps(
         "resume_hotkeys": MagicMock(return_value=None),
         "output_titles": OUTPUT_TITLES,
     }
-    if "apply_theme" in {field.name for field in dataclasses.fields(UiDepsModel)}:
+    ui_deps_fields = {field.name for field in dataclasses.fields(UiDepsModel)}
+    if "apply_theme" in ui_deps_fields:
         fields["apply_theme"] = MagicMock(return_value=None)
+    if "list_glossaries" in ui_deps_fields:
+        from voice_paste.shared.settings import GlossarySettings
+
+        fields["list_glossaries"] = MagicMock(
+            return_value=[GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")]
+        )
+        fields["read_glossary"] = MagicMock(return_value=[])
+        fields["new_glossary_path"] = MagicMock(
+            return_value=tmp_path / "glossaries" / "glossary_1.csv"
+        )
     fields.update(overrides)
     return UiDepsModel(**fields)
 

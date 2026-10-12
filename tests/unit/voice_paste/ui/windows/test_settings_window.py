@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -16,14 +16,24 @@ from unittest.mock import MagicMock
 import pytest
 from PySide6.QtCore import QKeyCombination, QRegularExpression, Qt
 from PySide6.QtGui import QTextDocument
-from PySide6.QtWidgets import QAbstractButton, QLabel, QLineEdit, QRadioButton, QSlider, QWidget
+from PySide6.QtTest import QTest
+from PySide6.QtWidgets import (
+    QAbstractButton,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QRadioButton,
+    QSlider,
+    QWidget,
+)
 
 from tests.unit.voice_paste.ui.helpers import make_ui_deps
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QApplication
 
-    from voice_paste.shared.settings import Settings
+    from voice_paste.shared.settings import GlossarySettings, Settings
+    from voice_paste.shared.types import GlossaryEntry
     from voice_paste.ui.controller import UiDeps
     from voice_paste.ui.windows.settings_window import SettingsWindow
 
@@ -90,6 +100,71 @@ def _add_preset(window: SettingsWindow, kind: str, *, title: str, url: str) -> N
         edits = panel.findChildren(QLineEdit, QRegularExpression(f"^preset_{field}_"))
         assert len(edits) == 1, f"preset_{field}_ の欄が 1 つでない"
         edits[0].setText(value)
+
+
+@pytest.fixture
+def open_with_glossaries(
+    qapp: QApplication, tmp_path: Path
+) -> Iterator[Callable[..., Opened]]:
+    """用語集の一覧と行を指定して設定画面を開く関数を返す。開いた窓はテストの後に隠す。"""
+    from voice_paste.ui.windows.settings_window import SettingsWindow
+
+    windows: list[SettingsWindow] = []
+
+    def _open(
+        glossaries: list[GlossarySettings],
+        rows: Mapping[Path, list[GlossaryEntry]],
+        *,
+        settings: Settings | None = None,
+    ) -> Opened:
+        """list_glossaries が glossaries を返し、read_glossary が場所の行を返す UiDeps で開く。"""
+        deps = make_ui_deps(
+            tmp_path,
+            settings=settings,
+            list_glossaries=MagicMock(return_value=glossaries),
+            read_glossary=MagicMock(side_effect=lambda path: list(rows[path])),
+        )
+        window = SettingsWindow(deps)
+        window.show()
+        windows.append(window)
+        return Opened(window=window, deps=deps)
+
+    yield _open
+
+    for window in windows:
+        window.hide()
+
+
+def _select_group(window: SettingsWindow, name: str) -> None:
+    """左のメニュー（group_menu）で、名前のまとまりを選ぶ。"""
+    menu = window.findChild(QListWidget, "group_menu")
+    assert menu is not None
+    items = menu.findItems(name, Qt.MatchFlag.MatchExactly)
+    assert len(items) == 1, f"{name} のまとまりが無い"
+    menu.setCurrentItem(items[0])
+
+
+def _button(window: SettingsWindow, name: str) -> QAbstractButton:
+    """objectName が name のボタンを返す。"""
+    button = window.findChild(QAbstractButton, name)
+    assert button is not None, f"{name} のボタンが無い"
+    return button
+
+
+def _visible_edits(window: SettingsWindow, prefix: str) -> list[QLineEdit]:
+    """画面に出ている、objectName が prefix で始まる文字の欄を、名前の順で返す。"""
+    found = window.findChildren(QLineEdit, QRegularExpression(f"^{prefix}"))
+    return sorted(
+        (edit for edit in found if edit.isVisible()), key=lambda edit: edit.objectName()
+    )
+
+
+def _visible_buttons(window: SettingsWindow, prefix: str) -> list[QAbstractButton]:
+    """画面に出ている、objectName が prefix で始まるボタンを、名前の順で返す。"""
+    found = window.findChildren(QAbstractButton, QRegularExpression(f"^{prefix}"))
+    return sorted(
+        (button for button in found if button.isVisible()), key=lambda button: button.objectName()
+    )
 
 
 # === save ===
@@ -225,6 +300,121 @@ def test_save_when_theme(opened: Opened) -> None:
     assert result is True
     opened.deps.save_settings.assert_called_once()
     assert opened.deps.save_settings.call_args.args[0].ui.theme == "light"
+
+
+def test_save_when_glossaries(
+    open_with_glossaries: Callable[..., Opened], settings_model: type[Settings], tmp_path: Path
+) -> None:
+    """用語集の一覧と補正に使う用語集を設定に入れ、行を変えた用語集だけを書き戻しに渡す（正常系）。"""
+    from voice_paste.shared.settings import GlossarySettings
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（2 件の用語集を持つ設定で開き、2 件目の行を 1 つオフにして、補正に使う用語集を 2 件目にする）
+    first = GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
+    second = GlossarySettings(name="会議用", path=tmp_path / "meeting.csv")
+    opened = open_with_glossaries(
+        [first, second],
+        {
+            first.path: [GlossaryEntry(wrong="あ", right="A")],
+            second.path: [
+                GlossaryEntry(wrong="い", right="B"),
+                GlossaryEntry(wrong="う", right="C"),
+            ],
+        },
+        settings=settings_model(glossaries=[first, second]),
+    )
+    _select_group(opened.window, "用語集")
+    _button(opened.window, "glossary_pick_1").click()
+    _visible_buttons(opened.window, "glossary_entry_on_")[0].click()
+    _button(opened.window, "glossary_active_1").click()
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is True
+    opened.deps.save_settings.assert_called_once()
+    saved_settings, changed_rows = opened.deps.save_settings.call_args.args
+    assert [glossary.name for glossary in saved_settings.glossaries] == ["yogo", "会議用"]
+    assert saved_settings.active_glossary == "会議用"
+    assert saved_settings.glossary_path is None
+    assert changed_rows == {
+        second.path: [
+            GlossaryEntry(wrong="い", right="B", enabled=False),
+            GlossaryEntry(wrong="う", right="C"),
+        ]
+    }
+
+
+def test_save_when_glossaries_untouched(
+    open_with_glossaries: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """用語集を変えずに保存すると、書き戻す CSV は無い（正常系）。"""
+    from voice_paste.shared.settings import GlossarySettings
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（今までの用語集 1 件だけの設定で開き、ホットキーだけを変える）
+    glossary = GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
+    opened = open_with_glossaries(
+        [glossary], {glossary.path: [GlossaryEntry(wrong="あ", right="A")]}
+    )
+    start_hotkey = opened.window.findChild(QLineEdit, "hotkey_hotkeys.start")
+    assert start_hotkey is not None
+    QTest.keyClick(
+        start_hotkey,
+        Qt.Key.Key_9,
+        Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier,
+    )
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is True
+    saved_settings, changed_rows = opened.deps.save_settings.call_args.args
+    assert saved_settings.hotkeys.start == "<ctrl>+<alt>+9"
+    assert saved_settings.glossaries == [glossary]
+    assert changed_rows == {}
+
+
+def test_save_when_glossary_invalid(
+    open_with_glossaries: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """名前の重なりと片方が空の行では保存せず、エラーを出す（異常系）。"""
+    from voice_paste.shared.settings import GlossarySettings
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（2 件の用語集で開き、足した用語集の名前を 2 件目と同じにして、その 2 行目の誤変換を空にする）
+    first = GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
+    second = GlossarySettings(name="会議用", path=tmp_path / "meeting.csv")
+    opened = open_with_glossaries(
+        [first, second],
+        {
+            first.path: [GlossaryEntry(wrong="あ", right="A")],
+            second.path: [GlossaryEntry(wrong="い", right="B")],
+        },
+    )
+    _select_group(opened.window, "用語集")
+    _button(opened.window, "add_glossary_button").click()
+    _visible_edits(opened.window, "glossary_name_")[0].setText("会議用")
+    add_entry = _button(opened.window, "add_glossary_entry_button")
+    add_entry.click()
+    add_entry.click()
+    wrong_edits = _visible_edits(opened.window, "glossary_entry_wrong_")
+    right_edits = _visible_edits(opened.window, "glossary_entry_right_")
+    wrong_edits[0].setText("う")
+    right_edits[0].setText("U")
+    right_edits[1].setText("V")
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is False
+    opened.deps.save_settings.assert_not_called()
+    summary = _error_summary_text(opened.window)
+    assert "用語集 3 件目の名前: 用語集「会議用」と同じ名前です" in summary
+    assert "用語集 3 件目の 2 行目の誤変換: 誤変換を入れてください" in summary
 
 
 # === close_without_confirm ===

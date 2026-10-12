@@ -1,4 +1,4 @@
-"""shared/settings.py（load_settings・save_settings・find_hotkey_overlaps・migrate_ai_chat・build_settings_model・Settings の確かめ）の単体テスト。"""
+"""shared/settings.py（load_settings・save_settings・find_hotkey_overlaps・find_glossary_name_overlaps・migrate_ai_chat・build_settings_model・Settings の確かめ）の単体テスト。"""
 
 from __future__ import annotations
 
@@ -384,6 +384,58 @@ def test_save_settings_when_ai_chat_remains(
     assert written["preset_options"]["browser"]["open_delay_sec"] == 2.0
 
 
+def test_save_settings_when_glossaries(tmp_path: Path, settings_model: type[Settings]) -> None:
+    """用語集の一覧を書き、設定のフォルダの下の場所は相対パスにする（正常系）。"""
+    from voice_paste.shared.settings import GlossarySettings, load_settings, save_settings
+
+    # 準備（設定のフォルダの下の glossaries/glossary_1.csv と、別のフォルダの絶対パスの 2 件）
+    settings_file = tmp_path / "conf" / SETTINGS_FILE_NAME
+    other_path = tmp_path / "other" / "terms.csv"
+    settings = settings_model(
+        glossaries=[
+            GlossarySettings(
+                name="yogo", path=settings_file.parent / "glossaries" / "glossary_1.csv"
+            ),
+            GlossarySettings(name="会議用", path=other_path),
+        ],
+        active_glossary="会議用",
+    )
+
+    # 実行
+    save_settings(settings_file, settings)
+
+    # 検証
+    written = tomllib.loads(settings_file.read_text(encoding="utf-8"))
+    assert written["glossaries"][0]["path"] == "glossaries/glossary_1.csv"
+    assert Path(written["glossaries"][1]["path"]) == other_path
+    loaded = load_settings(settings_file, settings_model)
+    assert [glossary.name for glossary in loaded.glossaries] == ["yogo", "会議用"]
+    assert loaded.active_glossary == "会議用"
+
+
+def test_save_settings_when_legacy_glossary_path(
+    tmp_path: Path, settings_model: type[Settings]
+) -> None:
+    """用語集の一覧を書くと、今までの glossary_path のキーを消す（正常系）。"""
+    from voice_paste.shared.settings import GlossarySettings, save_settings
+
+    # 準備（glossary_path を持つ settings.toml に、glossary_path が None で glossaries が 1 件の設定を書く）
+    settings_file = tmp_path / "conf" / SETTINGS_FILE_NAME
+    legacy_path = tmp_path / "elsewhere" / "yogo.csv"
+    settings_file.parent.mkdir()
+    settings_file.write_text(f'glossary_path = "{legacy_path.as_posix()}"\n', encoding="utf-8")
+    settings = settings_model(glossaries=[GlossarySettings(name="yogo", path=legacy_path)])
+
+    # 実行
+    save_settings(settings_file, settings)
+
+    # 検証
+    written = tomllib.loads(settings_file.read_text(encoding="utf-8"))
+    assert "glossary_path" not in written
+    assert len(written["glossaries"]) == 1
+    assert Path(written["glossaries"][0]["path"]) == legacy_path
+
+
 # === find_hotkey_overlaps ===
 
 
@@ -667,6 +719,89 @@ def test_settings_when_hotkeys_overlap() -> None:
     key, reason = failures[0]
     assert key == "hotkeys.cancel"
     assert "hotkeys.pause" in reason
+
+
+# === find_glossary_name_overlaps ===
+
+
+def test_find_glossary_name_overlaps() -> None:
+    """後ろにある側を重なりとして返す（正常系）。"""
+    from voice_paste.shared.settings import (
+        GlossarySettings,
+        Settings,
+        find_glossary_name_overlaps,
+    )
+
+    # 準備（名前が「yogo」「会議用」「会議用」の 3 件。確かめを飛ばして作る）
+    settings = Settings.model_construct(
+        glossaries=[
+            GlossarySettings(name="yogo", path=Path("a.csv")),
+            GlossarySettings(name="会議用", path=Path("b.csv")),
+            GlossarySettings(name="会議用", path=Path("c.csv")),
+        ]
+    )
+
+    # 実行
+    overlaps = find_glossary_name_overlaps(settings)
+
+    # 検証
+    assert overlaps == [("glossaries[2].name", "会議用")]
+
+
+def test_find_glossary_name_overlaps_when_unique() -> None:
+    """重なりが無ければ空（正常系）。"""
+    from voice_paste.shared.settings import (
+        GlossarySettings,
+        Settings,
+        find_glossary_name_overlaps,
+    )
+
+    # 準備（名前が全て違う 2 件）
+    settings = Settings.model_construct(
+        glossaries=[
+            GlossarySettings(name="yogo", path=Path("a.csv")),
+            GlossarySettings(name="会議用", path=Path("b.csv")),
+        ]
+    )
+
+    # 実行
+    overlaps = find_glossary_name_overlaps(settings)
+
+    # 検証
+    assert overlaps == []
+
+
+def test_settings_when_glossary_names_overlap(settings_model: type[Settings]) -> None:
+    """名前が重なる設定は検証に通らない（異常系）。"""
+    from pydantic import ValidationError
+
+    from voice_paste.shared.settings import list_validation_failures
+
+    # 実行・検証（名前が同じ 2 件の glossaries）
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate(
+            {
+                "glossaries": [
+                    {"name": "会議用", "path": "a.csv"},
+                    {"name": "会議用", "path": "b.csv"},
+                ]
+            }
+        )
+    failures = list_validation_failures(exc_info.value)
+    assert [key for key, _reason in failures] == ["glossaries[1].name"]
+
+
+def test_settings_when_glossary_name_blank(settings_model: type[Settings]) -> None:
+    """空白だけの名前は検証に通らない（異常系）。"""
+    from pydantic import ValidationError
+
+    from voice_paste.shared.settings import list_validation_failures
+
+    # 実行・検証（名前が「  」の glossaries）
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate({"glossaries": [{"name": "  ", "path": "a.csv"}]})
+    failures = list_validation_failures(exc_info.value)
+    assert [key for key, _reason in failures] == ["glossaries[0].name"]
 
 
 # === build_settings_model ===

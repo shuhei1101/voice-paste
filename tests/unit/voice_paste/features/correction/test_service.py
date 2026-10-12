@@ -1,12 +1,17 @@
-"""features/correction/service.py（load_glossary・apply_glossary）の単体テスト。"""
+"""features/correction/service.py（load_glossary・apply_glossary・read_glossary_rows・save_glossary・resolve_glossaries・pick_active_glossary・next_glossary_path）の単体テスト。"""
 
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
+if TYPE_CHECKING:
+    from voice_paste.shared.settings import Settings
+
 CSV_HEADER = "誤変換,正しい表記\n"
+CSV_HEADER_WITH_ENABLED = "誤変換,正しい表記,使う\n"
 
 
 @pytest.fixture
@@ -21,7 +26,7 @@ def glossary_file(tmp_path: Path) -> Path:
 def test_load_glossary(glossary_file: Path) -> None:
     """CSV の行を読む（正常系）。"""
     from voice_paste.features.correction.service import load_glossary
-    from voice_paste.features.correction.types import GlossaryEntry
+    from voice_paste.shared.types import GlossaryEntry
 
     # 準備
     glossary_file.write_text(
@@ -52,7 +57,7 @@ def test_load_glossary_when_missing(tmp_path: Path) -> None:
 def test_load_glossary_when_bom(glossary_file: Path) -> None:
     """BOM つきの CSV も列名で読める（正常系）。"""
     from voice_paste.features.correction.service import load_glossary
-    from voice_paste.features.correction.types import GlossaryEntry
+    from voice_paste.shared.types import GlossaryEntry
 
     # 準備
     glossary_file.write_text(f"{CSV_HEADER}くろーど,Claude\n", encoding="utf-8-sig")
@@ -67,7 +72,7 @@ def test_load_glossary_when_bom(glossary_file: Path) -> None:
 def test_load_glossary_when_blank_cells(glossary_file: Path) -> None:
     """空白を除き、どちらかが空の行を飛ばす（正常系）。"""
     from voice_paste.features.correction.service import load_glossary
-    from voice_paste.features.correction.types import GlossaryEntry
+    from voice_paste.shared.types import GlossaryEntry
 
     # 準備
     glossary_file.write_text(f"{CSV_HEADER} くろーど , Claude \nあいう,\n,えお\n", encoding="utf-8")
@@ -79,13 +84,45 @@ def test_load_glossary_when_blank_cells(glossary_file: Path) -> None:
     assert entries == [GlossaryEntry(wrong="くろーど", right="Claude")]
 
 
+def test_load_glossary_when_disabled_rows(glossary_file: Path) -> None:
+    """オフの行を飛ばす（正常系）。"""
+    from voice_paste.features.correction.service import load_glossary
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（列 `使う` が「1」「0」「（空）」の 3 行）
+    glossary_file.write_text(f"{CSV_HEADER_WITH_ENABLED}あ,A,1\nい,B,0\nう,C,\n", encoding="utf-8")
+
+    # 実行
+    entries = load_glossary(glossary_file)
+
+    # 検証（「1」と「（空）」の 2 行だけが返る）
+    assert entries == [
+        GlossaryEntry(wrong="あ", right="A"),
+        GlossaryEntry(wrong="う", right="C"),
+    ]
+
+
+def test_load_glossary_when_unreadable(glossary_file: Path) -> None:
+    """読めない CSV は空として扱い、例外を上げない（正常系）。"""
+    from voice_paste.features.correction.service import load_glossary
+
+    # 準備（Shift_JIS で書いた 1 行の CSV）
+    glossary_file.write_bytes(f"{CSV_HEADER}くろーど,Claude\n".encode("shift_jis"))
+
+    # 実行
+    entries = load_glossary(glossary_file)
+
+    # 検証
+    assert entries == []
+
+
 # === apply_glossary ===
 
 
 def test_apply_glossary() -> None:
     """誤変換を置き換える（正常系）。"""
     from voice_paste.features.correction.service import apply_glossary
-    from voice_paste.features.correction.types import GlossaryEntry
+    from voice_paste.shared.types import GlossaryEntry
 
     # 準備
     entries = [GlossaryEntry(wrong="くろーどこーど", right="Claude Code")]
@@ -100,7 +137,7 @@ def test_apply_glossary() -> None:
 def test_apply_glossary_when_chained() -> None:
     """前の行で置き換えた結果に次の行を当てる（正常系）。"""
     from voice_paste.features.correction.service import apply_glossary
-    from voice_paste.features.correction.types import GlossaryEntry
+    from voice_paste.shared.types import GlossaryEntry
 
     # 準備
     entries = [GlossaryEntry(wrong="A", right="B"), GlossaryEntry(wrong="B", right="C")]
@@ -115,7 +152,7 @@ def test_apply_glossary_when_chained() -> None:
 def test_apply_glossary_when_no_match() -> None:
     """誤変換を含まなければそのまま返す（正常系）。"""
     from voice_paste.features.correction.service import apply_glossary
-    from voice_paste.features.correction.types import GlossaryEntry
+    from voice_paste.shared.types import GlossaryEntry
 
     # 準備
     entries = [GlossaryEntry(wrong="くろーどこーど", right="Claude Code")]
@@ -125,3 +162,359 @@ def test_apply_glossary_when_no_match() -> None:
 
     # 検証
     assert text == "今日は晴れ"
+
+
+# === read_glossary_rows ===
+
+
+def test_read_glossary_rows(glossary_file: Path) -> None:
+    """行をオン・オフつきで読む（正常系）。"""
+    from voice_paste.features.correction.service import read_glossary_rows
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備
+    glossary_file.write_text(f"{CSV_HEADER_WITH_ENABLED}あ,A,1\nい,B,0\n", encoding="utf-8")
+
+    # 実行
+    rows = read_glossary_rows(glossary_file)
+
+    # 検証
+    assert rows == [
+        GlossaryEntry(wrong="あ", right="A", enabled=True),
+        GlossaryEntry(wrong="い", right="B", enabled=False),
+    ]
+
+
+def test_read_glossary_rows_when_no_enabled_column(glossary_file: Path) -> None:
+    """列 `使う` が無い CSV の行は全てオン（正常系）。"""
+    from voice_paste.features.correction.service import read_glossary_rows
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備
+    glossary_file.write_text(f"{CSV_HEADER}あ,A\nい,B\n", encoding="utf-8")
+
+    # 実行
+    rows = read_glossary_rows(glossary_file)
+
+    # 検証
+    assert rows == [
+        GlossaryEntry(wrong="あ", right="A", enabled=True),
+        GlossaryEntry(wrong="い", right="B", enabled=True),
+    ]
+
+
+def test_read_glossary_rows_when_half_empty(glossary_file: Path) -> None:
+    """片方が空の行は返し、両方が空の行は飛ばす（正常系）。"""
+    from voice_paste.features.correction.service import read_glossary_rows
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備
+    glossary_file.write_text(f"{CSV_HEADER}あいう,\n,えお\n,\n", encoding="utf-8")
+
+    # 実行
+    rows = read_glossary_rows(glossary_file)
+
+    # 検証
+    assert rows == [
+        GlossaryEntry(wrong="あいう", right=""),
+        GlossaryEntry(wrong="", right="えお"),
+    ]
+
+
+def test_read_glossary_rows_when_missing(tmp_path: Path) -> None:
+    """ファイルが無ければ空（正常系）。"""
+    from voice_paste.features.correction.service import read_glossary_rows
+
+    # 実行
+    rows = read_glossary_rows(tmp_path / "missing.csv")
+
+    # 検証
+    assert rows == []
+
+
+def test_read_glossary_rows_when_not_utf8(glossary_file: Path) -> None:
+    """UTF-8 でない CSV は読めないとする（異常系）。"""
+    from voice_paste.features.correction.service import read_glossary_rows
+    from voice_paste.shared.errors import GlossaryReadError
+
+    # 準備（Shift_JIS で書いた 1 行の CSV）
+    glossary_file.write_bytes(f"{CSV_HEADER}くろーど,Claude\n".encode("shift_jis"))
+
+    # 実行・検証
+    with pytest.raises(GlossaryReadError, match="文字コードが UTF-8 ではありません"):
+        read_glossary_rows(glossary_file)
+
+
+def test_read_glossary_rows_when_no_header(glossary_file: Path) -> None:
+    """見出しの列が無い CSV は読めないとする（異常系）。"""
+    from voice_paste.features.correction.service import read_glossary_rows
+    from voice_paste.shared.errors import GlossaryReadError
+
+    # 準備（1 行目が「くろーど,Claude」で、見出しの無い CSV）
+    glossary_file.write_text("くろーど,Claude\nあ,A\n", encoding="utf-8")
+
+    # 実行・検証
+    with pytest.raises(GlossaryReadError, match="見出しに「誤変換」「正しい表記」の列がありません"):
+        read_glossary_rows(glossary_file)
+
+
+def test_read_glossary_rows_when_unreadable(tmp_path: Path) -> None:
+    """開けない CSV は読めないとする（異常系）。"""
+    from voice_paste.features.correction.service import read_glossary_rows
+    from voice_paste.shared.errors import GlossaryReadError
+
+    # 準備（path にフォルダを渡す）
+    folder = tmp_path / "folder.csv"
+    folder.mkdir()
+
+    # 実行・検証
+    with pytest.raises(GlossaryReadError, match="^ファイルを開けません（"):
+        read_glossary_rows(folder)
+
+
+# === save_glossary ===
+
+
+def test_save_glossary(glossary_file: Path) -> None:
+    """書いた行を同じ順とオン・オフで読み戻せる（正常系）。"""
+    from voice_paste.features.correction.service import read_glossary_rows, save_glossary
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（オンとオフの 2 行）
+    written = [
+        GlossaryEntry(wrong="あ", right="A", enabled=True),
+        GlossaryEntry(wrong="い", right="B", enabled=False),
+    ]
+
+    # 実行
+    save_glossary(glossary_file, written)
+
+    # 検証
+    assert read_glossary_rows(glossary_file) == written
+
+
+def test_save_glossary_when_new_directory(tmp_path: Path) -> None:
+    """親のフォルダが無ければ作る（正常系）。"""
+    from voice_paste.features.correction.service import read_glossary_rows, save_glossary
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（存在しないフォルダの下のパス）
+    path = tmp_path / "not_created" / "glossaries" / "glossary_1.csv"
+
+    # 実行
+    save_glossary(path, [GlossaryEntry(wrong="あ", right="A")])
+
+    # 検証
+    assert path.exists()
+    assert read_glossary_rows(path) == [GlossaryEntry(wrong="あ", right="A")]
+
+
+def test_save_glossary_when_both_empty_row(glossary_file: Path) -> None:
+    """両方が空の行は書かない（正常系）。"""
+    from voice_paste.features.correction.service import read_glossary_rows, save_glossary
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（誤変換と正しい表記が空の行を 1 つ含む 2 行）
+    entries = [GlossaryEntry(wrong="あ", right="A"), GlossaryEntry(wrong="", right="")]
+
+    # 実行
+    save_glossary(glossary_file, entries)
+
+    # 検証
+    assert read_glossary_rows(glossary_file) == [GlossaryEntry(wrong="あ", right="A")]
+
+
+# === resolve_glossaries ===
+
+
+def test_resolve_glossaries_when_empty(tmp_path: Path, settings_model: type[Settings]) -> None:
+    """一覧が空でキーも無ければ、設定のフォルダの yogo.csv が 1 件目（正常系）。"""
+    from voice_paste.features.correction.service import resolve_glossaries
+    from voice_paste.shared.settings import GlossarySettings
+
+    # 準備
+    settings_dir = tmp_path / "settings"
+
+    # 実行
+    glossaries = resolve_glossaries(settings_model(), settings_dir)
+
+    # 検証
+    assert glossaries == [GlossarySettings(name="yogo", path=settings_dir / "yogo.csv")]
+
+
+def test_resolve_glossaries_when_legacy_path(
+    tmp_path: Path, settings_model: type[Settings]
+) -> None:
+    """一覧が空で glossary_path があれば、その CSV が 1 件目（正常系）。"""
+    from voice_paste.features.correction.service import resolve_glossaries
+    from voice_paste.shared.settings import GlossarySettings
+
+    # 準備
+    legacy_path = tmp_path / "elsewhere" / "terms.csv"
+    settings = settings_model(glossary_path=legacy_path)
+
+    # 実行
+    glossaries = resolve_glossaries(settings, tmp_path / "settings")
+
+    # 検証
+    assert glossaries == [GlossarySettings(name="terms", path=legacy_path)]
+
+
+def test_resolve_glossaries_when_relative_path(
+    tmp_path: Path, settings_model: type[Settings]
+) -> None:
+    """相対パスを設定のフォルダから解決し、絶対パスはそのまま返す（正常系）。"""
+    from voice_paste.features.correction.service import resolve_glossaries
+    from voice_paste.shared.settings import GlossarySettings
+
+    # 準備（path が `glossaries/glossary_1.csv` と絶対パスの 2 件）
+    settings_dir = tmp_path / "settings"
+    absolute_path = tmp_path / "elsewhere" / "terms.csv"
+    settings = settings_model(
+        glossaries=[
+            GlossarySettings(name="会議用", path=Path("glossaries/glossary_1.csv")),
+            GlossarySettings(name="雑談用", path=absolute_path),
+        ]
+    )
+
+    # 実行
+    glossaries = resolve_glossaries(settings, settings_dir)
+
+    # 検証（1 件目は settings_dir の下の絶対パス、2 件目は元のまま。並びと名前は変わらない）
+    assert glossaries == [
+        GlossarySettings(name="会議用", path=settings_dir / "glossaries" / "glossary_1.csv"),
+        GlossarySettings(name="雑談用", path=absolute_path),
+    ]
+
+
+def test_resolve_glossaries_when_relative_legacy_path(
+    tmp_path: Path, settings_model: type[Settings], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """相対パスの glossary_path は、起動したフォルダからの絶対パスにする（正常系）。"""
+    from voice_paste.features.correction.service import resolve_glossaries
+
+    # 準備（settings_dir とは別のフォルダを、起動したフォルダにする）
+    launch_dir = tmp_path / "launch"
+    launch_dir.mkdir()
+    monkeypatch.chdir(launch_dir)
+    settings = settings_model(glossary_path=Path("terms.csv"))
+
+    # 実行
+    glossaries = resolve_glossaries(settings, tmp_path / "settings")
+
+    # 検証（settings_dir の下ではなく、起動したフォルダの terms.csv の絶対パス）
+    assert len(glossaries) == 1
+    assert glossaries[0].path == Path.cwd() / "terms.csv"
+
+
+# === pick_active_glossary ===
+
+
+def _settings_with_glossaries(
+    settings_model: type[Settings], settings_dir: Path, active_glossary: str | None
+) -> Settings:
+    """「yogo」「会議用」の 2 件の glossaries と active_glossary を持つ設定を作る。"""
+    from voice_paste.shared.settings import GlossarySettings
+
+    return settings_model(
+        glossaries=[
+            GlossarySettings(name="yogo", path=settings_dir / "yogo.csv"),
+            GlossarySettings(name="会議用", path=settings_dir / "meeting.csv"),
+        ],
+        active_glossary=active_glossary,
+    )
+
+
+def test_pick_active_glossary(tmp_path: Path, settings_model: type[Settings]) -> None:
+    """active_glossary の名前の用語集を返す（正常系）。"""
+    from voice_paste.features.correction.service import pick_active_glossary
+    from voice_paste.shared.settings import GlossarySettings
+
+    # 準備
+    settings = _settings_with_glossaries(settings_model, tmp_path, "会議用")
+
+    # 実行
+    glossary = pick_active_glossary(settings, tmp_path)
+
+    # 検証
+    assert glossary == GlossarySettings(name="会議用", path=tmp_path / "meeting.csv")
+
+
+def test_pick_active_glossary_when_unset(tmp_path: Path, settings_model: type[Settings]) -> None:
+    """active_glossary が無ければ 1 件目（正常系）。"""
+    from voice_paste.features.correction.service import pick_active_glossary
+    from voice_paste.shared.settings import GlossarySettings
+
+    # 準備
+    settings = _settings_with_glossaries(settings_model, tmp_path, None)
+
+    # 実行
+    glossary = pick_active_glossary(settings, tmp_path)
+
+    # 検証
+    assert glossary == GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
+
+
+def test_pick_active_glossary_when_unknown_name(
+    tmp_path: Path, settings_model: type[Settings]
+) -> None:
+    """一覧に無い名前なら 1 件目（正常系）。"""
+    from voice_paste.features.correction.service import pick_active_glossary
+    from voice_paste.shared.settings import GlossarySettings
+
+    # 準備
+    settings = _settings_with_glossaries(settings_model, tmp_path, "存在しない名前")
+
+    # 実行
+    glossary = pick_active_glossary(settings, tmp_path)
+
+    # 検証
+    assert glossary == GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
+
+
+# === next_glossary_path ===
+
+
+def test_next_glossary_path(tmp_path: Path) -> None:
+    """空のフォルダなら 1 番（正常系）。"""
+    from voice_paste.features.correction.service import next_glossary_path
+
+    # 準備（存在しない directory と空の taken）
+    directory = tmp_path / "glossaries"
+
+    # 実行
+    path = next_glossary_path([], directory=directory)
+
+    # 検証
+    assert path == directory / "glossary_1.csv"
+
+
+def test_next_glossary_path_when_file_exists(tmp_path: Path) -> None:
+    """残っている CSV の番号は使わない（正常系）。"""
+    from voice_paste.features.correction.service import next_glossary_path
+
+    # 準備（glossary_1.csv がある directory と空の taken）
+    directory = tmp_path / "glossaries"
+    directory.mkdir()
+    (directory / "glossary_1.csv").write_text(CSV_HEADER, encoding="utf-8")
+
+    # 実行
+    path = next_glossary_path([], directory=directory)
+
+    # 検証
+    assert path == directory / "glossary_2.csv"
+
+
+def test_next_glossary_path_when_taken(tmp_path: Path) -> None:
+    """保存する前に足した用語集の場所とも重ねない（正常系）。"""
+    from voice_paste.features.correction.service import next_glossary_path
+
+    # 準備（空の directory と、glossary_1.csv を含む taken）
+    directory = tmp_path / "glossaries"
+    taken = [directory / "glossary_1.csv"]
+
+    # 実行
+    path = next_glossary_path(taken, directory=directory)
+
+    # 検証
+    assert path == directory / "glossary_2.csv"

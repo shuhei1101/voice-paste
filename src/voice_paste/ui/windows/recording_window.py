@@ -238,7 +238,7 @@ class Surface(QFrame):
 
     def __init__(self) -> None:
         super().__init__()
-        self.setProperty("role", "surface")
+        self.setProperty("role", "window")
 
     def sizeHint(self) -> QSize:  # noqa: N802 Qt の名前
         """中の大きさか、既定の幅の広い方を返す。"""

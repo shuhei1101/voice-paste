@@ -382,9 +382,13 @@ data_models:
     container: shared/settings.py
     usecase: 共通
     role: 設定のモデル
-    summary: 録音の画面と文字起こし中の表示の出し方
+    summary: 画面の明暗と、録音の画面と文字起こし中の表示の出し方
     inherits: pydantic.BaseModel
     properties:
+      - name: theme
+        type: Literal["system", "light", "dark"]
+        default: system
+        description: 画面の明暗。`system` は OS の明暗に従う。反映は immediate。設定画面は `json_schema_extra` の choice_labels（system → Windows の設定に従う・light → ライト・dark → ダーク）でラジオボタンの名前を出す
       - name: topmost
         type: bool
         default: 'True'

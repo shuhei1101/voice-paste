@@ -12,11 +12,18 @@ from unittest.mock import MagicMock
 
 import pytest
 from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QColor, QGuiApplication
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QLabel, QPushButton, QWidget
 
-from tests.integration.ui.helpers import Ui, button_texts, find, grab_head_row, no_modal
+from tests.integration.ui.helpers import (
+    Ui,
+    button_texts,
+    edge_and_face_colors,
+    find,
+    grab_head_row,
+    no_modal,
+)
 from voice_paste.main import SETTINGS_MODEL
 from voice_paste.ui.style import build_stylesheet, is_dark_theme
 
@@ -1139,3 +1146,27 @@ def test_close_button_action(make_ui: Callable[..., Ui]) -> None:
     ui.deps.cancel.assert_called_once()
     ui.deps.complete.assert_not_called()
     assert not ui.recording_window.isVisible()
+
+
+# === recording_window の配色 ===
+
+
+@pytest.mark.parametrize("theme", ["light", "dark"])
+def test_recording_window_colors_when_theme(
+    make_ui: Callable[..., Ui], apply_theme_to_app: Callable[[str], None], theme: str
+) -> None:
+    """窓の面は color.*.surface、外側の縁は color.*.frame の色で描く（* は ui.theme で決まる明暗）。"""
+    from voice_paste.ui.style import load_tokens
+
+    # 準備
+    apply_theme_to_app(theme)
+    ui = make_ui()
+    ui.notify_state("hotkey", "recording")
+
+    # 実行
+    edge, face = edge_and_face_colors(ui.recording_window)
+
+    # 検証
+    colors = load_tokens()["color"][theme]
+    assert edge == QColor(colors["frame"])
+    assert face == QColor(colors["surface"])

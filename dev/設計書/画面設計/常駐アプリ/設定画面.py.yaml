@@ -357,6 +357,7 @@ notes:
     | 文字起こし（詳しい調整） | `transcription.local_whisper` の cpu_threads・num_workers・beam_size・best_of・temperature・no_speech_threshold・vad_threshold・vad_min_speech_ms・vad_min_silence_ms | 数値の欄 |
     | 文字起こし（詳しい調整） | `transcription.local_whisper` の condition_on_previous_text・vad_filter | チェックボックス |
     | 文字起こし（用語集） | `glossary_path` | 文字の欄と「選ぶ…」 |
+    | 画面 | `ui.theme` | ラジオボタン（Windows の設定に従う・ライト・ダーク）。欄の名前は「画面の明暗」で、まとまりの先頭に置く |
     | 画面 | `ui.topmost`・`ui.follow_cursor` | チェックボックス |
     | 画面 | `ui.position` | ラジオボタン（中央・左上・右上・左下・右下） |
     | 画面 | `ui.wave_gain` | 数値の欄 |

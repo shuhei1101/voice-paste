@@ -120,7 +120,7 @@ FIELD_LAYOUT: dict[str, tuple[str, ...]] = {
         "transcription.local_whisper.condition_on_previous_text",
         "glossary_path",
     ),
-    "画面": ("ui.topmost", "ui.follow_cursor", "ui.position", "ui.wave_gain"),
+    "画面": ("ui.theme", "ui.topmost", "ui.follow_cursor", "ui.position", "ui.wave_gain"),
     "履歴とログ": (
         "history.enabled",
         "history.retention_days",
@@ -754,7 +754,9 @@ class SettingsWindow(QWidget):
             check_box = make_check_box("オン", value)
             return check_box, check_box.isChecked, ()
         if get_origin(annotation) is Literal:
-            radios = make_radio_group(tuple(get_args(annotation)), value)
+            extra = info.json_schema_extra
+            labels = extra.get(CHOICE_LABELS_KEY) if isinstance(extra, dict) else None
+            radios = make_radio_group(tuple(get_args(annotation)), value, labels=labels)
             return radios, lambda: selected_radio(radios), ()
         if get_origin(annotation) is list and (choices := _literal_choices(get_args(annotation)[0])):
             # リテラルの列挙の一覧は、値ごとのチェックボックスを横に並べる

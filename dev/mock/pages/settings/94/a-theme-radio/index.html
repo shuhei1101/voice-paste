@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>設定画面 | voice-paste のモック</title>
+  <!-- 採用スタイル「開発者ツール」の部品は #37、配色の案は #94 の共有 CSS に置く -->
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/94/assets/style.css">
+</head>
+<body>
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">settings</a> / <a href="../">94</a> / <span>a-theme-radio</span></nav>
+
+    <!-- 画面の説明 -->
+    <header class="intro">
+      <h1>設定画面</h1>
+      <p>「画面」のまとまりの先頭に、欄「画面の明暗」（ui.theme）と「Windows の設定に従う」「ライト」「ダーク」のラジオボタンを足したもの。ほかの欄は今のまま。</p>
+    </header>
+
+    <div class="desk desk--single">
+
+      <!-- 場面: ライト（既定の「Windows の設定に従う」で Windows がライト） -->
+      <section class="specimen" aria-labelledby="h-light">
+        <h2 id="h-light">ライト（既定の「Windows の設定に従う」で Windows がライト）</h2>
+        <div class="bgapp bgapp--white pal-cool theme-light">
+          <div class="win settings settings--full">
+            <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+            <div class="settings__body">
+              <nav class="settings__nav" aria-label="設定のまとまり（ライト（既定の「Windows の設定に従う」で Windows がライト））">
+                <ul><li><a href="#g-ui-light">出力先</a></li><li><a href="#g-ui-light">ブラウザ添付</a></li><li><a href="#g-ui-light">エンドポイントへ送る</a></li><li><a href="#g-ui-light">ホットキー</a></li><li><a href="#g-ui-light">録音</a></li><li><a href="#g-ui-light">文字起こし</a></li><li><a href="#g-ui-light" aria-current="page">画面</a></li><li><a href="#g-ui-light">履歴とログ</a></li><li><a href="#g-ui-light">API</a></li></ul>
+              </nav>
+              <form class="settings__form" action="#" method="post" aria-label="設定（ライト（既定の「Windows の設定に従う」で Windows がライト））">
+                <fieldset id="g-ui-light" data-group>
+                  <legend>画面</legend>
+                  <!-- 足す欄: 画面の明暗。まとまりの先頭に置く -->
+                  <div class="row" data-reload="immediate">
+                    <span>画面の明暗</span>
+                    <code class="key">ui.theme</code>
+                    <fieldset class="radios" aria-label="画面の明暗"><label><input type="radio" name="ui.theme-light" value="system" checked> Windows の設定に従う</label><label><input type="radio" name="ui.theme-light" value="light"> ライト</label><label><input type="radio" name="ui.theme-light" value="dark"> ダーク</label></fieldset>
+                  </div>
+                  <div class="row" data-reload="immediate">
+                    <label class="check" for="c-top-light"><input type="checkbox" id="c-top-light" name="ui.topmost" checked> 録音の画面を最前面に出す</label>
+                    <code class="key">ui.topmost</code>
+                  </div>
+                  <div class="row" data-reload="immediate">
+                    <span>録音の画面を出す位置</span>
+                    <code class="key">ui.position</code>
+                    <fieldset class="radios" aria-label="録音の画面を出す位置"><label><input type="radio" name="ui.position-light" value="center" checked> 中央</label><label><input type="radio" name="ui.position-light" value="top-left"> 左上</label><label><input type="radio" name="ui.position-light" value="top-right"> 右上</label><label><input type="radio" name="ui.position-light" value="bottom-left"> 左下</label><label><input type="radio" name="ui.position-light" value="bottom-right"> 右下</label></fieldset>
+                  </div>
+                  <div class="row" data-reload="immediate">
+                    <label class="check" for="c-follow-light"><input type="checkbox" id="c-follow-light" name="ui.follow_cursor" checked> カーソルのあるモニターに出す</label>
+                    <code class="key">ui.follow_cursor</code>
+                  </div>
+                  <div class="row" data-reload="immediate">
+                    <label for="f-gain-light">波形の感度</label>
+                    <code class="key">ui.wave_gain</code>
+                    <input type="number" id="f-gain-light" name="ui.wave_gain" value="4" step="0.5" min="0.5">
+                  </div>
+                </fieldset>
+              </form>
+            </div>
+            <div class="settings__foot">
+              <div class="settings__actions">
+                <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+                <span class="spacer"></span>
+                <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+                <a class="btn btn--primary" href="../../../tray/37/a-standard/index.html">保存</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">開いたところ。既定は「Windows の設定に従う」。配色は録音の画面の案 A を当てている。</p>
+      </section>
+      <!-- 場面: ダーク（「ダーク」を選んだ） -->
+      <section class="specimen" aria-labelledby="h-dark">
+        <h2 id="h-dark">ダーク（「ダーク」を選んだ）</h2>
+        <div class="bgapp bgapp--black pal-cool theme-dark">
+          <div class="win settings settings--full">
+            <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+            <div class="settings__body">
+              <nav class="settings__nav" aria-label="設定のまとまり（ダーク（「ダーク」を選んだ））">
+                <ul><li><a href="#g-ui-dark">出力先</a></li><li><a href="#g-ui-dark">ブラウザ添付</a></li><li><a href="#g-ui-dark">エンドポイントへ送る</a></li><li><a href="#g-ui-dark">ホットキー</a></li><li><a href="#g-ui-dark">録音</a></li><li><a href="#g-ui-dark">文字起こし</a></li><li><a href="#g-ui-dark" aria-current="page">画面</a></li><li><a href="#g-ui-dark">履歴とログ</a></li><li><a href="#g-ui-dark">API</a></li></ul>
+              </nav>
+              <form class="settings__form" action="#" method="post" aria-label="設定（ダーク（「ダーク」を選んだ））">
+                <fieldset id="g-ui-dark" data-group>
+                  <legend>画面</legend>
+                  <!-- 足す欄: 画面の明暗。まとまりの先頭に置く -->
+                  <div class="row" data-reload="immediate">
+                    <span>画面の明暗</span>
+                    <code class="key">ui.theme</code>
+                    <fieldset class="radios" aria-label="画面の明暗"><label><input type="radio" name="ui.theme-dark" value="system"> Windows の設定に従う</label><label><input type="radio" name="ui.theme-dark" value="light"> ライト</label><label><input type="radio" name="ui.theme-dark" value="dark" checked> ダーク</label></fieldset>
+                  </div>
+                  <div class="row" data-reload="immediate">
+                    <label class="check" for="c-top-dark"><input type="checkbox" id="c-top-dark" name="ui.topmost" checked> 録音の画面を最前面に出す</label>
+                    <code class="key">ui.topmost</code>
+                  </div>
+                  <div class="row" data-reload="immediate">
+                    <span>録音の画面を出す位置</span>
+                    <code class="key">ui.position</code>
+                    <fieldset class="radios" aria-label="録音の画面を出す位置"><label><input type="radio" name="ui.position-dark" value="center" checked> 中央</label><label><input type="radio" name="ui.position-dark" value="top-left"> 左上</label><label><input type="radio" name="ui.position-dark" value="top-right"> 右上</label><label><input type="radio" name="ui.position-dark" value="bottom-left"> 左下</label><label><input type="radio" name="ui.position-dark" value="bottom-right"> 右下</label></fieldset>
+                  </div>
+                  <div class="row" data-reload="immediate">
+                    <label class="check" for="c-follow-dark"><input type="checkbox" id="c-follow-dark" name="ui.follow_cursor" checked> カーソルのあるモニターに出す</label>
+                    <code class="key">ui.follow_cursor</code>
+                  </div>
+                  <div class="row" data-reload="immediate">
+                    <label for="f-gain-dark">波形の感度</label>
+                    <code class="key">ui.wave_gain</code>
+                    <input type="number" id="f-gain-dark" name="ui.wave_gain" value="4" step="0.5" min="0.5">
+                  </div>
+                </fieldset>
+              </form>
+            </div>
+            <div class="settings__foot">
+              <div class="settings__actions">
+                <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+                <span class="spacer"></span>
+                <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+                <a class="btn btn--primary" href="../../../tray/37/a-standard/index.html">保存</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">「ダーク」を選んで保存すると、Windows がライトでも全ての画面がダークになる。保存すると再起動せずに開いている画面へ効く（反映は即時のため「再起動で反映」の印を付けない）。</p>
+      </section>
+
+    </div>
+  </main>
+</body>
+</html>

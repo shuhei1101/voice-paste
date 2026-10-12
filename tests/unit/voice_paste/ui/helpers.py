@@ -6,6 +6,7 @@ UiDeps の関数は全て Mock に、経過の時計は進められる時計に�
 
 from __future__ import annotations
 
+import dataclasses
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -63,6 +64,8 @@ def make_ui_deps(
         "resume_hotkeys": MagicMock(return_value=None),
         "output_titles": OUTPUT_TITLES,
     }
+    if "apply_theme" in {field.name for field in dataclasses.fields(UiDepsModel)}:
+        fields["apply_theme"] = MagicMock(return_value=None)
     fields.update(overrides)
     return UiDepsModel(**fields)
 

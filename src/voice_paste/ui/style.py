@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+import logging
 import tomllib
 from functools import cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QGuiApplication
+from PySide6.QtWidgets import QApplication
+
+logger = logging.getLogger(__name__)
 
 TOKENS_FILE: Path = Path(__file__).with_name("tokens.toml")
 """色・書体・余白のトークンのファイル。"""
@@ -36,6 +40,11 @@ QLabel[role="notice"] { background-color: @notice_bg@; border-radius: @radius@px
 QFrame[role="surface"] {
     background-color: @surface@;
     border: 1px solid @border@;
+    border-radius: @radius@px;
+}
+QFrame[role="window"] {
+    background-color: @surface@;
+    border: 1px solid @frame@;
     border-radius: @radius@px;
 }
 QFrame[role="alert"] {
@@ -127,7 +136,7 @@ QListWidget {
 }
 QListWidget::item { padding: 8px 12px; }
 QListWidget::item:selected { background-color: @primary@; color: @on_primary@; }
-QMenu { background-color: @surface@; border: 1px solid @border@; }
+QMenu { background-color: @surface@; border: 1px solid @frame@; }
 QMenu::item:selected { background-color: @primary@; color: @on_primary@; }
 QMenu::item:disabled { color: @text_muted@; }
 QMessageBox { background-color: @surface@; }
@@ -170,7 +179,37 @@ def is_dark_theme() -> bool:
     return QGuiApplication.styleHints().colorScheme() == Qt.ColorScheme.Dark
 
 
+def resolve_dark(theme: Literal["system", "light", "dark"], system_dark: bool) -> bool:
+    """ui.theme と OS の明暗から、暗い組の色を使うかを決める。`light` は False、`dark` は True、`system` は OS の明暗に従う。"""
+    if theme == "system":
+        return system_dark
+    return theme == "dark"
+
+
+_current_dark: bool | None = None
+"""apply_theme が当てた明暗（暗い組か）。まだ当てていなければ None（書くのは apply_theme だけ）。"""
+
+
+def apply_theme(app: QApplication, theme: Literal["system", "light", "dark"]) -> None:
+    """ui.theme で決めた明暗のスタイルシートをアプリ全体に当て、開いている窓を描き直す。メインスレッドから呼ぶ。"""
+    global _current_dark  # noqa: PLW0603
+    # スタイルシートで塗らない部品（スクロールバーなど）は style がパレットで描くため、Qt の明暗も揃える
+    hints = app.styleHints()
+    if theme == "system":
+        hints.unsetColorScheme()
+    else:
+        hints.setColorScheme(Qt.ColorScheme.Dark if theme == "dark" else Qt.ColorScheme.Light)
+    dark = resolve_dark(theme, is_dark_theme())
+    _current_dark = dark
+    app.setStyleSheet(build_stylesheet(dark))
+    # 状態の印・波形・回る印は theme_color で描くため、開いている窓を描き直して新しい組の色にする
+    for widget in QApplication.topLevelWidgets():
+        widget.update()
+    logger.info(f"画面の明暗を当てた（theme={theme}・暗い組={dark}）")
+
+
 def theme_color(name: str) -> QColor:
-    """今のテーマ（明暗）の色のトークンを、描画に使う色で返す。"""
-    colors: dict[str, str] = load_tokens()["color"]["dark" if is_dark_theme() else "light"]
+    """apply_theme で当てた明暗の組の色のトークンを、描画に使う色で返す。まだ当てていなければ OS の明暗の組を使う。"""
+    dark = is_dark_theme() if _current_dark is None else _current_dark
+    colors: dict[str, str] = load_tokens()["color"]["dark" if dark else "light"]
     return QColor(colors[name])

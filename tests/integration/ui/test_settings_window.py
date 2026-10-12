@@ -1213,6 +1213,87 @@ def test_enter_modifiers_when_initial_value(open_window: Callable[..., Opened]) 
     ]
 
 
+# === field_ui.theme ===
+
+THEME_GROUP_ROW = 6
+"""まとまりのメニューの「画面」の行。"""
+
+
+@pytest.mark.parametrize(
+    ("theme", "checked"),
+    [
+        pytest.param("system", "Windows の設定に従う", id="system"),
+        pytest.param("light", "ライト", id="light"),
+        pytest.param("dark", "ダーク", id="dark"),
+    ],
+)
+def test_ui_theme_field_initial_value(
+    open_window: Callable[..., Opened], theme: str, checked: str
+) -> None:
+    """「画面」のまとまりの先頭に「画面の明暗」があり、今の ui.theme のボタンが選ばれている。"""
+    from voice_paste.shared.settings import UiSettings
+
+    # 準備
+    window = open_window(SETTINGS_MODEL(ui=UiSettings(theme=theme))).window
+
+    # 実行
+    find(window, QListWidget, "group_menu").setCurrentRow(THEME_GROUP_ROW)
+
+    # 検証
+    field = _field(window, "ui.theme")
+    buttons = field.findChildren(QRadioButton)
+    assert [button.text() for button in buttons] == ["Windows の設定に従う", "ライト", "ダーク"]
+    assert [button.text() for button in buttons if button.isChecked()] == [checked]
+    assert _label_with_text(window, "画面の明暗").isVisible()
+    assert _top_of(field, window) < _top_of(_field(window, "ui.topmost"), window)
+    assert window.findChild(QLabel, "restart_badge_ui.theme") is None
+
+
+def test_ui_theme_field_action(
+    make_ui: Callable[..., Ui], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """別の値を選んで保存すると settings.toml の ui.theme が書き換わり、再起動せずに明暗を当て直す（再起動の印は出ない）。"""
+    from functools import partial
+
+    from voice_paste.main import apply_settings
+    from voice_paste.runtime.settings_store import SettingsStore
+    from voice_paste.shared.settings import load_settings
+
+    # 準備: 本物の保存（settings.toml へ書く）につなぎ、ui.theme=system で設定画面を開く
+    settings_file = tmp_path / "settings.toml"
+    store = SettingsStore(load_settings(settings_file, SETTINGS_MODEL))
+    apply_theme = MagicMock(return_value=None)
+    ui = make_ui(
+        store.get(),
+        get_settings=store.get,
+        save_settings=partial(
+            apply_settings,
+            settings_file=settings_file,
+            store=store,
+            check_hotkeys=lambda _hotkeys: None,
+        ),
+        apply_theme=apply_theme,
+    )
+    ui.controller.open_settings()
+    window = ui.controller._settings_window
+    find(window, QListWidget, "group_menu").setCurrentRow(THEME_GROUP_ROW)
+    light = next(
+        button for button in _field(window, "ui.theme").findChildren(QRadioButton)
+        if button.text() == "ライト"
+    )
+
+    # 実行
+    light.click()
+    assert not find(window, QLabel, "restart_notice").isVisible()
+    _click(window, "save_button")
+
+    # 検証
+    assert load_settings(settings_file, SETTINGS_MODEL).ui.theme == "light"
+    assert 'theme = "light"' in settings_file.read_text(encoding="utf-8")
+    apply_theme.assert_called_once_with()
+    assert not window.isVisible()
+
+
 # === save_button ===
 
 

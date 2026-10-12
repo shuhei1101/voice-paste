@@ -16,7 +16,7 @@ from unittest.mock import MagicMock
 import pytest
 from PySide6.QtCore import QKeyCombination, QRegularExpression, Qt
 from PySide6.QtGui import QTextDocument
-from PySide6.QtWidgets import QAbstractButton, QLabel, QLineEdit, QSlider, QWidget
+from PySide6.QtWidgets import QAbstractButton, QLabel, QLineEdit, QRadioButton, QSlider, QWidget
 
 from tests.unit.voice_paste.ui.helpers import make_ui_deps
 
@@ -208,6 +208,25 @@ def test_save_when_enter_modifiers(opened: Opened) -> None:
     assert [ctrl.text(), alt.text(), shift.text()] == ["Ctrl", "Alt", "Shift"]
 
 
+def test_save_when_theme(opened: Opened) -> None:
+    """明暗の欄で選んだ値を保存する（正常系）。"""
+    # 準備: ui.theme=system で開いた「画面の明暗」の「ライト」を選ぶ
+    light = next(
+        button
+        for button in _field(opened.window, "ui.theme").findChildren(QRadioButton)
+        if button.text() == "ライト"
+    )
+    light.setChecked(True)
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is True
+    opened.deps.save_settings.assert_called_once()
+    assert opened.deps.save_settings.call_args.args[0].ui.theme == "light"
+
+
 # === close_without_confirm ===
 
 
@@ -229,6 +248,62 @@ def test_close_without_confirm(opened: Opened, monkeypatch: pytest.MonkeyPatch) 
     confirm_discard.assert_not_called()
     assert closed_count == [1]
     opened.deps.save_settings.assert_not_called()
+
+
+# === make_radio_group ===
+
+THEME_CHOICES = ("system", "light", "dark")
+THEME_LABELS = {"system": "Windows の設定に従う", "light": "ライト", "dark": "ダーク"}
+
+
+def _radio_buttons(container: QWidget) -> list[QRadioButton]:
+    """ラジオボタンの組のボタンを、並びの順で返す。"""
+    return container.findChildren(QRadioButton)
+
+
+def test_make_radio_group_when_labels(qapp: QApplication) -> None:
+    """ボタンの名前を labels から出す（正常系）。"""
+    from voice_paste.ui.windows.settings_fields import make_radio_group
+
+    # 実行
+    group = make_radio_group(THEME_CHOICES, "light", labels=THEME_LABELS)
+
+    # 検証
+    buttons = _radio_buttons(group)
+    assert [button.text() for button in buttons] == ["Windows の設定に従う", "ライト", "ダーク"]
+    assert [button.isChecked() for button in buttons] == [False, True, False]
+
+
+def test_make_radio_group_when_no_labels(qapp: QApplication) -> None:
+    """labels が無ければ値をそのまま名前にする（正常系）。"""
+    from voice_paste.ui.windows.settings_fields import make_radio_group
+
+    # 実行
+    group = make_radio_group(("center", "top-left"), "center")
+
+    # 検証
+    buttons = _radio_buttons(group)
+    assert [button.text() for button in buttons] == ["center", "top-left"]
+    assert [button.isChecked() for button in buttons] == [True, False]
+
+
+# === selected_radio ===
+
+
+def test_selected_radio_when_labels(qapp: QApplication) -> None:
+    """名前ではなく値を返す（正常系）。"""
+    from voice_paste.ui.windows.settings_fields import make_radio_group, selected_radio
+
+    # 準備: ラベル付きの組で「ダーク」を選ぶ
+    group = make_radio_group(THEME_CHOICES, "light", labels=THEME_LABELS)
+    dark = next(button for button in _radio_buttons(group) if button.text() == "ダーク")
+    dark.setChecked(True)
+
+    # 実行
+    result = selected_radio(group)
+
+    # 検証
+    assert result == "dark"
 
 
 # === format_hotkey ===

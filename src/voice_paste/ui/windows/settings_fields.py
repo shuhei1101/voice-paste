@@ -187,14 +187,17 @@ def make_combo(choices: tuple[str, ...], current: str, *, editable: bool) -> QCo
     return combo
 
 
-def make_radio_group(choices: tuple[str, ...], current: str) -> QWidget:
-    """ラジオボタンの組を、横に並べた QWidget にして返す。選んだ値は `selected_radio` で読む。"""
+def make_radio_group(
+    choices: tuple[str, ...], current: str, *, labels: Mapping[str, str] | None = None
+) -> QWidget:
+    """ラジオボタンの組を、横に並べた QWidget にして返す。ボタンの名前は labels（無い値は値そのまま）で、値はボタンに持たせる。選んだ値は `selected_radio` で読む。"""
     container = QWidget()
     layout = QHBoxLayout(container)
     layout.setContentsMargins(0, 0, 0, 0)
     group = QButtonGroup(container)
     for choice in choices:
-        button = QRadioButton(choice)
+        button = QRadioButton((labels or {}).get(choice, choice))
+        button.setProperty(CHOICE_PROPERTY, choice)
         button.setChecked(choice == current)
         group.addButton(button)
         layout.addWidget(button)
@@ -203,10 +206,10 @@ def make_radio_group(choices: tuple[str, ...], current: str) -> QWidget:
 
 
 def selected_radio(container: QWidget) -> str:
-    """ラジオボタンの組で、選んでいるボタンの文字を返す。"""
+    """ラジオボタンの組で、選んでいるボタンの値（名前ではなく列挙の値）を返す。"""
     for button in container.findChildren(QRadioButton):
         if button.isChecked():
-            return button.text()
+            return button.property(CHOICE_PROPERTY)
     return ""
 
 

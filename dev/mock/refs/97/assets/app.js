@@ -28,10 +28,18 @@ const refreshCount = (detail) => {
   detail.querySelector("[data-entries-empty]").hidden = rows.length > 0;
 };
 
-/** 補正に使う用語集の「消す」を押せなくし、ほかの用語集の「消す」を押せるようにする */
+/** 補正に使う用語集の「消す」を無効の見た目にして理由をツールチップに出し、ほかの用語集の「消す」を押せるようにする */
 const refreshRemovable = (root) => {
   root.querySelectorAll("[data-item]").forEach((row) => {
-    row.querySelector("[data-remove-glossary]").disabled = row.querySelector("[data-active]").checked;
+    const button = row.querySelector("[data-remove-glossary]");
+    if (row.querySelector("[data-active]").checked) {
+      // フォーカスとツールチップを残すため disabled ではなく aria-disabled にする
+      button.setAttribute("aria-disabled", "true");
+      button.title = "補正に使う用語集は消せません";
+    } else {
+      button.removeAttribute("aria-disabled");
+      button.removeAttribute("title");
+    }
   });
 };
 
@@ -107,7 +115,7 @@ const setupGlossaries = () => {
       const removeE = e.target.closest("[data-remove-entry]");
       if (pick) selectGlossary(root, pick.closest("[data-item]").dataset.select);
       else if (addG) addGlossary(root);
-      else if (removeG) removeGlossary(root, removeG);
+      else if (removeG && removeG.getAttribute("aria-disabled") !== "true") removeGlossary(root, removeG);
       else if (addE) addEntry(root, addE.closest("[data-detail]"));
       else if (removeE) removeEntry(removeE);
       else {

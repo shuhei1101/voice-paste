@@ -21,6 +21,13 @@
   white-space: nowrap;
 }
 
+/* 補正に使う用語集の消すボタン: 押せない見た目にし、理由はツールチップに出す */
+.glossaries [data-remove-glossary][aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  &:hover { background: var(--surface-2); }
+}
+
 /* 用語集の一覧で、行を編集している用語集 */
 .glossaries tr[data-selected="true"] td {
   background: var(--sunken);

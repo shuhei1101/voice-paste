@@ -139,11 +139,11 @@
 <caption class="sr-only">用語集の一覧（補正に使う用語集を 1 つ選ぶ）</caption>
 <thead><tr><th scope="col">補正に使う</th><th scope="col">名前</th><th scope="col">行</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
 <tbody data-glossary-list>
-<tr data-item data-select="open-g1" data-selected="true"><td><label class="use"><input type="radio" name="open-gl-active" value="open-g1" data-active aria-label="yogoを補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="open-g1">yogo</span><span class="sr-only" data-unnamed hidden>名前未入力の用語集</span></button></td><td><span class="count" data-count="open-g1"></span></td><td><button type="button" class="btn btn--icon" data-remove-glossary aria-label="yogoを消す" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-item data-select="open-g1" data-selected="true"><td><label class="use"><input type="radio" name="open-gl-active" value="open-g1" data-active aria-label="yogoを補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="open-g1">yogo</span><span class="sr-only" data-unnamed hidden>名前未入力の用語集</span></button></td><td><span class="count" data-count="open-g1"></span></td><td><button type="button" class="btn btn--icon" data-remove-glossary aria-label="yogoを消す" aria-disabled="true" title="補正に使う用語集は消せません"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
 </tbody>
 </table>
 </div>
-<div class="glossary-actions"><button type="button" class="btn" data-add-glossary>用語集を足す</button><p class="field-help">補正に使う用語集は消せない。ほかの用語集を補正に使うと消せる。</p></div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-glossary>用語集を足す</button></div>
 <div data-details>
 <div class="glossary-detail" data-detail="open-g1">
 <p class="glossary-detail__title">用語集「<span data-name-view="open-g1">yogo</span>」の行</p>
@@ -161,7 +161,7 @@
 </tbody>
 </table>
 </div>
-<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。「行を足す」で誤変換と正しい表記を入れます。</p>
+<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。</p>
 <div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
 </div>
 </div>
@@ -179,7 +179,7 @@
 </tbody>
 </table>
 </div>
-<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。「行を足す」で誤変換と正しい表記を入れます。</p>
+<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。</p>
 <div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
 </div></template>
 <!-- ひな形: 「行を足す」で行の表の末尾に写す -->
@@ -197,7 +197,7 @@
             </div>
           </div>
         </div>
-        <p class="scene-note">今の glossary_path（空なら settings.toml と同じフォルダの yogo.csv）を 1 つ目の用語集として読み、ファイル名を名前にする。オン・オフの列が無い CSV の行は全てオン。補正に使う用語集は消せないため、消すボタンを押せない。</p>
+        <p class="scene-note">今の glossary_path（空なら settings.toml と同じフォルダの yogo.csv）を 1 つ目の用語集として読み、ファイル名を名前にする。オン・オフの列が無い CSV の行は全てオン。補正に使う用語集は消せないため、消すボタンを押せない（無効の見た目にし、理由はボタンのツールチップに出す）。</p>
       </section>
 
       <!-- 場面: 補正に使わない用語集を編集する -->
@@ -305,12 +305,12 @@
 <caption class="sr-only">用語集の一覧（補正に使う用語集を 1 つ選ぶ）</caption>
 <thead><tr><th scope="col">補正に使う</th><th scope="col">名前</th><th scope="col">行</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
 <tbody data-glossary-list>
-<tr data-item data-select="two-g1" data-selected="false"><td><label class="use"><input type="radio" name="two-gl-active" value="two-g1" data-active aria-label="yogoを補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="two-g1">yogo</span><span class="sr-only" data-unnamed hidden>名前未入力の用語集</span></button></td><td><span class="count" data-count="two-g1"></span></td><td><button type="button" class="btn btn--icon" data-remove-glossary aria-label="yogoを消す" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-item data-select="two-g1" data-selected="false"><td><label class="use"><input type="radio" name="two-gl-active" value="two-g1" data-active aria-label="yogoを補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="two-g1">yogo</span><span class="sr-only" data-unnamed hidden>名前未入力の用語集</span></button></td><td><span class="count" data-count="two-g1"></span></td><td><button type="button" class="btn btn--icon" data-remove-glossary aria-label="yogoを消す" aria-disabled="true" title="補正に使う用語集は消せません"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
 <tr data-item data-select="two-g2" data-selected="true"><td><label class="use"><input type="radio" name="two-gl-active" value="two-g2" data-active aria-label="会議用を補正に使う"></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="two-g2">会議用</span><span class="sr-only" data-unnamed hidden>名前未入力の用語集</span></button></td><td><span class="count" data-count="two-g2"></span></td><td><button type="button" class="btn btn--icon" data-remove-glossary aria-label="会議用を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
 </tbody>
 </table>
 </div>
-<div class="glossary-actions"><button type="button" class="btn" data-add-glossary>用語集を足す</button><p class="field-help">補正に使う用語集は消せない。ほかの用語集を補正に使うと消せる。</p></div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-glossary>用語集を足す</button></div>
 <div data-details>
 <div class="glossary-detail" data-detail="two-g1" hidden>
 <p class="glossary-detail__title">用語集「<span data-name-view="two-g1">yogo</span>」の行</p>
@@ -328,7 +328,7 @@
 </tbody>
 </table>
 </div>
-<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。「行を足す」で誤変換と正しい表記を入れます。</p>
+<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。</p>
 <div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
 </div>
 <div class="glossary-detail" data-detail="two-g2">
@@ -347,7 +347,7 @@
 </tbody>
 </table>
 </div>
-<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。「行を足す」で誤変換と正しい表記を入れます。</p>
+<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。</p>
 <div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
 </div>
 </div>
@@ -365,7 +365,7 @@
 </tbody>
 </table>
 </div>
-<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。「行を足す」で誤変換と正しい表記を入れます。</p>
+<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。</p>
 <div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
 </div></template>
 <!-- ひな形: 「行を足す」で行の表の末尾に写す -->
@@ -491,13 +491,13 @@
 <caption class="sr-only">用語集の一覧（補正に使う用語集を 1 つ選ぶ）</caption>
 <thead><tr><th scope="col">補正に使う</th><th scope="col">名前</th><th scope="col">行</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
 <tbody data-glossary-list>
-<tr data-item data-select="added-g1" data-selected="false"><td><label class="use"><input type="radio" name="added-gl-active" value="added-g1" data-active aria-label="yogoを補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="added-g1">yogo</span><span class="sr-only" data-unnamed hidden>名前未入力の用語集</span></button></td><td><span class="count" data-count="added-g1"></span></td><td><button type="button" class="btn btn--icon" data-remove-glossary aria-label="yogoを消す" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-item data-select="added-g1" data-selected="false"><td><label class="use"><input type="radio" name="added-gl-active" value="added-g1" data-active aria-label="yogoを補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="added-g1">yogo</span><span class="sr-only" data-unnamed hidden>名前未入力の用語集</span></button></td><td><span class="count" data-count="added-g1"></span></td><td><button type="button" class="btn btn--icon" data-remove-glossary aria-label="yogoを消す" aria-disabled="true" title="補正に使う用語集は消せません"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
 <tr data-item data-select="added-g2" data-selected="false"><td><label class="use"><input type="radio" name="added-gl-active" value="added-g2" data-active aria-label="会議用を補正に使う"></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="added-g2">会議用</span><span class="sr-only" data-unnamed hidden>名前未入力の用語集</span></button></td><td><span class="count" data-count="added-g2"></span></td><td><button type="button" class="btn btn--icon" data-remove-glossary aria-label="会議用を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
 <tr data-item data-select="added-g3" data-selected="true"><td><label class="use"><input type="radio" name="added-gl-active" value="added-g3" data-active aria-label="足した用語集を補正に使う"></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="added-g3"></span><span class="sr-only" data-unnamed>名前未入力の用語集</span></button></td><td><span class="count" data-count="added-g3"></span></td><td><button type="button" class="btn btn--icon" data-remove-glossary aria-label="足した用語集を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
 </tbody>
 </table>
 </div>
-<div class="glossary-actions"><button type="button" class="btn" data-add-glossary>用語集を足す</button><p class="field-help">補正に使う用語集は消せない。ほかの用語集を補正に使うと消せる。</p></div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-glossary>用語集を足す</button></div>
 <div data-details>
 <div class="glossary-detail" data-detail="added-g1" hidden>
 <p class="glossary-detail__title">用語集「<span data-name-view="added-g1">yogo</span>」の行</p>
@@ -515,7 +515,7 @@
 </tbody>
 </table>
 </div>
-<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。「行を足す」で誤変換と正しい表記を入れます。</p>
+<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。</p>
 <div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
 </div>
 <div class="glossary-detail" data-detail="added-g2" hidden>
@@ -534,7 +534,7 @@
 </tbody>
 </table>
 </div>
-<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。「行を足す」で誤変換と正しい表記を入れます。</p>
+<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。</p>
 <div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
 </div>
 <div class="glossary-detail" data-detail="added-g3">
@@ -549,7 +549,7 @@
 </tbody>
 </table>
 </div>
-<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。「行を足す」で誤変換と正しい表記を入れます。</p>
+<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。</p>
 <div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
 </div>
 </div>
@@ -567,7 +567,7 @@
 </tbody>
 </table>
 </div>
-<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。「行を足す」で誤変換と正しい表記を入れます。</p>
+<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。</p>
 <div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
 </div></template>
 <!-- ひな形: 「行を足す」で行の表の末尾に写す -->
@@ -699,13 +699,13 @@
 <caption class="sr-only">用語集の一覧（補正に使う用語集を 1 つ選ぶ）</caption>
 <thead><tr><th scope="col">補正に使う</th><th scope="col">名前</th><th scope="col">行</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
 <tbody data-glossary-list>
-<tr data-item data-select="error-g1" data-selected="false"><td><label class="use"><input type="radio" name="error-gl-active" value="error-g1" data-active aria-label="yogoを補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="error-g1">yogo</span><span class="sr-only" data-unnamed hidden>名前未入力の用語集</span></button></td><td><span class="count" data-count="error-g1"></span></td><td><button type="button" class="btn btn--icon" data-remove-glossary aria-label="yogoを消す" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-item data-select="error-g1" data-selected="false"><td><label class="use"><input type="radio" name="error-gl-active" value="error-g1" data-active aria-label="yogoを補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="error-g1">yogo</span><span class="sr-only" data-unnamed hidden>名前未入力の用語集</span></button></td><td><span class="count" data-count="error-g1"></span></td><td><button type="button" class="btn btn--icon" data-remove-glossary aria-label="yogoを消す" aria-disabled="true" title="補正に使う用語集は消せません"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
 <tr data-item data-select="error-g2" data-selected="false"><td><label class="use"><input type="radio" name="error-gl-active" value="error-g2" data-active aria-label="会議用を補正に使う"></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="error-g2">会議用</span><span class="sr-only" data-unnamed hidden>名前未入力の用語集</span></button></td><td><span class="count" data-count="error-g2"></span></td><td><button type="button" class="btn btn--icon" data-remove-glossary aria-label="会議用を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
 <tr data-item data-select="error-g3" data-selected="true"><td><label class="use"><input type="radio" name="error-gl-active" value="error-g3" data-active aria-label="会議用を補正に使う"></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="error-g3">会議用</span><span class="sr-only" data-unnamed hidden>名前未入力の用語集</span></button></td><td><span class="count" data-count="error-g3"></span></td><td><button type="button" class="btn btn--icon" data-remove-glossary aria-label="会議用を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
 </tbody>
 </table>
 </div>
-<div class="glossary-actions"><button type="button" class="btn" data-add-glossary>用語集を足す</button><p class="field-help">補正に使う用語集は消せない。ほかの用語集を補正に使うと消せる。</p></div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-glossary>用語集を足す</button></div>
 <div data-details>
 <div class="glossary-detail" data-detail="error-g1" hidden>
 <p class="glossary-detail__title">用語集「<span data-name-view="error-g1">yogo</span>」の行</p>
@@ -723,7 +723,7 @@
 </tbody>
 </table>
 </div>
-<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。「行を足す」で誤変換と正しい表記を入れます。</p>
+<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。</p>
 <div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
 </div>
 <div class="glossary-detail" data-detail="error-g2" hidden>
@@ -742,7 +742,7 @@
 </tbody>
 </table>
 </div>
-<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。「行を足す」で誤変換と正しい表記を入れます。</p>
+<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。</p>
 <div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
 </div>
 <div class="glossary-detail" data-detail="error-g3">
@@ -758,7 +758,7 @@
 </tbody>
 </table>
 </div>
-<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。「行を足す」で誤変換と正しい表記を入れます。</p>
+<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。</p>
 <div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
 </div>
 </div>
@@ -776,7 +776,7 @@
 </tbody>
 </table>
 </div>
-<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。「行を足す」で誤変換と正しい表記を入れます。</p>
+<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。</p>
 <div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
 </div></template>
 <!-- ひな形: 「行を足す」で行の表の末尾に写す -->

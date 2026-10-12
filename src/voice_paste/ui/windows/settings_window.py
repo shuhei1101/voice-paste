@@ -1132,7 +1132,8 @@ class SettingsWindow(QWidget):
         # 用語集の欄: 用語集のまとまりへ切り替えて、その用語集の行の表を出して欄へフォーカスを移す
         if glossary_located is not None:
             self._group_menu.setCurrentRow(self._glossary_group)
-            self._glossaries_panel.focus_field(*glossary_located)
+            position, glossary_field, glossary_row = glossary_located
+            self._glossaries_panel.focus_field(position, glossary_field, row=glossary_row)
             return
         located = self._locate_preset(key)
         # プリセットの欄: その種類のタブへ切り替えて、一覧の欄へフォーカスを移す

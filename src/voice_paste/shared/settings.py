@@ -464,44 +464,36 @@ class Settings(_SettingsModel):
         return outputs
 
     @model_validator(mode="after")
-    def _hotkeys_must_not_overlap(self) -> Settings:
-        """受け付けるホットキーが重ならないことを確かめる（重なったキーごとに欄のエラーにする）。"""
-        overlaps = _find_hotkey_overlap_locations(self)
-        # 重なりがあれば、重なったキーの場所で、先のキーを理由にして断る
-        if overlaps:
-            line_errors: list[InitErrorDetails] = [
-                {
-                    "type": PydanticCustomError(
-                        HOTKEY_OVERLAP_ERROR_TYPE,
-                        "{other}と同じホットキー",
-                        {"other": format_error_location(first_location)},
-                    ),
-                    "loc": location,
-                    "input": None,
-                }
-                for location, first_location in overlaps
-            ]
-            raise ValidationError.from_exception_data(type(self).__name__, line_errors)
-        return self
-
-    @model_validator(mode="after")
-    def _glossary_names_must_be_unique(self) -> Settings:
-        """用語集の名前が重ならないことを確かめる（後ろにある側の名前の欄のエラーにする）。"""
-        overlaps = _find_glossary_name_overlap_locations(self)
-        # 重なりがあれば、後ろにある側の名前の場所で、重なった名前を添えて断る
-        if overlaps:
-            line_errors: list[InitErrorDetails] = [
-                {
-                    "type": PydanticCustomError(
-                        GLOSSARY_NAME_OVERLAP_ERROR_TYPE,
-                        "用語集「{name}」と同じ名前",
-                        {"name": name},
-                    ),
-                    "loc": location,
-                    "input": name,
-                }
-                for location, name in overlaps
-            ]
+    def _names_and_hotkeys_must_not_overlap(self) -> Settings:
+        """受け付けるホットキーと用語集の名前が重ならないことを確かめる（重なったものごとに欄のエラーにし、1 回の ValidationError にまとめる）。"""
+        # 重なったホットキーは、重なったキーの場所で、先のキーを理由にする
+        line_errors: list[InitErrorDetails] = [
+            {
+                "type": PydanticCustomError(
+                    HOTKEY_OVERLAP_ERROR_TYPE,
+                    "{other}と同じホットキー",
+                    {"other": format_error_location(first_location)},
+                ),
+                "loc": location,
+                "input": None,
+            }
+            for location, first_location in _find_hotkey_overlap_locations(self)
+        ]
+        # 重なった用語集の名前は、後ろにある側の名前の場所で、重なった名前を添える
+        line_errors += [
+            {
+                "type": PydanticCustomError(
+                    GLOSSARY_NAME_OVERLAP_ERROR_TYPE,
+                    "用語集「{name}」と同じ名前",
+                    {"name": name},
+                ),
+                "loc": location,
+                "input": name,
+            }
+            for location, name in _find_glossary_name_overlap_locations(self)
+        ]
+        # 重なりがあれば断る
+        if line_errors:
             raise ValidationError.from_exception_data(type(self).__name__, line_errors)
         return self
 

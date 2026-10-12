@@ -43,6 +43,9 @@ UNNAMED_TEXT: str = "（名前未入力）"
 UNREADABLE_COUNT_TEXT: str = "読めません"
 """CSV を読めなかった用語集の、行の数の表示。"""
 
+LIST_COLUMN_PADDING_PX: int = 16
+"""一覧の「補正に使う」の列の幅に、見出しの文字の幅へ足す余白。"""
+
 NAME_DISPLAY_MAX_CHARS: int = 20
 """一覧の名前のボタンに出す名前の長さの上限（超えたら末尾を省く）。"""
 
@@ -57,6 +60,12 @@ NAME_PLACEHOLDER: str = "例: 会議用"
 
 EMPTY_ROWS_TEXT: str = "この用語集にはまだ行がありません。"
 """行が 1 つも無い用語集の、行の表の代わりに出す文。"""
+
+LIST_HEADINGS: tuple[str, str, str] = ("補正に使う", "名前", "行")
+"""用語集の一覧の列の見出し（補正に使うの選択・名前のボタン・行の数）。右端の消すボタンの列に見出しは無い。"""
+
+COUNT_COLUMN_SAMPLE: str = "000 行（オン 000）"
+"""行の数の列の幅を決める、いちばん長くなる表示の見本。"""
 
 LEGEND_TEXT: str = "上の行から順に置き換える。オフの行は補正に使わない。"
 """行の順とオン・オフが補正にどう効くかを示す凡例。"""
@@ -278,7 +287,7 @@ class GlossaryPanel(QWidget):
         self._inputs[("name", None)].setFocus()
         self.changed.emit()
 
-    def focus_field(self, position: int, field: GlossaryField, row: int | None = None) -> None:
+    def focus_field(self, position: int, field: GlossaryField, *, row: int | None = None) -> None:
         """用語集の何件目かと項目（と行）で欄を探し、その用語集の行の表を出してフォーカスを移す。"""
         self._show(position)
         edit = self._inputs.get((field, row))
@@ -286,7 +295,7 @@ class GlossaryPanel(QWidget):
             edit.setFocus()
 
     def show_error(
-        self, position: int, field: GlossaryField, message: str, row: int | None = None
+        self, position: int, field: GlossaryField, message: str, *, row: int | None = None
     ) -> None:
         """用語集の何件目かと項目（と行）の欄の下にエラーを出し、欄をエラーの見た目にする。"""
         self._errors.setdefault((position, field, row), []).append(message)
@@ -319,6 +328,14 @@ class GlossaryPanel(QWidget):
             self._active_group.removeButton(list_row.radio)
         _clear_layout(self._list_layout)
         self._list_rows = []
+        # 見出しの行と用語集の行で、列の幅をそろえる
+        metrics = self.fontMetrics()
+        active_width = metrics.horizontalAdvance(LIST_HEADINGS[0]) + LIST_COLUMN_PADDING_PX
+        count_width = metrics.horizontalAdvance(COUNT_COLUMN_SAMPLE)
+        remove_width = QPushButton("×").sizeHint().width()
+        self._list_layout.addWidget(
+            self._build_list_heading(active_width, count_width, remove_width)
+        )
         for index in range(len(self._glossaries)):
             # 行の表を出している用語集の行は、背景を変えて示す
             frame = QFrame()
@@ -328,6 +345,11 @@ class GlossaryPanel(QWidget):
             line.setContentsMargins(4, 2, 4, 2)
 
             radio = QRadioButton()
+            radio_cell = QWidget()
+            radio_cell.setFixedWidth(active_width)
+            cell_line = QHBoxLayout(radio_cell)
+            cell_line.setContentsMargins(0, 0, 0, 0)
+            cell_line.addWidget(radio, alignment=Qt.AlignmentFlag.AlignCenter)
             radio.setObjectName(f"glossary_active_{index}")
             radio.setChecked(index == self._active)
             radio.toggled.connect(lambda checked, position=index: self._on_active(position, checked))
@@ -338,12 +360,14 @@ class GlossaryPanel(QWidget):
             pick_button.clicked.connect(lambda _checked=False, position=index: self._show(position))
             count_label = QLabel()
             count_label.setObjectName(f"glossary_count_{index}")
+            count_label.setFixedWidth(count_width)
             remove_button = QPushButton("×")
             remove_button.setObjectName(f"glossary_remove_{index}")
+            remove_button.setFixedWidth(remove_width)
             remove_button.clicked.connect(
                 lambda _checked=False, position=index: self._remove_glossary(position)
             )
-            line.addWidget(radio)
+            line.addWidget(radio_cell)
             line.addWidget(pick_button, 1)
             line.addWidget(count_label)
             line.addWidget(remove_button)
@@ -351,6 +375,26 @@ class GlossaryPanel(QWidget):
             frame.show()
             self._list_rows.append(_ListRow(radio, pick_button, count_label, remove_button))
             self._sync_list_row(index)
+
+    @staticmethod
+    def _build_list_heading(active_width: int, count_width: int, remove_width: int) -> QWidget:
+        """用語集の一覧の列の見出しの行（補正に使う・名前・行）を作る。幅は用語集の行の列とそろえる。"""
+        heading = QWidget()
+        line = QHBoxLayout(heading)
+        line.setContentsMargins(4, 2, 4, 2)
+        for text, width in zip(LIST_HEADINGS, (active_width, None, count_width), strict=True):
+            label = QLabel(text)
+            label.setProperty("role", "heading")
+            if width is None:
+                line.addWidget(label, 1)
+            else:
+                label.setFixedWidth(width)
+                line.addWidget(label)
+        spacer = QWidget()
+        spacer.setFixedWidth(remove_width)
+        line.addWidget(spacer)
+        heading.show()
+        return heading
 
     def _sync_list_row(self, index: int) -> None:
         """一覧の 1 行の表示（名前・行の数・読み上げの名前・消すボタンの扱い）を、今の入力に合わせる。"""

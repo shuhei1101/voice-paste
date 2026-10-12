@@ -713,7 +713,7 @@ classes:
     methods:
       - name: open
         title: 画面を出す
-        summary: 新しい録音として経過時間と波形を空にし、設定でオンの出力先のボタン（名前は UiDeps.output_titles）と、有効なカスタムプリセットのボタン（browser・endpoint の順に presets[] の並び。3 件ごとに折り返す）を組み直して、設定の位置に出す（place_window）。プリセットのボタンは押すと UiDeps.complete(None, そのプリセット) を呼ぶ
+        summary: 新しい録音として経過時間と波形を空にし、設定でオンの出力先のボタン（名前は UiDeps.output_titles）と、有効なカスタムプリセットのボタン（browser・endpoint の順に presets[] の並び。3 件ごとに折り返す）を組み直して、設定の位置に出す（place_window）。プリセットのボタンは押すと UiDeps.complete(None, そのプリセット) を呼ぶ。`ui.show_hotkeys` がオフのときは、一時停止・再開・取り消し・出力先・プリセットの全てのボタンへホットキーを空で渡し、名前だけを出す
         kind: メソッド
         scope: public
         returns:

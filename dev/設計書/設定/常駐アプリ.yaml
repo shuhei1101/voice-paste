@@ -570,5 +570,17 @@ settings:
     implementation: src/voice_paste/shared/settings.py
     introduced:
       pr: 94
+  - key: ui.show_hotkeys
+    title: 録音の画面のボタンにホットキーを出すか
+    file: settings.toml
+    type: bool
+    default: 'true'
+    description: '`true` のとき、録音の画面の一時停止・再開・取り消し・出力先の確定・カスタムプリセットのボタンの名前の下にホットキーを出す。`false` のときは名前だけを出す。ホットキーの受付は変えない。'
+    reload: immediate
+    missing: 項目が無い `settings.toml` は `true` として読む
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+    introduced:
+      pr: 96
 notes:
   反映の列の読み方: '`immediate` は設定画面で保存すると動いている常駐アプリに効く項目。`settings.toml` を直接書き換えたときは、どの項目も再起動まで効かない（起動時に 1 度だけ読む）。'

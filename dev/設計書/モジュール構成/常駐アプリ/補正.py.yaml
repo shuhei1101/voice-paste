@@ -26,6 +26,8 @@ functions:
       description: 補正に使う行。ファイルが無ければ空
     process: |-
       1. read_glossary_rows で行を読む（ファイルが無ければ空）
+         - GlossaryReadError の場合、空を返す（補正せずに届ける。文字起こしは失敗にしない）
+           - `[WARNING]` 用語集を読めなかった（パス・理由）
       2. オフの行と、誤変換か正しい表記のどちらかが空の行を飛ばす（どちらかが空の行を飛ばすのは刷新前と同じ）
          - `[INFO]` 用語集を読んだ（パス・行数・補正に使う行数）
     unit_tests:
@@ -59,6 +61,12 @@ functions:
         condition: 列 `使う` が「1」「0」「（空）」の 3 行の CSV
         mock: なし（一時フォルダ）
         expected: 「1」と「（空）」の 2 行だけが返る
+      - name: test_load_glossary_when_unreadable
+        case: 正常
+        summary: 読めない CSV は空として扱い、例外を上げない
+        condition: Shift_JIS で書いた 1 行の CSV
+        mock: なし（一時フォルダ）
+        expected: '[] が返る'
     status: implemented
   - name: apply_glossary
     title: 用語集での補正
@@ -126,6 +134,9 @@ functions:
       1. ファイルが無ければ空を返す
          - `[WARNING]` 用語集が無い（パス）
       2. UTF-8（BOM ありも）の CSV を列名で読み、`誤変換`・`正しい表記` の前後の空白を除く
+         - OSError の場合、理由「ファイルを開けません（{OS のエラー}）」の GlossaryReadError を送出する
+         - UnicodeDecodeError の場合、理由「文字コードが UTF-8 ではありません」の GlossaryReadError を送出する
+         - 見出しに `誤変換` か `正しい表記` の列が無い場合、理由「見出しに「誤変換」「正しい表記」の列がありません」の GlossaryReadError を送出する
          - 誤変換と正しい表記の両方が空の行は飛ばす（片方だけが空の行は返す）
       3. 列 `使う` の前後の空白を除いた値が `0` の行だけをオフにする（列が無い・空・ほかの値はオン）
     unit_tests:
@@ -153,7 +164,29 @@ functions:
         condition: 存在しないパス
         mock: なし
         expected: '[] が返る'
+      - name: test_read_glossary_rows_when_not_utf8
+        case: 異常
+        summary: UTF-8 でない CSV は読めないとする
+        condition: Shift_JIS で書いた 1 行の CSV
+        mock: なし（一時フォルダ）
+        expected: GlossaryReadError。メッセージが「文字コードが UTF-8 ではありません」
+      - name: test_read_glossary_rows_when_no_header
+        case: 異常
+        summary: 見出しの列が無い CSV は読めないとする
+        condition: 1 行目が「くろーど,Claude」で、見出しの無い CSV
+        mock: なし（一時フォルダ）
+        expected: GlossaryReadError。メッセージが「見出しに「誤変換」「正しい表記」の列がありません」
+      - name: test_read_glossary_rows_when_unreadable
+        case: 異常
+        summary: 開けない CSV は読めないとする
+        condition: path にフォルダを渡す
+        mock: なし（一時フォルダ）
+        expected: GlossaryReadError。メッセージが「ファイルを開けません（」で始まる
     status: planned
+    exceptions:
+      - name: GlossaryReadError
+        condition: CSV を開けない・UTF-8 として読めない・見出しに `誤変換` か `正しい表記` の列が無い
+        message: '{理由}（設定画面がそのまま出す文言）'
   - name: save_glossary
     title: 用語集の書き戻し
     kind: 関数
@@ -227,7 +260,7 @@ functions:
       description: 用語集の一覧（1 件以上。path は絶対パス）
     process: |-
       1. `glossaries` が空かを確かめる
-         - 空の場合、`glossary_path`（None なら settings_dir の `yogo.csv`。DEFAULT_GLOSSARY_FILE_NAME）を場所にし、名前をそのファイル名から拡張子を除いたものにした 1 件を返す
+         - 空の場合、`glossary_path`（None なら settings_dir の `yogo.csv`。DEFAULT_GLOSSARY_FILE_NAME）を場所にし、名前をそのファイル名から拡張子を除いたものにした 1 件を返す。相対パスの `glossary_path` は、今までと同じく起動したフォルダからの絶対パスにする（`Path.absolute()`。保存で `glossaries[].path` に書いた後も同じファイルを指す）
       2. `glossaries` の並びのまま、相対パスの path を settings_dir からのパスにして返す（絶対パスはそのまま）
     unit_tests:
       - name: test_resolve_glossaries_when_empty
@@ -248,6 +281,12 @@ functions:
         condition: path が `glossaries/glossary_1.csv` と絶対パスの 2 件の glossaries
         mock: なし
         expected: 1 件目は settings_dir の下の絶対パス、2 件目は元のまま。並びと名前は変わらない
+      - name: test_resolve_glossaries_when_relative_legacy_path
+        case: 正常
+        summary: 相対パスの glossary_path は、起動したフォルダからの絶対パスにする
+        condition: glossary_path = terms.csv の設定と、起動したフォルダとは別の settings_dir
+        mock: なし（monkeypatch.chdir で起動したフォルダを一時フォルダにする）
+        expected: path が起動したフォルダの terms.csv の絶対パス（settings_dir の下ではない）
     status: planned
   - name: pick_active_glossary
     title: 補正に使う用語集の選択

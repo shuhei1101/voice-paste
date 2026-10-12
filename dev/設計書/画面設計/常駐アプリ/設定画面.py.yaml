@@ -322,7 +322,7 @@ elements:
     description: その用語集の行の数と、そのうちオンの行の数。行を足す・消す・オンとオフを切り替えるたびに数え直す。両方が空の行も数える
     io: 表示
     visible_when: 用語集ごと
-    display_format: '「{行の数} 行（オン {オンの行の数}）」。例: 「5 行（オン 3）」'
+    display_format: '「{行の数} 行（オン {オンの行の数}）」。例: 「5 行（オン 3）」。CSV を読めなかった用語集は「読めません」'
     status: planned
   - name: 用語集を消すボタン
     id: glossary_remove_{n}
@@ -377,7 +377,7 @@ elements:
     position: 窓 > 右 > 用語集 > 用語集の行 > 名前の欄の下
     description: 行の表を出している用語集の行を並べる。列は「使う」「誤変換」「正しい表記」と消すボタン。読み上げの表の名前は「用語集の行（上の行から順に置き換える）」。幅の狭い窓では表を横に流さず、列の幅を詰める
     io: 入出力
-    visible_when: 行の表を出している用語集に行が 1 つ以上あるとき
+    visible_when: 行の表を出している用語集に行が 1 つ以上あるとき（CSV を読めなかった用語集では出さない）
     initial_value: その用語集の CSV の行。誤変換か正しい表記の片方が空の行も出す（補正はその行を飛ばす）
     sorting: 並べ替えない。CSV の行の順で、足した行は末尾
     source: その用語集の CSV（`glossaries[].path`）
@@ -441,7 +441,7 @@ elements:
     description: 行の表の代わりに、行が無いことを伝える
     label: この用語集にはまだ行がありません。
     io: 表示
-    visible_when: 行の表を出している用語集に行が 1 つも無いとき
+    visible_when: 行の表を出している用語集に行が 1 つも無いとき（CSV を読めなかった用語集では出さない）
     status: planned
   - name: 行を足すボタン
     id: add_glossary_entry_button
@@ -452,6 +452,7 @@ elements:
     visible_when: 用語集のまとまりを選んだとき
     action: 行の表に 1 行足す
     status: planned
+    enabled_when: 行の表を出している用語集の CSV を読めたとき（足した用語集を含む）
   - name: 補正の決まりの凡例
     id: glossary_legend
     kind: label
@@ -460,6 +461,17 @@ elements:
     label: 上の行から順に置き換える。オフの行は補正に使わない。
     io: 表示
     visible_when: 用語集のまとまりを選んだとき
+    status: planned
+  - name: 読めない用語集の知らせ
+    id: glossary_unreadable
+    kind: label
+    position: 窓 > 右 > 用語集 > 用語集の行 > 名前の欄の下
+    description: 行の表の代わりに、その用語集の CSV を読めなかったことと理由を伝える。読めない用語集も一覧には出し、名前を変える・補正に使う用語集に選ぶ・一覧から消すはできる。行は編集できず、保存してもその CSV には触れない
+    label: この用語集の CSV を読めませんでした（{理由}）。保存しても、この CSV は書き換えません。
+    io: 表示
+    visible_when: 行の表を出している用語集の CSV を、設定画面を開いたときに読めなかったとき
+    display_format: '{理由} は「ファイルを開けません（{OS のエラー}）」「文字コードが UTF-8 ではありません」「見出しに「誤変換」「正しい表記」の列がありません」のどれか'
+    reason: 読めない原因は CSV 1 つの側にあるので、設定画面は開き、ほかの用語集とほかのまとまりは今までどおり使えるようにする。空の用語集として出すと、行を足して保存したときに元の CSV を上書きして中身を失う
     status: planned
 input_checks:
   - element: 設定の欄

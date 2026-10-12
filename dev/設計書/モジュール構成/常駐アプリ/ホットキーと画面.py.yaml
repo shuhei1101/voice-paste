@@ -988,6 +988,12 @@ classes:
         returns:
           type: None
           description: なし
+        process: |-
+          1. confirm_reset で確かめる
+             - 戻さない場合、何もせずに終える
+          2. 開いたときの設定と同じ設定のモデルの既定値を、save_settings（UiDeps）に空の書き戻し（`{}`）と共に渡して書く（用語集の CSV は書き換えない）
+          3. 既定の値を欄に入れ、用語集の一覧を UiDeps.list_glossaries で引き直して GlossaryPanel.set_glossaries に入れ直す（設定ファイルと同じフォルダの yogo.csv の 1 件に戻る）
+          4. 再起動が要る設定が変わっていれば、件数と「今すぐ再起動」を出す
       - name: try_close
         title: 取り消し
         summary: 欄を変えていなければ閉じ、変えていれば confirm_discard で確かめて捨てるなら閉じる。closeEvent・Esc・キャンセルが呼ぶ
@@ -1139,7 +1145,7 @@ classes:
         title: 一覧に入れる
         kind: メソッド
         scope: public
-        summary: 渡した用語集で一覧を作り直し、用語集ごとに行を読んで開いたときの行として控え、補正に使う用語集の行の表を出す
+        summary: 渡した用語集で一覧を作り直し、用語集ごとに行を読んで開いたときの行として控え（読めなかった用語集は理由を控える）、補正に使う用語集の行の表を出す
         args:
           - name: glossaries
             type: Sequence[GlossarySettings]
@@ -1161,6 +1167,12 @@ classes:
             condition: 5 行（オン 3）と 2 行の 2 件の用語集と、1 件目の名前
             mock: 行を読む関数（決まった行を返す）
             expected: 行の数が「5 行（オン 3）」「2 行（オン 2）」。1 件目が選ばれ、その消すボタンを押しても一覧が減らない
+          - name: test_glossary_panel_set_glossaries_when_unreadable
+            case: 正常
+            summary: 読めない用語集も一覧に出し、行の表の代わりに理由を出す
+            condition: 2 件の用語集のうち、2 件目で行を読む関数が GlossaryReadError を送出する
+            mock: 行を読む関数（2 件目の場所で GlossaryReadError を送出する）
+            expected: 一覧が 2 件で、2 件目の行の数が「読めません」。2 件目を選ぶと、理由を含む知らせが出て行の表が出ず、行を足すボタンが無効
       - name: collect
         title: 一覧の値の収集
         kind: メソッド
@@ -1201,6 +1213,7 @@ classes:
           description: 書き戻す用語集の CSV の場所 → 行（表の順。前後の空白を除き、誤変換と正しい表記の両方が空の行は除く）
         process: |-
           1. 今の一覧の用語集ごとに、表の行（両方が空の行を除く）を開いたときの行と比べる
+             - 読めなかった用語集の場合、入れない
              - 足した用語集（開いたときの行が無い）か、行が違う場合、その場所と行を入れる
              - 同じ場合、入れない（名前だけを変えた用語集と、一覧から消した用語集も入らない）
         unit_tests:
@@ -1222,11 +1235,17 @@ classes:
             condition: 用語集を 1 つ足し、行を 2 つ足して 1 つだけに値を入れる
             mock: 行を読む関数・場所を決める関数
             expected: 足した用語集の場所を持ち、行は値を入れた 1 つだけ
+          - name: test_glossary_panel_changed_rows_when_unreadable
+            case: 正常
+            summary: 読めなかった用語集は書き戻しに入れない
+            condition: 読めなかった用語集の名前を変え、補正に使う用語集に選ぶ
+            mock: 行を読む関数（GlossaryReadError を送出する）
+            expected: '{} が返る'
       - name: row_errors
         title: 行の確かめ
         kind: メソッド
         scope: public
-        summary: 全ての用語集の行を find_glossary_row_errors で確かめ、（用語集の何件目か, 何行目か, 空の側の項目）の並びを返す（補正に使わない用語集も確かめる）
+        summary: 読めた全ての用語集の行を find_glossary_row_errors で確かめ、（用語集の何件目か, 何行目か, 空の側の項目）の並びを返す（補正に使わない用語集も確かめる）
         returns:
           type: list[tuple[int, int, Literal["wrong", "right"]]]
           description: 片方だけが空の行の場所（どれも 0 から）
@@ -1306,6 +1325,10 @@ classes:
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
     status: planned
+    notes:
+      読めない用語集: |-
+        行を読む関数が GlossaryReadError を送出した用語集は、読めない用語集として一覧に残す（設定画面は開く）。行の数は「読めません」、行の表の代わりに「この用語集の CSV を読めませんでした（{理由}）。保存しても、この CSV は書き換えません。」を出し、行を足すボタンを無効にする。名前を変える・補正に使う用語集に選ぶ・一覧から消すはできる。
+        changed_rows と row_errors には入れない（保存してもその CSV に触れない）。
 functions:
   - name: notify
     title: ユーザーへの知らせ
@@ -1973,7 +1996,7 @@ data_models:
         description: 今の設定の用語集の一覧（path は絶対パス。glossaries が空なら今までの用語集の 1 件。resolve_glossaries）
       - name: read_glossary
         type: Callable[[Path], list[GlossaryEntry]]
-        description: 用語集の CSV の行を、オン・オフと片方が空の行も含めて読む（read_glossary_rows）
+        description: 用語集の CSV の行を、オン・オフと片方が空の行も含めて読む（read_glossary_rows）。読めなければ GlossaryReadError を送出する
       - name: new_glossary_path
         type: Callable[[Collection[Path]], Path]
         description: 足す用語集の CSV の場所を、一覧にある場所と重ならないように決める（フォルダを部分適用した next_glossary_path）

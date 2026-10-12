@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>設定画面 | voice-paste のモック</title>
+  <!-- 採用スタイル「開発者ツール」の部品は #37、一覧の部品は #44、用語集の部品は #97 の共有 CSS に置く -->
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/44/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/97/assets/style.css">
+  <!-- 場面・まとまりの切り替えは #44、用語集の操作は #97 の共有 JS が受ける -->
+  <script src="../../../../refs/44/assets/app.js" defer></script>
+  <script src="../../../../refs/97/assets/app.js" defer></script>
+</head>
+<body>
+  <!-- モック専用の操作列: 案のタブと、場面の切り替え（#44 の app.js が data-scene の場面だけを出す） -->
+  <nav class="mock-bar" aria-label="案と場面の切り替え（モック専用）">
+    <span class="mock-bar__label">案</span>
+    <ul><li><a href="../a-glossary-group/index.html">案 A</a></li><li><a href="../b-in-transcription/index.html" aria-current="page">案 B</a></li></ul>
+  </nav>
+
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">settings</a> / <a href="../">97</a> / <span>b-in-transcription</span></nav>
+
+    <!-- 画面の説明 -->
+    <header class="intro">
+      <h1>設定画面（案 B）</h1>
+      <p>用語集の一覧と行の表を、今の「文字起こし」のまとまりの末尾の小見出し「用語集」に置いたもの（用語集の CSV の欄の置き換え）。中身は案 A と同じで、置き場所だけが違う。エンジン・詳しい調整の欄の下までスクロールして編集する。</p>
+    </header>
+
+    <div class="desk desk--single">
+
+      <!-- 場面: 補正に使わない用語集を編集する -->
+      <section class="specimen" data-scene-panel="two" aria-labelledby="h-two">
+        <h2 id="h-two">補正に使わない用語集を編集する</h2>
+        <div class="win settings settings--full">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり（補正に使わない用語集を編集する）">
+              <ul><li><a href="../../44/a-inline/kind-tabs/index.html">出力先</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ブラウザ添付</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">エンドポイントへ送る</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ホットキー</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">録音</a></li><li><a href="#two-transcription" aria-current="page">文字起こし</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">画面</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">履歴とログ</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">API</a></li></ul>
+            </nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（補正に使わない用語集を編集する）">
+              
+              <fieldset id="two-transcription" data-group>
+                <legend>文字起こし</legend>
+                <h3 class="subhead">エンジン</h3>
+                <div class="row" data-reload="restart">
+                  <label for="two-f-16">文字起こしのエンジン <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.engine</code>
+                  <select id="two-f-16" name="transcription.engine"><option selected>local_whisper</option></select>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="two-f-17">モデル <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.model</code>
+                  <select id="two-f-17" name="transcription.local_whisper.model"><option selected>large-v3</option><option>large-v3-turbo</option><option>medium</option><option>small</option><option>base</option></select>
+                </div>
+                <div class="row" data-reload="restart">
+                  <span>デバイス <span class="badge badge--restart">再起動で反映</span></span>
+                  <code class="key">transcription.local_whisper.device</code>
+                  <fieldset class="radios" aria-label="デバイス"><label><input type="radio" name="transcription.local_whisper.device-two" value="cuda" checked> GPU（cuda）</label><label><input type="radio" name="transcription.local_whisper.device-two" value="cpu"> CPU</label></fieldset>
+                </div>
+                <div class="row" data-reload="restart">
+                  <span>量子化タイプ <span class="badge badge--restart">再起動で反映</span></span>
+                  <code class="key">transcription.local_whisper.compute_type</code>
+                  <fieldset class="radios" aria-label="量子化タイプ"><label><input type="radio" name="transcription.local_whisper.compute_type-two" value="float16" checked> float16</label><label><input type="radio" name="transcription.local_whisper.compute_type-two" value="int8"> int8</label><label><input type="radio" name="transcription.local_whisper.compute_type-two" value="float32"> float32</label></fieldset>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="two-f-22">言語 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.language</code>
+                  <input type="text" class="num" id="two-f-22" name="transcription.local_whisper.language" value="ja">
+                </div>
+                <h3 class="subhead">詳しい調整</h3>
+                <div class="row" data-reload="restart">
+                  <label for="two-f-23">CPU スレッド数 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.cpu_threads</code>
+                  <input type="number" id="two-f-23" name="transcription.local_whisper.cpu_threads" value="0" step="1" min="0">
+                  <p class="field-help">0 は自動。</p>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="two-f-24">並列ワーカー数 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.num_workers</code>
+                  <input type="number" id="two-f-24" name="transcription.local_whisper.num_workers" value="1" step="1" min="1">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="two-f-25">ビーム幅 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.beam_size</code>
+                  <input type="number" id="two-f-25" name="transcription.local_whisper.beam_size" value="10" step="1" min="1">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="two-f-26">候補数 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.best_of</code>
+                  <input type="number" id="two-f-26" name="transcription.local_whisper.best_of" value="5" step="1" min="1">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="two-f-27">温度 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.temperature</code>
+                  <input type="number" id="two-f-27" name="transcription.local_whisper.temperature" value="0.0" step="0.1" min="0">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="two-f-28">無音判定の閾値 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.no_speech_threshold</code>
+                  <input type="number" id="two-f-28" name="transcription.local_whisper.no_speech_threshold" value="0.6" step="0.05" min="0">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label class="check" for="two-c-29"><input type="checkbox" id="two-c-29" name="transcription.local_whisper.condition_on_previous_text"> 前の区間を文脈に使う <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.condition_on_previous_text</code>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label class="check" for="two-c-30"><input type="checkbox" id="two-c-30" name="transcription.local_whisper.vad_filter" checked> 無音の区間を除く（VAD） <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.vad_filter</code>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="two-f-31">VAD の閾値 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.vad_threshold</code>
+                  <input type="number" id="two-f-31" name="transcription.local_whisper.vad_threshold" value="0.5" step="0.05" min="0">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="two-f-32">VAD の最小の音声（ミリ秒） <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.vad_min_speech_ms</code>
+                  <input type="number" id="two-f-32" name="transcription.local_whisper.vad_min_speech_ms" value="250" step="50" min="0">
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="two-f-33">VAD の最小の無音（ミリ秒） <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.vad_min_silence_ms</code>
+                  <input type="number" id="two-f-33" name="transcription.local_whisper.vad_min_silence_ms" value="2000" step="100" min="0">
+                </div>
+                <!-- 用語集: 文字起こしのまとまりの末尾の小見出しに置く -->
+                <h3 class="subhead">用語集</h3>
+                <!-- 用語集の一覧と行の表: refs/97 の app.js が選ぶ・足す・消す・補正に使う用語集の切り替えを受ける -->
+                <div id="two-gl" class="glossary" data-glossary-root data-reload="immediate">
+<div class="targets-wrap">
+<table class="targets glossaries">
+<caption class="sr-only">用語集の一覧（補正に使う用語集を 1 つ選ぶ）</caption>
+<thead><tr><th scope="col">補正に使う</th><th scope="col">名前</th><th scope="col">行</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-glossary-list>
+<tr data-item data-select="two-g1" data-selected="false"><td><label class="use"><input type="radio" name="two-gl-active" value="two-g1" data-active aria-label="yogoを補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="two-g1">yogo</span></button></td><td><span class="count" data-count="two-g1"></span></td><td><button type="button" class="btn btn--icon" data-remove-glossary aria-label="yogoを消す" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-item data-select="two-g2" data-selected="true"><td><label class="use"><input type="radio" name="two-gl-active" value="two-g2" data-active aria-label="会議用を補正に使う"></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="two-g2">会議用</span></button></td><td><span class="count" data-count="two-g2"></span></td><td><button type="button" class="btn btn--icon" data-remove-glossary aria-label="会議用を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-glossary>用語集を足す</button><p class="field-help">補正に使う用語集は消せない。ほかの用語集を補正に使うと消せる。</p></div>
+<div data-details>
+<div class="glossary-detail" data-detail="two-g1" hidden>
+<p class="glossary-detail__title">用語集「<span data-name-view="two-g1">yogo</span>」の行</p>
+<div class="preset__field"><label for="two-g1-name">名前</label><input type="text" class="wide" id="two-g1-name" data-name="two-g1" value="yogo" placeholder="例: 会議用"></div>
+<div class="targets-wrap" data-entries-wrap>
+<table class="targets entries">
+<caption class="sr-only">用語集の行（上の行から順に置き換える）</caption>
+<thead><tr><th scope="col">使う</th><th scope="col">誤変換</th><th scope="col">正しい表記</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-entries>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on checked></td><td><input type="text" data-wrong value="ぼいすぺーすと"></td><td><input type="text" data-right value="voice-paste"></td><td><button type="button" class="btn btn--icon" data-remove-entry><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on checked></td><td><input type="text" data-wrong value="ういすぱー"></td><td><input type="text" data-right value="Whisper"></td><td><button type="button" class="btn btn--icon" data-remove-entry><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on checked></td><td><input type="text" data-wrong value="ほっときー"></td><td><input type="text" data-right value="ホットキー"></td><td><button type="button" class="btn btn--icon" data-remove-entry><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on checked></td><td><input type="text" data-wrong value="でぶろっぷ"></td><td><input type="text" data-right value="develop"></td><td><button type="button" class="btn btn--icon" data-remove-entry><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on checked></td><td><input type="text" data-wrong value="ぷるりくえすと"></td><td><input type="text" data-right value="プルリクエスト"></td><td><button type="button" class="btn btn--icon" data-remove-entry><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。「行を足す」で誤変換と正しい表記を入れます。</p>
+<div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
+</div>
+<div class="glossary-detail" data-detail="two-g2">
+<p class="glossary-detail__title">用語集「<span data-name-view="two-g2">会議用</span>」の行</p>
+<div class="preset__field"><label for="two-g2-name">名前</label><input type="text" class="wide" id="two-g2-name" data-name="two-g2" value="会議用" placeholder="例: 会議用"></div>
+<div class="targets-wrap" data-entries-wrap>
+<table class="targets entries">
+<caption class="sr-only">用語集の行（上の行から順に置き換える）</caption>
+<thead><tr><th scope="col">使う</th><th scope="col">誤変換</th><th scope="col">正しい表記</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-entries>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on checked></td><td><input type="text" data-wrong value="ぎじろく"></td><td><input type="text" data-right value="議事録"></td><td><button type="button" class="btn btn--icon" data-remove-entry><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on checked></td><td><input type="text" data-wrong value="しんちょく"></td><td><input type="text" data-right value="進捗"></td><td><button type="button" class="btn btn--icon" data-remove-entry><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="true"><td><input type="checkbox" data-on></td><td><input type="text" data-wrong value="えー、"></td><td><input type="text" data-right value=""></td><td><button type="button" class="btn btn--icon" data-remove-entry><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on checked></td><td><input type="text" data-wrong value="あのー"></td><td><input type="text" data-right value=""></td><td><button type="button" class="btn btn--icon" data-remove-entry><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="true"><td><input type="checkbox" data-on></td><td><input type="text" data-wrong value="ていれい"></td><td><input type="text" data-right value="定例"></td><td><button type="button" class="btn btn--icon" data-remove-entry><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。「行を足す」で誤変換と正しい表記を入れます。</p>
+<div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
+</div>
+</div>
+<!-- ひな形: 「用語集を足す」で一覧の末尾の行と、行の表に写す -->
+<template data-glossary-template="[data-glossary-list]"><tr data-item data-select="__ID__" data-selected="false"><td><label class="use"><input type="radio" name="__GROUP__-active" value="__ID__" data-active aria-label="足した用語集を補正に使う"></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="__ID__"></span></button></td><td><span class="count" data-count="__ID__"></span></td><td><button type="button" class="btn btn--icon" data-remove-glossary aria-label="足した用語集を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr></template>
+<template data-glossary-template="[data-details]"><div class="glossary-detail" data-detail="__ID__">
+<p class="glossary-detail__title">用語集「<span data-name-view="__ID__"></span>」の行</p>
+<div class="preset__field"><label for="__ID__-name">名前</label><input type="text" class="wide" id="__ID__-name" data-name="__ID__" value="" placeholder="例: 会議用"></div>
+<div class="targets-wrap" data-entries-wrap>
+<table class="targets entries">
+<caption class="sr-only">用語集の行（上の行から順に置き換える）</caption>
+<thead><tr><th scope="col">使う</th><th scope="col">誤変換</th><th scope="col">正しい表記</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-entries>
+
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。「行を足す」で誤変換と正しい表記を入れます。</p>
+<div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
+</div></template>
+<!-- ひな形: 「行を足す」で行の表の末尾に写す -->
+<template data-entry-template><tr data-entry data-off="false"><td><input type="checkbox" data-on checked></td><td><input type="text" data-wrong value=""></td><td><input type="text" data-right value=""></td><td><button type="button" class="btn btn--icon" data-remove-entry><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr></template>
+                </div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <div class="settings__actions">
+              <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn btn--primary" href="../../../tray/37/a-standard/index.html">保存</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">一覧の名前を押すと、その用語集の行を下に出す。補正に使う用語集はラジオで選び、編集する用語集とは別に選べる。オフの行は文字を薄くして取り消し線を引き、補正で飛ばす。</p>
+      </section>
+
+    </div>
+  </main>
+</body>
+</html>

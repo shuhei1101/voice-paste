@@ -1294,6 +1294,72 @@ def test_ui_theme_field_action(
     assert not window.isVisible()
 
 
+# === field_ui.show_hotkeys ===
+
+SHOW_HOTKEYS_LABEL = "録音の画面のボタンにホットキーを出すか"
+"""ui.show_hotkeys の欄の名前（設定の設計書の title）。"""
+
+
+@pytest.mark.parametrize("show_hotkeys", [True, False], ids=["on", "off"])
+def test_ui_show_hotkeys_field_initial_value(
+    open_window: Callable[..., Opened], show_hotkeys: bool
+) -> None:
+    """「画面」のまとまりの末尾に、欄の名前が「録音の画面のボタンにホットキーを出すか」のチェックボックスがあり、今の ui.show_hotkeys の値になっている（再起動の印は出ない）。"""
+    from voice_paste.shared.settings import UiSettings
+
+    # 準備
+    window = open_window(SETTINGS_MODEL(ui=UiSettings(show_hotkeys=show_hotkeys))).window
+
+    # 実行
+    find(window, QListWidget, "group_menu").setCurrentRow(THEME_GROUP_ROW)
+
+    # 検証
+    field = _field(window, "ui.show_hotkeys", QCheckBox)
+    assert field.isChecked() == show_hotkeys
+    assert _label_with_text(window, SHOW_HOTKEYS_LABEL).isVisible()
+    assert _top_of(field, window) > _top_of(_field(window, "ui.wave_gain"), window)
+    assert window.findChild(QLabel, "restart_badge_ui.show_hotkeys") is None
+
+
+def test_ui_show_hotkeys_field_action(
+    make_ui: Callable[..., Ui], tmp_path: Path
+) -> None:
+    """チェックを外して保存すると settings.toml の ui.show_hotkeys が false に書き換わり、再起動せずに効く（再起動の印は出ない）。"""
+    from functools import partial
+
+    from voice_paste.main import apply_settings
+    from voice_paste.runtime.settings_store import SettingsStore
+    from voice_paste.shared.settings import load_settings
+
+    # 準備: 本物の保存（settings.toml へ書く）につなぎ、既定（ui.show_hotkeys=true）で設定画面を開く
+    settings_file = tmp_path / "settings.toml"
+    store = SettingsStore(load_settings(settings_file, SETTINGS_MODEL))
+    ui = make_ui(
+        store.get(),
+        get_settings=store.get,
+        save_settings=partial(
+            apply_settings,
+            settings_file=settings_file,
+            store=store,
+            check_hotkeys=lambda _hotkeys: None,
+        ),
+    )
+    ui.controller.open_settings()
+    window = ui.controller._settings_window
+    find(window, QListWidget, "group_menu").setCurrentRow(THEME_GROUP_ROW)
+
+    # 実行
+    _field(window, "ui.show_hotkeys", QCheckBox).setChecked(False)
+    assert not find(window, QLabel, "restart_notice").isVisible()
+    _click(window, "save_button")
+
+    # 検証
+    assert not load_settings(settings_file, SETTINGS_MODEL).ui.show_hotkeys
+    assert "show_hotkeys = false" in settings_file.read_text(encoding="utf-8")
+    assert not store.get().ui.show_hotkeys
+    assert not window.isVisible()
+
+
 # === save_button ===
 
 

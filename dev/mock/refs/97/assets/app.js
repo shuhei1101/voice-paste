@@ -40,12 +40,12 @@ const selectGlossary = (root, id) => {
   root.querySelectorAll("[data-detail]").forEach((d) => { d.hidden = d.dataset.detail !== id; });
 };
 
-let added = 0;
+let addedGlossaries = 0;
 
 /** 「用語集を足す」: 一覧の末尾と行の表のひな形を写し、足した用語集を選んで名前の欄へフォーカスを移す */
 const addGlossary = (root) => {
-  added += 1;
-  const id = `${root.id}-new${added}`;
+  addedGlossaries += 1;
+  const id = `${root.id}-new${addedGlossaries}`;
   root.querySelectorAll("template[data-glossary-template]").forEach((t) => {
     // 表の行も崩さずに組み立てるため template で解釈する
     const holder = document.createElement("template");
@@ -122,6 +122,8 @@ const setupGlossaries = () => {
       // 名前の欄に合わせて、一覧の名前と行の表の見出しを書き換える
       const id = e.target.dataset.name;
       root.querySelectorAll(`[data-name-view="${id}"]`).forEach((v) => { v.textContent = e.target.value; });
+      // 名前が空の間は、一覧の名前のボタンに読み上げ用の名前を残す
+      root.querySelector(`[data-select="${id}"] [data-unnamed]`).hidden = e.target.value !== "";
     });
   });
 };

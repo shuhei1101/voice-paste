@@ -16,7 +16,7 @@ elements:
     description: まとまりを選ぶと、右の欄をそのまとまりに切り替える。切り替えても入れた値は消さない
     io: 入力
     visible_when: 常時
-    options: 出力先・ブラウザ添付・エンドポイントへ送る・ホットキー・録音・文字起こし・画面・履歴とログ・API の順。既定は出力先
+    options: 出力先・ブラウザ添付・エンドポイントへ送る・ホットキー・録音・文字起こし・用語集・画面・履歴とログ・API の順。既定は出力先
     initial_value: 出力先
     action: 右の欄を選んだまとまりに切り替える
   - name: エラーの一覧
@@ -26,7 +26,7 @@ elements:
     description: 保存できなかったことと直す欄の件数、欄ごとのエラーを並べる。各行はその欄へのリンクで、押すとその欄のまとまりへ切り替えて欄へフォーカスを移す。出したときにフォーカスを一覧へ移す
     label: 保存できませんでした。{件数} 件の欄を直してください。
     visible_when: 保存を押して確かめに通らない欄があったとき。入力の途中では出さない
-    display_format: '1 行 = 「{欄の名前}: {エラー}」。プリセットの欄は「プリセット「{タイトル}」の{欄の名前}」、タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」'
+    display_format: '1 行 = 「{欄の名前}: {エラー}」。プリセットの欄は「プリセット「{タイトル}」の{欄の名前}」、タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」。用語集の欄は「用語集 {一覧の何件目か} 件目の名前」「用語集 {一覧の何件目か} 件目の {何行目か} 行目の{誤変換か正しい表記}」'
   - name: 設定の欄
     id: field_{key}
     kind: input
@@ -63,15 +63,6 @@ elements:
     target: 同じキー（pynput の書式へ変える）
     refs:
       - dev/設計書/設定/常駐アプリ#settings[hotkeys.start]
-  - name: 用語集を選ぶボタン
-    id: pick_glossary_button
-    kind: button
-    position: 窓 > 右 > 文字起こし > 用語集の CSV の欄の右
-    description: ファイルを選ぶダイアログ（CSV）を開き、選んだパスを用語集の CSV の欄へ入れる
-    label: 選ぶ…
-    visible_when: 文字起こしのまとまりを選んだとき
-    target: Settings.glossary_path
-    action: ファイルを選ぶダイアログを開く
   - name: 再起動の知らせ
     id: restart_notice
     kind: label
@@ -284,6 +275,192 @@ elements:
     visible_when: プリセットごと
     enabled_when: ホットキーの欄が空でないとき
     action: ホットキーの欄を空にする（空の欄は「なし」を出す）
+  - name: 用語集の一覧
+    id: glossary_list
+    kind: table
+    position: 窓 > 右 > 用語集 > 用語集の一覧
+    description: 用語集を 1 行ずつ並べる。列は「補正に使う」「名前」「行」と消すボタン。行の表を出している用語集の行は、背景を変えて示す。見出しは「用語集の一覧」。読み上げの表の名前は「用語集の一覧（補正に使う用語集を 1 つ選ぶ）」
+    io: 入出力
+    visible_when: 用語集のまとまりを選んだとき
+    initial_value: settings.toml の `glossaries[]`。空なら `glossary_path`（キーが無ければ settings.toml と同じフォルダの yogo.csv）の CSV を 1 件目にし、名前を CSV のファイル名から拡張子を除いたものにする
+    sorting: 並べ替えない。settings.toml の並びで、足した用語集は末尾
+    source: Settings.glossaries[]
+    target: Settings.glossaries[]（保存で settings.toml へ書き、`glossary_path` のキーは消す）
+    reason: 用語集は再起動の要らない日々の編集で、メニューから直接開けるまとまりにした（確認ログ）
+    status: planned
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[glossaries[].name]
+  - name: 補正に使う用語集の選択
+    id: glossary_active_{n}
+    kind: radio
+    position: 窓 > 右 > 用語集 > 用語集の一覧 > 行 > 左
+    description: 補正に使う用語集を 1 つ選ぶ。行の表を出す用語集とは別に選べる。読み上げの名前は「{名前}を補正に使う」（名前が空なら「名前未入力の用語集を補正に使う」）
+    io: 入出力
+    type: 真偽値
+    visible_when: 用語集ごと
+    initial_value: settings.toml の `active_glossary` の名前の用語集。キーが無い・名前が一覧に無いときは 1 件目
+    options: 一覧の用語集のうち 1 つだけ。複数は選べない
+    source: Settings.active_glossary
+    target: Settings.active_glossary（選んだ用語集の名前）
+    action: 選んだ用語集の消すボタンを無効にし、前に選んでいた用語集の消すボタンを有効にする
+    status: planned
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[active_glossary]
+  - name: 用語集の名前のボタン
+    id: glossary_pick_{n}
+    kind: button
+    position: 窓 > 右 > 用語集 > 用語集の一覧 > 行 > 名前
+    description: 押すと、その用語集の名前の欄と行の表を下に出す。長い名前は 1 行に収めて末尾を省く。設定画面を開いたときは、補正に使う用語集の行の表を出している
+    label: '{名前}（名前が空なら「（名前未入力）」）'
+    visible_when: 用語集ごと
+    action: 下の用語集の行を、押した用語集のものに切り替える。切り替えても入れた値は消さない
+    status: planned
+  - name: 用語集の行の数
+    id: glossary_count_{n}
+    kind: label
+    position: 窓 > 右 > 用語集 > 用語集の一覧 > 行 > 行の列
+    description: その用語集の行の数と、そのうちオンの行の数。行を足す・消す・オンとオフを切り替えるたびに数え直す。両方が空の行も数える
+    io: 表示
+    visible_when: 用語集ごと
+    display_format: '「{行の数} 行（オン {オンの行の数}）」。例: 「5 行（オン 3）」'
+    status: planned
+  - name: 用語集を消すボタン
+    id: glossary_remove_{n}
+    kind: button
+    position: 窓 > 右 > 用語集 > 用語集の一覧 > 行 > 右端
+    description: 用語集を一覧から消す。保存するまで settings.toml には書かず、キャンセルで戻せる。CSV のファイルは消さない。補正に使う用語集のボタンは薄くして押しても何も起きないようにし、フォーカスは受けてツールチップ「補正に使う用語集は消せません」を出す。行の表を出している用語集を消したら、補正に使う用語集の行の表を出す
+    label: '{名前}を消す（読み上げの名前。名前が空なら「名前未入力の用語集を消す」。見た目は消す印）'
+    visible_when: 用語集ごと
+    enabled_when: 補正に使う用語集でないとき
+    action: 用語集を一覧から消す
+    status: planned
+  - name: 用語集を足すボタン
+    id: add_glossary_button
+    kind: button
+    position: 窓 > 右 > 用語集 > 用語集の一覧の下
+    description: 名前が空で行の無い用語集を一覧の末尾に足し、その用語集の行の表を出して、名前の欄へフォーカスを移す。補正に使う用語集は変えない
+    label: 用語集を足す
+    visible_when: 用語集のまとまりを選んだとき
+    action: 用語集の一覧に 1 件足す
+    status: planned
+  - name: 用語集の行の見出し
+    id: glossary_detail_title
+    kind: label
+    position: 窓 > 右 > 用語集 > 用語集の行
+    description: 下に出している行がどの用語集のものかを示す。名前の欄に入れた値をそのまま出す
+    label: 用語集「{名前}」の行（名前が空なら「用語集「（名前未入力）」の行」）
+    io: 表示
+    visible_when: 用語集のまとまりを選んだとき
+    status: planned
+  - name: 用語集の名前の欄
+    id: glossary_name_{n}
+    kind: input
+    position: 窓 > 右 > 用語集 > 用語集の行 > 見出しの下
+    description: 用語集の名前。入れた値を一覧の名前のボタンと行の見出しにも出す。名前を変える操作はこの欄だけで行う
+    label: 名前
+    placeholder: '例: 会議用'
+    io: 入出力
+    type: 文字列
+    visible_when: 行の表を出している用語集
+    required: true
+    min_length: 1
+    constraints: ほかの用語集と同じ名前にできない（前後の空白を除いて比べる）
+    initial_value: settings.toml の値（足した用語集は空）
+    source: Settings.glossaries[].name
+    target: Settings.glossaries[].name（前後の空白を除く）
+    status: planned
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[glossaries[].name]
+  - name: 用語集の行の表
+    id: glossary_entries
+    kind: table
+    position: 窓 > 右 > 用語集 > 用語集の行 > 名前の欄の下
+    description: 行の表を出している用語集の行を並べる。列は「使う」「誤変換」「正しい表記」と消すボタン。読み上げの表の名前は「用語集の行（上の行から順に置き換える）」。幅の狭い窓では表を横に流さず、列の幅を詰める
+    io: 入出力
+    visible_when: 行の表を出している用語集に行が 1 つ以上あるとき
+    initial_value: その用語集の CSV の行。誤変換か正しい表記の片方が空の行も出す（補正はその行を飛ばす）
+    sorting: 並べ替えない。CSV の行の順で、足した行は末尾
+    source: その用語集の CSV（`glossaries[].path`）
+    target: その用語集の CSV（保存で、表の順に行とオン・オフを書き戻す）
+    status: planned
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[glossaries[].path]
+  - name: 行を使うの切り替え
+    id: glossary_entry_on_{n}
+    kind: checkbox
+    position: 窓 > 右 > 用語集 > 用語集の行の表 > 行 > 左
+    description: その行を補正に使うかを切り替える。オフの行は、誤変換と正しい表記の文字を薄くして取り消し線を引く（色だけで伝えない）。読み上げの名前は「{何行目か} 行目を補正に使う」
+    io: 入出力
+    type: 真偽値
+    visible_when: 行ごと
+    initial_value: CSV のオン・オフの値（列が無い行と、足した行はオン）
+    source: その用語集の CSV の行のオン・オフ
+    target: その用語集の CSV の行のオン・オフ
+    status: planned
+  - name: 誤変換の欄
+    id: glossary_entry_wrong_{n}
+    kind: input
+    position: 窓 > 右 > 用語集 > 用語集の行の表 > 行
+    description: 置き換える前の文字。読み上げの名前は「{何行目か} 行目の誤変換」
+    label: 誤変換（列の見出し）
+    io: 入出力
+    type: 文字列
+    visible_when: 行ごと
+    constraints: 正しい表記が入っている行では空にできない
+    initial_value: CSV の `誤変換` の値（足した行は空）
+    source: その用語集の CSV の `誤変換`
+    target: その用語集の CSV の `誤変換`（前後の空白を除く）
+    status: planned
+  - name: 正しい表記の欄
+    id: glossary_entry_right_{n}
+    kind: input
+    position: 窓 > 右 > 用語集 > 用語集の行の表 > 行
+    description: 置き換えた後の文字。読み上げの名前は「{何行目か} 行目の正しい表記」
+    label: 正しい表記（列の見出し）
+    io: 入出力
+    type: 文字列
+    visible_when: 行ごと
+    constraints: 誤変換が入っている行では空にできない
+    initial_value: CSV の `正しい表記` の値（足した行は空）
+    source: その用語集の CSV の `正しい表記`
+    target: その用語集の CSV の `正しい表記`（前後の空白を除く）
+    status: planned
+  - name: 行を消すボタン
+    id: glossary_entry_remove_{n}
+    kind: button
+    position: 窓 > 右 > 用語集 > 用語集の行の表 > 行 > 右端
+    description: その行を表から消す。保存するまで CSV には書かず、キャンセルで戻せる
+    label: '{何行目か} 行目を消す（読み上げの名前。見た目は消す印）'
+    visible_when: 行ごと
+    action: 行を表から消す
+    status: planned
+  - name: 行が無いときの文
+    id: glossary_entries_empty
+    kind: label
+    position: 窓 > 右 > 用語集 > 用語集の行 > 名前の欄の下
+    description: 行の表の代わりに、行が無いことを伝える
+    label: この用語集にはまだ行がありません。
+    io: 表示
+    visible_when: 行の表を出している用語集に行が 1 つも無いとき
+    status: planned
+  - name: 行を足すボタン
+    id: add_glossary_entry_button
+    kind: button
+    position: 窓 > 右 > 用語集 > 用語集の行 > 行の表の下
+    description: 誤変換と正しい表記が空でオンの行を表の末尾に足し、その行の誤変換の欄へフォーカスを移す
+    label: 行を足す
+    visible_when: 用語集のまとまりを選んだとき
+    action: 行の表に 1 行足す
+    status: planned
+  - name: 補正の決まりの凡例
+    id: glossary_legend
+    kind: label
+    position: 窓 > 右 > 用語集 > 用語集の行 > 行を足すボタンの右
+    description: 行の順とオン・オフが補正にどう効くかを示す凡例
+    label: 上の行から順に置き換える。オフの行は補正に使わない。
+    io: 表示
+    visible_when: 用語集のまとまりを選んだとき
+    status: planned
 input_checks:
   - element: 設定の欄
     violation: 数値の欄に数値でない文字が入っている
@@ -330,9 +507,29 @@ input_checks:
     trigger: 保存・保存して再起動のボタンのクリック
     message: http:// か https:// で始まる URL を入れてください。
     position: その欄の下とエラーの一覧
+  - element: 用語集の名前の欄
+    violation: 空（前後の空白を除いて）
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: 名前を入れてください。
+    position: その欄の下とエラーの一覧
+  - element: 用語集の名前の欄
+    violation: 空でなく、ほかの用語集と同じ名前（一覧で後ろにある側の欄に出す）
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: 用語集「{名前}」と同じ名前です。別の名前にしてください。（エラーの一覧では「用語集「{名前}」と同じ名前です」）
+    position: その欄の下とエラーの一覧
+  - element: 誤変換の欄
+    violation: 空で、同じ行の正しい表記が空でない（補正に使わない用語集とオフの行も確かめる。両方が空の行は違反にせず、保存で捨てる）
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: 誤変換を入れてください。
+    position: その欄の下とエラーの一覧
+  - element: 正しい表記の欄
+    violation: 空で、同じ行の誤変換が空でない（補正に使わない用語集とオフの行も確かめる。両方が空の行は違反にせず、保存で捨てる）
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: 正しい表記を入れてください。
+    position: その欄の下とエラーの一覧
 screen: src/voice_paste/ui/windows/settings_window.py
 mock: dev/mock/pages/settings/44/a-inline/kind-tabs/
-lead: トレイの「設定…」から開く画面。settings.toml の全てのキーを 9 つのまとまりに並べ、設定のモデルで確かめてから保存する。
+lead: トレイの「設定…」から開く画面。settings.toml の全てのキーをまとまりに並べ、設定のモデルで確かめてから保存する。
 refs:
   - dev/設計書/シナリオ/単一ユースケース/設定を変える#
   - dev/設計書/設定/常駐アプリ#
@@ -356,7 +553,7 @@ notes:
     | 文字起こし（エンジン） | `transcription.local_whisper.language` | 文字の欄 |
     | 文字起こし（詳しい調整） | `transcription.local_whisper` の cpu_threads・num_workers・beam_size・best_of・temperature・no_speech_threshold・vad_threshold・vad_min_speech_ms・vad_min_silence_ms | 数値の欄 |
     | 文字起こし（詳しい調整） | `transcription.local_whisper` の condition_on_previous_text・vad_filter | チェックボックス |
-    | 文字起こし（用語集） | `glossary_path` | 文字の欄と「選ぶ…」 |
+    | 用語集 | `glossaries[]`（name・path）・`active_glossary` と、用語集の CSV の行（誤変換・正しい表記・オン・オフ） | 用語集の一覧と、選んだ用語集の行の表 |
     | 画面 | `ui.theme` | ラジオボタン（Windows の設定に従う・ライト・ダーク）。欄の名前は「画面の明暗」で、まとまりの先頭に置く |
     | 画面 | `ui.topmost`・`ui.follow_cursor` | チェックボックス |
     | 画面 | `ui.position` | ラジオボタン（中央・左上・右上・左下・右下） |
@@ -369,5 +566,5 @@ notes:
     | API | `api.allowed_callback_hosts` | 複数行の文字の欄（1 行 = 1 ホスト） |
     | API（連続録音） | `api.continuous.min_silence_sec`・`api.continuous.session_limit_sec` | 数値の欄 |
 
-    欄の部品は設定のモデルの型から決める（bool → チェックボックス、リテラルの列挙 → ラジオボタンか選択の欄、int・float → 数値の欄、str → 文字の欄、ホットキーの型 → ホットキーの欄）。上の表は欄の並びと、型からは決まらない部品（つまみ・プリセットの一覧・用語集の選ぶ…）を決める。
+    欄の部品は設定のモデルの型から決める（bool → チェックボックス、リテラルの列挙 → ラジオボタンか選択の欄、int・float → 数値の欄、str → 文字の欄、ホットキーの型 → ホットキーの欄）。上の表は欄の並びと、型からは決まらない部品（つまみ・プリセットの一覧・用語集の一覧と行の表）を決める。
 test_file: tests/integration/ui/test_settings_window.py

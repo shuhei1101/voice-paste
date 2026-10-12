@@ -177,6 +177,80 @@ scenarios:
       - '`settings.toml` に足したプリセットが書かれ、ほかのキーとコメントが変わっていない'
       - 再起動せずに、次の録音の画面にそのプリセットのボタンが出、そのホットキーで確定できる
       - 設定画面が閉じている
+  - name: 正常シナリオ（用語集の行を編集する）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: '-'
+      - name: 用語集
+        description: 選んでいる用語集のプリセットに、誤変換と正しい表記の行が 2 つある
+        notes: 反映は `immediate`
+      - name: 変える行
+        description: 「文字起こし（用語集）」のまとまりで、行を 1 つ足し、1 つ目の行の正しい表記を書き換え、2 つ目の行をオフにする
+        notes: 行を消すのも同じ流れ
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SW as 設定画面
+        participant MDL as 設定のモデル
+        participant GL as 用語集のファイル
+        participant TOML as settings.toml
+        participant APP as 常駐アプリ
+
+        Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
+        U->>SW: 「文字起こし（用語集）」のまとまりを選ぶ
+        SW-->>U: 選んでいるプリセットの行（誤変換・正しい表記・オン・オフ）を一覧に出す
+        U->>SW: 行を足し、行を書き換え、行をオフにする
+        U->>SW: 「保存」を押す
+        SW->>MDL: 欄の値を確かめる
+        MDL-->>SW: 通った
+        SW->>GL: プリセットの行とオン・オフを書き戻す
+        SW->>TOML: 変わった値を、コメントを保ったまま書く
+        SW->>APP: 効かせる
+        SW->>SW: 閉じる
+      ```
+    expected:
+      - 用語集のファイルに、足した行と書き換えた正しい表記があり、オフにした行がオフとして書かれている
+      - 再起動せずに、次の録音の確定から、オンの行だけで補正する（録音を文字に起こす の 正常シナリオ）
+      - 設定画面が閉じている
+    test: test_normal_when_edit_glossary
+  - name: 正常シナリオ（用語集のプリセットを足して切り替える）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: '-'
+      - name: 足すプリセット
+        description: 「文字起こし（用語集）」のまとまりで、名前を付けた用語集のプリセットを 1 つ足し、行を 1 つ入れて、補正に使うプリセットをそのプリセットに切り替える
+        notes: 補正に当てるのは選んだ 1 つだけ。反映は `immediate`
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SW as 設定画面
+        participant MDL as 設定のモデル
+        participant GL as 用語集のファイル
+        participant TOML as settings.toml
+        participant APP as 常駐アプリ
+
+        Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
+        U->>SW: 「文字起こし（用語集）」のまとまりでプリセットを足し、名前を入れる
+        U->>SW: 足したプリセットに行を入れる
+        U->>SW: 補正に使うプリセットを足したプリセットに切り替える
+        U->>SW: 「保存」を押す
+        SW->>MDL: 欄の値を確かめる
+        MDL-->>SW: 通った
+        SW->>GL: 足したプリセットの行を書く
+        SW->>TOML: プリセットの一覧と選んでいるプリセットを、コメントを保ったまま書く
+        SW->>APP: 効かせる
+        SW->>SW: 閉じる
+      ```
+    expected:
+      - 足したプリセットの用語集のファイルに入れた行があり、前のプリセットの用語集のファイルが変わっていない
+      - '`settings.toml` に足したプリセットと、補正に使うプリセットがそのプリセットであることが書かれ、ほかのキーとコメントが変わっていない'
+      - 再起動せずに、次の録音の確定から、足したプリセットのオンの行だけで補正する
+      - 設定画面が閉じている
+    test: test_normal_when_switch_glossary_preset
 lead: トレイの「設定…」から設定画面を開き、変えた設定を設定のモデルで確かめてから `settings.toml` に保存する単一ユースケース。
 issue: 21
 primary_actor: 音声入力を使うユーザー

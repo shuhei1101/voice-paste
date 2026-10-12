@@ -16,7 +16,14 @@ const refreshCount = (detail) => {
   const rows = [...detail.querySelectorAll("[data-entry]")];
   const on = rows.filter((row) => row.querySelector("[data-on]").checked).length;
   const id = detail.dataset.detail;
-  document.querySelectorAll(`[data-count="${id}"]`).forEach((c) => { c.textContent = `${rows.length} 行（オン ${on}）`; });
+  document.querySelectorAll(`[data-count="${id}"]`).forEach((c) => {
+    // 狭い幅では行の数とオンの数の間でだけ折り返すよう、2 つに分けて入れる
+    const total = document.createElement("span");
+    total.textContent = `${rows.length} 行`;
+    const onCount = document.createElement("span");
+    onCount.textContent = `（オン ${on}）`;
+    c.replaceChildren(total, onCount);
+  });
   detail.querySelector("[data-entries-wrap]").hidden = rows.length === 0;
   detail.querySelector("[data-entries-empty]").hidden = rows.length > 0;
 };

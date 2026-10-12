@@ -1,5 +1,12 @@
 /* ===== PR 97 の画面モック: 用語集の一覧と行の表（refs/37・refs/44 の style.css に重ねる） ===== */
 
+/* 用語集の欄: 一覧・足すボタン・選んだ用語集の行の表を間を空けて縦に積む */
+.glossary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 /* 用語集の一覧の表: 補正に使う・名前・行の数・消すを並べる */
 .glossaries {
   td:first-child, th:first-child { width: 6em; }
@@ -45,6 +52,12 @@
   color: var(--text-2);
   font-family: var(--font-num);
   font-size: 12px;
+  white-space: nowrap;
+}
+
+/* 行の数とオンの数: それぞれの中では折り返さない */
+.glossaries .count span {
+  display: inline-block;
   white-space: nowrap;
 }
 
@@ -135,4 +148,6 @@
   .glossaries td:first-child, .glossaries th:first-child { width: 4em; }
   /* 名前のボタンを列の幅に収める */
   .glossaries [data-pick] { max-width: 9em; }
+  /* 行の数を折り返し、消すの列を窓の中に残す */
+  .glossaries .count { white-space: normal; }
 }

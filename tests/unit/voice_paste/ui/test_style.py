@@ -10,9 +10,10 @@ import tomllib
 from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 import pytest
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QWidget
 
@@ -29,10 +30,11 @@ def tokens(repo_root: Path) -> dict[str, dict[str, dict[str, str]]]:
 
 @pytest.fixture
 def theme_app(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> Iterator[QApplication]:
-    """apply_theme が控える明暗を未設定にした QApplication を返し、テストの後にスタイルシートを外す。"""
+    """apply_theme が控える明暗を未設定にした QApplication を返し、テストの後にスタイルシートと Qt の明暗の上書きを外す。"""
     monkeypatch.setattr("voice_paste.ui.style._current_dark", None, raising=False)
     yield qapp
     qapp.setStyleSheet("")
+    qapp.styleHints().unsetColorScheme()
 
 
 def _rule_body(stylesheet: str, selector: str) -> str:
@@ -184,6 +186,49 @@ def test_apply_theme_when_switched(
     assert tokens["color"]["dark"]["bg"] not in theme_app.styleSheet()
     assert theme_color("surface") == QColor(tokens["color"]["light"]["surface"])
     update.assert_called()
+
+
+@pytest.mark.parametrize(
+    ("theme", "expected_calls"),
+    [
+        pytest.param(
+            "light",
+            [call.hints.setColorScheme(Qt.ColorScheme.Light), call.is_dark_theme()],
+            id="light",
+        ),
+        pytest.param(
+            "dark",
+            [call.hints.setColorScheme(Qt.ColorScheme.Dark), call.is_dark_theme()],
+            id="dark",
+        ),
+        pytest.param(
+            "system", [call.hints.unsetColorScheme(), call.is_dark_theme()], id="system"
+        ),
+    ],
+)
+def test_apply_theme_when_color_scheme(
+    theme_app: QApplication,
+    monkeypatch: pytest.MonkeyPatch,
+    theme: str,
+    expected_calls: list[object],
+) -> None:
+    """light・dark は Qt の明暗を上書きし、system は上書きを外してから OS の明暗を読む（正常系）。"""
+    from voice_paste.ui.style import apply_theme
+
+    # 準備: styleHints と is_dark_theme を 1 つの Mock にまとめ、呼ばれた順を見る
+    recorder = MagicMock()
+    hints = MagicMock()
+    is_dark_theme = MagicMock(return_value=False)
+    recorder.attach_mock(hints, "hints")
+    recorder.attach_mock(is_dark_theme, "is_dark_theme")
+    monkeypatch.setattr(theme_app, "styleHints", lambda: hints)
+    monkeypatch.setattr("voice_paste.ui.style.is_dark_theme", is_dark_theme)
+
+    # 実行
+    apply_theme(theme_app, theme)
+
+    # 検証
+    assert recorder.mock_calls == expected_calls
 
 
 # === theme_color ===

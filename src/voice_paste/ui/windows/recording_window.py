@@ -397,12 +397,23 @@ class RecordingWindow(QWidget):
         for layout in (self._operations, self._outputs_layout, self._presets_layout):
             self._clear(layout)
 
-        self._pause_button = HotkeyButton("pause_button", "一時停止", settings.hotkeys.pause)
+        # ホットキーを出さない設定では、全てのボタンへ空を渡して名前だけを出す（ホットキーでの操作は変わらない）
+        def visible_hotkey(hotkey: str) -> str:
+            """ボタンに出すホットキー。出さない設定なら空。"""
+            return hotkey if settings.ui.show_hotkeys else ""
+
+        self._pause_button = HotkeyButton(
+            "pause_button", "一時停止", visible_hotkey(settings.hotkeys.pause)
+        )
         self._pause_button.clicked.connect(self._deps.pause)
-        self._resume_button = HotkeyButton("resume_button", "再開", settings.hotkeys.pause)
+        self._resume_button = HotkeyButton(
+            "resume_button", "再開", visible_hotkey(settings.hotkeys.pause)
+        )
         self._resume_button.clicked.connect(self._deps.resume)
         self._resume_button.hide()
-        cancel_button = HotkeyButton("cancel_button", "取り消す", settings.hotkeys.cancel)
+        cancel_button = HotkeyButton(
+            "cancel_button", "取り消す", visible_hotkey(settings.hotkeys.cancel)
+        )
         cancel_button.clicked.connect(self._cancel)
         for button in (self._pause_button, self._resume_button, cancel_button):
             self._operations.addWidget(button)
@@ -413,7 +424,9 @@ class RecordingWindow(QWidget):
             if not output.enabled:
                 continue
             button = HotkeyButton(
-                f"output_button_{output.id}", self._deps.output_titles[output.id], output.hotkey
+                f"output_button_{output.id}",
+                self._deps.output_titles[output.id],
+                visible_hotkey(output.hotkey),
             )
             button.setProperty("primary", shown_outputs == 0)
             button.clicked.connect(
@@ -433,7 +446,10 @@ class RecordingWindow(QWidget):
                     preset.title, Qt.TextElideMode.ElideRight, PRESET_NAME_MAX_PX
                 )
                 button = HotkeyButton(
-                    f"preset_button_{shown_presets}", elided, preset.hotkey, tooltip=preset.title
+                    f"preset_button_{shown_presets}",
+                    elided,
+                    visible_hotkey(preset.hotkey),
+                    tooltip=preset.title,
                 )
                 button.clicked.connect(
                     lambda _checked=False, chosen=preset: self._complete(None, chosen)

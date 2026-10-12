@@ -145,6 +145,8 @@ position = "center"
 follow_cursor = true
 # 波形の振れの大きさ。0 より大きい。大きいほど小さい声でも大きく振れる
 wave_gain = 4.0
+# 録音の画面のボタンにホットキーを出すか。false のときは名前だけを出す（ホットキーでの操作はそのまま効く）
+show_hotkeys = true
 
 # === API ===
 [api]

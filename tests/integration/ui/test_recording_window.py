@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
-from PySide6.QtCore import QPoint, Qt
+from PySide6.QtCore import QCoreApplication, QEvent, QPoint, Qt
 from PySide6.QtGui import QColor, QGuiApplication
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QLabel, QPushButton, QWidget
@@ -646,14 +646,15 @@ def test_preset_button_action(make_ui: Callable[..., Ui], paused: bool) -> None:
 # === ボタンのホットキーの出し方（名前の下のキーキャップ・ボタンの大きさ・窓の幅） ===
 
 
-def _long_hotkeys_settings() -> Settings:
+def _long_hotkeys_settings(*, show_hotkeys: bool = True) -> Settings:
     """一時停止・取り消し・全ての出力先・プリセットのホットキーを、長いものにした設定を作る。"""
     from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
     from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
     from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
-    from voice_paste.shared.settings import HotkeySettings
+    from voice_paste.shared.settings import HotkeySettings, UiSettings
 
     return _settings(
+        ui=UiSettings(show_hotkeys=show_hotkeys),
         hotkeys=HotkeySettings(pause="<ctrl>+<alt>+<shift>+<f11>", cancel="<ctrl>+<alt>+<shift>+<f10>"),
         outputs=[
             PasteAndSendSettings(hotkey="<ctrl>+<alt>+<shift>+<f9>"),
@@ -716,6 +717,97 @@ def test_hotkey_buttons_when_hotkey_empty(styled: None, make_ui: Callable[..., U
     assert without_key.geometry().y() == with_key.geometry().y()
     assert without_key.height() == with_key.height()
     assert abs(name_label.geometry().center().y() - without_key.rect().center().y()) <= 1
+
+
+HOTKEY_BUTTONS = [
+    pytest.param("pause_button", "一時停止", id="pause"),
+    pytest.param("cancel_button", "取り消す", id="cancel"),
+    pytest.param("output_button_paste_and_send", "貼り付けて送信", id="paste_and_send"),
+    pytest.param("output_button_paste_only", "貼り付けのみ", id="paste_only"),
+    pytest.param("output_button_copy_only", "コピーのみ", id="copy_only"),
+    pytest.param("preset_button_0", "ChatGPT", id="preset"),
+]
+"""ホットキーを出す・出さないの設定が効く、録音の画面のボタン（再開は一時停止中に別に確かめる）。"""
+
+
+@pytest.mark.parametrize(("button_name", "name"), HOTKEY_BUTTONS)
+def test_hotkey_buttons_when_show_hotkeys_on(
+    make_ui: Callable[..., Ui], button_name: str, name: str
+) -> None:
+    """ui.show_hotkeys がオンのとき、全てのボタンが名前の下にホットキーのキーキャップを出す。"""
+    # 実行
+    ui = _opened(make_ui, _long_hotkeys_settings(show_hotkeys=True))
+
+    # 検証
+    _name_label, key_label = _name_and_key(find(ui.recording_window, QPushButton, button_name))
+    assert key_label is not None
+    assert button_texts(find(ui.recording_window, QPushButton, button_name))[0] == name
+
+
+@pytest.mark.parametrize(("button_name", "name"), HOTKEY_BUTTONS)
+def test_hotkey_buttons_when_show_hotkeys_off(
+    make_ui: Callable[..., Ui], button_name: str, name: str
+) -> None:
+    """ui.show_hotkeys がオフのとき、全てのボタンがホットキーを出さず、名前だけを出す。"""
+    # 実行
+    ui = _opened(make_ui, _long_hotkeys_settings(show_hotkeys=False))
+
+    # 検証
+    button = find(ui.recording_window, QPushButton, button_name)
+    _name_label, key_label = _name_and_key(button)
+    assert key_label is None
+    assert button_texts(button) == [name]
+
+
+def test_hotkey_buttons_when_show_hotkeys_off_and_paused(make_ui: Callable[..., Ui]) -> None:
+    """ui.show_hotkeys がオフのとき、一時停止中の再開のボタンもホットキーを出さず、名前だけを出す。"""
+    # 準備
+    ui = _opened(make_ui, _long_hotkeys_settings(show_hotkeys=False))
+
+    # 実行
+    ui.recording_window.set_paused(True)
+
+    # 検証
+    resume = find(ui.recording_window, QPushButton, "resume_button")
+    _name_label, key_label = _name_and_key(resume)
+    assert key_label is None
+    assert button_texts(resume) == ["再開"]
+
+
+def test_hotkey_buttons_when_show_hotkeys_off_keeps_layout(
+    styled: None, make_ui: Callable[..., Ui]
+) -> None:
+    """ui.show_hotkeys がオフのとき、名前だけのボタンは同じ行で高さが揃い、名前を上下の中央に置く。"""
+    # 実行
+    ui = _opened(make_ui, _long_hotkeys_settings(show_hotkeys=False))
+
+    # 検証
+    window = ui.recording_window
+    pause = find(window, QPushButton, "pause_button")
+    cancel = find(window, QPushButton, "cancel_button")
+    name_label, _key_label = _name_and_key(pause)
+    assert pause.height() == cancel.height()
+    assert abs(name_label.geometry().center().y() - pause.rect().center().y()) <= 1
+    for name in ("pause_button", "cancel_button", "output_button_paste_and_send", "preset_button_0"):
+        _assert_inside_window(window, find(window, QPushButton, name))
+
+
+def test_hotkey_buttons_when_show_hotkeys_off_then_reopened(make_ui: Callable[..., Ui]) -> None:
+    """ui.show_hotkeys を切り替えた後に出す録音の画面から、ボタンの出し方が変わる（再起動は要らない）。"""
+    # 準備
+    ui = _opened(make_ui, _long_hotkeys_settings(show_hotkeys=True))
+    assert _name_and_key(find(ui.recording_window, QPushButton, "pause_button"))[1] is not None
+    ui.recording_window.close_window()
+
+    # 実行
+    ui.deps.get_settings.return_value = _long_hotkeys_settings(show_hotkeys=False)
+    ui.recording_window.open()
+    # 組み直しで外した古いボタンの破棄を済ませる
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+
+    # 検証
+    pause = find(ui.recording_window, QPushButton, "pause_button")
+    assert _name_and_key(pause)[1] is None
 
 
 def test_hotkey_buttons_height_when_in_same_row(styled: None, make_ui: Callable[..., Ui]) -> None:

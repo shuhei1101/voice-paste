@@ -120,7 +120,14 @@ FIELD_LAYOUT: dict[str, tuple[str, ...]] = {
         "transcription.local_whisper.condition_on_previous_text",
         "glossary_path",
     ),
-    "画面": ("ui.theme", "ui.topmost", "ui.follow_cursor", "ui.position", "ui.wave_gain"),
+    "画面": (
+        "ui.theme",
+        "ui.topmost",
+        "ui.follow_cursor",
+        "ui.position",
+        "ui.wave_gain",
+        "ui.show_hotkeys",
+    ),
     "履歴とログ": (
         "history.enabled",
         "history.retention_days",

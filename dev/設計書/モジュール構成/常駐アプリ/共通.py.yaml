@@ -405,6 +405,10 @@ data_models:
         type: float
         default: '4'
         description: 波形の振れの大きさ（0 より大きい）
+      - name: show_hotkeys
+        type: bool
+        default: 'True'
+        description: 録音の画面のボタンにホットキーを出すか。反映は immediate。description の最初の文を設定の設計書の `title` にそろえる（設定画面の欄の名前になる）
     status: implemented
   - name: ApiSettings
     title: API の設定

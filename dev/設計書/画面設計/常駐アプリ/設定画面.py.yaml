@@ -361,6 +361,7 @@ notes:
     | 画面 | `ui.topmost`・`ui.follow_cursor` | チェックボックス |
     | 画面 | `ui.position` | ラジオボタン（中央・左上・右上・左下・右下） |
     | 画面 | `ui.wave_gain` | 数値の欄 |
+    | 画面 | `ui.show_hotkeys` | チェックボックス。まとまりの末尾に置く |
     | 履歴とログ | `history.enabled` | チェックボックス |
     | 履歴とログ | `history.retention_days`・`logging.retention_days` | 数値の欄 |
     | 履歴とログ | `logging.level` | ラジオボタン |

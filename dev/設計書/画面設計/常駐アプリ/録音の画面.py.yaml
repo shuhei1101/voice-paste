@@ -53,6 +53,8 @@ elements:
     label: 一時停止 [hotkeys.pause]
     visible_when: 状態が recording のとき
     action_ref: dev/設計書/モジュール構成/常駐アプリ/セッション.py#classes[SessionManager].methods[pause]
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[ui.show_hotkeys]
   - name: 再開のボタン
     id: resume_button
     kind: button
@@ -61,6 +63,8 @@ elements:
     label: 再開 [hotkeys.pause]
     visible_when: 状態が paused のとき
     action_ref: dev/設計書/モジュール構成/常駐アプリ/セッション.py#classes[SessionManager].methods[resume]
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[ui.show_hotkeys]
   - name: 取り消しのボタン
     id: cancel_button
     kind: button
@@ -70,6 +74,8 @@ elements:
     visible_when: 常時
     action: 窓を閉じる
     action_ref: dev/設計書/モジュール構成/常駐アプリ/セッション.py#classes[SessionManager].methods[cancel]
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[ui.show_hotkeys]
   - name: 出力先の確定のボタン
     id: output_button_{output_id}
     kind: button
@@ -85,6 +91,7 @@ elements:
       - dev/設計書/設定/常駐アプリ#settings[outputs[].enabled]
       - dev/設計書/設定/常駐アプリ#settings[outputs[].hotkey]
       - dev/設計書/画面設計/常駐アプリ/文字起こし中の表示.py#
+      - dev/設計書/設定/常駐アプリ#settings[ui.show_hotkeys]
   - name: カスタムプリセットの見出し
     id: presets_heading
     kind: label
@@ -108,6 +115,7 @@ elements:
       - dev/設計書/設定/常駐アプリ#settings[presets[].hotkey]
       - dev/設計書/設定/常駐アプリ#settings[presets[].enabled]
       - dev/設計書/画面設計/常駐アプリ/文字起こし中の表示.py#
+      - dev/設計書/設定/常駐アプリ#settings[ui.show_hotkeys]
   - name: 見出しの行
     id: head_row
     kind: drag_handle
@@ -145,7 +153,7 @@ refs:
   - dev/設計書/モジュール構成/常駐アプリ/ホットキーと画面.py#classes[UiBridge]
 notes:
   ホットキー: ボタンと同じ操作は、どこにフォーカスがあってもホットキーで行える（`HotkeyListener`）。窓のキーボードの操作は持たず、窓を押してフォーカスを取った後に Tab で移ったときだけフォーカスの枠を出す
-  ボタンのホットキーの出し方: 一時停止・再開・取り消し・出力先の確定・カスタムプリセットのボタンは、名前を 1 行目に、同じ操作のホットキーを 2 行目に出す。ホットキーは `format_hotkey` で整えた全体を省略せず、枠で囲んだ等幅のキー（キーキャップ風）で出す。ボタンの大きさは中の名前とホットキーが要る大きさから決め、幅は名前とホットキーの長い方にする。窓は既定の幅（360px）より狭くせず、ボタンが要る幅まで広げる。プリセットの列は列ごとにいちばん広いボタンの幅に揃える。ホットキーが空のボタンは名前だけを出す
+  ボタンのホットキーの出し方: 一時停止・再開・取り消し・出力先の確定・カスタムプリセットのボタンは、名前を 1 行目に、同じ操作のホットキーを 2 行目に出す。ホットキーは `format_hotkey` で整えた全体を省略せず、枠で囲んだ等幅のキー（キーキャップ風）で出す。ボタンの大きさは中の名前とホットキーが要る大きさから決め、幅は名前とホットキーの長い方にする。窓は既定の幅（360px）より狭くせず、ボタンが要る幅まで広げる。プリセットの列は列ごとにいちばん広いボタンの幅に揃える。ホットキーが空のボタンは名前だけを出す。`ui.show_hotkeys` がオフのときは、全てのボタンをホットキーが空のボタンと同じく名前だけで出す（ホットキーでの操作はそのまま効く）
   状態の受け取り: 画面はメインスレッドで `UiBridge.notified` の state_changed を受けて開く・閉じる・状態を替える。経過時間と波形はメインスレッドのタイマーで描き直す
   隠して戻す: 隠すのはその回の録音の画面だけで、次の録音ではいつもどおり出す（`recording.hide_window` は変えない）。戻すときは、隠したときの経過時間・状態（録音中・一時停止中）のまま、隠す前の位置にフォーカスを取らずに出す。録音開始と同じホットキーの出力先がある設定（既定の設定）では、録音開始のホットキーは今どおりその出力先で確定し、戻すのはトレイだけになる。隠したまま確定した回も、文字起こし中の表示は隠す前の位置に出す
 test_file: tests/integration/ui/test_recording_window.py

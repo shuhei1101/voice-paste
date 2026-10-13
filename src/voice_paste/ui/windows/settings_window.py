@@ -517,7 +517,7 @@ def _literal_choices(annotation: Any) -> tuple[str, ...] | None:
 
 
 class SettingsWindow(QWidget):
-    """Settings のモデルから欄を組み立て、9 つのまとまりに並べ、保存で確かめてから書く設定画面。
+    """Settings のモデルから欄を組み立て、まとまりに並べ、保存で確かめてから書く設定画面。
 
     欄の名前は各項目の description、「再起動で反映」の印は json_schema_extra の reload から出す。
     まとまりと型から決まらない部品は FIELD_LAYOUT と各キーの集合で決める。

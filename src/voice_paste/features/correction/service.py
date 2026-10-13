@@ -40,7 +40,7 @@ GLOSSARY_FILE_PATTERN: str = "glossary_{number}.csv"
 def read_glossary_rows(path: Path) -> list[GlossaryEntry]:
     """用語集の CSV の行を、オン・オフと片方が空の行も含めて読む。ファイルが無ければ空を返す。
 
-    開けない・UTF-8 でない・見出しの列が無い CSV は、理由を持つ GlossaryReadError にする。
+    開けない・UTF-8 でない・見出しの列が無い・csv が解釈できない CSV は、理由を持つ GlossaryReadError にする。
     """
     # 1. ファイルが無ければ空を返す
     if not path.exists():
@@ -68,6 +68,8 @@ def read_glossary_rows(path: Path) -> list[GlossaryEntry]:
         raise GlossaryReadError(f"ファイルを開けません（{error}）") from error
     except UnicodeDecodeError as error:
         raise GlossaryReadError("文字コードが UTF-8 ではありません") from error
+    except csv.Error as error:
+        raise GlossaryReadError(f"CSV の書式が正しくありません（{error}）") from error
     return rows
 
 

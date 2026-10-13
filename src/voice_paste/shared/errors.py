@@ -68,4 +68,4 @@ class HotkeyError(AppError):
 
 
 class GlossaryReadError(AppError):
-    """用語集の CSV を読めない（開けない・UTF-8 でない・見出しの列が無い）。メッセージが設定画面に出す理由になる。"""
+    """用語集の CSV を読めない（開けない・UTF-8 でない・見出しの列が無い・csv が解釈できない）。メッセージが設定画面に出す理由になる。"""

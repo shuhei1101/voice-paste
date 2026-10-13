@@ -1366,7 +1366,7 @@ classes:
     description: |-
       要素（説明・有効なヒントの長さ・一覧・空の案内・有効の切り替え・語の数と長さ・名前・語・語を消す・語が無いときの文・語を足す・上へ・下へ・消す・足す・補足）と読み上げの名前は画面設計「設定画面」が持つ。
       プリセットのまとまりは PresetListPanel と同じ形（頭に切り替え・名前・上へ・下へ・消す、下に欄）で作る。語の欄は入力と消すボタンの組を `QGridLayout` の 2 列（左から右、上から下が語の順）に並べ、部品の幅が 2 組入らないときは 1 列に並べ直す（resizeEvent）。幅に応じて列の数を 3 以上に増やす自前のレイアウトは作らない。
-      長さは欄の入力・切り替え・足す・消す・並べ替えのたびに、今の欄の値を HintPresetSettings にして join_hint_words でつないだ UTF-8 のバイト数で数え直し、HINT_MAX_BYTES を超えたらバーと数字を赤にして「（{超えた分} バイト超過）」を添える。数えるときも、空の語・区切りを含む語はそのまま数える（確かめは保存で行う）。
+      長さは欄の入力・切り替え・足す・消す・並べ替えのたびに、今の欄の値（プリセットごとの有効かと語の並び。HintWordSource を満たす値で、HintPresetSettings にはしない）を join_hint_words でつないだ UTF-8 のバイト数で数え直し、HINT_MAX_BYTES を超えたらバーと数字を赤にして「（{超えた分} バイト超過）」を添える。空の名前・空の語・区切りを含む語もそのまま数える（確かめは保存で行う）。
       無効のプリセットの語の欄は、用語集のオフの行と同じく文字を薄くして取り消し線を引く（編集はできる）。
       足す・消す・並べ替えはこの部品の中だけを変え、settings.toml へは設定画面の保存で書く。単体テストは tests/unit/voice_paste/ui/windows/test_settings_hints.py に置く。
     properties:
@@ -1459,6 +1459,12 @@ classes:
             condition: 有効なプリセットにつないだ長さが 258 バイトになる語を入れる
             mock: なし（offscreen）
             expected: 長さの行の文字が「258 / 222 バイト（36 バイト超過）」
+          - name: test_hint_preset_panel_hint_length_when_unvalidated
+            case: 正常
+            summary: 足した直後と、区切りを含む語を入れた直後にも長さを数え直せる
+            condition: 空の一覧で add_preset を呼び（名前と語が空）、add_word で足した語の欄に「A、B」を入れる
+            mock: なし（offscreen）
+            expected: 例外が出ず、足した直後の hint_length が 0、入れた後の hint_length が 5（A、B の UTF-8 のバイト数）
       - name: focus_field
         title: 欄へフォーカスを移す
         kind: メソッド

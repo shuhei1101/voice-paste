@@ -679,6 +679,21 @@ data_models:
       - dev/設計書/設定/常駐アプリ#settings[hint_presets[].words]
       - dev/設計書/設定/常駐アプリ#settings[hint_presets[].enabled]
     status: planned
+  - name: HintWordSource
+    title: 手がかりの語の出所
+    container: shared/settings.py
+    usecase: 設定を変える
+    role: Protocol
+    summary: join_hint_words が読む、有効かと語の並びだけを持つ型。HintPresetSettings と、設定画面の入力の途中の値（確かめを通らない値も含む）が共に満たす
+    description: '`typing.Protocol`。確かめを通らない空の名前・空の語・区切りを含む語もそのまま持てる。'
+    properties:
+      - name: enabled
+        type: bool
+        description: 語をつなぐか
+      - name: words
+        type: Sequence[str]
+        description: 語の並び
+    status: planned
 classes:
   - name: AppError
     title: アプリの例外
@@ -1260,10 +1275,10 @@ functions:
     scope: public
     args:
       - name: presets
-        type: Sequence[HintPresetSettings]
+        type: Sequence[HintWordSource]
         required: true
         passing: positional
-        description: 設定の hint_presets
+        description: 設定の hint_presets、または設定画面の入力の途中の値（確かめを通らない値もそのままつなぐ）
     returns:
       type: str
       description: つないだ手がかり。有効な語が無ければ空文字
@@ -1319,6 +1334,12 @@ functions:
         condition: hint_presets を持たない settings.toml を load_settings で読む
         mock: なし（tmp_path）
         expected: hint_presets が空の一覧
+      - name: test_join_hint_words_when_unvalidated
+        case: 正常
+        summary: 確かめを通らない値もそのままつなぐ
+        condition: enabled True・words ["", "A、B"] を持つ（HintPresetSettings でない）値を渡す
+        mock: なし
+        expected: '"、A、B" が返り、例外が出ない'
     refs:
       - dev/設計書/設定/常駐アプリ#settings[hint_presets[].words]
     status: planned

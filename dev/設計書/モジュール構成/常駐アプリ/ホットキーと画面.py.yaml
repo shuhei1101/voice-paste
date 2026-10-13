@@ -17,7 +17,8 @@ directory: |-
       ├── busy_dialog.py            # show_busy_dialog
       ├── settings_window.py        # SettingsWindow・confirm_discard・confirm_reset・PRESET_KIND_NAMES
       ├── settings_fields.py        # make_radio_group・selected_radio など設定画面の欄の部品
-      └── settings_presets.py       # PresetListPanel（設定画面の種類ごとのタブのプリセットの一覧）
+      ├── settings_presets.py       # PresetListPanel（設定画面の種類ごとのタブのプリセットの一覧）
+      └── settings_glossaries.py    # GlossaryPanel（設定画面の用語集の一覧と行の表）・find_glossary_row_errors
   resources/tray/
   └── starting.png・idle.png・recording.png・transcribing.png・failed.png  # トレイのアイコン（状態ごと）
   ```
@@ -850,7 +851,7 @@ classes:
     container: ui/windows/settings_window.py
     usecase: 設定を変える
     role: 画面
-    summary: Settings のモデルから欄を組み立て、9 つのまとまりに並べ、保存で確かめてから書く
+    summary: Settings のモデルから欄を組み立ててまとまりに並べ、保存で確かめてから書く
     description: |-
       要素と入力チェックは画面設計「設定画面」が持つ。
       欄は `Settings.model_fields` を辿って型から部品を決め、欄の名前は各項目の `description`、「再起動で反映」の印は `json_schema_extra` の reload から出す。まとまりと型から決まらない部品は画面設計の補足「まとまりと欄」の表を FIELD_LAYOUT に写す（「画面」のまとまりは `ui.theme` を先頭に置く）。
@@ -890,7 +891,7 @@ classes:
         scope: internal
         returns:
           type: dict[str, Any]
-          description: Settings.model_validate へ渡す値。presets はブラウザ添付のタブの並び → エンドポイントへ送るのタブの並びの順（各 PresetListPanel.collect をつなぐ）
+          description: Settings.model_validate へ渡す値。presets はブラウザ添付のタブの並び → エンドポイントへ送るのタブの並びの順（各 PresetListPanel.collect をつなぐ）。glossaries は GlossaryPanel.collect、active_glossary は GlossaryPanel.active_name。glossary_path は置かない
       - name: save
         title: 保存
         summary: 欄の値を設定のモデルで確かめ、通れば書いて効かせる。通らなければエラーを出す
@@ -906,13 +907,13 @@ classes:
           type: bool
           description: 保存できたか
         process: |-
-          1. collect した値を Settings.model_validate に渡す
-             - ValidationError の場合、失敗ごとに to_field_message で欄ごとのエラーにし、エラーの一覧と欄の下のエラーを出して一覧へフォーカスを移し、False を返す（入れた値は消さない）
+          1. collect した値を Settings.model_validate に渡し、あわせて GlossaryPanel.row_errors で用語集の行（誤変換か正しい表記の片方だけが空）を確かめる
+             - ValidationError か行の失敗がある場合、失敗ごとに to_field_message で欄ごとのエラーにし（行の失敗は「誤変換を入れてください。」「正しい表記を入れてください。」）、エラーの一覧と欄の下のエラーを出して一覧へフォーカスを移し、False を返す（入れた値は消さない）
                - `[INFO]` 設定画面の値が確かめに通らなかった（キーの一覧）
-          2. save_settings（UiDeps）で書いて効かせる
-             - HotkeyError の場合、エラーの一覧に「ホットキーを受け付けられませんでした（{理由}）。別のキーにしてください。」を出し、False を返す（settings.toml は書かれていない）
+          2. save_settings（UiDeps）に、確かめた設定と GlossaryPanel.changed_rows（行を変えた用語集と足した用語集の場所 → 行）を渡して書いて効かせる
+             - HotkeyError の場合、エラーの一覧に「ホットキーを受け付けられませんでした（{理由}）。別のキーにしてください。」を出し、False を返す（settings.toml も用語集の CSV も書かれていない）
                - `[WARNING]` 保存するホットキーを受け付けられなかった（理由）
-             - OSError の場合、エラーの一覧に「設定ファイルを書けませんでした（{理由}）」を出し、False を返す
+             - OSError の場合、エラーの一覧に「設定ファイルを書けませんでした（{理由}）」を出し、False を返す（用語集の CSV を書けないときも同じ文言で、理由にそのパスが出る）
                - `[ERROR]` 設定ファイルを書けなかった（logger.exception）
           3. saved を emit し、restart なら restart_requested を emit して窓を閉じ、True を返す
         unit_tests:
@@ -961,6 +962,24 @@ classes:
             condition: ui.theme=system の設定で開き、「画面」のまとまりの「ライト」を選んで保存する。QT_QPA_PLATFORM=offscreen
             mock: UiDeps.save_settings
             expected: save_settings に ui.theme=light の設定が渡る
+          - name: test_save_when_glossaries
+            case: 正常
+            summary: 用語集の一覧と補正に使う用語集を設定に入れ、行を変えた用語集だけを書き戻しに渡す
+            condition: 2 件の用語集を持つ設定で開き、2 件目の行を 1 つオフにし、補正に使う用語集を 2 件目にして保存する
+            mock: UiDeps.save_settings（引数を控える）・list_glossaries・read_glossary（決まった一覧と行を返す）
+            expected: 渡した設定の glossaries が 2 件で active_glossary が 2 件目の名前、glossary_path が None。書き戻しの引数は 2 件目の場所だけを持ち、その行がオフになっている
+          - name: test_save_when_glossaries_untouched
+            case: 正常
+            summary: 用語集を変えずに保存すると、書き戻す CSV は無い
+            condition: 今までの用語集 1 件だけの設定で開き、ホットキーだけを変えて保存する
+            mock: UiDeps.save_settings（引数を控える）・list_glossaries・read_glossary
+            expected: 書き戻しの引数が空。渡した設定の glossaries がその 1 件
+          - name: test_save_when_glossary_invalid
+            case: 異常
+            summary: 名前の重なりと片方が空の行では保存せず、エラーを出す
+            condition: 足した用語集の名前を 2 件目と同じにし、その 2 行目の誤変換を空にして保存する
+            mock: UiDeps.save_settings（呼ばれたかを控える）・list_glossaries・read_glossary
+            expected: 'False。save_settings は呼ばれず、エラーの一覧に「用語集 3 件目の名前: …」と「用語集 3 件目の 2 行目の誤変換: 誤変換を入れてください」が出る'
       - name: reset_to_defaults
         title: 既定に戻す
         summary: confirm_reset で確かめ、戻すなら開いたときの設定と同じ設定のモデルの既定値（`type(開いたときの設定)()`）を書いて欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す
@@ -969,6 +988,12 @@ classes:
         returns:
           type: None
           description: なし
+        process: |-
+          1. confirm_reset で確かめる
+             - 戻さない場合、何もせずに終える
+          2. 開いたときの設定と同じ設定のモデルの既定値を、save_settings（UiDeps）に空の書き戻し（`{}`）と共に渡して書く（用語集の CSV は書き換えない）
+          3. 既定の値を欄に入れ、用語集の一覧を UiDeps.list_glossaries で引き直して GlossaryPanel.set_glossaries に入れ直す（設定ファイルと同じフォルダの yogo.csv の 1 件に戻る）
+          4. 再起動が要る設定が変わっていれば、件数と「今すぐ再起動」を出す
       - name: try_close
         title: 取り消し
         summary: 欄を変えていなければ閉じ、変えていれば confirm_discard で確かめて捨てるなら閉じる。closeEvent・Esc・キャンセルが呼ぶ
@@ -997,6 +1022,14 @@ classes:
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
     status: implemented
+    notes:
+      用語集のまとまり: |-
+        「文字起こし」の次のまとまり「用語集」に GlossaryPanel を 1 つ置く（今の `glossary_path` の欄と「選ぶ…」は消す）。開くときに UiDeps.list_glossaries の一覧と、補正に使う用語集の名前（設定の active_glossary。None か一覧に無ければ 1 件目）を GlossaryPanel.set_glossaries に渡す。
+        収集では `glossaries` に GlossaryPanel.collect、`active_glossary` に GlossaryPanel.active_name を入れ、`glossary_path` は置かない（None）。
+        変えた欄の数えには、用語集の一覧（名前・並び）・補正に使う用語集・行の変更も含める（反映はどれも immediate）。
+        エラーの一覧の用語集の行は、失敗の場所 `glossaries[{n}].name` を「用語集 {n+1} 件目の名前」、行の失敗を「用語集 {n+1} 件目の {m+1} 行目の{誤変換か正しい表記}」にし、押すと「用語集」のまとまりへ切り替えて GlossaryPanel.focus_field でその用語集の行の表を出し、欄へフォーカスを移す。
+        to_field_message は、用語集の名前の空を「名前を入れてください。」、名前の重なり（find_glossary_name_overlaps の PydanticCustomError）を「用語集「{名前}」と同じ名前です。別の名前にしてください。」にする。
+        既定に戻すと、用語集の一覧は設定ファイルと同じフォルダの yogo.csv の 1 件に戻る（用語集の CSV のファイルは消さず、書き換えない）。
   - name: PresetListPanel
     title: プリセットの一覧
     container: ui/windows/settings_presets.py
@@ -1089,6 +1122,213 @@ classes:
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
     status: implemented
+  - name: GlossaryPanel
+    title: 用語集の一覧と行の表
+    container: ui/windows/settings_glossaries.py
+    usecase: 設定を変える
+    role: 画面の部品
+    kind: クラス
+    inherits: PySide6.QtWidgets.QWidget
+    summary: 設定画面の「用語集」のまとまりに置く、用語集の一覧と、選んだ用語集の名前の欄・行の表。用語集と行を足す・消す、補正に使う用語集を選ぶ、行のオン・オフを受ける
+    description: |-
+      要素（用語集の一覧・補正に使う用語集の選択・名前のボタン・行の数・消す・足す・名前の欄・行の表・行が無いときの文・凡例）と読み上げの名前・objectName（項目 ID）は画面設計「設定画面」が持つ。
+      用語集ごとに、名前・CSV の場所・行・開いたときの行（足した用語集は無し）を持つ。足す・消す・入力はこの部品の中だけを変え、settings.toml と CSV へは設定画面の保存で書く。
+      補正に使う用語集の消すボタンは、フォーカスとツールチップを残すため `setEnabled(False)` にせず、押しても消さない扱いと薄い見た目にする。
+      コンストラクタは、行を読む関数（UiDeps.read_glossary）と、足す用語集の場所を決める関数（UiDeps.new_glossary_path）を受ける。
+      単体テストは tests/unit/voice_paste/ui/windows/test_settings_glossaries.py に置く（ファイルを作った段で、この設計書の対応テストファイルに足す）。
+    properties:
+      - name: changed
+        type: Signal()
+        description: 用語集と行を足す・消す、補正に使う用語集の切り替え、欄の入力、行のオン・オフで値が変わった（設定画面が変えた欄の数えに使う）
+    methods:
+      - name: set_glossaries
+        title: 一覧に入れる
+        kind: メソッド
+        scope: public
+        summary: 渡した用語集で一覧を作り直し、用語集ごとに行を読んで開いたときの行として控え（読めなかった用語集は理由を控える）、補正に使う用語集の行の表を出す
+        args:
+          - name: glossaries
+            type: Sequence[GlossarySettings]
+            required: true
+            passing: positional
+            description: 用語集の一覧（1 件以上。path は絶対パス）
+          - name: active_name
+            type: str
+            required: true
+            passing: positional
+            description: 補正に使う用語集の名前（一覧にある名前）
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_glossary_panel_set_glossaries
+            case: 正常
+            summary: 一覧と行の数を出し、補正に使う用語集の消すボタンを無効の扱いにする
+            condition: 5 行（オン 3）と 2 行の 2 件の用語集と、1 件目の名前
+            mock: 行を読む関数（決まった行を返す）
+            expected: 行の数が「5 行（オン 3）」「2 行（オン 2）」。1 件目が選ばれ、その消すボタンを押しても一覧が減らない
+          - name: test_glossary_panel_set_glossaries_when_unreadable
+            case: 正常
+            summary: 読めない用語集も一覧に出し、行の表の代わりに理由を出す
+            condition: 2 件の用語集のうち、2 件目で行を読む関数が GlossaryReadError を送出する
+            mock: 行を読む関数（2 件目の場所で GlossaryReadError を送出する）
+            expected: 一覧が 2 件で、2 件目の行の数が「読めません」。2 件目を選ぶと、理由を含む知らせが出て行の表が出ず、行を足すボタンが無効
+      - name: collect
+        title: 一覧の値の収集
+        kind: メソッド
+        scope: public
+        summary: 今の並びの用語集を settings.toml と同じ形の dict（name・path）の並びにする（name は前後の空白を除く）
+        returns:
+          type: list[dict[str, Any]]
+          description: 用語集の一覧
+        unit_tests:
+          - name: test_glossary_panel_collect
+            case: 正常
+            summary: 名前を変えた用語集と足した用語集を並びの順に返す
+            condition: 1 件の用語集の名前を変え、用語集を 1 つ足して名前を入れる
+            mock: 行を読む関数・場所を決める関数（決まった場所を返す）
+            expected: 2 件が返り、1 件目は変えた名前と元の場所、2 件目は入れた名前と決めた場所
+      - name: active_name
+        title: 補正に使う用語集の名前
+        kind: メソッド
+        scope: public
+        summary: 補正に使う用語集に選んでいる用語集の、今の名前の欄の値（前後の空白を除く）を返す
+        returns:
+          type: str
+          description: 補正に使う用語集の名前
+        unit_tests:
+          - name: test_glossary_panel_active_name
+            case: 正常
+            summary: 補正に使う用語集を切り替えてから名前を変えると、変えた名前を返す
+            condition: 2 件目を補正に使う用語集にし、その名前を変える
+            mock: 行を読む関数
+            expected: 変えた名前が返り、1 件目の消すボタンが押せるようになる
+      - name: changed_rows
+        title: 書き戻す行の収集
+        kind: メソッド
+        scope: public
+        summary: 行を変えた用語集と足した用語集だけの、CSV の場所 → 行を返す
+        returns:
+          type: dict[Path, list[GlossaryEntry]]
+          description: 書き戻す用語集の CSV の場所 → 行（表の順。前後の空白を除き、誤変換と正しい表記の両方が空の行は除く）
+        process: |-
+          1. 今の一覧の用語集ごとに、表の行（両方が空の行を除く）を開いたときの行と比べる
+             - 読めなかった用語集の場合、入れない
+             - 足した用語集（開いたときの行が無い）か、行が違う場合、その場所と行を入れる
+             - 同じ場合、入れない（名前だけを変えた用語集と、一覧から消した用語集も入らない）
+        unit_tests:
+          - name: test_glossary_panel_changed_rows
+            case: 正常
+            summary: 行を変えた用語集だけを返す
+            condition: 2 件の用語集のうち、2 件目の行を 1 つオフにする
+            mock: 行を読む関数
+            expected: 2 件目の場所だけを持ち、その行の enabled が False
+          - name: test_glossary_panel_changed_rows_when_untouched
+            case: 正常
+            summary: 行を変えていなければ空（名前だけ変えても空）
+            condition: 1 件目の名前だけを変える
+            mock: 行を読む関数
+            expected: '{} が返る'
+          - name: test_glossary_panel_changed_rows_when_added
+            case: 正常
+            summary: 足した用語集は行が無くても返し、両方が空の行は除く
+            condition: 用語集を 1 つ足し、行を 2 つ足して 1 つだけに値を入れる
+            mock: 行を読む関数・場所を決める関数
+            expected: 足した用語集の場所を持ち、行は値を入れた 1 つだけ
+          - name: test_glossary_panel_changed_rows_when_unreadable
+            case: 正常
+            summary: 読めなかった用語集は書き戻しに入れない
+            condition: 読めなかった用語集の名前を変え、補正に使う用語集に選ぶ
+            mock: 行を読む関数（GlossaryReadError を送出する）
+            expected: '{} が返る'
+      - name: row_errors
+        title: 行の確かめ
+        kind: メソッド
+        scope: public
+        summary: 読めた全ての用語集の行を find_glossary_row_errors で確かめ、（用語集の何件目か, 何行目か, 空の側の項目）の並びを返す（補正に使わない用語集も確かめる）
+        returns:
+          type: list[tuple[int, int, Literal["wrong", "right"]]]
+          description: 片方だけが空の行の場所（どれも 0 から）
+        unit_tests: []
+      - name: add_glossary
+        title: 用語集を足す
+        kind: メソッド
+        scope: public
+        summary: 末尾に名前が空で行の無い用語集を足し（場所は、今の一覧の場所を渡して決める関数から得る）、その行の表を出して名前の欄へフォーカスを移し、changed を emit する。「用語集を足す」が呼ぶ
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_glossary_panel_add_glossary
+            case: 正常
+            summary: 空の用語集を末尾に足し、行が無いときの文を出す
+            condition: 1 件の用語集の一覧で add_glossary を呼ぶ
+            mock: 行を読む関数・場所を決める関数
+            expected: 一覧が 2 件になり、2 件目の名前が「（名前未入力）」、行の数が「0 行（オン 0）」。行が無いときの文が出て、補正に使う用語集は 1 件目のまま。changed が 1 回出る
+      - name: focus_field
+        title: 欄へフォーカスを移す
+        kind: メソッド
+        scope: public
+        summary: 用語集の何件目かと項目（と行）で欄を探し、その用語集の行の表を出してフォーカスを移す（エラーの一覧の行を押したとき）
+        args:
+          - name: position
+            type: int
+            required: true
+            passing: positional
+            description: 用語集の何件目か（0 から）
+          - name: field
+            type: Literal["name", "wrong", "right"]
+            required: true
+            passing: positional
+            description: 項目の名前
+          - name: row
+            type: int | None
+            required: false
+            default: None
+            passing: keyword
+            description: 何行目か（0 から。name のときは None）
+        returns:
+          type: None
+          description: なし
+        unit_tests: []
+      - name: show_error
+        title: 欄の下にエラーを出す
+        kind: メソッド
+        scope: public
+        summary: 用語集の何件目かと項目（と行）の欄の下にエラーを出し、欄をエラーの見た目にする。clear_errors で全て消す
+        args:
+          - name: position
+            type: int
+            required: true
+            passing: positional
+            description: 用語集の何件目か（0 から）
+          - name: field
+            type: Literal["name", "wrong", "right"]
+            required: true
+            passing: positional
+            description: 項目の名前
+          - name: message
+            type: str
+            required: true
+            passing: positional
+            description: エラーの文言
+          - name: row
+            type: int | None
+            required: false
+            default: None
+            passing: keyword
+            description: 何行目か（0 から。name のときは None）
+        returns:
+          type: None
+          description: なし
+        unit_tests: []
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/設定画面.py#
+    status: implemented
+    notes:
+      読めない用語集: |-
+        行を読む関数が GlossaryReadError を送出した用語集は、読めない用語集として一覧に残す（設定画面は開く）。行の数は「読めません」、行の表の代わりに「この用語集の CSV を読めませんでした（{理由}）。保存しても、この CSV は書き換えません。」を出し、行を足すボタンを無効にする。名前を変える・補正に使う用語集に選ぶ・一覧から消すはできる。
+        changed_rows と row_errors には入れない（保存してもその CSV に触れない）。
 functions:
   - name: notify
     title: ユーザーへの知らせ
@@ -1651,6 +1891,38 @@ functions:
         mock: なし
         expected: dark
     status: implemented
+  - name: find_glossary_row_errors
+    title: 用語集の行の確かめ
+    container: ui/windows/settings_glossaries.py
+    usecase: 設定を変える
+    summary: 用語集の行のうち、誤変換か正しい表記の片方だけが空の行と、空の側の項目を返す。単体テストは tests/unit/voice_paste/ui/windows/test_settings_glossaries.py に置く
+    kind: 関数
+    scope: public
+    args:
+      - name: entries
+        type: Sequence[GlossaryEntry]
+        required: true
+        passing: positional
+        description: 用語集 1 つの行（表の順。前後の空白を除いた値）
+    returns:
+      type: list[tuple[int, Literal["wrong", "right"]]]
+      description: （何行目か（0 から）, 空の側の項目）の並び。オフの行も確かめる。両方が空の行は返さない
+    unit_tests:
+      - name: test_find_glossary_row_errors
+        case: 正常
+        summary: 片方だけが空の行を、空の側の項目つきで返す
+        condition: 「あ,い」「,う」「え,」「,」の 4 行（2 行目はオフ）
+        mock: なし
+        expected: '[(1, "wrong"), (2, "right")] が返る'
+      - name: test_find_glossary_row_errors_when_valid
+        case: 正常
+        summary: 両方がある行と両方が空の行だけなら空
+        condition: 「あ,い」「,」の 2 行
+        mock: なし
+        expected: '[] が返る'
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/設定画面.py#
+    status: implemented
 notes:
   画面が触ってよいもの: |-
     ui は UiDeps の関数（配線された SessionManager のメソッド・音量・設定の読み書き・再起動と終了）と、共通の設定のモデルだけを呼ぶ。録音・文字起こし・出力先を直に呼ばない。
@@ -1693,8 +1965,8 @@ data_models:
         type: Callable[[], Settings]
         description: 今効いている設定（SettingsStore.get）
       - name: save_settings
-        type: Callable[[Settings], bool]
-        description: 設定を書いて効かせ、再起動が要る項目が変わったかを返す（apply_settings）
+        type: Callable[[Settings, Mapping[Path, Sequence[GlossaryEntry]]], bool]
+        description: 設定と、行を変えた用語集の CSV（場所 → 行）を書いて効かせ、再起動が要る項目が変わったかを返す（apply_settings）
       - name: settings_dir
         type: Path
         description: settings.toml のあるフォルダ
@@ -1719,6 +1991,15 @@ data_models:
       - name: apply_theme
         type: Callable[[], None]
         description: 今の設定の ui.theme で画面の明暗を当て直す（配線で apply_theme に QApplication と SettingsStore.get の ui.theme を渡したもの）
+      - name: list_glossaries
+        type: Callable[[], list[GlossarySettings]]
+        description: 今の設定の用語集の一覧（path は絶対パス。glossaries が空なら今までの用語集の 1 件。resolve_glossaries）
+      - name: read_glossary
+        type: Callable[[Path], list[GlossaryEntry]]
+        description: 用語集の CSV の行を、オン・オフと片方が空の行も含めて読む（read_glossary_rows）。読めなければ GlossaryReadError を送出する
+      - name: new_glossary_path
+        type: Callable[[Collection[Path]], Path]
+        description: 足す用語集の CSV の場所を、一覧にある場所と重ならないように決める（フォルダを部分適用した next_glossary_path）
     status: implemented
 enums:
   - name: TrayState
@@ -1807,3 +2088,4 @@ test_files:
   - tests/unit/voice_paste/ui/windows/test_transcribing_indicator.py
   - tests/unit/voice_paste/ui/windows/test_settings_window.py
   - tests/unit/voice_paste/ui/windows/test_settings_presets.py
+  - tests/unit/voice_paste/ui/windows/test_settings_glossaries.py

@@ -9,7 +9,7 @@ import random
 import signal
 import sys
 import time
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from functools import partial
@@ -18,7 +18,15 @@ from pathlib import Path
 from PySide6.QtCore import QMetaObject, Qt, QTimer
 from PySide6.QtWidgets import QApplication
 
-from voice_paste.features.correction import apply_glossary, load_glossary
+from voice_paste.features.correction import (
+    apply_glossary,
+    load_glossary,
+    next_glossary_path,
+    pick_active_glossary,
+    read_glossary_rows,
+    resolve_glossaries,
+    save_glossary,
+)
 from voice_paste.features.history import (
     append_text,
     discard_temporary,
@@ -80,7 +88,7 @@ from voice_paste.shared.settings import (
     load_settings,
     save_settings,
 )
-from voice_paste.shared.types import Entry, ProgressFn, TranscriptionOutcome
+from voice_paste.shared.types import Entry, GlossaryEntry, ProgressFn, TranscriptionOutcome
 from voice_paste.ui.bridge import UiBridge, notify, report_progress
 from voice_paste.ui.controller import UiController, UiDeps
 from voice_paste.ui.style import apply_theme
@@ -114,8 +122,8 @@ WORKER_READY_TIMEOUT_SEC: float = 27.0
 WORKER_STOP_TIMEOUT_SEC: float = 2.0
 """文字起こしワーカーの終わりを待つ時間。非機能要件の文字起こしワーカーの終わりを待つ時間の決定値。"""
 
-GLOSSARY_FILE_NAME: str = "yogo.csv"
-"""用語集のパスを設定しないときに、設定ファイルと同じフォルダから読む用語集の名前。"""
+GLOSSARIES_DIR_NAME: str = "glossaries"
+"""設定画面で足した用語集の CSV を置く、settings.toml と同じフォルダの下のフォルダの名前。"""
 
 ACCEPT_INJECTED_HOTKEYS_ENV: str = "VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS"
 """`1` のときだけ、ソフトウェアで送ったキーもホットキーとして受ける環境変数（E2E の起動で付ける）。"""
@@ -224,9 +232,12 @@ def _jitter(upper: float) -> float:
     return random.uniform(0, upper)  # noqa: S311 暗号用途ではない
 
 
-def _correct(text: str, *, glossary_path: Path) -> str:
-    """文字起こしのたびに用語集を読み直して補正する。"""
-    return apply_glossary(text, load_glossary(glossary_path))
+def _correct(text: str, *, settings: Settings, settings_dir: Path) -> str:
+    """文字起こしのたびに、補正に使う用語集を引いて読み直して補正する。"""
+    glossary = pick_active_glossary(settings, settings_dir)
+    entries = load_glossary(glossary.path)
+    logger.info(f"用語集で補正する（{glossary.name}・補正に使う {len(entries)} 行）")
+    return apply_glossary(text, entries)
 
 
 def _deliver_session(
@@ -311,11 +322,6 @@ def _wire_preset_kinds(get_settings: Callable[[], Settings]) -> tuple[PresetKind
     )
 
 
-def _glossary_path(settings: Settings, paths: AppPaths) -> Path:
-    """設定の用語集の CSV を返す（設定していなければ、設定ファイルと同じフォルダの用語集）。"""
-    return settings.glossary_path or paths.settings_file.parent / GLOSSARY_FILE_NAME
-
-
 def build_handlers(
     settings: Settings, paths: AppPaths, notify: NotifyFn, report_progress: ProgressFn
 ) -> Handlers:
@@ -377,8 +383,8 @@ def build_handlers(
 
     # 6. 用語集を文字起こしのたびに読み直す補正を作る（読む場所もそのたびに設定から決める）
     def correct(text: str) -> str:
-        """今の設定の用語集で補正する。"""
-        return _correct(text, glossary_path=_glossary_path(store.get(), paths))
+        """今の設定の、補正に使う用語集で補正する。"""
+        return _correct(text, settings=store.get(), settings_dir=paths.settings_file.parent)
 
     # 7. SessionDeps を組み、API のセッションの上限時間と連続録音の上限時間（起動時の設定。再起動で効く）と共に SessionManager を作る
     deps = SessionDeps(
@@ -521,24 +527,34 @@ def build_hotkey_bindings(
 
 def apply_settings(
     settings: Settings,
+    glossary_rows: Mapping[Path, Sequence[GlossaryEntry]],
     *,
     settings_file: Path,
     store: SettingsStore,
     check_hotkeys: Callable[[Iterable[str]], None],
+    save_glossary: Callable[[Path, Sequence[GlossaryEntry]], None],
 ) -> bool:
-    """設定画面で確かめた設定を settings.toml へ書き、反映が immediate の項目を動いている常駐アプリに効かせる。
+    """設定画面で確かめた設定と行を変えた用語集の CSV を書き、反映が immediate の項目を動いている常駐アプリに効かせる。
 
     新しい設定のホットキーを pynput が読めなければ、何も書かず入れ替えずに HotkeyError を送出する。
+    用語集の CSV か settings.toml を書けなければ OSError のまま伝え、SettingsStore は入れ替えない。
     """
     # 1. 新しい設定で受け付けるホットキーを確かめる
     check_hotkeys(_collect_hotkeys(settings))
 
-    # 2. settings.toml へ書く（書けなければ OSError のまま伝え、SettingsStore は入れ替えない）
+    # 2. glossary_rows の用語集の CSV を書く（書けなければ OSError のまま伝える。先に書けた CSV は戻さない）
+    for glossary_path, rows in glossary_rows.items():
+        save_glossary(glossary_path, rows)
+
+    # 3. settings.toml へ書く（書けなければ OSError のまま伝え、SettingsStore は入れ替えない）
     restart_needed = save_settings(settings_file, settings)
 
-    # 3. SettingsStore を入れ替える（ホットキーは設定画面が閉じたときに今の設定で張り直す）
+    # 4. SettingsStore を入れ替える（ホットキーは設定画面が閉じたときに今の設定で張り直す）
     store.replace(settings)
-    logger.info(f"設定を保存した（{settings_file}・再起動が要る: {restart_needed}）")
+    logger.info(
+        f"設定を保存した（{settings_file}・再起動が要る: {restart_needed}・"
+        f"書いた用語集の CSV: {len(glossary_rows)} 件）"
+    )
     return restart_needed
 
 
@@ -550,7 +566,7 @@ def _output_titles() -> dict[str, str]:
 def build_ui_deps(
     handlers: Handlers,
     paths: AppPaths,
-    save_settings: Callable[[Settings], bool],
+    save_settings: Callable[[Settings, Mapping[Path, Sequence[GlossaryEntry]]], bool],
     request_restart: Callable[[], None],
     request_quit: Callable[[], None],
     hotkey_listener: HotkeyListener,
@@ -590,6 +606,11 @@ def build_ui_deps(
         resume_hotkeys=resume_hotkeys,
         output_titles=_output_titles(),
         apply_theme=apply_theme,
+        list_glossaries=lambda: resolve_glossaries(store.get(), paths.settings_file.parent),
+        read_glossary=read_glossary_rows,
+        new_glossary_path=partial(
+            next_glossary_path, directory=paths.settings_file.parent / GLOSSARIES_DIR_NAME
+        ),
     )
 
 
@@ -630,6 +651,7 @@ def _build_idle_ui_deps(
             settings_file=paths.settings_file,
             store=store,
             check_hotkeys=validate_hotkeys,
+            save_glossary=save_glossary,
         ),
         settings_dir=paths.settings_file.parent,
         log_dir=paths.log_dir,
@@ -639,6 +661,11 @@ def _build_idle_ui_deps(
         resume_hotkeys=do_nothing,
         output_titles=_output_titles(),
         apply_theme=partial(_apply_current_theme, app, store.get),
+        list_glossaries=lambda: resolve_glossaries(store.get(), paths.settings_file.parent),
+        read_glossary=read_glossary_rows,
+        new_glossary_path=partial(
+            next_glossary_path, directory=paths.settings_file.parent / GLOSSARIES_DIR_NAME
+        ),
     )
 
 
@@ -839,6 +866,7 @@ def _start_services(
         settings_file=paths.settings_file,
         store=handlers.settings_store,
         check_hotkeys=validate_hotkeys,
+        save_glossary=save_glossary,
     )
     deps = build_ui_deps(
         handlers,

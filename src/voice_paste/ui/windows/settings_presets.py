@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 )
 
 from voice_paste.shared.settings import BrowserPreset, EndpointPreset, Preset
-from voice_paste.ui.windows.settings_fields import connect_changed
+from voice_paste.ui.windows.settings_fields import connect_changed, set_invalid
 
 PRESET_MODELS: dict[str, type[BrowserPreset] | type[EndpointPreset]] = {
     "browser": BrowserPreset,
@@ -150,7 +150,7 @@ class PresetListPanel(QWidget):
         label = row.error_labels[field]
         label.setText(f"{label.text()}\n{message}" if label.text() else message)
         label.show()
-        _set_invalid(widget, invalid=True)
+        set_invalid(widget, invalid=True)
 
     def clear_errors(self) -> None:
         """前の保存で出したエラーを全て消す。"""
@@ -158,7 +158,7 @@ class PresetListPanel(QWidget):
             for field, label in row.error_labels.items():
                 label.clear()
                 label.hide()
-                _set_invalid(row.widgets[field], invalid=False)
+                set_invalid(row.widgets[field], invalid=False)
 
     # --- 組み立て ---
 
@@ -358,10 +358,3 @@ def _hotkey(widget: QWidget) -> str:
     hotkey = getattr(widget, "hotkey", None)
     assert isinstance(hotkey, str)  # noqa: S101 ホットキーの欄は HotkeyEdit で作る
     return hotkey
-
-
-def _set_invalid(widget: QWidget, *, invalid: bool) -> None:
-    """欄の枠をエラーの色にする・戻す。"""
-    widget.setProperty("invalid", invalid)
-    widget.style().unpolish(widget)
-    widget.style().polish(widget)

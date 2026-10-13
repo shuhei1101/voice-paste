@@ -223,3 +223,10 @@ def make_plain_text(lines: list[str]) -> QPlainTextEdit:
 def plain_text_lines(edit: QPlainTextEdit) -> list[str]:
     """複数行の文字の欄を、空行を除いた行の一覧にする。"""
     return [line.strip() for line in edit.toPlainText().splitlines() if line.strip()]
+
+
+def set_invalid(widget: QWidget, *, invalid: bool) -> None:
+    """欄の枠をエラーの色にする・戻す。"""
+    widget.setProperty("invalid", invalid)
+    widget.style().unpolish(widget)
+    widget.style().polish(widget)

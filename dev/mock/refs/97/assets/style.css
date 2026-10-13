@@ -1,0 +1,160 @@
+/* ===== PR 97 の画面モック: 用語集の一覧と行の表（refs/37・refs/44 の style.css に重ねる） ===== */
+
+/* 用語集の欄: 一覧・足すボタン・選んだ用語集の行の表を間を空けて縦に積む */
+.glossary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 用語集の一覧の表: 補正に使う・名前・行の数・消すを並べる */
+.glossaries {
+  td:first-child, th:first-child { width: 6em; }
+  td:last-child, th:last-child { width: calc(var(--control-h) + 16px); text-align: right; }
+}
+
+/* 補正に使うのラジオ: 押しやすいよう文言と並べる */
+.glossaries .use {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+/* 補正に使う用語集の消すボタン: 押せない見た目にし、理由はツールチップに出す */
+.glossaries [data-remove-glossary][aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  &:hover { background: var(--surface-2); }
+}
+
+/* 用語集の一覧で、行を編集している用語集 */
+.glossaries tr[data-selected="true"] td {
+  background: var(--sunken);
+}
+
+/* 用語集の名前のボタン: 押すとその用語集の行を下に出す。長い名前は省略する */
+.glossaries [data-pick] {
+  justify-content: flex-start;
+  max-width: 18em;
+  padding: 4px 6px;
+  font-weight: 600;
+}
+
+/* 編集している用語集の名前のボタン */
+.glossaries [data-pick][aria-current="true"] {
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+/* 名前が空のときの名前のボタンの文言 */
+.glossaries [data-pick] .clip:empty::before {
+  content: "（名前未入力）";
+  color: var(--text-2);
+  font-weight: 400;
+}
+
+/* 行の数: 等幅の数字で揃える */
+.glossaries .count {
+  color: var(--text-2);
+  font-family: var(--font-num);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* 行の数とオンの数: それぞれの中では折り返さない */
+.glossaries .count span {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* 一覧の名前の列: 表の中の名前の行を押して選べる */
+.glossaries tr[data-select] {
+  cursor: pointer;
+}
+
+/* 選んだ用語集の欄のまとまり: 名前の欄と行の表を線で囲む */
+.glossary-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 12px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+/* 選んだ用語集の欄の見出し: 何の行を編集しているかを示す */
+.glossary-detail__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* 見出しの名前が空のときの文言 */
+.glossary-detail__title [data-name-view]:empty::before {
+  content: "（名前未入力）";
+  color: var(--text-2);
+  font-weight: 400;
+}
+
+/* 名前の欄: 名前と入力を 2 列に並べる */
+.glossary-detail .preset__field {
+  padding: 4px 0;
+}
+
+/* 行の表: 使う・誤変換・正しい表記・消すを並べる */
+.entries {
+  td:first-child, th:first-child { width: 3.5em; text-align: center; }
+  td:last-child, th:last-child { width: calc(var(--control-h) + 16px); text-align: right; }
+  td { padding: 4px 8px; }
+  input[type="text"] { width: 100%; min-width: 6em; font-family: var(--font-mono); font-size: 12px; }
+  .field-error { padding: 2px 0 0; }
+}
+
+/* オフの行: 文字を薄くし、補正に使わないことを見せる（切り替えの印でも伝える） */
+.entries tr[data-off="true"] input[type="text"] {
+  color: var(--text-2);
+  text-decoration: line-through;
+}
+
+/* 行の使う・使わないのチェックボックス: 押しやすい大きさにする */
+.entries input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent-fg);
+}
+
+/* 行が無いときの表の代わり */
+.entries-empty {
+  margin: 0;
+  padding: 12px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+/* 一覧・行の表の下の足すボタンの行 */
+.glossary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 足すボタンの右の補足: ボタンの近くに理由・決まりを書く */
+.glossary-actions .field-help {
+  grid-column: auto;
+}
+
+/* 狭い幅: 一覧の列を詰める */
+@media (max-width: 640px) {
+  /* 補正に使うの列を詰める */
+  .glossaries td:first-child, .glossaries th:first-child { width: 4em; }
+  /* 名前のボタンを列の幅に収める */
+  .glossaries [data-pick] { max-width: 9em; }
+  /* 行の数を折り返し、消すの列を窓の中に残す */
+  .glossaries .count { white-space: normal; }
+}

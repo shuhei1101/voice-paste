@@ -12,7 +12,7 @@ items:
   - page: 処理中のダイアログ.py.yaml
     summary: API の録音の処理中に録音開始のホットキーを押したときに、始められない理由を知らせる
   - page: 設定画面.py.yaml
-    summary: settings.toml の全てのキーを 7 つのまとまりに並べ、確かめてから保存する
+    summary: settings.toml の全てのキーをまとまりに並べ、確かめてから保存する
   - page: 変えた値を捨てる確認.py.yaml
     summary: 設定画面で変えた値を捨てて閉じるかを確かめる
   - page: 既定に戻す確認.py.yaml

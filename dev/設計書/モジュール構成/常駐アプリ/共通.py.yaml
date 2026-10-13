@@ -8,7 +8,7 @@ directory: |-
   ├── logger.py         # 標準の logging の設定。日付ごとのファイルと保持期間での削除
   ├── errors.py         # 例外の階層
   ├── constants.py      # アプリ名と置き場所のパス（platformdirs）
-  └── types.py          # feature の間を渡る型（入口・録音・文字起こしの結果）
+  └── types.py          # feature の間を渡る型（入口・録音・文字起こしの結果・用語集の行）
   ```
 enums:
   - name: Entry
@@ -180,7 +180,7 @@ data_models:
       - name: glossary_path
         type: Path | None
         default: None
-        description: 用語集の CSV。None は設定ファイルと同じフォルダの yogo.csv
+        description: 今までの用語集の CSV。glossaries が空のときだけ使う（resolve_glossaries）。None は設定ファイルと同じフォルダの yogo.csv
       - name: api
         type: ApiSettings
         description: 待ち受けのポート・返送を許すホスト
@@ -195,6 +195,14 @@ data_models:
         type: ClassVar[Mapping[str, type[OutputSettingsBase]]]
         default: '{}'
         description: 出力先の ID → 設定のモデル。build_settings_model が組み立てたモデルに入る。設定画面が失敗の場所の判別子の値から出力先のモデルを引く
+      - name: glossaries
+        type: list[GlossarySettings]
+        default: '[]'
+        description: 用語集の一覧。並びが設定画面の一覧の並びになる。空のときは glossary_path の CSV を 1 つ目の用語集として扱う。名前が重なる設定は検証で断る（find_glossary_name_overlaps）
+      - name: active_glossary
+        type: str | None
+        default: None
+        description: 補正に使う用語集の名前。None か一覧に無い名前のときは 1 つ目の用語集を使う（pick_active_glossary）
     refs:
       - dev/設計書/外部ライブラリ/pydantic#
       - dev/設計書/設定/常駐アプリ#
@@ -603,6 +611,45 @@ data_models:
     status: planned
     introduced:
       pr: 78
+  - name: GlossaryEntry
+    title: 用語集の行
+    container: shared/types.py
+    usecase: 共通
+    role: DTO
+    summary: 誤変換と正しい表記の組と、補正に使うか。補正と設定画面の間を渡る
+    description: '`@dataclass(frozen=True, slots=True, kw_only=True)`。今の features/correction/types.py から移し（設定画面は features を import しないため）、enabled を足す。features/correction/types.py は消す。'
+    properties:
+      - name: wrong
+        type: str
+        description: 誤変換（CSV の列 `誤変換`）
+      - name: right
+        type: str
+        description: 正しい表記（CSV の列 `正しい表記`）
+      - name: enabled
+        type: bool
+        default: 'True'
+        description: 補正に使うか（CSV の列 `使う`。`0` がオフ）
+    refs:
+      - dev/設計書/ER図/常駐アプリのファイル#tables[%APPDATA%\voice-paste\glossaries\glossary_{n}.csv]
+    status: implemented
+  - name: GlossarySettings
+    title: 用語集の設定
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: 用語集 1 つの名前と CSV の場所
+    inherits: pydantic.BaseModel
+    properties:
+      - name: name
+        type: str
+        description: 設定画面の用語集の一覧に出す名前（前後の空白を除く。`min_length=1`）
+      - name: path
+        type: Path
+        description: その用語集の CSV の場所。settings.toml のフォルダからの相対パスか、絶対パス
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[glossaries[].name]
+      - dev/設計書/設定/常駐アプリ#settings[glossaries[].path]
+    status: implemented
 classes:
   - name: AppError
     title: アプリの例外
@@ -612,7 +659,7 @@ classes:
     kind: クラス
     inherits: Exception
     summary: このアプリが送出する例外の根。API サーバーの例外ハンドラが HTTP のステータスへ変える
-    description: |
+    description: |-
       | 例外 | 意味 | HTTP |
       | --- | --- | --- |
       | `CallbackNotAllowedError` | 返送先が許されない | 400 |
@@ -630,6 +677,7 @@ classes:
       | `SettingsError` | 設定の値が合わない（合わないキーをメッセージに並べる） | - |
       | `StartupError` | 起動に失敗した（エンジンを準備できない・前のプロセスが排他を放さない） | - |
       | `HotkeyError` | ホットキーの書式を pynput が読めない | - |
+      | `GlossaryReadError` | 用語集の CSV を読めない（開けない・UTF-8 でない・見出しの列が無い・csv が解釈できない。メッセージが設定画面に出す理由になる） | - |
 
       全ての例外は docstring だけを持つクラスで `shared/errors.py` に置き、親は表に書かない限り `AppError`。
     status: implemented
@@ -762,8 +810,8 @@ functions:
       2. 読んだ文書を、古い AI チャットの設定を読み替えてから（migrate_ai_chat）settings と同じ設定のモデル（`type(settings)`）で検証し、前の設定にする
          - 無い場合、前の設定は無しとする
          - 読めない・検証に通らない場合、内容を空の文書にして前の設定を「全て変わった」とする
-      3. settings を `model_dump(mode="json")` する
-      4. 文書の値を再帰で置き換える。表はキーごとに書き換えて既存のコメントと並びを保ち、配列（出力先の一覧・プリセットの一覧・許すホスト）は丸ごと入れ替える（出力先の一覧を入れ替えるので、文書に残っていた `id = "ai_chat"` の項目も消える）。None の項目（glossary_path）はキーを置かず、文書に既にあれば消す
+      3. settings を `model_dump(mode="json")` する。`glossaries[].path` は、path の親のフォルダの下にある場所ならそのフォルダからの相対パス（区切りは `/`）にし、それ以外は絶対パスのままにする
+      4. 文書の値を再帰で置き換える。表はキーごとに書き換えて既存のコメントと並びを保ち、配列（出力先の一覧・プリセットの一覧・用語集の一覧・許すホスト）は丸ごと入れ替える（出力先の一覧を入れ替えるので、文書に残っていた `id = "ai_chat"` の項目も消える）。None の項目（glossary_path・active_glossary）はキーを置かず、文書に既にあれば消す
       5. 親のフォルダを作り、同じフォルダの一時ファイルに UTF-8 で書いて os.replace で置き換える
       6. reload が restart の項目のうち、前の設定と値が違うものが 1 つでもあれば True、無ければ False を返す（前の設定が無いときは False）
     unit_tests:
@@ -809,6 +857,18 @@ functions:
         condition: outputs に id = "ai_chat" と送り先 2 件を書いた settings.toml を load_settings で読み、そのまま書く
         mock: なし（一時フォルダ）
         expected: False。書いた後のファイルの outputs に ai_chat が無く、presets に同じ title・url・hotkey・enabled の kind = "browser" が 2 件あり、preset_options.browser.open_delay_sec が読み替えた値
+      - name: test_save_settings_when_glossaries
+        case: 正常
+        summary: 用語集の一覧を書き、設定のフォルダの下の場所は相対パスにする
+        condition: path が設定のフォルダの下の glossaries/glossary_1.csv と、別のフォルダの絶対パスの 2 件の glossaries と active_glossary を持つ設定を書く
+        mock: なし（一時フォルダ）
+        expected: ファイルの 1 件目の path が `glossaries/glossary_1.csv`、2 件目が絶対パス。load_settings で同じ名前の並びと active_glossary が読める
+      - name: test_save_settings_when_legacy_glossary_path
+        case: 正常
+        summary: 用語集の一覧を書くと、今までの glossary_path のキーを消す
+        condition: glossary_path = "C:/x/yogo.csv" を持つ settings.toml に、glossary_path が None で glossaries が 1 件（path が C:/x/yogo.csv）の設定を書く
+        mock: なし（一時フォルダ）
+        expected: 書いた後のファイルに glossary_path のキーが無く、glossaries の 1 件目の path が C:/x/yogo.csv
     refs:
       - dev/設計書/外部ライブラリ/tomlkit#
     status: implemented
@@ -1115,6 +1175,53 @@ functions:
         expected: ValueError
         exception: ID が重なる
     status: planned
+  - name: find_glossary_name_overlaps
+    title: 用語集の名前の重なりの検出
+    container: shared/settings.py
+    usecase: 設定を変える
+    summary: 用語集の一覧のうち、前に並んだ用語集と名前が同じものを返す。Settings の確かめ（`model_validator(mode="after")`）が呼ぶ
+    kind: 関数
+    scope: public
+    args:
+      - name: settings
+        type: Settings
+        required: true
+        passing: positional
+        description: 確かめる設定
+    returns:
+      type: list[tuple[str, str]]
+      description: （重なったキー, 重なった名前）の並び。キーは format_error_location と同じ書式（例 `glossaries[2].name`）
+    process: 1. `glossaries` を並びの順に見て、名前が先に並んだ用語集と同じものを集める（大文字と小文字は区別する。前後の空白は GlossarySettings が除いている）
+    notes:
+      補足: Settings の `model_validator(mode="after")` が、この関数が返した重なりごとに `PydanticCustomError` を集めた ValidationError を送出する（場所は重なったキー、理由は「用語集「{名前}」と同じ名前」）。ホットキーの重なり（find_hotkey_overlaps）と同じ確かめの中で集め、1 回の ValidationError にまとめる
+    unit_tests:
+      - name: test_find_glossary_name_overlaps
+        case: 正常
+        summary: 後ろにある側を重なりとして返す
+        condition: 名前が「yogo」「会議用」「会議用」の 3 件の glossaries
+        mock: なし
+        expected: '[("glossaries[2].name", "会議用")] が返る'
+      - name: test_find_glossary_name_overlaps_when_unique
+        case: 正常
+        summary: 重なりが無ければ空
+        condition: 名前が全て違う 2 件の glossaries
+        mock: なし
+        expected: '[] が返る'
+      - name: test_settings_when_glossary_names_overlap
+        case: 異常
+        summary: 名前が重なる設定は検証に通らない
+        condition: 名前が同じ 2 件の glossaries を SETTINGS_MODEL.model_validate に渡す
+        mock: なし
+        expected: ValidationError。失敗の場所が glossaries[1].name
+      - name: test_settings_when_glossary_name_blank
+        case: 異常
+        summary: 空白だけの名前は検証に通らない
+        condition: 名前が「  」の glossaries を SETTINGS_MODEL.model_validate に渡す
+        mock: なし
+        expected: ValidationError。失敗の場所が glossaries[0].name
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/設定画面.py#
+    status: implemented
 constants:
   - name: APP_NAME
     title: アプリ名

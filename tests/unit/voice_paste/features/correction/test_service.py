@@ -12,6 +12,8 @@ if TYPE_CHECKING:
 
 CSV_HEADER = "誤変換,正しい表記\n"
 CSV_HEADER_WITH_ENABLED = "誤変換,正しい表記,使う\n"
+OVER_FIELD_LIMIT_LENGTH = 200000
+"""csv の 1 項目の上限（131072 文字）を超える長さ。"""
 
 
 @pytest.fixture
@@ -108,6 +110,20 @@ def test_load_glossary_when_unreadable(glossary_file: Path) -> None:
 
     # 準備（Shift_JIS で書いた 1 行の CSV）
     glossary_file.write_bytes(f"{CSV_HEADER}くろーど,Claude\n".encode("shift_jis"))
+
+    # 実行
+    entries = load_glossary(glossary_file)
+
+    # 検証
+    assert entries == []
+
+
+def test_load_glossary_when_malformed(glossary_file: Path) -> None:
+    """csv が解釈できない CSV も空として扱い、例外を上げない（正常系）。"""
+    from voice_paste.features.correction.service import load_glossary
+
+    # 準備（見出しの次の行が「あ,"」で始まり、閉じない引用符の後ろに x を 200000 文字続けた CSV）
+    glossary_file.write_text(f'{CSV_HEADER}あ,"' + "x" * OVER_FIELD_LIMIT_LENGTH, encoding="utf-8")
 
     # 実行
     entries = load_glossary(glossary_file)
@@ -270,6 +286,19 @@ def test_read_glossary_rows_when_unreadable(tmp_path: Path) -> None:
     # 実行・検証
     with pytest.raises(GlossaryReadError, match="^ファイルを開けません（"):
         read_glossary_rows(folder)
+
+
+def test_read_glossary_rows_when_malformed(glossary_file: Path) -> None:
+    """csv が解釈できない CSV は読めないとする（異常系）。"""
+    from voice_paste.features.correction.service import read_glossary_rows
+    from voice_paste.shared.errors import GlossaryReadError
+
+    # 準備（見出しの次の行が「あ,"」で始まり、閉じない引用符の後ろに x を 200000 文字続けた CSV）
+    glossary_file.write_text(f'{CSV_HEADER}あ,"' + "x" * OVER_FIELD_LIMIT_LENGTH, encoding="utf-8")
+
+    # 実行・検証
+    with pytest.raises(GlossaryReadError, match="^CSV の書式が正しくありません（"):
+        read_glossary_rows(glossary_file)
 
 
 # === save_glossary ===

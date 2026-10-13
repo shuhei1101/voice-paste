@@ -203,6 +203,10 @@ data_models:
         type: str | None
         default: None
         description: 補正に使う用語集の名前。None か一覧に無い名前のときは 1 つ目の用語集を使う（pick_active_glossary）
+      - name: hint_presets
+        type: list[HintPresetSettings]
+        default: '[]'
+        description: 表記のヒント（文字起こしの手がかり）のプリセットの一覧。並びが設定画面の一覧と語をつなぐ順になる。キーが無い settings.toml は空の一覧として読む。名前の重なり（find_hint_preset_name_overlaps）と、有効な語をつないだ長さが HINT_MAX_BYTES を超える設定は検証で断る
     refs:
       - dev/設計書/外部ライブラリ/pydantic#
       - dev/設計書/設定/常駐アプリ#
@@ -650,6 +654,31 @@ data_models:
       - dev/設計書/設定/常駐アプリ#settings[glossaries[].name]
       - dev/設計書/設定/常駐アプリ#settings[glossaries[].path]
     status: implemented
+  - name: HintPresetSettings
+    title: 表記のヒントのプリセットの設定
+    container: shared/settings.py
+    usecase: 設定を変える
+    role: 設定のモデル
+    summary: 表記のヒントのプリセット 1 つの名前・語の並び・有効か
+    description: 語は `field_validator` で 1 つずつ前後の空白を除いて確かめる。空の語は `PydanticCustomError`（type `hint_word_empty`）、読点（、）・句点（。）・改行を含む語は `PydanticCustomError`（type `hint_word_separator`）にし、失敗の場所を `words[{m}]` にする。無効のプリセットの語も確かめる。
+    inherits: pydantic.BaseModel
+    properties:
+      - name: name
+        type: str
+        description: 設定画面の一覧に出す名前（前後の空白を除く。`min_length=1`）
+      - name: words
+        type: list[str]
+        default: '[]'
+        description: 文字起こしに渡す語の並び（各語の前後の空白を除く）
+      - name: enabled
+        type: bool
+        default: 'True'
+        description: このプリセットの語を文字起こしに渡すか
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[hint_presets[].name]
+      - dev/設計書/設定/常駐アプリ#settings[hint_presets[].words]
+      - dev/設計書/設定/常駐アプリ#settings[hint_presets[].enabled]
+    status: planned
 classes:
   - name: AppError
     title: アプリの例外
@@ -1222,6 +1251,118 @@ functions:
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
     status: implemented
+  - name: join_hint_words
+    title: 表記のヒントの語のつなぎ
+    container: shared/settings.py
+    usecase: 録音を文字に起こす
+    summary: 有効なプリセットの語を、一覧の上から順に読点（、）でつなぐ。Settings の長さの確かめと、文字起こしに渡す手がかりの組み立て（main.py）が共に使う
+    kind: 関数
+    scope: public
+    args:
+      - name: presets
+        type: Sequence[HintPresetSettings]
+        required: true
+        passing: positional
+        description: 設定の hint_presets
+    returns:
+      type: str
+      description: つないだ手がかり。有効な語が無ければ空文字
+    process: 1. enabled が True のプリセットの words を一覧の順に並べ、読点（、）でつなぐ
+    notes:
+      補足: Settings の `model_validator(mode="after")` が、返した文字の UTF-8 のバイト数が HINT_MAX_BYTES を超えたら `PydanticCustomError`（type `hint_too_long`、場所 `hint_presets`、ctx に今のバイト数）を集める。ホットキー・用語集の名前の重なりと同じ確かめの中で集め、1 回の ValidationError にまとめる
+    unit_tests:
+      - name: test_join_hint_words
+        case: 正常
+        summary: 有効なプリセットの語を一覧の順につなぐ
+        condition: 有効な A（語 voice-paste・Whisper）・無効な B（語 議事録）・有効な C（語 返信）
+        mock: なし
+        expected: '"voice-paste、Whisper、返信" が返る'
+      - name: test_join_hint_words_when_none_enabled
+        case: 正常
+        summary: 有効な語が無ければ空文字
+        condition: プリセットが空、または全て無効
+        mock: なし
+        expected: '"" が返る'
+      - name: test_settings_when_hint_at_limit
+        case: 正常
+        summary: つないだ長さが上限ちょうどなら通る
+        condition: 有効な語をつないだ長さが 222 バイトの hint_presets を SETTINGS_MODEL.model_validate に渡す
+        mock: なし
+        expected: 検証に通る
+      - name: test_settings_when_hint_too_long
+        case: 異常
+        summary: 上限を 1 バイトでも超えたら通らない
+        condition: 有効な語をつないだ長さが 223 バイトの hint_presets を SETTINGS_MODEL.model_validate に渡す
+        mock: なし
+        expected: ValidationError。type が hint_too_long、失敗の場所が hint_presets
+      - name: test_settings_when_disabled_hint_long
+        case: 正常
+        summary: 無効のプリセットの語は長さに数えない
+        condition: 有効な語は 100 バイト、無効なプリセットに 300 バイトの語を持つ hint_presets を SETTINGS_MODEL.model_validate に渡す
+        mock: なし
+        expected: 検証に通る
+      - name: test_settings_when_hint_word_has_separator
+        case: 異常
+        summary: 読点・句点・改行を含む語は通らない
+        condition: 語「A、B」「C。」「D\nE」をそれぞれ持つ無効のプリセットを SETTINGS_MODEL.model_validate に渡す
+        mock: なし
+        expected: ValidationError。type がどれも hint_word_separator、失敗の場所が hint_presets[0].words[0] などその語
+      - name: test_settings_when_hint_word_blank
+        case: 異常
+        summary: 空白だけの語は通らない
+        condition: 語「  」を持つ hint_presets を SETTINGS_MODEL.model_validate に渡す
+        mock: なし
+        expected: ValidationError。type が hint_word_empty、失敗の場所が hint_presets[0].words[0]
+      - name: test_load_settings_when_no_hint_presets
+        case: 正常
+        summary: hint_presets のキーが無い今の settings.toml を読める
+        condition: hint_presets を持たない settings.toml を load_settings で読む
+        mock: なし（tmp_path）
+        expected: hint_presets が空の一覧
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[hint_presets[].words]
+    status: planned
+  - name: find_hint_preset_name_overlaps
+    title: 表記のヒントのプリセットの名前の重なりの検出
+    container: shared/settings.py
+    usecase: 設定を変える
+    summary: 表記のヒントのプリセットのうち、前に並んだプリセットと名前が同じものを返す。Settings の確かめ（`model_validator(mode="after")`）が呼ぶ
+    kind: 関数
+    scope: public
+    args:
+      - name: settings
+        type: Settings
+        required: true
+        passing: positional
+        description: 確かめる設定
+    returns:
+      type: list[tuple[str, str]]
+      description: （重なったキー, 重なった名前）の並び。キーは format_error_location と同じ書式（例 `hint_presets[2].name`）
+    process: 1. `hint_presets` を並びの順に見て、名前が先に並んだプリセットと同じものを集める（前後の空白は HintPresetSettings が除いている）
+    notes:
+      補足: Settings の `model_validator(mode="after")` が、重なりごとに `PydanticCustomError`（type `hint_preset_name_overlap`、場所は重なったキー）を集める。find_glossary_name_overlaps と同じ確かめの中で集める
+    unit_tests:
+      - name: test_find_hint_preset_name_overlaps
+        case: 正常
+        summary: 後ろにある側を重なりとして返す
+        condition: 名前が「開発」「会議」「開発」の 3 件の hint_presets
+        mock: なし
+        expected: '[("hint_presets[2].name", "開発")] が返る'
+      - name: test_settings_when_hint_preset_names_overlap
+        case: 異常
+        summary: 名前が重なる設定は検証に通らない
+        condition: 名前が同じ 2 件の hint_presets を SETTINGS_MODEL.model_validate に渡す
+        mock: なし
+        expected: ValidationError。失敗の場所が hint_presets[1].name
+      - name: test_settings_when_hint_preset_name_blank
+        case: 異常
+        summary: 空白だけの名前は検証に通らない
+        condition: 名前が「  」の hint_presets を SETTINGS_MODEL.model_validate に渡す
+        mock: なし
+        expected: ValidationError。失敗の場所が hint_presets[0].name
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/設定画面.py#
+    status: planned
 constants:
   - name: APP_NAME
     title: アプリ名
@@ -1230,6 +1371,13 @@ constants:
     summary: 置き場所のフォルダ名に使うアプリの名前
     value: '"voice-paste"'
     status: implemented
+  - name: HINT_MAX_BYTES
+    title: 表記のヒントの長さの上限
+    container: shared/settings.py
+    usecase: 設定を変える
+    summary: 有効なプリセットの語をつないだ手がかりの UTF-8 のバイト数の上限。faster-whisper が hotwords を先頭の 223 トークンに切ることから、頭に足す空白の 1 バイトを引いた値（導き方は PR の要件と外部ライブラリ『faster-whisper』）
+    value: '222'
+    status: planned
 test_files:
   - tests/unit/voice_paste/shared/test_settings.py
   - tests/unit/voice_paste/shared/test_logger.py

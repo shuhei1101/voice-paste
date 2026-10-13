@@ -18,7 +18,8 @@ directory: |-
       ├── settings_window.py        # SettingsWindow・confirm_discard・confirm_reset・PRESET_KIND_NAMES
       ├── settings_fields.py        # make_radio_group・selected_radio など設定画面の欄の部品
       ├── settings_presets.py       # PresetListPanel（設定画面の種類ごとのタブのプリセットの一覧）
-      └── settings_glossaries.py    # GlossaryPanel（設定画面の用語集の一覧と行の表）・find_glossary_row_errors
+      ├── settings_glossaries.py    # GlossaryPanel（設定画面の用語集の一覧と行の表）・find_glossary_row_errors
+      └── settings_hints.py         # HintPresetPanel（設定画面の表記のヒントの長さとプリセットの一覧）
   resources/tray/
   └── starting.png・idle.png・recording.png・transcribing.png・failed.png  # トレイのアイコン（状態ごと）
   ```
@@ -891,7 +892,7 @@ classes:
         scope: internal
         returns:
           type: dict[str, Any]
-          description: Settings.model_validate へ渡す値。presets はブラウザ添付のタブの並び → エンドポイントへ送るのタブの並びの順（各 PresetListPanel.collect をつなぐ）。glossaries は GlossaryPanel.collect、active_glossary は GlossaryPanel.active_name。glossary_path は置かない
+          description: Settings.model_validate へ渡す値。presets はブラウザ添付のタブの並び → エンドポイントへ送るのタブの並びの順（各 PresetListPanel.collect をつなぐ）。glossaries は GlossaryPanel.collect、active_glossary は GlossaryPanel.active_name。hint_presets は HintPresetPanel.collect。glossary_path は置かない
       - name: save
         title: 保存
         summary: 欄の値を設定のモデルで確かめ、通れば書いて効かせる。通らなければエラーを出す
@@ -980,6 +981,26 @@ classes:
             condition: 足した用語集の名前を 2 件目と同じにし、その 2 行目の誤変換を空にして保存する
             mock: UiDeps.save_settings（呼ばれたかを控える）・list_glossaries・read_glossary
             expected: 'False。save_settings は呼ばれず、エラーの一覧に「用語集 3 件目の名前: …」と「用語集 3 件目の 2 行目の誤変換: 誤変換を入れてください」が出る'
+          - name: test_save_when_hint_presets
+            case: 正常
+            summary: 表記のヒントのプリセットを設定に入れて書く
+            condition: 「表記のヒント」でプリセットを 1 件足して名前「開発」と語 voice-paste を入れ、save(restart=False)
+            mock: UiDeps.save_settings
+            expected: True。save_settings に渡った Settings の hint_presets が [「開発」（words ["voice-paste"]・enabled True）]
+          - name: test_save_when_hint_too_long
+            case: 異常
+            summary: 有効なヒントが上限を超えたら書かずにエラーを出す
+            condition: 有効なプリセットにつないだ長さが 223 バイトになる語を入れ、save(restart=False)
+            mock: UiDeps.save_settings
+            expected: False。save_settings が呼ばれず、エラーの一覧と長さの行の下に「有効なヒントが長すぎます（223 / 222 バイト）。…」が出る
+            exception: 確かめに通らない
+          - name: test_save_when_hint_word_invalid
+            case: 異常
+            summary: 空の語と区切りを含む語では保存せず、エラーを出す
+            condition: プリセット 1 件目の 1 つ目の語を空にし、2 つ目の語を「A、B」にして save(restart=False)
+            mock: UiDeps.save_settings
+            expected: 'False。save_settings が呼ばれず、エラーの一覧に「プリセット 1 件目の 1 つ目の語: 語を入れるか、この欄を消してください。」「プリセット 1 件目の 2 つ目の語: 読点（、）・句点（。）・改行は入れられません。語を分けて足してください。」が出る'
+            exception: 確かめに通らない
       - name: reset_to_defaults
         title: 既定に戻す
         summary: confirm_reset で確かめ、戻すなら開いたときの設定と同じ設定のモデルの既定値（`type(開いたときの設定)()`）を書いて欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す
@@ -1030,6 +1051,11 @@ classes:
         エラーの一覧の用語集の行は、失敗の場所 `glossaries[{n}].name` を「用語集 {n+1} 件目の名前」、行の失敗を「用語集 {n+1} 件目の {m+1} 行目の{誤変換か正しい表記}」にし、押すと「用語集」のまとまりへ切り替えて GlossaryPanel.focus_field でその用語集の行の表を出し、欄へフォーカスを移す。
         to_field_message は、用語集の名前の空を「名前を入れてください。」、名前の重なり（find_glossary_name_overlaps の PydanticCustomError）を「用語集「{名前}」と同じ名前です。別の名前にしてください。」にする。
         既定に戻すと、用語集の一覧は設定ファイルと同じフォルダの yogo.csv の 1 件に戻る（用語集の CSV のファイルは消さず、書き換えない）。
+      表記のヒントのまとまり: |-
+        「文字起こし」の次、「用語集」の前のまとまり「表記のヒント」に HintPresetPanel を 1 つ置き、開くときに設定の hint_presets を HintPresetPanel.set_presets に渡す。
+        収集では `hint_presets` に HintPresetPanel.collect を入れる。変えた欄の数えには、プリセットの一覧（名前・語・有効か・並び）の変更も含める（反映は immediate）。
+        エラーの一覧の表記のヒントの行は、失敗の場所 `hint_presets` を「有効なヒントの長さ」、`hint_presets[{n}].name` を「プリセット {n+1} 件目の名前」、`hint_presets[{n}].words[{m}]` を「プリセット {n+1} 件目の {m+1} つ目の語」にし、押すと「表記のヒント」のまとまりへ切り替えて HintPresetPanel.focus_field で欄へフォーカスを移す。長さの失敗は長さの行の下にも出す。
+        既定に戻すと、表記のヒントのプリセットは空になる。
   - name: PresetListPanel
     title: プリセットの一覧
     container: ui/windows/settings_presets.py
@@ -1329,6 +1355,127 @@ classes:
       読めない用語集: |-
         行を読む関数が GlossaryReadError を送出した用語集は、読めない用語集として一覧に残す（設定画面は開く）。行の数は「読めません」、行の表の代わりに「この用語集の CSV を読めませんでした（{理由}）。保存しても、この CSV は書き換えません。」を出し、行を足すボタンを無効にする。名前を変える・補正に使う用語集に選ぶ・一覧から消すはできる。
         changed_rows と row_errors には入れない（保存してもその CSV に触れない）。
+  - name: HintPresetPanel
+    title: 表記のヒントの長さとプリセットの一覧
+    container: ui/windows/settings_hints.py
+    usecase: 設定を変える
+    role: 画面の部品
+    kind: クラス
+    inherits: PySide6.QtWidgets.QWidget
+    summary: 設定画面の「表記のヒント」のまとまりに置く、有効なヒントの長さ・プリセットのまとまりの縦の並び・「プリセットを足す」・補足。プリセットと語の足す・消す・並べ替えを受け、長さを数え直す
+    description: |-
+      要素（説明・有効なヒントの長さ・一覧・空の案内・有効の切り替え・語の数と長さ・名前・語・語を消す・語が無いときの文・語を足す・上へ・下へ・消す・足す・補足）と読み上げの名前は画面設計「設定画面」が持つ。
+      プリセットのまとまりは PresetListPanel と同じ形（頭に切り替え・名前・上へ・下へ・消す、下に欄）で作る。語の欄は入力と消すボタンの組を `QGridLayout` の 2 列（左から右、上から下が語の順）に並べ、部品の幅が 2 組入らないときは 1 列に並べ直す（resizeEvent）。幅に応じて列の数を 3 以上に増やす自前のレイアウトは作らない。
+      長さは欄の入力・切り替え・足す・消す・並べ替えのたびに、今の欄の値を HintPresetSettings にして join_hint_words でつないだ UTF-8 のバイト数で数え直し、HINT_MAX_BYTES を超えたらバーと数字を赤にして「（{超えた分} バイト超過）」を添える。数えるときも、空の語・区切りを含む語はそのまま数える（確かめは保存で行う）。
+      無効のプリセットの語の欄は、用語集のオフの行と同じく文字を薄くして取り消し線を引く（編集はできる）。
+      足す・消す・並べ替えはこの部品の中だけを変え、settings.toml へは設定画面の保存で書く。単体テストは tests/unit/voice_paste/ui/windows/test_settings_hints.py に置く。
+    properties:
+      - name: changed
+        type: Signal()
+        description: 足す・消す・並べ替え・切り替え・欄の入力で値が変わった（設定画面が変えた欄の数えに使う）
+    methods:
+      - name: set_presets
+        title: 一覧に入れる
+        kind: メソッド
+        scope: public
+        summary: 渡したプリセットで一覧を作り直し、長さを数え直す。空なら空の案内を出す
+        args:
+          - name: presets
+            type: Sequence[HintPresetSettings]
+            required: true
+            passing: positional
+            description: 設定の hint_presets
+        returns:
+          type: None
+          description: なし
+      - name: collect
+        title: 一覧の値の収集
+        kind: メソッド
+        scope: public
+        summary: 今の並びのプリセットを settings.toml と同じ形の dict（name・words・enabled）の並びにする。空の語の欄もそのまま入れ（確かめで断る）、前後の空白は設定のモデルが除く
+        returns:
+          type: list[dict[str, Any]]
+          description: hint_presets の並び
+        unit_tests:
+          - name: test_hint_preset_panel_collect
+            case: 正常
+            summary: 入れたプリセットをそのまま集める
+            condition: 有効な「開発」（語 voice-paste・Whisper）と無効な「会議」（語 議事録）を set_presets する
+            mock: なし（offscreen）
+            expected: collect が 2 件を同じ並びで返し、1 件目の words が ["voice-paste", "Whisper"]・enabled True、2 件目の enabled False
+          - name: test_hint_preset_panel_move
+            case: 正常
+            summary: 下へで並びを入れ替える
+            condition: A・B の 2 件で、A の「下へ」を押す
+            mock: なし（offscreen）
+            expected: collect の名前が B・A の順
+      - name: add_preset
+        title: プリセットを足す
+        kind: メソッド
+        scope: public
+        summary: 末尾に名前と語が空で有効のプリセットを足し、名前の欄へフォーカスを移して changed を emit する。「プリセットを足す」が呼ぶ
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_hint_preset_panel_add_preset
+            case: 正常
+            summary: 足したプリセットは有効で始まる
+            condition: 空の一覧で add_preset を呼ぶ
+            mock: なし（offscreen）
+            expected: collect が 1 件（enabled True・name が空・words が空）を返し、changed が 1 回 emit され、空の案内が消える
+      - name: add_word
+        title: 語を足す
+        kind: メソッド
+        scope: public
+        summary: そのプリセットの語の末尾に空の欄を足してフォーカスを移し、changed を emit する。「語を足す」が呼ぶ
+        args:
+          - name: position
+            type: int
+            required: true
+            passing: positional
+            description: 一覧の何件目のプリセットか（0 から）
+        returns:
+          type: None
+          description: なし
+      - name: hint_length
+        title: 有効なヒントの長さ
+        kind: メソッド
+        scope: public
+        summary: 今の欄の値で、有効なプリセットの語をつないだ UTF-8 のバイト数を返す（長さの行の表示と同じ値）
+        returns:
+          type: int
+          description: バイト数
+        unit_tests:
+          - name: test_hint_preset_panel_hint_length
+            case: 正常
+            summary: 切り替えと入力で長さを数え直す
+            condition: 有効な「開発」（語 abc）と無効な「会議」（語 議事録）を入れ、「会議」を有効に切り替える
+            mock: なし（offscreen）
+            expected: 切り替える前は 3、切り替えた後は 15（abc、議事録）。長さの行の文字が「15 / 222 バイト」
+          - name: test_hint_preset_panel_hint_length_when_over
+            case: 正常
+            summary: 上限を超えたら超過を文字で添える
+            condition: 有効なプリセットにつないだ長さが 258 バイトになる語を入れる
+            mock: なし（offscreen）
+            expected: 長さの行の文字が「258 / 222 バイト（36 バイト超過）」
+      - name: focus_field
+        title: 欄へフォーカスを移す
+        kind: メソッド
+        scope: public
+        summary: 失敗の場所で欄を探し、フォーカスを移す（エラーの一覧の行を押したとき）。場所が `hint_presets` だけなら長さの行へ移す
+        args:
+          - name: location
+            type: tuple[int | str, ...]
+            required: true
+            passing: positional
+            description: hint_presets より後ろの失敗の場所（例 (1, "words", 3)・(2, "name")・()）
+        returns:
+          type: None
+          description: なし
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/設定画面.py#
+    status: planned
 functions:
   - name: notify
     title: ユーザーへの知らせ
@@ -1621,8 +1768,13 @@ functions:
          - float_parsing・int_parsing・int_from_float: 「数値を入れてください（例: {既定の値}）。」
          - greater_than_equal・less_than_equal・greater_than: 「{最小}〜{最大} の値を入れてください。」（上限が無ければ「{最小} 以上の値を入れてください。」）
          - string_too_short（プリセットのタイトル）: 「タイトルを入れてください。」
+         - string_too_short（表記のヒントのプリセットの名前）: 「名前を入れてください。」
          - URL の形が合わない（プリセットの URL）: 空なら「URL を入れてください（例: https://example.com/hook）。」、空でなければ「http:// か https:// で始まる URL を入れてください。」
          - hotkey_overlap（find_hotkey_overlaps）: 重なった先がプリセットなら「プリセット「{タイトル}」と同じキーです。別のキーにしてください。」（もう一方の種類のプリセットなら「「{種類}」のプリセット「{タイトル}」と同じキーです。別のキーにしてください。」）、それ以外は「「{重なった欄の名前}」と同じホットキーです。別のキーにしてください。」
+         - hint_too_long: 「有効なヒントが長すぎます（{今の長さ} / 222 バイト）。語を減らすか、プリセットを無効にしてください。」
+         - hint_word_empty: 「語を入れるか、この欄を消してください。」
+         - hint_word_separator: 「読点（、）・句点（。）・改行は入れられません。語を分けて足してください。」
+         - hint_preset_name_overlap（find_hint_preset_name_overlaps）: 「プリセット「{名前}」と同じ名前です。別の名前にしてください。」
          - それ以外: pydantic の msg をそのまま出す
     unit_tests:
       - name: test_to_field_message_when_not_number
@@ -1643,6 +1795,18 @@ functions:
         condition: presets[0] を kind endpoint・url が空にした SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
         mock: なし
         expected: 'URL を入れてください（例: https://example.com/hook）。'
+      - name: test_to_field_message_when_hint_too_long
+        case: 正常
+        summary: 有効なヒントが長すぎる
+        condition: 有効な語をつないだ長さが 258 バイトの hint_presets を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
+        mock: なし
+        expected: 有効なヒントが長すぎます（258 / 222 バイト）。語を減らすか、プリセットを無効にしてください。
+      - name: test_to_field_message_when_hint_preset_name_overlap
+        case: 正常
+        summary: 表記のヒントのプリセットの名前が重なる
+        condition: 名前が「開発」の 2 件の hint_presets を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
+        mock: なし
+        expected: プリセット「開発」と同じ名前です。別の名前にしてください。
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
     status: implemented

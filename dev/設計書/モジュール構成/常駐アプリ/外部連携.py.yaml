@@ -126,11 +126,17 @@ classes:
             default: None
             passing: keyword
             description: 区間の終わりの時刻を知らせる
+          - name: hint
+            type: str | None
+            required: false
+            default: None
+            passing: keyword
+            description: 文字起こしの手がかり。None なら transcribe の行に hotwords を載せない
         returns:
           type: list[str]
           description: 区間ごとの文字
         process: |-
-          1. 録音と設定を 1 行の JSON で送り、区間の進みと結果を読む
+          1. 録音と設定を 1 行の JSON で送り、区間の進みと結果を読む。hint が None でなければ hotwords に載せる（立て直して送り直すときも同じ手がかりを載せる）
              - 子プロセスが応答の途中で終わった場合、_stopping が立っていれば立て直さずに EngineError を送出する（常駐の終了で止めた）
              - それ以外で子プロセスが応答の途中で終わった場合、子プロセスを start(ready_timeout_sec=_ready_timeout_sec) で起動し直して同じ録音をもう一度送る（やり直しは 1 回だけ）
                - `[WARNING]` 文字起こしワーカーが落ちたので立て直す（終了コード）
@@ -176,6 +182,18 @@ classes:
             mock: subprocess.Popen
             expected: EngineError が送出され、2 つ目の子プロセスが止められ、待ちが 1 秒未満で終わる
             exception: やり直したワーカーも落ちた
+          - name: test_transcribe_when_hint
+            case: 正常
+            summary: 手がかりを hotwords に載せて送る
+            condition: hint="voice-paste、Whisper" で transcribe を呼ぶ。子プロセスは result（["今日は"]）を返す
+            mock: subprocess.Popen
+            expected: 送った transcribe の payload の hotwords が "voice-paste、Whisper"
+          - name: test_transcribe_when_no_hint
+            case: 正常
+            summary: 手がかりが無ければ hotwords を載せない
+            condition: hint を省いて transcribe を呼ぶ
+            mock: subprocess.Popen
+            expected: 送った transcribe の payload に hotwords のキーが無い
       - name: stop
         title: 停止
         kind: メソッド

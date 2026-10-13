@@ -19,7 +19,7 @@ data_models:
         description: config（常駐 → ワーカー。モデル・デバイス・量子化）/ ready（ワーカー → 常駐）/ transcribe（常駐 → ワーカー。録音のパスと言語・ビーム幅・温度・VAD）/ progress（区間の終わりの時刻）/ result（区間ごとの文字）/ error（理由）
       - name: payload
         type: dict
-        description: '種類ごとの中身。config: model・device・compute_type・cpu_threads・num_workers・log_dir / transcribe: audio_path・language・beam_size・best_of・temperature・vad_filter・vad_threshold・vad_min_speech_ms・vad_min_silence_ms・condition_on_previous_text・no_speech_threshold / progress: end・duration（秒） / result: segments（前後の空白を除き空でない区間の文字の並び） / error: message'
+        description: '種類ごとの中身。config: model・device・compute_type・cpu_threads・num_workers・log_dir / transcribe: audio_path・language・beam_size・best_of・temperature・vad_filter・vad_threshold・vad_min_speech_ms・vad_min_silence_ms・condition_on_previous_text・no_speech_threshold・hotwords（省ける。文字起こしの手がかり） / progress: end・duration（秒） / result: segments（前後の空白を除き空でない区間の文字の並び） / error: message'
     status: implemented
 functions:
   - name: run_worker
@@ -52,7 +52,7 @@ functions:
       1. config を読み、log_dir の `worker_crash.log` へ faulthandler を向けてからモデルを読む
          - 最初の行が config でない・モデルを読めない場合、error を書いて 1 を返す
       2. ready を書く
-      3. transcribe を読むたびに、faster-whisper を刷新前と同じ引数（VAD がオフなら vad_parameters は渡さない）で呼び、区間ごとに progress、最後に result を書く
+      3. transcribe を読むたびに、faster-whisper を刷新前と同じ引数（VAD がオフなら vad_parameters は渡さない）と hotwords（payload に無ければ None）で呼び、区間ごとに progress、最後に result を書く。prefix は渡さない（渡すと hotwords が効かない）
          - 例外・JSON として読めない行・知らない種類の場合、error を書いて次の行を待つ（CUDA のクラッシュはプロセスごと落ち、常駐側が立て直す）
          - ログは標準エラーへ書き、標準出力にはメッセージだけを書く
       4. 標準入力が閉じたら 0 を返す
@@ -87,6 +87,18 @@ functions:
         condition: vad_filter=false の transcribe を 1 行入れる
         mock: load_model
         expected: モデルの transcribe が vad_filter=False・vad_parameters=None で呼ばれる
+      - name: test_run_worker_when_hotwords
+        case: 正常
+        summary: 手がかりを hotwords に渡す
+        condition: hotwords="voice-paste、Whisper" の transcribe を 1 行入れる
+        mock: load_model
+        expected: モデルの transcribe が hotwords="voice-paste、Whisper" で呼ばれる
+      - name: test_run_worker_when_no_hotwords
+        case: 正常
+        summary: 手がかりが無ければ hotwords を None で渡す
+        condition: hotwords のキーを持たない transcribe を 1 行入れる
+        mock: load_model
+        expected: モデルの transcribe が hotwords=None で呼ばれる
     refs:
       - dev/設計書/外部ライブラリ/faster-whisper#
     status: implemented

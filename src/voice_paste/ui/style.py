@@ -128,6 +128,7 @@ QProgressBar {
     text-align: center;
 }
 QProgressBar::chunk { background-color: @busy@; border-radius: @radius@px; }
+QProgressBar[over="true"]::chunk { background-color: @danger@; }
 QListWidget {
     background-color: @surface@;
     border: 1px solid @border@;

@@ -15,6 +15,14 @@
 # name = "yogo"
 # path = "glossaries/glossary_1.csv"
 
+# 表記のヒント（文字起こしの手がかり）のプリセットの一覧（設定画面の「表記のヒント」で編集する）。既定は空で、空の間はヒントを渡さない。
+# 有効なプリセットの語を上から順に読点（、）でつないで渡す。つないだ長さは UTF-8 で 222 バイトまで。
+# 語は空にできず、読点（、）・句点（。）・改行を含められない。
+# [[hint_presets]]
+# name = "開発"
+# words = ["voice-paste", "Whisper"]
+# enabled = true
+
 # === 文字起こし ===
 [transcription]
 # 使うエンジン（再起動）。local_whisper

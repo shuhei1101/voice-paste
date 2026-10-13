@@ -85,6 +85,7 @@ from voice_paste.shared.settings import (
     Preset,
     Settings,
     build_settings_model,
+    join_hint_words,
     load_settings,
     save_settings,
 )
@@ -238,6 +239,11 @@ def _correct(text: str, *, settings: Settings, settings_dir: Path) -> str:
     entries = load_glossary(glossary.path)
     logger.info(f"用語集で補正する（{glossary.name}・補正に使う {len(entries)} 行）")
     return apply_glossary(text, entries)
+
+
+def _current_hint(store: SettingsStore) -> str | None:
+    """今の設定の有効なヒントの語を読点でつないだ手がかりを返す。有効な語が無ければ None を返す。"""
+    return join_hint_words(store.get().hint_presets) or None
 
 
 def _deliver_session(
@@ -399,7 +405,9 @@ def build_handlers(
             paths=paths,
             now=_local_now,
         ),
-        transcribe=partial(transcribe, engine=engine.transcribe),
+        transcribe=partial(
+            transcribe, engine=engine.transcribe, get_hint=partial(_current_hint, store)
+        ),
         correct=correct,
         append_text=partial(append_text, paths=paths),
         deliver=deliver_session,

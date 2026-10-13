@@ -20,7 +20,8 @@ class WorkerMessage(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
     """種類ごとの中身。config: model・device・compute_type・cpu_threads・num_workers・log_dir /
     transcribe: audio_path・language・beam_size・best_of・temperature・vad_filter・vad_threshold・
-    vad_min_speech_ms・vad_min_silence_ms・condition_on_previous_text・no_speech_threshold /
+    vad_min_speech_ms・vad_min_silence_ms・condition_on_previous_text・no_speech_threshold・
+    hotwords（省ける。文字起こしの手がかり）/
     progress: end・duration（秒）/ result: segments / error: message。"""
 
     def to_line(self) -> str:

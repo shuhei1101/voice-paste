@@ -20,7 +20,7 @@ class EngineFn(Protocol):
     """1 つのエンジンで録音を起こす関数。エンジンを足すときはこの型の実装を足して main.py で登録する。"""
 
     def __call__(
-        self, audio_path: Path, *, on_progress: ProgressFn | None = None
+        self, audio_path: Path, *, on_progress: ProgressFn | None = None, hint: str | None = None
     ) -> list[str]:
-        """録音の WAV を起こして区間ごとの文字を返す。"""
+        """録音の WAV を起こして区間ごとの文字を返す。hint は文字起こしの手がかりで、None なら渡さずに起こす。"""
         ...

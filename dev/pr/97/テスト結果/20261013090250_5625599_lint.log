@@ -1,4 +1,4 @@
-実行した commit: d9ed920
+実行した commit: 5625599
 実行したコマンド: venv/Scripts/lint-imports（worktree に venv が無いため、メインの venv に PYTHONPATH={worktree}/src を渡して実行した）
 
 

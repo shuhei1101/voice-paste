@@ -121,7 +121,12 @@ def _spoken_name(position: int, name: str) -> str:
 
 def _byte_length(words: _WordsView) -> int:
     """語をつないだ手がかりの UTF-8 のバイト数を返す（有効かどうかは見ない）。"""
-    return len(join_hint_words([_WordsView(enabled=True, words=words.words)]).encode("utf-8"))
+    return len(join_hint_words([words]).encode("utf-8"))
+
+
+def _stripped_words(texts: Sequence[str]) -> list[str]:
+    """欄の文字から前後の空白を除く（保存の確かめと同じ数え方にそろえる）。"""
+    return [text.strip() for text in texts]
 
 
 def _repolish(widget: QWidget) -> None:
@@ -252,7 +257,10 @@ class HintPresetPanel(QWidget):
     def hint_length(self) -> int:
         """今の欄の値で、有効なプリセットの語をつないだ UTF-8 のバイト数を返す。"""
         views = [
-            _WordsView(enabled=row.enabled_box.isChecked(), words=[c.edit.text() for c in row.cells])
+            _WordsView(
+                enabled=row.enabled_box.isChecked(),
+                words=_stripped_words([cell.edit.text() for cell in row.cells]),
+            )
             for row in self._rows
         ]
         return len(join_hint_words(views).encode("utf-8"))
@@ -521,7 +529,7 @@ class HintPresetPanel(QWidget):
         _repolish(self._length_bar)
         # プリセットごとの語の数と、その語だけをつないだ長さ（無効のプリセットも出す）
         for row in self._rows:
-            words = [cell.edit.text() for cell in row.cells]
+            words = _stripped_words([cell.edit.text() for cell in row.cells])
             size = _byte_length(_WordsView(enabled=True, words=words))
             row.size_label.setText(f"{len(words)} 語・{size} バイト")
 

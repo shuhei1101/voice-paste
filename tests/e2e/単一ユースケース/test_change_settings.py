@@ -262,3 +262,87 @@ def test_normal_when_switch_glossary_preset(run_app: RunApp) -> None:
         assert app.correct_text("kuroudo gitto paison") == "kuroudo gitto Python"
 
     run_app(case, extra_settings=COMMENTED_SETTINGS, prepare=_put_glossary)
+
+
+HINT_PRESET_SETTINGS = (
+    "\n[[hint_presets]]\n"
+    'name = "開発"\n'
+    'words = ["voice-paste", "Whisper"]\n'
+    "enabled = true\n"
+)
+"""手がかりのプリセットを 1 つ（語が 2 つ・有効）持つ設定（`[api]` の続きに書く）。"""
+
+HINT_LIMIT_BYTES = 222
+"""有効なヒントの長さの上限（UTF-8 のバイト数）。"""
+
+HINT_OVER_WORD_LENGTH = 209
+"""1 つ目の語（11 バイト）と読点（3 バイト）と合わせて、つないだ長さが 223 バイトになる 2 つ目の語の長さ。"""
+
+
+def test_normal_when_edit_hint_presets(run_app: RunApp) -> None:
+    """手がかりのプリセットを足し・語を足して書き換え・無効にして保存すると、settings.toml に書かれ、再起動せずに次の文字起こしの手がかりへ効く（正常シナリオ）。
+
+    手がかりは、動いている常駐アプリの文字起こしがエンジンへ渡す値で確かめる（マイクは開かない。録音を通した文字起こしは「録音を文字に起こす」の E2E）。
+    """
+
+    def case(app: ResidentApp) -> None:
+        """設定画面の「表記のヒント」で、プリセットを 2 つ足して語を入れ、前からあるプリセットの語を足して書き換え、2 つ目に足したプリセットを無効にして保存する。"""
+        # 準備
+        assert app.hint_for_next_request() == "voice-paste、Whisper"
+        app.open_settings()
+        app.select_group("表記のヒント")
+
+        # 実行（前からあるプリセットに語を足して 1 つ目の語を書き換え、有効なプリセットと、無効にするプリセットを足す）
+        app.press("hint_word_add_0")
+        app.set_text("hint_word_0_2", "tool")
+        app.set_text("hint_word_0_0", "Claude")
+        app.press("hint_preset_add")
+        app.set_text("hint_preset_name_1", "meeting")
+        app.press("hint_word_add_1")
+        app.set_text("hint_word_1_0", "Git")
+        app.press("hint_preset_add")
+        app.set_text("hint_preset_name_2", "memo")
+        app.press("hint_word_add_2")
+        app.set_text("hint_word_2_0", "notes")
+        app.click("hint_preset_enabled_2")
+        app.press("save_button")
+
+        # 検証
+        assert app.wait_window_gone("settings_window")
+        assert _toml(app)["hint_presets"] == [
+            {"name": "開発", "words": ["Claude", "Whisper", "tool"], "enabled": True},
+            {"name": "meeting", "words": ["Git"], "enabled": True},
+            {"name": "memo", "words": ["notes"], "enabled": False},
+        ]
+        assert COMMENT_LINE in _settings_file(app).read_text(encoding="utf-8")
+        assert _toml(app)["recording"]["fade_sec"] == 1.5  # type: ignore[index]
+        assert app.hint_for_next_request() == "Claude、Whisper、tool、Git"
+
+    run_app(case, extra_settings=HINT_PRESET_SETTINGS + COMMENTED_SETTINGS)
+
+
+def test_error_when_hints_too_long(run_app: RunApp) -> None:
+    """有効な手がかりをつないだ長さが 223 バイトになる語を入れて「保存」を押すと、書かず、長さの行の下にエラーを出して開いたままにし、常駐アプリの手がかりは変わらない（異常シナリオ）。"""
+
+    def case(app: ResidentApp) -> None:
+        """設定画面で、有効なプリセットの語を長くして「保存」を押す。"""
+        # 準備
+        before = _settings_file(app).read_bytes()
+        app.open_settings()
+        app.select_group("表記のヒント")
+        app.set_text("hint_word_0_1", "w" * HINT_OVER_WORD_LENGTH)
+
+        # 実行
+        app.press("save_button")
+
+        # 検証
+        assert app.label("hint_length_error") == (
+            f"有効なヒントが長すぎます（{HINT_LIMIT_BYTES + 1} / {HINT_LIMIT_BYTES} バイト）。"
+            "語を減らすか、プリセットを無効にしてください。"
+        )
+        assert app.window("error_summary") is not None
+        assert app.window("settings_window") is not None
+        assert _settings_file(app).read_bytes() == before
+        assert app.hint_for_next_request() == "voice-paste、Whisper"
+
+    run_app(case, extra_settings=HINT_PRESET_SETTINGS + COMMENTED_SETTINGS)

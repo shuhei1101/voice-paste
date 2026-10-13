@@ -17,6 +17,7 @@ import signal
 import time
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
+from functools import partial
 from pathlib import Path
 from typing import Any, TypeVar
 
@@ -75,6 +76,9 @@ DIALOG_WATCH_MS = 20
 """出てはいけない確認ダイアログを見張る間隔（ミリ秒）。"""
 
 MILLISECONDS_PER_SECOND = 1000
+
+PROBE_RECORDING = "probe.wav"
+"""手がかりを確かめるときにエンジンへ渡す録音の名前（エンジンを替えているので、開かれない）。"""
 
 WidgetT = TypeVar("WidgetT", bound=QWidget)
 
@@ -149,6 +153,7 @@ class ResidentApp:
         self.tray: Tray | None = None
         self.hotkeys: FakeHotkeyListener | None = None
         self.correct: Callable[[str], str] | None = None
+        self.transcribe: partial[str] | None = None
         self.opened_folders: list[Path] = []
         self.unexpected_dialogs: list[str] = []
         self.worker_pids_at_start: set[int] = set()
@@ -299,6 +304,25 @@ class ResidentApp:
         assert self.correct is not None, "常駐アプリの補正がまだ作られていない（エンジンを準備できなかった）"
         return self.correct(text)
 
+    # --- 文字起こしの手がかり ---
+
+    def hint_for_next_request(self) -> str | None:
+        """動いている常駐アプリの文字起こしが、次にエンジンへ渡す手がかりを返す（その時点の設定の有効なヒントの語をつないだもの。無ければ None）。
+
+        文字起こしの関数のエンジンだけを、渡された手がかりを控えるものに替えて呼ぶ（マイクも文字起こしのワーカーも使わない）。
+        """
+        assert self.transcribe is not None, "常駐アプリの文字起こしがまだ作られていない（エンジンを準備できなかった）"
+        received: list[str | None] = []
+
+        def engine(_audio_path: Path, *, on_progress: object = None, hint: str | None = None) -> list[str]:
+            """渡された手がかりを控え、区間は返さない。"""
+            received.append(hint)
+            return []
+
+        self.transcribe.func(Path(PROBE_RECORDING), **{**self.transcribe.keywords, "engine": engine})
+        assert len(received) == 1
+        return received[0]
+
     # --- 確認ダイアログ ---
 
     @contextmanager
@@ -412,6 +436,7 @@ def _spy_on_main(app: ResidentApp, monkeypatch: pytest.MonkeyPatch) -> None:
     def make_session_deps(**fields: Any) -> Any:
         """本物の SessionDeps を作り、渡された補正の関数を控える。"""
         app.correct = fields["correct"]
+        app.transcribe = fields["transcribe"]
         return session_deps(**fields)
 
     monkeypatch.setattr(main_module, "Tray", make_tray)

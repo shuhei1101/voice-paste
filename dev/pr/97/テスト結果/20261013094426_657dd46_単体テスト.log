@@ -1,4 +1,4 @@
-実行した commit: 5625599
+実行した commit: 657dd46
 実行したコマンド: venv/Scripts/python.exe -m pytest tests/unit -v -rs（worktree に venv が無いため、メインの venv に PYTHONPATH={worktree}/src を渡して実行した）
 
 ============================= test session starts =============================
@@ -452,4 +452,4 @@ tests/unit/voice_paste/ui/windows/test_transcribing_indicator.py::test_set_progr
     from starlette.testclient import TestClient as TestClient  # noqa
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-======================= 437 passed, 1 warning in 17.37s =======================
+======================= 437 passed, 1 warning in 16.37s =======================

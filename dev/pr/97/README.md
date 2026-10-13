@@ -37,5 +37,5 @@ develop の設定画面（[settings_window.py](https://github.com/shuhei1101/voi
 - [x] ドキュメント修正（docs/使い方/録音して貼り付ける.md）
 - [x] 単体テスト作成
 - [x] 実装
-- [ ] 結合テスト作成
+- [x] 結合テスト作成
 - [ ] E2E テスト作成

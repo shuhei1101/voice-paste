@@ -417,6 +417,81 @@ def test_save_when_glossary_invalid(
     assert "用語集 3 件目の 2 行目の誤変換: 誤変換を入れてください" in summary
 
 
+HINT_TOO_LONG_WORD_CHARS = 74
+"""日本語 74 文字 = 222 バイトの語の文字数（これに英字 1 文字を足すと 223 バイト）。"""
+
+
+def _add_hint_preset(window: SettingsWindow, *, name: str, word_count: int) -> list[QLineEdit]:
+    """「表記のヒント」でプリセットを足して名前を入れ、語の欄を word_count 個足して、語の欄を返す。"""
+    _select_group(window, "表記のヒント")
+    _button(window, "hint_preset_add").click()
+    _visible_edits(window, "hint_preset_name_")[0].setText(name)
+    for _ in range(word_count):
+        _visible_buttons(window, "hint_word_add_")[0].click()
+    return _visible_edits(window, r"hint_word_\d")
+
+
+def test_save_when_hint_presets(opened: Opened) -> None:
+    """表記のヒントのプリセットを設定に入れて書く（正常系）。"""
+    # 準備（「表記のヒント」でプリセットを 1 件足して名前「開発」と語 voice-paste を入れる）
+    word_edits = _add_hint_preset(opened.window, name="開発", word_count=1)
+    word_edits[0].setText("voice-paste")
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is True
+    saved_settings = opened.deps.save_settings.call_args.args[0]
+    assert [
+        (preset.name, preset.words, preset.enabled) for preset in saved_settings.hint_presets
+    ] == [("開発", ["voice-paste"], True)]
+
+
+def test_save_when_hint_too_long(opened: Opened) -> None:
+    """有効なヒントが上限を超えたら書かずにエラーを出す（異常系）。"""
+    # 準備（有効なプリセットにつないだ長さが 223 バイトになる語を入れる）
+    word_edits = _add_hint_preset(opened.window, name="開発", word_count=1)
+    word_edits[0].setText("a" + "あ" * HINT_TOO_LONG_WORD_CHARS)
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証（エラーの一覧と、長さの行の下の両方に出る）
+    message = "有効なヒントが長すぎます（223 / 222 バイト）。"
+    assert result is False
+    opened.deps.save_settings.assert_not_called()
+    assert f"有効なヒントの長さ: {message}" in _error_summary_text(opened.window)
+    summary = opened.window.findChild(QWidget, "error_summary")
+    assert summary is not None
+    below_length_row = [
+        label
+        for label in opened.window.findChildren(QLabel)
+        if message in label.text() and not summary.isAncestorOf(label) and label is not summary
+    ]
+    assert len(below_length_row) == 1
+
+
+def test_save_when_hint_word_invalid(opened: Opened) -> None:
+    """空の語と区切りを含む語では保存せず、エラーを出す（異常系）。"""
+    # 準備（プリセット 1 件目の 1 つ目の語を空にし、2 つ目の語を「A、B」にする）
+    word_edits = _add_hint_preset(opened.window, name="開発", word_count=2)
+    word_edits[1].setText("A、B")
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is False
+    opened.deps.save_settings.assert_not_called()
+    summary = _error_summary_text(opened.window)
+    assert "プリセット 1 件目の 1 つ目の語: 語を入れるか、この欄を消してください。" in summary
+    assert (
+        "プリセット 1 件目の 2 つ目の語: "
+        "読点（、）・句点（。）・改行は入れられません。語を分けて足してください。"
+    ) in summary
+
+
 # === close_without_confirm ===
 
 
@@ -597,3 +672,43 @@ def test_to_field_message_when_preset_url_empty(settings_model: type[Settings]) 
 
     # 検証
     assert message == "URL を入れてください（例: https://example.com/hook）。"
+
+
+def test_to_field_message_when_hint_too_long(settings_model: type[Settings]) -> None:
+    """有効なヒントが長すぎる（正常系）。"""
+    from pydantic import ValidationError
+
+    from voice_paste.ui.windows.settings_window import to_field_message
+
+    # 準備（有効な語をつないだ長さが 258 バイトの hint_presets）
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate(
+            {"hint_presets": [{"name": "開発", "words": ["あ" * 86], "enabled": True}]}
+        )
+
+    # 実行
+    message = to_field_message(exc_info.value.errors()[0], model=settings_model)
+
+    # 検証
+    assert message == (
+        "有効なヒントが長すぎます（258 / 222 バイト）。語を減らすか、プリセットを無効にしてください。"
+    )
+
+
+def test_to_field_message_when_hint_preset_name_overlap(settings_model: type[Settings]) -> None:
+    """表記のヒントのプリセットの名前が重なる（正常系）。"""
+    from pydantic import ValidationError
+
+    from voice_paste.ui.windows.settings_window import to_field_message
+
+    # 準備（名前が「開発」の 2 件の hint_presets）
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate(
+            {"hint_presets": [{"name": "開発", "words": ["A"]}, {"name": "開発", "words": ["B"]}]}
+        )
+
+    # 実行
+    message = to_field_message(exc_info.value.errors()[0], model=settings_model)
+
+    # 検証
+    assert message == "プリセット「開発」と同じ名前です。別の名前にしてください。"

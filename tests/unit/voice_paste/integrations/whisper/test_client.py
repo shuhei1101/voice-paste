@@ -461,6 +461,41 @@ def test_transcribe(
     }
 
 
+def test_transcribe_when_hint(
+    make_client: Callable[..., Any], install_popen: Callable[..., FakePopen]
+) -> None:
+    """手がかりを hotwords に載せて送る（正常系）。"""
+    # 準備
+    process = FakeProcess(ready_worker)
+    install_popen(process)
+    client = make_client()
+    client.start()
+
+    # 実行
+    segments = client.transcribe(AUDIO_PATH, hint="voice-paste、Whisper")
+
+    # 検証
+    assert segments == ["今日は", "晴れ"]
+    assert process.received[-1]["payload"]["hotwords"] == "voice-paste、Whisper"
+
+
+def test_transcribe_when_no_hint(
+    make_client: Callable[..., Any], install_popen: Callable[..., FakePopen]
+) -> None:
+    """手がかりが無ければ hotwords を載せない（正常系）。"""
+    # 準備
+    process = FakeProcess(ready_worker)
+    install_popen(process)
+    client = make_client()
+    client.start()
+
+    # 実行
+    client.transcribe(AUDIO_PATH)
+
+    # 検証
+    assert "hotwords" not in process.received[-1]["payload"]
+
+
 def test_transcribe_when_worker_error(
     make_client: Callable[..., Any], install_popen: Callable[..., FakePopen]
 ) -> None:

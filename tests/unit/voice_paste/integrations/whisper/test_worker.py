@@ -37,24 +37,24 @@ def _config_line(log_dir: Path) -> str:
     )
 
 
-def _transcribe_line(*, vad_filter: bool = True) -> str:
-    """transcribe の 1 行（常駐 → ワーカー）を作る。"""
-    return _message_line(
-        "transcribe",
-        {
-            "audio_path": AUDIO_PATH,
-            "language": "ja",
-            "beam_size": 10,
-            "best_of": 5,
-            "temperature": 0.0,
-            "vad_filter": vad_filter,
-            "vad_threshold": 0.5,
-            "vad_min_speech_ms": 250,
-            "vad_min_silence_ms": 2000,
-            "condition_on_previous_text": False,
-            "no_speech_threshold": 0.6,
-        },
-    )
+def _transcribe_line(*, vad_filter: bool = True, hotwords: str | None = None) -> str:
+    """transcribe の 1 行（常駐 → ワーカー）を作る。hotwords が None ならキーごと載せない。"""
+    payload: dict[str, Any] = {
+        "audio_path": AUDIO_PATH,
+        "language": "ja",
+        "beam_size": 10,
+        "best_of": 5,
+        "temperature": 0.0,
+        "vad_filter": vad_filter,
+        "vad_threshold": 0.5,
+        "vad_min_speech_ms": 250,
+        "vad_min_silence_ms": 2000,
+        "condition_on_previous_text": False,
+        "no_speech_threshold": 0.6,
+    }
+    if hotwords is not None:
+        payload["hotwords"] = hotwords
+    return _message_line("transcribe", payload)
 
 
 def _message_line(message_type: str, payload: dict[str, Any]) -> str:
@@ -161,3 +161,31 @@ def test_run_worker_when_vad_disabled(tmp_path: Path) -> None:
     request = model.transcribe.call_args.kwargs
     assert request["vad_filter"] is False
     assert request.get("vad_parameters") is None
+
+
+def test_run_worker_when_hotwords(tmp_path: Path) -> None:
+    """手がかりを hotwords に渡す（正常系）。"""
+    # 準備
+    model = _model_returning([_segment("今日は", 1.0)])
+    load_model = MagicMock(return_value=model)
+
+    # 実行
+    _run(
+        [_config_line(tmp_path), _transcribe_line(hotwords="voice-paste、Whisper")], load_model
+    )
+
+    # 検証
+    assert model.transcribe.call_args.kwargs["hotwords"] == "voice-paste、Whisper"
+
+
+def test_run_worker_when_no_hotwords(tmp_path: Path) -> None:
+    """手がかりが無ければ hotwords を None で渡す（正常系）。"""
+    # 準備
+    model = _model_returning([_segment("今日は", 1.0)])
+    load_model = MagicMock(return_value=model)
+
+    # 実行
+    _run([_config_line(tmp_path), _transcribe_line()], load_model)
+
+    # 検証
+    assert model.transcribe.call_args.kwargs["hotwords"] is None

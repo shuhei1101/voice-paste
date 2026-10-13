@@ -31,6 +31,9 @@ function_types:
       - name: on_progress
         type: Callable[[float, float], None] | None
         description: 経過秒と録音の長さ
+      - name: hint
+        type: str | None
+        description: 文字起こしの手がかり（有効な表記のヒントの語を読点でつないだもの）。None なら手がかりを渡さずに起こす。キーワード引数で、省いたら None
     returns:
       type: list[str]
       description: 区間ごとの文字
@@ -65,13 +68,20 @@ functions:
         required: true
         passing: injected
         description: 設定で選んだエンジン（main.py で partial で渡す）
+      - name: get_hint
+        type: Callable[[], str | None]
+        required: true
+        passing: injected
+        description: 今の設定の手がかりを返す（main.py で partial で渡す。SettingsStore.get の hint_presets を join_hint_words でつなぎ、空なら None）。録音を起こすたびに呼ぶので、保存した設定が再起動せずに次の確定から効く
     returns:
       type: str
       description: 区間ごとの文字を改行でつないだもの。無音なら空文字
     process: |-
-      1. エンジンで録音を起こす（エンジン）
+      1. get_hint で今の設定の手がかりを引く
+         - 手がかりがある場合、`[INFO]` 手がかりを渡す（UTF-8 のバイト数）
+      2. エンジンに録音と手がかりを渡して起こす（エンジン）
          - EngineError の場合、理由を持たせた TranscriptionError を送出する
-      2. 区間ごとに前後の空白を除き、空になった区間を除いて改行でつなぐ
+      3. 区間ごとに前後の空白を除き、空になった区間を除いて改行でつなぐ
          - `[INFO]` 文字に起こした（区間の数・文字数・かかった秒）
     exceptions:
       - name: TranscriptionError
@@ -102,6 +112,18 @@ functions:
         condition: engine が [" 今日は ", "  ", "晴れ"] を返す
         mock: engine
         expected: '"今日は\n晴れ" が返る'
+      - name: test_transcribe_when_hint
+        case: 正常
+        summary: 今の手がかりをエンジンに渡す
+        condition: get_hint が "voice-paste、Whisper" を返す
+        mock: engine・get_hint
+        expected: engine が hint="voice-paste、Whisper" で呼ばれる
+      - name: test_transcribe_when_no_hint
+        case: 正常
+        summary: 手がかりが無ければ渡さない
+        condition: get_hint が None を返す
+        mock: engine・get_hint
+        expected: engine が hint=None で呼ばれる
     status: implemented
 test_files:
   - tests/unit/voice_paste/features/transcription/test_service.py

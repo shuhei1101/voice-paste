@@ -1,0 +1,186 @@
+/* ===== PR 99 の画面モック: 表記のヒントのプリセットの一覧（refs/37・refs/44 の style.css に重ねる） ===== */
+
+/* 表記のヒントの欄: 長さの表示・プリセットの一覧・足すボタンを間を空けて縦に積む */
+.hints {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 有効なヒントの長さの行: 名前・バー・今の長さと上限を並べ、下の線で区切る */
+.hint-total {
+  display: grid;
+  grid-template-columns: auto minmax(60px, 1fr) auto;
+  align-items: center;
+  gap: 4px 12px;
+  min-height: 40px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
+  &:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: 2px; }
+}
+
+/* 長さのバー: 上限までの埋まり具合を細い棒で出す */
+.hint-total meter {
+  width: 100%;
+  height: 8px;
+}
+
+/* 長さのバーの地 */
+.hint-total meter::-webkit-meter-bar {
+  height: 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--sunken);
+}
+
+/* 長さのバーの埋まった分: 上限までは色を付けない */
+.hint-total meter::-webkit-meter-optimum-value {
+  border-radius: 3px;
+  background: var(--text-2);
+}
+
+/* 上限を超えたときのバーの埋まった分 */
+.hint-total[data-over="true"] meter::-webkit-meter-optimum-value {
+  background: var(--error);
+}
+
+/* 今の長さと上限: 等幅の数字で揃える */
+.hint-total__value {
+  font-family: var(--font-num);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* 上限を超えたときの今の長さ: 色に加えて超えたバイト数の文言で伝える */
+.hint-total[data-over="true"] .hint-total__value {
+  color: var(--error);
+  font-weight: 600;
+}
+
+/* 長さの行の補足・エラー: 行の幅いっぱいに出す */
+.hint-total .field-help,
+.hint-total .field-error {
+  grid-column: 1 / -1;
+  padding: 0;
+}
+
+/* プリセットの頭: 幅が足りないときは、語の数と長さ・操作のボタンを次の段へ送る */
+.hint .preset__head {
+  flex-wrap: wrap;
+}
+
+/* 頭の切り替えの文言: 折り返さない */
+.hint .switch {
+  white-space: nowrap;
+}
+
+/* 頭の名前: 読める幅を残してから折り返す */
+.hint .preset__name {
+  flex-basis: 8em;
+}
+
+/* 名前が空のときの頭の文言 */
+.hint .preset__name:empty::before {
+  content: "（名前未入力）";
+}
+
+/* 頭の操作のボタン: 次の段へ送られたときも右に寄せる */
+.hint .preset__tools {
+  margin-left: auto;
+}
+
+/* プリセットの頭の語の数と長さ: 等幅の数字で揃える */
+.hint__count {
+  margin-left: auto;
+  color: var(--text-2);
+  font-family: var(--font-num);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* 語の欄: 名前を上に寄せ、1 つ目の語の入力と高さを合わせる */
+.hint__words-field {
+  align-items: start;
+}
+
+/* 語の欄の名前: 入力の文字と同じ高さに下げる */
+.hint__words-field > span:first-child {
+  padding-top: 5px;
+}
+
+/* 語の欄の中身: 語の一覧・足すボタンを縦に積む */
+.hint__words-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px 0;
+}
+
+/* 語の一覧: 短い語が多いので、欄の幅に入るだけ横に並べる（左から右、上から下の順） */
+.hint-words {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  gap: 4px 12px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 語 1 つ: 入力と消すボタンを並べる */
+.hint-words li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* 語の入力: 表記を見比べやすいよう等幅にする */
+.hint-words input[type="text"] {
+  width: 100%;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* 語のエラー文: 入力の下に出す */
+.hint-words .field-error {
+  grid-column: 1 / -1;
+  padding: 0;
+}
+
+/* 無効のプリセットの語: 文字を薄くして線を引き、渡さないことを見せる（頭の切り替えの文言でも伝える） */
+.hint[data-off="true"] .hint-words input[type="text"] {
+  color: var(--text-2);
+  text-decoration: line-through;
+}
+
+/* 語が無いときの一覧の代わり */
+.hint-words-empty {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+/* まとまりの末尾の補足: ヒントで変わることを箇条書きで出す */
+ul.hint-notes {
+  padding-left: 18px;
+}
+
+/* 狭い幅: 長さの行のバーを次の段へ送る */
+@media (max-width: 640px) {
+  /* 名前と今の長さを 1 段目に並べ、入りきらなければ今の長さを次の段へ送る */
+  .hint-total { display: flex; flex-wrap: wrap; justify-content: space-between; }
+  /* 名前を折り返さない */
+  .hint-total > span:first-child { white-space: nowrap; }
+  /* バーを名前と今の長さの下で行の幅いっぱいにする */
+  .hint-total meter { order: 1; flex-basis: 100%; }
+  /* 補足・エラーをバーの下で行の幅いっぱいにする */
+  .hint-total .field-help, .hint-total .field-error { order: 2; flex-basis: 100%; }
+  /* 語の欄の名前の下げ幅を戻す */
+  .hint__words-field > span:first-child { padding-top: 0; }
+}

@@ -10,10 +10,11 @@ import tempfile
 from collections.abc import Mapping, MutableMapping, Sequence
 from functools import reduce
 from pathlib import Path
-from typing import Annotated, Any, ClassVar, Literal
+from typing import Annotated, Any, ClassVar, Literal, Protocol
 
 import tomlkit
 from pydantic import (
+    AfterValidator,
     BaseModel,
     ConfigDict,
     Field,
@@ -56,6 +57,34 @@ GLOSSARY_NAME_OVERLAP_ERROR_TYPE: str = "glossary_name_overlap"
 
 GLOSSARIES_FIELD_NAME: str = "glossaries"
 """用語集の一覧を持つ Settings の項目名。"""
+
+HINT_PRESETS_FIELD_NAME: str = "hint_presets"
+"""表記のヒントのプリセットの一覧を持つ Settings の項目名。"""
+
+HINT_MAX_BYTES: int = 222
+"""有効なプリセットの語をつないだ手がかりの UTF-8 のバイト数の上限。
+
+faster-whisper が hotwords を先頭の 223 トークンに切ることから、頭に足す空白の 1 バイトを引いた値。
+Whisper のトークンは 1 バイト以上を表すため、バイト数で数えれば上限を守れる。
+"""
+
+HINT_SEPARATOR: str = "、"
+"""手がかりの語の間に入れる区切り。"""
+
+HINT_WORD_FORBIDDEN_CHARS: tuple[str, ...] = (HINT_SEPARATOR, "。", "\n", "\r")
+"""語に含められない文字（区切り・句点・改行）。"""
+
+HINT_TOO_LONG_ERROR_TYPE: str = "hint_too_long"
+"""有効な手がかりが上限を超えるときの ValidationError の種類。今のバイト数を `length` として持つ。"""
+
+HINT_WORD_EMPTY_ERROR_TYPE: str = "hint_word_empty"
+"""手がかりの語が空のときの ValidationError の種類。"""
+
+HINT_WORD_SEPARATOR_ERROR_TYPE: str = "hint_word_separator"
+"""手がかりの語が読点・句点・改行を含むときの ValidationError の種類。"""
+
+HINT_PRESET_NAME_OVERLAP_ERROR_TYPE: str = "hint_preset_name_overlap"
+"""表記のヒントのプリセットの名前が重なるときの ValidationError の種類。理由の文に重なった名前を `name` として持つ。"""
 
 START_HOTKEY_KEY: str = "hotkeys.start"
 """録音の開始のホットキーのキー。貼り付けて送信と同じキーにしてよい（重なりにしない）。"""
@@ -405,6 +434,51 @@ class GlossarySettings(_SettingsModel):
     )
 
 
+def _check_hint_word(word: str) -> str:
+    """手がかりの語が空でなく、読点・句点・改行を含まないことを確かめる（前後の空白は除かれている）。"""
+    # 空の語は断る
+    if not word:
+        raise PydanticCustomError(HINT_WORD_EMPTY_ERROR_TYPE, "語が空")
+    # 区切りになる文字を含む語は断る
+    if any(char in word for char in HINT_WORD_FORBIDDEN_CHARS):
+        raise PydanticCustomError(HINT_WORD_SEPARATOR_ERROR_TYPE, "語に読点・句点・改行を含められない")
+    return word
+
+
+type HintWord = Annotated[str, AfterValidator(_check_hint_word)]
+"""手がかりの語 1 つ。前後の空白を除いたうえで _check_hint_word で確かめる。"""
+
+
+class HintPresetSettings(_SettingsModel):
+    """表記のヒントのプリセット 1 つの名前・語の並び・有効か。"""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    name: str = Field(
+        min_length=1,
+        description="設定画面の一覧に出す名前（前後の空白を除いて 1 文字以上。ほかのプリセットと重ならない）",
+    )
+    words: list[HintWord] = Field(
+        default_factory=list,
+        description="文字起こしに渡す語の並び（各語の前後の空白を除く。空の語・読点・句点・改行を含む語は断る。無効のプリセットの語も確かめる）",
+    )
+    enabled: bool = Field(True, description="このプリセットの語を文字起こしに渡すか")
+
+
+class HintWordSource(Protocol):
+    """join_hint_words が読む、有効かと語の並びだけを持つ型。確かめを通らない入力の途中の値も満たす。"""
+
+    @property
+    def enabled(self) -> bool:
+        """語をつなぐか。"""
+        ...
+
+    @property
+    def words(self) -> Sequence[str]:
+        """語の並び。"""
+        ...
+
+
 class Settings(_SettingsModel):
     """settings.toml の全体。項目ごとに範囲・説明・再起動が要るかの印を持つ。"""
 
@@ -438,6 +512,11 @@ class Settings(_SettingsModel):
         None,
         "補正に使う用語集の名前。None か一覧に無い名前のときは 1 つ目の用語集を使う",
         reload=RELOAD_IMMEDIATE,
+    )
+    hint_presets: list[HintPresetSettings] = Field(
+        default_factory=list,
+        description="表記のヒント（文字起こしの手がかり）のプリセットの一覧。並びが設定画面の一覧と語をつなぐ順になる。有効な語をつないだ長さが HINT_MAX_BYTES を超える設定は断る",
+        json_schema_extra={"reload": RELOAD_IMMEDIATE},
     )
     api: ApiSettings = _group(ApiSettings, "待ち受けのポート・返送を許すホスト")
     presets: list[Preset] = Field(
@@ -492,7 +571,34 @@ class Settings(_SettingsModel):
             }
             for location, name in _find_glossary_name_overlap_locations(self)
         ]
-        # 重なりがあれば断る
+        # 重なった表記のヒントのプリセットの名前は、後ろにある側の名前の場所で、重なった名前を添える
+        line_errors += [
+            {
+                "type": PydanticCustomError(
+                    HINT_PRESET_NAME_OVERLAP_ERROR_TYPE,
+                    "表記のヒントのプリセット「{name}」と同じ名前",
+                    {"name": name},
+                ),
+                "loc": location,
+                "input": name,
+            }
+            for location, name in _find_hint_preset_name_overlap_locations(self)
+        ]
+        # 有効な語をつないだ長さが上限を超えたら、一覧の場所で、今のバイト数を添える
+        hint_length = len(join_hint_words(self.hint_presets).encode("utf-8"))
+        if hint_length > HINT_MAX_BYTES:
+            line_errors.append(
+                {
+                    "type": PydanticCustomError(
+                        HINT_TOO_LONG_ERROR_TYPE,
+                        "有効なヒントが長すぎる（{length} バイト）",
+                        {"length": hint_length},
+                    ),
+                    "loc": (HINT_PRESETS_FIELD_NAME,),
+                    "input": None,
+                }
+            )
+        # 重なりや超過があれば断る
         if line_errors:
             raise ValidationError.from_exception_data(type(self).__name__, line_errors)
         return self
@@ -601,6 +707,36 @@ def find_glossary_name_overlaps(settings: Settings) -> list[tuple[str, str]]:
     return [
         (format_error_location(location), name)
         for location, name in _find_glossary_name_overlap_locations(settings)
+    ]
+
+
+# === 表記のヒント ===
+
+
+def join_hint_words(presets: Sequence[HintWordSource]) -> str:
+    """有効なプリセットの語を、一覧の上から順に読点でつなぐ。有効な語が無ければ空文字を返す。"""
+    words = [word for preset in presets if preset.enabled for word in preset.words]
+    return HINT_SEPARATOR.join(words)
+
+
+def _find_hint_preset_name_overlap_locations(settings: Settings) -> list[tuple[_Location, str]]:
+    """前に並んだプリセットと名前が同じ表記のヒントのプリセットの（名前の場所, 名前）を返す。大文字と小文字は区別する。"""
+    seen: set[str] = set()
+    overlaps: list[tuple[_Location, str]] = []
+    for index, preset in enumerate(settings.hint_presets):
+        # 初めての名前は控え、先に並んだ名前と同じなら重なりとして集める
+        if preset.name in seen:
+            overlaps.append(((HINT_PRESETS_FIELD_NAME, index, "name"), preset.name))
+        else:
+            seen.add(preset.name)
+    return overlaps
+
+
+def find_hint_preset_name_overlaps(settings: Settings) -> list[tuple[str, str]]:
+    """前に並んだプリセットと名前が同じ表記のヒントのプリセットを（重なったキー, 重なった名前）で返す。"""
+    return [
+        (format_error_location(location), name)
+        for location, name in _find_hint_preset_name_overlap_locations(settings)
     ]
 
 

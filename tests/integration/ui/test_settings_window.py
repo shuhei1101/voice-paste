@@ -172,8 +172,8 @@ def _left_of(widget: QWidget, window: QWidget) -> int:
     return widget.mapTo(window, QPoint(0, 0)).x()
 
 
-LIST_KEYS = ("outputs", "presets", "glossaries", "glossary_path", "active_glossary")
-"""欄ではなく、一覧の部品（出力先・プリセット・用語集）が持つキー。glossary_path は欄を持たず、glossaries が空のときだけ読む。"""
+LIST_KEYS = ("outputs", "presets", "glossaries", "glossary_path", "active_glossary", "hint_presets")
+"""欄ではなく、一覧の部品（出力先・プリセット・用語集・表記のヒント）が持つキー。glossary_path は欄を持たず、glossaries が空のときだけ読む。"""
 
 
 def _leaf_keys(settings: Settings) -> list[str]:
@@ -249,7 +249,7 @@ def test_settings_window_initial_value(open_window: Callable[..., Opened]) -> No
 
 
 def test_group_menu_initial(open_window: Callable[..., Opened]) -> None:
-    """まとまりのメニューは、出力先・ブラウザ添付・エンドポイントへ送る・ホットキー・録音・文字起こし・用語集・画面・履歴とログ・API の順で、既定は出力先。"""
+    """まとまりのメニューは、出力先・ブラウザ添付・エンドポイントへ送る・ホットキー・録音・文字起こし・表記のヒント・用語集・画面・履歴とログ・API の順で、既定は出力先。"""
     # 実行
     window = open_window().window
 
@@ -263,6 +263,7 @@ def test_group_menu_initial(open_window: Callable[..., Opened]) -> None:
         "ホットキー",
         "録音",
         "文字起こし",
+        "表記のヒント",
         "用語集",
         "画面",
         "履歴とログ",
@@ -280,9 +281,9 @@ def test_group_menu_initial(open_window: Callable[..., Opened]) -> None:
         (3, "hotkeys.start", "preset_options.endpoint.timeout_sec"),
         (4, "recording.fade_sec", "hotkeys.start"),
         (5, "transcription.local_whisper.model", "recording.fade_sec"),
-        (7, "ui.wave_gain", "transcription.local_whisper.model"),
-        (8, "history.retention_days", "ui.wave_gain"),
-        (9, "api.port", "history.retention_days"),
+        (8, "ui.wave_gain", "transcription.local_whisper.model"),
+        (9, "history.retention_days", "ui.wave_gain"),
+        (10, "api.port", "history.retention_days"),
         (0, "outputs[0].enabled", "api.port"),
     ],
 )
@@ -310,7 +311,7 @@ def test_group_menu_keeps_values(open_window: Callable[..., Opened]) -> None:
     _set_text(window, IMMEDIATE_KEY, "1.25")
 
     # 実行
-    menu.setCurrentRow(9)
+    menu.setCurrentRow(10)
     menu.setCurrentRow(4)
 
     # 検証
@@ -382,7 +383,7 @@ def test_field_name_and_key(open_window: Callable[..., Opened]) -> None:
 
     # 準備
     window = open_window().window
-    find(window, QListWidget, "group_menu").setCurrentRow(9)
+    find(window, QListWidget, "group_menu").setCurrentRow(10)
     name = (ApiSettings.model_fields["port"].description or "").split("。")[0]
 
     # 実行
@@ -1178,7 +1179,7 @@ def test_enter_modifiers_when_initial_value(open_window: Callable[..., Opened]) 
 
 # === field_ui.theme ===
 
-THEME_GROUP_ROW = 7
+THEME_GROUP_ROW = 8
 """まとまりのメニューの「画面」の行。"""
 
 
@@ -1433,7 +1434,7 @@ def test_error_summary_row_action(open_window: Callable[..., Opened]) -> None:
     opened = open_window()
     _set_text(opened.window, IMMEDIATE_KEY, "abc")
     _click(opened.window, "save_button")
-    find(opened.window, QListWidget, "group_menu").setCurrentRow(9)
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(10)
     link = next(
         label for label in find(opened.window, QFrame, "error_summary").findChildren(QLabel)
         if "href" in label.text()
@@ -1598,7 +1599,7 @@ def test_error_summary_row_action_when_preset(open_window: Callable[..., Opened]
     opened = open_window()
     _add_preset(opened.window, "endpoint", "受け口", "")
     _click(opened.window, "save_button")
-    find(opened.window, QListWidget, "group_menu").setCurrentRow(9)
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(10)
     link = next(
         label for label in find(opened.window, QFrame, "error_summary").findChildren(QLabel)
         if "href" in label.text()
@@ -1649,7 +1650,7 @@ def test_input_check_trigger(open_window: Callable[..., Opened], button: str) ->
 
 # === 用語集のまとまり ===
 
-GLOSSARY_GROUP_ROW = 6
+GLOSSARY_GROUP_ROW = 7
 """まとまりのメニューの「用語集」の行。"""
 
 CSV_FIVE_ROWS = "誤変換,正しい表記,使う\nあ,A,1\nい,B,1\nう,C,0\nえ,D,1\nお,E,0\n"
@@ -2437,7 +2438,7 @@ def test_error_summary_row_action_when_glossary(
     _click(opened.window, "glossary_pick_1")
     find(opened.window, QLineEdit, "glossary_entry_wrong_1").setText("")
     _click(opened.window, "save_button")
-    find(opened.window, QListWidget, "group_menu").setCurrentRow(9)
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(10)
     links = [
         label for label in find(opened.window, QFrame, "error_summary").findChildren(QLabel)
         if "href" in label.text()
@@ -2500,6 +2501,673 @@ def test_reset_dialog_when_glossaries(open_window: Callable[..., Opened], tmp_pa
     assert len(two) == 2
     opened.deps.save_settings.assert_called_once_with(SETTINGS_MODEL(), {})
     assert (tmp_path / "会議用.csv").read_text(encoding="utf-8") == CSV_TWO_ROWS
+
+
+# === 表記のヒントのまとまり ===
+
+HINT_GROUP_ROW = 6
+"""まとまりのメニューの「表記のヒント」の行。"""
+
+HINT_LIMIT_BYTES = 222
+"""有効なヒントの長さの上限（UTF-8 のバイト数）。"""
+
+JAPANESE_CHAR_BYTES = 3
+"""日本語 1 文字の UTF-8 のバイト数。"""
+
+
+def _hint_presets(*presets: tuple[str, list[str], bool]) -> list[Any]:
+    """（名前, 語の並び, 有効か）から HintPresetSettings の並びを作る。"""
+    from voice_paste.shared.settings import HintPresetSettings
+
+    return [HintPresetSettings(name=name, words=words, enabled=enabled) for name, words, enabled in presets]
+
+
+def _open_hints(open_window: Callable[..., Opened], *presets: tuple[str, list[str], bool]) -> Opened:
+    """表記のヒントのプリセットを持つ設定で設定画面を開いて、表記のヒントのまとまりを選ぶ。"""
+    opened = open_window(SETTINGS_MODEL(hint_presets=_hint_presets(*presets)))
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(HINT_GROUP_ROW)
+    return opened
+
+
+def _hint_length_texts(window: QWidget) -> list[str]:
+    """有効なヒントの長さの行（hint_length）に出ている文字を並べる。"""
+    return [label.text() for label in find(window, QWidget, "hint_length").findChildren(QLabel)]
+
+
+def _hint_words(window: QWidget) -> list[str]:
+    """画面に出ている語の欄の文字を、プリセットと語の順で並べる。"""
+    return [edit.text() for edit in _widgets(window, QLineEdit, "hint_word_") if edit.objectName()[len("hint_word_")].isdigit()]
+
+
+def _hint_over_message(length: int) -> str:
+    """上限を超えたときの欄の下の文言（保存を押した後）。"""
+    return f"有効なヒントが長すぎます（{length} / {HINT_LIMIT_BYTES} バイト）。語を減らすか、プリセットを無効にしてください。"
+
+
+# === hint_intro・hint_notes・hint_preset_add ===
+
+
+def test_hint_group_when_visible(open_window: Callable[..., Opened]) -> None:
+    """表記のヒントのまとまりを選ぶと、説明・有効なヒントの長さ・案内・足すボタン・補足が出る。ほかのまとまりを選ぶと出ない。"""
+    # 準備
+    opened = open_window()
+
+    # 実行・検証（選ぶ前は出ない）
+    assert not find(opened.window, QLabel, "hint_intro").isVisible()
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(HINT_GROUP_ROW)
+    assert find(opened.window, QLabel, "hint_intro").isVisible()
+    assert find(opened.window, QLabel, "hint_intro").text() == (
+        "間違えやすい語の正しい表記を並べる。文字起こしへの指示としては効かない。"
+    )
+    assert find(opened.window, QWidget, "hint_length").isVisible()
+    assert find(opened.window, QPushButton, "hint_preset_add").text() == "プリセットを足す"
+    notes = find(opened.window, QLabel, "hint_notes")
+    assert notes.isVisible()
+    assert "句読点が付く・改行がまとまる・口癖が一部消える" in notes.text()
+    assert "TypeScript がタイプスクリプトになったら「TypeScript」を足す" in notes.text()
+
+
+# === hint_preset_empty ===
+
+
+def test_hint_preset_empty_when_no_presets(open_window: Callable[..., Opened]) -> None:
+    """プリセットが 1 件も無いときは、無い間はヒントを渡さないことを伝える案内を出し、長さは 0。"""
+    # 実行
+    opened = _open_hints(open_window)
+
+    # 検証
+    empty = find(opened.window, QLabel, "hint_preset_empty")
+    assert empty.isVisible()
+    assert empty.text() == "ヒントのプリセットはまだありません。無い間は、ヒントを渡さずに文字を起こします。"
+    assert "0 / 222 バイト" in _hint_length_texts(opened.window)
+
+
+def test_hint_preset_empty_when_presets_exist(open_window: Callable[..., Opened]) -> None:
+    """プリセットがあるときは案内を出さない。"""
+    # 実行
+    opened = _open_hints(open_window, ("開発", ["voice-paste"], True))
+
+    # 検証
+    assert not find(opened.window, QLabel, "hint_preset_empty").isVisible()
+
+
+# === hint_preset_list・hint_preset_name_{n}・hint_word_{n}_{m} ===
+
+
+def test_hint_preset_list_initial_value(open_window: Callable[..., Opened]) -> None:
+    """settings.toml の hint_presets の並びのとおりに、名前・語・有効かを出す。"""
+    # 実行
+    opened = _open_hints(open_window, ("開発", ["voice-paste", "Whisper"], True), ("会議", ["議事録"], False))
+
+    # 検証
+    window = opened.window
+    assert [edit.text() for edit in _widgets(window, QLineEdit, "hint_preset_name_")] == ["開発", "会議"]
+    assert _hint_words(window) == ["voice-paste", "Whisper", "議事録"]
+    assert [box.isChecked() for box in _widgets(window, QCheckBox, "hint_preset_enabled_")] == [True, False]
+    assert find(window, QLineEdit, "hint_word_0_1").accessibleName() == "2 つ目の語"
+
+
+def test_hint_preset_list_when_not_in_settings_toml(open_window: Callable[..., Opened]) -> None:
+    """hint_presets のキーが無い今の設定でも開け、プリセットは空。"""
+    # 実行
+    opened = _open_hints(open_window)
+
+    # 検証
+    assert _widgets(opened.window, QLineEdit, "hint_preset_name_") == []
+
+
+# === hint_preset_enabled_{n} ===
+
+
+def test_hint_preset_enabled_initial_value(open_window: Callable[..., Opened]) -> None:
+    """切り替えの右に今の状態を文字で出し、読み上げの名前は「{名前}を有効にする」（名前が空なら「プリセット {何件目か} 件目を有効にする」）。"""
+    # 実行
+    opened = _open_hints(open_window, ("開発", ["a"], True), ("会議", ["b"], False))
+    find(opened.window, QLineEdit, "hint_preset_name_1").setText("")
+
+    # 検証
+    boxes = _widgets(opened.window, QCheckBox, "hint_preset_enabled_")
+    assert [box.text() for box in boxes] == ["有効", "無効"]
+    assert [box.accessibleName() for box in boxes] == ["開発を有効にする", "プリセット 2 件目を有効にする"]
+
+
+def test_hint_preset_enabled_action(open_window: Callable[..., Opened]) -> None:
+    """切り替えると文字が替わり、無効のプリセットの語は有効なヒントの長さに数えない。無効の語の欄は薄くして取り消し線を引く（編集はできる）。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["abc"], True), ("会議", ["議事録"], False))
+    window = opened.window
+    disabled_word = find(window, QLineEdit, "hint_word_1_0")
+    assert disabled_word.font().strikeOut()
+    assert disabled_word.graphicsEffect() is not None
+    assert "3 / 222 バイト" in _hint_length_texts(window)
+
+    # 実行
+    find(window, QCheckBox, "hint_preset_enabled_1").click()
+
+    # 検証
+    assert find(window, QCheckBox, "hint_preset_enabled_1").text() == "有効"
+    assert not disabled_word.font().strikeOut()
+    assert disabled_word.graphicsEffect() is None
+    assert "15 / 222 バイト" in _hint_length_texts(window)
+    assert disabled_word.isEnabled()
+
+
+def test_hint_preset_enabled_when_saved(open_window: Callable[..., Opened]) -> None:
+    """保存で hint_presets の enabled に書く。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True), ("会議", ["b"], False))
+    find(opened.window, QCheckBox, "hint_preset_enabled_0").click()
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    saved = opened.deps.save_settings.call_args.args[0]
+    assert [(preset.name, preset.enabled) for preset in saved.hint_presets] == [("開発", False), ("会議", False)]
+
+
+# === hint_length ===
+
+
+def test_hint_length_when_words_changed(open_window: Callable[..., Opened]) -> None:
+    """語を書き換える・足す・消すたびに、有効なプリセットの語を読点でつないだ長さを数え直す（語の間の読点も数える）。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["abc"], True))
+    window = opened.window
+    assert "3 / 222 バイト" in _hint_length_texts(window)
+
+    # 実行・検証（語を足して「de」を入れると「abc、de」の 8 バイト。読点は 3 バイト）
+    _click(window, "hint_word_add_0")
+    find(window, QLineEdit, "hint_word_0_1").setText("de")
+    assert "8 / 222 バイト" in _hint_length_texts(window)
+    find(window, QLineEdit, "hint_word_0_0").setText("あい")
+    assert "11 / 222 バイト" in _hint_length_texts(window)
+    _click(window, "hint_word_remove_0_1")
+    assert "6 / 222 バイト" in _hint_length_texts(window)
+
+
+def test_hint_length_when_at_limit(open_window: Callable[..., Opened]) -> None:
+    """上限ちょうど（222 バイト）は超過の文字を添えず、保存できる。"""
+    # 準備
+    word = "あ" * (HINT_LIMIT_BYTES // JAPANESE_CHAR_BYTES)
+    opened = _open_hints(open_window, ("開発", [word], True))
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert "222 / 222 バイト" in _hint_length_texts(opened.window)
+    opened.deps.save_settings.assert_called_once()
+
+
+def test_hint_length_when_over(open_window: Callable[..., Opened]) -> None:
+    """上限を超えたら、超過したバイト数を文字で添える（色だけで伝えない）。入力の途中でエラー文は出さない。"""
+    # 準備
+    word = "あ" * (HINT_LIMIT_BYTES // JAPANESE_CHAR_BYTES + 1)
+    opened = _open_hints(open_window, ("開発", ["a"], True))
+
+    # 実行
+    find(opened.window, QLineEdit, "hint_word_0_0").setText(word)
+
+    # 検証
+    assert "225 / 222 バイト（3 バイト超過）" in _hint_length_texts(opened.window)
+    assert not find(opened.window, QFrame, "error_summary").isVisible()
+    assert not find(opened.window, QLabel, "hint_length_error").isVisible()
+
+
+def test_hint_length_when_words_have_surrounding_spaces(open_window: Callable[..., Opened]) -> None:
+    """語の前後の空白は、保存の確かめと同じく除いて数える（欄の文字をそのまま数えて、保存の判定とずれない）。"""
+    # 準備（語の前後に空白を足して、そのまま数えると 222 バイトを超えるが、除くと上限ちょうど）
+    word = "あ" * (HINT_LIMIT_BYTES // JAPANESE_CHAR_BYTES)
+    opened = _open_hints(open_window, ("開発", [word], True))
+    edit = find(opened.window, QLineEdit, "hint_word_0_0")
+
+    # 実行
+    edit.setText(f"  {word}  ")
+
+    # 検証（画面は上限ちょうど。保存も通り、書く語は空白を除いたもの）
+    assert "222 / 222 バイト" in _hint_length_texts(opened.window)
+    _click(opened.window, "save_button")
+    saved = opened.deps.save_settings.call_args.args[0]
+    assert saved.hint_presets[0].words == [word]
+
+
+# === hint_preset_size_{n} ===
+
+
+def test_hint_preset_size_initial_value(open_window: Callable[..., Opened]) -> None:
+    """プリセットごとに「{語の数} 語・{長さ} バイト」を出す（そのプリセットの語だけを読点でつないだ長さ。無効のプリセットでも出す）。"""
+    # 実行
+    opened = _open_hints(open_window, ("開発", ["abc", "de"], True), ("会議", ["議事録"], False))
+
+    # 検証
+    assert find(opened.window, QLabel, "hint_preset_size_0").text() == "2 語・8 バイト"
+    assert find(opened.window, QLabel, "hint_preset_size_1").text() == "1 語・9 バイト"
+
+
+def test_hint_preset_size_action(open_window: Callable[..., Opened]) -> None:
+    """語を足す・書き換える・消すたびに数え直す。語の前後の空白は除いて数える。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["abc"], True))
+    window = opened.window
+
+    # 実行・検証
+    _click(window, "hint_word_add_0")
+    find(window, QLineEdit, "hint_word_0_1").setText("  de  ")
+    assert find(window, QLabel, "hint_preset_size_0").text() == "2 語・8 バイト"
+    _click(window, "hint_word_remove_0_0")
+    assert find(window, QLabel, "hint_preset_size_0").text() == "1 語・2 バイト"
+
+
+# === hint_preset_name_{n} ===
+
+
+def test_hint_preset_name_action(open_window: Callable[..., Opened]) -> None:
+    """入れた名前をまとまりの頭にも出す（空なら「（名前未入力）」、長ければ末尾を省く）。操作の読み上げの名前も入れた名前に合わせる。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True))
+    window = opened.window
+    name_edit = find(window, QLineEdit, "hint_preset_name_0")
+
+    # 実行・検証
+    name_edit.setText("会議")
+    assert find(window, QCheckBox, "hint_preset_enabled_0").accessibleName() == "会議を有効にする"
+    assert find(window, QPushButton, "hint_preset_remove_0").accessibleName() == "会議を消す"
+    assert "会議" in [label.text() for label in window.findChildren(QLabel)]
+    name_edit.setText("")
+    assert "（名前未入力）" in [label.text() for label in window.findChildren(QLabel)]
+    assert find(window, QPushButton, "hint_preset_remove_0").accessibleName() == "プリセット 1 件目を消す"
+    name_edit.setText("あ" * 30)
+    assert ("あ" * 19 + "…") in [label.text() for label in window.findChildren(QLabel)]
+    assert name_edit.text() == "あ" * 30
+
+
+# === hint_preset_up_{n}・hint_preset_down_{n} ===
+
+
+def test_hint_preset_move_action(open_window: Callable[..., Opened]) -> None:
+    """上へ・下へで並びを入れ替える（語をつなぐ順もこの順）。先頭の上へと末尾の下へは押せない。"""
+    # 準備
+    opened = _open_hints(open_window, ("A", ["a"], True), ("B", ["b"], True), ("C", ["c"], True))
+    window = opened.window
+    assert [find(window, QPushButton, f"hint_preset_up_{n}").isEnabled() for n in range(3)] == [False, True, True]
+    assert [find(window, QPushButton, f"hint_preset_down_{n}").isEnabled() for n in range(3)] == [True, True, False]
+
+    # 実行（A の「下へ」、続けて C の「上へ」）
+    _click(window, "hint_preset_down_0")
+    _click(window, "hint_preset_up_2")
+
+    # 検証
+    assert [edit.text() for edit in _widgets(window, QLineEdit, "hint_preset_name_")] == ["B", "C", "A"]
+    _click(window, "save_button")
+    saved = opened.deps.save_settings.call_args.args[0]
+    assert [preset.name for preset in saved.hint_presets] == ["B", "C", "A"]
+
+
+# === hint_preset_remove_{n} ===
+
+
+def test_hint_preset_remove_action(open_window: Callable[..., Opened]) -> None:
+    """消すと一覧から外して長さを数え直す。保存するまで settings.toml には書かず、キャンセルで戻せる。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["abc"], True), ("会議", ["de"], True))
+    window = opened.window
+
+    # 実行
+    _click(window, "hint_preset_remove_0")
+
+    # 検証
+    assert [edit.text() for edit in _widgets(window, QLineEdit, "hint_preset_name_")] == ["会議"]
+    assert "2 / 222 バイト" in _hint_length_texts(window)
+    opened.deps.save_settings.assert_not_called()
+    assert find(window, QLabel, "hint_preset_size_0").text() == "1 語・2 バイト"
+
+
+def test_hint_preset_remove_when_last(open_window: Callable[..., Opened]) -> None:
+    """最後の 1 件を消すと案内が出て、保存すると hint_presets は空になる。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["abc"], True))
+
+    # 実行
+    _click(opened.window, "hint_preset_remove_0")
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert opened.deps.save_settings.call_args.args[0].hint_presets == []
+
+
+# === hint_preset_add ===
+
+
+def test_hint_preset_add_action(open_window: Callable[..., Opened]) -> None:
+    """名前と語が空で有効のプリセットを末尾に足し、名前の欄へフォーカスを移す。足して語を入れただけで効く。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True))
+    window = opened.window
+
+    # 実行
+    _click(window, "hint_preset_add")
+
+    # 検証
+    assert [edit.text() for edit in _widgets(window, QLineEdit, "hint_preset_name_")] == ["開発", ""]
+    assert find(window, QCheckBox, "hint_preset_enabled_1").isChecked()
+    assert find(window, QCheckBox, "hint_preset_enabled_1").text() == "有効"
+    assert window.focusWidget() is find(window, QLineEdit, "hint_preset_name_1")
+    assert not find(window, QLabel, "hint_preset_empty").isVisible()
+
+
+def test_hint_preset_add_when_saved(open_window: Callable[..., Opened]) -> None:
+    """足した名前と語は、保存で hint_presets に書く。"""
+    # 準備
+    opened = _open_hints(open_window)
+    _click(opened.window, "hint_preset_add")
+    find(opened.window, QLineEdit, "hint_preset_name_0").setText("開発")
+    _click(opened.window, "hint_word_add_0")
+    find(opened.window, QLineEdit, "hint_word_0_0").setText("voice-paste")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    saved = opened.deps.save_settings.call_args.args[0]
+    assert [(preset.name, preset.words, preset.enabled) for preset in saved.hint_presets] == [
+        ("開発", ["voice-paste"], True)
+    ]
+    opened.saved.assert_called_once()
+
+
+# === hint_words_empty_{n}・hint_word_add_{n}・hint_word_remove_{n}_{m} ===
+
+
+def test_hint_words_empty_when_no_words(open_window: Callable[..., Opened]) -> None:
+    """語が 1 つも無いプリセットは、語の欄の代わりに語が無いことを伝える。語を足すと消える。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", [], True))
+    window = opened.window
+    empty = find(window, QLabel, "hint_words_empty_0")
+    assert empty.isVisible()
+    assert empty.text() == "このプリセットにはまだ語がありません。"
+
+    # 実行
+    _click(window, "hint_word_add_0")
+
+    # 検証
+    assert window.findChild(QLabel, "hint_words_empty_0") is None
+    assert window.focusWidget() is find(window, QLineEdit, "hint_word_0_0")
+
+
+def test_hint_word_add_action(open_window: Callable[..., Opened]) -> None:
+    """空の語の欄をそのプリセットの語の末尾に足し、その欄へフォーカスを移す。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True), ("会議", ["b"], True))
+
+    # 実行
+    _click(opened.window, "hint_word_add_1")
+
+    # 検証
+    assert _hint_words(opened.window) == ["a", "b", ""]
+    assert opened.window.focusWidget() is find(opened.window, QLineEdit, "hint_word_1_1")
+
+
+def test_hint_word_remove_action(open_window: Callable[..., Opened]) -> None:
+    """語を 1 つ消す。読み上げの名前は「{何つ目か} つ目の語を消す」。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a", "b", "c"], True))
+    assert find(opened.window, QPushButton, "hint_word_remove_0_1").accessibleName() == "2 つ目の語を消す"
+
+    # 実行
+    _click(opened.window, "hint_word_remove_0_1")
+
+    # 検証
+    assert _hint_words(opened.window) == ["a", "c"]
+    opened.deps.save_settings.assert_not_called()
+
+
+def test_hint_words_when_narrow_window(open_window: Callable[..., Opened]) -> None:
+    """語の欄は入力と消すボタンの組を 2 列に並べ、左から右、上から下が語の順になる。幅が組 2 つに足りなければ 1 列に積む。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a", "b", "c", "d"], True))
+    window = opened.window
+    panel = find(window, QWidget, "hint_preset_panel")
+
+    # 実行・検証（広いとき）
+    panel.setFixedWidth(900)
+    QTest.qWait(0)
+    edits = [find(window, QLineEdit, f"hint_word_0_{m}") for m in range(4)]
+    tops = [_top_of(edit, window) for edit in edits]
+    lefts = [_left_of(edit, window) for edit in edits]
+    assert tops[0] == tops[1] < tops[2] == tops[3]
+    assert lefts[0] == lefts[2] < lefts[1] == lefts[3]
+
+    # 実行・検証（狭いとき）
+    panel.setFixedWidth(300)
+    QTest.qWait(0)
+    lefts = [_left_of(edit, window) for edit in edits]
+    tops = [_top_of(edit, window) for edit in edits]
+    assert len(set(lefts)) == 1
+    assert tops == sorted(tops)
+    assert len(set(tops)) == 4
+
+
+# === input_checks（表記のヒント） ===
+
+
+def test_input_check_when_hint_too_long(open_window: Callable[..., Opened]) -> None:
+    """有効なヒントが 222 バイトを超える: 長さの行の下とエラーの一覧に出す。無効のプリセットの語は数えない。"""
+    # 準備
+    word = "あ" * (HINT_LIMIT_BYTES // JAPANESE_CHAR_BYTES + 1)
+    opened = _open_hints(open_window, ("開発", ["a"], True))
+    find(opened.window, QLineEdit, "hint_word_0_0").setText(word)
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    message = _hint_over_message(225)
+    assert find(opened.window, QLabel, "hint_length_error").text() == message
+    assert find(opened.window, QLabel, "hint_length_error").isVisible()
+    assert f"有効なヒントの長さ: {message}" in _error_rows(opened.window)
+    opened.deps.save_settings.assert_not_called()
+
+
+def test_input_check_when_hint_too_long_in_disabled_preset(open_window: Callable[..., Opened]) -> None:
+    """無効のプリセットの語は長さに数えないので、長くても保存できる。"""
+    # 準備
+    word = "あ" * (HINT_LIMIT_BYTES // JAPANESE_CHAR_BYTES + 10)
+    opened = _open_hints(open_window, ("開発", ["abc"], True), ("会議", [word], False))
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    opened.deps.save_settings.assert_called_once()
+
+
+def test_input_check_when_hint_word_empty(open_window: Callable[..., Opened]) -> None:
+    """空の語（前後の空白を除いて）: 「語を入れるか、この欄を消してください。」をその欄の下とエラーの一覧に出す。無効のプリセットの語も確かめる。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a", "b"], False))
+    find(opened.window, QLineEdit, "hint_word_0_1").setText("  ")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    message = "語を入れるか、この欄を消してください。"
+    assert message in _field_errors(opened.window)
+    assert f"プリセット 1 件目の 2 つ目の語: {message}" in _error_rows(opened.window)
+    opened.deps.save_settings.assert_not_called()
+
+
+@pytest.mark.parametrize("word", ["A、B", "C。", "D\nE"])
+def test_input_check_when_hint_word_has_separator(open_window: Callable[..., Opened], word: str) -> None:
+    """読点（、）・句点（。）・改行を含む語: 「読点（、）・句点（。）・改行は入れられません。語を分けて足してください。」を出す。"""
+    # 準備（改行は 1 行の欄に入れられないため、欄の文字を直接差し替える）
+    opened = _open_hints(open_window, ("開発", ["a"], True))
+    find(opened.window, QLineEdit, "hint_word_0_0").setText(word)
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    message = "読点（、）・句点（。）・改行は入れられません。語を分けて足してください。"
+    assert message in _field_errors(opened.window)
+    assert f"プリセット 1 件目の 1 つ目の語: {message}" in _error_rows(opened.window)
+    opened.deps.save_settings.assert_not_called()
+
+
+def test_input_check_when_hint_preset_name_empty(open_window: Callable[..., Opened]) -> None:
+    """名前が空（前後の空白を除いて）: 「名前を入れてください。」をその欄の下とエラーの一覧に出す。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True))
+    find(opened.window, QLineEdit, "hint_preset_name_0").setText("   ")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert "名前を入れてください。" in _field_errors(opened.window)
+    assert "プリセット 1 件目の名前: 名前を入れてください。" in _error_rows(opened.window)
+    opened.deps.save_settings.assert_not_called()
+
+
+def test_input_check_when_hint_preset_name_overlap(open_window: Callable[..., Opened]) -> None:
+    """ほかのヒントのプリセットと同じ名前（前後の空白を除いて比べる）: 一覧で後ろにある側の欄の下に「別の名前にしてください。」まで、エラーの一覧にはそれを添えずに出す。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True), ("会議", ["b"], True))
+    find(opened.window, QLineEdit, "hint_preset_name_1").setText(" 開発 ")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert "プリセット「開発」と同じ名前です。別の名前にしてください。" in _field_errors(opened.window)
+    assert "プリセット 2 件目の名前: プリセット「開発」と同じ名前です" in _error_rows(opened.window)
+    opened.deps.save_settings.assert_not_called()
+
+
+def test_input_check_when_hint_errors_counted(open_window: Callable[..., Opened]) -> None:
+    """エラーの一覧の見出しは、直す欄の件数を数える。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a", "x"], True), ("会議", ["b"], True))
+    find(opened.window, QLineEdit, "hint_word_0_1").setText("")
+    find(opened.window, QLineEdit, "hint_preset_name_1").setText("")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert _error_rows(opened.window)[0] == "保存できませんでした。2 件の欄を直してください。"
+
+
+def test_input_check_when_hint_errors_cleared(open_window: Callable[..., Opened]) -> None:
+    """直して保存し直すと、前のエラーは消える。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a", "x"], True))
+    find(opened.window, QLineEdit, "hint_word_0_1").setText("")
+    _click(opened.window, "save_button")
+    assert _field_errors(opened.window)
+
+    # 実行
+    find(opened.window, QLineEdit, "hint_word_0_1").setText("b")
+    _click(opened.window, "save_button")
+
+    # 検証
+    opened.deps.save_settings.assert_called_once()
+
+
+def test_error_summary_row_action_when_hint_length(open_window: Callable[..., Opened]) -> None:
+    """有効なヒントの長さの行を押すと、表記のヒントのまとまりへ切り替えて長さの行へフォーカスを移す。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True))
+    find(opened.window, QLineEdit, "hint_word_0_0").setText("あ" * (HINT_LIMIT_BYTES // JAPANESE_CHAR_BYTES + 1))
+    _click(opened.window, "save_button")
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(10)
+    link = next(
+        label for label in find(opened.window, QFrame, "error_summary").findChildren(QLabel)
+        if "href" in label.text()
+    )
+
+    # 実行
+    link.linkActivated.emit("hint_presets")
+
+    # 検証
+    assert find(opened.window, QListWidget, "group_menu").currentRow() == HINT_GROUP_ROW
+    assert opened.window.focusWidget() is find(opened.window, QWidget, "hint_length")
+
+
+def test_error_summary_row_action_when_hint_word(open_window: Callable[..., Opened]) -> None:
+    """語の欄の行を押すと、表記のヒントのまとまりへ切り替えて、その語の欄へフォーカスを移す。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a", "x"], True))
+    find(opened.window, QLineEdit, "hint_word_0_1").setText("")
+    _click(opened.window, "save_button")
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(10)
+    link = next(
+        label for label in find(opened.window, QFrame, "error_summary").findChildren(QLabel)
+        if "href" in label.text()
+    )
+
+    # 実行
+    link.linkActivated.emit("hint_presets[0].words[1]")
+
+    # 検証
+    assert find(opened.window, QListWidget, "group_menu").currentRow() == HINT_GROUP_ROW
+    assert opened.window.focusWidget() is find(opened.window, QLineEdit, "hint_word_0_1")
+
+
+# === save_button・reset_button・キャンセル（表記のヒント） ===
+
+
+def test_save_button_when_hint_changed(open_window: Callable[..., Opened]) -> None:
+    """表記のヒントを変えて保存すると、再起動せずに効く値（immediate）として書き、窓を閉じる。「再起動で反映」の知らせは出さない。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True))
+    find(opened.window, QLineEdit, "hint_word_0_0").setText("b")
+    assert not find(opened.window, QLabel, "restart_notice").isVisible()
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    saved = opened.deps.save_settings.call_args.args[0]
+    assert saved.hint_presets[0].words == ["b"]
+    opened.saved.assert_called_once()
+    opened.closed.assert_called_once()
+
+
+def test_cancel_button_when_hint_changed(open_window: Callable[..., Opened]) -> None:
+    """表記のヒントを変えてキャンセルすると、変えた値を捨てる確認を出し、捨てると settings.toml には書かない。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True))
+    find(opened.window, QLineEdit, "hint_word_0_0").setText("b")
+    driver = ModalDriver()
+    driver.answer("discard_button")
+
+    # 実行
+    _click(opened.window, "cancel_button")
+
+    # 検証
+    driver.verify()
+    opened.deps.save_settings.assert_not_called()
+    opened.closed.assert_called_once()
+
+
+def test_reset_dialog_when_hint_presets(open_window: Callable[..., Opened]) -> None:
+    """「既定に戻す」は、表記のヒントのプリセットを空にする。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True))
+    driver = ModalDriver()
+    driver.answer("reset_button")
+
+    # 実行
+    _click(opened.window, "reset_button")
+
+    # 検証
+    driver.verify()
+    opened.deps.save_settings.assert_called_once_with(SETTINGS_MODEL(), {})
+    assert _widgets(opened.window, QLineEdit, "hint_preset_name_") == []
+    assert len(_widgets(opened.window, QLabel, "hint_preset_empty")) == 1
 
 
 # === 設定画面を開いている間はホットキーを止める ===

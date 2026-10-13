@@ -1,4 +1,4 @@
-"""shared/settings.py（load_settings・save_settings・find_hotkey_overlaps・find_glossary_name_overlaps・migrate_ai_chat・build_settings_model・Settings の確かめ）の単体テスト。"""
+"""shared/settings.py（load_settings・save_settings・find_hotkey_overlaps・find_glossary_name_overlaps・join_hint_words・find_hint_preset_name_overlaps・migrate_ai_chat・build_settings_model・Settings の確かめ）の単体テスト。"""
 
 from __future__ import annotations
 
@@ -802,6 +802,228 @@ def test_settings_when_glossary_name_blank(settings_model: type[Settings]) -> No
         settings_model.model_validate({"glossaries": [{"name": "  ", "path": "a.csv"}]})
     failures = list_validation_failures(exc_info.value)
     assert [key for key, _reason in failures] == ["glossaries[0].name"]
+
+
+# === join_hint_words ===
+
+HINT_LIMIT_BYTES = 222
+"""表記のヒントの長さの上限（UTF-8 のバイト数）。"""
+
+JAPANESE_CHAR_BYTES = 3
+"""日本語 1 文字の UTF-8 のバイト数。"""
+
+
+def _hint_preset(name: str, words: list[str], *, enabled: bool = True) -> dict[str, Any]:
+    """settings.toml と同じ形の表記のヒントのプリセット 1 件を返す。"""
+    return {"name": name, "words": words, "enabled": enabled}
+
+
+def test_join_hint_words() -> None:
+    """有効なプリセットの語を一覧の順につなぐ（正常系）。"""
+    from voice_paste.shared.settings import HintPresetSettings, join_hint_words
+
+    # 準備（有効な A・無効な B・有効な C）
+    presets = [
+        HintPresetSettings(name="A", words=["voice-paste", "Whisper"]),
+        HintPresetSettings(name="B", words=["議事録"], enabled=False),
+        HintPresetSettings(name="C", words=["返信"]),
+    ]
+
+    # 実行
+    hint = join_hint_words(presets)
+
+    # 検証
+    assert hint == "voice-paste、Whisper、返信"
+
+
+@pytest.mark.parametrize(
+    "presets",
+    [
+        pytest.param([], id="empty"),
+        pytest.param([_hint_preset("A", ["voice-paste"], enabled=False)], id="all-disabled"),
+    ],
+)
+def test_join_hint_words_when_none_enabled(presets: list[dict[str, Any]]) -> None:
+    """有効な語が無ければ空文字を返す（正常系）。"""
+    from voice_paste.shared.settings import HintPresetSettings, join_hint_words
+
+    # 準備
+    hint_presets = [HintPresetSettings(**preset) for preset in presets]
+
+    # 実行
+    hint = join_hint_words(hint_presets)
+
+    # 検証
+    assert hint == ""
+
+
+def test_join_hint_words_when_unvalidated() -> None:
+    """確かめを通らない値もそのままつなぐ（正常系）。"""
+    from types import SimpleNamespace
+
+    from voice_paste.shared.settings import join_hint_words
+
+    # 準備（HintPresetSettings でない、空の語と区切りを含む語を持つ値）
+    presets = [SimpleNamespace(enabled=True, words=["", "A、B"])]
+
+    # 実行
+    hint = join_hint_words(presets)
+
+    # 検証
+    assert hint == "、A、B"
+
+
+def test_settings_when_hint_at_limit(settings_model: type[Settings]) -> None:
+    """つないだ長さが上限ちょうどなら通る（正常系）。"""
+    # 準備（日本語 74 文字 = 222 バイト）
+    word = "あ" * (HINT_LIMIT_BYTES // JAPANESE_CHAR_BYTES)
+
+    # 実行
+    settings = settings_model.model_validate({"hint_presets": [_hint_preset("開発", [word])]})
+
+    # 検証
+    assert len(settings.hint_presets[0].words[0].encode("utf-8")) == HINT_LIMIT_BYTES
+
+
+def test_settings_when_hint_too_long(settings_model: type[Settings]) -> None:
+    """上限を 1 バイトでも超えたら通らない（異常系）。"""
+    from pydantic import ValidationError
+
+    # 準備（1 バイトの英字 + 日本語 74 文字 = 223 バイト）
+    word = "a" + "あ" * (HINT_LIMIT_BYTES // JAPANESE_CHAR_BYTES)
+
+    # 実行・検証
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate({"hint_presets": [_hint_preset("開発", [word])]})
+    errors = exc_info.value.errors()
+    assert [(error["type"], error["loc"]) for error in errors] == [
+        ("hint_too_long", ("hint_presets",))
+    ]
+
+
+def test_settings_when_disabled_hint_long(settings_model: type[Settings]) -> None:
+    """無効のプリセットの語は長さに数えない（正常系）。"""
+    # 準備（有効な語は 100 バイト、無効なプリセットは 300 バイトの語）
+    presets = [
+        _hint_preset("開発", ["a" * 100]),
+        _hint_preset("会議", ["あ" * 100], enabled=False),
+    ]
+
+    # 実行
+    settings = settings_model.model_validate({"hint_presets": presets})
+
+    # 検証
+    assert [preset.enabled for preset in settings.hint_presets] == [True, False]
+
+
+def test_settings_when_hint_word_has_separator(settings_model: type[Settings]) -> None:
+    """読点・句点・改行を含む語は通らない（異常系）。"""
+    from pydantic import ValidationError
+
+    from voice_paste.shared.settings import list_validation_failures
+
+    # 準備（語「A、B」「C。」「D\nE」をそれぞれ持つ無効のプリセット）
+    presets = [
+        _hint_preset("一", ["A、B"], enabled=False),
+        _hint_preset("二", ["C。"], enabled=False),
+        _hint_preset("三", ["D\nE"], enabled=False),
+    ]
+
+    # 実行・検証
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate({"hint_presets": presets})
+    assert {error["type"] for error in exc_info.value.errors()} == {"hint_word_separator"}
+    failures = list_validation_failures(exc_info.value)
+    assert [key for key, _reason in failures] == [
+        "hint_presets[0].words[0]",
+        "hint_presets[1].words[0]",
+        "hint_presets[2].words[0]",
+    ]
+
+
+def test_settings_when_hint_word_blank(settings_model: type[Settings]) -> None:
+    """空白だけの語は通らない（異常系）。"""
+    from pydantic import ValidationError
+
+    from voice_paste.shared.settings import list_validation_failures
+
+    # 実行・検証（語「  」の hint_presets）
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate({"hint_presets": [_hint_preset("開発", ["  "])]})
+    assert [error["type"] for error in exc_info.value.errors()] == ["hint_word_empty"]
+    failures = list_validation_failures(exc_info.value)
+    assert [key for key, _reason in failures] == ["hint_presets[0].words[0]"]
+
+
+def test_load_settings_when_no_hint_presets(
+    settings_file: Path, settings_model: type[Settings]
+) -> None:
+    """hint_presets のキーが無い今の settings.toml を読める（正常系）。"""
+    from voice_paste.shared.settings import load_settings
+
+    # 準備
+    settings_file.write_text('[transcription.local_whisper]\nmodel = "small"\n', encoding="utf-8")
+
+    # 実行
+    settings = load_settings(settings_file, settings_model)
+
+    # 検証
+    assert settings.hint_presets == []
+
+
+# === find_hint_preset_name_overlaps ===
+
+
+def test_find_hint_preset_name_overlaps() -> None:
+    """後ろにある側を重なりとして返す（正常系）。"""
+    from voice_paste.shared.settings import (
+        HintPresetSettings,
+        Settings,
+        find_hint_preset_name_overlaps,
+    )
+
+    # 準備（名前が「開発」「会議」「開発」の 3 件。確かめを飛ばして作る）
+    settings = Settings.model_construct(
+        hint_presets=[
+            HintPresetSettings(name="開発"),
+            HintPresetSettings(name="会議"),
+            HintPresetSettings(name="開発"),
+        ]
+    )
+
+    # 実行
+    overlaps = find_hint_preset_name_overlaps(settings)
+
+    # 検証
+    assert overlaps == [("hint_presets[2].name", "開発")]
+
+
+def test_settings_when_hint_preset_names_overlap(settings_model: type[Settings]) -> None:
+    """名前が重なる設定は検証に通らない（異常系）。"""
+    from pydantic import ValidationError
+
+    from voice_paste.shared.settings import list_validation_failures
+
+    # 実行・検証（名前が同じ 2 件の hint_presets）
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate(
+            {"hint_presets": [_hint_preset("開発", ["A"]), _hint_preset("開発", ["B"])]}
+        )
+    failures = list_validation_failures(exc_info.value)
+    assert [key for key, _reason in failures] == ["hint_presets[1].name"]
+
+
+def test_settings_when_hint_preset_name_blank(settings_model: type[Settings]) -> None:
+    """空白だけの名前は検証に通らない（異常系）。"""
+    from pydantic import ValidationError
+
+    from voice_paste.shared.settings import list_validation_failures
+
+    # 実行・検証（名前が「  」の hint_presets）
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate({"hint_presets": [_hint_preset("  ", ["A"])]})
+    failures = list_validation_failures(exc_info.value)
+    assert [key for key, _reason in failures] == ["hint_presets[0].name"]
 
 
 # === build_settings_model ===

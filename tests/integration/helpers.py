@@ -179,10 +179,15 @@ class FakeEngine:
         self.error_on_calls: set[int] = set()
         """例外にする呼び出しの番号（1 始まり）。連続録音の区間のうち特定の区間だけを失敗させる。"""
         self.audio_paths: list[Path] = []
+        self.hints: list[str | None] = []
+        """呼び出しごとに渡された手がかり。"""
 
-    def __call__(self, audio_path: Path, *, on_progress: object = None) -> list[str]:
+    def __call__(
+        self, audio_path: Path, *, on_progress: object = None, hint: str | None = None
+    ) -> list[str]:
         """録音のパスを覚え、error があれば（error_on_calls の番号の呼び出しなら）送出し、無ければ区間を返す。"""
         self.audio_paths.append(audio_path)
+        self.hints.append(hint)
         if self.error is not None:
             raise self.error
         if len(self.audio_paths) in self.error_on_calls:
@@ -402,7 +407,7 @@ def build_stack(tmp_path: Path) -> Stack:
         save_recording=partial(
             save_recording, history_enabled=True, paths=paths, now=clock
         ),
-        transcribe=partial(transcribe, engine=engine),
+        transcribe=partial(transcribe, engine=engine, get_hint=lambda: None),
         correct=lambda text: apply_glossary(text, []),
         append_text=partial(append_text, paths=paths),
         deliver=deliver_session,
@@ -528,7 +533,7 @@ def build_output_stack(
         stop_recording=recorder.stop,
         discard_recording=recorder.discard,
         save_recording=partial(save_recording, history_enabled=True, paths=paths, now=clock),
-        transcribe=partial(transcribe, engine=engine),
+        transcribe=partial(transcribe, engine=engine, get_hint=lambda: None),
         correct=lambda text: apply_glossary(text, []),
         append_text=partial(append_text, paths=paths),
         deliver=deliver_session,

@@ -616,7 +616,7 @@ settings:
     description: 設定画面の表記のヒントの一覧に出す名前。`hint_presets` のキーが無い settings.toml は、プリセットの無い空の一覧として読む。
     reload: immediate
     allowed: 1 文字以上（前後の空白を除いて）。ほかのヒントのプリセットと同じ名前にできない
-    status: planned
+    status: implemented
     implementation: src/voice_paste/shared/settings.py
   - key: hint_presets[].words
     title: 表記のヒントの語
@@ -626,7 +626,7 @@ settings:
     description: 文字起こしに渡す、間違えやすい語の正しい表記の並び。有効なプリセットの語を一覧の上から順に読点（、）でつなぎ、faster-whisper の `hotwords` に渡す。
     reload: immediate
     allowed: 1 つの語は空にできず、読点（、）・句点（。）・改行を含められない。有効なプリセットの語をつないだ長さは UTF-8 で 222 バイト以下
-    status: planned
+    status: implemented
     implementation: src/voice_paste/shared/settings.py
     refs:
       - dev/設計書/外部ライブラリ/faster-whisper#
@@ -637,7 +637,7 @@ settings:
     default: 'true'
     description: '`false` のとき、そのプリセットの語を文字起こしに渡さない。全てのプリセットが無効か、プリセットが無いときは、手がかりを渡さずに文字を起こす。'
     reload: immediate
-    status: planned
+    status: implemented
     implementation: src/voice_paste/shared/settings.py
 notes:
   反映の列の読み方: '`immediate` は設定画面で保存すると動いている常駐アプリに効く項目。`settings.toml` を直接書き換えたときは、どの項目も再起動まで効かない（起動時に 1 度だけ読む）。'

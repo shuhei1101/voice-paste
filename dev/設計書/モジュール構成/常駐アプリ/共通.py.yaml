@@ -678,7 +678,7 @@ data_models:
       - dev/設計書/設定/常駐アプリ#settings[hint_presets[].name]
       - dev/設計書/設定/常駐アプリ#settings[hint_presets[].words]
       - dev/設計書/設定/常駐アプリ#settings[hint_presets[].enabled]
-    status: planned
+    status: implemented
   - name: HintWordSource
     title: 手がかりの語の出所
     container: shared/settings.py
@@ -693,7 +693,7 @@ data_models:
       - name: words
         type: Sequence[str]
         description: 語の並び
-    status: planned
+    status: implemented
 classes:
   - name: AppError
     title: アプリの例外
@@ -1342,7 +1342,7 @@ functions:
         expected: '"、A、B" が返り、例外が出ない'
     refs:
       - dev/設計書/設定/常駐アプリ#settings[hint_presets[].words]
-    status: planned
+    status: implemented
   - name: find_hint_preset_name_overlaps
     title: 表記のヒントのプリセットの名前の重なりの検出
     container: shared/settings.py
@@ -1383,7 +1383,7 @@ functions:
         expected: ValidationError。失敗の場所が hint_presets[0].name
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
-    status: planned
+    status: implemented
 constants:
   - name: APP_NAME
     title: アプリ名
@@ -1398,7 +1398,7 @@ constants:
     usecase: 設定を変える
     summary: 有効なプリセットの語をつないだ手がかりの UTF-8 のバイト数の上限。faster-whisper が hotwords を先頭の 223 トークンに切ることから、頭に足す空白の 1 バイトを引いた値（導き方は PR の要件と外部ライブラリ『faster-whisper』）
     value: '222'
-    status: planned
+    status: implemented
 test_files:
   - tests/unit/voice_paste/shared/test_settings.py
   - tests/unit/voice_paste/shared/test_logger.py

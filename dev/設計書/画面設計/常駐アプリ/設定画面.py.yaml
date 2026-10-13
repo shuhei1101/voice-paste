@@ -481,7 +481,7 @@ elements:
     label: 間違えやすい語の正しい表記を並べる。文字起こしへの指示としては効かない。
     io: 表示
     visible_when: 表記のヒントのまとまりを選んだとき
-    status: planned
+    status: implemented
   - name: 有効なヒントの長さ
     id: hint_length
     kind: progress
@@ -494,7 +494,7 @@ elements:
     hint: 上限は 222 バイト（日本語でおよそ 74 文字）。語の間の読点（、）も数える。
     error_message: この行の下に赤で出す（入力チェック）
     source: Settings.hint_presets[]（enabled が true のものの words）
-    status: planned
+    status: implemented
     refs:
       - dev/設計書/設定/常駐アプリ#settings[hint_presets[].words]
   - name: ヒントのプリセットの一覧
@@ -508,7 +508,7 @@ elements:
     initial_value: settings.toml の `hint_presets[]`（キーが無ければ空）
     source: Settings.hint_presets[]
     target: Settings.hint_presets[]（一覧の順に書く）
-    status: planned
+    status: implemented
     refs:
       - dev/設計書/設定/常駐アプリ#settings[hint_presets[].name]
   - name: ヒントのプリセットが無いときの案内
@@ -519,7 +519,7 @@ elements:
     label: ヒントのプリセットはまだありません。無い間は、ヒントを渡さずに文字を起こします。
     io: 表示
     visible_when: ヒントのプリセットが 1 件も無いとき
-    status: planned
+    status: implemented
   - name: ヒントのプリセットの有効の切り替え
     id: hint_preset_enabled_{n}
     kind: switch
@@ -532,7 +532,7 @@ elements:
     initial_value: settings.toml の値（足したプリセットはオン）
     source: Settings.hint_presets[].enabled
     target: Settings.hint_presets[].enabled
-    status: planned
+    status: implemented
     refs:
       - dev/設計書/設定/常駐アプリ#settings[hint_presets[].enabled]
   - name: ヒントのプリセットの語の数と長さ
@@ -543,7 +543,7 @@ elements:
     io: 表示
     visible_when: プリセットごと
     display_format: '「{語の数} 語・{長さ} バイト」。例: 「6 語・86 バイト」'
-    status: planned
+    status: implemented
   - name: ヒントのプリセットの名前の欄
     id: hint_preset_name_{n}
     kind: input
@@ -560,7 +560,7 @@ elements:
     initial_value: settings.toml の値（足したプリセットは空）
     source: Settings.hint_presets[].name
     target: Settings.hint_presets[].name（前後の空白を除く）
-    status: planned
+    status: implemented
     refs:
       - dev/設計書/設定/常駐アプリ#settings[hint_presets[].name]
   - name: ヒントの語の欄
@@ -579,7 +579,7 @@ elements:
     source: Settings.hint_presets[].words[]
     target: Settings.hint_presets[].words[]（前後の空白を除く）
     reason: 語のエラーをその語の欄の下に出すため、複数行の文字の欄 1 つではなく語ごとの欄にした
-    status: planned
+    status: implemented
     refs:
       - dev/設計書/設定/常駐アプリ#settings[hint_presets[].words]
   - name: ヒントの語を消すボタン
@@ -590,7 +590,7 @@ elements:
     label: '{何つ目か} つ目の語を消す（読み上げの名前。見た目は消す印）'
     visible_when: 語ごと
     action: 語を消して長さを数え直す
-    status: planned
+    status: implemented
   - name: ヒントの語が無いときの文
     id: hint_words_empty_{n}
     kind: label
@@ -599,7 +599,7 @@ elements:
     label: このプリセットにはまだ語がありません。
     io: 表示
     visible_when: そのプリセットに語が 1 つも無いとき
-    status: planned
+    status: implemented
   - name: ヒントの語を足すボタン
     id: hint_word_add_{n}
     kind: button
@@ -608,7 +608,7 @@ elements:
     label: 語を足す
     visible_when: プリセットごと
     action: 語の欄を 1 つ足す
-    status: planned
+    status: implemented
   - name: ヒントのプリセットを上へのボタン
     id: hint_preset_up_{n}
     kind: button
@@ -618,7 +618,7 @@ elements:
     visible_when: プリセットごと
     enabled_when: 先頭のプリセットでないとき
     action: プリセットを 1 つ上へ動かす
-    status: planned
+    status: implemented
   - name: ヒントのプリセットを下へのボタン
     id: hint_preset_down_{n}
     kind: button
@@ -628,7 +628,7 @@ elements:
     visible_when: プリセットごと
     enabled_when: 末尾のプリセットでないとき
     action: プリセットを 1 つ下へ動かす
-    status: planned
+    status: implemented
   - name: ヒントのプリセットを消すボタン
     id: hint_preset_remove_{n}
     kind: button
@@ -637,7 +637,7 @@ elements:
     label: '{名前}を消す（読み上げの名前。見た目は消す印）'
     visible_when: プリセットごと
     action: プリセットを一覧から消して長さを数え直す
-    status: planned
+    status: implemented
   - name: ヒントのプリセットを足すボタン
     id: hint_preset_add
     kind: button
@@ -647,7 +647,7 @@ elements:
     visible_when: 表記のヒントのまとまりを選んだとき
     action: ヒントのプリセットの一覧に 1 件足す
     reason: 足して語を入れただけで効くように、有効で足す（確認ログ）
-    status: planned
+    status: implemented
   - name: 表記のヒントの補足
     id: hint_notes
     kind: label
@@ -656,7 +656,7 @@ elements:
     label: 'ヒントを渡すと、句読点が付く・改行がまとまる・口癖が一部消える。 / 並べた表記にほかの語が引っ張られたら、その語も足す（例: TypeScript がタイプスクリプトになったら「TypeScript」を足す）。（「 / 」で区切った 2 項目）'
     io: 表示
     visible_when: 表記のヒントのまとまりを選んだとき
-    status: planned
+    status: implemented
 input_checks:
   - element: 設定の欄
     violation: 数値の欄に数値でない文字が入っている

@@ -19,8 +19,10 @@ from tests.integration.helpers import wait_until
 from tests.support.instances import started_count
 from tests.support.real_service import read_token_file
 from tests.support.resident_app import IDLE, ResidentApp, service_processes_for
+from voice_paste.features.correction import read_glossary_rows
 from voice_paste.main import SETTINGS_MODEL
 from voice_paste.shared.settings import load_settings
+from voice_paste.shared.types import GlossaryEntry
 
 pytestmark = pytest.mark.real_machine
 
@@ -45,6 +47,15 @@ RESET_TIMEOUT_SEC = 15.0
 RESTARTED_TIMEOUT_SEC = 180.0
 """再起動した新しい常駐アプリが待ち受けを始めるまで待つ上限。"""
 
+GLOSSARY_FILE_NAME = "yogo.csv"
+"""設定に用語集の一覧が無いときに読む、settings.toml と同じフォルダの用語集の CSV。"""
+
+GLOSSARY_TWO_ROWS = "誤変換,正しい表記\nkuroudo,Claude\ngitto,Git\n"
+"""用語集に 2 つある行（キーを打つ操作が確かな ASCII の語にしている）。"""
+
+COMMENT_LINE = "# E2E: このコメントは保存しても残る"
+"""COMMENTED_SETTINGS が持つコメント。"""
+
 
 def _settings_file(app: ResidentApp) -> Path:
     """起動した常駐アプリの settings.toml のパス。"""
@@ -54,6 +65,16 @@ def _settings_file(app: ResidentApp) -> Path:
 def _toml(app: ResidentApp) -> dict[str, object]:
     """settings.toml を読む。"""
     return tomllib.loads(_settings_file(app).read_text(encoding="utf-8"))
+
+
+def _glossary_file(app: ResidentApp) -> Path:
+    """設定のフォルダの、今までの用語集の CSV（`prepare` で行を置く）。"""
+    return app.data_dir / GLOSSARY_FILE_NAME
+
+
+def _put_glossary(data_dir: Path) -> None:
+    """起動の前に、設定のフォルダへ 2 行の用語集の CSV を置く。"""
+    (data_dir / GLOSSARY_FILE_NAME).write_text(GLOSSARY_TWO_ROWS, encoding="utf-8")
 
 
 def _token(app: ResidentApp) -> object:
@@ -167,3 +188,77 @@ def test_error_when_invalid_value(run_app: RunApp) -> None:
         assert _settings_file(app).read_bytes() == before
 
     run_app(case, extra_settings=COMMENTED_SETTINGS)
+
+
+def test_normal_when_edit_glossary(run_app: RunApp) -> None:
+    """用語集の行を足し・書き換え・オフにして保存すると、用語集のファイルに書き戻され、再起動せずに補正へ効く（正常シナリオ）。
+
+    補正は、動いている常駐アプリの補正に文字を渡して確かめる（マイクは開かない）。
+    """
+
+    def case(app: ResidentApp) -> None:
+        """設定画面の「用語集」で、行を足し、1 つ目の行の正しい表記を書き換え、2 つ目の行をオフにして保存する。"""
+        # 準備
+        app.open_settings()
+        app.select_group("用語集")
+
+        # 実行
+        app.press("add_glossary_entry_button")
+        app.set_text("glossary_entry_wrong_2", "paison")
+        app.set_text("glossary_entry_right_2", "Python")
+        app.set_text("glossary_entry_right_0", "Claude Code")
+        app.click("glossary_entry_on_1")
+        app.press("save_button")
+
+        # 検証
+        assert app.wait_window_gone("settings_window")
+        assert read_glossary_rows(_glossary_file(app)) == [
+            GlossaryEntry(wrong="kuroudo", right="Claude Code"),
+            GlossaryEntry(wrong="gitto", right="Git", enabled=False),
+            GlossaryEntry(wrong="paison", right="Python"),
+        ]
+        assert COMMENT_LINE in _settings_file(app).read_text(encoding="utf-8")
+        assert _toml(app)["recording"]["fade_sec"] == 1.5  # type: ignore[index]
+        assert app.correct_text("kuroudo gitto paison") == "Claude Code gitto Python"
+
+    run_app(case, extra_settings=COMMENTED_SETTINGS, prepare=_put_glossary)
+
+
+def test_normal_when_switch_glossary_preset(run_app: RunApp) -> None:
+    """用語集のプリセットを足して行を入れ、補正に使うプリセットを切り替えて保存すると、足したプリセットの用語集のファイルができ、再起動せずに補正へ効く（正常シナリオ）。
+
+    補正は、動いている常駐アプリの補正に文字を渡して確かめる（マイクは開かない）。
+    """
+
+    def case(app: ResidentApp) -> None:
+        """設定画面の「用語集」で、プリセットを足して名前と行を入れ、補正に使うプリセットを足したものに切り替えて保存する。"""
+        # 準備
+        before = _glossary_file(app).read_bytes()
+        app.open_settings()
+        app.select_group("用語集")
+
+        # 実行
+        app.press("add_glossary_button")
+        app.set_text("glossary_name_1", "meeting")
+        app.press("add_glossary_entry_button")
+        app.set_text("glossary_entry_wrong_0", "paison")
+        app.set_text("glossary_entry_right_0", "Python")
+        app.click("glossary_active_1")
+        app.press("save_button")
+
+        # 検証
+        assert app.wait_window_gone("settings_window")
+        added = app.data_dir / "glossaries" / "glossary_1.csv"
+        assert read_glossary_rows(added) == [GlossaryEntry(wrong="paison", right="Python")]
+        assert _glossary_file(app).read_bytes() == before
+        toml = _toml(app)
+        assert toml["active_glossary"] == "meeting"
+        assert [(item["name"], item["path"]) for item in toml["glossaries"]] == [  # type: ignore[attr-defined]
+            ("yogo", GLOSSARY_FILE_NAME),
+            ("meeting", "glossaries/glossary_1.csv"),
+        ]
+        assert COMMENT_LINE in _settings_file(app).read_text(encoding="utf-8")
+        assert _toml(app)["recording"]["fade_sec"] == 1.5  # type: ignore[index]
+        assert app.correct_text("kuroudo gitto paison") == "kuroudo gitto Python"
+
+    run_app(case, extra_settings=COMMENTED_SETTINGS, prepare=_put_glossary)

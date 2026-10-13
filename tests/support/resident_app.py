@@ -6,6 +6,7 @@
 トレイのメニューは項目の `QAction` を trigger し、画面のボタン・欄はクリックとキーを Qt のイベントで渡す。
 `main()` の中で作られるトレイ（`Tray`）は作ったものを控え、ホットキーの受付（`HotkeyListener`）は何も始めない受け手に、
 フォルダを開く呼び出し（`QDesktopServices`）は渡されたパスを控えるものに差し替える。
+動いている常駐アプリの補正（`SessionDeps` の `correct`）は、渡された関数を控える（本物の補正のまま。マイクを開かずに文字を渡して確かめる）。
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ import time
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import TypeVar
+from typing import Any, TypeVar
 
 import httpx
 import pytest
@@ -25,6 +26,7 @@ from PySide6.QtCore import QTimer, QUrl, Qt
 from PySide6.QtGui import QAction
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import (
+    QAbstractButton,
     QApplication,
     QLabel,
     QLineEdit,
@@ -146,6 +148,7 @@ class ResidentApp:
         self.port = port
         self.tray: Tray | None = None
         self.hotkeys: FakeHotkeyListener | None = None
+        self.correct: Callable[[str], str] | None = None
         self.opened_folders: list[Path] = []
         self.unexpected_dialogs: list[str] = []
         self.worker_pids_at_start: set[int] = set()
@@ -281,9 +284,20 @@ class ResidentApp:
         """項目 ID のボタンをクリックする。"""
         QTest.mouseClick(self.wait_widget(name, QPushButton), Qt.MouseButton.LeftButton)
 
+    def click(self, name: str) -> None:
+        """項目 ID のボタン・ラジオボタン・チェックボックスをクリックする。"""
+        QTest.mouseClick(self.wait_widget(name, QAbstractButton), Qt.MouseButton.LeftButton)
+
     def label(self, name: str) -> str:
         """項目 ID のラベルの文字を返す。"""
         return self.wait_widget(name, QLabel).text()
+
+    # --- 補正 ---
+
+    def correct_text(self, text: str) -> str:
+        """動いている常駐アプリの補正に文字を渡し、補正した文字を返す（その時点の設定の用語集で補正する）。"""
+        assert self.correct is not None, "常駐アプリの補正がまだ作られていない（エンジンを準備できなかった）"
+        return self.correct(text)
 
     # --- 確認ダイアログ ---
 
@@ -381,7 +395,7 @@ def _restored_process_state(qapp: QApplication) -> Iterator[None]:
 
 
 def _spy_on_main(app: ResidentApp, monkeypatch: pytest.MonkeyPatch) -> None:
-    """`main()` が作るトレイ・ホットキーの受付・フォルダを開く呼び出しを、控える・始めない・開かないものに差し替える。"""
+    """`main()` が作るトレイ・ホットキーの受付・フォルダを開く呼び出し・補正を、控える・始めない・開かない・控えるものに差し替える。"""
 
     def make_tray(settings_dir: Path, log_dir: Path) -> Tray:
         """本物のトレイを作り、控える。"""
@@ -393,8 +407,16 @@ def _spy_on_main(app: ResidentApp, monkeypatch: pytest.MonkeyPatch) -> None:
         app.hotkeys = FakeHotkeyListener(accept_injected=accept_injected)
         return app.hotkeys
 
+    session_deps = main_module.SessionDeps
+
+    def make_session_deps(**fields: Any) -> Any:
+        """本物の SessionDeps を作り、渡された補正の関数を控える。"""
+        app.correct = fields["correct"]
+        return session_deps(**fields)
+
     monkeypatch.setattr(main_module, "Tray", make_tray)
     monkeypatch.setattr(main_module, "HotkeyListener", make_hotkey_listener)
+    monkeypatch.setattr(main_module, "SessionDeps", make_session_deps)
     monkeypatch.setattr(tray_module, "QDesktopServices", _fake_desktop_services(app.opened_folders))
     # 文字起こしワーカーと再起動で起こす新しいプロセスが、この作業ツリーの src を読むようにする
     monkeypatch.setenv("PYTHONPATH", str(SOURCE_DIR))

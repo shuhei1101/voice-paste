@@ -65,8 +65,34 @@
   padding: 0;
 }
 
+/* プリセットの頭: 幅が足りないときは、語の数と長さ・操作のボタンを次の段へ送る */
+.hint .preset__head {
+  flex-wrap: wrap;
+}
+
+/* 頭の切り替えの文言: 折り返さない */
+.hint .switch {
+  white-space: nowrap;
+}
+
+/* 頭の名前: 読める幅を残してから折り返す */
+.hint .preset__name {
+  flex-basis: 8em;
+}
+
+/* 名前が空のときの頭の文言 */
+.hint .preset__name:empty::before {
+  content: "（名前未入力）";
+}
+
+/* 頭の操作のボタン: 次の段へ送られたときも右に寄せる */
+.hint .preset__tools {
+  margin-left: auto;
+}
+
 /* プリセットの頭の語の数と長さ: 等幅の数字で揃える */
 .hint__count {
+  margin-left: auto;
   color: var(--text-2);
   font-family: var(--font-num);
   font-size: 12px;
@@ -93,10 +119,10 @@
   padding: 4px 0;
 }
 
-/* 語の一覧: 短い語が多いので 2 列に並べる（左から右、上から下の順） */
+/* 語の一覧: 短い語が多いので、欄の幅に入るだけ横に並べる（左から右、上から下の順） */
 .hint-words {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
   gap: 4px 12px;
   width: 100%;
   margin: 0;
@@ -145,26 +171,16 @@ ul.hint-notes {
   padding-left: 18px;
 }
 
-/* 部品のモック: 長さの行だけを並べる枠 */
-.hint-total-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* 狭い幅: 語を 1 列にし、長さの行のバーを次の段へ送る */
+/* 狭い幅: 長さの行のバーを次の段へ送る */
 @media (max-width: 640px) {
-  /* 語を 1 列に積む */
-  .hint-words { grid-template-columns: minmax(0, 1fr); }
-  /* 名前と今の長さを 1 段目、バーを 2 段目に置く */
-  .hint-total { grid-template-columns: 1fr auto; }
-  /* バーを行の幅いっぱいにする */
-  .hint-total meter { grid-column: 1 / -1; grid-row: 2; }
+  /* 名前と今の長さを 1 段目に並べ、入りきらなければ今の長さを次の段へ送る */
+  .hint-total { display: flex; flex-wrap: wrap; justify-content: space-between; }
+  /* 名前を折り返さない */
+  .hint-total > span:first-child { white-space: nowrap; }
+  /* バーを名前と今の長さの下で行の幅いっぱいにする */
+  .hint-total meter { order: 1; flex-basis: 100%; }
+  /* 補足・エラーをバーの下で行の幅いっぱいにする */
+  .hint-total .field-help, .hint-total .field-error { order: 2; flex-basis: 100%; }
   /* 語の欄の名前の下げ幅を戻す */
   .hint__words-field > span:first-child { padding-top: 0; }
-}
-
-/* 名前が空のときの頭の文言 */
-.hint .preset__name:empty::before {
-  content: "（名前未入力）";
 }

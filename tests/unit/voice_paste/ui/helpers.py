@@ -69,6 +69,7 @@ def make_ui_deps(
         ),
         "read_glossary": MagicMock(return_value=[]),
         "new_glossary_path": MagicMock(return_value=tmp_path / "glossaries" / "glossary_1.csv"),
+        "copy": MagicMock(return_value=None),
     }
     if "apply_theme" in {field.name for field in dataclasses.fields(UiDepsModel)}:
         fields["apply_theme"] = MagicMock(return_value=None)

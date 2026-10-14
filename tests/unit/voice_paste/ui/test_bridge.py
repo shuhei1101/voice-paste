@@ -1,4 +1,4 @@
-"""ui/bridge.py（UiBridge・notify・report_progress）の単体テスト。
+"""ui/bridge.py（UiBridge・notify・notify_copied・report_progress）の単体テスト。
 
 画面を使うため offscreen の QApplication（conftest の qapp）で動かす。
 """
@@ -38,6 +38,12 @@ class Receiver(QObject):
     def on_progressed(self, position_sec: float, duration_sec: float) -> None:
         """進みを受けた値を覚える。"""
         self.received.append((position_sec, duration_sec))
+        self.threads.append(threading.current_thread())
+
+    @Slot(str)
+    def on_copied(self, text: str) -> None:
+        """コピーの完了で渡された起こした文字を覚える。"""
+        self.received.append((text,))
         self.threads.append(threading.current_thread())
 
 
@@ -93,6 +99,30 @@ def test_notify_from_other_thread(qapp: QApplication) -> None:
     # 検証
     assert receiver.received == [("state_changed", None)]
     assert receiver.threads == [threading.main_thread()]
+
+
+# === notify_copied ===
+
+
+def test_notify_copied(qapp: QApplication, caplog: pytest.LogCaptureFixture) -> None:
+    """起こした文字を Signal で渡し、ログには書かない（正常系）。"""
+    from voice_paste.ui.bridge import UiBridge, notify_copied
+
+    # 準備
+    caplog.set_level(logging.INFO)
+    bridge = UiBridge()
+    receiver = Receiver()
+    bridge.copied.connect(receiver.on_copied, Qt.ConnectionType.QueuedConnection)
+
+    # 実行
+    notify_copied("テストの文字", bridge=bridge)
+    _process_events_until(lambda: receiver.received)
+
+    # 検証
+    assert receiver.received == [("テストの文字",)]
+    infos = [record for record in caplog.records if record.levelno == logging.INFO]
+    assert len(infos) == 1
+    assert all("テストの文字" not in record.getMessage() for record in caplog.records)
 
 
 # === report_progress ===

@@ -143,6 +143,7 @@ def test_output_extensibility(tmp_path: Path, qapp: QApplication) -> None:
         jitter=MagicMock(),
         post=MagicMock(),
         get_settings=lambda: reloaded,
+        notify_copied=MagicMock(),
     )
     outcome = TranscriptionOutcome(
         session_id="session-1", result="transcribed", text="テスト", error=None

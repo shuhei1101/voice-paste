@@ -516,6 +516,7 @@ def build_output_stack(
         jitter=lambda upper: upper,
         post=post_json,
         get_settings=lambda: settings,
+        notify_copied=lambda text: None,
     )
     deliver_session = partial(
         _deliver_session,

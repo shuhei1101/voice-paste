@@ -599,7 +599,11 @@ def start_inprocess_app(
     monkeypatch.setattr(main_module, "send_enter", keys.send_enter)
     paths = resolve_app_paths(tmp_path)
     handlers = main_module.build_handlers(
-        settings, paths, notifications, lambda *_args, **_kwargs: None
+        settings,
+        paths,
+        notifications,
+        lambda *_args, **_kwargs: None,
+        lambda *_args, **_kwargs: None,
     )
     return InProcessApp(
         handlers=handlers,

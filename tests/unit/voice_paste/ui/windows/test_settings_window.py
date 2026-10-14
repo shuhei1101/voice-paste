@@ -15,7 +15,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from PySide6.QtCore import QKeyCombination, QRegularExpression, Qt
-from PySide6.QtGui import QTextDocument
+from PySide6.QtGui import QAccessible, QAccessibleAnnouncementEvent, QAccessibleEvent, QTextDocument
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import (
     QAbstractButton,
@@ -203,9 +203,11 @@ def _set_language(window: SettingsWindow, language: str) -> None:
 # === save ===
 
 
-def test_save(opened: Opened) -> None:
-    """通った値を書き、設定画面を開いたまま保存した知らせを出す（正常系）。"""
-    # 準備
+def test_save(opened: Opened, monkeypatch: pytest.MonkeyPatch) -> None:
+    """通った値を書き、設定画面を開いたまま保存した知らせを出して読み上げにも伝える（正常系）。"""
+    # 準備（読み上げに渡すイベントを控える）
+    announced: list[QAccessibleEvent] = []
+    monkeypatch.setattr(QAccessible, "updateAccessibility", announced.append)
     saved_count: list[int] = []
     closed_count: list[int] = []
     opened.window.saved.connect(lambda: saved_count.append(1))
@@ -232,6 +234,9 @@ def test_save(opened: Opened) -> None:
     menu = opened.window.findChild(QListWidget, "group_menu")
     assert menu is not None
     assert menu.currentItem().text() == "録音"
+    assert len(announced) == 1
+    assert isinstance(announced[0], QAccessibleAnnouncementEvent)
+    assert announced[0].message() == "保存しました。"
 
 
 def test_save_when_invalid(opened: Opened) -> None:
@@ -560,22 +565,29 @@ def test_save_when_restart(opened: Opened) -> None:
 
 
 @pytest.mark.parametrize(
-    ("hotkey_name", "expected_notice"),
+    ("group", "hotkey_name", "expected_notice"),
     [
         pytest.param(
+            "ホットキー",
             "hotkey_hotkeys.start",
             "保存しました。新しいホットキーは、設定画面を閉じると効きます。",
             id="recording_hotkey",
         ),
-        pytest.param("hotkey_keyboard.paste_key", "保存しました。", id="paste_key"),
+        pytest.param(
+            "出力先",
+            "hotkey_outputs[0].hotkey",
+            "保存しました。新しいホットキーは、設定画面を閉じると効きます。",
+            id="output_hotkey",
+        ),
+        pytest.param("ホットキー", "hotkey_keyboard.paste_key", "保存しました。", id="paste_key"),
     ],
 )
 def test_save_when_hotkey_changed(
-    opened: Opened, hotkey_name: str, expected_notice: str
+    opened: Opened, group: str, hotkey_name: str, expected_notice: str
 ) -> None:
     """ホットキーを変えた保存では、閉じると効くことを添える（正常系）。"""
-    # 準備（録音開始のホットキーか、貼り付けに送るキーだけを変える）
-    _select_group(opened.window, "ホットキー")
+    # 準備（録音開始か出力先の確定のホットキーか、貼り付けに送るキーだけを変える）
+    _select_group(opened.window, group)
     _press_hotkey(opened.window, hotkey_name)
 
     # 実行

@@ -919,7 +919,7 @@ classes:
           3. GlossaryPanel.mark_saved で用語集の書き戻しの基準を保存した行へ置き直してから、変えた欄の数えの基準（`_baseline`）を今の欄の値へ置き直す（`_baseline` は GlossaryPanel.changed_rows を含むため、この順でないと保存の直後に閉じても確認が出る。「再起動で反映」の件数の基準は開いたときの値のまま）
           4. saved を emit する
              - restart の場合、restart_requested を emit して窓を閉じ、True を返す
-          5. 窓を開いたまま、保存した知らせを出し、True を返す（入れた値・選んでいたまとまり・欄のフォーカスはそのまま）
+          5. 窓を開いたまま、保存した知らせを出して、同じ文を `QAccessible.updateAccessibility(QAccessibleAnnouncementEvent(知らせ, 文))` で読み上げにも伝え、True を返す（入れた値・選んでいたまとまり・欄のフォーカスはそのまま）
              - 知らせの文は「保存しました。」。ホットキーの欄（`hotkeys.*`・`outputs[].hotkey`・`presets[].hotkey`。`keyboard.paste_key` は含めない）のどれかが開いたときの値から変わっていれば「新しいホットキーは、設定画面を閉じると効きます。」を続ける
              - 開いたときの値から変わった「再起動で反映」の欄がある場合、「「再起動で反映」の設定 {件数} 件は、再起動するまで前の値で動きます。」を続け、今すぐ再起動のボタンを出して、再起動の知らせと保存して再起動のボタンを隠す
              - 欄を変えると知らせ（と今すぐ再起動のボタン）を消し、開いたときの値から数えた再起動の知らせと保存して再起動のボタンを出し直す
@@ -928,8 +928,8 @@ classes:
             case: 正常
             summary: 通った値を書く
             condition: 「録音中の音量の割合」を 30 にして save(restart=False)
-            mock: UiDeps.save_settings
-            expected: True。save_settings に recording.volume_percent=30 の Settings が渡り、saved が 1 回 emit される。窓が開いたままで closed が知らされず、保存した知らせが「保存しました。」で、欄の値と選んでいたまとまりがそのまま
+            mock: UiDeps.save_settings・QAccessible.updateAccessibility（渡したイベントを控える）
+            expected: True。save_settings に recording.volume_percent=30 の Settings が渡り、saved が 1 回 emit される。窓が開いたままで closed が知らされず、保存した知らせが「保存しました。」で、欄の値と選んでいたまとまりがそのまま。QAccessible.updateAccessibility が 1 回呼ばれ、渡したイベントの文が「保存しました。」
           - name: test_save_when_invalid
             case: 異常
             summary: 通らなければ書かずにエラーを出す
@@ -1016,9 +1016,9 @@ classes:
           - name: test_save_when_hotkey_changed
             case: 正常
             summary: ホットキーを変えた保存では、閉じると効くことを添える
-            condition: 録音開始のホットキーを変えて save(restart=False)。別のケースで貼り付けに送るキーだけを変えて save(restart=False)
+            condition: 録音開始のホットキーを変えて save(restart=False)。別のケースで出力先の確定のホットキーを変えて save(restart=False)。もう 1 つのケースで貼り付けに送るキーだけを変えて save(restart=False)
             mock: UiDeps.save_settings
-            expected: ホットキーを変えたときは保存した知らせが「保存しました。新しいホットキーは、設定画面を閉じると効きます。」。貼り付けに送るキーだけのときは「保存しました。」
+            expected: 録音開始か出力先の確定のホットキーを変えたときは保存した知らせが「保存しました。新しいホットキーは、設定画面を閉じると効きます。」。貼り付けに送るキーだけのときは「保存しました。」
           - name: test_save_when_restart_field_changed
             case: 正常
             summary: 「再起動で反映」の欄を保存すると、件数と今すぐ再起動を出し、保存の後に欄を変えると開いたときの値から数え直す

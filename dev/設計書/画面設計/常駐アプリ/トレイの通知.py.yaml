@@ -4,15 +4,15 @@ elements:
     id: tray_notification
     kind: notification
     position: 通知
-    description: トレイのアイコンから出す Windows の通知。アプリ名は voice-paste。モーダルにせず、作業中のアプリの入力を遮らない
-    visible_when: '`notify` で microphone_unavailable・transcription_failed・delivery_failed・api_unavailable を受けたときと、文字起こしのエンジンを準備できなかった・設定ファイルを読めなかった起動のとき'
+    description: トレイのアイコンから出す Windows の通知。アプリ名は voice-paste。モーダルにせず、作業中のアプリの入力を遮らない。失敗の通知は警告のアイコン、コピーの完了の通知は情報のアイコンで出す
+    visible_when: '`notify` で microphone_unavailable・transcription_failed・delivery_failed・api_unavailable・copy_completed を受けたときと、文字起こしのエンジンを準備できなかった・設定ファイルを読めなかった起動のとき'
     source: UiBridge.notified（知らせの種類と理由）
-    action: 通知を押すとログフォルダを開く。閉じると待機中（トレイ）に戻る
+    action: 押すと、失敗の通知はログフォルダを開き、コピーの完了の通知は起こした文字をコピーし直す。閉じると待機中（トレイ）に戻る
   - name: 見出し
     id: notification_title
     kind: label
     position: 通知 > 見出し
-    description: 何ができなかったかを短く出す（知らせの種類ごとの文言は補足）
+    description: 何ができなかったか・何ができたかを短く出す（知らせの種類ごとの文言は補足）
     io: 表示
     type: 文字列
     visible_when: 常時
@@ -21,7 +21,7 @@ elements:
     id: notification_body
     kind: label
     position: 通知 > 本文
-    description: 理由を 1 文で出し、履歴に残っていること・次にすることを添える
+    description: 失敗の通知は、理由を 1 文で出し、履歴に残っていること・次にすることを添える。コピーの完了の通知は、貼り付けることと、通知を押すとコピーし直せることを固定の文で出す
     io: 表示
     type: 文字列
     visible_when: 常時
@@ -30,13 +30,21 @@ elements:
     id: open_log_folder
     kind: action
     position: 通知 > 下
-    description: 通知の操作はこの 1 つ。ログのフォルダをエクスプローラーで開く
+    description: 失敗の通知の操作。ログのフォルダをエクスプローラーで開く
     label: ログフォルダを開く
-    visible_when: 常時
+    visible_when: 失敗の通知（コピーの完了の通知を除く全ての知らせ）
     action: ログのフォルダを開く
+  - name: コピーし直す
+    id: recopy
+    kind: action
+    position: 通知 > 下
+    description: コピーの完了の通知の操作。その通知のときに起こした文字をクリップボードへもう一度書く。書けなければ `delivery_failed` の失敗の通知を出す
+    visible_when: コピーの完了の通知
+    source: UiBridge.notified の起こした文字（`notify` の detail）
+    action: 起こした文字をクリップボードへ書く
 screen: src/voice_paste/ui/tray.py
 mock: dev/mock/pages/tray-notification/37/a-notification/
-lead: 裏の処理で起きた失敗を Windows の通知で知らせる。通知は数秒で畳まれ、通知センターには残らない。畳まれた後は、トレイのメニューの「ログフォルダを開く」から理由を見る。
+lead: 裏の処理で起きた失敗と、「コピーのみ」のコピーの完了を Windows の通知で知らせる。通知は数秒で畳まれ、通知センターには残らない。畳まれた後は、失敗の理由をトレイのメニューの「ログフォルダを開く」から見る。
 refs:
   - dev/設計書/モジュール構成/常駐アプリ/ホットキーと画面.py#functions[notify]
   - dev/設計書/シナリオ/単一ユースケース/常駐アプリを起動する#
@@ -50,7 +58,8 @@ notes:
     | `api_unavailable` | API を使えません | {理由}。ホットキーとトレイからの録音は使えます。 |
     | 文字起こしのエンジンを準備できない（`engine_unavailable`） | 起動に失敗しました | 文字起こしのエンジンを準備できません（{理由}）。設定を直して再起動してください。 |
     | 設定ファイルを読めない（`settings_invalid`） | 起動に失敗しました | 設定ファイルを読めません（{理由}）。設定フォルダの settings.toml を直して再起動してください。 |
+    | `copy_completed` | コピーしました | 任意の場所に貼り付けてください。この通知を押すと、もう一度コピーします。 |
 
-    {理由} は `notify` の `detail` を 1 文で出し、詳しい内容はログに書く。届けられないときは、どの出力先でも同じ見出しで出し、理由を変える。
-  通知の操作: PySide6 のトレイの通知（`QSystemTrayIcon.showMessage`）は通知の中にボタンを置けないため、モックの「ログフォルダを開く」は「通知を押す（`messageClicked`）とログフォルダを開く」で実現する
+    {理由} は `notify` の `detail` を 1 文で出し、詳しい内容はログに書く。届けられないときは、どの出力先でも同じ見出しで出し、理由を変える。`copy_completed` の `detail` は起こした文字で、本文には出さない。
+  通知の操作: PySide6 のトレイの通知（`QSystemTrayIcon.showMessage`）は通知の中にボタンを置けないため、「ログフォルダを開く」「コピーし直す」は「通知を押す（`messageClicked`）」で実現する。`messageClicked` はどの通知を押したかを渡さないため、トレイは最後に出した通知の種類と、コピーの完了なら起こした文字を持ち、押されたときにその種類で出し分ける。次の通知を出すと、種類を問わず持つものを置き換える
 test_file: tests/integration/ui/test_tray_notification.py

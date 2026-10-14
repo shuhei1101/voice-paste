@@ -8,7 +8,7 @@ items:
   - page: トレイ.py.yaml
     summary: 状態ごとのアイコンと、録音・設定・フォルダ・再起動・終了のメニュー
   - page: トレイの通知.py.yaml
-    summary: 裏の処理で起きた失敗を Windows の通知で知らせる
+    summary: 裏の処理で起きた失敗と、「コピーのみ」のコピーの完了を Windows の通知で知らせる
   - page: 処理中のダイアログ.py.yaml
     summary: API の録音の処理中に録音開始のホットキーを押したときに、始められない理由を知らせる
   - page: 設定画面.py.yaml

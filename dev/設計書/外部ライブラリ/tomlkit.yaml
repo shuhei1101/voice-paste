@@ -28,6 +28,10 @@ catalogs:
       - name: TOMLKitError
         kind: 例外
         purpose: 書式の壊れた settings.toml を読んだときに送出される（SettingsError に変える）
+      - name: Container.body
+        kind: 属性
+        purpose: 配列の表の最後の要素（`Table.value`）の末尾にある、キーを持たないコメントと空行（キーが `None` の `Comment`・`Whitespace`）を取り出し、入れ替えた後の表の末尾へ付け直す
+        description: 配列の表の後ろに書いたコメントは、parse で最後の要素の中（`body` の末尾の `(None, Comment)`・`(None, Whitespace)`）として読まれる。`body` は `(キー, 項目)` のリストで、末尾へ `(None, 項目)` を足すと dumps でその位置に書かれる
 lead: コメントと書式を保ったまま TOML を読み書きするライブラリ。
 purl: pkg:pypi/tomlkit
 dependency_scope: 必須

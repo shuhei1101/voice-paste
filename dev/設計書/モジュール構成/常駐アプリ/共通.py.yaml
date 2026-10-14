@@ -856,6 +856,7 @@ functions:
          - 読めない・検証に通らない場合、内容を空の文書にして前の設定を「全て変わった」とする
       3. settings を `model_dump(mode="json")` する。`glossaries[].path` は、path の親のフォルダの下にある場所ならそのフォルダからの相対パス（区切りは `/`）にし、それ以外は絶対パスのままにする
       4. 文書の値を再帰で置き換える。表はキーごとに書き換えて既存のコメントと並びを保ち、配列（出力先の一覧・プリセットの一覧・用語集の一覧・許すホスト）は丸ごと入れ替える（出力先の一覧を入れ替えるので、文書に残っていた `id = "ai_chat"` の項目も消える）。None の項目（glossary_path・active_glossary）はキーを置かず、文書に既にあれば消す
+         - 配列の表（`[[name]]`）を入れ替えるときは、古い最後の要素の末尾にある、キーを持たないコメントと空行（tomlkit が最後の要素の中として読む、配列の表の後ろのコメント）を入れ替える前に取り出し、入れ替えた後の最後の要素の末尾へ同じ並びで付け直す。新しい配列が 0 件のときは、古い配列の表の直前にあった表の末尾へ付け直す（直前に表が無ければ文書の表より前の値の後ろ）
       5. 親のフォルダを作り、同じフォルダの一時ファイルに UTF-8 で書いて os.replace で置き換える
       6. reload が restart の項目のうち、前の設定と値が違うものが 1 つでもあれば True、無ければ False を返す（前の設定が無いときは False）
     unit_tests:
@@ -913,6 +914,18 @@ functions:
         condition: glossary_path = "C:/x/yogo.csv" を持つ settings.toml に、glossary_path が None で glossaries が 1 件（path が C:/x/yogo.csv）の設定を書く
         mock: なし（一時フォルダ）
         expected: 書いた後のファイルに glossary_path のキーが無く、glossaries の 1 件目の path が C:/x/yogo.csv
+      - name: test_save_settings_when_comment_after_array_table
+        case: 正常
+        summary: 配列の表を入れ替えても、配列の表の後ろのコメントを残す
+        condition: '`[[hint_presets]]` を 2 件書き、その後ろにコメント行と `[recording]` を続けた settings.toml に、プリセットを 1 件足した設定・件数を変えずに語だけを変えた設定・1 件に減らした設定をそれぞれ書く（parametrize）'
+        mock: なし（一時フォルダ）
+        expected: 書いた後のファイルで、コメント行が同じ文言で `[recording]` の直前に残る。load_settings で書いた hint_presets が読める
+      - name: test_save_settings_when_array_table_emptied
+        case: 正常
+        summary: 配列の表を 0 件にしても、配列の表の後ろのコメントを残す
+        condition: '`[api]` の後ろに `[[hint_presets]]` を 1 件書き、その後ろにコメント行と `[recording]` を続けた settings.toml に、hint_presets を 0 件にした設定を書く'
+        mock: なし（一時フォルダ）
+        expected: 書いた後のファイルで、コメント行が同じ文言で `[recording]` の直前に残る。load_settings の hint_presets が空
     refs:
       - dev/設計書/外部ライブラリ/tomlkit#
     status: implemented

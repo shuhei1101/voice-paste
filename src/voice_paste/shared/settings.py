@@ -25,7 +25,9 @@ from pydantic import (
     model_validator,
 )
 from pydantic_core import InitErrorDetails, PydanticCustomError
+from tomlkit.container import Container
 from tomlkit.exceptions import TOMLKitError
+from tomlkit.items import AoT, Comment, Item, Key, Null, Table, Whitespace
 
 from voice_paste.shared.errors import SettingsError
 
@@ -915,15 +917,104 @@ def _merge_into(target: MutableMapping[str, Any], source: dict[str, Any]) -> Non
     for key in [key for key in target if key not in source]:
         del target[key]
 
+    # 後ろに表が無い配列の表のコメントと空行。全ての値を置き換えた後に target の末尾へ足す
+    tail: list[Item] = []
+
     # 表の後に置くとその表のキーとして読まれる値を、先に並べる
     for key, value in sorted(source.items(), key=lambda entry: _is_table_like(entry[1])):
         existing = target.get(key)
         # 表: 既にある表の中を再帰で置き換える
         if isinstance(value, dict) and isinstance(existing, MutableMapping):
             _merge_into(existing, value)
+        # 変わった配列の表: 後ろのコメントを付け直して入れ替える
+        elif isinstance(existing, AoT) and isinstance(value, list) and _unwrap(existing) != value:
+            tail.extend(_replace_array_table(target, key, value))
         # 値が変わっていなければ書式とコメントのために触らない
         elif key not in target or _unwrap(existing) != value:
             target[key] = value
+
+    if isinstance(target, Container | Table):
+        for item in tail:
+            target.append(None, item)
+
+
+def _replace_array_table(
+    target: MutableMapping[str, Any], key: str, value: list[Any]
+) -> list[Item]:
+    """target の配列の表 key を value に入れ替え、古い配列の表の最初の見出しの前と後ろのコメントを付け直す。target の末尾へ足すものを返す。"""
+    old = target[key]
+
+    # 入れ替える前に、古い最初の見出しの前と、最後の要素の末尾のコメントと空行、古い配列の表の次の表を控える
+    heading_indent = old.body[0].trivia.indent
+    trailing = _trailing_trivia(old.body[-1])
+    following = _following_heading(target, key)
+
+    target[key] = value
+    new = target[key]
+
+    # 1 件以上: 新しい最初の見出しの前と、新しい最後の要素の末尾へ同じ並びで付け直す
+    if isinstance(new, AoT):
+        new.body[0].trivia.indent = heading_indent
+        for item in trailing:
+            new.body[-1].append(None, item)
+        return []
+
+    # 0 件で次の表がある: 次の表の見出しの前の頭へ付け直す
+    moved = heading_indent + "".join(item.as_string() for item in trailing)
+    if following is not None:
+        following.trivia.indent = moved + following.trivia.indent
+        return []
+
+    # 0 件で次の表が無い: 文書の末尾へ足す
+    return [Whitespace(heading_indent), *trailing] if heading_indent else trailing
+
+
+def _trailing_trivia(table: Table) -> list[Item]:
+    """表の末尾にある、キーを持たないコメントと空行を並びのまま返す。"""
+    body = table.value.body
+    start = len(body)
+    while start > 0 and _is_trivia(body[start - 1]):
+        start -= 1
+    return [item for _key, item in body[start:]]
+
+
+def _is_trivia(entry: tuple[Key | None, Item]) -> bool:
+    """表の中身の 1 つが、キーを持たないコメントか空行か。"""
+    key, item = entry
+    return key is None and isinstance(item, Comment | Whitespace)
+
+
+def _following_heading(target: MutableMapping[str, Any], key: str) -> Table | None:
+    """target で key の配列の表の次に並ぶ表のうち、見出しを持つ最初の表を返す。無ければ None。"""
+    if not isinstance(target, Container | Table):
+        return None
+    body = target.body if isinstance(target, Container) else target.value.body
+    position = max(index for index, (name, _item) in enumerate(body) if name and name.key == key)
+    for _name, item in body[position + 1 :]:
+        heading = _first_heading(item)
+        if heading is not None:
+            return heading
+    return None
+
+
+def _first_heading(item: Item) -> Table | None:
+    """item の中で最初に見出しを書く表を返す。super table（見出しを持たない表）は中の最初の表を探す。"""
+    if isinstance(item, AoT):
+        return item.body[0]
+    if not isinstance(item, Table):
+        return None
+    children = [child for _key, child in item.value.body]
+    # 見出しを書く表: super table でない、または表以外の値を持つ
+    if not item.is_super_table() or any(
+        not isinstance(child, Table | AoT | Whitespace | Null) for child in children
+    ):
+        return item
+    # 見出しを書かない表: 中の最初の見出しを探す
+    for child in children:
+        heading = _first_heading(child)
+        if heading is not None:
+            return heading
+    return None
 
 
 def _write_atomically(path: Path, text: str) -> None:

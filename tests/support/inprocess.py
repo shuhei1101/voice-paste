@@ -46,7 +46,7 @@ from voice_paste.shared.settings import (
     Settings,
     TranscriptionSettings,
 )
-from voice_paste.shared.types import Entry, Recording
+from voice_paste.shared.types import EnterModifier, Entry, Recording
 
 SPEECH_TEXT = "これはテストです"
 """録音として流す文（音声合成で WAV に書き出す）。"""
@@ -355,18 +355,20 @@ class VolumeLog:
 
 @dataclass
 class KeyLog:
-    """貼り付けのキーと Enter の送信の代わり。キーを送らずに、押された回数を控える。"""
+    """貼り付けのキーと Enter の送信の代わり。キーを送らずに、押された回数と Enter に添えた修飾キーを控える。"""
 
     pasted: list[str] = field(default_factory=list)
     enters: int = 0
+    enter_modifiers: list[tuple[EnterModifier, ...]] = field(default_factory=list)  # Enter ごとに受けた修飾キーの並び
 
     def send_paste(self, paste_key: str) -> None:
         """貼り付けのキーが押されたことを控える。"""
         self.pasted.append(paste_key)
 
-    def send_enter(self) -> None:
-        """Enter が押されたことを控える。"""
+    def send_enter(self, modifiers: Sequence[EnterModifier] = ()) -> None:
+        """Enter が押されたことと、一緒に押す修飾キーの並びを控える。"""
         self.enters += 1
+        self.enter_modifiers.append(tuple(modifiers))
 
 
 @dataclass

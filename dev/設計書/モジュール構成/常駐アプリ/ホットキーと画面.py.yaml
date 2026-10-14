@@ -750,7 +750,7 @@ classes:
       - name: show_copy_completed
         title: コピーの完了の通知
         summary: コピーの完了の見出しと本文で、情報のアイコンの Windows の通知を出し（showMessage）、起こした文字を _copied_text に持つ
-        description: 通知を出しておく時間は失敗の通知と同じ FAILURE_MESSAGE_MSEC。
+        description: 通知を出しておく時間は失敗の通知と同じ MESSAGE_MSEC（FAILURE_MESSAGE_MSEC を種類を含まない名前に改め、説明を「通知を出しておく時間」にする）。
         kind: メソッド
         scope: public
         args:

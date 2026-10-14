@@ -13,11 +13,13 @@ def copy_only(
     target: str | None,
     *,
     copy: Callable[[str], None],
+    notify_copied: Callable[[str], None],
 ) -> None:
-    """起こした文字をクリップボードへ書く。書けなければ DeliveryError のまま伝える。"""
+    """起こした文字をクリップボードへ書き、コピーの完了を知らせる。書けなければ DeliveryError のまま伝え、完了は知らせない。"""
     copy(outcome.text)
+    notify_copied(outcome.text)
 
 
 def inject_copy_only(deps: OutputDeps) -> Mapping[str, object]:
-    """copy_only に部分適用する copy を返す。"""
-    return {"copy": deps.copy}
+    """copy_only に部分適用する copy・notify_copied を返す。"""
+    return {"copy": deps.copy, "notify_copied": deps.notify_copied}

@@ -856,7 +856,9 @@ functions:
          - 読めない・検証に通らない場合、内容を空の文書にして前の設定を「全て変わった」とする
       3. settings を `model_dump(mode="json")` する。`glossaries[].path` は、path の親のフォルダの下にある場所ならそのフォルダからの相対パス（区切りは `/`）にし、それ以外は絶対パスのままにする
       4. 文書の値を再帰で置き換える。表はキーごとに書き換えて既存のコメントと並びを保ち、配列（出力先の一覧・プリセットの一覧・用語集の一覧・許すホスト）は丸ごと入れ替える（出力先の一覧を入れ替えるので、文書に残っていた `id = "ai_chat"` の項目も消える）。None の項目（glossary_path・active_glossary）はキーを置かず、文書に既にあれば消す
-         - 配列の表（`[[name]]`）を入れ替えるときは、古い最後の要素の末尾にある、キーを持たないコメントと空行（tomlkit が最後の要素の中として読む、配列の表の後ろのコメント）を入れ替える前に取り出し、入れ替えた後の最後の要素の末尾へ同じ並びで付け直す。新しい配列が 0 件のときは、古い配列の表の直前にあった表の末尾へ付け直す（直前に表が無ければ文書の表より前の値の後ろ）
+         - 配列の表（`[[name]]`）を入れ替えるときは、入れ替える前に、古い最後の要素の末尾にある、キーを持たないコメントと空行（tomlkit が最後の要素の中として読む、配列の表の後ろのコメント）と、古い最初の要素の見出しの前（`trivia.indent`）を取り出し、文書で古い配列の表の次に並ぶ表を控える
+         - 入れ替えた後の配列が 1 件以上なら、取り出した見出しの前を新しい最初の要素の見出しの前へ、末尾のコメントと空行を新しい最後の要素の末尾へ、同じ並びで付け直す
+         - 0 件なら、両方を控えた次の表の見出しの前（`trivia.indent` の頭）へ付け直す。次の表が super table（見出しを持たない表）なら中の最初の表、配列の表なら最初の要素の見出しの前にする。次に表が無ければ文書の末尾へ足す
       5. 親のフォルダを作り、同じフォルダの一時ファイルに UTF-8 で書いて os.replace で置き換える
       6. reload が restart の項目のうち、前の設定と値が違うものが 1 つでもあれば True、無ければ False を返す（前の設定が無いときは False）
     unit_tests:
@@ -922,10 +924,10 @@ functions:
         expected: 書いた後のファイルで、コメント行が同じ文言で `[recording]` の直前に残る。load_settings で書いた hint_presets が読める
       - name: test_save_settings_when_array_table_emptied
         case: 正常
-        summary: 配列の表を 0 件にしても、配列の表の後ろのコメントを残す
-        condition: '`[api]` の後ろに `[[hint_presets]]` を 1 件書き、その後ろにコメント行と `[recording]` を続けた settings.toml に、hint_presets を 0 件にした設定を書く'
+        summary: 配列の表を 0 件にしても、配列の表の後ろのコメントを次の表の見出しの前に残す
+        condition: '`[[hint_presets]]` を 1 件書き、その後ろにコメント行を続けた settings.toml に、hint_presets を 0 件にした設定を書く（parametrize）。次の表と前の並びは、`[api]` の後ろで次が `[recording]`・文書の最初の表で次が `[recording]`・次が super table（`[transcription.local_whisper]` だけを書く）・次が `[[outputs]]` でその出力先も入れ替える・後ろに表が無い、の 5 通り'
         mock: なし（一時フォルダ）
-        expected: 書いた後のファイルで、コメント行が同じ文言で `[recording]` の直前に残る。load_settings の hint_presets が空
+        expected: 書いた後のファイルで、コメント行が同じ文言で次の表の見出し（`[recording]`・`[transcription.local_whisper]`・`[[outputs]]`）の直前に残り、後ろに表が無いときは文書の末尾に残る。書いていない見出し（`[transcription]`）が増えない。load_settings の hint_presets が空で、ほかの値が書いた設定のとおりに読める
     refs:
       - dev/設計書/外部ライブラリ/tomlkit#
     status: implemented

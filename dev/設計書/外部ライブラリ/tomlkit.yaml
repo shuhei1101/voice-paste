@@ -32,6 +32,10 @@ catalogs:
         kind: 属性
         purpose: 配列の表の最後の要素（`Table.value`）の末尾にある、キーを持たないコメントと空行（キーが `None` の `Comment`・`Whitespace`）を取り出し、入れ替えた後の表の末尾へ付け直す
         description: 配列の表の後ろに書いたコメントは、parse で最後の要素の中（`body` の末尾の `(None, Comment)`・`(None, Whitespace)`）として読まれる。`body` は `(キー, 項目)` のリストで、末尾へ `(None, 項目)` を足すと dumps でその位置に書かれる
+      - name: Trivia.indent
+        kind: 属性
+        purpose: 表・配列の表の要素の見出しの前に書かれる文字列。配列の表を入れ替えるとき、最初の要素の分を引き継ぎ、0 件になるときは次の表の頭へコメントを付け直す
+        description: '`Table.trivia.indent` の頭へコメントの行を足すと、dumps でその表の見出しの直前に書かれる。文書の `body` の途中へ足すのと違い、キーから位置を引く対応表をずらさない。super table（見出しを持たない表）の indent は書かれないため、中の最初の表の indent を使う'
 lead: コメントと書式を保ったまま TOML を読み書きするライブラリ。
 purl: pkg:pypi/tomlkit
 dependency_scope: 必須

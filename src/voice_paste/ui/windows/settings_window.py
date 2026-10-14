@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, Literal, TypeAliasType, get_args, get_ori
 from pydantic import ValidationError
 from pydantic.fields import FieldInfo
 from PySide6.QtCore import QEvent, QKeyCombination, Qt, Signal
-from PySide6.QtGui import QCloseEvent, QKeyEvent
+from PySide6.QtGui import QAccessible, QAccessibleAnnouncementEvent, QCloseEvent, QKeyEvent
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -233,7 +233,7 @@ RANGE_ERROR_TYPES: frozenset[str] = frozenset(
 """数値が範囲の外のときの失敗の種類。"""
 
 SAVED_HOTKEY_KEY: re.Pattern[str] = re.compile(
-    rf"^(hotkeys\.\w+|outputs\[\d+\]\.hotkey|{PRESETS_FIELD_NAME}\.\w+\[\d+\]\.hotkey)$"
+    rf"^(hotkeys\.\w+|{OUTPUTS_FIELD_NAME}\[\d+\]\.hotkey|{PRESETS_FIELD_NAME}\.\w+\[\d+\]\.hotkey)$"
 )
 """保存した知らせでホットキーが変わったかを見る欄のキー（録音のホットキー・出力先とプリセットの確定のホットキー。貼り付けに送るキーは含めない）。"""
 
@@ -1332,6 +1332,8 @@ class SettingsWindow(QWidget):
         self._restart_now_button.setVisible(count > 0)
         self._saved_notice.setText(text)
         self._saved_notice.show()
+        # 画面を見ない利用者にも、同じ文を読み上げで伝える
+        QAccessible.updateAccessibility(QAccessibleAnnouncementEvent(self._saved_notice, text))
         self._reset_notice.hide()
         self._refresh_notices()
 

@@ -37,6 +37,6 @@ release PR [#102](https://github.com/shuhei1101/voice-paste/pull/102)（Sprint v
 - [x] モジュール構成設計
 - [x] ~~ドキュメント修正~~（更新するドキュメントが無い）
 - [x] 単体テスト作成
-- [ ] 実装
+- [x] 実装
 - [x] ~~結合テスト作成~~（インターフェース定義と画面設計を変えない）
 - [x] ~~E2E テスト作成~~（既存の `test_normal_when_edit_hint_presets` が確かめており、テストを変えない）

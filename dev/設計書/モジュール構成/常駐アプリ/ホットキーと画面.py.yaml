@@ -916,7 +916,7 @@ classes:
                - `[WARNING]` 保存するホットキーを受け付けられなかった（理由）
              - OSError の場合、エラーの一覧に「設定ファイルを書けませんでした（{理由}）」を出し、False を返す（用語集の CSV を書けないときも同じ文言で、理由にそのパスが出る）
                - `[ERROR]` 設定ファイルを書けなかった（logger.exception）
-          3. 変えた欄の数えの基準（`_baseline`）を今の欄の値へ置き直し、GlossaryPanel.mark_saved で用語集の書き戻しの基準を保存した行へ置き直す（「再起動で反映」の件数の基準は開いたときの値のまま）
+          3. GlossaryPanel.mark_saved で用語集の書き戻しの基準を保存した行へ置き直してから、変えた欄の数えの基準（`_baseline`）を今の欄の値へ置き直す（`_baseline` は GlossaryPanel.changed_rows を含むため、この順でないと保存の直後に閉じても確認が出る。「再起動で反映」の件数の基準は開いたときの値のまま）
           4. saved を emit する
              - restart の場合、restart_requested を emit して窓を閉じ、True を返す
           5. 窓を開いたまま、保存した知らせを出し、True を返す（入れた値・選んでいたまとまり・欄のフォーカスはそのまま）
@@ -1009,7 +1009,7 @@ classes:
             exception: 確かめに通らない
           - name: test_save_when_restart
             case: 正常
-            summary: 「保存して再起動」は書いてから窓を閉じ、再起動を頭む
+            summary: 「保存して再起動」は書いてから窓を閉じ、再起動を頼む
             condition: モデルを変えて save(restart=True)
             mock: UiDeps.save_settings
             expected: True。saved と restart_requested が 1 回ずつ emit され、closed が 1 回知らされる
@@ -1034,9 +1034,9 @@ classes:
           - name: test_save_then_close
             case: 正常
             summary: 保存の後に欄を変えずに閉じると確認を出さずに閉じ、保存の後に欄を変えると知らせが消える
-            condition: 「録音中の音量の割合」を 30 にして save(restart=False) し、try_close を呼ぶ。別のケースで保存の後に「録音の画面を出さない」をオンにする
-            mock: UiDeps.save_settings・confirm_discard
-            expected: try_close が True を返し、confirm_discard が呼ばれず、closed が 1 回知らされる。欄を変えたケースは保存した知らせが隠れる
+            condition: 「録音中の音量の割合」を 30 にして save(restart=False) し、try_close を呼ぶ。別のケースで用語集の行を 1 つオフにして save(restart=False) し、欄を変えずに try_close を呼ぶ。もう 1 つのケースで保存の後に「録音の画面を出さない」をオンにする
+            mock: UiDeps.save_settings・list_glossaries・read_glossary・confirm_discard
+            expected: 音量のケースと用語集のケースのどちらも、try_close が True を返し、confirm_discard が呼ばれず、closed が 1 回知らされる。欄を変えたケースは保存した知らせが隠れる
       - name: reset_to_defaults
         title: 既定に戻す
         summary: confirm_reset で確かめ、戻すなら開いたときの設定と同じ設定のモデルの既定値（`type(開いたときの設定)()`）を書いて欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す

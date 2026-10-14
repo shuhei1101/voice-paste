@@ -19,6 +19,7 @@ from PySide6.QtGui import QTextDocument
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import (
     QAbstractButton,
+    QComboBox,
     QLabel,
     QLineEdit,
     QListWidget,
@@ -167,14 +168,49 @@ def _visible_buttons(window: SettingsWindow, prefix: str) -> list[QAbstractButto
     )
 
 
+def _label(window: SettingsWindow, name: str) -> QLabel:
+    """objectName が name の文字の表示を返す。"""
+    label = window.findChild(QLabel, name)
+    assert label is not None, f"{name} の表示が無い"
+    return label
+
+
+def _press_hotkey(window: SettingsWindow, name: str) -> None:
+    """objectName が name のホットキーの欄に、Ctrl+Alt+9 を押して入れる。"""
+    edit = window.findChild(QLineEdit, name)
+    assert edit is not None, f"{name} の欄が無い"
+    QTest.keyClick(
+        edit,
+        Qt.Key.Key_9,
+        Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier,
+    )
+
+
+def _set_model(window: SettingsWindow, model: str) -> None:
+    """「文字起こし」のモデルの欄（「再起動で反映」）に値を入れる。"""
+    combo = _field(window, "transcription.local_whisper.model")
+    assert isinstance(combo, QComboBox)
+    combo.setCurrentText(model)
+
+
+def _set_language(window: SettingsWindow, language: str) -> None:
+    """「文字起こし」の言語の欄（「再起動で反映」）に値を入れる。"""
+    edit = _field(window, "transcription.local_whisper.language")
+    assert isinstance(edit, QLineEdit)
+    edit.setText(language)
+
+
 # === save ===
 
 
 def test_save(opened: Opened) -> None:
-    """通った値を書く（正常系）。"""
+    """通った値を書き、設定画面を開いたまま保存した知らせを出す（正常系）。"""
     # 準備
     saved_count: list[int] = []
+    closed_count: list[int] = []
     opened.window.saved.connect(lambda: saved_count.append(1))
+    opened.window.closed.connect(lambda: closed_count.append(1))
+    _select_group(opened.window, "録音")
     volume = _field(opened.window, "recording.volume_percent")
     assert isinstance(volume, QSlider)
     volume.setValue(NEW_VOLUME_PERCENT)
@@ -187,6 +223,15 @@ def test_save(opened: Opened) -> None:
     opened.deps.save_settings.assert_called_once()
     assert opened.deps.save_settings.call_args.args[0].recording.volume_percent == NEW_VOLUME_PERCENT
     assert saved_count == [1]
+    assert closed_count == []
+    assert opened.window.isVisible()
+    notice = _label(opened.window, "saved_notice")
+    assert notice.isVisible()
+    assert notice.text() == "保存しました。"
+    assert volume.value() == NEW_VOLUME_PERCENT
+    menu = opened.window.findChild(QListWidget, "group_menu")
+    assert menu is not None
+    assert menu.currentItem().text() == "録音"
 
 
 def test_save_when_invalid(opened: Opened) -> None:
@@ -209,7 +254,7 @@ def test_save_when_invalid(opened: Opened) -> None:
 
 
 def test_save_when_hotkey_unavailable(opened: Opened) -> None:
-    """ホットキーを受け付けられなければエラーを出して閉じない（異常系）。"""
+    """ホットキーを受け付けられなければエラーを出し、保存した知らせを出さない（異常系）。"""
     from voice_paste.shared.errors import HotkeyError
 
     # 準備
@@ -224,6 +269,7 @@ def test_save_when_hotkey_unavailable(opened: Opened) -> None:
     assert result is False
     assert "ホットキーを受け付けられませんでした" in _error_summary_text(opened.window)
     assert saved_count == []
+    assert not _label(opened.window, "saved_notice").isVisible()
     assert opened.window.isVisible()
 
 
@@ -490,6 +536,169 @@ def test_save_when_hint_word_invalid(opened: Opened) -> None:
         "プリセット 1 件目の 2 つ目の語: "
         "読点（、）・句点（。）・改行は入れられません。語を分けて足してください。"
     ) in summary
+
+
+def test_save_when_restart(opened: Opened) -> None:
+    """「保存して再起動」は書いてから窓を閉じ、再起動を頼む（正常系）。"""
+    # 準備
+    saved_count: list[int] = []
+    restart_count: list[int] = []
+    closed_count: list[int] = []
+    opened.window.saved.connect(lambda: saved_count.append(1))
+    opened.window.restart_requested.connect(lambda: restart_count.append(1))
+    opened.window.closed.connect(lambda: closed_count.append(1))
+    _set_model(opened.window, "small")
+
+    # 実行
+    result = opened.window.save(restart=True)
+
+    # 検証
+    assert result is True
+    assert saved_count == [1]
+    assert restart_count == [1]
+    assert closed_count == [1]
+
+
+@pytest.mark.parametrize(
+    ("hotkey_name", "expected_notice"),
+    [
+        pytest.param(
+            "hotkey_hotkeys.start",
+            "保存しました。新しいホットキーは、設定画面を閉じると効きます。",
+            id="recording_hotkey",
+        ),
+        pytest.param("hotkey_keyboard.paste_key", "保存しました。", id="paste_key"),
+    ],
+)
+def test_save_when_hotkey_changed(
+    opened: Opened, hotkey_name: str, expected_notice: str
+) -> None:
+    """ホットキーを変えた保存では、閉じると効くことを添える（正常系）。"""
+    # 準備（録音開始のホットキーか、貼り付けに送るキーだけを変える）
+    _select_group(opened.window, "ホットキー")
+    _press_hotkey(opened.window, hotkey_name)
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is True
+    assert _label(opened.window, "saved_notice").text() == expected_notice
+
+
+def test_save_when_restart_field_changed(opened: Opened) -> None:
+    """「再起動で反映」の欄を保存すると件数と今すぐ再起動を出し、保存の後に欄を変えると開いたときの値から数え直す（正常系）。"""
+    # 準備
+    _select_group(opened.window, "文字起こし")
+    _set_model(opened.window, "small")
+
+    # 実行（保存の直後と、続けて言語を変えた後を見る）
+    result = opened.window.save(restart=False)
+    saved_notice_text = _label(opened.window, "saved_notice").text()
+    restart_now_visible = _button(opened.window, "restart_now_button").isVisible()
+    restart_notice_visible = _label(opened.window, "restart_notice").isVisible()
+    save_and_restart_visible = _button(opened.window, "save_and_restart_button").isVisible()
+    _set_language(opened.window, "en")
+
+    # 検証（保存の直後）
+    assert result is True
+    assert saved_notice_text == (
+        "保存しました。「再起動で反映」の設定 1 件は、再起動するまで前の値で動きます。"
+    )
+    assert restart_now_visible
+    assert not restart_notice_visible
+    assert not save_and_restart_visible
+    # 検証（言語を変えた後: 開いたときの値から 2 件を数え直す）
+    assert not _label(opened.window, "saved_notice").isVisible()
+    assert not _button(opened.window, "restart_now_button").isVisible()
+    assert _label(opened.window, "restart_notice").isVisible()
+    assert "を 2 件変えました" in _label(opened.window, "restart_notice").text()
+    assert _button(opened.window, "save_and_restart_button").isVisible()
+
+
+def test_save_when_glossary_reverted(
+    open_with_glossaries: Callable[..., Opened], settings_model: type[Settings], tmp_path: Path
+) -> None:
+    """開いたままの 2 回目の保存で、開いたときの行へ戻した用語集も書き戻す（正常系）。"""
+    from voice_paste.shared.settings import GlossarySettings
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（1 件目の用語集の行を 1 つオフにして保存する）
+    first = GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
+    second = GlossarySettings(name="会議用", path=tmp_path / "meeting.csv")
+    opened = open_with_glossaries(
+        [first, second],
+        {
+            first.path: [
+                GlossaryEntry(wrong="あ", right="A"),
+                GlossaryEntry(wrong="い", right="B"),
+            ],
+            second.path: [GlossaryEntry(wrong="う", right="C")],
+        },
+        settings=settings_model(glossaries=[first, second]),
+    )
+    _select_group(opened.window, "用語集")
+    _visible_buttons(opened.window, "glossary_entry_on_")[0].click()
+    opened.window.save(restart=False)
+
+    # 実行（開いたまま、その行をオンに戻してもう一度保存する）
+    _visible_buttons(opened.window, "glossary_entry_on_")[0].click()
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is True
+    assert opened.deps.save_settings.call_count == 2
+    _, changed_rows = opened.deps.save_settings.call_args_list[1].args
+    assert changed_rows == {
+        first.path: [
+            GlossaryEntry(wrong="あ", right="A"),
+            GlossaryEntry(wrong="い", right="B"),
+        ]
+    }
+
+
+def test_save_then_close(
+    open_with_glossaries: Callable[..., Opened],
+    settings_model: type[Settings],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """保存の後に欄を変えずに閉じると確認を出さずに閉じ、保存の後に欄を変えると知らせが消える（正常系）。"""
+    from voice_paste.shared.settings import GlossarySettings
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（音量を変え、用語集の行を 1 つオフにして保存する。捨てる確認が出たら「捨てない」と答える）
+    confirm_discard = MagicMock(return_value=False)
+    monkeypatch.setattr("voice_paste.ui.windows.settings_window.confirm_discard", confirm_discard)
+    glossary = GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
+    opened = open_with_glossaries(
+        [glossary],
+        {glossary.path: [GlossaryEntry(wrong="あ", right="A"), GlossaryEntry(wrong="い", right="B")]},
+        settings=settings_model(glossaries=[glossary]),
+    )
+    closed_count: list[int] = []
+    opened.window.closed.connect(lambda: closed_count.append(1))
+    _select_group(opened.window, "用語集")
+    _visible_buttons(opened.window, "glossary_entry_on_")[0].click()
+    _select_group(opened.window, "録音")
+    volume = _field(opened.window, "recording.volume_percent")
+    assert isinstance(volume, QSlider)
+    volume.setValue(NEW_VOLUME_PERCENT)
+    opened.window.save(restart=False)
+    hide_window = _field(opened.window, "recording.hide_window")
+    assert isinstance(hide_window, QAbstractButton)
+
+    # 実行（保存の後に欄を変えて知らせを見て、その欄を保存した値へ戻してから閉じる）
+    hide_window.click()
+    notice_visible_after_change = _label(opened.window, "saved_notice").isVisible()
+    hide_window.click()
+    result = opened.window.try_close()
+
+    # 検証（音量と用語集の行の変更は保存した値が基準で、閉じるときに確認を出さない）
+    assert not notice_visible_after_change
+    assert result is True
+    confirm_discard.assert_not_called()
+    assert closed_count == [1]
 
 
 # === close_without_confirm ===

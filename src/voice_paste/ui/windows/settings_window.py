@@ -1305,7 +1305,7 @@ class SettingsWindow(QWidget):
             self._show_errors([(None, f"設定ファイルを書けませんでした（{error}）")])
             return False
 
-        # 3. 保存した行・値を「変えていない」の基準に置き直す（用語集の基準を先に置くと、基準に行を変えた用語集が入る）
+        # 3. 保存した行・値を「変えていない」の基準に置き直す（`_baseline` は用語集の changed_rows を含むため、用語集の基準を先に置き直す）
         self._glossaries_panel.mark_saved()
         self._baseline = self._flat_values()
         self.saved.emit()

@@ -232,6 +232,11 @@ RANGE_ERROR_TYPES: frozenset[str] = frozenset(
 )
 """数値が範囲の外のときの失敗の種類。"""
 
+SAVED_HOTKEY_KEY: re.Pattern[str] = re.compile(
+    rf"^(hotkeys\.\w+|outputs\[\d+\]\.hotkey|{PRESETS_FIELD_NAME}\.\w+\[\d+\]\.hotkey)$"
+)
+"""保存した知らせでホットキーが変わったかを見る欄のキー（録音のホットキー・出力先とプリセットの確定のホットキー。貼り付けに送るキーは含めない）。"""
+
 PRESET_KEY_PATTERN: re.Pattern[str] = re.compile(rf"^{PRESETS_FIELD_NAME}\[(\d+)\]\.(\w+)$")
 """プリセットの欄の失敗のキー（`presets[2].url`）を、設定の全体の中の添字と項目の名前に分ける。"""
 
@@ -615,7 +620,7 @@ class SettingsWindow(QWidget):
         right.addWidget(self._stack, 1)
         self._group_menu.currentRowChanged.connect(self._stack.setCurrentIndex)
 
-        # 欄の変更で出す知らせ（再起動で反映・既定に戻した）
+        # 欄の変更・保存で出す知らせ（再起動で反映・既定に戻した・保存した）
         self._restart_notice = QLabel()
         self._restart_notice.setObjectName("restart_notice")
         self._restart_notice.setProperty("role", "notice")
@@ -626,6 +631,11 @@ class SettingsWindow(QWidget):
         self._reset_notice.setProperty("role", "notice")
         self._reset_notice.setWordWrap(True)
         self._reset_notice.hide()
+        self._saved_notice = QLabel()
+        self._saved_notice.setObjectName("saved_notice")
+        self._saved_notice.setProperty("role", "notice")
+        self._saved_notice.setWordWrap(True)
+        self._saved_notice.hide()
         self._restart_now_button = QPushButton("今すぐ再起動")
         self._restart_now_button.setObjectName("restart_now_button")
         self._restart_now_button.hide()
@@ -633,6 +643,7 @@ class SettingsWindow(QWidget):
         notices = QHBoxLayout()
         notices.addWidget(self._restart_notice, 1)
         notices.addWidget(self._reset_notice, 1)
+        notices.addWidget(self._saved_notice, 1)
         notices.addWidget(self._restart_now_button)
         root.addLayout(notices)
 
@@ -1090,15 +1101,17 @@ class SettingsWindow(QWidget):
     # --- 知らせ・エラーの表示 ---
 
     def _on_field_changed(self) -> None:
-        """欄を変えたら、既定に戻した知らせを消し、再起動の知らせを数え直す。"""
+        """欄を変えたら、既定に戻した知らせと保存した知らせを消し、再起動の知らせを数え直す。"""
         self._reset_notice.hide()
+        self._saved_notice.hide()
         self._restart_now_button.hide()
         self._refresh_notices()
 
     def _refresh_notices(self) -> None:
         """再起動の知らせと「保存して再起動」を、再起動で反映の欄の変更に合わせて出す・隠す。"""
-        # 既定に戻した知らせを出している間は、再起動の知らせを出さない
-        count = 0 if not self._reset_notice.isHidden() else self._restart_changed_count()
+        # 既定に戻した知らせか保存した知らせを出している間は、再起動の知らせを出さない
+        notice_shown = not self._reset_notice.isHidden() or not self._saved_notice.isHidden()
+        count = 0 if notice_shown else self._restart_changed_count()
         show = count > 0
         if show:
             self._restart_notice.setText(
@@ -1249,7 +1262,7 @@ class SettingsWindow(QWidget):
     # --- 操作 ---
 
     def save(self, *, restart: bool) -> bool:
-        """欄の値を設定のモデルで確かめ、通れば書いて効かせる。通らなければエラーを出す。"""
+        """欄の値を設定のモデルで確かめ、通れば書いて効かせ、窓を開いたまま保存した知らせを出す（restart のときだけ閉じる）。通らなければエラーを出す。"""
         # 1. 欄の値を設定のモデルと、用語集の行（誤変換か正しい表記の片方だけが空）で確かめる（通らなければ欄ごとのエラーにして、入れた値は消さない）
         failures: list[tuple[str, str]] = []
         settings: Settings | None = None
@@ -1278,7 +1291,7 @@ class SettingsWindow(QWidget):
             self._show_errors(failures)
             return False
 
-        # 2. 書いて効かせる（ホットキーを受け付けられない・書けないときは、エラーを出して閉じない）
+        # 2. 書いて効かせる（ホットキーを受け付けられない・書けないときは、エラーを出して知らせを出さない）
         try:
             self._deps.save_settings(settings, self._glossaries_panel.changed_rows())
         except HotkeyError as error:
@@ -1292,14 +1305,45 @@ class SettingsWindow(QWidget):
             self._show_errors([(None, f"設定ファイルを書けませんでした（{error}）")])
             return False
 
-        # 3. 知らせ、再起動なら頼んで、窓を閉じる
+        # 3. 保存した行・値を「変えていない」の基準に置き直す（用語集の基準を先に置くと、基準に行を変えた用語集が入る）
+        self._glossaries_panel.mark_saved()
         self._baseline = self._flat_values()
         self.saved.emit()
+
+        # 4. 再起動なら頼んで窓を閉じ、そうでなければ窓を開いたまま保存した知らせを出す
         if restart:
             self.restart_requested.emit()
-        self._force_close = True
-        self.close()
+            self._force_close = True
+            self.close()
+            return True
+        self._show_saved_notice()
         return True
+
+    def _show_saved_notice(self) -> None:
+        """保存した知らせを出す。新しいホットキーが閉じると効くことと、「再起動で反映」の欄の件数を、変えたときだけ続ける。"""
+        text = "保存しました。"
+        # ホットキーの欄が開いたときの値から変わっていれば、閉じると効くことを添える
+        if self._hotkey_changed():
+            text += "新しいホットキーは、設定画面を閉じると効きます。"
+        # 「再起動で反映」の欄が開いたときの値から変わっていれば、件数と今すぐ再起動を出し、再起動の知らせを隠す
+        count = self._restart_changed_count()
+        if count > 0:
+            text += f"「再起動で反映」の設定 {count} 件は、再起動するまで前の値で動きます。"
+        self._restart_now_button.setVisible(count > 0)
+        self._saved_notice.setText(text)
+        self._saved_notice.show()
+        self._reset_notice.hide()
+        self._refresh_notices()
+
+    def _hotkey_changed(self) -> bool:
+        """閉じたときに張り直すホットキーの欄（`keyboard.paste_key` は含めない）が、開いたときの値から変わったかを返す。"""
+        current = self._flat_values()
+        keys = {
+            key for key in current.keys() | self._restart_baseline.keys() if SAVED_HOTKEY_KEY.match(key)
+        }
+        return any(
+            (current.get(key) or "") != (self._restart_baseline.get(key) or "") for key in keys
+        )
 
     def reset_to_defaults(self) -> None:
         """確かめて、戻すなら既定の設定を書いて欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す。"""
@@ -1308,6 +1352,7 @@ class SettingsWindow(QWidget):
         defaults = self._settings_model()
         self._deps.save_settings(defaults, {})
         self._clear_errors()
+        self._saved_notice.hide()
         self._populate(defaults)
         self.saved.emit()
 

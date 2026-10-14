@@ -37,7 +37,7 @@
   color: var(--text-2);
 }
 
-/* 選んでいる印: 選んでいない行・ボタンにも同じ幅を取り、選び直しで名前の位置を動かさない */
+/* 選んでいる印: 選んでいない行にも同じ幅を取り、選び直しで名前の位置を動かさない */
 .check {
   flex: none;
   width: 14px;
@@ -97,9 +97,23 @@
 
 /* 出力先のボタン: 名前を省かずに収める */
 .btn--switch {
+  position: relative;
   gap: 4px;
   padding: 4px 6px;
   font-size: 13px;
+}
+
+/* 出力先のボタンの印: 右上の角に重ねて置き、名前とキーの中心をそろえる */
+.btn--switch .check {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 16px;
+  height: 16px;
+  padding: 2px;
+  border-radius: 50%;
+  background: var(--accent-fg);
+  stroke-width: 2.4;
 }
 
 /* 選んでいる出力先のボタン: 枠の全体と地で示し、印を出す */
@@ -107,7 +121,7 @@
   border-color: var(--accent-fg);
   background: var(--sunken);
   box-shadow: inset 0 0 0 1px var(--accent-fg);
-  .check { visibility: visible; color: var(--accent-fg); }
+  .check { visibility: visible; color: var(--surface); }
 }
 
 /* 案 C: 名前の下にホットキーを出す 2 段のボタン */
@@ -115,13 +129,6 @@
   flex-direction: column;
   gap: 2px;
   min-height: 52px;
-}
-
-/* 案 C の 2 段のボタンの名前の行: 印と名前を横に並べる */
-.btn__name {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
 }
 
 /* モックで見せる、かざした出力先のボタン */

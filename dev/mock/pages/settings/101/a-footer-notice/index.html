@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>設定画面 | voice-paste のモック</title>
+  <!-- 採用スタイル「開発者ツール」の部品は #37、一覧の部品は #44 の共有 CSS に置く -->
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/44/assets/style.css">
+  <!-- 場面・まとまりの切り替えとホットキーの入力は #44 の共有 JS、保存の後の知らせの出し分けはこの案の JS が受ける -->
+  <script src="../../../../refs/44/assets/app.js" defer></script>
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <!-- モック専用の操作列: 場面の切り替え（app.js が data-scene の場面だけを出す） -->
+  <nav class="mock-bar" aria-label="場面の切り替え（モック専用）">
+    <span class="mock-bar__label">場面</span>
+    <ul><li><button type="button" data-scene="saved">保存の後（録音の設定を変えた）</button></li><li><button type="button" data-scene="saved-hotkey">保存の後（ホットキーを変えた）</button></li><li><button type="button" data-scene="saved-restart">保存の後（再起動で反映の設定を変えた）</button></li><li><button type="button" data-scene="edited">保存の後に欄を変えた</button></li><li><button type="button" data-scene="edited-restart">再起動で反映の設定を保存した後に欄を変えた</button></li></ul>
+  </nav>
+
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">settings</a> / <a href="../">101</a> / <span>a-footer-notice</span></nav>
+
+    <!-- 画面の説明 -->
+    <header class="intro">
+      <h1>設定画面</h1>
+      <p>「保存」を押しても設定画面を閉じず、フッターの上（既定に戻した知らせと同じ場所）に保存できたことを出す。知らせは欄を変えると消える。まとまり・欄はこれまでのモックのままで、変えるのはフッターだけ。</p>
+    </header>
+
+    <div class="desk desk--single">
+
+      <!-- 場面: 保存の後（録音の設定を変えた） -->
+      <section class="specimen" data-scene-panel="saved" aria-labelledby="h-sv">
+        <h2 id="h-sv">保存の後（録音の設定を変えた）</h2>
+        <!-- data-restart-pending: 開いたときから変わった「再起動で反映」の欄を保存済みで持つ窓。欄を変えると再起動の知らせを出し直す -->
+        <div class="win settings settings--full" data-saved-win>
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり（保存の後（録音の設定を変えた））">
+              <ul><li><a href="../../44/a-inline/kind-tabs/index.html">出力先</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ブラウザ添付</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">エンドポイントへ送る</a></li><li><a href="#sv-hotkeys">ホットキー</a></li><li><a href="#sv-recording" aria-current="page">録音</a></li><li><a href="#sv-transcription">文字起こし</a></li><li><a href="../../99/a-hint-group/index.html">表記のヒント</a></li><li><a href="../../97/a-glossary-group/index.html">用語集</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">画面</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">履歴とログ</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">API</a></li></ul>
+            </nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（保存の後（録音の設定を変えた））">
+              <fieldset id="sv-hotkeys" data-group>
+                <legend>ホットキー</legend>
+                <div class="row" data-reload="immediate">
+                  <label for="sv-h1">録音を始める</label>
+                  <code class="key">hotkeys.start</code>
+                  <input type="text" class="hotkey" id="sv-h1" name="hotkeys.start" value="Ctrl+Alt+D">
+                  <p class="field-help">録音中に押すと「貼り付けて送信」で確定する（同じキーのとき）。</p>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="sv-h2">一時停止・再開</label>
+                  <code class="key">hotkeys.pause</code>
+                  <input type="text" class="hotkey" id="sv-h2" name="hotkeys.pause" value="Ctrl+Alt+Z">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="sv-h3">取り消す</label>
+                  <code class="key">hotkeys.cancel</code>
+                  <input type="text" class="hotkey" id="sv-h3" name="hotkeys.cancel" value="Ctrl+Alt+Q">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="sv-h4">貼り付けに送るキー</label>
+                  <code class="key">keyboard.paste_key</code>
+                  <input type="text" class="hotkey" id="sv-h4" name="keyboard.paste_key" value="Ctrl+V">
+                  <p class="field-help">貼り付け先のアプリが Ctrl+V 以外で貼り付けるときに変える。</p>
+                </div>
+                <p class="field-help">出力先ごとの確定のホットキーは「出力先」で変える。欄を押してから、キーの組み合わせを押す。</p>
+              </fieldset>
+              <fieldset id="sv-recording" data-group>
+                <legend>録音</legend>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="sv-r1"><input type="checkbox" id="sv-r1" name="recording.lower_volume" checked> 録音中に音量を下げる</label>
+                  <code class="key">recording.lower_volume</code>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="sv-r2">録音中の音量の割合</label>
+                  <code class="key">recording.volume_percent</code>
+                  <span class="range"><input type="range" id="sv-r2" name="recording.volume_percent" min="0" max="100" value="30"><output class="num" for="sv-r2">30%</output></span>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="sv-r3">音量を変えるときの秒数</label>
+                  <code class="key">recording.fade_sec</code>
+                  <input type="number" id="sv-r3" name="recording.fade_sec" value="0.5" step="0.1" min="0">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="sv-r4"><input type="checkbox" id="sv-r4" name="recording.hide_window"> 録音の画面を出さない</label>
+                  <code class="key">recording.hide_window</code>
+                  <p class="field-help">オンにすると、録音と文字起こしの間はトレイのアイコンとホットキーだけで操作する。</p>
+                </div>
+              </fieldset>
+              <fieldset id="sv-transcription" data-group>
+                <legend>文字起こし</legend>
+                <h3 class="subhead">エンジン</h3>
+                <div class="row" data-reload="restart">
+                  <label for="sv-t1">文字起こしのエンジン <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.engine</code>
+                  <select id="sv-t1" name="transcription.engine"><option selected>local_whisper</option></select>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="sv-t2">モデル <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.model</code>
+                  <select id="sv-t2" name="transcription.local_whisper.model"><option>large-v3</option><option>large-v3-turbo</option><option selected>medium</option><option>small</option><option>base</option></select>
+                  <p class="field-help">変えたモデルは、再起動した後に読み込む。</p>
+                </div>
+                <div class="row" data-reload="restart">
+                  <span>デバイス <span class="badge badge--restart">再起動で反映</span></span>
+                  <code class="key">transcription.local_whisper.device</code>
+                  <fieldset class="radios" aria-label="デバイス"><label><input type="radio" name="sv.transcription.local_whisper.device" value="cuda" checked> GPU（cuda）</label><label><input type="radio" name="sv.transcription.local_whisper.device" value="cpu"> CPU</label></fieldset>
+                </div>
+                <div class="row" data-reload="restart">
+                  <span>量子化タイプ <span class="badge badge--restart">再起動で反映</span></span>
+                  <code class="key">transcription.local_whisper.compute_type</code>
+                  <fieldset class="radios" aria-label="量子化タイプ"><label><input type="radio" name="sv.transcription.local_whisper.compute_type" value="float16" checked> float16</label><label><input type="radio" name="sv.transcription.local_whisper.compute_type" value="int8"> int8</label><label><input type="radio" name="sv.transcription.local_whisper.compute_type" value="float32"> float32</label></fieldset>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="sv-t5">言語 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.language</code>
+                  <input type="text" class="num" id="sv-t5" name="transcription.local_whisper.language" value="ja">
+                </div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <p class="notice" role="status" data-saved-notice>保存しました。</p>
+            <!-- 再起動の知らせ: 保存した後は隠す。保存の後に欄を変えると、開いたときの値から数えて app.js が出し直す -->
+            <p class="notice" data-restart-notice hidden>「再起動で反映」の設定を 1 件変えました。「保存して再起動」で保存すると、すぐに効きます。</p>
+            <div class="settings__actions">
+              <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn" href="../../../tray/37/a-standard/index.html" data-restart-button hidden>保存して再起動</a>
+              <button type="button" class="btn btn--primary" data-save>保存</button>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">「録音」の音量の割合を 30% にして「保存」を押したところ。窓は閉じず、選んでいたまとまりと入れた値が残り、フッターの上に知らせが出る。欄を変えると知らせが消える（ここで試せる）。</p>
+      </section>
+
+      <!-- 場面: 保存の後（ホットキーを変えた） -->
+      <section class="specimen" data-scene-panel="saved-hotkey" aria-labelledby="h-sh">
+        <h2 id="h-sh">保存の後（ホットキーを変えた）</h2>
+        <!-- data-restart-pending: 開いたときから変わった「再起動で反映」の欄を保存済みで持つ窓。欄を変えると再起動の知らせを出し直す -->
+        <div class="win settings settings--full" data-saved-win>
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり（保存の後（ホットキーを変えた））">
+              <ul><li><a href="../../44/a-inline/kind-tabs/index.html">出力先</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ブラウザ添付</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">エンドポイントへ送る</a></li><li><a href="#sh-hotkeys" aria-current="page">ホットキー</a></li><li><a href="#sh-recording">録音</a></li><li><a href="#sh-transcription">文字起こし</a></li><li><a href="../../99/a-hint-group/index.html">表記のヒント</a></li><li><a href="../../97/a-glossary-group/index.html">用語集</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">画面</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">履歴とログ</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">API</a></li></ul>
+            </nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（保存の後（ホットキーを変えた））">
+              <fieldset id="sh-hotkeys" data-group>
+                <legend>ホットキー</legend>
+                <div class="row" data-reload="immediate">
+                  <label for="sh-h1">録音を始める</label>
+                  <code class="key">hotkeys.start</code>
+                  <input type="text" class="hotkey" id="sh-h1" name="hotkeys.start" value="Ctrl+Alt+R">
+                  <p class="field-help">録音中に押すと「貼り付けて送信」で確定する（同じキーのとき）。</p>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="sh-h2">一時停止・再開</label>
+                  <code class="key">hotkeys.pause</code>
+                  <input type="text" class="hotkey" id="sh-h2" name="hotkeys.pause" value="Ctrl+Alt+Z">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="sh-h3">取り消す</label>
+                  <code class="key">hotkeys.cancel</code>
+                  <input type="text" class="hotkey" id="sh-h3" name="hotkeys.cancel" value="Ctrl+Alt+Q">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="sh-h4">貼り付けに送るキー</label>
+                  <code class="key">keyboard.paste_key</code>
+                  <input type="text" class="hotkey" id="sh-h4" name="keyboard.paste_key" value="Ctrl+V">
+                  <p class="field-help">貼り付け先のアプリが Ctrl+V 以外で貼り付けるときに変える。</p>
+                </div>
+                <p class="field-help">出力先ごとの確定のホットキーは「出力先」で変える。欄を押してから、キーの組み合わせを押す。</p>
+              </fieldset>
+              <fieldset id="sh-recording" data-group>
+                <legend>録音</legend>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="sh-r1"><input type="checkbox" id="sh-r1" name="recording.lower_volume" checked> 録音中に音量を下げる</label>
+                  <code class="key">recording.lower_volume</code>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="sh-r2">録音中の音量の割合</label>
+                  <code class="key">recording.volume_percent</code>
+                  <span class="range"><input type="range" id="sh-r2" name="recording.volume_percent" min="0" max="100" value="50"><output class="num" for="sh-r2">50%</output></span>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="sh-r3">音量を変えるときの秒数</label>
+                  <code class="key">recording.fade_sec</code>
+                  <input type="number" id="sh-r3" name="recording.fade_sec" value="0.5" step="0.1" min="0">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="sh-r4"><input type="checkbox" id="sh-r4" name="recording.hide_window"> 録音の画面を出さない</label>
+                  <code class="key">recording.hide_window</code>
+                  <p class="field-help">オンにすると、録音と文字起こしの間はトレイのアイコンとホットキーだけで操作する。</p>
+                </div>
+              </fieldset>
+              <fieldset id="sh-transcription" data-group>
+                <legend>文字起こし</legend>
+                <h3 class="subhead">エンジン</h3>
+                <div class="row" data-reload="restart">
+                  <label for="sh-t1">文字起こしのエンジン <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.engine</code>
+                  <select id="sh-t1" name="transcription.engine"><option selected>local_whisper</option></select>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="sh-t2">モデル <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.model</code>
+                  <select id="sh-t2" name="transcription.local_whisper.model"><option>large-v3</option><option>large-v3-turbo</option><option selected>medium</option><option>small</option><option>base</option></select>
+                  <p class="field-help">変えたモデルは、再起動した後に読み込む。</p>
+                </div>
+                <div class="row" data-reload="restart">
+                  <span>デバイス <span class="badge badge--restart">再起動で反映</span></span>
+                  <code class="key">transcription.local_whisper.device</code>
+                  <fieldset class="radios" aria-label="デバイス"><label><input type="radio" name="sh.transcription.local_whisper.device" value="cuda" checked> GPU（cuda）</label><label><input type="radio" name="sh.transcription.local_whisper.device" value="cpu"> CPU</label></fieldset>
+                </div>
+                <div class="row" data-reload="restart">
+                  <span>量子化タイプ <span class="badge badge--restart">再起動で反映</span></span>
+                  <code class="key">transcription.local_whisper.compute_type</code>
+                  <fieldset class="radios" aria-label="量子化タイプ"><label><input type="radio" name="sh.transcription.local_whisper.compute_type" value="float16" checked> float16</label><label><input type="radio" name="sh.transcription.local_whisper.compute_type" value="int8"> int8</label><label><input type="radio" name="sh.transcription.local_whisper.compute_type" value="float32"> float32</label></fieldset>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="sh-t5">言語 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.language</code>
+                  <input type="text" class="num" id="sh-t5" name="transcription.local_whisper.language" value="ja">
+                </div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <p class="notice" role="status" data-saved-notice>保存しました。新しいホットキーは、設定画面を閉じると効きます。</p>
+            <!-- 再起動の知らせ: 保存した後は隠す。保存の後に欄を変えると、開いたときの値から数えて app.js が出し直す -->
+            <p class="notice" data-restart-notice hidden>「再起動で反映」の設定を 1 件変えました。「保存して再起動」で保存すると、すぐに効きます。</p>
+            <div class="settings__actions">
+              <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn" href="../../../tray/37/a-standard/index.html" data-restart-button hidden>保存して再起動</a>
+              <button type="button" class="btn btn--primary" data-save>保存</button>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">録音開始のホットキーを Ctrl+Alt+R にして「保存」を押したところ。設定画面を開いている間はホットキーを受け付けないため、閉じると効くことを添える。</p>
+      </section>
+
+      <!-- 場面: 保存の後（再起動で反映の設定を変えた） -->
+      <section class="specimen" data-scene-panel="saved-restart" aria-labelledby="h-sr">
+        <h2 id="h-sr">保存の後（再起動で反映の設定を変えた）</h2>
+        <!-- data-restart-pending: 開いたときから変わった「再起動で反映」の欄を保存済みで持つ窓。欄を変えると再起動の知らせを出し直す -->
+        <div class="win settings settings--full" data-saved-win data-restart-pending="true">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり（保存の後（再起動で反映の設定を変えた））">
+              <ul><li><a href="../../44/a-inline/kind-tabs/index.html">出力先</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ブラウザ添付</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">エンドポイントへ送る</a></li><li><a href="#sr-hotkeys">ホットキー</a></li><li><a href="#sr-recording">録音</a></li><li><a href="#sr-transcription" aria-current="page">文字起こし</a></li><li><a href="../../99/a-hint-group/index.html">表記のヒント</a></li><li><a href="../../97/a-glossary-group/index.html">用語集</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">画面</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">履歴とログ</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">API</a></li></ul>
+            </nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（保存の後（再起動で反映の設定を変えた））">
+              <fieldset id="sr-hotkeys" data-group>
+                <legend>ホットキー</legend>
+                <div class="row" data-reload="immediate">
+                  <label for="sr-h1">録音を始める</label>
+                  <code class="key">hotkeys.start</code>
+                  <input type="text" class="hotkey" id="sr-h1" name="hotkeys.start" value="Ctrl+Alt+D">
+                  <p class="field-help">録音中に押すと「貼り付けて送信」で確定する（同じキーのとき）。</p>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="sr-h2">一時停止・再開</label>
+                  <code class="key">hotkeys.pause</code>
+                  <input type="text" class="hotkey" id="sr-h2" name="hotkeys.pause" value="Ctrl+Alt+Z">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="sr-h3">取り消す</label>
+                  <code class="key">hotkeys.cancel</code>
+                  <input type="text" class="hotkey" id="sr-h3" name="hotkeys.cancel" value="Ctrl+Alt+Q">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="sr-h4">貼り付けに送るキー</label>
+                  <code class="key">keyboard.paste_key</code>
+                  <input type="text" class="hotkey" id="sr-h4" name="keyboard.paste_key" value="Ctrl+V">
+                  <p class="field-help">貼り付け先のアプリが Ctrl+V 以外で貼り付けるときに変える。</p>
+                </div>
+                <p class="field-help">出力先ごとの確定のホットキーは「出力先」で変える。欄を押してから、キーの組み合わせを押す。</p>
+              </fieldset>
+              <fieldset id="sr-recording" data-group>
+                <legend>録音</legend>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="sr-r1"><input type="checkbox" id="sr-r1" name="recording.lower_volume" checked> 録音中に音量を下げる</label>
+                  <code class="key">recording.lower_volume</code>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="sr-r2">録音中の音量の割合</label>
+                  <code class="key">recording.volume_percent</code>
+                  <span class="range"><input type="range" id="sr-r2" name="recording.volume_percent" min="0" max="100" value="50"><output class="num" for="sr-r2">50%</output></span>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="sr-r3">音量を変えるときの秒数</label>
+                  <code class="key">recording.fade_sec</code>
+                  <input type="number" id="sr-r3" name="recording.fade_sec" value="0.5" step="0.1" min="0">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="sr-r4"><input type="checkbox" id="sr-r4" name="recording.hide_window"> 録音の画面を出さない</label>
+                  <code class="key">recording.hide_window</code>
+                  <p class="field-help">オンにすると、録音と文字起こしの間はトレイのアイコンとホットキーだけで操作する。</p>
+                </div>
+              </fieldset>
+              <fieldset id="sr-transcription" data-group>
+                <legend>文字起こし</legend>
+                <h3 class="subhead">エンジン</h3>
+                <div class="row" data-reload="restart">
+                  <label for="sr-t1">文字起こしのエンジン <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.engine</code>
+                  <select id="sr-t1" name="transcription.engine"><option selected>local_whisper</option></select>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="sr-t2">モデル <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.model</code>
+                  <select id="sr-t2" name="transcription.local_whisper.model"><option>large-v3</option><option selected>large-v3-turbo</option><option>medium</option><option>small</option><option>base</option></select>
+                  <p class="field-help">変えたモデルは、再起動した後に読み込む。</p>
+                </div>
+                <div class="row" data-reload="restart">
+                  <span>デバイス <span class="badge badge--restart">再起動で反映</span></span>
+                  <code class="key">transcription.local_whisper.device</code>
+                  <fieldset class="radios" aria-label="デバイス"><label><input type="radio" name="sr.transcription.local_whisper.device" value="cuda" checked> GPU（cuda）</label><label><input type="radio" name="sr.transcription.local_whisper.device" value="cpu"> CPU</label></fieldset>
+                </div>
+                <div class="row" data-reload="restart">
+                  <span>量子化タイプ <span class="badge badge--restart">再起動で反映</span></span>
+                  <code class="key">transcription.local_whisper.compute_type</code>
+                  <fieldset class="radios" aria-label="量子化タイプ"><label><input type="radio" name="sr.transcription.local_whisper.compute_type" value="float16" checked> float16</label><label><input type="radio" name="sr.transcription.local_whisper.compute_type" value="int8"> int8</label><label><input type="radio" name="sr.transcription.local_whisper.compute_type" value="float32"> float32</label></fieldset>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="sr-t5">言語 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.language</code>
+                  <input type="text" class="num" id="sr-t5" name="transcription.local_whisper.language" value="ja">
+                </div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <p class="notice" role="status" data-saved-notice>保存しました。「再起動で反映」の設定 1 件は、再起動するまで前の値で動きます。<a class="btn" href="../../../tray/37/a-standard/index.html">今すぐ再起動</a></p>
+            <!-- 再起動の知らせ: 保存した後は隠す。保存の後に欄を変えると、開いたときの値から数えて app.js が出し直す -->
+            <p class="notice" data-restart-notice hidden>「再起動で反映」の設定を 1 件変えました。「保存して再起動」で保存すると、すぐに効きます。</p>
+            <div class="settings__actions">
+              <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn" href="../../../tray/37/a-standard/index.html" data-restart-button hidden>保存して再起動</a>
+              <button type="button" class="btn btn--primary" data-save>保存</button>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">モデルを large-v3-turbo にして「保存」を押したところ。書いた後なので「保存して再起動」と再起動の知らせを隠し、既定に戻した後と同じく件数と「今すぐ再起動」を出す。欄を変えると知らせが消え、開いたときの値から数えた再起動の知らせと「保存して再起動」が戻る（ここで試せる）。</p>
+      </section>
+
+      <!-- 場面: 保存の後に欄を変えた -->
+      <section class="specimen" data-scene-panel="edited" aria-labelledby="h-ed">
+        <h2 id="h-ed">保存の後に欄を変えた</h2>
+        <!-- data-restart-pending: 開いたときから変わった「再起動で反映」の欄を保存済みで持つ窓。欄を変えると再起動の知らせを出し直す -->
+        <div class="win settings settings--full" data-saved-win>
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり（保存の後に欄を変えた）">
+              <ul><li><a href="../../44/a-inline/kind-tabs/index.html">出力先</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ブラウザ添付</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">エンドポイントへ送る</a></li><li><a href="#ed-hotkeys">ホットキー</a></li><li><a href="#ed-recording" aria-current="page">録音</a></li><li><a href="#ed-transcription">文字起こし</a></li><li><a href="../../99/a-hint-group/index.html">表記のヒント</a></li><li><a href="../../97/a-glossary-group/index.html">用語集</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">画面</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">履歴とログ</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">API</a></li></ul>
+            </nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（保存の後に欄を変えた）">
+              <fieldset id="ed-hotkeys" data-group>
+                <legend>ホットキー</legend>
+                <div class="row" data-reload="immediate">
+                  <label for="ed-h1">録音を始める</label>
+                  <code class="key">hotkeys.start</code>
+                  <input type="text" class="hotkey" id="ed-h1" name="hotkeys.start" value="Ctrl+Alt+D">
+                  <p class="field-help">録音中に押すと「貼り付けて送信」で確定する（同じキーのとき）。</p>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="ed-h2">一時停止・再開</label>
+                  <code class="key">hotkeys.pause</code>
+                  <input type="text" class="hotkey" id="ed-h2" name="hotkeys.pause" value="Ctrl+Alt+Z">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="ed-h3">取り消す</label>
+                  <code class="key">hotkeys.cancel</code>
+                  <input type="text" class="hotkey" id="ed-h3" name="hotkeys.cancel" value="Ctrl+Alt+Q">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="ed-h4">貼り付けに送るキー</label>
+                  <code class="key">keyboard.paste_key</code>
+                  <input type="text" class="hotkey" id="ed-h4" name="keyboard.paste_key" value="Ctrl+V">
+                  <p class="field-help">貼り付け先のアプリが Ctrl+V 以外で貼り付けるときに変える。</p>
+                </div>
+                <p class="field-help">出力先ごとの確定のホットキーは「出力先」で変える。欄を押してから、キーの組み合わせを押す。</p>
+              </fieldset>
+              <fieldset id="ed-recording" data-group>
+                <legend>録音</legend>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="ed-r1"><input type="checkbox" id="ed-r1" name="recording.lower_volume" checked> 録音中に音量を下げる</label>
+                  <code class="key">recording.lower_volume</code>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="ed-r2">録音中の音量の割合</label>
+                  <code class="key">recording.volume_percent</code>
+                  <span class="range"><input type="range" id="ed-r2" name="recording.volume_percent" min="0" max="100" value="30"><output class="num" for="ed-r2">30%</output></span>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="ed-r3">音量を変えるときの秒数</label>
+                  <code class="key">recording.fade_sec</code>
+                  <input type="number" id="ed-r3" name="recording.fade_sec" value="0.5" step="0.1" min="0">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="ed-r4"><input type="checkbox" id="ed-r4" name="recording.hide_window" checked> 録音の画面を出さない</label>
+                  <code class="key">recording.hide_window</code>
+                  <p class="field-help">オンにすると、録音と文字起こしの間はトレイのアイコンとホットキーだけで操作する。</p>
+                </div>
+              </fieldset>
+              <fieldset id="ed-transcription" data-group>
+                <legend>文字起こし</legend>
+                <h3 class="subhead">エンジン</h3>
+                <div class="row" data-reload="restart">
+                  <label for="ed-t1">文字起こしのエンジン <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.engine</code>
+                  <select id="ed-t1" name="transcription.engine"><option selected>local_whisper</option></select>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="ed-t2">モデル <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.model</code>
+                  <select id="ed-t2" name="transcription.local_whisper.model"><option>large-v3</option><option>large-v3-turbo</option><option selected>medium</option><option>small</option><option>base</option></select>
+                  <p class="field-help">変えたモデルは、再起動した後に読み込む。</p>
+                </div>
+                <div class="row" data-reload="restart">
+                  <span>デバイス <span class="badge badge--restart">再起動で反映</span></span>
+                  <code class="key">transcription.local_whisper.device</code>
+                  <fieldset class="radios" aria-label="デバイス"><label><input type="radio" name="ed.transcription.local_whisper.device" value="cuda" checked> GPU（cuda）</label><label><input type="radio" name="ed.transcription.local_whisper.device" value="cpu"> CPU</label></fieldset>
+                </div>
+                <div class="row" data-reload="restart">
+                  <span>量子化タイプ <span class="badge badge--restart">再起動で反映</span></span>
+                  <code class="key">transcription.local_whisper.compute_type</code>
+                  <fieldset class="radios" aria-label="量子化タイプ"><label><input type="radio" name="ed.transcription.local_whisper.compute_type" value="float16" checked> float16</label><label><input type="radio" name="ed.transcription.local_whisper.compute_type" value="int8"> int8</label><label><input type="radio" name="ed.transcription.local_whisper.compute_type" value="float32"> float32</label></fieldset>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="ed-t5">言語 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.language</code>
+                  <input type="text" class="num" id="ed-t5" name="transcription.local_whisper.language" value="ja">
+                </div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <!-- 保存できた知らせ: 欄を変えた後なので隠す。「保存」を押すと app.js が出す -->
+            <p class="notice" role="status" data-saved-notice hidden>保存しました。</p>
+            <!-- 再起動の知らせ: 保存した後は隠す。保存の後に欄を変えると、開いたときの値から数えて app.js が出し直す -->
+            <p class="notice" data-restart-notice hidden>「再起動で反映」の設定を 1 件変えました。「保存して再起動」で保存すると、すぐに効きます。</p>
+            <div class="settings__actions">
+              <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn" href="../../../tray/37/a-standard/index.html" data-restart-button hidden>保存して再起動</a>
+              <button type="button" class="btn btn--primary" data-save>保存</button>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">「保存の後（録音の設定を変えた）」から「録音の画面を出さない」をオンにしたところ。保存できた知らせは消え、保存した値を基準に変えた欄があるため、ここで「キャンセル」を押すと変えた値を捨てる確認が出る。</p>
+      </section>
+
+      <!-- 場面: 再起動で反映の設定を保存した後に欄を変えた -->
+      <section class="specimen" data-scene-panel="edited-restart" aria-labelledby="h-er">
+        <h2 id="h-er">再起動で反映の設定を保存した後に欄を変えた</h2>
+        <!-- data-restart-pending: 開いたときから変わった「再起動で反映」の欄を保存済みで持つ窓。欄を変えると再起動の知らせを出し直す -->
+        <div class="win settings settings--full" data-saved-win data-restart-pending="true">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり（再起動で反映の設定を保存した後に欄を変えた）">
+              <ul><li><a href="../../44/a-inline/kind-tabs/index.html">出力先</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ブラウザ添付</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">エンドポイントへ送る</a></li><li><a href="#er-hotkeys">ホットキー</a></li><li><a href="#er-recording">録音</a></li><li><a href="#er-transcription" aria-current="page">文字起こし</a></li><li><a href="../../99/a-hint-group/index.html">表記のヒント</a></li><li><a href="../../97/a-glossary-group/index.html">用語集</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">画面</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">履歴とログ</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">API</a></li></ul>
+            </nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（再起動で反映の設定を保存した後に欄を変えた）">
+              <fieldset id="er-hotkeys" data-group>
+                <legend>ホットキー</legend>
+                <div class="row" data-reload="immediate">
+                  <label for="er-h1">録音を始める</label>
+                  <code class="key">hotkeys.start</code>
+                  <input type="text" class="hotkey" id="er-h1" name="hotkeys.start" value="Ctrl+Alt+D">
+                  <p class="field-help">録音中に押すと「貼り付けて送信」で確定する（同じキーのとき）。</p>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="er-h2">一時停止・再開</label>
+                  <code class="key">hotkeys.pause</code>
+                  <input type="text" class="hotkey" id="er-h2" name="hotkeys.pause" value="Ctrl+Alt+Z">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="er-h3">取り消す</label>
+                  <code class="key">hotkeys.cancel</code>
+                  <input type="text" class="hotkey" id="er-h3" name="hotkeys.cancel" value="Ctrl+Alt+Q">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="er-h4">貼り付けに送るキー</label>
+                  <code class="key">keyboard.paste_key</code>
+                  <input type="text" class="hotkey" id="er-h4" name="keyboard.paste_key" value="Ctrl+V">
+                  <p class="field-help">貼り付け先のアプリが Ctrl+V 以外で貼り付けるときに変える。</p>
+                </div>
+                <p class="field-help">出力先ごとの確定のホットキーは「出力先」で変える。欄を押してから、キーの組み合わせを押す。</p>
+              </fieldset>
+              <fieldset id="er-recording" data-group>
+                <legend>録音</legend>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="er-r1"><input type="checkbox" id="er-r1" name="recording.lower_volume" checked> 録音中に音量を下げる</label>
+                  <code class="key">recording.lower_volume</code>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="er-r2">録音中の音量の割合</label>
+                  <code class="key">recording.volume_percent</code>
+                  <span class="range"><input type="range" id="er-r2" name="recording.volume_percent" min="0" max="100" value="50"><output class="num" for="er-r2">50%</output></span>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="er-r3">音量を変えるときの秒数</label>
+                  <code class="key">recording.fade_sec</code>
+                  <input type="number" id="er-r3" name="recording.fade_sec" value="0.5" step="0.1" min="0">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="er-r4"><input type="checkbox" id="er-r4" name="recording.hide_window"> 録音の画面を出さない</label>
+                  <code class="key">recording.hide_window</code>
+                  <p class="field-help">オンにすると、録音と文字起こしの間はトレイのアイコンとホットキーだけで操作する。</p>
+                </div>
+              </fieldset>
+              <fieldset id="er-transcription" data-group>
+                <legend>文字起こし</legend>
+                <h3 class="subhead">エンジン</h3>
+                <div class="row" data-reload="restart">
+                  <label for="er-t1">文字起こしのエンジン <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.engine</code>
+                  <select id="er-t1" name="transcription.engine"><option selected>local_whisper</option></select>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="er-t2">モデル <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.model</code>
+                  <select id="er-t2" name="transcription.local_whisper.model"><option>large-v3</option><option selected>large-v3-turbo</option><option>medium</option><option>small</option><option>base</option></select>
+                  <p class="field-help">変えたモデルは、再起動した後に読み込む。</p>
+                </div>
+                <div class="row" data-reload="restart">
+                  <span>デバイス <span class="badge badge--restart">再起動で反映</span></span>
+                  <code class="key">transcription.local_whisper.device</code>
+                  <fieldset class="radios" aria-label="デバイス"><label><input type="radio" name="er.transcription.local_whisper.device" value="cuda" checked> GPU（cuda）</label><label><input type="radio" name="er.transcription.local_whisper.device" value="cpu"> CPU</label></fieldset>
+                </div>
+                <div class="row" data-reload="restart">
+                  <span>量子化タイプ <span class="badge badge--restart">再起動で反映</span></span>
+                  <code class="key">transcription.local_whisper.compute_type</code>
+                  <fieldset class="radios" aria-label="量子化タイプ"><label><input type="radio" name="er.transcription.local_whisper.compute_type" value="float16" checked> float16</label><label><input type="radio" name="er.transcription.local_whisper.compute_type" value="int8"> int8</label><label><input type="radio" name="er.transcription.local_whisper.compute_type" value="float32"> float32</label></fieldset>
+                </div>
+                <div class="row" data-reload="restart">
+                  <label for="er-t5">言語 <span class="badge badge--restart">再起動で反映</span></label>
+                  <code class="key">transcription.local_whisper.language</code>
+                  <input type="text" class="num" id="er-t5" name="transcription.local_whisper.language" value="en">
+                </div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <!-- 保存できた知らせ: 欄を変えた後なので隠す。「保存」を押すと app.js が出す -->
+            <p class="notice" role="status" data-saved-notice hidden>保存しました。「再起動で反映」の設定 2 件は、再起動するまで前の値で動きます。<a class="btn" href="../../../tray/37/a-standard/index.html">今すぐ再起動</a></p>
+            <p class="notice" data-restart-notice>「再起動で反映」の設定を 2 件変えました。「保存して再起動」で保存すると、すぐに効きます。</p>
+            <div class="settings__actions">
+              <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn" href="../../../tray/37/a-standard/index.html" data-restart-button>保存して再起動</a>
+              <button type="button" class="btn btn--primary" data-save>保存</button>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">「保存の後（再起動で反映の設定を変えた）」から言語を en にしたところ。件数は開いたときの値から数えるため、保存済みのモデルと合わせて 2 件になり、「保存して再起動」が戻る。</p>
+      </section>
+
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,14 @@
+$ venv/Scripts/python.exe -m pytest tests/e2e/複合ユースケース --run-e2e
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\test-e2e-keylog-send-enter-modifiers
+configfile: pyproject.toml
+plugins: anyio-4.13.0, platformdirs-4.12.2
+collected 17 items
+
+tests\e2e\[XP[X\test_paste_voice_text.py ......               [ 35%]
+tests\e2e\[XP[X\test_transcribe_continuously_from_other_system.py . [ 41%]
+......                                                                   [ 76%]
+tests\e2e\[XP[X\test_transcribe_from_other_system.py ....     [100%]
+
+======================= 17 passed in 212.58s (0:03:32) ========================

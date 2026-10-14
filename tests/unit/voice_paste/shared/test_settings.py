@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import tomllib
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
@@ -12,6 +13,15 @@ if TYPE_CHECKING:
     from voice_paste.shared.settings import OutputSettingsBase, Settings
 
 SETTINGS_FILE_NAME = "settings.toml"
+
+COMMENT_AFTER_ARRAY_TABLE = "# 保存しても残るコメント"
+"""配列の表（`[[hint_presets]]`）の後ろに書いておく、キーを持たないコメント。"""
+
+HINT_PRESET_A = '[[hint_presets]]\nname = "A"\nwords = ["a"]\nenabled = true\n'
+"""settings.toml に書く表記のヒントのプリセット A。"""
+
+HINT_PRESET_B = '[[hint_presets]]\nname = "B"\nwords = ["b"]\nenabled = true\n'
+"""settings.toml に書く表記のヒントのプリセット B。"""
 
 
 @pytest.fixture
@@ -434,6 +444,116 @@ def test_save_settings_when_legacy_glossary_path(
     assert "glossary_path" not in written
     assert len(written["glossaries"]) == 1
     assert Path(written["glossaries"][0]["path"]) == legacy_path
+
+
+@pytest.mark.parametrize(
+    "hint_presets",
+    [
+        pytest.param(
+            [
+                {"name": "A", "words": ["a"], "enabled": True},
+                {"name": "B", "words": ["b"], "enabled": True},
+                {"name": "C", "words": ["c"], "enabled": True},
+            ],
+            id="added",
+        ),
+        pytest.param(
+            [
+                {"name": "A", "words": ["a", "aa"], "enabled": True},
+                {"name": "B", "words": ["b"], "enabled": True},
+            ],
+            id="words_changed",
+        ),
+        pytest.param([{"name": "A", "words": ["a"], "enabled": True}], id="reduced"),
+    ],
+)
+def test_save_settings_when_comment_after_array_table(
+    settings_file: Path, settings_model: type[Settings], hint_presets: list[dict[str, Any]]
+) -> None:
+    """配列の表を入れ替えても、配列の表の後ろのコメントを残す（正常系）。"""
+    from voice_paste.shared.settings import load_settings, save_settings
+
+    # 準備（2 件の `[[hint_presets]]` の後ろにコメント行と `[recording]` を続ける）
+    settings_file.write_text(
+        f"{HINT_PRESET_A}\n{HINT_PRESET_B}\n{COMMENT_AFTER_ARRAY_TABLE}\n"
+        "[recording]\nfade_sec = 1.5\n",
+        encoding="utf-8",
+    )
+    new_settings = settings_model.model_validate(
+        {"hint_presets": hint_presets, "recording": {"fade_sec": 1.5}}
+    )
+
+    # 実行
+    save_settings(settings_file, new_settings)
+
+    # 検証
+    text = settings_file.read_text(encoding="utf-8")
+    assert text.count(COMMENT_AFTER_ARRAY_TABLE) == 1
+    assert re.search(rf"{re.escape(COMMENT_AFTER_ARRAY_TABLE)}\n\[recording\]", text)
+    assert load_settings(settings_file, settings_model).hint_presets == new_settings.hint_presets
+
+
+@pytest.mark.parametrize(
+    ("original", "new_values", "following"),
+    [
+        pytest.param(
+            f"[api]\nport = 47824\n\n{HINT_PRESET_A}\n{COMMENT_AFTER_ARRAY_TABLE}\n"
+            "[recording]\nfade_sec = 1.5\n",
+            {"api": {"port": 47824}, "recording": {"fade_sec": 1.5}},
+            r"\n\[recording\]",
+            id="after_api_before_recording",
+        ),
+        pytest.param(
+            f"{HINT_PRESET_A}\n{COMMENT_AFTER_ARRAY_TABLE}\n[recording]\nfade_sec = 1.5\n",
+            {"recording": {"fade_sec": 1.5}},
+            r"\n\[recording\]",
+            id="first_table_before_recording",
+        ),
+        pytest.param(
+            f"{HINT_PRESET_A}\n{COMMENT_AFTER_ARRAY_TABLE}\n"
+            '[transcription.local_whisper]\nmodel = "small"\n',
+            {"transcription": {"local_whisper": {"model": "small"}}},
+            r"\n\[transcription\.local_whisper\]",
+            id="before_super_table",
+        ),
+        pytest.param(
+            f'{HINT_PRESET_A}\n{COMMENT_AFTER_ARRAY_TABLE}\n[[outputs]]\nid = "paste_only"\n',
+            {"outputs": [{"id": "copy_only"}]},
+            r"\n\[\[outputs\]\]",
+            id="before_replaced_array_table",
+        ),
+        pytest.param(
+            f"{HINT_PRESET_A}\n{COMMENT_AFTER_ARRAY_TABLE}\n",
+            {},
+            r"\n*\Z",
+            id="no_table_after",
+        ),
+    ],
+)
+def test_save_settings_when_array_table_emptied(
+    settings_file: Path,
+    settings_model: type[Settings],
+    original: str,
+    new_values: dict[str, Any],
+    following: str,
+) -> None:
+    """配列の表を 0 件にしても、配列の表の後ろのコメントを次の表の見出しの前に残す（正常系）。"""
+    from voice_paste.shared.settings import load_settings, save_settings
+
+    # 準備（1 件の `[[hint_presets]]` の後ろにコメント行を続け、hint_presets を 0 件にした設定を書く）
+    settings_file.write_text(original, encoding="utf-8")
+    new_settings = settings_model.model_validate({"hint_presets": [], **new_values})
+
+    # 実行
+    save_settings(settings_file, new_settings)
+
+    # 検証
+    text = settings_file.read_text(encoding="utf-8")
+    loaded = load_settings(settings_file, settings_model)
+    assert text.count(COMMENT_AFTER_ARRAY_TABLE) == 1
+    assert re.search(re.escape(COMMENT_AFTER_ARRAY_TABLE) + following, text)
+    assert loaded.hint_presets == []
+    assert loaded == new_settings
 
 
 # === find_hotkey_overlaps ===

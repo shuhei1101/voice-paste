@@ -57,8 +57,10 @@ FAILURE_BODY_SUFFIXES: dict[str, str] = {
 """知らせの種類ごとの、理由の後に添える文（履歴に残っていること・次にすること）。"""
 
 COPY_COMPLETED_TITLE: str = "コピーしました"
+"""コピーの完了の通知の見出し。"""
+
 COPY_COMPLETED_BODY: str = "任意の場所に貼り付けてください。この通知を押すと、もう一度コピーします。"
-"""コピーの完了の通知の見出しと本文（固定の文）。"""
+"""コピーの完了の通知の本文（固定の文）。"""
 
 STARTUP_BODY_FORMATS: dict[str, str] = {
     "engine_unavailable": "文字起こしのエンジンを準備できません（{reason}）。設定を直して再起動してください。",

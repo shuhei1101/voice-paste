@@ -151,6 +151,9 @@ data_models:
       - name: get_settings
         type: Callable[[], Settings]
         description: 今の設定を返す（SettingsStore.get。届けるたびに読み、保存した immediate の項目を次の回から効かせる）
+      - name: notify_copied
+        type: Callable[[str], None]
+        description: コピーの完了を起こした文字と共に画面へ知らせる（ui の notify_copied に UiBridge を部分適用したもの）
     status: planned
   - name: PasteAndSendSettings
     title: 貼り付けて送信の設定
@@ -804,7 +807,7 @@ functions:
     usecase: 起こした文字を届ける
     scope: public
     inherits: OutputFn
-    summary: クリップボードへ書く
+    summary: クリップボードへ書き、コピーの完了を知らせる
     args:
       - name: outcome
         type: TranscriptionOutcome
@@ -821,22 +824,35 @@ functions:
         required: true
         passing: injected
         description: クリップボードへ書く（copy_to_clipboard）
+      - name: notify_copied
+        type: Callable[[str], None]
+        required: true
+        passing: injected
+        description: コピーの完了を起こした文字と共に知らせる（OutputDeps.notify_copied）
     returns:
       type: None
       description: なし
     process: |-
       1. outcome.text をクリップボードへ書く
-         - DeliveryError はそのまま送出する
+         - DeliveryError はそのまま送出する（完了を知らせない）
+      2. outcome.text を渡してコピーの完了を知らせる（notify_copied）
     exceptions:
       - name: DeliveryError
         condition: クリップボードへ書けない
     unit_tests:
       - name: test_copy_only
         case: 正常
-        summary: クリップボードへ書くだけ
+        summary: クリップボードへ書き、完了を知らせる
         condition: outcome.text が「テスト」
-        mock: copy
-        expected: copy("テスト") が 1 回呼ばれる
+        mock: copy・notify_copied
+        expected: copy("テスト")・notify_copied("テスト") の順に 1 回ずつ呼ばれる
+      - name: test_copy_only_when_copy_failed
+        case: 異常
+        summary: クリップボードへ書けなければ完了を知らせない
+        condition: copy が DeliveryError を送出する
+        mock: copy・notify_copied
+        expected: DeliveryError が送出され、notify_copied が呼ばれない
+        exception: クリップボードへ書けない
     status: implemented
   - name: send_to_browser
     title: ブラウザ添付
@@ -1090,7 +1106,7 @@ functions:
     usecase: 起こした文字を届ける
     scope: public
     inherits: InjectFn
-    summary: copy_only に部分適用する copy を返す
+    summary: copy_only に部分適用する copy・notify_copied を返す
     args:
       - name: deps
         type: OutputDeps
@@ -1099,14 +1115,14 @@ functions:
         description: 外部連携の関数と今の設定
     returns:
       type: Mapping[str, object]
-      description: deps の copy
+      description: deps の copy・notify_copied
     unit_tests:
       - name: test_inject_copy_only
         case: 正常
-        summary: copy だけを渡す
+        summary: copy・notify_copied だけを渡す
         condition: OutputDeps を渡す
         mock: OutputDeps の全関数
-        expected: キーが copy だけで、値が deps の copy
+        expected: キーが copy・notify_copied だけで、値が deps のものと同じ
     status: planned
   - name: inject_callback
     title: 呼び出し元へ返すの注入

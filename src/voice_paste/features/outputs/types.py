@@ -44,6 +44,9 @@ class OutputDeps:
     get_settings: Callable[[], Settings]
     """今の設定を返す（SettingsStore.get。届けるたびに読み、保存した immediate の項目を次の回から効かせる）。"""
 
+    notify_copied: Callable[[str], None]
+    """コピーの完了を起こした文字と共に画面へ知らせる（ui の notify_copied に UiBridge を部分適用したもの）。"""
+
 
 type InjectFn = Callable[[OutputDeps], Mapping[str, object]]
 """配線に渡すものから、1 つの出力先の handler に部分適用するキーワード引数（handler の injected の引数名 → 渡すもの）を選んで返す。"""

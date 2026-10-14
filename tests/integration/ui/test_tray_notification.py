@@ -17,6 +17,8 @@ from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QSystemTrayIcon
 
 from tests.integration.ui.helpers import Ui
+from voice_paste.shared.errors import DeliveryError
+from voice_paste.ui.bridge import UiBridge, notify_copied
 
 NOTIFICATIONS = [
     pytest.param(
@@ -57,6 +59,13 @@ def shown(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     show_message = MagicMock()
     monkeypatch.setattr(QSystemTrayIcon, "showMessage", show_message)
     return show_message
+
+
+def notify_copy_completed(ui: Ui, text: str) -> None:
+    """UiBridge.copied を UiController.on_copied につなぎ（main.py の配線と同じ向き）、notify_copied でコピーの完了を知らせる。"""
+    bridge = UiBridge()
+    bridge.copied.connect(ui.controller.on_copied)
+    notify_copied(text, bridge=bridge)
 
 
 # === tray_notification ===
@@ -114,6 +123,34 @@ def test_tray_notification_when_startup_failed(
     assert shown.call_args.args[0] == title
 
 
+def test_tray_notification_when_copy_completed(make_ui: Callable[..., Ui], shown: MagicMock) -> None:
+    """notify_copied でコピーの完了を受けたとき、情報のアイコンの通知を 1 つ出す（表示条件）。"""
+    # 準備
+    ui = make_ui()
+
+    # 実行
+    notify_copy_completed(ui, "起こした文字")
+
+    # 検証
+    shown.assert_called_once()
+    assert shown.call_args.args[2] == QSystemTrayIcon.MessageIcon.Information
+
+
+@pytest.mark.parametrize("event", ["microphone_unavailable", "delivery_failed"])
+def test_tray_notification_icon_when_failed(
+    make_ui: Callable[..., Ui], shown: MagicMock, event: str
+) -> None:
+    """失敗の通知は、今までどおり警告のアイコンで出す。"""
+    # 準備
+    ui = make_ui()
+
+    # 実行
+    ui.controller.on_notified(event, None)
+
+    # 検証
+    assert shown.call_args.args[2] == QSystemTrayIcon.MessageIcon.Warning
+
+
 # === notification_title・notification_body ===
 
 
@@ -132,6 +169,22 @@ def test_notification_title_and_body(
     args: tuple[Any, ...] = shown.call_args.args
     assert args[0] == title
     assert args[1] == body
+
+
+def test_notification_title_and_body_when_copy_completed(
+    make_ui: Callable[..., Ui], shown: MagicMock
+) -> None:
+    """コピーの完了の見出しは「コピーしました」、本文は貼り付けることと、通知を押すとコピーし直せることを固定の文で出す（起こした文字は出さない）。"""
+    # 準備
+    ui = make_ui()
+
+    # 実行
+    notify_copy_completed(ui, "起こした文字")
+
+    # 検証
+    args: tuple[Any, ...] = shown.call_args.args
+    assert args[0] == "コピーしました"
+    assert args[1] == "任意の場所に貼り付けてください。この通知を押すと、もう一度コピーします。"
 
 
 def test_notification_body_when_engine_unavailable(
@@ -202,3 +255,101 @@ def test_open_log_folder_when_not_clicked(
     # 検証
     open_url.assert_not_called()
     assert ui.tray._icon.toolTip() == "voice-paste: 待機中"
+
+
+def test_open_log_folder_when_clicked_after_failure_following_copy_completed(
+    make_ui: Callable[..., Ui], shown: MagicMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """コピーの完了の通知の後に失敗の通知が出ていれば、通知を押してもコピーし直さず、ログのフォルダを開く。"""
+    # 準備
+    urls: list[QUrl] = []
+    monkeypatch.setattr(QDesktopServices, "openUrl", MagicMock(side_effect=urls.append))
+    ui = make_ui()
+    notify_copy_completed(ui, "起こした文字")
+    ui.controller.on_notified("delivery_failed", "クリップボードに書けませんでした")
+
+    # 実行
+    ui.tray._icon.messageClicked.emit()
+
+    # 検証
+    assert [Path(url.toLocalFile()) for url in urls] == [ui.deps.log_dir]
+    ui.deps.copy.assert_not_called()
+
+
+def test_open_log_folder_when_clicked_copy_completed(
+    make_ui: Callable[..., Ui], shown: MagicMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """コピーの完了の通知を押しても、ログのフォルダは開かない。"""
+    # 準備
+    open_url = MagicMock()
+    monkeypatch.setattr(QDesktopServices, "openUrl", open_url)
+    ui = make_ui()
+    notify_copy_completed(ui, "起こした文字")
+
+    # 実行
+    ui.tray._icon.messageClicked.emit()
+
+    # 検証
+    open_url.assert_not_called()
+
+
+# === recopy ===
+
+
+def test_recopy_when_clicked(make_ui: Callable[..., Ui], shown: MagicMock) -> None:
+    """コピーの完了の通知を押すと、その通知のときに起こした文字をクリップボードへもう一度書く。"""
+    # 準備
+    ui = make_ui()
+    notify_copy_completed(ui, "起こした文字")
+
+    # 実行
+    ui.tray._icon.messageClicked.emit()
+
+    # 検証
+    ui.deps.copy.assert_called_once_with("起こした文字")
+
+
+def test_recopy_when_clicked_after_next_copy_completed(
+    make_ui: Callable[..., Ui], shown: MagicMock
+) -> None:
+    """コピーの完了の通知が続いたときは、最後に出した通知のときに起こした文字をコピーし直す。"""
+    # 準備
+    ui = make_ui()
+    notify_copy_completed(ui, "1 回目の文字")
+    notify_copy_completed(ui, "2 回目の文字")
+
+    # 実行
+    ui.tray._icon.messageClicked.emit()
+
+    # 検証
+    ui.deps.copy.assert_called_once_with("2 回目の文字")
+
+
+def test_recopy_when_not_clicked(make_ui: Callable[..., Ui], shown: MagicMock) -> None:
+    """通知を出しただけでは、コピーし直さない。"""
+    # 準備
+    ui = make_ui()
+
+    # 実行
+    notify_copy_completed(ui, "起こした文字")
+    ui.notify_state(None)
+
+    # 検証
+    ui.deps.copy.assert_not_called()
+
+
+def test_recopy_when_copy_failed(make_ui: Callable[..., Ui], shown: MagicMock) -> None:
+    """コピーし直せなければ、delivery_failed の失敗の通知（警告のアイコン）を出す。"""
+    # 準備
+    ui = make_ui(copy=MagicMock(side_effect=DeliveryError("クリップボードに書けませんでした")))
+    notify_copy_completed(ui, "起こした文字")
+
+    # 実行
+    ui.tray._icon.messageClicked.emit()
+
+    # 検証
+    assert shown.call_count == 2
+    args: tuple[Any, ...] = shown.call_args.args
+    assert args[0] == "届けられませんでした"
+    assert args[1] == "クリップボードに書けませんでした。起こした文字は履歴に残っています。"
+    assert args[2] == QSystemTrayIcon.MessageIcon.Warning

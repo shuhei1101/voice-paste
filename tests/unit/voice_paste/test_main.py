@@ -130,7 +130,13 @@ def install_wiring(
     session_manager = MagicMock()
     session_manager.close.side_effect = _record("session_manager.close")
 
-    def _build(settings: object, paths: object, notify: object, report_progress: object) -> Handlers:
+    def _build(
+        settings: object,
+        paths: object,
+        notify: object,
+        report_progress: object,
+        notify_copied: object,
+    ) -> Handlers:
         """配線済みの関数の束を、偽物で作る。"""
         return Handlers(
             session_manager=session_manager,
@@ -664,6 +670,7 @@ def _make_output_deps(adapters: MagicMock, get_settings: Callable[[], Settings])
         jitter=adapters.jitter,
         post=adapters.post_json,
         get_settings=get_settings,
+        notify_copied=adapters.notify_copied,
     )
 
 

@@ -90,7 +90,7 @@ from voice_paste.shared.settings import (
     save_settings,
 )
 from voice_paste.shared.types import Entry, GlossaryEntry, ProgressFn, TranscriptionOutcome
-from voice_paste.ui.bridge import UiBridge, notify, report_progress
+from voice_paste.ui.bridge import UiBridge, notify, notify_copied, report_progress
 from voice_paste.ui.controller import UiController, UiDeps
 from voice_paste.ui.style import apply_theme
 from voice_paste.ui.tray import Tray, TrayState
@@ -329,7 +329,11 @@ def _wire_preset_kinds(get_settings: Callable[[], Settings]) -> tuple[PresetKind
 
 
 def build_handlers(
-    settings: Settings, paths: AppPaths, notify: NotifyFn, report_progress: ProgressFn
+    settings: Settings,
+    paths: AppPaths,
+    notify: NotifyFn,
+    report_progress: ProgressFn,
+    notify_copied: Callable[[str], None],
 ) -> Handlers:
     """設定からエンジン・録音機・出力先・履歴を組み立て、SessionDeps を作って SessionManager と SessionApiDeps を返す。"""
     # 1. 設定を SettingsStore に入れる。以降の配線は設定を値でなく SettingsStore.get から読む
@@ -372,6 +376,7 @@ def build_handlers(
         jitter=_jitter,
         post=post_json,
         get_settings=store.get,
+        notify_copied=notify_copied,
     )
     wired_outputs = _wire_outputs(output_deps, OUTPUTS)
     wired_preset_kinds = _wire_preset_kinds(store.get)
@@ -619,6 +624,7 @@ def build_ui_deps(
         new_glossary_path=partial(
             next_glossary_path, directory=paths.settings_file.parent / GLOSSARIES_DIR_NAME
         ),
+        copy=copy_to_clipboard,
     )
 
 
@@ -674,6 +680,7 @@ def _build_idle_ui_deps(
         new_glossary_path=partial(
             next_glossary_path, directory=paths.settings_file.parent / GLOSSARIES_DIR_NAME
         ),
+        copy=copy_to_clipboard,
     )
 
 
@@ -825,6 +832,7 @@ def _start_services(
     """設定を読み、配線し、画面・API・ホットキー・上限のタイマーを立てる。立てたものは running に入れる。"""
     ui_notify = partial(notify, bridge=bridge)
     ui_report_progress = partial(report_progress, bridge=bridge)
+    ui_notify_copied = partial(notify_copied, bridge=bridge)
     show_recording_window = partial(notify, "show_recording_window", bridge=bridge)
 
     # 5. 設定を読む（読めなければトレイを失敗にして知らせ、設定を直して再起動できるようにする）
@@ -850,7 +858,7 @@ def _start_services(
 
     # 7. 配線する（エンジンを準備できなければトレイを失敗にして知らせ、設定画面だけを使えるようにする）
     try:
-        handlers = build_handlers(settings, paths, ui_notify, ui_report_progress)
+        handlers = build_handlers(settings, paths, ui_notify, ui_report_progress, ui_notify_copied)
     except StartupError as error:
         logger.error(f"起動に失敗した（{error}）")
         tray.set_failed()
@@ -944,5 +952,6 @@ def _build_controller(bridge: UiBridge, tray: Tray, deps: UiDeps) -> UiControlle
     )
     bridge.notified.connect(controller.on_notified, Qt.ConnectionType.QueuedConnection)
     bridge.progressed.connect(controller.on_progressed, Qt.ConnectionType.QueuedConnection)
+    bridge.copied.connect(controller.on_copied, Qt.ConnectionType.QueuedConnection)
     tray.set_start_hotkey(deps.get_settings().hotkeys.start)
     return controller

@@ -12,7 +12,7 @@ from PySide6.QtCore import QEvent, QObject
 from PySide6.QtWidgets import QApplication
 
 from voice_paste.features.session.types import Session, SessionState
-from voice_paste.shared.errors import HotkeyError
+from voice_paste.shared.errors import DeliveryError, HotkeyError
 from voice_paste.shared.settings import GlossarySettings, Preset, Settings
 from voice_paste.shared.types import Entry, GlossaryEntry
 from voice_paste.ui.tray import RecordingWindowState, Tray, TrayState
@@ -98,6 +98,9 @@ class UiDeps:
     new_glossary_path: Callable[[Collection[Path]], Path]
     """足す用語集の CSV の場所を、一覧にある場所と重ならないように決める（フォルダを部分適用した next_glossary_path）。"""
 
+    copy: Callable[[str], None]
+    """クリップボードへ書く（copy_to_clipboard。書けなければ DeliveryError）。コピーの完了の通知を押したときにコピーし直す。"""
+
 
 class UiController(QObject):
     """UiBridge の知らせを受けて、トレイ・録音の画面・文字起こし中の表示・ダイアログを開く・閉じる・替える。
@@ -126,6 +129,7 @@ class UiController(QObject):
         self._indicator_shown = False
         tray.start_requested.connect(deps.start)
         tray.show_window_requested.connect(self.show_recording)
+        tray.recopy_requested.connect(self.recopy)
         recording_window.hide_requested.connect(self.hide_recording)
         tray.settings_requested.connect(self.open_settings)
         tray.restart_requested.connect(lambda: self.request_exit("restart"))
@@ -151,6 +155,18 @@ class UiController(QObject):
         """UiBridge.progressed のスロット。文字起こし中の表示が出ていれば進みを渡す。"""
         if self._indicator_shown:
             self._indicator.set_progress(position_sec, duration_sec)
+
+    def on_copied(self, text: str) -> None:
+        """UiBridge.copied のスロット。トレイにコピーの完了の通知を出す。"""
+        self._tray.show_copy_completed(text)
+
+    def recopy(self, text: str) -> None:
+        """Tray.recopy_requested のスロット。起こした文字をクリップボードへもう一度書き、書けなければ届けられなかったことを通知する。"""
+        try:
+            self._deps.copy(text)
+        except DeliveryError as error:
+            logger.error(f"コピーし直せなかった（{error}）")
+            self._tray.show_failure("delivery_failed", str(error))
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802 Qt の名前
         """QApplication に届く QEvent.Quit を受け、開いている設定画面を確かめずに閉じる。イベントは止めない。"""

@@ -191,7 +191,7 @@ def test_error_when_invalid_value(run_app: RunApp) -> None:
 
 
 def test_normal_when_edit_glossary(run_app: RunApp) -> None:
-    """用語集の行を足し・書き換え・オフにして保存すると、用語集のファイルに書き戻され、再起動せずに補正へ効く（正常シナリオ）。
+    """用語集の行を足し・書き換え・オフにして保存すると、用語集のファイルに書き戻され、設定画面は開いたまま保存できたことを出し、再起動せずに補正へ効く（正常シナリオ）。
 
     補正は、動いている常駐アプリの補正に文字を渡して確かめる（マイクは開かない）。
     """
@@ -211,7 +211,8 @@ def test_normal_when_edit_glossary(run_app: RunApp) -> None:
         app.press("save_button")
 
         # 検証
-        assert app.wait_window_gone("settings_window")
+        assert app.window("settings_window") is not None
+        assert app.label("saved_notice") == "保存しました。"
         assert read_glossary_rows(_glossary_file(app)) == [
             GlossaryEntry(wrong="kuroudo", right="Claude Code"),
             GlossaryEntry(wrong="gitto", right="Git", enabled=False),
@@ -225,7 +226,7 @@ def test_normal_when_edit_glossary(run_app: RunApp) -> None:
 
 
 def test_normal_when_switch_glossary_preset(run_app: RunApp) -> None:
-    """用語集のプリセットを足して行を入れ、補正に使うプリセットを切り替えて保存すると、足したプリセットの用語集のファイルができ、再起動せずに補正へ効く（正常シナリオ）。
+    """用語集のプリセットを足して行を入れ、補正に使うプリセットを切り替えて保存すると、足したプリセットの用語集のファイルができ、設定画面は開いたまま保存できたことを出し、再起動せずに補正へ効く（正常シナリオ）。
 
     補正は、動いている常駐アプリの補正に文字を渡して確かめる（マイクは開かない）。
     """
@@ -247,7 +248,8 @@ def test_normal_when_switch_glossary_preset(run_app: RunApp) -> None:
         app.press("save_button")
 
         # 検証
-        assert app.wait_window_gone("settings_window")
+        assert app.window("settings_window") is not None
+        assert app.label("saved_notice") == "保存しました。"
         added = app.data_dir / "glossaries" / "glossary_1.csv"
         assert read_glossary_rows(added) == [GlossaryEntry(wrong="paison", right="Python")]
         assert _glossary_file(app).read_bytes() == before
@@ -280,7 +282,7 @@ HINT_OVER_WORD_LENGTH = 209
 
 
 def test_normal_when_edit_hint_presets(run_app: RunApp) -> None:
-    """手がかりのプリセットを足し・語を足して書き換え・無効にして保存すると、settings.toml に書かれ、再起動せずに次の文字起こしの手がかりへ効く（正常シナリオ）。
+    """手がかりのプリセットを足し・語を足して書き換え・無効にして保存すると、settings.toml に書かれ、設定画面は開いたまま保存できたことを出し、再起動せずに次の文字起こしの手がかりへ効く（正常シナリオ）。
 
     手がかりは、動いている常駐アプリの文字起こしがエンジンへ渡す値で確かめる（マイクは開かない。録音を通した文字起こしは「録音を文字に起こす」の E2E）。
     """
@@ -308,7 +310,8 @@ def test_normal_when_edit_hint_presets(run_app: RunApp) -> None:
         app.press("save_button")
 
         # 検証
-        assert app.wait_window_gone("settings_window")
+        assert app.window("settings_window") is not None
+        assert app.label("saved_notice") == "保存しました。"
         assert _toml(app)["hint_presets"] == [
             {"name": "開発", "words": ["Claude", "Whisper", "tool"], "enabled": True},
             {"name": "meeting", "words": ["Git"], "enabled": True},

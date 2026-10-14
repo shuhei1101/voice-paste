@@ -40,7 +40,7 @@ elements:
     position: 通知 > 下
     description: コピーの完了の通知の操作。その通知のときに起こした文字をクリップボードへもう一度書く。書けなければ `delivery_failed` の失敗の通知を出す
     visible_when: コピーの完了の通知
-    source: UiBridge.notified の起こした文字（`notify` の detail）
+    source: UiBridge.notified の起こした文字
     action: 起こした文字をクリップボードへ書く
 screen: src/voice_paste/ui/tray.py
 mock: dev/mock/pages/tray-notification/37/a-notification/
@@ -60,6 +60,6 @@ notes:
     | 設定ファイルを読めない（`settings_invalid`） | 起動に失敗しました | 設定ファイルを読めません（{理由}）。設定フォルダの settings.toml を直して再起動してください。 |
     | `copy_completed` | コピーしました | 任意の場所に貼り付けてください。この通知を押すと、もう一度コピーします。 |
 
-    {理由} は `notify` の `detail` を 1 文で出し、詳しい内容はログに書く。届けられないときは、どの出力先でも同じ見出しで出し、理由を変える。`copy_completed` の `detail` は起こした文字で、本文には出さない。
+    {理由} は `notify` の `detail` を 1 文で出し、詳しい内容はログに書く。届けられないときは、どの出力先でも同じ見出しで出し、理由を変える。
   通知の操作: PySide6 のトレイの通知（`QSystemTrayIcon.showMessage`）は通知の中にボタンを置けないため、「ログフォルダを開く」「コピーし直す」は「通知を押す（`messageClicked`）」で実現する。`messageClicked` はどの通知を押したかを渡さないため、トレイは最後に出した通知の種類と、コピーの完了なら起こした文字を持ち、押されたときにその種類で出し分ける。次の通知を出すと、種類を問わず持つものを置き換える
 test_file: tests/integration/ui/test_tray_notification.py

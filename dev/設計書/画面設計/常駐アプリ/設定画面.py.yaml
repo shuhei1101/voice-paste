@@ -69,7 +69,7 @@ elements:
     position: 窓 > フッターの上
     description: 反映が restart の欄を変えたことと、「保存して再起動」ですぐに効くことを伝える
     label: 「再起動で反映」の設定を {件数} 件変えました。「保存して再起動」で保存すると、すぐに効きます。
-    visible_when: 反映が restart の欄を開いたときの値から変えているとき
+    visible_when: 反映が restart の欄を開いたときの値から変えていて、保存した知らせを出していないとき（件数は保存済みの欄も含めて、開いたときの値から数える）
   - name: 既定に戻した知らせ
     id: reset_notice
     kind: label
@@ -80,10 +80,10 @@ elements:
   - name: 今すぐ再起動のボタン
     id: restart_now_button
     kind: button
-    position: 窓 > フッターの上 > 既定に戻した知らせの右
+    position: 窓 > フッターの上 > 既定に戻した知らせか保存した知らせの右
     description: 設定画面を閉じて常駐アプリを再起動する（トレイの「再起動」と同じ）
     label: 今すぐ再起動
-    visible_when: 既定に戻した知らせを出しているとき
+    visible_when: 既定に戻した知らせを出しているときと、保存した知らせが反映が restart の欄の件数を出しているとき（それぞれの知らせの右）
     action: 設定画面を閉じて再起動する
   - name: 既定に戻すボタン
     id: reset_button
@@ -97,7 +97,7 @@ elements:
     id: cancel_button
     kind: button
     position: 窓 > フッター > 右
-    description: 保存せずに閉じる。欄を変えていれば変えた値を捨てる確認を出し、変えていなければそのまま閉じる
+    description: 保存せずに閉じる。開いたとき（「保存」した後は保存した値）から欄を変えていれば変えた値を捨てる確認を出し、変えていなければそのまま閉じる
     label: キャンセル
     visible_when: 常時
     action: 欄を変えていなければ設定画面を閉じる
@@ -114,10 +114,10 @@ elements:
     id: save_button
     kind: button
     position: 窓 > フッター > 右端
-    description: 全ての欄を設定のモデルで確かめ、ホットキーを受け付けられることも確かめてから settings.toml へ書いて設定画面を閉じる。反映が immediate の設定（出力先のオン・オフ・`ui.*` を含む）は動いている常駐アプリに効かせ、ホットキーは設定画面を閉じたときに新しい設定で受付を張り直す。通らなければ書かず、エラーの一覧と欄の下のエラーを出し、入れた値は消さない
+    description: 全ての欄を設定のモデルで確かめ、ホットキーを受け付けられることも確かめてから settings.toml へ書き、設定画面を開いたまま保存した知らせを出す。入れた値・選んでいたまとまり・欄のフォーカスは保つ。反映が immediate の設定（出力先のオン・オフ・`ui.*` を含む）は動いている常駐アプリに効かせ、ホットキーは設定画面を閉じたときに新しい設定で受付を張り直す。保存した値を「変えていない」の基準にし、保存の後に欄を変えずに閉じると変えた値を捨てる確認を出さない。通らなければ書かず、エラーの一覧と欄の下のエラーを出し、入れた値は消さない
     label: 保存
     visible_when: 常時
-    action: 確かめて保存し、設定画面を閉じる
+    action: 確かめて保存し、開いたまま保存した知らせを出す
   - name: プリセットの一覧
     id: preset_list_{kind}
     kind: list
@@ -657,6 +657,15 @@ elements:
     io: 表示
     visible_when: 表記のヒントのまとまりを選んだとき
     status: implemented
+  - name: 保存した知らせ
+    id: saved_notice
+    kind: label
+    position: 窓 > フッターの上
+    description: 「保存」で書けたことを伝える。保存した欄にホットキー（`hotkeys.*`・`outputs[].hotkey`・`presets[].hotkey`。`keyboard.paste_key` は含めない）があれば、設定画面を閉じると効くことを添える。反映が restart の欄が開いたときの値から変わっていれば、その件数と再起動するまで前の値で動くことを添え、右に今すぐ再起動のボタンを出す。読み上げにも伝える（role=status）
+    label: 保存しました。（ホットキーを含むとき「新しいホットキーは、設定画面を閉じると効きます。」、反映が restart の欄を含むとき「「再起動で反映」の設定 {件数} 件は、再起動するまで前の値で動きます。」をこの順に続ける）
+    visible_when: 「保存」で確かめに通って書けた後。欄を変えると消す
+    refs:
+      - dev/設計書/設定/常駐アプリ#
 input_checks:
   - element: 設定の欄
     violation: 数値の欄に数値でない文字が入っている
@@ -749,7 +758,7 @@ input_checks:
     message: プリセット「{名前}」と同じ名前です。別の名前にしてください。
     position: その欄の下とエラーの一覧
 screen: src/voice_paste/ui/windows/settings_window.py
-mock: dev/mock/pages/settings/44/a-inline/kind-tabs/
+mock: dev/mock/pages/settings/101/a-footer-notice/
 lead: トレイの「設定…」から開く画面。settings.toml の全てのキーをまとまりに並べ、設定のモデルで確かめてから保存する。
 refs:
   - dev/設計書/シナリオ/単一ユースケース/設定を変える#

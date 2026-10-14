@@ -927,7 +927,7 @@ functions:
         summary: 配列の表を 0 件にしても、配列の表の後ろのコメントを次の表の見出しの前に残す
         condition: '`[[hint_presets]]` を 1 件書き、その後ろにコメント行を続けた settings.toml に、hint_presets を 0 件にした設定を書く（parametrize）。次の表と前の並びは、`[api]` の後ろで次が `[recording]`・文書の最初の表で次が `[recording]`・次が super table（`[transcription.local_whisper]` だけを書く）・次が `[[outputs]]` でその出力先も入れ替える・後ろに表が無い、の 5 通り'
         mock: なし（一時フォルダ）
-        expected: 書いた後のファイルで、コメント行が同じ文言で次の表の見出し（`[recording]`・`[transcription.local_whisper]`・`[[outputs]]`）の直前に残り、後ろに表が無いときは文書の末尾に残る。書いていない見出し（`[transcription]`）が増えない。load_settings の hint_presets が空で、ほかの値が書いた設定のとおりに読める
+        expected: 書いた後のファイルで、コメント行が同じ文言で 1 回だけ、次の表の見出し（`[recording]`・`[transcription.local_whisper]`・`[[outputs]]`）の直前に残り、後ろに表が無いときは文書の末尾に残る。load_settings の hint_presets が空で、ほかの値が書いた設定のとおりに読める
     refs:
       - dev/設計書/外部ライブラリ/tomlkit#
     status: implemented

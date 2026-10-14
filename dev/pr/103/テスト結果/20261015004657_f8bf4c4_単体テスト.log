@@ -1,8 +1,7 @@
 # 実行したコマンド
 venv/Scripts/python.exe -m pytest tests/unit
-venv/Scripts/lint-imports
 
-# 出力（pytest）
+# 出力
 ============================= test session starts =============================
 platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0
 rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\design-tray-copy-only-notification
@@ -74,24 +73,4 @@ tests\unit\voice_paste\ui\windows\test_transcribing_indicator.py ..      [100%]
     from starlette.testclient import TestClient as TestClient  # noqa
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-======================= 484 passed, 1 warning in 20.11s =======================
-
-# 出力（lint-imports）
-=============
-Import Linter
-=============
-
-
----------
-Contracts
----------
-
-Analyzed 89 files, 182 dependencies.
-------------------------------------
-
-層の向き KEPT
-feature の独立 KEPT
-出力先の独立 KEPT (13 ignored imports)
-画面から feature の中へ KEPT (1 ignored import)
-
-Contracts: 4 kept, 0 broken.
+======================= 484 passed, 1 warning in 20.44s =======================

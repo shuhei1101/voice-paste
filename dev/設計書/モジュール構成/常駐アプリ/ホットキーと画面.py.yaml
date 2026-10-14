@@ -366,7 +366,7 @@ classes:
             expected: Tray.hide が呼ばれ、request_quit が呼ばれない
       - name: open_settings
         title: 設定画面を開く
-        summary: 設定画面を開く。開いていれば前面に出すだけにする。新しく開くときはホットキーの受付を止め、設定画面が閉じたら（保存・取り消し・窓の閉じるのどの経路でも）on_settings_closed を呼ぶ
+        summary: 設定画面を開く。開いていれば前面に出すだけにする。新しく開くときはホットキーの受付を止め、設定画面が閉じたら（保存して再起動・今すぐ再起動・取り消し・窓の閉じるのどの経路でも）on_settings_closed を呼ぶ。「保存」では閉じないため、保存したホットキーは閉じたときに効く
         kind: メソッド
         scope: public
         returns:
@@ -863,7 +863,7 @@ classes:
       カスタムプリセットは、PRESET_KIND_NAMES の種類ごとにまとまり（「出力先」のすぐ下のタブ）を 1 つ作り、その中に PresetListPanel とその種類の preset_options の欄を置く。Authorization の欄は `QLineEdit.EchoMode.Password` にする。
       エラーの一覧のプリセットの行は、失敗の場所 `presets[{n}].{項目}` を「プリセット「{タイトル}」の{欄の名前}」（タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」）にし、押すとそのタブへ切り替えて PresetListPanel.focus_field で欄へフォーカスを移す。
       ホットキーの欄は押したキーを format_hotkey の形で出し、parse_hotkey で pynput の書式に戻す。
-      コンストラクタは UiDeps を受ける。欄の部品は設定のキーを使った objectName（`field_{キー}`。プリセットの欄は画面設計の項目 ID）を持つ。窓が閉じたら（保存・取り消し・窓の閉じるのどの経路でも）closed を emit する。
+      コンストラクタは UiDeps を受ける。欄の部品は設定のキーを使った objectName（`field_{キー}`。プリセットの欄は画面設計の項目 ID）を持つ。窓が閉じたら（保存して再起動・今すぐ再起動・取り消し・窓の閉じるのどの経路でも。「保存」では閉じない）closed を emit する。
     kind: クラス
     inherits: PySide6.QtWidgets.QWidget
     properties:
@@ -895,7 +895,7 @@ classes:
           description: Settings.model_validate へ渡す値。presets はブラウザ添付のタブの並び → エンドポイントへ送るのタブの並びの順（各 PresetListPanel.collect をつなぐ）。glossaries は GlossaryPanel.collect、active_glossary は GlossaryPanel.active_name。hint_presets は HintPresetPanel.collect。glossary_path は置かない
       - name: save
         title: 保存
-        summary: 欄の値を設定のモデルで確かめ、通れば書いて効かせる。通らなければエラーを出す
+        summary: 欄の値を設定のモデルで確かめ、通れば書いて効かせ、窓を開いたまま保存した知らせを出す（restart のときだけ閉じる）。通らなければエラーを出す
         kind: メソッド
         scope: public
         args:
@@ -916,14 +916,20 @@ classes:
                - `[WARNING]` 保存するホットキーを受け付けられなかった（理由）
              - OSError の場合、エラーの一覧に「設定ファイルを書けませんでした（{理由}）」を出し、False を返す（用語集の CSV を書けないときも同じ文言で、理由にそのパスが出る）
                - `[ERROR]` 設定ファイルを書けなかった（logger.exception）
-          3. saved を emit し、restart なら restart_requested を emit して窓を閉じ、True を返す
+          3. GlossaryPanel.mark_saved で用語集の書き戻しの基準を保存した行へ置き直してから、変えた欄の数えの基準（`_baseline`）を今の欄の値へ置き直す（`_baseline` は GlossaryPanel.changed_rows を含むため、この順でないと保存の直後に閉じても確認が出る。「再起動で反映」の件数の基準は開いたときの値のまま）
+          4. saved を emit する
+             - restart の場合、restart_requested を emit して窓を閉じ、True を返す
+          5. 窓を開いたまま、保存した知らせを出して、同じ文を `QAccessible.updateAccessibility(QAccessibleAnnouncementEvent(知らせ, 文))` で読み上げにも伝え、True を返す（入れた値・選んでいたまとまり・欄のフォーカスはそのまま）
+             - 知らせの文は「保存しました。」。ホットキーの欄（`hotkeys.*`・`outputs[].hotkey`・`presets[].hotkey`。`keyboard.paste_key` は含めない）のどれかが開いたときの値から変わっていれば「新しいホットキーは、設定画面を閉じると効きます。」を続ける
+             - 開いたときの値から変わった「再起動で反映」の欄がある場合、「「再起動で反映」の設定 {件数} 件は、再起動するまで前の値で動きます。」を続け、今すぐ再起動のボタンを出して、再起動の知らせと保存して再起動のボタンを隠す
+             - 欄を変えると知らせ（と今すぐ再起動のボタン）を消し、開いたときの値から数えた再起動の知らせと保存して再起動のボタンを出し直す
         unit_tests:
           - name: test_save
             case: 正常
             summary: 通った値を書く
             condition: 「録音中の音量の割合」を 30 にして save(restart=False)
-            mock: UiDeps.save_settings
-            expected: True。save_settings に recording.volume_percent=30 の Settings が渡り、saved が 1 回 emit される
+            mock: UiDeps.save_settings・QAccessible.updateAccessibility（渡したイベントを控える）
+            expected: True。save_settings に recording.volume_percent=30 の Settings が渡り、saved が 1 回 emit される。窓が開いたままで closed が知らされず、保存した知らせが「保存しました。」で、欄の値と選んでいたまとまりがそのまま。QAccessible.updateAccessibility が 1 回呼ばれ、渡したイベントの文が「保存しました。」
           - name: test_save_when_invalid
             case: 異常
             summary: 通らなければ書かずにエラーを出す
@@ -933,10 +939,10 @@ classes:
             exception: 確かめに通らない
           - name: test_save_when_hotkey_unavailable
             case: 異常
-            summary: ホットキーを受け付けられなければエラーを出して閉じない
+            summary: ホットキーを受け付けられなければエラーを出し、保存した知らせを出さない
             condition: save_settings が HotkeyError を送出する
             mock: UiDeps.save_settings
-            expected: False。エラーの一覧に「ホットキーを受け付けられませんでした」の行が出て、saved が emit されず、窓が開いたまま
+            expected: False。エラーの一覧に「ホットキーを受け付けられませんでした」の行が出て、saved が emit されず、保存した知らせが隠れたままで、窓が開いたまま
             exception: ホットキーを受け付けられない
           - name: test_save_when_presets
             case: 正常
@@ -1001,6 +1007,36 @@ classes:
             mock: UiDeps.save_settings
             expected: 'False。save_settings が呼ばれず、エラーの一覧に「プリセット 1 件目の 1 つ目の語: 語を入れるか、この欄を消してください。」「プリセット 1 件目の 2 つ目の語: 読点（、）・句点（。）・改行は入れられません。語を分けて足してください。」が出る'
             exception: 確かめに通らない
+          - name: test_save_when_restart
+            case: 正常
+            summary: 「保存して再起動」は書いてから窓を閉じ、再起動を頼む
+            condition: モデルを変えて save(restart=True)
+            mock: UiDeps.save_settings
+            expected: True。saved と restart_requested が 1 回ずつ emit され、closed が 1 回知らされる
+          - name: test_save_when_hotkey_changed
+            case: 正常
+            summary: ホットキーを変えた保存では、閉じると効くことを添える
+            condition: 録音開始のホットキーを変えて save(restart=False)。別のケースで出力先の確定のホットキーを変えて save(restart=False)。もう 1 つのケースで貼り付けに送るキーだけを変えて save(restart=False)
+            mock: UiDeps.save_settings
+            expected: 録音開始か出力先の確定のホットキーを変えたときは保存した知らせが「保存しました。新しいホットキーは、設定画面を閉じると効きます。」。貼り付けに送るキーだけのときは「保存しました。」
+          - name: test_save_when_restart_field_changed
+            case: 正常
+            summary: 「再起動で反映」の欄を保存すると、件数と今すぐ再起動を出し、保存の後に欄を変えると開いたときの値から数え直す
+            condition: モデルを変えて save(restart=False) し、続けて言語を変える
+            mock: UiDeps.save_settings
+            expected: 保存の直後は保存した知らせが「保存しました。「再起動で反映」の設定 1 件は、再起動するまで前の値で動きます。」で今すぐ再起動のボタンが出て、再起動の知らせと保存して再起動のボタンが隠れている。言語を変えた後は保存した知らせと今すぐ再起動のボタンが消え、再起動の知らせが 2 件で保存して再起動のボタンが出る
+          - name: test_save_when_glossary_reverted
+            case: 正常
+            summary: 開いたままの 2 回目の保存で、開いたときの行へ戻した用語集も書き戻す
+            condition: 1 件目の用語集の行を 1 つオフにして保存し、開いたままその行をオンに戻してもう一度保存する
+            mock: UiDeps.save_settings（引数を控える）・list_glossaries・read_glossary
+            expected: 2 回目の書き戻しの引数が 1 件目の場所を持ち、その行がオン
+          - name: test_save_then_close
+            case: 正常
+            summary: 保存の後に欄を変えずに閉じると確認を出さずに閉じ、保存の後に欄を変えると知らせが消える
+            condition: 「録音中の音量の割合」を 30 にして save(restart=False) し、try_close を呼ぶ。別のケースで用語集の行を 1 つオフにして save(restart=False) し、欄を変えずに try_close を呼ぶ。もう 1 つのケースで保存の後に「録音の画面を出さない」をオンにする
+            mock: UiDeps.save_settings・list_glossaries・read_glossary・confirm_discard
+            expected: 音量のケースと用語集のケースのどちらも、try_close が True を返し、confirm_discard が呼ばれず、closed が 1 回知らされる。欄を変えたケースは保存した知らせが隠れる
       - name: reset_to_defaults
         title: 既定に戻す
         summary: confirm_reset で確かめ、戻すなら開いたときの設定と同じ設定のモデルの既定値（`type(開いたときの設定)()`）を書いて欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す
@@ -1348,6 +1384,31 @@ classes:
           type: None
           description: なし
         unit_tests: []
+      - name: mark_saved
+        title: 保存した行を基準にする
+        summary: 書き戻す用語集を決める基準（開いたときの行）を、今の表の行へ置き直す。SettingsWindow.save が書けた後に呼ぶ
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 今の一覧の用語集ごとに、表の行（両方が空の行を除く）を開いたときの行として控える
+             - 読めなかった用語集の場合、そのままにする
+             - 足した用語集の場合も、保存した行を開いたときの行にする（次の changed_rows は行を変えなければ入れない）
+        unit_tests:
+          - name: test_glossary_panel_mark_saved
+            case: 正常
+            summary: 保存した行を基準にし、そこから戻した用語集を書き戻しに入れる
+            condition: 1 件目の行を 1 つオフにして mark_saved を呼び、その行をオンに戻す
+            mock: 行を読む関数
+            expected: mark_saved の直後の changed_rows は {}。オンに戻した後は 1 件目の場所を持ち、その行がオン
+          - name: test_glossary_panel_mark_saved_when_added
+            case: 正常
+            summary: 足した用語集も保存した行が基準になる
+            condition: 用語集を 1 つ足して行を 1 つ入れ、mark_saved を呼ぶ
+            mock: 行を読む関数・場所を決める関数
+            expected: changed_rows が {}
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
     status: implemented

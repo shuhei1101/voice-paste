@@ -1,0 +1,18 @@
+# 実行したコマンド
+venv/Scripts/python.exe -m pytest tests/integration --durations=5
+
+# 出力
+........................................................................ [ 16%]
+........................................................................ [ 32%]
+........................................................................ [ 49%]
+........................................................................ [ 65%]
+........................................................................ [ 81%]
+........................................................................ [ 98%]
+........                                                                 [100%]
+============================= slowest 5 durations =============================
+140.69s call     tests/integration/ui/test_tray.py::test_menu_colors_when_theme[dark]
+139.85s call     tests/integration/ui/test_tray.py::test_menu_colors_when_theme[light]
+126.25s teardown tests/integration/ui/test_tray.py::test_menu_colors_when_theme[light]
+125.08s teardown tests/integration/ui/test_tray.py::test_menu_colors_when_theme[dark]
+118.92s call     tests/integration/ui/test_transcribing_indicator.py::test_transcribing_indicator_colors_when_theme[light]
+440 passed in 1633.98s (0:27:13)

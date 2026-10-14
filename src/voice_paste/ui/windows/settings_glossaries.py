@@ -94,7 +94,7 @@ class _GlossaryState:
     path: Path
     rows: list[_RowState]
     original: list[GlossaryEntry] | None
-    """開いたときに読んだ行。足した用語集と、読めなかった用語集は None。"""
+    """開いたときに読んだ行（保存した後は保存した行）。足してまだ保存していない用語集と、読めなかった用語集は None。"""
     unreadable: str | None = None
     """CSV を読めなかった理由。読めたら None。"""
 
@@ -254,6 +254,17 @@ class GlossaryPanel(QWidget):
             if glossary.original is None or entries != glossary.original:
                 changed[glossary.path] = entries
         return changed
+
+    def mark_saved(self) -> None:
+        """書き戻す用語集を決める基準（開いたときの行）を、今の表の行へ置き直す。保存が書けた後に呼ぶ。"""
+        for glossary in self._glossaries:
+            # 読めなかった用語集は、保存してもその CSV に触れないのでそのまま
+            if glossary.unreadable is not None:
+                continue
+            # 足した用語集も、保存した行を基準にする（次の changed_rows は行を変えなければ入れない）
+            glossary.original = [
+                entry for entry in self._entries(glossary) if entry.wrong or entry.right
+            ]
 
     def row_errors(self) -> list[tuple[int, int, RowField]]:
         """読めた全ての用語集の行を確かめ、片方だけが空の行の（用語集の何件目か, 何行目か, 空の側の項目）を返す。"""

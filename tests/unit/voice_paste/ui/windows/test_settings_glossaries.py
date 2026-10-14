@@ -1,4 +1,4 @@
-"""ui/windows/settings_glossaries.py（GlossaryPanel の set_glossaries・collect・active_name・changed_rows・add_glossary、find_glossary_row_errors）の単体テスト。
+"""ui/windows/settings_glossaries.py（GlossaryPanel の set_glossaries・collect・active_name・changed_rows・mark_saved・add_glossary、find_glossary_row_errors）の単体テスト。
 
 画面を使うため offscreen の QApplication（conftest の qapp）で動かす。
 行を読む関数と足す用語集の場所を決める関数は Mock に差し替える。
@@ -326,6 +326,65 @@ def test_glossary_panel_changed_rows_when_unreadable(
 
     # 検証
     assert changed == {}
+
+
+# === mark_saved ===
+
+
+def test_glossary_panel_mark_saved(open_panel: Callable[..., Opened], tmp_path: Path) -> None:
+    """保存した行を基準にし、そこから戻した用語集を書き戻しに入れる（正常系）。"""
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（1 件目の行を 1 つオフにしてから mark_saved を呼ぶ）
+    first, second = _two_glossaries(tmp_path)
+    opened = open_panel(
+        [first, second],
+        {
+            first.path: [
+                GlossaryEntry(wrong="あ", right="A"),
+                GlossaryEntry(wrong="い", right="B"),
+            ],
+            second.path: [GlossaryEntry(wrong="う", right="C")],
+        },
+    )
+    _visible_buttons(opened.panel, "glossary_entry_on_")[0].click()
+
+    # 実行
+    opened.panel.mark_saved()
+    after_mark_saved = opened.panel.changed_rows()
+    _visible_buttons(opened.panel, "glossary_entry_on_")[0].click()
+    after_revert = opened.panel.changed_rows()
+
+    # 検証（mark_saved の直後は空、オンに戻すと 1 件目の場所を持ち、その行がオン）
+    assert after_mark_saved == {}
+    assert after_revert == {
+        first.path: [
+            GlossaryEntry(wrong="あ", right="A"),
+            GlossaryEntry(wrong="い", right="B"),
+        ]
+    }
+
+
+def test_glossary_panel_mark_saved_when_added(
+    open_panel: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """足した用語集も保存した行が基準になる（正常系）。"""
+    from voice_paste.shared.settings import GlossarySettings
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（用語集を 1 つ足し、行を 1 つ入れる）
+    first = GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
+    opened = open_panel([first], {first.path: [GlossaryEntry(wrong="あ", right="A")]})
+    opened.panel.add_glossary()
+    _button(opened.panel, "add_glossary_entry_button").click()
+    _visible_edits(opened.panel, "glossary_entry_wrong_")[0].setText("う")
+    _visible_edits(opened.panel, "glossary_entry_right_")[0].setText("U")
+
+    # 実行
+    opened.panel.mark_saved()
+
+    # 検証
+    assert opened.panel.changed_rows() == {}
 
 
 # === add_glossary ===

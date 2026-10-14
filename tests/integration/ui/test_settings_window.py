@@ -1256,7 +1256,8 @@ def test_ui_theme_field_action(
     assert load_settings(settings_file, SETTINGS_MODEL).ui.theme == "light"
     assert 'theme = "light"' in settings_file.read_text(encoding="utf-8")
     apply_theme.assert_called_once_with()
-    assert not window.isVisible()
+    assert window.isVisible()
+    assert find(window, QLabel, "saved_notice").text() == "保存しました。"
 
 
 # === field_ui.show_hotkeys ===
@@ -1323,14 +1324,15 @@ def test_ui_show_hotkeys_field_action(
     assert not load_settings(settings_file, SETTINGS_MODEL).ui.show_hotkeys
     assert "show_hotkeys = false" in settings_file.read_text(encoding="utf-8")
     assert not store.get().ui.show_hotkeys
-    assert not window.isVisible()
+    assert window.isVisible()
+    assert find(window, QLabel, "saved_notice").text() == "保存しました。"
 
 
 # === save_button ===
 
 
 def test_save_button_action(open_window: Callable[..., Opened]) -> None:
-    """「保存」は確かめて書き、設定画面を閉じる。"""
+    """「保存」は確かめて書き、設定画面を開いたまま保存した知らせを出す。入れた値は保つ。"""
     # 準備
     opened = open_window()
     _set_text(opened.window, IMMEDIATE_KEY, "1.25")
@@ -1342,8 +1344,10 @@ def test_save_button_action(open_window: Callable[..., Opened]) -> None:
     opened.deps.save_settings.assert_called_once()
     assert opened.deps.save_settings.call_args.args[0].recording.fade_sec == 1.25
     opened.saved.assert_called_once()
-    opened.closed.assert_called_once()
-    assert not opened.window.isVisible()
+    opened.closed.assert_not_called()
+    assert opened.window.isVisible()
+    assert _field(opened.window, IMMEDIATE_KEY, QLineEdit).text() == "1.25"
+    assert find(opened.window, QLabel, "saved_notice").text() == "保存しました。"
 
 
 def test_save_button_when_enter_modifiers(open_window: Callable[..., Opened]) -> None:
@@ -1394,6 +1398,219 @@ def test_save_button_when_invalid(open_window: Callable[..., Opened]) -> None:
     opened.closed.assert_not_called()
     assert opened.window.isVisible()
     assert _field(opened.window, IMMEDIATE_KEY, QLineEdit).text() == "abc"
+
+
+# === saved_notice・restart_now_button・cancel_button（保存の後） ===
+
+SAVED_TEXT = "保存しました。"
+"""ホットキーも「再起動で反映」の欄も変えていない保存の知らせ。"""
+
+HOTKEY_NOTE = "新しいホットキーは、設定画面を閉じると効きます。"
+"""ホットキーの欄を変えた保存の知らせに続く文。"""
+
+HOTKEY_GROUP_ROW = 3
+"""まとまりのメニューで「ホットキー」の行。"""
+
+CTRL_ALT = Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier
+
+
+def _saved_notice(window: QWidget) -> QLabel:
+    """保存した知らせ（`saved_notice`）を引く。"""
+    return find(window, QLabel, "saved_notice")
+
+
+def test_saved_notice_when_saved(open_window: Callable[..., Opened]) -> None:
+    """ホットキーも「再起動で反映」の欄も変えていない保存では、「保存しました。」だけを出す。"""
+    # 準備
+    opened = open_window()
+    _set_text(opened.window, IMMEDIATE_KEY, "1.25")
+    hidden_at_open = not _saved_notice(opened.window).isVisible()
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert hidden_at_open
+    assert _saved_notice(opened.window).isVisible()
+    assert _saved_notice(opened.window).text() == SAVED_TEXT
+    assert not find(opened.window, QPushButton, "restart_now_button").isVisible()
+    assert not find(opened.window, QLabel, "restart_notice").isVisible()
+
+
+@pytest.mark.parametrize(
+    ("row", "key"),
+    [
+        pytest.param(HOTKEY_GROUP_ROW, "hotkeys.start", id="recording_hotkey"),
+        pytest.param(0, "outputs[0].hotkey", id="output_hotkey"),
+    ],
+)
+def test_saved_notice_when_hotkey_changed(
+    open_window: Callable[..., Opened], row: int, key: str
+) -> None:
+    """録音のホットキーか出力先の確定のホットキーを変えた保存では、閉じると効くことを添える。"""
+    # 準備
+    opened = open_window()
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(row)
+    _press(opened.window, key, Qt.Key.Key_9, CTRL_ALT)
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert _saved_notice(opened.window).text() == SAVED_TEXT + HOTKEY_NOTE
+    assert not find(opened.window, QPushButton, "restart_now_button").isVisible()
+
+
+def test_saved_notice_when_paste_key_changed(open_window: Callable[..., Opened]) -> None:
+    """貼り付けに送るキーだけを変えた保存では、閉じると効くことを添えない。"""
+    # 準備
+    opened = open_window()
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(HOTKEY_GROUP_ROW)
+    _press(opened.window, "keyboard.paste_key", Qt.Key.Key_9, CTRL_ALT)
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert _saved_notice(opened.window).text() == SAVED_TEXT
+
+
+def test_saved_notice_when_restart_field_changed(open_window: Callable[..., Opened]) -> None:
+    """「再起動で反映」の欄を変えた保存では、件数と再起動するまで前の値で動くことを出し、「今すぐ再起動」を右に出す。再起動の知らせと「保存して再起動」は隠す。"""
+    # 準備
+    opened = open_window()
+    _set_text(opened.window, RESTART_KEY, "12")
+    restart_notice_at_edit = find(opened.window, QLabel, "restart_notice").isVisible()
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert restart_notice_at_edit
+    assert _saved_notice(opened.window).text() == (
+        SAVED_TEXT + "「再起動で反映」の設定 1 件は、再起動するまで前の値で動きます。"
+    )
+    assert find(opened.window, QPushButton, "restart_now_button").isVisible()
+    assert find(opened.window, QPushButton, "restart_now_button").text() == "今すぐ再起動"
+    assert not find(opened.window, QLabel, "restart_notice").isVisible()
+    assert not find(opened.window, QPushButton, "save_and_restart_button").isVisible()
+
+
+def test_saved_notice_when_hotkey_and_restart_field_changed(
+    open_window: Callable[..., Opened],
+) -> None:
+    """ホットキーと「再起動で反映」の欄をどちらも変えた保存では、ホットキーの文、再起動の文の順に続ける。"""
+    # 準備
+    opened = open_window()
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(HOTKEY_GROUP_ROW)
+    _press(opened.window, "hotkeys.start", Qt.Key.Key_9, CTRL_ALT)
+    _set_text(opened.window, RESTART_KEY, "12")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert _saved_notice(opened.window).text() == (
+        SAVED_TEXT
+        + HOTKEY_NOTE
+        + "「再起動で反映」の設定 1 件は、再起動するまで前の値で動きます。"
+    )
+    assert find(opened.window, QPushButton, "restart_now_button").isVisible()
+
+
+def test_saved_notice_when_saved_twice(open_window: Callable[..., Opened]) -> None:
+    """続けて 2 回保存しても、「再起動で反映」の件数は開いたときの値から数える。"""
+    # 準備
+    opened = open_window()
+    _set_text(opened.window, RESTART_KEY, "12")
+    _click(opened.window, "save_button")
+    _set_text(opened.window, IMMEDIATE_KEY, "1.25")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert opened.deps.save_settings.call_count == 2
+    assert _saved_notice(opened.window).text() == (
+        SAVED_TEXT + "「再起動で反映」の設定 1 件は、再起動するまで前の値で動きます。"
+    )
+
+
+def test_saved_notice_when_field_changed(open_window: Callable[..., Opened]) -> None:
+    """保存の後に欄を変えると、保存した知らせと「今すぐ再起動」を消し、再起動の知らせと「保存して再起動」を開いたときの値から数え直して出す。"""
+    # 準備
+    opened = open_window()
+    _set_text(opened.window, RESTART_KEY, "12")
+    _click(opened.window, "save_button")
+
+    # 実行
+    _set_text(opened.window, IMMEDIATE_KEY, "1.25")
+
+    # 検証
+    assert not _saved_notice(opened.window).isVisible()
+    assert not find(opened.window, QPushButton, "restart_now_button").isVisible()
+    assert find(opened.window, QLabel, "restart_notice").isVisible()
+    assert "を 1 件変えました" in find(opened.window, QLabel, "restart_notice").text()
+    assert find(opened.window, QPushButton, "save_and_restart_button").isVisible()
+
+
+def test_restart_now_button_when_saved(open_window: Callable[..., Opened]) -> None:
+    """「再起動で反映」の欄を保存した後の「今すぐ再起動」は、設定画面を閉じて再起動を頼む。"""
+    # 準備
+    opened = open_window()
+    _set_text(opened.window, RESTART_KEY, "12")
+    _click(opened.window, "save_button")
+
+    # 実行
+    _click(opened.window, "restart_now_button")
+
+    # 検証
+    opened.restart_requested.assert_called_once()
+    opened.closed.assert_called_once()
+    assert not opened.window.isVisible()
+
+
+def test_cancel_button_when_saved(open_window: Callable[..., Opened]) -> None:
+    """保存の後に欄を変えずに「キャンセル」を押すと、確認を出さずに設定画面を閉じる。"""
+    # 準備
+    opened = open_window()
+    _set_text(opened.window, IMMEDIATE_KEY, "1.25")
+    _click(opened.window, "save_button")
+
+    # 実行
+    with no_modal():
+        _click(opened.window, "cancel_button")
+
+    # 検証
+    opened.closed.assert_called_once()
+    opened.deps.save_settings.assert_called_once()
+    assert not opened.window.isVisible()
+
+
+def test_cancel_button_when_changed_after_save(open_window: Callable[..., Opened]) -> None:
+    """保存の後に欄を変えて「キャンセル」を押すと、保存した値から変えた件数で確認を出す。"""
+    # 準備
+    opened = open_window()
+    _set_text(opened.window, IMMEDIATE_KEY, "1.25")
+    _click(opened.window, "save_button")
+    _set_text(opened.window, "ui.wave_gain", "3")
+    seen: dict[str, str] = {}
+
+    def _inspect(box: QMessageBox) -> None:
+        """出た確認の本文を控える。"""
+        seen["body"] = box.informativeText()
+
+    driver = ModalDriver()
+    driver.answer("discard_button", _inspect)
+
+    # 実行
+    _click(opened.window, "cancel_button")
+
+    # 検証
+    driver.verify()
+    assert seen["body"] == "保存していない変更が 1 件あります。閉じると、変えた値は保存されません。"
+    opened.closed.assert_called_once()
+    opened.deps.save_settings.assert_called_once()
 
 
 # === error_summary ===
@@ -3120,7 +3337,7 @@ def test_error_summary_row_action_when_hint_word(open_window: Callable[..., Open
 
 
 def test_save_button_when_hint_changed(open_window: Callable[..., Opened]) -> None:
-    """表記のヒントを変えて保存すると、再起動せずに効く値（immediate）として書き、窓を閉じる。「再起動で反映」の知らせは出さない。"""
+    """表記のヒントを変えて保存すると、再起動せずに効く値（immediate）として書き、窓を開いたまま保存した知らせを出す。「再起動で反映」の知らせは出さない。"""
     # 準備
     opened = _open_hints(open_window, ("開発", ["a"], True))
     find(opened.window, QLineEdit, "hint_word_0_0").setText("b")
@@ -3133,7 +3350,9 @@ def test_save_button_when_hint_changed(open_window: Callable[..., Opened]) -> No
     saved = opened.deps.save_settings.call_args.args[0]
     assert saved.hint_presets[0].words == ["b"]
     opened.saved.assert_called_once()
-    opened.closed.assert_called_once()
+    opened.closed.assert_not_called()
+    assert find(opened.window, QLabel, "saved_notice").text() == "保存しました。"
+    assert not find(opened.window, QLabel, "restart_notice").isVisible()
 
 
 def test_cancel_button_when_hint_changed(open_window: Callable[..., Opened]) -> None:
@@ -3173,7 +3392,7 @@ def test_reset_dialog_when_hint_presets(open_window: Callable[..., Opened]) -> N
 # === 設定画面を開いている間はホットキーを止める ===
 
 
-@pytest.mark.parametrize("route", ["save", "cancel", "window_close"])
+@pytest.mark.parametrize("route", ["save_and_restart", "cancel", "window_close"])
 def test_settings_window_suspends_hotkeys(make_ui: Callable[..., Ui], route: str) -> None:
     """開いている間はホットキーの受付を止め（欄で押したキーで録音や確定が動かない）、どの経路で閉じても今の設定で張り直す。"""
     # 準備
@@ -3184,8 +3403,9 @@ def test_settings_window_suspends_hotkeys(make_ui: Callable[..., Ui], route: str
     window = ui.controller._settings_window
     suspended_while_open = ui.deps.suspend_hotkeys.call_count
     resumed_while_open = ui.deps.resume_hotkeys.call_count
-    if route == "save":
-        _click(window, "save_button")
+    if route == "save_and_restart":
+        _set_text(window, RESTART_KEY, "12")
+        _click(window, "save_and_restart_button")
     elif route == "cancel":
         _click(window, "cancel_button")
     else:
@@ -3194,6 +3414,25 @@ def test_settings_window_suspends_hotkeys(make_ui: Callable[..., Ui], route: str
     # 検証
     assert suspended_while_open == 1
     assert resumed_while_open == 0
+    ui.deps.suspend_hotkeys.assert_called_once()
+    ui.deps.resume_hotkeys.assert_called_once()
+    assert ui.controller._settings_window is None
+
+
+def test_settings_window_when_saved(make_ui: Callable[..., Ui]) -> None:
+    """「保存」では設定画面が開いたままなので、ホットキーの受付は止めたまま。閉じたときに今の設定で張り直す。"""
+    # 準備
+    ui = make_ui()
+    ui.controller.open_settings()
+    window = ui.controller._settings_window
+
+    # 実行
+    _click(window, "save_button")
+    resumed_after_save = ui.deps.resume_hotkeys.call_count
+    _click(window, "cancel_button")
+
+    # 検証
+    assert resumed_after_save == 0
     ui.deps.suspend_hotkeys.assert_called_once()
     ui.deps.resume_hotkeys.assert_called_once()
     assert ui.controller._settings_window is None

@@ -1,0 +1,25 @@
+# 実行したコマンド
+venv/Scripts/python.exe -m pytest 'tests/unit' '--ignore=tests/unit/voice_paste/ui/windows/test_settings_window.py' '--ignore=tests/unit/voice_paste/ui/windows/test_settings_glossaries.py'
+venv/Scripts/python.exe -m pytest 'tests/unit/voice_paste/ui/windows/test_settings_window.py' 'tests/unit/voice_paste/ui/windows/test_settings_glossaries.py' '-k' 'not (test_save and not _when_ and not _then_ ) and not test_save_when_hotkey_unavailable and not test_save_when_hotkey_changed and not test_save_when_restart_field_changed and not test_save_when_glossary_reverted and not test_save_then_close and not test_glossary_panel_mark_saved'
+
+# 補足
+新規・変更した単体テスト 9 件（test_save・test_save_when_hotkey_unavailable・test_save_when_hotkey_changed の 2 件・test_save_when_restart_field_changed・test_save_when_glossary_reverted・test_save_then_close・test_glossary_panel_mark_saved・test_glossary_panel_mark_saved_when_added）は実装が無く Red のため、除いた既存の単体テストの全件の結果（設定画面の 2 ファイルは 2 本目のコマンド）。
+
+# 出力 1
+........................................................................ [ 16%]
+........................................................................ [ 33%]
+........................................................................ [ 50%]
+........................................................................ [ 66%]
+........................................................................ [ 83%]
+.......................................................................  [100%]
+============================== warnings summary ===============================
+..\..\..\venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\shuhe\repo\voice-paste\venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+431 passed, 1 warning in 17.38s
+
+# 出力 2
+...................................                                      [100%]
+35 passed, 9 deselected in 1.64s

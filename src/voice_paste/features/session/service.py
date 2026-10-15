@@ -210,6 +210,25 @@ class SessionManager:
         # 文字起こしから届けるまではワーカースレッドで動かす
         self._start_worker(self._run_after_confirm, confirmed, audio_path)
 
+    def switch_output(self, output_id: str) -> None:
+        """固定の出力先で確定したホットキー・トレイの録音の文字起こし中に、届ける出力先を差し替える。"""
+        with self._lock:
+            session = self._session
+            # 文字起こし中の、固定の出力先で確定したホットキー・トレイのセッションだけ差し替える（届け始めた後・API・カスタムプリセットは何もしない）
+            if (
+                session is None
+                or session.entry == Entry.API
+                or session.state != SessionState.TRANSCRIBING
+                or session.output_preset is not None
+            ):
+                return
+            # 今の出力先と同じなら何もしない
+            if output_id == session.output_id:
+                return
+            self._session = replace(session, output_id=output_id)
+            logger.info(f"出力先を切り替えた（{session.id}・{session.output_id} → {output_id}）")
+            self._deps.notify("output_changed", output_id)
+
     def cancel(self) -> None:
         """ホットキー・トレイの録音を捨てて待機中に戻す。"""
         with self._lock:
@@ -324,14 +343,14 @@ class SessionManager:
                 logger.info(f"文字起こしの結果が空だった（{session.id}）")
                 return
 
-            # 5〜6. 届ける（届けられなければ知らせる）
-            self._change_state_by_id(session.id, SessionState.DELIVERING)
+            # 5〜6. 届ける（届けられなければ知らせる）。届け始めた後の出力先の切り替えは受けないので、delivering にしたときのセッションで届ける
+            delivering = self._start_delivering(session)
             stage = "delivery"
             outcome = TranscriptionOutcome(
                 session_id=session.id, result="transcribed", text=corrected, error=None
             )
             try:
-                self._deps.deliver(session, outcome)
+                self._deps.deliver(delivering, outcome)
             except DeliveryError as error:
                 logger.error(f"出力先へ届けられなかった（{session.id}・{error}）")
                 self._deps.notify("delivery_failed", str(error))
@@ -572,17 +591,24 @@ class SessionManager:
         # 3. 失敗を知らせ、待機中を知らせる（返送を待つ間もロックを持たないようワーカースレッドで行う）
         self._start_worker(self._announce_failure, session, str(error))
 
-    def _change_state(self, session: Session, state: SessionState) -> None:
-        """ロックを持った状態で、セッションの状態を書き換えて知らせる。"""
-        self._session = replace(session, state=state)
+    def _change_state(self, session: Session, state: SessionState) -> Session:
+        """ロックを持った状態で、セッションの状態を書き換えて知らせ、書き換えたセッションを返す。"""
+        changed = replace(session, state=state)
+        self._session = changed
         self._deps.notify("state_changed", str(state))
+        return changed
 
-    def _change_state_by_id(self, session_id: str, state: SessionState) -> None:
-        """今のセッションが session_id なら、状態を書き換えて知らせる。"""
+    def _start_delivering(self, session: Session) -> Session:
+        """ロックの中で、今のセッションが session なら状態を delivering にして知らせ、そのときの今のセッションを返す。
+
+        文字起こし中に switch_output で差し替えた出力先は、ここで引き直すセッションが持つ。
+        今のセッションが session でなければ（終了で空になったなど）session をそのまま返す。
+        """
         with self._lock:
-            session = self._session
-            if session is not None and session.id == session_id:
-                self._change_state(session, state)
+            current = self._session
+            if current is None or current.id != session.id:
+                return session
+            return self._change_state(current, SessionState.DELIVERING)
 
     def _start_worker(self, target: Callable[..., Any], *args: object) -> None:
         """target をワーカースレッドで始める。"""

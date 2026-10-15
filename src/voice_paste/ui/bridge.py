@@ -9,7 +9,9 @@ from PySide6.QtCore import QObject, Signal
 
 logger = logging.getLogger(__name__)
 
-INFO_EVENTS: frozenset[str] = frozenset({"state_changed", "show_recording_window"})
+INFO_EVENTS: frozenset[str] = frozenset(
+    {"state_changed", "show_recording_window", "output_changed"}
+)
 """ログを INFO で出す知らせの種類（それ以外は失敗・断りで WARNING）。"""
 
 
@@ -38,6 +40,7 @@ def notify(
         "delivery_failed",
         "api_unavailable",
         "show_recording_window",
+        "output_changed",
     ],
     detail: str | None = None,
     *,

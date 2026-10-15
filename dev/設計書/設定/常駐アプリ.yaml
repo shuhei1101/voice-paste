@@ -261,7 +261,9 @@ settings:
     file: settings.toml
     type: string（pynput の GlobalHotKeys 形式）
     default: 'paste_and_send: <ctrl>+<alt>+d / paste_only: <ctrl>+<alt>+v / copy_only: <ctrl>+<alt>+c'
-    description: 録音の画面でこの出力先として確定する。
+    description: |-
+      録音の画面でこの出力先として確定する。
+      固定の出力先で確定した録音の文字起こし中は、届ける出力先をこの出力先へ切り替える（録音開始と同じキーでも録音を始めない）。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py

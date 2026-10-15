@@ -130,7 +130,7 @@ def test_send_paste_when_no_main_key(keyboard_calls: MagicMock) -> None:
 
 
 def test_send_enter(keyboard_calls: MagicMock) -> None:
-    """Enter を押して離す（正常系）。"""
+    """修飾キーが無ければ Enter を押して離す（正常系）。"""
     from voice_paste.integrations.keyboard.sender import send_enter
 
     # 実行
@@ -141,3 +141,34 @@ def test_send_enter(keyboard_calls: MagicMock) -> None:
         call.controller.press(keyboard.Key.enter),
         call.controller.release(keyboard.Key.enter),
     ]
+
+
+def test_send_enter_when_modifiers(keyboard_calls: MagicMock) -> None:
+    """修飾キーを Ctrl・Alt・Shift の順に押し、逆順に離す（正常系）。"""
+    from voice_paste.integrations.keyboard.sender import send_enter
+
+    # 実行（並びが違い、Shift が重なっている）
+    send_enter(("shift", "ctrl", "shift"))
+
+    # 検証
+    assert keyboard_calls.mock_calls == [
+        call.controller.press(keyboard.Key.ctrl),
+        call.controller.press(keyboard.Key.shift),
+        call.controller.press(keyboard.Key.enter),
+        call.controller.release(keyboard.Key.enter),
+        call.controller.release(keyboard.Key.shift),
+        call.controller.release(keyboard.Key.ctrl),
+    ]
+
+
+def test_send_enter_when_press_failed(keyboard_calls: MagicMock) -> None:
+    """途中で失敗しても押した修飾キーを離す（異常系）。"""
+    from voice_paste.integrations.keyboard.sender import send_enter
+
+    # 準備（Ctrl は押せて、Enter で失敗する）
+    keyboard_calls.controller.press.side_effect = [None, RuntimeError("キーを押せない")]
+
+    # 実行・検証
+    with pytest.raises(RuntimeError, match="キーを押せない"):
+        send_enter(("ctrl",))
+    keyboard_calls.controller.release.assert_any_call(keyboard.Key.ctrl)

@@ -25,6 +25,7 @@ def make_output_deps(**overrides: Any) -> OutputDeps:
         "jitter": MagicMock(),
         "post": MagicMock(),
         "get_settings": MagicMock(return_value=Settings()),
+        "notify_copied": MagicMock(),
     }
     fields.update(overrides)
     return OutputDepsModel(**fields)

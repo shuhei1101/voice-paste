@@ -6,6 +6,7 @@ UiDeps の関数は全て Mock に、経過の時計は進められる時計に�
 
 from __future__ import annotations
 
+import dataclasses
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -43,6 +44,7 @@ def make_ui_deps(
 ) -> UiDeps:
     """全ての関数を Mock にした UiDeps を作る。settings は get_settings が返す設定（既定は既定の出力先を持つ設定）、overrides は項目ごとの差し替え。"""
     from voice_paste.main import SETTINGS_MODEL
+    from voice_paste.shared.settings import GlossarySettings
     from voice_paste.ui.controller import UiDeps as UiDepsModel
 
     fields: dict[str, Any] = {
@@ -62,7 +64,15 @@ def make_ui_deps(
         "suspend_hotkeys": MagicMock(return_value=None),
         "resume_hotkeys": MagicMock(return_value=None),
         "output_titles": OUTPUT_TITLES,
+        "list_glossaries": MagicMock(
+            return_value=[GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")]
+        ),
+        "read_glossary": MagicMock(return_value=[]),
+        "new_glossary_path": MagicMock(return_value=tmp_path / "glossaries" / "glossary_1.csv"),
+        "copy": MagicMock(return_value=None),
     }
+    if "apply_theme" in {field.name for field in dataclasses.fields(UiDepsModel)}:
+        fields["apply_theme"] = MagicMock(return_value=None)
     fields.update(overrides)
     return UiDepsModel(**fields)
 

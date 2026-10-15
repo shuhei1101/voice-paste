@@ -14,12 +14,11 @@ from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock
 
 import pytest
-from PySide6.QtCore import QRegularExpression, Qt
+from PySide6.QtCore import QPoint, QRegularExpression, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
-    QFileDialog,
     QFrame,
     QLabel,
     QLineEdit,
@@ -156,8 +155,29 @@ def _add_preset(window: QWidget, kind: str, title: str, url: str) -> int:
     return number
 
 
+def _label_with_text(window: QWidget, text: str) -> QLabel:
+    """文字が text に一致するラベルを引く。"""
+    found = [label for label in window.findChildren(QLabel) if label.text() == text]
+    assert len(found) == 1, f"「{text}」のラベルが 1 つでない"
+    return found[0]
+
+
+def _top_of(widget: QWidget, window: QWidget) -> int:
+    """部品の上端の、窓の中での y 座標を返す。"""
+    return widget.mapTo(window, QPoint(0, 0)).y()
+
+
+def _left_of(widget: QWidget, window: QWidget) -> int:
+    """部品の左端の、窓の中での x 座標を返す。"""
+    return widget.mapTo(window, QPoint(0, 0)).x()
+
+
+LIST_KEYS = ("outputs", "presets", "glossaries", "glossary_path", "active_glossary", "hint_presets")
+"""欄ではなく、一覧の部品（出力先・プリセット・用語集・表記のヒント）が持つキー。glossary_path は欄を持たず、glossaries が空のときだけ読む。"""
+
+
 def _leaf_keys(settings: Settings) -> list[str]:
-    """設定のキー（outputs・presets の中は除く）を、ドット区切りで全て並べる。"""
+    """設定のキー（LIST_KEYS は除く）を、ドット区切りで全て並べる。"""
     from pydantic import BaseModel
 
     keys: list[str] = []
@@ -169,7 +189,7 @@ def _leaf_keys(settings: Settings) -> list[str]:
             key = f"{prefix}{name}"
             if isinstance(value, BaseModel):
                 _walk(value, f"{key}.")
-            elif name not in ("outputs", "presets"):
+            elif name not in LIST_KEYS:
                 keys.append(key)
 
     _walk(settings, "")
@@ -229,7 +249,7 @@ def test_settings_window_initial_value(open_window: Callable[..., Opened]) -> No
 
 
 def test_group_menu_initial(open_window: Callable[..., Opened]) -> None:
-    """まとまりのメニューは、出力先・ブラウザ添付・エンドポイントへ送る・ホットキー・録音・文字起こし・画面・履歴とログ・API の順で、既定は出力先。"""
+    """まとまりのメニューは、出力先・ブラウザ添付・エンドポイントへ送る・ホットキー・録音・文字起こし・表記のヒント・用語集・画面・履歴とログ・API の順で、既定は出力先。"""
     # 実行
     window = open_window().window
 
@@ -243,6 +263,8 @@ def test_group_menu_initial(open_window: Callable[..., Opened]) -> None:
         "ホットキー",
         "録音",
         "文字起こし",
+        "表記のヒント",
+        "用語集",
         "画面",
         "履歴とログ",
         "API",
@@ -259,9 +281,9 @@ def test_group_menu_initial(open_window: Callable[..., Opened]) -> None:
         (3, "hotkeys.start", "preset_options.endpoint.timeout_sec"),
         (4, "recording.fade_sec", "hotkeys.start"),
         (5, "transcription.local_whisper.model", "recording.fade_sec"),
-        (6, "ui.wave_gain", "transcription.local_whisper.model"),
-        (7, "history.retention_days", "ui.wave_gain"),
-        (8, "api.port", "history.retention_days"),
+        (8, "ui.wave_gain", "transcription.local_whisper.model"),
+        (9, "history.retention_days", "ui.wave_gain"),
+        (10, "api.port", "history.retention_days"),
         (0, "outputs[0].enabled", "api.port"),
     ],
 )
@@ -289,7 +311,7 @@ def test_group_menu_keeps_values(open_window: Callable[..., Opened]) -> None:
     _set_text(window, IMMEDIATE_KEY, "1.25")
 
     # 実行
-    menu.setCurrentRow(8)
+    menu.setCurrentRow(10)
     menu.setCurrentRow(4)
 
     # 検証
@@ -300,7 +322,7 @@ def test_group_menu_keeps_values(open_window: Callable[..., Opened]) -> None:
 
 
 def test_field_for_every_setting_key(open_window: Callable[..., Opened]) -> None:
-    """settings.toml の全てのキーに欄がある（項目を足しても画面の直しが増えない）。"""
+    """settings.toml の全てのキーに欄がある（項目を足しても画面の直しが増えない。出力先・プリセット・用語集は、それぞれのまとまりの一覧が持つ）。"""
     from voice_paste.shared.settings import Settings
 
     # 実行
@@ -324,7 +346,6 @@ def test_field_for_every_setting_key(open_window: Callable[..., Opened]) -> None
         ("transcription.engine", QComboBox),
         ("transcription.local_whisper.model", QComboBox),
         ("transcription.local_whisper.language", QLineEdit),
-        ("glossary_path", QLineEdit),
     ],
 )
 def test_field_widget_type(open_window: Callable[..., Opened], key: str, cls: type) -> None:
@@ -362,7 +383,7 @@ def test_field_name_and_key(open_window: Callable[..., Opened]) -> None:
 
     # 準備
     window = open_window().window
-    find(window, QListWidget, "group_menu").setCurrentRow(8)
+    find(window, QListWidget, "group_menu").setCurrentRow(10)
     name = (ApiSettings.model_fields["port"].description or "").split("。")[0]
 
     # 実行
@@ -704,46 +725,6 @@ def test_save_collects_presets_in_tab_order(open_window: Callable[..., Opened]) 
     assert saved.presets[1].send_enter is False
 
 
-# === pick_glossary_button ===
-
-
-def test_pick_glossary_button_action(
-    open_window: Callable[..., Opened], monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """「選ぶ…」はファイルを選ぶダイアログ（CSV）を開き、選んだパスを用語集の欄へ入れる。選ばなければ変えない。"""
-    # 準備
-    window = open_window().window
-    find(window, QListWidget, "group_menu").setCurrentRow(5)
-    chosen = MagicMock(return_value=("C:/words/yogo.csv", "CSV (*.csv)"))
-    monkeypatch.setattr(QFileDialog, "getOpenFileName", chosen)
-
-    # 実行
-    button = find(window, QPushButton, "pick_glossary_button")
-    assert button.text() == "選ぶ…"
-    button.click()
-    after_choose = _field(window, "glossary_path", QLineEdit).text()
-    chosen.return_value = ("", "")
-    button.click()
-
-    # 検証
-    assert after_choose == "C:/words/yogo.csv"
-    assert _field(window, "glossary_path", QLineEdit).text() == "C:/words/yogo.csv"
-    assert "csv" in chosen.call_args.args[-1].lower()
-
-
-def test_pick_glossary_button_when_visible(open_window: Callable[..., Opened]) -> None:
-    """「選ぶ…」は文字起こしのまとまりを選んだときだけ出る。"""
-    # 準備
-    window = open_window().window
-    button = find(window, QPushButton, "pick_glossary_button")
-
-    # 実行
-    find(window, QListWidget, "group_menu").setCurrentRow(5)
-
-    # 検証
-    assert button.isVisible()
-
-
 # === restart_notice・save_and_restart_button ===
 
 
@@ -926,7 +907,7 @@ def test_reset_dialog_when_reset(open_window: Callable[..., Opened]) -> None:
 
     # 検証
     driver.verify()
-    opened.deps.save_settings.assert_called_once_with(SETTINGS_MODEL())
+    opened.deps.save_settings.assert_called_once_with(SETTINGS_MODEL(), {})
     assert _field(opened.window, IMMEDIATE_KEY, QLineEdit).text() == "0.5"
     assert opened.window.isVisible()
 
@@ -1147,11 +1128,211 @@ def test_discard_dialog_when_unchanged_by_window_close(open_window: Callable[...
     opened.closed.assert_called_once()
 
 
+# === enter_modifiers ===
+
+
+def test_enter_modifiers_when_visible(open_window: Callable[..., Opened]) -> None:
+    """「出力先」のまとまりに、欄の名前「Enter と一緒に押す修飾キー」と、その下の行に「Ctrl」「Alt」「Shift」のチェックボックスを横に並べる。"""
+    # 実行
+    window = open_window().window
+
+    # 検証
+    name_label = _label_with_text(window, "Enter と一緒に押す修飾キー")
+    boxes = [_field(window, f"outputs[0].enter_modifiers_{value}", QCheckBox) for value in ("ctrl", "alt", "shift")]
+    assert name_label.isVisible()
+    assert [box.text() for box in boxes] == ["Ctrl", "Alt", "Shift"]
+    assert all(box.isVisible() for box in boxes)
+    # 名前の下の行に、同じ高さで左から Ctrl・Alt・Shift の順に並ぶ
+    assert all(_top_of(box, window) >= _top_of(name_label, window) + name_label.height() for box in boxes)
+    assert len({_top_of(box, window) for box in boxes}) == 1
+    assert _left_of(boxes[0], window) < _left_of(boxes[1], window) < _left_of(boxes[2], window)
+
+
+def test_enter_modifiers_when_initial_value(open_window: Callable[..., Opened]) -> None:
+    """開いたときの settings.toml の修飾キーだけをオンにして開く（既定は全てオフ）。"""
+    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
+    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
+    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
+
+    # 準備
+    settings = SETTINGS_MODEL(
+        outputs=[PasteAndSendSettings(enter_modifiers=["alt"]), PasteOnlySettings(), CopyOnlySettings()]
+    )
+
+    # 実行
+    default_window = open_window().window
+    window = open_window(settings).window
+
+    # 検証
+    values = ("ctrl", "alt", "shift")
+    assert [_field(default_window, f"outputs[0].enter_modifiers_{v}", QCheckBox).isChecked() for v in values] == [
+        False,
+        False,
+        False,
+    ]
+    assert [_field(window, f"outputs[0].enter_modifiers_{v}", QCheckBox).isChecked() for v in values] == [
+        False,
+        True,
+        False,
+    ]
+
+
+# === field_ui.theme ===
+
+THEME_GROUP_ROW = 8
+"""まとまりのメニューの「画面」の行。"""
+
+
+@pytest.mark.parametrize(
+    ("theme", "checked"),
+    [
+        pytest.param("system", "Windows の設定に従う", id="system"),
+        pytest.param("light", "ライト", id="light"),
+        pytest.param("dark", "ダーク", id="dark"),
+    ],
+)
+def test_ui_theme_field_initial_value(
+    open_window: Callable[..., Opened], theme: str, checked: str
+) -> None:
+    """「画面」のまとまりの先頭に「画面の明暗」があり、今の ui.theme のボタンが選ばれている。"""
+    from voice_paste.shared.settings import UiSettings
+
+    # 準備
+    window = open_window(SETTINGS_MODEL(ui=UiSettings(theme=theme))).window
+
+    # 実行
+    find(window, QListWidget, "group_menu").setCurrentRow(THEME_GROUP_ROW)
+
+    # 検証
+    field = _field(window, "ui.theme")
+    buttons = field.findChildren(QRadioButton)
+    assert [button.text() for button in buttons] == ["Windows の設定に従う", "ライト", "ダーク"]
+    assert [button.text() for button in buttons if button.isChecked()] == [checked]
+    assert _label_with_text(window, "画面の明暗").isVisible()
+    assert _top_of(field, window) < _top_of(_field(window, "ui.topmost"), window)
+    assert window.findChild(QLabel, "restart_badge_ui.theme") is None
+
+
+def test_ui_theme_field_action(
+    make_ui: Callable[..., Ui], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """別の値を選んで保存すると settings.toml の ui.theme が書き換わり、再起動せずに明暗を当て直す（再起動の印は出ない）。"""
+    from functools import partial
+
+    from voice_paste.main import apply_settings
+    from voice_paste.runtime.settings_store import SettingsStore
+    from voice_paste.shared.settings import load_settings
+
+    # 準備: 本物の保存（settings.toml へ書く）につなぎ、ui.theme=system で設定画面を開く
+    settings_file = tmp_path / "settings.toml"
+    store = SettingsStore(load_settings(settings_file, SETTINGS_MODEL))
+    apply_theme = MagicMock(return_value=None)
+    ui = make_ui(
+        store.get(),
+        get_settings=store.get,
+        save_settings=partial(
+            apply_settings,
+            settings_file=settings_file,
+            store=store,
+            check_hotkeys=lambda _hotkeys: None,
+            save_glossary=MagicMock(),
+        ),
+        apply_theme=apply_theme,
+    )
+    ui.controller.open_settings()
+    window = ui.controller._settings_window
+    find(window, QListWidget, "group_menu").setCurrentRow(THEME_GROUP_ROW)
+    light = next(
+        button for button in _field(window, "ui.theme").findChildren(QRadioButton)
+        if button.text() == "ライト"
+    )
+
+    # 実行
+    light.click()
+    assert not find(window, QLabel, "restart_notice").isVisible()
+    _click(window, "save_button")
+
+    # 検証
+    assert load_settings(settings_file, SETTINGS_MODEL).ui.theme == "light"
+    assert 'theme = "light"' in settings_file.read_text(encoding="utf-8")
+    apply_theme.assert_called_once_with()
+    assert window.isVisible()
+    assert find(window, QLabel, "saved_notice").text() == "保存しました。"
+
+
+# === field_ui.show_hotkeys ===
+
+SHOW_HOTKEYS_LABEL = "録音の画面のボタンにホットキーを出すか"
+"""ui.show_hotkeys の欄の名前（設定の設計書の title）。"""
+
+
+@pytest.mark.parametrize("show_hotkeys", [True, False], ids=["on", "off"])
+def test_ui_show_hotkeys_field_initial_value(
+    open_window: Callable[..., Opened], show_hotkeys: bool
+) -> None:
+    """「画面」のまとまりの末尾に、欄の名前が「録音の画面のボタンにホットキーを出すか」のチェックボックスがあり、今の ui.show_hotkeys の値になっている（再起動の印は出ない）。"""
+    from voice_paste.shared.settings import UiSettings
+
+    # 準備
+    window = open_window(SETTINGS_MODEL(ui=UiSettings(show_hotkeys=show_hotkeys))).window
+
+    # 実行
+    find(window, QListWidget, "group_menu").setCurrentRow(THEME_GROUP_ROW)
+
+    # 検証
+    field = _field(window, "ui.show_hotkeys", QCheckBox)
+    assert field.isChecked() == show_hotkeys
+    assert _label_with_text(window, SHOW_HOTKEYS_LABEL).isVisible()
+    assert _top_of(field, window) > _top_of(_field(window, "ui.wave_gain"), window)
+    assert window.findChild(QLabel, "restart_badge_ui.show_hotkeys") is None
+
+
+def test_ui_show_hotkeys_field_action(
+    make_ui: Callable[..., Ui], tmp_path: Path
+) -> None:
+    """チェックを外して保存すると settings.toml の ui.show_hotkeys が false に書き換わり、再起動せずに効く（再起動の印は出ない）。"""
+    from functools import partial
+
+    from voice_paste.main import apply_settings
+    from voice_paste.runtime.settings_store import SettingsStore
+    from voice_paste.shared.settings import load_settings
+
+    # 準備: 本物の保存（settings.toml へ書く）につなぎ、既定（ui.show_hotkeys=true）で設定画面を開く
+    settings_file = tmp_path / "settings.toml"
+    store = SettingsStore(load_settings(settings_file, SETTINGS_MODEL))
+    ui = make_ui(
+        store.get(),
+        get_settings=store.get,
+        save_settings=partial(
+            apply_settings,
+            settings_file=settings_file,
+            store=store,
+            check_hotkeys=lambda _hotkeys: None,
+            save_glossary=MagicMock(),
+        ),
+    )
+    ui.controller.open_settings()
+    window = ui.controller._settings_window
+    find(window, QListWidget, "group_menu").setCurrentRow(THEME_GROUP_ROW)
+
+    # 実行
+    _field(window, "ui.show_hotkeys", QCheckBox).setChecked(False)
+    assert not find(window, QLabel, "restart_notice").isVisible()
+    _click(window, "save_button")
+
+    # 検証
+    assert not load_settings(settings_file, SETTINGS_MODEL).ui.show_hotkeys
+    assert "show_hotkeys = false" in settings_file.read_text(encoding="utf-8")
+    assert not store.get().ui.show_hotkeys
+    assert window.isVisible()
+    assert find(window, QLabel, "saved_notice").text() == "保存しました。"
+
+
 # === save_button ===
 
 
 def test_save_button_action(open_window: Callable[..., Opened]) -> None:
-    """「保存」は確かめて書き、設定画面を閉じる。"""
+    """「保存」は確かめて書き、設定画面を開いたまま保存した知らせを出す。入れた値は保つ。"""
     # 準備
     opened = open_window()
     _set_text(opened.window, IMMEDIATE_KEY, "1.25")
@@ -1163,13 +1344,31 @@ def test_save_button_action(open_window: Callable[..., Opened]) -> None:
     opened.deps.save_settings.assert_called_once()
     assert opened.deps.save_settings.call_args.args[0].recording.fade_sec == 1.25
     opened.saved.assert_called_once()
-    opened.closed.assert_called_once()
-    assert not opened.window.isVisible()
+    opened.closed.assert_not_called()
+    assert opened.window.isVisible()
+    assert _field(opened.window, IMMEDIATE_KEY, QLineEdit).text() == "1.25"
+    assert find(opened.window, QLabel, "saved_notice").text() == "保存しました。"
 
 
-def test_save_button_when_default(open_window: Callable[..., Opened]) -> None:
-    """既定のままでも保存できる（録音の開始と「貼り付けて送信」が同じホットキーなのは重なりにしない）。"""
-    from voice_paste.shared.settings import Settings
+def test_save_button_when_enter_modifiers(open_window: Callable[..., Opened]) -> None:
+    """オンにした修飾キーを、列挙の並び（Ctrl・Alt・Shift）で settings.toml の enter_modifiers に書く。"""
+    # 準備（Shift → Ctrl の順にオンにする）
+    opened = open_window()
+    _field(opened.window, "outputs[0].enter_modifiers_shift", QCheckBox).setChecked(True)
+    _field(opened.window, "outputs[0].enter_modifiers_ctrl", QCheckBox).setChecked(True)
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    opened.deps.save_settings.assert_called_once()
+    assert opened.deps.save_settings.call_args.args[0].outputs[0].enter_modifiers == ["ctrl", "shift"]
+    opened.saved.assert_called_once()
+
+
+def test_save_button_when_default(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """既定のままでも保存できる（録音の開始と「貼り付けて送信」が同じホットキーなのは重なりにしない。用語集は今の 1 件を一覧に書き、書き戻す CSV は無い）。"""
+    from voice_paste.shared.settings import GlossarySettings
 
     # 準備
     opened = open_window()
@@ -1178,7 +1377,11 @@ def test_save_button_when_default(open_window: Callable[..., Opened]) -> None:
     _click(opened.window, "save_button")
 
     # 検証
-    opened.deps.save_settings.assert_called_once_with(SETTINGS_MODEL())
+    expected = SETTINGS_MODEL(
+        glossaries=[GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")],
+        active_glossary="yogo",
+    )
+    opened.deps.save_settings.assert_called_once_with(expected, {})
 
 
 def test_save_button_when_invalid(open_window: Callable[..., Opened]) -> None:
@@ -1195,6 +1398,219 @@ def test_save_button_when_invalid(open_window: Callable[..., Opened]) -> None:
     opened.closed.assert_not_called()
     assert opened.window.isVisible()
     assert _field(opened.window, IMMEDIATE_KEY, QLineEdit).text() == "abc"
+
+
+# === saved_notice・restart_now_button・cancel_button（保存の後） ===
+
+SAVED_TEXT = "保存しました。"
+"""ホットキーも「再起動で反映」の欄も変えていない保存の知らせ。"""
+
+HOTKEY_NOTE = "新しいホットキーは、設定画面を閉じると効きます。"
+"""ホットキーの欄を変えた保存の知らせに続く文。"""
+
+HOTKEY_GROUP_ROW = 3
+"""まとまりのメニューで「ホットキー」の行。"""
+
+CTRL_ALT = Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier
+
+
+def _saved_notice(window: QWidget) -> QLabel:
+    """保存した知らせ（`saved_notice`）を引く。"""
+    return find(window, QLabel, "saved_notice")
+
+
+def test_saved_notice_when_saved(open_window: Callable[..., Opened]) -> None:
+    """ホットキーも「再起動で反映」の欄も変えていない保存では、「保存しました。」だけを出す。"""
+    # 準備
+    opened = open_window()
+    _set_text(opened.window, IMMEDIATE_KEY, "1.25")
+    hidden_at_open = not _saved_notice(opened.window).isVisible()
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert hidden_at_open
+    assert _saved_notice(opened.window).isVisible()
+    assert _saved_notice(opened.window).text() == SAVED_TEXT
+    assert not find(opened.window, QPushButton, "restart_now_button").isVisible()
+    assert not find(opened.window, QLabel, "restart_notice").isVisible()
+
+
+@pytest.mark.parametrize(
+    ("row", "key"),
+    [
+        pytest.param(HOTKEY_GROUP_ROW, "hotkeys.start", id="recording_hotkey"),
+        pytest.param(0, "outputs[0].hotkey", id="output_hotkey"),
+    ],
+)
+def test_saved_notice_when_hotkey_changed(
+    open_window: Callable[..., Opened], row: int, key: str
+) -> None:
+    """録音のホットキーか出力先の確定のホットキーを変えた保存では、閉じると効くことを添える。"""
+    # 準備
+    opened = open_window()
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(row)
+    _press(opened.window, key, Qt.Key.Key_9, CTRL_ALT)
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert _saved_notice(opened.window).text() == SAVED_TEXT + HOTKEY_NOTE
+    assert not find(opened.window, QPushButton, "restart_now_button").isVisible()
+
+
+def test_saved_notice_when_paste_key_changed(open_window: Callable[..., Opened]) -> None:
+    """貼り付けに送るキーだけを変えた保存では、閉じると効くことを添えない。"""
+    # 準備
+    opened = open_window()
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(HOTKEY_GROUP_ROW)
+    _press(opened.window, "keyboard.paste_key", Qt.Key.Key_9, CTRL_ALT)
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert _saved_notice(opened.window).text() == SAVED_TEXT
+
+
+def test_saved_notice_when_restart_field_changed(open_window: Callable[..., Opened]) -> None:
+    """「再起動で反映」の欄を変えた保存では、件数と再起動するまで前の値で動くことを出し、「今すぐ再起動」を右に出す。再起動の知らせと「保存して再起動」は隠す。"""
+    # 準備
+    opened = open_window()
+    _set_text(opened.window, RESTART_KEY, "12")
+    restart_notice_at_edit = find(opened.window, QLabel, "restart_notice").isVisible()
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert restart_notice_at_edit
+    assert _saved_notice(opened.window).text() == (
+        SAVED_TEXT + "「再起動で反映」の設定 1 件は、再起動するまで前の値で動きます。"
+    )
+    assert find(opened.window, QPushButton, "restart_now_button").isVisible()
+    assert find(opened.window, QPushButton, "restart_now_button").text() == "今すぐ再起動"
+    assert not find(opened.window, QLabel, "restart_notice").isVisible()
+    assert not find(opened.window, QPushButton, "save_and_restart_button").isVisible()
+
+
+def test_saved_notice_when_hotkey_and_restart_field_changed(
+    open_window: Callable[..., Opened],
+) -> None:
+    """ホットキーと「再起動で反映」の欄をどちらも変えた保存では、ホットキーの文、再起動の文の順に続ける。"""
+    # 準備
+    opened = open_window()
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(HOTKEY_GROUP_ROW)
+    _press(opened.window, "hotkeys.start", Qt.Key.Key_9, CTRL_ALT)
+    _set_text(opened.window, RESTART_KEY, "12")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert _saved_notice(opened.window).text() == (
+        SAVED_TEXT
+        + HOTKEY_NOTE
+        + "「再起動で反映」の設定 1 件は、再起動するまで前の値で動きます。"
+    )
+    assert find(opened.window, QPushButton, "restart_now_button").isVisible()
+
+
+def test_saved_notice_when_saved_twice(open_window: Callable[..., Opened]) -> None:
+    """続けて 2 回保存しても、「再起動で反映」の件数は開いたときの値から数える。"""
+    # 準備
+    opened = open_window()
+    _set_text(opened.window, RESTART_KEY, "12")
+    _click(opened.window, "save_button")
+    _set_text(opened.window, IMMEDIATE_KEY, "1.25")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert opened.deps.save_settings.call_count == 2
+    assert _saved_notice(opened.window).text() == (
+        SAVED_TEXT + "「再起動で反映」の設定 1 件は、再起動するまで前の値で動きます。"
+    )
+
+
+def test_saved_notice_when_field_changed(open_window: Callable[..., Opened]) -> None:
+    """保存の後に欄を変えると、保存した知らせと「今すぐ再起動」を消し、再起動の知らせと「保存して再起動」を開いたときの値から数え直して出す。"""
+    # 準備
+    opened = open_window()
+    _set_text(opened.window, RESTART_KEY, "12")
+    _click(opened.window, "save_button")
+
+    # 実行
+    _set_text(opened.window, IMMEDIATE_KEY, "1.25")
+
+    # 検証
+    assert not _saved_notice(opened.window).isVisible()
+    assert not find(opened.window, QPushButton, "restart_now_button").isVisible()
+    assert find(opened.window, QLabel, "restart_notice").isVisible()
+    assert "を 1 件変えました" in find(opened.window, QLabel, "restart_notice").text()
+    assert find(opened.window, QPushButton, "save_and_restart_button").isVisible()
+
+
+def test_restart_now_button_when_saved(open_window: Callable[..., Opened]) -> None:
+    """「再起動で反映」の欄を保存した後の「今すぐ再起動」は、設定画面を閉じて再起動を頼む。"""
+    # 準備
+    opened = open_window()
+    _set_text(opened.window, RESTART_KEY, "12")
+    _click(opened.window, "save_button")
+
+    # 実行
+    _click(opened.window, "restart_now_button")
+
+    # 検証
+    opened.restart_requested.assert_called_once()
+    opened.closed.assert_called_once()
+    assert not opened.window.isVisible()
+
+
+def test_cancel_button_when_saved(open_window: Callable[..., Opened]) -> None:
+    """保存の後に欄を変えずに「キャンセル」を押すと、確認を出さずに設定画面を閉じる。"""
+    # 準備
+    opened = open_window()
+    _set_text(opened.window, IMMEDIATE_KEY, "1.25")
+    _click(opened.window, "save_button")
+
+    # 実行
+    with no_modal():
+        _click(opened.window, "cancel_button")
+
+    # 検証
+    opened.closed.assert_called_once()
+    opened.deps.save_settings.assert_called_once()
+    assert not opened.window.isVisible()
+
+
+def test_cancel_button_when_changed_after_save(open_window: Callable[..., Opened]) -> None:
+    """保存の後に欄を変えて「キャンセル」を押すと、保存した値から変えた件数で確認を出す。"""
+    # 準備
+    opened = open_window()
+    _set_text(opened.window, IMMEDIATE_KEY, "1.25")
+    _click(opened.window, "save_button")
+    _set_text(opened.window, "ui.wave_gain", "3")
+    seen: dict[str, str] = {}
+
+    def _inspect(box: QMessageBox) -> None:
+        """出た確認の本文を控える。"""
+        seen["body"] = box.informativeText()
+
+    driver = ModalDriver()
+    driver.answer("discard_button", _inspect)
+
+    # 実行
+    _click(opened.window, "cancel_button")
+
+    # 検証
+    driver.verify()
+    assert seen["body"] == "保存していない変更が 1 件あります。閉じると、変えた値は保存されません。"
+    opened.closed.assert_called_once()
+    opened.deps.save_settings.assert_called_once()
 
 
 # === error_summary ===
@@ -1235,7 +1651,7 @@ def test_error_summary_row_action(open_window: Callable[..., Opened]) -> None:
     opened = open_window()
     _set_text(opened.window, IMMEDIATE_KEY, "abc")
     _click(opened.window, "save_button")
-    find(opened.window, QListWidget, "group_menu").setCurrentRow(8)
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(10)
     link = next(
         label for label in find(opened.window, QFrame, "error_summary").findChildren(QLabel)
         if "href" in label.text()
@@ -1400,7 +1816,7 @@ def test_error_summary_row_action_when_preset(open_window: Callable[..., Opened]
     opened = open_window()
     _add_preset(opened.window, "endpoint", "受け口", "")
     _click(opened.window, "save_button")
-    find(opened.window, QListWidget, "group_menu").setCurrentRow(8)
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(10)
     link = next(
         label for label in find(opened.window, QFrame, "error_summary").findChildren(QLabel)
         if "href" in label.text()
@@ -1449,10 +1865,1534 @@ def test_input_check_trigger(open_window: Callable[..., Opened], button: str) ->
     opened.deps.save_settings.assert_not_called()
 
 
+# === 用語集のまとまり ===
+
+GLOSSARY_GROUP_ROW = 7
+"""まとまりのメニューの「用語集」の行。"""
+
+CSV_FIVE_ROWS = "誤変換,正しい表記,使う\nあ,A,1\nい,B,1\nう,C,0\nえ,D,1\nお,E,0\n"
+"""5 行（オン 3）の CSV（列 `使う` あり）。"""
+
+CSV_TWO_ROWS = "誤変換,正しい表記\nか,K\nき,L\n"
+"""2 行（オン 2）の CSV（列 `使う` なし。全ての行がオン）。"""
+
+TWO_GLOSSARIES: dict[str, str | bytes | None] = {"yogo": CSV_FIVE_ROWS, "会議用": CSV_TWO_ROWS}
+"""「yogo」「会議用」の 2 件の用語集（名前 → CSV の中身）。"""
+
+SJIS_CSV = "誤変換,正しい表記\nか,K\n".encode("shift_jis")
+"""UTF-8 でない CSV（読めない用語集を作る）。"""
+
+
+def _open_glossaries(
+    open_window: Callable[..., Opened],
+    tmp_path: Path,
+    files: dict[str, str | bytes | None],
+    *,
+    active: str | None = None,
+) -> Opened:
+    """名前ごとの CSV を一時フォルダに書き、その一覧の用語集で設定画面を開いて、用語集のまとまりを選ぶ。
+
+    行を読む関数と足す場所を決める関数は本物（read_glossary_rows・next_glossary_path）を渡す。
+    中身が None の CSV は書かない（フォルダを置いて開けない CSV にするときに使う）。
+    """
+    from functools import partial
+
+    from voice_paste.features.correction import next_glossary_path, read_glossary_rows
+    from voice_paste.shared.settings import GlossarySettings
+
+    glossaries = []
+    for name, content in files.items():
+        path = tmp_path / f"{name}.csv"
+        if isinstance(content, bytes):
+            path.write_bytes(content)
+        elif content is not None:
+            path.write_text(content, encoding="utf-8")
+        glossaries.append(GlossarySettings(name=name, path=path))
+    opened = open_window(
+        SETTINGS_MODEL(glossaries=glossaries, active_glossary=active),
+        list_glossaries=MagicMock(return_value=glossaries),
+        read_glossary=read_glossary_rows,
+        new_glossary_path=partial(next_glossary_path, directory=tmp_path / "glossaries"),
+    )
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(GLOSSARY_GROUP_ROW)
+    return opened
+
+
+def _widgets(window: QWidget, cls: type, prefix: str) -> list[Any]:
+    """objectName が prefix で始まる、画面に出ている部品を、名前の順で引く（作り直した前の部品は除く）。"""
+    found = window.findChildren(cls, QRegularExpression(f"^{prefix}"))
+    return sorted((widget for widget in found if widget.isVisible()), key=lambda widget: widget.objectName())
+
+
+def _glossary_names(window: QWidget) -> list[str]:
+    """用語集の一覧の名前のボタンの文字を、並びの順で返す。"""
+    return [button.text() for button in _widgets(window, QPushButton, "glossary_pick_")]
+
+
+def _count(window: QWidget, number: int) -> str:
+    """number 件目の用語集の行の数の表示を返す。"""
+    return find(window, QLabel, f"glossary_count_{number}").text()
+
+
+def _saved(opened: Opened) -> tuple[Settings, dict[Path, list[Any]]]:
+    """保存で書く設定と、書き戻す用語集の CSV（場所 → 行）を返す。"""
+    saved, rows = opened.deps.save_settings.call_args.args
+    return saved, rows
+
+
+def _entry_checks(window: QWidget) -> list[bool]:
+    """行の表の「使う」のチェックボックスの状態を、行の順で返す。"""
+    return [box.isChecked() for box in _widgets(window, QCheckBox, "glossary_entry_on_")]
+
+
+# === glossary_list ===
+
+
+def test_glossary_list_when_visible(open_window: Callable[..., Opened]) -> None:
+    """用語集の一覧は、用語集のまとまりを選んだときだけ出る。見出しは「用語集の一覧」。"""
+    # 準備
+    window = open_window().window
+    list_frame = find(window, QFrame, "glossary_list")
+    assert not list_frame.isVisible()
+
+    # 実行
+    find(window, QListWidget, "group_menu").setCurrentRow(GLOSSARY_GROUP_ROW)
+
+    # 検証
+    assert list_frame.isVisible()
+    assert _label_with_text(window, "用語集の一覧").isVisible()
+    assert list_frame.accessibleName() == "用語集の一覧（補正に使う用語集を 1 つ選ぶ）"
+    assert not _field(window, "transcription.local_whisper.model").isVisible()
+
+
+def test_glossary_list_initial_value(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """一覧は settings.toml の glossaries の並びで 1 行ずつ出し、列は「補正に使う」「名前」「行」と消すボタン。"""
+    # 実行
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+
+    # 検証
+    list_frame = find(opened.window, QFrame, "glossary_list")
+    headings = [
+        label.text() for label in list_frame.findChildren(QLabel) if label.property("role") == "heading"
+    ]
+    assert headings == ["補正に使う", "名前", "行"]
+    assert _glossary_names(opened.window) == ["yogo", "会議用"]
+    assert len(_widgets(opened.window, QPushButton, "glossary_remove_")) == 2
+
+
+def test_glossary_list_when_glossaries_empty(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """glossaries が空なら、glossary_path の CSV を 1 件目にし、名前を CSV のファイル名から拡張子を除いたものにする。"""
+    from voice_paste.features.correction import read_glossary_rows, resolve_glossaries
+
+    # 準備
+    csv_file = tmp_path / "terms.csv"
+    csv_file.write_text(CSV_TWO_ROWS, encoding="utf-8")
+    settings = SETTINGS_MODEL(glossary_path=csv_file)
+
+    # 実行
+    opened = open_window(
+        settings,
+        list_glossaries=lambda: resolve_glossaries(settings, tmp_path),
+        read_glossary=read_glossary_rows,
+    )
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(GLOSSARY_GROUP_ROW)
+
+    # 検証
+    assert _glossary_names(opened.window) == ["terms"]
+    assert _count(opened.window, 0) == "2 行（オン 2）"
+    _click(opened.window, "save_button")
+    saved, rows = _saved(opened)
+    assert [glossary.name for glossary in saved.glossaries] == ["terms"]
+    assert saved.glossaries[0].path == csv_file
+    assert saved.glossary_path is None
+    assert rows == {}
+
+
+# === glossary_active_{n} ===
+
+
+@pytest.mark.parametrize(
+    ("active", "checked"),
+    [pytest.param("会議用", [False, True], id="named"), pytest.param(None, [True, False], id="unset")],
+)
+def test_glossary_active_initial_value(
+    open_window: Callable[..., Opened], tmp_path: Path, active: str | None, checked: list[bool]
+) -> None:
+    """補正に使う用語集は、settings.toml の active_glossary の名前の用語集。キーが無ければ 1 件目。"""
+    # 実行
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, active=active)
+
+    # 検証
+    radios = _widgets(opened.window, QRadioButton, "glossary_active_")
+    assert [radio.isChecked() for radio in radios] == checked
+    assert [radio.accessibleName() for radio in radios] == ["yogoを補正に使う", "会議用を補正に使う"]
+
+
+def test_glossary_active_accessible_name_when_unnamed(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """名前が空の用語集の読み上げの名前は「名前未入力の用語集を補正に使う」。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+
+    # 実行
+    _click(opened.window, "add_glossary_button")
+
+    # 検証
+    assert find(opened.window, QRadioButton, "glossary_active_2").accessibleName() == "名前未入力の用語集を補正に使う"
+
+
+def test_glossary_active_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """補正に使う用語集は 1 つだけ選べ、選ぶと消すボタンの扱いが入れ替わり、保存で active_glossary に書く。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+
+    # 実行
+    find(opened.window, QRadioButton, "glossary_active_1").click()
+
+    # 検証
+    assert not find(opened.window, QRadioButton, "glossary_active_0").isChecked()
+    assert find(opened.window, QRadioButton, "glossary_active_1").isChecked()
+    assert find(opened.window, QPushButton, "glossary_remove_0").toolTip() == ""
+    assert find(opened.window, QPushButton, "glossary_remove_1").toolTip() == "補正に使う用語集は消せません"
+    _click(opened.window, "save_button")
+    assert _saved(opened)[0].active_glossary == "会議用"
+
+
+# === glossary_pick_{n} ===
+
+
+def test_glossary_pick_initial_value(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """設定画面を開いたときは、補正に使う用語集の名前の欄と行の表を出している。"""
+    # 実行
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, active="会議用")
+
+    # 検証
+    assert find(opened.window, QLineEdit, "glossary_name_1").text() == "会議用"
+    assert find(opened.window, QLabel, "glossary_detail_title").text() == "用語集「会議用」の行"
+    assert len(_widgets(opened.window, QLineEdit, "glossary_entry_wrong_")) == 2
+
+
+def test_glossary_pick_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """名前のボタンを押すと、その用語集の名前の欄と行の表を下に出す。切り替えても入れた値は消さない。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    _widgets(opened.window, QLineEdit, "glossary_entry_wrong_")[0].setText("変えた")
+
+    # 実行
+    _click(opened.window, "glossary_pick_1")
+
+    # 検証
+    assert find(opened.window, QLineEdit, "glossary_name_1").text() == "会議用"
+    assert [edit.text() for edit in _widgets(opened.window, QLineEdit, "glossary_entry_wrong_")] == ["か", "き"]
+    _click(opened.window, "glossary_pick_0")
+    assert _widgets(opened.window, QLineEdit, "glossary_entry_wrong_")[0].text() == "変えた"
+
+
+def test_glossary_pick_when_name_unnamed_or_long(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """名前が空なら「（名前未入力）」、長い名前は 1 行に収めて末尾を省く。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+
+    # 実行
+    find(opened.window, QLineEdit, "glossary_name_0").setText("")
+    _click(opened.window, "glossary_pick_1")
+    find(opened.window, QLineEdit, "glossary_name_1").setText("とても長い用語集の名前をつけたので一覧では途中で省かれる")
+
+    # 検証
+    names = _glossary_names(opened.window)
+    assert names[0] == "（名前未入力）"
+    assert names[1].endswith("…")
+    assert len(names[1]) <= 20
+
+
+# === glossary_count_{n} ===
+
+
+def test_glossary_count_initial_value(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """行の数は「{行の数} 行（オン {オンの行の数}）」。"""
+    # 実行
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+
+    # 検証
+    assert _count(opened.window, 0) == "5 行（オン 3）"
+    assert _count(opened.window, 1) == "2 行（オン 2）"
+
+
+def test_glossary_count_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """行を足す・消す・オンとオフを切り替えるたびに数え直す（足した両方が空の行も数える）。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+
+    # 実行・検証
+    _click(opened.window, "add_glossary_entry_button")
+    assert _count(opened.window, 0) == "6 行（オン 4）"
+    find(opened.window, QCheckBox, "glossary_entry_on_0").click()
+    assert _count(opened.window, 0) == "6 行（オン 3）"
+    _click(opened.window, "glossary_entry_remove_1")
+    assert _count(opened.window, 0) == "5 行（オン 2）"
+
+
+def test_glossary_count_when_unreadable(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """CSV を読めなかった用語集の行の数は「読めません」。"""
+    # 実行
+    opened = _open_glossaries(open_window, tmp_path, {"yogo": CSV_FIVE_ROWS, "壊れた": SJIS_CSV})
+
+    # 検証
+    assert _count(opened.window, 1) == "読めません"
+
+
+# === glossary_remove_{n} ===
+
+
+def test_glossary_remove_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """用語集を一覧から消す。CSV のファイルは消さず、保存するまで settings.toml に書かず、キャンセルで戻せる。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+
+    # 実行
+    _click(opened.window, "glossary_remove_1")
+
+    # 検証（消えた。CSV は残る。保存しても書き戻す CSV は無い）
+    assert _glossary_names(opened.window) == ["yogo"]
+    assert (tmp_path / "会議用.csv").exists()
+    opened.deps.save_settings.assert_not_called()
+    _click(opened.window, "save_button")
+    saved, rows = _saved(opened)
+    assert [glossary.name for glossary in saved.glossaries] == ["yogo"]
+    assert rows == {}
+
+
+def test_glossary_remove_when_cancelled(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """消した後にキャンセルで閉じれば、settings.toml には書かない。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    _click(opened.window, "glossary_remove_1")
+    driver = ModalDriver()
+    driver.answer("discard_button")
+
+    # 実行
+    _click(opened.window, "cancel_button")
+
+    # 検証
+    driver.verify()
+    opened.deps.save_settings.assert_not_called()
+    opened.closed.assert_called_once()
+
+
+def test_glossary_remove_when_active(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """補正に使う用語集の消すボタンは、薄くして押しても消さず、フォーカスは受けてツールチップを出す。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    button = find(opened.window, QPushButton, "glossary_remove_0")
+
+    # 実行
+    _click(opened.window, "glossary_remove_0")
+
+    # 検証
+    assert _glossary_names(opened.window) == ["yogo", "会議用"]
+    assert button.isEnabled()
+    assert button.focusPolicy() != Qt.FocusPolicy.NoFocus
+    assert button.toolTip() == "補正に使う用語集は消せません"
+    assert button.graphicsEffect() is not None
+
+
+def test_glossary_remove_when_shown(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """行の表を出している用語集を消したら、補正に使う用語集の行の表を出す。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    _click(opened.window, "glossary_pick_1")
+
+    # 実行
+    _click(opened.window, "glossary_remove_1")
+
+    # 検証
+    assert find(opened.window, QLabel, "glossary_detail_title").text() == "用語集「yogo」の行"
+
+
+def test_glossary_remove_accessible_name(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """消すボタンの読み上げの名前は「{名前}を消す」（名前が空なら「名前未入力の用語集を消す」）。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+
+    # 実行
+    _click(opened.window, "add_glossary_button")
+
+    # 検証
+    names = [button.accessibleName() for button in _widgets(opened.window, QPushButton, "glossary_remove_")]
+    assert names == ["yogoを消す", "会議用を消す", "名前未入力の用語集を消す"]
+
+
+# === add_glossary_button ===
+
+
+def test_add_glossary_button_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """名前が空で行の無い用語集を末尾に足し、その行の表を出して名前の欄へフォーカスを移す。補正に使う用語集は変えない。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    assert find(opened.window, QPushButton, "add_glossary_button").text() == "用語集を足す"
+
+    # 実行
+    _click(opened.window, "add_glossary_button")
+
+    # 検証
+    assert _glossary_names(opened.window) == ["yogo", "会議用", "（名前未入力）"]
+    name_edit = find(opened.window, QLineEdit, "glossary_name_2")
+    assert name_edit.text() == ""
+    assert opened.window.focusWidget() is name_edit
+    assert find(opened.window, QLabel, "glossary_entries_empty").isVisible()
+    assert find(opened.window, QRadioButton, "glossary_active_0").isChecked()
+
+
+def test_add_glossary_button_when_saved(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """足した用語集は、保存で一覧に書き、CSV は設定ファイルと同じフォルダの glossaries の下に作る（書き戻しに渡す）。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    _click(opened.window, "add_glossary_button")
+    find(opened.window, QLineEdit, "glossary_name_2").setText("新しい用語集")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    saved, rows = _saved(opened)
+    new_path = tmp_path / "glossaries" / "glossary_1.csv"
+    assert [glossary.name for glossary in saved.glossaries] == ["yogo", "会議用", "新しい用語集"]
+    assert saved.glossaries[2].path == new_path
+    assert rows == {new_path: []}
+
+
+# === glossary_detail_title・glossary_name_{n} ===
+
+
+def test_glossary_name_initial_value(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """名前の欄は用語集の名前で、見出しは「用語集「{名前}」の行」。プレースホルダは「例: 会議用」。"""
+    # 実行
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+
+    # 検証
+    name_edit = find(opened.window, QLineEdit, "glossary_name_0")
+    assert name_edit.text() == "yogo"
+    assert name_edit.placeholderText() == "例: 会議用"
+    assert find(opened.window, QLabel, "glossary_detail_title").text() == "用語集「yogo」の行"
+
+
+def test_glossary_name_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """入れた名前を、一覧の名前のボタンと行の見出しにも出す（空なら「（名前未入力）」）。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    name_edit = find(opened.window, QLineEdit, "glossary_name_0")
+
+    # 実行・検証
+    name_edit.setText("議事録")
+    assert _glossary_names(opened.window)[0] == "議事録"
+    assert find(opened.window, QLabel, "glossary_detail_title").text() == "用語集「議事録」の行"
+    name_edit.setText("")
+    assert _glossary_names(opened.window)[0] == "（名前未入力）"
+    assert find(opened.window, QLabel, "glossary_detail_title").text() == "用語集「（名前未入力）」の行"
+
+
+def test_glossary_name_when_saved(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """保存では名前の前後の空白を除く。名前だけ変えた用語集の CSV は書き戻さない。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    find(opened.window, QLineEdit, "glossary_name_0").setText("  議事録  ")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    saved, rows = _saved(opened)
+    assert [glossary.name for glossary in saved.glossaries] == ["議事録", "会議用"]
+    assert saved.active_glossary == "議事録"
+    assert rows == {}
+
+
+# === glossary_entries・glossary_entries_empty ===
+
+
+def test_glossary_entries_when_visible(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """行の表は、行の表を出している用語集に行が 1 つ以上あるときだけ出す。行が 1 つも無ければ代わりに文を出す。"""
+    # 準備
+    header_only = "誤変換,正しい表記\n"
+    opened = _open_glossaries(open_window, tmp_path, {"yogo": CSV_FIVE_ROWS, "空": header_only})
+
+    # 実行・検証
+    table = find(opened.window, QFrame, "glossary_entries")
+    assert table.isVisible()
+    assert table.accessibleName() == "用語集の行（上の行から順に置き換える）"
+    assert opened.window.findChild(QLabel, "glossary_entries_empty") is None
+    _click(opened.window, "glossary_pick_1")
+    assert opened.window.findChild(QFrame, "glossary_entries") is None
+    empty = find(opened.window, QLabel, "glossary_entries_empty")
+    assert empty.isVisible()
+    assert empty.text() == "この用語集にはまだ行がありません。"
+
+
+# === glossary_entry_on_{n} ===
+
+
+def test_glossary_entry_on_initial_value(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """行のオン・オフは CSV の値（列 `使う` が 0 の行がオフ。列が無い行はオン）。読み上げの名前は「{何行目か} 行目を補正に使う」。"""
+    # 実行
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+
+    # 検証
+    assert _entry_checks(opened.window) == [True, True, False, True, False]
+    first = find(opened.window, QCheckBox, "glossary_entry_on_0")
+    assert first.accessibleName() == "1 行目を補正に使う"
+    _click(opened.window, "glossary_pick_1")
+    assert _entry_checks(opened.window) == [True, True]
+
+
+def test_glossary_entry_on_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """切り替えると、オフの行の文字を薄くして取り消し線を引き（色だけで伝えない）、保存で CSV の行のオン・オフに書き戻す。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    wrong_edits = _widgets(opened.window, QLineEdit, "glossary_entry_wrong_")
+    assert wrong_edits[2].font().strikeOut()
+    assert not wrong_edits[0].font().strikeOut()
+
+    # 実行
+    find(opened.window, QCheckBox, "glossary_entry_on_0").click()
+
+    # 検証
+    assert wrong_edits[0].font().strikeOut()
+    assert wrong_edits[0].graphicsEffect() is not None
+    _click(opened.window, "save_button")
+    rows = _saved(opened)[1]
+    assert [entry.enabled for entry in rows[tmp_path / "yogo.csv"]] == [False, True, False, True, False]
+
+
+# === glossary_entry_wrong_{n}・glossary_entry_right_{n} ===
+
+
+def test_glossary_entry_fields_initial_value(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """誤変換と正しい表記の欄は CSV の値。読み上げの名前は「{何行目か} 行目の誤変換」「{何行目か} 行目の正しい表記」。"""
+    # 実行
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+
+    # 検証
+    wrong = find(opened.window, QLineEdit, "glossary_entry_wrong_1")
+    right = find(opened.window, QLineEdit, "glossary_entry_right_1")
+    assert (wrong.text(), right.text()) == ("い", "B")
+    assert wrong.accessibleName() == "2 行目の誤変換"
+    assert right.accessibleName() == "2 行目の正しい表記"
+
+
+def test_glossary_entry_fields_when_saved(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """保存では前後の空白を除いて、行を変えた用語集の CSV の行へ書き戻す（行を変えていない用語集は書き戻さない）。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    find(opened.window, QLineEdit, "glossary_entry_wrong_0").setText("  くろーど  ")
+    find(opened.window, QLineEdit, "glossary_entry_right_0").setText("  Claude  ")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    rows = _saved(opened)[1]
+    assert list(rows) == [tmp_path / "yogo.csv"]
+    assert (rows[tmp_path / "yogo.csv"][0].wrong, rows[tmp_path / "yogo.csv"][0].right) == ("くろーど", "Claude")
+
+
+# === glossary_entry_remove_{n} ===
+
+
+def test_glossary_entry_remove_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """行を表から消す。保存するまで CSV には書かず、保存で消した行を除いて書き戻す。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    assert find(opened.window, QPushButton, "glossary_entry_remove_0").accessibleName() == "1 行目を消す"
+
+    # 実行
+    _click(opened.window, "glossary_entry_remove_0")
+
+    # 検証
+    assert [edit.text() for edit in _widgets(opened.window, QLineEdit, "glossary_entry_wrong_")] == ["い", "う", "え", "お"]
+    assert (tmp_path / "yogo.csv").read_text(encoding="utf-8") == CSV_FIVE_ROWS
+    _click(opened.window, "save_button")
+    assert [entry.wrong for entry in _saved(opened)[1][tmp_path / "yogo.csv"]] == ["い", "う", "え", "お"]
+
+
+# === add_glossary_entry_button ===
+
+
+def test_add_glossary_entry_button_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """誤変換と正しい表記が空でオンの行を表の末尾に足し、その行の誤変換の欄へフォーカスを移す。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    assert find(opened.window, QPushButton, "add_glossary_entry_button").text() == "行を足す"
+
+    # 実行
+    _click(opened.window, "add_glossary_entry_button")
+
+    # 検証
+    assert _entry_checks(opened.window) == [True, True, False, True, False, True]
+    wrong = find(opened.window, QLineEdit, "glossary_entry_wrong_5")
+    assert (wrong.text(), find(opened.window, QLineEdit, "glossary_entry_right_5").text()) == ("", "")
+    assert opened.window.focusWidget() is wrong
+
+
+def test_add_glossary_entry_button_when_added_glossary(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """足した用語集でも行を足せる。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    _click(opened.window, "add_glossary_button")
+
+    # 実行
+    _click(opened.window, "add_glossary_entry_button")
+
+    # 検証
+    assert find(opened.window, QPushButton, "add_glossary_entry_button").isEnabled()
+    assert len(_widgets(opened.window, QLineEdit, "glossary_entry_wrong_")) == 1
+    assert opened.window.findChild(QLabel, "glossary_entries_empty") is None
+
+
+# === glossary_legend ===
+
+
+def test_glossary_legend_initial_value(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """補正の決まりの凡例は、用語集のまとまりを選んだときに出す。"""
+    # 実行
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+
+    # 検証
+    legend = find(opened.window, QLabel, "glossary_legend")
+    assert legend.isVisible()
+    assert legend.text() == "上の行から順に置き換える。オフの行は補正に使わない。"
+
+
+# === glossary_unreadable ===
+
+
+@pytest.mark.parametrize(
+    ("content", "reason"),
+    [
+        pytest.param(SJIS_CSV, "文字コードが UTF-8 ではありません", id="not_utf8"),
+        pytest.param("くろーど,Claude\n", "見出しに「誤変換」「正しい表記」の列がありません", id="no_header"),
+        pytest.param('誤変換,正しい表記\nあ,"' + "x" * 200000, "CSV の書式が正しくありません（", id="malformed"),
+    ],
+)
+def test_glossary_unreadable_initial_value(
+    open_window: Callable[..., Opened], tmp_path: Path, content: str | bytes, reason: str
+) -> None:
+    """CSV を読めなかった用語集は、設定画面を開き、行の表の代わりに読めなかったことと理由を出す。行を足すボタンは使えない。"""
+    # 実行
+    opened = _open_glossaries(open_window, tmp_path, {"yogo": CSV_FIVE_ROWS, "壊れた": content})
+    _click(opened.window, "glossary_pick_1")
+
+    # 検証
+    unreadable = find(opened.window, QLabel, "glossary_unreadable")
+    assert unreadable.isVisible()
+    assert unreadable.text().startswith(f"この用語集の CSV を読めませんでした（{reason}")
+    assert unreadable.text().endswith("）。保存しても、この CSV は書き換えません。")
+    assert opened.window.findChild(QFrame, "glossary_entries") is None
+    assert not find(opened.window, QPushButton, "add_glossary_entry_button").isEnabled()
+
+
+def test_glossary_unreadable_when_cannot_open(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """開けない CSV（フォルダが置いてある）の理由は「ファイルを開けません（{OS のエラー}）」。"""
+    # 準備
+    (tmp_path / "壊れた.csv").mkdir()
+
+    # 実行
+    opened = _open_glossaries(open_window, tmp_path, {"yogo": CSV_FIVE_ROWS, "壊れた": None})
+    _click(opened.window, "glossary_pick_1")
+
+    # 検証
+    text = find(opened.window, QLabel, "glossary_unreadable").text()
+    assert text.startswith("この用語集の CSV を読めませんでした（ファイルを開けません（")
+
+
+def test_glossary_unreadable_when_readable(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """読めた用語集の行の表を出しているときは、読めない用語集の知らせを出さない。"""
+    # 実行
+    opened = _open_glossaries(open_window, tmp_path, {"yogo": CSV_FIVE_ROWS, "壊れた": SJIS_CSV})
+
+    # 検証
+    assert opened.window.findChild(QLabel, "glossary_unreadable") is None
+
+
+def test_glossary_unreadable_when_saved(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """読めない用語集も、名前を変える・補正に使う用語集に選ぶ・一覧から消すはできる。保存してもその CSV には触れない。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, {"yogo": CSV_FIVE_ROWS, "壊れた": SJIS_CSV, "予備": CSV_TWO_ROWS})
+    _click(opened.window, "glossary_pick_1")
+    find(opened.window, QLineEdit, "glossary_name_1").setText("直した名前")
+    find(opened.window, QRadioButton, "glossary_active_1").click()
+    _click(opened.window, "glossary_remove_2")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    saved, rows = _saved(opened)
+    assert [glossary.name for glossary in saved.glossaries] == ["yogo", "直した名前"]
+    assert saved.active_glossary == "直した名前"
+    assert rows == {}
+    assert (tmp_path / "壊れた.csv").read_bytes() == SJIS_CSV
+
+
+# === input_checks（用語集） ===
+
+
+def test_input_check_when_glossary_name_empty(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """用語集の名前が空: 「名前を入れてください。」をその欄の下とエラーの一覧に出す。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    find(opened.window, QLineEdit, "glossary_name_0").setText("   ")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert _field_errors(opened.window) == ["名前を入れてください。"]
+    assert "用語集 1 件目の名前: 名前を入れてください。" in _error_rows(opened.window)
+    opened.deps.save_settings.assert_not_called()
+
+
+def test_input_check_when_glossary_name_overlap(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """ほかの用語集と同じ名前: 一覧で後ろにある側の欄の下に「用語集「{名前}」と同じ名前です。別の名前にしてください。」、エラーの一覧には「用語集「{名前}」と同じ名前です」を出す。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    _click(opened.window, "glossary_pick_1")
+    find(opened.window, QLineEdit, "glossary_name_1").setText("yogo")
+    _click(opened.window, "glossary_pick_0")
+
+    # 実行
+    _click(opened.window, "save_button")
+    _click(opened.window, "glossary_pick_1")
+
+    # 検証
+    assert _field_errors(opened.window) == ["用語集「yogo」と同じ名前です。別の名前にしてください。"]
+    assert "用語集 2 件目の名前: 用語集「yogo」と同じ名前です" in _error_rows(opened.window)
+    opened.deps.save_settings.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("emptied", "message", "kept"),
+    [
+        pytest.param("wrong", "誤変換を入れてください。", "right", id="wrong"),
+        pytest.param("right", "正しい表記を入れてください。", "wrong", id="right"),
+    ],
+)
+def test_input_check_when_glossary_entry_half_empty(
+    open_window: Callable[..., Opened], tmp_path: Path, emptied: str, message: str, kept: str
+) -> None:
+    """誤変換か正しい表記の片方だけが空の行: 空の欄の下とエラーの一覧に「誤変換を入れてください。」「正しい表記を入れてください。」を出す。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    find(opened.window, QLineEdit, f"glossary_entry_{emptied}_1").setText("")
+    label = {"wrong": "誤変換", "right": "正しい表記"}[emptied]
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert _field_errors(opened.window) == [message]
+    assert f"用語集 1 件目の 2 行目の{label}: {message}" in _error_rows(opened.window)
+    opened.deps.save_settings.assert_not_called()
+    assert find(opened.window, QLineEdit, f"glossary_entry_{kept}_1").text() != ""
+
+
+def test_input_check_when_glossary_entry_in_unused_glossary_or_off_row(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """補正に使わない用語集の行も、オフの行も確かめる。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    find(opened.window, QLineEdit, "glossary_entry_wrong_2").setText("")
+    _click(opened.window, "glossary_pick_1")
+    find(opened.window, QLineEdit, "glossary_entry_right_0").setText("")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    rows = _error_rows(opened.window)
+    assert "用語集 1 件目の 3 行目の誤変換: 誤変換を入れてください。" in rows
+    assert "用語集 2 件目の 1 行目の正しい表記: 正しい表記を入れてください。" in rows
+    assert rows[0] == "保存できませんでした。2 件の欄を直してください。"
+
+
+def test_input_check_when_glossary_entry_both_empty(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """誤変換と正しい表記が両方空の行は違反にせず、保存で捨てる（足しただけの空の行は CSV の行を変えない）。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    _click(opened.window, "add_glossary_entry_button")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    saved, rows = _saved(opened)
+    assert saved.glossaries[0].name == "yogo"
+    assert rows == {}
+
+
+def test_error_summary_row_action_when_glossary(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """用語集の欄の行を押すと、用語集のまとまりへ切り替えて、その用語集の行の表を出して欄へフォーカスを移す。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    find(opened.window, QLineEdit, "glossary_name_0").setText("")
+    _click(opened.window, "glossary_pick_1")
+    find(opened.window, QLineEdit, "glossary_entry_wrong_1").setText("")
+    _click(opened.window, "save_button")
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(10)
+    links = [
+        label for label in find(opened.window, QFrame, "error_summary").findChildren(QLabel)
+        if "href" in label.text()
+    ]
+
+    # 実行・検証（1 件目の名前、続けて 2 件目の 2 行目の誤変換）
+    links[0].linkActivated.emit("glossaries[0].name")
+    assert find(opened.window, QListWidget, "group_menu").currentRow() == GLOSSARY_GROUP_ROW
+    assert find(opened.window, QLabel, "glossary_detail_title").text() == "用語集「（名前未入力）」の行"
+    assert opened.window.focusWidget() is find(opened.window, QLineEdit, "glossary_name_0")
+    links[1].linkActivated.emit("glossaries[1].rows[1].wrong")
+    assert find(opened.window, QLabel, "glossary_detail_title").text() == "用語集「会議用」の行"
+    assert opened.window.focusWidget() is find(opened.window, QLineEdit, "glossary_entry_wrong_1")
+
+
+# === save_button・reset_button（用語集） ===
+
+
+def test_save_button_when_glossary_changed(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """用語集の一覧・補正に使う用語集・行を、保存で settings.toml と CSV へ書く。行を変えた用語集の CSV だけを書き戻しに渡す。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    _click(opened.window, "glossary_pick_1")
+    find(opened.window, QCheckBox, "glossary_entry_on_0").click()
+    find(opened.window, QRadioButton, "glossary_active_1").click()
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    saved, rows = _saved(opened)
+    assert saved.active_glossary == "会議用"
+    assert saved.glossary_path is None
+    assert list(rows) == [tmp_path / "会議用.csv"]
+    assert [(entry.wrong, entry.enabled) for entry in rows[tmp_path / "会議用.csv"]] == [("か", False), ("き", True)]
+    opened.saved.assert_called_once()
+
+
+def test_reset_dialog_when_glossaries(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """「既定に戻す」は、用語集の一覧を設定ファイルと同じフォルダの yogo.csv の 1 件に戻す。用語集の CSV は消さず、書き換えない。"""
+    from voice_paste.shared.settings import GlossarySettings
+
+    # 準備
+    default_glossary = GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
+    opened = _open_glossaries(
+        open_window, tmp_path, TWO_GLOSSARIES
+    )
+    two = opened.deps.list_glossaries.return_value
+    opened.deps.list_glossaries.side_effect = [[default_glossary]]
+    find(opened.window, QRadioButton, "glossary_active_1").click()
+    driver = ModalDriver()
+    driver.answer("reset_button")
+
+    # 実行
+    _click(opened.window, "reset_button")
+
+    # 検証
+    driver.verify()
+    assert _glossary_names(opened.window) == ["yogo"]
+    assert len(two) == 2
+    opened.deps.save_settings.assert_called_once_with(SETTINGS_MODEL(), {})
+    assert (tmp_path / "会議用.csv").read_text(encoding="utf-8") == CSV_TWO_ROWS
+
+
+# === 表記のヒントのまとまり ===
+
+HINT_GROUP_ROW = 6
+"""まとまりのメニューの「表記のヒント」の行。"""
+
+HINT_LIMIT_BYTES = 222
+"""有効なヒントの長さの上限（UTF-8 のバイト数）。"""
+
+JAPANESE_CHAR_BYTES = 3
+"""日本語 1 文字の UTF-8 のバイト数。"""
+
+
+def _hint_presets(*presets: tuple[str, list[str], bool]) -> list[Any]:
+    """（名前, 語の並び, 有効か）から HintPresetSettings の並びを作る。"""
+    from voice_paste.shared.settings import HintPresetSettings
+
+    return [HintPresetSettings(name=name, words=words, enabled=enabled) for name, words, enabled in presets]
+
+
+def _open_hints(open_window: Callable[..., Opened], *presets: tuple[str, list[str], bool]) -> Opened:
+    """表記のヒントのプリセットを持つ設定で設定画面を開いて、表記のヒントのまとまりを選ぶ。"""
+    opened = open_window(SETTINGS_MODEL(hint_presets=_hint_presets(*presets)))
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(HINT_GROUP_ROW)
+    return opened
+
+
+def _hint_length_texts(window: QWidget) -> list[str]:
+    """有効なヒントの長さの行（hint_length）に出ている文字を並べる。"""
+    return [label.text() for label in find(window, QWidget, "hint_length").findChildren(QLabel)]
+
+
+def _hint_words(window: QWidget) -> list[str]:
+    """画面に出ている語の欄の文字を、プリセットと語の順で並べる。"""
+    return [edit.text() for edit in _widgets(window, QLineEdit, "hint_word_") if edit.objectName()[len("hint_word_")].isdigit()]
+
+
+def _hint_over_message(length: int) -> str:
+    """上限を超えたときの欄の下の文言（保存を押した後）。"""
+    return f"有効なヒントが長すぎます（{length} / {HINT_LIMIT_BYTES} バイト）。語を減らすか、プリセットを無効にしてください。"
+
+
+# === hint_intro・hint_notes・hint_preset_add ===
+
+
+def test_hint_group_when_visible(open_window: Callable[..., Opened]) -> None:
+    """表記のヒントのまとまりを選ぶと、説明・有効なヒントの長さ・案内・足すボタン・補足が出る。ほかのまとまりを選ぶと出ない。"""
+    # 準備
+    opened = open_window()
+
+    # 実行・検証（選ぶ前は出ない）
+    assert not find(opened.window, QLabel, "hint_intro").isVisible()
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(HINT_GROUP_ROW)
+    assert find(opened.window, QLabel, "hint_intro").isVisible()
+    assert find(opened.window, QLabel, "hint_intro").text() == (
+        "間違えやすい語の正しい表記を並べる。文字起こしへの指示としては効かない。"
+    )
+    assert find(opened.window, QWidget, "hint_length").isVisible()
+    assert find(opened.window, QPushButton, "hint_preset_add").text() == "プリセットを足す"
+    notes = find(opened.window, QLabel, "hint_notes")
+    assert notes.isVisible()
+    assert "句読点が付く・改行がまとまる・口癖が一部消える" in notes.text()
+    assert "TypeScript がタイプスクリプトになったら「TypeScript」を足す" in notes.text()
+
+
+# === hint_preset_empty ===
+
+
+def test_hint_preset_empty_when_no_presets(open_window: Callable[..., Opened]) -> None:
+    """プリセットが 1 件も無いときは、無い間はヒントを渡さないことを伝える案内を出し、長さは 0。"""
+    # 実行
+    opened = _open_hints(open_window)
+
+    # 検証
+    empty = find(opened.window, QLabel, "hint_preset_empty")
+    assert empty.isVisible()
+    assert empty.text() == "ヒントのプリセットはまだありません。無い間は、ヒントを渡さずに文字を起こします。"
+    assert "0 / 222 バイト" in _hint_length_texts(opened.window)
+
+
+def test_hint_preset_empty_when_presets_exist(open_window: Callable[..., Opened]) -> None:
+    """プリセットがあるときは案内を出さない。"""
+    # 実行
+    opened = _open_hints(open_window, ("開発", ["voice-paste"], True))
+
+    # 検証
+    assert not find(opened.window, QLabel, "hint_preset_empty").isVisible()
+
+
+# === hint_preset_list・hint_preset_name_{n}・hint_word_{n}_{m} ===
+
+
+def test_hint_preset_list_initial_value(open_window: Callable[..., Opened]) -> None:
+    """settings.toml の hint_presets の並びのとおりに、名前・語・有効かを出す。"""
+    # 実行
+    opened = _open_hints(open_window, ("開発", ["voice-paste", "Whisper"], True), ("会議", ["議事録"], False))
+
+    # 検証
+    window = opened.window
+    assert [edit.text() for edit in _widgets(window, QLineEdit, "hint_preset_name_")] == ["開発", "会議"]
+    assert _hint_words(window) == ["voice-paste", "Whisper", "議事録"]
+    assert [box.isChecked() for box in _widgets(window, QCheckBox, "hint_preset_enabled_")] == [True, False]
+    assert find(window, QLineEdit, "hint_word_0_1").accessibleName() == "2 つ目の語"
+
+
+def test_hint_preset_list_when_not_in_settings_toml(open_window: Callable[..., Opened]) -> None:
+    """hint_presets のキーが無い今の設定でも開け、プリセットは空。"""
+    # 実行
+    opened = _open_hints(open_window)
+
+    # 検証
+    assert _widgets(opened.window, QLineEdit, "hint_preset_name_") == []
+
+
+# === hint_preset_enabled_{n} ===
+
+
+def test_hint_preset_enabled_initial_value(open_window: Callable[..., Opened]) -> None:
+    """切り替えの右に今の状態を文字で出し、読み上げの名前は「{名前}を有効にする」（名前が空なら「プリセット {何件目か} 件目を有効にする」）。"""
+    # 実行
+    opened = _open_hints(open_window, ("開発", ["a"], True), ("会議", ["b"], False))
+    find(opened.window, QLineEdit, "hint_preset_name_1").setText("")
+
+    # 検証
+    boxes = _widgets(opened.window, QCheckBox, "hint_preset_enabled_")
+    assert [box.text() for box in boxes] == ["有効", "無効"]
+    assert [box.accessibleName() for box in boxes] == ["開発を有効にする", "プリセット 2 件目を有効にする"]
+
+
+def test_hint_preset_enabled_action(open_window: Callable[..., Opened]) -> None:
+    """切り替えると文字が替わり、無効のプリセットの語は有効なヒントの長さに数えない。無効の語の欄は薄くして取り消し線を引く（編集はできる）。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["abc"], True), ("会議", ["議事録"], False))
+    window = opened.window
+    disabled_word = find(window, QLineEdit, "hint_word_1_0")
+    assert disabled_word.font().strikeOut()
+    assert disabled_word.graphicsEffect() is not None
+    assert "3 / 222 バイト" in _hint_length_texts(window)
+
+    # 実行
+    find(window, QCheckBox, "hint_preset_enabled_1").click()
+
+    # 検証
+    assert find(window, QCheckBox, "hint_preset_enabled_1").text() == "有効"
+    assert not disabled_word.font().strikeOut()
+    assert disabled_word.graphicsEffect() is None
+    assert "15 / 222 バイト" in _hint_length_texts(window)
+    assert disabled_word.isEnabled()
+
+
+def test_hint_preset_enabled_when_saved(open_window: Callable[..., Opened]) -> None:
+    """保存で hint_presets の enabled に書く。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True), ("会議", ["b"], False))
+    find(opened.window, QCheckBox, "hint_preset_enabled_0").click()
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    saved = opened.deps.save_settings.call_args.args[0]
+    assert [(preset.name, preset.enabled) for preset in saved.hint_presets] == [("開発", False), ("会議", False)]
+
+
+# === hint_length ===
+
+
+def test_hint_length_when_words_changed(open_window: Callable[..., Opened]) -> None:
+    """語を書き換える・足す・消すたびに、有効なプリセットの語を読点でつないだ長さを数え直す（語の間の読点も数える）。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["abc"], True))
+    window = opened.window
+    assert "3 / 222 バイト" in _hint_length_texts(window)
+
+    # 実行・検証（語を足して「de」を入れると「abc、de」の 8 バイト。読点は 3 バイト）
+    _click(window, "hint_word_add_0")
+    find(window, QLineEdit, "hint_word_0_1").setText("de")
+    assert "8 / 222 バイト" in _hint_length_texts(window)
+    find(window, QLineEdit, "hint_word_0_0").setText("あい")
+    assert "11 / 222 バイト" in _hint_length_texts(window)
+    _click(window, "hint_word_remove_0_1")
+    assert "6 / 222 バイト" in _hint_length_texts(window)
+
+
+def test_hint_length_when_at_limit(open_window: Callable[..., Opened]) -> None:
+    """上限ちょうど（222 バイト）は超過の文字を添えず、保存できる。"""
+    # 準備
+    word = "あ" * (HINT_LIMIT_BYTES // JAPANESE_CHAR_BYTES)
+    opened = _open_hints(open_window, ("開発", [word], True))
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert "222 / 222 バイト" in _hint_length_texts(opened.window)
+    opened.deps.save_settings.assert_called_once()
+
+
+def test_hint_length_when_over(open_window: Callable[..., Opened]) -> None:
+    """上限を超えたら、超過したバイト数を文字で添える（色だけで伝えない）。入力の途中でエラー文は出さない。"""
+    # 準備
+    word = "あ" * (HINT_LIMIT_BYTES // JAPANESE_CHAR_BYTES + 1)
+    opened = _open_hints(open_window, ("開発", ["a"], True))
+
+    # 実行
+    find(opened.window, QLineEdit, "hint_word_0_0").setText(word)
+
+    # 検証
+    assert "225 / 222 バイト（3 バイト超過）" in _hint_length_texts(opened.window)
+    assert not find(opened.window, QFrame, "error_summary").isVisible()
+    assert not find(opened.window, QLabel, "hint_length_error").isVisible()
+
+
+def test_hint_length_when_words_have_surrounding_spaces(open_window: Callable[..., Opened]) -> None:
+    """語の前後の空白は、保存の確かめと同じく除いて数える（欄の文字をそのまま数えて、保存の判定とずれない）。"""
+    # 準備（語の前後に空白を足して、そのまま数えると 222 バイトを超えるが、除くと上限ちょうど）
+    word = "あ" * (HINT_LIMIT_BYTES // JAPANESE_CHAR_BYTES)
+    opened = _open_hints(open_window, ("開発", [word], True))
+    edit = find(opened.window, QLineEdit, "hint_word_0_0")
+
+    # 実行
+    edit.setText(f"  {word}  ")
+
+    # 検証（画面は上限ちょうど。保存も通り、書く語は空白を除いたもの）
+    assert "222 / 222 バイト" in _hint_length_texts(opened.window)
+    _click(opened.window, "save_button")
+    saved = opened.deps.save_settings.call_args.args[0]
+    assert saved.hint_presets[0].words == [word]
+
+
+# === hint_preset_size_{n} ===
+
+
+def test_hint_preset_size_initial_value(open_window: Callable[..., Opened]) -> None:
+    """プリセットごとに「{語の数} 語・{長さ} バイト」を出す（そのプリセットの語だけを読点でつないだ長さ。無効のプリセットでも出す）。"""
+    # 実行
+    opened = _open_hints(open_window, ("開発", ["abc", "de"], True), ("会議", ["議事録"], False))
+
+    # 検証
+    assert find(opened.window, QLabel, "hint_preset_size_0").text() == "2 語・8 バイト"
+    assert find(opened.window, QLabel, "hint_preset_size_1").text() == "1 語・9 バイト"
+
+
+def test_hint_preset_size_action(open_window: Callable[..., Opened]) -> None:
+    """語を足す・書き換える・消すたびに数え直す。語の前後の空白は除いて数える。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["abc"], True))
+    window = opened.window
+
+    # 実行・検証
+    _click(window, "hint_word_add_0")
+    find(window, QLineEdit, "hint_word_0_1").setText("  de  ")
+    assert find(window, QLabel, "hint_preset_size_0").text() == "2 語・8 バイト"
+    _click(window, "hint_word_remove_0_0")
+    assert find(window, QLabel, "hint_preset_size_0").text() == "1 語・2 バイト"
+
+
+# === hint_preset_name_{n} ===
+
+
+def test_hint_preset_name_action(open_window: Callable[..., Opened]) -> None:
+    """入れた名前をまとまりの頭にも出す（空なら「（名前未入力）」、長ければ末尾を省く）。操作の読み上げの名前も入れた名前に合わせる。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True))
+    window = opened.window
+    name_edit = find(window, QLineEdit, "hint_preset_name_0")
+
+    # 実行・検証
+    name_edit.setText("会議")
+    assert find(window, QCheckBox, "hint_preset_enabled_0").accessibleName() == "会議を有効にする"
+    assert find(window, QPushButton, "hint_preset_remove_0").accessibleName() == "会議を消す"
+    assert "会議" in [label.text() for label in window.findChildren(QLabel)]
+    name_edit.setText("")
+    assert "（名前未入力）" in [label.text() for label in window.findChildren(QLabel)]
+    assert find(window, QPushButton, "hint_preset_remove_0").accessibleName() == "プリセット 1 件目を消す"
+    name_edit.setText("あ" * 30)
+    assert ("あ" * 19 + "…") in [label.text() for label in window.findChildren(QLabel)]
+    assert name_edit.text() == "あ" * 30
+
+
+# === hint_preset_up_{n}・hint_preset_down_{n} ===
+
+
+def test_hint_preset_move_action(open_window: Callable[..., Opened]) -> None:
+    """上へ・下へで並びを入れ替える（語をつなぐ順もこの順）。先頭の上へと末尾の下へは押せない。"""
+    # 準備
+    opened = _open_hints(open_window, ("A", ["a"], True), ("B", ["b"], True), ("C", ["c"], True))
+    window = opened.window
+    assert [find(window, QPushButton, f"hint_preset_up_{n}").isEnabled() for n in range(3)] == [False, True, True]
+    assert [find(window, QPushButton, f"hint_preset_down_{n}").isEnabled() for n in range(3)] == [True, True, False]
+
+    # 実行（A の「下へ」、続けて C の「上へ」）
+    _click(window, "hint_preset_down_0")
+    _click(window, "hint_preset_up_2")
+
+    # 検証
+    assert [edit.text() for edit in _widgets(window, QLineEdit, "hint_preset_name_")] == ["B", "C", "A"]
+    _click(window, "save_button")
+    saved = opened.deps.save_settings.call_args.args[0]
+    assert [preset.name for preset in saved.hint_presets] == ["B", "C", "A"]
+
+
+# === hint_preset_remove_{n} ===
+
+
+def test_hint_preset_remove_action(open_window: Callable[..., Opened]) -> None:
+    """消すと一覧から外して長さを数え直す。保存するまで settings.toml には書かず、キャンセルで戻せる。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["abc"], True), ("会議", ["de"], True))
+    window = opened.window
+
+    # 実行
+    _click(window, "hint_preset_remove_0")
+
+    # 検証
+    assert [edit.text() for edit in _widgets(window, QLineEdit, "hint_preset_name_")] == ["会議"]
+    assert "2 / 222 バイト" in _hint_length_texts(window)
+    opened.deps.save_settings.assert_not_called()
+    assert find(window, QLabel, "hint_preset_size_0").text() == "1 語・2 バイト"
+
+
+def test_hint_preset_remove_when_last(open_window: Callable[..., Opened]) -> None:
+    """最後の 1 件を消すと案内が出て、保存すると hint_presets は空になる。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["abc"], True))
+
+    # 実行
+    _click(opened.window, "hint_preset_remove_0")
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert opened.deps.save_settings.call_args.args[0].hint_presets == []
+
+
+# === hint_preset_add ===
+
+
+def test_hint_preset_add_action(open_window: Callable[..., Opened]) -> None:
+    """名前と語が空で有効のプリセットを末尾に足し、名前の欄へフォーカスを移す。足して語を入れただけで効く。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True))
+    window = opened.window
+
+    # 実行
+    _click(window, "hint_preset_add")
+
+    # 検証
+    assert [edit.text() for edit in _widgets(window, QLineEdit, "hint_preset_name_")] == ["開発", ""]
+    assert find(window, QCheckBox, "hint_preset_enabled_1").isChecked()
+    assert find(window, QCheckBox, "hint_preset_enabled_1").text() == "有効"
+    assert window.focusWidget() is find(window, QLineEdit, "hint_preset_name_1")
+    assert not find(window, QLabel, "hint_preset_empty").isVisible()
+
+
+def test_hint_preset_add_when_saved(open_window: Callable[..., Opened]) -> None:
+    """足した名前と語は、保存で hint_presets に書く。"""
+    # 準備
+    opened = _open_hints(open_window)
+    _click(opened.window, "hint_preset_add")
+    find(opened.window, QLineEdit, "hint_preset_name_0").setText("開発")
+    _click(opened.window, "hint_word_add_0")
+    find(opened.window, QLineEdit, "hint_word_0_0").setText("voice-paste")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    saved = opened.deps.save_settings.call_args.args[0]
+    assert [(preset.name, preset.words, preset.enabled) for preset in saved.hint_presets] == [
+        ("開発", ["voice-paste"], True)
+    ]
+    opened.saved.assert_called_once()
+
+
+# === hint_words_empty_{n}・hint_word_add_{n}・hint_word_remove_{n}_{m} ===
+
+
+def test_hint_words_empty_when_no_words(open_window: Callable[..., Opened]) -> None:
+    """語が 1 つも無いプリセットは、語の欄の代わりに語が無いことを伝える。語を足すと消える。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", [], True))
+    window = opened.window
+    empty = find(window, QLabel, "hint_words_empty_0")
+    assert empty.isVisible()
+    assert empty.text() == "このプリセットにはまだ語がありません。"
+
+    # 実行
+    _click(window, "hint_word_add_0")
+
+    # 検証
+    assert window.findChild(QLabel, "hint_words_empty_0") is None
+    assert window.focusWidget() is find(window, QLineEdit, "hint_word_0_0")
+
+
+def test_hint_word_add_action(open_window: Callable[..., Opened]) -> None:
+    """空の語の欄をそのプリセットの語の末尾に足し、その欄へフォーカスを移す。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True), ("会議", ["b"], True))
+
+    # 実行
+    _click(opened.window, "hint_word_add_1")
+
+    # 検証
+    assert _hint_words(opened.window) == ["a", "b", ""]
+    assert opened.window.focusWidget() is find(opened.window, QLineEdit, "hint_word_1_1")
+
+
+def test_hint_word_remove_action(open_window: Callable[..., Opened]) -> None:
+    """語を 1 つ消す。読み上げの名前は「{何つ目か} つ目の語を消す」。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a", "b", "c"], True))
+    assert find(opened.window, QPushButton, "hint_word_remove_0_1").accessibleName() == "2 つ目の語を消す"
+
+    # 実行
+    _click(opened.window, "hint_word_remove_0_1")
+
+    # 検証
+    assert _hint_words(opened.window) == ["a", "c"]
+    opened.deps.save_settings.assert_not_called()
+
+
+def test_hint_words_when_narrow_window(open_window: Callable[..., Opened]) -> None:
+    """語の欄は入力と消すボタンの組を 2 列に並べ、左から右、上から下が語の順になる。幅が組 2 つに足りなければ 1 列に積む。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a", "b", "c", "d"], True))
+    window = opened.window
+    panel = find(window, QWidget, "hint_preset_panel")
+
+    # 実行・検証（広いとき）
+    panel.setFixedWidth(900)
+    QTest.qWait(0)
+    edits = [find(window, QLineEdit, f"hint_word_0_{m}") for m in range(4)]
+    tops = [_top_of(edit, window) for edit in edits]
+    lefts = [_left_of(edit, window) for edit in edits]
+    assert tops[0] == tops[1] < tops[2] == tops[3]
+    assert lefts[0] == lefts[2] < lefts[1] == lefts[3]
+
+    # 実行・検証（狭いとき）
+    panel.setFixedWidth(300)
+    QTest.qWait(0)
+    lefts = [_left_of(edit, window) for edit in edits]
+    tops = [_top_of(edit, window) for edit in edits]
+    assert len(set(lefts)) == 1
+    assert tops == sorted(tops)
+    assert len(set(tops)) == 4
+
+
+# === input_checks（表記のヒント） ===
+
+
+def test_input_check_when_hint_too_long(open_window: Callable[..., Opened]) -> None:
+    """有効なヒントが 222 バイトを超える: 長さの行の下とエラーの一覧に出す。無効のプリセットの語は数えない。"""
+    # 準備
+    word = "あ" * (HINT_LIMIT_BYTES // JAPANESE_CHAR_BYTES + 1)
+    opened = _open_hints(open_window, ("開発", ["a"], True))
+    find(opened.window, QLineEdit, "hint_word_0_0").setText(word)
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    message = _hint_over_message(225)
+    assert find(opened.window, QLabel, "hint_length_error").text() == message
+    assert find(opened.window, QLabel, "hint_length_error").isVisible()
+    assert f"有効なヒントの長さ: {message}" in _error_rows(opened.window)
+    opened.deps.save_settings.assert_not_called()
+
+
+def test_input_check_when_hint_too_long_in_disabled_preset(open_window: Callable[..., Opened]) -> None:
+    """無効のプリセットの語は長さに数えないので、長くても保存できる。"""
+    # 準備
+    word = "あ" * (HINT_LIMIT_BYTES // JAPANESE_CHAR_BYTES + 10)
+    opened = _open_hints(open_window, ("開発", ["abc"], True), ("会議", [word], False))
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    opened.deps.save_settings.assert_called_once()
+
+
+def test_input_check_when_hint_word_empty(open_window: Callable[..., Opened]) -> None:
+    """空の語（前後の空白を除いて）: 「語を入れるか、この欄を消してください。」をその欄の下とエラーの一覧に出す。無効のプリセットの語も確かめる。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a", "b"], False))
+    find(opened.window, QLineEdit, "hint_word_0_1").setText("  ")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    message = "語を入れるか、この欄を消してください。"
+    assert message in _field_errors(opened.window)
+    assert f"プリセット 1 件目の 2 つ目の語: {message}" in _error_rows(opened.window)
+    opened.deps.save_settings.assert_not_called()
+
+
+@pytest.mark.parametrize("word", ["A、B", "C。", "D\nE"])
+def test_input_check_when_hint_word_has_separator(open_window: Callable[..., Opened], word: str) -> None:
+    """読点（、）・句点（。）・改行を含む語: 「読点（、）・句点（。）・改行は入れられません。語を分けて足してください。」を出す。"""
+    # 準備（改行は 1 行の欄に入れられないため、欄の文字を直接差し替える）
+    opened = _open_hints(open_window, ("開発", ["a"], True))
+    find(opened.window, QLineEdit, "hint_word_0_0").setText(word)
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    message = "読点（、）・句点（。）・改行は入れられません。語を分けて足してください。"
+    assert message in _field_errors(opened.window)
+    assert f"プリセット 1 件目の 1 つ目の語: {message}" in _error_rows(opened.window)
+    opened.deps.save_settings.assert_not_called()
+
+
+def test_input_check_when_hint_preset_name_empty(open_window: Callable[..., Opened]) -> None:
+    """名前が空（前後の空白を除いて）: 「名前を入れてください。」をその欄の下とエラーの一覧に出す。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True))
+    find(opened.window, QLineEdit, "hint_preset_name_0").setText("   ")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert "名前を入れてください。" in _field_errors(opened.window)
+    assert "プリセット 1 件目の名前: 名前を入れてください。" in _error_rows(opened.window)
+    opened.deps.save_settings.assert_not_called()
+
+
+def test_input_check_when_hint_preset_name_overlap(open_window: Callable[..., Opened]) -> None:
+    """ほかのヒントのプリセットと同じ名前（前後の空白を除いて比べる）: 一覧で後ろにある側の欄の下に「別の名前にしてください。」まで、エラーの一覧にはそれを添えずに出す。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True), ("会議", ["b"], True))
+    find(opened.window, QLineEdit, "hint_preset_name_1").setText(" 開発 ")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert "プリセット「開発」と同じ名前です。別の名前にしてください。" in _field_errors(opened.window)
+    assert "プリセット 2 件目の名前: プリセット「開発」と同じ名前です" in _error_rows(opened.window)
+    opened.deps.save_settings.assert_not_called()
+
+
+def test_input_check_when_hint_errors_counted(open_window: Callable[..., Opened]) -> None:
+    """エラーの一覧の見出しは、直す欄の件数を数える。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a", "x"], True), ("会議", ["b"], True))
+    find(opened.window, QLineEdit, "hint_word_0_1").setText("")
+    find(opened.window, QLineEdit, "hint_preset_name_1").setText("")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert _error_rows(opened.window)[0] == "保存できませんでした。2 件の欄を直してください。"
+
+
+def test_input_check_when_hint_errors_cleared(open_window: Callable[..., Opened]) -> None:
+    """直して保存し直すと、前のエラーは消える。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a", "x"], True))
+    find(opened.window, QLineEdit, "hint_word_0_1").setText("")
+    _click(opened.window, "save_button")
+    assert _field_errors(opened.window)
+
+    # 実行
+    find(opened.window, QLineEdit, "hint_word_0_1").setText("b")
+    _click(opened.window, "save_button")
+
+    # 検証
+    opened.deps.save_settings.assert_called_once()
+
+
+def test_error_summary_row_action_when_hint_length(open_window: Callable[..., Opened]) -> None:
+    """有効なヒントの長さの行を押すと、表記のヒントのまとまりへ切り替えて長さの行へフォーカスを移す。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True))
+    find(opened.window, QLineEdit, "hint_word_0_0").setText("あ" * (HINT_LIMIT_BYTES // JAPANESE_CHAR_BYTES + 1))
+    _click(opened.window, "save_button")
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(10)
+    link = next(
+        label for label in find(opened.window, QFrame, "error_summary").findChildren(QLabel)
+        if "href" in label.text()
+    )
+
+    # 実行
+    link.linkActivated.emit("hint_presets")
+
+    # 検証
+    assert find(opened.window, QListWidget, "group_menu").currentRow() == HINT_GROUP_ROW
+    assert opened.window.focusWidget() is find(opened.window, QWidget, "hint_length")
+
+
+def test_error_summary_row_action_when_hint_word(open_window: Callable[..., Opened]) -> None:
+    """語の欄の行を押すと、表記のヒントのまとまりへ切り替えて、その語の欄へフォーカスを移す。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a", "x"], True))
+    find(opened.window, QLineEdit, "hint_word_0_1").setText("")
+    _click(opened.window, "save_button")
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(10)
+    link = next(
+        label for label in find(opened.window, QFrame, "error_summary").findChildren(QLabel)
+        if "href" in label.text()
+    )
+
+    # 実行
+    link.linkActivated.emit("hint_presets[0].words[1]")
+
+    # 検証
+    assert find(opened.window, QListWidget, "group_menu").currentRow() == HINT_GROUP_ROW
+    assert opened.window.focusWidget() is find(opened.window, QLineEdit, "hint_word_0_1")
+
+
+# === save_button・reset_button・キャンセル（表記のヒント） ===
+
+
+def test_save_button_when_hint_changed(open_window: Callable[..., Opened]) -> None:
+    """表記のヒントを変えて保存すると、再起動せずに効く値（immediate）として書き、窓を開いたまま保存した知らせを出す。「再起動で反映」の知らせは出さない。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True))
+    find(opened.window, QLineEdit, "hint_word_0_0").setText("b")
+    assert not find(opened.window, QLabel, "restart_notice").isVisible()
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    saved = opened.deps.save_settings.call_args.args[0]
+    assert saved.hint_presets[0].words == ["b"]
+    opened.saved.assert_called_once()
+    opened.closed.assert_not_called()
+    assert find(opened.window, QLabel, "saved_notice").text() == "保存しました。"
+    assert not find(opened.window, QLabel, "restart_notice").isVisible()
+
+
+def test_cancel_button_when_hint_changed(open_window: Callable[..., Opened]) -> None:
+    """表記のヒントを変えてキャンセルすると、変えた値を捨てる確認を出し、捨てると settings.toml には書かない。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True))
+    find(opened.window, QLineEdit, "hint_word_0_0").setText("b")
+    driver = ModalDriver()
+    driver.answer("discard_button")
+
+    # 実行
+    _click(opened.window, "cancel_button")
+
+    # 検証
+    driver.verify()
+    opened.deps.save_settings.assert_not_called()
+    opened.closed.assert_called_once()
+
+
+def test_reset_dialog_when_hint_presets(open_window: Callable[..., Opened]) -> None:
+    """「既定に戻す」は、表記のヒントのプリセットを空にする。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True))
+    driver = ModalDriver()
+    driver.answer("reset_button")
+
+    # 実行
+    _click(opened.window, "reset_button")
+
+    # 検証
+    driver.verify()
+    opened.deps.save_settings.assert_called_once_with(SETTINGS_MODEL(), {})
+    assert _widgets(opened.window, QLineEdit, "hint_preset_name_") == []
+    assert len(_widgets(opened.window, QLabel, "hint_preset_empty")) == 1
+
+
 # === 設定画面を開いている間はホットキーを止める ===
 
 
-@pytest.mark.parametrize("route", ["save", "cancel", "window_close"])
+@pytest.mark.parametrize("route", ["save_and_restart", "cancel", "window_close"])
 def test_settings_window_suspends_hotkeys(make_ui: Callable[..., Ui], route: str) -> None:
     """開いている間はホットキーの受付を止め（欄で押したキーで録音や確定が動かない）、どの経路で閉じても今の設定で張り直す。"""
     # 準備
@@ -1463,8 +3403,9 @@ def test_settings_window_suspends_hotkeys(make_ui: Callable[..., Ui], route: str
     window = ui.controller._settings_window
     suspended_while_open = ui.deps.suspend_hotkeys.call_count
     resumed_while_open = ui.deps.resume_hotkeys.call_count
-    if route == "save":
-        _click(window, "save_button")
+    if route == "save_and_restart":
+        _set_text(window, RESTART_KEY, "12")
+        _click(window, "save_and_restart_button")
     elif route == "cancel":
         _click(window, "cancel_button")
     else:
@@ -1473,6 +3414,25 @@ def test_settings_window_suspends_hotkeys(make_ui: Callable[..., Ui], route: str
     # 検証
     assert suspended_while_open == 1
     assert resumed_while_open == 0
+    ui.deps.suspend_hotkeys.assert_called_once()
+    ui.deps.resume_hotkeys.assert_called_once()
+    assert ui.controller._settings_window is None
+
+
+def test_settings_window_when_saved(make_ui: Callable[..., Ui]) -> None:
+    """「保存」では設定画面が開いたままなので、ホットキーの受付は止めたまま。閉じたときに今の設定で張り直す。"""
+    # 準備
+    ui = make_ui()
+    ui.controller.open_settings()
+    window = ui.controller._settings_window
+
+    # 実行
+    _click(window, "save_button")
+    resumed_after_save = ui.deps.resume_hotkeys.call_count
+    _click(window, "cancel_button")
+
+    # 検証
+    assert resumed_after_save == 0
     ui.deps.suspend_hotkeys.assert_called_once()
     ui.deps.resume_hotkeys.assert_called_once()
     assert ui.controller._settings_window is None

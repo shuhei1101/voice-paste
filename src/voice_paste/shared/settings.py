@@ -10,10 +10,11 @@ import tempfile
 from collections.abc import Mapping, MutableMapping, Sequence
 from functools import reduce
 from pathlib import Path
-from typing import Annotated, Any, ClassVar, Literal
+from typing import Annotated, Any, ClassVar, Literal, Protocol
 
 import tomlkit
 from pydantic import (
+    AfterValidator,
     BaseModel,
     ConfigDict,
     Field,
@@ -24,7 +25,9 @@ from pydantic import (
     model_validator,
 )
 from pydantic_core import InitErrorDetails, PydanticCustomError
+from tomlkit.container import Container
 from tomlkit.exceptions import TOMLKitError
+from tomlkit.items import AoT, Comment, Item, Key, Null, Table, Whitespace
 
 from voice_paste.shared.errors import SettingsError
 
@@ -50,6 +53,40 @@ OUTPUT_DISCRIMINATOR_INDEX: int = 2
 
 HOTKEY_OVERLAP_ERROR_TYPE: str = "hotkey_overlap"
 """ホットキーが重なるときの ValidationError の種類。理由の文に先のキーを `other` として持つ。"""
+
+GLOSSARY_NAME_OVERLAP_ERROR_TYPE: str = "glossary_name_overlap"
+"""用語集の名前が重なるときの ValidationError の種類。理由の文に重なった名前を `name` として持つ。"""
+
+GLOSSARIES_FIELD_NAME: str = "glossaries"
+"""用語集の一覧を持つ Settings の項目名。"""
+
+HINT_PRESETS_FIELD_NAME: str = "hint_presets"
+"""表記のヒントのプリセットの一覧を持つ Settings の項目名。"""
+
+HINT_MAX_BYTES: int = 222
+"""有効なプリセットの語をつないだ手がかりの UTF-8 のバイト数の上限。
+
+faster-whisper が hotwords を先頭の 223 トークンに切ることから、頭に足す空白の 1 バイトを引いた値。
+Whisper のトークンは 1 バイト以上を表すため、バイト数で数えれば上限を守れる。
+"""
+
+HINT_SEPARATOR: str = "、"
+"""手がかりの語の間に入れる区切り。"""
+
+HINT_WORD_FORBIDDEN_CHARS: tuple[str, ...] = (HINT_SEPARATOR, "。", "\n", "\r")
+"""語に含められない文字（区切り・句点・改行）。"""
+
+HINT_TOO_LONG_ERROR_TYPE: str = "hint_too_long"
+"""有効な手がかりが上限を超えるときの ValidationError の種類。今のバイト数を `length` として持つ。"""
+
+HINT_WORD_EMPTY_ERROR_TYPE: str = "hint_word_empty"
+"""手がかりの語が空のときの ValidationError の種類。"""
+
+HINT_WORD_SEPARATOR_ERROR_TYPE: str = "hint_word_separator"
+"""手がかりの語が読点・句点・改行を含むときの ValidationError の種類。"""
+
+HINT_PRESET_NAME_OVERLAP_ERROR_TYPE: str = "hint_preset_name_overlap"
+"""表記のヒントのプリセットの名前が重なるときの ValidationError の種類。理由の文に重なった名前を `name` として持つ。"""
 
 START_HOTKEY_KEY: str = "hotkeys.start"
 """録音の開始のホットキーのキー。貼り付けて送信と同じキーにしてよい（重なりにしない）。"""
@@ -317,9 +354,22 @@ class LoggingSettings(_SettingsModel):
     )
 
 
-class UiSettings(_SettingsModel):
-    """録音の画面と文字起こし中の表示の出し方。"""
+THEME_LABELS: dict[str, str] = {
+    "system": "Windows の設定に従う",
+    "light": "ライト",
+    "dark": "ダーク",
+}
+"""画面の明暗の値 → 設定画面のラジオボタンの名前。"""
 
+
+class UiSettings(_SettingsModel):
+    """画面の明暗と、録音の画面・文字起こし中の表示の出し方。"""
+
+    theme: Literal["system", "light", "dark"] = Field(
+        "system",
+        description="画面の明暗。system は Windows の明暗に従う",
+        json_schema_extra={"reload": RELOAD_IMMEDIATE, "choice_labels": THEME_LABELS},
+    )
     topmost: bool = _item(True, "常に最前面に出すか", reload=RELOAD_IMMEDIATE)
     position: Literal["center", "top-left", "top-right", "bottom-left", "bottom-right"] = _item(
         "center", "出す位置", reload=RELOAD_IMMEDIATE
@@ -330,6 +380,7 @@ class UiSettings(_SettingsModel):
     wave_gain: float = _item(
         4, "波形の振れの大きさ（0 より大きい）", reload=RELOAD_IMMEDIATE, gt=0
     )
+    show_hotkeys: bool = _item(True, "録音の画面のボタンにホットキーを出すか", reload=RELOAD_IMMEDIATE)
 
 
 class ContinuousSettings(_SettingsModel):
@@ -371,6 +422,65 @@ class ApiSettings(_SettingsModel):
     )
 
 
+class GlossarySettings(_SettingsModel):
+    """用語集 1 つの名前と CSV の場所。"""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    name: str = Field(
+        min_length=1,
+        description="用語集の名前（設定画面の一覧に出す。前後の空白を除いて 1 文字以上。ほかの用語集と重ならない）",
+    )
+    path: Path = Field(
+        description="その用語集の CSV の場所（settings.toml のフォルダからの相対パスか絶対パス）"
+    )
+
+
+def _check_hint_word(word: str) -> str:
+    """手がかりの語が空でなく、読点・句点・改行を含まないことを確かめる（前後の空白は除かれている）。"""
+    # 空の語は断る
+    if not word:
+        raise PydanticCustomError(HINT_WORD_EMPTY_ERROR_TYPE, "語が空")
+    # 区切りになる文字を含む語は断る
+    if any(char in word for char in HINT_WORD_FORBIDDEN_CHARS):
+        raise PydanticCustomError(HINT_WORD_SEPARATOR_ERROR_TYPE, "語に読点・句点・改行を含められない")
+    return word
+
+
+type HintWord = Annotated[str, AfterValidator(_check_hint_word)]
+"""手がかりの語 1 つ。前後の空白を除いたうえで _check_hint_word で確かめる。"""
+
+
+class HintPresetSettings(_SettingsModel):
+    """表記のヒントのプリセット 1 つの名前・語の並び・有効か。"""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    name: str = Field(
+        min_length=1,
+        description="設定画面の一覧に出す名前（前後の空白を除いて 1 文字以上。ほかのプリセットと重ならない）",
+    )
+    words: list[HintWord] = Field(
+        default_factory=list,
+        description="文字起こしに渡す語の並び（各語の前後の空白を除く。空の語・読点・句点・改行を含む語は断る。無効のプリセットの語も確かめる）",
+    )
+    enabled: bool = Field(True, description="このプリセットの語を文字起こしに渡すか")
+
+
+class HintWordSource(Protocol):
+    """join_hint_words が読む、有効かと語の並びだけを持つ型。確かめを通らない入力の途中の値も満たす。"""
+
+    @property
+    def enabled(self) -> bool:
+        """語をつなぐか。"""
+        ...
+
+    @property
+    def words(self) -> Sequence[str]:
+        """語の並び。"""
+        ...
+
+
 class Settings(_SettingsModel):
     """settings.toml の全体。項目ごとに範囲・説明・再起動が要るかの印を持つ。"""
 
@@ -392,8 +502,23 @@ class Settings(_SettingsModel):
     ui: UiSettings = _group(UiSettings, "録音の画面の出し方")
     glossary_path: Path | None = _item(
         None,
-        "用語集の CSV。None は設定ファイルと同じフォルダの yogo.csv",
+        "今までの用語集の CSV。glossaries が空のときだけ使う。None は設定ファイルと同じフォルダの yogo.csv",
         reload=RELOAD_IMMEDIATE,
+    )
+    glossaries: list[GlossarySettings] = Field(
+        default_factory=list,
+        description="用語集の一覧。並びが設定画面の一覧の並びになる。空のときは glossary_path の CSV を 1 つ目の用語集として扱う",
+        json_schema_extra={"reload": RELOAD_IMMEDIATE},
+    )
+    active_glossary: str | None = _item(
+        None,
+        "補正に使う用語集の名前。None か一覧に無い名前のときは 1 つ目の用語集を使う",
+        reload=RELOAD_IMMEDIATE,
+    )
+    hint_presets: list[HintPresetSettings] = Field(
+        default_factory=list,
+        description="表記のヒント（文字起こしの手がかり）のプリセットの一覧。並びが設定画面の一覧と語をつなぐ順になる。有効な語をつないだ長さが HINT_MAX_BYTES を超える設定は断る",
+        json_schema_extra={"reload": RELOAD_IMMEDIATE},
     )
     api: ApiSettings = _group(ApiSettings, "待ち受けのポート・返送を許すホスト")
     presets: list[Preset] = Field(
@@ -420,23 +545,63 @@ class Settings(_SettingsModel):
         return outputs
 
     @model_validator(mode="after")
-    def _hotkeys_must_not_overlap(self) -> Settings:
-        """受け付けるホットキーが重ならないことを確かめる（重なったキーごとに欄のエラーにする）。"""
-        overlaps = _find_hotkey_overlap_locations(self)
-        # 重なりがあれば、重なったキーの場所で、先のキーを理由にして断る
-        if overlaps:
-            line_errors: list[InitErrorDetails] = [
+    def _names_and_hotkeys_must_not_overlap(self) -> Settings:
+        """受け付けるホットキーと用語集の名前が重ならないことを確かめる（重なったものごとに欄のエラーにし、1 回の ValidationError にまとめる）。"""
+        # 重なったホットキーは、重なったキーの場所で、先のキーを理由にする
+        line_errors: list[InitErrorDetails] = [
+            {
+                "type": PydanticCustomError(
+                    HOTKEY_OVERLAP_ERROR_TYPE,
+                    "{other}と同じホットキー",
+                    {"other": format_error_location(first_location)},
+                ),
+                "loc": location,
+                "input": None,
+            }
+            for location, first_location in _find_hotkey_overlap_locations(self)
+        ]
+        # 重なった用語集の名前は、後ろにある側の名前の場所で、重なった名前を添える
+        line_errors += [
+            {
+                "type": PydanticCustomError(
+                    GLOSSARY_NAME_OVERLAP_ERROR_TYPE,
+                    "用語集「{name}」と同じ名前",
+                    {"name": name},
+                ),
+                "loc": location,
+                "input": name,
+            }
+            for location, name in _find_glossary_name_overlap_locations(self)
+        ]
+        # 重なった表記のヒントのプリセットの名前は、後ろにある側の名前の場所で、重なった名前を添える
+        line_errors += [
+            {
+                "type": PydanticCustomError(
+                    HINT_PRESET_NAME_OVERLAP_ERROR_TYPE,
+                    "表記のヒントのプリセット「{name}」と同じ名前",
+                    {"name": name},
+                ),
+                "loc": location,
+                "input": name,
+            }
+            for location, name in _find_hint_preset_name_overlap_locations(self)
+        ]
+        # 有効な語をつないだ長さが上限を超えたら、一覧の場所で、今のバイト数を添える
+        hint_length = len(join_hint_words(self.hint_presets).encode("utf-8"))
+        if hint_length > HINT_MAX_BYTES:
+            line_errors.append(
                 {
                     "type": PydanticCustomError(
-                        HOTKEY_OVERLAP_ERROR_TYPE,
-                        "{other}と同じホットキー",
-                        {"other": format_error_location(first_location)},
+                        HINT_TOO_LONG_ERROR_TYPE,
+                        "有効なヒントが長すぎる（{length} バイト）",
+                        {"length": hint_length},
                     ),
-                    "loc": location,
+                    "loc": (HINT_PRESETS_FIELD_NAME,),
                     "input": None,
                 }
-                for location, first_location in overlaps
-            ]
+            )
+        # 重なりや超過があれば断る
+        if line_errors:
             raise ValidationError.from_exception_data(type(self).__name__, line_errors)
         return self
 
@@ -520,6 +685,60 @@ def find_hotkey_overlaps(settings: Settings) -> list[tuple[str, str]]:
     return [
         (format_error_location(location), format_error_location(first_location))
         for location, first_location in _find_hotkey_overlap_locations(settings)
+    ]
+
+
+# === 用語集の名前の重なり ===
+
+
+def _find_glossary_name_overlap_locations(settings: Settings) -> list[tuple[_Location, str]]:
+    """前に並んだ用語集と名前が同じ用語集の（名前の場所, 名前）を返す。大文字と小文字は区別する。"""
+    seen: set[str] = set()
+    overlaps: list[tuple[_Location, str]] = []
+    for index, glossary in enumerate(settings.glossaries):
+        # 初めての名前は控え、先に並んだ名前と同じなら重なりとして集める
+        if glossary.name in seen:
+            overlaps.append(((GLOSSARIES_FIELD_NAME, index, "name"), glossary.name))
+        else:
+            seen.add(glossary.name)
+    return overlaps
+
+
+def find_glossary_name_overlaps(settings: Settings) -> list[tuple[str, str]]:
+    """前に並んだ用語集と名前が同じものを（重なったキー, 重なった名前）で返す。"""
+    return [
+        (format_error_location(location), name)
+        for location, name in _find_glossary_name_overlap_locations(settings)
+    ]
+
+
+# === 表記のヒント ===
+
+
+def join_hint_words(presets: Sequence[HintWordSource]) -> str:
+    """有効なプリセットの語を、一覧の上から順に読点でつなぐ。有効な語が無ければ空文字を返す。"""
+    words = [word for preset in presets if preset.enabled for word in preset.words]
+    return HINT_SEPARATOR.join(words)
+
+
+def _find_hint_preset_name_overlap_locations(settings: Settings) -> list[tuple[_Location, str]]:
+    """前に並んだプリセットと名前が同じ表記のヒントのプリセットの（名前の場所, 名前）を返す。大文字と小文字は区別する。"""
+    seen: set[str] = set()
+    overlaps: list[tuple[_Location, str]] = []
+    for index, preset in enumerate(settings.hint_presets):
+        # 初めての名前は控え、先に並んだ名前と同じなら重なりとして集める
+        if preset.name in seen:
+            overlaps.append(((HINT_PRESETS_FIELD_NAME, index, "name"), preset.name))
+        else:
+            seen.add(preset.name)
+    return overlaps
+
+
+def find_hint_preset_name_overlaps(settings: Settings) -> list[tuple[str, str]]:
+    """前に並んだプリセットと名前が同じ表記のヒントのプリセットを（重なったキー, 重なった名前）で返す。"""
+    return [
+        (format_error_location(location), name)
+        for location, name in _find_hint_preset_name_overlap_locations(settings)
     ]
 
 
@@ -641,8 +860,12 @@ def save_settings(path: Path, settings: Settings) -> bool:
     # 1・2. 既にある設定ファイルを読み、前の設定にする
     document, previous, unreadable = _read_existing(path, type(settings))
 
-    # 3. 設定を JSON の値にする
+    # 3. 設定を JSON の値にする（用語集の場所は、設定のフォルダの下なら相対パスにする）
     data = settings.model_dump(mode="json", exclude_none=True)
+    for glossary in data.get(GLOSSARIES_FIELD_NAME, []):
+        glossary_path = Path(glossary["path"])
+        if glossary_path.is_relative_to(path.parent):
+            glossary["path"] = glossary_path.relative_to(path.parent).as_posix()
 
     # 4. 文書の値を置き換える
     _merge_into(document, data)
@@ -694,15 +917,104 @@ def _merge_into(target: MutableMapping[str, Any], source: dict[str, Any]) -> Non
     for key in [key for key in target if key not in source]:
         del target[key]
 
+    # 後ろに表が無い配列の表のコメントと空行。全ての値を置き換えた後に target の末尾へ足す
+    tail: list[Item] = []
+
     # 表の後に置くとその表のキーとして読まれる値を、先に並べる
     for key, value in sorted(source.items(), key=lambda entry: _is_table_like(entry[1])):
         existing = target.get(key)
         # 表: 既にある表の中を再帰で置き換える
         if isinstance(value, dict) and isinstance(existing, MutableMapping):
             _merge_into(existing, value)
+        # 変わった配列の表: 後ろのコメントを付け直して入れ替える
+        elif isinstance(existing, AoT) and isinstance(value, list) and _unwrap(existing) != value:
+            tail.extend(_replace_array_table(target, key, value))
         # 値が変わっていなければ書式とコメントのために触らない
         elif key not in target or _unwrap(existing) != value:
             target[key] = value
+
+    if isinstance(target, Container | Table):
+        for item in tail:
+            target.append(None, item)
+
+
+def _replace_array_table(
+    target: MutableMapping[str, Any], key: str, value: list[Any]
+) -> list[Item]:
+    """target の配列の表 key を value に入れ替え、古い配列の表の最初の見出しの前と後ろのコメントを付け直す。target の末尾へ足すものを返す。"""
+    old = target[key]
+
+    # 入れ替える前に、古い最初の見出しの前と、最後の要素の末尾のコメントと空行、古い配列の表の次の表を控える
+    heading_indent = old.body[0].trivia.indent
+    trailing = _trailing_trivia(old.body[-1])
+    following = _following_heading(target, key)
+
+    target[key] = value
+    new = target[key]
+
+    # 1 件以上: 新しい最初の見出しの前と、新しい最後の要素の末尾へ同じ並びで付け直す
+    if isinstance(new, AoT):
+        new.body[0].trivia.indent = heading_indent
+        for item in trailing:
+            new.body[-1].append(None, item)
+        return []
+
+    # 0 件で次の表がある: 次の表の見出しの前の頭へ付け直す
+    moved = heading_indent + "".join(item.as_string() for item in trailing)
+    if following is not None:
+        following.trivia.indent = moved + following.trivia.indent
+        return []
+
+    # 0 件で次の表が無い: 文書の末尾へ足す
+    return [Whitespace(heading_indent), *trailing] if heading_indent else trailing
+
+
+def _trailing_trivia(table: Table) -> list[Item]:
+    """表の末尾にある、キーを持たないコメントと空行を並びのまま返す。"""
+    body = table.value.body
+    start = len(body)
+    while start > 0 and _is_trivia(body[start - 1]):
+        start -= 1
+    return [item for _key, item in body[start:]]
+
+
+def _is_trivia(entry: tuple[Key | None, Item]) -> bool:
+    """表の中身の 1 つが、キーを持たないコメントか空行か。"""
+    key, item = entry
+    return key is None and isinstance(item, Comment | Whitespace)
+
+
+def _following_heading(target: MutableMapping[str, Any], key: str) -> Table | None:
+    """target で key の配列の表の次に並ぶ表のうち、見出しを持つ最初の表を返す。無ければ None。"""
+    if not isinstance(target, Container | Table):
+        return None
+    body = target.body if isinstance(target, Container) else target.value.body
+    position = max(index for index, (name, _item) in enumerate(body) if name and name.key == key)
+    for _name, item in body[position + 1 :]:
+        heading = _first_heading(item)
+        if heading is not None:
+            return heading
+    return None
+
+
+def _first_heading(item: Item) -> Table | None:
+    """item の中で最初に見出しを書く表を返す。super table（見出しを持たない表）は中の最初の表を探す。"""
+    if isinstance(item, AoT):
+        return item.body[0]
+    if not isinstance(item, Table):
+        return None
+    children = [child for _key, child in item.value.body]
+    # 見出しを書く表: super table でない、または表以外の値を持つ
+    if not item.is_super_table() or any(
+        not isinstance(child, Table | AoT | Whitespace | Null) for child in children
+    ):
+        return item
+    # 見出しを書かない表: 中の最初の見出しを探す
+    for child in children:
+        heading = _first_heading(child)
+        if heading is not None:
+            return heading
+    return None
 
 
 def _write_atomically(path: Path, text: str) -> None:

@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, TypeVar
 
 from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QColor
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QLabel, QMessageBox, QPushButton, QWidget
 
@@ -47,6 +48,17 @@ def grab_head_row(window: RecordingWindow) -> None:
     row = find(window, QWidget, "head_row")
     QTest.mousePress(row, Qt.MouseButton.LeftButton, pos=row.rect().center())
     QTest.mouseRelease(row, Qt.MouseButton.LeftButton, pos=row.rect().center())
+
+
+FACE_OFFSET_PX = 4
+"""窓の左端から、縁と角丸の内側（面だけが描かれる位置）までの距離。"""
+
+
+def edge_and_face_colors(widget: QWidget) -> tuple[QColor, QColor]:
+    """窓を描いた画像の、左端の縦の中ほどの画素の色（窓の外側の縁）と、そこから内側へ進んだ画素の色（窓の面）を返す。"""
+    image = widget.grab().toImage()
+    middle = image.height() // 2
+    return image.pixelColor(0, middle), image.pixelColor(FACE_OFFSET_PX, middle)
 
 
 @dataclass

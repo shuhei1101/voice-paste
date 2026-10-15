@@ -25,6 +25,9 @@ class UiBridge(QObject):
     progressed = Signal(float, float)
     """文字起こしの区間の終わりの時刻と録音の長さ（秒）。"""
 
+    copied = Signal(str)
+    """コピーの完了と起こした文字。"""
+
 
 def notify(
     event: Literal[
@@ -45,6 +48,12 @@ def notify(
     level = logging.INFO if event in INFO_EVENTS else logging.WARNING
     logger.log(level, f"ユーザーへの知らせ（{event}・{detail}）")
     bridge.notified.emit(event, detail)
+
+
+def notify_copied(text: str, *, bridge: UiBridge) -> None:
+    """UiBridge.copied を emit して、メインスレッドでトレイにコピーの完了の通知を出す。起こした文字はログに書かない。"""
+    logger.info("ユーザーへの知らせ（copy_completed）")
+    bridge.copied.emit(text)
 
 
 def report_progress(position_sec: float, duration_sec: float, *, bridge: UiBridge) -> None:

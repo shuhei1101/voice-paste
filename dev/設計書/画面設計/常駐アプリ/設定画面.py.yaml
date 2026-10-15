@@ -16,7 +16,7 @@ elements:
     description: まとまりを選ぶと、右の欄をそのまとまりに切り替える。切り替えても入れた値は消さない
     io: 入力
     visible_when: 常時
-    options: 出力先・ブラウザ添付・エンドポイントへ送る・ホットキー・録音・文字起こし・画面・履歴とログ・API の順。既定は出力先
+    options: 出力先・ブラウザ添付・エンドポイントへ送る・ホットキー・録音・文字起こし・表記のヒント・用語集・画面・履歴とログ・API の順。既定は出力先
     initial_value: 出力先
     action: 右の欄を選んだまとまりに切り替える
   - name: エラーの一覧
@@ -26,7 +26,7 @@ elements:
     description: 保存できなかったことと直す欄の件数、欄ごとのエラーを並べる。各行はその欄へのリンクで、押すとその欄のまとまりへ切り替えて欄へフォーカスを移す。出したときにフォーカスを一覧へ移す
     label: 保存できませんでした。{件数} 件の欄を直してください。
     visible_when: 保存を押して確かめに通らない欄があったとき。入力の途中では出さない
-    display_format: '1 行 = 「{欄の名前}: {エラー}」。プリセットの欄は「プリセット「{タイトル}」の{欄の名前}」、タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」'
+    display_format: '1 行 = 「{欄の名前}: {エラー}」。プリセットの欄は「プリセット「{タイトル}」の{欄の名前}」、タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」。用語集の欄は「用語集 {一覧の何件目か} 件目の名前」「用語集 {一覧の何件目か} 件目の {何行目か} 行目の{誤変換か正しい表記}」。表記のヒントの欄は「有効なヒントの長さ」「プリセット {一覧の何件目か} 件目の名前」「プリセット {一覧の何件目か} 件目の {何つ目か} つ目の語」'
   - name: 設定の欄
     id: field_{key}
     kind: input
@@ -63,22 +63,13 @@ elements:
     target: 同じキー（pynput の書式へ変える）
     refs:
       - dev/設計書/設定/常駐アプリ#settings[hotkeys.start]
-  - name: 用語集を選ぶボタン
-    id: pick_glossary_button
-    kind: button
-    position: 窓 > 右 > 文字起こし > 用語集の CSV の欄の右
-    description: ファイルを選ぶダイアログ（CSV）を開き、選んだパスを用語集の CSV の欄へ入れる
-    label: 選ぶ…
-    visible_when: 文字起こしのまとまりを選んだとき
-    target: Settings.glossary_path
-    action: ファイルを選ぶダイアログを開く
   - name: 再起動の知らせ
     id: restart_notice
     kind: label
     position: 窓 > フッターの上
     description: 反映が restart の欄を変えたことと、「保存して再起動」ですぐに効くことを伝える
     label: 「再起動で反映」の設定を {件数} 件変えました。「保存して再起動」で保存すると、すぐに効きます。
-    visible_when: 反映が restart の欄を開いたときの値から変えているとき
+    visible_when: 反映が restart の欄を開いたときの値から変えていて、保存した知らせを出していないとき（件数は保存済みの欄も含めて、開いたときの値から数える）
   - name: 既定に戻した知らせ
     id: reset_notice
     kind: label
@@ -89,10 +80,10 @@ elements:
   - name: 今すぐ再起動のボタン
     id: restart_now_button
     kind: button
-    position: 窓 > フッターの上 > 既定に戻した知らせの右
+    position: 窓 > フッターの上 > 既定に戻した知らせか保存した知らせの右
     description: 設定画面を閉じて常駐アプリを再起動する（トレイの「再起動」と同じ）
     label: 今すぐ再起動
-    visible_when: 既定に戻した知らせを出しているとき
+    visible_when: 既定に戻した知らせを出しているときと、保存した知らせが反映が restart の欄の件数を出しているとき（それぞれの知らせの右）
     action: 設定画面を閉じて再起動する
   - name: 既定に戻すボタン
     id: reset_button
@@ -106,7 +97,7 @@ elements:
     id: cancel_button
     kind: button
     position: 窓 > フッター > 右
-    description: 保存せずに閉じる。欄を変えていれば変えた値を捨てる確認を出し、変えていなければそのまま閉じる
+    description: 保存せずに閉じる。開いたとき（「保存」した後は保存した値）から欄を変えていれば変えた値を捨てる確認を出し、変えていなければそのまま閉じる
     label: キャンセル
     visible_when: 常時
     action: 欄を変えていなければ設定画面を閉じる
@@ -123,10 +114,10 @@ elements:
     id: save_button
     kind: button
     position: 窓 > フッター > 右端
-    description: 全ての欄を設定のモデルで確かめ、ホットキーを受け付けられることも確かめてから settings.toml へ書いて設定画面を閉じる。反映が immediate の設定（出力先のオン・オフ・`ui.*` を含む）は動いている常駐アプリに効かせ、ホットキーは設定画面を閉じたときに新しい設定で受付を張り直す。通らなければ書かず、エラーの一覧と欄の下のエラーを出し、入れた値は消さない
+    description: 全ての欄を設定のモデルで確かめ、ホットキーを受け付けられることも確かめてから settings.toml へ書き、設定画面を開いたまま保存した知らせを出す。入れた値・選んでいたまとまり・欄のフォーカスは保つ。反映が immediate の設定（出力先のオン・オフ・`ui.*` を含む）は動いている常駐アプリに効かせ、ホットキーは設定画面を閉じたときに新しい設定で受付を張り直す。保存した値を「変えていない」の基準にし、保存の後に欄を変えずに閉じると変えた値を捨てる確認を出さない。通らなければ書かず、エラーの一覧と欄の下のエラーを出し、入れた値は消さない
     label: 保存
     visible_when: 常時
-    action: 確かめて保存し、設定画面を閉じる
+    action: 確かめて保存し、開いたまま保存した知らせを出す
   - name: プリセットの一覧
     id: preset_list_{kind}
     kind: list
@@ -284,6 +275,397 @@ elements:
     visible_when: プリセットごと
     enabled_when: ホットキーの欄が空でないとき
     action: ホットキーの欄を空にする（空の欄は「なし」を出す）
+  - name: 用語集の一覧
+    id: glossary_list
+    kind: table
+    position: 窓 > 右 > 用語集 > 用語集の一覧
+    description: 用語集を 1 行ずつ並べる。列は「補正に使う」「名前」「行」と消すボタン。行の表を出している用語集の行は、背景を変えて示す。見出しは「用語集の一覧」。読み上げの表の名前は「用語集の一覧（補正に使う用語集を 1 つ選ぶ）」
+    io: 入出力
+    visible_when: 用語集のまとまりを選んだとき
+    initial_value: settings.toml の `glossaries[]`。空なら `glossary_path`（キーが無ければ settings.toml と同じフォルダの yogo.csv）の CSV を 1 件目にし、名前を CSV のファイル名から拡張子を除いたものにする
+    sorting: 並べ替えない。settings.toml の並びで、足した用語集は末尾
+    source: Settings.glossaries[]
+    target: Settings.glossaries[]（保存で settings.toml へ書き、`glossary_path` のキーは消す）
+    reason: 用語集は再起動の要らない日々の編集で、メニューから直接開けるまとまりにした（確認ログ）
+    status: implemented
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[glossaries[].name]
+  - name: 補正に使う用語集の選択
+    id: glossary_active_{n}
+    kind: radio
+    position: 窓 > 右 > 用語集 > 用語集の一覧 > 行 > 左
+    description: 補正に使う用語集を 1 つ選ぶ。行の表を出す用語集とは別に選べる。読み上げの名前は「{名前}を補正に使う」（名前が空なら「名前未入力の用語集を補正に使う」）
+    io: 入出力
+    type: 真偽値
+    visible_when: 用語集ごと
+    initial_value: settings.toml の `active_glossary` の名前の用語集。キーが無い・名前が一覧に無いときは 1 件目
+    options: 一覧の用語集のうち 1 つだけ。複数は選べない
+    source: Settings.active_glossary
+    target: Settings.active_glossary（選んだ用語集の名前）
+    action: 選んだ用語集の消すボタンを無効にし、前に選んでいた用語集の消すボタンを有効にする
+    status: implemented
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[active_glossary]
+  - name: 用語集の名前のボタン
+    id: glossary_pick_{n}
+    kind: button
+    position: 窓 > 右 > 用語集 > 用語集の一覧 > 行 > 名前
+    description: 押すと、その用語集の名前の欄と行の表を下に出す。長い名前は 1 行に収めて末尾を省く。設定画面を開いたときは、補正に使う用語集の行の表を出している
+    label: '{名前}（名前が空なら「（名前未入力）」）'
+    visible_when: 用語集ごと
+    action: 下の用語集の行を、押した用語集のものに切り替える。切り替えても入れた値は消さない
+    status: implemented
+  - name: 用語集の行の数
+    id: glossary_count_{n}
+    kind: label
+    position: 窓 > 右 > 用語集 > 用語集の一覧 > 行 > 行の列
+    description: その用語集の行の数と、そのうちオンの行の数。行を足す・消す・オンとオフを切り替えるたびに数え直す。両方が空の行も数える
+    io: 表示
+    visible_when: 用語集ごと
+    display_format: '「{行の数} 行（オン {オンの行の数}）」。例: 「5 行（オン 3）」。CSV を読めなかった用語集は「読めません」'
+    status: implemented
+  - name: 用語集を消すボタン
+    id: glossary_remove_{n}
+    kind: button
+    position: 窓 > 右 > 用語集 > 用語集の一覧 > 行 > 右端
+    description: 用語集を一覧から消す。保存するまで settings.toml には書かず、キャンセルで戻せる。CSV のファイルは消さない。補正に使う用語集のボタンは薄くして押しても何も起きないようにし、フォーカスは受けてツールチップ「補正に使う用語集は消せません」を出す。行の表を出している用語集を消したら、補正に使う用語集の行の表を出す
+    label: '{名前}を消す（読み上げの名前。名前が空なら「名前未入力の用語集を消す」。見た目は消す印）'
+    visible_when: 用語集ごと
+    enabled_when: 補正に使う用語集でないとき
+    action: 用語集を一覧から消す
+    status: implemented
+  - name: 用語集を足すボタン
+    id: add_glossary_button
+    kind: button
+    position: 窓 > 右 > 用語集 > 用語集の一覧の下
+    description: 名前が空で行の無い用語集を一覧の末尾に足し、その用語集の行の表を出して、名前の欄へフォーカスを移す。補正に使う用語集は変えない
+    label: 用語集を足す
+    visible_when: 用語集のまとまりを選んだとき
+    action: 用語集の一覧に 1 件足す
+    status: implemented
+  - name: 用語集の行の見出し
+    id: glossary_detail_title
+    kind: label
+    position: 窓 > 右 > 用語集 > 用語集の行
+    description: 下に出している行がどの用語集のものかを示す。名前の欄に入れた値をそのまま出す
+    label: 用語集「{名前}」の行（名前が空なら「用語集「（名前未入力）」の行」）
+    io: 表示
+    visible_when: 用語集のまとまりを選んだとき
+    status: implemented
+  - name: 用語集の名前の欄
+    id: glossary_name_{n}
+    kind: input
+    position: 窓 > 右 > 用語集 > 用語集の行 > 見出しの下
+    description: 用語集の名前。入れた値を一覧の名前のボタンと行の見出しにも出す。名前を変える操作はこの欄だけで行う
+    label: 名前
+    placeholder: '例: 会議用'
+    io: 入出力
+    type: 文字列
+    visible_when: 行の表を出している用語集
+    required: true
+    min_length: 1
+    constraints: ほかの用語集と同じ名前にできない（前後の空白を除いて比べる）
+    initial_value: settings.toml の値（足した用語集は空）
+    source: Settings.glossaries[].name
+    target: Settings.glossaries[].name（前後の空白を除く）
+    status: implemented
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[glossaries[].name]
+  - name: 用語集の行の表
+    id: glossary_entries
+    kind: table
+    position: 窓 > 右 > 用語集 > 用語集の行 > 名前の欄の下
+    description: 行の表を出している用語集の行を並べる。列は「使う」「誤変換」「正しい表記」と消すボタン。読み上げの表の名前は「用語集の行（上の行から順に置き換える）」。幅の狭い窓では表を横に流さず、列の幅を詰める
+    io: 入出力
+    visible_when: 行の表を出している用語集に行が 1 つ以上あるとき（CSV を読めなかった用語集では出さない）
+    initial_value: その用語集の CSV の行。誤変換か正しい表記の片方が空の行も出す（補正はその行を飛ばす）
+    sorting: 並べ替えない。CSV の行の順で、足した行は末尾
+    source: その用語集の CSV（`glossaries[].path`）
+    target: その用語集の CSV。保存で書き戻すのは、設定画面で行を変えた用語集（誤変換・正しい表記・オン・オフのどれかを変えた、行を足した・消した）と、足した用語集の CSV だけで、表の順に行とオン・オフを書く。行を変えていない用語集の CSV には触れない（`glossary_path` から `glossaries` へ書き移すだけの保存や、ほかのまとまりだけを変えた保存でも触れない）
+    status: implemented
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[glossaries[].path]
+  - name: 行を使うの切り替え
+    id: glossary_entry_on_{n}
+    kind: checkbox
+    position: 窓 > 右 > 用語集 > 用語集の行の表 > 行 > 左
+    description: その行を補正に使うかを切り替える。オフの行は、誤変換と正しい表記の文字を薄くして取り消し線を引く（色だけで伝えない）。読み上げの名前は「{何行目か} 行目を補正に使う」
+    io: 入出力
+    type: 真偽値
+    visible_when: 行ごと
+    initial_value: CSV のオン・オフの値（列が無い行と、足した行はオン）
+    source: その用語集の CSV の行のオン・オフ
+    target: その用語集の CSV の行のオン・オフ
+    status: implemented
+  - name: 誤変換の欄
+    id: glossary_entry_wrong_{n}
+    kind: input
+    position: 窓 > 右 > 用語集 > 用語集の行の表 > 行
+    description: 置き換える前の文字。読み上げの名前は「{何行目か} 行目の誤変換」
+    label: 誤変換（列の見出し）
+    io: 入出力
+    type: 文字列
+    visible_when: 行ごと
+    constraints: 正しい表記が入っている行では空にできない
+    initial_value: CSV の `誤変換` の値（足した行は空）
+    source: その用語集の CSV の `誤変換`
+    target: その用語集の CSV の `誤変換`（前後の空白を除く）
+    status: implemented
+  - name: 正しい表記の欄
+    id: glossary_entry_right_{n}
+    kind: input
+    position: 窓 > 右 > 用語集 > 用語集の行の表 > 行
+    description: 置き換えた後の文字。読み上げの名前は「{何行目か} 行目の正しい表記」
+    label: 正しい表記（列の見出し）
+    io: 入出力
+    type: 文字列
+    visible_when: 行ごと
+    constraints: 誤変換が入っている行では空にできない
+    initial_value: CSV の `正しい表記` の値（足した行は空）
+    source: その用語集の CSV の `正しい表記`
+    target: その用語集の CSV の `正しい表記`（前後の空白を除く）
+    status: implemented
+  - name: 行を消すボタン
+    id: glossary_entry_remove_{n}
+    kind: button
+    position: 窓 > 右 > 用語集 > 用語集の行の表 > 行 > 右端
+    description: その行を表から消す。保存するまで CSV には書かず、キャンセルで戻せる
+    label: '{何行目か} 行目を消す（読み上げの名前。見た目は消す印）'
+    visible_when: 行ごと
+    action: 行を表から消す
+    status: implemented
+  - name: 行が無いときの文
+    id: glossary_entries_empty
+    kind: label
+    position: 窓 > 右 > 用語集 > 用語集の行 > 名前の欄の下
+    description: 行の表の代わりに、行が無いことを伝える
+    label: この用語集にはまだ行がありません。
+    io: 表示
+    visible_when: 行の表を出している用語集に行が 1 つも無いとき（CSV を読めなかった用語集では出さない）
+    status: implemented
+  - name: 行を足すボタン
+    id: add_glossary_entry_button
+    kind: button
+    position: 窓 > 右 > 用語集 > 用語集の行 > 行の表の下
+    description: 誤変換と正しい表記が空でオンの行を表の末尾に足し、その行の誤変換の欄へフォーカスを移す
+    label: 行を足す
+    visible_when: 用語集のまとまりを選んだとき
+    action: 行の表に 1 行足す
+    status: implemented
+    enabled_when: 行の表を出している用語集の CSV を読めたとき（足した用語集を含む）
+  - name: 補正の決まりの凡例
+    id: glossary_legend
+    kind: label
+    position: 窓 > 右 > 用語集 > 用語集の行 > 行を足すボタンの右
+    description: 行の順とオン・オフが補正にどう効くかを示す凡例
+    label: 上の行から順に置き換える。オフの行は補正に使わない。
+    io: 表示
+    visible_when: 用語集のまとまりを選んだとき
+    status: implemented
+  - name: 読めない用語集の知らせ
+    id: glossary_unreadable
+    kind: label
+    position: 窓 > 右 > 用語集 > 用語集の行 > 名前の欄の下
+    description: 行の表の代わりに、その用語集の CSV を読めなかったことと理由を伝える。読めない用語集も一覧には出し、名前を変える・補正に使う用語集に選ぶ・一覧から消すはできる。行は編集できず、保存してもその CSV には触れない
+    label: この用語集の CSV を読めませんでした（{理由}）。保存しても、この CSV は書き換えません。
+    io: 表示
+    visible_when: 行の表を出している用語集の CSV を、設定画面を開いたときに読めなかったとき
+    display_format: '{理由} は「ファイルを開けません（{OS のエラー}）」「文字コードが UTF-8 ではありません」「見出しに「誤変換」「正しい表記」の列がありません」「CSV の書式が正しくありません（{csv のエラー}）」のどれか'
+    reason: 読めない原因は CSV 1 つの側にあるので、設定画面は開き、ほかの用語集とほかのまとまりは今までどおり使えるようにする。空の用語集として出すと、行を足して保存したときに元の CSV を上書きして中身を失う
+    status: implemented
+  - name: 表記のヒントの説明
+    id: hint_intro
+    kind: label
+    position: 窓 > 右 > 表記のヒント > 見出しの下
+    description: 並べるものと、指示としては効かないことを伝える。まとまりの見出しは「表記のヒント」
+    label: 間違えやすい語の正しい表記を並べる。文字起こしへの指示としては効かない。
+    io: 表示
+    visible_when: 表記のヒントのまとまりを選んだとき
+    status: implemented
+  - name: 有効なヒントの長さ
+    id: hint_length
+    kind: progress
+    position: 窓 > 右 > 表記のヒント > プリセットの一覧の上
+    description: 有効なプリセットの語を一覧の上から順に読点（、）でつないだ長さを、バーと数字で出す。語を足す・書き換える・消す、有効・無効を切り替える、プリセットを足す・消すたびに数え直す。上限を超えたらバーと数字を赤にし、超過したバイト数を文字で添える（色だけで伝えない）。入力の途中で変わるのはこの行だけで、エラー文は保存を押した後に出す
+    label: 有効なヒントの長さ
+    io: 表示
+    visible_when: 表記のヒントのまとまりを選んだとき
+    display_format: 「{今の長さ} / 222 バイト」。上限を超えたら「{今の長さ} / 222 バイト（{超えた分} バイト超過）」。長さは UTF-8 のバイト数で、語の間の読点も数える
+    hint: 上限は 222 バイト（日本語でおよそ 74 文字）。語の間の読点（、）も数える。
+    error_message: この行の下に赤で出す（入力チェック）
+    source: Settings.hint_presets[]（enabled が true のものの words）
+    status: implemented
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[hint_presets[].words]
+  - name: ヒントのプリセットの一覧
+    id: hint_preset_list
+    kind: list
+    position: 窓 > 右 > 表記のヒント > 有効なヒントの長さの下
+    description: ヒントのプリセットを 1 件ずつ、全ての欄を開いたまとまりで縦に積む（カスタムプリセットの一覧と同じ形）。まとまりの頭に有効の切り替え・名前・語の数と長さ・上へ・下へ・消すのボタンを並べ、下に名前の欄と語の欄を置く。読み上げの名前は「表記のヒントのプリセット（上から順に語をつなぐ）」
+    io: 入出力
+    visible_when: 表記のヒントのまとまりを選んだとき
+    sorting: 上へ・下へのボタンで並べ替える。既定は settings.toml の並びで、足したプリセットは末尾
+    initial_value: settings.toml の `hint_presets[]`（キーが無ければ空）
+    source: Settings.hint_presets[]
+    target: Settings.hint_presets[]（一覧の順に書く）
+    status: implemented
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[hint_presets[].name]
+  - name: ヒントのプリセットが無いときの案内
+    id: hint_preset_empty
+    kind: label
+    position: 窓 > 右 > 表記のヒント > 有効なヒントの長さの下
+    description: プリセットが 1 件も無いことと、無い間はヒントを渡さないことを伝える
+    label: ヒントのプリセットはまだありません。無い間は、ヒントを渡さずに文字を起こします。
+    io: 表示
+    visible_when: ヒントのプリセットが 1 件も無いとき
+    status: implemented
+  - name: ヒントのプリセットの有効の切り替え
+    id: hint_preset_enabled_{n}
+    kind: switch
+    position: 窓 > 右 > ヒントのプリセットの一覧 > まとまりの頭 > 左
+    description: プリセットを有効・無効に切り替える。切り替えの右に今の状態を文字で出す。無効のプリセットの語は、用語集のオフの行と同じく文字を薄くして取り消し線を引き、有効なヒントの長さに数えない。読み上げの名前は「{名前}を有効にする」（名前が空なら「プリセット {一覧の何件目か} 件目を有効にする」）
+    label: 有効 / 無効
+    io: 入出力
+    type: 真偽値
+    visible_when: プリセットごと
+    initial_value: settings.toml の値（足したプリセットはオン）
+    source: Settings.hint_presets[].enabled
+    target: Settings.hint_presets[].enabled
+    status: implemented
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[hint_presets[].enabled]
+  - name: ヒントのプリセットの語の数と長さ
+    id: hint_preset_size_{n}
+    kind: label
+    position: 窓 > 右 > ヒントのプリセットの一覧 > まとまりの頭 > 名前の右
+    description: そのプリセットの語の数と、そのプリセットの語だけを読点でつないだ長さ。語を足す・書き換える・消すたびに数え直す。無効のプリセットでも出す。頭の名前は 1 行に収めて末尾を省き、全文は名前の欄で読める
+    io: 表示
+    visible_when: プリセットごと
+    display_format: '「{語の数} 語・{長さ} バイト」。例: 「6 語・86 バイト」'
+    status: implemented
+  - name: ヒントのプリセットの名前の欄
+    id: hint_preset_name_{n}
+    kind: input
+    position: 窓 > 右 > ヒントのプリセットの一覧 > まとまり
+    description: プリセットの名前。入れた値をまとまりの頭の名前にも出す
+    label: 名前
+    placeholder: '例: 開発'
+    io: 入出力
+    type: 文字列
+    visible_when: プリセットごと
+    required: true
+    min_length: 1
+    constraints: ほかのヒントのプリセットと同じ名前にできない（前後の空白を除いて比べる）
+    initial_value: settings.toml の値（足したプリセットは空）
+    source: Settings.hint_presets[].name
+    target: Settings.hint_presets[].name（前後の空白を除く）
+    status: implemented
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[hint_presets[].name]
+  - name: ヒントの語の欄
+    id: hint_word_{n}_{m}
+    kind: input
+    position: 窓 > 右 > ヒントのプリセットの一覧 > まとまり > 語
+    description: 語 1 つの欄。入力と消すボタンの組を 2 列に並べ、左から右、上から下が語の順になる。幅の狭い窓（組が 2 列入らない幅）では 1 列に積む。欄より長い語は欄の中で横に流す。読み上げの名前は「{何つ目か} つ目の語」
+    label: 語
+    io: 入出力
+    type: 文字列
+    visible_when: 語ごと
+    required: true
+    min_length: 1
+    constraints: 読点（、）・句点（。）・改行を含められない
+    initial_value: settings.toml の値（足した語は空）
+    source: Settings.hint_presets[].words[]
+    target: Settings.hint_presets[].words[]（前後の空白を除く）
+    reason: 語のエラーをその語の欄の下に出すため、複数行の文字の欄 1 つではなく語ごとの欄にした
+    status: implemented
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[hint_presets[].words]
+  - name: ヒントの語を消すボタン
+    id: hint_word_remove_{n}_{m}
+    kind: button
+    position: 窓 > 右 > ヒントのプリセットの一覧 > まとまり > 語 > 語の欄の右
+    description: その語を消す。保存するまで settings.toml には書かず、キャンセルで戻せる
+    label: '{何つ目か} つ目の語を消す（読み上げの名前。見た目は消す印）'
+    visible_when: 語ごと
+    action: 語を消して長さを数え直す
+    status: implemented
+  - name: ヒントの語が無いときの文
+    id: hint_words_empty_{n}
+    kind: label
+    position: 窓 > 右 > ヒントのプリセットの一覧 > まとまり > 語
+    description: 語の欄の代わりに、語が無いことを伝える
+    label: このプリセットにはまだ語がありません。
+    io: 表示
+    visible_when: そのプリセットに語が 1 つも無いとき
+    status: implemented
+  - name: ヒントの語を足すボタン
+    id: hint_word_add_{n}
+    kind: button
+    position: 窓 > 右 > ヒントのプリセットの一覧 > まとまり > 語の下
+    description: 空の語の欄をそのプリセットの語の末尾に足し、その欄へフォーカスを移す
+    label: 語を足す
+    visible_when: プリセットごと
+    action: 語の欄を 1 つ足す
+    status: implemented
+  - name: ヒントのプリセットを上へのボタン
+    id: hint_preset_up_{n}
+    kind: button
+    position: 窓 > 右 > ヒントのプリセットの一覧 > まとまりの頭 > 右
+    description: プリセットを 1 つ上へ動かす。語をつなぐ順もこの順になる
+    label: '{名前}を上へ（読み上げの名前。見た目は上向きの印）'
+    visible_when: プリセットごと
+    enabled_when: 先頭のプリセットでないとき
+    action: プリセットを 1 つ上へ動かす
+    status: implemented
+  - name: ヒントのプリセットを下へのボタン
+    id: hint_preset_down_{n}
+    kind: button
+    position: 窓 > 右 > ヒントのプリセットの一覧 > まとまりの頭 > 右
+    description: プリセットを 1 つ下へ動かす
+    label: '{名前}を下へ（読み上げの名前。見た目は下向きの印）'
+    visible_when: プリセットごと
+    enabled_when: 末尾のプリセットでないとき
+    action: プリセットを 1 つ下へ動かす
+    status: implemented
+  - name: ヒントのプリセットを消すボタン
+    id: hint_preset_remove_{n}
+    kind: button
+    position: 窓 > 右 > ヒントのプリセットの一覧 > まとまりの頭 > 右端
+    description: プリセットを一覧から消す。保存するまで settings.toml には書かず、キャンセルで戻せる
+    label: '{名前}を消す（読み上げの名前。見た目は消す印）'
+    visible_when: プリセットごと
+    action: プリセットを一覧から消して長さを数え直す
+    status: implemented
+  - name: ヒントのプリセットを足すボタン
+    id: hint_preset_add
+    kind: button
+    position: 窓 > 右 > 表記のヒント > ヒントのプリセットの一覧の下
+    description: 名前と語が空で有効のプリセットを一覧の末尾に足し、名前の欄へフォーカスを移す
+    label: プリセットを足す
+    visible_when: 表記のヒントのまとまりを選んだとき
+    action: ヒントのプリセットの一覧に 1 件足す
+    reason: 足して語を入れただけで効くように、有効で足す（確認ログ）
+    status: implemented
+  - name: 表記のヒントの補足
+    id: hint_notes
+    kind: label
+    position: 窓 > 右 > 表記のヒント > 末尾
+    description: ヒントを渡すと変わる書き方と、引っ張られた語への対処を箇条書きで伝える
+    label: 'ヒントを渡すと、句読点が付く・改行がまとまる・口癖が一部消える。 / 並べた表記にほかの語が引っ張られたら、その語も足す（例: TypeScript がタイプスクリプトになったら「TypeScript」を足す）。（「 / 」で区切った 2 項目）'
+    io: 表示
+    visible_when: 表記のヒントのまとまりを選んだとき
+    status: implemented
+  - name: 保存した知らせ
+    id: saved_notice
+    kind: label
+    position: 窓 > フッターの上
+    description: 「保存」で書けたことを伝える。ホットキーの欄（`hotkeys.*`・`outputs[].hotkey`・`presets[].hotkey`。`keyboard.paste_key` は含めない）のどれかが開いたときの値から変わっていれば、設定画面を閉じると効くことを添える。反映が restart の欄が開いたときの値から変わっていれば、その件数と再起動するまで前の値で動くことを添え、右に今すぐ再起動のボタンを出す。読み上げにも伝える（role=status）
+    label: 保存しました。（ホットキーの欄が開いたときの値から変わっているとき「新しいホットキーは、設定画面を閉じると効きます。」、反映が restart の欄が変わっているとき「「再起動で反映」の設定 {件数} 件は、再起動するまで前の値で動きます。」をこの順に続ける）
+    visible_when: 「保存」で確かめに通って書けた後。欄を変えると消す
+    refs:
+      - dev/設計書/設定/常駐アプリ#
 input_checks:
   - element: 設定の欄
     violation: 数値の欄に数値でない文字が入っている
@@ -330,9 +712,54 @@ input_checks:
     trigger: 保存・保存して再起動のボタンのクリック
     message: http:// か https:// で始まる URL を入れてください。
     position: その欄の下とエラーの一覧
+  - element: 用語集の名前の欄
+    violation: 空（前後の空白を除いて）
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: 名前を入れてください。
+    position: その欄の下とエラーの一覧
+  - element: 用語集の名前の欄
+    violation: 空でなく、ほかの用語集と同じ名前（一覧で後ろにある側の欄に出す）
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: 用語集「{名前}」と同じ名前です。別の名前にしてください。（エラーの一覧では「用語集「{名前}」と同じ名前です」）
+    position: その欄の下とエラーの一覧
+  - element: 誤変換の欄
+    violation: 空で、同じ行の正しい表記が空でない（補正に使わない用語集とオフの行も確かめる。両方が空の行は違反にせず、保存で捨てる）
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: 誤変換を入れてください。
+    position: その欄の下とエラーの一覧
+  - element: 正しい表記の欄
+    violation: 空で、同じ行の誤変換が空でない（補正に使わない用語集とオフの行も確かめる。両方が空の行は違反にせず、保存で捨てる）
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: 正しい表記を入れてください。
+    position: その欄の下とエラーの一覧
+  - element: 有効なヒントの長さ
+    violation: 有効なプリセットの語を一覧の順に読点（、）でつないだ長さが UTF-8 で 222 バイトを超える
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: 有効なヒントが長すぎます（{今の長さ} / 222 バイト）。語を減らすか、プリセットを無効にしてください。
+    position: 有効なヒントの長さの行の下とエラーの一覧
+  - element: ヒントの語の欄
+    violation: 空（前後の空白を除いて。無効のプリセットも確かめる）
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: 語を入れるか、この欄を消してください。
+    position: その欄の下とエラーの一覧
+  - element: ヒントの語の欄
+    violation: 読点（、）・句点（。）・改行のどれかが入っている（無効のプリセットも確かめる）
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: 読点（、）・句点（。）・改行は入れられません。語を分けて足してください。
+    position: その欄の下とエラーの一覧
+  - element: ヒントのプリセットの名前の欄
+    violation: 空（前後の空白を除いて）
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: 名前を入れてください。
+    position: その欄の下とエラーの一覧
+  - element: ヒントのプリセットの名前の欄
+    violation: 空でなく、ほかのヒントのプリセットと同じ名前（一覧で後ろにある側の欄に出す）
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: プリセット「{名前}」と同じ名前です。別の名前にしてください。
+    position: その欄の下とエラーの一覧
 screen: src/voice_paste/ui/windows/settings_window.py
-mock: dev/mock/pages/settings/44/a-inline/kind-tabs/
-lead: トレイの「設定…」から開く画面。settings.toml の全てのキーを 9 つのまとまりに並べ、設定のモデルで確かめてから保存する。
+mock: dev/mock/pages/settings/101/a-footer-notice/
+lead: トレイの「設定…」から開く画面。settings.toml の全てのキーをまとまりに並べ、設定のモデルで確かめてから保存する。
 refs:
   - dev/設計書/シナリオ/単一ユースケース/設定を変える#
   - dev/設計書/設定/常駐アプリ#
@@ -342,6 +769,7 @@ notes:
     | --- | --- | --- |
     | 出力先 | `outputs[].enabled`（paste_and_send・paste_only・copy_only） | チェックボックス。右に `outputs[].hotkey` のホットキーの欄 |
     | 出力先（送るまでの間） | `outputs[paste_and_send].enter_delay_sec` | 数値の欄。補助文「「貼り付けて送信」と、「ブラウザ添付」の Enter まで送るプリセットで使う。」 |
+    | 出力先（Enter と一緒に押す修飾キー） | `outputs[paste_and_send].enter_modifiers` | 欄の名前「Enter と一緒に押す修飾キー」の下の行に、「Ctrl」「Alt」「Shift」のチェックボックスを横に並べる（オンにしたものを一覧に入れる） |
     | ブラウザ添付（カスタムプリセット） | `presets[]` のうち `kind = "browser"` の enabled・title・url・send_enter・hotkey | プリセットの一覧 |
     | ブラウザ添付（オプション） | `preset_options.browser.open_delay_sec` | 数値の欄。補助文「貼り付けてから Enter を送るまでの秒数は「出力先」の値を使う。」 |
     | エンドポイントへ送る（カスタムプリセット） | `presets[]` のうち `kind = "endpoint"` の enabled・title・url・authorization・hotkey | プリセットの一覧 |
@@ -355,10 +783,13 @@ notes:
     | 文字起こし（エンジン） | `transcription.local_whisper.language` | 文字の欄 |
     | 文字起こし（詳しい調整） | `transcription.local_whisper` の cpu_threads・num_workers・beam_size・best_of・temperature・no_speech_threshold・vad_threshold・vad_min_speech_ms・vad_min_silence_ms | 数値の欄 |
     | 文字起こし（詳しい調整） | `transcription.local_whisper` の condition_on_previous_text・vad_filter | チェックボックス |
-    | 文字起こし（用語集） | `glossary_path` | 文字の欄と「選ぶ…」 |
+    | 表記のヒント | `hint_presets[]`（name・words・enabled） | 有効なヒントの長さと、ヒントのプリセットの一覧 |
+    | 用語集 | `glossaries[]`（name・path）・`active_glossary` と、用語集の CSV の行（誤変換・正しい表記・オン・オフ） | 用語集の一覧と、選んだ用語集の行の表 |
+    | 画面 | `ui.theme` | ラジオボタン（Windows の設定に従う・ライト・ダーク）。欄の名前は「画面の明暗」で、まとまりの先頭に置く |
     | 画面 | `ui.topmost`・`ui.follow_cursor` | チェックボックス |
     | 画面 | `ui.position` | ラジオボタン（中央・左上・右上・左下・右下） |
     | 画面 | `ui.wave_gain` | 数値の欄 |
+    | 画面 | `ui.show_hotkeys` | チェックボックス。まとまりの末尾に置く |
     | 履歴とログ | `history.enabled` | チェックボックス |
     | 履歴とログ | `history.retention_days`・`logging.retention_days` | 数値の欄 |
     | 履歴とログ | `logging.level` | ラジオボタン |
@@ -366,5 +797,5 @@ notes:
     | API | `api.allowed_callback_hosts` | 複数行の文字の欄（1 行 = 1 ホスト） |
     | API（連続録音） | `api.continuous.min_silence_sec`・`api.continuous.session_limit_sec` | 数値の欄 |
 
-    欄の部品は設定のモデルの型から決める（bool → チェックボックス、リテラルの列挙 → ラジオボタンか選択の欄、int・float → 数値の欄、str → 文字の欄、ホットキーの型 → ホットキーの欄）。上の表は欄の並びと、型からは決まらない部品（つまみ・プリセットの一覧・用語集の選ぶ…）を決める。
+    欄の部品は設定のモデルの型から決める（bool → チェックボックス、リテラルの列挙 → ラジオボタンか選択の欄、int・float → 数値の欄、str → 文字の欄、ホットキーの型 → ホットキーの欄）。上の表は欄の並びと、型からは決まらない部品（つまみ・プリセットの一覧・用語集の一覧と行の表・ヒントのプリセットの一覧）を決める。
 test_file: tests/integration/ui/test_settings_window.py

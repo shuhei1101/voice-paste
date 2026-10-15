@@ -71,7 +71,7 @@ def test_transcription_parity_when_history_recordings(
     glossary = load_glossary(YOGO_FILE)
     expected = (EXPECTED_DIR / f"{recording.stem}.txt").read_bytes().decode("utf-8")
     # 実行
-    transcribed = transcribe(recording, engine=worker_client.transcribe)
+    transcribed = transcribe(recording, engine=worker_client.transcribe, get_hint=lambda: None)
     actual = apply_glossary(transcribed, glossary)
     # 検証
     assert actual == expected

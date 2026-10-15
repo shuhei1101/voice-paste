@@ -118,3 +118,36 @@ tables:
         title: 記録の行
         type: string
         description: スタックトレースや起動の手順の行
+  - name: '%APPDATA%\voice-paste\glossaries\glossary_{n}.csv'
+    title: 用語集の CSV
+    datastore: ファイル（CSV、UTF-8。BOM はあり・なしの両方を読み、書くときはあり）
+    summary: 用語集 1 つの行（誤変換・正しい表記・補正に使うか）。1 行目は列名の見出し
+    growth: 設定画面で用語集を足して保存するたびに 1 つ増える。n は 1 からの連番で、フォルダに残っているファイルの番号は使わない
+    retention: 期限なし
+    deletion: 消さない（設定画面の一覧から用語集を消しても、ファイルは残す）
+    access: 全件。補正は録音を確定するたびに、補正に使う用語集の CSV を読み直す
+    description: |-
+      用語集ごとの場所は設定の `glossaries[].path` が持つ。設定画面で足した用語集はこの名前で作り、今までの用語集（`glossary_path`。キーが無ければ settings.toml と同じフォルダの `yogo.csv`）も同じ列で読む。
+      手で書いた CSV は列 `使う` が無くても読める。設定画面でその用語集の行を変えて保存すると、3 つの列だけの CSV に書き直す（ほかの列と、誤変換と正しい表記の両方が空の行は残らない）。行を変えていない用語集の CSV は書き換えない。
+    columns:
+      - name: 誤変換
+        title: 誤変換
+        type: string
+        description: 置き換える前の文字。前後の空白は除いて読む
+        example: くろーど
+      - name: 正しい表記
+        title: 正しい表記
+        type: string
+        description: 置き換えた後の文字。前後の空白は除いて読む
+        example: Claude
+      - name: 使う
+        title: 補正に使うか
+        type: string
+        default: （列が無い・空はオン）
+        description: その行を補正に使うか。`0` の行だけがオフで、列が無い・空・ほかの値はオン
+        enum_values: "'1' = オン / '0' = オフ"
+        example: '1'
+    status: implemented
+    implementation: src/voice_paste/features/correction/service.py
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[glossaries[].path]

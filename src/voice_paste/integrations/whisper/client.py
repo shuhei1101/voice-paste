@@ -147,12 +147,12 @@ class WhisperWorkerClient:
     # === 文字起こし ===
 
     def transcribe(
-        self, audio_path: Path, *, on_progress: ProgressFn | None = None
+        self, audio_path: Path, *, on_progress: ProgressFn | None = None, hint: str | None = None
     ) -> list[str]:
-        """録音を子プロセスへ送り、区間ごとの文字を受け取る。落ちたら 1 回だけ立て直してやり直す。"""
+        """録音と手がかりを子プロセスへ送り、区間ごとの文字を受け取る。落ちたら 1 回だけ立て直してやり直す。"""
         with self._lock:
             try:
-                return self._exchange(audio_path, on_progress)
+                return self._exchange(audio_path, on_progress, hint)
             except _WorkerExitedError:
                 self._raise_if_stopping()
                 logger.warning(f"文字起こしワーカーが落ちたので立て直す（終了コード {self._exit_code()}）")
@@ -160,7 +160,7 @@ class WhisperWorkerClient:
 
             # 立て直したワーカーへ同じ録音を送り直す（やり直しは 1 回だけ）
             try:
-                return self._exchange(audio_path, on_progress)
+                return self._exchange(audio_path, on_progress, hint)
             except _WorkerExitedError:
                 self._raise_if_stopping()
                 # やり直しも落ちた: 次の録音に備えて起動し直してから知らせる
@@ -168,9 +168,13 @@ class WhisperWorkerClient:
                 self._restart()
                 raise EngineError("やり直した文字起こしワーカーも落ちた") from None
 
-    def _exchange(self, audio_path: Path, on_progress: ProgressFn | None) -> list[str]:
-        """録音と設定を送り、区間の進みと結果を読む。子プロセスが終わっていれば _WorkerExitedError を送出する。"""
+    def _exchange(
+        self, audio_path: Path, on_progress: ProgressFn | None, hint: str | None
+    ) -> list[str]:
+        """録音・設定・手がかりを送り、区間の進みと結果を読む。子プロセスが終わっていれば _WorkerExitedError を送出する。"""
         settings = self._settings
+        # 手がかりがあるときだけ hotwords として載せる
+        optional: dict[str, str] = {} if hint is None else {"hotwords": hint}
         self._send(
             "transcribe",
             audio_path=str(audio_path),
@@ -184,6 +188,7 @@ class WhisperWorkerClient:
             vad_min_silence_ms=settings.vad_min_silence_ms,
             condition_on_previous_text=settings.condition_on_previous_text,
             no_speech_threshold=settings.no_speech_threshold,
+            **optional,
         )
         while True:
             message = self._messages.get()

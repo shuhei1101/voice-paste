@@ -1,4 +1,4 @@
-"""ui/tray.py（Tray の set_state・set_failed・show_failure・set_recording_window・アイコンの左クリック）の単体テスト。
+"""ui/tray.py（Tray の set_state・set_failed・show_failure・show_copy_completed・通知の押下・set_recording_window・アイコンの左クリック）の単体テスト。
 
 画面を使うため offscreen の QApplication（conftest の qapp）で動かす。
 メニューの項目は、表示の文言の先頭で引く（右に出すホットキーは文言の後ろに付く）。
@@ -11,7 +11,8 @@ from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
-from PySide6.QtGui import QAction
+from PySide6.QtCore import QUrl
+from PySide6.QtGui import QAction, QDesktopServices
 from PySide6.QtWidgets import QSystemTrayIcon
 
 from tests.unit.voice_paste.ui.helpers import make_tray
@@ -95,6 +96,76 @@ def test_show_failure(
         "文字起こしに失敗しました",
         "録音を読めませんでした。録音は履歴に残っています。",
     )
+
+
+# === show_copy_completed ===
+
+
+def test_show_copy_completed(
+    qapp: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """コピーの完了の文言で情報の通知を出す（正常系）。"""
+    # 準備
+    tray = make_tray(tmp_path)
+    show_message = MagicMock()
+    monkeypatch.setattr(QSystemTrayIcon, "showMessage", show_message)
+
+    # 実行
+    tray.show_copy_completed("テスト")
+
+    # 検証
+    show_message.assert_called_once()
+    assert show_message.call_args.args[:3] == (
+        "コピーしました",
+        "任意の場所に貼り付けてください。この通知を押すと、もう一度コピーします。",
+        QSystemTrayIcon.MessageIcon.Information,
+    )
+
+
+# === _on_message_clicked ===
+
+
+def test_on_message_clicked_when_copy_completed(
+    qapp: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """コピーの完了の通知を押すとコピーし直しを頼む（正常系）。"""
+    # 準備
+    tray = make_tray(tmp_path)
+    monkeypatch.setattr(QSystemTrayIcon, "showMessage", MagicMock())
+    open_url = MagicMock()
+    monkeypatch.setattr(QDesktopServices, "openUrl", open_url)
+    recopy_requested = MagicMock()
+    tray.recopy_requested.connect(recopy_requested)
+    tray.show_copy_completed("テスト")
+
+    # 実行
+    tray._icon.messageClicked.emit()
+
+    # 検証
+    recopy_requested.assert_called_once_with("テスト")
+    open_url.assert_not_called()
+
+
+def test_on_message_clicked_when_failure_after_copy(
+    qapp: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """コピーの完了の後に出した失敗の通知を押すとログフォルダを開く（正常系）。"""
+    # 準備
+    tray = make_tray(tmp_path)
+    monkeypatch.setattr(QSystemTrayIcon, "showMessage", MagicMock())
+    open_url = MagicMock()
+    monkeypatch.setattr(QDesktopServices, "openUrl", open_url)
+    recopy_requested = MagicMock()
+    tray.recopy_requested.connect(recopy_requested)
+    tray.show_copy_completed("テスト")
+    tray.show_failure("delivery_failed", "理由")
+
+    # 実行
+    tray._icon.messageClicked.emit()
+
+    # 検証
+    open_url.assert_called_once_with(QUrl.fromLocalFile(str(tmp_path / "log")))
+    recopy_requested.assert_not_called()
 
 
 # === set_recording_window ===

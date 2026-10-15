@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 from voice_paste.features.transcription.types import EngineFn
@@ -14,19 +15,28 @@ logger = logging.getLogger(__name__)
 
 
 def transcribe(
-    audio_path: Path, on_progress: ProgressFn | None = None, *, engine: EngineFn
+    audio_path: Path,
+    on_progress: ProgressFn | None = None,
+    *,
+    engine: EngineFn,
+    get_hint: Callable[[], str | None],
 ) -> str:
-    """エンジンで録音を起こし、区間を改行でつなぐ。"""
+    """今の手がかりを添えてエンジンで録音を起こし、区間を改行でつなぐ。"""
     started = time.perf_counter()
 
-    # 1. エンジンで録音を起こす
+    # 1. 今の設定の手がかりを引く（起こすたびに引くので、保存した設定が次の確定から効く）
+    hint = get_hint()
+    if hint is not None:
+        logger.info(f"手がかりを渡す（{len(hint.encode('utf-8'))} バイト）")
+
+    # 2. エンジンに録音と手がかりを渡して起こす
     try:
-        segments = engine(audio_path, on_progress=on_progress)
+        segments = engine(audio_path, on_progress=on_progress, hint=hint)
     except EngineError as error:
         # エンジンの失敗: 理由を持たせた TranscriptionError にする
         raise TranscriptionError(f"文字起こしに失敗した（{error}）") from error
 
-    # 2. 区間ごとに前後の空白を除き、空になった区間を除いて改行でつなぐ
+    # 3. 区間ごとに前後の空白を除き、空になった区間を除いて改行でつなぐ
     kept = [segment.strip() for segment in segments if segment.strip()]
     text = "\n".join(kept)
     logger.info(

@@ -6,6 +6,9 @@ scenarios:
         description: なし（実機の Windows で実行）
       - name: 出力先
         description: 「貼り付けて送信」をオンにし、録音する で「貼り付けて送信」を選んだ
+      - name: Enter と一緒に押す修飾キー
+        description: 設定画面で Ctrl・Alt・Shift を全てオフにした（既定）
+        notes: '`outputs[paste_and_send]` の修飾キーの項目'
     flow: |-
       ```mermaid
       sequenceDiagram
@@ -60,20 +63,27 @@ scenarios:
         participant SVC as 常駐サービス
         participant OUT as 出力先（コピーのみ）
         participant CB as クリップボード
+        participant TRAY as トレイ
 
         SVC->>OUT: 起こした文字を渡す
         OUT->>CB: 起こした文字をコピーする
+        OUT->>TRAY: コピーの完了と起こした文字を知らせる
+        TRAY->>TRAY: コピーの完了の通知を出す
         Note over SVC: 待機中に戻すのは 正常シナリオ と同じ
       ```
     expected:
       - クリップボードに起こした文字が入っている
       - 貼り付けのキーも Enter も送られていない
+      - トレイからコピーの完了の通知が出ている
   - name: 正常シナリオ（ブラウザ添付のプリセット）
     setup:
       - name: Mock
         description: なし（実機の Windows と Microsoft Edge で実行）
       - name: プリセット
         description: 種類「ブラウザ添付」・Enter まで送るをオンにしたプリセットを 1 つ足し、録音する でそのプリセットを選んだ
+      - name: Enter と一緒に押す修飾キー
+        description: 設定画面の「貼り付けて送信」で Ctrl をオンにした（ブラウザ添付のプリセットには当てない）
+        notes: '`outputs[paste_and_send]` の修飾キーの項目'
     flow: |-
       ```mermaid
       sequenceDiagram
@@ -92,6 +102,7 @@ scenarios:
     expected:
       - プリセットの URL の画面がアプリのウィンドウとして開いている
       - その画面の入力欄に起こした文字が入り、送信されている
+      - Enter は修飾キーを押さずに送られている
   - name: 正常シナリオ（呼び出し元へ返す）
     setup:
       - name: Mock
@@ -377,6 +388,56 @@ scenarios:
       - 連続録音は止まっていない
     notes:
       再送の回数と間: 再送の回数・間・タイムアウトは 1 回の録音の返送と同じ非機能要件の値を使う。
+  - name: 正常シナリオ（Enter と一緒に修飾キーを押す）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 出力先
+        description: 「貼り付けて送信」をオンにし、録音する で「貼り付けて送信」を選んだ
+      - name: Enter と一緒に押す修飾キー
+        description: 設定画面で Ctrl をオンにし、Alt・Shift をオフにした
+        notes: '`outputs[paste_and_send]` の修飾キーの項目'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant OUT as 出力先（貼り付けて送信）
+        participant CB as クリップボード
+        participant TGT as 貼り付け先のアプリ
+
+        SVC->>OUT: 起こした文字を渡す
+        OUT->>CB: 起こした文字をコピーする
+        OUT->>TGT: 貼り付けのキーを送る
+        OUT->>TGT: 設定の間を置いて、Ctrl を押したまま Enter を送る
+        Note over SVC: 待機中に戻すのは 正常シナリオ と同じ
+      ```
+    expected:
+      - 貼り付け先の入力欄に起こした文字が入り、Ctrl+Enter が送られている
+      - Enter を送り終えた後、Ctrl が押されたままになっていない
+      - クリップボードに起こした文字が入っている
+  - name: 正常シナリオ（コピーの完了の通知を押してコピーし直す）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 出力先
+        description: 「コピーのみ」をオンにし、録音する で「コピーのみ」を選んで届け、コピーの完了の通知が出ている
+      - name: クリップボードの上書き
+        description: 通知が出ている間に、ほかのアプリで別の文字をクリップボードへコピーした
+        notes: 起こした文字と重ならない文字にする
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor USER as ユーザー
+        participant TRAY as トレイ
+        participant CB as クリップボード
+
+        USER->>TRAY: コピーの完了の通知を押す
+        TRAY->>CB: その通知のときに起こした文字をコピーし直す
+      ```
+    expected:
+      - クリップボードに、上書きした文字ではなく起こした文字が入っている
+      - ログフォルダは開かれていない
+      - 貼り付けのキーも Enter も送られていない
 lead: 起こした文字を、ホットキーから始めた録音は選んだ出力先へ、API から始めた録音は呼び出し元のエンドポイントへ届ける単一ユースケース。
 issue: 14
 primary_actor: 音声入力を使うユーザー
@@ -393,3 +454,7 @@ notes:
     録音と起こした文字は履歴に残っている。
     実機で決定的に起こせないため、シナリオにはしていない。
   E2E のテスト: 全シナリオが録音を始め、実機のマイクを開くため、E2E のテストを置かない（#65）。録音から届けるまでは、複合ユースケース「声で入力した文字を貼り付ける」「ほかのシステムから録音を文字に起こす」の E2E が、録音のファイルを内部で渡して確かめる
+  コピーし直せないとき: |-
+    コピーの完了の通知を押してもクリップボードに書けないときは、届けられなかったことをトレイの通知で知らせ、ログに理由を書く。
+    実機で決定的に起こせないため、シナリオにはしていない。
+    通知は数秒で畳まれ通知センターに残らないため、畳まれた後はコピーし直せない（Win+V のクリップボードの履歴で代える）。

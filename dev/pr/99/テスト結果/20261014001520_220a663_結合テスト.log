@@ -1,0 +1,48 @@
+実行した commit: 220a663
+実行したコマンド: venv/Scripts/python.exe -m pytest {ファイル}（tests/integration の直下の 8 ファイルと tests/integration/ui の 6 ファイルを、ファイルごとに別のプロセスで流した。worktree に venv が無いため、メインの venv に PYTHONPATH={worktree}/src を渡して実行した）
+
+=== tests/integration/test_complete_session.py
+.........                                                                [100%]
+9 passed in 5.59s
+=== tests/integration/test_deliver_to_caller.py
+...........                                                              [100%]
+11 passed in 9.08s
+=== tests/integration/test_deliver_to_endpoint.py
+...                                                                      [100%]
+3 passed in 2.35s
+=== tests/integration/test_deliver_to_output.py
+......                                                                   [100%]
+6 passed in 0.15s
+=== tests/integration/test_settings_migration.py
+.                                                                        [100%]
+1 passed in 0.04s
+=== tests/integration/test_start_session.py
+.........                                                                [100%]
+9 passed in 4.63s
+=== tests/integration/test_stop_session.py
+........                                                                 [100%]
+8 passed in 4.45s
+=== tests/integration/test_truncate_session.py
+...                                                                      [100%]
+3 passed in 2.28s
+=== tests/integration/ui/test_busy_dialog.py
+..........                                                               [100%]
+10 passed in 0.07s
+=== tests/integration/ui/test_recording_window.py
+........................................................................ [ 78%]
+....................                                                     [100%]
+92 passed in 49.42s
+=== tests/integration/ui/test_settings_window.py
+........................................................................ [ 38%]
+........................................................................ [ 76%]
+............................................                             [100%]
+188 passed in 11.72s
+=== tests/integration/ui/test_transcribing_indicator.py
+.........................                                                [100%]
+25 passed in 0.43s
+=== tests/integration/ui/test_tray.py
+..............................................                           [100%]
+46 passed in 3.00s
+=== tests/integration/ui/test_tray_notification.py
+.................                                                        [100%]
+17 passed in 0.18s

@@ -130,7 +130,13 @@ def install_wiring(
     session_manager = MagicMock()
     session_manager.close.side_effect = _record("session_manager.close")
 
-    def _build(settings: object, paths: object, notify: object, report_progress: object) -> Handlers:
+    def _build(
+        settings: object,
+        paths: object,
+        notify: object,
+        report_progress: object,
+        notify_copied: object,
+    ) -> Handlers:
         """配線済みの関数の束を、偽物で作る。"""
         return Handlers(
             session_manager=session_manager,
@@ -664,6 +670,7 @@ def _make_output_deps(adapters: MagicMock, get_settings: Callable[[], Settings])
         jitter=adapters.jitter,
         post=adapters.post_json,
         get_settings=get_settings,
+        notify_copied=adapters.notify_copied,
     )
 
 
@@ -717,7 +724,7 @@ def test_wire_outputs_when_settings_changed(settings_model: type[Settings]) -> N
     # 配線の後に設定を差し替える
     get_settings.return_value = settings_model(
         keyboard=KeyboardSettings(paste_key="<ctrl>+<alt>+v"),
-        outputs=[PasteAndSendSettings(enter_delay_sec=1.0)],
+        outputs=[PasteAndSendSettings(enter_delay_sec=1.0, enter_modifiers=["ctrl"])],
     )
 
     # 実行
@@ -726,6 +733,7 @@ def test_wire_outputs_when_settings_changed(settings_model: type[Settings]) -> N
     # 検証
     adapters.send_paste.assert_called_once_with("<ctrl>+<alt>+v")
     adapters.sleep.assert_called_once_with(1.0)
+    adapters.send_enter.assert_called_once_with(("ctrl",))
 
 
 def test_wire_outputs_when_registered_output(settings_model: type[Settings]) -> None:
@@ -1012,7 +1020,12 @@ def test_apply_settings(tmp_path: Path, settings_model: type[Settings]) -> None:
 
     # 実行
     restart_needed = apply_settings(
-        new_settings, settings_file=settings_file, store=store, check_hotkeys=check_hotkeys
+        new_settings,
+        {},
+        settings_file=settings_file,
+        store=store,
+        check_hotkeys=check_hotkeys,
+        save_glossary=MagicMock(),
     )
 
     # 検証
@@ -1044,7 +1057,12 @@ def test_apply_settings_when_restart_item_changed(
 
     # 実行
     restart_needed = apply_settings(
-        new_settings, settings_file=settings_file, store=store, check_hotkeys=MagicMock()
+        new_settings,
+        {},
+        settings_file=settings_file,
+        store=store,
+        check_hotkeys=MagicMock(),
+        save_glossary=MagicMock(),
     )
 
     # 検証
@@ -1066,14 +1084,88 @@ def test_apply_settings_when_hotkey_unavailable(
     settings_before = settings_file.read_bytes()
     store = SettingsStore(previous_settings)
     check_hotkeys = MagicMock(side_effect=HotkeyError("<ctrl>+<nokey> を読めない"))
+    save_glossary = MagicMock()
 
     # 実行・検証
     with pytest.raises(HotkeyError):
         apply_settings(
             settings_model(hotkeys=HotkeySettings(start="<ctrl>+<nokey>")),
+            {},
             settings_file=settings_file,
             store=store,
             check_hotkeys=check_hotkeys,
+            save_glossary=save_glossary,
+        )
+    assert settings_file.read_bytes() == settings_before
+    assert store.get() == previous_settings
+    save_glossary.assert_not_called()
+
+
+def test_apply_settings_when_glossary_rows(tmp_path: Path, settings_model: type[Settings]) -> None:
+    """渡した用語集の CSV だけを書く（正常系）。"""
+    from voice_paste.main import apply_settings
+    from voice_paste.runtime.settings_store import SettingsStore
+    from voice_paste.shared.settings import GlossarySettings, load_settings
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（2 件の glossaries を持つ設定と、1 件目の場所だけを持つ glossary_rows）
+    settings_file = tmp_path / "settings.toml"
+    store = SettingsStore(load_settings(settings_file, settings_model))
+    first_path = tmp_path / "glossaries" / "glossary_1.csv"
+    second_path = tmp_path / "glossaries" / "glossary_2.csv"
+    new_settings = settings_model(
+        glossaries=[
+            GlossarySettings(name="yogo", path=first_path),
+            GlossarySettings(name="会議用", path=second_path),
+        ]
+    )
+    rows = [GlossaryEntry(wrong="あ", right="A", enabled=False)]
+    save_glossary = MagicMock()
+
+    # 実行
+    apply_settings(
+        new_settings,
+        {first_path: rows},
+        settings_file=settings_file,
+        store=store,
+        check_hotkeys=MagicMock(),
+        save_glossary=save_glossary,
+    )
+
+    # 検証
+    save_glossary.assert_called_once_with(first_path, rows)
+    written = load_settings(settings_file, settings_model)
+    assert [glossary.name for glossary in written.glossaries] == ["yogo", "会議用"]
+    assert store.get() == new_settings
+
+
+def test_apply_settings_when_glossary_write_fails(
+    tmp_path: Path, settings_model: type[Settings]
+) -> None:
+    """用語集の CSV を書けなければ、設定を書かず入れ替えない（異常系）。"""
+    from voice_paste.main import apply_settings
+    from voice_paste.runtime.settings_store import SettingsStore
+    from voice_paste.shared.settings import GlossarySettings, load_settings
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（save_glossary が OSError を送出する glossary_rows）
+    settings_file = tmp_path / "settings.toml"
+    previous_settings = load_settings(settings_file, settings_model)
+    settings_before = settings_file.read_bytes()
+    store = SettingsStore(previous_settings)
+    glossary_path = tmp_path / "glossaries" / "glossary_1.csv"
+    new_settings = settings_model(glossaries=[GlossarySettings(name="yogo", path=glossary_path)])
+    save_glossary = MagicMock(side_effect=OSError("disk full"))
+
+    # 実行・検証
+    with pytest.raises(OSError, match="disk full"):
+        apply_settings(
+            new_settings,
+            {glossary_path: [GlossaryEntry(wrong="あ", right="A")]},
+            settings_file=settings_file,
+            store=store,
+            check_hotkeys=MagicMock(),
+            save_glossary=save_glossary,
         )
     assert settings_file.read_bytes() == settings_before
     assert store.get() == previous_settings

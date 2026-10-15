@@ -1,4 +1,4 @@
-"""ui/controller.py（UiController の on_notified・request_exit・open_settings・hide_recording・show_recording・eventFilter）の単体テスト。
+"""ui/controller.py（UiController の on_notified・on_copied・recopy・request_exit・open_settings・hide_recording・show_recording・eventFilter）の単体テスト。
 
 UiDeps の関数・トレイ・録音の画面・文字起こし中の表示は Mock に差し替える（設定画面だけは本物を開く）。
 画面を使うため offscreen の QApplication（conftest の qapp）で動かす。
@@ -6,9 +6,10 @@ UiDeps の関数・トレイ・録音の画面・文字起こし中の表示は 
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -16,6 +17,7 @@ from PySide6.QtCore import QEvent, QPoint, QTimer
 from PySide6.QtWidgets import QSlider, QWidget
 
 from tests.unit.voice_paste.ui.helpers import make_session, make_ui_deps
+from voice_paste.shared.errors import DeliveryError
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QApplication
@@ -41,11 +43,13 @@ class Parts:
     indicator: MagicMock
 
 
-def _make_controller(tmp_path: Path, *, settings: Settings | None = None) -> Parts:
-    """UiDeps の関数・トレイ・録音の画面・文字起こし中の表示を Mock にした UiController を作る。"""
+def _make_controller(
+    tmp_path: Path, *, settings: Settings | None = None, **deps_overrides: Any
+) -> Parts:
+    """UiDeps の関数・トレイ・録音の画面・文字起こし中の表示を Mock にした UiController を作る。deps_overrides は UiDeps の項目ごとの差し替え。"""
     from voice_paste.ui.controller import UiController
 
-    deps = make_ui_deps(tmp_path, settings=settings)
+    deps = make_ui_deps(tmp_path, settings=settings, **deps_overrides)
     tray = MagicMock()
     recording_window = MagicMock()
     indicator = MagicMock()
@@ -240,6 +244,57 @@ def test_on_notified_when_transcribing_without_move(qapp: QApplication, tmp_path
     parts.indicator.open.assert_called_once_with(at=None)
 
 
+# === on_copied ===
+
+
+def test_on_copied(qapp: QApplication, tmp_path: Path) -> None:
+    """コピーの完了をトレイの通知で知らせる（正常系）。"""
+    # 準備
+    parts = _make_controller(tmp_path)
+
+    # 実行
+    parts.controller.on_copied("テスト")
+
+    # 検証
+    parts.tray.show_copy_completed.assert_called_once_with("テスト")
+
+
+# === recopy ===
+
+
+def test_recopy(qapp: QApplication, tmp_path: Path) -> None:
+    """起こした文字をコピーし直す（正常系）。"""
+    # 準備
+    parts = _make_controller(tmp_path)
+
+    # 実行
+    parts.controller.recopy("テスト")
+
+    # 検証
+    parts.deps.copy.assert_called_once_with("テスト")
+    parts.tray.show_failure.assert_not_called()
+
+
+def test_recopy_when_copy_failed(
+    qapp: QApplication, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """コピーし直せなければ届けられなかったことを知らせる（異常系）。"""
+    # 準備
+    caplog.set_level(logging.ERROR)
+    copy = MagicMock(side_effect=DeliveryError("クリップボードへ書けませんでした"))
+    parts = _make_controller(tmp_path, copy=copy)
+
+    # 実行
+    parts.controller.recopy("テスト")
+
+    # 検証
+    parts.tray.show_failure.assert_called_once_with(
+        "delivery_failed", "クリップボードへ書けませんでした"
+    )
+    errors = [record for record in caplog.records if record.levelno == logging.ERROR]
+    assert len(errors) == 1
+
+
 # === request_exit ===
 
 
@@ -306,6 +361,26 @@ def test_open_settings_when_already_open(qapp: QApplication, tmp_path: Path) -> 
     assert parts.controller._settings_window is first_window
     parts.deps.suspend_hotkeys.assert_called_once()
     first_window.try_close()
+
+
+# === on_settings_saved ===
+
+
+def test_on_settings_saved(qapp: QApplication, tmp_path: Path) -> None:
+    """保存したら明暗を当て直す（正常系）。"""
+    from voice_paste.main import SETTINGS_MODEL
+
+    # 準備: ui.theme=dark の設定が効いている
+    settings = SETTINGS_MODEL.model_validate({"ui": {"theme": "dark"}})
+    apply_theme = MagicMock(return_value=None)
+    parts = _make_controller(tmp_path, settings=settings, apply_theme=apply_theme)
+
+    # 実行
+    parts.controller.on_settings_saved()
+
+    # 検証
+    apply_theme.assert_called_once_with()
+    parts.tray.set_start_hotkey.assert_called_once_with(settings.hotkeys.start)
 
 
 # === hide_recording ===

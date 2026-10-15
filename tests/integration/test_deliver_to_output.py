@@ -33,7 +33,35 @@ def test_normal_when_paste_and_send(output_stack: Callable[[Settings | None], Ou
         call.copy_to_clipboard("てすと"),
         call.send_paste("<ctrl>+v"),
         call.sleep(0.5),
-        call.send_enter(),
+        call.send_enter(()),
+    ]
+    assert "delivery_failed" not in stack.events()
+
+
+def test_normal_when_enter_modifiers(
+    output_stack: Callable[[Settings | None], OutputStack],
+) -> None:
+    """貼り付けて送信で Ctrl をオンにして確定すると、待った後に Ctrl を押したまま Enter を送る（正常系）。"""
+    # 準備
+    settings = SETTINGS_MODEL(
+        outputs=[
+            PasteAndSendSettings(enter_modifiers=["ctrl"]),
+            PasteOnlySettings(),
+            CopyOnlySettings(),
+        ]
+    )
+    stack = output_stack(settings)
+
+    # 実行
+    stack.confirm("paste_and_send")
+
+    # 検証
+    assert stack.wait_for_idle()
+    assert stack.adapters.mock_calls == [
+        call.copy_to_clipboard("てすと"),
+        call.send_paste("<ctrl>+v"),
+        call.sleep(0.5),
+        call.send_enter(("ctrl",)),
     ]
     assert "delivery_failed" not in stack.events()
 
@@ -45,6 +73,38 @@ def test_normal_when_browser_preset(
     # 準備
     preset = BrowserPreset(title="ChatGPT", url=CHAT_URL)
     stack = output_stack(SETTINGS_MODEL(presets=[preset]))
+
+    # 実行
+    stack.confirm(preset=preset)
+
+    # 検証
+    assert stack.wait_for_idle()
+    assert stack.adapters.mock_calls == [
+        call.copy_to_clipboard("てすと"),
+        call.open_app_window(CHAT_URL),
+        call.sleep(3.0),
+        call.send_paste("<ctrl>+v"),
+        call.sleep(0.5),
+        call.send_enter(),
+    ]
+    assert "delivery_failed" not in stack.events()
+
+
+def test_normal_when_browser_preset_and_enter_modifiers(
+    output_stack: Callable[[Settings | None], OutputStack],
+) -> None:
+    """貼り付けて送信で Ctrl をオンにしていても、ブラウザ添付のプリセットは修飾キーなしで Enter を送る（正常系）。"""
+    # 準備
+    preset = BrowserPreset(title="ChatGPT", url=CHAT_URL)
+    settings = SETTINGS_MODEL(
+        presets=[preset],
+        outputs=[
+            PasteAndSendSettings(enter_modifiers=["ctrl"]),
+            PasteOnlySettings(),
+            CopyOnlySettings(),
+        ],
+    )
+    stack = output_stack(settings)
 
     # 実行
     stack.confirm(preset=preset)

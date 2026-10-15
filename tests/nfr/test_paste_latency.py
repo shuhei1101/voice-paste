@@ -138,6 +138,7 @@ def test_paste_latency(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         resolve_app_paths(tmp_path),
         lambda *_args, **_kwargs: None,
         lambda *_args, **_kwargs: None,
+        lambda *_args, **_kwargs: None,
     )
     original_clipboard = pyperclip.paste()
     elapsed_list: list[float] = []

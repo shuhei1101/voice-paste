@@ -9,7 +9,7 @@ import random
 import signal
 import sys
 import time
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from functools import partial
@@ -18,7 +18,15 @@ from pathlib import Path
 from PySide6.QtCore import QMetaObject, Qt, QTimer
 from PySide6.QtWidgets import QApplication
 
-from voice_paste.features.correction import apply_glossary, load_glossary
+from voice_paste.features.correction import (
+    apply_glossary,
+    load_glossary,
+    next_glossary_path,
+    pick_active_glossary,
+    read_glossary_rows,
+    resolve_glossaries,
+    save_glossary,
+)
 from voice_paste.features.history import (
     append_text,
     discard_temporary,
@@ -77,13 +85,14 @@ from voice_paste.shared.settings import (
     Preset,
     Settings,
     build_settings_model,
+    join_hint_words,
     load_settings,
     save_settings,
 )
-from voice_paste.shared.types import Entry, ProgressFn, TranscriptionOutcome
-from voice_paste.ui.bridge import UiBridge, notify, report_progress
+from voice_paste.shared.types import Entry, GlossaryEntry, ProgressFn, TranscriptionOutcome
+from voice_paste.ui.bridge import UiBridge, notify, notify_copied, report_progress
 from voice_paste.ui.controller import UiController, UiDeps
-from voice_paste.ui.style import build_stylesheet, is_dark_theme
+from voice_paste.ui.style import apply_theme
 from voice_paste.ui.tray import Tray, TrayState
 from voice_paste.ui.windows.recording_window import RecordingWindow
 from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
@@ -114,8 +123,8 @@ WORKER_READY_TIMEOUT_SEC: float = 27.0
 WORKER_STOP_TIMEOUT_SEC: float = 2.0
 """文字起こしワーカーの終わりを待つ時間。非機能要件の文字起こしワーカーの終わりを待つ時間の決定値。"""
 
-GLOSSARY_FILE_NAME: str = "yogo.csv"
-"""用語集のパスを設定しないときに、設定ファイルと同じフォルダから読む用語集の名前。"""
+GLOSSARIES_DIR_NAME: str = "glossaries"
+"""設定画面で足した用語集の CSV を置く、settings.toml と同じフォルダの下のフォルダの名前。"""
 
 ACCEPT_INJECTED_HOTKEYS_ENV: str = "VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS"
 """`1` のときだけ、ソフトウェアで送ったキーもホットキーとして受ける環境変数（E2E の起動で付ける）。"""
@@ -224,9 +233,17 @@ def _jitter(upper: float) -> float:
     return random.uniform(0, upper)  # noqa: S311 暗号用途ではない
 
 
-def _correct(text: str, *, glossary_path: Path) -> str:
-    """文字起こしのたびに用語集を読み直して補正する。"""
-    return apply_glossary(text, load_glossary(glossary_path))
+def _correct(text: str, *, settings: Settings, settings_dir: Path) -> str:
+    """文字起こしのたびに、補正に使う用語集を引いて読み直して補正する。"""
+    glossary = pick_active_glossary(settings, settings_dir)
+    entries = load_glossary(glossary.path)
+    logger.info(f"用語集で補正する（{glossary.name}・補正に使う {len(entries)} 行）")
+    return apply_glossary(text, entries)
+
+
+def _current_hint(store: SettingsStore) -> str | None:
+    """今の設定の有効なヒントの語を読点でつないだ手がかりを返す。有効な語が無ければ None を返す。"""
+    return join_hint_words(store.get().hint_presets) or None
 
 
 def _deliver_session(
@@ -311,13 +328,12 @@ def _wire_preset_kinds(get_settings: Callable[[], Settings]) -> tuple[PresetKind
     )
 
 
-def _glossary_path(settings: Settings, paths: AppPaths) -> Path:
-    """設定の用語集の CSV を返す（設定していなければ、設定ファイルと同じフォルダの用語集）。"""
-    return settings.glossary_path or paths.settings_file.parent / GLOSSARY_FILE_NAME
-
-
 def build_handlers(
-    settings: Settings, paths: AppPaths, notify: NotifyFn, report_progress: ProgressFn
+    settings: Settings,
+    paths: AppPaths,
+    notify: NotifyFn,
+    report_progress: ProgressFn,
+    notify_copied: Callable[[str], None],
 ) -> Handlers:
     """設定からエンジン・録音機・出力先・履歴を組み立て、SessionDeps を作って SessionManager と SessionApiDeps を返す。"""
     # 1. 設定を SettingsStore に入れる。以降の配線は設定を値でなく SettingsStore.get から読む
@@ -360,6 +376,7 @@ def build_handlers(
         jitter=_jitter,
         post=post_json,
         get_settings=store.get,
+        notify_copied=notify_copied,
     )
     wired_outputs = _wire_outputs(output_deps, OUTPUTS)
     wired_preset_kinds = _wire_preset_kinds(store.get)
@@ -377,8 +394,8 @@ def build_handlers(
 
     # 6. 用語集を文字起こしのたびに読み直す補正を作る（読む場所もそのたびに設定から決める）
     def correct(text: str) -> str:
-        """今の設定の用語集で補正する。"""
-        return _correct(text, glossary_path=_glossary_path(store.get(), paths))
+        """今の設定の、補正に使う用語集で補正する。"""
+        return _correct(text, settings=store.get(), settings_dir=paths.settings_file.parent)
 
     # 7. SessionDeps を組み、API のセッションの上限時間と連続録音の上限時間（起動時の設定。再起動で効く）と共に SessionManager を作る
     deps = SessionDeps(
@@ -393,7 +410,9 @@ def build_handlers(
             paths=paths,
             now=_local_now,
         ),
-        transcribe=partial(transcribe, engine=engine.transcribe),
+        transcribe=partial(
+            transcribe, engine=engine.transcribe, get_hint=partial(_current_hint, store)
+        ),
         correct=correct,
         append_text=partial(append_text, paths=paths),
         deliver=deliver_session,
@@ -521,24 +540,34 @@ def build_hotkey_bindings(
 
 def apply_settings(
     settings: Settings,
+    glossary_rows: Mapping[Path, Sequence[GlossaryEntry]],
     *,
     settings_file: Path,
     store: SettingsStore,
     check_hotkeys: Callable[[Iterable[str]], None],
+    save_glossary: Callable[[Path, Sequence[GlossaryEntry]], None],
 ) -> bool:
-    """設定画面で確かめた設定を settings.toml へ書き、反映が immediate の項目を動いている常駐アプリに効かせる。
+    """設定画面で確かめた設定と行を変えた用語集の CSV を書き、反映が immediate の項目を動いている常駐アプリに効かせる。
 
     新しい設定のホットキーを pynput が読めなければ、何も書かず入れ替えずに HotkeyError を送出する。
+    用語集の CSV か settings.toml を書けなければ OSError のまま伝え、SettingsStore は入れ替えない。
     """
     # 1. 新しい設定で受け付けるホットキーを確かめる
     check_hotkeys(_collect_hotkeys(settings))
 
-    # 2. settings.toml へ書く（書けなければ OSError のまま伝え、SettingsStore は入れ替えない）
+    # 2. glossary_rows の用語集の CSV を書く（書けなければ OSError のまま伝える。先に書けた CSV は戻さない）
+    for glossary_path, rows in glossary_rows.items():
+        save_glossary(glossary_path, rows)
+
+    # 3. settings.toml へ書く（書けなければ OSError のまま伝え、SettingsStore は入れ替えない）
     restart_needed = save_settings(settings_file, settings)
 
-    # 3. SettingsStore を入れ替える（ホットキーは設定画面が閉じたときに今の設定で張り直す）
+    # 4. SettingsStore を入れ替える（ホットキーは設定画面が閉じたときに今の設定で張り直す）
     store.replace(settings)
-    logger.info(f"設定を保存した（{settings_file}・再起動が要る: {restart_needed}）")
+    logger.info(
+        f"設定を保存した（{settings_file}・再起動が要る: {restart_needed}・"
+        f"書いた用語集の CSV: {len(glossary_rows)} 件）"
+    )
     return restart_needed
 
 
@@ -550,11 +579,12 @@ def _output_titles() -> dict[str, str]:
 def build_ui_deps(
     handlers: Handlers,
     paths: AppPaths,
-    save_settings: Callable[[Settings], bool],
+    save_settings: Callable[[Settings, Mapping[Path, Sequence[GlossaryEntry]]], bool],
     request_restart: Callable[[], None],
     request_quit: Callable[[], None],
     hotkey_listener: HotkeyListener,
     show_recording_window: Callable[[], None],
+    apply_theme: Callable[[], None],
 ) -> UiDeps:
     """Handlers と置き場所から、画面・トレイが呼ぶ UiDeps を組む。"""
     session_manager = handlers.session_manager
@@ -588,12 +618,30 @@ def build_ui_deps(
         suspend_hotkeys=hotkey_listener.stop,
         resume_hotkeys=resume_hotkeys,
         output_titles=_output_titles(),
+        apply_theme=apply_theme,
+        list_glossaries=lambda: resolve_glossaries(store.get(), paths.settings_file.parent),
+        read_glossary=read_glossary_rows,
+        new_glossary_path=partial(
+            next_glossary_path, directory=paths.settings_file.parent / GLOSSARIES_DIR_NAME
+        ),
+        copy=copy_to_clipboard,
     )
+
+
+def _apply_current_theme(app: QApplication, get_settings: Callable[[], Settings]) -> None:
+    """今の設定の ui.theme で画面の明暗を当て直す。"""
+    apply_theme(app, get_settings().ui.theme)
+
+
+def _watch_system_theme(app: QApplication, reapply: Callable[[], None]) -> None:
+    """OS の明暗が変わったときに、画面の明暗を当て直す（ui.theme が system のときに配色が替わる）。"""
+    app.styleHints().colorSchemeChanged.connect(lambda _scheme: reapply())
 
 
 def _build_idle_ui_deps(
     settings: Settings,
     paths: AppPaths,
+    app: QApplication,
     request_restart: Callable[[], None],
     request_quit: Callable[[], None],
 ) -> UiDeps:
@@ -617,6 +665,7 @@ def _build_idle_ui_deps(
             settings_file=paths.settings_file,
             store=store,
             check_hotkeys=validate_hotkeys,
+            save_glossary=save_glossary,
         ),
         settings_dir=paths.settings_file.parent,
         log_dir=paths.log_dir,
@@ -625,6 +674,13 @@ def _build_idle_ui_deps(
         suspend_hotkeys=do_nothing,
         resume_hotkeys=do_nothing,
         output_titles=_output_titles(),
+        apply_theme=partial(_apply_current_theme, app, store.get),
+        list_glossaries=lambda: resolve_glossaries(store.get(), paths.settings_file.parent),
+        read_glossary=read_glossary_rows,
+        new_glossary_path=partial(
+            next_glossary_path, directory=paths.settings_file.parent / GLOSSARIES_DIR_NAME
+        ),
+        copy=copy_to_clipboard,
     )
 
 
@@ -747,14 +803,14 @@ def _run_service(
     )
     bridge = UiBridge()
     tray = Tray(paths.settings_file.parent, paths.log_dir)
-    app.setStyleSheet(build_stylesheet(is_dark_theme()))
+    apply_theme(app, "system")
     tray.set_state(TrayState.STARTING, busy=False)
     wake_timer = _install_signal_handlers(app)
     exit_request = _ExitRequest(app)
     running = _Running()
 
     try:
-        _start_services(bridge, tray, paths, exit_request, running)
+        _start_services(app, bridge, tray, paths, exit_request, running)
         # 12. イベントループを回す
         exec_loop(app)
     finally:
@@ -766,6 +822,7 @@ def _run_service(
 
 
 def _start_services(
+    app: QApplication,
     bridge: UiBridge,
     tray: Tray,
     paths: AppPaths,
@@ -775,6 +832,7 @@ def _start_services(
     """設定を読み、配線し、画面・API・ホットキー・上限のタイマーを立てる。立てたものは running に入れる。"""
     ui_notify = partial(notify, bridge=bridge)
     ui_report_progress = partial(report_progress, bridge=bridge)
+    ui_notify_copied = partial(notify_copied, bridge=bridge)
     show_recording_window = partial(notify, "show_recording_window", bridge=bridge)
 
     # 5. 設定を読む（読めなければトレイを失敗にして知らせ、設定を直して再起動できるようにする）
@@ -788,7 +846,8 @@ def _start_services(
         tray.quit_requested.connect(exit_request.request_quit)
         return
 
-    # 6. ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を消す（処理中のセッションは無いため、一時の音声も全て消す対象にする）
+    # 6. 設定の ui.theme で画面の明暗を当て直し、ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を消す（処理中のセッションは無いため、一時の音声も全て消す対象にする）
+    apply_theme(app, settings.ui.theme)
     logging.getLogger().setLevel(settings.logging.level)
     purge_old_files(settings, paths=paths, active_session_ids=set)
     enabled_outputs = [output.id for output in settings.outputs if output.enabled]
@@ -799,13 +858,14 @@ def _start_services(
 
     # 7. 配線する（エンジンを準備できなければトレイを失敗にして知らせ、設定画面だけを使えるようにする）
     try:
-        handlers = build_handlers(settings, paths, ui_notify, ui_report_progress)
+        handlers = build_handlers(settings, paths, ui_notify, ui_report_progress, ui_notify_copied)
     except StartupError as error:
         logger.error(f"起動に失敗した（{error}）")
         tray.set_failed()
         deps = _build_idle_ui_deps(
-            settings, paths, exit_request.request_restart, exit_request.request_quit
+            settings, paths, app, exit_request.request_restart, exit_request.request_quit
         )
+        _watch_system_theme(app, deps.apply_theme)
         running.controller = _build_controller(bridge, tray, deps)
         tray.show_failure("engine_unavailable", str(error))
         return
@@ -822,6 +882,7 @@ def _start_services(
         settings_file=paths.settings_file,
         store=handlers.settings_store,
         check_hotkeys=validate_hotkeys,
+        save_glossary=save_glossary,
     )
     deps = build_ui_deps(
         handlers,
@@ -831,7 +892,9 @@ def _start_services(
         exit_request.request_quit,
         hotkey_listener,
         show_recording_window,
+        partial(_apply_current_theme, app, handlers.settings_store.get),
     )
+    _watch_system_theme(app, deps.apply_theme)
     running.controller = _build_controller(bridge, tray, deps)
 
     # 8. トークンを作り、API サーバーを起動する
@@ -889,5 +952,6 @@ def _build_controller(bridge: UiBridge, tray: Tray, deps: UiDeps) -> UiControlle
     )
     bridge.notified.connect(controller.on_notified, Qt.ConnectionType.QueuedConnection)
     bridge.progressed.connect(controller.on_progressed, Qt.ConnectionType.QueuedConnection)
+    bridge.copied.connect(controller.on_copied, Qt.ConnectionType.QueuedConnection)
     tray.set_start_hotkey(deps.get_settings().hotkeys.start)
     return controller

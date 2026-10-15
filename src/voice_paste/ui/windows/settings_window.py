@@ -6,14 +6,13 @@ import html
 import logging
 import re
 from collections.abc import Callable, Mapping
-from typing import TYPE_CHECKING, Any, Literal, get_args, get_origin
+from typing import TYPE_CHECKING, Any, Literal, TypeAliasType, get_args, get_origin
 
 from pydantic import ValidationError
 from pydantic.fields import FieldInfo
 from PySide6.QtCore import QEvent, QKeyCombination, Qt, Signal
-from PySide6.QtGui import QCloseEvent, QKeyEvent
+from PySide6.QtGui import QAccessible, QAccessibleAnnouncementEvent, QCloseEvent, QKeyEvent
 from PySide6.QtWidgets import (
-    QFileDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -29,6 +28,14 @@ from PySide6.QtWidgets import (
 
 from voice_paste.shared.errors import HotkeyError
 from voice_paste.shared.settings import (
+    GLOSSARIES_FIELD_NAME,
+    GLOSSARY_NAME_OVERLAP_ERROR_TYPE,
+    HINT_MAX_BYTES,
+    HINT_PRESET_NAME_OVERLAP_ERROR_TYPE,
+    HINT_PRESETS_FIELD_NAME,
+    HINT_TOO_LONG_ERROR_TYPE,
+    HINT_WORD_EMPTY_ERROR_TYPE,
+    HINT_WORD_SEPARATOR_ERROR_TYPE,
     HOTKEY_OVERLAP_ERROR_TYPE,
     OUTPUTS_FIELD_NAME,
     PRESETS_FIELD_NAME,
@@ -42,9 +49,11 @@ from voice_paste.ui.windows.settings_fields import (
     SLIDER_MAX,
     WHISPER_MODEL_CHOICES,
     Field,
+    checked_choices,
     connect_changed,
     key_tokens,
     make_check_box,
+    make_check_box_group,
     make_combo,
     make_line_edit,
     make_plain_text,
@@ -56,6 +65,12 @@ from voice_paste.ui.windows.settings_fields import (
     set_nested,
     value_at,
 )
+from voice_paste.ui.windows.settings_glossaries import (
+    ROW_ERROR_MESSAGES,
+    GlossaryField,
+    GlossaryPanel,
+)
+from voice_paste.ui.windows.settings_hints import HintPresetPanel
 from voice_paste.ui.windows.settings_presets import (
     PRESET_FIELD_LABELS,
     PRESET_MODELS,
@@ -82,6 +97,8 @@ GROUP_NAMES: tuple[str, ...] = (
     "ホットキー",
     "録音",
     "文字起こし",
+    "表記のヒント",
+    "用語集",
     "画面",
     "履歴とログ",
     "API",
@@ -116,9 +133,17 @@ FIELD_LAYOUT: dict[str, tuple[str, ...]] = {
         "transcription.local_whisper.vad_min_speech_ms",
         "transcription.local_whisper.vad_min_silence_ms",
         "transcription.local_whisper.condition_on_previous_text",
-        "glossary_path",
     ),
-    "画面": ("ui.topmost", "ui.follow_cursor", "ui.position", "ui.wave_gain"),
+    "表記のヒント": (HINT_PRESETS_FIELD_NAME,),
+    "用語集": (GLOSSARIES_FIELD_NAME,),
+    "画面": (
+        "ui.theme",
+        "ui.topmost",
+        "ui.follow_cursor",
+        "ui.position",
+        "ui.wave_gain",
+        "ui.show_hotkeys",
+    ),
     "履歴とログ": (
         "history.enabled",
         "history.retention_days",
@@ -150,6 +175,9 @@ OUTPUT_COMMON_FIELD_NAMES: frozenset[str] = frozenset(OutputSettingsBase.model_f
 
 OUTPUT_NOTE_KEY: str = "note"
 """項目の json_schema_extra で、欄の下に出す補助文を持つキー。"""
+
+CHOICE_LABELS_KEY: str = "choice_labels"
+"""項目の json_schema_extra のうち、リテラルの列挙の一覧のチェックボックスの名前（値 → 名前）を持つキー。"""
 
 MODIFIER_NAMES: dict[str, str] = {"ctrl": "Ctrl", "alt": "Alt", "shift": "Shift", "cmd": "Win"}
 """pynput の修飾キーの名前ごとの、画面の名前。"""
@@ -204,8 +232,32 @@ RANGE_ERROR_TYPES: frozenset[str] = frozenset(
 )
 """数値が範囲の外のときの失敗の種類。"""
 
+SAVED_HOTKEY_KEY: re.Pattern[str] = re.compile(
+    rf"^(hotkeys\.\w+|{OUTPUTS_FIELD_NAME}\[\d+\]\.hotkey|{PRESETS_FIELD_NAME}\.\w+\[\d+\]\.hotkey)$"
+)
+"""保存した知らせでホットキーが変わったかを見る欄のキー（録音のホットキー・出力先とプリセットの確定のホットキー。貼り付けに送るキーは含めない）。"""
+
 PRESET_KEY_PATTERN: re.Pattern[str] = re.compile(rf"^{PRESETS_FIELD_NAME}\[(\d+)\]\.(\w+)$")
 """プリセットの欄の失敗のキー（`presets[2].url`）を、設定の全体の中の添字と項目の名前に分ける。"""
+
+GLOSSARY_KEY_PATTERN: re.Pattern[str] = re.compile(
+    rf"^{GLOSSARIES_FIELD_NAME}\[(\d+)\]\.(?:(name)|rows\[(\d+)\]\.(wrong|right))$"
+)
+"""用語集の欄の失敗のキー（`glossaries[2].name`・`glossaries[2].rows[1].wrong`）を、何件目か・項目・何行目かに分ける。"""
+
+GLOSSARY_FIELD_LABELS: dict[str, str] = {"name": "名前", "wrong": "誤変換", "right": "正しい表記"}
+"""用語集の欄の名前（エラーの一覧に出す）。"""
+
+GLOSSARY_NAME_HINT: str = "別の名前にしてください。"
+"""名前が重なるときの欄の下の文言の末尾（エラーの一覧には出さない）。"""
+
+HINT_KEY_PATTERN: re.Pattern[str] = re.compile(
+    rf"^{HINT_PRESETS_FIELD_NAME}(?:\[(\d+)\]\.(?:(name)|words\[(\d+)\]))?$"
+)
+"""表記のヒントの欄の失敗のキー（`hint_presets`・`hint_presets[1].name`・`hint_presets[1].words[3]`）を、何件目か・項目・何つ目の語かに分ける。"""
+
+HINT_LENGTH_LABEL: str = "有効なヒントの長さ"
+"""有効なヒントの長さの失敗を、エラーの一覧に出す呼び方。"""
 
 PRESET_URL_EXAMPLE: str = "https://example.com/hook"
 """プリセットの URL が空のときの文言に出す例。"""
@@ -347,7 +399,23 @@ def to_field_message(
     if error_type in RANGE_ERROR_TYPES and info is not None:
         return _range_text(info)
     if error_type == "string_too_short":
+        # 用語集の名前の空は名前を、プリセットのタイトルの空はタイトルを入れてもらう
+        if error["loc"][:1] in ((GLOSSARIES_FIELD_NAME,), (HINT_PRESETS_FIELD_NAME,)):
+            return "名前を入れてください。"
         return "タイトルを入れてください。"
+    if error_type == GLOSSARY_NAME_OVERLAP_ERROR_TYPE:
+        return f"用語集「{error['ctx']['name']}」と同じ名前です。{GLOSSARY_NAME_HINT}"
+    if error_type == HINT_TOO_LONG_ERROR_TYPE:
+        return (
+            f"有効なヒントが長すぎます（{error['ctx']['length']} / {HINT_MAX_BYTES} バイト）。"
+            "語を減らすか、プリセットを無効にしてください。"
+        )
+    if error_type == HINT_WORD_EMPTY_ERROR_TYPE:
+        return "語を入れるか、この欄を消してください。"
+    if error_type == HINT_WORD_SEPARATOR_ERROR_TYPE:
+        return "読点（、）・句点（。）・改行は入れられません。語を分けて足してください。"
+    if error_type == HINT_PRESET_NAME_OVERLAP_ERROR_TYPE:
+        return f"プリセット「{error['ctx']['name']}」と同じ名前です。{GLOSSARY_NAME_HINT}"
     if error_type == "string_pattern_mismatch":
         # 空なら入れてもらい、空でなければ形を直してもらう
         if not error.get("input"):
@@ -472,8 +540,17 @@ class HotkeyEdit(QLineEdit):
 # === 設定画面 ===
 
 
+def _literal_choices(annotation: Any) -> tuple[str, ...] | None:
+    """リテラルの列挙（`type` 文の別名を含む）の値を並びのまま返す。リテラルでなければ None。"""
+    if isinstance(annotation, TypeAliasType):
+        annotation = annotation.__value__
+    if get_origin(annotation) is Literal:
+        return tuple(get_args(annotation))
+    return None
+
+
 class SettingsWindow(QWidget):
-    """Settings のモデルから欄を組み立て、9 つのまとまりに並べ、保存で確かめてから書く設定画面。
+    """Settings のモデルから欄を組み立て、まとまりに並べ、保存で確かめてから書く設定画面。
 
     欄の名前は各項目の description、「再起動で反映」の印は json_schema_extra の reload から出す。
     まとまりと型から決まらない部品は FIELD_LAYOUT と各キーの集合で決める。
@@ -498,6 +575,10 @@ class SettingsWindow(QWidget):
         self._static: dict[str, Any] = {}
         self._panels: dict[str, PresetListPanel] = {}
         self._panel_groups: dict[str, int] = {}
+        self._glossary_panel: GlossaryPanel | None = None
+        self._glossary_group = GROUP_NAMES.index("用語集")
+        self._hint_panel: HintPresetPanel | None = None
+        self._hint_group = GROUP_NAMES.index("表記のヒント")
         self._baseline: dict[str, Any] = {}
         self._restart_baseline: dict[str, Any] = {}
         self._force_close = False
@@ -539,7 +620,7 @@ class SettingsWindow(QWidget):
         right.addWidget(self._stack, 1)
         self._group_menu.currentRowChanged.connect(self._stack.setCurrentIndex)
 
-        # 欄の変更で出す知らせ（再起動で反映・既定に戻した）
+        # 欄の変更・保存で出す知らせ（再起動で反映・既定に戻した・保存した）
         self._restart_notice = QLabel()
         self._restart_notice.setObjectName("restart_notice")
         self._restart_notice.setProperty("role", "notice")
@@ -550,6 +631,11 @@ class SettingsWindow(QWidget):
         self._reset_notice.setProperty("role", "notice")
         self._reset_notice.setWordWrap(True)
         self._reset_notice.hide()
+        self._saved_notice = QLabel()
+        self._saved_notice.setObjectName("saved_notice")
+        self._saved_notice.setProperty("role", "notice")
+        self._saved_notice.setWordWrap(True)
+        self._saved_notice.hide()
         self._restart_now_button = QPushButton("今すぐ再起動")
         self._restart_now_button.setObjectName("restart_now_button")
         self._restart_now_button.hide()
@@ -557,6 +643,7 @@ class SettingsWindow(QWidget):
         notices = QHBoxLayout()
         notices.addWidget(self._restart_notice, 1)
         notices.addWidget(self._reset_notice, 1)
+        notices.addWidget(self._saved_notice, 1)
         notices.addWidget(self._restart_now_button)
         root.addLayout(notices)
 
@@ -596,6 +683,8 @@ class SettingsWindow(QWidget):
         self._static = {}
         self._panels = {}
         self._panel_groups = {}
+        self._glossary_panel = None
+        self._hint_panel = None
 
         # 2. まとまりごとの頁に、並びのとおり欄を足す
         for group, name in enumerate(GROUP_NAMES):
@@ -606,8 +695,10 @@ class SettingsWindow(QWidget):
                     self._add_outputs(layout, settings, group)
                 elif key == PRESETS_FIELD_NAME:
                     self._add_presets(layout, settings, name, group)
-                elif key == "glossary_path":
-                    self._add_glossary(layout, settings, group)
+                elif key == GLOSSARIES_FIELD_NAME:
+                    self._add_glossaries(layout, settings)
+                elif key == HINT_PRESETS_FIELD_NAME:
+                    self._add_hints(layout, settings)
                 else:
                     self._add_model_field(layout, settings, key, group)
             layout.addStretch(1)
@@ -740,8 +831,16 @@ class SettingsWindow(QWidget):
             check_box = make_check_box("オン", value)
             return check_box, check_box.isChecked, ()
         if get_origin(annotation) is Literal:
-            radios = make_radio_group(tuple(get_args(annotation)), value)
+            extra = info.json_schema_extra
+            labels = extra.get(CHOICE_LABELS_KEY) if isinstance(extra, dict) else None
+            radios = make_radio_group(tuple(get_args(annotation)), value, labels=labels)
             return radios, lambda: selected_radio(radios), ()
+        if get_origin(annotation) is list and (choices := _literal_choices(get_args(annotation)[0])):
+            # リテラルの列挙の一覧は、値ごとのチェックボックスを横に並べる
+            extra = info.json_schema_extra
+            labels = extra.get(CHOICE_LABELS_KEY, {}) if isinstance(extra, dict) else {}
+            check_boxes = make_check_box_group(key, choices, labels, value)
+            return check_boxes, lambda: checked_choices(check_boxes), ()
         if annotation in (int, float, str):
             line = make_line_edit(str(value))
             return line, lambda: line.text().strip(), ()
@@ -750,31 +849,24 @@ class SettingsWindow(QWidget):
             return plain, lambda: plain_text_lines(plain), ()
         raise TypeError(f"欄の部品を決められない型です（{key}: {annotation}）")
 
-    def _add_glossary(self, layout: QVBoxLayout, settings: Settings, group: int) -> None:
-        """用語集の CSV の欄（文字の欄と「選ぶ…」）を足す。空にすると設定ファイルと同じフォルダの用語集を使う。"""
-        path = settings.glossary_path
-        line = make_line_edit("" if path is None else str(path))
-        pick_button = QPushButton("選ぶ…")
-        pick_button.setObjectName("pick_glossary_button")
+    def _add_glossaries(self, layout: QVBoxLayout, settings: Settings) -> None:
+        """用語集の一覧と、選んだ用語集の名前の欄・行の表を足す。補正に使う用語集は設定の active_glossary（無ければ 1 件目）。"""
+        glossaries = self._deps.list_glossaries()
+        names = [glossary.name for glossary in glossaries]
+        active = settings.active_glossary if settings.active_glossary in names else names[0]
+        panel = GlossaryPanel(self._deps.read_glossary, self._deps.new_glossary_path)
+        panel.set_glossaries(glossaries, active)
+        panel.changed.connect(self._on_field_changed)
+        self._glossary_panel = panel
+        layout.addWidget(panel)
 
-        def _pick() -> None:
-            """ファイルを選ぶダイアログ（CSV）を開き、選んだパスを欄へ入れる。"""
-            chosen, _filter = QFileDialog.getOpenFileName(
-                self, "用語集の CSV を選ぶ", line.text(), "CSV (*.csv)"
-            )
-            if chosen:
-                line.setText(chosen)
-
-        pick_button.clicked.connect(_pick)
-        self._register(
-            layout,
-            key="glossary_path",
-            label="用語集の CSV（空は設定ファイルと同じフォルダの yogo.csv）",
-            widget=line,
-            get=lambda: line.text().strip() or None,
-            group=group,
-            extras=(pick_button,),
-        )
+    def _add_hints(self, layout: QVBoxLayout, settings: Settings) -> None:
+        """表記のヒントの長さとプリセットの一覧を足す。"""
+        panel = HintPresetPanel()
+        panel.set_presets(settings.hint_presets)
+        panel.changed.connect(self._on_field_changed)
+        self._hint_panel = panel
+        layout.addWidget(panel)
 
     def _add_outputs(self, layout: QVBoxLayout, settings: Settings, group: int) -> None:
         """出力先ごとの欄（オン・確定のホットキーと、その出力先のモデルが持つ固有の項目）を足す。"""
@@ -851,6 +943,20 @@ class SettingsWindow(QWidget):
 
     # --- 値の収集 ---
 
+    @property
+    def _glossaries_panel(self) -> GlossaryPanel:
+        """用語集のまとまりの部品を返す（欄を組み立てた後に使う）。"""
+        if self._glossary_panel is None:
+            raise RuntimeError("用語集の部品がまだ無い")
+        return self._glossary_panel
+
+    @property
+    def _hints_panel(self) -> HintPresetPanel:
+        """表記のヒントのまとまりの部品を返す（欄を組み立てた後に使う）。"""
+        if self._hint_panel is None:
+            raise RuntimeError("表記のヒントの部品がまだ無い")
+        return self._hint_panel
+
     def _all_fields(self) -> list[Field]:
         """プリセットの一覧を除く全ての欄を、並びの順に返す。"""
         return list(self._fields)
@@ -868,6 +974,16 @@ class SettingsWindow(QWidget):
         """全ての欄の値を、設定のキーごとに返す（プリセットは種類・何件目・項目ごと）。"""
         values = {field.key: field.get() for field in self._all_fields()}
         values.update({key: value for key, value in self._static.items() if key.endswith(".id")})
+        # 用語集は、一覧（名前・場所・並び）・補正に使う用語集・行を変えた用語集の行をそれぞれ 1 件として数える
+        if self._glossary_panel is not None:
+            values[GLOSSARIES_FIELD_NAME] = [
+                (item["name"], str(item["path"])) for item in self._glossary_panel.collect()
+            ]
+            values["active_glossary"] = self._glossary_panel.active_name()
+            values["glossary_rows"] = self._glossary_panel.changed_rows()
+        # 表記のヒントは、プリセットの一覧（名前・語・有効か・並び）を 1 件として数える
+        if self._hint_panel is not None:
+            values[HINT_PRESETS_FIELD_NAME] = self._hint_panel.collect()
         for kind, position, item in self._preset_values():
             values.update(
                 {f"{PRESETS_FIELD_NAME}.{kind}[{position}].{name}": value for name, value in item.items()}
@@ -884,6 +1000,11 @@ class SettingsWindow(QWidget):
             set_nested(data, field.key, field.get())
         # プリセットは、種類のタブの並びの順に 1 つの一覧にする
         data[PRESETS_FIELD_NAME] = [item for _kind, _position, item in self._preset_values()]
+        # 用語集は、一覧と補正に使う用語集を入れる（glossary_path は置かない）
+        data[GLOSSARIES_FIELD_NAME] = self._glossaries_panel.collect()
+        data["active_glossary"] = self._glossaries_panel.active_name()
+        # 表記のヒントは、プリセットの一覧を入れる
+        data[HINT_PRESETS_FIELD_NAME] = self._hints_panel.collect()
         return data
 
     def _changed_count(self) -> int:
@@ -915,6 +1036,49 @@ class SettingsWindow(QWidget):
         return kind, position, matched.group(2), str(item["title"])
 
     @staticmethod
+    def _locate_glossary(key: str) -> tuple[int, GlossaryField, int | None] | None:
+        """用語集の欄のキー（`glossaries[2].name`・`glossaries[2].rows[1].wrong`）を、（何件目か, 項目, 何行目か）にする。用語集の欄でなければ None。"""
+        matched = GLOSSARY_KEY_PATTERN.match(key)
+        if matched is None:
+            return None
+        position = int(matched.group(1))
+        if matched.group(2):
+            return position, "name", None
+        field: GlossaryField = "wrong" if matched.group(4) == "wrong" else "right"
+        return position, field, int(matched.group(3))
+
+    @staticmethod
+    def _locate_hint(key: str) -> tuple[int | str, ...] | None:
+        """表記のヒントの欄のキーを、HintPresetPanel の失敗の場所（`()`・`(1, "name")`・`(1, "words", 3)`）にする。表記のヒントの欄でなければ None。"""
+        matched = HINT_KEY_PATTERN.match(key)
+        if matched is None:
+            return None
+        # 場所が hint_presets だけ: 有効なヒントの長さ
+        if matched.group(1) is None:
+            return ()
+        position = int(matched.group(1))
+        if matched.group(2):
+            return (position, "name")
+        return (position, "words", int(matched.group(3)))
+
+    @staticmethod
+    def _hint_label(location: tuple[int | str, ...]) -> str:
+        """エラーの一覧に出す表記のヒントの欄の呼び方（「有効なヒントの長さ」「プリセット 1 件目の名前」「プリセット 1 件目の 2 つ目の語」）を返す。"""
+        if not location:
+            return HINT_LENGTH_LABEL
+        position = int(location[0]) + 1
+        if location[1] == "name":
+            return f"プリセット {position} 件目の名前"
+        return f"プリセット {position} 件目の {int(location[2]) + 1} つ目の語"
+
+    @staticmethod
+    def _glossary_label(position: int, field: GlossaryField, row: int | None) -> str:
+        """エラーの一覧に出す用語集の欄の呼び方（「用語集 3 件目の名前」「用語集 3 件目の 2 行目の誤変換」）を返す。"""
+        if row is None:
+            return f"用語集 {position + 1} 件目の{GLOSSARY_FIELD_LABELS[field]}"
+        return f"用語集 {position + 1} 件目の {row + 1} 行目の{GLOSSARY_FIELD_LABELS[field]}"
+
+    @staticmethod
     def _preset_name(position: int, title: str) -> str:
         """プリセットの呼び方（タイトルがあれば「タイトル」、空ならそのタブの中の何件目か）。"""
         return f"プリセット「{title}」" if title else f"プリセット {position + 1} 件目"
@@ -937,15 +1101,17 @@ class SettingsWindow(QWidget):
     # --- 知らせ・エラーの表示 ---
 
     def _on_field_changed(self) -> None:
-        """欄を変えたら、既定に戻した知らせを消し、再起動の知らせを数え直す。"""
+        """欄を変えたら、既定に戻した知らせと保存した知らせを消し、再起動の知らせを数え直す。"""
         self._reset_notice.hide()
+        self._saved_notice.hide()
         self._restart_now_button.hide()
         self._refresh_notices()
 
     def _refresh_notices(self) -> None:
         """再起動の知らせと「保存して再起動」を、再起動で反映の欄の変更に合わせて出す・隠す。"""
-        # 既定に戻した知らせを出している間は、再起動の知らせを出さない
-        count = 0 if not self._reset_notice.isHidden() else self._restart_changed_count()
+        # 既定に戻した知らせか保存した知らせを出している間は、再起動の知らせを出さない
+        notice_shown = not self._reset_notice.isHidden() or not self._saved_notice.isHidden()
+        count = 0 if notice_shown else self._restart_changed_count()
         show = count > 0
         if show:
             self._restart_notice.setText(
@@ -965,6 +1131,10 @@ class SettingsWindow(QWidget):
         self._error_summary.hide()
         for panel in self._panels.values():
             panel.clear_errors()
+        if self._glossary_panel is not None:
+            self._glossary_panel.clear_errors()
+        if self._hint_panel is not None:
+            self._hint_panel.clear_errors()
         for field in self._all_fields():
             if field.error_label is not None:
                 field.error_label.clear()
@@ -981,7 +1151,13 @@ class SettingsWindow(QWidget):
             {
                 key
                 for key, _message in rows
-                if key is not None and (key in by_key or self._locate_preset(key) is not None)
+                if key is not None
+                and (
+                    key in by_key
+                    or self._locate_preset(key) is not None
+                    or self._locate_glossary(key) is not None
+                    or self._locate_hint(key) is not None
+                )
             }
         )
         title = (
@@ -1002,6 +1178,33 @@ class SettingsWindow(QWidget):
                 link.linkActivated.connect(self._focus_field)
                 self._error_summary_layout.addWidget(link)
                 self._panels[kind].show_error(position, attribute, message)
+                continue
+            glossary_located = self._locate_glossary(key) if key is not None else None
+            # 用語集の欄: 一覧の行（欄へのリンク）と、欄の下のエラーを出す
+            if glossary_located is not None and key is not None:
+                position, glossary_field, glossary_row = glossary_located
+                label = self._glossary_label(position, glossary_field, glossary_row)
+                # 名前の重なりは、一覧には「別の名前にしてください。」を添えない
+                summary = message.removesuffix(f"。{GLOSSARY_NAME_HINT}")
+                link = QLabel(f'<a href="{key}">{html.escape(f"{label}: {summary}")}</a>')
+                link.setTextFormat(Qt.TextFormat.RichText)
+                link.linkActivated.connect(self._focus_field)
+                self._error_summary_layout.addWidget(link)
+                self._glossaries_panel.show_error(
+                    position, glossary_field, message, row=glossary_row
+                )
+                continue
+            hint_located = self._locate_hint(key) if key is not None else None
+            # 表記のヒントの欄: 一覧の行（欄へのリンク）と、欄の下のエラーを出す
+            if hint_located is not None and key is not None:
+                label = self._hint_label(hint_located)
+                # 名前の重なりは、一覧には「別の名前にしてください。」を添えない
+                summary = message.removesuffix(f"。{GLOSSARY_NAME_HINT}")
+                link = QLabel(f'<a href="{key}">{html.escape(f"{label}: {summary}")}</a>')
+                link.setTextFormat(Qt.TextFormat.RichText)
+                link.linkActivated.connect(self._focus_field)
+                self._error_summary_layout.addWidget(link)
+                self._hints_panel.show_error(hint_located, message)
                 continue
             if field is None:
                 self._error_summary_layout.addWidget(self._plain_label(message))
@@ -1030,6 +1233,19 @@ class SettingsWindow(QWidget):
 
     def _focus_field(self, key: str) -> None:
         """エラーの一覧の行から、その欄のまとまりへ切り替えて欄へフォーカスを移す。"""
+        glossary_located = self._locate_glossary(key)
+        # 用語集の欄: 用語集のまとまりへ切り替えて、その用語集の行の表を出して欄へフォーカスを移す
+        if glossary_located is not None:
+            self._group_menu.setCurrentRow(self._glossary_group)
+            position, glossary_field, glossary_row = glossary_located
+            self._glossaries_panel.focus_field(position, glossary_field, row=glossary_row)
+            return
+        hint_located = self._locate_hint(key)
+        # 表記のヒントの欄: 表記のヒントのまとまりへ切り替えて、欄へフォーカスを移す
+        if hint_located is not None:
+            self._group_menu.setCurrentRow(self._hint_group)
+            self._hints_panel.focus_field(hint_located)
+            return
         located = self._locate_preset(key)
         # プリセットの欄: その種類のタブへ切り替えて、一覧の欄へフォーカスを移す
         if located is not None:
@@ -1046,8 +1262,10 @@ class SettingsWindow(QWidget):
     # --- 操作 ---
 
     def save(self, *, restart: bool) -> bool:
-        """欄の値を設定のモデルで確かめ、通れば書いて効かせる。通らなければエラーを出す。"""
-        # 1. 欄の値を設定のモデルで確かめる（通らなければ欄ごとのエラーにして、入れた値は消さない）
+        """欄の値を設定のモデルで確かめ、通れば書いて効かせ、窓を開いたまま保存した知らせを出す（restart のときだけ閉じる）。通らなければエラーを出す。"""
+        # 1. 欄の値を設定のモデルと、用語集の行（誤変換か正しい表記の片方だけが空）で確かめる（通らなければ欄ごとのエラーにして、入れた値は消さない）
+        failures: list[tuple[str, str]] = []
+        settings: Settings | None = None
         try:
             settings = self._settings_model.model_validate(self.collect())
         except ValidationError as error:
@@ -1064,13 +1282,18 @@ class SettingsWindow(QWidget):
                 )
                 for failure in error.errors()
             ]
+        failures += [
+            (f"{GLOSSARIES_FIELD_NAME}[{position}].rows[{row}].{field}", ROW_ERROR_MESSAGES[field])
+            for position, row, field in self._glossaries_panel.row_errors()
+        ]
+        if settings is None or failures:
             logger.info(f"設定画面の値が確かめに通らなかった（{', '.join(key for key, _ in failures)}）")
             self._show_errors(failures)
             return False
 
-        # 2. 書いて効かせる（ホットキーを受け付けられない・書けないときは、エラーを出して閉じない）
+        # 2. 書いて効かせる（ホットキーを受け付けられない・書けないときは、エラーを出して知らせを出さない）
         try:
-            self._deps.save_settings(settings)
+            self._deps.save_settings(settings, self._glossaries_panel.changed_rows())
         except HotkeyError as error:
             logger.warning(f"保存するホットキーを受け付けられなかった（{error}）")
             self._show_errors(
@@ -1082,22 +1305,56 @@ class SettingsWindow(QWidget):
             self._show_errors([(None, f"設定ファイルを書けませんでした（{error}）")])
             return False
 
-        # 3. 知らせ、再起動なら頼んで、窓を閉じる
+        # 3. 保存した行・値を「変えていない」の基準に置き直す（`_baseline` は用語集の changed_rows を含むため、用語集の基準を先に置き直す）
+        self._glossaries_panel.mark_saved()
         self._baseline = self._flat_values()
         self.saved.emit()
+
+        # 4. 再起動なら頼んで窓を閉じ、そうでなければ窓を開いたまま保存した知らせを出す
         if restart:
             self.restart_requested.emit()
-        self._force_close = True
-        self.close()
+            self._force_close = True
+            self.close()
+            return True
+        self._show_saved_notice()
         return True
+
+    def _show_saved_notice(self) -> None:
+        """保存した知らせを出す。新しいホットキーが閉じると効くことと、「再起動で反映」の欄の件数を、変えたときだけ続ける。"""
+        text = "保存しました。"
+        # ホットキーの欄が開いたときの値から変わっていれば、閉じると効くことを添える
+        if self._hotkey_changed():
+            text += "新しいホットキーは、設定画面を閉じると効きます。"
+        # 「再起動で反映」の欄が開いたときの値から変わっていれば、件数と今すぐ再起動を出し、再起動の知らせを隠す
+        count = self._restart_changed_count()
+        if count > 0:
+            text += f"「再起動で反映」の設定 {count} 件は、再起動するまで前の値で動きます。"
+        self._restart_now_button.setVisible(count > 0)
+        self._saved_notice.setText(text)
+        self._saved_notice.show()
+        # 画面を見ない利用者にも、同じ文を読み上げで伝える
+        QAccessible.updateAccessibility(QAccessibleAnnouncementEvent(self._saved_notice, text))
+        self._reset_notice.hide()
+        self._refresh_notices()
+
+    def _hotkey_changed(self) -> bool:
+        """閉じたときに張り直すホットキーの欄（`keyboard.paste_key` は含めない）が、開いたときの値から変わったかを返す。"""
+        current = self._flat_values()
+        keys = {
+            key for key in current.keys() | self._restart_baseline.keys() if SAVED_HOTKEY_KEY.match(key)
+        }
+        return any(
+            (current.get(key) or "") != (self._restart_baseline.get(key) or "") for key in keys
+        )
 
     def reset_to_defaults(self) -> None:
         """確かめて、戻すなら既定の設定を書いて欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す。"""
         if not confirm_reset(self):
             return
         defaults = self._settings_model()
-        self._deps.save_settings(defaults)
+        self._deps.save_settings(defaults, {})
         self._clear_errors()
+        self._saved_notice.hide()
         self._populate(defaults)
         self.saved.emit()
 

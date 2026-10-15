@@ -14,10 +14,10 @@ from unittest.mock import MagicMock
 
 import pytest
 from PySide6.QtCore import QUrl
-from PySide6.QtGui import QAction, QDesktopServices
+from PySide6.QtGui import QAction, QColor, QDesktopServices
 from PySide6.QtWidgets import QSystemTrayIcon
 
-from tests.integration.ui.helpers import Ui
+from tests.integration.ui.helpers import Ui, edge_and_face_colors
 
 if TYPE_CHECKING:
     from voice_paste.ui.tray import Tray, TrayState
@@ -588,3 +588,29 @@ def test_menu_settings_action(make_ui: Callable[..., Ui], tmp_path: Path) -> Non
     # 検証
     assert ui.controller._settings_window is not None
     ui.controller._settings_window.try_close()
+
+
+# === メニューの見た目 ===
+
+
+@pytest.mark.parametrize("theme", ["light", "dark"])
+def test_menu_colors_when_theme(
+    make_ui: Callable[..., Ui], apply_theme_to_app: Callable[[str], None], theme: str
+) -> None:
+    """メニューの面は color.*.surface、外側の縁は color.*.frame の色で描く（* は ui.theme で決まる明暗）。"""
+    from voice_paste.ui.style import load_tokens
+
+    # 準備
+    apply_theme_to_app(theme)
+    ui = make_ui()
+    menu = ui.tray._icon.contextMenu()
+    menu.ensurePolished()
+    menu.resize(menu.sizeHint())
+
+    # 実行
+    edge, face = edge_and_face_colors(menu)
+
+    # 検証
+    colors = load_tokens()["color"][theme]
+    assert edge == QColor(colors["frame"])
+    assert face == QColor(colors["surface"])

@@ -14,7 +14,15 @@ catalogs:
         purpose: モデル名・デバイス・量子化・CPU スレッド数・ワーカー数を指定してモデルを読み込む（手元に無ければ Hugging Face Hub から取得する）
       - name: WhisperModel.transcribe
         kind: メソッド
-        purpose: 音声ファイルを言語・ビーム幅・候補数・温度・VAD・前の区間の文脈・無音の閾値を指定して文字に起こし、区間ごとの文字と音声の長さを返す
+        purpose: 音声ファイルを言語・ビーム幅・候補数・温度・VAD・前の区間の文脈・無音の閾値・手がかりの語（hotwords）を指定して文字に起こし、区間ごとの文字と音声の長さを返す
+        params:
+          - name: hotwords
+            type: str | None
+            required: false
+            default: None
+            description: 書き方を寄せたい語の並び。録音の長さによらず 30 秒のウィンドウごとに、頭に半角の空白を足して前の文脈の枠へ入る
+            constraints: トークンが 224 以上なら先頭の 223 トークン（`max_length // 2 - 1`、`max_length = 448`）に切られる（v1.2.1 の transcribe.py L1542-1548）
+            notes: prefix を渡すと使われない。渡すと句読点が付く・区間ごとの改行がまとまる・口癖が一部消える、など書き方も変わる（#99 の PoC）
       - name: assets/silero_vad_v6.onnx
         kind: ファイル
         purpose: 同梱の Silero VAD のモデル。常駐アプリのプロセスが onnxruntime で直接開き、連続録音の話し声を判定する

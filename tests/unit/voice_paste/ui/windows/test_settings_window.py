@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -15,15 +15,26 @@ from unittest.mock import MagicMock
 
 import pytest
 from PySide6.QtCore import QKeyCombination, QRegularExpression, Qt
-from PySide6.QtGui import QTextDocument
-from PySide6.QtWidgets import QAbstractButton, QLabel, QLineEdit, QSlider, QWidget
+from PySide6.QtGui import QAccessible, QAccessibleAnnouncementEvent, QAccessibleEvent, QTextDocument
+from PySide6.QtTest import QTest
+from PySide6.QtWidgets import (
+    QAbstractButton,
+    QComboBox,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QRadioButton,
+    QSlider,
+    QWidget,
+)
 
 from tests.unit.voice_paste.ui.helpers import make_ui_deps
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QApplication
 
-    from voice_paste.shared.settings import Settings
+    from voice_paste.shared.settings import GlossarySettings, Settings
+    from voice_paste.shared.types import GlossaryEntry
     from voice_paste.ui.controller import UiDeps
     from voice_paste.ui.windows.settings_window import SettingsWindow
 
@@ -58,6 +69,13 @@ def _field(window: SettingsWindow, key: str) -> QWidget:
     return widget
 
 
+def _enter_modifier_checkbox(window: SettingsWindow, value: str) -> QAbstractButton:
+    """貼り付けて送信の「Enter と一緒に押す修飾キー」の、値のチェックボックス（objectName が field_{キー}_{値}）を返す。"""
+    checkbox = _field(window, f"outputs[0].enter_modifiers_{value}")
+    assert isinstance(checkbox, QAbstractButton)
+    return checkbox
+
+
 def _error_summary_text(window: SettingsWindow) -> str:
     """エラーの一覧の行（QLabel）の文字を、リンクの書式を外して改行で並べて返す。"""
     summary = window.findChild(QWidget, "error_summary")
@@ -85,14 +103,116 @@ def _add_preset(window: SettingsWindow, kind: str, *, title: str, url: str) -> N
         edits[0].setText(value)
 
 
+@pytest.fixture
+def open_with_glossaries(
+    qapp: QApplication, tmp_path: Path
+) -> Iterator[Callable[..., Opened]]:
+    """用語集の一覧と行を指定して設定画面を開く関数を返す。開いた窓はテストの後に隠す。"""
+    from voice_paste.ui.windows.settings_window import SettingsWindow
+
+    windows: list[SettingsWindow] = []
+
+    def _open(
+        glossaries: list[GlossarySettings],
+        rows: Mapping[Path, list[GlossaryEntry]],
+        *,
+        settings: Settings | None = None,
+    ) -> Opened:
+        """list_glossaries が glossaries を返し、read_glossary が場所の行を返す UiDeps で開く。"""
+        deps = make_ui_deps(
+            tmp_path,
+            settings=settings,
+            list_glossaries=MagicMock(return_value=glossaries),
+            read_glossary=MagicMock(side_effect=lambda path: list(rows[path])),
+        )
+        window = SettingsWindow(deps)
+        window.show()
+        windows.append(window)
+        return Opened(window=window, deps=deps)
+
+    yield _open
+
+    for window in windows:
+        window.hide()
+
+
+def _select_group(window: SettingsWindow, name: str) -> None:
+    """左のメニュー（group_menu）で、名前のまとまりを選ぶ。"""
+    menu = window.findChild(QListWidget, "group_menu")
+    assert menu is not None
+    items = menu.findItems(name, Qt.MatchFlag.MatchExactly)
+    assert len(items) == 1, f"{name} のまとまりが無い"
+    menu.setCurrentItem(items[0])
+
+
+def _button(window: SettingsWindow, name: str) -> QAbstractButton:
+    """objectName が name のボタンを返す。"""
+    button = window.findChild(QAbstractButton, name)
+    assert button is not None, f"{name} のボタンが無い"
+    return button
+
+
+def _visible_edits(window: SettingsWindow, prefix: str) -> list[QLineEdit]:
+    """画面に出ている、objectName が prefix で始まる文字の欄を、名前の順で返す。"""
+    found = window.findChildren(QLineEdit, QRegularExpression(f"^{prefix}"))
+    return sorted(
+        (edit for edit in found if edit.isVisible()), key=lambda edit: edit.objectName()
+    )
+
+
+def _visible_buttons(window: SettingsWindow, prefix: str) -> list[QAbstractButton]:
+    """画面に出ている、objectName が prefix で始まるボタンを、名前の順で返す。"""
+    found = window.findChildren(QAbstractButton, QRegularExpression(f"^{prefix}"))
+    return sorted(
+        (button for button in found if button.isVisible()), key=lambda button: button.objectName()
+    )
+
+
+def _label(window: SettingsWindow, name: str) -> QLabel:
+    """objectName が name の文字の表示を返す。"""
+    label = window.findChild(QLabel, name)
+    assert label is not None, f"{name} の表示が無い"
+    return label
+
+
+def _press_hotkey(window: SettingsWindow, name: str) -> None:
+    """objectName が name のホットキーの欄に、Ctrl+Alt+9 を押して入れる。"""
+    edit = window.findChild(QLineEdit, name)
+    assert edit is not None, f"{name} の欄が無い"
+    QTest.keyClick(
+        edit,
+        Qt.Key.Key_9,
+        Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier,
+    )
+
+
+def _set_model(window: SettingsWindow, model: str) -> None:
+    """「文字起こし」のモデルの欄（「再起動で反映」）に値を入れる。"""
+    combo = _field(window, "transcription.local_whisper.model")
+    assert isinstance(combo, QComboBox)
+    combo.setCurrentText(model)
+
+
+def _set_language(window: SettingsWindow, language: str) -> None:
+    """「文字起こし」の言語の欄（「再起動で反映」）に値を入れる。"""
+    edit = _field(window, "transcription.local_whisper.language")
+    assert isinstance(edit, QLineEdit)
+    edit.setText(language)
+
+
 # === save ===
 
 
-def test_save(opened: Opened) -> None:
-    """通った値を書く（正常系）。"""
-    # 準備
+def test_save(opened: Opened, monkeypatch: pytest.MonkeyPatch) -> None:
+    """通った値を書き、設定画面を開いたまま保存した知らせを出して読み上げにも伝える（正常系）。"""
+    # 準備（読み上げに渡すイベントを控える）
+    announced: list[QAccessibleEvent] = []
+    monkeypatch.setattr(QAccessible, "updateAccessibility", announced.append)
     saved_count: list[int] = []
+    closed_count: list[int] = []
     opened.window.saved.connect(lambda: saved_count.append(1))
+    opened.window.closed.connect(lambda: closed_count.append(1))
+    _select_group(opened.window, "録音")
     volume = _field(opened.window, "recording.volume_percent")
     assert isinstance(volume, QSlider)
     volume.setValue(NEW_VOLUME_PERCENT)
@@ -105,6 +225,18 @@ def test_save(opened: Opened) -> None:
     opened.deps.save_settings.assert_called_once()
     assert opened.deps.save_settings.call_args.args[0].recording.volume_percent == NEW_VOLUME_PERCENT
     assert saved_count == [1]
+    assert closed_count == []
+    assert opened.window.isVisible()
+    notice = _label(opened.window, "saved_notice")
+    assert notice.isVisible()
+    assert notice.text() == "保存しました。"
+    assert volume.value() == NEW_VOLUME_PERCENT
+    menu = opened.window.findChild(QListWidget, "group_menu")
+    assert menu is not None
+    assert menu.currentItem().text() == "録音"
+    assert len(announced) == 1
+    assert isinstance(announced[0], QAccessibleAnnouncementEvent)
+    assert announced[0].message() == "保存しました。"
 
 
 def test_save_when_invalid(opened: Opened) -> None:
@@ -127,7 +259,7 @@ def test_save_when_invalid(opened: Opened) -> None:
 
 
 def test_save_when_hotkey_unavailable(opened: Opened) -> None:
-    """ホットキーを受け付けられなければエラーを出して閉じない（異常系）。"""
+    """ホットキーを受け付けられなければエラーを出し、保存した知らせを出さない（異常系）。"""
     from voice_paste.shared.errors import HotkeyError
 
     # 準備
@@ -142,6 +274,7 @@ def test_save_when_hotkey_unavailable(opened: Opened) -> None:
     assert result is False
     assert "ホットキーを受け付けられませんでした" in _error_summary_text(opened.window)
     assert saved_count == []
+    assert not _label(opened.window, "saved_notice").isVisible()
     assert opened.window.isVisible()
 
 
@@ -179,6 +312,407 @@ def test_save_when_preset_invalid(opened: Opened) -> None:
     )
 
 
+def test_save_when_enter_modifiers(opened: Opened) -> None:
+    """オンにした修飾キーを一覧にして書く（正常系）。"""
+    # 準備（Shift → Ctrl の順にオンにする）
+    ctrl = _enter_modifier_checkbox(opened.window, "ctrl")
+    alt = _enter_modifier_checkbox(opened.window, "alt")
+    shift = _enter_modifier_checkbox(opened.window, "shift")
+    shift.setChecked(True)
+    ctrl.setChecked(True)
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証（一覧は列挙の並び）
+    assert result is True
+    opened.deps.save_settings.assert_called_once()
+    assert opened.deps.save_settings.call_args.args[0].outputs[0].enter_modifiers == [
+        "ctrl",
+        "shift",
+    ]
+    assert [ctrl.text(), alt.text(), shift.text()] == ["Ctrl", "Alt", "Shift"]
+
+
+def test_save_when_theme(opened: Opened) -> None:
+    """明暗の欄で選んだ値を保存する（正常系）。"""
+    # 準備: ui.theme=system で開いた「画面の明暗」の「ライト」を選ぶ
+    light = next(
+        button
+        for button in _field(opened.window, "ui.theme").findChildren(QRadioButton)
+        if button.text() == "ライト"
+    )
+    light.setChecked(True)
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is True
+    opened.deps.save_settings.assert_called_once()
+    assert opened.deps.save_settings.call_args.args[0].ui.theme == "light"
+
+
+def test_save_when_glossaries(
+    open_with_glossaries: Callable[..., Opened], settings_model: type[Settings], tmp_path: Path
+) -> None:
+    """用語集の一覧と補正に使う用語集を設定に入れ、行を変えた用語集だけを書き戻しに渡す（正常系）。"""
+    from voice_paste.shared.settings import GlossarySettings
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（2 件の用語集を持つ設定で開き、2 件目の行を 1 つオフにして、補正に使う用語集を 2 件目にする）
+    first = GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
+    second = GlossarySettings(name="会議用", path=tmp_path / "meeting.csv")
+    opened = open_with_glossaries(
+        [first, second],
+        {
+            first.path: [GlossaryEntry(wrong="あ", right="A")],
+            second.path: [
+                GlossaryEntry(wrong="い", right="B"),
+                GlossaryEntry(wrong="う", right="C"),
+            ],
+        },
+        settings=settings_model(glossaries=[first, second]),
+    )
+    _select_group(opened.window, "用語集")
+    _button(opened.window, "glossary_pick_1").click()
+    _visible_buttons(opened.window, "glossary_entry_on_")[0].click()
+    _button(opened.window, "glossary_active_1").click()
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is True
+    opened.deps.save_settings.assert_called_once()
+    saved_settings, changed_rows = opened.deps.save_settings.call_args.args
+    assert [glossary.name for glossary in saved_settings.glossaries] == ["yogo", "会議用"]
+    assert saved_settings.active_glossary == "会議用"
+    assert saved_settings.glossary_path is None
+    assert changed_rows == {
+        second.path: [
+            GlossaryEntry(wrong="い", right="B", enabled=False),
+            GlossaryEntry(wrong="う", right="C"),
+        ]
+    }
+
+
+def test_save_when_glossaries_untouched(
+    open_with_glossaries: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """用語集を変えずに保存すると、書き戻す CSV は無い（正常系）。"""
+    from voice_paste.shared.settings import GlossarySettings
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（今までの用語集 1 件だけの設定で開き、ホットキーだけを変える）
+    glossary = GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
+    opened = open_with_glossaries(
+        [glossary], {glossary.path: [GlossaryEntry(wrong="あ", right="A")]}
+    )
+    start_hotkey = opened.window.findChild(QLineEdit, "hotkey_hotkeys.start")
+    assert start_hotkey is not None
+    QTest.keyClick(
+        start_hotkey,
+        Qt.Key.Key_9,
+        Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier,
+    )
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is True
+    saved_settings, changed_rows = opened.deps.save_settings.call_args.args
+    assert saved_settings.hotkeys.start == "<ctrl>+<alt>+9"
+    assert saved_settings.glossaries == [glossary]
+    assert changed_rows == {}
+
+
+def test_save_when_glossary_invalid(
+    open_with_glossaries: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """名前の重なりと片方が空の行では保存せず、エラーを出す（異常系）。"""
+    from voice_paste.shared.settings import GlossarySettings
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（2 件の用語集で開き、足した用語集の名前を 2 件目と同じにして、その 2 行目の誤変換を空にする）
+    first = GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
+    second = GlossarySettings(name="会議用", path=tmp_path / "meeting.csv")
+    opened = open_with_glossaries(
+        [first, second],
+        {
+            first.path: [GlossaryEntry(wrong="あ", right="A")],
+            second.path: [GlossaryEntry(wrong="い", right="B")],
+        },
+    )
+    _select_group(opened.window, "用語集")
+    _button(opened.window, "add_glossary_button").click()
+    _visible_edits(opened.window, "glossary_name_")[0].setText("会議用")
+    add_entry = _button(opened.window, "add_glossary_entry_button")
+    add_entry.click()
+    add_entry.click()
+    wrong_edits = _visible_edits(opened.window, "glossary_entry_wrong_")
+    right_edits = _visible_edits(opened.window, "glossary_entry_right_")
+    wrong_edits[0].setText("う")
+    right_edits[0].setText("U")
+    right_edits[1].setText("V")
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is False
+    opened.deps.save_settings.assert_not_called()
+    summary = _error_summary_text(opened.window)
+    assert "用語集 3 件目の名前: 用語集「会議用」と同じ名前です" in summary
+    assert "用語集 3 件目の 2 行目の誤変換: 誤変換を入れてください" in summary
+
+
+HINT_TOO_LONG_WORD_CHARS = 74
+"""日本語 74 文字 = 222 バイトの語の文字数（これに英字 1 文字を足すと 223 バイト）。"""
+
+
+def _add_hint_preset(window: SettingsWindow, *, name: str, word_count: int) -> list[QLineEdit]:
+    """「表記のヒント」でプリセットを足して名前を入れ、語の欄を word_count 個足して、語の欄を返す。"""
+    _select_group(window, "表記のヒント")
+    _button(window, "hint_preset_add").click()
+    _visible_edits(window, "hint_preset_name_")[0].setText(name)
+    for _ in range(word_count):
+        _visible_buttons(window, "hint_word_add_")[0].click()
+    return _visible_edits(window, r"hint_word_\d")
+
+
+def test_save_when_hint_presets(opened: Opened) -> None:
+    """表記のヒントのプリセットを設定に入れて書く（正常系）。"""
+    # 準備（「表記のヒント」でプリセットを 1 件足して名前「開発」と語 voice-paste を入れる）
+    word_edits = _add_hint_preset(opened.window, name="開発", word_count=1)
+    word_edits[0].setText("voice-paste")
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is True
+    saved_settings = opened.deps.save_settings.call_args.args[0]
+    assert [
+        (preset.name, preset.words, preset.enabled) for preset in saved_settings.hint_presets
+    ] == [("開発", ["voice-paste"], True)]
+
+
+def test_save_when_hint_too_long(opened: Opened) -> None:
+    """有効なヒントが上限を超えたら書かずにエラーを出す（異常系）。"""
+    # 準備（有効なプリセットにつないだ長さが 223 バイトになる語を入れる）
+    word_edits = _add_hint_preset(opened.window, name="開発", word_count=1)
+    word_edits[0].setText("a" + "あ" * HINT_TOO_LONG_WORD_CHARS)
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証（エラーの一覧と、長さの行の下の両方に出る）
+    message = "有効なヒントが長すぎます（223 / 222 バイト）。"
+    assert result is False
+    opened.deps.save_settings.assert_not_called()
+    assert f"有効なヒントの長さ: {message}" in _error_summary_text(opened.window)
+    summary = opened.window.findChild(QWidget, "error_summary")
+    assert summary is not None
+    below_length_row = [
+        label
+        for label in opened.window.findChildren(QLabel)
+        if message in label.text() and not summary.isAncestorOf(label) and label is not summary
+    ]
+    assert len(below_length_row) == 1
+
+
+def test_save_when_hint_word_invalid(opened: Opened) -> None:
+    """空の語と区切りを含む語では保存せず、エラーを出す（異常系）。"""
+    # 準備（プリセット 1 件目の 1 つ目の語を空にし、2 つ目の語を「A、B」にする）
+    word_edits = _add_hint_preset(opened.window, name="開発", word_count=2)
+    word_edits[1].setText("A、B")
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is False
+    opened.deps.save_settings.assert_not_called()
+    summary = _error_summary_text(opened.window)
+    assert "プリセット 1 件目の 1 つ目の語: 語を入れるか、この欄を消してください。" in summary
+    assert (
+        "プリセット 1 件目の 2 つ目の語: "
+        "読点（、）・句点（。）・改行は入れられません。語を分けて足してください。"
+    ) in summary
+
+
+def test_save_when_restart(opened: Opened) -> None:
+    """「保存して再起動」は書いてから窓を閉じ、再起動を頼む（正常系）。"""
+    # 準備
+    saved_count: list[int] = []
+    restart_count: list[int] = []
+    closed_count: list[int] = []
+    opened.window.saved.connect(lambda: saved_count.append(1))
+    opened.window.restart_requested.connect(lambda: restart_count.append(1))
+    opened.window.closed.connect(lambda: closed_count.append(1))
+    _set_model(opened.window, "small")
+
+    # 実行
+    result = opened.window.save(restart=True)
+
+    # 検証
+    assert result is True
+    assert saved_count == [1]
+    assert restart_count == [1]
+    assert closed_count == [1]
+
+
+@pytest.mark.parametrize(
+    ("group", "hotkey_name", "expected_notice"),
+    [
+        pytest.param(
+            "ホットキー",
+            "hotkey_hotkeys.start",
+            "保存しました。新しいホットキーは、設定画面を閉じると効きます。",
+            id="recording_hotkey",
+        ),
+        pytest.param(
+            "出力先",
+            "hotkey_outputs[0].hotkey",
+            "保存しました。新しいホットキーは、設定画面を閉じると効きます。",
+            id="output_hotkey",
+        ),
+        pytest.param("ホットキー", "hotkey_keyboard.paste_key", "保存しました。", id="paste_key"),
+    ],
+)
+def test_save_when_hotkey_changed(
+    opened: Opened, group: str, hotkey_name: str, expected_notice: str
+) -> None:
+    """ホットキーを変えた保存では、閉じると効くことを添える（正常系）。"""
+    # 準備（録音開始か出力先の確定のホットキーか、貼り付けに送るキーだけを変える）
+    _select_group(opened.window, group)
+    _press_hotkey(opened.window, hotkey_name)
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is True
+    assert _label(opened.window, "saved_notice").text() == expected_notice
+
+
+def test_save_when_restart_field_changed(opened: Opened) -> None:
+    """「再起動で反映」の欄を保存すると件数と今すぐ再起動を出し、保存の後に欄を変えると開いたときの値から数え直す（正常系）。"""
+    # 準備
+    _select_group(opened.window, "文字起こし")
+    _set_model(opened.window, "small")
+
+    # 実行（保存の直後と、続けて言語を変えた後を見る）
+    result = opened.window.save(restart=False)
+    saved_notice_text = _label(opened.window, "saved_notice").text()
+    restart_now_visible = _button(opened.window, "restart_now_button").isVisible()
+    restart_notice_visible = _label(opened.window, "restart_notice").isVisible()
+    save_and_restart_visible = _button(opened.window, "save_and_restart_button").isVisible()
+    _set_language(opened.window, "en")
+
+    # 検証（保存の直後）
+    assert result is True
+    assert saved_notice_text == (
+        "保存しました。「再起動で反映」の設定 1 件は、再起動するまで前の値で動きます。"
+    )
+    assert restart_now_visible
+    assert not restart_notice_visible
+    assert not save_and_restart_visible
+    # 検証（言語を変えた後: 開いたときの値から 2 件を数え直す）
+    assert not _label(opened.window, "saved_notice").isVisible()
+    assert not _button(opened.window, "restart_now_button").isVisible()
+    assert _label(opened.window, "restart_notice").isVisible()
+    assert "を 2 件変えました" in _label(opened.window, "restart_notice").text()
+    assert _button(opened.window, "save_and_restart_button").isVisible()
+
+
+def test_save_when_glossary_reverted(
+    open_with_glossaries: Callable[..., Opened], settings_model: type[Settings], tmp_path: Path
+) -> None:
+    """開いたままの 2 回目の保存で、開いたときの行へ戻した用語集も書き戻す（正常系）。"""
+    from voice_paste.shared.settings import GlossarySettings
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（1 件目の用語集の行を 1 つオフにして保存する）
+    first = GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
+    second = GlossarySettings(name="会議用", path=tmp_path / "meeting.csv")
+    opened = open_with_glossaries(
+        [first, second],
+        {
+            first.path: [
+                GlossaryEntry(wrong="あ", right="A"),
+                GlossaryEntry(wrong="い", right="B"),
+            ],
+            second.path: [GlossaryEntry(wrong="う", right="C")],
+        },
+        settings=settings_model(glossaries=[first, second]),
+    )
+    _select_group(opened.window, "用語集")
+    _visible_buttons(opened.window, "glossary_entry_on_")[0].click()
+    opened.window.save(restart=False)
+
+    # 実行（開いたまま、その行をオンに戻してもう一度保存する）
+    _visible_buttons(opened.window, "glossary_entry_on_")[0].click()
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is True
+    assert opened.deps.save_settings.call_count == 2
+    _, changed_rows = opened.deps.save_settings.call_args_list[1].args
+    assert changed_rows == {
+        first.path: [
+            GlossaryEntry(wrong="あ", right="A"),
+            GlossaryEntry(wrong="い", right="B"),
+        ]
+    }
+
+
+def test_save_then_close(
+    open_with_glossaries: Callable[..., Opened],
+    settings_model: type[Settings],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """保存の後に欄を変えずに閉じると確認を出さずに閉じ、保存の後に欄を変えると知らせが消える（正常系）。"""
+    from voice_paste.shared.settings import GlossarySettings
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（音量を変え、用語集の行を 1 つオフにして保存する。捨てる確認が出たら「捨てない」と答える）
+    confirm_discard = MagicMock(return_value=False)
+    monkeypatch.setattr("voice_paste.ui.windows.settings_window.confirm_discard", confirm_discard)
+    glossary = GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
+    opened = open_with_glossaries(
+        [glossary],
+        {glossary.path: [GlossaryEntry(wrong="あ", right="A"), GlossaryEntry(wrong="い", right="B")]},
+        settings=settings_model(glossaries=[glossary]),
+    )
+    closed_count: list[int] = []
+    opened.window.closed.connect(lambda: closed_count.append(1))
+    _select_group(opened.window, "用語集")
+    _visible_buttons(opened.window, "glossary_entry_on_")[0].click()
+    _select_group(opened.window, "録音")
+    volume = _field(opened.window, "recording.volume_percent")
+    assert isinstance(volume, QSlider)
+    volume.setValue(NEW_VOLUME_PERCENT)
+    opened.window.save(restart=False)
+    hide_window = _field(opened.window, "recording.hide_window")
+    assert isinstance(hide_window, QAbstractButton)
+
+    # 実行（保存の後に欄を変えて知らせを見て、その欄を保存した値へ戻してから閉じる）
+    hide_window.click()
+    notice_visible_after_change = _label(opened.window, "saved_notice").isVisible()
+    hide_window.click()
+    result = opened.window.try_close()
+
+    # 検証（音量と用語集の行の変更は保存した値が基準で、閉じるときに確認を出さない）
+    assert not notice_visible_after_change
+    assert result is True
+    confirm_discard.assert_not_called()
+    assert closed_count == [1]
+
+
 # === close_without_confirm ===
 
 
@@ -200,6 +734,62 @@ def test_close_without_confirm(opened: Opened, monkeypatch: pytest.MonkeyPatch) 
     confirm_discard.assert_not_called()
     assert closed_count == [1]
     opened.deps.save_settings.assert_not_called()
+
+
+# === make_radio_group ===
+
+THEME_CHOICES = ("system", "light", "dark")
+THEME_LABELS = {"system": "Windows の設定に従う", "light": "ライト", "dark": "ダーク"}
+
+
+def _radio_buttons(container: QWidget) -> list[QRadioButton]:
+    """ラジオボタンの組のボタンを、並びの順で返す。"""
+    return container.findChildren(QRadioButton)
+
+
+def test_make_radio_group_when_labels(qapp: QApplication) -> None:
+    """ボタンの名前を labels から出す（正常系）。"""
+    from voice_paste.ui.windows.settings_fields import make_radio_group
+
+    # 実行
+    group = make_radio_group(THEME_CHOICES, "light", labels=THEME_LABELS)
+
+    # 検証
+    buttons = _radio_buttons(group)
+    assert [button.text() for button in buttons] == ["Windows の設定に従う", "ライト", "ダーク"]
+    assert [button.isChecked() for button in buttons] == [False, True, False]
+
+
+def test_make_radio_group_when_no_labels(qapp: QApplication) -> None:
+    """labels が無ければ値をそのまま名前にする（正常系）。"""
+    from voice_paste.ui.windows.settings_fields import make_radio_group
+
+    # 実行
+    group = make_radio_group(("center", "top-left"), "center")
+
+    # 検証
+    buttons = _radio_buttons(group)
+    assert [button.text() for button in buttons] == ["center", "top-left"]
+    assert [button.isChecked() for button in buttons] == [True, False]
+
+
+# === selected_radio ===
+
+
+def test_selected_radio_when_labels(qapp: QApplication) -> None:
+    """名前ではなく値を返す（正常系）。"""
+    from voice_paste.ui.windows.settings_fields import make_radio_group, selected_radio
+
+    # 準備: ラベル付きの組で「ダーク」を選ぶ
+    group = make_radio_group(THEME_CHOICES, "light", labels=THEME_LABELS)
+    dark = next(button for button in _radio_buttons(group) if button.text() == "ダーク")
+    dark.setChecked(True)
+
+    # 実行
+    result = selected_radio(group)
+
+    # 検証
+    assert result == "dark"
 
 
 # === format_hotkey ===
@@ -303,3 +893,43 @@ def test_to_field_message_when_preset_url_empty(settings_model: type[Settings]) 
 
     # 検証
     assert message == "URL を入れてください（例: https://example.com/hook）。"
+
+
+def test_to_field_message_when_hint_too_long(settings_model: type[Settings]) -> None:
+    """有効なヒントが長すぎる（正常系）。"""
+    from pydantic import ValidationError
+
+    from voice_paste.ui.windows.settings_window import to_field_message
+
+    # 準備（有効な語をつないだ長さが 258 バイトの hint_presets）
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate(
+            {"hint_presets": [{"name": "開発", "words": ["あ" * 86], "enabled": True}]}
+        )
+
+    # 実行
+    message = to_field_message(exc_info.value.errors()[0], model=settings_model)
+
+    # 検証
+    assert message == (
+        "有効なヒントが長すぎます（258 / 222 バイト）。語を減らすか、プリセットを無効にしてください。"
+    )
+
+
+def test_to_field_message_when_hint_preset_name_overlap(settings_model: type[Settings]) -> None:
+    """表記のヒントのプリセットの名前が重なる（正常系）。"""
+    from pydantic import ValidationError
+
+    from voice_paste.ui.windows.settings_window import to_field_message
+
+    # 準備（名前が「開発」の 2 件の hint_presets）
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate(
+            {"hint_presets": [{"name": "開発", "words": ["A"]}, {"name": "開発", "words": ["B"]}]}
+        )
+
+    # 実行
+    message = to_field_message(exc_info.value.errors()[0], model=settings_model)
+
+    # 検証
+    assert message == "プリセット「開発」と同じ名前です。別の名前にしてください。"

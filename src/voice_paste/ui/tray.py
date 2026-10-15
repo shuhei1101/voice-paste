@@ -21,8 +21,8 @@ TRAY_ICON_DIR: Path = Path(__file__).resolve().parents[3] / "resources" / "tray"
 TOOLTIP_PREFIX: str = "voice-paste: "
 """アイコンのヒントの先頭。"""
 
-FAILURE_MESSAGE_MSEC: int = 10_000
-"""失敗の通知を出しておく時間（ミリ秒）。通知は数秒で畳まれ、通知センターには残らない。"""
+MESSAGE_MSEC: int = 10_000
+"""通知を出しておく時間（ミリ秒）。通知は数秒で畳まれ、通知センターには残らない。"""
 
 type FailureEvent = Literal[
     "microphone_unavailable",
@@ -55,6 +55,12 @@ FAILURE_BODY_SUFFIXES: dict[str, str] = {
     "api_unavailable": "ホットキーとトレイからの録音は使えます。",
 }
 """知らせの種類ごとの、理由の後に添える文（履歴に残っていること・次にすること）。"""
+
+COPY_COMPLETED_TITLE: str = "コピーしました"
+"""コピーの完了の通知の見出し。"""
+
+COPY_COMPLETED_BODY: str = "任意の場所に貼り付けてください。この通知を押すと、もう一度コピーします。"
+"""コピーの完了の通知の本文（固定の文）。"""
 
 STARTUP_BODY_FORMATS: dict[str, str] = {
     "engine_unavailable": "文字起こしのエンジンを準備できません（{reason}）。設定を直して再起動してください。",
@@ -141,12 +147,16 @@ class Tray(QObject):
     show_window_requested = Signal()
     """「録音の画面を出す」・録音の画面を隠している間のアイコンの左クリック。"""
 
+    recopy_requested = Signal(str)
+    """コピーの完了の通知を押した（その通知のときに起こした文字を渡す）。"""
+
     def __init__(self, settings_dir: Path, log_dir: Path) -> None:
         """設定とログのフォルダを受け、準備中のアイコンとメニューを出す。"""
         super().__init__()
         self._settings_dir = settings_dir
         self._log_dir = log_dir
         self._failed = False
+        self._copied_text: str | None = None
         self._start_hotkey = ""
         self._start_label = START_TEXT
         self._window_state = RecordingWindowState.NOT_RECORDING
@@ -177,7 +187,7 @@ class Tray(QObject):
 
         self._icon.setContextMenu(menu)
         self._icon.activated.connect(self._on_activated)
-        self._icon.messageClicked.connect(self._open_log_folder)
+        self._icon.messageClicked.connect(self._on_message_clicked)
         self.set_state(TrayState.STARTING, busy=False)
         self.set_recording_window(RecordingWindowState.NOT_RECORDING)
         self._icon.show()
@@ -230,7 +240,9 @@ class Tray(QObject):
         self._show_window_action.setFont(font)
 
     def show_failure(self, event: FailureEvent, detail: str | None) -> None:
-        """知らせの種類の見出しと本文で Windows の通知を出す。通知を押すとログフォルダを開く。"""
+        """知らせの種類の見出しと本文で、警告のアイコンの Windows の通知を出す。通知を押すとログフォルダを開く。"""
+        # 押されたときにログフォルダを開くよう、コピーの完了の起こした文字を手放す
+        self._copied_text = None
         title = FAILURE_TITLES[event]
         if event == "microphone_unavailable":
             body = MICROPHONE_BODY
@@ -239,7 +251,18 @@ class Tray(QObject):
         else:
             body = (f"{detail}。" if detail else "") + FAILURE_BODY_SUFFIXES[event]
         self._icon.showMessage(
-            title, body, QSystemTrayIcon.MessageIcon.Warning, FAILURE_MESSAGE_MSEC
+            title, body, QSystemTrayIcon.MessageIcon.Warning, MESSAGE_MSEC
+        )
+
+    def show_copy_completed(self, text: str) -> None:
+        """コピーの完了の見出しと本文で、情報のアイコンの Windows の通知を出す。通知を押すと起こした文字をコピーし直す。"""
+        # 押されたときにコピーし直せるよう、起こした文字を持つ（通知には出さない）
+        self._copied_text = text
+        self._icon.showMessage(
+            COPY_COMPLETED_TITLE,
+            COPY_COMPLETED_BODY,
+            QSystemTrayIcon.MessageIcon.Information,
+            MESSAGE_MSEC,
         )
 
     def hide(self) -> None:
@@ -292,6 +315,15 @@ class Tray(QObject):
         # 待機中: 録音を始める（それ以外の録音から届けるまでの間は何もしない）
         elif self._start_action.isEnabled():
             self.start_requested.emit()
+
+    def _on_message_clicked(self) -> None:
+        """通知を押したとき、最後に出した通知がコピーの完了ならコピーし直しを頼み、そうでなければログフォルダを開く。"""
+        # コピーの完了: 通知のときに起こした文字でコピーし直す
+        if self._copied_text is not None:
+            self.recopy_requested.emit(self._copied_text)
+        # 失敗の通知: ログフォルダを開く
+        else:
+            self._open_log_folder()
 
     def _open_log_folder(self) -> None:
         """ログのフォルダをエクスプローラーで開く。"""

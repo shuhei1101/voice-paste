@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -12,9 +12,9 @@ from PySide6.QtCore import QEvent, QObject
 from PySide6.QtWidgets import QApplication
 
 from voice_paste.features.session.types import Session, SessionState
-from voice_paste.shared.errors import HotkeyError
-from voice_paste.shared.settings import Preset, Settings
-from voice_paste.shared.types import Entry
+from voice_paste.shared.errors import DeliveryError, HotkeyError
+from voice_paste.shared.settings import GlossarySettings, Preset, Settings
+from voice_paste.shared.types import Entry, GlossaryEntry
 from voice_paste.ui.tray import RecordingWindowState, Tray, TrayState
 from voice_paste.ui.windows.busy_dialog import show_busy_dialog
 from voice_paste.ui.windows.recording_window import RecordingWindow
@@ -62,8 +62,8 @@ class UiDeps:
     get_settings: Callable[[], Settings]
     """今効いている設定（SettingsStore.get）。"""
 
-    save_settings: Callable[[Settings], bool]
-    """設定を書いて効かせ、再起動が要る項目が変わったかを返す（apply_settings）。"""
+    save_settings: Callable[[Settings, Mapping[Path, Sequence[GlossaryEntry]]], bool]
+    """設定と、行を変えた用語集の CSV（場所 → 行）を書いて効かせ、再起動が要る項目が変わったかを返す（apply_settings）。"""
 
     settings_dir: Path
     """settings.toml のあるフォルダ。"""
@@ -85,6 +85,21 @@ class UiDeps:
 
     output_titles: Mapping[str, str]
     """画面に出す出力先の名前（出力先の ID → 名前。API 専用の出力先を除く）。設定画面の欄と録音の画面のボタンが引く。"""
+
+    apply_theme: Callable[[], None]
+    """今の設定の ui.theme で画面の明暗を当て直す（apply_theme に QApplication と SettingsStore.get の ui.theme を渡したもの）。"""
+
+    list_glossaries: Callable[[], list[GlossarySettings]]
+    """今の設定の用語集の一覧（path は絶対パス。glossaries が空なら今までの用語集の 1 件。resolve_glossaries）。"""
+
+    read_glossary: Callable[[Path], list[GlossaryEntry]]
+    """用語集の CSV の行を、オン・オフと片方が空の行も含めて読む（read_glossary_rows）。読めなければ GlossaryReadError を送出する。"""
+
+    new_glossary_path: Callable[[Collection[Path]], Path]
+    """足す用語集の CSV の場所を、一覧にある場所と重ならないように決める（フォルダを部分適用した next_glossary_path）。"""
+
+    copy: Callable[[str], None]
+    """クリップボードへ書く（copy_to_clipboard。書けなければ DeliveryError）。コピーの完了の通知を押したときにコピーし直す。"""
 
 
 class UiController(QObject):
@@ -114,6 +129,7 @@ class UiController(QObject):
         self._indicator_shown = False
         tray.start_requested.connect(deps.start)
         tray.show_window_requested.connect(self.show_recording)
+        tray.recopy_requested.connect(self.recopy)
         recording_window.hide_requested.connect(self.hide_recording)
         tray.settings_requested.connect(self.open_settings)
         tray.restart_requested.connect(lambda: self.request_exit("restart"))
@@ -139,6 +155,18 @@ class UiController(QObject):
         """UiBridge.progressed のスロット。文字起こし中の表示が出ていれば進みを渡す。"""
         if self._indicator_shown:
             self._indicator.set_progress(position_sec, duration_sec)
+
+    def on_copied(self, text: str) -> None:
+        """UiBridge.copied のスロット。トレイにコピーの完了の通知を出す。"""
+        self._tray.show_copy_completed(text)
+
+    def recopy(self, text: str) -> None:
+        """Tray.recopy_requested のスロット。起こした文字をクリップボードへもう一度書き、書けなければ届けられなかったことを通知する。"""
+        try:
+            self._deps.copy(text)
+        except DeliveryError as error:
+            logger.error(f"コピーし直せなかった（{error}）")
+            self._tray.show_failure("delivery_failed", str(error))
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802 Qt の名前
         """QApplication に届く QEvent.Quit を受け、開いている設定画面を確かめずに閉じる。イベントは止めない。"""
@@ -174,7 +202,8 @@ class UiController(QObject):
         window.activateWindow()
 
     def on_settings_saved(self) -> None:
-        """設定画面が保存した後、トレイのホットキーの表示を新しい設定に合わせる（録音の画面は出すたびに設定を読む）。"""
+        """設定画面が保存した後、画面の明暗を当て直し、トレイのホットキーの表示を新しい設定に合わせる（録音の画面は出すたびに設定を読む）。"""
+        self._deps.apply_theme()
         self._tray.set_start_hotkey(self._deps.get_settings().hotkeys.start)
 
     def on_settings_closed(self) -> None:

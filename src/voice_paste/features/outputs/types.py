@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from voice_paste.integrations.http.types import PostJsonFn
 from voice_paste.shared.settings import OutputSettingsBase, Preset, Settings
-from voice_paste.shared.types import TranscriptionOutcome
+from voice_paste.shared.types import SendEnterFn, TranscriptionOutcome
 
 type OutputFn = Callable[[TranscriptionOutcome, str | None], None]
 """結果と出力先に固有の宛先（返送先の URL。持たない出力先は None）を受け、1 つの出力先へ届ける。届けられなければ DeliveryError。"""
@@ -29,8 +29,8 @@ class OutputDeps:
     paste: Callable[[], None]
     """貼り付けのキーを送る（呼ぶたびに設定の keyboard.paste_key を読んで send_paste を呼ぶ）。"""
 
-    send_enter: Callable[[], None]
-    """Enter を送る。"""
+    send_enter: SendEnterFn
+    """渡した修飾キーを押したまま Enter を送る（修飾キーを省くと Enter だけ）。"""
 
     sleep: Callable[[float], None]
     """間を置く（time.sleep）。"""
@@ -43,6 +43,9 @@ class OutputDeps:
 
     get_settings: Callable[[], Settings]
     """今の設定を返す（SettingsStore.get。届けるたびに読み、保存した immediate の項目を次の回から効かせる）。"""
+
+    notify_copied: Callable[[str], None]
+    """コピーの完了を起こした文字と共に画面へ知らせる（ui の notify_copied に UiBridge を部分適用したもの）。"""
 
 
 type InjectFn = Callable[[OutputDeps], Mapping[str, object]]

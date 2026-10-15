@@ -2,15 +2,26 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Literal
+from typing import Literal, Protocol
 
 import numpy as np
 
 type ProgressFn = Callable[[float, float], None]
 """文字起こしの区間の終わりの時刻と録音の長さ（秒）を知らせる関数。"""
+
+type EnterModifier = Literal["ctrl", "alt", "shift"]
+"""貼り付けて送信が Enter と一緒に押す修飾キー。出力先の設定と integrations/keyboard が使う。"""
+
+
+class SendEnterFn(Protocol):
+    """渡した修飾キーを押したまま Enter を送る関数。修飾キーを省くと Enter だけを送る。"""
+
+    def __call__(self, modifiers: Sequence[EnterModifier] = ()) -> None:
+        """修飾キーを押したまま Enter を送る。"""
+        ...
 
 
 class Entry(StrEnum):
@@ -47,6 +58,20 @@ class TranscriptionOutcome:
 
     segment_count: int | None = None
     """連続録音で区切った区間の数。連続録音の終わり（completed・truncated、区切りに失敗して止めたときの failed）だけが持つ。"""
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class GlossaryEntry:
+    """用語集の行（誤変換と正しい表記の組と、補正に使うか）。補正と設定画面の間を渡る。"""
+
+    wrong: str
+    """誤変換（CSV の列 `誤変換`）。"""
+
+    right: str
+    """正しい表記（CSV の列 `正しい表記`）。"""
+
+    enabled: bool = True
+    """補正に使うか（CSV の列 `使う`。`0` がオフ）。"""
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

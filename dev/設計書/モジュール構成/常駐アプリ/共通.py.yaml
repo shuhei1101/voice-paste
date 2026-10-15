@@ -8,7 +8,7 @@ directory: |-
   ├── logger.py         # 標準の logging の設定。日付ごとのファイルと保持期間での削除
   ├── errors.py         # 例外の階層
   ├── constants.py      # アプリ名と置き場所のパス（platformdirs）
-  └── types.py          # feature の間を渡る型（入口・録音・文字起こしの結果）
+  └── types.py          # feature の間を渡る型（入口・録音・文字起こしの結果・用語集の行）
   ```
 enums:
   - name: Entry
@@ -45,6 +45,24 @@ enums:
     refs:
       - dev/設計書/設定/常駐アプリ#settings[presets[].kind]
     status: implemented
+  - name: EnterModifier
+    title: Enter と一緒に押す修飾キー
+    container: shared/types.py
+    usecase: 起こした文字を届ける
+    summary: 貼り付けて送信が Enter と一緒に押す修飾キー（`Literal["ctrl", "alt", "shift"]`）。出力先の設定と integrations/keyboard が使う（integrations は features を import できないため shared に置く）
+    values:
+      - value: ctrl
+        title: Ctrl
+        description: Ctrl キー
+      - value: alt
+        title: Alt
+        description: Alt キー
+      - value: shift
+        title: Shift
+        description: Shift キー
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[outputs[].enter_modifiers]
+    status: planned
 data_models:
   - name: Recording
     title: 録音
@@ -162,7 +180,7 @@ data_models:
       - name: glossary_path
         type: Path | None
         default: None
-        description: 用語集の CSV。None は設定ファイルと同じフォルダの yogo.csv
+        description: 今までの用語集の CSV。glossaries が空のときだけ使う（resolve_glossaries）。None は設定ファイルと同じフォルダの yogo.csv
       - name: api
         type: ApiSettings
         description: 待ち受けのポート・返送を許すホスト
@@ -177,6 +195,18 @@ data_models:
         type: ClassVar[Mapping[str, type[OutputSettingsBase]]]
         default: '{}'
         description: 出力先の ID → 設定のモデル。build_settings_model が組み立てたモデルに入る。設定画面が失敗の場所の判別子の値から出力先のモデルを引く
+      - name: glossaries
+        type: list[GlossarySettings]
+        default: '[]'
+        description: 用語集の一覧。並びが設定画面の一覧の並びになる。空のときは glossary_path の CSV を 1 つ目の用語集として扱う。名前が重なる設定は検証で断る（find_glossary_name_overlaps）
+      - name: active_glossary
+        type: str | None
+        default: None
+        description: 補正に使う用語集の名前。None か一覧に無い名前のときは 1 つ目の用語集を使う（pick_active_glossary）
+      - name: hint_presets
+        type: list[HintPresetSettings]
+        default: '[]'
+        description: 表記のヒント（文字起こしの手がかり）のプリセットの一覧。並びが設定画面の一覧と語をつなぐ順になる。キーが無い settings.toml は空の一覧として読む。名前の重なり（find_hint_preset_name_overlaps）と、有効な語をつないだ長さが HINT_MAX_BYTES を超える設定は検証で断る
     refs:
       - dev/設計書/外部ライブラリ/pydantic#
       - dev/設計書/設定/常駐アプリ#
@@ -364,9 +394,13 @@ data_models:
     container: shared/settings.py
     usecase: 共通
     role: 設定のモデル
-    summary: 録音の画面と文字起こし中の表示の出し方
+    summary: 画面の明暗と、録音の画面と文字起こし中の表示の出し方
     inherits: pydantic.BaseModel
     properties:
+      - name: theme
+        type: Literal["system", "light", "dark"]
+        default: system
+        description: 画面の明暗。`system` は OS の明暗に従う。反映は immediate。設定画面は `json_schema_extra` の choice_labels（system → Windows の設定に従う・light → ライト・dark → ダーク）でラジオボタンの名前を出す
       - name: topmost
         type: bool
         default: 'True'
@@ -383,6 +417,10 @@ data_models:
         type: float
         default: '4'
         description: 波形の振れの大きさ（0 より大きい）
+      - name: show_hotkeys
+        type: bool
+        default: 'True'
+        description: 録音の画面のボタンにホットキーを出すか。反映は immediate。description の最初の文を設定の設計書の `title` にそろえる（設定画面の欄の名前になる）
     status: implemented
   - name: ApiSettings
     title: API の設定
@@ -577,6 +615,85 @@ data_models:
     status: planned
     introduced:
       pr: 78
+  - name: GlossaryEntry
+    title: 用語集の行
+    container: shared/types.py
+    usecase: 共通
+    role: DTO
+    summary: 誤変換と正しい表記の組と、補正に使うか。補正と設定画面の間を渡る
+    description: '`@dataclass(frozen=True, slots=True, kw_only=True)`。今の features/correction/types.py から移し（設定画面は features を import しないため）、enabled を足す。features/correction/types.py は消す。'
+    properties:
+      - name: wrong
+        type: str
+        description: 誤変換（CSV の列 `誤変換`）
+      - name: right
+        type: str
+        description: 正しい表記（CSV の列 `正しい表記`）
+      - name: enabled
+        type: bool
+        default: 'True'
+        description: 補正に使うか（CSV の列 `使う`。`0` がオフ）
+    refs:
+      - dev/設計書/ER図/常駐アプリのファイル#tables[%APPDATA%\voice-paste\glossaries\glossary_{n}.csv]
+    status: implemented
+  - name: GlossarySettings
+    title: 用語集の設定
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: 用語集 1 つの名前と CSV の場所
+    inherits: pydantic.BaseModel
+    properties:
+      - name: name
+        type: str
+        description: 設定画面の用語集の一覧に出す名前（前後の空白を除く。`min_length=1`）
+      - name: path
+        type: Path
+        description: その用語集の CSV の場所。settings.toml のフォルダからの相対パスか、絶対パス
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[glossaries[].name]
+      - dev/設計書/設定/常駐アプリ#settings[glossaries[].path]
+    status: implemented
+  - name: HintPresetSettings
+    title: 表記のヒントのプリセットの設定
+    container: shared/settings.py
+    usecase: 設定を変える
+    role: 設定のモデル
+    summary: 表記のヒントのプリセット 1 つの名前・語の並び・有効か
+    description: 語は `field_validator` で 1 つずつ前後の空白を除いて確かめる。空の語は `PydanticCustomError`（type `hint_word_empty`）、読点（、）・句点（。）・改行を含む語は `PydanticCustomError`（type `hint_word_separator`）にし、失敗の場所を `words[{m}]` にする。無効のプリセットの語も確かめる。
+    inherits: pydantic.BaseModel
+    properties:
+      - name: name
+        type: str
+        description: 設定画面の一覧に出す名前（前後の空白を除く。`min_length=1`）
+      - name: words
+        type: list[str]
+        default: '[]'
+        description: 文字起こしに渡す語の並び（各語の前後の空白を除く）
+      - name: enabled
+        type: bool
+        default: 'True'
+        description: このプリセットの語を文字起こしに渡すか
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[hint_presets[].name]
+      - dev/設計書/設定/常駐アプリ#settings[hint_presets[].words]
+      - dev/設計書/設定/常駐アプリ#settings[hint_presets[].enabled]
+    status: implemented
+  - name: HintWordSource
+    title: 手がかりの語の出所
+    container: shared/settings.py
+    usecase: 設定を変える
+    role: Protocol
+    summary: join_hint_words が読む、有効かと語の並びだけを持つ型。HintPresetSettings と、設定画面の入力の途中の値（確かめを通らない値も含む）が共に満たす
+    description: '`typing.Protocol`。確かめを通らない空の名前・空の語・区切りを含む語もそのまま持てる。'
+    properties:
+      - name: enabled
+        type: bool
+        description: 語をつなぐか
+      - name: words
+        type: Sequence[str]
+        description: 語の並び
+    status: implemented
 classes:
   - name: AppError
     title: アプリの例外
@@ -586,7 +703,7 @@ classes:
     kind: クラス
     inherits: Exception
     summary: このアプリが送出する例外の根。API サーバーの例外ハンドラが HTTP のステータスへ変える
-    description: |
+    description: |-
       | 例外 | 意味 | HTTP |
       | --- | --- | --- |
       | `CallbackNotAllowedError` | 返送先が許されない | 400 |
@@ -604,6 +721,7 @@ classes:
       | `SettingsError` | 設定の値が合わない（合わないキーをメッセージに並べる） | - |
       | `StartupError` | 起動に失敗した（エンジンを準備できない・前のプロセスが排他を放さない） | - |
       | `HotkeyError` | ホットキーの書式を pynput が読めない | - |
+      | `GlossaryReadError` | 用語集の CSV を読めない（開けない・UTF-8 でない・見出しの列が無い・csv が解釈できない。メッセージが設定画面に出す理由になる） | - |
 
       全ての例外は docstring だけを持つクラスで `shared/errors.py` に置き、親は表に書かない限り `AppError`。
     status: implemented
@@ -736,8 +854,11 @@ functions:
       2. 読んだ文書を、古い AI チャットの設定を読み替えてから（migrate_ai_chat）settings と同じ設定のモデル（`type(settings)`）で検証し、前の設定にする
          - 無い場合、前の設定は無しとする
          - 読めない・検証に通らない場合、内容を空の文書にして前の設定を「全て変わった」とする
-      3. settings を `model_dump(mode="json")` する
-      4. 文書の値を再帰で置き換える。表はキーごとに書き換えて既存のコメントと並びを保ち、配列（出力先の一覧・プリセットの一覧・許すホスト）は丸ごと入れ替える（出力先の一覧を入れ替えるので、文書に残っていた `id = "ai_chat"` の項目も消える）。None の項目（glossary_path）はキーを置かず、文書に既にあれば消す
+      3. settings を `model_dump(mode="json")` する。`glossaries[].path` は、path の親のフォルダの下にある場所ならそのフォルダからの相対パス（区切りは `/`）にし、それ以外は絶対パスのままにする
+      4. 文書の値を再帰で置き換える。表はキーごとに書き換えて既存のコメントと並びを保ち、配列（出力先の一覧・プリセットの一覧・用語集の一覧・許すホスト）は丸ごと入れ替える（出力先の一覧を入れ替えるので、文書に残っていた `id = "ai_chat"` の項目も消える）。None の項目（glossary_path・active_glossary）はキーを置かず、文書に既にあれば消す
+         - 配列の表（`[[name]]`）を入れ替えるときは、入れ替える前に、古い最後の要素の末尾にある、キーを持たないコメントと空行（tomlkit が最後の要素の中として読む、配列の表の後ろのコメント）と、古い最初の要素の見出しの前（`trivia.indent`）を取り出し、文書で古い配列の表の次に並ぶ表を控える
+         - 入れ替えた後の配列が 1 件以上なら、取り出した見出しの前を新しい最初の要素の見出しの前へ、末尾のコメントと空行を新しい最後の要素の末尾へ、同じ並びで付け直す
+         - 0 件なら、両方を控えた次の表の見出しの前（`trivia.indent` の頭）へ付け直す。次の表が super table（見出しを持たない表）なら中の最初の表、配列の表なら最初の要素の見出しの前にする。次に表が無ければ文書の末尾へ足す
       5. 親のフォルダを作り、同じフォルダの一時ファイルに UTF-8 で書いて os.replace で置き換える
       6. reload が restart の項目のうち、前の設定と値が違うものが 1 つでもあれば True、無ければ False を返す（前の設定が無いときは False）
     unit_tests:
@@ -783,6 +904,30 @@ functions:
         condition: outputs に id = "ai_chat" と送り先 2 件を書いた settings.toml を load_settings で読み、そのまま書く
         mock: なし（一時フォルダ）
         expected: False。書いた後のファイルの outputs に ai_chat が無く、presets に同じ title・url・hotkey・enabled の kind = "browser" が 2 件あり、preset_options.browser.open_delay_sec が読み替えた値
+      - name: test_save_settings_when_glossaries
+        case: 正常
+        summary: 用語集の一覧を書き、設定のフォルダの下の場所は相対パスにする
+        condition: path が設定のフォルダの下の glossaries/glossary_1.csv と、別のフォルダの絶対パスの 2 件の glossaries と active_glossary を持つ設定を書く
+        mock: なし（一時フォルダ）
+        expected: ファイルの 1 件目の path が `glossaries/glossary_1.csv`、2 件目が絶対パス。load_settings で同じ名前の並びと active_glossary が読める
+      - name: test_save_settings_when_legacy_glossary_path
+        case: 正常
+        summary: 用語集の一覧を書くと、今までの glossary_path のキーを消す
+        condition: glossary_path = "C:/x/yogo.csv" を持つ settings.toml に、glossary_path が None で glossaries が 1 件（path が C:/x/yogo.csv）の設定を書く
+        mock: なし（一時フォルダ）
+        expected: 書いた後のファイルに glossary_path のキーが無く、glossaries の 1 件目の path が C:/x/yogo.csv
+      - name: test_save_settings_when_comment_after_array_table
+        case: 正常
+        summary: 配列の表を入れ替えても、配列の表の後ろのコメントを残す
+        condition: '`[[hint_presets]]` を 2 件書き、その後ろにコメント行と `[recording]` を続けた settings.toml に、プリセットを 1 件足した設定・件数を変えずに語だけを変えた設定・1 件に減らした設定をそれぞれ書く（parametrize）'
+        mock: なし（一時フォルダ）
+        expected: 書いた後のファイルで、コメント行が同じ文言で `[recording]` の直前に残る。load_settings で書いた hint_presets が読める
+      - name: test_save_settings_when_array_table_emptied
+        case: 正常
+        summary: 配列の表を 0 件にしても、配列の表の後ろのコメントを次の表の見出しの前に残す
+        condition: '`[[hint_presets]]` を 1 件書き、その後ろにコメント行を続けた settings.toml に、hint_presets を 0 件にした設定を書く（parametrize）。次の表と前の並びは、`[api]` の後ろで次が `[recording]`・文書の最初の表で次が `[recording]`・次が super table（`[transcription.local_whisper]` だけを書く）・次が `[[outputs]]` でその出力先も入れ替える・後ろに表が無い、の 5 通り'
+        mock: なし（一時フォルダ）
+        expected: 書いた後のファイルで、コメント行が同じ文言で 1 回だけ、次の表の見出し（`[recording]`・`[transcription.local_whisper]`・`[[outputs]]`）の直前に残り、後ろに表が無いときは文書の末尾に残る。load_settings の hint_presets が空で、ほかの値が書いた設定のとおりに読める
     refs:
       - dev/設計書/外部ライブラリ/tomlkit#
     status: implemented
@@ -1089,6 +1234,171 @@ functions:
         expected: ValueError
         exception: ID が重なる
     status: planned
+  - name: find_glossary_name_overlaps
+    title: 用語集の名前の重なりの検出
+    container: shared/settings.py
+    usecase: 設定を変える
+    summary: 用語集の一覧のうち、前に並んだ用語集と名前が同じものを返す。Settings の確かめ（`model_validator(mode="after")`）が呼ぶ
+    kind: 関数
+    scope: public
+    args:
+      - name: settings
+        type: Settings
+        required: true
+        passing: positional
+        description: 確かめる設定
+    returns:
+      type: list[tuple[str, str]]
+      description: （重なったキー, 重なった名前）の並び。キーは format_error_location と同じ書式（例 `glossaries[2].name`）
+    process: 1. `glossaries` を並びの順に見て、名前が先に並んだ用語集と同じものを集める（大文字と小文字は区別する。前後の空白は GlossarySettings が除いている）
+    notes:
+      補足: Settings の `model_validator(mode="after")` が、この関数が返した重なりごとに `PydanticCustomError` を集めた ValidationError を送出する（場所は重なったキー、理由は「用語集「{名前}」と同じ名前」）。ホットキーの重なり（find_hotkey_overlaps）と同じ確かめの中で集め、1 回の ValidationError にまとめる
+    unit_tests:
+      - name: test_find_glossary_name_overlaps
+        case: 正常
+        summary: 後ろにある側を重なりとして返す
+        condition: 名前が「yogo」「会議用」「会議用」の 3 件の glossaries
+        mock: なし
+        expected: '[("glossaries[2].name", "会議用")] が返る'
+      - name: test_find_glossary_name_overlaps_when_unique
+        case: 正常
+        summary: 重なりが無ければ空
+        condition: 名前が全て違う 2 件の glossaries
+        mock: なし
+        expected: '[] が返る'
+      - name: test_settings_when_glossary_names_overlap
+        case: 異常
+        summary: 名前が重なる設定は検証に通らない
+        condition: 名前が同じ 2 件の glossaries を SETTINGS_MODEL.model_validate に渡す
+        mock: なし
+        expected: ValidationError。失敗の場所が glossaries[1].name
+      - name: test_settings_when_glossary_name_blank
+        case: 異常
+        summary: 空白だけの名前は検証に通らない
+        condition: 名前が「  」の glossaries を SETTINGS_MODEL.model_validate に渡す
+        mock: なし
+        expected: ValidationError。失敗の場所が glossaries[0].name
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/設定画面.py#
+    status: implemented
+  - name: join_hint_words
+    title: 表記のヒントの語のつなぎ
+    container: shared/settings.py
+    usecase: 録音を文字に起こす
+    summary: 有効なプリセットの語を、一覧の上から順に読点（、）でつなぐ。Settings の長さの確かめと、文字起こしに渡す手がかりの組み立て（main.py）が共に使う
+    kind: 関数
+    scope: public
+    args:
+      - name: presets
+        type: Sequence[HintWordSource]
+        required: true
+        passing: positional
+        description: 設定の hint_presets、または設定画面の入力の途中の値（確かめを通らない値もそのままつなぐ）
+    returns:
+      type: str
+      description: つないだ手がかり。有効な語が無ければ空文字
+    process: 1. enabled が True のプリセットの words を一覧の順に並べ、読点（、）でつなぐ
+    notes:
+      補足: Settings の `model_validator(mode="after")` が、返した文字の UTF-8 のバイト数が HINT_MAX_BYTES を超えたら `PydanticCustomError`（type `hint_too_long`、場所 `hint_presets`、ctx に今のバイト数）を集める。ホットキー・用語集の名前の重なりと同じ確かめの中で集め、1 回の ValidationError にまとめる
+    unit_tests:
+      - name: test_join_hint_words
+        case: 正常
+        summary: 有効なプリセットの語を一覧の順につなぐ
+        condition: 有効な A（語 voice-paste・Whisper）・無効な B（語 議事録）・有効な C（語 返信）
+        mock: なし
+        expected: '"voice-paste、Whisper、返信" が返る'
+      - name: test_join_hint_words_when_none_enabled
+        case: 正常
+        summary: 有効な語が無ければ空文字
+        condition: プリセットが空、または全て無効
+        mock: なし
+        expected: '"" が返る'
+      - name: test_settings_when_hint_at_limit
+        case: 正常
+        summary: つないだ長さが上限ちょうどなら通る
+        condition: 有効な語をつないだ長さが 222 バイトの hint_presets を SETTINGS_MODEL.model_validate に渡す
+        mock: なし
+        expected: 検証に通る
+      - name: test_settings_when_hint_too_long
+        case: 異常
+        summary: 上限を 1 バイトでも超えたら通らない
+        condition: 有効な語をつないだ長さが 223 バイトの hint_presets を SETTINGS_MODEL.model_validate に渡す
+        mock: なし
+        expected: ValidationError。type が hint_too_long、失敗の場所が hint_presets
+      - name: test_settings_when_disabled_hint_long
+        case: 正常
+        summary: 無効のプリセットの語は長さに数えない
+        condition: 有効な語は 100 バイト、無効なプリセットに 300 バイトの語を持つ hint_presets を SETTINGS_MODEL.model_validate に渡す
+        mock: なし
+        expected: 検証に通る
+      - name: test_settings_when_hint_word_has_separator
+        case: 異常
+        summary: 読点・句点・改行を含む語は通らない
+        condition: 語「A、B」「C。」「D\nE」をそれぞれ持つ無効のプリセットを SETTINGS_MODEL.model_validate に渡す
+        mock: なし
+        expected: ValidationError。type がどれも hint_word_separator、失敗の場所が hint_presets[0].words[0] などその語
+      - name: test_settings_when_hint_word_blank
+        case: 異常
+        summary: 空白だけの語は通らない
+        condition: 語「  」を持つ hint_presets を SETTINGS_MODEL.model_validate に渡す
+        mock: なし
+        expected: ValidationError。type が hint_word_empty、失敗の場所が hint_presets[0].words[0]
+      - name: test_load_settings_when_no_hint_presets
+        case: 正常
+        summary: hint_presets のキーが無い今の settings.toml を読める
+        condition: hint_presets を持たない settings.toml を load_settings で読む
+        mock: なし（tmp_path）
+        expected: hint_presets が空の一覧
+      - name: test_join_hint_words_when_unvalidated
+        case: 正常
+        summary: 確かめを通らない値もそのままつなぐ
+        condition: enabled True・words ["", "A、B"] を持つ（HintPresetSettings でない）値を渡す
+        mock: なし
+        expected: '"、A、B" が返り、例外が出ない'
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[hint_presets[].words]
+    status: implemented
+  - name: find_hint_preset_name_overlaps
+    title: 表記のヒントのプリセットの名前の重なりの検出
+    container: shared/settings.py
+    usecase: 設定を変える
+    summary: 表記のヒントのプリセットのうち、前に並んだプリセットと名前が同じものを返す。Settings の確かめ（`model_validator(mode="after")`）が呼ぶ
+    kind: 関数
+    scope: public
+    args:
+      - name: settings
+        type: Settings
+        required: true
+        passing: positional
+        description: 確かめる設定
+    returns:
+      type: list[tuple[str, str]]
+      description: （重なったキー, 重なった名前）の並び。キーは format_error_location と同じ書式（例 `hint_presets[2].name`）
+    process: 1. `hint_presets` を並びの順に見て、名前が先に並んだプリセットと同じものを集める（前後の空白は HintPresetSettings が除いている）
+    notes:
+      補足: Settings の `model_validator(mode="after")` が、重なりごとに `PydanticCustomError`（type `hint_preset_name_overlap`、場所は重なったキー）を集める。find_glossary_name_overlaps と同じ確かめの中で集める
+    unit_tests:
+      - name: test_find_hint_preset_name_overlaps
+        case: 正常
+        summary: 後ろにある側を重なりとして返す
+        condition: 名前が「開発」「会議」「開発」の 3 件の hint_presets
+        mock: なし
+        expected: '[("hint_presets[2].name", "開発")] が返る'
+      - name: test_settings_when_hint_preset_names_overlap
+        case: 異常
+        summary: 名前が重なる設定は検証に通らない
+        condition: 名前が同じ 2 件の hint_presets を SETTINGS_MODEL.model_validate に渡す
+        mock: なし
+        expected: ValidationError。失敗の場所が hint_presets[1].name
+      - name: test_settings_when_hint_preset_name_blank
+        case: 異常
+        summary: 空白だけの名前は検証に通らない
+        condition: 名前が「  」の hint_presets を SETTINGS_MODEL.model_validate に渡す
+        mock: なし
+        expected: ValidationError。失敗の場所が hint_presets[0].name
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/設定画面.py#
+    status: implemented
 constants:
   - name: APP_NAME
     title: アプリ名
@@ -1096,6 +1406,13 @@ constants:
     usecase: 共通
     summary: 置き場所のフォルダ名に使うアプリの名前
     value: '"voice-paste"'
+    status: implemented
+  - name: HINT_MAX_BYTES
+    title: 表記のヒントの長さの上限
+    container: shared/settings.py
+    usecase: 設定を変える
+    summary: 有効なプリセットの語をつないだ手がかりの UTF-8 のバイト数の上限。faster-whisper が hotwords を先頭の 223 トークンに切ることから、頭に足す空白の 1 バイトを引いた値（導き方は PR の要件と外部ライブラリ『faster-whisper』）
+    value: '222'
     status: implemented
 test_files:
   - tests/unit/voice_paste/shared/test_settings.py
@@ -1148,3 +1465,19 @@ function_types:
     status: planned
     introduced:
       pr: 78
+  - name: SendEnterFn
+    title: Enter の送り方
+    container: shared/types.py
+    usecase: 起こした文字を届ける
+    summary: 渡した修飾キーを押したまま Enter を送る（`Protocol`。修飾キーを省いて呼べるため、`Callable[[], None]` を受ける側にも渡せる）。integrations/keyboard が満たし、出力先が受ける
+    args:
+      - name: modifiers
+        type: Sequence[EnterModifier]
+        description: 一緒に押す修飾キー。既定は空（Enter だけ）
+    returns:
+      type: None
+      description: なし
+    implementations:
+      - target: send_enter
+        notes: pynput で送る（外部連携）
+    status: planned

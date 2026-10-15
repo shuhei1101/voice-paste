@@ -12,10 +12,17 @@ from typing import TYPE_CHECKING
 
 import pytest
 from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QColor, QGuiApplication
 from PySide6.QtWidgets import QLabel, QProgressBar
 
-from tests.integration.ui.helpers import FakeClock, Ui, find, grab_head_row, make_ui_deps
+from tests.integration.ui.helpers import (
+    FakeClock,
+    Ui,
+    edge_and_face_colors,
+    find,
+    grab_head_row,
+    make_ui_deps,
+)
 
 if TYPE_CHECKING:
     from unittest.mock import MagicMock
@@ -323,3 +330,27 @@ def test_time_label_when_over_one_minute(clocked: tuple[TranscribingIndicator, F
     assert (
         find(indicator, QLabel, "time_label").text() == "経過 3 分 06 秒 残り 3 分 06 秒 / 6 分 12 秒"
     )
+
+
+# === transcribing_indicator の配色 ===
+
+
+@pytest.mark.parametrize("theme", ["light", "dark"])
+def test_transcribing_indicator_colors_when_theme(
+    make_ui: Callable[..., Ui], apply_theme_to_app: Callable[[str], None], theme: str
+) -> None:
+    """窓の面は color.*.surface、外側の縁は color.*.frame の色で描く（録音の画面と同じ。* は ui.theme で決まる明暗）。"""
+    from voice_paste.ui.style import load_tokens
+
+    # 準備
+    apply_theme_to_app(theme)
+    ui = make_ui()
+    ui.notify_state("hotkey", "transcribing")
+
+    # 実行
+    edge, face = edge_and_face_colors(ui.indicator)
+
+    # 検証
+    colors = load_tokens()["color"][theme]
+    assert edge == QColor(colors["frame"])
+    assert face == QColor(colors["surface"])

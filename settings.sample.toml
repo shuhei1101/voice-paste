@@ -2,8 +2,26 @@
 # 設定のモデルの既定値と一致させてある。
 # 「再起動」と書いた項目は、アプリを再起動してから効く。それ以外は設定画面で保存すると動いているアプリに効く。
 
-# 用語集の CSV の場所。キーが無いときは、この設定ファイルと同じフォルダの yogo.csv を使う
+# 補正に使う用語集の名前。キーが無いとき・一覧に無い名前のときは、1 つ目の用語集を使う
+# active_glossary = "yogo"
+
+# 今までの用語集の CSV の場所。glossaries が空のときだけ、この CSV を 1 つ目の用語集として使う。
+# キーも無いときは、この設定ファイルと同じフォルダの yogo.csv を使う
 # glossary_path = "C:\\Users\\name\\yogo.csv"
+
+# 用語集の一覧（設定画面の「用語集」で編集する）。用語集ごとに名前と CSV の場所を書く。
+# path は、この設定ファイルのフォルダからの相対パスか絶対パス。
+# [[glossaries]]
+# name = "yogo"
+# path = "glossaries/glossary_1.csv"
+
+# 表記のヒント（文字起こしの手がかり）のプリセットの一覧（設定画面の「表記のヒント」で編集する）。既定は空で、空の間はヒントを渡さない。
+# 有効なプリセットの語を上から順に読点（、）でつないで渡す。つないだ長さは UTF-8 で 222 バイトまで。
+# 語は空にできず、読点（、）・句点（。）・改行を含められない。
+# [[hint_presets]]
+# name = "開発"
+# words = ["voice-paste", "Whisper"]
+# enabled = true
 
 # === 文字起こし ===
 [transcription]
@@ -75,6 +93,8 @@ enabled = true
 hotkey = "<ctrl>+<alt>+d"
 # 貼り付けてから Enter を送るまで待つ秒数。0 以上
 enter_delay_sec = 0.5
+# Enter と一緒に押す修飾キー（"ctrl"・"alt"・"shift"）。空なら Enter だけを送る
+enter_modifiers = []
 
 [[outputs]]
 # 貼り付けのみ
@@ -133,6 +153,8 @@ retention_days = 7
 
 # === 録音の画面と文字起こし中の表示 ===
 [ui]
+# 画面の明暗。system（Windows の設定に従う）・light・dark
+theme = "system"
 # 常に最前面に出すか
 topmost = true
 # 出す位置。center・top-left・top-right・bottom-left・bottom-right
@@ -141,6 +163,8 @@ position = "center"
 follow_cursor = true
 # 波形の振れの大きさ。0 より大きい。大きいほど小さい声でも大きく振れる
 wave_gain = 4.0
+# 録音の画面のボタンにホットキーを出すか。false のときは名前だけを出す（ホットキーでの操作はそのまま効く）
+show_hotkeys = true
 
 # === API ===
 [api]

@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QAbstractButton,
     QButtonGroup,
     QCheckBox,
     QComboBox,
@@ -28,6 +29,9 @@ KEY_TOKEN_PATTERN: re.Pattern[str] = re.compile(r"\[(\d+)\]|([^.\[\]]+)")
 
 SLIDER_MAX: int = 100
 """音量の割合のつまみの最大（%）。"""
+
+CHOICE_PROPERTY: str = "choice"
+"""チェックボックスの組で、各チェックボックスが持つ列挙の値の property 名。"""
 
 WHISPER_MODEL_CHOICES: tuple[str, ...] = ("tiny", "base", "small", "medium", "large-v3")
 """文字起こしのモデルの選択の欄に並べる、よく使うモデルの名前（ここに無い名前も入れられる）。"""
@@ -125,14 +129,39 @@ def connect_changed(widget: QWidget, slot: Callable[[], None]) -> None:
     elif isinstance(widget, QLineEdit):
         widget.textChanged.connect(lambda _text: slot())
     else:
-        # ラジオボタンの組（部品を束ねた QWidget）は、中のボタンの切り替えにつなぐ
-        for button in widget.findChildren(QRadioButton):
+        # ラジオボタンの組・チェックボックスの組（部品を束ねた QWidget）は、中のボタンの切り替えにつなぐ
+        for button in widget.findChildren(QAbstractButton):
             button.toggled.connect(lambda _checked: slot())
 
 
 def make_check_box(label: str, checked: bool) -> QCheckBox:
     """チェックボックスを作る。"""
     return QCheckBox(label, checked=checked)
+
+
+def make_check_box_group(
+    key: str, choices: Sequence[str], labels: Mapping[str, str], current: Sequence[str]
+) -> QWidget:
+    """列挙の値ごとのチェックボックスを、横に並べた QWidget にして返す。各チェックボックスの objectName は `field_{キー}_{値}`、オンにした値は `checked_choices` で読む。"""
+    container = QWidget()
+    layout = QHBoxLayout(container)
+    layout.setContentsMargins(0, 0, 0, 0)
+    for choice in choices:
+        check_box = make_check_box(labels.get(choice, choice), choice in current)
+        check_box.setObjectName(f"field_{key}_{choice}")
+        check_box.setProperty(CHOICE_PROPERTY, choice)
+        layout.addWidget(check_box)
+    layout.addStretch(1)
+    return container
+
+
+def checked_choices(container: QWidget) -> list[str]:
+    """チェックボックスの組で、オンにした値を列挙の並びで返す。"""
+    return [
+        str(check_box.property(CHOICE_PROPERTY))
+        for check_box in container.findChildren(QCheckBox)
+        if check_box.isChecked()
+    ]
 
 
 def make_line_edit(text: str) -> QLineEdit:
@@ -158,14 +187,17 @@ def make_combo(choices: tuple[str, ...], current: str, *, editable: bool) -> QCo
     return combo
 
 
-def make_radio_group(choices: tuple[str, ...], current: str) -> QWidget:
-    """ラジオボタンの組を、横に並べた QWidget にして返す。選んだ値は `selected_radio` で読む。"""
+def make_radio_group(
+    choices: tuple[str, ...], current: str, *, labels: Mapping[str, str] | None = None
+) -> QWidget:
+    """ラジオボタンの組を、横に並べた QWidget にして返す。ボタンの名前は labels（無い値は値そのまま）で、値はボタンに持たせる。選んだ値は `selected_radio` で読む。"""
     container = QWidget()
     layout = QHBoxLayout(container)
     layout.setContentsMargins(0, 0, 0, 0)
     group = QButtonGroup(container)
     for choice in choices:
-        button = QRadioButton(choice)
+        button = QRadioButton((labels or {}).get(choice, choice))
+        button.setProperty(CHOICE_PROPERTY, choice)
         button.setChecked(choice == current)
         group.addButton(button)
         layout.addWidget(button)
@@ -174,10 +206,10 @@ def make_radio_group(choices: tuple[str, ...], current: str) -> QWidget:
 
 
 def selected_radio(container: QWidget) -> str:
-    """ラジオボタンの組で、選んでいるボタンの文字を返す。"""
+    """ラジオボタンの組で、選んでいるボタンの値（名前ではなく列挙の値）を返す。"""
     for button in container.findChildren(QRadioButton):
         if button.isChecked():
-            return button.text()
+            return button.property(CHOICE_PROPERTY)
     return ""
 
 
@@ -191,3 +223,10 @@ def make_plain_text(lines: list[str]) -> QPlainTextEdit:
 def plain_text_lines(edit: QPlainTextEdit) -> list[str]:
     """複数行の文字の欄を、空行を除いた行の一覧にする。"""
     return [line.strip() for line in edit.toPlainText().splitlines() if line.strip()]
+
+
+def set_invalid(widget: QWidget, *, invalid: bool) -> None:
+    """欄の枠をエラーの色にする・戻す。"""
+    widget.setProperty("invalid", invalid)
+    widget.style().unpolish(widget)
+    widget.style().polish(widget)

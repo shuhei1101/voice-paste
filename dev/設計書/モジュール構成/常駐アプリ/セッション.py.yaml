@@ -311,8 +311,8 @@ function_types:
     summary: 状態の変化と失敗を画面・トレイへ渡す
     args:
       - name: event
-        type: Literal["state_changed", "busy", "microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable"]
-        description: 知らせの種類
+        type: Literal["state_changed", "busy", "microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable", "output_changed"]
+        description: 知らせの種類（output_changed は、文字起こし中に届ける出力先を差し替えたこと。理由は切り替えた先の出力先の ID）
       - name: detail
         type: str | None
         description: 理由などの文字
@@ -771,7 +771,7 @@ classes:
         returns:
           type: None
           description: なし
-        process: |
+        process: |-
           1. 録音を文字に起こす（文字起こし。入口が api でなければ進みを知らせる関数に report_progress を渡し、api なら None）
              - TranscriptionError の場合、入口が api なら result=failed を届け、それ以外は transcription_failed を知らせて 7 へ
                - `[ERROR]` 文字起こしに失敗した（セッションの ID・理由）
@@ -779,8 +779,9 @@ classes:
           3. 起こした文字を履歴に書き足す（履歴への文字の書き足し）
           4. 結果が空で入口が api でなければ、届けずに 7 へ
              - `[INFO]` 文字起こしの結果が空だった（セッションの ID）
-          5. 状態を delivering にする
-          6. result=transcribed を届ける（出力先への配送）
+          5. ロックの中で状態を delivering にし、そのときの今のセッション（文字起こし中に switch_output で差し替えた出力先を持つ）を引き直す
+             - 差し替えと届け始めが重なったときは、先にロックを取った方で決まる（delivering にした後の switch_output は何もしない）
+          6. 引き直したセッションで result=transcribed を届ける（出力先への配送）
              - DeliveryError（UnknownOutputError を含む）の場合、delivery_failed を知らせる
              - 2〜6 で想定外の例外が出た場合、入口が api なら result=failed を届け、それ以外は文字起こしの前後に応じて transcription_failed か delivery_failed を知らせる
                - `[ERROR]` 確定後の流れで想定外の例外（logger.exception）
@@ -1134,6 +1135,68 @@ classes:
         status: planned
         introduced:
           pr: 78
+      - name: switch_output
+        title: 出力先の差し替え
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        summary: 固定の出力先で確定したホットキー・トレイの録音の文字起こし中に、届ける出力先を差し替える
+        args:
+          - name: output_id
+            type: str
+            required: true
+            description: 切り替える先の固定の出力先の ID（設定でオンのものだけを渡す。画面のボタンとホットキーはオンの出力先だけを持つ）
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. ロックを取る
+          2. 今のセッションの入口が api でなく、状態が transcribing で、output_preset が None（固定の出力先で確定した）であることを確かめる
+             - 当たらない場合（待機中・録音中・届け始めた後の delivering・API のセッション・カスタムプリセットで確定したセッション）、何もしない
+          3. output_id が今の output_id と同じなら、何もしない
+          4. セッションの output_id を差し替える
+             - `[INFO]` 出力先を切り替えた（セッションの ID・切り替える前と後の出力先の ID）
+          5. output_changed を知らせる（ユーザーへの知らせ。理由に切り替えた先の出力先の ID）
+        unit_tests:
+          - name: test_switch_output_when_transcribing
+            case: 正常
+            summary: 文字起こし中なら届ける出力先を差し替える
+            condition: ホットキーのセッションを output_id=paste_and_send で確定し、transcribe が threading.Event を待って止まっている間に switch_output("copy_only") を呼ぶ。その後 Event を立ててワーカースレッドの終わりを待つ
+            mock: SessionDeps の全関数
+            expected: notify に (output_changed, copy_only) が渡り、deliver に渡った Session の output_id が copy_only
+          - name: test_switch_output_when_delivering
+            case: 正常
+            summary: 届け始めた後は差し替えない
+            condition: ホットキーのセッションを output_id=paste_and_send で確定し、deliver が threading.Event を待って止まっている間に switch_output("copy_only") を呼ぶ
+            mock: SessionDeps の全関数
+            expected: deliver に渡った Session の output_id が paste_and_send のままで、notify に output_changed が渡らない
+          - name: test_switch_output_when_preset
+            case: 正常
+            summary: カスタムプリセットで確定した録音は差し替えない
+            condition: ホットキーのセッションを preset=BrowserPreset(title="ChatGPT", url="https://chatgpt.com") で確定し、transcribing の間に switch_output("copy_only") を呼ぶ
+            mock: SessionDeps の全関数
+            expected: deliver に渡った Session の output_id が None、output_preset が渡したプリセットのままで、notify に output_changed が渡らない
+          - name: test_switch_output_when_api_session
+            case: 正常
+            summary: API のセッションは差し替えない
+            condition: API のセッションが transcribing の間に switch_output("copy_only") を呼ぶ
+            mock: SessionDeps の全関数
+            expected: セッションの output_id が None のままで、notify に output_changed が渡らない
+          - name: test_switch_output_when_same_output
+            case: 正常
+            summary: 今の出力先と同じなら何もしない
+            condition: ホットキーのセッションを output_id=paste_and_send で確定し、transcribing の間に switch_output("paste_and_send") を呼ぶ
+            mock: SessionDeps の全関数
+            expected: notify に output_changed が渡らない
+          - name: test_switch_output_when_idle
+            case: 正常
+            summary: 待機中・録音中は何もしない
+            condition: セッションが無いときと、ホットキーのセッションが recording のときに switch_output("copy_only") を呼ぶ
+            mock: SessionDeps の全関数
+            expected: 例外が出ず、recording のセッションの output_id が None のままで、notify に output_changed が渡らない
+        status: planned
+        introduced:
+          pr: 108
     status: implemented
 functions:
   - name: start_session_route

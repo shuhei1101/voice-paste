@@ -998,6 +998,46 @@ def test_build_hotkey_bindings_when_output_disabled(settings_model: type[Setting
     assert "<ctrl>+<alt>+c" not in bindings
 
 
+def test_build_hotkey_bindings_when_transcribing(settings_model: type[Settings]) -> None:
+    """文字起こし中の出力先のホットキーはその出力先へ差し替える（正常系）。"""
+    from voice_paste.main import build_hotkey_bindings
+
+    # 準備
+    session_manager = MagicMock()
+    session_manager.current.return_value = make_session("hotkey", "transcribing")
+    bindings = build_hotkey_bindings(settings_model(), session_manager, MagicMock(), MagicMock())
+
+    # 実行
+    bindings["<ctrl>+<alt>+c"]()
+
+    # 検証
+    session_manager.switch_output.assert_called_once_with("copy_only")
+    session_manager.complete.assert_not_called()
+
+
+def test_build_hotkey_bindings_when_transcribing_start_hotkey(
+    settings_model: type[Settings],
+) -> None:
+    """文字起こし中の開始のホットキーは、同じキーの出力先へ差し替えて録音を始めない（正常系）。"""
+    from voice_paste.main import build_hotkey_bindings
+
+    # 準備
+    session_manager = MagicMock()
+    session_manager.current.return_value = make_session("hotkey", "transcribing")
+    start_local_session = MagicMock()
+    bindings = build_hotkey_bindings(
+        settings_model(), session_manager, start_local_session, MagicMock()
+    )
+
+    # 実行
+    bindings["<ctrl>+<alt>+d"]()
+
+    # 検証
+    session_manager.switch_output.assert_called_once_with("paste_and_send")
+    start_local_session.assert_not_called()
+    session_manager.complete.assert_not_called()
+
+
 # === apply_settings ===
 
 

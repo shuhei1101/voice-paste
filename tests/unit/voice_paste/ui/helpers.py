@@ -14,7 +14,7 @@ from unittest.mock import MagicMock
 
 if TYPE_CHECKING:
     from voice_paste.features.session.types import Session
-    from voice_paste.shared.settings import Settings
+    from voice_paste.shared.settings import Preset, Settings
     from voice_paste.ui.controller import UiDeps
     from voice_paste.ui.tray import Tray
 
@@ -73,6 +73,8 @@ def make_ui_deps(
     }
     if "apply_theme" in {field.name for field in dataclasses.fields(UiDepsModel)}:
         fields["apply_theme"] = MagicMock(return_value=None)
+    if "switch_output" in {field.name for field in dataclasses.fields(UiDepsModel)}:
+        fields["switch_output"] = MagicMock(return_value=None)
     fields.update(overrides)
     return UiDepsModel(**fields)
 
@@ -84,8 +86,14 @@ def make_tray(tmp_path: Path) -> Tray:
     return TrayWidget(settings_dir=tmp_path, log_dir=tmp_path / "log")
 
 
-def make_session(entry: str, state: str) -> Session:
-    """入口と状態を指定した Session を作る。"""
+def make_session(
+    entry: str,
+    state: str,
+    *,
+    output_id: str | None = None,
+    output_preset: Preset | None = None,
+) -> Session:
+    """入口と状態を指定した Session を作る。output_id・output_preset は確定で選んだ固定の出力先の ID とカスタムプリセット。"""
     from voice_paste.features.session.types import Session as SessionModel
     from voice_paste.features.session.types import SessionState
     from voice_paste.shared.types import Entry
@@ -96,6 +104,6 @@ def make_session(entry: str, state: str) -> Session:
         state=SessionState(state),
         started_at=SESSION_STARTED_AT,
         callback_url=None,
-        output_id=None,
-        output_preset=None,
+        output_id=output_id,
+        output_preset=output_preset,
     )

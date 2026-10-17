@@ -32,8 +32,6 @@ def close_dialogs(qapp: QApplication) -> Iterator[None]:
     """テストの後に、出たままの処理中のダイアログを閉じて破棄する。"""
     before = top_level_windows()
     yield
-    for dialog in _dialogs():
-        dialog.close()
     dispose_windows_since(before)
 
 

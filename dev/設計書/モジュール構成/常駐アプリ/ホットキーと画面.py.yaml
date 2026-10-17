@@ -581,7 +581,6 @@ classes:
     description: |-
       メニューの並び・文言・押せない条件は画面設計「トレイ」、通知の文言は画面設計「トレイの通知」が持つ。
       アイコンの画像は `resources/tray/{TrayState の値}.png` を起動時に読む。
-      コンストラクタは settings_dir と log_dir（「設定フォルダを開く」「ログフォルダを開く」と、失敗の通知を押したときに開くフォルダ）を受ける。
       アイコンの左クリックは、「録音の画面を出す」が押せれば show_window_requested、「録音を始める」が押せれば start_requested を emit し、どちらも押せなければ何もしない。
       通知を押したとき（`messageClicked`）はどの通知かが渡らないため、最後に出した通知がコピーの完了ならその起こした文字を `_copied_text` に持ち、押されたときに出し分ける（_on_message_clicked）。
     kind: クラス
@@ -817,6 +816,37 @@ classes:
             mock: QDesktopServices.openUrl
             expected: openUrl に log_dir が 1 回渡り、recopy_requested が emit されない
         status: planned
+      - name: __init__
+        title: トレイの用意
+        summary: 設定とログのフォルダを受け、準備中のアイコンとメニューを出す
+        kind: メソッド
+        scope: public
+        args:
+          - name: settings_dir
+            type: Path
+            required: true
+            passing: positional
+            description: 「設定フォルダを開く」で開くフォルダ
+          - name: log_dir
+            type: Path
+            required: true
+            passing: positional
+            description: 「ログフォルダを開く」と、失敗の通知を押したときに開くフォルダ
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. メニューの項目を作り、Signal とアイコンの左クリック・通知の押下をつなぐ
+          2. 準備中のアイコンの画像だけを付け、ヒントを付けずにアイコンを出す（show）
+          3. 出した後に set_state(STARTING, busy=False) で準備中のヒントとメニューの文言を付け、「録音の画面を出す」を not_recording にする
+        reason: Windows はトレイのアイコンのボタンの名前（スクリーンリーダーが読む名前）を、アイコンを出した時点のヒントと今のヒントをつないで作るため、ヒントは出した後に付ける。Qt はアイコンの画像が無いと show で出さないため、画像は先に付ける
+        unit_tests:
+          - name: test_init_shows_icon_before_tooltip
+            case: 正常
+            summary: ヒントを付けずにアイコンを出し、出した後に準備中のヒントを付ける
+            condition: Tray(settings_dir, log_dir) を作る
+            mock: QSystemTrayIcon.show（呼ばれた時点のヒントとアイコンの画像の有無を控える）
+            expected: 'show が 1 回呼ばれ、その時点のヒントが空でアイコンの画像が付いている。作り終えた後のヒントが voice-paste: 準備中'
     refs:
       - dev/設計書/画面設計/常駐アプリ/トレイ.py#
       - dev/設計書/画面設計/常駐アプリ/トレイの通知.py#

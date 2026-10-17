@@ -1,0 +1,188 @@
+$ .venv/Scripts/python.exe -m pytest tests/unit
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\design-ui-verify-transcribing-indicator-on-windows
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collected 517 items
+
+tests\unit\voice_paste\features\correction\test_service.py ............. [  2%]
+..................                                                       [  5%]
+tests\unit\voice_paste\features\history\test_service.py ..........       [  7%]
+tests\unit\voice_paste\features\outputs\browser\test_service.py ...      [  8%]
+tests\unit\voice_paste\features\outputs\callback\test_service.py ....... [  9%]
+.......                                                                  [ 11%]
+tests\unit\voice_paste\features\outputs\copy_only\test_service.py ...    [ 11%]
+tests\unit\voice_paste\features\outputs\endpoint\test_service.py ....    [ 12%]
+tests\unit\voice_paste\features\outputs\paste_and_send\test_service.py . [ 12%]
+.......                                                                  [ 14%]
+tests\unit\voice_paste\features\outputs\paste_only\test_service.py ...   [ 14%]
+tests\unit\voice_paste\features\outputs\test_service.py .....            [ 15%]
+tests\unit\voice_paste\features\outputs\test_types.py ...                [ 16%]
+tests\unit\voice_paste\features\recording\test_client.py .               [ 16%]
+tests\unit\voice_paste\features\recording\test_segmenter.py ............ [ 18%]
+                                                                         [ 18%]
+tests\unit\voice_paste\features\recording\test_service.py .............. [ 21%]
+........                                                                 [ 23%]
+tests\unit\voice_paste\features\session\test_route.py ...                [ 23%]
+tests\unit\voice_paste\features\session\test_service.py ................ [ 26%]
+........................................                                 [ 34%]
+tests\unit\voice_paste\features\transcription\test_service.py ......     [ 35%]
+tests\unit\voice_paste\integrations\browser\test_opener.py ....          [ 36%]
+tests\unit\voice_paste\integrations\http\test_client.py .......          [ 37%]
+tests\unit\voice_paste\integrations\keyboard\test_sender.py .........    [ 39%]
+tests\unit\voice_paste\integrations\vad\test_adapter.py .....            [ 40%]
+tests\unit\voice_paste\integrations\volume\test_adapter.py .........     [ 42%]
+tests\unit\voice_paste\integrations\whisper\test_client.py ............. [ 44%]
+.                                                                        [ 44%]
+tests\unit\voice_paste\integrations\whisper\test_worker.py .......       [ 46%]
+tests\unit\voice_paste\runtime\test_hotkey.py ........                   [ 47%]
+tests\unit\voice_paste\runtime\test_process.py ..                        [ 48%]
+tests\unit\voice_paste\runtime\test_settings_store.py .                  [ 48%]
+tests\unit\voice_paste\runtime\test_single_instance.py ..........        [ 50%]
+tests\unit\voice_paste\runtime\test_timer.py ...                         [ 50%]
+tests\unit\voice_paste\server\test_app.py ...                            [ 51%]
+tests\unit\voice_paste\server\test_error_handlers.py ...                 [ 52%]
+tests\unit\voice_paste\server\test_middleware.py .....                   [ 52%]
+tests\unit\voice_paste\server\test_runner.py ....                        [ 53%]
+tests\unit\voice_paste\server\test_token.py ...                          [ 54%]
+tests\unit\voice_paste\shared\test_constants.py ..                       [ 54%]
+tests\unit\voice_paste\shared\test_logger.py ......                      [ 55%]
+tests\unit\voice_paste\shared\test_settings.py ......................... [ 60%]
+.......................................                                  [ 68%]
+tests\unit\voice_paste\test_main.py ...................................  [ 75%]
+tests\unit\voice_paste\ui\test_bridge.py ....                            [ 75%]
+tests\unit\voice_paste\ui\test_controller.py .........................   [ 80%]
+tests\unit\voice_paste\ui\test_placement.py ..                           [ 81%]
+tests\unit\voice_paste\ui\test_style.py ..............                   [ 83%]
+tests\unit\voice_paste\ui\test_tray.py .............                     [ 86%]
+tests\unit\voice_paste\ui\windows\test_settings_glossaries.py .......... [ 88%]
+.......                                                                  [ 89%]
+tests\unit\voice_paste\ui\windows\test_settings_hints.py ......          [ 90%]
+tests\unit\voice_paste\ui\windows\test_settings_presets.py ......        [ 91%]
+tests\unit\voice_paste\ui\windows\test_settings_window.py .............. [ 94%]
+..................                                                       [ 98%]
+tests\unit\voice_paste\ui\windows\test_transcribing_indicator.py .....F. [ 99%]
+F..                                                                      [100%]
+
+================================== FAILURES ===================================
+_______ test_set_output_badge_clear_of_text[paste_and_send-hotkeys_off] _______
+
+light_app = <PySide6.QtWidgets.QApplication(0x1cb59ec4620) at 0x000001CB5C929B00>
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-1489/test_set_output_badge_clear_of1')
+output_id = 'paste_and_send', show_hotkeys = False, range_count = 1
+
+    @pytest.mark.parametrize(
+        ("show_hotkeys", "range_count"),
+        [
+            pytest.param(True, 2, id="hotkeys_on"),
+            pytest.param(False, 1, id="hotkeys_off"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "output_id",
+        [
+            pytest.param("paste_and_send", id="paste_and_send"),
+            pytest.param("paste_only", id="paste_only"),
+            pytest.param("copy_only", id="copy_only"),
+        ],
+    )
+    def test_set_output_badge_clear_of_text(
+        light_app: QApplication,
+        tmp_path: Path,
+        output_id: str,
+        show_hotkeys: bool,
+        range_count: int,
+    ) -> None:
+        """選んだボタンの丸い印が名前とホットキーの文字に重ならない（正常系）。"""
+        from voice_paste.main import SETTINGS_MODEL
+        from voice_paste.shared.settings import UiSettings
+        from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
+    
+        # 準備: 貼り付けて送信・貼り付けのみ・コピーのみがオンの設定で、貼り付けて送信で確定した表示を出す
+        settings = SETTINGS_MODEL(
+            ui=UiSettings(show_hotkeys=True, transcribing_show_hotkeys=show_hotkeys)
+        )
+        indicator = TranscribingIndicator(
+            make_ui_deps(tmp_path, settings=settings), clock=FakeClock(0.0)
+        )
+        indicator.open(output_id="paste_and_send")
+    
+        # 実行
+        indicator.set_output(output_id)
+    
+        # 検証: 印が描かれ、名前（とホットキー）の範囲が取れ、どれも印の範囲と交わらない
+        button = indicator.findChild(QPushButton, f"switch_button_{output_id}")
+        badge = _badge_range(button)
+        text_ranges = _text_ranges(button)
+        assert badge is not None
+        assert len(text_ranges) == range_count
+>       assert _ranges_touching(badge, text_ranges) == []
+E       assert [PySide6.QtCo..., 10, 98, 14)] == []
+E         
+E         Left contains one more item: PySide6.QtCore.QRect(12, 10, 98, 14)
+E         Use -v to get more diff
+
+tests\unit\voice_paste\ui\windows\test_transcribing_indicator.py:251: AssertionError
+_________ test_set_output_badge_clear_of_text[paste_only-hotkeys_off] _________
+
+light_app = <PySide6.QtWidgets.QApplication(0x1cb59ec4620) at 0x000001CB5C929B00>
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-1489/test_set_output_badge_clear_of3')
+output_id = 'paste_only', show_hotkeys = False, range_count = 1
+
+    @pytest.mark.parametrize(
+        ("show_hotkeys", "range_count"),
+        [
+            pytest.param(True, 2, id="hotkeys_on"),
+            pytest.param(False, 1, id="hotkeys_off"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "output_id",
+        [
+            pytest.param("paste_and_send", id="paste_and_send"),
+            pytest.param("paste_only", id="paste_only"),
+            pytest.param("copy_only", id="copy_only"),
+        ],
+    )
+    def test_set_output_badge_clear_of_text(
+        light_app: QApplication,
+        tmp_path: Path,
+        output_id: str,
+        show_hotkeys: bool,
+        range_count: int,
+    ) -> None:
+        """選んだボタンの丸い印が名前とホットキーの文字に重ならない（正常系）。"""
+        from voice_paste.main import SETTINGS_MODEL
+        from voice_paste.shared.settings import UiSettings
+        from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
+    
+        # 準備: 貼り付けて送信・貼り付けのみ・コピーのみがオンの設定で、貼り付けて送信で確定した表示を出す
+        settings = SETTINGS_MODEL(
+            ui=UiSettings(show_hotkeys=True, transcribing_show_hotkeys=show_hotkeys)
+        )
+        indicator = TranscribingIndicator(
+            make_ui_deps(tmp_path, settings=settings), clock=FakeClock(0.0)
+        )
+        indicator.open(output_id="paste_and_send")
+    
+        # 実行
+        indicator.set_output(output_id)
+    
+        # 検証: 印が描かれ、名前（とホットキー）の範囲が取れ、どれも印の範囲と交わらない
+        button = indicator.findChild(QPushButton, f"switch_button_{output_id}")
+        badge = _badge_range(button)
+        text_ranges = _text_ranges(button)
+        assert badge is not None
+        assert len(text_ranges) == range_count
+>       assert _ranges_touching(badge, text_ranges) == []
+E       assert [PySide6.QtCo..., 10, 84, 14)] == []
+E         
+E         Left contains one more item: PySide6.QtCore.QRect(12, 10, 84, 14)
+E         Use -v to get more diff
+
+tests\unit\voice_paste\ui\windows\test_transcribing_indicator.py:251: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/unit/voice_paste/ui/windows/test_transcribing_indicator.py::test_set_output_badge_clear_of_text[paste_and_send-hotkeys_off]
+FAILED tests/unit/voice_paste/ui/windows/test_transcribing_indicator.py::test_set_output_badge_clear_of_text[paste_only-hotkeys_off]
+======================= 2 failed, 515 passed in 38.12s ========================

@@ -178,8 +178,6 @@ functions:
          - True の場合だけ、トークンのファイルを書く（write_token_file）
          - False の場合、トークンのファイルを書かずに api_unavailable を知らせて続ける（ホットキーとトレイからの録音は使える）。理由は「ポート {ポート} で待ち受けを始められません」の 1 文にする
       10. ホットキーの受付を始め（HotkeyListener.start(build_hotkey_bindings(設定))）、上限の打ち切りを RepeatingTimer で SESSION_LIMIT_CHECK_INTERVAL_SEC ごとに呼ぶ（SessionManager.truncate_if_expired）。古いログと履歴の削除を RepeatingTimer で PURGE_INTERVAL_SEC ごとに呼ぶ（purge_old_files。設定は呼ぶたびに SettingsStore.get から引き、設定画面で変えた保持期間・履歴を残すかを次の回から効かせる。処理中のセッションの ID は SessionManager.current から引く）。トレイを待機中にする
-         - HotkeyListener は、環境変数 `VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS`（ACCEPT_INJECTED_HOTKEYS_ENV）が `1` のときだけ accept_injected=True で作る（E2E がソフトウェアで送ったキーでホットキーを押すため。普段の起動は付けない）
-           - `[INFO]` ソフトウェアで送ったキーもホットキーとして受ける
          - HotkeyError の場合、ホットキーを受け付けずに続ける（トレイから録音でき、設定画面で直せる）
            - `[ERROR]` ホットキーを受け付けられなかった（理由）
          - `[INFO]` 常駐サービスを始めた（API のポート）
@@ -206,9 +204,9 @@ functions:
       - name: test_main
         case: 正常
         summary: 設定を読んで API・ホットキー・トレイを立て、イベントループが抜けたら片付けて 0 を返す
-        condition: --data-dir に空の一時フォルダ。QT_QPA_PLATFORM=offscreen、環境変数 VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS は無い、exec_loop はすぐ 0 を返す
+        condition: --data-dir に空の一時フォルダ。QT_QPA_PLATFORM=offscreen、exec_loop はすぐ 0 を返す
         mock: build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray
-        expected: 0。{data_dir}/settings.toml が既定値ででき、token_file があり、HotkeyListener が accept_injected=False で作られ、HotkeyListener.start に既定のホットキーが渡り、RepeatingTimer が SESSION_LIMIT_CHECK_INTERVAL_SEC と PURGE_INTERVAL_SEC の 2 つ作られ、HotkeyListener.stop・2 つの RepeatingTimer.stop・ApiServerRunner.stop・SessionManager.close・stop_engine・Tray.hide がこの順に 1 回ずつ呼ばれ、最後に単一インスタンスの排他が放される（同じ data_dir でもう一度取れる）
+        expected: 0。{data_dir}/settings.toml が既定値ででき、token_file があり、HotkeyListener が引数なしで作られ、HotkeyListener.start に既定のホットキーが渡り、RepeatingTimer が SESSION_LIMIT_CHECK_INTERVAL_SEC と PURGE_INTERVAL_SEC の 2 つ作られ、HotkeyListener.stop・2 つの RepeatingTimer.stop・ApiServerRunner.stop・SessionManager.close・stop_engine・Tray.hide がこの順に 1 回ずつ呼ばれ、最後に単一インスタンスの排他が放される（同じ data_dir でもう一度取れる）
       - name: test_main_when_invalid_settings
         case: 異常
         summary: 設定が合わなければトレイで知らせて入口を立てない
@@ -235,12 +233,6 @@ functions:
         condition: exec_loop の中で UiDeps.request_restart を呼ぶ
         mock: build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray・relaunch
         expected: 0。relaunch が ApiServerRunner.stop と stop_engine の後に、同じ argv で 1 回呼ばれる
-      - name: test_main_when_accept_injected_hotkeys
-        case: 正常
-        summary: 環境変数が 1 なら、ソフトウェアで送ったキーもホットキーとして受ける受付を作る
-        condition: --data-dir に空の一時フォルダ、環境変数 VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS=1。exec_loop はすぐ 0 を返す
-        mock: build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray
-        expected: 0。HotkeyListener が accept_injected=True で作られる
       - name: test_main_when_no_data_dir
         case: 正常
         summary: データの置き場所を渡さなければ既定の置き場所で起動する

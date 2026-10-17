@@ -237,7 +237,7 @@ def test_elapsed_label_when_running(make_ui: Callable[..., Ui]) -> None:
     ui = _opened(make_ui)
 
     # 実行
-    QTest.qWait(1200)
+    ui.advance_clock(1.2)
 
     # 検証
     assert find(ui.recording_window, QLabel, "elapsed_label").text() == "00:01"
@@ -247,16 +247,16 @@ def test_elapsed_label_when_paused(make_ui: Callable[..., Ui]) -> None:
     """一時停止中は止めた時点のまま止まり、再開すると続きから進む。"""
     # 準備
     ui = _opened(make_ui)
-    QTest.qWait(1200)
+    ui.advance_clock(1.2)
     ui.recording_window.set_paused(True)
     label = find(ui.recording_window, QLabel, "elapsed_label")
     paused_text = label.text()
 
     # 実行
-    QTest.qWait(1200)
+    ui.advance_clock(1.2)
     still_paused_text = label.text()
     ui.recording_window.set_paused(False)
-    QTest.qWait(1200)
+    ui.advance_clock(1.2)
 
     # 検証
     assert paused_text == "00:01"
@@ -1003,7 +1003,7 @@ def test_head_row_action_does_not_stop_recording(
 
     # 実行
     grab_head_row(ui.recording_window)
-    QTest.qWait(1200)
+    ui.advance_clock(1.2)
 
     # 検証
     assert find(ui.recording_window, QLabel, "elapsed_label").text() == "00:01"
@@ -1151,14 +1151,14 @@ def test_hide_button_action_when_paused_while_hidden(make_ui: Callable[..., Ui])
     # 準備
     ui = make_ui()
     ui.notify_state("hotkey", "recording")
-    QTest.qWait(1200)
+    ui.advance_clock(1.2)
     ui.controller.hide_recording()
-    QTest.qWait(1200)
+    ui.advance_clock(1.2)
 
     # 実行
     ui.notify_state("hotkey", "paused")
     hidden_after_pause = not ui.recording_window.isVisible()
-    QTest.qWait(1200)
+    ui.advance_clock(1.2)
     ui.controller.show_recording()
 
     # 検証
@@ -1180,9 +1180,9 @@ def test_hide_button_action_then_restore(
     grab_head_row(window)
     window.move(window.pos() + QPoint(70, 50))
     moved_to = window.pos()
-    QTest.qWait(1200)
+    ui.advance_clock(1.2)
     ui.controller.hide_recording()
-    QTest.qWait(1200)
+    ui.advance_clock(1.2)
 
     # 実行
     ui.controller.show_recording()

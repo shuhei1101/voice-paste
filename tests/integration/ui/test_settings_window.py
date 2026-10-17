@@ -1330,11 +1330,15 @@ def test_ui_show_hotkeys_field_action(
     _click(window, "save_button")
 
     # 検証
-    assert not load_settings(settings_file, SETTINGS_MODEL).ui.show_hotkeys
-    assert "show_hotkeys = false" in settings_file.read_text(encoding="utf-8")
+    saved = load_settings(settings_file, SETTINGS_MODEL)
+    assert not saved.ui.show_hotkeys
+    assert saved.ui.transcribing_show_hotkeys
+    assert "show_hotkeys = false" in settings_file.read_text(encoding="utf-8").splitlines()
     assert not store.get().ui.show_hotkeys
+    assert store.get().ui.transcribing_show_hotkeys
     assert window.isVisible()
     assert find(window, QLabel, "saved_notice").text() == "保存しました。"
+
 
 @pytest.mark.parametrize("transcribing_show_hotkeys", [True, False], ids=["on", "off"])
 def test_ui_transcribing_show_hotkeys_field_initial_value(

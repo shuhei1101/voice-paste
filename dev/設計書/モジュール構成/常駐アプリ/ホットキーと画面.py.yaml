@@ -581,7 +581,6 @@ classes:
     description: |-
       メニューの並び・文言・押せない条件は画面設計「トレイ」、通知の文言は画面設計「トレイの通知」が持つ。
       アイコンの画像は `resources/tray/{TrayState の値}.png` を起動時に読む。
-      コンストラクタは settings_dir と log_dir（「設定フォルダを開く」「ログフォルダを開く」と、失敗の通知を押したときに開くフォルダ）を受ける。
       アイコンの左クリックは、「録音の画面を出す」が押せれば show_window_requested、「録音を始める」が押せれば start_requested を emit し、どちらも押せなければ何もしない。
       通知を押したとき（`messageClicked`）はどの通知かが渡らないため、最後に出した通知がコピーの完了ならその起こした文字を `_copied_text` に持ち、押されたときに出し分ける（_on_message_clicked）。
     kind: クラス

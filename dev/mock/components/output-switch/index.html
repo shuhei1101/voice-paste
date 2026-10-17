@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>出力先の切り替え | voice-paste のモック</title>
+  <!-- 採用スタイル「開発者ツール」の部品は #37、見本を横に流す枠は #82、今の配色は #94、出力先の切り替えは #108 の共有 CSS に置く -->
+  <link rel="stylesheet" href="../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../refs/82/assets/style.css">
+  <link rel="stylesheet" href="../../refs/94/assets/style.css">
+  <link rel="stylesheet" href="../../refs/108/assets/style.css">
+</head>
+<body>
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../">components</a> / <span>output-switch</span></nav>
+
+    <!-- 部品の説明 -->
+    <header class="intro">
+      <h1>出力先の切り替え</h1>
+      <p>文字起こし中の表示に足す、今の出力先と切り替えのまとまり。案ごとに状態を並べる。</p>
+    </header>
+
+    <div class="desk desk--wide">
+
+      <!-- 場面: 案 A: 出力先とホットキーの一覧 -->
+      <section class="specimen" aria-labelledby="h-a">
+        <h2 id="h-a">案 A: 出力先とホットキーの一覧</h2>
+        <div class="specimen__scroll"><div class="pal-cool theme-light"><div class="win busy" role="group" aria-label="文字起こし中の表示"><div class="busy__head"><span class="spinner" aria-hidden="true"></span><span class="state state--busy" role="status">文字起こし中</span></div><div class="busy__meta"><span class="num">経過 1.4 秒</span><span>残りを計っています</span></div><div class="out" role="group" aria-labelledby="out-ca"><p class="out__label" id="out-ca">出力先</p><ul class="out-keys"><li aria-current="true"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けて送信</span><kbd>Ctrl+Alt+D</kbd></li><li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けのみ</span><kbd>Ctrl+Alt+V</kbd></li><li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>コピーのみ</span><kbd>Ctrl+Alt+C</kbd></li></ul></div><p class="hint">貼り付けたい場所にカーソルを合わせてください</p></div></div></div>
+        <p class="scene-note">押せない。今の出力先は地・枠・印で示す。</p>
+      </section>
+      <!-- 場面: 案 A: ホットキーが空の出力先 -->
+      <section class="specimen" aria-labelledby="h-a-nokey">
+        <h2 id="h-a-nokey">案 A: ホットキーが空の出力先</h2>
+        <div class="specimen__scroll"><div class="pal-cool theme-light"><div class="win busy" role="group" aria-label="文字起こし中の表示"><div class="busy__head"><span class="spinner" aria-hidden="true"></span><span class="state state--busy" role="status">文字起こし中</span></div><div class="busy__meta"><span class="num">経過 1.4 秒</span><span>残りを計っています</span></div><div class="out" role="group" aria-labelledby="out-ca2"><p class="out__label" id="out-ca2">出力先</p><ul class="out-keys"><li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けて送信</span><kbd>Ctrl+Alt+D</kbd></li><li aria-current="true"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けのみ</span><kbd>Ctrl+Alt+V</kbd></li><li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>コピーのみ</span><span class="nokey">キーなし</span></li></ul></div><p class="hint">貼り付けたい場所にカーソルを合わせてください</p></div></div></div>
+      </section>
+      <!-- 場面: 案 B: 通常 -->
+      <section class="specimen" aria-labelledby="h-b">
+        <h2 id="h-b">案 B: 通常</h2>
+        <div class="specimen__scroll"><div class="pal-cool theme-light"><div class="win busy busy--switch" role="group" aria-label="文字起こし中の表示"><div class="busy__head"><span class="spinner" aria-hidden="true"></span><span class="state state--busy" role="status">文字起こし中</span></div><div class="busy__meta"><span class="num">経過 1.4 秒</span><span>残りを計っています</span></div><div class="out" role="group" aria-labelledby="out-cb"><p class="out__label" id="out-cb">出力先</p><div class="out-switch" style="--n:3"><button type="button" class="btn btn--switch" aria-pressed="true" data-hint="貼り付けたい場所にカーソルを合わせてください"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg>貼り付けて送信</button><button type="button" class="btn btn--switch" aria-pressed="false" data-hint="貼り付けたい場所にカーソルを合わせてください"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg>貼り付けのみ</button><button type="button" class="btn btn--switch" aria-pressed="false" data-hint="起こした文字をクリップボードにコピーします"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg>コピーのみ</button></div></div><p class="hint">貼り付けたい場所にカーソルを合わせてください</p></div></div></div>
+      </section>
+      <!-- 場面: 案 B: かざした -->
+      <section class="specimen" aria-labelledby="h-b-hover">
+        <h2 id="h-b-hover">案 B: かざした</h2>
+        <div class="specimen__scroll"><div class="pal-cool theme-light"><div class="win busy busy--switch" role="group" aria-label="文字起こし中の表示"><div class="busy__head"><span class="spinner" aria-hidden="true"></span><span class="state state--busy" role="status">文字起こし中</span></div><div class="busy__meta"><span class="num">経過 1.4 秒</span><span>残りを計っています</span></div><div class="out" role="group" aria-labelledby="out-cb2"><p class="out__label" id="out-cb2">出力先</p><div class="out-switch" style="--n:3"><button type="button" class="btn btn--switch" aria-pressed="true" data-hint="貼り付けたい場所にカーソルを合わせてください"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg>貼り付けて送信</button><button type="button" class="btn btn--switch" aria-pressed="false" data-hint="貼り付けたい場所にカーソルを合わせてください"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg>貼り付けのみ</button><button type="button" class="btn btn--switch is-hover" aria-pressed="false" data-hint="起こした文字をクリップボードにコピーします"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg>コピーのみ</button></div></div><p class="hint">貼り付けたい場所にカーソルを合わせてください</p></div></div></div>
+      </section>
+      <!-- 場面: 案 B: フォーカス -->
+      <section class="specimen" aria-labelledby="h-b-focus">
+        <h2 id="h-b-focus">案 B: フォーカス</h2>
+        <div class="specimen__scroll"><div class="pal-cool theme-light"><div class="win busy busy--switch" role="group" aria-label="文字起こし中の表示"><div class="busy__head"><span class="spinner" aria-hidden="true"></span><span class="state state--busy" role="status">文字起こし中</span></div><div class="busy__meta"><span class="num">経過 1.4 秒</span><span>残りを計っています</span></div><div class="out" role="group" aria-labelledby="out-cb3"><p class="out__label" id="out-cb3">出力先</p><div class="out-switch" style="--n:3"><button type="button" class="btn btn--switch" aria-pressed="true" data-hint="貼り付けたい場所にカーソルを合わせてください"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg>貼り付けて送信</button><button type="button" class="btn btn--switch is-focus" aria-pressed="false" data-hint="貼り付けたい場所にカーソルを合わせてください"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg>貼り付けのみ</button><button type="button" class="btn btn--switch" aria-pressed="false" data-hint="起こした文字をクリップボードにコピーします"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg>コピーのみ</button></div></div><p class="hint">貼り付けたい場所にカーソルを合わせてください</p></div></div></div>
+        <p class="scene-note">表示はフォーカスを取らないため、キーボードではボタンへ移らない。支援技術で押すときの見た目。</p>
+      </section>
+      <!-- 場面: 案 B: オンの出力先が 2 つ -->
+      <section class="specimen" aria-labelledby="h-b-two">
+        <h2 id="h-b-two">案 B: オンの出力先が 2 つ</h2>
+        <div class="specimen__scroll"><div class="pal-cool theme-light"><div class="win busy busy--switch" role="group" aria-label="文字起こし中の表示"><div class="busy__head"><span class="spinner" aria-hidden="true"></span><span class="state state--busy" role="status">文字起こし中</span></div><div class="busy__meta"><span class="num">経過 1.4 秒</span><span>残りを計っています</span></div><div class="out" role="group" aria-labelledby="out-cb4"><p class="out__label" id="out-cb4">出力先</p><div class="out-switch" style="--n:2"><button type="button" class="btn btn--switch" aria-pressed="true" data-hint="貼り付けたい場所にカーソルを合わせてください"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg>貼り付けて送信</button><button type="button" class="btn btn--switch" aria-pressed="false" data-hint="起こした文字をクリップボードにコピーします"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg>コピーのみ</button></div></div><p class="hint">貼り付けたい場所にカーソルを合わせてください</p></div></div></div>
+      </section>
+      <!-- 場面: 案 C: 通常 -->
+      <section class="specimen" aria-labelledby="h-c">
+        <h2 id="h-c">案 C: 通常</h2>
+        <div class="specimen__scroll"><div class="pal-cool theme-light"><div class="win busy busy--switch" role="group" aria-label="文字起こし中の表示"><div class="busy__head"><span class="spinner" aria-hidden="true"></span><span class="state state--busy" role="status">文字起こし中</span></div><div class="busy__meta"><span class="num">経過 1.4 秒</span><span>残りを計っています</span></div><div class="out" role="group" aria-labelledby="out-cc"><p class="out__label" id="out-cc">出力先</p><div class="out-switch" style="--n:3"><button type="button" class="btn btn--switch btn--hk" aria-pressed="true" data-hint="貼り付けたい場所にカーソルを合わせてください"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けて送信</span><kbd>Ctrl+Alt+D</kbd></button><button type="button" class="btn btn--switch btn--hk" aria-pressed="false" data-hint="貼り付けたい場所にカーソルを合わせてください"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けのみ</span><kbd>Ctrl+Alt+V</kbd></button><button type="button" class="btn btn--switch btn--hk" aria-pressed="false" data-hint="起こした文字をクリップボードにコピーします"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>コピーのみ</span><kbd>Ctrl+Alt+C</kbd></button></div></div><p class="hint">貼り付けたい場所にカーソルを合わせてください</p></div></div></div>
+      </section>
+      <!-- 場面: 案 C: かざした -->
+      <section class="specimen" aria-labelledby="h-c-hover">
+        <h2 id="h-c-hover">案 C: かざした</h2>
+        <div class="specimen__scroll"><div class="pal-cool theme-light"><div class="win busy busy--switch" role="group" aria-label="文字起こし中の表示"><div class="busy__head"><span class="spinner" aria-hidden="true"></span><span class="state state--busy" role="status">文字起こし中</span></div><div class="busy__meta"><span class="num">経過 1.4 秒</span><span>残りを計っています</span></div><div class="out" role="group" aria-labelledby="out-cc2"><p class="out__label" id="out-cc2">出力先</p><div class="out-switch" style="--n:3"><button type="button" class="btn btn--switch btn--hk" aria-pressed="true" data-hint="貼り付けたい場所にカーソルを合わせてください"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けて送信</span><kbd>Ctrl+Alt+D</kbd></button><button type="button" class="btn btn--switch btn--hk" aria-pressed="false" data-hint="貼り付けたい場所にカーソルを合わせてください"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けのみ</span><kbd>Ctrl+Alt+V</kbd></button><button type="button" class="btn btn--switch btn--hk is-hover" aria-pressed="false" data-hint="起こした文字をクリップボードにコピーします"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>コピーのみ</span><kbd>Ctrl+Alt+C</kbd></button></div></div><p class="hint">貼り付けたい場所にカーソルを合わせてください</p></div></div></div>
+      </section>
+      <!-- 場面: 案 C: フォーカス -->
+      <section class="specimen" aria-labelledby="h-c-focus">
+        <h2 id="h-c-focus">案 C: フォーカス</h2>
+        <div class="specimen__scroll"><div class="pal-cool theme-light"><div class="win busy busy--switch" role="group" aria-label="文字起こし中の表示"><div class="busy__head"><span class="spinner" aria-hidden="true"></span><span class="state state--busy" role="status">文字起こし中</span></div><div class="busy__meta"><span class="num">経過 1.4 秒</span><span>残りを計っています</span></div><div class="out" role="group" aria-labelledby="out-cc3"><p class="out__label" id="out-cc3">出力先</p><div class="out-switch" style="--n:3"><button type="button" class="btn btn--switch btn--hk" aria-pressed="false" data-hint="貼り付けたい場所にカーソルを合わせてください"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けて送信</span><kbd>Ctrl+Alt+D</kbd></button><button type="button" class="btn btn--switch btn--hk" aria-pressed="false" data-hint="貼り付けたい場所にカーソルを合わせてください"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けのみ</span><kbd>Ctrl+Alt+V</kbd></button><button type="button" class="btn btn--switch btn--hk is-focus" aria-pressed="true" data-hint="起こした文字をクリップボードにコピーします"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>コピーのみ</span><kbd>Ctrl+Alt+C</kbd></button></div></div><p class="hint">起こした文字をクリップボードにコピーします</p></div></div></div>
+      </section>
+      <!-- 場面: 案 C: ホットキーが空の出力先 -->
+      <section class="specimen" aria-labelledby="h-c-nokey">
+        <h2 id="h-c-nokey">案 C: ホットキーが空の出力先</h2>
+        <div class="specimen__scroll"><div class="pal-cool theme-light"><div class="win busy busy--switch" role="group" aria-label="文字起こし中の表示"><div class="busy__head"><span class="spinner" aria-hidden="true"></span><span class="state state--busy" role="status">文字起こし中</span></div><div class="busy__meta"><span class="num">経過 1.4 秒</span><span>残りを計っています</span></div><div class="out" role="group" aria-labelledby="out-cc4"><p class="out__label" id="out-cc4">出力先</p><div class="out-switch" style="--n:3"><button type="button" class="btn btn--switch btn--hk" aria-pressed="true" data-hint="貼り付けたい場所にカーソルを合わせてください"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けて送信</span><kbd>Ctrl+Alt+D</kbd></button><button type="button" class="btn btn--switch btn--hk" aria-pressed="false" data-hint="貼り付けたい場所にカーソルを合わせてください"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けのみ</span><kbd>Ctrl+Alt+V</kbd></button><button type="button" class="btn btn--switch btn--hk" aria-pressed="false" data-hint="起こした文字をクリップボードにコピーします"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>コピーのみ</span></button></div></div><p class="hint">貼り付けたい場所にカーソルを合わせてください</p></div></div></div>
+        <p class="scene-note">キーが空のボタンは名前だけを出し、高さは揃える。</p>
+      </section>
+      <!-- 場面: カスタムプリセットで確定した録音（全案） -->
+      <section class="specimen" aria-labelledby="h-preset">
+        <h2 id="h-preset">カスタムプリセットで確定した録音（全案）</h2>
+        <div class="specimen__scroll"><div class="pal-cool theme-light"><div class="win busy" role="group" aria-label="文字起こし中の表示"><div class="busy__head"><span class="spinner" aria-hidden="true"></span><span class="state state--busy" role="status">文字起こし中</span></div><div class="busy__meta"><span class="num">経過 1.4 秒</span><span>残りを計っています</span></div><div class="out" role="group" aria-labelledby="out-cp"><p class="out__label" id="out-cp">出力先</p><p class="out-fixed">ChatGPT</p></div></div></div></div>
+      </section>
+      <!-- 場面: 案 C: ダーク -->
+      <section class="specimen" aria-labelledby="h-dark">
+        <h2 id="h-dark">案 C: ダーク</h2>
+        <div class="specimen__scroll"><div class="pal-cool theme-dark"><div class="win busy busy--switch" role="group" aria-label="文字起こし中の表示"><div class="busy__head"><span class="spinner" aria-hidden="true"></span><span class="state state--busy" role="status">文字起こし中</span></div><div class="busy__meta"><span class="num">経過 1.4 秒</span><span>残りを計っています</span></div><div class="out" role="group" aria-labelledby="out-cd"><p class="out__label" id="out-cd">出力先</p><div class="out-switch" style="--n:3"><button type="button" class="btn btn--switch btn--hk" aria-pressed="false" data-hint="貼り付けたい場所にカーソルを合わせてください"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けて送信</span><kbd>Ctrl+Alt+D</kbd></button><button type="button" class="btn btn--switch btn--hk" aria-pressed="true" data-hint="貼り付けたい場所にカーソルを合わせてください"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けのみ</span><kbd>Ctrl+Alt+V</kbd></button><button type="button" class="btn btn--switch btn--hk" aria-pressed="false" data-hint="起こした文字をクリップボードにコピーします"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>コピーのみ</span><kbd>Ctrl+Alt+C</kbd></button></div></div><p class="hint">貼り付けたい場所にカーソルを合わせてください</p></div></div></div>
+      </section>
+
+    </div>
+  </main>
+  <!-- 出力先のボタンの押下で、選んでいる出力先と案内の文を差し替える（モックの動き） -->
+  <script src="../../refs/108/assets/app.js"></script>
+</body>
+</html>

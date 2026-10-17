@@ -1,0 +1,180 @@
+/* ===== PR 108 の画面モック: 文字起こし中の表示に今の出力先と切り替えを足す（refs/37・82・94 の style.css に重ねる） ===== */
+
+/* ===== 窓 ===== */
+
+/* 今の配色の見本の文字起こし中の表示: 縁を frame の色にし、Qt で描かない影を外す */
+.pal-cool .win.busy {
+  border-color: var(--frame);
+  box-shadow: none;
+}
+
+/* 切り替えのボタンを持つ文字起こし中の表示: 3 つのボタンが名前を省かずに収まる幅にする */
+.busy--switch {
+  width: 380px;
+}
+
+/* 狭い幅: 窓を縮めずに見本へ収めるため、8 割の大きさで見せる */
+@media (max-width: 480px) {
+  /* 窓を 8 割の大きさで見せる */
+  .busy--switch { zoom: 0.8; }
+}
+
+/* ===== 出力先のまとまり ===== */
+
+/* 出力先のまとまり: 見出しと中身を縦に積む */
+.out {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+/* 出力先のまとまりの見出し */
+.out__label {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* 選んでいる印: 選んでいない行にも同じ幅を取り、選び直しで名前の位置を動かさない */
+.check {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  visibility: hidden;
+}
+
+/* ===== 案 A: 出力先とホットキーの一覧（押せない） ===== */
+
+/* 出力先とホットキーの一覧 */
+.out-keys {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 26px;
+    padding: 2px 8px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+  }
+  kbd { margin-left: auto; }
+}
+
+/* 一覧の今の出力先: 地と枠で示し、印を出す */
+.out-keys li[aria-current="true"] {
+  border-color: var(--line);
+  background: var(--sunken);
+  .check { visibility: visible; color: var(--accent-fg); }
+}
+
+/* ホットキーが空の出力先: キーの代わりに出す文 */
+.out-keys .nokey {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+/* ===== 案 B・案 C: 出力先のボタン ===== */
+
+/* 出力先のボタンを横に並べる */
+.out-switch {
+  display: grid;
+  grid-template-columns: repeat(var(--n, 3), 1fr);
+  gap: 6px;
+}
+
+/* 出力先のボタン: 名前を省かずに収める */
+.btn--switch {
+  position: relative;
+  gap: 4px;
+  padding: 4px 6px;
+  font-size: 13px;
+}
+
+/* 出力先のボタンの印: 右上の角に重ねて置き、名前とキーの中心をそろえる */
+.btn--switch .check {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 16px;
+  height: 16px;
+  padding: 2px;
+  border-radius: 50%;
+  background: var(--accent-fg);
+  stroke-width: 2.4;
+}
+
+/* 選んでいる出力先のボタン: 枠の全体と地で示し、印を出す */
+.btn--switch[aria-pressed="true"] {
+  border-color: var(--accent-fg);
+  background: var(--sunken);
+  box-shadow: inset 0 0 0 1px var(--accent-fg);
+  .check { visibility: visible; color: var(--surface); }
+}
+
+/* 案 C: 名前の下にホットキーを出す 2 段のボタン */
+.btn--switch.btn--hk {
+  flex-direction: column;
+  gap: 2px;
+  min-height: 52px;
+}
+
+/* モックで見せる、かざした出力先のボタン */
+.btn--switch.is-hover { background: var(--sunken); }
+
+/* 切り替えない出力先（カスタムプリセットで確定した録音）: 名前だけを出す */
+.out-fixed {
+  margin: 0;
+  padding: 2px 8px;
+  font-size: 13px;
+}
+
+/* ===== 貼り付け先のアプリの見立て ===== */
+
+/* 貼り付け先のアプリの上: 入力欄と文字起こし中の表示を縦に置く */
+.bgapp--focus {
+  gap: 16px;
+}
+
+/* 貼り付け先の入力欄: フォーカスがあることを枠で示す */
+.bgapp__field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid #0969da;
+  border-radius: 6px;
+  outline: 2px solid rgb(9 105 218 / 0.35);
+  background: #ffffff;
+  color: #1f2328;
+  font-size: 13px;
+}
+
+/* 黒い背景のアプリの入力欄 */
+.bgapp--black .bgapp__field {
+  border-color: #4493f8;
+  outline-color: rgb(68 147 248 / 0.4);
+  background: #161b22;
+  color: #e6edf3;
+}
+
+/* 入力欄の文字の差し込み位置 */
+.caret {
+  width: 1px;
+  height: 16px;
+  background: currentColor;
+}

@@ -1,4 +1,4 @@
-"""features/session/service.py（SessionManager の start・pause・stop・complete・cancel・truncate_if_expired・_run_after_confirm・close・連続録音の _on_segment・_run_segments・_on_continuous_failed）の単体テスト。
+"""features/session/service.py（SessionManager の start・pause・stop・complete・cancel・truncate_if_expired・_run_after_confirm・switch_output・close・連続録音の _on_segment・_run_segments・_on_continuous_failed）の単体テスト。
 
 SessionDeps の関数は全て Mock に差し替える。
 ワーカースレッドは、起動を覚えるだけの偽物（defer_workers）に差し替えて、テストが動かすタイミングを決める。
@@ -70,6 +70,22 @@ def _confirm_api(h: Harness, monkeypatch: pytest.MonkeyPatch) -> None:
     defer_workers(monkeypatch)
     session = h.manager.start("api", callback_url=CALLBACK_URL)
     h.manager.complete(session.id)
+
+
+def _block_until_released(
+    mock: MagicMock, result: object = None
+) -> tuple[threading.Event, threading.Event]:
+    """mock が呼ばれたら止まり、解放の合図が立つまで result を返さないようにする。呼ばれて止まった合図と、解放の合図を返す。"""
+    entered = threading.Event()
+    release = threading.Event()
+
+    def _blocking(*_args: object) -> object:
+        entered.set()
+        release.wait(timeout=WAIT_SEC * 5)
+        return result
+
+    mock.side_effect = _blocking
+    return entered, release
 
 
 # === start ===
@@ -644,6 +660,129 @@ def test_run_after_confirm_when_unknown_output(
     # 検証
     assert "delivery_failed" in h.events()
     assert h.state() is None
+
+
+# === switch_output ===
+
+
+def test_switch_output_when_transcribing(audio_path: Path) -> None:
+    """文字起こし中なら届ける出力先を差し替える（正常系）。"""
+    # 準備: 貼り付けて送信で確定し、文字起こしで止まったままにする
+    h = make_harness(audio_path)
+    transcribe_entered, release_transcribe = _block_until_released(h.transcribe, "てすと")
+    h.manager.start("hotkey")
+    h.manager.complete(output_id="paste_and_send")
+    assert transcribe_entered.wait(timeout=WAIT_SEC)
+
+    # 実行
+    h.manager.switch_output("copy_only")
+    release_transcribe.set()
+    idle = h.wait_until_idle()
+
+    # 検証
+    assert idle
+    h.notify.assert_any_call("output_changed", "copy_only")
+    assert h.deliver.call_args.args[0].output_id == "copy_only"
+
+
+def test_switch_output_when_delivering(audio_path: Path) -> None:
+    """届け始めた後は差し替えない（正常系）。"""
+    # 準備: 貼り付けて送信で確定し、届けるところで止まったままにする
+    h = make_harness(audio_path)
+    deliver_entered, release_deliver = _block_until_released(h.deliver)
+    h.manager.start("hotkey")
+    h.manager.complete(output_id="paste_and_send")
+    assert deliver_entered.wait(timeout=WAIT_SEC)
+
+    # 実行
+    h.manager.switch_output("copy_only")
+    release_deliver.set()
+    idle = h.wait_until_idle()
+
+    # 検証
+    assert idle
+    assert h.deliver.call_args.args[0].output_id == "paste_and_send"
+    assert "output_changed" not in h.events()
+
+
+def test_switch_output_when_preset(audio_path: Path) -> None:
+    """カスタムプリセットで確定した録音は差し替えない（正常系）。"""
+    from voice_paste.shared.settings import BrowserPreset
+
+    # 準備: プリセットで確定し、文字起こしで止まったままにする
+    h = make_harness(audio_path)
+    preset = BrowserPreset(title="ChatGPT", url="https://chatgpt.com")
+    transcribe_entered, release_transcribe = _block_until_released(h.transcribe, "てすと")
+    h.manager.start("hotkey")
+    h.manager.complete(preset=preset)
+    assert transcribe_entered.wait(timeout=WAIT_SEC)
+
+    # 実行
+    h.manager.switch_output("copy_only")
+    release_transcribe.set()
+    idle = h.wait_until_idle()
+
+    # 検証
+    assert idle
+    delivered_session = h.deliver.call_args.args[0]
+    assert delivered_session.output_id is None
+    assert delivered_session.output_preset == preset
+    assert "output_changed" not in h.events()
+
+
+def test_switch_output_when_api_session(audio_path: Path) -> None:
+    """API のセッションは差し替えない（正常系）。"""
+    # 準備: API のセッションを確定し、文字起こしで止まったままにする
+    h = make_harness(audio_path)
+    transcribe_entered, release_transcribe = _block_until_released(h.transcribe, "てすと")
+    session = h.manager.start("api", callback_url=CALLBACK_URL)
+    h.manager.complete(session.id)
+    assert transcribe_entered.wait(timeout=WAIT_SEC)
+
+    # 実行
+    h.manager.switch_output("copy_only")
+    output_id = h.current().output_id
+    release_transcribe.set()
+    idle = h.wait_until_idle()
+
+    # 検証
+    assert idle
+    assert output_id is None
+    assert "output_changed" not in h.events()
+
+
+def test_switch_output_when_same_output(audio_path: Path) -> None:
+    """今の出力先と同じなら何もしない（正常系）。"""
+    # 準備: 貼り付けて送信で確定し、文字起こしで止まったままにする
+    h = make_harness(audio_path)
+    transcribe_entered, release_transcribe = _block_until_released(h.transcribe, "てすと")
+    h.manager.start("hotkey")
+    h.manager.complete(output_id="paste_and_send")
+    assert transcribe_entered.wait(timeout=WAIT_SEC)
+
+    # 実行
+    h.manager.switch_output("paste_and_send")
+    release_transcribe.set()
+    idle = h.wait_until_idle()
+
+    # 検証
+    assert idle
+    assert "output_changed" not in h.events()
+
+
+def test_switch_output_when_idle(audio_path: Path) -> None:
+    """待機中・録音中は何もしない（正常系）。"""
+    # 準備
+    h = make_harness(audio_path)
+
+    # 実行: セッションが無いときと、録音中に呼ぶ
+    h.manager.switch_output("copy_only")
+    h.manager.start("hotkey")
+    h.manager.switch_output("copy_only")
+
+    # 検証
+    assert h.current().output_id is None
+    assert "output_changed" not in h.events()
 
 
 # === close ===

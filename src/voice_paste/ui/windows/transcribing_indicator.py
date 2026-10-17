@@ -6,12 +6,14 @@ import time
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QPoint, QRectF, Qt, QTimer
-from PySide6.QtGui import QPainter, QPen
+from PySide6.QtCore import QPoint, QPointF, QRectF, Qt, QTimer, Signal
+from PySide6.QtGui import QPaintEvent, QPainter, QPen
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QProgressBar, QVBoxLayout, QWidget
 
+from voice_paste.shared.settings import Settings
 from voice_paste.ui.placement import move_to_configured_position
 from voice_paste.ui.style import load_tokens, theme_color
+from voice_paste.ui.windows.window_parts import GripIcon, HeadRow, HotkeyButton, clear_layout
 
 if TYPE_CHECKING:
     from voice_paste.ui.controller import UiDeps
@@ -41,7 +43,36 @@ STATE_TEXT: str = "文字起こし中"
 """状態の表示の文言。"""
 
 HINT_TEXT: str = "貼り付けたい場所にカーソルを合わせてください"
-"""貼り付けの案内の文言。"""
+"""貼り付けの案内の文言（貼り付けて送信・貼り付けのみ）。"""
+
+COPY_HINT_TEXT: str = "起こした文字をクリップボードにコピーします"
+"""コピーのみの案内の文言。"""
+
+COPY_ONLY_ID: str = "copy_only"
+"""コピーのみの出力先の ID。"""
+
+OUTPUT_HEADING_TEXT: str = "出力先"
+"""出力先の見出しの文言。"""
+
+SWITCH_WINDOW_WIDTH_PX: int = 380
+"""出力先の切り替えのボタンを出す回の、窓の最小の幅（ボタンが名前を省かずに収まる幅）。"""
+
+CHECK_BADGE_SIZE_PX: int = 14
+"""今の出力先のボタンの右上に重ねる、丸い印の直径。"""
+
+CHECK_BADGE_MARGIN_PX: int = 2
+"""丸い印とボタンの上端・右端の間の幅。"""
+
+CHECK_BADGE_PEN_PX: float = 1.6
+"""丸い印の中のチェックの線の太さ。"""
+
+CHECK_POINTS: tuple[tuple[float, float], ...] = ((3.5, 7.5), (6.0, 10.0), (10.5, 4.5))
+"""丸い印の中のチェックの折れ線の 3 点（直径 14 の円の左上を原点とした座標）。"""
+
+
+def hint_text(output_id: str | None) -> str:
+    """貼り付けの案内の文言を返す。コピーのみはコピーすることを、それ以外は貼り付ける場所の案内を返す。"""
+    return COPY_HINT_TEXT if output_id == COPY_ONLY_ID else HINT_TEXT
 
 
 def format_elapsed(seconds: float) -> str:
@@ -97,20 +128,55 @@ class Spinner(QWidget):
         painter.drawArc(rect, -self._angle * 16, -SPINNER_ARC_DEGREES * 16)
 
 
+class SwitchButton(HotkeyButton):
+    """出力先の切り替えのボタン。今の出力先のボタンは選んだ状態（checked）にして、右上の角に丸い印（チェック）を重ねる。"""
+
+    def __init__(self, name: str, text: str, hotkey: str) -> None:
+        super().__init__(name, text, hotkey)
+        self.setCheckable(True)
+        # 押してもフォーカスを取らない（貼り付け先の入力欄のフォーカスを動かさない）
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802 Qt の名前
+        """面と枠を描いた後、選んだ状態なら右上の角に丸い印を重ねる。"""
+        super().paintEvent(event)
+        if not self.isChecked():
+            return
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        left = self.width() - CHECK_BADGE_SIZE_PX - CHECK_BADGE_MARGIN_PX
+        badge = QRectF(left, CHECK_BADGE_MARGIN_PX, CHECK_BADGE_SIZE_PX, CHECK_BADGE_SIZE_PX)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(theme_color("accent_fg"))
+        painter.drawEllipse(badge)
+        # 印の中のチェック（色だけで伝えない）
+        pen = QPen(theme_color("surface"), CHECK_BADGE_PEN_PX)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+        painter.setPen(pen)
+        painter.drawPolyline([QPointF(left + x, CHECK_BADGE_MARGIN_PX + y) for x, y in CHECK_POINTS])
+
+
 class TranscribingIndicator(QWidget):
-    """確定から届けるまで、経過と残りの時間・進みをフォーカスを取らずに出す。
+    """確定から届けるまで、経過と残りの時間・進みと今の出力先をフォーカスを取らずに出し、固定の出力先への切り替えを受ける。
 
     残りの時間は、進み（区間の終わり ÷ 録音の長さ）と経過から「経過 ÷ 進み − 経過」で見積もる。
+    切り替えのボタンは、設定でオンの固定の出力先ごとに open で組み直す。差し替えるのは UiController で、印は set_output で替える。
     """
 
+    output_selected = Signal(str)
+    """今の出力先でない切り替えのボタンが押された（押したボタンの出力先の ID）。"""
+
     def __init__(self, deps: UiDeps, *, clock: Callable[[], float] = time.monotonic) -> None:
-        """設定の位置を引くための依存と、経過を数える時計（秒を返す関数）を受ける。"""
+        """設定の位置・ボタンを引くための依存と、経過を数える時計（秒を返す関数）を受ける。"""
         super().__init__()
         self._deps = deps
         self._clock = clock
         self._started_at = 0.0
         self._ratio: float | None = None
         self._duration_sec = 0.0
+        self._output_id: str | None = None
+        self._switch_buttons: dict[str, SwitchButton] = {}
         self.setObjectName("transcribing_indicator")
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         self._build()
@@ -118,7 +184,7 @@ class TranscribingIndicator(QWidget):
         self._timer.timeout.connect(self._refresh_time)
 
     def _build(self) -> None:
-        """状態・進みのバー・経過と残りの時間・貼り付けの案内を並べる。"""
+        """状態・進みのバー・経過と残りの時間・出力先の見出しと切り替えの並び・貼り付けの案内を並べる（切り替えのボタンは open が組み直す）。"""
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         frame = QFrame()
@@ -127,15 +193,20 @@ class TranscribingIndicator(QWidget):
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(16, 16, 16, 16)
 
-        header = QHBoxLayout()
+        # 見出しの行: つかむ印・回る印・状態（行のどこをつかんでも窓を動かせる）
+        head_row = HeadRow()
+        header = QHBoxLayout(head_row)
+        header.setContentsMargins(4, 4, 4, 4)
+        header.addWidget(GripIcon())
         self._spinner = Spinner()
         header.addWidget(self._spinner)
         state_label = QLabel(STATE_TEXT)
         state_label.setObjectName("state_label")
         state_label.setProperty("role", "busy")
+        state_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         header.addWidget(state_label)
         header.addStretch(1)
-        layout.addLayout(header)
+        layout.addWidget(head_row)
 
         self._progress_bar = QProgressBar()
         self._progress_bar.setObjectName("progress_bar")
@@ -150,13 +221,74 @@ class TranscribingIndicator(QWidget):
         self._time_label.setProperty("role", "mono")
         layout.addWidget(self._time_label)
 
-        hint = QLabel(HINT_TEXT)
-        hint.setObjectName("paste_hint")
-        hint.setProperty("role", "muted")
-        layout.addWidget(hint)
+        # 出力先: 区切りの線の下に、見出しと切り替えのボタンの並び（カスタムプリセットで確定した回は名前だけ）を置く
+        divider = QFrame()
+        divider.setProperty("role", "divider")
+        layout.addWidget(divider)
+        heading = QLabel(OUTPUT_HEADING_TEXT)
+        heading.setObjectName("output_heading")
+        heading.setProperty("role", "muted")
+        layout.addWidget(heading)
+        self._switch_layout = QHBoxLayout()
+        layout.addLayout(self._switch_layout)
+        self._preset_label = QLabel()
+        self._preset_label.setObjectName("preset_label")
+        layout.addWidget(self._preset_label)
 
-    def open(self, *, at: QPoint | None = None) -> None:
-        """経過を 0 にして進みを隠し、at の座標（録音の画面の最後の位置）か、渡されなければ設定の位置に出す。"""
+        self._paste_hint = QLabel(HINT_TEXT)
+        self._paste_hint.setObjectName("paste_hint")
+        self._paste_hint.setProperty("role", "muted")
+        layout.addWidget(self._paste_hint)
+
+    def _rebuild_outputs(self, settings: Settings, preset_title: str | None) -> None:
+        """カスタムプリセットで確定した回はその名前だけを、固定の出力先で確定した回は設定でオンの出力先の切り替えのボタンと貼り付けの案内を、設定の並びで組み直す。"""
+        clear_layout(self._switch_layout)
+        self._switch_buttons = {}
+        self._preset_label.setVisible(preset_title is not None)
+        # カスタムプリセット: 名前だけを出し、切り替えのボタンと貼り付けの案内は出さない
+        if preset_title is not None:
+            self._preset_label.setText(preset_title)
+            self._paste_hint.hide()
+            self.setMinimumWidth(0)
+            return
+
+        # 固定の出力先: オンのものを設定の並びで、ホットキーを出さない設定なら名前だけで並べる
+        for output in settings.outputs:
+            if not output.enabled:
+                continue
+            hotkey = output.hotkey if settings.ui.show_hotkeys else ""
+            button = SwitchButton(
+                f"switch_button_{output.id}", self._deps.output_titles[output.id], hotkey
+            )
+            button.clicked.connect(
+                lambda _checked=False, output_id=output.id: self._on_switch_clicked(output_id)
+            )
+            self._switch_layout.addWidget(button)
+            self._switch_buttons[output.id] = button
+        self.setMinimumWidth(SWITCH_WINDOW_WIDTH_PX if self._switch_buttons else 0)
+        self._mark_current()
+        self._paste_hint.setText(hint_text(self._output_id))
+        self._paste_hint.show()
+
+    def _mark_current(self) -> None:
+        """今の出力先のボタンだけを選んだ状態にする。"""
+        for output_id, button in self._switch_buttons.items():
+            button.setChecked(output_id == self._output_id)
+
+    def _on_switch_clicked(self, output_id: str) -> None:
+        """切り替えのボタンが押された。今の出力先でなければ output_selected を emit する（印は差し替えが通って set_output を受けたときに替えるため、押しただけでは動かさない）。"""
+        self._mark_current()
+        if output_id != self._output_id:
+            self.output_selected.emit(output_id)
+
+    def open(
+        self,
+        *,
+        at: QPoint | None = None,
+        output_id: str | None = None,
+        preset_title: str | None = None,
+    ) -> None:
+        """経過を 0 にして進みを隠し、出力先の並び（かプリセットの名前）と貼り付けの案内を組み直し、at の座標（録音の画面の最後の位置）か、渡されなければ設定の位置に出す。"""
         settings = self._deps.get_settings()
         flags = Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint
         flags |= Qt.WindowType.WindowDoesNotAcceptFocus
@@ -164,6 +296,8 @@ class TranscribingIndicator(QWidget):
             flags |= Qt.WindowType.WindowStaysOnTopHint
         self.setWindowFlags(flags)
 
+        self._output_id = output_id
+        self._rebuild_outputs(settings, preset_title)
         self._started_at = self._clock()
         self._ratio = None
         self._progress_bar.setValue(0)
@@ -189,6 +323,12 @@ class TranscribingIndicator(QWidget):
         self._progress_bar.setValue(round(self._ratio * PERCENT))
         self._progress_bar.show()
         self._refresh_time()
+
+    def set_output(self, output_id: str) -> None:
+        """切り替えのボタンの印と貼り付けの案内を、切り替えた先の出力先に替える。"""
+        self._output_id = output_id
+        self._mark_current()
+        self._paste_hint.setText(hint_text(output_id))
 
     def close_window(self) -> None:
         """タイマーと回る印を止めて窓を隠す。"""

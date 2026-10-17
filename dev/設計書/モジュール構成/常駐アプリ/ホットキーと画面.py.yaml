@@ -14,6 +14,7 @@ directory: |-
   └── windows/
       ├── recording_window.py       # RecordingWindow
       ├── transcribing_indicator.py # TranscribingIndicator
+      ├── window_parts.py           # HeadRow・GripIcon・HotkeyButton（録音の画面と文字起こし中の表示が使う見出しの行・つかむ印・名前の下にホットキーを出すボタン）
       ├── busy_dialog.py            # show_busy_dialog
       ├── settings_window.py        # SettingsWindow・confirm_discard・confirm_reset・PRESET_KIND_NAMES
       ├── settings_fields.py        # make_radio_group・selected_radio など設定画面の欄の部品
@@ -193,7 +194,7 @@ classes:
 
       録音の画面をその回だけ隠した間（`_recording_hidden`）は、recording・paused の知らせを受けても窓を出さず、状態の表示だけを替える（RecordingWindow.set_paused）。セッションが recording・paused を抜けたら隠した印を下ろす。
       トレイの「録音の画面を出す」は、今のセッションと隠した印から RecordingWindowState を決めて Tray.set_recording_window で替える（hotkey・tray の recording・paused で隠していれば hidden、出していれば shown、`recording.hide_window` がオンか api の録音なら no_window、それ以外は not_recording）。
-      コンストラクタは UiDeps と、キーワードで tray・recording_window・indicator を受け、トレイの操作と録音の画面の「隠す」（Signal）をつなぐ。あわせて QApplication に自分をイベントフィルタとして入れ、アプリの終了で設定画面を確かめずに閉じる（eventFilter）。
+      コンストラクタは UiDeps と、キーワードで tray・recording_window・indicator を受け、トレイの操作と録音の画面の「隠す」（Signal）をつなぐ。文字起こし中の表示の切り替えのボタン（TranscribingIndicator.output_selected）は UiDeps.switch_output へつなぐ。あわせて QApplication に自分をイベントフィルタとして入れ、アプリの終了で設定画面を確かめずに閉じる（eventFilter）。
     kind: クラス
     inherits: PySide6.QtCore.QObject
     properties:
@@ -249,11 +250,12 @@ classes:
           1. state_changed の場合、今のセッションを引き（current_session）、説明の表のとおりにトレイ・録音の画面・文字起こし中の表示を変える
              - セッションが無く、待たせた再起動・終了がある場合、それを行う（request_restart か request_quit）
              - 録音の画面を隠している場合、窓は出さずに状態の表示だけを替える（RecordingWindow.set_paused）
-             - transcribing・delivering で文字起こし中の表示を出す場合、その回に録音の画面を動かしていれば動かした位置（RecordingWindow.moved_position）を渡す。動かしていなければ渡さず、設定の位置に出す（TranscribingIndicator.open）
+             - transcribing・delivering で文字起こし中の表示を出す場合、その回に録音の画面を動かしていれば動かした位置（RecordingWindow.moved_position）を渡す。動かしていなければ渡さず、設定の位置に出す。あわせてセッションの output_id と、カスタムプリセットで確定したならそのタイトル（output_preset.title）を渡す（TranscribingIndicator.open。文字起こし中の表示が既に出ている delivering の知らせでは開き直さない）
              - 最後に、トレイの「録音の画面を出す」を今の状態に合わせる（Tray.set_recording_window）
-          2. busy の場合、処理中のダイアログを出す（show_busy_dialog）
-          3. show_recording_window の場合、隠した録音の画面を戻す（show_recording）
-          4. microphone_unavailable・transcription_failed・delivery_failed・api_unavailable の場合、トレイの通知を出す（Tray.show_failure）
+          2. output_changed の場合、文字起こし中の表示の今の出力先を detail（切り替えた先の出力先の ID）に替える（TranscribingIndicator.set_output）
+          3. busy の場合、処理中のダイアログを出す（show_busy_dialog）
+          4. show_recording_window の場合、隠した録音の画面を戻す（show_recording）
+          5. microphone_unavailable・transcription_failed・delivery_failed・api_unavailable の場合、トレイの通知を出す（Tray.show_failure）
              - それ以外の種類の場合、何もしない
                - `[WARNING]` 知らない知らせを受けた（種類）
         unit_tests:
@@ -317,6 +319,24 @@ classes:
             condition: current_session が hotkey・recording を返す state_changed の後、hotkey・transcribing を返す state_changed を受ける。RecordingWindow.moved_position が None を返す
             mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
             expected: TranscribingIndicator.open(at=None) が呼ばれる
+          - name: test_on_notified_when_output_changed
+            case: 正常
+            summary: 出力先の差し替えを文字起こし中の表示へ渡す
+            condition: current_session が hotkey・transcribing を返す state_changed の後、event=output_changed、detail="copy_only"
+            mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
+            expected: TranscribingIndicator.set_output("copy_only") が呼ばれ、TranscribingIndicator.open は state_changed の 1 回だけ
+          - name: test_on_notified_when_transcribing_with_output
+            case: 正常
+            summary: 文字起こし中の表示へ確定した出力先・プリセットを渡して開く
+            condition: current_session が output_id=paste_and_send の hotkey・transcribing を返す state_changed と、output_preset=BrowserPreset(title="ChatGPT", url="https://chatgpt.com") の hotkey・transcribing を返す state_changed を別々に受ける
+            mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
+            expected: TranscribingIndicator.open に output_id="paste_and_send"・preset_title=None と、output_id=None・preset_title="ChatGPT" が渡る
+          - name: test_on_notified_when_output_selected
+            case: 正常
+            summary: 文字起こし中の表示で選んだ出力先を差し替えへ渡す
+            condition: UiController を作った後、TranscribingIndicator.output_selected に "paste_only" を emit する
+            mock: UiDeps の全関数・Tray・RecordingWindow
+            expected: UiDeps.switch_output("paste_only") が 1 回呼ばれる
       - name: on_progressed
         title: 進みの受け取り
         summary: UiBridge.progressed のスロット。文字起こし中の表示が出ていれば進みを渡す
@@ -899,6 +919,9 @@ classes:
     summary: 確定から届けるまで、経過と残りの時間・進みをフォーカスを取らずに出す
     description: |-
       要素は画面設計「文字起こし中の表示」が持つ。窓は `Qt.Tool | Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus` と `WA_ShowWithoutActivating` で出す。窓の外側の枠の role は `window` にし、縁を frame で描かせる。
+      `WindowDoesNotAcceptFocus` のため、切り替えのボタンを押しても見出しの行をつかんでも窓は前面にならず、貼り付け先の入力欄のフォーカスはそのまま残る（前面を戻す処理は持たない）。
+      見出しの行・つかむ印・名前の下にホットキーを出すボタンは、録音の画面と同じ部品（window_parts.py の HeadRow・GripIcon・HotkeyButton。recording_window.py から移す）を使う。見出しの行を押したまま動かすと `QWindow.startSystemMove` で窓を動かす。
+      切り替えのボタンは、設定でオンの固定の出力先（`outputs[]` の並び。名前は UiDeps.output_titles、ホットキーは format_hotkey で整えた `outputs[].hotkey`）ごとに open で組み直す。`ui.show_hotkeys` がオフのときはホットキーを空で渡し、名前だけを出す。今の出力先でないボタンを押すと output_selected を emit する（差し替えるのは UiController。印は output_changed の知らせを受けて set_output で替える）。
       残りの時間は、進み（区間の終わり ÷ 録音の長さ）と経過から「経過 ÷ 進み − 経過」で見積もる。
       コンストラクタは UiDeps と、経過を数える時計 clock（秒を返す関数。既定は time.monotonic）を受ける。
     kind: クラス
@@ -906,7 +929,7 @@ classes:
     methods:
       - name: open
         title: 表示を出す
-        summary: 経過を 0 にして進みを隠して出す。at を渡されたらその座標（その回に動かした録音の画面の位置）に、渡されなければ設定の位置（place_window）に出す
+        summary: 経過を 0 にして進みを隠し、出力先の並び（かプリセットの名前）と貼り付けの案内を組み直して出す。at を渡されたらその座標（その回に動かした録音の画面の位置）に、渡されなければ設定の位置（place_window）に出す
         kind: メソッド
         scope: public
         args:
@@ -916,6 +939,18 @@ classes:
             default: None
             passing: keyword
             description: 出す左上の座標（その回に動かした録音の画面の位置）
+          - name: output_id
+            type: str | None
+            required: false
+            default: None
+            passing: keyword
+            description: 確定で選んだ固定の出力先の ID。この出力先のボタンに印を付け、貼り付けの案内をその出力先の文にする
+          - name: preset_title
+            type: str | None
+            required: false
+            default: None
+            passing: keyword
+            description: カスタムプリセットで確定したときのそのタイトル。渡されたら切り替えのボタンと貼り付けの案内を出さず、プリセットの名前だけを出す
         returns:
           type: None
           description: なし
@@ -926,6 +961,12 @@ classes:
             condition: open する。QT_QPA_PLATFORM=offscreen
             mock: UiDeps
             expected: 外側の枠の property("role") が window
+          - name: test_open_when_preset
+            case: 正常
+            summary: カスタムプリセットで確定したときは名前だけを出す
+            condition: open(preset_title="ChatGPT") する。QT_QPA_PLATFORM=offscreen
+            mock: UiDeps
+            expected: preset_label が ChatGPT、switch_button_* が 1 つも表示されず、paste_hint が表示されない
       - name: set_progress
         title: 進みの反映
         summary: 進みのバーと残りの時間を書き換える
@@ -960,9 +1001,37 @@ classes:
         returns:
           type: None
           description: なし
+      - name: set_output
+        title: 今の出力先の反映
+        kind: メソッド
+        scope: public
+        summary: 切り替えのボタンの印と貼り付けの案内を、渡された出力先に替える
+        args:
+          - name: output_id
+            type: str
+            required: true
+            passing: positional
+            description: 切り替えた先の出力先の ID
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_set_output
+            case: 正常
+            summary: 印と案内を切り替えた先に替える
+            condition: paste_and_send・paste_only・copy_only をオンにして open(output_id="paste_and_send") した後、set_output("copy_only")。QT_QPA_PLATFORM=offscreen
+            mock: UiDeps
+            expected: switch_button_copy_only だけが選んだ状態で、paste_hint が「起こした文字をクリップボードにコピーします」
+        status: planned
+        introduced:
+          pr: 108
     refs:
       - dev/設計書/画面設計/常駐アプリ/文字起こし中の表示.py#
     status: implemented
+    properties:
+      - name: output_selected
+        type: Signal(str)
+        description: 今の出力先でない切り替えのボタンが押された（押したボタンの出力先の ID）
   - name: SettingsWindow
     title: 設定画面
     container: ui/windows/settings_window.py
@@ -1671,10 +1740,10 @@ functions:
     summary: UiBridge.notified を emit して、メインスレッドでトレイのアイコン・ダイアログ・画面を変える
     args:
       - name: event
-        type: Literal["state_changed", "busy", "microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable", "show_recording_window"]
+        type: Literal["state_changed", "busy", "microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable", "show_recording_window", "output_changed"]
         required: true
         passing: positional
-        description: 知らせの種類（show_recording_window は、録音開始のホットキーで隠した録音の画面を戻す指示）
+        description: 知らせの種類（show_recording_window は、録音開始のホットキーで隠した録音の画面を戻す指示。output_changed は、文字起こし中に届ける出力先を差し替えたこと）
       - name: detail
         type: str | None
         required: false
@@ -1692,7 +1761,7 @@ functions:
     status: implemented
     process: |-
       1. `bridge.notified.emit(event, detail)` を呼ぶ
-         - `[INFO]` / `[WARNING]` ユーザーへの知らせ（種類・理由。state_changed と show_recording_window は INFO、それ以外は WARNING）
+         - `[INFO]` / `[WARNING]` ユーザーへの知らせ（種類・理由。state_changed・show_recording_window・output_changed は INFO、それ以外は WARNING）
     unit_tests:
       - name: test_notify
         case: 正常
@@ -2386,6 +2455,9 @@ data_models:
       - name: copy
         type: Callable[[str], None]
         description: クリップボードへ書く（copy_to_clipboard。書けなければ DeliveryError）。コピーの完了の通知を押したときにコピーし直す
+      - name: switch_output
+        type: Callable[[str], None]
+        description: 文字起こし中に届ける出力先を差し替える（SessionManager.switch_output）。文字起こし中の表示の切り替えのボタンが呼ぶ
     status: implemented
 enums:
   - name: TrayState

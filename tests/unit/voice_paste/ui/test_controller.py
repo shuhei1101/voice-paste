@@ -16,7 +16,7 @@ import pytest
 from PySide6.QtCore import QEvent, QPoint, QTimer
 from PySide6.QtWidgets import QSlider, QWidget
 
-from tests.unit.voice_paste.ui.helpers import make_session, make_ui_deps
+from tests.unit.voice_paste.ui.helpers import FakeClock, make_session, make_ui_deps
 from voice_paste.shared.errors import DeliveryError
 
 if TYPE_CHECKING:
@@ -206,7 +206,8 @@ def test_on_notified_when_transcribing_after_hidden(qapp: QApplication, tmp_path
     parts.controller.on_notified("state_changed", None)
 
     # 検証
-    parts.indicator.open.assert_called_once_with(at=QPoint(300, 200))
+    parts.indicator.open.assert_called_once()
+    assert parts.indicator.open.call_args.kwargs["at"] == QPoint(300, 200)
     parts.tray.set_recording_window.assert_called_with(RecordingWindowState.NOT_RECORDING)
 
 
@@ -241,7 +242,72 @@ def test_on_notified_when_transcribing_without_move(qapp: QApplication, tmp_path
     parts.controller.on_notified("state_changed", None)
 
     # 検証
-    parts.indicator.open.assert_called_once_with(at=None)
+    parts.indicator.open.assert_called_once()
+    assert parts.indicator.open.call_args.kwargs["at"] is None
+
+
+def test_on_notified_when_output_changed(qapp: QApplication, tmp_path: Path) -> None:
+    """出力先の差し替えを文字起こし中の表示へ渡す（正常系）。"""
+    # 準備: 貼り付けて送信で確定した文字起こし中の表示を出した状態にする
+    parts = _make_controller(tmp_path)
+    parts.deps.current_session.return_value = make_session(
+        "hotkey", "transcribing", output_id="paste_and_send"
+    )
+    parts.controller.on_notified("state_changed", None)
+
+    # 実行
+    parts.controller.on_notified("output_changed", "copy_only")
+
+    # 検証
+    parts.indicator.set_output.assert_called_once_with("copy_only")
+    parts.indicator.open.assert_called_once()
+
+
+def test_on_notified_when_transcribing_with_output(qapp: QApplication, tmp_path: Path) -> None:
+    """文字起こし中の表示へ確定した出力先・プリセットを渡して開く（正常系）。"""
+    from voice_paste.shared.settings import BrowserPreset
+
+    # 準備: 固定の出力先で確定した回と、カスタムプリセットで確定した回を、別のコントローラで受ける
+    preset = BrowserPreset(title="ChatGPT", url="https://chatgpt.com")
+    with_output = _make_controller(tmp_path)
+    with_output.deps.current_session.return_value = make_session(
+        "hotkey", "transcribing", output_id="paste_and_send"
+    )
+    with_preset = _make_controller(tmp_path)
+    with_preset.deps.current_session.return_value = make_session(
+        "hotkey", "transcribing", output_preset=preset
+    )
+
+    # 実行
+    with_output.controller.on_notified("state_changed", None)
+    with_preset.controller.on_notified("state_changed", None)
+
+    # 検証
+    with_output.indicator.open.assert_called_once_with(
+        at=None, output_id="paste_and_send", preset_title=None
+    )
+    with_preset.indicator.open.assert_called_once_with(
+        at=None, output_id=None, preset_title="ChatGPT"
+    )
+
+
+def test_on_notified_when_output_selected(qapp: QApplication, tmp_path: Path) -> None:
+    """文字起こし中の表示で選んだ出力先を差し替えへ渡す（正常系）。"""
+    from voice_paste.ui.controller import UiController
+    from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
+
+    # 準備
+    deps = make_ui_deps(tmp_path)
+    indicator = TranscribingIndicator(deps, clock=FakeClock(0.0))
+    _controller = UiController(
+        deps, tray=MagicMock(), recording_window=MagicMock(), indicator=indicator
+    )
+
+    # 実行
+    indicator.output_selected.emit("paste_only")
+
+    # 検証
+    deps.switch_output.assert_called_once_with("paste_only")
 
 
 # === on_copied ===

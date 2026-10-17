@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>文字起こし中の表示 | voice-paste のモック</title>
+  <!-- 採用スタイル「開発者ツール」の部品は #37、見本を横に流す枠は #82、今の配色と背景のアプリの見立ては #94、出力先の切り替えは #108 の共有 CSS に置く -->
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/82/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/94/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/108/assets/style.css">
+</head>
+<body>
+  <!-- モック専用の操作列: 案のタブ -->
+  <nav class="mock-bar" aria-label="案の切り替え（モック専用）">
+    <span class="mock-bar__label">案</span>
+    <ul><li><a href="../a-hotkey/index.html" aria-current="page">案 A</a></li><li><a href="../b-buttons/index.html">案 B</a></li><li><a href="../c-both/index.html">案 C</a></li></ul>
+  </nav>
+
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">transcribing-indicator</a> / <a href="../">108</a> / <span>a-hotkey</span></nav>
+
+    <!-- 画面の説明 -->
+    <header class="intro">
+      <h1>文字起こし中の表示</h1>
+      <p>計画書の案 A。確定のホットキーを文字起こし中にも受け、押した出力先へ切り替える。表示は押せず、出力先と切り替えのキーの一覧で今の出力先を示す。キーを押しても表示は前面にならず、フォーカスは貼り付け先の入力欄に残る。今の出力先は、オンの固定の出力先の並びの中で印を付けて示す。</p>
+    </header>
+
+    <div class="desk desk--wide">
+
+      <!-- 場面: 始まってすぐ（貼り付けて送信で確定） -->
+      <section class="specimen" aria-labelledby="h-start">
+        <h2 id="h-start">始まってすぐ（貼り付けて送信で確定）</h2>
+        <div class="specimen__scroll"><div class="bgapp bgapp--white bgapp--focus pal-cool theme-light"><div class="bgapp__text" aria-hidden="true"><p class="bgapp__title">白い背景のアプリ（チャット）</p><div class="bgapp__line" style="width:72%"></div><div class="bgapp__line" style="width:88%"></div><div class="bgapp__line" style="width:64%"></div><div class="bgapp__line" style="width:90%"></div><div class="bgapp__line" style="width:58%"></div><div class="bgapp__line" style="width:80%"></div><div class="bgapp__line" style="width:70%"></div><div class="bgapp__line" style="width:92%"></div><div class="bgapp__line" style="width:66%"></div><div class="bgapp__line" style="width:84%"></div></div><div class="bgapp__field" aria-hidden="true"><span>議事録の下書き</span><span class="caret"></span></div><div class="win busy" role="group" aria-label="文字起こし中の表示"><div class="busy__head"><span class="spinner" aria-hidden="true"></span><span class="state state--busy" role="status">文字起こし中</span></div><div class="busy__meta"><span class="num">経過 1.4 秒</span><span>残りを計っています</span></div><div class="out" role="group" aria-labelledby="out-start"><p class="out__label" id="out-start">出力先</p><ul class="out-keys"><li aria-current="true"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けて送信</span><kbd>Ctrl+Alt+D</kbd></li><li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けのみ</span><kbd>Ctrl+Alt+V</kbd></li><li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>コピーのみ</span><kbd>Ctrl+Alt+C</kbd></li></ul></div><p class="hint">貼り付けたい場所にカーソルを合わせてください</p></div></div></div>
+        <p class="scene-note">フォーカスは貼り付け先の入力欄にあり、表示は取らない。確定で選んだ出力先に印が付く。</p>
+      </section>
+      <!-- 場面: コピーのみへ切り替えた後 -->
+      <section class="specimen" aria-labelledby="h-copy">
+        <h2 id="h-copy">コピーのみへ切り替えた後</h2>
+        <div class="specimen__scroll"><div class="pal-cool theme-light"><div class="win busy" role="group" aria-label="文字起こし中の表示"><div class="busy__head"><span class="spinner" aria-hidden="true"></span><span class="state state--busy" role="status">文字起こし中</span></div><label class="sr-only" for="p-copy">文字起こしの進み</label><progress id="p-copy" max="100" value="62">62%</progress><div class="busy__meta"><span class="num">経過 3.2 秒</span><span class="num">残り 2 秒 / 5 秒</span></div><div class="out" role="group" aria-labelledby="out-copy"><p class="out__label" id="out-copy">出力先</p><ul class="out-keys"><li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けて送信</span><kbd>Ctrl+Alt+D</kbd></li><li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けのみ</span><kbd>Ctrl+Alt+V</kbd></li><li aria-current="true"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>コピーのみ</span><kbd>Ctrl+Alt+C</kbd></li></ul></div><p class="hint">起こした文字をクリップボードにコピーします</p></div></div></div>
+        <p class="scene-note">Ctrl+Alt+C を押すと切り替わる。フォーカスは入力欄に残る。案内の文はコピーする旨に変わる。</p>
+      </section>
+      <!-- 場面: 貼り付けのみへ切り替えた後 -->
+      <section class="specimen" aria-labelledby="h-paste">
+        <h2 id="h-paste">貼り付けのみへ切り替えた後</h2>
+        <div class="specimen__scroll"><div class="pal-cool theme-light"><div class="win busy" role="group" aria-label="文字起こし中の表示"><div class="busy__head"><span class="spinner" aria-hidden="true"></span><span class="state state--busy" role="status">文字起こし中</span></div><label class="sr-only" for="p-paste">文字起こしの進み</label><progress id="p-paste" max="100" value="62">62%</progress><div class="busy__meta"><span class="num">経過 3.2 秒</span><span class="num">残り 2 秒 / 5 秒</span></div><div class="out" role="group" aria-labelledby="out-paste"><p class="out__label" id="out-paste">出力先</p><ul class="out-keys"><li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けて送信</span><kbd>Ctrl+Alt+D</kbd></li><li aria-current="true"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けのみ</span><kbd>Ctrl+Alt+V</kbd></li><li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>コピーのみ</span><kbd>Ctrl+Alt+C</kbd></li></ul></div><p class="hint">貼り付けたい場所にカーソルを合わせてください</p></div></div></div>
+        <p class="scene-note">Ctrl+Alt+V を押すと切り替わる。フォーカスは入力欄に残る。届けるときのアクティブなウィンドウへ貼る。</p>
+      </section>
+      <!-- 場面: オンの出力先が 2 つ（貼り付けのみがオフ） -->
+      <section class="specimen" aria-labelledby="h-two">
+        <h2 id="h-two">オンの出力先が 2 つ（貼り付けのみがオフ）</h2>
+        <div class="specimen__scroll"><div class="pal-cool theme-light"><div class="win busy" role="group" aria-label="文字起こし中の表示"><div class="busy__head"><span class="spinner" aria-hidden="true"></span><span class="state state--busy" role="status">文字起こし中</span></div><label class="sr-only" for="p-two">文字起こしの進み</label><progress id="p-two" max="100" value="18">18%</progress><div class="busy__meta"><span class="num">経過 41.0 秒</span><span class="num">残り 3 分 06 秒 / 3 分 48 秒</span></div><div class="out" role="group" aria-labelledby="out-two"><p class="out__label" id="out-two">出力先</p><ul class="out-keys"><li aria-current="true"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けて送信</span><kbd>Ctrl+Alt+D</kbd></li><li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>コピーのみ</span><kbd>Ctrl+Alt+C</kbd></li></ul></div><p class="hint">貼り付けたい場所にカーソルを合わせてください</p></div></div></div>
+        <p class="scene-note">設定でオフの出力先は並べない。長い録音でも並びは変わらない。</p>
+      </section>
+      <!-- 場面: コピーのみのホットキーが空 -->
+      <section class="specimen" aria-labelledby="h-nokey">
+        <h2 id="h-nokey">コピーのみのホットキーが空</h2>
+        <div class="specimen__scroll"><div class="pal-cool theme-light"><div class="win busy" role="group" aria-label="文字起こし中の表示"><div class="busy__head"><span class="spinner" aria-hidden="true"></span><span class="state state--busy" role="status">文字起こし中</span></div><label class="sr-only" for="p-nokey">文字起こしの進み</label><progress id="p-nokey" max="100" value="62">62%</progress><div class="busy__meta"><span class="num">経過 3.2 秒</span><span class="num">残り 2 秒 / 5 秒</span></div><div class="out" role="group" aria-labelledby="out-nokey"><p class="out__label" id="out-nokey">出力先</p><ul class="out-keys"><li aria-current="true"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けて送信</span><kbd>Ctrl+Alt+D</kbd></li><li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けのみ</span><kbd>Ctrl+Alt+V</kbd></li><li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>コピーのみ</span><span class="nokey">キーなし</span></li></ul></div><p class="hint">貼り付けたい場所にカーソルを合わせてください</p></div></div></div>
+        <p class="scene-note">キーが空の出力先へは切り替えられないため、キーの代わりに「キーなし」を出す。</p>
+      </section>
+      <!-- 場面: カスタムプリセットで確定した録音 -->
+      <section class="specimen" aria-labelledby="h-preset">
+        <h2 id="h-preset">カスタムプリセットで確定した録音</h2>
+        <div class="specimen__scroll"><div class="pal-cool theme-light"><div class="win busy" role="group" aria-label="文字起こし中の表示"><div class="busy__head"><span class="spinner" aria-hidden="true"></span><span class="state state--busy" role="status">文字起こし中</span></div><label class="sr-only" for="p-preset">文字起こしの進み</label><progress id="p-preset" max="100" value="62">62%</progress><div class="busy__meta"><span class="num">経過 3.2 秒</span><span class="num">残り 2 秒 / 5 秒</span></div><div class="out" role="group" aria-labelledby="out-preset"><p class="out__label" id="out-preset">出力先</p><p class="out-fixed">ChatGPT</p></div></div></div></div>
+        <p class="scene-note">切り替えないため、確定したプリセットの名前だけを出す。プリセットはカーソルを合わせた場所へ貼らないため、案内の文は出さない。</p>
+      </section>
+      <!-- 場面: ダーク・黒い背景のアプリの上 -->
+      <section class="specimen" aria-labelledby="h-dark">
+        <h2 id="h-dark">ダーク・黒い背景のアプリの上</h2>
+        <div class="specimen__scroll"><div class="bgapp bgapp--black bgapp--focus pal-cool theme-dark"><div class="bgapp__text" aria-hidden="true"><p class="bgapp__title">黒い背景のアプリ（ターミナル）</p><div class="bgapp__line" style="width:72%"></div><div class="bgapp__line" style="width:88%"></div><div class="bgapp__line" style="width:64%"></div><div class="bgapp__line" style="width:90%"></div><div class="bgapp__line" style="width:58%"></div><div class="bgapp__line" style="width:80%"></div><div class="bgapp__line" style="width:70%"></div><div class="bgapp__line" style="width:92%"></div><div class="bgapp__line" style="width:66%"></div><div class="bgapp__line" style="width:84%"></div></div><div class="bgapp__field" aria-hidden="true"><span>$ git commit -m &quot;</span><span class="caret"></span></div><div class="win busy" role="group" aria-label="文字起こし中の表示"><div class="busy__head"><span class="spinner" aria-hidden="true"></span><span class="state state--busy" role="status">文字起こし中</span></div><label class="sr-only" for="p-dark">文字起こしの進み</label><progress id="p-dark" max="100" value="62">62%</progress><div class="busy__meta"><span class="num">経過 3.2 秒</span><span class="num">残り 2 秒 / 5 秒</span></div><div class="out" role="group" aria-labelledby="out-dark"><p class="out__label" id="out-dark">出力先</p><ul class="out-keys"><li aria-current="true"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けて送信</span><kbd>Ctrl+Alt+D</kbd></li><li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けのみ</span><kbd>Ctrl+Alt+V</kbd></li><li><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>コピーのみ</span><kbd>Ctrl+Alt+C</kbd></li></ul></div><p class="hint">貼り付けたい場所にカーソルを合わせてください</p></div></div></div>
+      </section>
+      <!-- 場面の先: 届けた・失敗した -->
+      <section class="specimen" aria-labelledby="h-next">
+        <h2 id="h-next">この後</h2>
+        <ul class="scene-note">
+          <li>届けた・結果が空: 表示を閉じ、<a href="../../../tray/37/a-standard/index.html">トレイ</a>のアイコンを待機中に戻す</li>
+          <li>文字起こしに失敗・届けられない: 表示を閉じ、<a href="../../../tray-notification/37/a-notification/index.html">トレイの通知</a>で知らせる</li>
+          <li>届け始めた後の切り替え: 受けず、届けている出力先のまま届けて閉じる</li>
+        </ul>
+      </section>
+
+    </div>
+  </main>
+</body>
+</html>

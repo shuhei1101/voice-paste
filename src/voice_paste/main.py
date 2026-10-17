@@ -496,8 +496,17 @@ def build_hotkey_bindings(
         None,
     )
 
+    def is_local_transcribing() -> bool:
+        """ホットキー・トレイの録音が文字起こし中か。"""
+        session = session_manager.current()
+        return (
+            session is not None
+            and session.entry != Entry.API
+            and session.state == SessionState.TRANSCRIBING
+        )
+
     def on_start() -> None:
-        """ホットキー・トレイの録音中なら出力先で確定し（出力先が無ければ隠した録音の画面を戻す指示を出す）、そうでなければ録音を始める。"""
+        """ホットキー・トレイの録音中なら出力先で確定し（出力先が無ければ隠した録音の画面を戻す指示を出す）、文字起こし中なら同じホットキーの出力先へ差し替え、そうでなければ録音を始める。"""
         session = session_manager.current()
         is_local_recording = (
             session is not None
@@ -511,7 +520,18 @@ def build_hotkey_bindings(
             else:
                 show_recording_window()
             return
+        # 自分の録音の文字起こし中: 同じホットキーの出力先があれば、録音を始めずにその出力先へ差し替える
+        if confirm_output_id is not None and is_local_transcribing():
+            session_manager.switch_output(confirm_output_id)
+            return
         start_local_session(Entry.HOTKEY)
+
+    def on_output(output_id: str) -> None:
+        """ホットキー・トレイの録音が文字起こし中ならその出力先へ差し替え、そうでなければその出力先で確定する（差し替えられないセッションは SessionManager が断る）。"""
+        if is_local_transcribing():
+            session_manager.switch_output(output_id)
+        else:
+            session_manager.complete(output_id=output_id)
 
     def on_pause() -> None:
         """一時停止中なら再開し、そうでなければ一時停止する。"""
@@ -527,9 +547,9 @@ def build_hotkey_bindings(
         settings.hotkeys.cancel: session_manager.cancel,
     }
     for output in settings.outputs:
-        # オンの出力先のホットキー（録音開始と同じキーを除く）: その出力先で確定する
+        # オンの出力先のホットキー（録音開始と同じキーを除く）: その出力先で確定する（文字起こし中はその出力先へ差し替える）
         if output.enabled and output.hotkey.lower() != start_hotkey.lower():
-            bindings[output.hotkey] = partial(session_manager.complete, output_id=output.id)
+            bindings[output.hotkey] = partial(on_output, output.id)
     for preset in settings.presets:
         # 有効なプリセットのホットキー: そのプリセットで確定する
         if preset.enabled:
@@ -608,6 +628,7 @@ def build_ui_deps(
         complete=complete,
         cancel=session_manager.cancel,
         current_session=session_manager.current,
+        switch_output=session_manager.switch_output,
         level=handlers.recorder_level,
         get_settings=store.get,
         save_settings=save_settings,
@@ -658,6 +679,7 @@ def _build_idle_ui_deps(
         complete=do_nothing,
         cancel=do_nothing,
         current_session=lambda: None,
+        switch_output=do_nothing,
         level=lambda: 0.0,
         get_settings=store.get,
         save_settings=partial(

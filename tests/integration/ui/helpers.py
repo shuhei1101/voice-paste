@@ -20,7 +20,7 @@ from PySide6.QtWidgets import QApplication, QLabel, QMessageBox, QPushButton, QW
 from tests.unit.voice_paste.ui.helpers import FakeClock, make_session, make_ui_deps
 
 if TYPE_CHECKING:
-    from voice_paste.shared.settings import Settings
+    from voice_paste.shared.settings import Preset, Settings
     from voice_paste.ui.controller import UiController, UiDeps
     from voice_paste.ui.tray import Tray
     from voice_paste.ui.windows.recording_window import RecordingWindow
@@ -71,11 +71,28 @@ class Ui:
     indicator: TranscribingIndicator
     deps: UiDeps
 
-    def notify_state(self, entry: str | None, state: str | None = None) -> None:
-        """今のセッションを入口と状態で差し替え、state_changed を受けさせる（None は待機中）。"""
-        session = None if entry is None else make_session(entry, state or "recording")
+    def notify_state(
+        self,
+        entry: str | None,
+        state: str | None = None,
+        *,
+        output_id: str | None = None,
+        output_preset: Preset | None = None,
+    ) -> None:
+        """今のセッションを入口・状態・確定で選んだ出力先かプリセットで差し替え、state_changed を受けさせる（None は待機中）。"""
+        session = (
+            None
+            if entry is None
+            else make_session(
+                entry, state or "recording", output_id=output_id, output_preset=output_preset
+            )
+        )
         self.deps.current_session.return_value = session
         self.controller.on_notified("state_changed", None)
+
+    def notify_output_changed(self, output_id: str) -> None:
+        """届ける出力先を差し替えたことを知らせる（output_changed）。"""
+        self.controller.on_notified("output_changed", output_id)
 
     def close(self) -> None:
         """出ている窓とトレイを片付ける。"""

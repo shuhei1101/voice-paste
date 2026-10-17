@@ -1,10 +1,10 @@
 title: "pydantic"
 kind: "ライブラリ"
 version:
-  current: 2.13.5
+  current: 2.14.1
   latest: 2.13.5
   checked_on: '2026-10-01'
-  source: pyproject.toml（fastapi の依存としても入る）
+  source: pyproject.toml（fastapi の依存としても入る）と uv.lock の版
   pinning: 互換リリースで固定（~=2.13）
 catalogs:
   - name: API

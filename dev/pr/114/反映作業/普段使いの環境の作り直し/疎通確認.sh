@@ -11,6 +11,22 @@ else
   FAILED=1
 fi
 
+if uv.exe python find 3.14 > /dev/null 2>&1; then
+  echo "Windows の Python 3.14: ok"
+else
+  echo "Windows の Python 3.14: failed"
+  FAILED=1
+fi
+
+# files.pythonhosted.org は直下に置くものが無く 404 を返すので、応答が返ることだけを見る
+if curl -sfI -m 10 https://pypi.org/simple/ > /dev/null \
+  && [ "$(curl -sI -m 10 -o /dev/null -w '%{http_code}' https://files.pythonhosted.org/)" != "000" ]; then
+  echo "PyPI: ok"
+else
+  echo "PyPI: failed"
+  FAILED=1
+fi
+
 if [ -f uv.lock ] && [ -f .python-version ]; then
   echo "uv.lock と .python-version: ok"
 else

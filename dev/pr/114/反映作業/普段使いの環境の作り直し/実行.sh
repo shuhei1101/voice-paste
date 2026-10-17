@@ -5,7 +5,7 @@ set -uo pipefail
 
 # 前提確認
 if ! uv.exe --version > /dev/null 2>&1 || [ ! -f uv.lock ] || [ ! -f .python-version ] \
-  || ! grep -q '\.venv\\Scripts\\pythonw\.exe' voice-paste.bat; then
+  || ! grep -q '\.venv\\Scripts\\pythonw\.exe' voice-paste.bat || [ -L .venv ]; then
   echo "前提確認: failed"
   exit 1
 fi

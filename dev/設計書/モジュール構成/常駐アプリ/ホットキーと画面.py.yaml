@@ -1111,7 +1111,7 @@ classes:
                - `[WARNING]` 保存するホットキーを受け付けられなかった（理由）
              - OSError の場合、エラーの一覧に「設定ファイルを書けませんでした（{理由}）」を出し、False を返す（用語集の CSV を書けないときも同じ文言で、理由にそのパスが出る）
                - `[ERROR]` 設定ファイルを書けなかった（logger.exception）
-          3. GlossaryPanel.mark_saved で用語集の書き戻しの基準を保存した行へ置き直してから、変えた欄の数えの基準（`_baseline`）を今の欄の値へ置き直す（`_baseline` は GlossaryPanel.changed_rows を含むため、この順でないと保存の直後に閉じても確認が出る。「再起動で反映」の件数の基準は開いたときの値のまま）
+          3. GlossaryPanel.mark_saved で用語集の書き戻しの基準を保存した行へ置き直し、変えた欄の数えの基準（`_baseline`）を今の欄の値へ置き直す（「再起動で反映」の件数の基準は開いたときの値のまま）
           4. saved を emit する
              - restart の場合、restart_requested を emit して窓を閉じ、True を返す
           5. 窓を開いたまま、保存した知らせを出して、同じ文を `QAccessible.updateAccessibility(QAccessibleAnnouncementEvent(知らせ, 文))` で読み上げにも伝え、True を返す（入れた値・選んでいたまとまり・欄のフォーカスはそのまま）
@@ -1278,7 +1278,7 @@ classes:
       用語集のまとまり: |-
         「文字起こし」の次のまとまり「用語集」に GlossaryPanel を 1 つ置く（今の `glossary_path` の欄と「選ぶ…」は消す）。開くときに UiDeps.list_glossaries の一覧と、補正に使う用語集の名前（設定の active_glossary。None か一覧に無ければ 1 件目）を GlossaryPanel.set_glossaries に渡す。
         収集では `glossaries` に GlossaryPanel.collect、`active_glossary` に GlossaryPanel.active_name を入れ、`glossary_path` は置かない（None）。
-        変えた欄の数えには、用語集の一覧（名前・並び）・補正に使う用語集・行の変更も含める（反映はどれも immediate）。
+        変えた欄の数えには、GlossaryPanel.change_values のキーごとの変更を 1 件として含める（反映はどれも immediate）。足した・消した・名前か行を変えた用語集 1 つが 1 件（1 つの用語集で何度変えても 1 件）、補正に使う用語集の切り替えが 1 件になる。
         エラーの一覧の用語集の行は、失敗の場所 `glossaries[{n}].name` を「用語集 {n+1} 件目の名前」、行の失敗を「用語集 {n+1} 件目の {m+1} 行目の{誤変換か正しい表記}」にし、押すと「用語集」のまとまりへ切り替えて GlossaryPanel.focus_field でその用語集の行の表を出し、欄へフォーカスを移す。
         to_field_message は、用語集の名前の空を「名前を入れてください。」、名前の重なり（find_glossary_name_overlaps の PydanticCustomError）を「用語集「{名前}」と同じ名前です。別の名前にしてください。」にする。
         既定に戻すと、用語集の一覧は設定ファイルと同じフォルダの yogo.csv の 1 件に戻る（用語集の CSV のファイルは消さず、書き換えない）。
@@ -1604,6 +1604,44 @@ classes:
             condition: 用語集を 1 つ足して行を 1 つ入れ、mark_saved を呼ぶ
             mock: 行を読む関数・場所を決める関数
             expected: changed_rows が {}
+      - name: change_values
+        title: 変えた件数を数える値
+        kind: メソッド
+        scope: public
+        summary: 変えた欄の数えに使う値を、用語集 1 つ = 1 キーと、補正に使う用語集の 1 キーで返す（SettingsWindow が開いたとき・保存したときの値と比べて件数にする）
+        returns:
+          type: dict[str, object]
+          description: '`glossaries[{CSV の場所}]` → （前後の空白を除いた名前, 行（表の順。前後の空白を除き、両方が空の行は除く。読めなかった用語集は None））、`active_glossary` → 補正に使う用語集の CSV の場所'
+        process: |-
+          1. 今の一覧の用語集ごとに、CSV の場所をキーにして名前と行を入れる
+             - 読めなかった用語集の場合、行を None にする
+          2. 補正に使う用語集の CSV の場所を `active_glossary` に入れる（名前ではなく場所にし、補正に使う用語集の名前を変えても切り替えとして数えない）
+        unit_tests:
+          - name: test_glossary_panel_change_values
+            case: 正常
+            summary: 用語集ごとの名前と行と、補正に使う用語集の場所を返す
+            condition: 2 件の用語集を持ち、2 件目を補正に使う一覧で開き、1 件目に両方が空の行を 1 つ足す
+            mock: 行を読む関数
+            expected: 2 件の場所のキーがそれぞれ（名前, 行）を持ち、1 件目の行に足した空の行が入らない。active_glossary が 2 件目の場所
+          - name: test_glossary_panel_change_values_when_active_renamed
+            case: 正常
+            summary: 補正に使う用語集の名前を変えても、補正に使う用語集の値は変わらない
+            condition: 補正に使う用語集の名前を変える
+            mock: 行を読む関数
+            expected: その用語集のキーの名前が新しい名前になり、active_glossary は名前を変える前と同じ場所
+          - name: test_glossary_panel_change_values_when_added
+            case: 正常
+            summary: 足した用語集は新しいキーで返す
+            condition: 1 件の用語集の一覧で用語集を 1 つ足す
+            mock: 行を読む関数・場所を決める関数
+            expected: 足した用語集の場所のキーが（"", []）を持つ。キーは 3 つ（2 件の用語集と active_glossary）
+          - name: test_glossary_panel_change_values_when_unreadable
+            case: 正常
+            summary: 読めなかった用語集の行は None で返す
+            condition: 読めなかった用語集を含む一覧で開く
+            mock: 行を読む関数（GlossaryReadError を送出する）
+            expected: 読めなかった用語集のキーが（名前, None）
+        status: planned
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
     status: implemented

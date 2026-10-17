@@ -2233,6 +2233,143 @@ def test_glossary_remove_accessible_name(open_window: Callable[..., Opened], tmp
     assert names == ["yogoを消す", "会議用を消す", "名前未入力の用語集を消す"]
 
 
+# === discard_body（用語集の変更の件数） ===
+
+
+def _discard_body(opened: Opened) -> str:
+    """「キャンセル」を押して出た確認の本文を控え、「設定画面へ戻る」で閉じて、本文を返す。"""
+    seen: dict[str, str] = {}
+
+    def _inspect(box: QMessageBox) -> None:
+        """出た確認の本文を控える。"""
+        seen["body"] = box.informativeText()
+
+    driver = ModalDriver()
+    driver.answer("back_button", _inspect)
+    _click(opened.window, "cancel_button")
+    driver.verify()
+    return seen["body"]
+
+
+def _discard_message(count: int) -> str:
+    """変えた欄が count 件のときの、確認の本文。"""
+    return f"保存していない変更が {count} 件あります。閉じると、変えた値は保存されません。"
+
+
+def test_discard_body_when_glossary_added(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """用語集を 1 つ足すと、変えた件数は 1 件。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    _click(opened.window, "add_glossary_button")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_glossary_removed(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """用語集を 1 つ消すと、変えた件数は 1 件。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    _click(opened.window, "glossary_remove_1")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_glossary_renamed(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """用語集の名前だけを変えると、変えた件数は 1 件。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    _click(opened.window, "glossary_pick_1")
+    find(opened.window, QLineEdit, "glossary_name_1").setText("議事録")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_rows_changed_twice(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """1 つの用語集の行を 2 か所変えても、変えた件数は 1 件。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    wrong_edits = _widgets(opened.window, QLineEdit, "glossary_entry_wrong_")
+    wrong_edits[0].setText("変えた1")
+    wrong_edits[1].setText("変えた2")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_rows_changed_in_two_glossaries(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """2 つの用語集の行をそれぞれ変えると、変えた件数は 2 件。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    _widgets(opened.window, QLineEdit, "glossary_entry_wrong_")[0].setText("変えた1")
+    _click(opened.window, "glossary_pick_1")
+    _widgets(opened.window, QLineEdit, "glossary_entry_wrong_")[0].setText("変えた2")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(2)
+
+
+def test_discard_body_when_active_switched(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """補正に使う用語集を切り替えると、変えた件数は 1 件。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    find(opened.window, QRadioButton, "glossary_active_1").click()
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_active_renamed(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """補正に使う用語集の名前だけを変えると、変えた件数は 1 件（切り替えとして数えない）。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    find(opened.window, QLineEdit, "glossary_name_0").setText("改名")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_added_and_active(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """用語集を足してその用語集を補正に使うと、変えた件数は 2 件。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    _click(opened.window, "add_glossary_button")
+    find(opened.window, QRadioButton, "glossary_active_2").click()
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(2)
+
+
 # === add_glossary_button ===
 
 

@@ -112,8 +112,7 @@ def kill_service_processes_for(data_dir: Path) -> None:
 class FakeHotkeyListener:
     """HotkeyListener の代わり。ホットキーの受付は始めず、登録された関数を控える。"""
 
-    def __init__(self, *, accept_injected: bool = False) -> None:
-        self.accept_injected = accept_injected
+    def __init__(self) -> None:
         self.bindings: dict[str, Callable[[], None]] = {}
         self.start_count = 0
 
@@ -426,9 +425,9 @@ def _spy_on_main(app: ResidentApp, monkeypatch: pytest.MonkeyPatch) -> None:
         app.tray = Tray(settings_dir, log_dir)
         return app.tray
 
-    def make_hotkey_listener(*, accept_injected: bool = False) -> FakeHotkeyListener:
+    def make_hotkey_listener() -> FakeHotkeyListener:
         """ホットキーの受付の代わりを作り、控える。"""
-        app.hotkeys = FakeHotkeyListener(accept_injected=accept_injected)
+        app.hotkeys = FakeHotkeyListener()
         return app.hotkeys
 
     session_deps = main_module.SessionDeps

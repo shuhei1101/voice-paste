@@ -1,0 +1,37 @@
+$ .venv/Scripts/python.exe -m pytest tests/e2e/単一ユースケース/test_change_settings.py tests/e2e/単一ユースケース/test_start_resident_app.py tests/e2e/単一ユースケース/test_operate_from_tray.py --run-e2e -v -p no:cacheprovider --tb=short --show-capture=no
+commit: b27a927
+note: 端末の文字コードで化けたフォルダ名は 単一ユースケース に戻して書いた
+
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0 -- C:\Users\shuhe\repo\voice-paste\.claude\worktrees\test-e2e-change-settings-wav-input\.venv\Scripts\python.exe
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\test-e2e-change-settings-wav-input
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collecting ... collected 23 items
+
+tests/e2e/単一ユースケース/test_change_settings.py::test_normal PASSED   [  4%]
+tests/e2e/単一ユースケース/test_change_settings.py::test_normal_when_save_and_restart PASSED [  8%]
+tests/e2e/単一ユースケース/test_change_settings.py::test_normal_when_reset PASSED [ 13%]
+tests/e2e/単一ユースケース/test_change_settings.py::test_normal_when_cancel PASSED [ 17%]
+tests/e2e/単一ユースケース/test_change_settings.py::test_error_when_invalid_value PASSED [ 21%]
+tests/e2e/単一ユースケース/test_change_settings.py::test_normal_when_add_custom_preset PASSED [ 26%]
+tests/e2e/単一ユースケース/test_change_settings.py::test_normal_when_edit_glossary PASSED [ 30%]
+tests/e2e/単一ユースケース/test_change_settings.py::test_normal_when_switch_glossary_preset PASSED [ 34%]
+tests/e2e/単一ユースケース/test_change_settings.py::test_normal_when_edit_hint_presets PASSED [ 39%]
+tests/e2e/単一ユースケース/test_change_settings.py::test_error_when_hints_too_long PASSED [ 43%]
+tests/e2e/単一ユースケース/test_start_resident_app.py::test_normal PASSED [ 47%]
+tests/e2e/単一ユースケース/test_start_resident_app.py::test_normal_when_previous_running PASSED [ 52%]
+tests/e2e/単一ユースケース/test_start_resident_app.py::test_normal_when_expired_history_and_logs PASSED [ 56%]
+tests/e2e/単一ユースケース/test_start_resident_app.py::test_error_when_engine_unavailable PASSED [ 60%]
+tests/e2e/単一ユースケース/test_start_resident_app.py::test_error_when_api_unavailable PASSED [ 65%]
+tests/e2e/単一ユースケース/test_start_resident_app.py::test_normal_when_old_ai_chat_settings_remain PASSED [ 69%]
+tests/e2e/単一ユースケース/test_operate_from_tray.py::test_normal_when_open_log_folder PASSED [ 73%]
+tests/e2e/単一ユースケース/test_operate_from_tray.py::test_normal_when_open_settings_folder PASSED [ 78%]
+tests/e2e/単一ユースケース/test_operate_from_tray.py::test_normal_when_restart PASSED [ 82%]
+tests/e2e/単一ユースケース/test_operate_from_tray.py::test_normal_when_quit PASSED [ 86%]
+tests/e2e/単一ユースケース/test_operate_from_tray.py::test_normal_when_quit_with_unsaved_settings[tray_quit] PASSED [ 91%]
+tests/e2e/単一ユースケース/test_operate_from_tray.py::test_normal_when_quit_with_unsaved_settings[ctrl_break] PASSED [ 95%]
+tests/e2e/単一ユースケース/test_operate_from_tray.py::test_normal_when_restart_with_unsaved_settings PASSED [100%]
+
+======================= 23 passed in 292.05s (0:04:52) ========================
+exit code: 0

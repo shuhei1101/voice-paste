@@ -1,0 +1,25 @@
+note: 端末の文字コードで化けた契約名は pyproject.toml の名前に戻して書いた
+$ uv lock --check
+Resolved 74 packages in 1ms
+exit code: 0
+
+$ .venv/Scripts/lint-imports
+=============
+Import Linter
+=============
+
+
+---------
+Contracts
+---------
+
+Analyzed 90 files, 187 dependencies.
+------------------------------------
+
+層の向き KEPT
+feature の独立 KEPT
+出力先の独立 KEPT (13 ignored imports)
+画面から feature の中へ KEPT (1 ignored import)
+
+Contracts: 4 kept, 0 broken.
+exit code: 0

@@ -1,0 +1,39 @@
+# 1 プロセスの全件実行（.venv/Scripts/python.exe -m pytest tests/integration） commit c185f12
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\test-integration-ui-clean-up-windows-between-tests
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collected 490 items
+
+tests\integration\test_complete_session.py .........                     [  1%]
+tests\integration\test_deliver_to_caller.py ...........                  [  4%]
+tests\integration\test_deliver_to_endpoint.py ...                        [  4%]
+tests\integration\test_deliver_to_output.py ......                       [  5%]
+tests\integration\test_settings_migration.py .                           [  6%]
+tests\integration\test_start_session.py .........                        [  7%]
+tests\integration\test_stop_session.py ........                          [  9%]
+tests\integration\test_truncate_session.py ...                           [ 10%]
+tests\integration\ui\test_busy_dialog.py ..........                      [ 12%]
+tests\integration\ui\test_recording_window.py .......................... [ 17%]
+..................................................................       [ 31%]
+tests\integration\ui\test_settings_window.py ........................... [ 36%]
+........................................................................ [ 51%]
+........................................................................ [ 65%]
+.............................                                            [ 71%]
+tests\integration\ui\test_transcribing_indicator.py .................... [ 75%]
+.............................................                            [ 85%]
+tests\integration\ui\test_tray.py ...................................... [ 92%]
+........                                                                 [ 94%]
+tests\integration\ui\test_tray_notification.py ......................... [ 99%]
+..                                                                       [100%]
+
+============================= slowest 5 durations =============================
+3.64s call     tests/integration/ui/test_recording_window.py::test_hide_button_action_when_paused_while_hidden
+3.63s call     tests/integration/ui/test_recording_window.py::test_elapsed_label_when_paused
+2.42s call     tests/integration/ui/test_recording_window.py::test_hide_button_action_then_restore
+1.22s call     tests/integration/ui/test_recording_window.py::test_elapsed_label_when_running
+1.21s call     tests/integration/ui/test_recording_window.py::test_head_row_action_does_not_stop_recording
+============================ 490 passed in 48.17s =============================
+rc=0
+壁時計の所要時間: 49.100168841 秒

@@ -82,6 +82,9 @@ HOTKEY_MODIFIERS = (
 )
 """ホットキーの欄へ渡す修飾キー。"""
 
+SAVED_WITH_HOTKEY_NOTICE = "保存しました。新しいホットキーは、設定画面を閉じると効きます。"
+"""ホットキーの欄を変えて保存したときに、保存できたことに添えて出る知らせ。"""
+
 LOWERED_RATIO = 0.5
 """設定の既定（録音中の音量 50%）で、録音前の音量に掛けて下げる割合。"""
 
@@ -151,7 +154,7 @@ def test_normal(run_app: RunApp, tmp_path: Path) -> None:
         app.press("save_button")
 
         # 検証（保存の後、設定画面は開いたまま、入れた値と選んでいたまとまりが残り、書かれた値以外は変わらない）
-        assert app.label("saved_notice") == "保存しました。"
+        assert app.label("saved_notice") == SAVED_WITH_HOTKEY_NOTICE
         assert app.window("settings_window") is not None
         assert app.selected_group() == "ホットキー"
         assert app.hotkey_value(START_HOTKEY_FIELD) == NEW_START_HOTKEY_TEXT
@@ -316,7 +319,7 @@ def test_normal_when_add_custom_preset(
         app.press("save_button")
 
         # 検証（保存の後、設定画面は開いたまま、足したプリセットが一覧に残り、書かれた値以外は変わらない）
-        assert app.label("saved_notice") == "保存しました。"
+        assert app.label("saved_notice") == SAVED_WITH_HOTKEY_NOTICE
         assert app.window("settings_window") is not None
         assert app.label("preset_heading_0") == PRESET_TITLE
         preset = _toml(app)["presets"][0]  # type: ignore[index]

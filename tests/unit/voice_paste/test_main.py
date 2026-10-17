@@ -335,7 +335,7 @@ def test_main(
     assert load_settings(data_dir / "settings.toml", SETTINGS_MODEL) == SETTINGS_MODEL()
     assert (data_dir / "api_token").exists()
     assert set(wiring.hotkey.start.call_args.args[0]) == DEFAULT_HOTKEYS
-    assert wiring.hotkey_class.call_args.kwargs == {}
+    assert wiring.hotkey_class.call_args == call()
     assert [timer_interval(c) for c in wiring.timer_class.call_args_list] == [
         SESSION_LIMIT_CHECK_INTERVAL_SEC,
         PURGE_INTERVAL_SEC,

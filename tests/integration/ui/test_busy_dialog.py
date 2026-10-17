@@ -12,7 +12,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QMessageBox, QPushButton
 
-from tests.integration.ui.helpers import Ui, find
+from tests.integration.ui.helpers import Ui, dispose_windows_since, find, top_level_windows
 
 
 
@@ -29,11 +29,10 @@ def _dialogs() -> list[QMessageBox]:
 
 @pytest.fixture(autouse=True)
 def close_dialogs(qapp: QApplication) -> Iterator[None]:
-    """テストの後に、出たままの処理中のダイアログを閉じる。"""
+    """テストの後に、出たままの処理中のダイアログを閉じて破棄する。"""
+    before = top_level_windows()
     yield
-    for dialog in _dialogs():
-        dialog.close()
-    QApplication.processEvents()
+    dispose_windows_since(before)
 
 
 def _shown_dialog() -> QMessageBox:

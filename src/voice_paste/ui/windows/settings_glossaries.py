@@ -249,11 +249,22 @@ class GlossaryPanel(QWidget):
             # 読めなかった用語集は、保存してもその CSV に触れない
             if glossary.unreadable is not None:
                 continue
-            entries = [entry for entry in self._entries(glossary) if entry.wrong or entry.right]
+            entries = self._filled_entries(glossary)
             # 足した用語集か、開いたときと行が違う用語集だけを書き戻す（名前だけ変えた用語集は入らない）
             if glossary.original is None or entries != glossary.original:
                 changed[glossary.path] = entries
         return changed
+
+    def change_values(self) -> dict[str, object]:
+        """変えた欄の数えに使う値を、用語集 1 つ = 1 キー（CSV の場所 → 名前と行）と、補正に使う用語集の場所の 1 キーで返す。"""
+        values: dict[str, object] = {}
+        for glossary in self._glossaries:
+            # 読めなかった用語集は行を比べない（保存してもその CSV に触れない）
+            rows = None if glossary.unreadable is not None else self._filled_entries(glossary)
+            values[f"glossaries[{glossary.path}]"] = (glossary.name.strip(), rows)
+        # 補正に使う用語集は名前でなく場所で持ち、名前を変えても切り替えとして数えない
+        values["active_glossary"] = str(self._glossaries[self._active].path)
+        return values
 
     def mark_saved(self) -> None:
         """書き戻す用語集を決める基準（開いたときの行）を、今の表の行へ置き直す。保存が書けた後に呼ぶ。"""
@@ -262,9 +273,7 @@ class GlossaryPanel(QWidget):
             if glossary.unreadable is not None:
                 continue
             # 足した用語集も、保存した行を基準にする（次の changed_rows は行を変えなければ入れない）
-            glossary.original = [
-                entry for entry in self._entries(glossary) if entry.wrong or entry.right
-            ]
+            glossary.original = self._filled_entries(glossary)
 
     def row_errors(self) -> list[tuple[int, int, RowField]]:
         """読めた全ての用語集の行を確かめ、片方だけが空の行の（用語集の何件目か, 何行目か, 空の側の項目）を返す。"""
@@ -277,6 +286,11 @@ class GlossaryPanel(QWidget):
                 for row, field in find_glossary_row_errors(self._entries(glossary))
             )
         return errors
+
+    @classmethod
+    def _filled_entries(cls, glossary: _GlossaryState) -> list[GlossaryEntry]:
+        """用語集の今の行から、両方が空の行を除いた並びにする。"""
+        return [entry for entry in cls._entries(glossary) if entry.wrong or entry.right]
 
     @staticmethod
     def _entries(glossary: _GlossaryState) -> list[GlossaryEntry]:

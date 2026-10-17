@@ -10,7 +10,13 @@ from unittest.mock import MagicMock
 import pytest
 from PySide6.QtGui import QWindow
 
-from tests.integration.ui.helpers import Ui, build_ui
+from tests.integration.ui.helpers import (
+    Ui,
+    build_ui,
+    dispose_windows_since,
+    flush_deletions,
+    top_level_windows,
+)
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QApplication
@@ -18,9 +24,25 @@ if TYPE_CHECKING:
     from voice_paste.shared.settings import Settings
 
 
+@pytest.fixture(autouse=True)
+def no_leftover_windows(qapp: QApplication) -> Iterator[None]:
+    """テストの後に、そのテストの前に無かったトップレベルの窓が残っていれば、窓の名前を出して失敗させる。
+
+    残った窓は破棄してから失敗させ、後のテストへ持ち越さない。他のフィクスチャの片付けの後に確かめるため、最初に作る。
+    """
+    before = top_level_windows()
+    yield
+    flush_deletions()
+    left = top_level_windows() - before
+    names = [f"{type(window).__name__}({window.objectName()})" for window in left]
+    dispose_windows_since(before)
+    assert not names, f"テストの後に窓が残った: {', '.join(names)}"
+
+
 @pytest.fixture
 def make_ui(qapp: QApplication, tmp_path: Path) -> Iterator[Callable[..., Ui]]:
     """設定（無ければ既定）で本物のトレイ・窓をつないだ一式を作る関数を返す。テストの後に窓とトレイを片付ける。"""
+    before = top_level_windows()
     built: list[Ui] = []
 
     def _make(settings: Settings | None = None, **deps_overrides: object) -> Ui:
@@ -32,6 +54,8 @@ def make_ui(qapp: QApplication, tmp_path: Path) -> Iterator[Callable[..., Ui]]:
     yield _make
     for ui in built:
         ui.close()
+    # 一式が開いた設定画面・メニューなど、テストの前に無かった窓も破棄する
+    dispose_windows_since(before)
 
 
 @pytest.fixture

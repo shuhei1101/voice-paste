@@ -22,10 +22,12 @@ from tests.integration.ui.helpers import (
     FakeClock,
     Ui,
     button_texts,
+    dispose_windows_since,
     edge_and_face_colors,
     find,
     grab_head_row,
     make_ui_deps,
+    top_level_windows,
 )
 from voice_paste.main import SETTINGS_MODEL
 
@@ -96,14 +98,16 @@ def _name_and_key(button: QPushButton) -> tuple[QLabel, QLabel | None]:
 
 @pytest.fixture
 def clocked(qapp: QApplication, tmp_path: Path) -> Iterator[tuple[TranscribingIndicator, FakeClock]]:
-    """進められる時計を渡した文字起こし中の表示を開いて返す。テストの後に閉じる。"""
+    """進められる時計を渡した文字起こし中の表示を開いて返す。テストの後に閉じて破棄する。"""
     from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
 
+    before = top_level_windows()
     clock = FakeClock(0.0)
     indicator = TranscribingIndicator(make_ui_deps(tmp_path), clock=clock)
     indicator.open()
     yield indicator, clock
     indicator.close_window()
+    dispose_windows_since(before)
 
 
 # === transcribing_indicator ===

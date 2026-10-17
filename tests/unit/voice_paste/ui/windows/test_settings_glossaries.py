@@ -1,4 +1,4 @@
-"""ui/windows/settings_glossaries.py（GlossaryPanel の set_glossaries・collect・active_name・changed_rows・mark_saved・add_glossary、find_glossary_row_errors）の単体テスト。
+"""ui/windows/settings_glossaries.py（GlossaryPanel の set_glossaries・collect・active_name・changed_rows・change_values・mark_saved・add_glossary、find_glossary_row_errors）の単体テスト。
 
 画面を使うため offscreen の QApplication（conftest の qapp）で動かす。
 行を読む関数と足す用語集の場所を決める関数は Mock に差し替える。
@@ -326,6 +326,121 @@ def test_glossary_panel_changed_rows_when_unreadable(
 
     # 検証
     assert changed == {}
+
+
+# === change_values ===
+
+
+def test_glossary_panel_change_values(open_panel: Callable[..., Opened], tmp_path: Path) -> None:
+    """用語集ごとの名前と行と、補正に使う用語集の場所を返す（正常系）。"""
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（2 件の用語集を持ち 2 件目を補正に使う一覧で開き、1 件目に両方が空の行を 1 つ足す）
+    first, second = _two_glossaries(tmp_path)
+    opened = open_panel(
+        [first, second],
+        {
+            first.path: [GlossaryEntry(wrong="あ", right="A")],
+            second.path: [GlossaryEntry(wrong="い", right="B", enabled=False)],
+        },
+        active_name="会議用",
+    )
+    _button(opened.panel, "glossary_pick_0").click()
+    _button(opened.panel, "add_glossary_entry_button").click()
+
+    # 実行
+    values = opened.panel.change_values()
+
+    # 検証（キーは 2 件の場所と active_glossary。1 件目の行に足した空の行は入らない）
+    assert set(values) == {
+        f"glossaries[{first.path}]",
+        f"glossaries[{second.path}]",
+        "active_glossary",
+    }
+    assert values[f"glossaries[{first.path}]"] == ("yogo", [GlossaryEntry(wrong="あ", right="A")])
+    assert values[f"glossaries[{second.path}]"] == (
+        "会議用",
+        [GlossaryEntry(wrong="い", right="B", enabled=False)],
+    )
+    assert Path(str(values["active_glossary"])) == second.path
+
+
+def test_glossary_panel_change_values_when_active_renamed(
+    open_panel: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """補正に使う用語集の名前を変えても、補正に使う用語集の値は変わらない（正常系）。"""
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（2 件目を補正に使う一覧で開き、変える前の値を取る）
+    first, second = _two_glossaries(tmp_path)
+    opened = open_panel(
+        [first, second],
+        {
+            first.path: [GlossaryEntry(wrong="あ", right="A")],
+            second.path: [GlossaryEntry(wrong="い", right="B")],
+        },
+        active_name="会議用",
+    )
+    before = opened.panel.change_values()
+
+    # 実行（2 件目の名前を、前後に空白を付けた「改名」に変える）
+    _button(opened.panel, "glossary_pick_1").click()
+    _visible_edits(opened.panel, "glossary_name_")[0].setText("  改名  ")
+    after = opened.panel.change_values()
+
+    # 検証（2 件目のキーの名前だけが、前後の空白を除いた新しい名前になる）
+    assert after[f"glossaries[{second.path}]"] == ("改名", [GlossaryEntry(wrong="い", right="B")])
+    assert after[f"glossaries[{first.path}]"] == before[f"glossaries[{first.path}]"]
+    assert after["active_glossary"] == before["active_glossary"]
+
+
+def test_glossary_panel_change_values_when_added(
+    open_panel: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """足した用語集は新しいキーで返す（正常系）。"""
+    from voice_paste.shared.settings import GlossarySettings
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（1 件の用語集の一覧で開く）
+    first = GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
+    opened = open_panel([first], {first.path: [GlossaryEntry(wrong="あ", right="A")]})
+
+    # 実行
+    opened.panel.add_glossary()
+    values = opened.panel.change_values()
+
+    # 検証（足した用語集の場所のキーが名前も行も空で、キーは 3 つ）
+    assert values[f"glossaries[{opened.new_path}]"] == ("", [])
+    assert set(values) == {
+        f"glossaries[{first.path}]",
+        f"glossaries[{opened.new_path}]",
+        "active_glossary",
+    }
+
+
+def test_glossary_panel_change_values_when_unreadable(
+    open_panel: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """読めなかった用語集の行は None で返す（正常系）。"""
+    from voice_paste.shared.errors import GlossaryReadError
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（2 件のうち 2 件目で行を読む関数が GlossaryReadError を送出する一覧で開く）
+    first, second = _two_glossaries(tmp_path)
+    opened = open_panel(
+        [first, second],
+        {
+            first.path: [GlossaryEntry(wrong="あ", right="A")],
+            second.path: GlossaryReadError(UNREADABLE_REASON),
+        },
+    )
+
+    # 実行
+    values = opened.panel.change_values()
+
+    # 検証（読めなかった用語集は名前と None。読めた用語集は行を持つ）
+    assert values[f"glossaries[{second.path}]"] == ("会議用", None)
+    assert values[f"glossaries[{first.path}]"] == ("yogo", [GlossaryEntry(wrong="あ", right="A")])
 
 
 # === mark_saved ===

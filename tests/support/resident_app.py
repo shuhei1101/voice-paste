@@ -7,6 +7,7 @@
 `main()` の中で作られるトレイ（`Tray`）は作ったものを控え、ホットキーの受付（`HotkeyListener`）は何も始めない受け手に、
 フォルダを開く呼び出し（`QDesktopServices`）は渡されたパスを控えるものに差し替える。
 動いている常駐アプリの補正（`SessionDeps` の `correct`）は、渡された関数を控える（本物の補正のまま。マイクを開かずに文字を渡して確かめる）。
+録音を始めるケースは、録音の入力（`open_input`）を渡された WAV を流すものに、システム音量（`lower_volume`・`restore_volume`）を呼ばれた値を控えるものに差し替える。
 """
 
 from __future__ import annotations
@@ -40,6 +41,7 @@ from PySide6.QtWidgets import (
 
 import voice_paste.main as main_module
 import voice_paste.ui.tray as tray_module
+from tests.support.inprocess import VolumeLog, WavInput
 from tests.support.processes import ProcessInfo, kill_tree, process_table, processes_with
 from tests.support.real_service import (
     LOOPBACK,
@@ -60,6 +62,7 @@ SERVICE_COMMAND = "-m voice_paste"
 """常駐アプリのコマンドラインに含まれる言葉（venv の python.exe は本体のプロセスを子に持つ）。"""
 
 IDLE = STATE_NAMES[TrayState.IDLE]
+RECORDING = STATE_NAMES[TrayState.RECORDING]
 FAILED = STATE_NAMES[TrayState.FAILED]
 """トレイのヒントの状態の名前。"""
 
@@ -112,8 +115,7 @@ def kill_service_processes_for(data_dir: Path) -> None:
 class FakeHotkeyListener:
     """HotkeyListener の代わり。ホットキーの受付は始めず、登録された関数を控える。"""
 
-    def __init__(self, *, accept_injected: bool = False) -> None:
-        self.accept_injected = accept_injected
+    def __init__(self) -> None:
         self.bindings: dict[str, Callable[[], None]] = {}
         self.start_count = 0
 
@@ -155,6 +157,7 @@ class ResidentApp:
         self.correct: Callable[[str], str] | None = None
         self.transcribe: partial[str] | None = None
         self.opened_folders: list[Path] = []
+        self.volume: VolumeLog | None = None
         self.unexpected_dialogs: list[str] = []
         self.worker_pids_at_start: set[int] = set()
         self.case_finished = False
@@ -390,6 +393,25 @@ class ResidentApp:
         """設定画面の文字の欄の今の文字を返す。"""
         return self.wait_widget(f"field_{key}", QLineEdit).text()
 
+    def selected_group(self) -> str:
+        """設定画面のまとまりのメニューで選んでいるまとまりの名前を返す。"""
+        item = self.wait_widget("group_menu", QListWidget).currentItem()
+        assert item is not None, "まとまりを選んでいない"
+        return item.text()
+
+    def press_hotkey(
+        self,
+        name: str,
+        key: Qt.Key,
+        modifiers: Qt.KeyboardModifier = Qt.KeyboardModifier.NoModifier,
+    ) -> None:
+        """項目 ID のホットキーの欄に、キーの組み合わせを Qt のキーイベントで渡す。"""
+        QTest.keyClick(self.wait_widget(name, QLineEdit), key, modifiers)
+
+    def hotkey_value(self, name: str) -> str:
+        """項目 ID のホットキーの欄に出ている組み合わせ（`Ctrl+Alt+D` の形）を返す。"""
+        return self.wait_widget(name, QLineEdit).text()
+
 
 # === 起動 ===
 
@@ -418,17 +440,22 @@ def _restored_process_state(qapp: QApplication) -> Iterator[None]:
         qapp.setStyleSheet(style_before)
 
 
-def _spy_on_main(app: ResidentApp, monkeypatch: pytest.MonkeyPatch) -> None:
-    """`main()` が作るトレイ・ホットキーの受付・フォルダを開く呼び出し・補正を、控える・始めない・開かない・控えるものに差し替える。"""
+def _spy_on_main(
+    app: ResidentApp, monkeypatch: pytest.MonkeyPatch, wav_input: WavInput | None
+) -> None:
+    """`main()` が作るトレイ・ホットキーの受付・フォルダを開く呼び出し・補正を、控える・始めない・開かない・控えるものに差し替える。
+
+    wav_input を渡したときは、録音の入力を WAV を流すものに、システム音量を呼ばれた値を控えるもの（`app.volume`）に差し替える。
+    """
 
     def make_tray(settings_dir: Path, log_dir: Path) -> Tray:
         """本物のトレイを作り、控える。"""
         app.tray = Tray(settings_dir, log_dir)
         return app.tray
 
-    def make_hotkey_listener(*, accept_injected: bool = False) -> FakeHotkeyListener:
+    def make_hotkey_listener() -> FakeHotkeyListener:
         """ホットキーの受付の代わりを作り、控える。"""
-        app.hotkeys = FakeHotkeyListener(accept_injected=accept_injected)
+        app.hotkeys = FakeHotkeyListener()
         return app.hotkeys
 
     session_deps = main_module.SessionDeps
@@ -443,6 +470,12 @@ def _spy_on_main(app: ResidentApp, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(main_module, "HotkeyListener", make_hotkey_listener)
     monkeypatch.setattr(main_module, "SessionDeps", make_session_deps)
     monkeypatch.setattr(tray_module, "QDesktopServices", _fake_desktop_services(app.opened_folders))
+    # 録音の入力が渡されたときは、マイクを開かず、システム音量を変えない
+    if wav_input is not None:
+        app.volume = VolumeLog()
+        monkeypatch.setattr(main_module, "open_input", wav_input)
+        monkeypatch.setattr(main_module, "lower_volume", app.volume.lower)
+        monkeypatch.setattr(main_module, "restore_volume", app.volume.restore)
     # 文字起こしワーカーと再起動で起こす新しいプロセスが、この作業ツリーの src を読むようにする
     monkeypatch.setenv("PYTHONPATH", str(SOURCE_DIR))
     monkeypatch.setenv(QT_PLATFORM_ENV, QT_PLATFORM_OFFSCREEN)
@@ -458,10 +491,12 @@ def run_resident_app(
     port: int | None = None,
     prepare: Callable[[Path], None] | None = None,
     expect_exit: bool = False,
+    wav_input: WavInput | None = None,
 ) -> ResidentApp:
     """常駐アプリを `main()` から起動し、イベントループの中で case を進めて、`main()` が戻った後の ResidentApp を返す。
 
     prepare は起動の前に data_dir へファイルを用意する関数。
+    wav_input は録音を始めるケースが渡す録音の入力で、渡すと録音の入力とシステム音量を差し替える（渡さないケースの起動は変えない）。
     expect_exit が真のときは、case が終わった後に常駐アプリが自分でイベントループを抜けるのを待つ
     （EXIT_TIMEOUT_SEC までに抜けなければ止めて、exited_by_itself を偽にする）。偽のときは case が終わったらすぐ止める。
     case が失敗したら、片付けた後にその失敗を出し直す。
@@ -473,7 +508,7 @@ def run_resident_app(
     api_port = free_port() if port is None else port
     (data_dir / "settings.toml").write_text(settings_text(api_port, extra_settings), encoding="utf-8")
     app = ResidentApp(data_dir, api_port)
-    _spy_on_main(app, monkeypatch)
+    _spy_on_main(app, monkeypatch, wav_input)
     failures: list[BaseException] = []
 
     # 2. イベントループの中で case を進める（case が終わったら、止めるか、自分で抜けるのを待つ）

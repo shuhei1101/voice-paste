@@ -1,0 +1,546 @@
+[
+  {
+    "show_hotkeys": true,
+    "initial_output": "copy_only",
+    "target_output": "paste_only",
+    "attempts": 1,
+    "foreground_before_press": true,
+    "foreground_after_click": true,
+    "switched": true,
+    "foreground_after_drag": true,
+    "foreground_after_deliver": true,
+    "drag": {
+      "offset_at_press": [
+        -225,
+        -30
+      ],
+      "offsets_while_moving": [
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ]
+      ],
+      "max_deviation_px": 0,
+      "moved_px": [
+        200,
+        0
+      ]
+    },
+    "buttons": [
+      {
+        "output_id": "paste_and_send",
+        "button_size": [
+          111,
+          34
+        ],
+        "text_rect": [
+          12,
+          0,
+          87,
+          19
+        ],
+        "badge_rect": [
+          95,
+          2,
+          14,
+          14
+        ],
+        "overlaps": true
+      },
+      {
+        "output_id": "paste_only",
+        "button_size": [
+          112,
+          34
+        ],
+        "text_rect": [
+          19,
+          0,
+          72,
+          19
+        ],
+        "badge_rect": [
+          96,
+          2,
+          14,
+          14
+        ],
+        "overlaps": false
+      },
+      {
+        "output_id": "copy_only",
+        "button_size": [
+          111,
+          34
+        ],
+        "text_rect": [
+          29,
+          0,
+          53,
+          19
+        ],
+        "badge_rect": [
+          95,
+          2,
+          14,
+          14
+        ],
+        "overlaps": false
+      }
+    ],
+    "transcribed": "今日は晴れているので、午後から散歩に出かけます。",
+    "notepad_text": "今日は晴れているので、午後から散歩に出かけます。",
+    "notepad_all_texts": [
+      "今日は晴れているので、午後から散歩に出かけます。"
+    ],
+    "notepad_focus_before_press": "RichEditD2DPT",
+    "notepad_focus_after_deliver": "RichEditD2DPT",
+    "clipboard": "今日は晴れているので、午後から散歩に出かけます。",
+    "screenshot": "paste_only_hotkeys-true.png",
+    "error": ""
+  },
+  {
+    "show_hotkeys": true,
+    "initial_output": "paste_only",
+    "target_output": "copy_only",
+    "attempts": 1,
+    "foreground_before_press": true,
+    "foreground_after_click": true,
+    "switched": true,
+    "foreground_after_drag": true,
+    "foreground_after_deliver": true,
+    "drag": {
+      "offset_at_press": [
+        -225,
+        -30
+      ],
+      "offsets_while_moving": [
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ]
+      ],
+      "max_deviation_px": 0,
+      "moved_px": [
+        200,
+        0
+      ]
+    },
+    "buttons": [
+      {
+        "output_id": "paste_and_send",
+        "button_size": [
+          111,
+          45
+        ],
+        "text_rect": [
+          12,
+          4,
+          87,
+          19
+        ],
+        "badge_rect": [
+          95,
+          2,
+          14,
+          14
+        ],
+        "overlaps": true
+      },
+      {
+        "output_id": "paste_only",
+        "button_size": [
+          112,
+          45
+        ],
+        "text_rect": [
+          19,
+          4,
+          72,
+          19
+        ],
+        "badge_rect": [
+          96,
+          2,
+          14,
+          14
+        ],
+        "overlaps": false
+      },
+      {
+        "output_id": "copy_only",
+        "button_size": [
+          111,
+          45
+        ],
+        "text_rect": [
+          29,
+          4,
+          53,
+          19
+        ],
+        "badge_rect": [
+          95,
+          2,
+          14,
+          14
+        ],
+        "overlaps": false
+      }
+    ],
+    "transcribed": "今日は晴れているので、午後から散歩に出かけます。",
+    "notepad_text": "",
+    "notepad_all_texts": [
+      ""
+    ],
+    "notepad_focus_before_press": "RichEditD2DPT",
+    "notepad_focus_after_deliver": "RichEditD2DPT",
+    "clipboard": "今日は晴れているので、午後から散歩に出かけます。",
+    "screenshot": "copy_only_hotkeys-true.png",
+    "error": ""
+  },
+  {
+    "show_hotkeys": true,
+    "initial_output": "copy_only",
+    "target_output": "paste_and_send",
+    "attempts": 1,
+    "foreground_before_press": true,
+    "foreground_after_click": true,
+    "switched": true,
+    "foreground_after_drag": true,
+    "foreground_after_deliver": true,
+    "drag": {
+      "offset_at_press": [
+        -225,
+        -30
+      ],
+      "offsets_while_moving": [
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ]
+      ],
+      "max_deviation_px": 0,
+      "moved_px": [
+        200,
+        0
+      ]
+    },
+    "buttons": [
+      {
+        "output_id": "paste_and_send",
+        "button_size": [
+          111,
+          45
+        ],
+        "text_rect": [
+          12,
+          4,
+          87,
+          19
+        ],
+        "badge_rect": [
+          95,
+          2,
+          14,
+          14
+        ],
+        "overlaps": true
+      },
+      {
+        "output_id": "paste_only",
+        "button_size": [
+          112,
+          45
+        ],
+        "text_rect": [
+          19,
+          4,
+          72,
+          19
+        ],
+        "badge_rect": [
+          96,
+          2,
+          14,
+          14
+        ],
+        "overlaps": false
+      },
+      {
+        "output_id": "copy_only",
+        "button_size": [
+          111,
+          45
+        ],
+        "text_rect": [
+          29,
+          4,
+          53,
+          19
+        ],
+        "badge_rect": [
+          95,
+          2,
+          14,
+          14
+        ],
+        "overlaps": false
+      }
+    ],
+    "transcribed": "今日は晴れているので、午後から散歩に出かけます。",
+    "notepad_text": "今日は晴れているので、午後から散歩に出かけます。\r\n",
+    "notepad_all_texts": [
+      "今日は晴れているので、午後から散歩に出かけます。\r\n"
+    ],
+    "notepad_focus_before_press": "RichEditD2DPT",
+    "notepad_focus_after_deliver": "RichEditD2DPT",
+    "clipboard": "今日は晴れているので、午後から散歩に出かけます。",
+    "screenshot": "paste_and_send_hotkeys-true.png",
+    "error": ""
+  },
+  {
+    "show_hotkeys": false,
+    "initial_output": "paste_and_send",
+    "target_output": "paste_only",
+    "attempts": 1,
+    "foreground_before_press": true,
+    "foreground_after_click": true,
+    "switched": true,
+    "foreground_after_drag": true,
+    "foreground_after_deliver": true,
+    "drag": {
+      "offset_at_press": [
+        -225,
+        -30
+      ],
+      "offsets_while_moving": [
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ],
+        [
+          -225,
+          -30
+        ]
+      ],
+      "max_deviation_px": 0,
+      "moved_px": [
+        200,
+        0
+      ]
+    },
+    "buttons": [
+      {
+        "output_id": "paste_and_send",
+        "button_size": [
+          111,
+          34
+        ],
+        "text_rect": [
+          12,
+          8,
+          87,
+          19
+        ],
+        "badge_rect": [
+          95,
+          2,
+          14,
+          14
+        ],
+        "overlaps": true
+      },
+      {
+        "output_id": "paste_only",
+        "button_size": [
+          112,
+          34
+        ],
+        "text_rect": [
+          19,
+          8,
+          72,
+          19
+        ],
+        "badge_rect": [
+          96,
+          2,
+          14,
+          14
+        ],
+        "overlaps": false
+      },
+      {
+        "output_id": "copy_only",
+        "button_size": [
+          111,
+          34
+        ],
+        "text_rect": [
+          29,
+          8,
+          53,
+          19
+        ],
+        "badge_rect": [
+          95,
+          2,
+          14,
+          14
+        ],
+        "overlaps": false
+      }
+    ],
+    "transcribed": "今日は晴れているので、午後から散歩に出かけます。",
+    "notepad_text": "今日は晴れているので、午後から散歩に出かけます。",
+    "notepad_all_texts": [
+      "今日は晴れているので、午後から散歩に出かけます。"
+    ],
+    "notepad_focus_before_press": "RichEditD2DPT",
+    "notepad_focus_after_deliver": "RichEditD2DPT",
+    "clipboard": "今日は晴れているので、午後から散歩に出かけます。",
+    "screenshot": "paste_only_hotkeys-false.png",
+    "error": ""
+  }
+]

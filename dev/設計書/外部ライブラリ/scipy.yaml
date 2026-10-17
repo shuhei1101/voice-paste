@@ -1,9 +1,9 @@
 title: "scipy"
 kind: "ライブラリ"
 version:
-  current: 1.17.1
+  current: 1.18.1
   checked_on: '2026-09-30'
-  source: pyproject.toml（~=1.13）と手元の venv に入っている版
+  source: pyproject.toml（~=1.13）と uv.lock の Python 3.14 で入る版
   pinning: 互換リリースで固定（~=1.13）
 catalogs:
   - name: API

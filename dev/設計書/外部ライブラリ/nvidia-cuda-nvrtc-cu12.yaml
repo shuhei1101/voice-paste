@@ -3,7 +3,7 @@ kind: "ライブラリ"
 version:
   current: 12.9.86
   checked_on: '2026-09-30'
-  source: 手元の venv に入っている版（pyproject.toml には書かれず、ほかのパッケージの依存として入る）
+  source: uv.lock の版（pyproject.toml には書かれず、ほかのパッケージの依存として入る）
   pinning: 固定していない
 catalogs:
   - name: ファイル

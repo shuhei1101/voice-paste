@@ -1,9 +1,9 @@
 title: "onnxruntime"
 kind: "ライブラリ"
 version:
-  current: 1.25.0
+  current: 1.31.0
   checked_on: '2026-10-10'
-  source: 普段使いの venv に faster-whisper の依存として入っている版。直接使うため pyproject.toml の依存に足す
+  source: pyproject.toml（~=1.25）と uv.lock の版。faster-whisper の依存としても入る
   pinning: 互換リリースで固定（~=1.25）
 catalogs:
   - name: API

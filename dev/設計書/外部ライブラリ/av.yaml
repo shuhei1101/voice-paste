@@ -4,7 +4,7 @@ version:
   current: 18.1.0
   latest: 19.0.1
   checked_on: '2026-10-05'
-  source: pyproject.toml（`av>=11,<19`）と、新しく作った venv に入る版
+  source: pyproject.toml（`av>=11,<19`）と uv.lock の版
   pinning: '`>=11,<19`。下限は faster-whisper 1.2.1 の `Requires-Dist: av>=11` に揃え、上限は av 19 が faster-whisper 1.2.1 の `av.open(..., metadata_errors="ignore")` を受け付けない不具合のため（faster-whisper の設計書の不具合一覧）。faster-whisper が av 19 に対応した版を出したら上限を外す'
 catalogs:
   - name: API

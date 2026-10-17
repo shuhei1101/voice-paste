@@ -974,13 +974,9 @@ class SettingsWindow(QWidget):
         """全ての欄の値を、設定のキーごとに返す（プリセットは種類・何件目・項目ごと）。"""
         values = {field.key: field.get() for field in self._all_fields()}
         values.update({key: value for key, value in self._static.items() if key.endswith(".id")})
-        # 用語集は、一覧（名前・場所・並び）・補正に使う用語集・行を変えた用語集の行をそれぞれ 1 件として数える
+        # 用語集は、変えた用語集 1 つを 1 件、補正に使う用語集の切り替えを 1 件として数える
         if self._glossary_panel is not None:
-            values[GLOSSARIES_FIELD_NAME] = [
-                (item["name"], str(item["path"])) for item in self._glossary_panel.collect()
-            ]
-            values["active_glossary"] = self._glossary_panel.active_name()
-            values["glossary_rows"] = self._glossary_panel.changed_rows()
+            values.update(self._glossary_panel.change_values())
         # 表記のヒントは、プリセットの一覧（名前・語・有効か・並び）を 1 件として数える
         if self._hint_panel is not None:
             values[HINT_PRESETS_FIELD_NAME] = self._hint_panel.collect()
@@ -1305,7 +1301,7 @@ class SettingsWindow(QWidget):
             self._show_errors([(None, f"設定ファイルを書けませんでした（{error}）")])
             return False
 
-        # 3. 保存した行・値を「変えていない」の基準に置き直す（`_baseline` は用語集の changed_rows を含むため、用語集の基準を先に置き直す）
+        # 3. 保存した行・値を「変えていない」の基準に置き直す
         self._glossaries_panel.mark_saved()
         self._baseline = self._flat_values()
         self.saved.emit()

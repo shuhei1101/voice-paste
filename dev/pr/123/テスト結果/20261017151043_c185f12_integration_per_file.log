@@ -1,0 +1,18 @@
+# ファイルごとに別のプロセスで流した所要時間（.venv/Scripts/python.exe -m pytest {ファイル}） commit c185f12
+tests/integration/test_complete_session.py rc=0 壁時計 7.343952850 秒 / 9 passed in 5.56s
+tests/integration/test_deliver_to_caller.py rc=0 壁時計 11.164450949 秒 / 11 passed in 9.13s
+tests/integration/test_deliver_to_endpoint.py rc=0 壁時計 4.124615560 秒 / 3 passed in 2.49s
+tests/integration/test_deliver_to_output.py rc=0 壁時計 1.530147059 秒 / 6 passed in 0.11s
+tests/integration/test_settings_migration.py rc=0 壁時計 1.450670554 秒 / 1 passed in 0.04s
+tests/integration/test_start_session.py rc=0 壁時計 4.434114606 秒 / 9 passed in 4.64s
+tests/integration/test_stop_session.py rc=0 壁時計 6.157561964 秒 / 8 passed in 4.46s
+tests/integration/test_truncate_session.py rc=0 壁時計 3.823152898 秒 / 3 passed in 2.35s
+tests/integration/ui/test_busy_dialog.py rc=0 壁時計 1.357125982 秒 / 10 passed in 0.07s
+tests/integration/ui/test_recording_window.py rc=0 壁時計 13.469791500 秒 / 92 passed in 13.35s
+tests/integration/ui/test_settings_window.py rc=0 壁時計 6.646726893 秒 / 200 passed in 5.04s
+tests/integration/ui/test_transcribing_indicator.py rc=0 壁時計 1.993519392 秒 / 65 passed in 0.63s
+tests/integration/ui/test_tray.py rc=0 壁時計 1.688121901 秒 / 46 passed in 0.32s
+tests/integration/ui/test_tray_notification.py rc=0 壁時計 1.496736925 秒 / 27 passed in 0.20s
+
+合計: 壁時計 66.7 秒 / pytest の所要時間 48.4 秒
+1 プロセスの壁時計 49.1 秒（別プロセスの壁時計の合計の 0.74 倍。基準は 1.2 倍以内）

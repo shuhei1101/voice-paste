@@ -12,10 +12,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, TypeVar
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QEvent, Qt, QTimer
 from PySide6.QtGui import QColor
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QLabel, QMessageBox, QPushButton, QWidget
+from PySide6.QtWidgets import QApplication, QDialog, QLabel, QMessageBox, QPushButton, QWidget
 
 from tests.unit.voice_paste.ui.helpers import FakeClock, make_session, make_ui_deps
 
@@ -29,6 +29,30 @@ if TYPE_CHECKING:
 __all__ = ["FakeClock", "make_session", "make_ui_deps"]
 
 WidgetT = TypeVar("WidgetT", bound=QWidget)
+
+
+def top_level_windows() -> set[QWidget]:
+    """今ある、親を持たない窓（トップレベルの部品）の集合を返す。"""
+    return set(QApplication.topLevelWidgets())
+
+
+def flush_deletions() -> None:
+    """deleteLater した部品の破棄を流し終える。"""
+    QApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    QApplication.processEvents()
+
+
+def dispose_windows_since(before: set[QWidget]) -> None:
+    """before に無かったトップレベルの窓を、隠した上で破棄し、破棄を流し終える。"""
+    for window in top_level_windows() - before:
+        if isinstance(window, QDialog):
+            # ダイアログは finished を知らせて閉じる（持ち主が出ているダイアログを手放せるように）
+            window.reject()
+        else:
+            # 閉じる確認を出させないよう、close ではなく隠す
+            window.hide()
+        window.deleteLater()
+    flush_deletions()
 
 
 def find(root: QWidget, cls: type[WidgetT], name: str) -> WidgetT:
@@ -95,10 +119,13 @@ class Ui:
         self.controller.on_notified("output_changed", output_id)
 
     def close(self) -> None:
-        """出ている窓とトレイを片付ける。"""
+        """出ている窓とトレイを隠し、破棄を予約する（破棄を流し終えるのは dispose_windows_since）。"""
         self.recording_window.close_window()
         self.indicator.close_window()
         self.tray.hide()
+        self.recording_window.deleteLater()
+        self.indicator.deleteLater()
+        self.tray.deleteLater()
 
 
 def build_ui(tmp_path: Path, settings: Settings | None = None, **deps_overrides: object) -> Ui:

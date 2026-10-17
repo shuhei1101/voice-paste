@@ -32,7 +32,15 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from tests.integration.ui.helpers import ModalDriver, Ui, find, make_ui_deps, no_modal
+from tests.integration.ui.helpers import (
+    ModalDriver,
+    Ui,
+    dispose_windows_since,
+    find,
+    make_ui_deps,
+    no_modal,
+    top_level_windows,
+)
 from voice_paste.main import SETTINGS_MODEL
 
 if TYPE_CHECKING:
@@ -62,16 +70,15 @@ class Opened:
 
 @pytest.fixture
 def open_window(qapp: QApplication, tmp_path: Path) -> Iterator[Callable[..., Opened]]:
-    """設定（無ければ既定）で設定画面を開く関数を返す。テストの後に窓を隠す。"""
+    """設定（無ければ既定）で設定画面を開く関数を返す。テストの後に、開いた窓とダイアログを破棄する。"""
     from voice_paste.ui.windows.settings_window import SettingsWindow
 
-    windows: list[SettingsWindow] = []
+    before = top_level_windows()
 
     def _open(settings: Settings | None = None, **deps_overrides: object) -> Opened:
         """設定画面を開き、窓の Signal を Mock につなぐ。"""
         deps = make_ui_deps(tmp_path, settings=settings, **deps_overrides)
         window = SettingsWindow(deps)
-        windows.append(window)
         opened = Opened(window, deps, MagicMock(), MagicMock(), MagicMock())
         window.closed.connect(opened.closed)
         window.saved.connect(opened.saved)
@@ -80,8 +87,7 @@ def open_window(qapp: QApplication, tmp_path: Path) -> Iterator[Callable[..., Op
         return opened
 
     yield _open
-    for window in windows:
-        window.hide()
+    dispose_windows_since(before)
 
 
 def _field(window: QWidget, key: str, cls: type = QWidget) -> Any:

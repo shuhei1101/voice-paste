@@ -891,7 +891,7 @@ classes:
           description: なし
       - name: hide_window
         title: 画面を隠す
-        summary: その回の録音を続けたまま窓を隠す。ストップウォッチは止めず、描き直しのタイマーだけを止める。窓の位置は残す
+        summary: その回の録音を続けたまま窓を隠す。経過は数え続け、描き直しのタイマーだけを止める。窓の位置は残す
         kind: メソッド
         scope: public
         returns:

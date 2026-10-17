@@ -1611,7 +1611,7 @@ classes:
         summary: 変えた欄の数えに使う値を、用語集 1 つ = 1 キーと、補正に使う用語集の 1 キーで返す（SettingsWindow が開いたとき・保存したときの値と比べて件数にする）
         returns:
           type: dict[str, object]
-          description: '`glossaries[{CSV の場所}]` → （名前, 行（表の順。前後の空白を除き、両方が空の行は除く。読めなかった用語集は None））、`active_glossary` → 補正に使う用語集の CSV の場所'
+          description: '`glossaries[{CSV の場所}]` → （前後の空白を除いた名前, 行（表の順。前後の空白を除き、両方が空の行は除く。読めなかった用語集は None））、`active_glossary` → 補正に使う用語集の CSV の場所'
         process: |-
           1. 今の一覧の用語集ごとに、CSV の場所をキーにして名前と行を入れる
              - 読めなかった用語集の場合、行を None にする

@@ -1,7 +1,7 @@
-# lint commit c185f12
+# lint commit f08dd47
 $ uv lock --check
 Using CPython 3.14.3
-Resolved 74 packages in 6ms
+Resolved 74 packages in 7ms
 rc=0
 $ .venv/Scripts/lint-imports
 

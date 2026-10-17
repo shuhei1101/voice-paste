@@ -1,4 +1,4 @@
-# 1 プロセスの全件実行（.venv/Scripts/python.exe -m pytest tests/integration） commit c185f12
+# 1 プロセスの全件実行（.venv/Scripts/python.exe -m pytest tests/integration） commit f08dd47
 ============================= test session starts =============================
 platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
 rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\test-integration-ui-clean-up-windows-between-tests
@@ -30,10 +30,10 @@ tests\integration\ui\test_tray_notification.py ......................... [ 99%]
 
 ============================= slowest 5 durations =============================
 3.64s call     tests/integration/ui/test_recording_window.py::test_hide_button_action_when_paused_while_hidden
-3.63s call     tests/integration/ui/test_recording_window.py::test_elapsed_label_when_paused
+3.61s call     tests/integration/ui/test_recording_window.py::test_elapsed_label_when_paused
 2.42s call     tests/integration/ui/test_recording_window.py::test_hide_button_action_then_restore
-1.22s call     tests/integration/ui/test_recording_window.py::test_elapsed_label_when_running
-1.21s call     tests/integration/ui/test_recording_window.py::test_head_row_action_does_not_stop_recording
-============================ 490 passed in 48.17s =============================
+1.22s call     tests/integration/ui/test_recording_window.py::test_head_row_action_does_not_stop_recording
+1.21s call     tests/integration/ui/test_recording_window.py::test_elapsed_label_when_running
+============================ 490 passed in 48.66s =============================
 rc=0
-壁時計の所要時間: 49.100168841 秒
+壁時計の所要時間: 49.762325018 秒

@@ -59,7 +59,7 @@ classes:
     kind: クラス
     properties:
       - name: _listener
-        type: keyboard.Listener | None
+        type: keyboard.GlobalHotKeys | None
         access: 内部 (_)
         description: 動いている受付。start の前と stop の後は None
       - name: _lock

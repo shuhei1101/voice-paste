@@ -381,8 +381,25 @@ class UiSettings(_SettingsModel):
         4, "波形の振れの大きさ（0 より大きい）", reload=RELOAD_IMMEDIATE, gt=0
     )
     show_hotkeys: bool = _item(
-        True, "録音の画面と文字起こし中の表示のボタンにホットキーを出すか", reload=RELOAD_IMMEDIATE
+        True, "録音の画面のボタンにホットキーを出すか", reload=RELOAD_IMMEDIATE
     )
+    transcribing_show_hotkeys: bool = _item(
+        True, "文字起こし中の表示のボタンにホットキーを出すか", reload=RELOAD_IMMEDIATE
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _inherit_transcribing_show_hotkeys(cls, data: Any) -> Any:
+        """transcribing_show_hotkeys を持たない画面の設定へ、show_hotkeys の値を入れる。"""
+        # dict でない・文字起こし中の表示の項目がある・録音の画面の項目が無い: そのまま返す（どちらも無ければ既定に任せる）
+        if (
+            not isinstance(data, dict)
+            or "transcribing_show_hotkeys" in data
+            or "show_hotkeys" not in data
+        ):
+            return data
+        # 項目が無い: 録音の画面の値を入れた写しを返す（data は書き換えない）
+        return {**data, "transcribing_show_hotkeys": data["show_hotkeys"]}
 
 
 class ContinuousSettings(_SettingsModel):

@@ -4,6 +4,9 @@
 クリックとキーを Qt のイベントで渡して欄・ボタンを操作する（欄は項目 ID `field_{キー}`、確認ダイアログは予約して答える）。
 設定ファイルは起動した一時フォルダの `settings.toml`（`--data-dir`）で、普段使いの設定には触れない。
 「保存して再起動」で起動し直す新しいプロセスだけは別プロセスで動き（Qt は offscreen）、ログとトークンのファイルで確かめる。
+変えた設定で録音を始めるケース（正常シナリオ・カスタムプリセットを足す）は、録音の入力を WAV を流すものに、
+システム音量を呼ばれた値を控えるものに差し替える（マイクを開かず、システム音量を変えない）。
+ホットキーの受付は差し替えているため、登録された関数を呼んで押したことにする。
 `--run-e2e` が無ければ skip する。
 """
 
@@ -14,11 +17,14 @@ from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QPushButton
 
-from tests.integration.helpers import wait_until
+from tests.integration.helpers import CallbackReceiver, wait_until
+from tests.support.inprocess import SPEECH_WORD, VOLUME_BEFORE, silence_input, speech_input
 from tests.support.instances import started_count
-from tests.support.real_service import read_token_file
-from tests.support.resident_app import IDLE, ResidentApp, service_processes_for
+from tests.support.real_service import UNUSED_START_HOTKEY, read_token_file
+from tests.support.resident_app import IDLE, RECORDING, ResidentApp, service_processes_for
 from voice_paste.features.correction import read_glossary_rows
 from voice_paste.main import SETTINGS_MODEL
 from voice_paste.shared.settings import load_settings
@@ -56,6 +62,35 @@ GLOSSARY_TWO_ROWS = "誤変換,正しい表記\nkuroudo,Claude\ngitto,Git\n"
 COMMENT_LINE = "# E2E: このコメントは保存しても残る"
 """COMMENTED_SETTINGS が持つコメント。"""
 
+START_HOTKEY_FIELD = "hotkey_hotkeys.start"
+"""設定画面の録音開始のホットキーの欄の項目 ID。"""
+
+NEW_START_HOTKEY = "<ctrl>+<alt>+<shift>+<f11>"
+NEW_START_HOTKEY_TEXT = "Ctrl+Alt+Shift+F11"
+"""録音開始のホットキーに変える組み合わせ（設定の書式と、欄に出る形）。"""
+
+PRESET_HOTKEY = "<ctrl>+<alt>+<shift>+<f10>"
+"""足すプリセットの確定のホットキー。"""
+
+PRESET_TITLE = "e2e-endpoint"
+"""足すプリセットのタイトル（キーを打つ操作が確かな ASCII にしている）。"""
+
+HOTKEY_MODIFIERS = (
+    Qt.KeyboardModifier.ControlModifier
+    | Qt.KeyboardModifier.AltModifier
+    | Qt.KeyboardModifier.ShiftModifier
+)
+"""ホットキーの欄へ渡す修飾キー。"""
+
+SAVED_WITH_HOTKEY_NOTICE = "保存しました。新しいホットキーは、設定画面を閉じると効きます。"
+"""ホットキーの欄を変えて保存したときに、保存できたことに添えて出る知らせ。"""
+
+LOWERED_RATIO = 0.5
+"""設定の既定（録音中の音量 50%）で、録音前の音量に掛けて下げる割合。"""
+
+DELIVERED_TIMEOUT_SEC = 120.0
+"""プリセットで確定してから、起こした文字が受け口へ届くまで待つ上限。"""
+
 
 def _settings_file(app: ResidentApp) -> Path:
     """起動した常駐アプリの settings.toml のパス。"""
@@ -81,6 +116,78 @@ def _token(app: ResidentApp) -> object:
     """起動ごとのトークンのファイルから、トークンを読む（まだ無ければ None）。"""
     info = read_token_file(app.data_dir)
     return None if info is None else info["token"]
+
+
+def _bindings(app: ResidentApp) -> dict[str, Callable[[], None]]:
+    """ホットキーの受付に今登録されている、組み合わせごとの関数。"""
+    assert app.hotkeys is not None, "ホットキーの受付がまだ作られていない"
+    return app.hotkeys.bindings
+
+
+def _lowered_ratios(app: ResidentApp) -> list[float]:
+    """録音を始めるときにシステム音量を下げた割合の控え。"""
+    assert app.volume is not None, "システム音量を差し替えていない"
+    return app.volume.lowered_ratios
+
+
+def _restored_volumes(app: ResidentApp) -> list[float]:
+    """録音を終えるときにシステム音量を戻した値の控え。"""
+    assert app.volume is not None, "システム音量を差し替えていない"
+    return app.volume.restored
+
+
+def test_normal(run_app: RunApp, tmp_path: Path) -> None:
+    """録音開始のホットキーを別の組み合わせに変えて保存し、確認なしに閉じると、再起動せずに新しい組み合わせで録音が始まり、前の組み合わせでは始まらない（正常シナリオ）。
+
+    録音の入力は無音の WAV で、文字起こしまで進めずに取り消しの関数で録音を終える。
+    """
+
+    def case(app: ResidentApp) -> None:
+        """設定画面で録音開始のホットキーを変えて「保存」を押し、「キャンセル」で閉じて、新しい組み合わせの関数で録音を始める。"""
+        # 準備
+        app.open_settings()
+        app.select_group("ホットキー")
+
+        # 実行（新しい組み合わせを押して保存する）
+        app.press_hotkey(START_HOTKEY_FIELD, Qt.Key.Key_F11, HOTKEY_MODIFIERS)
+        assert app.hotkey_value(START_HOTKEY_FIELD) == NEW_START_HOTKEY_TEXT
+        app.press("save_button")
+
+        # 検証（保存の後、設定画面は開いたまま、入れた値と選んでいたまとまりが残り、書かれた値以外は変わらない）
+        assert app.label("saved_notice") == SAVED_WITH_HOTKEY_NOTICE
+        assert app.window("settings_window") is not None
+        assert app.selected_group() == "ホットキー"
+        assert app.hotkey_value(START_HOTKEY_FIELD) == NEW_START_HOTKEY_TEXT
+        assert _toml(app)["hotkeys"]["start"] == NEW_START_HOTKEY  # type: ignore[index]
+        assert COMMENT_LINE in _settings_file(app).read_text(encoding="utf-8")
+        assert _toml(app)["recording"]["fade_sec"] == 1.5  # type: ignore[index]
+
+        # 実行（保存の後に欄を変えずに閉じる）
+        app.press("cancel_button")
+
+        # 検証（変えた値を捨てる確認を出さずに閉じ、新しい組み合わせだけが受け付けられる）
+        assert app.wait_window_gone("settings_window")
+        assert app.unexpected_dialogs == []
+        bindings = _bindings(app)
+        assert NEW_START_HOTKEY in bindings
+        assert UNUSED_START_HOTKEY not in bindings
+
+        # 実行（新しい組み合わせの関数を呼ぶ）
+        bindings[NEW_START_HOTKEY]()
+
+        # 検証（録音が始まり、システム音量を下げる）
+        assert app.wait_until(lambda: app.tray_state() == RECORDING)
+        assert _lowered_ratios(app) == [LOWERED_RATIO]
+
+        # 実行（取り消しの関数で録音を終える）
+        bindings[SETTINGS_MODEL().hotkeys.cancel]()
+
+        # 検証
+        assert app.wait_until(lambda: app.tray_state() == IDLE)
+        assert app.wait_until(lambda: _restored_volumes(app) == [VOLUME_BEFORE])
+
+    # 実行
+    run_app(case, extra_settings=COMMENTED_SETTINGS, wav_input=silence_input(tmp_path))
 
 
 def test_normal_when_save_and_restart(run_app: RunApp) -> None:
@@ -188,6 +295,73 @@ def test_error_when_invalid_value(run_app: RunApp) -> None:
         assert _settings_file(app).read_bytes() == before
 
     run_app(case, extra_settings=COMMENTED_SETTINGS)
+
+
+def test_normal_when_add_custom_preset(
+    run_app: RunApp, tmp_path: Path, receiver: CallbackReceiver
+) -> None:
+    """「エンドポイントへ送る」のプリセットを足して保存し、確認なしに閉じると、再起動せずに次の録音の画面にそのボタンが出て、そのホットキーで確定すると起こした文字が受け口へ届く（正常シナリオ）。
+
+    プリセットの URL はテストが 127.0.0.1 に立てた受け口で、録音の入力は音声合成の WAV（ローカルの Whisper で起こす）。
+    """
+
+    def case(app: ResidentApp) -> None:
+        """設定画面でプリセットを足して「保存」を押し、「キャンセル」で閉じて、録音を始めてプリセットのホットキーの関数で確定する。"""
+        # 準備
+        app.open_settings()
+        app.select_group("エンドポイントへ送る")
+
+        # 実行（タイトル・URL・確定のホットキーを入れて保存する）
+        app.press("add_preset_button_endpoint")
+        app.set_text("preset_title_0", PRESET_TITLE)
+        app.set_text("preset_url_0", receiver.url)
+        app.press_hotkey("preset_hotkey_0", Qt.Key.Key_F10, HOTKEY_MODIFIERS)
+        app.press("save_button")
+
+        # 検証（保存の後、設定画面は開いたまま、足したプリセットが一覧に残り、書かれた値以外は変わらない）
+        assert app.label("saved_notice") == SAVED_WITH_HOTKEY_NOTICE
+        assert app.window("settings_window") is not None
+        assert app.label("preset_heading_0") == PRESET_TITLE
+        preset = _toml(app)["presets"][0]  # type: ignore[index]
+        assert (
+            preset["kind"],
+            preset["title"],
+            preset["url"],
+            preset["hotkey"],
+            preset["enabled"],
+        ) == ("endpoint", PRESET_TITLE, receiver.url, PRESET_HOTKEY, True)
+        assert COMMENT_LINE in _settings_file(app).read_text(encoding="utf-8")
+        assert _toml(app)["recording"]["fade_sec"] == 1.5  # type: ignore[index]
+
+        # 実行（保存の後に欄を変えずに閉じる）
+        app.press("cancel_button")
+
+        # 検証（確認を出さずに閉じ、プリセットのホットキーが受け付けられる）
+        assert app.wait_window_gone("settings_window")
+        assert app.unexpected_dialogs == []
+        bindings = _bindings(app)
+        assert PRESET_HOTKEY in bindings
+
+        # 実行（録音開始の関数を呼ぶ）
+        bindings[UNUSED_START_HOTKEY]()
+
+        # 検証（録音の画面にプリセットのボタンが出る）
+        assert app.wait_until(lambda: app.tray_state() == RECORDING)
+        assert app.wait_widget("preset_button_0", QPushButton).toolTip() == PRESET_TITLE
+
+        # 実行（プリセットのホットキーの関数を呼んで確定する）
+        bindings[PRESET_HOTKEY]()
+
+        # 検証（起こした文字が受け口へ届き、待機中へ戻る）
+        assert app.wait_until(lambda: receiver.received, DELIVERED_TIMEOUT_SEC)
+        assert receiver.received[0]["result"] == "transcribed"
+        assert SPEECH_WORD in receiver.received[0]["text"]
+        assert app.wait_until(lambda: app.tray_state() == IDLE)
+        assert _lowered_ratios(app) == [LOWERED_RATIO]
+        assert app.wait_until(lambda: _restored_volumes(app) == [VOLUME_BEFORE])
+
+    # 実行
+    run_app(case, extra_settings=COMMENTED_SETTINGS, wav_input=speech_input(tmp_path))
 
 
 def test_normal_when_edit_glossary(run_app: RunApp) -> None:

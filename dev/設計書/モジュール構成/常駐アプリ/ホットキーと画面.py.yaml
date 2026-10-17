@@ -931,7 +931,7 @@ classes:
       要素は画面設計「文字起こし中の表示」が持つ。窓は `Qt.Tool | Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus` と `WA_ShowWithoutActivating` で出す。窓の外側の枠の role は `window` にし、縁を frame で描かせる。
       `WindowDoesNotAcceptFocus` のため、切り替えのボタンを押しても見出しの行をつかんでも窓は前面にならず、貼り付け先の入力欄のフォーカスはそのまま残る（前面を戻す処理は持たない）。
       見出しの行・つかむ印・名前の下にホットキーを出すボタンは、録音の画面と同じ部品（window_parts.py の HeadRow・GripIcon・HotkeyButton。recording_window.py から移す）を使う。見出しの行を押したまま動かすと `QWindow.startSystemMove` で窓を動かす。
-      切り替えのボタンは、設定でオンの固定の出力先（`outputs[]` の並び。名前は UiDeps.output_titles、ホットキーは format_hotkey で整えた `outputs[].hotkey`）ごとに open で組み直す。`ui.show_hotkeys` がオフのときはホットキーを空で渡し、名前だけを出す。今の出力先でないボタンを押すと output_selected を emit する（差し替えるのは UiController。印は output_changed の知らせを受けて set_output で替える）。
+      切り替えのボタンは、設定でオンの固定の出力先（`outputs[]` の並び。名前は UiDeps.output_titles、ホットキーは format_hotkey で整えた `outputs[].hotkey`）ごとに open で組み直す。`ui.transcribing_show_hotkeys` がオフのときはホットキーを空で渡し、名前だけを出す（録音の画面の `ui.show_hotkeys` は見ない）。今の出力先でないボタンを押すと output_selected を emit する（差し替えるのは UiController。印は output_changed の知らせを受けて set_output で替える）。
       残りの時間は、進み（区間の終わり ÷ 録音の長さ）と経過から「経過 ÷ 進み − 経過」で見積もる。
       コンストラクタは UiDeps と、経過を数える時計 clock（秒を返す関数。既定は time.monotonic）を受ける。
     kind: クラス

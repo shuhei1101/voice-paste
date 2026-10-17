@@ -188,9 +188,12 @@ class Tray(QObject):
         self._icon.setContextMenu(menu)
         self._icon.activated.connect(self._on_activated)
         self._icon.messageClicked.connect(self._on_message_clicked)
+        # Windows はボタンの名前を、アイコンを出した時点のヒントと今のヒントをつないで作る。
+        # 準備中のヒントが残らないよう、画像だけを付けてアイコンを出してから、ヒントを付ける
+        self._icon.setIcon(self._icons[TrayState.STARTING])
+        self._icon.show()
         self.set_state(TrayState.STARTING, busy=False)
         self.set_recording_window(RecordingWindowState.NOT_RECORDING)
-        self._icon.show()
 
     def set_state(self, state: TrayState, *, busy: bool) -> None:
         """アイコン・ヒント・メニューの押せる項目と文言を状態に合わせる。"""

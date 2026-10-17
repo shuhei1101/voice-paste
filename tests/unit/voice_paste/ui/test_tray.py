@@ -1,4 +1,4 @@
-"""ui/tray.py（Tray の set_state・set_failed・show_failure・show_copy_completed・通知の押下・set_recording_window・アイコンの左クリック）の単体テスト。
+"""ui/tray.py（Tray の __init__・set_state・set_failed・show_failure・show_copy_completed・通知の押下・set_recording_window・アイコンの左クリック）の単体テスト。
 
 画面を使うため offscreen の QApplication（conftest の qapp）で動かす。
 メニューの項目は、表示の文言の先頭で引く（右に出すホットキーは文言の後ろに付く）。
@@ -32,6 +32,29 @@ def _menu_action(tray: Tray, label: str) -> QAction:
     ]
     assert len(actions) == 1, f"{label} の項目が 1 つでない: {actions}"
     return actions[0]
+
+
+# === __init__ ===
+
+
+def test_init_shows_icon_before_tooltip(
+    qapp: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """ヒントを付けずにアイコンを出し、出した後に準備中のヒントを付ける（正常系）。"""
+    # 準備
+    shown: list[tuple[str, bool]] = []
+
+    def record_show(icon: QSystemTrayIcon) -> None:
+        shown.append((icon.toolTip(), not icon.icon().isNull()))
+
+    monkeypatch.setattr(QSystemTrayIcon, "show", record_show)
+
+    # 実行
+    tray = make_tray(tmp_path)
+
+    # 検証
+    assert shown == [("", True)]
+    assert tray._icon.toolTip() == "voice-paste: 準備中"
 
 
 # === set_state ===

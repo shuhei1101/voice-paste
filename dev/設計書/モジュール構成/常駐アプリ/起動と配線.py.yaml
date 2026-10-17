@@ -498,10 +498,10 @@ functions:
       type: dict[str, Callable[[], None]]
       description: pynput の書式のホットキー → 呼ぶ関数
     process: |-
-      1. `hotkeys.start`: ホットキー・トレイの録音が recording か paused のとき、同じホットキーのオンの出力先があればその出力先で確定し（complete）、無ければ隠した録音の画面を戻す指示を出す（show_recording_window。隠していなければ UiController が何もしない。自分の録音の最中に処理中のダイアログを出さない）。それ以外（待機中・API の録音の最中・自分の録音の文字起こし中）は start_local_session(hotkey) を呼ぶ
+      1. `hotkeys.start`: ホットキー・トレイの録音が recording か paused のとき、同じホットキーのオンの出力先があればその出力先で確定し（complete）、無ければ隠した録音の画面を戻す指示を出す（show_recording_window。隠していなければ UiController が何もしない。自分の録音の最中に処理中のダイアログを出さない）。ホットキー・トレイの録音が transcribing で同じホットキーのオンの出力先があるときは、その出力先へ差し替える（switch_output。録音は始めない）。それ以外（待機中・API の録音の最中・同じホットキーの出力先が無い自分の録音の文字起こし中・delivering）は start_local_session(hotkey) を呼ぶ
       2. `hotkeys.pause`: paused なら resume、それ以外は pause を呼ぶ
       3. `hotkeys.cancel`: cancel を呼ぶ
-      4. オンの出力先の `hotkey`（1 と同じホットキーを除く）: complete(output_id=その出力先の ID) を呼ぶ
+      4. オンの出力先の `hotkey`（1 と同じホットキーを除く）: ホットキー・トレイの録音が transcribing なら switch_output(その出力先の ID) を、それ以外は complete(output_id=その出力先の ID) を呼ぶ（差し替えられないセッションは SessionManager が断る）
       5. 有効なプリセットの `hotkey`: complete(preset=そのプリセット) を呼ぶ
          - 空のホットキーは登録しない（重なりは Settings の確かめが断っている）
 
@@ -549,6 +549,18 @@ functions:
         condition: presets に無効のプリセット（<ctrl>+<alt>+7）と、hotkey が空の有効なプリセットを置いた設定
         mock: session_manager・start_local_session
         expected: <ctrl>+<alt>+7 と空文字が返り値のキーに無い
+      - name: test_build_hotkey_bindings_when_transcribing
+        case: 正常
+        summary: 文字起こし中の出力先のホットキーはその出力先へ差し替える
+        condition: SETTINGS_MODEL()、current が hotkey・transcribing、<ctrl>+<alt>+c の関数を呼ぶ
+        mock: session_manager・start_local_session
+        expected: switch_output("copy_only") が 1 回呼ばれ、complete が呼ばれない
+      - name: test_build_hotkey_bindings_when_transcribing_start_hotkey
+        case: 正常
+        summary: 文字起こし中の開始のホットキーは、同じキーの出力先へ差し替えて録音を始めない
+        condition: SETTINGS_MODEL()、current が hotkey・transcribing、<ctrl>+<alt>+d の関数を呼ぶ
+        mock: session_manager・start_local_session・show_recording_window
+        expected: switch_output("paste_and_send") が 1 回呼ばれ、start_local_session・complete が呼ばれない
     refs:
       - dev/設計書/シナリオ/単一ユースケース/録音する#
     status: implemented
@@ -693,7 +705,7 @@ functions:
       type: UiDeps
       description: 画面の依存
     process: |-
-      1. start に start_local_session(tray)、pause・resume・cancel・current_session に SessionManager のメソッド、complete に output_id・preset で SessionManager.complete を呼ぶ関数、level に recorder_level、get_settings に SettingsStore.get を渡す
+      1. start に start_local_session(tray)、pause・resume・cancel・current_session・switch_output に SessionManager のメソッド、complete に output_id・preset で SessionManager.complete を呼ぶ関数、level に recorder_level、get_settings に SettingsStore.get を渡す（エンジンを準備できなかった起動の UiDeps の switch_output は、ほかの録音の関数と同じく何もしない関数）
       2. suspend_hotkeys に HotkeyListener.stop、resume_hotkeys に SettingsStore.get の設定と show_recording_window で build_hotkey_bindings して HotkeyListener.start を呼ぶ関数を渡す
       3. settings_dir に settings.toml のフォルダ、log_dir にログのフォルダを渡す
       4. output_titles に、OUTPUTS のうち api_only でない出力先の ID → title を渡す（エンジンを準備できなかった起動の UiDeps も同じ）

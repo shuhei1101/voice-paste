@@ -380,7 +380,9 @@ class UiSettings(_SettingsModel):
     wave_gain: float = _item(
         4, "波形の振れの大きさ（0 より大きい）", reload=RELOAD_IMMEDIATE, gt=0
     )
-    show_hotkeys: bool = _item(True, "録音の画面のボタンにホットキーを出すか", reload=RELOAD_IMMEDIATE)
+    show_hotkeys: bool = _item(
+        True, "録音の画面と文字起こし中の表示のボタンにホットキーを出すか", reload=RELOAD_IMMEDIATE
+    )
 
 
 class ContinuousSettings(_SettingsModel):

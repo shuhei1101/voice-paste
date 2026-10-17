@@ -1,0 +1,49 @@
+# 実行したコマンド
+venv/Scripts/python.exe -m pytest tests/integration/ui/test_transcribing_indicator.py
+venv/Scripts/python.exe -m pytest tests/integration/ui/test_settings_window.py
+venv/Scripts/python.exe -m pytest tests/integration/ui/test_recording_window.py
+
+# 補足
+- この worktree に venv が無いため、リポジトリ直下の venv で PYTHONPATH=src を付けて回した
+- 3 ファイルを 1 つのコマンドで続けて回すと、時間を計る既存のテスト（test_recording_window.py の test_head_row_action_does_not_stop_recording）が落ちることがあり、全体が極端に遅くなる（設定画面のテストの後に録音の画面のテストの準備が 70 秒を超える）ため、ファイルごとに回した
+
+# 出力（test_transcribing_indicator.py）
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\design-session-switch-output-while-transcribing
+configfile: pyproject.toml
+plugins: anyio-4.13.0, platformdirs-4.12.2
+collected 65 items
+
+tests\integration\ui\test_transcribing_indicator.py .................... [ 30%]
+.............................................                            [100%]
+
+============================= 65 passed in 10.03s =============================
+
+# 出力（test_settings_window.py）
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\design-session-switch-output-while-transcribing
+configfile: pyproject.toml
+plugins: anyio-4.13.0, platformdirs-4.12.2
+collected 200 items
+
+tests\integration\ui\test_settings_window.py ........................... [ 13%]
+........................................................................ [ 49%]
+........................................................................ [ 85%]
+.............................                                            [100%]
+
+============================ 200 passed in 15.28s =============================
+
+# 出力（test_recording_window.py）
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\design-session-switch-output-while-transcribing
+configfile: pyproject.toml
+plugins: anyio-4.13.0, platformdirs-4.12.2
+collected 92 items
+
+tests\integration\ui\test_recording_window.py .......................... [ 28%]
+..................................................................       [100%]
+
+============================= 92 passed in 58.02s =============================

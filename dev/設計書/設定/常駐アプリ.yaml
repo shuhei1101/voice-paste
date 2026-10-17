@@ -261,7 +261,9 @@ settings:
     file: settings.toml
     type: string（pynput の GlobalHotKeys 形式）
     default: 'paste_and_send: <ctrl>+<alt>+d / paste_only: <ctrl>+<alt>+v / copy_only: <ctrl>+<alt>+c'
-    description: 録音の画面でこの出力先として確定する。
+    description: |-
+      録音の画面でこの出力先として確定する。
+      固定の出力先で確定した録音の文字起こし中は、届ける出力先をこの出力先へ切り替える（録音開始と同じキーでも録音を始めない）。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -571,11 +573,11 @@ settings:
     introduced:
       pr: 94
   - key: ui.show_hotkeys
-    title: 録音の画面のボタンにホットキーを出すか
+    title: 録音の画面と文字起こし中の表示のボタンにホットキーを出すか
     file: settings.toml
     type: bool
     default: 'true'
-    description: '`true` のとき、録音の画面の一時停止・再開・取り消し・出力先の確定・カスタムプリセットのボタンの名前の下にホットキーを出す。`false` のときは名前だけを出す。ホットキーの受付は変えない。'
+    description: '`true` のとき、録音の画面の一時停止・再開・取り消し・出力先の確定・カスタムプリセットのボタンと、文字起こし中の表示の出力先の切り替えのボタンの名前の下にホットキーを出す。`false` のときは名前だけを出す。ホットキーの受付は変えない。'
     reload: immediate
     missing: 項目が無い `settings.toml` は `true` として読む
     status: planned

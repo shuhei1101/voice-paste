@@ -1262,7 +1262,7 @@ def test_ui_theme_field_action(
 
 # === field_ui.show_hotkeys ===
 
-SHOW_HOTKEYS_LABEL = "録音の画面のボタンにホットキーを出すか"
+SHOW_HOTKEYS_LABEL = "録音の画面と文字起こし中の表示のボタンにホットキーを出すか"
 """ui.show_hotkeys の欄の名前（設定の設計書の title）。"""
 
 
@@ -1270,7 +1270,7 @@ SHOW_HOTKEYS_LABEL = "録音の画面のボタンにホットキーを出すか"
 def test_ui_show_hotkeys_field_initial_value(
     open_window: Callable[..., Opened], show_hotkeys: bool
 ) -> None:
-    """「画面」のまとまりの末尾に、欄の名前が「録音の画面のボタンにホットキーを出すか」のチェックボックスがあり、今の ui.show_hotkeys の値になっている（再起動の印は出ない）。"""
+    """「画面」のまとまりの末尾に、欄の名前が「録音の画面と文字起こし中の表示のボタンにホットキーを出すか」のチェックボックスがあり、今の ui.show_hotkeys の値になっている（再起動の印は出ない）。"""
     from voice_paste.shared.settings import UiSettings
 
     # 準備

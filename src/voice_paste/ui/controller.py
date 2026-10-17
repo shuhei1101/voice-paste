@@ -101,6 +101,9 @@ class UiDeps:
     copy: Callable[[str], None]
     """クリップボードへ書く（copy_to_clipboard。書けなければ DeliveryError）。コピーの完了の通知を押したときにコピーし直す。"""
 
+    switch_output: Callable[[str], None]
+    """文字起こし中に届ける出力先を差し替える（SessionManager.switch_output）。文字起こし中の表示の切り替えのボタンが呼ぶ。"""
+
 
 class UiController(QObject):
     """UiBridge の知らせを受けて、トレイ・録音の画面・文字起こし中の表示・ダイアログを開く・閉じる・替える。
@@ -131,6 +134,7 @@ class UiController(QObject):
         tray.show_window_requested.connect(self.show_recording)
         tray.recopy_requested.connect(self.recopy)
         recording_window.hide_requested.connect(self.hide_recording)
+        indicator.output_selected.connect(deps.switch_output)
         tray.settings_requested.connect(self.open_settings)
         tray.restart_requested.connect(lambda: self.request_exit("restart"))
         tray.quit_requested.connect(lambda: self.request_exit("quit"))
@@ -142,6 +146,8 @@ class UiController(QObject):
         """UiBridge.notified のスロット。知らせの種類ごとに画面とトレイを変える。"""
         if event == "state_changed":
             self._apply_session()
+        elif event == "output_changed":
+            self._indicator.set_output(detail)  # type: ignore[arg-type]
         elif event == "busy":
             show_busy_dialog()
         elif event == "show_recording_window":
@@ -285,7 +291,13 @@ class UiController(QObject):
             )
             self._close_recording()
             if show_windows and not self._indicator_shown:
-                self._indicator.open(at=moved_position)
+                # カスタムプリセットで確定した回は、プリセットのタイトルだけを渡す
+                preset = session.output_preset
+                self._indicator.open(
+                    at=moved_position,
+                    output_id=session.output_id,
+                    preset_title=None if preset is None else preset.title,
+                )
                 self._indicator_shown = True
             self._tray.set_recording_window(RecordingWindowState.NOT_RECORDING)
 

@@ -420,7 +420,7 @@ data_models:
       - name: show_hotkeys
         type: bool
         default: 'True'
-        description: 録音の画面のボタンにホットキーを出すか。反映は immediate。description の最初の文を設定の設計書の `title` にそろえる（設定画面の欄の名前になる）
+        description: 録音の画面と文字起こし中の表示のボタンにホットキーを出すか。反映は immediate。description の最初の文を設定の設計書の `title` にそろえる（設定画面の欄の名前になる）
     status: implemented
   - name: ApiSettings
     title: API の設定

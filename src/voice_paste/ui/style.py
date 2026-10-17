@@ -72,6 +72,7 @@ QPushButton[primary="true"] {
 QPushButton[primary="true"]:hover { background-color: @primary_hover@; }
 QPushButton QLabel { background: transparent; }
 QPushButton[role="hotkey_button"] { padding: 0; }
+QPushButton[role="hotkey_button"][overhang="true"] { margin: @badge_overhang@px @badge_overhang@px 0 0; }
 QPushButton[role="hotkey_button"]:checked {
     background-color: @sunken@;
     border-color: @accent_fg@;

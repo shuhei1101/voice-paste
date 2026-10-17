@@ -57,17 +57,14 @@ OUTPUT_HEADING_TEXT: str = "出力先"
 SWITCH_WINDOW_WIDTH_PX: int = 380
 """出力先の切り替えのボタンを出す回の、窓の最小の幅（ボタンが名前を省かずに収まる幅）。"""
 
-CHECK_BADGE_SIZE_PX: int = 14
-"""今の出力先のボタンの右上に重ねる、丸い印の直径。"""
-
-CHECK_BADGE_MARGIN_PX: int = 2
-"""丸い印とボタンの上端・右端の間の幅。"""
+CHECK_BADGE_SIZE_PX: int = 16
+"""今の出力先のボタンの右上の角に置く、丸い印の直径。"""
 
 CHECK_BADGE_PEN_PX: float = 1.6
 """丸い印の中のチェックの線の太さ。"""
 
-CHECK_POINTS: tuple[tuple[float, float], ...] = ((3.5, 7.5), (6.0, 10.0), (10.5, 4.5))
-"""丸い印の中のチェックの折れ線の 3 点（直径 14 の円の左上を原点とした座標）。"""
+CHECK_POINTS: tuple[tuple[float, float], ...] = ((4.5, 8.5), (7.0, 11.0), (11.5, 5.5))
+"""丸い印の中のチェックの折れ線の 3 点（直径 16 の円の左上を原点とした座標）。"""
 
 
 def hint_text(output_id: str | None) -> str:
@@ -129,23 +126,35 @@ class Spinner(QWidget):
 
 
 class SwitchButton(HotkeyButton):
-    """出力先の切り替えのボタン。今の出力先のボタンは選んだ状態（checked）にして、右上の角に丸い印（チェック）を重ねる。"""
+    """出力先の切り替えのボタン。今の出力先のボタンは選んだ状態（checked）にして、枠の右上の角から外へはみ出す丸い印（チェック）を描く。
+
+    Qt のボタンは自分の矩形の中にしか描けないため、印がはみ出す分を矩形の右と上の余白に取り、地と枠はその余白の内側に描く。
+    名前とホットキーは枠の中央に置き、印は文字の範囲に重ねない。
+    """
 
     def __init__(self, name: str, text: str, hotkey: str) -> None:
         super().__init__(name, text, hotkey)
         self.setCheckable(True)
         # 押してもフォーカスを取らない（貼り付け先の入力欄のフォーカスを動かさない）
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        # 地と枠は、スタイルシートの margin で右と上の余白の内側に描かせる
+        self.setProperty("overhang", True)
+        # 名前とホットキーも余白の分だけ内側に寄せ、枠の中央に置く
+        overhang: int = load_tokens()["shape"]["badge_overhang"]
+        margins = self.layout().contentsMargins()
+        self.layout().setContentsMargins(
+            margins.left(), margins.top() + overhang, margins.right() + overhang, margins.bottom()
+        )
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802 Qt の名前
-        """面と枠を描いた後、選んだ状態なら右上の角に丸い印を重ねる。"""
+        """面と枠を描いた後、選んだ状態なら矩形の右上の角（枠の右上の角から外へはみ出した余白）に丸い印を描く。"""
         super().paintEvent(event)
         if not self.isChecked():
             return
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        left = self.width() - CHECK_BADGE_SIZE_PX - CHECK_BADGE_MARGIN_PX
-        badge = QRectF(left, CHECK_BADGE_MARGIN_PX, CHECK_BADGE_SIZE_PX, CHECK_BADGE_SIZE_PX)
+        left = self.width() - CHECK_BADGE_SIZE_PX
+        badge = QRectF(left, 0, CHECK_BADGE_SIZE_PX, CHECK_BADGE_SIZE_PX)
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(theme_color("accent_fg"))
         painter.drawEllipse(badge)
@@ -154,7 +163,7 @@ class SwitchButton(HotkeyButton):
         pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
         painter.setPen(pen)
-        painter.drawPolyline([QPointF(left + x, CHECK_BADGE_MARGIN_PX + y) for x, y in CHECK_POINTS])
+        painter.drawPolyline([QPointF(left + x, y) for x, y in CHECK_POINTS])
 
 
 class TranscribingIndicator(QWidget):

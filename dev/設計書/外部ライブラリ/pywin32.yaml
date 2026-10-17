@@ -29,5 +29,7 @@ official_url: https://github.com/mhammond/pywin32
 docs_url: https://mhammond.github.io/pywin32/
 install: |-
   ```bash
-  pip install -e . --group dev
+  uv sync --frozen
   ```
+
+  リポジトリの直下で Windows の uv（WSL からは `uv.exe`）で流す。

@@ -65,5 +65,5 @@ tests\unit\voice_paste\ui\windows\test_settings_window.py .............. [ 95%]
 ..................                                                       [ 99%]
 tests\unit\voice_paste\ui\windows\test_transcribing_indicator.py ....    [100%]
 
-============================ 505 passed in 30.02s =============================
+============================ 505 passed in 25.60s =============================
 exit=0

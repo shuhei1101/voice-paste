@@ -1,9 +1,9 @@
 title: "pynput"
 kind: "ライブラリ"
 version:
-  current: 1.8.1
+  current: 1.8.2
   checked_on: '2026-09-30'
-  source: pyproject.toml（~=1.7）と手元の venv に入っている版
+  source: pyproject.toml（~=1.7）と uv.lock の版
   pinning: 互換リリースで固定（~=1.7）
 catalogs:
   - name: API

@@ -1,9 +1,9 @@
 title: "numpy"
 kind: "ライブラリ"
 version:
-  current: 2.4.4
+  current: 2.5.4
   checked_on: '2026-10-01'
-  source: pyproject.toml（scipy などの依存としても入る）と普段使いの venv に入っている版
+  source: pyproject.toml（scipy などの依存としても入る）と uv.lock の Python 3.14 で入る版
   pinning: 互換リリースで固定（~=2.4）
 catalogs:
   - name: API

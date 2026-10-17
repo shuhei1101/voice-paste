@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import logging
-import os
 import random
 import signal
 import sys
@@ -125,9 +124,6 @@ WORKER_STOP_TIMEOUT_SEC: float = 2.0
 
 GLOSSARIES_DIR_NAME: str = "glossaries"
 """設定画面で足した用語集の CSV を置く、settings.toml と同じフォルダの下のフォルダの名前。"""
-
-ACCEPT_INJECTED_HOTKEYS_ENV: str = "VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS"
-"""`1` のときだけ、ソフトウェアで送ったキーもホットキーとして受ける環境変数（E2E の起動で付ける）。"""
 
 WAKE_INTERVAL_MS: int = 200
 """Qt のイベントループの中で Python のシグナルのハンドラが動くようにする、空の QTimer の間隔。PoC で 200 ms なら Ctrl+Break から 0.3 秒で終わった。"""
@@ -894,10 +890,7 @@ def _start_services(
     running.handlers = handlers
 
     # 画面を作って知らせの受け手につなぐ（API の待ち受けを始められない知らせを取りこぼさないよう、API より先に）
-    accept_injected = os.environ.get(ACCEPT_INJECTED_HOTKEYS_ENV) == "1"
-    if accept_injected:
-        logger.info("ソフトウェアで送ったキーもホットキーとして受ける")
-    hotkey_listener = HotkeyListener(accept_injected=accept_injected)
+    hotkey_listener = HotkeyListener()
     running.hotkey_listener = hotkey_listener
     save_settings_fn = partial(
         apply_settings,

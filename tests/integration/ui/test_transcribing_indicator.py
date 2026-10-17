@@ -682,14 +682,16 @@ def test_switch_button_does_not_take_focus(make_ui: Callable[..., Ui], output_id
         pytest.param("copy_only", "コピーのみ", id="copy_only"),
     ],
 )
-def test_switch_buttons_when_show_hotkeys_off(
+def test_switch_buttons_when_transcribing_show_hotkeys_off(
     make_ui: Callable[..., Ui], output_id: str, name: str
 ) -> None:
-    """ui.show_hotkeys がオフのとき、全てのボタンがホットキーを出さず、名前だけを出す。"""
+    """ui.transcribing_show_hotkeys がオフのとき、全てのボタンがホットキーを出さず、名前だけを出す。"""
     from voice_paste.shared.settings import UiSettings
 
     # 実行
-    ui = _opened(make_ui, _settings(ui=UiSettings(show_hotkeys=False)))
+    ui = _opened(
+        make_ui, _settings(ui=UiSettings(show_hotkeys=True, transcribing_show_hotkeys=False))
+    )
 
     # 検証
     button = _switch_button(ui, output_id)
@@ -697,8 +699,24 @@ def test_switch_buttons_when_show_hotkeys_off(
     assert button_texts(button) == [name]
 
 
-def test_switch_buttons_when_show_hotkeys_off_then_reopened(make_ui: Callable[..., Ui]) -> None:
-    """ui.show_hotkeys を切り替えた後に出す文字起こし中の表示から、ボタンの出し方が変わる（再起動は要らない）。"""
+def test_switch_buttons_when_only_show_hotkeys_off(make_ui: Callable[..., Ui]) -> None:
+    """録音の画面の ui.show_hotkeys だけがオフでも、ui.transcribing_show_hotkeys がオンなら全てのボタンがホットキーを出す。"""
+    from voice_paste.shared.settings import UiSettings
+
+    # 実行
+    ui = _opened(
+        make_ui, _settings(ui=UiSettings(show_hotkeys=False, transcribing_show_hotkeys=True))
+    )
+
+    # 検証
+    for output_id in ("paste_and_send", "paste_only", "copy_only"):
+        assert _name_and_key(_switch_button(ui, output_id))[1] is not None
+
+
+def test_switch_buttons_when_transcribing_show_hotkeys_off_then_reopened(
+    make_ui: Callable[..., Ui],
+) -> None:
+    """ui.transcribing_show_hotkeys を切り替えた後に出す文字起こし中の表示から、ボタンの出し方が変わる（再起動は要らない）。"""
     from voice_paste.shared.settings import UiSettings
 
     # 準備
@@ -707,7 +725,9 @@ def test_switch_buttons_when_show_hotkeys_off_then_reopened(make_ui: Callable[..
     ui.notify_state(None)
 
     # 実行
-    ui.deps.get_settings.return_value = _settings(ui=UiSettings(show_hotkeys=False))
+    ui.deps.get_settings.return_value = _settings(
+        ui=UiSettings(show_hotkeys=True, transcribing_show_hotkeys=False)
+    )
     ui.notify_state("hotkey", "transcribing", output_id="paste_and_send")
 
     # 検証

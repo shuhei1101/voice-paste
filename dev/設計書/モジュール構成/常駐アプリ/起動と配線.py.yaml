@@ -15,7 +15,8 @@ directory: |-
 
   リポジトリの直下は `pyproject.toml`・`uv.lock`・`.python-version`・起動のバッチファイル 1 つ・`settings.sample.toml`・`README.md`・`CLAUDE.md`・`src/`・`resources/`・`tests/`・`dev/`・`docs/` に絞る。
 
-  動かす環境は、リポジトリの直下で `uv sync --frozen` を流して `.venv/` に作る（`uv.lock` の版で入り、Python の版は `.python-version` の 3.14）。
+  動かす環境は、リポジトリの直下で Windows の uv（WSL からは `uv.exe`）で `uv sync --frozen` を流して `.venv/` に作る（`uv.lock` の版で入り、Python の版は `.python-version` の 3.14）。
+  Linux の uv で流すと `.venv/` を Linux の構成に作り直したうえで `pywin32` を入れられず止まるため、環境を作るコマンドと環境で流すコマンドは Windows の uv で流す（`uv lock` はどちらでもよい）。
   起動のバッチファイル（`voice-paste.bat`）は、`.venv` を有効にし、CUDA の DLL（`.venv` の `Lib/site-packages/nvidia/` の `cublas`・`cudnn`・`cuda_nvrtc` の `bin`）を `PATH` に足して、`pythonw -m voice_paste` を引数なしで起動する（コンソールを出さない）。
   起動の記録（起動した時刻・使った Python・起動の終了コード）は `%LOCALAPPDATA%\voice-paste\log\launcher.log` へ起動ごとに上書きで書く。
   ログの保持期間の削除（purge_old_logs）は日付の名前のログだけを消すため、上書きで大きさを保ち、日付でログを消す処理は持たない。

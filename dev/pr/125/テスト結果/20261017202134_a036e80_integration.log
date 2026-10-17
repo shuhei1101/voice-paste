@@ -1,0 +1,9 @@
+# PYTHONPATH=C:\Users\shuhe\repo\voice-paste\.claude\worktrees\design-settings-glossary-discard-count\src
+$ .venv/Scripts/python.exe -c "import voice_paste; print(voice_paste.__file__)"
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\design-settings-glossary-discard-count\src\voice_paste\__init__.py
+$ .venv/Scripts/python.exe -m pytest tests/integration/ui/test_settings_window.py
+........................................................................ [ 34%]
+........................................................................ [ 69%]
+................................................................         [100%]
+208 passed in 5.51s
+exit=0

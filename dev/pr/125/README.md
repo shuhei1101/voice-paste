@@ -37,5 +37,5 @@ develop の [settings_window.py](https://github.com/shuhei1101/voice-paste/blob/
 - [x] ~~ドキュメント修正~~（更新ドキュメントが無い）
 - [x] 単体テスト作成
 - [x] 実装
-- [ ] 結合テスト作成
+- [x] 結合テスト作成
 - [x] ~~E2E テスト作成~~（シナリオの記述が変わらない）

@@ -324,7 +324,6 @@ def test_main(
     # 準備
     wiring = install_wiring(monkeypatch, qapp)
     record_lock_release(monkeypatch, wiring)
-    monkeypatch.delenv("VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS", raising=False)
 
     # 実行
     exit_code = main(["--data-dir", str(data_dir)], exec_loop=exit_after_events)
@@ -336,7 +335,7 @@ def test_main(
     assert load_settings(data_dir / "settings.toml", SETTINGS_MODEL) == SETTINGS_MODEL()
     assert (data_dir / "api_token").exists()
     assert set(wiring.hotkey.start.call_args.args[0]) == DEFAULT_HOTKEYS
-    assert wiring.hotkey_class.call_args.kwargs == {"accept_injected": False}
+    assert wiring.hotkey_class.call_args.kwargs == {}
     assert [timer_interval(c) for c in wiring.timer_class.call_args_list] == [
         SESSION_LIMIT_CHECK_INTERVAL_SEC,
         PURGE_INTERVAL_SEC,
@@ -353,24 +352,6 @@ def test_main(
     ]
     assert reacquired_decided
     assert reacquired.error is None
-
-
-def test_main_when_accept_injected_hotkeys(
-    data_dir: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplication
-) -> None:
-    """環境変数が 1 なら、ソフトウェアで送ったキーもホットキーとして受ける受付を作る（正常系）。"""
-    from voice_paste.main import main
-
-    # 準備
-    wiring = install_wiring(monkeypatch, qapp)
-    monkeypatch.setenv("VOICE_PASTE_ACCEPT_INJECTED_HOTKEYS", "1")
-
-    # 実行
-    exit_code = main(["--data-dir", str(data_dir)], exec_loop=exit_after_events)
-
-    # 検証
-    assert exit_code == 0
-    assert wiring.hotkey_class.call_args.kwargs == {"accept_injected": True}
 
 
 def test_main_when_invalid_settings(

@@ -12,8 +12,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, TypeVar
 
-from PySide6.QtCore import QEvent, Qt, QTimer
-from PySide6.QtGui import QColor
+from PySide6.QtCore import QEvent, QPoint, QRect, QSize, Qt, QTimer
+from PySide6.QtGui import QColor, QFontMetrics, QImage
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QLabel, QMessageBox, QPushButton, QWidget
 
@@ -83,6 +83,107 @@ def edge_and_face_colors(widget: QWidget) -> tuple[QColor, QColor]:
     image = widget.grab().toImage()
     middle = image.height() // 2
     return image.pixelColor(0, middle), image.pixelColor(FACE_OFFSET_PX, middle)
+
+
+BADGE_ERODE_PX = 1
+"""丸い印の画素を探すとき、同じ色の画素を内側へ削る幅（1 px の枠の線を落とし、円の塊だけを残す）。"""
+
+BADGE_RIM_PX = 1
+"""丸い印の縁の、なだらかに色が混ざって印の色と一致しない画素の幅。"""
+
+
+def face_range(button: QPushButton) -> QRect:
+    """出力先の切り替えのボタンの、右と上の余白（印がはみ出す分）を除いた枠の範囲を、ボタンの座標で返す。"""
+    from voice_paste.ui.style import load_tokens
+
+    overhang: int = load_tokens()["shape"]["badge_overhang"]
+    return button.rect().adjusted(0, overhang, -overhang, 0)
+
+
+def badge_range(button: QPushButton) -> QRect | None:
+    """選んだボタンの丸い印の範囲を、ボタンを描いた画像から求める（印が描かれていなければ None）。
+
+    印の色（accent_fg）の画素のうち、周りの画素も同じ色のものだけを残して細い枠の線を落とし、残った画素の外接の四角を削った幅と縁の幅だけ広げる。
+    """
+    from voice_paste.ui.style import theme_color
+
+    # ボタンを子の部品ごと画像に描く
+    image = QImage(button.size(), QImage.Format.Format_ARGB32)
+    image.fill(Qt.GlobalColor.transparent)
+    button.render(image)
+
+    # 印の色の画素を集める
+    accent = theme_color("accent_fg").rgb()
+    solid = {
+        (x, y)
+        for x in range(image.width())
+        for y in range(image.height())
+        if image.pixelColor(x, y).rgb() == accent
+    }
+
+    # 周りも同じ色の画素だけを残す（円の塊が残り、1 px の線は消える）
+    around = range(-BADGE_ERODE_PX, BADGE_ERODE_PX + 1)
+    inner = [
+        (x, y)
+        for x, y in solid
+        if all((x + dx, y + dy) in solid for dx in around for dy in around)
+    ]
+    # 印の色の塊が無い: 印は描かれていない
+    if not inner:
+        return None
+
+    grow = BADGE_ERODE_PX + BADGE_RIM_PX
+    left = min(x for x, _ in inner) - grow
+    top = min(y for _, y in inner) - grow
+    right = max(x for x, _ in inner) + grow
+    bottom = max(y for _, y in inner) + grow
+    return QRect(left, top, right - left + 1, bottom - top + 1)
+
+
+def _name_range(button: QPushButton, label: QLabel) -> QRect:
+    """名前のラベルの文字の範囲を、QFontMetrics で求めた文字の幅をラベルの配置でボタンの座標へ移して返す。"""
+    metrics = QFontMetrics(label.font())
+    area = label.contentsRect()
+    text_width = metrics.horizontalAdvance(label.text())
+    alignment = label.alignment()
+
+    # 横の配置: 右寄せ・中央・左寄せ
+    if alignment & Qt.AlignmentFlag.AlignRight:
+        left = area.right() + 1 - text_width
+    elif alignment & Qt.AlignmentFlag.AlignHCenter:
+        left = area.left() + (area.width() - text_width) // 2
+    else:
+        left = area.left()
+
+    # 縦の配置: 下寄せ・上寄せ・中央
+    if alignment & Qt.AlignmentFlag.AlignBottom:
+        top = area.bottom() + 1 - metrics.height()
+    elif alignment & Qt.AlignmentFlag.AlignTop:
+        top = area.top()
+    else:
+        top = area.top() + (area.height() - metrics.height()) // 2
+
+    return QRect(label.mapTo(button, QPoint(left, top)), QSize(text_width, metrics.height()))
+
+
+def text_ranges(button: QPushButton) -> list[QRect]:
+    """ボタンの名前の文字の範囲と、ホットキーのラベルの範囲を、ボタンの座標で並べて返す（ホットキーを出さないボタンは名前の分だけ）。"""
+    ranges: list[QRect] = []
+    for label in button.findChildren(QLabel):
+        # ホットキーのラベル（keycap）はラベルの範囲を、名前のラベルは文字の範囲を取る
+        if label.property("role") == "keycap":
+            ranges.append(QRect(label.mapTo(button, QPoint(0, 0)), label.size()))
+        else:
+            ranges.append(_name_range(button, label))
+    return ranges
+
+
+def content_range(button: QPushButton) -> QRect:
+    """ボタンの中の名前とホットキーのラベルを全て含む範囲を、ボタンの座標で返す。"""
+    result = QRect()
+    for label in button.findChildren(QLabel):
+        result = result.united(QRect(label.mapTo(button, QPoint(0, 0)), label.size()))
+    return result
 
 
 @dataclass

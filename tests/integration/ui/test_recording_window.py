@@ -237,7 +237,7 @@ def test_elapsed_label_when_running(make_ui: Callable[..., Ui]) -> None:
     ui = _opened(make_ui)
 
     # 実行
-    QTest.qWait(1200)
+    ui.advance_clock(1.2)
 
     # 検証
     assert find(ui.recording_window, QLabel, "elapsed_label").text() == "00:01"
@@ -247,16 +247,16 @@ def test_elapsed_label_when_paused(make_ui: Callable[..., Ui]) -> None:
     """一時停止中は止めた時点のまま止まり、再開すると続きから進む。"""
     # 準備
     ui = _opened(make_ui)
-    QTest.qWait(1200)
+    ui.advance_clock(1.2)
     ui.recording_window.set_paused(True)
     label = find(ui.recording_window, QLabel, "elapsed_label")
     paused_text = label.text()
 
     # 実行
-    QTest.qWait(1200)
+    ui.advance_clock(1.2)
     still_paused_text = label.text()
     ui.recording_window.set_paused(False)
-    QTest.qWait(1200)
+    ui.advance_clock(1.2)
 
     # 検証
     assert paused_text == "00:01"
@@ -646,7 +646,9 @@ def test_preset_button_action(make_ui: Callable[..., Ui], paused: bool) -> None:
 # === ボタンのホットキーの出し方（名前の下のキーキャップ・ボタンの大きさ・窓の幅） ===
 
 
-def _long_hotkeys_settings(*, show_hotkeys: bool = True) -> Settings:
+def _long_hotkeys_settings(
+    *, show_hotkeys: bool = True, transcribing_show_hotkeys: bool | None = None
+) -> Settings:
     """一時停止・取り消し・全ての出力先・プリセットのホットキーを、長いものにした設定を作る。"""
     from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
     from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
@@ -654,7 +656,12 @@ def _long_hotkeys_settings(*, show_hotkeys: bool = True) -> Settings:
     from voice_paste.shared.settings import HotkeySettings, UiSettings
 
     return _settings(
-        ui=UiSettings(show_hotkeys=show_hotkeys),
+        ui=UiSettings(
+            show_hotkeys=show_hotkeys,
+            transcribing_show_hotkeys=(
+                show_hotkeys if transcribing_show_hotkeys is None else transcribing_show_hotkeys
+            ),
+        ),
         hotkeys=HotkeySettings(pause="<ctrl>+<alt>+<shift>+<f11>", cancel="<ctrl>+<alt>+<shift>+<f10>"),
         outputs=[
             PasteAndSendSettings(hotkey="<ctrl>+<alt>+<shift>+<f9>"),
@@ -757,6 +764,22 @@ def test_hotkey_buttons_when_show_hotkeys_off(
     _name_label, key_label = _name_and_key(button)
     assert key_label is None
     assert button_texts(button) == [name]
+
+
+@pytest.mark.parametrize(("button_name", "name"), HOTKEY_BUTTONS)
+def test_hotkey_buttons_when_only_transcribing_show_hotkeys_off(
+    make_ui: Callable[..., Ui], button_name: str, name: str
+) -> None:
+    """文字起こし中の表示の ui.transcribing_show_hotkeys だけがオフでも、ui.show_hotkeys がオンなら全てのボタンが名前の下にホットキーのキーキャップを出す。"""
+    # 実行
+    ui = _opened(
+        make_ui, _long_hotkeys_settings(show_hotkeys=True, transcribing_show_hotkeys=False)
+    )
+
+    # 検証
+    _name_label, key_label = _name_and_key(find(ui.recording_window, QPushButton, button_name))
+    assert key_label is not None
+    assert button_texts(find(ui.recording_window, QPushButton, button_name))[0] == name
 
 
 def test_hotkey_buttons_when_show_hotkeys_off_and_paused(make_ui: Callable[..., Ui]) -> None:
@@ -1003,7 +1026,7 @@ def test_head_row_action_does_not_stop_recording(
 
     # 実行
     grab_head_row(ui.recording_window)
-    QTest.qWait(1200)
+    ui.advance_clock(1.2)
 
     # 検証
     assert find(ui.recording_window, QLabel, "elapsed_label").text() == "00:01"
@@ -1151,14 +1174,14 @@ def test_hide_button_action_when_paused_while_hidden(make_ui: Callable[..., Ui])
     # 準備
     ui = make_ui()
     ui.notify_state("hotkey", "recording")
-    QTest.qWait(1200)
+    ui.advance_clock(1.2)
     ui.controller.hide_recording()
-    QTest.qWait(1200)
+    ui.advance_clock(1.2)
 
     # 実行
     ui.notify_state("hotkey", "paused")
     hidden_after_pause = not ui.recording_window.isVisible()
-    QTest.qWait(1200)
+    ui.advance_clock(1.2)
     ui.controller.show_recording()
 
     # 検証
@@ -1180,9 +1203,9 @@ def test_hide_button_action_then_restore(
     grab_head_row(window)
     window.move(window.pos() + QPoint(70, 50))
     moved_to = window.pos()
-    QTest.qWait(1200)
+    ui.advance_clock(1.2)
     ui.controller.hide_recording()
-    QTest.qWait(1200)
+    ui.advance_clock(1.2)
 
     # 実行
     ui.controller.show_recording()

@@ -256,7 +256,7 @@ class TranscribingIndicator(QWidget):
         for output in settings.outputs:
             if not output.enabled:
                 continue
-            hotkey = output.hotkey if settings.ui.show_hotkeys else ""
+            hotkey = output.hotkey if settings.ui.transcribing_show_hotkeys else ""
             button = SwitchButton(
                 f"switch_button_{output.id}", self._deps.output_titles[output.id], hotkey
             )

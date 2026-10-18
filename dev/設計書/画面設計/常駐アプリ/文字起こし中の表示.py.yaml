@@ -82,7 +82,7 @@ elements:
     refs:
       - dev/設計書/設定/常駐アプリ#settings[outputs[].enabled]
       - dev/設計書/設定/常駐アプリ#settings[outputs[].hotkey]
-      - dev/設計書/設定/常駐アプリ#settings[ui.show_hotkeys]
+      - dev/設計書/設定/常駐アプリ#settings[ui.transcribing_show_hotkeys]
       - dev/設計書/画面設計/常駐アプリ/録音の画面.py#elements[出力先の確定のボタン]
     status: planned
     introduced:
@@ -112,6 +112,6 @@ notes:
     切り替えは、切り替えのボタンと、出力先の確定のホットキーのどちらでも受ける。ホットキーはどこにフォーカスがあっても効き、フォーカスを動かさない。
     録音開始と同じホットキーの出力先（既定の貼り付けて送信）は、文字起こし中は録音を始めずに切り替える。
     ホットキーが空の出力先は名前だけのボタンにし、ボタンで切り替える。
-    `ui.show_hotkeys` がオフのときは、録音の画面と同じく全てのボタンを名前だけで出す（ホットキーでの切り替えはそのまま効く）。
+    `ui.transcribing_show_hotkeys` がオフのときは、全てのボタンを名前だけで出す（ホットキーでの切り替えはそのまま効く）。録音の画面の `ui.show_hotkeys` にはよらない。
   フォーカス: 窓はフォーカスを受けない窓（`WindowDoesNotAcceptFocus`）のまま出し、切り替えのボタンを押しても見出しの行をつかんでも前面にならない。貼り付けて送信・貼り付けのみは、届けるときのアクティブなウィンドウへ貼る
 test_file: tests/integration/ui/test_transcribing_indicator.py

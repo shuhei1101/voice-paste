@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import time
 from collections import deque
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QElapsedTimer, QLineF, QPoint, QRectF, QSize, Qt, QTimer, Signal
+from PySide6.QtCore import QLineF, QPoint, QRectF, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QFontMetrics, QPaintEvent, QPainter, QPen
 from PySide6.QtWidgets import (
     QFrame,
@@ -167,20 +169,21 @@ class RecordingWindow(QWidget):
     """状態・経過時間・波形と、一時停止・取り消し・確定のボタンを並べる小さな窓。
 
     窓は Tool・枠なしで、出したときにフォーカスを取らない（`ui.topmost` がオンなら最前面）。
-    経過時間は窓が持つストップウォッチで数え、経過時間と波形は WAVE_INTERVAL_MS ごとのタイマーで描き直す。
+    経過時間は受けた時計で数え、経過時間と波形は WAVE_INTERVAL_MS ごとのタイマーで描き直す。
     見出しの行（状態・経過時間・隠す・×）は、隠す・× の外を押したまま動かすと窓を動かす。
     """
 
     hide_requested = Signal()
     """「隠す」のボタンが押された（隠すのは UiController）。"""
 
-    def __init__(self, deps: UiDeps) -> None:
-        """確定・一時停止・取り消し・音量・設定を受ける関数の束を受ける。"""
+    def __init__(self, deps: UiDeps, *, clock: Callable[[], float] = time.monotonic) -> None:
+        """確定・一時停止・取り消し・音量・設定を受ける関数の束と、経過を数える時計（秒を返す関数）を受ける。"""
         super().__init__()
         self._deps = deps
+        self._clock = clock
         self._levels: deque[float] = deque([0.0] * WAVE_BAR_COUNT, maxlen=WAVE_BAR_COUNT)
-        self._stopwatch = QElapsedTimer()
-        self._accumulated_ms = 0
+        self._started_at = 0.0
+        self._accumulated_s = 0.0
         self._running = False
         self._drag_origin: QPoint | None = None
         self.setObjectName("recording_window")
@@ -367,8 +370,8 @@ class RecordingWindow(QWidget):
 
         self._levels.extend([0.0] * WAVE_BAR_COUNT)
         self._waveform.paused = False
-        self._accumulated_ms = 0
-        self._stopwatch.start()
+        self._accumulated_s = 0.0
+        self._started_at = self._clock()
         self._running = True
         self._show_state(paused=False)
         self._elapsed_label.setText(format_clock(0))
@@ -384,10 +387,10 @@ class RecordingWindow(QWidget):
         """状態の表示と一時停止・再開のボタンを替え、経過時間と波形を止める・動かす。"""
         # 止める: ここまでの経過を貯めて数えるのをやめる／動かす: 数え直す
         if paused and self._running:
-            self._accumulated_ms += self._stopwatch.elapsed()
+            self._accumulated_s += self._clock() - self._started_at
             self._running = False
         elif not paused and not self._running:
-            self._stopwatch.restart()
+            self._started_at = self._clock()
             self._running = True
         self._waveform.paused = paused
         self._show_state(paused=paused)
@@ -399,7 +402,7 @@ class RecordingWindow(QWidget):
         self.hide()
 
     def hide_window(self) -> None:
-        """その回の録音を続けたまま窓を隠す。ストップウォッチは止めず、描き直しのタイマーだけを止める。窓の位置は残す。"""
+        """その回の録音を続けたまま窓を隠す。経過の数えは止めず、描き直しのタイマーだけを止める。窓の位置は残す。"""
         self._timer.stop()
         self.hide()
 
@@ -432,9 +435,11 @@ class RecordingWindow(QWidget):
         self._resume_button.setVisible(paused)
 
     def _refresh_clock(self) -> None:
-        """経過時間のラベルを、貯めた経過（数えている間はストップウォッチの経過も足す）で描き直す。"""
-        elapsed_ms = self._accumulated_ms + (self._stopwatch.elapsed() if self._running else 0)
-        self._elapsed_label.setText(format_clock(elapsed_ms))
+        """経過時間のラベルを、貯めた経過（数えている間は始めた・再開した時刻からの経過も足す）で描き直す。"""
+        elapsed_s = self._accumulated_s
+        if self._running:
+            elapsed_s += self._clock() - self._started_at
+        self._elapsed_label.setText(format_clock(int(elapsed_s * MSEC_PER_SECOND)))
 
     def _tick(self) -> None:
         """経過時間と波形を描き直す（一時停止の間は止める）。"""

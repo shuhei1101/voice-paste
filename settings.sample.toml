@@ -165,6 +165,8 @@ follow_cursor = true
 wave_gain = 4.0
 # 録音の画面のボタンにホットキーを出すか。false のときは名前だけを出す（ホットキーでの操作はそのまま効く）
 show_hotkeys = true
+# 文字起こし中の表示のボタンにホットキーを出すか。false のときは名前だけを出す（ホットキーでの切り替えはそのまま効く）。書かなければ show_hotkeys と同じ値で動く
+transcribing_show_hotkeys = true
 
 # === API ===
 [api]

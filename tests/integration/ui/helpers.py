@@ -87,13 +87,14 @@ def edge_and_face_colors(widget: QWidget) -> tuple[QColor, QColor]:
 
 @dataclass
 class Ui:
-    """本物のトレイ・録音の画面・文字起こし中の表示を UiController へつないだ一式と、渡した UiDeps。"""
+    """本物のトレイ・録音の画面・文字起こし中の表示を UiController へつないだ一式と、渡した UiDeps・録音の画面の時計。"""
 
     controller: UiController
     tray: Tray
     recording_window: RecordingWindow
     indicator: TranscribingIndicator
     deps: UiDeps
+    clock: FakeClock
 
     def notify_state(
         self,
@@ -118,6 +119,13 @@ class Ui:
         """届ける出力先を差し替えたことを知らせる（output_changed）。"""
         self.controller.on_notified("output_changed", output_id)
 
+    def advance_clock(self, seconds: float) -> None:
+        """録音の画面の時計を seconds 秒進め、描き直し（WAVE_INTERVAL_MS）を跨ぐ分だけ待つ。"""
+        from voice_paste.ui.windows.recording_window import WAVE_INTERVAL_MS
+
+        self.clock.now += seconds
+        QTest.qWait(WAVE_INTERVAL_MS * 2)
+
     def close(self) -> None:
         """出ている窓とトレイを隠し、破棄を予約する（破棄を流し終えるのは dispose_windows_since）。"""
         self.recording_window.close_window()
@@ -137,7 +145,8 @@ def build_ui(tmp_path: Path, settings: Settings | None = None, **deps_overrides:
 
     deps = make_ui_deps(tmp_path, settings=settings, **deps_overrides)
     tray = Tray(settings_dir=deps.settings_dir, log_dir=deps.log_dir)
-    recording_window = RecordingWindow(deps)
+    clock = FakeClock()
+    recording_window = RecordingWindow(deps, clock=clock)
     indicator = TranscribingIndicator(deps)
     controller = UiController(
         deps, tray=tray, recording_window=recording_window, indicator=indicator
@@ -148,6 +157,7 @@ def build_ui(tmp_path: Path, settings: Settings | None = None, **deps_overrides:
         recording_window=recording_window,
         indicator=indicator,
         deps=deps,
+        clock=clock,
     )
 
 

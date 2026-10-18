@@ -1,4 +1,4 @@
-"""shared/settings.py（load_settings・save_settings・find_hotkey_overlaps・find_glossary_name_overlaps・join_hint_words・find_hint_preset_name_overlaps・migrate_ai_chat・build_settings_model・Settings の確かめ）の単体テスト。"""
+"""shared/settings.py（load_settings・save_settings・find_hotkey_overlaps・find_glossary_name_overlaps・join_hint_words・find_hint_preset_name_overlaps・migrate_ai_chat・build_settings_model・Settings の確かめ・UiSettings の確かめ）の単体テスト。"""
 
 from __future__ import annotations
 
@@ -839,6 +839,45 @@ def test_settings_when_hotkeys_overlap() -> None:
     key, reason = failures[0]
     assert key == "hotkeys.cancel"
     assert "hotkeys.pause" in reason
+
+
+# === UiSettings の確かめ（_inherit_transcribing_show_hotkeys） ===
+
+
+def test_ui_settings_when_transcribing_show_hotkeys_missing() -> None:
+    """文字起こし中の表示の項目が無ければ録音の画面の値で読む（正常系）。"""
+    from voice_paste.shared.settings import UiSettings
+
+    # 実行
+    ui = UiSettings.model_validate({"show_hotkeys": False})
+
+    # 検証
+    assert ui.show_hotkeys is False
+    assert ui.transcribing_show_hotkeys is False
+
+
+def test_ui_settings_when_both_show_hotkeys_missing() -> None:
+    """どちらの項目も無ければ既定で読む（正常系）。"""
+    from voice_paste.shared.settings import UiSettings
+
+    # 実行
+    ui = UiSettings.model_validate({})
+
+    # 検証
+    assert ui.show_hotkeys is True
+    assert ui.transcribing_show_hotkeys is True
+
+
+def test_ui_settings_when_transcribing_show_hotkeys_set() -> None:
+    """文字起こし中の表示の項目があればその値で読む（正常系）。"""
+    from voice_paste.shared.settings import UiSettings
+
+    # 実行
+    ui = UiSettings.model_validate({"show_hotkeys": False, "transcribing_show_hotkeys": True})
+
+    # 検証
+    assert ui.show_hotkeys is False
+    assert ui.transcribing_show_hotkeys is True
 
 
 # === find_glossary_name_overlaps ===

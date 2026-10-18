@@ -143,6 +143,7 @@ FIELD_LAYOUT: dict[str, tuple[str, ...]] = {
         "ui.position",
         "ui.wave_gain",
         "ui.show_hotkeys",
+        "ui.transcribing_show_hotkeys",
     ),
     "履歴とログ": (
         "history.enabled",

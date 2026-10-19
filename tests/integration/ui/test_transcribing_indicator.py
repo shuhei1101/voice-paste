@@ -21,12 +21,16 @@ from PySide6.QtWidgets import QLabel, QProgressBar, QPushButton, QWidget
 from tests.integration.ui.helpers import (
     FakeClock,
     Ui,
+    badge_range,
     button_texts,
+    content_range,
     dispose_windows_since,
     edge_and_face_colors,
+    face_range,
     find,
     grab_head_row,
     make_ui_deps,
+    text_ranges,
     top_level_windows,
 )
 from voice_paste.main import SETTINGS_MODEL
@@ -535,8 +539,9 @@ def test_switch_buttons_width(apply_theme_to_app: Callable[[str], None], make_ui
     # 準備
     apply_theme_to_app("light")
 
-    # 実行
+    # 実行（offscreen の画面幅（800 px）では adjustSize が窓の幅を頭打ちにするため、窓の幅はレイアウトの最小の幅に決める）
     ui = _opened(make_ui)
+    ui.indicator.resize(ui.indicator.minimumSizeHint())
 
     # 検証
     assert len({_switch_button(ui, output_id).width() for output_id in OUTPUT_IDS}) == 1
@@ -571,6 +576,95 @@ def test_switch_button_badge_when_current(make_ui: Callable[..., Ui]) -> None:
     assert sampled("paste_only") == theme_color("accent_fg")
     assert sampled("paste_and_send") != theme_color("accent_fg")
     assert sampled("copy_only") != theme_color("accent_fg")
+
+
+@pytest.mark.parametrize("output_id", OUTPUT_IDS)
+def test_switch_button_badge_when_overhang(
+    apply_theme_to_app: Callable[[str], None], make_ui: Callable[..., Ui], output_id: str
+) -> None:
+    """今の出力先のボタンの丸い印は、枠の右上の角から外（右と上の余白）へはみ出して置く。"""
+    # 準備
+    apply_theme_to_app("light")
+
+    # 実行
+    ui = _opened(make_ui, output_id=output_id)
+
+    # 検証
+    button = _switch_button(ui, output_id)
+    badge = badge_range(button)
+    face = face_range(button)
+    assert badge is not None
+    assert badge.right() > face.right()
+    assert badge.top() < face.top()
+
+
+@pytest.mark.parametrize(
+    ("show_hotkeys", "range_count"),
+    [
+        pytest.param(True, 2, id="hotkeys_on"),
+        pytest.param(False, 1, id="hotkeys_off"),
+    ],
+)
+@pytest.mark.parametrize("output_id", OUTPUT_IDS)
+def test_switch_button_badge_when_clear_of_text(
+    apply_theme_to_app: Callable[[str], None],
+    make_ui: Callable[..., Ui],
+    output_id: str,
+    show_hotkeys: bool,
+    range_count: int,
+) -> None:
+    """今の出力先のボタンの丸い印は、名前とホットキーの文字に重ねない（ui.transcribing_show_hotkeys のどちらでも）。"""
+    from voice_paste.shared.settings import UiSettings
+
+    # 準備
+    apply_theme_to_app("light")
+
+    # 実行
+    ui = _opened(
+        make_ui,
+        _settings(ui=UiSettings(show_hotkeys=True, transcribing_show_hotkeys=show_hotkeys)),
+        output_id=output_id,
+    )
+
+    # 検証: 印が描かれ、名前（とホットキー）の範囲が取れ、どれも印の範囲と交わらない
+    button = _switch_button(ui, output_id)
+    badge = badge_range(button)
+    ranges = text_ranges(button)
+    assert badge is not None
+    assert len(ranges) == range_count
+    assert [text_range for text_range in ranges if text_range.intersects(badge)] == []
+
+
+@pytest.mark.parametrize(
+    "show_hotkeys",
+    [pytest.param(True, id="hotkeys_on"), pytest.param(False, id="hotkeys_off")],
+)
+@pytest.mark.parametrize("output_id", OUTPUT_IDS)
+def test_switch_button_content_when_centered_in_frame(
+    apply_theme_to_app: Callable[[str], None],
+    make_ui: Callable[..., Ui],
+    output_id: str,
+    show_hotkeys: bool,
+) -> None:
+    """ボタンの名前とホットキーは、右と上の余白（印がはみ出す分）を除いた枠の中央に置く。"""
+    from voice_paste.shared.settings import UiSettings
+
+    # 準備
+    apply_theme_to_app("light")
+
+    # 実行
+    ui = _opened(
+        make_ui,
+        _settings(ui=UiSettings(show_hotkeys=True, transcribing_show_hotkeys=show_hotkeys)),
+        output_id=output_id,
+    )
+
+    # 検証
+    button = _switch_button(ui, output_id)
+    content = content_range(button)
+    face = face_range(button)
+    assert abs(content.center().x() - face.center().x()) <= 1
+    assert abs(content.center().y() - face.center().y()) <= 1
 
 
 def test_switch_buttons_when_preset(make_ui: Callable[..., Ui]) -> None:
@@ -760,7 +854,7 @@ def test_switch_buttons_when_hotkey_empty(
     assert key_label is None
     assert without_key.geometry().y() == with_key.geometry().y()
     assert without_key.height() == with_key.height()
-    assert abs(name_label.geometry().center().y() - without_key.rect().center().y()) <= 1
+    assert abs(name_label.geometry().center().y() - face_range(without_key).center().y()) <= 1
 
 
 def test_switch_buttons_fit_window(

@@ -534,14 +534,42 @@ def test_switch_buttons_order(make_ui: Callable[..., Ui]) -> None:
     ]
 
 
-def test_switch_buttons_width(apply_theme_to_app: Callable[[str], None], make_ui: Callable[..., Ui]) -> None:
+@pytest.mark.parametrize(
+    "widen_px",
+    [
+        pytest.param(0, id="min_width"),
+        pytest.param(1, id="widen_1px"),
+        pytest.param(2, id="widen_2px"),
+    ],
+)
+@pytest.mark.parametrize(
+    "show_hotkeys",
+    [
+        pytest.param(True, id="hotkeys_on"),
+        pytest.param(False, id="hotkeys_off"),
+    ],
+)
+def test_switch_buttons_width(
+    qapp: QApplication,
+    apply_theme_to_app: Callable[[str], None],
+    make_ui: Callable[..., Ui],
+    show_hotkeys: bool,
+    widen_px: int,
+) -> None:
     """ボタンは等しい幅で横に並べる。"""
-    # 準備
-    apply_theme_to_app("light")
+    from voice_paste.shared.settings import UiSettings
 
-    # 実行（offscreen の画面幅（800 px）では adjustSize が窓の幅を頭打ちにするため、窓の幅はレイアウトの最小の幅に決める）
-    ui = _opened(make_ui)
-    ui.indicator.resize(ui.indicator.minimumSizeHint())
+    # 準備: ホットキーを出す設定と出さない設定の両方で、明るい組のテーマを当てて開く
+    apply_theme_to_app("light")
+    ui = _opened(
+        make_ui, _settings(ui=UiSettings(transcribing_show_hotkeys=show_hotkeys))
+    )
+    qapp.processEvents()
+
+    # 実行（offscreen の画面幅（800 px）では adjustSize が窓の幅を頭打ちにするため、窓の幅はレイアウトの最小の幅から広げる幅に決める）
+    minimum = ui.indicator.minimumSizeHint()
+    ui.indicator.resize(minimum.width() + widen_px, minimum.height())
+    qapp.processEvents()
 
     # 検証
     assert len({_switch_button(ui, output_id).width() for output_id in OUTPUT_IDS}) == 1

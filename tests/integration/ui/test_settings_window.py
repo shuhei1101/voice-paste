@@ -3610,6 +3610,134 @@ def test_reset_dialog_when_hint_presets(open_window: Callable[..., Opened]) -> N
     assert len(_widgets(opened.window, QLabel, "hint_preset_empty")) == 1
 
 
+# === discard_body（表記のヒントの変更の件数） ===
+
+
+def test_discard_body_when_hint_preset_added(open_window: Callable[..., Opened]) -> None:
+    """プリセットを 1 つ足すと、変えた件数は 1 件。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True))
+    _click(opened.window, "hint_preset_add")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_hint_preset_removed(open_window: Callable[..., Opened]) -> None:
+    """プリセットを 1 つ消すと、変えた件数は 1 件。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True), ("会議", ["b"], True))
+    _click(opened.window, "hint_preset_remove_0")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_hint_preset_renamed_twice(open_window: Callable[..., Opened]) -> None:
+    """1 つのプリセットの名前を 2 回変えても、変えた件数は 1 件。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True), ("会議", ["b"], True))
+    find(opened.window, QLineEdit, "hint_preset_name_0").setText("改名1")
+    find(opened.window, QLineEdit, "hint_preset_name_0").setText("改名2")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_hint_word_changed(open_window: Callable[..., Opened]) -> None:
+    """プリセットの語を変えると、変えた件数は 1 件。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True), ("会議", ["b"], True))
+    find(opened.window, QLineEdit, "hint_word_0_0").setText("変えた")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_hint_preset_toggled(open_window: Callable[..., Opened]) -> None:
+    """プリセットの有効を切り替えると、変えた件数は 1 件。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True), ("会議", ["b"], True))
+    find(opened.window, QCheckBox, "hint_preset_enabled_0").click()
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_hint_preset_moved(open_window: Callable[..., Opened]) -> None:
+    """プリセットを並べ替えると、変えた件数は並べ替えの 1 件。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True), ("会議", ["b"], True))
+    _click(opened.window, "hint_preset_down_0")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_two_hint_presets_changed(open_window: Callable[..., Opened]) -> None:
+    """2 つのプリセットを変えると、変えた件数は 2 件。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True), ("会議", ["b"], True))
+    find(opened.window, QLineEdit, "hint_word_0_0").setText("変えた1")
+    find(opened.window, QLineEdit, "hint_preset_name_1").setText("変えた2")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(2)
+
+
+def test_discard_body_when_hint_preset_removed_from_middle(
+    open_window: Callable[..., Opened],
+) -> None:
+    """途中のプリセットを消すと、変えた件数は消した 1 件（残ったプリセットの順は並べ替えに数えない）。"""
+    # 準備
+    opened = _open_hints(open_window, ("A", ["a"], True), ("B", ["b"], True), ("C", ["c"], True))
+    _click(opened.window, "hint_preset_remove_1")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_hint_preset_moved_after_saved(
+    open_window: Callable[..., Opened],
+) -> None:
+    """保存してから並べ替えると、変えた件数は並べ替えの 1 件（保存で変えた分は数えない）。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True), ("会議", ["b"], True))
+    find(opened.window, QLineEdit, "hint_word_0_0").setText("変えた")
+    _click(opened.window, "save_button")
+    _click(opened.window, "hint_preset_down_0")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
 # === 設定画面を開いている間はホットキーを止める ===
 
 

@@ -33,6 +33,9 @@ ALL_OUTPUT_IDS = ("paste_and_send", "paste_only", "copy_only")
 TWO_OUTPUT_IDS = ("paste_only", "copy_only")
 """切り替えのボタンを 2 つ出す回にオンにする出力先の ID。"""
 
+PREVIOUS_WINDOW_WIDTH_PX = 800
+"""前の回に窓を広げた幅（切り替えのボタンの幅が引き継がれないことを確かめる、どのボタンの合計よりも広い値）。"""
+
 SHOW_HOTKEYS_CASES = [
     pytest.param(True, id="hotkeys_on"),
     pytest.param(False, id="hotkeys_off"),
@@ -194,6 +197,33 @@ def test_open_when_window_widened(
     assert len(buttons) == len(enabled_ids)
     assert len({button.width() for button in buttons}) == 1
     assert 0 <= free_space < len(buttons)
+
+
+@pytest.mark.parametrize("show_hotkeys", SHOW_HOTKEYS_CASES)
+def test_open_when_previous_window_wide(
+    qapp: QApplication, tmp_path: Path, show_hotkeys: bool
+) -> None:
+    """前の回の広い窓の幅を引き継がず、切り替えのボタンを名前の最も長いボタンの幅で並べる（正常系）。"""
+    from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
+
+    # 準備: 3 つの出力先がオンの設定で open し、窓を前の回の広い幅にする
+    settings = _switch_settings(show_hotkeys, ALL_OUTPUT_IDS)
+    indicator = TranscribingIndicator(
+        make_ui_deps(tmp_path, settings=settings), clock=FakeClock(0.0)
+    )
+    indicator.open()
+    indicator.resize(PREVIOUS_WINDOW_WIDTH_PX, indicator.height())
+    qapp.processEvents()
+
+    # 実行: もう一度 open し、窓を minimumSizeHint の幅にする
+    indicator.open()
+    indicator.resize(indicator.minimumSizeHint())
+    qapp.processEvents()
+
+    # 検証: 3 つのボタンの width() が全て、各ボタンの sizeHint の幅の最大と等しい
+    buttons = _switch_buttons(indicator)
+    assert len(buttons) == len(ALL_OUTPUT_IDS)
+    assert {button.width() for button in buttons} == {_widest_hint(buttons)}
 
 
 def test_set_progress(qapp: QApplication, tmp_path: Path) -> None:

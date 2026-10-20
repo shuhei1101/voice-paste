@@ -1,0 +1,1 @@
+# .gitattributes で改行コードを決め、Windows と WSL の git で作業ツリーに改行コードだけの差が出ないようにする

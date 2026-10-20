@@ -1,0 +1,1 @@
+# pyproject.toml の改行を LF に揃え、uv add / uv remove で全行が差分にならないようにする

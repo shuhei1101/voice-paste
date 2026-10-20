@@ -216,18 +216,24 @@ def speech_timeline_input(
 
     最初の文の前には、文ごとの無音ではなく lead_silence_sec 秒の無音を置く。最後の文の後に tail_silence_sec 秒の無音を足す（流し終えた後も無音を流し続けたいとき）。
     """
-    # 1. 最初に無音を置き、1 文ずつ読み上げて前後の無音を削り、文の前に決めた長さの無音を挟んで並べる
+    # 1. 最初に無音を置き、1 文ずつ読み上げて前後の無音を削り、文の前に決めた長さの無音を挟んで並べる（文の終わりの位置を控える）
     pieces: list[np.ndarray] = [np.zeros(round(SAMPLE_RATE * lead_silence_sec), dtype=np.int16)]
+    position = len(pieces[0])
+    ends_sec: list[float] = []
     for index, (text, gap_before_sec) in enumerate(items):
         spoken = _trim_silence(read_wav(synthesize_speech(text, tmp_path / f"sentence{index}.wav")))
         # 2 文目以降は、前の文との間に無音を挟む
         if index > 0:
-            pieces.append(np.zeros(round(SAMPLE_RATE * gap_before_sec), dtype=np.int16))
+            gap = np.zeros(round(SAMPLE_RATE * gap_before_sec), dtype=np.int16)
+            pieces.append(gap)
+            position += len(gap)
         pieces.append(spoken)
+        position += len(spoken)
+        ends_sec.append(position / SAMPLE_RATE)
 
     # 2. 最後の文の後に流し続ける無音を足して 1 本につなぐ
     pieces.append(np.zeros(round(SAMPLE_RATE * tail_silence_sec), dtype=np.int16))
-    return WavInput(np.concatenate(pieces), realtime=True)
+    return WavInput(np.concatenate(pieces), realtime=True, sentence_ends_sec=tuple(ends_sec))
 
 
 def speech_sequence_input(
@@ -294,26 +300,47 @@ def _chunks(samples: np.ndarray) -> Iterator[np.ndarray]:
 
 
 class WavInput:
-    """録音の入力（マイクの入力を開く関数）の代わり。開かれると WAV の音を流し、開かれた回数を覚える。"""
+    """録音の入力（マイクの入力を開く関数）の代わり。開かれると WAV の音を流し、開かれた回数と流した長さを覚える。"""
 
-    def __init__(self, samples: np.ndarray, *, realtime: bool = False) -> None:
+    def __init__(
+        self,
+        samples: np.ndarray,
+        *,
+        realtime: bool = False,
+        sentence_ends_sec: tuple[float, ...] = (),
+    ) -> None:
         self.samples = samples
         self.realtime = realtime
+        self.sentence_ends_sec = sentence_ends_sec
+        """文ごとの、WAV の先頭からその文を読み終える位置（秒）。文を並べて作った WAV だけが持つ。"""
         self.open_count = 0
         self._last_stream: _InputStream | None = None
+        self._fed_frames = 0
 
     def __call__(self, on_frames: Callable[[np.ndarray], None]) -> _InputStream:
         """入力を開く。realtime ならスレッドで実時間で、そうでなければ開く中で全ての音を渡す。"""
         self.open_count += 1
+        self._fed_frames = 0
         stream = _InputStream()
         self._last_stream = stream
+
+        def counted(chunk: np.ndarray) -> None:
+            """渡した長さを数えて、録音機へ音を渡す。"""
+            self._fed_frames += len(chunk)
+            on_frames(chunk)
+
         if self.realtime:
-            stream.feed_in_realtime(self.samples, on_frames)
+            stream.feed_in_realtime(self.samples, counted)
         else:
             for chunk in _chunks(self.samples):
-                on_frames(chunk)
+                counted(chunk)
             stream.finished.set()
         return stream
+
+    @property
+    def fed_sec(self) -> float:
+        """最後に入力を開いてから、録音機へ音を渡した長さ（秒）。"""
+        return self._fed_frames / SAMPLE_RATE
 
     def wait_played_out(self, timeout_sec: float = PLAYED_OUT_TIMEOUT_SEC) -> bool:
         """最後に開かれた入力が全ての音を渡し終えるまで待ち、渡し終えたかを返す（開かれていなければ False）。"""
@@ -403,6 +430,28 @@ def break_saved_recordings(monkeypatch: pytest.MonkeyPatch) -> None:
         return audio_path
 
     monkeypatch.setattr(main_module, "save_recording", _save_broken)
+
+
+@dataclass(frozen=True)
+class TranscribedAudio:
+    """文字起こしに渡された録音のパスと、渡された時点でファイルがあったか。"""
+
+    path: Path
+    existed: bool
+
+
+def spy_on_transcribed_audio(monkeypatch: pytest.MonkeyPatch) -> list[TranscribedAudio]:
+    """文字起こしに渡された録音のパスと、その時点でファイルがあったかを、渡されるたびに控える（起こすのは本物）。"""
+    transcribed: list[TranscribedAudio] = []
+    original = main_module.transcribe
+
+    def _transcribe(audio_path: Path, on_progress: Any = None, **options: Any) -> str:
+        """録音を控えてから、本物で起こす。"""
+        transcribed.append(TranscribedAudio(path=audio_path, existed=audio_path.exists()))
+        return original(audio_path, on_progress, **options)
+
+    monkeypatch.setattr(main_module, "transcribe", _transcribe)
+    return transcribed
 
 
 def fail_transcription_of_segment(monkeypatch: pytest.MonkeyPatch, segment_number: int) -> None:
@@ -644,7 +693,7 @@ def worker_ready_count(caplog: pytest.LogCaptureFixture) -> int:
     return sum(WORKER_READY_LOG in record.getMessage() for record in caplog.records)
 
 
-def _kill_one_worker() -> bool:
+def kill_one_worker() -> bool:
     """文字起こしワーカーが現れるまで待って止め、止めたかを返す。"""
     deadline = time.monotonic() + WORKER_KILL_TIMEOUT_SEC
     while time.monotonic() < deadline:
@@ -658,8 +707,8 @@ def kill_workers_twice(caplog: pytest.LogCaptureFixture) -> int:
     """文字起こしワーカーを止め、やり直しに立ったワーカーも ready になってから止める。止めた回数を返す。"""
     # 1. 立ち上がっているワーカーを止める（窓口が落ちたことに気づいて立て直す）
     ready_before = worker_ready_count(caplog)
-    kills = int(_kill_one_worker())
+    kills = int(kill_one_worker())
 
     # 2. やり直しのワーカーが ready になるのを待って止める（読み込みの途中で止めると、やり直しの前に失敗する）
     assert wait_until(lambda: worker_ready_count(caplog) > ready_before, WORKER_READY_TIMEOUT_SEC)
-    return kills + int(_kill_one_worker())
+    return kills + int(kill_one_worker())

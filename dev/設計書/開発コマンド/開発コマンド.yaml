@@ -37,13 +37,13 @@ categories:
       ```bash
       uv.exe remove {パッケージ}
       ```
-    effects: '`pyproject.toml` と `uv.lock` を書き換え、環境にも入れる・外す。`pyproject.toml` の改行が混在しているため、`uv add` / `uv remove` は全行の改行を LF に揃えて書き、全行が差分になる'
+    effects: '`uv add` / `uv remove` は `pyproject.toml` と `uv.lock` を書き換え、環境にも入れる・外す。`uv lock --upgrade-package` は `uv.lock` だけを書き換える。`pyproject.toml` の改行が混在しているため、`uv add` / `uv remove` は全行の改行を LF に揃えて書き、全行が差分になる'
     verification:
       state: 済
       date: '2026-10-20'
       detail: 作業ツリーで `tomli-w` を使い、`uv.exe add`・`uv.exe add --group dev`・`uv.exe lock --upgrade-package`・`uv.exe remove`（dev グループからも）が通ることを確かめた。流した後に `pyproject.toml` と `uv.lock` を元に戻し、commit していない
 lead: 依存を足す・上げる・外すときと、取り込んだ変更に手元の環境を追従させるときに打つコマンド。
 prerequisites:
-  - リポジトリの直下で、Windows の uv（WSL からは `uv.exe`）で流す。Linux の uv で流すと `.venv/` を Linux の構成に作り直したうえで `pywin32` を入れられず止まるため、環境を作り替えるコマンドは Windows の uv で流す（`uv lock` はどちらでもよい）
+  - リポジトリの直下で、Windows の uv（WSL からは `uv.exe`）で流す
 refs:
   - dev/設計書/モジュール構成/常駐アプリ/起動と配線.py#

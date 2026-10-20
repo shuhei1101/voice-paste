@@ -34,6 +34,6 @@ develop の [settings_window.py](https://github.com/shuhei1101/voice-paste/blob/
 - [x] モジュール構成設計
 - [x] ~~ドキュメント修正~~（更新ドキュメントが無い）
 - [x] 単体テスト作成
-- [ ] 実装
+- [x] 実装
 - [ ] 結合テスト作成
 - [x] ~~E2E テスト作成~~（シナリオの記述が変わらない）

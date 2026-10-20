@@ -49,6 +49,9 @@ items:
   - page: テスト実行方法.schema.yaml
     summary: 各種テストの実行コマンドと前提条件
     target: '`設計書/テスト/テスト実行方法.yaml`'
+  - page: 開発コマンド.schema.yaml
+    summary: 開発で使うコマンドの分類ごとの前提・順序・コマンド・料金や副作用・確かめた記録
+    target: '`設計書/開発コマンド/開発コマンド.yaml`'
   - page: 外部API.schema.yaml
     summary: 外部 API の詳細（認証・エンドポイント・調査した不具合と対処法）
     target: '`設計書/外部API/{API名}.yaml`'

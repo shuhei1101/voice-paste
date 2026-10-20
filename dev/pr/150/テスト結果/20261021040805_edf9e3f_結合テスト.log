@@ -1,4 +1,4 @@
-実行した commit: 7a2f7e3
+実行した commit: edf9e3f
 実行したコマンド: .venv/Scripts/python.exe -m pytest tests/integration/ui/test_recording_window.py tests/integration/ui/test_transcribing_indicator.py（worktree に venv が無いため、メインの venv に PYTHONPATH={worktree}/src を渡して実行した）
 
 ============================= test session starts =============================
@@ -6,12 +6,12 @@ platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
 rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\design-ui-equal-width-switch-buttons-without-hotkeys
 configfile: pyproject.toml
 plugins: anyio-4.15.1, platformdirs-4.13.3
-collected 179 items
+collected 184 items
 
 tests\integration\ui\test_recording_window.py .......................... [ 14%]
-........................................................................ [ 54%]
-                                                                         [ 54%]
-tests\integration\ui\test_transcribing_indicator.py .................... [ 65%]
-.............................................................            [100%]
+........................................................................ [ 53%]
+                                                                         [ 53%]
+tests\integration\ui\test_transcribing_indicator.py .................... [ 64%]
+..................................................................       [100%]
 
-============================= 179 passed in 3.44s =============================
+============================= 184 passed in 3.33s =============================

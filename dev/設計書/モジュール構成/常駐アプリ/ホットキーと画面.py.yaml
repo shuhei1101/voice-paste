@@ -388,6 +388,12 @@ classes:
             condition: open_settings を 2 回呼ぶ
             mock: UiDeps の全関数
             expected: SettingsWindow が 1 つだけで、suspend_hotkeys が 1 回だけ呼ばれる
+          - name: test_open_settings_when_reopened
+            case: 正常
+            summary: 開き閉めを繰り返しても窓が積もらない
+            condition: open_settings を呼んで設定画面を取り消しで閉じるのを 5 回繰り返し、毎回 deleteLater の破棄を流して gc.collect する
+            mock: UiDeps の全関数
+            expected: 毎回新しい SettingsWindow が開き、5 回目を閉じた後の QApplication.topLevelWidgets の数が開く前と同じで、SettingsWindow が 1 つも残らない
       - name: on_settings_saved
         title: 保存した設定の反映
         summary: 設定画面が保存した後、画面の明暗を当て直し（UiDeps.apply_theme）、録音の画面の出し方とトレイのホットキーの表示を新しい設定に合わせる
@@ -405,14 +411,15 @@ classes:
             expected: UiDeps.apply_theme が 1 回呼ばれ、Tray.set_start_hotkey に設定の hotkeys.start が渡る
       - name: on_settings_closed
         title: 設定画面が閉じた
-        summary: 設定画面を手放し、今の設定でホットキーの受付を始める（resume_hotkeys）
+        summary: 設定画面を手放して破棄し、今の設定でホットキーの受付を始める（resume_hotkeys）
         kind: メソッド
         scope: public
         returns:
           type: None
           description: なし
         process: |-
-          1. 設定画面を手放す
+          1. 設定画面を手放し、deleteLater で破棄する（中のコンボボックスのポップアップの窓も一緒に消える）
+             - 欄のシグナルに SettingsWindow のメソッドをつないでいるため、参照を手放しただけでは GC で消えず、トップレベルの窓が開くたびに積もる
           2. resume_hotkeys を呼ぶ
              - HotkeyError の場合、ホットキーを受け付けないまま続ける（保存した設定は保存の前に受け付けられることを確かめているため、ここに来るのは手で書いた settings.toml だけ）
                - `[ERROR]` ホットキーを受け付けられなかった（理由）

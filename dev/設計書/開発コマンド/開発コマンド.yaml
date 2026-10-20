@@ -37,7 +37,7 @@ categories:
       ```bash
       uv.exe remove {パッケージ}
       ```
-    effects: '`uv add` / `uv remove` は `pyproject.toml` と `uv.lock` を書き換え、環境にも入れる・外す。`uv lock --upgrade-package` は `uv.lock` だけを書き換える。'
+    effects: '`uv add` / `uv remove` は `pyproject.toml` と `uv.lock` を書き換え、環境にも入れる・外す。`uv lock --upgrade-package` は `uv.lock` だけを書き換える'
     verification:
       state: 済
       date: '2026-10-20'

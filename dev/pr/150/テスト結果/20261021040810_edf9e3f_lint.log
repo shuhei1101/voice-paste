@@ -1,0 +1,34 @@
+実行した commit: edf9e3f
+実行したコマンド: uv lock --check / .venv/Scripts/lint-imports（worktree に venv が無いため、メインの venv に PYTHONPATH={worktree}/src を渡して実行した）
+
+$ uv lock --check
+Using CPython 3.14.3 interpreter at: C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\python.exe
+Resolved 74 packages in 1ms
+終了コード: 0
+
+$ .venv/Scripts/lint-imports
+
+╔══╗─────────▶╔╗ ╔╗      ╔╗◀───┐
+╚╣╠╝◀─────┐  ╔╝╚╗║║────▶╔╝╚╗   │
+ ║║   ╔══╦══╦╩╗╔╝║║  ╔╦═╩╗╔╝╔═╦══╗
+ ║║╔══╣╔╗║╔╗║╔╣║ ║║ ╔╬╣╔╗║║ ║│║╔═╝
+╔╣╠╣║║║╚╝║╚╝║║║╚╗║╚═╝║║║║║╚╗║═╣║
+╚══╩╩╩╣╔═╩══╩╝╚═╝╚═══╩╩╝╚╩═╩╩═╩╝
+  └──▶║║                    ▲ 
+      ╚╝────────────────────┘
+
+
+---------
+Contracts
+---------
+
+Analyzed 90 files, 187 dependencies.
+------------------------------------
+
+層の向き KEPT
+feature の独立 KEPT
+出力先の独立 KEPT (13 ignored imports)
+画面から feature の中へ KEPT (1 ignored import)
+
+Contracts: 4 kept, 0 broken.
+終了コード: 0

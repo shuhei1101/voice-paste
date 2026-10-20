@@ -6,8 +6,8 @@ import time
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QPoint, QPointF, QRectF, Qt, QTimer, Signal
-from PySide6.QtGui import QPaintEvent, QPainter, QPen
+from PySide6.QtCore import QEvent, QPoint, QPointF, QRectF, Qt, QTimer, Signal
+from PySide6.QtGui import QPaintEvent, QPainter, QPen, QResizeEvent
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QProgressBar, QVBoxLayout, QWidget
 
 from voice_paste.shared.settings import Settings
@@ -274,10 +274,57 @@ class TranscribingIndicator(QWidget):
             )
             self._switch_layout.addWidget(button)
             self._switch_buttons[output.id] = button
-        self.setMinimumWidth(SWITCH_WINDOW_WIDTH_PX if self._switch_buttons else 0)
+        # 余りの幅は行の右の stretch に残し、ボタンの幅は名前の最も長いボタンが収まる幅から始める（前の回の窓の幅を引き継がない）
+        self._switch_layout.addStretch(1)
+        self._set_switch_button_width(self._widest_switch_hint())
+        # 窓の最小の幅は、その幅のボタンの行が収まる幅と SWITCH_WINDOW_WIDTH_PX の大きい方（最小の幅を明示すると、レイアウトの求める最小の幅は反映されない）
+        self.layout().activate()
+        self.setMinimumWidth(
+            max(SWITCH_WINDOW_WIDTH_PX, self.minimumSizeHint().width())
+            if self._switch_buttons
+            else 0
+        )
         self._mark_current()
         self._paste_hint.setText(hint_text(self._output_id))
         self._paste_hint.show()
+
+    def _widest_switch_hint(self) -> int:
+        """切り替えのボタンの sizeHint の幅のうち最も大きい値を返す（ボタンが無ければ 0）。"""
+        return max((button.sizeHint().width() for button in self._switch_buttons.values()), default=0)
+
+    def _set_switch_button_width(self, width: int) -> None:
+        """切り替えのボタンを全て同じ固定の幅にする。"""
+        for button in self._switch_buttons.values():
+            button.setFixedWidth(width)
+
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802 Qt の名前
+        """窓の幅が変わるたびに、切り替えのボタンの固定の幅を行の幅から取り直す。"""
+        super().resizeEvent(event)
+        self._fit_switch_buttons()
+
+    def event(self, event: QEvent) -> bool:
+        """レイアウトが組み直されて行の幅が決まったときにも、切り替えのボタンの固定の幅を取り直す。
+
+        最初に表示を出した回は、resizeEvent の時点でレイアウトがまだ行に幅を割り当てておらず、窓の幅もその後変わらないことがある。
+        """
+        handled = super().event(event)
+        # レイアウトの組み直しはイベントを渡す前に済んでいるため、この時点の行の幅は割り当て済み
+        if event.type() == QEvent.Type.LayoutRequest:
+            self._fit_switch_buttons()
+        return handled
+
+    def _fit_switch_buttons(self) -> None:
+        """切り替えのボタンの固定の幅を、行の幅を等分した幅と名前の最も長いボタンの幅の大きい方に取り直す。"""
+        # 切り替えのボタンが無い（カスタムプリセットで確定した回）: 取り直す幅がない
+        if not self._switch_buttons:
+            return
+        # 行の幅は、テーマの枠の線と余白を除いて、レイアウトが切り替えのボタンの行に割り当てた幅
+        row_width = self._switch_layout.geometry().width()
+        count = len(self._switch_buttons)
+        gaps = self._switch_layout.spacing() * (count - 1)
+        # 行を等分した幅（切り捨て）と名前の最も長いボタンの幅の大きい方にし、割り切れない数 px だけを行の右の stretch に残す
+        share = (row_width - gaps) // count
+        self._set_switch_button_width(max(share, self._widest_switch_hint()))
 
     def _mark_current(self) -> None:
         """今の出力先のボタンだけを選んだ状態にする。"""

@@ -1,7 +1,9 @@
 """単一ユースケース「常駐アプリを起動する」の E2E テスト。
 
 常駐アプリを pytest のプロセスの中で `main()` から起動し（`--data-dir` の一時フォルダ、Qt は offscreen）、
-トレイのヒント・API・ログ・履歴を観測する。実機のマウス・キーボードは使わず、実機のマイクを開く録音は始めない。
+トレイのヒント・API・ログ・履歴を観測する。実機のマウス・キーボードは使わない。
+録音を始めるケースは、録音の入力を WAV を流すものに、システム音量を呼ばれた値を控えるものに差し替え、実機のマイクを開かず、システム音量を変えない。
+古い AI チャットの設定が残っているケースは、さらに貼り付けのキーを送ったキーを控えるものに、ブラウザを開く呼び出しを渡された URL を控えるものに差し替える。
 「前の常駐サービスが動いている」だけは、別プロセスで 2 つ起動して、ログ・トークンのファイル・プロセスで確かめる
 （`--run-e2e` が無ければ skip する）。
 
@@ -16,9 +18,12 @@ from collections.abc import Callable, Iterator
 from datetime import date, timedelta
 from pathlib import Path
 
+import pyperclip
 import pytest
+from PySide6.QtWidgets import QWidget
 
 from tests.integration.helpers import wait_until
+from tests.support.inprocess import SPEECH_WORD, KeyLog, silence_input, speech_input
 from tests.support.instances import service_root_count, wait_for_takeover
 from tests.support.real_service import (
     LOOPBACK,
@@ -28,7 +33,15 @@ from tests.support.real_service import (
     settings_text,
     spawn_process,
 )
-from tests.support.resident_app import FAILED, IDLE, UI_TIMEOUT_SEC, ResidentApp
+from tests.support.resident_app import (
+    CANCEL_HOTKEY,
+    FAILED,
+    IDLE,
+    RECORDING,
+    UI_TIMEOUT_SEC,
+    ResidentApp,
+)
+from voice_paste.ui.windows.settings_window import format_hotkey
 
 pytestmark = pytest.mark.real_machine
 
@@ -49,17 +62,37 @@ PREVIOUS_FINISHED_MESSAGE = "常駐サービスを終えた"
 AI_CHAT_URL = "https://chatgpt.com/"
 """古い AI チャットの設定の送り先に書く URL（開かない）。"""
 
+AI_CHAT_HOTKEY = "<ctrl>+<alt>+1"
+"""古い AI チャットの設定の、出す送り先のホットキー。"""
+
+AI_CHAT_TITLE = "ChatGPT"
+"""古い AI チャットの設定の、出す送り先のタイトル。"""
+
 
 def _old_ai_chat_settings() -> str:
     """古い AI チャットの設定（送り先 2 つ。うち 1 つは出さない）を書いた settings.toml の続きを返す。"""
     return (
         '[[outputs]]\nid = "paste_and_send"\n\n'
         '[[outputs]]\nid = "ai_chat"\n\n'
-        f'[[outputs.targets]]\nname = "ChatGPT"\nurl = "{AI_CHAT_URL}"\n'
-        'hotkey = "<ctrl>+<alt>+1"\nenabled = true\n\n'
+        f'[[outputs.targets]]\nname = "{AI_CHAT_TITLE}"\nurl = "{AI_CHAT_URL}"\n'
+        f'hotkey = "{AI_CHAT_HOTKEY}"\nenabled = true\n\n'
         '[[outputs.targets]]\nname = "Claude"\nurl = "https://claude.ai/new"\n'
         'hotkey = "<ctrl>+<alt>+3"\nenabled = false\n'
     )
+
+
+def _start_and_cancel_recording(app: ResidentApp) -> None:
+    """録音開始のホットキーを押して録音が始まることを確かめ、取り消しのホットキーで待機中へ戻す。"""
+    # 実行: 録音開始のホットキーが押された体で、登録された関数を呼ぶ
+    app.press_start_hotkey()
+
+    # 検証: トレイが録音中になり、録音の画面が出る
+    assert app.wait_until(lambda: app.tray_state() == RECORDING)
+    app.wait_widget("recording_window", QWidget)
+
+    # 後始末: 取り消して待機中へ戻す
+    app.press_registered_hotkey(CANCEL_HOTKEY)
+    assert app.wait_until(lambda: app.tray_state() == IDLE)
 
 
 def _prepare_expired_files(data_dir: Path) -> tuple[date, date]:
@@ -87,8 +120,10 @@ def occupied_port() -> Iterator[int]:
         yield int(occupier.getsockname()[1])
 
 
-def test_normal(run_app: RunApp) -> None:
-    """ショートカットから起動すると、トレイが待機中になり、API がトークンに応え、ワーカーが動く（正常シナリオ）。"""
+def test_normal(run_app: RunApp, tmp_path: Path) -> None:
+    """ショートカットから起動すると、トレイが待機中になり、API がトークンに応え、ワーカーが動き、録音開始のホットキーで録音が始まる（正常シナリオ）。"""
+    # 準備: 録音の入力は無音の WAV
+    wav_input = silence_input(tmp_path)
 
     def case(app: ResidentApp) -> None:
         """起動した常駐アプリの、トレイ・トークン・API・ワーカー・ホットキーの受付を確かめる。"""
@@ -105,12 +140,14 @@ def test_normal(run_app: RunApp) -> None:
             == 401
         )
         assert app.worker_pids() != set()
-        # 録音開始のホットキーの受付が始まっている（押して録音を始めることは確かめない）
+        # 録音開始のホットキーの受付が始まっていて、押すと録音が始まる
         assert app.hotkeys is not None
         assert UNUSED_START_HOTKEY in app.hotkeys.bindings
+        _start_and_cancel_recording(app)
+        assert wav_input.open_count == 1
 
     # 準備・実行: 起動し、イベントループの中で確かめる
-    run_app(case)
+    run_app(case, wav_input=wav_input)
 
 
 def test_normal_when_previous_running(start_service: Callable[..., RealService]) -> None:
@@ -175,8 +212,10 @@ def test_error_when_engine_unavailable(run_app: RunApp) -> None:
     run_app(case, extra_settings=NO_SUCH_MODEL_SETTINGS)
 
 
-def test_error_when_api_unavailable(run_app: RunApp, occupied_port: int) -> None:
-    """API の待ち受けを始められなければ、トレイで知らされ、ログに理由が書かれる（異常シナリオ）。"""
+def test_error_when_api_unavailable(run_app: RunApp, occupied_port: int, tmp_path: Path) -> None:
+    """API の待ち受けを始められなければ、トレイで知らされ、ログに理由が書かれ、録音開始のホットキーで録音が始まる（異常シナリオ）。"""
+    # 準備: 録音の入力は無音の WAV
+    wav_input = silence_input(tmp_path)
 
     def case(app: ResidentApp) -> None:
         """API を使えない知らせ・ログ・ホットキーの受付を確かめる。"""
@@ -187,25 +226,50 @@ def test_error_when_api_unavailable(run_app: RunApp, occupied_port: int) -> None
             for message in app.log_messages("ERROR")
         )
         assert not (app.data_dir / "api_token").exists()
-        # 録音開始のホットキーの受付が始まっている（押して録音を始めることは確かめない）
+        # 録音開始のホットキーの受付が始まっていて、押すと録音が始まる
         assert app.hotkeys is not None
         assert UNUSED_START_HOTKEY in app.hotkeys.bindings
+        _start_and_cancel_recording(app)
+        assert wav_input.open_count == 1
 
     # 準備・実行: API のポートをほかのプロセスが使っている状態で起動する（トークンのファイルは書かれない）
-    run_app(case, port=occupied_port)
+    run_app(case, port=occupied_port, wav_input=wav_input)
 
 
-def test_normal_when_old_ai_chat_settings_remain(run_app: RunApp) -> None:
-    """古い AI チャットの設定が残った settings.toml でも起動でき、settings.toml は書き換わらない（正常シナリオ）。"""
-    # 準備
+def test_normal_when_old_ai_chat_settings_remain(
+    run_app: RunApp, tmp_path: Path, clipboard_sentinel: str
+) -> None:
+    """古い AI チャットの設定が残った settings.toml でも起動でき、出すとした送り先のボタンで確定すると送り先の URL を開いて貼り付け、Enter まで送り、settings.toml は書き換わらない（正常シナリオ）。"""
+    # 準備: 録音の入力は音声合成の WAV。貼り付けのキーとブラウザを開く呼び出しは控える
     extra_settings = _old_ai_chat_settings()
+    keys = KeyLog()
 
     def case(app: ResidentApp) -> None:
-        """起動が止まらず、settings.toml が書き換わっていないことを確かめる。"""
-        # 検証
+        """起動が止まらず、出すとした送り先のボタンだけが出て、確定すると送り先へ届くことを確かめる。"""
+        # 検証: 起動が止まらない
         assert app.tray_state() == IDLE
+
+        # 実行: 録音を始め、出すとした送り先のボタンで確定する
+        app.press_start_hotkey()
+        app.wait_widget("recording_window", QWidget)
+        assert app.button_texts("preset_button_0") == [AI_CHAT_TITLE, format_hotkey(AI_CHAT_HOTKEY)]
+        assert app.window("preset_button_1") is None
+        app.press("preset_button_0")
+        app.wait_processed()
+
+        # 検証: 送り先の URL を開いて貼り付け、Enter まで送り、settings.toml は書き換わっていない
+        assert app.opened_urls == [AI_CHAT_URL]
+        assert SPEECH_WORD in pyperclip.paste()
+        assert len(keys.pasted) == 1
+        assert keys.enters == 1
         settings_file = app.data_dir / "settings.toml"
         assert settings_file.read_text(encoding="utf-8") == settings_text(app.port, extra_settings)
 
     # 実行: 古い設定で起動する
-    run_app(case, extra_settings=extra_settings)
+    run_app(
+        case,
+        extra_settings=extra_settings,
+        wav_input=speech_input(tmp_path),
+        keys=keys,
+        capture_browser=True,
+    )

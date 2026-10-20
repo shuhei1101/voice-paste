@@ -1,4 +1,4 @@
-実行した commit: 2e560f7
+実行した commit: 7a2f7e3
 実行したコマンド: .venv/Scripts/python.exe -m pytest tests/integration/ui/test_recording_window.py tests/integration/ui/test_transcribing_indicator.py（worktree に venv が無いため、メインの venv に PYTHONPATH={worktree}/src を渡して実行した）
 
 ============================= test session starts =============================
@@ -14,4 +14,4 @@ tests\integration\ui\test_recording_window.py .......................... [ 14%]
 tests\integration\ui\test_transcribing_indicator.py .................... [ 65%]
 .............................................................            [100%]
 
-============================= 179 passed in 3.24s =============================
+============================= 179 passed in 3.44s =============================

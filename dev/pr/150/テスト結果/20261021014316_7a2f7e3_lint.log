@@ -1,4 +1,4 @@
-実行した commit: 2e560f7
+実行した commit: 7a2f7e3
 実行したコマンド: uv lock --check / .venv/Scripts/lint-imports（worktree に venv が無いため、メインの venv に PYTHONPATH={worktree}/src を渡して実行した）
 
 $ uv lock --check

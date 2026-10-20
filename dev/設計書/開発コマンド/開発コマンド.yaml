@@ -1,0 +1,49 @@
+title: "開発コマンド"
+categories:
+  - name: 取り込み後の追従（pull 後）
+    commands: |-
+      1. `uv.lock` どおりに環境を合わせる
+
+      ```bash
+      uv.exe sync --frozen
+      ```
+    effects: '`.venv/` を `uv.lock` の版に作り直す。依存のダウンロードが要り、`.venv/` が無いときは時間がかかる'
+    verification:
+      state: 済
+      date: '2026-10-20'
+      detail: '`.venv/` の無い作業ツリーで流し、`uv.lock` どおりに依存が入ることを確かめた'
+  - name: 依存の追加・更新・削除
+    commands: |-
+      1. 依存を足す
+
+      ```bash
+      uv.exe add {パッケージ}
+      ```
+
+      2. dev グループへ足す
+
+      ```bash
+      uv.exe add --group dev {パッケージ}
+      ```
+
+      3. 足した依存を上げる（`uv.lock` だけを書き換え、環境へは入れない。環境へ入れるときは『取り込み後の追従（pull 後）』を流す）
+
+      ```bash
+      uv.exe lock --upgrade-package {パッケージ}
+      ```
+
+      4. 依存を外す（dev グループから外すときは `--group dev` を付ける）
+
+      ```bash
+      uv.exe remove {パッケージ}
+      ```
+    effects: '`uv add` / `uv remove` は `pyproject.toml` と `uv.lock` を書き換え、環境にも入れる・外す。`uv lock --upgrade-package` は `uv.lock` だけを書き換える。`pyproject.toml` の改行が混在しているため、`uv add` / `uv remove` は全行の改行を LF に揃えて書き、全行が差分になる'
+    verification:
+      state: 済
+      date: '2026-10-20'
+      detail: 作業ツリーで `tomli-w` を使い、`uv.exe add`・`uv.exe add --group dev`・`uv.exe lock --upgrade-package`・`uv.exe remove`（dev グループからも）が通ることを確かめた。流した後に `pyproject.toml` と `uv.lock` を元に戻し、commit していない
+lead: 依存を足す・上げる・外すときと、取り込んだ変更に手元の環境を追従させるときに打つコマンド。
+prerequisites:
+  - リポジトリの直下で、Windows の uv（WSL からは `uv.exe`）で流す
+refs:
+  - dev/設計書/モジュール構成/常駐アプリ/起動と配線.py#

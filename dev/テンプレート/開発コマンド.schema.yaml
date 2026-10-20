@@ -1,0 +1,175 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: 開発コマンド
+description: |-
+  開発者とエージェントが開発で使うコマンドの、分類ごとの前提・実行の順序・コマンド・料金や副作用や所要時間・確かめた記録。1 プロジェクト 1 ファイル。
+  何を書くか・どの分類かは判定フローチャート『コマンドの書き先』で決める。
+x-kind: dev_command
+x-folder: dev/設計書/開発コマンド
+type: object
+additionalProperties: false
+required:
+- title
+- categories
+properties:
+  title:
+    type: string
+    title: タイトル
+    description: '`開発コマンド`。'
+  lead:
+    $ref: 共通.schema.yaml#/$defs/markdown
+    title: 冒頭リード
+    description: |-
+      対象を 1〜3 行で説明する。
+      初回に書いた内容のまま保ち、後から情報を足さない（仕様は各項目に書く）。
+      対象そのものが変わったときだけ書き換える。
+  prerequisites:
+    type: array
+    title: 前提
+    description: 全分類に共通の前提（言語ランタイム・パッケージマネージャ・認証済みのツール）。
+    x-heading: 前提
+    x-shape: list
+    items:
+      type: string
+  categories:
+    type: array
+    title: 分類
+    description: 分類ごとの節。初期構築では全ての分類を作り、コマンドは差分が当たった実装・テスト作成の担当が確定させる（確定させるまでは `commands` を `未確定`）。テストと静的検査以外の節は `commands` か `refs` のどちらかを持つ。
+    x-shape: sections
+    x-key: name
+    x-unique-in-kind: true
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      properties:
+        name:
+          type: string
+          title: 分類
+          enum:
+          - 環境構築（クローン直後）
+          - 取り込み後の追従（pull 後）
+          - 依存の追加・更新・削除
+          - 起動・停止
+          - テスト
+          - 静的検査
+          - ビルド・生成
+          - 取り込み前の検査
+          - 管理作業
+        prerequisites:
+          type: array
+          title: 前提
+          description: この分類のコマンドを流す前に満たしておくこと（先に流す分類・起動しておくもの・環境変数）。
+          x-shape: list
+          items:
+            type: string
+        commands:
+          $ref: 共通.schema.yaml#/$defs/markdown
+          title: コマンド
+          description: |-
+            実行の順序どおりに並べたコマンドのコードブロック（`bash`）。複数あるときは番号つきの手順にし、各コマンドの前に何をするかを 1 行で添える。
+            書けるまでは `未確定`。既に他のページが持つコマンドは書き写さず `refs` で指し、このページだけが持つコマンドを `commands` に書く。テストと静的検査の節はコマンドを持たず、`refs` でテスト実行方法を指す。
+        effects:
+          type: string
+          title: 料金・副作用・所要時間
+          description: 料金・外へ書き込む副作用・長い所要時間があるコマンドは、そのとおりに明記する。
+        verification:
+          type: object
+          title: 確かめた記録
+          description: 書いたコマンドを走らせて確かめたか。走らせられないもの（副作用・権限、または規約『開発時の従量課金APIの実行』の「比べる」の段でユーザーへ回す料金）は、確かめていないことと理由を残す。
+          x-shape: attributes
+          additionalProperties: false
+          required:
+          - state
+          properties:
+            state:
+              type: string
+              title: 状態
+              enum:
+              - 済
+              - 未確認
+            date:
+              type: string
+              title: 確認日
+              description: '`YYYY-MM-DD`。状態が `済` のときに書く。'
+              pattern: ^[0-9]{4}-[0-9]{2}-[0-9]{2}$
+            detail:
+              type: string
+              title: 確認内容
+              description: 確かめた内容か、確かめていない理由。状態が `未確認` のときは理由を書く。
+          allOf:
+          - if:
+              properties:
+                state:
+                  const: 済
+            then:
+              required:
+              - date
+            else:
+              required:
+              - detail
+        refs:
+          type: array
+          title: 参照
+          description: 他のページが持つコマンドの正本。テストの節はテスト実行方法（`dev/設計書/テスト/テスト実行方法#`）を、静的検査の節はその `lint` 層（`dev/設計書/テスト/テスト実行方法#layers[lint]`）を指す。
+          items:
+            $ref: 共通.schema.yaml#/$defs/ref
+      allOf:
+      - if:
+          properties:
+            name:
+              enum:
+              - テスト
+              - 静的検査
+        then:
+          required:
+          - refs
+        else:
+          anyOf:
+          - required:
+            - commands
+          - required:
+            - refs
+  refs:
+    type: array
+    title: 関連
+    items:
+      $ref: 共通.schema.yaml#/$defs/ref
+  notes:
+    $ref: 共通.schema.yaml#/$defs/notes
+    x-heading: 補足
+    x-shape: sections
+examples:
+- title: 開発コマンド
+  lead: 開発で使うコマンドの、分類ごとの前提・順序・コマンド・確かめた記録。
+  prerequisites:
+  - Python 3.12 と uv
+  categories:
+  - name: 環境構築（クローン直後）
+    commands: |-
+      1. 依存を lock どおりに入れる
+
+      ```bash
+      uv sync --frozen
+      ```
+    effects: 数分かかる（依存のダウンロード）
+    verification:
+      state: 済
+      date: '2026-01-15'
+      detail: 空の作業ツリーで流して依存が入ることを確かめた
+  - name: テスト
+    refs:
+    - dev/設計書/テスト/テスト実行方法#
+  - name: 静的検査
+    refs:
+    - dev/設計書/テスト/テスト実行方法#layers[lint]
+  - name: 管理作業
+    commands: |-
+      ```bash
+      uv run python scripts/migrate_users.py
+      ```
+    effects: 本番の DB へ書き込む（戻せない）
+    verification:
+      state: 未確認
+      detail: 本番の DB へ書き込むため走らせていない

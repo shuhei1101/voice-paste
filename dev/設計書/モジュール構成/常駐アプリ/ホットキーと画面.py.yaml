@@ -1830,7 +1830,7 @@ classes:
             condition: A（語 x・y）と B の 2 件を set_presets し、A の語 x を消す
             mock: なし（offscreen）
             expected: hint_presets[0] が（"A", ["y"], True）、hint_presets[1] が B の値のまま、hint_presets.order が True
-        status: planned
+        status: implemented
       - name: mark_saved
         title: 保存したプリセットを基準にする
         kind: メソッド
@@ -1846,7 +1846,7 @@ classes:
             condition: A・B の 2 件を set_presets し、B の「上へ」を押して add_preset を呼び、mark_saved を呼ぶ
             mock: なし（offscreen）
             expected: hint_presets[0] が B、hint_presets[1] が A、hint_presets[2] が（"", [], True）の値で、hint_presets.order が True。続けて add_preset を呼ぶと hint_presets[3] が増える
-        status: planned
+        status: implemented
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
     status: implemented

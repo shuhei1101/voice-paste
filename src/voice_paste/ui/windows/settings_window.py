@@ -978,9 +978,9 @@ class SettingsWindow(QWidget):
         # 用語集は、変えた用語集 1 つを 1 件、補正に使う用語集の切り替えを 1 件として数える
         if self._glossary_panel is not None:
             values.update(self._glossary_panel.change_values())
-        # 表記のヒントは、プリセットの一覧（名前・語・有効か・並び）を 1 件として数える
+        # 表記のヒントは、変えたプリセット 1 つを 1 件、残っているプリセットどうしの並べ替えを別に 1 件として数える
         if self._hint_panel is not None:
-            values[HINT_PRESETS_FIELD_NAME] = self._hint_panel.collect()
+            values.update(self._hint_panel.change_values())
         for kind, position, item in self._preset_values():
             values.update(
                 {f"{PRESETS_FIELD_NAME}.{kind}[{position}].{name}": value for name, value in item.items()}
@@ -1304,6 +1304,7 @@ class SettingsWindow(QWidget):
 
         # 3. 保存した行・値を「変えていない」の基準に置き直す
         self._glossaries_panel.mark_saved()
+        self._hints_panel.mark_saved()
         self._baseline = self._flat_values()
         self.saved.emit()
 

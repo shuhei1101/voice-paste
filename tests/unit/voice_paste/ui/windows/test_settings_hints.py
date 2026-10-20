@@ -1,7 +1,7 @@
-"""ui/windows/settings_hints.py（HintPresetPanel の set_presets・collect・add_preset・add_word・hint_length と並べ替え）の単体テスト。
+"""ui/windows/settings_hints.py（HintPresetPanel の set_presets・collect・add_preset・add_word・hint_length・change_values・mark_saved と並べ替え）の単体テスト。
 
 画面を使うため offscreen の QApplication（conftest の qapp）で動かす。
-部品は画面設計の項目 ID（hint_preset_enabled_{n}・hint_preset_name_{n}・hint_word_{n}_{m}・hint_preset_down_{n}・hint_length・hint_preset_empty）の objectName で引く。
+部品は画面設計の項目 ID（hint_preset_enabled_{n}・hint_preset_name_{n}・hint_word_{n}_{m}・hint_preset_up_{n}・hint_preset_down_{n}・hint_preset_remove_{n}・hint_word_remove_{n}_{m}・hint_length・hint_preset_empty）の objectName で引く。
 欄とボタンは、objectName の前方一致で、画面に出ているものを名前の順で引く。
 """
 
@@ -198,3 +198,154 @@ def test_hint_preset_panel_hint_length_when_unvalidated(
     # 検証（例外が出ず、足した直後は 0、入れた後は A、B の 5）
     assert after_add == 0
     assert panel.hint_length() == 5
+
+
+# === change_values ===
+
+
+def test_hint_preset_panel_change_values(open_panel: Callable[..., HintPresetPanel]) -> None:
+    """プリセットごとの値と並びの値を返す（正常系）。"""
+    from voice_paste.shared.settings import HintPresetSettings
+
+    # 準備（有効な「開発」（語 voice-paste）と無効な「会議」（語 議事録））
+    panel = open_panel(
+        [
+            HintPresetSettings(name="開発", words=["voice-paste"]),
+            HintPresetSettings(name="会議", words=["議事録"], enabled=False),
+        ]
+    )
+
+    # 実行
+    values = panel.change_values()
+
+    # 検証
+    assert len(values) == 3
+    assert values["hint_presets[0]"] == ("開発", ["voice-paste"], True)
+    assert values["hint_presets[1]"] == ("会議", ["議事録"], False)
+    assert values["hint_presets.order"] is True
+
+
+def test_hint_preset_panel_change_values_when_moved(
+    open_panel: Callable[..., HintPresetPanel],
+) -> None:
+    """並べ替えるとプリセットの値は変わらず、並びの値だけが変わる（正常系）。"""
+    from voice_paste.shared.settings import HintPresetSettings
+
+    # 準備（A・B・C の 3 件）
+    panel = open_panel(
+        [
+            HintPresetSettings(name="A", words=["a"]),
+            HintPresetSettings(name="B", words=["b"]),
+            HintPresetSettings(name="C", words=["c"], enabled=False),
+        ]
+    )
+
+    # 実行（A の「下へ」を押す）
+    _visible_buttons(panel, "hint_preset_down_")[0].click()
+
+    # 検証
+    values = panel.change_values()
+    assert values["hint_presets[0]"] == ("A", ["a"], True)
+    assert values["hint_presets[1]"] == ("B", ["b"], True)
+    assert values["hint_presets[2]"] == ("C", ["c"], False)
+    assert values["hint_presets.order"] is False
+
+
+def test_hint_preset_panel_change_values_when_removed(
+    open_panel: Callable[..., HintPresetPanel],
+) -> None:
+    """途中のプリセットを消しても並びの値は変わらない（正常系）。"""
+    from voice_paste.shared.settings import HintPresetSettings
+
+    # 準備（A・B・C の 3 件）
+    panel = open_panel(
+        [
+            HintPresetSettings(name="A", words=["a"]),
+            HintPresetSettings(name="B", words=["b"]),
+            HintPresetSettings(name="C", words=["c"], enabled=False),
+        ]
+    )
+
+    # 実行（B の「消す」を押す）
+    _visible_buttons(panel, "hint_preset_remove_")[1].click()
+
+    # 検証
+    values = panel.change_values()
+    assert set(values) == {"hint_presets[0]", "hint_presets[2]", "hint_presets.order"}
+    assert values["hint_presets[2]"] == ("C", ["c"], False)
+    assert values["hint_presets.order"] is True
+
+
+def test_hint_preset_panel_change_values_when_added(
+    open_panel: Callable[..., HintPresetPanel],
+) -> None:
+    """足したプリセットは新しい番号で返し、並びの値に入れない（正常系）。"""
+    from voice_paste.shared.settings import HintPresetSettings
+
+    # 準備（A の 1 件）
+    panel = open_panel([HintPresetSettings(name="A", words=["a"])])
+
+    # 実行（add_preset を呼んでから、足したプリセットの「上へ」を押す）
+    panel.add_preset()
+    _visible_buttons(panel, "hint_preset_up_")[1].click()
+
+    # 検証
+    values = panel.change_values()
+    assert values["hint_presets[0]"] == ("A", ["a"], True)
+    assert values["hint_presets[1]"] == ("", [], True)
+    assert values["hint_presets.order"] is True
+
+
+def test_hint_preset_panel_change_values_when_word_removed(
+    open_panel: Callable[..., HintPresetPanel],
+) -> None:
+    """語を消して一覧を作り直しても番号を引き継ぐ（正常系）。"""
+    from voice_paste.shared.settings import HintPresetSettings
+
+    # 準備（A（語 x・y）と B の 2 件）
+    panel = open_panel(
+        [
+            HintPresetSettings(name="A", words=["x", "y"]),
+            HintPresetSettings(name="B", words=["z"], enabled=False),
+        ]
+    )
+
+    # 実行（A の語 x を消す）
+    _visible_buttons(panel, "hint_word_remove_0_")[0].click()
+
+    # 検証
+    values = panel.change_values()
+    assert values["hint_presets[0]"] == ("A", ["y"], True)
+    assert values["hint_presets[1]"] == ("B", ["z"], False)
+    assert values["hint_presets.order"] is True
+
+
+# === mark_saved ===
+
+
+def test_hint_preset_panel_mark_saved(open_panel: Callable[..., HintPresetPanel]) -> None:
+    """保存した並びと足したプリセットを基準にする（正常系）。"""
+    from voice_paste.shared.settings import HintPresetSettings
+
+    # 準備（A・B の 2 件で、B の「上へ」を押して add_preset を呼ぶ）
+    panel = open_panel(
+        [
+            HintPresetSettings(name="A", words=["a"]),
+            HintPresetSettings(name="B", words=["b"], enabled=False),
+        ]
+    )
+    _visible_buttons(panel, "hint_preset_up_")[1].click()
+    panel.add_preset()
+
+    # 実行
+    panel.mark_saved()
+
+    # 検証（保存した並びの B・A と足したプリセットが番号 0・1・2 で、並びの値は True）
+    values = panel.change_values()
+    assert values["hint_presets[0]"] == ("B", ["b"], False)
+    assert values["hint_presets[1]"] == ("A", ["a"], True)
+    assert values["hint_presets[2]"] == ("", [], True)
+    assert values["hint_presets.order"] is True
+    # 続けて足したプリセットは、振った番号より大きい番号で増える
+    panel.add_preset()
+    assert "hint_presets[3]" in panel.change_values()

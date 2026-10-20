@@ -158,6 +158,10 @@ class HintPresetPanel(QWidget):
         """空の一覧で部品を作る。"""
         super().__init__(parent)
         self._rows: list[_HintRow] = []
+        # プリセットを追う番号: 一覧の並びと同じ順に持つ。開いたとき・保存したときの分は 0 から振り、足した分はそれより大きい番号にする
+        self._ids: list[int] = []
+        self._baseline_count = 0
+        self._next_id = 0
         self._columns = WORD_COLUMNS_WIDE
         self.setObjectName("hint_preset_panel")
 
@@ -225,7 +229,7 @@ class HintPresetPanel(QWidget):
 
     def set_presets(self, presets: Sequence[HintPresetSettings]) -> None:
         """渡したプリセットで一覧を作り直し、長さを数え直す。空なら空の案内を出す。"""
-        self._rebuild([preset.model_dump() for preset in presets])
+        self._rebuild([preset.model_dump() for preset in presets], self._number_saved(len(presets)))
 
     def collect(self) -> list[dict[str, Any]]:
         """今の並びのプリセットを settings.toml と同じ形の dict（name・words・enabled）の並びにする。空の語の欄もそのまま入れる。"""
@@ -242,7 +246,10 @@ class HintPresetPanel(QWidget):
         """末尾に名前と語が空で有効のプリセットを足し、名前の欄へフォーカスを移して changed を emit する。"""
         values = self.collect()
         values.append({"name": "", "words": [], "enabled": True})
-        self._rebuild(values)
+        # 足したプリセットには、振ったどの番号より大きい番号を振る
+        added_id = self._next_id
+        self._next_id += 1
+        self._rebuild(values, [*self._ids, added_id])
         self._rows[-1].name_edit.setFocus()
         self.changed.emit()
 
@@ -250,7 +257,7 @@ class HintPresetPanel(QWidget):
         """一覧の何件目のプリセットの語の末尾に空の欄を足してフォーカスを移し、changed を emit する。"""
         values = self.collect()
         values[position]["words"].append("")
-        self._rebuild(values)
+        self._rebuild(values, self._ids)
         self._rows[position].cells[-1].edit.setFocus()
         self.changed.emit()
 
@@ -264,6 +271,21 @@ class HintPresetPanel(QWidget):
             for row in self._rows
         ]
         return len(join_hint_words(views).encode("utf-8"))
+
+    def change_values(self) -> dict[str, object]:
+        """変えた欄の数えに使う値を、プリセット 1 つ = 1 キーと、並べ替えの 1 キーで返す。"""
+        values: dict[str, object] = {
+            f"hint_presets[{preset_id}]": (preset["name"], preset["words"], preset["enabled"])
+            for preset_id, preset in zip(self._ids, self.collect(), strict=True)
+        }
+        # 開いたとき・保存したときからあって今も残っているプリセットだけで、番号の小さい順に並んでいるか（足したプリセットは見ない）
+        kept = [preset_id for preset_id in self._ids if preset_id < self._baseline_count]
+        values["hint_presets.order"] = kept == sorted(kept)
+        return values
+
+    def mark_saved(self) -> None:
+        """プリセットの番号を、今の並びの順に 0 から振り直す（足したプリセットも保存したプリセットとして扱う）。保存が書けた後に呼ぶ。"""
+        self._ids = self._number_saved(len(self._rows))
 
     def focus_field(self, location: tuple[int | str, ...]) -> None:
         """失敗の場所（hint_presets より後ろ）で欄を探し、フォーカスを移す。場所が空なら長さの行へ移す。"""
@@ -338,8 +360,15 @@ class HintPresetPanel(QWidget):
 
     # --- 組み立て ---
 
-    def _rebuild(self, values: list[dict[str, Any]]) -> None:
-        """プリセットの値の並びで、まとまりを全て作り直し、長さを数え直す。"""
+    def _number_saved(self, count: int) -> list[int]:
+        """保存した件数のプリセットに 0 から番号を振り直し（足す番号はその次から）、その番号の並びを返す。"""
+        self._baseline_count = count
+        self._next_id = count
+        return list(range(count))
+
+    def _rebuild(self, values: list[dict[str, Any]], ids: list[int]) -> None:
+        """プリセットの値の並びと番号の並びで、まとまりを全て作り直し、長さを数え直す。"""
+        self._ids = ids
         while self._rows_layout.count():
             item = self._rows_layout.takeAt(0)
             widget = item.widget()
@@ -357,21 +386,25 @@ class HintPresetPanel(QWidget):
         values = self.collect()
         target = position + offset
         values[position], values[target] = values[target], values[position]
-        self._rebuild(values)
+        ids = list(self._ids)
+        ids[position], ids[target] = ids[target], ids[position]
+        self._rebuild(values, ids)
         self.changed.emit()
 
     def _remove(self, position: int) -> None:
         """プリセットを一覧から消す。"""
         values = self.collect()
         del values[position]
-        self._rebuild(values)
+        ids = list(self._ids)
+        del ids[position]
+        self._rebuild(values, ids)
         self.changed.emit()
 
     def _remove_word(self, position: int, word: int) -> None:
         """プリセットの語を 1 つ消す。"""
         values = self.collect()
         del values[position]["words"][word]
-        self._rebuild(values)
+        self._rebuild(values, self._ids)
         self.changed.emit()
 
     def _on_input(self) -> None:

@@ -1125,7 +1125,7 @@ classes:
                - `[WARNING]` 保存するホットキーを受け付けられなかった（理由）
              - OSError の場合、エラーの一覧に「設定ファイルを書けませんでした（{理由}）」を出し、False を返す（用語集の CSV を書けないときも同じ文言で、理由にそのパスが出る）
                - `[ERROR]` 設定ファイルを書けなかった（logger.exception）
-          3. GlossaryPanel.mark_saved で用語集の書き戻しの基準を保存した行へ置き直し、変えた欄の数えの基準（`_baseline`）を今の欄の値へ置き直す（「再起動で反映」の件数の基準は開いたときの値のまま）
+          3. GlossaryPanel.mark_saved で用語集の書き戻しの基準を保存した行へ置き直し、HintPresetPanel.mark_saved でプリセットの番号を保存した並びで振り直し、変えた欄の数えの基準（`_baseline`）を今の欄の値へ置き直す（「再起動で反映」の件数の基準は開いたときの値のまま）
           4. saved を emit する
              - restart の場合、restart_requested を emit して窓を閉じ、True を返す
           5. 窓を開いたまま、保存した知らせを出して、同じ文を `QAccessible.updateAccessibility(QAccessibleAnnouncementEvent(知らせ, 文))` で読み上げにも伝え、True を返す（入れた値・選んでいたまとまり・欄のフォーカスはそのまま）
@@ -1298,7 +1298,7 @@ classes:
         既定に戻すと、用語集の一覧は設定ファイルと同じフォルダの yogo.csv の 1 件に戻る（用語集の CSV のファイルは消さず、書き換えない）。
       表記のヒントのまとまり: |-
         「文字起こし」の次、「用語集」の前のまとまり「表記のヒント」に HintPresetPanel を 1 つ置き、開くときに設定の hint_presets を HintPresetPanel.set_presets に渡す。
-        収集では `hint_presets` に HintPresetPanel.collect を入れる。変えた欄の数えには、プリセットの一覧（名前・語・有効か・並び）の変更も含める（反映は immediate）。
+        収集では `hint_presets` に HintPresetPanel.collect を入れる。変えた欄の数えには、HintPresetPanel.change_values のキーごとの変更を 1 件として含める（反映は immediate）。足した・消した・名前か語か有効を変えたプリセット 1 つが 1 件（1 つのプリセットで何度変えても 1 件）、開いたとき・保存したときからあって今も残っているプリセットどうしの順が変わったら並べ替えが 1 件になる（足す・消すだけでは並べ替えに数えない）。
         エラーの一覧の表記のヒントの行は、失敗の場所 `hint_presets` を「有効なヒントの長さ」、`hint_presets[{n}].name` を「プリセット {n+1} 件目の名前」、`hint_presets[{n}].words[{m}]` を「プリセット {n+1} 件目の {m+1} つ目の語」にし、押すと「表記のヒント」のまとまりへ切り替えて HintPresetPanel.focus_field で欄へフォーカスを移す。長さの失敗は長さの行の下にも出す。
         既定に戻すと、表記のヒントのプリセットは空になる。
   - name: PresetListPanel
@@ -1676,7 +1676,8 @@ classes:
       プリセットのまとまりは PresetListPanel と同じ形（頭に切り替え・名前・上へ・下へ・消す、下に欄）で作る。語の欄は入力と消すボタンの組を `QGridLayout` の 2 列（左から右、上から下が語の順）に並べ、部品の幅が 2 組入らないときは 1 列に並べ直す（resizeEvent）。幅に応じて列の数を 3 以上に増やす自前のレイアウトは作らない。
       長さは欄の入力・切り替え・足す・消す・並べ替えのたびに、今の欄の値（プリセットごとの有効かと語の並び。HintWordSource を満たす値で、HintPresetSettings にはしない）を join_hint_words でつないだ UTF-8 のバイト数で数え直し、HINT_MAX_BYTES を超えたらバーと数字を赤にして「（{超えた分} バイト超過）」を添える。空の名前・空の語・区切りを含む語もそのまま数える（確かめは保存で行う）。
       無効のプリセットの語の欄は、用語集のオフの行と同じく文字を薄くして取り消し線を引く（編集はできる）。
-      足す・消す・並べ替えはこの部品の中だけを変え、settings.toml へは設定画面の保存で書く。単体テストは tests/unit/voice_paste/ui/windows/test_settings_hints.py に置く。
+      足す・消す・並べ替えはこの部品の中だけを変え、settings.toml へは設定画面の保存で書く。
+      変えた欄の数えのため、プリセットごとに、開いたとき・保存したときのプリセットを追う番号を持つ。set_presets と mark_saved で今の並びの順に 0 から振り直し、足したプリセットには振ったどの番号より大きい番号を振る。消す・並べ替え・語の足し消しで一覧を作り直しても番号を引き継ぐ。単体テストは tests/unit/voice_paste/ui/windows/test_settings_hints.py に置く。
     properties:
       - name: changed
         type: Signal()
@@ -1787,6 +1788,65 @@ classes:
         returns:
           type: None
           description: なし
+      - name: change_values
+        title: 変えた件数を数える値
+        kind: メソッド
+        scope: public
+        summary: 変えた欄の数えに使う値を、プリセット 1 つ = 1 キーと、並べ替えの 1 キーで返す（SettingsWindow が開いたとき・保存したときの値と比べて件数にする）
+        returns:
+          type: dict[str, object]
+          description: '`hint_presets[{番号}]` → （名前, 語の並び, 有効か）（collect と同じ値）、`hint_presets.order` → 開いたとき・保存したときからあって今も残っているプリセットが、番号の小さい順に並んでいるか'
+        process: |-
+          1. 今の並びのプリセットごとに、番号をキーにして名前・語の並び・有効かを入れる
+          2. set_presets か mark_saved で番号を振ったプリセット（足したプリセットを除く）を今の並びで取り出し、番号の小さい順に並んでいるかを `hint_presets.order` に入れる（消したプリセットは入らず、足したプリセットも見ないため、足す・消すだけでは変わらない）
+        unit_tests:
+          - name: test_hint_preset_panel_change_values
+            case: 正常
+            summary: プリセットごとの値と並びの値を返す
+            condition: 有効な「開発」（語 voice-paste）と無効な「会議」（語 議事録）を set_presets する
+            mock: なし（offscreen）
+            expected: キーは 3 つで、hint_presets[0] が（"開発", ["voice-paste"], True）、hint_presets[1] が（"会議", ["議事録"], False）、hint_presets.order が True
+          - name: test_hint_preset_panel_change_values_when_moved
+            case: 正常
+            summary: 並べ替えるとプリセットの値は変わらず、並びの値だけが変わる
+            condition: A・B・C の 3 件を set_presets し、A の「下へ」を押す
+            mock: なし（offscreen）
+            expected: hint_presets[0]・[1]・[2] が並べ替える前と同じ値で、hint_presets.order が False
+          - name: test_hint_preset_panel_change_values_when_removed
+            case: 正常
+            summary: 途中のプリセットを消しても並びの値は変わらない
+            condition: A・B・C の 3 件を set_presets し、B の「消す」を押す
+            mock: なし（offscreen）
+            expected: キーは hint_presets[0]・hint_presets[2]・hint_presets.order の 3 つで、hint_presets[2] が C の値、hint_presets.order が True
+          - name: test_hint_preset_panel_change_values_when_added
+            case: 正常
+            summary: 足したプリセットは新しい番号で返し、並びの値に入れない
+            condition: A の 1 件を set_presets し、add_preset を呼んでから、足したプリセットの「上へ」を押す
+            mock: なし（offscreen）
+            expected: hint_presets[0] が A の値、hint_presets[1] が（"", [], True）、hint_presets.order が True
+          - name: test_hint_preset_panel_change_values_when_word_removed
+            case: 正常
+            summary: 語を消して一覧を作り直しても番号を引き継ぐ
+            condition: A（語 x・y）と B の 2 件を set_presets し、A の語 x を消す
+            mock: なし（offscreen）
+            expected: hint_presets[0] が（"A", ["y"], True）、hint_presets[1] が B の値のまま、hint_presets.order が True
+        status: implemented
+      - name: mark_saved
+        title: 保存したプリセットを基準にする
+        kind: メソッド
+        scope: public
+        summary: 今の並びの順にプリセットの番号を 0 から振り直し、足したプリセットも保存したプリセットとして扱う。SettingsWindow.save が書けた後に呼ぶ
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_hint_preset_panel_mark_saved
+            case: 正常
+            summary: 保存した並びと足したプリセットを基準にする
+            condition: A・B の 2 件を set_presets し、B の「上へ」を押して add_preset を呼び、mark_saved を呼ぶ
+            mock: なし（offscreen）
+            expected: hint_presets[0] が B、hint_presets[1] が A、hint_presets[2] が（"", [], True）の値で、hint_presets.order が True。続けて add_preset を呼ぶと hint_presets[3] が増える
+        status: implemented
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
     status: implemented

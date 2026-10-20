@@ -459,17 +459,19 @@ def test_open_settings_when_reopened(qapp: QApplication, tmp_path: Path) -> None
     """開き閉めを繰り返しても窓が積もらない（正常系）。"""
     from voice_paste.ui.windows.settings_window import SettingsWindow
 
-    # 準備: 前のテストの破棄待ちを流した時点のトップレベルの窓の数を控える
+    # 準備: 前のテストの破棄待ちを流した時点のトップレベルの窓の数と、残っている設定画面を控える
     parts = _make_controller(tmp_path)
     _flush_deferred_deletes(qapp)
     top_level_count_before = len(qapp.topLevelWidgets())
+    settings_windows_before = [w for w in qapp.topLevelWidgets() if isinstance(w, SettingsWindow)]
 
     # 実行
     distinct_count = _reopen_settings(parts, qapp, REOPEN_COUNT)
     _flush_deferred_deletes(qapp)
 
     # 検証
-    remaining_windows = [w for w in qapp.topLevelWidgets() if isinstance(w, SettingsWindow)]
+    settings_windows_after = [w for w in qapp.topLevelWidgets() if isinstance(w, SettingsWindow)]
+    remaining_windows = [w for w in settings_windows_after if w not in settings_windows_before]
     assert distinct_count == REOPEN_COUNT
     assert remaining_windows == []
     assert len(qapp.topLevelWidgets()) == top_level_count_before

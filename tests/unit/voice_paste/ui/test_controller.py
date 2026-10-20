@@ -558,7 +558,6 @@ def test_event_filter_when_quit_with_settings_open(
     timeout.start(QUIT_TIMEOUT_MS)
     exit_code = qapp.exec()
     timeout.stop()
-    settings_window.hide()
 
     # 検証
     confirm_discard.assert_not_called()

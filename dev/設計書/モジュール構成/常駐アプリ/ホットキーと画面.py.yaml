@@ -939,7 +939,7 @@ classes:
       `WindowDoesNotAcceptFocus` のため、切り替えのボタンを押しても見出しの行をつかんでも窓は前面にならず、貼り付け先の入力欄のフォーカスはそのまま残る（前面を戻す処理は持たない）。
       見出しの行・つかむ印・名前の下にホットキーを出すボタンは、録音の画面と同じ部品（window_parts.py の HeadRow・GripIcon・HotkeyButton。recording_window.py から移す）を使う。見出しの行を押したまま動かすと `QWindow.startSystemMove` で窓を動かす。
       切り替えのボタンは、設定でオンの固定の出力先（`outputs[]` の並び。名前は UiDeps.output_titles、ホットキーは format_hotkey で整えた `outputs[].hotkey`）ごとに open で組み直す。`ui.transcribing_show_hotkeys` がオフのときはホットキーを空で渡し、名前だけを出す（録音の画面の `ui.show_hotkeys` は見ない）。今の出力先でないボタンを押すと output_selected を emit する（差し替えるのは UiController。印は output_changed の知らせを受けて set_output で替える）。
-      切り替えのボタンは、`ui.transcribing_show_hotkeys` のどちらでも等しい幅で並べる。全てのボタンを同じ固定の幅（setFixedWidth）にし、行の右に stretch を 1 つ置く。固定の幅は、組み直したときと窓の resizeEvent のたびに、「（行の幅 − 間隔 ×（ボタンの数 − 1））÷ ボタンの数」の切り捨てと、ボタンの sizeHint の幅のうち最も大きい値の、大きい方に取り直す（割り切れない数 px だけが行の右の stretch に残る）。
+      切り替えのボタンは、`ui.transcribing_show_hotkeys` のどちらでも等しい幅で並べる。全てのボタンを同じ固定の幅（setFixedWidth）にし、行の右に stretch を 1 つ置く。組み直したときは、固定の幅をボタンの sizeHint の幅のうち最も大きい値にする（前の回の窓の幅を引き継がず、窓の最小の幅はその幅のボタンの行と SWITCH_WINDOW_WIDTH_PX から決まる）。窓の resizeEvent のたびに、「（行の幅 − 間隔 ×（ボタンの数 − 1））÷ ボタンの数」の切り捨てと、その最も大きい値の、大きい方に取り直す（割り切れない数 px だけが行の右の stretch に残る）。
       切り替えのボタンは、右と上に印がはみ出す分の余白を枠の外に取り、選んだときの丸い印を枠の右上の角からその余白へはみ出して描く。名前とホットキーの文字の範囲には印を重ねない。
       残りの時間は、進み（区間の終わり ÷ 録音の長さ）と経過から「経過 ÷ 進み − 経過」で見積もる。
       コンストラクタは UiDeps と、経過を数える時計 clock（秒を返す関数。既定は time.monotonic）を受ける。
@@ -998,6 +998,12 @@ classes:
             condition: paste_and_send・paste_only・copy_only をオンにした回と、paste_only・copy_only だけをオンにした回で open し、窓を minimumSizeHint の幅から 1 px・2 px・3 px 広げる。`ui.transcribing_show_hotkeys` が true と false の両方。QT_QPA_PLATFORM=offscreen
             mock: UiDeps
             expected: どの幅でも switch_button_* の width() が全て同じ値で、最後のボタンの右に残る空きがボタンの数より小さい px
+          - name: test_open_when_previous_window_wide
+            case: 正常
+            summary: 前の回の広い窓の幅を引き継がず、切り替えのボタンを名前の最も長いボタンの幅で並べる
+            condition: paste_and_send・paste_only・copy_only をオンにして open し、窓を 800 px に広げてから、もう一度 open して窓を minimumSizeHint の幅にする。`ui.transcribing_show_hotkeys` が true と false の両方。QT_QPA_PLATFORM=offscreen
+            mock: UiDeps
+            expected: switch_button_* の width() が全て、各ボタンの sizeHint の幅の最大と等しい
       - name: set_progress
         title: 進みの反映
         summary: 進みのバーと残りの時間を書き換える

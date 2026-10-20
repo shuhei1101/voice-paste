@@ -1,0 +1,5 @@
+summary: "開発で使うコマンドの分類ごとの前提・順序・コマンド・確かめた記録"
+docs_index: true
+items:
+  - page: 開発コマンド.yaml
+    summary: 依存の追加・更新・削除と、取り込み後の追従のコマンド

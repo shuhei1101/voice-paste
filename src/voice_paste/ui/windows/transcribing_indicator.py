@@ -7,7 +7,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QPoint, QPointF, QRectF, Qt, QTimer, Signal
-from PySide6.QtGui import QPaintEvent, QPainter, QPen
+from PySide6.QtGui import QPaintEvent, QPainter, QPen, QResizeEvent
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QProgressBar, QVBoxLayout, QWidget
 
 from voice_paste.shared.settings import Settings
@@ -201,6 +201,7 @@ class TranscribingIndicator(QWidget):
         outer.addWidget(frame)
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(16, 16, 16, 16)
+        self._content_layout = layout
 
         # 見出しの行: つかむ印・回る印・状態（行のどこをつかんでも窓を動かせる）
         head_row = HeadRow()
@@ -274,10 +275,36 @@ class TranscribingIndicator(QWidget):
             )
             self._switch_layout.addWidget(button)
             self._switch_buttons[output.id] = button
+        # 余りの幅は行の右の stretch に残し、ボタンの幅は名前の最も長いボタンが収まる幅から始める（前の回の窓の幅を引き継がない）
+        self._switch_layout.addStretch(1)
+        self._set_switch_button_width(self._widest_switch_hint())
         self.setMinimumWidth(SWITCH_WINDOW_WIDTH_PX if self._switch_buttons else 0)
         self._mark_current()
         self._paste_hint.setText(hint_text(self._output_id))
         self._paste_hint.show()
+
+    def _widest_switch_hint(self) -> int:
+        """切り替えのボタンの sizeHint の幅のうち最も大きい値を返す（ボタンが無ければ 0）。"""
+        return max((button.sizeHint().width() for button in self._switch_buttons.values()), default=0)
+
+    def _set_switch_button_width(self, width: int) -> None:
+        """切り替えのボタンを全て同じ固定の幅にする。"""
+        for button in self._switch_buttons.values():
+            button.setFixedWidth(width)
+
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802 Qt の名前
+        """窓の幅が変わるたびに、切り替えのボタンの固定の幅を行の幅から取り直す。"""
+        super().resizeEvent(event)
+        # 切り替えのボタンが無い（カスタムプリセットで確定した回）: 取り直す幅がない
+        if not self._switch_buttons:
+            return
+        margins = self._content_layout.contentsMargins()
+        row_width = self.width() - margins.left() - margins.right()
+        count = len(self._switch_buttons)
+        gaps = self._switch_layout.spacing() * (count - 1)
+        # 行を等分した幅（切り捨て）と名前の最も長いボタンの幅の大きい方にし、割り切れない数 px だけを行の右の stretch に残す
+        share = (row_width - gaps) // count
+        self._set_switch_button_width(max(share, self._widest_switch_hint()))
 
     def _mark_current(self) -> None:
         """今の出力先のボタンだけを選んだ状態にする。"""

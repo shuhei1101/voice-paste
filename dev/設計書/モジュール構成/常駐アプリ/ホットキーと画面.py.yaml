@@ -1095,6 +1095,8 @@ classes:
       リテラルの列挙の一覧（貼り付けて送信の enter_modifiers など）は、列挙の値ごとのチェックボックスを欄の名前の下の行に横に並べ、オンにした値を列挙の並びで一覧にする。チェックボックスの名前はその項目の `json_schema_extra` の choice_labels（無ければ値そのまま）、objectName は `field_{キー}_{値}`。
       リテラルの列挙の 1 つを選ぶ欄（ui.position・ui.theme など）は make_radio_group にその項目の choice_labels を渡してラジオボタンの名前にし、保存では selected_radio が返す値を設定に入れる。
       カスタムプリセットは、PRESET_KIND_NAMES の種類ごとにまとまり（「出力先」のすぐ下のタブ）を 1 つ作り、その中に PresetListPanel とその種類の preset_options の欄を置く。Authorization の欄は `QLineEdit.EchoMode.Password` にする。
+      変えた欄の数えには、種類ごとの PresetListPanel.change_values のキーごとの変更を 1 件として含める。足した・消した・有効かタイトルか URL かホットキーか種類ごとの欄を変えたプリセット 1 つが 1 件（1 つのプリセットで何度変えても 1 件）、種類のタブごとに、開いたとき・保存したときからあって今も残っているプリセットどうしの順が変わったら並べ替えが 1 件になる（足す・消すだけでは並べ替えに数えない）。
+      保存した知らせのホットキーの文を出すかは、変えた欄の数えの値ではなく、ホットキーの欄の値（`hotkeys.*`・`outputs[].hotkey`・種類ごとのタブの中の何件目かのプリセットの hotkey）を開いたときの値と比べて決める。
       エラーの一覧のプリセットの行は、失敗の場所 `presets[{n}].{項目}` を「プリセット「{タイトル}」の{欄の名前}」（タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」）にし、押すとそのタブへ切り替えて PresetListPanel.focus_field で欄へフォーカスを移す。
       ホットキーの欄は押したキーを format_hotkey の形で出し、parse_hotkey で pynput の書式に戻す。
       コンストラクタは UiDeps を受ける。欄の部品は設定のキーを使った objectName（`field_{キー}`。プリセットの欄は画面設計の項目 ID）を持つ。窓が閉じたら（保存して再起動・今すぐ再起動・取り消し・窓の閉じるのどの経路でも。「保存」では閉じない）closed を emit する。
@@ -1150,7 +1152,7 @@ classes:
                - `[WARNING]` 保存するホットキーを受け付けられなかった（理由）
              - OSError の場合、エラーの一覧に「設定ファイルを書けませんでした（{理由}）」を出し、False を返す（用語集の CSV を書けないときも同じ文言で、理由にそのパスが出る）
                - `[ERROR]` 設定ファイルを書けなかった（logger.exception）
-          3. GlossaryPanel.mark_saved で用語集の書き戻しの基準を保存した行へ置き直し、HintPresetPanel.mark_saved でプリセットの番号を保存した並びで振り直し、変えた欄の数えの基準（`_baseline`）を今の欄の値へ置き直す（「再起動で反映」の件数の基準は開いたときの値のまま）
+          3. GlossaryPanel.mark_saved で用語集の書き戻しの基準を保存した行へ置き直し、HintPresetPanel.mark_saved と種類ごとの PresetListPanel.mark_saved でプリセットの番号を保存した並びで振り直し、変えた欄の数えの基準（`_baseline`）を今の欄の値へ置き直す（「再起動で反映」の件数の基準は開いたときの値のまま）
           4. saved を emit する
              - restart の場合、restart_requested を emit して窓を閉じ、True を返す
           5. 窓を開いたまま、保存した知らせを出して、同じ文を `QAccessible.updateAccessibility(QAccessibleAnnouncementEvent(知らせ, 文))` で読み上げにも伝え、True を返す（入れた値・選んでいたまとまり・欄のフォーカスはそのまま）
@@ -1250,9 +1252,9 @@ classes:
           - name: test_save_when_hotkey_changed
             case: 正常
             summary: ホットキーを変えた保存では、閉じると効くことを添える
-            condition: 録音開始のホットキーを変えて save(restart=False)。別のケースで出力先の確定のホットキーを変えて save(restart=False)。もう 1 つのケースで貼り付けに送るキーだけを変えて save(restart=False)
+            condition: 録音開始のホットキーを変えて save(restart=False)。別のケースで出力先の確定のホットキーを変えて save(restart=False)。別のケースでカスタムプリセットの確定のホットキーを変えて save(restart=False)。もう 1 つのケースで貼り付けに送るキーだけを変えて save(restart=False)
             mock: UiDeps.save_settings
-            expected: 録音開始か出力先の確定のホットキーを変えたときは保存した知らせが「保存しました。新しいホットキーは、設定画面を閉じると効きます。」。貼り付けに送るキーだけのときは「保存しました。」
+            expected: 録音開始か出力先の確定かカスタムプリセットの確定のホットキーを変えたときは保存した知らせが「保存しました。新しいホットキーは、設定画面を閉じると効きます。」。貼り付けに送るキーだけのときは「保存しました。」
           - name: test_save_when_restart_field_changed
             case: 正常
             summary: 「再起動で反映」の欄を保存すると、件数と今すぐ再起動を出し、保存の後に欄を変えると開いたときの値から数え直す
@@ -1345,6 +1347,7 @@ classes:
       要素（有効の切り替え・タイトル・URL・Enter まで送る・Authorization・確定のホットキー・上へ・下へ・消す・足す・空の案内）と読み上げの名前は画面設計「設定画面」が持つ。
       種類ごとに違う欄（browser は Enter まで送る、endpoint は Authorization）は、種類の設定のモデル（BrowserPreset・EndpointPreset）の共通でない項目から組み立てる。
       並べ替え・足す・消すはこの部品の中だけを変え、settings.toml へは設定画面の保存で書く。
+      変えた欄の数えのため、プリセットごとに、開いたとき・保存したときのプリセットを追う番号を持つ。set_presets と mark_saved で今の並びの順に 0 から振り直し、足したプリセットには振ったどの番号より大きい番号を振る。消す・並べ替えで一覧を作り直しても番号を引き継ぐ。
     properties:
       - name: kind
         type: str
@@ -1422,6 +1425,59 @@ classes:
         returns:
           type: None
           description: なし
+      - name: change_values
+        title: 変えた件数を数える値
+        kind: メソッド
+        scope: public
+        summary: 変えた欄の数えに使う値を、プリセット 1 つ = 1 キーと、並べ替えの 1 キーで返す（SettingsWindow が開いたとき・保存したときの値と比べて件数にする）
+        returns:
+          type: dict[str, object]
+          description: '`presets.{種類}[{番号}]` → そのプリセットの collect と同じ値、`presets.{種類}.order` → 開いたとき・保存したときからあって今も残っているプリセットが、番号の小さい順に並んでいるか'
+        process: |-
+          1. 今の並びのプリセットごとに、番号をキーにして collect と同じ値を入れる
+          2. set_presets か mark_saved で番号を振ったプリセット（足したプリセットを除く）を今の並びで取り出し、番号の小さい順に並んでいるかを `presets.{種類}.order` に入れる（消したプリセットは入らず、足したプリセットも見ないため、足す・消すだけでは変わらない）
+        unit_tests:
+          - name: test_preset_list_panel_change_values
+            case: 正常
+            summary: プリセットごとの値と並びの値を返す
+            condition: kind endpoint の一覧に、タイトル A・B の 2 件を set_presets する
+            mock: なし（offscreen）
+            expected: キーは 3 つで、presets.endpoint[0] が A の collect の値、presets.endpoint[1] が B の collect の値、presets.endpoint.order が True
+          - name: test_preset_list_panel_change_values_when_moved
+            case: 正常
+            summary: 並べ替えるとプリセットの値は変わらず、並びの値だけが変わる
+            condition: A・B・C の 3 件を set_presets し、A の「下へ」を押す
+            mock: なし（offscreen）
+            expected: presets.{kind}[0]・[1]・[2] が並べ替える前と同じ値で、presets.{kind}.order が False
+          - name: test_preset_list_panel_change_values_when_removed
+            case: 正常
+            summary: 途中のプリセットを消しても並びの値は変わらない
+            condition: A・B・C の 3 件を set_presets し、B の「消す」を押す
+            mock: なし（offscreen）
+            expected: キーは presets.{kind}[0]・presets.{kind}[2]・presets.{kind}.order の 3 つで、presets.{kind}[2] が C の値、presets.{kind}.order が True
+          - name: test_preset_list_panel_change_values_when_added
+            case: 正常
+            summary: 足したプリセットは新しい番号で返し、並びの値に入れない
+            condition: A の 1 件を set_presets し、add_preset を呼んでから、足したプリセットの「上へ」を押す
+            mock: なし（offscreen）
+            expected: presets.{kind}[0] が A の値、presets.{kind}[1] が足した空のプリセットの値、presets.{kind}.order が True
+        status: planned
+      - name: mark_saved
+        title: 保存したプリセットを基準にする
+        kind: メソッド
+        scope: public
+        summary: 今の並びの順にプリセットの番号を 0 から振り直し、足したプリセットも保存したプリセットとして扱う。SettingsWindow.save が書けた後に呼ぶ
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_preset_list_panel_mark_saved
+            case: 正常
+            summary: 保存した並びと足したプリセットを基準にする
+            condition: A・B の 2 件を set_presets し、B の「上へ」を押して add_preset を呼び、mark_saved を呼ぶ
+            mock: なし（offscreen）
+            expected: presets.{kind}[0] が B、presets.{kind}[1] が A、presets.{kind}[2] が足した空のプリセットの値で、presets.{kind}.order が True。続けて add_preset を呼ぶと presets.{kind}[3] が増える
+        status: planned
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
     status: implemented

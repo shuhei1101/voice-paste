@@ -169,3 +169,165 @@ def test_preset_list_panel_hotkey_clear_button(qapp: QApplication) -> None:
     # 検証（押した後）
     assert panel.collect()[0]["hotkey"] == ""
     assert clear_buttons[0].isEnabled() is False
+
+
+def test_preset_list_panel_change_values(qapp: QApplication) -> None:
+    """プリセットごとの値と並びの値を返す（正常系）。"""
+    from voice_paste.shared.settings import EndpointPreset
+    from voice_paste.ui.windows.settings_presets import PresetListPanel
+
+    # 準備
+    panel = PresetListPanel("endpoint")
+    panel.set_presets(
+        [
+            EndpointPreset(title="A", url="http://127.0.0.1:9000/a"),
+            EndpointPreset(title="B", url="http://127.0.0.1:9000/b"),
+        ]
+    )
+
+    # 実行
+    values = panel.change_values()
+
+    # 検証
+    assert values == {
+        "presets.endpoint[0]": {
+            "kind": "endpoint",
+            "enabled": True,
+            "title": "A",
+            "url": "http://127.0.0.1:9000/a",
+            "hotkey": "",
+            "authorization": "",
+        },
+        "presets.endpoint[1]": {
+            "kind": "endpoint",
+            "enabled": True,
+            "title": "B",
+            "url": "http://127.0.0.1:9000/b",
+            "hotkey": "",
+            "authorization": "",
+        },
+        "presets.endpoint.order": True,
+    }
+
+
+def test_preset_list_panel_change_values_when_moved(qapp: QApplication) -> None:
+    """並べ替えるとプリセットの値は変わらず、並びの値だけが変わる（正常系）。"""
+    from voice_paste.shared.settings import BrowserPreset
+    from voice_paste.ui.windows.settings_presets import PresetListPanel
+
+    # 準備
+    panel = PresetListPanel("browser")
+    panel.set_presets(
+        [
+            BrowserPreset(title="A", url="https://a.example"),
+            BrowserPreset(title="B", url="https://b.example"),
+            BrowserPreset(title="C", url="https://c.example"),
+        ]
+    )
+    before = panel.change_values()
+
+    # 実行（A の「下へ」を押す）
+    _buttons(panel, "preset_down_")[0].click()
+
+    # 検証
+    after = panel.change_values()
+    assert after["presets.browser[0]"] == before["presets.browser[0]"]
+    assert after["presets.browser[1]"] == before["presets.browser[1]"]
+    assert after["presets.browser[2]"] == before["presets.browser[2]"]
+    assert after["presets.browser.order"] is False
+
+
+def test_preset_list_panel_change_values_when_removed(qapp: QApplication) -> None:
+    """途中のプリセットを消しても並びの値は変わらない（正常系）。"""
+    from voice_paste.shared.settings import BrowserPreset
+    from voice_paste.ui.windows.settings_presets import PresetListPanel
+
+    # 準備
+    panel = PresetListPanel("browser")
+    panel.set_presets(
+        [
+            BrowserPreset(title="A", url="https://a.example"),
+            BrowserPreset(title="B", url="https://b.example"),
+            BrowserPreset(title="C", url="https://c.example"),
+        ]
+    )
+
+    # 実行（B の「消す」を押す）
+    _buttons(panel, "preset_remove_")[1].click()
+
+    # 検証
+    values = panel.change_values()
+    assert set(values) == {"presets.browser[0]", "presets.browser[2]", "presets.browser.order"}
+    assert values["presets.browser[2]"] == {
+        "kind": "browser",
+        "enabled": True,
+        "title": "C",
+        "url": "https://c.example",
+        "hotkey": "",
+        "send_enter": True,
+    }
+    assert values["presets.browser.order"] is True
+
+
+def test_preset_list_panel_change_values_when_added(qapp: QApplication) -> None:
+    """足したプリセットは新しい番号で返し、並びの値に入れない（正常系）。"""
+    from voice_paste.shared.settings import BrowserPreset
+    from voice_paste.ui.windows.settings_presets import PresetListPanel
+
+    # 準備
+    panel = PresetListPanel("browser")
+    panel.set_presets([BrowserPreset(title="A", url="https://a.example")])
+
+    # 実行（足してから、足したプリセットの「上へ」を押す）
+    panel.add_preset()
+    _buttons(panel, "preset_up_")[1].click()
+
+    # 検証
+    values = panel.change_values()
+    assert values["presets.browser[0]"] == {
+        "kind": "browser",
+        "enabled": True,
+        "title": "A",
+        "url": "https://a.example",
+        "hotkey": "",
+        "send_enter": True,
+    }
+    assert values["presets.browser[1]"] == {
+        "kind": "browser",
+        "enabled": True,
+        "title": "",
+        "url": "",
+        "hotkey": "",
+        "send_enter": True,
+    }
+    assert values["presets.browser.order"] is True
+
+
+def test_preset_list_panel_mark_saved(qapp: QApplication) -> None:
+    """保存した並びと足したプリセットを基準にする（正常系）。"""
+    from voice_paste.shared.settings import BrowserPreset
+    from voice_paste.ui.windows.settings_presets import PresetListPanel
+
+    # 準備（B を上へ動かし、プリセットを 1 つ足す）
+    panel = PresetListPanel("browser")
+    panel.set_presets(
+        [
+            BrowserPreset(title="A", url="https://a.example"),
+            BrowserPreset(title="B", url="https://b.example"),
+        ]
+    )
+    _buttons(panel, "preset_up_")[1].click()
+    panel.add_preset()
+
+    # 実行
+    panel.mark_saved()
+
+    # 検証（保存した並びで番号を振り直し、足したプリセットも保存したものとして扱う）
+    values = panel.change_values()
+    assert values["presets.browser[0]"]["title"] == "B"
+    assert values["presets.browser[1]"]["title"] == "A"
+    assert values["presets.browser[2]"]["title"] == ""
+    assert values["presets.browser.order"] is True
+    # 検証（続けて足すと、次の番号が増える）
+    panel.add_preset()
+    assert "presets.browser[3]" in panel.change_values()

@@ -437,7 +437,7 @@ elements:
   - name: 行が無いときの文
     id: glossary_entries_empty
     kind: label
-    position: 窓 > 右 > 用語集 > 用語集の行 > 名前の欄の下
+    position: 窓 > 右 > 用語集 > 用語集の行 > 消す行の説明の下
     description: 行の表の代わりに、行が無いことを伝える
     label: この用語集にはまだ行がありません。
     io: 表示

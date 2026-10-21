@@ -2,7 +2,7 @@ title: "設定: 常駐アプリ"
 lead: 常駐アプリが `settings.toml` から読む設定の一覧。読み書きは `src/voice_paste/shared/settings.py`、見本は `settings.sample.toml`。
 files:
   - file: resources/yogo.csv
-    manages: 用語集（誤変換 → 正しい表記）
+    manages: 用語集（誤変換 → 正しい表記。正しい表記が空の行は誤変換を消す）
     notes: 列は `誤変換`・`正しい表記` と、行のオン・オフの `使う`（`0` がオフ。列が無い行はオン）。録音を確定するたびに読み直す。置き場所は `glossary_path` で変えられる。設定画面で足した用語集は `glossaries[].path` の CSV に同じ列で持つ（列の定義は ER 図『常駐アプリのファイル』の用語集の CSV）。
   - file: settings.toml
     manages: 新しい構成（src/voice_paste/）の設定の全部

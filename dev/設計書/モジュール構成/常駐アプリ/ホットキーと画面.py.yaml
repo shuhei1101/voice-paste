@@ -1252,9 +1252,9 @@ classes:
           - name: test_save_when_hotkey_changed
             case: 正常
             summary: ホットキーを変えた保存では、閉じると効くことを添える
-            condition: 録音開始のホットキーを変えて save(restart=False)。別のケースで出力先の確定のホットキーを変えて save(restart=False)。もう 1 つのケースで貼り付けに送るキーだけを変えて save(restart=False)
+            condition: 録音開始のホットキーを変えて save(restart=False)。別のケースで出力先の確定のホットキーを変えて save(restart=False)。別のケースでカスタムプリセットの確定のホットキーを変えて save(restart=False)。もう 1 つのケースで貼り付けに送るキーだけを変えて save(restart=False)
             mock: UiDeps.save_settings
-            expected: 録音開始か出力先の確定のホットキーを変えたときは保存した知らせが「保存しました。新しいホットキーは、設定画面を閉じると効きます。」。貼り付けに送るキーだけのときは「保存しました。」
+            expected: 録音開始か出力先の確定かカスタムプリセットの確定のホットキーを変えたときは保存した知らせが「保存しました。新しいホットキーは、設定画面を閉じると効きます。」。貼り付けに送るキーだけのときは「保存しました。」
           - name: test_save_when_restart_field_changed
             case: 正常
             summary: 「再起動で反映」の欄を保存すると、件数と今すぐ再起動を出し、保存の後に欄を変えると開いたときの値から数え直す

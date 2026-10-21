@@ -19,7 +19,7 @@
     <!-- 部品の説明 -->
     <header class="intro">
       <h1>用語集の欄</h1>
-      <p>設定画面の用語集のまとまりに置く部品。上に用語集の一覧（補正に使う・名前・行の数・消す）と「用語集を足す」、下に一覧で選んだ用語集の名前の欄と行の表（使う・誤変換・正しい表記・消す）と「行を足す」を並べる。正しい表記を空にした行は、起こした文字から誤変換を消す行になる（#152。見分け方の案 A・案 B を末尾に並べる）。</p>
+      <p>設定画面の用語集のまとまりに置く部品。上に用語集の一覧（補正に使う・名前・行の数・消す）と「用語集を足す」、下に一覧で選んだ用語集の名前の欄と行の表（使う・誤変換・正しい表記・消す）と「行を足す」を並べる。正しい表記を空にした行は、起こした文字から誤変換を消す行になる（#152。見分け方は案 B を採用し、採用しない案 A と並べて末尾に置く）。</p>
     </header>
 
     <div class="desk desk--single">
@@ -404,9 +404,9 @@
         <p class="scene-note">一覧の名前のボタンは列の幅で省略し、見出しと名前の欄には全文を出す。行の欄は列の幅の中で横に流す。</p>
       </section>
 
-      <!-- 状態: 誤変換を消す行（案 A: 空の欄にプレースホルダ） -->
+      <!-- 状態: 誤変換を消す行（案 A: 空の欄にプレースホルダ。採用しない） -->
       <section class="specimen" aria-labelledby="h-erase-a">
-        <h2 id="h-erase-a">誤変換を消す行（案 A: 空の欄にプレースホルダ）</h2>
+        <h2 id="h-erase-a">誤変換を消す行（案 A: 空の欄にプレースホルダ。採用しない）</h2>
         <div class="win settings__form">
                 <h3 class="subhead">用語集の一覧</h3>
                 <!-- 用語集の一覧と行の表: refs/97 の app.js が選ぶ・足す・消す・補正に使う用語集の切り替えを受ける -->
@@ -465,12 +465,12 @@
 <template data-entry-template><tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="1 行目を補正に使う" checked></td><td><input type="text" data-wrong value="" aria-label="1 行目の誤変換"></td><td><input type="text" data-right placeholder="（消す）" value="" aria-label="1 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr></template>
                 </div>
         </div>
-        <p class="scene-note">正しい表記が空の行は、空の欄に「（消す）」をプレースホルダで出す。正しい表記を入れるとプレースホルダは消え、置き換える行に戻る。「行を足す」で足した空の行にも出るが、誤変換も空のままの行は保存で捨てる。</p>
+        <p class="scene-note">採用しない案。正しい表記が空の行は、空の欄に「（消す）」をプレースホルダで出す。正しい表記を入れるとプレースホルダは消え、置き換える行に戻る。「行を足す」で足した空の行にも出るが、誤変換も空のままの行は保存で捨てる。</p>
       </section>
 
-      <!-- 状態: 誤変換を消す行（案 B: 表の上の説明） -->
+      <!-- 状態: 誤変換を消す行（案 B: 表の上の説明。採用） -->
       <section class="specimen" aria-labelledby="h-erase-b">
-        <h2 id="h-erase-b">誤変換を消す行（案 B: 表の上の説明）</h2>
+        <h2 id="h-erase-b">誤変換を消す行（案 B: 表の上の説明） <span class="badge badge--ok">採用</span></h2>
         <div class="win settings__form">
                 <h3 class="subhead">用語集の一覧</h3>
                 <!-- 用語集の一覧と行の表: refs/97 の app.js が選ぶ・足す・消す・補正に使う用語集の切り替えを受ける -->

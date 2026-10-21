@@ -1,0 +1,1 @@
+# master を develop へバックマージする競合の解消

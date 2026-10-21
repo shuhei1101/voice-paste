@@ -31,8 +31,8 @@ from voice_paste.ui.windows.settings_fields import set_invalid
 
 logger = logging.getLogger(__name__)
 
-type RowField = Literal["wrong", "right"]
-"""行の表の欄の種類（誤変換・正しい表記）。"""
+type RowField = Literal["wrong"]
+"""行の表で確かめて失敗を出す欄の種類（誤変換）。"""
 
 type GlossaryField = Literal["name", "wrong", "right"]
 """エラーを出す・フォーカスを移す欄の種類（用語集の名前・行の誤変換・行の正しい表記）。"""
@@ -70,11 +70,11 @@ COUNT_COLUMN_SAMPLE: str = "000 行（オン 000）"
 LEGEND_TEXT: str = "上の行から順に置き換える。オフの行は補正に使わない。"
 """行の順とオン・オフが補正にどう効くかを示す凡例。"""
 
-ROW_ERROR_MESSAGES: dict[str, str] = {
-    "wrong": "誤変換を入れてください。",
-    "right": "正しい表記を入れてください。",
-}
-"""片方だけが空の行の、空の側の欄の下に出すエラーの文言。"""
+DELETE_NOTE_TEXT: str = "正しい表記を空にすると、誤変換を消す。"
+"""正しい表記を空にした行が誤変換を消すことを伝える、名前の欄の下に出す説明。"""
+
+ROW_ERROR_MESSAGES: dict[str, str] = {"wrong": "誤変換を入れてください。"}
+"""誤変換だけが空の行の、誤変換の欄の下に出すエラーの文言。"""
 
 
 @dataclass(eq=False)
@@ -110,14 +110,12 @@ class _ListRow:
 
 
 def find_glossary_row_errors(entries: Sequence[GlossaryEntry]) -> list[tuple[int, RowField]]:
-    """用語集の行のうち、誤変換か正しい表記の片方だけが空の行と、空の側の項目を返す。オフの行も確かめる。"""
+    """用語集の行のうち、正しい表記が入っていて誤変換が空の行と、空の側の項目を返す。オフの行も確かめる。"""
     errors: list[tuple[int, RowField]] = []
     for position, entry in enumerate(entries):
-        # 誤変換だけが空: 誤変換の欄、正しい表記だけが空: 正しい表記の欄（両方が空の行は返さない）
+        # 誤変換だけが空: 誤変換の欄（両方が空の行と、正しい表記だけが空の行は返さない）
         if not entry.wrong and entry.right:
             errors.append((position, "wrong"))
-        elif entry.wrong and not entry.right:
-            errors.append((position, "right"))
     return errors
 
 
@@ -276,7 +274,7 @@ class GlossaryPanel(QWidget):
             glossary.original = self._filled_entries(glossary)
 
     def row_errors(self) -> list[tuple[int, int, RowField]]:
-        """読めた全ての用語集の行を確かめ、片方だけが空の行の（用語集の何件目か, 何行目か, 空の側の項目）を返す。"""
+        """読めた全ての用語集の行を確かめ、誤変換だけが空の行の（用語集の何件目か, 何行目か, 空の側の項目）を返す。"""
         errors: list[tuple[int, int, RowField]] = []
         for position, glossary in enumerate(self._glossaries):
             if glossary.unreadable is not None:
@@ -486,7 +484,7 @@ class GlossaryPanel(QWidget):
     # --- 名前の欄と行の表 ---
 
     def _rebuild_detail(self) -> None:
-        """行の表を出している用語集の見出し・名前の欄・行の表（読めなければ理由）・行を足すボタン・凡例を作り直す。"""
+        """行の表を出している用語集の見出し・名前の欄・消す行の説明・行の表（読めなければ理由）・行を足すボタン・凡例を作り直す。"""
         _clear_layout(self._detail_layout)
         self._inputs = {}
         self._error_labels = {}
@@ -512,12 +510,18 @@ class GlossaryPanel(QWidget):
             unreadable.setObjectName("glossary_unreadable")
             unreadable.setWordWrap(True)
             self._detail_layout.addWidget(unreadable)
-        elif not glossary.rows:
-            empty = QLabel(EMPTY_ROWS_TEXT)
-            empty.setObjectName("glossary_entries_empty")
-            self._detail_layout.addWidget(empty)
         else:
-            self._detail_layout.addWidget(self._build_entries(glossary))
+            # 読めた用語集は、正しい表記を空にした行が誤変換を消すことを名前の欄の下に出す
+            delete_note = QLabel(DELETE_NOTE_TEXT)
+            delete_note.setObjectName("glossary_delete_note")
+            delete_note.setProperty("role", "muted")
+            self._detail_layout.addWidget(delete_note)
+            if not glossary.rows:
+                empty = QLabel(EMPTY_ROWS_TEXT)
+                empty.setObjectName("glossary_entries_empty")
+                self._detail_layout.addWidget(empty)
+            else:
+                self._detail_layout.addWidget(self._build_entries(glossary))
 
         foot = QWidget()
         foot_line = QHBoxLayout(foot)

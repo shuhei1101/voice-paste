@@ -72,8 +72,14 @@ GLOSSARY_SETTINGS = f'[[glossaries]]\nname = "e2e"\npath = "{GLOSSARY_FILE_NAME}
 GLOSSARY_ROWS = "誤変換,正しい表記,使う\nテスト,試験,1\n天気,WEATHER,0\n"
 """用語集の行（話す内容で起きる誤変換のオンの行と、別の誤変換のオフの行）。"""
 
+DELETE_ROW = "ありがとう,,1\n"
+"""話す内容に入る文言を誤変換にして、正しい表記を空にしたオンの行（消す行）。"""
+
 CORRECTED_WORD = "試験"
 """オンの行で置き換わった、正しい表記。"""
+
+DELETED_WORD = THREE_SENTENCES[2][1]
+"""消す行の誤変換（起こした文字から消える言葉）。"""
 
 OFF_ROW_WORD = THREE_SENTENCES[1][1]
 """オフの行の誤変換（置き換わらずに残る言葉）。"""
@@ -159,6 +165,11 @@ def _put_glossary(data_dir: Path) -> None:
     (data_dir / GLOSSARY_FILE_NAME).write_text(GLOSSARY_ROWS, encoding="utf-8")
 
 
+def _put_glossary_with_delete_row(data_dir: Path) -> None:
+    """起動の前に、消す行を足した用語集の CSV を settings.toml と同じフォルダへ置く。"""
+    (data_dir / GLOSSARY_FILE_NAME).write_text(GLOSSARY_ROWS + DELETE_ROW, encoding="utf-8")
+
+
 def _ready_count(app: ResidentApp) -> int:
     """文字起こしワーカーが ready になった回数（立て直しを含む）を、ログから数える。"""
     return sum(message.startswith(WORKER_READY_LOG) for message in app.log_messages())
@@ -192,7 +203,7 @@ def _confirm_with_paste_and_send(app: ResidentApp) -> None:
 
 
 def test_normal(run_app: RunApp, tmp_path: Path, clipboard_sentinel: str) -> None:
-    """確定した録音を起こすと、用語集のオンの行だけで誤変換が置き換わり、区間ごとに改行で区切られ、履歴に残り、文字起こし中の表示が閉じて、届けられる（正常シナリオ）。"""
+    """確定した録音を起こすと、用語集のオンの行だけで誤変換が置き換わり、消す行の誤変換が消え、区間ごとに改行で区切られ、履歴に残り、文字起こし中の表示が閉じて、届けられる（正常シナリオ）。"""
     # 準備: 文の間に無音を挟んだ WAV を実時間で流す（区間を 2 つ以上にする）
     wav_input = speech_sequence_input(
         tmp_path, sentences_of(THREE_SENTENCES), gap_sec=SEGMENT_GAP_SEC
@@ -212,6 +223,7 @@ def test_normal(run_app: RunApp, tmp_path: Path, clipboard_sentinel: str) -> Non
         text = app.history_text()
         assert CORRECTED_WORD in text
         assert SPEECH_WORD not in text
+        assert DELETED_WORD not in text
         assert OFF_ROW_WORD in text
         assert len(text.splitlines()) >= 2
         assert pyperclip.paste() == text
@@ -221,7 +233,7 @@ def test_normal(run_app: RunApp, tmp_path: Path, clipboard_sentinel: str) -> Non
     run_app(
         case,
         extra_settings=GLOSSARY_SETTINGS,
-        prepare=_put_glossary,
+        prepare=_put_glossary_with_delete_row,
         wav_input=wav_input,
         keys=keys,
     )

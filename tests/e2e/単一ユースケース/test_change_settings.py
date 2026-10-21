@@ -59,6 +59,9 @@ GLOSSARY_FILE_NAME = "yogo.csv"
 GLOSSARY_TWO_ROWS = "誤変換,正しい表記\nkuroudo,Claude\ngitto,Git\n"
 """用語集に 2 つある行（キーを打つ操作が確かな ASCII の語にしている）。"""
 
+DELETED_WORD = "arigato"
+"""足した行で、正しい表記を空にして消す誤変換（キーを打つ操作が確かな ASCII の語にしている）。"""
+
 COMMENT_LINE = "# E2E: このコメントは保存しても残る"
 """COMMENTED_SETTINGS が持つコメント。"""
 
@@ -365,13 +368,13 @@ def test_normal_when_add_custom_preset(
 
 
 def test_normal_when_edit_glossary(run_app: RunApp) -> None:
-    """用語集の行を足し・書き換え・オフにして保存すると、用語集のファイルに書き戻され、設定画面は開いたまま保存できたことを出し、再起動せずに補正へ効く（正常シナリオ）。
+    """用語集の行を足し（1 つは正しい表記を空にする）・書き換え・オフにして保存すると、用語集のファイルに書き戻され、設定画面は開いたまま保存できたことを出し、再起動せずに補正へ効く（正常シナリオ）。
 
     補正は、動いている常駐アプリの補正に文字を渡して確かめる（マイクは開かない）。
     """
 
     def case(app: ResidentApp) -> None:
-        """設定画面の「用語集」で、行を足し、1 つ目の行の正しい表記を書き換え、2 つ目の行をオフにして保存する。"""
+        """設定画面の「用語集」で、行を 2 つ足し（1 つは誤変換だけを入れる）、1 つ目の行の正しい表記を書き換え、2 つ目の行をオフにして保存する。"""
         # 準備
         app.open_settings()
         app.select_group("用語集")
@@ -380,6 +383,8 @@ def test_normal_when_edit_glossary(run_app: RunApp) -> None:
         app.press("add_glossary_entry_button")
         app.set_text("glossary_entry_wrong_2", "paison")
         app.set_text("glossary_entry_right_2", "Python")
+        app.press("add_glossary_entry_button")
+        app.set_text("glossary_entry_wrong_3", DELETED_WORD)
         app.set_text("glossary_entry_right_0", "Claude Code")
         app.click("glossary_entry_on_1")
         app.press("save_button")
@@ -391,10 +396,13 @@ def test_normal_when_edit_glossary(run_app: RunApp) -> None:
             GlossaryEntry(wrong="kuroudo", right="Claude Code"),
             GlossaryEntry(wrong="gitto", right="Git", enabled=False),
             GlossaryEntry(wrong="paison", right="Python"),
+            GlossaryEntry(wrong=DELETED_WORD, right=""),
         ]
         assert COMMENT_LINE in _settings_file(app).read_text(encoding="utf-8")
         assert _toml(app)["recording"]["fade_sec"] == 1.5  # type: ignore[index]
-        assert app.correct_text("kuroudo gitto paison") == "Claude Code gitto Python"
+        assert (
+            app.correct_text(f"kuroudo gitto {DELETED_WORD} paison") == "Claude Code gitto  Python"
+        )
 
     run_app(case, extra_settings=COMMENTED_SETTINGS, prepare=_put_glossary)
 

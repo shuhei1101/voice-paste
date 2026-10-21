@@ -468,6 +468,40 @@ def test_save_when_glossary_invalid(
     assert "用語集 3 件目の 2 行目の誤変換: 誤変換を入れてください" in summary
 
 
+def test_save_when_glossary_right_empty(
+    open_with_glossaries: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """正しい表記だけが空の行は確かめに通し、空のまま書き戻しに渡す（正常系）。"""
+    from voice_paste.shared.settings import GlossarySettings
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（1 件目の用語集に行を足して、誤変換「ご視聴ありがとうございました」だけを入れる）
+    glossary = GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
+    opened = open_with_glossaries(
+        [glossary], {glossary.path: [GlossaryEntry(wrong="あ", right="A")]}
+    )
+    _select_group(opened.window, "用語集")
+    _button(opened.window, "add_glossary_entry_button").click()
+    _visible_edits(opened.window, "glossary_entry_wrong_")[1].setText("ご視聴ありがとうございました")
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is True
+    summary = opened.window.findChild(QWidget, "error_summary")
+    assert summary is not None
+    assert not summary.isVisible()
+    opened.deps.save_settings.assert_called_once()
+    _, changed_rows = opened.deps.save_settings.call_args.args
+    assert changed_rows == {
+        glossary.path: [
+            GlossaryEntry(wrong="あ", right="A"),
+            GlossaryEntry(wrong="ご視聴ありがとうございました", right=""),
+        ]
+    }
+
+
 HINT_TOO_LONG_WORD_CHARS = 74
 """日本語 74 文字 = 222 バイトの語の文字数（これに英字 1 文字を足すと 223 バイト）。"""
 

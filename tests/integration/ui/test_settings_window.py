@@ -2554,6 +2554,65 @@ def test_glossary_entries_when_visible(open_window: Callable[..., Opened], tmp_p
     assert empty.text() == "この用語集にはまだ行がありません。"
 
 
+def test_glossary_entries_empty_position(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """行が無いときの文は、消す行の説明の下に出す（行が 0 の用語集で、説明が上に出る）。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, {"空": "誤変換,正しい表記\n"})
+
+    # 実行・検証
+    assert _detail_order(opened.window, "glossary_delete_note", "glossary_entries_empty") == [
+        "glossary_delete_note",
+        "glossary_entries_empty",
+    ]
+
+
+# === glossary_delete_note ===
+
+
+def _detail_order(window: QWidget, *names: str) -> list[str]:
+    """用語集の行の欄に並ぶ部品のうち、objectName が names のものを、上から並んでいる順で返す。"""
+    parent = find(window, QLabel, "glossary_detail_title").parentWidget()
+    layout = parent.layout()
+    positions = {}
+    for name in names:
+        widget = parent.findChild(QWidget, name)
+        # 入れ子の中にある部品は、行の欄の直下の部品の位置で比べる
+        while widget.parentWidget() is not parent:
+            widget = widget.parentWidget()
+        positions[name] = layout.indexOf(widget)
+    return sorted(names, key=lambda name: positions[name])
+
+
+def test_glossary_delete_note_initial_value(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """消す行の説明は「正しい表記を空にすると、誤変換を消す。」で、名前の欄の下・行の表の上に出す。"""
+    # 実行
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+
+    # 検証
+    note = find(opened.window, QLabel, "glossary_delete_note")
+    assert note.isVisible()
+    assert note.text() == "正しい表記を空にすると、誤変換を消す。"
+    assert _detail_order(
+        opened.window, "glossary_name_0", "glossary_delete_note", "glossary_entries"
+    ) == ["glossary_name_0", "glossary_delete_note", "glossary_entries"]
+
+
+def test_glossary_delete_note_when_unreadable(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """CSV を読めなかった用語集の行の表を出しているときは、消す行の説明を出さない。読めた用語集へ戻れば出す。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, {"yogo": CSV_FIVE_ROWS, "壊れた": SJIS_CSV})
+
+    # 実行
+    _click(opened.window, "glossary_pick_1")
+
+    # 検証
+    assert opened.window.findChild(QLabel, "glossary_delete_note") is None
+    _click(opened.window, "glossary_pick_0")
+    assert find(opened.window, QLabel, "glossary_delete_note").isVisible()
+
+
 # === glossary_entry_on_{n} ===
 
 
@@ -2803,30 +2862,45 @@ def test_input_check_when_glossary_name_overlap(
     opened.deps.save_settings.assert_not_called()
 
 
-@pytest.mark.parametrize(
-    ("emptied", "message", "kept"),
-    [
-        pytest.param("wrong", "誤変換を入れてください。", "right", id="wrong"),
-        pytest.param("right", "正しい表記を入れてください。", "wrong", id="right"),
-    ],
-)
-def test_input_check_when_glossary_entry_half_empty(
-    open_window: Callable[..., Opened], tmp_path: Path, emptied: str, message: str, kept: str
+def test_input_check_when_glossary_entry_wrong_empty(
+    open_window: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """誤変換か正しい表記の片方だけが空の行: 空の欄の下とエラーの一覧に「誤変換を入れてください。」「正しい表記を入れてください。」を出す。"""
+    """誤変換が空で、同じ行の正しい表記が空でない行: 誤変換の欄の下とエラーの一覧に「誤変換を入れてください。」を出す。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
-    find(opened.window, QLineEdit, f"glossary_entry_{emptied}_1").setText("")
-    label = {"wrong": "誤変換", "right": "正しい表記"}[emptied]
+    find(opened.window, QLineEdit, "glossary_entry_wrong_1").setText("")
 
     # 実行
     _click(opened.window, "save_button")
 
     # 検証
-    assert _field_errors(opened.window) == [message]
-    assert f"用語集 1 件目の 2 行目の{label}: {message}" in _error_rows(opened.window)
+    assert _field_errors(opened.window) == ["誤変換を入れてください。"]
+    assert "用語集 1 件目の 2 行目の誤変換: 誤変換を入れてください。" in _error_rows(opened.window)
     opened.deps.save_settings.assert_not_called()
-    assert find(opened.window, QLineEdit, f"glossary_entry_{kept}_1").text() != ""
+    assert find(opened.window, QLineEdit, "glossary_entry_right_1").text() != ""
+
+
+def test_input_check_when_glossary_entry_right_empty(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """誤変換が入っていて正しい表記が空の行は違反にせず、エラーを出さずに保存して、空のまま書き戻す（誤変換を消す行）。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    find(opened.window, QLineEdit, "glossary_entry_right_1").setText("")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert _field_errors(opened.window) == []
+    assert _error_rows(opened.window) == []
+    saved, rows = _saved(opened)
+    assert saved.glossaries[0].name == "yogo"
+    assert [(row.wrong, row.right) for row in rows[tmp_path / "yogo.csv"]][:3] == [
+        ("あ", "A"),
+        ("い", ""),
+        ("う", "C"),
+    ]
 
 
 def test_input_check_when_glossary_entry_in_unused_glossary_or_off_row(
@@ -2837,7 +2911,7 @@ def test_input_check_when_glossary_entry_in_unused_glossary_or_off_row(
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
     find(opened.window, QLineEdit, "glossary_entry_wrong_2").setText("")
     _click(opened.window, "glossary_pick_1")
-    find(opened.window, QLineEdit, "glossary_entry_right_0").setText("")
+    find(opened.window, QLineEdit, "glossary_entry_wrong_0").setText("")
 
     # 実行
     _click(opened.window, "save_button")
@@ -2845,7 +2919,7 @@ def test_input_check_when_glossary_entry_in_unused_glossary_or_off_row(
     # 検証
     rows = _error_rows(opened.window)
     assert "用語集 1 件目の 3 行目の誤変換: 誤変換を入れてください。" in rows
-    assert "用語集 2 件目の 1 行目の正しい表記: 正しい表記を入れてください。" in rows
+    assert "用語集 2 件目の 1 行目の誤変換: 誤変換を入れてください。" in rows
     assert rows[0] == "保存できませんでした。2 件の欄を直してください。"
 
 

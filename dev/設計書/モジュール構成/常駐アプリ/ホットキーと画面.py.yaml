@@ -1142,8 +1142,8 @@ classes:
           type: bool
           description: 保存できたか
         process: |-
-          1. collect した値を Settings.model_validate に渡し、あわせて GlossaryPanel.row_errors で用語集の行（誤変換か正しい表記の片方だけが空）を確かめる
-             - ValidationError か行の失敗がある場合、失敗ごとに to_field_message で欄ごとのエラーにし（行の失敗は「誤変換を入れてください。」「正しい表記を入れてください。」）、エラーの一覧と欄の下のエラーを出して一覧へフォーカスを移し、False を返す（入れた値は消さない）
+          1. collect した値を Settings.model_validate に渡し、あわせて GlossaryPanel.row_errors で用語集の行（正しい表記が入っていて誤変換が空）を確かめる
+             - ValidationError か行の失敗がある場合、失敗ごとに to_field_message で欄ごとのエラーにし（行の失敗は「誤変換を入れてください。」）、エラーの一覧と欄の下のエラーを出して一覧へフォーカスを移し、False を返す（入れた値は消さない）
                - `[INFO]` 設定画面の値が確かめに通らなかった（キーの一覧）
           2. save_settings（UiDeps）に、確かめた設定と GlossaryPanel.changed_rows（行を変えた用語集と足した用語集の場所 → 行）を渡して書いて効かせる
              - HotkeyError の場合、エラーの一覧に「ホットキーを受け付けられませんでした（{理由}）。別のキーにしてください。」を出し、False を返す（settings.toml も用語集の CSV も書かれていない）
@@ -1271,6 +1271,13 @@ classes:
             condition: 「録音中の音量の割合」を 30 にして save(restart=False) し、try_close を呼ぶ。別のケースで用語集の行を 1 つオフにして save(restart=False) し、欄を変えずに try_close を呼ぶ。もう 1 つのケースで保存の後に「録音の画面を出さない」をオンにする
             mock: UiDeps.save_settings・list_glossaries・read_glossary・confirm_discard
             expected: 音量のケースと用語集のケースのどちらも、try_close が True を返し、confirm_discard が呼ばれず、closed が 1 回知らされる。欄を変えたケースは保存した知らせが隠れる
+          - name: test_save_when_glossary_right_empty
+            case: 正常
+            summary: 正しい表記だけが空の行は確かめに通し、空のまま書き戻しに渡す
+            condition: 1 件目の用語集に行を足して誤変換「ご視聴ありがとうございました」だけを入れ、save(restart=False)
+            mock: UiDeps.save_settings（引数を控える）・list_glossaries・read_glossary
+            expected: True。エラーの一覧が出ず、書き戻しの引数が 1 件目の場所を持ち、足した行が wrong="ご視聴ありがとうございました"・right=""
+            exception: '-'
       - name: reset_to_defaults
         title: 既定に戻す
         summary: confirm_reset で確かめ、戻すなら開いたときの設定と同じ設定のモデルの既定値（`type(開いたときの設定)()`）を書いて欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す
@@ -1318,7 +1325,7 @@ classes:
         「文字起こし」の次のまとまり「用語集」に GlossaryPanel を 1 つ置く（今の `glossary_path` の欄と「選ぶ…」は消す）。開くときに UiDeps.list_glossaries の一覧と、補正に使う用語集の名前（設定の active_glossary。None か一覧に無ければ 1 件目）を GlossaryPanel.set_glossaries に渡す。
         収集では `glossaries` に GlossaryPanel.collect、`active_glossary` に GlossaryPanel.active_name を入れ、`glossary_path` は置かない（None）。
         変えた欄の数えには、GlossaryPanel.change_values のキーごとの変更を 1 件として含める（反映はどれも immediate）。足した・消した・名前か行を変えた用語集 1 つが 1 件（1 つの用語集で何度変えても 1 件）、補正に使う用語集の切り替えが 1 件になる。
-        エラーの一覧の用語集の行は、失敗の場所 `glossaries[{n}].name` を「用語集 {n+1} 件目の名前」、行の失敗を「用語集 {n+1} 件目の {m+1} 行目の{誤変換か正しい表記}」にし、押すと「用語集」のまとまりへ切り替えて GlossaryPanel.focus_field でその用語集の行の表を出し、欄へフォーカスを移す。
+        エラーの一覧の用語集の行は、失敗の場所 `glossaries[{n}].name` を「用語集 {n+1} 件目の名前」、行の失敗を「用語集 {n+1} 件目の {m+1} 行目の誤変換」にし、押すと「用語集」のまとまりへ切り替えて GlossaryPanel.focus_field でその用語集の行の表を出し、欄へフォーカスを移す。
         to_field_message は、用語集の名前の空を「名前を入れてください。」、名前の重なり（find_glossary_name_overlaps の PydanticCustomError）を「用語集「{名前}」と同じ名前です。別の名前にしてください。」にする。
         既定に戻すと、用語集の一覧は設定ファイルと同じフォルダの yogo.csv の 1 件に戻る（用語集の CSV のファイルは消さず、書き換えない）。
       表記のヒントのまとまり: |-
@@ -1427,7 +1434,7 @@ classes:
     inherits: PySide6.QtWidgets.QWidget
     summary: 設定画面の「用語集」のまとまりに置く、用語集の一覧と、選んだ用語集の名前の欄・行の表。用語集と行を足す・消す、補正に使う用語集を選ぶ、行のオン・オフを受ける
     description: |-
-      要素（用語集の一覧・補正に使う用語集の選択・名前のボタン・行の数・消す・足す・名前の欄・行の表・行が無いときの文・凡例）と読み上げの名前・objectName（項目 ID）は画面設計「設定画面」が持つ。
+      要素（用語集の一覧・補正に使う用語集の選択・名前のボタン・行の数・消す・足す・名前の欄・消す行の説明・行の表・行が無いときの文・凡例）と読み上げの名前・objectName（項目 ID）は画面設計「設定画面」が持つ。
       用語集ごとに、名前・CSV の場所・行・開いたときの行（足した用語集は無し）を持つ。足す・消す・入力はこの部品の中だけを変え、settings.toml と CSV へは設定画面の保存で書く。
       補正に使う用語集の消すボタンは、フォーカスとツールチップを残すため `setEnabled(False)` にせず、押しても消さない扱いと薄い見た目にする。
       コンストラクタは、行を読む関数（UiDeps.read_glossary）と、足す用語集の場所を決める関数（UiDeps.new_glossary_path）を受ける。
@@ -1543,8 +1550,8 @@ classes:
         scope: public
         summary: 読めた全ての用語集の行を find_glossary_row_errors で確かめ、（用語集の何件目か, 何行目か, 空の側の項目）の並びを返す（補正に使わない用語集も確かめる）
         returns:
-          type: list[tuple[int, int, Literal["wrong", "right"]]]
-          description: 片方だけが空の行の場所（どれも 0 から）
+          type: list[tuple[int, int, Literal["wrong"]]]
+          description: 誤変換だけが空の行の場所（どれも 0 から）
         unit_tests: []
       - name: add_glossary
         title: 用語集を足す
@@ -2458,7 +2465,7 @@ functions:
     title: 用語集の行の確かめ
     container: ui/windows/settings_glossaries.py
     usecase: 設定を変える
-    summary: 用語集の行のうち、誤変換か正しい表記の片方だけが空の行と、空の側の項目を返す。単体テストは tests/unit/voice_paste/ui/windows/test_settings_glossaries.py に置く
+    summary: 用語集の行のうち、正しい表記が入っていて誤変換が空の行と、空の側の項目を返す（正しい表記だけが空の行は誤変換を消す行なので返さない）。単体テストは tests/unit/voice_paste/ui/windows/test_settings_glossaries.py に置く
     kind: 関数
     scope: public
     args:
@@ -2468,15 +2475,15 @@ functions:
         passing: positional
         description: 用語集 1 つの行（表の順。前後の空白を除いた値）
     returns:
-      type: list[tuple[int, Literal["wrong", "right"]]]
-      description: （何行目か（0 から）, 空の側の項目）の並び。オフの行も確かめる。両方が空の行は返さない
+      type: list[tuple[int, Literal["wrong"]]]
+      description: （何行目か（0 から）, 空の側の項目）の並び。オフの行も確かめる。両方が空の行と、正しい表記だけが空の行は返さない
     unit_tests:
       - name: test_find_glossary_row_errors
         case: 正常
-        summary: 片方だけが空の行を、空の側の項目つきで返す
+        summary: 誤変換だけが空の行を返し、正しい表記だけが空の行は返さない
         condition: 「あ,い」「,う」「え,」「,」の 4 行（2 行目はオフ）
         mock: なし
-        expected: '[(1, "wrong"), (2, "right")] が返る'
+        expected: '[(1, "wrong")] が返る'
       - name: test_find_glossary_row_errors_when_valid
         case: 正常
         summary: 両方がある行と両方が空の行だけなら空

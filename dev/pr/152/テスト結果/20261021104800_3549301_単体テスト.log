@@ -1,0 +1,98 @@
+# 単体テスト（Red）: commit 3549301。実装の無いことによる fail 3 件
+# コマンド: .venv/Scripts/python.exe -m pytest tests/unit
+
+...F.................................................................... [ 12%]
+........................................................................ [ 25%]
+........................................................................ [ 38%]
+........................................................................ [ 50%]
+........................................................................ [ 63%]
+........................................................................ [ 76%]
+...............................F.............................F.......... [ 88%]
+................................................................         [100%]
+================================== FAILURES ===================================
+_____________________ test_load_glossary_when_blank_cells _____________________
+
+glossary_file = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-1576/test_load_glossary_when_blank_0/yogo.csv')
+
+    def test_load_glossary_when_blank_cells(glossary_file: Path) -> None:
+        """空白を除き、誤変換が空の行を飛ばし、正しい表記が空の行を残す（正常系）。"""
+        from voice_paste.features.correction.service import load_glossary
+        from voice_paste.shared.types import GlossaryEntry
+    
+        # 準備
+        glossary_file.write_text(f"{CSV_HEADER} くろーど , Claude \nあいう,\n,えお\n", encoding="utf-8")
+    
+        # 実行
+        entries = load_glossary(glossary_file)
+    
+        # 検証
+>       assert entries == [
+            GlossaryEntry(wrong="くろーど", right="Claude"),
+            GlossaryEntry(wrong="あいう", right=""),
+        ]
+E       AssertionError: assert [GlossaryEntr...enabled=True)] == [GlossaryEntr...enabled=True)]
+E         
+E         Right contains one more item: GlossaryEntry(wrong='あいう', right='', enabled=True)
+E         Use -v to get more diff
+
+tests\unit\voice_paste\features\correction\test_service.py:86: AssertionError
+________________________ test_find_glossary_row_errors ________________________
+
+    def test_find_glossary_row_errors() -> None:
+        """誤変換だけが空の行を返し、正しい表記だけが空の行は返さない（正常系）。"""
+        from voice_paste.shared.types import GlossaryEntry
+        from voice_paste.ui.windows.settings_glossaries import find_glossary_row_errors
+    
+        # 準備（「あ,い」「,う」「え,」「,」の 4 行。2 行目はオフ）
+        entries = [
+            GlossaryEntry(wrong="あ", right="い"),
+            GlossaryEntry(wrong="", right="う", enabled=False),
+            GlossaryEntry(wrong="え", right=""),
+            GlossaryEntry(wrong="", right=""),
+        ]
+    
+        # 実行
+        errors = find_glossary_row_errors(entries)
+    
+        # 検証
+>       assert errors == [(1, "wrong")]
+E       AssertionError: assert [(1, 'wrong'), (2, 'right')] == [(1, 'wrong')]
+E         
+E         Left contains one more item: (2, 'right')
+E         Use -v to get more diff
+
+tests\unit\voice_paste\ui\windows\test_settings_glossaries.py:552: AssertionError
+_____________________ test_save_when_glossary_right_empty _____________________
+
+open_with_glossaries = <function open_with_glossaries.<locals>._open at 0x000001C01172F110>
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-1576/test_save_when_glossary_right_0')
+
+    def test_save_when_glossary_right_empty(
+        open_with_glossaries: Callable[..., Opened], tmp_path: Path
+    ) -> None:
+        """正しい表記だけが空の行は確かめに通し、空のまま書き戻しに渡す（正常系）。"""
+        from voice_paste.shared.settings import GlossarySettings
+        from voice_paste.shared.types import GlossaryEntry
+    
+        # 準備（1 件目の用語集に行を足して、誤変換「ご視聴ありがとうございました」だけを入れる）
+        glossary = GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
+        opened = open_with_glossaries(
+            [glossary], {glossary.path: [GlossaryEntry(wrong="あ", right="A")]}
+        )
+        _select_group(opened.window, "用語集")
+        _button(opened.window, "add_glossary_entry_button").click()
+        _visible_edits(opened.window, "glossary_entry_wrong_")[1].setText("ご視聴ありがとうございました")
+    
+        # 実行
+        result = opened.window.save(restart=False)
+    
+        # 検証
+>       assert result is True
+E       assert False is True
+
+tests\unit\voice_paste\ui\windows\test_settings_window.py:491: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/unit/voice_paste/features/correction/test_service.py::test_load_glossary_when_blank_cells
+FAILED tests/unit/voice_paste/ui/windows/test_settings_glossaries.py::test_find_glossary_row_errors
+FAILED tests/unit/voice_paste/ui/windows/test_settings_window.py::test_save_when_glossary_right_empty
+3 failed, 565 passed in 47.58s

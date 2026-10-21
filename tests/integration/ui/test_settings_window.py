@@ -3812,6 +3812,200 @@ def test_discard_body_when_hint_preset_moved_after_saved(
     assert body == _discard_message(1)
 
 
+# === discard_body（出力先のプリセットの変更の件数） ===
+
+KIND_GROUP_ROWS = {"browser": 1, "endpoint": 2}
+"""まとまりのメニューの種類のタブの行（ブラウザ添付・エンドポイントへ送る）。"""
+
+
+def _three_browser_presets() -> Settings:
+    """ブラウザ添付 3 件のプリセットを持つ設定を作る。"""
+    from voice_paste.shared.settings import BrowserPreset
+
+    return SETTINGS_MODEL(
+        presets=[
+            BrowserPreset(title="A", url="https://a.example"),
+            BrowserPreset(title="B", url="https://b.example"),
+            BrowserPreset(title="C", url="https://c.example"),
+        ]
+    )
+
+
+def _select_kind(window: QWidget, kind: str) -> None:
+    """まとまりのメニューで、種類のタブを選ぶ。"""
+    find(window, QListWidget, "group_menu").setCurrentRow(KIND_GROUP_ROWS[kind])
+
+
+def _preset_button(window: QWidget, kind: str, prefix: str, number: int) -> QPushButton:
+    """種類のタブの number 件目のプリセットの操作のボタン（`{prefix}_{n}`）を引く。"""
+    found = _panel(window, kind).findChild(QPushButton, f"{prefix}_{number}")
+    assert found is not None, f"{kind} の {number} 件目の {prefix} のボタンが無い"
+    return found
+
+
+def _press_preset_hotkey(window: QWidget, kind: str, number: int) -> None:
+    """種類のタブの number 件目のプリセットの確定のホットキーに、Ctrl+Alt+9 を押す。"""
+    edit = _preset_field(window, kind, number, "hotkey", QLineEdit)
+    edit.setFocus()
+    QTest.keyClick(
+        edit,
+        Qt.Key.Key_9,
+        Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier,
+    )
+
+
+def test_discard_body_when_preset_added(open_window: Callable[..., Opened]) -> None:
+    """プリセットを 1 つ足すと、変えた件数は 1 件（タイトルと URL を入れても 1 件）。"""
+    # 準備
+    opened = open_window(_settings_with_presets())
+    _select_kind(opened.window, "browser")
+    _add_preset(opened.window, "browser", "足した", "https://added.example")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_preset_removed(open_window: Callable[..., Opened]) -> None:
+    """プリセットを 1 つ消すと、変えた件数は 1 件。"""
+    # 準備
+    opened = open_window(_settings_with_presets())
+    _select_kind(opened.window, "browser")
+    _preset_button(opened.window, "browser", "preset_remove", 0).click()
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_preset_changed_twice(open_window: Callable[..., Opened]) -> None:
+    """1 つのプリセットの項目を 2 つ（タイトルと URL）変えても、変えた件数は 1 件。"""
+    # 準備
+    opened = open_window(_settings_with_presets())
+    _select_kind(opened.window, "browser")
+    _preset_field(opened.window, "browser", 0, "title", QLineEdit).setText("変えた")
+    _preset_field(opened.window, "browser", 0, "url", QLineEdit).setText("https://changed.example")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_preset_hotkey_and_send_enter_changed(
+    open_window: Callable[..., Opened],
+) -> None:
+    """ブラウザ添付の 1 つのプリセットのホットキーと Enter まで送るを変えても、変えた件数は 1 件。"""
+    # 準備
+    opened = open_window(_settings_with_presets())
+    _select_kind(opened.window, "browser")
+    _press_preset_hotkey(opened.window, "browser", 0)
+    _preset_field(opened.window, "browser", 0, "send_enter", QCheckBox).click()
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_preset_hotkey_and_authorization_changed(
+    open_window: Callable[..., Opened],
+) -> None:
+    """エンドポイントへ送るの 1 つのプリセットのホットキーと Authorization を変えても、変えた件数は 1 件。"""
+    # 準備
+    opened = open_window(_settings_with_presets())
+    _select_kind(opened.window, "endpoint")
+    _press_preset_hotkey(opened.window, "endpoint", 0)
+    _preset_field(opened.window, "endpoint", 0, "authorization", QLineEdit).setText("Bearer y")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_preset_moved(open_window: Callable[..., Opened]) -> None:
+    """プリセットを並べ替える（2 件のうち下を上へ）と、変えた件数は並べ替えの 1 件。"""
+    # 準備
+    opened = open_window(_settings_with_presets())
+    _select_kind(opened.window, "browser")
+    _preset_button(opened.window, "browser", "preset_up", 1).click()
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_two_presets_changed(open_window: Callable[..., Opened]) -> None:
+    """2 つのプリセットの項目を 1 つずつ変えると、変えた件数は 2 件。"""
+    # 準備
+    opened = open_window(_settings_with_presets())
+    _select_kind(opened.window, "browser")
+    _preset_field(opened.window, "browser", 0, "title", QLineEdit).setText("変えた1")
+    _preset_field(opened.window, "browser", 1, "url", QLineEdit).setText("https://changed.example")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(2)
+
+
+def test_discard_body_when_preset_removed_from_middle(open_window: Callable[..., Opened]) -> None:
+    """3 件のうち途中のプリセットを消すと、変えた件数は消した 1 件（残ったプリセットの順は並べ替えに数えない）。"""
+    # 準備
+    opened = open_window(_three_browser_presets())
+    _select_kind(opened.window, "browser")
+    _preset_button(opened.window, "browser", "preset_remove", 1).click()
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_presets_changed_in_two_kinds(open_window: Callable[..., Opened]) -> None:
+    """ブラウザ添付とエンドポイントへ送るのタブで 1 つずつプリセットを変えると、変えた件数は 2 件。"""
+    # 準備
+    opened = open_window(_settings_with_presets())
+    _select_kind(opened.window, "browser")
+    _preset_field(opened.window, "browser", 0, "title", QLineEdit).setText("変えた1")
+    _select_kind(opened.window, "endpoint")
+    _preset_field(opened.window, "endpoint", 0, "title", QLineEdit).setText("変えた2")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(2)
+
+
+def test_discard_body_when_preset_moved_after_saved(open_window: Callable[..., Opened]) -> None:
+    """保存してから並べ替えると、変えた件数は並べ替えの 1 件（保存で変えた分は数えない）。"""
+    # 準備
+    opened = open_window(_settings_with_presets())
+    _select_kind(opened.window, "browser")
+    _preset_field(opened.window, "browser", 0, "title", QLineEdit).setText("変えた")
+    _click(opened.window, "save_button")
+    _preset_button(opened.window, "browser", "preset_down", 0).click()
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
 # === 設定画面を開いている間はホットキーを止める ===
 
 

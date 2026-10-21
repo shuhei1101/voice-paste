@@ -501,13 +501,6 @@ class GlossaryPanel(QWidget):
         self._add_field("名前", name_edit, ("name", None), self._detail_layout)
         name_edit.textChanged.connect(lambda text: self._on_name_changed(glossary, heading, text))
 
-        # 読めた用語集だけ、正しい表記を空にした行が誤変換を消すことを名前の欄の下に出す
-        if glossary.unreadable is None:
-            delete_note = QLabel(DELETE_NOTE_TEXT)
-            delete_note.setObjectName("glossary_delete_note")
-            delete_note.setProperty("role", "muted")
-            self._detail_layout.addWidget(delete_note)
-
         if glossary.unreadable is not None:
             # 読めない用語集は、行の表の代わりに理由を出す（行は編集できない）
             unreadable = QLabel(
@@ -517,12 +510,18 @@ class GlossaryPanel(QWidget):
             unreadable.setObjectName("glossary_unreadable")
             unreadable.setWordWrap(True)
             self._detail_layout.addWidget(unreadable)
-        elif not glossary.rows:
-            empty = QLabel(EMPTY_ROWS_TEXT)
-            empty.setObjectName("glossary_entries_empty")
-            self._detail_layout.addWidget(empty)
         else:
-            self._detail_layout.addWidget(self._build_entries(glossary))
+            # 読めた用語集は、正しい表記を空にした行が誤変換を消すことを名前の欄の下に出す
+            delete_note = QLabel(DELETE_NOTE_TEXT)
+            delete_note.setObjectName("glossary_delete_note")
+            delete_note.setProperty("role", "muted")
+            self._detail_layout.addWidget(delete_note)
+            if not glossary.rows:
+                empty = QLabel(EMPTY_ROWS_TEXT)
+                empty.setObjectName("glossary_entries_empty")
+                self._detail_layout.addWidget(empty)
+            else:
+                self._detail_layout.addWidget(self._build_entries(glossary))
 
         foot = QWidget()
         foot_line = QHBoxLayout(foot)

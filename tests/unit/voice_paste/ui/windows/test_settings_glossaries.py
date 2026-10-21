@@ -533,7 +533,7 @@ def test_glossary_panel_add_glossary(open_panel: Callable[..., Opened], tmp_path
 
 
 def test_find_glossary_row_errors() -> None:
-    """片方だけが空の行を、空の側の項目つきで返す（正常系）。"""
+    """誤変換だけが空の行を返し、正しい表記だけが空の行は返さない（正常系）。"""
     from voice_paste.shared.types import GlossaryEntry
     from voice_paste.ui.windows.settings_glossaries import find_glossary_row_errors
 
@@ -549,7 +549,7 @@ def test_find_glossary_row_errors() -> None:
     errors = find_glossary_row_errors(entries)
 
     # 検証
-    assert errors == [(1, "wrong"), (2, "right")]
+    assert errors == [(1, "wrong")]
 
 
 def test_find_glossary_row_errors_when_valid() -> None:

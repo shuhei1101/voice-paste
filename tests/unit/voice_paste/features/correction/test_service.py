@@ -72,7 +72,7 @@ def test_load_glossary_when_bom(glossary_file: Path) -> None:
 
 
 def test_load_glossary_when_blank_cells(glossary_file: Path) -> None:
-    """空白を除き、どちらかが空の行を飛ばす（正常系）。"""
+    """空白を除き、誤変換が空の行を飛ばし、正しい表記が空の行を残す（正常系）。"""
     from voice_paste.features.correction.service import load_glossary
     from voice_paste.shared.types import GlossaryEntry
 
@@ -83,7 +83,10 @@ def test_load_glossary_when_blank_cells(glossary_file: Path) -> None:
     entries = load_glossary(glossary_file)
 
     # 検証
-    assert entries == [GlossaryEntry(wrong="くろーど", right="Claude")]
+    assert entries == [
+        GlossaryEntry(wrong="くろーど", right="Claude"),
+        GlossaryEntry(wrong="あいう", right=""),
+    ]
 
 
 def test_load_glossary_when_disabled_rows(glossary_file: Path) -> None:
@@ -178,6 +181,21 @@ def test_apply_glossary_when_no_match() -> None:
 
     # 検証
     assert text == "今日は晴れ"
+
+
+def test_apply_glossary_when_right_empty() -> None:
+    """正しい表記が空の行は誤変換を消す（正常系）。"""
+    from voice_paste.features.correction.service import apply_glossary
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備
+    entries = [GlossaryEntry(wrong="ご視聴ありがとうございました", right="")]
+
+    # 実行
+    text = apply_glossary("今日はここまで。ご視聴ありがとうございました", entries)
+
+    # 検証
+    assert text == "今日はここまで。"
 
 
 # === read_glossary_rows ===

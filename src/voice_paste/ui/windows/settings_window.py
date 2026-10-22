@@ -234,9 +234,9 @@ RANGE_ERROR_TYPES: frozenset[str] = frozenset(
 """数値が範囲の外のときの失敗の種類。"""
 
 SAVED_HOTKEY_KEY: re.Pattern[str] = re.compile(
-    rf"^(hotkeys\.\w+|{OUTPUTS_FIELD_NAME}\[\d+\]\.hotkey|{PRESETS_FIELD_NAME}\.\w+\[\d+\]\.hotkey)$"
+    rf"^(hotkeys\.\w+|{OUTPUTS_FIELD_NAME}\[\d+\]\.hotkey)$"
 )
-"""保存した知らせでホットキーが変わったかを見る欄のキー（録音のホットキー・出力先とプリセットの確定のホットキー。貼り付けに送るキーは含めない）。"""
+"""保存した知らせでホットキーが変わったかを見る欄のキー（録音のホットキー・出力先の確定のホットキー。貼り付けに送るキーとプリセットの確定のホットキーは含めない）。"""
 
 PRESET_KEY_PATTERN: re.Pattern[str] = re.compile(rf"^{PRESETS_FIELD_NAME}\[(\d+)\]\.(\w+)$")
 """プリセットの欄の失敗のキー（`presets[2].url`）を、設定の全体の中の添字と項目の名前に分ける。"""
@@ -582,6 +582,7 @@ class SettingsWindow(QWidget):
         self._hint_group = GROUP_NAMES.index("表記のヒント")
         self._baseline: dict[str, Any] = {}
         self._restart_baseline: dict[str, Any] = {}
+        self._hotkey_baseline: dict[str, str] = {}
         self._force_close = False
         self.setObjectName("settings_window")
         self.setWindowTitle(WINDOW_TITLE)
@@ -590,6 +591,7 @@ class SettingsWindow(QWidget):
         self._populate(self._original)
         # 開いたときの値を「再起動で反映」の変更の基準にして、知らせを数え直す
         self._restart_baseline = dict(self._baseline)
+        self._hotkey_baseline = self._hotkey_values()
         self._refresh_notices()
 
     # --- 窓の枠 ---
@@ -972,19 +974,18 @@ class SettingsWindow(QWidget):
         ]
 
     def _flat_values(self) -> dict[str, Any]:
-        """全ての欄の値を、設定のキーごとに返す（プリセットは種類・何件目・項目ごと）。"""
+        """全ての欄の値を、設定のキーごとに返す（プリセットは種類ごとの変えた件数を数える値）。"""
         values = {field.key: field.get() for field in self._all_fields()}
         values.update({key: value for key, value in self._static.items() if key.endswith(".id")})
         # 用語集は、変えた用語集 1 つを 1 件、補正に使う用語集の切り替えを 1 件として数える
         if self._glossary_panel is not None:
             values.update(self._glossary_panel.change_values())
-        # 表記のヒントは、プリセットの一覧（名前・語・有効か・並び）を 1 件として数える
+        # 表記のヒントは、変えたプリセット 1 つを 1 件、残っているプリセットどうしの並べ替えを別に 1 件として数える
         if self._hint_panel is not None:
-            values[HINT_PRESETS_FIELD_NAME] = self._hint_panel.collect()
-        for kind, position, item in self._preset_values():
-            values.update(
-                {f"{PRESETS_FIELD_NAME}.{kind}[{position}].{name}": value for name, value in item.items()}
-            )
+            values.update(self._hint_panel.change_values())
+        # 出力先のプリセットは、変えたプリセット 1 つを 1 件、残っているプリセットどうしの並べ替えを種類のタブごとに別に 1 件として数える
+        for panel in self._panels.values():
+            values.update(panel.change_values())
         return values
 
     def collect(self) -> dict[str, Any]:
@@ -1260,7 +1261,7 @@ class SettingsWindow(QWidget):
 
     def save(self, *, restart: bool) -> bool:
         """欄の値を設定のモデルで確かめ、通れば書いて効かせ、窓を開いたまま保存した知らせを出す（restart のときだけ閉じる）。通らなければエラーを出す。"""
-        # 1. 欄の値を設定のモデルと、用語集の行（誤変換か正しい表記の片方だけが空）で確かめる（通らなければ欄ごとのエラーにして、入れた値は消さない）
+        # 1. 欄の値を設定のモデルと、用語集の行（正しい表記が入っていて誤変換が空）で確かめる（通らなければ欄ごとのエラーにして、入れた値は消さない）
         failures: list[tuple[str, str]] = []
         settings: Settings | None = None
         try:
@@ -1304,6 +1305,9 @@ class SettingsWindow(QWidget):
 
         # 3. 保存した行・値を「変えていない」の基準に置き直す
         self._glossaries_panel.mark_saved()
+        self._hints_panel.mark_saved()
+        for panel in self._panels.values():
+            panel.mark_saved()
         self._baseline = self._flat_values()
         self.saved.emit()
 
@@ -1334,14 +1338,25 @@ class SettingsWindow(QWidget):
         self._reset_notice.hide()
         self._refresh_notices()
 
-    def _hotkey_changed(self) -> bool:
-        """閉じたときに張り直すホットキーの欄（`keyboard.paste_key` は含めない）が、開いたときの値から変わったかを返す。"""
-        current = self._flat_values()
-        keys = {
-            key for key in current.keys() | self._restart_baseline.keys() if SAVED_HOTKEY_KEY.match(key)
+    def _hotkey_values(self) -> dict[str, str]:
+        """閉じたときに張り直すホットキーの欄（`keyboard.paste_key` は含めない）の値を、録音と出力先は設定のキー、プリセットは種類とタブの中の何件目かごとに返す。"""
+        values = {
+            key: value for key, value in self._flat_values().items() if SAVED_HOTKEY_KEY.match(key)
         }
+        values.update(
+            {
+                f"{PRESETS_FIELD_NAME}.{kind}[{position}].hotkey": item["hotkey"]
+                for kind, position, item in self._preset_values()
+            }
+        )
+        return values
+
+    def _hotkey_changed(self) -> bool:
+        """閉じたときに張り直すホットキーの欄が、開いたときの値から変わったかを返す。"""
+        current = self._hotkey_values()
+        keys = current.keys() | self._hotkey_baseline.keys()
         return any(
-            (current.get(key) or "") != (self._restart_baseline.get(key) or "") for key in keys
+            (current.get(key) or "") != (self._hotkey_baseline.get(key) or "") for key in keys
         )
 
     def reset_to_defaults(self) -> None:

@@ -6,6 +6,7 @@ UiDeps の関数・トレイ・録音の画面・文字起こし中の表示は 
 
 from __future__ import annotations
 
+import gc
 import logging
 from dataclasses import dataclass
 from pathlib import Path
@@ -30,6 +31,8 @@ QUIT_TIMEOUT_MS = 2000
 """終了で抜けられないときにイベントループを止めるまでの時間。"""
 QUIT_TIMEOUT_EXIT_CODE = -1
 """QUIT_TIMEOUT_MS で止めたときのイベントループの終了コード。"""
+REOPEN_COUNT = 5
+"""設定画面の開き閉めを繰り返す回数。"""
 
 
 @dataclass
@@ -429,6 +432,51 @@ def test_open_settings_when_already_open(qapp: QApplication, tmp_path: Path) -> 
     first_window.try_close()
 
 
+def _flush_deferred_deletes(qapp: QApplication) -> None:
+    """deleteLater の破棄を流して、Python 側の参照も回収する。"""
+    qapp.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    gc.collect()
+
+
+def _reopen_settings(parts: Parts, qapp: QApplication, times: int) -> int:
+    """設定画面を開いて取り消しで閉じるのを times 回繰り返し、毎回破棄を流す。開いた窓が互いに別物だった数を返す。"""
+    opened: list[QWidget] = []
+    distinct_count = 0
+    for _ in range(times):
+        parts.controller.open_settings()
+        window = parts.controller._settings_window
+        assert window is not None
+        # 前に開いた窓と同じ物ではない（毎回新しく開いた）
+        if all(window is not previous for previous in opened):
+            distinct_count += 1
+        opened.append(window)
+        window.try_close()
+        _flush_deferred_deletes(qapp)
+    return distinct_count
+
+
+def test_open_settings_when_reopened(qapp: QApplication, tmp_path: Path) -> None:
+    """開き閉めを繰り返しても窓が積もらない（正常系）。"""
+    from voice_paste.ui.windows.settings_window import SettingsWindow
+
+    # 準備: 前のテストの破棄待ちを流した時点のトップレベルの窓の数と、残っている設定画面を控える
+    parts = _make_controller(tmp_path)
+    _flush_deferred_deletes(qapp)
+    top_level_count_before = len(qapp.topLevelWidgets())
+    settings_windows_before = [w for w in qapp.topLevelWidgets() if isinstance(w, SettingsWindow)]
+
+    # 実行
+    distinct_count = _reopen_settings(parts, qapp, REOPEN_COUNT)
+    _flush_deferred_deletes(qapp)
+
+    # 検証
+    settings_windows_after = [w for w in qapp.topLevelWidgets() if isinstance(w, SettingsWindow)]
+    remaining_windows = [w for w in settings_windows_after if w not in settings_windows_before]
+    assert distinct_count == REOPEN_COUNT
+    assert remaining_windows == []
+    assert len(qapp.topLevelWidgets()) == top_level_count_before
+
+
 # === on_settings_saved ===
 
 
@@ -510,7 +558,6 @@ def test_event_filter_when_quit_with_settings_open(
     timeout.start(QUIT_TIMEOUT_MS)
     exit_code = qapp.exec()
     timeout.stop()
-    settings_window.hide()
 
     # 検証
     confirm_discard.assert_not_called()

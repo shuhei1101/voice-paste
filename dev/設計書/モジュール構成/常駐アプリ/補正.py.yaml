@@ -14,7 +14,7 @@ functions:
     container: features/correction/service.py
     usecase: 録音を文字に起こす
     scope: public
-    summary: 用語集の CSV から、補正に使う行（オンで、誤変換と正しい表記の両方がある行）を読む。文字起こしのたびに読み直す
+    summary: 用語集の CSV から、補正に使う行（オンで、誤変換がある行。正しい表記が空の行は誤変換を消す行）を読む。文字起こしのたびに読み直す
     args:
       - name: path
         type: Path
@@ -28,7 +28,7 @@ functions:
       1. read_glossary_rows で行を読む（ファイルが無ければ空）
          - GlossaryReadError の場合、空を返す（補正せずに届ける。文字起こしは失敗にしない）
            - `[WARNING]` 用語集を読めなかった（パス・理由）
-      2. オフの行と、誤変換か正しい表記のどちらかが空の行を飛ばす（どちらかが空の行を飛ばすのは刷新前と同じ）
+      2. オフの行と、誤変換が空の行を飛ばす（正しい表記が空の行は、誤変換を消す行として残す）
          - `[INFO]` 用語集を読んだ（パス・行数・補正に使う行数）
     unit_tests:
       - name: test_load_glossary
@@ -51,10 +51,10 @@ functions:
         expected: GlossaryEntry が 1 つ返る
       - name: test_load_glossary_when_blank_cells
         case: 正常
-        summary: 空白を除き、どちらかが空の行を飛ばす
+        summary: 空白を除き、誤変換が空の行を飛ばし、正しい表記が空の行を残す
         condition: 「 くろーど , Claude 」・「あいう,」・「,えお」の 3 行の CSV
         mock: なし（一時フォルダ）
-        expected: GlossaryEntry(wrong="くろーど", right="Claude") だけが返る
+        expected: GlossaryEntry(wrong="くろーど", right="Claude") と GlossaryEntry(wrong="あいう", right="") の 2 つが返る
       - name: test_load_glossary_when_disabled_rows
         case: 正常
         summary: オフの行を飛ばす
@@ -80,7 +80,7 @@ functions:
     container: features/correction/service.py
     usecase: 録音を文字に起こす
     scope: public
-    summary: 誤変換を正しい表記へ置き換える（用語集の行の順に、前の行で置き換えた結果へ次の行を当てる）
+    summary: 誤変換を正しい表記へ置き換える（正しい表記が空の行は誤変換を消す。用語集の行の順に、前の行で置き換えた結果へ次の行を当てる）
     args:
       - name: text
         type: str
@@ -114,12 +114,18 @@ functions:
         condition: 「くろーどこーど」→「Claude Code」の行と文字「今日は晴れ」
         mock: なし
         expected: 「今日は晴れ」が返る
+      - name: test_apply_glossary_when_right_empty
+        case: 正常
+        summary: 正しい表記が空の行は誤変換を消す
+        condition: 「ご視聴ありがとうございました」→「」の行と、文字「今日はここまで。ご視聴ありがとうございました」
+        mock: なし
+        expected: 「今日はここまで。」が返る
     notes:
       特性テスト: 置き換えの結果は、#15 で固める特性テスト（今の実装の入出力）と一致させる（品質シナリオ 2）。
     status: implemented
     process: |-
-      1. 用語集の行の順に、誤変換を含むなら全て正しい表記へ置き換える
-         - `[INFO]` 用語集で置き換えた（置き換えた誤変換 → 正しい表記の並び）
+      1. 用語集の行の順に、誤変換を含むなら全て正しい表記へ置き換える（正しい表記が空の行は空文字へ置き換えて消す）
+         - `[INFO]` 用語集で置き換えた（置き換えた誤変換 → 正しい表記の並び。消した行は「{誤変換}→（消す）」）
   - name: read_glossary_rows
     title: 用語集の行の読み込み
     kind: 関数

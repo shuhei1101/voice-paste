@@ -1,0 +1,71 @@
+# 実行したコマンド
+.venv/Scripts/python.exe -m pytest tests/unit
+
+# 出力
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\fix-ui-dispose-closed-settings-window
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collected 518 items
+
+tests\unit\voice_paste\features\correction\test_service.py ............. [  2%]
+..................                                                       [  5%]
+tests\unit\voice_paste\features\history\test_service.py ..........       [  7%]
+tests\unit\voice_paste\features\outputs\browser\test_service.py ...      [  8%]
+tests\unit\voice_paste\features\outputs\callback\test_service.py ....... [  9%]
+.......                                                                  [ 11%]
+tests\unit\voice_paste\features\outputs\copy_only\test_service.py ...    [ 11%]
+tests\unit\voice_paste\features\outputs\endpoint\test_service.py ....    [ 12%]
+tests\unit\voice_paste\features\outputs\paste_and_send\test_service.py . [ 12%]
+.......                                                                  [ 14%]
+tests\unit\voice_paste\features\outputs\paste_only\test_service.py ...   [ 14%]
+tests\unit\voice_paste\features\outputs\test_service.py .....            [ 15%]
+tests\unit\voice_paste\features\outputs\test_types.py ...                [ 16%]
+tests\unit\voice_paste\features\recording\test_client.py .               [ 16%]
+tests\unit\voice_paste\features\recording\test_segmenter.py ............ [ 18%]
+                                                                         [ 18%]
+tests\unit\voice_paste\features\recording\test_service.py .............. [ 21%]
+........                                                                 [ 22%]
+tests\unit\voice_paste\features\session\test_route.py ...                [ 23%]
+tests\unit\voice_paste\features\session\test_service.py ................ [ 26%]
+........................................                                 [ 34%]
+tests\unit\voice_paste\features\transcription\test_service.py ......     [ 35%]
+tests\unit\voice_paste\integrations\browser\test_opener.py ....          [ 36%]
+tests\unit\voice_paste\integrations\http\test_client.py .......          [ 37%]
+tests\unit\voice_paste\integrations\keyboard\test_sender.py .........    [ 39%]
+tests\unit\voice_paste\integrations\vad\test_adapter.py .....            [ 40%]
+tests\unit\voice_paste\integrations\volume\test_adapter.py .........     [ 42%]
+tests\unit\voice_paste\integrations\whisper\test_client.py ............. [ 44%]
+.                                                                        [ 44%]
+tests\unit\voice_paste\integrations\whisper\test_worker.py .......       [ 46%]
+tests\unit\voice_paste\runtime\test_hotkey.py ........                   [ 47%]
+tests\unit\voice_paste\runtime\test_process.py ..                        [ 48%]
+tests\unit\voice_paste\runtime\test_settings_store.py .                  [ 48%]
+tests\unit\voice_paste\runtime\test_single_instance.py ..........        [ 50%]
+tests\unit\voice_paste\runtime\test_timer.py ...                         [ 50%]
+tests\unit\voice_paste\server\test_app.py ...                            [ 51%]
+tests\unit\voice_paste\server\test_error_handlers.py ...                 [ 51%]
+tests\unit\voice_paste\server\test_middleware.py .....                   [ 52%]
+tests\unit\voice_paste\server\test_runner.py ....                        [ 53%]
+tests\unit\voice_paste\server\test_token.py ...                          [ 54%]
+tests\unit\voice_paste\shared\test_constants.py ..                       [ 54%]
+tests\unit\voice_paste\shared\test_logger.py ......                      [ 55%]
+tests\unit\voice_paste\shared\test_settings.py ......................... [ 60%]
+.......................................                                  [ 68%]
+tests\unit\voice_paste\test_main.py ...................................  [ 74%]
+tests\unit\voice_paste\ui\test_bridge.py ....                            [ 75%]
+tests\unit\voice_paste\ui\test_controller.py ..........................  [ 80%]
+tests\unit\voice_paste\ui\test_placement.py ..                           [ 81%]
+tests\unit\voice_paste\ui\test_style.py ..............                   [ 83%]
+tests\unit\voice_paste\ui\test_tray.py .............                     [ 86%]
+tests\unit\voice_paste\ui\windows\test_settings_glossaries.py .......... [ 88%]
+.......                                                                  [ 89%]
+tests\unit\voice_paste\ui\windows\test_settings_hints.py ......          [ 90%]
+tests\unit\voice_paste\ui\windows\test_settings_presets.py ......        [ 91%]
+tests\unit\voice_paste\ui\windows\test_settings_window.py .............. [ 94%]
+..................                                                       [ 98%]
+tests\unit\voice_paste\ui\windows\test_transcribing_indicator.py ....... [ 99%]
+...                                                                      [100%]
+
+============================ 518 passed in 24.54s =============================

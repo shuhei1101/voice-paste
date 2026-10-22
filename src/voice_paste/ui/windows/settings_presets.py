@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from voice_paste.shared.settings import BrowserPreset, EndpointPreset, Preset
+from voice_paste.shared.settings import PRESETS_FIELD_NAME, BrowserPreset, EndpointPreset, Preset
 from voice_paste.ui.windows.settings_fields import connect_changed, set_invalid
 
 PRESET_MODELS: dict[str, type[BrowserPreset] | type[EndpointPreset]] = {
@@ -79,6 +79,9 @@ class PresetListPanel(QWidget):
         self.kind = kind
         self._model = PRESET_MODELS[kind]
         self._rows: list[_PresetRow] = []
+        self._ids: list[int] = []
+        self._baseline_count = 0
+        self._next_id = 0
         self.setObjectName(f"preset_list_{kind}")
 
         outer = QVBoxLayout(self)
@@ -107,7 +110,7 @@ class PresetListPanel(QWidget):
 
     def set_presets(self, presets: Sequence[Preset]) -> None:
         """渡したプリセット（この種類のものだけ）で一覧を作り直す。空なら空の案内を出す。"""
-        self._rebuild([preset.model_dump() for preset in presets])
+        self._rebuild([preset.model_dump() for preset in presets], self._number_saved(len(presets)))
 
     def collect(self) -> list[dict[str, Any]]:
         """今の並びのプリセットを、settings.toml と同じ形の dict の並びにする（kind を含める）。"""
@@ -132,9 +135,27 @@ class PresetListPanel(QWidget):
         """末尾に空のプリセット（有効。ブラウザ添付は Enter まで送るがオン）を足し、タイトルの欄へフォーカスを移して changed を emit する。"""
         values = self.collect()
         values.append(self._empty_preset())
-        self._rebuild(values)
+        # 足したプリセットには、振ったどの番号より大きい番号を振る
+        added_id = self._next_id
+        self._next_id += 1
+        self._rebuild(values, [*self._ids, added_id])
         self._rows[-1].widgets["title"].setFocus()
         self.changed.emit()
+
+    def change_values(self) -> dict[str, object]:
+        """変えた欄の数えに使う値を、プリセット 1 つ = 1 キーと、並べ替えの 1 キーで返す。"""
+        values: dict[str, object] = {
+            f"{PRESETS_FIELD_NAME}.{self.kind}[{preset_id}]": preset
+            for preset_id, preset in zip(self._ids, self.collect(), strict=True)
+        }
+        # 開いたとき・保存したときからあって今も残っているプリセットだけで、番号の小さい順に並んでいるか（足したプリセットは見ない）
+        kept = [preset_id for preset_id in self._ids if preset_id < self._baseline_count]
+        values[f"{PRESETS_FIELD_NAME}.{self.kind}.order"] = kept == sorted(kept)
+        return values
+
+    def mark_saved(self) -> None:
+        """プリセットの番号を、今の並びの順に 0 から振り直す（足したプリセットも保存したプリセットとして扱う）。保存が書けた後に呼ぶ。"""
+        self._ids = self._number_saved(len(self._rows))
 
     def focus_field(self, position: int, field: str) -> None:
         """この一覧の中の何件目かと項目の名前で欄を探し、フォーカスを移す。"""
@@ -180,8 +201,15 @@ class PresetListPanel(QWidget):
             },
         }
 
-    def _rebuild(self, values: list[dict[str, Any]]) -> None:
-        """プリセットの値の並びで、まとまりを全て作り直す。"""
+    def _number_saved(self, count: int) -> list[int]:
+        """保存した件数のプリセットに 0 から番号を振り直し（足す番号はその次から）、その番号の並びを返す。"""
+        self._baseline_count = count
+        self._next_id = count
+        return list(range(count))
+
+    def _rebuild(self, values: list[dict[str, Any]], ids: list[int]) -> None:
+        """プリセットの値の並びと番号の並びで、まとまりを全て作り直す。"""
+        self._ids = ids
         while self._rows_layout.count():
             item = self._rows_layout.takeAt(0)
             widget = item.widget()
@@ -198,14 +226,18 @@ class PresetListPanel(QWidget):
         values = self.collect()
         target = position + offset
         values[position], values[target] = values[target], values[position]
-        self._rebuild(values)
+        ids = list(self._ids)
+        ids[position], ids[target] = ids[target], ids[position]
+        self._rebuild(values, ids)
         self.changed.emit()
 
     def _remove(self, position: int) -> None:
         """プリセットを一覧から消す。"""
         values = self.collect()
         del values[position]
-        self._rebuild(values)
+        ids = list(self._ids)
+        del ids[position]
+        self._rebuild(values, ids)
         self.changed.emit()
 
     def _add_row(self, position: int, value: dict[str, Any], *, last: bool) -> None:

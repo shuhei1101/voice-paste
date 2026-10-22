@@ -1,0 +1,29 @@
+# å®Ÿè¡Œã—ãŸã‚³ãƒãƒ³ãƒ‰
+uv lock --check
+.venv/Scripts/lint-imports
+
+# å‡ºåŠ›
+$ uv lock --check
+Using CPython 3.14.3
+Resolved 74 packages in 5ms
+exit=0
+$ .venv/Scripts/lint-imports
+=============
+Import Linter
+=============
+
+
+---------
+Contracts
+---------
+
+Analyzed 90 files, 187 dependencies.
+------------------------------------
+
+‘w‚ÌŒü‚« KEPT
+feature ‚Ì“Æ—§ KEPT
+o—Íæ‚Ì“Æ—§ KEPT (13 ignored imports)
+‰æ–Ê‚©‚ç feature ‚Ì’†‚Ö KEPT (1 ignored import)
+
+Contracts: 4 kept, 0 broken.
+exit=0

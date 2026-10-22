@@ -213,7 +213,10 @@ class UiController(QObject):
         self._tray.set_start_hotkey(self._deps.get_settings().hotkeys.start)
 
     def on_settings_closed(self) -> None:
-        """設定画面を手放し、今の設定でホットキーの受付を始める。"""
+        """設定画面を手放して破棄し、今の設定でホットキーの受付を始める。"""
+        # 欄のシグナルにつないだメソッドが窓を保つため、参照を手放すだけでは消えず、deleteLater で破棄する
+        if self._settings_window is not None:
+            self._settings_window.deleteLater()
         self._settings_window = None
         try:
             self._deps.resume_hotkeys()

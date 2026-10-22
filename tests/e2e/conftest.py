@@ -10,9 +10,10 @@ import pytest
 from PySide6.QtWidgets import QApplication
 
 from tests.support.fixtures import receiver, start_inprocess, start_service  # noqa: F401 フィクスチャとして使う
-from tests.support.inprocess import WavInput
+from tests.support.inprocess import KeyLog
 from tests.support.resident_app import (
     Case,
+    RecordingInput,
     ResidentApp,
     kill_service_processes_for,
     run_resident_app,
@@ -48,7 +49,9 @@ def run_app(
         port: int | None = None,
         prepare: Callable[[Path], None] | None = None,
         expect_exit: bool = False,
-        wav_input: WavInput | None = None,
+        wav_input: RecordingInput | None = None,
+        keys: KeyLog | None = None,
+        capture_browser: bool = False,
     ) -> ResidentApp:
         """一時フォルダを置き場所にして起動し、case を進める。"""
         data_dir = tmp_path / f"app{len(data_dirs)}"
@@ -63,6 +66,8 @@ def run_app(
             prepare=prepare,
             expect_exit=expect_exit,
             wav_input=wav_input,
+            keys=keys,
+            capture_browser=capture_browser,
         )
 
     yield _run

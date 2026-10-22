@@ -2554,6 +2554,65 @@ def test_glossary_entries_when_visible(open_window: Callable[..., Opened], tmp_p
     assert empty.text() == "この用語集にはまだ行がありません。"
 
 
+def test_glossary_entries_empty_position(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """行が無いときの文は、消す行の説明の下に出す（行が 0 の用語集で、説明が上に出る）。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, {"空": "誤変換,正しい表記\n"})
+
+    # 実行・検証
+    assert _detail_order(opened.window, "glossary_delete_note", "glossary_entries_empty") == [
+        "glossary_delete_note",
+        "glossary_entries_empty",
+    ]
+
+
+# === glossary_delete_note ===
+
+
+def _detail_order(window: QWidget, *names: str) -> list[str]:
+    """用語集の行の欄に並ぶ部品のうち、objectName が names のものを、上から並んでいる順で返す。"""
+    parent = find(window, QLabel, "glossary_detail_title").parentWidget()
+    layout = parent.layout()
+    positions = {}
+    for name in names:
+        widget = parent.findChild(QWidget, name)
+        # 入れ子の中にある部品は、行の欄の直下の部品の位置で比べる
+        while widget.parentWidget() is not parent:
+            widget = widget.parentWidget()
+        positions[name] = layout.indexOf(widget)
+    return sorted(names, key=lambda name: positions[name])
+
+
+def test_glossary_delete_note_initial_value(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """消す行の説明は「正しい表記を空にすると、誤変換を消す。」で、名前の欄の下・行の表の上に出す。"""
+    # 実行
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+
+    # 検証
+    note = find(opened.window, QLabel, "glossary_delete_note")
+    assert note.isVisible()
+    assert note.text() == "正しい表記を空にすると、誤変換を消す。"
+    assert _detail_order(
+        opened.window, "glossary_name_0", "glossary_delete_note", "glossary_entries"
+    ) == ["glossary_name_0", "glossary_delete_note", "glossary_entries"]
+
+
+def test_glossary_delete_note_when_unreadable(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """CSV を読めなかった用語集の行の表を出しているときは、消す行の説明を出さない。読めた用語集へ戻れば出す。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, {"yogo": CSV_FIVE_ROWS, "壊れた": SJIS_CSV})
+
+    # 実行
+    _click(opened.window, "glossary_pick_1")
+
+    # 検証
+    assert opened.window.findChild(QLabel, "glossary_delete_note") is None
+    _click(opened.window, "glossary_pick_0")
+    assert find(opened.window, QLabel, "glossary_delete_note").isVisible()
+
+
 # === glossary_entry_on_{n} ===
 
 
@@ -2803,30 +2862,45 @@ def test_input_check_when_glossary_name_overlap(
     opened.deps.save_settings.assert_not_called()
 
 
-@pytest.mark.parametrize(
-    ("emptied", "message", "kept"),
-    [
-        pytest.param("wrong", "誤変換を入れてください。", "right", id="wrong"),
-        pytest.param("right", "正しい表記を入れてください。", "wrong", id="right"),
-    ],
-)
-def test_input_check_when_glossary_entry_half_empty(
-    open_window: Callable[..., Opened], tmp_path: Path, emptied: str, message: str, kept: str
+def test_input_check_when_glossary_entry_wrong_empty(
+    open_window: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """誤変換か正しい表記の片方だけが空の行: 空の欄の下とエラーの一覧に「誤変換を入れてください。」「正しい表記を入れてください。」を出す。"""
+    """誤変換が空で、同じ行の正しい表記が空でない行: 誤変換の欄の下とエラーの一覧に「誤変換を入れてください。」を出す。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
-    find(opened.window, QLineEdit, f"glossary_entry_{emptied}_1").setText("")
-    label = {"wrong": "誤変換", "right": "正しい表記"}[emptied]
+    find(opened.window, QLineEdit, "glossary_entry_wrong_1").setText("")
 
     # 実行
     _click(opened.window, "save_button")
 
     # 検証
-    assert _field_errors(opened.window) == [message]
-    assert f"用語集 1 件目の 2 行目の{label}: {message}" in _error_rows(opened.window)
+    assert _field_errors(opened.window) == ["誤変換を入れてください。"]
+    assert "用語集 1 件目の 2 行目の誤変換: 誤変換を入れてください。" in _error_rows(opened.window)
     opened.deps.save_settings.assert_not_called()
-    assert find(opened.window, QLineEdit, f"glossary_entry_{kept}_1").text() != ""
+    assert find(opened.window, QLineEdit, "glossary_entry_right_1").text() != ""
+
+
+def test_input_check_when_glossary_entry_right_empty(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """誤変換が入っていて正しい表記が空の行は違反にせず、エラーを出さずに保存して、空のまま書き戻す（誤変換を消す行）。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    find(opened.window, QLineEdit, "glossary_entry_right_1").setText("")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert _field_errors(opened.window) == []
+    assert _error_rows(opened.window) == []
+    saved, rows = _saved(opened)
+    assert saved.glossaries[0].name == "yogo"
+    assert [(row.wrong, row.right) for row in rows[tmp_path / "yogo.csv"]][:3] == [
+        ("あ", "A"),
+        ("い", ""),
+        ("う", "C"),
+    ]
 
 
 def test_input_check_when_glossary_entry_in_unused_glossary_or_off_row(
@@ -2837,7 +2911,7 @@ def test_input_check_when_glossary_entry_in_unused_glossary_or_off_row(
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
     find(opened.window, QLineEdit, "glossary_entry_wrong_2").setText("")
     _click(opened.window, "glossary_pick_1")
-    find(opened.window, QLineEdit, "glossary_entry_right_0").setText("")
+    find(opened.window, QLineEdit, "glossary_entry_wrong_0").setText("")
 
     # 実行
     _click(opened.window, "save_button")
@@ -2845,7 +2919,7 @@ def test_input_check_when_glossary_entry_in_unused_glossary_or_off_row(
     # 検証
     rows = _error_rows(opened.window)
     assert "用語集 1 件目の 3 行目の誤変換: 誤変換を入れてください。" in rows
-    assert "用語集 2 件目の 1 行目の正しい表記: 正しい表記を入れてください。" in rows
+    assert "用語集 2 件目の 1 行目の誤変換: 誤変換を入れてください。" in rows
     assert rows[0] == "保存できませんでした。2 件の欄を直してください。"
 
 
@@ -3608,6 +3682,328 @@ def test_reset_dialog_when_hint_presets(open_window: Callable[..., Opened]) -> N
     opened.deps.save_settings.assert_called_once_with(SETTINGS_MODEL(), {})
     assert _widgets(opened.window, QLineEdit, "hint_preset_name_") == []
     assert len(_widgets(opened.window, QLabel, "hint_preset_empty")) == 1
+
+
+# === discard_body（表記のヒントの変更の件数） ===
+
+
+def test_discard_body_when_hint_preset_added(open_window: Callable[..., Opened]) -> None:
+    """プリセットを 1 つ足すと、変えた件数は 1 件。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True))
+    _click(opened.window, "hint_preset_add")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_hint_preset_removed(open_window: Callable[..., Opened]) -> None:
+    """プリセットを 1 つ消すと、変えた件数は 1 件。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True), ("会議", ["b"], True))
+    _click(opened.window, "hint_preset_remove_0")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_hint_preset_renamed_twice(open_window: Callable[..., Opened]) -> None:
+    """1 つのプリセットの名前を 2 回変えても、変えた件数は 1 件。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True), ("会議", ["b"], True))
+    find(opened.window, QLineEdit, "hint_preset_name_0").setText("改名1")
+    find(opened.window, QLineEdit, "hint_preset_name_0").setText("改名2")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_hint_word_changed(open_window: Callable[..., Opened]) -> None:
+    """プリセットの語を変えると、変えた件数は 1 件。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True), ("会議", ["b"], True))
+    find(opened.window, QLineEdit, "hint_word_0_0").setText("変えた")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_hint_preset_toggled(open_window: Callable[..., Opened]) -> None:
+    """プリセットの有効を切り替えると、変えた件数は 1 件。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True), ("会議", ["b"], True))
+    find(opened.window, QCheckBox, "hint_preset_enabled_0").click()
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_hint_preset_moved(open_window: Callable[..., Opened]) -> None:
+    """プリセットを並べ替えると、変えた件数は並べ替えの 1 件。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True), ("会議", ["b"], True))
+    _click(opened.window, "hint_preset_down_0")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_two_hint_presets_changed(open_window: Callable[..., Opened]) -> None:
+    """2 つのプリセットを変えると、変えた件数は 2 件。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True), ("会議", ["b"], True))
+    find(opened.window, QLineEdit, "hint_word_0_0").setText("変えた1")
+    find(opened.window, QLineEdit, "hint_preset_name_1").setText("変えた2")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(2)
+
+
+def test_discard_body_when_hint_preset_removed_from_middle(
+    open_window: Callable[..., Opened],
+) -> None:
+    """途中のプリセットを消すと、変えた件数は消した 1 件（残ったプリセットの順は並べ替えに数えない）。"""
+    # 準備
+    opened = _open_hints(open_window, ("A", ["a"], True), ("B", ["b"], True), ("C", ["c"], True))
+    _click(opened.window, "hint_preset_remove_1")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_hint_preset_moved_after_saved(
+    open_window: Callable[..., Opened],
+) -> None:
+    """保存してから並べ替えると、変えた件数は並べ替えの 1 件（保存で変えた分は数えない）。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a"], True), ("会議", ["b"], True))
+    find(opened.window, QLineEdit, "hint_word_0_0").setText("変えた")
+    _click(opened.window, "save_button")
+    _click(opened.window, "hint_preset_down_0")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+# === discard_body（出力先のプリセットの変更の件数） ===
+
+KIND_GROUP_ROWS = {"browser": 1, "endpoint": 2}
+"""まとまりのメニューの種類のタブの行（ブラウザ添付・エンドポイントへ送る）。"""
+
+
+def _three_browser_presets() -> Settings:
+    """ブラウザ添付 3 件のプリセットを持つ設定を作る。"""
+    from voice_paste.shared.settings import BrowserPreset
+
+    return SETTINGS_MODEL(
+        presets=[
+            BrowserPreset(title="A", url="https://a.example"),
+            BrowserPreset(title="B", url="https://b.example"),
+            BrowserPreset(title="C", url="https://c.example"),
+        ]
+    )
+
+
+def _select_kind(window: QWidget, kind: str) -> None:
+    """まとまりのメニューで、種類のタブを選ぶ。"""
+    find(window, QListWidget, "group_menu").setCurrentRow(KIND_GROUP_ROWS[kind])
+
+
+def _preset_button(window: QWidget, kind: str, prefix: str, number: int) -> QPushButton:
+    """種類のタブの number 件目のプリセットの操作のボタン（`{prefix}_{n}`）を引く。"""
+    found = _panel(window, kind).findChild(QPushButton, f"{prefix}_{number}")
+    assert found is not None, f"{kind} の {number} 件目の {prefix} のボタンが無い"
+    return found
+
+
+def _press_preset_hotkey(window: QWidget, kind: str, number: int) -> None:
+    """種類のタブの number 件目のプリセットの確定のホットキーに、Ctrl+Alt+9 を押す。"""
+    edit = _preset_field(window, kind, number, "hotkey", QLineEdit)
+    edit.setFocus()
+    QTest.keyClick(
+        edit,
+        Qt.Key.Key_9,
+        Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier,
+    )
+
+
+def test_discard_body_when_preset_added(open_window: Callable[..., Opened]) -> None:
+    """プリセットを 1 つ足すと、変えた件数は 1 件（タイトルと URL を入れても 1 件）。"""
+    # 準備
+    opened = open_window(_settings_with_presets())
+    _select_kind(opened.window, "browser")
+    _add_preset(opened.window, "browser", "足した", "https://added.example")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_preset_removed(open_window: Callable[..., Opened]) -> None:
+    """プリセットを 1 つ消すと、変えた件数は 1 件。"""
+    # 準備
+    opened = open_window(_settings_with_presets())
+    _select_kind(opened.window, "browser")
+    _preset_button(opened.window, "browser", "preset_remove", 0).click()
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_preset_changed_twice(open_window: Callable[..., Opened]) -> None:
+    """1 つのプリセットの項目を 2 つ（タイトルと URL）変えても、変えた件数は 1 件。"""
+    # 準備
+    opened = open_window(_settings_with_presets())
+    _select_kind(opened.window, "browser")
+    _preset_field(opened.window, "browser", 0, "title", QLineEdit).setText("変えた")
+    _preset_field(opened.window, "browser", 0, "url", QLineEdit).setText("https://changed.example")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_preset_hotkey_and_send_enter_changed(
+    open_window: Callable[..., Opened],
+) -> None:
+    """ブラウザ添付の 1 つのプリセットのホットキーと Enter まで送るを変えても、変えた件数は 1 件。"""
+    # 準備
+    opened = open_window(_settings_with_presets())
+    _select_kind(opened.window, "browser")
+    _press_preset_hotkey(opened.window, "browser", 0)
+    _preset_field(opened.window, "browser", 0, "send_enter", QCheckBox).click()
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_preset_hotkey_and_authorization_changed(
+    open_window: Callable[..., Opened],
+) -> None:
+    """エンドポイントへ送るの 1 つのプリセットのホットキーと Authorization を変えても、変えた件数は 1 件。"""
+    # 準備
+    opened = open_window(_settings_with_presets())
+    _select_kind(opened.window, "endpoint")
+    _press_preset_hotkey(opened.window, "endpoint", 0)
+    _preset_field(opened.window, "endpoint", 0, "authorization", QLineEdit).setText("Bearer y")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_preset_moved(open_window: Callable[..., Opened]) -> None:
+    """プリセットを並べ替える（2 件のうち下を上へ）と、変えた件数は並べ替えの 1 件。"""
+    # 準備
+    opened = open_window(_settings_with_presets())
+    _select_kind(opened.window, "browser")
+    _preset_button(opened.window, "browser", "preset_up", 1).click()
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_two_presets_changed(open_window: Callable[..., Opened]) -> None:
+    """2 つのプリセットの項目を 1 つずつ変えると、変えた件数は 2 件。"""
+    # 準備
+    opened = open_window(_settings_with_presets())
+    _select_kind(opened.window, "browser")
+    _preset_field(opened.window, "browser", 0, "title", QLineEdit).setText("変えた1")
+    _preset_field(opened.window, "browser", 1, "url", QLineEdit).setText("https://changed.example")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(2)
+
+
+def test_discard_body_when_preset_removed_from_middle(open_window: Callable[..., Opened]) -> None:
+    """3 件のうち途中のプリセットを消すと、変えた件数は消した 1 件（残ったプリセットの順は並べ替えに数えない）。"""
+    # 準備
+    opened = open_window(_three_browser_presets())
+    _select_kind(opened.window, "browser")
+    _preset_button(opened.window, "browser", "preset_remove", 1).click()
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+def test_discard_body_when_presets_changed_in_two_kinds(open_window: Callable[..., Opened]) -> None:
+    """ブラウザ添付とエンドポイントへ送るのタブで 1 つずつプリセットを変えると、変えた件数は 2 件。"""
+    # 準備
+    opened = open_window(_settings_with_presets())
+    _select_kind(opened.window, "browser")
+    _preset_field(opened.window, "browser", 0, "title", QLineEdit).setText("変えた1")
+    _select_kind(opened.window, "endpoint")
+    _preset_field(opened.window, "endpoint", 0, "title", QLineEdit).setText("変えた2")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(2)
+
+
+def test_discard_body_when_preset_moved_after_saved(open_window: Callable[..., Opened]) -> None:
+    """保存してから並べ替えると、変えた件数は並べ替えの 1 件（保存で変えた分は数えない）。"""
+    # 準備
+    opened = open_window(_settings_with_presets())
+    _select_kind(opened.window, "browser")
+    _preset_field(opened.window, "browser", 0, "title", QLineEdit).setText("変えた")
+    _click(opened.window, "save_button")
+    _preset_button(opened.window, "browser", "preset_down", 0).click()
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
 
 
 # === 設定画面を開いている間はホットキーを止める ===

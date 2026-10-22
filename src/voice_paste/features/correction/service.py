@@ -36,6 +36,9 @@ DEFAULT_GLOSSARY_FILE_NAME: str = "yogo.csv"
 GLOSSARY_FILE_PATTERN: str = "glossary_{number}.csv"
 """設定画面で足した用語集の CSV のファイル名。number は 1 からの連番。"""
 
+DELETED_MARK: str = "（消す）"
+"""正しい表記が空の行で誤変換を消したことを、置き換えのログの「→」の右に出す表示。"""
+
 
 def read_glossary_rows(path: Path) -> list[GlossaryEntry]:
     """用語集の CSV の行を、オン・オフと片方が空の行も含めて読む。ファイルが無ければ空を返す。
@@ -74,7 +77,7 @@ def read_glossary_rows(path: Path) -> list[GlossaryEntry]:
 
 
 def load_glossary(path: Path) -> list[GlossaryEntry]:
-    """用語集の CSV から、補正に使う行（オンで、誤変換と正しい表記の両方がある行）を読む。読めなければ空を返す。"""
+    """用語集の CSV から、補正に使う行（オンで、誤変換がある行。正しい表記が空の行は誤変換を消す行）を読む。読めなければ空を返す。"""
     # 1. 行を読む（読めない CSV は補正せずに届けるため、空にする）
     try:
         rows = read_glossary_rows(path)
@@ -82,8 +85,8 @@ def load_glossary(path: Path) -> list[GlossaryEntry]:
         logger.warning(f"用語集を読めなかった（{path}: {error}）")
         return []
 
-    # 2. オフの行と、誤変換か正しい表記のどちらかが空の行を飛ばす
-    entries = [row for row in rows if row.enabled and row.wrong and row.right]
+    # 2. オフの行と、誤変換が空の行を飛ばす（正しい表記が空の行は、誤変換を消す行として残す）
+    entries = [row for row in rows if row.enabled and row.wrong]
     logger.info(f"用語集を読んだ（{path}・{len(rows)} 行・補正に使う {len(entries)} 行）")
     return entries
 
@@ -160,14 +163,14 @@ def next_glossary_path(taken: Collection[Path], *, directory: Path) -> Path:
 
 
 def apply_glossary(text: str, entries: list[GlossaryEntry]) -> str:
-    """用語集の行の順に、前の行で置き換えた結果へ次の行を当てて誤変換を置き換える。"""
+    """用語集の行の順に、前の行で置き換えた結果へ次の行を当てて誤変換を置き換える（正しい表記が空の行は誤変換を消す）。"""
     result = text
     replaced: list[str] = []
     for entry in entries:
-        # 誤変換を含むなら全て正しい表記へ置き換える
+        # 誤変換を含むなら全て正しい表記へ置き換える（正しい表記が空なら誤変換が消える）
         if entry.wrong in result:
             result = result.replace(entry.wrong, entry.right)
-            replaced.append(f"{entry.wrong}→{entry.right}")
+            replaced.append(f"{entry.wrong}→{entry.right or DELETED_MARK}")
 
     if replaced:
         logger.info(f"用語集で置き換えた（{', '.join(replaced)}）")

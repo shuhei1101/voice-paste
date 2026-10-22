@@ -138,7 +138,7 @@ tables:
       - name: 正しい表記
         title: 正しい表記
         type: string
-        description: 置き換えた後の文字。前後の空白は除いて読む
+        description: 置き換えた後の文字。空の行は、起こした文字から誤変換を消す。前後の空白は除いて読む
         example: Claude
       - name: 使う
         title: 補正に使うか

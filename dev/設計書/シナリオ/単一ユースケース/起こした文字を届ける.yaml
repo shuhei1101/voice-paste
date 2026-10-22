@@ -3,7 +3,8 @@ scenarios:
   - name: 正常シナリオ
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV
       - name: 出力先
         description: 「貼り付けて送信」をオンにし、録音する で「貼り付けて送信」を選んだ
       - name: Enter と一緒に押す修飾キー
@@ -29,10 +30,12 @@ scenarios:
       - 貼り付け先の入力欄に起こした文字が入り、Enter が送られている
       - クリップボードに起こした文字が入っている
       - トレイのアイコンが待機中に戻っている
+    test: test_normal
   - name: 正常シナリオ（貼り付けのみ）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV
       - name: 出力先
         description: 「貼り付けのみ」をオンにし、録音する で「貼り付けのみ」を選んだ
     flow: |-
@@ -51,10 +54,12 @@ scenarios:
     expected:
       - 貼り付け先の入力欄に起こした文字が入り、Enter は送られていない
       - クリップボードに起こした文字が入っている
+    test: test_normal_when_paste_only
   - name: 正常シナリオ（コピーのみ）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV
       - name: 出力先
         description: 「コピーのみ」をオンにし、録音する で「コピーのみ」を選んだ
     flow: |-
@@ -75,10 +80,12 @@ scenarios:
       - クリップボードに起こした文字が入っている
       - 貼り付けのキーも Enter も送られていない
       - トレイからコピーの完了の通知が出ている
+    test: test_normal_when_copy_only
   - name: 正常シナリオ（ブラウザ添付のプリセット）
     setup:
       - name: Mock
-        description: なし（実機の Windows と Microsoft Edge で実行）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー・ブラウザを開く呼び出し。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV。ブラウザを開く呼び出しは渡された URL を控え、Microsoft Edge を開かない
       - name: プリセット
         description: 種類「ブラウザ添付」・Enter まで送るをオンにしたプリセットを 1 つ足し、録音する でそのプリセットを選んだ
       - name: Enter と一緒に押す修飾キー
@@ -103,10 +110,12 @@ scenarios:
       - プリセットの URL の画面がアプリのウィンドウとして開いている
       - その画面の入力欄に起こした文字が入り、送信されている
       - Enter は修飾キーを押さずに送られている
+    test: test_normal_when_browser_preset
   - name: 正常シナリオ（呼び出し元へ返す）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行。返送先は 127.0.0.1 で待ち受けるテスト用の受け口）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV。返送先は 127.0.0.1 で待ち受けるテスト用の受け口
       - name: 入口
         description: API から始めた録音で、起こした文字が得られた
       - name: ほかの出力先
@@ -130,10 +139,12 @@ scenarios:
       - 返送先の受け口に、セッションの ID と起こした文字が 1 回届いている
       - クリップボードと貼り付け先が届ける前のままである
       - トレイのアイコンが待機中に戻っている
+    test: test_normal_when_return_to_caller
   - name: 正常シナリオ（呼び出し元へ空の文字を返す）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行。返送先は 127.0.0.1 で待ち受けるテスト用の受け口）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は無音の WAV。返送先は 127.0.0.1 で待ち受けるテスト用の受け口
       - name: 入口
         description: API から始めた録音で、文字起こしの結果が空だった
     flow: |-
@@ -151,10 +162,12 @@ scenarios:
     expected:
       - 返送先の受け口に、セッションの ID と空の文字が 1 回届いている
       - トレイのアイコンが待機中に戻っている
+    test: test_normal_when_return_empty_text
   - name: 異常シナリオ（呼び出し元へ失敗を返す）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行。返送先は 127.0.0.1 で待ち受けるテスト用の受け口）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV。保存した録音を読めない中身に書き換える。返送先は 127.0.0.1 で待ち受けるテスト用の受け口
       - name: 入口
         description: API から始めた録音で、文字起こしに失敗した
     flow: |-
@@ -172,10 +185,12 @@ scenarios:
     expected:
       - 返送先の受け口に、セッションの ID と文字起こしに失敗したことが 1 回届いている
       - トレイのアイコンが待機中に戻っている
+    test: test_error_when_return_failure
   - name: 異常シナリオ（返送先に届かない）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV
       - name: 入口
         description: API から始めた録音で、起こした文字が得られた
       - name: 返送先の停止
@@ -203,10 +218,12 @@ scenarios:
       - トレイのアイコンが待機中に戻り、次の録音を始められる
     notes:
       再送の回数と間: 再送の回数・間・タイムアウトは非機能要件で決める。
+    test: test_error_when_callback_unreachable
   - name: 正常シナリオ（エンドポイントへ送るプリセット）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行。送り先は 127.0.0.1 で待ち受けるテスト用の受け口）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV。送り先は 127.0.0.1 で待ち受けるテスト用の受け口
       - name: プリセット
         description: 種類「エンドポイントへ送る」で URL にテスト用の受け口を設定したプリセットを 1 つ足し、録音する でそのプリセットを選んだ
     flow: |-
@@ -227,10 +244,12 @@ scenarios:
       - 送り先の受け口に、セッションの ID と起こした文字が 1 回届いている
       - クリップボードと貼り付け先が届ける前のままである
       - トレイのアイコンが待機中に戻っている
+    test: test_normal_when_endpoint_preset
   - name: 異常シナリオ（送り先に届かない）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV
       - name: プリセット
         description: 種類「エンドポイントへ送る」で URL にテスト用の受け口を設定したプリセットを 1 つ足し、録音する でそのプリセットを選んだ
       - name: 応えない送り先
@@ -259,10 +278,12 @@ scenarios:
       - 送り先へ送ったのは 1 回だけである（送り直さない）
       - 履歴に録音と起こした文字が残っている
       - トレイのアイコンが待機中に戻り、次の録音を始められる
+    test: test_error_when_endpoint_unreachable
   - name: 正常シナリオ（ブラウザ添付のプリセット・貼り付けだけ）
     setup:
       - name: Mock
-        description: なし（実機の Windows と Microsoft Edge で実行）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー・ブラウザを開く呼び出し。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV。ブラウザを開く呼び出しは渡された URL を控え、Microsoft Edge を開かない
       - name: プリセット
         description: 種類「ブラウザ添付」・Enter まで送るをオフにしたプリセットを 1 つ足し、録音する でそのプリセットを選んだ
     flow: |-
@@ -283,10 +304,12 @@ scenarios:
     expected:
       - プリセットの URL の画面がアプリのウィンドウとして開いている
       - その画面の入力欄に起こした文字が入り、送信はされていない
+    test: test_normal_when_browser_preset_paste_only
   - name: 正常シナリオ（区間ごとに呼び出し元へ返す）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行。返送先は 127.0.0.1 で待ち受けるテスト用の受け口）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は、音声合成の文の間に無音を挟んだ WAV を実時間で流す。返送先は 127.0.0.1 で待ち受けるテスト用の受け口
       - name: 入口
         description: 連続録音で、区間の文字が通し番号つきで得られた
     flow: |-
@@ -309,10 +332,12 @@ scenarios:
       - クリップボードと貼り付け先が届ける前のままである
     notes:
       順の保ち方: 前の区間の返送を終えて（届かなかったときは再送を終えて）から次の区間を送る。
+    test: test_normal_when_return_segments
   - name: 正常シナリオ（連続録音の終わりを返す）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行。返送先は 127.0.0.1 で待ち受けるテスト用の受け口）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は、音声合成の文の間に無音を挟んだ WAV を実時間で流す。返送先は 127.0.0.1 で待ち受けるテスト用の受け口
       - name: 入口
         description: 連続録音が完了か上限で終わり、最後の区間まで届け終えた（区間が 1 つも無い場合を含む）
     flow: |-
@@ -333,10 +358,12 @@ scenarios:
       - 返送先の受け口に、最後の区間の返送の後で、セッションの ID・終わった理由・区間の数が 1 回届いている
       - 区間の数が、届けた区間の通し番号の最後の値と一致する（区間が無ければ 0）
       - トレイのアイコンが待機中に戻り、次の録音を始められる
+    test: test_normal_when_return_continuous_end
   - name: 異常シナリオ（区間の失敗を呼び出し元へ返す）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行。返送先は 127.0.0.1 で待ち受けるテスト用の受け口）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は、音声合成の文の間に無音を挟んだ WAV を実時間で流す。文字起こしは通し番号 2 の区間だけ失敗を返す。返送先は 127.0.0.1 で待ち受けるテスト用の受け口
       - name: 入口
         description: 連続録音で、ある区間の文字起こしが失敗した
     flow: |-
@@ -354,10 +381,12 @@ scenarios:
     expected:
       - 返送先の受け口に、失敗した区間のセッションの ID・通し番号・失敗した理由が 1 回届いている
       - その後の区間の文字が通し番号の順に届いている
+    test: test_error_when_return_segment_failure
   - name: 異常シナリオ（区間の返送先に届かない）
     setup:
       - name: Mock
-        description: 返送先の受け口を、通し番号 2 の区間の返送にだけ常に 500 を返すようにする
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は、音声合成の文の間に無音を挟んだ WAV を実時間で流す。返送先の受け口は、通し番号 2 の区間の返送にだけ常に 500 を返す
       - name: 再送の設定
         description: 返送の再送の間隔をテストで待てる短い値に差し替える
       - name: 入口
@@ -388,10 +417,12 @@ scenarios:
       - 連続録音は止まっていない
     notes:
       再送の回数と間: 再送の回数・間・タイムアウトは 1 回の録音の返送と同じ非機能要件の値を使う。
+    test: test_error_when_segment_callback_unreachable
   - name: 正常シナリオ（Enter と一緒に修飾キーを押す）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV
       - name: 出力先
         description: 「貼り付けて送信」をオンにし、録音する で「貼り付けて送信」を選んだ
       - name: Enter と一緒に押す修飾キー
@@ -415,10 +446,12 @@ scenarios:
       - 貼り付け先の入力欄に起こした文字が入り、Ctrl+Enter が送られている
       - Enter を送り終えた後、Ctrl が押されたままになっていない
       - クリップボードに起こした文字が入っている
+    test: test_normal_when_enter_with_modifier
   - name: 正常シナリオ（コピーの完了の通知を押してコピーし直す）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV
       - name: 出力先
         description: 「コピーのみ」をオンにし、録音する で「コピーのみ」を選んで届け、コピーの完了の通知が出ている
       - name: クリップボードの上書き
@@ -438,10 +471,12 @@ scenarios:
       - クリップボードに、上書きした文字ではなく起こした文字が入っている
       - ログフォルダは開かれていない
       - 貼り付けのキーも Enter も送られていない
+    test: test_normal_when_copy_again_from_notification
   - name: 正常シナリオ（文字起こし中にコピーのみへ切り替える）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は、切り替えるまで文字起こしが続くよう、音声合成の文を繰り返した WAV
       - name: 出力先
         description: 「貼り付けて送信」「コピーのみ」をオンにし、録音する で「貼り付けて送信」を選んで確定した
       - name: 切り替え
@@ -469,10 +504,12 @@ scenarios:
       - クリップボードに起こした文字が入っている
       - 貼り付けのキーも Enter も送られていない
       - トレイからコピーの完了の通知が出ている
+    test: test_normal_when_switch_to_copy_only
   - name: 正常シナリオ（文字起こし中に貼り付けのみへ切り替える）
     setup:
       - name: Mock
-        description: なし（実機の Windows で実行）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は、切り替えるまで文字起こしが続くよう、音声合成の文を繰り返した WAV
       - name: 出力先
         description: 「貼り付けのみ」「コピーのみ」をオンにし、録音する で「コピーのみ」を選んで確定した
       - name: 貼り付け先
@@ -503,6 +540,7 @@ scenarios:
       - 貼り付け先の入力欄に起こした文字が入り、Enter は送られていない
       - クリップボードに起こした文字が入っている
       - コピーの完了の通知は出ていない
+    test: test_normal_when_switch_to_paste_only
 lead: 起こした文字を、ホットキーから始めた録音は選んだ出力先へ、API から始めた録音は呼び出し元のエンドポイントへ届ける単一ユースケース。
 issue: 14
 primary_actor: 音声入力を使うユーザー
@@ -519,7 +557,12 @@ notes:
     ほかのアプリがクリップボードを開いたままで書けないときは、届けられなかったことをユーザーに知らせ、ログに理由を書く。
     録音と起こした文字は履歴に残っている。
     実機で決定的に起こせないため、シナリオにはしていない。
-  E2E のテスト: 全シナリオが録音を始め、実機のマイクを開くため、E2E のテストを置かない（#65）。録音から届けるまでは、複合ユースケース「声で入力した文字を貼り付ける」「ほかのシステムから録音を文字に起こす」の E2E が、録音のファイルを内部で渡して確かめる
+  E2E のテスト: |-
+    E2E の常駐アプリの起こし方と差し替えは、録音する の補足『E2E のテスト』と同じ。
+    貼り付け先の入力欄に入ることは、クリップボードの文字と、控えた貼り付けのキー・Enter・Enter に添えた修飾キーで確かめる。
+    ブラウザ添付のプリセットは、ブラウザを開く呼び出しを渡された URL を控えるものに差し替え、Microsoft Edge を開かない。アプリのウィンドウとして開くことは控えた URL で、入力欄に入って送られることはクリップボードと控えたキーで確かめる。
+    コピーの完了の通知が出たことは知らせのログで確かめる。
+    「Enter と一緒に修飾キーを押す」の「Ctrl が押されたままになっていない」は E2E で確かめない（キーを送る部品の単体テストが確かめる）
   コピーし直せないとき: |-
     コピーの完了の通知を押してもクリップボードに書けないときは、届けられなかったことをトレイの通知で知らせ、ログに理由を書く。
     実機で決定的に起こせないため、シナリオにはしていない。
@@ -527,3 +570,4 @@ notes:
   届け始めた後の切り替え: |-
     届け始めた後の切り替えは受けず、届けている出力先のまま届ける。
     実機で決定的に起こせないため、シナリオにはしていない。
+test_file: tests/e2e/単一ユースケース/test_deliver_transcript.py

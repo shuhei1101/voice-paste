@@ -20,7 +20,34 @@ from PySide6.QtWidgets import QFrame, QLabel, QProgressBar, QPushButton
 from tests.unit.voice_paste.ui.helpers import OUTPUT_TITLES, FakeClock, make_ui_deps
 
 if TYPE_CHECKING:
-    from PySide6.QtWidgets import QApplication
+    from PySide6.QtWidgets import QApplication, QWidget
+
+    from voice_paste.shared.settings import Settings
+    from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
+
+SWITCH_BUTTON_PATTERN = QRegularExpression("^switch_button_")
+"""切り替えのボタンの objectName に当てる正規表現。"""
+
+ALL_OUTPUT_IDS = ("paste_and_send", "paste_only", "copy_only")
+"""切り替えのボタンを 3 つ出す回にオンにする出力先の ID。"""
+
+TWO_OUTPUT_IDS = ("paste_only", "copy_only")
+"""切り替えのボタンを 2 つ出す回にオンにする出力先の ID。"""
+
+PREVIOUS_WINDOW_WIDTH_PX = 800
+"""前の回に窓を広げた幅（切り替えのボタンの幅が引き継がれないことを確かめる、どのボタンの合計よりも広い値）。"""
+
+REOPEN_POSITION = QPoint(100, 100)
+"""開き直しの回に表示を出す左上の座標。"""
+
+REOPEN_TIMES = 3
+"""窓の幅が広がらないことを確かめる、閉じて開き直す回数。"""
+
+SHOW_HOTKEYS_CASES = [
+    pytest.param(True, id="hotkeys_on"),
+    pytest.param(False, id="hotkeys_off"),
+]
+"""`ui.transcribing_show_hotkeys` の両方の値。"""
 
 
 def test_open_when_window_role(qapp: QApplication, tmp_path: Path) -> None:
@@ -55,6 +82,218 @@ def test_open_when_preset(qapp: QApplication, tmp_path: Path) -> None:
     assert preset_label.text() == "ChatGPT"
     assert [button for button in switch_buttons if button.isVisible()] == []
     assert [hint for hint in paste_hints if hint.isVisible()] == []
+
+
+# === 切り替えのボタンの幅 ===
+
+
+def _switch_settings(show_hotkeys: bool, enabled_ids: tuple[str, ...]) -> Settings:
+    """enabled_ids の出力先だけをオンにし、文字起こし中の表示のホットキーを出すかを show_hotkeys にした設定を作る。"""
+    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
+    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
+    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
+    from voice_paste.main import SETTINGS_MODEL
+    from voice_paste.shared.settings import UiSettings
+
+    return SETTINGS_MODEL(
+        ui=UiSettings(show_hotkeys=True, transcribing_show_hotkeys=show_hotkeys),
+        outputs=[
+            PasteAndSendSettings(enabled="paste_and_send" in enabled_ids),
+            PasteOnlySettings(enabled="paste_only" in enabled_ids),
+            CopyOnlySettings(enabled="copy_only" in enabled_ids),
+        ],
+    )
+
+
+def _switch_buttons(indicator: QWidget) -> list[QPushButton]:
+    """表示に並んだ切り替えのボタンを返す。"""
+    return indicator.findChildren(QPushButton, SWITCH_BUTTON_PATTERN)
+
+
+def _fixed_widths(buttons: list[QPushButton]) -> set[tuple[int, int]]:
+    """ボタンごとの（minimumWidth, maximumWidth）の組を、重なりを除いて返す。"""
+    return {(button.minimumWidth(), button.maximumWidth()) for button in buttons}
+
+
+def _widest_hint(buttons: list[QPushButton]) -> int:
+    """ボタンの sizeHint の幅のうち最も大きい値を返す。"""
+    return max(button.sizeHint().width() for button in buttons)
+
+
+def _widen_from_minimum(qapp: QApplication, indicator: QWidget, widen_px: int) -> None:
+    """窓を minimumSizeHint の幅から widen_px だけ広げ、幅の変更で起きる組み直しまで済ませる。"""
+    # open で組み直したレイアウトを落ち着かせてから minimumSizeHint を引く（落ち着く前は古い寸法を返す）
+    qapp.processEvents()
+    minimum = indicator.minimumSizeHint()
+    indicator.resize(minimum.width() + widen_px, minimum.height())
+    qapp.processEvents()
+
+
+def _free_space_right_of_last(indicator: QWidget, buttons: list[QPushButton]) -> int:
+    """最後のボタンの右に残る空きの幅（px）を返す。行の右端は、同じ枠に縦に並んで枠の幅いっぱいに置かれる出力先の見出しの右端で見る（どちらも枠の子なので座標をそのまま比べる）。"""
+    heading = indicator.findChild(QLabel, "output_heading")
+    last = max(buttons, key=lambda button: button.x())
+    return heading.x() + heading.width() - (last.x() + last.width())
+
+
+def _reopen_widths(qapp: QApplication, indicator: TranscribingIndicator, times: int) -> list[int]:
+    """close_window してから同じ座標で open し直すことを times 回繰り返し、開き直すたびの窓の width() を並べて返す。"""
+    widths: list[int] = []
+    for _ in range(times):
+        indicator.close_window()
+        indicator.open(at=REOPEN_POSITION)
+        qapp.processEvents()
+        widths.append(indicator.width())
+    return widths
+
+
+@pytest.fixture(
+    params=[pytest.param(False, id="no_theme"), pytest.param(True, id="light_theme")]
+)
+def themed_app(request: pytest.FixtureRequest, qapp: QApplication) -> QApplication:
+    """テーマを当てない QApplication か、明るい組のスタイルシートを当てた QApplication（枠の線が付く）を返す。"""
+    # テーマを当てる回は、後始末までする light_app を使う
+    return request.getfixturevalue("light_app") if request.param else qapp
+
+
+@pytest.mark.parametrize("show_hotkeys", SHOW_HOTKEYS_CASES)
+def test_open_when_switch_buttons_same_width(
+    qapp: QApplication, tmp_path: Path, show_hotkeys: bool
+) -> None:
+    """切り替えのボタンを、名前の最も長いボタンが収まる同じ固定の幅にする（正常系）。"""
+    from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
+
+    # 準備: 名前の長さの違う貼り付けて送信・貼り付けのみ・コピーのみがオンの設定
+    settings = _switch_settings(show_hotkeys, ALL_OUTPUT_IDS)
+    indicator = TranscribingIndicator(
+        make_ui_deps(tmp_path, settings=settings), clock=FakeClock(0.0)
+    )
+
+    # 実行: 表示を出し、組み直したレイアウトが落ち着いてから窓を minimumSizeHint の幅にする
+    indicator.open()
+    qapp.processEvents()
+    indicator.resize(indicator.minimumSizeHint())
+    qapp.processEvents()
+
+    # 検証: 3 つのボタンの固定の幅が全て同じ値で、その値が各ボタンの sizeHint の幅の最大以上
+    buttons = _switch_buttons(indicator)
+    fixed_widths = _fixed_widths(buttons)
+    fixed_minimum, fixed_maximum = next(iter(fixed_widths))
+    assert len(buttons) == len(ALL_OUTPUT_IDS)
+    assert len(fixed_widths) == 1
+    assert fixed_minimum == fixed_maximum
+    assert fixed_minimum >= _widest_hint(buttons)
+
+
+@pytest.mark.parametrize("show_hotkeys", SHOW_HOTKEYS_CASES)
+@pytest.mark.parametrize(
+    "enabled_ids",
+    [
+        pytest.param(ALL_OUTPUT_IDS, id="three_outputs_on"),
+        pytest.param(TWO_OUTPUT_IDS, id="two_outputs_on"),
+    ],
+)
+@pytest.mark.parametrize(
+    "widen_px",
+    [
+        pytest.param(1, id="widen_1px"),
+        pytest.param(2, id="widen_2px"),
+        pytest.param(3, id="widen_3px"),
+        pytest.param(4, id="widen_4px"),
+    ],
+)
+def test_open_when_window_widened(
+    themed_app: QApplication,
+    tmp_path: Path,
+    widen_px: int,
+    enabled_ids: tuple[str, ...],
+    show_hotkeys: bool,
+) -> None:
+    """窓を広げても切り替えのボタンの幅が全て同じで、行からはみ出さない（正常系）。"""
+    from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
+
+    # 準備: オンの出力先を enabled_ids にした設定で表示を出す
+    settings = _switch_settings(show_hotkeys, enabled_ids)
+    indicator = TranscribingIndicator(
+        make_ui_deps(tmp_path, settings=settings), clock=FakeClock(0.0)
+    )
+    indicator.open()
+
+    # 実行: 窓を minimumSizeHint の幅から widen_px 広げる
+    _widen_from_minimum(themed_app, indicator, widen_px)
+
+    # 検証: ボタンの width() が全て同じ値で、最後のボタンの右端が行の右端を超えず、右に残る空きがボタンの数より小さい px
+    buttons = _switch_buttons(indicator)
+    free_space = _free_space_right_of_last(indicator, buttons)
+    assert len(buttons) == len(enabled_ids)
+    assert len({button.width() for button in buttons}) == 1
+    assert free_space >= 0
+    assert free_space < len(buttons)
+
+
+@pytest.mark.parametrize("show_hotkeys", SHOW_HOTKEYS_CASES)
+def test_open_when_previous_window_wide(
+    themed_app: QApplication, tmp_path: Path, show_hotkeys: bool
+) -> None:
+    """前の回の広い窓の幅を引き継がず、切り替えのボタンを名前の最も長いボタンの幅で並べる（正常系）。"""
+    from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
+
+    # 準備: 3 つの出力先がオンの設定で open し、窓を前の回の広い幅にする
+    settings = _switch_settings(show_hotkeys, ALL_OUTPUT_IDS)
+    indicator = TranscribingIndicator(
+        make_ui_deps(tmp_path, settings=settings), clock=FakeClock(0.0)
+    )
+    indicator.open()
+    indicator.resize(PREVIOUS_WINDOW_WIDTH_PX, indicator.height())
+    themed_app.processEvents()
+
+    # 実行: もう一度 open し、組み直したレイアウトが落ち着いてから窓を minimumSizeHint の幅にする
+    indicator.open()
+    themed_app.processEvents()
+    indicator.resize(indicator.minimumSizeHint())
+    themed_app.processEvents()
+
+    # 検証: 3 つのボタンの width() が全て、各ボタンの sizeHint の幅の最大と等しく、最後のボタンの右端が行の右端を超えない
+    buttons = _switch_buttons(indicator)
+    assert len(buttons) == len(ALL_OUTPUT_IDS)
+    assert {button.width() for button in buttons} == {_widest_hint(buttons)}
+    assert _free_space_right_of_last(indicator, buttons) >= 0
+
+
+@pytest.mark.parametrize("show_hotkeys", SHOW_HOTKEYS_CASES)
+@pytest.mark.parametrize(
+    "enabled_ids",
+    [
+        pytest.param(ALL_OUTPUT_IDS, id="three_outputs_on"),
+        pytest.param(TWO_OUTPUT_IDS, id="two_outputs_on"),
+    ],
+)
+def test_open_when_reopened(
+    light_app: QApplication,
+    tmp_path: Path,
+    enabled_ids: tuple[str, ...],
+    show_hotkeys: bool,
+) -> None:
+    """開き直しても窓の幅が広がらない（正常系）。"""
+    from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
+
+    # 準備: テーマを当てた状態で、オンの出力先を enabled_ids にした設定の表示を座標を渡して開く
+    settings = _switch_settings(show_hotkeys, enabled_ids)
+    indicator = TranscribingIndicator(
+        make_ui_deps(tmp_path, settings=settings), clock=FakeClock(0.0)
+    )
+    indicator.open(at=REOPEN_POSITION)
+    light_app.processEvents()
+    first_width = indicator.width()
+
+    # 実行: 閉じて同じ座標で開き直すことを 3 回繰り返す
+    reopened_widths = _reopen_widths(light_app, indicator, REOPEN_TIMES)
+
+    # 検証: 開き直した後の窓の width() がどの回も最初に開いた幅と同じで、最後のボタンの右端が行の右端を超えない
+    buttons = _switch_buttons(indicator)
+    assert len(reopened_widths) == REOPEN_TIMES
+    assert set(reopened_widths) == {first_width}
+    assert _free_space_right_of_last(indicator, buttons) >= 0
 
 
 def test_set_progress(qapp: QApplication, tmp_path: Path) -> None:

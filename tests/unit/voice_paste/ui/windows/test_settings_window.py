@@ -468,6 +468,40 @@ def test_save_when_glossary_invalid(
     assert "用語集 3 件目の 2 行目の誤変換: 誤変換を入れてください" in summary
 
 
+def test_save_when_glossary_right_empty(
+    open_with_glossaries: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """正しい表記だけが空の行は確かめに通し、空のまま書き戻しに渡す（正常系）。"""
+    from voice_paste.shared.settings import GlossarySettings
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（1 件目の用語集に行を足して、誤変換「ご視聴ありがとうございました」だけを入れる）
+    glossary = GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
+    opened = open_with_glossaries(
+        [glossary], {glossary.path: [GlossaryEntry(wrong="あ", right="A")]}
+    )
+    _select_group(opened.window, "用語集")
+    _button(opened.window, "add_glossary_entry_button").click()
+    _visible_edits(opened.window, "glossary_entry_wrong_")[1].setText("ご視聴ありがとうございました")
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is True
+    summary = opened.window.findChild(QWidget, "error_summary")
+    assert summary is not None
+    assert not summary.isVisible()
+    opened.deps.save_settings.assert_called_once()
+    _, changed_rows = opened.deps.save_settings.call_args.args
+    assert changed_rows == {
+        glossary.path: [
+            GlossaryEntry(wrong="あ", right="A"),
+            GlossaryEntry(wrong="ご視聴ありがとうございました", right=""),
+        ]
+    }
+
+
 HINT_TOO_LONG_WORD_CHARS = 74
 """日本語 74 文字 = 222 バイトの語の文字数（これに英字 1 文字を足すと 223 バイト）。"""
 
@@ -564,30 +598,55 @@ def test_save_when_restart(opened: Opened) -> None:
     assert closed_count == [1]
 
 
+def _no_preset(window: SettingsWindow) -> None:
+    """カスタムプリセットを足さない（ホットキーを変える前の準備が要らないケース）。"""
+
+
+def _add_browser_preset(window: SettingsWindow) -> None:
+    """「ブラウザ添付」にカスタムプリセットを 1 件足す（保存できるタイトルと URL を入れる）。"""
+    _add_preset(window, "browser", title="A", url="https://a.example")
+
+
 @pytest.mark.parametrize(
-    ("group", "hotkey_name", "expected_notice"),
+    ("group", "prepare", "hotkey_name", "expected_notice"),
     [
         pytest.param(
             "ホットキー",
+            _no_preset,
             "hotkey_hotkeys.start",
             "保存しました。新しいホットキーは、設定画面を閉じると効きます。",
             id="recording_hotkey",
         ),
         pytest.param(
             "出力先",
+            _no_preset,
             "hotkey_outputs[0].hotkey",
             "保存しました。新しいホットキーは、設定画面を閉じると効きます。",
             id="output_hotkey",
         ),
-        pytest.param("ホットキー", "hotkey_keyboard.paste_key", "保存しました。", id="paste_key"),
+        pytest.param(
+            "ブラウザ添付",
+            _add_browser_preset,
+            "preset_hotkey_0",
+            "保存しました。新しいホットキーは、設定画面を閉じると効きます。",
+            id="custom_preset_hotkey",
+        ),
+        pytest.param(
+            "ホットキー", _no_preset, "hotkey_keyboard.paste_key", "保存しました。", id="paste_key"
+        ),
     ],
 )
 def test_save_when_hotkey_changed(
-    opened: Opened, group: str, hotkey_name: str, expected_notice: str
+    opened: Opened,
+    group: str,
+    prepare: Callable[[SettingsWindow], None],
+    hotkey_name: str,
+    expected_notice: str,
 ) -> None:
     """ホットキーを変えた保存では、閉じると効くことを添える（正常系）。"""
-    # 準備（録音開始か出力先の確定のホットキーか、貼り付けに送るキーだけを変える）
+    # 準備（録音開始・出力先の確定・カスタムプリセットの確定のホットキーか、貼り付けに送るキーだけを変える）
     _select_group(opened.window, group)
+    prepare(opened.window)
     _press_hotkey(opened.window, hotkey_name)
 
     # 実行

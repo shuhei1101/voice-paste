@@ -62,7 +62,7 @@ def post_to_api(
     token: str,
     path: str,
     *,
-    json_body: dict[str, str] | None = None,
+    json_body: dict[str, object] | None = None,
     headers: dict[str, str] | None = None,
     authorized: bool = True,
 ) -> httpx.Response:
@@ -198,7 +198,7 @@ class RealService:
         self,
         path: str,
         *,
-        json_body: dict[str, str] | None = None,
+        json_body: dict[str, object] | None = None,
         headers: dict[str, str] | None = None,
         authorized: bool = True,
     ) -> httpx.Response:

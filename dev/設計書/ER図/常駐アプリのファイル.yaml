@@ -151,3 +151,22 @@ tables:
     implementation: src/voice_paste/features/correction/service.py
     refs:
       - dev/設計書/設定/常駐アプリ#settings[glossaries[].path]
+  - name: '%LOCALAPPDATA%\voice-paste\ui\{ハッシュ}.svg'
+    title: 開く印の画像
+    datastore: SVG
+    summary: 選択欄の開く印（V 字）の画像。スタイルシートの `::down-arrow` が指す
+    scale: 明暗ごとに 1 件
+    growth: tokens.toml の text_muted が変わったときだけ増える（ファイル名は中身のハッシュ）
+    retention: 消さない
+    deletion: 消さない（同じ中身なら書き直さず使う）
+    description: |-
+      置き場所は `shared/constants.py` の `ui_image_dir`（`--data-dir` を渡したときはその下の `ui`）。
+      write_arrow_image が明暗を当てるたびに無ければ書く。
+    columns:
+      - name: svg
+        title: 画像
+        type: string
+        description: text_muted の色の線で描いた V 字の SVG
+    status: planned
+    introduced:
+      pr: 159

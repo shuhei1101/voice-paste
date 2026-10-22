@@ -2492,7 +2492,7 @@ functions:
     usecase: 共通
     summary: ui.theme で Qt の明暗を揃え、決めた明暗のスタイルシートをアプリ全体に当て、開いている窓を描き直す
     description: |-
-      今の明暗はモジュールの `_current_dark` に控え、theme_color が読む（書くのはこの関数だけ）。メインスレッドから呼ぶ。
+      今の明暗はモジュールの `_current_dark` に控え、theme_color が読む（書くのはこの関数だけ）。当てた IndicatorStyle はモジュールの `_indicator_style` に控える（書くのはこの関数だけ）。メインスレッドから呼ぶ。
       スタイルシートで塗らない部品（設定画面のスクロールバーなど）は style がパレットで描くため、Qt の明暗（`QStyleHints.setColorScheme`。Qt 6.8 から）も揃える。setColorScheme・unsetColorScheme で colorSchemeChanged が出て main からもう一度呼ばれるが、2 回目は同じ値を入れ直すだけでシグナルは出ない。
     kind: 関数
     scope: public
@@ -2519,7 +2519,7 @@ functions:
     process: |-
       1. Qt の明暗を揃える。`light`・`dark` は app.styleHints().setColorScheme(Qt.ColorScheme.Light / Dark)、`system` は app.styleHints().unsetColorScheme() で上書きを外す（外した後に 2 で OS の明暗を読む）
       2. resolve_dark(theme, is_dark_theme()) で暗い組を使うかを決め、`_current_dark` に控える
-      3. app.style() が IndicatorStyle でなければ、今のスタイルを包んだ IndicatorStyle を app.setStyle で当てる（当て直しでは作り直さない）。続けて app.setStyleSheet(build_stylesheet(決めた明暗, image_dir=引数の image_dir)) を当てる
+      3. モジュールの `_indicator_style` が None のときだけ、app.style() を包んだ IndicatorStyle を作って `_indicator_style` に控え、app.setStyle で当てる（スタイルシートを当てると app.style() は Qt の内部のスタイルに差し替わるため、app.style() では当てたかを確かめない）。続けて app.setStyleSheet(build_stylesheet(決めた明暗, image_dir=引数の image_dir)) を当てる
       4. 開いている窓（QApplication.topLevelWidgets）を update で描き直す（theme_color で描く状態の印・波形・回る印を新しい組の色にする）
          - `[INFO]` 画面の明暗を当てた（theme・暗い組か）
     unit_tests:
@@ -2552,7 +2552,7 @@ functions:
         summary: IndicatorStyle を 1 回だけ当てる
         condition: image_dir=tmp_path。theme=light を当てた後、theme=dark を当てる。QT_QPA_PLATFORM=offscreen
         mock: is_dark_theme（False）
-        expected: 1 回目の後に app.style() が IndicatorStyle になり、2 回目の後も同じインスタンスのまま
+        expected: 1 回目の後に `_indicator_style` が IndicatorStyle のインスタンスになり、2 回目の後も同じインスタンスのまま（app.setStyle は 1 回だけ呼ばれる）。fixture は終わりに `_indicator_style` を None に戻し、アプリのスタイルを元に戻す
     refs:
       - dev/設計書/設定/常駐アプリ#settings[ui.theme]
     status: implemented

@@ -132,6 +132,29 @@
   font-size: 13px;
   th { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: left; font-weight: 600; color: var(--text-2); font-size: 12px; }
   td { min-width: 180px; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  th[scope="row"] { white-space: nowrap; }
+}
+
+/* 表が横に収まらない幅: 状態ごとに見出しを上に置き、明暗の組を見出し付きのカードで並べる */
+@media (max-width: 900px) {
+  /* 列の見出し: 各カードの見出しで代えるため、読み上げにだけ残す */
+  .states thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  /* 表と行の本体: 表の並びをやめる */
+  .states, .states tbody { display: block; }
+  /* 状態 1 つ: 見出しの下にカードを 2 列で並べる */
+  .states tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  /* 状態の見出し: 行の幅いっぱいに置く */
+  .states th[scope="row"] { grid-column: 1 / -1; padding: 0; border: 0; white-space: normal; }
+  /* カード: 最小の幅を外し、枠の中に収める */
+  .states td { display: block; min-width: 0; padding: 0; border: 0; }
+  /* カードの見出し: どの案・明暗の組かを出す */
+  .states td::before { content: attr(data-label); display: block; margin-bottom: 4px; font-size: 11px; color: var(--text-2); }
+}
+
+/* 狭い幅: カードを 1 列に積む */
+@media (max-width: 480px) {
+  /* 状態 1 つ: カードを縦に積む */
+  .states tr { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* 状態の見本の表を横に流す枠 */

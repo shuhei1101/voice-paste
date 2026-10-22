@@ -33,10 +33,17 @@ from PySide6.QtWidgets import (
 )
 
 from tests.integration.ui.helpers import (
+    COLOR_TOLERANCE,
     ModalDriver,
     Ui,
+    color_distance,
+    contrast_ratio,
+    count_closer,
+    count_near,
+    crop_logical,
     dispose_windows_since,
     find,
+    indicator_image,
     make_ui_deps,
     no_modal,
     top_level_windows,
@@ -4070,3 +4077,257 @@ def test_settings_window_when_opened_twice(make_ui: Callable[..., Ui]) -> None:
     assert window.isVisible()
     ui.deps.suspend_hotkeys.assert_called_once()
     window.try_close()
+
+
+# === 印の見え方（チェックボックス・ラジオボタン・選択欄の開く印） ===
+
+THEME_PARAMS = [pytest.param("light", id="light"), pytest.param("dark", id="dark")]
+"""印の見え方を確かめる明暗の組。"""
+
+ARROW_AREA_WIDTH = 28
+"""選択欄の右端の、開く印の区画の幅（論理ピクセル）。"""
+
+ARROW_AREA_INSET = 6
+"""開く印の区画を調べるとき、欄の外側の枠の線を避ける上下の余白（論理ピクセル）。"""
+
+MIN_INDICATOR_CONTRAST = 3
+"""印と背景の明るさの比の下限（WCAG 2.1 の 1.4.11）。"""
+
+
+@pytest.fixture
+def themed_window(
+    open_window: Callable[..., Opened], apply_theme_to_app: Callable[[str], None]
+) -> Callable[[str], SettingsWindow]:
+    """明暗を当ててから設定画面（既定の設定）を開く関数を返す。"""
+
+    def _open(theme: str) -> SettingsWindow:
+        """明暗を当てて設定画面を開く。"""
+        apply_theme_to_app(theme)
+        return open_window().window
+
+    return _open
+
+
+def _show_field(window: QWidget, key: str, cls: type = QWidget) -> Any:
+    """設定のキーの欄が出ているまとまりへ切り替えて、その欄を返す。"""
+    from PySide6.QtWidgets import QApplication
+
+    menu = find(window, QListWidget, "group_menu")
+    for row in range(menu.count()):
+        menu.setCurrentRow(row)
+        QApplication.processEvents()
+        field = _field(window, key, cls)
+        if field.isVisible():
+            return field
+    raise AssertionError(f"{key} の欄が出ているまとまりが無い")
+
+
+@pytest.mark.parametrize("theme", THEME_PARAMS)
+def test_check_indicator_when_checkbox_on(
+    themed_window: Callable[[str], SettingsWindow], theme: str
+) -> None:
+    """オンのチェックボックスは、箱を accent_fg で塗り、チェックを surface で描く（正常系）。"""
+    from voice_paste.ui.style import load_tokens
+
+    # 準備: 録音のまとまりの、オンのチェックボックス
+    window = themed_window(theme)
+    checkbox = _show_field(window, "recording.lower_volume", QCheckBox)
+
+    # 実行
+    image = indicator_image(checkbox)
+
+    # 検証
+    colors = load_tokens()["color"][theme]
+    assert checkbox.isChecked()
+    assert count_near(image, colors["accent_fg"]) > 0
+    assert count_closer(image, colors["surface"], colors["accent_fg"]) > 0
+
+
+@pytest.mark.parametrize("theme", THEME_PARAMS)
+def test_check_indicator_when_checkbox_off(
+    themed_window: Callable[[str], SettingsWindow], theme: str
+) -> None:
+    """オフのチェックボックスは、箱を text_muted の線で囲み、accent_fg の画素が無い（正常系）。"""
+    from voice_paste.ui.style import load_tokens
+
+    # 準備: 録音のまとまりの、オフのチェックボックス
+    window = themed_window(theme)
+    checkbox = _show_field(window, "recording.hide_window", QCheckBox)
+
+    # 実行
+    image = indicator_image(checkbox)
+
+    # 検証
+    colors = load_tokens()["color"][theme]
+    assert not checkbox.isChecked()
+    assert count_near(image, colors["text_muted"]) > 0
+    assert count_near(image, colors["accent_fg"]) == 0
+
+
+@pytest.mark.parametrize("theme", THEME_PARAMS)
+def test_check_indicator_when_checkbox_disabled(
+    themed_window: Callable[[str], SettingsWindow], theme: str
+) -> None:
+    """使えないオンのチェックボックスは、箱を border で塗りチェックを text_muted で描き、名前を text_muted にする（正常系）。"""
+    from voice_paste.ui.style import load_tokens
+
+    # 準備: オンのチェックボックスを使えなくする
+    window = themed_window(theme)
+    checkbox = _show_field(window, "recording.lower_volume", QCheckBox)
+    checkbox.setEnabled(False)
+
+    # 実行
+    image = indicator_image(checkbox)
+    name_image = checkbox.grab().toImage()
+
+    # 検証
+    colors = load_tokens()["color"][theme]
+    assert count_near(image, colors["border"]) > 0
+    assert count_closer(image, colors["text_muted"], colors["border"]) > 0
+    assert count_near(image, colors["accent_fg"]) == 0
+    assert count_near(name_image, colors["text_muted"]) > count_near(image, colors["text_muted"])
+
+
+@pytest.mark.parametrize("theme", THEME_PARAMS)
+def test_check_indicator_when_radio_checked(
+    themed_window: Callable[[str], SettingsWindow], theme: str
+) -> None:
+    """選んだラジオボタンの丸の中心は accent_fg の点で、選んでいないラジオボタンの中心は accent_fg でない（正常系）。"""
+    from voice_paste.ui.style import load_tokens
+
+    # 準備: 画面の明暗の欄のラジオボタン（既定の「Windows の設定に従う」が選ばれている）
+    window = themed_window(theme)
+    buttons = _show_field(window, "ui.theme").findChildren(QRadioButton)
+    checked = next(button for button in buttons if button.isChecked())
+    unchecked = next(button for button in buttons if not button.isChecked())
+
+    # 実行
+    checked_image = indicator_image(checked)
+    unchecked_image = indicator_image(unchecked)
+
+    # 検証
+    accent_fg = load_tokens()["color"][theme]["accent_fg"]
+    center = (checked_image.width() // 2, checked_image.height() // 2)
+    assert color_distance(checked_image.pixelColor(*center), accent_fg) <= COLOR_TOLERANCE
+    assert count_near(unchecked_image, accent_fg) == 0
+
+
+@pytest.mark.parametrize("theme", THEME_PARAMS)
+def test_check_indicator_when_radio_disabled(
+    themed_window: Callable[[str], SettingsWindow], theme: str
+) -> None:
+    """使えない選んだラジオボタンは、丸の中を塗らず、点を text_muted で描く（正常系）。"""
+    from voice_paste.ui.style import load_tokens
+
+    # 準備: 選んだラジオボタンを使えなくする
+    window = themed_window(theme)
+    buttons = _show_field(window, "ui.theme").findChildren(QRadioButton)
+    checked = next(button for button in buttons if button.isChecked())
+    checked.setEnabled(False)
+
+    # 実行
+    image = indicator_image(checked)
+
+    # 検証
+    colors = load_tokens()["color"][theme]
+    center = (image.width() // 2, image.height() // 2)
+    assert color_distance(image.pixelColor(*center), colors["text_muted"]) <= COLOR_TOLERANCE
+    assert count_near(image, colors["accent_fg"]) == 0
+    assert count_near(image, colors["sunken"]) == 0
+
+
+@pytest.mark.parametrize("theme", THEME_PARAMS)
+def test_check_indicator_when_focused(
+    themed_window: Callable[[str], SettingsWindow], theme: str
+) -> None:
+    """フォーカスを受けると、印と名前の組を accent_fg の枠で囲む。枠は印と名前の幅に収まる（正常系）。"""
+    from voice_paste.ui.style import load_tokens
+
+    # 準備: オフのチェックボックス（印の中に accent_fg が出ない）
+    window = themed_window(theme)
+    checkbox = _show_field(window, "recording.hide_window", QCheckBox)
+    accent_fg = load_tokens()["color"][theme]["accent_fg"]
+    before = count_near(checkbox.grab().toImage(), accent_fg)
+
+    # 実行
+    checkbox.setFocus(Qt.FocusReason.TabFocusReason)
+    after = count_near(checkbox.grab().toImage(), accent_fg)
+
+    # 検証
+    assert checkbox.hasFocus()
+    assert before == 0
+    assert after > 0
+    assert checkbox.width() <= checkbox.sizeHint().width()
+
+
+def test_check_indicator_when_indicator_gap(
+    themed_window: Callable[[str], SettingsWindow],
+) -> None:
+    """印と名前の間は 8px、ラジオボタンの選択肢の間は 20px（正常系）。"""
+    from PySide6.QtWidgets import QStyle, QStyleOptionButton
+
+    # 準備
+    window = themed_window("light")
+    checkbox = _show_field(window, "recording.lower_volume", QCheckBox)
+    radios = _show_field(window, "ui.theme").findChildren(QRadioButton)
+    option = QStyleOptionButton()
+    option.initFrom(checkbox)
+
+    # 実行
+    indicator = checkbox.style().subElementRect(
+        QStyle.SubElement.SE_CheckBoxIndicator, option, checkbox
+    )
+    contents = checkbox.style().subElementRect(
+        QStyle.SubElement.SE_CheckBoxContents, option, checkbox
+    )
+
+    # 検証
+    assert contents.left() - indicator.right() - 1 == 8
+    assert radios[1].x() - (radios[0].x() + radios[0].width()) == 20
+
+
+@pytest.mark.parametrize("theme", THEME_PARAMS)
+def test_check_indicator_when_combo_arrow(
+    themed_window: Callable[[str], SettingsWindow], theme: str
+) -> None:
+    """選択欄は、右端に別の枠を持たせず、text_muted の線の V 字を置く（正常系）。"""
+    from PySide6.QtCore import QRect
+
+    from voice_paste.ui.style import load_tokens
+
+    # 準備: 文字起こしのエンジンの選択欄
+    window = themed_window(theme)
+    combo = _show_field(window, "transcription.engine", QComboBox)
+    image = combo.grab().toImage()
+    area = QRect(combo.width() - ARROW_AREA_WIDTH, 0, ARROW_AREA_WIDTH, combo.height())
+    # 区画の左の縁（区切りの縦線が出る場所）は、欄の外側の枠の線を避けて上下を縮める
+    divider = QRect(area.x(), ARROW_AREA_INSET, 4, combo.height() - 2 * ARROW_AREA_INSET)
+
+    # 実行
+    arrow_count = count_near(crop_logical(image, area), load_tokens()["color"][theme]["text_muted"])
+    divider_count = count_near(crop_logical(image, divider), load_tokens()["color"][theme]["border"])
+
+    # 検証
+    assert arrow_count > 0
+    assert divider_count == 0
+
+
+@pytest.mark.parametrize("theme", THEME_PARAMS)
+def test_check_indicator_when_contrast(theme: str) -> None:
+    """印の色と背景の明るさの比が 3:1 以上（正常系）。"""
+    from voice_paste.ui.style import load_tokens
+
+    # 準備
+    colors = load_tokens()["color"][theme]
+
+    # 実行
+    ratios = [
+        contrast_ratio(colors[mark], colors[background])
+        for mark in ("text_muted", "accent_fg")
+        for background in ("bg", "surface", "sunken")
+    ]
+    check_ratio = contrast_ratio(colors["surface"], colors["accent_fg"])
+
+    # 検証
+    assert min(ratios) >= MIN_INDICATOR_CONTRAST
+    assert check_ratio >= MIN_INDICATOR_CONTRAST

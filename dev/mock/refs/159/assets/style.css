@@ -95,10 +95,9 @@
   gap: 4px 20px;
 }
 
-/* 欄の行が横に並ぶ幅: 選択肢を折り返さず 1 行に並べる（Qt の横並びと同じ） */
-@media (min-width: 641px) {
-  /* ラジオの並び: 折り返さない */
-  :is(.ind-a, .ind-b) .row .radios { flex-wrap: nowrap; }
+/* ラジオの選択肢: 名前を 1 文字ずつ折らず、選択肢の単位か名前の中の空白で折り返す */
+:is(.ind-a, .ind-b) .radios label {
+  word-break: keep-all;
 }
 
 /* 選択欄の枠: 開く印を自前で描くため、右に印の幅を空ける */

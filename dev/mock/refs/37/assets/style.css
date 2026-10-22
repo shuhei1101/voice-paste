@@ -1100,5 +1100,16 @@ ul.scene-note { padding-left: 20px; }
   .row > .key { grid-column: 1 / -1; grid-row: 2; overflow-wrap: anywhere; }
 }
 
+/* 欄の並び: 枠の幅で欄の行の並べ方を切り替える */
+.settings__form { container-type: inline-size; }
+
+/* 広い枠: 最長の設定のキーが名前・入力と 1 行に収まる幅では、キーを名前の右に戻す */
+@container (min-width: 680px) {
+  /* 欄の行: 名前・キー・入力の 3 列に並べる */
+  .row { grid-template-columns: minmax(9em, 1fr) max-content auto; }
+  /* 設定のキー: 入力を持たない行でも、名前の右の列に置く */
+  .row > .key { grid-column: 2; grid-row: 1; }
+}
+
 /* バッジ: 文言を 1 行に保つ */
 .badge { white-space: nowrap; }

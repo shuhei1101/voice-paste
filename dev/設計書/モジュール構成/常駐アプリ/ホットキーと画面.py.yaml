@@ -2059,7 +2059,7 @@ classes:
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#notes.印の見え方
       - dev/設計書/外部ライブラリ/pyside6-essentials#
-    status: planned
+    status: implemented
     introduced:
       pr: 159
 functions:
@@ -2766,7 +2766,7 @@ functions:
         condition: dark=True と False、image_dir=tmp_path の下のまだ無いフォルダ
         mock: なし
         expected: フォルダが作られ、明暗で別のファイルに tokens.toml のそれぞれの text_muted の色を持つ SVG が書かれる
-    status: planned
+    status: implemented
     introduced:
       pr: 159
 notes:

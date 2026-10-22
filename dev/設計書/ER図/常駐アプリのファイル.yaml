@@ -167,6 +167,6 @@ tables:
         title: 画像
         type: string
         description: text_muted の色の線で描いた V 字の SVG
-    status: planned
+    status: implemented
     introduced:
       pr: 159

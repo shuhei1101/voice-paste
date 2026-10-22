@@ -1,0 +1,159 @@
+/* ===== PR 159 の画面モック: チェックボックス・ラジオボタン・選択欄の印 ===== */
+
+/* 案 A: オンの印を選択中の印の色（accent_fg）で塗り、チェックは surface で描く */
+.ind-a {
+  --ind-on: var(--accent-fg);
+  --ind-mark: var(--surface);
+}
+
+/* 案 B: オンの印を主ボタンの緑（primary）で塗り、チェックは on_primary で描く */
+.ind-b {
+  --ind-on: var(--accent);
+  --ind-mark: var(--accent-text);
+}
+
+/* 印と名前の組: 名前の前に印を置き、フォーカスの枠を取れるよう透明の枠を持たせる */
+:is(.ind-a, .ind-b) :is(.check, .radios label) {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+}
+
+/* フォーカス: 印と名前の組の全体を accent_fg の枠で囲む */
+:is(.ind-a, .ind-b) :is(.check, .radios label):has(input:focus-visible),
+:is(.ind-a, .ind-b) :is(.check, .radios label).is-focus {
+  border-color: var(--accent-fg);
+}
+
+/* 使えない状態の名前: 補足の文字の色にする */
+:is(.ind-a, .ind-b) :is(.check, .radios label):has(input:disabled) {
+  color: var(--text-2);
+}
+
+/* 印の共通: OS の描き方を使わず、16px の箱を text_muted の線で描く */
+:is(.ind-a, .ind-b) :is(input[type="checkbox"], input[type="radio"]):not(.switch input) {
+  appearance: none;
+  display: inline-grid;
+  place-content: center;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 1px solid var(--text-2);
+  background: var(--sunken);
+  outline: none;
+  cursor: pointer;
+  &:hover:not(:checked, :disabled) { border-color: var(--accent-fg); }
+  &:disabled { border-color: var(--line); background: transparent; cursor: default; }
+}
+
+/* チェックボックスの箱: 角を少し丸める */
+:is(.ind-a, .ind-b) input[type="checkbox"]:not(.switch input) {
+  border-radius: 4px;
+  &::before {
+    content: "";
+    width: 12px;
+    height: 12px;
+    background: var(--ind-mark);
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.2l2.3 2.3 4.7-5' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+    visibility: hidden;
+  }
+  &:checked { border-color: var(--ind-on); background: var(--ind-on); }
+  &:checked::before { visibility: visible; }
+  &:checked:disabled { border-color: var(--line); background: var(--line); }
+  &:checked:disabled::before { background: var(--text-2); }
+}
+
+/* ラジオボタンの丸: 選ぶと線を印の色にし、中に点を描く */
+:is(.ind-a, .ind-b) input[type="radio"] {
+  border-radius: 50%;
+  &::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--ind-on);
+    visibility: hidden;
+  }
+  &:checked { border-color: var(--ind-on); }
+  &:checked::before { visibility: visible; }
+  &:checked:disabled { border-color: var(--line); }
+  &:checked:disabled::before { background: var(--text-2); }
+}
+
+/* ラジオの並び: 選択肢の間を 20px 空け、丸がどの名前の印かを距離で分ける */
+:is(.ind-a, .ind-b) .radios {
+  gap: 4px 20px;
+}
+
+/* 選択欄の枠: 開く印を自前で描くため、右に印の幅を空ける */
+.select {
+  position: relative;
+  display: inline-flex;
+  select { appearance: none; padding-right: 28px; }
+  &::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    width: 10px;
+    height: 10px;
+    translate: 0 -50%;
+    background: var(--text-2);
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2 3.5l3 3 3-3' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+    pointer-events: none;
+  }
+}
+
+/* 波形の感度の範囲: つまみは今のまま（primary の丸） */
+.ind-range {
+  accent-color: var(--accent);
+}
+
+/* 状態の見本の表: 状態ごとに明暗の組を横に並べる */
+.states {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  th { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: left; font-weight: 600; color: var(--text-2); font-size: 12px; }
+  td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+}
+
+/* 状態の見本の表を横に流す枠 */
+.states-wrap {
+  overflow-x: auto;
+}
+
+/* 明暗の組の面: 窓の面の色を敷いて印を置く */
+.states .cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* 今の描画（Qt の実画面）を並べる枠 */
+.shots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  figure { margin: 0; }
+  img { display: block; max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+  figcaption { margin-top: 4px; font-size: 12px; color: var(--text-2); }
+}
+
+/* 用語集の行の表: 「有効」の列の印を見せる */
+.glossary-rows {
+  border-collapse: collapse;
+  font-size: 13px;
+  th { padding: 4px 8px; border-bottom: 1px solid var(--line); text-align: left; font-weight: 600; color: var(--text-2); font-size: 12px; }
+  td { padding: 4px 8px; border-bottom: 1px solid var(--line); }
+}

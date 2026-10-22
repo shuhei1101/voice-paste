@@ -1092,10 +1092,24 @@ ul.scene-note { padding-left: 20px; }
 /* 切り替えのつまみ: 行が狭くても縮めない */
 .switch input { flex: none; }
 
-/* 中くらいの幅: 欄の名前に幅を残し、設定のキーを折り返す */
+/* 中くらいの幅: 欄の名前に幅を残し、設定のキーを名前の下の 2 段目に回す */
 @media (min-width: 641px) {
-  /* 欄の行: 名前の列に最低の幅を持たせる */
-  .row { grid-template-columns: minmax(9em, 1fr) minmax(0, max-content) auto; }
-  /* 設定のキー: 長いキーは列の中で折り返す */
-  .row .key { min-width: 0; overflow-wrap: anywhere; text-align: right; }
+  /* 欄の行: 名前の列に最低の幅を持たせ、名前と入力を並べる */
+  .row { grid-template-columns: minmax(9em, 1fr) auto; }
+  /* 設定のキー: 行の幅いっぱいの 2 段目に置き、行の幅を超えるときだけ右端で折り返す */
+  .row > .key { grid-column: 1 / -1; grid-row: 2; overflow-wrap: anywhere; }
 }
+
+/* 欄の並び: 枠の幅で欄の行の並べ方を切り替える */
+.settings__form { container-type: inline-size; }
+
+/* 広い枠: 最長の設定のキーが名前・入力と 1 行に収まる幅では、キーを名前の右に戻す */
+@container (min-width: 680px) {
+  /* 欄の行: 名前・キー・入力の 3 列に並べる */
+  .row { grid-template-columns: minmax(9em, 1fr) max-content auto; }
+  /* 設定のキー: 入力を持たない行でも、名前の右の列に置く */
+  .row > .key { grid-column: 2; grid-row: 1; }
+}
+
+/* バッジ: 文言を 1 行に保つ */
+.badge { white-space: nowrap; }

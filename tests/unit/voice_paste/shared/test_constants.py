@@ -20,6 +20,7 @@ def test_resolve_app_paths_when_data_dir(tmp_path: Path) -> None:
     assert paths.log_dir == tmp_path / "log"
     assert paths.tmp_dir == tmp_path / "tmp"
     assert paths.token_file == tmp_path / "api_token"
+    assert paths.ui_image_dir == tmp_path / "ui"
     assert list(tmp_path.iterdir()) == []
 
 

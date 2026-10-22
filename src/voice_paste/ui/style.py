@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import tomllib
 from functools import cache
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QGuiApplication
 from PySide6.QtWidgets import QApplication
+
+if TYPE_CHECKING:
+    from voice_paste.ui.indicator_style import IndicatorStyle
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +123,17 @@ QLineEdit, QPlainTextEdit, QComboBox {
 QPlainTextEdit { padding: 6px 8px; }
 QLineEdit:focus, QPlainTextEdit:focus, QComboBox:focus { border-color: @accent_fg@; }
 QLineEdit[invalid="true"], QPlainTextEdit[invalid="true"] { border-color: @danger@; }
-QCheckBox, QRadioButton { background: transparent; spacing: 8px; }
+QCheckBox, QRadioButton {
+    background: transparent;
+    spacing: @indicator_gap@px;
+    padding: 2px 6px;
+    border: 1px solid transparent;
+    border-radius: @radius@px;
+}
+QCheckBox:focus, QRadioButton:focus { border-color: @accent_fg@; }
+QCheckBox:disabled, QRadioButton:disabled { color: @text_muted@; }
+QComboBox::drop-down { border: none; width: 28px; }
+QComboBox::down-arrow { image: url("@arrow_url@"); width: 10px; height: 10px; }
 QSlider::groove:horizontal { height: 4px; background: @border@; border-radius: 2px; }
 QSlider::handle:horizontal {
     width: 16px; height: 16px; margin: -6px 0;
@@ -151,6 +165,16 @@ QScrollArea { border: none; }
 """
 """アプリ全体の QSS の雛形。色・書体・余白は `@名前@` で置き、tokens.toml の値を埋める。"""
 
+ARROW_SVG_TEMPLATE: str = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">'
+    '<path d="M2 3.5l3 3 3-3" fill="none" stroke="{color}" stroke-width="1.5" '
+    'stroke-linecap="round" stroke-linejoin="round"/></svg>'
+)
+"""選択欄の開く印（V 字）の SVG の雛形。線の色を `{color}` に埋める。"""
+
+ARROW_IMAGE_HASH_LENGTH: int = 16
+"""開く印の画像のファイル名に使う、中身のハッシュの文字数。"""
+
 
 @cache
 def load_tokens() -> dict[str, Any]:
@@ -163,8 +187,21 @@ def _font_family(fonts: list[str]) -> str:
     return ", ".join(f'"{font}"' for font in fonts)
 
 
-def build_stylesheet(dark: bool) -> str:
-    """明暗に合う色のトークンと、書体・大きさ・余白のトークンを QSS の雛形に埋めて返す。"""
+def write_arrow_image(dark: bool, *, image_dir: Path) -> Path:
+    """選択欄の開く印（text_muted の線の V 字）を明暗の組の色で SVG にして image_dir に書き、そのパスを返す。"""
+    color = load_tokens()["color"]["dark" if dark else "light"]["text_muted"]
+    svg = ARROW_SVG_TEMPLATE.format(color=color)
+    digest = hashlib.sha256(svg.encode("utf-8")).hexdigest()[:ARROW_IMAGE_HASH_LENGTH]
+    image = image_dir / f"{digest}.svg"
+    # 同じ中身のファイルがあれば書き直さない
+    if not image.exists():
+        image_dir.mkdir(parents=True, exist_ok=True)
+        image.write_text(svg, encoding="utf-8")
+    return image
+
+
+def build_stylesheet(dark: bool, *, image_dir: Path) -> str:
+    """明暗に合う色のトークンと、書体・大きさ・余白のトークンを QSS の雛形に埋めて返す。開く印の画像は image_dir に書く。"""
     tokens = load_tokens()
     colors: dict[str, str] = tokens["color"]["dark" if dark else "light"]
 
@@ -174,6 +211,8 @@ def build_stylesheet(dark: bool) -> str:
     values["font_mono"] = _font_family(tokens["font"]["mono"])
     values.update({f"size_{name}": str(value) for name, value in tokens["size"].items()})
     values.update({name: str(value) for name, value in tokens["shape"].items()})
+    # url() には `\` 区切りでは描かれないため、`/` 区切りのパスを入れる
+    values["arrow_url"] = write_arrow_image(dark, image_dir=image_dir).as_posix()
 
     stylesheet = QSS_TEMPLATE
     for name, value in values.items():
@@ -196,10 +235,15 @@ def resolve_dark(theme: Literal["system", "light", "dark"], system_dark: bool) -
 _current_dark: bool | None = None
 """apply_theme が当てた明暗（暗い組か）。まだ当てていなければ None（書くのは apply_theme だけ）。"""
 
+_indicator_style: IndicatorStyle | None = None
+"""apply_theme が当てた IndicatorStyle。まだ当てていなければ None（書くのは apply_theme だけ）。"""
 
-def apply_theme(app: QApplication, theme: Literal["system", "light", "dark"]) -> None:
+
+def apply_theme(
+    app: QApplication, theme: Literal["system", "light", "dark"], *, image_dir: Path
+) -> None:
     """ui.theme で決めた明暗のスタイルシートをアプリ全体に当て、開いている窓を描き直す。メインスレッドから呼ぶ。"""
-    global _current_dark  # noqa: PLW0603
+    global _current_dark, _indicator_style  # noqa: PLW0603
     # スタイルシートで塗らない部品（スクロールバーなど）は style がパレットで描くため、Qt の明暗も揃える
     hints = app.styleHints()
     if theme == "system":
@@ -208,7 +252,14 @@ def apply_theme(app: QApplication, theme: Literal["system", "light", "dark"]) ->
         hints.setColorScheme(Qt.ColorScheme.Dark if theme == "dark" else Qt.ColorScheme.Light)
     dark = resolve_dark(theme, is_dark_theme())
     _current_dark = dark
-    app.setStyleSheet(build_stylesheet(dark))
+    # 印を描くスタイルは 1 回だけ当てる（スタイルシートを当てると app.style() は Qt の内部のスタイルに替わるため、当てたかは控えで見る）
+    if _indicator_style is None:
+        # IndicatorStyle は theme_color を使うため、循環 import を避けてここで読む
+        from voice_paste.ui.indicator_style import IndicatorStyle
+
+        _indicator_style = IndicatorStyle(app.style())
+        app.setStyle(_indicator_style)
+    app.setStyleSheet(build_stylesheet(dark, image_dir=image_dir))
     # 状態の印・波形・回る印は theme_color で描くため、開いている窓を描き直して新しい組の色にする
     for widget in QApplication.topLevelWidgets():
         widget.update()

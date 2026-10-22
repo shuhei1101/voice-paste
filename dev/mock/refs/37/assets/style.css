@@ -1096,8 +1096,8 @@ ul.scene-note { padding-left: 20px; }
 @media (min-width: 641px) {
   /* 欄の行: 名前の列に最低の幅を持たせ、名前と入力を並べる */
   .row { grid-template-columns: minmax(9em, 1fr) auto; }
-  /* 設定のキー: 行の幅いっぱいの 2 段目に置き、単語の途中で折らない */
-  .row > .key { grid-column: 1 / -1; grid-row: 2; }
+  /* 設定のキー: 行の幅いっぱいの 2 段目に置き、行の幅を超えるときだけ右端で折り返す */
+  .row > .key { grid-column: 1 / -1; grid-row: 2; overflow-wrap: anywhere; }
 }
 
 /* バッジ: 文言を 1 行に保つ */

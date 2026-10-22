@@ -22,6 +22,11 @@
   border-radius: var(--radius-sm);
 }
 
+/* 欄の行の中のチェックボックス: 枠を名前の幅に留め、行の幅いっぱいに伸ばさない */
+:is(.ind-a, .ind-b) .row > .check {
+  justify-self: start;
+}
+
 /* フォーカス: 印と名前の組の全体を accent_fg の枠で囲む */
 :is(.ind-a, .ind-b) :is(.check, .radios label):has(input:focus-visible),
 :is(.ind-a, .ind-b) :is(.check, .radios label).is-focus {
@@ -86,13 +91,21 @@
 
 /* ラジオの並び: 選択肢の間を 20px 空け、丸がどの名前の印かを距離で分ける */
 :is(.ind-a, .ind-b) .radios {
+  flex-direction: row;
   gap: 4px 20px;
+}
+
+/* 欄の行が横に並ぶ幅: 選択肢を折り返さず 1 行に並べる（Qt の横並びと同じ） */
+@media (min-width: 641px) {
+  /* ラジオの並び: 折り返さない */
+  :is(.ind-a, .ind-b) .row .radios { flex-wrap: nowrap; }
 }
 
 /* 選択欄の枠: 開く印を自前で描くため、右に印の幅を空ける */
 .select {
   position: relative;
   display: inline-flex;
+  justify-self: start;
   select { appearance: none; padding-right: 28px; }
   &::after {
     content: "";
@@ -119,7 +132,7 @@
   border-collapse: collapse;
   font-size: 13px;
   th { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: left; font-weight: 600; color: var(--text-2); font-size: 12px; }
-  td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  td { min-width: 180px; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
 }
 
 /* 状態の見本の表を横に流す枠 */

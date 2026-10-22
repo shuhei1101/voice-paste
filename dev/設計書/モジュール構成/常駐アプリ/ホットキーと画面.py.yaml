@@ -9,8 +9,8 @@ directory: |-
   ├── controller.py                 # UiController（知らせを画面・トレイへ振り分ける）・UiDeps
   ├── tray.py                       # Tray（アイコン・メニュー・通知）・TrayState
   ├── placement.py                  # place_window（カーソルのあるモニターの設定の位置）
-  ├── style.py                      # build_stylesheet（tokens.toml から QSS を作る）・is_dark_theme・resolve_dark・apply_theme・theme_color（画面の明暗）
-  ├── indicator_style.py            # IndicatorStyle（チェックボックス・ラジオボタン・選択欄の開く印を tokens.toml の色で描く）
+  ├── style.py                      # build_stylesheet（tokens.toml から QSS を作る）・write_arrow_image（選択欄の開く印の SVG）・is_dark_theme・resolve_dark・apply_theme・theme_color（画面の明暗）
+  ├── indicator_style.py            # IndicatorStyle（チェックボックス・ラジオボタンの印を tokens.toml の色で描く）
   ├── tokens.toml                   # 色・書体・余白のトークン（デザイン方針）
   └── windows/
       ├── recording_window.py       # RecordingWindow
@@ -1946,12 +1946,12 @@ classes:
     role: アダプタ
     kind: クラス
     inherits: PySide6.QtWidgets.QProxyStyle
-    summary: チェックボックスの箱・ラジオボタンの丸・選択欄の開く印を、Qt の既定のスタイルに任せず theme_color の色で描く。それ以外の部品は包んだスタイルのまま描く
-    description: アプリ全体のスタイルシートを当てると、Windows 11 のスタイルはオンのチェックボックスの箱と選んだラジオボタンの印を描かなくなる。印はこのスタイルが QPainter で描き、スタイルシートは `::indicator`・`::down-arrow` の規則を持たない（規則が無い印はスタイルシートがこのスタイルの drawPrimitive へ回す）。色は描くたびに theme_color で引くため、明暗を当て直しても作り直さない。大きさは tokens.toml の `[shape]` の `indicator`（箱と丸の一辺、16px）と `indicator_dot`（選んだ点の直径、8px）。色の役割は画面設計『設定画面』の補足「印の見え方」のとおり。単体テストは test_style.py に置く
+    summary: チェックボックスの箱・ラジオボタンの丸を、Qt の既定のスタイルに任せず theme_color の色で描く。それ以外の部品は包んだスタイルのまま描く
+    description: アプリ全体のスタイルシートを当てると、Windows 11 のスタイルはオンのチェックボックスの箱と選んだラジオボタンの印を描かなくなる。印はこのスタイルが QPainter で描き、スタイルシートは `::indicator` の規則を持たない（規則が無い印はスタイルシートがこのスタイルの drawPrimitive へ回す）。選択欄の開く印は、`::drop-down` に規則を置くとこのスタイルへ回らないため、build_stylesheet が `::down-arrow` の画像で描く。色は描くたびに theme_color で引くため、明暗を当て直しても作り直さない。大きさは tokens.toml の `[shape]` の `indicator`（箱と丸の一辺、16px）と `indicator_dot`（選んだ点の直径、8px）。色の役割は画面設計『設定画面』の補足「印の見え方」のとおり。単体テストは test_style.py に置く
     methods:
       - name: drawPrimitive
         title: 印の描画
-        summary: チェックボックス・ラジオボタン・選択欄の開く印を状態に合わせた色で描き、ほかの要素は包んだスタイルへ渡す
+        summary: チェックボックス・ラジオボタンの印を状態に合わせた色で描き、ほかの要素は包んだスタイルへ渡す
         kind: メソッド
         scope: public
         inherits: QProxyStyle.drawPrimitive
@@ -1984,7 +1984,6 @@ classes:
           1. 要素で分ける
              - PE_IndicatorCheckBox: 角を 4px 丸めた箱を描く。オンなら箱を accent_fg で塗り、surface の線でチェックを描く。オフなら sunken で塗り text_muted の線で囲む（マウスを重ねていれば線を accent_fg）。使えなければ線を border にし、オンの箱を border で塗りチェックを text_muted で描く
              - PE_IndicatorRadioButton: 丸を描く。選んでいれば線を accent_fg にし、中に accent_fg の点を描く。選んでいなければ sunken で塗り text_muted の線で囲む（マウスを重ねていれば線を accent_fg）。使えなければ線を border にし、選んだ点を text_muted で描き丸の中は塗らない
-             - PE_IndicatorArrowDown（選択欄の開く印）: text_muted の線で V 字を描く
              - それ以外: 包んだスタイルの drawPrimitive へ渡す
         unit_tests:
           - name: test_draw_checkbox_when_on
@@ -2193,7 +2192,7 @@ functions:
     title: スタイルシートの組み立て
     container: ui/style.py
     usecase: 共通
-    summary: tokens.toml（デザイン方針の色・書体・余白）を QSS に埋め、アプリ全体のスタイルシートを返す。部品ごとに色・書体を直書きしない。枠なしの窓（録音の画面・文字起こし中の表示）の外側の枠 `QFrame[role="window"]` と `QMenu` は、面を surface、縁を frame の 1px の線で描き、ほかの線は border のままにする。チェックボックス・ラジオボタンは印と名前の組に透明の 1px の枠を持たせ、フォーカスで枠を accent_fg、使えないとき名前を text_muted にする。印と名前の間は `shape.indicator_gap`。選択欄の開く印の区画（`::drop-down`）は枠を持たせない。印そのもの（`::indicator`・`::down-arrow`）の規則は持たず IndicatorStyle が描く
+    summary: tokens.toml（デザイン方針の色・書体・余白）を QSS に埋め、アプリ全体のスタイルシートを返す。部品ごとに色・書体を直書きしない。枠なしの窓（録音の画面・文字起こし中の表示）の外側の枠 `QFrame[role="window"]` と `QMenu` は、面を surface、縁を frame の 1px の線で描き、ほかの線は border のままにする。チェックボックス・ラジオボタンは印と名前の組に透明の 1px の枠を持たせ、フォーカスで枠を accent_fg、使えないとき名前を text_muted にする。印と名前の間は `shape.indicator_gap`。選択欄の開く印は、区画（`::drop-down`）に枠を持たせず、`::down-arrow` に write_arrow_image が書いた V 字の画像を当てる。チェックボックス・ラジオボタンの印（`::indicator`）の規則は持たず IndicatorStyle が描く
     kind: 関数
     scope: public
     args:
@@ -2202,6 +2201,11 @@ functions:
         required: true
         passing: positional
         description: 暗い組の色を使うか（resolve_dark で ui.theme と OS の明暗から決めた値）
+      - name: image_dir
+        type: Path
+        required: true
+        passing: keyword
+        description: 選択欄の開く印の画像を書くフォルダ（write_arrow_image へ渡す）
     returns:
       type: str
       description: QApplication.setStyleSheet へ渡す QSS
@@ -2221,9 +2225,9 @@ functions:
       - name: test_build_stylesheet_when_check_indicator
         case: 正常
         summary: チェックボックス・ラジオボタンのフォーカスの枠と選択欄の開く印の区画の規則を持ち、印の規則を持たない
-        condition: dark=False
+        condition: dark=False、image_dir=tmp_path
         mock: なし
-        expected: '`QCheckBox:focus`・`QRadioButton:focus` の規則に light の accent_fg の色が入り、`QComboBox::drop-down` の規則がある。`::indicator` と `::down-arrow` の規則が無い'
+        expected: '`QCheckBox:focus`・`QRadioButton:focus` の規則に light の accent_fg の色が入り、`QComboBox::drop-down` の規則があり、`QComboBox::down-arrow` の規則が image_dir に書いた light の画像を指す。`::indicator` の規則が無い'
     status: implemented
   - name: show_busy_dialog
     title: 処理中のダイアログ
@@ -2510,7 +2514,7 @@ functions:
     process: |-
       1. Qt の明暗を揃える。`light`・`dark` は app.styleHints().setColorScheme(Qt.ColorScheme.Light / Dark)、`system` は app.styleHints().unsetColorScheme() で上書きを外す（外した後に 2 で OS の明暗を読む）
       2. resolve_dark(theme, is_dark_theme()) で暗い組を使うかを決め、`_current_dark` に控える
-      3. app.style() が IndicatorStyle でなければ、今のスタイルを包んだ IndicatorStyle を app.setStyle で当てる（当て直しでは作り直さない）。続けて app.setStyleSheet(build_stylesheet(決めた明暗)) を当てる
+      3. app.style() が IndicatorStyle でなければ、今のスタイルを包んだ IndicatorStyle を app.setStyle で当てる（当て直しでは作り直さない）。続けて app.setStyleSheet(build_stylesheet(決めた明暗, image_dir=platformdirs の user_cache_dir(APP_NAME) の下の `ui`)) を当てる
       4. 開いている窓（QApplication.topLevelWidgets）を update で描き直す（theme_color で描く状態の印・波形・回る印を新しい組の色にする）
          - `[INFO]` 画面の明暗を当てた（theme・暗い組か）
     unit_tests:
@@ -2728,6 +2732,38 @@ functions:
     status: planned
     refs:
       - dev/設計書/画面設計/常駐アプリ/トレイの通知.py#elements[コピーし直す]
+  - name: write_arrow_image
+    title: 開く印の画像の書き出し
+    container: ui/style.py
+    usecase: 共通
+    summary: 選択欄の開く印（text_muted の線の V 字）を明暗の組の色で SVG にして image_dir に書き、そのパスを返す。ファイル名は中身のハッシュから作り、同じ名前のファイルがあれば書き直さない
+    kind: 関数
+    scope: public
+    side_effects: image_dir を作り、SVG を書く
+    args:
+      - name: dark
+        type: bool
+        required: true
+        passing: positional
+        description: 暗い組の色を使うか
+      - name: image_dir
+        type: Path
+        required: true
+        passing: keyword
+        description: 書くフォルダ（無ければ作る）
+    returns:
+      type: Path
+      description: 書いた SVG のパス
+    unit_tests:
+      - name: test_write_arrow_image
+        case: 正常
+        summary: 明暗ごとの色で V 字の SVG を書く
+        condition: dark=True と False、image_dir=tmp_path の下のまだ無いフォルダ
+        mock: なし
+        expected: フォルダが作られ、明暗で別のファイルに tokens.toml のそれぞれの text_muted の色を持つ SVG が書かれる
+    status: planned
+    introduced:
+      pr: 159
 notes:
   画面が触ってよいもの: |-
     ui は UiDeps の関数（配線された SessionManager のメソッド・音量・設定の読み書き・再起動と終了）と、共通の設定のモデルだけを呼ぶ。録音・文字起こし・出力先を直に呼ばない。

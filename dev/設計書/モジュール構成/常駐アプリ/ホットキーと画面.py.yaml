@@ -9,7 +9,8 @@ directory: |-
   ├── controller.py                 # UiController（知らせを画面・トレイへ振り分ける）・UiDeps
   ├── tray.py                       # Tray（アイコン・メニュー・通知）・TrayState
   ├── placement.py                  # place_window（カーソルのあるモニターの設定の位置）
-  ├── style.py                      # build_stylesheet（tokens.toml から QSS を作る）・is_dark_theme・resolve_dark・apply_theme・theme_color（画面の明暗）
+  ├── style.py                      # build_stylesheet（tokens.toml から QSS を作る）・write_arrow_image（選択欄の開く印の SVG）・is_dark_theme・resolve_dark・apply_theme・theme_color（画面の明暗）
+  ├── indicator_style.py            # IndicatorStyle（チェックボックス・ラジオボタンの印を tokens.toml の色で描く）
   ├── tokens.toml                   # 色・書体・余白のトークン（デザイン方針）
   └── windows/
       ├── recording_window.py       # RecordingWindow
@@ -1938,6 +1939,129 @@ classes:
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
     status: implemented
+  - name: IndicatorStyle
+    title: 印を描くスタイル
+    container: ui/indicator_style.py
+    usecase: 共通
+    role: アダプタ
+    kind: クラス
+    inherits: PySide6.QtWidgets.QProxyStyle
+    summary: チェックボックスの箱・ラジオボタンの丸を、Qt の既定のスタイルに任せず theme_color の色で描く。それ以外の部品は包んだスタイルのまま描く
+    description: アプリ全体のスタイルシートを当てると、Windows 11 のスタイルはオンのチェックボックスの箱と選んだラジオボタンの印を描かなくなる。印はこのスタイルが QPainter で描き、スタイルシートは `::indicator` の規則を持たない（規則が無い印はスタイルシートがこのスタイルの drawPrimitive へ回す）。選択欄の開く印は、`::drop-down` に規則を置くとこのスタイルへ回らないため、build_stylesheet が `::down-arrow` の画像で描く。色は描くたびに theme_color で引くため、明暗を当て直しても作り直さない。大きさは tokens.toml の `[shape]` の `indicator`（箱と丸の一辺、16px）と `indicator_dot`（選んだ点の直径、8px）。色の役割は画面設計『設定画面』の補足「印の見え方」のとおり。単体テストは test_style.py に置く
+    methods:
+      - name: drawPrimitive
+        title: 印の描画
+        summary: チェックボックス・ラジオボタンの印を状態に合わせた色で描き、ほかの要素は包んだスタイルへ渡す
+        kind: メソッド
+        scope: public
+        inherits: QProxyStyle.drawPrimitive
+        args:
+          - name: element
+            type: QStyle.PrimitiveElement
+            required: true
+            passing: positional
+            description: 描く要素
+          - name: option
+            type: QStyleOption
+            required: true
+            passing: positional
+            description: 状態（State_On・State_Enabled・State_MouseOver）と描く範囲
+          - name: painter
+            type: QPainter
+            required: true
+            passing: positional
+            description: 描く先
+          - name: widget
+            type: QWidget | None
+            required: false
+            default: None
+            passing: positional
+            description: 描く部品
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 要素で分ける
+             - PE_IndicatorCheckBox: 角を 4px 丸めた箱を描く。オンなら箱を accent_fg で塗り、surface の線でチェックを描く。オフなら sunken で塗り text_muted の線で囲む（マウスを重ねていれば線を accent_fg）。使えなければ線を border にし、オンの箱を border で塗りチェックを text_muted で描く
+             - PE_IndicatorRadioButton: 丸を描く。選んでいれば線を accent_fg にし、中に accent_fg の点を描く。選んでいなければ sunken で塗り text_muted の線で囲む（マウスを重ねていれば線を accent_fg）。使えなければ線を border にし、選んだ点を text_muted で描き丸の中は塗らない
+             - それ以外: 包んだスタイルの drawPrimitive へ渡す
+        unit_tests:
+          - name: test_draw_checkbox_when_on
+            case: 正常
+            summary: オンの箱を accent_fg で塗りチェックを surface で描く
+            condition: apply_theme(app, "light") の後、オンの QCheckBox を grab した画像。QT_QPA_PLATFORM=offscreen
+            mock: なし
+            expected: 箱の中に tokens.toml の light の accent_fg と surface の色の画素がある
+          - name: test_draw_checkbox_when_off
+            case: 正常
+            summary: オフの箱は塗らず text_muted の線で囲む
+            condition: apply_theme(app, "dark") の後、オフの QCheckBox を grab した画像。QT_QPA_PLATFORM=offscreen
+            mock: なし
+            expected: 箱の縁に dark の text_muted の画素があり、accent_fg の画素が無い
+          - name: test_draw_checkbox_when_disabled
+            case: 正常
+            summary: 使えないオンの箱を border で塗りチェックを text_muted で描く
+            condition: apply_theme(app, "light") の後、使えないオンの QCheckBox を grab した画像。QT_QPA_PLATFORM=offscreen
+            mock: なし
+            expected: 箱の中に light の border と text_muted の画素があり、accent_fg の画素が無い
+          - name: test_draw_radio_when_checked
+            case: 正常
+            summary: 選んだラジオボタンに accent_fg の点を描く
+            condition: apply_theme(app, "dark") の後、選んだ QRadioButton と選んでいない QRadioButton を grab した画像。QT_QPA_PLATFORM=offscreen
+            mock: なし
+            expected: 選んだ方の丸の中心が dark の accent_fg、選んでいない方の丸の中心は accent_fg でない
+          - name: test_draw_primitive_when_other
+            case: 正常
+            summary: 印でない要素は包んだスタイルへ渡す
+            condition: PE_FrameFocusRect を描かせる。QT_QPA_PLATFORM=offscreen
+            mock: 包んだスタイルの drawPrimitive
+            expected: 包んだスタイルの drawPrimitive が同じ引数で 1 回呼ばれる
+      - name: pixelMetric
+        title: 印の大きさ
+        summary: チェックボックスの箱とラジオボタンの丸の幅・高さを tokens.toml の `shape.indicator` にし、ほかは包んだスタイルの値を返す
+        kind: メソッド
+        scope: public
+        inherits: QProxyStyle.pixelMetric
+        args:
+          - name: metric
+            type: QStyle.PixelMetric
+            required: true
+            passing: positional
+            description: 問い合わせる大きさ
+          - name: option
+            type: QStyleOption | None
+            required: false
+            default: None
+            passing: positional
+            description: 状態
+          - name: widget
+            type: QWidget | None
+            required: false
+            default: None
+            passing: positional
+            description: 部品
+        returns:
+          type: int
+          description: 論理ピクセル
+        unit_tests:
+          - name: test_pixel_metric_when_indicator
+            case: 正常
+            summary: 印の大きさを tokens.toml から返す
+            condition: PM_IndicatorWidth・PM_IndicatorHeight・PM_ExclusiveIndicatorWidth・PM_ExclusiveIndicatorHeight
+            mock: なし
+            expected: どれも tokens.toml の shape.indicator（16）
+          - name: test_pixel_metric_when_other
+            case: 正常
+            summary: ほかの大きさは包んだスタイルの値
+            condition: PM_ButtonMargin
+            mock: なし
+            expected: 包んだスタイルの pixelMetric の値と同じ
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/設定画面.py#notes.印の見え方
+      - dev/設計書/外部ライブラリ/pyside6-essentials#
+    status: implemented
+    introduced:
+      pr: 159
 functions:
   - name: notify
     title: ユーザーへの知らせ
@@ -2068,7 +2192,7 @@ functions:
     title: スタイルシートの組み立て
     container: ui/style.py
     usecase: 共通
-    summary: tokens.toml（デザイン方針の色・書体・余白）を QSS に埋め、アプリ全体のスタイルシートを返す。部品ごとに色・書体を直書きしない。枠なしの窓（録音の画面・文字起こし中の表示）の外側の枠 `QFrame[role="window"]` と `QMenu` は、面を surface、縁を frame の 1px の線で描き、ほかの線は border のままにする
+    summary: tokens.toml（デザイン方針の色・書体・余白）を QSS に埋め、アプリ全体のスタイルシートを返す。部品ごとに色・書体を直書きしない。枠なしの窓（録音の画面・文字起こし中の表示）の外側の枠 `QFrame[role="window"]` と `QMenu` は、面を surface、縁を frame の 1px の線で描き、ほかの線は border のままにする。チェックボックス・ラジオボタンは印と名前の組に透明の 1px の枠を持たせ、フォーカスで枠を accent_fg、使えないとき名前を text_muted にする。印と名前の間は `shape.indicator_gap`。選択欄の開く印は、区画（`::drop-down`）に枠を持たせず、`::down-arrow` に write_arrow_image が書いた V 字の画像を当てる（`url()` には `/` 区切りのパス（`Path.as_posix()`）を `"` で囲んで入れる。`\` 区切りでは描かれない）。チェックボックス・ラジオボタンの印（`::indicator`）の規則は持たず IndicatorStyle が描く
     kind: 関数
     scope: public
     args:
@@ -2077,6 +2201,11 @@ functions:
         required: true
         passing: positional
         description: 暗い組の色を使うか（resolve_dark で ui.theme と OS の明暗から決めた値）
+      - name: image_dir
+        type: Path
+        required: true
+        passing: keyword
+        description: 選択欄の開く印の画像を書くフォルダ（write_arrow_image へ渡す）
     returns:
       type: str
       description: QApplication.setStyleSheet へ渡す QSS
@@ -2093,6 +2222,12 @@ functions:
         condition: dark=False
         mock: なし
         expected: '`QFrame[role="window"]` と `QMenu` の規則に tokens.toml の light の frame の色が入り、`QFrame[role="surface"]` の規則には border の色が入る。置き換えていない `@` の場所が残らない'
+      - name: test_build_stylesheet_when_check_indicator
+        case: 正常
+        summary: チェックボックス・ラジオボタンのフォーカスの枠と選択欄の開く印の区画の規則を持ち、印の規則を持たない
+        condition: dark=False、image_dir=tmp_path の下の空白を含むフォルダ
+        mock: なし
+        expected: '`QCheckBox:focus`・`QRadioButton:focus` の規則に light の accent_fg の色が入り、`QComboBox::drop-down` の規則があり、`QComboBox::down-arrow` の `url("...")` が image_dir に書いた light の画像の `as_posix()` を指し、`\` を含まない。`::indicator` の規則が無い'
     status: implemented
   - name: show_busy_dialog
     title: 処理中のダイアログ
@@ -2357,7 +2492,7 @@ functions:
     usecase: 共通
     summary: ui.theme で Qt の明暗を揃え、決めた明暗のスタイルシートをアプリ全体に当て、開いている窓を描き直す
     description: |-
-      今の明暗はモジュールの `_current_dark` に控え、theme_color が読む（書くのはこの関数だけ）。メインスレッドから呼ぶ。
+      今の明暗はモジュールの `_current_dark` に控え、theme_color が読む（書くのはこの関数だけ）。当てた IndicatorStyle はモジュールの `_indicator_style` に控える（書くのはこの関数だけ）。メインスレッドから呼ぶ。
       スタイルシートで塗らない部品（設定画面のスクロールバーなど）は style がパレットで描くため、Qt の明暗（`QStyleHints.setColorScheme`。Qt 6.8 から）も揃える。setColorScheme・unsetColorScheme で colorSchemeChanged が出て main からもう一度呼ばれるが、2 回目は同じ値を入れ直すだけでシグナルは出ない。
     kind: 関数
     scope: public
@@ -2373,13 +2508,18 @@ functions:
         required: true
         passing: positional
         description: ui.theme
+      - name: image_dir
+        type: Path
+        required: true
+        passing: keyword
+        description: 選択欄の開く印の画像を書くフォルダ（AppPaths.ui_image_dir）
     returns:
       type: None
       description: なし
     process: |-
       1. Qt の明暗を揃える。`light`・`dark` は app.styleHints().setColorScheme(Qt.ColorScheme.Light / Dark)、`system` は app.styleHints().unsetColorScheme() で上書きを外す（外した後に 2 で OS の明暗を読む）
       2. resolve_dark(theme, is_dark_theme()) で暗い組を使うかを決め、`_current_dark` に控える
-      3. app.setStyleSheet(build_stylesheet(決めた明暗)) を当てる
+      3. モジュールの `_indicator_style` が None のときだけ、app.style() を包んだ IndicatorStyle を作って `_indicator_style` に控え、app.setStyle で当てる（スタイルシートを当てると app.style() は Qt の内部のスタイルに差し替わるため、app.style() では当てたかを確かめない）。続けて app.setStyleSheet(build_stylesheet(決めた明暗, image_dir=引数の image_dir)) を当てる
       4. 開いている窓（QApplication.topLevelWidgets）を update で描き直す（theme_color で描く状態の印・波形・回る印を新しい組の色にする）
          - `[INFO]` 画面の明暗を当てた（theme・暗い組か）
     unit_tests:
@@ -2407,6 +2547,12 @@ functions:
         condition: theme=light・dark・system をそれぞれ当てる。QT_QPA_PLATFORM=offscreen
         mock: app.styleHints()（setColorScheme・unsetColorScheme）・is_dark_theme（False）
         expected: light は setColorScheme(Qt.ColorScheme.Light)、dark は setColorScheme(Qt.ColorScheme.Dark) が 1 回呼ばれ、unsetColorScheme は呼ばれない。system は unsetColorScheme が is_dark_theme より先に 1 回呼ばれ、setColorScheme は呼ばれない
+      - name: test_apply_theme_when_indicator_style
+        case: 正常
+        summary: IndicatorStyle を 1 回だけ当てる
+        condition: image_dir=tmp_path。theme=light を当てた後、theme=dark を当てる。QT_QPA_PLATFORM=offscreen
+        mock: is_dark_theme（False）
+        expected: 1 回目の後に `_indicator_style` が IndicatorStyle のインスタンスになり、2 回目の後も同じインスタンスのまま（app.setStyle は 1 回だけ呼ばれる）。fixture は終わりに `_indicator_style` を None に戻し、アプリのスタイルを元に戻す
     refs:
       - dev/設計書/設定/常駐アプリ#settings[ui.theme]
     status: implemented
@@ -2456,7 +2602,7 @@ functions:
     title: ラジオボタンの組の組み立て
     container: ui/windows/settings_fields.py
     usecase: 設定を変える
-    summary: リテラルの列挙の 1 つを選ぶ欄のラジオボタンを横に並べた QWidget を返す。ボタンの名前は labels（無ければ値そのまま）にし、値はボタンに持たせて selected_radio で読む。単体テストは test_settings_window.py に置く
+    summary: リテラルの列挙の 1 つを選ぶ欄のラジオボタンを、tokens.toml の `shape.choice_gap`（20px。印と名前の間より広くする）を空けて横に並べた QWidget を返す。ボタンの名前は labels（無ければ値そのまま）にし、値はボタンに持たせて selected_radio で読む。単体テストは test_settings_window.py に置く
     kind: 関数
     scope: public
     args:
@@ -2492,6 +2638,12 @@ functions:
         condition: choices=(center, top-left)、current=center、labels なし。QT_QPA_PLATFORM=offscreen
         mock: なし
         expected: ボタンの名前が「center」「top-left」で、「center」が選ばれている
+      - name: test_make_radio_group_when_spacing
+        case: 正常
+        summary: 選択肢の間を choice_gap だけ空ける
+        condition: choices=(cuda, cpu)、current=cuda。QT_QPA_PLATFORM=offscreen
+        mock: なし
+        expected: 並べるレイアウトの spacing が tokens.toml の shape.choice_gap（20）
     status: implemented
   - name: selected_radio
     title: 選んだラジオボタンの値
@@ -2585,6 +2737,38 @@ functions:
     status: planned
     refs:
       - dev/設計書/画面設計/常駐アプリ/トレイの通知.py#elements[コピーし直す]
+  - name: write_arrow_image
+    title: 開く印の画像の書き出し
+    container: ui/style.py
+    usecase: 共通
+    summary: 選択欄の開く印（text_muted の線の V 字）を明暗の組の色で SVG にして image_dir に書き、そのパスを返す。ファイル名は中身のハッシュから作り、同じ名前のファイルがあれば書き直さない
+    kind: 関数
+    scope: public
+    side_effects: image_dir を作り、SVG を書く
+    args:
+      - name: dark
+        type: bool
+        required: true
+        passing: positional
+        description: 暗い組の色を使うか
+      - name: image_dir
+        type: Path
+        required: true
+        passing: keyword
+        description: 書くフォルダ（無ければ作る）
+    returns:
+      type: Path
+      description: 書いた SVG のパス
+    unit_tests:
+      - name: test_write_arrow_image
+        case: 正常
+        summary: 明暗ごとの色で V 字の SVG を書く
+        condition: dark=True と False、image_dir=tmp_path の下のまだ無いフォルダ
+        mock: なし
+        expected: フォルダが作られ、明暗で別のファイルに tokens.toml のそれぞれの text_muted の色を持つ SVG が書かれる
+    status: implemented
+    introduced:
+      pr: 159
 notes:
   画面が触ってよいもの: |-
     ui は UiDeps の関数（配線された SessionManager のメソッド・音量・設定の読み書き・再起動と終了）と、共通の設定のモデルだけを呼ぶ。録音・文字起こし・出力先を直に呼ばない。

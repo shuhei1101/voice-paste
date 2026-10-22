@@ -25,16 +25,20 @@ TMP_DIR_NAME: str = "tmp"
 TOKEN_FILE_NAME: str = "api_token"
 """起動ごとのトークンとポートを書くファイルの名前。"""
 
+UI_IMAGE_DIR_NAME: str = "ui"
+"""画面の画像（選択欄の開く印の SVG）のフォルダの名前。"""
+
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class AppPaths:
-    """設定・履歴・ログ・一時の音声・トークンの置き場所。"""
+    """設定・履歴・ログ・一時の音声・トークン・画面の画像の置き場所。"""
 
     settings_file: Path
     history_dir: Path
     log_dir: Path
     tmp_dir: Path
     token_file: Path
+    ui_image_dir: Path
 
 
 def resolve_app_paths(data_dir: Path | None) -> AppPaths:
@@ -55,4 +59,5 @@ def resolve_app_paths(data_dir: Path | None) -> AppPaths:
         log_dir=data_root / LOG_DIR_NAME,
         tmp_dir=data_root / TMP_DIR_NAME,
         token_file=data_root / TOKEN_FILE_NAME,
+        ui_image_dir=data_root / UI_IMAGE_DIR_NAME,
     )

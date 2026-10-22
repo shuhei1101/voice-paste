@@ -13,6 +13,7 @@ from pydantic.fields import FieldInfo
 from PySide6.QtCore import QEvent, QKeyCombination, Qt, Signal
 from PySide6.QtGui import QAccessible, QAccessibleAnnouncementEvent, QCloseEvent, QKeyEvent
 from PySide6.QtWidgets import (
+    QCheckBox,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -753,7 +754,12 @@ class SettingsWindow(QWidget):
         column.addLayout(header)
 
         control = QHBoxLayout()
-        control.addWidget(widget, 1)
+        if isinstance(widget, QCheckBox):
+            # チェックボックスは行の幅に伸ばさず、フォーカスの枠を印と名前の幅に収める
+            control.addWidget(widget)
+            control.addStretch(1)
+        else:
+            control.addWidget(widget, 1)
         for extra in extras:
             control.addWidget(extra)
         column.addLayout(control)

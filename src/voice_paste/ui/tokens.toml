@@ -27,6 +27,14 @@ padding = 16
 gap = 10
 # 選んだボタンの丸い印が、ボタンの枠の右上の角から外へはみ出す幅（px）
 badge_overhang = 6
+# チェックボックスの箱・ラジオボタンの丸の一辺（px）
+indicator = 16
+# 選んだラジオボタンの点の直径（px）
+indicator_dot = 8
+# 印と名前の間（px）
+indicator_gap = 8
+# ラジオボタンの選択肢の間（px。印と名前の間より広くする）
+choice_gap = 20
 
 [motion]
 # 回る印の 1 周の時間（ミリ秒）

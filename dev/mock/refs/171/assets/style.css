@@ -349,7 +349,7 @@ label.btn {
 /* ダイアログの文 */
 .web-dialog__main {
   padding: var(--pad);
-  h2 { margin: 0 0 8px; font-size: 18px; font-weight: 600; }
+  h2 { margin: 0 0 8px; font-size: 18px; font-weight: 600; text-wrap: balance; word-break: auto-phrase; }
   p { margin: 0 0 8px; }
   p:last-child { margin-bottom: 0; }
 }

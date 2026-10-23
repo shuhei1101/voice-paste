@@ -577,6 +577,82 @@ def test_save_when_hint_word_invalid(opened: Opened) -> None:
     ) in summary
 
 
+def _edge_phrase_edit(window: SettingsWindow, text: str) -> QLineEdit:
+    """「ハルシネーション」の文言の欄のうち、今の文字が text のものを返す。"""
+    matches = [edit for edit in _visible_edits(window, "edge_phrase_text_") if edit.text() == text]
+    assert len(matches) == 1, f"文言「{text}」の欄が 1 つでない"
+    return matches[0]
+
+
+def _edge_phrase_row_widget[T: QWidget](
+    window: SettingsWindow, edit: QLineEdit, kind: type[T], prefix: str
+) -> T:
+    """文言の欄と同じ行（objectName の末尾の {n} が同じ）の、prefix で始まる部品を返す。"""
+    row_id = edit.objectName().removeprefix("edge_phrase_text_")
+    widget = window.findChild(kind, f"{prefix}{row_id}")
+    assert widget is not None, f"{prefix}{row_id} が無い"
+    return widget
+
+
+def _move_edge_phrase_up(window: SettingsWindow, text: str) -> None:
+    """今の文字が text の文言の欄に Alt+↑ を送り、行を 1 つ上へ動かす。"""
+    QTest.keyClick(
+        _edge_phrase_edit(window, text), Qt.Key.Key_Up, Qt.KeyboardModifier.AltModifier
+    )
+
+
+def test_save_when_edge_phrases(opened: Opened) -> None:
+    """文言の一覧を並びのまま設定に入れ、空の行を捨てて書く（正常系）。"""
+    # 準備（「ハルシネーション」で行を 2 つ足し、1 つ目に「お疲れ様でした」（文頭）を入れて先頭へ動かし、「ありがとうございました」の行を消す）
+    _select_group(opened.window, "ハルシネーション")
+    _button(opened.window, "add_edge_phrase_button").click()
+    _button(opened.window, "add_edge_phrase_button").click()
+    new_edit = _visible_edits(opened.window, "edge_phrase_text_")[3]
+    new_edit.setText("お疲れ様でした")
+    _edge_phrase_row_widget(opened.window, new_edit, QComboBox, "edge_phrase_position_").setCurrentText(
+        "文頭"
+    )
+    _move_edge_phrase_up(opened.window, "お疲れ様でした")
+    _move_edge_phrase_up(opened.window, "お疲れ様でした")
+    _move_edge_phrase_up(opened.window, "お疲れ様でした")
+    removed_edit = _edge_phrase_edit(opened.window, "ありがとうございました")
+    _edge_phrase_row_widget(
+        opened.window, removed_edit, QAbstractButton, "edge_phrase_remove_"
+    ).click()
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is True
+    saved_settings = opened.deps.save_settings.call_args.args[0]
+    assert [(phrase.text, phrase.position) for phrase in saved_settings.edge_phrases] == [
+        ("お疲れ様でした", "start"),
+        ("チャンネル登録*", "end"),
+        ("ご視聴ありがとうございました", "end"),
+    ]
+
+
+def test_save_when_edge_phrase_wildcard_only(opened: Opened) -> None:
+    """`*` だけの文言では保存せず、エラーを出す（異常系）。"""
+    # 準備（「ハルシネーション」の 2 行目の文言を「*」にする）
+    _select_group(opened.window, "ハルシネーション")
+    second_edit = _visible_edits(opened.window, "edge_phrase_text_")[1]
+    second_edit.setText("*")
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is False
+    opened.deps.save_settings.assert_not_called()
+    assert (
+        "ハルシネーションの 2 行目の文言: "
+        "* だけの文言は、文頭・文末の行を丸ごと消します。消したい文言を入れてください。"
+    ) in _error_summary_text(opened.window)
+    assert second_edit.text() == "*"
+
+
 def test_save_when_restart(opened: Opened) -> None:
     """「保存して再起動」は書いてから窓を閉じ、再起動を頼む（正常系）。"""
     # 準備

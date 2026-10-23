@@ -1,4 +1,4 @@
-"""features/correction/service.py（load_glossary・apply_glossary・read_glossary_rows・save_glossary・resolve_glossaries・pick_active_glossary・next_glossary_path）の単体テスト。"""
+"""features/correction/service.py（load_glossary・apply_glossary・read_glossary_rows・save_glossary・resolve_glossaries・pick_active_glossary・next_glossary_path・strip_edge_phrases）の単体テスト。"""
 
 from __future__ import annotations
 
@@ -565,3 +565,137 @@ def test_next_glossary_path_when_taken(tmp_path: Path) -> None:
 
     # 検証
     assert path == directory / "glossary_2.csv"
+
+
+# === strip_edge_phrases ===
+
+
+def test_strip_edge_phrases() -> None:
+    """一覧の順に文末から消し、文頭の行は文頭だけに当てる（正常系）。"""
+    from voice_paste.features.correction.service import strip_edge_phrases
+    from voice_paste.shared.settings import EdgePhraseSettings
+
+    # 準備（上から「チャンネル登録*」「ご視聴ありがとうございました」「ありがとうございました」が文末、「えーと」が文頭）
+    phrases = [
+        EdgePhraseSettings(text="チャンネル登録*", position="end"),
+        EdgePhraseSettings(text="ご視聴ありがとうございました", position="end"),
+        EdgePhraseSettings(text="ありがとうございました", position="end"),
+        EdgePhraseSettings(text="えーと", position="start"),
+    ]
+    text = (
+        "えーと、ありがとうございました。本日の議題は予算です。\n"
+        "以上です。ありがとうございました。ご視聴ありがとうございました。"
+        "チャンネル登録よろしくお願いします。"
+    )
+
+    # 実行
+    result = strip_edge_phrases(text, phrases)
+
+    # 検証
+    assert result == "ありがとうございました。本日の議題は予算です。\n以上です。"
+
+
+def test_strip_edge_phrases_when_middle() -> None:
+    """文頭・文末以外の同じ文言は消さない（正常系）。"""
+    from voice_paste.features.correction.service import strip_edge_phrases
+    from voice_paste.shared.settings import EdgePhraseSettings
+
+    # 準備（「ありがとうございました」（両方）の 1 行）
+    phrases = [EdgePhraseSettings(text="ありがとうございました", position="both")]
+
+    # 実行
+    result = strip_edge_phrases("先日はありがとうございましたと伝えた。", phrases)
+
+    # 検証
+    assert result == "先日はありがとうございましたと伝えた。"
+
+
+def test_strip_edge_phrases_when_wildcard_start() -> None:
+    """文頭の末尾の `*` は 1 行目の行末まで消す（正常系）。"""
+    from voice_paste.features.correction.service import strip_edge_phrases
+    from voice_paste.shared.settings import EdgePhraseSettings
+
+    # 準備（「字幕*」（文頭）の 1 行）
+    phrases = [EdgePhraseSettings(text="字幕*", position="start")]
+
+    # 実行
+    result = strip_edge_phrases("字幕：山田\n本題です。", phrases)
+
+    # 検証
+    assert result == "本題です。"
+
+
+def test_strip_edge_phrases_when_wildcard_middle() -> None:
+    """途中の `*` は消す文字が最も短い一致を使う（正常系）。"""
+    from voice_paste.features.correction.service import strip_edge_phrases
+    from voice_paste.shared.settings import EdgePhraseSettings
+
+    # 準備（「ご*した」（文末）の 1 行）
+    phrases = [EdgePhraseSettings(text="ご*した", position="end")]
+
+    # 実行
+    result = strip_edge_phrases("ご飯を食べた。ご視聴に感謝した", phrases)
+
+    # 検証
+    assert result == "ご飯を食べた。"
+
+
+def test_strip_edge_phrases_when_repeated() -> None:
+    """同じ文言が端に続けて並ぶときは続く分も消す（正常系）。"""
+    from voice_paste.features.correction.service import strip_edge_phrases
+    from voice_paste.shared.settings import EdgePhraseSettings
+
+    # 準備（「ご視聴ありがとうございました」（文末）の 1 行）
+    phrases = [EdgePhraseSettings(text="ご視聴ありがとうございました", position="end")]
+
+    # 実行
+    result = strip_edge_phrases(
+        "以上です。ご視聴ありがとうございました。ご視聴ありがとうございました", phrases
+    )
+
+    # 検証
+    assert result == "以上です。"
+
+
+def test_strip_edge_phrases_when_line_emptied() -> None:
+    """最後の行が空になったら前の行で続ける（正常系）。"""
+    from voice_paste.features.correction.service import strip_edge_phrases
+    from voice_paste.shared.settings import EdgePhraseSettings
+
+    # 準備（「ご視聴ありがとうございました」「ありがとうございました」（どちらも文末）の 2 行）
+    phrases = [
+        EdgePhraseSettings(text="ご視聴ありがとうございました", position="end"),
+        EdgePhraseSettings(text="ありがとうございました", position="end"),
+    ]
+
+    # 実行
+    result = strip_edge_phrases("本題です。ありがとうございました。\nご視聴ありがとうございました。", phrases)
+
+    # 検証
+    assert result == "本題です。"
+
+
+def test_strip_edge_phrases_when_all_removed() -> None:
+    """全て消えたら空文字を返す（正常系）。"""
+    from voice_paste.features.correction.service import strip_edge_phrases
+    from voice_paste.shared.settings import EdgePhraseSettings
+
+    # 準備（「ご視聴ありがとうございました」（文末）の 1 行）
+    phrases = [EdgePhraseSettings(text="ご視聴ありがとうございました", position="end")]
+
+    # 実行
+    result = strip_edge_phrases("ご視聴ありがとうございました。", phrases)
+
+    # 検証
+    assert result == ""
+
+
+def test_strip_edge_phrases_when_empty_list() -> None:
+    """一覧が空ならそのまま返す（正常系）。"""
+    from voice_paste.features.correction.service import strip_edge_phrases
+
+    # 実行（空の一覧）
+    result = strip_edge_phrases("ご視聴ありがとうございました", [])
+
+    # 検証
+    assert result == "ご視聴ありがとうございました"

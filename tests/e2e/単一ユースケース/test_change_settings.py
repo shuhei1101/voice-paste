@@ -18,7 +18,8 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QPushButton
+from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QComboBox, QLineEdit, QPushButton
 
 from tests.integration.helpers import CallbackReceiver, wait_until
 from tests.support.inprocess import SPEECH_WORD, VOLUME_BEFORE, silence_input, speech_input
@@ -504,6 +505,66 @@ def test_normal_when_edit_hint_presets(run_app: RunApp) -> None:
         assert app.hint_for_next_request() == "Claude、Whisper、tool、Git"
 
     run_app(case, extra_settings=HINT_PRESET_SETTINGS + COMMENTED_SETTINGS)
+
+
+EDGE_TRANSCRIPT = "お疲れ様でした。本日はここまでです。ありがとうございました。"
+"""補正に渡す文字（文頭に「お疲れ様でした。」、文末に既定の文言「ありがとうございました。」がある）。"""
+
+
+def _keeps_values(before: dict[str, object], after: dict[str, object]) -> bool:
+    """before に書かれていた全てのキーが、after に同じ値で残っているか（保存で足された既定のキーは見ない）。"""
+    return all(
+        _keeps_values(value, after[key]) if isinstance(value, dict) else after.get(key) == value  # type: ignore[arg-type,index]
+        for key, value in before.items()
+    )
+
+
+def test_normal_when_edit_edge_phrases(run_app: RunApp) -> None:
+    """文頭・文末から消す文言の行を足して先頭へ動かし、既定の行を消して保存すると、settings.toml に一覧の順で書かれ、設定画面は開いたまま保存できたことを出し、再起動せずに補正へ効く（正常シナリオ（文頭・文末から消す文言を編集する））。
+
+    補正は、動いている常駐アプリの補正に文字を渡して確かめる（マイクは開かない。録音を通した補正は「録音を文字に起こす」の E2E）。
+    """
+
+    def case(app: ResidentApp) -> None:
+        """設定画面の「ハルシネーション」で、「お疲れ様でした」（文頭）の行を足して先頭へ動かし、「ありがとうございました」の行を消して保存する。"""
+        # 準備（キーが無い一覧は既定の 3 行で、文末の「ありがとうございました。」が消える）
+        assert "edge_phrases" not in _toml(app)
+        assert app.correct_text(EDGE_TRANSCRIPT) == "お疲れ様でした。本日はここまでです。"
+        other_keys_before = _toml(app)
+        app.open_settings()
+        app.select_group("ハルシネーション")
+
+        # 実行（行を足し、文言と位置を入れて、Alt+↑ で先頭まで動かし、既定の「ありがとうございました」の行を消す）
+        app.press("add_edge_phrase_button")
+        app.commit_text("edge_phrase_text_3", "お疲れ様でした")
+        position = app.wait_widget("edge_phrase_position_3", QComboBox)
+        position.setFocus()
+        QTest.keyClick(position, Qt.Key.Key_Up)
+        assert position.currentText() == "文頭"
+        for row in (3, 2, 1):
+            QTest.keyClick(
+                app.wait_widget(f"edge_phrase_text_{row}", QLineEdit),
+                Qt.Key.Key_Up,
+                Qt.KeyboardModifier.AltModifier,
+            )
+        app.press("edge_phrase_remove_3")
+        app.press("save_button")
+
+        # 検証
+        assert app.window("settings_window") is not None
+        assert app.label("saved_notice") == "保存しました。"
+        toml = _toml(app)
+        assert toml["edge_phrases"] == [
+            {"text": "お疲れ様でした", "position": "start"},
+            {"text": "チャンネル登録*", "position": "end"},
+            {"text": "ご視聴ありがとうございました", "position": "end"},
+        ]
+        assert _keeps_values(other_keys_before, toml)
+        assert COMMENT_LINE in _settings_file(app).read_text(encoding="utf-8")
+        assert toml["recording"]["fade_sec"] == 1.5  # type: ignore[index]
+        assert app.correct_text(EDGE_TRANSCRIPT) == "本日はここまでです。ありがとうございました。"
+
+    run_app(case, extra_settings=COMMENTED_SETTINGS)
 
 
 def test_error_when_hints_too_long(run_app: RunApp) -> None:

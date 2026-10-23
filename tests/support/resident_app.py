@@ -28,7 +28,7 @@ from typing import Any, TypeVar
 import httpx
 import pytest
 from PySide6.QtCore import QTimer, QUrl, Qt
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QInputMethodEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import (
     QAbstractButton,
@@ -529,6 +529,15 @@ class ResidentApp:
         QTest.mouseClick(edit, Qt.MouseButton.LeftButton)
         edit.selectAll()
         QTest.keyClicks(edit, text)
+
+    def commit_text(self, name: str, text: str) -> None:
+        """項目 ID の文字の欄をクリックし、入っている文字を選んでから、日本語入力の確定として文字を渡す（日本語はキーを打つ操作では渡せないため）。"""
+        edit = self.wait_widget(name, QLineEdit)
+        QTest.mouseClick(edit, Qt.MouseButton.LeftButton)
+        edit.selectAll()
+        event = QInputMethodEvent()
+        event.setCommitString(text)
+        QApplication.sendEvent(edit, event)
 
     def field_value(self, key: str) -> str:
         """設定画面の文字の欄の今の文字を返す。"""

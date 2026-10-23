@@ -66,3 +66,23 @@ issues:
     upstream_issue: https://github.com/SYSTRAN/faster-whisper/issues/1589
     refs:
       - dev/設計書/外部ライブラリ/av#
+  - title: 話していない定型句が文末に入る
+    summary: 無音・雑音の区間に、話していない「ご視聴ありがとうございました」などの定型句が起こした文字に入る
+    occurred_on: '2026-10-22'
+    state: 回避策あり
+    description: |-
+      Whisper（large-v3 を含む）は、話し声の無い区間を学習データの動画の末尾に多い定型句で埋めることがある（ハルシネーション）。
+      完全な無音では「ご視聴ありがとうございました」や直前の文の繰り返し、BGM・雑音だけの区間では「チャンネル登録お願いします」が出やすい（出所: https://claudelab.net/articles/api-sdk/claude-whisper-japanese-silence-hallucination-no-speech-prob-vad-field-notes ）。
+      このアプリでは録音の終わりの無音から、文末に「ご視聴ありがとうございました」「ありがとうございました」が入る（Issue #158）。
+    conditions:
+      - 録音の終わりか始めに無音・雑音の区間がある
+      - '`vad_filter` をオンにしても、VAD が話し声とみなした短い雑音が残る'
+    workarounds:
+      - method: 補正で、文頭・文末から消す文言の一覧に一致した文言を消す
+        result: 一覧に書いた定型句が、文中の同じ言葉を残して文頭・文末から消える
+        recommended: true
+      - method: '`vad_filter` をオン、`condition_on_previous_text` をオフにする（既定）'
+        result: 無音の区間と前の文の繰り返しは減るが、定型句は残ることがある
+        recommended: true
+    refs:
+      - dev/設計書/シナリオ/単一ユースケース/録音を文字に起こす#scenarios[正常シナリオ（文頭・文末の決まった文言を消す）]

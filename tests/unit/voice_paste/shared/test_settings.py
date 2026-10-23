@@ -1,4 +1,4 @@
-"""shared/settings.py（load_settings・save_settings・find_hotkey_overlaps・find_glossary_name_overlaps・join_hint_words・find_hint_preset_name_overlaps・migrate_ai_chat・build_settings_model・Settings の確かめ・UiSettings の確かめ）の単体テスト。"""
+"""shared/settings.py（load_settings・save_settings・find_hotkey_overlaps・find_glossary_name_overlaps・join_hint_words・find_hint_preset_name_overlaps・EdgePhraseSettings・migrate_ai_chat・build_settings_model・Settings の確かめ・UiSettings の確かめ）の単体テスト。"""
 
 from __future__ import annotations
 
@@ -961,6 +961,38 @@ def test_settings_when_glossary_name_blank(settings_model: type[Settings]) -> No
         settings_model.model_validate({"glossaries": [{"name": "  ", "path": "a.csv"}]})
     failures = list_validation_failures(exc_info.value)
     assert [key for key, _reason in failures] == ["glossaries[0].name"]
+
+
+# === EdgePhraseSettings ===
+
+
+def test_edge_phrase_settings() -> None:
+    """文言と位置を読む（正常系）。"""
+    from voice_paste.shared.settings import EdgePhraseSettings
+
+    # 実行（前後に空白のある文言で、位置は無し）
+    phrase = EdgePhraseSettings(text=" ご視聴ありがとうございました ")
+
+    # 検証
+    assert phrase.text == "ご視聴ありがとうございました"
+    assert phrase.position == "end"
+
+
+def test_edge_phrase_settings_when_wildcard_only(settings_model: type[Settings]) -> None:
+    """`*` だけの文言を断る（異常系）。"""
+    from pydantic import ValidationError
+
+    from voice_paste.shared.settings import EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE
+
+    # 実行・検証（edge_phrases の 2 件目の text が「 * 」）
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate(
+            {"edge_phrases": [{"text": "字幕*"}, {"text": " * ", "position": "start"}]}
+        )
+    errors = exc_info.value.errors()
+    assert [(error["type"], error["loc"]) for error in errors] == [
+        (EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE, ("edge_phrases", 1, "text"))
+    ]
 
 
 # === join_hint_words ===

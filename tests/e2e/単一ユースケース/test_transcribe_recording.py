@@ -28,6 +28,7 @@ import pytest
 from PySide6.QtWidgets import QApplication
 
 import voice_paste.integrations.whisper.client as client_module
+import voice_paste.main as main_module
 from tests.integration.helpers import CallbackReceiver, wait_until
 from tests.support.continuous import (
     SEGMENT_GAP_SEC,
@@ -108,6 +109,24 @@ HINT_PRESETS = [
 
 EXPECTED_HINT = "voice-paste、Whisper、議事録、返信"
 """有効なプリセットの語を一覧の順に読点（、）でつないだ手がかり。"""
+
+EDGE_PHRASE_SETTINGS = (
+    '[[edge_phrases]]\ntext = "チャンネル登録*"\nposition = "end"\n\n'
+    '[[edge_phrases]]\ntext = "ご視聴ありがとうございました"\nposition = "end"\n\n'
+    '[[edge_phrases]]\ntext = "ありがとうございました"\nposition = "end"\n\n'
+    '[[edge_phrases]]\ntext = "えーと"\nposition = "start"\n'
+)
+"""文頭・文末から消す文言の一覧（上から「チャンネル登録*」「ご視聴ありがとうございました」「ありがとうございました」が文末、「えーと」が文頭）。"""
+
+EDGE_PHRASE_TRANSCRIPT = (
+    "えーと、ありがとうございました。本日の議題は予算です。\n"
+    "以上です。ありがとうございました。ご視聴ありがとうございました。"
+    "チャンネル登録よろしくお願いします。"
+)
+"""文字起こしが返す文字（文頭に「えーと」、文末に決まった文言が続く 2 行）。"""
+
+EDGE_PHRASE_EXPECTED = "ありがとうございました。本日の議題は予算です。\n以上です。"
+"""文頭・文末の文言を消した後の文字。文頭の「えーと、」と文末の 3 つの文言が消え、位置が文末の行は文頭の「ありがとうございました。」に当たらない。"""
 
 
 def _spy_transcribe_requests(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
@@ -237,6 +256,43 @@ def test_normal(run_app: RunApp, tmp_path: Path, clipboard_sentinel: str) -> Non
         wav_input=wav_input,
         keys=keys,
     )
+
+
+def test_normal_when_edge_phrases_removed(
+    run_app: RunApp, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, clipboard_sentinel: str
+) -> None:
+    """文字起こしが返した文字の文頭・文末から、一覧の文言が一覧の順に位置つきで消え、消した文字がログに出て、文の途中の同じ文言は残り、起こした文字が届けられる（正常シナリオ（文頭・文末の決まった文言を消す））。"""
+    # 準備: 文字起こしは決まった文字を返し、録音の入力は WAV（中身は問わない）を流す
+    monkeypatch.setattr(main_module, "transcribe", lambda *_args, **_options: EDGE_PHRASE_TRANSCRIPT)
+    wav_input = speech_input(tmp_path)
+    keys = KeyLog()
+
+    def case(app: ResidentApp) -> None:
+        """話し終えたら確定し、起こした文字・ログ・届け先を確かめる。"""
+        # 実行
+        app.start_recording()
+        app.wait_played_out(wav_input)
+        app.press("output_button_paste_and_send")
+        app.wait_processed()
+
+        # 検証
+        text = app.history_text()
+        assert text == EDGE_PHRASE_EXPECTED
+        assert text.splitlines()[-1] == "以上です。"
+        assert text.startswith("ありがとうございました。")
+        assert "ご視聴" not in text
+        removed = [
+            message for message in app.log_messages() if message.startswith("文頭・文末の文言を消した")
+        ]
+        assert len(removed) == 1
+        assert "文頭: えーと、" in removed[0]
+        assert "文末: チャンネル登録よろしくお願いします。" in removed[0]
+        assert "文末: ご視聴ありがとうございました。" in removed[0]
+        assert "文末: ありがとうございました。" in removed[0]
+        assert pyperclip.paste() == text
+        assert len(keys.pasted) == 1
+
+    run_app(case, extra_settings=EDGE_PHRASE_SETTINGS, wav_input=wav_input, keys=keys)
 
 
 def test_normal_when_worker_dies(

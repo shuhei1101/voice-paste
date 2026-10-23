@@ -3,8 +3,8 @@ lead: 用語集の CSV を読み書きし、補正に使う用語集の誤変換
 directory: |-
   ```
   src/voice_paste/features/correction/
-  ├── __init__.py   # load_glossary・read_glossary_rows・save_glossary・apply_glossary・resolve_glossaries・pick_active_glossary・next_glossary_path の公開
-  └── service.py    # 用語集の一覧の解決、CSV の読み書き、置き換え
+  ├── __init__.py   # load_glossary・read_glossary_rows・save_glossary・apply_glossary・resolve_glossaries・pick_active_glossary・next_glossary_path・strip_edge_phrases の公開
+  └── service.py    # 用語集の一覧の解決、CSV の読み書き、置き換え、文頭・文末の文言の削除
   ```
 data_models: []
 functions:
@@ -395,6 +395,90 @@ functions:
         mock: なし（一時フォルダ）
         expected: glossary_2.csv
     status: implemented
+  - name: strip_edge_phrases
+    title: 文頭・文末の文言の削除
+    container: features/correction/service.py
+    usecase: 録音を文字に起こす
+    summary: 一覧の行を上から順に当て、起こした文字の文頭・文末に一致した文言だけを消す
+    description: |-
+      文頭は 1 行目の先頭、文末は最後の行の末尾（行は改行で区切る）。文言は書いた文字との完全な一致で、`*` は改行をまたがない 0 文字以上の任意の文字列。文言の末尾の `*` は行の末尾まで、先頭の `*` は行の先頭から一致させ、途中の `*` は消す文字が最も短い一致を使う。文末で一致が複数あるときは、最も後ろから始まる一致を使う。
+      文言の一致は、文言の後ろに続く EDGE_TRAILING_CHARS を含めて消す（文末では、消した後の行の末尾の空白も除く）。文言の前の句読点は残す。
+    kind: 関数
+    scope: public
+    side_effects: なし（ログだけ）
+    args:
+      - name: text
+        type: str
+        required: true
+        passing: positional
+        description: 起こした文字（区間ごとの文字を改行でつないだもの。連続録音は 1 区間の文字）
+      - name: phrases
+        type: Sequence[EdgePhraseSettings]
+        required: true
+        passing: positional
+        description: 設定の edge_phrases（当てる順）
+    returns:
+      type: str
+      description: 文頭・文末の文言を消した文字。全て消えたら空文字
+    process: |-
+      1. 文字を改行で行に分ける
+      2. 一覧の行を上から順に、前の行で消した結果へ当てる
+         - 位置が start か both の場合、1 行目の先頭に文言が一致する間、一致した文字を消す。1 行目が空になったらその行を除き、次の行を 1 行目として続ける
+         - 位置が end か both の場合、最後の行の末尾に文言が一致する間、一致した文字を消す。最後の行が空になったらその行を除き、前の行を最後の行として続ける
+      3. 行を改行でつないで返す
+         - `[INFO]` 文頭・文末の文言を消した（「文頭: {消した文字}」「文末: {消した文字}」の並び。消したものが無ければ出さない）
+    unit_tests:
+      - name: test_strip_edge_phrases
+        case: 正常
+        summary: 一覧の順に文末から消し、文頭の行は文頭だけに当てる
+        condition: 一覧が上から「チャンネル登録*」（end）・「ご視聴ありがとうございました」（end）・「ありがとうございました」（end）・「えーと」（start）。文字は「えーと、ありがとうございました。本日の議題は予算です。\n以上です。ありがとうございました。ご視聴ありがとうございました。チャンネル登録よろしくお願いします。」
+        mock: なし
+        expected: 「ありがとうございました。本日の議題は予算です。\n以上です。」が返る
+      - name: test_strip_edge_phrases_when_middle
+        case: 正常
+        summary: 文頭・文末以外の同じ文言は消さない
+        condition: 「ありがとうございました」（both）の 1 行と、文字「先日はありがとうございましたと伝えた。」
+        mock: なし
+        expected: 同じ文字が返る
+      - name: test_strip_edge_phrases_when_wildcard_start
+        case: 正常
+        summary: 文頭の末尾の `*` は 1 行目の行末まで消す
+        condition: 「字幕*」（start）の 1 行と、文字「字幕：山田\n本題です。」
+        mock: なし
+        expected: 「本題です。」が返る
+      - name: test_strip_edge_phrases_when_wildcard_middle
+        case: 正常
+        summary: 途中の `*` は消す文字が最も短い一致を使う
+        condition: 「ご*した」（end）の 1 行と、文字「ご飯を食べた。ご視聴に感謝した」
+        mock: なし
+        expected: 「ご飯を食べた。」が返る
+      - name: test_strip_edge_phrases_when_repeated
+        case: 正常
+        summary: 同じ文言が端に続けて並ぶときは続く分も消す
+        condition: 「ご視聴ありがとうございました」（end）の 1 行と、文字「以上です。ご視聴ありがとうございました。ご視聴ありがとうございました」
+        mock: なし
+        expected: 「以上です。」が返る
+      - name: test_strip_edge_phrases_when_line_emptied
+        case: 正常
+        summary: 最後の行が空になったら前の行で続ける
+        condition: 「ご視聴ありがとうございました」（end）・「ありがとうございました」（end）の 2 行と、文字「本題です。ありがとうございました。\nご視聴ありがとうございました。」
+        mock: なし
+        expected: 「本題です。」が返る
+      - name: test_strip_edge_phrases_when_all_removed
+        case: 正常
+        summary: 全て消えたら空文字を返す
+        condition: 「ご視聴ありがとうございました」（end）の 1 行と、文字「ご視聴ありがとうございました。」
+        mock: なし
+        expected: 空文字が返る
+      - name: test_strip_edge_phrases_when_empty_list
+        case: 正常
+        summary: 一覧が空ならそのまま
+        condition: 空の一覧と、文字「ご視聴ありがとうございました」
+        mock: なし
+        expected: 同じ文字が返る
+    refs:
+      - dev/設計書/シナリオ/単一ユースケース/録音を文字に起こす#scenarios[正常シナリオ（文頭・文末の決まった文言を消す）]
+    status: implemented
 test_files:
   - tests/unit/voice_paste/features/correction/test_service.py
 constants:
@@ -403,4 +487,11 @@ constants:
     container: features/correction/service.py
     value: '"yogo.csv"'
     summary: '`glossaries` も `glossary_path` も無いときに読む、settings.toml と同じフォルダの用語集のファイル名（main.py の GLOSSARY_FILE_NAME を移す）'
+    status: implemented
+  - name: EDGE_TRAILING_CHARS
+    title: 文言と一緒に消す文字
+    container: features/correction/service.py
+    usecase: 録音を文字に起こす
+    summary: 一致した文言の後ろに続くとき、文言と一緒に消す句読点と空白
+    value: '"。、，．,.!?！？ 　\t"'
     status: implemented

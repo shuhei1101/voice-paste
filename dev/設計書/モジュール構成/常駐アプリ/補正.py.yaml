@@ -449,9 +449,9 @@ functions:
       - name: test_strip_edge_phrases_when_wildcard_middle
         case: 正常
         summary: 途中の `*` は消す文字が最も短い一致を使う
-        condition: 「ご*した」（end）の 1 行と、文字「ご飯を食べました。ご視聴に感謝した」
+        condition: 「ご*した」（end）の 1 行と、文字「ご飯を食べた。ご視聴に感謝した」
         mock: なし
-        expected: 「ご飯を食べました。」が返る
+        expected: 「ご飯を食べた。」が返る
       - name: test_strip_edge_phrases_when_repeated
         case: 正常
         summary: 同じ文言が端に続けて並ぶときは続く分も消す

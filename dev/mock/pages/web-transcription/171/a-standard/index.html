@@ -20,6 +20,7 @@
       <li><button type="button" data-scene="recording-low">残り僅か</button></li>
       <li><button type="button" data-scene="limit">上限到達</button></li>
       <li><button type="button" data-scene="sending">送信中</button></li>
+      <li><button type="button" data-scene="file-sending">ファイル送信中</button></li>
       <li><button type="button" data-scene="send-failed">送信失敗</button></li>
       <li><button type="button" data-scene="unreadable">形式不可（415）</button></li>
       <li><button type="button" data-scene="too-large">サイズ超過（413）</button></li>
@@ -56,7 +57,20 @@
           <a class="btn btn--lg" href="../../../web-confirm-dialog/171/a-standard/index.html?scene=replace"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle class="fill" cx="12" cy="12" r="6"/></svg>録音開始</a>
           <label class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>ファイル送信<input type="file" accept="audio/*" class="sr-only"></label>
         </div>
-        <p class="send-hint" data-scene-panel="empty limit sending send-failed unreadable too-large waiting done failed not-found deleted">録音 最大 30 分・ファイル 100 MB 未満</p>
+        <!-- ファイル送信中: 送信が終わるまで録音開始・ファイル送信を押せない。押せない理由はすぐ下の送信中の行で読める -->
+        <div class="send-actions" data-scene-panel="file-sending" hidden>
+          <button type="button" class="btn btn--lg" disabled><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle class="fill" cx="12" cy="12" r="6"/></svg>録音開始</button>
+          <label class="btn btn--lg" aria-disabled="true"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>ファイル送信<input type="file" accept="audio/*" class="sr-only" disabled></label>
+        </div>
+        <!-- 送信中のファイル: 202 を受けたら消し、結果の一覧の先頭に待ちの件を出す -->
+        <div class="file-sending" data-scene-panel="file-sending" hidden>
+          <div class="file-sending__head">
+            <span class="file-sending__name">interview-part2.m4a・<span class="num">38.4 MB</span></span>
+            <span class="kept__state kept__state--busy" role="status"><span class="spinner" aria-hidden="true"></span>送信中 <span class="num">47%</span></span>
+          </div>
+          <progress max="100" value="47" aria-label="送信の進捗"></progress>
+        </div>
+        <p class="send-hint" data-scene-panel="empty limit sending file-sending send-failed unreadable too-large waiting done failed not-found deleted">録音 最大 30 分・ファイル 100 MB 未満</p>
 
         <!-- 録音中の表示 -->
         <div class="recorder" data-scene-panel="recording" hidden>
@@ -127,7 +141,7 @@
         </div>
 
         <!-- 端末に残した音声（送った）: 送り終えた後の場面 -->
-        <div class="kept" data-scene-panel="unreadable too-large waiting done deleted" hidden>
+        <div class="kept" data-scene-panel="file-sending unreadable too-large waiting done deleted" hidden>
           <div class="kept__info">
             <span class="kept__label">端末内の音声</span>
             <span class="kept__meta"><span class="num">10/23 14:05</span> 録音・<span class="num">2:14</span>・webm・<span class="num">540 KB</span></span>
@@ -158,7 +172,7 @@
         <div class="web-panel__head">
           <h2 id="h-results">結果</h2>
           <span class="web-panel__meta" data-scene-panel="empty" hidden>最大 10 件・保存 7 日</span>
-          <span class="web-panel__meta" data-scene-panel="recording recording-low limit sending send-failed unreadable too-large deleted" hidden><span class="num">2</span> 件・最大 10 件・保存 7 日</span>
+          <span class="web-panel__meta" data-scene-panel="recording recording-low limit sending file-sending send-failed unreadable too-large deleted" hidden><span class="num">2</span> 件・最大 10 件・保存 7 日</span>
           <span class="web-panel__meta" data-scene-panel="done failed not-found" hidden><span class="num">3</span> 件・最大 10 件・保存 7 日</span>
           <span class="web-panel__meta" data-scene-panel="waiting" hidden><span class="num">4</span> 件・最大 10 件・保存 7 日</span>
         </div>
@@ -167,7 +181,7 @@
         <p class="results-empty" data-scene-panel="empty" hidden>結果 0 件</p>
 
         <!-- 結果の一覧: 待ちの進み具合・失敗を読み上げにも伝える -->
-        <ul class="results" aria-live="polite" data-scene-panel="recording recording-low limit sending send-failed unreadable too-large waiting done failed not-found deleted" hidden>
+        <ul class="results" aria-live="polite" data-scene-panel="recording recording-low limit sending file-sending send-failed unreadable too-large waiting done failed not-found deleted" hidden>
           <!-- 待ちの件（順番待ち）: 結果を待つ場面だけ -->
           <li class="result" data-scene-panel="waiting" hidden>
             <div class="result__head"><span class="result__time num">10/23 14:08</span><span class="result__src">interview-part2.m4a</span></div>
@@ -207,7 +221,7 @@ voice-paste の API は今のままで、外の端末からはゲートウェイ
           </li>
 
           <!-- 前に届いた件 1: 消した後の場面では一覧から外れている -->
-          <li class="result" data-scene-panel="recording recording-low limit sending send-failed unreadable too-large waiting done failed not-found" hidden>
+          <li class="result" data-scene-panel="recording recording-low limit sending file-sending send-failed unreadable too-large waiting done failed not-found" hidden>
             <div class="result__head"><span class="result__time num">10/23 13:52</span><span class="result__src">画面録音・<span class="num">0:41</span></span></div>
             <p class="result__text">ホットキーの録音中でもブラウザから送れるかを確かめる。</p>
             <div class="result__actions">
@@ -217,7 +231,7 @@ voice-paste の API は今のままで、外の端末からはゲートウェイ
           </li>
 
           <!-- 前に届いた件 2: 長い名前のファイルは 1 行で省く -->
-          <li class="result" data-scene-panel="recording recording-low limit sending send-failed unreadable too-large waiting done failed not-found deleted" hidden>
+          <li class="result" data-scene-panel="recording recording-low limit sending file-sending send-failed unreadable too-large waiting done failed not-found deleted" hidden>
             <div class="result__head"><span class="result__time num">10/22 18:30</span><span class="result__src">2026-10-22_定例ミーティング_議事メモ用の録音_最終版.mp3</span></div>
             <p class="result__text">定例の議題は三つです。一つ目はリリースの日程、二つ目は外の端末からの文字起こし、三つ目は用語集の見直しです。</p>
             <div class="result__actions">

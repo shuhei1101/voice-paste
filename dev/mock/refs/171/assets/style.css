@@ -389,3 +389,40 @@ label.btn {
   /* ダイアログの操作を 2 つ同じ幅にする */
   .web-dialog__actions .btn { flex: 1; }
 }
+
+/* ===== ファイル送信中 ===== */
+
+/* 押せないファイル送信ボタン: 押せないボタンと同じく薄くする */
+label.btn[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* 送信中のファイルの行: 名前と状態の行・進捗のバーを縦に積む */
+.file-sending {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 名前と状態を両端に置く */
+.file-sending__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* 送信中のファイル名と大きさ: 長い名前は 1 行で省く */
+.file-sending__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+/* 送信中の状態: 名前が長くても縮めない */
+.file-sending .kept__state { flex: none; }

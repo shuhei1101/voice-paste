@@ -30,7 +30,7 @@ elements:
     id: file_input
     kind: input
     position: 音声送信 > 操作
-    description: 録ってある音声ファイルを選ぶ。選んだら確かめずにすぐ送信する。選んだファイルは端末内の音声に残さない（元が端末にあるため）
+    description: 録ってある音声ファイルを選ぶ。選んだら確かめずにすぐ送信し、送信している間はファイルの送信中の行を出す。選んだファイルは端末内の音声に残さない（元が端末にあるため）
     label: ファイル送信
     io: 入力
     type: File
@@ -253,6 +253,32 @@ elements:
     description: その結果を端末から消す確認を開く。アイコンだけのボタンで、読み上げ名は「この結果を削除」
     visible_when: state が done のとき
     action_ref: dev/設計書/画面設計/常駐アプリ/取り消せない操作の確認.html#
+  - name: 送信中のファイル名
+    id: file_sending_name
+    kind: label
+    position: 音声送信 > ファイルの送信中
+    description: 選んで送っているファイルの名前と大きさ。操作のすぐ下に出し、録音開始ボタンとファイル送信ボタンが押せない理由をその場で読めるようにする。長い名前は 1 行で末尾を `…` で省く
+    io: 表示
+    visible_when: 選んだファイルを送信している間（202 か失敗を受けたら消す）
+    display_format: '`{ファイル名}・{大きさ}`（例 `interview-part2.m4a・38.4 MB`）'
+  - name: ファイルの送信の状態
+    id: file_sending_state
+    kind: label
+    position: 音声送信 > ファイルの送信中
+    description: 送ったバイト数の割合（role=status）。202 を受けたらこの行を消し、結果の一覧の先頭に待ちの件を出す。失敗したらこの行を消し、音声送信のエラーを出す
+    label: 送信中 {n}%
+    io: 表示
+    visible_when: 選んだファイルを送信している間
+  - name: ファイルの送信の進捗
+    id: file_sending_progress
+    kind: progress
+    position: 音声送信 > ファイルの送信中
+    description: 送ったバイト数の割合（XMLHttpRequest の upload の progress）。読み上げ名は「送信の進捗」
+    io: 表示
+    visible_when: 選んだファイルを送信している間
+    range:
+      min: '0'
+      max: '100'
 screen: src/voice_paste/server/web/index.html
 mock: dev/mock/pages/web-transcription/171/a-standard/
 lead: 外の端末のブラウザで開く 1 枚（`GET /web/`）。上に音声送信の区画、下に結果の一覧を 1 カラムで並べる。

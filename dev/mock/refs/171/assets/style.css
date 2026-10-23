@@ -1,0 +1,382 @@
+/* ===== PR 171 の画面モック: 外の端末のブラウザで開く文字起こしの画面（refs/37 の style.css に重ねる） ===== */
+
+/* 押す部品の高さ: 指で押す画面のため PC の窓の部品より高くする */
+:root {
+  --touch-h: 44px;
+}
+
+/* 画面の外枠: スマホ・iPad・PC の幅で同じ 1 カラムを中央に置く */
+.web-main {
+  max-width: 720px;
+  padding: 0 16px 32px;
+}
+
+/* モックのパンくず: 画面の上に小さく置く */
+.web-main > .crumb { margin: 12px 0 0; }
+
+/* 画面 1 枚: 頭・送る区画・結果の区画を縦に積む */
+.web {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ===== 画面の頭 ===== */
+
+/* 画面の頭: アプリ名と画面名を並べ、下の線で区切る */
+.web-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  h1 { margin: 0; font-size: 16px; font-weight: 600; }
+}
+
+/* 画面名 */
+.web-top__sub { color: var(--text-2); }
+
+/* ===== 区画 ===== */
+
+/* 区画: 1px の線で囲んだ面 */
+.web-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: var(--pad);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  h2 { margin: 0; font-size: 15px; font-weight: 600; }
+}
+
+/* 区画の見出しの行: 見出しと件数を両端に置く */
+.web-panel__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* 区画の見出しの横の件数・保存の期限 */
+.web-panel__meta {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* ===== ボタン ===== */
+
+/* 指で押すボタン: 高さを揃え、アイコンと文言を並べる */
+.btn--lg {
+  min-height: var(--touch-h);
+  padding: 6px 16px;
+  font-size: 15px;
+  svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+}
+
+/* 文言の横のアイコン */
+.btn svg.ico {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* 録音を始める印: 塗りの丸 */
+.btn svg .fill { fill: currentColor; stroke: none; }
+
+/* 幅いっぱいのボタン */
+.btn--block { width: 100%; }
+
+/* 押せないボタン: 薄くして押せないことを示す */
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ファイルを選ぶボタン: label の中の input にフォーカスが来たら枠を出す */
+label.btn:focus-within { outline: 2px solid var(--text); outline-offset: 2px; }
+
+/* ===== 送る区画 ===== */
+
+/* 録る・ファイルを選ぶの 2 つを同じ幅で並べる */
+.send-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* 録音とファイルの上限 */
+.send-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* 録音中の表示: 状態・経過・上限までのバー・止めるボタンを縦に積む */
+.recorder {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 状態と経過時間の行 */
+.recorder__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* 経過時間: 大きく等幅で出す */
+.recorder__time {
+  font-size: var(--time-size);
+  font-weight: var(--time-weight);
+  line-height: 1.2;
+}
+
+/* 上限と残り時間の行 */
+.recorder__meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* 残り時間が少ないとき: 一時停止中と同じ注意の色にする */
+.recorder__left--low { color: var(--paused); font-weight: 600; }
+
+/* ===== 知らせ ===== */
+
+/* 知らせの共通: 地の色と線で区切った文 */
+.web-notice, .web-error {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  p { margin: 0; }
+  svg { flex: none; width: 18px; height: 18px; margin-top: 1px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+}
+
+/* 上限で止まったなどの知らせ */
+.web-notice {
+  border: 1px solid var(--line);
+  background: var(--notice-bg);
+}
+
+/* 送れなかったなどのエラー */
+.web-error {
+  border: 1px solid var(--error);
+  background: var(--error-bg);
+  svg { color: var(--error); }
+}
+
+/* エラーの見出しの文 */
+.web-error__title { font-weight: 600; }
+
+/* ===== 残した音声 ===== */
+
+/* 残した音声の行: 上の線で区切り、中身と操作を並べる */
+.kept {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+/* 残した音声の中身: 名前・日時と長さ・状態を縦に積む */
+.kept__info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* 残した音声の名前 */
+.kept__label { font-weight: 600; }
+
+/* 日時・長さ・形式・大きさ */
+.kept__meta {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* 残した音声の状態: 印と文言を並べる */
+.kept__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+}
+
+/* 文字にできた音声 */
+.kept__state--ok { color: var(--ok); }
+
+/* 送れていない・文字にできなかった音声 */
+.kept__state--error { color: var(--error); font-weight: 600; }
+
+/* 送信中の音声 */
+.kept__state--busy { color: var(--busy); }
+
+/* 送信の進み具合 */
+.kept__progress { width: 100%; }
+
+/* 残した音声の操作を並べる */
+.kept__actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ===== 結果の一覧 ===== */
+
+/* 結果の一覧: 行の間を線で区切る */
+.results {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  > li + li { border-top: 1px solid var(--line); }
+}
+
+/* 結果 1 件: 頭・中身・操作を縦に積む */
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 0;
+  &:first-child { padding-top: 0; }
+  &:last-child { padding-bottom: 0; }
+}
+
+/* 結果の頭: 日時と元の音声を並べる */
+.result__head {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* 送った日時 */
+.result__time { flex: none; }
+
+/* 元の音声（画面で録音・ファイル名）: 長い名前は 1 行で省く */
+.result__src {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 起こした文字: 改行を保ち、長い語も折り返す */
+.result__text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 15px;
+}
+
+/* 待ち・失敗の状態の行 */
+.result__status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--busy);
+  font-weight: 600;
+  svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+}
+
+/* 進み具合の割合: 行の右端に置く */
+.result__pct { margin-left: auto; }
+
+/* 失敗・見つからないの状態 */
+.result__status--error { color: var(--error); }
+
+/* 失敗の理由と直し方 */
+.result__detail {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-2);
+  code { font-family: var(--font-mono); font-size: 12px; word-break: break-all; }
+}
+
+/* 結果の操作: コピーを左、消すを右に離す */
+.result__actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* 結果の操作のボタン: 指で押せる高さにする */
+.result__actions .btn { min-height: var(--touch-h); }
+
+/* アイコンだけの消すボタン: 指で押せる幅にする */
+.result__actions .btn--icon { width: var(--touch-h); }
+
+/* コピーした直後のボタン: 成功の色にする */
+.btn[data-copied="true"] { color: var(--ok); border-color: var(--ok); }
+
+/* 結果が無いとき */
+.results-empty {
+  margin: 0;
+  padding: 16px 0;
+  text-align: center;
+  color: var(--text-2);
+}
+
+/* ===== 確認のダイアログ ===== */
+
+/* 確認のダイアログ: 画面の中央に出し、狭い幅では左右に余白を残す */
+.web-dialog {
+  width: min(calc(100% - 32px), 420px);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  &::backdrop { background: rgb(31 35 40 / 0.45); }
+}
+
+/* ダイアログの文 */
+.web-dialog__main {
+  padding: var(--pad);
+  h2 { margin: 0 0 8px; font-size: 16px; font-weight: 600; }
+  p { margin: 0 0 8px; }
+  p:last-child { margin-bottom: 0; }
+}
+
+/* 消す結果の先頭の文: 2 行で省く */
+.web-dialog__quote {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  padding-left: 0;
+  color: var(--text-2);
+}
+
+/* ダイアログの操作の行: 右に寄せて並べる */
+.web-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px var(--pad);
+  border-top: 1px solid var(--line);
+  background: var(--sunken);
+  border-radius: 0 0 var(--radius) var(--radius);
+  .btn { min-height: var(--touch-h); }
+}
+
+/* ===== 狭い幅 ===== */
+
+/* スマホ幅: ダイアログの操作を同じ幅で並べる */
+@media (width < 480px) {
+  /* ダイアログの操作を 2 つ同じ幅にする */
+  .web-dialog__actions .btn { flex: 1; }
+}

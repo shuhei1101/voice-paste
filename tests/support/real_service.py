@@ -83,9 +83,10 @@ def read_log_records(data_dir: Path) -> list[dict[str, Any]]:
 
 
 def settings_text(api_port: int, extra_settings: str = "") -> str:
-    """テストの常駐アプリの settings.toml の中身（API のポートと、録音開始のホットキー。extra_settings は TOML の続き）。"""
+    """テストの常駐アプリの settings.toml の中身（API のポートと、画面を localhost で開く Origin、録音開始のホットキー。extra_settings は TOML の続き）。"""
     return (
-        f'[api]\nport = {api_port}\n\n[hotkeys]\nstart = "{UNUSED_START_HOTKEY}"\n\n{extra_settings}\n'
+        f'[api]\nport = {api_port}\nallowed_web_origins = ["http://localhost:{api_port}"]\n\n'
+        f'[hotkeys]\nstart = "{UNUSED_START_HOTKEY}"\n\n{extra_settings}\n'
     )
 
 

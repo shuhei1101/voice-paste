@@ -72,4 +72,4 @@ tests\unit\voice_paste\ui\windows\test_settings_window.py .............. [ 88%]
 tests\unit\voice_paste\ui\windows\test_transcribing_indicator.py ....... [ 93%]
 .............................................                            [100%]
 
-======================= 646 passed in 96.20s (0:01:36) ========================
+======================= 646 passed in 82.48s (0:01:22) ========================

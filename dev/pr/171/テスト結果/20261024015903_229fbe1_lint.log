@@ -21,3 +21,21 @@ feature の独立 KEPT
 
 Contracts: 4 kept, 0 broken.
 exit=0
+$ npm run typecheck
+
+> typecheck
+> tsc -p tsconfig.json --noEmit
+
+exit=0
+$ npm run lint
+
+> lint
+> eslint src/voice_paste/server/web
+
+exit=0
+$ npm run build && git diff --exit-code -- src/voice_paste/server/web/assets/app.js
+
+> build
+> tsc -p tsconfig.build.json
+
+exit=0

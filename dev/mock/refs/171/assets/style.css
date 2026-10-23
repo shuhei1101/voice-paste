@@ -30,7 +30,7 @@
   gap: 8px;
   padding: 12px 0;
   border-bottom: 1px solid var(--line);
-  h1 { margin: 0; font-size: 16px; font-weight: 600; }
+  h1 { margin: 0; font-size: 22px; font-weight: 600; }
 }
 
 /* 画面名 */
@@ -47,7 +47,7 @@
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  h2 { margin: 0; font-size: 15px; font-weight: 600; }
+  h2 { margin: 0; font-size: 18px; font-weight: 600; }
 }
 
 /* 区画の見出しの行: 見出しと件数を両端に置く */
@@ -98,8 +98,11 @@
   cursor: not-allowed;
 }
 
-/* ファイルを選ぶボタン: label の中の input にフォーカスが来たら枠を出す */
-label.btn:focus-within { outline: 2px solid var(--text); outline-offset: 2px; }
+/* ファイルを選ぶボタン: 見えない input の位置の基準にし、input にフォーカスが来たら枠を出す */
+label.btn {
+  position: relative;
+  &:focus-within { outline: 2px solid var(--text); outline-offset: 2px; }
+}
 
 /* ===== 送る区画 ===== */
 
@@ -346,7 +349,7 @@ label.btn:focus-within { outline: 2px solid var(--text); outline-offset: 2px; }
 /* ダイアログの文 */
 .web-dialog__main {
   padding: var(--pad);
-  h2 { margin: 0 0 8px; font-size: 16px; font-weight: 600; }
+  h2 { margin: 0 0 8px; font-size: 18px; font-weight: 600; }
   p { margin: 0 0 8px; }
   p:last-child { margin-bottom: 0; }
 }
@@ -374,6 +377,12 @@ label.btn:focus-within { outline: 2px solid var(--text); outline-offset: 2px; }
 }
 
 /* ===== 狭い幅 ===== */
+
+/* ごく狭い幅: 録る・ファイルを選ぶを縦に積む */
+@media (width < 360px) {
+  /* 2 つのボタンを 1 列にする */
+  .send-actions { grid-template-columns: 1fr; }
+}
 
 /* スマホ幅: ダイアログの操作を同じ幅で並べる */
 @media (width < 480px) {

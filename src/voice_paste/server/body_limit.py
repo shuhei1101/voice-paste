@@ -54,19 +54,34 @@ class BodyLimitMiddleware:
 
         # 3. 本文を読むたびに大きさを足し、上限以上になったら送出する包んだ receive を次へ渡す
         received = 0
+        exceeded = False
+        replied = False
 
         async def counting_receive() -> Message:
-            nonlocal received
+            nonlocal received, exceeded
             message = await receive()
             if message["type"] == "http.request":
                 received += len(message.get("body", b""))
                 # Content-Length の無い本文が、読んでいる途中で上限に達した
                 if received >= self._limit:
                     logger.warning(f"本文が大きすぎるため断った（{received} バイトで上限に達した）")
+                    exceeded = True
                     raise RequestBodyTooLargeError("本文が大きすぎます")
             return message
 
-        await self._app(scope, counting_receive, send)
+        async def guarded_send(message: Message) -> None:
+            nonlocal replied
+            # 上限に達する前は、次のアプリの応答をそのまま返す
+            if not exceeded:
+                await send(message)
+                return
+            # 上限に達した後: 次のアプリの応答（FastAPI が本文の解析の失敗として返す 400 など）は捨て、413 を 1 度だけ返す
+            if not replied:
+                replied = True
+                response = problem_response(HTTPStatus.REQUEST_ENTITY_TOO_LARGE, "本文が大きすぎます")
+                await response(scope, receive, send)
+
+        await self._app(scope, counting_receive, guarded_send)
 
     @staticmethod
     def _content_length(scope: Scope) -> int | None:

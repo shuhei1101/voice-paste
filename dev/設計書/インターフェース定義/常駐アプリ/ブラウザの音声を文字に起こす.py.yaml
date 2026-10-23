@@ -152,3 +152,4 @@ constraints:
   - item: 終了時
     constraint: 常駐サービスの終了時は、起こしている 1 件の終わりを待たずにスレッドを止め、待ちのジョブの一時のファイルを消す
     notes: 履歴へ移した音声は残る
+test_file: tests/integration/test_transcribe_web_audio.py

@@ -271,3 +271,4 @@ constraints:
   - item: レート制限
     constraint: 制限なし
     notes: 待ちの上限で足りる
+test_file: tests/integration/test_accept_web_audio.py

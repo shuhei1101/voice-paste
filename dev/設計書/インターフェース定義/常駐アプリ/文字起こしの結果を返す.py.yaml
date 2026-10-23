@@ -187,3 +187,4 @@ constraints:
   - item: 取りに来る間隔
     constraint: 制限なし
     notes: 画面は取りに来る間隔を画面設計で決める
+test_file: tests/integration/test_get_web_transcription.py

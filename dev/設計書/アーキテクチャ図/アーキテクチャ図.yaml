@@ -36,6 +36,13 @@ overview:
     - id: EP
       label: 設定の送り先のエンドポイント
       kind: external
+    - id: WEB
+      label: 外の端末のブラウザ（スマホ・iPad・外の PC）
+      shape: stadium
+      kind: actor
+    - id: GW
+      label: ゲートウェイ（shuhdev-gateway・Cloudflare Access）
+      kind: external
   edges:
     - from: U
       to: APP
@@ -67,6 +74,12 @@ overview:
     - from: APP
       to: EP
       label: 起こした文字（POST）
+    - from: WEB
+      to: GW
+      label: 画面・音声・結果の取得（HTTPS）
+    - from: GW
+      to: APP
+      label: /web/ の下（127.0.0.1・Origin の許可リスト）
   subgraphs:
     - id: SYS
       label: voice-paste
@@ -122,11 +135,25 @@ external_systems:
     notes:
       事前確認: 不要。届くかは送るたびに確かめ、届かなければトレイで知らせて常駐アプリを止めない。
     detail: dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送る.py#
+  - name: ゲートウェイ（shuhdev-gateway）
+    purpose: 外の端末のブラウザの要求を、Cloudflare Access で認証してから 127.0.0.1 の API の `/web/` の下へ中継する
+    direction: 双方向
+    protocol: HTTPS（外）→ HTTP（127.0.0.1。Host を `localhost:{ポート}` に書き換え、Origin はそのまま渡す）。常駐アプリは受けて応答を返すだけで、自分からは接続しない
+    detail: dev/設計書/インターフェース定義/常駐アプリ/音声を受け付ける.py#
+    cost: 無料（Cloudflare の無料プラン。本文は 100 MB まで・応答待ちは 83 秒まで）
+    refs:
+      - dev/設計書/非機能要件/非機能要件#requirements[ブラウザの要求の応答時間]
+      - dev/設計書/非機能要件/非機能要件#requirements[ブラウザの本文の上限]
+    notes:
+      事前確認: 常駐アプリはゲートウェイへ問い合わせない（受ける側のため）。公開の登録は反映作業『ゲートウェイへの登録』で行い、外の端末から `/web/` が画面を返すことで確かめる。
+    status: planned
+    introduced:
+      pr: 171
 constraints: |-
   - Windows で動かす（トレイ・ホットキー・クリップボード・キー入力・システムの音量を Windows の機能で扱う）
   - Windows のショートカットから起動できる（手段はバッチファイルに限らない）
   - ビルドせず、master のソースをそのまま動かす
   - Python で書く
-  - API は 127.0.0.1 だけで待ち受け、起動ごとのトークンで照合する
+  - API は 127.0.0.1 だけで待ち受ける。`/web/` の外は起動ごとのトークンで照合し、`/web/` の下はトークンを求めず Host と Origin の許可リストで通す（外からの認証はゲートウェイの Cloudflare Access が持つ）
   - ローカルの文字起こしは GPU（CUDA）で動かす
   - ユーザーは master のコードをビルドせずに普段使いしている（ショートカットは起動のバッチファイルから常駐アプリを起動する）

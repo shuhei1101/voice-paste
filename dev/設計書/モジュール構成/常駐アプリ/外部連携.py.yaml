@@ -862,8 +862,10 @@ functions:
       1. file の大きさを数えて頂へ戻す
       2. av.open で開き、音声のストリームが 1 つ以上あるかを確かめる
          - av.error.FFmpegError の場合、または音声のストリームが無い場合、AudioUnreadableError を送出する（理由には音声の中身を含めない）
-      3. 容れ物の形式の名前（`container.format.name` の先頭の名前）を拡張子の表で拡張子にする（表に無い形式は `.bin`）
-      4. 秒数を container.duration から求める（持たないときは None）
+      3. container.format.name を拡張子の表で拡張子にする（`matroska,webm` → `.webm`、`mov,mp4,m4a,3gp,3g2,mj2` → `.mp4`、`ogg` → `.ogg`、`mp3` → `.mp3`、`wav` → `.wav`。表に無い形式は `.bin`）
+      4. 秒数を求める
+         - container.duration があれば container.duration / av.time_base
+         - 無ければ（Edge の MediaRecorder の webm）、音声のストリームを demux し、pts と duration を持つパケットの (pts + duration) × time_base の最大を秒数にする（デコードはしない）。パケットからも求まらなければ None
       5. file を頂へ戻して AudioProbe を返す
     exceptions:
       - name: AudioUnreadableError
@@ -874,7 +876,7 @@ functions:
         summary: 録れた形式を読む
         condition: PoC で Edge が録った webm/opus（Cues 無し）・fragmented MP4（AAC）と、テストの中で書き出した WAV・ogg・MP3
         mock: なし（本物の PyAV）
-        expected: suffix がそれぞれ `.webm`・`.mp4`・`.wav`・`.ogg`・`.mp3` で、size_bytes がファイルの大きさ、file の位置が頂
+        expected: suffix がそれぞれ `.webm`・`.mp4`・`.wav`・`.ogg`・`.mp3` で、duration_sec がどれも元の音声の秒数と 0.2 秒以内（Cues の無い webm もパケットから求まる）、size_bytes がファイルの大きさ、file の位置が頂
       - name: test_probe_audio_when_unreadable
         case: 異常
         summary: 音声でない中身と音声の無い mp4 は断る

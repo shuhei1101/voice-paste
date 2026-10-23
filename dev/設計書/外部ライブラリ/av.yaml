@@ -75,6 +75,14 @@ catalogs:
           - name: '-'
             type: InputContainer（mode が "r"）/ OutputContainer（"w"）
             description: 開いたコンテナ
+      - name: container.streams.audio / container.format.name / container.duration / container.demux
+        kind: 属性・メソッド
+        purpose: ブラウザから受けた音声を開き、音声のストリームの有無・容れ物の形式・秒数を読む（probe_audio）。Edge の MediaRecorder の webm は container.duration が None のため、そのときは demux で音声のパケットを読み、最後の pts + duration に time_base を掛けて秒数にする（デコードはしない）
+        status: planned
+      - name: av.error.FFmpegError
+        kind: 例外
+        purpose: 開けない中身を見分ける（音声でない中身は子の InvalidDataError）。probe_audio が AudioUnreadableError に変える
+        status: planned
 lead: FFmpeg の Python バインディング（PyAV）。音声・動画のファイルやストリームを開いて、読み書きする。
 purl: pkg:pypi/av
 dependency_scope: 必須
@@ -84,8 +92,8 @@ used_in:
 upstream: PyAV-Org/PyAV
 verification:
   state: 済
-  date: '2026-10-05'
-  detail: Linux の使い捨ての venv で、faster-whisper 1.2.1 と av 18.1.0 の組が 1 秒の WAV を decode_audio で読めること（av.open が metadata_errors="ignore" を受け付けること）と、av 19.0.1 の組では TypeError になることを最小のコードで動かした
+  date: '2026-10-24'
+  detail: 'Linux の使い捨ての venv で、faster-whisper 1.2.1 と av 18.1.0 の組が 1 秒の WAV を decode_audio で読めること（av.open が metadata_errors="ignore" を受け付けること）と、av 19.0.1 の組では TypeError になることを最小のコードで動かした（2026-10-05）。PR #171 で、av 18.1.0 に PR #171 の PoC の音声（Edge が録った webm/opus・mp4/AAC、PyAV で書いた MP3・ogg。どれも約 11 秒）を BytesIO で渡し、format.name がそれぞれ `matroska,webm`・`mov,mp4,m4a,3gp,3g2,mj2`・`mp3`・`ogg` で音声のストリームが 1 つあること、container.duration は webm だけ None で、demux の最後のパケットから求めた秒数が 10.68〜10.98 秒で容れ物の秒数と 0.1 秒以内で合うこと、音声でない中身は InvalidDataError（FFmpegError の子）になることを確かめた（2026-10-24）'
 license: BSD-3-Clause（商用利用可）
 official_url: https://github.com/PyAV-Org/PyAV
 docs_url: https://pyav.basswood.io

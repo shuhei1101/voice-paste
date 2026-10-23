@@ -816,7 +816,7 @@ data_models:
         description: 一時のファイルと履歴に付ける拡張子（`.webm` など。container から決める）
       - name: duration_sec
         type: float | None
-        description: 音声の秒数。Cues の無い webm など容れ物が持たないときは None
+        description: 音声の秒数。容れ物が持たないとき（Cues の無い webm）は音声のパケットから求め、それでも求まらなければ None（ログでは秒数を省く）
       - name: size_bytes
         type: int
         description: 音声の大きさ

@@ -210,6 +210,10 @@ data_models:
         type: list[HintPresetSettings]
         default: '[]'
         description: 表記のヒント（文字起こしの手がかり）のプリセットの一覧。並びが設定画面の一覧と語をつなぐ順になる。キーが無い settings.toml は空の一覧として読む。名前の重なり（find_hint_preset_name_overlaps）と、有効な語をつないだ長さが HINT_MAX_BYTES を超える設定は検証で断る
+      - name: edge_phrases
+        type: list[EdgePhraseSettings]
+        default: DEFAULT_EDGE_PHRASES の写し
+        description: 文頭・文末から消す文言の一覧。並びが当てる順と設定画面の一覧の並びになる。キーが無い settings.toml は既定の一覧として読む（`default_factory`）。文言が空の行は `field_validator(mode="after")` で一覧から除く（各行の失敗の場所は、除く前の並びの番号のまま）
     refs:
       - dev/設計書/外部ライブラリ/pydantic#
       - dev/設計書/設定/常駐アプリ#
@@ -743,6 +747,56 @@ data_models:
         type: Sequence[str]
         description: 語の並び
     status: implemented
+  - name: EdgePhraseSettings
+    title: 文頭・文末から消す文言の設定
+    container: shared/settings.py
+    usecase: 録音を文字に起こす
+    role: 設定のモデル
+    summary: 文頭・文末から消す文言 1 行の文言と当てる位置
+    description: |-
+      `model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)`。
+      文言は前後の空白を除いて確かめる。`*` だけの文言は `PydanticCustomError`（type は EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE）にし、失敗の場所を `edge_phrases[{n}].text` にする。空の文言はこのモデルでは断らず、Settings が一覧から除く。
+    inherits: pydantic.BaseModel
+    properties:
+      - name: text
+        type: str
+        description: 消す文言（前後の空白を除く。`*` は任意の文字列）
+      - name: position
+        type: Literal["start", "end", "both"]
+        default: '"end"'
+        description: 当てる位置（文頭・文末・両方）
+    methods:
+      - name: _reject_wildcard_only
+        title: 文言の確かめ
+        summary: '`*` だけの文言を断る（`field_validator("text")` のクラスメソッド）'
+        kind: メソッド
+        scope: internal
+        args:
+          - name: text
+            type: str
+            required: true
+            passing: positional
+            description: 前後の空白を除いた文言
+        returns:
+          type: str
+          description: そのままの文言
+        unit_tests:
+          - name: test_edge_phrase_settings
+            case: 正常
+            summary: 文言と位置を読む
+            condition: text 「 ご視聴ありがとうございました 」・position 無し
+            mock: なし
+            expected: text が「ご視聴ありがとうございました」、position が end
+          - name: test_edge_phrase_settings_when_wildcard_only
+            case: 異常
+            summary: '`*` だけの文言を断る'
+            condition: Settings の edge_phrases の 2 件目の text が「 * 」
+            mock: なし
+            expected: ValidationError。失敗の type が EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE、場所が ("edge_phrases", 1, "text")
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[edge_phrases[].text]
+      - dev/設計書/設定/常駐アプリ#settings[edge_phrases[].position]
+    status: planned
 classes:
   - name: AppError
     title: アプリの例外
@@ -1463,6 +1517,20 @@ constants:
     summary: 有効なプリセットの語をつないだ手がかりの UTF-8 のバイト数の上限。faster-whisper が hotwords を先頭の 223 トークンに切ることから、頭に足す空白の 1 バイトを引いた値（導き方は PR の要件と外部ライブラリ『faster-whisper』）
     value: '222'
     status: implemented
+  - name: DEFAULT_EDGE_PHRASES
+    title: 既定の文頭・文末から消す文言
+    container: shared/settings.py
+    usecase: 録音を文字に起こす
+    summary: '`edge_phrases` のキーが無いときに使う一覧（出所は外部ライブラリ『faster-whisper』の不具合「話していない定型句が文末に入る」）'
+    value: (EdgePhraseSettings(text="チャンネル登録*"), EdgePhraseSettings(text="ご視聴ありがとうございました"), EdgePhraseSettings(text="ありがとうございました"))（位置は全て end）
+    status: planned
+  - name: EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE
+    title: '`*` だけの文言の失敗の種類'
+    container: shared/settings.py
+    usecase: 設定を変える
+    summary: 文言が `*` だけのときの PydanticCustomError の type。設定画面の to_field_message がエラーの文に変える
+    value: '"edge_phrase_wildcard_only"'
+    status: planned
 test_files:
   - tests/unit/voice_paste/shared/test_settings.py
   - tests/unit/voice_paste/shared/test_logger.py

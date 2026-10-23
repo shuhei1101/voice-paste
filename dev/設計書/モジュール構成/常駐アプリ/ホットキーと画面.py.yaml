@@ -21,7 +21,8 @@ directory: |-
       ├── settings_fields.py        # make_radio_group・selected_radio など設定画面の欄の部品
       ├── settings_presets.py       # PresetListPanel（設定画面の種類ごとのタブのプリセットの一覧）
       ├── settings_glossaries.py    # GlossaryPanel（設定画面の用語集の一覧と行の表）・find_glossary_row_errors
-      └── settings_hints.py         # HintPresetPanel（設定画面の表記のヒントの長さとプリセットの一覧）
+      ├── settings_hints.py         # HintPresetPanel（設定画面の表記のヒントの長さとプリセットの一覧）
+      └── settings_edge_phrases.py  # EdgePhrasePanel（設定画面のハルシネーションの文言の一覧）
   resources/tray/
   └── starting.png・idle.png・recording.png・transcribing.png・failed.png  # トレイのアイコン（状態ごと）
   ```
@@ -1129,7 +1130,7 @@ classes:
         scope: internal
         returns:
           type: dict[str, Any]
-          description: Settings.model_validate へ渡す値。presets はブラウザ添付のタブの並び → エンドポイントへ送るのタブの並びの順（各 PresetListPanel.collect をつなぐ）。glossaries は GlossaryPanel.collect、active_glossary は GlossaryPanel.active_name。hint_presets は HintPresetPanel.collect。glossary_path は置かない
+          description: Settings.model_validate へ渡す値。presets はブラウザ添付のタブの並び → エンドポイントへ送るのタブの並びの順（各 PresetListPanel.collect をつなぐ）。glossaries は GlossaryPanel.collect、active_glossary は GlossaryPanel.active_name。hint_presets は HintPresetPanel.collect。edge_phrases は EdgePhrasePanel.collect。glossary_path は置かない
       - name: save
         title: 保存
         summary: 欄の値を設定のモデルで確かめ、通れば書いて効かせ、窓を開いたまま保存した知らせを出す（restart のときだけ閉じる）。通らなければエラーを出す
@@ -1281,6 +1282,19 @@ classes:
             mock: UiDeps.save_settings（引数を控える）・list_glossaries・read_glossary
             expected: True。エラーの一覧が出ず、書き戻しの引数が 1 件目の場所を持ち、足した行が wrong="ご視聴ありがとうございました"・right=""
             exception: '-'
+          - name: test_save_when_edge_phrases
+            case: 正常
+            summary: 文言の一覧を並びのまま設定に入れ、空の行を捨てて書く
+            condition: edge_phrases が既定の設定で開き、「ハルシネーション」で行を 2 つ足して 1 つ目に「お疲れ様でした」（文頭）を入れ、2 つ目を空のままにして「お疲れ様でした」の行を先頭へ動かし、「ありがとうございました」の行を消して save(restart=False)
+            mock: UiDeps.save_settings
+            expected: True。save_settings に渡った Settings の edge_phrases が「お疲れ様でした」（start）・「チャンネル登録*」（end）・「ご視聴ありがとうございました」（end）の 3 件
+          - name: test_save_when_edge_phrase_wildcard_only
+            case: 異常
+            summary: '`*` だけの文言では保存せず、エラーを出す'
+            condition: 「ハルシネーション」の 2 行目の文言を「*」にして save(restart=False)
+            mock: UiDeps.save_settings
+            expected: 'False。save_settings が呼ばれず、エラーの一覧に「ハルシネーションの 2 行目の文言: * だけの文言は、文頭・文末の行を丸ごと消します。消したい文言を入れてください。」が出て、欄の値が「*」のまま'
+            exception: 確かめに通らない
       - name: reset_to_defaults
         title: 既定に戻す
         summary: confirm_reset で確かめ、戻すなら開いたときの設定と同じ設定のモデルの既定値（`type(開いたときの設定)()`）を書いて欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す
@@ -1336,6 +1350,11 @@ classes:
         収集では `hint_presets` に HintPresetPanel.collect を入れる。変えた欄の数えには、HintPresetPanel.change_values のキーごとの変更を 1 件として含める（反映は immediate）。足した・消した・名前か語か有効を変えたプリセット 1 つが 1 件（1 つのプリセットで何度変えても 1 件）、開いたとき・保存したときからあって今も残っているプリセットどうしの順が変わったら並べ替えが 1 件になる（足す・消すだけでは並べ替えに数えない）。
         エラーの一覧の表記のヒントの行は、失敗の場所 `hint_presets` を「有効なヒントの長さ」、`hint_presets[{n}].name` を「プリセット {n+1} 件目の名前」、`hint_presets[{n}].words[{m}]` を「プリセット {n+1} 件目の {m+1} つ目の語」にし、押すと「表記のヒント」のまとまりへ切り替えて HintPresetPanel.focus_field で欄へフォーカスを移す。長さの失敗は長さの行の下にも出す。
         既定に戻すと、表記のヒントのプリセットは空になる。
+      ハルシネーションのまとまり: |-
+        「用語集」の次のまとまり「ハルシネーション」に EdgePhrasePanel を 1 つ置き、開くときに設定の edge_phrases を EdgePhrasePanel.set_phrases に渡す。
+        収集では `edge_phrases` に EdgePhrasePanel.collect を入れる。変えた欄の数えには、EdgePhrasePanel.change_values のキーごとの変更を 1 件として含める（反映は immediate）。足した・消した・文言か位置を変えた行 1 つが 1 件、残っている行どうしの順が変わったら並べ替えが 1 件になる。
+        エラーの一覧の行は、失敗の場所 `edge_phrases[{n}].text` を「ハルシネーションの {n+1} 行目の文言」にし、押すと「ハルシネーション」のまとまりへ切り替えて EdgePhrasePanel.focus_field で欄へフォーカスを移す。to_field_message は EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE を「* だけの文言は、文頭・文末の行を丸ごと消します。消したい文言を入れてください。」にする。
+        既定に戻すと、文言の一覧は DEFAULT_EDGE_PHRASES に戻る。
   - name: PresetListPanel
     title: プリセットの一覧
     container: ui/windows/settings_presets.py
@@ -2062,6 +2081,140 @@ classes:
     status: implemented
     introduced:
       pr: 159
+  - name: EdgePhrasePanel
+    title: 文頭・文末から消す文言の一覧
+    container: ui/windows/settings_edge_phrases.py
+    usecase: 設定を変える
+    role: 画面の部品
+    summary: 設定画面の「ハルシネーション」のまとまりに置く、説明・文言の一覧・空の文・「行を足す」・凡例。行の足す・消す・並べ替えを受ける
+    description: |-
+      要素（説明・一覧・つまみ・文言・位置・消す・空の文・足す・凡例）と読み上げの名前は画面設計「設定画面」が持つ。
+      一覧は用語集の行の表と同じ表（`QTableWidget`）につまみ・文言・位置・消すの列を置き、行の入れ替えはつまみのドラッグ（`QAbstractItemView.InternalMove`）と、文言の欄の Alt+↑ / Alt+↓（move_phrase）で行う。動かしたら動かした行の文言の欄へフォーカスを移し、「{何行目か} 行目へ動かしました」を `QAccessible.updateAccessibility(QAccessibleAnnouncementEvent(...))` で読み上げに伝える。
+      位置の選択は「文頭」「文末」「両方」を出し、値を start / end / both にする。
+      足す・消す・並べ替えはこの部品の中だけを変え、settings.toml へは設定画面の保存で書く。
+      変えた欄の数えのため、行ごとに、開いたとき・保存したときの行を追う番号を持つ（HintPresetPanel と同じ番号の振り方）。単体テストは tests/unit/voice_paste/ui/windows/test_settings_edge_phrases.py に置く。
+    inherits: PySide6.QtWidgets.QWidget
+    properties:
+      - name: changed
+        type: Signal()
+        description: 足す・消す・並べ替え・欄の入力で値が変わった（設定画面が変えた欄の数えに使う）
+    methods:
+      - name: set_phrases
+        title: 一覧に入れる
+        summary: 渡した行で一覧を作り直す。空なら空の文を出す
+        kind: メソッド
+        scope: public
+        args:
+          - name: phrases
+            type: Sequence[EdgePhraseSettings]
+            required: true
+            passing: positional
+            description: 設定の edge_phrases
+        returns:
+          type: None
+          description: なし
+      - name: collect
+        title: 一覧の値の収集
+        summary: 今の並びの行を settings.toml と同じ形の dict（text・position）の並びにする。空の文言の行もそのまま入れる（設定のモデルが除くため、失敗の場所の番号が一覧の行とそろう）
+        kind: メソッド
+        scope: public
+        returns:
+          type: list[dict[str, str]]
+          description: edge_phrases の並び
+        unit_tests:
+          - name: test_edge_phrase_panel_collect
+            case: 正常
+            summary: 入れた行をそのまま集める
+            condition: 「チャンネル登録*」（end）と「えーと」（start）を set_phrases する
+            mock: なし（offscreen）
+            expected: 'collect が [{"text": "チャンネル登録*", "position": "end"}, {"text": "えーと", "position": "start"}] を返し、位置の選択の表示が「文末」「文頭」'
+      - name: add_phrase
+        title: 行を足す
+        summary: 末尾に文言が空で位置が end の行を足し、文言の欄へフォーカスを移して changed を emit する。「行を足す」が呼ぶ
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_edge_phrase_panel_add_phrase
+            case: 正常
+            summary: 足した行は文末で始まる
+            condition: 空の一覧で add_phrase を呼ぶ
+            mock: なし（offscreen）
+            expected: 'collect が [{"text": "", "position": "end"}] を返し、changed が 1 回 emit され、空の文が消える'
+      - name: move_phrase
+        title: 行を動かす
+        summary: 行を 1 つ上へか下へ動かし、動かした行の文言の欄へフォーカスを移して読み上げに伝え、changed を emit する。先頭を上へ・末尾を下へは何もしない。文言の欄の Alt+↑ / Alt+↓ が呼ぶ
+        kind: メソッド
+        scope: public
+        args:
+          - name: position
+            type: int
+            required: true
+            passing: positional
+            description: 動かす行（0 から）
+          - name: delta
+            type: Literal[-1, 1]
+            required: true
+            passing: positional
+            description: -1 は上へ、1 は下へ
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_edge_phrase_panel_move_phrase
+            case: 正常
+            summary: Alt+↑ で行を上へ動かし、フォーカスを動かした行に残す
+            condition: A・B の 2 行で、B の文言の欄に Alt+↑ を送る
+            mock: QAccessible.updateAccessibility（渡したイベントを控える）
+            expected: collect の文言が B・A の順。フォーカスが 1 行目の文言の欄にあり、読み上げの文が「1 行目へ動かしました」
+          - name: test_edge_phrase_panel_move_phrase_when_edge
+            case: 正常
+            summary: 先頭を上へ・末尾を下へは何もしない
+            condition: A・B の 2 行で、move_phrase(0, -1) と move_phrase(1, 1) を呼ぶ
+            mock: なし（offscreen）
+            expected: collect の文言が A・B のままで、changed が emit されない
+      - name: focus_field
+        title: 欄へフォーカスを移す
+        summary: 失敗の場所で行の文言の欄を探し、フォーカスを移す（エラーの一覧の行を押したとき）
+        kind: メソッド
+        scope: public
+        args:
+          - name: location
+            type: tuple[int | str, ...]
+            required: true
+            passing: positional
+            description: edge_phrases より後ろの失敗の場所（例 (1, "text")）
+        returns:
+          type: None
+          description: なし
+      - name: change_values
+        title: 変えた件数を数える値
+        summary: 変えた欄の数えに使う値を、行 1 つ = 1 キーと、並べ替えの 1 キーで返す
+        kind: メソッド
+        scope: public
+        returns:
+          type: dict[str, object]
+          description: '`edge_phrases[{番号}]` → （文言, 位置）、`edge_phrases.order` → 開いたとき・保存したときからあって今も残っている行が、番号の小さい順に並んでいるか'
+        unit_tests:
+          - name: test_edge_phrase_panel_change_values_when_moved
+            case: 正常
+            summary: 並べ替えると行の値は変わらず、並びの値だけが変わる
+            condition: A・B・C の 3 行を set_phrases し、move_phrase(0, 1) を呼ぶ
+            mock: なし（offscreen）
+            expected: edge_phrases[0]・[1]・[2] が並べ替える前と同じ値で、edge_phrases.order が False
+      - name: mark_saved
+        title: 保存した行を基準にする
+        summary: 今の並びの順に行の番号を 0 から振り直す。SettingsWindow.save が書けた後に呼ぶ
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/設定画面.py#elements[文言の一覧]
+    status: planned
 functions:
   - name: notify
     title: ユーザーへの知らせ

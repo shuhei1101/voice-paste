@@ -3095,3 +3095,4 @@ test_files:
   - tests/unit/voice_paste/ui/windows/test_settings_presets.py
   - tests/unit/voice_paste/ui/windows/test_settings_glossaries.py
   - tests/unit/voice_paste/ui/windows/test_settings_hints.py
+  - tests/unit/voice_paste/ui/windows/test_settings_edge_phrases.py

@@ -9,7 +9,7 @@
 [Issue #92](https://github.com/shuhei1101/voice-paste/issues/92) の要望。
 外の端末から voice-paste の文字起こしだけを一時的に使いたい。
 今の API（`127.0.0.1:47823`）は同じ端末のほかのプロセス向けで、Origin が付いた要求（ブラウザからの要求）を全て断り、起動ごとのトークンを求めるため、外の端末のブラウザからは使えない。
-外からはゲートウェイ（shuhdev-gateway、Cloudflare Access）か tailscale serve を通して届け、ゲートウェイ側の Content-Length の不具合は [shuhei1101/shuhdev-gateway#9](https://github.com/shuhei1101/shuhdev-gateway/issues/9) で直っている。
+外からはゲートウェイ（shuhdev-gateway、Cloudflare Access）を通して届け、ゲートウェイ側の Content-Length の不具合は [shuhei1101/shuhdev-gateway#9](https://github.com/shuhei1101/shuhdev-gateway/issues/9) で直っている。
 
 ## 計画書
 
@@ -17,14 +17,15 @@
 | --- | --- |
 | [要件](./要件.md) | 要望の整理と影響する UC 一覧 |
 | [常駐アプリ](./常駐アプリ.md) | 常駐アプリの計画書 |
-| [反映作業](./反映作業/index.yaml) | 許す Origin の設定・tailscale serve での公開・ゲートウェイへの登録 |
+| [反映作業](./反映作業/index.yaml) | 許す Origin の設定・ゲートウェイへの登録 |
+| [確認ログ](./確認ログ.md) | ユーザーへの確認事項の決着 |
 
 ## タスク一覧
 
 - [x] ~~初期構築~~（既存リポジトリのため対象外）
 - [x] ~~リバースエンジニアリング~~（現状設計書が揃っている）
 - [x] ~~方針決め~~（方針決めを依頼する Issue ではない）
-- [ ] PoC 検証
+- [x] PoC 検証
 - [ ] 複合ユースケース設計
 - [x] ~~デザインスタイル選定~~（デザイン方針があり、ブラウザの画面も開発者ツールのスタイルで作るため見た目の方向を変えない）
 - [ ] 画面一覧・画面遷移

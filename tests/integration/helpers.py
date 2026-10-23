@@ -338,9 +338,12 @@ class Stack:
         content_type: str = "audio/webm",
         headers: dict[str, str] | None = None,
         field_name: str = "audio",
+        origin: str | None = WEB_ORIGIN,
     ) -> httpx.Response:
-        """ゲートウェイを通した形（Host は localhost:{ポート}、許す Origin つき、トークン無し）で、音声を multipart で POST /web/transcriptions へ送る。"""
-        merged = {"Host": f"localhost:{self.port}", "Origin": WEB_ORIGIN}
+        """ゲートウェイを通した形（Host は localhost:{ポート}、許す Origin つき、トークン無し）で、音声を multipart で POST /web/transcriptions へ送る。origin が None なら Origin を付けない。"""
+        merged = {"Host": f"localhost:{self.port}"}
+        if origin is not None:
+            merged["Origin"] = origin
         merged.update(headers or {})
         return self.http.post(
             "/web/transcriptions",
@@ -429,6 +432,46 @@ class Stack:
     def wait_for_received(self, count: int) -> bool:
         """返送先に count 件届くまで待ち、届いたかを返す。"""
         return wait_until(lambda: len(self.receiver.received) >= count)
+
+
+def make_audio(kind: str, tmp_path: Path) -> bytes:
+    """kind（webm・mp4・video_only_mp4）の短い音声のバイト列を、PyAV で書き出して返す。"""
+    import av
+
+    path = tmp_path / f"audio_{kind}"
+    if kind == "video_only_mp4":
+        # 音声のストリームを持たない、映像だけの mp4
+        with av.open(str(path), "w", format="mp4") as out:
+            stream = out.add_stream("mpeg4", rate=10)
+            stream.width = 64
+            stream.height = 64
+            stream.pix_fmt = "yuv420p"
+            for _ in range(10):
+                frame = av.VideoFrame.from_ndarray(np.zeros((64, 64, 3), dtype=np.uint8), format="rgb24")
+                out.mux(stream.encode(frame))
+            out.mux(stream.encode(None))
+        return path.read_bytes()
+
+    container, codec, rate, options = {
+        "webm": ("webm", "libopus", 48000, {}),
+        "mp4": ("mp4", "aac", 44100, {"movflags": "frag_keyframe+empty_moov+default_base_moof"}),
+    }[kind]
+    wav = tmp_path / "source.wav"
+    from scipy.io import wavfile
+
+    t = np.arange(SAMPLE_RATE) / SAMPLE_RATE
+    wavfile.write(wav, SAMPLE_RATE, (np.sin(2 * np.pi * 440 * t) * 10000).astype(np.int16))
+    with av.open(str(wav)) as src, av.open(str(path), "w", format=container, options=options) as dst:
+        stream = dst.add_stream(codec, rate=rate)
+        stream.layout = "mono"
+        resampler = av.AudioResampler(format=stream.format, layout="mono", rate=stream.rate)
+        for frame in src.decode(audio=0):
+            for resampled in resampler.resample(frame):
+                dst.mux(stream.encode(resampled))
+        for resampled in resampler.resample(None):
+            dst.mux(stream.encode(resampled))
+        dst.mux(stream.encode(None))
+    return path.read_bytes()
 
 
 def wait_until(condition: Callable[[], bool], timeout_sec: float = WAIT_SEC) -> bool:

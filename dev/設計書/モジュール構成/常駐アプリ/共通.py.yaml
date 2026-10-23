@@ -1531,6 +1531,20 @@ constants:
     summary: 文言が `*` だけのときの PydanticCustomError の type。設定画面の to_field_message がエラーの文に変える
     value: '"edge_phrase_wildcard_only"'
     status: implemented
+  - name: EDGE_PHRASE_WILDCARD
+    title: 文言の任意の文字列を表す文字
+    container: shared/settings.py
+    usecase: 録音を文字に起こす
+    summary: 文頭・文末から消す文言で、0 文字以上の任意の文字列を表す文字（EdgePhraseSettings の確かめと strip_edge_phrases が使う）
+    value: '"*"'
+    status: implemented
+  - name: EDGE_PHRASES_FIELD_NAME
+    title: 文頭・文末から消す文言の一覧のキー
+    container: shared/settings.py
+    usecase: 設定を変える
+    summary: settings.toml のキー `edge_phrases`。設定画面がまとまりの欄と失敗の場所を引くのに使う
+    value: '"edge_phrases"'
+    status: implemented
 test_files:
   - tests/unit/voice_paste/shared/test_settings.py
   - tests/unit/voice_paste/shared/test_logger.py

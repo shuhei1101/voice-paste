@@ -2089,7 +2089,7 @@ classes:
     summary: 設定画面の「ハルシネーション」のまとまりに置く、説明・文言の一覧・空の文・「行を足す」・凡例。行の足す・消す・並べ替えを受ける
     description: |-
       要素（説明・一覧・つまみ・文言・位置・消す・空の文・足す・凡例）と読み上げの名前は画面設計「設定画面」が持つ。
-      一覧は用語集の行の表と同じ表（`QTableWidget`）につまみ・文言・位置・消すの列を置き、行の入れ替えはつまみのドラッグ（`QAbstractItemView.InternalMove`）と、文言の欄の Alt+↑ / Alt+↓（move_phrase）で行う。動かしたら動かした行の文言の欄へフォーカスを移し、「{何行目か} 行目へ動かしました」を `QAccessible.updateAccessibility(QAccessibleAnnouncementEvent(...))` で読み上げに伝える。
+      一覧は、用語集・表記のヒントの部品と同じく行ごとの部品（つまみ・文言の欄・位置の選択・消すボタンと欄の下のエラーの文）を縦に並べる。行の入れ替えは、つまみ（自前の部品。離した縦の位置より上に中心がある他の行の数を移し先にする）と、文言の欄の Alt+↑ / Alt+↓（move_phrase）で行う。部品の幅が NARROW_WIDTH_PX より狭いときは、1 行を 2 段（上に文言の欄、下に位置と消すボタン）に組む。行の部品の objectName の末尾の `{n}` は一覧の並びの 0 からの番号で、行を動かすたびに付け直す。動かしたら動かした行の文言の欄へフォーカスを移し、「{何行目か} 行目へ動かしました」を `QAccessible.updateAccessibility(QAccessibleAnnouncementEvent(...))` で読み上げに伝える。
       位置の選択は「文頭」「文末」「両方」を出し、値を start / end / both にする。
       足す・消す・並べ替えはこの部品の中だけを変え、settings.toml へは設定画面の保存で書く。
       変えた欄の数えのため、行ごとに、開いたとき・保存したときの行を追う番号を持つ（HintPresetPanel と同じ番号の振り方）。単体テストは tests/unit/voice_paste/ui/windows/test_settings_edge_phrases.py に置く。

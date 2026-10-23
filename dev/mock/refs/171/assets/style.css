@@ -392,12 +392,18 @@ label.btn {
 
 /* ===== ファイル送信中 ===== */
 
-/* 押せないファイル送信ボタン: 押せないボタンと同じく薄くする */
-label.btn[aria-disabled="true"] {
-  opacity: 0.55;
+/* 送信中で押せない録音開始・ファイル送信: 半透明にせず、地を沈めて文字を補足の色にする（文字のコントラストを保つ） */
+.send-actions .btn:disabled,
+.send-actions label.btn[aria-disabled="true"] {
+  opacity: 1;
+  border-color: var(--line);
+  background: var(--sunken);
+  color: var(--text-2);
   cursor: not-allowed;
-  pointer-events: none;
 }
+
+/* 押せないファイル送信ボタン: 中の input へ押下を通さない */
+label.btn[aria-disabled="true"] { pointer-events: none; }
 
 /* 送信中のファイルの行: 名前と状態の行・進捗のバーを縦に積む */
 .file-sending {

@@ -1,0 +1,3 @@
+{"label": "page", "method": "GET", "path": "/probe", "host": "localhost:47901", "origin": null, "x-forwarded-host": null, "x-forwarded-for": null, "x-forwarded-proto": null, "sec-fetch-site": null}
+{"label": "fetch_get", "method": "GET", "path": "/probe/get", "host": "localhost:47901", "origin": null, "x-forwarded-host": null, "x-forwarded-for": null, "x-forwarded-proto": null, "sec-fetch-site": "same-origin"}
+{"label": "fetch_post", "method": "POST", "path": "/probe/post", "host": "localhost:47901", "origin": "https://poc-voice-paste.shuhdev.com", "x-forwarded-host": null, "x-forwarded-for": null, "x-forwarded-proto": null, "sec-fetch-site": "same-origin"}

@@ -48,7 +48,7 @@ where = ["src"]
 include = ["voice_paste*"]
 
 [tool.setuptools.package-data]
-voice_paste = ["server/web/**/*"]
+voice_paste = ["server/web/index.html", "server/web/assets/*.js", "server/web/assets/*.css"]
 
 [tool.importlinter]
 root_package = "voice_paste"

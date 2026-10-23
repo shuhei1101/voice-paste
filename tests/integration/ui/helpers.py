@@ -15,7 +15,18 @@ from typing import TYPE_CHECKING, TypeVar
 from PySide6.QtCore import QEvent, QPoint, QRect, QSize, Qt, QTimer
 from PySide6.QtGui import QColor, QFontMetrics, QImage
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QDialog, QLabel, QMessageBox, QPushButton, QWidget
+from PySide6.QtWidgets import (
+    QAbstractButton,
+    QApplication,
+    QCheckBox,
+    QDialog,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QStyle,
+    QStyleOptionButton,
+    QWidget,
+)
 
 from tests.unit.voice_paste.ui.helpers import FakeClock, make_session, make_ui_deps
 
@@ -322,3 +333,87 @@ def no_modal() -> Iterator[None]:
     finally:
         timer.stop()
     assert not seen, "出てはいけないダイアログが出た"
+
+
+COLOR_TOLERANCE = 6
+"""同じ色とみなす、赤・緑・青のそれぞれの差の上限（縁のなだらかな混ざりを許す）。"""
+
+HALF_ALPHA = 128
+"""縁の画素のうち、色を比べる不透明度の下限（これ未満は背景の透明が混ざりすぎる）。"""
+
+OPAQUE_ALPHA = 255
+"""完全に塗られた画素の不透明度。"""
+
+
+def color_distance(color: QColor, hex_color: str) -> int:
+    """2 色の、赤・緑・青のそれぞれの差の最大を返す。"""
+    other = QColor(hex_color)
+    return max(
+        abs(color.red() - other.red()),
+        abs(color.green() - other.green()),
+        abs(color.blue() - other.blue()),
+    )
+
+
+def pixel_colors(image: QImage) -> list[QColor]:
+    """画像の全ての画素の色を返す。"""
+    return [image.pixelColor(x, y) for x in range(image.width()) for y in range(image.height())]
+
+
+def count_near(image: QImage, hex_color: str) -> int:
+    """画像のうち、半分以上が塗られた画素で、色が hex_color に近いものの数を返す。"""
+    return sum(
+        1
+        for color in pixel_colors(image)
+        if color.alpha() >= HALF_ALPHA and color_distance(color, hex_color) <= COLOR_TOLERANCE
+    )
+
+
+def count_closer(image: QImage, hex_color: str, other_hex_color: str) -> int:
+    """画像のうち、完全に塗られた画素で、other_hex_color より hex_color に近いものの数を返す。"""
+    return sum(
+        1
+        for color in pixel_colors(image)
+        if color.alpha() == OPAQUE_ALPHA
+        and color_distance(color, hex_color) < color_distance(color, other_hex_color)
+    )
+
+
+def crop_logical(image: QImage, rect: QRect) -> QImage:
+    """論理ピクセルの範囲を、画像の拡大率に合わせて切り出す。"""
+    scale = image.devicePixelRatio()
+    return image.copy(
+        QRect(
+            round(rect.x() * scale),
+            round(rect.y() * scale),
+            round(rect.width() * scale),
+            round(rect.height() * scale),
+        )
+    )
+
+
+def indicator_image(button: QAbstractButton) -> QImage:
+    """チェックボックス・ラジオボタンを描いた画像から、印（箱・丸）の範囲だけを切り出す。"""
+    element = (
+        QStyle.SubElement.SE_CheckBoxIndicator
+        if isinstance(button, QCheckBox)
+        else QStyle.SubElement.SE_RadioButtonIndicator
+    )
+    option = QStyleOptionButton()
+    option.initFrom(button)
+    rect = button.style().subElementRect(element, option, button)
+    return crop_logical(button.grab().toImage(), rect)
+
+
+def srgb_luminance(hex_color: str) -> float:
+    """色の相対輝度（WCAG 2.1）を返す。"""
+    color = QColor(hex_color)
+    channels = [color.redF(), color.greenF(), color.blueF()]
+    linear = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+
+def contrast_ratio(hex_color: str, other_hex_color: str) -> float:
+    """2 色のコントラスト比（WCAG 2.1。1〜21）を返す。"""
+    lighter, darker = sorted((srgb_luminance(hex_color), srgb_luminance(other_hex_color)), reverse=True)
+    return (lighter + 0.05) / (darker + 0.05)

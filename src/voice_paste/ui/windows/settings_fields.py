@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 )
 
 from voice_paste.shared.settings import RELOAD_IMMEDIATE, Settings
+from voice_paste.ui.style import load_tokens
 
 KEY_TOKEN_PATTERN: re.Pattern[str] = re.compile(r"\[(\d+)\]|([^.\[\]]+)")
 """設定のキー（`outputs[0].enter_delay_sec`）を、添字と名前に分ける。"""
@@ -194,6 +195,8 @@ def make_radio_group(
     container = QWidget()
     layout = QHBoxLayout(container)
     layout.setContentsMargins(0, 0, 0, 0)
+    # 選択肢の間は、印と名前の間より広くして、丸がどの名前の印かを距離で分ける
+    layout.setSpacing(int(load_tokens()["shape"]["choice_gap"]))
     group = QButtonGroup(container)
     for choice in choices:
         button = QRadioButton((labels or {}).get(choice, choice))

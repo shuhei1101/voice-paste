@@ -67,13 +67,13 @@ def system_move(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
 
 
 @pytest.fixture
-def apply_theme_to_app(qapp: QApplication) -> Iterator[Callable[[str], None]]:
+def apply_theme_to_app(qapp: QApplication, tmp_path: Path) -> Iterator[Callable[[str], None]]:
     """ui.theme を QApplication に当てる関数を返す。テストの後にスタイルシートと Qt の明暗の上書きを外す。"""
     from voice_paste.ui.style import apply_theme
 
     def _apply(theme: str) -> None:
         """ui.theme の値で明暗を当てる。"""
-        apply_theme(qapp, theme)
+        apply_theme(qapp, theme, image_dir=tmp_path / "ui")
 
     yield _apply
     qapp.setStyleSheet("")

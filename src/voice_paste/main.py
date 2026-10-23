@@ -645,9 +645,11 @@ def build_ui_deps(
     )
 
 
-def _apply_current_theme(app: QApplication, get_settings: Callable[[], Settings]) -> None:
+def _apply_current_theme(
+    app: QApplication, get_settings: Callable[[], Settings], *, image_dir: Path
+) -> None:
     """今の設定の ui.theme で画面の明暗を当て直す。"""
-    apply_theme(app, get_settings().ui.theme)
+    apply_theme(app, get_settings().ui.theme, image_dir=image_dir)
 
 
 def _watch_system_theme(app: QApplication, reapply: Callable[[], None]) -> None:
@@ -692,7 +694,7 @@ def _build_idle_ui_deps(
         suspend_hotkeys=do_nothing,
         resume_hotkeys=do_nothing,
         output_titles=_output_titles(),
-        apply_theme=partial(_apply_current_theme, app, store.get),
+        apply_theme=partial(_apply_current_theme, app, store.get, image_dir=paths.ui_image_dir),
         list_glossaries=lambda: resolve_glossaries(store.get(), paths.settings_file.parent),
         read_glossary=read_glossary_rows,
         new_glossary_path=partial(
@@ -821,7 +823,7 @@ def _run_service(
     )
     bridge = UiBridge()
     tray = Tray(paths.settings_file.parent, paths.log_dir)
-    apply_theme(app, "system")
+    apply_theme(app, "system", image_dir=paths.ui_image_dir)
     tray.set_state(TrayState.STARTING, busy=False)
     wake_timer = _install_signal_handlers(app)
     exit_request = _ExitRequest(app)
@@ -865,7 +867,7 @@ def _start_services(
         return
 
     # 6. 設定の ui.theme で画面の明暗を当て直し、ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を消す（処理中のセッションは無いため、一時の音声も全て消す対象にする）
-    apply_theme(app, settings.ui.theme)
+    apply_theme(app, settings.ui.theme, image_dir=paths.ui_image_dir)
     logging.getLogger().setLevel(settings.logging.level)
     purge_old_files(settings, paths=paths, active_session_ids=set)
     enabled_outputs = [output.id for output in settings.outputs if output.enabled]
@@ -907,7 +909,12 @@ def _start_services(
         exit_request.request_quit,
         hotkey_listener,
         show_recording_window,
-        partial(_apply_current_theme, app, handlers.settings_store.get),
+        partial(
+            _apply_current_theme,
+            app,
+            handlers.settings_store.get,
+            image_dir=paths.ui_image_dir,
+        ),
     )
     _watch_system_theme(app, deps.apply_theme)
     running.controller = _build_controller(bridge, tray, deps)

@@ -28,6 +28,8 @@ from voice_paste.main import SETTINGS_MODEL
 from voice_paste.ui.style import build_stylesheet, is_dark_theme
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from PySide6.QtWidgets import QApplication
 
     from voice_paste.shared.settings import Settings
@@ -56,10 +58,10 @@ def _settings(**groups: object) -> Settings:
 
 
 @pytest.fixture
-def styled(qapp: QApplication) -> Iterator[None]:
+def styled(qapp: QApplication, tmp_path: Path) -> Iterator[None]:
     """アプリのスタイルシート（tokens.toml から作る QSS）を当てる。ホットキーのキーの枠・余白の分も大きさに数えて確かめるため。"""
     before = qapp.styleSheet()
-    qapp.setStyleSheet(build_stylesheet(is_dark_theme()))
+    qapp.setStyleSheet(build_stylesheet(is_dark_theme(), image_dir=tmp_path))
     yield
     qapp.setStyleSheet(before)
 

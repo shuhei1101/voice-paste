@@ -832,6 +832,20 @@ def test_make_radio_group_when_no_labels(qapp: QApplication) -> None:
     assert [button.isChecked() for button in buttons] == [True, False]
 
 
+def test_make_radio_group_when_spacing(qapp: QApplication) -> None:
+    """選択肢の間を choice_gap だけ空ける（正常系）。"""
+    from voice_paste.ui.style import load_tokens
+    from voice_paste.ui.windows.settings_fields import make_radio_group
+
+    # 実行
+    group = make_radio_group(("cuda", "cpu"), "cuda")
+
+    # 検証
+    layout = group.layout()
+    assert layout is not None
+    assert layout.spacing() == load_tokens()["shape"]["choice_gap"]
+
+
 # === selected_radio ===
 
 

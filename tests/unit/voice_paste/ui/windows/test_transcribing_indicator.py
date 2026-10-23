@@ -347,13 +347,15 @@ BADGE_RIM_PX = 1
 
 
 @pytest.fixture
-def light_app(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> Iterator[QApplication]:
+def light_app(
+    qapp: QApplication, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> Iterator[QApplication]:
     """明るい組のスタイルシートを当てた QApplication を返し、テストの後にスタイルシートと Qt の明暗の上書きを外す。"""
     from voice_paste.ui.style import apply_theme
 
     monkeypatch.setattr("voice_paste.ui.style._current_dark", None, raising=False)
     monkeypatch.setattr("voice_paste.ui.style.is_dark_theme", MagicMock(return_value=False))
-    apply_theme(qapp, "light")
+    apply_theme(qapp, "light", image_dir=tmp_path)
     yield qapp
     qapp.setStyleSheet("")
     qapp.styleHints().unsetColorScheme()

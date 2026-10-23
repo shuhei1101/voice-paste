@@ -25,6 +25,18 @@ catalogs:
       - name: exception_handler / RequestValidationError
         kind: 関数
         purpose: 例外を RFC 9457 の応答に変える。入力の検証の失敗を既定の 422 でなく 400 にする
+      - name: UploadFile
+        kind: クラス
+        purpose: '`POST /web/transcriptions` の multipart の `audio` を受ける（解析は python-multipart）'
+        status: planned
+      - name: StaticFiles / FastAPI.mount
+        kind: クラス
+        purpose: '`/web/assets/` に外の端末の画面の JS・CSS を返す。置き場所の外を指す `..` と無いファイルは 404 にする'
+        status: planned
+      - name: FileResponse
+        kind: クラス
+        purpose: '`GET /web/` で画面の HTML を `Cache-Control: no-cache` で返す'
+        status: planned
 lead: 型ヒントと pydantic で入出力を検証し、OpenAPI を出す Python の Web API フレームワーク。
 purl: pkg:pypi/fastapi
 dependency_scope: 必須
@@ -37,7 +49,7 @@ used_in:
 upstream: fastapi/fastapi
 verification:
   state: 済
-  date: '2026-10-01'
-  detail: WSL（Linux・Python 3.12）の一時の仮想環境で、POST /sessions に当たる最小の app を uvicorn で動かした。トークンの一致で 202・不一致で 401、Origin 付きとほかの Host で 403、URI でない callback_url で既定の 422 が返ることを確かめた。Windows の実機では未確認
+  date: '2026-10-24'
+  detail: 'WSL（Linux・Python 3.12）の一時の仮想環境で、POST /sessions に当たる最小の app を uvicorn で動かした。トークンの一致で 202・不一致で 401、Origin 付きとほかの Host で 403、URI でない callback_url で既定の 422 が返ることを確かめた（2026-10-01）。PR #171 で、fastapi 0.142.4・python-multipart 0.0.32 の最小の app を TestClient で動かし、`UploadFile` で 1,000 バイトを受け取れること、`/web/assets` に mount した StaticFiles が app.js を 200・`text/javascript` で返し、無いファイルと `..%2F..%2F` で置き場所の外を指すパスを 404 にすることを確かめた（2026-10-24）。Windows の実機では未確認'
 license: MIT（商用利用可）
 official_url: https://fastapi.tiangolo.com/

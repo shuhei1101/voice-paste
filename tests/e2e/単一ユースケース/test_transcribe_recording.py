@@ -18,7 +18,9 @@ API から始める録音の返送先は、テストが 127.0.0.1 に立てる�
 from __future__ import annotations
 
 import json
+import logging
 import os
+import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -41,22 +43,29 @@ from tests.support.continuous import (
 )
 from tests.support.hotwords_probe_worker import PROBE_FILE_ENV
 from tests.support.inprocess import (
+    PROCESSED_TIMEOUT_SEC,
+    SPEECH_TEXT,
     SPEECH_WORD,
     WORKER_READY_LOG,
     WORKER_READY_TIMEOUT_SEC,
+    InProcessApi,
     InProcessApp,
     KeyLog,
     break_saved_recordings,
+    encode_audio,
     fail_transcription_of_segment,
     kill_one_worker,
     make_settings,
     silence_input,
     speech_input,
     speech_sequence_input,
+    stub_transcription,
+    synthesize_speech,
 )
 from tests.support.real_service import REPO_ROOT, SOURCE_DIR
 from tests.support.resident_app import IDLE, ResidentApp
 from voice_paste.integrations.whisper.client import WhisperWorkerClient
+from voice_paste.shared.errors import TranscriptionError
 from voice_paste.shared.settings import HintPresetSettings
 
 pytestmark = pytest.mark.real_machine
@@ -563,3 +572,103 @@ def test_error_when_segment_transcription_failed(
         )
 
     run_app(case, wav_input=wav_input, keys=KeyLog())
+
+
+BROWSER_GLOSSARY_FILE_NAME = "yogo.csv"
+"""設定のフォルダに置く、今までの用語集の CSV の名前（設定で用語集を選んでいないときに使われる）。"""
+
+BROWSER_AUDIO_FAILURE_TEXT = "ブラウザの音声の文字起こしに失敗させた"
+"""差し替えた文字起こしが送出する例外のメッセージ。"""
+
+NEXT_TEXT = "つぎの音声の文です"
+"""失敗の後、エンジンを戻して続けて送った音声が返す文。"""
+
+JOB_POLL_SEC = 0.05
+"""ジョブの状態を取りに行く間隔。"""
+
+
+def _poll_job_until_finished(api: InProcessApi, job_id: str) -> tuple[dict[str, Any], list[float]]:
+    """ジョブが終わる（done か failed）まで取りに行き、最後の本文と、取るたびの progress を返す。"""
+    progresses: list[float] = []
+    deadline = time.monotonic() + PROCESSED_TIMEOUT_SEC
+    body = api.get_job(job_id).json()
+    progresses.append(body["progress"])
+    while body["state"] not in ("done", "failed") and time.monotonic() < deadline:
+        time.sleep(JOB_POLL_SEC)
+        body = api.get_job(job_id).json()
+        progresses.append(body["progress"])
+    return body, progresses
+
+
+def _post_webm(api: InProcessApi, wav_path: Path) -> str:
+    """WAV を webm にして POST /web/transcriptions へ送り、202 を確かめてジョブの ID を返す。"""
+    response = api.post_web_audio(encode_audio(wav_path, "webm"))
+    assert response.status_code == 202
+    return str(response.json()["job_id"])
+
+
+def test_normal_when_browser_audio(start_inprocess: StartInProcess, tmp_path: Path) -> None:
+    """ブラウザから受けた音声が、用語集で補正した文字になって done になる。進みが増え、履歴に webm のままの音声と同じ名前の .txt が残り、貼り付けは起きない（正常シナリオ（ブラウザから受けた音声））。"""
+    # 準備
+    (tmp_path / BROWSER_GLOSSARY_FILE_NAME).write_text(GLOSSARY_ROWS, encoding="utf-8")
+    wav_path = synthesize_speech(SPEECH_TEXT, tmp_path / "browser_speech.wav")
+    app = start_inprocess(
+        settings=make_settings(only_paste_and_send=True), wav_input=silence_input(tmp_path)
+    )
+    api = app.start_web_api()
+
+    # 実行
+    job_id = _post_webm(api, wav_path)
+    body, progresses = _poll_job_until_finished(api, job_id)
+
+    # 検証
+    assert body["state"] == "done"
+    assert CORRECTED_WORD in body["text"]
+    assert SPEECH_WORD not in body["text"]
+    assert progresses == sorted(progresses)
+    assert all(0 <= progress <= 1 for progress in progresses)
+    assert progresses[-1] == 1
+    [recording] = app.history_files(".webm")
+    [text_file] = app.history_files(".txt")
+    assert recording.stem == text_file.stem
+    assert text_file.read_text(encoding="utf-8") == body["text"]
+    assert app.keys.pasted == []
+    assert app.notifications.events == []
+
+
+def test_error_when_browser_audio_transcription_failed(
+    start_inprocess: StartInProcess,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """ブラウザから受けた音声の文字起こしに失敗すると failed になり、履歴に音声が残る。エンジンを戻して続けて送った音声は done まで進み、知らせは出ない（異常シナリオ（ブラウザから受けた音声の文字起こしに失敗））。"""
+    # 準備
+    stub = stub_transcription(monkeypatch, NEXT_TEXT)
+    stub.error = TranscriptionError(BROWSER_AUDIO_FAILURE_TEXT)
+    wav_path = synthesize_speech(SPEECH_TEXT, tmp_path / "browser_speech.wav")
+    app = start_inprocess(
+        settings=make_settings(only_paste_and_send=True), wav_input=silence_input(tmp_path)
+    )
+    api = app.start_web_api()
+    caplog.set_level(logging.INFO)
+
+    # 実行
+    failed_id = _post_webm(api, wav_path)
+    failed, _ = _poll_job_until_finished(api, failed_id)
+    stub.error = None
+    next_id = _post_webm(api, wav_path)
+    next_body, _ = _poll_job_until_finished(api, next_id)
+
+    # 検証
+    assert failed["state"] == "failed"
+    assert BROWSER_AUDIO_FAILURE_TEXT in failed["error"]
+    assert len(app.history_files(".webm")) == 2
+    assert any(
+        failed_id in record.getMessage() and BROWSER_AUDIO_FAILURE_TEXT in record.getMessage()
+        for record in caplog.records
+    )
+    assert next_body["state"] == "done"
+    assert next_body["text"] == NEXT_TEXT
+    assert app.notifications.events == []
+    assert app.keys.pasted == []

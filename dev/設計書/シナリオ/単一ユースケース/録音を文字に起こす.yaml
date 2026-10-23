@@ -385,6 +385,72 @@ scenarios:
       一致の書き方: 文言は書いた文字との完全な一致で、`*` は 0 文字以上の任意の文字列として扱う。`*` は改行をまたがない。文言の末尾の `*` は行の末尾まで、先頭の `*` は行の先頭から一致させる（文頭の「字幕*」は 1 行目を「字幕」から行末まで消す）。途中の `*` は、消す文字が最も短い一致を使う。
       文頭・文末の単位: 起こした文字は区間ごとの文字を改行でつないだもので、文頭は 1 行目の先頭、文末は最後の行の末尾とする。消して最後の行（1 行目）が空になったら、その行を除いて前（次）の行を最後の行（1 行目）として続ける。連続録音は区間の文字ごとに当てる。
       消した結果が空: 起こした文字が全て消えたときは、異常シナリオ（文字起こしの結果が空）と同じに扱う（API から始めた録音は空の文字を返す）。
+  - name: 正常シナリオ（ブラウザから受けた音声）
+    setup:
+      - name: Mock
+        description: 常駐アプリを pytest のプロセスの中で起動し、テストから `POST /web/transcriptions` で音声を送る
+        notes: 音声は SAPI で書き出した文を webm/opus にしたファイル
+      - name: 履歴の保存
+        description: 履歴を残す設定にする
+      - name: 用語集
+        description: 書き出した文の言葉を置き換える行を 1 つ入れる
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant WK as 文字起こしワーカー（子プロセス）
+        participant H as 履歴
+
+        SVC->>SVC: 受け付けたジョブを 1 件取り出す（state: running）
+        SVC->>H: 音声を録れた形式の拡張子のまま残す
+        SVC->>WK: 音声のパスと設定を送る（セッションと順番に使う）
+        WK-->>SVC: 区間の進み（segment.end / duration）
+        SVC->>SVC: ジョブの progress を更新する
+        WK-->>SVC: 区間ごとの文字
+        SVC->>SVC: 用語集と文頭・文末の文言で補正する
+        SVC->>H: 起こした文字を同じ名前の .txt に書く
+        SVC->>SVC: ジョブを終える（state: done・text）
+      ```
+    expected:
+      - '`GET /web/transcriptions/{job_id}` が `done` を返し、`text` に用語集で補正した文字が入っている'
+      - 起こしている間、`GET /web/transcriptions/{job_id}` の `progress` が 0 から 1 の間で増えている
+      - 履歴に、webm のままの音声と同じ名前の .txt が残っている
+      - 文字起こし中の表示も出力先への貼り付けも起きていない
+    test: test_normal_when_browser_audio
+    notes:
+      セッションとの関係: ブラウザの音声はセッション（`/sessions`）とは別に扱い、ホットキー・API の録音中でも積める。文字起こしワーカーは 1 つで、セッションの録音と取り合うときは先に渡した方から順に起こす。
+      履歴を残さない設定: 履歴を残さない設定では、受けた音声は一時のファイルに置き、起こし終えたら消す。
+  - name: 異常シナリオ（ブラウザから受けた音声の文字起こしに失敗）
+    setup:
+      - name: Mock
+        description: 常駐アプリを pytest のプロセスの中で起動し、テストから `POST /web/transcriptions` で音声を送る
+      - name: 文字起こしの失敗
+        description: 文字起こしのエンジンを失敗を返す関数に差し替える
+      - name: 履歴の保存
+        description: 履歴を残す設定にする
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant WK as 文字起こしワーカー（子プロセス）
+        participant H as 履歴
+        participant LOG as ログ
+
+        SVC->>SVC: 受け付けたジョブを 1 件取り出す（state: running）
+        SVC->>H: 音声を録れた形式の拡張子のまま残す
+        SVC->>WK: 音声のパスと設定を送る
+        WK-->>SVC: エラー
+        SVC->>LOG: job_id と失敗した理由を書く
+        SVC->>SVC: ジョブを終える（state: failed・error）。次のジョブへ進む
+      ```
+    expected:
+      - '`GET /web/transcriptions/{job_id}` が `failed` を返し、`error` に文字起こしに失敗したことが入っている'
+      - 履歴にこの音声が残っている
+      - 続けて送った音声（エンジンを戻した後）が `done` まで進む
+      - ダイアログも文字起こし中の表示もトレイの通知も出ていない
+    test: test_error_when_browser_audio_transcription_failed
+    notes:
+      同じ扱いになる失敗: やり直したワーカーも落ちたときも同じ扱いになる。
 lead: 確定した録音を設定のエンジンで文字に起こし、文頭・文末の決まった文言を消して用語集で補正するまでの単一ユースケース。
 issue: 14
 primary_actor: 音声入力を使うユーザー

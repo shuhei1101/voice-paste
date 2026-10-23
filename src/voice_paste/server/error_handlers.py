@@ -9,13 +9,18 @@ from http import HTTPStatus
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from voice_paste.shared.errors import (
+    AudioUnreadableError,
     CallbackNotAllowedError,
     MicrophoneUnavailableError,
+    RequestBodyTooLargeError,
     SessionBusyError,
     SessionConflictError,
     SessionNotFoundError,
+    WebJobNotFoundError,
+    WebQueueFullError,
 )
 
 logger = logging.getLogger(__name__)
@@ -61,6 +66,14 @@ async def _handle_validation_error(
     return problem_response(HTTPStatus.BAD_REQUEST, "; ".join(reasons))
 
 
+async def _handle_http_exception(
+    _request: Request, error: StarletteHTTPException
+) -> JSONResponse:
+    """Starlette の HTTPException を、そのステータスの problem+json にする。"""
+    status = HTTPStatus(error.status_code)
+    return problem_response(status, str(error.detail))
+
+
 async def _handle_unexpected_error(_request: Request, error: Exception) -> JSONResponse:
     """想定していない例外を、中身を載せずに 500 にする。"""
     logger.error("想定していない例外", exc_info=error)
@@ -76,10 +89,23 @@ def register_exception_handlers(app: FastAPI) -> None:
         _handle_validation_error,  # type: ignore[arg-type] 受ける例外の型を絞った関数
     )
     app.add_exception_handler(SessionNotFoundError, _handler_for(HTTPStatus.NOT_FOUND))
+    app.add_exception_handler(WebJobNotFoundError, _handler_for(HTTPStatus.NOT_FOUND))
+    app.add_exception_handler(
+        RequestBodyTooLargeError, _handler_for(HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+    )
+    app.add_exception_handler(
+        AudioUnreadableError, _handler_for(HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
+    )
     app.add_exception_handler(SessionBusyError, _handler_for(HTTPStatus.CONFLICT))
     app.add_exception_handler(SessionConflictError, _handler_for(HTTPStatus.CONFLICT))
     app.add_exception_handler(
         MicrophoneUnavailableError, _handler_for(HTTPStatus.SERVICE_UNAVAILABLE)
+    )
+    app.add_exception_handler(WebQueueFullError, _handler_for(HTTPStatus.SERVICE_UNAVAILABLE))
+    # StaticFiles の 404 などの HTTPException を、そのステータスの problem+json にする
+    app.add_exception_handler(
+        StarletteHTTPException,
+        _handle_http_exception,  # type: ignore[arg-type] 受ける例外の型を絞った関数
     )
 
     # 2. それ以外の例外は 500 にする

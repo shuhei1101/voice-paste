@@ -160,6 +160,7 @@ FIELD_LAYOUT: dict[str, tuple[str, ...]] = {
     "API": (
         "api.port",
         "api.allowed_callback_hosts",
+        "api.allowed_web_origins",
         "api.continuous.min_silence_sec",
         "api.continuous.session_limit_sec",
     ),

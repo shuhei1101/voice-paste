@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator
+from contextlib import ExitStack
 from pathlib import Path
 
 import pyperclip
 import pytest
 from PySide6.QtWidgets import QApplication
 
+from tests.support.browser import EdgeBrowser, launch_edge
 from tests.support.fixtures import receiver, start_inprocess, start_service  # noqa: F401 フィクスチャとして使う
 from tests.support.inprocess import KeyLog
 from tests.support.resident_app import (
@@ -73,3 +75,21 @@ def run_app(
     yield _run
     for data_dir in data_dirs:
         kill_service_processes_for(data_dir)
+
+
+@pytest.fixture
+def open_edge(tmp_path: Path) -> Iterator[Callable[..., EdgeBrowser]]:
+    """Edge を偽のマイクで起動する関数を返す。起動した Edge は、テストの後に終わらせる。"""
+    launched: list[EdgeBrowser] = []
+    with ExitStack() as stack:
+
+        def _open(*, fake_microphone_wav: Path | None = None) -> EdgeBrowser:
+            """起動した Edge を返す（置き場所は起動した順の一時フォルダ）。"""
+            profile = tmp_path / f"edge{len(launched)}"
+            browser = stack.enter_context(
+                launch_edge(profile, fake_microphone_wav=fake_microphone_wav)
+            )
+            launched.append(browser)
+            return browser
+
+        yield _open

@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: スマホの幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>結果の 1 件 | voice-paste のモック</title>
+  <!-- 採用スタイル「開発者ツール」の部品は #37、外の端末の画面の部品は #171 の共有 CSS に置く -->
+  <link rel="stylesheet" href="../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../refs/171/assets/style.css">
+  <!-- コピーした直後の表示 -->
+  <script type="module" src="../../refs/171/assets/app.js"></script>
+</head>
+<body>
+  <main class="web-main">
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../">components</a> / <span>web-result-item</span></nav>
+
+    <!-- 部品の説明 -->
+    <header class="intro">
+      <h1>結果の 1 件</h1>
+      <p>外の端末の文字起こしの画面の結果の一覧に並べる 1 件。文字起こし待ち・文字起こし中は進捗、文字起こし完了は起こした文字とコピー・削除、文字起こし失敗・結果消失は原因と対処を出す。</p>
+    </header>
+
+    <div class="desk desk--single">
+
+      <!-- 順番待ち -->
+      <section class="specimen" aria-labelledby="h-queued">
+        <h2 id="h-queued">文字起こし待ち（queued）</h2>
+        <div class="web-panel">
+          <ul class="results">
+            <li class="result">
+              <div class="result__head"><span class="result__time num">10/23 14:08</span><span class="result__src">interview-part2.m4a</span></div>
+              <div class="result__status"><span class="spinner" aria-hidden="true"></span>文字起こし待ち</div>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 文字起こし中 -->
+      <section class="specimen" aria-labelledby="h-running">
+        <h2 id="h-running">文字起こし中（running）</h2>
+        <div class="web-panel">
+          <ul class="results">
+            <li class="result">
+              <div class="result__head"><span class="result__time num">10/23 14:05</span><span class="result__src">画面録音・<span class="num">2:14</span></span></div>
+              <div class="result__status"><span class="spinner" aria-hidden="true"></span>文字起こし中<span class="result__pct num">42%</span></div>
+              <progress max="100" value="42" aria-label="文字起こしの進捗"></progress>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 届いた -->
+      <section class="specimen" aria-labelledby="h-done">
+        <h2 id="h-done">文字起こし完了（done）</h2>
+        <div class="web-panel">
+          <ul class="results">
+            <li class="result">
+              <div class="result__head"><span class="result__time num">10/23 14:05</span><span class="result__src">画面録音・<span class="num">2:14</span></span></div>
+              <p class="result__text">来週の打ち合わせは火曜日の午後に移します。</p>
+              <div class="result__actions">
+                <button type="button" class="btn" data-copy data-copied="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg><span data-copy-label aria-live="polite">コピー</span></button>
+                <button type="button" class="btn btn--icon btn--danger" aria-label="この結果を削除"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- コピーした直後 -->
+      <section class="specimen" aria-labelledby="h-copied">
+        <h2 id="h-copied">コピー済み（2 秒で戻る）</h2>
+        <div class="web-panel">
+          <ul class="results">
+            <li class="result">
+              <div class="result__head"><span class="result__time num">10/23 14:05</span><span class="result__src">画面録音・<span class="num">2:14</span></span></div>
+              <p class="result__text">来週の打ち合わせは火曜日の午後に移します。</p>
+              <div class="result__actions">
+                <button type="button" class="btn" data-copied="true"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg><span aria-live="polite">コピー済み</span></button>
+                <button type="button" class="btn btn--icon btn--danger is-focus" aria-label="この結果を削除"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <p class="scene-note">削除ボタンはフォーカスの状態で見せている。押すと取り消せない操作の確認を出す。</p>
+      </section>
+
+      <!-- 文字にできなかった -->
+      <section class="specimen" aria-labelledby="h-failed">
+        <h2 id="h-failed">文字起こし失敗（failed）</h2>
+        <div class="web-panel">
+          <ul class="results">
+            <li class="result">
+              <div class="result__head"><span class="result__time num">10/23 14:05</span><span class="result__src">画面録音・<span class="num">2:14</span></span></div>
+              <div class="result__status result__status--error"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>文字起こし失敗</div>
+              <p class="result__detail">PC の voice-paste で文字起こしが停止。端末内の音声から再送信可<br>詳細: <code>文字起こしワーカー無応答</code></p>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 結果が見つからない -->
+      <section class="specimen" aria-labelledby="h-404">
+        <h2 id="h-404">結果消失（404）</h2>
+        <div class="web-panel">
+          <ul class="results">
+            <li class="result">
+              <div class="result__head"><span class="result__time num">10/23 14:05</span><span class="result__src">画面録音・<span class="num">2:14</span></span></div>
+              <div class="result__status result__status--error"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>結果消失</div>
+              <p class="result__detail">PC の voice-paste の再起動で結果が消失。端末内の音声から再送信可</p>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 長い名前・長い文 -->
+      <section class="specimen" aria-labelledby="h-long">
+        <h2 id="h-long">長いファイル名・長い文・改行と長い語</h2>
+        <div class="web-panel">
+          <ul class="results">
+            <li class="result">
+              <div class="result__head"><span class="result__time num">10/22 18:30</span><span class="result__src">2026-10-22_定例ミーティング_議事メモ用の録音_最終版_確認済み_共有用.mp3</span></div>
+              <p class="result__text">定例の議題は三つです。一つ目はリリースの日程、二つ目は外の端末からの文字起こし、三つ目は用語集の見直しです。
+リリースの日程は来週の水曜日に決め、外の端末からの文字起こしは https://voice-paste.example.com/web/transcriptions/3f9c2a7e5b1d4c8a9e0f6b2d7c1a5e8f で確かめます。</p>
+              <div class="result__actions">
+                <button type="button" class="btn" data-copy data-copied="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg><span data-copy-label aria-live="polite">コピー</span></button>
+                <button type="button" class="btn btn--icon btn--danger" aria-label="この結果を削除"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <p class="scene-note">ファイル名は 1 行で省き、起こした文字は改行を保って長い語も折り返す。</p>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

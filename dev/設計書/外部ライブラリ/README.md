@@ -31,5 +31,6 @@
 | [av](./av.yaml) | faster-whisper が録音を読むために使う、FFmpeg の Python バインディング |
 | [pywin32](./pywin32.yaml) | テストが Windows のウィンドウ・マウス・キーを操作する |
 | [onnxruntime](./onnxruntime.yaml) | 連続録音の話し声を Silero VAD の ONNX で判定する |
+| [python-multipart](./python-multipart.yaml) | ブラウザから送られた multipart の音声を FastAPI の UploadFile で受け取る |
 
 <!-- /table -->

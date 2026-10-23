@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: スマホ・iPad の幅でも 1 カラムで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>取り消せない操作の確認 | voice-paste のモック</title>
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/171/assets/style.css">
+  <!-- 場面の切り替えと、出している場面の確認のダイアログをモーダルで開く -->
+  <script type="module" src="../../../../refs/171/assets/app.js"></script>
+</head>
+<body>
+  <!-- モック専用の操作列: 場面の切り替え（data-scene と data-scene-panel の場面名を合わせる） -->
+  <nav class="mock-bar" aria-label="モックの場面">
+    <span class="mock-bar__label">場面</span>
+    <ul>
+      <li><button type="button" data-scene="delete">結果の削除</button></li>
+      <li><button type="button" data-scene="replace">文字起こし前の音声の置換</button></li>
+    </ul>
+  </nav>
+
+  <main class="web-main">
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">web-confirm-dialog</a> / <a href="../">171</a> / <span>a-standard</span></nav>
+
+    <!-- 場面: 結果を 1 件消す（後ろは文字起こしの画面の「結果が届いた」） -->
+    <div data-scene-panel="delete">
+      <div class="web">
+        <!-- 画面の頭 -->
+        <header class="web-top">
+          <h1>voice-paste</h1>
+          <span class="web-top__sub">文字起こし</span>
+        </header>
+
+        <!-- 送る区画（後ろで開いたまま） -->
+        <section class="web-panel" aria-labelledby="h-send-del">
+          <h2 id="h-send-del">音声送信</h2>
+          <div class="send-actions">
+            <button type="button" class="btn btn--lg btn--primary"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle class="fill" cx="12" cy="12" r="6"/></svg>録音開始</button>
+            <label class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>ファイル送信<input type="file" accept="audio/*" class="sr-only"></label>
+          </div>
+        </section>
+
+        <!-- 結果の区画（後ろで開いたまま） -->
+        <section class="web-panel" aria-labelledby="h-results-del">
+          <h2 id="h-results-del">結果</h2>
+          <ul class="results">
+            <!-- 消そうとしている件 -->
+            <li class="result">
+              <div class="result__head"><span class="result__time num">10/23 13:52</span><span class="result__src">画面録音・<span class="num">0:41</span></span></div>
+              <p class="result__text">ホットキーの録音中でもブラウザから送れるかを確かめる。</p>
+            </li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- 確認のダイアログ: 場面を出すと app.js がモーダルで開く。Esc・外側の押下でも閉じる -->
+      <dialog class="web-dialog" closedby="any" aria-labelledby="d-del" aria-describedby="b-del">
+        <div class="web-dialog__main">
+          <h2 id="d-del">結果を削除しますか</h2>
+          <p id="b-del">この端末から削除（復元不可）。PC の履歴は保持</p>
+          <p class="web-dialog__quote">ホットキーの録音中でもブラウザから送れるかを確かめる。</p>
+        </div>
+        <div class="web-dialog__actions">
+          <!-- 最初のフォーカスは、消さない側に置く -->
+          <a class="btn" href="../../../web-transcription/171/a-standard/index.html?scene=done" autofocus>キャンセル</a>
+          <a class="btn btn--danger-fill" href="../../../web-transcription/171/a-standard/index.html?scene=deleted">削除</a>
+        </div>
+      </dialog>
+    </div>
+
+    <!-- 場面: 文字にできていない音声を新しい録音で置き換える（後ろは文字起こしの画面の「送れなかった」。「文字にできなかった」「結果が見つからない（404）」からも同じ確認を開く） -->
+    <div data-scene-panel="replace" hidden>
+      <div class="web">
+        <!-- 画面の頭 -->
+        <header class="web-top">
+          <h1>voice-paste</h1>
+          <span class="web-top__sub">文字起こし</span>
+        </header>
+
+        <!-- 送る区画（後ろで開いたまま） -->
+        <section class="web-panel" aria-labelledby="h-send-rep">
+          <h2 id="h-send-rep">音声送信</h2>
+          <div class="send-actions">
+            <button type="button" class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle class="fill" cx="12" cy="12" r="6"/></svg>録音開始</button>
+            <label class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>ファイル送信<input type="file" accept="audio/*" class="sr-only"></label>
+          </div>
+          <div class="kept">
+            <div class="kept__info">
+              <span class="kept__label">端末内の音声</span>
+              <span class="kept__meta"><span class="num">10/23 14:05</span> 録音・<span class="num">2:14</span>・webm・<span class="num">540 KB</span></span>
+              <span class="kept__state kept__state--error"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>送信失敗</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- 確認のダイアログ: 置き換えて録ると録音中の表示へ移る -->
+      <dialog class="web-dialog" closedby="any" aria-labelledby="d-rep" aria-describedby="b-rep">
+        <div class="web-dialog__main">
+          <h2 id="d-rep">文字起こし前の音声を置換しますか</h2>
+          <p id="b-rep">端末内の文字起こし前の音声（<span class="num">10/23 14:05</span>・<span class="num">2:14</span>）を削除して録音（復元不可）。保存する場合: キャンセル後にダウンロード</p>
+        </div>
+        <div class="web-dialog__actions">
+          <!-- 最初のフォーカスは、置き換えない側に置く -->
+          <a class="btn" href="../../../web-transcription/171/a-standard/index.html?scene=send-failed" autofocus>キャンセル</a>
+          <a class="btn btn--danger-fill" href="../../../web-transcription/171/a-standard/index.html?scene=recording">置換して録音</a>
+        </div>
+      </dialog>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: スマホ・iPad の幅でも 1 カラムで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>文字起こし | voice-paste</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <!-- 画面の処理（録音・送信・端末への保存・結果の取得）。ビルドしない ES module -->
+  <script type="module" src="assets/app.js"></script>
+</head>
+<body>
+  <main class="web-main">
+    <div class="web">
+      <!-- 画面の頭 -->
+      <header class="web-top" data-element="page_title">
+        <h1>voice-paste</h1>
+        <span class="web-top__sub">文字起こし</span>
+      </header>
+
+      <!-- 音声送信の区画 -->
+      <section class="web-panel" aria-labelledby="send-heading">
+        <h2 id="send-heading" data-element="send_heading">音声送信</h2>
+
+        <!-- 録る・ファイルを選ぶ: 録音中は録音中の表示に替わるため隠す。送信中は押せない（理由は下の送信中の行で読める） -->
+        <div class="send-actions" data-element="send_actions">
+          <button type="button" class="btn btn--lg btn--primary" id="record-button" data-element="record_button"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle class="fill" cx="12" cy="12" r="6"/></svg>録音開始</button>
+          <label class="btn btn--lg" id="file-label"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>ファイル送信<input type="file" accept="audio/*" class="sr-only" id="file-input" data-element="file_input"></label>
+        </div>
+
+        <!-- ファイル送信中: 202 か失敗を受けたら隠す -->
+        <div class="file-sending" id="file-sending" hidden>
+          <div class="file-sending__head">
+            <span class="file-sending__name" data-element="file_sending_name"></span>
+            <span class="kept__state kept__state--busy" role="status" data-element="file_sending_state"><span class="spinner" aria-hidden="true"></span><span id="file-sending-text"></span></span>
+          </div>
+          <progress max="100" value="0" aria-label="送信の進捗" id="file-sending-progress" data-element="file_sending_progress"></progress>
+        </div>
+
+        <!-- 録音とファイルの上限: 録音中は隠す -->
+        <p class="send-hint" id="send-hint" data-element="send_hint">録音 最大 30 分・ファイル 100 MB 未満</p>
+
+        <!-- 録音中の表示: 録音中だけ出す -->
+        <div class="recorder" id="recorder" hidden>
+          <div class="recorder__head">
+            <span class="state state--rec" data-element="recording_state"><span class="dot" aria-hidden="true"></span>録音中</span>
+            <span class="recorder__time num" role="timer" id="recording-elapsed" data-element="recording_elapsed">00:00</span>
+          </div>
+          <progress max="1800" value="0" aria-label="上限までの録音時間" id="recording-progress" data-element="recording_progress"></progress>
+          <div class="recorder__meta"><span>上限 <span class="num">30:00</span></span><span id="recording-remaining" data-element="recording_remaining"></span></div>
+          <button type="button" class="btn btn--lg btn--primary btn--block" id="stop-button" data-element="stop_button"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect class="fill" x="7" y="7" width="10" height="10" rx="1"/></svg>録音停止・送信</button>
+        </div>
+
+        <!-- 上限で録音が止まった知らせ: 止まってから送信が終わるまで出す -->
+        <div class="web-notice" role="status" id="limit-notice" data-element="limit_notice" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/></svg>
+          <p>上限 30 分に到達。録音停止・送信中</p>
+        </div>
+
+        <!-- 送信・録音の開始の失敗: 次の送信か録音を始めると消す -->
+        <div class="web-error" role="alert" id="send-error" data-element="send_error" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>
+          <div>
+            <p class="web-error__title" id="send-error-title"></p>
+            <p id="send-error-body"></p>
+          </div>
+        </div>
+
+        <!-- 端末内の音声: 端末（IndexedDB）に音声があるときだけ出す -->
+        <div class="kept" id="kept" hidden>
+          <div class="kept__info">
+            <span class="kept__label">端末内の音声</span>
+            <span class="kept__meta" id="kept-meta" data-element="kept_meta"></span>
+            <span class="kept__state" id="kept-state" data-element="kept_state"></span>
+          </div>
+          <div class="kept__actions">
+            <button type="button" class="btn btn--lg" id="download-button" data-element="download_button"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>ダウンロード</button>
+            <button type="button" class="btn btn--lg btn--primary" id="resend-button" data-element="resend_button" hidden><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></svg>再送信</button>
+          </div>
+          <progress class="kept__progress" max="100" value="0" aria-label="送信の進捗" id="kept-progress" data-element="kept_progress" hidden></progress>
+        </div>
+      </section>
+
+      <!-- 結果の区画 -->
+      <section class="web-panel" aria-labelledby="results-heading">
+        <div class="web-panel__head">
+          <h2 id="results-heading" data-element="results_heading">結果</h2>
+          <span class="web-panel__meta" id="results-meta" data-element="results_meta"></span>
+        </div>
+
+        <!-- 結果が無いとき -->
+        <p class="results-empty" id="results-empty" data-element="results_empty">結果 0 件</p>
+
+        <!-- 結果の一覧: 新しい件を先頭に並べる。待ちの進み具合・失敗を読み上げにも伝える -->
+        <ul class="results" id="results" aria-live="polite" data-element="results_list" hidden></ul>
+      </section>
+    </div>
+  </main>
+
+  <!-- 結果 1 件の雛形: app.js が複製して一覧に足す -->
+  <template id="result-template">
+    <li class="result">
+      <div class="result__head"><span class="result__time num" data-element="result_time"></span><span class="result__src" data-element="result_source"></span></div>
+      <div class="result__status" data-element="result_status" hidden>
+        <svg class="result__icon" viewBox="0 0 24 24" aria-hidden="true" hidden><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>
+        <span class="spinner" aria-hidden="true" hidden></span>
+        <span class="result__status-text"></span>
+        <span class="result__pct num" hidden></span>
+      </div>
+      <progress max="100" value="0" aria-label="文字起こしの進捗" data-element="result_progress" hidden></progress>
+      <p class="result__text" data-element="result_text" hidden></p>
+      <p class="result__detail" data-element="result_detail" hidden></p>
+      <div class="result__actions" hidden>
+        <button type="button" class="btn" data-element="copy_button" data-copied="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg><span aria-live="polite">コピー</span></button>
+        <button type="button" class="btn btn--icon btn--danger" aria-label="この結果を削除" data-element="delete_button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
+      </div>
+    </li>
+  </template>
+
+  <!-- 結果の削除の確認: showModal() で開く。closedby="any" で Esc・外側の押下でも閉じる（持たないブラウザは Esc とキャンセルで閉じる）。最初のフォーカスは削除しない側に置く -->
+  <dialog class="web-dialog" id="delete-dialog" data-element="delete_dialog" closedby="any" aria-labelledby="delete-title" aria-describedby="delete-body">
+    <div class="web-dialog__main">
+      <h2 id="delete-title" data-element="delete_title">結果を削除しますか</h2>
+      <p id="delete-body" data-element="delete_body">この端末から削除（復元不可）。PC の履歴は保持</p>
+      <p class="web-dialog__quote" id="delete-quote" data-element="delete_quote"></p>
+    </div>
+    <div class="web-dialog__actions">
+      <button type="button" class="btn" id="delete-cancel" data-element="delete_cancel" autofocus>キャンセル</button>
+      <button type="button" class="btn btn--danger-fill" id="delete-confirm" data-element="delete_confirm">削除</button>
+    </div>
+  </dialog>
+
+  <!-- 文字起こし前の音声の置換の確認: 削除の確認と同じ開き方・閉じ方。閉じたら録音開始ボタンへフォーカスを戻す -->
+  <dialog class="web-dialog" id="replace-dialog" data-element="replace_dialog" closedby="any" aria-labelledby="replace-title" aria-describedby="replace-body">
+    <div class="web-dialog__main">
+      <h2 id="replace-title" data-element="replace_title">文字起こし前の音声を置換しますか</h2>
+      <p id="replace-body" data-element="replace_body"></p>
+    </div>
+    <div class="web-dialog__actions">
+      <button type="button" class="btn" id="replace-cancel" data-element="replace_cancel" autofocus>キャンセル</button>
+      <button type="button" class="btn btn--danger-fill" id="replace-confirm" data-element="replace_confirm">置換して録音</button>
+    </div>
+  </dialog>
+</body>
+</html>

@@ -89,15 +89,19 @@ layers:
         .venv/Scripts/python.exe -m pytest {外部疎通テストファイルパス} --run-external
         ```
   - name: lint
-    description: import-linter で pyproject.toml の `[tool.importlinter]` の契約（層・feature の独立・出力先の独立）を検査し、`uv lock --check` で pyproject.toml と uv.lock の食い違いを検査する。単体テストと一緒に回す。
+    description: import-linter で pyproject.toml の `[tool.importlinter]` の契約（層・feature の独立・出力先の独立）を検査し、`uv lock --check` で pyproject.toml と uv.lock の食い違いを検査する。画面のスクリプト（`src/voice_paste/server/web/assets/app.ts`）は `tsc` の型検査と ESLint で検査し、コミットした `app.js` が `app.ts` から生成し直したものと同じかを確かめる。単体テストと一緒に回す。
     prerequisites:
       - 外部依存なし
+      - 画面のスクリプトの検査は、開発コマンド『ビルド・生成』の前提（`npm ci`）を満たしておく
     run_all: |-
       ```bash
       uv lock --check
       .venv/Scripts/lint-imports
+      npm run typecheck
+      npm run lint
+      npm run build && git diff --exit-code -- src/voice_paste/server/web/assets/app.js
       ```
-    results: '`uv lock --check` は食い違いがあれば差分を出して終了コード 1。`lint-imports` は契約ごとの KEPT / BROKEN と、破った import の行を標準出力に出す（破れていれば終了コード 1）'
+    results: '`uv lock --check` は食い違いがあれば差分を出して終了コード 1。`lint-imports` は契約ごとの KEPT / BROKEN と、破った import の行を標準出力に出す（破れていれば終了コード 1）。`npm run typecheck`・`npm run lint` は違反の行を出して終了コード 1。`git diff --exit-code` はコミットした `app.js` が生成し直したものと違えば差分を出して終了コード 1'
 prerequisites:
   - リポジトリの直下で Windows の uv（WSL からは `uv.exe`）の `uv sync --frozen` を流し、`.venv/` に環境を作る（`uv.lock` の版で入る。pytest と import-linter と pywin32 は pyproject.toml の `[dependency-groups]` の dev から入る）
   - 実機のテスト（E2E・非機能要件テスト）が起こす常駐アプリは、`tests/conftest.py` の `QT_QPA_PLATFORM=offscreen` のまま起動し、実機の画面に出さない（別プロセスで起動するもの・再起動で起動し直すものも同じ）

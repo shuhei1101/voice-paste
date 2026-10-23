@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: スマホ・iPad の幅でも 1 カラムで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>文字起こし | voice-paste のモック</title>
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/171/assets/style.css">
+  <!-- 場面の切り替えとコピーした直後の表示 -->
+  <script type="module" src="../../../../refs/171/assets/app.js"></script>
+</head>
+<body>
+  <!-- モック専用の操作列: 場面の切り替え（data-scene と data-scene-panel の場面名を合わせる） -->
+  <nav class="mock-bar" aria-label="モックの場面">
+    <span class="mock-bar__label">場面</span>
+    <ul>
+      <li><button type="button" data-scene="empty">初回表示</button></li>
+      <li><button type="button" data-scene="recording">録音中</button></li>
+      <li><button type="button" data-scene="recording-low">残り僅か</button></li>
+      <li><button type="button" data-scene="limit">上限到達</button></li>
+      <li><button type="button" data-scene="sending">送信中</button></li>
+      <li><button type="button" data-scene="file-sending">ファイル送信中</button></li>
+      <li><button type="button" data-scene="send-failed">送信失敗</button></li>
+      <li><button type="button" data-scene="unreadable">形式不可（415）</button></li>
+      <li><button type="button" data-scene="too-large">サイズ超過（413）</button></li>
+      <li><button type="button" data-scene="waiting">文字起こし待ち</button></li>
+      <li><button type="button" data-scene="done">文字起こし完了</button></li>
+      <li><button type="button" data-scene="failed">文字起こし失敗</button></li>
+      <li><button type="button" data-scene="not-found">結果消失（404）</button></li>
+      <li><button type="button" data-scene="deleted">削除後</button></li>
+    </ul>
+  </nav>
+
+  <main class="web-main">
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">web-transcription</a> / <a href="../">171</a> / <span>a-standard</span></nav>
+
+    <div class="web">
+      <!-- 画面の頭 -->
+      <header class="web-top">
+        <h1>voice-paste</h1>
+        <span class="web-top__sub">文字起こし</span>
+      </header>
+
+      <!-- 送る区画 -->
+      <section class="web-panel" aria-labelledby="h-send">
+        <h2 id="h-send">音声送信</h2>
+
+        <!-- 録る・ファイルを選ぶ: 録音中は録音中の表示に替わるため隠す -->
+        <div class="send-actions" data-scene-panel="empty limit sending unreadable too-large waiting done deleted">
+          <button type="button" class="btn btn--lg btn--primary"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle class="fill" cx="12" cy="12" r="6"/></svg>録音開始</button>
+          <label class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>ファイル送信<input type="file" accept="audio/*" class="sr-only"></label>
+        </div>
+        <!-- 送れなかった・文字にできなかった・結果が見つからない場面: 文字にできていない音声があるため、録音を始めると置き換えの確認へ進む。主の操作は送り直す -->
+        <div class="send-actions" data-scene-panel="send-failed failed not-found" hidden>
+          <a class="btn btn--lg" href="../../../web-confirm-dialog/171/a-standard/index.html?scene=replace"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle class="fill" cx="12" cy="12" r="6"/></svg>録音開始</a>
+          <label class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>ファイル送信<input type="file" accept="audio/*" class="sr-only"></label>
+        </div>
+        <!-- ファイル送信中: 送信が終わるまで録音開始・ファイル送信を押せない。押せない理由はすぐ下の送信中の行で読める -->
+        <div class="send-actions" data-scene-panel="file-sending" hidden>
+          <button type="button" class="btn btn--lg" disabled><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle class="fill" cx="12" cy="12" r="6"/></svg>録音開始</button>
+          <label class="btn btn--lg" aria-disabled="true"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>ファイル送信<input type="file" accept="audio/*" class="sr-only" disabled></label>
+        </div>
+        <!-- 送信中のファイル: 202 を受けたら消し、結果の一覧の先頭に待ちの件を出す -->
+        <div class="file-sending" data-scene-panel="file-sending" hidden>
+          <div class="file-sending__head">
+            <span class="file-sending__name">interview-part2.m4a・<span class="num">38.4 MB</span></span>
+            <span class="kept__state kept__state--busy" role="status"><span class="spinner" aria-hidden="true"></span>送信中 <span class="num">47%</span></span>
+          </div>
+          <progress max="100" value="47" aria-label="送信の進捗"></progress>
+        </div>
+        <p class="send-hint" data-scene-panel="empty limit sending file-sending send-failed unreadable too-large waiting done failed not-found deleted">録音 最大 30 分・ファイル 100 MB 未満</p>
+
+        <!-- 録音中の表示 -->
+        <div class="recorder" data-scene-panel="recording" hidden>
+          <div class="recorder__head">
+            <span class="state state--rec"><span class="dot" aria-hidden="true"></span>録音中</span>
+            <span class="recorder__time num" role="timer" aria-label="経過時間 2 分 14 秒">02:14</span>
+          </div>
+          <progress max="1800" value="134" aria-label="上限までの録音時間"></progress>
+          <div class="recorder__meta"><span>上限 <span class="num">30:00</span></span><span>残り <span class="num">27:46</span></span></div>
+          <button type="button" class="btn btn--lg btn--primary btn--block"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect class="fill" x="7" y="7" width="10" height="10" rx="1"/></svg>録音停止・送信</button>
+        </div>
+
+        <!-- 録音中の表示（残りわずか）: 残り 1 分を切ったら残り時間を注意の色にする -->
+        <div class="recorder" data-scene-panel="recording-low" hidden>
+          <div class="recorder__head">
+            <span class="state state--rec"><span class="dot" aria-hidden="true"></span>録音中</span>
+            <span class="recorder__time num" role="timer" aria-label="経過時間 29 分 12 秒">29:12</span>
+          </div>
+          <progress max="1800" value="1752" aria-label="上限までの録音時間"></progress>
+          <div class="recorder__meta"><span>上限 <span class="num">30:00</span></span><span class="recorder__left--low">残り <span class="num">0:48</span>（上限で自動送信）</span></div>
+          <button type="button" class="btn btn--lg btn--primary btn--block"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect class="fill" x="7" y="7" width="10" height="10" rx="1"/></svg>録音停止・送信</button>
+        </div>
+
+        <!-- 上限で止まった知らせ -->
+        <div class="web-notice" role="status" data-scene-panel="limit" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/></svg>
+          <p>上限 30 分に到達。録音停止・送信中</p>
+        </div>
+
+        <!-- 読めない形式（415）: ファイルを選ぶのすぐ下に出す -->
+        <div class="web-error" role="alert" data-scene-panel="unreadable" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>
+          <div>
+            <p class="web-error__title">非対応形式</p>
+            <p>meeting-notes.mp3 は未送信。対応形式: WAV・MP3・webm・ogg・mp4</p>
+          </div>
+        </div>
+
+        <!-- 大きすぎる（413） -->
+        <div class="web-error" role="alert" data-scene-panel="too-large" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>
+          <div>
+            <p class="web-error__title">ファイルサイズ超過</p>
+            <p>lecture-0918.wav（<span class="num">128 MB</span>）は未送信。上限: 100 MB 未満。MP3 等に圧縮して再選択</p>
+          </div>
+        </div>
+
+        <!-- 送れなかった: 端末に残した音声のすぐ上に出す -->
+        <div class="web-error" role="alert" data-scene-panel="send-failed" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>
+          <div>
+            <p class="web-error__title">送信失敗</p>
+            <p>PC の voice-paste に接続不可。音声は端末内に保存済み。PC の起動を確認後に再送信</p>
+          </div>
+        </div>
+
+        <!-- 端末に残した音声（送信中）: 上限で止まった・送信中の場面 -->
+        <div class="kept" data-scene-panel="limit sending" hidden>
+          <div class="kept__info">
+            <span class="kept__label">端末内の音声</span>
+            <span class="kept__meta"><span class="num">10/23 14:05</span> 録音・<span class="num">30:00</span>・webm・<span class="num">7.2 MB</span></span>
+            <span class="kept__state kept__state--busy" role="status"><span class="spinner" aria-hidden="true"></span>送信中 <span class="num">63%</span></span>
+          </div>
+          <div class="kept__actions">
+            <button type="button" class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>ダウンロード</button>
+          </div>
+          <progress class="kept__progress" max="100" value="63" aria-label="送信の進捗"></progress>
+        </div>
+
+        <!-- 端末に残した音声（送った）: 送り終えた後の場面 -->
+        <div class="kept" data-scene-panel="file-sending unreadable too-large waiting done deleted" hidden>
+          <div class="kept__info">
+            <span class="kept__label">端末内の音声</span>
+            <span class="kept__meta"><span class="num">10/23 14:05</span> 録音・<span class="num">2:14</span>・webm・<span class="num">540 KB</span></span>
+            <span class="kept__state kept__state--ok"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>送信済み</span>
+          </div>
+          <div class="kept__actions">
+            <button type="button" class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>ダウンロード</button>
+          </div>
+        </div>
+
+        <!-- 端末に残した音声（文字にできていない）: 送れなかった・文字にできなかった・結果が見つからない場面 -->
+        <div class="kept" data-scene-panel="send-failed failed not-found" hidden>
+          <div class="kept__info">
+            <span class="kept__label">端末内の音声</span>
+            <span class="kept__meta"><span class="num">10/23 14:05</span> 録音・<span class="num">2:14</span>・webm・<span class="num">540 KB</span></span>
+            <span class="kept__state kept__state--error" data-scene-panel="send-failed"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>送信失敗</span>
+            <span class="kept__state kept__state--error" data-scene-panel="failed not-found" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>文字起こし前</span>
+          </div>
+          <div class="kept__actions">
+            <button type="button" class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>ダウンロード</button>
+            <button type="button" class="btn btn--lg btn--primary"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></svg>再送信</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 結果の区画 -->
+      <section class="web-panel" aria-labelledby="h-results">
+        <div class="web-panel__head">
+          <h2 id="h-results">結果</h2>
+          <span class="web-panel__meta" data-scene-panel="empty" hidden>最大 10 件・保存 7 日</span>
+          <span class="web-panel__meta" data-scene-panel="recording recording-low limit sending file-sending send-failed unreadable too-large deleted" hidden><span class="num">2</span> 件・最大 10 件・保存 7 日</span>
+          <span class="web-panel__meta" data-scene-panel="done failed not-found" hidden><span class="num">3</span> 件・最大 10 件・保存 7 日</span>
+          <span class="web-panel__meta" data-scene-panel="waiting" hidden><span class="num">4</span> 件・最大 10 件・保存 7 日</span>
+        </div>
+
+        <!-- 結果が無いとき -->
+        <p class="results-empty" data-scene-panel="empty" hidden>結果 0 件</p>
+
+        <!-- 結果の一覧: 待ちの進み具合・失敗を読み上げにも伝える -->
+        <ul class="results" aria-live="polite" data-scene-panel="recording recording-low limit sending file-sending send-failed unreadable too-large waiting done failed not-found deleted" hidden>
+          <!-- 待ちの件（順番待ち）: 結果を待つ場面だけ -->
+          <li class="result" data-scene-panel="waiting" hidden>
+            <div class="result__head"><span class="result__time num">10/23 14:08</span><span class="result__src">interview-part2.m4a</span></div>
+            <div class="result__status"><span class="spinner" aria-hidden="true"></span>文字起こし待ち</div>
+          </li>
+
+          <!-- 待ちの件（文字起こし中） -->
+          <li class="result" data-scene-panel="waiting" hidden>
+            <div class="result__head"><span class="result__time num">10/23 14:05</span><span class="result__src">画面録音・<span class="num">2:14</span></span></div>
+            <div class="result__status"><span class="spinner" aria-hidden="true"></span>文字起こし中<span class="result__pct num">42%</span></div>
+            <progress max="100" value="42" aria-label="文字起こしの進捗"></progress>
+          </li>
+
+          <!-- 届いた件: 結果が届いた・消した後の場面の先頭 -->
+          <li class="result" data-scene-panel="done deleted" hidden>
+            <div class="result__head"><span class="result__time num">10/23 14:05</span><span class="result__src">画面録音・<span class="num">2:14</span></span></div>
+            <p class="result__text">来週の打ち合わせは火曜日の午後に移します。資料は月曜日までに共有フォルダへ置いてください。
+voice-paste の API は今のままで、外の端末からはゲートウェイを通して使います。</p>
+            <div class="result__actions">
+              <button type="button" class="btn" data-copy data-copied="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg><span data-copy-label aria-live="polite">コピー</span></button>
+              <a class="btn btn--icon btn--danger" href="../../../web-confirm-dialog/171/a-standard/index.html?scene=delete" aria-label="この結果を削除"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></a>
+            </div>
+          </li>
+
+          <!-- 文字にできなかった件 -->
+          <li class="result" data-scene-panel="failed" hidden>
+            <div class="result__head"><span class="result__time num">10/23 14:05</span><span class="result__src">画面録音・<span class="num">2:14</span></span></div>
+            <div class="result__status result__status--error"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>文字起こし失敗</div>
+            <p class="result__detail">PC の voice-paste で文字起こしが停止。端末内の音声から再送信可<br>詳細: <code>文字起こしワーカー無応答</code></p>
+          </li>
+
+          <!-- 結果が見つからない件（404） -->
+          <li class="result" data-scene-panel="not-found" hidden>
+            <div class="result__head"><span class="result__time num">10/23 14:05</span><span class="result__src">画面録音・<span class="num">2:14</span></span></div>
+            <div class="result__status result__status--error"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>結果消失</div>
+            <p class="result__detail">PC の voice-paste の再起動で結果が消失。端末内の音声から再送信可</p>
+          </li>
+
+          <!-- 前に届いた件 1: 消した後の場面では一覧から外れている -->
+          <li class="result" data-scene-panel="recording recording-low limit sending file-sending send-failed unreadable too-large waiting done failed not-found" hidden>
+            <div class="result__head"><span class="result__time num">10/23 13:52</span><span class="result__src">画面録音・<span class="num">0:41</span></span></div>
+            <p class="result__text">ホットキーの録音中でもブラウザから送れるかを確かめる。</p>
+            <div class="result__actions">
+              <button type="button" class="btn" data-copy data-copied="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg><span data-copy-label aria-live="polite">コピー</span></button>
+              <a class="btn btn--icon btn--danger" href="../../../web-confirm-dialog/171/a-standard/index.html?scene=delete" aria-label="この結果を削除"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></a>
+            </div>
+          </li>
+
+          <!-- 前に届いた件 2: 長い名前のファイルは 1 行で省く -->
+          <li class="result" data-scene-panel="recording recording-low limit sending file-sending send-failed unreadable too-large waiting done failed not-found deleted" hidden>
+            <div class="result__head"><span class="result__time num">10/22 18:30</span><span class="result__src">2026-10-22_定例ミーティング_議事メモ用の録音_最終版.mp3</span></div>
+            <p class="result__text">定例の議題は三つです。一つ目はリリースの日程、二つ目は外の端末からの文字起こし、三つ目は用語集の見直しです。</p>
+            <div class="result__actions">
+              <button type="button" class="btn" data-copy data-copied="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg><span data-copy-label aria-live="polite">コピー</span></button>
+              <a class="btn btn--icon btn--danger" href="../../../web-confirm-dialog/171/a-standard/index.html?scene=delete" aria-label="この結果を削除"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></a>
+            </div>
+          </li>
+        </ul>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

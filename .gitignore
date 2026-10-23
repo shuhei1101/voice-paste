@@ -6,6 +6,9 @@
 venv/
 .venv/
 
+# Node.js の開発用の依存（画面のスクリプトの tsc・ESLint）
+node_modules/
+
 # Pythonキャッシュ
 __pycache__/
 *.pyc

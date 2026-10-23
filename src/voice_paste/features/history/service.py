@@ -1,4 +1,4 @@
-"""録音の保存・起こした文字の書き足し・一時の音声の削除・古い履歴の削除。"""
+"""録音の保存・ブラウザの音声の保存・起こした文字の書き足し・一時の音声の削除・古い履歴の削除。"""
 
 from __future__ import annotations
 
@@ -76,6 +76,32 @@ def save_recording(
     wavfile.write(audio_path, recording.sample_rate, recording.samples)
     logger.info(f"録音を残した（{audio_path}・{recording.duration_sec:.1f} 秒）")
     return audio_path
+
+
+def store_web_audio(
+    job_id: str,
+    source: Path,
+    *,
+    history_enabled: bool,
+    paths: AppPaths,
+    now: Callable[[], datetime],
+) -> Path:
+    """ブラウザから受けた音声の一時のファイルを、履歴を残す設定なら録れた形式の拡張子のまま履歴へ移し、文字起こしに渡すパスを返す。"""
+    # 1. 履歴を残さない設定なら、一時のファイルのまま返す（起こし終えた後に discard_temporary が消す）
+    if not history_enabled:
+        return source
+
+    # 2. 日付のフォルダの下へ、日時とジョブの ID の名前で移す（拡張子は録れた形式のまま）
+    current = now()
+    stored = (
+        paths.history_dir
+        / current.strftime(DATE_FOLDER_FORMAT)
+        / f"{current.strftime(TIMESTAMP_FORMAT)}_web_{job_id}{source.suffix}"
+    )
+    stored.parent.mkdir(parents=True, exist_ok=True)
+    shutil.move(source, stored)
+    logger.info(f"ブラウザの音声を残した（{stored}）")
+    return stored
 
 
 def append_text(audio_path: Path, text: str, *, paths: AppPaths) -> None:

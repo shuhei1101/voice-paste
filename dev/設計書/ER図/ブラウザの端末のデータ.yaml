@@ -1,0 +1,101 @@
+title: "ER 図: ブラウザの端末のデータ"
+lead: 外の端末の文字起こしの画面が、その端末のブラウザに残す音声（IndexedDB）と結果（localStorage）。どちらもオリジン（ゲートウェイの公開のサブドメイン）ごとに分かれる。
+tables:
+  - name: IndexedDB voice-paste / kept_audio（キー latest）
+    title: 端末内の音声
+    datastore: IndexedDB
+    summary: 画面で録った直近 1 件の音声。送信に失敗しても送り直せ、ダウンロードできる
+    primary_key: 固定のキー `latest`
+    scale: 1 件
+    growth: 増えない（録音を止めるたびに置き換える。選んだファイルは残さない）
+    retention: 保存日時から 7 日
+    deletion: 物理削除（画面を開いたときに期限を過ぎていれば消す）
+    access: キーで引く
+    columns:
+      - name: blob
+        title: 音声
+        type: object
+        not_null: true
+        description: MediaRecorder が録った Blob
+        sensitivity: 個人情報
+      - name: mime_type
+        title: 形式
+        type: string
+        not_null: true
+        description: MediaRecorder の mimeType
+        example: audio/webm;codecs=opus
+      - name: recorded_at
+        title: 保存日時
+        type: string
+        not_null: true
+        description: 録音を止めて残した日時（ISO 8601）。期限をここから数える
+      - name: duration_sec
+        title: 長さ
+        type: number
+        not_null: true
+        description: 録音の長さ（秒。画面が数えた経過時間）
+      - name: size_bytes
+        title: 大きさ
+        type: number
+        not_null: true
+        description: Blob の大きさ
+      - name: state
+        title: 状態
+        type: string
+        not_null: true
+        description: 送信と文字起こしの状態
+        enum_values: "'sending' 送信中 / 'sent' 送信済み / 'send_failed' 送信失敗 / 'not_transcribed' 文字起こし前（ジョブが failed か 404）"
+      - name: job_id
+        title: ジョブの ID
+        type: string
+        description: 受け付けられたときの job_id。送信前・送信失敗は null
+    status: planned
+    introduced:
+      pr: 171
+  - name: localStorage voice-paste.results
+    title: 結果
+    datastore: JSON（localStorage）
+    summary: 送信した音声の結果の一覧（配列。新しい件が先頭）。終わっていない件も持ち、画面を開き直したら結果を取りに行くのを続ける
+    primary_key: job_id
+    scale: 最大 10 件
+    growth: 送信が 202 になるたびに 1 件増え、10 件を超えたらいちばん古い件を消す
+    retention: 保存日時から 7 日
+    deletion: 物理削除（削除の確認で削除したとき・件数を超えたとき・画面を開いたときに期限を過ぎていたとき。文字起こし失敗・404 になった件も消す）
+    access: 全件（画面を開いたときに読み、変えるたびに全件を書き直す）
+    columns:
+      - name: job_id
+        title: ジョブの ID
+        type: string
+        not_null: true
+        primary_key: true
+        description: 音声を受け付ける が返した job_id
+      - name: state
+        title: 状態
+        type: string
+        not_null: true
+        description: 最後に取りに行ったときの状態
+        enum_values: "'queued' / 'running' / 'done'"
+      - name: source
+        title: 元の音声
+        type: string
+        not_null: true
+        description: 画面で録った音声は `画面録音`、選んだファイルはファイル名
+      - name: duration_sec
+        title: 長さ
+        type: number
+        description: 画面で録った音声の長さ（選んだファイルは null）
+      - name: sent_at
+        title: 保存日時
+        type: string
+        not_null: true
+        description: 202 を受けた日時（ISO 8601）。一覧に出し、期限をここから数える
+      - name: text
+        title: 起こした文字
+        type: string
+        description: done のときの補正した文字。それ以外は null
+        sensitivity: 個人情報
+    status: planned
+    introduced:
+      pr: 171
+refs:
+  - dev/設計書/画面設計/常駐アプリ/外の端末の文字起こしの画面.html#

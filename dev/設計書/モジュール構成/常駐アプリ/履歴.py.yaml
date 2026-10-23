@@ -3,8 +3,8 @@ lead: 確定した録音と起こした文字を `%LOCALAPPDATA%\voice-paste\his
 directory: |-
   ```
   src/voice_paste/features/history/
-  ├── __init__.py   # save_recording・append_text・discard_temporary・purge_expired の公開
-  └── service.py    # 録音の保存・文字の書き足し・一時の音声の削除・古い履歴の削除
+  ├── __init__.py   # save_recording・store_web_audio・append_text・discard_temporary・purge_expired の公開
+  └── service.py    # 録音の保存・ブラウザの音声の保存・文字の書き足し・一時の音声の削除・古い履歴の削除
   ```
 functions:
   - name: save_recording
@@ -177,6 +177,12 @@ functions:
         condition: tmp/ に `{処理中の ID}_3.wav` と `{終わった ID}_1.wav` を置き、active_session_ids が処理中の ID だけを返す
         mock: なし（一時フォルダ）
         expected: '`{処理中の ID}_3.wav` が残り、`{終わった ID}_1.wav` が消える'
+      - name: test_purge_expired_when_web_audio
+        case: 正常
+        summary: 期限を過ぎた日付のフォルダは WAV 以外の音声も消す
+        condition: 保持期間を過ぎた日付のフォルダに `.webm`・`.txt` を置く
+        mock: now
+        expected: 日付のフォルダごと消える
     status: implemented
   - name: discard_temporary
     title: 一時の音声の削除
@@ -218,5 +224,66 @@ functions:
         mock: なし（一時フォルダ）
         expected: history/20261001/20261001120000_s1.wav が残る
     status: implemented
+  - name: store_web_audio
+    title: ブラウザの音声の保存
+    kind: 関数
+    container: features/history/service.py
+    usecase: 録音を文字に起こす
+    scope: public
+    inherits: ブラウザの文字起こしの StoreWebAudioFn
+    summary: ブラウザから受けた音声の一時のファイルを、履歴を残す設定なら録れた形式の拡張子のまま履歴へ移し、そのパスを返す
+    args:
+      - name: job_id
+        type: str
+        required: true
+        passing: positional
+        description: ジョブの ID
+      - name: source
+        type: Path
+        required: true
+        passing: positional
+        description: 一時のファイル（`tmp/web/{ID}{拡張子}`）
+      - name: history_enabled
+        type: bool
+        required: true
+        passing: keyword
+        description: 履歴を残す設定か（main.py が今の設定を引いて渡す）
+      - name: paths
+        type: AppPaths
+        required: true
+        passing: keyword
+        description: 置き場所
+      - name: now
+        type: Callable[[], datetime]
+        required: true
+        passing: keyword
+        description: 今の時刻
+    returns:
+      type: Path
+      description: 文字起こしに渡す音声のパス
+    process: |-
+      1. 履歴を残さない設定なら source をそのまま返す（起こし終えた後に discard_temporary が消す）
+      2. 日付のフォルダの下に `{日時}_web_{job_id}{source の拡張子}` の名前で移す（shutil.move）
+         - `[INFO]` ブラウザの音声を残した（パス）
+      3. 移した先のパスを返す
+    exceptions:
+      - name: OSError
+        condition: 移せない（履歴のフォルダに書けない）。WebJobQueue が受けてジョブを failed にする
+    unit_tests:
+      - name: test_store_web_audio
+        case: 正常
+        summary: 録れた形式のまま履歴へ移す
+        condition: history_enabled=True、source は tmp/web/{ID}.webm
+        mock: now（2026-10-23 14:05:00）
+        expected: history/20261023/20261023140500_web_{ID}.webm があり、source が無く、そのパスが返る
+      - name: test_store_web_audio_when_history_disabled
+        case: 正常
+        summary: 残さない設定なら移さない
+        condition: history_enabled=False
+        mock: now
+        expected: source がそのまま返り、history/ に何も書かれない
+    refs:
+      - dev/設計書/モジュール構成/常駐アプリ/ブラウザの文字起こし.py#function_types[StoreWebAudioFn]
+    status: planned
 test_files:
   - tests/unit/voice_paste/features/history/test_service.py

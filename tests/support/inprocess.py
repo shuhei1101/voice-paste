@@ -28,8 +28,10 @@ from scipy.signal import resample_poly
 import voice_paste.main as main_module
 from tests.integration.helpers import CallbackReceiver, wait_until
 from tests.support.processes import ProcessInfo, kill_tree, processes_with
+from tests.support.web_body import CONTENT_TYPE, chunks_of
 from voice_paste.features.recording.client import SAMPLE_RATE
 from voice_paste.features.session import SessionApiDeps, SessionManager
+from voice_paste.features.web_transcription import WebApiDeps
 from voice_paste.integrations.whisper.client import WORKER_MODULE
 from voice_paste.main import API_START_TIMEOUT_SEC, SETTINGS_MODEL, Handlers
 from voice_paste.server.app import build_fastapi
@@ -110,6 +112,9 @@ PLAYED_OUT_TIMEOUT_SEC = 180.0
 PROCESSED_TIMEOUT_SEC = 120.0
 """確定した録音の処理（文字起こし・届ける）が終わるまで待つ上限（ワーカーの立て直しを含む）。"""
 
+HOLD_TIMEOUT_SEC = 30.0
+"""差し替えた文字起こしを、放すまで待たせる上限（テストの途中で失敗しても、後始末がこれより長く止まらない）。"""
+
 WORKER_CLIENT_LOGGER = "voice_paste.integrations.whisper.client"
 """文字起こしワーカーの窓口のロガーの名前。"""
 
@@ -127,6 +132,9 @@ WORKER_KILL_INTERVAL_SEC = 0.2
 
 REQUEST_TIMEOUT_SEC = 10.0
 """テストが API を叩くときのタイムアウト。"""
+
+LARGE_BODY_TIMEOUT_SEC = 120.0
+"""本文の上限に近い大きさの音声を送るときのタイムアウト。"""
 
 LOOPBACK = "127.0.0.1"
 
@@ -454,6 +462,45 @@ def spy_on_transcribed_audio(monkeypatch: pytest.MonkeyPatch) -> list[Transcribe
     return transcribed
 
 
+class StubTranscription:
+    """文字起こしを、決めた文を返す（または失敗する）関数に差し替えたものの控え。受けた音声のパスを覚え、放すまで待たせることもできる。"""
+
+    def __init__(self, text: str = "") -> None:
+        self.text = text
+        """返す文。"""
+        self.error: Exception | None = None
+        """送出する例外。None なら文を返す。"""
+        self.paths: list[Path] = []
+        """渡された音声のパス（渡された順）。"""
+        self.progress_points: list[float] = []
+        """起こす途中で知らせる進み（区間の終わりの時刻 ÷ 音声の秒数）。"""
+        self.release = threading.Event()
+        """放すまで戻らないための合図。既定は放した状態。"""
+        self.release.set()
+
+    def hold(self) -> None:
+        """放すまで文字起こしを戻さない状態にする。"""
+        self.release.clear()
+
+    def __call__(self, audio_path: Path, on_progress: Any = None, **options: Any) -> str:
+        """音声のパスを覚え、進みを知らせ、放されるまで待ってから、文を返すか例外を送出する。"""
+        self.paths.append(audio_path)
+        for point in self.progress_points:
+            if on_progress is not None:
+                on_progress(point, 1.0)
+        self.release.wait(timeout=HOLD_TIMEOUT_SEC)
+        if self.error is not None:
+            raise self.error
+        return self.text
+
+
+def stub_transcription(monkeypatch: pytest.MonkeyPatch, text: str = "") -> StubTranscription:
+    """文字起こしを StubTranscription に差し替える（配線の前に呼ぶ。文字起こしワーカーは起動のまま使わない）。"""
+    stub = StubTranscription(text)
+    monkeypatch.setattr(main_module, "transcribe", stub)
+    return stub
+
+
 def fail_transcription_of_segment(monkeypatch: pytest.MonkeyPatch, segment_number: int) -> None:
     """連続録音の通し番号 segment_number の区間だけ文字起こしに失敗させる（ほかの区間は本物で起こす）。"""
     original = main_module.transcribe
@@ -465,6 +512,36 @@ def fail_transcription_of_segment(monkeypatch: pytest.MonkeyPatch, segment_numbe
         return original(audio_path, on_progress, **options)
 
     monkeypatch.setattr(main_module, "transcribe", _transcribe)
+
+
+# === ブラウザが送る音声 ===
+
+
+def encode_audio(wav_path: Path, container: str) -> bytes:
+    """WAV を container（`webm`・`mp3`・`mp4`・`ogg`）の音声に書き直して、そのバイト列を返す。"""
+    import av
+
+    codec, rate, options = {
+        "webm": ("libopus", 48000, {}),
+        "mp3": ("libmp3lame", 44100, {}),
+        "ogg": ("libopus", 48000, {}),
+        "mp4": ("aac", 44100, {"movflags": "frag_keyframe+empty_moov+default_base_moof"}),
+    }[container]
+    target = wav_path.with_suffix(f".encoded.{container}")
+    with (
+        av.open(str(wav_path)) as source,
+        av.open(str(target), "w", format=container, options=options) as destination,
+    ):
+        stream = destination.add_stream(codec, rate=rate)
+        stream.layout = "mono"
+        resampler = av.AudioResampler(format=stream.format, layout="mono", rate=stream.rate)
+        for frame in source.decode(audio=0):
+            for resampled in resampler.resample(frame):
+                destination.mux(stream.encode(resampled))
+        for resampled in resampler.resample(None):
+            destination.mux(stream.encode(resampled))
+        destination.mux(stream.encode(None))
+    return target.read_bytes()
 
 
 # === 配線した常駐アプリ ===
@@ -514,6 +591,12 @@ class InProcessApi:
     runner: ApiServerRunner
     http: httpx.Client
     token: str
+    port: int
+
+    @property
+    def web_origin(self) -> str:
+        """ブラウザが `/web/` を localhost で開いたときの Origin（`http://localhost:{ポート}`）。"""
+        return f"http://localhost:{self.port}"
 
     def post(
         self,
@@ -540,20 +623,59 @@ class InProcessApi:
         response = self.post("/sessions", json_body=body)
         return response, (time.perf_counter() - started) * 1000
 
+    def web_headers(self, **extra: str) -> dict[str, str]:
+        """ゲートウェイを通した形の `/web/` の要求のヘッダー（Host は localhost:{ポート}、トークン無し）に extra を足す。"""
+        return {"Host": f"localhost:{self.port}", **extra}
+
+    def post_web_audio(
+        self, data: bytes, *, origin: str | None = None, filename: str = "recording.webm"
+    ) -> httpx.Response:
+        """音声を multipart の audio で POST /web/transcriptions へ送る。origin が None なら画面と同じオリジンで送る。"""
+        headers = self.web_headers(Origin=self.web_origin if origin is None else origin)
+        return self.http.post(
+            "/web/transcriptions",
+            files={"audio": (filename, data, "audio/webm")},
+            headers=headers,
+        )
+
+    def post_web_body(self, body: bytes, *, chunked: bool = False) -> httpx.Response:
+        """sized_multipart_body で作った本文を POST /web/transcriptions へ送る（画面と同じオリジン）。chunked なら Content-Length を付けずに送る。"""
+        headers = self.web_headers(Origin=self.web_origin, **{"Content-Type": CONTENT_TYPE})
+        return self.http.post(
+            "/web/transcriptions",
+            content=chunks_of(body) if chunked else body,
+            headers=headers,
+            timeout=LARGE_BODY_TIMEOUT_SEC,
+        )
+
+    def get_job(self, job_id: str) -> httpx.Response:
+        """GET /web/transcriptions/{job_id} を呼ぶ。"""
+        return self.http.get(f"/web/transcriptions/{job_id}", headers=self.web_headers())
+
     def close(self) -> None:
         """クライアントを閉じて待ち受けを止める。"""
         self.http.close()
         self.runner.stop()
 
 
-def serve_api(session_api: SessionApiDeps) -> InProcessApi:
-    """build_fastapi で組み立てた app を 127.0.0.1 の空きポートで待ち受けさせ、叩くクライアントを返す。"""
+def serve_api(
+    session_api: SessionApiDeps,
+    web_api: WebApiDeps,
+    allowed_web_origins: Sequence[str] | Callable[[int], Sequence[str]] = (),
+    port: int | None = None,
+) -> InProcessApi:
+    """build_fastapi で組み立てた app を 127.0.0.1 の空きポートで待ち受けさせ、叩くクライアントを返す。
+
+    許す Origin は、一覧か、決まったポートから一覧を作る関数で渡す（ブラウザの Origin はポートを含むため）。
+    """
     token = create_token()
-    port = free_port()
-    runner = ApiServerRunner(build_fastapi(session_api, token, port), port)
+    port = free_port() if port is None else port
+    origins = allowed_web_origins(port) if callable(allowed_web_origins) else allowed_web_origins
+    app = build_fastapi(session_api, token, port, web_api=web_api, allowed_web_origins=origins)
+    runner = ApiServerRunner(app, port)
     assert runner.start(API_START_TIMEOUT_SEC)
     http = httpx.Client(base_url=f"http://{LOOPBACK}:{port}", timeout=REQUEST_TIMEOUT_SEC)
-    return InProcessApi(runner=runner, http=http, token=token.get_secret_value())
+    return InProcessApi(runner=runner, http=http, token=token.get_secret_value(), port=port)
 
 
 def start_continuous(api: InProcessApi, receiver: CallbackReceiver) -> str:
@@ -606,13 +728,41 @@ class InProcessApp:
         """セッションが空（待機中）に戻るまで待ち、戻ったかを返す。"""
         return wait_until(lambda: self.manager.current() is None, timeout_sec)
 
+    def web_temp_files(self) -> list[Path]:
+        """ブラウザの音声の一時のフォルダに残っているファイルを返す（フォルダが無ければ空）。"""
+        tmp_dir = self.handlers.web_api.tmp_dir
+        return sorted(tmp_dir.iterdir()) if tmp_dir.exists() else []
+
     def history_files(self, suffix: str) -> list[Path]:
         """履歴に残ったファイルのうち、拡張子が suffix のものを返す。"""
         return sorted(self.paths.history_dir.rglob(f"*{suffix}"))
 
     def start_api(self) -> InProcessApi:
         """build_fastapi で組み立てた app を 127.0.0.1 の空きポートで待ち受けさせ、叩くクライアントを返す。"""
-        self.api = serve_api(self.handlers.session_api)
+        self.api = serve_api(
+            self.handlers.session_api,
+            self.handlers.web_api,
+            self.handlers.settings_store.get().api.allowed_web_origins,
+        )
+        return self.api
+
+    def start_web_api(
+        self, *, allowed: bool = True, port: int | None = None, start_queue: bool = True
+    ) -> InProcessApi:
+        """ブラウザの音声のキューを始め、localhost で開く `/web/` の Origin を許して API を待ち受けさせる。
+
+        allowed が偽なら、どの Origin も許さない。port を渡すと、そのポートで待ち受ける（止めた API を同じポートで立て直す）。
+        start_queue が偽なら、キューは始めない（立て直しでワーカースレッドを重ねない）。
+        """
+        web_api = self.handlers.web_api
+        if start_queue:
+            web_api.queue.start(web_api.tmp_dir)
+        self.api = serve_api(
+            self.handlers.session_api,
+            web_api,
+            (lambda chosen: [f"http://localhost:{chosen}"]) if allowed else (),
+            port,
+        )
         return self.api
 
     def start_limit_timer(self) -> None:
@@ -629,6 +779,7 @@ class InProcessApp:
         if self.api is not None:
             self.api.close()
         self.manager.close()
+        self.handlers.web_api.queue.close()
         self.handlers.stop_engine()
 
 

@@ -4,5 +4,5 @@
 
 | 画面 | 案リスト |
 | --- | --- |
-| 設定画面 | [settings / 166](../../pages/settings/166/) |
+| 設定画面 | [settings / 166 / b-drag-handle](../../pages/settings/166/b-drag-handle/)（採用） |
 | 文言の一覧の欄（部品） | [edge-phrase-editor](../../components/edge-phrase-editor/index.html) |

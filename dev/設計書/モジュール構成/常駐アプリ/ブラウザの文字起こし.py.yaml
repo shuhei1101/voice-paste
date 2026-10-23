@@ -1,0 +1,600 @@
+title: "常駐アプリ / ブラウザの文字起こし"
+lead: 外の端末のブラウザから受けた音声のジョブを積み、1 件ずつ起こして補正し、状態と結果を返す feature（`features/web_transcription/`）。
+directory: |-
+  ```
+  src/voice_paste/features/web_transcription/
+  ├── __init__.py   # WebJobQueue・accept_audio・router の公開
+  ├── types.py      # ジョブの状態・ジョブ・ほかの feature を受け取る関数型・API の依存
+  ├── service.py    # WebJobQueue（ジョブの一覧とワーカースレッド）・accept_audio（受け付け）
+  ├── schemas.py    # API のレスポンス
+  └── route.py      # POST /web/transcriptions・GET /web/transcriptions/{job_id}
+  ```
+diagrams:
+  - name: 全体
+    diagram: |-
+      ```mermaid
+      classDiagram
+        direction LR
+        class ブラウザの文字起こしのroute
+        class 音声の受け付け
+        class ブラウザの音声のキュー
+        class ジョブ
+        class ブラウザの文字起こしの依存
+        ブラウザの文字起こしのroute --> 音声の受け付け : 受け付け
+        ブラウザの文字起こしのroute --> ブラウザの音声のキュー : 引く
+        音声の受け付け --> ブラウザの音声のキュー : 積む
+        ブラウザの音声のキュー --> ジョブ : 持つ（0..*）
+        ブラウザの音声のキュー --> ブラウザの文字起こしの依存 : 呼ぶ
+      ```
+enums:
+  - name: JobState
+    title: ジョブの状態
+    container: features/web_transcription/types.py
+    usecase: 共通
+    summary: ジョブがどこまで進んだか。値は API の `state` にそのまま出る
+    values:
+      - value: queued
+        title: 文字起こし待ち
+        description: 受け付けてキューに積んだ
+      - value: running
+        title: 文字起こし中
+        description: ワーカースレッドが起こしている
+      - value: done
+        title: 文字起こし完了
+        description: 起こして補正した文字を持つ
+      - value: failed
+        title: 文字起こし失敗
+        description: 文字起こしに失敗した理由を持つ
+    status: planned
+data_models:
+  - name: WebJob
+    title: ジョブ
+    container: features/web_transcription/types.py
+    usecase: 共通
+    role: DTO
+    summary: ブラウザから受けた音声 1 件分の状態と結果（frozen。状態が変わるたびに WebJobQueue が `replace` で差し替える）
+    properties:
+      - name: id
+        type: str
+        description: ジョブの ID（`secrets.token_urlsafe(16)`、22 文字）
+      - name: state
+        type: JobState
+        description: 今の状態
+      - name: audio_path
+        type: Path
+        description: 受けた音声の一時のファイル（`tmp/web/{id}{拡張子}`）。履歴へ移した後は履歴のパス
+      - name: audio
+        type: AudioProbe
+        description: 受け付けで読んだ容れ物の形式・秒数・大きさ
+      - name: progress
+        type: float
+        default: '0.0'
+        description: 進み具合（0.0〜1.0）
+      - name: text
+        type: str | None
+        default: None
+        description: done のときの補正した文字
+      - name: error
+        type: str | None
+        default: None
+        description: failed のときの失敗の理由
+    status: planned
+  - name: WebTranscriptionDeps
+    title: ブラウザの文字起こしの依存
+    container: features/web_transcription/types.py
+    usecase: 共通
+    role: 依存の束
+    summary: WebJobQueue が呼ぶほかの feature・外部連携の関数（main.py が部分適用して渡す）
+    properties:
+      - name: store_audio
+        type: StoreWebAudioFn
+        description: 受けた音声を履歴へ移す（残さない設定なら一時のファイルのまま）
+      - name: transcribe
+        type: TranscribeFn
+        description: 音声を起こす（セッションと同じ文字起こしワーカーを、今のロックで順番に使う）
+      - name: correct
+        type: CorrectFn
+        description: 用語集と文頭・文末の文言で補正する
+      - name: append_text
+        type: AppendTextFn
+        description: 履歴の音声と同じ名前の .txt に書く
+      - name: discard_temporary
+        type: DiscardTemporaryFn
+        description: 一時のファイルなら消す
+    status: planned
+  - name: WebApiDeps
+    title: ブラウザの API の依存
+    container: features/web_transcription/types.py
+    usecase: 共通
+    role: 依存の束
+    summary: route が使う WebJobQueue と受け付けの関数（app.state.web_api に置く）
+    properties:
+      - name: queue
+        type: WebJobQueue
+        description: ジョブの一覧とワーカースレッド
+      - name: probe_audio
+        type: ProbeAudioFn
+        description: 受けた音声を PyAV で開いて形式と秒数を読む
+      - name: tmp_dir
+        type: Path
+        description: 受けた音声を書く一時のフォルダ（`{AppPaths.tmp_dir}/web`）
+    status: planned
+  - name: CreateWebTranscriptionResponse
+    title: 音声の受け付けのレスポンス
+    container: features/web_transcription/schemas.py
+    usecase: ブラウザから音声を送る
+    role: スキーマ
+    summary: '`POST /web/transcriptions` の 202 の本文'
+    inherits: pydantic.BaseModel
+    properties:
+      - name: job_id
+        type: str
+        description: 積んだジョブの ID
+    status: planned
+  - name: WebTranscriptionStatus
+    title: 文字起こしの結果のレスポンス
+    container: features/web_transcription/schemas.py
+    usecase: ブラウザで結果を受け取る
+    role: スキーマ
+    summary: '`GET /web/transcriptions/{job_id}` の 200 の本文'
+    inherits: pydantic.BaseModel
+    properties:
+      - name: job_id
+        type: str
+        description: ジョブの ID
+      - name: state
+        type: JobState
+        description: ジョブの状態
+      - name: progress
+        type: float
+        description: 進み具合（0.0〜1.0）
+      - name: text
+        type: str | None
+        description: done のときの補正した文字
+      - name: error
+        type: str | None
+        description: failed のときの失敗の理由
+    status: planned
+function_types:
+  - name: StoreWebAudioFn
+    title: 受けた音声の保存
+    container: features/web_transcription/types.py
+    usecase: 共通
+    summary: ジョブの ID と一時のファイルを受け、履歴を残す設定なら履歴へ移してそのパスを、残さない設定なら一時のファイルのままそのパスを返す
+    returns:
+      type: Path
+      description: 文字起こしに渡す音声のパス
+    implementations:
+      - target: 履歴の store_web_audio
+    status: planned
+  - name: TranscribeFn
+    title: 文字起こし
+    container: features/web_transcription/types.py
+    usecase: 共通
+    summary: 音声のファイルと進みを知らせる関数を受け、起こした文字を返す。失敗は TranscriptionError
+    returns:
+      type: str
+      description: 区間を改行でつないだ文字
+    implementations:
+      - target: 文字起こしの transcribe
+    status: planned
+  - name: CorrectFn
+    title: 補正
+    container: features/web_transcription/types.py
+    usecase: 共通
+    summary: 起こした文字を、今の設定の用語集と文頭・文末の文言で補正して返す
+    returns:
+      type: str
+      description: 補正した文字
+    implementations:
+      - target: main.py の _correct（セッションと同じ）
+    status: planned
+  - name: AppendTextFn
+    title: 起こした文字の書き足し
+    container: features/web_transcription/types.py
+    usecase: 共通
+    summary: 音声のパスと起こした文字を受け、同じ名前の .txt に書く（一時のファイルなら何もしない）
+    returns:
+      type: None
+      description: なし
+    implementations:
+      - target: 履歴の append_text
+    status: planned
+  - name: DiscardTemporaryFn
+    title: 一時のファイルの削除
+    container: features/web_transcription/types.py
+    usecase: 共通
+    summary: 音声のパスを受け、一時のファイル（`tmp/` の下）なら消す
+    returns:
+      type: None
+      description: なし
+    implementations:
+      - target: 履歴の discard_temporary
+    status: planned
+  - name: ProbeAudioFn
+    title: 音声の形式の読み取り
+    container: features/web_transcription/types.py
+    usecase: ブラウザから音声を送る
+    summary: 音声のファイルを受け、容れ物の形式・秒数・大きさを返す。開けない・音声が無いときは AudioUnreadableError
+    returns:
+      type: AudioProbe
+      description: 読んだ形式
+    implementations:
+      - target: 外部連携の probe_audio
+    status: planned
+classes:
+  - name: WebJobQueue
+    title: ブラウザの音声のキュー
+    container: features/web_transcription/service.py
+    usecase: 共通
+    role: サービス
+    kind: クラス
+    summary: ジョブの一覧と待ち行列を持ち、ワーカースレッドで 1 件ずつ起こす
+    description: |-
+      長期に持つランタイム状態（ジョブの一覧・待ち行列・ワーカースレッド）を持つためクラスにする。
+      ジョブの一覧は `threading.Lock` の中で読み書きする（route は uvicorn のスレッド、起こすのはワーカースレッド）。
+      待ち行列は `queue.Queue`。終わったジョブは終わった順に `collections.deque` で控え、終わったジョブを持つ件数を超えたら古い順に一覧から捨てる。
+    properties:
+      - name: _deps
+        type: WebTranscriptionDeps
+        access: 内部 (_)
+        description: 呼ぶ関数
+      - name: _max_pending
+        type: int
+        access: 内部 (_)
+        default: WEB_QUEUE_LIMIT
+        description: 終わっていないジョブの上限
+      - name: _max_finished
+        type: int
+        access: 内部 (_)
+        default: WEB_FINISHED_JOBS_KEPT
+        description: 終わったジョブを持つ件数
+      - name: _jobs
+        type: dict[str, WebJob]
+        access: 内部 (_)
+        description: ジョブの ID → ジョブ
+      - name: _finished
+        type: deque[str]
+        access: 内部 (_)
+        description: 終わったジョブの ID（終わった順）
+      - name: _pending
+        type: queue.Queue[str | None]
+        access: 内部 (_)
+        description: 起こすジョブの ID の待ち行列。None は止める合図
+      - name: _lock
+        type: threading.Lock
+        access: 内部 (_)
+        description: _jobs・_finished を守る
+      - name: _thread
+        type: threading.Thread | None
+        access: 内部 (_)
+        description: ワーカースレッド
+    methods:
+      - name: start
+        title: 開始
+        kind: メソッド
+        scope: public
+        summary: 一時のフォルダに取り残された音声を消し、ワーカースレッドを立てる
+        args:
+          - name: tmp_dir
+            type: Path
+            required: true
+            description: 受けた音声の一時のフォルダ
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. tmp_dir の下のファイルを消す（前の起動で取り残された音声。消せないものは残す）
+             - `[WARNING]` 消せなかった（パス・理由）
+          2. tmp_dir を作る
+          3. _run を回すデーモンのスレッドを立てる
+        unit_tests:
+          - name: test_start
+            case: 正常
+            summary: 取り残しを消してスレッドを立てる
+            condition: tmp_dir に古い `.webm` が 1 つある
+            mock: WebTranscriptionDeps の全関数
+            expected: 古いファイルが消え、ワーカースレッドが動いている
+      - name: submit
+        title: 積む
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        summary: 終わっていないジョブが上限未満ならジョブを queued で積む
+        args:
+          - name: job_id
+            type: str
+            required: true
+            description: ジョブの ID
+          - name: audio_path
+            type: Path
+            required: true
+            description: 書いた一時のファイル
+          - name: audio
+            type: AudioProbe
+            required: true
+            description: 読んだ形式
+        returns:
+          type: WebJob
+          description: 積んだジョブ（state は queued）
+        process: |-
+          1. ロックを取る
+          2. 終わっていないジョブ（queued・running）の数が _max_pending 以上なら WebQueueFullError を送出する
+          3. ジョブを作って _jobs に入れ、待ち行列に ID を積む
+             - `[INFO]` 音声を受け付けた（job_id・大きさ・形式・秒数）
+        exceptions:
+          - name: WebQueueFullError
+            condition: 終わっていないジョブが上限に達している
+        unit_tests:
+          - name: test_submit
+            case: 正常
+            summary: queued で積む
+            condition: ジョブが無い
+            mock: WebTranscriptionDeps の全関数（ワーカースレッドは立てない）
+            expected: queued のジョブが返り、get で同じジョブが引ける
+          - name: test_submit_when_queue_full
+            case: 異常
+            summary: 上限で断る
+            condition: _max_pending=2 で 2 件積んだ後に 3 件目
+            mock: WebTranscriptionDeps の全関数（ワーカースレッドは立てない）
+            expected: WebQueueFullError が送出され、ジョブは 2 件のまま
+            exception: 終わっていないジョブが上限に達している
+      - name: get
+        title: 引く
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        summary: ジョブの今の状態を返す
+        args:
+          - name: job_id
+            type: str
+            required: true
+            description: ジョブの ID
+        returns:
+          type: WebJob
+          description: 今のジョブ
+        process: |-
+          1. ロックを取る
+          2. _jobs に無ければ WebJobNotFoundError を送出する
+          3. ジョブを返す
+        exceptions:
+          - name: WebJobNotFoundError
+            condition: 受け付けていないか、件数を超えて捨てた
+        unit_tests:
+          - name: test_get_when_not_found
+            case: 異常
+            summary: 無い ID は断る
+            condition: 受け付けていない ID
+            mock: WebTranscriptionDeps の全関数
+            expected: WebJobNotFoundError が送出される
+            exception: 受け付けていないか、件数を超えて捨てた
+      - name: _run
+        title: ワーカースレッドの本体
+        kind: メソッド
+        scope: internal
+        summary: 待ち行列から ID を 1 つずつ取り出して _process を呼ぶ。None を取り出したら終わる
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 待ち行列から ID を取り出す
+             - None なら終わる
+          2. _process を呼ぶ（例外は _process の中で受け、スレッドを止めない）
+          3. 1 へ戻る
+      - name: _process
+        title: 1 件を起こす
+        kind: メソッド
+        scope: internal
+        summary: ジョブを running にして、履歴へ移し、起こして補正し、done か failed で終える
+        args:
+          - name: job_id
+            type: str
+            required: true
+            description: ジョブの ID
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. ジョブを running にする
+          2. 受けた音声を保存する（store_audio。履歴を残す設定なら履歴へ移し、audio_path を差し替える）
+          3. 起こす（transcribe。進みは progress に書く）
+          4. 補正する（correct）
+          5. 起こした文字を履歴に書き足す（append_text）
+          6. ジョブを done・progress 1.0・text で終える
+             - `[INFO]` 起こし終えた（job_id・秒数・文字数。起こした文字は書かない）
+             - 2〜5 で TranscriptionError・OSError の場合、ジョブを failed・error で終える
+               - `[ERROR]` 文字起こしに失敗した（job_id・理由）
+             - それ以外の例外の場合も failed・「想定していない問題」で終える
+               - `[ERROR]` 想定していない例外（job_id。スタックをログに書き、error には含めない）
+          7. 一時のファイルなら消す（discard_temporary。失敗しても通る）
+          8. 終わったジョブの一覧に足し、_max_finished を超えたらいちばん古い件を _jobs から捨てる
+        unit_tests:
+          - name: test_process
+            case: 正常
+            summary: 起こして補正し、done で終える
+            condition: queued のジョブ 1 件。transcribe が進み 0.5 を知らせて文を返す
+            mock: WebTranscriptionDeps の全関数
+            expected: ジョブが done・progress 1.0・text は correct の戻り値で、store_audio・append_text・discard_temporary が 1 回ずつ呼ばれる。transcribe の途中に get すると running・progress 0.5
+          - name: test_process_when_transcription_failed
+            case: 異常
+            summary: 失敗は failed で終えて次へ進む
+            condition: transcribe が TranscriptionError を送出する
+            mock: WebTranscriptionDeps の全関数
+            expected: ジョブが failed・error に理由、text は None で、discard_temporary が呼ばれ、append_text は呼ばれない
+          - name: test_process_when_unexpected_error
+            case: 異常
+            summary: 想定していない例外も failed で終える
+            condition: correct が ValueError を送出する
+            mock: WebTranscriptionDeps の全関数
+            expected: ジョブが failed で、error に例外の中身が含まれない
+          - name: test_process_when_over_finished_limit
+            case: 正常
+            summary: 終わったジョブは件数で古い順に捨てる
+            condition: _max_finished=1 で 2 件を終える
+            mock: WebTranscriptionDeps の全関数
+            expected: 先に終えたジョブの get が WebJobNotFoundError、後のジョブは done
+      - name: close
+        title: 終了
+        kind: メソッド
+        scope: public
+        summary: 待ち行列に止める合図を積み、待ちのジョブの一時のファイルを消す。起こしている 1 件は待たない
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 待ち行列に残った ID を取り出し、そのジョブの一時のファイルを消す（discard_temporary）
+          2. 待ち行列に None を積む（ワーカースレッドはデーモンなので join しない）
+             - `[INFO]` ブラウザの音声のキューを閉じた（捨てた待ちの数）
+        unit_tests:
+          - name: test_close
+            case: 正常
+            summary: 待ちの一時のファイルを消す
+            condition: queued のジョブが 2 件（ワーカースレッドは立てない）
+            mock: WebTranscriptionDeps の全関数
+            expected: discard_temporary が 2 回呼ばれる
+    status: planned
+functions:
+  - name: accept_audio
+    title: 音声の受け付け
+    kind: 関数
+    container: features/web_transcription/service.py
+    usecase: ブラウザから音声を送る
+    scope: public
+    summary: 受けた音声の形式を確かめ、一時のファイルへ書いてジョブを積む
+    args:
+      - name: file
+        type: BinaryIO
+        required: true
+        passing: positional
+        description: 受けた音声（UploadFile.file）
+      - name: deps
+        type: WebApiDeps
+        required: true
+        passing: keyword
+        description: キュー・形式の読み取り・一時のフォルダ
+    returns:
+      type: WebJob
+      description: 積んだジョブ
+    process: |-
+      1. 音声の形式を読む（probe_audio。読めなければ AudioUnreadableError が伝わる）
+         - `[WARNING]` 読めない音声を断った（大きさ・理由）
+      2. ID を作り、`{tmp_dir}/{ID}{容れ物の拡張子}` へ頭から写す
+      3. キューに積む（submit）
+         - WebQueueFullError の場合、写した一時のファイルを消してそのまま送出する
+           - `[WARNING]` 待ちが上限のため断った（待ちの数）
+    exceptions:
+      - name: AudioUnreadableError
+        condition: PyAV で開けないか、音声のストリームが無い
+      - name: WebQueueFullError
+        condition: 終わっていないジョブが上限に達している
+    unit_tests:
+      - name: test_accept_audio
+        case: 正常
+        summary: 容れ物の拡張子で書いて積む
+        condition: probe_audio が webm を返す
+        mock: probe_audio・WebJobQueue.submit
+        expected: tmp_dir に `{ID}.webm` が送った中身で書かれ、submit がそのパスで呼ばれる
+      - name: test_accept_audio_when_unreadable
+        case: 異常
+        summary: 読めなければ書かない
+        condition: probe_audio が AudioUnreadableError を送出する
+        mock: probe_audio・WebJobQueue.submit
+        expected: AudioUnreadableError が伝わり、tmp_dir が空で submit が呼ばれない
+        exception: PyAV で開けないか、音声のストリームが無い
+      - name: test_accept_audio_when_queue_full
+        case: 異常
+        summary: 待ちが上限なら書いたファイルを消す
+        condition: submit が WebQueueFullError を送出する
+        mock: probe_audio・WebJobQueue.submit
+        expected: WebQueueFullError が伝わり、tmp_dir が空
+        exception: 終わっていないジョブが上限に達している
+    status: planned
+  - name: create_web_transcription_route
+    title: 音声の受け付けの route
+    kind: 関数
+    container: features/web_transcription/route.py
+    usecase: ブラウザから音声を送る
+    scope: public
+    summary: '`POST /web/transcriptions`。UploadFile の audio を accept_audio に渡し、202 と job_id を返す'
+    args:
+      - name: audio
+        type: UploadFile
+        required: true
+        passing: positional
+        description: multipart の audio
+      - name: deps
+        type: WebApiDeps
+        required: true
+        passing: injected
+        description: app.state.web_api（get_web_api_deps）
+    returns:
+      type: CreateWebTranscriptionResponse
+      description: 202 の本文
+    process: |-
+      1. accept_audio に audio.file と依存を渡す（例外は例外ハンドラが HTTP に変える）
+      2. job_id を返す
+    status: planned
+  - name: get_web_transcription_route
+    title: 文字起こしの結果の route
+    kind: 関数
+    container: features/web_transcription/route.py
+    usecase: ブラウザで結果を受け取る
+    scope: public
+    summary: '`GET /web/transcriptions/{job_id}`。キューからジョブを引いて状態を返す'
+    args:
+      - name: job_id
+        type: str
+        required: true
+        passing: positional
+        description: ジョブの ID
+      - name: deps
+        type: WebApiDeps
+        required: true
+        passing: injected
+        description: app.state.web_api（get_web_api_deps）
+    returns:
+      type: WebTranscriptionStatus
+      description: 200 の本文
+    process: |-
+      1. queue.get でジョブを引く（無ければ WebJobNotFoundError を例外ハンドラが 404 にする）
+      2. job_id・state・progress・text・error を返す
+    status: planned
+  - name: get_web_api_deps
+    title: ブラウザの API の依存の取得
+    kind: 関数
+    container: features/web_transcription/route.py
+    usecase: 共通
+    scope: public
+    summary: app.state.web_api に置かれた WebApiDeps を返す（Depends）
+    args:
+      - name: request
+        type: Request
+        required: true
+        passing: positional
+        description: 要求
+    returns:
+      type: WebApiDeps
+      description: 依存
+    status: planned
+constants:
+  - name: WEB_QUEUE_LIMIT
+    title: ブラウザの音声の待ちの上限
+    container: features/web_transcription/service.py
+    usecase: ブラウザから音声を送る
+    summary: 終わっていないジョブ（queued・running）の上限。非機能要件のブラウザの音声の待ちの上限
+    value: '10'
+    status: planned
+  - name: WEB_FINISHED_JOBS_KEPT
+    title: 終わったジョブを持つ件数
+    container: features/web_transcription/service.py
+    usecase: ブラウザで結果を受け取る
+    summary: 終わったジョブ（done・failed）をメモリに持つ件数。非機能要件の終わったジョブを持つ件数
+    value: '100'
+    status: planned
+  - name: JOB_ID_BYTES
+    title: ジョブの ID のバイト数
+    container: features/web_transcription/service.py
+    usecase: ブラウザから音声を送る
+    summary: secrets.token_urlsafe に渡す乱数のバイト数（128 bit、22 文字）
+    value: '16'
+    status: planned

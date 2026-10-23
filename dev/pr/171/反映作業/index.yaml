@@ -1,0 +1,42 @@
+許す Origin の設定:
+  説明: 稼働中の常駐アプリが読む settings.toml の、`/web/` の下に許す Origin の一覧へ、ゲートウェイの公開のサブドメインと `https://{マシン名}.{tailnet名}.ts.net` を書き、常駐アプリを起動し直して読み込ませる
+  タグ: [設定の書き換え, 再起動]
+  実行者: tester
+  時期: master へ入った後
+  回数: 1 回限り
+  可逆: true
+  疎通確認: null
+  実行: null
+  確認: null
+  切り戻し: null
+  失敗時: 既定の対処を 1 回、2 回連続で失敗したら依頼元へ返す
+  確認方法: 外の端末のブラウザで開いた画面から送った要求が 403 にならず、`GET /web/transcriptions/{job_id}` が `state` を返す
+  状態: "-"
+tailscale serve での公開:
+  説明: Windows の tailscale.exe の `serve` で、tailnet の HTTPS を `127.0.0.1:47823` へ中継するよう登録する
+  タグ: [外部への公開]
+  実行者: tester
+  時期: master へ入った後
+  回数: 1 回限り
+  可逆: true
+  疎通確認: null
+  実行: null
+  確認: null
+  切り戻し: null
+  失敗時: 既定の対処を 1 回、2 回連続で失敗したら依頼元へ返す
+  確認方法: "`tailscale serve status` に `https://{マシン名}.{tailnet名}.ts.net` から `http://127.0.0.1:47823` への中継が出て、tailnet の端末から `/web/` が画面を返す"
+  状態: "-"
+ゲートウェイへの登録:
+  説明: shuhdev-gateway の `gw` で voice-paste のサブドメインを `127.0.0.1:47823` へ振り分けるよう、`--rewrite-origin` を付けずに登録する
+  タグ: [外部への公開]
+  実行者: tester
+  時期: master へ入った後
+  回数: 1 回限り
+  可逆: true
+  疎通確認: null
+  実行: null
+  確認: null
+  切り戻し: null
+  失敗時: 既定の対処を 1 回、2 回連続で失敗したら依頼元へ返す
+  確認方法: ゲートウェイの登録の一覧に voice-paste のサブドメインが `127.0.0.1:47823` 向きで出て、Cloudflare Access を通した外の端末から `/web/` が画面を返す
+  状態: "-"

@@ -16,7 +16,7 @@ elements:
     description: まとまりを選ぶと、右の欄をそのまとまりに切り替える。切り替えても入れた値は消さない
     io: 入力
     visible_when: 常時
-    options: 出力先・ブラウザ添付・エンドポイントへ送る・ホットキー・録音・文字起こし・表記のヒント・用語集・画面・履歴とログ・API の順。既定は出力先
+    options: 出力先・ブラウザ添付・エンドポイントへ送る・ホットキー・録音・文字起こし・表記のヒント・用語集・ハルシネーション・画面・履歴とログ・API の順。既定は出力先
     initial_value: 出力先
     action: 右の欄を選んだまとまりに切り替える
   - name: エラーの一覧
@@ -26,7 +26,7 @@ elements:
     description: 保存できなかったことと直す欄の件数、欄ごとのエラーを並べる。各行はその欄へのリンクで、押すとその欄のまとまりへ切り替えて欄へフォーカスを移す。出したときにフォーカスを一覧へ移す
     label: 保存できませんでした。{件数} 件の欄を直してください。
     visible_when: 保存を押して確かめに通らない欄があったとき。入力の途中では出さない
-    display_format: '1 行 = 「{欄の名前}: {エラー}」。プリセットの欄は「プリセット「{タイトル}」の{欄の名前}」、タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」。用語集の欄は「用語集 {一覧の何件目か} 件目の名前」「用語集 {一覧の何件目か} 件目の {何行目か} 行目の誤変換」。表記のヒントの欄は「有効なヒントの長さ」「プリセット {一覧の何件目か} 件目の名前」「プリセット {一覧の何件目か} 件目の {何つ目か} つ目の語」'
+    display_format: '1 行 = 「{欄の名前}: {エラー}」。プリセットの欄は「プリセット「{タイトル}」の{欄の名前}」、タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」。用語集の欄は「用語集 {一覧の何件目か} 件目の名前」「用語集 {一覧の何件目か} 件目の {何行目か} 行目の誤変換」。表記のヒントの欄は「有効なヒントの長さ」「プリセット {一覧の何件目か} 件目の名前」「プリセット {一覧の何件目か} 件目の {何つ目か} つ目の語」。ハルシネーションの欄は「ハルシネーションの {何行目か} 行目の文言」'
   - name: 設定の欄
     id: field_{key}
     kind: input
@@ -677,6 +677,107 @@ elements:
     status: planned
     introduced:
       pr: 152
+  - name: ハルシネーションの説明
+    id: edge_phrase_intro
+    kind: label
+    position: 窓 > 右 > ハルシネーション > 見出しの下
+    description: 一覧の文言が何を消すかを伝える。まとまりの見出しは「ハルシネーション」
+    label: 文字起こしが文頭・文末に足す、話していない文言を消す。
+    io: 表示
+    visible_when: ハルシネーションのまとまりを選んだとき
+    status: planned
+  - name: 文言の一覧
+    id: edge_phrase_list
+    kind: table
+    position: 窓 > 右 > ハルシネーション > 説明の下
+    description: 文頭・文末から消す文言を 1 行ずつ、当てる順に並べる。列は「つまみ」「文言」「位置」と消すボタン。読み上げの表の名前は「文頭・文末から消す文言（上の行から順に当てる）」。行を動かしたら、動かした先を「{何行目か} 行目へ動かしました」と読み上げに伝える。幅の狭い窓では 1 行を 2 段に組み、上の段に文言の欄、下の段に位置と消すボタンを置く
+    io: 入出力
+    visible_when: ハルシネーションのまとまりを選んだときで、行が 1 つ以上あるとき
+    initial_value: settings.toml の `edge_phrases[]`。キーが無ければ既定の一覧（上から「チャンネル登録*」「ご視聴ありがとうございました」「ありがとうございました」。全て文末）
+    sorting: 行の左端のつまみを掴んで動かすか、文言の欄で Alt+↑ / Alt+↓ を押して 1 行ずつ動かす。既定は settings.toml の並びで、足した行は末尾
+    source: Settings.edge_phrases[]
+    target: Settings.edge_phrases[]（一覧の順に書く。文言が空の行は捨てる）
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[edge_phrases[].text]
+    reason: 並べ替えをつまみにした（確認ログ）
+    status: planned
+  - name: 行のつまみ
+    id: edge_phrase_grip_{n}
+    kind: drag_handle
+    position: 窓 > 右 > ハルシネーション > 文言の一覧 > 行 > 左端
+    description: 掴んで上下へ動かし、離した位置へ行を移す。マウスを重ねるとツールチップ「掴んで動かす」を出す。フォーカスは受けず、キーボードでは文言の欄の Alt+↑ / Alt+↓ で同じように動かす
+    visible_when: 行ごと
+    action: 行を離した位置へ動かす
+    status: planned
+  - name: 文言の欄
+    id: edge_phrase_text_{n}
+    kind: input
+    position: 窓 > 右 > ハルシネーション > 文言の一覧 > 行
+    description: 文頭・文末から消す文言。`*` は任意の文字列に一致する。欄で Alt+↑ / Alt+↓ を押すと行を 1 つ上へ・下へ動かし、フォーカスは動かした行の文言の欄に残す（先頭で Alt+↑、末尾で Alt+↓ は何もしない）。欄より長い文言は欄の中で横に流す。読み上げの名前は「{何行目か} 行目の文言」
+    label: 文言（列の見出し）
+    io: 入出力
+    type: 文字列
+    visible_when: 行ごと
+    constraints: '`*` だけにできない。空の行は保存で捨てる'
+    initial_value: settings.toml の値（足した行は空）
+    error_message: 欄の下に赤で出す（入力チェック）
+    source: Settings.edge_phrases[].text
+    target: Settings.edge_phrases[].text（前後の空白を除く）
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[edge_phrases[].text]
+    status: planned
+  - name: 位置の選択
+    id: edge_phrase_position_{n}
+    kind: select
+    position: 窓 > 右 > ハルシネーション > 文言の一覧 > 行 > 文言の欄の右
+    description: その行の文言を文頭・文末のどこへ当てるかを選ぶ。読み上げの名前は「{何行目か} 行目の位置」
+    label: 位置（列の見出し）
+    io: 入出力
+    type: 列挙
+    visible_when: 行ごと
+    initial_value: settings.toml の値（足した行は文末）
+    options: 文頭（`start`）・文末（`end`）・両方（`both`）の順。複数は選べない
+    source: Settings.edge_phrases[].position
+    target: Settings.edge_phrases[].position
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[edge_phrases[].position]
+    status: planned
+  - name: 文言の行を消すボタン
+    id: edge_phrase_remove_{n}
+    kind: button
+    position: 窓 > 右 > ハルシネーション > 文言の一覧 > 行 > 右端
+    description: その行を一覧から消す。保存するまで settings.toml には書かず、キャンセルで戻せる
+    label: '{何行目か} 行目を消す（読み上げの名前。見た目は消す印）'
+    visible_when: 行ごと
+    action: 行を一覧から消す
+    status: planned
+  - name: 文言が無いときの文
+    id: edge_phrase_empty
+    kind: label
+    position: 窓 > 右 > ハルシネーション > 説明の下
+    description: 文言の一覧の代わりに、行が無いことと、無い間は何も消さないことを伝える
+    label: 消す文言はまだありません。無い間は、文頭・文末から何も消しません。
+    io: 表示
+    visible_when: ハルシネーションのまとまりを選んだときで、行が 1 つも無いとき
+    status: planned
+  - name: 文言の行を足すボタン
+    id: add_edge_phrase_button
+    kind: button
+    position: 窓 > 右 > ハルシネーション > 文言の一覧の下
+    description: 文言が空で位置が文末の行を一覧の末尾に足し、その行の文言の欄へフォーカスを移す
+    label: 行を足す
+    visible_when: ハルシネーションのまとまりを選んだとき
+    action: 文言の一覧に 1 行足す
+    status: planned
+  - name: 文言の決まりの凡例
+    id: edge_phrase_legend
+    kind: label
+    position: 窓 > 右 > ハルシネーション > 行を足すボタンの右
+    description: 行の順・`*` の一致・行の動かし方を示す凡例
+    label: 上の行から順に当てる。* は任意の文字列に一致する。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。
+    io: 表示
+    visible_when: ハルシネーションのまとまりを選んだとき
+    status: planned
 input_checks:
   - element: 設定の欄
     violation: 数値の欄に数値でない文字が入っている
@@ -763,8 +864,13 @@ input_checks:
     trigger: 保存・保存して再起動のボタンのクリック
     message: プリセット「{名前}」と同じ名前です。別の名前にしてください。
     position: その欄の下とエラーの一覧
+  - element: 文言の欄
+    violation: 前後の空白を除いて `*` だけ（文言が空の行は違反にせず、保存で捨てる）
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: '* だけの文言は、文頭・文末の行を丸ごと消します。消したい文言を入れてください。'
+    position: その欄の下とエラーの一覧
 screen: src/voice_paste/ui/windows/settings_window.py
-mock: dev/mock/pages/settings/159/a-accent-fg/
+mock: dev/mock/pages/settings/166/b-drag-handle/
 lead: トレイの「設定…」から開く画面。settings.toml の全てのキーをまとまりに並べ、設定のモデルで確かめてから保存する。
 refs:
   - dev/設計書/シナリオ/単一ユースケース/設定を変える#
@@ -791,6 +897,7 @@ notes:
     | 文字起こし（詳しい調整） | `transcription.local_whisper` の condition_on_previous_text・vad_filter | チェックボックス |
     | 表記のヒント | `hint_presets[]`（name・words・enabled） | 有効なヒントの長さと、ヒントのプリセットの一覧 |
     | 用語集 | `glossaries[]`（name・path）・`active_glossary` と、用語集の CSV の行（誤変換・正しい表記・オン・オフ） | 用語集の一覧と、選んだ用語集の行の表 |
+    | ハルシネーション | `edge_phrases[]`（text・position） | 文言の一覧 |
     | 画面 | `ui.theme` | ラジオボタン（Windows の設定に従う・ライト・ダーク）。欄の名前は「画面の明暗」で、まとまりの先頭に置く |
     | 画面 | `ui.topmost`・`ui.follow_cursor` | チェックボックス |
     | 画面 | `ui.position` | ラジオボタン（中央・左上・右上・左下・右下） |
@@ -803,7 +910,7 @@ notes:
     | API | `api.allowed_callback_hosts` | 複数行の文字の欄（1 行 = 1 ホスト） |
     | API（連続録音） | `api.continuous.min_silence_sec`・`api.continuous.session_limit_sec` | 数値の欄 |
 
-    欄の部品は設定のモデルの型から決める（bool → チェックボックス、リテラルの列挙 → ラジオボタンか選択の欄、int・float → 数値の欄、str → 文字の欄、ホットキーの型 → ホットキーの欄）。上の表は欄の並びと、型からは決まらない部品（つまみ・プリセットの一覧・用語集の一覧と行の表・ヒントのプリセットの一覧）を決める。
+    欄の部品は設定のモデルの型から決める（bool → チェックボックス、リテラルの列挙 → ラジオボタンか選択の欄、int・float → 数値の欄、str → 文字の欄、ホットキーの型 → ホットキーの欄）。上の表は欄の並びと、型からは決まらない部品（つまみ・プリセットの一覧・用語集の一覧と行の表・ヒントのプリセットの一覧・文言の一覧）を決める。
   印の見え方: |-
     チェックボックス（`checkbox`）・ラジオボタン（`radio`）・選択欄の開く印は、Qt の既定の描き方に任せず、アプリのスタイルシートで描く。明暗のどちらの組でも同じ色の役割で描き、印と背景の明るさの比を 3:1 以上にする。
 

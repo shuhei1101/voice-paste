@@ -654,5 +654,27 @@ settings:
     implementation: src/voice_paste/shared/settings.py
     introduced:
       pr: 131
+  - key: edge_phrases[].text
+    title: 文頭・文末から消す文言
+    file: settings.toml
+    type: string
+    description: 起こした文字の文頭・文末に一致したときに消す文言。書いた文字との完全な一致で、`*` は 0 文字以上の任意の文字列に一致する（端の `*` は行の端まで）。`edge_phrases` の並びの上から順に当てる。`edge_phrases` のキーが無い settings.toml は、既定の一覧（上から「チャンネル登録*」「ご視聴ありがとうございました」「ありがとうございました」。位置は全て `end`）として読む。キーがあって空の一覧なら何も消さない
+    reload: immediate
+    allowed: 1 文字以上（前後の空白を除いて）。`*` だけの文言は入れられない（文頭・文末の行を丸ごと消すため）
+    refs:
+      - dev/設計書/シナリオ/単一ユースケース/録音を文字に起こす#scenarios[正常シナリオ（文頭・文末の決まった文言を消す）]
+      - dev/設計書/外部ライブラリ/faster-whisper#
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+  - key: edge_phrases[].position
+    title: 文言を当てる位置
+    file: settings.toml
+    type: Literal["start", "end", "both"]
+    default: end
+    description: その行の文言を当てる位置。`start` は文頭（1 行目の先頭）、`end` は文末（最後の行の末尾）、`both` はその両方。設定画面では「文頭」「文末」「両方」と出す
+    reload: immediate
+    allowed: '`start` / `end` / `both`'
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
 notes:
   反映の列の読み方: '`immediate` は設定画面で保存すると動いている常駐アプリに効く項目。`settings.toml` を直接書き換えたときは、どの項目も再起動まで効かない（起動時に 1 度だけ読む）。'

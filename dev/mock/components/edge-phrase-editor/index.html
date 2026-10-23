@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>文言の一覧の欄 | voice-paste のモック</title>
+  <!-- 採用スタイル「開発者ツール」の部品は #37、一覧の部品は #44、用語集の行の表は #97、文言の一覧は #166 の共有 CSS に置く -->
+  <link rel="stylesheet" href="../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../refs/44/assets/style.css">
+  <link rel="stylesheet" href="../../refs/97/assets/style.css">
+  <link rel="stylesheet" href="../../refs/166/assets/style.css">
+  <!-- 文言の一覧の操作は #166 の共有 JS が受ける -->
+  <script src="../../refs/166/assets/app.js" defer></script>
+</head>
+<body>
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../">components</a> / <span>edge-phrase-editor</span></nav>
+
+    <!-- 部品の説明 -->
+    <header class="intro">
+      <h1>文言の一覧の欄</h1>
+      <p>設定画面の「ハルシネーション」のまとまりに置く、文頭・文末から消す文言の一覧の部品。行ごとに文言の欄と位置（文頭・文末・両方）の選択欄を並べ、表の下に「行を足す」と当てる決まりを置く。案 A は行の右端の上へ・下へ、案 B は行の左端のつまみで並べ替える。</p>
+    </header>
+
+    <div class="desk desk--single">
+
+      <!-- 状態: 案 A: 通常（既定の一覧） -->
+      <section class="specimen" aria-labelledby="h-a-normal">
+        <h2 id="h-a-normal">案 A: 通常（既定の一覧）</h2>
+        <div class="win settings__form">
+<!-- 文言の一覧: refs/166 の app.js が足す・消す・並べ替えを受ける -->
+<div id="c-a-normal" class="phrases" data-phrases="arrows" data-reload="immediate">
+<div class="targets-wrap" data-phrases-wrap>
+<table class="targets phrase-rows phrase-rows--arrows">
+<caption class="sr-only">文頭・文末から消す文言（上の行から順に当てる）</caption>
+<thead><tr><th scope="col">文言</th><th scope="col" class="col-where">位置</th><th scope="col" class="col-tools"><span class="sr-only">行の操作</span></th></tr></thead>
+<tbody data-phrase-list>
+<tr data-phrase><td><input type="text" data-text value="チャンネル登録*" aria-label="1 行目の文言"></td><td><select data-where aria-label="1 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="1 行目を上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="1 行目を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+<tr data-phrase><td><input type="text" data-text value="ご視聴ありがとうございました" aria-label="2 行目の文言"></td><td><select data-where aria-label="2 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="2 行目を上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="2 行目を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="2 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+<tr data-phrase><td><input type="text" data-text value="ありがとうございました" aria-label="3 行目の文言"></td><td><select data-where aria-label="3 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="3 行目を上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="3 行目を下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="3 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="phrases-empty" data-phrases-empty hidden>消す文言はまだありません。無い間は、文頭・文末から何も消しません。</p>
+<div class="phrases-actions"><button type="button" class="btn" data-add-phrase>行を足す</button><p class="field-help">上の行から順に当てる。<code>*</code> は任意の文字列に一致する。</p></div>
+<p class="sr-only" aria-live="polite" data-phrases-status></p>
+<!-- ひな形: 「行を足す」で表の末尾に写す（位置の既定は文末） -->
+<template data-phrase-template><tr data-phrase><td><input type="text" data-text value="" aria-label="1 行目の文言"></td><td><select data-where aria-label="1 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="1 行目を上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="1 行目を下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr></template>
+</div>
+        </div>
+        <p class="scene-note">先頭の行の上へと、末尾の行の下へは押せない。</p>
+      </section>
+      <!-- 状態: 案 A: 足した直後 -->
+      <section class="specimen" aria-labelledby="h-a-added">
+        <h2 id="h-a-added">案 A: 足した直後</h2>
+        <div class="win settings__form">
+<!-- 文言の一覧: refs/166 の app.js が足す・消す・並べ替えを受ける -->
+<div id="c-a-added" class="phrases" data-phrases="arrows" data-reload="immediate">
+<div class="targets-wrap" data-phrases-wrap>
+<table class="targets phrase-rows phrase-rows--arrows">
+<caption class="sr-only">文頭・文末から消す文言（上の行から順に当てる）</caption>
+<thead><tr><th scope="col">文言</th><th scope="col" class="col-where">位置</th><th scope="col" class="col-tools"><span class="sr-only">行の操作</span></th></tr></thead>
+<tbody data-phrase-list>
+<tr data-phrase><td><input type="text" data-text value="チャンネル登録*" aria-label="1 行目の文言"></td><td><select data-where aria-label="1 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="1 行目を上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="1 行目を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+<tr data-phrase><td><input type="text" data-text value="ご視聴ありがとうございました" aria-label="2 行目の文言"></td><td><select data-where aria-label="2 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="2 行目を上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="2 行目を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="2 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+<tr data-phrase><td><input type="text" data-text value="ありがとうございました" aria-label="3 行目の文言"></td><td><select data-where aria-label="3 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="3 行目を上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="3 行目を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="3 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+<tr data-phrase><td><input type="text" data-text value="" aria-label="4 行目の文言"></td><td><select data-where aria-label="4 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="4 行目を上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="4 行目を下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="4 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="phrases-empty" data-phrases-empty hidden>消す文言はまだありません。無い間は、文頭・文末から何も消しません。</p>
+<div class="phrases-actions"><button type="button" class="btn" data-add-phrase>行を足す</button><p class="field-help">上の行から順に当てる。<code>*</code> は任意の文字列に一致する。</p></div>
+<p class="sr-only" aria-live="polite" data-phrases-status></p>
+<!-- ひな形: 「行を足す」で表の末尾に写す（位置の既定は文末） -->
+<template data-phrase-template><tr data-phrase><td><input type="text" data-text value="" aria-label="1 行目の文言"></td><td><select data-where aria-label="1 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="1 行目を上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="1 行目を下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr></template>
+</div>
+        </div>
+        <p class="scene-note">「行を足す」で末尾に空の行を足し、文言の欄へフォーカスを移す。位置の既定は文末。</p>
+      </section>
+      <!-- 状態: 案 A: 長い文言・3 つの位置 -->
+      <section class="specimen" aria-labelledby="h-a-long">
+        <h2 id="h-a-long">案 A: 長い文言・3 つの位置</h2>
+        <div class="win settings__form">
+<!-- 文言の一覧: refs/166 の app.js が足す・消す・並べ替えを受ける -->
+<div id="c-a-long" class="phrases" data-phrases="arrows" data-reload="immediate">
+<div class="targets-wrap" data-phrases-wrap>
+<table class="targets phrase-rows phrase-rows--arrows">
+<caption class="sr-only">文頭・文末から消す文言（上の行から順に当てる）</caption>
+<thead><tr><th scope="col">文言</th><th scope="col" class="col-where">位置</th><th scope="col" class="col-tools"><span class="sr-only">行の操作</span></th></tr></thead>
+<tbody data-phrase-list>
+<tr data-phrase><td><input type="text" data-text value="お疲れ様でした" aria-label="1 行目の文言"></td><td><select data-where aria-label="1 行目の位置"><option selected>文頭</option><option>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="1 行目を上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="1 行目を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+<tr data-phrase><td><input type="text" data-text value="この動画が良かったと思ったら高評価とチャンネル登録をよろしくお願いします" aria-label="2 行目の文言"></td><td><select data-where aria-label="2 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="2 行目を上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="2 行目を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="2 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+<tr data-phrase><td><input type="text" data-text value="字幕*" aria-label="3 行目の文言"></td><td><select data-where aria-label="3 行目の位置"><option>文頭</option><option>文末</option><option selected>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="3 行目を上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="3 行目を下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="3 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="phrases-empty" data-phrases-empty hidden>消す文言はまだありません。無い間は、文頭・文末から何も消しません。</p>
+<div class="phrases-actions"><button type="button" class="btn" data-add-phrase>行を足す</button><p class="field-help">上の行から順に当てる。<code>*</code> は任意の文字列に一致する。</p></div>
+<p class="sr-only" aria-live="polite" data-phrases-status></p>
+<!-- ひな形: 「行を足す」で表の末尾に写す（位置の既定は文末） -->
+<template data-phrase-template><tr data-phrase><td><input type="text" data-text value="" aria-label="1 行目の文言"></td><td><select data-where aria-label="1 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="1 行目を上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="1 行目を下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr></template>
+</div>
+        </div>
+        <p class="scene-note">長い文言は欄の中で横に流し、行の高さを変えない。</p>
+      </section>
+      <!-- 状態: 案 A: エラー -->
+      <section class="specimen" aria-labelledby="h-a-error">
+        <h2 id="h-a-error">案 A: エラー</h2>
+        <div class="win settings__form">
+<!-- 文言の一覧: refs/166 の app.js が足す・消す・並べ替えを受ける -->
+<div id="c-a-error" class="phrases" data-phrases="arrows" data-reload="immediate">
+<div class="targets-wrap" data-phrases-wrap>
+<table class="targets phrase-rows phrase-rows--arrows">
+<caption class="sr-only">文頭・文末から消す文言（上の行から順に当てる）</caption>
+<thead><tr><th scope="col">文言</th><th scope="col" class="col-where">位置</th><th scope="col" class="col-tools"><span class="sr-only">行の操作</span></th></tr></thead>
+<tbody data-phrase-list>
+<tr data-phrase><td><input type="text" data-text value="*" aria-label="1 行目の文言" id="c-a-error-p1-text" aria-invalid="true" aria-describedby="c-a-error-p1-text-err"><p class="field-error" id="c-a-error-p1-text-err"><code>*</code> だけの文言は、文頭・文末の行を丸ごと消します。消したい文言を入れてください。</p></td><td><select data-where aria-label="1 行目の位置"><option selected>文頭</option><option>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="1 行目を上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="1 行目を下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="phrases-empty" data-phrases-empty hidden>消す文言はまだありません。無い間は、文頭・文末から何も消しません。</p>
+<div class="phrases-actions"><button type="button" class="btn" data-add-phrase>行を足す</button><p class="field-help">上の行から順に当てる。<code>*</code> は任意の文字列に一致する。</p></div>
+<p class="sr-only" aria-live="polite" data-phrases-status></p>
+<!-- ひな形: 「行を足す」で表の末尾に写す（位置の既定は文末） -->
+<template data-phrase-template><tr data-phrase><td><input type="text" data-text value="" aria-label="1 行目の文言"></td><td><select data-where aria-label="1 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="1 行目を上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="1 行目を下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr></template>
+</div>
+        </div>
+        <p class="scene-note">文言が <code>*</code> だけの行は、欄の下にエラーを出す。</p>
+      </section>
+      <!-- 状態: 案 A: 行が無い -->
+      <section class="specimen" aria-labelledby="h-a-empty">
+        <h2 id="h-a-empty">案 A: 行が無い</h2>
+        <div class="win settings__form">
+<!-- 文言の一覧: refs/166 の app.js が足す・消す・並べ替えを受ける -->
+<div id="c-a-empty" class="phrases" data-phrases="arrows" data-reload="immediate">
+<div class="targets-wrap" data-phrases-wrap hidden>
+<table class="targets phrase-rows phrase-rows--arrows">
+<caption class="sr-only">文頭・文末から消す文言（上の行から順に当てる）</caption>
+<thead><tr><th scope="col">文言</th><th scope="col" class="col-where">位置</th><th scope="col" class="col-tools"><span class="sr-only">行の操作</span></th></tr></thead>
+<tbody data-phrase-list>
+
+</tbody>
+</table>
+</div>
+<p class="phrases-empty" data-phrases-empty>消す文言はまだありません。無い間は、文頭・文末から何も消しません。</p>
+<div class="phrases-actions"><button type="button" class="btn" data-add-phrase>行を足す</button><p class="field-help">上の行から順に当てる。<code>*</code> は任意の文字列に一致する。</p></div>
+<p class="sr-only" aria-live="polite" data-phrases-status></p>
+<!-- ひな形: 「行を足す」で表の末尾に写す（位置の既定は文末） -->
+<template data-phrase-template><tr data-phrase><td><input type="text" data-text value="" aria-label="1 行目の文言"></td><td><select data-where aria-label="1 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="1 行目を上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="1 行目を下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr></template>
+</div>
+        </div>
+        <p class="scene-note">表の代わりに、何も消さないことを書く。</p>
+      </section>
+      <!-- 状態: 案 B: 通常（既定の一覧） -->
+      <section class="specimen" aria-labelledby="h-b-normal">
+        <h2 id="h-b-normal">案 B: 通常（既定の一覧）</h2>
+        <div class="win settings__form">
+<!-- 文言の一覧: refs/166 の app.js が足す・消す・並べ替えを受ける -->
+<div id="c-b-normal" class="phrases" data-phrases="grip" data-reload="immediate">
+<div class="targets-wrap" data-phrases-wrap>
+<table class="targets phrase-rows phrase-rows--grip">
+<caption class="sr-only">文頭・文末から消す文言（上の行から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col">文言</th><th scope="col" class="col-where">位置</th><th scope="col" class="col-tools"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-phrase-list>
+<tr data-phrase draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td><input type="text" data-text value="チャンネル登録*" aria-label="1 行目の文言"></td><td><select data-where aria-label="1 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-remove aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+<tr data-phrase draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td><input type="text" data-text value="ご視聴ありがとうございました" aria-label="2 行目の文言"></td><td><select data-where aria-label="2 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-remove aria-label="2 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+<tr data-phrase draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td><input type="text" data-text value="ありがとうございました" aria-label="3 行目の文言"></td><td><select data-where aria-label="3 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-remove aria-label="3 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="phrases-empty" data-phrases-empty hidden>消す文言はまだありません。無い間は、文頭・文末から何も消しません。</p>
+<div class="phrases-actions"><button type="button" class="btn" data-add-phrase>行を足す</button><p class="field-help">上の行から順に当てる。<code>*</code> は任意の文字列に一致する。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p></div>
+<p class="sr-only" aria-live="polite" data-phrases-status></p>
+<!-- ひな形: 「行を足す」で表の末尾に写す（位置の既定は文末） -->
+<template data-phrase-template><tr data-phrase draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td><input type="text" data-text value="" aria-label="1 行目の文言"></td><td><select data-where aria-label="1 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-remove aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr></template>
+</div>
+        </div>
+        <p class="scene-note">左端のつまみを掴んで動かす。キーボードでは行の中で Alt+↑ / Alt+↓。</p>
+      </section>
+      <!-- 状態: 案 B: 長い文言・3 つの位置 -->
+      <section class="specimen" aria-labelledby="h-b-long">
+        <h2 id="h-b-long">案 B: 長い文言・3 つの位置</h2>
+        <div class="win settings__form">
+<!-- 文言の一覧: refs/166 の app.js が足す・消す・並べ替えを受ける -->
+<div id="c-b-long" class="phrases" data-phrases="grip" data-reload="immediate">
+<div class="targets-wrap" data-phrases-wrap>
+<table class="targets phrase-rows phrase-rows--grip">
+<caption class="sr-only">文頭・文末から消す文言（上の行から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col">文言</th><th scope="col" class="col-where">位置</th><th scope="col" class="col-tools"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-phrase-list>
+<tr data-phrase draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td><input type="text" data-text value="お疲れ様でした" aria-label="1 行目の文言"></td><td><select data-where aria-label="1 行目の位置"><option selected>文頭</option><option>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-remove aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+<tr data-phrase draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td><input type="text" data-text value="この動画が良かったと思ったら高評価とチャンネル登録をよろしくお願いします" aria-label="2 行目の文言"></td><td><select data-where aria-label="2 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-remove aria-label="2 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+<tr data-phrase draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td><input type="text" data-text value="字幕*" aria-label="3 行目の文言"></td><td><select data-where aria-label="3 行目の位置"><option>文頭</option><option>文末</option><option selected>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-remove aria-label="3 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="phrases-empty" data-phrases-empty hidden>消す文言はまだありません。無い間は、文頭・文末から何も消しません。</p>
+<div class="phrases-actions"><button type="button" class="btn" data-add-phrase>行を足す</button><p class="field-help">上の行から順に当てる。<code>*</code> は任意の文字列に一致する。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p></div>
+<p class="sr-only" aria-live="polite" data-phrases-status></p>
+<!-- ひな形: 「行を足す」で表の末尾に写す（位置の既定は文末） -->
+<template data-phrase-template><tr data-phrase draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td><input type="text" data-text value="" aria-label="1 行目の文言"></td><td><select data-where aria-label="1 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-remove aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr></template>
+</div>
+        </div>
+        <p class="scene-note">長い文言は欄の中で横に流し、行の高さを変えない。</p>
+      </section>
+      <!-- 状態: 案 B: エラー -->
+      <section class="specimen" aria-labelledby="h-b-error">
+        <h2 id="h-b-error">案 B: エラー</h2>
+        <div class="win settings__form">
+<!-- 文言の一覧: refs/166 の app.js が足す・消す・並べ替えを受ける -->
+<div id="c-b-error" class="phrases" data-phrases="grip" data-reload="immediate">
+<div class="targets-wrap" data-phrases-wrap>
+<table class="targets phrase-rows phrase-rows--grip">
+<caption class="sr-only">文頭・文末から消す文言（上の行から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col">文言</th><th scope="col" class="col-where">位置</th><th scope="col" class="col-tools"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-phrase-list>
+<tr data-phrase draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td><input type="text" data-text value="*" aria-label="1 行目の文言" id="c-b-error-p1-text" aria-invalid="true" aria-describedby="c-b-error-p1-text-err"><p class="field-error" id="c-b-error-p1-text-err"><code>*</code> だけの文言は、文頭・文末の行を丸ごと消します。消したい文言を入れてください。</p></td><td><select data-where aria-label="1 行目の位置"><option selected>文頭</option><option>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-remove aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="phrases-empty" data-phrases-empty hidden>消す文言はまだありません。無い間は、文頭・文末から何も消しません。</p>
+<div class="phrases-actions"><button type="button" class="btn" data-add-phrase>行を足す</button><p class="field-help">上の行から順に当てる。<code>*</code> は任意の文字列に一致する。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p></div>
+<p class="sr-only" aria-live="polite" data-phrases-status></p>
+<!-- ひな形: 「行を足す」で表の末尾に写す（位置の既定は文末） -->
+<template data-phrase-template><tr data-phrase draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td><input type="text" data-text value="" aria-label="1 行目の文言"></td><td><select data-where aria-label="1 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-remove aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr></template>
+</div>
+        </div>
+        <p class="scene-note">文言が <code>*</code> だけの行は、欄の下にエラーを出す。</p>
+      </section>
+
+    </div>
+  </main>
+</body>
+</html>

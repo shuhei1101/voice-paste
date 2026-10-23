@@ -1,0 +1,93 @@
+/* ===== PR 166 の画面モック: ハルシネーションの文言の一覧（refs/37・refs/44・refs/97 の style.css に重ねる） ===== */
+
+/* 文言の一覧の欄: 表・足すボタンを間を空けて縦に積む */
+.phrases {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 文言の表: 文言・位置・行の操作を並べる（用語集の行の表に揃える） */
+.phrase-rows {
+  td { padding: 4px 8px; }
+  input[type="text"] { width: 100%; min-width: 8em; font-family: var(--font-mono); font-size: 12px; }
+  select { width: 6.5em; }
+  .field-error { padding: 2px 0 0; }
+  .col-where { width: 7.5em; }
+  .col-tools { text-align: right; }
+}
+
+/* 案 A: 上へ・下へ・消すの 3 つを並べる列 */
+.phrase-rows--arrows .col-tools { width: calc(var(--control-h) * 3 + 24px); }
+
+/* 案 B: 消すだけの列と、行の左端のつまみの列 */
+.phrase-rows--grip .col-tools { width: calc(var(--control-h) + 16px); }
+.phrase-rows--grip .col-grip { width: 28px; padding-right: 0; }
+
+/* 行の操作のボタンを右に寄せて並べる */
+.phrase-rows .cell-tools {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+/* 案 B: 行を掴んで動かすつまみ */
+.grip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: var(--control-h);
+  color: var(--text-2);
+  cursor: grab;
+  svg { width: 12px; height: 16px; fill: currentColor; }
+}
+
+/* 案 B: 掴んで動かしている行 */
+.phrase-rows tr[data-dragging="true"] td {
+  background: var(--sunken);
+  opacity: 0.6;
+}
+
+/* 行が無いときの表の代わり（用語集の行が無いときに揃える） */
+.phrases-empty {
+  margin: 0;
+  padding: 12px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+/* 表の下の足すボタンと決まりの行 */
+.phrases-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  .field-help { grid-column: auto; }
+}
+
+/* 一致の書き方の `*` を地の文の中で見せる */
+.phrases .field-help code {
+  font-family: var(--font-mono);
+}
+
+/* 狭い幅: 1 行を 2 段に組み、上の段に文言の欄を全幅で、下の段に位置と行の操作を置く。列の見出しは欄の読み上げの名前が代わる */
+@media (max-width: 640px) {
+  .phrase-rows thead { display: none; }
+  .phrase-rows tr {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 4px 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .phrase-rows td { display: block; padding: 0; border-bottom: 0; }
+  .phrase-rows td:has([data-text]) { grid-column: 1 / -1; }
+  .phrase-rows--grip td:has([data-text]) { grid-column: 2 / -1; }
+  .phrase-rows--grip .col-grip { grid-row: 1 / 3; grid-column: 1; width: auto; }
+  .phrase-rows--arrows td:has([data-where]) { grid-column: 1 / 3; }
+  .phrase-rows--grip td:has([data-where]) { grid-column: 2; }
+}

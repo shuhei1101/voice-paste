@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>設定画面 | voice-paste のモック</title>
+  <!-- 採用スタイル「開発者ツール」の部品は #37、一覧の部品は #44、用語集の行の表は #97、文言の一覧は #166 の共有 CSS に置く -->
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/44/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/97/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/166/assets/style.css">
+  <!-- 場面・まとまりの切り替えは #44、文言の一覧の操作は #166 の共有 JS が受ける -->
+  <script src="../../../../refs/44/assets/app.js" defer></script>
+  <script src="../../../../refs/166/assets/app.js" defer></script>
+</head>
+<body>
+  <!-- モック専用の操作列: 案のタブと、場面の切り替え（#44 の app.js が data-scene の場面だけを出す） -->
+  <nav class="mock-bar" aria-label="案と場面の切り替え（モック専用）">
+    <span class="mock-bar__label">案</span>
+    <ul><li><a href="../a-row-arrows/index.html" aria-current="page">案 A</a></li><li><a href="../b-drag-handle/index.html">案 B</a></li></ul>
+    <span class="mock-bar__label">場面</span>
+    <ul><li><button type="button" data-scene="default">既定の一覧</button></li><li><button type="button" data-scene="edited">行を足して先頭へ動かした</button></li><li><button type="button" data-scene="empty">一覧が空</button></li><li><button type="button" data-scene="error">確かめに通らない</button></li></ul>
+  </nav>
+
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">settings</a> / <a href="../">166</a> / <span>a-row-arrows</span></nav>
+
+    <!-- 画面の説明 -->
+    <header class="intro">
+      <h1>設定画面（案 A）</h1>
+      <p>左のメニューの「用語集」の次に「ハルシネーション」のまとまりを足したもの。行は用語集の行の表と同じ表に並べ、文言の欄・位置の選択欄・行の操作を置く。並べ替えは、表記のヒントのプリセットと同じく、行の右端の上へ・下へのボタンで 1 行ずつ動かす。</p>
+    </header>
+
+    <div class="desk desk--single">
+
+      <!-- 場面: 既定の一覧 -->
+      <section class="specimen" data-scene-panel="default" aria-labelledby="h-default">
+        <h2 id="h-default">既定の一覧</h2>
+        <div class="win settings settings--full">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり（既定の一覧）">
+              <ul><li><a href="../../44/a-inline/kind-tabs/index.html">出力先</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ブラウザ添付</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">エンドポイントへ送る</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ホットキー</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">録音</a></li><li><a href="../../152/b-lead-note/index.html">文字起こし</a></li><li><a href="../../99/a-hint-group/index.html">表記のヒント</a></li><li><a href="../../152/b-lead-note/index.html">用語集</a></li><li><a href="#default-hallucination" aria-current="page">ハルシネーション</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">画面</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">履歴とログ</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">API</a></li></ul>
+            </nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（既定の一覧）">
+              <fieldset id="default-hallucination" data-group>
+                <legend>ハルシネーション</legend>
+                <p class="field-help">文字起こしが文頭・文末に足す、話していない文言を消す。</p>
+<!-- 文言の一覧: refs/166 の app.js が足す・消す・並べ替えを受ける -->
+<div id="default-phrases" class="phrases" data-phrases="arrows" data-reload="immediate">
+<div class="targets-wrap" data-phrases-wrap>
+<table class="targets phrase-rows phrase-rows--arrows">
+<caption class="sr-only">文頭・文末から消す文言（上の行から順に当てる）</caption>
+<thead><tr><th scope="col">文言</th><th scope="col" class="col-where">位置</th><th scope="col" class="col-tools"><span class="sr-only">行の操作</span></th></tr></thead>
+<tbody data-phrase-list>
+<tr data-phrase><td><input type="text" data-text value="チャンネル登録*" aria-label="1 行目の文言"></td><td><select data-where aria-label="1 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="1 行目を上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="1 行目を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+<tr data-phrase><td><input type="text" data-text value="ご視聴ありがとうございました" aria-label="2 行目の文言"></td><td><select data-where aria-label="2 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="2 行目を上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="2 行目を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="2 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+<tr data-phrase><td><input type="text" data-text value="ありがとうございました" aria-label="3 行目の文言"></td><td><select data-where aria-label="3 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="3 行目を上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="3 行目を下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="3 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="phrases-empty" data-phrases-empty hidden>消す文言はまだありません。無い間は、文頭・文末から何も消しません。</p>
+<div class="phrases-actions"><button type="button" class="btn" data-add-phrase>行を足す</button><p class="field-help">上の行から順に当てる。<code>*</code> は任意の文字列に一致する。</p></div>
+<p class="sr-only" aria-live="polite" data-phrases-status></p>
+<!-- ひな形: 「行を足す」で表の末尾に写す（位置の既定は文末） -->
+<template data-phrase-template><tr data-phrase><td><input type="text" data-text value="" aria-label="1 行目の文言"></td><td><select data-where aria-label="1 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="1 行目を上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="1 行目を下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr></template>
+</div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <div class="settings__actions">
+              <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn btn--primary" href="#">保存</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">設定に一覧が無いときは、既定の 3 行を全て「文末」で出す。上の行から順に、前の行で消した結果へ次の行を当てる。</p>
+      </section>
+      <!-- 場面: 行を足して先頭へ動かした -->
+      <section class="specimen" data-scene-panel="edited" aria-labelledby="h-edited">
+        <h2 id="h-edited">行を足して先頭へ動かした</h2>
+        <div class="win settings settings--full">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり（行を足して先頭へ動かした）">
+              <ul><li><a href="../../44/a-inline/kind-tabs/index.html">出力先</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ブラウザ添付</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">エンドポイントへ送る</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ホットキー</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">録音</a></li><li><a href="../../152/b-lead-note/index.html">文字起こし</a></li><li><a href="../../99/a-hint-group/index.html">表記のヒント</a></li><li><a href="../../152/b-lead-note/index.html">用語集</a></li><li><a href="#edited-hallucination" aria-current="page">ハルシネーション</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">画面</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">履歴とログ</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">API</a></li></ul>
+            </nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（行を足して先頭へ動かした）">
+              <fieldset id="edited-hallucination" data-group>
+                <legend>ハルシネーション</legend>
+                <p class="field-help">文字起こしが文頭・文末に足す、話していない文言を消す。</p>
+<!-- 文言の一覧: refs/166 の app.js が足す・消す・並べ替えを受ける -->
+<div id="edited-phrases" class="phrases" data-phrases="arrows" data-reload="immediate">
+<div class="targets-wrap" data-phrases-wrap>
+<table class="targets phrase-rows phrase-rows--arrows">
+<caption class="sr-only">文頭・文末から消す文言（上の行から順に当てる）</caption>
+<thead><tr><th scope="col">文言</th><th scope="col" class="col-where">位置</th><th scope="col" class="col-tools"><span class="sr-only">行の操作</span></th></tr></thead>
+<tbody data-phrase-list>
+<tr data-phrase><td><input type="text" data-text value="お疲れ様でした" aria-label="1 行目の文言"></td><td><select data-where aria-label="1 行目の位置"><option selected>文頭</option><option>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="1 行目を上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="1 行目を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+<tr data-phrase><td><input type="text" data-text value="チャンネル登録*" aria-label="2 行目の文言"></td><td><select data-where aria-label="2 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="2 行目を上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="2 行目を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="2 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+<tr data-phrase><td><input type="text" data-text value="ご視聴ありがとうございました" aria-label="3 行目の文言"></td><td><select data-where aria-label="3 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="3 行目を上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="3 行目を下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="3 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="phrases-empty" data-phrases-empty hidden>消す文言はまだありません。無い間は、文頭・文末から何も消しません。</p>
+<div class="phrases-actions"><button type="button" class="btn" data-add-phrase>行を足す</button><p class="field-help">上の行から順に当てる。<code>*</code> は任意の文字列に一致する。</p></div>
+<p class="sr-only" aria-live="polite" data-phrases-status></p>
+<!-- ひな形: 「行を足す」で表の末尾に写す（位置の既定は文末） -->
+<template data-phrase-template><tr data-phrase><td><input type="text" data-text value="" aria-label="1 行目の文言"></td><td><select data-where aria-label="1 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="1 行目を上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="1 行目を下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr></template>
+</div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <p class="notice" role="status"><span>保存しました。</span></p>
+            <div class="settings__actions">
+              <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn btn--primary" href="#">保存</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">「行を足す」で末尾に足した行（位置の既定は文末）に「お疲れ様でした」を入れて位置を「文頭」にし、上へのボタンで先頭へ動かした。既定の「ありがとうございました」の行は消した。保存した後も画面は開いたまま。</p>
+      </section>
+      <!-- 場面: 一覧が空 -->
+      <section class="specimen" data-scene-panel="empty" aria-labelledby="h-empty">
+        <h2 id="h-empty">一覧が空</h2>
+        <div class="win settings settings--full">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり（一覧が空）">
+              <ul><li><a href="../../44/a-inline/kind-tabs/index.html">出力先</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ブラウザ添付</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">エンドポイントへ送る</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ホットキー</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">録音</a></li><li><a href="../../152/b-lead-note/index.html">文字起こし</a></li><li><a href="../../99/a-hint-group/index.html">表記のヒント</a></li><li><a href="../../152/b-lead-note/index.html">用語集</a></li><li><a href="#empty-hallucination" aria-current="page">ハルシネーション</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">画面</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">履歴とログ</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">API</a></li></ul>
+            </nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（一覧が空）">
+              <fieldset id="empty-hallucination" data-group>
+                <legend>ハルシネーション</legend>
+                <p class="field-help">文字起こしが文頭・文末に足す、話していない文言を消す。</p>
+<!-- 文言の一覧: refs/166 の app.js が足す・消す・並べ替えを受ける -->
+<div id="empty-phrases" class="phrases" data-phrases="arrows" data-reload="immediate">
+<div class="targets-wrap" data-phrases-wrap hidden>
+<table class="targets phrase-rows phrase-rows--arrows">
+<caption class="sr-only">文頭・文末から消す文言（上の行から順に当てる）</caption>
+<thead><tr><th scope="col">文言</th><th scope="col" class="col-where">位置</th><th scope="col" class="col-tools"><span class="sr-only">行の操作</span></th></tr></thead>
+<tbody data-phrase-list>
+
+</tbody>
+</table>
+</div>
+<p class="phrases-empty" data-phrases-empty>消す文言はまだありません。無い間は、文頭・文末から何も消しません。</p>
+<div class="phrases-actions"><button type="button" class="btn" data-add-phrase>行を足す</button><p class="field-help">上の行から順に当てる。<code>*</code> は任意の文字列に一致する。</p></div>
+<p class="sr-only" aria-live="polite" data-phrases-status></p>
+<!-- ひな形: 「行を足す」で表の末尾に写す（位置の既定は文末） -->
+<template data-phrase-template><tr data-phrase><td><input type="text" data-text value="" aria-label="1 行目の文言"></td><td><select data-where aria-label="1 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="1 行目を上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="1 行目を下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr></template>
+</div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <div class="settings__actions">
+              <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn btn--primary" href="#">保存</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">行を全て消したところ。表の代わりに、何も消さないことを書く。</p>
+      </section>
+      <!-- 場面: 確かめに通らない -->
+      <section class="specimen" data-scene-panel="error" aria-labelledby="h-error">
+        <h2 id="h-error">確かめに通らない</h2>
+        <div class="win settings settings--full">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり（確かめに通らない）">
+              <ul><li><a href="../../44/a-inline/kind-tabs/index.html">出力先</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ブラウザ添付</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">エンドポイントへ送る</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ホットキー</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">録音</a></li><li><a href="../../152/b-lead-note/index.html">文字起こし</a></li><li><a href="../../99/a-hint-group/index.html">表記のヒント</a></li><li><a href="../../152/b-lead-note/index.html">用語集</a></li><li><a href="#error-hallucination" aria-current="page">ハルシネーション</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">画面</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">履歴とログ</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">API</a></li></ul>
+            </nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（確かめに通らない）">
+              <div class="error-summary" role="alert" tabindex="-1">
+                保存できませんでした。1 件の欄を直してください。
+                <ul><li><a href="#error-phrases-p2-text" data-error-link>ハルシネーションの 2 行目の文言: * だけの文言は、文頭・文末の行を丸ごと消します。消したい文言を入れてください。</a></li></ul>
+              </div>
+<fieldset id="error-hallucination" data-group>
+                <legend>ハルシネーション</legend>
+                <p class="field-help">文字起こしが文頭・文末に足す、話していない文言を消す。</p>
+<!-- 文言の一覧: refs/166 の app.js が足す・消す・並べ替えを受ける -->
+<div id="error-phrases" class="phrases" data-phrases="arrows" data-reload="immediate">
+<div class="targets-wrap" data-phrases-wrap>
+<table class="targets phrase-rows phrase-rows--arrows">
+<caption class="sr-only">文頭・文末から消す文言（上の行から順に当てる）</caption>
+<thead><tr><th scope="col">文言</th><th scope="col" class="col-where">位置</th><th scope="col" class="col-tools"><span class="sr-only">行の操作</span></th></tr></thead>
+<tbody data-phrase-list>
+<tr data-phrase><td><input type="text" data-text value="ご視聴ありがとうございました" aria-label="1 行目の文言"></td><td><select data-where aria-label="1 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="1 行目を上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="1 行目を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+<tr data-phrase><td><input type="text" data-text value="*" aria-label="2 行目の文言" id="error-phrases-p2-text" aria-invalid="true" aria-describedby="error-phrases-p2-text-err"><p class="field-error" id="error-phrases-p2-text-err"><code>*</code> だけの文言は、文頭・文末の行を丸ごと消します。消したい文言を入れてください。</p></td><td><select data-where aria-label="2 行目の位置"><option selected>文頭</option><option>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="2 行目を上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="2 行目を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="2 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+<tr data-phrase><td><input type="text" data-text value="" aria-label="3 行目の文言"></td><td><select data-where aria-label="3 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="3 行目を上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="3 行目を下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="3 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="phrases-empty" data-phrases-empty hidden>消す文言はまだありません。無い間は、文頭・文末から何も消しません。</p>
+<div class="phrases-actions"><button type="button" class="btn" data-add-phrase>行を足す</button><p class="field-help">上の行から順に当てる。<code>*</code> は任意の文字列に一致する。</p></div>
+<p class="sr-only" aria-live="polite" data-phrases-status></p>
+<!-- ひな形: 「行を足す」で表の末尾に写す（位置の既定は文末） -->
+<template data-phrase-template><tr data-phrase><td><input type="text" data-text value="" aria-label="1 行目の文言"></td><td><select data-where aria-label="1 行目の位置"><option>文頭</option><option selected>文末</option><option>両方</option></select></td><td><span class="cell-tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="1 行目を上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="1 行目を下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></td></tr></template>
+</div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <div class="settings__actions">
+              <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn btn--primary" href="#">保存</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">保存を押した後に確かめる。文言が <code>*</code> だけの行は保存を止め、その欄の下と画面の先頭にエラーを出す。文言が空の行（3 行目）は保存で捨て、エラーは出さない。入れた値は消さない。</p>
+      </section>
+
+    </div>
+  </main>
+</body>
+</html>

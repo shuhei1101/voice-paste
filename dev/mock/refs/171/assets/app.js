@@ -12,13 +12,13 @@ const openDialogs = () => {
   });
 };
 
-/** モック専用の操作列のボタンか URL の ?scene= で、data-scene が一致する場面だけを出す */
+/** モック専用の操作列のボタンか URL の ?scene= で、data-scene-panel（空白区切りの場面名）に含まれる場面だけを出す */
 const setupScenes = () => {
   const buttons = [...document.querySelectorAll(".mock-bar [data-scene]")];
   const panels = document.querySelectorAll("[data-scene-panel]");
   const show = (name) => {
     buttons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.scene === name)));
-    panels.forEach((p) => { p.hidden = p.dataset.scenePanel !== name; });
+    panels.forEach((p) => { p.hidden = !p.dataset.scenePanel.split(" ").includes(name); });
     openDialogs();
   };
   buttons.forEach((b) => b.addEventListener("click", () => show(b.dataset.scene)));

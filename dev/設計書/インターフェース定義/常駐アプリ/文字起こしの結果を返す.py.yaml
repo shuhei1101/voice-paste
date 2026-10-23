@@ -1,0 +1,189 @@
+title: "文字起こしの結果を返す"
+entry:
+  kind: endpoint
+  value: GET /web/transcriptions/{job_id}
+flows:
+  - name: 正常系
+    summary: 文字起こしが終わったジョブの、補正した文字を返す
+    setup:
+      - name: Mock
+        description: ブラウザの音声のジョブの一覧に、ジョブを直接入れる
+      - name: 終わったジョブ
+        description: state が done、text が補正した文のジョブ
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as ブラウザ
+        participant IF as GET /web/transcriptions/{job_id}
+
+        C->>IF: job_id（Origin 無し）
+        IF->>IF: Host・Origin を確かめ、ジョブを引く
+        IF-->>C: 200・state=done・progress=1.0・text
+      ```
+    expected:
+      - 200 で state が done、progress が 1.0、text が補正した文、error が null
+      - もう一度取りに来ても同じ内容が返る
+    test: test_normal
+  - name: 正常系（文字起こし中）
+    summary: 文字起こし待ち・文字起こし中のジョブの進み具合を返す
+    setup:
+      - name: Mock
+        description: ブラウザの音声のジョブの一覧に、ジョブを直接入れる
+      - name: 終わっていないジョブ
+        description: state が queued のジョブと、state が running・progress が 0.42 のジョブ
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as ブラウザ
+        participant IF as GET /web/transcriptions/{job_id}
+
+        C->>IF: job_id
+        IF-->>C: 200・state=running・progress=0.42
+      ```
+    expected:
+      - queued のジョブは 200 で progress が 0.0、text と error が null
+      - running のジョブは 200 で progress が 0.42、text と error が null
+    test: test_normal_when_in_progress
+  - name: 正常系（文字起こし失敗）
+    summary: 文字起こしに失敗したジョブの理由を返す
+    setup:
+      - name: Mock
+        description: ブラウザの音声のジョブの一覧に、ジョブを直接入れる
+      - name: 失敗したジョブ
+        description: state が failed、error が「文字起こしワーカー無応答」のジョブ
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as ブラウザ
+        participant IF as GET /web/transcriptions/{job_id}
+
+        C->>IF: job_id
+        IF-->>C: 200・state=failed・error
+      ```
+    expected:
+      - 200 で state が failed、error が失敗の理由、text が null
+    test: test_normal_when_failed
+  - name: 異常系（許されていない Origin・403）
+    summary: 許す Origin に無い Origin が付いた要求を断る
+    setup:
+      - name: Mock
+        description: ブラウザの音声のジョブの一覧に、done のジョブを直接入れる
+      - name: 要求のヘッダー
+        description: 許す Origin に無い Origin を付ける
+        notes: '`Origin: http://evil.example`'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as ほかのオリジンのページ
+        participant IF as GET /web/transcriptions/{job_id}
+        participant LOG as ログ
+
+        C->>IF: job_id（許していない Origin）
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書く
+        IF-->>C: 403（problem+json）
+      ```
+    expected:
+      - 403 の problem+json が返り、起こした文字を含まない
+    test: test_error_when_origin_not_allowed
+  - name: 異常系（ジョブが無い・404）
+    summary: 受け付けていない job_id と、件数を超えて捨てたジョブを 404 にする
+    setup:
+      - name: Mock
+        description: 終わったジョブを持つ件数を 1 件に差し替える
+      - name: ジョブ
+        description: 受け付けていない job_id と、終わったジョブ 2 件のうち先に終わった方の job_id
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as ブラウザ
+        participant IF as GET /web/transcriptions/{job_id}
+
+        C->>IF: 無い job_id
+        IF-->>C: 404（problem+json）
+      ```
+    expected:
+      - どちらも 404 の problem+json が返る
+      - 後に終わったジョブは 200 で返る
+    test: test_error_when_job_not_found
+lead: 受け付けたジョブの状態・進み具合と、終わっていれば起こした文字か失敗の理由を返す。
+identifier: get_web_transcription
+permissions: job_id を知っていること（外からの認証は Cloudflare Access が持つ。常駐アプリは Host と Origin だけを確かめる）
+idempotent: true
+side_effects: なし（取りに来てもジョブは消さない）
+exclusivity: 制限なし（文字起こしの途中も返す）
+request:
+  - name: Host
+    type: str
+    required: true
+    location: header
+    description: 待ち受けのホスト。ゲートウェイは `localhost:{ポート}` に書き換えて渡す
+    constraints: '`127.0.0.1:{ポート}` か `localhost:{ポート}`'
+    status: planned
+  - name: Origin
+    type: str
+    required: false
+    default: なし（通す）
+    location: header
+    description: ブラウザが付ける要求元。画面と同じオリジンの GET には付かない
+    constraints: 付いていれば設定の許す Origin（api.allowed_web_origins）にあること
+    status: planned
+  - name: job_id
+    type: str
+    required: true
+    location: path
+    description: 音声を受け付ける が返したジョブの ID
+    example: q3Vb8sXk2mJf0tLw9eRzAg
+    status: planned
+response:
+  - name: job_id
+    type: str
+    description: 要求の job_id
+  - name: state
+    type: Literal['queued', 'running', 'done', 'failed']
+    description: ジョブの状態。`queued` は文字起こし待ち、`running` は文字起こし中、`done` は文字起こし完了、`failed` は文字起こし失敗
+  - name: progress
+    type: float
+    description: 進み具合。`running` の間は起こし終えた区間の終わりの時刻 ÷ 音声の秒数（`segment.end / duration`）
+    constraints: 0.0〜1.0。`queued` は 0.0、`done` は 1.0、`failed` は失敗した時点の値
+  - name: text
+    type: str | None
+    description: 用語集と文頭・文末の文言で補正した起こした文字
+    notes: '`done` のときだけ文字列（話し声が無ければ空文字）。それ以外は null'
+  - name: error
+    type: str | None
+    description: 文字起こしに失敗した理由
+    notes: '`failed` のときだけ文字列。それ以外は null。音声の置き場所や例外のスタックを含めない'
+response_example: |-
+  ```json
+  {
+    "job_id": "q3Vb8sXk2mJf0tLw9eRzAg",
+    "state": "running",
+    "progress": 0.42,
+    "text": null,
+    "error": null
+  }
+  ```
+response_notes: 終わったジョブは、終わったジョブを持つ件数を超えるまで、何度取りに来ても同じ内容を返す。常駐サービスを起動し直すと、それまでのジョブは全て 404 になる。
+status_codes:
+  - code: '200'
+    condition: ジョブがあり、状態を返した
+  - code: '403'
+    condition: Host が 127.0.0.1 でも localhost でもないか、Origin が付いていて許す Origin に無い
+  - code: '404'
+    condition: job_id のジョブが無い（受け付けていない・常駐サービスを起動し直した・終わったジョブを持つ件数を超えて捨てた）
+error_format: RFC 9457 の `application/problem+json`（`type`・`title`・`status`・`detail`）で返す。今の API の `problem_response` に揃える。
+constraints:
+  - item: 待ち受け
+    constraint: 127.0.0.1 だけ。外からはゲートウェイ（shuhdev-gateway、Cloudflare Access）を通して届く
+  - item: 認可
+    constraint: トークンを求めない。Host が待ち受けのホストで、Origin が無いか許す Origin にあること
+    notes: 画面と同じオリジンの fetch の GET には Origin が付かないため、Origin が無い要求を通す。ほかのオリジンのページからの fetch にはブラウザが Origin を付けるため 403 で断れる。job_id は推測できない乱数で、知らなければ結果を引けない
+  - item: 応答時間
+    constraint: ブラウザの要求の応答時間以内。文字起こしを待たずに今の状態を返す
+    decided_by: dev/設計書/非機能要件/非機能要件#requirements[ブラウザの要求の応答時間]
+  - item: 終わったジョブの保持
+    constraint: 終わったジョブ（done・failed）を終わったジョブを持つ件数までメモリに持ち、超えたらいちばん古く終わったジョブを捨てる
+    decided_by: dev/設計書/非機能要件/非機能要件#requirements[終わったジョブを持つ件数]
+  - item: 取りに来る間隔
+    constraint: 制限なし
+    notes: 画面は取りに来る間隔を画面設計で決める

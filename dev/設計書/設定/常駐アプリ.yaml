@@ -677,5 +677,18 @@ settings:
     allowed: '`start` / `end` / `both`'
     status: implemented
     implementation: src/voice_paste/shared/settings.py
+  - key: api.allowed_web_origins
+    title: ブラウザの画面に許す Origin
+    file: settings.toml
+    type: list[string]
+    default: '[]'
+    description: '`/web/` の下へ要求を送ってよいブラウザのオリジン（`https://{ゲートウェイの公開のサブドメイン}` の形）。`/web/` の下の POST は Origin がこの一覧にあるときだけ通し、GET は Origin が無いか、この一覧にあるときだけ通す。空なら外の端末の画面から送信できない'
+    allowed: '`scheme://host[:port]` の形のオリジン。末尾の `/` とパスを付けない'
+    reload: restart
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+    refs:
+      - dev/設計書/インターフェース定義/常駐アプリ/音声を受け付ける.py#
+      - dev/設計書/インターフェース定義/常駐アプリ/画面を配信する.py#
 notes:
   反映の列の読み方: '`immediate` は設定画面で保存すると動いている常駐アプリに効く項目。`settings.toml` を直接書き換えたときは、どの項目も再起動まで効かない（起動時に 1 度だけ読む）。'

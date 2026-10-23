@@ -379,3 +379,126 @@ requirements:
     status: planned
     introduced:
       pr: 78
+  - name: ブラウザの要求の応答時間
+    english_name: web_response_time
+    category: 性能
+    external_constraint: ゲートウェイ（shuhdev-gateway）の応答待ちの上限 83 秒
+    source_kind: 実行基盤の制限
+    source: https://github.com/shuhei1101/voice-paste/issues/92
+    value: '66'
+    unit: 秒
+    rationale: '`/web/` の下の各要求は、ゲートウェイが打ち切る前に返す。外部の上限から規約『資源の値の決め方』の安全率 20% を引いて 66 秒にする。受け付けは一時のファイルに書いてキューに積むだけで、文字起こしの時間を応答に含めない。PR #171 の PoC で、95 MiB の音声をゲートウェイ越しに送って 0.41 秒で 202 が返った（2026-10-23）'
+    breakdown:
+      - part: ゲートウェイの応答待ちの上限
+        value: 83 秒
+      - part: 安全率
+        value: − 20%
+        notes: 規約『資源の値の決め方』の既定
+      - part: 決定値
+        value: 66 秒
+        notes: 66.4 秒を秒の単位へ切り捨て
+    overflow: ゲートウェイが要求を打ち切り、画面は送信失敗を出して端末内の音声を残す
+    measurement: pytest のプロセスの中で配線した常駐サービスへ、本文の上限に近い音声を `POST /web/transcriptions` で送り、202 が返るまでを測る
+    test_file: tests/nfr/test_web_response_time.py
+    tests:
+      - name: test_web_response_time
+        summary: 本文の上限に近い音声の受け付けが決定値以内に返る
+        condition: 本文が 99,000,000 バイトになる webm の音声を 5 回送る。文字起こしのエンジンは受けたパスを控える関数に差し替える
+        measurement: 送り始めてから 202 を受けるまでの時間（秒）
+        expected: 5 回とも 202 で、最大が 66 秒以内
+    status: planned
+    introduced:
+      pr: 171
+  - name: ブラウザの本文の上限
+    english_name: web_body_limit
+    category: レート制限
+    external_constraint: Cloudflare の無料プランの要求の本文の上限 100 MB
+    source_kind: 実行基盤の制限
+    source: https://developers.cloudflare.com/workers/platform/limits/#request-limits
+    value: '100000000'
+    unit: バイト未満
+    rationale: '本文の大きさは推定ではなくバイト数で正確に数えられるため、安全率を引かず、100 MB を 10 進の 100,000,000 バイトと読んで小さい方に揃える。multipart の境界とヘッダーも本文に含めて数える。PR #171 の PoC で 95 MiB（99,614,720 バイト）がゲートウェイを通った（2026-10-23）'
+    overflow: 413 の problem+json で断り、一時のファイルもジョブも作らない
+    measurement: pytest のプロセスの中で配線した常駐サービスへ、上限の前後の大きさの本文を送る
+    test_file: tests/nfr/test_web_body_limit.py
+    tests:
+      - name: test_web_body_limit_when_under
+        summary: 上限より 1 バイト小さい本文を受け付ける
+        condition: 本文が 99,999,999 バイトになる webm の音声
+        measurement: 応答のステータス
+        expected: '202'
+      - name: test_web_body_limit_when_at_limit
+        summary: 上限ちょうどの本文を断る
+        condition: 本文が 100,000,000 バイトになる webm の音声。Content-Length を付けたものと、付けずに chunked で送るものの 2 通り
+        measurement: 応答のステータスと、一時のフォルダのファイルの数
+        expected: どちらも 413 で、一時のファイルが残っていない
+    status: planned
+    introduced:
+      pr: 171
+  - name: 画面の録音の上限時間
+    english_name: web_recording_limit
+    category: 耐障害
+    external_constraint: 制限なし
+    source_kind: ユーザー要望
+    source: https://github.com/shuhei1101/voice-paste/issues/92
+    value: '30'
+    unit: 分
+    rationale: 'Issue #92 の要望の値。Edge の AAC（約 100 kbps）で録っても 30 分で約 22.5 MB で、ブラウザの本文の上限に収まる'
+    overflow: 画面が録音を止め、そこまでの音声を端末に残して送信する（ブラウザから音声を送る の上限のシナリオ）
+    measurement: E2E（ブラウザから音声を送る の test_normal_when_recording_limit_reached）で、画面の時計を進めて確かめる
+    status: planned
+    introduced:
+      pr: 171
+  - name: 画面の録音のビットレート
+    english_name: web_recording_bitrate
+    category: コスト
+    external_constraint: 制限なし
+    source_kind: ユーザー要望
+    source: https://github.com/shuhei1101/voice-paste/issues/92
+    value: '32'
+    unit: kbps（MediaRecorder の audioBitsPerSecond に渡す値）
+    rationale: 'Issue #92 の要望の値。実際のビットレートはブラウザが決め、PR #171 の PoC で Edge の AAC は約 100 kbps になった（2026-10-23）。どのブラウザでも、画面の録音の上限時間の録音が本文の上限に収まればよい'
+    measurement: 実機の iPhone の Safari・iPad・Edge で 30 分録り、音声の大きさがブラウザの本文の上限未満であることを確かめる
+    status: planned
+    introduced:
+      pr: 171
+  - name: ブラウザの音声の待ちの上限
+    english_name: web_queue_limit
+    category: 耐障害
+    external_constraint: 制限なし
+    source_kind: 制限なし
+    value: '10'
+    unit: 件（文字起こし待ちと文字起こし中のジョブの合計）
+    rationale: 終わっていないジョブは音声を一時のファイルに持つため、ディスクの使用を本文の上限 × 10 件で最大 1 GB に抑える。使うのは外の端末の利用者 1 人で、画面は 1 件ずつ録って送るため、10 件を超えて待たせる使い方は想定しない
+    overflow: 503 の problem+json で断り、画面は送信失敗を出して端末内の音声を残す
+    measurement: 文字起こしのエンジンを止めたままにして音声を送り続け、断られる件目を数える
+    test_file: tests/nfr/test_web_queue_limit.py
+    tests:
+      - name: test_web_queue_limit
+        summary: 終わっていないジョブが 10 件あるとき、次の受け付けが 503 になる
+        condition: 文字起こしのエンジンを、テストが放すまで戻らない関数に差し替え、小さい webm を 11 回送る
+        measurement: 各回の応答のステータスと、一時のフォルダのファイルの数
+        expected: 1〜10 回目が 202、11 回目が 503 で、一時のファイルが 10 個。エンジンを放して 1 件終わると、次の受け付けが 202 になる
+    status: planned
+    introduced:
+      pr: 171
+  - name: 終わったジョブを持つ件数
+    english_name: web_finished_jobs_kept
+    category: 保守性
+    external_constraint: 制限なし
+    source_kind: 制限なし
+    value: '100'
+    unit: 件
+    rationale: 終わったジョブ（done・failed）は、画面が結果を取りに来るまで常駐サービスのメモリに持つ。画面を閉じて後で開き直しても取りに来られるように、時間では捨てず件数で古い順に捨てる。画面が残す結果の件数（10 件）の 10 倍にし、30 分の録音の文字（約 2 万字・約 60 KB）が 100 件でも約 6 MB に収まる。常駐サービスを起動し直すと全て消える（起こした文字は PC の履歴に残る）
+    overflow: いちばん古く終わったジョブを捨て、その結果の取得は 404 になる
+    measurement: ジョブを 101 件終わらせ、最初のジョブと最後のジョブの結果を取りに行く
+    test_file: tests/nfr/test_web_finished_jobs_kept.py
+    tests:
+      - name: test_web_finished_jobs_kept
+        summary: 終わったジョブが 100 件を超えると、いちばん古い件から 404 になる
+        condition: 文字起こしのエンジンを決めた文をすぐ返す関数に差し替え、小さい webm を 101 回送って全て done にする
+        measurement: 1 件目・2 件目・101 件目の結果の取得のステータス
+        expected: 1 件目が 404、2 件目と 101 件目が 200 で state が done
+    status: planned
+    introduced:
+      pr: 171

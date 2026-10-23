@@ -1,0 +1,273 @@
+title: "音声を受け付ける"
+entry:
+  kind: endpoint
+  value: POST /web/transcriptions
+flows:
+  - name: 正常系
+    summary: 許す Origin から送られた音声を受け付け、job_id を返す
+    setup:
+      - name: Mock
+        description: ブラウザの音声のキューを、積まれたジョブを控えて取り出さないものに差し替える。一時のフォルダはテストの一時フォルダ
+      - name: 許す Origin
+        description: api.allowed_web_origins に要求の Origin を入れる
+        notes: '`https://voice.example.com`'
+      - name: 音声
+        description: テストの中で書き出した短い webm/opus
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as ブラウザ
+        participant IF as POST /web/transcriptions
+        participant TMP as 一時のフォルダ
+        participant Q as ブラウザの音声のキュー
+        participant LOG as ログ
+
+        C->>IF: audio（許す Origin）
+        IF->>IF: Host・Origin・大きさ・待ちの数を確かめる
+        IF->>IF: PyAV で開いて形式と秒数を読む
+        IF->>TMP: 録れた形式の拡張子で書く
+        IF->>Q: ジョブを積む（queued）
+        IF->>LOG: 受け付けた（job_id・大きさ・形式・秒数）
+        IF-->>C: 202・job_id
+      ```
+    expected:
+      - 202 と 22 文字の job_id が返る
+      - 一時のフォルダに `.webm` のファイルが 1 つあり、中身が送った音声と同じ
+      - キューにその job_id のジョブが queued で 1 件積まれている
+      - ログに job_id・大きさ・形式・秒数が書かれている
+    test: test_normal
+  - name: 正常系（セッションの処理中）
+    summary: ホットキーの録音中でも音声を受け付ける
+    setup:
+      - name: Mock
+        description: マイク・システム音量・トレイを差し替える。ブラウザの音声のキューは積まれたジョブを控えるもの
+      - name: 処理中
+        description: ホットキーから始めた録音が録音中である
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as ブラウザ
+        participant IF as POST /web/transcriptions
+        participant Q as ブラウザの音声のキュー
+
+        C->>IF: audio（許す Origin）
+        IF->>Q: ジョブを積む（queued）
+        IF-->>C: 202・job_id
+      ```
+    expected:
+      - 202 と job_id が返る
+      - ホットキーの録音が録音中のまま続いている
+    test: test_normal_when_session_busy
+  - name: 異常系（audio が無い・400）
+    summary: '`audio` の項目が無い要求を断る'
+    setup:
+      - name: Mock
+        description: ブラウザの音声のキューは積まれたジョブを控えるもの
+      - name: 要求
+        description: 許す Origin で、multipart の項目名を `file` にする
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as ブラウザ
+        participant IF as POST /web/transcriptions
+
+        C->>IF: audio の無い multipart
+        IF-->>C: 400（problem+json）
+      ```
+    expected:
+      - 400 の problem+json が返る
+      - キューにジョブが積まれていない
+    test: test_error_when_audio_missing
+  - name: 異常系（許されていない Origin・403）
+    summary: Origin が無いか許す Origin に無い要求を、本文を読まずに断る
+    setup:
+      - name: Mock
+        description: ブラウザの音声のキューは積まれたジョブを控えるもの。一時のフォルダはテストの一時フォルダ
+      - name: 要求のヘッダー
+        description: 許す Origin に無い Origin を付ける要求と、Origin を付けない要求の 2 通り
+        notes: '`Origin: http://evil.example`'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as ほかのオリジンのページ
+        participant IF as POST /web/transcriptions
+        participant LOG as ログ
+
+        C->>IF: audio（許していない Origin）
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書く
+        IF-->>C: 403（problem+json）
+      ```
+    expected:
+      - どちらも 403 の problem+json が返る
+      - 一時のフォルダにファイルが無く、キューにジョブが積まれていない
+      - ログに断った理由と要求元が書かれている
+    test: test_error_when_origin_not_allowed
+  - name: 異常系（大きすぎる・413）
+    summary: 本文が上限以上の要求を断り、一時のファイルを残さない
+    setup:
+      - name: Mock
+        description: ブラウザの本文の上限を 1,000 バイトに差し替える。一時のフォルダはテストの一時フォルダ
+      - name: 要求
+        description: 本文が 1,000 バイトになる音声を、Content-Length を付けて送るものと、chunked で送るものの 2 通り
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as ブラウザ
+        participant IF as POST /web/transcriptions
+        participant LOG as ログ
+
+        C->>IF: 上限以上の本文
+        IF->>IF: 大きさを確かめる（上限以上）
+        IF->>LOG: 断った理由と大きさを書く
+        IF-->>C: 413（problem+json）
+      ```
+    expected:
+      - どちらも 413 の problem+json が返る
+      - 一時のフォルダにファイルが残らず、キューにジョブが積まれていない
+    test: test_error_when_too_large
+  - name: 異常系（読めない形式・415）
+    summary: PyAV で開けない中身と、音声のストリームの無い中身を断る
+    setup:
+      - name: Mock
+        description: 一時のフォルダはテストの一時フォルダ
+      - name: 音声
+        description: 拡張子を `.mp3` にしたテキストの中身と、音声の無い映像だけの mp4 の 2 通り
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as ブラウザ
+        participant IF as POST /web/transcriptions
+        participant LOG as ログ
+
+        C->>IF: audio（読めない中身）
+        IF->>IF: PyAV で開く（開けない・音声が無い）
+        IF->>LOG: 断った理由と大きさを書く
+        IF-->>C: 415（problem+json）
+      ```
+    expected:
+      - どちらも 415 の problem+json が返る
+      - 一時のフォルダにファイルが残らず、キューにジョブが積まれていない
+    test: test_error_when_unreadable_format
+  - name: 異常系（待ちが上限・503）
+    summary: 終わっていないジョブが待ちの上限に達していれば断る
+    setup:
+      - name: Mock
+        description: ブラウザの音声の待ちの上限を 2 件に差し替え、キューから取り出さないようにする。一時のフォルダはテストの一時フォルダ
+      - name: 待ちのジョブ
+        description: 音声を 2 件受け付けておく
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as ブラウザ
+        participant IF as POST /web/transcriptions
+        participant LOG as ログ
+
+        C->>IF: audio（3 件目）
+        IF->>IF: 待ちの数を確かめる（上限）
+        IF->>LOG: 断った理由と待ちの数を書く
+        IF-->>C: 503（problem+json）
+      ```
+    expected:
+      - 503 の problem+json が返る
+      - 一時のフォルダのファイルが 2 つのままで、キューのジョブも 2 件のまま
+    test: test_error_when_queue_full
+lead: 外の端末のブラウザから送られた音声を受け、一時のファイルに書いて文字起こしのジョブを積み、ジョブの ID を返す。
+identifier: create_web_transcription
+permissions: なし（外からの認証は Cloudflare Access が持つ。常駐アプリは Host と Origin だけを確かめる）
+idempotent: false
+side_effects: '受けた音声を一時のフォルダへ録れた形式の拡張子のまま書き、ジョブ（state: queued）をブラウザの音声のキューに積む。受け付けたことを、job_id・大きさ・形式・秒数でログに 1 行書く（音声の中身は書かない）。積んだジョブは ブラウザの音声を文字に起こす が 1 件ずつ取り出す。'
+exclusivity: セッション（`/sessions`・ホットキー・トレイ）とは排他しない。録音・文字起こしの処理中も受け付け、終わっていないジョブが待ちの上限に達しているときだけ断る
+request:
+  - name: Host
+    type: str
+    required: true
+    location: header
+    description: 待ち受けのホスト。ゲートウェイは `localhost:{ポート}` に書き換えて渡す
+    constraints: '`127.0.0.1:{ポート}` か `localhost:{ポート}`'
+    status: planned
+  - name: Origin
+    type: str
+    required: true
+    location: header
+    description: 画面を開いたオリジン。ブラウザは POST に必ず付ける
+    constraints: 設定の許す Origin（api.allowed_web_origins）にあること
+    example: https://voice.example.com
+    status: planned
+  - name: Content-Length
+    type: int
+    required: false
+    default: なし（読みながら数えて上限で断る）
+    location: header
+    description: 本文の大きさ。付いていれば本文を読む前に上限と比べる
+    constraints: ブラウザの本文の上限未満
+    status: planned
+  - name: audio
+    type: UploadFile
+    required: true
+    location: body
+    description: 送る音声。`multipart/form-data` のファイルの項目
+    constraints: PyAV（faster-whisper）で音声のストリームを読める形式（webm・ogg・mp4・MP3・WAV など）
+    format: binary
+    notes: 形式は Content-Type やファイル名ではなく、中身を PyAV で開いて決める。一時のファイルの拡張子は PyAV が読んだ容れ物の形式から付ける
+    status: planned
+request_example: |-
+  ```http
+  POST /web/transcriptions HTTP/1.1
+  Host: localhost:47823
+  Origin: https://voice.example.com
+  Content-Type: multipart/form-data; boundary=----b
+
+  ------b
+  Content-Disposition: form-data; name="audio"; filename="recording.webm"
+  Content-Type: audio/webm;codecs=opus
+
+  {音声のバイト列}
+  ------b--
+  ```
+response:
+  - name: job_id
+    type: str
+    description: 積んだジョブの ID。文字起こしの結果を返す で結果を取りに行くときに使う
+    constraints: 推測できない乱数（`secrets.token_urlsafe(16)`、22 文字）
+    example: q3Vb8sXk2mJf0tLw9eRzAg
+response_example: |-
+  ```json
+  {
+    "job_id": "q3Vb8sXk2mJf0tLw9eRzAg"
+  }
+  ```
+response_notes: 同じ音声を 2 回送ると、別のジョブが 2 つ積まれる（画面の再送信は新しい job_id を受け取る）。
+status_codes:
+  - code: '202'
+    condition: 音声を受け付けてジョブを積んだ
+  - code: '400'
+    condition: multipart でないか、`audio` の項目が無い
+  - code: '403'
+    condition: Host が 127.0.0.1 でも localhost でもないか、Origin が無いか許す Origin に無い
+  - code: '413'
+    condition: 本文がブラウザの本文の上限以上
+  - code: '415'
+    condition: '`audio` を PyAV で開けないか、音声のストリームが無い'
+  - code: '503'
+    condition: 終わっていないジョブがブラウザの音声の待ちの上限に達している
+error_format: RFC 9457 の `application/problem+json`（`type`・`title`・`status`・`detail`）で返す。今の API の `problem_response` に揃える。`detail` には断った理由を書き、音声の中身やファイルの置き場所を含めない。
+constraints:
+  - item: 待ち受け
+    constraint: 127.0.0.1 だけ。外からはゲートウェイ（shuhdev-gateway、Cloudflare Access）を通して届く
+  - item: 認可
+    constraint: トークンを求めない。Host が待ち受けのホストで、Origin が許す Origin にあること（Origin が無い要求も断る）
+  - item: 応答時間
+    constraint: ブラウザの要求の応答時間以内。文字起こしを待たずに返す
+    decided_by: dev/設計書/非機能要件/非機能要件#requirements[ブラウザの要求の応答時間]
+  - item: 本文の大きさ
+    constraint: ブラウザの本文の上限未満。Content-Length があれば読む前に、無ければ読みながら数えて、上限に達した時点で断る
+    decided_by: dev/設計書/非機能要件/非機能要件#requirements[ブラウザの本文の上限]
+  - item: 待ちの上限
+    constraint: 終わっていないジョブ（queued・running）の数がブラウザの音声の待ちの上限に達していれば断る
+    decided_by: dev/設計書/非機能要件/非機能要件#requirements[ブラウザの音声の待ちの上限]
+  - item: 音声の長さ
+    constraint: 制限なし
+    notes: 画面で録る長さは画面の録音の上限時間で抑え、選んだファイルは本文の上限で抑える
+  - item: レート制限
+    constraint: 制限なし
+    notes: 待ちの上限で足りる

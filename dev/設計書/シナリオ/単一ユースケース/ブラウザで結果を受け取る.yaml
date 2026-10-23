@@ -46,7 +46,7 @@ scenarios:
         participant LS as 端末（localStorage）
 
         U->>PG: 1 件の消すボタンを押す
-        PG->>PG: 消すかを確かめる（確かめ方はモック作成で決める）
+        PG->>PG: 削除の確認のモーダルを出す
         U->>PG: 消す
         PG->>LS: その件を消す
         PG->>PG: 一覧からその件を外す

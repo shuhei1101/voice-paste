@@ -6,6 +6,7 @@ import copy
 import logging
 import operator
 import os
+import re
 import tempfile
 from collections.abc import Mapping, MutableMapping, Sequence
 from functools import reduce
@@ -87,6 +88,9 @@ HINT_WORD_SEPARATOR_ERROR_TYPE: str = "hint_word_separator"
 
 HINT_PRESET_NAME_OVERLAP_ERROR_TYPE: str = "hint_preset_name_overlap"
 """表記のヒントのプリセットの名前が重なるときの ValidationError の種類。理由の文に重なった名前を `name` として持つ。"""
+
+ORIGIN_PATTERN: re.Pattern[str] = re.compile(r"https?://[^/\s?#]+")
+"""許す Origin の形（`scheme://host[:port]`。末尾の `/` とパスは持たない）。"""
 
 EDGE_PHRASES_FIELD_NAME: str = "edge_phrases"
 """文頭・文末から消す文言の一覧の設定のキー。"""
@@ -448,6 +452,26 @@ class ApiSettings(_SettingsModel):
     continuous: ContinuousSettings = _group(
         ContinuousSettings, "連続録音の区切りと上限時間"
     )
+    allowed_web_origins: list[str] = Field(
+        default_factory=list,
+        description=(
+            "外の端末に許す Origin。`/web/` の下へ要求を送ってよいブラウザのオリジン"
+            "（`https://{ゲートウェイの公開のサブドメイン}` の形。1 行に 1 つ）"
+        ),
+        json_schema_extra={"reload": RELOAD_RESTART},
+    )
+
+    @field_validator("allowed_web_origins")
+    @classmethod
+    def _origins_must_be_origin_form(cls, origins: list[str]) -> list[str]:
+        """許す Origin が `scheme://host[:port]` の形（末尾の `/` とパスが無い）であることを確かめる。"""
+        invalid = [origin for origin in origins if not ORIGIN_PATTERN.fullmatch(origin)]
+        # 形の合わない Origin があれば断る
+        if invalid:
+            raise ValueError(
+                f"`scheme://host[:port]` の形で、末尾の `/` とパスを付けない（{', '.join(invalid)}）"
+            )
+        return origins
 
 
 class GlossarySettings(_SettingsModel):

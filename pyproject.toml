@@ -27,6 +27,7 @@ dependencies = [
     "onnxruntime~=1.25",
     "comtypes~=1.4",
     "pyside6-essentials~=6.11.2",
+    "python-multipart~=0.0.32",
 ]
 
 [dependency-groups]
@@ -45,6 +46,9 @@ package-dir = { "" = "src" }
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["voice_paste*"]
+
+[tool.setuptools.package-data]
+voice_paste = ["server/web/**/*"]
 
 [tool.importlinter]
 root_package = "voice_paste"

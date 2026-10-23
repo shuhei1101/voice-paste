@@ -182,6 +182,8 @@ transcribing_show_hotkeys = true
 port = 47823
 # loopback のほかに、起こした文字の返送を許すホスト（再起動）
 allowed_callback_hosts = []
+# /web/ の下（外の端末のブラウザの画面）へ要求を送ってよい Origin（再起動）。ゲートウェイの公開のサブドメインを scheme://host[:port] の形で書く。例: ["https://voice-paste.example.com"]
+allowed_web_origins = []
 
 # === 連続録音（API で continuous を指定した録音）===
 [api.continuous]

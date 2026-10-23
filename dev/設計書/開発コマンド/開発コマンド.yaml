@@ -65,8 +65,9 @@ categories:
       npm install --save-dev {パッケージ}
       ```
     verification:
-      state: 未確認
-      detail: 'PR #171 の実装の工程で `package.json` と `tsconfig.build.json` を作ってから確かめる'
+      state: 済
+      date: '2026-10-24'
+      detail: 'PR #171 の作業ツリー（WSL・Node.js v24.14.0・npm 11.9.0）で、`node_modules/` を消してから `npm ci` で `package-lock.json` どおりに入れ、`npm run build` が `assets/app.ts` から `assets/app.js` を生成し（再実行しても差分が出ない）、`npm run dev` が `Found 0 errors. Watching for file changes.` で保存を待つことを確かめた。`npm install --save-dev typescript eslint typescript-eslint @eslint/js` で `package.json` と `package-lock.json` が書き換わることも確かめた'
 lead: 依存を足す・上げる・外すときと、取り込んだ変更に手元の環境を追従させるときに打つコマンド。
 prerequisites:
   - リポジトリの直下で、Windows の uv（WSL からは `uv.exe`）で流す

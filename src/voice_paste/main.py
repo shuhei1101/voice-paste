@@ -32,6 +32,7 @@ from voice_paste.features.history import (
     discard_temporary,
     purge_expired,
     save_recording,
+    store_web_audio,
 )
 from voice_paste.features.outputs import (
     OUTPUTS,
@@ -53,6 +54,8 @@ from voice_paste.features.session import (
 )
 from voice_paste.features.session.types import NotifyFn, SessionState
 from voice_paste.features.transcription.service import transcribe
+from voice_paste.features.web_transcription import WebApiDeps, WebJobQueue, WebTranscriptionDeps
+from voice_paste.integrations.audio.probe import probe_audio
 from voice_paste.integrations.browser.opener import open_app_window
 from voice_paste.integrations.http.client import post_json
 from voice_paste.integrations.keyboard.sender import copy_to_clipboard, send_enter, send_paste
@@ -137,6 +140,9 @@ SETTINGS_MODEL: type[Settings] = build_settings_model(
 )
 """アプリの設定のモデル。OUTPUTS の設定のモデルを OUTPUTS の並びで組み立てたもので、設定の読み込みと既定の設定はこれを使う。"""
 
+WEB_TMP_DIR_NAME: str = "web"
+"""ブラウザから受けた音声を書く一時のフォルダの名前（`{tmp_dir}` の下）。"""
+
 PURGE_INTERVAL_SEC: float = 86400.0
 """RepeatingTimer が purge_old_files を呼ぶ間隔。非機能要件の常駐中に古い履歴とログを消す間隔（24 時間）を秒にした値。"""
 
@@ -157,6 +163,9 @@ class Handlers:
 
     session_api: SessionApiDeps
     """API サーバーへ渡すセッションの API の依存（設定の許可ホストを部分適用した返送先の確かめを含む）。"""
+
+    web_api: WebApiDeps
+    """API サーバーへ渡すブラウザの API の依存（WebJobQueue・probe_audio・一時のフォルダ）。WebJobQueue の開始と終了は main が呼ぶ。"""
 
     settings_store: SettingsStore
     """今効いている設定。出力先・録音・画面はここから読むため、保存した immediate の項目が次の回から効く。"""
@@ -439,10 +448,37 @@ def build_handlers(
         ),
     )
 
-    # 9. start_local_session に SessionManager と notify を部分適用する
+    # 9. ブラウザの文字起こしを配線する（履歴を残すかはそのたびに SettingsStore から引く。ワーカースレッドはまだ立てない）
+    def store_web_audio_now(job_id: str, source: Path) -> Path:
+        """今の設定で履歴を残すかを引いて、ブラウザの音声を保存する。"""
+        return store_web_audio(
+            job_id,
+            source,
+            history_enabled=store.get().history.enabled,
+            paths=paths,
+            now=_local_now,
+        )
+
+    web_queue = WebJobQueue(
+        WebTranscriptionDeps(
+            store_audio=store_web_audio_now,
+            transcribe=partial(
+                transcribe, engine=engine.transcribe, get_hint=partial(_current_hint, store)
+            ),
+            correct=correct,
+            append_text=partial(append_text, paths=paths),
+            discard_temporary=partial(discard_temporary, paths=paths),
+        )
+    )
+    web_api = WebApiDeps(
+        queue=web_queue, probe_audio=probe_audio, tmp_dir=paths.tmp_dir / WEB_TMP_DIR_NAME
+    )
+
+    # 10. start_local_session に SessionManager と notify を部分適用する
     return Handlers(
         session_manager=session_manager,
         session_api=session_api,
+        web_api=web_api,
         settings_store=store,
         start_local_session=partial(
             start_local_session, session_manager=session_manager, notify=notify
@@ -747,6 +783,7 @@ def _stop_all(running: _Running, tray: Tray) -> None:
         running.runner.stop()
     if running.handlers is not None:
         running.handlers.session_manager.close()
+        running.handlers.web_api.queue.close()
         running.handlers.stop_engine()
     tray.hide()
 
@@ -922,10 +959,18 @@ def _start_services(
     _watch_system_theme(app, deps.apply_theme)
     running.controller = _build_controller(bridge, tray, deps)
 
-    # 8. トークンを作り、API サーバーを起動する
+    # 8. ブラウザの音声のキューを始め、トークンを作り、API サーバーを起動する
+    handlers.web_api.queue.start(handlers.web_api.tmp_dir)
     token = create_token()
     port = settings.api.port
-    runner = ApiServerRunner(build_fastapi(handlers.session_api, token, port), port)
+    fastapi_app = build_fastapi(
+        handlers.session_api,
+        token,
+        port,
+        web_api=handlers.web_api,
+        allowed_web_origins=settings.api.allowed_web_origins,
+    )
+    runner = ApiServerRunner(fastapi_app, port)
     if runner.start(API_START_TIMEOUT_SEC):
         running.runner = runner
         write_token_file(paths.token_file, port, token)

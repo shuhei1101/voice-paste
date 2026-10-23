@@ -30,6 +30,7 @@ from tests.integration.helpers import CallbackReceiver, wait_until
 from tests.support.processes import ProcessInfo, kill_tree, processes_with
 from voice_paste.features.recording.client import SAMPLE_RATE
 from voice_paste.features.session import SessionApiDeps, SessionManager
+from voice_paste.features.web_transcription import WebApiDeps
 from voice_paste.integrations.whisper.client import WORKER_MODULE
 from voice_paste.main import API_START_TIMEOUT_SEC, SETTINGS_MODEL, Handlers
 from voice_paste.server.app import build_fastapi
@@ -546,11 +547,18 @@ class InProcessApi:
         self.runner.stop()
 
 
-def serve_api(session_api: SessionApiDeps) -> InProcessApi:
+def serve_api(
+    session_api: SessionApiDeps,
+    web_api: WebApiDeps,
+    allowed_web_origins: Sequence[str] = (),
+) -> InProcessApi:
     """build_fastapi で組み立てた app を 127.0.0.1 の空きポートで待ち受けさせ、叩くクライアントを返す。"""
     token = create_token()
     port = free_port()
-    runner = ApiServerRunner(build_fastapi(session_api, token, port), port)
+    app = build_fastapi(
+        session_api, token, port, web_api=web_api, allowed_web_origins=allowed_web_origins
+    )
+    runner = ApiServerRunner(app, port)
     assert runner.start(API_START_TIMEOUT_SEC)
     http = httpx.Client(base_url=f"http://{LOOPBACK}:{port}", timeout=REQUEST_TIMEOUT_SEC)
     return InProcessApi(runner=runner, http=http, token=token.get_secret_value())
@@ -612,7 +620,11 @@ class InProcessApp:
 
     def start_api(self) -> InProcessApi:
         """build_fastapi で組み立てた app を 127.0.0.1 の空きポートで待ち受けさせ、叩くクライアントを返す。"""
-        self.api = serve_api(self.handlers.session_api)
+        self.api = serve_api(
+            self.handlers.session_api,
+            self.handlers.web_api,
+            self.handlers.settings_store.get().api.allowed_web_origins,
+        )
         return self.api
 
     def start_limit_timer(self) -> None:

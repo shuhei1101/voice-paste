@@ -141,7 +141,6 @@ def install_wiring(
         return Handlers(
             session_manager=session_manager,
             session_api=MagicMock(),
-            web_api=MagicMock(),
             settings_store=SettingsStore(settings),
             start_local_session=MagicMock(),
             recorder_level=lambda: 0.0,

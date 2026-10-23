@@ -519,6 +519,8 @@ test_files:
   - tests/unit/voice_paste/server/test_app.py
   - tests/unit/voice_paste/server/test_error_handlers.py
   - tests/unit/voice_paste/server/test_token.py
+  - tests/unit/voice_paste/server/test_body_limit.py
+  - tests/unit/voice_paste/server/test_web_page.py
 notes:
   外の端末の画面: |-
     `server/web/` に画面設計『外の端末の文字起こしの画面』『取り消せない操作の確認』の HTML（`index.html`）・JS（`assets/app.js`。ビルドしない ES module）・CSS（`assets/style.css`。デザイン方針の値を CSS の変数で持つ）を置く。画面の処理（録音・送信・IndexedDB・localStorage・取りに行く間隔）は画面設計の要素の説明に従い、単体テストは持たず、Edge で画面を開く結合テストと E2E で確かめる。

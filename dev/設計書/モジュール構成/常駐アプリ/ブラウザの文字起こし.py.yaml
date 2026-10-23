@@ -598,3 +598,5 @@ constants:
     summary: secrets.token_urlsafe に渡す乱数のバイト数（128 bit、22 文字）
     value: '16'
     status: planned
+test_files:
+  - tests/unit/voice_paste/features/web_transcription/test_service.py

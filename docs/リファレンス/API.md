@@ -174,7 +174,7 @@ API から始めた録音の結果を、開始で指定した `callback_url` へ
 | --- | --- | --- |
 | `session_id` | str | 開始で返したセッションの ID |
 | `result` | str | `transcribed`（起こした文字を得た。結果が空の場合を含む）・`failed`（文字起こしに失敗した）・`truncated`（完了が来ないまま上限で打ち切った）・`completed`（連続録音を完了し、全ての区間を送り終えた。連続録音だけ） |
-| `text` | str | 用語集で補正した文字。`transcribed` で結果が空のときと、`failed`・`truncated`・`completed` のときは空文字 |
+| `text` | str | 文頭・文末の文言を消した後に、用語集で補正した文字。`transcribed` で結果が空のときと、`failed`・`truncated`・`completed` のときは空文字 |
 | `error` | str または null | `failed` のときの理由。それ以外は `null` |
 | `segment_number` | int または null | 連続録音の区間の通し番号（1 から 1 ずつ増える）。連続録音の `transcribed` と、区間の `failed` のときだけ入る。それ以外は `null` |
 | `segment_count` | int または null | 連続録音で区切った区間の数（届かなかった区間も含む。区間が無ければ 0）。連続録音の終わり（`completed`・`truncated`、区切りの失敗で止まったときの `failed`）だけに入る。それ以外は `null` |

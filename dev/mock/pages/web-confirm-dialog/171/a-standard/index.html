@@ -15,8 +15,8 @@
   <nav class="mock-bar" aria-label="モックの場面">
     <span class="mock-bar__label">場面</span>
     <ul>
-      <li><button type="button" data-scene="delete">結果を消す</button></li>
-      <li><button type="button" data-scene="replace">文字にできていない音声を置き換える</button></li>
+      <li><button type="button" data-scene="delete">結果の削除</button></li>
+      <li><button type="button" data-scene="replace">未変換の音声の置換</button></li>
     </ul>
   </nav>
 
@@ -35,10 +35,10 @@
 
         <!-- 送る区画（後ろで開いたまま） -->
         <section class="web-panel" aria-labelledby="h-send-del">
-          <h2 id="h-send-del">音声を送る</h2>
+          <h2 id="h-send-del">音声送信</h2>
           <div class="send-actions">
-            <button type="button" class="btn btn--lg btn--primary"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle class="fill" cx="12" cy="12" r="6"/></svg>録音を始める</button>
-            <label class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>ファイルを選んで送る<input type="file" accept="audio/*" class="sr-only"></label>
+            <button type="button" class="btn btn--lg btn--primary"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle class="fill" cx="12" cy="12" r="6"/></svg>録音開始</button>
+            <label class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>ファイル送信<input type="file" accept="audio/*" class="sr-only"></label>
           </div>
         </section>
 
@@ -48,7 +48,7 @@
           <ul class="results">
             <!-- 消そうとしている件 -->
             <li class="result">
-              <div class="result__head"><span class="result__time num">10/23 13:52</span><span class="result__src">画面で録った音声・<span class="num">0:41</span></span></div>
+              <div class="result__head"><span class="result__time num">10/23 13:52</span><span class="result__src">画面録音・<span class="num">0:41</span></span></div>
               <p class="result__text">ホットキーの録音中でもブラウザから送れるかを確かめる。</p>
             </li>
           </ul>
@@ -58,14 +58,14 @@
       <!-- 確認のダイアログ: 場面を出すと app.js がモーダルで開く。Esc・外側の押下でも閉じる -->
       <dialog class="web-dialog" closedby="any" aria-labelledby="d-del" aria-describedby="b-del">
         <div class="web-dialog__main">
-          <h2 id="d-del">この結果を消しますか</h2>
-          <p id="b-del">この端末から消え、元に戻せません。PC の履歴に残った文字は消えません。</p>
+          <h2 id="d-del">結果を削除しますか</h2>
+          <p id="b-del">この端末から削除（復元不可）。PC の履歴は保持</p>
           <p class="web-dialog__quote">ホットキーの録音中でもブラウザから送れるかを確かめる。</p>
         </div>
         <div class="web-dialog__actions">
           <!-- 最初のフォーカスは、消さない側に置く -->
-          <a class="btn" href="../../../web-transcription/171/a-standard/index.html?scene=done" autofocus>やめる</a>
-          <a class="btn btn--danger-fill" href="../../../web-transcription/171/a-standard/index.html?scene=deleted">消す</a>
+          <a class="btn" href="../../../web-transcription/171/a-standard/index.html?scene=done" autofocus>キャンセル</a>
+          <a class="btn btn--danger-fill" href="../../../web-transcription/171/a-standard/index.html?scene=deleted">削除</a>
         </div>
       </dialog>
     </div>
@@ -81,16 +81,16 @@
 
         <!-- 送る区画（後ろで開いたまま） -->
         <section class="web-panel" aria-labelledby="h-send-rep">
-          <h2 id="h-send-rep">音声を送る</h2>
+          <h2 id="h-send-rep">音声送信</h2>
           <div class="send-actions">
-            <button type="button" class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle class="fill" cx="12" cy="12" r="6"/></svg>録音を始める</button>
-            <label class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>ファイルを選んで送る<input type="file" accept="audio/*" class="sr-only"></label>
+            <button type="button" class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle class="fill" cx="12" cy="12" r="6"/></svg>録音開始</button>
+            <label class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>ファイル送信<input type="file" accept="audio/*" class="sr-only"></label>
           </div>
           <div class="kept">
             <div class="kept__info">
-              <span class="kept__label">端末に残した音声</span>
-              <span class="kept__meta"><span class="num">10/23 14:05</span> に録音・<span class="num">2:14</span>・webm・<span class="num">540 KB</span></span>
-              <span class="kept__state kept__state--error"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>送れていません</span>
+              <span class="kept__label">端末内の音声</span>
+              <span class="kept__meta"><span class="num">10/23 14:05</span> 録音・<span class="num">2:14</span>・webm・<span class="num">540 KB</span></span>
+              <span class="kept__state kept__state--error"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>送信失敗</span>
             </div>
           </div>
         </section>
@@ -99,13 +99,13 @@
       <!-- 確認のダイアログ: 置き換えて録ると録音中の表示へ移る -->
       <dialog class="web-dialog" closedby="any" aria-labelledby="d-rep" aria-describedby="b-rep">
         <div class="web-dialog__main">
-          <h2 id="d-rep">文字にできていない音声を置き換えますか</h2>
-          <p id="b-rep">新しく録ると、端末に残したまだ文字にできていない音声（<span class="num">10/23 14:05</span>・<span class="num">2:14</span>）が消え、元に戻せません。残すときは、やめてからダウンロードしてください。</p>
+          <h2 id="d-rep">未変換の音声を置換しますか</h2>
+          <p id="b-rep">端末内の未変換の音声（<span class="num">10/23 14:05</span>・<span class="num">2:14</span>）を削除して録音（復元不可）。保存する場合: キャンセル後にダウンロード</p>
         </div>
         <div class="web-dialog__actions">
           <!-- 最初のフォーカスは、置き換えない側に置く -->
-          <a class="btn" href="../../../web-transcription/171/a-standard/index.html?scene=send-failed" autofocus>やめる</a>
-          <a class="btn btn--danger-fill" href="../../../web-transcription/171/a-standard/index.html?scene=recording">置き換えて録る</a>
+          <a class="btn" href="../../../web-transcription/171/a-standard/index.html?scene=send-failed" autofocus>キャンセル</a>
+          <a class="btn btn--danger-fill" href="../../../web-transcription/171/a-standard/index.html?scene=recording">置換して録音</a>
         </div>
       </dialog>
     </div>

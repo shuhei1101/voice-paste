@@ -27,14 +27,14 @@ const setupScenes = () => {
   if (first) show(first.dataset.scene);
 };
 
-/** コピーのボタンを押したら、少しの間「コピーしました」を出す */
+/** コピーのボタンを押したら、少しの間「コピー済み」を出す */
 const setupCopy = () => {
   document.querySelectorAll("[data-copy]").forEach((btn) => {
     const label = btn.querySelector("[data-copy-label]");
     const idle = label.textContent;
     btn.addEventListener("click", () => {
       btn.dataset.copied = "true";
-      label.textContent = "コピーしました";
+      label.textContent = "コピー済み";
       setTimeout(() => {
         btn.dataset.copied = "false";
         label.textContent = idle;

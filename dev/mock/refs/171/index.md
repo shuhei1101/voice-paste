@@ -7,5 +7,5 @@
 | --- | --- |
 | 外の端末の文字起こしの画面 | [web-transcription / 171](../../pages/web-transcription/171/) |
 | 外の端末の取り消せない操作の確認 | [web-confirm-dialog / 171](../../pages/web-confirm-dialog/171/) |
-| 端末に残した音声の行（部品） | [web-kept-audio](../../components/web-kept-audio/index.html) |
+| 端末内の音声の行（部品） | [web-kept-audio](../../components/web-kept-audio/index.html) |
 | 結果の 1 件（部品） | [web-result-item](../../components/web-result-item/index.html) |

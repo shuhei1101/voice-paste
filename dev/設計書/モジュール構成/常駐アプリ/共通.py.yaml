@@ -498,7 +498,7 @@ data_models:
       - name: allowed_web_origins
         type: list[str]
         default: '[]'
-        description: '`/web/` の下に許す Origin（設定 api.allowed_web_origins。`scheme://host[:port]` の形だけを通し、末尾の `/` とパスは SettingsError）'
+        description: '外の端末に許す Origin。`/web/` の下に許すオリジン（設定 api.allowed_web_origins。`scheme://host[:port]` の形だけを通し、末尾の `/` とパスは SettingsError）。pydantic の Field の description の最初の 1 文を「外の端末に許す Origin」にし、設定画面の欄の名前にする'
     status: implemented
   - name: BrowserPreset
     title: ブラウザ添付のプリセット

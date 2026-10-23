@@ -678,7 +678,7 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
   - key: api.allowed_web_origins
-    title: ブラウザの画面に許す Origin
+    title: 外の端末に許す Origin
     file: settings.toml
     type: list[string]
     default: '[]'

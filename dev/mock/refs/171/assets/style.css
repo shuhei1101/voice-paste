@@ -378,8 +378,8 @@ label.btn {
 
 /* ===== 狭い幅 ===== */
 
-/* ごく狭い幅: 録る・ファイルを選ぶを縦に積む */
-@media (width < 360px) {
+/* スマホの縦の幅: 録る・ファイルを選ぶを縦に積む */
+@media (width < 440px) {
   /* 2 つのボタンを 1 列にする */
   .send-actions { grid-template-columns: 1fr; }
 }

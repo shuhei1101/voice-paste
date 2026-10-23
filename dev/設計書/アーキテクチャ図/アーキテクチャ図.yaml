@@ -140,7 +140,7 @@ external_systems:
     direction: 双方向
     protocol: HTTPS（外）→ HTTP（127.0.0.1。Host を `localhost:{ポート}` に書き換え、Origin はそのまま渡す）。常駐アプリは受けて応答を返すだけで、自分からは接続しない
     detail: dev/設計書/インターフェース定義/常駐アプリ/音声を受け付ける.py#
-    cost: 無料（Cloudflare の無料プラン。本文は 100 MB まで・応答待ちは 83 秒まで）
+    cost: 無料。本文は 100 MB まで（Cloudflare の無料プラン）・応答待ちは 83 秒まで（ゲートウェイの `upstream.header_timeout_sec`）
     refs:
       - dev/設計書/非機能要件/非機能要件#requirements[ブラウザの要求の応答時間]
       - dev/設計書/非機能要件/非機能要件#requirements[ブラウザの本文の上限]

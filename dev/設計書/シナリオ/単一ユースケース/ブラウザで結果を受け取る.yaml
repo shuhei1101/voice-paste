@@ -148,3 +148,4 @@ primary_actor: ユーザー（外の端末のブラウザ）
 trigger: 画面が音声の送信の `202`（`job_id`）を受け取るか、ユーザーが画面を開き直す
 preconditions:
   - ブラウザから音声を送る で、音声が受け付けられている（開き直すときを除く）
+test_file: tests/e2e/単一ユースケース/test_receive_result_in_browser.py

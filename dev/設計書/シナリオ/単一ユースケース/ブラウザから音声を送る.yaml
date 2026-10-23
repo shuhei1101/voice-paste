@@ -190,3 +190,4 @@ trigger: ユーザーが画面で録音を止めるか、音声ファイルを�
 preconditions:
   - 常駐サービスが起動しており、`/web/` でブラウザの音声を受け付けている
   - 画面（`GET /web/`）を、設定の許す Origin の一覧にあるオリジンから開いている
+test_file: tests/e2e/単一ユースケース/test_send_audio_from_browser.py

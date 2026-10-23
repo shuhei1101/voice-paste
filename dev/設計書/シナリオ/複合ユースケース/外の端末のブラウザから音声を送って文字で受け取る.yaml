@@ -162,3 +162,4 @@ minimal_guarantee: |-
   送信や文字起こしに失敗しても、録った直近 1 件の音声は端末に残り、送り直しとダウンロードができる。
   常駐サービスは止まらず、ホットキー・API の録音はそのまま使える。
   許可されていない Origin からの送信は受け付けない。
+test_file: tests/e2e/複合ユースケース/test_transcribe_from_browser.py

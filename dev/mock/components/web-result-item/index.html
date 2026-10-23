@@ -19,19 +19,19 @@
     <!-- 部品の説明 -->
     <header class="intro">
       <h1>結果の 1 件</h1>
-      <p>外の端末の文字起こしの画面の結果の一覧に並べる 1 件。変換待ち・変換中は進捗、変換完了は起こした文字とコピー・削除、変換失敗・結果消失は原因と対処を出す。</p>
+      <p>外の端末の文字起こしの画面の結果の一覧に並べる 1 件。文字起こし待ち・文字起こし中は進捗、文字起こし完了は起こした文字とコピー・削除、文字起こし失敗・結果消失は原因と対処を出す。</p>
     </header>
 
     <div class="desk desk--single">
 
       <!-- 順番待ち -->
       <section class="specimen" aria-labelledby="h-queued">
-        <h2 id="h-queued">変換待ち（queued）</h2>
+        <h2 id="h-queued">文字起こし待ち（queued）</h2>
         <div class="web-panel">
           <ul class="results">
             <li class="result">
               <div class="result__head"><span class="result__time num">10/23 14:08</span><span class="result__src">interview-part2.m4a</span></div>
-              <div class="result__status"><span class="spinner" aria-hidden="true"></span>変換待ち</div>
+              <div class="result__status"><span class="spinner" aria-hidden="true"></span>文字起こし待ち</div>
             </li>
           </ul>
         </div>
@@ -39,13 +39,13 @@
 
       <!-- 文字起こし中 -->
       <section class="specimen" aria-labelledby="h-running">
-        <h2 id="h-running">変換中（running）</h2>
+        <h2 id="h-running">文字起こし中（running）</h2>
         <div class="web-panel">
           <ul class="results">
             <li class="result">
               <div class="result__head"><span class="result__time num">10/23 14:05</span><span class="result__src">画面録音・<span class="num">2:14</span></span></div>
-              <div class="result__status"><span class="spinner" aria-hidden="true"></span>変換中<span class="result__pct num">42%</span></div>
-              <progress max="100" value="42" aria-label="変換の進捗"></progress>
+              <div class="result__status"><span class="spinner" aria-hidden="true"></span>文字起こし中<span class="result__pct num">42%</span></div>
+              <progress max="100" value="42" aria-label="文字起こしの進捗"></progress>
             </li>
           </ul>
         </div>
@@ -53,7 +53,7 @@
 
       <!-- 届いた -->
       <section class="specimen" aria-labelledby="h-done">
-        <h2 id="h-done">変換完了（done）</h2>
+        <h2 id="h-done">文字起こし完了（done）</h2>
         <div class="web-panel">
           <ul class="results">
             <li class="result">
@@ -88,13 +88,13 @@
 
       <!-- 文字にできなかった -->
       <section class="specimen" aria-labelledby="h-failed">
-        <h2 id="h-failed">変換失敗（failed）</h2>
+        <h2 id="h-failed">文字起こし失敗（failed）</h2>
         <div class="web-panel">
           <ul class="results">
             <li class="result">
               <div class="result__head"><span class="result__time num">10/23 14:05</span><span class="result__src">画面録音・<span class="num">2:14</span></span></div>
-              <div class="result__status result__status--error"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>変換失敗</div>
-              <p class="result__detail">PC の voice-paste で変換が停止。端末内の音声から再送信可<br>詳細: <code>文字起こしワーカー無応答</code></p>
+              <div class="result__status result__status--error"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>文字起こし失敗</div>
+              <p class="result__detail">PC の voice-paste で文字起こしが停止。端末内の音声から再送信可<br>詳細: <code>文字起こしワーカー無応答</code></p>
             </li>
           </ul>
         </div>

@@ -12,5 +12,5 @@
 | [output-switch](./output-switch/index.html) | 文字起こし中の表示の今の出力先と切り替え（案 A の一覧・案 B / C のボタンの通常・かざす・フォーカス・選んでいる・ホットキーが空・オンが 2 つ・プリセットで確定） |
 | [check-indicator](./check-indicator/index.html) | 設定画面のチェックボックス・ラジオボタンの印と選択欄の開く印（案 A・案 B ごとに オン・オフ・使えない・フォーカス・長い名前、ラジオの選択肢の間、今の Qt の描画） |
 | [edge-phrase-editor](./edge-phrase-editor/index.html) | 設定画面のハルシネーションの文言の一覧（案 A・案 B ごとに 通常・長い文言・エラー、案 A の足した直後・行が無い） |
-| [web-kept-audio](./web-kept-audio/index.html) | 外の端末の文字起こしの画面の端末内の音声の行（送信中・送信済み・送信失敗・未変換・長い録音） |
-| [web-result-item](./web-result-item/index.html) | 外の端末の文字起こしの画面の結果の 1 件（変換待ち・変換中・変換完了・コピー済み・変換失敗・結果消失・長い名前と文） |
+| [web-kept-audio](./web-kept-audio/index.html) | 外の端末の文字起こしの画面の端末内の音声の行（送信中・送信済み・送信失敗・文字起こし前・長い録音） |
+| [web-result-item](./web-result-item/index.html) | 外の端末の文字起こしの画面の結果の 1 件（文字起こし待ち・文字起こし中・文字起こし完了・コピー済み・文字起こし失敗・結果消失・長い名前と文） |

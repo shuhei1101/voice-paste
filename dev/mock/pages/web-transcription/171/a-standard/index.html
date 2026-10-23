@@ -23,9 +23,9 @@
       <li><button type="button" data-scene="send-failed">送信失敗</button></li>
       <li><button type="button" data-scene="unreadable">形式不可（415）</button></li>
       <li><button type="button" data-scene="too-large">サイズ超過（413）</button></li>
-      <li><button type="button" data-scene="waiting">変換待ち</button></li>
-      <li><button type="button" data-scene="done">変換完了</button></li>
-      <li><button type="button" data-scene="failed">変換失敗</button></li>
+      <li><button type="button" data-scene="waiting">文字起こし待ち</button></li>
+      <li><button type="button" data-scene="done">文字起こし完了</button></li>
+      <li><button type="button" data-scene="failed">文字起こし失敗</button></li>
       <li><button type="button" data-scene="not-found">結果消失（404）</button></li>
       <li><button type="button" data-scene="deleted">削除後</button></li>
     </ul>
@@ -144,7 +144,7 @@
             <span class="kept__label">端末内の音声</span>
             <span class="kept__meta"><span class="num">10/23 14:05</span> 録音・<span class="num">2:14</span>・webm・<span class="num">540 KB</span></span>
             <span class="kept__state kept__state--error" data-scene-panel="send-failed"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>送信失敗</span>
-            <span class="kept__state kept__state--error" data-scene-panel="failed not-found" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>未変換</span>
+            <span class="kept__state kept__state--error" data-scene-panel="failed not-found" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>文字起こし前</span>
           </div>
           <div class="kept__actions">
             <button type="button" class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>ダウンロード</button>
@@ -171,14 +171,14 @@
           <!-- 待ちの件（順番待ち）: 結果を待つ場面だけ -->
           <li class="result" data-scene-panel="waiting" hidden>
             <div class="result__head"><span class="result__time num">10/23 14:08</span><span class="result__src">interview-part2.m4a</span></div>
-            <div class="result__status"><span class="spinner" aria-hidden="true"></span>変換待ち</div>
+            <div class="result__status"><span class="spinner" aria-hidden="true"></span>文字起こし待ち</div>
           </li>
 
           <!-- 待ちの件（文字起こし中） -->
           <li class="result" data-scene-panel="waiting" hidden>
             <div class="result__head"><span class="result__time num">10/23 14:05</span><span class="result__src">画面録音・<span class="num">2:14</span></span></div>
-            <div class="result__status"><span class="spinner" aria-hidden="true"></span>変換中<span class="result__pct num">42%</span></div>
-            <progress max="100" value="42" aria-label="変換の進捗"></progress>
+            <div class="result__status"><span class="spinner" aria-hidden="true"></span>文字起こし中<span class="result__pct num">42%</span></div>
+            <progress max="100" value="42" aria-label="文字起こしの進捗"></progress>
           </li>
 
           <!-- 届いた件: 結果が届いた・消した後の場面の先頭 -->
@@ -195,8 +195,8 @@ voice-paste の API は今のままで、外の端末からはゲートウェイ
           <!-- 文字にできなかった件 -->
           <li class="result" data-scene-panel="failed" hidden>
             <div class="result__head"><span class="result__time num">10/23 14:05</span><span class="result__src">画面録音・<span class="num">2:14</span></span></div>
-            <div class="result__status result__status--error"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>変換失敗</div>
-            <p class="result__detail">PC の voice-paste で変換が停止。端末内の音声から再送信可<br>詳細: <code>文字起こしワーカー無応答</code></p>
+            <div class="result__status result__status--error"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>文字起こし失敗</div>
+            <p class="result__detail">PC の voice-paste で文字起こしが停止。端末内の音声から再送信可<br>詳細: <code>文字起こしワーカー無応答</code></p>
           </li>
 
           <!-- 結果が見つからない件（404） -->

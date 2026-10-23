@@ -16,7 +16,7 @@
     <span class="mock-bar__label">場面</span>
     <ul>
       <li><button type="button" data-scene="delete">結果の削除</button></li>
-      <li><button type="button" data-scene="replace">未変換の音声の置換</button></li>
+      <li><button type="button" data-scene="replace">文字起こし前の音声の置換</button></li>
     </ul>
   </nav>
 
@@ -99,8 +99,8 @@
       <!-- 確認のダイアログ: 置き換えて録ると録音中の表示へ移る -->
       <dialog class="web-dialog" closedby="any" aria-labelledby="d-rep" aria-describedby="b-rep">
         <div class="web-dialog__main">
-          <h2 id="d-rep">未変換の音声を置換しますか</h2>
-          <p id="b-rep">端末内の未変換の音声（<span class="num">10/23 14:05</span>・<span class="num">2:14</span>）を削除して録音（復元不可）。保存する場合: キャンセル後にダウンロード</p>
+          <h2 id="d-rep">文字起こし前の音声を置換しますか</h2>
+          <p id="b-rep">端末内の文字起こし前の音声（<span class="num">10/23 14:05</span>・<span class="num">2:14</span>）を削除して録音（復元不可）。保存する場合: キャンセル後にダウンロード</p>
         </div>
         <div class="web-dialog__actions">
           <!-- 最初のフォーカスは、置き換えない側に置く -->

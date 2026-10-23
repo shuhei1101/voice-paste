@@ -17,7 +17,7 @@
     <!-- 部品の説明 -->
     <header class="intro">
       <h1>端末内の音声の行</h1>
-      <p>外の端末の文字起こしの画面の音声送信の区画に置く、IndexedDB に残した直近 1 件の音声の行。状態（送信中・送信済み・送信失敗・未変換）は文言と印で、色だけに頼らずに分ける。</p>
+      <p>外の端末の文字起こしの画面の音声送信の区画に置く、IndexedDB に残した直近 1 件の音声の行。状態（送信中・送信済み・送信失敗・文字起こし前）は文言と印で、色だけに頼らずに分ける。</p>
     </header>
 
     <div class="desk desk--single">
@@ -77,13 +77,13 @@
 
       <!-- 文字にできていない -->
       <section class="specimen" aria-labelledby="h-fail">
-        <h2 id="h-fail">未変換（変換失敗・結果消失）</h2>
+        <h2 id="h-fail">文字起こし前（文字起こし失敗・結果消失）</h2>
         <div class="web-panel">
           <div class="kept">
             <div class="kept__info">
               <span class="kept__label">端末内の音声</span>
               <span class="kept__meta"><span class="num">10/23 14:05</span> 録音・<span class="num">2:14</span>・webm・<span class="num">540 KB</span></span>
-              <span class="kept__state kept__state--error"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>未変換</span>
+              <span class="kept__state kept__state--error"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>文字起こし前</span>
             </div>
             <div class="kept__actions">
               <button type="button" class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>ダウンロード</button>

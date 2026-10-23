@@ -908,6 +908,7 @@ notes:
     | 履歴とログ | `logging.level` | ラジオボタン |
     | API | `api.port` | 数値の欄 |
     | API | `api.allowed_callback_hosts` | 複数行の文字の欄（1 行 = 1 ホスト） |
+    | API | `api.allowed_web_origins` | 複数行の文字の欄（1 行 = 1 オリジン）。`api.allowed_callback_hosts` の後ろに置く |
     | API（連続録音） | `api.continuous.min_silence_sec`・`api.continuous.session_limit_sec` | 数値の欄 |
 
     欄の部品は設定のモデルの型から決める（bool → チェックボックス、リテラルの列挙 → ラジオボタンか選択の欄、int・float → 数値の欄、str → 文字の欄、ホットキーの型 → ホットキーの欄）。上の表は欄の並びと、型からは決まらない部品（つまみ・プリセットの一覧・用語集の一覧と行の表・ヒントのプリセットの一覧・文言の一覧）を決める。

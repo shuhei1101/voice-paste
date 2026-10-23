@@ -51,7 +51,7 @@
           <button type="button" class="btn btn--lg btn--primary"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle class="fill" cx="12" cy="12" r="6"/></svg>録音を始める</button>
           <label class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>ファイルを選んで送る<input type="file" accept="audio/*" class="sr-only"></label>
         </div>
-        <!-- 送れなかった・文字にできなかった・結果が見つからない場面: 送っていない音声があるため、録音を始めると置き換えの確認へ進む。主の操作は送り直す -->
+        <!-- 送れなかった・文字にできなかった・結果が見つからない場面: 文字にできていない音声があるため、録音を始めると置き換えの確認へ進む。主の操作は送り直す -->
         <div class="send-actions" data-scene-panel="send-failed failed not-found" hidden>
           <a class="btn btn--lg" href="../../../web-confirm-dialog/171/a-standard/index.html?scene=replace"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle class="fill" cx="12" cy="12" r="6"/></svg>録音を始める</a>
           <label class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>ファイルを選んで送る<input type="file" accept="audio/*" class="sr-only"></label>
@@ -138,7 +138,7 @@
           </div>
         </div>
 
-        <!-- 端末に残した音声（送れていない）: 送れなかった・文字にできなかった・結果が見つからない場面 -->
+        <!-- 端末に残した音声（文字にできていない）: 送れなかった・文字にできなかった・結果が見つからない場面 -->
         <div class="kept" data-scene-panel="send-failed failed not-found" hidden>
           <div class="kept__info">
             <span class="kept__label">端末に残した音声</span>

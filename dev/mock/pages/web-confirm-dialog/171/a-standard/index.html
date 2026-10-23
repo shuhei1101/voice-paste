@@ -16,7 +16,7 @@
     <span class="mock-bar__label">場面</span>
     <ul>
       <li><button type="button" data-scene="delete">結果を消す</button></li>
-      <li><button type="button" data-scene="replace">送っていない音声を置き換える</button></li>
+      <li><button type="button" data-scene="replace">文字にできていない音声を置き換える</button></li>
     </ul>
   </nav>
 
@@ -70,7 +70,7 @@
       </dialog>
     </div>
 
-    <!-- 場面: 送っていない音声を新しい録音で置き換える（後ろは文字起こしの画面の「送れなかった」） -->
+    <!-- 場面: 文字にできていない音声を新しい録音で置き換える（後ろは文字起こしの画面の「送れなかった」。「文字にできなかった」「結果が見つからない（404）」からも同じ確認を開く） -->
     <div data-scene-panel="replace" hidden>
       <div class="web">
         <!-- 画面の頭 -->
@@ -99,8 +99,8 @@
       <!-- 確認のダイアログ: 置き換えて録ると録音中の表示へ移る -->
       <dialog class="web-dialog" closedby="any" aria-labelledby="d-rep" aria-describedby="b-rep">
         <div class="web-dialog__main">
-          <h2 id="d-rep">送っていない音声を置き換えますか</h2>
-          <p id="b-rep">新しく録ると、端末に残した送れていない音声（<span class="num">10/23 14:05</span>・<span class="num">2:14</span>）が消え、元に戻せません。残すときは、やめてからダウンロードしてください。</p>
+          <h2 id="d-rep">文字にできていない音声を置き換えますか</h2>
+          <p id="b-rep">新しく録ると、端末に残したまだ文字にできていない音声（<span class="num">10/23 14:05</span>・<span class="num">2:14</span>）が消え、元に戻せません。残すときは、やめてからダウンロードしてください。</p>
         </div>
         <div class="web-dialog__actions">
           <!-- 最初のフォーカスは、置き換えない側に置く -->

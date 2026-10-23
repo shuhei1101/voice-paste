@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 from tests.support.browser import wait_for
-from tests.support.inprocess import InProcessApp, encode_audio, make_settings, silence_input
+from tests.support.inprocess import encode_audio, make_settings, silence_input
 from tests.support.web_scene import STUB_TEXT, OpenEdge, StartInProcess, build_scene, record_for
 
 pytestmark = pytest.mark.real_machine
@@ -34,12 +34,6 @@ RECORDING_LIMIT_MS = 1_800_000
 
 FAILED_TITLE = "送信失敗"
 """送信が届かなかったときに画面へ出す見出し。"""
-
-
-def _temp_files(app: InProcessApp) -> list[Path]:
-    """ブラウザの音声の一時のフォルダに残っているファイルを返す。"""
-    tmp_dir = app.handlers.web_api.tmp_dir
-    return sorted(tmp_dir.iterdir()) if tmp_dir.exists() else []
 
 
 def test_normal_when_record_in_page(
@@ -182,7 +176,7 @@ def test_error_when_unreadable_format(
     assert wait_for(lambda: scene.page.error() is not None)
     assert scene.page.error()[0] == "非対応形式"
     assert scene.page.results() == []
-    assert _temp_files(scene.app) == []
+    assert scene.app.web_temp_files() == []
 
 
 def test_error_when_too_large(
@@ -207,7 +201,7 @@ def test_error_when_too_large(
     assert wait_for(lambda: scene.page.error() is not None)
     assert scene.page.error()[0] == "ファイルサイズ超過"
     assert scene.page.results() == []
-    assert _temp_files(scene.app) == []
+    assert scene.app.web_temp_files() == []
 
 
 def test_error_when_origin_not_allowed(
@@ -227,5 +221,5 @@ def test_error_when_origin_not_allowed(
     assert response.status_code == 403
     assert "problem+json" in response.headers["content-type"]
     assert "job_id" not in response.json()
-    assert _temp_files(app) == []
+    assert app.web_temp_files() == []
     assert [path for path in app.paths.history_dir.rglob("*") if path.is_file()] == []

@@ -17,6 +17,7 @@ import pytest
 from tests.integration.helpers import make_audio
 from tests.support.fixtures import start_inprocess  # noqa: F401 フィクスチャとして使う
 from tests.support.inprocess import InProcessApi, InProcessApp, make_settings, silence_input, stub_transcription
+from tests.support.web_scene import STUB_TEXT
 from tests.support.web_body import sized_multipart_body
 
 pytestmark = pytest.mark.real_machine
@@ -29,9 +30,6 @@ SEND_COUNT = 5
 
 RESPONSE_LIMIT_SEC = 66
 """受け付けの応答時間の決定値（秒）。"""
-
-STUB_TEXT = "決めた文です"
-"""文字起こしを差し替えたときに返す文。"""
 
 
 def _send_times(api: InProcessApi, body: bytes, count: int) -> tuple[list[int], list[float]]:

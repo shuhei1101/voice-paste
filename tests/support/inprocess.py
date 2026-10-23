@@ -728,6 +728,11 @@ class InProcessApp:
         """セッションが空（待機中）に戻るまで待ち、戻ったかを返す。"""
         return wait_until(lambda: self.manager.current() is None, timeout_sec)
 
+    def web_temp_files(self) -> list[Path]:
+        """ブラウザの音声の一時のフォルダに残っているファイルを返す（フォルダが無ければ空）。"""
+        tmp_dir = self.handlers.web_api.tmp_dir
+        return sorted(tmp_dir.iterdir()) if tmp_dir.exists() else []
+
     def history_files(self, suffix: str) -> list[Path]:
         """履歴に残ったファイルのうち、拡張子が suffix のものを返す。"""
         return sorted(self.paths.history_dir.rglob(f"*{suffix}"))

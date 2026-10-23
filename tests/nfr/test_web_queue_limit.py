@@ -17,21 +17,13 @@ import pytest
 from tests.integration.helpers import make_audio, wait_until
 from tests.support.fixtures import start_inprocess  # noqa: F401 フィクスチャとして使う
 from tests.support.inprocess import InProcessApi, InProcessApp, make_settings, silence_input, stub_transcription
+from tests.support.web_scene import STUB_TEXT
 from voice_paste.shared.settings import HistorySettings
 
 pytestmark = pytest.mark.real_machine
 
 QUEUE_LIMIT = 10
 """終わっていないジョブの上限（件）。"""
-
-STUB_TEXT = "決めた文です"
-"""文字起こしを差し替えたときに返す文。"""
-
-
-def _temp_files(app: InProcessApp) -> list[Path]:
-    """ブラウザの音声の一時のフォルダに残っているファイルを返す。"""
-    tmp_dir = app.handlers.web_api.tmp_dir
-    return sorted(tmp_dir.iterdir()) if tmp_dir.exists() else []
 
 
 def _send_statuses(api: InProcessApi, audio: bytes, count: int) -> list[int]:
@@ -57,9 +49,9 @@ def test_web_queue_limit(
 
     # 実行
     statuses = _send_statuses(api, audio, QUEUE_LIMIT + 1)
-    files_when_full = _temp_files(app)
+    files_when_full = app.web_temp_files()
     stub.release.set()
-    freed = wait_until(lambda: len(_temp_files(app)) < QUEUE_LIMIT)
+    freed = wait_until(lambda: len(app.web_temp_files()) < QUEUE_LIMIT)
     next_status = api.post_web_audio(audio).status_code
 
     # 検証

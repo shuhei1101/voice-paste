@@ -15,14 +15,12 @@ import pytest
 from tests.integration.helpers import make_audio, wait_until
 from tests.support.fixtures import start_inprocess  # noqa: F401 フィクスチャとして使う
 from tests.support.inprocess import InProcessApi, InProcessApp, make_settings, silence_input, stub_transcription
+from tests.support.web_scene import STUB_TEXT
 
 pytestmark = pytest.mark.real_machine
 
 FINISHED_KEPT = 100
 """終わったジョブを持つ件数。"""
-
-STUB_TEXT = "決めた文です"
-"""文字起こしを差し替えたときに返す文。"""
 
 
 def _send_and_finish(api: InProcessApi, audio: bytes, count: int) -> list[str]:

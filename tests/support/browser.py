@@ -101,13 +101,20 @@ class _WebSocket:
         self._socket.sendall(request.encode())
         response = b""
         while b"\r\n\r\n" not in response:
-            response += self._socket.recv(4096)
+            response += self._recv(4096)
         self._buffer = response.split(b"\r\n\r\n", 1)[1]
+
+    def _recv(self, size: int) -> bytes:
+        """最大 size バイト受け取る。相手が接続を閉じていたら DevToolsError にする。"""
+        data = self._socket.recv(size)
+        if not data:
+            raise DevToolsError("Edge が DevTools の接続を閉じた")
+        return data
 
     def _read(self, size: int) -> bytes:
         """size バイト読む。"""
         while len(self._buffer) < size:
-            self._buffer += self._socket.recv(65536)
+            self._buffer += self._recv(65536)
         data, self._buffer = self._buffer[:size], self._buffer[size:]
         return data
 

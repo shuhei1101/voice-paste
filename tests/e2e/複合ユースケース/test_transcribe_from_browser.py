@@ -18,7 +18,6 @@ import pytest
 
 from tests.support.browser import wait_for
 from tests.support.inprocess import (
-    InProcessApp,
     encode_audio,
     make_settings,
     silence_input,
@@ -66,12 +65,6 @@ FAILED_STATUS = "文字起こし失敗"
 def _put_glossary(tmp_path: Path) -> None:
     """設定のフォルダに、用語集の CSV を置く。"""
     (tmp_path / GLOSSARY_FILE_NAME).write_text(GLOSSARY_ROWS, encoding="utf-8")
-
-
-def _temp_files(app: InProcessApp) -> list[Path]:
-    """ブラウザの音声の一時のフォルダに残っているファイルを返す。"""
-    tmp_dir = app.handlers.web_api.tmp_dir
-    return sorted(tmp_dir.iterdir()) if tmp_dir.exists() else []
 
 
 def test_normal_when_record_in_page(
@@ -252,5 +245,5 @@ def test_error_when_origin_not_allowed(
     assert response.status_code == 403
     assert "problem+json" in response.headers["content-type"]
     assert "job_id" not in response.json()
-    assert _temp_files(app) == []
+    assert app.web_temp_files() == []
     assert [path for path in app.paths.history_dir.rglob("*") if path.is_file()] == []

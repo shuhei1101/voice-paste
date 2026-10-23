@@ -16,15 +16,13 @@ import pytest
 from tests.integration.helpers import make_audio
 from tests.support.fixtures import start_inprocess  # noqa: F401 フィクスチャとして使う
 from tests.support.inprocess import InProcessApp, make_settings, silence_input, stub_transcription
+from tests.support.web_scene import STUB_TEXT
 from tests.support.web_body import sized_multipart_body
 
 pytestmark = pytest.mark.real_machine
 
 BODY_LIMIT_BYTES = 100_000_000
 """ブラウザの本文の上限（バイト。これ未満を受け付ける）。"""
-
-STUB_TEXT = "決めた文です"
-"""文字起こしを差し替えたときに返す文。"""
 
 
 def _start(
@@ -39,12 +37,6 @@ def _start(
     )
     app.start_web_api()
     return app
-
-
-def _temp_files(app: InProcessApp) -> list[Path]:
-    """ブラウザの音声の一時のフォルダに残っているファイルを返す。"""
-    tmp_dir = app.handlers.web_api.tmp_dir
-    return sorted(tmp_dir.iterdir()) if tmp_dir.exists() else []
 
 
 def test_web_body_limit_when_under(
@@ -86,4 +78,4 @@ def test_web_body_limit_when_at_limit(
     assert len(body) == BODY_LIMIT_BYTES
     assert response.status_code == 413
     assert "problem+json" in response.headers["content-type"]
-    assert _temp_files(app) == []
+    assert app.web_temp_files() == []

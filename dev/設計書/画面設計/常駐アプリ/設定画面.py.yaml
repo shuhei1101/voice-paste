@@ -685,7 +685,7 @@ elements:
     label: 文字起こしが文頭・文末に足す、話していない文言を消す。
     io: 表示
     visible_when: ハルシネーションのまとまりを選んだとき
-    status: planned
+    status: implemented
   - name: 文言の一覧
     id: edge_phrase_list
     kind: table
@@ -700,7 +700,7 @@ elements:
     refs:
       - dev/設計書/設定/常駐アプリ#settings[edge_phrases[].text]
     reason: 並べ替えをつまみにした（確認ログ）
-    status: planned
+    status: implemented
   - name: 行のつまみ
     id: edge_phrase_grip_{n}
     kind: drag_handle
@@ -708,7 +708,7 @@ elements:
     description: 掴んで上下へ動かし、離した位置へ行を移す。マウスを重ねるとツールチップ「掴んで動かす」を出す。フォーカスは受けず、キーボードでは文言の欄の Alt+↑ / Alt+↓ で同じように動かす
     visible_when: 行ごと
     action: 行を離した位置へ動かす
-    status: planned
+    status: implemented
   - name: 文言の欄
     id: edge_phrase_text_{n}
     kind: input
@@ -725,7 +725,7 @@ elements:
     target: Settings.edge_phrases[].text（前後の空白を除く）
     refs:
       - dev/設計書/設定/常駐アプリ#settings[edge_phrases[].text]
-    status: planned
+    status: implemented
   - name: 位置の選択
     id: edge_phrase_position_{n}
     kind: select
@@ -741,7 +741,7 @@ elements:
     target: Settings.edge_phrases[].position
     refs:
       - dev/設計書/設定/常駐アプリ#settings[edge_phrases[].position]
-    status: planned
+    status: implemented
   - name: 文言の行を消すボタン
     id: edge_phrase_remove_{n}
     kind: button
@@ -750,7 +750,7 @@ elements:
     label: '{何行目か} 行目を消す（読み上げの名前。見た目は消す印）'
     visible_when: 行ごと
     action: 行を一覧から消す
-    status: planned
+    status: implemented
   - name: 文言が無いときの文
     id: edge_phrase_empty
     kind: label
@@ -759,7 +759,7 @@ elements:
     label: 消す文言はまだありません。無い間は、文頭・文末から何も消しません。
     io: 表示
     visible_when: ハルシネーションのまとまりを選んだときで、行が 1 つも無いとき
-    status: planned
+    status: implemented
   - name: 文言の行を足すボタン
     id: add_edge_phrase_button
     kind: button
@@ -768,7 +768,7 @@ elements:
     label: 行を足す
     visible_when: ハルシネーションのまとまりを選んだとき
     action: 文言の一覧に 1 行足す
-    status: planned
+    status: implemented
   - name: 文言の決まりの凡例
     id: edge_phrase_legend
     kind: label
@@ -777,7 +777,7 @@ elements:
     label: 上の行から順に当てる。* は任意の文字列に一致する。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。
     io: 表示
     visible_when: ハルシネーションのまとまりを選んだとき
-    status: planned
+    status: implemented
 input_checks:
   - element: 設定の欄
     violation: 数値の欄に数値でない文字が入っている

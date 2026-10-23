@@ -9,6 +9,7 @@ from voice_paste.features.correction.service import (
     read_glossary_rows,
     resolve_glossaries,
     save_glossary,
+    strip_edge_phrases,
 )
 
 __all__ = [
@@ -20,4 +21,5 @@ __all__ = [
     "read_glossary_rows",
     "resolve_glossaries",
     "save_glossary",
+    "strip_edge_phrases",
 ]

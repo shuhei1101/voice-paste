@@ -25,6 +25,7 @@ from voice_paste.features.correction import (
     read_glossary_rows,
     resolve_glossaries,
     save_glossary,
+    strip_edge_phrases,
 )
 from voice_paste.features.history import (
     append_text,
@@ -231,10 +232,12 @@ def _jitter(upper: float) -> float:
 
 def _correct(text: str, *, settings: Settings, settings_dir: Path) -> str:
     """文字起こしのたびに、補正に使う用語集を引いて読み直して補正する。"""
+    # 文頭・文末の文言を消してから、用語集で置き換える（用語集の置き換えで文言の形が変わる前に当てる）
+    stripped = strip_edge_phrases(text, settings.edge_phrases)
     glossary = pick_active_glossary(settings, settings_dir)
     entries = load_glossary(glossary.path)
     logger.info(f"用語集で補正する（{glossary.name}・補正に使う {len(entries)} 行）")
-    return apply_glossary(text, entries)
+    return apply_glossary(stripped, entries)
 
 
 def _current_hint(store: SettingsStore) -> str | None:

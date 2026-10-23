@@ -2214,7 +2214,7 @@ classes:
           description: なし
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#elements[文言の一覧]
-    status: planned
+    status: implemented
 functions:
   - name: notify
     title: ユーザーへの知らせ

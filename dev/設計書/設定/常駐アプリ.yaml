@@ -665,7 +665,7 @@ settings:
     refs:
       - dev/設計書/シナリオ/単一ユースケース/録音を文字に起こす#scenarios[正常シナリオ（文頭・文末の決まった文言を消す）]
       - dev/設計書/外部ライブラリ/faster-whisper#
-    status: planned
+    status: implemented
     implementation: src/voice_paste/shared/settings.py
   - key: edge_phrases[].position
     title: 文言を当てる位置
@@ -675,7 +675,7 @@ settings:
     description: その行の文言を当てる位置。`start` は文頭（1 行目の先頭）、`end` は文末（最後の行の末尾）、`both` はその両方。設定画面では「文頭」「文末」「両方」と出す
     reload: immediate
     allowed: '`start` / `end` / `both`'
-    status: planned
+    status: implemented
     implementation: src/voice_paste/shared/settings.py
 notes:
   反映の列の読み方: '`immediate` は設定画面で保存すると動いている常駐アプリに効く項目。`settings.toml` を直接書き換えたときは、どの項目も再起動まで効かない（起動時に 1 度だけ読む）。'

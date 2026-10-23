@@ -88,6 +88,15 @@ HINT_WORD_SEPARATOR_ERROR_TYPE: str = "hint_word_separator"
 HINT_PRESET_NAME_OVERLAP_ERROR_TYPE: str = "hint_preset_name_overlap"
 """表記のヒントのプリセットの名前が重なるときの ValidationError の種類。理由の文に重なった名前を `name` として持つ。"""
 
+EDGE_PHRASES_FIELD_NAME: str = "edge_phrases"
+"""文頭・文末から消す文言の一覧の設定のキー。"""
+
+EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE: str = "edge_phrase_wildcard_only"
+"""文言が `*` だけのときの ValidationError の種類。設定画面がエラーの文に変える。"""
+
+EDGE_PHRASE_WILDCARD: str = "*"
+"""文頭・文末から消す文言で、0 文字以上の任意の文字列を表す文字。"""
+
 START_HOTKEY_KEY: str = "hotkeys.start"
 """録音の開始のホットキーのキー。貼り付けて送信と同じキーにしてよい（重なりにしない）。"""
 
@@ -500,6 +509,38 @@ class HintWordSource(Protocol):
         ...
 
 
+class EdgePhraseSettings(_SettingsModel):
+    """文頭・文末から消す文言 1 行の文言と当てる位置。"""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    text: str = Field(
+        description="消す文言（前後の空白を除く。`*` は 0 文字以上の任意の文字列。`*` だけは断る。空の行は Settings が一覧から除く）"
+    )
+    position: Literal["start", "end", "both"] = Field(
+        "end", description="文言を当てる位置（start は文頭、end は文末、both は両方）"
+    )
+
+    @field_validator("text")
+    @classmethod
+    def _reject_wildcard_only(cls, text: str) -> str:
+        """`*` だけの文言（行を丸ごと消す）を断る。空の文言はここでは断らない。"""
+        # `*` だけで書かれた文言は、文頭・文末の行を丸ごと消すため断る
+        if text and not text.strip(EDGE_PHRASE_WILDCARD):
+            raise PydanticCustomError(
+                EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE, "文言が * だけで、行を丸ごと消してしまう"
+            )
+        return text
+
+
+DEFAULT_EDGE_PHRASES: tuple[EdgePhraseSettings, ...] = (
+    EdgePhraseSettings(text="チャンネル登録*", position="end"),
+    EdgePhraseSettings(text="ご視聴ありがとうございました", position="end"),
+    EdgePhraseSettings(text="ありがとうございました", position="end"),
+)
+"""`edge_phrases` のキーが無いときに使う既定の一覧（文末）。"""
+
+
 class Settings(_SettingsModel):
     """settings.toml の全体。項目ごとに範囲・説明・再起動が要るかの印を持つ。"""
 
@@ -539,6 +580,11 @@ class Settings(_SettingsModel):
         description="表記のヒント（文字起こしの手がかり）のプリセットの一覧。並びが設定画面の一覧と語をつなぐ順になる。有効な語をつないだ長さが HINT_MAX_BYTES を超える設定は断る",
         json_schema_extra={"reload": RELOAD_IMMEDIATE},
     )
+    edge_phrases: list[EdgePhraseSettings] = Field(
+        default_factory=lambda: list(DEFAULT_EDGE_PHRASES),
+        description="起こした文字の文頭・文末から消す文言の一覧。並びが当てる順と設定画面の一覧の並びになる。キーが無いときは既定の一覧、空の一覧なら何も消さない。文言が空の行は一覧から除く",
+        json_schema_extra={"reload": RELOAD_IMMEDIATE},
+    )
     api: ApiSettings = _group(ApiSettings, "待ち受けのポート・返送を許すホスト")
     presets: list[Preset] = Field(
         default_factory=list,
@@ -549,6 +595,14 @@ class Settings(_SettingsModel):
 
     output_models: ClassVar[Mapping[str, type[OutputSettingsBase]]] = {}
     """出力先の ID → 設定のモデル。build_settings_model が組み立てたモデルに入る。"""
+
+    @field_validator(EDGE_PHRASES_FIELD_NAME)
+    @classmethod
+    def _drop_blank_edge_phrases(
+        cls, phrases: list[EdgePhraseSettings]
+    ) -> list[EdgePhraseSettings]:
+        """文言が空の行を一覧から除く（各行の確かめを通った後のため、失敗の場所の番号は除く前の並びのまま）。"""
+        return [phrase for phrase in phrases if phrase.text]
 
     @field_validator(OUTPUTS_FIELD_NAME)
     @classmethod

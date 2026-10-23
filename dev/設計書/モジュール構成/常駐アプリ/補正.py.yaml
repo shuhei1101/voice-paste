@@ -478,7 +478,7 @@ functions:
         expected: 同じ文字が返る
     refs:
       - dev/設計書/シナリオ/単一ユースケース/録音を文字に起こす#scenarios[正常シナリオ（文頭・文末の決まった文言を消す）]
-    status: planned
+    status: implemented
 test_files:
   - tests/unit/voice_paste/features/correction/test_service.py
 constants:
@@ -494,4 +494,4 @@ constants:
     usecase: 録音を文字に起こす
     summary: 一致した文言の後ろに続くとき、文言と一緒に消す句読点と空白
     value: '"。、，．,.!?！？ 　\t"'
-    status: planned
+    status: implemented

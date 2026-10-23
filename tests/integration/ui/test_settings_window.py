@@ -185,8 +185,16 @@ def _left_of(widget: QWidget, window: QWidget) -> int:
     return widget.mapTo(window, QPoint(0, 0)).x()
 
 
-LIST_KEYS = ("outputs", "presets", "glossaries", "glossary_path", "active_glossary", "hint_presets")
-"""欄ではなく、一覧の部品（出力先・プリセット・用語集・表記のヒント）が持つキー。glossary_path は欄を持たず、glossaries が空のときだけ読む。"""
+LIST_KEYS = (
+    "outputs",
+    "presets",
+    "glossaries",
+    "glossary_path",
+    "active_glossary",
+    "hint_presets",
+    "edge_phrases",
+)
+"""欄ではなく、一覧の部品（出力先・プリセット・用語集・表記のヒント・文頭・文末から消す文言）が持つキー。glossary_path は欄を持たず、glossaries が空のときだけ読む。"""
 
 
 def _leaf_keys(settings: Settings) -> list[str]:
@@ -262,7 +270,7 @@ def test_settings_window_initial_value(open_window: Callable[..., Opened]) -> No
 
 
 def test_group_menu_initial(open_window: Callable[..., Opened]) -> None:
-    """まとまりのメニューは、出力先・ブラウザ添付・エンドポイントへ送る・ホットキー・録音・文字起こし・表記のヒント・用語集・画面・履歴とログ・API の順で、既定は出力先。"""
+    """まとまりのメニューは、出力先・ブラウザ添付・エンドポイントへ送る・ホットキー・録音・文字起こし・表記のヒント・用語集・ハルシネーション・画面・履歴とログ・API の順で、既定は出力先。"""
     # 実行
     window = open_window().window
 
@@ -278,6 +286,7 @@ def test_group_menu_initial(open_window: Callable[..., Opened]) -> None:
         "文字起こし",
         "表記のヒント",
         "用語集",
+        "ハルシネーション",
         "画面",
         "履歴とログ",
         "API",
@@ -294,9 +303,9 @@ def test_group_menu_initial(open_window: Callable[..., Opened]) -> None:
         (3, "hotkeys.start", "preset_options.endpoint.timeout_sec"),
         (4, "recording.fade_sec", "hotkeys.start"),
         (5, "transcription.local_whisper.model", "recording.fade_sec"),
-        (8, "ui.wave_gain", "transcription.local_whisper.model"),
-        (9, "history.retention_days", "ui.wave_gain"),
-        (10, "api.port", "history.retention_days"),
+        (9, "ui.wave_gain", "transcription.local_whisper.model"),
+        (10, "history.retention_days", "ui.wave_gain"),
+        (11, "api.port", "history.retention_days"),
         (0, "outputs[0].enabled", "api.port"),
     ],
 )
@@ -1192,7 +1201,7 @@ def test_enter_modifiers_when_initial_value(open_window: Callable[..., Opened]) 
 
 # === field_ui.theme ===
 
-THEME_GROUP_ROW = 8
+THEME_GROUP_ROW = 9
 """まとまりのメニューの「画面」の行。"""
 
 
@@ -3817,6 +3826,550 @@ def test_discard_body_when_hint_preset_moved_after_saved(
 
     # 検証
     assert body == _discard_message(1)
+
+
+# === ハルシネーションのまとまり ===
+
+EDGE_GROUP_ROW = 8
+"""まとまりのメニューの「ハルシネーション」の行。"""
+
+NARROW_PANEL_WIDTH_PX = 300
+"""文言の一覧が 1 行を 2 段に組む幅。"""
+
+WIDE_PANEL_WIDTH_PX = 900
+"""文言の一覧が 1 行を 1 段に組む幅。"""
+
+DROP_MARGIN_PX = 10
+"""つまみを離す位置を、行の中心から上下へずらす距離。"""
+
+
+def _edge_phrases(*phrases: tuple[str, str]) -> list[Any]:
+    """（文言, 位置）から EdgePhraseSettings の並びを作る。"""
+    from voice_paste.shared.settings import EdgePhraseSettings
+
+    return [EdgePhraseSettings(text=text, position=position) for text, position in phrases]
+
+
+def _open_edge(open_window: Callable[..., Opened], *phrases: tuple[str, str]) -> Opened:
+    """文頭・文末から消す文言を持つ設定で設定画面を開いて、ハルシネーションのまとまりを選ぶ。"""
+    opened = open_window(SETTINGS_MODEL(edge_phrases=_edge_phrases(*phrases)))
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(EDGE_GROUP_ROW)
+    return opened
+
+
+def _edge_texts(window: QWidget) -> list[str]:
+    """画面に出ている文言の欄の文字を、行の順で並べる。"""
+    return [edit.text() for edit in _widgets(window, QLineEdit, "edge_phrase_text_")]
+
+
+def _edge_positions(window: QWidget) -> list[str]:
+    """画面に出ている位置の選択の今の表示を、行の順で並べる。"""
+    return [box.currentText() for box in _widgets(window, QComboBox, "edge_phrase_position_")]
+
+
+def _drag_grip(window: QWidget, number: int, global_y: int) -> None:
+    """number 行目のつまみを掴んで、画面上の縦の位置 global_y で離す。"""
+    grip = find(window, QLabel, f"edge_phrase_grip_{number}")
+    QTest.mousePress(grip, Qt.MouseButton.LeftButton)
+    release_at = grip.mapFromGlobal(QPoint(grip.mapToGlobal(QPoint(0, 0)).x(), global_y))
+    QTest.mouseRelease(grip, Qt.MouseButton.LeftButton, pos=release_at)
+
+
+def _row_center_y(window: QWidget, number: int) -> int:
+    """number 行目の縦の中心の、画面上の位置を返す。"""
+    edit = find(window, QLineEdit, f"edge_phrase_text_{number}")
+    return edit.mapToGlobal(QPoint(0, edit.height() // 2)).y()
+
+
+def _alt_key(window: QWidget, number: int, key_code: Qt.Key) -> None:
+    """number 行目の文言の欄に Alt+キーを押す。"""
+    edit = find(window, QLineEdit, f"edge_phrase_text_{number}")
+    edit.setFocus()
+    QTest.keyClick(edit, key_code, Qt.KeyboardModifier.AltModifier)
+
+
+# === edge_phrase_intro・edge_phrase_legend・add_edge_phrase_button ===
+
+
+def test_edge_phrase_group_when_visible(open_window: Callable[..., Opened]) -> None:
+    """ハルシネーションのまとまりを選ぶと、説明・凡例・行を足すボタンが出る。ほかのまとまりを選ぶと出ない。"""
+    # 準備
+    opened = open_window()
+
+    # 実行・検証（選ぶ前は出ない）
+    assert not find(opened.window, QLabel, "edge_phrase_intro").isVisible()
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(EDGE_GROUP_ROW)
+    assert find(opened.window, QLabel, "edge_phrase_intro").text() == (
+        "文字起こしが文頭・文末に足す、話していない文言を消す。"
+    )
+    assert find(opened.window, QLabel, "edge_phrase_legend").text() == (
+        "上の行から順に当てる。* は任意の文字列に一致する。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。"
+    )
+    assert find(opened.window, QLabel, "edge_phrase_legend").isVisible()
+    assert find(opened.window, QPushButton, "add_edge_phrase_button").text() == "行を足す"
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(0)
+    assert not find(opened.window, QLabel, "edge_phrase_intro").isVisible()
+
+
+# === edge_phrase_list ===
+
+
+def test_edge_phrase_list_initial_value(open_window: Callable[..., Opened]) -> None:
+    """settings.toml の edge_phrases の値と並びのとおりに、文言と位置を出す。読み上げの表の名前は「文頭・文末から消す文言（上の行から順に当てる）」。"""
+    # 実行
+    opened = _open_edge(open_window, ("えーと", "start"), ("ありがとうございました", "both"), ("字幕*", "end"))
+
+    # 検証
+    window = opened.window
+    assert _edge_texts(window) == ["えーと", "ありがとうございました", "字幕*"]
+    assert _edge_positions(window) == ["文頭", "両方", "文末"]
+    assert find(window, QWidget, "edge_phrase_list").accessibleName() == "文頭・文末から消す文言（上の行から順に当てる）"
+    assert find(window, QLineEdit, "edge_phrase_text_1").accessibleName() == "2 行目の文言"
+    assert find(window, QComboBox, "edge_phrase_position_1").accessibleName() == "2 行目の位置"
+    assert not find(window, QLabel, "edge_phrase_empty").isVisible()
+
+
+def test_edge_phrase_list_when_not_in_settings_toml(open_window: Callable[..., Opened]) -> None:
+    """edge_phrases のキーが無い今の設定では、既定の 3 行（全て文末）を出す。"""
+    # 実行
+    opened = open_window()
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(EDGE_GROUP_ROW)
+
+    # 検証
+    assert _edge_texts(opened.window) == ["チャンネル登録*", "ご視聴ありがとうございました", "ありがとうございました"]
+    assert _edge_positions(opened.window) == ["文末", "文末", "文末"]
+
+
+def test_edge_phrase_list_when_narrow_window(open_window: Callable[..., Opened]) -> None:
+    """幅が広いときは 1 行を 1 段に組んで列の見出しを出し、狭いときは 2 段（上に文言の欄、下に位置と消すボタン）に組んで見出しを隠す。"""
+    # 準備
+    opened = _open_edge(open_window, ("えーと", "start"), ("字幕*", "end"))
+    window = opened.window
+    panel = find(window, QWidget, "edge_phrase_panel")
+    header = find(window, QWidget, "edge_phrase_header")
+
+    # 実行・検証（広いとき）
+    panel.setFixedWidth(WIDE_PANEL_WIDTH_PX)
+    QTest.qWait(0)
+    text_edit = find(window, QLineEdit, "edge_phrase_text_0")
+    position_box = find(window, QComboBox, "edge_phrase_position_0")
+    assert header.isVisible()
+    assert [label.text() for label in header.findChildren(QLabel)] == ["文言", "位置"]
+    assert abs(_top_of(text_edit, window) - _top_of(position_box, window)) <= position_box.height()
+    assert _left_of(text_edit, window) < _left_of(position_box, window)
+
+    # 実行・検証（狭いとき）
+    panel.setFixedWidth(NARROW_PANEL_WIDTH_PX)
+    QTest.qWait(0)
+    assert not header.isVisible()
+    assert _top_of(text_edit, window) < _top_of(position_box, window)
+    assert _left_of(text_edit, window) <= _left_of(position_box, window)
+
+
+# === edge_phrase_empty ===
+
+
+def test_edge_phrase_empty_when_no_phrases(open_window: Callable[..., Opened]) -> None:
+    """行が 1 つも無いときは、一覧の代わりに、無い間は何も消さないことを伝える文を出す。"""
+    # 実行
+    opened = _open_edge(open_window)
+
+    # 検証
+    empty = find(opened.window, QLabel, "edge_phrase_empty")
+    assert empty.isVisible()
+    assert empty.text() == "消す文言はまだありません。無い間は、文頭・文末から何も消しません。"
+    assert not find(opened.window, QWidget, "edge_phrase_list").isVisible()
+
+
+def test_edge_phrase_empty_when_phrases_exist(open_window: Callable[..., Opened]) -> None:
+    """行があるときは、空の文を出さない。"""
+    # 実行
+    opened = _open_edge(open_window, ("えーと", "start"))
+
+    # 検証
+    assert not find(opened.window, QLabel, "edge_phrase_empty").isVisible()
+    assert find(opened.window, QWidget, "edge_phrase_list").isVisible()
+
+
+# === edge_phrase_grip_{n} ===
+
+
+def test_edge_phrase_grip_does_not_take_focus(open_window: Callable[..., Opened]) -> None:
+    """つまみはフォーカスを受けず、マウスを重ねるとツールチップ「掴んで動かす」を出す。"""
+    # 実行
+    opened = _open_edge(open_window, ("A", "end"), ("B", "end"))
+
+    # 検証
+    grip = find(opened.window, QLabel, "edge_phrase_grip_0")
+    assert grip.focusPolicy() == Qt.FocusPolicy.NoFocus
+    assert grip.toolTip() == "掴んで動かす"
+
+
+def test_edge_phrase_grip_action_when_dropped_below(open_window: Callable[..., Opened]) -> None:
+    """つまみを掴んで下の行より下で離すと、その位置へ行が動く。保存するまで settings.toml には書かない。"""
+    # 準備
+    opened = _open_edge(open_window, ("A", "start"), ("B", "end"), ("C", "both"))
+    window = opened.window
+
+    # 実行（1 行目を、3 行目の中心より下で離す）
+    _drag_grip(window, 0, _row_center_y(window, 2) + DROP_MARGIN_PX)
+
+    # 検証
+    assert _edge_texts(window) == ["B", "C", "A"]
+    assert _edge_positions(window) == ["文末", "両方", "文頭"]
+    opened.deps.save_settings.assert_not_called()
+
+
+def test_edge_phrase_grip_action_when_dropped_above(open_window: Callable[..., Opened]) -> None:
+    """3 行目のつまみを、1 行目の中心より上で離すと、先頭へ動く。"""
+    # 準備
+    opened = _open_edge(open_window, ("A", "end"), ("B", "end"), ("C", "end"))
+    window = opened.window
+
+    # 実行
+    _drag_grip(window, 2, _row_center_y(window, 0) - DROP_MARGIN_PX)
+
+    # 検証
+    assert _edge_texts(window) == ["C", "A", "B"]
+
+
+def test_edge_phrase_grip_action_when_dropped_in_between(open_window: Callable[..., Opened]) -> None:
+    """1 行目のつまみを、2 行目と 3 行目の間で離すと、2 行目の次へ動く。"""
+    # 準備
+    opened = _open_edge(open_window, ("A", "end"), ("B", "end"), ("C", "end"))
+    window = opened.window
+    between = (_row_center_y(window, 1) + _row_center_y(window, 2)) // 2
+
+    # 実行
+    _drag_grip(window, 0, between)
+
+    # 検証
+    assert _edge_texts(window) == ["B", "A", "C"]
+
+
+def test_edge_phrase_grip_action_when_dropped_on_own_row(open_window: Callable[..., Opened]) -> None:
+    """自分の行の上で離すと、動かさない。変えた件数も増やさない。"""
+    # 準備
+    opened = _open_edge(open_window, ("A", "end"), ("B", "end"), ("C", "end"))
+    window = opened.window
+
+    # 実行
+    _drag_grip(window, 1, _row_center_y(window, 1))
+
+    # 検証
+    assert _edge_texts(window) == ["A", "B", "C"]
+    _click(window, "cancel_button")
+    opened.closed.assert_called_once()
+
+
+# === edge_phrase_text_{n} ===
+
+
+def test_edge_phrase_text_action_when_alt_up(open_window: Callable[..., Opened]) -> None:
+    """文言の欄で Alt+↑ を押すと行が 1 つ上へ動き、フォーカスは動かした行の文言の欄に残る。"""
+    # 準備
+    opened = _open_edge(open_window, ("A", "start"), ("B", "end"), ("C", "both"))
+    window = opened.window
+
+    # 実行
+    _alt_key(window, 1, Qt.Key.Key_Up)
+
+    # 検証
+    assert _edge_texts(window) == ["B", "A", "C"]
+    assert _edge_positions(window) == ["文末", "文頭", "両方"]
+    assert window.focusWidget() is find(window, QLineEdit, "edge_phrase_text_0")
+
+
+def test_edge_phrase_text_action_when_alt_down(open_window: Callable[..., Opened]) -> None:
+    """文言の欄で Alt+↓ を押すと行が 1 つ下へ動き、フォーカスは動かした行の文言の欄に残る。"""
+    # 準備
+    opened = _open_edge(open_window, ("A", "end"), ("B", "end"), ("C", "end"))
+    window = opened.window
+
+    # 実行
+    _alt_key(window, 0, Qt.Key.Key_Down)
+
+    # 検証
+    assert _edge_texts(window) == ["B", "A", "C"]
+    assert window.focusWidget() is find(window, QLineEdit, "edge_phrase_text_1")
+
+
+def test_edge_phrase_text_action_when_alt_at_edge(open_window: Callable[..., Opened]) -> None:
+    """先頭で Alt+↑、末尾で Alt+↓ を押しても何も動かない。"""
+    # 準備
+    opened = _open_edge(open_window, ("A", "end"), ("B", "end"))
+    window = opened.window
+
+    # 実行
+    _alt_key(window, 0, Qt.Key.Key_Up)
+    _alt_key(window, 1, Qt.Key.Key_Down)
+
+    # 検証
+    assert _edge_texts(window) == ["A", "B"]
+    assert window.focusWidget() is find(window, QLineEdit, "edge_phrase_text_1")
+
+
+def test_edge_phrase_text_action_when_typed(open_window: Callable[..., Opened]) -> None:
+    """Alt を押さない矢印は欄の入力として働き、行は動かない。"""
+    # 準備
+    opened = _open_edge(open_window, ("A", "end"), ("B", "end"))
+    window = opened.window
+    edit = find(window, QLineEdit, "edge_phrase_text_1")
+    edit.setFocus()
+
+    # 実行
+    QTest.keyClick(edit, Qt.Key.Key_Up)
+
+    # 検証
+    assert _edge_texts(window) == ["A", "B"]
+
+
+# === edge_phrase_position_{n} ===
+
+
+def test_edge_phrase_position_options(open_window: Callable[..., Opened]) -> None:
+    """位置の選択の選択肢は、文頭・文末・両方の順に並ぶ。"""
+    # 実行
+    opened = _open_edge(open_window, ("A", "end"))
+
+    # 検証
+    box = find(opened.window, QComboBox, "edge_phrase_position_0")
+    assert [box.itemText(index) for index in range(box.count())] == ["文頭", "文末", "両方"]
+
+
+def test_edge_phrase_position_action(open_window: Callable[..., Opened]) -> None:
+    """位置を選び直すと、保存で edge_phrases の position に start・end・both として書く。"""
+    # 準備
+    opened = _open_edge(open_window, ("A", "end"), ("B", "end"), ("C", "end"))
+    find(opened.window, QComboBox, "edge_phrase_position_0").setCurrentText("文頭")
+    find(opened.window, QComboBox, "edge_phrase_position_2").setCurrentText("両方")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    saved = opened.deps.save_settings.call_args.args[0]
+    assert [phrase.position for phrase in saved.edge_phrases] == ["start", "end", "both"]
+
+
+# === edge_phrase_remove_{n} ===
+
+
+def test_edge_phrase_remove_action(open_window: Callable[..., Opened]) -> None:
+    """消すと一覧から外す。保存するまで settings.toml には書かない。"""
+    # 準備
+    opened = _open_edge(open_window, ("A", "start"), ("B", "end"), ("C", "both"))
+    window = opened.window
+
+    # 実行
+    _click(window, "edge_phrase_remove_1")
+
+    # 検証
+    assert _edge_texts(window) == ["A", "C"]
+    assert _edge_positions(window) == ["文頭", "両方"]
+    opened.deps.save_settings.assert_not_called()
+    assert find(window, QPushButton, "edge_phrase_remove_0").accessibleName() == "1 行目を消す"
+
+
+def test_edge_phrase_remove_when_cancelled(open_window: Callable[..., Opened]) -> None:
+    """消してからキャンセルして捨てると、settings.toml には書かず、開き直すと消す前の行が出る。"""
+    # 準備
+    opened = _open_edge(open_window, ("A", "end"), ("B", "end"))
+    _click(opened.window, "edge_phrase_remove_0")
+    driver = ModalDriver()
+    driver.answer("discard_button")
+
+    # 実行
+    _click(opened.window, "cancel_button")
+
+    # 検証
+    driver.verify()
+    opened.deps.save_settings.assert_not_called()
+    opened.closed.assert_called_once()
+    reopened = open_window(opened.deps.get_settings())
+    find(reopened.window, QListWidget, "group_menu").setCurrentRow(EDGE_GROUP_ROW)
+    assert _edge_texts(reopened.window) == ["A", "B"]
+
+
+def test_edge_phrase_remove_when_last(open_window: Callable[..., Opened]) -> None:
+    """最後の 1 行を消すと空の文が出て、保存すると edge_phrases は空になる。"""
+    # 準備
+    opened = _open_edge(open_window, ("A", "end"))
+
+    # 実行
+    _click(opened.window, "edge_phrase_remove_0")
+    assert find(opened.window, QLabel, "edge_phrase_empty").isVisible()
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert opened.deps.save_settings.call_args.args[0].edge_phrases == []
+
+
+# === add_edge_phrase_button ===
+
+
+def test_add_edge_phrase_button_action(open_window: Callable[..., Opened]) -> None:
+    """文言が空で位置が文末の行を末尾に足し、その行の文言の欄へフォーカスを移す。"""
+    # 準備
+    opened = _open_edge(open_window, ("A", "start"))
+    window = opened.window
+
+    # 実行
+    _click(window, "add_edge_phrase_button")
+
+    # 検証
+    assert _edge_texts(window) == ["A", ""]
+    assert _edge_positions(window) == ["文頭", "文末"]
+    assert window.focusWidget() is find(window, QLineEdit, "edge_phrase_text_1")
+
+
+def test_add_edge_phrase_button_when_no_phrases(open_window: Callable[..., Opened]) -> None:
+    """行が 1 つも無いときに足すと、空の文を隠して 1 行目が出る。"""
+    # 準備
+    opened = _open_edge(open_window)
+
+    # 実行
+    _click(opened.window, "add_edge_phrase_button")
+
+    # 検証
+    assert not find(opened.window, QLabel, "edge_phrase_empty").isVisible()
+    assert _edge_texts(opened.window) == [""]
+
+
+# === save_button（ハルシネーション） ===
+
+
+def test_save_button_when_edge_phrases_changed(open_window: Callable[..., Opened]) -> None:
+    """一覧の順に edge_phrases を書く。文言が空の行は捨て、前後の空白は除く。再起動せずに効く値として書き、窓を開いたまま保存した知らせを出す。"""
+    # 準備（「お疲れ様でした」（文頭）を足して先頭へ動かし、空の行を足したままにして、「ありがとうございました」の行を消す）
+    opened = _open_edge(
+        open_window, ("チャンネル登録*", "end"), ("ご視聴ありがとうございました", "end"), ("ありがとうございました", "end")
+    )
+    window = opened.window
+    _click(window, "add_edge_phrase_button")
+    find(window, QLineEdit, "edge_phrase_text_3").setText("  お疲れ様でした  ")
+    find(window, QComboBox, "edge_phrase_position_3").setCurrentText("文頭")
+    _click(window, "add_edge_phrase_button")
+    _alt_key(window, 3, Qt.Key.Key_Up)
+    _alt_key(window, 2, Qt.Key.Key_Up)
+    _alt_key(window, 1, Qt.Key.Key_Up)
+    _click(window, "edge_phrase_remove_3")
+
+    # 実行
+    _click(window, "save_button")
+
+    # 検証
+    saved = opened.deps.save_settings.call_args.args[0]
+    assert [(phrase.text, phrase.position) for phrase in saved.edge_phrases] == [
+        ("お疲れ様でした", "start"),
+        ("チャンネル登録*", "end"),
+        ("ご視聴ありがとうございました", "end"),
+    ]
+    opened.saved.assert_called_once()
+    opened.closed.assert_not_called()
+    assert find(window, QLabel, "saved_notice").text() == "保存しました。"
+    assert not find(window, QLabel, "restart_notice").isVisible()
+
+
+def test_reset_dialog_when_edge_phrases(open_window: Callable[..., Opened]) -> None:
+    """「既定に戻す」は、文頭・文末から消す文言を既定の 3 行（全て文末）に戻す。"""
+    # 準備
+    opened = _open_edge(open_window, ("えーと", "start"))
+    driver = ModalDriver()
+    driver.answer("reset_button")
+
+    # 実行
+    _click(opened.window, "reset_button")
+
+    # 検証
+    driver.verify()
+    assert _edge_texts(opened.window) == ["チャンネル登録*", "ご視聴ありがとうございました", "ありがとうございました"]
+    assert _edge_positions(opened.window) == ["文末", "文末", "文末"]
+
+
+# === input_checks（ハルシネーション） ===
+
+WILDCARD_ONLY_MESSAGE = "* だけの文言は、文頭・文末の行を丸ごと消します。消したい文言を入れてください。"
+"""文言が `*` だけのときの文言。"""
+
+
+def test_input_check_when_edge_phrase_wildcard_only(open_window: Callable[..., Opened]) -> None:
+    """`*` だけの文言: 保存を止め、欄の下とエラーの一覧（「ハルシネーションの {n} 行目の文言」）に文言を出す。"""
+    # 準備
+    opened = _open_edge(open_window, ("A", "end"), ("B", "end"))
+    find(opened.window, QLineEdit, "edge_phrase_text_1").setText("*")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    opened.deps.save_settings.assert_not_called()
+    assert f"ハルシネーションの 2 行目の文言: {WILDCARD_ONLY_MESSAGE}" in _error_rows(opened.window)
+    assert WILDCARD_ONLY_MESSAGE in _field_errors(opened.window)
+    assert find(opened.window, QLineEdit, "edge_phrase_text_1").text() == "*"
+
+
+def test_input_check_when_edge_phrase_wildcard_only_with_spaces(open_window: Callable[..., Opened]) -> None:
+    """前後に空白のある `*` だけの文言も止める。"""
+    # 準備
+    opened = _open_edge(open_window, ("A", "end"))
+    find(opened.window, QLineEdit, "edge_phrase_text_0").setText("  *  ")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    opened.deps.save_settings.assert_not_called()
+    assert f"ハルシネーションの 1 行目の文言: {WILDCARD_ONLY_MESSAGE}" in _error_rows(opened.window)
+
+
+def test_input_check_when_edge_phrase_wildcard_with_text(open_window: Callable[..., Opened]) -> None:
+    """`*` を含む文言は止めない（文言を持つ `*` は書ける）。"""
+    # 準備
+    opened = _open_edge(open_window, ("A", "end"))
+    find(opened.window, QLineEdit, "edge_phrase_text_0").setText("字幕*")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert opened.deps.save_settings.call_args.args[0].edge_phrases[0].text == "字幕*"
+
+
+def test_input_check_when_edge_phrase_fixed(open_window: Callable[..., Opened]) -> None:
+    """直して保存し直すと、書く。"""
+    # 準備
+    opened = _open_edge(open_window, ("A", "end"))
+    find(opened.window, QLineEdit, "edge_phrase_text_0").setText("*")
+    _click(opened.window, "save_button")
+    opened.deps.save_settings.assert_not_called()
+
+    # 実行
+    find(opened.window, QLineEdit, "edge_phrase_text_0").setText("字幕")
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert opened.deps.save_settings.call_args.args[0].edge_phrases[0].text == "字幕"
+
+
+def test_error_summary_row_action_when_edge_phrase(open_window: Callable[..., Opened]) -> None:
+    """エラーの一覧の行を押すと、ハルシネーションのまとまりへ切り替えて、その行の文言の欄へフォーカスを移す。"""
+    # 準備
+    opened = _open_edge(open_window, ("A", "end"), ("B", "end"))
+    find(opened.window, QLineEdit, "edge_phrase_text_1").setText("*")
+    _click(opened.window, "save_button")
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(0)
+    link = next(
+        label for label in find(opened.window, QFrame, "error_summary").findChildren(QLabel)
+        if "href" in label.text()
+    )
+
+    # 実行
+    link.linkActivated.emit("edge_phrases[1].text")
+
+    # 検証
+    assert find(opened.window, QListWidget, "group_menu").currentRow() == EDGE_GROUP_ROW
+    assert opened.window.focusWidget() is find(opened.window, QLineEdit, "edge_phrase_text_1")
 
 
 # === discard_body（出力先のプリセットの変更の件数） ===

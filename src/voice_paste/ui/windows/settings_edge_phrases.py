@@ -55,7 +55,11 @@ DEFAULT_POSITION: str = "end"
 """足した行の位置。"""
 
 NARROW_WIDTH_PX: int = 420
-"""この幅より狭い部品では、1 行を 2 段（上に文言の欄、下に位置と消すボタン）に組む。"""
+"""この幅より狭い部品では、1 行を 2 段（上に文言の欄、下に位置と消すボタン）に組み、列の見出しの行を隠す。"""
+
+TEXT_HEADING: str = "文言"
+POSITION_HEADING: str = "位置"
+"""行の上に出す列の見出し（つまみと消すボタンの列は見出しを出さない）。"""
 
 LOCATION_TEXT_LENGTH: int = 2
 """失敗の場所（添字, "text"）の長さ。"""
@@ -153,6 +157,9 @@ class EdgePhrasePanel(QWidget):
         self._empty_label.setObjectName("edge_phrase_empty")
         self._empty_label.setWordWrap(True)
         outer.addWidget(self._empty_label)
+
+        self._header = self._build_header()
+        outer.addWidget(self._header)
 
         self._list = QWidget()
         self._list.setObjectName("edge_phrase_list")
@@ -275,6 +282,7 @@ class EdgePhrasePanel(QWidget):
             self._add_row(position, value)
         self._empty_label.setVisible(not values)
         self._list.setVisible(bool(values))
+        self._sync_header()
 
     def _move_to(self, position: int, target: int) -> None:
         """行を target の位置へ動かし、動かした行の文言の欄へフォーカスを移して読み上げに伝える。"""
@@ -311,6 +319,41 @@ class EdgePhrasePanel(QWidget):
             and row.container.mapToGlobal(row.container.rect().center()).y() < global_y
         )
         self._move_to(position, target)
+
+    @staticmethod
+    def _build_header() -> QWidget:
+        """列の見出しの行（文言・位置）を作る。つまみと消すボタンの列は、行の部品と同じ幅の空きにして欄の左端をそろえる。"""
+        header = QWidget()
+        header.setObjectName("edge_phrase_header")
+        grid = QGridLayout(header)
+        probe = QFrame()
+        # 行の枠と同じ余白にして、行の欄と見出しの左端をそろえる
+        margins = QGridLayout(probe).contentsMargins()
+        grid.setContentsMargins(margins)
+        grip_gap = QWidget()
+        grip_gap.setFixedWidth(_Grip().sizeHint().width())
+        text_label = QLabel(TEXT_HEADING)
+        text_label.setObjectName("edge_phrase_header_text")
+        position_label = QLabel(POSITION_HEADING)
+        position_label.setObjectName("edge_phrase_header_position")
+        position_box = QComboBox()
+        for key, label in POSITION_LABELS:
+            position_box.addItem(label, key)
+        position_label.setFixedWidth(position_box.sizeHint().width())
+        remove_gap = QWidget()
+        remove_gap.setFixedWidth(QPushButton("×").sizeHint().width())
+        for label in (text_label, position_label):
+            label.setProperty("role", "heading")
+        grid.addWidget(grip_gap, 0, 0)
+        grid.addWidget(text_label, 0, 1)
+        grid.addWidget(position_label, 0, 2)
+        grid.addWidget(remove_gap, 0, 3)
+        grid.setColumnStretch(1, 1)
+        return header
+
+    def _sync_header(self) -> None:
+        """列の見出しの行を、行があって 1 段の組みのときだけ出す（2 段の組みでは各欄の読み上げの名前に任せる）。"""
+        self._header.setVisible(bool(self._rows) and not self._narrow)
 
     def _add_row(self, position: int, value: dict[str, Any]) -> None:
         """行 1 つ（左端のつまみ・文言の欄・位置の選択・消すボタンと、欄の下のエラーの文）を足す。"""
@@ -381,3 +424,4 @@ class EdgePhrasePanel(QWidget):
             self._narrow = narrow
             for row in self._rows:
                 self._arrange(row)
+            self._sync_header()

@@ -11,16 +11,18 @@ from collections.abc import Callable, Iterator
 from typing import TYPE_CHECKING
 
 import pytest
-from PySide6.QtCore import QRegularExpression, Qt
-from PySide6.QtGui import QAccessible, QAccessibleAnnouncementEvent, QAccessibleEvent
+from PySide6.QtCore import QRegularExpression, QSize, Qt
+from PySide6.QtGui import QAccessible, QAccessibleAnnouncementEvent, QAccessibleEvent, QResizeEvent
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QComboBox, QLabel, QLineEdit
+from PySide6.QtWidgets import QApplication, QComboBox, QLabel, QLineEdit, QWidget
 
 if TYPE_CHECKING:
-    from PySide6.QtWidgets import QApplication
-
     from voice_paste.shared.settings import EdgePhraseSettings
     from voice_paste.ui.windows.settings_edge_phrases import EdgePhrasePanel
+
+
+PANEL_WIDTH_PX = 600
+"""1 段の組みになる幅（NARROW_WIDTH_PX より広い）。"""
 
 
 @pytest.fixture
@@ -34,6 +36,7 @@ def open_panel(qapp: QApplication) -> Iterator[Callable[..., EdgePhrasePanel]]:
         """部品を作って一覧を入れ、画面に出す。"""
         panel = EdgePhrasePanel()
         panel.set_phrases(phrases)
+        panel.resize(PANEL_WIDTH_PX, 400)
         panel.show()
         panels.append(panel)
         return panel
@@ -61,6 +64,64 @@ def _is_empty_guide_visible(panel: EdgePhrasePanel) -> bool:
     guide = panel.findChild(QLabel, "edge_phrase_empty")
     assert guide is not None, "edge_phrase_empty の文が無い"
     return guide.isVisible()
+
+
+def _header_labels(panel: EdgePhrasePanel) -> list[str]:
+    """列の見出しの行（edge_phrase_header）の文字を、左から順に返す。"""
+    header = panel.findChild(QWidget, "edge_phrase_header")
+    assert header is not None, "edge_phrase_header の行が無い"
+    labels = header.findChildren(QLabel)
+    return [label.text() for label in sorted(labels, key=lambda label: label.x())]
+
+
+def _is_header_visible(panel: EdgePhrasePanel) -> bool:
+    """列の見出しの行（edge_phrase_header）が画面に出ているか。"""
+    header = panel.findChild(QWidget, "edge_phrase_header")
+    assert header is not None, "edge_phrase_header の行が無い"
+    return header.isVisible()
+
+
+# === 列の見出し ===
+
+
+def test_edge_phrase_panel_header(open_panel: Callable[..., EdgePhrasePanel]) -> None:
+    """行の上に「文言」「位置」の見出しの行を出す（正常系）。"""
+    from voice_paste.shared.settings import EdgePhraseSettings
+
+    # 準備・実行（「えーと」（start）の 1 行を入れて出す）
+    panel = open_panel([EdgePhraseSettings(text="えーと", position="start")])
+
+    # 検証
+    assert _is_header_visible(panel)
+    assert _header_labels(panel) == ["文言", "位置"]
+
+
+def test_edge_phrase_panel_header_when_empty(open_panel: Callable[..., EdgePhrasePanel]) -> None:
+    """行が無い間は見出しの行を出さず、行を足すと出す（正常系）。"""
+    # 準備（空の一覧）
+    panel = open_panel([])
+    assert not _is_header_visible(panel)
+
+    # 実行
+    panel.add_phrase()
+
+    # 検証
+    assert _is_header_visible(panel)
+
+
+def test_edge_phrase_panel_header_when_narrow(open_panel: Callable[..., EdgePhrasePanel]) -> None:
+    """幅が狭くて 2 段に組むときは見出しの行を隠し、広がれば戻す（正常系）。"""
+    from voice_paste.shared.settings import EdgePhraseSettings
+    from voice_paste.ui.windows.settings_edge_phrases import NARROW_WIDTH_PX
+
+    # 準備（1 行を入れる）
+    panel = open_panel([EdgePhraseSettings(text="えーと", position="start")])
+
+    # 実行・検証（狭い幅の大きさ変更を受けると隠れ、広い幅で戻る）
+    QApplication.sendEvent(panel, QResizeEvent(QSize(NARROW_WIDTH_PX - 1, 300), QSize()))
+    assert not _is_header_visible(panel)
+    QApplication.sendEvent(panel, QResizeEvent(QSize(NARROW_WIDTH_PX, 300), QSize()))
+    assert _is_header_visible(panel)
 
 
 # === collect ===

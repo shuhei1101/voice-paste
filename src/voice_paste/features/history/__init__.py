@@ -5,6 +5,13 @@ from voice_paste.features.history.service import (
     discard_temporary,
     purge_expired,
     save_recording,
+    store_web_audio,
 )
 
-__all__ = ["append_text", "discard_temporary", "purge_expired", "save_recording"]
+__all__ = [
+    "append_text",
+    "discard_temporary",
+    "purge_expired",
+    "save_recording",
+    "store_web_audio",
+]

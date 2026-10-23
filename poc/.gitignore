@@ -1,0 +1,3 @@
+out/*.wav
+out/server.log
+out/check_formats.err

@@ -1,0 +1,81 @@
+{
+  "source_sec": 10.684,
+  "reference_text": "今日は外の端末から音声を送って、文字に起こせるかを確かめます。\n録音した形式のまま送り、変換せずに読めるかを見ます。",
+  "formats": {
+    "ogg/opus（PyAV）": {
+      "file": "pyav.ogg",
+      "format": "ogg",
+      "codec": "opus",
+      "container_duration_sec": 10.691,
+      "bit_rate": 30279,
+      "size": 40465,
+      "decoded_sec": 10.684,
+      "decode_error": null,
+      "text": "今日は外の端末から音声を送って、文字に起こせるかを確かめます。\n録音した形式のまま送り、変換せずに読めるかを見ます。",
+      "cer": 0.0,
+      "expected_sec": 10.684,
+      "length_ok": true,
+      "cer_ok": true
+    },
+    "MP3（PyAV）": {
+      "file": "pyav.mp3",
+      "format": "mp3",
+      "codec": "mp3float",
+      "container_duration_sec": 10.685147,
+      "bit_rate": 32322,
+      "size": 43172,
+      "decoded_sec": 10.685,
+      "decode_error": null,
+      "text": "今日は外の端末から音声を送って、文字に起こせるかを確かめます。\n録音した形式のまま送り、変換せずに読めるかを見ます。",
+      "cer": 0.0,
+      "expected_sec": 10.684,
+      "length_ok": true,
+      "cer_ok": true
+    },
+    "fragmented MP4 AAC（PyAV）": {
+      "file": "pyav_frag.mp4",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "codec": "aac",
+      "container_duration_sec": 10.707732,
+      "bit_rate": 31798,
+      "size": 42561,
+      "decoded_sec": 10.728,
+      "decode_error": null,
+      "text": "今日は外の端末から音声を送って、文字に起こせるかを確かめます。\n録音した形式のまま送り、変換せずに読めるかを見ます。",
+      "cer": 0.0,
+      "expected_sec": 10.684,
+      "length_ok": true,
+      "cer_ok": true
+    },
+    "webm/opus（Edge の MediaRecorder）": {
+      "file": "edge_audio_webm_codecs_opus",
+      "format": "matroska,webm",
+      "codec": "opus",
+      "container_duration_sec": null,
+      "bit_rate": 0,
+      "size": 38664,
+      "decoded_sec": 10.98,
+      "decode_error": null,
+      "text": "今日は外の端末から音声を送って、文字に起こせるかを確かめます。\n録音した形式のまま送り、変換せずに読めるかを見ます。",
+      "cer": 0.0,
+      "expected_sec": 10.956,
+      "length_ok": true,
+      "cer_ok": true
+    },
+    "mp4 AAC（Edge の MediaRecorder）": {
+      "file": "edge_audio_mp4_codecs_mp4a_40_2",
+      "format": "mov,mp4,m4a,3gp,3g2,mj2",
+      "codec": "aac",
+      "container_duration_sec": 10.964417,
+      "bit_rate": 100297,
+      "size": 137463,
+      "decoded_sec": 10.965,
+      "decode_error": null,
+      "text": "今日は外の端末から音声を送って、文字に起こせるかを確かめます。\n録音した形式のまま送り、変換せずに読めるかを見ます。",
+      "cer": 0.0,
+      "expected_sec": 10.941,
+      "length_ok": true,
+      "cer_ok": true
+    }
+  }
+}

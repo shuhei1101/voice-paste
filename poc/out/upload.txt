@@ -1,0 +1,2 @@
+{"size":99614720,"copy_sec":0.054}
+http=202 total=0.410939s upload=99614919

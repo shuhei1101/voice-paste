@@ -388,7 +388,7 @@ scenarios:
   - name: 正常シナリオ（ブラウザから受けた音声）
     setup:
       - name: Mock
-        description: 常駐アプリを pytest のプロセスの中で起動し、ブラウザの音声のキューにテストからジョブを積む
+        description: 常駐アプリを pytest のプロセスの中で起動し、テストから `POST /web/transcriptions` で音声を送る
         notes: 音声は SAPI で書き出した文を webm/opus にしたファイル
       - name: 履歴の保存
         description: 履歴を残す設定にする
@@ -397,24 +397,23 @@ scenarios:
     flow: |-
       ```mermaid
       sequenceDiagram
-        participant Q as ブラウザの音声のキュー
-        participant JW as ジョブのワーカースレッド
+        participant SVC as 常駐サービス
         participant WK as 文字起こしワーカー（子プロセス）
         participant H as 履歴
 
-        Q->>JW: ジョブを 1 件渡す（state: running）
-        JW->>H: 音声を録れた形式の拡張子のまま残す
-        JW->>WK: 音声のパスと設定を送る（セッションと順番に使う）
-        WK-->>JW: 区間の進み（segment.end / duration）
-        JW->>JW: ジョブの progress を更新する
-        WK-->>JW: 区間ごとの文字
-        JW->>JW: 用語集と文頭・文末の文言で補正する
-        JW->>H: 起こした文字を同じ名前の .txt に書く
-        JW->>Q: ジョブを終える（state: done・text）
+        SVC->>SVC: 受け付けたジョブを 1 件取り出す（state: running）
+        SVC->>H: 音声を録れた形式の拡張子のまま残す
+        SVC->>WK: 音声のパスと設定を送る（セッションと順番に使う）
+        WK-->>SVC: 区間の進み（segment.end / duration）
+        SVC->>SVC: ジョブの progress を更新する
+        WK-->>SVC: 区間ごとの文字
+        SVC->>SVC: 用語集と文頭・文末の文言で補正する
+        SVC->>H: 起こした文字を同じ名前の .txt に書く
+        SVC->>SVC: ジョブを終える（state: done・text）
       ```
     expected:
-      - ジョブが `done` になり、`text` に用語集で補正した文字が入っている
-      - 起こしている間、ジョブの `progress` が 0 から 1 の間で増えている
+      - '`GET /web/transcriptions/{job_id}` が `done` を返し、`text` に用語集で補正した文字が入っている'
+      - 起こしている間、`GET /web/transcriptions/{job_id}` の `progress` が 0 から 1 の間で増えている
       - 履歴に、webm のままの音声と同じ名前の .txt が残っている
       - 文字起こし中の表示も出力先への貼り付けも起きていない
     test: test_normal_when_browser_audio
@@ -424,30 +423,30 @@ scenarios:
   - name: 異常シナリオ（ブラウザから受けた音声の文字起こしに失敗）
     setup:
       - name: Mock
-        description: 常駐アプリを pytest のプロセスの中で起動し、ブラウザの音声のキューにテストからジョブを積む
+        description: 常駐アプリを pytest のプロセスの中で起動し、テストから `POST /web/transcriptions` で音声を送る
       - name: 文字起こしの失敗
-        description: 拡張子は `.webm` で、受け付けの確かめの後に中身を壊した音声を積み、文字起こしワーカーがエラーを返す状態にする
+        description: 文字起こしのエンジンを失敗を返す関数に差し替える
       - name: 履歴の保存
         description: 履歴を残す設定にする
     flow: |-
       ```mermaid
       sequenceDiagram
-        participant Q as ブラウザの音声のキュー
-        participant JW as ジョブのワーカースレッド
+        participant SVC as 常駐サービス
         participant WK as 文字起こしワーカー（子プロセス）
+        participant H as 履歴
         participant LOG as ログ
 
-        Q->>JW: ジョブを 1 件渡す（state: running）
-        JW->>WK: 音声のパスと設定を送る
-        WK-->>JW: エラー（読めない音声）
-        JW->>LOG: job_id と失敗した理由を書く
-        JW->>Q: ジョブを終える（state: failed・error）
-        Q->>JW: 次のジョブを渡す
+        SVC->>SVC: 受け付けたジョブを 1 件取り出す（state: running）
+        SVC->>H: 音声を録れた形式の拡張子のまま残す
+        SVC->>WK: 音声のパスと設定を送る
+        WK-->>SVC: エラー
+        SVC->>LOG: job_id と失敗した理由を書く
+        SVC->>SVC: ジョブを終える（state: failed・error）。次のジョブへ進む
       ```
     expected:
-      - ジョブが `failed` になり、`error` に文字起こしに失敗したことが入っている
+      - '`GET /web/transcriptions/{job_id}` が `failed` を返し、`error` に文字起こしに失敗したことが入っている'
       - 履歴にこの音声が残っている
-      - ジョブのワーカースレッドが動き続け、続けて積んだジョブを起こす
+      - 続けて送った音声（エンジンを戻した後）が `done` まで進む
       - ダイアログも文字起こし中の表示もトレイの通知も出ていない
     test: test_error_when_browser_audio_transcription_failed
     notes:

@@ -14,7 +14,7 @@ scenarios:
         participant PG as 画面（ブラウザ）
         participant DB as 端末（IndexedDB）
         participant API as API のサーバー
-        participant Q as ブラウザの音声のキュー
+        participant SVC as 常駐サービス
 
         U->>PG: 録音を始める
         PG->>PG: MediaRecorder の形式を選んで録り、残り時間を出す
@@ -22,14 +22,14 @@ scenarios:
         PG->>DB: 録った音声を保存日時つきで残す（前の 1 件を置き換える）
         PG->>API: 音声を送る（multipart の audio）
         API->>API: Origin・大きさ・形式を確かめる
-        API->>Q: 一時のファイルに書いてジョブを積む
+        API->>SVC: 一時のファイルに書いてジョブを積む
         API-->>PG: 202（job_id）
         PG->>PG: 結果の一覧に待ちの件を出す
       ```
     expected:
       - 送信が `202` で返り、応答に `job_id` がある
       - 端末（IndexedDB）に録った音声が 1 件だけ、保存日時つきで残っている
-      - キューに、録れた形式のままの音声のジョブが 1 件積まれている
+      - '`GET /web/transcriptions/{job_id}` がそのジョブ（`queued` か `running`）を返す'
       - 結果の一覧の先頭に待ちの件が出ている
       - 録った音声で 録音を文字に起こす へ進む
     test: test_normal_when_record_in_page
@@ -45,18 +45,18 @@ scenarios:
         participant U as ユーザー
         participant PG as 画面（ブラウザ）
         participant API as API のサーバー
-        participant Q as ブラウザの音声のキュー
+        participant SVC as 常駐サービス
 
         U->>PG: 音声ファイルを選んで送る
         PG->>API: 音声を送る（multipart の audio）
         API->>API: Origin・大きさ・形式を確かめる
-        API->>Q: 一時のファイルに書いてジョブを積む
+        API->>SVC: 一時のファイルに書いてジョブを積む
         API-->>PG: 202（job_id）
         PG->>PG: 結果の一覧に待ちの件を出す
       ```
     expected:
       - 送信が `202` で返り、応答に `job_id` がある
-      - キューに、選んだファイルの形式のままのジョブが 1 件積まれている
+      - '`GET /web/transcriptions/{job_id}` がそのジョブ（`queued` か `running`）を返す'
       - 端末（IndexedDB）に残した音声は置き換わっていない
       - 選んだ音声で 録音を文字に起こす へ進む
     test: test_normal_when_select_file
@@ -137,7 +137,7 @@ scenarios:
     expected:
       - 送信が `415` の problem+json で返っている
       - 画面に読めない形式であることが出て、結果の一覧に件が増えていない
-      - キューにジョブが積まれていない
+      - 応答に `job_id` が無く、一時のファイルも書かれていない
     test: test_error_when_unreadable_format
   - name: 異常シナリオ（大きすぎる）
     setup:
@@ -161,7 +161,7 @@ scenarios:
     expected:
       - 送信が `413` の problem+json で返っている
       - 画面に大きすぎることが出て、結果の一覧に件が増えていない
-      - キューにジョブが積まれていない
+      - 応答に `job_id` が無く、一時のファイルも書かれていない
     test: test_error_when_too_large
   - name: 異常シナリオ（許可されていない Origin）
     setup:
@@ -181,7 +181,7 @@ scenarios:
       ```
     expected:
       - 送信が `403` の problem+json で返っている
-      - キューにジョブが積まれず、一時のファイルも履歴も書かれていない
+      - 応答に `job_id` が無く、一時のファイルも履歴も書かれていない
     test: test_error_when_origin_not_allowed
 lead: 外の端末のブラウザの画面で録るか音声ファイルを選び、端末に残してから常駐アプリへ送って、受け付けた `job_id` を受け取る。
 issue: 92

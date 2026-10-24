@@ -13,6 +13,8 @@ from pathlib import Path
 import pytest
 
 from tests.integration.helpers import Stack, make_audio, wait_until
+from voice_paste.main import SETTINGS_MODEL
+from voice_paste.shared.settings import GlossaryPresetSettings
 from voice_paste.shared.types import GlossaryEntry
 
 HISTORY_DATE = "20261001"
@@ -127,3 +129,33 @@ def test_error_when_transcription_failed(stack: Stack, tmp_path: Path, caplog: p
     assert first_id in [_job_id_of(path) for path in history_audio]
     assert any(first_id in line and "失敗" in line for line in caplog.text.splitlines())
     stack.notify.assert_not_called()
+
+
+def test_normal_when_glossary_preset(web_stack: Callable[..., Stack], tmp_path: Path) -> None:
+    """ジョブが持つ用語集のプリセットで補正する（正常系）。"""
+    # 準備: 設定に「既定」と「会議」があり、設定で選んでいるのは「既定」。同じ言葉を別の言葉へ置き換える
+    settings = SETTINGS_MODEL(
+        glossary_presets=[
+            GlossaryPresetSettings(name="既定", glossaries=[]),
+            GlossaryPresetSettings(name="会議", glossaries=[]),
+        ],
+        active_glossary_preset="既定",
+    )
+    stack = web_stack(settings=settings)
+    stack.engine.segments = ["今日は晴れ"]
+    stack.web.preset_glossaries = {
+        "既定": [GlossaryEntry(wrong="晴れ", right="既定の晴れ")],
+        "会議": [GlossaryEntry(wrong="晴れ", right="会議の晴れ")],
+    }
+    audio = make_audio("webm", tmp_path)
+
+    # 実行: 「会議」のジョブと、プリセットが空のジョブを 1 件ずつ積む
+    meeting_id = stack.submit_audio(audio, glossary_preset="会議")
+    assert stack.wait_for_job(meeting_id, "done")
+    default_id = stack.submit_audio(audio)
+    assert stack.wait_for_job(default_id, "done")
+
+    # 検証
+    assert stack.get_job(meeting_id).json()["text"] == "今日は会議の晴れ"
+    assert stack.get_job(default_id).json()["text"] == "今日は既定の晴れ"
+    assert stack.web.settings.active_glossary_preset == "既定"

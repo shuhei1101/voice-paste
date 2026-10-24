@@ -32,7 +32,11 @@ import numpy as np
 import pytest
 
 from tests.unit.voice_paste.features.recording.helpers import ScriptedDetector, windows
-from voice_paste.features.correction import apply_glossary, resolve_glossary_presets
+from voice_paste.features.correction import (
+    apply_glossary,
+    pick_glossary_preset,
+    resolve_glossary_presets,
+)
 from voice_paste.features.history import (
     append_text,
     discard_temporary,
@@ -50,6 +54,7 @@ from voice_paste.features.session import (
 )
 from voice_paste.features.transcription.service import transcribe
 from voice_paste.features.web_transcription import (
+    GlossaryPresetChoices,
     WebApiDeps,
     WebJobQueue,
     WebTranscriptionDeps,
@@ -293,7 +298,11 @@ class WebSettings:
     history_enabled: bool = True
     """履歴を残す設定か。"""
     glossary: list[GlossaryEntry] = field(default_factory=list)
-    """補正に使う用語集の行。"""
+    """補正に使う用語集の行（プリセットごとの行 `preset_glossaries` に無いプリセットで使う）。"""
+    preset_glossaries: dict[str, list[GlossaryEntry]] = field(default_factory=dict)
+    """用語集のプリセットの名前ごとの、補正に使う用語集の行。"""
+    settings: Settings = field(default_factory=SETTINGS_MODEL)
+    """今の設定（用語集のプリセットの一覧と、設定で選んでいるプリセットを引く）。"""
 
 
 @dataclass
@@ -341,17 +350,27 @@ class Stack:
         headers: dict[str, str] | None = None,
         field_name: str = "audio",
         origin: str | None = WEB_ORIGIN,
+        glossary_preset: str | None = None,
     ) -> httpx.Response:
-        """ゲートウェイを通した形（Host は localhost:{ポート}、許す Origin つき、トークン無し）で、音声を multipart で POST /web/transcriptions へ送る。origin が None なら Origin を付けない。"""
+        """ゲートウェイを通した形（Host は localhost:{ポート}、許す Origin つき、トークン無し）で、音声を multipart で POST /web/transcriptions へ送る。origin が None なら Origin を付けず、glossary_preset が None なら glossary_preset の項目を付けない。"""
         merged = {"Host": f"localhost:{self.port}"}
         if origin is not None:
             merged["Origin"] = origin
         merged.update(headers or {})
+        form = None if glossary_preset is None else {"glossary_preset": glossary_preset}
         return self.http.post(
             "/web/transcriptions",
             files={field_name: (filename, data, content_type)},
+            data=form,
             headers=merged,
         )
+
+    def get_glossary_presets(self, *, origin: str | None = None) -> httpx.Response:
+        """ゲートウェイを通した形（Host は localhost:{ポート}、トークン無し）で、GET /web/glossary-presets を呼ぶ。origin が None なら Origin を付けない。"""
+        merged = {"Host": f"localhost:{self.port}"}
+        if origin is not None:
+            merged["Origin"] = origin
+        return self.http.get("/web/glossary-presets", headers=merged)
 
     def post_audio_chunked(self, data: bytes, *, filename: str = "recording.webm") -> httpx.Response:
         """Content-Length を付けず chunked で、音声を multipart で POST /web/transcriptions へ送る（許す Origin つき）。"""
@@ -390,9 +409,11 @@ class Stack:
         """そのジョブの state が state になるまで待ち、なったかを返す。"""
         return wait_until(lambda: self.get_job(job_id).json().get("state") == state)
 
-    def submit_audio(self, data: bytes, *, filename: str = "recording.webm") -> str:
-        """音声を受け付けさせ、202 を確かめてジョブの ID を返す。"""
-        response = self.post_audio(data, filename=filename)
+    def submit_audio(
+        self, data: bytes, *, filename: str = "recording.webm", glossary_preset: str | None = None
+    ) -> str:
+        """音声を（glossary_preset があればその指定で）受け付けさせ、202 を確かめてジョブの ID を返す。"""
+        response = self.post_audio(data, filename=filename, glossary_preset=glossary_preset)
         assert response.status_code == 202
         return str(response.json()["job_id"])
 
@@ -586,14 +607,33 @@ def build_stack(
             for preset in resolve_glossary_presets(settings, paths.settings_file.parent)
         ),
     )
-    web = WebSettings()
+    web = WebSettings(settings=settings)
+    settings_dir = paths.settings_file.parent
+
+    def web_correct(text: str, glossary_preset: str | None) -> str:
+        """ジョブのプリセット（None は設定で選んでいるプリセット）の用語集の行で補正する。"""
+        name = pick_glossary_preset(web.settings, settings_dir, requested=glossary_preset).name
+        return apply_glossary(text, web.preset_glossaries.get(name, web.glossary))
+
+    def web_glossary_preset_exists(name: str) -> bool:
+        """今の設定の用語集のプリセットの一覧に、その名前があるか。"""
+        return any(
+            preset.name == name for preset in resolve_glossary_presets(web.settings, settings_dir)
+        )
+
+    def web_list_glossary_presets() -> GlossaryPresetChoices:
+        """今の設定の用語集のプリセットの名前の一覧と、設定で選んでいるプリセットの名前を返す。"""
+        presets = resolve_glossary_presets(web.settings, settings_dir)
+        active = pick_glossary_preset(web.settings, settings_dir)
+        return GlossaryPresetChoices(presets=[preset.name for preset in presets], active=active.name)
+
     web_queue = WebJobQueue(
         WebTranscriptionDeps(
             store_audio=lambda job_id, source: store_web_audio(
                 job_id, source, history_enabled=web.history_enabled, paths=paths, now=clock
             ),
             transcribe=partial(transcribe, engine=engine, get_hint=lambda: None),
-            correct=lambda text: apply_glossary(text, web.glossary),
+            correct=web_correct,
             append_text=partial(append_text, paths=paths),
             discard_temporary=partial(discard_temporary, paths=paths),
         ),
@@ -605,7 +645,13 @@ def build_stack(
         web_queue.start(web_tmp_dir)
     else:
         web_tmp_dir.mkdir(parents=True, exist_ok=True)
-    web_api = WebApiDeps(queue=web_queue, probe_audio=probe_audio, tmp_dir=web_tmp_dir)
+    web_api = WebApiDeps(
+        queue=web_queue,
+        probe_audio=probe_audio,
+        tmp_dir=web_tmp_dir,
+        glossary_preset_exists=web_glossary_preset_exists,
+        list_glossary_presets=web_list_glossary_presets,
+    )
     app = build_fastapi(
         session_api, token, port, web_api=web_api, allowed_web_origins=[WEB_ORIGIN]
     )

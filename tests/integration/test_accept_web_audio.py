@@ -13,6 +13,17 @@ from pathlib import Path
 import pytest
 
 from tests.integration.helpers import Stack, make_audio
+from voice_paste.main import SETTINGS_MODEL
+from voice_paste.shared.settings import GlossaryPresetSettings
+
+PRESET_SETTINGS = SETTINGS_MODEL(
+    glossary_presets=[
+        GlossaryPresetSettings(name="既定", glossaries=[]),
+        GlossaryPresetSettings(name="会議", glossaries=[]),
+    ],
+    active_glossary_preset="既定",
+)
+"""用語集のプリセット「既定」と「会議」があり、設定で選んでいるのは「既定」の設定。"""
 
 JOB_ID_LENGTH = 22
 """ジョブの ID（secrets.token_urlsafe(16)）の文字数。"""
@@ -160,3 +171,41 @@ def test_error_when_queue_full(web_stack: Callable[..., Stack], tmp_path: Path) 
     assert response.headers["content-type"].startswith("application/problem+json")
     assert len(list(stack.web_tmp_dir.iterdir())) == 2
     assert [stack.get_job(job_id).json()["state"] for job_id in accepted] == ["queued", "queued"]
+
+
+def test_normal_when_glossary_preset(web_stack: Callable[..., Stack], tmp_path: Path) -> None:
+    """glossary_preset で指定した用語集のプリセットの名前をジョブに持たせて積む（正常系）。"""
+    # 準備: 設定に「既定」と「会議」があり、設定で選んでいるのは「既定」
+    stack = web_stack(worker=False, settings=PRESET_SETTINGS)
+    audio = make_audio("webm", tmp_path)
+
+    # 実行: 「会議」を指定した送信と、項目なしの送信と、空文字の送信
+    specified = stack.post_audio(audio, glossary_preset="会議")
+    omitted = stack.post_audio(audio)
+    empty = stack.post_audio(audio, glossary_preset="")
+
+    # 検証
+    assert specified.status_code == 202
+    assert stack.web_queue.get(specified.json()["job_id"]).glossary_preset == "会議"
+    assert omitted.status_code == 202
+    assert stack.web_queue.get(omitted.json()["job_id"]).glossary_preset is None
+    assert empty.status_code == 202
+    assert stack.web_queue.get(empty.json()["job_id"]).glossary_preset is None
+
+
+def test_error_when_glossary_preset_not_found(
+    web_stack: Callable[..., Stack], tmp_path: Path
+) -> None:
+    """設定の一覧に無い用語集のプリセットを指定した音声を、積まずに断る（異常系）。"""
+    # 準備
+    stack = web_stack(worker=False, settings=PRESET_SETTINGS)
+
+    # 実行
+    response = stack.post_audio(make_audio("webm", tmp_path), glossary_preset="無いプリセット")
+
+    # 検証
+    assert response.status_code == 400
+    assert response.headers["content-type"].startswith("application/problem+json")
+    assert "無いプリセット" in response.json()["detail"]
+    assert list(stack.web_tmp_dir.iterdir()) == []
+    assert stack.web_queue._jobs == {}  # noqa: SLF001 積んだジョブが無いことを確かめる

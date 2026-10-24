@@ -24,7 +24,7 @@ def test_build_fastapi() -> None:
     assert response.status_code == 202
     assert response.json() == {"session_id": "session-1"}
     session_manager.start.assert_called_once_with(
-        entry="api", callback_url=CALLBACK_URL, continuous=False
+        entry="api", callback_url=CALLBACK_URL, continuous=False, glossary_preset=None
     )
 
 

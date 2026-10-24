@@ -17,8 +17,18 @@ directory: |-
 
   動かす環境は、リポジトリの直下で Windows の uv（WSL からは `uv.exe`）で `uv sync --frozen` を流して `.venv/` に作る（`uv.lock` の版で入り、Python の版は `.python-version` の 3.14）。
   Linux の uv で流すと `.venv/` を Linux の構成に作り直したうえで `pywin32` を入れられず止まるため、環境を作るコマンドと環境で流すコマンドは Windows の uv で流す（`uv lock` はどちらでもよい）。
-  起動のバッチファイル（`voice-paste.bat`）は、`.venv` を有効にし、CUDA の DLL（`.venv` の `Lib/site-packages/nvidia/` の `cublas`・`cudnn`・`cuda_nvrtc` の `bin`）を `PATH` に足して、`pythonw -m voice_paste` を引数なしで起動する（コンソールを出さない）。
-  起動の記録（起動した時刻・使った Python・起動の終了コード）は `%LOCALAPPDATA%\voice-paste\log\launcher.log` へ起動ごとに上書きで書く。
+  起動のバッチファイル（`voice-paste.bat`）は、起動のたびに `.venv\Scripts\python.exe -c "import voice_paste"` で `.venv` から voice_paste を import できるかを確かめる（`.venv` のフォルダや `python.exe` があるかでは判定しない）。
+  import できなければ、リポジトリの直下で `uv sync --frozen` を流して `.venv/` を作り直し、もう一度確かめる。uv は PATH から探し、無ければ `%USERPROFILE%\.local\bin\uv.exe` を使う。
+  import できたら、`.venv` を有効にし、CUDA の DLL（`.venv` の `Lib/site-packages/nvidia/` の `cublas`・`cudnn`・`cuda_nvrtc` の `bin`）を `PATH` に足して、`.venv\Scripts\pythonw.exe -m voice_paste` を引数なしで起動する（コンソールを出さない）。システムの `pythonw` では起動しない。
+  次のときは起動せず、コンソールに理由の 1 行と `See log: {launcher.log のパス}` を表示して `pause` で止まり、0 以外の終了コードで終わる（`uv sync` の失敗はその終了コード、ほかは 1）。
+
+  | 起きたこと | 理由の行 |
+  | --- | --- |
+  | uv が PATH にも `%USERPROFILE%\.local\bin\uv.exe` にも無い | `[ERROR] uv not found. Install uv and run voice-paste.bat again.` |
+  | `uv sync --frozen` が 0 以外で終わる | `[ERROR] uv sync --frozen failed with code {終了コード}.` |
+  | `uv sync --frozen` の後も import できない | `[ERROR] voice_paste cannot be imported from .venv after uv sync.` |
+
+  起動の記録（起動した時刻・import の確かめの結果・`uv sync --frozen` の出力・使った Python・起動の終了コード）は `%LOCALAPPDATA%\voice-paste\log\launcher.log` へ起動ごとに上書きで書く。
   ログの保持期間の削除（purge_old_logs）は日付の名前のログだけを消すため、上書きで大きさを保ち、日付でログを消す処理は持たない。
   `pyproject.toml` の `[project.scripts]` の `voice-paste` は `voice_paste.main:main` を指す。
 diagrams:

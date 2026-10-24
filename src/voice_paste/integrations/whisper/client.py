@@ -188,6 +188,8 @@ class WhisperWorkerClient:
             vad_min_silence_ms=settings.vad_min_silence_ms,
             condition_on_previous_text=settings.condition_on_previous_text,
             no_speech_threshold=settings.no_speech_threshold,
+            word_timestamps=settings.word_timestamps,
+            hallucination_silence_threshold=settings.hallucination_silence_threshold,
             **optional,
         )
         while True:

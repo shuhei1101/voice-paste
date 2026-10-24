@@ -192,6 +192,10 @@ class LocalWhisperSettings(_SettingsModel):
     no_speech_threshold: float = _item(
         0.6, "区間を無音とみなす確信度の閾値", reload=RELOAD_RESTART, ge=0, le=1
     )
+    word_timestamps: bool = _item(False, "単語のタイムスタンプを取るか", reload=RELOAD_RESTART)
+    hallucination_silence_threshold: float | None = _item(
+        None, "話し声の無い区間を飛ばす無音の長さ（秒）", reload=RELOAD_RESTART
+    )
 
 
 class TranscriptionSettings(_SettingsModel):

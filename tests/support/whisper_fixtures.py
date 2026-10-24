@@ -59,6 +59,12 @@ LOCAL_WHISPER_FIELDS: dict[str, tuple[str, Callable[[str], object]]] = {
 }
 """固めた設定（whisper.env の変数）と、対応する LocalWhisperSettings の項目・型への変換。"""
 
+OPTIONAL_LOCAL_WHISPER_FIELDS: dict[str, tuple[str, Callable[[str], object]]] = {
+    "WHISPER_WORD_TIMESTAMPS": ("word_timestamps", _to_bool),
+    "WHISPER_HALLUCINATION_SILENCE_THRESHOLD": ("hallucination_silence_threshold", float),
+}
+"""whisper.env に無ければ既定の値を使う変数（PoC #179 で足したオプション）。"""
+
 requires_real_whisper = pytest.mark.skipif(
     not WHISPER_ENV_FILE.exists() or sys.platform != "win32" or shutil.which("nvidia-smi") is None,
     reason="Windows の NVIDIA GPU と、tests/nfr/fixtures/ の固めた設定（whisper.env）が要る",
@@ -89,11 +95,17 @@ def load_local_whisper_settings() -> LocalWhisperSettings:
     from voice_paste.shared.settings import LocalWhisperSettings
 
     env_values = _read_env_values(WHISPER_ENV_FILE)
+    optional = {
+        field: parse(env_values[key])
+        for key, (field, parse) in OPTIONAL_LOCAL_WHISPER_FIELDS.items()
+        if key in env_values
+    }
     return LocalWhisperSettings(
         **{
             field: parse(env_values[key])
             for key, (field, parse) in LOCAL_WHISPER_FIELDS.items()
-        }
+        },
+        **optional,
     )
 
 

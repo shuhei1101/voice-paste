@@ -70,6 +70,8 @@ def _transcribe(model: Any, request: dict[str, Any], stdout: TextIO) -> None:  #
         vad_parameters=_build_vad_parameters(request),
         condition_on_previous_text=request["condition_on_previous_text"],
         no_speech_threshold=request["no_speech_threshold"],
+        word_timestamps=request.get("word_timestamps", False),
+        hallucination_silence_threshold=request.get("hallucination_silence_threshold"),
         # 手がかり（無ければ None）。prefix は渡さない（渡すと hotwords が効かない）
         hotwords=request.get("hotwords"),
     )

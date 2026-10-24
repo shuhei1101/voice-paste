@@ -1154,7 +1154,7 @@ classes:
                - `[WARNING]` 保存するホットキーを受け付けられなかった（理由）
              - OSError の場合、エラーの一覧に「設定ファイルを書けませんでした（{理由}）」を出し、False を返す（用語集の CSV を書けないときも同じ文言で、理由にそのパスが出る）
                - `[ERROR]` 設定ファイルを書けなかった（logger.exception）
-          3. GlossaryPanel.mark_saved で用語集の書き戻しの基準を保存した行へ置き直し、HintPresetPanel.mark_saved と種類ごとの PresetListPanel.mark_saved でプリセットの番号を保存した並びで振り直し、変えた欄の数えの基準（`_baseline`）を今の欄の値へ置き直す（「再起動で反映」の件数の基準は開いたときの値のまま）
+          3. _clear_errors で前の保存で出したエラーの一覧と欄の下のエラーを消し、GlossaryPanel.mark_saved で用語集の書き戻しの基準を保存した行へ置き直し、HintPresetPanel.mark_saved と種類ごとの PresetListPanel.mark_saved でプリセットの番号を保存した並びで振り直し、変えた欄の数えの基準（`_baseline`）を今の欄の値へ置き直す（「再起動で反映」の件数の基準は開いたときの値のまま）
           4. saved を emit する
              - restart の場合、restart_requested を emit して窓を閉じ、True を返す
           5. 窓を開いたまま、保存した知らせを出して、同じ文を `QAccessible.updateAccessibility(QAccessibleAnnouncementEvent(知らせ, 文))` で読み上げにも伝え、True を返す（入れた値・選んでいたまとまり・欄のフォーカスはそのまま）
@@ -1307,6 +1307,12 @@ classes:
             condition: 「既定」の 1 件のプリセットでプリセットを 2 つ足し、2 件目の名前を「既定」に、3 件目の名前を空のままで保存する
             mock: UiDeps.save_settings（呼ばれたかを控える）・list_glossaries・list_glossary_presets・read_glossary
             expected: 'False。save_settings は呼ばれず、エラーの一覧に「用語集のプリセット 2 件目の名前: 用語集のプリセット「既定」と同じ名前です。別の名前にしてください。」と「用語集のプリセット 3 件目の名前: 名前を入れてください。」が出る。前者を押すと「用語集」のまとまりで 2 件目のプリセットの名前の欄にフォーカスが移る'
+          - name: test_save_when_fixed_after_invalid
+            case: 正常
+            summary: 直して保存し直すと、前に出したエラーを消す
+            condition: 「貼り付けてから Enter を送るまでの秒数」に abc を入れて save(restart=False) した後、欄を 0.5 に直してもう一度 save(restart=False)
+            mock: UiDeps.save_settings
+            expected: 2 回目は True。エラーの一覧が隠れて行が残らず、outputs[0].enter_delay_sec の欄の下のエラーが空で隠れ、保存した知らせが「保存しました。」
       - name: reset_to_defaults
         title: 既定に戻す
         summary: confirm_reset で確かめ、戻すなら開いたときの設定と同じ設定のモデルの既定値（`type(開いたときの設定)()`）を書いて欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す

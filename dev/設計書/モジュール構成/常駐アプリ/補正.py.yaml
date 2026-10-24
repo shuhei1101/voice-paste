@@ -332,25 +332,6 @@ functions:
       1. resolve_glossaries で一覧を引く
       2. `active_glossary` と同じ名前の用語集を返す
          - None か、同じ名前が無い場合、1 件目を返す
-    unit_tests:
-      - name: test_pick_active_glossary
-        case: 正常
-        summary: active_glossary の名前の用語集を返す
-        condition: 「yogo」「会議用」の 2 件と active_glossary = 会議用
-        mock: なし
-        expected: 「会議用」の用語集が返る
-      - name: test_pick_active_glossary_when_unset
-        case: 正常
-        summary: active_glossary が無ければ 1 件目
-        condition: 2 件の glossaries と active_glossary = None
-        mock: なし
-        expected: 1 件目が返る
-      - name: test_pick_active_glossary_when_unknown_name
-        case: 正常
-        summary: 一覧に無い名前なら 1 件目
-        condition: 2 件の glossaries と active_glossary = 無い名前
-        mock: なし
-        expected: 1 件目が返る
     status: removed
   - name: next_glossary_path
     title: 足す用語集の CSV の場所

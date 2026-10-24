@@ -12,7 +12,7 @@ class CallbackNotAllowedError(AppError):
 
 
 class GlossaryPresetNotFoundError(AppError):
-    """API の開始で指定した用語集のプリセットが一覧に無い（メッセージに指定した名前を含める）。"""
+    """API の開始かブラウザの音声の受け付けで指定した用語集のプリセットが一覧に無い（メッセージに指定した名前を含める）。"""
 
 
 class UnauthorizedError(AppError):

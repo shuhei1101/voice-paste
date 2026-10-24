@@ -20,6 +20,7 @@ from voice_paste.features.web_transcription.types import (
 )
 from voice_paste.shared.errors import (
     AudioUnreadableError,
+    GlossaryPresetNotFoundError,
     TranscriptionError,
     WebJobNotFoundError,
     WebQueueFullError,
@@ -88,8 +89,10 @@ class WebJobQueue:
         self._thread = threading.Thread(target=self._run, name=WORKER_THREAD_NAME, daemon=True)
         self._thread.start()
 
-    def submit(self, job_id: str, audio_path: Path, audio: AudioProbe) -> WebJob:
-        """終わっていないジョブが上限未満なら、ジョブを queued で積んで返す。"""
+    def submit(
+        self, job_id: str, audio_path: Path, audio: AudioProbe, glossary_preset: str | None
+    ) -> WebJob:
+        """終わっていないジョブが上限未満なら、用語集のプリセットの名前（None は指定なし）を持たせたジョブを queued で積んで返す。"""
         with self._lock:
             # 終わっていないジョブが上限に達していれば断る
             pending_count = sum(
@@ -98,12 +101,19 @@ class WebJobQueue:
             if pending_count >= self._max_pending:
                 raise WebQueueFullError(f"終わっていないジョブが上限（{self._max_pending} 件）に達している")
 
-            job = WebJob(id=job_id, state=JobState.QUEUED, audio_path=audio_path, audio=audio)
+            job = WebJob(
+                id=job_id,
+                state=JobState.QUEUED,
+                audio_path=audio_path,
+                audio=audio,
+                glossary_preset=glossary_preset,
+            )
             self._jobs[job_id] = job
             self._pending.put(job_id)
         logger.info(
             f"音声を受け付けた（{job_id}・{audio.size_bytes} バイト・{audio.container}・"
-            f"{_format_duration(audio.duration_sec)}）"
+            f"{_format_duration(audio.duration_sec)}・用語集のプリセット: "
+            f"{glossary_preset or '設定に従う'}）"
         )
         return job
 
@@ -165,8 +175,10 @@ class WebJobQueue:
             audio_path = deps.store_audio(job_id, self.get(job_id).audio_path)
             self._update(job_id, audio_path=audio_path)
 
-            # 2. 起こして補正し、履歴に書き足す
-            text = deps.correct(deps.transcribe(audio_path, report_progress))
+            # 2. 起こして、ジョブの用語集のプリセット（None は設定で選んでいるプリセット）で補正し、履歴に書き足す
+            text = deps.correct(
+                deps.transcribe(audio_path, report_progress), self.get(job_id).glossary_preset
+            )
             deps.append_text(audio_path, text)
 
             # 3. 起こし終えた
@@ -207,16 +219,27 @@ def _format_duration(duration_sec: float | None) -> str:
     return f"{duration_sec:.1f} 秒"
 
 
-def accept_audio(file: BinaryIO, *, deps: WebApiDeps) -> WebJob:
-    """受けた音声の形式を確かめ、一時のファイルへ書いてジョブを積む。"""
-    # 1. 音声の形式を読む（読めなければ AudioUnreadableError が伝わる）
+def accept_audio(
+    file: BinaryIO, *, deps: WebApiDeps, glossary_preset: str | None = None
+) -> WebJob:
+    """指定された用語集のプリセットと受けた音声の形式を確かめ、一時のファイルへ書いてジョブを積む。"""
+    # 1. 空文字は指定なしとして扱う
+    if glossary_preset == "":
+        glossary_preset = None
+
+    # 2. 指定された名前が今の設定の一覧に無ければ、音声を読まずに断る
+    if glossary_preset is not None and not deps.glossary_preset_exists(glossary_preset):
+        logger.warning(f"用語集のプリセットが無いため断った（{glossary_preset}）")
+        raise GlossaryPresetNotFoundError(f"用語集のプリセットが無い（{glossary_preset}）")
+
+    # 3. 音声の形式を読む（読めなければ AudioUnreadableError が伝わる）
     try:
         audio = deps.probe_audio(file)
     except AudioUnreadableError as error:
         logger.warning(f"読めない音声を断った（{error}）")
         raise
 
-    # 2. ID を作り、容れ物の拡張子の一時のファイルへ頭から写す
+    # 4. ID を作り、容れ物の拡張子の一時のファイルへ頭から写す
     job_id = secrets.token_urlsafe(JOB_ID_BYTES)
     audio_path = deps.tmp_dir / f"{job_id}{audio.suffix}"
     file.seek(0)
@@ -228,9 +251,9 @@ def accept_audio(file: BinaryIO, *, deps: WebApiDeps) -> WebJob:
         audio_path.unlink(missing_ok=True)
         raise
 
-    # 3. キューに積む（上限なら写した一時のファイルを消してそのまま送出する）
+    # 5. 用語集のプリセットの名前と共にキューに積む（上限なら写した一時のファイルを消してそのまま送出する）
     try:
-        return deps.queue.submit(job_id, audio_path, audio)
+        return deps.queue.submit(job_id, audio_path, audio, glossary_preset)
     except WebQueueFullError as error:
         audio_path.unlink(missing_ok=True)
         logger.warning(f"待ちが上限のため断った（{error}）")

@@ -12,13 +12,14 @@ import os
 import sys
 import tempfile
 import time
+import tomllib
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from voice_paste.integrations.whisper.client import WhisperWorkerClient  # noqa: E402
-from voice_paste.shared.settings import LocalWhisperSettings, Settings, join_hint_words, load_settings  # noqa: E402
+from voice_paste.shared.settings import HintPresetSettings, LocalWhisperSettings, join_hint_words  # noqa: E402
 
 RECORDINGS_DIR = REPO_ROOT / "tests" / "nfr" / "fixtures" / "poc_hallucination"
 RESULTS_FILE = Path(__file__).resolve().parent / "results.json"
@@ -99,10 +100,12 @@ def _run_combination(
 def main() -> None:
     """全ての組み合わせで録音を起こし、results.json に書く。"""
     logging.basicConfig(level=logging.INFO)
-    settings = load_settings(SETTINGS_FILE, Settings)
-    base = settings.transcription.local_whisper
+    # 使う 2 つの表だけを検証する（ほかの表には、このブランチより新しいキーが入っていることがある）
+    document = tomllib.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
+    base = LocalWhisperSettings.model_validate(document["transcription"]["local_whisper"])
+    presets = [HintPresetSettings.model_validate(preset) for preset in document.get("hint_presets", [])]
     # 本番と同じく、有効なヒントの語から手がかりを作る（無ければ None）
-    hint = join_hint_words(settings.hint_presets) or None
+    hint = join_hint_words(presets) or None
     groups = _select_recordings()
     recordings = groups["hallucination"] + groups["clean"]
     output: dict[str, object] = {

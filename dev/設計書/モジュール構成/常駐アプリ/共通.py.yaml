@@ -841,7 +841,7 @@ data_models:
     properties:
       - name: name
         type: str
-        description: 設定画面の用語集のプリセットの一覧と `POST /sessions` の `glossary_preset` で指す名前（前後の空白を除く。`min_length=1`）
+        description: 設定画面の用語集のプリセットの一覧と `POST /sessions` の `glossary_preset` で指す名前（前後の空白を除く。空は、重なりと同じ回に欄ごとのエラーとして出すため、Settings の確かめが種類 `string_too_short` で断る）
       - name: glossaries
         type: list[str]
         default: '[]'

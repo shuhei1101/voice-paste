@@ -18,7 +18,7 @@
     <span class="mock-bar__label">案</span>
     <ul><li><a href="../a-follow-settings/index.html">案 A</a></li><li><a href="../b-preselect-active/index.html" aria-current="page">案 B</a></li></ul>
     <span class="mock-bar__label">場面</span>
-    <ul><li><button type="button" data-scene="default">既定のまま</button></li><li><button type="button" data-scene="picked">別のプリセットを選択</button></li><li><button type="button" data-scene="recording">録音中</button></li><li><button type="button" data-scene="sending">録音の送信中</button></li><li><button type="button" data-scene="file-sending">ファイル送信中</button></li><li><button type="button" data-scene="fetch-failed">一覧の取得失敗</button></li><li><button type="button" data-scene="not-found">一覧に無いプリセット（400）</button></li></ul>
+    <ul><li><button type="button" data-scene="default">既定のまま</button></li><li><button type="button" data-scene="picked">別のプリセットを選択</button></li><li><button type="button" data-scene="recording">録音中</button></li><li><button type="button" data-scene="sending">録音の送信中</button></li><li><button type="button" data-scene="file-sending">ファイル送信中</button></li><li><button type="button" data-scene="fetch-failed">一覧の取得失敗</button></li><li><button type="button" data-scene="not-found">一覧に無いプリセット（ファイル・400）</button></li><li><button type="button" data-scene="not-found-rec">一覧に無いプリセット（録音・400）</button></li></ul>
   </nav>
 
   <main class="web-main">
@@ -52,8 +52,7 @@
         </div>
         <div class="preset-field" data-scene-panel="sending file-sending" hidden>
           <label class="preset-field__label" for="preset-b-preselect-active-sending">用語集のプリセット</label>
-          <select id="preset-b-preselect-active-sending" name="glossary_preset" disabled aria-describedby="preset-b-preselect-active-sending-help"><option value="既定">既定</option><option value="会議">会議</option><option value="下書き" selected>下書き</option></select>
-          <p class="preset-field__help" id="preset-b-preselect-active-sending-help">送信中は変更不可</p>
+          <select id="preset-b-preselect-active-sending" name="glossary_preset"><option value="既定">既定</option><option value="会議">会議</option><option value="下書き" selected>下書き</option></select>
         </div>
         <div class="preset-field" data-scene-panel="fetch-failed" hidden>
           <label class="preset-field__label" for="preset-b-preselect-active-failed">用語集のプリセット</label>
@@ -62,6 +61,10 @@
         <div class="preset-field" data-scene-panel="not-found" hidden>
           <label class="preset-field__label" for="preset-b-preselect-active-notfound">用語集のプリセット</label>
           <select id="preset-b-preselect-active-notfound" name="glossary_preset" aria-describedby="preset-b-preselect-active-notfound-error"><option value="既定">既定</option><option value="会議" selected>会議</option></select>
+        </div>
+        <div class="preset-field" data-scene-panel="not-found-rec" hidden>
+          <label class="preset-field__label" for="preset-b-preselect-active-notfound-rec">用語集のプリセット</label>
+          <select id="preset-b-preselect-active-notfound-rec" name="glossary_preset" aria-describedby="preset-b-preselect-active-notfound-rec-error"><option value="既定">既定</option><option value="会議" selected>会議</option></select>
         </div>
 
         <!-- 一覧を取得できなかった知らせ: 選択欄のすぐ下に出す。送信は続けられるため注意ではなく知らせの色にする -->
@@ -78,9 +81,17 @@
             <p>「下書き」は PC の設定から削除済みのため、interview-part2.m4a は未送信です。一覧を取得し直し、「会議」（設定で選択中）に戻しました。プリセットを確認して、ファイルを選び直してください。</p>
           </div>
         </div>
+        <!-- 一覧に無いプリセット（400）の録った音声の場合: 音声は端末内の音声の行に残り、再送信できる -->
+        <div class="web-error" role="alert" id="preset-b-preselect-active-notfound-rec-error" data-scene-panel="not-found-rec" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>
+          <div>
+            <p class="web-error__title">選択したプリセットが見つかりません</p>
+            <p>「下書き」は PC の設定から削除済みのため、録った音声は未送信です。一覧を取得し直し、「会議」（設定で選択中）に戻しました。プリセットを確認して、再送信してください。</p>
+          </div>
+        </div>
 
         <!-- 録る・ファイルを選ぶ: 録音中は録音中の表示に替わるため隠す -->
-        <div class="send-actions" data-scene-panel="default picked sending fetch-failed not-found" hidden>
+        <div class="send-actions" data-scene-panel="default picked sending fetch-failed not-found not-found-rec" hidden>
           <button type="button" class="btn btn--lg btn--primary"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle class="fill" cx="12" cy="12" r="6"/></svg>録音開始</button>
           <label class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>ファイル送信<input type="file" accept="audio/*" class="sr-only"></label>
         </div>
@@ -95,9 +106,11 @@
             <span class="file-sending__name">interview-part2.m4a・<span class="num">38.4 MB</span></span>
             <span class="kept__state kept__state--busy" role="status"><span class="spinner" aria-hidden="true"></span>送信中 <span class="num">47%</span></span>
           </div>
+          <!-- 送信した時点のプリセット: ファイル名が長いと省かれるため別の行に出す -->
+          <span class="kept__meta">プリセット「下書き」</span>
           <progress max="100" value="47" aria-label="送信の進捗"></progress>
         </div>
-        <p class="send-hint" data-scene-panel="default picked sending file-sending fetch-failed not-found" hidden>録音 最大 30 分・ファイル 100 MB 未満</p>
+        <p class="send-hint" data-scene-panel="default picked sending file-sending fetch-failed not-found not-found-rec" hidden>録音 最大 30 分・ファイル 100 MB 未満</p>
 
         <!-- 録音中の表示 -->
         <div class="recorder" data-scene-panel="recording" hidden>
@@ -110,17 +123,30 @@
           <button type="button" class="btn btn--lg btn--primary btn--block"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect class="fill" x="7" y="7" width="10" height="10" rx="1"/></svg>録音停止・送信</button>
         </div>
 
-        <!-- 端末に残した音声（送信中）: 録音を止めて送っている場面 -->
+        <!-- 端末に残した音声（送信中）: 録音を止めて送っている場面。送信した時点のプリセットを添え、次に送る音声の選択と分ける -->
         <div class="kept" data-scene-panel="sending" hidden>
           <div class="kept__info">
             <span class="kept__label">端末内の音声</span>
-            <span class="kept__meta"><span class="num">10/23 14:05</span> 録音・<span class="num">2:14</span>・webm・<span class="num">540 KB</span></span>
+            <span class="kept__meta"><span class="num">10/23 14:05</span> 録音・<span class="num">2:14</span>・webm・<span class="num">540 KB</span>・プリセット「下書き」</span>
             <span class="kept__state kept__state--busy" role="status"><span class="spinner" aria-hidden="true"></span>送信中 <span class="num">63%</span></span>
           </div>
           <div class="kept__actions">
             <button type="button" class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>ダウンロード</button>
           </div>
           <progress class="kept__progress" max="100" value="63" aria-label="送信の進捗"></progress>
+        </div>
+
+        <!-- 端末に残した音声（未送信）: 一覧に無いプリセットで断られた場面。ダウンロードと再送信を残す -->
+        <div class="kept" data-scene-panel="not-found-rec" hidden>
+          <div class="kept__info">
+            <span class="kept__label">端末内の音声</span>
+            <span class="kept__meta"><span class="num">10/23 14:05</span> 録音・<span class="num">2:14</span>・webm・<span class="num">540 KB</span></span>
+            <span class="kept__state kept__state--error"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>未送信</span>
+          </div>
+          <div class="kept__actions">
+            <button type="button" class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>ダウンロード</button>
+            <button type="button" class="btn btn--lg btn--primary"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></svg>再送信</button>
+          </div>
         </div>
       </section>
 

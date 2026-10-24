@@ -123,3 +123,4 @@ constraints:
   - item: レート制限
     constraint: 制限なし
     notes: 画面は開いたときに 1 回だけ呼ぶ
+test_file: tests/integration/test_list_web_glossary_presets.py

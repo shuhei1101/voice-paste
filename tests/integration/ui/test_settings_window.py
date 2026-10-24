@@ -1505,6 +1505,9 @@ def test_save_button_when_invalid(open_window: Callable[..., Opened]) -> None:
 
 def test_save_button_when_fixed_after_invalid(open_window: Callable[..., Opened]) -> None:
     """直して保存し直すと、前の保存で出したエラーの一覧と欄の下のエラーを消し、保存した知らせを出す。"""
+    from PySide6.QtCore import QEvent
+    from PySide6.QtWidgets import QApplication
+
     # 準備（確かめに通らない値で保存して、エラーの一覧と欄の下のエラーを出しておく）
     opened = open_window()
     _set_text(opened.window, "outputs[0].enter_delay_sec", "abc")
@@ -1515,6 +1518,8 @@ def test_save_button_when_fixed_after_invalid(open_window: Callable[..., Opened]
     # 実行
     _set_text(opened.window, "outputs[0].enter_delay_sec", "0.5")
     _click(opened.window, "save_button")
+    # エラーの一覧の行は deleteLater で消えるため、削除を済ませてから確かめる
+    QApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     # 検証
     opened.deps.save_settings.assert_called_once()

@@ -12,6 +12,7 @@ directory: |-
 diagrams:
   - name: 全体
     diagram: |-
+      ```mermaid
       classDiagram
         direction LR
         class ブラウザの文字起こしのroute
@@ -28,6 +29,7 @@ diagrams:
         音声の受け付け --> ブラウザの音声のキュー : 積む
         ブラウザの音声のキュー --> ジョブ : 持つ（0..*）
         ブラウザの音声のキュー --> ブラウザの文字起こしの依存 : 呼ぶ
+      ```
 enums:
   - name: JobState
     title: ジョブの状態

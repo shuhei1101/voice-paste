@@ -199,6 +199,10 @@ def test_glossary_panel_set_glossaries(open_panel: Callable[..., Opened], tmp_pa
     assert _button(opened.panel, "glossary_preset_active_1").isChecked() is True
     assert _used_glossary_names(opened.panel) == ["会議用", "yogo"]
     assert _label(opened.panel, "glossary_detail_title").text() == "用語集「会議用」の行"
+    assert (
+        _label(opened.panel, "glossary_list_note").text()
+        == "消した用語集は、使っているプリセットからも外れる。"
+    )
     _button(opened.panel, "glossary_preset_remove_1").click()
     assert len(opened.panel.collect_presets()) == 2
 

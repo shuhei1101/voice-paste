@@ -33,7 +33,7 @@ from tests.unit.voice_paste.ui.helpers import make_ui_deps
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QApplication
 
-    from voice_paste.shared.settings import GlossarySettings, Settings
+    from voice_paste.shared.settings import GlossaryPresetSettings, GlossarySettings, Settings
     from voice_paste.shared.types import GlossaryEntry
     from voice_paste.ui.controller import UiDeps
     from voice_paste.ui.windows.settings_window import SettingsWindow
@@ -117,13 +117,16 @@ def open_with_glossaries(
         rows: Mapping[Path, list[GlossaryEntry]],
         *,
         settings: Settings | None = None,
+        presets: list[GlossaryPresetSettings] | None = None,
     ) -> Opened:
-        """list_glossaries が glossaries を返し、read_glossary が場所の行を返す UiDeps で開く。"""
+        """list_glossaries が glossaries を返し、read_glossary が場所の行を返す UiDeps で開く。presets を渡すと、list_glossary_presets がそれを返す。"""
+        overrides = {} if presets is None else {"list_glossary_presets": MagicMock(return_value=presets)}
         deps = make_ui_deps(
             tmp_path,
             settings=settings,
             list_glossaries=MagicMock(return_value=glossaries),
             read_glossary=MagicMock(side_effect=lambda path: list(rows[path])),
+            **overrides,
         )
         window = SettingsWindow(deps)
         window.show()
@@ -166,6 +169,14 @@ def _visible_buttons(window: SettingsWindow, prefix: str) -> list[QAbstractButto
     return sorted(
         (button for button in found if button.isVisible()), key=lambda button: button.objectName()
     )
+
+
+def _add_preset_glossary(window: SettingsWindow, name: str) -> None:
+    """追加する用語集の選択で name を選び、使う用語集の追加ボタンを押す。"""
+    combo = window.findChild(QComboBox, "glossary_preset_glossary_select")
+    assert combo is not None, "glossary_preset_glossary_select の選択の欄が無い"
+    combo.setCurrentIndex(combo.findText(name))
+    _button(window, "glossary_preset_glossary_add").click()
 
 
 def _label(window: SettingsWindow, name: str) -> QLabel:
@@ -356,13 +367,17 @@ def test_save_when_theme(opened: Opened) -> None:
 def test_save_when_glossaries(
     open_with_glossaries: Callable[..., Opened], settings_model: type[Settings], tmp_path: Path
 ) -> None:
-    """用語集の一覧と補正に使う用語集を設定に入れ、行を変えた用語集だけを書き戻しに渡す（正常系）。"""
-    from voice_paste.shared.settings import GlossarySettings
+    """用語集の一覧と補正に使うプリセットを設定に入れ、行を変えた用語集だけを書き戻しに渡す（正常系）。"""
+    from voice_paste.shared.settings import GlossaryPresetSettings, GlossarySettings
     from voice_paste.shared.types import GlossaryEntry
 
-    # 準備（2 件の用語集を持つ設定で開き、2 件目の行を 1 つオフにして、補正に使う用語集を 2 件目にする）
+    # 準備（2 件の用語集と 2 件のプリセットを持つ設定で開き、2 件目の用語集の行を 1 つオフにして、補正に使うプリセットを 2 件目にする）
     first = GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
     second = GlossarySettings(name="会議用", path=tmp_path / "meeting.csv")
+    presets = [
+        GlossaryPresetSettings(name="既定", glossaries=["yogo"]),
+        GlossaryPresetSettings(name="会議", glossaries=["会議用", "yogo"]),
+    ]
     opened = open_with_glossaries(
         [first, second],
         {
@@ -372,12 +387,13 @@ def test_save_when_glossaries(
                 GlossaryEntry(wrong="う", right="C"),
             ],
         },
-        settings=settings_model(glossaries=[first, second]),
+        settings=settings_model(glossaries=[first, second], glossary_presets=presets),
+        presets=presets,
     )
     _select_group(opened.window, "用語集")
     _button(opened.window, "glossary_pick_1").click()
     _visible_buttons(opened.window, "glossary_entry_on_")[0].click()
-    _button(opened.window, "glossary_active_1").click()
+    _button(opened.window, "glossary_preset_active_1").click()
 
     # 実行
     result = opened.window.save(restart=False)
@@ -387,8 +403,9 @@ def test_save_when_glossaries(
     opened.deps.save_settings.assert_called_once()
     saved_settings, changed_rows = opened.deps.save_settings.call_args.args
     assert [glossary.name for glossary in saved_settings.glossaries] == ["yogo", "会議用"]
-    assert saved_settings.active_glossary == "会議用"
+    assert saved_settings.active_glossary_preset == "会議"
     assert saved_settings.glossary_path is None
+    assert saved_settings.active_glossary is None
     assert changed_rows == {
         second.path: [
             GlossaryEntry(wrong="い", right="B", enabled=False),
@@ -514,6 +531,88 @@ def _add_hint_preset(window: SettingsWindow, *, name: str, word_count: int) -> l
     for _ in range(word_count):
         _visible_buttons(window, "hint_word_add_")[0].click()
     return _visible_edits(window, r"hint_word_\d")
+
+
+def test_save_when_glossary_presets(
+    open_with_glossaries: Callable[..., Opened], settings_model: type[Settings], tmp_path: Path
+) -> None:
+    """用語集のプリセットを使う用語集の順のまま設定に入れる（正常系）。"""
+    from voice_paste.shared.settings import GlossaryPresetSettings, GlossarySettings
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（glossary_presets が空で active_glossary = "会議用" の設定で開き、「既定」（["会議用"]）が出る。プリセットを足して名前を「議事録」にし、「yogo」「会議用」の順に追加して、補正に使うプリセットに選ぶ）
+    first = GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
+    second = GlossarySettings(name="会議用", path=tmp_path / "meeting.csv")
+    opened = open_with_glossaries(
+        [first, second],
+        {
+            first.path: [GlossaryEntry(wrong="あ", right="A")],
+            second.path: [GlossaryEntry(wrong="い", right="B")],
+        },
+        settings=settings_model(glossaries=[first, second], active_glossary="会議用"),
+        presets=[GlossaryPresetSettings(name="既定", glossaries=["会議用"])],
+    )
+    _select_group(opened.window, "用語集")
+    _button(opened.window, "add_glossary_preset_button").click()
+    _visible_edits(opened.window, "glossary_preset_name_")[0].setText("議事録")
+    _add_preset_glossary(opened.window, "yogo")
+    _add_preset_glossary(opened.window, "会議用")
+    _button(opened.window, "glossary_preset_active_1").click()
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is True
+    saved_settings, _changed_rows = opened.deps.save_settings.call_args.args
+    assert saved_settings.glossary_presets == [
+        GlossaryPresetSettings(name="既定", glossaries=["会議用"]),
+        GlossaryPresetSettings(name="議事録", glossaries=["yogo", "会議用"]),
+    ]
+    assert saved_settings.active_glossary_preset == "議事録"
+    assert saved_settings.active_glossary is None
+
+
+def test_save_when_glossary_preset_invalid(
+    open_with_glossaries: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """用語集のプリセットの名前が空・重なるときは保存せず、エラーを出す（異常系）。"""
+    from voice_paste.shared.settings import GlossaryPresetSettings, GlossarySettings
+    from voice_paste.shared.types import GlossaryEntry
+
+    # 準備（「既定」の 1 件のプリセットでプリセットを 2 つ足し、2 件目の名前を「既定」に、3 件目の名前を空のままにする）
+    glossary = GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
+    opened = open_with_glossaries(
+        [glossary],
+        {glossary.path: [GlossaryEntry(wrong="あ", right="A")]},
+        presets=[GlossaryPresetSettings(name="既定", glossaries=["yogo"])],
+    )
+    _select_group(opened.window, "用語集")
+    add_preset = _button(opened.window, "add_glossary_preset_button")
+    add_preset.click()
+    _visible_edits(opened.window, "glossary_preset_name_")[0].setText("既定")
+    add_preset.click()
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is False
+    opened.deps.save_settings.assert_not_called()
+    summary = _error_summary_text(opened.window)
+    assert (
+        "用語集のプリセット 2 件目の名前: 用語集のプリセット「既定」と同じ名前です。別の名前にしてください。"
+        in summary
+    )
+    assert "用語集のプリセット 3 件目の名前: 名前を入れてください。" in summary
+    duplicated_link = next(
+        label
+        for label in opened.window.findChild(QWidget, "error_summary").findChildren(QLabel)
+        if "2 件目の名前" in label.text()
+    )
+    _select_group(opened.window, "出力先")
+    duplicated_link.linkActivated.emit("glossary_presets[1].name")
+    assert opened.window.focusWidget() is _visible_edits(opened.window, "glossary_preset_name_")[0]
 
 
 def test_save_when_hint_presets(opened: Opened) -> None:

@@ -29,6 +29,7 @@ def _build_client(
     session_api = SessionApiDeps(
         session_manager=session_manager,
         is_callback_allowed=MagicMock(return_value=is_callback_allowed),
+        glossary_preset_exists=MagicMock(return_value=True),
     )
     app = build_fastapi(
         session_api,

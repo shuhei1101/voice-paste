@@ -269,6 +269,34 @@ def test_save_when_invalid(opened: Opened) -> None:
     assert enter_delay.text() == "abc"
 
 
+def test_save_when_fixed_after_invalid(opened: Opened) -> None:
+    """直して保存し直すと、前に出したエラーを消す（正常系）。"""
+    # 準備（abc を入れて保存し、エラーの一覧と欄の下のエラーを出してから 0.5 に直す）
+    enter_delay = _field(opened.window, "outputs[0].enter_delay_sec")
+    assert isinstance(enter_delay, QLineEdit)
+    enter_delay.setText("abc")
+    assert opened.window.save(restart=False) is False
+    enter_delay.setText("0.5")
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is True
+    summary = opened.window.findChild(QWidget, "error_summary")
+    assert summary is not None
+    assert summary.isHidden()
+    summary_layout = summary.layout()
+    assert summary_layout is not None
+    assert summary_layout.count() == 0
+    field_error = _label(opened.window, "error_outputs[0].enter_delay_sec")
+    assert field_error.isHidden()
+    assert field_error.text() == ""
+    notice = _label(opened.window, "saved_notice")
+    assert notice.isVisible()
+    assert notice.text() == "保存しました。"
+
+
 def test_save_when_hotkey_unavailable(opened: Opened) -> None:
     """ホットキーを受け付けられなければエラーを出し、保存した知らせを出さない（異常系）。"""
     from voice_paste.shared.errors import HotkeyError

@@ -7,6 +7,7 @@
 | [confirm-button](./confirm-button/index.html) | 録音の画面の確定のボタン（主の操作・通常・フォーカス・AI チャットの送り先） |
 | [preset-editor](./preset-editor/index.html) | 設定画面の種類ごとのタブに並べるカスタムプリセットの 1 件分（ブラウザ添付・エンドポイントへ送る・ホットキーなし・無効・足した直後・エラー・長いタイトル） |
 | [glossary-editor](./glossary-editor/index.html) | 設定画面の用語集の一覧と行の表（用語集が 1 つ・補正に使わない用語集を編集・足した直後・エラー・長い名前と表記・誤変換を消す行（採用は案 B）） |
+| [glossary-preset-editor](./glossary-preset-editor/index.html) | 設定画面の用語集のプリセットの一覧と使う用語集の並び（案 A・案 B ごとに 既定のプリセットだけ・2 つの用語集を並べた・使わない用語集がある・使う用語集が無い・全ての用語集を使っている・足した直後・エラー・長い名前） |
 | [hint-preset-editor](./hint-preset-editor/index.html) | 設定画面の表記のヒントの欄（通常・プリセットが無い・足した直後・長い名前と語・エラー） |
 | [hotkey-button](./hotkey-button/index.html) | 録音の画面のホットキーを持つボタン（案 A・案 B ごとに 通常・かざす・フォーカス・主の操作・取り消す・ホットキーが空・長いホットキー） |
 | [output-switch](./output-switch/index.html) | 文字起こし中の表示の今の出力先と切り替え（案 A の一覧・案 B / C のボタンの通常・かざす・フォーカス・選んでいる・ホットキーが空・オンが 2 つ・プリセットで確定） |

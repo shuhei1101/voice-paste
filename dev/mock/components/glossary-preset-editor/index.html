@@ -1,0 +1,889 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>用語集のプリセットの欄 | voice-paste のモック</title>
+  <!-- 採用スタイル「開発者ツール」の部品は #37、一覧の部品は #44、用語集の部品は #97、つまみは #166、用語集のプリセットは #173 の共有 CSS に置く -->
+  <link rel="stylesheet" href="../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../refs/44/assets/style.css">
+  <link rel="stylesheet" href="../../refs/97/assets/style.css">
+  <link rel="stylesheet" href="../../refs/166/assets/style.css">
+  <link rel="stylesheet" href="../../refs/173/assets/style.css">
+  <script src="../../refs/173/assets/app.js" defer></script>
+</head>
+<body>
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../">components</a> / <span>glossary-preset-editor</span></nav>
+
+    <!-- 部品の説明 -->
+    <header class="intro">
+      <h1>用語集のプリセットの欄</h1>
+      <p>設定画面の用語集のまとまりの先頭に置く部品。上にプリセットの一覧（補正に使う・名前・用語集の数・消す）と「プリセットを足す」、下に一覧で選んだプリセットの名前の欄と使う用語集の並びを置く。案 A は全ての用語集を並べてチェックで選び、案 B は使う用語集だけを並べて選択欄から追加する。</p>
+    </header>
+
+    <div class="desk desk--single">
+
+      <h2 class="variant-head">案 A（a-check-list）</h2>
+      <!-- 状態: 案 A 既定のプリセットだけ -->
+      <section class="specimen" aria-labelledby="h-ca-normal">
+        <h3 id="h-ca-normal">既定のプリセットだけ</h3>
+        <div class="win settings__form">
+<!-- 用語集のプリセット: refs/173 の app.js が選ぶ・足す・消す・補正に使うプリセットの切り替え・使う用語集の選択と並べ替えを受ける -->
+<div id="ca-normal" class="glossary" data-gp-root="check" data-reload="immediate" data-glossaries='[[&quot;cg1&quot;, &quot;yogo&quot;, 7]]'>
+<div class="targets-wrap">
+<table class="targets glossaries gp-list">
+<caption class="sr-only">用語集のプリセットの一覧（補正に使うプリセットを 1 つ選ぶ）</caption>
+<thead><tr><th scope="col">補正に使う</th><th scope="col">名前</th><th scope="col">用語集</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item data-select="ca-normal-p1" data-selected="true"><td><label class="use"><input type="radio" name="ca-normal-active" value="ca-normal-p1" data-active aria-label="既定を補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="ca-normal-p1">既定</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="ca-normal-p1">1 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="既定を消す" aria-disabled="true" title="補正に使うプリセットは消せません"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-item>プリセットを足す</button></div>
+<div data-details>
+<div class="glossary-detail" data-detail="ca-normal-p1">
+<p class="glossary-detail__title">プリセット「<span data-name-view="ca-normal-p1">既定</span>」で使う用語集</p>
+<div class="preset__field"><label for="ca-normal-p1-name">名前</label><input type="text" class="wide" id="ca-normal-p1-name" data-name="ca-normal-p1" value="既定" placeholder="例: 会議"></div>
+<div class="targets-wrap">
+<table class="targets gp-uses gp-uses--check">
+<caption class="sr-only">プリセットで使う用語集（チェックした用語集を上から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-on">使う</th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg1" draggable="true" data-off="false"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="yogoを使う" checked></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="cg1">yogo</span></td><td class="col-rows"><span class="count" data-rows="cg1">7 行</span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<p class="field-help gp-help">チェックした用語集を上から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+</div>
+</div>
+        </div>
+        <p class="scene-note">補正に使うプリセットの消すボタンは押せない見た目にし、理由をツールチップに出す。</p>
+      </section>
+      <!-- 状態: 案 A 2 つの用語集を並べた -->
+      <section class="specimen" aria-labelledby="h-ca-ordered">
+        <h3 id="h-ca-ordered">2 つの用語集を並べた</h3>
+        <div class="win settings__form">
+<!-- 用語集のプリセット: refs/173 の app.js が選ぶ・足す・消す・補正に使うプリセットの切り替え・使う用語集の選択と並べ替えを受ける -->
+<div id="ca-ordered" class="glossary" data-gp-root="check" data-reload="immediate" data-glossaries='[[&quot;cg1&quot;, &quot;yogo&quot;, 7], [&quot;cg2&quot;, &quot;会議用&quot;, 4]]'>
+<div class="targets-wrap">
+<table class="targets glossaries gp-list">
+<caption class="sr-only">用語集のプリセットの一覧（補正に使うプリセットを 1 つ選ぶ）</caption>
+<thead><tr><th scope="col">補正に使う</th><th scope="col">名前</th><th scope="col">用語集</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item data-select="ca-ordered-p1" data-selected="false"><td><label class="use"><input type="radio" name="ca-ordered-active" value="ca-ordered-p1" data-active aria-label="既定を補正に使う"></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="ca-ordered-p1">既定</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="ca-ordered-p1">1 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="既定を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-item data-select="ca-ordered-p2" data-selected="true"><td><label class="use"><input type="radio" name="ca-ordered-active" value="ca-ordered-p2" data-active aria-label="会議を補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="ca-ordered-p2">会議</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="ca-ordered-p2">2 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="会議を消す" aria-disabled="true" title="補正に使うプリセットは消せません"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-item>プリセットを足す</button></div>
+<div data-details>
+<div class="glossary-detail" data-detail="ca-ordered-p1" hidden>
+<p class="glossary-detail__title">プリセット「<span data-name-view="ca-ordered-p1">既定</span>」で使う用語集</p>
+<div class="preset__field"><label for="ca-ordered-p1-name">名前</label><input type="text" class="wide" id="ca-ordered-p1-name" data-name="ca-ordered-p1" value="既定" placeholder="例: 会議"></div>
+<div class="targets-wrap">
+<table class="targets gp-uses gp-uses--check">
+<caption class="sr-only">プリセットで使う用語集（チェックした用語集を上から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-on">使う</th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg1" draggable="true" data-off="false"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="yogoを使う" checked></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="cg1">yogo</span></td><td class="col-rows"><span class="count" data-rows="cg1">7 行</span></td></tr>
+<tr data-use="cg2" draggable="true" data-off="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="会議用を使う"></td><td class="col-order"><span class="order" data-order>-</span></td><td><span class="clip" data-name-view="cg2">会議用</span></td><td class="col-rows"><span class="count" data-rows="cg2">4 行</span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<p class="field-help gp-help">チェックした用語集を上から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+<div class="glossary-detail" data-detail="ca-ordered-p2">
+<p class="glossary-detail__title">プリセット「<span data-name-view="ca-ordered-p2">会議</span>」で使う用語集</p>
+<div class="preset__field"><label for="ca-ordered-p2-name">名前</label><input type="text" class="wide" id="ca-ordered-p2-name" data-name="ca-ordered-p2" value="会議" placeholder="例: 会議"></div>
+<div class="targets-wrap">
+<table class="targets gp-uses gp-uses--check">
+<caption class="sr-only">プリセットで使う用語集（チェックした用語集を上から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-on">使う</th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg2" draggable="true" data-off="false"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="会議用を使う" checked></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="cg2">会議用</span></td><td class="col-rows"><span class="count" data-rows="cg2">4 行</span></td></tr>
+<tr data-use="cg1" draggable="true" data-off="false"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="yogoを使う" checked></td><td class="col-order"><span class="order" data-order>2</span></td><td><span class="clip" data-name-view="cg1">yogo</span></td><td class="col-rows"><span class="count" data-rows="cg1">7 行</span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<p class="field-help gp-help">チェックした用語集を上から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+</div>
+</div>
+        </div>
+        <p class="scene-note">上に並べた用語集から当てる。</p>
+      </section>
+      <!-- 状態: 案 A 使わない用語集がある -->
+      <section class="specimen" aria-labelledby="h-ca-unused">
+        <h3 id="h-ca-unused">使わない用語集がある</h3>
+        <div class="win settings__form">
+<!-- 用語集のプリセット: refs/173 の app.js が選ぶ・足す・消す・補正に使うプリセットの切り替え・使う用語集の選択と並べ替えを受ける -->
+<div id="ca-unused" class="glossary" data-gp-root="check" data-reload="immediate" data-glossaries='[[&quot;cg1&quot;, &quot;yogo&quot;, 7], [&quot;cg2&quot;, &quot;会議用&quot;, 4], [&quot;cg3&quot;, &quot;フロントエンド&quot;, 1]]'>
+<div class="targets-wrap">
+<table class="targets glossaries gp-list">
+<caption class="sr-only">用語集のプリセットの一覧（補正に使うプリセットを 1 つ選ぶ）</caption>
+<thead><tr><th scope="col">補正に使う</th><th scope="col">名前</th><th scope="col">用語集</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item data-select="ca-unused-p1" data-selected="false"><td><label class="use"><input type="radio" name="ca-unused-active" value="ca-unused-p1" data-active aria-label="既定を補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="ca-unused-p1">既定</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="ca-unused-p1">1 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="既定を消す" aria-disabled="true" title="補正に使うプリセットは消せません"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-item data-select="ca-unused-p2" data-selected="true"><td><label class="use"><input type="radio" name="ca-unused-active" value="ca-unused-p2" data-active aria-label="会議を補正に使う"></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="ca-unused-p2">会議</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="ca-unused-p2">1 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="会議を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-item>プリセットを足す</button></div>
+<div data-details>
+<div class="glossary-detail" data-detail="ca-unused-p1" hidden>
+<p class="glossary-detail__title">プリセット「<span data-name-view="ca-unused-p1">既定</span>」で使う用語集</p>
+<div class="preset__field"><label for="ca-unused-p1-name">名前</label><input type="text" class="wide" id="ca-unused-p1-name" data-name="ca-unused-p1" value="既定" placeholder="例: 会議"></div>
+<div class="targets-wrap">
+<table class="targets gp-uses gp-uses--check">
+<caption class="sr-only">プリセットで使う用語集（チェックした用語集を上から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-on">使う</th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg1" draggable="true" data-off="false"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="yogoを使う" checked></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="cg1">yogo</span></td><td class="col-rows"><span class="count" data-rows="cg1">7 行</span></td></tr>
+<tr data-use="cg2" draggable="true" data-off="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="会議用を使う"></td><td class="col-order"><span class="order" data-order>-</span></td><td><span class="clip" data-name-view="cg2">会議用</span></td><td class="col-rows"><span class="count" data-rows="cg2">4 行</span></td></tr>
+<tr data-use="cg3" draggable="true" data-off="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="フロントエンドを使う"></td><td class="col-order"><span class="order" data-order>-</span></td><td><span class="clip" data-name-view="cg3">フロントエンド</span></td><td class="col-rows"><span class="count" data-rows="cg3">1 行</span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<p class="field-help gp-help">チェックした用語集を上から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+<div class="glossary-detail" data-detail="ca-unused-p2">
+<p class="glossary-detail__title">プリセット「<span data-name-view="ca-unused-p2">会議</span>」で使う用語集</p>
+<div class="preset__field"><label for="ca-unused-p2-name">名前</label><input type="text" class="wide" id="ca-unused-p2-name" data-name="ca-unused-p2" value="会議" placeholder="例: 会議"></div>
+<div class="targets-wrap">
+<table class="targets gp-uses gp-uses--check">
+<caption class="sr-only">プリセットで使う用語集（チェックした用語集を上から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-on">使う</th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg2" draggable="true" data-off="false"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="会議用を使う" checked></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="cg2">会議用</span></td><td class="col-rows"><span class="count" data-rows="cg2">4 行</span></td></tr>
+<tr data-use="cg1" draggable="true" data-off="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="yogoを使う"></td><td class="col-order"><span class="order" data-order>-</span></td><td><span class="clip" data-name-view="cg1">yogo</span></td><td class="col-rows"><span class="count" data-rows="cg1">7 行</span></td></tr>
+<tr data-use="cg3" draggable="true" data-off="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="フロントエンドを使う"></td><td class="col-order"><span class="order" data-order>-</span></td><td><span class="clip" data-name-view="cg3">フロントエンド</span></td><td class="col-rows"><span class="count" data-rows="cg3">1 行</span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<p class="field-help gp-help">チェックした用語集を上から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+</div>
+</div>
+        </div>
+        <p class="scene-note">案 A は使わない用語集もチェックを外して下に並べ、案 B は選択欄に入れる。</p>
+      </section>
+      <!-- 状態: 案 A 使う用語集が無い -->
+      <section class="specimen" aria-labelledby="h-ca-empty">
+        <h3 id="h-ca-empty">使う用語集が無い</h3>
+        <div class="win settings__form">
+<!-- 用語集のプリセット: refs/173 の app.js が選ぶ・足す・消す・補正に使うプリセットの切り替え・使う用語集の選択と並べ替えを受ける -->
+<div id="ca-empty" class="glossary" data-gp-root="check" data-reload="immediate" data-glossaries='[[&quot;cg1&quot;, &quot;yogo&quot;, 7], [&quot;cg2&quot;, &quot;会議用&quot;, 4]]'>
+<div class="targets-wrap">
+<table class="targets glossaries gp-list">
+<caption class="sr-only">用語集のプリセットの一覧（補正に使うプリセットを 1 つ選ぶ）</caption>
+<thead><tr><th scope="col">補正に使う</th><th scope="col">名前</th><th scope="col">用語集</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item data-select="ca-empty-p1" data-selected="false"><td><label class="use"><input type="radio" name="ca-empty-active" value="ca-empty-p1" data-active aria-label="既定を補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="ca-empty-p1">既定</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="ca-empty-p1">1 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="既定を消す" aria-disabled="true" title="補正に使うプリセットは消せません"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-item data-select="ca-empty-p2" data-selected="true"><td><label class="use"><input type="radio" name="ca-empty-active" value="ca-empty-p2" data-active aria-label="下書きを補正に使う"></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="ca-empty-p2">下書き</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="ca-empty-p2">0 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="下書きを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-item>プリセットを足す</button></div>
+<div data-details>
+<div class="glossary-detail" data-detail="ca-empty-p1" hidden>
+<p class="glossary-detail__title">プリセット「<span data-name-view="ca-empty-p1">既定</span>」で使う用語集</p>
+<div class="preset__field"><label for="ca-empty-p1-name">名前</label><input type="text" class="wide" id="ca-empty-p1-name" data-name="ca-empty-p1" value="既定" placeholder="例: 会議"></div>
+<div class="targets-wrap">
+<table class="targets gp-uses gp-uses--check">
+<caption class="sr-only">プリセットで使う用語集（チェックした用語集を上から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-on">使う</th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg1" draggable="true" data-off="false"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="yogoを使う" checked></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="cg1">yogo</span></td><td class="col-rows"><span class="count" data-rows="cg1">7 行</span></td></tr>
+<tr data-use="cg2" draggable="true" data-off="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="会議用を使う"></td><td class="col-order"><span class="order" data-order>-</span></td><td><span class="clip" data-name-view="cg2">会議用</span></td><td class="col-rows"><span class="count" data-rows="cg2">4 行</span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<p class="field-help gp-help">チェックした用語集を上から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+<div class="glossary-detail" data-detail="ca-empty-p2">
+<p class="glossary-detail__title">プリセット「<span data-name-view="ca-empty-p2">下書き</span>」で使う用語集</p>
+<div class="preset__field"><label for="ca-empty-p2-name">名前</label><input type="text" class="wide" id="ca-empty-p2-name" data-name="ca-empty-p2" value="下書き" placeholder="例: 会議"></div>
+<div class="targets-wrap">
+<table class="targets gp-uses gp-uses--check">
+<caption class="sr-only">プリセットで使う用語集（チェックした用語集を上から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-on">使う</th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg1" draggable="true" data-off="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="yogoを使う"></td><td class="col-order"><span class="order" data-order>-</span></td><td><span class="clip" data-name-view="cg1">yogo</span></td><td class="col-rows"><span class="count" data-rows="cg1">7 行</span></td></tr>
+<tr data-use="cg2" draggable="true" data-off="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="会議用を使う"></td><td class="col-order"><span class="order" data-order>-</span></td><td><span class="clip" data-name-view="cg2">会議用</span></td><td class="col-rows"><span class="count" data-rows="cg2">4 行</span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<p class="field-help gp-help">チェックした用語集を上から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+</div>
+</div>
+        </div>
+        <p class="scene-note">保存でき、補正では何も置き換えない。</p>
+      </section>
+      <!-- 状態: 案 A 全ての用語集を使っている -->
+      <section class="specimen" aria-labelledby="h-ca-all">
+        <h3 id="h-ca-all">全ての用語集を使っている</h3>
+        <div class="win settings__form">
+<!-- 用語集のプリセット: refs/173 の app.js が選ぶ・足す・消す・補正に使うプリセットの切り替え・使う用語集の選択と並べ替えを受ける -->
+<div id="ca-all" class="glossary" data-gp-root="check" data-reload="immediate" data-glossaries='[[&quot;cg1&quot;, &quot;yogo&quot;, 7], [&quot;cg2&quot;, &quot;会議用&quot;, 4]]'>
+<div class="targets-wrap">
+<table class="targets glossaries gp-list">
+<caption class="sr-only">用語集のプリセットの一覧（補正に使うプリセットを 1 つ選ぶ）</caption>
+<thead><tr><th scope="col">補正に使う</th><th scope="col">名前</th><th scope="col">用語集</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item data-select="ca-all-p1" data-selected="true"><td><label class="use"><input type="radio" name="ca-all-active" value="ca-all-p1" data-active aria-label="全部を補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="ca-all-p1">全部</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="ca-all-p1">2 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="全部を消す" aria-disabled="true" title="補正に使うプリセットは消せません"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-item>プリセットを足す</button></div>
+<div data-details>
+<div class="glossary-detail" data-detail="ca-all-p1">
+<p class="glossary-detail__title">プリセット「<span data-name-view="ca-all-p1">全部</span>」で使う用語集</p>
+<div class="preset__field"><label for="ca-all-p1-name">名前</label><input type="text" class="wide" id="ca-all-p1-name" data-name="ca-all-p1" value="全部" placeholder="例: 会議"></div>
+<div class="targets-wrap">
+<table class="targets gp-uses gp-uses--check">
+<caption class="sr-only">プリセットで使う用語集（チェックした用語集を上から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-on">使う</th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg1" draggable="true" data-off="false"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="yogoを使う" checked></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="cg1">yogo</span></td><td class="col-rows"><span class="count" data-rows="cg1">7 行</span></td></tr>
+<tr data-use="cg2" draggable="true" data-off="false"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="会議用を使う" checked></td><td class="col-order"><span class="order" data-order>2</span></td><td><span class="clip" data-name-view="cg2">会議用</span></td><td class="col-rows"><span class="count" data-rows="cg2">4 行</span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<p class="field-help gp-help">チェックした用語集を上から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+</div>
+</div>
+        </div>
+        <p class="scene-note">案 B は追加の欄の代わりに、全て使っていることを出す。</p>
+      </section>
+      <!-- 状態: 案 A 足した直後 -->
+      <section class="specimen" aria-labelledby="h-ca-added">
+        <h3 id="h-ca-added">足した直後</h3>
+        <div class="win settings__form">
+<!-- 用語集のプリセット: refs/173 の app.js が選ぶ・足す・消す・補正に使うプリセットの切り替え・使う用語集の選択と並べ替えを受ける -->
+<div id="ca-added" class="glossary" data-gp-root="check" data-reload="immediate" data-glossaries='[[&quot;cg1&quot;, &quot;yogo&quot;, 7], [&quot;cg2&quot;, &quot;会議用&quot;, 4]]'>
+<div class="targets-wrap">
+<table class="targets glossaries gp-list">
+<caption class="sr-only">用語集のプリセットの一覧（補正に使うプリセットを 1 つ選ぶ）</caption>
+<thead><tr><th scope="col">補正に使う</th><th scope="col">名前</th><th scope="col">用語集</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item data-select="ca-added-p1" data-selected="false"><td><label class="use"><input type="radio" name="ca-added-active" value="ca-added-p1" data-active aria-label="既定を補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="ca-added-p1">既定</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="ca-added-p1">1 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="既定を消す" aria-disabled="true" title="補正に使うプリセットは消せません"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-item data-select="ca-added-p2" data-selected="true"><td><label class="use"><input type="radio" name="ca-added-active" value="ca-added-p2" data-active aria-label="名前未入力のプリセットを補正に使う"></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="ca-added-p2"></span><span class="sr-only" data-unnamed>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="ca-added-p2">0 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="名前未入力のプリセットを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-item>プリセットを足す</button></div>
+<div data-details>
+<div class="glossary-detail" data-detail="ca-added-p1" hidden>
+<p class="glossary-detail__title">プリセット「<span data-name-view="ca-added-p1">既定</span>」で使う用語集</p>
+<div class="preset__field"><label for="ca-added-p1-name">名前</label><input type="text" class="wide" id="ca-added-p1-name" data-name="ca-added-p1" value="既定" placeholder="例: 会議"></div>
+<div class="targets-wrap">
+<table class="targets gp-uses gp-uses--check">
+<caption class="sr-only">プリセットで使う用語集（チェックした用語集を上から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-on">使う</th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg1" draggable="true" data-off="false"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="yogoを使う" checked></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="cg1">yogo</span></td><td class="col-rows"><span class="count" data-rows="cg1">7 行</span></td></tr>
+<tr data-use="cg2" draggable="true" data-off="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="会議用を使う"></td><td class="col-order"><span class="order" data-order>-</span></td><td><span class="clip" data-name-view="cg2">会議用</span></td><td class="col-rows"><span class="count" data-rows="cg2">4 行</span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<p class="field-help gp-help">チェックした用語集を上から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+<div class="glossary-detail" data-detail="ca-added-p2">
+<p class="glossary-detail__title">プリセット「<span data-name-view="ca-added-p2"></span>」で使う用語集</p>
+<div class="preset__field"><label for="ca-added-p2-name">名前</label><input type="text" class="wide" id="ca-added-p2-name" data-name="ca-added-p2" value="" placeholder="例: 会議"></div>
+<div class="targets-wrap">
+<table class="targets gp-uses gp-uses--check">
+<caption class="sr-only">プリセットで使う用語集（チェックした用語集を上から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-on">使う</th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg1" draggable="true" data-off="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="yogoを使う"></td><td class="col-order"><span class="order" data-order>-</span></td><td><span class="clip" data-name-view="cg1">yogo</span></td><td class="col-rows"><span class="count" data-rows="cg1">7 行</span></td></tr>
+<tr data-use="cg2" draggable="true" data-off="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="会議用を使う"></td><td class="col-order"><span class="order" data-order>-</span></td><td><span class="clip" data-name-view="cg2">会議用</span></td><td class="col-rows"><span class="count" data-rows="cg2">4 行</span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<p class="field-help gp-help">チェックした用語集を上から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+</div>
+</div>
+        </div>
+        <p class="scene-note">「プリセットを足す」で一覧の末尾に足して選び、名前の欄へフォーカスを移す。名前が空の間は「（名前未入力）」と出す。</p>
+      </section>
+      <!-- 状態: 案 A エラー -->
+      <section class="specimen" aria-labelledby="h-ca-error">
+        <h3 id="h-ca-error">エラー</h3>
+        <div class="win settings__form">
+<!-- 用語集のプリセット: refs/173 の app.js が選ぶ・足す・消す・補正に使うプリセットの切り替え・使う用語集の選択と並べ替えを受ける -->
+<div id="ca-error" class="glossary" data-gp-root="check" data-reload="immediate" data-glossaries='[[&quot;cg1&quot;, &quot;yogo&quot;, 7]]'>
+<div class="targets-wrap">
+<table class="targets glossaries gp-list">
+<caption class="sr-only">用語集のプリセットの一覧（補正に使うプリセットを 1 つ選ぶ）</caption>
+<thead><tr><th scope="col">補正に使う</th><th scope="col">名前</th><th scope="col">用語集</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item data-select="ca-error-p1" data-selected="false"><td><label class="use"><input type="radio" name="ca-error-active" value="ca-error-p1" data-active aria-label="既定を補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="ca-error-p1">既定</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="ca-error-p1">1 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="既定を消す" aria-disabled="true" title="補正に使うプリセットは消せません"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-item data-select="ca-error-p2" data-selected="true"><td><label class="use"><input type="radio" name="ca-error-active" value="ca-error-p2" data-active aria-label="既定を補正に使う"></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="ca-error-p2">既定</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="ca-error-p2">1 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="既定を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-item>プリセットを足す</button></div>
+<div data-details>
+<div class="glossary-detail" data-detail="ca-error-p1" hidden>
+<p class="glossary-detail__title">プリセット「<span data-name-view="ca-error-p1">既定</span>」で使う用語集</p>
+<div class="preset__field"><label for="ca-error-p1-name">名前</label><input type="text" class="wide" id="ca-error-p1-name" data-name="ca-error-p1" value="既定" placeholder="例: 会議"></div>
+<div class="targets-wrap">
+<table class="targets gp-uses gp-uses--check">
+<caption class="sr-only">プリセットで使う用語集（チェックした用語集を上から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-on">使う</th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg1" draggable="true" data-off="false"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="yogoを使う" checked></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="cg1">yogo</span></td><td class="col-rows"><span class="count" data-rows="cg1">7 行</span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<p class="field-help gp-help">チェックした用語集を上から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+<div class="glossary-detail" data-detail="ca-error-p2">
+<p class="glossary-detail__title">プリセット「<span data-name-view="ca-error-p2">既定</span>」で使う用語集</p>
+<div class="preset__field"><label for="ca-error-p2-name">名前</label><input type="text" class="wide" id="ca-error-p2-name" data-name="ca-error-p2" value="既定" placeholder="例: 会議" aria-invalid="true" aria-describedby="ca-error-p2-name-err"><p class="field-error" id="ca-error-p2-name-err">プリセット「既定」と同じ名前です。別の名前にしてください。</p></div>
+<div class="targets-wrap">
+<table class="targets gp-uses gp-uses--check">
+<caption class="sr-only">プリセットで使う用語集（チェックした用語集を上から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-on">使う</th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg1" draggable="true" data-off="false"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="yogoを使う" checked></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="cg1">yogo</span></td><td class="col-rows"><span class="count" data-rows="cg1">7 行</span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<p class="field-help gp-help">チェックした用語集を上から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+</div>
+</div>
+        </div>
+        <p class="scene-note">保存を押した後の確かめで、名前の欄の下にエラーを出す。</p>
+      </section>
+      <!-- 状態: 案 A 長い名前 -->
+      <section class="specimen" aria-labelledby="h-ca-long">
+        <h3 id="h-ca-long">長い名前</h3>
+        <div class="win settings__form">
+<!-- 用語集のプリセット: refs/173 の app.js が選ぶ・足す・消す・補正に使うプリセットの切り替え・使う用語集の選択と並べ替えを受ける -->
+<div id="ca-long" class="glossary" data-gp-root="check" data-reload="immediate" data-glossaries='[[&quot;cg1&quot;, &quot;フロントエンドとバックエンドの開発で間違えやすい固有名詞（社内の呼び名を含む）&quot;, 7], [&quot;cg2&quot;, &quot;会議用&quot;, 4]]'>
+<div class="targets-wrap">
+<table class="targets glossaries gp-list">
+<caption class="sr-only">用語集のプリセットの一覧（補正に使うプリセットを 1 つ選ぶ）</caption>
+<thead><tr><th scope="col">補正に使う</th><th scope="col">名前</th><th scope="col">用語集</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item data-select="ca-long-p1" data-selected="false"><td><label class="use"><input type="radio" name="ca-long-active" value="ca-long-p1" data-active aria-label="既定を補正に使う"></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="ca-long-p1">既定</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="ca-long-p1">1 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="既定を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-item data-select="ca-long-p2" data-selected="true"><td><label class="use"><input type="radio" name="ca-long-active" value="ca-long-p2" data-active aria-label="週次の定例会議と顧客との打ち合わせで使う組み合わせを補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="ca-long-p2">週次の定例会議と顧客との打ち合わせで使う組み合わせ</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="ca-long-p2">2 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="週次の定例会議と顧客との打ち合わせで使う組み合わせを消す" aria-disabled="true" title="補正に使うプリセットは消せません"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-item>プリセットを足す</button></div>
+<div data-details>
+<div class="glossary-detail" data-detail="ca-long-p1" hidden>
+<p class="glossary-detail__title">プリセット「<span data-name-view="ca-long-p1">既定</span>」で使う用語集</p>
+<div class="preset__field"><label for="ca-long-p1-name">名前</label><input type="text" class="wide" id="ca-long-p1-name" data-name="ca-long-p1" value="既定" placeholder="例: 会議"></div>
+<div class="targets-wrap">
+<table class="targets gp-uses gp-uses--check">
+<caption class="sr-only">プリセットで使う用語集（チェックした用語集を上から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-on">使う</th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg1" draggable="true" data-off="false"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="フロントエンドとバックエンドの開発で間違えやすい固有名詞（社内の呼び名を含む）を使う" checked></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="cg1">フロントエンドとバックエンドの開発で間違えやすい固有名詞（社内の呼び名を含む）</span></td><td class="col-rows"><span class="count" data-rows="cg1">7 行</span></td></tr>
+<tr data-use="cg2" draggable="true" data-off="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="会議用を使う"></td><td class="col-order"><span class="order" data-order>-</span></td><td><span class="clip" data-name-view="cg2">会議用</span></td><td class="col-rows"><span class="count" data-rows="cg2">4 行</span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<p class="field-help gp-help">チェックした用語集を上から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+<div class="glossary-detail" data-detail="ca-long-p2">
+<p class="glossary-detail__title">プリセット「<span data-name-view="ca-long-p2">週次の定例会議と顧客との打ち合わせで使う組み合わせ</span>」で使う用語集</p>
+<div class="preset__field"><label for="ca-long-p2-name">名前</label><input type="text" class="wide" id="ca-long-p2-name" data-name="ca-long-p2" value="週次の定例会議と顧客との打ち合わせで使う組み合わせ" placeholder="例: 会議"></div>
+<div class="targets-wrap">
+<table class="targets gp-uses gp-uses--check">
+<caption class="sr-only">プリセットで使う用語集（チェックした用語集を上から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-on">使う</th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg1" draggable="true" data-off="false"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="フロントエンドとバックエンドの開発で間違えやすい固有名詞（社内の呼び名を含む）を使う" checked></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="cg1">フロントエンドとバックエンドの開発で間違えやすい固有名詞（社内の呼び名を含む）</span></td><td class="col-rows"><span class="count" data-rows="cg1">7 行</span></td></tr>
+<tr data-use="cg2" draggable="true" data-off="false"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-on"><input type="checkbox" data-use-on aria-label="会議用を使う" checked></td><td class="col-order"><span class="order" data-order>2</span></td><td><span class="clip" data-name-view="cg2">会議用</span></td><td class="col-rows"><span class="count" data-rows="cg2">4 行</span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<p class="field-help gp-help">チェックした用語集を上から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+</div>
+</div>
+        </div>
+        <p class="scene-note">一覧の名前は省略し、選んだプリセットの見出しと名前の欄で全て見せる。</p>
+      </section>
+      <h2 class="variant-head">案 B（b-picked-list）</h2>
+      <!-- 状態: 案 B 既定のプリセットだけ -->
+      <section class="specimen" aria-labelledby="h-cb-normal">
+        <h3 id="h-cb-normal">既定のプリセットだけ</h3>
+        <div class="win settings__form">
+<!-- 用語集のプリセット: refs/173 の app.js が選ぶ・足す・消す・補正に使うプリセットの切り替え・使う用語集の選択と並べ替えを受ける -->
+<div id="cb-normal" class="glossary" data-gp-root="picked" data-reload="immediate" data-glossaries='[[&quot;cg1&quot;, &quot;yogo&quot;, 7]]'>
+<div class="targets-wrap">
+<table class="targets glossaries gp-list">
+<caption class="sr-only">用語集のプリセットの一覧（補正に使うプリセットを 1 つ選ぶ）</caption>
+<thead><tr><th scope="col">補正に使う</th><th scope="col">名前</th><th scope="col">用語集</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item data-select="cb-normal-p1" data-selected="true"><td><label class="use"><input type="radio" name="cb-normal-active" value="cb-normal-p1" data-active aria-label="既定を補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="cb-normal-p1">既定</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="cb-normal-p1">1 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="既定を消す" aria-disabled="true" title="補正に使うプリセットは消せません"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-item>プリセットを足す</button></div>
+<div data-details>
+<div class="glossary-detail" data-detail="cb-normal-p1">
+<p class="glossary-detail__title">プリセット「<span data-name-view="cb-normal-p1">既定</span>」で使う用語集</p>
+<div class="preset__field"><label for="cb-normal-p1-name">名前</label><input type="text" class="wide" id="cb-normal-p1-name" data-name="cb-normal-p1" value="既定" placeholder="例: 会議"></div>
+<div class="targets-wrap" data-uses-wrap>
+<table class="targets gp-uses gp-uses--picked">
+<caption class="sr-only">プリセットで使う用語集（上の用語集から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th><th scope="col" class="col-tools"><span class="sr-only">外す</span></th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg1" draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="cg1">yogo</span></td><td class="col-rows"><span class="count" data-rows="cg1">7 行</span></td><td class="col-tools"><button type="button" class="btn btn--icon" data-use-remove aria-label="yogoを外す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<div class="gp-add" data-use-add-row hidden><label for="cb-normal-p1-add">追加する用語集</label><select id="cb-normal-p1-add" data-use-select></select><button type="button" class="btn" data-use-add>追加</button></div>
+<p class="field-help" data-use-full>全ての用語集を使っています。</p>
+<p class="field-help gp-help">上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+</div>
+</div>
+        </div>
+        <p class="scene-note">補正に使うプリセットの消すボタンは押せない見た目にし、理由をツールチップに出す。</p>
+      </section>
+      <!-- 状態: 案 B 2 つの用語集を並べた -->
+      <section class="specimen" aria-labelledby="h-cb-ordered">
+        <h3 id="h-cb-ordered">2 つの用語集を並べた</h3>
+        <div class="win settings__form">
+<!-- 用語集のプリセット: refs/173 の app.js が選ぶ・足す・消す・補正に使うプリセットの切り替え・使う用語集の選択と並べ替えを受ける -->
+<div id="cb-ordered" class="glossary" data-gp-root="picked" data-reload="immediate" data-glossaries='[[&quot;cg1&quot;, &quot;yogo&quot;, 7], [&quot;cg2&quot;, &quot;会議用&quot;, 4]]'>
+<div class="targets-wrap">
+<table class="targets glossaries gp-list">
+<caption class="sr-only">用語集のプリセットの一覧（補正に使うプリセットを 1 つ選ぶ）</caption>
+<thead><tr><th scope="col">補正に使う</th><th scope="col">名前</th><th scope="col">用語集</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item data-select="cb-ordered-p1" data-selected="false"><td><label class="use"><input type="radio" name="cb-ordered-active" value="cb-ordered-p1" data-active aria-label="既定を補正に使う"></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="cb-ordered-p1">既定</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="cb-ordered-p1">1 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="既定を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-item data-select="cb-ordered-p2" data-selected="true"><td><label class="use"><input type="radio" name="cb-ordered-active" value="cb-ordered-p2" data-active aria-label="会議を補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="cb-ordered-p2">会議</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="cb-ordered-p2">2 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="会議を消す" aria-disabled="true" title="補正に使うプリセットは消せません"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-item>プリセットを足す</button></div>
+<div data-details>
+<div class="glossary-detail" data-detail="cb-ordered-p1" hidden>
+<p class="glossary-detail__title">プリセット「<span data-name-view="cb-ordered-p1">既定</span>」で使う用語集</p>
+<div class="preset__field"><label for="cb-ordered-p1-name">名前</label><input type="text" class="wide" id="cb-ordered-p1-name" data-name="cb-ordered-p1" value="既定" placeholder="例: 会議"></div>
+<div class="targets-wrap" data-uses-wrap>
+<table class="targets gp-uses gp-uses--picked">
+<caption class="sr-only">プリセットで使う用語集（上の用語集から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th><th scope="col" class="col-tools"><span class="sr-only">外す</span></th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg1" draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="cg1">yogo</span></td><td class="col-rows"><span class="count" data-rows="cg1">7 行</span></td><td class="col-tools"><button type="button" class="btn btn--icon" data-use-remove aria-label="yogoを外す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<div class="gp-add" data-use-add-row><label for="cb-ordered-p1-add">追加する用語集</label><select id="cb-ordered-p1-add" data-use-select><option value="cg2">会議用</option></select><button type="button" class="btn" data-use-add>追加</button></div>
+<p class="field-help" data-use-full hidden>全ての用語集を使っています。</p>
+<p class="field-help gp-help">上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+<div class="glossary-detail" data-detail="cb-ordered-p2">
+<p class="glossary-detail__title">プリセット「<span data-name-view="cb-ordered-p2">会議</span>」で使う用語集</p>
+<div class="preset__field"><label for="cb-ordered-p2-name">名前</label><input type="text" class="wide" id="cb-ordered-p2-name" data-name="cb-ordered-p2" value="会議" placeholder="例: 会議"></div>
+<div class="targets-wrap" data-uses-wrap>
+<table class="targets gp-uses gp-uses--picked">
+<caption class="sr-only">プリセットで使う用語集（上の用語集から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th><th scope="col" class="col-tools"><span class="sr-only">外す</span></th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg2" draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="cg2">会議用</span></td><td class="col-rows"><span class="count" data-rows="cg2">4 行</span></td><td class="col-tools"><button type="button" class="btn btn--icon" data-use-remove aria-label="会議用を外す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></td></tr>
+<tr data-use="cg1" draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-order"><span class="order" data-order>2</span></td><td><span class="clip" data-name-view="cg1">yogo</span></td><td class="col-rows"><span class="count" data-rows="cg1">7 行</span></td><td class="col-tools"><button type="button" class="btn btn--icon" data-use-remove aria-label="yogoを外す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<div class="gp-add" data-use-add-row hidden><label for="cb-ordered-p2-add">追加する用語集</label><select id="cb-ordered-p2-add" data-use-select></select><button type="button" class="btn" data-use-add>追加</button></div>
+<p class="field-help" data-use-full>全ての用語集を使っています。</p>
+<p class="field-help gp-help">上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+</div>
+</div>
+        </div>
+        <p class="scene-note">上に並べた用語集から当てる。</p>
+      </section>
+      <!-- 状態: 案 B 使わない用語集がある -->
+      <section class="specimen" aria-labelledby="h-cb-unused">
+        <h3 id="h-cb-unused">使わない用語集がある</h3>
+        <div class="win settings__form">
+<!-- 用語集のプリセット: refs/173 の app.js が選ぶ・足す・消す・補正に使うプリセットの切り替え・使う用語集の選択と並べ替えを受ける -->
+<div id="cb-unused" class="glossary" data-gp-root="picked" data-reload="immediate" data-glossaries='[[&quot;cg1&quot;, &quot;yogo&quot;, 7], [&quot;cg2&quot;, &quot;会議用&quot;, 4], [&quot;cg3&quot;, &quot;フロントエンド&quot;, 1]]'>
+<div class="targets-wrap">
+<table class="targets glossaries gp-list">
+<caption class="sr-only">用語集のプリセットの一覧（補正に使うプリセットを 1 つ選ぶ）</caption>
+<thead><tr><th scope="col">補正に使う</th><th scope="col">名前</th><th scope="col">用語集</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item data-select="cb-unused-p1" data-selected="false"><td><label class="use"><input type="radio" name="cb-unused-active" value="cb-unused-p1" data-active aria-label="既定を補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="cb-unused-p1">既定</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="cb-unused-p1">1 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="既定を消す" aria-disabled="true" title="補正に使うプリセットは消せません"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-item data-select="cb-unused-p2" data-selected="true"><td><label class="use"><input type="radio" name="cb-unused-active" value="cb-unused-p2" data-active aria-label="会議を補正に使う"></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="cb-unused-p2">会議</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="cb-unused-p2">1 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="会議を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-item>プリセットを足す</button></div>
+<div data-details>
+<div class="glossary-detail" data-detail="cb-unused-p1" hidden>
+<p class="glossary-detail__title">プリセット「<span data-name-view="cb-unused-p1">既定</span>」で使う用語集</p>
+<div class="preset__field"><label for="cb-unused-p1-name">名前</label><input type="text" class="wide" id="cb-unused-p1-name" data-name="cb-unused-p1" value="既定" placeholder="例: 会議"></div>
+<div class="targets-wrap" data-uses-wrap>
+<table class="targets gp-uses gp-uses--picked">
+<caption class="sr-only">プリセットで使う用語集（上の用語集から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th><th scope="col" class="col-tools"><span class="sr-only">外す</span></th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg1" draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="cg1">yogo</span></td><td class="col-rows"><span class="count" data-rows="cg1">7 行</span></td><td class="col-tools"><button type="button" class="btn btn--icon" data-use-remove aria-label="yogoを外す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<div class="gp-add" data-use-add-row><label for="cb-unused-p1-add">追加する用語集</label><select id="cb-unused-p1-add" data-use-select><option value="cg2">会議用</option><option value="cg3">フロントエンド</option></select><button type="button" class="btn" data-use-add>追加</button></div>
+<p class="field-help" data-use-full hidden>全ての用語集を使っています。</p>
+<p class="field-help gp-help">上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+<div class="glossary-detail" data-detail="cb-unused-p2">
+<p class="glossary-detail__title">プリセット「<span data-name-view="cb-unused-p2">会議</span>」で使う用語集</p>
+<div class="preset__field"><label for="cb-unused-p2-name">名前</label><input type="text" class="wide" id="cb-unused-p2-name" data-name="cb-unused-p2" value="会議" placeholder="例: 会議"></div>
+<div class="targets-wrap" data-uses-wrap>
+<table class="targets gp-uses gp-uses--picked">
+<caption class="sr-only">プリセットで使う用語集（上の用語集から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th><th scope="col" class="col-tools"><span class="sr-only">外す</span></th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg2" draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="cg2">会議用</span></td><td class="col-rows"><span class="count" data-rows="cg2">4 行</span></td><td class="col-tools"><button type="button" class="btn btn--icon" data-use-remove aria-label="会議用を外す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<div class="gp-add" data-use-add-row><label for="cb-unused-p2-add">追加する用語集</label><select id="cb-unused-p2-add" data-use-select><option value="cg1">yogo</option><option value="cg3">フロントエンド</option></select><button type="button" class="btn" data-use-add>追加</button></div>
+<p class="field-help" data-use-full hidden>全ての用語集を使っています。</p>
+<p class="field-help gp-help">上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+</div>
+</div>
+        </div>
+        <p class="scene-note">案 A は使わない用語集もチェックを外して下に並べ、案 B は選択欄に入れる。</p>
+      </section>
+      <!-- 状態: 案 B 使う用語集が無い -->
+      <section class="specimen" aria-labelledby="h-cb-empty">
+        <h3 id="h-cb-empty">使う用語集が無い</h3>
+        <div class="win settings__form">
+<!-- 用語集のプリセット: refs/173 の app.js が選ぶ・足す・消す・補正に使うプリセットの切り替え・使う用語集の選択と並べ替えを受ける -->
+<div id="cb-empty" class="glossary" data-gp-root="picked" data-reload="immediate" data-glossaries='[[&quot;cg1&quot;, &quot;yogo&quot;, 7], [&quot;cg2&quot;, &quot;会議用&quot;, 4]]'>
+<div class="targets-wrap">
+<table class="targets glossaries gp-list">
+<caption class="sr-only">用語集のプリセットの一覧（補正に使うプリセットを 1 つ選ぶ）</caption>
+<thead><tr><th scope="col">補正に使う</th><th scope="col">名前</th><th scope="col">用語集</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item data-select="cb-empty-p1" data-selected="false"><td><label class="use"><input type="radio" name="cb-empty-active" value="cb-empty-p1" data-active aria-label="既定を補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="cb-empty-p1">既定</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="cb-empty-p1">1 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="既定を消す" aria-disabled="true" title="補正に使うプリセットは消せません"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-item data-select="cb-empty-p2" data-selected="true"><td><label class="use"><input type="radio" name="cb-empty-active" value="cb-empty-p2" data-active aria-label="下書きを補正に使う"></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="cb-empty-p2">下書き</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="cb-empty-p2">0 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="下書きを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-item>プリセットを足す</button></div>
+<div data-details>
+<div class="glossary-detail" data-detail="cb-empty-p1" hidden>
+<p class="glossary-detail__title">プリセット「<span data-name-view="cb-empty-p1">既定</span>」で使う用語集</p>
+<div class="preset__field"><label for="cb-empty-p1-name">名前</label><input type="text" class="wide" id="cb-empty-p1-name" data-name="cb-empty-p1" value="既定" placeholder="例: 会議"></div>
+<div class="targets-wrap" data-uses-wrap>
+<table class="targets gp-uses gp-uses--picked">
+<caption class="sr-only">プリセットで使う用語集（上の用語集から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th><th scope="col" class="col-tools"><span class="sr-only">外す</span></th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg1" draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="cg1">yogo</span></td><td class="col-rows"><span class="count" data-rows="cg1">7 行</span></td><td class="col-tools"><button type="button" class="btn btn--icon" data-use-remove aria-label="yogoを外す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<div class="gp-add" data-use-add-row><label for="cb-empty-p1-add">追加する用語集</label><select id="cb-empty-p1-add" data-use-select><option value="cg2">会議用</option></select><button type="button" class="btn" data-use-add>追加</button></div>
+<p class="field-help" data-use-full hidden>全ての用語集を使っています。</p>
+<p class="field-help gp-help">上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+<div class="glossary-detail" data-detail="cb-empty-p2">
+<p class="glossary-detail__title">プリセット「<span data-name-view="cb-empty-p2">下書き</span>」で使う用語集</p>
+<div class="preset__field"><label for="cb-empty-p2-name">名前</label><input type="text" class="wide" id="cb-empty-p2-name" data-name="cb-empty-p2" value="下書き" placeholder="例: 会議"></div>
+<div class="targets-wrap" data-uses-wrap hidden>
+<table class="targets gp-uses gp-uses--picked">
+<caption class="sr-only">プリセットで使う用語集（上の用語集から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th><th scope="col" class="col-tools"><span class="sr-only">外す</span></th></tr></thead>
+<tbody data-uses>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<div class="gp-add" data-use-add-row><label for="cb-empty-p2-add">追加する用語集</label><select id="cb-empty-p2-add" data-use-select><option value="cg1">yogo</option><option value="cg2">会議用</option></select><button type="button" class="btn" data-use-add>追加</button></div>
+<p class="field-help" data-use-full hidden>全ての用語集を使っています。</p>
+<p class="field-help gp-help">上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+</div>
+</div>
+        </div>
+        <p class="scene-note">保存でき、補正では何も置き換えない。</p>
+      </section>
+      <!-- 状態: 案 B 全ての用語集を使っている -->
+      <section class="specimen" aria-labelledby="h-cb-all">
+        <h3 id="h-cb-all">全ての用語集を使っている</h3>
+        <div class="win settings__form">
+<!-- 用語集のプリセット: refs/173 の app.js が選ぶ・足す・消す・補正に使うプリセットの切り替え・使う用語集の選択と並べ替えを受ける -->
+<div id="cb-all" class="glossary" data-gp-root="picked" data-reload="immediate" data-glossaries='[[&quot;cg1&quot;, &quot;yogo&quot;, 7], [&quot;cg2&quot;, &quot;会議用&quot;, 4]]'>
+<div class="targets-wrap">
+<table class="targets glossaries gp-list">
+<caption class="sr-only">用語集のプリセットの一覧（補正に使うプリセットを 1 つ選ぶ）</caption>
+<thead><tr><th scope="col">補正に使う</th><th scope="col">名前</th><th scope="col">用語集</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item data-select="cb-all-p1" data-selected="true"><td><label class="use"><input type="radio" name="cb-all-active" value="cb-all-p1" data-active aria-label="全部を補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="cb-all-p1">全部</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="cb-all-p1">2 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="全部を消す" aria-disabled="true" title="補正に使うプリセットは消せません"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-item>プリセットを足す</button></div>
+<div data-details>
+<div class="glossary-detail" data-detail="cb-all-p1">
+<p class="glossary-detail__title">プリセット「<span data-name-view="cb-all-p1">全部</span>」で使う用語集</p>
+<div class="preset__field"><label for="cb-all-p1-name">名前</label><input type="text" class="wide" id="cb-all-p1-name" data-name="cb-all-p1" value="全部" placeholder="例: 会議"></div>
+<div class="targets-wrap" data-uses-wrap>
+<table class="targets gp-uses gp-uses--picked">
+<caption class="sr-only">プリセットで使う用語集（上の用語集から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th><th scope="col" class="col-tools"><span class="sr-only">外す</span></th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg1" draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="cg1">yogo</span></td><td class="col-rows"><span class="count" data-rows="cg1">7 行</span></td><td class="col-tools"><button type="button" class="btn btn--icon" data-use-remove aria-label="yogoを外す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></td></tr>
+<tr data-use="cg2" draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-order"><span class="order" data-order>2</span></td><td><span class="clip" data-name-view="cg2">会議用</span></td><td class="col-rows"><span class="count" data-rows="cg2">4 行</span></td><td class="col-tools"><button type="button" class="btn btn--icon" data-use-remove aria-label="会議用を外す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<div class="gp-add" data-use-add-row hidden><label for="cb-all-p1-add">追加する用語集</label><select id="cb-all-p1-add" data-use-select></select><button type="button" class="btn" data-use-add>追加</button></div>
+<p class="field-help" data-use-full>全ての用語集を使っています。</p>
+<p class="field-help gp-help">上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+</div>
+</div>
+        </div>
+        <p class="scene-note">案 B は追加の欄の代わりに、全て使っていることを出す。</p>
+      </section>
+      <!-- 状態: 案 B 足した直後 -->
+      <section class="specimen" aria-labelledby="h-cb-added">
+        <h3 id="h-cb-added">足した直後</h3>
+        <div class="win settings__form">
+<!-- 用語集のプリセット: refs/173 の app.js が選ぶ・足す・消す・補正に使うプリセットの切り替え・使う用語集の選択と並べ替えを受ける -->
+<div id="cb-added" class="glossary" data-gp-root="picked" data-reload="immediate" data-glossaries='[[&quot;cg1&quot;, &quot;yogo&quot;, 7], [&quot;cg2&quot;, &quot;会議用&quot;, 4]]'>
+<div class="targets-wrap">
+<table class="targets glossaries gp-list">
+<caption class="sr-only">用語集のプリセットの一覧（補正に使うプリセットを 1 つ選ぶ）</caption>
+<thead><tr><th scope="col">補正に使う</th><th scope="col">名前</th><th scope="col">用語集</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item data-select="cb-added-p1" data-selected="false"><td><label class="use"><input type="radio" name="cb-added-active" value="cb-added-p1" data-active aria-label="既定を補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="cb-added-p1">既定</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="cb-added-p1">1 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="既定を消す" aria-disabled="true" title="補正に使うプリセットは消せません"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-item data-select="cb-added-p2" data-selected="true"><td><label class="use"><input type="radio" name="cb-added-active" value="cb-added-p2" data-active aria-label="名前未入力のプリセットを補正に使う"></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="cb-added-p2"></span><span class="sr-only" data-unnamed>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="cb-added-p2">0 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="名前未入力のプリセットを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-item>プリセットを足す</button></div>
+<div data-details>
+<div class="glossary-detail" data-detail="cb-added-p1" hidden>
+<p class="glossary-detail__title">プリセット「<span data-name-view="cb-added-p1">既定</span>」で使う用語集</p>
+<div class="preset__field"><label for="cb-added-p1-name">名前</label><input type="text" class="wide" id="cb-added-p1-name" data-name="cb-added-p1" value="既定" placeholder="例: 会議"></div>
+<div class="targets-wrap" data-uses-wrap>
+<table class="targets gp-uses gp-uses--picked">
+<caption class="sr-only">プリセットで使う用語集（上の用語集から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th><th scope="col" class="col-tools"><span class="sr-only">外す</span></th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg1" draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="cg1">yogo</span></td><td class="col-rows"><span class="count" data-rows="cg1">7 行</span></td><td class="col-tools"><button type="button" class="btn btn--icon" data-use-remove aria-label="yogoを外す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<div class="gp-add" data-use-add-row><label for="cb-added-p1-add">追加する用語集</label><select id="cb-added-p1-add" data-use-select><option value="cg2">会議用</option></select><button type="button" class="btn" data-use-add>追加</button></div>
+<p class="field-help" data-use-full hidden>全ての用語集を使っています。</p>
+<p class="field-help gp-help">上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+<div class="glossary-detail" data-detail="cb-added-p2">
+<p class="glossary-detail__title">プリセット「<span data-name-view="cb-added-p2"></span>」で使う用語集</p>
+<div class="preset__field"><label for="cb-added-p2-name">名前</label><input type="text" class="wide" id="cb-added-p2-name" data-name="cb-added-p2" value="" placeholder="例: 会議"></div>
+<div class="targets-wrap" data-uses-wrap hidden>
+<table class="targets gp-uses gp-uses--picked">
+<caption class="sr-only">プリセットで使う用語集（上の用語集から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th><th scope="col" class="col-tools"><span class="sr-only">外す</span></th></tr></thead>
+<tbody data-uses>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<div class="gp-add" data-use-add-row><label for="cb-added-p2-add">追加する用語集</label><select id="cb-added-p2-add" data-use-select><option value="cg1">yogo</option><option value="cg2">会議用</option></select><button type="button" class="btn" data-use-add>追加</button></div>
+<p class="field-help" data-use-full hidden>全ての用語集を使っています。</p>
+<p class="field-help gp-help">上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+</div>
+</div>
+        </div>
+        <p class="scene-note">「プリセットを足す」で一覧の末尾に足して選び、名前の欄へフォーカスを移す。名前が空の間は「（名前未入力）」と出す。</p>
+      </section>
+      <!-- 状態: 案 B エラー -->
+      <section class="specimen" aria-labelledby="h-cb-error">
+        <h3 id="h-cb-error">エラー</h3>
+        <div class="win settings__form">
+<!-- 用語集のプリセット: refs/173 の app.js が選ぶ・足す・消す・補正に使うプリセットの切り替え・使う用語集の選択と並べ替えを受ける -->
+<div id="cb-error" class="glossary" data-gp-root="picked" data-reload="immediate" data-glossaries='[[&quot;cg1&quot;, &quot;yogo&quot;, 7]]'>
+<div class="targets-wrap">
+<table class="targets glossaries gp-list">
+<caption class="sr-only">用語集のプリセットの一覧（補正に使うプリセットを 1 つ選ぶ）</caption>
+<thead><tr><th scope="col">補正に使う</th><th scope="col">名前</th><th scope="col">用語集</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item data-select="cb-error-p1" data-selected="false"><td><label class="use"><input type="radio" name="cb-error-active" value="cb-error-p1" data-active aria-label="既定を補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="cb-error-p1">既定</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="cb-error-p1">1 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="既定を消す" aria-disabled="true" title="補正に使うプリセットは消せません"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-item data-select="cb-error-p2" data-selected="true"><td><label class="use"><input type="radio" name="cb-error-active" value="cb-error-p2" data-active aria-label="既定を補正に使う"></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="cb-error-p2">既定</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="cb-error-p2">1 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="既定を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-item>プリセットを足す</button></div>
+<div data-details>
+<div class="glossary-detail" data-detail="cb-error-p1" hidden>
+<p class="glossary-detail__title">プリセット「<span data-name-view="cb-error-p1">既定</span>」で使う用語集</p>
+<div class="preset__field"><label for="cb-error-p1-name">名前</label><input type="text" class="wide" id="cb-error-p1-name" data-name="cb-error-p1" value="既定" placeholder="例: 会議"></div>
+<div class="targets-wrap" data-uses-wrap>
+<table class="targets gp-uses gp-uses--picked">
+<caption class="sr-only">プリセットで使う用語集（上の用語集から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th><th scope="col" class="col-tools"><span class="sr-only">外す</span></th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg1" draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="cg1">yogo</span></td><td class="col-rows"><span class="count" data-rows="cg1">7 行</span></td><td class="col-tools"><button type="button" class="btn btn--icon" data-use-remove aria-label="yogoを外す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<div class="gp-add" data-use-add-row hidden><label for="cb-error-p1-add">追加する用語集</label><select id="cb-error-p1-add" data-use-select></select><button type="button" class="btn" data-use-add>追加</button></div>
+<p class="field-help" data-use-full>全ての用語集を使っています。</p>
+<p class="field-help gp-help">上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+<div class="glossary-detail" data-detail="cb-error-p2">
+<p class="glossary-detail__title">プリセット「<span data-name-view="cb-error-p2">既定</span>」で使う用語集</p>
+<div class="preset__field"><label for="cb-error-p2-name">名前</label><input type="text" class="wide" id="cb-error-p2-name" data-name="cb-error-p2" value="既定" placeholder="例: 会議" aria-invalid="true" aria-describedby="cb-error-p2-name-err"><p class="field-error" id="cb-error-p2-name-err">プリセット「既定」と同じ名前です。別の名前にしてください。</p></div>
+<div class="targets-wrap" data-uses-wrap>
+<table class="targets gp-uses gp-uses--picked">
+<caption class="sr-only">プリセットで使う用語集（上の用語集から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th><th scope="col" class="col-tools"><span class="sr-only">外す</span></th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg1" draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="cg1">yogo</span></td><td class="col-rows"><span class="count" data-rows="cg1">7 行</span></td><td class="col-tools"><button type="button" class="btn btn--icon" data-use-remove aria-label="yogoを外す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<div class="gp-add" data-use-add-row hidden><label for="cb-error-p2-add">追加する用語集</label><select id="cb-error-p2-add" data-use-select></select><button type="button" class="btn" data-use-add>追加</button></div>
+<p class="field-help" data-use-full>全ての用語集を使っています。</p>
+<p class="field-help gp-help">上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+</div>
+</div>
+        </div>
+        <p class="scene-note">保存を押した後の確かめで、名前の欄の下にエラーを出す。</p>
+      </section>
+      <!-- 状態: 案 B 長い名前 -->
+      <section class="specimen" aria-labelledby="h-cb-long">
+        <h3 id="h-cb-long">長い名前</h3>
+        <div class="win settings__form">
+<!-- 用語集のプリセット: refs/173 の app.js が選ぶ・足す・消す・補正に使うプリセットの切り替え・使う用語集の選択と並べ替えを受ける -->
+<div id="cb-long" class="glossary" data-gp-root="picked" data-reload="immediate" data-glossaries='[[&quot;cg1&quot;, &quot;フロントエンドとバックエンドの開発で間違えやすい固有名詞（社内の呼び名を含む）&quot;, 7], [&quot;cg2&quot;, &quot;会議用&quot;, 4]]'>
+<div class="targets-wrap">
+<table class="targets glossaries gp-list">
+<caption class="sr-only">用語集のプリセットの一覧（補正に使うプリセットを 1 つ選ぶ）</caption>
+<thead><tr><th scope="col">補正に使う</th><th scope="col">名前</th><th scope="col">用語集</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item data-select="cb-long-p1" data-selected="false"><td><label class="use"><input type="radio" name="cb-long-active" value="cb-long-p1" data-active aria-label="既定を補正に使う"></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="cb-long-p1">既定</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="cb-long-p1">1 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="既定を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-item data-select="cb-long-p2" data-selected="true"><td><label class="use"><input type="radio" name="cb-long-active" value="cb-long-p2" data-active aria-label="週次の定例会議と顧客との打ち合わせで使う組み合わせを補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="cb-long-p2">週次の定例会議と顧客との打ち合わせで使う組み合わせ</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="cb-long-p2">2 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="週次の定例会議と顧客との打ち合わせで使う組み合わせを消す" aria-disabled="true" title="補正に使うプリセットは消せません"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-item>プリセットを足す</button></div>
+<div data-details>
+<div class="glossary-detail" data-detail="cb-long-p1" hidden>
+<p class="glossary-detail__title">プリセット「<span data-name-view="cb-long-p1">既定</span>」で使う用語集</p>
+<div class="preset__field"><label for="cb-long-p1-name">名前</label><input type="text" class="wide" id="cb-long-p1-name" data-name="cb-long-p1" value="既定" placeholder="例: 会議"></div>
+<div class="targets-wrap" data-uses-wrap>
+<table class="targets gp-uses gp-uses--picked">
+<caption class="sr-only">プリセットで使う用語集（上の用語集から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th><th scope="col" class="col-tools"><span class="sr-only">外す</span></th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg1" draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="cg1">フロントエンドとバックエンドの開発で間違えやすい固有名詞（社内の呼び名を含む）</span></td><td class="col-rows"><span class="count" data-rows="cg1">7 行</span></td><td class="col-tools"><button type="button" class="btn btn--icon" data-use-remove aria-label="フロントエンドとバックエンドの開発で間違えやすい固有名詞（社内の呼び名を含む）を外す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<div class="gp-add" data-use-add-row><label for="cb-long-p1-add">追加する用語集</label><select id="cb-long-p1-add" data-use-select><option value="cg2">会議用</option></select><button type="button" class="btn" data-use-add>追加</button></div>
+<p class="field-help" data-use-full hidden>全ての用語集を使っています。</p>
+<p class="field-help gp-help">上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+<div class="glossary-detail" data-detail="cb-long-p2">
+<p class="glossary-detail__title">プリセット「<span data-name-view="cb-long-p2">週次の定例会議と顧客との打ち合わせで使う組み合わせ</span>」で使う用語集</p>
+<div class="preset__field"><label for="cb-long-p2-name">名前</label><input type="text" class="wide" id="cb-long-p2-name" data-name="cb-long-p2" value="週次の定例会議と顧客との打ち合わせで使う組み合わせ" placeholder="例: 会議"></div>
+<div class="targets-wrap" data-uses-wrap>
+<table class="targets gp-uses gp-uses--picked">
+<caption class="sr-only">プリセットで使う用語集（上の用語集から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th><th scope="col" class="col-tools"><span class="sr-only">外す</span></th></tr></thead>
+<tbody data-uses>
+<tr data-use="cg1" draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="cg1">フロントエンドとバックエンドの開発で間違えやすい固有名詞（社内の呼び名を含む）</span></td><td class="col-rows"><span class="count" data-rows="cg1">7 行</span></td><td class="col-tools"><button type="button" class="btn btn--icon" data-use-remove aria-label="フロントエンドとバックエンドの開発で間違えやすい固有名詞（社内の呼び名を含む）を外す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></td></tr>
+<tr data-use="cg2" draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-order"><span class="order" data-order>2</span></td><td><span class="clip" data-name-view="cg2">会議用</span></td><td class="col-rows"><span class="count" data-rows="cg2">4 行</span></td><td class="col-tools"><button type="button" class="btn btn--icon" data-use-remove aria-label="会議用を外す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<div class="gp-add" data-use-add-row hidden><label for="cb-long-p2-add">追加する用語集</label><select id="cb-long-p2-add" data-use-select></select><button type="button" class="btn" data-use-add>追加</button></div>
+<p class="field-help" data-use-full>全ての用語集を使っています。</p>
+<p class="field-help gp-help">上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+</div>
+</div>
+        </div>
+        <p class="scene-note">一覧の名前は省略し、選んだプリセットの見出しと名前の欄で全て見せる。</p>
+      </section>
+
+    </div>
+  </main>
+</body>
+</html>

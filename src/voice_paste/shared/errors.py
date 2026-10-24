@@ -11,6 +11,10 @@ class CallbackNotAllowedError(AppError):
     """返送先が許されない。"""
 
 
+class GlossaryPresetNotFoundError(AppError):
+    """API の開始で指定した用語集のプリセットが一覧に無い（メッセージに指定した名前を含める）。"""
+
+
 class UnauthorizedError(AppError):
     """トークンが合わない。"""
 

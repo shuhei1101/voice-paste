@@ -61,6 +61,12 @@ GLOSSARY_NAME_OVERLAP_ERROR_TYPE: str = "glossary_name_overlap"
 GLOSSARIES_FIELD_NAME: str = "glossaries"
 """用語集の一覧を持つ Settings の項目名。"""
 
+GLOSSARY_PRESET_NAME_OVERLAP_ERROR_TYPE: str = "glossary_preset_name_overlap"
+"""用語集のプリセットの名前が重なるときの ValidationError の種類。理由の文に重なった名前を `name` として持つ。"""
+
+GLOSSARY_PRESETS_FIELD_NAME: str = "glossary_presets"
+"""用語集のプリセットの一覧を持つ Settings の項目名。"""
+
 HINT_PRESETS_FIELD_NAME: str = "hint_presets"
 """表記のヒントのプリセットの一覧を持つ Settings の項目名。"""
 
@@ -488,6 +494,30 @@ class GlossarySettings(_SettingsModel):
     )
 
 
+class GlossaryPresetSettings(_SettingsModel):
+    """用語集のプリセット 1 つの名前と、補正に使う用語集の名前の並び。"""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    name: str = Field(
+        description="設定画面の用語集のプリセットの一覧と `POST /sessions` の `glossary_preset` で指す名前（前後の空白を除いて 1 文字以上。ほかのプリセットと重ならない。空は Settings の確かめが、重なりと同じ回で断る）",
+    )
+    glossaries: list[str] = Field(
+        default_factory=list,
+        description="補正に使う用語集の名前（`glossaries[].name`）の並び。補正はこの順に当てる。同じ名前を 2 回並べない。一覧に無い名前は検証では断らず、補正が外す",
+    )
+
+    @field_validator("glossaries")
+    @classmethod
+    def _reject_duplicated_glossaries(cls, names: list[str]) -> list[str]:
+        """同じ用語集の名前を 2 回並べたプリセットを断る。"""
+        duplicated = sorted({name for name in names if names.count(name) > 1})
+        # 重なる名前があれば断る
+        if duplicated:
+            raise ValueError(f"同じ用語集を 2 回並べられない（{', '.join(duplicated)}）")
+        return names
+
+
 def _check_hint_word(word: str) -> str:
     """手がかりの語が空でなく、読点・句点・改行を含まないことを確かめる（前後の空白は除かれている）。"""
     # 空の語は断る
@@ -596,7 +626,17 @@ class Settings(_SettingsModel):
     )
     active_glossary: str | None = _item(
         None,
-        "補正に使う用語集の名前。None か一覧に無い名前のときは 1 つ目の用語集を使う",
+        "補正に使う用語集の名前。glossary_presets が空のときだけ、「既定」のプリセットの用語集を決めるのに読む（非推奨。設定画面で保存すると消す）",
+        reload=RELOAD_IMMEDIATE,
+    )
+    glossary_presets: list[GlossaryPresetSettings] = Field(
+        default_factory=list,
+        description="用語集のプリセットの一覧。並びが設定画面の一覧の並びになる。空なら「既定」の 1 件として読む",
+        json_schema_extra={"reload": RELOAD_IMMEDIATE},
+    )
+    active_glossary_preset: str | None = _item(
+        None,
+        "補正に使う用語集のプリセットの名前。None か一覧に無い名前のときは 1 件目のプリセットを使う",
         reload=RELOAD_IMMEDIATE,
     )
     hint_presets: list[HintPresetSettings] = Field(
@@ -669,6 +709,29 @@ class Settings(_SettingsModel):
                 "input": name,
             }
             for location, name in _find_glossary_name_overlap_locations(self)
+        ]
+        # 名前が空の用語集のプリセットは、名前の場所で断る（重なりと同じ回に、欄ごとのエラーとして出すため、欄の確かめでなくここで断る）
+        line_errors += [
+            {
+                "type": PydanticCustomError("string_too_short", "名前が空"),
+                "loc": (GLOSSARY_PRESETS_FIELD_NAME, index, "name"),
+                "input": preset.name,
+            }
+            for index, preset in enumerate(self.glossary_presets)
+            if not preset.name
+        ]
+        # 重なった用語集のプリセットの名前は、後ろにある側の名前の場所で、重なった名前を添える
+        line_errors += [
+            {
+                "type": PydanticCustomError(
+                    GLOSSARY_PRESET_NAME_OVERLAP_ERROR_TYPE,
+                    "用語集のプリセット「{name}」と同じ名前",
+                    {"name": name},
+                ),
+                "loc": location,
+                "input": name,
+            }
+            for location, name in _find_glossary_preset_name_overlap_locations(self)
         ]
         # 重なった表記のヒントのプリセットの名前は、後ろにある側の名前の場所で、重なった名前を添える
         line_errors += [
@@ -806,6 +869,32 @@ def find_glossary_name_overlaps(settings: Settings) -> list[tuple[str, str]]:
     return [
         (format_error_location(location), name)
         for location, name in _find_glossary_name_overlap_locations(settings)
+    ]
+
+
+# === 用語集のプリセットの名前の重なり ===
+
+
+def _find_glossary_preset_name_overlap_locations(
+    settings: Settings,
+) -> list[tuple[_Location, str]]:
+    """前に並んだプリセットと名前が同じ用語集のプリセットの（名前の場所, 名前）を返す。大文字と小文字は区別する。"""
+    seen: set[str] = set()
+    overlaps: list[tuple[_Location, str]] = []
+    for index, preset in enumerate(settings.glossary_presets):
+        # 初めての名前は控え、先に並んだ名前と同じなら重なりとして集める
+        if preset.name in seen:
+            overlaps.append(((GLOSSARY_PRESETS_FIELD_NAME, index, "name"), preset.name))
+        else:
+            seen.add(preset.name)
+    return overlaps
+
+
+def find_glossary_preset_name_overlaps(settings: Settings) -> list[tuple[str, str]]:
+    """前に並んだプリセットと名前が同じ用語集のプリセットを（重なったキー, 重なった名前）で返す。"""
+    return [
+        (format_error_location(location), name)
+        for location, name in _find_glossary_preset_name_overlap_locations(settings)
     ]
 
 

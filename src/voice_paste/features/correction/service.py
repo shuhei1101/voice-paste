@@ -14,6 +14,7 @@ from voice_paste.shared.errors import GlossaryReadError
 from voice_paste.shared.settings import (
     EDGE_PHRASE_WILDCARD,
     EdgePhraseSettings,
+    GlossaryPresetSettings,
     GlossarySettings,
     Settings,
 )
@@ -38,6 +39,9 @@ DISABLED_VALUE: str = "0"
 
 DEFAULT_GLOSSARY_FILE_NAME: str = "yogo.csv"
 """`glossaries` も `glossary_path` も無いときに読む、settings.toml と同じフォルダの用語集のファイル名。"""
+
+DEFAULT_GLOSSARY_PRESET_NAME: str = "既定"
+"""`glossary_presets` のキーが無い・空の settings.toml で、resolve_glossary_presets が作る 1 つだけのプリセットの名前。"""
 
 GLOSSARY_FILE_PATTERN: str = "glossary_{number}.csv"
 """設定画面で足した用語集の CSV のファイル名。number は 1 からの連番。"""
@@ -157,13 +161,57 @@ def resolve_glossaries(settings: Settings, settings_dir: Path) -> list[GlossaryS
     ]
 
 
-def pick_active_glossary(settings: Settings, settings_dir: Path) -> GlossarySettings:
-    """用語集の一覧から、active_glossary の名前の用語集を返す。名前が無い・一覧に無いときは 1 件目を返す。"""
-    glossaries = resolve_glossaries(settings, settings_dir)
+def resolve_glossary_presets(settings: Settings, settings_dir: Path) -> list[GlossaryPresetSettings]:
+    """設定から用語集のプリセットの一覧を返す。glossary_presets が空なら、active_glossary の用語集だけを使う「既定」のプリセット 1 件にする。用語集の一覧に無い名前はプリセットから外す。"""
+    # 1. 用語集の一覧を引き、名前の並びにする
+    names = [glossary.name for glossary in resolve_glossaries(settings, settings_dir)]
+
+    # 2. glossary_presets が空なら、active_glossary（無い・一覧に無ければ 1 つ目）の用語集だけを使う「既定」の 1 件にする
+    if not settings.glossary_presets:
+        legacy_name = settings.active_glossary if settings.active_glossary in names else names[0]
+        return [GlossaryPresetSettings(name=DEFAULT_GLOSSARY_PRESET_NAME, glossaries=[legacy_name])]
+
+    # 3. glossary_presets の並びのまま、各プリセットの用語集から一覧に無い名前を外す
+    presets: list[GlossaryPresetSettings] = []
+    for preset in settings.glossary_presets:
+        kept = [name for name in preset.glossaries if name in names]
+        removed = [name for name in preset.glossaries if name not in names]
+        if removed:
+            logger.warning(
+                f"用語集の一覧に無い名前をプリセットから外した（{preset.name}・{'、'.join(removed)}）"
+            )
+        presets.append(GlossaryPresetSettings(name=preset.name, glossaries=kept))
+    return presets
+
+
+def pick_glossary_preset(
+    settings: Settings, settings_dir: Path, *, requested: str | None = None
+) -> GlossaryPresetSettings:
+    """用語集のプリセットの一覧から、補正に使うプリセットを返す。指定した名前があればそれ、無ければ active_glossary_preset、それも無い・一覧に無いときは 1 件目を返す。"""
+    presets = resolve_glossary_presets(settings, settings_dir)
+
+    # 指定した名前が一覧にあればそのプリセットを返す
+    if requested is not None:
+        found = next((preset for preset in presets if preset.name == requested), None)
+        if found is not None:
+            return found
+        # 開始の後に設定でそのプリセットを消した: 設定で選んでいるプリセットで補正する
+        logger.warning(
+            f"指定された用語集のプリセットが無いため、設定で選んでいるプリセットで補正する（{requested}）"
+        )
+
     return next(
-        (glossary for glossary in glossaries if glossary.name == settings.active_glossary),
-        glossaries[0],
+        (preset for preset in presets if preset.name == settings.active_glossary_preset),
+        presets[0],
     )
+
+
+def list_preset_glossaries(
+    preset: GlossaryPresetSettings, glossaries: Sequence[GlossarySettings]
+) -> list[GlossarySettings]:
+    """用語集のプリセットが使う用語集を、プリセットに並べた順で返す。一覧に無い名前は飛ばす。"""
+    by_name = {glossary.name: glossary for glossary in glossaries}
+    return [by_name[name] for name in preset.glossaries if name in by_name]
 
 
 def next_glossary_path(taken: Collection[Path], *, directory: Path) -> Path:

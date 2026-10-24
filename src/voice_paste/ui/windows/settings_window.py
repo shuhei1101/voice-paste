@@ -33,6 +33,8 @@ from voice_paste.shared.settings import (
     EDGE_PHRASES_FIELD_NAME,
     GLOSSARIES_FIELD_NAME,
     GLOSSARY_NAME_OVERLAP_ERROR_TYPE,
+    GLOSSARY_PRESET_NAME_OVERLAP_ERROR_TYPE,
+    GLOSSARY_PRESETS_FIELD_NAME,
     HINT_MAX_BYTES,
     HINT_PRESET_NAME_OVERLAP_ERROR_TYPE,
     HINT_PRESETS_FIELD_NAME,
@@ -253,6 +255,11 @@ GLOSSARY_KEY_PATTERN: re.Pattern[str] = re.compile(
 )
 """用語集の欄の失敗のキー（`glossaries[2].name`・`glossaries[2].rows[1].wrong`）を、何件目か・項目・何行目かに分ける。"""
 
+GLOSSARY_PRESET_KEY_PATTERN: re.Pattern[str] = re.compile(
+    rf"^{GLOSSARY_PRESETS_FIELD_NAME}\[(\d+)\]\.name$"
+)
+"""用語集のプリセットの欄の失敗のキー（`glossary_presets[2].name`）を、何件目かに分ける。"""
+
 GLOSSARY_FIELD_LABELS: dict[str, str] = {"name": "名前", "wrong": "誤変換", "right": "正しい表記"}
 """用語集の欄の名前（エラーの一覧に出す）。"""
 
@@ -416,11 +423,17 @@ def to_field_message(
         return _range_text(info)
     if error_type == "string_too_short":
         # 用語集の名前の空は名前を、プリセットのタイトルの空はタイトルを入れてもらう
-        if error["loc"][:1] in ((GLOSSARIES_FIELD_NAME,), (HINT_PRESETS_FIELD_NAME,)):
+        if error["loc"][:1] in (
+            (GLOSSARIES_FIELD_NAME,),
+            (GLOSSARY_PRESETS_FIELD_NAME,),
+            (HINT_PRESETS_FIELD_NAME,),
+        ):
             return "名前を入れてください。"
         return "タイトルを入れてください。"
     if error_type == GLOSSARY_NAME_OVERLAP_ERROR_TYPE:
         return f"用語集「{error['ctx']['name']}」と同じ名前です。{GLOSSARY_NAME_HINT}"
+    if error_type == GLOSSARY_PRESET_NAME_OVERLAP_ERROR_TYPE:
+        return f"用語集のプリセット「{error['ctx']['name']}」と同じ名前です。{GLOSSARY_NAME_HINT}"
     if error_type == HINT_TOO_LONG_ERROR_TYPE:
         return (
             f"有効なヒントが長すぎます（{error['ctx']['length']} / {HINT_MAX_BYTES} バイト）。"
@@ -880,12 +893,17 @@ class SettingsWindow(QWidget):
         raise TypeError(f"欄の部品を決められない型です（{key}: {annotation}）")
 
     def _add_glossaries(self, layout: QVBoxLayout, settings: Settings) -> None:
-        """用語集の一覧と、選んだ用語集の名前の欄・行の表を足す。補正に使う用語集は設定の active_glossary（無ければ 1 件目）。"""
+        """用語集のプリセットの一覧と使う用語集の表、用語集の一覧と、選んだ用語集の名前の欄・行の表を足す。補正に使うプリセットは設定の active_glossary_preset（無い・一覧に無ければ 1 件目）。"""
         glossaries = self._deps.list_glossaries()
-        names = [glossary.name for glossary in glossaries]
-        active = settings.active_glossary if settings.active_glossary in names else names[0]
+        presets = self._deps.list_glossary_presets()
+        preset_names = [preset.name for preset in presets]
+        active = (
+            settings.active_glossary_preset
+            if settings.active_glossary_preset in preset_names
+            else preset_names[0]
+        )
         panel = GlossaryPanel(self._deps.read_glossary, self._deps.new_glossary_path)
-        panel.set_glossaries(glossaries, active)
+        panel.set_glossaries(glossaries, presets, active)
         panel.changed.connect(self._on_field_changed)
         self._glossary_panel = panel
         layout.addWidget(panel)
@@ -1043,9 +1061,10 @@ class SettingsWindow(QWidget):
             set_nested(data, field.key, field.get())
         # プリセットは、種類のタブの並びの順に 1 つの一覧にする
         data[PRESETS_FIELD_NAME] = [item for _kind, _position, item in self._preset_values()]
-        # 用語集は、一覧と補正に使う用語集を入れる（glossary_path は置かない）
+        # 用語集は、一覧と用語集のプリセットと補正に使うプリセットを入れる（glossary_path と active_glossary は置かない）
         data[GLOSSARIES_FIELD_NAME] = self._glossaries_panel.collect()
-        data["active_glossary"] = self._glossaries_panel.active_name()
+        data[GLOSSARY_PRESETS_FIELD_NAME] = self._glossaries_panel.collect_presets()
+        data["active_glossary_preset"] = self._glossaries_panel.active_preset_name()
         # 表記のヒントは、プリセットの一覧を入れる
         data[HINT_PRESETS_FIELD_NAME] = self._hints_panel.collect()
         # 文頭・文末から消す文言は、一覧の並びのまま入れる
@@ -1091,6 +1110,12 @@ class SettingsWindow(QWidget):
             return position, "name", None
         field: GlossaryField = "wrong" if matched.group(4) == "wrong" else "right"
         return position, field, int(matched.group(3))
+
+    @staticmethod
+    def _locate_glossary_preset(key: str) -> int | None:
+        """用語集のプリセットの欄のキー（`glossary_presets[2].name`）を、何件目かにする。その欄でなければ None。"""
+        matched = GLOSSARY_PRESET_KEY_PATTERN.match(key)
+        return None if matched is None else int(matched.group(1))
 
     @staticmethod
     def _locate_hint(key: str) -> tuple[int | str, ...] | None:
@@ -1216,6 +1241,7 @@ class SettingsWindow(QWidget):
                     key in by_key
                     or self._locate_preset(key) is not None
                     or self._locate_glossary(key) is not None
+                    or self._locate_glossary_preset(key) is not None
                     or self._locate_hint(key) is not None
                     or self._locate_edge(key) is not None
                 )
@@ -1254,6 +1280,16 @@ class SettingsWindow(QWidget):
                 self._glossaries_panel.show_error(
                     position, glossary_field, message, row=glossary_row
                 )
+                continue
+            preset_located = self._locate_glossary_preset(key) if key is not None else None
+            # 用語集のプリセットの名前の欄: 一覧の行（欄へのリンク）と、欄の下のエラーを出す
+            if preset_located is not None and key is not None:
+                label = f"用語集のプリセット {preset_located + 1} 件目の名前"
+                link = QLabel(f'<a href="{key}">{html.escape(f"{label}: {message}")}</a>')
+                link.setTextFormat(Qt.TextFormat.RichText)
+                link.linkActivated.connect(self._focus_field)
+                self._error_summary_layout.addWidget(link)
+                self._glossaries_panel.show_preset_error(preset_located, message)
                 continue
             hint_located = self._locate_hint(key) if key is not None else None
             # 表記のヒントの欄: 一覧の行（欄へのリンク）と、欄の下のエラーを出す
@@ -1310,6 +1346,12 @@ class SettingsWindow(QWidget):
             self._group_menu.setCurrentRow(self._glossary_group)
             position, glossary_field, glossary_row = glossary_located
             self._glossaries_panel.focus_field(position, glossary_field, row=glossary_row)
+            return
+        preset_located = self._locate_glossary_preset(key)
+        # 用語集のプリセットの名前の欄: 用語集のまとまりへ切り替えて、そのプリセットの使う用語集の表を出して名前の欄へフォーカスを移す
+        if preset_located is not None:
+            self._group_menu.setCurrentRow(self._glossary_group)
+            self._glossaries_panel.focus_preset_name(preset_located)
             return
         hint_located = self._locate_hint(key)
         # 表記のヒントの欄: 表記のヒントのまとまりへ切り替えて、欄へフォーカスを移す

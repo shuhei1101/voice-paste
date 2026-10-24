@@ -76,6 +76,9 @@ class Session:
     segment_count: int = 0
     """連続録音でこれまでに区切った区間の数（最後に付けた通し番号）。"""
 
+    glossary_preset: str | None = None
+    """API の開始で指定した用語集のプリセットの名前。None は設定で選んでいるプリセットで補正する（ホットキー・トレイの録音は常に None）。"""
+
 
 type StartRecordingFn = Callable[[], None]
 """音量を下げてマイクを開く。開けなければ音量を戻して MicrophoneUnavailableError を送出する。"""
@@ -141,8 +144,8 @@ class SessionDeps:
     transcribe: TranscribeFn
     """録音を文字に起こす（失敗は TranscriptionError）。"""
 
-    correct: Callable[[str], str]
-    """用語集で補正する。"""
+    correct: Callable[[str, str | None], str]
+    """起こした文字とセッションの glossary_preset を受け、その用語集のプリセットで補正する。"""
 
     append_text: AppendTextFn
     """起こした文字を履歴に書き足す。"""
@@ -178,6 +181,9 @@ class SessionApiDeps:
 
     is_callback_allowed: Callable[[str], bool]
     """設定の許可ホストを部分適用した返送先の確かめ（出力先の is_callback_allowed）。"""
+
+    glossary_preset_exists: Callable[[str], bool]
+    """今の設定の用語集のプリセットの一覧に、その名前があるか（補正の resolve_glossary_presets で引いた一覧で判定する）。"""
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

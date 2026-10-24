@@ -97,7 +97,7 @@ class _PhraseEdit(QLineEdit):
         super().keyPressEvent(event)
 
 
-class _Grip(QLabel):
+class RowGrip(QLabel):
     """掴んで上下へ動かし、離した位置を知らせる行の左端のつまみ。"""
 
     released = Signal(int)
@@ -331,7 +331,7 @@ class EdgePhrasePanel(QWidget):
         margins = QGridLayout(probe).contentsMargins()
         grid.setContentsMargins(margins)
         grip_gap = QWidget()
-        grip_gap.setFixedWidth(_Grip().sizeHint().width())
+        grip_gap.setFixedWidth(RowGrip().sizeHint().width())
         text_label = QLabel(TEXT_HEADING)
         text_label.setObjectName("edge_phrase_header_text")
         position_label = QLabel(POSITION_HEADING)
@@ -361,7 +361,7 @@ class EdgePhrasePanel(QWidget):
         frame.setProperty("role", "surface")
         grid = QGridLayout(frame)
 
-        grip = _Grip()
+        grip = RowGrip()
         grip.setObjectName(f"edge_phrase_grip_{position}")
         text_edit = _PhraseEdit(str(value["text"]))
         text_edit.setObjectName(f"edge_phrase_text_{position}")

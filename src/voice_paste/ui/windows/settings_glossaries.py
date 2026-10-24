@@ -91,6 +91,9 @@ NO_PRESET_TEXT: str = "なし"
 PRESET_SEPARATOR: str = "・"
 """使うプリセットの名前を結ぶ区切り。"""
 
+LIST_NOTE_TEXT: str = "消した用語集は、使っているプリセットからも外れる。"
+"""用語集を消したときのプリセットへの影響を示す、用語集追加のボタンの右に出す説明。"""
+
 LEGEND_TEXT: str = "上の行から順に置き換える。オフの行は補正に使わない。"
 """行の順とオン・オフが補正にどう効くかを示す凡例。"""
 
@@ -316,7 +319,13 @@ class GlossaryPanel(QWidget):
         add_button = QPushButton("用語集追加")
         add_button.setObjectName("add_glossary_button")
         add_button.clicked.connect(self.add_glossary)
-        outer.addWidget(add_button, alignment=Qt.AlignmentFlag.AlignLeft)
+        list_note = QLabel(LIST_NOTE_TEXT)
+        list_note.setObjectName("glossary_list_note")
+        list_note.setProperty("role", "muted")
+        list_foot = QHBoxLayout()
+        list_foot.addWidget(add_button)
+        list_foot.addWidget(list_note, 1)
+        outer.addLayout(list_foot)
         detail_frame = QFrame()
         detail_frame.setProperty("role", "surface")
         self._detail_layout = QVBoxLayout(detail_frame)

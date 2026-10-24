@@ -1,0 +1,1 @@
+# PoC: hallucination_silence_threshold で話していない定型句が消えるか

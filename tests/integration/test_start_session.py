@@ -11,8 +11,14 @@ from collections.abc import Callable
 import pytest
 
 from tests.integration.helpers import VOLUME_BEFORE, Stack
+from voice_paste.features.correction import pick_glossary_preset
 from voice_paste.main import SETTINGS_MODEL
-from voice_paste.shared.settings import GlossaryPresetSettings, Settings
+from voice_paste.shared.settings import (
+    GlossaryPresetSettings,
+    Settings,
+    load_settings,
+    save_settings,
+)
 
 BROWSER_REQUEST_HEADERS = [
     pytest.param({"Origin": "http://evil.example"}, id="origin"),
@@ -61,18 +67,21 @@ def test_normal_when_glossary_preset(stack_with_settings: Callable[[Settings], S
         active_glossary_preset="既定",
     )
     stack = stack_with_settings(settings)
+    save_settings(stack.paths.settings_file, settings)
 
     # 実行
     response = stack.post(
         "/sessions", json_body={"callback_url": stack.receiver.url, "glossary_preset": "会議"}
     )
 
-    # 検証
+    # 検証（開始の後に settings.toml を読み直しても、設定で選んでいるプリセットは「既定」のまま）
     assert response.status_code == 202
     assert response.json()["session_id"] == stack.session().id
     assert stack.state() == "recording"
     assert stack.session().glossary_preset == "会議"
-    assert stack.settings.active_glossary_preset == "既定"
+    reloaded = load_settings(stack.paths.settings_file, SETTINGS_MODEL)
+    assert reloaded.active_glossary_preset == "既定"
+    assert pick_glossary_preset(reloaded, stack.paths.settings_file.parent).name == "既定"
 
 
 def test_error_when_glossary_preset_not_found(stack: Stack) -> None:

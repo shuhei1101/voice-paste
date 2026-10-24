@@ -64,9 +64,11 @@ from tests.support.inprocess import (
 )
 from tests.support.real_service import REPO_ROOT, SOURCE_DIR
 from tests.support.resident_app import IDLE, ResidentApp
+from voice_paste.features.correction import pick_glossary_preset
 from voice_paste.integrations.whisper.client import WhisperWorkerClient
+from voice_paste.main import SETTINGS_MODEL
 from voice_paste.shared.errors import TranscriptionError
-from voice_paste.shared.settings import HintPresetSettings
+from voice_paste.shared.settings import HintPresetSettings, load_settings
 
 pytestmark = pytest.mark.real_machine
 
@@ -76,11 +78,28 @@ RunApp = Callable[..., ResidentApp]
 GLOSSARY_FILE_NAME = "e2e.csv"
 """設定で選んでいる用語集の CSV の名前（settings.toml と同じフォルダ）。"""
 
+SECOND_GLOSSARY_FILE_NAME = "second.csv"
+"""設定で選んでいないプリセットが使う用語集の CSV の名前（settings.toml と同じフォルダ）。"""
+
 GLOSSARY_SETTINGS = f'[[glossaries]]\nname = "e2e"\npath = "{GLOSSARY_FILE_NAME}"\n'
 """設定で選んでいる用語集のプリセット。"""
 
 GLOSSARY_ROWS = "誤変換,正しい表記,使う\nテスト,試験,1\n天気,WEATHER,0\n"
 """用語集の行（話す内容で起きる誤変換のオンの行と、別の誤変換のオフの行）。"""
+
+PRESET_GLOSSARY_SETTINGS = (
+    f'[[glossaries]]\nname = "e2e"\npath = "{GLOSSARY_FILE_NAME}"\n'
+    f'\n[[glossaries]]\nname = "second"\npath = "{SECOND_GLOSSARY_FILE_NAME}"\n'
+    '\n[[glossary_presets]]\nname = "既定"\nglossaries = ["e2e"]\n'
+    '\n[[glossary_presets]]\nname = "別"\nglossaries = ["second"]\n'
+)
+"""用語集のプリセットを 2 つ（それぞれ別の用語集を使う）持つ設定。設定で選んでいるプリセットのキーは書かず、1 つ目の「既定」を使う。"""
+
+SECOND_GLOSSARY_ROWS = "誤変換,正しい表記,使う\nこれ,THIS,1\n"
+"""2 つ目の用語集の行（話す内容で起きる、1 つ目の用語集とは別の誤変換のオンの行）。"""
+
+SECOND_CORRECTED_WORD = "THIS"
+"""2 つ目の用語集の行で置き換わった、正しい表記。"""
 
 DELETE_ROW = "ありがとう,,1\n"
 """話す内容に入る文言を誤変換にして、正しい表記を空にしたオンの行（消す行）。"""
@@ -198,6 +217,12 @@ def _put_glossary_with_delete_row(data_dir: Path) -> None:
     (data_dir / GLOSSARY_FILE_NAME).write_text(GLOSSARY_ROWS + DELETE_ROW, encoding="utf-8")
 
 
+def _put_preset_glossaries(data_dir: Path) -> None:
+    """起動の前に、2 つのプリセットがそれぞれ使う用語集の CSV を settings.toml と同じフォルダへ置く。"""
+    (data_dir / GLOSSARY_FILE_NAME).write_text(GLOSSARY_ROWS, encoding="utf-8")
+    (data_dir / SECOND_GLOSSARY_FILE_NAME).write_text(SECOND_GLOSSARY_ROWS, encoding="utf-8")
+
+
 def _ready_count(app: ResidentApp) -> int:
     """文字起こしワーカーが ready になった回数（立て直しを含む）を、ログから数える。"""
     return sum(message.startswith(WORKER_READY_LOG) for message in app.log_messages())
@@ -264,6 +289,37 @@ def test_normal(run_app: RunApp, tmp_path: Path, clipboard_sentinel: str) -> Non
         prepare=_put_glossary_with_delete_row,
         wav_input=wav_input,
         keys=keys,
+    )
+
+
+def test_normal_when_api_glossary_preset(
+    run_app: RunApp, tmp_path: Path, receiver: CallbackReceiver
+) -> None:
+    """API の開始で指定したプリセットの用語集で補正し、設定で選んでいるプリセットの用語集の誤変換は置き換わらずに残り、設定で選んでいるプリセットは変わらない（正常シナリオ（API で指定したプリセットで補正する））。"""
+
+    def case(app: ResidentApp) -> None:
+        """2 つ目のプリセットを指定して API で録音を完了し、届け先・履歴・設定で選んでいるプリセットを確かめる。"""
+        # 実行
+        session_id = app.start_api_session(receiver.url, glossary_preset="別")
+        app.complete_api_session(session_id)
+        app.wait_processed()
+
+        # 検証
+        [payload] = receiver.received
+        assert payload["session_id"] == session_id
+        assert payload["result"] == "transcribed"
+        assert SECOND_CORRECTED_WORD in payload["text"]
+        assert SPEECH_WORD in payload["text"]
+        assert CORRECTED_WORD not in payload["text"]
+        assert app.history_text() == payload["text"]
+        settings = load_settings(app.data_dir / "settings.toml", SETTINGS_MODEL)
+        assert pick_glossary_preset(settings, app.data_dir).name == "既定"
+
+    run_app(
+        case,
+        extra_settings=PRESET_GLOSSARY_SETTINGS,
+        prepare=_put_preset_glossaries,
+        wav_input=speech_input(tmp_path),
     )
 
 

@@ -612,14 +612,17 @@ class InProcessApi:
         return self.http.post(path, json=json_body, headers=merged)
 
     def start_session(
-        self, callback_url: str, *, continuous: bool = False
+        self, callback_url: str, *, continuous: bool = False, glossary_preset: str | None = None
     ) -> tuple[httpx.Response, float]:
-        """API の開始（continuous なら連続録音）を呼び、応答と、応答までにかかったミリ秒を返す。"""
+        """API の開始（continuous なら連続録音。glossary_preset があれば用語集のプリセットを指定）を呼び、応答と、応答までにかかったミリ秒を返す。"""
         started = time.perf_counter()
         body: dict[str, object] = {"callback_url": callback_url}
         # 連続録音のときだけ continuous を指定する（指定しない開始は 1 回の録音）
         if continuous:
             body["continuous"] = True
+        # 用語集のプリセットを指定するときだけ glossary_preset を指定する（指定しない開始は設定で選んでいるプリセット）
+        if glossary_preset is not None:
+            body["glossary_preset"] = glossary_preset
         response = self.post("/sessions", json_body=body)
         return response, (time.perf_counter() - started) * 1000
 

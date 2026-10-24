@@ -189,7 +189,7 @@ class ResidentApp:
         self.port = port
         self.tray: Tray | None = None
         self.hotkeys: FakeHotkeyListener | None = None
-        self.correct: Callable[[str], str] | None = None
+        self.correct: Callable[[str, str | None], str] | None = None
         self.transcribe: partial[str] | None = None
         self.session_manager: SessionManager | None = None
         self.opened_folders: list[Path] = []
@@ -346,12 +346,17 @@ class ResidentApp:
                 authorized=authorized,
             )
 
-    def start_api_session(self, callback_url: str, *, continuous: bool = False) -> str:
-        """API の開始（continuous なら連続録音）を呼び、202 を確かめてセッションの ID を返す。"""
+    def start_api_session(
+        self, callback_url: str, *, continuous: bool = False, glossary_preset: str | None = None
+    ) -> str:
+        """API の開始（continuous なら連続録音。glossary_preset があれば用語集のプリセットを指定）を呼び、202 を確かめてセッションの ID を返す。"""
         body: dict[str, object] = {"callback_url": callback_url}
         # 連続録音のときだけ continuous を指定する（指定しない開始は 1 回の録音）
         if continuous:
             body["continuous"] = True
+        # 用語集のプリセットを指定するときだけ glossary_preset を指定する（指定しない開始は設定で選んでいるプリセット）
+        if glossary_preset is not None:
+            body["glossary_preset"] = glossary_preset
         response = self.post("/sessions", json_body=body)
         assert response.status_code == HTTPStatus.ACCEPTED
         return str(response.json()["session_id"])
@@ -439,10 +444,10 @@ class ResidentApp:
 
     # --- 補正 ---
 
-    def correct_text(self, text: str) -> str:
-        """動いている常駐アプリの補正に文字を渡し、補正した文字を返す（その時点の設定の用語集で補正する）。"""
+    def correct_text(self, text: str, glossary_preset: str | None = None) -> str:
+        """動いている常駐アプリの補正に文字を渡し、補正した文字を返す（その時点の設定で選んでいるプリセットか、指定した用語集のプリセットの用語集で補正する）。"""
         assert self.correct is not None, "常駐アプリの補正がまだ作られていない（エンジンを準備できなかった）"
-        return self.correct(text)
+        return self.correct(text, glossary_preset)
 
     # --- 文字起こしの手がかり ---
 

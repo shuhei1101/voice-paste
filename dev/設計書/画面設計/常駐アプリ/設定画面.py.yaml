@@ -333,6 +333,7 @@ elements:
     visible_when: 用語集ごと
     action: 用語集を一覧と全てのプリセットの使う用語集から消す
     status: planned
+    enabled_when: 用語集が一覧に 2 件以上あるとき。最後の 1 件のボタンは薄くして押しても何も起きないようにし、フォーカスは受けてツールチップ「最後の用語集は消せません」を出す
   - name: 用語集を足すボタン
     id: add_glossary_button
     kind: button

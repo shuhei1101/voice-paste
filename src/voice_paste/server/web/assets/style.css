@@ -297,6 +297,43 @@ progress {
   gap: 8px;
 }
 
+/* 用語集のプリセットの選択欄のまとまり: ラベル・選択欄・補足を縦に積む */
+.preset-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* 選択欄のラベル: 常に見せる */
+.preset-field__label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* 選択欄: 録音開始・ファイル送信と同じ高さにし、スマホで拡大されない文字の大きさにする */
+.preset-field select {
+  width: 100%;
+  max-width: 100%;
+  height: var(--touch-h);
+  font-size: 16px;
+  text-overflow: ellipsis;
+  /* 録音中の押せない選択欄: 地を沈めて文字を補足の色にする */
+  &:disabled {
+    border-color: var(--line);
+    background: var(--sunken);
+    color: var(--text-2);
+    cursor: not-allowed;
+  }
+}
+
+/* 選択欄が変えられない理由 */
+.preset-field__help {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
 /* 録音とファイルの上限 */
 .send-hint {
   margin: 0;
@@ -363,6 +400,16 @@ progress {
 
 /* 送信中の状態: 名前が長くても縮めない */
 .file-sending .kept__state { flex: none; }
+
+/* 送信中のファイルに付けたプリセット: 長い名前は 1 行で省く */
+.file-sending__preset {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text-2);
+}
 
 /* ===== 知らせ ===== */
 

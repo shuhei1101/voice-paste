@@ -22,6 +22,29 @@
       <section class="web-panel" aria-labelledby="send-heading">
         <h2 id="send-heading" data-element="send_heading">音声送信</h2>
 
+        <!-- 用語集のプリセットの選択欄: 録音開始・ファイル送信の上に置く。選択肢は app.js が一覧の取得後に並べる。録音中は押せない -->
+        <div class="preset-field">
+          <label class="preset-field__label" for="preset-select">用語集のプリセット</label>
+          <select id="preset-select" name="glossary_preset" data-element="preset_select"><option value="">設定に従う</option></select>
+          <!-- 録音中の補足: 録音中だけ出す。選択欄が押せない理由 -->
+          <p class="preset-field__help" id="preset-help" data-element="preset_help" hidden>録音中は変更不可</p>
+        </div>
+
+        <!-- 一覧を取得できなかった知らせ: 取得が失敗したときだけ出す。送信は続けられるため注意ではなく知らせの色にする -->
+        <div class="web-notice" role="status" id="preset-fetch-notice" data-element="preset_fetch_notice" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/></svg>
+          <p>プリセットの一覧を取得できませんでした。送信した音声は、PC の設定で選択中のプリセットで補正します。</p>
+        </div>
+
+        <!-- 一覧に無いプリセットのエラー: 選んだプリセットが削除済みで 400 になったときだけ出す。次の送信か録音を始めると消す -->
+        <div class="web-error" role="alert" id="preset-not-found-error" data-element="preset_not_found_error" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>
+          <div>
+            <p class="web-error__title">選択したプリセットが見つかりません</p>
+            <p id="preset-not-found-body"></p>
+          </div>
+        </div>
+
         <!-- 録る・ファイルを選ぶ: 録音中は録音中の表示に替わるため隠す。送信中は押せない（理由は下の送信中の行で読める） -->
         <div class="send-actions" data-element="send_actions">
           <button type="button" class="btn btn--lg btn--primary" id="record-button" data-element="record_button"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle class="fill" cx="12" cy="12" r="6"/></svg>録音開始</button>
@@ -34,6 +57,8 @@
             <span class="file-sending__name" data-element="file_sending_name"></span>
             <span class="kept__state kept__state--busy" role="status" data-element="file_sending_state"><span class="spinner" aria-hidden="true"></span><span id="file-sending-text"></span></span>
           </div>
+          <!-- 送っているファイルに付けたプリセット: ファイル名が長いと省かれるため別の行に出す -->
+          <span class="file-sending__preset" id="file-sending-preset" data-element="file_sending_preset"></span>
           <progress max="100" value="0" aria-label="送信の進捗" id="file-sending-progress" data-element="file_sending_progress"></progress>
         </div>
 

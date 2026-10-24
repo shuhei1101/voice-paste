@@ -24,6 +24,12 @@ const MAX_RESULTS = 10;
 const COPIED_MS = 2000;
 /** 音声と結果を送る・取りに行く API の相対パス（画面は /web/ で開く）。 */
 const API_PATH = 'transcriptions';
+/** 用語集のプリセットの一覧を取りに行く API の相対パス（画面は /web/ で開く）。 */
+const PRESETS_PATH = 'glossary-presets';
+/** 選んだ用語集のプリセットの名前を残す localStorage のキー。 */
+const PRESET_STORAGE_KEY = 'voice-paste.glossary_preset';
+/** 選択欄の「設定に従う」の値。常駐アプリでは指定なしとして扱う。 */
+const FOLLOW_SETTINGS = '';
 /** IndexedDB の名前・ストア・固定のキー。 */
 const DB_NAME = 'voice-paste';
 const DB_STORE = 'kept_audio';
@@ -34,11 +40,17 @@ const RESULTS_STORAGE_KEY = 'voice-paste.results';
 const RECORDED_SOURCE = '画面録音';
 /** 日時の表示に使う時間帯。 */
 const TIME_ZONE = 'Asia/Tokyo';
+/** 送れていない・文字にできていない端末内の音声の状態の表示文言。 */
+const KEPT_ERROR_LABELS = {
+  send_failed: '送信失敗',
+  preset_not_found: '未送信',
+  not_transcribed: '文字起こし前',
+} as const;
 
 // ===== 型 =====
 
 /** 端末内の音声の送信と文字起こしの状態（ER図『ブラウザの端末のデータ』の `state`）。 */
-type KeptState = 'sending' | 'sent' | 'send_failed' | 'not_transcribed';
+type KeptState = 'sending' | 'sent' | 'send_failed' | 'preset_not_found' | 'not_transcribed';
 
 /** IndexedDB に残す、画面で録った直近 1 件の音声（ER図『ブラウザの端末のデータ』）。 */
 interface KeptAudio {
@@ -69,6 +81,12 @@ interface JobStatus {
 /** `POST /web/transcriptions` の 202 の本文。 */
 interface CreatedJob {
   job_id: string;
+}
+
+/** `GET /web/glossary-presets` の 200 の本文。 */
+interface GlossaryPresets {
+  presets: string[];
+  active: string;
 }
 
 /** localStorage に残す結果 1 件（ER図『ブラウザの端末のデータ』）。 */
@@ -106,6 +124,24 @@ interface FileSending {
   name: string;
   size: number;
   percent: number;
+  /** 送信した時点の選択欄の表示文言。 */
+  presetLabel: string;
+}
+
+/** 選んだ用語集のプリセットが一覧に無く、送信が断られたこと。 */
+interface PresetNotFound {
+  /** 断られたプリセットの名前。 */
+  name: string;
+  /** 断られた選んだファイルの名前（画面で録った音声は null）。 */
+  fileName: string | null;
+}
+
+/** 送信に付ける、選択欄の用語集のプリセット。 */
+interface PresetChoice {
+  /** 送る値（「設定に従う」は空文字）。 */
+  value: string;
+  /** 選択欄の表示文言。 */
+  label: string;
 }
 
 /** 画面に出すエラーの見出しと本文。 */
@@ -120,6 +156,15 @@ interface UploadResult {
   body: CreatedJob | null;
 }
 
+/** 音声を送るときの引数。 */
+interface UploadParams {
+  blob: Blob;
+  filename: string;
+  /** 補正に使う用語集のプリセットの名前（「設定に従う」は空文字）。 */
+  glossaryPreset: string;
+  onProgress: (percent: number) => void;
+}
+
 /** 画面の状態。 */
 interface AppState {
   /** 録音中の情報（録音中でなければ null）。 */
@@ -128,6 +173,16 @@ interface AppState {
   kept: KeptAudio | null;
   /** 端末内の音声の送信の進み具合（0〜100）。 */
   keptPercent: number;
+  /** 端末内の音声を送信した時点の選択欄の表示文言。 */
+  keptPresetLabel: string;
+  /** 用語集のプリセットの一覧（取得できていなければ null）。 */
+  presets: GlossaryPresets | null;
+  /** 画面を開いたときの一覧の取得が失敗したか。 */
+  presetFetchFailed: boolean;
+  /** 選んでいる用語集のプリセットの名前（「設定に従う」は空文字）。 */
+  selectedPreset: string;
+  /** 直前の送信が一覧に無いプリセットで断られたこと（無ければ null）。 */
+  presetNotFound: PresetNotFound | null;
   /** 選んだファイルの送信中の情報（送信中でなければ null）。 */
   fileSending: FileSending | null;
   /** 直前の送信か録音の開始の失敗（無ければ null）。 */
@@ -146,6 +201,11 @@ const state: AppState = {
   recording: null,
   kept: null,
   keptPercent: 0,
+  keptPresetLabel: '',
+  presets: null,
+  presetFetchFailed: false,
+  selectedPreset: FOLLOW_SETTINGS,
+  presetNotFound: null,
   fileSending: null,
   sendError: null,
   limitNotice: false,
@@ -310,14 +370,86 @@ function isExpired(iso: string): boolean {
   return Date.now() - new Date(iso).getTime() > RETENTION_MS;
 }
 
+// ===== 用語集のプリセット =====
+
+/** 端末に覚えた用語集のプリセットの名前を読む。無ければ「設定に従う」にする。 */
+function loadStoredPreset(): string {
+  return localStorage.getItem(PRESET_STORAGE_KEY) ?? FOLLOW_SETTINGS;
+}
+
+/** 選んだ用語集のプリセットの名前を端末に覚える。 */
+function saveStoredPreset(name: string): void {
+  localStorage.setItem(PRESET_STORAGE_KEY, name);
+}
+
+/** 用語集のプリセットの一覧を取りに行く。取得できなければ null を返す。 */
+async function fetchPresets(): Promise<GlossaryPresets | null> {
+  try {
+    const response = await fetch(PRESETS_PATH);
+    if (!response.ok) return null;
+    return (await response.json()) as GlossaryPresets;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 取りに行った一覧を取り込み、選択が一覧に無ければ「設定に従う」へ戻す。
+ * 取得できなかったときは、端末に覚えた名前は残して画面の選択だけを「設定に従う」にする。
+ */
+function applyPresets(presets: GlossaryPresets | null): void {
+  state.presets = presets;
+  state.presetFetchFailed = presets === null;
+  if (presets === null) {
+    state.selectedPreset = FOLLOW_SETTINGS;
+    return;
+  }
+  if (state.selectedPreset !== FOLLOW_SETTINGS && !presets.presets.includes(state.selectedPreset)) {
+    state.selectedPreset = FOLLOW_SETTINGS;
+    saveStoredPreset(FOLLOW_SETTINGS);
+  }
+}
+
+/** 選択欄の表示文言。「設定に従う」には設定で選んでいるプリセットの名前を添える。 */
+function presetLabel(name: string): string {
+  if (name !== FOLLOW_SETTINGS) return name;
+  return state.presets === null ? '設定に従う' : `設定に従う（${state.presets.active}）`;
+}
+
+/** 今の選択を、送信に付ける値と表示文言にして返す。 */
+function currentPreset(): PresetChoice {
+  return { value: state.selectedPreset, label: presetLabel(state.selectedPreset) };
+}
+
+/** 一覧に無いプリセットで送信が断られたか（「設定に従う」は指定なしなので断られない）。 */
+function isPresetNotFound(status: number, preset: PresetChoice): boolean {
+  return status === 400 && preset.value !== FOLLOW_SETTINGS;
+}
+
+/** 一覧に無いプリセットで断られたとき、選択を「設定に従う」へ戻して一覧を取り直し、エラーを出す。 */
+async function handlePresetNotFound(notFound: PresetNotFound): Promise<void> {
+  state.selectedPreset = FOLLOW_SETTINGS;
+  saveStoredPreset(FOLLOW_SETTINGS);
+  applyPresets(await fetchPresets());
+  state.presetNotFound = notFound;
+  renderPresetOptions();
+}
+
+/** 一覧に無いプリセットのエラーの本文を作る。 */
+function presetNotFoundBody(notFound: PresetNotFound): string {
+  const deleted = `「${notFound.name}」は PC の設定から削除済みのため、`;
+  const reset = '一覧を取得し直し、「設定に従う」に戻しました。プリセットを確認して、';
+  if (notFound.fileName === null) {
+    return `${deleted}録った音声は未送信です。${reset}再送信してください。`;
+  }
+  return `${deleted}${notFound.fileName} は未送信です。${reset}ファイルを選び直してください。`;
+}
+
 // ===== 送信 =====
 
-/** 音声を multipart の audio で送り、ステータスと本文を返す。届かなければ status を 0 にする。 */
-function upload(
-  blob: Blob,
-  filename: string,
-  onProgress: (percent: number) => void,
-): Promise<UploadResult> {
+/** 音声を multipart の audio と glossary_preset で送り、ステータスと本文を返す。届かなければ status を 0 にする。 */
+function upload(params: UploadParams): Promise<UploadResult> {
+  const { blob, filename, glossaryPreset, onProgress } = params;
   return new Promise((resolve) => {
     const request = new XMLHttpRequest();
     request.open('POST', API_PATH);
@@ -331,6 +463,7 @@ function upload(
     request.onabort = () => resolve({ status: 0, body: null });
     const form = new FormData();
     form.append('audio', blob, filename);
+    form.append('glossary_preset', glossaryPreset);
     request.send(form);
   });
 }
@@ -388,14 +521,25 @@ function addResult(added: { jobId: string; source: string; durationSec: number |
   ensurePolling();
 }
 
-/** 端末内の音声を送る。成功で結果の一覧に待ちの件を足し、失敗で送信失敗にする。 */
+/**
+ * 端末内の音声を、送信した時点の用語集のプリセットの選択で送る。
+ * 成功で結果の一覧に待ちの件を足し、一覧に無いプリセットで断られたら未送信、そのほかの失敗は送信失敗にする。
+ */
 async function sendKept(): Promise<void> {
   const kept = present(state.kept, 'kept');
+  const preset = currentPreset();
   state.keptPercent = 0;
+  state.keptPresetLabel = preset.label;
+  state.presetNotFound = null;
   render();
-  const { status, body } = await upload(kept.blob, `recording.${formatName(kept.mime_type)}`, (percent) => {
-    state.keptPercent = percent;
-    renderKept();
+  const { status, body } = await upload({
+    blob: kept.blob,
+    filename: `recording.${formatName(kept.mime_type)}`,
+    glossaryPreset: preset.value,
+    onProgress: (percent) => {
+      state.keptPercent = percent;
+      renderKept();
+    },
   });
   state.limitNotice = false;
   if (status === 202 && body?.job_id) {
@@ -403,6 +547,10 @@ async function sendKept(): Promise<void> {
     kept.job_id = body.job_id;
     state.sendError = null;
     addResult({ jobId: body.job_id, source: RECORDED_SOURCE, durationSec: kept.duration_sec });
+  } else if (isPresetNotFound(status, preset)) {
+    kept.state = 'preset_not_found';
+    state.sendError = null;
+    await handlePresetNotFound({ name: preset.value, fileName: null });
   } else {
     kept.state = 'send_failed';
     state.sendError = errorForStatus(status, RECORDED_SOURCE, kept.size_bytes, false);
@@ -411,24 +559,33 @@ async function sendKept(): Promise<void> {
   render();
 }
 
-/** 選んだファイルを確かめずにすぐ送る。端末内の音声は置き換えない。 */
+/** 選んだファイルを確かめずに、送信した時点の用語集のプリセットの選択ですぐ送る。端末内の音声は置き換えない。 */
 async function sendFile(file: File): Promise<void> {
   state.sendError = null;
+  state.presetNotFound = null;
   // 本文の上限以上は送らずに断る
   if (file.size >= BODY_LIMIT_BYTES) {
     state.sendError = errorForStatus(413, file.name, file.size, true);
     render();
     return;
   }
-  state.fileSending = { name: file.name, size: file.size, percent: 0 };
+  const preset = currentPreset();
+  state.fileSending = { name: file.name, size: file.size, percent: 0, presetLabel: preset.label };
   render();
-  const { status, body } = await upload(file, file.name, (percent) => {
-    if (state.fileSending) state.fileSending.percent = percent;
-    renderFileSending();
+  const { status, body } = await upload({
+    blob: file,
+    filename: file.name,
+    glossaryPreset: preset.value,
+    onProgress: (percent) => {
+      if (state.fileSending) state.fileSending.percent = percent;
+      renderFileSending();
+    },
   });
   state.fileSending = null;
   if (status === 202 && body?.job_id) {
     addResult({ jobId: body.job_id, source: file.name, durationSec: null });
+  } else if (isPresetNotFound(status, preset)) {
+    await handlePresetNotFound({ name: preset.value, fileName: file.name });
   } else {
     state.sendError = errorForStatus(status, file.name, file.size, true);
   }
@@ -440,6 +597,7 @@ async function sendFile(file: File): Promise<void> {
 /** マイクを開いて録音を始める。開けなければエラーを出す。 */
 async function startRecording(): Promise<void> {
   state.sendError = null;
+  state.presetNotFound = null;
   let stream: MediaStream;
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -572,6 +730,7 @@ async function markNotTranscribed(jobId: string): Promise<void> {
 /** 画面全体を状態に合わせて描き直す。 */
 function render(): void {
   renderSend();
+  renderPreset();
   renderRecording();
   renderFileSending();
   renderKept();
@@ -581,7 +740,10 @@ function render(): void {
 
 /** 端末内の音声が、送れていない・文字にできていない状態か。 */
 function keptNeedsResend(): boolean {
-  return state.kept !== null && ['send_failed', 'not_transcribed'].includes(state.kept.state);
+  return (
+    state.kept !== null &&
+    ['send_failed', 'preset_not_found', 'not_transcribed'].includes(state.kept.state)
+  );
 }
 
 /** 送信中（選んだファイル・端末内の音声）か。 */
@@ -604,6 +766,43 @@ function renderSend(): void {
   const fileInput = $<HTMLInputElement>('file_input');
   fileInput.disabled = sending;
   byId('file-label').setAttribute('aria-disabled', String(sending));
+}
+
+/** 選択欄の選択肢を、取得した一覧に合わせて並べ直す。先頭は「設定に従う」。 */
+function renderPresetOptions(): void {
+  const names = state.presets?.presets ?? [];
+  $<HTMLSelectElement>('preset_select').replaceChildren(
+    ...[FOLLOW_SETTINGS, ...names].map((name) => new Option(presetLabel(name), name)),
+  );
+  renderPreset();
+}
+
+/**
+ * 選択欄の選択・押せるか・補足と知らせを描く。
+ * 選択肢は並べ直さない（開いている途中の選択欄を、結果の取得の描き直しで閉じないため）。
+ */
+function renderPreset(): void {
+  const select = $<HTMLSelectElement>('preset_select');
+  const recording = state.recording !== null;
+  select.value = state.selectedPreset;
+  select.disabled = recording;
+  byId('preset-help').hidden = !recording;
+  byId('preset-fetch-notice').hidden = !state.presetFetchFailed;
+  const notFound = state.presetNotFound;
+  byId('preset-not-found-error').hidden = notFound === null;
+  if (notFound) byId('preset-not-found-body').textContent = presetNotFoundBody(notFound);
+
+  // 押せない理由・取得失敗の知らせ・エラーを、選択欄の読み上げにも伝える
+  const describedBy = [
+    recording ? 'preset-help' : null,
+    state.presetFetchFailed ? 'preset-fetch-notice' : null,
+    notFound ? 'preset-not-found-error' : null,
+  ].filter((id) => id !== null);
+  if (describedBy.length === 0) {
+    select.removeAttribute('aria-describedby');
+  } else {
+    select.setAttribute('aria-describedby', describedBy.join(' '));
+  }
 }
 
 /** 録音中の経過時間・上限までのバー・残り時間を描く。 */
@@ -631,6 +830,7 @@ function renderFileSending(): void {
   byId('file-sending').hidden = sending === null;
   if (!sending) return;
   $('file_sending_name').textContent = `${sending.name}・${formatBytes(sending.size)}`;
+  $('file_sending_preset').textContent = `プリセット「${sending.presetLabel}」`;
   byId('file-sending-text').textContent = `送信中 ${sending.percent}%`;
   $<HTMLProgressElement>('file_sending_progress').value = sending.percent;
 }
@@ -640,9 +840,11 @@ function renderKept(): void {
   const kept = state.kept;
   byId('kept').hidden = kept === null;
   if (!kept) return;
+  // 送信中は、送信した時点の用語集のプリセットを添えて、次に送る音声の選択と分ける
+  const sendingPreset = kept.state === 'sending' ? `・プリセット「${state.keptPresetLabel}」` : '';
   $('kept_meta').textContent =
     `${formatDateTime(kept.recorded_at)} 録音・${formatDuration(kept.duration_sec)}・` +
-    `${formatName(kept.mime_type)}・${formatBytes(kept.size_bytes)}`;
+    `${formatName(kept.mime_type)}・${formatBytes(kept.size_bytes)}${sendingPreset}`;
 
   const stateElement = $('kept_state');
   stateElement.replaceChildren();
@@ -658,10 +860,7 @@ function renderKept(): void {
   } else {
     stateElement.classList.add('kept__state--error');
     stateElement.removeAttribute('role');
-    stateElement.append(
-      iconElement('M12 8v5M12 16v.01', true),
-      kept.state === 'send_failed' ? '送信失敗' : '文字起こし前',
-    );
+    stateElement.append(iconElement('M12 8v5M12 16v.01', true), KEPT_ERROR_LABELS[kept.state]);
   }
 
   const progress = $<HTMLProgressElement>('kept_progress');
@@ -873,6 +1072,10 @@ async function init(): Promise<void> {
     input.value = '';
     if (file) void sendFile(file);
   });
+  $<HTMLSelectElement>('preset_select').addEventListener('change', (event) => {
+    state.selectedPreset = (event.currentTarget as HTMLSelectElement).value;
+    saveStoredPreset(state.selectedPreset);
+  });
   $('download_button').addEventListener('click', downloadKept);
   $('resend_button').addEventListener('click', () => void resendKept());
   $('delete_cancel').addEventListener('click', () => byId<HTMLDialogElement>('delete-dialog').close());
@@ -912,6 +1115,11 @@ async function init(): Promise<void> {
 
   render();
   ensurePolling();
+
+  // 用語集のプリセットの一覧を取りに行き、端末に覚えた選択を戻す（一覧を待つ間も録音とファイル送信は始められる）
+  state.selectedPreset = loadStoredPreset();
+  applyPresets(await fetchPresets());
+  renderPresetOptions();
 }
 
 void init();

@@ -15,7 +15,15 @@ from pathlib import Path
 import pytest
 
 from tests.support.browser import wait_for
-from tests.support.inprocess import encode_audio, make_settings, silence_input
+from tests.support.inprocess import (
+    FIRST_PRESET_NAME,
+    SECOND_PRESET_NAME,
+    encode_audio,
+    make_glossary_preset_settings,
+    make_settings,
+    silence_input,
+    spy_on_correct_presets,
+)
 from tests.support.web_scene import STUB_TEXT, OpenEdge, StartInProcess, build_scene, record_for
 
 pytestmark = pytest.mark.real_machine
@@ -34,6 +42,12 @@ RECORDING_LIMIT_MS = 1_800_000
 
 FAILED_TITLE = "送信失敗"
 """送信が届かなかったときに画面へ出す見出し。"""
+
+PRESET_OPTION_COUNT = 3
+"""用語集のプリセットの選択欄の選択肢の数（既定の項目と、設定の用語集のプリセット 2 つ）。"""
+
+PRESET_NOT_FOUND_TITLE = "選択したプリセットが見つかりません"
+"""選んだ用語集のプリセットが一覧に無いときに画面へ出す見出し。"""
 
 
 def test_normal_when_record_in_page(
@@ -223,3 +237,101 @@ def test_error_when_origin_not_allowed(
     assert "job_id" not in response.json()
     assert app.web_temp_files() == []
     assert [path for path in app.paths.history_dir.rglob("*") if path.is_file()] == []
+
+
+def test_normal_when_select_glossary_preset(
+    start_inprocess: StartInProcess,
+    open_edge: OpenEdge,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """選択欄に既定と設定のプリセットが並び、2 つ目のプリセットを選んで MP3 のファイルを送ると 202 で受け付けられ、補正が選んだプリセットの名前で呼ばれる（正常シナリオ（用語集のプリセットを選ぶ））。"""
+    # 準備: 用語集のプリセットが 2 つあり、補正は受けたプリセットの名前を控える関数に差し替える
+    corrected = spy_on_correct_presets(monkeypatch)
+    scene = build_scene(
+        start_inprocess,
+        open_edge,
+        tmp_path,
+        monkeypatch,
+        stub_text=STUB_TEXT,
+        settings=make_glossary_preset_settings(tmp_path),
+    )
+    assert scene.stub is not None
+    scene.stub.hold()
+    assert wait_for(lambda: len(scene.page.preset_options()) == PRESET_OPTION_COUNT)
+    mp3 = encode_audio(scene.speech_wav, "mp3")
+    scene.page.record_requests()
+    # 実行
+    scene.page.select_preset(SECOND_PRESET_NAME)
+    scene.page.choose_file(mp3, "speech.mp3", "audio/mpeg")
+    arrived = wait_for(lambda: len(scene.page.responses()) == 1 and len(scene.page.results()) == 1)
+    # 検証
+    assert scene.page.preset_options() == [
+        ("", f"設定に従う（{FIRST_PRESET_NAME}）"),
+        (FIRST_PRESET_NAME, FIRST_PRESET_NAME),
+        (SECOND_PRESET_NAME, SECOND_PRESET_NAME),
+    ]
+    assert scene.page.preset_value() == SECOND_PRESET_NAME
+    assert arrived
+    assert scene.page.responses()[0]["status"] == 202
+    job_id = scene.page.stored_results()[0]["job_id"]
+    assert scene.api.get_job(job_id).json()["state"] in ("queued", "running")
+    # 起こし終えた後の補正の控えに、選んだプリセットの名前が残る
+    scene.stub.release.set()
+    assert wait_for(lambda: corrected == [SECOND_PRESET_NAME])
+
+
+def test_error_when_glossary_preset_not_found(
+    start_inprocess: StartInProcess,
+    open_edge: OpenEdge,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """選んだ後に設定から削除されたプリセットで MP3 のファイルを送ると 400 で返り、選択したプリセットが見つからないことが画面に出る。選択欄は取得し直した一覧になり、既定が選ばれる（異常シナリオ（一覧に無いプリセット））。"""
+    # 準備: 用語集のプリセットが 2 つある画面で 2 つ目を選んだ後に、設定から 2 つ目のプリセットを削除する
+    scene = build_scene(
+        start_inprocess,
+        open_edge,
+        tmp_path,
+        monkeypatch,
+        stub_text=STUB_TEXT,
+        settings=make_glossary_preset_settings(tmp_path),
+    )
+    assert wait_for(lambda: len(scene.page.preset_options()) == PRESET_OPTION_COUNT)
+    scene.page.select_preset(SECOND_PRESET_NAME)
+    store = scene.app.handlers.settings_store
+    current = store.get()
+    store.replace(
+        current.model_copy(
+            update={
+                "glossary_presets": [
+                    preset for preset in current.glossary_presets if preset.name != SECOND_PRESET_NAME
+                ]
+            }
+        )
+    )
+    scene.page.record_requests()
+    # 実行
+    scene.page.choose_file(encode_audio(scene.speech_wav, "mp3"), "speech.mp3", "audio/mpeg")
+    arrived = wait_for(lambda: len(scene.page.responses()) == 1)
+    shown = wait_for(lambda: scene.page.preset_not_found_error() is not None)
+    reset = wait_for(lambda: len(scene.page.preset_options()) == PRESET_OPTION_COUNT - 1)
+    # 検証
+    assert arrived
+    response = scene.page.responses()[0]
+    assert response["status"] == 400
+    assert "problem+json" in response["content_type"]
+    assert "job_id" not in response["body"]
+    assert shown
+    error = scene.page.preset_not_found_error()
+    assert error is not None
+    assert error[0] == PRESET_NOT_FOUND_TITLE
+    assert SECOND_PRESET_NAME in error[1]
+    assert scene.page.results() == []
+    assert scene.app.web_temp_files() == []
+    assert reset
+    assert scene.page.preset_options() == [
+        ("", f"設定に従う（{FIRST_PRESET_NAME}）"),
+        (FIRST_PRESET_NAME, FIRST_PRESET_NAME),
+    ]
+    assert scene.page.preset_value() == ""

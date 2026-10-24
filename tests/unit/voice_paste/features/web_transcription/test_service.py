@@ -11,7 +11,7 @@ import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 import pytest
 
@@ -42,7 +42,9 @@ def _audio() -> AudioProbe:
 
 
 def _make_deps(
-    *, transcribe: Callable[..., str] | None = None, correct: Callable[[str], str] | None = None
+    *,
+    transcribe: Callable[..., str] | None = None,
+    correct: Callable[[str, str | None], str] | None = None,
 ) -> WebTranscriptionDeps:
     """呼び出しを覚える Mock の WebTranscriptionDeps を作る。transcribe・correct は差し替えられる。"""
     from voice_paste.features.web_transcription.types import WebTranscriptionDeps
@@ -50,7 +52,7 @@ def _make_deps(
     return WebTranscriptionDeps(
         store_audio=MagicMock(side_effect=lambda job_id, source: source),
         transcribe=MagicMock(side_effect=transcribe or (lambda audio_path, on_progress: TRANSCRIBED)),
-        correct=MagicMock(side_effect=correct or (lambda text: f"補正:{text}")),
+        correct=MagicMock(side_effect=correct or (lambda text, glossary_preset: f"補正:{text}")),
         append_text=MagicMock(),
         discard_temporary=MagicMock(),
     )
@@ -94,7 +96,7 @@ def test_start(tmp_path: Path) -> None:
 
     # 実行: 立ててから音声を積む
     queue.start(tmp_dir)
-    queue.submit("job1", tmp_dir / "job1.webm", _audio())
+    queue.submit("job1", tmp_dir / "job1.webm", _audio(), glossary_preset=None)
     finished = _wait_until(lambda: queue.get("job1").state == JobState.DONE)
     queue.close()
 
@@ -110,13 +112,19 @@ def test_submit() -> None:
     # 準備
     queue = _make_queue(_make_deps())
 
-    # 実行
-    job = queue.submit("job1", Path("job1.webm"), _audio())
+    # 実行: プリセット「会議」を持たせた 1 件と、指定なしの 1 件
+    with_preset = queue.submit("job1", Path("job1.webm"), _audio(), glossary_preset="会議")
+    without_preset = queue.submit("job2", Path("job2.webm"), _audio(), glossary_preset=None)
 
     # 検証
-    assert job.id == "job1"
-    assert job.state == JobState.QUEUED
-    assert queue.get("job1") == job
+    assert with_preset.id == "job1"
+    assert with_preset.state == JobState.QUEUED
+    assert with_preset.glossary_preset == "会議"
+    assert queue.get("job1") == with_preset
+    assert without_preset.id == "job2"
+    assert without_preset.state == JobState.QUEUED
+    assert without_preset.glossary_preset is None
+    assert queue.get("job2") == without_preset
 
 
 def test_submit_when_queue_full() -> None:
@@ -125,12 +133,12 @@ def test_submit_when_queue_full() -> None:
 
     # 準備: 終わっていないジョブの上限が 2 件で、2 件積んである
     queue = _make_queue(_make_deps(), max_pending=2)
-    queue.submit("job1", Path("job1.webm"), _audio())
-    queue.submit("job2", Path("job2.webm"), _audio())
+    queue.submit("job1", Path("job1.webm"), _audio(), glossary_preset=None)
+    queue.submit("job2", Path("job2.webm"), _audio(), glossary_preset=None)
 
     # 実行・検証
     with pytest.raises(WebQueueFullError):
-        queue.submit("job3", Path("job3.webm"), _audio())
+        queue.submit("job3", Path("job3.webm"), _audio(), glossary_preset=None)
     assert queue.get("job1").id == "job1"
     assert queue.get("job2").id == "job2"
     with pytest.raises(WebJobNotFoundError):
@@ -163,7 +171,7 @@ def test_process() -> None:
 
     deps = _make_deps(transcribe=transcribe)
     queue = _make_queue(deps)
-    queue.submit("job1", Path("job1.webm"), _audio())
+    queue.submit("job1", Path("job1.webm"), _audio(), glossary_preset=None)
 
     # 実行
     queue._process("job1")  # noqa: SLF001 ワーカースレッドの本体の 1 件分を直接呼ぶ
@@ -174,6 +182,7 @@ def test_process() -> None:
     assert job.progress == 1.0
     assert job.text == f"補正:{TRANSCRIBED}"
     assert job.error is None
+    assert deps.correct.call_args_list == [call(TRANSCRIBED, None)]
     assert deps.store_audio.call_count == 1
     assert deps.append_text.call_count == 1
     assert deps.discard_temporary.call_count == 1
@@ -192,7 +201,7 @@ def test_process_when_transcription_failed() -> None:
 
     deps = _make_deps(transcribe=transcribe)
     queue = _make_queue(deps)
-    queue.submit("job1", Path("job1.webm"), _audio())
+    queue.submit("job1", Path("job1.webm"), _audio(), glossary_preset=None)
 
     # 実行
     queue._process("job1")  # noqa: SLF001 ワーカースレッドの本体の 1 件分を直接呼ぶ
@@ -212,11 +221,11 @@ def test_process_when_unexpected_error() -> None:
     from voice_paste.features.web_transcription.types import JobState
 
     # 準備: correct が ValueError を送出する
-    def correct(text: str) -> str:
+    def correct(text: str, glossary_preset: str | None) -> str:
         raise ValueError("内部の詳細")
 
     queue = _make_queue(_make_deps(correct=correct))
-    queue.submit("job1", Path("job1.webm"), _audio())
+    queue.submit("job1", Path("job1.webm"), _audio(), glossary_preset=None)
 
     # 実行
     queue._process("job1")  # noqa: SLF001 ワーカースレッドの本体の 1 件分を直接呼ぶ
@@ -235,8 +244,8 @@ def test_process_when_over_finished_limit() -> None:
 
     # 準備: 終わったジョブを持つ件数が 1 件で、2 件を終える
     queue = _make_queue(_make_deps(), max_finished=1)
-    queue.submit("job1", Path("job1.webm"), _audio())
-    queue.submit("job2", Path("job2.webm"), _audio())
+    queue.submit("job1", Path("job1.webm"), _audio(), glossary_preset=None)
+    queue.submit("job2", Path("job2.webm"), _audio(), glossary_preset=None)
 
     # 実行
     queue._process("job1")  # noqa: SLF001 ワーカースレッドの本体の 1 件分を直接呼ぶ
@@ -248,13 +257,32 @@ def test_process_when_over_finished_limit() -> None:
     assert queue.get("job2").state == JobState.DONE
 
 
+def test_process_when_glossary_preset() -> None:
+    """ジョブのプリセットで補正する（正常系）。"""
+    from voice_paste.features.web_transcription.types import JobState
+
+    # 準備: プリセット「会議」のジョブ 1 件。correct は固定の文字を返す
+    deps = _make_deps(correct=lambda text, glossary_preset: "会議で補正した文字")
+    queue = _make_queue(deps)
+    queue.submit("job1", Path("job1.webm"), _audio(), glossary_preset="会議")
+
+    # 実行
+    queue._process("job1")  # noqa: SLF001 ワーカースレッドの本体の 1 件分を直接呼ぶ
+
+    # 検証
+    job = queue.get("job1")
+    assert job.state == JobState.DONE
+    assert job.text == "会議で補正した文字"
+    assert deps.correct.call_args_list == [call(TRANSCRIBED, "会議")]
+
+
 def test_close() -> None:
     """待ちの一時のファイルを消す（正常系）。"""
     # 準備: ワーカースレッドを立てず、queued のジョブが 2 件ある
     deps = _make_deps()
     queue = _make_queue(deps)
-    queue.submit("job1", Path("job1.webm"), _audio())
-    queue.submit("job2", Path("job2.webm"), _audio())
+    queue.submit("job1", Path("job1.webm"), _audio(), glossary_preset=None)
+    queue.submit("job2", Path("job2.webm"), _audio(), glossary_preset=None)
 
     # 実行
     queue.close()
@@ -271,22 +299,33 @@ class _SpyQueue:
 
     def __init__(self, error: Exception | None = None) -> None:
         self.error = error
-        self.calls: list[tuple[str, Path, AudioProbe]] = []
+        self.calls: list[tuple[str, Path, AudioProbe, str | None]] = []
 
-    def submit(self, job_id: str, audio_path: Path, audio: AudioProbe) -> WebJob:
+    def submit(
+        self, job_id: str, audio_path: Path, audio: AudioProbe, glossary_preset: str | None
+    ) -> WebJob:
         """呼び出しを覚えて、queued のジョブを返す。"""
         from voice_paste.features.web_transcription.types import JobState, WebJob
 
         if self.error is not None:
             raise self.error
-        self.calls.append((job_id, audio_path, audio))
-        return WebJob(id=job_id, state=JobState.QUEUED, audio_path=audio_path, audio=audio)
+        self.calls.append((job_id, audio_path, audio, glossary_preset))
+        return WebJob(
+            id=job_id,
+            state=JobState.QUEUED,
+            audio_path=audio_path,
+            audio=audio,
+            glossary_preset=glossary_preset,
+        )
 
 
 def _make_api_deps(
-    tmp_dir: Path, queue: _SpyQueue, probe_error: Exception | None = None
+    tmp_dir: Path,
+    queue: _SpyQueue,
+    probe_error: Exception | None = None,
+    preset_exists: bool = True,
 ) -> WebApiDeps:
-    """submit を覚えるキューと、webm を返す（probe_error があれば送出する）形式の読み取りの WebApiDeps を作る。"""
+    """submit を覚えるキューと、webm を返す（probe_error があれば送出する）形式の読み取りと、preset_exists を返すプリセットの確かめの WebApiDeps を作る。"""
     from voice_paste.features.web_transcription.types import WebApiDeps
 
     tmp_dir.mkdir(parents=True, exist_ok=True)
@@ -294,6 +333,8 @@ def _make_api_deps(
         queue=queue,  # type: ignore[arg-type] 呼ぶのは submit だけ
         probe_audio=MagicMock(return_value=_audio(), side_effect=probe_error),
         tmp_dir=tmp_dir,
+        glossary_preset_exists=MagicMock(return_value=preset_exists),
+        list_glossary_presets=MagicMock(),  # accept_audio は呼ばない
     )
 
 
@@ -314,7 +355,7 @@ def test_accept_audio(tmp_path: Path) -> None:
     assert len(written) == 1
     assert written[0].suffix == ".webm"
     assert written[0].read_bytes() == b"webm-bytes"
-    assert queue.calls == [(written[0].stem, written[0], _audio())]
+    assert queue.calls == [(written[0].stem, written[0], _audio(), None)]
     assert job.id == written[0].stem
     assert len(job.id) == 22
 
@@ -349,4 +390,58 @@ def test_accept_audio_when_queue_full(tmp_path: Path) -> None:
     # 実行・検証
     with pytest.raises(WebQueueFullError):
         accept_audio(io.BytesIO(b"webm-bytes"), deps=deps)
+    assert list(tmp_dir.iterdir()) == []
+
+
+def test_accept_audio_when_glossary_preset(tmp_path: Path) -> None:
+    """一覧にあるプリセットを持たせて積む（正常系）。"""
+    from voice_paste.features.web_transcription.service import accept_audio
+
+    # 準備: 「会議」は今の設定の一覧にある
+    tmp_dir = tmp_path / "web"
+    queue = _SpyQueue()
+    deps = _make_api_deps(tmp_dir, queue, preset_exists=True)
+
+    # 実行
+    job = accept_audio(io.BytesIO(b"webm-bytes"), deps=deps, glossary_preset="会議")
+
+    # 検証
+    assert deps.glossary_preset_exists.call_args_list == [call("会議")]
+    assert [queue_call[3] for queue_call in queue.calls] == ["会議"]
+    assert job.glossary_preset == "会議"
+
+
+def test_accept_audio_when_glossary_preset_empty(tmp_path: Path) -> None:
+    """空文字は指定なしとして積む（正常系）。"""
+    from voice_paste.features.web_transcription.service import accept_audio
+
+    # 準備
+    tmp_dir = tmp_path / "web"
+    queue = _SpyQueue()
+    deps = _make_api_deps(tmp_dir, queue)
+
+    # 実行
+    job = accept_audio(io.BytesIO(b"webm-bytes"), deps=deps, glossary_preset="")
+
+    # 検証
+    assert deps.glossary_preset_exists.call_count == 0
+    assert [queue_call[3] for queue_call in queue.calls] == [None]
+    assert job.glossary_preset is None
+
+
+def test_accept_audio_when_glossary_preset_not_found(tmp_path: Path) -> None:
+    """一覧に無いプリセットは音声を読まずに断る（異常系）。"""
+    from voice_paste.features.web_transcription.service import accept_audio
+    from voice_paste.shared.errors import GlossaryPresetNotFoundError
+
+    # 準備: 「無いプリセット」は今の設定の一覧に無い
+    tmp_dir = tmp_path / "web"
+    queue = _SpyQueue()
+    deps = _make_api_deps(tmp_dir, queue, preset_exists=False)
+
+    # 実行・検証
+    with pytest.raises(GlossaryPresetNotFoundError, match="無いプリセット"):
+        accept_audio(io.BytesIO(b"webm-bytes"), deps=deps, glossary_preset="無いプリセット")
+    assert deps.probe_audio.call_count == 0
+    assert queue.calls == []
     assert list(tmp_dir.iterdir()) == []

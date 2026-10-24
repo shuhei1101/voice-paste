@@ -44,6 +44,8 @@ from voice_paste.shared.errors import TranscriptionError
 from voice_paste.shared.settings import (
     ApiSettings,
     ContinuousSettings,
+    GlossaryPresetSettings,
+    GlossarySettings,
     LocalWhisperSettings,
     Settings,
     TranscriptionSettings,
@@ -577,6 +579,57 @@ def make_settings(
     )
 
 
+FIRST_PRESET_NAME = "既定"
+"""用語集のプリセットの 1 つ目の名前（設定で選んでいるプリセット）。"""
+
+SECOND_PRESET_NAME = "別"
+"""用語集のプリセットの 2 つ目の名前。"""
+
+FIRST_PRESET_CORRECTED_WORD = "試験"
+"""1 つ目のプリセットの用語集が、SPEECH_WORD を置き換える正しい表記。"""
+
+SECOND_PRESET_CORRECTED_WORD = "THIS"
+"""2 つ目のプリセットの用語集が、SPEECH_TEXT の「これ」を置き換える正しい表記。"""
+
+
+def make_glossary_preset_settings(tmp_path: Path) -> Settings:
+    """用語集のプリセットを 2 つ持つ設定を作る。
+
+    2 つのプリセットはそれぞれ別の用語集を使い、書き出した文（SPEECH_TEXT）の別々の言葉を置き換える行を 1 つずつ持つ。
+    設定で選んでいるのは 1 つ目の FIRST_PRESET_NAME。
+    """
+    first_csv = tmp_path / "first.csv"
+    second_csv = tmp_path / "second.csv"
+    first_csv.write_text(f"誤変換,正しい表記\n{SPEECH_WORD},{FIRST_PRESET_CORRECTED_WORD}\n", encoding="utf-8")
+    second_csv.write_text(f"誤変換,正しい表記\nこれ,{SECOND_PRESET_CORRECTED_WORD}\n", encoding="utf-8")
+    return make_settings(only_paste_and_send=True).model_copy(
+        update={
+            "glossaries": [
+                GlossarySettings(name="first", path=first_csv),
+                GlossarySettings(name="second", path=second_csv),
+            ],
+            "glossary_presets": [
+                GlossaryPresetSettings(name=FIRST_PRESET_NAME, glossaries=["first"]),
+                GlossaryPresetSettings(name=SECOND_PRESET_NAME, glossaries=["second"]),
+            ],
+            "active_glossary_preset": FIRST_PRESET_NAME,
+        }
+    )
+
+
+def spy_on_correct_presets(monkeypatch: pytest.MonkeyPatch) -> list[str | None]:
+    """補正を、受けた用語集のプリセットの名前（None は指定なし）を控えて文をそのまま返す関数に差し替える（配線の前でも後でもよい）。"""
+    presets: list[str | None] = []
+
+    def _correct(text: str, glossary_preset: str | None, **_options: Any) -> str:
+        """プリセットの名前を控え、文を補正せずに返す。"""
+        presets.append(glossary_preset)
+        return text
+
+    monkeypatch.setattr(main_module, "_correct", _correct)
+    return presets
+
+
 def free_port() -> int:
     """127.0.0.1 の空きポートを 1 つ返す。"""
     with socket.socket() as probe:
@@ -631,13 +684,20 @@ class InProcessApi:
         return {"Host": f"localhost:{self.port}", **extra}
 
     def post_web_audio(
-        self, data: bytes, *, origin: str | None = None, filename: str = "recording.webm"
+        self,
+        data: bytes,
+        *,
+        origin: str | None = None,
+        filename: str = "recording.webm",
+        glossary_preset: str | None = None,
     ) -> httpx.Response:
-        """音声を multipart の audio で POST /web/transcriptions へ送る。origin が None なら画面と同じオリジンで送る。"""
+        """音声を multipart の audio で POST /web/transcriptions へ送る。origin が None なら画面と同じオリジンで送り、glossary_preset があれば用語集のプリセットの名前を一緒に送る。"""
         headers = self.web_headers(Origin=self.web_origin if origin is None else origin)
+        form = None if glossary_preset is None else {"glossary_preset": glossary_preset}
         return self.http.post(
             "/web/transcriptions",
             files={"audio": (filename, data, "audio/webm")},
+            data=form,
             headers=headers,
         )
 

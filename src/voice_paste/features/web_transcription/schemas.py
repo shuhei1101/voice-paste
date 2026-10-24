@@ -14,6 +14,16 @@ class CreateWebTranscriptionResponse(BaseModel):
     """積んだジョブの ID。"""
 
 
+class WebGlossaryPresetsResponse(BaseModel):
+    """GET /web/glossary-presets の 200 の body。"""
+
+    presets: list[str]
+    """用語集のプリセットの名前の一覧（設定の並びのまま）。"""
+
+    active: str
+    """設定で選んでいるプリセットの名前。"""
+
+
 class WebTranscriptionStatus(BaseModel):
     """GET /web/transcriptions/{job_id} の 200 の body。"""
 

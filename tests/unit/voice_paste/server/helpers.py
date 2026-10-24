@@ -58,6 +58,12 @@ def make_web_client(tmp_dir: Path) -> tuple[TestClient, MagicMock, MagicMock]:
     probe_audio = MagicMock(
         return_value=AudioProbe(container="webm", suffix=".webm", duration_sec=1.0, size_bytes=5)
     )
-    web_api = WebApiDeps(queue=queue, probe_audio=probe_audio, tmp_dir=tmp_dir)
+    web_api = WebApiDeps(
+        queue=queue,
+        probe_audio=probe_audio,
+        tmp_dir=tmp_dir,
+        glossary_preset_exists=MagicMock(return_value=True),
+        list_glossary_presets=MagicMock(),
+    )
     client, _session_manager = _build_client(is_callback_allowed=True, web_api=web_api)
     return client, queue, probe_audio

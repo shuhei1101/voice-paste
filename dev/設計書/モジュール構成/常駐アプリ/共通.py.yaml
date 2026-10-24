@@ -865,7 +865,7 @@ classes:
       | 例外 | 意味 | HTTP |
       | --- | --- | --- |
       | `CallbackNotAllowedError` | 返送先が許されない | 400 |
-      | `GlossaryPresetNotFoundError` | API の開始で指定した用語集のプリセットが一覧に無い（メッセージに指定した名前を含める） | 400 |
+      | `GlossaryPresetNotFoundError` | API の開始かブラウザの音声の受け付けで指定した用語集のプリセットが一覧に無い（メッセージに指定した名前を含める） | 400 |
       | `UnauthorizedError` | トークンが合わない | 401 |
       | `ForbiddenRequestError` | Origin が付いている・Host が違う | 403 |
       | `SessionNotFoundError` | セッションが無い・操作できない状態 | 404 |

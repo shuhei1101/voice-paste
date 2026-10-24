@@ -44,6 +44,10 @@ from tests.support.continuous import (
 from tests.support.hotwords_probe_worker import PROBE_FILE_ENV
 from tests.support.inprocess import (
     PROCESSED_TIMEOUT_SEC,
+    FIRST_PRESET_CORRECTED_WORD,
+    FIRST_PRESET_NAME,
+    SECOND_PRESET_CORRECTED_WORD,
+    SECOND_PRESET_NAME,
     SPEECH_TEXT,
     SPEECH_WORD,
     WORKER_READY_LOG,
@@ -55,6 +59,7 @@ from tests.support.inprocess import (
     encode_audio,
     fail_transcription_of_segment,
     kill_one_worker,
+    make_glossary_preset_settings,
     make_settings,
     silence_input,
     speech_input,
@@ -656,9 +661,9 @@ def _poll_job_until_finished(api: InProcessApi, job_id: str) -> tuple[dict[str, 
     return body, progresses
 
 
-def _post_webm(api: InProcessApi, wav_path: Path) -> str:
-    """WAV を webm にして POST /web/transcriptions へ送り、202 を確かめてジョブの ID を返す。"""
-    response = api.post_web_audio(encode_audio(wav_path, "webm"))
+def _post_webm(api: InProcessApi, wav_path: Path, *, glossary_preset: str | None = None) -> str:
+    """WAV を webm にして POST /web/transcriptions へ送り（glossary_preset があれば用語集のプリセットの名前も送り）、202 を確かめてジョブの ID を返す。"""
+    response = api.post_web_audio(encode_audio(wav_path, "webm"), glossary_preset=glossary_preset)
     assert response.status_code == 202
     return str(response.json()["job_id"])
 
@@ -728,3 +733,25 @@ def test_error_when_browser_audio_transcription_failed(
     assert next_body["text"] == NEXT_TEXT
     assert app.notifications.events == []
     assert app.keys.pasted == []
+
+
+def test_normal_when_browser_glossary_preset(start_inprocess: StartInProcess, tmp_path: Path) -> None:
+    """ブラウザから受けた音声に 2 つ目のプリセットを指定すると、2 つ目のプリセットの用語集の言葉だけが置き換わり、1 つ目の用語集の言葉は残る。設定で選んでいるプリセットは 1 つ目のまま変わらない（正常シナリオ（ブラウザで選んだプリセットで補正する））。"""
+    # 準備: 2 つのプリセットがそれぞれ別の用語集を使い、書き出した文の別々の言葉を置き換える行を 1 つずつ持つ。設定で選んでいるのは 1 つ目
+    wav_path = synthesize_speech(SPEECH_TEXT, tmp_path / "browser_speech.wav")
+    app = start_inprocess(
+        settings=make_glossary_preset_settings(tmp_path), wav_input=silence_input(tmp_path)
+    )
+    api = app.start_web_api()
+
+    # 実行
+    job_id = _post_webm(api, wav_path, glossary_preset=SECOND_PRESET_NAME)
+    body, _ = _poll_job_until_finished(api, job_id)
+
+    # 検証
+    assert body["state"] == "done"
+    assert SECOND_PRESET_CORRECTED_WORD in body["text"]
+    assert SPEECH_WORD in body["text"]
+    assert FIRST_PRESET_CORRECTED_WORD not in body["text"]
+    current = app.handlers.settings_store.get()
+    assert pick_glossary_preset(current, app.paths.settings_file.parent).name == FIRST_PRESET_NAME

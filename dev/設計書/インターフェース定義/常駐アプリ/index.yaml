@@ -21,3 +21,5 @@ items:
     summary: GET /web/transcriptions/{job_id}。ジョブの状態・進み具合と、起こした文字か失敗の理由を返す
   - page: ブラウザの音声を文字に起こす.py.yaml
     summary: 受け付けたブラウザの音声を 1 件ずつ起こして補正し、履歴とジョブに残す
+  - page: 用語集のプリセットの一覧を返す.py.yaml
+    summary: GET /web/glossary-presets。外の端末の画面が選ぶ用語集のプリセットの名前の一覧と、設定で選んでいるプリセットを返す

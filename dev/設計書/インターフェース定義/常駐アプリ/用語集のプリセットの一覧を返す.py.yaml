@@ -1,0 +1,126 @@
+title: "用語集のプリセットの一覧を返す"
+entry:
+  kind: endpoint
+  value: GET /web/glossary-presets
+flows:
+  - name: 正常系
+    summary: 設定の並びのままのプリセットの名前と、設定で選んでいるプリセットの名前を返す
+    setup:
+      - name: Mock
+        description: 設定をテストの一時フォルダの settings.toml から読む
+      - name: 用語集のプリセット
+        description: 設定に用語集のプリセット「既定」「会議」をこの並びで入れ、active_glossary_preset を「会議」にする
+    flow: |-
+      sequenceDiagram
+        participant C as ブラウザ
+        participant IF as GET /web/glossary-presets
+        participant S as 設定
+
+        C->>IF: 要求（Origin 無し）
+        IF->>IF: Host・Origin を確かめる
+        IF->>S: 用語集のプリセットの一覧と選んでいるプリセットを読む
+        IF-->>C: 200・presets・active
+    expected:
+      - 200 で presets が ["既定", "会議"]、active が「会議」
+      - 応答に用語集の名前や中身が含まれていない
+      - 設定で「会議」を消した後に呼ぶと、presets が ["既定"]、active が「既定」
+    test: test_normal
+  - name: 正常系（プリセットの設定が無い）
+    summary: glossary_presets のキーが無い設定では「既定」の 1 件を返す
+    setup:
+      - name: Mock
+        description: 設定をテストの一時フォルダの settings.toml から読む
+      - name: 設定
+        description: glossary_presets と active_glossary_preset のキーが無い settings.toml
+    flow: |-
+      sequenceDiagram
+        participant C as ブラウザ
+        participant IF as GET /web/glossary-presets
+
+        C->>IF: 要求
+        IF-->>C: 200・presets=["既定"]・active="既定"
+    expected:
+      - 200 で presets が ["既定"]、active が「既定」
+    test: test_normal_when_presets_not_configured
+  - name: 異常系（許されていない Origin・403）
+    summary: 許す Origin に無い Origin が付いた要求を断る
+    setup:
+      - name: Mock
+        description: 設定をテストの一時フォルダの settings.toml から読む
+      - name: 要求のヘッダー
+        description: 許す Origin に無い Origin を付ける
+        notes: '`Origin: http://evil.example`'
+    flow: |-
+      sequenceDiagram
+        participant C as ほかのオリジンのページ
+        participant IF as GET /web/glossary-presets
+        participant LOG as ログ
+
+        C->>IF: 要求（許していない Origin）
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書く
+        IF-->>C: 403（problem+json）
+    expected:
+      - 403 の problem+json が返り、プリセットの名前を含まない
+      - ログに断った理由と要求元が書かれている
+    test: test_error_when_origin_not_allowed
+lead: 外の端末の文字起こしの画面が選択欄に並べる、用語集のプリセットの名前の一覧と、設定で選んでいるプリセットの名前を返す。
+identifier: list_web_glossary_presets
+permissions: なし（外からの認証は Cloudflare Access が持つ。常駐アプリは Host と Origin だけを確かめる）
+idempotent: true
+side_effects: なし（設定を読むだけで書き換えない）
+exclusivity: 制限なし（セッションやブラウザの音声の処理中も返す）
+request:
+  - name: Host
+    type: str
+    required: true
+    location: header
+    description: 待ち受けのホスト。ゲートウェイは `localhost:{ポート}` に書き換えて渡す
+    constraints: '`127.0.0.1:{ポート}` か `localhost:{ポート}`'
+    status: planned
+  - name: Origin
+    type: str
+    required: false
+    default: なし（通す）
+    location: header
+    description: ブラウザが付ける要求元。画面と同じオリジンの GET には付かない
+    constraints: 付いていれば設定の許す Origin（api.allowed_web_origins）にあること
+    status: planned
+response:
+  - name: presets
+    type: list[str]
+    description: 用語集のプリセットの名前（`glossary_presets[].name`）の一覧。設定の並びのまま
+    constraints: 1 件以上。`glossary_presets` が空なら「既定」の 1 件
+    example: '["既定", "会議"]'
+    notes: 名前だけを返し、プリセットが使う用語集の名前や中身は返さない
+  - name: active
+    type: str
+    description: 設定で選んでいる用語集のプリセットの名前。glossary_preset を指定しない音声が補正に使うプリセット
+    constraints: presets のどれか。`active_glossary_preset` が無い・一覧に無いときは presets の 1 件目
+    example: 既定
+response_example: |-
+  ```json
+  {
+    "presets": ["既定", "会議"],
+    "active": "既定"
+  }
+  ```
+response_notes: 呼ぶたびに今の設定を読む。設定画面でプリセットを足す・消す・選び直すと、次の呼び出しから変わった内容を返す。
+status_codes:
+  - code: '200'
+    condition: 一覧を返した
+  - code: '403'
+    condition: Host が 127.0.0.1 でも localhost でもないか、Origin が付いていて許す Origin に無い
+error_format: RFC 9457 の `application/problem+json`（`type`・`title`・`status`・`detail`）で返す。今の API の `problem_response` に揃える。
+constraints:
+  - item: 待ち受け
+    constraint: 127.0.0.1 だけ。外からはゲートウェイ（shuhdev-gateway、Cloudflare Access）を通して届く
+  - item: 認可
+    constraint: トークンを求めない。Host が待ち受けのホストで、Origin が無いか許す Origin にあること
+    notes: 文字起こしの結果を返す と同じ守り。画面と同じオリジンの fetch の GET には Origin が付かないため、Origin が無い要求を通す
+  - item: 応答時間
+    constraint: ブラウザの要求の応答時間以内
+    decided_by: dev/設計書/非機能要件/非機能要件#requirements[ブラウザの要求の応答時間]
+  - item: レート制限
+    constraint: 制限なし
+    notes: 画面は開いたときに 1 回だけ呼ぶ
+test_file: tests/integration/test_list_web_glossary_presets.py

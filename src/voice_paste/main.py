@@ -56,7 +56,12 @@ from voice_paste.features.session import (
 )
 from voice_paste.features.session.types import NotifyFn, SessionState
 from voice_paste.features.transcription.service import transcribe
-from voice_paste.features.web_transcription import WebApiDeps, WebJobQueue, WebTranscriptionDeps
+from voice_paste.features.web_transcription import (
+    GlossaryPresetChoices,
+    WebApiDeps,
+    WebJobQueue,
+    WebTranscriptionDeps,
+)
 from voice_paste.integrations.audio.probe import probe_audio
 from voice_paste.integrations.browser.opener import open_app_window
 from voice_paste.integrations.http.client import post_json
@@ -467,7 +472,14 @@ def build_handlers(
         glossary_preset_exists=glossary_preset_exists,
     )
 
-    # 9. ブラウザの文字起こしを配線する（履歴を残すかはそのたびに SettingsStore から引く。ワーカースレッドはまだ立てない）
+    # 9. ブラウザの文字起こしを配線する（履歴を残すかと用語集のプリセットの一覧はそのたびに SettingsStore から引く。ワーカースレッドはまだ立てない）
+    def list_glossary_preset_choices() -> GlossaryPresetChoices:
+        """今の設定の用語集のプリセットの名前の一覧と、設定で選んでいるプリセットの名前を返す。"""
+        settings_dir = paths.settings_file.parent
+        presets = resolve_glossary_presets(store.get(), settings_dir)
+        active = pick_glossary_preset(store.get(), settings_dir)
+        return GlossaryPresetChoices(presets=[preset.name for preset in presets], active=active.name)
+
     def store_web_audio_now(job_id: str, source: Path) -> Path:
         """今の設定で履歴を残すかを引いて、ブラウザの音声を保存する。"""
         return store_web_audio(
@@ -484,13 +496,17 @@ def build_handlers(
             transcribe=partial(
                 transcribe, engine=engine.transcribe, get_hint=partial(_current_hint, store)
             ),
-            correct=partial(correct, glossary_preset=None),
+            correct=correct,
             append_text=partial(append_text, paths=paths),
             discard_temporary=partial(discard_temporary, paths=paths),
         )
     )
     web_api = WebApiDeps(
-        queue=web_queue, probe_audio=probe_audio, tmp_dir=paths.tmp_dir / WEB_TMP_DIR_NAME
+        queue=web_queue,
+        probe_audio=probe_audio,
+        tmp_dir=paths.tmp_dir / WEB_TMP_DIR_NAME,
+        glossary_preset_exists=glossary_preset_exists,
+        list_glossary_presets=list_glossary_preset_choices,
     )
 
     # 10. start_local_session に SessionManager と notify を部分適用する

@@ -18,12 +18,12 @@ elements:
     id: record_button
     kind: button
     position: 音声送信 > 操作
-    description: 画面での録音を始める。MediaRecorder の形式を `isTypeSupported` で webm/opus・mp4・ogg の順に選び、audioBitsPerSecond に画面の録音のビットレートを渡す。マイクの許可はブラウザ標準の確認に任せる。端末内の音声が「送信失敗」「文字起こし前」のときは塗りを外し、主の操作を再送信ボタンへ移す
+    description: 画面での録音を始める。MediaRecorder の形式を `isTypeSupported` で webm/opus・mp4・ogg の順に選び、audioBitsPerSecond に画面の録音のビットレートを渡す。マイクの許可はブラウザ標準の確認に任せる。端末内の音声が「送信失敗」「未送信」「文字起こし前」のときは塗りを外し、主の操作を再送信ボタンへ移す
     label: 録音開始
     visible_when: 録音中でないとき
     enabled_when: 送信中でないとき
     error_message: マイクを開けないときは、音声送信のエラーに「マイク使用不可」「ブラウザのマイクの許可を確認」を出す
-    action: 端末内の音声が「送信失敗」「文字起こし前」なら置換の確認を開く。それ以外（音声が無い・送信済み）なら確かめずに録音を始め、録音中の表示に替える
+    action: 端末内の音声が「送信失敗」「未送信」「文字起こし前」なら置換の確認を開く。それ以外（音声が無い・送信済み）なら確かめずに録音を始め、録音中の表示に替える
     action_ref: dev/設計書/画面設計/常駐アプリ/取り消せない操作の確認.html#
     status: planned
   - name: ファイル送信ボタン
@@ -108,16 +108,16 @@ elements:
     description: 送信の失敗を、見出しと本文で出す（role=alert）。次の送信か録音を始めると消す
     io: 表示
     visible_when: 直前の送信か録音の開始が失敗したとき
-    error_message: '415: 「非対応形式」「{ファイル名} は未送信。対応形式: WAV・MP3・webm・ogg・mp4」。413（送信前に大きさで弾いたときも）: 「ファイルサイズ超過」「{ファイル名}（{大きさ}）は未送信。上限: 100 MB 未満。MP3 等に圧縮して再選択」。届かない・403・503・504・そのほか: 「送信失敗」「PC の voice-paste に接続不可。音声は端末内に保存済み。PC の起動を確認後に再送信」（選んだファイルのときは「音声は端末内に保存済み」を出さない）。マイクを開けない: 「マイク使用不可」「ブラウザのマイクの許可を確認」'
+    error_message: '415: 「非対応形式」「{ファイル名} は未送信。対応形式: WAV・MP3・webm・ogg・mp4」。413（送信前に大きさで弾いたときも）: 「ファイルサイズ超過」「{ファイル名}（{大きさ}）は未送信。上限: 100 MB 未満。MP3 等に圧縮して再選択」。届かない・403・503・504・そのほか（一覧に無いプリセットの 400 は除く。一覧に無いプリセットのエラー に出す）: 「送信失敗」「PC の voice-paste に接続不可。音声は端末内に保存済み。PC の起動を確認後に再送信」（選んだファイルのときは「音声は端末内に保存済み」を出さない）。マイクを開けない: 「マイク使用不可」「ブラウザのマイクの許可を確認」'
     source: 音声を受け付ける の応答のステータス
   - name: 端末内の音声の情報
     id: kept_meta
     kind: label
     position: 音声送信 > 端末内の音声
-    description: 画面で録った直近 1 件の音声の録った日時・長さ・形式・大きさ。見出しは「端末内の音声」
+    description: 画面で録った直近 1 件の音声の録った日時・長さ・形式・大きさ。送信中は、送信した時点の用語集のプリセット（選択欄の表示文言のまま）を末尾に添え、次に送る音声の選択と分ける。見出しは「端末内の音声」
     io: 表示
     visible_when: 端末（IndexedDB）に音声があるとき
-    display_format: '`MM/DD HH:mm 録音・{m:ss}・{形式}・{大きさ}`（例 `10/23 14:05 録音・2:14・webm・540 KB`）'
+    display_format: '`MM/DD HH:mm 録音・{m:ss}・{形式}・{大きさ}`（例 `10/23 14:05 録音・2:14・webm・540 KB`）。送信中は末尾に `・プリセット「{名前}」`'
   - name: 端末内の音声の状態
     id: kept_state
     kind: label
@@ -125,7 +125,7 @@ elements:
     description: その音声の送信と文字起こしの状態。印と文言で分け、色だけに頼らない
     io: 表示
     visible_when: 端末（IndexedDB）に音声があるとき
-    options: 「送信中 {n}%」（送信中）・「送信済み」（202 を受けた後。そのジョブが failed か 404 になるまで）・「送信失敗」（送信が失敗した）・「文字起こし前」（そのジョブが failed か 404）
+    options: 「送信中 {n}%」（送信中）・「送信済み」（202 を受けた後。そのジョブが failed か 404 になるまで）・「送信失敗」（送信が失敗した）・「未送信」（一覧に無いプリセットで 400 になった）・「文字起こし前」（そのジョブが failed か 404）
   - name: 送信の進捗
     id: kept_progress
     kind: progress
@@ -148,9 +148,9 @@ elements:
     id: resend_button
     kind: button
     position: 音声送信 > 端末内の音声
-    description: 端末内の音声をもう一度送信する。このときの主の操作（塗り）。新しい job_id で結果の一覧に待ちの件を足し、失敗した前の件は一覧から外す
+    description: 端末内の音声を、再送信した時点の用語集のプリセットの選択でもう一度送信する。このときの主の操作（塗り）。新しい job_id で結果の一覧に待ちの件を足し、失敗した前の件は一覧から外す
     label: 再送信
-    visible_when: 端末内の音声が「送信失敗」「文字起こし前」のとき
+    visible_when: 端末内の音声が「送信失敗」「未送信」「文字起こし前」のとき
     target: 音声を受け付ける.audio
     action_ref: dev/設計書/インターフェース定義/常駐アプリ/音声を受け付ける.py#
     status: planned
@@ -279,8 +279,62 @@ elements:
     range:
       min: '0'
       max: '100'
+  - name: 用語集のプリセットの選択欄
+    id: preset_select
+    kind: select
+    position: 音声送信 > 用語集のプリセット
+    description: 次に送信する音声の補正に使う用語集のプリセットを選ぶ。録音開始ボタン・ファイル送信ボタンの上に置く。録音停止・送信・ファイル送信・再送信のどれも、送信した時点の選択を送る。送信中も次に送る音声のために変えられる
+    label: 用語集のプリセット
+    io: 入力
+    type: 文字列
+    visible_when: 常時
+    enabled_when: 録音中でないとき
+    required: false
+    initial_value: 端末（localStorage voice-paste.glossary_preset）に覚えた名前が presets にあればその名前。覚えた名前が無い・一覧に無いときは「設定に従う」
+    options: 先頭に「設定に従う（{active}）」（値は空文字。既定）、続けて presets を一覧の並びのまま並べる。一覧を取得できないときは「設定に従う」だけ。複数選択はしない
+    source: 用語集のプリセットの一覧を返す.presets・用語集のプリセットの一覧を返す.active（画面を開いたときに 1 回取得する）
+    target: 音声を受け付ける.glossary_preset（「設定に従う」は空文字）
+    action: 選んだら、その名前を端末（localStorage voice-paste.glossary_preset）に覚える（「設定に従う」は空文字）
+    action_ref: dev/設計書/インターフェース定義/常駐アプリ/用語集のプリセットの一覧を返す.py#
+    status: planned
+  - name: 録音中の選択欄の補足
+    id: preset_help
+    kind: label
+    position: 音声送信 > 用語集のプリセット
+    description: 選択欄が押せない理由。選択欄の aria-describedby で読み上げにも伝える
+    label: 録音中は変更不可
+    visible_when: 録音中
+    status: planned
+  - name: 一覧の取得失敗の知らせ
+    id: preset_fetch_notice
+    kind: label
+    position: 音声送信 > 用語集のプリセット
+    description: 用語集のプリセットの一覧を取得できなかったこと（role=status）。送信は続けられるため、注意ではなく知らせの色にする。取得し直すのは画面を開き直したとき。選択欄の aria-describedby で読み上げにも伝える
+    label: プリセットの一覧を取得できませんでした。送信した音声は、PC の設定で選択中のプリセットで補正します。
+    visible_when: 画面を開いたときの一覧の取得が失敗したとき（届かない・403・5xx）
+    source: 用語集のプリセットの一覧を返す の応答のステータス
+    status: planned
+  - name: 一覧に無いプリセットのエラー
+    id: preset_not_found_error
+    kind: label
+    position: 音声送信 > 用語集のプリセット
+    description: 選んだプリセットが PC の設定から削除済みで、音声を受け付ける が 400 を返したことを、見出しと本文で選択欄のすぐ下に出す（role=alert）。glossary_preset を付けた送信の 400 をこのエラーとして扱う。出す前に一覧を取得し直し、選択と端末に覚えた名前を「設定に従う」へ戻す。録った音声は端末内の音声に「未送信」で残る。次の送信か録音を始めると消す
+    visible_when: 直前の送信が一覧に無いプリセットで 400 になったとき
+    error_message: '見出しは「選択したプリセットが見つかりません」。選んだファイル: 「「{名前}」は PC の設定から削除済みのため、{ファイル名} は未送信です。一覧を取得し直し、「設定に従う」に戻しました。プリセットを確認して、ファイルを選び直してください。」。録った音声: 「「{名前}」は PC の設定から削除済みのため、録った音声は未送信です。一覧を取得し直し、「設定に従う」に戻しました。プリセットを確認して、再送信してください。」'
+    source: 音声を受け付ける の応答のステータス
+    action_ref: dev/設計書/インターフェース定義/常駐アプリ/用語集のプリセットの一覧を返す.py#
+    status: planned
+  - name: 送信中のファイルのプリセット
+    id: file_sending_preset
+    kind: label
+    position: 音声送信 > ファイルの送信中
+    description: 送っているファイルに付けた用語集のプリセット。送信した時点の選択欄の表示文言をそのまま出し、次に送る音声の選択と分ける。ファイル名が長いと省かれるため、送信中のファイル名とは別の行に出す
+    io: 表示
+    visible_when: 選んだファイルを送信している間
+    display_format: プリセット「{名前}」（例 プリセット「下書き」）
+    status: planned
 screen: src/voice_paste/server/web/index.html
-mock: dev/mock/pages/web-transcription/171/a-standard/
+mock: dev/mock/pages/web-transcription/180/a-follow-settings/
 lead: 外の端末のブラウザで開く 1 枚（`GET /web/`）。上に音声送信の区画、下に結果の一覧を 1 カラムで並べる。
 refs:
   - dev/設計書/シナリオ/単一ユースケース/ブラウザから音声を送る#

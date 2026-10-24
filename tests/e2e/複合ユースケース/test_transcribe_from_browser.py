@@ -18,7 +18,13 @@ import pytest
 
 from tests.support.browser import wait_for
 from tests.support.inprocess import (
+    FIRST_PRESET_CORRECTED_WORD,
+    FIRST_PRESET_NAME,
+    SECOND_PRESET_CORRECTED_WORD,
+    SECOND_PRESET_NAME,
+    SPEECH_WORD,
     encode_audio,
+    make_glossary_preset_settings,
     make_settings,
     silence_input,
     speech_input,
@@ -30,6 +36,7 @@ from tests.support.web_scene import (
     build_scene,
     record_for,
 )
+from voice_paste.features.correction import pick_glossary_preset
 from voice_paste.shared.errors import TranscriptionError
 
 pytestmark = pytest.mark.real_machine
@@ -60,6 +67,9 @@ TRANSCRIPTION_ERROR_TEXT = "文字起こしに失敗させた"
 
 FAILED_STATUS = "文字起こし失敗"
 """文字起こしが失敗した件の状態の文言。"""
+
+PRESET_OPTION_COUNT = 3
+"""用語集のプリセットの選択欄の選択肢の数（既定の項目と、設定の用語集のプリセット 2 つ）。"""
 
 
 def _put_glossary(tmp_path: Path) -> None:
@@ -247,3 +257,38 @@ def test_error_when_origin_not_allowed(
     assert "job_id" not in response.json()
     assert app.web_temp_files() == []
     assert [path for path in app.paths.history_dir.rglob("*") if path.is_file()] == []
+
+
+def test_normal_when_select_glossary_preset(
+    start_inprocess: StartInProcess,
+    open_edge: OpenEdge,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """2 つ目のプリセットを選んで MP3 のファイルを送ると、結果の先頭に 2 つ目のプリセットの用語集で補正した文字が出る。1 つ目の用語集の言葉は置き換わらず、設定で選んでいるプリセットは変わらない（正常シナリオ（用語集のプリセットを選んで送る））。"""
+    # 準備: 用語集のプリセットが 2 つあり、それぞれが別の用語集を使う。設定で選んでいるのは 1 つ目
+    scene = build_scene(
+        start_inprocess,
+        open_edge,
+        tmp_path,
+        monkeypatch,
+        settings=make_glossary_preset_settings(tmp_path),
+    )
+    assert wait_for(lambda: len(scene.page.preset_options()) == PRESET_OPTION_COUNT)
+
+    # 実行
+    scene.page.select_preset(SECOND_PRESET_NAME)
+    scene.page.choose_file(encode_audio(scene.speech_wav, "mp3"), "speech.mp3", "audio/mpeg")
+    done = wait_for(
+        lambda: bool(scene.page.results())
+        and SECOND_PRESET_CORRECTED_WORD in scene.page.results()[0]["text"],
+        RESULT_TIMEOUT_SEC,
+    )
+
+    # 検証
+    assert done
+    text = scene.page.results()[0]["text"]
+    assert SPEECH_WORD in text
+    assert FIRST_PRESET_CORRECTED_WORD not in text
+    current = scene.app.handlers.settings_store.get()
+    assert pick_glossary_preset(current, scene.app.paths.settings_file.parent).name == FIRST_PRESET_NAME

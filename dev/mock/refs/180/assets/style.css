@@ -1,0 +1,37 @@
+/* ===== PR 180 の画面モック: 外の端末の文字起こしの画面の用語集のプリセットの選択欄（refs/37・refs/171 の style.css に重ねる） ===== */
+
+/* 選択欄のまとまり: ラベル・選択欄・補足を縦に積む */
+.preset-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* 選択欄のラベル: 常に見せる */
+.preset-field__label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* 選択欄: 録音開始・ファイル送信と同じ高さにし、スマホで拡大されない文字の大きさにする */
+.preset-field select {
+  width: 100%;
+  max-width: 100%;
+  height: var(--touch-h);
+  font-size: 16px;
+  text-overflow: ellipsis;
+  &:disabled {
+    border-color: var(--line);
+    background: var(--sunken);
+    color: var(--text-2);
+    cursor: not-allowed;
+  }
+}
+
+/* 変えられない理由 */
+.preset-field__help {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-2);
+}

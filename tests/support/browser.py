@@ -369,6 +369,43 @@ class BrowserPage:
         )
         return None if value is None else str(value)
 
+    def preset_options(self) -> list[tuple[str, str]]:
+        """用語集のプリセットの選択欄の選択肢を、値と表示文言の組で、並びのまま返す。"""
+        value = self.evaluate(
+            """JSON.stringify([...document.getElementById('preset-select').options].map(
+              (option) => [option.value, option.text],
+            ))"""
+        )
+        return [(str(option_value), str(text)) for option_value, text in json.loads(value)]
+
+    def preset_value(self) -> str:
+        """用語集のプリセットの選択欄で選ばれている値を返す（「設定に従う」は空文字）。"""
+        return str(self.evaluate("document.getElementById('preset-select').value"))
+
+    def select_preset(self, value: str) -> None:
+        """用語集のプリセットの選択欄で、value の選択肢を選んだ操作をする。"""
+        self.evaluate(
+            f"""(() => {{
+              const select = {self.element('preset_select')};
+              select.value = {json.dumps(value)};
+              select.dispatchEvent(new Event('change'));
+            }})()""",
+            user_gesture=True,
+        )
+
+    def preset_not_found_error(self) -> tuple[str, str] | None:
+        """一覧に無いプリセットのエラーの見出しと本文を返す。出ていなければ None。"""
+        value = self.evaluate(
+            """document.getElementById('preset-not-found-error').hidden ? null : JSON.stringify([
+              document.querySelector('#preset-not-found-error .web-error__title').textContent,
+              document.getElementById('preset-not-found-body').textContent,
+            ])"""
+        )
+        if value is None:
+            return None
+        title, body = json.loads(value)
+        return str(title), str(body)
+
     # === 端末の保存 ===
 
     def kept_audio(self) -> dict[str, Any] | None:

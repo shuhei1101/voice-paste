@@ -4,10 +4,10 @@ directory: |-
   ```
   src/voice_paste/features/web_transcription/
   ├── __init__.py   # WebJobQueue・accept_audio・router の公開
-  ├── types.py      # ジョブの状態・ジョブ・ほかの feature を受け取る関数型・API の依存
+  ├── types.py      # ジョブの状態・ジョブ・用語集のプリセットの選択肢・ほかの feature を受け取る関数型・API の依存
   ├── service.py    # WebJobQueue（ジョブの一覧とワーカースレッド）・accept_audio（受け付け）
   ├── schemas.py    # API のレスポンス
-  └── route.py      # POST /web/transcriptions・GET /web/transcriptions/{job_id}
+  └── route.py      # POST /web/transcriptions・GET /web/transcriptions/{job_id}・GET /web/glossary-presets
   ```
 diagrams:
   - name: 全体
@@ -16,12 +16,16 @@ diagrams:
       classDiagram
         direction LR
         class ブラウザの文字起こしのroute
+        class 用語集のプリセットの一覧のroute
         class 音声の受け付け
         class ブラウザの音声のキュー
         class ジョブ
         class ブラウザの文字起こしの依存
+        class ブラウザの API の依存
         ブラウザの文字起こしのroute --> 音声の受け付け : 受け付け
         ブラウザの文字起こしのroute --> ブラウザの音声のキュー : 引く
+        用語集のプリセットの一覧のroute --> ブラウザの API の依存 : 一覧を引く
+        音声の受け付け --> ブラウザの API の依存 : プリセットを確かめる
         音声の受け付け --> ブラウザの音声のキュー : 積む
         ブラウザの音声のキュー --> ジョブ : 持つ（0..*）
         ブラウザの音声のキュー --> ブラウザの文字起こしの依存 : 呼ぶ
@@ -78,6 +82,10 @@ data_models:
         type: str | None
         default: None
         description: failed のときの失敗の理由
+      - name: glossary_preset
+        type: str | None
+        default: None
+        description: 受け付けの時点で指定された用語集のプリセットの名前。None は指定なし（補正の時点で設定で選んでいるプリセットを使う）
     status: planned
   - name: WebTranscriptionDeps
     title: ブラウザの文字起こしの依存
@@ -94,7 +102,7 @@ data_models:
         description: 音声を起こす（セッションと同じ文字起こしワーカーを、今のロックで順番に使う）
       - name: correct
         type: CorrectFn
-        description: 用語集と文頭・文末の文言で補正する
+        description: 用語集のプリセットの名前（None は設定で選んでいるプリセット）の用語集と、文頭・文末の文言で補正する
       - name: append_text
         type: AppendTextFn
         description: 履歴の音声と同じ名前の .txt に書く
@@ -118,6 +126,12 @@ data_models:
       - name: tmp_dir
         type: Path
         description: 受けた音声を書く一時のフォルダ（`{AppPaths.tmp_dir}/web`）
+      - name: glossary_preset_exists
+        type: GlossaryPresetExistsFn
+        description: 指定された用語集のプリセットの名前が今の設定の一覧にあるか
+      - name: list_glossary_presets
+        type: ListGlossaryPresetsFn
+        description: 今の設定の用語集のプリセットの名前の一覧と、設定で選んでいるプリセットの名前を返す
     status: planned
   - name: CreateWebTranscriptionResponse
     title: 音声の受け付けのレスポンス
@@ -155,6 +169,39 @@ data_models:
         type: str | None
         description: failed のときの失敗の理由
     status: planned
+  - name: GlossaryPresetChoices
+    title: 用語集のプリセットの選択肢
+    container: features/web_transcription/types.py
+    usecase: 用語集のプリセットを選んで送る
+    role: DTO
+    summary: 画面の選択欄に並べるプリセットの名前の一覧と、設定で選んでいるプリセットの名前（frozen）
+    properties:
+      - name: presets
+        type: list[str]
+        description: 用語集のプリセットの名前の一覧（設定の並びのまま。1 件以上）
+      - name: active
+        type: str
+        description: 設定で選んでいるプリセットの名前（presets のどれか）
+    status: planned
+    introduced:
+      pr: 180
+  - name: WebGlossaryPresetsResponse
+    title: 用語集のプリセットの一覧のレスポンス
+    container: features/web_transcription/schemas.py
+    usecase: 用語集のプリセットを選んで送る
+    role: スキーマ
+    summary: '`GET /web/glossary-presets` の 200 の本文'
+    inherits: pydantic.BaseModel
+    properties:
+      - name: presets
+        type: list[str]
+        description: 用語集のプリセットの名前の一覧（設定の並びのまま）
+      - name: active
+        type: str
+        description: 設定で選んでいるプリセットの名前
+    status: planned
+    introduced:
+      pr: 180
 function_types:
   - name: StoreWebAudioFn
     title: 受けた音声の保存
@@ -182,12 +229,12 @@ function_types:
     title: 補正
     container: features/web_transcription/types.py
     usecase: 共通
-    summary: 起こした文字を、今の設定の用語集と文頭・文末の文言で補正して返す
+    summary: 起こした文字と用語集のプリセットの名前（None は補正の時点で設定で選んでいるプリセット）を受け、そのプリセットの用語集と文頭・文末の文言で補正して返す。設定から消えた名前は設定で選んでいるプリセットで補正する
     returns:
       type: str
       description: 補正した文字
     implementations:
-      - target: main.py の _correct（セッションと同じ）
+      - target: main.py の build_handlers の correct（セッションと同じ）
     status: planned
   - name: AppendTextFn
     title: 起こした文字の書き足し
@@ -222,6 +269,32 @@ function_types:
     implementations:
       - target: 外部連携の probe_audio
     status: planned
+  - name: GlossaryPresetExistsFn
+    title: 用語集のプリセットの確かめ
+    container: features/web_transcription/types.py
+    usecase: 用語集のプリセットを選んで送る
+    summary: 用語集のプリセットの名前を受け、今の設定の一覧にあるかを返す（大文字と小文字を区別する）
+    returns:
+      type: bool
+      description: 一覧にあれば True
+    implementations:
+      - target: main.py の build_handlers の glossary_preset_exists（SessionApiDeps と同じ）
+    status: planned
+    introduced:
+      pr: 180
+  - name: ListGlossaryPresetsFn
+    title: 用語集のプリセットの一覧の取得
+    container: features/web_transcription/types.py
+    usecase: 用語集のプリセットを選んで送る
+    summary: 引数を受けず、呼んだ時点の設定の用語集のプリセットの名前の一覧と、設定で選んでいるプリセットの名前を返す
+    returns:
+      type: GlossaryPresetChoices
+      description: プリセットの選択肢
+    implementations:
+      - target: main.py の build_handlers の list_glossary_preset_choices
+    status: planned
+    introduced:
+      pr: 180
 classes:
   - name: WebJobQueue
     title: ブラウザの音声のキュー
@@ -314,14 +387,18 @@ classes:
             type: AudioProbe
             required: true
             description: 読んだ形式
+          - name: glossary_preset
+            type: str | None
+            required: true
+            description: 確かめ済みの用語集のプリセットの名前。None は指定なし
         returns:
           type: WebJob
           description: 積んだジョブ（state は queued）
         process: |-
           1. ロックを取る
           2. 終わっていないジョブ（queued・running）の数が _max_pending 以上なら WebQueueFullError を送出する
-          3. ジョブを作って _jobs に入れ、待ち行列に ID を積む
-             - `[INFO]` 音声を受け付けた（job_id・大きさ・形式・秒数）
+          3. glossary_preset を持たせたジョブを作って _jobs に入れ、待ち行列に ID を積む
+             - `[INFO]` 音声を受け付けた（job_id・大きさ・形式・秒数・用語集のプリセット。指定なしは「設定に従う」）
         exceptions:
           - name: WebQueueFullError
             condition: 終わっていないジョブが上限に達している
@@ -331,7 +408,7 @@ classes:
             summary: queued で積む
             condition: ジョブが無い
             mock: WebTranscriptionDeps の全関数（ワーカースレッドは立てない）
-            expected: queued のジョブが返り、get で同じジョブが引ける
+            expected: queued のジョブが返り、get で同じジョブが引ける。glossary_preset に「会議」を渡したジョブは glossary_preset が「会議」、None を渡したジョブは None
           - name: test_submit_when_queue_full
             case: 異常
             summary: 上限で断る
@@ -398,7 +475,7 @@ classes:
           1. ジョブを running にする
           2. 受けた音声を保存する（store_audio。履歴を残す設定なら履歴へ移し、audio_path を差し替える）
           3. 起こす（transcribe。進みは progress に書く）
-          4. 補正する（correct）
+          4. ジョブの glossary_preset で補正する（correct。None なら補正の時点で設定で選んでいるプリセット）
           5. 起こした文字を履歴に書き足す（append_text）
           6. ジョブを done・progress 1.0・text で終える
              - `[INFO]` 起こし終えた（job_id・秒数・文字数。起こした文字は書かない）
@@ -414,7 +491,7 @@ classes:
             summary: 起こして補正し、done で終える
             condition: queued のジョブ 1 件。transcribe が進み 0.5 を知らせて文を返す
             mock: WebTranscriptionDeps の全関数
-            expected: ジョブが done・progress 1.0・text は correct の戻り値で、store_audio・append_text・discard_temporary が 1 回ずつ呼ばれる。transcribe の途中に get すると running・progress 0.5
+            expected: ジョブが done・progress 1.0・text は correct の戻り値で、correct が起こした文字と None で呼ばれ、store_audio・append_text・discard_temporary が 1 回ずつ呼ばれる。transcribe の途中に get すると running・progress 0.5
           - name: test_process_when_transcription_failed
             case: 異常
             summary: 失敗は failed で終えて次へ進む
@@ -433,6 +510,12 @@ classes:
             condition: _max_finished=1 で 2 件を終える
             mock: WebTranscriptionDeps の全関数
             expected: 先に終えたジョブの get が WebJobNotFoundError、後のジョブは done
+          - name: test_process_when_glossary_preset
+            case: 正常
+            summary: ジョブのプリセットで補正する
+            condition: glossary_preset が「会議」の queued のジョブ 1 件
+            mock: WebTranscriptionDeps の全関数
+            expected: correct が起こした文字と「会議」で呼ばれ、ジョブが done・text は correct の戻り値
       - name: close
         title: 終了
         kind: メソッド
@@ -460,7 +543,7 @@ functions:
     container: features/web_transcription/service.py
     usecase: ブラウザから音声を送る
     scope: public
-    summary: 受けた音声の形式を確かめ、一時のファイルへ書いてジョブを積む
+    summary: 指定された用語集のプリセットと受けた音声の形式を確かめ、一時のファイルへ書いてジョブを積む
     args:
       - name: file
         type: BinaryIO
@@ -472,14 +555,23 @@ functions:
         required: true
         passing: keyword
         description: キュー・形式の読み取り・一時のフォルダ
+      - name: glossary_preset
+        type: str | None
+        required: false
+        default: None
+        passing: keyword
+        description: multipart の glossary_preset。None と空文字は指定なし
     returns:
       type: WebJob
       description: 積んだジョブ
     process: |-
-      1. 音声の形式を読む（probe_audio。読めなければ AudioUnreadableError が伝わる）
+      1. glossary_preset が空文字なら None にする
+      2. None でなく、glossary_preset_exists が False なら GlossaryPresetNotFoundError を送出する（音声は読まず、書かない。メッセージに指定した名前を含める）
+         - `[WARNING]` 用語集のプリセットが無いため断った（指定した名前）
+      3. 音声の形式を読む（probe_audio。読めなければ AudioUnreadableError が伝わる）
          - `[WARNING]` 読めない音声を断った（大きさ・理由）
-      2. ID を作り、`{tmp_dir}/{ID}{容れ物の拡張子}` へ頭から写す
-      3. キューに積む（submit）
+      4. ID を作り、`{tmp_dir}/{ID}{容れ物の拡張子}` へ頭から写す
+      5. glossary_preset と共にキューに積む（submit）
          - WebQueueFullError の場合、写した一時のファイルを消してそのまま送出する
            - `[WARNING]` 待ちが上限のため断った（待ちの数）
     exceptions:
@@ -487,13 +579,15 @@ functions:
         condition: PyAV で開けないか、音声のストリームが無い
       - name: WebQueueFullError
         condition: 終わっていないジョブが上限に達している
+      - name: GlossaryPresetNotFoundError
+        condition: 指定した用語集のプリセットが今の設定の一覧に無い
     unit_tests:
       - name: test_accept_audio
         case: 正常
         summary: 容れ物の拡張子で書いて積む
         condition: probe_audio が webm を返す
         mock: probe_audio・WebJobQueue.submit
-        expected: tmp_dir に `{ID}.webm` が送った中身で書かれ、submit がそのパスで呼ばれる
+        expected: tmp_dir に `{ID}.webm` が送った中身で書かれ、submit がそのパスと glossary_preset None で呼ばれる
       - name: test_accept_audio_when_unreadable
         case: 異常
         summary: 読めなければ書かない
@@ -508,6 +602,25 @@ functions:
         mock: probe_audio・WebJobQueue.submit
         expected: WebQueueFullError が伝わり、tmp_dir が空
         exception: 終わっていないジョブが上限に達している
+      - name: test_accept_audio_when_glossary_preset
+        case: 正常
+        summary: 一覧にあるプリセットを持たせて積む
+        condition: glossary_preset に「会議」、glossary_preset_exists が True を返す
+        mock: probe_audio・glossary_preset_exists・WebJobQueue.submit
+        expected: glossary_preset_exists が「会議」で呼ばれ、submit が glossary_preset「会議」で呼ばれる
+      - name: test_accept_audio_when_glossary_preset_empty
+        case: 正常
+        summary: 空文字は指定なしとして積む
+        condition: glossary_preset に空文字
+        mock: probe_audio・glossary_preset_exists・WebJobQueue.submit
+        expected: glossary_preset_exists が呼ばれず、submit が glossary_preset None で呼ばれる
+      - name: test_accept_audio_when_glossary_preset_not_found
+        case: 異常
+        summary: 一覧に無いプリセットは音声を読まずに断る
+        condition: glossary_preset に「無いプリセット」、glossary_preset_exists が False を返す
+        mock: probe_audio・glossary_preset_exists・WebJobQueue.submit
+        expected: GlossaryPresetNotFoundError が送出され、メッセージに「無いプリセット」を含む。probe_audio・submit が呼ばれず、tmp_dir が空
+        exception: 指定した用語集のプリセットが今の設定の一覧に無い
     status: planned
   - name: create_web_transcription_route
     title: 音声の受け付けの route
@@ -515,7 +628,7 @@ functions:
     container: features/web_transcription/route.py
     usecase: ブラウザから音声を送る
     scope: public
-    summary: '`POST /web/transcriptions`。UploadFile の audio を accept_audio に渡し、202 と job_id を返す'
+    summary: '`POST /web/transcriptions`。UploadFile の audio と glossary_preset を accept_audio に渡し、202 と job_id を返す'
     args:
       - name: audio
         type: UploadFile
@@ -527,11 +640,17 @@ functions:
         required: true
         passing: injected
         description: app.state.web_api（get_web_api_deps）
+      - name: glossary_preset
+        type: Annotated[str | None, Form()]
+        required: false
+        default: None
+        passing: positional
+        description: multipart の glossary_preset（文字の項目）
     returns:
       type: CreateWebTranscriptionResponse
       description: 202 の本文
     process: |-
-      1. accept_audio に audio.file と依存を渡す（例外は例外ハンドラが HTTP に変える）
+      1. accept_audio に audio.file・glossary_preset・依存を渡す（例外は例外ハンドラが HTTP に変える。GlossaryPresetNotFoundError は 400）
       2. job_id を返す
     status: planned
   - name: get_web_transcription_route
@@ -576,6 +695,28 @@ functions:
       type: WebApiDeps
       description: 依存
     status: planned
+  - name: get_web_glossary_presets_route
+    title: 用語集のプリセットの一覧の route
+    container: features/web_transcription/route.py
+    usecase: 用語集のプリセットを選んで送る
+    summary: '`GET /web/glossary-presets`。list_glossary_presets で引いた名前の一覧と設定で選んでいるプリセットの名前を返す'
+    kind: 関数
+    scope: public
+    args:
+      - name: deps
+        type: WebApiDeps
+        required: true
+        passing: injected
+        description: app.state.web_api（get_web_api_deps）
+    returns:
+      type: WebGlossaryPresetsResponse
+      description: 200 の本文
+    process: |-
+      1. list_glossary_presets で今の設定の選択肢を引く
+      2. presets・active を返す（Host・Origin の守りは要求の守りのミドルウェアが `/web/` の下として持つ）
+    status: planned
+    introduced:
+      pr: 180
 constants:
   - name: WEB_QUEUE_LIMIT
     title: ブラウザの音声の待ちの上限

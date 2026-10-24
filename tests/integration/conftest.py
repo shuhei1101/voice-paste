@@ -76,6 +76,7 @@ def web_stack(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Calla
         max_pending: int = WEB_QUEUE_LIMIT,
         max_finished: int = WEB_FINISHED_JOBS_KEPT,
         body_limit: int | None = None,
+        settings: Settings | None = None,
     ) -> Stack:
         """設定を差し替えた一式を作り、後片付けの対象に覚える。"""
         if body_limit is not None:
@@ -92,6 +93,7 @@ def web_stack(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Calla
             web_worker=worker,
             web_max_pending=max_pending,
             web_max_finished=max_finished,
+            settings=settings,
         )
         built.append(stack)
         return stack

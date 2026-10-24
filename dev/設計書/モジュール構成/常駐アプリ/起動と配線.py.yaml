@@ -142,12 +142,12 @@ functions:
          - 出力先には OutputDeps（copy_to_clipboard・設定の keyboard.paste_key で send_paste を呼ぶ関数・send_enter・time.sleep・random.uniform(0, x)・post_json・SettingsStore.get・notify_copied）を渡し、各出力先の inject が選ぶ
          - ブラウザ添付（種類）: copy_to_clipboard・open_app_window・send_paste を呼ぶ関数・send_enter・time.sleep・設定の preset_options.browser.open_delay_sec を返す関数・貼り付けて送信の enter_delay_sec を返す関数（read_enter_delay_sec）
          - エンドポイントへ送る（種類）: post_json・設定の preset_options.endpoint.timeout_sec を返す関数
-      6. 文字起こしのたびに、SettingsStore の設定の edge_phrases で文頭・文末の文言を消してから（strip_edge_phrases）用語集を読み直して置き換える correct を作る（load_glossary → apply_glossary。読む場所はそのたびに、SettingsStore の設定と settings.toml のフォルダから pick_active_glossary で補正に使う用語集を引いて決める）
-         - `[INFO]` 用語集で補正する（用語集の名前・補正に使う行数）
+      6. 文字起こしのたびに、SettingsStore の設定の edge_phrases で文頭・文末の文言を消してから（strip_edge_phrases）用語集を読み直して置き換える correct（起こした文字と用語集のプリセットの名前か None を受ける）を作る。そのたびに、SettingsStore の設定と settings.toml のフォルダから pick_glossary_preset（requested に受けた名前）でプリセットを引き、list_preset_glossaries（用語集の一覧は resolve_glossaries）の順に load_glossary した行を 1 本の並びにつないで apply_glossary を当てる（読めない CSV は load_glossary が空を返すので飛ばされる。使う用語集が無ければ置き換えない）
+         - `[INFO]` 用語集で補正する（用語集のプリセットの名前・用語集ごとの名前と補正に使う行数）
       7. SessionDeps を組み（report_progress、起動時の設定の api.continuous.min_silence_sec を部分適用した Recorder.start_continuous、Recorder.stop_continuous を含む）、API のセッションの上限時間と、起動時の設定の api.continuous.session_limit_sec の連続録音の上限時間と共に SessionManager を作る（api.continuous.* は再起動で効く）
-      8. SessionManager と、設定の許可ホストを部分適用した is_callback_allowed を SessionApiDeps に束ねる
+      8. SessionManager と、設定の許可ホストを部分適用した is_callback_allowed と、SettingsStore の設定と settings.toml のフォルダで resolve_glossary_presets した一覧にその名前があるかを返す glossary_preset_exists を SessionApiDeps に束ねる
       9. start_local_session に SessionManager と notify を部分適用する
-      10. ブラウザの文字起こしを配線する。WebTranscriptionDeps に、履歴を残すかをそのたびに SettingsStore.get から引いて渡す store_web_audio、7 と同じ transcribe、6 の correct・append_text・discard_temporary を部分適用して渡し、WebJobQueue を作る。WebJobQueue・probe_audio・`{tmp_dir}/web` を WebApiDeps に束ねる（ワーカースレッドはまだ立てない）
+      10. ブラウザの文字起こしを配線する。WebTranscriptionDeps に、履歴を残すかをそのたびに SettingsStore.get から引いて渡す store_web_audio、7 と同じ transcribe、6 の correct に用語集のプリセットの名前 None を部分適用したもの（設定で選んでいるプリセットで補正する）・append_text・discard_temporary を部分適用して渡し、WebJobQueue を作る。WebJobQueue・probe_audio・`{tmp_dir}/web` を WebApiDeps に束ねる（ワーカースレッドはまだ立てない）
     exceptions:
       - name: StartupError
         condition: 文字起こしのエンジンを準備できない
@@ -708,7 +708,7 @@ functions:
       3. settings_dir に settings.toml のフォルダ、log_dir にログのフォルダを渡す
       4. output_titles に、OUTPUTS のうち api_only でない出力先の ID → title を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
       5. apply_theme に引数の apply_theme を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
-      6. list_glossaries に SettingsStore.get の設定と settings.toml のフォルダで resolve_glossaries を呼ぶ関数、read_glossary に read_glossary_rows、new_glossary_path に settings.toml のフォルダの `glossaries` を部分適用した next_glossary_path を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
+      6. list_glossaries に SettingsStore.get の設定と settings.toml のフォルダで resolve_glossaries を呼ぶ関数、list_glossary_presets に同じ設定とフォルダで resolve_glossary_presets を呼ぶ関数、read_glossary に read_glossary_rows、new_glossary_path に settings.toml のフォルダの `glossaries` を部分適用した next_glossary_path を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
       7. copy に copy_to_clipboard を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
     status: implemented
   - name: relaunch

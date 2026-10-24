@@ -87,6 +87,10 @@ data_models:
         type: int
         default: '0'
         description: 連続録音でこれまでに区切った区間の数（最後に付けた通し番号）
+      - name: glossary_preset
+        type: str | None
+        default: None
+        description: API の開始で指定した用語集のプリセットの名前。None は設定で選んでいるプリセットで補正する（ホットキー・トレイの録音は常に None）
     status: implemented
   - name: SessionDeps
     title: セッションの依存
@@ -117,8 +121,8 @@ data_models:
         type: TranscribeFn
         description: 録音を文字に起こす（失敗は TranscriptionError）
       - name: correct
-        type: Callable[[str], str]
-        description: 用語集で補正する
+        type: Callable[[str, str | None], str]
+        description: 起こした文字とセッションの glossary_preset を受け、その用語集のプリセットで補正する
       - name: append_text
         type: AppendTextFn
         description: 起こした文字を履歴に書き足す
@@ -159,6 +163,10 @@ data_models:
         type: bool
         default: 'False'
         description: 連続録音にするか（省略時は 1 回の録音）
+      - name: glossary_preset
+        type: str | None
+        default: None
+        description: 補正に使う用語集のプリセットの名前（省略時は設定で選んでいるプリセット）。一覧にあるかは route が glossary_preset_exists で確かめる
     refs:
       - dev/設計書/外部ライブラリ/pydantic#
     status: implemented
@@ -187,6 +195,9 @@ data_models:
       - name: is_callback_allowed
         type: Callable[[str], bool]
         description: 設定の許可ホストを部分適用した返送先の確かめ（出力先の is_callback_allowed）
+      - name: glossary_preset_exists
+        type: Callable[[str], bool]
+        description: 今の設定の用語集のプリセットの一覧に、その名前があるか（補正の resolve_glossary_presets で引いた一覧で判定する）
     status: implemented
   - name: ContinuousEnd
     title: 連続録音の終わりの印
@@ -412,6 +423,11 @@ classes:
             required: false
             default: 'False'
             description: 連続録音にするか（API のときだけ True になる）
+          - name: glossary_preset
+            type: str | None
+            required: false
+            default: None
+            description: API の開始で指定した用語集のプリセットの名前（API のときだけ渡る）
         returns:
           type: Session
           description: 始めたセッション（状態は recording）
@@ -424,7 +440,7 @@ classes:
              - continuous が True の場合、区間の待ち行列を作り、連続録音を始める（連続録音の開始。区間の渡し先は _on_segment、失敗の知らせ先は _on_continuous_failed）
              - それ以外の場合、録音を始める（録音の開始）
              - MicrophoneUnavailableError の場合、待ち行列を捨て、そのまま送出する（音量は録音の開始が戻している。セッションは作らない）
-          4. セッションを作り（continuous を持たせる）、状態を recording にする
+          4. セッションを作り（continuous・glossary_preset を持たせる）、状態を recording にする
           5. continuous が True なら、区間を起こして返すワーカースレッドを始める（_run_segments）
           6. 状態の変化を知らせる（ユーザーへの知らせ）
              - `[INFO]` セッションを始めた（セッションの ID・入口・連続録音か）
@@ -459,6 +475,12 @@ classes:
             condition: セッションが無い。continuous=True
             mock: SessionDeps の全関数
             expected: continuous が True の recording のセッションが返り、start_continuous_recording が 1 回呼ばれ、start_recording が呼ばれない
+          - name: test_start_when_glossary_preset
+            case: 正常
+            summary: 指定した用語集のプリセットをセッションに持たせ、補正へ渡す
+            condition: セッションが無い。entry=api・glossary_preset="会議" で始め、完了して文字起こしを終える。continuous=True で始めた場合も区間を 1 つ渡して確かめる（parametrize）
+            mock: SessionDeps の全関数
+            expected: 返ったセッションの glossary_preset が "会議"。correct が (起こした文字, "会議") で呼ばれる。glossary_preset を省いて始めたときは (起こした文字, None) で呼ばれる
       - name: pause
         title: 一時停止
         kind: メソッド
@@ -775,7 +797,7 @@ classes:
           1. 録音を文字に起こす（文字起こし。入口が api でなければ進みを知らせる関数に report_progress を渡し、api なら None）
              - TranscriptionError の場合、入口が api なら result=failed を届け、それ以外は transcription_failed を知らせて 7 へ
                - `[ERROR]` 文字起こしに失敗した（セッションの ID・理由）
-          2. 用語集で補正する（用語集での補正）
+          2. セッションの glossary_preset を渡して用語集で補正する（用語集での補正）
           3. 起こした文字を履歴に書き足す（履歴への文字の書き足し）
           4. 結果が空で入口が api でなければ、届けずに 7 へ
              - `[INFO]` 文字起こしの結果が空だった（セッションの ID）
@@ -1096,7 +1118,7 @@ classes:
         process: |-
           1. 区間の音を保存する（録音の保存。segment_number に通し番号）
           2. 文字に起こす（文字起こし。進みを知らせる関数は None）
-          3. 用語集で補正し、区間の録音と同じ履歴に書き足す
+          3. セッションの glossary_preset を渡して用語集で補正し、区間の録音と同じ履歴に書き足す
           4. result=transcribed・segment_number=通し番号で届ける（結果が空でも届ける）
              - 1〜3 で例外（TranscriptionError を含む）が出た場合、result=failed・segment_number=通し番号・理由で届ける
                - `[ERROR]` 区間の文字起こしに失敗した（セッションの ID・通し番号・理由）
@@ -1207,7 +1229,7 @@ functions:
     role: route
     scope: public
     is_async: false
-    summary: POST /sessions。返送先を確かめて SessionManager.start(entry="api") を呼ぶ
+    summary: POST /sessions。返送先と用語集のプリセットを確かめて SessionManager.start(entry="api") を呼ぶ
     args:
       - name: body
         type: StartSessionRequest
@@ -1225,11 +1247,16 @@ functions:
     process: |-
       1. 返送先のホストが許されるかを確かめる（出力先の is_callback_allowed）
          - 許されない場合、CallbackNotAllowedError を送出する（400 に変わる）
-      2. SessionManager.start(entry="api", callback_url, continuous=body.continuous) を呼ぶ（SessionBusyError は 409、MicrophoneUnavailableError は 503 に変わる）
-      3. セッションの ID を返す
+      2. body.glossary_preset があれば、今の設定の用語集のプリセットの一覧にあるかを確かめる（glossary_preset_exists）
+         - 無い場合、その名前を含む GlossaryPresetNotFoundError を送出する（400 に変わる。録音を始めず、セッションも作らない）
+           - `[WARNING]` 用語集のプリセットが無いため開始を断った（指定された名前）
+      3. SessionManager.start(entry="api", callback_url, continuous=body.continuous, glossary_preset=body.glossary_preset) を呼ぶ（SessionBusyError は 409、MicrophoneUnavailableError は 503 に変わる）
+      4. セッションの ID を返す
     exceptions:
       - name: CallbackNotAllowedError
         condition: 返送先のホストが loopback でも設定で許可したホストでもない
+      - name: GlossaryPresetNotFoundError
+        condition: 指定した用語集のプリセットが今の設定の一覧に無い
     refs:
       - dev/設計書/インターフェース定義/常駐アプリ/録音を開始する.py#
     unit_tests:
@@ -1246,6 +1273,19 @@ functions:
         condition: 'body が {callback_url: http://127.0.0.1:9000/r, continuous: true}。省いた body も送る'
         mock: SessionApiDeps の SessionManager
         expected: start に continuous=True が渡り、省いたときは continuous=False が渡る
+      - name: test_start_session_route_when_glossary_preset
+        case: 正常
+        summary: 一覧にある用語集のプリセットを SessionManager.start へ渡す
+        condition: 'body が {callback_url: http://127.0.0.1:9000/r, glossary_preset: 会議} で、glossary_preset_exists が True を返す。glossary_preset を省いた body も送る'
+        mock: SessionApiDeps の SessionManager・glossary_preset_exists
+        expected: start に glossary_preset="会議" が渡る。省いたときは glossary_preset=None が渡り、glossary_preset_exists は呼ばれない
+      - name: test_start_session_route_when_glossary_preset_not_found
+        case: 異常
+        summary: 一覧に無い用語集のプリセットでは開始しない
+        condition: 'body が {callback_url: http://127.0.0.1:9000/r, glossary_preset: 無い名前} で、glossary_preset_exists が False を返す'
+        mock: SessionApiDeps の SessionManager・glossary_preset_exists
+        expected: メッセージに「無い名前」を含む GlossaryPresetNotFoundError が送出され、start が呼ばれない
+        exception: 指定した用語集のプリセットが一覧に無い
     status: implemented
   - name: stop_session_route
     title: 停止の route

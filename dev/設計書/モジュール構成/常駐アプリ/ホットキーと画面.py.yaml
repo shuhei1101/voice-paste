@@ -1130,7 +1130,7 @@ classes:
         scope: internal
         returns:
           type: dict[str, Any]
-          description: Settings.model_validate へ渡す値。presets はブラウザ添付のタブの並び → エンドポイントへ送るのタブの並びの順（各 PresetListPanel.collect をつなぐ）。glossaries は GlossaryPanel.collect、active_glossary は GlossaryPanel.active_name。hint_presets は HintPresetPanel.collect。edge_phrases は EdgePhrasePanel.collect。glossary_path は置かない
+          description: Settings.model_validate へ渡す値。presets はブラウザ添付のタブの並び → エンドポイントへ送るのタブの並びの順（各 PresetListPanel.collect をつなぐ）。glossaries は GlossaryPanel.collect、glossary_presets は GlossaryPanel.collect_presets、active_glossary_preset は GlossaryPanel.active_preset_name。hint_presets は HintPresetPanel.collect。edge_phrases は EdgePhrasePanel.collect。glossary_path と active_glossary は置かない
       - name: save
         title: 保存
         summary: 欄の値を設定のモデルで確かめ、通れば書いて効かせ、窓を開いたまま保存した知らせを出す（restart のときだけ閉じる）。通らなければエラーを出す
@@ -1209,10 +1209,10 @@ classes:
             expected: save_settings に ui.theme=light の設定が渡る
           - name: test_save_when_glossaries
             case: 正常
-            summary: 用語集の一覧と補正に使う用語集を設定に入れ、行を変えた用語集だけを書き戻しに渡す
-            condition: 2 件の用語集を持つ設定で開き、2 件目の行を 1 つオフにし、補正に使う用語集を 2 件目にして保存する
-            mock: UiDeps.save_settings（引数を控える）・list_glossaries・read_glossary（決まった一覧と行を返す）
-            expected: 渡した設定の glossaries が 2 件で active_glossary が 2 件目の名前、glossary_path が None。書き戻しの引数は 2 件目の場所だけを持ち、その行がオフになっている
+            summary: 用語集の一覧と補正に使うプリセットを設定に入れ、行を変えた用語集だけを書き戻しに渡す
+            condition: 2 件の用語集と 2 件のプリセットを持つ設定で開き、2 件目の用語集の行を 1 つオフにし、補正に使うプリセットを 2 件目にして保存する
+            mock: UiDeps.save_settings（引数を控える）・list_glossaries・list_glossary_presets・read_glossary（決まった一覧と行を返す）
+            expected: 渡した設定の glossaries が 2 件で active_glossary_preset が 2 件目のプリセットの名前、glossary_path と active_glossary が None。書き戻しの引数は 2 件目の場所だけを持ち、その行がオフになっている
           - name: test_save_when_glossaries_untouched
             case: 正常
             summary: 用語集を変えずに保存すると、書き戻す CSV は無い
@@ -1295,6 +1295,18 @@ classes:
             mock: UiDeps.save_settings
             expected: 'False。save_settings が呼ばれず、エラーの一覧に「ハルシネーションの 2 行目の文言: * だけの文言は、文頭・文末の行を丸ごと消します。消したい文言を入れてください。」が出て、欄の値が「*」のまま'
             exception: 確かめに通らない
+          - name: test_save_when_glossary_presets
+            case: 正常
+            summary: 用語集のプリセットを使う用語集の順のまま設定に入れる
+            condition: glossary_presets が空で active_glossary = "会議用" の設定で開き（「既定」（["会議用"]）が出る）、プリセットを足して名前を「議事録」にし、「yogo」、「会議用」の順に追加して、補正に使うプリセットに選んで保存する
+            mock: UiDeps.save_settings（引数を控える）・list_glossaries・list_glossary_presets・read_glossary
+            expected: 渡した設定の glossary_presets が [{既定, ["会議用"]}, {議事録, ["yogo", "会議用"]}]、active_glossary_preset が「議事録」、active_glossary が None
+          - name: test_save_when_glossary_preset_invalid
+            case: 異常
+            summary: 用語集のプリセットの名前が空・重なるときは保存せず、エラーを出す
+            condition: 「既定」の 1 件のプリセットでプリセットを 2 つ足し、2 件目の名前を「既定」に、3 件目の名前を空のままで保存する
+            mock: UiDeps.save_settings（呼ばれたかを控える）・list_glossaries・list_glossary_presets・read_glossary
+            expected: 'False。save_settings は呼ばれず、エラーの一覧に「用語集のプリセット 2 件目の名前: 用語集のプリセット「既定」と同じ名前です。別の名前にしてください。」と「用語集のプリセット 3 件目の名前: 名前を入れてください。」が出る。前者を押すと「用語集」のまとまりで 2 件目のプリセットの名前の欄にフォーカスが移る'
       - name: reset_to_defaults
         title: 既定に戻す
         summary: confirm_reset で確かめ、戻すなら開いたときの設定と同じ設定のモデルの既定値（`type(開いたときの設定)()`）を書いて欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す
@@ -1307,7 +1319,7 @@ classes:
           1. confirm_reset で確かめる
              - 戻さない場合、何もせずに終える
           2. 開いたときの設定と同じ設定のモデルの既定値を、save_settings（UiDeps）に空の書き戻し（`{}`）と共に渡して書く（用語集の CSV は書き換えない）
-          3. 既定の値を欄に入れ、用語集の一覧を UiDeps.list_glossaries で引き直して GlossaryPanel.set_glossaries に入れ直す（設定ファイルと同じフォルダの yogo.csv の 1 件に戻る）
+          3. 既定の値を欄に入れ、用語集の一覧と用語集のプリセットを UiDeps.list_glossaries・list_glossary_presets で引き直して GlossaryPanel.set_glossaries に入れ直す（設定ファイルと同じフォルダの yogo.csv の 1 件と、それを使う「既定」のプリセットに戻る）
           4. 再起動が要る設定が変わっていれば、件数と「今すぐ再起動」を出す
       - name: try_close
         title: 取り消し
@@ -1339,12 +1351,11 @@ classes:
     status: implemented
     notes:
       用語集のまとまり: |-
-        「文字起こし」の次のまとまり「用語集」に GlossaryPanel を 1 つ置く（今の `glossary_path` の欄と「選ぶ…」は消す）。開くときに UiDeps.list_glossaries の一覧と、補正に使う用語集の名前（設定の active_glossary。None か一覧に無ければ 1 件目）を GlossaryPanel.set_glossaries に渡す。
-        収集では `glossaries` に GlossaryPanel.collect、`active_glossary` に GlossaryPanel.active_name を入れ、`glossary_path` は置かない（None）。
-        変えた欄の数えには、GlossaryPanel.change_values のキーごとの変更を 1 件として含める（反映はどれも immediate）。足した・消した・名前か行を変えた用語集 1 つが 1 件（1 つの用語集で何度変えても 1 件）、補正に使う用語集の切り替えが 1 件になる。
+        「文字起こし」の次のまとまり「用語集」に GlossaryPanel を 1 つ置く（今の `glossary_path` の欄と「選ぶ…」は消す）。開くときに UiDeps.list_glossaries の一覧と、UiDeps.list_glossary_presets の一覧と、補正に使うプリセットの名前（設定の active_glossary_preset。None か一覧に無ければ 1 件目）を GlossaryPanel.set_glossaries に渡す。
+        収集では `glossaries` に GlossaryPanel.collect、`glossary_presets` に GlossaryPanel.collect_presets、`active_glossary_preset` に GlossaryPanel.active_preset_name を入れ、`glossary_path` と `active_glossary` は置かない（None。保存でキーが消える）。
+        変えた欄の数えには、GlossaryPanel.change_values のキーごとの変更を 1 件として含める（反映はどれも immediate）。足した・消した・名前か行を変えた用語集 1 つが 1 件（1 つの用語集で何度変えても 1 件）、足した・消した・名前か使う用語集を変えたプリセット 1 つが 1 件、補正に使うプリセットの切り替えが 1 件になる。
         エラーの一覧の用語集の行は、失敗の場所 `glossaries[{n}].name` を「用語集 {n+1} 件目の名前」、行の失敗を「用語集 {n+1} 件目の {m+1} 行目の誤変換」にし、押すと「用語集」のまとまりへ切り替えて GlossaryPanel.focus_field でその用語集の行の表を出し、欄へフォーカスを移す。
-        to_field_message は、用語集の名前の空を「名前を入れてください。」、名前の重なり（find_glossary_name_overlaps の PydanticCustomError）を「用語集「{名前}」と同じ名前です。別の名前にしてください。」にする。
-        既定に戻すと、用語集の一覧は設定ファイルと同じフォルダの yogo.csv の 1 件に戻る（用語集の CSV のファイルは消さず、書き換えない）。
+        失敗の場所 `glossary_presets[{n}].name` は「用語集のプリセット {n+1} 件目の名前」にし、欄の下に GlossaryPanel.show_preset_error で出し、押すと「用語集」のまとまりへ切り替えて GlossaryPanel.focus_preset_name でそのプリセットの名前の欄へフォーカスを移す。文言は画面設計「設定画面」の入力チェック（空は「名前を入れてください。」、重なり（GLOSSARY_PRESET_NAME_OVERLAP_ERROR_TYPE）は「用語集のプリセット「{名前}」と同じ名前です。別の名前にしてください。」）。
       表記のヒントのまとまり: |-
         「文字起こし」の次、「用語集」の前のまとまり「表記のヒント」に HintPresetPanel を 1 つ置き、開くときに設定の hint_presets を HintPresetPanel.set_presets に渡す。
         収集では `hint_presets` に HintPresetPanel.collect を入れる。変えた欄の数えには、HintPresetPanel.change_values のキーごとの変更を 1 件として含める（反映は immediate）。足した・消した・名前か語か有効を変えたプリセット 1 つが 1 件（1 つのプリセットで何度変えても 1 件）、開いたとき・保存したときからあって今も残っているプリセットどうしの順が変わったら並べ替えが 1 件になる（足す・消すだけでは並べ替えに数えない）。
@@ -1508,50 +1519,66 @@ classes:
     role: 画面の部品
     kind: クラス
     inherits: PySide6.QtWidgets.QWidget
-    summary: 設定画面の「用語集」のまとまりに置く、用語集の一覧と、選んだ用語集の名前の欄・行の表。用語集と行を足す・消す、補正に使う用語集を選ぶ、行のオン・オフを受ける
+    summary: 設定画面の「用語集」のまとまりに置く、用語集の一覧と、選んだ用語集の名前の欄・行の表。用語集のプリセットの一覧と、選んだプリセットの名前の欄・使う用語集の表。用語集・行・プリセットを足す・消す、補正に使うプリセットを選ぶ、プリセットの用語集を足す・外す・並べ替える、行のオン・オフを受ける
     description: |-
-      要素（用語集の一覧・補正に使う用語集の選択・名前のボタン・行の数・消す・足す・名前の欄・消す行の説明・行の表・行が無いときの文・凡例）と読み上げの名前・objectName（項目 ID）は画面設計「設定画面」が持つ。
-      用語集ごとに、名前・CSV の場所・行・開いたときの行（足した用語集は無し）を持つ。足す・消す・入力はこの部品の中だけを変え、settings.toml と CSV へは設定画面の保存で書く。
-      補正に使う用語集の消すボタンは、フォーカスとツールチップを残すため `setEnabled(False)` にせず、押しても消さない扱いと薄い見た目にする。
+      要素（用語集の一覧・名前のボタン・使うプリセット・行の数・消す・足す・名前の欄・消す行の説明・行の表・行が無いときの文・凡例、用語集のプリセットの一覧・補正に使うプリセットの選択・名前のボタン・用語集の数・消す・足す・見出し・名前の欄・使う用語集の表・追加する用語集の選択・追加ボタン・凡例）と読み上げの名前・objectName（項目 ID）は画面設計「設定画面」が持つ。
+      用語集ごとに、名前・CSV の場所・行・開いたときの行（足した用語集は無し）を持つ。プリセットごとに、名前と使う用語集の CSV の場所の並びを持ち（用語集の名前を変えても指す先が変わらない）、名前には collect_presets でそのときの用語集の名前を当てる。足す・消す・入力はこの部品の中だけを変え、settings.toml と CSV へは設定画面の保存で書く。
+      用語集を一覧から消すと、その用語集を全てのプリセットの使う用語集から外す（用語集はどれでも消せる）。
+      補正に使うプリセットの消すボタンは、フォーカスとツールチップを残すため `setEnabled(False)` にせず、押しても消さない扱いと薄い見た目にする（プリセットは常に 1 件以上残る）。
       コンストラクタは、行を読む関数（UiDeps.read_glossary）と、足す用語集の場所を決める関数（UiDeps.new_glossary_path）を受ける。
       単体テストは tests/unit/voice_paste/ui/windows/test_settings_glossaries.py に置く（ファイルを作った段で、この設計書の対応テストファイルに足す）。
     properties:
       - name: changed
         type: Signal()
-        description: 用語集と行を足す・消す、補正に使う用語集の切り替え、欄の入力、行のオン・オフで値が変わった（設定画面が変えた欄の数えに使う）
+        description: 用語集・行・プリセットを足す・消す、補正に使うプリセットの切り替え、プリセットの用語集の追加・外し・並べ替え、欄の入力、行のオン・オフで値が変わった（設定画面が変えた欄の数えに使う）
     methods:
       - name: set_glossaries
         title: 一覧に入れる
         kind: メソッド
         scope: public
-        summary: 渡した用語集で一覧を作り直し、用語集ごとに行を読んで開いたときの行として控え（読めなかった用語集は理由を控える）、補正に使う用語集の行の表を出す
+        summary: 渡した用語集と用語集のプリセットで一覧を作り直し、用語集ごとに行を読んで開いたときの行として控え（読めなかった用語集は理由を控える）、補正に使うプリセットの使う用語集の表と、その 1 つ目の用語集（使う用語集が無ければ一覧の 1 件目）の行の表を出す
         args:
           - name: glossaries
             type: Sequence[GlossarySettings]
             required: true
             passing: positional
-            description: 用語集の一覧（1 件以上。path は絶対パス）
-          - name: active_name
+            description: 用語集の一覧（path は絶対パス）
+          - name: presets
+            type: Sequence[GlossaryPresetSettings]
+            required: true
+            passing: positional
+            description: 用語集のプリセットの一覧（1 件以上。resolve_glossary_presets が返したもので、glossaries は一覧にある用語集の名前だけ）
+          - name: active_preset
             type: str
             required: true
             passing: positional
-            description: 補正に使う用語集の名前（一覧にある名前）
+            description: 補正に使うプリセットの名前（一覧にある名前）
         returns:
           type: None
           description: なし
+        process: |-
+          1. 用語集ごとに行を読んで一覧を作る（GlossaryReadError の用語集は理由を控えて読めない用語集にする）
+          2. プリセットごとに、使う用語集の名前をその用語集の CSV の場所に置き換えて一覧を作り、開いたときの並びの何件目かをそのプリセットの識別にする（change_values のキーに使う）
+          3. active_preset を補正に使うプリセットに選び、その使う用語集の表と、1 つ目の用語集（無ければ一覧の 1 件目）の行の表を出す
         unit_tests:
           - name: test_glossary_panel_set_glossaries
             case: 正常
-            summary: 一覧と行の数を出し、補正に使う用語集の消すボタンを無効の扱いにする
-            condition: 5 行（オン 3）と 2 行の 2 件の用語集と、1 件目の名前
+            summary: 一覧と行の数・使うプリセットを出し、補正に使うプリセットの消すボタンを無効の扱いにする
+            condition: 5 行（オン 3）の「yogo」と 2 行の「会議用」の 2 件の用語集、「既定」（["yogo"]）と「会議」（["会議用", "yogo"]）の 2 件のプリセットと、active_preset = 会議
             mock: 行を読む関数（決まった行を返す）
-            expected: 行の数が「5 行（オン 3）」「2 行（オン 2）」。1 件目が選ばれ、その消すボタンを押しても一覧が減らない
+            expected: 行の数が「5 行（オン 3）」「2 行（オン 2）」、「yogo」を使うプリセットが「既定、会議」。プリセットの用語集の数が 1 と 2。「会議」が選ばれ、使う用語集の表が「会議用」「yogo」の順で、「会議用」の行の表を出している。「会議」の消すボタンを押してもプリセットの一覧が減らない
           - name: test_glossary_panel_set_glossaries_when_unreadable
             case: 正常
             summary: 読めない用語集も一覧に出し、行の表の代わりに理由を出す
-            condition: 2 件の用語集のうち、2 件目で行を読む関数が GlossaryReadError を送出する
+            condition: 2 件の用語集のうち、2 件目で行を読む関数が GlossaryReadError を送出する。プリセットは 1 件目の用語集だけを使う「既定」の 1 件
             mock: 行を読む関数（2 件目の場所で GlossaryReadError を送出する）
-            expected: 一覧が 2 件で、2 件目の行の数が「読めません」。2 件目を選ぶと、理由を含む知らせが出て行の表が出ず、行を足すボタンが無効
+            expected: 一覧が 2 件で、2 件目の行の数が「読めません」。2 件目を選ぶと、理由を含む知らせが出て行の表が出ず、行を足すボタンが無効。追加する用語集の選択に 2 件目がある
+          - name: test_glossary_panel_set_glossaries_when_preset_empty
+            case: 正常
+            summary: 使う用語集が無いプリセットでは、表の代わりに文を出し、一覧の 1 件目の行の表を出す
+            condition: 2 件の用語集と、glossaries が [] の「空」の 1 件のプリセット
+            mock: 行を読む関数
+            expected: 使う用語集が無いときの文が出て、用語集の一覧の 1 件目の行の表を出している。追加する用語集の選択に 2 件がある
       - name: collect
         title: 一覧の値の収集
         kind: メソッド
@@ -1567,21 +1594,6 @@ classes:
             condition: 1 件の用語集の名前を変え、用語集を 1 つ足して名前を入れる
             mock: 行を読む関数・場所を決める関数（決まった場所を返す）
             expected: 2 件が返り、1 件目は変えた名前と元の場所、2 件目は入れた名前と決めた場所
-      - name: active_name
-        title: 補正に使う用語集の名前
-        kind: メソッド
-        scope: public
-        summary: 補正に使う用語集に選んでいる用語集の、今の名前の欄の値（前後の空白を除く）を返す
-        returns:
-          type: str
-          description: 補正に使う用語集の名前
-        unit_tests:
-          - name: test_glossary_panel_active_name
-            case: 正常
-            summary: 補正に使う用語集を切り替えてから名前を変えると、変えた名前を返す
-            condition: 2 件目を補正に使う用語集にし、その名前を変える
-            mock: 行を読む関数
-            expected: 変えた名前が返り、1 件目の消すボタンが押せるようになる
       - name: changed_rows
         title: 書き戻す行の収集
         kind: メソッド
@@ -1617,7 +1629,7 @@ classes:
           - name: test_glossary_panel_changed_rows_when_unreadable
             case: 正常
             summary: 読めなかった用語集は書き戻しに入れない
-            condition: 読めなかった用語集の名前を変え、補正に使う用語集に選ぶ
+            condition: 読めなかった用語集の名前を変え、プリセットの使う用語集に追加する
             mock: 行を読む関数（GlossaryReadError を送出する）
             expected: '{} が返る'
       - name: row_errors
@@ -1643,7 +1655,7 @@ classes:
             summary: 空の用語集を末尾に足し、行が無いときの文を出す
             condition: 1 件の用語集の一覧で add_glossary を呼ぶ
             mock: 行を読む関数・場所を決める関数
-            expected: 一覧が 2 件になり、2 件目の名前が「（名前未入力）」、行の数が「0 行（オン 0）」。行が無いときの文が出て、補正に使う用語集は 1 件目のまま。changed が 1 回出る
+            expected: 一覧が 2 件になり、2 件目の名前が「（名前未入力）」、行の数が「0 行（オン 0）」。行が無いときの文が出て、どのプリセットの使う用語集にも入らず、追加する用語集の選択に出る。changed が 1 回出る
       - name: focus_field
         title: 欄へフォーカスを移す
         kind: メソッド
@@ -1730,33 +1742,40 @@ classes:
         title: 変えた件数を数える値
         kind: メソッド
         scope: public
-        summary: 変えた欄の数えに使う値を、用語集 1 つ = 1 キーと、補正に使う用語集の 1 キーで返す（SettingsWindow が開いたとき・保存したときの値と比べて件数にする）
+        summary: 変えた欄の数えに使う値を、用語集 1 つ = 1 キー、用語集のプリセット 1 つ = 1 キーと、補正に使うプリセットの 1 キーで返す（SettingsWindow が開いたとき・保存したときの値と比べて件数にする）
         returns:
           type: dict[str, object]
-          description: '`glossaries[{CSV の場所}]` → （前後の空白を除いた名前, 行（表の順。前後の空白を除き、両方が空の行は除く。読めなかった用語集は None））、`active_glossary` → 補正に使う用語集の CSV の場所'
+          description: '`glossaries[{CSV の場所}]` → （前後の空白を除いた名前, 行（表の順。前後の空白を除き、両方が空の行は除く。読めなかった用語集は None））、`glossary_presets[{プリセットの識別}]` → （前後の空白を除いた名前, 使う用語集の CSV の場所の並び）、`active_glossary_preset` → 補正に使うプリセットの識別'
         process: |-
           1. 今の一覧の用語集ごとに、CSV の場所をキーにして名前と行を入れる
              - 読めなかった用語集の場合、行を None にする
-          2. 補正に使う用語集の CSV の場所を `active_glossary` に入れる（名前ではなく場所にし、補正に使う用語集の名前を変えても切り替えとして数えない）
+          2. 今の一覧のプリセットごとに、プリセットの識別（開いたときの何件目か。足したプリセットは開いたときの件数から続く番号）をキーにして、名前と使う用語集の CSV の場所の並びを入れる（用語集の名前を変えてもプリセットの変更として数えない）
+          3. 補正に使うプリセットの識別を `active_glossary_preset` に入れる（名前ではなく識別にし、補正に使うプリセットの名前を変えても切り替えとして数えない）
         unit_tests:
           - name: test_glossary_panel_change_values
             case: 正常
-            summary: 用語集ごとの名前と行と、補正に使う用語集の場所を返す
-            condition: 2 件の用語集を持ち、2 件目を補正に使う一覧で開き、1 件目に両方が空の行を 1 つ足す
+            summary: 用語集ごとの名前と行、プリセットごとの名前と使う用語集、補正に使うプリセットの識別を返す
+            condition: 2 件の用語集と 2 件のプリセットを持ち、2 件目のプリセットを補正に使う一覧で開き、1 件目の用語集に両方が空の行を 1 つ足す
             mock: 行を読む関数
-            expected: 2 件の場所のキーがそれぞれ（名前, 行）を持ち、1 件目の行に足した空の行が入らない。active_glossary が 2 件目の場所
+            expected: 2 件の場所のキーがそれぞれ（名前, 行）を持ち、1 件目の行に足した空の行が入らない。glossary_presets の 2 つのキーが（名前, 場所の並び）を持ち、active_glossary_preset が 2 件目の識別
           - name: test_glossary_panel_change_values_when_active_renamed
             case: 正常
-            summary: 補正に使う用語集の名前を変えても、補正に使う用語集の値は変わらない
-            condition: 補正に使う用語集の名前を変える
+            summary: 補正に使うプリセットの名前を変えても、補正に使うプリセットの値は変わらない
+            condition: 補正に使うプリセットの名前を変える
             mock: 行を読む関数
-            expected: その用語集のキーの名前が新しい名前になり、active_glossary は名前を変える前と同じ場所
+            expected: そのプリセットのキーの名前が新しい名前になり、active_glossary_preset は名前を変える前と同じ識別
+          - name: test_glossary_panel_change_values_when_glossary_renamed
+            case: 正常
+            summary: 用語集の名前を変えても、プリセットの値は変わらない
+            condition: プリセットが使う用語集の名前を変える
+            mock: 行を読む関数
+            expected: その用語集のキーの名前だけが変わり、glossary_presets のキーの値は開いたときと同じ
           - name: test_glossary_panel_change_values_when_added
             case: 正常
-            summary: 足した用語集は新しいキーで返す
-            condition: 1 件の用語集の一覧で用語集を 1 つ足す
+            summary: 足した用語集とプリセットは新しいキーで返す
+            condition: 1 件の用語集と 1 件のプリセットの一覧で、用語集を 1 つとプリセットを 1 つ足す
             mock: 行を読む関数・場所を決める関数
-            expected: 足した用語集の場所のキーが（"", []）を持つ。キーは 3 つ（2 件の用語集と active_glossary）
+            expected: 足した用語集の場所のキーが（"", []）、足したプリセットのキーが（"", []）を持つ。キーは 5 つ（2 件の用語集、2 件のプリセットと active_glossary_preset）
           - name: test_glossary_panel_change_values_when_unreadable
             case: 正常
             summary: 読めなかった用語集の行は None で返す
@@ -1764,12 +1783,118 @@ classes:
             mock: 行を読む関数（GlossaryReadError を送出する）
             expected: 読めなかった用語集のキーが（名前, None）
         status: planned
+      - name: active_name
+        title: 補正に使う用語集の名前
+        kind: メソッド
+        scope: public
+        summary: 補正に使う単位が用語集のプリセットになったため、active_preset_name に置き換える（#173）
+        returns:
+          type: str
+          description: 補正に使う用語集の名前
+        status: removed
+      - name: collect_presets
+        title: 用語集のプリセットの収集
+        kind: メソッド
+        scope: public
+        summary: 今の並びの用語集のプリセットを settings.toml と同じ形の dict（name・glossaries）の並びにする（name は前後の空白を除き、glossaries は使う用語集の今の名前を表の順に並べる）
+        status: planned
+        returns:
+          type: list[dict[str, Any]]
+          description: 用語集のプリセットの一覧
+        unit_tests:
+          - name: test_glossary_panel_collect_presets
+            case: 正常
+            summary: 並べ替えた順と、名前を変えた用語集の今の名前で返す
+            condition: 「既定」（["yogo"]）と「会議」（["会議用", "yogo"]）で、「会議」の使う用語集の 1 行目で Alt+↓ を押し、「yogo」の名前を「共通」に変える
+            mock: 行を読む関数
+            expected: 「会議」の glossaries が ["共通", "会議用"]、「既定」の glossaries が ["共通"]
+          - name: test_glossary_panel_collect_presets_when_glossary_removed
+            case: 正常
+            summary: 用語集を消すと、全てのプリセットから外れる
+            condition: 「既定」（["yogo"]）と「会議」（["会議用", "yogo"]）で、用語集の一覧から「yogo」を消す
+            mock: 行を読む関数
+            expected: 「既定」の glossaries が []、「会議」が ["会議用"]
+          - name: test_glossary_panel_collect_presets_when_added
+            case: 正常
+            summary: 足したプリセットに用語集を追加すると末尾に返し、追加した用語集は選択肢から消える
+            condition: 1 件のプリセットでプリセットを足し、名前を「議事録」にして「会議用」を追加する
+            mock: 行を読む関数
+            expected: '2 件が返り、2 件目が {name: 議事録, glossaries: ["会議用"]}。追加する用語集の選択に「会議用」が無い'
+      - name: active_preset_name
+        title: 補正に使うプリセットの名前
+        kind: メソッド
+        scope: public
+        summary: 補正に使うプリセットに選んでいるプリセットの、今の名前の欄の値（前後の空白を除く）を返す
+        status: planned
+        returns:
+          type: str
+          description: 補正に使うプリセットの名前
+        unit_tests:
+          - name: test_glossary_panel_active_preset_name
+            case: 正常
+            summary: 補正に使うプリセットを切り替えてから名前を変えると、変えた名前を返す
+            condition: 2 件目のプリセットを補正に使うプリセットにし、その名前を変える
+            mock: 行を読む関数
+            expected: 変えた名前が返り、1 件目のプリセットの消すボタンが押せるようになる
+      - name: add_glossary_preset
+        title: 用語集のプリセットを足す
+        kind: メソッド
+        scope: public
+        summary: 末尾に名前が空で使う用語集の無いプリセットを足し、その使う用語集の表を出して名前の欄へフォーカスを移し、changed を emit する。「プリセット追加」が呼ぶ
+        status: planned
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_glossary_panel_add_glossary_preset
+            case: 正常
+            summary: 空のプリセットを末尾に足し、使う用語集が無いときの文を出す
+            condition: 1 件のプリセットの一覧で add_glossary_preset を呼ぶ
+            mock: 行を読む関数
+            expected: プリセットの一覧が 2 件になり、2 件目の名前のボタンが「名前未入力のプリセット」、用語集の数が 0。使う用語集が無いときの文が出て、名前の欄にフォーカスがある。補正に使うプリセットは 1 件目のまま。changed が 1 回出る
+      - name: focus_preset_name
+        title: プリセットの名前の欄へフォーカスを移す
+        kind: メソッド
+        scope: public
+        summary: 用語集のプリセットの何件目かでその使う用語集の表を出し、名前の欄へフォーカスを移す（エラーの一覧の行を押したとき）
+        status: planned
+        args:
+          - name: position
+            type: int
+            required: true
+            passing: positional
+            description: 用語集のプリセットの何件目か（0 から）
+        returns:
+          type: None
+          description: なし
+        unit_tests: []
+      - name: show_preset_error
+        title: プリセットの名前の欄の下にエラーを出す
+        kind: メソッド
+        scope: public
+        summary: 用語集のプリセットの何件目かの名前の欄の下にエラーを出し、欄をエラーの見た目にする（そのプリセットの表を出していないときは、表を出したときに出す）。clear_errors で全て消す
+        status: planned
+        args:
+          - name: position
+            type: int
+            required: true
+            passing: positional
+            description: 用語集のプリセットの何件目か（0 から）
+          - name: message
+            type: str
+            required: true
+            passing: positional
+            description: エラーの文言
+        returns:
+          type: None
+          description: なし
+        unit_tests: []
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
     status: implemented
     notes:
       読めない用語集: |-
-        行を読む関数が GlossaryReadError を送出した用語集は、読めない用語集として一覧に残す（設定画面は開く）。行の数は「読めません」、行の表の代わりに「この用語集の CSV を読めませんでした（{理由}）。保存しても、この CSV は書き換えません。」を出し、行を足すボタンを無効にする。名前を変える・補正に使う用語集に選ぶ・一覧から消すはできる。
+        行を読む関数が GlossaryReadError を送出した用語集は、読めない用語集として一覧に残す（設定画面は開く）。行の数は「読めません」、行の表の代わりに「この用語集の CSV を読めませんでした（{理由}）。保存しても、この CSV は書き換えません。」を出し、行を足すボタンを無効にする。名前を変える・プリセットの使う用語集に追加する・一覧から消すはできる。
         changed_rows と row_errors には入れない（保存してもその CSV に触れない）。
   - name: HintPresetPanel
     title: 表記のヒントの長さとプリセットの一覧
@@ -3005,6 +3130,9 @@ data_models:
       - name: switch_output
         type: Callable[[str], None]
         description: 文字起こし中に届ける出力先を差し替える（SessionManager.switch_output）。文字起こし中の表示の切り替えのボタンが呼ぶ
+      - name: list_glossary_presets
+        type: Callable[[], list[GlossaryPresetSettings]]
+        description: 今の設定の用語集のプリセットの一覧（glossary_presets が空なら「既定」の 1 件。一覧に無い用語集の名前は外す。resolve_glossary_presets）
     status: implemented
 enums:
   - name: TrayState

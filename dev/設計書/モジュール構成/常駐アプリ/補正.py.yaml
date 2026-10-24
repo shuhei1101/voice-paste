@@ -3,7 +3,7 @@ lead: 用語集の CSV を読み書きし、補正に使う用語集の誤変換
 directory: |-
   ```
   src/voice_paste/features/correction/
-  ├── __init__.py   # load_glossary・read_glossary_rows・save_glossary・apply_glossary・resolve_glossaries・pick_active_glossary・next_glossary_path・strip_edge_phrases の公開
+  ├── __init__.py   # load_glossary・read_glossary_rows・save_glossary・apply_glossary・resolve_glossaries・resolve_glossary_presets・pick_glossary_preset・list_preset_glossaries・next_glossary_path・strip_edge_phrases の公開
   └── service.py    # 用語集の一覧の解決、CSV の読み書き、置き換え、文頭・文末の文言の削除
   ```
 data_models: []
@@ -20,7 +20,7 @@ functions:
         type: Path
         required: true
         passing: positional
-        description: 用語集の CSV（補正に使う用語集の場所。pick_active_glossary が返す path）
+        description: 用語集の CSV（補正に使う用語集の場所。list_preset_glossaries が返す用語集の path）
     returns:
       type: list[GlossaryEntry]
       description: 補正に使う行。ファイルが無ければ空
@@ -313,7 +313,7 @@ functions:
     container: features/correction/service.py
     usecase: 録音を文字に起こす
     scope: public
-    summary: 用語集の一覧から、`active_glossary` の名前の用語集を返す。名前が無い・一覧に無いときは 1 件目を返す
+    summary: 補正に使う単位が用語集のプリセットになったため、pick_glossary_preset と list_preset_glossaries に置き換える（#173）
     args:
       - name: settings
         type: Settings
@@ -351,7 +351,7 @@ functions:
         condition: 2 件の glossaries と active_glossary = 無い名前
         mock: なし
         expected: 1 件目が返る
-    status: implemented
+    status: removed
   - name: next_glossary_path
     title: 足す用語集の CSV の場所
     kind: 関数
@@ -479,6 +479,174 @@ functions:
     refs:
       - dev/設計書/シナリオ/単一ユースケース/録音を文字に起こす#scenarios[正常シナリオ（文頭・文末の決まった文言を消す）]
     status: implemented
+  - name: resolve_glossary_presets
+    title: 用語集のプリセットの一覧の解決
+    container: features/correction/service.py
+    usecase: 共通
+    summary: 設定から用語集のプリセットの一覧を返す。`glossary_presets` が空なら、`active_glossary` の用語集だけを使う「既定」のプリセット 1 件にする。用語集の一覧に無い名前はプリセットから外す
+    kind: 関数
+    scope: public
+    args:
+      - name: settings
+        type: Settings
+        required: true
+        passing: positional
+        description: 今の設定
+      - name: settings_dir
+        type: Path
+        required: true
+        passing: positional
+        description: settings.toml のあるフォルダ
+    returns:
+      type: list[GlossaryPresetSettings]
+      description: 用語集のプリセットの一覧（1 件以上。glossaries は用語集の一覧にある名前だけ）
+    process: |-
+      1. resolve_glossaries で用語集の一覧を引き、名前の並びにする
+      2. `glossary_presets` が空かを確かめる
+         - 空の場合、`active_glossary` が名前の並びにあればその名前、無い（None・一覧に無い）なら 1 つ目の名前だけを glossaries に持つ、名前が DEFAULT_GLOSSARY_PRESET_NAME の 1 件を返す
+      3. `glossary_presets` の並びのまま、各プリセットの glossaries から用語集の一覧に無い名前を外して返す（並びは変えない）
+         - `[WARNING]` 用語集の一覧に無い名前をプリセットから外した（プリセットの名前・外した名前。外したものが無ければ出さない）
+    unit_tests:
+      - name: test_resolve_glossary_presets_when_empty
+        case: 正常
+        summary: プリセットのキーが無く active_glossary も無ければ、1 つ目の用語集だけの「既定」
+        condition: 名前が「yogo」「会議用」の 2 件の glossaries と、glossary_presets が空・active_glossary = None の設定
+        mock: なし
+        expected: 名前が「既定」、glossaries が ["yogo"] の 1 件が返る
+      - name: test_resolve_glossary_presets_when_legacy_active
+        case: 正常
+        summary: プリセットのキーが無ければ、active_glossary の用語集だけの「既定」
+        condition: 「yogo」「会議用」の 2 件の glossaries と、active_glossary = 会議用
+        mock: なし
+        expected: 名前が「既定」、glossaries が ["会議用"] の 1 件が返る
+      - name: test_resolve_glossary_presets_when_legacy_unknown_active
+        case: 正常
+        summary: active_glossary が一覧に無ければ、1 つ目の用語集だけの「既定」
+        condition: 「yogo」「会議用」の 2 件の glossaries と、active_glossary = 無い名前
+        mock: なし
+        expected: glossaries が ["yogo"] の「既定」の 1 件が返る
+      - name: test_resolve_glossary_presets
+        case: 正常
+        summary: プリセットの並びと、プリセットの中の用語集の並びをそのまま返し、一覧に無い名前を外す
+        condition: 「yogo」「会議用」の 2 件の glossaries と、「既定」（["yogo"]）・「会議」（["会議用", "消した", "yogo"]）の 2 件の glossary_presets
+        mock: なし
+        expected: 「既定」（["yogo"]）・「会議」（["会議用", "yogo"]）の 2 件が返る
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[glossary_presets[].name]
+      - dev/設計書/設定/常駐アプリ#settings[glossary_presets[].glossaries]
+    status: planned
+    introduced:
+      pr: 173
+  - name: pick_glossary_preset
+    title: 補正に使う用語集のプリセットの選択
+    container: features/correction/service.py
+    usecase: 録音を文字に起こす
+    summary: 用語集のプリセットの一覧から、補正に使うプリセットを返す。指定した名前があればそれ、無ければ `active_glossary_preset`、それも無い・一覧に無いときは 1 件目
+    kind: 関数
+    scope: public
+    args:
+      - name: settings
+        type: Settings
+        required: true
+        passing: positional
+        description: 今の設定
+      - name: settings_dir
+        type: Path
+        required: true
+        passing: positional
+        description: settings.toml のあるフォルダ
+      - name: requested
+        type: str | None
+        required: false
+        default: None
+        passing: keyword
+        description: API の開始で指定した用語集のプリセットの名前（セッションの glossary_preset）。None は設定で選んでいるプリセット
+    returns:
+      type: GlossaryPresetSettings
+      description: 補正に使う用語集のプリセット
+    process: |-
+      1. resolve_glossary_presets で一覧を引く
+      2. requested があるかを確かめる
+         - 一覧に同じ名前がある場合、そのプリセットを返す
+         - 一覧に同じ名前が無い場合（開始の後に設定でそのプリセットを消した）、3 へ進む
+           - `[WARNING]` 指定された用語集のプリセットが無いため、設定で選んでいるプリセットで補正する（指定された名前）
+      3. `active_glossary_preset` と同じ名前のプリセットを返す
+         - None か、同じ名前が無い場合、1 件目を返す
+    unit_tests:
+      - name: test_pick_glossary_preset
+        case: 正常
+        summary: active_glossary_preset の名前のプリセットを返す
+        condition: 「既定」「会議」の 2 件の glossary_presets と active_glossary_preset = 会議
+        mock: なし
+        expected: 「会議」のプリセットが返る
+      - name: test_pick_glossary_preset_when_unset
+        case: 正常
+        summary: active_glossary_preset が無ければ 1 件目
+        condition: 2 件の glossary_presets と active_glossary_preset = None
+        mock: なし
+        expected: 1 件目が返る
+      - name: test_pick_glossary_preset_when_unknown_name
+        case: 正常
+        summary: 一覧に無い名前なら 1 件目
+        condition: 2 件の glossary_presets と active_glossary_preset = 無い名前
+        mock: なし
+        expected: 1 件目が返る
+      - name: test_pick_glossary_preset_when_requested
+        case: 正常
+        summary: 指定した名前があれば、設定で選んでいるプリセットより優先する
+        condition: 「既定」「会議」の 2 件と active_glossary_preset = 既定、requested = 会議
+        mock: なし
+        expected: 「会議」のプリセットが返る
+      - name: test_pick_glossary_preset_when_requested_missing
+        case: 正常
+        summary: 指定した名前が一覧に無ければ、設定で選んでいるプリセット
+        condition: 「既定」「会議」の 2 件と active_glossary_preset = 会議、requested = 消したプリセット
+        mock: なし
+        expected: 「会議」のプリセットが返る
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[active_glossary_preset]
+      - dev/設計書/インターフェース定義/常駐アプリ/録音を開始する.py#request[glossary_preset]
+    status: planned
+    introduced:
+      pr: 173
+  - name: list_preset_glossaries
+    title: 用語集のプリセットの用語集
+    container: features/correction/service.py
+    usecase: 録音を文字に起こす
+    summary: 用語集のプリセットが使う用語集を、プリセットに並べた順で返す
+    kind: 関数
+    scope: public
+    args:
+      - name: preset
+        type: GlossaryPresetSettings
+        required: true
+        passing: positional
+        description: 補正に使う用語集のプリセット（pick_glossary_preset が返したもの）
+      - name: glossaries
+        type: Sequence[GlossarySettings]
+        required: true
+        passing: positional
+        description: 用語集の一覧（resolve_glossaries が返したもの。path は絶対パス）
+    returns:
+      type: list[GlossarySettings]
+      description: プリセットの glossaries の順の用語集。一覧に無い名前は飛ばす。glossaries が空なら空
+    process: 1. preset.glossaries の順に、同じ名前の用語集を一覧から引いて並べる（一覧に無い名前は飛ばす）
+    unit_tests:
+      - name: test_list_preset_glossaries
+        case: 正常
+        summary: プリセットに並べた順で返す（用語集の一覧の順ではない）
+        condition: 一覧が「yogo」「会議用」の順で、glossaries が ["会議用", "yogo"] のプリセット
+        mock: なし
+        expected: 「会議用」「yogo」の順の 2 件が返る
+      - name: test_list_preset_glossaries_when_empty
+        case: 正常
+        summary: 使う用語集が無いプリセットは空
+        condition: glossaries が [] のプリセット
+        mock: なし
+        expected: '[] が返る'
+    status: planned
+    introduced:
+      pr: 173
 test_files:
   - tests/unit/voice_paste/features/correction/test_service.py
 constants:
@@ -495,3 +663,12 @@ constants:
     summary: 一致した文言の後ろに続くとき、文言と一緒に消す句読点と空白
     value: '"。、，．,.!?！？ 　\t"'
     status: implemented
+  - name: DEFAULT_GLOSSARY_PRESET_NAME
+    title: 既定の用語集のプリセットの名前
+    container: features/correction/service.py
+    usecase: 共通
+    summary: '`glossary_presets` のキーが無い・空の settings.toml で、resolve_glossary_presets が作る 1 つだけのプリセットの名前'
+    value: '"既定"'
+    status: planned
+    introduced:
+      pr: 173

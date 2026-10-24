@@ -32,6 +32,22 @@ def stack(tmp_path: Path) -> Iterator[Stack]:
 
 
 @pytest.fixture
+def stack_with_settings(tmp_path: Path) -> Iterator[Callable[[Settings], Stack]]:
+    """設定を受けて、その設定で本物の app を立てた一式を作る関数を返す。テストの後に立てた一式を止める。"""
+    built: list[Stack] = []
+
+    def _build(settings: Settings) -> Stack:
+        """設定で一式を作り、後片付けの対象に覚える。"""
+        stack = build_stack(tmp_path, settings=settings)
+        built.append(stack)
+        return stack
+
+    yield _build
+    for stack in built:
+        stop_stack(stack)
+
+
+@pytest.fixture
 def output_stack(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> Iterator[Callable[[Settings | None], OutputStack]]:

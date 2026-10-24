@@ -191,10 +191,12 @@ LIST_KEYS = (
     "glossaries",
     "glossary_path",
     "active_glossary",
+    "glossary_presets",
+    "active_glossary_preset",
     "hint_presets",
     "edge_phrases",
 )
-"""欄ではなく、一覧の部品（出力先・プリセット・用語集・表記のヒント・文頭・文末から消す文言）が持つキー。glossary_path は欄を持たず、glossaries が空のときだけ読む。"""
+"""欄ではなく、一覧の部品（出力先・プリセット・用語集・用語集のプリセット・表記のヒント・文頭・文末から消す文言）が持つキー。glossary_path は欄を持たず、glossaries が空のときだけ読む。active_glossary は glossary_presets が空のときだけ読む。"""
 
 
 def _leaf_keys(settings: Settings) -> list[str]:
@@ -1467,8 +1469,8 @@ def test_save_button_when_enter_modifiers(open_window: Callable[..., Opened]) ->
 
 
 def test_save_button_when_default(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """既定のままでも保存できる（録音の開始と「貼り付けて送信」が同じホットキーなのは重なりにしない。用語集は今の 1 件を一覧に書き、書き戻す CSV は無い）。"""
-    from voice_paste.shared.settings import GlossarySettings
+    """既定のままでも保存できる（録音の開始と「貼り付けて送信」が同じホットキーなのは重なりにしない。用語集は今の 1 件を一覧に書き、「既定」のプリセットがそれだけを使う形に書く。書き戻す CSV は無い）。"""
+    from voice_paste.shared.settings import GlossaryPresetSettings, GlossarySettings
 
     # 準備
     opened = open_window()
@@ -1479,7 +1481,8 @@ def test_save_button_when_default(open_window: Callable[..., Opened], tmp_path: 
     # 検証
     expected = SETTINGS_MODEL(
         glossaries=[GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")],
-        active_glossary="yogo",
+        glossary_presets=[GlossaryPresetSettings(name="既定", glossaries=["yogo"])],
+        active_glossary_preset="既定",
     )
     opened.deps.save_settings.assert_called_once_with(expected, {})
 
@@ -1989,16 +1992,23 @@ def _open_glossaries(
     files: dict[str, str | bytes | None],
     *,
     active: str | None = None,
+    presets: list[tuple[str, list[str]]] | None = None,
+    active_preset: str | None = None,
 ) -> Opened:
     """名前ごとの CSV を一時フォルダに書き、その一覧の用語集で設定画面を開いて、用語集のまとまりを選ぶ。
 
-    行を読む関数と足す場所を決める関数は本物（read_glossary_rows・next_glossary_path）を渡す。
+    行を読む関数と足す場所を決める関数と用語集のプリセットの一覧を引く関数は本物（read_glossary_rows・next_glossary_path・resolve_glossary_presets）を渡す。
     中身が None の CSV は書かない（フォルダを置いて開けない CSV にするときに使う）。
+    presets は（プリセットの名前, 使う用語集の名前の並び）の並び。渡さなければ settings.toml に glossary_presets が無い形で、active は今までの active_glossary。
     """
     from functools import partial
 
-    from voice_paste.features.correction import next_glossary_path, read_glossary_rows
-    from voice_paste.shared.settings import GlossarySettings
+    from voice_paste.features.correction import (
+        next_glossary_path,
+        read_glossary_rows,
+        resolve_glossary_presets,
+    )
+    from voice_paste.shared.settings import GlossaryPresetSettings, GlossarySettings
 
     glossaries = []
     for name, content in files.items():
@@ -2008,9 +2018,20 @@ def _open_glossaries(
         elif content is not None:
             path.write_text(content, encoding="utf-8")
         glossaries.append(GlossarySettings(name=name, path=path))
+    settings = SETTINGS_MODEL(
+        glossaries=glossaries,
+        active_glossary=active,
+        glossary_presets=[
+            GlossaryPresetSettings(name=name, glossaries=names) for name, names in presets or []
+        ],
+        active_glossary_preset=active_preset,
+    )
     opened = open_window(
-        SETTINGS_MODEL(glossaries=glossaries, active_glossary=active),
+        settings,
         list_glossaries=MagicMock(return_value=glossaries),
+        list_glossary_presets=MagicMock(
+            side_effect=lambda: resolve_glossary_presets(settings, tmp_path)
+        ),
         read_glossary=read_glossary_rows,
         new_glossary_path=partial(next_glossary_path, directory=tmp_path / "glossaries"),
     )
@@ -2061,12 +2082,12 @@ def test_glossary_list_when_visible(open_window: Callable[..., Opened]) -> None:
     # 検証
     assert list_frame.isVisible()
     assert _label_with_text(window, "用語集の一覧").isVisible()
-    assert list_frame.accessibleName() == "用語集の一覧（補正に使う用語集を 1 つ選ぶ）"
+    assert list_frame.accessibleName() == "用語集の一覧"
     assert not _field(window, "transcription.local_whisper.model").isVisible()
 
 
 def test_glossary_list_initial_value(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """一覧は settings.toml の glossaries の並びで 1 行ずつ出し、列は「補正に使う」「名前」「行」と消すボタン。"""
+    """一覧は settings.toml の glossaries の並びで 1 行ずつ出し、列は「名前」「使うプリセット」「行」と消すボタン。"""
     # 実行
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
 
@@ -2075,7 +2096,7 @@ def test_glossary_list_initial_value(open_window: Callable[..., Opened], tmp_pat
     headings = [
         label.text() for label in list_frame.findChildren(QLabel) if label.property("role") == "heading"
     ]
-    assert headings == ["補正に使う", "名前", "行"]
+    assert headings == ["名前", "使うプリセット", "行"]
     assert _glossary_names(opened.window) == ["yogo", "会議用"]
     assert len(_widgets(opened.window, QPushButton, "glossary_remove_")) == 2
 
@@ -2110,64 +2131,760 @@ def test_glossary_list_when_glossaries_empty(
     assert rows == {}
 
 
-# === glossary_active_{n} ===
+TWO_PRESETS: list[tuple[str, list[str]]] = [("既定", ["yogo"]), ("会議", ["会議用", "yogo"])]
+"""「既定」（["yogo"]）と「会議」（["会議用", "yogo"]）の 2 件のプリセット（名前, 使う用語集の名前の並び）。"""
+
+FAR_BELOW_Y = 100000
+"""つまみを離した縦の位置のうち、どの行の中心よりも下になる値。"""
+
+
+def _saved_presets(opened: Opened) -> list[tuple[str, list[str]]]:
+    """保存で書く設定の用語集のプリセットを、（名前, 使う用語集の名前の並び）の並びで返す。"""
+    saved, _rows = _saved(opened)
+    return [(preset.name, preset.glossaries) for preset in saved.glossary_presets]
+
+
+def _preset_names(window: QWidget) -> list[str]:
+    """用語集のプリセットの一覧の名前のボタンの文字を、並びの順で返す。"""
+    return [button.text() for button in _widgets(window, QPushButton, "glossary_preset_pick_")]
+
+
+def _used_names(window: QWidget) -> list[str]:
+    """使う用語集の表の用語集の名前を、表の順で返す（外すボタンの読み上げの名前「{用語集}を外す」から引く）。"""
+    buttons = _widgets(window, QPushButton, "glossary_preset_glossary_remove_")
+    return [button.accessibleName().removesuffix("を外す") for button in buttons]
+
+
+def _select_texts(window: QWidget) -> list[str]:
+    """追加する用語集の選択の選択肢の文字を、並びの順で返す（選択の欄が無ければ空）。"""
+    combo = window.findChild(QComboBox, "glossary_preset_glossary_select")
+    if combo is None:
+        return []
+    return [combo.itemText(index) for index in range(combo.count())]
+
+
+def _add_use(window: QWidget, name: str) -> None:
+    """追加する用語集の選択で name を選び、使う用語集の追加ボタンを押す。"""
+    combo = find(window, QComboBox, "glossary_preset_glossary_select")
+    combo.setCurrentIndex(combo.findText(name))
+    _click(window, "glossary_preset_glossary_add")
+
+
+def _preset_count(window: QWidget, number: int) -> str:
+    """number 件目のプリセットの用語集の数の表示を返す。"""
+    return find(window, QLabel, f"glossary_preset_count_{number}").text()
+
+
+# === glossary_preset_list ===
+
+
+def test_glossary_preset_list_when_visible(open_window: Callable[..., Opened]) -> None:
+    """用語集のプリセットの一覧は、用語集のまとまりを選んだときだけ出る。見出しは「用語集のプリセット」。"""
+    # 準備
+    window = open_window().window
+    list_frame = find(window, QFrame, "glossary_preset_list")
+    assert not list_frame.isVisible()
+
+    # 実行
+    find(window, QListWidget, "group_menu").setCurrentRow(GLOSSARY_GROUP_ROW)
+
+    # 検証
+    assert list_frame.isVisible()
+    assert _label_with_text(window, "用語集のプリセット").isVisible()
+    assert list_frame.accessibleName() == "用語集のプリセットの一覧（補正に使うプリセットを 1 つ選ぶ）"
+
+
+def test_glossary_preset_list_initial_value(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """一覧は settings.toml の glossary_presets の並びで 1 行ずつ出し、列は「補正に使う」「名前」「用語集」と消すボタン。"""
+    # 実行
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+
+    # 検証
+    list_frame = find(opened.window, QFrame, "glossary_preset_list")
+    headings = [
+        label.text() for label in list_frame.findChildren(QLabel) if label.property("role") == "heading"
+    ]
+    assert headings == ["補正に使う", "名前", "用語集"]
+    assert _preset_names(opened.window) == ["既定", "会議"]
+    assert len(_widgets(opened.window, QPushButton, "glossary_preset_remove_")) == 2
 
 
 @pytest.mark.parametrize(
-    ("active", "checked"),
-    [pytest.param("会議用", [False, True], id="named"), pytest.param(None, [True, False], id="unset")],
+    ("active", "used"),
+    [
+        pytest.param("会議用", ["会議用"], id="legacy_active"),
+        pytest.param(None, ["yogo"], id="no_active"),
+        pytest.param("存在しない名前", ["yogo"], id="unknown_active"),
+    ],
 )
-def test_glossary_active_initial_value(
-    open_window: Callable[..., Opened], tmp_path: Path, active: str | None, checked: list[bool]
+def test_glossary_preset_list_when_presets_empty(
+    open_window: Callable[..., Opened], tmp_path: Path, active: str | None, used: list[str]
 ) -> None:
-    """補正に使う用語集は、settings.toml の active_glossary の名前の用語集。キーが無ければ 1 件目。"""
+    """glossary_presets が空なら、active_glossary の用語集だけを使う「既定」の 1 件を出す（無い・一覧に無ければ 1 つ目の用語集）。保存でこのキーを消して、プリセットの形に書く。"""
     # 実行
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, active=active)
 
     # 検証
-    radios = _widgets(opened.window, QRadioButton, "glossary_active_")
+    assert _preset_names(opened.window) == ["既定"]
+    assert _used_names(opened.window) == used
+    _click(opened.window, "save_button")
+    saved, _rows = _saved(opened)
+    assert _saved_presets(opened) == [("既定", used)]
+    assert saved.active_glossary_preset == "既定"
+    assert saved.active_glossary is None
+
+
+# === glossary_preset_active_{n} ===
+
+
+@pytest.mark.parametrize(
+    ("active", "checked"),
+    [
+        pytest.param("会議", [False, True], id="named"),
+        pytest.param(None, [True, False], id="unset"),
+        pytest.param("存在しない名前", [True, False], id="unknown"),
+    ],
+)
+def test_glossary_preset_active_initial_value(
+    open_window: Callable[..., Opened], tmp_path: Path, active: str | None, checked: list[bool]
+) -> None:
+    """補正に使うプリセットは、settings.toml の active_glossary_preset の名前のプリセット。キーが無い・一覧に無ければ 1 件目。"""
+    # 実行
+    opened = _open_glossaries(
+        open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS, active_preset=active
+    )
+
+    # 検証
+    radios = _widgets(opened.window, QRadioButton, "glossary_preset_active_")
     assert [radio.isChecked() for radio in radios] == checked
-    assert [radio.accessibleName() for radio in radios] == ["yogoを補正に使う", "会議用を補正に使う"]
+    assert [radio.accessibleName() for radio in radios] == ["既定を補正に使う", "会議を補正に使う"]
 
 
-def test_glossary_active_accessible_name_when_unnamed(
+def test_glossary_preset_active_accessible_name_when_unnamed(
     open_window: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """名前が空の用語集の読み上げの名前は「名前未入力の用語集を補正に使う」。"""
+    """名前が空のプリセットの読み上げの名前は「名前未入力のプリセットを補正に使う」。"""
     # 準備
-    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+
+    # 実行
+    _click(opened.window, "add_glossary_preset_button")
+
+    # 検証
+    radio = find(opened.window, QRadioButton, "glossary_preset_active_2")
+    assert radio.accessibleName() == "名前未入力のプリセットを補正に使う"
+
+
+def test_glossary_preset_active_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """補正に使うプリセットは 1 つだけ選べ、選ぶと消すボタンの扱いが入れ替わり、保存で active_glossary_preset に書く。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+
+    # 実行
+    find(opened.window, QRadioButton, "glossary_preset_active_1").click()
+
+    # 検証
+    assert not find(opened.window, QRadioButton, "glossary_preset_active_0").isChecked()
+    assert find(opened.window, QRadioButton, "glossary_preset_active_1").isChecked()
+    assert find(opened.window, QPushButton, "glossary_preset_remove_0").toolTip() == ""
+    remove_active = find(opened.window, QPushButton, "glossary_preset_remove_1")
+    assert remove_active.toolTip() == "補正に使うプリセットは消せません"
+    _click(opened.window, "save_button")
+    assert _saved(opened)[0].active_glossary_preset == "会議"
+
+
+# === glossary_preset_pick_{n} ===
+
+
+def test_glossary_preset_pick_initial_value(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """設定画面を開いたときは、補正に使うプリセットの使う用語集の表を出し、その 1 つ目の用語集の行の表を出している。"""
+    # 実行
+    opened = _open_glossaries(
+        open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS, active_preset="会議"
+    )
+
+    # 検証
+    assert find(opened.window, QLineEdit, "glossary_preset_name_1").text() == "会議"
+    assert _used_names(opened.window) == ["会議用", "yogo"]
+    assert find(opened.window, QLabel, "glossary_detail_title").text() == "用語集「会議用」の行"
+
+
+def test_glossary_preset_pick_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """名前のボタンを押すと、そのプリセットの使う用語集の表を下に出す。切り替えても入れた値は消さない。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+    find(opened.window, QLineEdit, "glossary_preset_name_0").setText("変えた名前")
+
+    # 実行
+    _click(opened.window, "glossary_preset_pick_1")
+
+    # 検証
+    assert find(opened.window, QLineEdit, "glossary_preset_name_1").text() == "会議"
+    assert _used_names(opened.window) == ["会議用", "yogo"]
+    _click(opened.window, "glossary_preset_pick_0")
+    assert find(opened.window, QLineEdit, "glossary_preset_name_0").text() == "変えた名前"
+
+
+def test_glossary_preset_pick_when_name_unnamed_or_long(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """名前が空なら「名前未入力のプリセット」、長い名前は 1 行に収めて末尾を省く。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+
+    # 実行
+    find(opened.window, QLineEdit, "glossary_preset_name_0").setText("")
+    _click(opened.window, "glossary_preset_pick_1")
+    find(opened.window, QLineEdit, "glossary_preset_name_1").setText(
+        "とても長いプリセットの名前をつけたので一覧では途中で省かれる"
+    )
+
+    # 検証
+    names = _preset_names(opened.window)
+    assert names[0] == "名前未入力のプリセット"
+    assert names[1].endswith("…")
+    assert len(names[1]) <= 20
+
+
+# === glossary_preset_count_{n} ===
+
+
+def test_glossary_preset_count_initial_value(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """用語集の数は「{数} 件」。"""
+    # 実行
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+
+    # 検証
+    assert _preset_count(opened.window, 0) == "1 件"
+    assert _preset_count(opened.window, 1) == "2 件"
+
+
+def test_glossary_preset_count_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """使う用語集を追加・外すたびに数え直す。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+
+    # 実行・検証
+    _add_use(opened.window, "会議用")
+    assert _preset_count(opened.window, 0) == "2 件"
+    _click(opened.window, "glossary_preset_glossary_remove_0")
+    assert _preset_count(opened.window, 0) == "1 件"
+
+
+# === glossary_preset_remove_{n} ===
+
+
+def test_glossary_preset_remove_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """プリセットを一覧から消す。用語集は消さず、保存するまで settings.toml に書かない。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+
+    # 実行
+    _click(opened.window, "glossary_preset_remove_1")
+
+    # 検証
+    assert _preset_names(opened.window) == ["既定"]
+    assert _glossary_names(opened.window) == ["yogo", "会議用"]
+    opened.deps.save_settings.assert_not_called()
+    _click(opened.window, "save_button")
+    assert _saved_presets(opened) == [("既定", ["yogo"])]
+
+
+def test_glossary_preset_remove_when_cancelled(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """消した後にキャンセルで閉じれば、settings.toml には書かない。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+    _click(opened.window, "glossary_preset_remove_1")
+    driver = ModalDriver()
+    driver.answer("discard_button")
+
+    # 実行
+    _click(opened.window, "cancel_button")
+
+    # 検証
+    driver.verify()
+    opened.deps.save_settings.assert_not_called()
+    opened.closed.assert_called_once()
+
+
+def test_glossary_preset_remove_when_active(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """補正に使うプリセットの消すボタンは、薄くして押しても消さず、フォーカスは受けてツールチップを出す。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+    button = find(opened.window, QPushButton, "glossary_preset_remove_0")
+
+    # 実行
+    _click(opened.window, "glossary_preset_remove_0")
+
+    # 検証
+    assert _preset_names(opened.window) == ["既定", "会議"]
+    assert button.isEnabled()
+    assert button.focusPolicy() != Qt.FocusPolicy.NoFocus
+    assert button.toolTip() == "補正に使うプリセットは消せません"
+    assert button.graphicsEffect() is not None
+
+
+def test_glossary_preset_remove_when_shown(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """使う用語集の表を出しているプリセットを消したら、補正に使うプリセットの表を出す。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+    _click(opened.window, "glossary_preset_pick_1")
+
+    # 実行
+    _click(opened.window, "glossary_preset_remove_1")
+
+    # 検証
+    assert find(opened.window, QLineEdit, "glossary_preset_name_0").text() == "既定"
+    assert _used_names(opened.window) == ["yogo"]
+
+
+def test_glossary_preset_remove_accessible_name(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """消すボタンの読み上げの名前は「{名前}を消す」（名前が空なら「名前未入力のプリセットを消す」）。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+
+    # 実行
+    _click(opened.window, "add_glossary_preset_button")
+
+    # 検証
+    buttons = _widgets(opened.window, QPushButton, "glossary_preset_remove_")
+    assert [button.accessibleName() for button in buttons] == [
+        "既定を消す",
+        "会議を消す",
+        "名前未入力のプリセットを消す",
+    ]
+
+
+# === add_glossary_preset_button ===
+
+
+def test_add_glossary_preset_button_action(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """使う用語集が無く名前が空のプリセットを末尾に足し、その表を出して名前の欄へフォーカスを移す。補正に使うプリセットは変えない。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+    assert find(opened.window, QPushButton, "add_glossary_preset_button").text() == "プリセット追加"
+
+    # 実行
+    _click(opened.window, "add_glossary_preset_button")
+
+    # 検証
+    assert _preset_names(opened.window) == ["既定", "会議", "名前未入力のプリセット"]
+    name_edit = find(opened.window, QLineEdit, "glossary_preset_name_2")
+    assert name_edit.text() == ""
+    assert opened.window.focusWidget() is name_edit
+    assert find(opened.window, QLabel, "glossary_preset_glossaries_empty").isVisible()
+    assert find(opened.window, QRadioButton, "glossary_preset_active_0").isChecked()
+
+
+def test_add_glossary_preset_button_when_saved(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """足したプリセットは、保存で一覧の末尾に、使う用語集の無い形で書く。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+    _click(opened.window, "add_glossary_preset_button")
+    find(opened.window, QLineEdit, "glossary_preset_name_2").setText("議事録")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert _saved_presets(opened) == [*TWO_PRESETS, ("議事録", [])]
+
+
+# === glossary_preset_detail_title・glossary_preset_name_{n} ===
+
+
+def test_glossary_preset_name_initial_value(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """名前の欄はプリセットの名前で、見出しは「プリセット「{名前}」で使う用語集」。プレースホルダは「例: 会議」。"""
+    # 実行
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+
+    # 検証
+    name_edit = find(opened.window, QLineEdit, "glossary_preset_name_0")
+    assert name_edit.text() == "既定"
+    assert name_edit.placeholderText() == "例: 会議"
+    title = find(opened.window, QLabel, "glossary_preset_detail_title")
+    assert title.text() == "プリセット「既定」で使う用語集"
+
+
+def test_glossary_preset_name_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """入れた名前を、一覧の名前のボタンと見出しにすぐ出す（空なら「名前未入力のプリセット」）。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+    name_edit = find(opened.window, QLineEdit, "glossary_preset_name_0")
+    title = find(opened.window, QLabel, "glossary_preset_detail_title")
+
+    # 実行・検証
+    name_edit.setText("議事録")
+    assert _preset_names(opened.window)[0] == "議事録"
+    assert title.text() == "プリセット「議事録」で使う用語集"
+    name_edit.setText("")
+    assert _preset_names(opened.window)[0] == "名前未入力のプリセット"
+    assert title.text() == "名前未入力のプリセットで使う用語集"
+
+
+def test_glossary_preset_name_when_saved(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """保存では名前の前後の空白を除く。補正に使うプリセットの名前を変えても、補正に使うプリセットのまま。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+    find(opened.window, QLineEdit, "glossary_preset_name_0").setText("  議事録  ")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert _saved_presets(opened) == [("議事録", ["yogo"]), ("会議", ["会議用", "yogo"])]
+    assert _saved(opened)[0].active_glossary_preset == "議事録"
+
+
+# === glossary_preset_glossaries ===
+
+
+def test_glossary_preset_glossaries_initial_value(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """使う用語集の表は、プリセットが使う用語集を当てる順に並べ、列は「順」「用語集」「行」と外すボタン。"""
+    # 実行
+    opened = _open_glossaries(
+        open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS, active_preset="会議"
+    )
+
+    # 検証
+    table = find(opened.window, QFrame, "glossary_preset_glossaries")
+    assert table.isVisible()
+    assert table.accessibleName() == "プリセットで使う用語集（上の用語集から順に当てる）"
+    headings = [
+        label.text() for label in table.findChildren(QLabel) if label.property("role") == "heading"
+    ]
+    assert headings == ["順", "用語集", "行"]
+    assert _used_names(opened.window) == ["会議用", "yogo"]
+
+
+def test_glossary_preset_glossaries_when_empty(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """使う用語集が 0 件のプリセットでは、表を出さず、代わりに文を出す。"""
+    # 準備
+    opened = _open_glossaries(
+        open_window, tmp_path, TWO_GLOSSARIES, presets=[("空", []), ("既定", ["yogo"])]
+    )
+
+    # 実行・検証
+    assert opened.window.findChild(QFrame, "glossary_preset_glossaries") is None
+    _click(opened.window, "glossary_preset_pick_1")
+    assert find(opened.window, QFrame, "glossary_preset_glossaries").isVisible()
+
+
+# === glossary_preset_glossary_grip_{n} ===
+
+
+def test_glossary_preset_glossary_grip_action(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """つまみを掴んで下へ離すと、行をそこへ動かして順の列を振り直す。保存で、並べた順に書く。"""
+    # 準備
+    opened = _open_glossaries(
+        open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS, active_preset="会議"
+    )
+    grips = _widgets(opened.window, QLabel, "glossary_preset_glossary_grip_")
+    assert [grip.toolTip() for grip in grips] == ["掴んで動かす", "掴んで動かす"]
+
+    # 実行
+    grips[0].released.emit(FAR_BELOW_Y)
+
+    # 検証
+    assert _used_names(opened.window) == ["yogo", "会議用"]
+    _click(opened.window, "save_button")
+    assert _saved_presets(opened)[1] == ("会議", ["yogo", "会議用"])
+
+
+@pytest.mark.parametrize(
+    ("row", "key", "expected"),
+    [
+        pytest.param(0, Qt.Key.Key_Down, ["yogo", "会議用"], id="down"),
+        pytest.param(1, Qt.Key.Key_Up, ["yogo", "会議用"], id="up"),
+        pytest.param(0, Qt.Key.Key_Up, ["会議用", "yogo"], id="up_at_top"),
+        pytest.param(1, Qt.Key.Key_Down, ["会議用", "yogo"], id="down_at_bottom"),
+    ],
+)
+def test_glossary_preset_glossary_grip_when_alt_arrow(
+    open_window: Callable[..., Opened],
+    tmp_path: Path,
+    row: int,
+    key: Qt.Key,
+    expected: list[str],
+) -> None:
+    """行の外すボタンにフォーカスして Alt+↑ / Alt+↓ を押すと、行を 1 つ動かす（先頭の上・末尾の下へは動かさない）。"""
+    # 準備
+    opened = _open_glossaries(
+        open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS, active_preset="会議"
+    )
+    button = find(opened.window, QPushButton, f"glossary_preset_glossary_remove_{row}")
+
+    # 実行
+    QTest.keyClick(button, key, Qt.KeyboardModifier.AltModifier)
+
+    # 検証
+    assert _used_names(opened.window) == expected
+
+
+# === glossary_preset_glossary_remove_{n} ===
+
+
+def test_glossary_preset_glossary_remove_action(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """用語集をこのプリセットから外す。用語集そのものは消さず、追加する用語集の選択肢へ戻す。"""
+    # 準備
+    opened = _open_glossaries(
+        open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS, active_preset="会議"
+    )
+    assert _select_texts(opened.window) == []
+
+    # 実行
+    _click(opened.window, "glossary_preset_glossary_remove_0")
+
+    # 検証
+    assert _used_names(opened.window) == ["yogo"]
+    assert _select_texts(opened.window) == ["会議用"]
+    assert _glossary_names(opened.window) == ["yogo", "会議用"]
+    _click(opened.window, "save_button")
+    assert _saved_presets(opened)[1] == ("会議", ["yogo"])
+
+
+def test_glossary_preset_glossary_remove_accessible_name(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """外すボタンの読み上げの名前は「{用語集}を外す」、つまみは「{用語集}を動かす」。"""
+    # 実行
+    opened = _open_glossaries(
+        open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS, active_preset="会議"
+    )
+
+    # 検証
+    grips = _widgets(opened.window, QLabel, "glossary_preset_glossary_grip_")
+    assert _used_names(opened.window) == ["会議用", "yogo"]
+    assert [grip.accessibleName() for grip in grips] == ["会議用を動かす", "yogoを動かす"]
+
+
+# === glossary_preset_glossaries_empty ===
+
+
+def test_glossary_preset_glossaries_empty_initial_value(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """使う用語集が 0 件のときの文は「使う用語集がありません。このプリセットでは何も置き換えません。」。1 件以上あれば出さない。"""
+    # 準備
+    opened = _open_glossaries(
+        open_window, tmp_path, TWO_GLOSSARIES, presets=[("空", []), ("既定", ["yogo"])]
+    )
+
+    # 実行・検証
+    empty = find(opened.window, QLabel, "glossary_preset_glossaries_empty")
+    assert empty.isVisible()
+    assert empty.text() == "使う用語集がありません。このプリセットでは何も置き換えません。"
+    _click(opened.window, "glossary_preset_pick_1")
+    assert opened.window.findChild(QLabel, "glossary_preset_glossaries_empty") is None
+
+
+# === glossary_preset_glossary_select・glossary_preset_glossary_add ===
+
+
+def test_glossary_preset_glossary_select_initial_value(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """追加する用語集の選択は、このプリセットがまだ使っていない用語集を用語集の一覧の順に並べる。既定は 1 件目。"""
+    # 実行
+    opened = _open_glossaries(
+        open_window, tmp_path, TWO_GLOSSARIES, presets=[("空", []), ("既定", ["yogo"])]
+    )
+
+    # 検証
+    combo = find(opened.window, QComboBox, "glossary_preset_glossary_select")
+    assert combo.isVisible()
+    assert _select_texts(opened.window) == ["yogo", "会議用"]
+    assert combo.currentIndex() == 0
+    assert find(opened.window, QPushButton, "glossary_preset_glossary_add").text() == "追加"
+
+
+def test_glossary_preset_glossary_add_action(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """選んだ用語集を使う用語集の表の末尾に足し、選択肢から除く。保存で、足した順に書く。"""
+    # 準備
+    opened = _open_glossaries(
+        open_window, tmp_path, TWO_GLOSSARIES, presets=[("空", [])], active_preset="空"
+    )
+
+    # 実行
+    _add_use(opened.window, "会議用")
+    _add_use(opened.window, "yogo")
+
+    # 検証
+    assert _used_names(opened.window) == ["会議用", "yogo"]
+    assert _select_texts(opened.window) == []
+    _click(opened.window, "save_button")
+    assert _saved_presets(opened) == [("空", ["会議用", "yogo"])]
+
+
+def test_glossary_preset_glossary_select_when_unnamed_glossary(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """足しただけで名前が空の用語集は、どのプリセットの使う用語集にも入らず、選択肢に「（名前未入力）」で出る。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
 
     # 実行
     _click(opened.window, "add_glossary_button")
 
     # 検証
-    assert find(opened.window, QRadioButton, "glossary_active_2").accessibleName() == "名前未入力の用語集を補正に使う"
+    assert _used_names(opened.window) == ["yogo"]
+    assert _select_texts(opened.window) == ["会議用", "（名前未入力）"]
 
 
-def test_glossary_active_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """補正に使う用語集は 1 つだけ選べ、選ぶと消すボタンの扱いが入れ替わり、保存で active_glossary に書く。"""
-    # 準備
-    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+# === glossary_preset_glossaries_all ===
 
+
+def test_glossary_preset_glossaries_all_initial_value(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """用語集の一覧の全てを使っているときは、追加する用語集の選択と追加ボタンの代わりに「全ての用語集を使っています。」を出す。"""
     # 実行
-    find(opened.window, QRadioButton, "glossary_active_1").click()
+    opened = _open_glossaries(
+        open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS, active_preset="会議"
+    )
 
     # 検証
-    assert not find(opened.window, QRadioButton, "glossary_active_0").isChecked()
-    assert find(opened.window, QRadioButton, "glossary_active_1").isChecked()
-    assert find(opened.window, QPushButton, "glossary_remove_0").toolTip() == ""
-    assert find(opened.window, QPushButton, "glossary_remove_1").toolTip() == "補正に使う用語集は消せません"
+    all_used = find(opened.window, QLabel, "glossary_preset_glossaries_all")
+    assert all_used.isVisible()
+    assert all_used.text() == "全ての用語集を使っています。"
+    assert opened.window.findChild(QComboBox, "glossary_preset_glossary_select") is None
+    assert opened.window.findChild(QPushButton, "glossary_preset_glossary_add") is None
+    _click(opened.window, "glossary_preset_pick_0")
+    assert opened.window.findChild(QLabel, "glossary_preset_glossaries_all") is None
+
+
+# === glossary_preset_rule_note ===
+
+
+def test_glossary_preset_rule_note_initial_value(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """使う用語集の決まりの凡例は、当てる順と並べ替えの操作を示し、使う用語集の表の下端に出す。"""
+    # 実行
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+
+    # 検証
+    note = find(opened.window, QLabel, "glossary_preset_rule_note")
+    assert note.isVisible()
+    assert note.text() == (
+        "上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。"
+        "行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。"
+    )
+    table = find(opened.window, QFrame, "glossary_preset_glossaries")
+    assert _top_of(note, opened.window) > _top_of(table, opened.window)
+
+
+# === glossary_presets_using_{n} ===
+
+
+def test_glossary_presets_using_initial_value(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """用語集を使っているプリセットの名前を、プリセットの一覧の順に「・」で結んで出す。どのプリセットも使っていなければ「なし」。"""
+    # 実行
+    opened = _open_glossaries(
+        open_window,
+        tmp_path,
+        TWO_GLOSSARIES,
+        presets=[("既定", ["yogo"]), ("会議", ["yogo"])],
+    )
+
+    # 検証
+    assert find(opened.window, QLabel, "glossary_presets_using_0").text() == "既定・会議"
+    assert find(opened.window, QLabel, "glossary_presets_using_1").text() == "なし"
+
+
+def test_glossary_presets_using_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """プリセットに用語集を追加・外す、プリセットの名前を変えると、使うプリセットの表示も変わる。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+
+    # 実行・検証
+    _add_use(opened.window, "会議用")
+    assert find(opened.window, QLabel, "glossary_presets_using_1").text() == "既定・会議"
+    find(opened.window, QLineEdit, "glossary_preset_name_0").setText("共通")
+    assert find(opened.window, QLabel, "glossary_presets_using_0").text() == "共通・会議"
+    _click(opened.window, "glossary_preset_glossary_remove_0")
+    assert find(opened.window, QLabel, "glossary_presets_using_0").text() == "会議"
+
+
+# === glossary_list_note ===
+
+
+def test_glossary_list_note_initial_value(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """用語集の一覧の決まりは「消した用語集は、使っているプリセットからも外れる。」で、用語集追加のボタンの右に出す。"""
+    # 実行
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+
+    # 検証
+    note = find(opened.window, QLabel, "glossary_list_note")
+    button = find(opened.window, QPushButton, "add_glossary_button")
+    assert note.isVisible()
+    assert note.text() == "消した用語集は、使っているプリセットからも外れる。"
+    assert _top_of(note, opened.window) <= _top_of(button, opened.window) + button.height()
+    assert _left_of(note, opened.window) >= _left_of(button, opened.window) + button.width()
+
+
+def test_glossary_remove_when_used_by_presets(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """用語集を消すと、その用語集を使っているプリセットの使う用語集からも外れる。"""
+    # 準備
+    opened = _open_glossaries(
+        open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS, active_preset="会議"
+    )
+
+    # 実行
+    _click(opened.window, "glossary_remove_1")
+
+    # 検証
+    assert _used_names(opened.window) == ["yogo"]
+    assert find(opened.window, QLabel, "glossary_presets_using_0").text() == "既定・会議"
     _click(opened.window, "save_button")
-    assert _saved(opened)[0].active_glossary == "会議用"
+    assert _saved_presets(opened) == [("既定", ["yogo"]), ("会議", ["yogo"])]
 
 
 # === glossary_pick_{n} ===
 
 
 def test_glossary_pick_initial_value(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """設定画面を開いたときは、補正に使う用語集の名前の欄と行の表を出している。"""
+    """設定画面を開いたときは、補正に使うプリセットの 1 つ目の用語集の名前の欄と行の表を出している。"""
     # 実行
-    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, active="会議用")
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=[("既定", ["会議用"])])
 
     # 検証
     assert find(opened.window, QLineEdit, "glossary_name_1").text() == "会議用"
@@ -2284,21 +3001,37 @@ def test_glossary_remove_when_cancelled(open_window: Callable[..., Opened], tmp_
     opened.closed.assert_called_once()
 
 
-def test_glossary_remove_when_active(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """補正に使う用語集の消すボタンは、薄くして押しても消さず、フォーカスは受けてツールチップを出す。"""
+def test_glossary_remove_when_last(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """最後の 1 件の用語集の消すボタンは、薄くして押しても消さず、フォーカスは受けてツールチップ「最後の用語集は消せません」を出す。"""
     # 準備
-    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    opened = _open_glossaries(open_window, tmp_path, {"yogo": CSV_FIVE_ROWS})
     button = find(opened.window, QPushButton, "glossary_remove_0")
 
     # 実行
     _click(opened.window, "glossary_remove_0")
 
     # 検証
-    assert _glossary_names(opened.window) == ["yogo", "会議用"]
+    assert _glossary_names(opened.window) == ["yogo"]
     assert button.isEnabled()
     assert button.focusPolicy() != Qt.FocusPolicy.NoFocus
-    assert button.toolTip() == "補正に使う用語集は消せません"
+    assert button.toolTip() == "最後の用語集は消せません"
     assert button.graphicsEffect() is not None
+
+
+def test_glossary_remove_when_two(open_window: Callable[..., Opened], tmp_path: Path) -> None:
+    """用語集が 2 件以上あるときは、どの用語集の消すボタンも押せる（補正に使うプリセットが使う用語集も消せる）。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+
+    # 実行
+    buttons = _widgets(opened.window, QPushButton, "glossary_remove_")
+
+    # 検証
+    assert [button.toolTip() for button in buttons] == ["", ""]
+    assert [button.graphicsEffect() is None for button in buttons] == [True, True]
+    _click(opened.window, "glossary_remove_0")
+    assert _glossary_names(opened.window) == ["会議用"]
+    assert find(opened.window, QPushButton, "glossary_remove_0").toolTip() == "最後の用語集は消せません"
 
 
 def test_glossary_remove_when_shown(open_window: Callable[..., Opened], tmp_path: Path) -> None:
@@ -2425,10 +3158,10 @@ def test_discard_body_when_rows_changed_in_two_glossaries(
 
 
 def test_discard_body_when_active_switched(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """補正に使う用語集を切り替えると、変えた件数は 1 件。"""
+    """補正に使うプリセットを切り替えると、変えた件数は 1 件。"""
     # 準備
-    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
-    find(opened.window, QRadioButton, "glossary_active_1").click()
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+    find(opened.window, QRadioButton, "glossary_preset_active_1").click()
 
     # 実行
     body = _discard_body(opened)
@@ -2438,10 +3171,10 @@ def test_discard_body_when_active_switched(open_window: Callable[..., Opened], t
 
 
 def test_discard_body_when_active_renamed(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """補正に使う用語集の名前だけを変えると、変えた件数は 1 件（切り替えとして数えない）。"""
+    """補正に使うプリセットの名前だけを変えると、変えた件数は 1 件（切り替えとして数えない）。"""
     # 準備
-    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
-    find(opened.window, QLineEdit, "glossary_name_0").setText("改名")
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+    find(opened.window, QLineEdit, "glossary_preset_name_0").setText("改名")
 
     # 実行
     body = _discard_body(opened)
@@ -2451,11 +3184,11 @@ def test_discard_body_when_active_renamed(open_window: Callable[..., Opened], tm
 
 
 def test_discard_body_when_added_and_active(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """用語集を足してその用語集を補正に使うと、変えた件数は 2 件。"""
+    """プリセットを足してそのプリセットを補正に使うと、変えた件数は 2 件。"""
     # 準備
-    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
-    _click(opened.window, "add_glossary_button")
-    find(opened.window, QRadioButton, "glossary_active_2").click()
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+    _click(opened.window, "add_glossary_preset_button")
+    find(opened.window, QRadioButton, "glossary_preset_active_2").click()
 
     # 実行
     body = _discard_body(opened)
@@ -2464,14 +3197,77 @@ def test_discard_body_when_added_and_active(open_window: Callable[..., Opened], 
     assert body == _discard_message(2)
 
 
+def test_discard_body_when_glossary_renamed_and_used_by_preset(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """プリセットが使う用語集の名前だけを変えると、変えた件数は 1 件（プリセットの変更として数えない）。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+    find(opened.window, QLineEdit, "glossary_name_0").setText("改名")
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
+@pytest.mark.parametrize(
+    ("active_preset", "operation"),
+    [
+        pytest.param(
+            "既定", lambda window: _click(window, "add_glossary_preset_button"), id="preset_added"
+        ),
+        pytest.param(
+            "既定", lambda window: _click(window, "glossary_preset_remove_1"), id="preset_removed"
+        ),
+        pytest.param(
+            "既定",
+            lambda window: find(window, QLineEdit, "glossary_preset_name_0").setText("改名"),
+            id="preset_renamed",
+        ),
+        pytest.param("既定", lambda window: _add_use(window, "会議用"), id="use_added"),
+        pytest.param(
+            "既定",
+            lambda window: _click(window, "glossary_preset_glossary_remove_0"),
+            id="use_removed",
+        ),
+        pytest.param(
+            "会議",
+            lambda window: _widgets(window, QLabel, "glossary_preset_glossary_grip_")[0]
+            .released.emit(FAR_BELOW_Y),
+            id="use_moved",
+        ),
+    ],
+)
+def test_discard_body_when_preset_changed(
+    open_window: Callable[..., Opened],
+    tmp_path: Path,
+    active_preset: str,
+    operation: Callable[[QWidget], None],
+) -> None:
+    """プリセットを足す・消す・名前を変える、使う用語集を追加する・外す・動かすのどれでも、変えた件数は 1 件。"""
+    # 準備
+    opened = _open_glossaries(
+        open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS, active_preset=active_preset
+    )
+    operation(opened.window)
+
+    # 実行
+    body = _discard_body(opened)
+
+    # 検証
+    assert body == _discard_message(1)
+
+
 # === add_glossary_button ===
 
 
 def test_add_glossary_button_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """名前が空で行の無い用語集を末尾に足し、その行の表を出して名前の欄へフォーカスを移す。補正に使う用語集は変えない。"""
+    """名前が空で行の無い用語集を末尾に足し、その行の表を出して名前の欄へフォーカスを移す。どのプリセットの使う用語集にも入れない。"""
     # 準備
-    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
-    assert find(opened.window, QPushButton, "add_glossary_button").text() == "用語集を足す"
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+    assert find(opened.window, QPushButton, "add_glossary_button").text() == "用語集追加"
 
     # 実行
     _click(opened.window, "add_glossary_button")
@@ -2482,7 +3278,8 @@ def test_add_glossary_button_action(open_window: Callable[..., Opened], tmp_path
     assert name_edit.text() == ""
     assert opened.window.focusWidget() is name_edit
     assert find(opened.window, QLabel, "glossary_entries_empty").isVisible()
-    assert find(opened.window, QRadioButton, "glossary_active_0").isChecked()
+    assert find(opened.window, QRadioButton, "glossary_preset_active_0").isChecked()
+    assert find(opened.window, QLabel, "glossary_presets_using_2").text() == "なし"
 
 
 def test_add_glossary_button_when_saved(open_window: Callable[..., Opened], tmp_path: Path) -> None:
@@ -2534,7 +3331,7 @@ def test_glossary_name_action(open_window: Callable[..., Opened], tmp_path: Path
 
 
 def test_glossary_name_when_saved(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """保存では名前の前後の空白を除く。名前だけ変えた用語集の CSV は書き戻さない。"""
+    """保存では名前の前後の空白を除き、その用語集を使うプリセットも新しい名前で書く。名前だけ変えた用語集の CSV は書き戻さない。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
     find(opened.window, QLineEdit, "glossary_name_0").setText("  議事録  ")
@@ -2545,7 +3342,7 @@ def test_glossary_name_when_saved(open_window: Callable[..., Opened], tmp_path: 
     # 検証
     saved, rows = _saved(opened)
     assert [glossary.name for glossary in saved.glossaries] == ["議事録", "会議用"]
-    assert saved.active_glossary == "議事録"
+    assert _saved_presets(opened) == [("既定", ["議事録"])]
     assert rows == {}
 
 
@@ -2724,7 +3521,7 @@ def test_add_glossary_entry_button_action(open_window: Callable[..., Opened], tm
     """誤変換と正しい表記が空でオンの行を表の末尾に足し、その行の誤変換の欄へフォーカスを移す。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
-    assert find(opened.window, QPushButton, "add_glossary_entry_button").text() == "行を足す"
+    assert find(opened.window, QPushButton, "add_glossary_entry_button").text() == "行追加"
 
     # 実行
     _click(opened.window, "add_glossary_entry_button")
@@ -2821,12 +3618,12 @@ def test_glossary_unreadable_when_readable(open_window: Callable[..., Opened], t
 
 
 def test_glossary_unreadable_when_saved(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """読めない用語集も、名前を変える・補正に使う用語集に選ぶ・一覧から消すはできる。保存してもその CSV には触れない。"""
+    """読めない用語集も、名前を変える・プリセットの使う用語集に追加する・一覧から消すはできる。保存してもその CSV には触れない。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, {"yogo": CSV_FIVE_ROWS, "壊れた": SJIS_CSV, "予備": CSV_TWO_ROWS})
     _click(opened.window, "glossary_pick_1")
     find(opened.window, QLineEdit, "glossary_name_1").setText("直した名前")
-    find(opened.window, QRadioButton, "glossary_active_1").click()
+    _add_use(opened.window, "直した名前")
     _click(opened.window, "glossary_remove_2")
 
     # 実行
@@ -2835,7 +3632,7 @@ def test_glossary_unreadable_when_saved(open_window: Callable[..., Opened], tmp_
     # 検証
     saved, rows = _saved(opened)
     assert [glossary.name for glossary in saved.glossaries] == ["yogo", "直した名前"]
-    assert saved.active_glossary == "直した名前"
+    assert _saved_presets(opened) == [("既定", ["yogo", "直した名前"])]
     assert rows == {}
     assert (tmp_path / "壊れた.csv").read_bytes() == SJIS_CSV
 
@@ -2876,6 +3673,106 @@ def test_input_check_when_glossary_name_overlap(
     assert _field_errors(opened.window) == ["用語集「yogo」と同じ名前です。別の名前にしてください。"]
     assert "用語集 2 件目の名前: 用語集「yogo」と同じ名前です" in _error_rows(opened.window)
     opened.deps.save_settings.assert_not_called()
+
+
+def test_input_check_when_glossary_preset_name_empty(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """用語集のプリセットの名前が空: 「名前を入れてください。」をその欄の下とエラーの一覧に出す。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+    find(opened.window, QLineEdit, "glossary_preset_name_0").setText("   ")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert _field_errors(opened.window) == ["名前を入れてください。"]
+    assert "用語集のプリセット 1 件目の名前: 名前を入れてください。" in _error_rows(opened.window)
+    opened.deps.save_settings.assert_not_called()
+
+
+def test_input_check_when_glossary_preset_name_overlap(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """ほかの用語集のプリセットと同じ名前（大文字と小文字は区別する）: 一覧で後ろにある側の欄の下とエラーの一覧に「用語集のプリセット「{名前}」と同じ名前です。別の名前にしてください。」を出す。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
+    _click(opened.window, "glossary_preset_pick_1")
+    find(opened.window, QLineEdit, "glossary_preset_name_1").setText("既定")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    message = "用語集のプリセット「既定」と同じ名前です。別の名前にしてください。"
+    assert _field_errors(opened.window) == [message]
+    assert f"用語集のプリセット 2 件目の名前: {message}" in _error_rows(opened.window)
+    opened.deps.save_settings.assert_not_called()
+
+
+def test_input_check_when_glossary_preset_name_differs_in_case(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """大文字と小文字だけが違う名前は、重なりにしない。"""
+    # 準備
+    opened = _open_glossaries(
+        open_window, tmp_path, TWO_GLOSSARIES, presets=[("Meeting", ["yogo"]), ("meeting", ["yogo"])]
+    )
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert _error_rows(opened.window) == []
+    assert _saved_presets(opened) == [("Meeting", ["yogo"]), ("meeting", ["yogo"])]
+
+
+def test_input_check_when_glossary_preset_name_empty_and_overlap(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """空の名前と重なる名前が同じ保存にあれば、両方をエラーの一覧に出し、重なりの行を押すとそのプリセットの名前の欄へ移る。"""
+    # 準備
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=[("既定", ["yogo"])])
+    add_preset = find(opened.window, QPushButton, "add_glossary_preset_button")
+    add_preset.click()
+    find(opened.window, QLineEdit, "glossary_preset_name_1").setText("既定")
+    add_preset.click()
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    rows = _error_rows(opened.window)
+    assert "用語集のプリセット 3 件目の名前: 名前を入れてください。" in rows
+    assert (
+        "用語集のプリセット 2 件目の名前: 用語集のプリセット「既定」と同じ名前です。別の名前にしてください。"
+        in rows
+    )
+    links = [
+        label
+        for label in find(opened.window, QFrame, "error_summary").findChildren(QLabel)
+        if "glossary_presets[1].name" in label.text()
+    ]
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(10)
+    links[0].linkActivated.emit("glossary_presets[1].name")
+    assert find(opened.window, QListWidget, "group_menu").currentRow() == GLOSSARY_GROUP_ROW
+    assert opened.window.focusWidget() is find(opened.window, QLineEdit, "glossary_preset_name_1")
+
+
+def test_input_check_when_glossary_preset_uses_unknown_glossary(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """一覧に無い用語集の名前を持つプリセットは、画面を開くときに外して出す（保存の確かめは断らない）。"""
+    # 実行
+    opened = _open_glossaries(
+        open_window, tmp_path, TWO_GLOSSARIES, presets=[("既定", ["消した用語集", "yogo"])]
+    )
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert _used_names(opened.window) == ["yogo"]
+    assert _saved_presets(opened) == [("既定", ["yogo"])]
 
 
 def test_input_check_when_glossary_entry_wrong_empty(
@@ -2986,37 +3883,40 @@ def test_error_summary_row_action_when_glossary(
 
 
 def test_save_button_when_glossary_changed(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """用語集の一覧・補正に使う用語集・行を、保存で settings.toml と CSV へ書く。行を変えた用語集の CSV だけを書き戻しに渡す。"""
+    """用語集の一覧・用語集のプリセット・補正に使うプリセット・行を、保存で settings.toml と CSV へ書く。行を変えた用語集の CSV だけを書き戻しに渡す。"""
     # 準備
-    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
     _click(opened.window, "glossary_pick_1")
     find(opened.window, QCheckBox, "glossary_entry_on_0").click()
-    find(opened.window, QRadioButton, "glossary_active_1").click()
+    find(opened.window, QRadioButton, "glossary_preset_active_1").click()
 
     # 実行
     _click(opened.window, "save_button")
 
     # 検証
     saved, rows = _saved(opened)
-    assert saved.active_glossary == "会議用"
+    assert saved.active_glossary_preset == "会議"
+    assert saved.active_glossary is None
     assert saved.glossary_path is None
+    assert _saved_presets(opened) == TWO_PRESETS
     assert list(rows) == [tmp_path / "会議用.csv"]
     assert [(entry.wrong, entry.enabled) for entry in rows[tmp_path / "会議用.csv"]] == [("か", False), ("き", True)]
     opened.saved.assert_called_once()
 
 
 def test_reset_dialog_when_glossaries(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """「既定に戻す」は、用語集の一覧を設定ファイルと同じフォルダの yogo.csv の 1 件に戻す。用語集の CSV は消さず、書き換えない。"""
-    from voice_paste.shared.settings import GlossarySettings
+    """「既定に戻す」は、用語集の一覧を設定ファイルと同じフォルダの yogo.csv の 1 件に戻し、それを使う「既定」のプリセットに戻す。用語集の CSV は消さず、書き換えない。"""
+    from voice_paste.shared.settings import GlossaryPresetSettings, GlossarySettings
 
-    # 準備
+    # 準備（既定に戻したあとに引き直す一覧は、yogo.csv の 1 件と、それを使う「既定」の 1 件）
     default_glossary = GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
-    opened = _open_glossaries(
-        open_window, tmp_path, TWO_GLOSSARIES
-    )
+    opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
     two = opened.deps.list_glossaries.return_value
     opened.deps.list_glossaries.side_effect = [[default_glossary]]
-    find(opened.window, QRadioButton, "glossary_active_1").click()
+    opened.deps.list_glossary_presets.side_effect = [
+        [GlossaryPresetSettings(name="既定", glossaries=["yogo"])]
+    ]
+    find(opened.window, QRadioButton, "glossary_preset_active_1").click()
     driver = ModalDriver()
     driver.answer("reset_button")
 
@@ -3026,6 +3926,7 @@ def test_reset_dialog_when_glossaries(open_window: Callable[..., Opened], tmp_pa
     # 検証
     driver.verify()
     assert _glossary_names(opened.window) == ["yogo"]
+    assert _preset_names(opened.window) == ["既定"]
     assert len(two) == 2
     opened.deps.save_settings.assert_called_once_with(SETTINGS_MODEL(), {})
     assert (tmp_path / "会議用.csv").read_text(encoding="utf-8") == CSV_TWO_ROWS

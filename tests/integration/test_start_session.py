@@ -6,10 +6,13 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 
 import pytest
 
 from tests.integration.helpers import VOLUME_BEFORE, Stack
+from voice_paste.main import SETTINGS_MODEL
+from voice_paste.shared.settings import GlossaryPresetSettings, Settings
 
 BROWSER_REQUEST_HEADERS = [
     pytest.param({"Origin": "http://evil.example"}, id="origin"),
@@ -45,6 +48,46 @@ def test_normal_when_continuous(stack: Stack) -> None:
     assert len(stack.microphone.streams) == 1
     assert not stack.microphone.streams[0].closed
     assert busy.status_code == 409
+
+
+def test_normal_when_glossary_preset(stack_with_settings: Callable[[Settings], Stack]) -> None:
+    """glossary_preset で指定した用語集のプリセットをセッションに持たせて録音を始め、セッションの ID を返す（正常系）。"""
+    # 準備（設定に用語集のプリセット「既定」と「会議」があり、設定で選んでいるのは「既定」）
+    settings = SETTINGS_MODEL(
+        glossary_presets=[
+            GlossaryPresetSettings(name="既定", glossaries=[]),
+            GlossaryPresetSettings(name="会議", glossaries=[]),
+        ],
+        active_glossary_preset="既定",
+    )
+    stack = stack_with_settings(settings)
+
+    # 実行
+    response = stack.post(
+        "/sessions", json_body={"callback_url": stack.receiver.url, "glossary_preset": "会議"}
+    )
+
+    # 検証
+    assert response.status_code == 202
+    assert response.json()["session_id"] == stack.session().id
+    assert stack.state() == "recording"
+    assert stack.session().glossary_preset == "会議"
+    assert stack.settings.active_glossary_preset == "既定"
+
+
+def test_error_when_glossary_preset_not_found(stack: Stack) -> None:
+    """設定の一覧に無い用語集のプリセットを指定したら録音を始めない（異常系）。"""
+    # 実行
+    response = stack.post(
+        "/sessions",
+        json_body={"callback_url": stack.receiver.url, "glossary_preset": "無いプリセット"},
+    )
+
+    # 検証
+    assert response.status_code == 400
+    assert "無いプリセット" in response.json()["detail"]
+    assert stack.microphone.streams == []
+    assert stack.state() is None
 
 
 def test_error_when_callback_not_allowed(stack: Stack) -> None:

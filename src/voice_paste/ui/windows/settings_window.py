@@ -1424,7 +1424,8 @@ class SettingsWindow(QWidget):
             self._show_errors([(None, f"設定ファイルを書けませんでした（{error}）")])
             return False
 
-        # 3. 保存した行・値を「変えていない」の基準に置き直す
+        # 3. 前の保存で出したエラー（一覧・欄の下）を消し、保存した行・値を「変えていない」の基準に置き直す
+        self._clear_errors()
         self._glossaries_panel.mark_saved()
         self._hints_panel.mark_saved()
         self._edges_panel.mark_saved()

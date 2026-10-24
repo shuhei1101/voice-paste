@@ -11,6 +11,13 @@
   font-size: 12px;
 }
 
+/* 補正に使うプリセットの消すボタン: 押せない見た目にし、理由はツールチップに出す */
+.gp-list [data-remove-item][aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  &:hover { background: var(--surface-2); }
+}
+
 /* 使う用語集の表: つまみ・使う・順・用語集・行・外すを並べる */
 .gp-uses {
   td { padding: 4px 8px; }

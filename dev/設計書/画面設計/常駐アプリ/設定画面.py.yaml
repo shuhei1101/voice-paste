@@ -26,7 +26,7 @@ elements:
     description: 保存できなかったことと直す欄の件数、欄ごとのエラーを並べる。各行はその欄へのリンクで、押すとその欄のまとまりへ切り替えて欄へフォーカスを移す。出したときにフォーカスを一覧へ移す
     label: 保存できませんでした。{件数} 件の欄を直してください。
     visible_when: 保存を押して確かめに通らない欄があったとき。入力の途中では出さない
-    display_format: '1 行 = 「{欄の名前}: {エラー}」。プリセットの欄は「プリセット「{タイトル}」の{欄の名前}」、タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」。用語集のプリセットの欄は「プリセット {一覧の何件目か} 件目の名前」。用語集の欄は「用語集 {一覧の何件目か} 件目の名前」「用語集 {一覧の何件目か} 件目の {何行目か} 行目の誤変換」。表記のヒントの欄は「有効なヒントの長さ」「プリセット {一覧の何件目か} 件目の名前」「プリセット {一覧の何件目か} 件目の {何つ目か} つ目の語」。ハルシネーションの欄は「ハルシネーションの {何行目か} 行目の文言」'
+    display_format: '1 行 = 「{欄の名前}: {エラー}」。プリセットの欄は「プリセット「{タイトル}」の{欄の名前}」、タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」。用語集のプリセットの欄は「用語集のプリセット {一覧の何件目か} 件目の名前」。用語集の欄は「用語集 {一覧の何件目か} 件目の名前」「用語集 {一覧の何件目か} 件目の {何行目か} 行目の誤変換」。表記のヒントの欄は「有効なヒントの長さ」「プリセット {一覧の何件目か} 件目の名前」「プリセット {一覧の何件目か} 件目の {何つ目か} つ目の語」。ハルシネーションの欄は「ハルシネーションの {何行目か} 行目の文言」'
   - name: 設定の欄
     id: field_{key}
     kind: input
@@ -784,7 +784,7 @@ elements:
     description: 用語集のプリセットを 1 行ずつ並べる。列は「補正に使う」「名前」「用語集」と消すボタン。使う用語集の表を出しているプリセットの行は、背景を変えて示す。見出しは「用語集のプリセット」。読み上げの表の名前は「用語集のプリセットの一覧（補正に使うプリセットを 1 つ選ぶ）」
     io: 入出力
     visible_when: 用語集のまとまりを選んだとき
-    initial_value: settings.toml の `glossary_presets[]`。キーが無い・空なら「既定」のプリセットを 1 件出す（`active_glossary` があればその用語集を、無ければ一覧の全ての用語集を使う）
+    initial_value: settings.toml の `glossary_presets[]`。キーが無い・空なら「既定」のプリセットを 1 件出す（`active_glossary` の用語集だけを使う。キーが無い・名前が一覧に無いときは 1 つ目の用語集、用語集が無ければ空）
     sorting: 並べ替えない。settings.toml の並びで、足したプリセットは末尾
     source: Settings.glossary_presets[]
     target: Settings.glossary_presets[]（保存で settings.toml へ書き、`active_glossary` のキーは消す）
@@ -813,7 +813,7 @@ elements:
     kind: button
     position: 窓 > 右 > 用語集 > 用語集のプリセットの一覧 > 行 > 名前
     description: 押すとそのプリセットの使う用語集の表を下に出す。開いたときは補正に使うプリセットの表を出す
-    label: '{プリセットの名前}'
+    label: '{プリセットの名前}（空なら「名前未入力のプリセット」）'
     action: 使う用語集の表をそのプリセットに切り替える
     status: planned
     introduced:
@@ -832,7 +832,7 @@ elements:
     id: glossary_preset_remove_{n}
     kind: button
     position: 窓 > 右 > 用語集 > 用語集のプリセットの一覧 > 行 > 右端
-    description: プリセットを一覧から消す。消したプリセットの表を出していたときは、補正に使うプリセットの表を出す
+    description: プリセットを一覧から消す。消したプリセットの表を出していたときは、補正に使うプリセットの表を出す。読み上げ名は「{名前}を消す」（名前が空なら「名前未入力のプリセットを消す」）
     enabled_when: 補正に使うプリセットでないとき。無効のときはツールチップ「補正に使うプリセットは消せません」を出す
     action: プリセットを一覧から消す（保存するまで settings.toml へは書かない）
     status: planned
@@ -853,7 +853,7 @@ elements:
     kind: label
     position: 窓 > 右 > 用語集 > 用語集のプリセットの用語集
     description: 表を出しているプリセットの見出し
-    label: プリセット「{名前}」で使う用語集
+    label: プリセット「{名前}」で使う用語集（名前が空なら「名前未入力のプリセット」で使う用語集）
     status: planned
     introduced:
       pr: 173
@@ -869,7 +869,7 @@ elements:
     min_length: 1
     constraints: ほかのプリセットと重複しない（大文字と小文字は区別する）
     source: Settings.glossary_presets[].name
-    target: Settings.glossary_presets[].name
+    target: Settings.glossary_presets[].name（前後の空白を除く）
     refs:
       - dev/設計書/設定/常駐アプリ#settings[glossary_presets[].name]
     status: planned
@@ -1071,14 +1071,14 @@ input_checks:
     message: '* だけの文言は、文頭・文末の行を丸ごと消します。消したい文言を入れてください。'
     position: その欄の下とエラーの一覧
   - element: 用語集のプリセットの名前の欄
-    violation: 空
+    violation: 空（前後の空白を除いて）
     trigger: 保存・保存して再起動のボタンのクリック
     message: 名前を入れてください。
     position: その欄の下とエラーの一覧
   - element: 用語集のプリセットの名前の欄
-    violation: ほかのプリセットと同じ名前（大文字と小文字は区別する）
+    violation: 空でなく、ほかの用語集のプリセットと同じ名前（大文字と小文字は区別する。一覧で後ろにある側の欄に出す）
     trigger: 保存・保存して再起動のボタンのクリック
-    message: プリセット「{名前}」と同じ名前です。別の名前にしてください。
+    message: 用語集のプリセット「{名前}」と同じ名前です。別の名前にしてください。
     position: その欄の下とエラーの一覧
 screen: src/voice_paste/ui/windows/settings_window.py
 mock: dev/mock/pages/settings/173/b-picked-list/

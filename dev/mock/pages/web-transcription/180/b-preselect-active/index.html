@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: スマホ・iPad の幅でも 1 カラムで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>文字起こし | voice-paste のモック</title>
+  <!-- 採用スタイル「開発者ツール」の部品は #37、画面の部品は #171、用語集のプリセットの選択欄は #180 の共有 CSS に置く -->
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/171/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/180/assets/style.css">
+  <!-- 場面の切り替えとコピーした直後の表示は #171 の共有 JS が受ける -->
+  <script type="module" src="../../../../refs/171/assets/app.js"></script>
+</head>
+<body>
+  <!-- モック専用の操作列: 案のタブと、場面の切り替え（data-scene と data-scene-panel の場面名を合わせる） -->
+  <nav class="mock-bar" aria-label="案と場面の切り替え（モック専用）">
+    <span class="mock-bar__label">案</span>
+    <ul><li><a href="../a-follow-settings/index.html">案 A</a></li><li><a href="../b-preselect-active/index.html" aria-current="page">案 B</a></li></ul>
+    <span class="mock-bar__label">場面</span>
+    <ul><li><button type="button" data-scene="default">既定のまま</button></li><li><button type="button" data-scene="picked">別のプリセットを選択</button></li><li><button type="button" data-scene="recording">録音中</button></li><li><button type="button" data-scene="sending">録音の送信中</button></li><li><button type="button" data-scene="file-sending">ファイル送信中</button></li><li><button type="button" data-scene="fetch-failed">一覧の取得失敗</button></li><li><button type="button" data-scene="not-found">一覧に無いプリセット（400）</button></li></ul>
+  </nav>
+
+  <main class="web-main">
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">web-transcription</a> / <a href="../">180</a> / <span>b-preselect-active</span></nav>
+
+    <div class="web">
+      <!-- 画面の頭 -->
+      <header class="web-top">
+        <h1>voice-paste</h1>
+        <span class="web-top__sub">文字起こし</span>
+      </header>
+
+      <!-- 送る区画 -->
+      <section class="web-panel" aria-labelledby="h-send">
+        <h2 id="h-send">音声送信</h2>
+
+        <!-- 用語集のプリセットの選択欄: 録音開始・ファイル送信の上に置く。場面ごとに選択と押せるかが変わるため、場面の数だけ並べて出し分ける -->
+        <div class="preset-field" data-scene-panel="default" hidden>
+          <label class="preset-field__label" for="preset-b-preselect-active-default">用語集のプリセット</label>
+          <select id="preset-b-preselect-active-default" name="glossary_preset"><option value="既定">既定</option><option value="会議" selected>会議</option><option value="下書き">下書き</option></select>
+        </div>
+        <div class="preset-field" data-scene-panel="picked" hidden>
+          <label class="preset-field__label" for="preset-b-preselect-active-picked">用語集のプリセット</label>
+          <select id="preset-b-preselect-active-picked" name="glossary_preset"><option value="既定">既定</option><option value="会議">会議</option><option value="下書き" selected>下書き</option></select>
+        </div>
+        <div class="preset-field" data-scene-panel="recording" hidden>
+          <label class="preset-field__label" for="preset-b-preselect-active-recording">用語集のプリセット</label>
+          <select id="preset-b-preselect-active-recording" name="glossary_preset" disabled aria-describedby="preset-b-preselect-active-recording-help"><option value="既定">既定</option><option value="会議">会議</option><option value="下書き" selected>下書き</option></select>
+          <p class="preset-field__help" id="preset-b-preselect-active-recording-help">録音中は変更不可</p>
+        </div>
+        <div class="preset-field" data-scene-panel="sending file-sending" hidden>
+          <label class="preset-field__label" for="preset-b-preselect-active-sending">用語集のプリセット</label>
+          <select id="preset-b-preselect-active-sending" name="glossary_preset" disabled aria-describedby="preset-b-preselect-active-sending-help"><option value="既定">既定</option><option value="会議">会議</option><option value="下書き" selected>下書き</option></select>
+          <p class="preset-field__help" id="preset-b-preselect-active-sending-help">送信中は変更不可</p>
+        </div>
+        <div class="preset-field" data-scene-panel="fetch-failed" hidden>
+          <label class="preset-field__label" for="preset-b-preselect-active-failed">用語集のプリセット</label>
+          <select id="preset-b-preselect-active-failed" name="glossary_preset" aria-describedby="preset-b-preselect-active-failed-note"><option value="" selected>設定に従う</option></select>
+        </div>
+        <div class="preset-field" data-scene-panel="not-found" hidden>
+          <label class="preset-field__label" for="preset-b-preselect-active-notfound">用語集のプリセット</label>
+          <select id="preset-b-preselect-active-notfound" name="glossary_preset" aria-describedby="preset-b-preselect-active-notfound-error"><option value="既定">既定</option><option value="会議" selected>会議</option></select>
+        </div>
+
+        <!-- 一覧を取得できなかった知らせ: 選択欄のすぐ下に出す。送信は続けられるため注意ではなく知らせの色にする -->
+        <div class="web-notice" role="status" id="preset-b-preselect-active-failed-note" data-scene-panel="fetch-failed" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/></svg>
+          <p>プリセットの一覧を取得できませんでした。送信した音声は、PC の設定で選択中のプリセットで補正します。</p>
+        </div>
+
+        <!-- 一覧に無いプリセット（400）: 選択欄のすぐ下に出す。一覧は取得し直し、選択を既定へ戻した後 -->
+        <div class="web-error" role="alert" id="preset-b-preselect-active-notfound-error" data-scene-panel="not-found" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>
+          <div>
+            <p class="web-error__title">選択したプリセットが見つかりません</p>
+            <p>「下書き」は PC の設定から削除済みのため、interview-part2.m4a は未送信です。一覧を取得し直し、「会議」（設定で選択中）に戻しました。プリセットを確認して、ファイルを選び直してください。</p>
+          </div>
+        </div>
+
+        <!-- 録る・ファイルを選ぶ: 録音中は録音中の表示に替わるため隠す -->
+        <div class="send-actions" data-scene-panel="default picked sending fetch-failed not-found" hidden>
+          <button type="button" class="btn btn--lg btn--primary"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle class="fill" cx="12" cy="12" r="6"/></svg>録音開始</button>
+          <label class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>ファイル送信<input type="file" accept="audio/*" class="sr-only"></label>
+        </div>
+        <!-- ファイル送信中: 送信が終わるまで録音開始・ファイル送信を押せない。押せない理由はすぐ下の送信中の行で読める -->
+        <div class="send-actions" data-scene-panel="file-sending" hidden>
+          <button type="button" class="btn btn--lg" disabled><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle class="fill" cx="12" cy="12" r="6"/></svg>録音開始</button>
+          <label class="btn btn--lg" aria-disabled="true"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>ファイル送信<input type="file" accept="audio/*" class="sr-only" disabled></label>
+        </div>
+        <!-- 送信中のファイル -->
+        <div class="file-sending" data-scene-panel="file-sending" hidden>
+          <div class="file-sending__head">
+            <span class="file-sending__name">interview-part2.m4a・<span class="num">38.4 MB</span></span>
+            <span class="kept__state kept__state--busy" role="status"><span class="spinner" aria-hidden="true"></span>送信中 <span class="num">47%</span></span>
+          </div>
+          <progress max="100" value="47" aria-label="送信の進捗"></progress>
+        </div>
+        <p class="send-hint" data-scene-panel="default picked sending file-sending fetch-failed not-found" hidden>録音 最大 30 分・ファイル 100 MB 未満</p>
+
+        <!-- 録音中の表示 -->
+        <div class="recorder" data-scene-panel="recording" hidden>
+          <div class="recorder__head">
+            <span class="state state--rec"><span class="dot" aria-hidden="true"></span>録音中</span>
+            <span class="recorder__time num" role="timer" aria-label="経過時間 2 分 14 秒">02:14</span>
+          </div>
+          <progress max="1800" value="134" aria-label="上限までの録音時間"></progress>
+          <div class="recorder__meta"><span>上限 <span class="num">30:00</span></span><span>残り <span class="num">27:46</span></span></div>
+          <button type="button" class="btn btn--lg btn--primary btn--block"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect class="fill" x="7" y="7" width="10" height="10" rx="1"/></svg>録音停止・送信</button>
+        </div>
+
+        <!-- 端末に残した音声（送信中）: 録音を止めて送っている場面 -->
+        <div class="kept" data-scene-panel="sending" hidden>
+          <div class="kept__info">
+            <span class="kept__label">端末内の音声</span>
+            <span class="kept__meta"><span class="num">10/23 14:05</span> 録音・<span class="num">2:14</span>・webm・<span class="num">540 KB</span></span>
+            <span class="kept__state kept__state--busy" role="status"><span class="spinner" aria-hidden="true"></span>送信中 <span class="num">63%</span></span>
+          </div>
+          <div class="kept__actions">
+            <button type="button" class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>ダウンロード</button>
+          </div>
+          <progress class="kept__progress" max="100" value="63" aria-label="送信の進捗"></progress>
+        </div>
+      </section>
+
+      <!-- 結果の区画: この PR では変えないため、前に届いた件だけを並べる -->
+      <section class="web-panel" aria-labelledby="h-results">
+        <div class="web-panel__head">
+          <h2 id="h-results">結果</h2>
+          <span class="web-panel__meta"><span class="num">1</span> 件・最大 10 件・保存 7 日</span>
+        </div>
+        <ul class="results" aria-live="polite">
+          <li class="result">
+            <div class="result__head"><span class="result__time num">10/23 13:52</span><span class="result__src">画面録音・<span class="num">0:41</span></span></div>
+            <p class="result__text">ホットキーの録音中でもブラウザから送れるかを確かめる。</p>
+            <div class="result__actions">
+              <button type="button" class="btn" data-copy data-copied="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg><span data-copy-label aria-live="polite">コピー</span></button>
+              <a class="btn btn--icon btn--danger" href="../../../web-confirm-dialog/171/a-standard/index.html?scene=delete" aria-label="この結果を削除"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></a>
+            </div>
+          </li>
+        </ul>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

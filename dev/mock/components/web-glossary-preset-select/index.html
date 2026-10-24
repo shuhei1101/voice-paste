@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: スマホの幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>用語集のプリセットの選択欄 | voice-paste のモック</title>
+  <!-- 採用スタイル「開発者ツール」の部品は #37、外の端末の画面の部品は #171、選択欄は #180 の共有 CSS に置く -->
+  <link rel="stylesheet" href="../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../refs/171/assets/style.css">
+  <link rel="stylesheet" href="../../refs/180/assets/style.css">
+</head>
+<body>
+  <main class="web-main">
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../">components</a> / <span>web-glossary-preset-select</span></nav>
+
+    <!-- 部品の説明 -->
+    <header class="intro">
+      <h1>用語集のプリセットの選択欄</h1>
+      <p>外の端末の文字起こしの画面の音声送信の区画で、録音開始・ファイル送信の上に置く選択欄。項目は PC の設定の用語集のプリセットの並び。見本の設定で選んでいるプリセットは「会議」。</p>
+    </header>
+
+    <div class="desk desk--single">
+
+      <h2>案 A（既定は「設定に従う（{名前}）」）</h2>
+      <!-- 通常（既定のまま） -->
+      <section class="specimen" aria-labelledby="h-a-default">
+        <h3 id="h-a-default">通常（既定のまま）</h3>
+        <div class="web-panel">
+          <div class="preset-field">
+            <label class="preset-field__label" for="a-default">用語集のプリセット</label>
+            <select id="a-default" name="glossary_preset"><option value="" selected>設定に従う（会議）</option><option value="既定">既定</option><option value="会議">会議</option><option value="下書き">下書き</option></select>
+          </div>
+        </div>
+      </section>
+      <!-- 別のプリセットを選択 -->
+      <section class="specimen" aria-labelledby="h-a-picked">
+        <h3 id="h-a-picked">別のプリセットを選択</h3>
+        <div class="web-panel">
+          <div class="preset-field">
+            <label class="preset-field__label" for="a-picked">用語集のプリセット</label>
+            <select id="a-picked" name="glossary_preset"><option value="">設定に従う（会議）</option><option value="既定">既定</option><option value="会議">会議</option><option value="下書き" selected>下書き</option></select>
+          </div>
+        </div>
+      </section>
+      <!-- 無効（録音中） -->
+      <section class="specimen" aria-labelledby="h-a-disabled">
+        <h3 id="h-a-disabled">無効（録音中）</h3>
+        <div class="web-panel">
+          <div class="preset-field">
+            <label class="preset-field__label" for="a-disabled">用語集のプリセット</label>
+            <select id="a-disabled" name="glossary_preset" disabled aria-describedby="a-disabled-help"><option value="">設定に従う（会議）</option><option value="既定">既定</option><option value="会議">会議</option><option value="下書き" selected>下書き</option></select>
+            <p class="preset-field__help" id="a-disabled-help">録音中は変更不可</p>
+          </div>
+        </div>
+      </section>
+      <!-- 無効（送信中） -->
+      <section class="specimen" aria-labelledby="h-a-disabled2">
+        <h3 id="h-a-disabled2">無効（送信中）</h3>
+        <div class="web-panel">
+          <div class="preset-field">
+            <label class="preset-field__label" for="a-disabled2">用語集のプリセット</label>
+            <select id="a-disabled2" name="glossary_preset" disabled aria-describedby="a-disabled2-help"><option value="">設定に従う（会議）</option><option value="既定">既定</option><option value="会議">会議</option><option value="下書き" selected>下書き</option></select>
+            <p class="preset-field__help" id="a-disabled2-help">送信中は変更不可</p>
+          </div>
+        </div>
+      </section>
+      <!-- エラー（一覧の取得失敗） -->
+      <section class="specimen" aria-labelledby="h-a-failed">
+        <h3 id="h-a-failed">エラー（一覧の取得失敗）</h3>
+        <div class="web-panel">
+          <div class="preset-field">
+            <label class="preset-field__label" for="a-failed">用語集のプリセット</label>
+            <select id="a-failed" name="glossary_preset" aria-describedby="a-failed-note"><option value="" selected>設定に従う</option></select>
+          </div>
+          <div class="web-notice" role="status" id="a-failed-note">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/></svg>
+            <p>プリセットの一覧を取得できませんでした。送信した音声は、PC の設定で選択中のプリセットで補正します。</p>
+          </div>
+        </div>
+      </section>
+      <!-- エラー（一覧に無いプリセット・400） -->
+      <section class="specimen" aria-labelledby="h-a-nf">
+        <h3 id="h-a-nf">エラー（一覧に無いプリセット・400）</h3>
+        <div class="web-panel">
+          <div class="preset-field">
+            <label class="preset-field__label" for="a-nf">用語集のプリセット</label>
+            <select id="a-nf" name="glossary_preset" aria-describedby="a-nf-error"><option value="" selected>設定に従う（会議）</option><option value="既定">既定</option><option value="会議">会議</option></select>
+          </div>
+          <div class="web-error" role="alert" id="a-nf-error">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>
+            <div>
+              <p class="web-error__title">選択したプリセットが見つかりません</p>
+              <p>「下書き」は PC の設定から削除済みのため、interview-part2.m4a は未送信です。一覧を取得し直し、「設定に従う」に戻しました。プリセットを確認して、ファイルを選び直してください。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- 長い名前（設定で選んでいるプリセット） -->
+      <section class="specimen" aria-labelledby="h-a-long">
+        <h3 id="h-a-long">長い名前（設定で選んでいるプリセット）</h3>
+        <div class="web-panel">
+          <div class="preset-field">
+            <label class="preset-field__label" for="a-long">用語集のプリセット</label>
+            <select id="a-long" name="glossary_preset"><option value="" selected>設定に従う（週次の定例会議と顧客との打ち合わせで使う組み合わせ）</option><option value="既定">既定</option><option value="週次の定例会議と顧客との打ち合わせで使う組み合わせ">週次の定例会議と顧客との打ち合わせで使う組み合わせ</option><option value="下書き">下書き</option></select>
+          </div>
+        </div>
+      </section>
+      <h2>案 B（設定で選んでいるプリセットを選択して出す）</h2>
+      <!-- 通常（既定のまま） -->
+      <section class="specimen" aria-labelledby="h-b-default">
+        <h3 id="h-b-default">通常（既定のまま）</h3>
+        <div class="web-panel">
+          <div class="preset-field">
+            <label class="preset-field__label" for="b-default">用語集のプリセット</label>
+            <select id="b-default" name="glossary_preset"><option value="既定">既定</option><option value="会議" selected>会議</option><option value="下書き">下書き</option></select>
+          </div>
+        </div>
+      </section>
+      <!-- 別のプリセットを選択 -->
+      <section class="specimen" aria-labelledby="h-b-picked">
+        <h3 id="h-b-picked">別のプリセットを選択</h3>
+        <div class="web-panel">
+          <div class="preset-field">
+            <label class="preset-field__label" for="b-picked">用語集のプリセット</label>
+            <select id="b-picked" name="glossary_preset"><option value="既定">既定</option><option value="会議">会議</option><option value="下書き" selected>下書き</option></select>
+          </div>
+        </div>
+      </section>
+      <!-- 無効（録音中） -->
+      <section class="specimen" aria-labelledby="h-b-disabled">
+        <h3 id="h-b-disabled">無効（録音中）</h3>
+        <div class="web-panel">
+          <div class="preset-field">
+            <label class="preset-field__label" for="b-disabled">用語集のプリセット</label>
+            <select id="b-disabled" name="glossary_preset" disabled aria-describedby="b-disabled-help"><option value="既定">既定</option><option value="会議">会議</option><option value="下書き" selected>下書き</option></select>
+            <p class="preset-field__help" id="b-disabled-help">録音中は変更不可</p>
+          </div>
+        </div>
+      </section>
+      <!-- 無効（送信中） -->
+      <section class="specimen" aria-labelledby="h-b-disabled2">
+        <h3 id="h-b-disabled2">無効（送信中）</h3>
+        <div class="web-panel">
+          <div class="preset-field">
+            <label class="preset-field__label" for="b-disabled2">用語集のプリセット</label>
+            <select id="b-disabled2" name="glossary_preset" disabled aria-describedby="b-disabled2-help"><option value="既定">既定</option><option value="会議">会議</option><option value="下書き" selected>下書き</option></select>
+            <p class="preset-field__help" id="b-disabled2-help">送信中は変更不可</p>
+          </div>
+        </div>
+      </section>
+      <!-- エラー（一覧の取得失敗） -->
+      <section class="specimen" aria-labelledby="h-b-failed">
+        <h3 id="h-b-failed">エラー（一覧の取得失敗）</h3>
+        <div class="web-panel">
+          <div class="preset-field">
+            <label class="preset-field__label" for="b-failed">用語集のプリセット</label>
+            <select id="b-failed" name="glossary_preset" aria-describedby="b-failed-note"><option value="" selected>設定に従う</option></select>
+          </div>
+          <div class="web-notice" role="status" id="b-failed-note">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/></svg>
+            <p>プリセットの一覧を取得できませんでした。送信した音声は、PC の設定で選択中のプリセットで補正します。</p>
+          </div>
+        </div>
+      </section>
+      <!-- エラー（一覧に無いプリセット・400） -->
+      <section class="specimen" aria-labelledby="h-b-nf">
+        <h3 id="h-b-nf">エラー（一覧に無いプリセット・400）</h3>
+        <div class="web-panel">
+          <div class="preset-field">
+            <label class="preset-field__label" for="b-nf">用語集のプリセット</label>
+            <select id="b-nf" name="glossary_preset" aria-describedby="b-nf-error"><option value="既定">既定</option><option value="会議" selected>会議</option></select>
+          </div>
+          <div class="web-error" role="alert" id="b-nf-error">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>
+            <div>
+              <p class="web-error__title">選択したプリセットが見つかりません</p>
+              <p>「下書き」は PC の設定から削除済みのため、interview-part2.m4a は未送信です。一覧を取得し直し、「会議」（設定で選択中）に戻しました。プリセットを確認して、ファイルを選び直してください。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- 長い名前（設定で選んでいるプリセット） -->
+      <section class="specimen" aria-labelledby="h-b-long">
+        <h3 id="h-b-long">長い名前（設定で選んでいるプリセット）</h3>
+        <div class="web-panel">
+          <div class="preset-field">
+            <label class="preset-field__label" for="b-long">用語集のプリセット</label>
+            <select id="b-long" name="glossary_preset"><option value="既定">既定</option><option value="週次の定例会議と顧客との打ち合わせで使う組み合わせ" selected>週次の定例会議と顧客との打ち合わせで使う組み合わせ</option><option value="下書き">下書き</option></select>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

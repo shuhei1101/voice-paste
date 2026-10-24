@@ -15,3 +15,4 @@
 | [edge-phrase-editor](./edge-phrase-editor/index.html) | 設定画面のハルシネーションの文言の一覧（案 A・案 B ごとに 通常・長い文言・エラー、案 A の足した直後・行が無い） |
 | [web-kept-audio](./web-kept-audio/index.html) | 外の端末の文字起こしの画面の端末内の音声の行（送信中・送信済み・送信失敗・文字起こし前・長い録音） |
 | [web-result-item](./web-result-item/index.html) | 外の端末の文字起こしの画面の結果の 1 件（文字起こし待ち・文字起こし中・文字起こし完了・コピー済み・文字起こし失敗・結果消失・長い名前と文） |
+| [web-glossary-preset-select](./web-glossary-preset-select/index.html) | 外の端末の文字起こしの画面の用語集のプリセットの選択欄（案 A・案 B ごとに 既定のまま・別のプリセットを選択・録音中・送信中・一覧の取得失敗・一覧に無いプリセット・長い名前） |

@@ -17,6 +17,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "src"))
+# ワーカーの子プロセスも、venv の editable install（クローン本体の src）ではなくこの worktree の src を読む
+os.environ["PYTHONPATH"] = str(REPO_ROOT / "src")
 
 from voice_paste.integrations.whisper.client import WhisperWorkerClient  # noqa: E402
 from voice_paste.shared.settings import HintPresetSettings, LocalWhisperSettings, join_hint_words  # noqa: E402

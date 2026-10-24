@@ -1503,6 +1503,30 @@ def test_save_button_when_invalid(open_window: Callable[..., Opened]) -> None:
     assert _field(opened.window, IMMEDIATE_KEY, QLineEdit).text() == "abc"
 
 
+def test_save_button_when_fixed_after_invalid(open_window: Callable[..., Opened]) -> None:
+    """直して保存し直すと、前の保存で出したエラーの一覧と欄の下のエラーを消し、保存した知らせを出す。"""
+    # 準備（確かめに通らない値で保存して、エラーの一覧と欄の下のエラーを出しておく）
+    opened = open_window()
+    _set_text(opened.window, "outputs[0].enter_delay_sec", "abc")
+    _click(opened.window, "save_button")
+    assert find(opened.window, QFrame, "error_summary").isVisible()
+    assert _field_errors(opened.window) == ["数値を入れてください（例: 0.5）。"]
+
+    # 実行
+    _set_text(opened.window, "outputs[0].enter_delay_sec", "0.5")
+    _click(opened.window, "save_button")
+
+    # 検証
+    opened.deps.save_settings.assert_called_once()
+    assert not find(opened.window, QFrame, "error_summary").isVisible()
+    assert _error_rows(opened.window) == []
+    assert not find(opened.window, QLabel, "error_outputs[0].enter_delay_sec").isVisible()
+    assert find(opened.window, QLabel, "error_outputs[0].enter_delay_sec").text() == ""
+    assert _field_errors(opened.window) == []
+    assert find(opened.window, QLabel, "saved_notice").isVisible()
+    assert find(opened.window, QLabel, "saved_notice").text() == "保存しました。"
+
+
 # === saved_notice・restart_now_button・cancel_button（保存の後） ===
 
 SAVED_TEXT = "保存しました。"

@@ -171,11 +171,56 @@ flows:
       - 503 の problem+json が返る
       - 一時のフォルダのファイルが 2 つのままで、キューのジョブも 2 件のまま
     test: test_error_when_queue_full
+  - name: 正常系（用語集のプリセットを指定）
+    summary: glossary_preset で指定した用語集のプリセットの名前をジョブに持たせて積む
+    setup:
+      - name: Mock
+        description: ブラウザの音声のキューを、積まれたジョブを控えて取り出さないものに差し替える。一時のフォルダはテストの一時フォルダ
+      - name: 用語集のプリセット
+        description: 設定に用語集のプリセット「既定」と「会議」があり、設定で選んでいるのは「既定」
+        notes: multipart の `glossary_preset` に「会議」を入れる
+      - name: 音声
+        description: テストの中で書き出した短い webm/opus
+    flow: |-
+      sequenceDiagram
+        participant C as ブラウザ
+        participant IF as POST /web/transcriptions
+        participant Q as ブラウザの音声のキュー
+
+        C->>IF: audio・glossary_preset（許す Origin）
+        IF->>IF: glossary_preset が設定の一覧にあるかを確かめる
+        IF->>Q: プリセットの名前を持たせたジョブを積む（queued）
+        IF-->>C: 202・job_id
+    expected:
+      - 202 と job_id が返る
+      - キューにその job_id のジョブが queued で 1 件積まれ、用語集のプリセットの名前が「会議」
+      - glossary_preset を付けない要求と空文字の要求は、ジョブの用語集のプリセットの名前が空
+    test: test_normal_when_glossary_preset
+  - name: 異常系（一覧に無い用語集のプリセット・400）
+    summary: 設定の一覧に無い用語集のプリセットを指定した音声を、積まずに断る
+    setup:
+      - name: Mock
+        description: ブラウザの音声のキューは積まれたジョブを控えるもの。一時のフォルダはテストの一時フォルダ
+      - name: 無いプリセット
+        description: 設定の用語集のプリセットの一覧に無い名前を指定する
+        notes: multipart の `glossary_preset` に「無いプリセット」を入れる
+    flow: |-
+      sequenceDiagram
+        participant C as ブラウザ
+        participant IF as POST /web/transcriptions
+
+        C->>IF: audio・一覧に無い glossary_preset
+        IF->>IF: glossary_preset が設定の一覧にあるかを確かめる（無い）
+        IF-->>C: 400（detail に指定したプリセットの名前）
+    expected:
+      - 400 の problem+json が返り、detail に指定したプリセットの名前が含まれている
+      - 一時のフォルダにファイルが残らず、キューにジョブが積まれていない
+    test: test_error_when_glossary_preset_not_found
 lead: 外の端末のブラウザから送られた音声を受け、一時のファイルに書いて文字起こしのジョブを積み、ジョブの ID を返す。
 identifier: create_web_transcription
 permissions: なし（外からの認証は Cloudflare Access が持つ。常駐アプリは Host と Origin だけを確かめる）
 idempotent: false
-side_effects: '受けた音声を一時のフォルダへ録れた形式の拡張子のまま書き、ジョブ（state: queued）をブラウザの音声のキューに積む。受け付けたことを、job_id・大きさ・形式・秒数でログに 1 行書く（音声の中身は書かない）。積んだジョブは ブラウザの音声を文字に起こす が 1 件ずつ取り出す。'
+side_effects: '受けた音声を一時のフォルダへ録れた形式の拡張子のまま書き、受け付けた時点の用語集のプリセットの名前（指定が無ければ空）を持たせたジョブ（state: queued）をブラウザの音声のキューに積む。受け付けたことを、job_id・大きさ・形式・秒数でログに 1 行書く（音声の中身は書かない）。積んだジョブは ブラウザの音声を文字に起こす が 1 件ずつ取り出す。'
 exclusivity: セッション（`/sessions`・ホットキー・トレイ）とは排他しない。録音・文字起こしの処理中も受け付け、終わっていないジョブが待ちの上限に達しているときだけ断る
 request:
   - name: Host
@@ -210,6 +255,16 @@ request:
     format: binary
     notes: 形式は Content-Type やファイル名ではなく、中身を PyAV で開いて決める。一時のファイルの拡張子は PyAV が読んだ容れ物の形式から付ける
     status: planned
+  - name: glossary_preset
+    type: str
+    required: false
+    default: なし（補正の時点で設定で選んでいる用語集のプリセットを使う）
+    location: body
+    description: この音声の補正に使う用語集のプリセットの名前。`multipart/form-data` の文字の項目。受け付けの時点で決まり、後から設定で選ぶプリセットを変えても、この音声は指定したプリセットで補正する
+    constraints: 設定の用語集のプリセットの一覧にある名前（大文字と小文字を区別する）。空文字は指定なしとして扱う
+    example: 会議
+    notes: '`POST /sessions` の `glossary_preset` と同じ名前で指す'
+    status: planned
 request_example: |-
   ```http
   POST /web/transcriptions HTTP/1.1
@@ -222,6 +277,10 @@ request_example: |-
   Content-Type: audio/webm;codecs=opus
 
   {音声のバイト列}
+  ------b
+  Content-Disposition: form-data; name="glossary_preset"
+
+  会議
   ------b--
   ```
 response:
@@ -241,7 +300,7 @@ status_codes:
   - code: '202'
     condition: 音声を受け付けてジョブを積んだ
   - code: '400'
-    condition: multipart でないか、`audio` の項目が無い
+    condition: multipart でないか、`audio` の項目が無い。または、glossary_preset が設定の用語集のプリセットの一覧に無い
   - code: '403'
     condition: Host が 127.0.0.1 でも localhost でもないか、Origin が無いか許す Origin に無い
   - code: '413'

@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>設定画面 | voice-paste のモック</title>
+  <!-- 採用スタイル「開発者ツール」の部品は #37、一覧の部品は #44、用語集の部品は #97、つまみは #166、用語集のプリセットは #173 の共有 CSS に置く -->
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/44/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/97/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/166/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/173/assets/style.css">
+  <!-- 場面・まとまりの切り替えは #44、用語集のプリセットと用語集の一覧の操作は #173 の共有 JS が受ける -->
+  <script src="../../../../refs/44/assets/app.js" defer></script>
+  <script src="../../../../refs/173/assets/app.js" defer></script>
+</head>
+<body>
+  <!-- モック専用の操作列: 案のタブと、場面の切り替え（#44 の app.js が data-scene の場面だけを出す） -->
+  <nav class="mock-bar" aria-label="案と場面の切り替え（モック専用）">
+    <span class="mock-bar__label">案</span>
+    <ul><li><a href="../a-check-list/index.html">案 A</a></li><li><a href="../b-picked-list/index.html" aria-current="page">案 B</a></li></ul>
+    <span class="mock-bar__label">場面</span>
+    <ul><li><button type="button" data-scene="default">既定のプリセット</button></li><li><button type="button" data-scene="switched">プリセットを足して切り替えた</button></li><li><button type="button" data-scene="empty">使う用語集が無い</button></li><li><button type="button" data-scene="error">確かめに通らない</button></li></ul>
+  </nav>
+
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">settings</a> / <a href="../">173</a> / <span>b-picked-list</span></nav>
+
+    <!-- 画面の説明と、この案で画面に出す文言 -->
+    <header class="intro">
+      <h1>設定画面（案 B）</h1>
+      <p>「用語集」のまとまりの先頭に「用語集のプリセット」の一覧を足したもの。一覧で選んだプリセットの下に、使う用語集だけを当てる順に並べ、選択欄で選んだ用語集を「追加」で末尾に足し、行の × で外す。並びは行の左端のつまみを掴むか Alt+↑ / Alt+↓ で変える。今の用語集の一覧と行の表は、その下に「補正に使う」の列を外して残す。</p>
+      <details class="wording">
+        <summary>この案で画面に出す文言</summary>
+        <table class="targets"><caption class="sr-only">この案で画面に出す文言</caption><thead><tr><th scope="col">場所</th><th scope="col">文言</th></tr></thead><tbody><tr><th scope="row">小見出し</th><td>用語集のプリセット / 用語集の一覧</td></tr><tr><th scope="row">プリセットの一覧の列</th><td>補正に使う・名前・用語集（{n} 件）</td></tr><tr><th scope="row">プリセットを足すボタン</th><td>プリセットを足す</td></tr><tr><th scope="row">選んだプリセットの見出し</th><td>プリセット「{名前}」で使う用語集</td></tr><tr><th scope="row">既定のプリセットの名前</th><td>既定</td></tr><tr><th scope="row">消せないプリセットのツールチップ</th><td>補正に使うプリセットは消せません</td></tr><tr><th scope="row">使う用語集が無い</th><td>使う用語集がありません。このプリセットでは何も置き換えません。</td></tr><tr><th scope="row">用語集の一覧の列</th><td>名前・使うプリセット（無ければ「なし」）・行</td></tr><tr><th scope="row">用語集の一覧の決まり</th><td>消した用語集は、使っているプリセットからも外れる。</td></tr><tr><th scope="row">名前が空のエラー</th><td>名前を入れてください。</td></tr><tr><th scope="row">名前が重なるエラー</th><td>プリセット「{名前}」と同じ名前です。別の名前にしてください。</td></tr><tr><th scope="row">使う用語集の表の列</th><td>順・用語集・行</td></tr><tr><th scope="row">用語集を足す欄</th><td>追加する用語集（選択欄）・追加</td></tr><tr><th scope="row">全て使っているとき</th><td>全ての用語集を使っています。</td></tr><tr><th scope="row">外すボタン（読み上げ）</th><td>{用語集}を外す</td></tr><tr><th scope="row">使う用語集の決まり</th><td>上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</td></tr></tbody></table>
+      </details>
+    </header>
+
+    <div class="desk desk--single">
+
+      <!-- 場面: 既定のプリセット -->
+      <section class="specimen" data-scene-panel="default" aria-labelledby="h-default">
+        <h2 id="h-default">既定のプリセット</h2>
+        <div class="win settings settings--full">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり（既定のプリセット）"><ul><li><a href="../../44/a-inline/kind-tabs/index.html">出力先</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ブラウザ添付</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">エンドポイントへ送る</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ホットキー</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">録音</a></li><li><a href="../../152/b-lead-note/index.html">文字起こし</a></li><li><a href="../../99/a-hint-group/index.html">表記のヒント</a></li><li><a href="#default-glossary" aria-current="page">用語集</a></li><li><a href="../../166/b-drag-handle/index.html">ハルシネーション</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">画面</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">履歴とログ</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">API</a></li></ul></nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（既定のプリセット）">
+              <fieldset id="default-glossary" data-group>
+                <legend>用語集</legend>
+                <h3 class="subhead">用語集のプリセット</h3>
+<!-- 用語集のプリセット: refs/173 の app.js が選ぶ・足す・消す・補正に使うプリセットの切り替え・使う用語集の選択と並べ替えを受ける -->
+<div id="default-gp" class="glossary" data-gp-root="picked" data-reload="immediate">
+<div class="targets-wrap">
+<table class="targets glossaries gp-list">
+<caption class="sr-only">用語集のプリセットの一覧（補正に使うプリセットを 1 つ選ぶ）</caption>
+<thead><tr><th scope="col">補正に使う</th><th scope="col">名前</th><th scope="col">用語集</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item data-select="default-p1" data-selected="true"><td><label class="use"><input type="radio" name="default-gp-active" value="default-p1" data-active aria-label="既定を補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="default-p1">既定</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="default-p1">1 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="既定を消す" aria-disabled="true" title="補正に使うプリセットは消せません"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-item>プリセットを足す</button></div>
+<div data-details>
+<div class="glossary-detail" data-detail="default-p1">
+<p class="glossary-detail__title">プリセット「<span data-name-view="default-p1">既定</span>」で使う用語集</p>
+<div class="preset__field"><label for="default-p1-name">名前</label><input type="text" class="wide" id="default-p1-name" data-name="default-p1" value="既定" placeholder="例: 会議"></div>
+<div class="targets-wrap" data-uses-wrap>
+<table class="targets gp-uses gp-uses--picked">
+<caption class="sr-only">プリセットで使う用語集（上の用語集から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th><th scope="col" class="col-tools"><span class="sr-only">外す</span></th></tr></thead>
+<tbody data-uses>
+<tr data-use="default-g1" draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="default-g1">yogo</span></td><td class="col-rows"><span class="count" data-rows="default-g1">7 行</span></td><td class="col-tools"><button type="button" class="btn btn--icon" data-use-remove aria-label="yogoを外す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<div class="gp-add" data-use-add-row hidden><label for="default-p1-add">追加する用語集</label><select id="default-p1-add" data-use-select></select><button type="button" class="btn" data-use-add>追加</button></div>
+<p class="field-help" data-use-full>全ての用語集を使っています。</p>
+<p class="field-help gp-help">上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+</div>
+</div>
+                <h3 class="subhead">用語集の一覧</h3>
+<!-- 用語集の一覧と行の表: refs/173 の app.js が選ぶ・足す・消す・名前・行の編集を受ける -->
+<div id="default-gl" class="glossary" data-gl-root data-reload="immediate">
+<div class="targets-wrap">
+<table class="targets glossaries gl-list">
+<caption class="sr-only">用語集の一覧</caption>
+<thead><tr><th scope="col">名前</th><th scope="col">使うプリセット</th><th scope="col">行</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item data-select="default-g1" data-selected="true"><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="default-g1">yogo</span><span class="sr-only" data-unnamed hidden>名前未入力の用語集</span></button></td><td><span class="gl-users" data-users="default-g1">既定</span></td><td><span class="count" data-count="default-g1">7 行</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="yogoを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-item>用語集を足す</button><p class="field-help">消した用語集は、使っているプリセットからも外れる。</p></div>
+<div data-details>
+<div class="glossary-detail" data-detail="default-g1">
+<p class="glossary-detail__title">用語集「<span data-name-view="default-g1">yogo</span>」の行</p>
+<div class="preset__field"><label for="default-g1-name">名前</label><input type="text" class="wide" id="default-g1-name" data-name="default-g1" value="yogo" placeholder="例: 会議用"></div>
+<p class="field-help">正しい表記を空にすると、誤変換を消す。</p>
+<div class="targets-wrap" data-entries-wrap>
+<table class="targets entries">
+<caption class="sr-only">用語集の行（上の行から順に置き換える）</caption>
+<thead><tr><th scope="col">使う</th><th scope="col">誤変換</th><th scope="col">正しい表記</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-entries>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="1 行目を補正に使う" checked></td><td><input type="text" data-wrong value="ぼいすぺーすと" aria-label="1 行目の誤変換"></td><td><input type="text" data-right value="voice-paste" aria-label="1 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="2 行目を補正に使う" checked></td><td><input type="text" data-wrong value="ういすぱー" aria-label="2 行目の誤変換"></td><td><input type="text" data-right value="Whisper" aria-label="2 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="2 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="3 行目を補正に使う" checked></td><td><input type="text" data-wrong value="ほっときー" aria-label="3 行目の誤変換"></td><td><input type="text" data-right value="ホットキー" aria-label="3 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="3 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="4 行目を補正に使う" checked></td><td><input type="text" data-wrong value="でぶろっぷ" aria-label="4 行目の誤変換"></td><td><input type="text" data-right value="develop" aria-label="4 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="4 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="5 行目を補正に使う" checked></td><td><input type="text" data-wrong value="ぷるりくえすと" aria-label="5 行目の誤変換"></td><td><input type="text" data-right value="プルリクエスト" aria-label="5 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="5 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="6 行目を補正に使う" checked></td><td><input type="text" data-wrong value="ご視聴ありがとうございました" aria-label="6 行目の誤変換"></td><td><input type="text" data-right value="" aria-label="6 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="6 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="7 行目を補正に使う" checked></td><td><input type="text" data-wrong value="えーと" aria-label="7 行目の誤変換"></td><td><input type="text" data-right value="" aria-label="7 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="7 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。</p>
+<div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
+</div>
+</div>
+<!-- ひな形: 「用語集を足す」で一覧の末尾の行と、行の表に写す -->
+<template data-item-template="[data-item-list]"><tr data-item data-select="__ID__" data-selected="false"><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="__ID__"></span><span class="sr-only" data-unnamed>名前未入力の用語集</span></button></td><td><span class="gl-users" data-users="__ID__">なし</span></td><td><span class="count" data-count="__ID__">0 行</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="名前未入力の用語集を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr></template>
+<template data-item-template="[data-details]"><div class="glossary-detail" data-detail="__ID__" hidden>
+<p class="glossary-detail__title">用語集「<span data-name-view="__ID__"></span>」の行</p>
+<div class="preset__field"><label for="__ID__-name">名前</label><input type="text" class="wide" id="__ID__-name" data-name="__ID__" value="" placeholder="例: 会議用"></div>
+<p class="field-help">正しい表記を空にすると、誤変換を消す。</p>
+<div class="targets-wrap" data-entries-wrap hidden>
+<table class="targets entries">
+<caption class="sr-only">用語集の行（上の行から順に置き換える）</caption>
+<thead><tr><th scope="col">使う</th><th scope="col">誤変換</th><th scope="col">正しい表記</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-entries>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-entries-empty>この用語集にはまだ行がありません。</p>
+<div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
+</div></template>
+<!-- ひな形: 「行を足す」で行の表の末尾に写す -->
+<template data-entry-template><tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="1 行目を補正に使う" checked></td><td><input type="text" data-wrong value="" aria-label="1 行目の誤変換"></td><td><input type="text" data-right value="" aria-label="1 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr></template>
+</div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <div class="settings__actions">
+              <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn btn--primary" href="#">保存</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">プリセットのキーが無い今の settings.toml を開いたところ。補正に使っていた用語集（<code>active_glossary</code>）だけを使う「既定」のプリセットが 1 つあり、それを補正に使う。補正に使うプリセットは消せず、ごみ箱にかざすと理由が出る。</p>
+      </section>
+      <!-- 場面: プリセットを足して切り替えた -->
+      <section class="specimen" data-scene-panel="switched" aria-labelledby="h-switched">
+        <h2 id="h-switched">プリセットを足して切り替えた</h2>
+        <div class="win settings settings--full">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり（プリセットを足して切り替えた）"><ul><li><a href="../../44/a-inline/kind-tabs/index.html">出力先</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ブラウザ添付</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">エンドポイントへ送る</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ホットキー</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">録音</a></li><li><a href="../../152/b-lead-note/index.html">文字起こし</a></li><li><a href="../../99/a-hint-group/index.html">表記のヒント</a></li><li><a href="#switched-glossary" aria-current="page">用語集</a></li><li><a href="../../166/b-drag-handle/index.html">ハルシネーション</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">画面</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">履歴とログ</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">API</a></li></ul></nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（プリセットを足して切り替えた）">
+              <fieldset id="switched-glossary" data-group>
+                <legend>用語集</legend>
+                <h3 class="subhead">用語集のプリセット</h3>
+<!-- 用語集のプリセット: refs/173 の app.js が選ぶ・足す・消す・補正に使うプリセットの切り替え・使う用語集の選択と並べ替えを受ける -->
+<div id="switched-gp" class="glossary" data-gp-root="picked" data-reload="immediate">
+<div class="targets-wrap">
+<table class="targets glossaries gp-list">
+<caption class="sr-only">用語集のプリセットの一覧（補正に使うプリセットを 1 つ選ぶ）</caption>
+<thead><tr><th scope="col">補正に使う</th><th scope="col">名前</th><th scope="col">用語集</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item data-select="switched-p1" data-selected="false"><td><label class="use"><input type="radio" name="switched-gp-active" value="switched-p1" data-active aria-label="既定を補正に使う"></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="switched-p1">既定</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="switched-p1">1 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="既定を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-item data-select="switched-p2" data-selected="true"><td><label class="use"><input type="radio" name="switched-gp-active" value="switched-p2" data-active aria-label="会議を補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="switched-p2">会議</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="switched-p2">2 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="会議を消す" aria-disabled="true" title="補正に使うプリセットは消せません"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-item>プリセットを足す</button></div>
+<div data-details>
+<div class="glossary-detail" data-detail="switched-p1" hidden>
+<p class="glossary-detail__title">プリセット「<span data-name-view="switched-p1">既定</span>」で使う用語集</p>
+<div class="preset__field"><label for="switched-p1-name">名前</label><input type="text" class="wide" id="switched-p1-name" data-name="switched-p1" value="既定" placeholder="例: 会議"></div>
+<div class="targets-wrap" data-uses-wrap>
+<table class="targets gp-uses gp-uses--picked">
+<caption class="sr-only">プリセットで使う用語集（上の用語集から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th><th scope="col" class="col-tools"><span class="sr-only">外す</span></th></tr></thead>
+<tbody data-uses>
+<tr data-use="switched-g1" draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="switched-g1">yogo</span></td><td class="col-rows"><span class="count" data-rows="switched-g1">7 行</span></td><td class="col-tools"><button type="button" class="btn btn--icon" data-use-remove aria-label="yogoを外す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<div class="gp-add" data-use-add-row><label for="switched-p1-add">追加する用語集</label><select id="switched-p1-add" data-use-select><option value="switched-g2">会議用</option></select><button type="button" class="btn" data-use-add>追加</button></div>
+<p class="field-help" data-use-full hidden>全ての用語集を使っています。</p>
+<p class="field-help gp-help">上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+<div class="glossary-detail" data-detail="switched-p2">
+<p class="glossary-detail__title">プリセット「<span data-name-view="switched-p2">会議</span>」で使う用語集</p>
+<div class="preset__field"><label for="switched-p2-name">名前</label><input type="text" class="wide" id="switched-p2-name" data-name="switched-p2" value="会議" placeholder="例: 会議"></div>
+<div class="targets-wrap" data-uses-wrap>
+<table class="targets gp-uses gp-uses--picked">
+<caption class="sr-only">プリセットで使う用語集（上の用語集から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th><th scope="col" class="col-tools"><span class="sr-only">外す</span></th></tr></thead>
+<tbody data-uses>
+<tr data-use="switched-g2" draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="switched-g2">会議用</span></td><td class="col-rows"><span class="count" data-rows="switched-g2">4 行</span></td><td class="col-tools"><button type="button" class="btn btn--icon" data-use-remove aria-label="会議用を外す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></td></tr>
+<tr data-use="switched-g1" draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-order"><span class="order" data-order>2</span></td><td><span class="clip" data-name-view="switched-g1">yogo</span></td><td class="col-rows"><span class="count" data-rows="switched-g1">7 行</span></td><td class="col-tools"><button type="button" class="btn btn--icon" data-use-remove aria-label="yogoを外す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<div class="gp-add" data-use-add-row hidden><label for="switched-p2-add">追加する用語集</label><select id="switched-p2-add" data-use-select></select><button type="button" class="btn" data-use-add>追加</button></div>
+<p class="field-help" data-use-full>全ての用語集を使っています。</p>
+<p class="field-help gp-help">上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+</div>
+</div>
+                <h3 class="subhead">用語集の一覧</h3>
+<!-- 用語集の一覧と行の表: refs/173 の app.js が選ぶ・足す・消す・名前・行の編集を受ける -->
+<div id="switched-gl" class="glossary" data-gl-root data-reload="immediate">
+<div class="targets-wrap">
+<table class="targets glossaries gl-list">
+<caption class="sr-only">用語集の一覧</caption>
+<thead><tr><th scope="col">名前</th><th scope="col">使うプリセット</th><th scope="col">行</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item data-select="switched-g1" data-selected="false"><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="switched-g1">yogo</span><span class="sr-only" data-unnamed hidden>名前未入力の用語集</span></button></td><td><span class="gl-users" data-users="switched-g1">既定・会議</span></td><td><span class="count" data-count="switched-g1">7 行</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="yogoを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-item data-select="switched-g2" data-selected="true"><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="switched-g2">会議用</span><span class="sr-only" data-unnamed hidden>名前未入力の用語集</span></button></td><td><span class="gl-users" data-users="switched-g2">会議</span></td><td><span class="count" data-count="switched-g2">4 行</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="会議用を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-item>用語集を足す</button><p class="field-help">消した用語集は、使っているプリセットからも外れる。</p></div>
+<div data-details>
+<div class="glossary-detail" data-detail="switched-g1" hidden>
+<p class="glossary-detail__title">用語集「<span data-name-view="switched-g1">yogo</span>」の行</p>
+<div class="preset__field"><label for="switched-g1-name">名前</label><input type="text" class="wide" id="switched-g1-name" data-name="switched-g1" value="yogo" placeholder="例: 会議用"></div>
+<p class="field-help">正しい表記を空にすると、誤変換を消す。</p>
+<div class="targets-wrap" data-entries-wrap>
+<table class="targets entries">
+<caption class="sr-only">用語集の行（上の行から順に置き換える）</caption>
+<thead><tr><th scope="col">使う</th><th scope="col">誤変換</th><th scope="col">正しい表記</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-entries>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="1 行目を補正に使う" checked></td><td><input type="text" data-wrong value="ぼいすぺーすと" aria-label="1 行目の誤変換"></td><td><input type="text" data-right value="voice-paste" aria-label="1 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="2 行目を補正に使う" checked></td><td><input type="text" data-wrong value="ういすぱー" aria-label="2 行目の誤変換"></td><td><input type="text" data-right value="Whisper" aria-label="2 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="2 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="3 行目を補正に使う" checked></td><td><input type="text" data-wrong value="ほっときー" aria-label="3 行目の誤変換"></td><td><input type="text" data-right value="ホットキー" aria-label="3 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="3 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="4 行目を補正に使う" checked></td><td><input type="text" data-wrong value="でぶろっぷ" aria-label="4 行目の誤変換"></td><td><input type="text" data-right value="develop" aria-label="4 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="4 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="5 行目を補正に使う" checked></td><td><input type="text" data-wrong value="ぷるりくえすと" aria-label="5 行目の誤変換"></td><td><input type="text" data-right value="プルリクエスト" aria-label="5 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="5 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="6 行目を補正に使う" checked></td><td><input type="text" data-wrong value="ご視聴ありがとうございました" aria-label="6 行目の誤変換"></td><td><input type="text" data-right value="" aria-label="6 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="6 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="7 行目を補正に使う" checked></td><td><input type="text" data-wrong value="えーと" aria-label="7 行目の誤変換"></td><td><input type="text" data-right value="" aria-label="7 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="7 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。</p>
+<div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
+</div>
+<div class="glossary-detail" data-detail="switched-g2">
+<p class="glossary-detail__title">用語集「<span data-name-view="switched-g2">会議用</span>」の行</p>
+<div class="preset__field"><label for="switched-g2-name">名前</label><input type="text" class="wide" id="switched-g2-name" data-name="switched-g2" value="会議用" placeholder="例: 会議用"></div>
+<p class="field-help">正しい表記を空にすると、誤変換を消す。</p>
+<div class="targets-wrap" data-entries-wrap>
+<table class="targets entries">
+<caption class="sr-only">用語集の行（上の行から順に置き換える）</caption>
+<thead><tr><th scope="col">使う</th><th scope="col">誤変換</th><th scope="col">正しい表記</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-entries>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="1 行目を補正に使う" checked></td><td><input type="text" data-wrong value="ぎじろく" aria-label="1 行目の誤変換"></td><td><input type="text" data-right value="議事録" aria-label="1 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="2 行目を補正に使う" checked></td><td><input type="text" data-wrong value="あじぇんだ" aria-label="2 行目の誤変換"></td><td><input type="text" data-right value="アジェンダ" aria-label="2 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="2 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="3 行目を補正に使う" checked></td><td><input type="text" data-wrong value="でぶろっぷ" aria-label="3 行目の誤変換"></td><td><input type="text" data-right value="デプロイ" aria-label="3 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="3 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="true"><td><input type="checkbox" data-on aria-label="4 行目を補正に使う"></td><td><input type="text" data-wrong value="ぷろだくとおーなー" aria-label="4 行目の誤変換"></td><td><input type="text" data-right value="プロダクトオーナー" aria-label="4 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="4 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。</p>
+<div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
+</div>
+</div>
+<!-- ひな形: 「用語集を足す」で一覧の末尾の行と、行の表に写す -->
+<template data-item-template="[data-item-list]"><tr data-item data-select="__ID__" data-selected="false"><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="__ID__"></span><span class="sr-only" data-unnamed>名前未入力の用語集</span></button></td><td><span class="gl-users" data-users="__ID__">なし</span></td><td><span class="count" data-count="__ID__">0 行</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="名前未入力の用語集を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr></template>
+<template data-item-template="[data-details]"><div class="glossary-detail" data-detail="__ID__" hidden>
+<p class="glossary-detail__title">用語集「<span data-name-view="__ID__"></span>」の行</p>
+<div class="preset__field"><label for="__ID__-name">名前</label><input type="text" class="wide" id="__ID__-name" data-name="__ID__" value="" placeholder="例: 会議用"></div>
+<p class="field-help">正しい表記を空にすると、誤変換を消す。</p>
+<div class="targets-wrap" data-entries-wrap hidden>
+<table class="targets entries">
+<caption class="sr-only">用語集の行（上の行から順に置き換える）</caption>
+<thead><tr><th scope="col">使う</th><th scope="col">誤変換</th><th scope="col">正しい表記</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-entries>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-entries-empty>この用語集にはまだ行がありません。</p>
+<div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
+</div></template>
+<!-- ひな形: 「行を足す」で行の表の末尾に写す -->
+<template data-entry-template><tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="1 行目を補正に使う" checked></td><td><input type="text" data-wrong value="" aria-label="1 行目の誤変換"></td><td><input type="text" data-right value="" aria-label="1 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr></template>
+</div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <p class="notice" role="status"><span>保存しました。</span></p>
+            <div class="settings__actions">
+              <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn btn--primary" href="#">保存</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">用語集「会議用」を足して行を入れ、プリセット「会議」を足して「会議用」「yogo」の順に使う用語集に選び、補正に使うプリセットを「会議」に切り替えて保存した。「でぶろっぷ」は両方の用語集にあり、上に並べた「会議用」の「デプロイ」で置き換わる。保存した後も画面は開いたまま。</p>
+      </section>
+      <!-- 場面: 使う用語集が無い -->
+      <section class="specimen" data-scene-panel="empty" aria-labelledby="h-empty">
+        <h2 id="h-empty">使う用語集が無い</h2>
+        <div class="win settings settings--full">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり（使う用語集が無い）"><ul><li><a href="../../44/a-inline/kind-tabs/index.html">出力先</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ブラウザ添付</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">エンドポイントへ送る</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ホットキー</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">録音</a></li><li><a href="../../152/b-lead-note/index.html">文字起こし</a></li><li><a href="../../99/a-hint-group/index.html">表記のヒント</a></li><li><a href="#empty-glossary" aria-current="page">用語集</a></li><li><a href="../../166/b-drag-handle/index.html">ハルシネーション</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">画面</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">履歴とログ</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">API</a></li></ul></nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（使う用語集が無い）">
+              <fieldset id="empty-glossary" data-group>
+                <legend>用語集</legend>
+                <h3 class="subhead">用語集のプリセット</h3>
+<!-- 用語集のプリセット: refs/173 の app.js が選ぶ・足す・消す・補正に使うプリセットの切り替え・使う用語集の選択と並べ替えを受ける -->
+<div id="empty-gp" class="glossary" data-gp-root="picked" data-reload="immediate">
+<div class="targets-wrap">
+<table class="targets glossaries gp-list">
+<caption class="sr-only">用語集のプリセットの一覧（補正に使うプリセットを 1 つ選ぶ）</caption>
+<thead><tr><th scope="col">補正に使う</th><th scope="col">名前</th><th scope="col">用語集</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item data-select="empty-p1" data-selected="false"><td><label class="use"><input type="radio" name="empty-gp-active" value="empty-p1" data-active aria-label="既定を補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="empty-p1">既定</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="empty-p1">1 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="既定を消す" aria-disabled="true" title="補正に使うプリセットは消せません"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-item data-select="empty-p2" data-selected="true"><td><label class="use"><input type="radio" name="empty-gp-active" value="empty-p2" data-active aria-label="下書きを補正に使う"></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="empty-p2">下書き</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="empty-p2">0 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="下書きを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-item>プリセットを足す</button></div>
+<div data-details>
+<div class="glossary-detail" data-detail="empty-p1" hidden>
+<p class="glossary-detail__title">プリセット「<span data-name-view="empty-p1">既定</span>」で使う用語集</p>
+<div class="preset__field"><label for="empty-p1-name">名前</label><input type="text" class="wide" id="empty-p1-name" data-name="empty-p1" value="既定" placeholder="例: 会議"></div>
+<div class="targets-wrap" data-uses-wrap>
+<table class="targets gp-uses gp-uses--picked">
+<caption class="sr-only">プリセットで使う用語集（上の用語集から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th><th scope="col" class="col-tools"><span class="sr-only">外す</span></th></tr></thead>
+<tbody data-uses>
+<tr data-use="empty-g1" draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="empty-g1">yogo</span></td><td class="col-rows"><span class="count" data-rows="empty-g1">7 行</span></td><td class="col-tools"><button type="button" class="btn btn--icon" data-use-remove aria-label="yogoを外す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<div class="gp-add" data-use-add-row><label for="empty-p1-add">追加する用語集</label><select id="empty-p1-add" data-use-select><option value="empty-g2">会議用</option></select><button type="button" class="btn" data-use-add>追加</button></div>
+<p class="field-help" data-use-full hidden>全ての用語集を使っています。</p>
+<p class="field-help gp-help">上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+<div class="glossary-detail" data-detail="empty-p2">
+<p class="glossary-detail__title">プリセット「<span data-name-view="empty-p2">下書き</span>」で使う用語集</p>
+<div class="preset__field"><label for="empty-p2-name">名前</label><input type="text" class="wide" id="empty-p2-name" data-name="empty-p2" value="下書き" placeholder="例: 会議"></div>
+<div class="targets-wrap" data-uses-wrap hidden>
+<table class="targets gp-uses gp-uses--picked">
+<caption class="sr-only">プリセットで使う用語集（上の用語集から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th><th scope="col" class="col-tools"><span class="sr-only">外す</span></th></tr></thead>
+<tbody data-uses>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<div class="gp-add" data-use-add-row><label for="empty-p2-add">追加する用語集</label><select id="empty-p2-add" data-use-select><option value="empty-g1">yogo</option><option value="empty-g2">会議用</option></select><button type="button" class="btn" data-use-add>追加</button></div>
+<p class="field-help" data-use-full hidden>全ての用語集を使っています。</p>
+<p class="field-help gp-help">上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+</div>
+</div>
+                <h3 class="subhead">用語集の一覧</h3>
+<!-- 用語集の一覧と行の表: refs/173 の app.js が選ぶ・足す・消す・名前・行の編集を受ける -->
+<div id="empty-gl" class="glossary" data-gl-root data-reload="immediate">
+<div class="targets-wrap">
+<table class="targets glossaries gl-list">
+<caption class="sr-only">用語集の一覧</caption>
+<thead><tr><th scope="col">名前</th><th scope="col">使うプリセット</th><th scope="col">行</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item data-select="empty-g1" data-selected="true"><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="empty-g1">yogo</span><span class="sr-only" data-unnamed hidden>名前未入力の用語集</span></button></td><td><span class="gl-users" data-users="empty-g1">既定</span></td><td><span class="count" data-count="empty-g1">7 行</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="yogoを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-item data-select="empty-g2" data-selected="false"><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="empty-g2">会議用</span><span class="sr-only" data-unnamed hidden>名前未入力の用語集</span></button></td><td><span class="gl-users" data-users="empty-g2">なし</span></td><td><span class="count" data-count="empty-g2">4 行</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="会議用を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-item>用語集を足す</button><p class="field-help">消した用語集は、使っているプリセットからも外れる。</p></div>
+<div data-details>
+<div class="glossary-detail" data-detail="empty-g1">
+<p class="glossary-detail__title">用語集「<span data-name-view="empty-g1">yogo</span>」の行</p>
+<div class="preset__field"><label for="empty-g1-name">名前</label><input type="text" class="wide" id="empty-g1-name" data-name="empty-g1" value="yogo" placeholder="例: 会議用"></div>
+<p class="field-help">正しい表記を空にすると、誤変換を消す。</p>
+<div class="targets-wrap" data-entries-wrap>
+<table class="targets entries">
+<caption class="sr-only">用語集の行（上の行から順に置き換える）</caption>
+<thead><tr><th scope="col">使う</th><th scope="col">誤変換</th><th scope="col">正しい表記</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-entries>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="1 行目を補正に使う" checked></td><td><input type="text" data-wrong value="ぼいすぺーすと" aria-label="1 行目の誤変換"></td><td><input type="text" data-right value="voice-paste" aria-label="1 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="2 行目を補正に使う" checked></td><td><input type="text" data-wrong value="ういすぱー" aria-label="2 行目の誤変換"></td><td><input type="text" data-right value="Whisper" aria-label="2 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="2 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="3 行目を補正に使う" checked></td><td><input type="text" data-wrong value="ほっときー" aria-label="3 行目の誤変換"></td><td><input type="text" data-right value="ホットキー" aria-label="3 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="3 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="4 行目を補正に使う" checked></td><td><input type="text" data-wrong value="でぶろっぷ" aria-label="4 行目の誤変換"></td><td><input type="text" data-right value="develop" aria-label="4 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="4 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="5 行目を補正に使う" checked></td><td><input type="text" data-wrong value="ぷるりくえすと" aria-label="5 行目の誤変換"></td><td><input type="text" data-right value="プルリクエスト" aria-label="5 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="5 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="6 行目を補正に使う" checked></td><td><input type="text" data-wrong value="ご視聴ありがとうございました" aria-label="6 行目の誤変換"></td><td><input type="text" data-right value="" aria-label="6 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="6 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="7 行目を補正に使う" checked></td><td><input type="text" data-wrong value="えーと" aria-label="7 行目の誤変換"></td><td><input type="text" data-right value="" aria-label="7 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="7 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。</p>
+<div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
+</div>
+<div class="glossary-detail" data-detail="empty-g2" hidden>
+<p class="glossary-detail__title">用語集「<span data-name-view="empty-g2">会議用</span>」の行</p>
+<div class="preset__field"><label for="empty-g2-name">名前</label><input type="text" class="wide" id="empty-g2-name" data-name="empty-g2" value="会議用" placeholder="例: 会議用"></div>
+<p class="field-help">正しい表記を空にすると、誤変換を消す。</p>
+<div class="targets-wrap" data-entries-wrap>
+<table class="targets entries">
+<caption class="sr-only">用語集の行（上の行から順に置き換える）</caption>
+<thead><tr><th scope="col">使う</th><th scope="col">誤変換</th><th scope="col">正しい表記</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-entries>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="1 行目を補正に使う" checked></td><td><input type="text" data-wrong value="ぎじろく" aria-label="1 行目の誤変換"></td><td><input type="text" data-right value="議事録" aria-label="1 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="2 行目を補正に使う" checked></td><td><input type="text" data-wrong value="あじぇんだ" aria-label="2 行目の誤変換"></td><td><input type="text" data-right value="アジェンダ" aria-label="2 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="2 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="3 行目を補正に使う" checked></td><td><input type="text" data-wrong value="でぶろっぷ" aria-label="3 行目の誤変換"></td><td><input type="text" data-right value="デプロイ" aria-label="3 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="3 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="true"><td><input type="checkbox" data-on aria-label="4 行目を補正に使う"></td><td><input type="text" data-wrong value="ぷろだくとおーなー" aria-label="4 行目の誤変換"></td><td><input type="text" data-right value="プロダクトオーナー" aria-label="4 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="4 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。</p>
+<div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
+</div>
+</div>
+<!-- ひな形: 「用語集を足す」で一覧の末尾の行と、行の表に写す -->
+<template data-item-template="[data-item-list]"><tr data-item data-select="__ID__" data-selected="false"><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="__ID__"></span><span class="sr-only" data-unnamed>名前未入力の用語集</span></button></td><td><span class="gl-users" data-users="__ID__">なし</span></td><td><span class="count" data-count="__ID__">0 行</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="名前未入力の用語集を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr></template>
+<template data-item-template="[data-details]"><div class="glossary-detail" data-detail="__ID__" hidden>
+<p class="glossary-detail__title">用語集「<span data-name-view="__ID__"></span>」の行</p>
+<div class="preset__field"><label for="__ID__-name">名前</label><input type="text" class="wide" id="__ID__-name" data-name="__ID__" value="" placeholder="例: 会議用"></div>
+<p class="field-help">正しい表記を空にすると、誤変換を消す。</p>
+<div class="targets-wrap" data-entries-wrap hidden>
+<table class="targets entries">
+<caption class="sr-only">用語集の行（上の行から順に置き換える）</caption>
+<thead><tr><th scope="col">使う</th><th scope="col">誤変換</th><th scope="col">正しい表記</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-entries>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-entries-empty>この用語集にはまだ行がありません。</p>
+<div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
+</div></template>
+<!-- ひな形: 「行を足す」で行の表の末尾に写す -->
+<template data-entry-template><tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="1 行目を補正に使う" checked></td><td><input type="text" data-wrong value="" aria-label="1 行目の誤変換"></td><td><input type="text" data-right value="" aria-label="1 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr></template>
+</div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <div class="settings__actions">
+              <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn btn--primary" href="#">保存</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">使う用語集を 1 つも選んでいないプリセット「下書き」を選んだところ。このまま保存でき、補正に使うと何も置き換えない。</p>
+      </section>
+      <!-- 場面: 確かめに通らない -->
+      <section class="specimen" data-scene-panel="error" aria-labelledby="h-error">
+        <h2 id="h-error">確かめに通らない</h2>
+        <div class="win settings settings--full">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり（確かめに通らない）"><ul><li><a href="../../44/a-inline/kind-tabs/index.html">出力先</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ブラウザ添付</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">エンドポイントへ送る</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ホットキー</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">録音</a></li><li><a href="../../152/b-lead-note/index.html">文字起こし</a></li><li><a href="../../99/a-hint-group/index.html">表記のヒント</a></li><li><a href="#error-glossary" aria-current="page">用語集</a></li><li><a href="../../166/b-drag-handle/index.html">ハルシネーション</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">画面</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">履歴とログ</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">API</a></li></ul></nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（確かめに通らない）">
+              <div class="error-summary" role="alert" tabindex="-1">
+                保存できませんでした。2 件の欄を直してください。
+                <ul><li><a href="#error-p2-name" data-error-link>プリセット 2 件目の名前: 名前を入れてください</a></li><li><a href="#error-p3-name" data-error-link>プリセット 3 件目の名前: プリセット「既定」と同じ名前です</a></li></ul>
+              </div>
+              <fieldset id="error-glossary" data-group>
+                <legend>用語集</legend>
+                <h3 class="subhead">用語集のプリセット</h3>
+<!-- 用語集のプリセット: refs/173 の app.js が選ぶ・足す・消す・補正に使うプリセットの切り替え・使う用語集の選択と並べ替えを受ける -->
+<div id="error-gp" class="glossary" data-gp-root="picked" data-reload="immediate">
+<div class="targets-wrap">
+<table class="targets glossaries gp-list">
+<caption class="sr-only">用語集のプリセットの一覧（補正に使うプリセットを 1 つ選ぶ）</caption>
+<thead><tr><th scope="col">補正に使う</th><th scope="col">名前</th><th scope="col">用語集</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item data-select="error-p1" data-selected="false"><td><label class="use"><input type="radio" name="error-gp-active" value="error-p1" data-active aria-label="既定を補正に使う" checked></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="error-p1">既定</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="error-p1">1 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="既定を消す" aria-disabled="true" title="補正に使うプリセットは消せません"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-item data-select="error-p2" data-selected="true"><td><label class="use"><input type="radio" name="error-gp-active" value="error-p2" data-active aria-label="名前未入力のプリセットを補正に使う"></label></td><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="error-p2"></span><span class="sr-only" data-unnamed>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="error-p2">1 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="名前未入力のプリセットを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-item data-select="error-p3" data-selected="false"><td><label class="use"><input type="radio" name="error-gp-active" value="error-p3" data-active aria-label="既定を補正に使う"></label></td><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="error-p3">既定</span><span class="sr-only" data-unnamed hidden>名前未入力のプリセット</span></button></td><td><span class="count" data-use-count="error-p3">2 件</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="既定を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-item>プリセットを足す</button></div>
+<div data-details>
+<div class="glossary-detail" data-detail="error-p1" hidden>
+<p class="glossary-detail__title">プリセット「<span data-name-view="error-p1">既定</span>」で使う用語集</p>
+<div class="preset__field"><label for="error-p1-name">名前</label><input type="text" class="wide" id="error-p1-name" data-name="error-p1" value="既定" placeholder="例: 会議"></div>
+<div class="targets-wrap" data-uses-wrap>
+<table class="targets gp-uses gp-uses--picked">
+<caption class="sr-only">プリセットで使う用語集（上の用語集から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th><th scope="col" class="col-tools"><span class="sr-only">外す</span></th></tr></thead>
+<tbody data-uses>
+<tr data-use="error-g1" draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="error-g1">yogo</span></td><td class="col-rows"><span class="count" data-rows="error-g1">7 行</span></td><td class="col-tools"><button type="button" class="btn btn--icon" data-use-remove aria-label="yogoを外す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<div class="gp-add" data-use-add-row><label for="error-p1-add">追加する用語集</label><select id="error-p1-add" data-use-select><option value="error-g2">会議用</option></select><button type="button" class="btn" data-use-add>追加</button></div>
+<p class="field-help" data-use-full hidden>全ての用語集を使っています。</p>
+<p class="field-help gp-help">上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+<div class="glossary-detail" data-detail="error-p2">
+<p class="glossary-detail__title">プリセット「<span data-name-view="error-p2"></span>」で使う用語集</p>
+<div class="preset__field"><label for="error-p2-name">名前</label><input type="text" class="wide" id="error-p2-name" data-name="error-p2" value="" placeholder="例: 会議" aria-invalid="true" aria-describedby="error-p2-name-err"><p class="field-error" id="error-p2-name-err">名前を入れてください。</p></div>
+<div class="targets-wrap" data-uses-wrap>
+<table class="targets gp-uses gp-uses--picked">
+<caption class="sr-only">プリセットで使う用語集（上の用語集から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th><th scope="col" class="col-tools"><span class="sr-only">外す</span></th></tr></thead>
+<tbody data-uses>
+<tr data-use="error-g2" draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="error-g2">会議用</span></td><td class="col-rows"><span class="count" data-rows="error-g2">4 行</span></td><td class="col-tools"><button type="button" class="btn btn--icon" data-use-remove aria-label="会議用を外す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<div class="gp-add" data-use-add-row><label for="error-p2-add">追加する用語集</label><select id="error-p2-add" data-use-select><option value="error-g1">yogo</option></select><button type="button" class="btn" data-use-add>追加</button></div>
+<p class="field-help" data-use-full hidden>全ての用語集を使っています。</p>
+<p class="field-help gp-help">上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+<div class="glossary-detail" data-detail="error-p3" hidden>
+<p class="glossary-detail__title">プリセット「<span data-name-view="error-p3">既定</span>」で使う用語集</p>
+<div class="preset__field"><label for="error-p3-name">名前</label><input type="text" class="wide" id="error-p3-name" data-name="error-p3" value="既定" placeholder="例: 会議" aria-invalid="true" aria-describedby="error-p3-name-err"><p class="field-error" id="error-p3-name-err">プリセット「既定」と同じ名前です。別の名前にしてください。</p></div>
+<div class="targets-wrap" data-uses-wrap>
+<table class="targets gp-uses gp-uses--picked">
+<caption class="sr-only">プリセットで使う用語集（上の用語集から順に当てる）</caption>
+<thead><tr><th scope="col" class="col-grip"><span class="sr-only">動かす</span></th><th scope="col" class="col-order">順</th><th scope="col">用語集</th><th scope="col" class="col-rows">行</th><th scope="col" class="col-tools"><span class="sr-only">外す</span></th></tr></thead>
+<tbody data-uses>
+<tr data-use="error-g2" draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-order"><span class="order" data-order>1</span></td><td><span class="clip" data-name-view="error-g2">会議用</span></td><td class="col-rows"><span class="count" data-rows="error-g2">4 行</span></td><td class="col-tools"><button type="button" class="btn btn--icon" data-use-remove aria-label="会議用を外す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></td></tr>
+<tr data-use="error-g1" draggable="true"><td class="col-grip"><span class="grip" aria-hidden="true" title="掴んで動かす"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="4" cy="4" r="1.3"/><circle cx="8" cy="4" r="1.3"/><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="8" cy="12" r="1.3"/></svg></span></td><td class="col-order"><span class="order" data-order>2</span></td><td><span class="clip" data-name-view="error-g1">yogo</span></td><td class="col-rows"><span class="count" data-rows="error-g1">7 行</span></td><td class="col-tools"><button type="button" class="btn btn--icon" data-use-remove aria-label="yogoを外す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-uses-empty hidden>使う用語集がありません。このプリセットでは何も置き換えません。</p>
+<div class="gp-add" data-use-add-row hidden><label for="error-p3-add">追加する用語集</label><select id="error-p3-add" data-use-select></select><button type="button" class="btn" data-use-add>追加</button></div>
+<p class="field-help" data-use-full>全ての用語集を使っています。</p>
+<p class="field-help gp-help">上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。</p>
+<p class="sr-only" aria-live="polite" data-uses-status></p>
+</div>
+</div>
+</div>
+                <h3 class="subhead">用語集の一覧</h3>
+<!-- 用語集の一覧と行の表: refs/173 の app.js が選ぶ・足す・消す・名前・行の編集を受ける -->
+<div id="error-gl" class="glossary" data-gl-root data-reload="immediate">
+<div class="targets-wrap">
+<table class="targets glossaries gl-list">
+<caption class="sr-only">用語集の一覧</caption>
+<thead><tr><th scope="col">名前</th><th scope="col">使うプリセット</th><th scope="col">行</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item data-select="error-g1" data-selected="true"><td><button type="button" class="btn btn--quiet" data-pick aria-current="true"><span class="clip" data-name-view="error-g1">yogo</span><span class="sr-only" data-unnamed hidden>名前未入力の用語集</span></button></td><td><span class="gl-users" data-users="error-g1">既定・既定</span></td><td><span class="count" data-count="error-g1">7 行</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="yogoを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-item data-select="error-g2" data-selected="false"><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="error-g2">会議用</span><span class="sr-only" data-unnamed hidden>名前未入力の用語集</span></button></td><td><span class="gl-users" data-users="error-g2">・既定</span></td><td><span class="count" data-count="error-g2">4 行</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="会議用を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<div class="glossary-actions"><button type="button" class="btn" data-add-item>用語集を足す</button><p class="field-help">消した用語集は、使っているプリセットからも外れる。</p></div>
+<div data-details>
+<div class="glossary-detail" data-detail="error-g1">
+<p class="glossary-detail__title">用語集「<span data-name-view="error-g1">yogo</span>」の行</p>
+<div class="preset__field"><label for="error-g1-name">名前</label><input type="text" class="wide" id="error-g1-name" data-name="error-g1" value="yogo" placeholder="例: 会議用"></div>
+<p class="field-help">正しい表記を空にすると、誤変換を消す。</p>
+<div class="targets-wrap" data-entries-wrap>
+<table class="targets entries">
+<caption class="sr-only">用語集の行（上の行から順に置き換える）</caption>
+<thead><tr><th scope="col">使う</th><th scope="col">誤変換</th><th scope="col">正しい表記</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-entries>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="1 行目を補正に使う" checked></td><td><input type="text" data-wrong value="ぼいすぺーすと" aria-label="1 行目の誤変換"></td><td><input type="text" data-right value="voice-paste" aria-label="1 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="2 行目を補正に使う" checked></td><td><input type="text" data-wrong value="ういすぱー" aria-label="2 行目の誤変換"></td><td><input type="text" data-right value="Whisper" aria-label="2 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="2 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="3 行目を補正に使う" checked></td><td><input type="text" data-wrong value="ほっときー" aria-label="3 行目の誤変換"></td><td><input type="text" data-right value="ホットキー" aria-label="3 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="3 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="4 行目を補正に使う" checked></td><td><input type="text" data-wrong value="でぶろっぷ" aria-label="4 行目の誤変換"></td><td><input type="text" data-right value="develop" aria-label="4 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="4 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="5 行目を補正に使う" checked></td><td><input type="text" data-wrong value="ぷるりくえすと" aria-label="5 行目の誤変換"></td><td><input type="text" data-right value="プルリクエスト" aria-label="5 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="5 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="6 行目を補正に使う" checked></td><td><input type="text" data-wrong value="ご視聴ありがとうございました" aria-label="6 行目の誤変換"></td><td><input type="text" data-right value="" aria-label="6 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="6 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="7 行目を補正に使う" checked></td><td><input type="text" data-wrong value="えーと" aria-label="7 行目の誤変換"></td><td><input type="text" data-right value="" aria-label="7 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="7 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。</p>
+<div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
+</div>
+<div class="glossary-detail" data-detail="error-g2" hidden>
+<p class="glossary-detail__title">用語集「<span data-name-view="error-g2">会議用</span>」の行</p>
+<div class="preset__field"><label for="error-g2-name">名前</label><input type="text" class="wide" id="error-g2-name" data-name="error-g2" value="会議用" placeholder="例: 会議用"></div>
+<p class="field-help">正しい表記を空にすると、誤変換を消す。</p>
+<div class="targets-wrap" data-entries-wrap>
+<table class="targets entries">
+<caption class="sr-only">用語集の行（上の行から順に置き換える）</caption>
+<thead><tr><th scope="col">使う</th><th scope="col">誤変換</th><th scope="col">正しい表記</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-entries>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="1 行目を補正に使う" checked></td><td><input type="text" data-wrong value="ぎじろく" aria-label="1 行目の誤変換"></td><td><input type="text" data-right value="議事録" aria-label="1 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="2 行目を補正に使う" checked></td><td><input type="text" data-wrong value="あじぇんだ" aria-label="2 行目の誤変換"></td><td><input type="text" data-right value="アジェンダ" aria-label="2 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="2 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="3 行目を補正に使う" checked></td><td><input type="text" data-wrong value="でぶろっぷ" aria-label="3 行目の誤変換"></td><td><input type="text" data-right value="デプロイ" aria-label="3 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="3 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+<tr data-entry data-off="true"><td><input type="checkbox" data-on aria-label="4 行目を補正に使う"></td><td><input type="text" data-wrong value="ぷろだくとおーなー" aria-label="4 行目の誤変換"></td><td><input type="text" data-right value="プロダクトオーナー" aria-label="4 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="4 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-entries-empty hidden>この用語集にはまだ行がありません。</p>
+<div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
+</div>
+</div>
+<!-- ひな形: 「用語集を足す」で一覧の末尾の行と、行の表に写す -->
+<template data-item-template="[data-item-list]"><tr data-item data-select="__ID__" data-selected="false"><td><button type="button" class="btn btn--quiet" data-pick><span class="clip" data-name-view="__ID__"></span><span class="sr-only" data-unnamed>名前未入力の用語集</span></button></td><td><span class="gl-users" data-users="__ID__">なし</span></td><td><span class="count" data-count="__ID__">0 行</span></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="名前未入力の用語集を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr></template>
+<template data-item-template="[data-details]"><div class="glossary-detail" data-detail="__ID__" hidden>
+<p class="glossary-detail__title">用語集「<span data-name-view="__ID__"></span>」の行</p>
+<div class="preset__field"><label for="__ID__-name">名前</label><input type="text" class="wide" id="__ID__-name" data-name="__ID__" value="" placeholder="例: 会議用"></div>
+<p class="field-help">正しい表記を空にすると、誤変換を消す。</p>
+<div class="targets-wrap" data-entries-wrap hidden>
+<table class="targets entries">
+<caption class="sr-only">用語集の行（上の行から順に置き換える）</caption>
+<thead><tr><th scope="col">使う</th><th scope="col">誤変換</th><th scope="col">正しい表記</th><th scope="col"><span class="sr-only">消す</span></th></tr></thead>
+<tbody data-entries>
+</tbody>
+</table>
+</div>
+<p class="entries-empty" data-entries-empty>この用語集にはまだ行がありません。</p>
+<div class="glossary-actions"><button type="button" class="btn" data-add-entry>行を足す</button><p class="field-help">上の行から順に置き換える。オフの行は補正に使わない。</p></div>
+</div></template>
+<!-- ひな形: 「行を足す」で行の表の末尾に写す -->
+<template data-entry-template><tr data-entry data-off="false"><td><input type="checkbox" data-on aria-label="1 行目を補正に使う" checked></td><td><input type="text" data-wrong value="" aria-label="1 行目の誤変換"></td><td><input type="text" data-right value="" aria-label="1 行目の正しい表記"></td><td><button type="button" class="btn btn--icon" data-remove-entry aria-label="1 行目を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr></template>
+</div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <div class="settings__actions">
+              <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn btn--primary" href="#">保存</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">保存を押した後に確かめる。名前が空のプリセット・ほかのプリセットと同じ名前のプリセットは保存を止め、その欄の下と画面の先頭にエラーを出す。エラーの一覧のリンクを押すと、そのプリセットを選んで名前の欄へ移る。入れた値は消さない。</p>
+      </section>
+
+    </div>
+  </main>
+</body>
+</html>

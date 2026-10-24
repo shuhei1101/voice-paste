@@ -26,7 +26,7 @@ elements:
     description: 保存できなかったことと直す欄の件数、欄ごとのエラーを並べる。各行はその欄へのリンクで、押すとその欄のまとまりへ切り替えて欄へフォーカスを移す。出したときにフォーカスを一覧へ移す
     label: 保存できませんでした。{件数} 件の欄を直してください。
     visible_when: 保存を押して確かめに通らない欄があったとき。入力の途中では出さない
-    display_format: '1 行 = 「{欄の名前}: {エラー}」。プリセットの欄は「プリセット「{タイトル}」の{欄の名前}」、タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」。用語集の欄は「用語集 {一覧の何件目か} 件目の名前」「用語集 {一覧の何件目か} 件目の {何行目か} 行目の誤変換」。表記のヒントの欄は「有効なヒントの長さ」「プリセット {一覧の何件目か} 件目の名前」「プリセット {一覧の何件目か} 件目の {何つ目か} つ目の語」。ハルシネーションの欄は「ハルシネーションの {何行目か} 行目の文言」'
+    display_format: '1 行 = 「{欄の名前}: {エラー}」。プリセットの欄は「プリセット「{タイトル}」の{欄の名前}」、タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」。用語集のプリセットの欄は「用語集のプリセット {一覧の何件目か} 件目の名前」。用語集の欄は「用語集 {一覧の何件目か} 件目の名前」「用語集 {一覧の何件目か} 件目の {何行目か} 行目の誤変換」。表記のヒントの欄は「有効なヒントの長さ」「プリセット {一覧の何件目か} 件目の名前」「プリセット {一覧の何件目か} 件目の {何つ目か} つ目の語」。ハルシネーションの欄は「ハルシネーションの {何行目か} 行目の文言」'
   - name: 設定の欄
     id: field_{key}
     kind: input
@@ -279,7 +279,7 @@ elements:
     id: glossary_list
     kind: table
     position: 窓 > 右 > 用語集 > 用語集の一覧
-    description: 用語集を 1 行ずつ並べる。列は「補正に使う」「名前」「行」と消すボタン。行の表を出している用語集の行は、背景を変えて示す。見出しは「用語集の一覧」。読み上げの表の名前は「用語集の一覧（補正に使う用語集を 1 つ選ぶ）」
+    description: 用語集を 1 行ずつ並べる。列は「名前」「使うプリセット」「行」と消すボタン。行の表を出している用語集の行は、背景を変えて示す。見出しは「用語集の一覧」。読み上げの表の名前は「用語集の一覧」
     io: 入出力
     visible_when: 用語集のまとまりを選んだとき
     initial_value: settings.toml の `glossaries[]`。空なら `glossary_path`（キーが無ければ settings.toml と同じフォルダの yogo.csv）の CSV を 1 件目にし、名前を CSV のファイル名から拡張子を除いたものにする
@@ -287,14 +287,14 @@ elements:
     source: Settings.glossaries[]
     target: Settings.glossaries[]（保存で settings.toml へ書き、`glossary_path` のキーは消す）
     reason: 用語集は再起動の要らない日々の編集で、メニューから直接開けるまとまりにした（確認ログ）
-    status: implemented
+    status: planned
     refs:
       - dev/設計書/設定/常駐アプリ#settings[glossaries[].name]
   - name: 補正に使う用語集の選択
     id: glossary_active_{n}
     kind: radio
     position: 窓 > 右 > 用語集 > 用語集の一覧 > 行 > 左
-    description: 補正に使う用語集を 1 つ選ぶ。行の表を出す用語集とは別に選べる。読み上げの名前は「{名前}を補正に使う」（名前が空なら「名前未入力の用語集を補正に使う」）
+    description: 補正に使う用語集を 1 つ選ぶ。補正に使うプリセットの選択に置き換える（#173）
     io: 入出力
     type: 真偽値
     visible_when: 用語集ごと
@@ -303,18 +303,18 @@ elements:
     source: Settings.active_glossary
     target: Settings.active_glossary（選んだ用語集の名前）
     action: 選んだ用語集の消すボタンを無効にし、前に選んでいた用語集の消すボタンを有効にする
-    status: implemented
+    status: removed
     refs:
       - dev/設計書/設定/常駐アプリ#settings[active_glossary]
   - name: 用語集の名前のボタン
     id: glossary_pick_{n}
     kind: button
     position: 窓 > 右 > 用語集 > 用語集の一覧 > 行 > 名前
-    description: 押すと、その用語集の名前の欄と行の表を下に出す。長い名前は 1 行に収めて末尾を省く。設定画面を開いたときは、補正に使う用語集の行の表を出している
+    description: 押すと、その用語集の名前の欄と行の表を下に出す。長い名前は 1 行に収めて末尾を省く。設定画面を開いたときは、補正に使うプリセットの 1 つ目の用語集（使う用語集が無ければ一覧の 1 件目）の行の表を出している
     label: '{名前}（名前が空なら「（名前未入力）」）'
     visible_when: 用語集ごと
     action: 下の用語集の行を、押した用語集のものに切り替える。切り替えても入れた値は消さない
-    status: implemented
+    status: planned
   - name: 用語集の行の数
     id: glossary_count_{n}
     kind: label
@@ -328,21 +328,21 @@ elements:
     id: glossary_remove_{n}
     kind: button
     position: 窓 > 右 > 用語集 > 用語集の一覧 > 行 > 右端
-    description: 用語集を一覧から消す。保存するまで settings.toml には書かず、キャンセルで戻せる。CSV のファイルは消さない。補正に使う用語集のボタンは薄くして押しても何も起きないようにし、フォーカスは受けてツールチップ「補正に使う用語集は消せません」を出す。行の表を出している用語集を消したら、補正に使う用語集の行の表を出す
+    description: 用語集を一覧から消し、その用語集を使っているプリセットの使う用語集からも外す。保存するまで settings.toml には書かず、キャンセルで戻せる。CSV のファイルは消さない。行の表を出している用語集を消したら、一覧の 1 件目の行の表を出す
     label: '{名前}を消す（読み上げの名前。名前が空なら「名前未入力の用語集を消す」。見た目は消す印）'
     visible_when: 用語集ごと
-    enabled_when: 補正に使う用語集でないとき
-    action: 用語集を一覧から消す
-    status: implemented
+    action: 用語集を一覧と全てのプリセットの使う用語集から消す
+    status: planned
+    enabled_when: 用語集が一覧に 2 件以上あるとき。最後の 1 件のボタンは薄くして押しても何も起きないようにし、フォーカスは受けてツールチップ「最後の用語集は消せません」を出す
   - name: 用語集を足すボタン
     id: add_glossary_button
     kind: button
     position: 窓 > 右 > 用語集 > 用語集の一覧の下
-    description: 名前が空で行の無い用語集を一覧の末尾に足し、その用語集の行の表を出して、名前の欄へフォーカスを移す。補正に使う用語集は変えない
-    label: 用語集を足す
+    description: 名前が空で行の無い用語集を一覧の末尾に足し、その用語集の行の表を出して、名前の欄へフォーカスを移す。どのプリセットの使う用語集にも入れない
+    label: 用語集追加
     visible_when: 用語集のまとまりを選んだとき
     action: 用語集の一覧に 1 件足す
-    status: implemented
+    status: planned
   - name: 用語集の行の見出し
     id: glossary_detail_title
     kind: label
@@ -356,7 +356,7 @@ elements:
     id: glossary_name_{n}
     kind: input
     position: 窓 > 右 > 用語集 > 用語集の行 > 見出しの下
-    description: 用語集の名前。入れた値を一覧の名前のボタンと行の見出しにも出す。名前を変える操作はこの欄だけで行う
+    description: 用語集の名前。入れた値を一覧の名前のボタンと行の見出し、プリセットの使う用語集の表にも出す。名前を変えると、プリセットの使う用語集が指す名前も変える。名前を変える操作はこの欄だけで行う
     label: 名前
     placeholder: '例: 会議用'
     io: 入出力
@@ -368,7 +368,7 @@ elements:
     initial_value: settings.toml の値（足した用語集は空）
     source: Settings.glossaries[].name
     target: Settings.glossaries[].name（前後の空白を除く）
-    status: implemented
+    status: planned
     refs:
       - dev/設計書/設定/常駐アプリ#settings[glossaries[].name]
   - name: 用語集の行の表
@@ -448,10 +448,10 @@ elements:
     kind: button
     position: 窓 > 右 > 用語集 > 用語集の行 > 行の表の下
     description: 誤変換と正しい表記が空でオンの行を表の末尾に足し、その行の誤変換の欄へフォーカスを移す
-    label: 行を足す
+    label: 行追加
     visible_when: 用語集のまとまりを選んだとき
     action: 行の表に 1 行足す
-    status: implemented
+    status: planned
     enabled_when: 行の表を出している用語集の CSV を読めたとき（足した用語集を含む）
   - name: 補正の決まりの凡例
     id: glossary_legend
@@ -466,7 +466,7 @@ elements:
     id: glossary_unreadable
     kind: label
     position: 窓 > 右 > 用語集 > 用語集の行 > 名前の欄の下
-    description: 行の表の代わりに、その用語集の CSV を読めなかったことと理由を伝える。読めない用語集も一覧には出し、名前を変える・補正に使う用語集に選ぶ・一覧から消すはできる。行は編集できず、保存してもその CSV には触れない
+    description: 行の表の代わりに、その用語集の CSV を読めなかったことと理由を伝える。読めない用語集も一覧には出し、名前を変える・プリセットの使う用語集に追加する・一覧から消すはできる。行は編集できず、保存してもその CSV には触れない
     label: この用語集の CSV を読めませんでした（{理由}）。保存しても、この CSV は書き換えません。
     io: 表示
     visible_when: 行の表を出している用語集の CSV を、設定画面を開いたときに読めなかったとき
@@ -778,6 +778,208 @@ elements:
     io: 表示
     visible_when: ハルシネーションのまとまりを選んだとき
     status: implemented
+  - name: 用語集のプリセットの一覧
+    id: glossary_preset_list
+    kind: table
+    position: 窓 > 右 > 用語集 > 用語集のプリセット
+    description: 用語集のプリセットを 1 行ずつ並べる。列は「補正に使う」「名前」「用語集」と消すボタン。使う用語集の表を出しているプリセットの行は、背景を変えて示す。見出しは「用語集のプリセット」。読み上げの表の名前は「用語集のプリセットの一覧（補正に使うプリセットを 1 つ選ぶ）」
+    io: 入出力
+    visible_when: 用語集のまとまりを選んだとき
+    initial_value: settings.toml の `glossary_presets[]`。キーが無い・空なら「既定」のプリセットを 1 件出す（`active_glossary` の用語集だけを使う。キーが無い・名前が一覧に無いときは 1 つ目の用語集、用語集が無ければ空）
+    sorting: 並べ替えない。settings.toml の並びで、足したプリセットは末尾
+    source: Settings.glossary_presets[]
+    target: Settings.glossary_presets[]（保存で settings.toml へ書き、`active_glossary` のキーは消す）
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[glossary_presets[].name]
+    status: planned
+    introduced:
+      pr: 173
+  - name: 補正に使うプリセットの選択
+    id: glossary_preset_active_{n}
+    kind: radio
+    position: 窓 > 右 > 用語集 > 用語集のプリセットの一覧 > 行 > 左
+    description: 補正に使うプリセットを 1 つ選ぶ。選んだプリセットの消すボタンを無効にする
+    io: 入出力
+    visible_when: 常時
+    initial_value: '`active_glossary_preset` のプリセット。キーが無い・名前が一覧に無いときは 1 件目'
+    source: Settings.active_glossary_preset
+    target: Settings.active_glossary_preset
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[active_glossary_preset]
+    status: planned
+    introduced:
+      pr: 173
+  - name: 用語集のプリセットの名前のボタン
+    id: glossary_preset_pick_{n}
+    kind: button
+    position: 窓 > 右 > 用語集 > 用語集のプリセットの一覧 > 行 > 名前
+    description: 押すとそのプリセットの使う用語集の表を下に出す。開いたときは補正に使うプリセットの表を出す
+    label: '{プリセットの名前}（空なら「名前未入力のプリセット」）'
+    action: 使う用語集の表をそのプリセットに切り替える
+    status: planned
+    introduced:
+      pr: 173
+  - name: 用語集のプリセットの用語集の数
+    id: glossary_preset_count_{n}
+    kind: label
+    position: 窓 > 右 > 用語集 > 用語集のプリセットの一覧 > 行 > 用語集の列
+    description: プリセットが使う用語集の数
+    io: 表示
+    display_format: 「{数} 件」
+    status: planned
+    introduced:
+      pr: 173
+  - name: 用語集のプリセットを消すボタン
+    id: glossary_preset_remove_{n}
+    kind: button
+    position: 窓 > 右 > 用語集 > 用語集のプリセットの一覧 > 行 > 右端
+    description: プリセットを一覧から消す。消したプリセットの表を出していたときは、補正に使うプリセットの表を出す。読み上げ名は「{名前}を消す」（名前が空なら「名前未入力のプリセットを消す」）
+    enabled_when: 補正に使うプリセットでないとき。無効のときはツールチップ「補正に使うプリセットは消せません」を出す
+    action: プリセットを一覧から消す（保存するまで settings.toml へは書かない）
+    status: planned
+    introduced:
+      pr: 173
+  - name: 用語集のプリセットを足すボタン
+    id: add_glossary_preset_button
+    kind: button
+    position: 窓 > 右 > 用語集 > 用語集のプリセットの一覧の下
+    description: 使う用語集が無く名前が空のプリセットを一覧の末尾に足し、その表を出して名前の欄にフォーカスを移す
+    label: プリセット追加
+    action: プリセットを末尾に足す
+    status: planned
+    introduced:
+      pr: 173
+  - name: 用語集のプリセットの見出し
+    id: glossary_preset_detail_title
+    kind: label
+    position: 窓 > 右 > 用語集 > 用語集のプリセットの用語集
+    description: 表を出しているプリセットの見出し
+    label: プリセット「{名前}」で使う用語集（名前が空なら「名前未入力のプリセット」で使う用語集）
+    status: planned
+    introduced:
+      pr: 173
+  - name: 用語集のプリセットの名前の欄
+    id: glossary_preset_name_{n}
+    kind: input
+    position: 窓 > 右 > 用語集 > 用語集のプリセットの用語集 > 見出しの下
+    description: プリセットの名前。変えると一覧の名前のボタンと見出しにすぐ出る
+    placeholder: '例: 会議'
+    io: 入出力
+    type: 文字列
+    required: true
+    min_length: 1
+    constraints: ほかのプリセットと重複しない（大文字と小文字は区別する）
+    source: Settings.glossary_presets[].name
+    target: Settings.glossary_presets[].name（前後の空白を除く）
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[glossary_presets[].name]
+    status: planned
+    introduced:
+      pr: 173
+  - name: 使う用語集の表
+    id: glossary_preset_glossaries
+    kind: table
+    position: 窓 > 右 > 用語集 > 用語集のプリセットの用語集 > 名前の欄の下
+    description: プリセットが使う用語集を当てる順に並べる。列は「つまみ」「順」「用語集」「行」と外すボタン。並べ替えはつまみを掴むか、行の外すボタンにフォーカスして Alt+↑ / Alt+↓。読み上げの表の名前は「プリセットで使う用語集（上の用語集から順に当てる）」
+    io: 入出力
+    initial_value: '`glossary_presets[].glossaries` の並び'
+    sorting: 利用者が並べ替える。並びがそのまま当てる順
+    source: Settings.glossary_presets[].glossaries
+    target: Settings.glossary_presets[].glossaries
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[glossary_presets[].glossaries]
+    status: planned
+    introduced:
+      pr: 173
+  - name: 使う用語集のつまみ
+    id: glossary_preset_glossary_grip_{n}
+    kind: drag_handle
+    position: 窓 > 右 > 用語集 > 使う用語集の表 > 行 > 左端
+    description: 掴んで上下に動かし、当てる順を変える。読み上げ名は「{用語集}を動かす」
+    action: 行を動かし、順の列を振り直す
+    status: planned
+    introduced:
+      pr: 173
+  - name: 使う用語集を外すボタン
+    id: glossary_preset_glossary_remove_{n}
+    kind: button
+    position: 窓 > 右 > 用語集 > 使う用語集の表 > 行 > 右端
+    description: 用語集をこのプリセットから外す。用語集そのものは消さない。読み上げ名は「{用語集}を外す」
+    label: ×
+    action: 行を表から外し、追加する用語集の選択肢へ戻す
+    status: planned
+    introduced:
+      pr: 173
+  - name: 使う用語集が無いときの文
+    id: glossary_preset_glossaries_empty
+    kind: label
+    position: 窓 > 右 > 用語集 > 用語集のプリセットの用語集 > 名前の欄の下
+    description: 使う用語集の表が空のときに表の代わりに出す
+    label: 使う用語集がありません。このプリセットでは何も置き換えません。
+    visible_when: 使う用語集が 0 件のとき
+    status: planned
+    introduced:
+      pr: 173
+  - name: 追加する用語集の選択
+    id: glossary_preset_glossary_select
+    kind: select
+    position: 窓 > 右 > 用語集 > 用語集のプリセットの用語集 > 使う用語集の表の下
+    description: プリセットに足す用語集を選ぶ
+    io: 入力
+    options: 用語集の一覧のうち、このプリセットがまだ使っていない用語集。並びは用語集の一覧の順。既定は 1 件目。単一選択
+    visible_when: このプリセットが使っていない用語集があるとき
+    status: planned
+    introduced:
+      pr: 173
+  - name: 使う用語集の追加ボタン
+    id: glossary_preset_glossary_add
+    kind: button
+    position: 窓 > 右 > 用語集 > 用語集のプリセットの用語集 > 追加する用語集の選択の右
+    description: 選んだ用語集を使う用語集の表の末尾に足す
+    label: 追加
+    visible_when: このプリセットが使っていない用語集があるとき
+    action: 選んだ用語集を表の末尾に足し、選択肢から除く
+    status: planned
+    introduced:
+      pr: 173
+  - name: 全ての用語集を使っているときの文
+    id: glossary_preset_glossaries_all
+    kind: label
+    position: 窓 > 右 > 用語集 > 用語集のプリセットの用語集 > 使う用語集の表の下
+    description: 追加する用語集の選択と追加ボタンの代わりに出す
+    label: 全ての用語集を使っています。
+    visible_when: 用語集の一覧の全てをこのプリセットが使っているとき
+    status: planned
+    introduced:
+      pr: 173
+  - name: 使う用語集の決まりの凡例
+    id: glossary_preset_rule_note
+    kind: label
+    position: 窓 > 右 > 用語集 > 用語集のプリセットの用語集 > 下端
+    description: 当てる順と並べ替えの操作の説明
+    label: 上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。
+    status: planned
+    introduced:
+      pr: 173
+  - name: 用語集を使うプリセット
+    id: glossary_presets_using_{n}
+    kind: label
+    position: 窓 > 右 > 用語集 > 用語集の一覧 > 行 > 使うプリセットの列
+    description: その用語集を使っているプリセットの名前
+    io: 表示
+    display_format: 'プリセットの一覧の順に「・」で結ぶ（例: 既定・会議）。無ければ「なし」'
+    status: planned
+    introduced:
+      pr: 173
+  - name: 用語集の一覧の決まり
+    id: glossary_list_note
+    kind: label
+    position: 窓 > 右 > 用語集 > 用語集を足すボタンの右
+    description: 用語集を消したときのプリセットへの影響の説明
+    label: 消した用語集は、使っているプリセットからも外れる。
+    status: planned
+    introduced:
+      pr: 173
 input_checks:
   - element: 設定の欄
     violation: 数値の欄に数値でない文字が入っている
@@ -869,8 +1071,18 @@ input_checks:
     trigger: 保存・保存して再起動のボタンのクリック
     message: '* だけの文言は、文頭・文末の行を丸ごと消します。消したい文言を入れてください。'
     position: その欄の下とエラーの一覧
+  - element: 用語集のプリセットの名前の欄
+    violation: 空（前後の空白を除いて）
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: 名前を入れてください。
+    position: その欄の下とエラーの一覧
+  - element: 用語集のプリセットの名前の欄
+    violation: 空でなく、ほかの用語集のプリセットと同じ名前（大文字と小文字は区別する。一覧で後ろにある側の欄に出す）
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: 用語集のプリセット「{名前}」と同じ名前です。別の名前にしてください。
+    position: その欄の下とエラーの一覧
 screen: src/voice_paste/ui/windows/settings_window.py
-mock: dev/mock/pages/settings/166/b-drag-handle/
+mock: dev/mock/pages/settings/173/b-picked-list/
 lead: トレイの「設定…」から開く画面。settings.toml の全てのキーをまとまりに並べ、設定のモデルで確かめてから保存する。
 refs:
   - dev/設計書/シナリオ/単一ユースケース/設定を変える#
@@ -896,7 +1108,8 @@ notes:
     | 文字起こし（詳しい調整） | `transcription.local_whisper` の cpu_threads・num_workers・beam_size・best_of・temperature・no_speech_threshold・vad_threshold・vad_min_speech_ms・vad_min_silence_ms | 数値の欄 |
     | 文字起こし（詳しい調整） | `transcription.local_whisper` の condition_on_previous_text・vad_filter | チェックボックス |
     | 表記のヒント | `hint_presets[]`（name・words・enabled） | 有効なヒントの長さと、ヒントのプリセットの一覧 |
-    | 用語集 | `glossaries[]`（name・path）・`active_glossary` と、用語集の CSV の行（誤変換・正しい表記・オン・オフ） | 用語集の一覧と、選んだ用語集の行の表 |
+    | 用語集 | `glossary_presets[]`（name・glossaries）・`active_glossary_preset` | 用語集のプリセットの一覧と、選んだプリセットの使う用語集の表 |
+    | 用語集 | `glossaries[]`（name・path）と、用語集の CSV の行（誤変換・正しい表記・オン・オフ） | 用語集の一覧と、選んだ用語集の行の表 |
     | ハルシネーション | `edge_phrases[]`（text・position） | 文言の一覧 |
     | 画面 | `ui.theme` | ラジオボタン（Windows の設定に従う・ライト・ダーク）。欄の名前は「画面の明暗」で、まとまりの先頭に置く |
     | 画面 | `ui.topmost`・`ui.follow_cursor` | チェックボックス |
@@ -911,7 +1124,7 @@ notes:
     | API | `api.allowed_web_origins` | 複数行の文字の欄（1 行 = 1 オリジン）。`api.allowed_callback_hosts` の後ろに置く |
     | API（連続録音） | `api.continuous.min_silence_sec`・`api.continuous.session_limit_sec` | 数値の欄 |
 
-    欄の部品は設定のモデルの型から決める（bool → チェックボックス、リテラルの列挙 → ラジオボタンか選択の欄、int・float → 数値の欄、str → 文字の欄、ホットキーの型 → ホットキーの欄）。上の表は欄の並びと、型からは決まらない部品（つまみ・プリセットの一覧・用語集の一覧と行の表・ヒントのプリセットの一覧・文言の一覧）を決める。
+    欄の部品は設定のモデルの型から決める（bool → チェックボックス、リテラルの列挙 → ラジオボタンか選択の欄、int・float → 数値の欄、str → 文字の欄、ホットキーの型 → ホットキーの欄）。上の表は欄の並びと、型からは決まらない部品（つまみ・プリセットの一覧・用語集のプリセットの一覧と使う用語集の表・用語集の一覧と行の表・ヒントのプリセットの一覧・文言の一覧）を決める。
   印の見え方: |-
     チェックボックス（`checkbox`）・ラジオボタン（`radio`）・選択欄の開く印は、Qt の既定の描き方に任せず、アプリのスタイルシートで描く。明暗のどちらの組でも同じ色の役割で描き、印と背景の明るさの比を 3:1 以上にする。
 

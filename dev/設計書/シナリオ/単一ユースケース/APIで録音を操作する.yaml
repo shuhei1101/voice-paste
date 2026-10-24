@@ -275,6 +275,53 @@ scenarios:
       - 続けて開始を呼ぶと、次の録音を始められる
     notes:
       上限時間: 連続録音の上限時間は、開始からの経過時間で数える。値は設定の api.continuous.session_limit_sec（既定は非機能要件の連続録音のセッションの上限時間）。
+  - name: 正常シナリオ（用語集のプリセットを指定して始める）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行。返送先は 127.0.0.1 で待ち受けるテスト用の受け口）
+      - name: 待機中
+        description: 常駐サービスが待機中で、ほかの録音・文字起こしを処理していない
+      - name: 用語集のプリセット
+        description: 設定に、設定で選んでいるプリセットとは別の用語集のプリセットがあり、その名前を指定して開始を呼ぶ
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant P as 呼び出し元
+        participant API as API のサーバー
+        participant SVC as 常駐サービス
+
+        P->>API: 開始（トークン・返送先・用語集のプリセットの名前）
+        API->>API: Host・Origin・トークン・返送先・プリセットが設定の一覧にあるかを確かめる
+        API->>SVC: 画面を出さない録音を始める（返送先とプリセットを渡す）
+        SVC-->>API: 録音を始めた（セッションの ID）
+        API-->>P: 受け付けた（セッションの ID）
+        Note over P,SVC: 停止と完了は 正常シナリオ と同じ
+      ```
+    expected:
+      - 開始の応答にセッションの ID がある
+      - 確定した録音で、指定したプリセットを持って 録音を文字に起こす へ進む（正常シナリオ（API で指定したプリセットで補正する））
+      - 設定で選んでいるプリセットは変わっていない
+    notes:
+      連続録音: 連続録音も同じ開始の要求でプリセットを指定でき、区間ごとの文字を指定したプリセットで補正する。
+  - name: 異常シナリオ（一覧に無い用語集のプリセットを指定する）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 無いプリセット
+        description: 設定の用語集のプリセットの一覧に無い名前を指定して開始を呼ぶ
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant P as 呼び出し元
+        participant API as API のサーバー
+
+        P->>API: 開始（トークン・返送先・一覧に無いプリセットの名前）
+        API->>API: プリセットが設定の一覧に無い
+        API-->>P: 要求の誤りを表すエラー（400。無いプリセットの名前を含む）
+      ```
+    expected:
+      - 開始が要求の誤りを表すエラー（400）で返っている
+      - 録音が始まっていない
 lead: 同じ端末のほかのプロセスが API の開始・停止・完了を呼び、画面を出さない録音を始めて確定するまでの単一ユースケース。
 issue: 14
 primary_actor: API を呼ぶほかのプロセス

@@ -13,6 +13,7 @@ import time
 from collections.abc import Iterator
 from functools import partial
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -71,7 +72,9 @@ def session(
         SessionApiDeps(
             session_manager=manager,
             is_callback_allowed=partial(is_callback_allowed, allowed_hosts=frozenset()),
-        )
+            glossary_preset_exists=lambda name: True,
+        ),
+        MagicMock(),
     )
     timer = RepeatingTimer(manager.truncate_if_expired, SESSION_LIMIT_CHECK_INTERVAL_SEC)
     timer.start()

@@ -1,4 +1,4 @@
-"""shared/settings.py（load_settings・save_settings・find_hotkey_overlaps・find_glossary_name_overlaps・join_hint_words・find_hint_preset_name_overlaps・EdgePhraseSettings・migrate_ai_chat・build_settings_model・Settings の確かめ・UiSettings の確かめ）の単体テスト。"""
+"""shared/settings.py（load_settings・save_settings・find_hotkey_overlaps・find_glossary_name_overlaps・find_glossary_preset_name_overlaps・join_hint_words・find_hint_preset_name_overlaps・EdgePhraseSettings・migrate_ai_chat・build_settings_model・Settings の確かめ・UiSettings の確かめ）の単体テスト。"""
 
 from __future__ import annotations
 
@@ -444,6 +444,48 @@ def test_save_settings_when_legacy_glossary_path(
     assert "glossary_path" not in written
     assert len(written["glossaries"]) == 1
     assert Path(written["glossaries"][0]["path"]) == legacy_path
+
+
+def test_save_settings_when_glossary_presets(
+    tmp_path: Path, settings_model: type[Settings]
+) -> None:
+    """用語集のプリセットを書き、今までの active_glossary のキーを消す（正常系）。"""
+    from voice_paste.shared.settings import (
+        GlossaryPresetSettings,
+        GlossarySettings,
+        load_settings,
+        save_settings,
+    )
+
+    # 準備（active_glossary を持つ settings.toml に、active_glossary が None で 2 件の glossary_presets を持つ設定を書く）
+    settings_file = tmp_path / "conf" / SETTINGS_FILE_NAME
+    settings_file.parent.mkdir()
+    settings_file.write_text('active_glossary = "会議用"\n', encoding="utf-8")
+    settings = settings_model(
+        glossaries=[
+            GlossarySettings(name="yogo", path=settings_file.parent / "yogo.csv"),
+            GlossarySettings(name="会議用", path=settings_file.parent / "meeting.csv"),
+        ],
+        active_glossary=None,
+        glossary_presets=[
+            GlossaryPresetSettings(name="既定", glossaries=["yogo"]),
+            GlossaryPresetSettings(name="議事録", glossaries=["会議用", "yogo"]),
+        ],
+        active_glossary_preset="議事録",
+    )
+
+    # 実行
+    save_settings(settings_file, settings)
+
+    # 検証
+    written = tomllib.loads(settings_file.read_text(encoding="utf-8"))
+    assert "active_glossary" not in written
+    loaded = load_settings(settings_file, settings_model)
+    assert loaded.glossary_presets == [
+        GlossaryPresetSettings(name="既定", glossaries=["yogo"]),
+        GlossaryPresetSettings(name="議事録", glossaries=["会議用", "yogo"]),
+    ]
+    assert loaded.active_glossary_preset == "議事録"
 
 
 @pytest.mark.parametrize(
@@ -961,6 +1003,90 @@ def test_settings_when_glossary_name_blank(settings_model: type[Settings]) -> No
         settings_model.model_validate({"glossaries": [{"name": "  ", "path": "a.csv"}]})
     failures = list_validation_failures(exc_info.value)
     assert [key for key, _reason in failures] == ["glossaries[0].name"]
+
+
+# === find_glossary_preset_name_overlaps ===
+
+
+def test_find_glossary_preset_name_overlaps() -> None:
+    """後ろにある側を重なりとして返す（正常系）。"""
+    from voice_paste.shared.settings import (
+        GlossaryPresetSettings,
+        Settings,
+        find_glossary_preset_name_overlaps,
+    )
+
+    # 準備（名前が「既定」「会議」「既定」の 3 件。確かめを飛ばして作る）
+    settings = Settings.model_construct(
+        glossary_presets=[
+            GlossaryPresetSettings(name="既定"),
+            GlossaryPresetSettings(name="会議"),
+            GlossaryPresetSettings(name="既定"),
+        ]
+    )
+
+    # 実行
+    overlaps = find_glossary_preset_name_overlaps(settings)
+
+    # 検証
+    assert overlaps == [("glossary_presets[2].name", "既定")]
+
+
+def test_settings_when_glossary_preset_names_overlap(settings_model: type[Settings]) -> None:
+    """名前が重なる設定は検証に通らない（異常系）。"""
+    from pydantic import ValidationError
+
+    from voice_paste.shared.settings import (
+        GLOSSARY_PRESET_NAME_OVERLAP_ERROR_TYPE,
+        list_validation_failures,
+    )
+
+    # 実行・検証（名前が同じ 2 件の glossary_presets）
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate(
+            {
+                "glossary_presets": [
+                    {"name": "既定", "glossaries": []},
+                    {"name": "既定", "glossaries": []},
+                ]
+            }
+        )
+    failures = list_validation_failures(exc_info.value)
+    assert [key for key, _reason in failures] == ["glossary_presets[1].name"]
+    assert [error["type"] for error in exc_info.value.errors()] == [
+        GLOSSARY_PRESET_NAME_OVERLAP_ERROR_TYPE
+    ]
+    assert GLOSSARY_PRESET_NAME_OVERLAP_ERROR_TYPE == "glossary_preset_name_overlap"
+
+
+def test_settings_when_glossary_preset_name_blank(settings_model: type[Settings]) -> None:
+    """空白だけの名前は検証に通らない（異常系）。"""
+    from pydantic import ValidationError
+
+    from voice_paste.shared.settings import list_validation_failures
+
+    # 実行・検証（名前が「  」の glossary_presets）
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate({"glossary_presets": [{"name": "  ", "glossaries": []}]})
+    failures = list_validation_failures(exc_info.value)
+    assert [key for key, _reason in failures] == ["glossary_presets[0].name"]
+
+
+def test_settings_when_glossary_preset_glossaries_duplicated(
+    settings_model: type[Settings],
+) -> None:
+    """1 つのプリセットに同じ用語集を 2 回並べた設定は検証に通らない（異常系）。"""
+    from pydantic import ValidationError
+
+    from voice_paste.shared.settings import list_validation_failures
+
+    # 実行・検証（glossaries が ["yogo", "yogo"] の glossary_presets）
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate(
+            {"glossary_presets": [{"name": "既定", "glossaries": ["yogo", "yogo"]}]}
+        )
+    failures = list_validation_failures(exc_info.value)
+    assert [key for key, _reason in failures] == ["glossary_presets[0].glossaries"]
 
 
 # === EdgePhraseSettings ===

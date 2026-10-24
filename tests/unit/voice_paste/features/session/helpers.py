@@ -196,7 +196,7 @@ def make_harness(audio_path: Path, *, report_progress: MagicMock | None = None) 
         "discard_recording": MagicMock(return_value=None),
         "save_recording": MagicMock(return_value=audio_path),
         "transcribe": MagicMock(return_value="てすと"),
-        "correct": MagicMock(side_effect=lambda text: text),
+        "correct": MagicMock(side_effect=lambda text, glossary_preset=None: text),
         "append_text": MagicMock(return_value=None),
         "deliver": MagicMock(return_value=None),
         "notify": MagicMock(return_value=None),

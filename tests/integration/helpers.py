@@ -32,7 +32,7 @@ import numpy as np
 import pytest
 
 from tests.unit.voice_paste.features.recording.helpers import ScriptedDetector, windows
-from voice_paste.features.correction import apply_glossary
+from voice_paste.features.correction import apply_glossary, resolve_glossary_presets
 from voice_paste.features.history import (
     append_text,
     discard_temporary,
@@ -316,6 +316,8 @@ class Stack:
     web_queue: WebJobQueue
     web_tmp_dir: Path
     web: WebSettings
+    settings: Settings
+    """立てたときの設定（用語集のプリセットの一覧の確かめと、設定で選んでいるプリセットの確認に使う）。"""
 
     def post(
         self,
@@ -497,13 +499,14 @@ def build_stack(
     web_worker: bool = True,
     web_max_pending: int = WEB_QUEUE_LIMIT,
     web_max_finished: int = WEB_FINISHED_JOBS_KEPT,
+    settings: Settings | None = None,
 ) -> Stack:
     """偽物を差し込んだセッションを、本物の app と ApiServerRunner で立てる。
 
     ブラウザの音声のキューは本物で、web_worker が偽ならワーカースレッドを立てない（積んだジョブは取り出されない）。
     """
     paths = resolve_app_paths(tmp_path)
-    settings = SETTINGS_MODEL()
+    settings = settings if settings is not None else SETTINGS_MODEL()
     clock = Clock(START)
     microphone = FakeMicrophone()
     volume = FakeVolume()
@@ -558,7 +561,7 @@ def build_stack(
             save_recording, history_enabled=True, paths=paths, now=clock
         ),
         transcribe=partial(transcribe, engine=engine, get_hint=lambda: None),
-        correct=lambda text: apply_glossary(text, []),
+        correct=lambda text, glossary_preset: apply_glossary(text, []),
         append_text=partial(append_text, paths=paths),
         deliver=deliver_session,
         notify=notify,
@@ -578,6 +581,10 @@ def build_stack(
     session_api = SessionApiDeps(
         session_manager=manager,
         is_callback_allowed=partial(is_callback_allowed, allowed_hosts=frozenset()),
+        glossary_preset_exists=lambda name: any(
+            preset.name == name
+            for preset in resolve_glossary_presets(settings, paths.settings_file.parent)
+        ),
     )
     web = WebSettings()
     web_queue = WebJobQueue(
@@ -622,6 +629,7 @@ def build_stack(
         web_queue=web_queue,
         web_tmp_dir=web_tmp_dir,
         web=web,
+        settings=settings,
     )
 
 
@@ -713,7 +721,7 @@ def build_output_stack(
         discard_recording=recorder.discard,
         save_recording=partial(save_recording, history_enabled=True, paths=paths, now=clock),
         transcribe=partial(transcribe, engine=engine, get_hint=lambda: None),
-        correct=lambda text: apply_glossary(text, []),
+        correct=lambda text, glossary_preset: apply_glossary(text, []),
         append_text=partial(append_text, paths=paths),
         deliver=deliver_session,
         notify=notify,

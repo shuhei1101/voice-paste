@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from http import HTTPStatus
 from typing import Annotated
 
@@ -9,8 +10,10 @@ from fastapi import APIRouter, Depends, Request
 
 from voice_paste.features.session.schemas import StartSessionRequest, StartSessionResponse
 from voice_paste.features.session.types import SessionApiDeps
-from voice_paste.shared.errors import CallbackNotAllowedError
+from voice_paste.shared.errors import CallbackNotAllowedError, GlossaryPresetNotFoundError
 from voice_paste.shared.types import Entry
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -25,15 +28,25 @@ def start_session_route(
     body: StartSessionRequest,
     deps: Annotated[SessionApiDeps, Depends(get_session_api_deps)],
 ) -> StartSessionResponse:
-    """返送先を確かめて、API の録音を始め、セッションの ID を返す。"""
+    """返送先と用語集のプリセットを確かめて、API の録音を始め、セッションの ID を返す。"""
     # 1. 返送先のホストが許されなければ開始しない
     callback_url = str(body.callback_url)
     if not deps.is_callback_allowed(callback_url):
         raise CallbackNotAllowedError("返送先のホストが許されていません")
 
-    # 2. 録音（continuous なら連続録音）を始めてセッションの ID を返す（処理中・マイクの失敗は例外ハンドラが HTTP に変える）
+    # 2. 指定した用語集のプリセットが一覧に無ければ、録音を始めずに断る
+    if body.glossary_preset is not None and not deps.glossary_preset_exists(body.glossary_preset):
+        logger.warning(f"用語集のプリセットが無いため開始を断った（{body.glossary_preset}）")
+        raise GlossaryPresetNotFoundError(
+            f"用語集のプリセットが無い（{body.glossary_preset}）"
+        )
+
+    # 3. 録音（continuous なら連続録音）を始めてセッションの ID を返す（処理中・マイクの失敗は例外ハンドラが HTTP に変える）
     session = deps.session_manager.start(
-        entry=Entry.API, callback_url=callback_url, continuous=body.continuous
+        entry=Entry.API,
+        callback_url=callback_url,
+        continuous=body.continuous,
+        glossary_preset=body.glossary_preset,
     )
     return StartSessionResponse(session_id=session.id)
 

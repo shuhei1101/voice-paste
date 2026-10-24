@@ -27,7 +27,9 @@ from tests.support.inprocess import (
     silence_input,
     speech_input,
 )
+from voice_paste.features.correction import pick_glossary_preset
 from voice_paste.features.session.types import SessionState
+from voice_paste.shared.settings import GlossaryPresetSettings, GlossarySettings
 from voice_paste.shared.types import Entry
 
 pytestmark = pytest.mark.real_machine
@@ -42,10 +44,10 @@ QUIET_SEC = 1.5
 
 
 def _record_and_complete(
-    api: InProcessApi, receiver: CallbackReceiver
+    api: InProcessApi, receiver: CallbackReceiver, *, glossary_preset: str | None = None
 ) -> tuple[str, dict[str, Any]]:
-    """API で開始・停止・完了を呼び、返送が 1 回だけ届くのを待って、セッションの ID と届いた中身を返す。"""
-    response, _elapsed_ms = api.start_session(receiver.url)
+    """API で開始（glossary_preset があれば用語集のプリセットを指定）・停止・完了を呼び、返送が 1 回だけ届くのを待って、セッションの ID と届いた中身を返す。"""
+    response, _elapsed_ms = api.start_session(receiver.url, glossary_preset=glossary_preset)
     assert response.status_code == 202
     session_id = str(response.json()["session_id"])
     assert api.post(f"/sessions/{session_id}/stop").status_code == 200
@@ -92,6 +94,44 @@ def test_normal(
     assert pyperclip.paste() == clipboard_sentinel
     assert app.keys.pasted == []
     assert app.keys.enters == 0
+    _assert_can_start_again(api, app, receiver)
+
+
+def test_normal_when_glossary_preset(
+    start_inprocess: StartInProcess, tmp_path: Path, receiver: CallbackReceiver
+) -> None:
+    """API の開始で 2 つ目のプリセットを指定すると、返送先に届いた文字で 2 つ目のプリセットの用語集の言葉だけが置き換わり、設定で選んでいるプリセットは 1 つ目のまま変わらない（正常シナリオ（用語集のプリセットを指定する））。"""
+    # 準備（2 つのプリセットがそれぞれ別の用語集を使い、書き出した文の別々の言葉を置き換える行を 1 つずつ持つ。設定で選んでいるのは 1 つ目）
+    first_csv = tmp_path / "first.csv"
+    second_csv = tmp_path / "second.csv"
+    first_csv.write_text("誤変換,正しい表記\nテスト,試験\n", encoding="utf-8")
+    second_csv.write_text("誤変換,正しい表記\nこれ,THIS\n", encoding="utf-8")
+    settings = make_settings(only_paste_and_send=True).model_copy(
+        update={
+            "glossaries": [
+                GlossarySettings(name="first", path=first_csv),
+                GlossarySettings(name="second", path=second_csv),
+            ],
+            "glossary_presets": [
+                GlossaryPresetSettings(name="既定", glossaries=["first"]),
+                GlossaryPresetSettings(name="別", glossaries=["second"]),
+            ],
+            "active_glossary_preset": "既定",
+        }
+    )
+    app = start_inprocess(settings=settings, wav_input=speech_input(tmp_path))
+    api = app.start_api()
+
+    # 実行
+    _session_id, payload = _record_and_complete(api, receiver, glossary_preset="別")
+
+    # 検証
+    assert payload["result"] == "transcribed"
+    assert "THIS" in payload["text"]
+    assert SPEECH_WORD in payload["text"]
+    assert "試験" not in payload["text"]
+    current = app.handlers.settings_store.get()
+    assert pick_glossary_preset(current, app.paths.settings_file.parent).name == "既定"
     _assert_can_start_again(api, app, receiver)
 
 

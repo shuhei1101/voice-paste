@@ -1,0 +1,100 @@
+/* ===== PR 173 の画面モック: 用語集のプリセット（refs/37・refs/44・refs/97・refs/166 の style.css に重ねる） ===== */
+
+/* 用語集の一覧: 補正に使うの列を外したため、先頭の名前の列を詰めない */
+.gl-list {
+  td:first-child, th:first-child { width: auto; }
+}
+
+/* 用語集の一覧の使うプリセット: 名前を薄い文字で並べる */
+.gl-users {
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+/* 補正に使うプリセットの消すボタン: 押せない見た目にし、理由はツールチップに出す */
+.gp-list [data-remove-item][aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  &:hover { background: var(--surface-2); }
+}
+
+/* 使う用語集の表: つまみ・使う・順・用語集・行・外すを並べる */
+.gp-uses {
+  td { padding: 4px 8px; }
+  .col-grip { width: 28px; padding-right: 0; }
+  .col-on { width: 3.5em; text-align: center; }
+  .col-order { width: 3em; text-align: right; }
+  .col-rows { width: 5em; }
+  .col-tools { width: calc(var(--control-h) + 16px); text-align: right; }
+}
+
+/* 当てる順: 等幅の数字で揃える */
+.gp-uses .order {
+  font-family: var(--font-num);
+  font-size: 12px;
+}
+
+/* 使う用語集の名前: 長い名前は省略し、見出しと一覧の名前の欄で全て見せる */
+.gp-uses .clip {
+  display: block;
+  max-width: 24em;
+}
+
+/* 案 A: 使う用語集のチェックボックス */
+.gp-uses input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent-fg);
+}
+
+/* 案 A: 使わない用語集の行は名前と順を薄くする（チェックの印でも伝える） */
+.gp-uses tr[data-off="true"] {
+  .clip, .order { color: var(--text-2); }
+}
+
+/* 掴んで動かしている行 */
+.gp-uses tr[data-dragging="true"] td {
+  background: var(--sunken);
+  opacity: 0.6;
+}
+
+/* 案 B: 追加する用語集の選択欄とボタンを横に並べる */
+.gp-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  select { min-width: 12em; max-width: 100%; }
+}
+
+/* 選んだプリセットの欄の決まりの文 */
+.gp-help {
+  margin: 0;
+}
+
+/* この案で画面に出す文言の折りたたみ */
+.wording {
+  margin-top: 8px;
+  font-size: 13px;
+  summary { cursor: pointer; }
+  table { margin-top: 8px; }
+  th { text-align: left; white-space: nowrap; font-weight: 600; }
+}
+
+/* 部品の見本の案の見出し */
+.variant-head {
+  margin: 24px 0 0;
+  font-size: 15px;
+}
+
+/* 狭い幅: 使う用語集の表の名前の列を残して、行の数の列を詰める */
+@media (max-width: 640px) {
+  /* 使う用語集の名前を列の幅に収める */
+  .gp-uses .clip { max-width: 9em; }
+  /* 行の数の列を詰める */
+  .gp-uses .col-rows { width: auto; white-space: nowrap; }
+  /* 文言の表の場所の列を折り返す */
+  .wording th { white-space: normal; }
+}

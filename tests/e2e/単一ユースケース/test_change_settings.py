@@ -409,25 +409,29 @@ def test_normal_when_edit_glossary(run_app: RunApp) -> None:
 
 
 def test_normal_when_switch_glossary_preset(run_app: RunApp) -> None:
-    """用語集のプリセットを足して行を入れ、補正に使うプリセットを切り替えて保存すると、足したプリセットの用語集のファイルができ、設定画面は開いたまま保存できたことを出し、再起動せずに補正へ効く（正常シナリオ）。
+    """用語集と用語集のプリセットを足して、今の用語集と足した用語集の両方を使う用語集に選び、補正に使うプリセットを足したものに切り替えて保存すると、足した用語集のファイルができ、設定画面は開いたまま保存できたことを出し、再起動せずに両方の用語集の行が補正へ効く（正常シナリオ）。
 
     補正は、動いている常駐アプリの補正に文字を渡して確かめる（マイクは開かない）。
     """
 
     def case(app: ResidentApp) -> None:
-        """設定画面の「用語集」で、プリセットを足して名前と行を入れ、補正に使うプリセットを足したものに切り替えて保存する。"""
+        """設定画面の「用語集」で、用語集とプリセットを足して名前と行を入れ、補正に使うプリセットを足したものに切り替えて保存する。"""
         # 準備
         before = _glossary_file(app).read_bytes()
         app.open_settings()
         app.select_group("用語集")
 
-        # 実行
+        # 実行（用語集を足して名前と行を入れ、プリセットを足して名前を入れ、今の用語集と足した用語集をこの順に使う用語集に選ぶ）
         app.press("add_glossary_button")
         app.set_text("glossary_name_1", "meeting")
         app.press("add_glossary_entry_button")
         app.set_text("glossary_entry_wrong_0", "paison")
         app.set_text("glossary_entry_right_0", "Python")
-        app.click("glossary_active_1")
+        app.press("add_glossary_preset_button")
+        app.set_text("glossary_preset_name_1", "combined")
+        app.press("glossary_preset_glossary_add")
+        app.press("glossary_preset_glossary_add")
+        app.click("glossary_preset_active_1")
         app.press("save_button")
 
         # 検証
@@ -437,14 +441,19 @@ def test_normal_when_switch_glossary_preset(run_app: RunApp) -> None:
         assert read_glossary_rows(added) == [GlossaryEntry(wrong="paison", right="Python")]
         assert _glossary_file(app).read_bytes() == before
         toml = _toml(app)
-        assert toml["active_glossary"] == "meeting"
+        assert toml["active_glossary_preset"] == "combined"
+        assert "active_glossary" not in toml
         assert [(item["name"], item["path"]) for item in toml["glossaries"]] == [  # type: ignore[attr-defined]
             ("yogo", GLOSSARY_FILE_NAME),
             ("meeting", "glossaries/glossary_1.csv"),
         ]
+        assert [(item["name"], item["glossaries"]) for item in toml["glossary_presets"]] == [  # type: ignore[attr-defined]
+            ("既定", ["yogo"]),
+            ("combined", ["yogo", "meeting"]),
+        ]
         assert COMMENT_LINE in _settings_file(app).read_text(encoding="utf-8")
         assert _toml(app)["recording"]["fade_sec"] == 1.5  # type: ignore[index]
-        assert app.correct_text("kuroudo gitto paison") == "kuroudo gitto Python"
+        assert app.correct_text("kuroudo gitto paison") == "Claude Git Python"
 
     run_app(case, extra_settings=COMMENTED_SETTINGS, prepare=_put_glossary)
 

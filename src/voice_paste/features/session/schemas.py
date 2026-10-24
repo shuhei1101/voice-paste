@@ -14,6 +14,9 @@ class StartSessionRequest(BaseModel):
     continuous: bool = False
     """連続録音にするか。true なら完了まで録音を止めず、区間ごとに返送先へ送る。省略時は 1 回の録音。"""
 
+    glossary_preset: str | None = None
+    """補正に使う用語集のプリセットの名前（省略時は設定で選んでいるプリセット）。一覧にあるかは route が glossary_preset_exists で確かめる。"""
+
 
 class StartSessionResponse(BaseModel):
     """POST /sessions の 202 の body。"""

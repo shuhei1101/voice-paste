@@ -19,11 +19,13 @@ from PySide6.QtWidgets import QApplication
 
 from voice_paste.features.correction import (
     apply_glossary,
+    list_preset_glossaries,
     load_glossary,
     next_glossary_path,
-    pick_active_glossary,
+    pick_glossary_preset,
     read_glossary_rows,
     resolve_glossaries,
+    resolve_glossary_presets,
     save_glossary,
     strip_edge_phrases,
 )
@@ -239,13 +241,19 @@ def _jitter(upper: float) -> float:
     return random.uniform(0, upper)  # noqa: S311 暗号用途ではない
 
 
-def _correct(text: str, *, settings: Settings, settings_dir: Path) -> str:
-    """文字起こしのたびに、補正に使う用語集を引いて読み直して補正する。"""
+def _correct(
+    text: str, glossary_preset: str | None, *, settings: Settings, settings_dir: Path
+) -> str:
+    """文字起こしのたびに、補正に使う用語集のプリセットを引き、その用語集を全て読み直して補正する。"""
     # 文頭・文末の文言を消してから、用語集で置き換える（用語集の置き換えで文言の形が変わる前に当てる）
     stripped = strip_edge_phrases(text, settings.edge_phrases)
-    glossary = pick_active_glossary(settings, settings_dir)
-    entries = load_glossary(glossary.path)
-    logger.info(f"用語集で補正する（{glossary.name}・補正に使う {len(entries)} 行）")
+    preset = pick_glossary_preset(settings, settings_dir, requested=glossary_preset)
+    glossaries = list_preset_glossaries(preset, resolve_glossaries(settings, settings_dir))
+    # プリセットに並べた用語集の順に読み、1 本の並びにつなぐ（読めない CSV は load_glossary が空を返すので飛ばされる）
+    loaded = [(glossary.name, load_glossary(glossary.path)) for glossary in glossaries]
+    entries = [entry for _name, rows in loaded for entry in rows]
+    counts = "・".join(f"{name} {len(rows)} 行" for name, rows in loaded)
+    logger.info(f"用語集で補正する（{preset.name}・補正に使う {counts or '用語集なし'}）")
     return apply_glossary(stripped, entries)
 
 
@@ -401,9 +409,19 @@ def build_handlers(
         )
 
     # 6. 用語集を文字起こしのたびに読み直す補正を作る（読む場所もそのたびに設定から決める）
-    def correct(text: str) -> str:
-        """今の設定の、補正に使う用語集で補正する。"""
-        return _correct(text, settings=store.get(), settings_dir=paths.settings_file.parent)
+    def correct(text: str, glossary_preset: str | None) -> str:
+        """今の設定で、指定した用語集のプリセット（None は設定で選んでいるプリセット）の用語集で補正する。"""
+        return _correct(
+            text,
+            glossary_preset,
+            settings=store.get(),
+            settings_dir=paths.settings_file.parent,
+        )
+
+    def glossary_preset_exists(name: str) -> bool:
+        """今の設定の用語集のプリセットの一覧に、その名前があるか。"""
+        presets = resolve_glossary_presets(store.get(), paths.settings_file.parent)
+        return any(preset.name == name for preset in presets)
 
     # 7. SessionDeps を組み、API のセッションの上限時間と連続録音の上限時間（起動時の設定。再起動で効く）と共に SessionManager を作る
     deps = SessionDeps(
@@ -440,12 +458,13 @@ def build_handlers(
         timedelta(seconds=settings.api.continuous.session_limit_sec),
     )
 
-    # 8. SessionManager と、設定の許可ホストを部分適用した返送先の確かめを SessionApiDeps に束ねる
+    # 8. SessionManager と、設定の許可ホストを部分適用した返送先の確かめと、用語集のプリセットの確かめを SessionApiDeps に束ねる
     session_api = SessionApiDeps(
         session_manager=session_manager,
         is_callback_allowed=partial(
             is_callback_allowed, allowed_hosts=frozenset(settings.api.allowed_callback_hosts)
         ),
+        glossary_preset_exists=glossary_preset_exists,
     )
 
     # 9. ブラウザの文字起こしを配線する（履歴を残すかはそのたびに SettingsStore から引く。ワーカースレッドはまだ立てない）
@@ -465,7 +484,7 @@ def build_handlers(
             transcribe=partial(
                 transcribe, engine=engine.transcribe, get_hint=partial(_current_hint, store)
             ),
-            correct=correct,
+            correct=partial(correct, glossary_preset=None),
             append_text=partial(append_text, paths=paths),
             discard_temporary=partial(discard_temporary, paths=paths),
         )
@@ -676,6 +695,9 @@ def build_ui_deps(
         output_titles=_output_titles(),
         apply_theme=apply_theme,
         list_glossaries=lambda: resolve_glossaries(store.get(), paths.settings_file.parent),
+        list_glossary_presets=lambda: resolve_glossary_presets(
+            store.get(), paths.settings_file.parent
+        ),
         read_glossary=read_glossary_rows,
         new_glossary_path=partial(
             next_glossary_path, directory=paths.settings_file.parent / GLOSSARIES_DIR_NAME
@@ -735,6 +757,9 @@ def _build_idle_ui_deps(
         output_titles=_output_titles(),
         apply_theme=partial(_apply_current_theme, app, store.get, image_dir=paths.ui_image_dir),
         list_glossaries=lambda: resolve_glossaries(store.get(), paths.settings_file.parent),
+        list_glossary_presets=lambda: resolve_glossary_presets(
+            store.get(), paths.settings_file.parent
+        ),
         read_glossary=read_glossary_rows,
         new_glossary_path=partial(
             next_glossary_path, directory=paths.settings_file.parent / GLOSSARIES_DIR_NAME

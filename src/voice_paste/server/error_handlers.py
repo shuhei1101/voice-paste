@@ -14,6 +14,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from voice_paste.shared.errors import (
     AudioUnreadableError,
     CallbackNotAllowedError,
+    GlossaryPresetNotFoundError,
     MicrophoneUnavailableError,
     RequestBodyTooLargeError,
     SessionBusyError,
@@ -84,6 +85,7 @@ def register_exception_handlers(app: FastAPI) -> None:
     """共通の例外を problem+json へ変えるハンドラを app に登録する。"""
     # 1. 呼び出し側の誤り・状態の例外を、対応するステータスへ
     app.add_exception_handler(CallbackNotAllowedError, _handler_for(HTTPStatus.BAD_REQUEST))
+    app.add_exception_handler(GlossaryPresetNotFoundError, _handler_for(HTTPStatus.BAD_REQUEST))
     app.add_exception_handler(
         RequestValidationError,
         _handle_validation_error,  # type: ignore[arg-type] 受ける例外の型を絞った関数

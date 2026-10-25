@@ -4,8 +4,8 @@ version:
   current: 0.142.4
   latest: 0.142.2
   checked_on: '2026-10-01'
-  source: pyproject.toml と uv.lock の版
-  pinning: マイナー版の中で固定（~=0.142.2。0.x はマイナー版で互換の無い変更が入る）
+  source: pyproject.toml と uv.lock のバージョン
+  pinning: マイナーバージョンの中で固定（~=0.142.2。0.x はマイナーバージョンで互換の無い変更が入る）
 catalogs:
   - name: API
     version: 0.142.2

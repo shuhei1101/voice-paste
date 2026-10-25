@@ -17,7 +17,7 @@
     <!-- 部品の説明 -->
     <header class="intro">
       <h1>端末内の音声の行</h1>
-      <p>外の端末の文字起こしの画面の音声送信の区画に置く、IndexedDB に残した直近 1 件の音声の行。状態（送信中・送信済み・送信失敗・文字起こし前）は文言と印で、色だけに頼らずに分ける。</p>
+      <p>外の端末の文字起こしの画面の音声送信の区画に置く、IndexedDB に残した直近 1 件の音声の行。状態（送信中・送信済み・送信失敗・文字起こし前）は文言とマーカーで、色だけに頼らずに分ける。</p>
     </header>
 
     <div class="desk desk--single">
@@ -40,7 +40,7 @@
         </div>
       </section>
 
-      <!-- 送った -->
+      <!-- 送信した -->
       <section class="specimen" aria-labelledby="h-ok">
         <h2 id="h-ok">送信済み</h2>
         <div class="web-panel">
@@ -57,7 +57,7 @@
         </div>
       </section>
 
-      <!-- 送れていない -->
+      <!-- 送信できていない -->
       <section class="specimen" aria-labelledby="h-err">
         <h2 id="h-err">送信失敗（再送信にフォーカス）</h2>
         <div class="web-panel">

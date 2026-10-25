@@ -1139,7 +1139,7 @@ constants:
     title: 常駐中に古いログと履歴を削除する間隔
     container: main.py
     usecase: 常駐アプリを起動する
-    summary: RepeatingTimer が purge_old_files を呼ぶ間隔。非機能要件の常駐中に古い履歴とログを消す間隔（24 時間）を秒にした値
+    summary: RepeatingTimer が purge_old_files を呼ぶ間隔。非機能要件の常駐中に古い履歴とログを削除する間隔（24 時間）を秒にした値
     value: '86400.0'
     status: implemented
   - name: INSTANCE_HASH_LENGTH

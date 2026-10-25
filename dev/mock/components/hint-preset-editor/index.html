@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="../../refs/37/assets/style.css">
   <link rel="stylesheet" href="../../refs/44/assets/style.css">
   <link rel="stylesheet" href="../../refs/99/assets/style.css">
-  <!-- プリセットの足す・消す・並べ替えは #44、語の操作と長さの数え直しは #99 の共有 JS が受ける -->
+  <!-- プリセットの追加・削除・並べ替えは #44、語の操作と長さの再計算は #99 の共有 JS が受ける -->
   <script src="../../refs/44/assets/app.js" defer></script>
   <script src="../../refs/99/assets/app.js" defer></script>
 </head>
@@ -21,7 +21,7 @@
     <!-- 部品の説明 -->
     <header class="intro">
       <h1>表記のヒントの欄</h1>
-      <p>設定画面に置く、文字起こしに渡す表記のヒントの部品。上に有効なヒントの長さ（バー・今の長さと上限）、下にヒントのプリセットの一覧（有効・無効の切り替え・名前・語の数と長さ・並べ替え・消す、名前の欄、語の欄）と「プリセットを足す」を並べる。</p>
+      <p>設定画面に置く、文字起こしに渡す表記のヒントの部品。上に有効なヒントの長さ（バー・今の長さと上限）、下にヒントのプリセットの一覧（有効・無効の切り替え・名前・語の数と長さ・並べ替え・削除、名前の欄、語の欄）と「プリセットを追加」を並べる。</p>
     </header>
 
     <div class="desk desk--single">
@@ -31,7 +31,7 @@
         <h2 id="h-normal">通常（有効と無効）</h2>
         <div class="win settings__form">
               
-<!-- 表記のヒントの欄: プリセットの足す・消す・並べ替えは refs/44、語の足す・消すと長さの数え直しは refs/99 の app.js が受ける。data-limit は上限のバイト数 -->
+<!-- 表記のヒントの欄: プリセットの追加・削除・並べ替えは refs/44、語の追加・削除と長さの再計算は refs/99 の app.js が受ける。data-limit は上限のバイト数 -->
 <div id="c-normal-hints-root" class="hints" data-presets data-hints data-limit="222" data-reload="immediate">
 <!-- 有効なヒントの長さ: エラーの一覧のリンクからフォーカスを受けるため tabindex を持つ -->
 <div class="hint-total" id="c-normal-total" role="group" aria-labelledby="c-normal-total-label" aria-describedby="c-normal-total-help" tabindex="-1" data-total-box data-over="false">
@@ -44,53 +44,53 @@
 <div class="presets-empty" data-presets-empty hidden><p>ヒントのプリセットはまだありません。無い間は、ヒントを渡さずに文字を起こします。</p></div>
 <ol class="presets" aria-label="表記のヒントのプリセット（上から順に語をつなぐ）" data-presets-list>
 <li class="preset hint" data-item data-hint data-off="false">
-<div class="preset__head"><label class="switch" for="c-normal-h1-on"><input type="checkbox" role="switch" id="c-normal-h1-on" aria-label="開発 有効" data-enabled-switch data-hint-on checked> <span data-enabled-text>有効</span></label><span class="preset__name" data-title-view="c-normal-h1">開発</span><span class="hint__count" data-hint-count>6 語・86 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="開発を上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="開発を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="開発を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__head"><label class="switch" for="c-normal-h1-on"><input type="checkbox" role="switch" id="c-normal-h1-on" aria-label="開発 有効" data-enabled-switch data-hint-on checked> <span data-enabled-text>有効</span></label><span class="preset__name" data-title-view="c-normal-h1">開発</span><span class="hint__count" data-hint-count>6 語・86 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="開発を上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="開発を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="開発を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
 <div class="preset__field"><label for="c-normal-h1-title">名前</label><input type="text" class="wide" id="c-normal-h1-title" data-title="c-normal-h1" value="開発" placeholder="例: 開発"></div>
 <div class="preset__field hint__words-field"><span id="c-normal-h1-words-label">語</span><div class="hint__words-box">
-<!-- 語の一覧: refs/99 の app.js が足す・消すを受け、語が無いときは hidden にして代わりの文を出す -->
+<!-- 語の一覧: refs/99 の app.js が追加・削除を受け、語が無いときは hidden にして代わりの文を出す -->
 <ul class="hint-words" data-words aria-labelledby="c-normal-h1-words-label">
-<li data-word><input type="text" id="c-normal-h1-w1" data-word-input value="voice-paste" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-normal-h1-w2" data-word-input value="Whisper" aria-label="2 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="2 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-normal-h1-w3" data-word-input value="TypeScript" aria-label="3 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="3 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-normal-h1-w4" data-word-input value="プルリクエスト" aria-label="4 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="4 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-normal-h1-w5" data-word-input value="develop" aria-label="5 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="5 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-normal-h1-w6" data-word-input value="ホットキー" aria-label="6 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="6 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-normal-h1-w1" data-word-input value="voice-paste" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-normal-h1-w2" data-word-input value="Whisper" aria-label="2 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="2 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-normal-h1-w3" data-word-input value="TypeScript" aria-label="3 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="3 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-normal-h1-w4" data-word-input value="プルリクエスト" aria-label="4 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="4 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-normal-h1-w5" data-word-input value="develop" aria-label="5 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="5 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-normal-h1-w6" data-word-input value="ホットキー" aria-label="6 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="6 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
 </ul>
 <p class="hint-words-empty" data-words-empty hidden>このプリセットにはまだ語がありません。</p>
-<button type="button" class="btn" data-add-word>語を足す</button>
+<button type="button" class="btn" data-add-word>語を追加</button>
 </div></div>
 </li>
 <li class="preset hint" data-item data-hint data-off="true">
-<div class="preset__head"><label class="switch" for="c-normal-h2-on"><input type="checkbox" role="switch" id="c-normal-h2-on" aria-label="会議 有効" data-enabled-switch data-hint-on> <span data-enabled-text>無効</span></label><span class="preset__name" data-title-view="c-normal-h2">会議</span><span class="hint__count" data-hint-count>3 語・48 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="会議を上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="会議を下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="会議を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__head"><label class="switch" for="c-normal-h2-on"><input type="checkbox" role="switch" id="c-normal-h2-on" aria-label="会議 有効" data-enabled-switch data-hint-on> <span data-enabled-text>無効</span></label><span class="preset__name" data-title-view="c-normal-h2">会議</span><span class="hint__count" data-hint-count>3 語・48 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="会議を上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="会議を下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="会議を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
 <div class="preset__field"><label for="c-normal-h2-title">名前</label><input type="text" class="wide" id="c-normal-h2-title" data-title="c-normal-h2" value="会議" placeholder="例: 開発"></div>
 <div class="preset__field hint__words-field"><span id="c-normal-h2-words-label">語</span><div class="hint__words-box">
-<!-- 語の一覧: refs/99 の app.js が足す・消すを受け、語が無いときは hidden にして代わりの文を出す -->
+<!-- 語の一覧: refs/99 の app.js が追加・削除を受け、語が無いときは hidden にして代わりの文を出す -->
 <ul class="hint-words" data-words aria-labelledby="c-normal-h2-words-label">
-<li data-word><input type="text" id="c-normal-h2-w1" data-word-input value="議事録" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-normal-h2-w2" data-word-input value="アクションアイテム" aria-label="2 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="2 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-normal-h2-w3" data-word-input value="進捗" aria-label="3 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="3 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-normal-h2-w1" data-word-input value="議事録" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-normal-h2-w2" data-word-input value="アクションアイテム" aria-label="2 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="2 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-normal-h2-w3" data-word-input value="進捗" aria-label="3 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="3 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
 </ul>
 <p class="hint-words-empty" data-words-empty hidden>このプリセットにはまだ語がありません。</p>
-<button type="button" class="btn" data-add-word>語を足す</button>
+<button type="button" class="btn" data-add-word>語を追加</button>
 </div></div>
 </li>
 </ol>
-<div class="presets-add"><button type="button" class="btn" data-add>プリセットを足す</button></div>
-<!-- ひな形: 「プリセットを足す」で一覧の末尾に写す -->
+<div class="presets-add"><button type="button" class="btn" data-add>プリセットを追加</button></div>
+<!-- テンプレート: 「プリセットを追加」で一覧の末尾にコピーする -->
 <template data-preset-template="ol.presets"><li class="preset hint" data-item data-hint data-off="false">
-<div class="preset__head"><label class="switch" for="__ID__-on"><input type="checkbox" role="switch" id="__ID__-on" aria-label="足したプリセット 有効" data-enabled-switch data-hint-on checked> <span data-enabled-text>有効</span></label><span class="preset__name" data-title-view="__ID__"></span><span class="hint__count" data-hint-count>0 語・0 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="足したプリセットを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="足したプリセットを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="足したプリセットを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__head"><label class="switch" for="__ID__-on"><input type="checkbox" role="switch" id="__ID__-on" aria-label="追加したプリセット 有効" data-enabled-switch data-hint-on checked> <span data-enabled-text>有効</span></label><span class="preset__name" data-title-view="__ID__"></span><span class="hint__count" data-hint-count>0 語・0 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="追加したプリセットを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="追加したプリセットを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="追加したプリセットを削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
 <div class="preset__field"><label for="__ID__-title">名前</label><input type="text" class="wide" id="__ID__-title" data-title="__ID__" value="" placeholder="例: 開発"></div>
 <div class="preset__field hint__words-field"><span id="__ID__-words-label">語</span><div class="hint__words-box">
-<!-- 語の一覧: refs/99 の app.js が足す・消すを受け、語が無いときは hidden にして代わりの文を出す -->
+<!-- 語の一覧: refs/99 の app.js が追加・削除を受け、語が無いときは hidden にして代わりの文を出す -->
 <ul class="hint-words" data-words aria-labelledby="__ID__-words-label" hidden>
 
 </ul>
 <p class="hint-words-empty" data-words-empty>このプリセットにはまだ語がありません。</p>
-<button type="button" class="btn" data-add-word>語を足す</button>
+<button type="button" class="btn" data-add-word>語を追加</button>
 </div></div>
 </li></template>
-<!-- ひな形: 「語を足す」で語の一覧の末尾に写す -->
-<template data-word-template><li data-word><input type="text" data-word-input value="" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li></template>
+<!-- テンプレート: 「語を追加」で語の一覧の末尾にコピーする -->
+<template data-word-template><li data-word><input type="text" data-word-input value="" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li></template>
 </div>
         </div>
         <p class="scene-note">有効のプリセットの語だけを長さに数える。無効のプリセットは語を薄くして取り消し線を引く。</p>
@@ -101,7 +101,7 @@
         <h2 id="h-empty">プリセットが無い</h2>
         <div class="win settings__form">
               
-<!-- 表記のヒントの欄: プリセットの足す・消す・並べ替えは refs/44、語の足す・消すと長さの数え直しは refs/99 の app.js が受ける。data-limit は上限のバイト数 -->
+<!-- 表記のヒントの欄: プリセットの追加・削除・並べ替えは refs/44、語の追加・削除と長さの再計算は refs/99 の app.js が受ける。data-limit は上限のバイト数 -->
 <div id="c-empty-hints-root" class="hints" data-presets data-hints data-limit="222" data-reload="immediate">
 <!-- 有効なヒントの長さ: エラーの一覧のリンクからフォーカスを受けるため tabindex を持つ -->
 <div class="hint-total" id="c-empty-total" role="group" aria-labelledby="c-empty-total-label" aria-describedby="c-empty-total-help" tabindex="-1" data-total-box data-over="false">
@@ -115,33 +115,33 @@
 <ol class="presets" aria-label="表記のヒントのプリセット（上から順に語をつなぐ）" data-presets-list hidden>
 
 </ol>
-<div class="presets-add"><button type="button" class="btn" data-add>プリセットを足す</button></div>
-<!-- ひな形: 「プリセットを足す」で一覧の末尾に写す -->
+<div class="presets-add"><button type="button" class="btn" data-add>プリセットを追加</button></div>
+<!-- テンプレート: 「プリセットを追加」で一覧の末尾にコピーする -->
 <template data-preset-template="ol.presets"><li class="preset hint" data-item data-hint data-off="false">
-<div class="preset__head"><label class="switch" for="__ID__-on"><input type="checkbox" role="switch" id="__ID__-on" aria-label="足したプリセット 有効" data-enabled-switch data-hint-on checked> <span data-enabled-text>有効</span></label><span class="preset__name" data-title-view="__ID__"></span><span class="hint__count" data-hint-count>0 語・0 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="足したプリセットを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="足したプリセットを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="足したプリセットを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__head"><label class="switch" for="__ID__-on"><input type="checkbox" role="switch" id="__ID__-on" aria-label="追加したプリセット 有効" data-enabled-switch data-hint-on checked> <span data-enabled-text>有効</span></label><span class="preset__name" data-title-view="__ID__"></span><span class="hint__count" data-hint-count>0 語・0 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="追加したプリセットを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="追加したプリセットを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="追加したプリセットを削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
 <div class="preset__field"><label for="__ID__-title">名前</label><input type="text" class="wide" id="__ID__-title" data-title="__ID__" value="" placeholder="例: 開発"></div>
 <div class="preset__field hint__words-field"><span id="__ID__-words-label">語</span><div class="hint__words-box">
-<!-- 語の一覧: refs/99 の app.js が足す・消すを受け、語が無いときは hidden にして代わりの文を出す -->
+<!-- 語の一覧: refs/99 の app.js が追加・削除を受け、語が無いときは hidden にして代わりの文を出す -->
 <ul class="hint-words" data-words aria-labelledby="__ID__-words-label" hidden>
 
 </ul>
 <p class="hint-words-empty" data-words-empty>このプリセットにはまだ語がありません。</p>
-<button type="button" class="btn" data-add-word>語を足す</button>
+<button type="button" class="btn" data-add-word>語を追加</button>
 </div></div>
 </li></template>
-<!-- ひな形: 「語を足す」で語の一覧の末尾に写す -->
-<template data-word-template><li data-word><input type="text" data-word-input value="" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li></template>
+<!-- テンプレート: 「語を追加」で語の一覧の末尾にコピーする -->
+<template data-word-template><li data-word><input type="text" data-word-input value="" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li></template>
 </div>
         </div>
         <p class="scene-note">一覧の代わりに、プリセットが無いことと、無い間の動きを出す。</p>
       </section>
 
-      <!-- 状態: 足した直後（名前と語が空） -->
+      <!-- 状態: 追加した直後（名前と語が空） -->
       <section class="specimen" aria-labelledby="h-added">
-        <h2 id="h-added">足した直後（名前と語が空）</h2>
+        <h2 id="h-added">追加した直後（名前と語が空）</h2>
         <div class="win settings__form">
               
-<!-- 表記のヒントの欄: プリセットの足す・消す・並べ替えは refs/44、語の足す・消すと長さの数え直しは refs/99 の app.js が受ける。data-limit は上限のバイト数 -->
+<!-- 表記のヒントの欄: プリセットの追加・削除・並べ替えは refs/44、語の追加・削除と長さの再計算は refs/99 の app.js が受ける。data-limit は上限のバイト数 -->
 <div id="c-added-hints-root" class="hints" data-presets data-hints data-limit="222" data-reload="immediate">
 <!-- 有効なヒントの長さ: エラーの一覧のリンクからフォーカスを受けるため tabindex を持つ -->
 <div class="hint-total" id="c-added-total" role="group" aria-labelledby="c-added-total-label" aria-describedby="c-added-total-help" tabindex="-1" data-total-box data-over="false">
@@ -154,68 +154,68 @@
 <div class="presets-empty" data-presets-empty hidden><p>ヒントのプリセットはまだありません。無い間は、ヒントを渡さずに文字を起こします。</p></div>
 <ol class="presets" aria-label="表記のヒントのプリセット（上から順に語をつなぐ）" data-presets-list>
 <li class="preset hint" data-item data-hint data-off="false">
-<div class="preset__head"><label class="switch" for="c-added-h1-on"><input type="checkbox" role="switch" id="c-added-h1-on" aria-label="開発 有効" data-enabled-switch data-hint-on checked> <span data-enabled-text>有効</span></label><span class="preset__name" data-title-view="c-added-h1">開発</span><span class="hint__count" data-hint-count>6 語・86 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="開発を上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="開発を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="開発を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__head"><label class="switch" for="c-added-h1-on"><input type="checkbox" role="switch" id="c-added-h1-on" aria-label="開発 有効" data-enabled-switch data-hint-on checked> <span data-enabled-text>有効</span></label><span class="preset__name" data-title-view="c-added-h1">開発</span><span class="hint__count" data-hint-count>6 語・86 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="開発を上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="開発を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="開発を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
 <div class="preset__field"><label for="c-added-h1-title">名前</label><input type="text" class="wide" id="c-added-h1-title" data-title="c-added-h1" value="開発" placeholder="例: 開発"></div>
 <div class="preset__field hint__words-field"><span id="c-added-h1-words-label">語</span><div class="hint__words-box">
-<!-- 語の一覧: refs/99 の app.js が足す・消すを受け、語が無いときは hidden にして代わりの文を出す -->
+<!-- 語の一覧: refs/99 の app.js が追加・削除を受け、語が無いときは hidden にして代わりの文を出す -->
 <ul class="hint-words" data-words aria-labelledby="c-added-h1-words-label">
-<li data-word><input type="text" id="c-added-h1-w1" data-word-input value="voice-paste" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-added-h1-w2" data-word-input value="Whisper" aria-label="2 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="2 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-added-h1-w3" data-word-input value="TypeScript" aria-label="3 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="3 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-added-h1-w4" data-word-input value="プルリクエスト" aria-label="4 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="4 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-added-h1-w5" data-word-input value="develop" aria-label="5 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="5 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-added-h1-w6" data-word-input value="ホットキー" aria-label="6 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="6 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-added-h1-w1" data-word-input value="voice-paste" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-added-h1-w2" data-word-input value="Whisper" aria-label="2 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="2 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-added-h1-w3" data-word-input value="TypeScript" aria-label="3 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="3 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-added-h1-w4" data-word-input value="プルリクエスト" aria-label="4 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="4 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-added-h1-w5" data-word-input value="develop" aria-label="5 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="5 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-added-h1-w6" data-word-input value="ホットキー" aria-label="6 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="6 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
 </ul>
 <p class="hint-words-empty" data-words-empty hidden>このプリセットにはまだ語がありません。</p>
-<button type="button" class="btn" data-add-word>語を足す</button>
+<button type="button" class="btn" data-add-word>語を追加</button>
 </div></div>
 </li>
 <li class="preset hint" data-item data-hint data-off="true">
-<div class="preset__head"><label class="switch" for="c-added-h2-on"><input type="checkbox" role="switch" id="c-added-h2-on" aria-label="会議 有効" data-enabled-switch data-hint-on> <span data-enabled-text>無効</span></label><span class="preset__name" data-title-view="c-added-h2">会議</span><span class="hint__count" data-hint-count>3 語・48 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="会議を上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="会議を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="会議を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__head"><label class="switch" for="c-added-h2-on"><input type="checkbox" role="switch" id="c-added-h2-on" aria-label="会議 有効" data-enabled-switch data-hint-on> <span data-enabled-text>無効</span></label><span class="preset__name" data-title-view="c-added-h2">会議</span><span class="hint__count" data-hint-count>3 語・48 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="会議を上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="会議を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="会議を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
 <div class="preset__field"><label for="c-added-h2-title">名前</label><input type="text" class="wide" id="c-added-h2-title" data-title="c-added-h2" value="会議" placeholder="例: 開発"></div>
 <div class="preset__field hint__words-field"><span id="c-added-h2-words-label">語</span><div class="hint__words-box">
-<!-- 語の一覧: refs/99 の app.js が足す・消すを受け、語が無いときは hidden にして代わりの文を出す -->
+<!-- 語の一覧: refs/99 の app.js が追加・削除を受け、語が無いときは hidden にして代わりの文を出す -->
 <ul class="hint-words" data-words aria-labelledby="c-added-h2-words-label">
-<li data-word><input type="text" id="c-added-h2-w1" data-word-input value="議事録" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-added-h2-w2" data-word-input value="アクションアイテム" aria-label="2 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="2 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-added-h2-w3" data-word-input value="進捗" aria-label="3 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="3 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-added-h2-w1" data-word-input value="議事録" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-added-h2-w2" data-word-input value="アクションアイテム" aria-label="2 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="2 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-added-h2-w3" data-word-input value="進捗" aria-label="3 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="3 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
 </ul>
 <p class="hint-words-empty" data-words-empty hidden>このプリセットにはまだ語がありません。</p>
-<button type="button" class="btn" data-add-word>語を足す</button>
+<button type="button" class="btn" data-add-word>語を追加</button>
 </div></div>
 </li>
 <li class="preset hint" data-item data-hint data-off="false">
-<div class="preset__head"><label class="switch" for="c-added-h3-on"><input type="checkbox" role="switch" id="c-added-h3-on" aria-label="足したプリセット 有効" data-enabled-switch data-hint-on checked> <span data-enabled-text>有効</span></label><span class="preset__name" data-title-view="c-added-h3"></span><span class="hint__count" data-hint-count>0 語・0 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="足したプリセットを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="足したプリセットを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="足したプリセットを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__head"><label class="switch" for="c-added-h3-on"><input type="checkbox" role="switch" id="c-added-h3-on" aria-label="追加したプリセット 有効" data-enabled-switch data-hint-on checked> <span data-enabled-text>有効</span></label><span class="preset__name" data-title-view="c-added-h3"></span><span class="hint__count" data-hint-count>0 語・0 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="追加したプリセットを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="追加したプリセットを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="追加したプリセットを削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
 <div class="preset__field"><label for="c-added-h3-title">名前</label><input type="text" class="wide" id="c-added-h3-title" data-title="c-added-h3" value="" placeholder="例: 開発"></div>
 <div class="preset__field hint__words-field"><span id="c-added-h3-words-label">語</span><div class="hint__words-box">
-<!-- 語の一覧: refs/99 の app.js が足す・消すを受け、語が無いときは hidden にして代わりの文を出す -->
+<!-- 語の一覧: refs/99 の app.js が追加・削除を受け、語が無いときは hidden にして代わりの文を出す -->
 <ul class="hint-words" data-words aria-labelledby="c-added-h3-words-label" hidden>
 
 </ul>
 <p class="hint-words-empty" data-words-empty>このプリセットにはまだ語がありません。</p>
-<button type="button" class="btn" data-add-word>語を足す</button>
+<button type="button" class="btn" data-add-word>語を追加</button>
 </div></div>
 </li>
 </ol>
-<div class="presets-add"><button type="button" class="btn" data-add>プリセットを足す</button></div>
-<!-- ひな形: 「プリセットを足す」で一覧の末尾に写す -->
+<div class="presets-add"><button type="button" class="btn" data-add>プリセットを追加</button></div>
+<!-- テンプレート: 「プリセットを追加」で一覧の末尾にコピーする -->
 <template data-preset-template="ol.presets"><li class="preset hint" data-item data-hint data-off="false">
-<div class="preset__head"><label class="switch" for="__ID__-on"><input type="checkbox" role="switch" id="__ID__-on" aria-label="足したプリセット 有効" data-enabled-switch data-hint-on checked> <span data-enabled-text>有効</span></label><span class="preset__name" data-title-view="__ID__"></span><span class="hint__count" data-hint-count>0 語・0 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="足したプリセットを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="足したプリセットを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="足したプリセットを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__head"><label class="switch" for="__ID__-on"><input type="checkbox" role="switch" id="__ID__-on" aria-label="追加したプリセット 有効" data-enabled-switch data-hint-on checked> <span data-enabled-text>有効</span></label><span class="preset__name" data-title-view="__ID__"></span><span class="hint__count" data-hint-count>0 語・0 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="追加したプリセットを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="追加したプリセットを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="追加したプリセットを削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
 <div class="preset__field"><label for="__ID__-title">名前</label><input type="text" class="wide" id="__ID__-title" data-title="__ID__" value="" placeholder="例: 開発"></div>
 <div class="preset__field hint__words-field"><span id="__ID__-words-label">語</span><div class="hint__words-box">
-<!-- 語の一覧: refs/99 の app.js が足す・消すを受け、語が無いときは hidden にして代わりの文を出す -->
+<!-- 語の一覧: refs/99 の app.js が追加・削除を受け、語が無いときは hidden にして代わりの文を出す -->
 <ul class="hint-words" data-words aria-labelledby="__ID__-words-label" hidden>
 
 </ul>
 <p class="hint-words-empty" data-words-empty>このプリセットにはまだ語がありません。</p>
-<button type="button" class="btn" data-add-word>語を足す</button>
+<button type="button" class="btn" data-add-word>語を追加</button>
 </div></div>
 </li></template>
-<!-- ひな形: 「語を足す」で語の一覧の末尾に写す -->
-<template data-word-template><li data-word><input type="text" data-word-input value="" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li></template>
+<!-- テンプレート: 「語を追加」で語の一覧の末尾にコピーする -->
+<template data-word-template><li data-word><input type="text" data-word-input value="" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li></template>
 </div>
         </div>
-        <p class="scene-note">足したプリセットは有効で、名前と語が空。頭の名前には「（名前未入力）」と出る。</p>
+        <p class="scene-note">追加したプリセットは有効で、名前と語が空。頭の名前には「（名前未入力）」と出る。</p>
       </section>
 
       <!-- 状態: 長い名前・長い語（上限ちょうど） -->
@@ -223,7 +223,7 @@
         <h2 id="h-long">長い名前・長い語（上限ちょうど）</h2>
         <div class="win settings__form">
               
-<!-- 表記のヒントの欄: プリセットの足す・消す・並べ替えは refs/44、語の足す・消すと長さの数え直しは refs/99 の app.js が受ける。data-limit は上限のバイト数 -->
+<!-- 表記のヒントの欄: プリセットの追加・削除・並べ替えは refs/44、語の追加・削除と長さの再計算は refs/99 の app.js が受ける。data-limit は上限のバイト数 -->
 <div id="c-long-hints-root" class="hints" data-presets data-hints data-limit="222" data-reload="immediate">
 <!-- 有効なヒントの長さ: エラーの一覧のリンクからフォーカスを受けるため tabindex を持つ -->
 <div class="hint-total" id="c-long-total" role="group" aria-labelledby="c-long-total-label" aria-describedby="c-long-total-help" tabindex="-1" data-total-box data-over="false">
@@ -236,70 +236,70 @@
 <div class="presets-empty" data-presets-empty hidden><p>ヒントのプリセットはまだありません。無い間は、ヒントを渡さずに文字を起こします。</p></div>
 <ol class="presets" aria-label="表記のヒントのプリセット（上から順に語をつなぐ）" data-presets-list>
 <li class="preset hint" data-item data-hint data-off="false">
-<div class="preset__head"><label class="switch" for="c-long-h1-on"><input type="checkbox" role="switch" id="c-long-h1-on" aria-label="フロントエンドとバックエンドの開発で間違えやすい固有名詞（社内の呼び名を含む） 有効" data-enabled-switch data-hint-on checked> <span data-enabled-text>有効</span></label><span class="preset__name" data-title-view="c-long-h1">フロントエンドとバックエンドの開発で間違えやすい固有名詞（社内の呼び名を含む）</span><span class="hint__count" data-hint-count>9 語・162 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="フロントエンドとバックエンドの開発で間違えやすい固有名詞（社内の呼び名を含む）を上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="フロントエンドとバックエンドの開発で間違えやすい固有名詞（社内の呼び名を含む）を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="フロントエンドとバックエンドの開発で間違えやすい固有名詞（社内の呼び名を含む）を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__head"><label class="switch" for="c-long-h1-on"><input type="checkbox" role="switch" id="c-long-h1-on" aria-label="フロントエンドとバックエンドの開発で間違えやすい固有名詞（社内の呼び名を含む） 有効" data-enabled-switch data-hint-on checked> <span data-enabled-text>有効</span></label><span class="preset__name" data-title-view="c-long-h1">フロントエンドとバックエンドの開発で間違えやすい固有名詞（社内の呼び名を含む）</span><span class="hint__count" data-hint-count>9 語・162 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="フロントエンドとバックエンドの開発で間違えやすい固有名詞（社内の呼び名を含む）を上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="フロントエンドとバックエンドの開発で間違えやすい固有名詞（社内の呼び名を含む）を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="フロントエンドとバックエンドの開発で間違えやすい固有名詞（社内の呼び名を含む）を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
 <div class="preset__field"><label for="c-long-h1-title">名前</label><input type="text" class="wide" id="c-long-h1-title" data-title="c-long-h1" value="フロントエンドとバックエンドの開発で間違えやすい固有名詞（社内の呼び名を含む）" placeholder="例: 開発"></div>
 <div class="preset__field hint__words-field"><span id="c-long-h1-words-label">語</span><div class="hint__words-box">
-<!-- 語の一覧: refs/99 の app.js が足す・消すを受け、語が無いときは hidden にして代わりの文を出す -->
+<!-- 語の一覧: refs/99 の app.js が追加・削除を受け、語が無いときは hidden にして代わりの文を出す -->
 <ul class="hint-words" data-words aria-labelledby="c-long-h1-words-label">
-<li data-word><input type="text" id="c-long-h1-w1" data-word-input value="Kubernetes" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-long-h1-w2" data-word-input value="PostgreSQL" aria-label="2 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="2 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-long-h1-w3" data-word-input value="TypeScript" aria-label="3 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="3 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-long-h1-w4" data-word-input value="faster-whisper" aria-label="4 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="4 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-long-h1-w5" data-word-input value="プルリクエスト" aria-label="5 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="5 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-long-h1-w6" data-word-input value="リファクタリング" aria-label="6 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="6 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-long-h1-w7" data-word-input value="ステージング環境" aria-label="7 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="7 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-long-h1-w8" data-word-input value="デプロイ" aria-label="8 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="8 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-long-h1-w9" data-word-input value="OpenTelemetry" aria-label="9 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="9 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-long-h1-w1" data-word-input value="Kubernetes" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-long-h1-w2" data-word-input value="PostgreSQL" aria-label="2 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="2 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-long-h1-w3" data-word-input value="TypeScript" aria-label="3 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="3 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-long-h1-w4" data-word-input value="faster-whisper" aria-label="4 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="4 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-long-h1-w5" data-word-input value="プルリクエスト" aria-label="5 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="5 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-long-h1-w6" data-word-input value="リファクタリング" aria-label="6 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="6 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-long-h1-w7" data-word-input value="ステージング環境" aria-label="7 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="7 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-long-h1-w8" data-word-input value="デプロイ" aria-label="8 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="8 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-long-h1-w9" data-word-input value="OpenTelemetry" aria-label="9 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="9 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
 </ul>
 <p class="hint-words-empty" data-words-empty hidden>このプリセットにはまだ語がありません。</p>
-<button type="button" class="btn" data-add-word>語を足す</button>
+<button type="button" class="btn" data-add-word>語を追加</button>
 </div></div>
 </li>
 <li class="preset hint" data-item data-hint data-off="false">
-<div class="preset__head"><label class="switch" for="c-long-h2-on"><input type="checkbox" role="switch" id="c-long-h2-on" aria-label="会議 有効" data-enabled-switch data-hint-on checked> <span data-enabled-text>有効</span></label><span class="preset__name" data-title-view="c-long-h2">会議</span><span class="hint__count" data-hint-count>4 語・57 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="会議を上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="会議を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="会議を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__head"><label class="switch" for="c-long-h2-on"><input type="checkbox" role="switch" id="c-long-h2-on" aria-label="会議 有効" data-enabled-switch data-hint-on checked> <span data-enabled-text>有効</span></label><span class="preset__name" data-title-view="c-long-h2">会議</span><span class="hint__count" data-hint-count>4 語・57 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="会議を上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="会議を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="会議を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
 <div class="preset__field"><label for="c-long-h2-title">名前</label><input type="text" class="wide" id="c-long-h2-title" data-title="c-long-h2" value="会議" placeholder="例: 開発"></div>
 <div class="preset__field hint__words-field"><span id="c-long-h2-words-label">語</span><div class="hint__words-box">
-<!-- 語の一覧: refs/99 の app.js が足す・消すを受け、語が無いときは hidden にして代わりの文を出す -->
+<!-- 語の一覧: refs/99 の app.js が追加・削除を受け、語が無いときは hidden にして代わりの文を出す -->
 <ul class="hint-words" data-words aria-labelledby="c-long-h2-words-label">
-<li data-word><input type="text" id="c-long-h2-w1" data-word-input value="議事録" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-long-h2-w2" data-word-input value="アクションアイテム" aria-label="2 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="2 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-long-h2-w3" data-word-input value="進捗" aria-label="3 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="3 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-long-h2-w4" data-word-input value="定例" aria-label="4 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="4 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-long-h2-w1" data-word-input value="議事録" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-long-h2-w2" data-word-input value="アクションアイテム" aria-label="2 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="2 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-long-h2-w3" data-word-input value="進捗" aria-label="3 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="3 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-long-h2-w4" data-word-input value="定例" aria-label="4 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="4 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
 </ul>
 <p class="hint-words-empty" data-words-empty hidden>このプリセットにはまだ語がありません。</p>
-<button type="button" class="btn" data-add-word>語を足す</button>
+<button type="button" class="btn" data-add-word>語を追加</button>
 </div></div>
 </li>
 <li class="preset hint" data-item data-hint data-off="true">
-<div class="preset__head"><label class="switch" for="c-long-h3-on"><input type="checkbox" role="switch" id="c-long-h3-on" aria-label="長い語 有効" data-enabled-switch data-hint-on> <span data-enabled-text>無効</span></label><span class="preset__name" data-title-view="c-long-h3">長い語</span><span class="hint__count" data-hint-count>2 語・144 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="長い語を上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="長い語を下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="長い語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__head"><label class="switch" for="c-long-h3-on"><input type="checkbox" role="switch" id="c-long-h3-on" aria-label="長い語 有効" data-enabled-switch data-hint-on> <span data-enabled-text>無効</span></label><span class="preset__name" data-title-view="c-long-h3">長い語</span><span class="hint__count" data-hint-count>2 語・144 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="長い語を上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="長い語を下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="長い語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
 <div class="preset__field"><label for="c-long-h3-title">名前</label><input type="text" class="wide" id="c-long-h3-title" data-title="c-long-h3" value="長い語" placeholder="例: 開発"></div>
 <div class="preset__field hint__words-field"><span id="c-long-h3-words-label">語</span><div class="hint__words-box">
-<!-- 語の一覧: refs/99 の app.js が足す・消すを受け、語が無いときは hidden にして代わりの文を出す -->
+<!-- 語の一覧: refs/99 の app.js が追加・削除を受け、語が無いときは hidden にして代わりの文を出す -->
 <ul class="hint-words" data-words aria-labelledby="c-long-h3-words-label">
-<li data-word><input type="text" id="c-long-h3-w1" data-word-input value="transcription.local_whisper.condition_on_previous_text" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-long-h3-w2" data-word-input value="ほかのシステムから連続して録音し区切りごとに文字で受け取る" aria-label="2 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="2 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-long-h3-w1" data-word-input value="transcription.local_whisper.condition_on_previous_text" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-long-h3-w2" data-word-input value="ほかのシステムから連続して録音し区切りごとに文字で受け取る" aria-label="2 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="2 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
 </ul>
 <p class="hint-words-empty" data-words-empty hidden>このプリセットにはまだ語がありません。</p>
-<button type="button" class="btn" data-add-word>語を足す</button>
+<button type="button" class="btn" data-add-word>語を追加</button>
 </div></div>
 </li>
 </ol>
-<div class="presets-add"><button type="button" class="btn" data-add>プリセットを足す</button></div>
-<!-- ひな形: 「プリセットを足す」で一覧の末尾に写す -->
+<div class="presets-add"><button type="button" class="btn" data-add>プリセットを追加</button></div>
+<!-- テンプレート: 「プリセットを追加」で一覧の末尾にコピーする -->
 <template data-preset-template="ol.presets"><li class="preset hint" data-item data-hint data-off="false">
-<div class="preset__head"><label class="switch" for="__ID__-on"><input type="checkbox" role="switch" id="__ID__-on" aria-label="足したプリセット 有効" data-enabled-switch data-hint-on checked> <span data-enabled-text>有効</span></label><span class="preset__name" data-title-view="__ID__"></span><span class="hint__count" data-hint-count>0 語・0 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="足したプリセットを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="足したプリセットを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="足したプリセットを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__head"><label class="switch" for="__ID__-on"><input type="checkbox" role="switch" id="__ID__-on" aria-label="追加したプリセット 有効" data-enabled-switch data-hint-on checked> <span data-enabled-text>有効</span></label><span class="preset__name" data-title-view="__ID__"></span><span class="hint__count" data-hint-count>0 語・0 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="追加したプリセットを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="追加したプリセットを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="追加したプリセットを削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
 <div class="preset__field"><label for="__ID__-title">名前</label><input type="text" class="wide" id="__ID__-title" data-title="__ID__" value="" placeholder="例: 開発"></div>
 <div class="preset__field hint__words-field"><span id="__ID__-words-label">語</span><div class="hint__words-box">
-<!-- 語の一覧: refs/99 の app.js が足す・消すを受け、語が無いときは hidden にして代わりの文を出す -->
+<!-- 語の一覧: refs/99 の app.js が追加・削除を受け、語が無いときは hidden にして代わりの文を出す -->
 <ul class="hint-words" data-words aria-labelledby="__ID__-words-label" hidden>
 
 </ul>
 <p class="hint-words-empty" data-words-empty>このプリセットにはまだ語がありません。</p>
-<button type="button" class="btn" data-add-word>語を足す</button>
+<button type="button" class="btn" data-add-word>語を追加</button>
 </div></div>
 </li></template>
-<!-- ひな形: 「語を足す」で語の一覧の末尾に写す -->
-<template data-word-template><li data-word><input type="text" data-word-input value="" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li></template>
+<!-- テンプレート: 「語を追加」で語の一覧の末尾にコピーする -->
+<template data-word-template><li data-word><input type="text" data-word-input value="" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li></template>
 </div>
         </div>
         <p class="scene-note">有効なヒントの長さが上限ちょうどの 222 バイト。頭の名前は 1 行で省略し、全文は名前の欄で読める。欄より長い語は欄の中で横に流れる。</p>
@@ -310,15 +310,15 @@
         <h2 id="h-error">エラー（長さが上限を超える・語に読点・語が空・名前が重なる）</h2>
         <div class="win settings__form">
               <div class="error-summary" role="alert" tabindex="-1">
-                保存できませんでした。4 件の欄を直してください。
+                保存できませんでした。4 件の欄を修正してください。
                 <ul>
                   <li><a href="#c-error-total" data-hint-error-link>有効なヒントの長さ: 有効なヒントが長すぎます（258 / 222 バイト）。語を減らすか、プリセットを無効にしてください。</a></li>
-                  <li><a href="#c-error-h1-w4" data-hint-error-link>プリセット 1 件目の 4 つ目の語: 読点（、）・句点（。）・改行は入れられません。語を分けて足してください。</a></li>
-                  <li><a href="#c-error-h2-w2" data-hint-error-link>プリセット 2 件目の 2 つ目の語: 語を入れるか、この欄を消してください。</a></li>
+                  <li><a href="#c-error-h1-w4" data-hint-error-link>プリセット 1 件目の 4 つ目の語: 読点（、）・句点（。）・改行は入れられません。語を分けて追加してください。</a></li>
+                  <li><a href="#c-error-h2-w2" data-hint-error-link>プリセット 2 件目の 2 つ目の語: 語を入れるか、この欄を削除してください。</a></li>
                   <li><a href="#c-error-h3-title" data-hint-error-link>プリセット 3 件目の名前: プリセット「開発」と同じ名前です。別の名前にしてください。</a></li>
                 </ul>
               </div>
-<!-- 表記のヒントの欄: プリセットの足す・消す・並べ替えは refs/44、語の足す・消すと長さの数え直しは refs/99 の app.js が受ける。data-limit は上限のバイト数 -->
+<!-- 表記のヒントの欄: プリセットの追加・削除・並べ替えは refs/44、語の追加・削除と長さの再計算は refs/99 の app.js が受ける。data-limit は上限のバイト数 -->
 <div id="c-error-hints-root" class="hints" data-presets data-hints data-limit="222" data-reload="immediate">
 <!-- 有効なヒントの長さ: エラーの一覧のリンクからフォーカスを受けるため tabindex を持つ -->
 <div class="hint-total" id="c-error-total" role="group" aria-labelledby="c-error-total-label" aria-describedby="c-error-total-help c-error-total-err" tabindex="-1" data-total-box data-over="true">
@@ -332,72 +332,72 @@
 <div class="presets-empty" data-presets-empty hidden><p>ヒントのプリセットはまだありません。無い間は、ヒントを渡さずに文字を起こします。</p></div>
 <ol class="presets" aria-label="表記のヒントのプリセット（上から順に語をつなぐ）" data-presets-list>
 <li class="preset hint" data-item data-hint data-off="false">
-<div class="preset__head"><label class="switch" for="c-error-h1-on"><input type="checkbox" role="switch" id="c-error-h1-on" aria-label="開発 有効" data-enabled-switch data-hint-on checked> <span data-enabled-text>有効</span></label><span class="preset__name" data-title-view="c-error-h1">開発</span><span class="hint__count" data-hint-count>11 語・198 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="開発を上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="開発を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="開発を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__head"><label class="switch" for="c-error-h1-on"><input type="checkbox" role="switch" id="c-error-h1-on" aria-label="開発 有効" data-enabled-switch data-hint-on checked> <span data-enabled-text>有効</span></label><span class="preset__name" data-title-view="c-error-h1">開発</span><span class="hint__count" data-hint-count>11 語・198 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="開発を上へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="開発を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="開発を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
 <div class="preset__field"><label for="c-error-h1-title">名前</label><input type="text" class="wide" id="c-error-h1-title" data-title="c-error-h1" value="開発" placeholder="例: 開発"></div>
 <div class="preset__field hint__words-field"><span id="c-error-h1-words-label">語</span><div class="hint__words-box">
-<!-- 語の一覧: refs/99 の app.js が足す・消すを受け、語が無いときは hidden にして代わりの文を出す -->
+<!-- 語の一覧: refs/99 の app.js が追加・削除を受け、語が無いときは hidden にして代わりの文を出す -->
 <ul class="hint-words" data-words aria-labelledby="c-error-h1-words-label">
-<li data-word><input type="text" id="c-error-h1-w1" data-word-input value="voice-paste" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-error-h1-w2" data-word-input value="Whisper" aria-label="2 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="2 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-error-h1-w3" data-word-input value="TypeScript" aria-label="3 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="3 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-error-h1-w4" data-word-input value="プルリクエスト、レビュー" aria-label="4 つ目の語" aria-invalid="true" aria-describedby="c-error-h1-w4-err"><button type="button" class="btn btn--icon" data-remove-word aria-label="4 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button><p class="field-error" id="c-error-h1-w4-err">読点（、）・句点（。）・改行は入れられません。語を分けて足してください。</p></li>
-<li data-word><input type="text" id="c-error-h1-w5" data-word-input value="develop" aria-label="5 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="5 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-error-h1-w6" data-word-input value="ホットキー" aria-label="6 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="6 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-error-h1-w7" data-word-input value="faster-whisper" aria-label="7 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="7 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-error-h1-w8" data-word-input value="Kubernetes" aria-label="8 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="8 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-error-h1-w9" data-word-input value="PostgreSQL" aria-label="9 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="9 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-error-h1-w10" data-word-input value="リファクタリング" aria-label="10 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="10 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-error-h1-w11" data-word-input value="ステージング環境" aria-label="11 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="11 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-error-h1-w1" data-word-input value="voice-paste" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-error-h1-w2" data-word-input value="Whisper" aria-label="2 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="2 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-error-h1-w3" data-word-input value="TypeScript" aria-label="3 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="3 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-error-h1-w4" data-word-input value="プルリクエスト、レビュー" aria-label="4 つ目の語" aria-invalid="true" aria-describedby="c-error-h1-w4-err"><button type="button" class="btn btn--icon" data-remove-word aria-label="4 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button><p class="field-error" id="c-error-h1-w4-err">読点（、）・句点（。）・改行は入れられません。語を分けて追加してください。</p></li>
+<li data-word><input type="text" id="c-error-h1-w5" data-word-input value="develop" aria-label="5 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="5 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-error-h1-w6" data-word-input value="ホットキー" aria-label="6 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="6 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-error-h1-w7" data-word-input value="faster-whisper" aria-label="7 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="7 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-error-h1-w8" data-word-input value="Kubernetes" aria-label="8 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="8 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-error-h1-w9" data-word-input value="PostgreSQL" aria-label="9 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="9 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-error-h1-w10" data-word-input value="リファクタリング" aria-label="10 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="10 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-error-h1-w11" data-word-input value="ステージング環境" aria-label="11 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="11 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
 </ul>
 <p class="hint-words-empty" data-words-empty hidden>このプリセットにはまだ語がありません。</p>
-<button type="button" class="btn" data-add-word>語を足す</button>
+<button type="button" class="btn" data-add-word>語を追加</button>
 </div></div>
 </li>
 <li class="preset hint" data-item data-hint data-off="false">
-<div class="preset__head"><label class="switch" for="c-error-h2-on"><input type="checkbox" role="switch" id="c-error-h2-on" aria-label="会議 有効" data-enabled-switch data-hint-on checked> <span data-enabled-text>有効</span></label><span class="preset__name" data-title-view="c-error-h2">会議</span><span class="hint__count" data-hint-count>4 語・57 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="会議を上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="会議を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="会議を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__head"><label class="switch" for="c-error-h2-on"><input type="checkbox" role="switch" id="c-error-h2-on" aria-label="会議 有効" data-enabled-switch data-hint-on checked> <span data-enabled-text>有効</span></label><span class="preset__name" data-title-view="c-error-h2">会議</span><span class="hint__count" data-hint-count>4 語・57 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="会議を上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="会議を下へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="会議を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
 <div class="preset__field"><label for="c-error-h2-title">名前</label><input type="text" class="wide" id="c-error-h2-title" data-title="c-error-h2" value="会議" placeholder="例: 開発"></div>
 <div class="preset__field hint__words-field"><span id="c-error-h2-words-label">語</span><div class="hint__words-box">
-<!-- 語の一覧: refs/99 の app.js が足す・消すを受け、語が無いときは hidden にして代わりの文を出す -->
+<!-- 語の一覧: refs/99 の app.js が追加・削除を受け、語が無いときは hidden にして代わりの文を出す -->
 <ul class="hint-words" data-words aria-labelledby="c-error-h2-words-label">
-<li data-word><input type="text" id="c-error-h2-w1" data-word-input value="議事録" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-error-h2-w2" data-word-input value="" aria-label="2 つ目の語" aria-invalid="true" aria-describedby="c-error-h2-w2-err"><button type="button" class="btn btn--icon" data-remove-word aria-label="2 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button><p class="field-error" id="c-error-h2-w2-err">語を入れるか、この欄を消してください。</p></li>
-<li data-word><input type="text" id="c-error-h2-w3" data-word-input value="アクションアイテム" aria-label="3 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="3 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-error-h2-w4" data-word-input value="進捗" aria-label="4 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="4 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
-<li data-word><input type="text" id="c-error-h2-w5" data-word-input value="定例" aria-label="5 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="5 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-error-h2-w1" data-word-input value="議事録" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-error-h2-w2" data-word-input value="" aria-label="2 つ目の語" aria-invalid="true" aria-describedby="c-error-h2-w2-err"><button type="button" class="btn btn--icon" data-remove-word aria-label="2 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button><p class="field-error" id="c-error-h2-w2-err">語を入れるか、この欄を削除してください。</p></li>
+<li data-word><input type="text" id="c-error-h2-w3" data-word-input value="アクションアイテム" aria-label="3 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="3 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-error-h2-w4" data-word-input value="進捗" aria-label="4 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="4 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-error-h2-w5" data-word-input value="定例" aria-label="5 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="5 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
 </ul>
 <p class="hint-words-empty" data-words-empty hidden>このプリセットにはまだ語がありません。</p>
-<button type="button" class="btn" data-add-word>語を足す</button>
+<button type="button" class="btn" data-add-word>語を追加</button>
 </div></div>
 </li>
 <li class="preset hint" data-item data-hint data-off="true">
-<div class="preset__head"><label class="switch" for="c-error-h3-on"><input type="checkbox" role="switch" id="c-error-h3-on" aria-label="開発 有効" data-enabled-switch data-hint-on> <span data-enabled-text>無効</span></label><span class="preset__name" data-title-view="c-error-h3">開発</span><span class="hint__count" data-hint-count>1 語・12 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="開発を上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="開発を下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="開発を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__head"><label class="switch" for="c-error-h3-on"><input type="checkbox" role="switch" id="c-error-h3-on" aria-label="開発 有効" data-enabled-switch data-hint-on> <span data-enabled-text>無効</span></label><span class="preset__name" data-title-view="c-error-h3">開発</span><span class="hint__count" data-hint-count>1 語・12 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="開発を上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="開発を下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="開発を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
 <div class="preset__field"><label for="c-error-h3-title">名前</label><input type="text" class="wide" id="c-error-h3-title" data-title="c-error-h3" value="開発" placeholder="例: 開発" aria-invalid="true" aria-describedby="c-error-h3-title-err"><p class="field-error" id="c-error-h3-title-err">プリセット「開発」と同じ名前です。別の名前にしてください。</p></div>
 <div class="preset__field hint__words-field"><span id="c-error-h3-words-label">語</span><div class="hint__words-box">
-<!-- 語の一覧: refs/99 の app.js が足す・消すを受け、語が無いときは hidden にして代わりの文を出す -->
+<!-- 語の一覧: refs/99 の app.js が追加・削除を受け、語が無いときは hidden にして代わりの文を出す -->
 <ul class="hint-words" data-words aria-labelledby="c-error-h3-words-label">
-<li data-word><input type="text" id="c-error-h3-w1" data-word-input value="リリース" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
+<li data-word><input type="text" id="c-error-h3-w1" data-word-input value="リリース" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li>
 </ul>
 <p class="hint-words-empty" data-words-empty hidden>このプリセットにはまだ語がありません。</p>
-<button type="button" class="btn" data-add-word>語を足す</button>
+<button type="button" class="btn" data-add-word>語を追加</button>
 </div></div>
 </li>
 </ol>
-<div class="presets-add"><button type="button" class="btn" data-add>プリセットを足す</button></div>
-<!-- ひな形: 「プリセットを足す」で一覧の末尾に写す -->
+<div class="presets-add"><button type="button" class="btn" data-add>プリセットを追加</button></div>
+<!-- テンプレート: 「プリセットを追加」で一覧の末尾にコピーする -->
 <template data-preset-template="ol.presets"><li class="preset hint" data-item data-hint data-off="false">
-<div class="preset__head"><label class="switch" for="__ID__-on"><input type="checkbox" role="switch" id="__ID__-on" aria-label="足したプリセット 有効" data-enabled-switch data-hint-on checked> <span data-enabled-text>有効</span></label><span class="preset__name" data-title-view="__ID__"></span><span class="hint__count" data-hint-count>0 語・0 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="足したプリセットを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="足したプリセットを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="足したプリセットを消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
+<div class="preset__head"><label class="switch" for="__ID__-on"><input type="checkbox" role="switch" id="__ID__-on" aria-label="追加したプリセット 有効" data-enabled-switch data-hint-on checked> <span data-enabled-text>有効</span></label><span class="preset__name" data-title-view="__ID__"></span><span class="hint__count" data-hint-count>0 語・0 バイト</span><span class="preset__tools"><button type="button" class="btn btn--icon" data-move="up" aria-label="追加したプリセットを上へ"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button><button type="button" class="btn btn--icon" data-move="down" aria-label="追加したプリセットを下へ" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg></button><button type="button" class="btn btn--icon" data-remove aria-label="追加したプリセットを削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></span></div>
 <div class="preset__field"><label for="__ID__-title">名前</label><input type="text" class="wide" id="__ID__-title" data-title="__ID__" value="" placeholder="例: 開発"></div>
 <div class="preset__field hint__words-field"><span id="__ID__-words-label">語</span><div class="hint__words-box">
-<!-- 語の一覧: refs/99 の app.js が足す・消すを受け、語が無いときは hidden にして代わりの文を出す -->
+<!-- 語の一覧: refs/99 の app.js が追加・削除を受け、語が無いときは hidden にして代わりの文を出す -->
 <ul class="hint-words" data-words aria-labelledby="__ID__-words-label" hidden>
 
 </ul>
 <p class="hint-words-empty" data-words-empty>このプリセットにはまだ語がありません。</p>
-<button type="button" class="btn" data-add-word>語を足す</button>
+<button type="button" class="btn" data-add-word>語を追加</button>
 </div></div>
 </li></template>
-<!-- ひな形: 「語を足す」で語の一覧の末尾に写す -->
-<template data-word-template><li data-word><input type="text" data-word-input value="" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を消す"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li></template>
+<!-- テンプレート: 「語を追加」で語の一覧の末尾にコピーする -->
+<template data-word-template><li data-word><input type="text" data-word-input value="" aria-label="1 つ目の語"><button type="button" class="btn btn--icon" data-remove-word aria-label="1 つ目の語を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></li></template>
 </div>
         </div>
         <p class="scene-note">長さのエラーは有効なヒントの長さの行の下、語と名前のエラーはその欄の下に出す。上限を超えた長さは、色に加えて超えたバイト数の文言で伝える。</p>

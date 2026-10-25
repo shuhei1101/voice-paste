@@ -3,7 +3,7 @@ kind: "ライブラリ"
 version:
   current: 0.5.6
   checked_on: '2026-09-30'
-  source: pyproject.toml（~=0.5）と uv.lock の版
+  source: pyproject.toml（~=0.5）と uv.lock のバージョン
   pinning: 互換リリースで固定（~=0.5）
 catalogs:
   - name: API
@@ -31,6 +31,6 @@ upstream: spatialaudio/python-sounddevice
 verification:
   state: 済
   date: '2026-10-01'
-  detail: sounddevice 0.5.5 で、既定の入力デバイスを samplerate=16000・channels=1・dtype='int16' のコールバックの InputStream で開いて start し、0.3 秒のあいだに形 (n, 1)・int16・status が空のコールバックが 11 回届き、stop・close で閉じられることを実機で動かした
+  detail: sounddevice 0.5.5 で、既定の入力デバイスを samplerate=16000・channels=1・dtype='int16' のコールバックの InputStream で開いて start し、0.3 秒のあいだに shape (n, 1)・int16・status が空のコールバックが 11 回届き、stop・close で閉じられることを実機で動かした
 license: MIT（商用利用可）
 official_url: https://python-sounddevice.readthedocs.io/

@@ -4,12 +4,12 @@ tables:
   - name: IndexedDB voice-paste / kept_audio（キー latest）
     title: 端末内の音声
     datastore: IndexedDB
-    summary: 画面で録った直近 1 件の音声。送信に失敗しても送り直せ、ダウンロードできる
+    summary: 画面で録った直近 1 件の音声。送信に失敗しても再送でき、ダウンロードできる
     primary_key: 固定のキー `latest`
     scale: 1 件
     growth: 増えない（録音を止めるたびに置き換える。選んだファイルは残さない）
     retention: 保存日時から 7 日
-    deletion: 物理削除（画面を開いたときに期限を過ぎていれば消す）
+    deletion: 物理削除（画面を開いたときに期限を過ぎていれば削除する）
     access: キーで引く
     columns:
       - name: blob
@@ -55,13 +55,13 @@ tables:
   - name: localStorage voice-paste.results
     title: 結果
     datastore: JSON（localStorage）
-    summary: 送信した音声の結果の一覧（配列。新しい件が先頭）。終わっていない件も持ち、画面を開き直したら結果を取りに行くのを続ける
+    summary: 送信した音声の結果の一覧（配列。新しい件が先頭）。終わっていない件も持ち、画面を再度開したら結果を取りに行くのを続ける
     primary_key: job_id
     scale: 最大 10 件
-    growth: 送信が 202 になるたびに 1 件増え、10 件を超えたらいちばん古い件を消す
+    growth: 送信が 202 になるたびに 1 件増え、10 件を超えたらいちばん古い件を削除する
     retention: 保存日時から 7 日
-    deletion: 物理削除（削除の確認で削除したとき・件数を超えたとき・画面を開いたときに期限を過ぎていたとき。文字起こし失敗・404 になった件も消す）
-    access: 全件（画面を開いたときに読み、変えるたびに全件を書き直す）
+    deletion: 物理削除（削除の確認で削除したとき・件数を超えたとき・画面を開いたときに期限を過ぎていたとき。文字起こし失敗・404 になった件も削除する）
+    access: 全件（画面を開いたときに読み、変えるたびに全件を書き換える）
     columns:
       - name: job_id
         title: ジョブの ID
@@ -100,7 +100,7 @@ tables:
   - name: localStorage voice-paste.glossary_preset
     title: 選んだ用語集のプリセット
     datastore: localStorage
-    summary: 用語集のプリセットの選択欄で最後に選んだ名前。画面を開き直したときに選択を戻す
+    summary: 用語集のプリセットの選択欄で最後に選んだ名前。画面を再度開したときに選択を戻す
     scale: 1 件
     growth: 増えない（選ぶたびに置き換える）
     retention: 期限なし

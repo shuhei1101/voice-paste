@@ -3,7 +3,7 @@ kind: "ライブラリ"
 version:
   current: 1.11.0
   checked_on: '2026-09-30'
-  source: pyproject.toml（~=1.9）と uv.lock の版
+  source: pyproject.toml（~=1.9）と uv.lock のバージョン
   pinning: 互換リリースで固定（~=1.9）
 catalogs:
   - name: API

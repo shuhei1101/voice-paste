@@ -3,7 +3,7 @@ kind: "ライブラリ"
 version:
   current: 1.4.17
   checked_on: '2026-10-01'
-  source: pyproject.toml（pycaw の依存としても入る）と uv.lock の版
+  source: pyproject.toml（pycaw の依存としても入る）と uv.lock のバージョン
   pinning: 互換リリースで固定（~=1.4）
 catalogs:
   - name: API

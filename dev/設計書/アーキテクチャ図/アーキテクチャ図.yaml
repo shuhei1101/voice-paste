@@ -103,7 +103,7 @@ subsystems:
     scope: transcription-worker
     role: 常駐アプリの子プロセスとしてローカルの Whisper のモデルを持ち、標準入出力の JSON Lines で受けた録音を文字に起こす
     runtime: Python 3.11
-    runs_on: ユーザーの端末（Windows。常駐アプリが起動し、落ちたら起動し直す）
+    runs_on: ユーザーの端末（Windows。常駐アプリが起動し、落ちたら再起動する）
     implementation: src/voice_paste/integrations/whisper/worker.py
 lead: voice-paste のサブシステムと、ユーザー・貼り付け先のアプリ・文字起こしのモデルの取得元との境界。
 external_systems:
@@ -133,7 +133,7 @@ external_systems:
     direction: 送信のみ
     protocol: HTTP / HTTPS の POST（プリセットの URL。任意で `Authorization` ヘッダー）
     notes:
-      事前確認: 不要。届くかは送るたびに確かめ、届かなければトレイで知らせて常駐アプリを止めない。
+      事前確認: 不要。届くかは送信するたびに確かめ、届かなければトレイで知らせて常駐アプリを止めない。
     detail: dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送信する.py#
   - name: ゲートウェイ（shuhdev-gateway）
     purpose: 外の端末のブラウザの要求を、Cloudflare Access で認証してから 127.0.0.1 の API の `/web/` の下へ中継する

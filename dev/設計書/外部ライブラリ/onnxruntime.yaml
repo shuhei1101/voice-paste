@@ -3,7 +3,7 @@ kind: "ライブラリ"
 version:
   current: 1.31.0
   checked_on: '2026-10-10'
-  source: pyproject.toml（~=1.25）と uv.lock の版。faster-whisper の依存としても入る
+  source: pyproject.toml（~=1.25）と uv.lock のバージョン。faster-whisper の依存としても入る
   pinning: 互換リリースで固定（~=1.25）
 catalogs:
   - name: API

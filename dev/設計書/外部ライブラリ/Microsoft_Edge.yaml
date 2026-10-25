@@ -1,11 +1,11 @@
 title: "Microsoft Edge"
 kind: "CLI"
 version:
-  current: 端末に入っている版（版を指定していない）
+  current: 端末に入っているバージョン（バージョンを指定していない）
   checked_on: '2026-09-30'
 catalogs:
   - name: コマンド
-    version: 端末に入っている版
+    version: 端末に入っているバージョン
     entries:
       - name: msedge --app={URL}
         kind: コマンド
@@ -14,7 +14,7 @@ catalogs:
         kind: コマンド
         purpose: E2E で、窓を出さずに画面を開き、DevTools Protocol で操作できるようにする。マイクは偽物で許可の確認を自動で通し、渡した WAV を入力に流す（`--user-data-dir` はテストごとの一時のフォルダ）
   - name: DevTools Protocol のメソッド
-    version: 端末に入っている版
+    version: 端末に入っているバージョン
     entries:
       - name: Runtime.evaluate
         kind: 関数
@@ -33,7 +33,7 @@ catalogs:
         purpose: ダウンロードを確認なしで決めたフォルダへ保存させる
       - name: Page.navigate
         kind: 関数
-        purpose: 画面を開く（`Page.reload` で開き直す）
+        purpose: 画面を開く（`Page.reload` で再度開く）
 lead: Windows に入っている Web ブラウザ。`--app` でページをアプリのウィンドウとして開ける。
 dependency_scope: 任意
 adoption: 採用

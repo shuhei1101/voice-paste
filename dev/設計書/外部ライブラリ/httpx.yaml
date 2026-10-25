@@ -5,14 +5,14 @@ version:
   latest: 0.28.1
   checked_on: '2026-10-01'
   source: pyproject.toml
-  pinning: マイナー版の中で固定（~=0.28.1。0.x はマイナー版で互換の無い変更が入る）
+  pinning: マイナーバージョンの中で固定（~=0.28.1。0.x はマイナーバージョンで互換の無い変更が入る）
 catalogs:
   - name: API
     version: 0.28.1
     entries:
       - name: Client.post
         kind: メソッド
-        purpose: 返送先のエンドポイントへ結果を JSON で送る
+        purpose: 返送先のエンドポイントへ結果を JSON で送信する
       - name: Timeout
         kind: クラス
         purpose: 返送のタイムアウトを渡す
@@ -32,6 +32,6 @@ upstream: encode/httpx
 verification:
   state: 済
   date: '2026-10-01'
-  detail: WSL（Linux・Python 3.12）で、127.0.0.1 の受け口へ結果の JSON（session_id・result・text）を POST して 200 と受け取りを確かめた。Windows の実機では未確認
+  detail: WSL（Linux・Python 3.12）で、127.0.0.1 のエンドポイントへ結果の JSON（session_id・result・text）を POST して 200 と受け取りを確かめた。Windows の実機では未確認
 license: BSD-3-Clause（商用利用可）
 official_url: https://www.python-httpx.org/

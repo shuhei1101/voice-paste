@@ -136,7 +136,7 @@ data_models:
   - name: CreateWebTranscriptionResponse
     title: 音声の受け付けのレスポンス
     container: features/web_transcription/schemas.py
-    usecase: ブラウザから音声を送る
+    usecase: ブラウザから音声を送信する
     role: スキーマ
     summary: '`POST /web/transcriptions` の 202 の本文'
     inherits: pydantic.BaseModel
@@ -261,7 +261,7 @@ function_types:
   - name: ProbeAudioFn
     title: 音声の形式の読み取り
     container: features/web_transcription/types.py
-    usecase: ブラウザから音声を送る
+    usecase: ブラウザから音声を送信する
     summary: 音声のファイルを受け、容れ物の形式・秒数・大きさを返す。開けない・音声が無いときは AudioUnreadableError
     returns:
       type: AudioProbe
@@ -541,7 +541,7 @@ functions:
     title: 音声の受け付け
     kind: 関数
     container: features/web_transcription/service.py
-    usecase: ブラウザから音声を送る
+    usecase: ブラウザから音声を送信する
     scope: public
     summary: 指定された用語集のプリセットと受けた音声の形式を確かめ、一時のファイルへ書いてジョブを積む
     args:
@@ -626,7 +626,7 @@ functions:
     title: 音声の受け付けの route
     kind: 関数
     container: features/web_transcription/route.py
-    usecase: ブラウザから音声を送る
+    usecase: ブラウザから音声を送信する
     scope: public
     summary: '`POST /web/transcriptions`。UploadFile の audio と glossary_preset を accept_audio に渡し、202 と job_id を返す'
     args:
@@ -721,7 +721,7 @@ constants:
   - name: WEB_QUEUE_LIMIT
     title: ブラウザの音声の待ちの上限
     container: features/web_transcription/service.py
-    usecase: ブラウザから音声を送る
+    usecase: ブラウザから音声を送信する
     summary: 終わっていないジョブ（queued・running）の上限。非機能要件のブラウザの音声の待ちの上限
     value: '10'
     status: planned
@@ -735,7 +735,7 @@ constants:
   - name: JOB_ID_BYTES
     title: ジョブの ID のバイト数
     container: features/web_transcription/service.py
-    usecase: ブラウザから音声を送る
+    usecase: ブラウザから音声を送信する
     summary: secrets.token_urlsafe に渡す乱数のバイト数（128 bit、22 文字）
     value: '16'
     status: planned

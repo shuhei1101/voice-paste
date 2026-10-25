@@ -5,7 +5,7 @@ scenarios:
       - name: Mock
         description: Windows の Edge で画面を開く。常駐アプリは pytest のプロセスの中で起動し、文字起こしのエンジンは決めた文を区間ごとに進みを返しながら返す関数に差し替える
       - name: 受け付けたジョブ
-        description: ブラウザから音声を送る でジョブを 1 件受け付けている
+        description: ブラウザから音声を送信する でジョブを 1 件受け付けている
     flow: |-
       ```mermaid
       sequenceDiagram
@@ -103,7 +103,7 @@ scenarios:
       - name: Mock
         description: Windows の Edge で画面を開き、文字起こしのエンジンは失敗を返す関数に差し替える
       - name: 受け付けたジョブ
-        description: 画面で録った音声を送り、ジョブを 1 件受け付けている
+        description: 画面で録った音声を送信し、ジョブを 1 件受け付けている
     flow: |-
       ```mermaid
       sequenceDiagram
@@ -140,12 +140,12 @@ scenarios:
     expected:
       - 結果の取得が `404` の problem+json で返っている
       - 件に結果が見つからないことが出て、画面が取りに行くのをやめている
-      - 端末（IndexedDB）に録った音声が残っていれば、送り直せる
+      - 端末（IndexedDB）に録った音声が残っていれば、再送信できる
     test: test_error_when_job_not_found
 lead: 外の端末のブラウザの画面が、受け付けた `job_id` で進み具合と結果を取りに行き、結果を端末に残してコピー・削除できるようにする。
 issue: 92
 primary_actor: ユーザー（外の端末のブラウザ）
 trigger: 画面が音声の送信の `202`（`job_id`）を受け取るか、ユーザーが画面を開き直す
 preconditions:
-  - ブラウザから音声を送る で、音声が受け付けられている（開き直すときを除く）
+  - ブラウザから音声を送信する で、音声が受け付けられている（開き直すときを除く）
 test_file: tests/e2e/単一ユースケース/test_receive_result_in_browser.py

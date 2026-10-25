@@ -207,7 +207,7 @@ classes:
   - name: BodyLimitMiddleware
     title: 本文の上限
     container: server/body_limit.py
-    usecase: ブラウザから音声を送る
+    usecase: ブラウザから音声を送信する
     role: middleware
     kind: クラス
     summary: '`POST /web/transcriptions` の本文が上限以上なら 413 で断る純粋な ASGI middleware'
@@ -458,7 +458,7 @@ functions:
     title: 画面の配信
     kind: 関数
     container: server/web_page.py
-    usecase: ブラウザから音声を送る
+    usecase: ブラウザから音声を送信する
     scope: public
     summary: '`GET /web/`。`server/web/index.html` を `Cache-Control: no-cache` で返す（web_page_router。`GET /web` は `/web/` への 307）'
     returns:
@@ -477,7 +477,7 @@ functions:
     title: 画面の素材の組み込み
     kind: 関数
     container: server/web_page.py
-    usecase: ブラウザから音声を送る
+    usecase: ブラウザから音声を送信する
     scope: public
     summary: '`/web/assets/` に `server/web/assets/` を StaticFiles で組み込む'
     args:
@@ -509,7 +509,7 @@ constants:
   - name: WEB_BODY_LIMIT_BYTES
     title: ブラウザの本文の上限
     container: server/body_limit.py
-    usecase: ブラウザから音声を送る
+    usecase: ブラウザから音声を送信する
     summary: '`POST /web/transcriptions` の本文の上限（このバイト数以上を 413）。非機能要件のブラウザの本文の上限。画面の app.js も同じ値で送信前に確かめる'
     value: '100_000_000'
     status: planned

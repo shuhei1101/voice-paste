@@ -845,7 +845,7 @@ functions:
     title: 音声の形式の読み取り
     kind: 関数
     container: integrations/audio/probe.py
-    usecase: ブラウザから音声を送る
+    usecase: ブラウザから音声を送信する
     scope: public
     inherits: ブラウザの文字起こしの ProbeAudioFn
     summary: 受けた音声を PyAV（av.open）で開き、容れ物の形式・秒数・大きさを返す。開けない・音声のストリームが無いときは AudioUnreadableError

@@ -337,5 +337,5 @@ screen: src/voice_paste/server/web/index.html
 mock: dev/mock/pages/web-transcription/180/a-follow-settings/
 lead: 外の端末のブラウザで開く 1 枚（`GET /web/`）。上に音声送信の区画、下に結果の一覧を 1 カラムで並べる。
 refs:
-  - dev/設計書/シナリオ/単一ユースケース/ブラウザから音声を送る#
+  - dev/設計書/シナリオ/単一ユースケース/ブラウザから音声を送信する#
   - dev/設計書/シナリオ/単一ユースケース/ブラウザで結果を受け取る#

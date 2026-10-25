@@ -812,7 +812,7 @@ data_models:
   - name: AudioProbe
     title: 音声の形式
     container: shared/types.py
-    usecase: ブラウザから音声を送る
+    usecase: ブラウザから音声を送信する
     role: DTO
     summary: 受けた音声を PyAV で開いて読んだ容れ物の形式・秒数・大きさ。外部連携が作り、ブラウザの文字起こしが受ける（feature と integration の間を渡るため shared に置く）
     properties:

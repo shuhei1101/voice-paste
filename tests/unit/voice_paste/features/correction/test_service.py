@@ -530,7 +530,7 @@ def test_resolve_glossary_presets(tmp_path: Path, settings_model: type[Settings]
         glossaries=_two_glossaries(tmp_path),
         glossary_presets=[
             GlossaryPresetSettings(name="既定", glossaries=["yogo"]),
-            GlossaryPresetSettings(name="会議", glossaries=["会議用", "消した", "yogo"]),
+            GlossaryPresetSettings(name="会議", glossaries=["会議用", "削除した", "yogo"]),
         ],
     )
 
@@ -630,11 +630,11 @@ def test_pick_glossary_preset_when_requested_missing(
     """指定した名前が一覧に無ければ、設定で選んでいるプリセットを返す（正常系）。"""
     from voice_paste.features.correction.service import pick_glossary_preset
 
-    # 準備（active_glossary_preset = 会議、requested = 消したプリセット）
+    # 準備（active_glossary_preset = 会議、requested = 削除したプリセット）
     settings = _settings_with_presets(settings_model, tmp_path, "会議")
 
     # 実行
-    preset = pick_glossary_preset(settings, tmp_path, requested="消したプリセット")
+    preset = pick_glossary_preset(settings, tmp_path, requested="削除したプリセット")
 
     # 検証
     assert preset.name == "会議"
@@ -710,7 +710,7 @@ def test_next_glossary_path_when_file_exists(tmp_path: Path) -> None:
 
 
 def test_next_glossary_path_when_taken(tmp_path: Path) -> None:
-    """保存する前に足した用語集の場所とも重ねない（正常系）。"""
+    """保存する前に追加した用語集の場所とも重ねない（正常系）。"""
     from voice_paste.features.correction.service import next_glossary_path
 
     # 準備（空の directory と、glossary_1.csv を含む taken）

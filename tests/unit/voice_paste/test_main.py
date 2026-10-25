@@ -1,7 +1,7 @@
 """main.py（parse_args・main・start_local_session・build_hotkey_bindings・apply_settings・_wire_outputs・_wire_preset_kinds）の単体テスト。
 
 main の配線（build_handlers）・API サーバー（ApiServerRunner）・上限の打ち切りのタイマー（RepeatingTimer）・
-ホットキーの受付（HotkeyListener）・トレイ（Tray）・起動し直し（relaunch）は偽物に差し替え、
+ホットキーの受付（HotkeyListener）・トレイ（Tray）・再起動（relaunch）は偽物に差し替え、
 イベントループ（exec_loop）は、溜まったイベントを処理してすぐ戻る関数にする。
 画面は offscreen の QApplication（conftest の qapp）を使い回す（main は QApplication が既にあればそれを使う）。
 """
@@ -450,7 +450,7 @@ def test_main_when_restart_requested(
     # 実行
     exit_code = main(argv, exec_loop=_request_restart)
 
-    # 検証: 起動し直しは、API とエンジンを止めた後に 1 回だけ
+    # 検証: 再起動は、API とエンジンを止めた後に 1 回だけ
     assert exit_code == 0
     wiring.relaunch.assert_called_once_with(argv)
     assert wiring.calls.index("relaunch") > wiring.calls.index("runner.stop")
@@ -781,7 +781,7 @@ def test_wire_preset_kinds(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     browser_sleeps = list(adapters.sleep.mock_calls)
     by_kind["endpoint"].handler(
-        outcome, EndpointPreset(title="受け口", url="http://127.0.0.1:9000/hook")
+        outcome, EndpointPreset(title="受信先", url="http://127.0.0.1:9000/hook")
     )
 
     # 検証
@@ -793,7 +793,7 @@ def test_wire_preset_kinds(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_wire_preset_kinds_when_settings_changed(monkeypatch: pytest.MonkeyPatch) -> None:
-    """配線の後に変えたタイムアウトが次の送りに効く（正常系）。"""
+    """配線の後に変えたタイムアウトが次の送信に効く（正常系）。"""
     from voice_paste.main import _wire_preset_kinds
     from voice_paste.shared.settings import (
         EndpointPreset,
@@ -818,7 +818,7 @@ def test_wire_preset_kinds_when_settings_changed(monkeypatch: pytest.MonkeyPatch
 
     # 実行
     _kinds_by_name(wired)["endpoint"].handler(
-        outcome, EndpointPreset(title="受け口", url="http://127.0.0.1:9000/hook")
+        outcome, EndpointPreset(title="受信先", url="http://127.0.0.1:9000/hook")
     )
 
     # 検証
@@ -932,7 +932,7 @@ def test_build_hotkey_bindings_when_preset_not_bound(settings_model: type[Settin
             BrowserPreset(
                 title="ChatGPT", url="https://chatgpt.com", hotkey="<ctrl>+<alt>+7", enabled=False
             ),
-            EndpointPreset(title="受け口", url="http://127.0.0.1:9000/hook"),
+            EndpointPreset(title="受信先", url="http://127.0.0.1:9000/hook"),
         ]
     )
 

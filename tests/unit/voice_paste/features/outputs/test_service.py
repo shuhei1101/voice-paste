@@ -26,7 +26,7 @@ def test_deliver_when_api_session() -> None:
         OutputSpec(id="paste_and_send", title="貼り付けて送信", handler=paste_and_send),
         OutputSpec(id="callback", title="呼び出し元へ返す", handler=callback, api_only=True),
     ]
-    preset_kinds = [PresetKindSpec(kind="endpoint", title="エンドポイントへ送る", handler=endpoint)]
+    preset_kinds = [PresetKindSpec(kind="endpoint", title="エンドポイントへ送信", handler=endpoint)]
     outcome = TranscriptionOutcome(
         session_id="session-1", result="transcribed", text="てすと", error=None
     )
@@ -65,7 +65,7 @@ def test_deliver_when_hotkey_session() -> None:
         OutputSpec(id="paste_only", title="貼り付けのみ", handler=paste_only),
         OutputSpec(id="callback", title="呼び出し元へ返す", handler=callback, api_only=True),
     ]
-    preset_kinds = [PresetKindSpec(kind="endpoint", title="エンドポイントへ送る", handler=endpoint)]
+    preset_kinds = [PresetKindSpec(kind="endpoint", title="エンドポイントへ送信", handler=endpoint)]
     outcome = TranscriptionOutcome(
         session_id="session-1", result="transcribed", text="てすと", error=None
     )
@@ -137,9 +137,9 @@ def test_deliver_when_preset() -> None:
     outputs = [OutputSpec(id="paste_and_send", title="貼り付けて送信", handler=paste_and_send)]
     preset_kinds = [
         PresetKindSpec(kind="browser", title="ブラウザ添付", handler=browser),
-        PresetKindSpec(kind="endpoint", title="エンドポイントへ送る", handler=endpoint),
+        PresetKindSpec(kind="endpoint", title="エンドポイントへ送信", handler=endpoint),
     ]
-    preset = EndpointPreset(title="受け口", url="http://127.0.0.1:9000/hook")
+    preset = EndpointPreset(title="受信先", url="http://127.0.0.1:9000/hook")
     outcome = TranscriptionOutcome(
         session_id="session-1", result="transcribed", text="てすと", error=None
     )
@@ -173,7 +173,7 @@ def test_deliver_when_unknown_preset_kind() -> None:
     # 準備
     browser = MagicMock()
     preset_kinds = [PresetKindSpec(kind="browser", title="ブラウザ添付", handler=browser)]
-    preset = EndpointPreset(title="受け口", url="http://127.0.0.1:9000/hook")
+    preset = EndpointPreset(title="受信先", url="http://127.0.0.1:9000/hook")
     outcome = TranscriptionOutcome(
         session_id="session-1", result="transcribed", text="てすと", error=None
     )

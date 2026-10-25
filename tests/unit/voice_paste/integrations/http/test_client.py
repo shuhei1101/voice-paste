@@ -25,7 +25,7 @@ TIMEOUT_SEC = 1.5
 def _use_receiver(
     monkeypatch: pytest.MonkeyPatch, handler: Callable[[httpx.Request], httpx.Response]
 ) -> list[httpx.Request]:
-    """httpx.Client の通信を handler（送り先の受け口）へ向け、受け口に届いた要求を覚えるリストを返す。"""
+    """httpx.Client の通信を handler（送信先のエンドポイント）へ向け、エンドポイントに届いた要求を覚えるリストを返す。"""
     received: list[httpx.Request] = []
     real_client = httpx.Client
 
@@ -46,7 +46,7 @@ def _http_date(delta: timedelta) -> str:
 
 
 def test_post_json(monkeypatch: pytest.MonkeyPatch) -> None:
-    """JSON を送ってステータスを返す（正常系）。"""
+    """JSON を送信してステータスを返す（正常系）。"""
     from voice_paste.integrations.http.client import post_json
 
     # 準備
@@ -63,7 +63,7 @@ def test_post_json(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_post_json_when_headers(monkeypatch: pytest.MonkeyPatch) -> None:
-    """渡したヘッダーを付けて送る（正常系）。"""
+    """渡したヘッダーを付けて送信する（正常系）。"""
     from voice_paste.integrations.http.client import post_json
 
     # 準備

@@ -23,7 +23,7 @@ def _outcome() -> TranscriptionOutcome:
 
 
 def test_paste_and_send() -> None:
-    """コピー・貼り付け・待ち・Enter の順に送る（正常系）。"""
+    """コピー・貼り付け・待ち・Enter の順に送信する（正常系）。"""
     from voice_paste.features.outputs.paste_and_send.service import paste_and_send
 
     # 準備
@@ -53,7 +53,7 @@ def test_paste_and_send() -> None:
 
 
 def test_paste_and_send_when_modifiers() -> None:
-    """設定の修飾キーを渡して Enter を送る（正常系）。"""
+    """設定の修飾キーを渡して Enter を送信する（正常系）。"""
     from voice_paste.features.outputs.paste_and_send.service import paste_and_send
 
     # 準備
@@ -79,7 +79,7 @@ def test_paste_and_send_when_modifiers() -> None:
 
 
 def test_paste_and_send_when_copy_failed() -> None:
-    """クリップボードへ書けなければキーを送らない（異常系）。"""
+    """クリップボードへ書けなければキーを送信しない（異常系）。"""
     from voice_paste.features.outputs.paste_and_send.service import paste_and_send
 
     # 準備

@@ -170,7 +170,7 @@ def _add_preset_glossary(panel: GlossaryPanel, name: str) -> None:
 
 
 def test_glossary_panel_set_glossaries(open_panel: Callable[..., Opened], tmp_path: Path) -> None:
-    """一覧と行の数・使うプリセットを出し、補正に使うプリセットの消すボタンを無効の扱いにする（正常系）。"""
+    """一覧と行の数・使うプリセットを出し、補正に使うプリセットの削除ボタンを無効の扱いにする（正常系）。"""
     from voice_paste.shared.types import GlossaryEntry
 
     # 準備（5 行（オン 3）の「yogo」と 2 行の「会議用」、「既定」「会議」の 2 件のプリセットと、補正に使う「会議」）
@@ -201,7 +201,7 @@ def test_glossary_panel_set_glossaries(open_panel: Callable[..., Opened], tmp_pa
     assert _label(opened.panel, "glossary_detail_title").text() == "用語集「会議用」の行"
     assert (
         _label(opened.panel, "glossary_list_note").text()
-        == "消した用語集は、使っているプリセットからも外れる。"
+        == "削除した用語集は、使っているプリセットからも外れる。"
     )
     _button(opened.panel, "glossary_preset_remove_1").click()
     assert len(opened.panel.collect_presets()) == 2
@@ -271,7 +271,7 @@ def test_glossary_panel_set_glossaries_when_preset_empty(
 def test_glossary_panel_set_glossaries_when_single_glossary(
     open_panel: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """用語集が 1 件だけのときは、その消すボタンを無効の扱いにする（正常系）。"""
+    """用語集が 1 件だけのときは、その削除ボタンを無効の扱いにする（正常系）。"""
     from voice_paste.shared.types import GlossaryEntry
 
     # 準備（1 件の用語集と、それを使う「既定」の 1 件のプリセットで開く）
@@ -299,7 +299,7 @@ def test_glossary_panel_set_glossaries_when_single_glossary(
 
 
 def test_glossary_panel_collect(open_panel: Callable[..., Opened], tmp_path: Path) -> None:
-    """名前を変えた用語集と足した用語集を並びの順に返す（正常系）。"""
+    """名前を変えた用語集と追加した用語集を並びの順に返す（正常系）。"""
     from voice_paste.shared.settings import GlossarySettings
     from voice_paste.shared.types import GlossaryEntry
 
@@ -385,7 +385,7 @@ def test_glossary_panel_collect_presets_when_glossary_removed(
 def test_glossary_panel_collect_presets_when_added(
     open_panel: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """足したプリセットに用語集を追加すると末尾に返し、追加した用語集は選択肢から消える（正常系）。"""
+    """追加したプリセットに用語集を追加すると末尾に返し、追加した用語集は選択肢から消える（正常系）。"""
     from voice_paste.shared.types import GlossaryEntry
 
     # 準備（1 件のプリセットでプリセットを足し、名前を「議事録」にして「会議用」を追加する）
@@ -500,7 +500,7 @@ def test_glossary_panel_changed_rows_when_untouched(
 def test_glossary_panel_changed_rows_when_added(
     open_panel: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """足した用語集は行が無くても返し、両方が空の行は除く（正常系）。"""
+    """追加した用語集は行が無くても返し、両方が空の行は除く（正常系）。"""
     from voice_paste.shared.settings import GlossarySettings
     from voice_paste.shared.types import GlossaryEntry
 
@@ -649,7 +649,7 @@ def test_glossary_panel_change_values_when_glossary_renamed(
 def test_glossary_panel_change_values_when_added(
     open_panel: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """足した用語集とプリセットは新しいキーで返す（正常系）。"""
+    """追加した用語集とプリセットは新しいキーで返す（正常系）。"""
     from voice_paste.shared.settings import GlossarySettings
     from voice_paste.shared.types import GlossaryEntry
 
@@ -739,7 +739,7 @@ def test_glossary_panel_mark_saved(open_panel: Callable[..., Opened], tmp_path: 
 def test_glossary_panel_mark_saved_when_added(
     open_panel: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """足した用語集も保存した行が基準になる（正常系）。"""
+    """追加した用語集も保存した行が基準になる（正常系）。"""
     from voice_paste.shared.settings import GlossarySettings
     from voice_paste.shared.types import GlossaryEntry
 
@@ -762,7 +762,7 @@ def test_glossary_panel_mark_saved_when_added(
 
 
 def test_glossary_panel_add_glossary(open_panel: Callable[..., Opened], tmp_path: Path) -> None:
-    """空の用語集を末尾に足し、行が無いときの文を出す（正常系）。"""
+    """空の用語集を末尾に追加し、行が無いときの文を出す（正常系）。"""
     from voice_paste.shared.settings import GlossarySettings
     from voice_paste.shared.types import GlossaryEntry
 
@@ -792,7 +792,7 @@ def test_glossary_panel_add_glossary(open_panel: Callable[..., Opened], tmp_path
 def test_glossary_panel_add_glossary_preset(
     open_panel: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """空のプリセットを末尾に足し、使う用語集が無いときの文を出す（正常系）。"""
+    """空のプリセットを末尾に追加し、使う用語集が無いときの文を出す（正常系）。"""
     from voice_paste.shared.settings import GlossarySettings
     from voice_paste.shared.types import GlossaryEntry
 

@@ -37,7 +37,7 @@ def _preset(*, send_enter: bool) -> BrowserPreset:
 
 
 def test_send_to_browser() -> None:
-    """Enter まで送るプリセットは、コピー・開く・待ち・貼り付け・待ち・Enter の順に送る（正常系）。"""
+    """Enter まで送信するプリセットは、コピー・開く・待ち・貼り付け・待ち・Enter の順に送信する（正常系）。"""
     from voice_paste.features.outputs.browser.service import send_to_browser
 
     # 準備
@@ -70,7 +70,7 @@ def test_send_to_browser() -> None:
 
 
 def test_send_to_browser_when_paste_only() -> None:
-    """Enter まで送らないプリセットは貼り付けで止める（正常系）。"""
+    """Enter まで送信しないプリセットは貼り付けで止める（正常系）。"""
     from voice_paste.features.outputs.browser.service import send_to_browser
 
     # 準備

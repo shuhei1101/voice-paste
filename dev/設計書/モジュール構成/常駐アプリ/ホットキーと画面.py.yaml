@@ -850,7 +850,7 @@ classes:
       要素は画面設計「録音の画面」が持つ。
       窓は `Qt.Tool | Qt.FramelessWindowHint`（`ui.topmost` がオンなら `Qt.WindowStaysOnTopHint` を追加する）、`WA_ShowWithoutActivating` で出し、出したときにフォーカスを取らない。
       窓の外側の枠（Surface）の role は `window` にし、縁を frame で描かせる（`surface` は設定画面の中の枠と共有するため使わない）。
-      経過時間はコンストラクタで受けた時計 clock で数え（一時停止の間の分は追加しない）、経過時間と波形は WAVE_INTERVAL_MS ごとの QTimer で描き直す。
+      経過時間はコンストラクタで受けた時計 clock で数え（一時停止の間の分は加算しない）、経過時間と波形は WAVE_INTERVAL_MS ごとの QTimer で描き直す。
       見出しの行（状態・経過時間・隠す・×）は、隠す・× の外を押したまま動かすと `QWindow.startSystemMove` で窓を動かし、その回に動かしたフラグを立てる（open で下ろす）。× は「取り消し」と同じく UiDeps.cancel を呼んで閉じ、「隠す」は hide_requested を emit する（隠すのは UiController）。
       コンストラクタは UiDeps と、経過を数える時計 clock（秒を返す関数。既定は time.monotonic）を受ける。
     kind: クラス

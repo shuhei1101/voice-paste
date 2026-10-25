@@ -252,7 +252,7 @@ classes:
           1. http の `POST /web/transcriptions` でなければそのまま次へ渡す
           2. Content-Length があり _limit 以上なら、本文を読まずに 413 の problem+json を返す
              - `[WARNING]` 本文が大きすぎるため断った（大きさ）
-          3. receive を包む関数を次へ渡す。包む関数は `http.request` の body のバイト数を追加し、_limit 以上になったら RequestBodyTooLargeError を送出する（例外ハンドラが 413 にする。読みかけの SpooledTemporaryFile は Starlette が閉じる）
+          3. receive を包む関数を次へ渡す。包む関数は `http.request` の body のバイト数を加算し、_limit 以上になったら RequestBodyTooLargeError を送出する（例外ハンドラが 413 にする。読みかけの SpooledTemporaryFile は Starlette が閉じる）
              - `[WARNING]` 同上
         exceptions:
           - name: RequestBodyTooLargeError

@@ -78,7 +78,7 @@ data_models:
         description: API の録音を止めた後、完了までセッションが持つ貯めた音
       - name: output_preset
         type: Preset | None
-        description: ホットキー・トレイから始めた録音で、確定の操作で選んだカスタムプリセット（確定したときの設定の写し）。固定の出力先を選んだときと API のときは None
+        description: ホットキー・トレイから始めた録音で、確定の操作で選んだカスタムプリセット（確定したときの設定のコピー）。固定の出力先を選んだときと API のときは None
       - name: continuous
         type: bool
         default: 'False'
@@ -125,7 +125,7 @@ data_models:
         description: 起こした文字とセッションの glossary_preset を受け、その用語集のプリセットで補正する
       - name: append_text
         type: AppendTextFn
-        description: 起こした文字を履歴に書き足す
+        description: 起こした文字を履歴に追記する
       - name: deliver
         type: DeliverFn
         description: 結果を出力先へ届ける
@@ -200,11 +200,11 @@ data_models:
         description: 今の設定の用語集のプリセットの一覧に、その名前があるか（補正の resolve_glossary_presets で引いた一覧で判定する）
     status: implemented
   - name: ContinuousEnd
-    title: 連続録音の終わりの印
+    title: 連続録音の終わりのマーカー
     container: features/session/types.py
     usecase: APIで録音を操作する
     role: DTO
-    summary: 連続録音の区間の待ち行列へ、全ての区間の後ろに積む終わりの印。終わった理由を持つ
+    summary: 連続録音の区間の待ち行列へ、全ての区間の後ろに積む終わりのマーカー。終わった理由を持つ
     properties:
       - name: result
         type: Literal["completed", "truncated", "failed"]
@@ -279,10 +279,10 @@ function_types:
       - target: 文字起こしの transcribe
     status: implemented
   - name: AppendTextFn
-    title: 履歴への文字の書き足し
+    title: 履歴への文字の追記
     container: features/session/types.py
     usecase: 共通
-    summary: 起こした文字を録音と同じ履歴に書き足す
+    summary: 起こした文字を録音と同じ履歴に追記する
     args:
       - name: audio_path
         type: Path
@@ -400,7 +400,7 @@ classes:
         type: queue.Queue[tuple[int, Segment] | ContinuousEnd | None] | None
         access: 内部 (_)
         default: None
-        description: 連続録音の区間（通し番号つき）を区切った順にワーカースレッドへ渡す待ち行列。ContinuousEnd は終わりの印、None は終了で返さずにやめる印。連続録音でなければ None
+        description: 連続録音の区間（通し番号つき）を区切った順にワーカースレッドへ渡す待ち行列。ContinuousEnd は終わりのマーカー、None は終了で返さずにやめるマーカー。連続録音でなければ None
     methods:
       - name: start
         title: 開始
@@ -780,7 +780,7 @@ classes:
         title: 確定後の流れ
         kind: メソッド
         scope: internal
-        summary: 文字起こし → 補正 → 履歴への書き足し → 届けるを行い、待機中に戻す
+        summary: 文字起こし → 補正 → 履歴への追記 → 届けるを行い、待機中に戻す
         args:
           - name: session
             type: Session
@@ -798,7 +798,7 @@ classes:
              - TranscriptionError の場合、入口が api なら result=failed を届け、それ以外は transcription_failed を知らせて 7 へ
                - `[ERROR]` 文字起こしに失敗した（セッションの ID・理由）
           2. セッションの glossary_preset を渡して用語集で補正する（用語集での補正）
-          3. 起こした文字を履歴に書き足す（履歴への文字の書き足し）
+          3. 起こした文字を履歴に追記する（履歴への文字の追記）
           4. 結果が空で入口が api でなければ、届けずに 7 へ
              - `[INFO]` 文字起こしの結果が空だった（セッションの ID）
           5. ロックの中で状態を delivering にし、そのときの今のセッション（文字起こし中に switch_output で差し替えた出力先を持つ）を引き直す
@@ -981,7 +981,7 @@ classes:
         title: 連続録音の終わり方
         kind: メソッド
         scope: internal
-        summary: 連続録音を transcribing にしてからロックを離して録音を止め、最後の区間の後ろに終わりの印を積む。ロックを持たずに呼び、終えられたかを返す
+        summary: 連続録音を transcribing にしてからロックを離して録音を止め、最後の区間の後ろに終わりのマーカーを積む。ロックを持たずに呼び、終えられたかを返す
         description: 録音を止めると、区切りのスレッドが最後の区間を _on_segment へ渡す（_on_segment はロックを取る）ため、状態を書き換えた後にロックを離してから止める。先に transcribing にするので、同じセッションへの 2 度目の完了・打ち切りは通らない。
         args:
           - name: session_id
@@ -1047,7 +1047,7 @@ classes:
         title: 区間を起こして返す
         kind: メソッド
         scope: internal
-        summary: ワーカースレッドで、区間の待ち行列を区切った順に 1 つずつ処理し、終わりの印で終わりを返して待機中に戻す
+        summary: ワーカースレッドで、区間の待ち行列を区切った順に 1 つずつ処理し、終わりのマーカーで終わりを返して待機中に戻す
         description: 前の区間の返送（再送を含む）を終えてから次の区間を処理するので、返送は通し番号の順に届き、終わりは全ての区間の後ろになる。
         args:
           - name: session
@@ -1098,7 +1098,7 @@ classes:
         title: 区間の処理
         kind: メソッド
         scope: internal
-        summary: 1 区間を保存 → 文字起こし → 補正 → 履歴への書き足し → 返す。失敗はその区間の failed として返し、連続録音は止めない
+        summary: 1 区間を保存 → 文字起こし → 補正 → 履歴への追記 → 返す。失敗はその区間の failed として返し、連続録音は止めない
         args:
           - name: session_id
             type: str
@@ -1118,7 +1118,7 @@ classes:
         process: |-
           1. 区間の音を保存する（録音の保存。segment_number に通し番号）
           2. 文字に起こす（文字起こし。進みを知らせる関数は None）
-          3. セッションの glossary_preset を渡して用語集で補正し、区間の録音と同じ履歴に書き足す
+          3. セッションの glossary_preset を渡して用語集で補正し、区間の録音と同じ履歴に追記する
           4. result=transcribed・segment_number=通し番号で届ける（結果が空でも届ける）
              - 1〜3 で例外（TranscriptionError を含む）が出た場合、result=failed・segment_number=通し番号・理由で届ける
                - `[ERROR]` 区間の文字起こしに失敗した（セッションの ID・通し番号・理由）
@@ -1270,13 +1270,13 @@ functions:
       - name: test_start_session_route_when_continuous
         case: 正常
         summary: continuous を SessionManager.start へ渡す
-        condition: 'body が {callback_url: http://127.0.0.1:9000/r, continuous: true}。省いた body も送る'
+        condition: 'body が {callback_url: http://127.0.0.1:9000/r, continuous: true}。省いた body も送信する'
         mock: SessionApiDeps の SessionManager
         expected: start に continuous=True が渡り、省いたときは continuous=False が渡る
       - name: test_start_session_route_when_glossary_preset
         case: 正常
         summary: 一覧にある用語集のプリセットを SessionManager.start へ渡す
-        condition: 'body が {callback_url: http://127.0.0.1:9000/r, glossary_preset: 会議} で、glossary_preset_exists が True を返す。glossary_preset を省いた body も送る'
+        condition: 'body が {callback_url: http://127.0.0.1:9000/r, glossary_preset: 会議} で、glossary_preset_exists が True を返す。glossary_preset を省いた body も送信する'
         mock: SessionApiDeps の SessionManager・glossary_preset_exists
         expected: start に glossary_preset="会議" が渡る。省いたときは glossary_preset=None が渡り、glossary_preset_exists は呼ばれない
       - name: test_start_session_route_when_glossary_preset_not_found

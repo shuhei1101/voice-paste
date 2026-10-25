@@ -23,7 +23,7 @@ function_types:
     title: エンジン
     container: features/transcription/types.py
     usecase: 録音を文字に起こす
-    summary: 1 つのエンジンで録音を起こす。エンジンを 1 つ足すときはこの型の実装を足して main.py で登録する
+    summary: 1 つのエンジンで録音を起こす。エンジンを 1 つ追加するときはこの型の実装を追加して main.py で登録する
     args:
       - name: audio_path
         type: Path

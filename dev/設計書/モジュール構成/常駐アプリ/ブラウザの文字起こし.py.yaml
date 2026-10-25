@@ -172,7 +172,7 @@ data_models:
   - name: GlossaryPresetChoices
     title: 用語集のプリセットの選択肢
     container: features/web_transcription/types.py
-    usecase: 用語集のプリセットを選んで送る
+    usecase: 用語集のプリセットを選んで送信する
     role: DTO
     summary: 画面の選択欄に並べるプリセットの名前の一覧と、設定で選んでいるプリセットの名前（frozen）
     properties:
@@ -188,7 +188,7 @@ data_models:
   - name: WebGlossaryPresetsResponse
     title: 用語集のプリセットの一覧のレスポンス
     container: features/web_transcription/schemas.py
-    usecase: 用語集のプリセットを選んで送る
+    usecase: 用語集のプリセットを選んで送信する
     role: スキーマ
     summary: '`GET /web/glossary-presets` の 200 の本文'
     inherits: pydantic.BaseModel
@@ -237,7 +237,7 @@ function_types:
       - target: main.py の build_handlers の correct（セッションと同じ）
     status: planned
   - name: AppendTextFn
-    title: 起こした文字の書き足し
+    title: 起こした文字の追記
     container: features/web_transcription/types.py
     usecase: 共通
     summary: 音声のパスと起こした文字を受け、同じ名前の .txt に書く（一時のファイルなら何もしない）
@@ -272,7 +272,7 @@ function_types:
   - name: GlossaryPresetExistsFn
     title: 用語集のプリセットの確かめ
     container: features/web_transcription/types.py
-    usecase: 用語集のプリセットを選んで送る
+    usecase: 用語集のプリセットを選んで送信する
     summary: 用語集のプリセットの名前を受け、今の設定の一覧にあるかを返す（大文字と小文字を区別する）
     returns:
       type: bool
@@ -285,7 +285,7 @@ function_types:
   - name: ListGlossaryPresetsFn
     title: 用語集のプリセットの一覧の取得
     container: features/web_transcription/types.py
-    usecase: 用語集のプリセットを選んで送る
+    usecase: 用語集のプリセットを選んで送信する
     summary: 引数を受けず、呼んだ時点の設定の用語集のプリセットの名前の一覧と、設定で選んでいるプリセットの名前を返す
     returns:
       type: GlossaryPresetChoices
@@ -476,7 +476,7 @@ classes:
           2. 受けた音声を保存する（store_audio。履歴を残す設定なら履歴へ移し、audio_path を差し替える）
           3. 起こす（transcribe。進みは progress に書く）
           4. ジョブの glossary_preset で補正する（correct。None なら補正の時点で設定で選んでいるプリセット）
-          5. 起こした文字を履歴に書き足す（append_text）
+          5. 起こした文字を履歴に追記する（append_text）
           6. ジョブを done・progress 1.0・text で終える
              - `[INFO]` 起こし終えた（job_id・秒数・文字数。起こした文字は書かない）
              - 2〜5 で TranscriptionError・OSError の場合、ジョブを failed・error で終える
@@ -484,7 +484,7 @@ classes:
              - それ以外の例外の場合も failed・「想定していない問題」で終える
                - `[ERROR]` 想定していない例外（job_id。スタックをログに書き、error には含めない）
           7. 一時のファイルなら消す（discard_temporary。失敗しても通る）
-          8. 終わったジョブの一覧に足し、_max_finished を超えたらいちばん古い件を _jobs から捨てる
+          8. 終わったジョブの一覧に追加し、_max_finished を超えたらいちばん古い件を _jobs から捨てる
         unit_tests:
           - name: test_process
             case: 正常
@@ -570,9 +570,9 @@ functions:
          - `[WARNING]` 用語集のプリセットが無いため断った（指定した名前）
       3. 音声の形式を読む（probe_audio。読めなければ AudioUnreadableError が伝わる）
          - `[WARNING]` 読めない音声を断った（大きさ・理由）
-      4. ID を作り、`{tmp_dir}/{ID}{容れ物の拡張子}` へ頭から写す
+      4. ID を作り、`{tmp_dir}/{ID}{容れ物の拡張子}` へ頭からコピーする
       5. glossary_preset と共にキューに積む（submit）
-         - WebQueueFullError の場合、写した一時のファイルを消してそのまま送出する
+         - WebQueueFullError の場合、コピーした一時のファイルを消してそのまま送出する
            - `[WARNING]` 待ちが上限のため断った（待ちの数）
     exceptions:
       - name: AudioUnreadableError
@@ -587,7 +587,7 @@ functions:
         summary: 容れ物の拡張子で書いて積む
         condition: probe_audio が webm を返す
         mock: probe_audio・WebJobQueue.submit
-        expected: tmp_dir に `{ID}.webm` が送った中身で書かれ、submit がそのパスと glossary_preset None で呼ばれる
+        expected: tmp_dir に `{ID}.webm` が送信した内容で書かれ、submit がそのパスと glossary_preset None で呼ばれる
       - name: test_accept_audio_when_unreadable
         case: 異常
         summary: 読めなければ書かない
@@ -698,7 +698,7 @@ functions:
   - name: get_web_glossary_presets_route
     title: 用語集のプリセットの一覧の route
     container: features/web_transcription/route.py
-    usecase: 用語集のプリセットを選んで送る
+    usecase: 用語集のプリセットを選んで送信する
     summary: '`GET /web/glossary-presets`。list_glossary_presets で引いた名前の一覧と設定で選んでいるプリセットの名前を返す'
     kind: 関数
     scope: public

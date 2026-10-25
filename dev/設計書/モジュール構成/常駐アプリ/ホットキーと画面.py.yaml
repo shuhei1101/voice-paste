@@ -716,7 +716,7 @@ classes:
           description: なし
         process: |-
           1. hidden の場合、「録音の画面を表示」を押せるようにし、太字にする
-          2. それ以外の場合、押せなくして太字を外し、状態ごとの理由を添える（shown：（表示中）、no_window：（画面を出さない録音）、not_recording：（録音していません））
+          2. それ以外の場合、押せなくして太字を外し、状態ごとの理由を添える（shown：（表示中）、no_window：（画面を表示しない録音）、not_recording：（録音していません））
         unit_tests:
           - name: test_set_recording_window_when_hidden
             case: 正常
@@ -735,7 +735,7 @@ classes:
             summary: 画面を出さない録音では理由を添えて押せなくする
             condition: set_recording_window(no_window)
             mock: なし（offscreen の QApplication）
-            expected: 「録音の画面を表示（画面を出さない録音）」が押せず、太字でない
+            expected: 「録音の画面を表示（画面を表示しない録音）」が押せず、太字でない
           - name: test_set_recording_window_when_not_recording
             case: 正常
             summary: 録音していないときは理由を添えて押せなくする
@@ -1157,10 +1157,10 @@ classes:
           3. _clear_errors で前の保存で出したエラーの一覧と欄の下のエラーを消し、GlossaryPanel.mark_saved で用語集の書き戻しの基準を保存した行へ置き直し、HintPresetPanel.mark_saved と種類ごとの PresetListPanel.mark_saved でプリセットの番号を保存した並びで振り直し、変えた欄の数えの基準（`_baseline`）を今の欄の値へ置き直す（「再起動で反映」の件数の基準は開いたときの値のまま）
           4. saved を emit する
              - restart の場合、restart_requested を emit して窓を閉じ、True を返す
-          5. 窓を開いたまま、保存したメッセージを出して、同じ文を `QAccessible.updateAccessibility(QAccessibleAnnouncementEvent(知らせ, 文))` で読み上げにも伝え、True を返す（入れた値・選んでいたまとまり・欄のフォーカスはそのまま）
-             - 知らせの文は「保存しました。」。ホットキーの欄（`hotkeys.*`・`outputs[].hotkey`・`presets[].hotkey`。`keyboard.paste_key` は含めない）のどれかが開いたときの値から変わっていれば「新しいホットキーは、設定画面を閉じると効きます。」を続ける
+          5. 窓を開いたまま、保存したメッセージを出して、同じ文を `QAccessible.updateAccessibility(QAccessibleAnnouncementEvent(メッセージ, 文))` で読み上げにも伝え、True を返す（入れた値・選んでいたまとまり・欄のフォーカスはそのまま）
+             - 保存したメッセージの文は「保存しました。」。ホットキーの欄（`hotkeys.*`・`outputs[].hotkey`・`presets[].hotkey`。`keyboard.paste_key` は含めない）のどれかが開いたときの値から変わっていれば「新しいホットキーは、設定画面を閉じると効きます。」を続ける
              - 開いたときの値から変わった「再起動で反映」の欄がある場合、「「再起動で反映」の設定 {件数} 件は、再起動するまで前の値で動きます。」を続け、今すぐ再起動のボタンを出して、再起動のメッセージと保存して再起動のボタンを隠す
-             - 欄を変えると知らせ（と今すぐ再起動のボタン）を消し、開いたときの値から数えた再起動のメッセージと保存して再起動のボタンを出し直す
+             - 欄を変えると保存したメッセージ（と今すぐ再起動のボタン）を消し、開いたときの値から数えた再起動のメッセージと保存して再起動のボタンを出し直す
         unit_tests:
           - name: test_save
             case: 正常
@@ -1271,7 +1271,7 @@ classes:
             expected: 2 回目の書き戻しの引数が 1 件目の場所を持ち、その行がオン
           - name: test_save_then_close
             case: 正常
-            summary: 保存の後に欄を変えずに閉じると確認を出さずに閉じ、保存の後に欄を変えると知らせが消える
+            summary: 保存の後に欄を変えずに閉じると確認を出さずに閉じ、保存の後に欄を変えると保存したメッセージが消える
             condition: 「録音中の音量の割合」を 30 にして save(restart=False) し、try_close を呼ぶ。別のケースで用語集の行を 1 つオフにして save(restart=False) し、欄を変えずに try_close を呼ぶ。もう 1 つのケースで保存の後に「録音の画面を出さない」をオンにする
             mock: UiDeps.save_settings・list_glossaries・read_glossary・confirm_discard
             expected: 音量のケースと用語集のケースのどちらも、try_close が True を返し、confirm_discard が呼ばれず、closed が 1 回知らされる。欄を変えたケースは保存したメッセージが隠れる
@@ -1578,7 +1578,7 @@ classes:
             summary: 読めない用語集も一覧に出し、行の表の代わりに理由を出す
             condition: 2 件の用語集のうち、2 件目で行を読む関数が GlossaryReadError を送出する。プリセットは 1 件目の用語集だけを使う「既定」の 1 件
             mock: 行を読む関数（2 件目の場所で GlossaryReadError を送出する）
-            expected: 一覧が 2 件で、2 件目の行の数が「読めません」。2 件目を選ぶと、理由を含む知らせが出て行の表が出ず、行の追加ボタンが無効。追加する用語集の選択に 2 件目がある
+            expected: 一覧が 2 件で、2 件目の行の数が「読めません」。2 件目を選ぶと、理由を含む読めない用語集のメッセージが出て行の表が出ず、行の追加ボタンが無効。追加する用語集の選択に 2 件目がある
           - name: test_glossary_panel_set_glossaries_when_preset_empty
             case: 正常
             summary: 使う用語集が無いプリセットでは、表の代わりに文を出し、一覧の 1 件目の行の表を出す

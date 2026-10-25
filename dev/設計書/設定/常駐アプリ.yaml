@@ -456,7 +456,7 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
     refs:
-      - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送る.py#
+      - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送信する.py#
   - key: presets[].hotkey
     title: カスタムプリセットで確定するホットキー
     file: settings.toml
@@ -496,7 +496,7 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
     refs:
-      - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送る.py#
+      - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送信する.py#
   - key: preset_options.browser.open_delay_sec
     title: ブラウザで開いてから貼り付けるまでの秒数
     file: settings.toml
@@ -519,7 +519,7 @@ settings:
     implementation: src/voice_paste/shared/settings.py
     refs:
       - dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送るときのタイムアウト]
-      - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送る.py#
+      - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送信する.py#
   - key: api.continuous.min_silence_sec
     title: 連続録音を区切る無音の長さ
     file: settings.toml

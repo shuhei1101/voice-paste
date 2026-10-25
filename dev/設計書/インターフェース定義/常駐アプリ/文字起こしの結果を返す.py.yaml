@@ -163,14 +163,14 @@ response_example: |-
     "error": null
   }
   ```
-response_notes: 終わったジョブは、終わったジョブを持つ件数を超えるまで、何度取りに来ても同じ内容を返す。常駐サービスを起動し直すと、それまでのジョブは全て 404 になる。
+response_notes: 終わったジョブは、終わったジョブを持つ件数を超えるまで、何度取りに来ても同じ内容を返す。常駐サービスを再起動すると、それまでのジョブは全て 404 になる。
 status_codes:
   - code: '200'
     condition: ジョブがあり、状態を返した
   - code: '403'
     condition: Host が 127.0.0.1 でも localhost でもないか、Origin が付いていて許す Origin に無い
   - code: '404'
-    condition: job_id のジョブが無い（受け付けていない・常駐サービスを起動し直した・終わったジョブを持つ件数を超えて捨てた）
+    condition: job_id のジョブが無い（受け付けていない・常駐サービスを再起動した・終わったジョブを持つ件数を超えて捨てた）
 error_format: RFC 9457 の `application/problem+json`（`type`・`title`・`status`・`detail`）で返す。今の API の `problem_response` に揃える。
 constraints:
   - item: 待ち受け

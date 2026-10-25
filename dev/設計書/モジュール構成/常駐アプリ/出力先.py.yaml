@@ -120,7 +120,7 @@ data_models:
             expected: 'model_dump() が {session_id: s1, result: transcribed, text: テスト, error: None}'
     refs:
       - dev/設計書/インターフェース定義/常駐アプリ/呼び出し元へ返す.py#
-      - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送る.py#
+      - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送信する.py#
     status: implemented
   - name: OutputDeps
     title: 出力先の配線に渡すもの
@@ -232,7 +232,7 @@ data_models:
     usecase: 起こした文字を届ける
     role: スキーマ
     summary: 呼び出し元へ返すが送る JSON。送る中身に、連続録音の区間の通し番号と区間の数を足す
-    description: 設定のエンドポイントへ送る中身（ResultPayload）は変えないため、呼び出し元へ返すときだけこの子を使う。
+    description: 設定のエンドポイントへ送信する中身（ResultPayload）は変えないため、呼び出し元へ返すときだけこの子を使う。
     inherits: ResultPayload
     properties:
       - name: result
@@ -1016,7 +1016,7 @@ functions:
         expected: DeliveryError が送出され、post が 1 回だけ呼ばれる
         exception: タイムアウト・接続できない
     refs:
-      - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送る.py#
+      - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送信する.py#
       - dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送るときのタイムアウト]
     status: implemented
   - name: read_enter_delay_sec

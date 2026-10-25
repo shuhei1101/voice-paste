@@ -126,7 +126,7 @@ requirements:
         condition: 固めた設定（`tests/nfr/fixtures/whisper.env` の large-v3・cuda）で WhisperWorkerClient を作り、start → stop を 20 回続ける
         measurement: 毎回の start（ワーカーの起動から ready を受けるまで）の時間（秒）を測り、生の値と中央値・最大を出す
         expected: 20 回とも ready を受け、最大が 27 秒以内
-        notes: 測った最大から規約『資源の値の決め方』で決定値を再決定す。`tests/nfr/fixtures/` が無い環境・GPU が無い環境では skip する
+        notes: 測った最大から規約『資源の値の決め方』で決定値を再決定する。`tests/nfr/fixtures/` が無い環境・GPU が無い環境では skip する
     test_file: tests/nfr/test_worker_recovery_time.py
   - name: 刷新の前後での起こした文字の一致
     english_name: transcription_parity
@@ -234,7 +234,7 @@ requirements:
         condition: 固めた設定（`tests/nfr/fixtures/whisper.env` の large-v3・cuda）で WhisperWorkerClient を start しては標準入力を閉じることを 20 回続ける
         measurement: 毎回、標準入力を閉じてからワーカーのプロセスが終わるまでの時間（秒）を測り、生の値と中央値・最大を出す
         expected: 20 回とも terminate せずに終わり、最大が 2 秒以内
-        notes: 測った最大から規約『資源の値の決め方』の下流を待つタイムアウトで決定値を再決定す。`tests/nfr/fixtures/` が無い環境・GPU が無い環境では skip する
+        notes: 測った最大から規約『資源の値の決め方』の下流を待つタイムアウトで決定値を再決定する。`tests/nfr/fixtures/` が無い環境・GPU が無い環境では skip する
     test_file: tests/nfr/test_worker_stop_timeout.py
   - name: 前の常駐サービスの終わりを待つ時間
     english_name: single_instance_timeout
@@ -268,7 +268,7 @@ requirements:
         condition: 固めた設定（`tests/nfr/fixtures/whisper.env` の large-v3・cuda）で `python -m voice_paste --data-dir {一時フォルダ}` を起動して待機中（トークンのファイルが書かれる）を待ち、同じ `--data-dir` でもう 1 つ起動する。これを 10 回続ける
         measurement: 後のプロセスのログの「前の常駐サービスに終わるよう頼んだ」から「単一インスタンスを確保した」までの時間（秒）を測り、生の値と中央値・最大を出す。前のプロセスが終わったことも確かめる
         expected: 10 回とも前のプロセスが終わって後のプロセスが待機中になり、常駐サービスのプロセスが 1 つだけで、最大が 54 秒以内
-        notes: 測った値から余裕を再決定す。`--run-e2e` が無い環境・`tests/nfr/fixtures/` が無い環境では skip する
+        notes: 測った値から余裕を再決定する。`--run-e2e` が無い環境・`tests/nfr/fixtures/` が無い環境では skip する
       - name: test_single_instance_timeout_when_previous_starting
         summary: 前の常駐サービスがモデルの読み込み中でも、決定値以内に入れ替わり、常駐サービスが 0 個にならない
         condition: 固めた設定で `python -m voice_paste --data-dir {一時フォルダ}` を起動し、ログに「単一インスタンスを確保した」が出た直後（トークンのファイルが書かれる前の、モデルの読み込み中）に同じ `--data-dir` でもう 1 つ起動する。これを 5 回続ける
@@ -496,7 +496,7 @@ requirements:
     source_kind: 制限なし
     value: '100'
     unit: 件
-    rationale: 終わったジョブ（done・failed）は、画面が結果を取りに来るまで常駐サービスのメモリに持つ。画面を閉じて後で再度開しても取りに来られるように、時間では捨てず件数で古い順に捨てる。画面が残す結果の件数（10 件）の 10 倍にし、30 分の録音の文字（約 2 万字・約 60 KB）が 100 件でも約 6 MB に収まる。常駐サービスを再起動すると全て消える（起こした文字は PC の履歴に残る）
+    rationale: 終わったジョブ（done・failed）は、画面が結果を取りに来るまで常駐サービスのメモリに持つ。画面を閉じて後で再度開いても取りに来られるように、時間では捨てず件数で古い順に捨てる。画面が残す結果の件数（10 件）の 10 倍にし、30 分の録音の文字（約 2 万字・約 60 KB）が 100 件でも約 6 MB に収まる。常駐サービスを再起動すると全て消える（起こした文字は PC の履歴に残る）
     overflow: いちばん古く終わったジョブを捨て、その結果の取得は 404 になる
     measurement: ジョブを 101 件終わらせ、最初のジョブと最後のジョブの結果を取りに行く
     test_file: tests/nfr/test_web_finished_jobs_kept.py

@@ -55,7 +55,7 @@ tables:
   - name: localStorage voice-paste.results
     title: 結果
     datastore: JSON（localStorage）
-    summary: 送信した音声の結果の一覧（配列。新しい件が先頭）。終わっていない件も持ち、画面を再度開したら結果を取りに行くのを続ける
+    summary: 送信した音声の結果の一覧（配列。新しい件が先頭）。終わっていない件も持ち、画面を再度開いたら結果を取りに行くのを続ける
     primary_key: job_id
     scale: 最大 10 件
     growth: 送信が 202 になるたびに 1 件増え、10 件を超えたらいちばん古い件を削除する
@@ -100,7 +100,7 @@ tables:
   - name: localStorage voice-paste.glossary_preset
     title: 選んだ用語集のプリセット
     datastore: localStorage
-    summary: 用語集のプリセットの選択欄で最後に選んだ名前。画面を再度開したときに選択を戻す
+    summary: 用語集のプリセットの選択欄で最後に選んだ名前。画面を再度開いたときに選択を戻す
     scale: 1 件
     growth: 増えない（選ぶたびに置き換える）
     retention: 期限なし

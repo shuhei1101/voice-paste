@@ -53,7 +53,7 @@ categories:
       npm run build
       ```
 
-      2. 開発中に保存ごとに再生成す
+      2. 開発中に保存ごとに再生成する
 
       ```bash
       npm run dev

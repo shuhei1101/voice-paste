@@ -40,7 +40,7 @@ enums:
         title: ブラウザ添付
         description: BrowserPreset
       - value: endpoint
-        title: エンドポイントへ送る
+        title: エンドポイントへ送信
         description: EndpointPreset
     refs:
       - dev/設計書/設定/常駐アプリ#settings[presets[].kind]
@@ -213,7 +213,7 @@ data_models:
       - name: edge_phrases
         type: list[EdgePhraseSettings]
         default: DEFAULT_EDGE_PHRASES の写し
-        description: 文頭・文末から消す文言の一覧。並びが当てる順と設定画面の一覧の並びになる。キーが無い settings.toml は既定の一覧として読む（`default_factory`）。文言が空の行は `field_validator(mode="after")` で一覧から除く（各行の失敗の場所は、除く前の並びの番号のまま）
+        description: 文頭・文末から削除する文言の一覧。並びが当てる順と設定画面の一覧の並びになる。キーが無い settings.toml は既定の一覧として読む（`default_factory`）。文言が空の行は `field_validator(mode="after")` で一覧から除く（各行の失敗の場所は、除く前の並びの番号のまま）
       - name: glossary_presets
         type: list[GlossaryPresetSettings]
         default: '[]'
@@ -435,11 +435,11 @@ data_models:
       - name: show_hotkeys
         type: bool
         default: 'True'
-        description: 録音の画面のボタンにホットキーを出すか。反映は immediate。description の最初の文を設定の設計書の `title` にそろえる（設定画面の欄の名前になる）
+        description: 録音の画面のボタンにホットキーを表示するか。反映は immediate。description の最初の文を設定の設計書の `title` にそろえる（設定画面の欄の名前になる）
       - name: transcribing_show_hotkeys
         type: bool
         default: 'True'
-        description: 文字起こし中の表示のボタンにホットキーを出すか。反映は immediate。description の最初の文を設定の設計書の `title` にそろえる（設定画面の欄の名前になる）。項目が無いときは _inherit_transcribing_show_hotkeys が show_hotkeys の値を入れる
+        description: 文字起こし中の表示のボタンにホットキーを表示するか。反映は immediate。description の最初の文を設定の設計書の `title` にそろえる（設定画面の欄の名前になる）。項目が無いときは _inherit_transcribing_show_hotkeys が show_hotkeys の値を入れる
     status: implemented
     methods:
       - name: _inherit_transcribing_show_hotkeys
@@ -538,16 +538,16 @@ data_models:
       - name: send_enter
         type: bool
         default: 'True'
-        description: 貼り付けた後に Enter まで送るか
+        description: 貼り付けた後に Enter まで送信するか
     refs:
       - dev/設計書/設定/常駐アプリ#settings[presets[].kind]
     status: implemented
   - name: EndpointPreset
-    title: エンドポイントへ送るのプリセット
+    title: エンドポイントへ送信のプリセット
     container: shared/settings.py
     usecase: 共通
     role: 設定のモデル
-    summary: エンドポイントへ送るの種類のプリセット 1 件
+    summary: エンドポイントへ送信の種類のプリセット 1 件
     inherits: pydantic.BaseModel
     description: '`model_config = ConfigDict(extra="forbid", frozen=True)`。authorization は `Field(repr=False)` にして、設定やセッションを repr でログに出しても値が出ないようにする（SecretStr は model_dump(mode="json") で伏せ字になり settings.toml へ書き戻せないため使わない）。'
     properties:
@@ -589,7 +589,7 @@ data_models:
         description: ブラウザ添付のオプション
       - name: endpoint
         type: EndpointPresetOptions
-        description: エンドポイントへ送るのオプション
+        description: エンドポイントへ送信のオプション
     status: implemented
   - name: BrowserPresetOptions
     title: ブラウザ添付のオプション
@@ -607,11 +607,11 @@ data_models:
       - dev/設計書/設定/常駐アプリ#settings[preset_options.browser.open_delay_sec]
     status: implemented
   - name: EndpointPresetOptions
-    title: エンドポイントへ送るのオプション
+    title: エンドポイントへ送信のオプション
     container: shared/settings.py
     usecase: 共通
     role: 設定のモデル
-    summary: エンドポイントへ送るの全てのプリセットで使う、送るときのタイムアウト
+    summary: エンドポイントへ送信の全てのプリセットで使う、送るときのタイムアウト
     inherits: pydantic.BaseModel
     properties:
       - name: timeout_sec
@@ -620,7 +620,7 @@ data_models:
         description: 送るときのタイムアウトの秒数（`ge=0.5, le=10`。既定・範囲は非機能要件）
     refs:
       - dev/設計書/設定/常駐アプリ#settings[preset_options.endpoint.timeout_sec]
-      - dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送るときのタイムアウト]
+      - dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送信するときのタイムアウト]
     status: implemented
   - name: OutputSettingsBase
     title: 出力先の設定の共通の親
@@ -760,11 +760,11 @@ data_models:
         description: 語の並び
     status: implemented
   - name: EdgePhraseSettings
-    title: 文頭・文末から消す文言の設定
+    title: 文頭・文末から削除する文言の設定
     container: shared/settings.py
     usecase: 録音を文字に起こす
     role: 設定のモデル
-    summary: 文頭・文末から消す文言 1 行の文言と当てる位置
+    summary: 文頭・文末から削除する文言 1 行の文言と当てる位置
     description: |-
       `model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)`。
       文言は前後の空白を除いて確かめる。`*` だけの文言は `PydanticCustomError`（type は EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE）にし、失敗の場所を `edge_phrases[{n}].text` にする。空の文言はこのモデルでは断らず、Settings が一覧から除く。
@@ -1633,7 +1633,7 @@ constants:
     value: '222'
     status: implemented
   - name: DEFAULT_EDGE_PHRASES
-    title: 既定の文頭・文末から消す文言
+    title: 既定の文頭・文末から削除する文言
     container: shared/settings.py
     usecase: 録音を文字に起こす
     summary: '`edge_phrases` のキーが無いときに使う一覧（出所は外部ライブラリ『faster-whisper』の不具合「話していない定型句が文末に入る」）'
@@ -1650,11 +1650,11 @@ constants:
     title: 文言の任意の文字列を表す文字
     container: shared/settings.py
     usecase: 録音を文字に起こす
-    summary: 文頭・文末から消す文言で、0 文字以上の任意の文字列を表す文字（EdgePhraseSettings の確かめと strip_edge_phrases が使う）
+    summary: 文頭・文末から削除する文言で、0 文字以上の任意の文字列を表す文字（EdgePhraseSettings の確かめと strip_edge_phrases が使う）
     value: '"*"'
     status: implemented
   - name: EDGE_PHRASES_FIELD_NAME
-    title: 文頭・文末から消す文言の一覧のキー
+    title: 文頭・文末から削除する文言の一覧のキー
     container: shared/settings.py
     usecase: 設定を変える
     summary: settings.toml のキー `edge_phrases`。設定画面がまとまりの欄と失敗の場所を引くのに使う

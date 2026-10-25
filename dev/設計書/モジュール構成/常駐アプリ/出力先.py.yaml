@@ -19,7 +19,7 @@ directory: |-
   ├── browser/
   │   └── service.py       # send_to_browser（ブラウザ添付の種類のプリセット。Edge のアプリの画面）
   ├── endpoint/
-  │   └── service.py       # deliver_to_endpoint（エンドポイントへ送るの種類のプリセット）
+  │   └── service.py       # deliver_to_endpoint（エンドポイントへ送信の種類のプリセット）
   └── callback/
       └── service.py       # deliver_to_caller・is_callback_allowed・inject_callback・返送の決定値（呼び出し元へ返す）
   ```
@@ -72,7 +72,7 @@ data_models:
         example: browser
       - name: title
         type: str
-        description: 種類の名前（ブラウザ添付・エンドポイントへ送る）
+        description: 種類の名前（ブラウザ添付・エンドポイントへ送信）
       - name: handler
         type: PresetFn
         description: 届ける関数
@@ -82,7 +82,7 @@ data_models:
     container: features/outputs/types.py
     usecase: 起こした文字を届ける
     role: スキーマ
-    summary: 呼び出し元へ返す・エンドポイントへ送るが送る JSON
+    summary: 呼び出し元へ返す・エンドポイントへ送信が送る JSON
     inherits: pydantic.BaseModel
     properties:
       - name: session_id
@@ -178,7 +178,7 @@ data_models:
       - name: enter_delay_sec
         type: float
         default: '0.5'
-        description: 貼り付けてから Enter を送るまで待つ秒数（0 以上）。設定画面の欄の下に、`json_schema_extra` の note の「「貼り付けて送信」と、「ブラウザ添付」の Enter まで送るプリセットで使う。」を出す
+        description: 貼り付けてから Enter を送るまで待つ秒数（0 以上）。設定画面の欄の下に、`json_schema_extra` の note の「「貼り付けて送信」と、「ブラウザ添付」の Enter まで送信するプリセットで使う。」を出す
       - name: enter_modifiers
         type: list[EnterModifier]
         default: '[]'
@@ -319,9 +319,9 @@ function_types:
       description: なし
     implementations:
       - target: send_to_browser
-        notes: ブラウザ添付。Edge のアプリの画面を開いて貼り付け、設定によって Enter まで送る
+        notes: ブラウザ添付。Edge のアプリの画面を開いて貼り付け、設定によって Enter まで送信する
       - target: deliver_to_endpoint
-        notes: エンドポイントへ送る。プリセットの URL へ JSON を 1 回 POST する
+        notes: エンドポイントへ送信。プリセットの URL へ JSON を 1 回 POST する
     status: implemented
   - name: InjectFn
     title: 注入するものの選び方
@@ -378,8 +378,8 @@ constants:
         value: PresetKindSpec(kind="browser", title="ブラウザ添付", handler=send_to_browser)
         description: ブラウザ添付
       - key: '1'
-        value: PresetKindSpec(kind="endpoint", title="エンドポイントへ送る", handler=deliver_to_endpoint)
-        description: エンドポイントへ送る
+        value: PresetKindSpec(kind="endpoint", title="エンドポイントへ送信", handler=deliver_to_endpoint)
+        description: エンドポイントへ送信
     notes:
       配線: 各 handler が受け取るクリップボード・キー・ブラウザ・HTTP の操作と設定の値は、main.py が種類ごとに部分適用する（起動と配線の _wire_preset_kinds）。
     status: implemented
@@ -861,7 +861,7 @@ functions:
     usecase: 起こした文字を届ける
     scope: public
     inherits: PresetFn
-    summary: 選んだブラウザ添付のプリセットの URL を Edge のアプリの画面で開き、設定の間を置いて貼り付け、プリセットが Enter まで送るなら Enter を送る
+    summary: 選んだブラウザ添付のプリセットの URL を Edge のアプリの画面で開き、設定の間を置いて貼り付け、プリセットが Enter まで送信するなら Enter を送る
     args:
       - name: outcome
         type: TranscriptionOutcome
@@ -917,20 +917,20 @@ functions:
       3. get_open_delay_sec() の秒数だけ待ち、貼り付けのキーを送る
       4. preset.send_enter がオンなら、get_enter_delay_sec() の秒数だけ待ち、Enter を送る（オフなら貼り付けで止める）
          - 1・2 が DeliveryError を送出した場合、そこで止めてそのまま送出する
-         - `[INFO]` ブラウザ添付で届けた（セッションの ID・プリセットのタイトル・Enter まで送ったか）
+         - `[INFO]` ブラウザ添付で届けた（セッションの ID・プリセットのタイトル・Enter まで送信したか）
     exceptions:
       - name: DeliveryError
         condition: クリップボードへ書けない・画面を開けない
     unit_tests:
       - name: test_send_to_browser
         case: 正常
-        summary: Enter まで送るプリセットは、コピー・開く・待ち・貼り付け・待ち・Enter の順に送る
+        summary: Enter まで送信するプリセットは、コピー・開く・待ち・貼り付け・待ち・Enter の順に送る
         condition: outcome.text が「テスト」、preset の url が https://chatgpt.com・send_enter が True、get_open_delay_sec が 3.0・get_enter_delay_sec が 0.5 を返す
         mock: copy・open_window・paste・send_enter・sleep・get_open_delay_sec・get_enter_delay_sec
         expected: copy("テスト")・open_window("https://chatgpt.com")・sleep(3.0)・paste()・sleep(0.5)・send_enter() の順に呼ばれる
       - name: test_send_to_browser_when_paste_only
         case: 正常
-        summary: Enter まで送らないプリセットは貼り付けで止める
+        summary: Enter まで送信しないプリセットは貼り付けで止める
         condition: preset の send_enter が False
         mock: copy・open_window・paste・send_enter・sleep・get_open_delay_sec・get_enter_delay_sec
         expected: copy・open_window・sleep(3.0)・paste が呼ばれ、send_enter と get_enter_delay_sec が呼ばれない
@@ -945,13 +945,13 @@ functions:
       - dev/設計書/外部ライブラリ/Microsoft_Edge#
     status: implemented
   - name: deliver_to_endpoint
-    title: エンドポイントへ送る
+    title: エンドポイントへ送信
     kind: 関数
     container: features/outputs/endpoint/service.py
     usecase: 起こした文字を届ける
     scope: public
     inherits: PresetFn
-    summary: 選んだエンドポイントへ送るのプリセットの URL へ、送る中身を 1 回 POST する。送り直さない
+    summary: 選んだエンドポイントへ送信のプリセットの URL へ、送る中身を 1 回 POST する。送り直さない
     args:
       - name: outcome
         type: TranscriptionOutcome
@@ -962,7 +962,7 @@ functions:
         type: EndpointPreset
         required: true
         passing: positional
-        description: 確定の操作で選んだエンドポイントへ送るのプリセット（url・authorization・title を使う）
+        description: 確定の操作で選んだエンドポイントへ送信のプリセット（url・authorization・title を使う）
       - name: post
         type: PostJsonFn
         required: true
@@ -1017,7 +1017,7 @@ functions:
         exception: タイムアウト・接続できない
     refs:
       - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送信する.py#
-      - dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送るときのタイムアウト]
+      - dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送信するときのタイムアウト]
     status: implemented
   - name: read_enter_delay_sec
     title: 貼り付けてから Enter までの秒数の読み出し

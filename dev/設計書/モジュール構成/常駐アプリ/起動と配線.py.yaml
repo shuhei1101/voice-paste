@@ -153,7 +153,7 @@ functions:
       5. 出力先の deliver に、配線した OUTPUTS（_wire_outputs）・配線した PRESET_KINDS（_wire_preset_kinds）と、届けるたびに SettingsStore からオンの出力先の ID を引く関数を部分適用し、Session を入口・出力先の ID・選んだプリセット・返送先に分けて渡すアダプタを作る
          - 出力先には OutputDeps（copy_to_clipboard・設定の keyboard.paste_key で send_paste を呼ぶ関数・send_enter・time.sleep・random.uniform(0, x)・post_json・SettingsStore.get・notify_copied）を渡し、各出力先の inject が選ぶ
          - ブラウザ添付（種類）: copy_to_clipboard・open_app_window・send_paste を呼ぶ関数・send_enter・time.sleep・設定の preset_options.browser.open_delay_sec を返す関数・貼り付けて送信の enter_delay_sec を返す関数（read_enter_delay_sec）
-         - エンドポイントへ送る（種類）: post_json・設定の preset_options.endpoint.timeout_sec を返す関数
+         - エンドポイントへ送信（種類）: post_json・設定の preset_options.endpoint.timeout_sec を返す関数
       6. 文字起こしのたびに、SettingsStore の設定の edge_phrases で文頭・文末の文言を消してから（strip_edge_phrases）用語集を読み直して置き換える correct（起こした文字と用語集のプリセットの名前か None を受ける）を作る。そのたびに、SettingsStore の設定と settings.toml のフォルダから pick_glossary_preset（requested に受けた名前）でプリセットを引き、list_preset_glossaries（用語集の一覧は resolve_glossaries）の順に load_glossary した行を 1 本の並びにつないで apply_glossary を当てる（読めない CSV は load_glossary が空を返すので飛ばされる。使う用語集が無ければ置き換えない）
          - `[INFO]` 用語集で補正する（用語集のプリセットの名前・用語集ごとの名前と補正に使う行数）
       7. SessionDeps を組み（report_progress、起動時の設定の api.continuous.min_silence_sec を部分適用した Recorder.start_continuous、Recorder.stop_continuous を含む）、API のセッションの上限時間と、起動時の設定の api.continuous.session_limit_sec の連続録音の上限時間と共に SessionManager を作る（api.continuous.* は再起動で効く）
@@ -182,7 +182,7 @@ functions:
            - `[ERROR]` 起動に失敗した（理由）
       4. QApplication（最後の窓を閉じても終わらない）・UiBridge・Tray を作り、apply_theme(app, "system", image_dir=paths.ui_image_dir) で画面の明暗を当ててトレイに準備中を出す。WAKE_INTERVAL_MS ごとの空の QTimer を置き、SIGINT・SIGBREAK で QApplication.quit を呼ぶ。後から起動したプロセスに終わるよう頼まれたら、QApplication.quit をメインスレッドで呼ぶ（SingleInstanceLock.on_quit_requested に、QMetaObject.invokeMethod で QApplication.quit をキューに入れる関数を渡す）
       5. 設定を読む（load_settings(settings_file, SETTINGS_MODEL)）
-         - SettingsError の場合、トレイを失敗にして設定を読めないことを通知し（Tray.show_failure(settings_invalid, 理由)）、「録音を始める」「設定…」を押せないまま 11 へ（フォルダを開いて settings.toml を直し、再起動できる）
+         - SettingsError の場合、トレイを失敗にして設定を読めないことを通知し（Tray.show_failure(settings_invalid, 理由)）、「録音を開始」「設定…」を押せないまま 11 へ（フォルダを開いて settings.toml を直し、再起動できる）
            - `[ERROR]` 起動に失敗した（理由）
       6. 設定の ui.theme で画面の明暗を当て直し（apply_theme。image_dir は paths.ui_image_dir）、QStyleHints.colorSchemeChanged に、SettingsStore.get の ui.theme で apply_theme を呼ぶ関数をつなぐ（OS の明暗が変わったときに当て直す）。ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を消す（purge_old_files。処理中のセッションは無いため、一時の音声も全て消す対象にする）
          - `[INFO]` 設定を読んだ（設定ファイルのパス・エンジン・オンの出力先の ID）

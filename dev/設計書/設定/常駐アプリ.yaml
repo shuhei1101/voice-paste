@@ -203,7 +203,7 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
   - key: hotkeys.start
-    title: 録音を始めるホットキー
+    title: 録音開始のホットキー
     file: settings.toml
     type: string（pynput の GlobalHotKeys 形式）
     default: <ctrl>+<alt>+d
@@ -221,7 +221,7 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
   - key: hotkeys.cancel
-    title: 録音を取り消すホットキー
+    title: 録音の取り消しのホットキー
     file: settings.toml
     type: string（pynput の GlobalHotKeys 形式）
     default: <ctrl>+<alt>+q
@@ -230,7 +230,7 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
   - key: keyboard.paste_key
-    title: 貼り付けに送るキー
+    title: 貼り付けに送信するキー
     file: settings.toml
     type: string（pynput の GlobalHotKeys 形式）
     default: <ctrl>+v
@@ -272,7 +272,7 @@ settings:
     file: settings.toml
     type: float（秒）
     default: '0.5'
-    description: paste_and_send だけが持つ。貼り付けてから Enter を送るまで待つ秒数。ブラウザ添付種類の、Enter まで送るプリセットでも使う。
+    description: paste_and_send だけが持つ。貼り付けてから Enter を送るまで待つ秒数。ブラウザ添付種類の、Enter まで送信するプリセットでも使う。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/features/outputs/paste_and_send/settings.py
@@ -364,7 +364,7 @@ settings:
     implementation: src/voice_paste/shared/settings.py
     allowed: '>= 1'
   - key: ui.topmost
-    title: 画面を最前面に出すか
+    title: 画面を最前面に表示するか
     file: settings.toml
     type: bool
     default: 'true'
@@ -373,7 +373,7 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
   - key: ui.position
-    title: 画面を出す位置
+    title: 画面を表示する位置
     file: settings.toml
     type: "'center' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'"
     default: center
@@ -382,7 +382,7 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
   - key: ui.follow_cursor
-    title: カーソルのあるモニターに画面を出すか
+    title: カーソルのあるモニターに画面を表示するか
     file: settings.toml
     type: bool
     default: 'true'
@@ -433,7 +433,7 @@ settings:
     file: settings.toml
     type: "'browser' | 'endpoint'"
     default: （既定のプリセットは無く、`presets` は空の一覧）
-    description: プリセットの届け方。`browser` はブラウザ添付（URL をアプリのウィンドウで開いて貼り付ける）、`endpoint` はエンドポイントへ送る（URL へ JSON で POST する）。設定画面は種類ごとのタブに分けて並べ、録音の画面は browser・endpoint の順に、それぞれ `presets[]` の並びで出す。
+    description: プリセットの届け方。`browser` はブラウザ添付（URL をアプリのウィンドウで開いて貼り付ける）、`endpoint` はエンドポイントへ送信（URL へ JSON で POST する）。設定画面は種類ごとのタブに分けて並べ、録音の画面は browser・endpoint の順に、それぞれ `presets[]` の並びで出す。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -477,7 +477,7 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
   - key: presets[].send_enter
-    title: 貼り付けた後に Enter まで送るか
+    title: 貼り付けた後に Enter まで送信するか
     file: settings.toml
     type: bool
     default: 'true'
@@ -486,7 +486,7 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
   - key: presets[].authorization
-    title: 送り先へ付ける Authorization ヘッダー
+    title: 送信先へ付ける Authorization ヘッダー
     file: settings.toml
     type: string
     default: 空文字
@@ -508,17 +508,17 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
   - key: preset_options.endpoint.timeout_sec
-    title: エンドポイントへ送るときのタイムアウトの秒数
+    title: エンドポイントへ送信するときのタイムアウトの秒数
     file: settings.toml
     type: float（秒）
     default: '1.5'
-    description: エンドポイントへ送る種類の全てのプリセットで使う。この秒数で届かなければ送り直さず、届けられなかったことを知らせる。
+    description: エンドポイントへ送信の種類の全てのプリセットで使う。この秒数で届かなければ送り直さず、届けられなかったことを知らせる。
     reload: immediate
     allowed: 0.5〜10
     status: implemented
     implementation: src/voice_paste/shared/settings.py
     refs:
-      - dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送るときのタイムアウト]
+      - dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送信するときのタイムアウト]
       - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送信する.py#
   - key: api.continuous.min_silence_sec
     title: 連続録音を区切る無音の長さ
@@ -554,7 +554,7 @@ settings:
     file: settings.toml
     type: list['ctrl' | 'alt' | 'shift']
     default: '[]'
-    description: paste_and_send だけが持つ。貼り付けて `enter_delay_sec` の秒数を置いた後、並べた修飾キーを押したまま Enter を送る。空なら Enter だけを送る。ブラウザ添付種類の、Enter まで送るプリセットには当てない。
+    description: paste_and_send だけが持つ。貼り付けて `enter_delay_sec` の秒数を置いた後、並べた修飾キーを押したまま Enter を送る。空なら Enter だけを送る。ブラウザ添付種類の、Enter まで送信するプリセットには当てない。
     missing: 空として読む
     reload: immediate
     allowed: "'ctrl'・'alt'・'shift' の値だけ。並びと重なりは問わず、押す順は Ctrl・Alt・Shift に揃える"
@@ -573,7 +573,7 @@ settings:
     introduced:
       pr: 94
   - key: ui.show_hotkeys
-    title: 録音の画面のボタンにホットキーを出すか
+    title: 録音の画面のボタンにホットキーを表示するか
     file: settings.toml
     type: bool
     default: 'true'
@@ -644,7 +644,7 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
   - key: ui.transcribing_show_hotkeys
-    title: 文字起こし中の表示のボタンにホットキーを出すか
+    title: 文字起こし中の表示のボタンにホットキーを表示するか
     file: settings.toml
     type: bool
     default: 'true'
@@ -657,7 +657,7 @@ settings:
     introduced:
       pr: 131
   - key: edge_phrases[].text
-    title: 文頭・文末から消す文言
+    title: 文頭・文末から削除する文言
     file: settings.toml
     type: string
     default: （キーが無いときは既定の一覧。上から「チャンネル登録*」「ご視聴ありがとうございました」「ありがとうございました」で、位置は全て `end`）

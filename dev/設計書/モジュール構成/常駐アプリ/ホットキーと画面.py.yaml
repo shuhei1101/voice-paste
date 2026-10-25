@@ -38,7 +38,7 @@ classes:
     properties:
       - name: notified
         type: Signal(str, object)
-        description: 知らせの種類と理由（str | None）
+        description: 通知の種類と理由（str | None）
       - name: progressed
         type: Signal(float, float)
         description: 文字起こしの区間の終わりの時刻と録音の長さ（秒）
@@ -175,7 +175,7 @@ classes:
       | api のセッション | 録音中か文字起こし中・処理中 | 出さない | 出さない |
 
       録音の画面をその回だけ隠した間（`_recording_hidden`）は、recording・paused の知らせを受けても窓を出さず、状態の表示だけを替える（RecordingWindow.set_paused）。セッションが recording・paused を抜けたら隠した印を下ろす。
-      トレイの「録音の画面を出す」は、今のセッションと隠した印から RecordingWindowState を決めて Tray.set_recording_window で替える（hotkey・tray の recording・paused で隠していれば hidden、出していれば shown、`recording.hide_window` がオンか api の録音なら no_window、それ以外は not_recording）。
+      トレイの「録音の画面を表示」は、今のセッションと隠した印から RecordingWindowState を決めて Tray.set_recording_window で替える（hotkey・tray の recording・paused で隠していれば hidden、出していれば shown、`recording.hide_window` がオンか api の録音なら no_window、それ以外は not_recording）。
       コンストラクタは UiDeps と、キーワードで tray・recording_window・indicator を受け、トレイの操作と録音の画面の「隠す」（Signal）をつなぐ。文字起こし中の表示の切り替えのボタン（TranscribingIndicator.output_selected）は UiDeps.switch_output へつなぐ。あわせて QApplication に自分をイベントフィルタとして入れ、アプリの終了で設定画面を確かめずに閉じる（eventFilter）。
     kind: クラス
     inherits: PySide6.QtCore.QObject
@@ -211,7 +211,7 @@ classes:
     methods:
       - name: on_notified
         title: 知らせの受け取り
-        summary: UiBridge.notified のスロット。知らせの種類ごとに画面とトレイを変える
+        summary: UiBridge.notified のスロット。通知の種類ごとに画面とトレイを変える
         kind: メソッド
         scope: public
         args:
@@ -219,7 +219,7 @@ classes:
             type: str
             required: true
             passing: positional
-            description: 知らせの種類
+            description: 通知の種類
           - name: detail
             type: str | None
             required: true
@@ -233,7 +233,7 @@ classes:
              - セッションが無く、待たせた再起動・終了がある場合、それを行う（request_restart か request_quit）
              - 録音の画面を隠している場合、窓は出さずに状態の表示だけを替える（RecordingWindow.set_paused）
              - transcribing・delivering で文字起こし中の表示を出す場合、その回に録音の画面を動かしていれば動かした位置（RecordingWindow.moved_position）を渡す。動かしていなければ渡さず、設定の位置に出す。あわせてセッションの output_id と、カスタムプリセットで確定したならそのタイトル（output_preset.title）を渡す（TranscribingIndicator.open。文字起こし中の表示が既に出ている delivering の知らせでは開き直さない）
-             - 最後に、トレイの「録音の画面を出す」を今の状態に合わせる（Tray.set_recording_window）
+             - 最後に、トレイの「録音の画面を表示」を今の状態に合わせる（Tray.set_recording_window）
           2. output_changed の場合、文字起こし中の表示の今の出力先を detail（切り替えた先の出力先の ID）に替える（TranscribingIndicator.set_output）
           3. busy の場合、処理中のダイアログを出す（show_busy_dialog）
           4. show_recording_window の場合、隠した録音の画面を戻す（show_recording）
@@ -243,7 +243,7 @@ classes:
         unit_tests:
           - name: test_on_notified_when_recording
             case: 正常
-            summary: ホットキーの録音で録音の画面を出す
+            summary: ホットキーの録音で録音の画面を表示する
             condition: current_session が hotkey・recording を返す。hide_window はオフ
             mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
             expected: Tray.set_state(RECORDING, busy=True)・RecordingWindow.open・TranscribingIndicator.close が呼ばれる
@@ -427,7 +427,7 @@ classes:
                - `[ERROR]` ホットキーを受け付けられなかった（理由）
       - name: hide_recording
         title: 録音の画面を隠す
-        summary: RecordingWindow.hide_requested のスロット。その回の録音の画面を隠し、トレイの「録音の画面を出す」を押せるようにする
+        summary: RecordingWindow.hide_requested のスロット。その回の録音の画面を隠し、トレイの「録音の画面を表示」を押せるようにする
         kind: メソッド
         scope: public
         returns:
@@ -447,7 +447,7 @@ classes:
         status: implemented
       - name: show_recording
         title: 隠した録音の画面を戻す
-        summary: トレイの「録音の画面を出す」・アイコンの左クリック（Tray.show_window_requested）と、録音開始のホットキー（show_recording_window の知らせ）から呼ぶ。隠した録音の画面を、隠す前の位置にフォーカスを取らずに戻す
+        summary: トレイの「録音の画面を表示」・アイコンの左クリック（Tray.show_window_requested）と、録音開始のホットキー（show_recording_window の知らせ）から呼ぶ。隠した録音の画面を、隠す前の位置にフォーカスを取らずに戻す
         kind: メソッド
         scope: public
         returns:
@@ -526,7 +526,7 @@ classes:
             mock: Tray
             expected: Tray.show_copy_completed("テスト") が 1 回呼ばれる
       - name: recopy
-        title: コピーし直す
+        title: もう一度コピーする
         summary: Tray.recopy_requested のスロット。起こした文字をクリップボードへもう一度書く
         kind: メソッド
         scope: public
@@ -546,7 +546,7 @@ classes:
         unit_tests:
           - name: test_recopy
             case: 正常
-            summary: 起こした文字をコピーし直す
+            summary: 起こした文字をもう一度コピーする
             condition: text="テスト"
             mock: UiDeps の全関数・Tray
             expected: UiDeps.copy("テスト") が 1 回呼ばれ、Tray.show_failure が呼ばれない
@@ -570,14 +570,14 @@ classes:
     description: |-
       メニューの並び・文言・押せない条件は画面設計「トレイ」、通知の文言は画面設計「トレイの通知」が持つ。
       アイコンの画像は `resources/tray/{TrayState の値}.png` を起動時に読む。
-      アイコンの左クリックは、「録音の画面を出す」が押せれば show_window_requested、「録音を始める」が押せれば start_requested を emit し、どちらも押せなければ何もしない。
+      アイコンの左クリックは、「録音の画面を表示」が押せれば show_window_requested、「録音を開始」が押せれば start_requested を emit し、どちらも押せなければ何もしない。
       通知を押したとき（`messageClicked`）はどの通知かが渡らないため、最後に出した通知がコピーの完了ならその起こした文字を `_copied_text` に持ち、押されたときに出し分ける（_on_message_clicked）。
     kind: クラス
     inherits: PySide6.QtCore.QObject
     properties:
       - name: start_requested
         type: Signal()
-        description: 「録音を始める」・アイコンの左クリック
+        description: 「録音を開始」・アイコンの左クリック
       - name: settings_requested
         type: Signal()
         description: 「設定…」
@@ -597,7 +597,7 @@ classes:
         description: 文字起こしのエンジンを準備できなかった起動か。立つと次の起動まで失敗のまま
       - name: show_window_requested
         type: Signal()
-        description: 「録音の画面を出す」・録音の画面を隠している間のアイコンの左クリック
+        description: 「録音の画面を表示」・録音の画面を隠している間のアイコンの左クリック
       - name: recopy_requested
         type: Signal(str)
         access: '-'
@@ -623,27 +623,27 @@ classes:
             type: bool
             required: true
             passing: keyword
-            description: 録音から届けるまでの間か（「録音を始める」「設定…」を「（処理中）」で押せなくする）
+            description: 録音から届けるまでの間か（「録音を開始」「設定…」を「（処理中）」で押せなくする）
         returns:
           type: None
           description: なし
         process: |-
-          1. 失敗の起動なら、状態を FAILED のままにし、「録音を始める（準備に失敗）」を押せなくして「設定…」は押せるままにする
-          2. それ以外は、状態の画像とヒント（voice-paste: {状態の名前}）に替え、busy なら「録音を始める（処理中）」「設定…（処理中）」を押せなくする
-          3. 「録音を始める」は押せるときだけ太字にする
+          1. 失敗の起動なら、状態を FAILED のままにし、「録音を開始（準備に失敗）」を押せなくして「設定…」は押せるままにする
+          2. それ以外は、状態の画像とヒント（voice-paste: {状態の名前}）に替え、busy なら「録音を開始（処理中）」「設定…（処理中）」を押せなくする
+          3. 「録音を開始」は押せるときだけ太字にする
         unit_tests:
           - name: test_set_state_when_busy
             case: 正常
             summary: 処理中は録音と設定を押せなくする
             condition: set_state(TRANSCRIBING, busy=True)
             mock: なし（offscreen の QApplication）
-            expected: '「録音を始める（処理中）」と「設定…（処理中）」が押せず、「録音を始める」が太字でなく、ヒントが voice-paste: 文字起こし中'
+            expected: '「録音を開始（処理中）」と「設定…（処理中）」が押せず、「録音を開始」が太字でなく、ヒントが voice-paste: 文字起こし中'
           - name: test_set_state_when_failed
             case: 正常
             summary: 失敗の起動では設定だけ押せる
             condition: set_failed() の後に set_state(IDLE, busy=False)
             mock: なし（offscreen の QApplication）
-            expected: '「録音を始める（準備に失敗）」が押せず、「設定…」が押せ、ヒントが voice-paste: 失敗'
+            expected: '「録音を開始（準備に失敗）」が押せず、「設定…」が押せ、ヒントが voice-paste: 失敗'
       - name: set_failed
         title: 失敗の起動にする
         summary: 文字起こしのエンジンを準備できなかった起動として、アイコンを失敗にする
@@ -654,7 +654,7 @@ classes:
           description: なし
       - name: set_start_hotkey
         title: 録音開始のホットキーの表示
-        summary: 「録音を始める」の右に出すホットキーを替える（表示の形は format_hotkey）
+        summary: 「録音を開始」の右に出すホットキーを替える（表示の形は format_hotkey）
         kind: メソッド
         scope: public
         args:
@@ -668,7 +668,7 @@ classes:
           description: なし
       - name: show_failure
         title: 失敗の通知
-        summary: 知らせの種類の見出しと本文で、警告のアイコンの Windows の通知を出す（showMessage）。通知を押すとログフォルダを開くように _copied_text を None に戻す
+        summary: 通知の種類の見出しと本文で、警告のアイコンの Windows の通知を出す（showMessage）。通知を押すとログフォルダを開くように _copied_text を None に戻す
         kind: メソッド
         scope: public
         args:
@@ -676,7 +676,7 @@ classes:
             type: Literal["microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable", "engine_unavailable", "settings_invalid"]
             required: true
             passing: positional
-            description: 知らせの種類（engine_unavailable・settings_invalid は起動の失敗）
+            description: 通知の種類（engine_unavailable・settings_invalid は起動の失敗）
           - name: detail
             type: str | None
             required: true
@@ -691,7 +691,7 @@ classes:
             summary: 種類ごとの文言で通知する
             condition: show_failure("transcription_failed", "録音を読めませんでした")
             mock: QSystemTrayIcon.showMessage
-            expected: 見出し「文字起こしに失敗しました」、本文「録音を読めませんでした。録音は履歴に残っています。」で呼ばれる
+            expected: 見出し「文字起こしできませんでした」、本文「録音を読めませんでした。録音は履歴に残っています。」で呼ばれる
       - name: hide
         title: アイコンを消す
         summary: トレイのアイコンを消す（処理中に再起動・終了を選んだときと、終わるとき）
@@ -701,8 +701,8 @@ classes:
           type: None
           description: なし
       - name: set_recording_window
-        title: 録音の画面を出す項目の切り替え
-        summary: 「録音の画面を出す」の文言・押せるか・太字を、録音の画面の状態に合わせる
+        title: 「録音の画面を表示」の項目の切り替え
+        summary: 「録音の画面を表示」の文言・押せるか・太字を、録音の画面の状態に合わせる
         kind: メソッド
         scope: public
         args:
@@ -715,7 +715,7 @@ classes:
           type: None
           description: なし
         process: |-
-          1. hidden の場合、「録音の画面を出す」を押せるようにし、太字にする
+          1. hidden の場合、「録音の画面を表示」を押せるようにし、太字にする
           2. それ以外の場合、押せなくして太字を外し、状態ごとの理由を添える（shown：（表示中）、no_window：（画面を出さない録音）、not_recording：（録音していません））
         unit_tests:
           - name: test_set_recording_window_when_hidden
@@ -723,25 +723,25 @@ classes:
             summary: 隠している間は項目を押せ、太字にする
             condition: set_state(RECORDING, busy=True) の後に set_recording_window(hidden)
             mock: なし（offscreen の QApplication）
-            expected: 「録音の画面を出す」が押せて太字、「録音を始める（処理中）」が太字でない
+            expected: 「録音の画面を表示」が押せて太字、「録音を開始（処理中）」が太字でない
           - name: test_set_recording_window_when_shown
             case: 正常
             summary: 画面が出ている間は理由を添えて押せなくする
             condition: set_recording_window(shown)
             mock: なし（offscreen の QApplication）
-            expected: 「録音の画面を出す（表示中）」が押せず、太字でない
+            expected: 「録音の画面を表示（表示中）」が押せず、太字でない
           - name: test_set_recording_window_when_no_window
             case: 正常
             summary: 画面を出さない録音では理由を添えて押せなくする
             condition: set_recording_window(no_window)
             mock: なし（offscreen の QApplication）
-            expected: 「録音の画面を出す（画面を出さない録音）」が押せず、太字でない
+            expected: 「録音の画面を表示（画面を出さない録音）」が押せず、太字でない
           - name: test_set_recording_window_when_not_recording
             case: 正常
             summary: 録音していないときは理由を添えて押せなくする
             condition: set_recording_window(not_recording)
             mock: なし（offscreen の QApplication）
-            expected: 「録音の画面を出す（録音していません）」が押せず、太字でない
+            expected: 「録音の画面を表示（録音していません）」が押せず、太字でない
           - name: test_icon_click_when_window_hidden
             case: 正常
             summary: 隠している間のアイコンの左クリックは、録音の画面を戻す知らせを出す
@@ -782,7 +782,7 @@ classes:
           - dev/設計書/画面設計/常駐アプリ/トレイの通知.py#notes
       - name: _on_message_clicked
         title: 通知の押下
-        summary: messageClicked のスロット。最後に出した通知の種類で、コピーし直すかログフォルダを開くかを出し分ける
+        summary: messageClicked のスロット。最後に出した通知の種類で、もう一度コピーするかログフォルダを開くかを出し分ける
         kind: メソッド
         scope: internal
         returns:
@@ -827,7 +827,7 @@ classes:
         process: |-
           1. メニューの項目を作り、Signal とアイコンの左クリック・通知の押下をつなぐ
           2. 準備中のアイコンの画像だけを付け、ヒントを付けずにアイコンを出す（show）
-          3. 出した後に set_state(STARTING, busy=False) で準備中のヒントとメニューの文言を付け、「録音の画面を出す」を not_recording にする
+          3. 出した後に set_state(STARTING, busy=False) で準備中のヒントとメニューの文言を付け、「録音の画面を表示」を not_recording にする
         reason: Windows はトレイのアイコンのボタンの名前（スクリーンリーダーが読む名前）を、アイコンを出した時点のヒントと今のヒントをつないで作るため、ヒントは出した後に付ける。Qt はアイコンの画像が無いと show で出さないため、画像は先に付ける
         unit_tests:
           - name: test_init_shows_icon_before_tooltip
@@ -851,7 +851,7 @@ classes:
       窓は `Qt.Tool | Qt.FramelessWindowHint`（`ui.topmost` がオンなら `Qt.WindowStaysOnTopHint` を足す）、`WA_ShowWithoutActivating` で出し、出したときにフォーカスを取らない。
       窓の外側の枠（Surface）の role は `window` にし、縁を frame で描かせる（`surface` は設定画面の中の枠と共有するため使わない）。
       経過時間はコンストラクタで受けた時計 clock で数え（一時停止の間の分は足さない）、経過時間と波形は WAVE_INTERVAL_MS ごとの QTimer で描き直す。
-      見出しの行（状態・経過時間・隠す・×）は、隠す・× の外を押したまま動かすと `QWindow.startSystemMove` で窓を動かし、その回に動かした印を立てる（open で下ろす）。× は「取り消す」と同じく UiDeps.cancel を呼んで閉じ、「隠す」は hide_requested を emit する（隠すのは UiController）。
+      見出しの行（状態・経過時間・隠す・×）は、隠す・× の外を押したまま動かすと `QWindow.startSystemMove` で窓を動かし、その回に動かした印を立てる（open で下ろす）。× は「取り消し」と同じく UiDeps.cancel を呼んで閉じ、「隠す」は hide_requested を emit する（隠すのは UiController）。
       コンストラクタは UiDeps と、経過を数える時計 clock（秒を返す関数。既定は time.monotonic）を受ける。
     kind: クラス
     inherits: PySide6.QtWidgets.QWidget
@@ -1098,7 +1098,7 @@ classes:
       リテラルの列挙の 1 つを選ぶ欄（ui.position・ui.theme など）は make_radio_group にその項目の choice_labels を渡してラジオボタンの名前にし、保存では selected_radio が返す値を設定に入れる。
       カスタムプリセットは、PRESET_KIND_NAMES の種類ごとにまとまり（「出力先」のすぐ下のタブ）を 1 つ作り、その中に PresetListPanel とその種類の preset_options の欄を置く。Authorization の欄は `QLineEdit.EchoMode.Password` にする。
       変えた欄の数えには、種類ごとの PresetListPanel.change_values のキーごとの変更を 1 件として含める。足した・消した・有効かタイトルか URL かホットキーか種類ごとの欄を変えたプリセット 1 つが 1 件（1 つのプリセットで何度変えても 1 件）、種類のタブごとに、開いたとき・保存したときからあって今も残っているプリセットどうしの順が変わったら並べ替えが 1 件になる（足す・消すだけでは並べ替えに数えない）。
-      保存した知らせのホットキーの文を出すかは、変えた欄の数えの値ではなく、ホットキーの欄の値（`hotkeys.*`・`outputs[].hotkey`・種類ごとのタブの中の何件目かのプリセットの hotkey）を開いたときの値と比べて決める。
+      保存したメッセージのホットキーの文を出すかは、変えた欄の数えの値ではなく、ホットキーの欄の値（`hotkeys.*`・`outputs[].hotkey`・種類ごとのタブの中の何件目かのプリセットの hotkey）を開いたときの値と比べて決める。
       エラーの一覧のプリセットの行は、失敗の場所 `presets[{n}].{項目}` を「プリセット「{タイトル}」の{欄の名前}」（タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」）にし、押すとそのタブへ切り替えて PresetListPanel.focus_field で欄へフォーカスを移す。
       ホットキーの欄は押したキーを format_hotkey の形で出し、parse_hotkey で pynput の書式に戻す。
       コンストラクタは UiDeps を受ける。欄の部品は設定のキーを使った objectName（`field_{キー}`。プリセットの欄は画面設計の項目 ID）を持つ。窓が閉じたら（保存して再起動・今すぐ再起動・取り消し・窓の閉じるのどの経路でも。「保存」では閉じない）closed を emit する。
@@ -1130,10 +1130,10 @@ classes:
         scope: internal
         returns:
           type: dict[str, Any]
-          description: Settings.model_validate へ渡す値。presets はブラウザ添付のタブの並び → エンドポイントへ送るのタブの並びの順（各 PresetListPanel.collect をつなぐ）。glossaries は GlossaryPanel.collect、glossary_presets は GlossaryPanel.collect_presets、active_glossary_preset は GlossaryPanel.active_preset_name。hint_presets は HintPresetPanel.collect。edge_phrases は EdgePhrasePanel.collect。glossary_path と active_glossary は置かない
+          description: Settings.model_validate へ渡す値。presets はブラウザ添付のタブの並び → エンドポイントへ送信のタブの並びの順（各 PresetListPanel.collect をつなぐ）。glossaries は GlossaryPanel.collect、glossary_presets は GlossaryPanel.collect_presets、active_glossary_preset は GlossaryPanel.active_preset_name。hint_presets は HintPresetPanel.collect。edge_phrases は EdgePhrasePanel.collect。glossary_path と active_glossary は置かない
       - name: save
         title: 保存
-        summary: 欄の値を設定のモデルで確かめ、通れば書いて効かせ、窓を開いたまま保存した知らせを出す（restart のときだけ閉じる）。通らなければエラーを出す
+        summary: 欄の値を設定のモデルで確かめ、通れば書いて効かせ、窓を開いたまま保存したメッセージを出す（restart のときだけ閉じる）。通らなければエラーを出す
         kind: メソッド
         scope: public
         args:
@@ -1157,17 +1157,17 @@ classes:
           3. _clear_errors で前の保存で出したエラーの一覧と欄の下のエラーを消し、GlossaryPanel.mark_saved で用語集の書き戻しの基準を保存した行へ置き直し、HintPresetPanel.mark_saved と種類ごとの PresetListPanel.mark_saved でプリセットの番号を保存した並びで振り直し、変えた欄の数えの基準（`_baseline`）を今の欄の値へ置き直す（「再起動で反映」の件数の基準は開いたときの値のまま）
           4. saved を emit する
              - restart の場合、restart_requested を emit して窓を閉じ、True を返す
-          5. 窓を開いたまま、保存した知らせを出して、同じ文を `QAccessible.updateAccessibility(QAccessibleAnnouncementEvent(知らせ, 文))` で読み上げにも伝え、True を返す（入れた値・選んでいたまとまり・欄のフォーカスはそのまま）
+          5. 窓を開いたまま、保存したメッセージを出して、同じ文を `QAccessible.updateAccessibility(QAccessibleAnnouncementEvent(知らせ, 文))` で読み上げにも伝え、True を返す（入れた値・選んでいたまとまり・欄のフォーカスはそのまま）
              - 知らせの文は「保存しました。」。ホットキーの欄（`hotkeys.*`・`outputs[].hotkey`・`presets[].hotkey`。`keyboard.paste_key` は含めない）のどれかが開いたときの値から変わっていれば「新しいホットキーは、設定画面を閉じると効きます。」を続ける
-             - 開いたときの値から変わった「再起動で反映」の欄がある場合、「「再起動で反映」の設定 {件数} 件は、再起動するまで前の値で動きます。」を続け、今すぐ再起動のボタンを出して、再起動の知らせと保存して再起動のボタンを隠す
-             - 欄を変えると知らせ（と今すぐ再起動のボタン）を消し、開いたときの値から数えた再起動の知らせと保存して再起動のボタンを出し直す
+             - 開いたときの値から変わった「再起動で反映」の欄がある場合、「「再起動で反映」の設定 {件数} 件は、再起動するまで前の値で動きます。」を続け、今すぐ再起動のボタンを出して、再起動のメッセージと保存して再起動のボタンを隠す
+             - 欄を変えると知らせ（と今すぐ再起動のボタン）を消し、開いたときの値から数えた再起動のメッセージと保存して再起動のボタンを出し直す
         unit_tests:
           - name: test_save
             case: 正常
             summary: 通った値を書く
             condition: 「録音中の音量の割合」を 30 にして save(restart=False)
             mock: UiDeps.save_settings・QAccessible.updateAccessibility（渡したイベントを控える）
-            expected: True。save_settings に recording.volume_percent=30 の Settings が渡り、saved が 1 回 emit される。窓が開いたままで closed が知らされず、保存した知らせが「保存しました。」で、欄の値と選んでいたまとまりがそのまま。QAccessible.updateAccessibility が 1 回呼ばれ、渡したイベントの文が「保存しました。」
+            expected: True。save_settings に recording.volume_percent=30 の Settings が渡り、saved が 1 回 emit される。窓が開いたままで closed が知らされず、保存したメッセージが「保存しました。」で、欄の値と選んでいたまとまりがそのまま。QAccessible.updateAccessibility が 1 回呼ばれ、渡したイベントの文が「保存しました。」
           - name: test_save_when_invalid
             case: 異常
             summary: 通らなければ書かずにエラーを出す
@@ -1177,15 +1177,15 @@ classes:
             exception: 確かめに通らない
           - name: test_save_when_hotkey_unavailable
             case: 異常
-            summary: ホットキーを受け付けられなければエラーを出し、保存した知らせを出さない
+            summary: ホットキーを受け付けられなければエラーを出し、保存したメッセージを出さない
             condition: save_settings が HotkeyError を送出する
             mock: UiDeps.save_settings
-            expected: False。エラーの一覧に「ホットキーを受け付けられませんでした」の行が出て、saved が emit されず、保存した知らせが隠れたままで、窓が開いたまま
+            expected: False。エラーの一覧に「ホットキーを受け付けられませんでした」の行が出て、saved が emit されず、保存したメッセージが隠れたままで、窓が開いたまま
             exception: ホットキーを受け付けられない
           - name: test_save_when_presets
             case: 正常
             summary: タブごとのプリセットを 1 つの一覧にして書く
-            condition: エンドポイントへ送るのタブでプリセットを 1 件足し、ブラウザ添付のタブでも 1 件足して（どちらもタイトル・URL を入れる）save(restart=False)
+            condition: エンドポイントへ送信のタブでプリセットを 1 件足し、ブラウザ添付のタブでも 1 件足して（どちらもタイトル・URL を入れる）save(restart=False)
             mock: UiDeps.save_settings
             expected: True。save_settings に渡った Settings の presets が [browser の 1 件, endpoint の 1 件] の順
           - name: test_save_when_preset_invalid
@@ -1243,7 +1243,7 @@ classes:
             summary: 空の語と区切りを含む語では保存せず、エラーを出す
             condition: プリセット 1 件目の 1 つ目の語を空にし、2 つ目の語を「A、B」にして save(restart=False)
             mock: UiDeps.save_settings
-            expected: 'False。save_settings が呼ばれず、エラーの一覧に「プリセット 1 件目の 1 つ目の語: 語を入れるか、この欄を消してください。」「プリセット 1 件目の 2 つ目の語: 読点（、）・句点（。）・改行は入れられません。語を分けて足してください。」が出る'
+            expected: 'False。save_settings が呼ばれず、エラーの一覧に「プリセット 1 件目の 1 つ目の語: 語を入れるか、この欄を削除してください。」「プリセット 1 件目の 2 つ目の語: 読点（、）・句点（。）・改行は入れられません。語を分けて追加してください。」が出る'
             exception: 確かめに通らない
           - name: test_save_when_restart
             case: 正常
@@ -1256,13 +1256,13 @@ classes:
             summary: ホットキーを変えた保存では、閉じると効くことを添える
             condition: 録音開始のホットキーを変えて save(restart=False)。別のケースで出力先の確定のホットキーを変えて save(restart=False)。別のケースでカスタムプリセットの確定のホットキーを変えて save(restart=False)。もう 1 つのケースで貼り付けに送るキーだけを変えて save(restart=False)
             mock: UiDeps.save_settings
-            expected: 録音開始か出力先の確定かカスタムプリセットの確定のホットキーを変えたときは保存した知らせが「保存しました。新しいホットキーは、設定画面を閉じると効きます。」。貼り付けに送るキーだけのときは「保存しました。」
+            expected: 録音開始か出力先の確定かカスタムプリセットの確定のホットキーを変えたときは保存したメッセージが「保存しました。新しいホットキーは、設定画面を閉じると効きます。」。貼り付けに送るキーだけのときは「保存しました。」
           - name: test_save_when_restart_field_changed
             case: 正常
             summary: 「再起動で反映」の欄を保存すると、件数と今すぐ再起動を出し、保存の後に欄を変えると開いたときの値から数え直す
             condition: モデルを変えて save(restart=False) し、続けて言語を変える
             mock: UiDeps.save_settings
-            expected: 保存の直後は保存した知らせが「保存しました。「再起動で反映」の設定 1 件は、再起動するまで前の値で動きます。」で今すぐ再起動のボタンが出て、再起動の知らせと保存して再起動のボタンが隠れている。言語を変えた後は保存した知らせと今すぐ再起動のボタンが消え、再起動の知らせが 2 件で保存して再起動のボタンが出る
+            expected: 保存の直後は保存したメッセージが「保存しました。「再起動で反映」の設定 1 件は、再起動するまで前の値で動きます。」で今すぐ再起動のボタンが出て、再起動のメッセージと保存して再起動のボタンが隠れている。言語を変えた後は保存したメッセージと今すぐ再起動のボタンが消え、再起動のメッセージが 2 件で保存して再起動のボタンが出る
           - name: test_save_when_glossary_reverted
             case: 正常
             summary: 開いたままの 2 回目の保存で、開いたときの行へ戻した用語集も書き戻す
@@ -1274,7 +1274,7 @@ classes:
             summary: 保存の後に欄を変えずに閉じると確認を出さずに閉じ、保存の後に欄を変えると知らせが消える
             condition: 「録音中の音量の割合」を 30 にして save(restart=False) し、try_close を呼ぶ。別のケースで用語集の行を 1 つオフにして save(restart=False) し、欄を変えずに try_close を呼ぶ。もう 1 つのケースで保存の後に「録音の画面を出さない」をオンにする
             mock: UiDeps.save_settings・list_glossaries・read_glossary・confirm_discard
-            expected: 音量のケースと用語集のケースのどちらも、try_close が True を返し、confirm_discard が呼ばれず、closed が 1 回知らされる。欄を変えたケースは保存した知らせが隠れる
+            expected: 音量のケースと用語集のケースのどちらも、try_close が True を返し、confirm_discard が呼ばれず、closed が 1 回知らされる。欄を変えたケースは保存したメッセージが隠れる
           - name: test_save_when_glossary_right_empty
             case: 正常
             summary: 正しい表記だけが空の行は確かめに通し、空のまま書き戻しに渡す
@@ -1293,7 +1293,7 @@ classes:
             summary: '`*` だけの文言では保存せず、エラーを出す'
             condition: 「ハルシネーション」の 2 行目の文言を「*」にして save(restart=False)
             mock: UiDeps.save_settings
-            expected: 'False。save_settings が呼ばれず、エラーの一覧に「ハルシネーションの 2 行目の文言: * だけの文言は、文頭・文末の行を丸ごと消します。消したい文言を入れてください。」が出て、欄の値が「*」のまま'
+            expected: 'False。save_settings が呼ばれず、エラーの一覧に「ハルシネーションの 2 行目の文言: * だけの文言は、文頭・文末の行を丸ごと削除します。削除したい文言を入れてください。」が出て、欄の値が「*」のまま'
             exception: 確かめに通らない
           - name: test_save_when_glossary_presets
             case: 正常
@@ -1312,7 +1312,7 @@ classes:
             summary: 直して保存し直すと、前に出したエラーを消す
             condition: 「貼り付けてから Enter を送るまでの秒数」に abc を入れて save(restart=False) した後、欄を 0.5 に直してもう一度 save(restart=False)
             mock: UiDeps.save_settings
-            expected: 2 回目は True。エラーの一覧が隠れて行が残らず、outputs[0].enter_delay_sec の欄の下のエラーが空で隠れ、保存した知らせが「保存しました。」
+            expected: 2 回目は True。エラーの一覧が隠れて行が残らず、outputs[0].enter_delay_sec の欄の下のエラーが空で隠れ、保存したメッセージが「保存しました。」
       - name: reset_to_defaults
         title: 既定に戻す
         summary: confirm_reset で確かめ、戻すなら開いたときの設定と同じ設定のモデルの既定値（`type(開いたときの設定)()`）を書いて欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す
@@ -1370,7 +1370,7 @@ classes:
       ハルシネーションのまとまり: |-
         「用語集」の次のまとまり「ハルシネーション」に EdgePhrasePanel を 1 つ置き、開くときに設定の edge_phrases を EdgePhrasePanel.set_phrases に渡す。
         収集では `edge_phrases` に EdgePhrasePanel.collect を入れる。変えた欄の数えには、EdgePhrasePanel.change_values のキーごとの変更を 1 件として含める（反映は immediate）。足した・消した・文言か位置を変えた行 1 つが 1 件、残っている行どうしの順が変わったら並べ替えが 1 件になる。
-        エラーの一覧の行は、失敗の場所 `edge_phrases[{n}].text` を「ハルシネーションの {n+1} 行目の文言」にし、押すと「ハルシネーション」のまとまりへ切り替えて EdgePhrasePanel.focus_field で欄へフォーカスを移す。to_field_message は EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE を「* だけの文言は、文頭・文末の行を丸ごと消します。消したい文言を入れてください。」にする。
+        エラーの一覧の行は、失敗の場所 `edge_phrases[{n}].text` を「ハルシネーションの {n+1} 行目の文言」にし、押すと「ハルシネーション」のまとまりへ切り替えて EdgePhrasePanel.focus_field で欄へフォーカスを移す。to_field_message は EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE を「* だけの文言は、文頭・文末の行を丸ごと削除します。削除したい文言を入れてください。」にする。
         既定に戻すと、文言の一覧は DEFAULT_EDGE_PHRASES に戻る。
   - name: PresetListPanel
     title: プリセットの一覧
@@ -1379,10 +1379,10 @@ classes:
     role: 画面の部品
     kind: クラス
     inherits: PySide6.QtWidgets.QWidget
-    summary: 設定画面の 1 つの種類のタブに置く、プリセットのまとまりの縦の並びと「プリセットを足す」。足す・消す・上へ・下へを受ける
+    summary: 設定画面の 1 つの種類のタブに置く、プリセットのまとまりの縦の並びと「プリセットを追加」。足す・消す・上へ・下へを受ける
     description: |-
-      要素（有効の切り替え・タイトル・URL・Enter まで送る・Authorization・確定のホットキー・上へ・下へ・消す・足す・空の案内）と読み上げの名前は画面設計「設定画面」が持つ。
-      種類ごとに違う欄（browser は Enter まで送る、endpoint は Authorization）は、種類の設定のモデル（BrowserPreset・EndpointPreset）の共通でない項目から組み立てる。
+      要素（有効の切り替え・タイトル・URL・Enter まで送信・Authorization・確定のホットキー・上へ・下へ・消す・足す・空の案内）と読み上げの名前は画面設計「設定画面」が持つ。
+      種類ごとに違う欄（browser は Enter まで送信、endpoint は Authorization）は、種類の設定のモデル（BrowserPreset・EndpointPreset）の共通でない項目から組み立てる。
       並べ替え・足す・消すはこの部品の中だけを変え、settings.toml へは設定画面の保存で書く。
       変えた欄の数えのため、プリセットごとに、開いたとき・保存したときのプリセットを追う番号を持つ。set_presets と mark_saved で今の並びの順に 0 から振り直し、足したプリセットには振ったどの番号より大きい番号を振る。消す・並べ替えで一覧を作り直しても番号を引き継ぐ。
     properties:
@@ -1429,17 +1429,17 @@ classes:
             mock: なし（offscreen）
             expected: collect のタイトルが B・A の順
       - name: add_preset
-        title: プリセットを足す
+        title: プリセットを追加
         kind: メソッド
         scope: public
-        summary: 末尾に空のプリセット（有効。browser は Enter まで送るがオン）を足し、タイトルの欄へフォーカスを移して changed を emit する。「プリセットを足す」が呼ぶ
+        summary: 末尾に空のプリセット（有効。browser は Enter まで送信がオン）を足し、タイトルの欄へフォーカスを移して changed を emit する。「プリセットを追加」が呼ぶ
         returns:
           type: None
           description: なし
         unit_tests:
           - name: test_preset_list_panel_add_preset
             case: 正常
-            summary: 足したプリセットは有効で Enter まで送る
+            summary: 足したプリセットは有効で Enter まで送信する
             condition: kind browser の空の一覧で add_preset を呼ぶ
             mock: なし（offscreen）
             expected: collect が 1 件（enabled True・send_enter True・title・url・hotkey が空）を返し、changed が 1 回 emit される
@@ -1525,9 +1525,9 @@ classes:
     role: 画面の部品
     kind: クラス
     inherits: PySide6.QtWidgets.QWidget
-    summary: 設定画面の「用語集」のまとまりに置く、用語集の一覧と、選んだ用語集の名前の欄・行の表。用語集のプリセットの一覧と、選んだプリセットの名前の欄・使う用語集の表。用語集・行・プリセットを足す・消す、補正に使うプリセットを選ぶ、プリセットの用語集を足す・外す・並べ替える、行のオン・オフを受ける
+    summary: 設定画面の「用語集」のまとまりに置く、用語集の一覧と、選んだ用語集の名前の欄・行の表。用語集のプリセットの一覧と、選んだプリセットの名前の欄・使う用語集の表。用語集・行・プリセットを追加・削除する、補正に使うプリセットを選ぶ、プリセットの用語集を足す・外す・並べ替える、行のオン・オフを受ける
     description: |-
-      要素（用語集の一覧・名前のボタン・使うプリセット・行の数・消す・足す・名前の欄・消す行の説明・行の表・行が無いときの文・凡例、用語集のプリセットの一覧・補正に使うプリセットの選択・名前のボタン・用語集の数・消す・足す・見出し・名前の欄・使う用語集の表・追加する用語集の選択・追加ボタン・凡例）と読み上げの名前・objectName（項目 ID）は画面設計「設定画面」が持つ。
+      要素（用語集の一覧・名前のボタン・使うプリセット・行の数・消す・足す・名前の欄・誤変換を削除する行の説明・行の表・行が無いときの文・凡例、用語集のプリセットの一覧・補正に使うプリセットの選択・名前のボタン・用語集の数・消す・足す・見出し・名前の欄・使う用語集の表・追加する用語集の選択・追加ボタン・凡例）と読み上げの名前・objectName（項目 ID）は画面設計「設定画面」が持つ。
       用語集ごとに、名前・CSV の場所・行・開いたときの行（足した用語集は無し）を持つ。プリセットごとに、名前と使う用語集の CSV の場所の並びを持ち（用語集の名前を変えても指す先が変わらない）、名前には collect_presets でそのときの用語集の名前を当てる。足す・消す・入力はこの部品の中だけを変え、settings.toml と CSV へは設定画面の保存で書く。
       用語集を一覧から消すと、その用語集を全てのプリセットの使う用語集から外す。
       最後の 1 件の用語集と補正に使うプリセットの消すボタンは、フォーカスとツールチップを残すため `setEnabled(False)` にせず、押しても消さない扱いと薄い見た目にする（用語集もプリセットも常に 1 件以上残る）。
@@ -1536,7 +1536,7 @@ classes:
     properties:
       - name: changed
         type: Signal()
-        description: 用語集・行・プリセットを足す・消す、補正に使うプリセットの切り替え、プリセットの用語集の追加・外し・並べ替え、欄の入力、行のオン・オフで値が変わった（設定画面が変えた欄の数えに使う）
+        description: 用語集・行・プリセットを追加・削除する、補正に使うプリセットの切り替え、プリセットの用語集の追加・外し・並べ替え、欄の入力、行のオン・オフで値が変わった（設定画面が変えた欄の数えに使う）
     methods:
       - name: set_glossaries
         title: 一覧に入れる
@@ -1572,13 +1572,13 @@ classes:
             summary: 一覧と行の数・使うプリセットを出し、補正に使うプリセットの消すボタンを無効の扱いにする
             condition: 5 行（オン 3）の「yogo」と 2 行の「会議用」の 2 件の用語集、「既定」（["yogo"]）と「会議」（["会議用", "yogo"]）の 2 件のプリセットと、active_preset = 会議
             mock: 行を読む関数（決まった行を返す）
-            expected: 行の数が「5 行（オン 3）」「2 行（オン 2）」、「yogo」を使うプリセットが「既定・会議」。プリセットの用語集の数が 1 と 2。「会議」が選ばれ、使う用語集の表が「会議用」「yogo」の順で、「会議用」の行の表を出している。「会議」の消すボタンを押してもプリセットの一覧が減らない。用語集の一覧の決まり（glossary_list_note）が「消した用語集は、使っているプリセットからも外れる。」
+            expected: 行の数が「5 行（オン 3）」「2 行（オン 2）」、「yogo」を使うプリセットが「既定・会議」。プリセットの用語集の数が 1 と 2。「会議」が選ばれ、使う用語集の表が「会議用」「yogo」の順で、「会議用」の行の表を出している。「会議」の消すボタンを押してもプリセットの一覧が減らない。用語集の一覧の決まり（glossary_list_note）が「削除した用語集は、使っているプリセットからも外れる。」
           - name: test_glossary_panel_set_glossaries_when_unreadable
             case: 正常
             summary: 読めない用語集も一覧に出し、行の表の代わりに理由を出す
             condition: 2 件の用語集のうち、2 件目で行を読む関数が GlossaryReadError を送出する。プリセットは 1 件目の用語集だけを使う「既定」の 1 件
             mock: 行を読む関数（2 件目の場所で GlossaryReadError を送出する）
-            expected: 一覧が 2 件で、2 件目の行の数が「読めません」。2 件目を選ぶと、理由を含む知らせが出て行の表が出ず、行を足すボタンが無効。追加する用語集の選択に 2 件目がある
+            expected: 一覧が 2 件で、2 件目の行の数が「読めません」。2 件目を選ぶと、理由を含む知らせが出て行の表が出ず、行の追加ボタンが無効。追加する用語集の選択に 2 件目がある
           - name: test_glossary_panel_set_glossaries_when_preset_empty
             case: 正常
             summary: 使う用語集が無いプリセットでは、表の代わりに文を出し、一覧の 1 件目の行の表を出す
@@ -1590,7 +1590,7 @@ classes:
             summary: 用語集が 1 件だけのときは、その消すボタンを無効の扱いにする
             condition: 1 件の用語集と、それを使う「既定」の 1 件のプリセットで開き、用語集の消すボタンを押す。用語集を 1 つ足してからもう一度押す
             mock: 行を読む関数・場所を決める関数
-            expected: 1 回目は用語集の一覧が減らず、ボタンのツールチップが「最後の用語集は消せません」。2 回目は 1 件に減り、「既定」の使う用語集からも外れ、残った 1 件の消すボタンが無効の扱いになる
+            expected: 1 回目は用語集の一覧が減らず、ボタンのツールチップが「最後の用語集は削除できません」。2 回目は 1 件に減り、「既定」の使う用語集からも外れ、残った 1 件の消すボタンが無効の扱いになる
       - name: collect
         title: 一覧の値の収集
         kind: メソッド
@@ -1849,10 +1849,10 @@ classes:
             mock: 行を読む関数
             expected: 変えた名前が返り、1 件目のプリセットの消すボタンが押せるようになる
       - name: add_glossary_preset
-        title: 用語集のプリセットを足す
+        title: 用語集のプリセットを追加
         kind: メソッド
         scope: public
-        summary: 末尾に名前が空で使う用語集の無いプリセットを足し、その使う用語集の表を出して名前の欄へフォーカスを移し、changed を emit する。「プリセット追加」が呼ぶ
+        summary: 末尾に名前が空で使う用語集の無いプリセットを足し、その使う用語集の表を出して名前の欄へフォーカスを移し、changed を emit する。「プリセットを追加」が呼ぶ
         status: planned
         returns:
           type: None
@@ -1906,7 +1906,7 @@ classes:
     status: implemented
     notes:
       読めない用語集: |-
-        行を読む関数が GlossaryReadError を送出した用語集は、読めない用語集として一覧に残す（設定画面は開く）。行の数は「読めません」、行の表の代わりに「この用語集の CSV を読めませんでした（{理由}）。保存しても、この CSV は書き換えません。」を出し、行を足すボタンを無効にする。名前を変える・プリセットの使う用語集に追加する・一覧から消すはできる。
+        行を読む関数が GlossaryReadError を送出した用語集は、読めない用語集として一覧に残す（設定画面は開く）。行の数は「読めません」、行の表の代わりに「この用語集の CSV を読めませんでした（{理由}）。保存しても、この CSV は書き換えません。」を出し、行の追加ボタンを無効にする。名前を変える・プリセットの使う用語集に追加する・一覧から消すはできる。
         changed_rows と row_errors には入れない（保存してもその CSV に触れない）。
   - name: HintPresetPanel
     title: 表記のヒントの長さとプリセットの一覧
@@ -1915,9 +1915,9 @@ classes:
     role: 画面の部品
     kind: クラス
     inherits: PySide6.QtWidgets.QWidget
-    summary: 設定画面の「表記のヒント」のまとまりに置く、有効なヒントの長さ・プリセットのまとまりの縦の並び・「プリセットを足す」・補足。プリセットと語の足す・消す・並べ替えを受け、長さを数え直す
+    summary: 設定画面の「表記のヒント」のまとまりに置く、有効なヒントの長さ・プリセットのまとまりの縦の並び・「プリセットを追加」・補足。プリセットと語の足す・消す・並べ替えを受け、長さを数え直す
     description: |-
-      要素（説明・有効なヒントの長さ・一覧・空の案内・有効の切り替え・語の数と長さ・名前・語・語を消す・語が無いときの文・語を足す・上へ・下へ・消す・足す・補足）と読み上げの名前は画面設計「設定画面」が持つ。
+      要素（説明・有効なヒントの長さ・一覧・空の案内・有効の切り替え・語の数と長さ・名前・語・語を消す・語が無いときの文・語を追加・上へ・下へ・消す・足す・補足）と読み上げの名前は画面設計「設定画面」が持つ。
       プリセットのまとまりは PresetListPanel と同じ形（頭に切り替え・名前・上へ・下へ・消す、下に欄）で作る。語の欄は入力と消すボタンの組を `QGridLayout` の 2 列（左から右、上から下が語の順）に並べ、部品の幅が 2 組入らないときは 1 列に並べ直す（resizeEvent）。幅に応じて列の数を 3 以上に増やす自前のレイアウトは作らない。
       長さは欄の入力・切り替え・足す・消す・並べ替えのたびに、今の欄の値（プリセットごとの有効かと語の並び。HintWordSource を満たす値で、HintPresetSettings にはしない）を join_hint_words でつないだ UTF-8 のバイト数で数え直し、HINT_MAX_BYTES を超えたらバーと数字を赤にして「（{超えた分} バイト超過）」を添える。空の名前・空の語・区切りを含む語もそのまま数える（確かめは保存で行う）。
       無効のプリセットの語の欄は、用語集のオフの行と同じく文字を薄くして取り消し線を引く（編集はできる）。
@@ -1964,10 +1964,10 @@ classes:
             mock: なし（offscreen）
             expected: collect の名前が B・A の順
       - name: add_preset
-        title: プリセットを足す
+        title: プリセットを追加
         kind: メソッド
         scope: public
-        summary: 末尾に名前と語が空で有効のプリセットを足し、名前の欄へフォーカスを移して changed を emit する。「プリセットを足す」が呼ぶ
+        summary: 末尾に名前と語が空で有効のプリセットを足し、名前の欄へフォーカスを移して changed を emit する。「プリセットを追加」が呼ぶ
         returns:
           type: None
           description: なし
@@ -1979,10 +1979,10 @@ classes:
             mock: なし（offscreen）
             expected: collect が 1 件（enabled True・name が空・words が空）を返し、changed が 1 回 emit され、空の案内が消える
       - name: add_word
-        title: 語を足す
+        title: 語を追加
         kind: メソッド
         scope: public
-        summary: そのプリセットの語の末尾に空の欄を足してフォーカスを移し、changed を emit する。「語を足す」が呼ぶ
+        summary: そのプリセットの語の末尾に空の欄を足してフォーカスを移し、changed を emit する。「語を追加」が呼ぶ
         args:
           - name: position
             type: int
@@ -2103,7 +2103,7 @@ classes:
     kind: クラス
     inherits: PySide6.QtWidgets.QProxyStyle
     summary: チェックボックスの箱・ラジオボタンの丸を、Qt の既定のスタイルに任せず theme_color の色で描く。それ以外の部品は包んだスタイルのまま描く
-    description: アプリ全体のスタイルシートを当てると、Windows 11 のスタイルはオンのチェックボックスの箱と選んだラジオボタンの印を描かなくなる。印はこのスタイルが QPainter で描き、スタイルシートは `::indicator` の規則を持たない（規則が無い印はスタイルシートがこのスタイルの drawPrimitive へ回す）。選択欄の開く印は、`::drop-down` に規則を置くとこのスタイルへ回らないため、build_stylesheet が `::down-arrow` の画像で描く。色は描くたびに theme_color で引くため、明暗を当て直しても作り直さない。大きさは tokens.toml の `[shape]` の `indicator`（箱と丸の一辺、16px）と `indicator_dot`（選んだ点の直径、8px）。色の役割は画面設計『設定画面』の補足「印の見え方」のとおり。単体テストは test_style.py に置く
+    description: アプリ全体のスタイルシートを当てると、Windows 11 のスタイルはオンのチェックボックスの箱と選んだラジオボタンの印を描かなくなる。印はこのスタイルが QPainter で描き、スタイルシートは `::indicator` の規則を持たない（規則が無い印はスタイルシートがこのスタイルの drawPrimitive へ回す）。選択欄の開く印は、`::drop-down` に規則を置くとこのスタイルへ回らないため、build_stylesheet が `::down-arrow` の画像で描く。色は描くたびに theme_color で引くため、明暗を当て直しても作り直さない。大きさは tokens.toml の `[shape]` の `indicator`（箱と丸の一辺、16px）と `indicator_dot`（選んだ点の直径、8px）。色の役割は画面設計『設定画面』の補足「マーカーの見え方」のとおり。単体テストは test_style.py に置く
     methods:
       - name: drawPrimitive
         title: 印の描画
@@ -2213,17 +2213,17 @@ classes:
             mock: なし
             expected: 包んだスタイルの pixelMetric の値と同じ
     refs:
-      - dev/設計書/画面設計/常駐アプリ/設定画面.py#notes.印の見え方
+      - dev/設計書/画面設計/常駐アプリ/設定画面.py#notes.マーカーの見え方
       - dev/設計書/外部ライブラリ/pyside6-essentials#
     status: implemented
     introduced:
       pr: 159
   - name: EdgePhrasePanel
-    title: 文頭・文末から消す文言の一覧
+    title: 文頭・文末から削除する文言の一覧
     container: ui/windows/settings_edge_phrases.py
     usecase: 設定を変える
     role: 画面の部品
-    summary: 設定画面の「ハルシネーション」のまとまりに置く、説明・文言の一覧・空の文・「行を足す」・凡例。行の足す・消す・並べ替えを受ける
+    summary: 設定画面の「ハルシネーション」のまとまりに置く、説明・文言の一覧・空の文・「行を追加」・凡例。行の足す・消す・並べ替えを受ける
     description: |-
       要素（説明・一覧・つまみ・文言・位置・消す・空の文・足す・凡例）と読み上げの名前は画面設計「設定画面」が持つ。
       一覧は、用語集・表記のヒントの部品と同じく行ごとの部品（つまみ・文言の欄・位置の選択・消すボタンと欄の下のエラーの文）を縦に並べる。行の入れ替えは、つまみ（自前の部品。離した縦の位置より上に中心がある他の行の数を移し先にする）と、文言の欄の Alt+↑ / Alt+↓（move_phrase）で行う。部品の幅が NARROW_WIDTH_PX より狭いときは、1 行を 2 段（上に文言の欄、下に位置と消すボタン）に組む。行の部品の objectName の末尾の `{n}` は一覧の並びの 0 からの番号で、行を動かすたびに付け直す。動かしたら動かした行の文言の欄へフォーカスを移し、「{何行目か} 行目へ動かしました」を `QAccessible.updateAccessibility(QAccessibleAnnouncementEvent(...))` で読み上げに伝える。
@@ -2266,8 +2266,8 @@ classes:
             mock: なし（offscreen）
             expected: 'collect が [{"text": "チャンネル登録*", "position": "end"}, {"text": "えーと", "position": "start"}] を返し、位置の選択の表示が「文末」「文頭」'
       - name: add_phrase
-        title: 行を足す
-        summary: 末尾に文言が空で位置が end の行を足し、文言の欄へフォーカスを移して changed を emit する。「行を足す」が呼ぶ
+        title: 行を追加
+        summary: 末尾に文言が空で位置が end の行を足し、文言の欄へフォーカスを移して changed を emit する。「行を追加」が呼ぶ
         kind: メソッド
         scope: public
         returns:
@@ -2367,7 +2367,7 @@ functions:
         type: Literal["state_changed", "busy", "microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable", "show_recording_window", "output_changed"]
         required: true
         passing: positional
-        description: 知らせの種類（show_recording_window は、録音開始のホットキーで隠した録音の画面を戻す指示。output_changed は、文字起こし中に届ける出力先を差し替えたこと）
+        description: 通知の種類（show_recording_window は、録音開始のホットキーで隠した録音の画面を戻す指示。output_changed は、文字起こし中に届ける出力先を差し替えたこと）
       - name: detail
         type: str | None
         required: false
@@ -2659,8 +2659,8 @@ functions:
          - URL の形が合わない（プリセットの URL）: 空なら「URL を入れてください（例: https://example.com/hook）。」、空でなければ「http:// か https:// で始まる URL を入れてください。」
          - hotkey_overlap（find_hotkey_overlaps）: 重なった先がプリセットなら「プリセット「{タイトル}」と同じキーです。別のキーにしてください。」（もう一方の種類のプリセットなら「「{種類}」のプリセット「{タイトル}」と同じキーです。別のキーにしてください。」）、それ以外は「「{重なった欄の名前}」と同じホットキーです。別のキーにしてください。」
          - hint_too_long: 「有効なヒントが長すぎます（{今の長さ} / 222 バイト）。語を減らすか、プリセットを無効にしてください。」
-         - hint_word_empty: 「語を入れるか、この欄を消してください。」
-         - hint_word_separator: 「読点（、）・句点（。）・改行は入れられません。語を分けて足してください。」
+         - hint_word_empty: 「語を入れるか、この欄を削除してください。」
+         - hint_word_separator: 「読点（、）・句点（。）・改行は入れられません。語を分けて追加してください。」
          - hint_preset_name_overlap（find_hint_preset_name_overlaps）: 「プリセット「{名前}」と同じ名前です。別の名前にしてください。」
          - それ以外: pydantic の msg をそのまま出す
     unit_tests:
@@ -3026,7 +3026,7 @@ functions:
         expected: 受け手に "テストの文字" が届き、INFO のログが 1 行出て、ログに "テストの文字" が含まれない
     status: planned
     refs:
-      - dev/設計書/画面設計/常駐アプリ/トレイの通知.py#elements[コピーし直す]
+      - dev/設計書/画面設計/常駐アプリ/トレイの通知.py#elements[もう一度コピー]
   - name: write_arrow_image
     title: 開く印の画像の書き出し
     container: ui/style.py
@@ -3138,7 +3138,7 @@ data_models:
         description: 足す用語集の CSV の場所を、一覧にある場所と重ならないように決める（フォルダを部分適用した next_glossary_path）
       - name: copy
         type: Callable[[str], None]
-        description: クリップボードへ書く（copy_to_clipboard。書けなければ DeliveryError）。コピーの完了の通知を押したときにコピーし直す
+        description: クリップボードへ書く（copy_to_clipboard。書けなければ DeliveryError）。コピーの完了の通知を押したときにもう一度コピーする
       - name: switch_output
         type: Callable[[str], None]
         description: 文字起こし中に届ける出力先を差し替える（SessionManager.switch_output）。文字起こし中の表示の切り替えのボタンが呼ぶ
@@ -3180,7 +3180,7 @@ enums:
     title: 録音の画面の状態
     container: ui/tray.py
     usecase: 録音する
-    summary: トレイの「録音の画面を出す」の出し分け
+    summary: トレイの「録音の画面を表示」の出し分け
     values:
       - value: hidden
         member: HIDDEN
@@ -3199,7 +3199,7 @@ enums:
         title: 録音していない
         description: 待機中・文字起こし中・準備に失敗した起動
     refs:
-      - dev/設計書/画面設計/常駐アプリ/トレイ.py#elements[録音の画面を出す]
+      - dev/設計書/画面設計/常駐アプリ/トレイ.py#elements[録音の画面を表示]
     status: implemented
 constants:
   - name: WAVE_INTERVAL_MS

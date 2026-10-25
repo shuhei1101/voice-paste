@@ -4,7 +4,7 @@ elements:
     id: busy_dialog
     kind: dialog
     position: 処理中のダイアログ
-    description: 「常に手前に表示」のモーダル。窓の題は voice-paste。処理中の録音はそのまま続き、閉じた後もトレイのアイコンは処理中の録音の状態のまま
+    description: 「常に手前に表示」のモーダル。ウィンドウのタイトルは voice-paste。処理中の録音はそのまま続き、閉じた後もトレイのアイコンは処理中の録音の状態のまま
     visible_when: '`notify` で busy を受けたとき（API から始めた録音の間に録音開始のホットキーを押した）'
     source: UiBridge.notified（busy）
     action: Enter・Esc でも閉じる
@@ -13,7 +13,7 @@ elements:
     kind: label
     position: 処理中のダイアログ > 本体
     description: 始められないことを伝える
-    label: 録音を始められません
+    label: 録音を開始できませんでした
     visible_when: 常時
   - name: 本文
     id: busy_body

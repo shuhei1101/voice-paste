@@ -276,7 +276,7 @@ requirements:
         expected: 5 回とも後のプロセスが待機中になり、常駐サービスのプロセスが 1 つだけで、最大が 54 秒以内
         notes: '`--run-e2e` が無い環境・`tests/nfr/fixtures/` が無い環境では skip する'
     test_file: tests/nfr/test_single_instance_timeout.py
-  - name: エンドポイントへ送るときのタイムアウト
+  - name: エンドポイントへ送信するときのタイムアウト
     english_name: endpoint_timeout
     category: 耐障害
     external_constraint: 利用者が用意するエンドポイントは受け取ってから 1 秒以内に 2xx を返す（呼び出し元へ返すと同じ取り決め）。外のエンドポイント（Webhook 等）には課せない

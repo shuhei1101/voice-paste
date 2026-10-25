@@ -736,7 +736,7 @@ functions:
         type: float
         required: true
         passing: positional
-        description: 1 回の POST のタイムアウト（呼び出し元へ返すは非機能要件の返送のタイムアウトを部分適用し、エンドポイントへ送るは設定の値を渡す）
+        description: 1 回の POST のタイムアウト（呼び出し元へ返すは非機能要件の返送のタイムアウトを部分適用し、エンドポイントへ送信は設定の値を渡す）
       - name: headers
         type: Mapping[str, str]
         required: false

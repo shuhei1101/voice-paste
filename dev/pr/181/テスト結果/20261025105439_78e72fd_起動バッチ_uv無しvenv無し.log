@@ -1,0 +1,28 @@
+状態: uv を見つけられず .venv も無い
+条件: .venv の無いコピー。PATH から uv を外し、USERPROFILE を空のフォルダにして %USERPROFILE%\.local\bin\uv.exe も無い状態にした
+実行: コミット 78e72fd の voice-paste.bat（同一内容）を、検証用のコピーでリポジトリの外のフォルダから標準入力を閉じて流した
+差し替え: 普段使いの常駐アプリを入れ替えで終了させないため、コピーの src/voice_paste/__main__.py は起動した印を書くだけの stub にした（バッチファイルと import の確かめは本物）
+
+--- where uv / USERPROFILE
+where uv: 情報: 与えられたパターンのファイルが見つかりませんでした。
+USERPROFILE: C:\Users\shuhe\AppData\Local\Temp\vp181\out\case4\home
+
+--- コンソールの出力
+
+[ERROR] uv not found. Install uv and run voice-paste.bat again.
+See log: C:\Users\shuhe\AppData\Local\Temp\vp181\out\case4\localappdata\voice-paste\log\launcher.log
+続行するには何かキーを押してください . . . 
+
+--- 終了コード
+exit code: 1
+
+--- launcher.log
+[2026/10/25 10:53:00.60] voice-paste.bat start 
+[2026/10/25 10:53:00.60] cwd=C:\Users\shuhe\AppData\Local\Temp\vp181\nouv\ 
+[2026/10/25 10:53:00.66] uv not found, skipping uv sync 
+指定されたパスが見つかりません。
+[2026/10/25 10:53:00.66] import voice_paste from .venv exited with code 3 
+[2026/10/25 10:53:00.67] [ERROR] uv not found. Install uv and run voice-paste.bat again. 
+
+--- 起動した印（stub-started.txt）
+no stub-started.txt (the app was not launched)

@@ -1,0 +1,30 @@
+状態: .venv が揃っている
+条件: case2 の後の .venv（uv.lock どおり）。uv は PATH から見つかる
+実行: コミット 78e72fd の voice-paste.bat（同一内容）を、検証用のコピーでリポジトリの外のフォルダから標準入力を閉じて流した
+差し替え: 普段使いの常駐アプリを入れ替えで終了させないため、コピーの src/voice_paste/__main__.py は起動した印を書くだけの stub にした（バッチファイルと import の確かめは本物）
+
+--- where uv / USERPROFILE
+where uv: C:\Users\shuhe\.local\bin\uv.exe
+USERPROFILE: C:\Users\shuhe
+
+--- コンソールの出力
+Syncing .venv with uv sync --frozen. See log: C:\Users\shuhe\AppData\Local\Temp\vp181\out\case1\localappdata\voice-paste\log\launcher.log
+
+--- 終了コード
+exit code: 0
+
+--- launcher.log
+[2026/10/25 10:52:32.50] voice-paste.bat start 
+[2026/10/25 10:52:32.50] cwd=C:\Users\shuhe\AppData\Local\Temp\vp181\main\ 
+[2026/10/25 10:52:32.56] uv: C:\Users\shuhe\.local\bin\uv.exe 
+[2026/10/25 10:52:32.56] running: uv sync --frozen 
+Audited 65 packages in 5ms
+[2026/10/25 10:52:32.84] uv sync --frozen exited with code 0 
+[2026/10/25 10:52:32.88] import voice_paste from .venv exited with code 0 
+[2026/10/25 10:52:32.88] activating .venv 
+[2026/10/25 10:52:32.94] launching: C:\Users\shuhe\AppData\Local\Temp\vp181\main\.venv\Scripts\pythonw.exe -m voice_paste 
+[2026/10/25 10:52:32.96] launcher exited with code 0 
+
+--- 起動した印（stub-started.txt）
+C:\Users\shuhe\AppData\Local\Temp\vp181\main\.venv\Scripts\pythonw.exe
+['C:\\Users\\shuhe\\AppData\\Local\\Temp\\vp181\\main\\src\\voice_paste\\__main__.py']

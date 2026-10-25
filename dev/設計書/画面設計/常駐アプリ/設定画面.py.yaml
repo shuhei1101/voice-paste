@@ -122,7 +122,7 @@ elements:
     id: preset_list_{kind}
     kind: list
     position: 窓 > 右 > ブラウザ添付・エンドポイントへ送信 > カスタムプリセット
-    description: そのタブの種類のプリセットを 1 件ずつ、全ての欄を開いたまとまりで縦に積む。まとまりの頭に有効の切り替え・タイトル・上へ・下へ・消すのボタンを並べ、下にタイトル・URL・種類ごとの欄・確定のホットキーの欄を置く。見出しは「カスタムプリセット」
+    description: そのタブの種類のプリセットを 1 件ずつ、全ての欄を開いたまとまりで縦に積む。まとまりの頭に有効の切り替え・タイトル・上へ・下へ・削除のボタンを並べ、下にタイトル・URL・種類ごとの欄・確定のホットキーの欄を置く。見出しは「カスタムプリセット」
     io: 入出力
     visible_when: ブラウザ添付かエンドポイントへ送信のまとまりを選んだとき（選んだタブの種類だけを出す）
     sorting: 上へ・下へのボタンで、同じ種類の中だけで並べ替える。既定は settings.toml の並び
@@ -135,7 +135,7 @@ elements:
     id: preset_empty_{kind}
     kind: label
     position: 窓 > 右 > ブラウザ添付・エンドポイントへ送信 > カスタムプリセット
-    description: そのタブにプリセットが 1 件も無いことと、足すと録音の画面に出ることを伝える
+    description: そのタブにプリセットが 1 件も無いことと、追加すると録音の画面に出ることを伝える
     label: '{種類}のプリセットはまだありません。追加すると、録音の画面の「カスタムプリセット」にボタンが出ます。'
     visible_when: そのタブの種類のプリセットが 1 件も無いとき
   - name: プリセットの有効の切り替え
@@ -173,7 +173,7 @@ elements:
     id: preset_url_{n}
     kind: input
     position: 窓 > 右 > プリセットの一覧 > まとまり
-    description: ブラウザ添付は開く画面の URL、エンドポイントへ送信は送り先の URL
+    description: ブラウザ添付は開く画面の URL、エンドポイントへ送信は送信先の URL
     label: URL
     placeholder: https://
     io: 入出力
@@ -262,10 +262,10 @@ elements:
     id: add_preset_button_{kind}
     kind: button
     position: 窓 > 右 > ブラウザ添付・エンドポイントへ送信 > プリセットの一覧の下
-    description: そのタブの種類の空のプリセット（有効、ブラウザ添付は Enter まで送信がオン）を一覧の末尾に足し、タイトルの欄へフォーカスを移す
+    description: そのタブの種類の空のプリセット（有効、ブラウザ添付は Enter まで送信がオン）を一覧の末尾に追加し、タイトルの欄へフォーカスを移す
     label: プリセットを追加
     visible_when: ブラウザ添付かエンドポイントへ送信のまとまりを選んだとき
-    action: プリセットの一覧に 1 件足す
+    action: プリセットの一覧に 1 件追加する
   - name: プリセットのホットキーを空にするボタン
     id: preset_hotkey_clear_{n}
     kind: button
@@ -338,10 +338,10 @@ elements:
     id: add_glossary_button
     kind: button
     position: 窓 > 右 > 用語集 > 用語集の一覧の下
-    description: 名前が空で行の無い用語集を一覧の末尾に足し、その用語集の行の表を出して、名前の欄へフォーカスを移す。どのプリセットの使う用語集にも入れない
+    description: 名前が空で行の無い用語集を一覧の末尾に追加し、その用語集の行の表を出して、名前の欄へフォーカスを移す。どのプリセットの使う用語集にも入れない
     label: 用語集を追加
     visible_when: 用語集のまとまりを選んだとき
-    action: 用語集の一覧に 1 件足す
+    action: 用語集の一覧に 1 件追加する
     status: planned
   - name: 用語集の行の見出し
     id: glossary_detail_title
@@ -381,7 +381,7 @@ elements:
     initial_value: その用語集の CSV の行。誤変換か正しい表記の片方が空の行も出す（補正は、誤変換が空の行を飛ばし、正しい表記が空の行で誤変換を削除する）
     sorting: 並べ替えない。CSV の行の順で、追加した行は末尾
     source: その用語集の CSV（`glossaries[].path`）
-    target: その用語集の CSV。保存で書き戻すのは、設定画面で行を変えた用語集（誤変換・正しい表記・オン・オフのどれかを変えた、行を追加した・消した）と、追加した用語集の CSV だけで、表の順に行とオン・オフを書く。行を変えていない用語集の CSV には触れない（`glossary_path` から `glossaries` へ書き移すだけの保存や、ほかのまとまりだけを変えた保存でも触れない）
+    target: その用語集の CSV。保存で書き戻すのは、設定画面で行を変えた用語集（誤変換・正しい表記・オン・オフのどれかを変えた、行を追加した・削除した）と、追加した用語集の CSV だけで、表の順に行とオン・オフを書く。行を変えていない用語集の CSV には触れない（`glossary_path` から `glossaries` へ書き移すだけの保存や、ほかのまとまりだけを変えた保存でも触れない）
     status: implemented
     refs:
       - dev/設計書/設定/常駐アプリ#settings[glossaries[].path]
@@ -447,10 +447,10 @@ elements:
     id: add_glossary_entry_button
     kind: button
     position: 窓 > 右 > 用語集 > 用語集の行 > 行の表の下
-    description: 誤変換と正しい表記が空でオンの行を表の末尾に足し、その行の誤変換の欄へフォーカスを移す
+    description: 誤変換と正しい表記が空でオンの行を表の末尾に追加し、その行の誤変換の欄へフォーカスを移す
     label: 行を追加
     visible_when: 用語集のまとまりを選んだとき
-    action: 行の表に 1 行足す
+    action: 行の表に 1 行追加する
     status: planned
     enabled_when: 行の表を出している用語集の CSV を読めたとき（追加した用語集を含む）
   - name: 補正の決まりの凡例
@@ -501,7 +501,7 @@ elements:
     id: hint_preset_list
     kind: list
     position: 窓 > 右 > 表記のヒント > 有効なヒントの長さの下
-    description: ヒントのプリセットを 1 件ずつ、全ての欄を開いたまとまりで縦に積む（カスタムプリセットの一覧と同じ形）。まとまりの頭に有効の切り替え・名前・語の数と長さ・上へ・下へ・消すのボタンを並べ、下に名前の欄と語の欄を置く。読み上げの名前は「表記のヒントのプリセット（上から順に語をつなぐ）」
+    description: ヒントのプリセットを 1 件ずつ、全ての欄を開いたまとまりで縦に積む（カスタムプリセットの一覧と同じ形）。まとまりの頭に有効の切り替え・名前・語の数と長さ・上へ・下へ・削除のボタンを並べ、下に名前の欄と語の欄を置く。読み上げの名前は「表記のヒントのプリセット（上から順に語をつなぐ）」
     io: 入出力
     visible_when: 表記のヒントのまとまりを選んだとき
     sorting: 上へ・下へのボタンで並べ替える。既定は settings.toml の並びで、追加したプリセットは末尾
@@ -604,10 +604,10 @@ elements:
     id: hint_word_add_{n}
     kind: button
     position: 窓 > 右 > ヒントのプリセットの一覧 > まとまり > 語の下
-    description: 空の語の欄をそのプリセットの語の末尾に足し、その欄へフォーカスを移す
+    description: 空の語の欄をそのプリセットの語の末尾に追加し、その欄へフォーカスを移す
     label: 語を追加
     visible_when: プリセットごと
-    action: 語の欄を 1 つ足す
+    action: 語の欄を 1 つ追加する
     status: implemented
   - name: ヒントのプリセットを上へのボタン
     id: hint_preset_up_{n}
@@ -642,11 +642,11 @@ elements:
     id: hint_preset_add
     kind: button
     position: 窓 > 右 > 表記のヒント > ヒントのプリセットの一覧の下
-    description: 名前と語が空で有効のプリセットを一覧の末尾に足し、名前の欄へフォーカスを移す
+    description: 名前と語が空で有効のプリセットを一覧の末尾に追加し、名前の欄へフォーカスを移す
     label: プリセットを追加
     visible_when: 表記のヒントのまとまりを選んだとき
-    action: ヒントのプリセットの一覧に 1 件足す
-    reason: 足して語を入れただけで効くように、有効で足す（確認ログ）
+    action: ヒントのプリセットの一覧に 1 件追加する
+    reason: 追加して語を入れただけで効くように、有効で追加する（確認ログ）
     status: implemented
   - name: 表記のヒントの補足
     id: hint_notes
@@ -764,10 +764,10 @@ elements:
     id: add_edge_phrase_button
     kind: button
     position: 窓 > 右 > ハルシネーション > 文言の一覧の下
-    description: 文言が空で位置が文末の行を一覧の末尾に足し、その行の文言の欄へフォーカスを移す
+    description: 文言が空で位置が文末の行を一覧の末尾に追加し、その行の文言の欄へフォーカスを移す
     label: 行を追加
     visible_when: ハルシネーションのまとまりを選んだとき
-    action: 文言の一覧に 1 行足す
+    action: 文言の一覧に 1 行追加する
     status: implemented
   - name: 文言の決まりの凡例
     id: edge_phrase_legend
@@ -843,9 +843,9 @@ elements:
     id: add_glossary_preset_button
     kind: button
     position: 窓 > 右 > 用語集 > 用語集のプリセットの一覧の下
-    description: 使う用語集が無く名前が空のプリセットを一覧の末尾に足し、その表を出して名前の欄にフォーカスを移す
+    description: 使う用語集が無く名前が空のプリセットを一覧の末尾に追加し、その表を出して名前の欄にフォーカスを移す
     label: プリセットを追加
-    action: プリセットを末尾に足す
+    action: プリセットを末尾に追加する
     status: planned
     introduced:
       pr: 173
@@ -924,7 +924,7 @@ elements:
     id: glossary_preset_glossary_select
     kind: select
     position: 窓 > 右 > 用語集 > 用語集のプリセットの用語集 > 使う用語集の表の下
-    description: プリセットに足す用語集を選ぶ
+    description: プリセットに追加する用語集を選ぶ
     io: 入力
     options: 用語集の一覧のうち、このプリセットがまだ使っていない用語集。並びは用語集の一覧の順。既定は 1 件目。単一選択
     visible_when: このプリセットが使っていない用語集があるとき
@@ -935,10 +935,10 @@ elements:
     id: glossary_preset_glossary_add
     kind: button
     position: 窓 > 右 > 用語集 > 用語集のプリセットの用語集 > 追加する用語集の選択の右
-    description: 選んだ用語集を使う用語集の表の末尾に足す
+    description: 選んだ用語集を使う用語集の表の末尾に追加する
     label: 追加
     visible_when: このプリセットが使っていない用語集があるとき
-    action: 選んだ用語集を表の末尾に足し、選択肢から除く
+    action: 選んだ用語集を表の末尾に追加し、選択肢から除く
     status: planned
     introduced:
       pr: 173

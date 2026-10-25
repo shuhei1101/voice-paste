@@ -3,7 +3,7 @@ lead: 常駐アプリが `settings.toml` から読む設定の一覧。読み書
 files:
   - file: resources/yogo.csv
     manages: 用語集（誤変換 → 正しい表記。正しい表記が空の行は誤変換を消す）
-    notes: 列は `誤変換`・`正しい表記` と、行のオン・オフの `使う`（`0` がオフ。列が無い行はオン）。録音を確定するたびに読み直す。置き場所は `glossary_path` で変えられる。設定画面で足した用語集は `glossaries[].path` の CSV に同じ列で持つ（列の定義は ER 図『常駐アプリのファイル』の用語集の CSV）。
+    notes: 列は `誤変換`・`正しい表記` と、行のオン・オフの `使う`（`0` がオフ。列が無い行はオン）。録音を確定するたびに読み直す。置き場所は `glossary_path` で変えられる。設定画面で追加した用語集は `glossaries[].path` の CSV に同じ列で持つ（列の定義は ER 図『常駐アプリのファイル』の用語集の CSV）。
   - file: settings.toml
     manages: 新しい構成（src/voice_paste/）の設定の全部
     notes: git の管理外。既定は `%APPDATA%\voice-paste\settings.toml`、`--data-dir` を渡したときはその下。無ければ起動時に既定値で作る。
@@ -16,7 +16,7 @@ settings:
     file: settings.toml
     type: "'local_whisper'"
     default: local_whisper
-    description: '文字起こしワーカー（faster-whisper）で文字を起こす。エンジンはこれだけで、エンジンを足すときに値を足す。'
+    description: '文字起こしワーカー（faster-whisper）で文字を起こす。エンジンはこれだけで、エンジンを追加するときに値を追加する。'
     reload: restart
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -234,7 +234,7 @@ settings:
     file: settings.toml
     type: string（pynput の GlobalHotKeys 形式）
     default: <ctrl>+v
-    description: 貼り付け先へ送る貼り付けのキーの組み合わせ。
+    description: 貼り付け先へ送信する貼り付けのキーの組み合わせ。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -243,7 +243,7 @@ settings:
     file: settings.toml
     type: "'paste_and_send' | 'paste_only' | 'copy_only'"
     default: 3 件（paste_and_send・paste_only・copy_only の順）
-    description: 出力先の一覧の 1 件がどの出力先かを表す。一覧の中で重ならない。`id = "ai_chat"` の項目は、読み込むときに送り先（`targets[]`）をブラウザ添付種類のカスタムプリセットへ読み替えて外す。
+    description: 出力先の一覧の 1 件がどの出力先かを表す。一覧の中で重ならない。`id = "ai_chat"` の項目は、読み込むときに送信先（`targets[]`）をブラウザ添付種類のカスタムプリセットへ読み替えて外す。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -272,7 +272,7 @@ settings:
     file: settings.toml
     type: float（秒）
     default: '0.5'
-    description: paste_and_send だけが持つ。貼り付けてから Enter を送るまで待つ秒数。ブラウザ添付種類の、Enter まで送信するプリセットでも使う。
+    description: paste_and_send だけが持つ。貼り付けてから Enter を送信するまで待つ秒数。ブラウザ添付種類の、Enter まで送信するプリセットでも使う。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/features/outputs/paste_and_send/settings.py
@@ -288,7 +288,7 @@ settings:
     implementation: src/voice_paste/shared/settings.py
     allowed: '>= 0'
   - key: outputs[].targets[].name
-    title: AI チャットの送り先の名前
+    title: AI チャットの送信先の名前
     file: settings.toml
     type: string
     default: '（1: ChatGPT / 2: Google AI / 3: Claude）'
@@ -298,7 +298,7 @@ settings:
     implementation: src/voice_paste/shared/settings.py
     allowed: 1 文字以上
   - key: outputs[].targets[].url
-    title: AI チャットの送り先の URL
+    title: AI チャットの送信先の URL
     file: settings.toml
     type: string（URL）
     default: '（1: https://chatgpt.com / 2: https://gemini.google.com/app / 3: https://claude.ai/new）'
@@ -308,7 +308,7 @@ settings:
     implementation: src/voice_paste/shared/settings.py
     allowed: http か https
   - key: outputs[].targets[].hotkey
-    title: AI チャットの送り先へ送るホットキー
+    title: AI チャットの送信先へ送信するホットキー
     file: settings.toml
     type: string（pynput の GlobalHotKeys 形式）
     default: <ctrl>+<alt>+{n}
@@ -317,7 +317,7 @@ settings:
     status: deprecated
     implementation: src/voice_paste/shared/settings.py
   - key: outputs[].targets[].enabled
-    title: AI チャットの送り先を出すか
+    title: AI チャットの送信先を出すか
     file: settings.toml
     type: bool
     default: 'true'
@@ -450,7 +450,7 @@ settings:
     title: カスタムプリセットの URL
     file: settings.toml
     type: string（URL）
-    description: browser は Microsoft Edge の `--app` で開く画面の URL、endpoint は起こした文字を POST する送り先。
+    description: browser は Microsoft Edge の `--app` で開く画面の URL、endpoint は起こした文字を POST する送信先。
     reload: immediate
     allowed: http か https
     status: implemented
@@ -481,7 +481,7 @@ settings:
     file: settings.toml
     type: bool
     default: 'true'
-    description: browser だけが持つ。`true` なら貼り付けてから `outputs[paste_and_send].enter_delay_sec` の秒数を置いて Enter を送り、`false` なら貼り付けで止める。
+    description: browser だけが持つ。`true` なら貼り付けてから `outputs[paste_and_send].enter_delay_sec` の秒数を置いて Enter を送信し、`false` なら貼り付けで止める。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -512,7 +512,7 @@ settings:
     file: settings.toml
     type: float（秒）
     default: '1.5'
-    description: エンドポイントへ送信の種類の全てのプリセットで使う。この秒数で届かなければ送り直さず、届けられなかったことを知らせる。
+    description: エンドポイントへ送信の種類の全てのプリセットで使う。この秒数で届かなければ再送せず、届けられなかったことを知らせる。
     reload: immediate
     allowed: 0.5〜10
     status: implemented
@@ -554,7 +554,7 @@ settings:
     file: settings.toml
     type: list['ctrl' | 'alt' | 'shift']
     default: '[]'
-    description: paste_and_send だけが持つ。貼り付けて `enter_delay_sec` の秒数を置いた後、並べた修飾キーを押したまま Enter を送る。空なら Enter だけを送る。ブラウザ添付種類の、Enter まで送信するプリセットには当てない。
+    description: paste_and_send だけが持つ。貼り付けて `enter_delay_sec` の秒数を置いた後、並べた修飾キーを押したまま Enter を送信する。空なら Enter だけを送る。ブラウザ添付種類の、Enter まで送信するプリセットには当てない。
     missing: 空として読む
     reload: immediate
     allowed: "'ctrl'・'alt'・'shift' の値だけ。並びと重なりは問わず、押す順は Ctrl・Alt・Shift に揃える"
@@ -597,7 +597,7 @@ settings:
     title: 用語集の CSV の場所（用語集ごと）
     file: settings.toml
     type: string（パス）
-    description: その用語集の CSV の場所。相対パスは settings.toml のフォルダから読む。設定画面で足した用語集の CSV は、settings.toml と同じフォルダの `glossaries/glossary_{n}.csv`（n は 1 からの連番。フォルダに残っているファイルの番号は使わない）に作る。一覧から消しても CSV のファイルは消さない。
+    description: その用語集の CSV の場所。相対パスは settings.toml のフォルダから読む。設定画面で追加した用語集の CSV は、settings.toml と同じフォルダの `glossaries/glossary_{n}.csv`（n は 1 からの連番。フォルダに残っているファイルの番号は使わない）に作る。一覧から消しても CSV のファイルは消さない。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py

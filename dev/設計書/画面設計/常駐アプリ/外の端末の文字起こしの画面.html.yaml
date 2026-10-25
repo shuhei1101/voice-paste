@@ -122,7 +122,7 @@ elements:
     id: kept_state
     kind: label
     position: 音声送信 > 端末内の音声
-    description: その音声の送信と文字起こしの状態。印と文言で分け、色だけに頼らない
+    description: その音声の送信と文字起こしの状態。マーカーと文言で分け、色だけに頼らない
     io: 表示
     visible_when: 端末（IndexedDB）に音声があるとき
     options: 「送信中 {n}%」（送信中）・「送信済み」（202 を受けた後。そのジョブが failed か 404 になるまで）・「送信失敗」（送信が失敗した）・「未送信」（一覧に無いプリセットで 400 になった）・「文字起こし前」（そのジョブが failed か 404）

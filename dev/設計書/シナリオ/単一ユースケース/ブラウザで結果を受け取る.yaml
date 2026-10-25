@@ -45,7 +45,7 @@ scenarios:
         participant PG as 画面（ブラウザ）
         participant LS as 端末（localStorage）
 
-        U->>PG: 1 件の消すボタンを押す
+        U->>PG: 1 件の削除ボタンを押す
         PG->>PG: 削除の確認のモーダルを出す
         U->>PG: 消す
         PG->>LS: その件を消す
@@ -118,7 +118,7 @@ scenarios:
       ```
     expected:
       - 件に文字起こしに失敗したことが出ている
-      - 端末（IndexedDB）に録った音声が残り、送り直しボタンとダウンロードボタンを押せる
+      - 端末（IndexedDB）に録った音声が残り、再送信ボタンとダウンロードボタンを押せる
       - 端末（localStorage）に失敗した件は残っていない
     test: test_error_when_transcription_failed
   - name: 異常シナリオ（ジョブが見つからない）

@@ -110,7 +110,7 @@ tables:
   - name: '%LOCALAPPDATA%\voice-paste\log\worker_crash.log ほか'
     title: クラッシュと起動の記録
     datastore: ファイル（テキスト）
-    summary: 文字起こしワーカーのネイティブのクラッシュのスタック（`worker_crash.log`）と、起動のバッチファイルの記録（`launcher.log`）
+    summary: 文字起こしワーカーのネイティブのクラッシュのスタック（`worker_crash.log`）と、起動のバッチファイルの記録（`launcher.log`。import の確かめの結果と `uv sync --frozen` の出力を含む）
     growth: worker_crash.log は追記、launcher.log は起動ごとに上書きする
     retention: 消さない（日付の名前を持たないため、ログの保持期間の削除の対象にならない）
     columns:

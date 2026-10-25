@@ -1,0 +1,100 @@
+状態: .venv が無い
+条件: .venv の無いコピー。uv は PATH から見つかる
+実行: コミット 78e72fd の voice-paste.bat（同一内容）を、検証用のコピーでリポジトリの外のフォルダから標準入力を閉じて流した
+差し替え: 普段使いの常駐アプリを入れ替えで終了させないため、コピーの src/voice_paste/__main__.py は起動した印を書くだけの stub にした（バッチファイルと import の確かめは本物）
+
+--- where uv / USERPROFILE
+where uv: C:\Users\shuhe\.local\bin\uv.exe
+USERPROFILE: C:\Users\shuhe
+
+--- コンソールの出力
+Syncing .venv with uv sync --frozen. See log: C:\Users\shuhe\AppData\Local\Temp\vp181\out\case2\localappdata\voice-paste\log\launcher.log
+
+--- 終了コード
+exit code: 0
+
+--- launcher.log
+[2026/10/25 10:52:09.72] voice-paste.bat start 
+[2026/10/25 10:52:09.72] cwd=C:\Users\shuhe\AppData\Local\Temp\vp181\main\ 
+[2026/10/25 10:52:09.78] uv: C:\Users\shuhe\.local\bin\uv.exe 
+[2026/10/25 10:52:09.78] running: uv sync --frozen 
+Using CPython 3.14.3 interpreter at: C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\python.exe
+Creating virtual environment at: .venv
+   Building voice-paste @ file:///C:/Users/shuhe/AppData/Local/Temp/vp181/main
+      Built voice-paste @ file:///C:/Users/shuhe/AppData/Local/Temp/vp181/main
+Prepared 1 package in 1.48s
+Installed 65 packages in 2.50s
+ + annotated-doc==0.0.5
+ + annotated-types==0.8.0
+ + anyio==4.15.1
+ + av==18.1.0
+ + certifi==2026.7.22
+ + cffi==2.1.1
+ + click==8.5.0
+ + colorama==0.4.6
+ + comtypes==1.4.17
+ + ctranslate2==4.8.3
+ + fastapi==0.142.4
+ + faster-whisper==1.2.1
+ + filelock==4.2.0
+ + flatbuffers==25.12.19
+ + fsspec==2026.9.0
+ + grimp==3.17
+ + h11==0.16.0
+ + hf-xet==1.7.0
+ + httpcore==1.0.9
+ + httpcore2==2.13.1
+ + httpx==0.28.1
+ + httpx2==2.13.1
+ + huggingface-hub==2.2.0
+ + idna==3.20
+ + import-linter==2.15
+ + iniconfig==2.3.1
+ + markdown-it-py==4.2.0
+ + mdurl==0.1.2
+ + numpy==2.5.4
+ + nvidia-cublas-cu12==12.9.2.10
+ + nvidia-cuda-nvrtc-cu12==12.9.86
+ + nvidia-cudnn-cu12==9.27.0.42
+ + onnxruntime==1.31.0
+ + opentelemetry-api==1.45.1
+ + packaging==26.3
+ + platformdirs==4.13.3
+ + pluggy==1.7.0
+ + protobuf==7.36.2
+ + psutil==7.2.2
+ + pycaw==20251023
+ + pycparser==3.11
+ + pydantic==2.14.1
+ + pydantic-core==2.50.1
+ + pygments==2.21.0
+ + pynput==1.8.2
+ + pyperclip==1.11.0
+ + pyside6-essentials==6.11.2
+ + pytest==9.1.1
+ + python-multipart==0.0.32
+ + pywin32==312
+ + pyyaml==6.0.3
+ + rich==15.0.0
+ + scipy==1.18.1
+ + shiboken6==6.11.2
+ + six==1.17.0
+ + sounddevice==0.5.6
+ + starlette==1.8.0
+ + tokenizers==0.23.3
+ + tomlkit==0.15.2
+ + tqdm==4.70.1
+ + truststore==0.10.5
+ + typing-extensions==4.16.0
+ + typing-inspection==0.4.4
+ + uvicorn==0.54.0
+ + voice-paste==0.5.9 (from file:///C:/Users/shuhe/AppData/Local/Temp/vp181/main)
+[2026/10/25 10:52:22.38] uv sync --frozen exited with code 0 
+[2026/10/25 10:52:22.44] import voice_paste from .venv exited with code 0 
+[2026/10/25 10:52:22.44] activating .venv 
+[2026/10/25 10:52:22.53] launching: C:\Users\shuhe\AppData\Local\Temp\vp181\main\.venv\Scripts\pythonw.exe -m voice_paste 
+[2026/10/25 10:52:22.55] launcher exited with code 0 
+
+--- 起動した印（stub-started.txt）
+C:\Users\shuhe\AppData\Local\Temp\vp181\main\.venv\Scripts\pythonw.exe
+['C:\\Users\\shuhe\\AppData\\Local\\Temp\\vp181\\main\\src\\voice_paste\\__main__.py']

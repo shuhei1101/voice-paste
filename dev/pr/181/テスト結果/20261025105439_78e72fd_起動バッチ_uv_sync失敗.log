@@ -1,0 +1,32 @@
+状態: uv sync --frozen が失敗する（依頼の 4 状態への追加）
+条件: uv.lock の無いコピー。uv は PATH から見つかり、uv sync --frozen が 0 以外で終わる
+実行: コミット 78e72fd の voice-paste.bat（同一内容）を、検証用のコピーでリポジトリの外のフォルダから標準入力を閉じて流した
+差し替え: 普段使いの常駐アプリを入れ替えで終了させないため、コピーの src/voice_paste/__main__.py は起動した印を書くだけの stub にした（バッチファイルと import の確かめは本物）
+
+--- where uv / USERPROFILE
+where uv: C:\Users\shuhe\.local\bin\uv.exe
+USERPROFILE: C:\Users\shuhe
+
+--- コンソールの出力
+Syncing .venv with uv sync --frozen. See log: C:\Users\shuhe\AppData\Local\Temp\vp181\out\case5\localappdata\voice-paste\log\launcher.log
+
+[ERROR] uv sync --frozen failed with code 2.
+See log: C:\Users\shuhe\AppData\Local\Temp\vp181\out\case5\localappdata\voice-paste\log\launcher.log
+続行するには何かキーを押してください . . . 
+
+--- 終了コード
+exit code: 2
+
+--- launcher.log
+[2026/10/25 10:53:03.10] voice-paste.bat start 
+[2026/10/25 10:53:03.10] cwd=C:\Users\shuhe\AppData\Local\Temp\vp181\syncfail\ 
+[2026/10/25 10:53:03.16] uv: C:\Users\shuhe\.local\bin\uv.exe 
+[2026/10/25 10:53:03.16] running: uv sync --frozen 
+Using CPython 3.14.3 interpreter at: C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\python.exe
+Creating virtual environment at: .venv
+error: Unable to find lockfile at `uv.lock`, but `--frozen` was provided. To create a lockfile, run `uv lock` or `uv sync` without the flag.
+[2026/10/25 10:53:06.46] uv sync --frozen exited with code 2 
+[2026/10/25 10:53:06.46] [ERROR] uv sync --frozen failed with code 2. 
+
+--- 起動した印（stub-started.txt）
+no stub-started.txt (the app was not launched)

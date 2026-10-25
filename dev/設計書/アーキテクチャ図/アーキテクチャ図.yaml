@@ -34,7 +34,7 @@ overview:
       label: Microsoft Edge
       kind: external
     - id: EP
-      label: 設定の送り先のエンドポイント
+      label: 設定の送信先のエンドポイント
       kind: external
     - id: WEB
       label: 外の端末のブラウザ（スマホ・iPad・外の PC）

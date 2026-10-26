@@ -607,10 +607,12 @@ settings:
     file: settings.toml
     type: string
     default: （無し。1 つ目の用語集）
-    description: 補正に使う用語集の名前（`glossaries[].name`）。補正はこの用語集のオンの行だけを使う。キーが無いとき・名前が一覧に無いときは 1 つ目の用語集を使う。
+    description: 補正に使う用語集の名前（`glossaries[].name`）。`glossary_presets` のキーが無い settings.toml でだけ読み、この用語集（キーが無いとき・名前が一覧に無いときは 1 つ目の用語集）だけを使う「既定」のプリセットを作る。設定画面で保存すると `glossary_presets`・`active_glossary_preset` へ書き、このキーは消す。
     reload: immediate
-    status: implemented
+    status: deprecated
     implementation: src/voice_paste/shared/settings.py
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[glossary_presets[].name]
   - key: hint_presets[].name
     title: 表記のヒントのプリセットの名前
     file: settings.toml
@@ -654,5 +656,77 @@ settings:
     implementation: src/voice_paste/shared/settings.py
     introduced:
       pr: 131
+  - key: edge_phrases[].text
+    title: 文頭・文末から消す文言
+    file: settings.toml
+    type: string
+    default: （キーが無いときは既定の一覧。上から「チャンネル登録*」「ご視聴ありがとうございました」「ありがとうございました」で、位置は全て `end`）
+    description: 起こした文字の文頭・文末に一致したときに消す文言。書いた文字との完全な一致で、`*` は 0 文字以上の任意の文字列に一致する（端の `*` は行の端まで）。`edge_phrases` の並びの上から順に当てる。`edge_phrases` のキーが無い settings.toml は既定の一覧として読む。キーがあって空の一覧なら何も消さない
+    reload: immediate
+    allowed: 1 文字以上（前後の空白を除いて）。`*` だけの文言は入れられない（文頭・文末の行を丸ごと消すため）
+    refs:
+      - dev/設計書/シナリオ/単一ユースケース/録音を文字に起こす#scenarios[正常シナリオ（文頭・文末の決まった文言を消す）]
+      - dev/設計書/外部ライブラリ/faster-whisper#
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: edge_phrases[].position
+    title: 文言を当てる位置
+    file: settings.toml
+    type: "'start' | 'end' | 'both'"
+    default: end
+    description: その行の文言を当てる位置。`start` は文頭（1 行目の先頭）、`end` は文末（最後の行の末尾）、`both` はその両方。設定画面では「文頭」「文末」「両方」と出す
+    reload: immediate
+    allowed: '`start` / `end` / `both`'
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+  - key: api.allowed_web_origins
+    title: 外の端末に許す Origin
+    file: settings.toml
+    type: list[string]
+    default: '[]'
+    description: '`/web/` の下へ要求を送ってよいブラウザのオリジン（`https://{ゲートウェイの公開のサブドメイン}` の形）。`/web/` の下の POST は Origin がこの一覧にあるときだけ通し、GET は Origin が無いか、この一覧にあるときだけ通す。空なら外の端末の画面から送信できない'
+    allowed: '`scheme://host[:port]` の形のオリジン。末尾の `/` とパスを付けない'
+    reload: restart
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+    refs:
+      - dev/設計書/インターフェース定義/常駐アプリ/音声を受け付ける.py#
+      - dev/設計書/インターフェース定義/常駐アプリ/画面を配信する.py#
+  - key: glossary_presets[].name
+    title: 用語集のプリセットの名前
+    file: settings.toml
+    type: string
+    description: 設定画面の用語集のプリセットの一覧に出す名前。`POST /sessions` の `glossary_preset` でもこの名前で指す。`glossary_presets` のキーが無い・空の settings.toml は、`active_glossary` の用語集（無ければ 1 つ目の用語集。用語集が無ければ空）だけを使う「既定」のプリセットを 1 つ持つとして読む。
+    reload: immediate
+    allowed: 1 文字以上（前後の空白を除いて）。ほかの用語集のプリセットと同じ名前にできない（大文字と小文字は区別する）
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+    introduced:
+      pr: 173
+    refs:
+      - dev/設計書/インターフェース定義/常駐アプリ/録音を開始する.py#request[glossary_preset]
+  - key: glossary_presets[].glossaries
+    title: 用語集のプリセットで使う用語集
+    file: settings.toml
+    type: list[string]
+    default: "[]"
+    description: そのプリセットで補正に使う用語集の名前（`glossaries[].name`）の並び。補正は、この並びの順・用語集の中の行の順に、オンの行を 1 本の並びとして続けて当て、前の行で置き換えた結果へ次の行を当てる。空なら何も置き換えない。読めない CSV の用語集は飛ばし、残りの用語集で補正する。一覧に無い名前は読むときに外す。用語集を一覧から消すと、その名前を全てのプリセットから外し、用語集の名前を変えるとプリセットの指す名前も変える。
+    reload: immediate
+    allowed: '`glossaries[].name` にある名前。同じ名前を 2 回並べられない'
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+    introduced:
+      pr: 173
+  - key: active_glossary_preset
+    title: 補正に使う用語集のプリセット
+    file: settings.toml
+    type: string
+    default: （無し。1 つ目の用語集のプリセット）
+    description: 補正に使う用語集のプリセットの名前（`glossary_presets[].name`）。ホットキー・トレイ・ブラウザの音声の録音と、`glossary_preset` を指定しない API の録音がこのプリセットで補正する。キーが無いとき・名前が一覧に無いときは 1 つ目のプリセットを使う。
+    reload: immediate
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+    introduced:
+      pr: 173
 notes:
   反映の列の読み方: '`immediate` は設定画面で保存すると動いている常駐アプリに効く項目。`settings.toml` を直接書き換えたときは、どの項目も再起動まで効かない（起動時に 1 度だけ読む）。'

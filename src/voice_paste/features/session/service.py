@@ -64,7 +64,11 @@ class SessionManager:
     # === 開始・一時停止・再開 ===
 
     def start(
-        self, entry: Entry | str, callback_url: str | None = None, continuous: bool = False
+        self,
+        entry: Entry | str,
+        callback_url: str | None = None,
+        continuous: bool = False,
+        glossary_preset: str | None = None,
     ) -> Session:
         """待機中なら新しいセッションを作り、録音（continuous なら連続録音）を始める。"""
         with self._lock:
@@ -95,6 +99,7 @@ class SessionManager:
                 output_id=None,
                 output_preset=None,
                 continuous=continuous,
+                glossary_preset=glossary_preset,
             )
             self._session = session
             logger.info(
@@ -335,7 +340,7 @@ class SessionManager:
                 return
 
             # 2〜3. 用語集で補正し、履歴に書き足す
-            corrected = self._deps.correct(text)
+            corrected = self._deps.correct(text, session.glossary_preset)
             self._deps.append_text(audio_path, corrected)
 
             # 4. 結果が空で入口が api でなければ、届けずに終える
@@ -537,7 +542,7 @@ class SessionManager:
             try:
                 audio_path = self._deps.save_recording(session.id, segment.recording, number)
                 text = self._deps.transcribe(audio_path, None)
-                corrected = self._deps.correct(text)
+                corrected = self._deps.correct(text, session.glossary_preset)
                 self._deps.append_text(audio_path, corrected)
                 outcome = TranscriptionOutcome(
                     session_id=session.id,

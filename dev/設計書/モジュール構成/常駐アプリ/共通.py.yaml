@@ -205,11 +205,23 @@ data_models:
       - name: active_glossary
         type: str | None
         default: None
-        description: 補正に使う用語集の名前。None か一覧に無い名前のときは 1 つ目の用語集を使う（pick_active_glossary）
+        description: 補正に使う用語集の名前。glossary_presets が空のときだけ、resolve_glossary_presets が「既定」のプリセットの用語集を決めるのに読む（非推奨。設定画面で保存すると None にしてキーを消す）
       - name: hint_presets
         type: list[HintPresetSettings]
         default: '[]'
         description: 表記のヒント（文字起こしの手がかり）のプリセットの一覧。並びが設定画面の一覧と語をつなぐ順になる。キーが無い settings.toml は空の一覧として読む。名前の重なり（find_hint_preset_name_overlaps）と、有効な語をつないだ長さが HINT_MAX_BYTES を超える設定は検証で断る
+      - name: edge_phrases
+        type: list[EdgePhraseSettings]
+        default: DEFAULT_EDGE_PHRASES の写し
+        description: 文頭・文末から消す文言の一覧。並びが当てる順と設定画面の一覧の並びになる。キーが無い settings.toml は既定の一覧として読む（`default_factory`）。文言が空の行は `field_validator(mode="after")` で一覧から除く（各行の失敗の場所は、除く前の並びの番号のまま）
+      - name: glossary_presets
+        type: list[GlossaryPresetSettings]
+        default: '[]'
+        description: 用語集のプリセットの一覧。空なら「既定」の 1 件として読む（resolve_glossary_presets）
+      - name: active_glossary_preset
+        type: str | None
+        default: None
+        description: 補正に使う用語集のプリセットの名前。None か一覧に無い名前のときは 1 件目のプリセットを使う（pick_glossary_preset）
     refs:
       - dev/設計書/外部ライブラリ/pydantic#
       - dev/設計書/設定/常駐アプリ#
@@ -491,6 +503,10 @@ data_models:
         type: ContinuousSettings
         default: ContinuousSettings()
         description: 連続録音の区切りと上限時間
+      - name: allowed_web_origins
+        type: list[str]
+        default: '[]'
+        description: '外の端末に許す Origin。`/web/` の下に許すオリジン（設定 api.allowed_web_origins。`scheme://host[:port]` の形だけを通し、末尾の `/` とパスは SettingsError）。pydantic の Field の description の最初の 1 文を「外の端末に許す Origin」にし、設定画面の欄の名前にする'
     status: implemented
   - name: BrowserPreset
     title: ブラウザ添付のプリセット
@@ -743,6 +759,99 @@ data_models:
         type: Sequence[str]
         description: 語の並び
     status: implemented
+  - name: EdgePhraseSettings
+    title: 文頭・文末から消す文言の設定
+    container: shared/settings.py
+    usecase: 録音を文字に起こす
+    role: 設定のモデル
+    summary: 文頭・文末から消す文言 1 行の文言と当てる位置
+    description: |-
+      `model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)`。
+      文言は前後の空白を除いて確かめる。`*` だけの文言は `PydanticCustomError`（type は EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE）にし、失敗の場所を `edge_phrases[{n}].text` にする。空の文言はこのモデルでは断らず、Settings が一覧から除く。
+    inherits: pydantic.BaseModel
+    properties:
+      - name: text
+        type: str
+        description: 消す文言（前後の空白を除く。`*` は任意の文字列）
+      - name: position
+        type: Literal["start", "end", "both"]
+        default: '"end"'
+        description: 当てる位置（文頭・文末・両方）
+    methods:
+      - name: _reject_wildcard_only
+        title: 文言の確かめ
+        summary: '`*` だけの文言を断る（`field_validator("text")` のクラスメソッド）'
+        kind: メソッド
+        scope: internal
+        args:
+          - name: text
+            type: str
+            required: true
+            passing: positional
+            description: 前後の空白を除いた文言
+        returns:
+          type: str
+          description: そのままの文言
+        unit_tests:
+          - name: test_edge_phrase_settings
+            case: 正常
+            summary: 文言と位置を読む
+            condition: text 「 ご視聴ありがとうございました 」・position 無し
+            mock: なし
+            expected: text が「ご視聴ありがとうございました」、position が end
+          - name: test_edge_phrase_settings_when_wildcard_only
+            case: 異常
+            summary: '`*` だけの文言を断る'
+            condition: Settings の edge_phrases の 2 件目の text が「 * 」
+            mock: なし
+            expected: ValidationError。失敗の type が EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE、場所が ("edge_phrases", 1, "text")
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[edge_phrases[].text]
+      - dev/設計書/設定/常駐アプリ#settings[edge_phrases[].position]
+    status: implemented
+  - name: AudioProbe
+    title: 音声の形式
+    container: shared/types.py
+    usecase: ブラウザから音声を送る
+    role: DTO
+    summary: 受けた音声を PyAV で開いて読んだ容れ物の形式・秒数・大きさ。外部連携が作り、ブラウザの文字起こしが受ける（feature と integration の間を渡るため shared に置く）
+    properties:
+      - name: container
+        type: str
+        description: 容れ物の形式の名前（`webm`・`ogg`・`mp4`・`mp3`・`wav` など）
+      - name: suffix
+        type: str
+        description: 一時のファイルと履歴に付ける拡張子（`.webm` など。container から決める）
+      - name: duration_sec
+        type: float | None
+        description: 音声の秒数。容れ物が持たないとき（Cues の無い webm）は音声のパケットから求め、それでも求まらなければ None（ログでは秒数を省く）
+      - name: size_bytes
+        type: int
+        description: 音声の大きさ
+    status: planned
+    introduced:
+      pr: 171
+  - name: GlossaryPresetSettings
+    title: 用語集のプリセットの設定
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: 用語集のプリセット 1 つの名前と、補正に使う用語集の名前の並び
+    inherits: pydantic.BaseModel
+    properties:
+      - name: name
+        type: str
+        description: 設定画面の用語集のプリセットの一覧と `POST /sessions` の `glossary_preset` で指す名前（前後の空白を除く。空は、重なりと同じ回に欄ごとのエラーとして出すため、Settings の確かめが種類 `string_too_short` で断る）
+      - name: glossaries
+        type: list[str]
+        default: '[]'
+        description: 補正に使う用語集の名前（`glossaries[].name`）の並び。補正はこの順に当てる。同じ名前を 2 回並べると検証に通さない（`field_validator`）。一覧に無い名前は検証では断らず、resolve_glossary_presets が外す
+    refs:
+      - dev/設計書/設定/常駐アプリ#settings[glossary_presets[].name]
+      - dev/設計書/設定/常駐アプリ#settings[glossary_presets[].glossaries]
+    status: planned
+    introduced:
+      pr: 173
 classes:
   - name: AppError
     title: アプリの例外
@@ -756,12 +865,17 @@ classes:
       | 例外 | 意味 | HTTP |
       | --- | --- | --- |
       | `CallbackNotAllowedError` | 返送先が許されない | 400 |
+      | `GlossaryPresetNotFoundError` | API の開始かブラウザの音声の受け付けで指定した用語集のプリセットが一覧に無い（メッセージに指定した名前を含める） | 400 |
       | `UnauthorizedError` | トークンが合わない | 401 |
       | `ForbiddenRequestError` | Origin が付いている・Host が違う | 403 |
       | `SessionNotFoundError` | セッションが無い・操作できない状態 | 404 |
       | `SessionBusyError` | ほかのセッションが処理中 | 409 |
       | `SessionConflictError` | セッションの種類がその操作を受けない（連続録音への停止） | 409 |
       | `MicrophoneUnavailableError` | マイクを開けない | 503 |
+      | `WebJobNotFoundError` | ブラウザの音声のジョブが無い（受け付けていない・件数を超えて捨てた・起動し直した） | 404 |
+      | `RequestBodyTooLargeError` | ブラウザの本文が上限以上 | 413 |
+      | `AudioUnreadableError` | 受けた音声を PyAV で開けないか、音声のストリームが無い | 415 |
+      | `WebQueueFullError` | 終わっていないブラウザの音声のジョブが上限に達している | 503 |
       | `TranscriptionError` | 文字起こしに失敗した（API へは返さず返送先へ届ける） | - |
       | `EngineError` | エンジンが失敗した（外部連携が送出し、文字起こしが TranscriptionError に変える） | - |
       | `DeliveryError` | 出力先へ届けられない | - |
@@ -904,7 +1018,7 @@ functions:
          - 無い場合、前の設定は無しとする
          - 読めない・検証に通らない場合、内容を空の文書にして前の設定を「全て変わった」とする
       3. settings を `model_dump(mode="json")` する。`glossaries[].path` は、path の親のフォルダの下にある場所ならそのフォルダからの相対パス（区切りは `/`）にし、それ以外は絶対パスのままにする
-      4. 文書の値を再帰で置き換える。表はキーごとに書き換えて既存のコメントと並びを保ち、配列（出力先の一覧・プリセットの一覧・用語集の一覧・許すホスト）は丸ごと入れ替える（出力先の一覧を入れ替えるので、文書に残っていた `id = "ai_chat"` の項目も消える）。None の項目（glossary_path・active_glossary）はキーを置かず、文書に既にあれば消す
+      4. 文書の値を再帰で置き換える。表はキーごとに書き換えて既存のコメントと並びを保ち、配列（出力先の一覧・プリセットの一覧・用語集の一覧・用語集のプリセットの一覧・許すホスト）は丸ごと入れ替える（出力先の一覧を入れ替えるので、文書に残っていた `id = "ai_chat"` の項目も消える）。None の項目（glossary_path・active_glossary・active_glossary_preset）はキーを置かず、文書に既にあれば消す
          - 配列の表（`[[name]]`）を入れ替えるときは、入れ替える前に、古い最後の要素の末尾にある、キーを持たないコメントと空行（tomlkit が最後の要素の中として読む、配列の表の後ろのコメント）と、古い最初の要素の見出しの前（`trivia.indent`）を取り出し、文書で古い配列の表の次に並ぶ表を控える
          - 入れ替えた後の配列が 1 件以上なら、取り出した見出しの前を新しい最初の要素の見出しの前へ、末尾のコメントと空行を新しい最後の要素の末尾へ、同じ並びで付け直す
          - 0 件なら、両方を控えた次の表の見出しの前（`trivia.indent` の頭）へ付け直す。次の表が super table（見出しを持たない表）なら中の最初の表、配列の表なら最初の要素の見出しの前にする。次に表が無ければ文書の末尾へ足す
@@ -977,6 +1091,12 @@ functions:
         condition: '`[[hint_presets]]` を 1 件書き、その後ろにコメント行を続けた settings.toml に、hint_presets を 0 件にした設定を書く（parametrize）。次の表と前の並びは、`[api]` の後ろで次が `[recording]`・文書の最初の表で次が `[recording]`・次が super table（`[transcription.local_whisper]` だけを書く）・次が `[[outputs]]` でその出力先も入れ替える・後ろに表が無い、の 5 通り'
         mock: なし（一時フォルダ）
         expected: 書いた後のファイルで、コメント行が同じ文言で 1 回だけ、次の表の見出し（`[recording]`・`[transcription.local_whisper]`・`[[outputs]]`）の直前に残り、後ろに表が無いときは文書の末尾に残る。load_settings の hint_presets が空で、ほかの値が書いた設定のとおりに読める
+      - name: test_save_settings_when_glossary_presets
+        case: 正常
+        summary: 用語集のプリセットを書き、今までの active_glossary のキーを消す
+        condition: active_glossary = "会議用" を持つ settings.toml に、active_glossary が None で、2 件の glossary_presets と active_glossary_preset を持つ設定を書く
+        mock: なし（一時フォルダ）
+        expected: 書いた後のファイルに active_glossary のキーが無く、load_settings で同じ glossary_presets の並び（各プリセットの glossaries の並びも同じ）と active_glossary_preset が読める
     refs:
       - dev/設計書/外部ライブラリ/tomlkit#
     status: implemented
@@ -1448,6 +1568,55 @@ functions:
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
     status: implemented
+  - name: find_glossary_preset_name_overlaps
+    title: 用語集のプリセットの名前の重なりの検出
+    container: shared/settings.py
+    usecase: 設定を変える
+    summary: 用語集のプリセットのうち、前に並んだプリセットと名前が同じものを返す。Settings の確かめ（`model_validator(mode="after")`）が呼ぶ
+    kind: 関数
+    scope: public
+    args:
+      - name: settings
+        type: Settings
+        required: true
+        passing: positional
+        description: 確かめる設定
+    returns:
+      type: list[tuple[str, str]]
+      description: （重なったキー, 重なった名前）の並び。キーは format_error_location と同じ書式（例 `glossary_presets[2].name`）
+    process: 1. `glossary_presets` を並びの順に見て、名前が先に並んだプリセットと同じものを集める（前後の空白は GlossaryPresetSettings が除いている）
+    notes:
+      補足: Settings の `model_validator(mode="after")` が、重なりごとに `PydanticCustomError`（type GLOSSARY_PRESET_NAME_OVERLAP_ERROR_TYPE、文言「用語集のプリセット「{name}」と同じ名前」、場所は重なったキー）を集める。find_glossary_name_overlaps・find_hint_preset_name_overlaps と同じ確かめの中で集める
+    unit_tests:
+      - name: test_find_glossary_preset_name_overlaps
+        case: 正常
+        summary: 後ろにある側を重なりとして返す
+        condition: 名前が「既定」「会議」「既定」の 3 件の glossary_presets
+        mock: なし
+        expected: '[("glossary_presets[2].name", "既定")] が返る'
+      - name: test_settings_when_glossary_preset_names_overlap
+        case: 異常
+        summary: 名前が重なる設定は検証に通らない
+        condition: 名前が同じ 2 件の glossary_presets を SETTINGS_MODEL.model_validate に渡す
+        mock: なし
+        expected: ValidationError。失敗の場所が glossary_presets[1].name、type が glossary_preset_name_overlap
+      - name: test_settings_when_glossary_preset_name_blank
+        case: 異常
+        summary: 空白だけの名前は検証に通らない
+        condition: 名前が「  」の glossary_presets を SETTINGS_MODEL.model_validate に渡す
+        mock: なし
+        expected: ValidationError。失敗の場所が glossary_presets[0].name
+      - name: test_settings_when_glossary_preset_glossaries_duplicated
+        case: 異常
+        summary: 1 つのプリセットに同じ用語集を 2 回並べた設定は検証に通らない
+        condition: glossaries が ["yogo", "yogo"] の glossary_presets を SETTINGS_MODEL.model_validate に渡す
+        mock: なし
+        expected: ValidationError。失敗の場所が glossary_presets[0].glossaries
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/設定画面.py#
+    status: planned
+    introduced:
+      pr: 173
 constants:
   - name: APP_NAME
     title: アプリ名
@@ -1463,6 +1632,52 @@ constants:
     summary: 有効なプリセットの語をつないだ手がかりの UTF-8 のバイト数の上限。faster-whisper が hotwords を先頭の 223 トークンに切ることから、頭に足す空白の 1 バイトを引いた値（導き方は PR の要件と外部ライブラリ『faster-whisper』）
     value: '222'
     status: implemented
+  - name: DEFAULT_EDGE_PHRASES
+    title: 既定の文頭・文末から消す文言
+    container: shared/settings.py
+    usecase: 録音を文字に起こす
+    summary: '`edge_phrases` のキーが無いときに使う一覧（出所は外部ライブラリ『faster-whisper』の不具合「話していない定型句が文末に入る」）'
+    value: (EdgePhraseSettings(text="チャンネル登録*"), EdgePhraseSettings(text="ご視聴ありがとうございました"), EdgePhraseSettings(text="ありがとうございました"))（位置は全て end）
+    status: implemented
+  - name: EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE
+    title: '`*` だけの文言の失敗の種類'
+    container: shared/settings.py
+    usecase: 設定を変える
+    summary: 文言が `*` だけのときの PydanticCustomError の type。設定画面の to_field_message がエラーの文に変える
+    value: '"edge_phrase_wildcard_only"'
+    status: implemented
+  - name: EDGE_PHRASE_WILDCARD
+    title: 文言の任意の文字列を表す文字
+    container: shared/settings.py
+    usecase: 録音を文字に起こす
+    summary: 文頭・文末から消す文言で、0 文字以上の任意の文字列を表す文字（EdgePhraseSettings の確かめと strip_edge_phrases が使う）
+    value: '"*"'
+    status: implemented
+  - name: EDGE_PHRASES_FIELD_NAME
+    title: 文頭・文末から消す文言の一覧のキー
+    container: shared/settings.py
+    usecase: 設定を変える
+    summary: settings.toml のキー `edge_phrases`。設定画面がまとまりの欄と失敗の場所を引くのに使う
+    value: '"edge_phrases"'
+    status: implemented
+  - name: GLOSSARY_PRESET_NAME_OVERLAP_ERROR_TYPE
+    title: 用語集のプリセットの名前の重なりのエラーの種類
+    container: shared/settings.py
+    usecase: 設定を変える
+    summary: 用語集のプリセットの名前の重なりで Settings の確かめが出す `PydanticCustomError` の type。設定画面がエラーの文言を引くのに使う
+    value: '"glossary_preset_name_overlap"'
+    status: planned
+    introduced:
+      pr: 173
+  - name: GLOSSARY_PRESETS_FIELD_NAME
+    title: 用語集のプリセットの一覧のキー
+    container: shared/settings.py
+    usecase: 設定を変える
+    summary: settings.toml のキー `glossary_presets`。設定画面が収集の値と失敗の場所を引くのに使う
+    value: '"glossary_presets"'
+    status: planned
+    introduced:
+      pr: 173
 test_files:
   - tests/unit/voice_paste/shared/test_settings.py
   - tests/unit/voice_paste/shared/test_logger.py

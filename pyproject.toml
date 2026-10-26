@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "voice-paste"
-version = "0.5.9"
+version = "0.6.0"
 description = "音声入力＆自動貼り付けツール"
 requires-python = ">=3.11"
 dependencies = [
@@ -27,6 +27,7 @@ dependencies = [
     "onnxruntime~=1.25",
     "comtypes~=1.4",
     "pyside6-essentials~=6.11.2",
+    "python-multipart~=0.0.32",
 ]
 
 [dependency-groups]
@@ -45,6 +46,9 @@ package-dir = { "" = "src" }
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["voice_paste*"]
+
+[tool.setuptools.package-data]
+voice_paste = ["server/web/index.html", "server/web/assets/*.js", "server/web/assets/*.css"]
 
 [tool.importlinter]
 root_package = "voice_paste"

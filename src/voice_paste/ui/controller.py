@@ -13,7 +13,12 @@ from PySide6.QtWidgets import QApplication
 
 from voice_paste.features.session.types import Session, SessionState
 from voice_paste.shared.errors import DeliveryError, HotkeyError
-from voice_paste.shared.settings import GlossarySettings, Preset, Settings
+from voice_paste.shared.settings import (
+    GlossaryPresetSettings,
+    GlossarySettings,
+    Preset,
+    Settings,
+)
 from voice_paste.shared.types import Entry, GlossaryEntry
 from voice_paste.ui.tray import RecordingWindowState, Tray, TrayState
 from voice_paste.ui.windows.busy_dialog import show_busy_dialog
@@ -91,6 +96,9 @@ class UiDeps:
 
     list_glossaries: Callable[[], list[GlossarySettings]]
     """今の設定の用語集の一覧（path は絶対パス。glossaries が空なら今までの用語集の 1 件。resolve_glossaries）。"""
+
+    list_glossary_presets: Callable[[], list[GlossaryPresetSettings]]
+    """今の設定の用語集のプリセットの一覧（glossary_presets が空なら「既定」の 1 件。一覧に無い用語集の名前は外す。resolve_glossary_presets）。"""
 
     read_glossary: Callable[[Path], list[GlossaryEntry]]
     """用語集の CSV の行を、オン・オフと片方が空の行も含めて読む（read_glossary_rows）。読めなければ GlossaryReadError を送出する。"""

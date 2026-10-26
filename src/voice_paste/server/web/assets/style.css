@@ -1,0 +1,644 @@
+/* ===== 外の端末のブラウザで開く文字起こしの画面: デザイン方針「開発者ツール」のトークンと部品 ===== */
+
+/* トークン（明るいテーマ）: 面・文字・線・アクセント・状態の色と、角丸・書体 */
+:root {
+  color-scheme: light dark;
+  --font-ui: "Segoe UI", "Yu Gothic UI", "Meiryo UI", sans-serif;
+  --font-num: "Cascadia Mono", Consolas, "BIZ UDGothic", monospace;
+  --font-mono: "Cascadia Mono", Consolas, "BIZ UDGothic", monospace;
+  --page: #f6f8fa;
+  --surface: #ffffff;
+  --surface-2: #ffffff;
+  --sunken: #f6f8fa;
+  --text: #1f2328;
+  --text-2: #59636e;
+  --line: #d1d9e0;
+  --line-strong: #d1d9e0;
+  --accent: #1f883d;
+  --accent-text: #ffffff;
+  --accent-hover: #1c8139;
+  --accent-fg: #0969da;
+  --rec: #d1242f;
+  --paused: #9a6700;
+  --busy: #0969da;
+  --ok: #1a7f37;
+  --error: #d1242f;
+  --error-bg: #ffebe9;
+  --notice-bg: #fff8c5;
+  --radius: 6px;
+  --radius-sm: 6px;
+  --pad: 16px;
+  --control-h: 32px;
+  --touch-h: 44px;
+  --time-size: 26px;
+  --time-weight: 500;
+}
+
+/* トークン（暗いテーマ）: 端末が暗いときに切り替える */
+@media (prefers-color-scheme: dark) {
+  /* 暗いテーマの面・文字・線・アクセント */
+  :root {
+    --page: #010409;
+    --surface: #0d1117;
+    --surface-2: #151b23;
+    --sunken: #010409;
+    --text: #f0f6fc;
+    --text-2: #9198a1;
+    --line: #3d444d;
+    --line-strong: #3d444d;
+    --accent: #238636;
+    --accent-text: #ffffff;
+    --accent-hover: #29903b;
+    --accent-fg: #4493f8;
+    --rec: #f85149;
+    --paused: #d29922;
+    --busy: #4493f8;
+    --ok: #3fb950;
+    --error: #f85149;
+    --error-bg: #25171c;
+    --notice-bg: #272115;
+  }
+}
+
+/* ===== 土台 ===== */
+
+/* 箱の大きさに枠線と余白を含める */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ページ全体: 地と本文の書体 */
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  accent-color: var(--accent-fg);
+}
+
+/* hidden を付けた要素は display の指定によらず隠す */
+[hidden] { display: none !important; }
+
+/* 読み上げにだけ出す文字 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* 数値: 桁の幅を揃える */
+.num {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 画面の外枠: スマホ・iPad・PC の幅で同じ 1 カラムを中央に置く */
+.web-main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 16px 32px;
+}
+
+/* 画面 1 枚: 頭・音声送信の区画・結果の区画を縦に積む */
+.web {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ===== 画面の頭 ===== */
+
+/* 画面の頭: アプリ名と画面名を並べ、下の線で区切る */
+.web-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  h1 { margin: 0; font-size: 22px; font-weight: 600; }
+}
+
+/* 画面名 */
+.web-top__sub { color: var(--text-2); }
+
+/* ===== 区画 ===== */
+
+/* 区画: 1px の線で囲んだ面 */
+.web-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: var(--pad);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  h2 { margin: 0; font-size: 18px; font-weight: 600; }
+}
+
+/* 区画の見出しの行: 見出しと件数を両端に置く */
+.web-panel__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* 区画の見出しの横の件数・保存の期限 */
+.web-panel__meta {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* ===== ボタン ===== */
+
+/* ボタンの共通: 高さを揃え、アイコンと文言を横に並べる */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--control-h);
+  white-space: nowrap;
+  padding: 4px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  &:hover { background: var(--sunken); }
+  &:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+}
+
+/* 指で押すボタン: 高さを揃え、文言を大きくする */
+.btn--lg {
+  min-height: var(--touch-h);
+  padding: 6px 16px;
+  font-size: 15px;
+}
+
+/* 主の操作のボタン: アクセントで塗る */
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  &:hover { background: var(--accent-hover); }
+}
+
+/* 取り消す操作のボタン: 文字だけを警告の色にする */
+.btn--danger { color: var(--error); }
+
+/* 危ない操作のボタン: 警告の色で塗る */
+.btn--danger-fill {
+  background: var(--error);
+  border-color: var(--error);
+  color: #ffffff;
+  &:hover { background: var(--error); filter: brightness(0.92); }
+}
+
+/* 幅いっぱいのボタン */
+.btn--block { width: 100%; }
+
+/* アイコンだけのボタン: 指で押せる幅にする */
+.btn--icon {
+  width: var(--touch-h);
+  padding: 0;
+}
+
+/* ボタンの中のアイコン（線画） */
+.btn svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* 録音を始める印・止める印: 塗りの図形 */
+.btn svg .fill { fill: currentColor; stroke: none; }
+
+/* 押せないボタン: 地を沈めて文字を補足の色にする（文字のコントラストを保つ） */
+.btn:disabled,
+label.btn[aria-disabled="true"] {
+  border-color: var(--line);
+  background: var(--sunken);
+  color: var(--text-2);
+  cursor: not-allowed;
+}
+
+/* 押せないファイル送信ボタン: 中の input へ押下を通さない */
+label.btn[aria-disabled="true"] { pointer-events: none; }
+
+/* ファイルを選ぶボタン: input にフォーカスが来たら枠を出す */
+label.btn:focus-within { outline: 2px solid var(--text); outline-offset: 2px; }
+
+/* コピーした直後のボタン: 成功の色にする */
+.btn[data-copied="true"] { color: var(--ok); border-color: var(--ok); }
+
+/* ===== 状態の表示 ===== */
+
+/* 状態の文言: 点と文言を並べる */
+.state {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+/* 状態の点 */
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* 録音中 */
+.state--rec { color: var(--rec); }
+
+/* 回る印 */
+.spinner {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--line);
+  border-top-color: var(--busy);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+/* 回る印の動き */
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 動きを減らす設定では止める */
+@media (prefers-reduced-motion: reduce) {
+  /* 回る印を止める */
+  .spinner { animation: none; }
+}
+
+/* 進み具合のバー */
+progress {
+  width: 100%;
+  height: 6px;
+}
+
+/* ===== 音声送信の区画 ===== */
+
+/* 録る・ファイルを選ぶの 2 つを同じ幅で並べる */
+.send-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* 用語集のプリセットの選択欄のまとまり: ラベル・選択欄・補足を縦に積む */
+.preset-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* 選択欄のラベル: 常に見せる */
+.preset-field__label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* 選択欄: 録音開始・ファイル送信と同じ高さにし、スマホで拡大されない文字の大きさにする */
+.preset-field select {
+  width: 100%;
+  max-width: 100%;
+  height: var(--touch-h);
+  font-size: 16px;
+  text-overflow: ellipsis;
+  /* 録音中の押せない選択欄: 地を沈めて文字を補足の色にする */
+  &:disabled {
+    border-color: var(--line);
+    background: var(--sunken);
+    color: var(--text-2);
+    cursor: not-allowed;
+  }
+}
+
+/* 選択欄が変えられない理由 */
+.preset-field__help {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* 録音とファイルの上限 */
+.send-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* 録音中の表示: 状態・経過・上限までのバー・止めるボタンを縦に積む */
+.recorder {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 状態と経過時間の行 */
+.recorder__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* 経過時間: 大きく等幅で出す */
+.recorder__time {
+  font-size: var(--time-size);
+  font-weight: var(--time-weight);
+  line-height: 1.2;
+}
+
+/* 上限と残り時間の行 */
+.recorder__meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* 残り時間が少ないとき: 注意の色にする */
+.recorder__left--low { color: var(--paused); font-weight: 600; }
+
+/* 送信中のファイルの行: 名前と状態の行・進捗のバーを縦に積む */
+.file-sending {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 名前と状態を両端に置く */
+.file-sending__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* 送信中のファイル名と大きさ: 長い名前は 1 行で省く */
+.file-sending__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+/* 送信中の状態: 名前が長くても縮めない */
+.file-sending .kept__state { flex: none; }
+
+/* 送信中のファイルに付けたプリセット: 長い名前は 1 行で省く */
+.file-sending__preset {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* ===== 知らせ ===== */
+
+/* 知らせの共通: 地の色と線で区切った文 */
+.web-notice, .web-error {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  p { margin: 0; }
+  svg { flex: none; width: 18px; height: 18px; margin-top: 1px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+}
+
+/* 上限で止まったなどの知らせ */
+.web-notice {
+  border: 1px solid var(--line);
+  background: var(--notice-bg);
+}
+
+/* 送れなかったなどのエラー */
+.web-error {
+  border: 1px solid var(--error);
+  background: var(--error-bg);
+  svg { color: var(--error); }
+}
+
+/* エラーの見出しの文 */
+.web-error__title { font-weight: 600; }
+
+/* ===== 端末内の音声 ===== */
+
+/* 端末内の音声の行: 上の線で区切り、中身と操作を並べる */
+.kept {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+/* 端末内の音声の中身: 名前・日時と長さ・状態を縦に積む */
+.kept__info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* 端末内の音声の名前 */
+.kept__label { font-weight: 600; }
+
+/* 日時・長さ・形式・大きさ */
+.kept__meta {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* 端末内の音声の状態: 印と文言を並べる */
+.kept__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .spinner { width: 14px; height: 14px; }
+}
+
+/* 送信済みの音声 */
+.kept__state--ok { color: var(--ok); }
+
+/* 送れていない・文字にできなかった音声 */
+.kept__state--error { color: var(--error); font-weight: 600; }
+
+/* 送信中の音声 */
+.kept__state--busy { color: var(--busy); }
+
+/* 送信の進み具合 */
+.kept__progress { width: 100%; }
+
+/* 端末内の音声の操作を並べる */
+.kept__actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ===== 結果の一覧 ===== */
+
+/* 結果の一覧: 行の間を線で区切る */
+.results {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  > li + li { border-top: 1px solid var(--line); }
+}
+
+/* 結果 1 件: 頭・中身・操作を縦に積む */
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 0;
+  &:first-child { padding-top: 0; }
+  &:last-child { padding-bottom: 0; }
+}
+
+/* 結果の頭: 日時と元の音声を並べる */
+.result__head {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* 送信した日時 */
+.result__time { flex: none; }
+
+/* 元の音声（画面で録音・ファイル名）: 長い名前は 1 行で省く */
+.result__src {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 起こした文字: 改行を保ち、長い語も折り返す */
+.result__text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 15px;
+}
+
+/* 待ち・失敗の状態の行 */
+.result__status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--busy);
+  font-weight: 600;
+  svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+}
+
+/* 進み具合の割合: 行の右端に置く */
+.result__pct { margin-left: auto; }
+
+/* 失敗・見つからないの状態 */
+.result__status--error { color: var(--error); }
+
+/* 失敗の理由と直し方 */
+.result__detail {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-2);
+  code { font-family: var(--font-mono); font-size: 12px; word-break: break-all; }
+}
+
+/* 結果の操作: コピーを左、削除を右に離す */
+.result__actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  .btn { min-height: var(--touch-h); }
+  .btn--icon { width: var(--touch-h); }
+}
+
+/* 結果が無いとき */
+.results-empty {
+  margin: 0;
+  padding: 16px 0;
+  text-align: center;
+  color: var(--text-2);
+}
+
+/* ===== 確認のダイアログ ===== */
+
+/* 確認のダイアログ: 画面の中央に出し、狭い幅では左右に余白を残す */
+.web-dialog {
+  width: min(calc(100% - 32px), 420px);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  &::backdrop { background: rgb(31 35 40 / 0.45); }
+}
+
+/* ダイアログの文 */
+.web-dialog__main {
+  padding: var(--pad);
+  h2 { margin: 0 0 8px; font-size: 18px; font-weight: 600; text-wrap: balance; word-break: auto-phrase; }
+  p { margin: 0 0 8px; }
+  p:last-child { margin-bottom: 0; }
+}
+
+/* 削除する結果の先頭の文: 3 行で省く */
+.web-dialog__quote {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+
+/* ダイアログの操作の行: 右に寄せて並べる */
+.web-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px var(--pad);
+  border-top: 1px solid var(--line);
+  background: var(--sunken);
+  border-radius: 0 0 var(--radius) var(--radius);
+  .btn { min-height: var(--touch-h); }
+}
+
+/* ===== 狭い幅 ===== */
+
+/* スマホの縦の幅: 録る・ファイルを選ぶを縦に積む */
+@media (width < 440px) {
+  /* 2 つのボタンを 1 列にする */
+  .send-actions { grid-template-columns: 1fr; }
+}
+
+/* スマホ幅: ダイアログの操作を同じ幅で並べる */
+@media (width < 480px) {
+  /* ダイアログの操作を 2 つ同じ幅にする */
+  .web-dialog__actions .btn { flex: 1; }
+}

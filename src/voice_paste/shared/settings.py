@@ -6,6 +6,7 @@ import copy
 import logging
 import operator
 import os
+import re
 import tempfile
 from collections.abc import Mapping, MutableMapping, Sequence
 from functools import reduce
@@ -60,6 +61,12 @@ GLOSSARY_NAME_OVERLAP_ERROR_TYPE: str = "glossary_name_overlap"
 GLOSSARIES_FIELD_NAME: str = "glossaries"
 """用語集の一覧を持つ Settings の項目名。"""
 
+GLOSSARY_PRESET_NAME_OVERLAP_ERROR_TYPE: str = "glossary_preset_name_overlap"
+"""用語集のプリセットの名前が重なるときの ValidationError の種類。理由の文に重なった名前を `name` として持つ。"""
+
+GLOSSARY_PRESETS_FIELD_NAME: str = "glossary_presets"
+"""用語集のプリセットの一覧を持つ Settings の項目名。"""
+
 HINT_PRESETS_FIELD_NAME: str = "hint_presets"
 """表記のヒントのプリセットの一覧を持つ Settings の項目名。"""
 
@@ -87,6 +94,18 @@ HINT_WORD_SEPARATOR_ERROR_TYPE: str = "hint_word_separator"
 
 HINT_PRESET_NAME_OVERLAP_ERROR_TYPE: str = "hint_preset_name_overlap"
 """表記のヒントのプリセットの名前が重なるときの ValidationError の種類。理由の文に重なった名前を `name` として持つ。"""
+
+ORIGIN_PATTERN: re.Pattern[str] = re.compile(r"https?://[^/\s?#]+")
+"""許す Origin の形（`scheme://host[:port]`。末尾の `/` とパスは持たない）。"""
+
+EDGE_PHRASES_FIELD_NAME: str = "edge_phrases"
+"""文頭・文末から消す文言の一覧の設定のキー。"""
+
+EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE: str = "edge_phrase_wildcard_only"
+"""文言が `*` だけのときの ValidationError の種類。設定画面がエラーの文に変える。"""
+
+EDGE_PHRASE_WILDCARD: str = "*"
+"""文頭・文末から消す文言で、0 文字以上の任意の文字列を表す文字。"""
 
 START_HOTKEY_KEY: str = "hotkeys.start"
 """録音の開始のホットキーのキー。貼り付けて送信と同じキーにしてよい（重なりにしない）。"""
@@ -439,6 +458,26 @@ class ApiSettings(_SettingsModel):
     continuous: ContinuousSettings = _group(
         ContinuousSettings, "連続録音の区切りと上限時間"
     )
+    allowed_web_origins: list[str] = Field(
+        default_factory=list,
+        description=(
+            "外の端末に許す Origin。`/web/` の下へ要求を送ってよいブラウザのオリジン"
+            "（`https://{ゲートウェイの公開のサブドメイン}` の形。1 行に 1 つ）"
+        ),
+        json_schema_extra={"reload": RELOAD_RESTART},
+    )
+
+    @field_validator("allowed_web_origins")
+    @classmethod
+    def _origins_must_be_origin_form(cls, origins: list[str]) -> list[str]:
+        """許す Origin が `scheme://host[:port]` の形（末尾の `/` とパスが無い）であることを確かめる。"""
+        invalid = [origin for origin in origins if not ORIGIN_PATTERN.fullmatch(origin)]
+        # 形の合わない Origin があれば断る
+        if invalid:
+            raise ValueError(
+                f"`scheme://host[:port]` の形で、末尾の `/` とパスを付けない（{', '.join(invalid)}）"
+            )
+        return origins
 
 
 class GlossarySettings(_SettingsModel):
@@ -453,6 +492,30 @@ class GlossarySettings(_SettingsModel):
     path: Path = Field(
         description="その用語集の CSV の場所（settings.toml のフォルダからの相対パスか絶対パス）"
     )
+
+
+class GlossaryPresetSettings(_SettingsModel):
+    """用語集のプリセット 1 つの名前と、補正に使う用語集の名前の並び。"""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    name: str = Field(
+        description="設定画面の用語集のプリセットの一覧と `POST /sessions` の `glossary_preset` で指す名前（前後の空白を除いて 1 文字以上。ほかのプリセットと重ならない。空は Settings の確かめが、重なりと同じ回で断る）",
+    )
+    glossaries: list[str] = Field(
+        default_factory=list,
+        description="補正に使う用語集の名前（`glossaries[].name`）の並び。補正はこの順に当てる。同じ名前を 2 回並べない。一覧に無い名前は検証では断らず、補正が外す",
+    )
+
+    @field_validator("glossaries")
+    @classmethod
+    def _reject_duplicated_glossaries(cls, names: list[str]) -> list[str]:
+        """同じ用語集の名前を 2 回並べたプリセットを断る。"""
+        duplicated = sorted({name for name in names if names.count(name) > 1})
+        # 重なる名前があれば断る
+        if duplicated:
+            raise ValueError(f"同じ用語集を 2 回並べられない（{', '.join(duplicated)}）")
+        return names
 
 
 def _check_hint_word(word: str) -> str:
@@ -500,6 +563,38 @@ class HintWordSource(Protocol):
         ...
 
 
+class EdgePhraseSettings(_SettingsModel):
+    """文頭・文末から消す文言 1 行の文言と当てる位置。"""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    text: str = Field(
+        description="消す文言（前後の空白を除く。`*` は 0 文字以上の任意の文字列。`*` だけは断る。空の行は Settings が一覧から除く）"
+    )
+    position: Literal["start", "end", "both"] = Field(
+        "end", description="文言を当てる位置（start は文頭、end は文末、both は両方）"
+    )
+
+    @field_validator("text")
+    @classmethod
+    def _reject_wildcard_only(cls, text: str) -> str:
+        """`*` だけの文言（行を丸ごと消す）を断る。空の文言はここでは断らない。"""
+        # `*` だけで書かれた文言は、文頭・文末の行を丸ごと消すため断る
+        if text and not text.strip(EDGE_PHRASE_WILDCARD):
+            raise PydanticCustomError(
+                EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE, "文言が * だけで、行を丸ごと消してしまう"
+            )
+        return text
+
+
+DEFAULT_EDGE_PHRASES: tuple[EdgePhraseSettings, ...] = (
+    EdgePhraseSettings(text="チャンネル登録*", position="end"),
+    EdgePhraseSettings(text="ご視聴ありがとうございました", position="end"),
+    EdgePhraseSettings(text="ありがとうございました", position="end"),
+)
+"""`edge_phrases` のキーが無いときに使う既定の一覧（文末）。"""
+
+
 class Settings(_SettingsModel):
     """settings.toml の全体。項目ごとに範囲・説明・再起動が要るかの印を持つ。"""
 
@@ -531,12 +626,27 @@ class Settings(_SettingsModel):
     )
     active_glossary: str | None = _item(
         None,
-        "補正に使う用語集の名前。None か一覧に無い名前のときは 1 つ目の用語集を使う",
+        "補正に使う用語集の名前。glossary_presets が空のときだけ、「既定」のプリセットの用語集を決めるのに読む（非推奨。設定画面で保存すると消す）",
+        reload=RELOAD_IMMEDIATE,
+    )
+    glossary_presets: list[GlossaryPresetSettings] = Field(
+        default_factory=list,
+        description="用語集のプリセットの一覧。並びが設定画面の一覧の並びになる。空なら「既定」の 1 件として読む",
+        json_schema_extra={"reload": RELOAD_IMMEDIATE},
+    )
+    active_glossary_preset: str | None = _item(
+        None,
+        "補正に使う用語集のプリセットの名前。None か一覧に無い名前のときは 1 件目のプリセットを使う",
         reload=RELOAD_IMMEDIATE,
     )
     hint_presets: list[HintPresetSettings] = Field(
         default_factory=list,
         description="表記のヒント（文字起こしの手がかり）のプリセットの一覧。並びが設定画面の一覧と語をつなぐ順になる。有効な語をつないだ長さが HINT_MAX_BYTES を超える設定は断る",
+        json_schema_extra={"reload": RELOAD_IMMEDIATE},
+    )
+    edge_phrases: list[EdgePhraseSettings] = Field(
+        default_factory=lambda: list(DEFAULT_EDGE_PHRASES),
+        description="起こした文字の文頭・文末から消す文言の一覧。並びが当てる順と設定画面の一覧の並びになる。キーが無いときは既定の一覧、空の一覧なら何も消さない。文言が空の行は一覧から除く",
         json_schema_extra={"reload": RELOAD_IMMEDIATE},
     )
     api: ApiSettings = _group(ApiSettings, "待ち受けのポート・返送を許すホスト")
@@ -549,6 +659,14 @@ class Settings(_SettingsModel):
 
     output_models: ClassVar[Mapping[str, type[OutputSettingsBase]]] = {}
     """出力先の ID → 設定のモデル。build_settings_model が組み立てたモデルに入る。"""
+
+    @field_validator(EDGE_PHRASES_FIELD_NAME)
+    @classmethod
+    def _drop_blank_edge_phrases(
+        cls, phrases: list[EdgePhraseSettings]
+    ) -> list[EdgePhraseSettings]:
+        """文言が空の行を一覧から除く（各行の確かめを通った後のため、失敗の場所の番号は除く前の並びのまま）。"""
+        return [phrase for phrase in phrases if phrase.text]
 
     @field_validator(OUTPUTS_FIELD_NAME)
     @classmethod
@@ -591,6 +709,29 @@ class Settings(_SettingsModel):
                 "input": name,
             }
             for location, name in _find_glossary_name_overlap_locations(self)
+        ]
+        # 名前が空の用語集のプリセットは、名前の場所で断る（重なりと同じ回に、欄ごとのエラーとして出すため、欄の確かめでなくここで断る）
+        line_errors += [
+            {
+                "type": PydanticCustomError("string_too_short", "名前が空"),
+                "loc": (GLOSSARY_PRESETS_FIELD_NAME, index, "name"),
+                "input": preset.name,
+            }
+            for index, preset in enumerate(self.glossary_presets)
+            if not preset.name
+        ]
+        # 重なった用語集のプリセットの名前は、後ろにある側の名前の場所で、重なった名前を添える
+        line_errors += [
+            {
+                "type": PydanticCustomError(
+                    GLOSSARY_PRESET_NAME_OVERLAP_ERROR_TYPE,
+                    "用語集のプリセット「{name}」と同じ名前",
+                    {"name": name},
+                ),
+                "loc": location,
+                "input": name,
+            }
+            for location, name in _find_glossary_preset_name_overlap_locations(self)
         ]
         # 重なった表記のヒントのプリセットの名前は、後ろにある側の名前の場所で、重なった名前を添える
         line_errors += [
@@ -728,6 +869,32 @@ def find_glossary_name_overlaps(settings: Settings) -> list[tuple[str, str]]:
     return [
         (format_error_location(location), name)
         for location, name in _find_glossary_name_overlap_locations(settings)
+    ]
+
+
+# === 用語集のプリセットの名前の重なり ===
+
+
+def _find_glossary_preset_name_overlap_locations(
+    settings: Settings,
+) -> list[tuple[_Location, str]]:
+    """前に並んだプリセットと名前が同じ用語集のプリセットの（名前の場所, 名前）を返す。大文字と小文字は区別する。"""
+    seen: set[str] = set()
+    overlaps: list[tuple[_Location, str]] = []
+    for index, preset in enumerate(settings.glossary_presets):
+        # 初めての名前は控え、先に並んだ名前と同じなら重なりとして集める
+        if preset.name in seen:
+            overlaps.append(((GLOSSARY_PRESETS_FIELD_NAME, index, "name"), preset.name))
+        else:
+            seen.add(preset.name)
+    return overlaps
+
+
+def find_glossary_preset_name_overlaps(settings: Settings) -> list[tuple[str, str]]:
+    """前に並んだプリセットと名前が同じ用語集のプリセットを（重なったキー, 重なった名前）で返す。"""
+    return [
+        (format_error_location(location), name)
+        for location, name in _find_glossary_preset_name_overlap_locations(settings)
     ]
 
 

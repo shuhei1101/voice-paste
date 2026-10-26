@@ -1,0 +1,191 @@
+title: "外の端末のブラウザから音声を送って文字で受け取る"
+scenarios:
+  - name: 正常シナリオ（画面で録る）
+    setup:
+      - name: Mock
+        description: 常駐アプリを pytest のプロセスの中で build_handlers で配線し、API を build_fastapi で組み立てた app で 127.0.0.1 に待ち受けさせる。ブラウザは Windows の Edge を偽のマイクで起動し、Origin の許可リストにテスト用の Origin を入れる
+        notes: Edge は `--use-fake-ui-for-media-stream --use-fake-device-for-media-stream --use-file-for-fake-audio-capture={読み上げの WAV}` で起動する。読み上げの WAV は Windows の音声合成（SAPI）で決めた文を書き出す
+      - name: 履歴の保存
+        description: 履歴を残す設定にする
+    flow: |-
+      ```mermaid
+      flowchart TD
+        U0([ユーザー]) -->|画面で録って止める| UC1([ブラウザから音声を送る:正常シナリオ（画面で録る）])
+        UC1 -->|受け付けた job_id<br>キューに積んだ音声| UC2([録音を文字に起こす:正常シナリオ（ブラウザから受けた音声）])
+        UC2 -->|用語集で補正した文字<br>履歴に保存済み| UC3([ブラウザで結果を受け取る:正常シナリオ])
+        UC3 --> DONE([画面に文字が出て<br>コピーでき、端末に残る])
+
+        click UC1 "../単一ユースケース/ブラウザから音声を送る.yaml#正常シナリオ画面で録る"
+        click UC2 "../単一ユースケース/録音を文字に起こす.yaml#正常シナリオブラウザから受けた音声"
+        click UC3 "../単一ユースケース/ブラウザで結果を受け取る.yaml#正常シナリオ"
+      ```
+    expected:
+      - 画面の結果の一覧の先頭に、用語集で補正した文字が出て、書き出した文の言葉を含む
+      - コピーボタンを押すと、その文字がクリップボードに入る
+      - 端末（localStorage）に結果が 1 件残っている
+      - PC の履歴に、録れた形式のままの音声と、起こした文字の `.txt` が残っている
+    test: test_normal_when_record_in_page
+  - name: 正常シナリオ（ファイルを選んで送る）
+    setup:
+      - name: Mock
+        description: 常駐アプリを pytest のプロセスの中で build_handlers で配線し、API を build_fastapi で組み立てた app で 127.0.0.1 に待ち受けさせる。ブラウザは Windows の Edge で開き、Origin の許可リストにテスト用の Origin を入れる
+      - name: 音声ファイル
+        description: Windows の音声合成（SAPI）で決めた文を書き出し、MP3 に変えたファイルを選ぶ
+    flow: |-
+      ```mermaid
+      flowchart TD
+        U0([ユーザー]) -->|音声ファイルを選んで送る| UC1([ブラウザから音声を送る:正常シナリオ（ファイルを選ぶ）])
+        UC1 -->|受け付けた job_id<br>キューに積んだ音声| UC2([録音を文字に起こす:正常シナリオ（ブラウザから受けた音声）])
+        UC2 -->|用語集で補正した文字| UC3([ブラウザで結果を受け取る:正常シナリオ])
+        UC3 --> DONE([画面に文字が出て<br>コピーできる])
+
+        click UC1 "../単一ユースケース/ブラウザから音声を送る.yaml#正常シナリオファイルを選ぶ"
+        click UC2 "../単一ユースケース/録音を文字に起こす.yaml#正常シナリオブラウザから受けた音声"
+        click UC3 "../単一ユースケース/ブラウザで結果を受け取る.yaml#正常シナリオ"
+      ```
+    expected:
+      - 画面の結果の一覧の先頭に、用語集で補正した文字が出て、書き出した文の言葉を含む
+      - 端末（localStorage）に結果が 1 件残っている
+    test: test_normal_when_select_file
+  - name: 正常シナリオ（ホットキーの録音中に送る）
+    setup:
+      - name: Mock
+        description: 常駐アプリを pytest のプロセスの中で build_handlers で配線し、API を build_fastapi で組み立てた app で 127.0.0.1 に待ち受けさせる。録音の入力・システム音量・貼り付けのキーを差し替え、ブラウザは Windows の Edge で開く
+        notes: 録音の入力には SAPI で書き出した WAV を流し、音量は何もせず、貼り付けのキーは送らずに控える
+      - name: ホットキーの録音
+        description: ホットキーの入口から録音を始め、録音中のままにする
+      - name: 音声ファイル
+        description: SAPI で書き出した文の WAV を選ぶ
+    flow: |-
+      ```mermaid
+      flowchart TD
+        U0([ユーザー]) -->|ホットキーの録音中に<br>音声ファイルを送る| UC1([ブラウザから音声を送る:正常シナリオ（ファイルを選ぶ）])
+        UC1 -->|受け付けた job_id| UC2([録音を文字に起こす:正常シナリオ（ブラウザから受けた音声）])
+        UC2 -->|用語集で補正した文字| UC3([ブラウザで結果を受け取る:正常シナリオ])
+        UC3 -->|ホットキーの録音を確定する| UC4([録音する:正常シナリオ])
+        UC4 -->|確定した録音| UC5([録音を文字に起こす:正常シナリオ])
+        UC5 -->|用語集で補正した文字| UC6([起こした文字を届ける:正常シナリオ])
+        UC6 --> DONE([画面に文字が出て<br>ホットキーの録音も貼り付けまで進む])
+
+        click UC1 "../単一ユースケース/ブラウザから音声を送る.yaml#正常シナリオファイルを選ぶ"
+        click UC2 "../単一ユースケース/録音を文字に起こす.yaml#正常シナリオブラウザから受けた音声"
+        click UC3 "../単一ユースケース/ブラウザで結果を受け取る.yaml#正常シナリオ"
+        click UC4 "../単一ユースケース/録音する.yaml#正常シナリオ"
+        click UC5 "../単一ユースケース/録音を文字に起こす.yaml#正常シナリオ"
+        click UC6 "../単一ユースケース/起こした文字を届ける.yaml#正常シナリオ"
+      ```
+    expected:
+      - 送信が受け付けられ（`202`）、画面に起こした文字が出る
+      - ホットキーの録音が録音中のまま続いている
+      - ホットキーの録音を確定すると、いつもどおり貼り付けまで進む
+    test: test_normal_when_hotkey_recording
+  - name: 正常シナリオ（用語集のプリセットを選んで送る）
+    setup:
+      - name: Mock
+        description: 常駐アプリを pytest のプロセスの中で build_handlers で配線し、API を build_fastapi で組み立てた app で 127.0.0.1 に待ち受けさせる。ブラウザは Windows の Edge で開き、Origin の許可リストにテスト用の Origin を入れる
+      - name: 用語集のプリセット
+        description: 用語集のプリセットが 2 つあり、それぞれが別の用語集を使う。2 つの用語集に、書き出した文で起きる別々の誤変換の行を置く
+        notes: 設定で選んでいるのは 1 つ目のプリセット
+      - name: 音声ファイル
+        description: Windows の音声合成（SAPI）で決めた文を書き出し、MP3 に変えたファイルを選ぶ
+    flow: |-
+      ```mermaid
+      flowchart TD
+        U0([ユーザー]) -->|2 つ目のプリセットを選択して<br>音声ファイルを送る| UC1([ブラウザから音声を送る:正常シナリオ（用語集のプリセットを選ぶ）])
+        UC1 -->|受け付けた job_id<br>選択したプリセットの名前| UC2([録音を文字に起こす:正常シナリオ（ブラウザで選んだプリセットで補正する）])
+        UC2 -->|選択したプリセットの用語集で補正した文字| UC3([ブラウザで結果を受け取る:正常シナリオ])
+        UC3 --> DONE([画面に選択したプリセットで<br>補正した文字が出る])
+
+        click UC1 "../単一ユースケース/ブラウザから音声を送る.yaml#正常シナリオ用語集のプリセットを選ぶ"
+        click UC2 "../単一ユースケース/録音を文字に起こす.yaml#正常シナリオブラウザで選んだプリセットで補正する"
+        click UC3 "../単一ユースケース/ブラウザで結果を受け取る.yaml#正常シナリオ"
+      ```
+    expected:
+      - 画面の結果の一覧の先頭に出た文字で、2 つ目のプリセットの用語集の誤変換が正しい表記に置き換わっている
+      - 1 つ目のプリセット（設定で選んでいるプリセット）だけが使う用語集の誤変換は、置き換わらずに残っている
+      - 設定で選んでいるプリセットは変わっていない
+    test: test_normal_when_select_glossary_preset
+  - name: 異常シナリオ（読めない形式を送る）
+    setup:
+      - name: Mock
+        description: 常駐アプリを pytest のプロセスの中で build_handlers で配線し、API を build_fastapi で組み立てた app で 127.0.0.1 に待ち受けさせる。ブラウザは Windows の Edge で開く
+      - name: 壊れたファイル
+        description: 拡張子を `.mp3` にした、音声でない中身のファイルを選ぶ
+    flow: |-
+      ```mermaid
+      flowchart TD
+        U0([ユーザー]) -->|音声でないファイルを送る| UC1([ブラウザから音声を送る:異常シナリオ（読めない形式）])
+        UC1 --> DONE([画面に読めない形式のエラーが出て<br>常駐サービスは次の送信を待つ])
+
+        click UC1 "../単一ユースケース/ブラウザから音声を送る.yaml#異常シナリオ読めない形式"
+      ```
+    expected:
+      - 送信が `415` の problem+json で返り、画面に読めない形式であることが出る
+      - 結果の一覧に件が増えていない
+      - 続けて正しい音声ファイルを送ると、受け付けられる
+    test: test_error_when_unreadable_format
+  - name: 異常シナリオ（文字起こしに失敗）
+    setup:
+      - name: Mock
+        description: 常駐アプリを pytest のプロセスの中で build_handlers で配線し、API を build_fastapi で組み立てた app で 127.0.0.1 に待ち受けさせる。ブラウザは Windows の Edge を偽のマイクで起動する
+      - name: 文字起こしの失敗
+        description: 文字起こしのエンジンが失敗を返す状態にする
+        notes: エンジンの関数を失敗を返す関数に差し替える
+    flow: |-
+      ```mermaid
+      flowchart TD
+        U0([ユーザー]) -->|画面で録って止める| UC1([ブラウザから音声を送る:正常シナリオ（画面で録る）])
+        UC1 -->|受け付けた job_id| UC2([録音を文字に起こす:異常シナリオ（ブラウザから受けた音声の文字起こしに失敗）])
+        UC2 -->|文字起こしの失敗| UC3([ブラウザで結果を受け取る:異常シナリオ（文字起こしに失敗）])
+        UC3 --> DONE([画面に失敗が出て<br>録った音声を送り直せる])
+
+        click UC1 "../単一ユースケース/ブラウザから音声を送る.yaml#正常シナリオ画面で録る"
+        click UC2 "../単一ユースケース/録音を文字に起こす.yaml#異常シナリオブラウザから受けた音声の文字起こしに失敗"
+        click UC3 "../単一ユースケース/ブラウザで結果を受け取る.yaml#異常シナリオ文字起こしに失敗"
+      ```
+    expected:
+      - 画面に文字起こしに失敗したことが出る
+      - 端末（IndexedDB）に録った音声が残り、送り直しボタンとダウンロードボタンを押せる
+      - 常駐サービスが動き続けており、エンジンを戻して送り直すと文字が出る
+    test: test_error_when_transcription_failed
+  - name: 異常シナリオ（許可されていない Origin から送る）
+    setup:
+      - name: Mock
+        description: 常駐アプリを pytest のプロセスの中で build_handlers で配線し、API を build_fastapi で組み立てた app で 127.0.0.1 に待ち受けさせる
+      - name: 許可リスト
+        description: Origin の許可リストに、送信に使う Origin を入れない
+    flow: |-
+      ```mermaid
+      flowchart TD
+        U0([ユーザー]) -->|許可されていない Origin から送る| UC1([ブラウザから音声を送る:異常シナリオ（許可されていない Origin）])
+        UC1 --> DONE([送信が断られ<br>キューに何も積まれない])
+
+        click UC1 "../単一ユースケース/ブラウザから音声を送る.yaml#異常シナリオ許可されていない-Origin"
+      ```
+    expected:
+      - 送信が `403` の problem+json で返る
+      - キューにジョブが積まれず、PC の履歴にも残らない
+    test: test_error_when_origin_not_allowed
+lead: スマホ・iPad・外の PC のブラウザでゲートウェイを通して常駐アプリの画面を開き、録った音声か録ってある音声ファイルを送って、文字に起こした結果を画面で受け取ってコピーするまでの複合ユースケース。
+issue: 92
+primary_actor: ユーザー（外の端末のブラウザ）
+stakeholders:
+  - name: ユーザー
+    interest: PC の前にいなくても、外の端末で話した内容や録ってある音声を文字で受け取ってコピーできること。送信に失敗しても録った音声を失わないこと
+  - name: PC でホットキーを使うユーザー
+    interest: ブラウザから送った音声の文字起こしが、ホットキーの録音を止めたり断ったりしないこと
+trigger: ユーザーが外の端末のブラウザで、ゲートウェイの公開のサブドメインの `/web/` を開く
+preconditions:
+  - Windows の端末で、ショートカットから常駐サービスを起動している
+  - 設定の文字起こしのエンジンに要るものがそろっている（ローカルの Whisper のモデルと GPU）
+  - ゲートウェイ（shuhdev-gateway）に常駐アプリのポートを `--rewrite-origin` なしで登録し、ユーザーが Cloudflare Access でログインしている
+  - ゲートウェイの公開のサブドメインが、設定の `/web/` の下に許す Origin の一覧にある
+success_guarantee: |-
+  画面に、送信時に選択した用語集のプリセット（選択しないときは設定で選んでいるプリセット）で補正した文字が出て、コピーできる。
+  結果は端末に直近 10 件まで残る。
+  送った音声と起こした文字が PC の履歴に残る（履歴を残す設定のとき）。
+minimal_guarantee: |-
+  送信や文字起こしに失敗しても、録った直近 1 件の音声は端末に残り、送り直しとダウンロードができる。
+  常駐サービスは止まらず、ホットキー・API の録音はそのまま使える。
+  許可されていない Origin からの送信は受け付けない。
+test_file: tests/e2e/複合ユースケース/test_transcribe_from_browser.py

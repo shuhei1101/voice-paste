@@ -18,7 +18,9 @@ API から始める録音の返送先は、テストが 127.0.0.1 に立てる�
 from __future__ import annotations
 
 import json
+import logging
 import os
+import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -28,7 +30,8 @@ import pytest
 from PySide6.QtWidgets import QApplication
 
 import voice_paste.integrations.whisper.client as client_module
-from tests.integration.helpers import CallbackReceiver, wait_until
+import voice_paste.main as main_module
+from tests.integration.helpers import CallbackReceiver
 from tests.support.continuous import (
     SEGMENT_GAP_SEC,
     TROUBLED_SEGMENT,
@@ -40,23 +43,37 @@ from tests.support.continuous import (
 )
 from tests.support.hotwords_probe_worker import PROBE_FILE_ENV
 from tests.support.inprocess import (
+    PROCESSED_TIMEOUT_SEC,
+    FIRST_PRESET_CORRECTED_WORD,
+    FIRST_PRESET_NAME,
+    SECOND_PRESET_CORRECTED_WORD,
+    SECOND_PRESET_NAME,
+    SPEECH_TEXT,
     SPEECH_WORD,
     WORKER_READY_LOG,
-    WORKER_READY_TIMEOUT_SEC,
+    InProcessApi,
     InProcessApp,
     KeyLog,
     break_saved_recordings,
+    encode_audio,
     fail_transcription_of_segment,
     kill_one_worker,
+    kill_workers_twice,
+    make_glossary_preset_settings,
     make_settings,
     silence_input,
     speech_input,
     speech_sequence_input,
+    stub_transcription,
+    synthesize_speech,
 )
 from tests.support.real_service import REPO_ROOT, SOURCE_DIR
 from tests.support.resident_app import IDLE, ResidentApp
+from voice_paste.features.correction import pick_glossary_preset
 from voice_paste.integrations.whisper.client import WhisperWorkerClient
-from voice_paste.shared.settings import HintPresetSettings
+from voice_paste.main import SETTINGS_MODEL
+from voice_paste.shared.errors import TranscriptionError
+from voice_paste.shared.settings import HintPresetSettings, load_settings
 
 pytestmark = pytest.mark.real_machine
 
@@ -66,13 +83,30 @@ RunApp = Callable[..., ResidentApp]
 GLOSSARY_FILE_NAME = "e2e.csv"
 """設定で選んでいる用語集の CSV の名前（settings.toml と同じフォルダ）。"""
 
+SECOND_GLOSSARY_FILE_NAME = "second.csv"
+"""設定で選んでいないプリセットが使う用語集の CSV の名前（settings.toml と同じフォルダ）。"""
+
 GLOSSARY_SETTINGS = f'[[glossaries]]\nname = "e2e"\npath = "{GLOSSARY_FILE_NAME}"\n'
 """設定で選んでいる用語集のプリセット。"""
 
 GLOSSARY_ROWS = "誤変換,正しい表記,使う\nテスト,試験,1\n天気,WEATHER,0\n"
 """用語集の行（話す内容で起きる誤変換のオンの行と、別の誤変換のオフの行）。"""
 
-DELETE_ROW = "ありがとう,,1\n"
+PRESET_GLOSSARY_SETTINGS = (
+    f'[[glossaries]]\nname = "e2e"\npath = "{GLOSSARY_FILE_NAME}"\n'
+    f'\n[[glossaries]]\nname = "second"\npath = "{SECOND_GLOSSARY_FILE_NAME}"\n'
+    '\n[[glossary_presets]]\nname = "既定"\nglossaries = ["e2e"]\n'
+    '\n[[glossary_presets]]\nname = "別"\nglossaries = ["second"]\n'
+)
+"""用語集のプリセットを 2 つ（それぞれ別の用語集を使う）持つ設定。設定で選んでいるプリセットのキーは書かず、1 つ目の「既定」を使う。"""
+
+SECOND_GLOSSARY_ROWS = "誤変換,正しい表記,使う\nこれ,THIS,1\n"
+"""2 つ目の用語集の行（話す内容で起きる、1 つ目の用語集とは別の誤変換のオンの行）。"""
+
+SECOND_CORRECTED_WORD = "THIS"
+"""2 つ目の用語集の行で置き換わった、正しい表記。"""
+
+DELETE_ROW = "晴れ,,1\n"
 """話す内容に入る文言を誤変換にして、正しい表記を空にしたオンの行（消す行）。"""
 
 CORRECTED_WORD = "試験"
@@ -108,6 +142,24 @@ HINT_PRESETS = [
 
 EXPECTED_HINT = "voice-paste、Whisper、議事録、返信"
 """有効なプリセットの語を一覧の順に読点（、）でつないだ手がかり。"""
+
+EDGE_PHRASE_SETTINGS = (
+    '[[edge_phrases]]\ntext = "チャンネル登録*"\nposition = "end"\n\n'
+    '[[edge_phrases]]\ntext = "ご視聴ありがとうございました"\nposition = "end"\n\n'
+    '[[edge_phrases]]\ntext = "ありがとうございました"\nposition = "end"\n\n'
+    '[[edge_phrases]]\ntext = "えーと"\nposition = "start"\n'
+)
+"""文頭・文末から消す文言の一覧（上から「チャンネル登録*」「ご視聴ありがとうございました」「ありがとうございました」が文末、「えーと」が文頭）。"""
+
+EDGE_PHRASE_TRANSCRIPT = (
+    "えーと、ありがとうございました。本日の議題は予算です。\n"
+    "以上です。ありがとうございました。ご視聴ありがとうございました。"
+    "チャンネル登録よろしくお願いします。"
+)
+"""文字起こしが返す文字（文頭に「えーと」、文末に決まった文言が続く 2 行）。"""
+
+EDGE_PHRASE_EXPECTED = "ありがとうございました。本日の議題は予算です。\n以上です。"
+"""文頭・文末の文言を消した後の文字。文頭の「えーと、」と文末の 3 つの文言が消え、位置が文末の行は文頭の「ありがとうございました。」に当たらない。"""
 
 
 def _spy_transcribe_requests(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
@@ -170,20 +222,20 @@ def _put_glossary_with_delete_row(data_dir: Path) -> None:
     (data_dir / GLOSSARY_FILE_NAME).write_text(GLOSSARY_ROWS + DELETE_ROW, encoding="utf-8")
 
 
-def _ready_count(app: ResidentApp) -> int:
-    """文字起こしワーカーが ready になった回数（立て直しを含む）を、ログから数える。"""
-    return sum(message.startswith(WORKER_READY_LOG) for message in app.log_messages())
+def _put_preset_glossaries(data_dir: Path) -> None:
+    """起動の前に、2 つのプリセットがそれぞれ使う用語集の CSV を settings.toml と同じフォルダへ置く。"""
+    (data_dir / GLOSSARY_FILE_NAME).write_text(GLOSSARY_ROWS, encoding="utf-8")
+    (data_dir / SECOND_GLOSSARY_FILE_NAME).write_text(SECOND_GLOSSARY_ROWS, encoding="utf-8")
 
 
-def _kill_workers_twice(app: ResidentApp) -> int:
-    """文字起こしワーカーを止め、やり直しに立ったワーカーも ready になってから止める。止めた回数を返す。"""
-    # 1. 立ち上がっているワーカーを止める（窓口が落ちたことに気づいて立て直す）
-    ready_before = _ready_count(app)
-    kills = int(kill_one_worker())
+def _ready_messages(app: ResidentApp) -> list[str]:
+    """文字起こしワーカーが ready になったときのログの文（立て直しを含む）を、ログから順に返す。"""
+    return [message for message in app.log_messages() if message.startswith(WORKER_READY_LOG)]
 
-    # 2. やり直しのワーカーが ready になるのを待って止める（読み込みの途中で止めると、やり直しの前に失敗する）
-    assert wait_until(lambda: _ready_count(app) > ready_before, WORKER_READY_TIMEOUT_SEC)
-    return kills + int(kill_one_worker())
+
+def _kill_workers_twice(app: ResidentApp, first_pids: set[int]) -> int:
+    """引いておいた番号のワーカーを止め、やり直しに立ったワーカーも ready になった直後に止める。止めた回数を返す。"""
+    return kill_workers_twice(first_pids, lambda: _ready_messages(app))
 
 
 def _failure_reasons(app: ResidentApp, event: str) -> list[str]:
@@ -239,6 +291,74 @@ def test_normal(run_app: RunApp, tmp_path: Path, clipboard_sentinel: str) -> Non
     )
 
 
+def test_normal_when_api_glossary_preset(
+    run_app: RunApp, tmp_path: Path, receiver: CallbackReceiver
+) -> None:
+    """API の開始で指定したプリセットの用語集で補正し、設定で選んでいるプリセットの用語集の誤変換は置き換わらずに残り、設定で選んでいるプリセットは変わらない（正常シナリオ（API で指定したプリセットで補正する））。"""
+
+    def case(app: ResidentApp) -> None:
+        """2 つ目のプリセットを指定して API で録音を完了し、届け先・履歴・設定で選んでいるプリセットを確かめる。"""
+        # 実行
+        session_id = app.start_api_session(receiver.url, glossary_preset="別")
+        app.complete_api_session(session_id)
+        app.wait_processed()
+
+        # 検証
+        [payload] = receiver.received
+        assert payload["session_id"] == session_id
+        assert payload["result"] == "transcribed"
+        assert SECOND_CORRECTED_WORD in payload["text"]
+        assert SPEECH_WORD in payload["text"]
+        assert CORRECTED_WORD not in payload["text"]
+        assert app.history_text() == payload["text"]
+        settings = load_settings(app.data_dir / "settings.toml", SETTINGS_MODEL)
+        assert pick_glossary_preset(settings, app.data_dir).name == "既定"
+
+    run_app(
+        case,
+        extra_settings=PRESET_GLOSSARY_SETTINGS,
+        prepare=_put_preset_glossaries,
+        wav_input=speech_input(tmp_path),
+    )
+
+
+def test_normal_when_edge_phrases_removed(
+    run_app: RunApp, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, clipboard_sentinel: str
+) -> None:
+    """文字起こしが返した文字の文頭・文末から、一覧の文言が一覧の順に位置つきで消え、消した文字がログに出て、文の途中の同じ文言は残り、起こした文字が届けられる（正常シナリオ（文頭・文末の決まった文言を消す））。"""
+    # 準備: 文字起こしは決まった文字を返し、録音の入力は WAV（中身は問わない）を流す
+    monkeypatch.setattr(main_module, "transcribe", lambda *_args, **_options: EDGE_PHRASE_TRANSCRIPT)
+    wav_input = speech_input(tmp_path)
+    keys = KeyLog()
+
+    def case(app: ResidentApp) -> None:
+        """話し終えたら確定し、起こした文字・ログ・届け先を確かめる。"""
+        # 実行
+        app.start_recording()
+        app.wait_played_out(wav_input)
+        app.press("output_button_paste_and_send")
+        app.wait_processed()
+
+        # 検証
+        text = app.history_text()
+        assert text == EDGE_PHRASE_EXPECTED
+        assert text.splitlines()[-1] == "以上です。"
+        assert text.startswith("ありがとうございました。")
+        assert "ご視聴" not in text
+        removed = [
+            message for message in app.log_messages() if message.startswith("文頭・文末の文言を消した")
+        ]
+        assert len(removed) == 1
+        assert "文頭: えーと、" in removed[0]
+        assert "文末: チャンネル登録よろしくお願いします。" in removed[0]
+        assert "文末: ご視聴ありがとうございました。" in removed[0]
+        assert "文末: ありがとうございました。" in removed[0]
+        assert pyperclip.paste() == text
+        assert len(keys.pasted) == 1
+
+    run_app(case, extra_settings=EDGE_PHRASE_SETTINGS, wav_input=wav_input, keys=keys)
+
+
 def test_normal_when_worker_dies(
     run_app: RunApp, tmp_path: Path, clipboard_sentinel: str
 ) -> None:
@@ -248,10 +368,10 @@ def test_normal_when_worker_dies(
 
     def case(app: ResidentApp) -> None:
         """確定した直後にワーカーを 1 回止め、起こした文字・ワーカー・常駐サービスを確かめる。"""
-        # 実行
+        # 実行（止めるワーカーの番号は、確定の前に引いておく）
         workers_before = app.worker_pids()
         _confirm_with_paste_and_send(app)
-        assert kill_one_worker()
+        assert kill_one_worker(workers_before)
         app.wait_processed()
 
         # 検証: 起こした文字が届き、新しい子プロセスのワーカーが動き、常駐サービスが動き続けている
@@ -274,9 +394,10 @@ def test_error_when_worker_dies_again(
 
     def case(app: ResidentApp) -> None:
         """確定した直後にワーカーを 2 回止め、知らせ・履歴・ワーカー・常駐サービスを確かめる。"""
-        # 実行
+        # 実行（止めるワーカーの番号は、確定の前に引いておく）
+        workers_before = app.worker_pids()
         _confirm_with_paste_and_send(app)
-        assert _kill_workers_twice(app) >= 2
+        assert _kill_workers_twice(app, workers_before) >= 2
         app.wait_processed()
 
         # 検証
@@ -507,3 +628,125 @@ def test_error_when_segment_transcription_failed(
         )
 
     run_app(case, wav_input=wav_input, keys=KeyLog())
+
+
+BROWSER_GLOSSARY_FILE_NAME = "yogo.csv"
+"""設定のフォルダに置く、今までの用語集の CSV の名前（設定で用語集を選んでいないときに使われる）。"""
+
+BROWSER_AUDIO_FAILURE_TEXT = "ブラウザの音声の文字起こしに失敗させた"
+"""差し替えた文字起こしが送出する例外のメッセージ。"""
+
+NEXT_TEXT = "つぎの音声の文です"
+"""失敗の後、エンジンを戻して続けて送った音声が返す文。"""
+
+JOB_POLL_SEC = 0.05
+"""ジョブの状態を取りに行く間隔。"""
+
+
+def _poll_job_until_finished(api: InProcessApi, job_id: str) -> tuple[dict[str, Any], list[float]]:
+    """ジョブが終わる（done か failed）まで取りに行き、最後の本文と、取るたびの progress を返す。"""
+    progresses: list[float] = []
+    deadline = time.monotonic() + PROCESSED_TIMEOUT_SEC
+    body = api.get_job(job_id).json()
+    progresses.append(body["progress"])
+    while body["state"] not in ("done", "failed") and time.monotonic() < deadline:
+        time.sleep(JOB_POLL_SEC)
+        body = api.get_job(job_id).json()
+        progresses.append(body["progress"])
+    return body, progresses
+
+
+def _post_webm(api: InProcessApi, wav_path: Path, *, glossary_preset: str | None = None) -> str:
+    """WAV を webm にして POST /web/transcriptions へ送り（glossary_preset があれば用語集のプリセットの名前も送り）、202 を確かめてジョブの ID を返す。"""
+    response = api.post_web_audio(encode_audio(wav_path, "webm"), glossary_preset=glossary_preset)
+    assert response.status_code == 202
+    return str(response.json()["job_id"])
+
+
+def test_normal_when_browser_audio(start_inprocess: StartInProcess, tmp_path: Path) -> None:
+    """ブラウザから受けた音声が、用語集で補正した文字になって done になる。進みが増え、履歴に webm のままの音声と同じ名前の .txt が残り、貼り付けは起きない（正常シナリオ（ブラウザから受けた音声））。"""
+    # 準備
+    (tmp_path / BROWSER_GLOSSARY_FILE_NAME).write_text(GLOSSARY_ROWS, encoding="utf-8")
+    wav_path = synthesize_speech(SPEECH_TEXT, tmp_path / "browser_speech.wav")
+    app = start_inprocess(
+        settings=make_settings(only_paste_and_send=True), wav_input=silence_input(tmp_path)
+    )
+    api = app.start_web_api()
+
+    # 実行
+    job_id = _post_webm(api, wav_path)
+    body, progresses = _poll_job_until_finished(api, job_id)
+
+    # 検証
+    assert body["state"] == "done"
+    assert CORRECTED_WORD in body["text"]
+    assert SPEECH_WORD not in body["text"]
+    assert progresses == sorted(progresses)
+    assert all(0 <= progress <= 1 for progress in progresses)
+    assert progresses[-1] == 1
+    [recording] = app.history_files(".webm")
+    [text_file] = app.history_files(".txt")
+    assert recording.stem == text_file.stem
+    assert text_file.read_text(encoding="utf-8") == body["text"]
+    assert app.keys.pasted == []
+    assert app.notifications.events == []
+
+
+def test_error_when_browser_audio_transcription_failed(
+    start_inprocess: StartInProcess,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """ブラウザから受けた音声の文字起こしに失敗すると failed になり、履歴に音声が残る。エンジンを戻して続けて送った音声は done まで進み、知らせは出ない（異常シナリオ（ブラウザから受けた音声の文字起こしに失敗））。"""
+    # 準備
+    stub = stub_transcription(monkeypatch, NEXT_TEXT)
+    stub.error = TranscriptionError(BROWSER_AUDIO_FAILURE_TEXT)
+    wav_path = synthesize_speech(SPEECH_TEXT, tmp_path / "browser_speech.wav")
+    app = start_inprocess(
+        settings=make_settings(only_paste_and_send=True), wav_input=silence_input(tmp_path)
+    )
+    api = app.start_web_api()
+    caplog.set_level(logging.INFO)
+
+    # 実行
+    failed_id = _post_webm(api, wav_path)
+    failed, _ = _poll_job_until_finished(api, failed_id)
+    stub.error = None
+    next_id = _post_webm(api, wav_path)
+    next_body, _ = _poll_job_until_finished(api, next_id)
+
+    # 検証
+    assert failed["state"] == "failed"
+    assert BROWSER_AUDIO_FAILURE_TEXT in failed["error"]
+    assert len(app.history_files(".webm")) == 2
+    assert any(
+        failed_id in record.getMessage() and BROWSER_AUDIO_FAILURE_TEXT in record.getMessage()
+        for record in caplog.records
+    )
+    assert next_body["state"] == "done"
+    assert next_body["text"] == NEXT_TEXT
+    assert app.notifications.events == []
+    assert app.keys.pasted == []
+
+
+def test_normal_when_browser_glossary_preset(start_inprocess: StartInProcess, tmp_path: Path) -> None:
+    """ブラウザから受けた音声に 2 つ目のプリセットを指定すると、2 つ目のプリセットの用語集の言葉だけが置き換わり、1 つ目の用語集の言葉は残る。設定で選んでいるプリセットは 1 つ目のまま変わらない（正常シナリオ（ブラウザで選んだプリセットで補正する））。"""
+    # 準備: 2 つのプリセットがそれぞれ別の用語集を使い、書き出した文の別々の言葉を置き換える行を 1 つずつ持つ。設定で選んでいるのは 1 つ目
+    wav_path = synthesize_speech(SPEECH_TEXT, tmp_path / "browser_speech.wav")
+    app = start_inprocess(
+        settings=make_glossary_preset_settings(tmp_path), wav_input=silence_input(tmp_path)
+    )
+    api = app.start_web_api()
+
+    # 実行
+    job_id = _post_webm(api, wav_path, glossary_preset=SECOND_PRESET_NAME)
+    body, _ = _poll_job_until_finished(api, job_id)
+
+    # 検証
+    assert body["state"] == "done"
+    assert SECOND_PRESET_CORRECTED_WORD in body["text"]
+    assert SPEECH_WORD in body["text"]
+    assert FIRST_PRESET_CORRECTED_WORD not in body["text"]
+    current = app.handlers.settings_store.get()
+    assert pick_glossary_preset(current, app.paths.settings_file.parent).name == FIRST_PRESET_NAME

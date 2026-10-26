@@ -1,0 +1,22 @@
+$ .venv/Scripts/python.exe -m pytest tests/nfr/test_web_response_time.py tests/nfr/test_web_body_limit.py tests/nfr/test_web_queue_limit.py tests/nfr/test_web_finished_jobs_kept.py --run-e2e -rP --show-capture=stdout --color=no
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-web-browser-transcription
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collected 6 items
+
+tests\nfr\test_web_response_time.py .                                    [ 16%]
+tests\nfr\test_web_body_limit.py ...                                     [ 66%]
+tests\nfr\test_web_queue_limit.py .                                      [ 83%]
+tests\nfr\test_web_finished_jobs_kept.py .                               [100%]
+
+=================================== PASSES ====================================
+___________________________ test_web_response_time ____________________________
+---------------------------- Captured stdout call -----------------------------
+web_response_time: n=5 min=0.55 max=0.72 sec
+______________ test_web_body_limit_when_at_limit[content_length] ______________
+_________________ test_web_body_limit_when_at_limit[chunked] __________________
+____________________________ test_web_queue_limit _____________________________
+_________________________ test_web_finished_jobs_kept _________________________
+============================= 6 passed in 33.66s ==============================

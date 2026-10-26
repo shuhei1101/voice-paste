@@ -18,12 +18,21 @@ from collections.abc import Callable, Iterator
 from datetime import date, timedelta
 from pathlib import Path
 
+import httpx
 import pyperclip
 import pytest
 from PySide6.QtWidgets import QWidget
 
 from tests.integration.helpers import wait_until
-from tests.support.inprocess import SPEECH_WORD, KeyLog, silence_input, speech_input
+from tests.support.inprocess import (
+    SPEECH_TEXT,
+    SPEECH_WORD,
+    KeyLog,
+    encode_audio,
+    silence_input,
+    speech_input,
+    synthesize_speech,
+)
 from tests.support.instances import service_root_count, wait_for_takeover
 from tests.support.real_service import (
     LOOPBACK,
@@ -121,9 +130,10 @@ def occupied_port() -> Iterator[int]:
 
 
 def test_normal(run_app: RunApp, tmp_path: Path) -> None:
-    """ショートカットから起動すると、トレイが待機中になり、API がトークンに応え、ワーカーが動き、録音開始のホットキーで録音が始まる（正常シナリオ）。"""
-    # 準備: 録音の入力は無音の WAV
+    """ショートカットから起動すると、トレイが待機中になり、API がトークンに応え、`/web/` が許す Origin のブラウザの音声を受け付け、ワーカーが動き、録音開始のホットキーで録音が始まる（正常シナリオ）。"""
+    # 準備: 録音の入力は無音の WAV。ブラウザが送る音声は書き出した文を webm にしたもの
     wav_input = silence_input(tmp_path)
+    web_audio = encode_audio(synthesize_speech(SPEECH_TEXT, tmp_path / "browser_speech.wav"), "webm")
 
     def case(app: ResidentApp) -> None:
         """起動した常駐アプリの、トレイ・トークン・API・ワーカー・ホットキーの受付を確かめる。"""
@@ -139,6 +149,15 @@ def test_normal(run_app: RunApp, tmp_path: Path) -> None:
             ).status_code
             == 401
         )
+        # `/web/` は、許す Origin から（トークン無しで）送ったブラウザの音声を受け付ける
+        with httpx.Client(base_url=f"http://{LOOPBACK}:{app.port}") as http:
+            accepted = http.post(
+                "/web/transcriptions",
+                files={"audio": ("recording.webm", web_audio, "audio/webm")},
+                headers={"Host": f"localhost:{app.port}", "Origin": f"http://localhost:{app.port}"},
+            )
+        assert accepted.status_code == 202
+        assert accepted.json()["job_id"]
         assert app.worker_pids() != set()
         # 録音開始のホットキーの受付が始まっていて、押すと録音が始まる
         assert app.hotkeys is not None

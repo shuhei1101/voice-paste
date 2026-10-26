@@ -9,13 +9,17 @@
 
 from __future__ import annotations
 
+import ctypes
 import math
 import os
+import re
+import signal
 import socket
 import threading
 import time
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from dataclasses import dataclass, field
+from ctypes import wintypes
 from pathlib import Path
 from typing import Any
 
@@ -27,9 +31,11 @@ from scipy.signal import resample_poly
 
 import voice_paste.main as main_module
 from tests.integration.helpers import CallbackReceiver, wait_until
-from tests.support.processes import ProcessInfo, kill_tree, processes_with
+from tests.support.processes import ProcessInfo, processes_with
+from tests.support.web_body import CONTENT_TYPE, chunks_of
 from voice_paste.features.recording.client import SAMPLE_RATE
 from voice_paste.features.session import SessionApiDeps, SessionManager
+from voice_paste.features.web_transcription import WebApiDeps
 from voice_paste.integrations.whisper.client import WORKER_MODULE
 from voice_paste.main import API_START_TIMEOUT_SEC, SETTINGS_MODEL, Handlers
 from voice_paste.server.app import build_fastapi
@@ -42,6 +48,8 @@ from voice_paste.shared.errors import TranscriptionError
 from voice_paste.shared.settings import (
     ApiSettings,
     ContinuousSettings,
+    GlossaryPresetSettings,
+    GlossarySettings,
     LocalWhisperSettings,
     Settings,
     TranscriptionSettings,
@@ -88,7 +96,7 @@ LONG_READING: tuple[tuple[str, str], ...] = (
     ("駅前の店でコーヒーを飲みます", "コーヒー"),
     ("写真を一枚撮ってください", "写真"),
     ("荷物を玄関に運びました", "荷物"),
-    ("ありがとうございました", "ありがとう"),
+    ("明日は晴れるでしょう", "晴れ"),
 )
 """話し続けて読み上げる文と、それぞれを起こした文字に含まれるはずの言葉。つなぐと話し声だけで約 28 秒になる。"""
 
@@ -110,23 +118,35 @@ PLAYED_OUT_TIMEOUT_SEC = 180.0
 PROCESSED_TIMEOUT_SEC = 120.0
 """確定した録音の処理（文字起こし・届ける）が終わるまで待つ上限（ワーカーの立て直しを含む）。"""
 
+HOLD_TIMEOUT_SEC = 30.0
+"""差し替えた文字起こしを、放すまで待たせる上限（テストの途中で失敗しても、後始末がこれより長く止まらない）。"""
+
 WORKER_CLIENT_LOGGER = "voice_paste.integrations.whisper.client"
 """文字起こしワーカーの窓口のロガーの名前。"""
 
 WORKER_READY_LOG = "文字起こしワーカーが立ち上がった"
 """文字起こしワーカーが ready になったときのログの文の先頭。"""
 
-WORKER_KILL_TIMEOUT_SEC = 90.0
-"""文字起こしワーカーを 1 つ止めるまで待つ上限。"""
-
 WORKER_READY_TIMEOUT_SEC = 60.0
 """やり直しのワーカーが ready になるまで待つ上限。"""
 
-WORKER_KILL_INTERVAL_SEC = 0.2
-"""文字起こしワーカーを止める試みの間隔。"""
+READY_PID_PATTERN = re.compile(r"pid (\d+)")
+"""文字起こしワーカーが ready になったときのログの文から、ランチャーの番号を取る形。"""
+
+TOOLHELP_SNAPSHOT_PROCESS = 0x2
+"""Toolhelp のスナップショットに、プロセスを入れる指定（TH32CS_SNAPPROCESS）。"""
+
+TOOLHELP_EXE_FILE_CHARS = 260
+"""Toolhelp のプロセスの 1 行が持つ、実行ファイル名の最大の文字数（MAX_PATH）。"""
+
+WORKER_READY_POLL_SEC = 0.05
+"""やり直しのワーカーが ready になったかを確かめる間隔（ready の直後に止めるため短くする）。"""
 
 REQUEST_TIMEOUT_SEC = 10.0
 """テストが API を叩くときのタイムアウト。"""
+
+LARGE_BODY_TIMEOUT_SEC = 120.0
+"""本文の上限に近い大きさの音声を送るときのタイムアウト。"""
 
 LOOPBACK = "127.0.0.1"
 
@@ -454,6 +474,45 @@ def spy_on_transcribed_audio(monkeypatch: pytest.MonkeyPatch) -> list[Transcribe
     return transcribed
 
 
+class StubTranscription:
+    """文字起こしを、決めた文を返す（または失敗する）関数に差し替えたものの控え。受けた音声のパスを覚え、放すまで待たせることもできる。"""
+
+    def __init__(self, text: str = "") -> None:
+        self.text = text
+        """返す文。"""
+        self.error: Exception | None = None
+        """送出する例外。None なら文を返す。"""
+        self.paths: list[Path] = []
+        """渡された音声のパス（渡された順）。"""
+        self.progress_points: list[float] = []
+        """起こす途中で知らせる進み（区間の終わりの時刻 ÷ 音声の秒数）。"""
+        self.release = threading.Event()
+        """放すまで戻らないための合図。既定は放した状態。"""
+        self.release.set()
+
+    def hold(self) -> None:
+        """放すまで文字起こしを戻さない状態にする。"""
+        self.release.clear()
+
+    def __call__(self, audio_path: Path, on_progress: Any = None, **options: Any) -> str:
+        """音声のパスを覚え、進みを知らせ、放されるまで待ってから、文を返すか例外を送出する。"""
+        self.paths.append(audio_path)
+        for point in self.progress_points:
+            if on_progress is not None:
+                on_progress(point, 1.0)
+        self.release.wait(timeout=HOLD_TIMEOUT_SEC)
+        if self.error is not None:
+            raise self.error
+        return self.text
+
+
+def stub_transcription(monkeypatch: pytest.MonkeyPatch, text: str = "") -> StubTranscription:
+    """文字起こしを StubTranscription に差し替える（配線の前に呼ぶ。文字起こしワーカーは起動のまま使わない）。"""
+    stub = StubTranscription(text)
+    monkeypatch.setattr(main_module, "transcribe", stub)
+    return stub
+
+
 def fail_transcription_of_segment(monkeypatch: pytest.MonkeyPatch, segment_number: int) -> None:
     """連続録音の通し番号 segment_number の区間だけ文字起こしに失敗させる（ほかの区間は本物で起こす）。"""
     original = main_module.transcribe
@@ -465,6 +524,36 @@ def fail_transcription_of_segment(monkeypatch: pytest.MonkeyPatch, segment_numbe
         return original(audio_path, on_progress, **options)
 
     monkeypatch.setattr(main_module, "transcribe", _transcribe)
+
+
+# === ブラウザが送る音声 ===
+
+
+def encode_audio(wav_path: Path, container: str) -> bytes:
+    """WAV を container（`webm`・`mp3`・`mp4`・`ogg`）の音声に書き直して、そのバイト列を返す。"""
+    import av
+
+    codec, rate, options = {
+        "webm": ("libopus", 48000, {}),
+        "mp3": ("libmp3lame", 44100, {}),
+        "ogg": ("libopus", 48000, {}),
+        "mp4": ("aac", 44100, {"movflags": "frag_keyframe+empty_moov+default_base_moof"}),
+    }[container]
+    target = wav_path.with_suffix(f".encoded.{container}")
+    with (
+        av.open(str(wav_path)) as source,
+        av.open(str(target), "w", format=container, options=options) as destination,
+    ):
+        stream = destination.add_stream(codec, rate=rate)
+        stream.layout = "mono"
+        resampler = av.AudioResampler(format=stream.format, layout="mono", rate=stream.rate)
+        for frame in source.decode(audio=0):
+            for resampled in resampler.resample(frame):
+                destination.mux(stream.encode(resampled))
+        for resampled in resampler.resample(None):
+            destination.mux(stream.encode(resampled))
+        destination.mux(stream.encode(None))
+    return target.read_bytes()
 
 
 # === 配線した常駐アプリ ===
@@ -500,6 +589,57 @@ def make_settings(
     )
 
 
+FIRST_PRESET_NAME = "既定"
+"""用語集のプリセットの 1 つ目の名前（設定で選んでいるプリセット）。"""
+
+SECOND_PRESET_NAME = "別"
+"""用語集のプリセットの 2 つ目の名前。"""
+
+FIRST_PRESET_CORRECTED_WORD = "試験"
+"""1 つ目のプリセットの用語集が、SPEECH_WORD を置き換える正しい表記。"""
+
+SECOND_PRESET_CORRECTED_WORD = "THIS"
+"""2 つ目のプリセットの用語集が、SPEECH_TEXT の「これ」を置き換える正しい表記。"""
+
+
+def make_glossary_preset_settings(tmp_path: Path) -> Settings:
+    """用語集のプリセットを 2 つ持つ設定を作る。
+
+    2 つのプリセットはそれぞれ別の用語集を使い、書き出した文（SPEECH_TEXT）の別々の言葉を置き換える行を 1 つずつ持つ。
+    設定で選んでいるのは 1 つ目の FIRST_PRESET_NAME。
+    """
+    first_csv = tmp_path / "first.csv"
+    second_csv = tmp_path / "second.csv"
+    first_csv.write_text(f"誤変換,正しい表記\n{SPEECH_WORD},{FIRST_PRESET_CORRECTED_WORD}\n", encoding="utf-8")
+    second_csv.write_text(f"誤変換,正しい表記\nこれ,{SECOND_PRESET_CORRECTED_WORD}\n", encoding="utf-8")
+    return make_settings(only_paste_and_send=True).model_copy(
+        update={
+            "glossaries": [
+                GlossarySettings(name="first", path=first_csv),
+                GlossarySettings(name="second", path=second_csv),
+            ],
+            "glossary_presets": [
+                GlossaryPresetSettings(name=FIRST_PRESET_NAME, glossaries=["first"]),
+                GlossaryPresetSettings(name=SECOND_PRESET_NAME, glossaries=["second"]),
+            ],
+            "active_glossary_preset": FIRST_PRESET_NAME,
+        }
+    )
+
+
+def spy_on_correct_presets(monkeypatch: pytest.MonkeyPatch) -> list[str | None]:
+    """補正を、受けた用語集のプリセットの名前（None は指定なし）を控えて文をそのまま返す関数に差し替える（配線の前でも後でもよい）。"""
+    presets: list[str | None] = []
+
+    def _correct(text: str, glossary_preset: str | None, **_options: Any) -> str:
+        """プリセットの名前を控え、文を補正せずに返す。"""
+        presets.append(glossary_preset)
+        return text
+
+    monkeypatch.setattr(main_module, "_correct", _correct)
+    return presets
+
+
 def free_port() -> int:
     """127.0.0.1 の空きポートを 1 つ返す。"""
     with socket.socket() as probe:
@@ -514,6 +654,12 @@ class InProcessApi:
     runner: ApiServerRunner
     http: httpx.Client
     token: str
+    port: int
+
+    @property
+    def web_origin(self) -> str:
+        """ブラウザが `/web/` を localhost で開いたときの Origin（`http://localhost:{ポート}`）。"""
+        return f"http://localhost:{self.port}"
 
     def post(
         self,
@@ -529,16 +675,55 @@ class InProcessApi:
         return self.http.post(path, json=json_body, headers=merged)
 
     def start_session(
-        self, callback_url: str, *, continuous: bool = False
+        self, callback_url: str, *, continuous: bool = False, glossary_preset: str | None = None
     ) -> tuple[httpx.Response, float]:
-        """API の開始（continuous なら連続録音）を呼び、応答と、応答までにかかったミリ秒を返す。"""
+        """API の開始（continuous なら連続録音。glossary_preset があれば用語集のプリセットを指定）を呼び、応答と、応答までにかかったミリ秒を返す。"""
         started = time.perf_counter()
         body: dict[str, object] = {"callback_url": callback_url}
         # 連続録音のときだけ continuous を指定する（指定しない開始は 1 回の録音）
         if continuous:
             body["continuous"] = True
+        # 用語集のプリセットを指定するときだけ glossary_preset を指定する（指定しない開始は設定で選んでいるプリセット）
+        if glossary_preset is not None:
+            body["glossary_preset"] = glossary_preset
         response = self.post("/sessions", json_body=body)
         return response, (time.perf_counter() - started) * 1000
+
+    def web_headers(self, **extra: str) -> dict[str, str]:
+        """ゲートウェイを通した形の `/web/` の要求のヘッダー（Host は localhost:{ポート}、トークン無し）に extra を足す。"""
+        return {"Host": f"localhost:{self.port}", **extra}
+
+    def post_web_audio(
+        self,
+        data: bytes,
+        *,
+        origin: str | None = None,
+        filename: str = "recording.webm",
+        glossary_preset: str | None = None,
+    ) -> httpx.Response:
+        """音声を multipart の audio で POST /web/transcriptions へ送る。origin が None なら画面と同じオリジンで送り、glossary_preset があれば用語集のプリセットの名前を一緒に送る。"""
+        headers = self.web_headers(Origin=self.web_origin if origin is None else origin)
+        form = None if glossary_preset is None else {"glossary_preset": glossary_preset}
+        return self.http.post(
+            "/web/transcriptions",
+            files={"audio": (filename, data, "audio/webm")},
+            data=form,
+            headers=headers,
+        )
+
+    def post_web_body(self, body: bytes, *, chunked: bool = False) -> httpx.Response:
+        """sized_multipart_body で作った本文を POST /web/transcriptions へ送る（画面と同じオリジン）。chunked なら Content-Length を付けずに送る。"""
+        headers = self.web_headers(Origin=self.web_origin, **{"Content-Type": CONTENT_TYPE})
+        return self.http.post(
+            "/web/transcriptions",
+            content=chunks_of(body) if chunked else body,
+            headers=headers,
+            timeout=LARGE_BODY_TIMEOUT_SEC,
+        )
+
+    def get_job(self, job_id: str) -> httpx.Response:
+        """GET /web/transcriptions/{job_id} を呼ぶ。"""
+        return self.http.get(f"/web/transcriptions/{job_id}", headers=self.web_headers())
 
     def close(self) -> None:
         """クライアントを閉じて待ち受けを止める。"""
@@ -546,14 +731,24 @@ class InProcessApi:
         self.runner.stop()
 
 
-def serve_api(session_api: SessionApiDeps) -> InProcessApi:
-    """build_fastapi で組み立てた app を 127.0.0.1 の空きポートで待ち受けさせ、叩くクライアントを返す。"""
+def serve_api(
+    session_api: SessionApiDeps,
+    web_api: WebApiDeps,
+    allowed_web_origins: Sequence[str] | Callable[[int], Sequence[str]] = (),
+    port: int | None = None,
+) -> InProcessApi:
+    """build_fastapi で組み立てた app を 127.0.0.1 の空きポートで待ち受けさせ、叩くクライアントを返す。
+
+    許す Origin は、一覧か、決まったポートから一覧を作る関数で渡す（ブラウザの Origin はポートを含むため）。
+    """
     token = create_token()
-    port = free_port()
-    runner = ApiServerRunner(build_fastapi(session_api, token, port), port)
+    port = free_port() if port is None else port
+    origins = allowed_web_origins(port) if callable(allowed_web_origins) else allowed_web_origins
+    app = build_fastapi(session_api, token, port, web_api=web_api, allowed_web_origins=origins)
+    runner = ApiServerRunner(app, port)
     assert runner.start(API_START_TIMEOUT_SEC)
     http = httpx.Client(base_url=f"http://{LOOPBACK}:{port}", timeout=REQUEST_TIMEOUT_SEC)
-    return InProcessApi(runner=runner, http=http, token=token.get_secret_value())
+    return InProcessApi(runner=runner, http=http, token=token.get_secret_value(), port=port)
 
 
 def start_continuous(api: InProcessApi, receiver: CallbackReceiver) -> str:
@@ -606,13 +801,41 @@ class InProcessApp:
         """セッションが空（待機中）に戻るまで待ち、戻ったかを返す。"""
         return wait_until(lambda: self.manager.current() is None, timeout_sec)
 
+    def web_temp_files(self) -> list[Path]:
+        """ブラウザの音声の一時のフォルダに残っているファイルを返す（フォルダが無ければ空）。"""
+        tmp_dir = self.handlers.web_api.tmp_dir
+        return sorted(tmp_dir.iterdir()) if tmp_dir.exists() else []
+
     def history_files(self, suffix: str) -> list[Path]:
         """履歴に残ったファイルのうち、拡張子が suffix のものを返す。"""
         return sorted(self.paths.history_dir.rglob(f"*{suffix}"))
 
     def start_api(self) -> InProcessApi:
         """build_fastapi で組み立てた app を 127.0.0.1 の空きポートで待ち受けさせ、叩くクライアントを返す。"""
-        self.api = serve_api(self.handlers.session_api)
+        self.api = serve_api(
+            self.handlers.session_api,
+            self.handlers.web_api,
+            self.handlers.settings_store.get().api.allowed_web_origins,
+        )
+        return self.api
+
+    def start_web_api(
+        self, *, allowed: bool = True, port: int | None = None, start_queue: bool = True
+    ) -> InProcessApi:
+        """ブラウザの音声のキューを始め、localhost で開く `/web/` の Origin を許して API を待ち受けさせる。
+
+        allowed が偽なら、どの Origin も許さない。port を渡すと、そのポートで待ち受ける（止めた API を同じポートで立て直す）。
+        start_queue が偽なら、キューは始めない（立て直しでワーカースレッドを重ねない）。
+        """
+        web_api = self.handlers.web_api
+        if start_queue:
+            web_api.queue.start(web_api.tmp_dir)
+        self.api = serve_api(
+            self.handlers.session_api,
+            web_api,
+            (lambda chosen: [f"http://localhost:{chosen}"]) if allowed else (),
+            port,
+        )
         return self.api
 
     def start_limit_timer(self) -> None:
@@ -629,6 +852,7 @@ class InProcessApp:
         if self.api is not None:
             self.api.close()
         self.manager.close()
+        self.handlers.web_api.queue.close()
         self.handlers.stop_engine()
 
 
@@ -674,41 +898,98 @@ def worker_processes() -> list[ProcessInfo]:
     return processes_with(WORKER_MODULE, os.getpid())
 
 
-def kill_workers() -> int:
-    """文字起こしワーカーを止め、止めたワーカーの数（ランチャーの数）を返す。"""
-    workers = worker_processes()
-    worker_pids = {worker.pid for worker in workers}
-    # ランチャー（親がワーカーでないもの）を子孫ごと止める
-    roots = [worker for worker in workers if worker.parent_pid not in worker_pids]
-    for root in roots:
-        kill_tree(root.pid)
-    return len(roots)
+def worker_process_pids() -> set[int]:
+    """文字起こしワーカーのプロセス（ランチャーと本体）の番号を返す。"""
+    return {worker.pid for worker in worker_processes()}
 
 
-def worker_ready_count(caplog: pytest.LogCaptureFixture) -> int:
-    """文字起こしワーカーが ready になった回数（立て直しを含む）を、控えたログから数える。
+def worker_ready_messages(caplog: pytest.LogCaptureFixture) -> list[str]:
+    """文字起こしワーカーが ready になったときのログの文（立て直しを含む）を、控えたログから順に返す。
 
     テストは先に `caplog.set_level(logging.INFO, logger=WORKER_CLIENT_LOGGER)` を呼んでから配線する。
     """
-    return sum(WORKER_READY_LOG in record.getMessage() for record in caplog.records)
+    return [
+        record.getMessage() for record in caplog.records if WORKER_READY_LOG in record.getMessage()
+    ]
 
 
-def kill_one_worker() -> bool:
-    """文字起こしワーカーが現れるまで待って止め、止めたかを返す。"""
-    deadline = time.monotonic() + WORKER_KILL_TIMEOUT_SEC
-    while time.monotonic() < deadline:
-        if kill_workers() > 0:
-            return True
-        time.sleep(WORKER_KILL_INTERVAL_SEC)
-    return False
+class _ProcessEntry(ctypes.Structure):
+    """Toolhelp のプロセスの 1 行（PROCESSENTRY32W）。"""
+
+    _fields_ = (
+        ("dwSize", wintypes.DWORD),
+        ("cntUsage", wintypes.DWORD),
+        ("th32ProcessID", wintypes.DWORD),
+        ("th32DefaultHeapID", ctypes.c_size_t),
+        ("th32ModuleID", wintypes.DWORD),
+        ("cntThreads", wintypes.DWORD),
+        ("th32ParentProcessID", wintypes.DWORD),
+        ("pcPriClassBase", ctypes.c_long),
+        ("dwFlags", wintypes.DWORD),
+        ("szExeFile", ctypes.c_wchar * TOOLHELP_EXE_FILE_CHARS),
+    )
 
 
-def kill_workers_twice(caplog: pytest.LogCaptureFixture) -> int:
-    """文字起こしワーカーを止め、やり直しに立ったワーカーも ready になってから止める。止めた回数を返す。"""
+def process_tree_pids(root_pid: int) -> set[int]:
+    """root_pid とその子孫のプロセスの番号を、Toolhelp のスナップショットで直ちに引いて返す（PowerShell の一覧は数秒かかる）。"""
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.CreateToolhelp32Snapshot.restype = wintypes.HANDLE
+    snapshot = kernel32.CreateToolhelp32Snapshot(TOOLHELP_SNAPSHOT_PROCESS, 0)
+    parents: dict[int, int] = {}
+    entry = _ProcessEntry()
+    entry.dwSize = ctypes.sizeof(_ProcessEntry)
+    try:
+        found = kernel32.Process32FirstW(snapshot, ctypes.byref(entry))
+        while found:
+            parents[entry.th32ProcessID] = entry.th32ParentProcessID
+            found = kernel32.Process32NextW(snapshot, ctypes.byref(entry))
+    finally:
+        kernel32.CloseHandle(snapshot)
+    tree = {root_pid}
+    # 親が tree に入っているプロセスを、増えなくなるまで足す
+    grown = True
+    while grown:
+        children = {pid for pid, parent in parents.items() if parent in tree} - tree
+        tree |= children
+        grown = bool(children)
+    return tree
+
+
+def kill_one_worker(pids: Iterable[int]) -> bool:
+    """番号のプロセス（ワーカーのランチャーと本体）を止め、止める番号があったかを返す。
+
+    プロセスの一覧は引かない（一覧を引く間に文字起こしが終わるため、番号は止める時刻より前に引いておく）。
+    taskkill も使わない（子孫を探すために数秒かかる）。Windows では os.kill が番号のプロセスを直ちに終わらせる。
+    """
+    targets = list(pids)
+    for pid in targets:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except OSError:
+            # 先に止めたランチャーとともに既に終わっているプロセス
+            continue
+    return bool(targets)
+
+
+def kill_workers_twice(
+    first_pids: Iterable[int], ready_messages: Callable[[], list[str]]
+) -> int:
+    """引いておいた番号のワーカーを止め、やり直しに立ったワーカーも ready になった直後に止める。止めた回数を返す。
+
+    first_pids は止める時刻より前に引いた、1 回目に止めるワーカーの番号。
+    ready_messages は ready になったときのログの文を順に返す関数。
+    """
     # 1. 立ち上がっているワーカーを止める（窓口が落ちたことに気づいて立て直す）
-    ready_before = worker_ready_count(caplog)
-    kills = int(kill_one_worker())
+    ready_before = len(ready_messages())
+    kills = int(kill_one_worker(first_pids))
 
-    # 2. やり直しのワーカーが ready になるのを待って止める（読み込みの途中で止めると、やり直しの前に失敗する）
-    assert wait_until(lambda: worker_ready_count(caplog) > ready_before, WORKER_READY_TIMEOUT_SEC)
-    return kills + int(kill_one_worker())
+    # 2. やり直しのワーカーが ready になるのを待つ（読み込みの途中で止めると、やり直しの前に失敗する）
+    deadline = time.monotonic() + WORKER_READY_TIMEOUT_SEC
+    while len(ready_messages()) <= ready_before:
+        assert time.monotonic() < deadline, "やり直しのワーカーが ready にならなかった"
+        time.sleep(WORKER_READY_POLL_SEC)
+
+    # 3. ready のログに書かれたランチャーの番号から、一覧を引かずに子孫ごと止める
+    match = READY_PID_PATTERN.search(ready_messages()[-1])
+    assert match is not None, "ready のログにワーカーの番号が無い"
+    return kills + int(kill_one_worker(process_tree_pids(int(match.group(1)))))

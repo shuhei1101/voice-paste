@@ -18,7 +18,8 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QPushButton
+from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QComboBox, QLineEdit, QPushButton
 
 from tests.integration.helpers import CallbackReceiver, wait_until
 from tests.support.inprocess import SPEECH_WORD, VOLUME_BEFORE, silence_input, speech_input
@@ -408,25 +409,29 @@ def test_normal_when_edit_glossary(run_app: RunApp) -> None:
 
 
 def test_normal_when_switch_glossary_preset(run_app: RunApp) -> None:
-    """用語集のプリセットを足して行を入れ、補正に使うプリセットを切り替えて保存すると、足したプリセットの用語集のファイルができ、設定画面は開いたまま保存できたことを出し、再起動せずに補正へ効く（正常シナリオ）。
+    """用語集と用語集のプリセットを足して、今の用語集と足した用語集の両方を使う用語集に選び、補正に使うプリセットを足したものに切り替えて保存すると、足した用語集のファイルができ、設定画面は開いたまま保存できたことを出し、再起動せずに両方の用語集の行が補正へ効く（正常シナリオ）。
 
     補正は、動いている常駐アプリの補正に文字を渡して確かめる（マイクは開かない）。
     """
 
     def case(app: ResidentApp) -> None:
-        """設定画面の「用語集」で、プリセットを足して名前と行を入れ、補正に使うプリセットを足したものに切り替えて保存する。"""
+        """設定画面の「用語集」で、用語集とプリセットを足して名前と行を入れ、補正に使うプリセットを足したものに切り替えて保存する。"""
         # 準備
         before = _glossary_file(app).read_bytes()
         app.open_settings()
         app.select_group("用語集")
 
-        # 実行
+        # 実行（用語集を足して名前と行を入れ、プリセットを足して名前を入れ、今の用語集と足した用語集をこの順に使う用語集に選ぶ）
         app.press("add_glossary_button")
         app.set_text("glossary_name_1", "meeting")
         app.press("add_glossary_entry_button")
         app.set_text("glossary_entry_wrong_0", "paison")
         app.set_text("glossary_entry_right_0", "Python")
-        app.click("glossary_active_1")
+        app.press("add_glossary_preset_button")
+        app.set_text("glossary_preset_name_1", "combined")
+        app.press("glossary_preset_glossary_add")
+        app.press("glossary_preset_glossary_add")
+        app.click("glossary_preset_active_1")
         app.press("save_button")
 
         # 検証
@@ -436,14 +441,19 @@ def test_normal_when_switch_glossary_preset(run_app: RunApp) -> None:
         assert read_glossary_rows(added) == [GlossaryEntry(wrong="paison", right="Python")]
         assert _glossary_file(app).read_bytes() == before
         toml = _toml(app)
-        assert toml["active_glossary"] == "meeting"
+        assert toml["active_glossary_preset"] == "combined"
+        assert "active_glossary" not in toml
         assert [(item["name"], item["path"]) for item in toml["glossaries"]] == [  # type: ignore[attr-defined]
             ("yogo", GLOSSARY_FILE_NAME),
             ("meeting", "glossaries/glossary_1.csv"),
         ]
+        assert [(item["name"], item["glossaries"]) for item in toml["glossary_presets"]] == [  # type: ignore[attr-defined]
+            ("既定", ["yogo"]),
+            ("combined", ["yogo", "meeting"]),
+        ]
         assert COMMENT_LINE in _settings_file(app).read_text(encoding="utf-8")
         assert _toml(app)["recording"]["fade_sec"] == 1.5  # type: ignore[index]
-        assert app.correct_text("kuroudo gitto paison") == "kuroudo gitto Python"
+        assert app.correct_text("kuroudo gitto paison") == "Claude Git Python"
 
     run_app(case, extra_settings=COMMENTED_SETTINGS, prepare=_put_glossary)
 
@@ -504,6 +514,66 @@ def test_normal_when_edit_hint_presets(run_app: RunApp) -> None:
         assert app.hint_for_next_request() == "Claude、Whisper、tool、Git"
 
     run_app(case, extra_settings=HINT_PRESET_SETTINGS + COMMENTED_SETTINGS)
+
+
+EDGE_TRANSCRIPT = "お疲れ様でした。本日はここまでです。ありがとうございました。"
+"""補正に渡す文字（文頭に「お疲れ様でした。」、文末に既定の文言「ありがとうございました。」がある）。"""
+
+
+def _keeps_values(before: dict[str, object], after: dict[str, object]) -> bool:
+    """before に書かれていた全てのキーが、after に同じ値で残っているか（保存で足された既定のキーは見ない）。"""
+    return all(
+        _keeps_values(value, after[key]) if isinstance(value, dict) else after.get(key) == value  # type: ignore[arg-type,index]
+        for key, value in before.items()
+    )
+
+
+def test_normal_when_edit_edge_phrases(run_app: RunApp) -> None:
+    """文頭・文末から消す文言の行を足して先頭へ動かし、既定の行を消して保存すると、settings.toml に一覧の順で書かれ、設定画面は開いたまま保存できたことを出し、再起動せずに補正へ効く（正常シナリオ（文頭・文末から消す文言を編集する））。
+
+    補正は、動いている常駐アプリの補正に文字を渡して確かめる（マイクは開かない。録音を通した補正は「録音を文字に起こす」の E2E）。
+    """
+
+    def case(app: ResidentApp) -> None:
+        """設定画面の「ハルシネーション」で、「お疲れ様でした」（文頭）の行を足して先頭へ動かし、「ありがとうございました」の行を消して保存する。"""
+        # 準備（キーが無い一覧は既定の 3 行で、文末の「ありがとうございました。」が消える）
+        assert "edge_phrases" not in _toml(app)
+        assert app.correct_text(EDGE_TRANSCRIPT) == "お疲れ様でした。本日はここまでです。"
+        other_keys_before = _toml(app)
+        app.open_settings()
+        app.select_group("ハルシネーション")
+
+        # 実行（行を足し、文言と位置を入れて、Alt+↑ で先頭まで動かし、既定の「ありがとうございました」の行を消す）
+        app.press("add_edge_phrase_button")
+        app.commit_text("edge_phrase_text_3", "お疲れ様でした")
+        position = app.wait_widget("edge_phrase_position_3", QComboBox)
+        position.setFocus()
+        QTest.keyClick(position, Qt.Key.Key_Up)
+        assert position.currentText() == "文頭"
+        for row in (3, 2, 1):
+            QTest.keyClick(
+                app.wait_widget(f"edge_phrase_text_{row}", QLineEdit),
+                Qt.Key.Key_Up,
+                Qt.KeyboardModifier.AltModifier,
+            )
+        app.press("edge_phrase_remove_3")
+        app.press("save_button")
+
+        # 検証
+        assert app.window("settings_window") is not None
+        assert app.label("saved_notice") == "保存しました。"
+        toml = _toml(app)
+        assert toml["edge_phrases"] == [
+            {"text": "お疲れ様でした", "position": "start"},
+            {"text": "チャンネル登録*", "position": "end"},
+            {"text": "ご視聴ありがとうございました", "position": "end"},
+        ]
+        assert _keeps_values(other_keys_before, toml)
+        assert COMMENT_LINE in _settings_file(app).read_text(encoding="utf-8")
+        assert toml["recording"]["fade_sec"] == 1.5  # type: ignore[index]
+        assert app.correct_text(EDGE_TRANSCRIPT) == "本日はここまでです。ありがとうございました。"
+
+    run_app(case, extra_settings=COMMENTED_SETTINGS)
 
 
 def test_error_when_hints_too_long(run_app: RunApp) -> None:

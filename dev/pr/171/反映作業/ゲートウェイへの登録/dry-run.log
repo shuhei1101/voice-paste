@@ -1,0 +1,16 @@
+前提確認: ok（振り分け先のポート 27823）
+--- /home/shuhei2441/.config/shuhdev-gateway/settings.toml
++++ /home/shuhei2441/.config/shuhdev-gateway/settings.toml
+@@ -59,3 +59,10 @@
+ port = 8780
+ title = "shuhdev-gateway の開発ドキュメント"
+ path = "/ui/dev/shuhdev-gateway/@develop/"
++
++[[fixed_registrations]]
++name = "voice-paste"
++port = 27823
++title = "voice-paste の外の端末の画面"
++path = "/web/"
++rewrite_origin = false
+固定の登録の書き込み: changed
+ゲートウェイの再起動: changed

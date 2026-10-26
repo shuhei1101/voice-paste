@@ -10,3 +10,5 @@
 | [settings](./settings/) | 設定画面 | [37 / a-standard](./settings/37/a-standard/index.html) |
 | [settings-discard-dialog](./settings-discard-dialog/) | 変えた値を捨てる確認 | [37 / a-standard](./settings-discard-dialog/37/a-standard/index.html) |
 | [settings-reset-dialog](./settings-reset-dialog/) | 既定に戻す確認 | [37 / a-standard](./settings-reset-dialog/37/a-standard/index.html) |
+| [web-transcription](./web-transcription/) | 外の端末の文字起こしの画面 | [171 / a-standard](./web-transcription/171/a-standard/index.html) |
+| [web-confirm-dialog](./web-confirm-dialog/) | 外の端末の取り消せない操作の確認 | [171 / a-standard](./web-confirm-dialog/171/a-standard/index.html) |

@@ -13,3 +13,13 @@ items:
     summary: 完了が来ないままセッションの上限時間に達した API の録音を打ち切り、履歴に残して返送先へ知らせる
   - page: 設定のエンドポイントへ送る.py.yaml
     summary: 起こした文字を、設定の送り先のエンドポイントへ JSON で 1 回送る
+  - page: 画面を配信する.py.yaml
+    summary: GET /web/。外の端末のブラウザで開く文字起こしの画面と素材を返す
+  - page: 音声を受け付ける.py.yaml
+    summary: POST /web/transcriptions。ブラウザから送られた音声を積んでジョブの ID を返す
+  - page: 文字起こしの結果を返す.py.yaml
+    summary: GET /web/transcriptions/{job_id}。ジョブの状態・進み具合と、起こした文字か失敗の理由を返す
+  - page: ブラウザの音声を文字に起こす.py.yaml
+    summary: 受け付けたブラウザの音声を 1 件ずつ起こして補正し、履歴とジョブに残す
+  - page: 用語集のプリセットの一覧を返す.py.yaml
+    summary: GET /web/glossary-presets。外の端末の画面が選ぶ用語集のプリセットの名前の一覧と、設定で選んでいるプリセットを返す

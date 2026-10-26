@@ -11,6 +11,10 @@ class CallbackNotAllowedError(AppError):
     """返送先が許されない。"""
 
 
+class GlossaryPresetNotFoundError(AppError):
+    """API の開始かブラウザの音声の受け付けで指定した用語集のプリセットが一覧に無い（メッセージに指定した名前を含める）。"""
+
+
 class UnauthorizedError(AppError):
     """トークンが合わない。"""
 
@@ -33,6 +37,22 @@ class SessionConflictError(AppError):
 
 class MicrophoneUnavailableError(AppError):
     """マイクを開けない。"""
+
+
+class WebJobNotFoundError(AppError):
+    """ブラウザの音声のジョブが無い（受け付けていない・件数を超えて捨てた・起動し直した）。"""
+
+
+class RequestBodyTooLargeError(AppError):
+    """ブラウザの本文が上限以上。"""
+
+
+class AudioUnreadableError(AppError):
+    """受けた音声を PyAV で開けないか、音声のストリームが無い。"""
+
+
+class WebQueueFullError(AppError):
+    """終わっていないブラウザの音声のジョブが上限に達している。"""
 
 
 class TranscriptionError(AppError):

@@ -23,6 +23,14 @@
 # words = ["voice-paste", "Whisper"]
 # enabled = true
 
+# 起こした文字の文頭・文末から消す文言の一覧（設定画面の「ハルシネーション」で編集する）。
+# キーが無いときは、上から「チャンネル登録*」「ご視聴ありがとうございました」「ありがとうございました」（全て文末）。空の一覧にすると何も消さない。
+# 上の行から順に、前の行で消した結果へ当てる。文言は完全な一致で、* は 0 文字以上の任意の文字列に一致する。
+# position は start（文頭）・end（文末）・both（両方）。
+# [[edge_phrases]]
+# text = "ご視聴ありがとうございました"
+# position = "end"
+
 # === 文字起こし ===
 [transcription]
 # 使うエンジン（再起動）。local_whisper
@@ -174,6 +182,8 @@ transcribing_show_hotkeys = true
 port = 47823
 # loopback のほかに、起こした文字の返送を許すホスト（再起動）
 allowed_callback_hosts = []
+# /web/ の下（外の端末のブラウザの画面）へ要求を送ってよい Origin（再起動）。ゲートウェイの公開のサブドメインを scheme://host[:port] の形で書く。例: ["https://voice-paste.example.com"]
+allowed_web_origins = []
 
 # === 連続録音（API で continuous を指定した録音）===
 [api.continuous]

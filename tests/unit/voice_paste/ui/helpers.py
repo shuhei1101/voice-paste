@@ -75,6 +75,12 @@ def make_ui_deps(
         fields["apply_theme"] = MagicMock(return_value=None)
     if "switch_output" in {field.name for field in dataclasses.fields(UiDepsModel)}:
         fields["switch_output"] = MagicMock(return_value=None)
+    if "list_glossary_presets" in {field.name for field in dataclasses.fields(UiDepsModel)}:
+        from voice_paste.shared.settings import GlossaryPresetSettings
+
+        fields["list_glossary_presets"] = MagicMock(
+            return_value=[GlossaryPresetSettings(name="既定", glossaries=["yogo"])]
+        )
     fields.update(overrides)
     return UiDepsModel(**fields)
 

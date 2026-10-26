@@ -29,8 +29,12 @@ from PySide6.QtWidgets import (
 
 from voice_paste.shared.errors import HotkeyError
 from voice_paste.shared.settings import (
+    EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE,
+    EDGE_PHRASES_FIELD_NAME,
     GLOSSARIES_FIELD_NAME,
     GLOSSARY_NAME_OVERLAP_ERROR_TYPE,
+    GLOSSARY_PRESET_NAME_OVERLAP_ERROR_TYPE,
+    GLOSSARY_PRESETS_FIELD_NAME,
     HINT_MAX_BYTES,
     HINT_PRESET_NAME_OVERLAP_ERROR_TYPE,
     HINT_PRESETS_FIELD_NAME,
@@ -71,6 +75,7 @@ from voice_paste.ui.windows.settings_glossaries import (
     GlossaryField,
     GlossaryPanel,
 )
+from voice_paste.ui.windows.settings_edge_phrases import EdgePhrasePanel
 from voice_paste.ui.windows.settings_hints import HintPresetPanel
 from voice_paste.ui.windows.settings_presets import (
     PRESET_FIELD_LABELS,
@@ -100,6 +105,7 @@ GROUP_NAMES: tuple[str, ...] = (
     "文字起こし",
     "表記のヒント",
     "用語集",
+    "ハルシネーション",
     "画面",
     "履歴とログ",
     "API",
@@ -137,6 +143,7 @@ FIELD_LAYOUT: dict[str, tuple[str, ...]] = {
     ),
     "表記のヒント": (HINT_PRESETS_FIELD_NAME,),
     "用語集": (GLOSSARIES_FIELD_NAME,),
+    "ハルシネーション": (EDGE_PHRASES_FIELD_NAME,),
     "画面": (
         "ui.theme",
         "ui.topmost",
@@ -155,6 +162,7 @@ FIELD_LAYOUT: dict[str, tuple[str, ...]] = {
     "API": (
         "api.port",
         "api.allowed_callback_hosts",
+        "api.allowed_web_origins",
         "api.continuous.min_silence_sec",
         "api.continuous.session_limit_sec",
     ),
@@ -247,6 +255,11 @@ GLOSSARY_KEY_PATTERN: re.Pattern[str] = re.compile(
 )
 """用語集の欄の失敗のキー（`glossaries[2].name`・`glossaries[2].rows[1].wrong`）を、何件目か・項目・何行目かに分ける。"""
 
+GLOSSARY_PRESET_KEY_PATTERN: re.Pattern[str] = re.compile(
+    rf"^{GLOSSARY_PRESETS_FIELD_NAME}\[(\d+)\]\.name$"
+)
+"""用語集のプリセットの欄の失敗のキー（`glossary_presets[2].name`）を、何件目かに分ける。"""
+
 GLOSSARY_FIELD_LABELS: dict[str, str] = {"name": "名前", "wrong": "誤変換", "right": "正しい表記"}
 """用語集の欄の名前（エラーの一覧に出す）。"""
 
@@ -257,6 +270,14 @@ HINT_KEY_PATTERN: re.Pattern[str] = re.compile(
     rf"^{HINT_PRESETS_FIELD_NAME}(?:\[(\d+)\]\.(?:(name)|words\[(\d+)\]))?$"
 )
 """表記のヒントの欄の失敗のキー（`hint_presets`・`hint_presets[1].name`・`hint_presets[1].words[3]`）を、何件目か・項目・何つ目の語かに分ける。"""
+
+EDGE_KEY_PATTERN: re.Pattern[str] = re.compile(rf"^{EDGE_PHRASES_FIELD_NAME}\[(\d+)\]\.text$")
+"""文頭・文末から消す文言の欄の失敗のキー（`edge_phrases[1].text`）を、何行目かに分ける。"""
+
+EDGE_WILDCARD_ONLY_MESSAGE: str = (
+    "* だけの文言は、文頭・文末の行を丸ごと消します。消したい文言を入れてください。"
+)
+"""文言が `*` だけのときの欄の下とエラーの一覧の文言。"""
 
 HINT_LENGTH_LABEL: str = "有効なヒントの長さ"
 """有効なヒントの長さの失敗を、エラーの一覧に出す呼び方。"""
@@ -402,11 +423,17 @@ def to_field_message(
         return _range_text(info)
     if error_type == "string_too_short":
         # 用語集の名前の空は名前を、プリセットのタイトルの空はタイトルを入れてもらう
-        if error["loc"][:1] in ((GLOSSARIES_FIELD_NAME,), (HINT_PRESETS_FIELD_NAME,)):
+        if error["loc"][:1] in (
+            (GLOSSARIES_FIELD_NAME,),
+            (GLOSSARY_PRESETS_FIELD_NAME,),
+            (HINT_PRESETS_FIELD_NAME,),
+        ):
             return "名前を入れてください。"
         return "タイトルを入れてください。"
     if error_type == GLOSSARY_NAME_OVERLAP_ERROR_TYPE:
         return f"用語集「{error['ctx']['name']}」と同じ名前です。{GLOSSARY_NAME_HINT}"
+    if error_type == GLOSSARY_PRESET_NAME_OVERLAP_ERROR_TYPE:
+        return f"用語集のプリセット「{error['ctx']['name']}」と同じ名前です。{GLOSSARY_NAME_HINT}"
     if error_type == HINT_TOO_LONG_ERROR_TYPE:
         return (
             f"有効なヒントが長すぎます（{error['ctx']['length']} / {HINT_MAX_BYTES} バイト）。"
@@ -416,6 +443,8 @@ def to_field_message(
         return "語を入れるか、この欄を消してください。"
     if error_type == HINT_WORD_SEPARATOR_ERROR_TYPE:
         return "読点（、）・句点（。）・改行は入れられません。語を分けて足してください。"
+    if error_type == EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE:
+        return EDGE_WILDCARD_ONLY_MESSAGE
     if error_type == HINT_PRESET_NAME_OVERLAP_ERROR_TYPE:
         return f"プリセット「{error['ctx']['name']}」と同じ名前です。{GLOSSARY_NAME_HINT}"
     if error_type == "string_pattern_mismatch":
@@ -581,6 +610,8 @@ class SettingsWindow(QWidget):
         self._glossary_group = GROUP_NAMES.index("用語集")
         self._hint_panel: HintPresetPanel | None = None
         self._hint_group = GROUP_NAMES.index("表記のヒント")
+        self._edge_panel: EdgePhrasePanel | None = None
+        self._edge_group = GROUP_NAMES.index("ハルシネーション")
         self._baseline: dict[str, Any] = {}
         self._restart_baseline: dict[str, Any] = {}
         self._hotkey_baseline: dict[str, str] = {}
@@ -689,6 +720,7 @@ class SettingsWindow(QWidget):
         self._panel_groups = {}
         self._glossary_panel = None
         self._hint_panel = None
+        self._edge_panel = None
 
         # 2. まとまりごとの頁に、並びのとおり欄を足す
         for group, name in enumerate(GROUP_NAMES):
@@ -703,6 +735,8 @@ class SettingsWindow(QWidget):
                     self._add_glossaries(layout, settings)
                 elif key == HINT_PRESETS_FIELD_NAME:
                     self._add_hints(layout, settings)
+                elif key == EDGE_PHRASES_FIELD_NAME:
+                    self._add_edge_phrases(layout, settings)
                 else:
                     self._add_model_field(layout, settings, key, group)
             layout.addStretch(1)
@@ -859,12 +893,17 @@ class SettingsWindow(QWidget):
         raise TypeError(f"欄の部品を決められない型です（{key}: {annotation}）")
 
     def _add_glossaries(self, layout: QVBoxLayout, settings: Settings) -> None:
-        """用語集の一覧と、選んだ用語集の名前の欄・行の表を足す。補正に使う用語集は設定の active_glossary（無ければ 1 件目）。"""
+        """用語集のプリセットの一覧と使う用語集の表、用語集の一覧と、選んだ用語集の名前の欄・行の表を足す。補正に使うプリセットは設定の active_glossary_preset（無い・一覧に無ければ 1 件目）。"""
         glossaries = self._deps.list_glossaries()
-        names = [glossary.name for glossary in glossaries]
-        active = settings.active_glossary if settings.active_glossary in names else names[0]
+        presets = self._deps.list_glossary_presets()
+        preset_names = [preset.name for preset in presets]
+        active = (
+            settings.active_glossary_preset
+            if settings.active_glossary_preset in preset_names
+            else preset_names[0]
+        )
         panel = GlossaryPanel(self._deps.read_glossary, self._deps.new_glossary_path)
-        panel.set_glossaries(glossaries, active)
+        panel.set_glossaries(glossaries, presets, active)
         panel.changed.connect(self._on_field_changed)
         self._glossary_panel = panel
         layout.addWidget(panel)
@@ -875,6 +914,14 @@ class SettingsWindow(QWidget):
         panel.set_presets(settings.hint_presets)
         panel.changed.connect(self._on_field_changed)
         self._hint_panel = panel
+        layout.addWidget(panel)
+
+    def _add_edge_phrases(self, layout: QVBoxLayout, settings: Settings) -> None:
+        """文頭・文末から消す文言の一覧を足す。"""
+        panel = EdgePhrasePanel()
+        panel.set_phrases(settings.edge_phrases)
+        panel.changed.connect(self._on_field_changed)
+        self._edge_panel = panel
         layout.addWidget(panel)
 
     def _add_outputs(self, layout: QVBoxLayout, settings: Settings, group: int) -> None:
@@ -966,6 +1013,13 @@ class SettingsWindow(QWidget):
             raise RuntimeError("表記のヒントの部品がまだ無い")
         return self._hint_panel
 
+    @property
+    def _edges_panel(self) -> EdgePhrasePanel:
+        """文頭・文末から消す文言のまとまりの部品を返す（欄を組み立てた後に使う）。"""
+        if self._edge_panel is None:
+            raise RuntimeError("文頭・文末から消す文言の部品がまだ無い")
+        return self._edge_panel
+
     def _all_fields(self) -> list[Field]:
         """プリセットの一覧を除く全ての欄を、並びの順に返す。"""
         return list(self._fields)
@@ -989,6 +1043,9 @@ class SettingsWindow(QWidget):
         # 表記のヒントは、変えたプリセット 1 つを 1 件、残っているプリセットどうしの並べ替えを別に 1 件として数える
         if self._hint_panel is not None:
             values.update(self._hint_panel.change_values())
+        # 文頭・文末から消す文言は、変えた行 1 つを 1 件、残っている行どうしの並べ替えを別に 1 件として数える
+        if self._edge_panel is not None:
+            values.update(self._edge_panel.change_values())
         # 出力先のプリセットは、変えたプリセット 1 つを 1 件、残っているプリセットどうしの並べ替えを種類のタブごとに別に 1 件として数える
         for panel in self._panels.values():
             values.update(panel.change_values())
@@ -1004,11 +1061,14 @@ class SettingsWindow(QWidget):
             set_nested(data, field.key, field.get())
         # プリセットは、種類のタブの並びの順に 1 つの一覧にする
         data[PRESETS_FIELD_NAME] = [item for _kind, _position, item in self._preset_values()]
-        # 用語集は、一覧と補正に使う用語集を入れる（glossary_path は置かない）
+        # 用語集は、一覧と用語集のプリセットと補正に使うプリセットを入れる（glossary_path と active_glossary は置かない）
         data[GLOSSARIES_FIELD_NAME] = self._glossaries_panel.collect()
-        data["active_glossary"] = self._glossaries_panel.active_name()
+        data[GLOSSARY_PRESETS_FIELD_NAME] = self._glossaries_panel.collect_presets()
+        data["active_glossary_preset"] = self._glossaries_panel.active_preset_name()
         # 表記のヒントは、プリセットの一覧を入れる
         data[HINT_PRESETS_FIELD_NAME] = self._hints_panel.collect()
+        # 文頭・文末から消す文言は、一覧の並びのまま入れる
+        data[EDGE_PHRASES_FIELD_NAME] = self._edges_panel.collect()
         return data
 
     def _changed_count(self) -> int:
@@ -1052,6 +1112,12 @@ class SettingsWindow(QWidget):
         return position, field, int(matched.group(3))
 
     @staticmethod
+    def _locate_glossary_preset(key: str) -> int | None:
+        """用語集のプリセットの欄のキー（`glossary_presets[2].name`）を、何件目かにする。その欄でなければ None。"""
+        matched = GLOSSARY_PRESET_KEY_PATTERN.match(key)
+        return None if matched is None else int(matched.group(1))
+
+    @staticmethod
     def _locate_hint(key: str) -> tuple[int | str, ...] | None:
         """表記のヒントの欄のキーを、HintPresetPanel の失敗の場所（`()`・`(1, "name")`・`(1, "words", 3)`）にする。表記のヒントの欄でなければ None。"""
         matched = HINT_KEY_PATTERN.match(key)
@@ -1064,6 +1130,19 @@ class SettingsWindow(QWidget):
         if matched.group(2):
             return (position, "name")
         return (position, "words", int(matched.group(3)))
+
+    @staticmethod
+    def _locate_edge(key: str) -> tuple[int | str, ...] | None:
+        """文頭・文末から消す文言の欄のキーを、EdgePhrasePanel の失敗の場所（`(1, "text")`）にする。その欄でなければ None。"""
+        matched = EDGE_KEY_PATTERN.match(key)
+        if matched is None:
+            return None
+        return (int(matched.group(1)), "text")
+
+    @staticmethod
+    def _edge_label(location: tuple[int | str, ...]) -> str:
+        """エラーの一覧に出す文頭・文末から消す文言の欄の呼び方（「ハルシネーションの 2 行目の文言」）を返す。"""
+        return f"ハルシネーションの {int(location[0]) + 1} 行目の文言"
 
     @staticmethod
     def _hint_label(location: tuple[int | str, ...]) -> str:
@@ -1139,6 +1218,8 @@ class SettingsWindow(QWidget):
             self._glossary_panel.clear_errors()
         if self._hint_panel is not None:
             self._hint_panel.clear_errors()
+        if self._edge_panel is not None:
+            self._edge_panel.clear_errors()
         for field in self._all_fields():
             if field.error_label is not None:
                 field.error_label.clear()
@@ -1160,7 +1241,9 @@ class SettingsWindow(QWidget):
                     key in by_key
                     or self._locate_preset(key) is not None
                     or self._locate_glossary(key) is not None
+                    or self._locate_glossary_preset(key) is not None
                     or self._locate_hint(key) is not None
+                    or self._locate_edge(key) is not None
                 )
             }
         )
@@ -1198,6 +1281,16 @@ class SettingsWindow(QWidget):
                     position, glossary_field, message, row=glossary_row
                 )
                 continue
+            preset_located = self._locate_glossary_preset(key) if key is not None else None
+            # 用語集のプリセットの名前の欄: 一覧の行（欄へのリンク）と、欄の下のエラーを出す
+            if preset_located is not None and key is not None:
+                label = f"用語集のプリセット {preset_located + 1} 件目の名前"
+                link = QLabel(f'<a href="{key}">{html.escape(f"{label}: {message}")}</a>')
+                link.setTextFormat(Qt.TextFormat.RichText)
+                link.linkActivated.connect(self._focus_field)
+                self._error_summary_layout.addWidget(link)
+                self._glossaries_panel.show_preset_error(preset_located, message)
+                continue
             hint_located = self._locate_hint(key) if key is not None else None
             # 表記のヒントの欄: 一覧の行（欄へのリンク）と、欄の下のエラーを出す
             if hint_located is not None and key is not None:
@@ -1209,6 +1302,16 @@ class SettingsWindow(QWidget):
                 link.linkActivated.connect(self._focus_field)
                 self._error_summary_layout.addWidget(link)
                 self._hints_panel.show_error(hint_located, message)
+                continue
+            edge_located = self._locate_edge(key) if key is not None else None
+            # 文頭・文末から消す文言の欄: 一覧の行（欄へのリンク）と、欄の下のエラーを出す
+            if edge_located is not None and key is not None:
+                label = self._edge_label(edge_located)
+                link = QLabel(f'<a href="{key}">{html.escape(f"{label}: {message}")}</a>')
+                link.setTextFormat(Qt.TextFormat.RichText)
+                link.linkActivated.connect(self._focus_field)
+                self._error_summary_layout.addWidget(link)
+                self._edges_panel.show_error(edge_located, message)
                 continue
             if field is None:
                 self._error_summary_layout.addWidget(self._plain_label(message))
@@ -1244,11 +1347,23 @@ class SettingsWindow(QWidget):
             position, glossary_field, glossary_row = glossary_located
             self._glossaries_panel.focus_field(position, glossary_field, row=glossary_row)
             return
+        preset_located = self._locate_glossary_preset(key)
+        # 用語集のプリセットの名前の欄: 用語集のまとまりへ切り替えて、そのプリセットの使う用語集の表を出して名前の欄へフォーカスを移す
+        if preset_located is not None:
+            self._group_menu.setCurrentRow(self._glossary_group)
+            self._glossaries_panel.focus_preset_name(preset_located)
+            return
         hint_located = self._locate_hint(key)
         # 表記のヒントの欄: 表記のヒントのまとまりへ切り替えて、欄へフォーカスを移す
         if hint_located is not None:
             self._group_menu.setCurrentRow(self._hint_group)
             self._hints_panel.focus_field(hint_located)
+            return
+        edge_located = self._locate_edge(key)
+        # 文頭・文末から消す文言の欄: ハルシネーションのまとまりへ切り替えて、欄へフォーカスを移す
+        if edge_located is not None:
+            self._group_menu.setCurrentRow(self._edge_group)
+            self._edges_panel.focus_field(edge_located)
             return
         located = self._locate_preset(key)
         # プリセットの欄: その種類のタブへ切り替えて、一覧の欄へフォーカスを移す
@@ -1309,9 +1424,11 @@ class SettingsWindow(QWidget):
             self._show_errors([(None, f"設定ファイルを書けませんでした（{error}）")])
             return False
 
-        # 3. 保存した行・値を「変えていない」の基準に置き直す
+        # 3. 前の保存で出したエラー（一覧・欄の下）を消し、保存した行・値を「変えていない」の基準に置き直す
+        self._clear_errors()
         self._glossaries_panel.mark_saved()
         self._hints_panel.mark_saved()
+        self._edges_panel.mark_saved()
         for panel in self._panels.values():
             panel.mark_saved()
         self._baseline = self._flat_values()

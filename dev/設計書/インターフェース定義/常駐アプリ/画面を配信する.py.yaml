@@ -1,0 +1,171 @@
+title: "画面を配信する"
+entry:
+  kind: endpoint
+  value: GET /web/
+flows:
+  - name: 正常系
+    summary: ゲートウェイを通した画面の要求に、画面の HTML を返す
+    setup:
+      - name: Mock
+        description: なし（常駐アプリの app を TestClient で立てる。音声のキューは空）
+      - name: 要求のヘッダー
+        description: ゲートウェイが渡す形にする
+        notes: '`Host: localhost:{ポート}`・Origin 無し'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as ブラウザ
+        participant IF as GET /web/
+
+        C->>IF: 画面を開く（Host・Origin 無し）
+        IF->>IF: Host・Origin を確かめる
+        IF-->>C: 200・画面の HTML
+      ```
+    expected:
+      - 200 と `text/html` の画面が返る
+      - HTML が読む `/web/assets/` の下の JS・CSS も 200 で返る
+      - トークン無しで通る
+    test: test_normal
+  - name: 正常系（許す Origin）
+    summary: 許す Origin が付いた画面の素材の要求を通す
+    setup:
+      - name: Mock
+        description: なし（常駐アプリの app を TestClient で立てる）
+      - name: 許す Origin
+        description: api.allowed_web_origins に要求の Origin を入れる
+        notes: '`https://voice.example.com`'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as ブラウザ
+        participant IF as GET /web/assets/{ファイル}
+
+        C->>IF: 素材を読む（許す Origin）
+        IF->>IF: Host・Origin を確かめる
+        IF-->>C: 200・素材
+      ```
+    expected:
+      - 200 と拡張子に合う Content-Type の素材が返る
+    test: test_normal_when_allowed_origin
+  - name: 異常系（許されていない Origin・403）
+    summary: 許す Origin に無い Origin が付いた要求を断る
+    setup:
+      - name: Mock
+        description: なし（常駐アプリの app を TestClient で立てる）
+      - name: 要求のヘッダー
+        description: 許す Origin に無い Origin を付ける
+        notes: '`Origin: http://evil.example`'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as ほかのオリジンのページ
+        participant IF as GET /web/
+        participant LOG as ログ
+
+        C->>IF: 画面を読む（許していない Origin）
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書く
+        IF-->>C: 403（problem+json）
+      ```
+    expected:
+      - 403 の problem+json が返る
+      - ログに断った理由と要求元が書かれている
+    test: test_error_when_origin_not_allowed
+  - name: 異常系（待ち受けでない Host・403）
+    summary: Host が待ち受けのホストでない要求を断る（DNS リバインディング）
+    setup:
+      - name: Mock
+        description: なし（常駐アプリの app を TestClient で立てる）
+      - name: 要求のヘッダー
+        description: Host をほかのホスト名にする
+        notes: '`Host: evil.example`'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as ブラウザ
+        participant IF as GET /web/
+        participant LOG as ログ
+
+        C->>IF: 画面を開く（ほかの Host）
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書く
+        IF-->>C: 403（problem+json）
+      ```
+    expected:
+      - 403 の problem+json が返る
+    test: test_error_when_host_not_loopback
+  - name: 異常系（同梱していない素材・404）
+    summary: 画面の置き場所に無いパスと、置き場所の外を指すパスを 404 にする
+    setup:
+      - name: Mock
+        description: なし（常駐アプリの app を TestClient で立てる）
+      - name: パス
+        description: 無いファイル名と、`..` で置き場所の外を指すパス
+        notes: '`/web/assets/none.js`・`/web/assets/..%2F..%2Fsettings.toml`'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as ブラウザ
+        participant IF as GET /web/assets/{ファイル}
+
+        C->>IF: 無い素材を読む
+        IF-->>C: 404（problem+json）
+      ```
+    expected:
+      - どちらも 404 が返り、置き場所の外のファイルの中身を返していない
+    test: test_error_when_asset_not_found
+lead: 外の端末のブラウザで開く文字起こしの画面（HTML）と、画面が読む JS・CSS を返す。
+identifier: serve_web_page
+permissions: なし（外からの認証は Cloudflare Access が持つ。常駐アプリは Host と Origin だけを確かめる）
+idempotent: true
+side_effects: なし
+exclusivity: 制限なし（録音・文字起こしの処理中も返す）
+request:
+  - name: Host
+    type: str
+    required: true
+    location: header
+    description: 待ち受けのホスト。ゲートウェイは `localhost:{ポート}` に書き換えて渡す
+    constraints: '`127.0.0.1:{ポート}` か `localhost:{ポート}`'
+    status: planned
+  - name: Origin
+    type: str
+    required: false
+    default: なし（通す）
+    location: header
+    description: ブラウザが付ける要求元。画面を開くときと同じオリジンの GET には付かない
+    constraints: 付いていれば設定の許す Origin（api.allowed_web_origins）にあること
+    status: planned
+  - name: path
+    type: str
+    required: false
+    default: なし（`/web/` は HTML を返す）
+    location: path
+    description: '`/web/` の下の画面の素材のパス（`/web/assets/{ファイル}`）'
+    constraints: 常駐アプリに同梱した画面のファイルだけ。`..` で置き場所の外を指せない
+    status: planned
+response:
+  - name: '-'
+    type: bytes
+    description: '`/web/` は画面の HTML（`text/html; charset=utf-8`）。`/web/assets/` の下は JS・CSS・アイコンを拡張子に合う Content-Type で返す'
+response_notes: '画面は常駐アプリのバージョンごとに変わるため、HTML は `Cache-Control: no-cache` で返す。`/web`（末尾の `/` が無い）は `/web/` への 307 で返す。'
+status_codes:
+  - code: '200'
+    condition: 画面の HTML か素材を返した
+  - code: '307'
+    condition: '`/web` を開いた（`/web/` へ移す）'
+  - code: '403'
+    condition: Host が 127.0.0.1 でも localhost でもないか、Origin が付いていて許す Origin に無い
+  - code: '404'
+    condition: 同梱していない素材のパス
+error_format: RFC 9457 の `application/problem+json`（`type`・`title`・`status`・`detail`）で返す。今の API の `problem_response` に揃える。
+constraints:
+  - item: 待ち受け
+    constraint: 127.0.0.1 だけ。外からはゲートウェイ（shuhdev-gateway、Cloudflare Access）を通して届く
+  - item: 認可
+    constraint: トークンを求めない。Host が待ち受けのホストで、Origin が無いか許す Origin にあること
+    notes: '`/web/` の外（`/sessions`）は今の守り（Origin が付いていれば断る・Host・トークン）のまま'
+  - item: 応答時間
+    constraint: ブラウザの要求の応答時間以内
+    decided_by: dev/設計書/非機能要件/非機能要件#requirements[ブラウザの要求の応答時間]
+  - item: レート制限
+    constraint: 制限なし
+test_file: tests/integration/test_serve_web_page.py

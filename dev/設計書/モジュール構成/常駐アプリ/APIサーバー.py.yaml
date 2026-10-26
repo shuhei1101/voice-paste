@@ -4,7 +4,10 @@ directory: |-
   ```
   src/voice_paste/server/
   ├── app.py              # build_fastapi（route の集約・middleware・例外ハンドラ）
-  ├── middleware.py       # RequestGuardMiddleware（Host・Origin・トークン）
+  ├── middleware.py       # RequestGuardMiddleware（Host・Origin・トークン。/web/ の下は Origin の許可リスト）
+  ├── body_limit.py       # BodyLimitMiddleware（/web/transcriptions の本文の上限で 413）
+  ├── web_page.py         # web_page_router（GET /web/・/web の移し）・mount_web_assets（/web/assets/）
+  ├── web/                # 外の端末の画面（index.html・assets/app.ts と tsc が出す assets/app.js・assets/style.css）
   ├── error_handlers.py   # register_exception_handlers（RFC 9457）
   ├── token.py            # create_token・write_token_file（起動ごとのトークンを作り、待ち受けを始めてからファイルへ書く）
   └── runner.py           # ApiServerRunner（uvicorn をスレッドで動かし started を確かめる）
@@ -17,7 +20,7 @@ classes:
     role: middleware
     kind: クラス
     inherits: starlette.middleware.base.BaseHTTPMiddleware
-    summary: 全ての要求で Host・Origin・トークンを確かめ、当たらなければ 403・401 で断る
+    summary: 全ての要求で Host を確かめる。`/web/` の外は Origin・トークンを、`/web/` の下は Origin の許可リストを確かめ、当たらなければ 403・401 で断る
     properties:
       - name: _token
         type: SecretStr
@@ -27,6 +30,10 @@ classes:
         type: int
         access: 内部 (_)
         description: 待ち受けのポート
+      - name: _allowed_web_origins
+        type: frozenset[str]
+        access: 内部 (_)
+        description: '`/web/` の下に許す Origin（設定 api.allowed_web_origins。末尾の `/` を落として持つ）'
     methods:
       - name: dispatch
         title: 要求の確かめ
@@ -49,13 +56,20 @@ classes:
           type: Response
           description: 断ったときは problem+json の応答
         process: |-
-          1. Origin が付いていれば 403 を返す
+          1. Host が `127.0.0.1:{ポート}` か `localhost:{ポート}` でなければ 403 を返す
              - `[WARNING]` 断った要求（理由・Host・Origin。トークンは書かない）
-          2. Host が `127.0.0.1:{ポート}` か `localhost:{ポート}` でなければ 403 を返す
-             - `[WARNING]` 同上
-          3. Authorization が `Bearer {トークン}` と定数時間で一致しなければ 401 を返す
-             - `[WARNING]` 同上
-          4. 次の処理へ渡す
+          2. パスが `/web` か `/web/` で始まるかで分ける
+             - `/web/` の下の場合
+               - GET・HEAD で Origin が無いか、Origin が _allowed_web_origins にあれば次へ渡す（トークンは求めない）
+               - それ以外のメソッドで Origin が _allowed_web_origins にあれば次へ渡す
+               - どちらでもなければ 403 を返す
+                 - `[WARNING]` 同上
+             - それ以外の場合
+               - Origin が付いていれば 403 を返す
+                 - `[WARNING]` 同上
+               - Authorization が `Bearer {トークン}` と定数時間で一致しなければ 401 を返す
+                 - `[WARNING]` 同上
+               - 次の処理へ渡す
         unit_tests:
           - name: test_dispatch
             case: 正常
@@ -81,6 +95,32 @@ classes:
             condition: Authorization 無しと、違うトークン
             mock: call_next
             expected: どちらも 401 が返る
+          - name: test_dispatch_when_web_get_without_origin
+            case: 正常
+            summary: /web/ の下の Origin の無い GET はトークン無しで通す
+            condition: GET /web/、Host localhost:{ポート}、Origin と Authorization 無し
+            mock: call_next
+            expected: call_next が呼ばれる
+          - name: test_dispatch_when_web_post_with_allowed_origin
+            case: 正常
+            summary: /web/ の下の許す Origin の POST を通す
+            condition: POST /web/transcriptions、Origin https://voice.example.com（許可リストにある）、Authorization 無し
+            mock: call_next
+            expected: call_next が呼ばれる
+          - name: test_dispatch_when_web_post_without_origin
+            case: 異常
+            summary: /web/ の下の Origin の無い POST・許さない Origin は 403
+            condition: POST /web/transcriptions で Origin 無しと、GET /web/ で Origin http://evil.example
+            mock: call_next
+            expected: どちらも 403 が返り、call_next が呼ばれない
+            exception: Origin が許可リストに無い
+          - name: test_dispatch_when_sessions_with_allowed_origin
+            case: 異常
+            summary: /web/ の外は許す Origin でも 403
+            condition: POST /sessions、Origin https://voice.example.com（許可リストにある）、正しいトークン
+            mock: call_next
+            expected: 403 が返る
+            exception: Origin が付いている
     refs:
       - dev/設計書/外部ライブラリ/fastapi#
     status: implemented
@@ -164,6 +204,90 @@ classes:
         type: threading.Thread | None
         access: 内部 (_)
         description: serve() を動かすスレッド。start の前は None
+  - name: BodyLimitMiddleware
+    title: 本文の上限
+    container: server/body_limit.py
+    usecase: ブラウザから音声を送る
+    role: middleware
+    kind: クラス
+    summary: '`POST /web/transcriptions` の本文が上限以上なら 413 で断る純粋な ASGI middleware'
+    description: BaseHTTPMiddleware は本文を流しながら数えられないため、ASGI の `receive` を包む純粋な middleware にする。外部ライブラリではなく API サーバーに置く。
+    properties:
+      - name: _app
+        type: ASGIApp
+        access: 内部 (_)
+        description: 次の ASGI アプリ
+      - name: _limit
+        type: int
+        access: 内部 (_)
+        default: WEB_BODY_LIMIT_BYTES
+        description: 本文の上限（このバイト数以上を断る）
+    methods:
+      - name: __call__
+        title: 要求の受け取り
+        kind: メソッド
+        scope: public
+        is_async: true
+        summary: 対象の要求の本文の大きさを確かめながら次へ渡す
+        args:
+          - name: scope
+            type: Scope
+            required: true
+            passing: positional
+            description: ASGI の scope
+          - name: receive
+            type: Receive
+            required: true
+            passing: positional
+            description: ASGI の receive
+          - name: send
+            type: Send
+            required: true
+            passing: positional
+            description: ASGI の send
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. http の `POST /web/transcriptions` でなければそのまま次へ渡す
+          2. Content-Length があり _limit 以上なら、本文を読まずに 413 の problem+json を返す
+             - `[WARNING]` 本文が大きすぎるため断った（大きさ）
+          3. receive を包む関数を次へ渡す。包む関数は `http.request` の body のバイト数を足し、_limit 以上になったら RequestBodyTooLargeError を送出する（例外ハンドラが 413 にする。読みかけの SpooledTemporaryFile は Starlette が閉じる）
+             - `[WARNING]` 同上
+        exceptions:
+          - name: RequestBodyTooLargeError
+            condition: Content-Length の無い本文が読んでいる途中で上限に達した
+        unit_tests:
+          - name: test_call
+            case: 正常
+            summary: 上限未満は通す
+            condition: _limit=1000、999 バイトの本文（Content-Length あり・chunked の 2 通り）
+            mock: 次の ASGI アプリ（本文を最後まで読む）
+            expected: 次のアプリが 999 バイトを受け取る
+          - name: test_call_when_content_length_over
+            case: 異常
+            summary: Content-Length が上限以上なら読まずに 413
+            condition: _limit=1000、Content-Length 1000
+            mock: 次の ASGI アプリ
+            expected: 413 の problem+json が返り、次のアプリが呼ばれない
+            exception: Content-Length が上限以上
+          - name: test_call_when_chunked_over
+            case: 異常
+            summary: chunked で上限に達したら送出する
+            condition: _limit=1000、Content-Length 無しで 500 バイトを 2 回
+            mock: 次の ASGI アプリ（本文を最後まで読む）
+            expected: 2 回目の receive で RequestBodyTooLargeError が送出される
+            exception: 読んでいる途中で上限に達した
+          - name: test_call_when_other_path
+            case: 正常
+            summary: 対象外のパスは数えない
+            condition: _limit=1000、POST /sessions に Content-Length 2000
+            mock: 次の ASGI アプリ
+            expected: 次のアプリが呼ばれる
+    refs:
+      - dev/設計書/インターフェース定義/常駐アプリ/音声を受け付ける.py#
+      - dev/設計書/非機能要件/非機能要件#requirements[ブラウザの本文の上限]
+    status: planned
 functions:
   - name: build_fastapi
     title: app の組み立て
@@ -171,7 +295,7 @@ functions:
     container: server/app.py
     usecase: 常駐アプリを起動する
     scope: public
-    summary: セッションの route・要求の守り・例外ハンドラを組み込んだ app を返す
+    summary: セッションとブラウザの文字起こしの route・画面の配信・要求の守り・本文の上限・例外ハンドラを組み込んだ app を返す
     args:
       - name: session_api
         type: SessionApiDeps
@@ -188,6 +312,16 @@ functions:
         required: true
         passing: positional
         description: 待ち受けのポート
+      - name: web_api
+        type: WebApiDeps
+        required: true
+        passing: keyword
+        description: ブラウザの API の依存（app.state.web_api に置く）
+      - name: allowed_web_origins
+        type: Sequence[str]
+        required: true
+        passing: keyword
+        description: '`/web/` の下に許す Origin（設定 api.allowed_web_origins）'
     returns:
       type: FastAPI
       description: 組み立てた app
@@ -195,8 +329,10 @@ functions:
     process: |-
       1. 自動で作られる文書のページ（docs・redoc・openapi.json）を持たない FastAPI を作る
       2. app.state.session_api にセッションの API の依存を置き、セッションの route（開始・停止・完了）を include_router で集める
-      3. 例外ハンドラを登録する（register_exception_handlers）
-      4. 要求の守り（RequestGuardMiddleware）にトークンとポートを渡して組み込む
+      3. app.state.web_api にブラウザの API の依存を置き、ブラウザの文字起こしの route（受け付け・結果の取得）と画面の配信（web_page_router）を集め、画面の素材を組み込む（mount_web_assets）
+      4. 例外ハンドラを登録する（register_exception_handlers）
+      5. 本文の上限（BodyLimitMiddleware）を組み込む
+      6. 要求の守り（RequestGuardMiddleware）にトークン・ポート・許す Origin を渡して組み込む（最後に足すため、本文の上限より先に動き、断る要求の本文を読まない）
     unit_tests:
       - name: test_build_fastapi
         case: 正常
@@ -227,8 +363,9 @@ functions:
       type: None
       description: なし
     process: |-
-      1. CallbackNotAllowedError・RequestValidationError → 400、SessionNotFoundError → 404、SessionBusyError・SessionConflictError → 409、MicrophoneUnavailableError → 503 を登録する
-      2. それ以外の AppError と例外は 500 にする
+      1. CallbackNotAllowedError・GlossaryPresetNotFoundError・RequestValidationError → 400、SessionNotFoundError・WebJobNotFoundError → 404、SessionBusyError・SessionConflictError → 409、RequestBodyTooLargeError → 413、AudioUnreadableError → 415、MicrophoneUnavailableError・WebQueueFullError → 503 を登録する
+      2. Starlette の HTTPException（StaticFiles の 404 など）を、そのステータスの problem+json にする
+      3. それ以外の AppError と例外は 500 にする
          - `[ERROR]` 想定していない例外（logger.exception）
     unit_tests:
       - name: test_register_exception_handlers_when_validation_error
@@ -249,6 +386,12 @@ functions:
         condition: stop が SessionConflictError を送出する
         mock: SessionManager
         expected: 409 が返り、detail に断った理由が入る
+      - name: test_register_exception_handlers_when_web_errors
+        case: 正常
+        summary: ブラウザの API の例外を対応するステータスにする
+        condition: route が WebJobNotFoundError・RequestBodyTooLargeError・AudioUnreadableError・WebQueueFullError を送出する
+        mock: WebJobQueue・probe_audio
+        expected: 順に 404・413・415・503 と application/problem+json が返る
     status: implemented
   - name: write_token_file
     title: トークンのファイルの書き出し
@@ -311,6 +454,50 @@ functions:
         mock: なし
         expected: 2 つの値が違い、どちらも 43 文字以上
     status: implemented
+  - name: serve_web_page
+    title: 画面の配信
+    kind: 関数
+    container: server/web_page.py
+    usecase: ブラウザから音声を送る
+    scope: public
+    summary: '`GET /web/`。`server/web/index.html` を `Cache-Control: no-cache` で返す（web_page_router。`GET /web` は `/web/` への 307）'
+    returns:
+      type: FileResponse
+      description: 画面の HTML
+    process: '1. パッケージに同梱した `server/web/index.html` を `text/html; charset=utf-8`・`Cache-Control: no-cache` で返す'
+    unit_tests:
+      - name: test_serve_web_page
+        case: 正常
+        summary: 画面を返す
+        condition: TestClient で GET /web/ と GET /web
+        mock: なし
+        expected: /web/ が 200・text/html・no-cache、/web が /web/ への 307
+    status: planned
+  - name: mount_web_assets
+    title: 画面の素材の組み込み
+    kind: 関数
+    container: server/web_page.py
+    usecase: ブラウザから音声を送る
+    scope: public
+    summary: '`/web/assets/` に `server/web/assets/` を StaticFiles で組み込む'
+    args:
+      - name: app
+        type: FastAPI
+        required: true
+        passing: positional
+        description: 組み込み先
+    returns:
+      type: None
+      description: なし
+    process: 1. `/web/assets` に `StaticFiles(directory=server/web/assets)` を mount する（置き場所の外を指す `..` と無いファイルは StaticFiles が 404 にする）
+    unit_tests:
+      - name: test_mount_web_assets
+        case: 正常
+        summary: 素材を返し、置き場所の外は 404
+        condition: GET /web/assets/app.js と GET /web/assets/..%2F..%2Fapp.py
+        mock: なし
+        expected: app.js は 200・text/javascript、置き場所の外は 404 の problem+json
+    status: planned
 constants:
   - name: TOKEN_BYTES
     title: トークンのバイト数
@@ -319,9 +506,24 @@ constants:
     summary: secrets.token_urlsafe に渡す乱数のバイト数。256 bit で推測できない長さにする
     value: '32'
     status: implemented
+  - name: WEB_BODY_LIMIT_BYTES
+    title: ブラウザの本文の上限
+    container: server/body_limit.py
+    usecase: ブラウザから音声を送る
+    summary: '`POST /web/transcriptions` の本文の上限（このバイト数以上を 413）。非機能要件のブラウザの本文の上限。画面の app.js も同じ値で送信前に確かめる'
+    value: '100_000_000'
+    status: planned
 test_files:
   - tests/unit/voice_paste/server/test_middleware.py
   - tests/unit/voice_paste/server/test_runner.py
   - tests/unit/voice_paste/server/test_app.py
   - tests/unit/voice_paste/server/test_error_handlers.py
   - tests/unit/voice_paste/server/test_token.py
+  - tests/unit/voice_paste/server/test_body_limit.py
+  - tests/unit/voice_paste/server/test_web_page.py
+notes:
+  外の端末の画面: |-
+    `server/web/` に画面設計『外の端末の文字起こしの画面』『取り消せない操作の確認』の HTML（`index.html`）・スクリプト（`assets/app.ts`）・CSS（`assets/style.css`。デザイン方針の値を CSS の変数で持つ）を置く。画面の処理（録音・送信・IndexedDB・localStorage・取りに行く間隔）は画面設計の要素の説明に従い、単体テスト・画面の結合テストは持たず、画面が呼ぶ API はインターフェース定義の結合テストで、画面の操作は Edge で画面を開く E2E で確かめる。
+    スクリプトは外部規約『ビルドレス原則』『tsc運用』に従い `.ts` で書き、`tsc` で同じフォルダの `assets/app.js`（ネイティブ ES module。バンドルしない）へ出す。API の応答（`WebTranscriptionStatus` の `state`・`progress`・`text`・`error`）と、ER図『ブラウザの端末のデータ』の IndexedDB・localStorage の項目は型で持つ。
+    配信はビルドせずに `assets/app.js` を直接読むため、生成した `src/voice_paste/server/web/assets/app.js` は `app.ts` と同じ階層へコミットする（コミットする生成 `.js` はこれだけ）。`tsc` の設定（`tsconfig.json`・`tsconfig.build.json`）・`eslint.config.mjs`・`package.json`・`package-lock.json` はリポジトリの直下に置き、開発のときだけ使う。
+    パッケージに同梱するため、pyproject.toml の `[tool.setuptools.package-data]` に `voice_paste = ["server/web/index.html", "server/web/assets/*.js", "server/web/assets/*.css"]` を書く（`.ts` は同梱しない）。

@@ -42,6 +42,32 @@ categories:
       state: 済
       date: '2026-10-20'
       detail: 作業ツリーで `tomli-w` を使い、`uv.exe add`・`uv.exe add --group dev`・`uv.exe lock --upgrade-package`・`uv.exe remove`（dev グループからも）が通ることを確かめた。流した後に `pyproject.toml` と `uv.lock` を元に戻し、commit していない
+  - name: ビルド・生成
+    prerequisites:
+      - Node.js（LTS）と npm を入れておく
+      - リポジトリの直下で `npm ci` を流し、`package-lock.json` のバージョンで `typescript`・`eslint`・`typescript-eslint` を `node_modules/` に入れる
+    commands: |-
+      1. 外の端末の画面のスクリプト（`src/voice_paste/server/web/assets/app.ts`）から、同じフォルダの `app.js` を生成する（生成した `app.js` はコミットする）
+
+      ```bash
+      npm run build
+      ```
+
+      2. 開発中に保存ごとに生成し直す
+
+      ```bash
+      npm run dev
+      ```
+
+      3. 開発の道具を追加・更新する（`package.json` と `package-lock.json` を書き換える）
+
+      ```bash
+      npm install --save-dev {パッケージ}
+      ```
+    verification:
+      state: 済
+      date: '2026-10-24'
+      detail: 'PR #171 の作業ツリー（WSL・Node.js v24.14.0・npm 11.9.0）で、`node_modules/` を消してから `npm ci` で `package-lock.json` どおりに入れ、`npm run build` が `assets/app.ts` から `assets/app.js` を生成し（再実行しても差分が出ない）、`npm run dev` が `Found 0 errors. Watching for file changes.` で保存を待つことを確かめた。`npm install --save-dev typescript eslint typescript-eslint @eslint/js` で `package.json` と `package-lock.json` が書き換わることも確かめた'
 lead: 依存を足す・上げる・外すときと、取り込んだ変更に手元の環境を追従させるときに打つコマンド。
 prerequisites:
   - リポジトリの直下で、Windows の uv（WSL からは `uv.exe`）で流す

@@ -110,7 +110,7 @@ tables:
   - name: '%LOCALAPPDATA%\voice-paste\log\worker_crash.log ほか'
     title: クラッシュと起動の記録
     datastore: ファイル（テキスト）
-    summary: 文字起こしワーカーのネイティブのクラッシュのスタック（`worker_crash.log`）と、起動のバッチファイルの記録（`launcher.log`）
+    summary: 文字起こしワーカーのネイティブのクラッシュのスタック（`worker_crash.log`）と、起動のバッチファイルの記録（`launcher.log`。import の確かめの結果と `uv sync --frozen` の出力を含む）
     growth: worker_crash.log は追記、launcher.log は起動ごとに上書きする
     retention: 消さない（日付の名前を持たないため、ログの保持期間の削除の対象にならない）
     columns:
@@ -170,3 +170,39 @@ tables:
     status: implemented
     introduced:
       pr: 159
+  - name: '%LOCALAPPDATA%\voice-paste\history\{YYYYMMDD}\{YYYYMMDDHHMMSS}_web_{job_id}.{webm|ogg|mp4|mp3|wav}'
+    title: ブラウザの音声の履歴
+    datastore: ファイル（録れた形式の音声）
+    summary: 外の端末のブラウザから受けた音声。文字起こしより先に一時の音声から移し、文字起こしに失敗しても残る
+    growth: ブラウザの音声を 1 件起こすたびに 1 つ増える（`history.enabled = true` のとき）
+    retention: '`history.retention_days` 日（日付のフォルダごと消す）'
+    deletion: 物理削除（録音の履歴と同じ）
+    columns:
+      - name: container
+        title: 容れ物
+        type: string
+        description: 受け付けで PyAV が読んだ容れ物の形式。拡張子になる
+      - name: audio
+        title: 音声
+        type: array
+        description: 録れた形式のままの音声（WAV へ変えない）
+    description: 起こした文字は同じ名前の `.txt`（起こした文字の履歴）に書く。日時は履歴へ移した時刻。
+    status: planned
+    introduced:
+      pr: 171
+  - name: '%LOCALAPPDATA%\voice-paste\tmp\web\{job_id}.{webm|ogg|mp4|mp3|wav}'
+    title: ブラウザの音声の一時のファイル
+    datastore: ファイル（録れた形式の音声）
+    summary: 受け付けた音声を起こすまで置く。履歴を残す設定なら起こす前に履歴へ移し、残さない設定なら起こし終えた後に消す
+    scale: 最大でブラウザの音声の待ちの上限（10 件）。合計で最大 1 GB
+    growth: 音声を受け付けるたびに 1 つ増え、起こし始めるか起こし終えると消える
+    retention: 起こし終えるまで
+    deletion: 物理削除（起こし終えたとき、常駐サービスの開始時と終了時）
+    columns:
+      - name: audio
+        title: 音声
+        type: array
+        description: 受けた本文の audio の中身そのまま
+    status: planned
+    introduced:
+      pr: 171

@@ -169,6 +169,54 @@ flows:
       - 待機中に戻り、続く開始が 409 にならない
       - ログにマイクを開けなかった理由が書かれている
     test: test_error_when_microphone_unavailable
+  - name: 正常系（用語集のプリセットを指定）
+    summary: glossary_preset で指定した用語集のプリセットを持たせて画面を出さない録音を始め、セッションの ID を返す
+    setup:
+      - name: Mock
+        description: マイク・システム音量・トレイを差し替える（マイクは開ける）
+      - name: 待機中
+        description: ほかの録音・文字起こしを処理していない
+      - name: 用語集のプリセット
+        description: 設定に用語集のプリセット「既定」と「会議」があり、設定で選んでいるのは「既定」
+        notes: '`{"callback_url": "http://127.0.0.1:9000/voice-paste/result", "glossary_preset": "会議"}`'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as クライアント
+        participant IF as POST /sessions
+        participant MIC as マイク
+
+        C->>IF: トークン・callback_url・glossary_preset
+        IF->>IF: Host・Origin・トークン・返送先・プリセットが設定の一覧にあるかを確かめる
+        IF->>MIC: 録音を始める（セッションにプリセットを持たせる）
+        IF-->>C: 202・session_id
+      ```
+    expected:
+      - 202 と session_id が返る
+      - セッションが録音中で、補正に使う用語集のプリセットとして「会議」を持っている
+      - 設定で選んでいる用語集のプリセットは「既定」のまま変わっていない
+    test: test_normal_when_glossary_preset
+  - name: 異常系（一覧に無い用語集のプリセット・400）
+    summary: 設定の一覧に無い用語集のプリセットを指定したら録音を始めない
+    setup:
+      - name: Mock
+        description: マイク・システム音量・トレイを差し替える
+      - name: 無いプリセット
+        description: 設定の用語集のプリセットの一覧に無い名前を指定する
+        notes: '`{"callback_url": "http://127.0.0.1:9000/voice-paste/result", "glossary_preset": "無いプリセット"}`'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as クライアント
+        participant IF as POST /sessions
+
+        C->>IF: トークン・callback_url・一覧に無い glossary_preset
+        IF-->>C: 400（detail に指定したプリセットの名前）
+      ```
+    expected:
+      - 400 が返り、detail に指定したプリセットの名前が含まれている
+      - 録音が始まっていない
+    test: test_error_when_glossary_preset_not_found
 lead: 返送先のエンドポイントを受け取り、画面を出さない録音を始めてセッションの ID を返す。continuous を指定すると、完了が来るまで録音を止めず、無音で区切った区間ごとに返す連続録音を始める。
 identifier: start_session
 permissions: 今回の起動のトークン（トークンのファイルを読める、同じ端末・同じユーザーのプロセス）
@@ -214,11 +262,21 @@ request:
     description: 連続録音にするか。true なら、完了が来るまで録音を止めず、無音で区切った区間ごとに起こした文字を返送先へ送る。false なら、1 回の録音を確定してから 1 回だけ返す
     example: 'true'
     status: planned
+  - name: glossary_preset
+    type: str
+    required: false
+    default: なし（設定で選んでいる用語集のプリセットを使う）
+    location: body
+    description: このセッションの補正に使う用語集のプリセットの名前。開始の時点で決まり、後から設定で選ぶプリセットを変えてもこのセッションは指定したプリセットで補正する。連続録音では区間ごとの文字に当てる
+    constraints: 設定の用語集のプリセットの一覧にある名前（大文字と小文字を区別する）
+    example: 会議
+    status: planned
 request_example: |-
   ```json
   {
     "callback_url": "http://127.0.0.1:9000/voice-paste/result",
-    "continuous": false
+    "continuous": false,
+    "glossary_preset": "会議"
   }
   ```
 response:
@@ -237,7 +295,7 @@ status_codes:
   - code: '202'
     condition: 録音を始めた
   - code: '400'
-    condition: 返送先が無い・URI でない・loopback でも許可したホストでもない
+    condition: 返送先が無い・URI でない・loopback でも許可したホストでもない。または、glossary_preset が設定の用語集のプリセットの一覧に無い
   - code: '401'
     condition: トークンが無いか、今回の起動のものと合わない
   - code: '403'

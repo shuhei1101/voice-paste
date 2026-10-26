@@ -867,6 +867,63 @@ def test_complete_when_reports_progress(audio_path: Path, monkeypatch: pytest.Mo
     assert api_harness.transcribe.call_args.args[1] is None
 
 
+# === start（用語集のプリセット） ===
+
+
+def _drive_single(
+    h: Harness, monkeypatch: pytest.MonkeyPatch, glossary_preset: str | None
+) -> Session:
+    """1 回の録音を API で始めて確定し、文字起こしから届けるまでを動かして、始めたセッションを返す。"""
+    defer_workers(monkeypatch)
+    session = h.manager.start(
+        "api", callback_url=CALLBACK_URL, glossary_preset=glossary_preset
+    )
+    h.manager.complete(session.id)
+    h.manager._run_after_confirm(h.current(), h.audio_path)
+    return session
+
+
+def _drive_continuous(
+    h: Harness, monkeypatch: pytest.MonkeyPatch, glossary_preset: str | None
+) -> Session:
+    """連続録音を API で始めて区間を 1 つ渡し、確定して待機中に戻るまで待って、始めたセッションを返す。"""
+    session = h.manager.start(
+        "api", callback_url=CALLBACK_URL, continuous=True, glossary_preset=glossary_preset
+    )
+    h.on_segment()(make_segment())
+    h.manager.complete(session.id)
+    h.wait_until_idle()
+    return session
+
+
+@pytest.mark.parametrize(
+    ("drive", "glossary_preset", "expected_preset"),
+    [
+        pytest.param(_drive_single, "会議", "会議", id="single"),
+        pytest.param(_drive_continuous, "会議", "会議", id="continuous"),
+        pytest.param(_drive_single, None, None, id="omitted"),
+    ],
+)
+def test_start_when_glossary_preset(
+    continuous_harness: Harness,
+    monkeypatch: pytest.MonkeyPatch,
+    drive: Callable[[Harness, pytest.MonkeyPatch, str | None], Session],
+    glossary_preset: str | None,
+    expected_preset: str | None,
+) -> None:
+    """指定した用語集のプリセットをセッションに持たせ、補正へ渡す（正常系）。"""
+    # 準備
+    h = continuous_harness
+    h.transcribe.return_value = "てすと"
+
+    # 実行
+    session = drive(h, monkeypatch, glossary_preset)
+
+    # 検証
+    assert session.glossary_preset == expected_preset
+    h.correct.assert_called_once_with("てすと", expected_preset)
+
+
 # === start（連続録音） ===
 
 

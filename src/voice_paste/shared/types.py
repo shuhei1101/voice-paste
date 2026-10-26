@@ -16,6 +16,23 @@ type EnterModifier = Literal["ctrl", "alt", "shift"]
 """貼り付けて送信が Enter と一緒に押す修飾キー。出力先の設定と integrations/keyboard が使う。"""
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class AudioProbe:
+    """受けた音声を PyAV で開いて読んだ容れ物の形式・秒数・大きさ。"""
+
+    container: str
+    """容れ物の形式の名前（`matroska,webm`・`ogg`・`mov,mp4,m4a,3gp,3g2,mj2`・`mp3`・`wav` など）。"""
+
+    suffix: str
+    """一時のファイルと履歴に付ける拡張子（`.webm` など。container から決める）。"""
+
+    duration_sec: float | None
+    """音声の秒数。容れ物が持たず、パケットからも求まらないときは None。"""
+
+    size_bytes: int
+    """音声の大きさ。"""
+
+
 class SendEnterFn(Protocol):
     """渡した修飾キーを押したまま Enter を送る関数。修飾キーを省くと Enter だけを送る。"""
 

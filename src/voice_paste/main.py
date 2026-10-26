@@ -19,18 +19,22 @@ from PySide6.QtWidgets import QApplication
 
 from voice_paste.features.correction import (
     apply_glossary,
+    list_preset_glossaries,
     load_glossary,
     next_glossary_path,
-    pick_active_glossary,
+    pick_glossary_preset,
     read_glossary_rows,
     resolve_glossaries,
+    resolve_glossary_presets,
     save_glossary,
+    strip_edge_phrases,
 )
 from voice_paste.features.history import (
     append_text,
     discard_temporary,
     purge_expired,
     save_recording,
+    store_web_audio,
 )
 from voice_paste.features.outputs import (
     OUTPUTS,
@@ -52,6 +56,13 @@ from voice_paste.features.session import (
 )
 from voice_paste.features.session.types import NotifyFn, SessionState
 from voice_paste.features.transcription.service import transcribe
+from voice_paste.features.web_transcription import (
+    GlossaryPresetChoices,
+    WebApiDeps,
+    WebJobQueue,
+    WebTranscriptionDeps,
+)
+from voice_paste.integrations.audio.probe import probe_audio
 from voice_paste.integrations.browser.opener import open_app_window
 from voice_paste.integrations.http.client import post_json
 from voice_paste.integrations.keyboard.sender import copy_to_clipboard, send_enter, send_paste
@@ -136,6 +147,9 @@ SETTINGS_MODEL: type[Settings] = build_settings_model(
 )
 """アプリの設定のモデル。OUTPUTS の設定のモデルを OUTPUTS の並びで組み立てたもので、設定の読み込みと既定の設定はこれを使う。"""
 
+WEB_TMP_DIR_NAME: str = "web"
+"""ブラウザから受けた音声を書く一時のフォルダの名前（`{tmp_dir}` の下）。"""
+
 PURGE_INTERVAL_SEC: float = 86400.0
 """RepeatingTimer が purge_old_files を呼ぶ間隔。非機能要件の常駐中に古い履歴とログを消す間隔（24 時間）を秒にした値。"""
 
@@ -156,6 +170,9 @@ class Handlers:
 
     session_api: SessionApiDeps
     """API サーバーへ渡すセッションの API の依存（設定の許可ホストを部分適用した返送先の確かめを含む）。"""
+
+    web_api: WebApiDeps
+    """API サーバーへ渡すブラウザの API の依存（WebJobQueue・probe_audio・一時のフォルダ）。WebJobQueue の開始と終了は main が呼ぶ。"""
 
     settings_store: SettingsStore
     """今効いている設定。出力先・録音・画面はここから読むため、保存した immediate の項目が次の回から効く。"""
@@ -229,12 +246,20 @@ def _jitter(upper: float) -> float:
     return random.uniform(0, upper)  # noqa: S311 暗号用途ではない
 
 
-def _correct(text: str, *, settings: Settings, settings_dir: Path) -> str:
-    """文字起こしのたびに、補正に使う用語集を引いて読み直して補正する。"""
-    glossary = pick_active_glossary(settings, settings_dir)
-    entries = load_glossary(glossary.path)
-    logger.info(f"用語集で補正する（{glossary.name}・補正に使う {len(entries)} 行）")
-    return apply_glossary(text, entries)
+def _correct(
+    text: str, glossary_preset: str | None, *, settings: Settings, settings_dir: Path
+) -> str:
+    """文字起こしのたびに、補正に使う用語集のプリセットを引き、その用語集を全て読み直して補正する。"""
+    # 文頭・文末の文言を消してから、用語集で置き換える（用語集の置き換えで文言の形が変わる前に当てる）
+    stripped = strip_edge_phrases(text, settings.edge_phrases)
+    preset = pick_glossary_preset(settings, settings_dir, requested=glossary_preset)
+    glossaries = list_preset_glossaries(preset, resolve_glossaries(settings, settings_dir))
+    # プリセットに並べた用語集の順に読み、1 本の並びにつなぐ（読めない CSV は load_glossary が空を返すので飛ばされる）
+    loaded = [(glossary.name, load_glossary(glossary.path)) for glossary in glossaries]
+    entries = [entry for _name, rows in loaded for entry in rows]
+    counts = "・".join(f"{name} {len(rows)} 行" for name, rows in loaded)
+    logger.info(f"用語集で補正する（{preset.name}・補正に使う {counts or '用語集なし'}）")
+    return apply_glossary(stripped, entries)
 
 
 def _current_hint(store: SettingsStore) -> str | None:
@@ -389,9 +414,19 @@ def build_handlers(
         )
 
     # 6. 用語集を文字起こしのたびに読み直す補正を作る（読む場所もそのたびに設定から決める）
-    def correct(text: str) -> str:
-        """今の設定の、補正に使う用語集で補正する。"""
-        return _correct(text, settings=store.get(), settings_dir=paths.settings_file.parent)
+    def correct(text: str, glossary_preset: str | None) -> str:
+        """今の設定で、指定した用語集のプリセット（None は設定で選んでいるプリセット）の用語集で補正する。"""
+        return _correct(
+            text,
+            glossary_preset,
+            settings=store.get(),
+            settings_dir=paths.settings_file.parent,
+        )
+
+    def glossary_preset_exists(name: str) -> bool:
+        """今の設定の用語集のプリセットの一覧に、その名前があるか。"""
+        presets = resolve_glossary_presets(store.get(), paths.settings_file.parent)
+        return any(preset.name == name for preset in presets)
 
     # 7. SessionDeps を組み、API のセッションの上限時間と連続録音の上限時間（起動時の設定。再起動で効く）と共に SessionManager を作る
     deps = SessionDeps(
@@ -428,18 +463,57 @@ def build_handlers(
         timedelta(seconds=settings.api.continuous.session_limit_sec),
     )
 
-    # 8. SessionManager と、設定の許可ホストを部分適用した返送先の確かめを SessionApiDeps に束ねる
+    # 8. SessionManager と、設定の許可ホストを部分適用した返送先の確かめと、用語集のプリセットの確かめを SessionApiDeps に束ねる
     session_api = SessionApiDeps(
         session_manager=session_manager,
         is_callback_allowed=partial(
             is_callback_allowed, allowed_hosts=frozenset(settings.api.allowed_callback_hosts)
         ),
+        glossary_preset_exists=glossary_preset_exists,
     )
 
-    # 9. start_local_session に SessionManager と notify を部分適用する
+    # 9. ブラウザの文字起こしを配線する（履歴を残すかと用語集のプリセットの一覧はそのたびに SettingsStore から引く。ワーカースレッドはまだ立てない）
+    def list_glossary_preset_choices() -> GlossaryPresetChoices:
+        """今の設定の用語集のプリセットの名前の一覧と、設定で選んでいるプリセットの名前を返す。"""
+        settings_dir = paths.settings_file.parent
+        presets = resolve_glossary_presets(store.get(), settings_dir)
+        active = pick_glossary_preset(store.get(), settings_dir)
+        return GlossaryPresetChoices(presets=[preset.name for preset in presets], active=active.name)
+
+    def store_web_audio_now(job_id: str, source: Path) -> Path:
+        """今の設定で履歴を残すかを引いて、ブラウザの音声を保存する。"""
+        return store_web_audio(
+            job_id,
+            source,
+            history_enabled=store.get().history.enabled,
+            paths=paths,
+            now=_local_now,
+        )
+
+    web_queue = WebJobQueue(
+        WebTranscriptionDeps(
+            store_audio=store_web_audio_now,
+            transcribe=partial(
+                transcribe, engine=engine.transcribe, get_hint=partial(_current_hint, store)
+            ),
+            correct=correct,
+            append_text=partial(append_text, paths=paths),
+            discard_temporary=partial(discard_temporary, paths=paths),
+        )
+    )
+    web_api = WebApiDeps(
+        queue=web_queue,
+        probe_audio=probe_audio,
+        tmp_dir=paths.tmp_dir / WEB_TMP_DIR_NAME,
+        glossary_preset_exists=glossary_preset_exists,
+        list_glossary_presets=list_glossary_preset_choices,
+    )
+
+    # 10. start_local_session に SessionManager と notify を部分適用する
     return Handlers(
         session_manager=session_manager,
         session_api=session_api,
+        web_api=web_api,
         settings_store=store,
         start_local_session=partial(
             start_local_session, session_manager=session_manager, notify=notify
@@ -637,6 +711,9 @@ def build_ui_deps(
         output_titles=_output_titles(),
         apply_theme=apply_theme,
         list_glossaries=lambda: resolve_glossaries(store.get(), paths.settings_file.parent),
+        list_glossary_presets=lambda: resolve_glossary_presets(
+            store.get(), paths.settings_file.parent
+        ),
         read_glossary=read_glossary_rows,
         new_glossary_path=partial(
             next_glossary_path, directory=paths.settings_file.parent / GLOSSARIES_DIR_NAME
@@ -696,6 +773,9 @@ def _build_idle_ui_deps(
         output_titles=_output_titles(),
         apply_theme=partial(_apply_current_theme, app, store.get, image_dir=paths.ui_image_dir),
         list_glossaries=lambda: resolve_glossaries(store.get(), paths.settings_file.parent),
+        list_glossary_presets=lambda: resolve_glossary_presets(
+            store.get(), paths.settings_file.parent
+        ),
         read_glossary=read_glossary_rows,
         new_glossary_path=partial(
             next_glossary_path, directory=paths.settings_file.parent / GLOSSARIES_DIR_NAME
@@ -744,6 +824,7 @@ def _stop_all(running: _Running, tray: Tray) -> None:
         running.runner.stop()
     if running.handlers is not None:
         running.handlers.session_manager.close()
+        running.handlers.web_api.queue.close()
         running.handlers.stop_engine()
     tray.hide()
 
@@ -919,10 +1000,18 @@ def _start_services(
     _watch_system_theme(app, deps.apply_theme)
     running.controller = _build_controller(bridge, tray, deps)
 
-    # 8. トークンを作り、API サーバーを起動する
+    # 8. ブラウザの音声のキューを始め、トークンを作り、API サーバーを起動する
+    handlers.web_api.queue.start(handlers.web_api.tmp_dir)
     token = create_token()
     port = settings.api.port
-    runner = ApiServerRunner(build_fastapi(handlers.session_api, token, port), port)
+    fastapi_app = build_fastapi(
+        handlers.session_api,
+        token,
+        port,
+        web_api=handlers.web_api,
+        allowed_web_origins=settings.api.allowed_web_origins,
+    )
+    runner = ApiServerRunner(fastapi_app, port)
     if runner.start(API_START_TIMEOUT_SEC):
         running.runner = runner
         write_token_file(paths.token_file, port, token)

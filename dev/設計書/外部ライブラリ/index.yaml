@@ -46,3 +46,5 @@ items:
     summary: テストが Windows のウィンドウ・マウス・キーを操作する
   - page: onnxruntime.yaml
     summary: 連続録音の話し声を Silero VAD の ONNX で判定する
+  - page: python-multipart.yaml
+    summary: ブラウザから送られた multipart の音声を FastAPI の UploadFile で受け取る

@@ -105,7 +105,7 @@ def build_light_manager(
             save_recording, history_enabled=True, paths=paths, now=_local_now
         ),
         transcribe=transcribe_fn or partial(transcribe, engine=_no_engine, get_hint=lambda: None),
-        correct=lambda text: text,
+        correct=lambda text, glossary_preset: text,
         append_text=partial(append_text, paths=paths),
         deliver=deliver_session,
         notify=lambda event, detail=None: None,

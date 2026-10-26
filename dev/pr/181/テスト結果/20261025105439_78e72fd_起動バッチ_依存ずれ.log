@@ -1,0 +1,46 @@
+状態: 依存が uv.lock とずれている
+条件: case1 の .venv の tomlkit を uv pip install で 0.13.2（uv.lock は 0.15.2）に入れ替えた。uv は PATH から見つかる
+実行: コミット 78e72fd の voice-paste.bat（同一内容）を、検証用のコピーでリポジトリの外のフォルダから標準入力を閉じて流した
+差し替え: 普段使いの常駐アプリを入れ替えで終了させないため、コピーの src/voice_paste/__main__.py は起動した印を書くだけの stub にした（バッチファイルと import の確かめは本物）
+
+--- 事前の状態づくり（uv pip install）
+Using Python 3.14.3 environment at: C:\Users\shuhe\AppData\Local\Temp\vp181\main\.venv
+Resolved 1 package in 57ms
+Prepared 1 package in 18ms
+Uninstalled 1 package in 3ms
+Installed 1 package in 8ms
+ - tomlkit==0.15.2
+ + tomlkit==0.13.2
+tomlkit                0.13.2
+
+--- where uv / USERPROFILE
+where uv: C:\Users\shuhe\.local\bin\uv.exe
+USERPROFILE: C:\Users\shuhe
+
+--- コンソールの出力
+Syncing .venv with uv sync --frozen. See log: C:\Users\shuhe\AppData\Local\Temp\vp181\out\case3\localappdata\voice-paste\log\launcher.log
+
+--- 終了コード
+exit code: 0
+
+--- launcher.log
+[2026/10/25 10:52:39.32] voice-paste.bat start 
+[2026/10/25 10:52:39.32] cwd=C:\Users\shuhe\AppData\Local\Temp\vp181\main\ 
+[2026/10/25 10:52:39.37] uv: C:\Users\shuhe\.local\bin\uv.exe 
+[2026/10/25 10:52:39.37] running: uv sync --frozen 
+Uninstalled 1 package in 1ms
+Installed 1 package in 5ms
+ - tomlkit==0.13.2
+ + tomlkit==0.15.2
+[2026/10/25 10:52:39.42] uv sync --frozen exited with code 0 
+[2026/10/25 10:52:39.46] import voice_paste from .venv exited with code 0 
+[2026/10/25 10:52:39.46] activating .venv 
+[2026/10/25 10:52:39.52] launching: C:\Users\shuhe\AppData\Local\Temp\vp181\main\.venv\Scripts\pythonw.exe -m voice_paste 
+[2026/10/25 10:52:39.53] launcher exited with code 0 
+
+--- 起動した印（stub-started.txt）
+C:\Users\shuhe\AppData\Local\Temp\vp181\main\.venv\Scripts\pythonw.exe
+['C:\\Users\\shuhe\\AppData\\Local\\Temp\\vp181\\main\\src\\voice_paste\\__main__.py']
+
+--- 流した後の tomlkit
+tomlkit                0.15.2

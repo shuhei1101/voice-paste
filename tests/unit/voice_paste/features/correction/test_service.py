@@ -1,4 +1,4 @@
-"""features/correction/service.py（load_glossary・apply_glossary・read_glossary_rows・save_glossary・resolve_glossaries・pick_active_glossary・next_glossary_path）の単体テスト。"""
+"""features/correction/service.py（load_glossary・apply_glossary・read_glossary_rows・save_glossary・resolve_glossaries・resolve_glossary_presets・pick_glossary_preset・list_preset_glossaries・next_glossary_path・strip_edge_phrases）の単体テスト。"""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 if TYPE_CHECKING:
-    from voice_paste.shared.settings import Settings
+    from voice_paste.shared.settings import GlossarySettings, Settings
 
 CSV_HEADER = "誤変換,正しい表記\n"
 CSV_HEADER_WITH_ENABLED = "誤変換,正しい表記,使う\n"
@@ -454,69 +454,226 @@ def test_resolve_glossaries_when_relative_legacy_path(
     assert glossaries[0].path == Path.cwd() / "terms.csv"
 
 
-# === pick_active_glossary ===
+# === resolve_glossary_presets ===
 
 
-def _settings_with_glossaries(
-    settings_model: type[Settings], settings_dir: Path, active_glossary: str | None
-) -> Settings:
-    """「yogo」「会議用」の 2 件の glossaries と active_glossary を持つ設定を作る。"""
+def _two_glossaries(settings_dir: Path) -> list[GlossarySettings]:
+    """「yogo」「会議用」の 2 件の用語集を作る。"""
     from voice_paste.shared.settings import GlossarySettings
 
-    return settings_model(
-        glossaries=[
-            GlossarySettings(name="yogo", path=settings_dir / "yogo.csv"),
-            GlossarySettings(name="会議用", path=settings_dir / "meeting.csv"),
+    return [
+        GlossarySettings(name="yogo", path=settings_dir / "yogo.csv"),
+        GlossarySettings(name="会議用", path=settings_dir / "meeting.csv"),
+    ]
+
+
+def test_resolve_glossary_presets_when_empty(
+    tmp_path: Path, settings_model: type[Settings]
+) -> None:
+    """プリセットのキーが無く active_glossary も無ければ、1 つ目の用語集だけの「既定」（正常系）。"""
+    from voice_paste.features.correction.service import resolve_glossary_presets
+    from voice_paste.shared.settings import GlossaryPresetSettings
+
+    # 準備
+    settings = settings_model(glossaries=_two_glossaries(tmp_path), active_glossary=None)
+
+    # 実行
+    presets = resolve_glossary_presets(settings, tmp_path)
+
+    # 検証
+    assert presets == [GlossaryPresetSettings(name="既定", glossaries=["yogo"])]
+
+
+def test_resolve_glossary_presets_when_legacy_active(
+    tmp_path: Path, settings_model: type[Settings]
+) -> None:
+    """プリセットのキーが無ければ、active_glossary の用語集だけの「既定」（正常系）。"""
+    from voice_paste.features.correction.service import resolve_glossary_presets
+    from voice_paste.shared.settings import GlossaryPresetSettings
+
+    # 準備
+    settings = settings_model(glossaries=_two_glossaries(tmp_path), active_glossary="会議用")
+
+    # 実行
+    presets = resolve_glossary_presets(settings, tmp_path)
+
+    # 検証
+    assert presets == [GlossaryPresetSettings(name="既定", glossaries=["会議用"])]
+
+
+def test_resolve_glossary_presets_when_legacy_unknown_active(
+    tmp_path: Path, settings_model: type[Settings]
+) -> None:
+    """active_glossary が一覧に無ければ、1 つ目の用語集だけの「既定」（正常系）。"""
+    from voice_paste.features.correction.service import resolve_glossary_presets
+    from voice_paste.shared.settings import GlossaryPresetSettings
+
+    # 準備
+    settings = settings_model(
+        glossaries=_two_glossaries(tmp_path), active_glossary="存在しない名前"
+    )
+
+    # 実行
+    presets = resolve_glossary_presets(settings, tmp_path)
+
+    # 検証
+    assert presets == [GlossaryPresetSettings(name="既定", glossaries=["yogo"])]
+
+
+def test_resolve_glossary_presets(tmp_path: Path, settings_model: type[Settings]) -> None:
+    """プリセットの並びと中の用語集の並びをそのまま返し、一覧に無い名前を外す（正常系）。"""
+    from voice_paste.features.correction.service import resolve_glossary_presets
+    from voice_paste.shared.settings import GlossaryPresetSettings
+
+    # 準備
+    settings = settings_model(
+        glossaries=_two_glossaries(tmp_path),
+        glossary_presets=[
+            GlossaryPresetSettings(name="既定", glossaries=["yogo"]),
+            GlossaryPresetSettings(name="会議", glossaries=["会議用", "消した", "yogo"]),
         ],
-        active_glossary=active_glossary,
+    )
+
+    # 実行
+    presets = resolve_glossary_presets(settings, tmp_path)
+
+    # 検証
+    assert presets == [
+        GlossaryPresetSettings(name="既定", glossaries=["yogo"]),
+        GlossaryPresetSettings(name="会議", glossaries=["会議用", "yogo"]),
+    ]
+
+
+# === pick_glossary_preset ===
+
+
+def _settings_with_presets(
+    settings_model: type[Settings], settings_dir: Path, active_glossary_preset: str | None
+) -> Settings:
+    """「既定」「会議」の 2 件の glossary_presets と active_glossary_preset を持つ設定を作る。"""
+    from voice_paste.shared.settings import GlossaryPresetSettings
+
+    return settings_model(
+        glossaries=_two_glossaries(settings_dir),
+        glossary_presets=[
+            GlossaryPresetSettings(name="既定", glossaries=["yogo"]),
+            GlossaryPresetSettings(name="会議", glossaries=["会議用", "yogo"]),
+        ],
+        active_glossary_preset=active_glossary_preset,
     )
 
 
-def test_pick_active_glossary(tmp_path: Path, settings_model: type[Settings]) -> None:
-    """active_glossary の名前の用語集を返す（正常系）。"""
-    from voice_paste.features.correction.service import pick_active_glossary
-    from voice_paste.shared.settings import GlossarySettings
+def test_pick_glossary_preset(tmp_path: Path, settings_model: type[Settings]) -> None:
+    """active_glossary_preset の名前のプリセットを返す（正常系）。"""
+    from voice_paste.features.correction.service import pick_glossary_preset
+    from voice_paste.shared.settings import GlossaryPresetSettings
 
     # 準備
-    settings = _settings_with_glossaries(settings_model, tmp_path, "会議用")
+    settings = _settings_with_presets(settings_model, tmp_path, "会議")
 
     # 実行
-    glossary = pick_active_glossary(settings, tmp_path)
+    preset = pick_glossary_preset(settings, tmp_path)
 
     # 検証
-    assert glossary == GlossarySettings(name="会議用", path=tmp_path / "meeting.csv")
+    assert preset == GlossaryPresetSettings(name="会議", glossaries=["会議用", "yogo"])
 
 
-def test_pick_active_glossary_when_unset(tmp_path: Path, settings_model: type[Settings]) -> None:
-    """active_glossary が無ければ 1 件目（正常系）。"""
-    from voice_paste.features.correction.service import pick_active_glossary
-    from voice_paste.shared.settings import GlossarySettings
+def test_pick_glossary_preset_when_unset(tmp_path: Path, settings_model: type[Settings]) -> None:
+    """active_glossary_preset が無ければ 1 件目（正常系）。"""
+    from voice_paste.features.correction.service import pick_glossary_preset
 
     # 準備
-    settings = _settings_with_glossaries(settings_model, tmp_path, None)
+    settings = _settings_with_presets(settings_model, tmp_path, None)
 
     # 実行
-    glossary = pick_active_glossary(settings, tmp_path)
+    preset = pick_glossary_preset(settings, tmp_path)
 
     # 検証
-    assert glossary == GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
+    assert preset.name == "既定"
 
 
-def test_pick_active_glossary_when_unknown_name(
+def test_pick_glossary_preset_when_unknown_name(
     tmp_path: Path, settings_model: type[Settings]
 ) -> None:
     """一覧に無い名前なら 1 件目（正常系）。"""
-    from voice_paste.features.correction.service import pick_active_glossary
-    from voice_paste.shared.settings import GlossarySettings
+    from voice_paste.features.correction.service import pick_glossary_preset
 
     # 準備
-    settings = _settings_with_glossaries(settings_model, tmp_path, "存在しない名前")
+    settings = _settings_with_presets(settings_model, tmp_path, "存在しない名前")
 
     # 実行
-    glossary = pick_active_glossary(settings, tmp_path)
+    preset = pick_glossary_preset(settings, tmp_path)
 
     # 検証
-    assert glossary == GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
+    assert preset.name == "既定"
+
+
+def test_pick_glossary_preset_when_requested(
+    tmp_path: Path, settings_model: type[Settings]
+) -> None:
+    """指定した名前があれば、設定で選んでいるプリセットより優先する（正常系）。"""
+    from voice_paste.features.correction.service import pick_glossary_preset
+
+    # 準備（active_glossary_preset = 既定、requested = 会議）
+    settings = _settings_with_presets(settings_model, tmp_path, "既定")
+
+    # 実行
+    preset = pick_glossary_preset(settings, tmp_path, requested="会議")
+
+    # 検証
+    assert preset.name == "会議"
+
+
+def test_pick_glossary_preset_when_requested_missing(
+    tmp_path: Path, settings_model: type[Settings]
+) -> None:
+    """指定した名前が一覧に無ければ、設定で選んでいるプリセットを返す（正常系）。"""
+    from voice_paste.features.correction.service import pick_glossary_preset
+
+    # 準備（active_glossary_preset = 会議、requested = 消したプリセット）
+    settings = _settings_with_presets(settings_model, tmp_path, "会議")
+
+    # 実行
+    preset = pick_glossary_preset(settings, tmp_path, requested="消したプリセット")
+
+    # 検証
+    assert preset.name == "会議"
+
+
+# === list_preset_glossaries ===
+
+
+def test_list_preset_glossaries(tmp_path: Path) -> None:
+    """プリセットに並べた順で返す（用語集の一覧の順ではない）（正常系）。"""
+    from voice_paste.features.correction.service import list_preset_glossaries
+    from voice_paste.shared.settings import GlossaryPresetSettings, GlossarySettings
+
+    # 準備（一覧が「yogo」「会議用」の順で、プリセットは ["会議用", "yogo"]）
+    preset = GlossaryPresetSettings(name="会議", glossaries=["会議用", "yogo"])
+
+    # 実行
+    glossaries = list_preset_glossaries(preset, _two_glossaries(tmp_path))
+
+    # 検証
+    assert glossaries == [
+        GlossarySettings(name="会議用", path=tmp_path / "meeting.csv"),
+        GlossarySettings(name="yogo", path=tmp_path / "yogo.csv"),
+    ]
+
+
+def test_list_preset_glossaries_when_empty(tmp_path: Path) -> None:
+    """使う用語集が無いプリセットは空を返す（正常系）。"""
+    from voice_paste.features.correction.service import list_preset_glossaries
+    from voice_paste.shared.settings import GlossaryPresetSettings
+
+    # 準備
+    preset = GlossaryPresetSettings(name="空", glossaries=[])
+
+    # 実行
+    glossaries = list_preset_glossaries(preset, _two_glossaries(tmp_path))
+
+    # 検証
+    assert glossaries == []
 
 
 # === next_glossary_path ===
@@ -565,3 +722,137 @@ def test_next_glossary_path_when_taken(tmp_path: Path) -> None:
 
     # 検証
     assert path == directory / "glossary_2.csv"
+
+
+# === strip_edge_phrases ===
+
+
+def test_strip_edge_phrases() -> None:
+    """一覧の順に文末から消し、文頭の行は文頭だけに当てる（正常系）。"""
+    from voice_paste.features.correction.service import strip_edge_phrases
+    from voice_paste.shared.settings import EdgePhraseSettings
+
+    # 準備（上から「チャンネル登録*」「ご視聴ありがとうございました」「ありがとうございました」が文末、「えーと」が文頭）
+    phrases = [
+        EdgePhraseSettings(text="チャンネル登録*", position="end"),
+        EdgePhraseSettings(text="ご視聴ありがとうございました", position="end"),
+        EdgePhraseSettings(text="ありがとうございました", position="end"),
+        EdgePhraseSettings(text="えーと", position="start"),
+    ]
+    text = (
+        "えーと、ありがとうございました。本日の議題は予算です。\n"
+        "以上です。ありがとうございました。ご視聴ありがとうございました。"
+        "チャンネル登録よろしくお願いします。"
+    )
+
+    # 実行
+    result = strip_edge_phrases(text, phrases)
+
+    # 検証
+    assert result == "ありがとうございました。本日の議題は予算です。\n以上です。"
+
+
+def test_strip_edge_phrases_when_middle() -> None:
+    """文頭・文末以外の同じ文言は消さない（正常系）。"""
+    from voice_paste.features.correction.service import strip_edge_phrases
+    from voice_paste.shared.settings import EdgePhraseSettings
+
+    # 準備（「ありがとうございました」（両方）の 1 行）
+    phrases = [EdgePhraseSettings(text="ありがとうございました", position="both")]
+
+    # 実行
+    result = strip_edge_phrases("先日はありがとうございましたと伝えた。", phrases)
+
+    # 検証
+    assert result == "先日はありがとうございましたと伝えた。"
+
+
+def test_strip_edge_phrases_when_wildcard_start() -> None:
+    """文頭の末尾の `*` は 1 行目の行末まで消す（正常系）。"""
+    from voice_paste.features.correction.service import strip_edge_phrases
+    from voice_paste.shared.settings import EdgePhraseSettings
+
+    # 準備（「字幕*」（文頭）の 1 行）
+    phrases = [EdgePhraseSettings(text="字幕*", position="start")]
+
+    # 実行
+    result = strip_edge_phrases("字幕：山田\n本題です。", phrases)
+
+    # 検証
+    assert result == "本題です。"
+
+
+def test_strip_edge_phrases_when_wildcard_middle() -> None:
+    """途中の `*` は消す文字が最も短い一致を使う（正常系）。"""
+    from voice_paste.features.correction.service import strip_edge_phrases
+    from voice_paste.shared.settings import EdgePhraseSettings
+
+    # 準備（「ご*した」（文末）の 1 行）
+    phrases = [EdgePhraseSettings(text="ご*した", position="end")]
+
+    # 実行
+    result = strip_edge_phrases("ご飯を食べた。ご視聴に感謝した", phrases)
+
+    # 検証
+    assert result == "ご飯を食べた。"
+
+
+def test_strip_edge_phrases_when_repeated() -> None:
+    """同じ文言が端に続けて並ぶときは続く分も消す（正常系）。"""
+    from voice_paste.features.correction.service import strip_edge_phrases
+    from voice_paste.shared.settings import EdgePhraseSettings
+
+    # 準備（「ご視聴ありがとうございました」（文末）の 1 行）
+    phrases = [EdgePhraseSettings(text="ご視聴ありがとうございました", position="end")]
+
+    # 実行
+    result = strip_edge_phrases(
+        "以上です。ご視聴ありがとうございました。ご視聴ありがとうございました", phrases
+    )
+
+    # 検証
+    assert result == "以上です。"
+
+
+def test_strip_edge_phrases_when_line_emptied() -> None:
+    """最後の行が空になったら前の行で続ける（正常系）。"""
+    from voice_paste.features.correction.service import strip_edge_phrases
+    from voice_paste.shared.settings import EdgePhraseSettings
+
+    # 準備（「ご視聴ありがとうございました」「ありがとうございました」（どちらも文末）の 2 行）
+    phrases = [
+        EdgePhraseSettings(text="ご視聴ありがとうございました", position="end"),
+        EdgePhraseSettings(text="ありがとうございました", position="end"),
+    ]
+
+    # 実行
+    result = strip_edge_phrases("本題です。ありがとうございました。\nご視聴ありがとうございました。", phrases)
+
+    # 検証
+    assert result == "本題です。"
+
+
+def test_strip_edge_phrases_when_all_removed() -> None:
+    """全て消えたら空文字を返す（正常系）。"""
+    from voice_paste.features.correction.service import strip_edge_phrases
+    from voice_paste.shared.settings import EdgePhraseSettings
+
+    # 準備（「ご視聴ありがとうございました」（文末）の 1 行）
+    phrases = [EdgePhraseSettings(text="ご視聴ありがとうございました", position="end")]
+
+    # 実行
+    result = strip_edge_phrases("ご視聴ありがとうございました。", phrases)
+
+    # 検証
+    assert result == ""
+
+
+def test_strip_edge_phrases_when_empty_list() -> None:
+    """一覧が空ならそのまま返す（正常系）。"""
+    from voice_paste.features.correction.service import strip_edge_phrases
+
+    # 実行（空の一覧）
+    result = strip_edge_phrases("ご視聴ありがとうございました", [])
+
+    # 検証
+    assert result == "ご視聴ありがとうございました"

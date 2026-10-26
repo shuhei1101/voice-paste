@@ -1,4 +1,4 @@
-"""features/history/service.py（save_recording・append_text・discard_temporary・purge_expired）の単体テスト。"""
+"""features/history/service.py（save_recording・store_web_audio・append_text・discard_temporary・purge_expired）の単体テスト。"""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from voice_paste.shared.constants import AppPaths, resolve_app_paths
 
 SAMPLE_RATE = 16000
 NOW = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
+WEB_NOW = datetime(2026, 10, 23, 14, 5, tzinfo=UTC)
 
 
 @pytest.fixture
@@ -24,6 +25,11 @@ def paths(tmp_path: Path) -> AppPaths:
 def _now() -> datetime:
     """固定の今の時刻（2026-10-01 12:00）を返す。"""
     return NOW
+
+
+def _web_now() -> datetime:
+    """固定の今の時刻（2026-10-23 14:05）を返す。"""
+    return WEB_NOW
 
 
 def _touch(path: Path) -> Path:
@@ -226,3 +232,63 @@ def test_purge_expired_keeps_active_segments(paths: AppPaths) -> None:
     # 検証
     assert not finished.exists()
     assert active.exists()
+
+
+def test_purge_expired_when_web_audio(paths: AppPaths) -> None:
+    """期限を過ぎた日付のフォルダは WAV 以外の音声も消す（正常系）。"""
+    from voice_paste.features.history.service import purge_expired
+
+    # 準備: 保持期間を過ぎた日付のフォルダにブラウザの音声（.webm）と起こした文字（.txt）
+    paths.history_dir.mkdir(parents=True)
+    expired_folder = paths.history_dir / "20260929"
+    _touch(expired_folder / "20260929120000_web_job1.webm")
+    _touch(expired_folder / "20260929120000_web_job1.txt")
+
+    # 実行
+    purge_expired(
+        retention_days=1, paths=paths, now=_now, active_session_ids=lambda: set()
+    )
+
+    # 検証
+    assert not expired_folder.exists()
+
+
+# === store_web_audio ===
+
+
+def test_store_web_audio(paths: AppPaths) -> None:
+    """録れた形式のまま履歴へ移す（正常系）。"""
+    from voice_paste.features.history.service import store_web_audio
+
+    # 準備
+    source = _touch(paths.tmp_dir / "web" / "job1.webm")
+    source.write_bytes(b"webm-audio")
+
+    # 実行
+    stored = store_web_audio(
+        "job1", source, history_enabled=True, paths=paths, now=_web_now
+    )
+
+    # 検証
+    expected = paths.history_dir / "20261023" / "20261023140500_web_job1.webm"
+    assert stored == expected
+    assert expected.read_bytes() == b"webm-audio"
+    assert not source.exists()
+
+
+def test_store_web_audio_when_history_disabled(paths: AppPaths) -> None:
+    """履歴を残さない設定なら移さない（正常系）。"""
+    from voice_paste.features.history.service import store_web_audio
+
+    # 準備
+    source = _touch(paths.tmp_dir / "web" / "job1.webm")
+
+    # 実行
+    stored = store_web_audio(
+        "job1", source, history_enabled=False, paths=paths, now=_web_now
+    )
+
+    # 検証
+    assert stored == source
+    assert source.exists()
+    assert not paths.history_dir.exists()

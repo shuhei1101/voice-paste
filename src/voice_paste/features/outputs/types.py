@@ -1,4 +1,4 @@
-"""出力先・プリセットの種類の関数型と定義、送る中身。"""
+"""出力先・プリセットの種類の関数型と定義、送信する内容。"""
 
 from __future__ import annotations
 
@@ -88,14 +88,14 @@ class PresetKindSpec:
     """プリセットの種類。設定の presets[].kind がこの値で指す。"""
 
     title: str
-    """種類の名前（ブラウザ添付・エンドポイントへ送る）。"""
+    """種類の名前（ブラウザ添付・エンドポイントへ送信）。"""
 
     handler: PresetFn
     """届ける関数。"""
 
 
 class ResultPayload(BaseModel):
-    """呼び出し元へ返す・エンドポイントへ送るが送る JSON。"""
+    """呼び出し元へ返す・エンドポイントへ送信が送信する JSON。"""
 
     session_id: str
     """セッションの ID。"""
@@ -123,7 +123,7 @@ class ResultPayload(BaseModel):
 class CallbackPayload(ResultPayload):
     """呼び出し元へ返す JSON。ResultPayload に、連続録音の区間の通し番号と区間の数を足す。
 
-    設定のエンドポイントへ送る中身（ResultPayload）は変えないため、呼び出し元へ返すときだけこの子を使う。
+    設定のエンドポイントへ送信する内容（ResultPayload）は変えないため、呼び出し元へ返すときだけこの子を使う。
     """
 
     result: Literal["transcribed", "failed", "truncated", "completed"]  # type: ignore[assignment] 親より結果の種類が 1 つ多い（completed は連続録音だけ）

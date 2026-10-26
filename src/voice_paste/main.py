@@ -322,7 +322,7 @@ def _wire_preset_kinds(get_settings: Callable[[], Settings]) -> tuple[PresetKind
         return get_settings().preset_options.browser.open_delay_sec
 
     def get_timeout_sec() -> float:
-        """設定のエンドポイントへ送るの、送るときのタイムアウトの秒数を返す。"""
+        """エンドポイントへ送信するときのタイムアウトの秒数を返す。"""
         return get_settings().preset_options.endpoint.timeout_sec
 
     # 2. 種類ごとに、handler へ注入するものを決める

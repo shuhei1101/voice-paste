@@ -438,11 +438,11 @@ async function handlePresetNotFound(notFound: PresetNotFound): Promise<void> {
 /** 一覧に無いプリセットのエラーの本文を作る。 */
 function presetNotFoundBody(notFound: PresetNotFound): string {
   const deleted = `「${notFound.name}」は PC の設定から削除済みのため、`;
-  const reset = '一覧を取得し直し、「設定に従う」に戻しました。プリセットを確認して、';
+  const reset = '一覧を再取得し、「設定に従う」に戻しました。プリセットを確認して、';
   if (notFound.fileName === null) {
     return `${deleted}録った音声は未送信です。${reset}再送信してください。`;
   }
-  return `${deleted}${notFound.fileName} は未送信です。${reset}ファイルを選び直してください。`;
+  return `${deleted}${notFound.fileName} は未送信です。${reset}ファイルをもう一度選択してください。`;
 }
 
 // ===== 送信 =====

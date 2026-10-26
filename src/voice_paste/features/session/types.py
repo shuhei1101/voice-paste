@@ -124,7 +124,7 @@ class SessionDeps:
     """ほかの feature と入口を関数型で束ねたもの。main.py で配線する。"""
 
     start_recording: StartRecordingFn
-    """録音を始める（音量を下げ、マイクを開く）。"""
+    """録音を開始する（音量を下げ、マイクを開く）。"""
 
     pause_recording: Callable[[], None]
     """録音した音を貯めるのを止める。"""

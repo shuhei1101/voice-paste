@@ -99,7 +99,7 @@ ORIGIN_PATTERN: re.Pattern[str] = re.compile(r"https?://[^/\s?#]+")
 """許す Origin の形（`scheme://host[:port]`。末尾の `/` とパスは持たない）。"""
 
 EDGE_PHRASES_FIELD_NAME: str = "edge_phrases"
-"""文頭・文末から消す文言の一覧の設定のキー。"""
+"""文頭・文末から削除する文言の一覧の設定のキー。"""
 
 EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE: str = "edge_phrase_wildcard_only"
 """文言が `*` だけのときの ValidationError の種類。設定画面がエラーの文に変える。"""
@@ -117,13 +117,13 @@ URL_PATTERN: str = r"^https?://"
 """プリセットの URL の形（http か https で始まる）。"""
 
 ENDPOINT_TIMEOUT_DEFAULT_SEC: float = 1.5
-"""エンドポイントへ送るときのタイムアウトの既定（秒）。"""
+"""エンドポイントへ送信するときのタイムアウトの既定（秒）。"""
 
 ENDPOINT_TIMEOUT_MIN_SEC: float = 0.5
-"""エンドポイントへ送るときのタイムアウトの下限（秒）。"""
+"""エンドポイントへ送信するときのタイムアウトの下限（秒）。"""
 
 ENDPOINT_TIMEOUT_MAX_SEC: float = 10
-"""エンドポイントへ送るときのタイムアウトの上限（秒）。"""
+"""エンドポイントへ送信するときのタイムアウトの上限（秒）。"""
 
 AI_CHAT_ID: str = "ai_chat"
 """前の版の AI チャットの出力先の ID。読み込むときにカスタムプリセットへ読み替える。"""
@@ -222,7 +222,7 @@ class RecordingSettings(_SettingsModel):
     )
     hide_window: bool = _item(
         False,
-        "録音の画面も文字起こし中の表示も出さず、トレイとホットキーだけで操作するか",
+        "録音の画面も文字起こし中の表示も表示せず、トレイとホットキーだけで操作するか",
         reload=RELOAD_IMMEDIATE,
     )
 
@@ -230,9 +230,9 @@ class RecordingSettings(_SettingsModel):
 class HotkeySettings(_SettingsModel):
     """録音の開始・一時停止・取り消しのホットキー（pynput の GlobalHotKeys の書式）。"""
 
-    start: str = _item("<ctrl>+<alt>+d", "録音を始める", reload=RELOAD_IMMEDIATE)
-    pause: str = _item("<ctrl>+<alt>+z", "録音を一時停止・再開する", reload=RELOAD_IMMEDIATE)
-    cancel: str = _item("<ctrl>+<alt>+q", "録音を取り消す", reload=RELOAD_IMMEDIATE)
+    start: str = _item("<ctrl>+<alt>+d", "録音開始", reload=RELOAD_IMMEDIATE)
+    pause: str = _item("<ctrl>+<alt>+z", "録音の一時停止・再開", reload=RELOAD_IMMEDIATE)
+    cancel: str = _item("<ctrl>+<alt>+q", "録音の取り消し", reload=RELOAD_IMMEDIATE)
 
 
 class KeyboardSettings(_SettingsModel):
@@ -285,12 +285,12 @@ class BrowserPreset(_PresetModel):
         True, "録音の画面にボタンを出し、ホットキーを登録するか", reload=RELOAD_IMMEDIATE
     )
     send_enter: bool = _item(
-        True, "貼り付けた後に Enter まで送るか", reload=RELOAD_IMMEDIATE
+        True, "貼り付けた後に Enter まで送信するか", reload=RELOAD_IMMEDIATE
     )
 
 
 class EndpointPreset(_PresetModel):
-    """エンドポイントへ送るの種類のプリセット 1 件。"""
+    """エンドポイントへ送信の種類のプリセット 1 件。"""
 
     kind: Literal["endpoint"] = _item(
         "endpoint", "プリセットの種類（Preset の判別子）", reload=RELOAD_IMMEDIATE
@@ -300,7 +300,7 @@ class EndpointPreset(_PresetModel):
     )
     url: str = _item(
         ...,
-        "起こした文字を POST する送り先（http か https）",
+        "起こした文字を POST する送信先（http か https）",
         reload=RELOAD_IMMEDIATE,
         pattern=URL_PATTERN,
     )
@@ -332,11 +332,11 @@ class BrowserPresetOptions(_SettingsModel):
 
 
 class EndpointPresetOptions(_SettingsModel):
-    """エンドポイントへ送るの全てのプリセットで使う、送るときのタイムアウト。"""
+    """エンドポイントへ送信の全てのプリセットで使う、送信のタイムアウト。"""
 
     timeout_sec: float = _item(
         ENDPOINT_TIMEOUT_DEFAULT_SEC,
-        "送るときのタイムアウトの秒数",
+        "送信のタイムアウトの秒数",
         reload=RELOAD_IMMEDIATE,
         ge=ENDPOINT_TIMEOUT_MIN_SEC,
         le=ENDPOINT_TIMEOUT_MAX_SEC,
@@ -348,7 +348,7 @@ class PresetOptions(_SettingsModel):
 
     browser: BrowserPresetOptions = _group(BrowserPresetOptions, "ブラウザ添付のオプション")
     endpoint: EndpointPresetOptions = _group(
-        EndpointPresetOptions, "エンドポイントへ送るのオプション"
+        EndpointPresetOptions, "エンドポイントへ送信のオプション"
     )
 
 
@@ -389,21 +389,21 @@ class UiSettings(_SettingsModel):
         description="画面の明暗。system は Windows の明暗に従う",
         json_schema_extra={"reload": RELOAD_IMMEDIATE, "choice_labels": THEME_LABELS},
     )
-    topmost: bool = _item(True, "常に最前面に出すか", reload=RELOAD_IMMEDIATE)
+    topmost: bool = _item(True, "常に最前面に表示するか", reload=RELOAD_IMMEDIATE)
     position: Literal["center", "top-left", "top-right", "bottom-left", "bottom-right"] = _item(
-        "center", "出す位置", reload=RELOAD_IMMEDIATE
+        "center", "表示する位置", reload=RELOAD_IMMEDIATE
     )
     follow_cursor: bool = _item(
-        True, "マウスカーソルのあるモニターに出すか", reload=RELOAD_IMMEDIATE
+        True, "マウスカーソルのあるモニターに表示するか", reload=RELOAD_IMMEDIATE
     )
     wave_gain: float = _item(
         4, "波形の振れの大きさ（0 より大きい）", reload=RELOAD_IMMEDIATE, gt=0
     )
     show_hotkeys: bool = _item(
-        True, "録音の画面のボタンにホットキーを出すか", reload=RELOAD_IMMEDIATE
+        True, "録音の画面のボタンにホットキーを表示するか", reload=RELOAD_IMMEDIATE
     )
     transcribing_show_hotkeys: bool = _item(
-        True, "文字起こし中の表示のボタンにホットキーを出すか", reload=RELOAD_IMMEDIATE
+        True, "文字起こし中の表示のボタンにホットキーを表示するか", reload=RELOAD_IMMEDIATE
     )
 
     @model_validator(mode="before")
@@ -569,7 +569,7 @@ class EdgePhraseSettings(_SettingsModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     text: str = Field(
-        description="消す文言（前後の空白を除く。`*` は 0 文字以上の任意の文字列。`*` だけは断る。空の行は Settings が一覧から除く）"
+        description="削除する文言（前後の空白を除く。`*` は 0 文字以上の任意の文字列。`*` だけは断る。空の行は Settings が一覧から除く）"
     )
     position: Literal["start", "end", "both"] = Field(
         "end", description="文言を当てる位置（start は文頭、end は文末、both は両方）"
@@ -582,7 +582,7 @@ class EdgePhraseSettings(_SettingsModel):
         # `*` だけで書かれた文言は、文頭・文末の行を丸ごと消すため断る
         if text and not text.strip(EDGE_PHRASE_WILDCARD):
             raise PydanticCustomError(
-                EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE, "文言が * だけで、行を丸ごと消してしまう"
+                EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE, "文言が * だけで、行を丸ごと削除してしまう"
             )
         return text
 
@@ -626,7 +626,7 @@ class Settings(_SettingsModel):
     )
     active_glossary: str | None = _item(
         None,
-        "補正に使う用語集の名前。glossary_presets が空のときだけ、「既定」のプリセットの用語集を決めるのに読む（非推奨。設定画面で保存すると消す）",
+        "補正に使う用語集の名前。glossary_presets が空のときだけ、「既定」のプリセットの用語集を決めるのに読む（非推奨。設定画面で保存すると削除する）",
         reload=RELOAD_IMMEDIATE,
     )
     glossary_presets: list[GlossaryPresetSettings] = Field(
@@ -646,7 +646,7 @@ class Settings(_SettingsModel):
     )
     edge_phrases: list[EdgePhraseSettings] = Field(
         default_factory=lambda: list(DEFAULT_EDGE_PHRASES),
-        description="起こした文字の文頭・文末から消す文言の一覧。並びが当てる順と設定画面の一覧の並びになる。キーが無いときは既定の一覧、空の一覧なら何も消さない。文言が空の行は一覧から除く",
+        description="起こした文字の文頭・文末から削除する文言の一覧。並びが当てる順と設定画面の一覧の並びになる。キーが無いときは既定の一覧、空の一覧なら何も削除しない。文言が空の行は一覧から除く",
         json_schema_extra={"reload": RELOAD_IMMEDIATE},
     )
     api: ApiSettings = _group(ApiSettings, "待ち受けのポート・返送を許すホスト")

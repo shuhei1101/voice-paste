@@ -94,7 +94,7 @@ WINDOW_TITLE: str = "voice-paste の設定"
 MIN_WIDTH_PX: int = 720
 """設定画面の最小の幅（欄の名前と設定のキーが語の途中で折り返さない幅）。"""
 
-PRESET_KIND_NAMES: dict[str, str] = {"browser": "ブラウザ添付", "endpoint": "エンドポイントへ送る"}
+PRESET_KIND_NAMES: dict[str, str] = {"browser": "ブラウザ添付", "endpoint": "エンドポイントへ送信"}
 """カスタムプリセットの種類ごとの画面の名前（設定画面のタブの名前）。種類の並びが、タブと録音の画面のボタンの並びになる。"""
 
 GROUP_NAMES: tuple[str, ...] = (
@@ -245,7 +245,7 @@ RANGE_ERROR_TYPES: frozenset[str] = frozenset(
 SAVED_HOTKEY_KEY: re.Pattern[str] = re.compile(
     rf"^(hotkeys\.\w+|{OUTPUTS_FIELD_NAME}\[\d+\]\.hotkey)$"
 )
-"""保存した知らせでホットキーが変わったかを見る欄のキー（録音のホットキー・出力先の確定のホットキー。貼り付けに送るキーとプリセットの確定のホットキーは含めない）。"""
+"""保存したメッセージでホットキーが変わったかを見る欄のキー（録音のホットキー・出力先の確定のホットキー。貼り付けに送るキーとプリセットの確定のホットキーは含めない）。"""
 
 PRESET_KEY_PATTERN: re.Pattern[str] = re.compile(rf"^{PRESETS_FIELD_NAME}\[(\d+)\]\.(\w+)$")
 """プリセットの欄の失敗のキー（`presets[2].url`）を、設定の全体の中の添字と項目の名前に分ける。"""
@@ -275,7 +275,7 @@ EDGE_KEY_PATTERN: re.Pattern[str] = re.compile(rf"^{EDGE_PHRASES_FIELD_NAME}\[(\
 """文頭・文末から消す文言の欄の失敗のキー（`edge_phrases[1].text`）を、何行目かに分ける。"""
 
 EDGE_WILDCARD_ONLY_MESSAGE: str = (
-    "* だけの文言は、文頭・文末の行を丸ごと消します。消したい文言を入れてください。"
+    "* だけの文言は、文頭・文末の行を丸ごと削除します。削除したい文言を入れてください。"
 )
 """文言が `*` だけのときの欄の下とエラーの一覧の文言。"""
 
@@ -286,9 +286,9 @@ PRESET_URL_EXAMPLE: str = "https://example.com/hook"
 """プリセットの URL が空のときの文言に出す例。"""
 
 OPTION_NOTES: dict[str, str] = {
-    "preset_options.browser.open_delay_sec": "貼り付けてから Enter を送るまでの秒数は「出力先」の値を使う。",
+    "preset_options.browser.open_delay_sec": "貼り付けてから Enter を送信するまでの秒数は「出力先」の値を使う。",
     "preset_options.endpoint.timeout_sec": (
-        "既定は 1.5 秒で、10 秒まで入れられる。この秒数で届かなければ、送り直さずにトレイで知らせる。"
+        "既定は 1.5 秒で、10 秒まで入れられる。この秒数で届かなければ、再送せずにトレイで通知する。"
     ),
 }
 """欄の下に出す補助文（欄のキーごと）。"""
@@ -440,9 +440,9 @@ def to_field_message(
             "語を減らすか、プリセットを無効にしてください。"
         )
     if error_type == HINT_WORD_EMPTY_ERROR_TYPE:
-        return "語を入れるか、この欄を消してください。"
+        return "語を入れるか、この欄を削除してください。"
     if error_type == HINT_WORD_SEPARATOR_ERROR_TYPE:
-        return "読点（、）・句点（。）・改行は入れられません。語を分けて足してください。"
+        return "読点（、）・句点（。）・改行は入れられません。語を分けて追加してください。"
     if error_type == EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE:
         return EDGE_WILDCARD_ONLY_MESSAGE
     if error_type == HINT_PRESET_NAME_OVERLAP_ERROR_TYPE:
@@ -495,9 +495,9 @@ def confirm_discard(parent: QWidget, changed_count: int) -> bool:
     return _confirm(
         parent,
         dialog_name="discard_dialog",
-        heading="変えた値を捨てて閉じますか",
-        body=f"保存していない変更が {changed_count} 件あります。閉じると、変えた値は保存されません。",
-        accept_text="捨てて閉じる",
+        heading="変更を破棄して閉じますか",
+        body=f"保存していない変更が {changed_count} 件あります。閉じると、変更は保存されません。",
+        accept_text="破棄して閉じる",
         accept_name="discard_button",
     )
 
@@ -509,7 +509,7 @@ def confirm_reset(parent: QWidget) -> bool:
         dialog_name="reset_dialog",
         heading="全ての設定を既定に戻しますか",
         body=(
-            "出力先・ホットキーを含む全ての設定が既定の値になり、カスタムプリセットは全て消えます。"
+            "出力先・ホットキーを含む全ての設定が既定の値になり、カスタムプリセットは全て削除されます。"
             "元に戻せません。"
             "「再起動で反映」の設定は、再起動するまで今の値で動きます。"
         ),
@@ -764,7 +764,7 @@ class SettingsWindow(QWidget):
         group: int,
         extras: tuple[QWidget, ...] = (),
     ) -> Field:
-        """欄 1 つ（名前・再起動で反映の印・設定のキー・部品・欄の下のエラー）を layout に足して登録する。"""
+        """欄 1 つ（名前・再起動で反映のマーカー・設定のキー・部品・欄の下のエラー）を layout に足して登録する。"""
         reload = reload_of(key)
         widget.setObjectName(field_object_name(key, widget))
         row = QWidget()
@@ -917,7 +917,7 @@ class SettingsWindow(QWidget):
         layout.addWidget(panel)
 
     def _add_edge_phrases(self, layout: QVBoxLayout, settings: Settings) -> None:
-        """文頭・文末から消す文言の一覧を足す。"""
+        """文頭・文末から削除する文言の一覧を足す。"""
         panel = EdgePhrasePanel()
         panel.set_phrases(settings.edge_phrases)
         panel.changed.connect(self._on_field_changed)
@@ -1017,7 +1017,7 @@ class SettingsWindow(QWidget):
     def _edges_panel(self) -> EdgePhrasePanel:
         """文頭・文末から消す文言のまとまりの部品を返す（欄を組み立てた後に使う）。"""
         if self._edge_panel is None:
-            raise RuntimeError("文頭・文末から消す文言の部品がまだ無い")
+            raise RuntimeError("文頭・文末から削除する文言の部品がまだ無い")
         return self._edge_panel
 
     def _all_fields(self) -> list[Field]:
@@ -1184,15 +1184,15 @@ class SettingsWindow(QWidget):
     # --- 知らせ・エラーの表示 ---
 
     def _on_field_changed(self) -> None:
-        """欄を変えたら、既定に戻した知らせと保存した知らせを消し、再起動の知らせを数え直す。"""
+        """欄を変えたら、既定に戻したメッセージと保存したメッセージを消し、再起動のメッセージを数え直す。"""
         self._reset_notice.hide()
         self._saved_notice.hide()
         self._restart_now_button.hide()
         self._refresh_notices()
 
     def _refresh_notices(self) -> None:
-        """再起動の知らせと「保存して再起動」を、再起動で反映の欄の変更に合わせて出す・隠す。"""
-        # 既定に戻した知らせか保存した知らせを出している間は、再起動の知らせを出さない
+        """再起動のメッセージと「保存して再起動」を、再起動で反映の欄の変更に合わせて出す・隠す。"""
+        # 既定に戻したメッセージか保存したメッセージを出している間は、再起動のメッセージを出さない
         notice_shown = not self._reset_notice.isHidden() or not self._saved_notice.isHidden()
         count = 0 if notice_shown else self._restart_changed_count()
         show = count > 0
@@ -1248,7 +1248,7 @@ class SettingsWindow(QWidget):
             }
         )
         title = (
-            f"保存できませんでした。{field_count} 件の欄を直してください。"
+            f"保存できませんでした。{field_count} 件の欄を修正してください。"
             if field_count
             else "保存できませんでした。"
         )
@@ -1381,7 +1381,7 @@ class SettingsWindow(QWidget):
     # --- 操作 ---
 
     def save(self, *, restart: bool) -> bool:
-        """欄の値を設定のモデルで確かめ、通れば書いて効かせ、窓を開いたまま保存した知らせを出す（restart のときだけ閉じる）。通らなければエラーを出す。"""
+        """欄の値を設定のモデルで確かめ、通れば書いて効かせ、窓を開いたまま保存したメッセージを出す（restart のときだけ閉じる）。通らなければエラーを出す。"""
         # 1. 欄の値を設定のモデルと、用語集の行（正しい表記が入っていて誤変換が空）で確かめる（通らなければ欄ごとのエラーにして、入れた値は消さない）
         failures: list[tuple[str, str]] = []
         settings: Settings | None = None
@@ -1434,7 +1434,7 @@ class SettingsWindow(QWidget):
         self._baseline = self._flat_values()
         self.saved.emit()
 
-        # 4. 再起動なら頼んで窓を閉じ、そうでなければ窓を開いたまま保存した知らせを出す
+        # 4. 再起動なら頼んで窓を閉じ、そうでなければ窓を開いたまま保存したメッセージを出す
         if restart:
             self.restart_requested.emit()
             self._force_close = True
@@ -1444,12 +1444,12 @@ class SettingsWindow(QWidget):
         return True
 
     def _show_saved_notice(self) -> None:
-        """保存した知らせを出す。新しいホットキーが閉じると効くことと、「再起動で反映」の欄の件数を、変えたときだけ続ける。"""
+        """保存したメッセージを出す。新しいホットキーが閉じると効くことと、「再起動で反映」の欄の件数を、変えたときだけ続ける。"""
         text = "保存しました。"
         # ホットキーの欄が開いたときの値から変わっていれば、閉じると効くことを添える
         if self._hotkey_changed():
             text += "新しいホットキーは、設定画面を閉じると効きます。"
-        # 「再起動で反映」の欄が開いたときの値から変わっていれば、件数と今すぐ再起動を出し、再起動の知らせを隠す
+        # 「再起動で反映」の欄が開いたときの値から変わっていれば、件数と今すぐ再起動を出し、再起動のメッセージを隠す
         count = self._restart_changed_count()
         if count > 0:
             text += f"「再起動で反映」の設定 {count} 件は、再起動するまで前の値で動きます。"

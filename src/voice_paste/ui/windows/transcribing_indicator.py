@@ -25,7 +25,7 @@ SPINNER_FRAME_MSEC: int = 16
 """回る印を描き直す間隔（ミリ秒）。"""
 
 SPINNER_SIZE_PX: int = 18
-"""回る印の大きさ。"""
+"""回るマーカーの大きさ。"""
 
 SPINNER_ARC_DEGREES: int = 100
 """回る印の弧の長さ（度）。"""

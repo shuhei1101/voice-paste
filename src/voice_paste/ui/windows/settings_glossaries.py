@@ -91,13 +91,13 @@ NO_PRESET_TEXT: str = "なし"
 PRESET_SEPARATOR: str = "・"
 """使うプリセットの名前を結ぶ区切り。"""
 
-LIST_NOTE_TEXT: str = "消した用語集は、使っているプリセットからも外れる。"
+LIST_NOTE_TEXT: str = "削除した用語集は、使っているプリセットからも外れる。"
 """用語集を消したときのプリセットへの影響を示す、用語集追加のボタンの右に出す説明。"""
 
 LEGEND_TEXT: str = "上の行から順に置き換える。オフの行は補正に使わない。"
 """行の順とオン・オフが補正にどう効くかを示す凡例。"""
 
-DELETE_NOTE_TEXT: str = "正しい表記を空にすると、誤変換を消す。"
+DELETE_NOTE_TEXT: str = "正しい表記を空にすると、誤変換を削除する。"
 """正しい表記を空にした行が誤変換を消すことを伝える、名前の欄の下に出す説明。"""
 
 PRESET_RULE_TEXT: str = (
@@ -616,7 +616,7 @@ class GlossaryPanel(QWidget):
         font.setBold(index == self._shown_preset)
         row.pick_button.setFont(font)
         row.radio.setAccessibleName(f"{shown_name}を補正に使う")
-        row.remove_button.setAccessibleName(f"{shown_name}を消す")
+        row.remove_button.setAccessibleName(f"{shown_name}を削除")
         row.count_label.setText(f"{len(preset.paths)} 件")
         # 補正に使うプリセットの消すボタンは、フォーカスとツールチップを残すため無効にせず、薄くして押しても消さない
         is_active = index == self._active_preset
@@ -944,7 +944,7 @@ class GlossaryPanel(QWidget):
         font = row.pick_button.font()
         font.setBold(index == self._shown)
         row.pick_button.setFont(font)
-        row.remove_button.setAccessibleName(f"{spoken}を消す")
+        row.remove_button.setAccessibleName(f"{spoken}を削除")
         using = PRESET_SEPARATOR.join(
             _preset_display_name(preset.name)
             for preset in self._presets
@@ -1001,7 +1001,7 @@ class GlossaryPanel(QWidget):
     # --- 名前の欄と行の表 ---
 
     def _rebuild_detail(self) -> None:
-        """行の表を出している用語集の見出し・名前の欄・消す行の説明・行の表（読めなければ理由）・行を足すボタン・凡例を作り直す。"""
+        """行の表を出している用語集の見出し・名前の欄・誤変換を削除する行の説明・行の表（読めなければ理由）・行の追加ボタン・凡例を作り直す。"""
         _clear_layout(self._detail_layout)
         self._inputs = {}
         self._error_labels = {}
@@ -1103,7 +1103,7 @@ class GlossaryPanel(QWidget):
         right_edit.setAccessibleName(f"{position + 1} 行目の正しい表記")
         remove_button = QPushButton("×")
         remove_button.setObjectName(f"glossary_entry_remove_{position}")
-        remove_button.setAccessibleName(f"{position + 1} 行目を消す")
+        remove_button.setAccessibleName(f"{position + 1} 行目を削除")
         for widget in (on_box, wrong_edit, right_edit, remove_button):
             line.addWidget(widget, 1 if isinstance(widget, QLineEdit) else 0)
         column.addLayout(line)

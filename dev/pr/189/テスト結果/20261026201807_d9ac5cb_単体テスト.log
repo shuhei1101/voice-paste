@@ -1,3 +1,4 @@
+$ .venv/Scripts/python.exe -m pytest tests/unit
 ============================= test session starts =============================
 platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
 rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\refactor-source-comment-wording
@@ -71,4 +72,5 @@ tests\unit\voice_paste\ui\windows\test_settings_window.py .............. [ 88%]
 tests\unit\voice_paste\ui\windows\test_transcribing_indicator.py ....... [ 93%]
 .............................................                            [100%]
 
-======================= 679 passed in 77.64s (0:01:17) ========================
+======================= 679 passed in 77.74s (0:01:17) ========================
+exit: 0

@@ -31,7 +31,7 @@ from PySide6.QtWidgets import QApplication
 
 import voice_paste.integrations.whisper.client as client_module
 import voice_paste.main as main_module
-from tests.integration.helpers import CallbackReceiver, wait_until
+from tests.integration.helpers import CallbackReceiver
 from tests.support.continuous import (
     SEGMENT_GAP_SEC,
     TROUBLED_SEGMENT,
@@ -51,7 +51,6 @@ from tests.support.inprocess import (
     SPEECH_TEXT,
     SPEECH_WORD,
     WORKER_READY_LOG,
-    WORKER_READY_TIMEOUT_SEC,
     InProcessApi,
     InProcessApp,
     KeyLog,
@@ -59,6 +58,7 @@ from tests.support.inprocess import (
     encode_audio,
     fail_transcription_of_segment,
     kill_one_worker,
+    kill_workers_twice,
     make_glossary_preset_settings,
     make_settings,
     silence_input,
@@ -106,7 +106,7 @@ SECOND_GLOSSARY_ROWS = "誤変換,正しい表記,使う\nこれ,THIS,1\n"
 SECOND_CORRECTED_WORD = "THIS"
 """2 つ目の用語集の行で置き換わった、正しい表記。"""
 
-DELETE_ROW = "ありがとう,,1\n"
+DELETE_ROW = "晴れ,,1\n"
 """話す内容に入る文言を誤変換にして、正しい表記を空にしたオンの行（消す行）。"""
 
 CORRECTED_WORD = "試験"
@@ -228,20 +228,14 @@ def _put_preset_glossaries(data_dir: Path) -> None:
     (data_dir / SECOND_GLOSSARY_FILE_NAME).write_text(SECOND_GLOSSARY_ROWS, encoding="utf-8")
 
 
-def _ready_count(app: ResidentApp) -> int:
-    """文字起こしワーカーが ready になった回数（立て直しを含む）を、ログから数える。"""
-    return sum(message.startswith(WORKER_READY_LOG) for message in app.log_messages())
+def _ready_messages(app: ResidentApp) -> list[str]:
+    """文字起こしワーカーが ready になったときのログの文（立て直しを含む）を、ログから順に返す。"""
+    return [message for message in app.log_messages() if message.startswith(WORKER_READY_LOG)]
 
 
-def _kill_workers_twice(app: ResidentApp) -> int:
-    """文字起こしワーカーを止め、やり直しに立ったワーカーも ready になってから止める。止めた回数を返す。"""
-    # 1. 立ち上がっているワーカーを止める（窓口が落ちたことに気づいて立て直す）
-    ready_before = _ready_count(app)
-    kills = int(kill_one_worker())
-
-    # 2. やり直しのワーカーが ready になるのを待って止める（読み込みの途中で止めると、やり直しの前に失敗する）
-    assert wait_until(lambda: _ready_count(app) > ready_before, WORKER_READY_TIMEOUT_SEC)
-    return kills + int(kill_one_worker())
+def _kill_workers_twice(app: ResidentApp, first_pids: set[int]) -> int:
+    """引いておいた番号のワーカーを止め、やり直しに立ったワーカーも ready になった直後に止める。止めた回数を返す。"""
+    return kill_workers_twice(first_pids, lambda: _ready_messages(app))
 
 
 def _failure_reasons(app: ResidentApp, event: str) -> list[str]:
@@ -374,10 +368,10 @@ def test_normal_when_worker_dies(
 
     def case(app: ResidentApp) -> None:
         """確定した直後にワーカーを 1 回止め、起こした文字・ワーカー・常駐サービスを確かめる。"""
-        # 実行
+        # 実行（止めるワーカーの番号は、確定の前に引いておく）
         workers_before = app.worker_pids()
         _confirm_with_paste_and_send(app)
-        assert kill_one_worker()
+        assert kill_one_worker(workers_before)
         app.wait_processed()
 
         # 検証: 起こした文字が届き、新しい子プロセスのワーカーが動き、常駐サービスが動き続けている
@@ -400,9 +394,10 @@ def test_error_when_worker_dies_again(
 
     def case(app: ResidentApp) -> None:
         """確定した直後にワーカーを 2 回止め、知らせ・履歴・ワーカー・常駐サービスを確かめる。"""
-        # 実行
+        # 実行（止めるワーカーの番号は、確定の前に引いておく）
+        workers_before = app.worker_pids()
         _confirm_with_paste_and_send(app)
-        assert _kill_workers_twice(app) >= 2
+        assert _kill_workers_twice(app, workers_before) >= 2
         app.wait_processed()
 
         # 検証

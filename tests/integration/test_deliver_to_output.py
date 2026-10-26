@@ -69,7 +69,7 @@ def test_normal_when_enter_modifiers(
 def test_normal_when_browser_preset(
     output_stack: Callable[[Settings | None], OutputStack],
 ) -> None:
-    """ブラウザ添付のプリセットを選んで確定すると、その URL を開いて貼り付けて Enter まで送る（正常系）。"""
+    """ブラウザ添付のプリセットを選んで確定すると、その URL を開いて貼り付けて Enter まで送信する（正常系）。"""
     # 準備
     preset = BrowserPreset(title="ChatGPT", url=CHAT_URL)
     stack = output_stack(SETTINGS_MODEL(presets=[preset]))

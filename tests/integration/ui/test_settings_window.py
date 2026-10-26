@@ -419,7 +419,7 @@ def test_field_name_and_key(open_window: Callable[..., Opened]) -> None:
 
 
 def test_restart_badge_when_restart_field(open_window: Callable[..., Opened]) -> None:
-    """反映が restart の欄には「再起動で反映」の印を出す。"""
+    """反映が restart の欄には「再起動で反映」のマーカーを出す。"""
     # 実行
     window = open_window().window
 
@@ -630,7 +630,7 @@ def test_preset_authorization_field(open_window: Callable[..., Opened]) -> None:
 
 
 def test_add_preset_button_action(open_window: Callable[..., Opened]) -> None:
-    """「プリセットを追加」は、そのタブの一覧の末尾に空のプリセット（有効、ブラウザ添付は Enter まで送るがオン）を足し、タイトルの欄へフォーカスを移す。"""
+    """「プリセットを追加」は、そのタブの一覧の末尾に空のプリセット（有効、ブラウザ添付は Enter まで送信がオン）を足し、タイトルの欄へフォーカスを移す。"""
     # 準備
     window = open_window(_settings_with_presets()).window
     find(window, QListWidget, "group_menu").setCurrentRow(1)
@@ -1240,7 +1240,7 @@ def test_ui_theme_field_initial_value(
 def test_ui_theme_field_action(
     make_ui: Callable[..., Ui], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """別の値を選んで保存すると settings.toml の ui.theme が書き換わり、再起動せずに明暗を当て直す（再起動の印は出ない）。"""
+    """別の値を選んで保存すると settings.toml の ui.theme が書き換わり、再起動せずに明暗を当て直す（再起動のマーカーは出ない）。"""
     from functools import partial
 
     from voice_paste.main import apply_settings
@@ -1297,7 +1297,7 @@ TRANSCRIBING_SHOW_HOTKEYS_LABEL = "文字起こし中の表示のボタンにホ
 def test_ui_show_hotkeys_field_initial_value(
     open_window: Callable[..., Opened], show_hotkeys: bool
 ) -> None:
-    """「画面」のまとまりの末尾に、欄の名前が「録音の画面のボタンにホットキーを表示するか」のチェックボックスがあり、今の ui.show_hotkeys の値になっている（再起動の印は出ない）。"""
+    """「画面」のまとまりの末尾に、欄の名前が「録音の画面のボタンにホットキーを表示するか」のチェックボックスがあり、今の ui.show_hotkeys の値になっている（再起動のマーカーは出ない）。"""
     from voice_paste.shared.settings import UiSettings
 
     # 準備
@@ -1317,7 +1317,7 @@ def test_ui_show_hotkeys_field_initial_value(
 def test_ui_show_hotkeys_field_action(
     make_ui: Callable[..., Ui], tmp_path: Path
 ) -> None:
-    """チェックを外して保存すると settings.toml の ui.show_hotkeys が false に書き換わり、再起動せずに効く（再起動の印は出ない）。"""
+    """チェックを外して保存すると settings.toml の ui.show_hotkeys が false に書き換わり、再起動せずに効く（再起動のマーカーは出ない）。"""
     from functools import partial
 
     from voice_paste.main import apply_settings
@@ -1362,7 +1362,7 @@ def test_ui_show_hotkeys_field_action(
 def test_ui_transcribing_show_hotkeys_field_initial_value(
     open_window: Callable[..., Opened], transcribing_show_hotkeys: bool
 ) -> None:
-    """「画面」のまとまりの末尾の ui.show_hotkeys の次に、欄の名前が「文字起こし中の表示のボタンにホットキーを表示するか」のチェックボックスがあり、今の ui.transcribing_show_hotkeys の値になっている（再起動の印は出ない）。"""
+    """「画面」のまとまりの末尾の ui.show_hotkeys の次に、欄の名前が「文字起こし中の表示のボタンにホットキーを表示するか」のチェックボックスがあり、今の ui.transcribing_show_hotkeys の値になっている（再起動のマーカーは出ない）。"""
     from voice_paste.shared.settings import UiSettings
 
     # 準備: 録音の画面の値とは逆にして、欄が自分のキーの値を出すことを確かめる
@@ -1389,7 +1389,7 @@ def test_ui_transcribing_show_hotkeys_field_initial_value(
 def test_ui_transcribing_show_hotkeys_field_action(
     make_ui: Callable[..., Ui], tmp_path: Path
 ) -> None:
-    """チェックを外して保存すると settings.toml の ui.transcribing_show_hotkeys だけが false に書き換わり、再起動せずに効く（再起動の印は出ない）。"""
+    """チェックを外して保存すると settings.toml の ui.transcribing_show_hotkeys だけが false に書き換わり、再起動せずに効く（再起動のマーカーは出ない）。"""
     from functools import partial
 
     from voice_paste.main import apply_settings
@@ -2482,7 +2482,7 @@ def test_glossary_preset_remove_when_shown(
 def test_glossary_preset_remove_accessible_name(
     open_window: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """消すボタンの読み上げの名前は「{名前}を消す」（名前が空なら「名前未入力のプリセットを削除」）。"""
+    """削除ボタンの読み上げの名前は「{名前}を削除」（名前が空なら「名前未入力のプリセットを削除」）。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
 
@@ -3077,7 +3077,7 @@ def test_glossary_remove_when_shown(open_window: Callable[..., Opened], tmp_path
 
 
 def test_glossary_remove_accessible_name(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """消すボタンの読み上げの名前は「{名前}を消す」（名前が空なら「名前未入力の用語集を削除」）。"""
+    """削除ボタンの読み上げの名前は「{名前}を削除」（名前が空なら「名前未入力の用語集を削除」）。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
 
@@ -4578,7 +4578,7 @@ def test_error_summary_row_action_when_hint_word(open_window: Callable[..., Open
 
 
 def test_save_button_when_hint_changed(open_window: Callable[..., Opened]) -> None:
-    """表記のヒントを変えて保存すると、再起動せずに効く値（immediate）として書き、窓を開いたまま保存したメッセージを出す。「再起動で反映」の知らせは出さない。"""
+    """表記のヒントを変えて保存すると、再起動せずに効く値（immediate）として書き、窓を開いたまま保存したメッセージを出す。再起動のメッセージは出さない。"""
     # 準備
     opened = _open_hints(open_window, ("開発", ["a"], True))
     find(opened.window, QLineEdit, "hint_word_0_0").setText("b")
@@ -5390,7 +5390,7 @@ def test_discard_body_when_preset_changed_twice(open_window: Callable[..., Opene
 def test_discard_body_when_preset_hotkey_and_send_enter_changed(
     open_window: Callable[..., Opened],
 ) -> None:
-    """ブラウザ添付の 1 つのプリセットのホットキーと Enter まで送るを変えても、変えた件数は 1 件。"""
+    """ブラウザ添付の 1 つのプリセットのホットキーと Enter まで送信を変えても、変えた件数は 1 件。"""
     # 準備
     opened = open_window(_settings_with_presets())
     _select_kind(opened.window, "browser")

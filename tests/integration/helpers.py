@@ -226,7 +226,7 @@ class FakeEngine:
 
 @dataclass
 class VadScript:
-    """連続録音を開始たびに作る話し声の判定の偽物の、確率の並びと失敗の指定。"""
+    """連続録音を開始するたびに作る話し声の判定の偽物の、確率の並びと失敗の指定。"""
 
     phases: tuple[tuple[float, int], ...] = ()
     """(話し声の確率, 窓の数) の並び。"""
@@ -427,7 +427,7 @@ class Stack:
         return str(response.json()["session_id"])
 
     def set_segments(self, count: int, *, tail: float = 0.0) -> None:
-        """話し声の判定の偽物を、区間が count 個区切れる並び（話し声の後に区切りの無音）にする。tail は並びの後の確率。連続録音を開始前に呼ぶ（判定は始めるたびに今の並びで作る）。"""
+        """話し声の判定の偽物を、区間が count 個区切れる並び（話し声の後に区切りの無音）にする。tail は並びの後の確率。連続録音を開始する前に呼ぶ（判定は開始するたびに今の並びで作る）。"""
         self.vad.phases = SEGMENT_PHASES * count
         self.vad.tail = tail
 

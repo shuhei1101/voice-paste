@@ -38,4 +38,4 @@ knowledge 側の文書の修正（[shuhei1101/knowledge#46](https://github.com/s
 - [x] 単体テスト作成
 - [x] 実装
 - [x] 結合テスト作成
-- [ ] E2E テスト作成
+- [x] E2E テスト作成

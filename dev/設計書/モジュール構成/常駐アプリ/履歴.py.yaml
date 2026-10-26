@@ -4,7 +4,7 @@ directory: |-
   ```
   src/voice_paste/features/history/
   ├── __init__.py   # save_recording・store_web_audio・append_text・discard_temporary・purge_expired の公開
-  └── service.py    # 録音の保存・ブラウザの音声の保存・文字の書き足し・一時の音声の削除・古い履歴の削除
+  └── service.py    # 録音の保存・ブラウザの音声の保存・文字の追記・一時の音声の削除・古い履歴の削除
   ```
 functions:
   - name: save_recording
@@ -77,7 +77,7 @@ functions:
       2. 書き先のフォルダを作り、録音をモノラルの 16 bit の WAV（scipy）で書く
          - `[INFO]` 録音を残した（パス・長さ）
   - name: append_text
-    title: 履歴への文字の書き足し
+    title: 履歴への文字の追記
     kind: 関数
     container: features/history/service.py
     usecase: 録音を文字に起こす

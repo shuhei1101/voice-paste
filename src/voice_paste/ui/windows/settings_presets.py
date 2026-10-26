@@ -34,7 +34,7 @@ PRESET_FIELD_LABELS: dict[str, str] = {
     "title": "タイトル",
     "url": "URL",
     "hotkey": "確定のホットキー",
-    "send_enter": "Enter まで送る",
+    "send_enter": "Enter まで送信",
     "authorization": "Authorization",
 }
 """プリセットの項目ごとの、画面の欄の名前（エラーの一覧にも出す）。"""
@@ -65,7 +65,7 @@ class _PresetRow:
 
 
 class PresetListPanel(QWidget):
-    """設定画面の 1 つの種類のタブに置く、プリセットのまとまりの縦の並びと「プリセットを足す」。"""
+    """設定画面の 1 つの種類のタブに置く、プリセットのまとまりの縦の並びと「プリセットを追加」。"""
 
     changed = Signal()
     """足す・消す・並べ替え・欄の入力で値が変わった（設定画面が変えた欄の数えに使う）。"""
@@ -92,7 +92,7 @@ class PresetListPanel(QWidget):
 
         self._empty_label = QLabel(
             f"{PRESET_KIND_NAMES[kind]}のプリセットはまだありません。"
-            "足すと、録音の画面の「カスタムプリセット」にボタンが出ます。"
+            "追加すると、録音の画面の「カスタムプリセット」にボタンが出ます。"
         )
         self._empty_label.setObjectName(f"preset_empty_{kind}")
         self._empty_label.setWordWrap(True)
@@ -101,7 +101,7 @@ class PresetListPanel(QWidget):
         self._rows_layout = QVBoxLayout()
         outer.addLayout(self._rows_layout)
 
-        add_button = QPushButton("プリセットを足す")
+        add_button = QPushButton("プリセットを追加")
         add_button.setObjectName(f"add_preset_button_{kind}")
         add_button.clicked.connect(self.add_preset)
         outer.addWidget(add_button, alignment=Qt.AlignmentFlag.AlignLeft)
@@ -303,7 +303,7 @@ class PresetListPanel(QWidget):
             enabled.setAccessibleName(f"{name}を有効にする")
             up_button.setAccessibleName(f"{name}を上へ")
             down_button.setAccessibleName(f"{name}を下へ")
-            remove_button.setAccessibleName(f"{name}を消す")
+            remove_button.setAccessibleName(f"{name}を削除")
             clear_button.setAccessibleName(f"{name}のホットキーを空にする")
 
         def sync_clear_button() -> None:

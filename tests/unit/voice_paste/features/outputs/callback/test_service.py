@@ -152,7 +152,7 @@ def test_deliver_to_caller() -> None:
 
 
 def test_deliver_to_caller_when_segment() -> None:
-    """連続録音の区間は通し番号を付けて送る（正常系）。"""
+    """連続録音の区間は通し番号を付けて送信する（正常系）。"""
     # 準備
     post = MagicMock(return_value=_result(200))
     sleep = MagicMock()
@@ -224,7 +224,7 @@ def test_deliver_to_caller_when_retry_after_too_long(caplog: pytest.LogCaptureFi
 
 
 def test_deliver_to_caller_when_client_error(caplog: pytest.LogCaptureFixture) -> None:
-    """送り直しても変わらない 4xx は再送しない（正常系）。"""
+    """再送しても変わらない 4xx は再送しない（正常系）。"""
     # 準備
     caplog.set_level(logging.WARNING)
     post = MagicMock(return_value=_result(404))
@@ -258,7 +258,7 @@ def test_deliver_to_caller_when_unreachable(caplog: pytest.LogCaptureFixture) ->
 
 
 def test_deliver_to_caller_when_not_allowed() -> None:
-    """許されない返送先へは送らない（異常系）。"""
+    """許されない返送先へは送信しない（異常系）。"""
     # 準備
     post = MagicMock()
     sleep = MagicMock()

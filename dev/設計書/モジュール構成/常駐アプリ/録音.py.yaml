@@ -165,7 +165,7 @@ classes:
         type: queue.Queue[numpy.ndarray | None] | None
         access: 内部 (_)
         default: None
-        description: 連続録音で、入力のスレッドから区切りのスレッドへ渡す音の待ち行列（None は残りを区切って終える印、固定の空の配列 _DISCARD_MARK は残りを区間にせずに終える印）。連続録音でなければ None
+        description: 連続録音で、入力のスレッドから区切りのスレッドへ渡す音の待ち行列（None は残りを区切って終えるマーカー、固定の空の配列 _DISCARD_MARK は残りを区間にせずに終えるマーカー）。連続録音でなければ None
       - name: _segment_thread
         type: threading.Thread | None
         access: 内部 (_)
@@ -397,7 +397,7 @@ classes:
         process: |-
           1. start と同じく、録音中なら RuntimeError を送出し、設定を読んで音量を下げる
           2. 新しい話し声の判定（_create_speech_detector）と on_segment・min_silence_sec で Segmenter を作り、音の待ち行列を空で作る
-          3. 区切りのスレッドを始める（待ち行列から音を取り出して Segmenter.feed へ渡し、終わりの印で Segmenter.flush を呼んで終える。捨てる印では flush せずに終える）
+          3. 区切りのスレッドを始める（待ち行列から音を取り出して Segmenter.feed へ渡し、終わりのマーカーで Segmenter.flush を呼んで終える。捨てるマーカーでは flush せずに終える）
              - feed・flush の例外の場合、そこで連続録音を終える。入力を閉じて音量を戻し（_close。入力は待ち行列へ積めなくなり、音は貯まらない）、待ち行列を空にして、on_failed に理由を渡してスレッドを終える（それまでに渡した区間はそのまま）
                - `[ERROR]` 連続録音の区切りに失敗したため録音を止めた（logger.exception）
           4. マイクの入力を開く（_on_frames は音を待ち行列へ積む）
@@ -441,7 +441,7 @@ classes:
         process: |-
           1. 連続録音していなければ RuntimeError を送出する（区切りに失敗して自ら止めた後を含む）
           2. 入力を閉じて音量を戻す（_close）
-          3. 待ち行列へ終わりの印を積み、区切りのスレッドの終わりを待つ（スレッドが残りの音を feed し、flush で最後の区間を渡す）
+          3. 待ち行列へ終わりのマーカーを積み、区切りのスレッドの終わりを待つ（スレッドが残りの音を feed し、flush で最後の区間を渡す）
           4. 待ち行列とスレッドを手放す
              - `[INFO]` 連続録音を止めた
         exceptions:
@@ -548,12 +548,12 @@ classes:
           - name: block
             type: numpy.ndarray
             required: true
-            description: 入力から届いた音（形 (フレーム数, 1) か (フレーム数,)・int16。長さは揃わない）
+            description: 入力から届いた音（形状 (フレーム数, 1) か (フレーム数,)・int16。長さは揃わない）
         returns:
           type: None
           description: なし
         process: |-
-          1. block を 1 次元にして _audio に足し、INT16_SCALE で割った float32 を _pending に足す
+          1. block を 1 次元にして _audio に追加し、INT16_SCALE で割った float32 を _pending に追加する
           2. _pending が VAD_WINDOW 以上ある間、先頭の 1 窓を取り出して話し声の確率を求め、_step で状態を進めて _position を VAD_WINDOW 進める
           3. 1 窓進めるたびに _discard_idle_audio で話し声の無い間の音を手放す
         unit_tests:
@@ -715,12 +715,12 @@ functions:
         type: Callable[[numpy.ndarray], None]
         required: true
         passing: positional
-        description: 届いた音（形 (フレーム数, 1)）を受け取る
+        description: 届いた音（形状 (フレーム数, 1)）を受け取る
     returns:
       type: sounddevice.InputStream
       description: 始めた入力
     process: |-
-      1. sounddevice の InputStream を samplerate=SAMPLE_RATE・channels=1・dtype=int16 で作り、コールバックで届いた音の写しを on_frames へ渡す
+      1. sounddevice の InputStream を samplerate=SAMPLE_RATE・channels=1・dtype=int16 で作り、コールバックで届いた音のコピーを on_frames へ渡す
          - コールバックに状態（オーバーフロー等）が付いていれば `[WARNING]` 入力の状態（状態）
       2. start して返す
          - 作る・始めるときの例外（PortAudioError 等）はそのまま上げる（Recorder が MicrophoneUnavailableError に変える）
@@ -730,7 +730,7 @@ functions:
         summary: 決めた形式で開いて始め、届いた音を渡す
         condition: InputStream の Mock のコールバックへ 160 フレームの音を渡す
         mock: sounddevice.InputStream
-        expected: samplerate=16000・channels=1・dtype='int16' で作られて start が呼ばれ、on_frames に同じ値の写しが渡る
+        expected: samplerate=16000・channels=1・dtype='int16' で作られて start が呼ばれ、on_frames に同じ値のコピーが渡る
     refs:
       - dev/設計書/外部ライブラリ/sounddevice#
     status: implemented
@@ -739,7 +739,7 @@ constants:
     title: 録音のサンプルレート
     container: features/recording/client.py
     usecase: 録音する
-    summary: マイクの入力のサンプルレート（Hz）。刷新前と同じ値で、文字起こしと履歴が受ける形
+    summary: マイクの入力のサンプルレート（Hz）。刷新前と同じ値で、文字起こしと履歴が受ける形式
     value: '16000'
     status: implemented
   - name: VAD_WINDOW

@@ -4,7 +4,7 @@ entry:
   value: POST /web/transcriptions
 flows:
   - name: 正常系
-    summary: 許す Origin から送られた音声を受け付け、job_id を返す
+    summary: 許す Origin から送信された音声を受け付け、job_id を返す
     setup:
       - name: Mock
         description: ブラウザの音声のキューを、積まれたジョブを控えて取り出さないものに差し替える。一時のフォルダはテストの一時フォルダ
@@ -32,7 +32,7 @@ flows:
       ```
     expected:
       - 202 と 22 文字の job_id が返る
-      - 一時のフォルダに `.webm` のファイルが 1 つあり、中身が送った音声と同じ
+      - 一時のフォルダに `.webm` のファイルが 1 つあり、中身が送信した音声と同じ
       - キューにその job_id のジョブが queued で 1 件積まれている
       - ログに job_id・大きさ・形式・秒数が書かれている
     test: test_normal
@@ -108,7 +108,7 @@ flows:
       - name: Mock
         description: ブラウザの本文の上限を 1,000 バイトに差し替える。一時のフォルダはテストの一時フォルダ
       - name: 要求
-        description: 本文が 1,000 バイトになる音声を、Content-Length を付けて送るものと、chunked で送るものの 2 通り
+        description: 本文が 1,000 バイトになる音声を、Content-Length を付けて送信するものと、chunked で送信するものの 2 通り
     flow: |-
       ```mermaid
       sequenceDiagram
@@ -216,7 +216,7 @@ flows:
       - 400 の problem+json が返り、detail に指定したプリセットの名前が含まれている
       - 一時のフォルダにファイルが残らず、キューにジョブが積まれていない
     test: test_error_when_glossary_preset_not_found
-lead: 外の端末のブラウザから送られた音声を受け、一時のファイルに書いて文字起こしのジョブを積み、ジョブの ID を返す。
+lead: 外の端末のブラウザから送信された音声を受け、一時のファイルに書いて文字起こしのジョブを積み、ジョブの ID を返す。
 identifier: create_web_transcription
 permissions: なし（外からの認証は Cloudflare Access が持つ。常駐アプリは Host と Origin だけを確かめる）
 idempotent: false
@@ -250,7 +250,7 @@ request:
     type: UploadFile
     required: true
     location: body
-    description: 送る音声。`multipart/form-data` のファイルの項目
+    description: 送信する音声。`multipart/form-data` のファイルの項目
     constraints: PyAV（faster-whisper）で音声のストリームを読める形式（webm・ogg・mp4・MP3・WAV など）
     format: binary
     notes: 形式は Content-Type やファイル名ではなく、中身を PyAV で開いて決める。一時のファイルの拡張子は PyAV が読んだ容れ物の形式から付ける
@@ -295,7 +295,7 @@ response_example: |-
     "job_id": "q3Vb8sXk2mJf0tLw9eRzAg"
   }
   ```
-response_notes: 同じ音声を 2 回送ると、別のジョブが 2 つ積まれる（画面の再送信は新しい job_id を受け取る）。
+response_notes: 同じ音声を 2 回送信すると、別のジョブが 2 つ積まれる（画面の再送信は新しい job_id を受け取る）。
 status_codes:
   - code: '202'
     condition: 音声を受け付けてジョブを積んだ

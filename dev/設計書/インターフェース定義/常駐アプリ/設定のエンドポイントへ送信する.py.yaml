@@ -1,0 +1,110 @@
+title: "設定のエンドポイントへ送信する"
+entry:
+  kind: trigger
+  value: ホットキー・トレイから始めた録音を「エンドポイントへ送信」種類のプリセットで確定し、空でない文字が起きたときに `POST {プリセットの URL}` を送信する
+flows:
+  - name: 正常系
+    summary: 起こした文字を送信先へ送信する
+    setup:
+      - name: Mock
+        description: 送信先を 127.0.0.1 のテスト用のエンドポイントにし、200 を返す
+      - name: プリセット
+        description: 「エンドポイントへ送信」種類で、URL にテスト用のエンドポイント、Authorization を空にした有効なプリセットを選んで確定する
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant IF as 設定のエンドポイントへ送信する
+        participant EP as 送信先
+
+        IF->>EP: POST session_id・result=transcribed・text
+        EP-->>IF: 200
+      ```
+    expected:
+      - 送信先に result=transcribed と起こした文字が 1 回届いている
+      - 送信先に `Authorization` ヘッダーが届いていない
+    test: test_normal
+  - name: 正常系（認証のヘッダーを付ける）
+    summary: プリセットの Authorization の値を `Authorization` ヘッダーに入れて送信する
+    setup:
+      - name: Mock
+        description: 送信先を 127.0.0.1 のテスト用のエンドポイントにし、200 を返す
+      - name: プリセット
+        description: 選んだプリセットの Authorization に `Bearer test-token` を入れる
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant IF as 設定のエンドポイントへ送信する
+        participant EP as 送信先
+
+        IF->>EP: POST（Authorization: Bearer test-token）session_id・result・text
+        EP-->>IF: 200
+      ```
+    expected:
+      - '送信先に `Authorization: Bearer test-token` が付いて 1 回届いている'
+      - ログに `test-token` が書かれていない
+    test: test_normal_when_authorization_set
+  - name: 異常系（送信先に届かない）
+    summary: 2xx 以外か接続できなければ再送せず DeliveryError にする
+    setup:
+      - name: Mock
+        description: 送信先を 127.0.0.1 のテスト用のエンドポイントにし、常に 500 を返す
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant IF as 設定のエンドポイントへ送信する
+        participant EP as 送信先
+
+        IF->>EP: POST session_id・result・text
+        EP-->>IF: 500
+        IF->>IF: DeliveryError を送出する
+      ```
+    expected:
+      - 送信先への送信が 1 回だけ行われている
+      - DeliveryError が送出され、セッションが届けられなかったことを通知して待機中に戻っている
+    test: test_error_when_endpoint_unreachable
+lead: 起こした文字を、選んだ「エンドポイントへ送信」プリセットの送信先へ JSON で 1 回送信する。
+identifier: deliver_to_endpoint
+idempotent: false
+side_effects: 送信先へ HTTP で 1 回送信する。届かなければ再送せず DeliveryError にし、セッションがトレイで通知してログに理由を書く。
+exclusivity: 1 セッションにつき 1 回だけ送信する。
+exceptions:
+  - name: なし（正常終了）
+    condition: 送信先が 2xx を返した
+  - name: DeliveryError
+    condition: タイムアウト・接続できない・2xx 以外のどれかで届かない
+    notes: 再送しない。履歴は残り、常駐サービスは届けられなかったことを通知して待機中に戻る
+constraints:
+  - item: 送信先
+    constraint: 確定で選んだ「エンドポイントへ送信」プリセットの URL（http か https）だけ。ホストは制限しない。確定したときの設定のプリセット（URL・Authorization）で送信し、届けるまでに設定を変えてもその録音には効かない
+  - item: 送信先が無いとき
+    constraint: プリセットの URL は必須で、空や http / https 以外では保存できない（設定の確かめが断る）
+  - item: 認証
+    constraint: プリセットの Authorization の値が空でなければ、その値を `Authorization` ヘッダーに入れて送信する。空なら付けない。値は秘密としてログに書かない
+  - item: タイムアウト
+    constraint: 「エンドポイントへ送信」の全てのプリセットで共通の設定の値（既定・範囲は非機能要件のエンドポイントへ送信するときのタイムアウト）。届けるたびに設定を読む
+    decided_by: dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送信するときのタイムアウト]
+  - item: 再送
+    constraint: しない（1 回で届かなければ DeliveryError）
+  - item: リダイレクト
+    constraint: 追わない
+    notes: 認証のヘッダーを設定に書いていない先へ流さない
+  - item: エンドポイントの応答時間
+    constraint: エンドポイントは受け取ってから 1 秒以内に 2xx を返す。重い処理は 2xx を返した後で行う
+    decided_by: dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送信するときのタイムアウト]
+    notes: 利用者が用意するエンドポイントとの取り決めで、既定のタイムアウトはこの時間から導く。取り決めを守らない外のエンドポイント（Webhook 等）は、設定でタイムアウトを延ばす
+notes:
+  送信する内容: |-
+    呼び出し元へ返す の `送信する内容` と同じ構造の `application/json` を送信する。
+    この出力先へ届くのは空でない文字を起こせたときだけなので、`result` は `transcribed`、`error` は `null` になる。
+
+    ```json
+    {
+      "session_id": "3f1c2a9e-8d4b-4c4e-9a0b-2f7d1e6c5b10",
+      "result": "transcribed",
+      "text": "今日の会議は 15 時からです。",
+      "error": null
+    }
+    ```
+refs:
+  - dev/設計書/インターフェース定義/常駐アプリ/呼び出し元へ返す.py#notes.送信する内容
+test_file: tests/integration/test_deliver_to_endpoint.py

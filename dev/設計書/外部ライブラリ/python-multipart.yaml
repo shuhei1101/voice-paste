@@ -5,7 +5,7 @@ version:
   latest: 0.0.32
   checked_on: '2026-10-23'
   source: pyproject.toml
-  pinning: パッチ版を含めて固定（~=0.0.32。0.0.x はパッチ版で互換の無い変更が入りうる）。0.0.18 未満にあった DoS（境界の前後の大量のデータで解析が遅くなる）の修正を含む版を使う（fastapi の `standard` も >=0.0.18 を求める）
+  pinning: パッチバージョンを含めて固定（~=0.0.32。0.0.x はパッチバージョンで互換の無い変更が入りうる）。0.0.18 未満にあった DoS（境界の前後の大量のデータで解析が遅くなる）の修正を含むバージョンを使う（fastapi の `standard` も >=0.0.18 を求める）
 catalogs:
   - name: API
     version: 0.0.32
@@ -18,7 +18,7 @@ catalogs:
         purpose: 受けた音声を PyAV で開いて形式を確かめ、一時のフォルダへ写す
       - name: UploadFile.close
         kind: メソッド
-        purpose: 写し終えたら SpooledTemporaryFile を閉じて消す
+        purpose: コピーし終えたら SpooledTemporaryFile を閉じて削除する
 lead: multipart/form-data の本文を流しながら解析する Python のライブラリ。Starlette の `request.form()` と FastAPI の `UploadFile`・`Form` が使う。
 purl: pkg:pypi/python-multipart
 supplier: Kludex（Starlette の保守者）
@@ -28,7 +28,7 @@ upstream: Kludex/python-multipart
 verification:
   state: 済
   date: '2026-10-23'
-  detail: 'WSL（Linux・Python 3.12）で fastapi 0.142.4・python-multipart 0.0.32 を入れ、`UploadFile` の引数 `audio` に 5,000,000 バイトのファイルを multipart で送って 200・大きさ・ファイル名・Content-Type が受け取れ、中身が `SpooledTemporaryFile` に溜まること、`audio` が無いと入力の検証の失敗（missing）になることを確かめた。PR #171 の PoC（`poc/server.py`）で、95 MiB の multipart を 127.0.0.1 へ直接送り、一時のファイルへ写して 0.41 秒で返ることも確かめてある。Windows の実機では未確認'
+  detail: 'WSL（Linux・Python 3.12）で fastapi 0.142.4・python-multipart 0.0.32 を入れ、`UploadFile` の引数 `audio` に 5,000,000 バイトのファイルを multipart で送信して 200・大きさ・ファイル名・Content-Type が受け取れ、中身が `SpooledTemporaryFile` に溜まること、`audio` が無いと入力の検証の失敗（missing）になることを確かめた。PR #171 の PoC（`poc/server.py`）で、95 MiB の multipart を 127.0.0.1 へ直接送信し、一時のファイルへコピーして 0.41 秒で返ることも確かめてある。Windows の実機では未確認'
 license: Apache-2.0（商用利用可）
 official_url: https://github.com/Kludex/python-multipart
 docs_url: https://kludex.github.io/python-multipart/

@@ -30,8 +30,8 @@ INTRO_TEXT: str = "間違えやすい語の正しい表記を並べる。文字�
 
 NOTES_TEXT: str = (
     "・ヒントを渡すと、句読点が付く・改行がまとまる・口癖が一部消える。\n"
-    "・並べた表記にほかの語が引っ張られたら、その語も足す"
-    "（例: TypeScript がタイプスクリプトになったら「TypeScript」を足す）。"
+    "・並べた表記にほかの語が引っ張られたら、その語も追加する"
+    "（例: TypeScript がタイプスクリプトになったら「TypeScript」を追加する）。"
 )
 """まとまりの末尾に出す、ヒントを渡すと変わる書き方と、引っ張られた語への対処。"""
 
@@ -146,7 +146,7 @@ def _dim(widget: QWidget, *, dimmed: bool) -> None:
 
 
 class HintPresetPanel(QWidget):
-    """設定画面の「表記のヒント」のまとまりに置く、有効なヒントの長さ・プリセットの縦の並び・「プリセットを足す」・補足。
+    """設定画面の「表記のヒント」のまとまりに置く、有効なヒントの長さ・プリセットの縦の並び・「プリセットを追加」・補足。
 
     足す・消す・並べ替え・入力はこの部品の中だけを変え、settings.toml へは設定画面の保存で書く。
     """
@@ -212,7 +212,7 @@ class HintPresetPanel(QWidget):
         self._rows_layout.setSpacing(8)
         outer.addLayout(self._rows_layout)
 
-        add_button = QPushButton("プリセットを足す")
+        add_button = QPushButton("プリセットを追加")
         add_button.setObjectName("hint_preset_add")
         add_button.clicked.connect(self.add_preset)
         outer.addWidget(add_button, alignment=Qt.AlignmentFlag.AlignLeft)
@@ -470,7 +470,7 @@ class HintPresetPanel(QWidget):
             empty_words = QLabel(EMPTY_WORDS_TEXT)
             empty_words.setObjectName(f"hint_words_empty_{position}")
             column.addWidget(empty_words)
-        add_word_button = QPushButton("語を足す")
+        add_word_button = QPushButton("語を追加")
         add_word_button.setObjectName(f"hint_word_add_{position}")
         add_word_button.clicked.connect(lambda: self.add_word(position))
         column.addWidget(add_word_button, alignment=Qt.AlignmentFlag.AlignLeft)
@@ -483,7 +483,7 @@ class HintPresetPanel(QWidget):
             enabled_box.setAccessibleName(f"{spoken}を有効にする")
             up_button.setAccessibleName(f"{spoken}を上へ")
             down_button.setAccessibleName(f"{spoken}を下へ")
-            remove_button.setAccessibleName(f"{spoken}を消す")
+            remove_button.setAccessibleName(f"{spoken}を削除")
 
         def sync_enabled() -> None:
             """有効の切り替えの右の文字と、語の欄の薄さ・取り消し線を今の状態に合わせる。"""
@@ -518,7 +518,7 @@ class HintPresetPanel(QWidget):
         edit.setObjectName(f"hint_word_{position}_{word_position}")
         edit.setAccessibleName(f"{word_position + 1} つ目の語")
         remove_button = self._operation_button("×", f"hint_word_remove_{position}_{word_position}")
-        remove_button.setAccessibleName(f"{word_position + 1} つ目の語を消す")
+        remove_button.setAccessibleName(f"{word_position + 1} つ目の語を削除")
         remove_button.clicked.connect(lambda: self._remove_word(position, word_position))
         pair.addWidget(edit, 1)
         pair.addWidget(remove_button)

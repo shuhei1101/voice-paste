@@ -28,7 +28,7 @@ flows:
       - 録音の画面を開いていない
     test: test_normal
   - name: 正常系（連続録音）
-    summary: continuous=true で、完了が来るまで止めない画面を出さない録音を始め、セッションの ID を返す
+    summary: continuous=true で、完了が来るまで停止しない画面を出さない録音を始め、セッションの ID を返す
     setup:
       - name: Mock
         description: マイク・システム音量・トレイを差し替える（マイクは開ける）
@@ -217,11 +217,11 @@ flows:
       - 400 が返り、detail に指定したプリセットの名前が含まれている
       - 録音が始まっていない
     test: test_error_when_glossary_preset_not_found
-lead: 返送先のエンドポイントを受け取り、画面を出さない録音を始めてセッションの ID を返す。continuous を指定すると、完了が来るまで録音を止めず、無音で区切った区間ごとに返す連続録音を始める。
+lead: 返送先のエンドポイントを受け取り、画面を出さない録音を始めてセッションの ID を返す。continuous を指定すると、完了が来るまで録音を停止せず、無音で区切った区間ごとに返す連続録音を始める。
 identifier: start_session
 permissions: 今回の起動のトークン（トークンのファイルを読める、同じ端末・同じユーザーのプロセス）
 idempotent: false
-side_effects: マイクの録音を始め、設定で録音中の音量を下げるようにしていればシステム音量を下げる。トレイのアイコンを録音中にする。連続録音では、区切った区間ごとに履歴へ保存し（履歴を残す設定のとき）、文字に起こして 呼び出し元へ返す が返送先へ送る。
+side_effects: マイクの録音を始め、設定で録音中の音量を下げるようにしていればシステム音量を下げる。トレイのアイコンを録音中にする。連続録音では、区切った区間ごとに履歴へ保存し（履歴を残す設定のとき）、文字に起こして 呼び出し元へ返す が返送先へ送信する。
 exclusivity: 録音・文字起こしは入口（ホットキー・トレイ・API）をまたいで同時に 1 つだけ。処理中に来た開始は 409 で断る。
 request:
   - name: Authorization
@@ -259,7 +259,7 @@ request:
     required: false
     default: 'false'
     location: body
-    description: 連続録音にするか。true なら、完了が来るまで録音を止めず、無音で区切った区間ごとに起こした文字を返送先へ送る。false なら、1 回の録音を確定してから 1 回だけ返す
+    description: 連続録音にするか。true なら、完了が来るまで録音を停止せず、無音で区切った区間ごとに起こした文字を返送先へ送信する。false なら、1 回の録音を確定してから 1 回だけ返す
     example: 'true'
     status: planned
   - name: glossary_preset

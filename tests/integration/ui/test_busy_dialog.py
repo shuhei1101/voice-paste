@@ -104,12 +104,12 @@ def test_busy_dialog_when_reopened() -> None:
 
 
 def test_busy_title() -> None:
-    """始められないことを「録音を始められません」と伝える。"""
+    """始められないことを「録音を開始できませんでした」と伝える。"""
     # 実行
     dialog = _shown_dialog()
 
     # 検証
-    assert dialog.text() == "録音を始められません"
+    assert dialog.text() == "録音を開始できませんでした"
 
 
 def test_busy_body() -> None:

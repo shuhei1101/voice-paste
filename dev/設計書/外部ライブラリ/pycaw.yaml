@@ -3,8 +3,8 @@ kind: "ライブラリ"
 version:
   current: '20251023'
   checked_on: '2026-10-01'
-  source: pyproject.toml（==20251023）と uv.lock の版
-  pinning: 版を固定（==20251023。日付の版で API が変わるため。上げるときは音量のアダプタの契約テストを回す）
+  source: pyproject.toml（==20251023）と uv.lock のバージョン
+  pinning: バージョンを固定（==20251023。日付のバージョンで API が変わるため。上げるときは音量のアダプタの契約テストを回す）
 catalogs:
   - name: API
     version: '20251023'

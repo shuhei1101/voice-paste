@@ -4,7 +4,7 @@
 クリックとキーを Qt のイベントで渡して欄・ボタンを操作する（欄は項目 ID `field_{キー}`、確認ダイアログは予約して答える）。
 設定ファイルは起動した一時フォルダの `settings.toml`（`--data-dir`）で、普段使いの設定には触れない。
 「保存して再起動」で起動し直す新しいプロセスだけは別プロセスで動き（Qt は offscreen）、ログとトークンのファイルで確かめる。
-変えた設定で録音を始めるケース（正常シナリオ・カスタムプリセットを足す）は、録音の入力を WAV を流すものに、
+変えた設定で録音を始めるケース（正常シナリオ・カスタムプリセットを追加する）は、録音の入力を WAV を流すものに、
 システム音量を呼ばれた値を控えるものに差し替える（マイクを開かず、システム音量を変えない）。
 ホットキーの受付は差し替えているため、登録された関数を呼んで押したことにする。
 `--run-e2e` が無ければ skip する。
@@ -208,7 +208,7 @@ def test_normal_when_save_and_restart(run_app: RunApp) -> None:
         app.open_settings()
         app.select_group("文字起こし")
         app.set_field(RESTART_KEY, "5")
-        assert app.window("restart_notice") is not None, "再起動で反映の知らせが出なかった"
+        assert app.window("restart_notice") is not None, "再起動のメッセージが出なかった"
 
         # 実行
         app.press("save_and_restart_button")
@@ -256,10 +256,10 @@ def test_normal_when_reset(run_app: RunApp) -> None:
 
 
 def test_normal_when_cancel(run_app: RunApp) -> None:
-    """欄を書き換えて「キャンセル」を押し、確認で「捨てて閉じる」を選ぶと、何も書かずに閉じる（正常シナリオ）。"""
+    """欄を書き換えて「キャンセル」を押し、確認で「破棄して閉じる」を選ぶと、何も書かずに閉じる（正常シナリオ）。"""
 
     def case(app: ResidentApp) -> None:
-        """設定画面で欄を書き換えて「キャンセル」を押し、捨てて閉じる。"""
+        """設定画面で欄を書き換えて「キャンセル」を押し、破棄して閉じる。"""
         # 準備
         before = _settings_file(app).read_bytes()
         app.open_settings()
@@ -304,7 +304,7 @@ def test_error_when_invalid_value(run_app: RunApp) -> None:
 def test_normal_when_add_custom_preset(
     run_app: RunApp, tmp_path: Path, receiver: CallbackReceiver
 ) -> None:
-    """「エンドポイントへ送る」のプリセットを足して保存し、確認なしに閉じると、再起動せずに次の録音の画面にそのボタンが出て、そのホットキーで確定すると起こした文字が受け口へ届く（正常シナリオ）。
+    """「エンドポイントへ送信」のプリセットを追加して保存し、確認なしに閉じると、再起動せずに次の録音の画面にそのボタンが出て、そのホットキーで確定すると起こした文字が受け口へ届く（正常シナリオ）。
 
     プリセットの URL はテストが 127.0.0.1 に立てた受け口で、録音の入力は音声合成の WAV（ローカルの Whisper で起こす）。
     """
@@ -313,7 +313,7 @@ def test_normal_when_add_custom_preset(
         """設定画面でプリセットを足して「保存」を押し、「キャンセル」で閉じて、録音を始めてプリセットのホットキーの関数で確定する。"""
         # 準備
         app.open_settings()
-        app.select_group("エンドポイントへ送る")
+        app.select_group("エンドポイントへ送信")
 
         # 実行（タイトル・URL・確定のホットキーを入れて保存する）
         app.press("add_preset_button_endpoint")
@@ -529,7 +529,7 @@ def _keeps_values(before: dict[str, object], after: dict[str, object]) -> bool:
 
 
 def test_normal_when_edit_edge_phrases(run_app: RunApp) -> None:
-    """文頭・文末から消す文言の行を足して先頭へ動かし、既定の行を消して保存すると、settings.toml に一覧の順で書かれ、設定画面は開いたまま保存できたことを出し、再起動せずに補正へ効く（正常シナリオ（文頭・文末から消す文言を編集する））。
+    """文頭・文末から削除する文言の行を追加して先頭へ動かし、既定の行を削除して保存すると、settings.toml に一覧の順で書かれ、設定画面は開いたまま保存できたことを出し、再起動せずに補正へ効く（正常シナリオ（文頭・文末から削除する文言を編集する））。
 
     補正は、動いている常駐アプリの補正に文字を渡して確かめる（マイクは開かない。録音を通した補正は「録音を文字に起こす」の E2E）。
     """

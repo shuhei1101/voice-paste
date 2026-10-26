@@ -104,10 +104,10 @@ class UiDeps:
     """用語集の CSV の行を、オン・オフと片方が空の行も含めて読む（read_glossary_rows）。読めなければ GlossaryReadError を送出する。"""
 
     new_glossary_path: Callable[[Collection[Path]], Path]
-    """足す用語集の CSV の場所を、一覧にある場所と重ならないように決める（フォルダを部分適用した next_glossary_path）。"""
+    """追加する用語集の CSV の場所を、一覧にある場所と重ならないように決める（フォルダを部分適用した next_glossary_path）。"""
 
     copy: Callable[[str], None]
-    """クリップボードへ書く（copy_to_clipboard。書けなければ DeliveryError）。コピーの完了の通知を押したときにコピーし直す。"""
+    """クリップボードへ書く（copy_to_clipboard。書けなければ DeliveryError）。コピーの完了の通知を押したときにもう一度コピーする。"""
 
     switch_output: Callable[[str], None]
     """文字起こし中に届ける出力先を差し替える（SessionManager.switch_output）。文字起こし中の表示の切り替えのボタンが呼ぶ。"""
@@ -233,7 +233,7 @@ class UiController(QObject):
             logger.error(f"ホットキーを受け付けられなかった（{error}）")
 
     def hide_recording(self) -> None:
-        """RecordingWindow.hide_requested のスロット。その回の録音の画面を隠し、トレイの「録音の画面を出す」を押せるようにする。"""
+        """RecordingWindow.hide_requested のスロット。その回の録音の画面を隠し、トレイの「録音の画面を表示」を押せるようにする。"""
         # 出ていない（画面を出さない録音・すでに隠している）: 何もしない
         if not self._recording_shown or self._recording_hidden:
             return
@@ -313,13 +313,13 @@ class UiController(QObject):
             self._tray.set_recording_window(RecordingWindowState.NOT_RECORDING)
 
     def _recording_window_state(self, show_windows: bool) -> RecordingWindowState:
-        """録音中のトレイの「録音の画面を出す」の状態（画面を出さない設定なら出さない録音、出す設定なら隠しているか出ているか）。"""
+        """録音中のトレイの「録音の画面を表示」の状態（画面を出さない設定なら出さない録音、出す設定なら隠しているか出ているか）。"""
         if not show_windows:
             return RecordingWindowState.NO_WINDOW
         return RecordingWindowState.HIDDEN if self._recording_hidden else RecordingWindowState.SHOWN
 
     def _show_recording(self, *, paused: bool) -> None:
-        """録音の画面を出す（出ていれば一時停止の表示だけ替える。隠していても窓は出さず、状態の表示だけ替える）。"""
+        """録音の画面を表示する（出ていれば一時停止の表示だけ替える。隠していても窓は出さず、状態の表示だけ替える）。"""
         if self._recording_shown:
             self._recording_window.set_paused(paused)
             return

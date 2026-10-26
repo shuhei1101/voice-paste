@@ -215,7 +215,7 @@ def list_preset_glossaries(
 
 
 def next_glossary_path(taken: Collection[Path], *, directory: Path) -> Path:
-    """設定画面で足す用語集の CSV の場所を、今あるファイルとも一覧の用語集とも重ならない連番で決める。ファイルは作らない。"""
+    """設定画面で追加する用語集の CSV の場所を、今あるファイルとも一覧の用語集とも重ならない連番で決める。ファイルは作らない。"""
     number = 1
     while True:
         candidate = directory.absolute() / GLOSSARY_FILE_PATTERN.format(number=number)

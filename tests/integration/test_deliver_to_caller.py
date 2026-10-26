@@ -1,6 +1,6 @@
 """呼び出し元へ返す（返送先への POST）の結合テスト。
 
-API の開始・停止・完了を本物の app へ呼んで、起こした文字などが返送先のテスト用の受け口へ届くまでを確かめる。
+API の開始・停止・完了を本物の app へ呼んで、起こした文字などが返送先のテスト用の受信先へ届くまでを確かめる。
 マイク・システム音量・文字起こしのエンジンは偽物。再送の間隔だけ短くしてある。
 """
 
@@ -21,7 +21,7 @@ from voice_paste.features.outputs.callback.service import CALLBACK_RETRY_COUNT
 from voice_paste.shared.errors import EngineError
 
 RECEIVER_DELAY_SEC = 1.0
-"""受け口が返送を受け取ってから 2xx を返すまでの取り決めの上限（非機能要件の返送のタイムアウトと再送）。"""
+"""受信先が返送を受け取ってから 2xx を返すまでの取り決めの上限（非機能要件の返送のタイムアウトと再送）。"""
 
 
 def _complete_session(stack: Stack) -> str:
@@ -33,7 +33,7 @@ def _complete_session(stack: Stack) -> str:
 
 
 def test_normal(stack: Stack) -> None:
-    """起こした文字を返送先へ送る（正常系）。"""
+    """起こした文字を返送先へ送信する（正常系）。"""
     # 準備
     stack.engine.segments = ["てすと"]
 
@@ -55,7 +55,7 @@ def test_normal(stack: Stack) -> None:
 
 
 def test_normal_when_empty(stack: Stack) -> None:
-    """空の文字を返送先へ送る（正常系）。"""
+    """空の文字を返送先へ送信する（正常系）。"""
     # 準備
     stack.engine.segments = []
 
@@ -77,7 +77,7 @@ def test_normal_when_empty(stack: Stack) -> None:
 
 
 def test_normal_when_transcription_failed(stack: Stack) -> None:
-    """文字起こしの失敗を返送先へ送る（正常系）。"""
+    """文字起こしの失敗を返送先へ送信する（正常系）。"""
     # 準備
     stack.engine.error = EngineError("エンジンが落ちた")
 
@@ -95,7 +95,7 @@ def test_normal_when_transcription_failed(stack: Stack) -> None:
 
 
 def test_normal_when_truncated(stack: Stack) -> None:
-    """完了が来ないまま上限で打ち切ったことを返送先へ送る（正常系）。"""
+    """完了が来ないまま上限で打ち切ったことを返送先へ送信する（正常系）。"""
     # 準備
     session_id = stack.start_session()
     stack.clock.current = START + SESSION_LIMIT
@@ -127,7 +127,7 @@ def _rows(stack: Stack) -> list[tuple[str, int | None, int | None]]:
 
 
 def test_normal_when_continuous_segment(stack: Stack) -> None:
-    """連続録音で起こした区間の文字を、通し番号を付けて区切った順に送る（正常系）。"""
+    """連続録音で起こした区間の文字を、通し番号を付けて区切った順に送信する（正常系）。"""
     # 準備: 区間が 2 つ区切れる音を流す
     stack.set_segments(2)
     stack.start_session(continuous=True)
@@ -143,7 +143,7 @@ def test_normal_when_continuous_segment(stack: Stack) -> None:
 
 
 def test_normal_when_continuous_segment_failed(stack: Stack) -> None:
-    """連続録音の区間の文字起こしの失敗を通し番号つきで送り、連続録音は続ける（正常系）。"""
+    """連続録音の区間の文字起こしの失敗を通し番号つきで送信し、連続録音は続ける（正常系）。"""
     # 準備: 2 つ目の区間だけ文字起こしに失敗させる
     stack.engine.error_on_calls = {2}
     stack.set_segments(3)
@@ -260,7 +260,7 @@ def test_error_when_callback_unreachable(
 
 
 def test_normal_when_receiver_waits_one_second(stack: Stack) -> None:
-    """受け口が 1 秒待ってから 2xx を返しても再送されない（正常系）。"""
+    """受信先が 1 秒待ってから 2xx を返しても再送されない（正常系）。"""
     # 準備
     stack.receiver.delay_sec = RECEIVER_DELAY_SEC
 

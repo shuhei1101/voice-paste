@@ -24,7 +24,7 @@
     <!-- パンくず -->
     <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">web-confirm-dialog</a> / <a href="../">171</a> / <span>a-standard</span></nav>
 
-    <!-- 場面: 結果を 1 件消す（後ろは文字起こしの画面の「結果が届いた」） -->
+    <!-- 場面: 結果を 1 件削除する（後ろは文字起こしの画面の「結果が届いた」） -->
     <div data-scene-panel="delete">
       <div class="web">
         <!-- 画面の頭 -->
@@ -33,7 +33,7 @@
           <span class="web-top__sub">文字起こし</span>
         </header>
 
-        <!-- 送る区画（後ろで開いたまま） -->
+        <!-- 送信の区画（後ろで開いたまま） -->
         <section class="web-panel" aria-labelledby="h-send-del">
           <h2 id="h-send-del">音声送信</h2>
           <div class="send-actions">
@@ -46,7 +46,7 @@
         <section class="web-panel" aria-labelledby="h-results-del">
           <h2 id="h-results-del">結果</h2>
           <ul class="results">
-            <!-- 消そうとしている件 -->
+            <!-- 削除しようとしている件 -->
             <li class="result">
               <div class="result__head"><span class="result__time num">10/23 13:52</span><span class="result__src">画面録音・<span class="num">0:41</span></span></div>
               <p class="result__text">ホットキーの録音中でもブラウザから送れるかを確かめる。</p>
@@ -63,7 +63,7 @@
           <p class="web-dialog__quote">ホットキーの録音中でもブラウザから送れるかを確かめる。</p>
         </div>
         <div class="web-dialog__actions">
-          <!-- 最初のフォーカスは、消さない側に置く -->
+          <!-- 最初のフォーカスは、削除しない側に置く -->
           <a class="btn" href="../../../web-transcription/171/a-standard/index.html?scene=done" autofocus>キャンセル</a>
           <a class="btn btn--danger-fill" href="../../../web-transcription/171/a-standard/index.html?scene=deleted">削除</a>
         </div>
@@ -79,7 +79,7 @@
           <span class="web-top__sub">文字起こし</span>
         </header>
 
-        <!-- 送る区画（後ろで開いたまま） -->
+        <!-- 送信の区画（後ろで開いたまま） -->
         <section class="web-panel" aria-labelledby="h-send-rep">
           <h2 id="h-send-rep">音声送信</h2>
           <div class="send-actions">

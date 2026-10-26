@@ -6,7 +6,7 @@ tables:
     datastore: ファイル（WAV）
     summary: 確定した録音。文字起こしより先に書き、文字起こしに失敗しても結果が空でも残る
     growth: 録音を確定するたびに 1 つ増える（`history.enabled = true` のとき）。連続録音では区間を区切るたびに 1 つ増える
-    retention: '`history.retention_days` 日（日付のフォルダごと消す）'
+    retention: '`history.retention_days` 日（日付のフォルダごと削除する）'
     deletion: 物理削除（起動時と、常駐中は非機能要件の削除の間隔ごと）
     columns:
       - name: sample_rate
@@ -27,7 +27,7 @@ tables:
     datastore: ファイル（テキスト、UTF-8）
     summary: 起こした文字（用語集で補正した後）。同じ名前の録音の履歴と対になる
     growth: 文字起こしを終えるたびに 1 つ増える（結果が空でも書く。失敗した回は無い）
-    retention: '`history.retention_days` 日（日付のフォルダごと消す）'
+    retention: '`history.retention_days` 日（日付のフォルダごと削除する）'
     deletion: 物理削除（録音の履歴と同じ）
     columns:
       - name: text
@@ -40,8 +40,8 @@ tables:
     datastore: ファイル（WAV）
     summary: 履歴を残さない設定のときに、確定した録音を文字に起こすまで置く
     growth: 録音を確定するたびに 1 つ増える（`history.enabled = false` のとき）
-    retention: そのセッションの確定後の流れが終わるまで（文字起こしに失敗しても結果が空でも、終わったら消す）
-    deletion: 物理削除（確定後の流れの最後に一時の音声の削除で消す。常駐が落ちた・消せなかったときの取り残しは、古い履歴の削除が処理中のセッションのものを除いて消す）
+    retention: そのセッションの確定後の流れが終わるまで（文字起こしに失敗しても結果が空でも、終わったら削除する）
+    deletion: 物理削除（確定後の流れの最後に一時の音声の削除で取り除く。常駐が落ちた・削除できなかったときの取り残しは、古い履歴の削除が処理中のセッションのものを除いて取り除く）
     columns:
       - name: sample_rate
         title: サンプリングレート
@@ -84,7 +84,7 @@ tables:
     summary: 日付ごとに追記するアプリのログ（文字起こしワーカーの標準エラーも転送する）
     growth: 日付が変わるたびに 1 つ増える
     retention: '`logging.retention_days` 日'
-    deletion: 物理削除（起動時と、常駐中は非機能要件の削除の間隔ごと。`YYYY-MM-DD.log` の名前のファイルだけを消す）
+    deletion: 物理削除（起動時と、常駐中は非機能要件の削除の間隔ごと。`YYYY-MM-DD.log` の名前のファイルだけを削除する）
     columns:
       - name: ts
         title: 日時
@@ -122,13 +122,13 @@ tables:
     title: 用語集の CSV
     datastore: ファイル（CSV、UTF-8。BOM はあり・なしの両方を読み、書くときはあり）
     summary: 用語集 1 つの行（誤変換・正しい表記・補正に使うか）。1 行目は列名の見出し
-    growth: 設定画面で用語集を足して保存するたびに 1 つ増える。n は 1 からの連番で、フォルダに残っているファイルの番号は使わない
+    growth: 設定画面で用語集を追加して保存するたびに 1 つ増える。n は 1 からの連番で、フォルダに残っているファイルの番号は使わない
     retention: 期限なし
-    deletion: 消さない（設定画面の一覧から用語集を消しても、ファイルは残す）
-    access: 全件。補正は録音を確定するたびに、補正に使う用語集の CSV を読み直す
+    deletion: 削除しない（設定画面の一覧から用語集を削除しても、ファイルは残す）
+    access: 全件。補正は録音を確定するたびに、補正に使う用語集の CSV を再読み込みする
     description: |-
-      用語集ごとの場所は設定の `glossaries[].path` が持つ。設定画面で足した用語集はこの名前で作り、今までの用語集（`glossary_path`。キーが無ければ settings.toml と同じフォルダの `yogo.csv`）も同じ列で読む。
-      手で書いた CSV は列 `使う` が無くても読める。設定画面でその用語集の行を変えて保存すると、3 つの列だけの CSV に書き直す（ほかの列と、誤変換と正しい表記の両方が空の行は残らない）。行を変えていない用語集の CSV は書き換えない。
+      用語集ごとの場所は設定の `glossaries[].path` が持つ。設定画面で追加した用語集はこの名前で作り、今までの用語集（`glossary_path`。キーが無ければ settings.toml と同じフォルダの `yogo.csv`）も同じ列で読む。
+      手で書いた CSV は列 `使う` が無くても読める。設定画面でその用語集の行を変えて保存すると、3 つの列だけの CSV に書き換える（ほかの列と、誤変換と正しい表記の両方が空の行は残らない）。行を変えていない用語集の CSV は書き換えない。
     columns:
       - name: 誤変換
         title: 誤変換
@@ -138,7 +138,7 @@ tables:
       - name: 正しい表記
         title: 正しい表記
         type: string
-        description: 置き換えた後の文字。空の行は、起こした文字から誤変換を消す。前後の空白は除いて読む
+        description: 置き換えた後の文字。空の行は、起こした文字から誤変換を削除する。前後の空白は除いて読む
         example: Claude
       - name: 使う
         title: 補正に使うか
@@ -152,9 +152,9 @@ tables:
     refs:
       - dev/設計書/設定/常駐アプリ#settings[glossaries[].path]
   - name: '%LOCALAPPDATA%\voice-paste\ui\{ハッシュ}.svg'
-    title: 開く印の画像
+    title: 開くマーカーの画像
     datastore: SVG
-    summary: 選択欄の開く印（V 字）の画像。スタイルシートの `::down-arrow` が指す
+    summary: 選択欄の開くマーカー（V 字）の画像。スタイルシートの `::down-arrow` が指す
     scale: 明暗ごとに 1 件
     growth: tokens.toml の text_muted が変わったときだけ増える（ファイル名は中身のハッシュ）
     retention: 消さない
@@ -175,7 +175,7 @@ tables:
     datastore: ファイル（録れた形式の音声）
     summary: 外の端末のブラウザから受けた音声。文字起こしより先に一時の音声から移し、文字起こしに失敗しても残る
     growth: ブラウザの音声を 1 件起こすたびに 1 つ増える（`history.enabled = true` のとき）
-    retention: '`history.retention_days` 日（日付のフォルダごと消す）'
+    retention: '`history.retention_days` 日（日付のフォルダごと削除する）'
     deletion: 物理削除（録音の履歴と同じ）
     columns:
       - name: container
@@ -193,7 +193,7 @@ tables:
   - name: '%LOCALAPPDATA%\voice-paste\tmp\web\{job_id}.{webm|ogg|mp4|mp3|wav}'
     title: ブラウザの音声の一時のファイル
     datastore: ファイル（録れた形式の音声）
-    summary: 受け付けた音声を起こすまで置く。履歴を残す設定なら起こす前に履歴へ移し、残さない設定なら起こし終えた後に消す
+    summary: 受け付けた音声を起こすまで置く。履歴を残す設定なら起こす前に履歴へ移し、残さない設定なら起こし終えた後に削除する
     scale: 最大でブラウザの音声の待ちの上限（10 件）。合計で最大 1 GB
     growth: 音声を受け付けるたびに 1 つ増え、起こし始めるか起こし終えると消える
     retention: 起こし終えるまで

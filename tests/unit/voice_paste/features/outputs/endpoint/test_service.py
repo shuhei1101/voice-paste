@@ -1,6 +1,6 @@
 """features/outputs/endpoint/service.py（deliver_to_endpoint）の単体テスト。
 
-POST（post）とタイムアウトを返す関数（get_timeout_sec）は Mock にして、送る中身・ヘッダー・回数を確かめる。
+POST（post）とタイムアウトを返す関数（get_timeout_sec）は Mock にして、送信する内容・ヘッダー・回数を確かめる。
 """
 
 from __future__ import annotations
@@ -37,10 +37,10 @@ def _outcome() -> TranscriptionOutcome:
 
 
 def _preset(*, authorization: str = "") -> EndpointPreset:
-    """URL が http://127.0.0.1:9000/hook のエンドポイントへ送るのプリセットを作る。"""
+    """URL が http://127.0.0.1:9000/hook のエンドポイントへ送信のプリセットを作る。"""
     from voice_paste.shared.settings import EndpointPreset
 
-    return EndpointPreset(title="受け口", url=URL, authorization=authorization)
+    return EndpointPreset(title="受信先", url=URL, authorization=authorization)
 
 
 def _result(status: int) -> PostResult:
@@ -51,7 +51,7 @@ def _result(status: int) -> PostResult:
 
 
 def test_deliver_to_endpoint() -> None:
-    """送る中身を 1 回送る（正常系）。"""
+    """送信する内容を 1 回送信する（正常系）。"""
     from voice_paste.features.outputs.endpoint.service import deliver_to_endpoint
 
     # 準備
@@ -66,7 +66,7 @@ def test_deliver_to_endpoint() -> None:
 
 
 def test_deliver_to_endpoint_when_authorization(caplog: pytest.LogCaptureFixture) -> None:
-    """Authorization を付けて送り、ログに書かない（正常系）。"""
+    """Authorization を付けて送信し、ログに書かない（正常系）。"""
     from voice_paste.features.outputs.endpoint.service import deliver_to_endpoint
 
     # 準備
@@ -88,7 +88,7 @@ def test_deliver_to_endpoint_when_authorization(caplog: pytest.LogCaptureFixture
 
 
 def test_deliver_to_endpoint_when_error_status() -> None:
-    """2xx 以外は送り直さず DeliveryError（異常系）。"""
+    """2xx 以外は再送せず DeliveryError（異常系）。"""
     from voice_paste.features.outputs.endpoint.service import deliver_to_endpoint
 
     # 準備
@@ -102,7 +102,7 @@ def test_deliver_to_endpoint_when_error_status() -> None:
 
 
 def test_deliver_to_endpoint_when_unreachable() -> None:
-    """届かなければ送り直さず DeliveryError（異常系）。"""
+    """届かなければ再送せず DeliveryError（異常系）。"""
     from voice_paste.features.outputs.endpoint.service import deliver_to_endpoint
 
     # 準備

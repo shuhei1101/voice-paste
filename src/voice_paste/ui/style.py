@@ -252,7 +252,7 @@ def apply_theme(
         hints.setColorScheme(Qt.ColorScheme.Dark if theme == "dark" else Qt.ColorScheme.Light)
     dark = resolve_dark(theme, is_dark_theme())
     _current_dark = dark
-    # 印を描くスタイルは 1 回だけ当てる（スタイルシートを当てると app.style() は Qt の内部のスタイルに替わるため、当てたかは控えで見る）
+    # マーカーを描くスタイルは 1 回だけ当てる（スタイルシートを当てると app.style() は Qt の内部のスタイルに替わるため、当てたかは控えで見る）
     if _indicator_style is None:
         # IndicatorStyle は theme_color を使うため、循環 import を避けてここで読む
         from voice_paste.ui.indicator_style import IndicatorStyle

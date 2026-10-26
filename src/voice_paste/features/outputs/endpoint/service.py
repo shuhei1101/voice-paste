@@ -1,4 +1,4 @@
-"""エンドポイントへ送る。選んだプリセットの URL へ、送る中身を 1 回 POST する。送り直さない。"""
+"""エンドポイントへ送信する。選んだプリセットの URL へ、送信する内容を 1 回 POST する。再送しない。"""
 
 from __future__ import annotations
 
@@ -25,12 +25,12 @@ def deliver_to_endpoint(
     post: PostJsonFn,
     get_timeout_sec: Callable[[], float],
 ) -> None:
-    """送る中身を、プリセットの URL へ 1 回だけ POST する。届かなければ送り直さず DeliveryError。"""
-    # 1. エンドポイントへ送るのプリセットでなければ断る（種類と関数の取り違え）
+    """送信する内容を、プリセットの URL へ 1 回だけ POST する。届かなければ再送せず DeliveryError。"""
+    # 1. エンドポイントへ送信のプリセットでなければ断る（種類と関数の取り違え）
     if not isinstance(preset, EndpointPreset):
-        raise DeliveryError(f"エンドポイントへ送るのプリセットではありません（種類: {preset.kind}）")
+        raise DeliveryError(f"エンドポイントへ送信のプリセットではありません（種類: {preset.kind}）")
 
-    # 2. 送る中身と、Authorization の値が空でなければそのヘッダーを作る（値はログにも例外の文にも書かない）
+    # 2. 送信する内容と、Authorization の値が空でなければそのヘッダーを作る（値はログにも例外の文にも書かない）
     payload = ResultPayload.from_outcome(outcome).model_dump()
     headers = {AUTHORIZATION_HEADER: preset.authorization} if preset.authorization else {}
 

@@ -317,7 +317,7 @@ def test_set_progress(qapp: QApplication, tmp_path: Path) -> None:
 
 
 def test_set_output(qapp: QApplication, tmp_path: Path) -> None:
-    """印と案内を切り替えた先に替える（正常系）。"""
+    """マーカーと案内を切り替えた先に替える（正常系）。"""
     from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
 
     # 準備: 貼り付けて送信・貼り付けのみ・コピーのみがオンの設定で、貼り付けて送信で確定した表示を出す
@@ -466,7 +466,7 @@ def test_set_output_badge_clear_of_text(
     show_hotkeys: bool,
     range_count: int,
 ) -> None:
-    """選んだボタンの丸い印が名前とホットキーの文字に重ならない（正常系）。"""
+    """選んだボタンの丸いマーカーが名前とホットキーの文字に重ならない（正常系）。"""
     from voice_paste.main import SETTINGS_MODEL
     from voice_paste.shared.settings import UiSettings
     from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator

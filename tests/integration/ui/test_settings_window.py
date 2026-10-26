@@ -58,7 +58,7 @@ if TYPE_CHECKING:
     from voice_paste.ui.windows.settings_window import SettingsWindow
 
 RESTART_KEY = "transcription.local_whisper.beam_size"
-"""反映が restart の数値の欄（再起動で反映の印・再起動の知らせの確かめに使う）。"""
+"""反映が restart の数値の欄（再起動で反映のマーカー・再起動のメッセージの確かめに使う）。"""
 
 IMMEDIATE_KEY = "recording.fade_sec"
 """反映が immediate の数値の欄。"""
@@ -160,7 +160,7 @@ def _preset_field(window: QWidget, kind: str, number: int, attribute: str, cls: 
 
 
 def _add_preset(window: QWidget, kind: str, title: str, url: str) -> int:
-    """種類のタブの「プリセットを足す」を押し、足した行にタイトルと URL を入れて、その行の番号を返す。"""
+    """種類のタブの「プリセットを追加」を押し、足した行にタイトルと URL を入れて、その行の番号を返す。"""
     QTest.mouseClick(find(window, QPushButton, f"add_preset_button_{kind}"), Qt.MouseButton.LeftButton)
     number = len(_panel(window, kind).findChildren(QLineEdit, QRegularExpression("^preset_title_"))) - 1
     _preset_field(window, kind, number, "title", QLineEdit).setText(title)
@@ -196,7 +196,7 @@ LIST_KEYS = (
     "hint_presets",
     "edge_phrases",
 )
-"""欄ではなく、一覧の部品（出力先・プリセット・用語集・用語集のプリセット・表記のヒント・文頭・文末から消す文言）が持つキー。glossary_path は欄を持たず、glossaries が空のときだけ読む。active_glossary は glossary_presets が空のときだけ読む。"""
+"""欄ではなく、一覧の部品（出力先・プリセット・用語集・用語集のプリセット・表記のヒント・文頭・文末から削除する文言）が持つキー。glossary_path は欄を持たず、glossaries が空のときだけ読む。active_glossary は glossary_presets が空のときだけ読む。"""
 
 
 def _leaf_keys(settings: Settings) -> list[str]:
@@ -272,7 +272,7 @@ def test_settings_window_initial_value(open_window: Callable[..., Opened]) -> No
 
 
 def test_group_menu_initial(open_window: Callable[..., Opened]) -> None:
-    """まとまりのメニューは、出力先・ブラウザ添付・エンドポイントへ送る・ホットキー・録音・文字起こし・表記のヒント・用語集・ハルシネーション・画面・履歴とログ・API の順で、既定は出力先。"""
+    """まとまりのメニューは、出力先・ブラウザ添付・エンドポイントへ送信・ホットキー・録音・文字起こし・表記のヒント・用語集・ハルシネーション・画面・履歴とログ・API の順で、既定は出力先。"""
     # 実行
     window = open_window().window
 
@@ -282,7 +282,7 @@ def test_group_menu_initial(open_window: Callable[..., Opened]) -> None:
     assert names == [
         "出力先",
         "ブラウザ添付",
-        "エンドポイントへ送る",
+        "エンドポイントへ送信",
         "ホットキー",
         "録音",
         "文字起こし",
@@ -419,7 +419,7 @@ def test_field_name_and_key(open_window: Callable[..., Opened]) -> None:
 
 
 def test_restart_badge_when_restart_field(open_window: Callable[..., Opened]) -> None:
-    """反映が restart の欄には「再起動で反映」の印を出す。"""
+    """反映が restart の欄には「再起動で反映」のマーカーを出す。"""
     # 実行
     window = open_window().window
 
@@ -512,17 +512,17 @@ def test_hotkey_field_when_escape(open_window: Callable[..., Opened]) -> None:
 # === preset_list_{kind}・preset_empty_{kind}・add_preset_button_{kind} ===
 
 KINDS = ("browser", "endpoint")
-"""種類のタブ（ブラウザ添付・エンドポイントへ送る）の種類。"""
+"""種類のタブ（ブラウザ添付・エンドポイントへ送信）の種類。"""
 
 
 def _settings_with_presets() -> Settings:
-    """ブラウザ添付 2 件とエンドポイントへ送る 1 件のプリセットを持つ設定を作る。"""
+    """ブラウザ添付 2 件とエンドポイントへ送信 1 件のプリセットを持つ設定を作る。"""
     from voice_paste.shared.settings import BrowserPreset, EndpointPreset, Settings
 
     return SETTINGS_MODEL(
         presets=[
             EndpointPreset(
-                title="受け口",
+                title="受信先",
                 url="http://127.0.0.1:9000/hook",
                 hotkey="<ctrl>+<alt>+4",
                 authorization="Bearer x",
@@ -555,7 +555,7 @@ def test_preset_list_when_visible(
     assert find(window, QPushButton, f"add_preset_button_{kind}").isVisible()
 
 
-@pytest.mark.parametrize(("kind", "name"), [("browser", "ブラウザ添付"), ("endpoint", "エンドポイントへ送る")])
+@pytest.mark.parametrize(("kind", "name"), [("browser", "ブラウザ添付"), ("endpoint", "エンドポイントへ送信")])
 def test_preset_empty_when_no_presets(open_window: Callable[..., Opened], kind: str, name: str) -> None:
     """プリセットが 1 件も無いタブには、足すと録音の画面にボタンが出ることを伝える案内を出す。"""
     # 準備
@@ -568,7 +568,7 @@ def test_preset_empty_when_no_presets(open_window: Callable[..., Opened], kind: 
     empty = find(window, QLabel, f"preset_empty_{kind}")
     assert empty.isVisible()
     assert empty.text() == (
-        f"{name}のプリセットはまだありません。足すと、録音の画面の「カスタムプリセット」にボタンが出ます。"
+        f"{name}のプリセットはまだありません。追加すると、録音の画面の「カスタムプリセット」にボタンが出ます。"
     )
 
 
@@ -589,9 +589,9 @@ def test_preset_list_initial_value(open_window: Callable[..., Opened]) -> None:
     assert _preset_field(window, "browser", 0, "send_enter", QCheckBox).isChecked()
     assert not _preset_field(window, "browser", 1, "send_enter", QCheckBox).isChecked()
     assert not find(window, QLabel, "preset_empty_browser").isVisible()
-    # エンドポイントへ送るのタブ
+    # エンドポイントへ送信のタブ
     find(window, QListWidget, "group_menu").setCurrentRow(2)
-    assert _preset_field(window, "endpoint", 0, "title", QLineEdit).text() == "受け口"
+    assert _preset_field(window, "endpoint", 0, "title", QLineEdit).text() == "受信先"
     assert _preset_field(window, "endpoint", 0, "hotkey", QLineEdit).text() == "Ctrl+Alt+4"
 
 
@@ -630,7 +630,7 @@ def test_preset_authorization_field(open_window: Callable[..., Opened]) -> None:
 
 
 def test_add_preset_button_action(open_window: Callable[..., Opened]) -> None:
-    """「プリセットを足す」は、そのタブの一覧の末尾に空のプリセット（有効、ブラウザ添付は Enter まで送るがオン）を足し、タイトルの欄へフォーカスを移す。"""
+    """「プリセットを追加」は、そのタブの一覧の末尾に空のプリセット（有効、ブラウザ添付は Enter まで送信がオン）を足し、タイトルの欄へフォーカスを移す。"""
     # 準備
     window = open_window(_settings_with_presets()).window
     find(window, QListWidget, "group_menu").setCurrentRow(1)
@@ -662,7 +662,7 @@ def test_preset_move_buttons_action(open_window: Callable[..., Opened]) -> None:
     _panel(window, "browser").findChild(QAbstractButton, "preset_down_0").click()
 
     # 検証（ブラウザ添付のタブの中だけが入れ替わる）
-    assert [item["title"] for item in window.collect()["presets"]] == ["Claude", "ChatGPT", "受け口"]
+    assert [item["title"] for item in window.collect()["presets"]] == ["Claude", "ChatGPT", "受信先"]
 
 
 def test_preset_remove_button_action(open_window: Callable[..., Opened]) -> None:
@@ -722,15 +722,15 @@ def test_preset_options_fields(open_window: Callable[..., Opened]) -> None:
     assert _field(window, "preset_options.browser.open_delay_sec", QLineEdit).text() == "3.0"
     assert _field(window, "preset_options.endpoint.timeout_sec", QLineEdit).text() == "1.5"
     notes = [label.text() for label in window.findChildren(QLabel)]
-    assert "貼り付けてから Enter を送るまでの秒数は「出力先」の値を使う。" in notes
+    assert "貼り付けてから Enter を送信するまでの秒数は「出力先」の値を使う。" in notes
     assert (
-        "既定は 1.5 秒で、10 秒まで入れられる。この秒数で届かなければ、送り直さずにトレイで知らせる。"
+        "既定は 1.5 秒で、10 秒まで入れられる。この秒数で届かなければ、再送せずにトレイで通知する。"
         in notes
     )
 
 
 def test_save_collects_presets_in_tab_order(open_window: Callable[..., Opened]) -> None:
-    """保存では、ブラウザ添付のタブの並び → エンドポイントへ送るのタブの並びの順に 1 つの一覧にして書く。"""
+    """保存では、ブラウザ添付のタブの並び → エンドポイントへ送信のタブの並びの順に 1 つの一覧にして書く。"""
     # 準備
     opened = open_window(_settings_with_presets())
     opened.deps.save_settings.return_value = False
@@ -743,7 +743,7 @@ def test_save_collects_presets_in_tab_order(open_window: Callable[..., Opened]) 
     assert [(preset.kind, preset.title) for preset in saved.presets] == [
         ("browser", "ChatGPT"),
         ("browser", "Claude"),
-        ("endpoint", "受け口"),
+        ("endpoint", "受信先"),
     ]
     assert saved.presets[2].authorization == "Bearer x"
     assert saved.presets[1].send_enter is False
@@ -753,7 +753,7 @@ def test_save_collects_presets_in_tab_order(open_window: Callable[..., Opened]) 
 
 
 def test_restart_notice_when_restart_field_changed(open_window: Callable[..., Opened]) -> None:
-    """反映が restart の欄を開いたときの値から変えると、件数つきの再起動の知らせと「保存して再起動」を出す。"""
+    """反映が restart の欄を開いたときの値から変えると、件数つきの再起動のメッセージと「保存して再起動」を出す。"""
     # 準備
     window = open_window().window
     notice = find(window, QLabel, "restart_notice")
@@ -800,7 +800,7 @@ def test_restart_notice_when_reverted(open_window: Callable[..., Opened]) -> Non
 
 
 def test_restart_notice_when_immediate_field_changed(open_window: Callable[..., Opened]) -> None:
-    """反映が immediate の欄を変えても、再起動の知らせは出さない。"""
+    """反映が immediate の欄を変えても、再起動のメッセージは出さない。"""
     # 準備
     window = open_window().window
 
@@ -887,7 +887,7 @@ def test_reset_dialog_content(open_window: Callable[..., Opened]) -> None:
         "title": "voice-paste の設定",
         "text": "全ての設定を既定に戻しますか",
         "body": (
-            "出力先・ホットキーを含む全ての設定が既定の値になり、カスタムプリセットは全て消えます。"
+            "出力先・ホットキーを含む全ての設定が既定の値になり、カスタムプリセットは全て削除されます。"
             "元に戻せません。"
             "「再起動で反映」の設定は、再起動するまで今の値で動きます。"
         ),
@@ -974,7 +974,7 @@ def test_reset_notice_when_no_restart_setting_changed(open_window: Callable[...,
 
 
 def test_reset_notice_when_field_changed(open_window: Callable[..., Opened]) -> None:
-    """欄を変えると、既定に戻した知らせと「今すぐ再起動」を消す。"""
+    """欄を変えると、既定に戻したメッセージと「今すぐ再起動」を消す。"""
     # 準備
     opened = open_window(_settings_with_small_model())
     driver = ModalDriver()
@@ -1056,9 +1056,9 @@ def test_discard_dialog_content(open_window: Callable[..., Opened]) -> None:
     assert seen == {
         "name": "discard_dialog",
         "title": "voice-paste の設定",
-        "text": "変えた値を捨てて閉じますか",
-        "body": "保存していない変更が 2 件あります。閉じると、変えた値は保存されません。",
-        "discard": "捨てて閉じる",
+        "text": "変更を破棄して閉じますか",
+        "body": "保存していない変更が 2 件あります。閉じると、変更は保存されません。",
+        "discard": "破棄して閉じる",
         "back": "設定画面へ戻る",
         "default": True,
         "escape": True,
@@ -1240,7 +1240,7 @@ def test_ui_theme_field_initial_value(
 def test_ui_theme_field_action(
     make_ui: Callable[..., Ui], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """別の値を選んで保存すると settings.toml の ui.theme が書き換わり、再起動せずに明暗を当て直す（再起動の印は出ない）。"""
+    """別の値を選んで保存すると settings.toml の ui.theme が書き換わり、再起動せずに明暗を当て直す（再起動のマーカーは出ない）。"""
     from functools import partial
 
     from voice_paste.main import apply_settings
@@ -1286,10 +1286,10 @@ def test_ui_theme_field_action(
 
 # === field_ui.show_hotkeys ===
 
-SHOW_HOTKEYS_LABEL = "録音の画面のボタンにホットキーを出すか"
+SHOW_HOTKEYS_LABEL = "録音の画面のボタンにホットキーを表示するか"
 """ui.show_hotkeys の欄の名前（設定の設計書の title）。"""
 
-TRANSCRIBING_SHOW_HOTKEYS_LABEL = "文字起こし中の表示のボタンにホットキーを出すか"
+TRANSCRIBING_SHOW_HOTKEYS_LABEL = "文字起こし中の表示のボタンにホットキーを表示するか"
 """ui.transcribing_show_hotkeys の欄の名前（設定の設計書の title）。"""
 
 
@@ -1297,7 +1297,7 @@ TRANSCRIBING_SHOW_HOTKEYS_LABEL = "文字起こし中の表示のボタンにホ
 def test_ui_show_hotkeys_field_initial_value(
     open_window: Callable[..., Opened], show_hotkeys: bool
 ) -> None:
-    """「画面」のまとまりの末尾に、欄の名前が「録音の画面のボタンにホットキーを出すか」のチェックボックスがあり、今の ui.show_hotkeys の値になっている（再起動の印は出ない）。"""
+    """「画面」のまとまりの末尾に、欄の名前が「録音の画面のボタンにホットキーを表示するか」のチェックボックスがあり、今の ui.show_hotkeys の値になっている（再起動のマーカーは出ない）。"""
     from voice_paste.shared.settings import UiSettings
 
     # 準備
@@ -1317,7 +1317,7 @@ def test_ui_show_hotkeys_field_initial_value(
 def test_ui_show_hotkeys_field_action(
     make_ui: Callable[..., Ui], tmp_path: Path
 ) -> None:
-    """チェックを外して保存すると settings.toml の ui.show_hotkeys が false に書き換わり、再起動せずに効く（再起動の印は出ない）。"""
+    """チェックを外して保存すると settings.toml の ui.show_hotkeys が false に書き換わり、再起動せずに効く（再起動のマーカーは出ない）。"""
     from functools import partial
 
     from voice_paste.main import apply_settings
@@ -1362,7 +1362,7 @@ def test_ui_show_hotkeys_field_action(
 def test_ui_transcribing_show_hotkeys_field_initial_value(
     open_window: Callable[..., Opened], transcribing_show_hotkeys: bool
 ) -> None:
-    """「画面」のまとまりの末尾の ui.show_hotkeys の次に、欄の名前が「文字起こし中の表示のボタンにホットキーを出すか」のチェックボックスがあり、今の ui.transcribing_show_hotkeys の値になっている（再起動の印は出ない）。"""
+    """「画面」のまとまりの末尾の ui.show_hotkeys の次に、欄の名前が「文字起こし中の表示のボタンにホットキーを表示するか」のチェックボックスがあり、今の ui.transcribing_show_hotkeys の値になっている（再起動のマーカーは出ない）。"""
     from voice_paste.shared.settings import UiSettings
 
     # 準備: 録音の画面の値とは逆にして、欄が自分のキーの値を出すことを確かめる
@@ -1389,7 +1389,7 @@ def test_ui_transcribing_show_hotkeys_field_initial_value(
 def test_ui_transcribing_show_hotkeys_field_action(
     make_ui: Callable[..., Ui], tmp_path: Path
 ) -> None:
-    """チェックを外して保存すると settings.toml の ui.transcribing_show_hotkeys だけが false に書き換わり、再起動せずに効く（再起動の印は出ない）。"""
+    """チェックを外して保存すると settings.toml の ui.transcribing_show_hotkeys だけが false に書き換わり、再起動せずに効く（再起動のマーカーは出ない）。"""
     from functools import partial
 
     from voice_paste.main import apply_settings
@@ -1434,7 +1434,7 @@ def test_ui_transcribing_show_hotkeys_field_action(
 
 
 def test_save_button_action(open_window: Callable[..., Opened]) -> None:
-    """「保存」は確かめて書き、設定画面を開いたまま保存した知らせを出す。入れた値は保つ。"""
+    """「保存」は確かめて書き、設定画面を開いたまま保存したメッセージを出す。入れた値は保つ。"""
     # 準備
     opened = open_window()
     _set_text(opened.window, IMMEDIATE_KEY, "1.25")
@@ -1504,7 +1504,7 @@ def test_save_button_when_invalid(open_window: Callable[..., Opened]) -> None:
 
 
 def test_save_button_when_fixed_after_invalid(open_window: Callable[..., Opened]) -> None:
-    """直して保存し直すと、前の保存で出したエラーの一覧と欄の下のエラーを消し、保存した知らせを出す。"""
+    """直して保存し直すと、前の保存で出したエラーの一覧と欄の下のエラーを消し、保存したメッセージを出す。"""
     from PySide6.QtCore import QEvent
     from PySide6.QtWidgets import QApplication
 
@@ -1547,7 +1547,7 @@ CTRL_ALT = Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier
 
 
 def _saved_notice(window: QWidget) -> QLabel:
-    """保存した知らせ（`saved_notice`）を引く。"""
+    """保存したメッセージ（`saved_notice`）を引く。"""
     return find(window, QLabel, "saved_notice")
 
 
@@ -1608,7 +1608,7 @@ def test_saved_notice_when_paste_key_changed(open_window: Callable[..., Opened])
 
 
 def test_saved_notice_when_restart_field_changed(open_window: Callable[..., Opened]) -> None:
-    """「再起動で反映」の欄を変えた保存では、件数と再起動するまで前の値で動くことを出し、「今すぐ再起動」を右に出す。再起動の知らせと「保存して再起動」は隠す。"""
+    """「再起動で反映」の欄を変えた保存では、件数と再起動するまで前の値で動くことを出し、「今すぐ再起動」を右に出す。再起動のメッセージと「保存して再起動」は隠す。"""
     # 準備
     opened = open_window()
     _set_text(opened.window, RESTART_KEY, "12")
@@ -1669,7 +1669,7 @@ def test_saved_notice_when_saved_twice(open_window: Callable[..., Opened]) -> No
 
 
 def test_saved_notice_when_field_changed(open_window: Callable[..., Opened]) -> None:
-    """保存の後に欄を変えると、保存した知らせと「今すぐ再起動」を消し、再起動の知らせと「保存して再起動」を開いたときの値から数え直して出す。"""
+    """保存の後に欄を変えると、保存したメッセージと「今すぐ再起動」を消し、再起動のメッセージと「保存して再起動」を開いたときの値から数え直して出す。"""
     # 準備
     opened = open_window()
     _set_text(opened.window, RESTART_KEY, "12")
@@ -1740,7 +1740,7 @@ def test_cancel_button_when_changed_after_save(open_window: Callable[..., Opened
 
     # 検証
     driver.verify()
-    assert seen["body"] == "保存していない変更が 1 件あります。閉じると、変えた値は保存されません。"
+    assert seen["body"] == "保存していない変更が 1 件あります。閉じると、変更は保存されません。"
     opened.closed.assert_called_once()
     opened.deps.save_settings.assert_called_once()
 
@@ -1772,7 +1772,7 @@ def test_error_summary_when_invalid(open_window: Callable[..., Opened]) -> None:
     summary = find(opened.window, QFrame, "error_summary")
     assert summary.isVisible()
     rows = _error_rows(opened.window)
-    assert rows[0] == "保存できませんでした。2 件の欄を直してください。"
+    assert rows[0] == "保存できませんでした。2 件の欄を修正してください。"
     assert len(rows) == 3
     assert opened.window.focusWidget() is summary
 
@@ -1857,7 +1857,7 @@ def test_input_check_when_hotkey_overlap(open_window: Callable[..., Opened]) -> 
     _click(opened.window, "save_button")
 
     # 検証
-    message = "「録音を一時停止・再開する」と同じホットキーです。別のキーにしてください。"
+    message = "「録音の一時停止・再開」と同じホットキーです。別のキーにしてください。"
     assert find(opened.window, QLabel, "error_hotkeys.cancel").text() == message
     assert any(row.endswith(f": {message}") for row in _error_rows(opened.window))
     opened.deps.save_settings.assert_not_called()
@@ -1895,7 +1895,7 @@ def test_input_check_when_preset_url_invalid(
     """プリセットの URL が空・http:// か https:// で始まらない: それぞれの文言をその欄の下とエラーの一覧に出す。"""
     # 準備
     opened = open_window()
-    _add_preset(opened.window, "endpoint", "受け口", url)
+    _add_preset(opened.window, "endpoint", "受信先", url)
 
     # 実行
     _click(opened.window, "save_button")
@@ -1909,7 +1909,7 @@ def test_input_check_when_preset_hotkey_overlap(open_window: Callable[..., Opene
     """プリセットのホットキーが、ほかのプリセットと同じ: 「プリセット「{タイトル}」と同じキーです。別のキーにしてください。」を出す。種類をまたぐときは種類も添える。"""
     # 準備
     opened = open_window()
-    for kind, title in (("browser", "ChatGPT"), ("endpoint", "受け口")):
+    for kind, title in (("browser", "ChatGPT"), ("endpoint", "受信先")):
         _add_preset(opened.window, kind, title, "https://example.com")
         edit = _preset_field(opened.window, kind, 0, "hotkey")
         edit.setFocus()
@@ -1928,7 +1928,7 @@ def test_input_check_when_preset_hotkey_overlap(open_window: Callable[..., Opene
 
 
 def test_input_check_when_timeout_out_of_range(open_window: Callable[..., Opened]) -> None:
-    """エンドポイントへ送るのタイムアウトが 0.5〜10 の外: 「0.5〜10 の値を入れてください。」を出す。"""
+    """エンドポイントへ送信のタイムアウトが 0.5〜10 の外: 「0.5〜10 の値を入れてください。」を出す。"""
     # 準備
     opened = open_window()
     _set_text(opened.window, "preset_options.endpoint.timeout_sec", "11")
@@ -1946,7 +1946,7 @@ def test_error_summary_row_action_when_preset(open_window: Callable[..., Opened]
     """プリセットの欄の行を押すと、その種類のタブへ切り替えて欄へフォーカスを移す。"""
     # 準備
     opened = open_window()
-    _add_preset(opened.window, "endpoint", "受け口", "")
+    _add_preset(opened.window, "endpoint", "受信先", "")
     _click(opened.window, "save_button")
     find(opened.window, QListWidget, "group_menu").setCurrentRow(10)
     link = next(
@@ -2482,7 +2482,7 @@ def test_glossary_preset_remove_when_shown(
 def test_glossary_preset_remove_accessible_name(
     open_window: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """消すボタンの読み上げの名前は「{名前}を消す」（名前が空なら「名前未入力のプリセットを消す」）。"""
+    """削除ボタンの読み上げの名前は「{名前}を削除」（名前が空なら「名前未入力のプリセットを削除」）。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
 
@@ -2492,9 +2492,9 @@ def test_glossary_preset_remove_accessible_name(
     # 検証
     buttons = _widgets(opened.window, QPushButton, "glossary_preset_remove_")
     assert [button.accessibleName() for button in buttons] == [
-        "既定を消す",
-        "会議を消す",
-        "名前未入力のプリセットを消す",
+        "既定を削除",
+        "会議を削除",
+        "名前未入力のプリセットを削除",
     ]
 
 
@@ -2875,7 +2875,7 @@ def test_glossary_presets_using_action(open_window: Callable[..., Opened], tmp_p
 def test_glossary_list_note_initial_value(
     open_window: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """用語集の一覧の決まりは「消した用語集は、使っているプリセットからも外れる。」で、用語集追加のボタンの右に出す。"""
+    """用語集の一覧の決まりは「削除した用語集は、使っているプリセットからも外れる。」で、用語集追加のボタンの右に出す。"""
     # 実行
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
 
@@ -2883,7 +2883,7 @@ def test_glossary_list_note_initial_value(
     note = find(opened.window, QLabel, "glossary_list_note")
     button = find(opened.window, QPushButton, "add_glossary_button")
     assert note.isVisible()
-    assert note.text() == "消した用語集は、使っているプリセットからも外れる。"
+    assert note.text() == "削除した用語集は、使っているプリセットからも外れる。"
     assert _top_of(note, opened.window) <= _top_of(button, opened.window) + button.height()
     assert _left_of(note, opened.window) >= _left_of(button, opened.window) + button.width()
 
@@ -2970,7 +2970,7 @@ def test_glossary_count_initial_value(open_window: Callable[..., Opened], tmp_pa
 
 
 def test_glossary_count_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """行を足す・消す・オンとオフを切り替えるたびに数え直す（足した両方が空の行も数える）。"""
+    """行を追加・消す・オンとオフを切り替えるたびに数え直す（足した両方が空の行も数える）。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
 
@@ -3077,7 +3077,7 @@ def test_glossary_remove_when_shown(open_window: Callable[..., Opened], tmp_path
 
 
 def test_glossary_remove_accessible_name(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """消すボタンの読み上げの名前は「{名前}を消す」（名前が空なら「名前未入力の用語集を消す」）。"""
+    """削除ボタンの読み上げの名前は「{名前}を削除」（名前が空なら「名前未入力の用語集を削除」）。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
 
@@ -3086,7 +3086,7 @@ def test_glossary_remove_accessible_name(open_window: Callable[..., Opened], tmp
 
     # 検証
     names = [button.accessibleName() for button in _widgets(opened.window, QPushButton, "glossary_remove_")]
-    assert names == ["yogoを消す", "会議用を消す", "名前未入力の用語集を消す"]
+    assert names == ["yogoを削除", "会議用を削除", "名前未入力の用語集を削除"]
 
 
 # === discard_body（用語集の変更の件数） ===
@@ -3109,7 +3109,7 @@ def _discard_body(opened: Opened) -> str:
 
 def _discard_message(count: int) -> str:
     """変えた欄が count 件のときの、確認の本文。"""
-    return f"保存していない変更が {count} 件あります。閉じると、変えた値は保存されません。"
+    return f"保存していない変更が {count} 件あります。閉じると、変更は保存されません。"
 
 
 def test_discard_body_when_glossary_added(open_window: Callable[..., Opened], tmp_path: Path) -> None:
@@ -3275,7 +3275,7 @@ def test_discard_body_when_preset_changed(
     active_preset: str,
     operation: Callable[[QWidget], None],
 ) -> None:
-    """プリセットを足す・消す・名前を変える、使う用語集を追加する・外す・動かすのどれでも、変えた件数は 1 件。"""
+    """プリセットを追加・消す・名前を変える、使う用語集を追加する・外す・動かすのどれでも、変えた件数は 1 件。"""
     # 準備
     opened = _open_glossaries(
         open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS, active_preset=active_preset
@@ -3397,7 +3397,7 @@ def test_glossary_entries_when_visible(open_window: Callable[..., Opened], tmp_p
 
 
 def test_glossary_entries_empty_position(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """行が無いときの文は、消す行の説明の下に出す（行が 0 の用語集で、説明が上に出る）。"""
+    """行が無いときの文は、誤変換を削除する行の説明の下に出す（行が 0 の用語集で、説明が上に出る）。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, {"空": "誤変換,正しい表記\n"})
 
@@ -3426,14 +3426,14 @@ def _detail_order(window: QWidget, *names: str) -> list[str]:
 
 
 def test_glossary_delete_note_initial_value(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """消す行の説明は「正しい表記を空にすると、誤変換を消す。」で、名前の欄の下・行の表の上に出す。"""
+    """誤変換を削除する行の説明は「正しい表記を空にすると、誤変換を削除する。」で、名前の欄の下・行の表の上に出す。"""
     # 実行
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
 
     # 検証
     note = find(opened.window, QLabel, "glossary_delete_note")
     assert note.isVisible()
-    assert note.text() == "正しい表記を空にすると、誤変換を消す。"
+    assert note.text() == "正しい表記を空にすると、誤変換を削除する。"
     assert _detail_order(
         opened.window, "glossary_name_0", "glossary_delete_note", "glossary_entries"
     ) == ["glossary_name_0", "glossary_delete_note", "glossary_entries"]
@@ -3442,7 +3442,7 @@ def test_glossary_delete_note_initial_value(open_window: Callable[..., Opened], 
 def test_glossary_delete_note_when_unreadable(
     open_window: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """CSV を読めなかった用語集の行の表を出しているときは、消す行の説明を出さない。読めた用語集へ戻れば出す。"""
+    """CSV を読めなかった用語集の行の表を出しているときは、誤変換を削除する行の説明を出さない。読めた用語集へ戻れば出す。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, {"yogo": CSV_FIVE_ROWS, "壊れた": SJIS_CSV})
 
@@ -3531,7 +3531,7 @@ def test_glossary_entry_remove_action(open_window: Callable[..., Opened], tmp_pa
     """行を表から消す。保存するまで CSV には書かず、保存で消した行を除いて書き戻す。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
-    assert find(opened.window, QPushButton, "glossary_entry_remove_0").accessibleName() == "1 行目を消す"
+    assert find(opened.window, QPushButton, "glossary_entry_remove_0").accessibleName() == "1 行目を削除"
 
     # 実行
     _click(opened.window, "glossary_entry_remove_0")
@@ -3607,7 +3607,7 @@ def test_glossary_legend_initial_value(open_window: Callable[..., Opened], tmp_p
 def test_glossary_unreadable_initial_value(
     open_window: Callable[..., Opened], tmp_path: Path, content: str | bytes, reason: str
 ) -> None:
-    """CSV を読めなかった用語集は、設定画面を開き、行の表の代わりに読めなかったことと理由を出す。行を足すボタンは使えない。"""
+    """CSV を読めなかった用語集は、設定画面を開き、行の表の代わりに読めなかったことと理由を出す。行を追加ボタンは使えない。"""
     # 実行
     opened = _open_glossaries(open_window, tmp_path, {"yogo": CSV_FIVE_ROWS, "壊れた": content})
     _click(opened.window, "glossary_pick_1")
@@ -3638,7 +3638,7 @@ def test_glossary_unreadable_when_cannot_open(
 
 
 def test_glossary_unreadable_when_readable(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """読めた用語集の行の表を出しているときは、読めない用語集の知らせを出さない。"""
+    """読めた用語集の行の表を出しているときは、読めない用語集のメッセージを出さない。"""
     # 実行
     opened = _open_glossaries(open_window, tmp_path, {"yogo": CSV_FIVE_ROWS, "壊れた": SJIS_CSV})
 
@@ -3651,8 +3651,8 @@ def test_glossary_unreadable_when_saved(open_window: Callable[..., Opened], tmp_
     # 準備
     opened = _open_glossaries(open_window, tmp_path, {"yogo": CSV_FIVE_ROWS, "壊れた": SJIS_CSV, "予備": CSV_TWO_ROWS})
     _click(opened.window, "glossary_pick_1")
-    find(opened.window, QLineEdit, "glossary_name_1").setText("直した名前")
-    _add_use(opened.window, "直した名前")
+    find(opened.window, QLineEdit, "glossary_name_1").setText("変更した名前")
+    _add_use(opened.window, "変更した名前")
     _click(opened.window, "glossary_remove_2")
 
     # 実行
@@ -3660,8 +3660,8 @@ def test_glossary_unreadable_when_saved(open_window: Callable[..., Opened], tmp_
 
     # 検証
     saved, rows = _saved(opened)
-    assert [glossary.name for glossary in saved.glossaries] == ["yogo", "直した名前"]
-    assert _saved_presets(opened) == [("既定", ["yogo", "直した名前"])]
+    assert [glossary.name for glossary in saved.glossaries] == ["yogo", "変更した名前"]
+    assert _saved_presets(opened) == [("既定", ["yogo", "変更した名前"])]
     assert rows == {}
     assert (tmp_path / "壊れた.csv").read_bytes() == SJIS_CSV
 
@@ -3795,7 +3795,7 @@ def test_input_check_when_glossary_preset_uses_unknown_glossary(
     """一覧に無い用語集の名前を持つプリセットは、画面を開くときに外して出す（保存の確かめは断らない）。"""
     # 実行
     opened = _open_glossaries(
-        open_window, tmp_path, TWO_GLOSSARIES, presets=[("既定", ["消した用語集", "yogo"])]
+        open_window, tmp_path, TWO_GLOSSARIES, presets=[("既定", ["削除した用語集", "yogo"])]
     )
     _click(opened.window, "save_button")
 
@@ -3862,7 +3862,7 @@ def test_input_check_when_glossary_entry_in_unused_glossary_or_off_row(
     rows = _error_rows(opened.window)
     assert "用語集 1 件目の 3 行目の誤変換: 誤変換を入れてください。" in rows
     assert "用語集 2 件目の 1 行目の誤変換: 誤変換を入れてください。" in rows
-    assert rows[0] == "保存できませんでした。2 件の欄を直してください。"
+    assert rows[0] == "保存できませんでした。2 件の欄を修正してください。"
 
 
 def test_input_check_when_glossary_entry_both_empty(
@@ -4018,11 +4018,11 @@ def test_hint_group_when_visible(open_window: Callable[..., Opened]) -> None:
         "間違えやすい語の正しい表記を並べる。文字起こしへの指示としては効かない。"
     )
     assert find(opened.window, QWidget, "hint_length").isVisible()
-    assert find(opened.window, QPushButton, "hint_preset_add").text() == "プリセットを足す"
+    assert find(opened.window, QPushButton, "hint_preset_add").text() == "プリセットを追加"
     notes = find(opened.window, QLabel, "hint_notes")
     assert notes.isVisible()
     assert "句読点が付く・改行がまとまる・口癖が一部消える" in notes.text()
-    assert "TypeScript がタイプスクリプトになったら「TypeScript」を足す" in notes.text()
+    assert "TypeScript がタイプスクリプトになったら「TypeScript」を追加する" in notes.text()
 
 
 # === hint_preset_empty ===
@@ -4230,11 +4230,11 @@ def test_hint_preset_name_action(open_window: Callable[..., Opened]) -> None:
     # 実行・検証
     name_edit.setText("会議")
     assert find(window, QCheckBox, "hint_preset_enabled_0").accessibleName() == "会議を有効にする"
-    assert find(window, QPushButton, "hint_preset_remove_0").accessibleName() == "会議を消す"
+    assert find(window, QPushButton, "hint_preset_remove_0").accessibleName() == "会議を削除"
     assert "会議" in [label.text() for label in window.findChildren(QLabel)]
     name_edit.setText("")
     assert "（名前未入力）" in [label.text() for label in window.findChildren(QLabel)]
-    assert find(window, QPushButton, "hint_preset_remove_0").accessibleName() == "プリセット 1 件目を消す"
+    assert find(window, QPushButton, "hint_preset_remove_0").accessibleName() == "プリセット 1 件目を削除"
     name_edit.setText("あ" * 30)
     assert ("あ" * 19 + "…") in [label.text() for label in window.findChildren(QLabel)]
     assert name_edit.text() == "あ" * 30
@@ -4368,10 +4368,10 @@ def test_hint_word_add_action(open_window: Callable[..., Opened]) -> None:
 
 
 def test_hint_word_remove_action(open_window: Callable[..., Opened]) -> None:
-    """語を 1 つ消す。読み上げの名前は「{何つ目か} つ目の語を消す」。"""
+    """語を 1 つ消す。読み上げの名前は「{何つ目か} つ目の語を削除」。"""
     # 準備
     opened = _open_hints(open_window, ("開発", ["a", "b", "c"], True))
-    assert find(opened.window, QPushButton, "hint_word_remove_0_1").accessibleName() == "2 つ目の語を消す"
+    assert find(opened.window, QPushButton, "hint_word_remove_0_1").accessibleName() == "2 つ目の語を削除"
 
     # 実行
     _click(opened.window, "hint_word_remove_0_1")
@@ -4442,7 +4442,7 @@ def test_input_check_when_hint_too_long_in_disabled_preset(open_window: Callable
 
 
 def test_input_check_when_hint_word_empty(open_window: Callable[..., Opened]) -> None:
-    """空の語（前後の空白を除いて）: 「語を入れるか、この欄を消してください。」をその欄の下とエラーの一覧に出す。無効のプリセットの語も確かめる。"""
+    """空の語（前後の空白を除いて）: 「語を入れるか、この欄を削除してください。」をその欄の下とエラーの一覧に出す。無効のプリセットの語も確かめる。"""
     # 準備
     opened = _open_hints(open_window, ("開発", ["a", "b"], False))
     find(opened.window, QLineEdit, "hint_word_0_1").setText("  ")
@@ -4451,7 +4451,7 @@ def test_input_check_when_hint_word_empty(open_window: Callable[..., Opened]) ->
     _click(opened.window, "save_button")
 
     # 検証
-    message = "語を入れるか、この欄を消してください。"
+    message = "語を入れるか、この欄を削除してください。"
     assert message in _field_errors(opened.window)
     assert f"プリセット 1 件目の 2 つ目の語: {message}" in _error_rows(opened.window)
     opened.deps.save_settings.assert_not_called()
@@ -4459,7 +4459,7 @@ def test_input_check_when_hint_word_empty(open_window: Callable[..., Opened]) ->
 
 @pytest.mark.parametrize("word", ["A、B", "C。", "D\nE"])
 def test_input_check_when_hint_word_has_separator(open_window: Callable[..., Opened], word: str) -> None:
-    """読点（、）・句点（。）・改行を含む語: 「読点（、）・句点（。）・改行は入れられません。語を分けて足してください。」を出す。"""
+    """読点（、）・句点（。）・改行を含む語: 「読点（、）・句点（。）・改行は入れられません。語を分けて追加してください。」を出す。"""
     # 準備（改行は 1 行の欄に入れられないため、欄の文字を直接差し替える）
     opened = _open_hints(open_window, ("開発", ["a"], True))
     find(opened.window, QLineEdit, "hint_word_0_0").setText(word)
@@ -4468,7 +4468,7 @@ def test_input_check_when_hint_word_has_separator(open_window: Callable[..., Ope
     _click(opened.window, "save_button")
 
     # 検証
-    message = "読点（、）・句点（。）・改行は入れられません。語を分けて足してください。"
+    message = "読点（、）・句点（。）・改行は入れられません。語を分けて追加してください。"
     assert message in _field_errors(opened.window)
     assert f"プリセット 1 件目の 1 つ目の語: {message}" in _error_rows(opened.window)
     opened.deps.save_settings.assert_not_called()
@@ -4515,7 +4515,7 @@ def test_input_check_when_hint_errors_counted(open_window: Callable[..., Opened]
     _click(opened.window, "save_button")
 
     # 検証
-    assert _error_rows(opened.window)[0] == "保存できませんでした。2 件の欄を直してください。"
+    assert _error_rows(opened.window)[0] == "保存できませんでした。2 件の欄を修正してください。"
 
 
 def test_input_check_when_hint_errors_cleared(open_window: Callable[..., Opened]) -> None:
@@ -4578,7 +4578,7 @@ def test_error_summary_row_action_when_hint_word(open_window: Callable[..., Open
 
 
 def test_save_button_when_hint_changed(open_window: Callable[..., Opened]) -> None:
-    """表記のヒントを変えて保存すると、再起動せずに効く値（immediate）として書き、窓を開いたまま保存した知らせを出す。「再起動で反映」の知らせは出さない。"""
+    """表記のヒントを変えて保存すると、再起動せずに効く値（immediate）として書き、窓を開いたまま保存したメッセージを出す。再起動のメッセージは出さない。"""
     # 準備
     opened = _open_hints(open_window, ("開発", ["a"], True))
     find(opened.window, QLineEdit, "hint_word_0_0").setText("b")
@@ -4781,7 +4781,7 @@ def _edge_phrases(*phrases: tuple[str, str]) -> list[Any]:
 
 
 def _open_edge(open_window: Callable[..., Opened], *phrases: tuple[str, str]) -> Opened:
-    """文頭・文末から消す文言を持つ設定で設定画面を開いて、ハルシネーションのまとまりを選ぶ。"""
+    """文頭・文末から削除する文言を持つ設定で設定画面を開いて、ハルシネーションのまとまりを選ぶ。"""
     opened = open_window(SETTINGS_MODEL(edge_phrases=_edge_phrases(*phrases)))
     find(opened.window, QListWidget, "group_menu").setCurrentRow(EDGE_GROUP_ROW)
     return opened
@@ -4822,7 +4822,7 @@ def _alt_key(window: QWidget, number: int, key_code: Qt.Key) -> None:
 
 
 def test_edge_phrase_group_when_visible(open_window: Callable[..., Opened]) -> None:
-    """ハルシネーションのまとまりを選ぶと、説明・凡例・行を足すボタンが出る。ほかのまとまりを選ぶと出ない。"""
+    """ハルシネーションのまとまりを選ぶと、説明・凡例・行を追加ボタンが出る。ほかのまとまりを選ぶと出ない。"""
     # 準備
     opened = open_window()
 
@@ -4830,13 +4830,13 @@ def test_edge_phrase_group_when_visible(open_window: Callable[..., Opened]) -> N
     assert not find(opened.window, QLabel, "edge_phrase_intro").isVisible()
     find(opened.window, QListWidget, "group_menu").setCurrentRow(EDGE_GROUP_ROW)
     assert find(opened.window, QLabel, "edge_phrase_intro").text() == (
-        "文字起こしが文頭・文末に足す、話していない文言を消す。"
+        "文字起こしが文頭・文末に追加する、話していない文言を削除する。"
     )
     assert find(opened.window, QLabel, "edge_phrase_legend").text() == (
         "上の行から順に当てる。* は任意の文字列に一致する。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。"
     )
     assert find(opened.window, QLabel, "edge_phrase_legend").isVisible()
-    assert find(opened.window, QPushButton, "add_edge_phrase_button").text() == "行を足す"
+    assert find(opened.window, QPushButton, "add_edge_phrase_button").text() == "行を追加"
     find(opened.window, QListWidget, "group_menu").setCurrentRow(0)
     assert not find(opened.window, QLabel, "edge_phrase_intro").isVisible()
 
@@ -4845,7 +4845,7 @@ def test_edge_phrase_group_when_visible(open_window: Callable[..., Opened]) -> N
 
 
 def test_edge_phrase_list_initial_value(open_window: Callable[..., Opened]) -> None:
-    """settings.toml の edge_phrases の値と並びのとおりに、文言と位置を出す。読み上げの表の名前は「文頭・文末から消す文言（上の行から順に当てる）」。"""
+    """settings.toml の edge_phrases の値と並びのとおりに、文言と位置を出す。読み上げの表の名前は「文頭・文末から削除する文言（上の行から順に当てる）」。"""
     # 実行
     opened = _open_edge(open_window, ("えーと", "start"), ("ありがとうございました", "both"), ("字幕*", "end"))
 
@@ -4853,7 +4853,7 @@ def test_edge_phrase_list_initial_value(open_window: Callable[..., Opened]) -> N
     window = opened.window
     assert _edge_texts(window) == ["えーと", "ありがとうございました", "字幕*"]
     assert _edge_positions(window) == ["文頭", "両方", "文末"]
-    assert find(window, QWidget, "edge_phrase_list").accessibleName() == "文頭・文末から消す文言（上の行から順に当てる）"
+    assert find(window, QWidget, "edge_phrase_list").accessibleName() == "文頭・文末から削除する文言（上の行から順に当てる）"
     assert find(window, QLineEdit, "edge_phrase_text_1").accessibleName() == "2 行目の文言"
     assert find(window, QComboBox, "edge_phrase_position_1").accessibleName() == "2 行目の位置"
     assert not find(window, QLabel, "edge_phrase_empty").isVisible()
@@ -4907,7 +4907,7 @@ def test_edge_phrase_empty_when_no_phrases(open_window: Callable[..., Opened]) -
     # 検証
     empty = find(opened.window, QLabel, "edge_phrase_empty")
     assert empty.isVisible()
-    assert empty.text() == "消す文言はまだありません。無い間は、文頭・文末から何も消しません。"
+    assert empty.text() == "削除する文言はまだありません。無い間は、文頭・文末から何も削除しません。"
     assert not find(opened.window, QWidget, "edge_phrase_list").isVisible()
 
 
@@ -5098,7 +5098,7 @@ def test_edge_phrase_remove_action(open_window: Callable[..., Opened]) -> None:
     assert _edge_texts(window) == ["A", "C"]
     assert _edge_positions(window) == ["文頭", "両方"]
     opened.deps.save_settings.assert_not_called()
-    assert find(window, QPushButton, "edge_phrase_remove_0").accessibleName() == "1 行目を消す"
+    assert find(window, QPushButton, "edge_phrase_remove_0").accessibleName() == "1 行目を削除"
 
 
 def test_edge_phrase_remove_when_cancelled(open_window: Callable[..., Opened]) -> None:
@@ -5170,7 +5170,7 @@ def test_add_edge_phrase_button_when_no_phrases(open_window: Callable[..., Opene
 
 
 def test_save_button_when_edge_phrases_changed(open_window: Callable[..., Opened]) -> None:
-    """一覧の順に edge_phrases を書く。文言が空の行は捨て、前後の空白は除く。再起動せずに効く値として書き、窓を開いたまま保存した知らせを出す。"""
+    """一覧の順に edge_phrases を書く。文言が空の行は捨て、前後の空白は除く。再起動せずに効く値として書き、窓を開いたまま保存したメッセージを出す。"""
     # 準備（「お疲れ様でした」（文頭）を足して先頭へ動かし、空の行を足したままにして、「ありがとうございました」の行を消す）
     opened = _open_edge(
         open_window, ("チャンネル登録*", "end"), ("ご視聴ありがとうございました", "end"), ("ありがとうございました", "end")
@@ -5202,7 +5202,7 @@ def test_save_button_when_edge_phrases_changed(open_window: Callable[..., Opened
 
 
 def test_reset_dialog_when_edge_phrases(open_window: Callable[..., Opened]) -> None:
-    """「既定に戻す」は、文頭・文末から消す文言を既定の 3 行（全て文末）に戻す。"""
+    """「既定に戻す」は、文頭・文末から削除する文言を既定の 3 行（全て文末）に戻す。"""
     # 準備
     opened = _open_edge(open_window, ("えーと", "start"))
     driver = ModalDriver()
@@ -5219,7 +5219,7 @@ def test_reset_dialog_when_edge_phrases(open_window: Callable[..., Opened]) -> N
 
 # === input_checks（ハルシネーション） ===
 
-WILDCARD_ONLY_MESSAGE = "* だけの文言は、文頭・文末の行を丸ごと消します。消したい文言を入れてください。"
+WILDCARD_ONLY_MESSAGE = "* だけの文言は、文頭・文末の行を丸ごと削除します。削除したい文言を入れてください。"
 """文言が `*` だけのときの文言。"""
 
 
@@ -5305,7 +5305,7 @@ def test_error_summary_row_action_when_edge_phrase(open_window: Callable[..., Op
 # === discard_body（出力先のプリセットの変更の件数） ===
 
 KIND_GROUP_ROWS = {"browser": 1, "endpoint": 2}
-"""まとまりのメニューの種類のタブの行（ブラウザ添付・エンドポイントへ送る）。"""
+"""まとまりのメニューの種類のタブの行（ブラウザ添付・エンドポイントへ送信）。"""
 
 
 def _three_browser_presets() -> Settings:
@@ -5349,7 +5349,7 @@ def test_discard_body_when_preset_added(open_window: Callable[..., Opened]) -> N
     # 準備
     opened = open_window(_settings_with_presets())
     _select_kind(opened.window, "browser")
-    _add_preset(opened.window, "browser", "足した", "https://added.example")
+    _add_preset(opened.window, "browser", "追加した", "https://added.example")
 
     # 実行
     body = _discard_body(opened)
@@ -5390,7 +5390,7 @@ def test_discard_body_when_preset_changed_twice(open_window: Callable[..., Opene
 def test_discard_body_when_preset_hotkey_and_send_enter_changed(
     open_window: Callable[..., Opened],
 ) -> None:
-    """ブラウザ添付の 1 つのプリセットのホットキーと Enter まで送るを変えても、変えた件数は 1 件。"""
+    """ブラウザ添付の 1 つのプリセットのホットキーと Enter まで送信を変えても、変えた件数は 1 件。"""
     # 準備
     opened = open_window(_settings_with_presets())
     _select_kind(opened.window, "browser")
@@ -5407,7 +5407,7 @@ def test_discard_body_when_preset_hotkey_and_send_enter_changed(
 def test_discard_body_when_preset_hotkey_and_authorization_changed(
     open_window: Callable[..., Opened],
 ) -> None:
-    """エンドポイントへ送るの 1 つのプリセットのホットキーと Authorization を変えても、変えた件数は 1 件。"""
+    """エンドポイントへ送信の 1 つのプリセットのホットキーと Authorization を変えても、変えた件数は 1 件。"""
     # 準備
     opened = open_window(_settings_with_presets())
     _select_kind(opened.window, "endpoint")
@@ -5465,7 +5465,7 @@ def test_discard_body_when_preset_removed_from_middle(open_window: Callable[...,
 
 
 def test_discard_body_when_presets_changed_in_two_kinds(open_window: Callable[..., Opened]) -> None:
-    """ブラウザ添付とエンドポイントへ送るのタブで 1 つずつプリセットを変えると、変えた件数は 2 件。"""
+    """ブラウザ添付とエンドポイントへ送信のタブで 1 つずつプリセットを変えると、変えた件数は 2 件。"""
     # 準備
     opened = open_window(_settings_with_presets())
     _select_kind(opened.window, "browser")

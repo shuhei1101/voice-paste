@@ -97,7 +97,7 @@ def test_edge_phrase_panel_header(open_panel: Callable[..., EdgePhrasePanel]) ->
 
 
 def test_edge_phrase_panel_header_when_empty(open_panel: Callable[..., EdgePhrasePanel]) -> None:
-    """行が無い間は見出しの行を出さず、行を足すと出す（正常系）。"""
+    """行が無い間は見出しの行を出さず、行を追加すると出す（正常系）。"""
     # 準備（空の一覧）
     panel = open_panel([])
     assert not _is_header_visible(panel)
@@ -154,7 +154,7 @@ def test_edge_phrase_panel_collect(open_panel: Callable[..., EdgePhrasePanel]) -
 
 
 def test_edge_phrase_panel_add_phrase(open_panel: Callable[..., EdgePhrasePanel]) -> None:
-    """足した行は文末で始まる（正常系）。"""
+    """追加した行は文末で始まる（正常系）。"""
     # 準備（空の一覧では行が無いときの文が出ている）
     panel = open_panel([])
     changed_count: list[int] = []

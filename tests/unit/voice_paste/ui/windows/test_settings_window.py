@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from voice_paste.ui.controller import UiDeps
     from voice_paste.ui.windows.settings_window import SettingsWindow
 
-ENTER_DELAY_DESCRIPTION = "貼り付けてから Enter を送るまで待つ秒数"
+ENTER_DELAY_DESCRIPTION = "貼り付けてから Enter を送信するまで待つ秒数"
 NEW_VOLUME_PERCENT = 30
 
 
@@ -91,7 +91,7 @@ def _error_summary_text(window: SettingsWindow) -> str:
 
 
 def _add_preset(window: SettingsWindow, kind: str, *, title: str, url: str) -> None:
-    """種類のタブの「プリセットを足す」を押し、足したプリセットのタイトルと URL の欄に値を入れる。"""
+    """種類のタブの「プリセットを追加」を押し、追加したプリセットのタイトルと URL の欄に値を入れる。"""
     button = window.findChild(QAbstractButton, f"add_preset_button_{kind}")
     assert button is not None, f"add_preset_button_{kind} のボタンが無い"
     button.click()
@@ -215,7 +215,7 @@ def _set_language(window: SettingsWindow, language: str) -> None:
 
 
 def test_save(opened: Opened, monkeypatch: pytest.MonkeyPatch) -> None:
-    """通った値を書き、設定画面を開いたまま保存した知らせを出して読み上げにも伝える（正常系）。"""
+    """通った値を書き、設定画面を開いたまま保存したメッセージを出して読み上げにも伝える（正常系）。"""
     # 準備（読み上げに渡すイベントを控える）
     announced: list[QAccessibleEvent] = []
     monkeypatch.setattr(QAccessible, "updateAccessibility", announced.append)
@@ -298,7 +298,7 @@ def test_save_when_fixed_after_invalid(opened: Opened) -> None:
 
 
 def test_save_when_hotkey_unavailable(opened: Opened) -> None:
-    """ホットキーを受け付けられなければエラーを出し、保存した知らせを出さない（異常系）。"""
+    """ホットキーを受け付けられなければエラーを出し、保存したメッセージを出さない（異常系）。"""
     from voice_paste.shared.errors import HotkeyError
 
     # 準備
@@ -319,8 +319,8 @@ def test_save_when_hotkey_unavailable(opened: Opened) -> None:
 
 def test_save_when_presets(opened: Opened) -> None:
     """タブごとのプリセットを 1 つの一覧にして書く（正常系）。"""
-    # 準備（エンドポイントへ送るのタブ → ブラウザ添付のタブの順に足す）
-    _add_preset(opened.window, "endpoint", title="受け口", url="http://127.0.0.1:9000/hook")
+    # 準備（エンドポイントへ送信のタブ → ブラウザ添付のタブの順に追加する）
+    _add_preset(opened.window, "endpoint", title="受信先", url="http://127.0.0.1:9000/hook")
     _add_preset(opened.window, "browser", title="ChatGPT", url="https://chatgpt.com")
 
     # 実行
@@ -331,7 +331,7 @@ def test_save_when_presets(opened: Opened) -> None:
     saved_settings = opened.deps.save_settings.call_args.args[0]
     assert [(preset.kind, preset.title) for preset in saved_settings.presets] == [
         ("browser", "ChatGPT"),
-        ("endpoint", "受け口"),
+        ("endpoint", "受信先"),
     ]
 
 
@@ -697,10 +697,10 @@ def test_save_when_hint_word_invalid(opened: Opened) -> None:
     assert result is False
     opened.deps.save_settings.assert_not_called()
     summary = _error_summary_text(opened.window)
-    assert "プリセット 1 件目の 1 つ目の語: 語を入れるか、この欄を消してください。" in summary
+    assert "プリセット 1 件目の 1 つ目の語: 語を入れるか、この欄を削除してください。" in summary
     assert (
         "プリセット 1 件目の 2 つ目の語: "
-        "読点（、）・句点（。）・改行は入れられません。語を分けて足してください。"
+        "読点（、）・句点（。）・改行は入れられません。語を分けて追加してください。"
     ) in summary
 
 
@@ -775,7 +775,7 @@ def test_save_when_edge_phrase_wildcard_only(opened: Opened) -> None:
     opened.deps.save_settings.assert_not_called()
     assert (
         "ハルシネーションの 2 行目の文言: "
-        "* だけの文言は、文頭・文末の行を丸ごと消します。消したい文言を入れてください。"
+        "* だけの文言は、文頭・文末の行を丸ごと削除します。削除したい文言を入れてください。"
     ) in _error_summary_text(opened.window)
     assert second_edit.text() == "*"
 
@@ -847,7 +847,7 @@ def test_save_when_hotkey_changed(
     expected_notice: str,
 ) -> None:
     """ホットキーを変えた保存では、閉じると効くことを添える（正常系）。"""
-    # 準備（録音開始・出力先の確定・カスタムプリセットの確定のホットキーか、貼り付けに送るキーだけを変える）
+    # 準備（録音開始・出力先の確定・カスタムプリセットの確定のホットキーか、貼り付けに送信するキーだけを変える）
     _select_group(opened.window, group)
     prepare(opened.window)
     _press_hotkey(opened.window, hotkey_name)
@@ -937,7 +937,7 @@ def test_save_then_close(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """保存の後に欄を変えずに閉じると確認を出さずに閉じ、保存の後に欄を変えると知らせが消える（正常系）。"""
+    """保存の後に欄を変えずに閉じると確認を出さずに閉じ、保存の後に欄を変えると保存したメッセージが消える（正常系）。"""
     from voice_paste.shared.settings import GlossarySettings
     from voice_paste.shared.types import GlossaryEntry
 
@@ -1072,7 +1072,7 @@ def test_selected_radio_when_labels(qapp: QApplication) -> None:
 
 
 def test_format_hotkey() -> None:
-    """修飾キーと文字を画面の形にする（正常系）。"""
+    """修飾キーと文字を画面の表示形式にする（正常系）。"""
     from voice_paste.ui.windows.settings_window import format_hotkey
 
     # 実行・検証
@@ -1161,7 +1161,7 @@ def test_to_field_message_when_preset_url_empty(settings_model: type[Settings]) 
     # 準備
     with pytest.raises(ValidationError) as exc_info:
         settings_model.model_validate(
-            {"presets": [{"kind": "endpoint", "title": "受け口", "url": ""}]}
+            {"presets": [{"kind": "endpoint", "title": "受信先", "url": ""}]}
         )
 
     # 実行

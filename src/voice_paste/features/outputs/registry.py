@@ -59,7 +59,7 @@ PRESET_KINDS: tuple[PresetKindSpec, ...] = (
     ),
     PresetKindSpec(
         kind="endpoint",
-        title="エンドポイントへ送る",
+        title="エンドポイントへ送信",
         handler=deliver_to_endpoint,  # type: ignore[arg-type] 注入する関数は main.py が部分適用する
     ),
 )

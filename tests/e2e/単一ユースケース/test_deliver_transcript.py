@@ -100,7 +100,7 @@ LIMIT_SETTINGS = f"[api.continuous]\nsession_limit_sec = {SESSION_LIMIT_SEC}\n"
 
 
 def _browser_preset_settings(*, send_enter: bool) -> str:
-    """ブラウザ添付のプリセットを 1 つ足す設定を返す。"""
+    """ブラウザ添付のプリセットを 1 つ追加する設定を返す。"""
     return (
         "[[presets]]\n"
         'kind = "browser"\n'
@@ -111,7 +111,7 @@ def _browser_preset_settings(*, send_enter: bool) -> str:
 
 
 def _endpoint_preset_settings(url: str) -> str:
-    """エンドポイントへ送るのプリセットを 1 つ足す設定を返す。"""
+    """エンドポイントへ送信のプリセットを 1 つ追加する設定を返す。"""
     return f'[[presets]]\nkind = "endpoint"\ntitle = "{ENDPOINT_TITLE}"\nurl = "{url}"\n'
 
 
@@ -202,7 +202,7 @@ def test_normal_when_copy_only(run_app: RunApp, tmp_path: Path, clipboard_sentin
 def test_normal_when_browser_preset(
     run_app: RunApp, tmp_path: Path, clipboard_sentinel: str
 ) -> None:
-    """Enter まで送るブラウザ添付のプリセットを選ぶと、プリセットの URL を開いて貼り付け、修飾キーなしの Enter を送る（正常シナリオ（ブラウザ添付のプリセット））。"""
+    """Enter まで送信するブラウザ添付のプリセットを選ぶと、プリセットの URL を開いて貼り付け、修飾キーなしの Enter を送る（正常シナリオ（ブラウザ添付のプリセット））。"""
     # 準備: 貼り付けて送信は Ctrl をオンにしている（プリセットには当てない）
     extra_settings = ENTER_WITH_CTRL_SETTINGS + _browser_preset_settings(send_enter=True)
     keys = KeyLog()
@@ -355,7 +355,7 @@ def test_error_when_callback_unreachable(run_app: RunApp, tmp_path: Path) -> Non
 def test_normal_when_endpoint_preset(
     run_app: RunApp, tmp_path: Path, receiver: CallbackReceiver, clipboard_sentinel: str
 ) -> None:
-    """エンドポイントへ送るプリセットを選ぶと、起こした文字を送り先へ 1 回送り、クリップボードも貼り付け先も変えない（正常シナリオ（エンドポイントへ送るプリセット））。"""
+    """エンドポイントへ送信のプリセットを選ぶと、起こした文字を送り先へ 1 回送り、クリップボードも貼り付け先も変えない（正常シナリオ（エンドポイントへ送信のプリセット））。"""
     # 準備
     keys = KeyLog()
 
@@ -387,7 +387,7 @@ def test_normal_when_endpoint_preset(
 def test_error_when_endpoint_unreachable(
     run_app: RunApp, tmp_path: Path, receiver: CallbackReceiver
 ) -> None:
-    """送り先がタイムアウトまでに応えなければ、届けられなかったことを知らせてログに書き、送り直さず、履歴は残って次の録音を始められる（異常シナリオ（送り先に届かない））。"""
+    """送り先がタイムアウトまでに応えなければ、届けられなかったことを知らせてログに書き、送り直さず、履歴は残って次の録音を始められる（異常シナリオ（送信先に届かない））。"""
     # 準備: 送り先の受け口が、設定のタイムアウトより長く応えない
     receiver.delay_sec = ENDPOINT_RESPONSE_DELAY_SEC
 
@@ -654,7 +654,7 @@ def test_normal_when_enter_with_modifier(
 def test_normal_when_copy_again_from_notification(
     run_app: RunApp, tmp_path: Path, clipboard_sentinel: str
 ) -> None:
-    """コピーの完了の通知を押すと、ほかのアプリが上書きしていても、その通知のときに起こした文字をコピーし直す（正常シナリオ（コピーの完了の通知を押してコピーし直す））。"""
+    """コピーの完了の通知を押すと、ほかのアプリが上書きしていても、その通知のときに起こした文字をもう一度コピーする（正常シナリオ（コピーの完了の通知を押してもう一度コピーする））。"""
     # 準備
     keys = KeyLog()
 

@@ -37,7 +37,7 @@ def _no_worker_stack(web_stack: Callable[..., Stack]) -> Stack:
 def test_normal(
     web_stack: Callable[..., Stack], tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """許す Origin から送られた音声を受け付け、job_id を返す（正常系）。"""
+    """許す Origin から送信された音声を受け付け、job_id を返す（正常系）。"""
     # 準備
     caplog.set_level(logging.INFO)
     stack = _no_worker_stack(web_stack)

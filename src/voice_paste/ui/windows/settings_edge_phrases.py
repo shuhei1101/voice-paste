@@ -1,4 +1,4 @@
-"""設定画面の「ハルシネーション」のまとまりに置く、文頭・文末から消す文言の一覧。"""
+"""設定画面の「ハルシネーション」のまとまりに置く、文頭・文末から削除する文言の一覧。"""
 
 from __future__ import annotations
 
@@ -25,10 +25,10 @@ from voice_paste.ui.windows.settings_fields import set_invalid
 HEADING_TEXT: str = "ハルシネーション"
 """まとまりの見出し。"""
 
-INTRO_TEXT: str = "文字起こしが文頭・文末に足す、話していない文言を消す。"
+INTRO_TEXT: str = "文字起こしが文頭・文末に追加する、話していない文言を削除する。"
 """まとまりの見出しの下に出す、一覧の文言が何を消すかの説明。"""
 
-EMPTY_TEXT: str = "消す文言はまだありません。無い間は、文頭・文末から何も消しません。"
+EMPTY_TEXT: str = "削除する文言はまだありません。無い間は、文頭・文末から何も削除しません。"
 """行が 1 つも無いときの文。"""
 
 LEGEND_TEXT: str = (
@@ -36,7 +36,7 @@ LEGEND_TEXT: str = (
 )
 """行の順・`*` の一致・行の動かし方を示す凡例。"""
 
-LIST_ACCESSIBLE_NAME: str = "文頭・文末から消す文言（上の行から順に当てる）"
+LIST_ACCESSIBLE_NAME: str = "文頭・文末から削除する文言（上の行から順に当てる）"
 """文言の一覧の読み上げの名前。"""
 
 GRIP_TEXT: str = "⠿"
@@ -123,7 +123,7 @@ class RowGrip(QLabel):
 
 
 class EdgePhrasePanel(QWidget):
-    """設定画面の「ハルシネーション」のまとまりに置く、説明・文言の一覧・空の文・「行を足す」・凡例。
+    """設定画面の「ハルシネーション」のまとまりに置く、説明・文言の一覧・空の文・「行を追加」・凡例。
 
     足す・消す・並べ替え・入力はこの部品の中だけを変え、settings.toml へは設定画面の保存で書く。
     """
@@ -169,7 +169,7 @@ class EdgePhrasePanel(QWidget):
         self._rows_layout.setSpacing(6)
         outer.addWidget(self._list)
 
-        add_button = QPushButton("行を足す")
+        add_button = QPushButton("行を追加")
         add_button.setObjectName("add_edge_phrase_button")
         add_button.clicked.connect(self.add_phrase)
         legend = QLabel(LEGEND_TEXT)
@@ -375,7 +375,7 @@ class EdgePhrasePanel(QWidget):
         position_box.setCurrentIndex(max(position_box.findData(str(value["position"])), 0))
         remove_button = QPushButton("×")
         remove_button.setObjectName(f"edge_phrase_remove_{position}")
-        remove_button.setAccessibleName(f"{position + 1} 行目を消す")
+        remove_button.setAccessibleName(f"{position + 1} 行目を削除")
         error_label = QLabel()
         error_label.setTextFormat(Qt.TextFormat.PlainText)
         error_label.setProperty("role", "error")

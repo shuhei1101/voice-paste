@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <!-- viewport: 狭い幅でも見本の表を横に流して読めるようにする -->
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>チェックボックス・ラジオボタンの印 | voice-paste のモック</title>
-  <!-- 採用スタイル「開発者ツール」の部品は #37、配色は #94、印の描き方は #159 の共有 CSS に置く -->
+  <title>チェックボックス・ラジオボタンのマーカー | voice-paste のモック</title>
+  <!-- 採用スタイル「開発者ツール」の部品は #37、配色は #94、マーカーの描き方は #159 の共有 CSS に置く -->
   <link rel="stylesheet" href="../../refs/37/assets/style.css">
   <link rel="stylesheet" href="../../refs/94/assets/style.css">
   <link rel="stylesheet" href="../../refs/159/assets/style.css">
@@ -17,8 +17,8 @@
 
     <!-- 部品の説明 -->
     <header class="intro">
-      <h1>チェックボックス・ラジオボタンの印</h1>
-      <p>設定画面のチェックボックス・ラジオボタンの印と、選択欄の開く印。案 A はオンの印を accent_fg、案 B は primary で塗る。どちらもオンはチェック・点の形でもオフと分かる。</p>
+      <h1>チェックボックス・ラジオボタンのマーカー</h1>
+      <p>設定画面のチェックボックス・ラジオボタンのマーカーと、選択欄の開くマーカー。案 A はオンのマーカーを accent_fg、案 B は primary で塗る。どちらもオンはチェック・点の形でもオフと分かる。</p>
     </header>
 
     <div class="desk desk--single">
@@ -27,14 +27,14 @@
       <section class="specimen" aria-labelledby="h-now">
         <h2 id="h-now">今の描画（Qt の実画面）</h2>
         <div class="shots">
-          <figure><img src="../../../pr/159/スクリーンショット/qt-now-light.png" width="480" height="630" alt="今のライトの描画。オンのチェックボックスは箱が消えてチェックだけになり、選んだラジオボタン（cuda）は印が消えている"><figcaption>ライト</figcaption></figure>
-          <figure><img src="../../../pr/159/スクリーンショット/qt-now-dark.png" width="480" height="630" alt="今のダークの描画。ライトと同じく、選んだラジオボタンの印が消え、選択欄の開く印に別の枠が付いている"><figcaption>ダーク</figcaption></figure>
+          <figure><img src="../../../pr/159/スクリーンショット/qt-now-light.png" width="480" height="630" alt="今のライトの描画。オンのチェックボックスは箱が消えてチェックだけになり、選んだラジオボタン（cuda）はマーカーが消えている"><figcaption>ライト</figcaption></figure>
+          <figure><img src="../../../pr/159/スクリーンショット/qt-now-dark.png" width="480" height="630" alt="今のダークの描画。ライトと同じく、選んだラジオボタンのマーカーが消え、選択欄の開くマーカーに別の枠が付いている"><figcaption>ダーク</figcaption></figure>
         </div>
         <ul class="scene-note">
-          <li>選んだラジオボタン（cuda・使えない状態の選択）: 印が丸ごと消え、どれを選んだか分からない（Issue #155 の添付の例）</li>
+          <li>選んだラジオボタン（cuda・使えない状態の選択）: マーカーが丸ごと消え、どれを選んだか分からない（Issue #155 の添付の例）</li>
           <li>オンのチェックボックス: 箱が消えてチェックだけになり、オフの箱と形がそろわない</li>
-          <li>選択欄の開く印: 角の丸い欄の右端に四角い枠が重なり、ダークでは黒い縁が出る</li>
-          <li>波形の感度のつまみ・文字起こし中の表示の選んだボタンの印: 明暗とも見分けられるため変えない</li>
+          <li>選択欄の開くマーカー: 角の丸い欄の右端に四角い枠が重なり、ダークでは黒い縁が出る</li>
+          <li>波形の感度のつまみ・文字起こし中の表示の選んだボタンのマーカー: 明暗とも見分けられるため変えない</li>
         </ul>
       </section>
 
@@ -48,9 +48,9 @@
 <tr><th scope="row">オン・使えない</th><td data-label="案 A・ライト"><div class="cell pal-cool theme-light ind-a"><label class="check" for="cb-13"><input type="checkbox" id="cb-13" checked disabled> オン・使えない</label></div></td><td data-label="案 A・ダーク"><div class="cell pal-cool theme-dark ind-a"><label class="check" for="cb-14"><input type="checkbox" id="cb-14" checked disabled> オン・使えない</label></div></td><td data-label="案 B・ライト"><div class="cell pal-cool theme-light ind-b"><label class="check" for="cb-15"><input type="checkbox" id="cb-15" checked disabled> オン・使えない</label></div></td><td data-label="案 B・ダーク"><div class="cell pal-cool theme-dark ind-b"><label class="check" for="cb-16"><input type="checkbox" id="cb-16" checked disabled> オン・使えない</label></div></td></tr>
 <tr><th scope="row">オフ・フォーカス</th><td data-label="案 A・ライト"><div class="cell pal-cool theme-light ind-a"><label class="check is-focus" for="cb-17"><input type="checkbox" id="cb-17"> オフ・フォーカス</label></div></td><td data-label="案 A・ダーク"><div class="cell pal-cool theme-dark ind-a"><label class="check is-focus" for="cb-18"><input type="checkbox" id="cb-18"> オフ・フォーカス</label></div></td><td data-label="案 B・ライト"><div class="cell pal-cool theme-light ind-b"><label class="check is-focus" for="cb-19"><input type="checkbox" id="cb-19"> オフ・フォーカス</label></div></td><td data-label="案 B・ダーク"><div class="cell pal-cool theme-dark ind-b"><label class="check is-focus" for="cb-20"><input type="checkbox" id="cb-20"> オフ・フォーカス</label></div></td></tr>
 <tr><th scope="row">オン・フォーカス</th><td data-label="案 A・ライト"><div class="cell pal-cool theme-light ind-a"><label class="check is-focus" for="cb-21"><input type="checkbox" id="cb-21" checked> オン・フォーカス</label></div></td><td data-label="案 A・ダーク"><div class="cell pal-cool theme-dark ind-a"><label class="check is-focus" for="cb-22"><input type="checkbox" id="cb-22" checked> オン・フォーカス</label></div></td><td data-label="案 B・ライト"><div class="cell pal-cool theme-light ind-b"><label class="check is-focus" for="cb-23"><input type="checkbox" id="cb-23" checked> オン・フォーカス</label></div></td><td data-label="案 B・ダーク"><div class="cell pal-cool theme-dark ind-b"><label class="check is-focus" for="cb-24"><input type="checkbox" id="cb-24" checked> オン・フォーカス</label></div></td></tr>
-<tr><th scope="row">長い名前（オン）</th><td data-label="案 A・ライト"><div class="cell pal-cool theme-light ind-a"><label class="check" for="cb-25"><input type="checkbox" id="cb-25" checked> 前の区間を文脈に使う（長い名前でも印は縮めず、名前だけを折り返す）</label></div></td><td data-label="案 A・ダーク"><div class="cell pal-cool theme-dark ind-a"><label class="check" for="cb-26"><input type="checkbox" id="cb-26" checked> 前の区間を文脈に使う（長い名前でも印は縮めず、名前だけを折り返す）</label></div></td><td data-label="案 B・ライト"><div class="cell pal-cool theme-light ind-b"><label class="check" for="cb-27"><input type="checkbox" id="cb-27" checked> 前の区間を文脈に使う（長い名前でも印は縮めず、名前だけを折り返す）</label></div></td><td data-label="案 B・ダーク"><div class="cell pal-cool theme-dark ind-b"><label class="check" for="cb-28"><input type="checkbox" id="cb-28" checked> 前の区間を文脈に使う（長い名前でも印は縮めず、名前だけを折り返す）</label></div></td></tr>
+<tr><th scope="row">長い名前（オン）</th><td data-label="案 A・ライト"><div class="cell pal-cool theme-light ind-a"><label class="check" for="cb-25"><input type="checkbox" id="cb-25" checked> 前の区間を文脈に使う（長い名前でもマーカーは縮めず、名前だけを折り返す）</label></div></td><td data-label="案 A・ダーク"><div class="cell pal-cool theme-dark ind-a"><label class="check" for="cb-26"><input type="checkbox" id="cb-26" checked> 前の区間を文脈に使う（長い名前でもマーカーは縮めず、名前だけを折り返す）</label></div></td><td data-label="案 B・ライト"><div class="cell pal-cool theme-light ind-b"><label class="check" for="cb-27"><input type="checkbox" id="cb-27" checked> 前の区間を文脈に使う（長い名前でもマーカーは縮めず、名前だけを折り返す）</label></div></td><td data-label="案 B・ダーク"><div class="cell pal-cool theme-dark ind-b"><label class="check" for="cb-28"><input type="checkbox" id="cb-28" checked> 前の区間を文脈に使う（長い名前でもマーカーは縮めず、名前だけを折り返す）</label></div></td></tr>
 </tbody></table></div>
-        <p class="scene-note">フォーカスは印と名前の組を accent_fg の枠で囲む。かざすとオフの箱の線が accent_fg になる。</p>
+        <p class="scene-note">フォーカスはマーカーと名前の組を accent_fg の枠で囲む。かざすとオフの箱の線が accent_fg になる。</p>
       </section>
 
       <!-- ラジオボタンの状態 -->
@@ -66,21 +66,21 @@
 </tbody></table></div>
       </section>
 
-      <!-- ラジオの並びの間隔: 丸がどの名前の印かを距離で分ける -->
+      <!-- ラジオの並びの間隔: 丸がどの名前のマーカーかを距離で分ける -->
       <section class="specimen" aria-labelledby="h-gap">
         <h2 id="h-gap">ラジオの選択肢の間（案 A の色）</h2>
         <div class="states-wrap"><table class="states"><caption class="sr-only">ラジオの選択肢の間の比較</caption><thead><tr><th scope="col">間</th><th scope="col">ライト</th><th scope="col">ダーク</th></tr></thead><tbody>
 <tr><th scope="row">今（6px 前後）</th><td data-label="ライト"><div class="cell pal-cool theme-light ind-a"><fieldset class="radios" style="gap: 4px 6px" aria-label="動かすデバイス（6px）"><label><input type="radio" name="sp-53" checked> cuda</label><label><input type="radio" name="sp-53"> cpu</label></fieldset><fieldset class="radios" style="gap: 4px 6px" aria-label="計算の精度（6px）"><label><input type="radio" name="sq-53" checked> float16</label><label><input type="radio" name="sq-53"> int8</label><label><input type="radio" name="sq-53"> float32</label></fieldset></div></td><td data-label="ダーク"><div class="cell pal-cool theme-dark ind-a"><fieldset class="radios" style="gap: 4px 6px" aria-label="動かすデバイス（6px）"><label><input type="radio" name="sp-54" checked> cuda</label><label><input type="radio" name="sp-54"> cpu</label></fieldset><fieldset class="radios" style="gap: 4px 6px" aria-label="計算の精度（6px）"><label><input type="radio" name="sq-54" checked> float16</label><label><input type="radio" name="sq-54"> int8</label><label><input type="radio" name="sq-54"> float32</label></fieldset></div></td></tr>
 <tr><th scope="row">20px（推奨）</th><td data-label="ライト"><div class="cell pal-cool theme-light ind-a"><fieldset class="radios" style="gap: 4px 20px" aria-label="動かすデバイス（20px）"><label><input type="radio" name="sp-55" checked> cuda</label><label><input type="radio" name="sp-55"> cpu</label></fieldset><fieldset class="radios" style="gap: 4px 20px" aria-label="計算の精度（20px）"><label><input type="radio" name="sq-55" checked> float16</label><label><input type="radio" name="sq-55"> int8</label><label><input type="radio" name="sq-55"> float32</label></fieldset></div></td><td data-label="ダーク"><div class="cell pal-cool theme-dark ind-a"><fieldset class="radios" style="gap: 4px 20px" aria-label="動かすデバイス（20px）"><label><input type="radio" name="sp-56" checked> cuda</label><label><input type="radio" name="sp-56"> cpu</label></fieldset><fieldset class="radios" style="gap: 4px 20px" aria-label="計算の精度（20px）"><label><input type="radio" name="sq-56" checked> float16</label><label><input type="radio" name="sq-56"> int8</label><label><input type="radio" name="sq-56"> float32</label></fieldset></div></td></tr>
 </tbody></table></div>
-        <p class="scene-note">今は「cuda ○ cpu」の丸が前後どちらの名前の印か読み取りにくい。印と名前の間（8px）より選択肢の間を広くする。</p>
+        <p class="scene-note">今は「cuda ○ cpu」の丸が前後どちらの名前のマーカーか読み取りにくい。マーカーと名前の間（8px）より選択肢の間を広くする。</p>
       </section>
 
-      <!-- 選択欄の開く印 -->
+      <!-- 選択欄の開くマーカー -->
       <section class="specimen" aria-labelledby="h-sel">
-        <h2 id="h-sel">選択欄の開く印</h2>
-        <div class="states-wrap"><table class="states"><caption class="sr-only">選択欄の開く印</caption><thead><tr><th scope="col">状態</th><th scope="col">ライト</th><th scope="col">ダーク</th></tr></thead><tbody>
-<tr><th scope="row">直した印</th><td data-label="ライト"><div class="cell pal-cool theme-light"><label for="sel-57">認識する言語</label><span class="select"><select id="sel-57"><option>ja</option><option>en</option></select></span><label for="sel-57b">モデル</label><span class="select"><select id="sel-57b"><option>large-v3-turbo</option></select></span></div></td><td data-label="ダーク"><div class="cell pal-cool theme-dark"><label for="sel-58">認識する言語</label><span class="select"><select id="sel-58"><option>ja</option><option>en</option></select></span><label for="sel-58b">モデル</label><span class="select"><select id="sel-58b"><option>large-v3-turbo</option></select></span></div></td></tr>
+        <h2 id="h-sel">選択欄の開くマーカー</h2>
+        <div class="states-wrap"><table class="states"><caption class="sr-only">選択欄の開くマーカー</caption><thead><tr><th scope="col">状態</th><th scope="col">ライト</th><th scope="col">ダーク</th></tr></thead><tbody>
+<tr><th scope="row">修正後のマーカー</th><td data-label="ライト"><div class="cell pal-cool theme-light"><label for="sel-57">認識する言語</label><span class="select"><select id="sel-57"><option>ja</option><option>en</option></select></span><label for="sel-57b">モデル</label><span class="select"><select id="sel-57b"><option>large-v3-turbo</option></select></span></div></td><td data-label="ダーク"><div class="cell pal-cool theme-dark"><label for="sel-58">認識する言語</label><span class="select"><select id="sel-58"><option>ja</option><option>en</option></select></span><label for="sel-58b">モデル</label><span class="select"><select id="sel-58b"><option>large-v3-turbo</option></select></span></div></td></tr>
 </tbody></table></div>
         <p class="scene-note">別の枠を持たせず、欄の右端に text_muted の V 字を置く。案 A・B で変わらない。</p>
       </section>

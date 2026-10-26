@@ -310,7 +310,7 @@ def test_start(
     make_client: Callable[..., Any],
     install_popen: Callable[..., FakePopen],
 ) -> None:
-    """config を送り ready を受けて立ち上がる（正常系）。"""
+    """config を送信し ready を受けて立ち上がる（正常系）。"""
     # 準備（venv に cublas・cudnn の bin だけがある）
     cublas_bin = tmp_path / "Lib" / "site-packages" / "nvidia" / "cublas" / "bin"
     cudnn_bin = tmp_path / "Lib" / "site-packages" / "nvidia" / "cudnn" / "bin"
@@ -464,7 +464,7 @@ def test_transcribe(
 def test_transcribe_when_hint(
     make_client: Callable[..., Any], install_popen: Callable[..., FakePopen]
 ) -> None:
-    """手がかりを hotwords に載せて送る（正常系）。"""
+    """手がかりを hotwords に載せて送信する（正常系）。"""
     # 準備
     process = FakeProcess(ready_worker)
     install_popen(process)

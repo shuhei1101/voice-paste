@@ -100,7 +100,7 @@ def test_send_paste_when_multiple_modifiers(keyboard_calls: MagicMock) -> None:
 
 
 def test_send_paste_when_spaced_and_uppercase(keyboard_calls: MagicMock) -> None:
-    """キーの前後の空白と大文字を揃えて、同じキーとして送る（正常系）。"""
+    """キーの前後の空白と大文字を揃えて、同じキーとして送信する（正常系）。"""
     from voice_paste.integrations.keyboard.sender import send_paste
 
     # 実行
@@ -117,7 +117,7 @@ def test_send_paste_when_spaced_and_uppercase(keyboard_calls: MagicMock) -> None
 
 
 def test_send_paste_when_no_main_key(keyboard_calls: MagicMock) -> None:
-    """主キーが 1 つ無ければ、キーを送らずに DeliveryError にする（異常系）。"""
+    """主キーが 1 つ無ければ、キーを送信せずに DeliveryError にする（異常系）。"""
     from voice_paste.integrations.keyboard.sender import send_paste
 
     # 実行・検証

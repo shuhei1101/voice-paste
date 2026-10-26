@@ -23,9 +23,9 @@
 # words = ["voice-paste", "Whisper"]
 # enabled = true
 
-# 起こした文字の文頭・文末から消す文言の一覧（設定画面の「ハルシネーション」で編集する）。
-# キーが無いときは、上から「チャンネル登録*」「ご視聴ありがとうございました」「ありがとうございました」（全て文末）。空の一覧にすると何も消さない。
-# 上の行から順に、前の行で消した結果へ当てる。文言は完全な一致で、* は 0 文字以上の任意の文字列に一致する。
+# 起こした文字の文頭・文末から削除する文言の一覧（設定画面の「ハルシネーション」で編集する）。
+# キーが無いときは、上から「チャンネル登録*」「ご視聴ありがとうございました」「ありがとうございました」（全て文末）。空の一覧にすると何も削除しない。
+# 上の行から順に、前の行で削除した結果へ当てる。文言は完全な一致で、* は 0 文字以上の任意の文字列に一致する。
 # position は start（文頭）・end（文末）・both（両方）。
 # [[edge_phrases]]
 # text = "ご視聴ありがとうございました"
@@ -76,20 +76,20 @@ lower_volume = true
 volume_percent = 50.0
 # 音量を下げる・戻すときにかける秒数。0 以上
 fade_sec = 0.5
-# 録音の画面も文字起こし中の表示も出さず、トレイとホットキーだけで操作するか
+# 録音の画面も文字起こし中の表示も表示せず、トレイとホットキーだけで操作するか
 hide_window = false
 
 # === ホットキー（pynput の GlobalHotKeys の書式） ===
 [hotkeys]
-# 録音を始める
+# 録音開始
 start = "<ctrl>+<alt>+d"
-# 録音を一時停止・再開する
+# 録音の一時停止・再開
 pause = "<ctrl>+<alt>+z"
-# 録音を取り消す
+# 録音の取り消し
 cancel = "<ctrl>+<alt>+q"
 
 [keyboard]
-# 貼り付け先へ送る貼り付けのキー。ターミナル向けには <ctrl>+<shift>+v
+# 貼り付け先へ送信する貼り付けのキー。ターミナル向けには <ctrl>+<shift>+v
 paste_key = "<ctrl>+v"
 
 # === 出力先（id は重ならない。enabled = false の出力先は確定の操作に出さず、ホットキーも登録しない） ===
@@ -99,9 +99,9 @@ id = "paste_and_send"
 enabled = true
 # この出力先で確定するホットキー
 hotkey = "<ctrl>+<alt>+d"
-# 貼り付けてから Enter を送るまで待つ秒数。0 以上
+# 貼り付けてから Enter を送信するまで待つ秒数。0 以上
 enter_delay_sec = 0.5
-# Enter と一緒に押す修飾キー（"ctrl"・"alt"・"shift"）。空なら Enter だけを送る
+# Enter と一緒に押す修飾キー（"ctrl"・"alt"・"shift"）。空なら Enter だけを送信する
 enter_modifiers = []
 
 [[outputs]]
@@ -118,7 +118,7 @@ hotkey = "<ctrl>+<alt>+c"
 
 # === カスタムプリセット（既定は無し） ===
 # 録音の画面の見出し「カスタムプリセット」の下に、有効なプリセットのボタンが並ぶ。
-# kind = "browser"（ブラウザ添付）と kind = "endpoint"（エンドポイントへ送る）の 2 種類。書く例:
+# kind = "browser"（ブラウザ添付）と kind = "endpoint"（エンドポイントへ送信）の 2 種類。書く例:
 #
 # [[presets]]
 # kind = "browser"
@@ -130,7 +130,7 @@ hotkey = "<ctrl>+<alt>+c"
 #
 # [[presets]]
 # kind = "endpoint"
-# title = "受け口"
+# title = "エンドポイント"
 # url = "http://127.0.0.1:9000/hook"
 # hotkey = ""
 # enabled = true
@@ -142,7 +142,7 @@ hotkey = "<ctrl>+<alt>+c"
 open_delay_sec = 3.0
 
 [preset_options.endpoint]
-# 送るときのタイムアウトの秒数。0.5〜10。この秒数で届かなければ、送り直さずにトレイで知らせる
+# 送信のタイムアウトの秒数。0.5〜10。この秒数で届かなければ、再送せずにトレイで通知する
 timeout_sec = 1.5
 
 # === 履歴 ===
@@ -163,17 +163,17 @@ retention_days = 7
 [ui]
 # 画面の明暗。system（Windows の設定に従う）・light・dark
 theme = "system"
-# 常に最前面に出すか
+# 常に最前面に表示するか
 topmost = true
-# 出す位置。center・top-left・top-right・bottom-left・bottom-right
+# 表示する位置。center・top-left・top-right・bottom-left・bottom-right
 position = "center"
-# マウスカーソルのあるモニターに出すか
+# マウスカーソルのあるモニターに表示するか
 follow_cursor = true
 # 波形の振れの大きさ。0 より大きい。大きいほど小さい声でも大きく振れる
 wave_gain = 4.0
-# 録音の画面のボタンにホットキーを出すか。false のときは名前だけを出す（ホットキーでの操作はそのまま効く）
+# 録音の画面のボタンにホットキーを表示するか。false のときは名前だけを表示する（ホットキーでの操作はそのまま効く）
 show_hotkeys = true
-# 文字起こし中の表示のボタンにホットキーを出すか。false のときは名前だけを出す（ホットキーでの切り替えはそのまま効く）。書かなければ show_hotkeys と同じ値で動く
+# 文字起こし中の表示のボタンにホットキーを表示するか。false のときは名前だけを表示する（ホットキーでの切り替えはそのまま効く）。書かなければ show_hotkeys と同じ値で動く
 transcribing_show_hotkeys = true
 
 # === API ===
@@ -182,7 +182,7 @@ transcribing_show_hotkeys = true
 port = 47823
 # loopback のほかに、起こした文字の返送を許すホスト（再起動）
 allowed_callback_hosts = []
-# /web/ の下（外の端末のブラウザの画面）へ要求を送ってよい Origin（再起動）。ゲートウェイの公開のサブドメインを scheme://host[:port] の形で書く。例: ["https://voice-paste.example.com"]
+# /web/ の下（外の端末のブラウザの画面）へ要求を送信してよい Origin（再起動）。ゲートウェイの公開のサブドメインを scheme://host[:port] の形で書く。例: ["https://voice-paste.example.com"]
 allowed_web_origins = []
 
 # === 連続録音（API で continuous を指定した録音）===

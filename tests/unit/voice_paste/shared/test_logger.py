@@ -142,7 +142,7 @@ def test_purge_old_logs(log_dir: Path) -> None:
 
 
 def test_purge_old_logs_when_other_names(log_dir: Path) -> None:
-    """日付の形でない名前は消さない（正常系）。"""
+    """日付の形式でない名前は消さない（正常系）。"""
     from voice_paste.shared.logger import purge_old_logs
 
     # 準備（保持 1 日: 日付の形でない名前 2 つと 10 日前）

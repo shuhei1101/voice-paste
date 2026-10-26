@@ -223,7 +223,7 @@ def test_load_settings_when_invalid_preset(
 
     # 準備
     settings_file.write_text(
-        '[[presets]]\nkind = "endpoint"\ntitle = "受け口"\nurl = "ftp://x"\n',
+        '[[presets]]\nkind = "endpoint"\ntitle = "受信先"\nurl = "ftp://x"\n',
         encoding="utf-8",
     )
 
@@ -641,7 +641,7 @@ def test_find_hotkey_overlaps_when_presets_of_different_kinds() -> None:
     settings = Settings.model_construct(
         presets=[
             BrowserPreset(title="ChatGPT", url="https://chatgpt.com", hotkey="<ctrl>+<alt>+3"),
-            EndpointPreset(title="受け口", url="http://127.0.0.1:9000/hook", hotkey="<ctrl>+<alt>+3"),
+            EndpointPreset(title="受信先", url="http://127.0.0.1:9000/hook", hotkey="<ctrl>+<alt>+3"),
         ]
     )
 
@@ -758,7 +758,7 @@ AI_CHAT_DOCUMENT = {
 
 
 def test_migrate_ai_chat() -> None:
-    """送り先をブラウザ添付のプリセットにし、ai_chat を外す（正常系）。"""
+    """送信先をブラウザ添付のプリセットにし、ai_chat を外す（正常系）。"""
     import copy
 
     from voice_paste.shared.settings import migrate_ai_chat
@@ -794,7 +794,7 @@ def test_migrate_ai_chat() -> None:
 
 
 def test_migrate_ai_chat_when_output_disabled() -> None:
-    """オフの AI チャットの送り先は無効のプリセットにする（正常系）。"""
+    """オフの AI チャットの送信先は無効のプリセットにする（正常系）。"""
     from voice_paste.shared.settings import migrate_ai_chat
 
     # 準備

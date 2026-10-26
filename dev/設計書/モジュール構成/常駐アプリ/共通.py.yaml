@@ -33,14 +33,14 @@ enums:
     usecase: 共通
     summary: プリセットの種類ごとの設定の判別共用体（`Annotated[... | ..., Field(discriminator="kind")]`）
     description: |-
-      種類を足すときは、種類の設定のモデルを 1 つ作ってここに足し、出力先の PRESET_KINDS と画面の種類の名前に登録する。
-      セッションは確定の操作で選んだプリセットをこの型の写しとして持ち、出力先へ渡す。
+      種類を追加するときは、種類の設定のモデルを 1 つ作ってここに追加し、出力先の PRESET_KINDS と画面の種類の名前に登録する。
+      セッションは確定の操作で選んだプリセットをこの型のコピーとして持ち、出力先へ渡す。
     values:
       - value: browser
         title: ブラウザ添付
         description: BrowserPreset
       - value: endpoint
-        title: エンドポイントへ送る
+        title: エンドポイントへ送信
         description: EndpointPreset
     refs:
       - dev/設計書/設定/常駐アプリ#settings[presets[].kind]
@@ -138,7 +138,7 @@ data_models:
         description: '`%LOCALAPPDATA%\voice-paste\api_token`（`{data_dir}\api_token`。起動ごとのトークンとポート）'
       - name: ui_image_dir
         type: Path
-        description: '`%LOCALAPPDATA%\voice-paste\ui\`（`{data_dir}\ui\`。選択欄の開く印の SVG）'
+        description: '`%LOCALAPPDATA%\voice-paste\ui\`（`{data_dir}\ui\`。選択欄の開くマーカーの SVG）'
     refs:
       - dev/設計書/外部ライブラリ/platformdirs#
     status: implemented
@@ -147,12 +147,12 @@ data_models:
     container: shared/settings.py
     usecase: 共通
     role: 設定のモデル
-    summary: settings.toml の全体。項目ごとに範囲・説明・再起動が要るかの印を持ち、設定画面の欄はこのモデルから組み立てる
+    summary: settings.toml の全体。項目ごとに範囲・説明・再起動が要るかのマーカーを持ち、設定画面の欄はこのモデルから組み立てる
     inherits: pydantic.BaseModel
     description: |-
       キーの一つ一つ（型・既定値・範囲・反映）は設計書『設定』の settings.toml の行が持つ。
       まとまりのモデルも全て `pydantic.BaseModel` で、どれも `model_config = ConfigDict(extra="forbid")` にして知らないキー（書き間違い）を断る。
-      各項目は `Field(description=..., json_schema_extra={"reload": "immediate" | "restart"})` で再起動が要るかの印を持つ。
+      各項目は `Field(description=..., json_schema_extra={"reload": "immediate" | "restart"})` で再起動が要るかのマーカーを持つ。
       出力先ごとの設定のモデルは出力先が持ち（shared は features を import しない）、アプリが使う設定のモデルは build_settings_model がこのモデルを継いで組み立てる（main.py の SETTINGS_MODEL）。組み立てたモデルでは全ての項目に既定値があり、`SETTINGS_MODEL()` が既定の設定になる。
       設定を受ける関数・画面は型としては Settings を使い、既定値・検証には受けた設定のモデル（`type(settings)`）を使う。
     properties:
@@ -212,8 +212,8 @@ data_models:
         description: 表記のヒント（文字起こしの手がかり）のプリセットの一覧。並びが設定画面の一覧と語をつなぐ順になる。キーが無い settings.toml は空の一覧として読む。名前の重なり（find_hint_preset_name_overlaps）と、有効な語をつないだ長さが HINT_MAX_BYTES を超える設定は検証で断る
       - name: edge_phrases
         type: list[EdgePhraseSettings]
-        default: DEFAULT_EDGE_PHRASES の写し
-        description: 文頭・文末から消す文言の一覧。並びが当てる順と設定画面の一覧の並びになる。キーが無い settings.toml は既定の一覧として読む（`default_factory`）。文言が空の行は `field_validator(mode="after")` で一覧から除く（各行の失敗の場所は、除く前の並びの番号のまま）
+        default: DEFAULT_EDGE_PHRASES のコピー
+        description: 文頭・文末から削除する文言の一覧。並びが当てる順と設定画面の一覧の並びになる。キーが無い settings.toml は既定の一覧として読む（`default_factory`）。文言が空の行は `field_validator(mode="after")` で一覧から除く（各行の失敗の場所は、除く前の並びの番号のまま）
       - name: glossary_presets
         type: list[GlossaryPresetSettings]
         default: '[]'
@@ -237,7 +237,7 @@ data_models:
       - name: engine
         type: Literal["local_whisper"]
         default: local_whisper
-        description: 使う文字起こしのエンジン（文字起こしの EngineName）。エンジンはローカルの Whisper だけで、エンジンを足すときに値を足す
+        description: 使う文字起こしのエンジン（文字起こしの EngineName）。エンジンはローカルの Whisper だけで、エンジンを追加するときに値を追加する
       - name: local_whisper
         type: LocalWhisperSettings
         description: ローカルの Whisper の設定
@@ -362,7 +362,7 @@ data_models:
     container: shared/settings.py
     usecase: 共通
     role: 設定のモデル
-    summary: 貼り付け先へ送る貼り付けのキー
+    summary: 貼り付け先へ送信する貼り付けのキー
     inherits: pydantic.BaseModel
     properties:
       - name: paste_key
@@ -435,11 +435,11 @@ data_models:
       - name: show_hotkeys
         type: bool
         default: 'True'
-        description: 録音の画面のボタンにホットキーを出すか。反映は immediate。description の最初の文を設定の設計書の `title` にそろえる（設定画面の欄の名前になる）
+        description: 録音の画面のボタンにホットキーを表示するか。反映は immediate。description の最初の文を設定の設計書の `title` にそろえる（設定画面の欄の名前になる）
       - name: transcribing_show_hotkeys
         type: bool
         default: 'True'
-        description: 文字起こし中の表示のボタンにホットキーを出すか。反映は immediate。description の最初の文を設定の設計書の `title` にそろえる（設定画面の欄の名前になる）。項目が無いときは _inherit_transcribing_show_hotkeys が show_hotkeys の値を入れる
+        description: 文字起こし中の表示のボタンにホットキーを表示するか。反映は immediate。description の最初の文を設定の設計書の `title` にそろえる（設定画面の欄の名前になる）。項目が無いときは _inherit_transcribing_show_hotkeys が show_hotkeys の値を入れる
     status: implemented
     methods:
       - name: _inherit_transcribing_show_hotkeys
@@ -457,10 +457,10 @@ data_models:
             description: 検証の前の画面の設定（settings.toml の `[ui]` の表から作った dict）
         returns:
           type: Any
-          description: transcribing_show_hotkeys を入れた写し。入れる必要が無いときは data をそのまま返す
+          description: transcribing_show_hotkeys を入れたコピー。入れる必要が無いときは data をそのまま返す
         process: |-
           1. data が dict でないか、transcribing_show_hotkeys を持つか、show_hotkeys を持たないときは data をそのまま返す（両方を持たないときは既定の True に任せる）
-          2. data の写しに transcribing_show_hotkeys として show_hotkeys の値を入れて返す（data は書き換えない）
+          2. data のコピーに transcribing_show_hotkeys として show_hotkeys の値を入れて返す（data は書き換えない）
         unit_tests:
           - name: test_ui_settings_when_transcribing_show_hotkeys_missing
             case: 正常
@@ -506,7 +506,7 @@ data_models:
       - name: allowed_web_origins
         type: list[str]
         default: '[]'
-        description: '外の端末に許す Origin。`/web/` の下に許すオリジン（設定 api.allowed_web_origins。`scheme://host[:port]` の形だけを通し、末尾の `/` とパスは SettingsError）。pydantic の Field の description の最初の 1 文を「外の端末に許す Origin」にし、設定画面の欄の名前にする'
+        description: '外の端末に許す Origin。`/web/` の下に許すオリジン（設定 api.allowed_web_origins。`scheme://host[:port]` の形式だけを通し、末尾の `/` とパスは SettingsError）。pydantic の Field の description の最初の 1 文を「外の端末に許す Origin」にし、設定画面の欄の名前にする'
     status: implemented
   - name: BrowserPreset
     title: ブラウザ添付のプリセット
@@ -515,7 +515,7 @@ data_models:
     role: 設定のモデル
     summary: ブラウザ添付の種類のプリセット 1 件
     inherits: pydantic.BaseModel
-    description: '`model_config = ConfigDict(extra="forbid", frozen=True)`（セッションが写しとして持つため変えられないようにする）。'
+    description: '`model_config = ConfigDict(extra="forbid", frozen=True)`（セッションがコピーとして持つため変えられないようにする）。'
     properties:
       - name: kind
         type: Literal["browser"]
@@ -538,16 +538,16 @@ data_models:
       - name: send_enter
         type: bool
         default: 'True'
-        description: 貼り付けた後に Enter まで送るか
+        description: 貼り付けた後に Enter まで送信するか
     refs:
       - dev/設計書/設定/常駐アプリ#settings[presets[].kind]
     status: implemented
   - name: EndpointPreset
-    title: エンドポイントへ送るのプリセット
+    title: エンドポイントへ送信のプリセット
     container: shared/settings.py
     usecase: 共通
     role: 設定のモデル
-    summary: エンドポイントへ送るの種類のプリセット 1 件
+    summary: エンドポイントへ送信の種類のプリセット 1 件
     inherits: pydantic.BaseModel
     description: '`model_config = ConfigDict(extra="forbid", frozen=True)`。authorization は `Field(repr=False)` にして、設定やセッションを repr でログに出しても値が出ないようにする（SecretStr は model_dump(mode="json") で伏せ字になり settings.toml へ書き戻せないため使わない）。'
     properties:
@@ -560,7 +560,7 @@ data_models:
         description: 録音の画面のボタンに出す名前（1 文字以上）
       - name: url
         type: str
-        description: 起こした文字を POST する送り先（`^https?://`）
+        description: 起こした文字を POST する送信先（`^https?://`）
       - name: hotkey
         type: str
         default: '""'
@@ -589,7 +589,7 @@ data_models:
         description: ブラウザ添付のオプション
       - name: endpoint
         type: EndpointPresetOptions
-        description: エンドポイントへ送るのオプション
+        description: エンドポイントへ送信のオプション
     status: implemented
   - name: BrowserPresetOptions
     title: ブラウザ添付のオプション
@@ -607,20 +607,20 @@ data_models:
       - dev/設計書/設定/常駐アプリ#settings[preset_options.browser.open_delay_sec]
     status: implemented
   - name: EndpointPresetOptions
-    title: エンドポイントへ送るのオプション
+    title: エンドポイントへ送信のオプション
     container: shared/settings.py
     usecase: 共通
     role: 設定のモデル
-    summary: エンドポイントへ送るの全てのプリセットで使う、送るときのタイムアウト
+    summary: エンドポイントへ送信の全てのプリセットで使う、送信するときのタイムアウト
     inherits: pydantic.BaseModel
     properties:
       - name: timeout_sec
         type: float
         default: '1.5'
-        description: 送るときのタイムアウトの秒数（`ge=0.5, le=10`。既定・範囲は非機能要件）
+        description: 送信するときのタイムアウトの秒数（`ge=0.5, le=10`。既定・範囲は非機能要件）
     refs:
       - dev/設計書/設定/常駐アプリ#settings[preset_options.endpoint.timeout_sec]
-      - dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送るときのタイムアウト]
+      - dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送信するときのタイムアウト]
     status: implemented
   - name: OutputSettingsBase
     title: 出力先の設定の共通の親
@@ -686,7 +686,7 @@ data_models:
     usecase: 共通
     role: DTO
     summary: 誤変換と正しい表記の組と、補正に使うか。補正と設定画面の間を渡る
-    description: '`@dataclass(frozen=True, slots=True, kw_only=True)`。今の features/correction/types.py から移し（設定画面は features を import しないため）、enabled を足す。features/correction/types.py は消す。'
+    description: '`@dataclass(frozen=True, slots=True, kw_only=True)`。今の features/correction/types.py から移し（設定画面は features を import しないため）、enabled を追加する。features/correction/types.py は消す。'
     properties:
       - name: wrong
         type: str
@@ -760,11 +760,11 @@ data_models:
         description: 語の並び
     status: implemented
   - name: EdgePhraseSettings
-    title: 文頭・文末から消す文言の設定
+    title: 文頭・文末から削除する文言の設定
     container: shared/settings.py
     usecase: 録音を文字に起こす
     role: 設定のモデル
-    summary: 文頭・文末から消す文言 1 行の文言と当てる位置
+    summary: 文頭・文末から削除する文言 1 行の文言と当てる位置
     description: |-
       `model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)`。
       文言は前後の空白を除いて確かめる。`*` だけの文言は `PydanticCustomError`（type は EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE）にし、失敗の場所を `edge_phrases[{n}].text` にする。空の文言はこのモデルでは断らず、Settings が一覧から除く。
@@ -812,7 +812,7 @@ data_models:
   - name: AudioProbe
     title: 音声の形式
     container: shared/types.py
-    usecase: ブラウザから音声を送る
+    usecase: ブラウザから音声を送信する
     role: DTO
     summary: 受けた音声を PyAV で開いて読んだ容れ物の形式・秒数・大きさ。外部連携が作り、ブラウザの文字起こしが受ける（feature と integration の間を渡るため shared に置く）
     properties:
@@ -1021,7 +1021,7 @@ functions:
       4. 文書の値を再帰で置き換える。表はキーごとに書き換えて既存のコメントと並びを保ち、配列（出力先の一覧・プリセットの一覧・用語集の一覧・用語集のプリセットの一覧・許すホスト）は丸ごと入れ替える（出力先の一覧を入れ替えるので、文書に残っていた `id = "ai_chat"` の項目も消える）。None の項目（glossary_path・active_glossary・active_glossary_preset）はキーを置かず、文書に既にあれば消す
          - 配列の表（`[[name]]`）を入れ替えるときは、入れ替える前に、古い最後の要素の末尾にある、キーを持たないコメントと空行（tomlkit が最後の要素の中として読む、配列の表の後ろのコメント）と、古い最初の要素の見出しの前（`trivia.indent`）を取り出し、文書で古い配列の表の次に並ぶ表を控える
          - 入れ替えた後の配列が 1 件以上なら、取り出した見出しの前を新しい最初の要素の見出しの前へ、末尾のコメントと空行を新しい最後の要素の末尾へ、同じ並びで付け直す
-         - 0 件なら、両方を控えた次の表の見出しの前（`trivia.indent` の頭）へ付け直す。次の表が super table（見出しを持たない表）なら中の最初の表、配列の表なら最初の要素の見出しの前にする。次に表が無ければ文書の末尾へ足す
+         - 0 件なら、両方を控えた次の表の見出しの前（`trivia.indent` の頭）へ付け直す。次の表が super table（見出しを持たない表）なら中の最初の表、配列の表なら最初の要素の見出しの前にする。次に表が無ければ文書の末尾へ追加する
       5. 親のフォルダを作り、同じフォルダの一時ファイルに UTF-8 で書いて os.replace で置き換える
       6. reload が restart の項目のうち、前の設定と値が違うものが 1 つでもあれば True、無ければ False を返す（前の設定が無いときは False）
     unit_tests:
@@ -1064,7 +1064,7 @@ functions:
       - name: test_save_settings_when_ai_chat_remains
         case: 正常
         summary: 読み替えた設定を保存すると、ai_chat の項目が消えてプリセットとして書かれる
-        condition: outputs に id = "ai_chat" と送り先 2 件を書いた settings.toml を load_settings で読み、そのまま書く
+        condition: outputs に id = "ai_chat" と送信先 2 件を書いた settings.toml を load_settings で読み、そのまま書く
         mock: なし（一時フォルダ）
         expected: False。書いた後のファイルの outputs に ai_chat が無く、presets に同じ title・url・hotkey・enabled の kind = "browser" が 2 件あり、preset_options.browser.open_delay_sec が読み替えた値
       - name: test_save_settings_when_glossaries
@@ -1082,7 +1082,7 @@ functions:
       - name: test_save_settings_when_comment_after_array_table
         case: 正常
         summary: 配列の表を入れ替えても、配列の表の後ろのコメントを残す
-        condition: '`[[hint_presets]]` を 2 件書き、その後ろにコメント行と `[recording]` を続けた settings.toml に、プリセットを 1 件足した設定・件数を変えずに語だけを変えた設定・1 件に減らした設定をそれぞれ書く（parametrize）'
+        condition: '`[[hint_presets]]` を 2 件書き、その後ろにコメント行と `[recording]` を続けた settings.toml に、プリセットを 1 件追加した設定・件数を変えずに語だけを変えた設定・1 件に減らした設定をそれぞれ書く（parametrize）'
         mock: なし（一時フォルダ）
         expected: 書いた後のファイルで、コメント行が同じ文言で `[recording]` の直前に残る。load_settings で書いた hint_presets が読める
       - name: test_save_settings_when_array_table_emptied
@@ -1186,7 +1186,7 @@ functions:
       type: int
       description: 消したファイルの数
     process: |-
-      1. log_dir の直下の `YYYY-MM-DD.log` の形の名前のファイルを拾う（それ以外の名前は触らない）
+      1. log_dir の直下の `YYYY-MM-DD.log` 形式の名前のファイルを拾う（それ以外の名前は触らない）
       2. 日付が today − retention_days 日より前のものを消す
          - `[INFO]` 古いログを消した（件数）
     unit_tests:
@@ -1198,7 +1198,7 @@ functions:
         expected: 2 日前だけが消え、戻り値が 1
       - name: test_purge_old_logs_when_other_names
         case: 正常
-        summary: 日付の形でない名前は消さない
+        summary: 日付の形式でない名前は消さない
         condition: 保持 1 日、`notes.log`・`2026-13-40.log`・10 日前のログ
         mock: なし（一時フォルダ）
         expected: 10 日前だけが消え、戻り値が 1
@@ -1263,7 +1263,7 @@ functions:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
     status: implemented
     notes:
-      補足: Settings に `model_validator(mode="after")` を足し、この関数が返した重なりごとに `PydanticCustomError` を集めた ValidationError を送出する（場所は重なったキー、理由は「{先のキー}と同じホットキー」）。設定画面は list_validation_failures で欄ごとのエラーにする
+      補足: Settings に `model_validator(mode="after")` を追加し、この関数が返した重なりごとに `PydanticCustomError` を集めた ValidationError を送出する（場所は重なったキー、理由は「{先のキー}と同じホットキー」）。設定画面は list_validation_failures で欄ごとのエラーにする
     unit_tests:
       - name: test_find_hotkey_overlaps
         case: 正常
@@ -1308,7 +1308,7 @@ functions:
     container: shared/settings.py
     usecase: 常駐アプリを起動する
     scope: public
-    summary: settings.toml を素の dict にしたものから `id = "ai_chat"` の出力先を外し、送り先をブラウザ添付のプリセットへ読み替えた dict を返す。load_settings と save_settings が検証の前に呼ぶ
+    summary: settings.toml を素の dict にしたものから `id = "ai_chat"` の出力先を外し、送信先をブラウザ添付のプリセットへ読み替えた dict を返す。load_settings と save_settings が検証の前に呼ぶ
     args:
       - name: document
         type: dict[str, Any]
@@ -1321,20 +1321,20 @@ functions:
     process: |-
       1. outputs の中の `id = "ai_chat"` の項目を探す
          - 無い場合（outputs が無い・配列でないも含む）、document をそのまま返す（検証は Settings に任せる）
-      2. その項目の targets（無ければ、前の既定の ChatGPT・Google AI・Claude の 3 件）を並びのまま、`{kind: "browser", title: name, url, hotkey, enabled: 項目の enabled かつ target の enabled, send_enter: true}` にして、既にある presets の後ろに足す
+      2. その項目の targets（無ければ、前の既定の ChatGPT・Google AI・Claude の 3 件）を並びのまま、`{kind: "browser", title: name, url, hotkey, enabled: 項目の enabled かつ target の enabled, send_enter: true}` にして、既にある presets の後ろに追加する
       3. その項目に open_delay_sec があり、preset_options.browser.open_delay_sec が無ければ、その値を入れる
       4. outputs からその項目を外した新しい dict を返す
          - `[INFO]` 古い AI チャットの設定をプリセットへ読み替えた（件数）
     unit_tests:
       - name: test_migrate_ai_chat
         case: 正常
-        summary: 送り先をブラウザ添付のプリセットにし、ai_chat を外す
+        summary: 送信先をブラウザ添付のプリセットにし、ai_chat を外す
         condition: outputs が [paste_and_send, ai_chat（open_delay_sec 2.0、targets に ChatGPT と Claude（enabled false））]
         mock: なし
         expected: outputs が [paste_and_send]、presets が ChatGPT（enabled true）・Claude（enabled false）の kind browser・send_enter true の 2 件、preset_options.browser.open_delay_sec が 2.0。元の dict は変わらない
       - name: test_migrate_ai_chat_when_output_disabled
         case: 正常
-        summary: オフの AI チャットの送り先は無効のプリセットにする
+        summary: オフの AI チャットの送信先は無効のプリセットにする
         condition: ai_chat の enabled が false、targets の enabled がどれも true
         mock: なし
         expected: presets がどれも enabled false
@@ -1371,7 +1371,7 @@ functions:
       1. 各モデルの id の既定値を集める
          - 空か、重なる ID がある場合、ValueError を送出する（登録の誤り。起動の前に単体テストで止める）
       2. outputs の型を、モデルの数によらず `list[Annotated[Union[...], Field(discriminator="id")]]` にする（モデルが 1 つでも判別共用体にし、失敗の場所に添字の次の判別子の値を入れる。format_error_location がそれを外す）
-      3. outputs の既定を、各モデルを引数なしで作った一覧（渡した並び）にする。説明・反映の印は Settings の outputs のものを引き継ぐ
+      3. outputs の既定を、各モデルを引数なしで作った一覧（渡した並び）にする。説明・反映のマーカーは Settings の outputs のものを引き継ぐ
       4. Settings を継いだモデルを `pydantic.create_model` で作り、output_models に ID → モデルを入れて返す（確かめは Settings のものを引き継ぐ）
     exceptions:
       - name: ValueError
@@ -1629,11 +1629,11 @@ constants:
     title: 表記のヒントの長さの上限
     container: shared/settings.py
     usecase: 設定を変える
-    summary: 有効なプリセットの語をつないだ手がかりの UTF-8 のバイト数の上限。faster-whisper が hotwords を先頭の 223 トークンに切ることから、頭に足す空白の 1 バイトを引いた値（導き方は PR の要件と外部ライブラリ『faster-whisper』）
+    summary: 有効なプリセットの語をつないだ手がかりの UTF-8 のバイト数の上限。faster-whisper が hotwords を先頭の 223 トークンに切ることから、頭に追加する空白の 1 バイトを引いた値（導き方は PR の要件と外部ライブラリ『faster-whisper』）
     value: '222'
     status: implemented
   - name: DEFAULT_EDGE_PHRASES
-    title: 既定の文頭・文末から消す文言
+    title: 既定の文頭・文末から削除する文言
     container: shared/settings.py
     usecase: 録音を文字に起こす
     summary: '`edge_phrases` のキーが無いときに使う一覧（出所は外部ライブラリ『faster-whisper』の不具合「話していない定型句が文末に入る」）'
@@ -1650,11 +1650,11 @@ constants:
     title: 文言の任意の文字列を表す文字
     container: shared/settings.py
     usecase: 録音を文字に起こす
-    summary: 文頭・文末から消す文言で、0 文字以上の任意の文字列を表す文字（EdgePhraseSettings の確かめと strip_edge_phrases が使う）
+    summary: 文頭・文末から削除する文言で、0 文字以上の任意の文字列を表す文字（EdgePhraseSettings の確かめと strip_edge_phrases が使う）
     value: '"*"'
     status: implemented
   - name: EDGE_PHRASES_FIELD_NAME
-    title: 文頭・文末から消す文言の一覧のキー
+    title: 文頭・文末から削除する文言の一覧のキー
     container: shared/settings.py
     usecase: 設定を変える
     summary: settings.toml のキー `edge_phrases`。設定画面がまとまりの欄と失敗の場所を引くのに使う
@@ -1730,10 +1730,10 @@ function_types:
     introduced:
       pr: 78
   - name: SendEnterFn
-    title: Enter の送り方
+    title: Enter の送信方法
     container: shared/types.py
     usecase: 起こした文字を届ける
-    summary: 渡した修飾キーを押したまま Enter を送る（`Protocol`。修飾キーを省いて呼べるため、`Callable[[], None]` を受ける側にも渡せる）。integrations/keyboard が満たし、出力先が受ける
+    summary: 渡した修飾キーを押したまま Enter を送信する（`Protocol`。修飾キーを省いて呼べるため、`Callable[[], None]` を受ける側にも渡せる）。integrations/keyboard が満たし、出力先が受ける
     args:
       - name: modifiers
         type: Sequence[EnterModifier]
@@ -1743,5 +1743,5 @@ function_types:
       description: なし
     implementations:
       - target: send_enter
-        notes: pynput で送る（外部連携）
+        notes: pynput で送信する（外部連携）
     status: planned

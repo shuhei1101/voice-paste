@@ -207,7 +207,7 @@ classes:
   - name: BodyLimitMiddleware
     title: 本文の上限
     container: server/body_limit.py
-    usecase: ブラウザから音声を送る
+    usecase: ブラウザから音声を送信する
     role: middleware
     kind: クラス
     summary: '`POST /web/transcriptions` の本文が上限以上なら 413 で断る純粋な ASGI middleware'
@@ -252,7 +252,7 @@ classes:
           1. http の `POST /web/transcriptions` でなければそのまま次へ渡す
           2. Content-Length があり _limit 以上なら、本文を読まずに 413 の problem+json を返す
              - `[WARNING]` 本文が大きすぎるため断った（大きさ）
-          3. receive を包む関数を次へ渡す。包む関数は `http.request` の body のバイト数を足し、_limit 以上になったら RequestBodyTooLargeError を送出する（例外ハンドラが 413 にする。読みかけの SpooledTemporaryFile は Starlette が閉じる）
+          3. receive を包む関数を次へ渡す。包む関数は `http.request` の body のバイト数を加算し、_limit 以上になったら RequestBodyTooLargeError を送出する（例外ハンドラが 413 にする。読みかけの SpooledTemporaryFile は Starlette が閉じる）
              - `[WARNING]` 同上
         exceptions:
           - name: RequestBodyTooLargeError
@@ -332,7 +332,7 @@ functions:
       3. app.state.web_api にブラウザの API の依存を置き、ブラウザの文字起こしの route（受け付け・結果の取得）と画面の配信（web_page_router）を集め、画面の素材を組み込む（mount_web_assets）
       4. 例外ハンドラを登録する（register_exception_handlers）
       5. 本文の上限（BodyLimitMiddleware）を組み込む
-      6. 要求の守り（RequestGuardMiddleware）にトークン・ポート・許す Origin を渡して組み込む（最後に足すため、本文の上限より先に動き、断る要求の本文を読まない）
+      6. 要求の守り（RequestGuardMiddleware）にトークン・ポート・許す Origin を渡して組み込む（最後に追加するため、本文の上限より先に動き、断る要求の本文を読まない）
     unit_tests:
       - name: test_build_fastapi
         case: 正常
@@ -371,7 +371,7 @@ functions:
       - name: test_register_exception_handlers_when_validation_error
         case: 正常
         summary: URI でない callback_url は 400
-        condition: TestClient で callback_url="nope" を送る
+        condition: TestClient で callback_url="nope" を送信する
         mock: SessionManager
         expected: 400 と application/problem+json が返る
       - name: test_register_exception_handlers_when_busy
@@ -458,7 +458,7 @@ functions:
     title: 画面の配信
     kind: 関数
     container: server/web_page.py
-    usecase: ブラウザから音声を送る
+    usecase: ブラウザから音声を送信する
     scope: public
     summary: '`GET /web/`。`server/web/index.html` を `Cache-Control: no-cache` で返す（web_page_router。`GET /web` は `/web/` への 307）'
     returns:
@@ -477,7 +477,7 @@ functions:
     title: 画面の素材の組み込み
     kind: 関数
     container: server/web_page.py
-    usecase: ブラウザから音声を送る
+    usecase: ブラウザから音声を送信する
     scope: public
     summary: '`/web/assets/` に `server/web/assets/` を StaticFiles で組み込む'
     args:
@@ -509,7 +509,7 @@ constants:
   - name: WEB_BODY_LIMIT_BYTES
     title: ブラウザの本文の上限
     container: server/body_limit.py
-    usecase: ブラウザから音声を送る
+    usecase: ブラウザから音声を送信する
     summary: '`POST /web/transcriptions` の本文の上限（このバイト数以上を 413）。非機能要件のブラウザの本文の上限。画面の app.js も同じ値で送信前に確かめる'
     value: '100_000_000'
     status: planned

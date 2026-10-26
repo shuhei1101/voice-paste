@@ -4,7 +4,7 @@ version:
   current: 4.13.3
   latest: 4.12.2
   checked_on: '2026-10-01'
-  source: pyproject.toml と uv.lock の版
+  source: pyproject.toml と uv.lock のバージョン
   pinning: 互換リリースで固定（~=4.12）
 catalogs:
   - name: API

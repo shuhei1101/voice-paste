@@ -1,7 +1,7 @@
-"""設定のエンドポイントへ送る（カスタムプリセットの届け先へ POST）の結合テスト。
+"""設定のエンドポイントへ送信（カスタムプリセットの届け先へ POST）の結合テスト。
 
-SessionManager でホットキーのセッションを始め、エンドポイントへ送るのプリセットを選んで確定し、
-main.py の配線（_wire_preset_kinds）で作った送り先へ届くことを、127.0.0.1 のテスト用の受け口で確かめる。
+SessionManager でホットキーのセッションを始め、エンドポイントへ送信のプリセットを選んで確定し、
+main.py の配線（_wire_preset_kinds）で作った送り先へ届くことを、127.0.0.1 のテスト用の受信先で確かめる。
 マイク・システム音量・文字起こしのエンジンと、キーボード・ブラウザのアダプタ・間は偽物。送りは本物の httpx。
 """
 
@@ -25,14 +25,14 @@ PAYLOAD_TEXT = "てすと"
 
 
 def _preset(receiver: CallbackReceiver, authorization: str = "") -> EndpointPreset:
-    """URL がテスト用の受け口のエンドポイントへ送るのプリセットを作る。"""
-    return EndpointPreset(title="受け口", url=receiver.url, authorization=authorization)
+    """URL がテスト用の受信先のエンドポイントへ送信のプリセットを作る。"""
+    return EndpointPreset(title="受信先", url=receiver.url, authorization=authorization)
 
 
 def test_normal(
     output_stack: Callable[[Settings | None], OutputStack], receiver: CallbackReceiver
 ) -> None:
-    """起こした文字を送り先へ送る（正常系）。"""
+    """起こした文字を送信先へ送信する（正常系）。"""
     # 準備
     preset = _preset(receiver)
     stack = output_stack(SETTINGS_MODEL(presets=[preset]))

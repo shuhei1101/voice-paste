@@ -355,7 +355,7 @@ def test_cancel_button_label(make_ui: Callable[..., Ui]) -> None:
     # 検証
     cancel = find(ui.recording_window, QPushButton, "cancel_button")
     assert cancel.isVisible()
-    assert button_texts(cancel) == ["取り消す", "Ctrl+Alt+Q"]
+    assert button_texts(cancel) == ["取り消し", "Ctrl+Alt+Q"]
 
 
 def test_cancel_button_action(make_ui: Callable[..., Ui]) -> None:
@@ -512,7 +512,7 @@ def _browser(title: str, hotkey: str = "", *, enabled: bool = True, url: str = "
 
 
 def _endpoint(title: str, hotkey: str = "", *, enabled: bool = True) -> object:
-    """エンドポイントへ送るのプリセットを作る。"""
+    """エンドポイントへ送信のプリセットを作る。"""
     from voice_paste.shared.settings import EndpointPreset
 
     return EndpointPreset(
@@ -552,12 +552,12 @@ def test_presets_heading_when_all_disabled(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_preset_buttons_order(make_ui: Callable[..., Ui]) -> None:
-    """有効なプリセットごとに 1 つずつ、ブラウザ添付の並び → エンドポイントへ送るの並びの順に出し、名前の下にホットキーを出す。"""
+    """有効なプリセットごとに 1 つずつ、ブラウザ添付の並び → エンドポイントへ送信の並びの順に出し、名前の下にホットキーを出す。"""
     # 実行（設定の並びはエンドポイントが先。ボタンはブラウザ添付が先）
     ui = _opened(
         make_ui,
         _presets_settings(
-            _endpoint("受け口", "<ctrl>+<alt>+4"),
+            _endpoint("受信先", "<ctrl>+<alt>+4"),
             _browser("ChatGPT", "<ctrl>+<alt>+1"),
             _browser("Claude", "<ctrl>+<alt>+3"),
         ),
@@ -567,7 +567,7 @@ def test_preset_buttons_order(make_ui: Callable[..., Ui]) -> None:
     window = ui.recording_window
     assert button_texts(find(window, QPushButton, "preset_button_0")) == ["ChatGPT", "Ctrl+Alt+1"]
     assert button_texts(find(window, QPushButton, "preset_button_1")) == ["Claude", "Ctrl+Alt+3"]
-    assert button_texts(find(window, QPushButton, "preset_button_2")) == ["受け口", "Ctrl+Alt+4"]
+    assert button_texts(find(window, QPushButton, "preset_button_2")) == ["受信先", "Ctrl+Alt+4"]
 
 
 def test_preset_buttons_when_disabled(make_ui: Callable[..., Ui]) -> None:
@@ -595,7 +595,7 @@ def test_preset_buttons_when_hotkey_empty(make_ui: Callable[..., Ui]) -> None:
 
 def test_preset_buttons_wrap(make_ui: Callable[..., Ui]) -> None:
     """3 件ずつ横に並べ、4 件目から次の行へ折り返す（種類の境目でも行を変えない）。"""
-    # 実行（ブラウザ添付 2 件 + エンドポイントへ送る 2 件）
+    # 実行（ブラウザ添付 2 件 + エンドポイントへ送信 2 件）
     ui = _opened(
         make_ui,
         _presets_settings(_browser("A"), _browser("B"), _endpoint("C"), _endpoint("D")),
@@ -730,7 +730,7 @@ def test_hotkey_buttons_when_hotkey_empty(styled: None, make_ui: Callable[..., U
 
 HOTKEY_BUTTONS = [
     pytest.param("pause_button", "一時停止", id="pause"),
-    pytest.param("cancel_button", "取り消す", id="cancel"),
+    pytest.param("cancel_button", "取り消し", id="cancel"),
     pytest.param("output_button_paste_and_send", "貼り付けて送信", id="paste_and_send"),
     pytest.param("output_button_paste_only", "貼り付けのみ", id="paste_only"),
     pytest.param("output_button_copy_only", "コピーのみ", id="copy_only"),
@@ -1120,8 +1120,8 @@ def test_hide_button_label(make_ui: Callable[..., Ui]) -> None:
 
     # 検証
     hide = find(ui.recording_window, QPushButton, "hide_button")
-    assert hide.toolTip() == "録音の画面を隠す（トレイのアイコンで戻す）"
-    assert hide.accessibleName() == "録音の画面を隠す"
+    assert hide.toolTip() == "録音の画面を非表示にする（トレイのアイコンで再表示）"
+    assert hide.accessibleName() == "録音の画面を非表示にする"
 
 
 def test_hide_button_label_when_start_hotkey_is_free(make_ui: Callable[..., Ui]) -> None:
@@ -1133,7 +1133,7 @@ def test_hide_button_label_when_start_hotkey_is_free(make_ui: Callable[..., Ui])
 
     # 検証
     hide = find(ui.recording_window, QPushButton, "hide_button")
-    assert hide.toolTip() == "録音の画面を隠す（トレイのアイコンか Ctrl+Alt+R で戻す）"
+    assert hide.toolTip() == "録音の画面を非表示にする（トレイのアイコンか Ctrl+Alt+R で再表示）"
 
 
 def test_hide_button_action(make_ui: Callable[..., Ui]) -> None:
@@ -1244,8 +1244,8 @@ def test_close_button_label(make_ui: Callable[..., Ui]) -> None:
 
     # 検証
     close = find(ui.recording_window, QPushButton, "close_button")
-    assert close.toolTip() == "取り消す（Ctrl+Alt+Q）"
-    assert close.accessibleName() == "取り消す"
+    assert close.toolTip() == "取り消し（Ctrl+Alt+Q）"
+    assert close.accessibleName() == "取り消し"
 
 
 def test_close_button_action(make_ui: Callable[..., Ui]) -> None:

@@ -24,14 +24,14 @@ NOTIFICATIONS = [
     pytest.param(
         "microphone_unavailable",
         None,
-        "録音を始められませんでした",
-        "マイクを開けません。マイクがつながっているか、ほかのアプリが使っていないかを確かめてください。",
+        "録音を開始できませんでした",
+        "マイクを使用できません。マイクが接続されているか、ほかのアプリが使用していないかを確認してください。",
         id="microphone_unavailable",
     ),
     pytest.param(
         "transcription_failed",
         "録音を読めませんでした",
-        "文字起こしに失敗しました",
+        "文字起こしできませんでした",
         "録音を読めませんでした。録音は履歴に残っています。",
         id="transcription_failed",
     ),
@@ -45,7 +45,7 @@ NOTIFICATIONS = [
     pytest.param(
         "api_unavailable",
         "ポート 47823 で待ち受けを始められません",
-        "API を使えません",
+        "API を使用できません",
         "ポート 47823 で待ち受けを始められません。ホットキーとトレイからの録音は使えます。",
         id="api_unavailable",
     ),
@@ -104,8 +104,8 @@ def test_tray_notification_not_visible_when(
 @pytest.mark.parametrize(
     ("event", "reason", "title"),
     [
-        ("engine_unavailable", "モデルを読めません", "起動に失敗しました"),
-        ("settings_invalid", "api.port: 1024〜65535 の値を入れてください", "起動に失敗しました"),
+        ("engine_unavailable", "モデルを読めません", "起動できませんでした"),
+        ("settings_invalid", "api.port: 1024〜65535 の値を入れてください", "起動できませんでした"),
     ],
 )
 def test_tray_notification_when_startup_failed(
@@ -199,7 +199,7 @@ def test_notification_body_when_engine_unavailable(
 
     # 検証
     assert shown.call_args.args[1] == (
-        "文字起こしのエンジンを準備できません（モデルを読めません）。設定を直して再起動してください。"
+        "文字起こしのエンジンを準備できませんでした（モデルを読めません）。設定を修正して再起動してください。"
     )
 
 
@@ -215,7 +215,7 @@ def test_notification_body_when_settings_invalid(
 
     # 検証
     assert shown.call_args.args[1] == (
-        "設定ファイルを読めません（api.port が合わない）。設定フォルダの settings.toml を直して再起動してください。"
+        "設定ファイルを読み込めませんでした（api.port が合わない）。設定フォルダの settings.toml を修正して再起動してください。"
     )
 
 
@@ -312,7 +312,7 @@ def test_recopy_when_clicked(make_ui: Callable[..., Ui], shown: MagicMock) -> No
 def test_recopy_when_clicked_after_next_copy_completed(
     make_ui: Callable[..., Ui], shown: MagicMock
 ) -> None:
-    """コピーの完了の通知が続いたときは、最後に出した通知のときに起こした文字をコピーし直す。"""
+    """コピーの完了の通知が続いたときは、最後に出した通知のときに起こした文字をもう一度コピーする。"""
     # 準備
     ui = make_ui()
     notify_copy_completed(ui, "1 回目の文字")

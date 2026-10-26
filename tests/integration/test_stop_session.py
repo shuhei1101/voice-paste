@@ -23,7 +23,7 @@ FED_SEC = 1.0
 
 
 def test_normal(stack: Stack) -> None:
-    """録音中のセッションを止める（正常系）。"""
+    """録音中のセッションを停止する（正常系）。"""
     # 準備
     session_id = stack.start_session()
     stack.microphone.feed(FED_SEC)
@@ -40,7 +40,7 @@ def test_normal(stack: Stack) -> None:
 
 
 def test_error_when_continuous(stack: Stack) -> None:
-    """連続録音のセッションは止めずに断る（異常系）。"""
+    """連続録音のセッションは停止せずに断る（異常系）。"""
     # 準備
     stack.set_segments(1)
     session_id = stack.start_session(continuous=True)
@@ -59,7 +59,7 @@ def test_error_when_continuous(stack: Stack) -> None:
 
 
 def test_normal_when_already_stopped(stack: Stack) -> None:
-    """止めたセッションへの停止は何も変えず 200 を返す（正常系）。"""
+    """停止したセッションへの停止は何も変えず 200 を返す（正常系）。"""
     # 準備
     session_id = stack.start_session()
     stack.post(f"/sessions/{session_id}/stop")
@@ -76,7 +76,7 @@ def test_normal_when_already_stopped(stack: Stack) -> None:
 def test_error_when_token_mismatch(
     stack: Stack, caplog: pytest.LogCaptureFixture, headers: dict[str, str]
 ) -> None:
-    """トークンが合わなければ止めない（異常系）。"""
+    """トークンが合わなければ停止しない（異常系）。"""
     # 準備
     caplog.set_level(logging.WARNING)
     session_id = stack.start_session()

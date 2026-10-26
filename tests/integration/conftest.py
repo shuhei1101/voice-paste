@@ -25,7 +25,7 @@ from voice_paste.shared.settings import Settings
 
 @pytest.fixture
 def stack(tmp_path: Path) -> Iterator[Stack]:
-    """本物の app を空きポートに立て、偽物のマイク・音量・エンジンと返送先の受け口を差した一式を返す。"""
+    """本物の app を空きポートに立て、偽物のマイク・音量・エンジンと返送先の受信先を差した一式を返す。"""
     built = build_stack(tmp_path)
     yield built
     stop_stack(built)

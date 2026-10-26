@@ -27,7 +27,9 @@ from tests.support.inprocess import (
     make_settings,
     silence_input,
     speech_input,
+    worker_process_pids,
     worker_processes,
+    worker_ready_messages,
 )
 from voice_paste.features.session.types import SessionState
 from voice_paste.shared.types import Entry
@@ -148,10 +150,12 @@ def test_error_when_worker_dies_again(
         wav_input=speech_input(tmp_path, repeat=LONG_SPEECH_REPEAT),
     )
     app.start_hotkey()
+    # 止めるワーカーの番号は、確定の前に引いておく
+    workers_before = worker_process_pids()
     app.manager.complete(output_id=PASTE_AND_SEND)
 
     # 実行
-    kills = kill_workers_twice(caplog)
+    kills = kill_workers_twice(workers_before, lambda: worker_ready_messages(caplog))
 
     # 検証
     assert kills >= 2

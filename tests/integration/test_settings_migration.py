@@ -1,6 +1,6 @@
 """古い AI チャットの設定が残った settings.toml の読み替えと保存の結合テスト。
 
-実際のファイルを読み書きし、プリセットに読み替えて起動できること、保存すると ai_chat の項目が無くなり同じ送り先がプリセットとして書かれることを確かめる。
+実際のファイルを読み書きし、プリセットに読み替えて起動できること、保存すると ai_chat の項目が無くなり同じ送信先がプリセットとして書かれることを確かめる。
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ url = "https://claude.ai/new"
 hotkey = "<ctrl>+<alt>+3"
 enabled = false
 """
-"""前の版の既定の一覧で作られた settings.toml（ai_chat の項目に送り先 3 件）。"""
+"""前のバージョンの既定の一覧で作られた settings.toml（ai_chat の項目に送信先 3 件）。"""
 
 EXPECTED_PRESETS = [
     ("browser", "ChatGPT", "https://chatgpt.com", "<ctrl>+<alt>+1", True),

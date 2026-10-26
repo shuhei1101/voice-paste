@@ -160,7 +160,7 @@ def _preset_field(window: QWidget, kind: str, number: int, attribute: str, cls: 
 
 
 def _add_preset(window: QWidget, kind: str, title: str, url: str) -> int:
-    """種類のタブの「プリセットを追加」を押し、足した行にタイトルと URL を入れて、その行の番号を返す。"""
+    """種類のタブの「プリセットを追加」を押し、追加した行にタイトルと URL を入れて、その行の番号を返す。"""
     QTest.mouseClick(find(window, QPushButton, f"add_preset_button_{kind}"), Qt.MouseButton.LeftButton)
     number = len(_panel(window, kind).findChildren(QLineEdit, QRegularExpression("^preset_title_"))) - 1
     _preset_field(window, kind, number, "title", QLineEdit).setText(title)
@@ -223,7 +223,7 @@ def _leaf_keys(settings: Settings) -> list[str]:
 
 
 def test_settings_window_title_and_width(open_window: Callable[..., Opened]) -> None:
-    """窓の題は「voice-paste の設定」で、最小の幅は 720px。"""
+    """窓のタイトルは「voice-paste の設定」で、最小の幅は 720px。"""
     # 実行
     opened = open_window()
 
@@ -327,7 +327,7 @@ def test_group_menu_action(
 
 
 def test_group_menu_keeps_values(open_window: Callable[..., Opened]) -> None:
-    """切り替えても入れた値は消さない。"""
+    """切り替えても入れた値は削除しない。"""
     # 準備
     window = open_window().window
     menu = find(window, QListWidget, "group_menu")
@@ -346,7 +346,7 @@ def test_group_menu_keeps_values(open_window: Callable[..., Opened]) -> None:
 
 
 def test_field_for_every_setting_key(open_window: Callable[..., Opened]) -> None:
-    """settings.toml の全てのキーに欄がある（項目を足しても画面の直しが増えない。出力先・プリセット・用語集は、それぞれのまとまりの一覧が持つ）。"""
+    """settings.toml の全てのキーに欄がある（項目を追加しても画面の修正が増えない。出力先・プリセット・用語集は、それぞれのまとまりの一覧が持つ）。"""
     from voice_paste.shared.settings import Settings
 
     # 実行
@@ -429,7 +429,7 @@ def test_restart_badge_when_restart_field(open_window: Callable[..., Opened]) ->
 
 
 def test_restart_badge_when_immediate_field(open_window: Callable[..., Opened]) -> None:
-    """反映が immediate の欄には印を出さない。"""
+    """反映が immediate の欄にはマーカーを出さない。"""
     # 実行
     window = open_window().window
 
@@ -441,7 +441,7 @@ def test_restart_badge_when_immediate_field(open_window: Callable[..., Opened]) 
 
 
 def test_hotkey_field_initial_value(open_window: Callable[..., Opened]) -> None:
-    """ホットキーの欄は、画面では `Ctrl+Alt+D` の形で出す。"""
+    """ホットキーの欄は、画面では `Ctrl+Alt+D` の形式で出す。"""
     # 実行
     window = open_window().window
 
@@ -557,7 +557,7 @@ def test_preset_list_when_visible(
 
 @pytest.mark.parametrize(("kind", "name"), [("browser", "ブラウザ添付"), ("endpoint", "エンドポイントへ送信")])
 def test_preset_empty_when_no_presets(open_window: Callable[..., Opened], kind: str, name: str) -> None:
-    """プリセットが 1 件も無いタブには、足すと録音の画面にボタンが出ることを伝える案内を出す。"""
+    """プリセットが 1 件も無いタブには、追加すると録音の画面にボタンが出ることを伝える案内を出す。"""
     # 準備
     window = open_window().window
 
@@ -596,14 +596,14 @@ def test_preset_list_initial_value(open_window: Callable[..., Opened]) -> None:
 
 
 def test_preset_enabled_switch(open_window: Callable[..., Opened]) -> None:
-    """有効の切り替えは、今の状態を文字（有効 / 無効）でも出し、足したプリセットはオン。"""
+    """有効の切り替えは、今の状態を文字（有効 / 無効）でも出し、追加したプリセットはオン。"""
     # 準備
     window = open_window().window
     find(window, QListWidget, "group_menu").setCurrentRow(1)
     _add_preset(window, "browser", "ChatGPT", "https://chatgpt.com")
     switch = _preset_field(window, "browser", 0, "enabled", QCheckBox)
 
-    # 検証（足した直後）
+    # 検証（追加した直後）
     assert switch.isChecked()
     assert switch.text() == "有効"
 
@@ -630,7 +630,7 @@ def test_preset_authorization_field(open_window: Callable[..., Opened]) -> None:
 
 
 def test_add_preset_button_action(open_window: Callable[..., Opened]) -> None:
-    """「プリセットを追加」は、そのタブの一覧の末尾に空のプリセット（有効、ブラウザ添付は Enter まで送信がオン）を足し、タイトルの欄へフォーカスを移す。"""
+    """「プリセットを追加」は、そのタブの一覧の末尾に空のプリセット（有効、ブラウザ添付は Enter まで送信がオン）を追加し、タイトルの欄へフォーカスを移す。"""
     # 準備
     window = open_window(_settings_with_presets()).window
     find(window, QListWidget, "group_menu").setCurrentRow(1)
@@ -666,7 +666,7 @@ def test_preset_move_buttons_action(open_window: Callable[..., Opened]) -> None:
 
 
 def test_preset_remove_button_action(open_window: Callable[..., Opened]) -> None:
-    """消すボタンは、プリセットを一覧から消す（保存するまで settings.toml には書かない）。最後の 1 件を消すと案内が出る。"""
+    """削除ボタンは、プリセットを一覧から削除する（保存するまで settings.toml には書かない）。最後の 1 件を削除すると案内が出る。"""
     # 準備
     opened = open_window(_settings_with_presets())
     window = opened.window
@@ -974,7 +974,7 @@ def test_reset_notice_when_no_restart_setting_changed(open_window: Callable[...,
 
 
 def test_reset_notice_when_field_changed(open_window: Callable[..., Opened]) -> None:
-    """欄を変えると、既定に戻したメッセージと「今すぐ再起動」を消す。"""
+    """欄を変えると、既定に戻したメッセージと「今すぐ再起動」を削除する。"""
     # 準備
     opened = open_window(_settings_with_small_model())
     driver = ModalDriver()
@@ -1488,7 +1488,7 @@ def test_save_button_when_default(open_window: Callable[..., Opened], tmp_path: 
 
 
 def test_save_button_when_invalid(open_window: Callable[..., Opened]) -> None:
-    """確かめに通らなければ書かず、エラーの一覧と欄の下のエラーを出し、入れた値は消さない。"""
+    """確かめに通らなければ書かず、エラーの一覧と欄の下のエラーを出し、入れた値は削除しない。"""
     # 準備
     opened = open_window()
     _set_text(opened.window, IMMEDIATE_KEY, "abc")
@@ -1504,7 +1504,7 @@ def test_save_button_when_invalid(open_window: Callable[..., Opened]) -> None:
 
 
 def test_save_button_when_fixed_after_invalid(open_window: Callable[..., Opened]) -> None:
-    """直して保存し直すと、前の保存で出したエラーの一覧と欄の下のエラーを消し、保存したメッセージを出す。"""
+    """修正して保存し直すと、前の保存で出したエラーの一覧と欄の下のエラーを消し、保存したメッセージを出す。"""
     from PySide6.QtCore import QEvent
     from PySide6.QtWidgets import QApplication
 
@@ -1594,7 +1594,7 @@ def test_saved_notice_when_hotkey_changed(
 
 
 def test_saved_notice_when_paste_key_changed(open_window: Callable[..., Opened]) -> None:
-    """貼り付けに送るキーだけを変えた保存では、閉じると効くことを添えない。"""
+    """貼り付けに送信するキーだけを変えた保存では、閉じると効くことを添えない。"""
     # 準備
     opened = open_window()
     find(opened.window, QListWidget, "group_menu").setCurrentRow(HOTKEY_GROUP_ROW)
@@ -2026,9 +2026,9 @@ def _open_glossaries(
 ) -> Opened:
     """名前ごとの CSV を一時フォルダに書き、その一覧の用語集で設定画面を開いて、用語集のまとまりを選ぶ。
 
-    行を読む関数と足す場所を決める関数と用語集のプリセットの一覧を引く関数は本物（read_glossary_rows・next_glossary_path・resolve_glossary_presets）を渡す。
+    行を読む関数と追加する場所を決める関数と用語集のプリセットの一覧を引く関数は本物（read_glossary_rows・next_glossary_path・resolve_glossary_presets）を渡す。
     中身が None の CSV は書かない（フォルダを置いて開けない CSV にするときに使う）。
-    presets は（プリセットの名前, 使う用語集の名前の並び）の並び。渡さなければ settings.toml に glossary_presets が無い形で、active は今までの active_glossary。
+    presets は（プリセットの名前, 使う用語集の名前の並び）の並び。渡さなければ settings.toml に glossary_presets が無い状態で、active は今までの active_glossary。
     """
     from functools import partial
 
@@ -2116,7 +2116,7 @@ def test_glossary_list_when_visible(open_window: Callable[..., Opened]) -> None:
 
 
 def test_glossary_list_initial_value(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """一覧は settings.toml の glossaries の並びで 1 行ずつ出し、列は「名前」「使うプリセット」「行」と消すボタン。"""
+    """一覧は settings.toml の glossaries の並びで 1 行ずつ出し、列は「名前」「使うプリセット」「行」と削除ボタン。"""
     # 実行
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
 
@@ -2226,7 +2226,7 @@ def test_glossary_preset_list_when_visible(open_window: Callable[..., Opened]) -
 def test_glossary_preset_list_initial_value(
     open_window: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """一覧は settings.toml の glossary_presets の並びで 1 行ずつ出し、列は「補正に使う」「名前」「用語集」と消すボタン。"""
+    """一覧は settings.toml の glossary_presets の並びで 1 行ずつ出し、列は「補正に使う」「名前」「用語集」と削除ボタン。"""
     # 実行
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
 
@@ -2251,7 +2251,7 @@ def test_glossary_preset_list_initial_value(
 def test_glossary_preset_list_when_presets_empty(
     open_window: Callable[..., Opened], tmp_path: Path, active: str | None, used: list[str]
 ) -> None:
-    """glossary_presets が空なら、active_glossary の用語集だけを使う「既定」の 1 件を出す（無い・一覧に無ければ 1 つ目の用語集）。保存でこのキーを消して、プリセットの形に書く。"""
+    """glossary_presets が空なら、active_glossary の用語集だけを使う「既定」の 1 件を出す（無い・一覧に無ければ 1 つ目の用語集）。保存でこのキーを削除して、プリセットの形に書く。"""
     # 実行
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, active=active)
 
@@ -2307,7 +2307,7 @@ def test_glossary_preset_active_accessible_name_when_unnamed(
 
 
 def test_glossary_preset_active_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """補正に使うプリセットは 1 つだけ選べ、選ぶと消すボタンの扱いが入れ替わり、保存で active_glossary_preset に書く。"""
+    """補正に使うプリセットは 1 つだけ選べ、選ぶと削除ボタンの扱いが入れ替わり、保存で active_glossary_preset に書く。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
 
@@ -2343,7 +2343,7 @@ def test_glossary_preset_pick_initial_value(
 
 
 def test_glossary_preset_pick_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """名前のボタンを押すと、そのプリセットの使う用語集の表を下に出す。切り替えても入れた値は消さない。"""
+    """名前のボタンを押すと、そのプリセットの使う用語集の表を下に出す。切り替えても入れた値は削除しない。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
     find(opened.window, QLineEdit, "glossary_preset_name_0").setText("変えた名前")
@@ -2410,7 +2410,7 @@ def test_glossary_preset_count_action(open_window: Callable[..., Opened], tmp_pa
 
 
 def test_glossary_preset_remove_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """プリセットを一覧から消す。用語集は消さず、保存するまで settings.toml に書かない。"""
+    """プリセットを一覧から削除する。用語集は削除せず、保存するまで settings.toml に書かない。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
 
@@ -2428,7 +2428,7 @@ def test_glossary_preset_remove_action(open_window: Callable[..., Opened], tmp_p
 def test_glossary_preset_remove_when_cancelled(
     open_window: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """消した後にキャンセルで閉じれば、settings.toml には書かない。"""
+    """削除した後にキャンセルで閉じれば、settings.toml には書かない。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
     _click(opened.window, "glossary_preset_remove_1")
@@ -2447,7 +2447,7 @@ def test_glossary_preset_remove_when_cancelled(
 def test_glossary_preset_remove_when_active(
     open_window: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """補正に使うプリセットの消すボタンは、薄くして押しても消さず、フォーカスは受けてツールチップを出す。"""
+    """補正に使うプリセットの削除ボタンは、薄くして押しても削除せず、フォーカスは受けてツールチップを出す。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
     button = find(opened.window, QPushButton, "glossary_preset_remove_0")
@@ -2466,7 +2466,7 @@ def test_glossary_preset_remove_when_active(
 def test_glossary_preset_remove_when_shown(
     open_window: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """使う用語集の表を出しているプリセットを消したら、補正に使うプリセットの表を出す。"""
+    """使う用語集の表を出しているプリセットを削除したら、補正に使うプリセットの表を出す。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
     _click(opened.window, "glossary_preset_pick_1")
@@ -2504,7 +2504,7 @@ def test_glossary_preset_remove_accessible_name(
 def test_add_glossary_preset_button_action(
     open_window: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """使う用語集が無く名前が空のプリセットを末尾に足し、その表を出して名前の欄へフォーカスを移す。補正に使うプリセットは変えない。"""
+    """使う用語集が無く名前が空のプリセットを末尾に追加し、その表を出して名前の欄へフォーカスを移す。補正に使うプリセットは変えない。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
     assert find(opened.window, QPushButton, "add_glossary_preset_button").text() == "プリセット追加"
@@ -2524,7 +2524,7 @@ def test_add_glossary_preset_button_action(
 def test_add_glossary_preset_button_when_saved(
     open_window: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """足したプリセットは、保存で一覧の末尾に、使う用語集の無い形で書く。"""
+    """追加したプリセットは、保存で一覧の末尾に、使う用語集の無い状態で書く。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
     _click(opened.window, "add_glossary_preset_button")
@@ -2684,7 +2684,7 @@ def test_glossary_preset_glossary_grip_when_alt_arrow(
 def test_glossary_preset_glossary_remove_action(
     open_window: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """用語集をこのプリセットから外す。用語集そのものは消さず、追加する用語集の選択肢へ戻す。"""
+    """用語集をこのプリセットから外す。用語集そのものは削除せず、追加する用語集の選択肢へ戻す。"""
     # 準備
     opened = _open_glossaries(
         open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS, active_preset="会議"
@@ -2760,7 +2760,7 @@ def test_glossary_preset_glossary_select_initial_value(
 def test_glossary_preset_glossary_add_action(
     open_window: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """選んだ用語集を使う用語集の表の末尾に足し、選択肢から除く。保存で、足した順に書く。"""
+    """選んだ用語集を使う用語集の表の末尾に追加し、選択肢から除く。保存で、追加した順に書く。"""
     # 準備
     opened = _open_glossaries(
         open_window, tmp_path, TWO_GLOSSARIES, presets=[("空", [])], active_preset="空"
@@ -2780,7 +2780,7 @@ def test_glossary_preset_glossary_add_action(
 def test_glossary_preset_glossary_select_when_unnamed_glossary(
     open_window: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """足しただけで名前が空の用語集は、どのプリセットの使う用語集にも入らず、選択肢に「（名前未入力）」で出る。"""
+    """追加しただけで名前が空の用語集は、どのプリセットの使う用語集にも入らず、選択肢に「（名前未入力）」で出る。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
 
@@ -2891,7 +2891,7 @@ def test_glossary_list_note_initial_value(
 def test_glossary_remove_when_used_by_presets(
     open_window: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """用語集を消すと、その用語集を使っているプリセットの使う用語集からも外れる。"""
+    """用語集を削除すると、その用語集を使っているプリセットの使う用語集からも外れる。"""
     # 準備
     opened = _open_glossaries(
         open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS, active_preset="会議"
@@ -2922,7 +2922,7 @@ def test_glossary_pick_initial_value(open_window: Callable[..., Opened], tmp_pat
 
 
 def test_glossary_pick_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """名前のボタンを押すと、その用語集の名前の欄と行の表を下に出す。切り替えても入れた値は消さない。"""
+    """名前のボタンを押すと、その用語集の名前の欄と行の表を下に出す。切り替えても入れた値は削除しない。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
     _widgets(opened.window, QLineEdit, "glossary_entry_wrong_")[0].setText("変えた")
@@ -2970,7 +2970,7 @@ def test_glossary_count_initial_value(open_window: Callable[..., Opened], tmp_pa
 
 
 def test_glossary_count_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """行を追加・消す・オンとオフを切り替えるたびに数え直す（足した両方が空の行も数える）。"""
+    """行を追加・削除し、オンとオフを切り替えるたびに数え直す（追加した両方が空の行も数える）。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
 
@@ -2996,7 +2996,7 @@ def test_glossary_count_when_unreadable(open_window: Callable[..., Opened], tmp_
 
 
 def test_glossary_remove_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """用語集を一覧から消す。CSV のファイルは消さず、保存するまで settings.toml に書かず、キャンセルで戻せる。"""
+    """用語集を一覧から削除する。CSV のファイルは削除せず、保存するまで settings.toml に書かず、キャンセルで戻せる。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
 
@@ -3014,7 +3014,7 @@ def test_glossary_remove_action(open_window: Callable[..., Opened], tmp_path: Pa
 
 
 def test_glossary_remove_when_cancelled(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """消した後にキャンセルで閉じれば、settings.toml には書かない。"""
+    """削除した後にキャンセルで閉じれば、settings.toml には書かない。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
     _click(opened.window, "glossary_remove_1")
@@ -3031,7 +3031,7 @@ def test_glossary_remove_when_cancelled(open_window: Callable[..., Opened], tmp_
 
 
 def test_glossary_remove_when_last(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """最後の 1 件の用語集の消すボタンは、薄くして押しても消さず、フォーカスは受けてツールチップ「最後の用語集は消せません」を出す。"""
+    """最後の 1 件の用語集の削除ボタンは、薄くして押しても削除せず、フォーカスは受けてツールチップ「最後の用語集は消せません」を出す。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, {"yogo": CSV_FIVE_ROWS})
     button = find(opened.window, QPushButton, "glossary_remove_0")
@@ -3048,7 +3048,7 @@ def test_glossary_remove_when_last(open_window: Callable[..., Opened], tmp_path:
 
 
 def test_glossary_remove_when_two(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """用語集が 2 件以上あるときは、どの用語集の消すボタンも押せる（補正に使うプリセットが使う用語集も消せる）。"""
+    """用語集が 2 件以上あるときは、どの用語集の削除ボタンも押せる（補正に使うプリセットが使う用語集も削除できる）。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
 
@@ -3064,7 +3064,7 @@ def test_glossary_remove_when_two(open_window: Callable[..., Opened], tmp_path: 
 
 
 def test_glossary_remove_when_shown(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """行の表を出している用語集を消したら、補正に使う用語集の行の表を出す。"""
+    """行の表を出している用語集を削除したら、補正に使う用語集の行の表を出す。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
     _click(opened.window, "glossary_pick_1")
@@ -3113,7 +3113,7 @@ def _discard_message(count: int) -> str:
 
 
 def test_discard_body_when_glossary_added(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """用語集を 1 つ足すと、変えた件数は 1 件。"""
+    """用語集を 1 つ追加すると、変えた件数は 1 件。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
     _click(opened.window, "add_glossary_button")
@@ -3126,7 +3126,7 @@ def test_discard_body_when_glossary_added(open_window: Callable[..., Opened], tm
 
 
 def test_discard_body_when_glossary_removed(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """用語集を 1 つ消すと、変えた件数は 1 件。"""
+    """用語集を 1 つ削除すると、変えた件数は 1 件。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
     _click(opened.window, "glossary_remove_1")
@@ -3213,7 +3213,7 @@ def test_discard_body_when_active_renamed(open_window: Callable[..., Opened], tm
 
 
 def test_discard_body_when_added_and_active(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """プリセットを足してそのプリセットを補正に使うと、変えた件数は 2 件。"""
+    """プリセットを追加してそのプリセットを補正に使うと、変えた件数は 2 件。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
     _click(opened.window, "add_glossary_preset_button")
@@ -3275,7 +3275,7 @@ def test_discard_body_when_preset_changed(
     active_preset: str,
     operation: Callable[[QWidget], None],
 ) -> None:
-    """プリセットを追加・消す・名前を変える、使う用語集を追加する・外す・動かすのどれでも、変えた件数は 1 件。"""
+    """プリセットを追加する・削除する・名前を変える、使う用語集を追加する・外す・動かすのどれでも、変えた件数は 1 件。"""
     # 準備
     opened = _open_glossaries(
         open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS, active_preset=active_preset
@@ -3293,7 +3293,7 @@ def test_discard_body_when_preset_changed(
 
 
 def test_add_glossary_button_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """名前が空で行の無い用語集を末尾に足し、その行の表を出して名前の欄へフォーカスを移す。どのプリセットの使う用語集にも入れない。"""
+    """名前が空で行の無い用語集を末尾に追加し、その行の表を出して名前の欄へフォーカスを移す。どのプリセットの使う用語集にも入れない。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
     assert find(opened.window, QPushButton, "add_glossary_button").text() == "用語集追加"
@@ -3312,7 +3312,7 @@ def test_add_glossary_button_action(open_window: Callable[..., Opened], tmp_path
 
 
 def test_add_glossary_button_when_saved(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """足した用語集は、保存で一覧に書き、CSV は設定ファイルと同じフォルダの glossaries の下に作る（書き戻しに渡す）。"""
+    """追加した用語集は、保存で一覧に書き、CSV は設定ファイルと同じフォルダの glossaries の下に作る（書き戻しに渡す）。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
     _click(opened.window, "add_glossary_button")
@@ -3528,7 +3528,7 @@ def test_glossary_entry_fields_when_saved(open_window: Callable[..., Opened], tm
 
 
 def test_glossary_entry_remove_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """行を表から消す。保存するまで CSV には書かず、保存で消した行を除いて書き戻す。"""
+    """行を表から削除する。保存するまで CSV には書かず、保存で削除した行を除いて書き戻す。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
     assert find(opened.window, QPushButton, "glossary_entry_remove_0").accessibleName() == "1 行目を削除"
@@ -3547,7 +3547,7 @@ def test_glossary_entry_remove_action(open_window: Callable[..., Opened], tmp_pa
 
 
 def test_add_glossary_entry_button_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """誤変換と正しい表記が空でオンの行を表の末尾に足し、その行の誤変換の欄へフォーカスを移す。"""
+    """誤変換と正しい表記が空でオンの行を表の末尾に追加し、その行の誤変換の欄へフォーカスを移す。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
     assert find(opened.window, QPushButton, "add_glossary_entry_button").text() == "行追加"
@@ -3565,7 +3565,7 @@ def test_add_glossary_entry_button_action(open_window: Callable[..., Opened], tm
 def test_add_glossary_entry_button_when_added_glossary(
     open_window: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """足した用語集でも行を足せる。"""
+    """追加した用語集でも行を追加できる。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
     _click(opened.window, "add_glossary_button")
@@ -3647,7 +3647,7 @@ def test_glossary_unreadable_when_readable(open_window: Callable[..., Opened], t
 
 
 def test_glossary_unreadable_when_saved(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """読めない用語集も、名前を変える・プリセットの使う用語集に追加する・一覧から消すはできる。保存してもその CSV には触れない。"""
+    """読めない用語集も、名前を変える・プリセットの使う用語集に追加する・一覧から削除することはできる。保存してもその CSV には触れない。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, {"yogo": CSV_FIVE_ROWS, "壊れた": SJIS_CSV, "予備": CSV_TWO_ROWS})
     _click(opened.window, "glossary_pick_1")
@@ -3825,7 +3825,7 @@ def test_input_check_when_glossary_entry_wrong_empty(
 def test_input_check_when_glossary_entry_right_empty(
     open_window: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """誤変換が入っていて正しい表記が空の行は違反にせず、エラーを出さずに保存して、空のまま書き戻す（誤変換を消す行）。"""
+    """誤変換が入っていて正しい表記が空の行は違反にせず、エラーを出さずに保存して、空のまま書き戻す（誤変換を削除する行）。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
     find(opened.window, QLineEdit, "glossary_entry_right_1").setText("")
@@ -3868,7 +3868,7 @@ def test_input_check_when_glossary_entry_in_unused_glossary_or_off_row(
 def test_input_check_when_glossary_entry_both_empty(
     open_window: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """誤変換と正しい表記が両方空の行は違反にせず、保存で捨てる（足しただけの空の行は CSV の行を変えない）。"""
+    """誤変換と正しい表記が両方空の行は違反にせず、保存で捨てる（追加しただけの空の行は CSV の行を変えない）。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
     _click(opened.window, "add_glossary_entry_button")
@@ -3934,7 +3934,7 @@ def test_save_button_when_glossary_changed(open_window: Callable[..., Opened], t
 
 
 def test_reset_dialog_when_glossaries(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """「既定に戻す」は、用語集の一覧を設定ファイルと同じフォルダの yogo.csv の 1 件に戻し、それを使う「既定」のプリセットに戻す。用語集の CSV は消さず、書き換えない。"""
+    """「既定に戻す」は、用語集の一覧を設定ファイルと同じフォルダの yogo.csv の 1 件に戻し、それを使う「既定」のプリセットに戻す。用語集の CSV は削除せず、書き換えない。"""
     from voice_paste.shared.settings import GlossaryPresetSettings, GlossarySettings
 
     # 準備（既定に戻したあとに引き直す一覧は、yogo.csv の 1 件と、それを使う「既定」の 1 件）
@@ -4006,7 +4006,7 @@ def _hint_over_message(length: int) -> str:
 
 
 def test_hint_group_when_visible(open_window: Callable[..., Opened]) -> None:
-    """表記のヒントのまとまりを選ぶと、説明・有効なヒントの長さ・案内・足すボタン・補足が出る。ほかのまとまりを選ぶと出ない。"""
+    """表記のヒントのまとまりを選ぶと、説明・有効なヒントの長さ・案内・追加するボタン・補足が出る。ほかのまとまりを選ぶと出ない。"""
     # 準備
     opened = open_window()
 
@@ -4128,13 +4128,13 @@ def test_hint_preset_enabled_when_saved(open_window: Callable[..., Opened]) -> N
 
 
 def test_hint_length_when_words_changed(open_window: Callable[..., Opened]) -> None:
-    """語を書き換える・足す・消すたびに、有効なプリセットの語を読点でつないだ長さを数え直す（語の間の読点も数える）。"""
+    """語を書き換える・追加する・削除するたびに、有効なプリセットの語を読点でつないだ長さを数え直す（語の間の読点も数える）。"""
     # 準備
     opened = _open_hints(open_window, ("開発", ["abc"], True))
     window = opened.window
     assert "3 / 222 バイト" in _hint_length_texts(window)
 
-    # 実行・検証（語を足して「de」を入れると「abc、de」の 8 バイト。読点は 3 バイト）
+    # 実行・検証（語を追加して「de」を入れると「abc、de」の 8 バイト。読点は 3 バイト）
     _click(window, "hint_word_add_0")
     find(window, QLineEdit, "hint_word_0_1").setText("de")
     assert "8 / 222 バイト" in _hint_length_texts(window)
@@ -4175,7 +4175,7 @@ def test_hint_length_when_over(open_window: Callable[..., Opened]) -> None:
 
 def test_hint_length_when_words_have_surrounding_spaces(open_window: Callable[..., Opened]) -> None:
     """語の前後の空白は、保存の確かめと同じく除いて数える（欄の文字をそのまま数えて、保存の判定とずれない）。"""
-    # 準備（語の前後に空白を足して、そのまま数えると 222 バイトを超えるが、除くと上限ちょうど）
+    # 準備（語の前後に空白を追加して、そのまま数えると 222 バイトを超えるが、除くと上限ちょうど）
     word = "あ" * (HINT_LIMIT_BYTES // JAPANESE_CHAR_BYTES)
     opened = _open_hints(open_window, ("開発", [word], True))
     edit = find(opened.window, QLineEdit, "hint_word_0_0")
@@ -4204,7 +4204,7 @@ def test_hint_preset_size_initial_value(open_window: Callable[..., Opened]) -> N
 
 
 def test_hint_preset_size_action(open_window: Callable[..., Opened]) -> None:
-    """語を足す・書き換える・消すたびに数え直す。語の前後の空白は除いて数える。"""
+    """語を追加する・書き換える・削除するたびに数え直す。語の前後の空白は除いて数える。"""
     # 準備
     opened = _open_hints(open_window, ("開発", ["abc"], True))
     window = opened.window
@@ -4266,7 +4266,7 @@ def test_hint_preset_move_action(open_window: Callable[..., Opened]) -> None:
 
 
 def test_hint_preset_remove_action(open_window: Callable[..., Opened]) -> None:
-    """消すと一覧から外して長さを数え直す。保存するまで settings.toml には書かず、キャンセルで戻せる。"""
+    """削除すると一覧から外して長さを数え直す。保存するまで settings.toml には書かず、キャンセルで戻せる。"""
     # 準備
     opened = _open_hints(open_window, ("開発", ["abc"], True), ("会議", ["de"], True))
     window = opened.window
@@ -4282,7 +4282,7 @@ def test_hint_preset_remove_action(open_window: Callable[..., Opened]) -> None:
 
 
 def test_hint_preset_remove_when_last(open_window: Callable[..., Opened]) -> None:
-    """最後の 1 件を消すと案内が出て、保存すると hint_presets は空になる。"""
+    """最後の 1 件を削除すると案内が出て、保存すると hint_presets は空になる。"""
     # 準備
     opened = _open_hints(open_window, ("開発", ["abc"], True))
 
@@ -4298,7 +4298,7 @@ def test_hint_preset_remove_when_last(open_window: Callable[..., Opened]) -> Non
 
 
 def test_hint_preset_add_action(open_window: Callable[..., Opened]) -> None:
-    """名前と語が空で有効のプリセットを末尾に足し、名前の欄へフォーカスを移す。足して語を入れただけで効く。"""
+    """名前と語が空で有効のプリセットを末尾に追加し、名前の欄へフォーカスを移す。追加して語を入れただけで効く。"""
     # 準備
     opened = _open_hints(open_window, ("開発", ["a"], True))
     window = opened.window
@@ -4315,7 +4315,7 @@ def test_hint_preset_add_action(open_window: Callable[..., Opened]) -> None:
 
 
 def test_hint_preset_add_when_saved(open_window: Callable[..., Opened]) -> None:
-    """足した名前と語は、保存で hint_presets に書く。"""
+    """追加した名前と語は、保存で hint_presets に書く。"""
     # 準備
     opened = _open_hints(open_window)
     _click(opened.window, "hint_preset_add")
@@ -4338,7 +4338,7 @@ def test_hint_preset_add_when_saved(open_window: Callable[..., Opened]) -> None:
 
 
 def test_hint_words_empty_when_no_words(open_window: Callable[..., Opened]) -> None:
-    """語が 1 つも無いプリセットは、語の欄の代わりに語が無いことを伝える。語を足すと消える。"""
+    """語が 1 つも無いプリセットは、語の欄の代わりに語が無いことを伝える。語を追加すると消える。"""
     # 準備
     opened = _open_hints(open_window, ("開発", [], True))
     window = opened.window
@@ -4355,7 +4355,7 @@ def test_hint_words_empty_when_no_words(open_window: Callable[..., Opened]) -> N
 
 
 def test_hint_word_add_action(open_window: Callable[..., Opened]) -> None:
-    """空の語の欄をそのプリセットの語の末尾に足し、その欄へフォーカスを移す。"""
+    """空の語の欄をそのプリセットの語の末尾に追加し、その欄へフォーカスを移す。"""
     # 準備
     opened = _open_hints(open_window, ("開発", ["a"], True), ("会議", ["b"], True))
 
@@ -4368,7 +4368,7 @@ def test_hint_word_add_action(open_window: Callable[..., Opened]) -> None:
 
 
 def test_hint_word_remove_action(open_window: Callable[..., Opened]) -> None:
-    """語を 1 つ消す。読み上げの名前は「{何つ目か} つ目の語を削除」。"""
+    """語を 1 つ削除する。読み上げの名前は「{何つ目か} つ目の語を削除」。"""
     # 準備
     opened = _open_hints(open_window, ("開発", ["a", "b", "c"], True))
     assert find(opened.window, QPushButton, "hint_word_remove_0_1").accessibleName() == "2 つ目の語を削除"
@@ -4382,7 +4382,7 @@ def test_hint_word_remove_action(open_window: Callable[..., Opened]) -> None:
 
 
 def test_hint_words_when_narrow_window(open_window: Callable[..., Opened]) -> None:
-    """語の欄は入力と消すボタンの組を 2 列に並べ、左から右、上から下が語の順になる。幅が組 2 つに足りなければ 1 列に積む。"""
+    """語の欄は入力と削除ボタンの組を 2 列に並べ、左から右、上から下が語の順になる。幅が組 2 つに足りなければ 1 列に積む。"""
     # 準備
     opened = _open_hints(open_window, ("開発", ["a", "b", "c", "d"], True))
     window = opened.window
@@ -4505,7 +4505,7 @@ def test_input_check_when_hint_preset_name_overlap(open_window: Callable[..., Op
 
 
 def test_input_check_when_hint_errors_counted(open_window: Callable[..., Opened]) -> None:
-    """エラーの一覧の見出しは、直す欄の件数を数える。"""
+    """エラーの一覧の見出しは、修正する欄の件数を数える。"""
     # 準備
     opened = _open_hints(open_window, ("開発", ["a", "x"], True), ("会議", ["b"], True))
     find(opened.window, QLineEdit, "hint_word_0_1").setText("")
@@ -4519,7 +4519,7 @@ def test_input_check_when_hint_errors_counted(open_window: Callable[..., Opened]
 
 
 def test_input_check_when_hint_errors_cleared(open_window: Callable[..., Opened]) -> None:
-    """直して保存し直すと、前のエラーは消える。"""
+    """修正して保存し直すと、前のエラーは消える。"""
     # 準備
     opened = _open_hints(open_window, ("開発", ["a", "x"], True))
     find(opened.window, QLineEdit, "hint_word_0_1").setText("")
@@ -4634,7 +4634,7 @@ def test_reset_dialog_when_hint_presets(open_window: Callable[..., Opened]) -> N
 
 
 def test_discard_body_when_hint_preset_added(open_window: Callable[..., Opened]) -> None:
-    """プリセットを 1 つ足すと、変えた件数は 1 件。"""
+    """プリセットを 1 つ追加すると、変えた件数は 1 件。"""
     # 準備
     opened = _open_hints(open_window, ("開発", ["a"], True))
     _click(opened.window, "hint_preset_add")
@@ -4647,7 +4647,7 @@ def test_discard_body_when_hint_preset_added(open_window: Callable[..., Opened])
 
 
 def test_discard_body_when_hint_preset_removed(open_window: Callable[..., Opened]) -> None:
-    """プリセットを 1 つ消すと、変えた件数は 1 件。"""
+    """プリセットを 1 つ削除すると、変えた件数は 1 件。"""
     # 準備
     opened = _open_hints(open_window, ("開発", ["a"], True), ("会議", ["b"], True))
     _click(opened.window, "hint_preset_remove_0")
@@ -4729,7 +4729,7 @@ def test_discard_body_when_two_hint_presets_changed(open_window: Callable[..., O
 def test_discard_body_when_hint_preset_removed_from_middle(
     open_window: Callable[..., Opened],
 ) -> None:
-    """途中のプリセットを消すと、変えた件数は消した 1 件（残ったプリセットの順は並べ替えに数えない）。"""
+    """途中のプリセットを削除すると、変えた件数は削除した 1 件（残ったプリセットの順は並べ替えに数えない）。"""
     # 準備
     opened = _open_hints(open_window, ("A", ["a"], True), ("B", ["b"], True), ("C", ["c"], True))
     _click(opened.window, "hint_preset_remove_1")
@@ -4764,10 +4764,10 @@ EDGE_GROUP_ROW = 8
 """まとまりのメニューの「ハルシネーション」の行。"""
 
 NARROW_PANEL_WIDTH_PX = 300
-"""文言の一覧が 1 行を 2 段に組む幅。"""
+"""文言の一覧が 1 行を上下 2 つの並びに組む幅。"""
 
 WIDE_PANEL_WIDTH_PX = 900
-"""文言の一覧が 1 行を 1 段に組む幅。"""
+"""文言の一覧が 1 行を横 1 列に組む幅。"""
 
 DROP_MARGIN_PX = 10
 """つまみを離す位置を、行の中心から上下へずらす距離。"""
@@ -4871,7 +4871,7 @@ def test_edge_phrase_list_when_not_in_settings_toml(open_window: Callable[..., O
 
 
 def test_edge_phrase_list_when_narrow_window(open_window: Callable[..., Opened]) -> None:
-    """幅が広いときは 1 行を 1 段に組んで列の見出しを出し、狭いときは 2 段（上に文言の欄、下に位置と消すボタン）に組んで見出しを隠す。"""
+    """幅が広いときは 1 行を横 1 列に組んで列の見出しを出し、狭いときは上下 2 つの並び（上に文言の欄、下に位置と削除ボタン）に組んで見出しを隠す。"""
     # 準備
     opened = _open_edge(open_window, ("えーと", "start"), ("字幕*", "end"))
     window = opened.window
@@ -4900,7 +4900,7 @@ def test_edge_phrase_list_when_narrow_window(open_window: Callable[..., Opened])
 
 
 def test_edge_phrase_empty_when_no_phrases(open_window: Callable[..., Opened]) -> None:
-    """行が 1 つも無いときは、一覧の代わりに、無い間は何も消さないことを伝える文を出す。"""
+    """行が 1 つも無いときは、一覧の代わりに、無い間は何も削除しないことを伝える文を出す。"""
     # 実行
     opened = _open_edge(open_window)
 
@@ -5086,7 +5086,7 @@ def test_edge_phrase_position_action(open_window: Callable[..., Opened]) -> None
 
 
 def test_edge_phrase_remove_action(open_window: Callable[..., Opened]) -> None:
-    """消すと一覧から外す。保存するまで settings.toml には書かない。"""
+    """削除すると一覧から外す。保存するまで settings.toml には書かない。"""
     # 準備
     opened = _open_edge(open_window, ("A", "start"), ("B", "end"), ("C", "both"))
     window = opened.window
@@ -5102,7 +5102,7 @@ def test_edge_phrase_remove_action(open_window: Callable[..., Opened]) -> None:
 
 
 def test_edge_phrase_remove_when_cancelled(open_window: Callable[..., Opened]) -> None:
-    """消してからキャンセルして捨てると、settings.toml には書かず、開き直すと消す前の行が出る。"""
+    """削除してからキャンセルして捨てると、settings.toml には書かず、開き直すと削除する前の行が出る。"""
     # 準備
     opened = _open_edge(open_window, ("A", "end"), ("B", "end"))
     _click(opened.window, "edge_phrase_remove_0")
@@ -5122,7 +5122,7 @@ def test_edge_phrase_remove_when_cancelled(open_window: Callable[..., Opened]) -
 
 
 def test_edge_phrase_remove_when_last(open_window: Callable[..., Opened]) -> None:
-    """最後の 1 行を消すと空の文が出て、保存すると edge_phrases は空になる。"""
+    """最後の 1 行を削除すると空の文が出て、保存すると edge_phrases は空になる。"""
     # 準備
     opened = _open_edge(open_window, ("A", "end"))
 
@@ -5139,7 +5139,7 @@ def test_edge_phrase_remove_when_last(open_window: Callable[..., Opened]) -> Non
 
 
 def test_add_edge_phrase_button_action(open_window: Callable[..., Opened]) -> None:
-    """文言が空で位置が文末の行を末尾に足し、その行の文言の欄へフォーカスを移す。"""
+    """文言が空で位置が文末の行を末尾に追加し、その行の文言の欄へフォーカスを移す。"""
     # 準備
     opened = _open_edge(open_window, ("A", "start"))
     window = opened.window
@@ -5154,7 +5154,7 @@ def test_add_edge_phrase_button_action(open_window: Callable[..., Opened]) -> No
 
 
 def test_add_edge_phrase_button_when_no_phrases(open_window: Callable[..., Opened]) -> None:
-    """行が 1 つも無いときに足すと、空の文を隠して 1 行目が出る。"""
+    """行が 1 つも無いときに追加すると、空の文を隠して 1 行目が出る。"""
     # 準備
     opened = _open_edge(open_window)
 
@@ -5171,7 +5171,7 @@ def test_add_edge_phrase_button_when_no_phrases(open_window: Callable[..., Opene
 
 def test_save_button_when_edge_phrases_changed(open_window: Callable[..., Opened]) -> None:
     """一覧の順に edge_phrases を書く。文言が空の行は捨て、前後の空白は除く。再起動せずに効く値として書き、窓を開いたまま保存したメッセージを出す。"""
-    # 準備（「お疲れ様でした」（文頭）を足して先頭へ動かし、空の行を足したままにして、「ありがとうございました」の行を消す）
+    # 準備（「お疲れ様でした」（文頭）を追加して先頭へ動かし、空の行を追加したままにして、「ありがとうございました」の行を削除する）
     opened = _open_edge(
         open_window, ("チャンネル登録*", "end"), ("ご視聴ありがとうございました", "end"), ("ありがとうございました", "end")
     )
@@ -5267,7 +5267,7 @@ def test_input_check_when_edge_phrase_wildcard_with_text(open_window: Callable[.
 
 
 def test_input_check_when_edge_phrase_fixed(open_window: Callable[..., Opened]) -> None:
-    """直して保存し直すと、書く。"""
+    """修正して保存し直すと、書く。"""
     # 準備
     opened = _open_edge(open_window, ("A", "end"))
     find(opened.window, QLineEdit, "edge_phrase_text_0").setText("*")
@@ -5345,7 +5345,7 @@ def _press_preset_hotkey(window: QWidget, kind: str, number: int) -> None:
 
 
 def test_discard_body_when_preset_added(open_window: Callable[..., Opened]) -> None:
-    """プリセットを 1 つ足すと、変えた件数は 1 件（タイトルと URL を入れても 1 件）。"""
+    """プリセットを 1 つ追加すると、変えた件数は 1 件（タイトルと URL を入れても 1 件）。"""
     # 準備
     opened = open_window(_settings_with_presets())
     _select_kind(opened.window, "browser")
@@ -5359,7 +5359,7 @@ def test_discard_body_when_preset_added(open_window: Callable[..., Opened]) -> N
 
 
 def test_discard_body_when_preset_removed(open_window: Callable[..., Opened]) -> None:
-    """プリセットを 1 つ消すと、変えた件数は 1 件。"""
+    """プリセットを 1 つ削除すると、変えた件数は 1 件。"""
     # 準備
     opened = open_window(_settings_with_presets())
     _select_kind(opened.window, "browser")
@@ -5451,7 +5451,7 @@ def test_discard_body_when_two_presets_changed(open_window: Callable[..., Opened
 
 
 def test_discard_body_when_preset_removed_from_middle(open_window: Callable[..., Opened]) -> None:
-    """3 件のうち途中のプリセットを消すと、変えた件数は消した 1 件（残ったプリセットの順は並べ替えに数えない）。"""
+    """3 件のうち途中のプリセットを削除すると、変えた件数は削除した 1 件（残ったプリセットの順は並べ替えに数えない）。"""
     # 準備
     opened = open_window(_three_browser_presets())
     _select_kind(opened.window, "browser")
@@ -5562,19 +5562,19 @@ def test_settings_window_when_opened_twice(make_ui: Callable[..., Ui]) -> None:
     window.try_close()
 
 
-# === 印の見え方（チェックボックス・ラジオボタン・選択欄の開く印） ===
+# === マーカーの見え方（チェックボックス・ラジオボタン・選択欄の開くマーカー） ===
 
 THEME_PARAMS = [pytest.param("light", id="light"), pytest.param("dark", id="dark")]
-"""印の見え方を確かめる明暗の組。"""
+"""マーカーの見え方を確かめる明暗の組。"""
 
 ARROW_AREA_WIDTH = 28
-"""選択欄の右端の、開く印の区画の幅（論理ピクセル）。"""
+"""選択欄の右端の、開くマーカーの区画の幅（論理ピクセル）。"""
 
 ARROW_AREA_INSET = 6
-"""開く印の区画を調べるとき、欄の外側の枠の線を避ける上下の余白（論理ピクセル）。"""
+"""開くマーカーの区画を調べるとき、欄の外側の枠の線を避ける上下の余白（論理ピクセル）。"""
 
 MIN_INDICATOR_CONTRAST = 3
-"""印と背景の明るさの比の下限（WCAG 2.1 の 1.4.11）。"""
+"""マーカーと背景の明るさの比の下限（WCAG 2.1 の 1.4.11）。"""
 
 
 @pytest.fixture
@@ -5723,10 +5723,10 @@ def test_check_indicator_when_radio_disabled(
 def test_check_indicator_when_focused(
     themed_window: Callable[[str], SettingsWindow], theme: str
 ) -> None:
-    """フォーカスを受けると、印と名前の組を accent_fg の枠で囲む。枠は印と名前の幅に収まる（正常系）。"""
+    """フォーカスを受けると、マーカーと名前の組を accent_fg の枠で囲む。枠はマーカーと名前の幅に収まる（正常系）。"""
     from voice_paste.ui.style import load_tokens
 
-    # 準備: オフのチェックボックス（印の中に accent_fg が出ない）
+    # 準備: オフのチェックボックス（マーカーの中に accent_fg が出ない）
     window = themed_window(theme)
     checkbox = _show_field(window, "recording.hide_window", QCheckBox)
     accent_fg = load_tokens()["color"][theme]["accent_fg"]
@@ -5746,7 +5746,7 @@ def test_check_indicator_when_focused(
 def test_check_indicator_when_indicator_gap(
     themed_window: Callable[[str], SettingsWindow],
 ) -> None:
-    """印と名前の間は 8px、ラジオボタンの選択肢の間は 20px（正常系）。"""
+    """マーカーと名前の間は 8px、ラジオボタンの選択肢の間は 20px（正常系）。"""
     from PySide6.QtWidgets import QStyle, QStyleOptionButton
 
     # 準備
@@ -5797,7 +5797,7 @@ def test_check_indicator_when_combo_arrow(
 
 @pytest.mark.parametrize("theme", THEME_PARAMS)
 def test_check_indicator_when_contrast(theme: str) -> None:
-    """印の色と背景の明るさの比が 3:1 以上（正常系）。"""
+    """マーカーの色と背景の明るさの比が 3:1 以上（正常系）。"""
     from voice_paste.ui.style import load_tokens
 
     # 準備

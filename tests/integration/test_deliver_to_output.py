@@ -41,7 +41,7 @@ def test_normal_when_paste_and_send(output_stack: Callable[[Settings | None], Ou
 def test_normal_when_enter_modifiers(
     output_stack: Callable[[Settings | None], OutputStack],
 ) -> None:
-    """貼り付けて送信で Ctrl をオンにして確定すると、待った後に Ctrl を押したまま Enter を送る（正常系）。"""
+    """貼り付けて送信で Ctrl をオンにして確定すると、待った後に Ctrl を押したまま Enter を送信する（正常系）。"""
     # 準備
     settings = SETTINGS_MODEL(
         outputs=[
@@ -93,7 +93,7 @@ def test_normal_when_browser_preset(
 def test_normal_when_browser_preset_and_enter_modifiers(
     output_stack: Callable[[Settings | None], OutputStack],
 ) -> None:
-    """貼り付けて送信で Ctrl をオンにしていても、ブラウザ添付のプリセットは修飾キーなしで Enter を送る（正常系）。"""
+    """貼り付けて送信で Ctrl をオンにしていても、ブラウザ添付のプリセットは修飾キーなしで Enter を送信する（正常系）。"""
     # 準備
     preset = BrowserPreset(title="ChatGPT", url=CHAT_URL)
     settings = SETTINGS_MODEL(
@@ -125,7 +125,7 @@ def test_normal_when_browser_preset_and_enter_modifiers(
 def test_normal_when_browser_preset_without_enter(
     output_stack: Callable[[Settings | None], OutputStack],
 ) -> None:
-    """Enter まで送らないブラウザ添付のプリセットを選んで確定すると、貼り付けで止まる（正常系）。"""
+    """Enter まで送信しないブラウザ添付のプリセットを選んで確定すると、貼り付けで止まる（正常系）。"""
     # 準備
     preset = BrowserPreset(title="ChatGPT", url=CHAT_URL, send_enter=False)
     settings = SETTINGS_MODEL(

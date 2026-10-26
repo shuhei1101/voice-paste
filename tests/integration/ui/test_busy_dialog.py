@@ -61,7 +61,7 @@ def test_busy_dialog_visible_when_busy(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_busy_dialog_properties() -> None:
-    """窓の題は voice-paste で、「常に手前に表示」のモーダル。"""
+    """窓のタイトルは voice-paste で、「常に手前に表示」のモーダル。"""
     # 実行
     dialog = _shown_dialog()
 

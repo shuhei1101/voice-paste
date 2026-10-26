@@ -190,7 +190,7 @@ def test_notification_title_and_body_when_copy_completed(
 def test_notification_body_when_engine_unavailable(
     make_ui: Callable[..., Ui], shown: MagicMock
 ) -> None:
-    """文字起こしのエンジンを準備できない起動の本文は、理由と「設定を直して再起動してください」を出す。"""
+    """文字起こしのエンジンを準備できない起動の本文は、理由と「設定を修正して再起動してください」を出す。"""
     # 準備
     ui = make_ui()
 
@@ -206,7 +206,7 @@ def test_notification_body_when_engine_unavailable(
 def test_notification_body_when_settings_invalid(
     make_ui: Callable[..., Ui], shown: MagicMock
 ) -> None:
-    """設定ファイルを読めない起動の本文は、理由と「設定フォルダの settings.toml を直して再起動してください」を出す。"""
+    """設定ファイルを読めない起動の本文は、理由と「設定フォルダの settings.toml を修正して再起動してください」を出す。"""
     # 準備
     ui = make_ui()
 

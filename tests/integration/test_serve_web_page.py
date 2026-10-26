@@ -1,6 +1,6 @@
 """画面を配信する（GET /web/）の結合テスト。
 
-本物の app を 127.0.0.1 の空きポートに立て、httpx で叩く。ゲートウェイを通した形（Host は localhost:{ポート}・トークン無し）で要求する。
+本物の app を 127.0.0.1 の空きポートに立て、httpx で叩く。ゲートウェイを通した構成（Host は localhost:{ポート}・トークン無し）で要求する。
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from tests.integration.helpers import WEB_ORIGIN, Stack
 
 
 def _gateway_headers(stack: Stack, **extra: str) -> dict[str, str]:
-    """ゲートウェイを通した画面の要求のヘッダー（Host は localhost:{ポート}、Origin 無し）に extra を足す。"""
+    """ゲートウェイを通した画面の要求のヘッダー（Host は localhost:{ポート}、Origin 無し）に extra を追加する。"""
     return {"Host": f"localhost:{stack.port}", **extra}
 
 

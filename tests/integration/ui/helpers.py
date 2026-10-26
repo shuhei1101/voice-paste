@@ -97,14 +97,14 @@ def edge_and_face_colors(widget: QWidget) -> tuple[QColor, QColor]:
 
 
 BADGE_ERODE_PX = 1
-"""丸い印の画素を探すとき、同じ色の画素を内側へ削る幅（1 px の枠の線を落とし、円の塊だけを残す）。"""
+"""丸いマーカーの画素を探すとき、同じ色の画素を内側へ削る幅（1 px の枠の線を落とし、円の塊だけを残す）。"""
 
 BADGE_RIM_PX = 1
-"""丸い印の縁の、なだらかに色が混ざって印の色と一致しない画素の幅。"""
+"""丸いマーカーの縁の、なだらかに色が混ざってマーカーの色と一致しない画素の幅。"""
 
 
 def face_range(button: QPushButton) -> QRect:
-    """出力先の切り替えのボタンの、右と上の余白（印がはみ出す分）を除いた枠の範囲を、ボタンの座標で返す。"""
+    """出力先の切り替えのボタンの、右と上の余白（マーカーがはみ出す分）を除いた枠の範囲を、ボタンの座標で返す。"""
     from voice_paste.ui.style import load_tokens
 
     overhang: int = load_tokens()["shape"]["badge_overhang"]
@@ -112,9 +112,9 @@ def face_range(button: QPushButton) -> QRect:
 
 
 def badge_range(button: QPushButton) -> QRect | None:
-    """選んだボタンの丸い印の範囲を、ボタンを描いた画像から求める（印が描かれていなければ None）。
+    """選んだボタンの丸いマーカーの範囲を、ボタンを描いた画像から求める（マーカーが描かれていなければ None）。
 
-    印の色（accent_fg）の画素のうち、周りの画素も同じ色のものだけを残して細い枠の線を落とし、残った画素の外接の四角を削った幅と縁の幅だけ広げる。
+    マーカーの色（accent_fg）の画素のうち、周りの画素も同じ色のものだけを残して細い枠の線を落とし、残った画素の外接の四角を削った幅と縁の幅だけ広げる。
     """
     from voice_paste.ui.style import theme_color
 
@@ -123,7 +123,7 @@ def badge_range(button: QPushButton) -> QRect | None:
     image.fill(Qt.GlobalColor.transparent)
     button.render(image)
 
-    # 印の色の画素を集める
+    # マーカーの色の画素を集める
     accent = theme_color("accent_fg").rgb()
     solid = {
         (x, y)
@@ -139,7 +139,7 @@ def badge_range(button: QPushButton) -> QRect | None:
         for x, y in solid
         if all((x + dx, y + dy) in solid for dx in around for dy in around)
     ]
-    # 印の色の塊が無い: 印は描かれていない
+    # マーカーの色の塊が無い: マーカーは描かれていない
     if not inner:
         return None
 
@@ -393,7 +393,7 @@ def crop_logical(image: QImage, rect: QRect) -> QImage:
 
 
 def indicator_image(button: QAbstractButton) -> QImage:
-    """チェックボックス・ラジオボタンを描いた画像から、印（箱・丸）の範囲だけを切り出す。"""
+    """チェックボックス・ラジオボタンを描いた画像から、マーカー（箱・丸）の範囲だけを切り出す。"""
     element = (
         QStyle.SubElement.SE_CheckBoxIndicator
         if isinstance(button, QCheckBox)

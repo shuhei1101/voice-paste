@@ -1,4 +1,4 @@
-"""実機のテストの共通フィクスチャ（返送先の受け口と、本物の常駐サービスの起動と、pytest のプロセスの中で配線した常駐アプリ）。conftest が import して使う。"""
+"""実機のテストの共通フィクスチャ（返送先の受信先と、本物の常駐サービスの起動と、pytest のプロセスの中で配線した常駐アプリ）。conftest が import して使う。"""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from voice_paste.shared.settings import Settings
 
 @pytest.fixture
 def receiver() -> Iterator[CallbackReceiver]:
-    """返送先のテスト用の受け口を 127.0.0.1 に立てる。"""
+    """返送先のテスト用の受信先を 127.0.0.1 に立てる。"""
     callback_receiver = CallbackReceiver()
     callback_receiver.start()
     yield callback_receiver
@@ -35,7 +35,7 @@ def start_service(tmp_path: Path) -> Iterator[Callable[..., RealService]]:
         wait_for_api: bool = True,
         prepare: Callable[[Path], None] | None = None,
     ) -> RealService:
-        """設定を足して起動する。prepare は起動の前に、置き場所（空の一時フォルダ）へファイルを用意する関数。"""
+        """設定を追加して起動する。prepare は起動の前に、置き場所（空の一時フォルダ）へファイルを用意する関数。"""
         data_dir = tmp_path / f"data{len(started)}"
         data_dir.mkdir(parents=True, exist_ok=True)
         if prepare is not None:

@@ -1,7 +1,7 @@
 """単一ユースケース「設定を変える」の E2E テスト。
 
 常駐アプリを pytest のプロセスの中で `main()` から起動し、トレイの「設定…」の項目を trigger して設定画面を開き、
-クリックとキーを Qt のイベントで渡して欄・ボタンを操作する（欄は項目 ID `field_{キー}`、確認ダイアログは予約して答える）。
+クリックとキーを Qt のイベントで渡して欄・ボタンを操作する（欄は項目 ID `field_{キー}`、確認ダイアログは予約して回答する）。
 設定ファイルは起動した一時フォルダの `settings.toml`（`--data-dir`）で、普段使いの設定には触れない。
 「保存して再起動」で起動し直す新しいプロセスだけは別プロセスで動き（Qt は offscreen）、ログとトークンのファイルで確かめる。
 変えた設定で録音を始めるケース（正常シナリオ・カスタムプリセットを追加する）は、録音の入力を WAV を流すものに、
@@ -61,7 +61,7 @@ GLOSSARY_TWO_ROWS = "誤変換,正しい表記\nkuroudo,Claude\ngitto,Git\n"
 """用語集に 2 つある行（キーを打つ操作が確かな ASCII の語にしている）。"""
 
 DELETED_WORD = "arigato"
-"""足した行で、正しい表記を空にして消す誤変換（キーを打つ操作が確かな ASCII の語にしている）。"""
+"""追加した行で、正しい表記を空にして削除する誤変換（キーを打つ操作が確かな ASCII の語にしている）。"""
 
 COMMENT_LINE = "# E2E: このコメントは保存しても残る"
 """COMMENTED_SETTINGS が持つコメント。"""
@@ -71,13 +71,13 @@ START_HOTKEY_FIELD = "hotkey_hotkeys.start"
 
 NEW_START_HOTKEY = "<ctrl>+<alt>+<shift>+<f11>"
 NEW_START_HOTKEY_TEXT = "Ctrl+Alt+Shift+F11"
-"""録音開始のホットキーに変える組み合わせ（設定の書式と、欄に出る形）。"""
+"""録音開始のホットキーに変える組み合わせ（設定の書式と、欄に出る形式）。"""
 
 PRESET_HOTKEY = "<ctrl>+<alt>+<shift>+<f10>"
-"""足すプリセットの確定のホットキー。"""
+"""追加するプリセットの確定のホットキー。"""
 
 PRESET_TITLE = "e2e-endpoint"
-"""足すプリセットのタイトル（キーを打つ操作が確かな ASCII にしている）。"""
+"""追加するプリセットのタイトル（キーを打つ操作が確かな ASCII にしている）。"""
 
 HOTKEY_MODIFIERS = (
     Qt.KeyboardModifier.ControlModifier
@@ -93,7 +93,7 @@ LOWERED_RATIO = 0.5
 """設定の既定（録音中の音量 50%）で、録音前の音量に掛けて下げる割合。"""
 
 DELIVERED_TIMEOUT_SEC = 120.0
-"""プリセットで確定してから、起こした文字が受け口へ届くまで待つ上限。"""
+"""プリセットで確定してから、起こした文字が受信先へ届くまで待つ上限。"""
 
 
 def _settings_file(app: ResidentApp) -> Path:
@@ -231,10 +231,10 @@ def test_normal_when_save_and_restart(run_app: RunApp) -> None:
 
 
 def test_normal_when_reset(run_app: RunApp) -> None:
-    """「既定に戻す」で確認に答えると、全てのキーが既定の値で書かれ、設定画面は開いたまま欄に既定の値が入る（正常シナリオ）。"""
+    """「既定に戻す」で確認に回答すると、全てのキーが既定の値で書かれ、設定画面は開いたまま欄に既定の値が入る（正常シナリオ）。"""
 
     def case(app: ResidentApp) -> None:
-        """設定画面で「既定に戻す」を押して確認に答える。"""
+        """設定画面で「既定に戻す」を押して確認に回答する。"""
         # 準備
         app.open_settings()
 
@@ -304,13 +304,13 @@ def test_error_when_invalid_value(run_app: RunApp) -> None:
 def test_normal_when_add_custom_preset(
     run_app: RunApp, tmp_path: Path, receiver: CallbackReceiver
 ) -> None:
-    """「エンドポイントへ送信」のプリセットを追加して保存し、確認なしに閉じると、再起動せずに次の録音の画面にそのボタンが出て、そのホットキーで確定すると起こした文字が受け口へ届く（正常シナリオ）。
+    """「エンドポイントへ送信」のプリセットを追加して保存し、確認なしに閉じると、再起動せずに次の録音の画面にそのボタンが出て、そのホットキーで確定すると起こした文字が受信先へ届く（正常シナリオ）。
 
-    プリセットの URL はテストが 127.0.0.1 に立てた受け口で、録音の入力は音声合成の WAV（ローカルの Whisper で起こす）。
+    プリセットの URL はテストが 127.0.0.1 に立てた受信先で、録音の入力は音声合成の WAV（ローカルの Whisper で起こす）。
     """
 
     def case(app: ResidentApp) -> None:
-        """設定画面でプリセットを足して「保存」を押し、「キャンセル」で閉じて、録音を始めてプリセットのホットキーの関数で確定する。"""
+        """設定画面でプリセットを追加して「保存」を押し、「キャンセル」で閉じて、録音を始めてプリセットのホットキーの関数で確定する。"""
         # 準備
         app.open_settings()
         app.select_group("エンドポイントへ送信")
@@ -322,7 +322,7 @@ def test_normal_when_add_custom_preset(
         app.press_hotkey("preset_hotkey_0", Qt.Key.Key_F10, HOTKEY_MODIFIERS)
         app.press("save_button")
 
-        # 検証（保存の後、設定画面は開いたまま、足したプリセットが一覧に残り、書かれた値以外は変わらない）
+        # 検証（保存の後、設定画面は開いたまま、追加したプリセットが一覧に残り、書かれた値以外は変わらない）
         assert app.label("saved_notice") == SAVED_WITH_HOTKEY_NOTICE
         assert app.window("settings_window") is not None
         assert app.label("preset_heading_0") == PRESET_TITLE
@@ -356,7 +356,7 @@ def test_normal_when_add_custom_preset(
         # 実行（プリセットのホットキーの関数を呼んで確定する）
         bindings[PRESET_HOTKEY]()
 
-        # 検証（起こした文字が受け口へ届き、待機中へ戻る）
+        # 検証（起こした文字が受信先へ届き、待機中へ戻る）
         assert app.wait_until(lambda: receiver.received, DELIVERED_TIMEOUT_SEC)
         assert receiver.received[0]["result"] == "transcribed"
         assert SPEECH_WORD in receiver.received[0]["text"]
@@ -369,13 +369,13 @@ def test_normal_when_add_custom_preset(
 
 
 def test_normal_when_edit_glossary(run_app: RunApp) -> None:
-    """用語集の行を足し（1 つは正しい表記を空にする）・書き換え・オフにして保存すると、用語集のファイルに書き戻され、設定画面は開いたまま保存できたことを出し、再起動せずに補正へ効く（正常シナリオ）。
+    """用語集の行を追加し（1 つは正しい表記を空にする）・書き換え・オフにして保存すると、用語集のファイルに書き戻され、設定画面は開いたまま保存できたことを出し、再起動せずに補正へ効く（正常シナリオ）。
 
     補正は、動いている常駐アプリの補正に文字を渡して確かめる（マイクは開かない）。
     """
 
     def case(app: ResidentApp) -> None:
-        """設定画面の「用語集」で、行を 2 つ足し（1 つは誤変換だけを入れる）、1 つ目の行の正しい表記を書き換え、2 つ目の行をオフにして保存する。"""
+        """設定画面の「用語集」で、行を 2 つ追加し（1 つは誤変換だけを入れる）、1 つ目の行の正しい表記を書き換え、2 つ目の行をオフにして保存する。"""
         # 準備
         app.open_settings()
         app.select_group("用語集")
@@ -409,19 +409,19 @@ def test_normal_when_edit_glossary(run_app: RunApp) -> None:
 
 
 def test_normal_when_switch_glossary_preset(run_app: RunApp) -> None:
-    """用語集と用語集のプリセットを足して、今の用語集と足した用語集の両方を使う用語集に選び、補正に使うプリセットを足したものに切り替えて保存すると、足した用語集のファイルができ、設定画面は開いたまま保存できたことを出し、再起動せずに両方の用語集の行が補正へ効く（正常シナリオ）。
+    """用語集と用語集のプリセットを追加して、今の用語集と追加した用語集の両方を使う用語集に選び、補正に使うプリセットを追加したものに切り替えて保存すると、追加した用語集のファイルができ、設定画面は開いたまま保存できたことを出し、再起動せずに両方の用語集の行が補正へ効く（正常シナリオ）。
 
     補正は、動いている常駐アプリの補正に文字を渡して確かめる（マイクは開かない）。
     """
 
     def case(app: ResidentApp) -> None:
-        """設定画面の「用語集」で、用語集とプリセットを足して名前と行を入れ、補正に使うプリセットを足したものに切り替えて保存する。"""
+        """設定画面の「用語集」で、用語集とプリセットを追加して名前と行を入れ、補正に使うプリセットを追加したものに切り替えて保存する。"""
         # 準備
         before = _glossary_file(app).read_bytes()
         app.open_settings()
         app.select_group("用語集")
 
-        # 実行（用語集を足して名前と行を入れ、プリセットを足して名前を入れ、今の用語集と足した用語集をこの順に使う用語集に選ぶ）
+        # 実行（用語集を追加して名前と行を入れ、プリセットを追加して名前を入れ、今の用語集と追加した用語集をこの順に使う用語集に選ぶ）
         app.press("add_glossary_button")
         app.set_text("glossary_name_1", "meeting")
         app.press("add_glossary_entry_button")
@@ -474,19 +474,19 @@ HINT_OVER_WORD_LENGTH = 209
 
 
 def test_normal_when_edit_hint_presets(run_app: RunApp) -> None:
-    """手がかりのプリセットを足し・語を足して書き換え・無効にして保存すると、settings.toml に書かれ、設定画面は開いたまま保存できたことを出し、再起動せずに次の文字起こしの手がかりへ効く（正常シナリオ）。
+    """手がかりのプリセットを追加し・語を追加して書き換え・無効にして保存すると、settings.toml に書かれ、設定画面は開いたまま保存できたことを出し、再起動せずに次の文字起こしの手がかりへ効く（正常シナリオ）。
 
     手がかりは、動いている常駐アプリの文字起こしがエンジンへ渡す値で確かめる（マイクは開かない。録音を通した文字起こしは「録音を文字に起こす」の E2E）。
     """
 
     def case(app: ResidentApp) -> None:
-        """設定画面の「表記のヒント」で、プリセットを 2 つ足して語を入れ、前からあるプリセットの語を足して書き換え、2 つ目に足したプリセットを無効にして保存する。"""
+        """設定画面の「表記のヒント」で、プリセットを 2 つ追加して語を入れ、前からあるプリセットの語を追加して書き換え、2 つ目に追加したプリセットを無効にして保存する。"""
         # 準備
         assert app.hint_for_next_request() == "voice-paste、Whisper"
         app.open_settings()
         app.select_group("表記のヒント")
 
-        # 実行（前からあるプリセットに語を足して 1 つ目の語を書き換え、有効なプリセットと、無効にするプリセットを足す）
+        # 実行（前からあるプリセットに語を追加して 1 つ目の語を書き換え、有効なプリセットと、無効にするプリセットを追加する）
         app.press("hint_word_add_0")
         app.set_text("hint_word_0_2", "tool")
         app.set_text("hint_word_0_0", "Claude")
@@ -521,7 +521,7 @@ EDGE_TRANSCRIPT = "お疲れ様でした。本日はここまでです。あり�
 
 
 def _keeps_values(before: dict[str, object], after: dict[str, object]) -> bool:
-    """before に書かれていた全てのキーが、after に同じ値で残っているか（保存で足された既定のキーは見ない）。"""
+    """before に書かれていた全てのキーが、after に同じ値で残っているか（保存で追加された既定のキーは見ない）。"""
     return all(
         _keeps_values(value, after[key]) if isinstance(value, dict) else after.get(key) == value  # type: ignore[arg-type,index]
         for key, value in before.items()
@@ -535,7 +535,7 @@ def test_normal_when_edit_edge_phrases(run_app: RunApp) -> None:
     """
 
     def case(app: ResidentApp) -> None:
-        """設定画面の「ハルシネーション」で、「お疲れ様でした」（文頭）の行を足して先頭へ動かし、「ありがとうございました」の行を消して保存する。"""
+        """設定画面の「ハルシネーション」で、「お疲れ様でした」（文頭）の行を追加して先頭へ動かし、「ありがとうございました」の行を削除して保存する。"""
         # 準備（キーが無い一覧は既定の 3 行で、文末の「ありがとうございました。」が消える）
         assert "edge_phrases" not in _toml(app)
         assert app.correct_text(EDGE_TRANSCRIPT) == "お疲れ様でした。本日はここまでです。"
@@ -543,7 +543,7 @@ def test_normal_when_edit_edge_phrases(run_app: RunApp) -> None:
         app.open_settings()
         app.select_group("ハルシネーション")
 
-        # 実行（行を足し、文言と位置を入れて、Alt+↑ で先頭まで動かし、既定の「ありがとうございました」の行を消す）
+        # 実行（行を追加し、文言と位置を入れて、Alt+↑ で先頭まで動かし、既定の「ありがとうございました」の行を削除する）
         app.press("add_edge_phrase_button")
         app.commit_text("edge_phrase_text_3", "お疲れ様でした")
         position = app.wait_widget("edge_phrase_position_3", QComboBox)

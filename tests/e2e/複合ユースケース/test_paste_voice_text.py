@@ -65,7 +65,7 @@ def _assert_can_start_again(app: InProcessApp) -> None:
 def test_normal(
     start_inprocess: StartInProcess, tmp_path: Path, clipboard_sentinel: str
 ) -> None:
-    """録音して起こした文字が、クリップボードに入り、貼り付けと Enter が送られる（正常シナリオ）。"""
+    """録音して起こした文字が、クリップボードに入り、貼り付けと Enter が送信される（正常シナリオ）。"""
     # 準備
     app = start_inprocess(
         settings=make_settings(only_paste_and_send=True), wav_input=speech_input(tmp_path)

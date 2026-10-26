@@ -1,7 +1,7 @@
 """ブラウザの要求の応答時間（web_response_time）の非機能要件テスト。
 
 常駐アプリを pytest のプロセスの中で `build_handlers` で配線し、`build_fastapi` で組み立てた app を 127.0.0.1 で待ち受けさせて、
-本文が 99,000,000 バイトになる webm の音声を `POST /web/transcriptions` で 5 回送り、送り始めてから 202 を受けるまでを測る。
+本文が 99,000,000 バイトになる webm の音声を `POST /web/transcriptions` で 5 回送信し、送信し始めてから 202 を受けるまでを測る。
 文字起こしのエンジンは、受けたパスを控えて決めた文を返す関数に差し替える。
 `--run-e2e` が無ければ skip する。
 """
@@ -23,17 +23,17 @@ from tests.support.web_body import sized_multipart_body
 pytestmark = pytest.mark.real_machine
 
 BODY_BYTES = 99_000_000
-"""送る本文の大きさ（バイト。上限に近い）。"""
+"""送信する本文の大きさ（バイト。上限に近い）。"""
 
 SEND_COUNT = 5
-"""送る回数。"""
+"""送信する回数。"""
 
 RESPONSE_LIMIT_SEC = 66
 """受け付けの応答時間の決定値（秒）。"""
 
 
 def _send_times(api: InProcessApi, body: bytes, count: int) -> tuple[list[int], list[float]]:
-    """body を count 回送り、毎回のステータスと、送り始めてから応答を受けるまでの時間（秒）を返す。"""
+    """body を count 回送信し、毎回のステータスと、送信し始めてから応答を受けるまでの時間（秒）を返す。"""
     statuses: list[int] = []
     elapsed_list: list[float] = []
     for _ in range(count):

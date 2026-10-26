@@ -3,7 +3,7 @@
 常駐アプリを pytest のプロセスの中で `main()` から起動し（`--data-dir` の一時フォルダ、Qt は offscreen）、
 トレイのヒント・API・ログ・履歴を観測する。実機のマウス・キーボードは使わない。
 録音を始めるケースは、録音の入力を WAV を流すものに、システム音量を呼ばれた値を控えるものに差し替え、実機のマイクを開かず、システム音量を変えない。
-古い AI チャットの設定が残っているケースは、さらに貼り付けのキーを送ったキーを控えるものに、ブラウザを開く呼び出しを渡された URL を控えるものに差し替える。
+古い AI チャットの設定が残っているケースは、さらに貼り付けのキーを送信したキーを控えるものに、ブラウザを開く呼び出しを渡された URL を控えるものに差し替える。
 「前の常駐サービスが動いている」だけは、別プロセスで 2 つ起動して、ログ・トークンのファイル・プロセスで確かめる
 （`--run-e2e` が無ければ skip する）。
 
@@ -66,20 +66,20 @@ PREVIOUS_EXIT_TIMEOUT_SEC = 30.0
 """後から起動した後、前のプロセスが終わるまで待つ上限。"""
 
 PREVIOUS_FINISHED_MESSAGE = "常駐サービスを終えた"
-"""片付けを終えた（トレイのアイコンを消した後）プロセスが書くログの文。"""
+"""片付けを終えた（トレイのアイコンを削除した後）プロセスが書くログの文。"""
 
 AI_CHAT_URL = "https://chatgpt.com/"
-"""古い AI チャットの設定の送り先に書く URL（開かない）。"""
+"""古い AI チャットの設定の送信先に書く URL（開かない）。"""
 
 AI_CHAT_HOTKEY = "<ctrl>+<alt>+1"
-"""古い AI チャットの設定の、出す送り先のホットキー。"""
+"""古い AI チャットの設定の、出す送信先のホットキー。"""
 
 AI_CHAT_TITLE = "ChatGPT"
-"""古い AI チャットの設定の、出す送り先のタイトル。"""
+"""古い AI チャットの設定の、出す送信先のタイトル。"""
 
 
 def _old_ai_chat_settings() -> str:
-    """古い AI チャットの設定（送り先 2 つ。うち 1 つは出さない）を書いた settings.toml の続きを返す。"""
+    """古い AI チャットの設定（送信先 2 つ。うち 1 つは出さない）を書いた settings.toml の続きを返す。"""
     return (
         '[[outputs]]\nid = "paste_and_send"\n\n'
         '[[outputs]]\nid = "ai_chat"\n\n'
@@ -131,7 +131,7 @@ def occupied_port() -> Iterator[int]:
 
 def test_normal(run_app: RunApp, tmp_path: Path) -> None:
     """ショートカットから起動すると、トレイが待機中になり、API がトークンに応え、`/web/` が許す Origin のブラウザの音声を受け付け、ワーカーが動き、録音開始のホットキーで録音が始まる（正常シナリオ）。"""
-    # 準備: 録音の入力は無音の WAV。ブラウザが送る音声は書き出した文を webm にしたもの
+    # 準備: 録音の入力は無音の WAV。ブラウザが送信する音声は書き出した文を webm にしたもの
     wav_input = silence_input(tmp_path)
     web_audio = encode_audio(synthesize_speech(SPEECH_TEXT, tmp_path / "browser_speech.wav"), "webm")
 
@@ -149,7 +149,7 @@ def test_normal(run_app: RunApp, tmp_path: Path) -> None:
             ).status_code
             == 401
         )
-        # `/web/` は、許す Origin から（トークン無しで）送ったブラウザの音声を受け付ける
+        # `/web/` は、許す Origin から（トークン無しで）送信したブラウザの音声を受け付ける
         with httpx.Client(base_url=f"http://{LOOPBACK}:{app.port}") as http:
             accepted = http.post(
                 "/web/transcriptions",
@@ -179,7 +179,7 @@ def test_normal_when_previous_running(start_service: Callable[..., RealService])
     second_process = spawn_process(data_dir, stdout_name="stdout_second.log")
     wait_for_takeover(data_dir, second_process)
 
-    # 検証: 前のプロセスが片付けでトレイのアイコンを消して終わり、後のプロセスが動き、プロセスが 1 つだけ
+    # 検証: 前のプロセスが片付けでトレイのアイコンを削除して終わり、後のプロセスが動き、プロセスが 1 つだけ
     assert wait_until(lambda: not previous.is_running(), PREVIOUS_EXIT_TIMEOUT_SEC), (
         "前の常駐サービスが終わらなかった"
     )
@@ -258,17 +258,17 @@ def test_error_when_api_unavailable(run_app: RunApp, occupied_port: int, tmp_pat
 def test_normal_when_old_ai_chat_settings_remain(
     run_app: RunApp, tmp_path: Path, clipboard_sentinel: str
 ) -> None:
-    """古い AI チャットの設定が残った settings.toml でも起動でき、出すとした送り先のボタンで確定すると送り先の URL を開いて貼り付け、Enter まで送り、settings.toml は書き換わらない（正常シナリオ）。"""
+    """古い AI チャットの設定が残った settings.toml でも起動でき、出すとした送信先のボタンで確定すると送信先の URL を開いて貼り付け、Enter まで送信し、settings.toml は書き換わらない（正常シナリオ）。"""
     # 準備: 録音の入力は音声合成の WAV。貼り付けのキーとブラウザを開く呼び出しは控える
     extra_settings = _old_ai_chat_settings()
     keys = KeyLog()
 
     def case(app: ResidentApp) -> None:
-        """起動が止まらず、出すとした送り先のボタンだけが出て、確定すると送り先へ届くことを確かめる。"""
+        """起動が止まらず、出すとした送信先のボタンだけが出て、確定すると送信先へ届くことを確かめる。"""
         # 検証: 起動が止まらない
         assert app.tray_state() == IDLE
 
-        # 実行: 録音を始め、出すとした送り先のボタンで確定する
+        # 実行: 録音を始め、出すとした送信先のボタンで確定する
         app.press_start_hotkey()
         app.wait_widget("recording_window", QWidget)
         assert app.button_texts("preset_button_0") == [AI_CHAT_TITLE, format_hotkey(AI_CHAT_HOTKEY)]
@@ -276,7 +276,7 @@ def test_normal_when_old_ai_chat_settings_remain(
         app.press("preset_button_0")
         app.wait_processed()
 
-        # 検証: 送り先の URL を開いて貼り付け、Enter まで送り、settings.toml は書き換わっていない
+        # 検証: 送信先の URL を開いて貼り付け、Enter まで送信し、settings.toml は書き換わっていない
         assert app.opened_urls == [AI_CHAT_URL]
         assert SPEECH_WORD in pyperclip.paste()
         assert len(keys.pasted) == 1

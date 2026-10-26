@@ -1,8 +1,8 @@
 """複合ユースケース「ほかのシステムから連続して録音し、区切りごとに文字で受け取る」の E2E テスト。
 
 常駐アプリを pytest のプロセスの中で `build_handlers` で配線し、API は `build_fastapi` で組み立てた app を 127.0.0.1 で待ち受けさせて叩く。
-返送先は 127.0.0.1 でテストが立てる受け口。録音の入力は、Windows の音声合成（SAPI）で決めた文を読み上げた WAV を実時間で流すものに
-差し替え、マイクもスピーカーも通さない。貼り付けのキーは差し替えて、送られないことを確かめる。
+返送先は 127.0.0.1 でテストが立てる受信先。録音の入力は、Windows の音声合成（SAPI）で決めた文を読み上げた WAV を実時間で流すものに
+差し替え、マイクもスピーカーも通さない。貼り付けのキーは差し替えて、送信されないことを確かめる。
 話し声の判定（Silero VAD）・文字起こし（ローカルの Whisper・GPU）・クリップボードは実物を使う（クリップボードはテストの後に元の文字へ戻す）。
 実機の Windows と GPU が要る（`--run-e2e` が無ければ skip する）。
 """
@@ -383,7 +383,7 @@ def test_error_when_segment_callback_unreachable(
     complete_session(api, session_id)
     payloads = wait_for_continuous_end(receiver)
 
-    # 検証: 通し番号 2 の区間の返送が、1 回目と再送の回数だけ送られている
+    # 検証: 通し番号 2 の区間の返送が、1 回目と再送の回数だけ送信されている
     sent_for_unreachable = [
         payload for payload in payloads if payload["segment_number"] == TROUBLED_SEGMENT
     ]

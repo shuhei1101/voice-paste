@@ -1,7 +1,7 @@
 """終わったジョブを持つ件数（web_finished_jobs_kept）の非機能要件テスト。
 
 常駐アプリを pytest のプロセスの中で `build_handlers` で配線し、`build_fastapi` で組み立てた app を 127.0.0.1 で待ち受けさせて、
-文字起こしのエンジンを決めた文をすぐ返す関数に差し替え、小さい webm を `POST /web/transcriptions` で 101 回送って全て done にする。
+文字起こしのエンジンを決めた文をすぐ返す関数に差し替え、小さい webm を `POST /web/transcriptions` で 101 回送信して全て done にする。
 `--run-e2e` が無ければ skip する。
 """
 
@@ -24,7 +24,7 @@ FINISHED_KEPT = 100
 
 
 def _send_and_finish(api: InProcessApi, audio: bytes, count: int) -> list[str]:
-    """audio を count 回送り、1 件ずつ done になるのを待って、ジョブの ID を送った順に返す。"""
+    """audio を count 回送信し、1 件ずつ done になるのを待って、ジョブの ID を送信した順に返す。"""
     job_ids: list[str] = []
     for _ in range(count):
         response = api.post_web_audio(audio)

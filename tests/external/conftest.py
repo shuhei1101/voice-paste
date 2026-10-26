@@ -14,7 +14,7 @@ EXTERNAL_TESTS_DIR: Path = Path(__file__).parent
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
-    """外部疎通テストを実行するオプションを足す。"""
+    """外部疎通テストを実行するオプションを追加する。"""
     parser.addoption(
         RUN_EXTERNAL_OPTION,
         action="store_true",

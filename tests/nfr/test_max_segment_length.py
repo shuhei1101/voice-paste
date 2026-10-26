@@ -2,7 +2,7 @@
 
 Windows の音声合成（SAPI）で、文の間を区切る無音の長さより短くして 45 秒以上読み上げ続けた WAV を、前に 1 秒の無音を置いて
 （前の余白を区間に含めるため）作り、区切りの部品（Segmenter・本物の話し声の判定）に、録音の入力と同じ大きさの塊で流して、
-切り出した区間の長さを測る。区間の長さは、区間の最大の長さに前の余白を足した長さ以下になる。
+切り出した区間の長さを測る。区間の長さは、区間の最大の長さに前の余白を加えた長さ以下になる。
 文字起こしと実機のマイクは使わない。SAPI が使えない環境では skip する。
 """
 
@@ -51,7 +51,7 @@ def _feed_in_chunks(segmenter: Segmenter, samples: np.ndarray) -> None:
 
 
 def test_max_segment_length(tmp_path: Path) -> None:
-    """話し続けた録音から切り出した区間が、どれも決定値に前の余白を足した長さ以下である。"""
+    """話し続けた録音から切り出した区間が、どれも決定値に前の余白を加えた長さ以下である。"""
     # 準備: 文の間を 0.5 秒以下にして 45 秒以上読み上げ続けた WAV を、前に 1 秒の無音を置いて作り、区切りの部品を本物の話し声の判定で組む
     samples = speech_sequence_input(
         tmp_path, long_reading_texts(), gap_sec=SENTENCE_GAP_SEC, lead_silence_sec=LEAD_SILENCE_SEC

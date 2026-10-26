@@ -16,7 +16,7 @@ type OutputFn = Callable[[TranscriptionOutcome, str | None], None]
 """結果と出力先に固有の宛先（返送先の URL。持たない出力先は None）を受け、1 つの出力先へ届ける。届けられなければ DeliveryError。"""
 
 type PresetFn = Callable[[TranscriptionOutcome, Preset], None]
-"""結果と確定の操作で選んだプリセット（確定したときの設定の写し）を受け、1 つのプリセットへ届ける。届けられなければ DeliveryError。"""
+"""結果と確定の操作で選んだプリセット（確定したときの設定のコピー）を受け、1 つのプリセットへ届ける。届けられなければ DeliveryError。"""
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -27,10 +27,10 @@ class OutputDeps:
     """クリップボードへ書く（copy_to_clipboard。書けなければ DeliveryError）。"""
 
     paste: Callable[[], None]
-    """貼り付けのキーを送る（呼ぶたびに設定の keyboard.paste_key を読んで send_paste を呼ぶ）。"""
+    """貼り付けのキーを送信する（呼ぶたびに設定の keyboard.paste_key を読んで send_paste を呼ぶ）。"""
 
     send_enter: SendEnterFn
-    """渡した修飾キーを押したまま Enter を送る（修飾キーを省くと Enter だけ）。"""
+    """渡した修飾キーを押したまま Enter を送信する（修飾キーを省くと Enter だけ）。"""
 
     sleep: Callable[[float], None]
     """間を置く（time.sleep）。"""
@@ -111,7 +111,7 @@ class ResultPayload(BaseModel):
 
     @classmethod
     def from_outcome(cls, outcome: TranscriptionOutcome) -> Self:
-        """結果の session_id・result・text・error を写した中身を作る。"""
+        """結果の session_id・result・text・error をコピーした中身を作る。"""
         return cls(
             session_id=outcome.session_id,
             result=outcome.result,
@@ -121,7 +121,7 @@ class ResultPayload(BaseModel):
 
 
 class CallbackPayload(ResultPayload):
-    """呼び出し元へ返す JSON。ResultPayload に、連続録音の区間の通し番号と区間の数を足す。
+    """呼び出し元へ返す JSON。ResultPayload に、連続録音の区間の通し番号と区間の数を追加する。
 
     設定のエンドポイントへ送信する内容（ResultPayload）は変えないため、呼び出し元へ返すときだけこの子を使う。
     """
@@ -137,7 +137,7 @@ class CallbackPayload(ResultPayload):
 
     @classmethod
     def from_outcome(cls, outcome: TranscriptionOutcome) -> Self:
-        """結果の session_id・result・text・error・segment_number・segment_count を写した中身を作る。"""
+        """結果の session_id・result・text・error・segment_number・segment_count をコピーした中身を作る。"""
         return cls(
             session_id=outcome.session_id,
             result=outcome.result,

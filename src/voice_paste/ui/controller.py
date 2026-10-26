@@ -184,13 +184,13 @@ class UiController(QObject):
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802 Qt の名前
         """QApplication に届く QEvent.Quit を受け、開いている設定画面を確かめずに閉じる。イベントは止めない。"""
-        # QApplication.quit は窓へ閉じる要求を送る前に Quit を渡すため、ここで閉じれば確認で止まらずに抜ける
+        # QApplication.quit は窓へ閉じる要求を送信する前に Quit を渡すため、ここで閉じれば確認で止まらずに抜ける
         if event.type() == QEvent.Type.Quit and self._settings_window is not None:
             self._settings_window.close_without_confirm()
         return False
 
     def request_exit(self, kind: Literal["restart", "quit"]) -> None:
-        """トレイ・設定画面からの再起動・終了。待機中ならすぐ行い、処理中ならアイコンを消してその回が終わるまで待つ。"""
+        """トレイ・設定画面からの再起動・終了。待機中ならすぐ行い、処理中ならアイコンを削除してその回が終わるまで待つ。"""
         session = self._deps.current_session()
         if session is None:
             self._exit(kind)
@@ -328,7 +328,7 @@ class UiController(QObject):
         self._recording_window.set_paused(paused)
 
     def _close_recording(self) -> None:
-        """録音の画面を閉じる（隠した印も下ろす）。"""
+        """録音の画面を閉じる（隠したマーカーも下ろす）。"""
         self._recording_window.close_window()
         self._recording_shown = False
         self._recording_hidden = False

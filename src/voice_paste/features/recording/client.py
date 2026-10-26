@@ -27,10 +27,10 @@ def open_input(on_frames: Callable[[np.ndarray], None]) -> sd.InputStream:
     def _callback(
         indata: np.ndarray, frames: int, time_info: Any, status: sd.CallbackFlags
     ) -> None:
-        """入力のスレッドから呼ばれ、届いた音の写しを渡す。"""
+        """入力のスレッドから呼ばれ、届いた音のコピーを渡す。"""
         if status:
             logger.warning(f"入力の状態（{status}）")
-        # indata は次のコールバックで使い回されるため、写しを渡す
+        # indata は次のコールバックで使い回されるため、コピーを渡す
         on_frames(indata.copy())
 
     stream = sd.InputStream(

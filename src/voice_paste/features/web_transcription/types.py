@@ -26,7 +26,7 @@ type AppendTextFn = Callable[[Path, str], None]
 """音声のパスと起こした文字を受け、同じ名前の .txt に書く（一時のファイルなら何もしない）。"""
 
 type DiscardTemporaryFn = Callable[[Path], None]
-"""音声のパスを受け、一時のファイル（`tmp/` の下）なら消す。"""
+"""音声のパスを受け、一時のファイル（`tmp/` の下）なら削除する。"""
 
 type ProbeAudioFn = Callable[[BinaryIO], AudioProbe]
 """音声のファイルを受け、容れ物の形式・秒数・大きさを返す。開けない・音声が無いときは AudioUnreadableError。"""
@@ -111,7 +111,7 @@ class WebTranscriptionDeps:
     """履歴の音声と同じ名前の .txt に書く。"""
 
     discard_temporary: DiscardTemporaryFn
-    """一時のファイルなら消す。"""
+    """一時のファイルなら削除する。"""
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

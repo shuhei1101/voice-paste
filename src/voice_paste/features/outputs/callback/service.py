@@ -21,7 +21,7 @@ LOOPBACK_HOSTS: frozenset[str] = frozenset({"127.0.0.1", "::1", "localhost"})
 RETRYABLE_STATUSES: frozenset[int] = frozenset(
     {HTTPStatus.REQUEST_TIMEOUT, HTTPStatus.TOO_MANY_REQUESTS}
 )
-"""4xx のうち、送り直せば届くことがあるステータス。"""
+"""4xx のうち、再送すれば届くことがあるステータス。"""
 
 BACKOFF_FACTOR: int = 2
 """再送の間隔を回ごとに何倍にするか。"""
@@ -46,7 +46,7 @@ def is_callback_allowed(url: str, allowed_hosts: frozenset[str]) -> bool:
 
 
 def _is_retryable(status: int) -> bool:
-    """送り直せば届くことがあるステータス（5xx・408・429）か。"""
+    """再送すれば届くことがあるステータス（5xx・408・429）か。"""
     return status >= HTTPStatus.INTERNAL_SERVER_ERROR or status in RETRYABLE_STATUSES
 
 
@@ -77,7 +77,7 @@ def deliver_to_caller(
         try:
             result = post(target, payload)
         except DeliveryError as error:
-            # タイムアウト・接続できない: 送り直せる
+            # タイムアウト・接続できない: 再送できる
             retryable = True
             reason = str(error)
         else:
@@ -91,7 +91,7 @@ def deliver_to_caller(
             reason = f"ステータス {result.status}"
             retry_after_sec = result.retry_after_sec
 
-        # 2-2. 送り直しても変わらない応答か、次の回が無ければ打ち切る
+        # 2-2. 再送しても変わらない応答か、次の回が無ければ打ち切る
         if not retryable or attempt > retry_count:
             break
 

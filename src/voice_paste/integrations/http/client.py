@@ -1,4 +1,4 @@
-"""送り先へ httpx で JSON を POST する。"""
+"""送信先へ httpx で JSON を POST する。"""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ def _ssl_context() -> ssl.SSLContext:
 
 
 def _parse_retry_after(value: str | None) -> float | None:
-    """Retry-After（秒数か HTTP の日付）を秒に直す。無い・読めないときは None、過去の日付は 0 にそろえる。"""
+    """Retry-After（秒数か HTTP の日付）を秒に換算する。無い・読めないときは None、過去の日付は 0 にそろえる。"""
     # 1. ヘッダが無ければ None
     if value is None:
         return None
@@ -58,7 +58,7 @@ def post_json(
         # 例外の文には URL もヘッダーも書かず、例外の種類だけを残す（認証の値を出さない）
         raise DeliveryError(f"送り先へ送れませんでした（{type(error).__name__}）") from error
 
-    # 2〜3. Retry-After を秒に直し、2xx 以外でも送出せずにステータスと一緒に返す
+    # 2〜3. Retry-After を秒に換算し、2xx 以外でも送出せずにステータスと一緒に返す
     return PostResult(
         status=response.status_code,
         retry_after_sec=_parse_retry_after(response.headers.get("Retry-After")),

@@ -1,5 +1,5 @@
 // 外の端末のブラウザで開く文字起こしの画面。
-// 録音（MediaRecorder）かファイルを PC の常駐アプリへ送り、結果を取りに行って端末に残す。
+// 録音（MediaRecorder）かファイルを PC の常駐アプリへ送信し、結果を取りに行って端末に残す。
 // 端末に残すのは、画面で録った直近 1 件の音声（IndexedDB）と、結果の一覧（localStorage）。
 
 // ===== 定数 =====
@@ -22,7 +22,7 @@ const RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_RESULTS = 10;
 /** コピーした直後の表示を保つ時間（ミリ秒）。 */
 const COPIED_MS = 2000;
-/** 音声と結果を送る・取りに行く API の相対パス（画面は /web/ で開く）。 */
+/** 音声と結果を送信する・取りに行く API の相対パス（画面は /web/ で開く）。 */
 const API_PATH = 'transcriptions';
 /** 用語集のプリセットの一覧を取りに行く API の相対パス（画面は /web/ で開く）。 */
 const PRESETS_PATH = 'glossary-presets';
@@ -66,7 +66,7 @@ interface KeptAudio {
 /** API が返すジョブの状態（`WebTranscriptionStatus` の `state`）。 */
 type JobState = 'queued' | 'running' | 'done' | 'failed';
 
-/** 結果の 1 件の状態。API の状態に、取りに行けなかった `not_found`（404）を足す。 */
+/** 結果の 1 件の状態。API の状態に、取りに行けなかった `not_found`（404）を追加する。 */
 type ResultState = JobState | 'not_found';
 
 /** `GET /web/transcriptions/{job_id}` の 200 の本文（`WebTranscriptionStatus`）。 */
@@ -138,7 +138,7 @@ interface PresetNotFound {
 
 /** 送信に付ける、選択欄の用語集のプリセット。 */
 interface PresetChoice {
-  /** 送る値（「設定に従う」は空文字）。 */
+  /** 送信する値（「設定に従う」は空文字）。 */
   value: string;
   /** 選択欄の表示文言。 */
   label: string;
@@ -150,13 +150,13 @@ interface SendError {
   body: string;
 }
 
-/** 音声を送った結果（届かなければ status は 0）。 */
+/** 音声を送信した結果（届かなければ status は 0）。 */
 interface UploadResult {
   status: number;
   body: CreatedJob | null;
 }
 
-/** 音声を送るときの引数。 */
+/** 音声を送信するときの引数。 */
 interface UploadParams {
   blob: Blob;
   filename: string;
@@ -258,7 +258,7 @@ function formatClock(totalSec: number): string {
   return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
 }
 
-/** バイト数を `540 KB`・`7.2 MB` の形にする（1 MB = 1,000,000 バイト）。 */
+/** バイト数を `540 KB`・`7.2 MB` の形式にする（1 MB = 1,000,000 バイト）。 */
 function formatBytes(bytes: number): string {
   if (bytes < 1_000_000) {
     return `${numberFormat.format(Math.round(bytes / 1000))} KB`;
@@ -333,7 +333,7 @@ const loadKept = (): Promise<KeptAudio | undefined> =>
 /** 端末内の音声を置き換えて残す。 */
 const saveKept = (kept: KeptAudio): Promise<IDBValidKey> =>
   withStore('readwrite', (store) => store.put(kept, DB_KEY));
-/** 端末内の音声を消す。 */
+/** 端末内の音声を削除する。 */
 const deleteKept = (): Promise<undefined> =>
   withStore('readwrite', (store) => store.delete(DB_KEY));
 
@@ -447,7 +447,7 @@ function presetNotFoundBody(notFound: PresetNotFound): string {
 
 // ===== 送信 =====
 
-/** 音声を multipart の audio と glossary_preset で送り、ステータスと本文を返す。届かなければ status を 0 にする。 */
+/** 音声を multipart の audio と glossary_preset で送信し、ステータスと本文を返す。届かなければ status を 0 にする。 */
 function upload(params: UploadParams): Promise<UploadResult> {
   const { blob, filename, glossaryPreset, onProgress } = params;
   return new Promise((resolve) => {
@@ -503,7 +503,7 @@ function errorForStatus(
   };
 }
 
-/** 結果の一覧の先頭に、受け付けられた件を待ちで足す。10 件を超えたら古い件を消す。 */
+/** 結果の一覧の先頭に、受け付けられた件を待ちで追加する。10 件を超えたら古い件を削除する。 */
 function addResult(added: { jobId: string; source: string; durationSec: number | null }): void {
   const { jobId, source, durationSec } = added;
   state.results.unshift({
@@ -522,8 +522,8 @@ function addResult(added: { jobId: string; source: string; durationSec: number |
 }
 
 /**
- * 端末内の音声を、送信した時点の用語集のプリセットの選択で送る。
- * 成功で結果の一覧に待ちの件を足し、一覧に無いプリセットで断られたら未送信、そのほかの失敗は送信失敗にする。
+ * 端末内の音声を、送信した時点の用語集のプリセットの選択で送信する。
+ * 成功で結果の一覧に待ちの件を追加し、一覧に無いプリセットで断られたら未送信、そのほかの失敗は送信失敗にする。
  */
 async function sendKept(): Promise<void> {
   const kept = present(state.kept, 'kept');
@@ -559,7 +559,7 @@ async function sendKept(): Promise<void> {
   render();
 }
 
-/** 選んだファイルを確かめずに、送信した時点の用語集のプリセットの選択ですぐ送る。端末内の音声は置き換えない。 */
+/** 選んだファイルを確かめずに、送信した時点の用語集のプリセットの選択ですぐ送信する。端末内の音声は置き換えない。 */
 async function sendFile(file: File): Promise<void> {
   state.sendError = null;
   state.presetNotFound = null;
@@ -627,7 +627,7 @@ async function startRecording(): Promise<void> {
   render();
 }
 
-/** 1 秒ごとに経過時間を進め、上限に達したら録音を止めて送る。 */
+/** 1 秒ごとに経過時間を進め、上限に達したら録音を止めて送信する。 */
 function tickRecording(): void {
   const recording = state.recording;
   if (!recording) return;
@@ -641,14 +641,14 @@ function tickRecording(): void {
   renderRecording();
 }
 
-/** 録音を止める。止まった音声は finishRecording が端末に残して送る。 */
+/** 録音を止める。止まった音声は finishRecording が端末に残して送信する。 */
 function stopRecording(): void {
   const recording = state.recording;
   if (!recording || recording.recorder.state === 'inactive') return;
   recording.recorder.stop();
 }
 
-/** 止まった録音を端末（IndexedDB）に残して送る。前の 1 件は置き換わる。 */
+/** 止まった録音を端末（IndexedDB）に残して送信する。前の 1 件は置き換わる。 */
 async function finishRecording(recorder: MediaRecorder, chunks: Blob[]): Promise<void> {
   const recording = present(state.recording, 'recording');
   if (recording.timer !== null) clearInterval(recording.timer);
@@ -840,7 +840,7 @@ function renderKept(): void {
   const kept = state.kept;
   byId('kept').hidden = kept === null;
   if (!kept) return;
-  // 送信中は、送信した時点の用語集のプリセットを添えて、次に送る音声の選択と分ける
+  // 送信中は、送信した時点の用語集のプリセットを添えて、次に送信する音声の選択と分ける
   const sendingPreset = kept.state === 'sending' ? `・プリセット「${state.keptPresetLabel}」` : '';
   $('kept_meta').textContent =
     `${formatDateTime(kept.recorded_at)} 録音・${formatDuration(kept.duration_sec)}・` +
@@ -869,7 +869,7 @@ function renderKept(): void {
   $<HTMLButtonElement>('resend_button').hidden = !keptNeedsResend();
 }
 
-/** 回る印を作る。 */
+/** 回るマーカーを作る。 */
 function spinnerElement(): HTMLSpanElement {
   const spinner = document.createElement('span');
   spinner.className = 'spinner';
@@ -877,7 +877,7 @@ function spinnerElement(): HTMLSpanElement {
   return spinner;
 }
 
-/** 線画の印（svg）を作る。circle を付けると丸で囲む。 */
+/** 線画のマーカー（svg）を作る。circle を付けると丸で囲む。 */
 function iconElement(path: string, circled = false): SVGSVGElement {
   const namespace = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(namespace, 'svg');
@@ -1009,7 +1009,7 @@ function openDeleteDialog(entry: ResultEntry): void {
   byId<HTMLDialogElement>('delete-dialog').showModal();
 }
 
-/** 確認のあとに、その結果を端末と一覧から消す。 */
+/** 確認のあとに、その結果を端末と一覧から削除する。 */
 function confirmDelete(): void {
   const target = state.pendingDelete;
   state.pendingDelete = null;
@@ -1048,7 +1048,7 @@ function downloadKept(): void {
   URL.revokeObjectURL(url);
 }
 
-/** 端末内の音声をもう一度送る。失敗した前の件は一覧から外す。 */
+/** 端末内の音声をもう一度送信する。失敗した前の件は一覧から外す。 */
 async function resendKept(): Promise<void> {
   const kept = present(state.kept, 'kept');
   state.sendError = null;
@@ -1062,7 +1062,7 @@ async function resendKept(): Promise<void> {
 
 // ===== 起動 =====
 
-/** 操作を受け付けてから、期限を過ぎた音声と結果を消して読み込み、描く。 */
+/** 操作を受け付けてから、期限を過ぎた音声と結果を削除して読み込み、描く。 */
 async function init(): Promise<void> {
   $('record_button').addEventListener('click', onRecordClick);
   $('stop_button').addEventListener('click', stopRecording);

@@ -16,10 +16,10 @@ from voice_paste.shared.types import Recording
 logger = logging.getLogger(__name__)
 
 DATE_FOLDER_FORMAT: str = "%Y%m%d"
-"""履歴の日付のフォルダの名前の形。"""
+"""履歴の日付のフォルダの名前の形式。"""
 
 TIMESTAMP_FORMAT: str = "%Y%m%d%H%M%S"
-"""録音のファイル名の先頭に付ける日時の形。"""
+"""録音のファイル名の先頭に付ける日時の形式。"""
 
 AUDIO_SUFFIX: str = ".wav"
 """録音のファイルの拡張子。"""
@@ -87,7 +87,7 @@ def store_web_audio(
     now: Callable[[], datetime],
 ) -> Path:
     """ブラウザから受けた音声の一時のファイルを、履歴を残す設定なら録れた形式の拡張子のまま履歴へ移し、文字起こしに渡すパスを返す。"""
-    # 1. 履歴を残さない設定なら、一時のファイルのまま返す（起こし終えた後に discard_temporary が消す）
+    # 1. 履歴を残さない設定なら、一時のファイルのまま返す（起こし終えた後に discard_temporary が削除する）
     if not history_enabled:
         return source
 
@@ -115,21 +115,21 @@ def append_text(audio_path: Path, text: str, *, paths: AppPaths) -> None:
 
 
 def discard_temporary(audio_path: Path, *, paths: AppPaths) -> None:
-    """処理を終えた録音が一時の音声なら消す。履歴の録音なら何もしない。"""
+    """処理を終えた録音が一時の音声なら削除する。履歴の録音なら何もしない。"""
     # 1. 一時の音声でなければ何もしない（履歴の録音）
     if not _is_temporary(audio_path, paths):
         return
 
-    # 2. 録音を消す（既に無ければ何もしない）
+    # 2. 録音を削除する（既に無ければ何もしない）
     try:
         audio_path.unlink(missing_ok=True)
     except OSError as error:
-        # 消せない: 例外を出さずに残す（古い履歴の削除が掃除する）
-        logger.warning(f"一時の音声を消せなかった（{audio_path}・{error}）")
+        # 削除できない: 例外を出さずに残す（古い履歴の削除が掃除する）
+        logger.warning(f"一時の音声を削除できなかった（{audio_path}・{error}）")
 
 
 def _purge_expired_folders(retention_days: int, paths: AppPaths, now: datetime) -> int:
-    """history/ の下の、保持期間を過ぎた日付のフォルダを消し、消した数を返す。"""
+    """history/ の下の、保持期間を過ぎた日付のフォルダを削除し、削除した数を返す。"""
     if not paths.history_dir.exists():
         return 0
 
@@ -146,15 +146,15 @@ def _purge_expired_folders(retention_days: int, paths: AppPaths, now: datetime) 
         try:
             shutil.rmtree(folder)
         except OSError as error:
-            # 消せない: 残して次へ進む
-            logger.warning(f"古い履歴を消せなかった（{folder}・{error}）")
+            # 削除できない: 残して次へ進む
+            logger.warning(f"古い履歴を削除できなかった（{folder}・{error}）")
             continue
         removed += 1
     return removed
 
 
 def _purge_leftover_temporary(paths: AppPaths, active_session_ids: set[str]) -> None:
-    """tmp/ の下に取り残された一時の音声のうち、処理中のセッションでないものを消す。"""
+    """tmp/ の下に取り残された一時の音声のうち、処理中のセッションでないものを削除する。"""
     if not paths.tmp_dir.exists():
         return
 
@@ -165,8 +165,8 @@ def _purge_leftover_temporary(paths: AppPaths, active_session_ids: set[str]) -> 
         try:
             audio_path.unlink()
         except OSError as error:
-            # 消せない: 残して次へ進む
-            logger.warning(f"古い履歴を消せなかった（{audio_path}・{error}）")
+            # 削除できない: 残して次へ進む
+            logger.warning(f"古い履歴を削除できなかった（{audio_path}・{error}）")
 
 
 def purge_expired(
@@ -176,11 +176,11 @@ def purge_expired(
     now: Callable[[], datetime],
     active_session_ids: Callable[[], set[str]],
 ) -> int:
-    """保持期間を過ぎた履歴のフォルダと、取り残された一時の音声を消し、消したフォルダの数を返す。"""
-    # 1. 日付が保持期間を過ぎた履歴のフォルダを消す
+    """保持期間を過ぎた履歴のフォルダと、取り残された一時の音声を削除し、削除したフォルダの数を返す。"""
+    # 1. 日付が保持期間を過ぎた履歴のフォルダを削除する
     removed = _purge_expired_folders(retention_days, paths, now())
-    logger.info(f"古い履歴を消した（{removed} 件）")
+    logger.info(f"古い履歴を削除した（{removed} 件）")
 
-    # 2. 取り残された一時の音声のうち、処理中のセッションでないものを消す
+    # 2. 取り残された一時の音声のうち、処理中のセッションでないものを削除する
     _purge_leftover_temporary(paths, active_session_ids())
     return removed

@@ -1,4 +1,4 @@
-"""標準の logging の設定。日付ごとのファイルへ JSON Lines で書き、保持期間を過ぎたログを消す。"""
+"""標準の logging の設定。日付ごとのファイルへ JSON Lines で書き、保持期間を過ぎたログを削除する。"""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ LOG_FILE_SUFFIX: str = ".log"
 """日付ごとのログのファイルの拡張子。"""
 
 LOG_FILE_NAME_PATTERN: re.Pattern[str] = re.compile(r"\d{4}-\d{2}-\d{2}\.log")
-"""日付ごとのログのファイルの名前の形（`YYYY-MM-DD.log`）。"""
+"""日付ごとのログのファイルの名前の形式（`YYYY-MM-DD.log`）。"""
 
 UVICORN_LOGGER_NAMES: tuple[str, ...] = ("uvicorn", "uvicorn.error", "uvicorn.access")
 """ルートロガーへ寄せる uvicorn のロガー。"""
@@ -130,11 +130,11 @@ def setup_logging(log_dir: Path, level: Literal["DEBUG", "INFO", "WARNING", "ERR
 
 
 def purge_old_logs(log_dir: Path, retention_days: int, today: date) -> int:
-    """保持期間を過ぎた日付のログだけを消し、消したファイルの数を返す。"""
+    """保持期間を過ぎた日付のログだけを削除し、削除したファイルの数を返す。"""
     cutoff = today - timedelta(days=retention_days)
     removed = 0
     for path in log_dir.iterdir():
-        # `YYYY-MM-DD.log` の形でない名前は触らない
+        # `YYYY-MM-DD.log` の形式でない名前は触らない
         if not LOG_FILE_NAME_PATTERN.fullmatch(path.name):
             continue
         try:
@@ -142,11 +142,11 @@ def purge_old_logs(log_dir: Path, retention_days: int, today: date) -> int:
         except ValueError:
             # 存在しない日付（2026-13-40.log など）は触らない
             continue
-        # 保持期間より前の日付なら消す
+        # 保持期間より前の日付なら削除する
         if log_date < cutoff:
             path.unlink()
             removed += 1
 
     if removed:
-        logger.info(f"古いログを消した（{removed} 件）")
+        logger.info(f"古いログを削除した（{removed} 件）")
     return removed

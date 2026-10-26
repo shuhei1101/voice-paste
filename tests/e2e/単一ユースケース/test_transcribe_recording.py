@@ -346,7 +346,7 @@ def test_normal_when_edge_phrases_removed(
         assert text.startswith("ありがとうございました。")
         assert "ご視聴" not in text
         removed = [
-            message for message in app.log_messages() if message.startswith("文頭・文末の文言を消した")
+            message for message in app.log_messages() if message.startswith("文頭・文末の文言を削除した")
         ]
         assert len(removed) == 1
         assert "文頭: えーと、" in removed[0]

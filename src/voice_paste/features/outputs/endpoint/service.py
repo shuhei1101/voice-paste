@@ -34,10 +34,10 @@ def deliver_to_endpoint(
     payload = ResultPayload.from_outcome(outcome).model_dump()
     headers = {AUTHORIZATION_HEADER: preset.authorization} if preset.authorization else {}
 
-    # 3. 1 回だけ送る（タイムアウト・接続できないは DeliveryError のまま伝え、送り直さない）
+    # 3. 1 回だけ送信する（タイムアウト・接続できないは DeliveryError のまま伝え、再送しない）
     result = post(preset.url, payload, get_timeout_sec(), headers)
 
-    # 4. 2xx なら終える。2xx 以外（3xx を含む）は送り直さず断る
+    # 4. 2xx なら終える。2xx 以外（3xx を含む）は再送せず断る
     if not HTTPStatus.OK <= result.status < HTTPStatus.MULTIPLE_CHOICES:
         raise DeliveryError(
             f"エンドポイントへ届けられませんでした（{preset.title}・ステータス {result.status}）"

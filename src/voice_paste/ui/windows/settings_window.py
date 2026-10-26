@@ -89,7 +89,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 WINDOW_TITLE: str = "voice-paste の設定"
-"""設定画面と確認ダイアログの窓の題。"""
+"""設定画面と確認ダイアログの窓のタイトル。"""
 
 MIN_WIDTH_PX: int = 720
 """設定画面の最小の幅（欄の名前と設定のキーが語の途中で折り返さない幅）。"""
@@ -245,7 +245,7 @@ RANGE_ERROR_TYPES: frozenset[str] = frozenset(
 SAVED_HOTKEY_KEY: re.Pattern[str] = re.compile(
     rf"^(hotkeys\.\w+|{OUTPUTS_FIELD_NAME}\[\d+\]\.hotkey)$"
 )
-"""保存したメッセージでホットキーが変わったかを見る欄のキー（録音のホットキー・出力先の確定のホットキー。貼り付けに送るキーとプリセットの確定のホットキーは含めない）。"""
+"""保存したメッセージでホットキーが変わったかを見る欄のキー（録音のホットキー・出力先の確定のホットキー。貼り付けに送信するキーとプリセットの確定のホットキーは含めない）。"""
 
 PRESET_KEY_PATTERN: re.Pattern[str] = re.compile(rf"^{PRESETS_FIELD_NAME}\[(\d+)\]\.(\w+)$")
 """プリセットの欄の失敗のキー（`presets[2].url`）を、設定の全体の中の添字と項目の名前に分ける。"""
@@ -272,7 +272,7 @@ HINT_KEY_PATTERN: re.Pattern[str] = re.compile(
 """表記のヒントの欄の失敗のキー（`hint_presets`・`hint_presets[1].name`・`hint_presets[1].words[3]`）を、何件目か・項目・何つ目の語かに分ける。"""
 
 EDGE_KEY_PATTERN: re.Pattern[str] = re.compile(rf"^{EDGE_PHRASES_FIELD_NAME}\[(\d+)\]\.text$")
-"""文頭・文末から消す文言の欄の失敗のキー（`edge_phrases[1].text`）を、何行目かに分ける。"""
+"""文頭・文末から削除する文言の欄の失敗のキー（`edge_phrases[1].text`）を、何行目かに分ける。"""
 
 EDGE_WILDCARD_ONLY_MESSAGE: str = (
     "* だけの文言は、文頭・文末の行を丸ごと削除します。削除したい文言を入れてください。"
@@ -298,7 +298,7 @@ OPTION_NOTES: dict[str, str] = {
 
 
 def format_hotkey(hotkey: str) -> str:
-    """pynput の書式（`<ctrl>+<alt>+d`）を画面の形（`Ctrl+Alt+D`）にする。"""
+    """pynput の書式（`<ctrl>+<alt>+d`）を画面の表記（`Ctrl+Alt+D`）にする。"""
     parts: list[str] = []
     for part in hotkey.split(HOTKEY_SEPARATOR):
         # `<...>` は修飾キーか名前のあるキー、そうでなければ文字のキー
@@ -448,7 +448,7 @@ def to_field_message(
     if error_type == HINT_PRESET_NAME_OVERLAP_ERROR_TYPE:
         return f"プリセット「{error['ctx']['name']}」と同じ名前です。{GLOSSARY_NAME_HINT}"
     if error_type == "string_pattern_mismatch":
-        # 空なら入れてもらい、空でなければ形を直してもらう
+        # 空なら入れてもらい、空でなければ形式を修正してもらう
         if not error.get("input"):
             return f"URL を入れてください（例: {PRESET_URL_EXAMPLE}）。"
         return "http:// か https:// で始まる URL を入れてください。"
@@ -529,7 +529,7 @@ def field_object_name(key: str, widget: QWidget) -> str:
 class HotkeyEdit(QLineEdit):
     """押すと入力待ちになり、次に押したキーの組み合わせが入るホットキーの欄。
 
-    画面では `Ctrl+Alt+D` の形で出し、値は pynput の書式で持つ。Tab と Esc は欄の移動と画面の取り消しに残す。
+    画面では `Ctrl+Alt+D` の表記で出し、値は pynput の書式で持つ。Tab と Esc は欄の移動と画面の取り消しに残す。
     """
 
     def __init__(self, hotkey: str) -> None:
@@ -583,7 +583,7 @@ def _literal_choices(annotation: Any) -> tuple[str, ...] | None:
 class SettingsWindow(QWidget):
     """Settings のモデルから欄を組み立て、まとまりに並べ、保存で確かめてから書く設定画面。
 
-    欄の名前は各項目の description、「再起動で反映」の印は json_schema_extra の reload から出す。
+    欄の名前は各項目の description、「再起動で反映」のマーカーは json_schema_extra の reload から出す。
     まとまりと型から決まらない部品は FIELD_LAYOUT と各キーの集合で決める。
     """
 
@@ -722,7 +722,7 @@ class SettingsWindow(QWidget):
         self._hint_panel = None
         self._edge_panel = None
 
-        # 2. まとまりごとの頁に、並びのとおり欄を足す
+        # 2. まとまりごとの頁に、並びのとおり欄を追加する
         for group, name in enumerate(GROUP_NAMES):
             layout = QVBoxLayout()
             layout.setSpacing(12)
@@ -747,7 +747,7 @@ class SettingsWindow(QWidget):
             scroll.setWidget(content)
             self._stack.addWidget(scroll)
 
-        # 3. 今の値を基準にして、知らせを直す
+        # 3. 今の値を基準にして、知らせを更新する
         self._group_menu.setCurrentRow(max(self._group_menu.currentRow(), 0))
         self._stack.setCurrentIndex(self._group_menu.currentRow())
         self._baseline = self._flat_values()
@@ -764,7 +764,7 @@ class SettingsWindow(QWidget):
         group: int,
         extras: tuple[QWidget, ...] = (),
     ) -> Field:
-        """欄 1 つ（名前・再起動で反映のマーカー・設定のキー・部品・欄の下のエラー）を layout に足して登録する。"""
+        """欄 1 つ（名前・再起動で反映のマーカー・設定のキー・部品・欄の下のエラー）を layout に追加して登録する。"""
         reload = reload_of(key)
         widget.setObjectName(field_object_name(key, widget))
         row = QWidget()
@@ -789,7 +789,7 @@ class SettingsWindow(QWidget):
 
         control = QHBoxLayout()
         if isinstance(widget, QCheckBox):
-            # チェックボックスは行の幅に伸ばさず、フォーカスの枠を印と名前の幅に収める
+            # チェックボックスは行の幅に伸ばさず、フォーカスの枠をマーカーと名前の幅に収める
             control.addWidget(widget)
             control.addStretch(1)
         else:
@@ -823,7 +823,7 @@ class SettingsWindow(QWidget):
     def _add_model_field(
         self, layout: QVBoxLayout, settings: Settings, key: str, group: int
     ) -> None:
-        """設定のモデルの項目 1 つの欄を、項目の型から決めた部品で足す。"""
+        """設定のモデルの項目 1 つの欄を、項目の型から決めた部品で追加する。"""
         info = self._model_field_info(key)
         value = value_at(settings, key)
         label = (info.description or key).split("。")[0]
@@ -893,7 +893,7 @@ class SettingsWindow(QWidget):
         raise TypeError(f"欄の部品を決められない型です（{key}: {annotation}）")
 
     def _add_glossaries(self, layout: QVBoxLayout, settings: Settings) -> None:
-        """用語集のプリセットの一覧と使う用語集の表、用語集の一覧と、選んだ用語集の名前の欄・行の表を足す。補正に使うプリセットは設定の active_glossary_preset（無い・一覧に無ければ 1 件目）。"""
+        """用語集のプリセットの一覧と使う用語集の表、用語集の一覧と、選んだ用語集の名前の欄・行の表を追加する。補正に使うプリセットは設定の active_glossary_preset（無い・一覧に無ければ 1 件目）。"""
         glossaries = self._deps.list_glossaries()
         presets = self._deps.list_glossary_presets()
         preset_names = [preset.name for preset in presets]
@@ -909,7 +909,7 @@ class SettingsWindow(QWidget):
         layout.addWidget(panel)
 
     def _add_hints(self, layout: QVBoxLayout, settings: Settings) -> None:
-        """表記のヒントの長さとプリセットの一覧を足す。"""
+        """表記のヒントの長さとプリセットの一覧を追加する。"""
         panel = HintPresetPanel()
         panel.set_presets(settings.hint_presets)
         panel.changed.connect(self._on_field_changed)
@@ -917,7 +917,7 @@ class SettingsWindow(QWidget):
         layout.addWidget(panel)
 
     def _add_edge_phrases(self, layout: QVBoxLayout, settings: Settings) -> None:
-        """文頭・文末から削除する文言の一覧を足す。"""
+        """文頭・文末から削除する文言の一覧を追加する。"""
         panel = EdgePhrasePanel()
         panel.set_phrases(settings.edge_phrases)
         panel.changed.connect(self._on_field_changed)
@@ -925,7 +925,7 @@ class SettingsWindow(QWidget):
         layout.addWidget(panel)
 
     def _add_outputs(self, layout: QVBoxLayout, settings: Settings, group: int) -> None:
-        """出力先ごとの欄（オン・確定のホットキーと、その出力先のモデルが持つ固有の項目）を足す。"""
+        """出力先ごとの欄（オン・確定のホットキーと、その出力先のモデルが持つ固有の項目）を追加する。"""
         for index, output in enumerate(settings.outputs):
             prefix = f"{OUTPUTS_FIELD_NAME}[{index}]"
             name = self._deps.output_titles[output.id]
@@ -954,7 +954,7 @@ class SettingsWindow(QWidget):
                 get=lambda edit=hotkey_edit: edit.hotkey,
                 group=group,
             )
-            # その出力先のモデルだけが持つ項目（貼り付けて送信の送るまでの間など）
+            # その出力先のモデルだけが持つ項目（貼り付けて送信の送信するまでの間など）
             for field_name, info in type(output).model_fields.items():
                 if field_name not in OUTPUT_COMMON_FIELD_NAMES:
                     self._add_output_field(inner, prefix, field_name, info, output, group)
@@ -969,7 +969,7 @@ class SettingsWindow(QWidget):
         output: OutputSettingsBase,
         group: int,
     ) -> None:
-        """出力先に固有の項目 1 つの欄を、項目の型から決めた部品で足す（補助文があれば欄の下に出す）。"""
+        """出力先に固有の項目 1 つの欄を、項目の型から決めた部品で追加する（補助文があれば欄の下に出す）。"""
         key = f"{prefix}.{name}"
         widget, get, extras = self._widget_for(key, info, getattr(output, name))
         self._register(
@@ -988,7 +988,7 @@ class SettingsWindow(QWidget):
     def _add_presets(
         self, layout: QVBoxLayout, settings: Settings, group_name: str, group: int
     ) -> None:
-        """タブの種類のカスタムプリセットの一覧（足す・消す・並べ替え）を足す。"""
+        """タブの種類のカスタムプリセットの一覧（追加・削除・並べ替え）を追加する。"""
         kind = next(kind for kind, name in PRESET_KIND_NAMES.items() if name == group_name)
         panel = PresetListPanel(kind)
         panel.set_presets([preset for preset in settings.presets if preset.kind == kind])
@@ -1015,7 +1015,7 @@ class SettingsWindow(QWidget):
 
     @property
     def _edges_panel(self) -> EdgePhrasePanel:
-        """文頭・文末から消す文言のまとまりの部品を返す（欄を組み立てた後に使う）。"""
+        """文頭・文末から削除する文言のまとまりの部品を返す（欄を組み立てた後に使う）。"""
         if self._edge_panel is None:
             raise RuntimeError("文頭・文末から削除する文言の部品がまだ無い")
         return self._edge_panel
@@ -1043,7 +1043,7 @@ class SettingsWindow(QWidget):
         # 表記のヒントは、変えたプリセット 1 つを 1 件、残っているプリセットどうしの並べ替えを別に 1 件として数える
         if self._hint_panel is not None:
             values.update(self._hint_panel.change_values())
-        # 文頭・文末から消す文言は、変えた行 1 つを 1 件、残っている行どうしの並べ替えを別に 1 件として数える
+        # 文頭・文末から削除する文言は、変えた行 1 つを 1 件、残っている行どうしの並べ替えを別に 1 件として数える
         if self._edge_panel is not None:
             values.update(self._edge_panel.change_values())
         # 出力先のプリセットは、変えたプリセット 1 つを 1 件、残っているプリセットどうしの並べ替えを種類のタブごとに別に 1 件として数える
@@ -1052,9 +1052,9 @@ class SettingsWindow(QWidget):
         return values
 
     def collect(self) -> dict[str, Any]:
-        """全ての欄の値を settings.toml と同じ形の dict にする。"""
+        """全ての欄の値を settings.toml と同じ構造の dict にする。"""
         data: dict[str, Any] = {}
-        # 一覧の要素は添字の順に作るため、出力先の ID と空の送り先の一覧を先に置く
+        # 一覧の要素は添字の順に作るため、出力先の ID と空の送信先の一覧を先に置く
         for key, value in self._static.items():
             set_nested(data, key, value)
         for field in self._all_fields():
@@ -1067,7 +1067,7 @@ class SettingsWindow(QWidget):
         data["active_glossary_preset"] = self._glossaries_panel.active_preset_name()
         # 表記のヒントは、プリセットの一覧を入れる
         data[HINT_PRESETS_FIELD_NAME] = self._hints_panel.collect()
-        # 文頭・文末から消す文言は、一覧の並びのまま入れる
+        # 文頭・文末から削除する文言は、一覧の並びのまま入れる
         data[EDGE_PHRASES_FIELD_NAME] = self._edges_panel.collect()
         return data
 
@@ -1133,7 +1133,7 @@ class SettingsWindow(QWidget):
 
     @staticmethod
     def _locate_edge(key: str) -> tuple[int | str, ...] | None:
-        """文頭・文末から消す文言の欄のキーを、EdgePhrasePanel の失敗の場所（`(1, "text")`）にする。その欄でなければ None。"""
+        """文頭・文末から削除する文言の欄のキーを、EdgePhrasePanel の失敗の場所（`(1, "text")`）にする。その欄でなければ None。"""
         matched = EDGE_KEY_PATTERN.match(key)
         if matched is None:
             return None
@@ -1141,7 +1141,7 @@ class SettingsWindow(QWidget):
 
     @staticmethod
     def _edge_label(location: tuple[int | str, ...]) -> str:
-        """エラーの一覧に出す文頭・文末から消す文言の欄の呼び方（「ハルシネーションの 2 行目の文言」）を返す。"""
+        """エラーの一覧に出す文頭・文末から削除する文言の欄の呼び方（「ハルシネーションの 2 行目の文言」）を返す。"""
         return f"ハルシネーションの {int(location[0]) + 1} 行目の文言"
 
     @staticmethod
@@ -1184,7 +1184,7 @@ class SettingsWindow(QWidget):
     # --- 知らせ・エラーの表示 ---
 
     def _on_field_changed(self) -> None:
-        """欄を変えたら、既定に戻したメッセージと保存したメッセージを消し、再起動のメッセージを数え直す。"""
+        """欄を変えたら、既定に戻したメッセージと保存したメッセージを削除し、再起動のメッセージを数え直す。"""
         self._reset_notice.hide()
         self._saved_notice.hide()
         self._restart_now_button.hide()
@@ -1205,7 +1205,7 @@ class SettingsWindow(QWidget):
         self._save_and_restart_button.setVisible(show)
 
     def _clear_errors(self) -> None:
-        """前の保存で出したエラー（一覧・欄の下）を消す。"""
+        """前の保存で出したエラー（一覧・欄の下）を削除する。"""
         while self._error_summary_layout.count():
             item = self._error_summary_layout.takeAt(0)
             widget = item.widget()
@@ -1304,7 +1304,7 @@ class SettingsWindow(QWidget):
                 self._hints_panel.show_error(hint_located, message)
                 continue
             edge_located = self._locate_edge(key) if key is not None else None
-            # 文頭・文末から消す文言の欄: 一覧の行（欄へのリンク）と、欄の下のエラーを出す
+            # 文頭・文末から削除する文言の欄: 一覧の行（欄へのリンク）と、欄の下のエラーを出す
             if edge_located is not None and key is not None:
                 label = self._edge_label(edge_located)
                 link = QLabel(f'<a href="{key}">{html.escape(f"{label}: {message}")}</a>')
@@ -1360,7 +1360,7 @@ class SettingsWindow(QWidget):
             self._hints_panel.focus_field(hint_located)
             return
         edge_located = self._locate_edge(key)
-        # 文頭・文末から消す文言の欄: ハルシネーションのまとまりへ切り替えて、欄へフォーカスを移す
+        # 文頭・文末から削除する文言の欄: ハルシネーションのまとまりへ切り替えて、欄へフォーカスを移す
         if edge_located is not None:
             self._group_menu.setCurrentRow(self._edge_group)
             self._edges_panel.focus_field(edge_located)
@@ -1382,7 +1382,7 @@ class SettingsWindow(QWidget):
 
     def save(self, *, restart: bool) -> bool:
         """欄の値を設定のモデルで確かめ、通れば書いて効かせ、窓を開いたまま保存したメッセージを出す（restart のときだけ閉じる）。通らなければエラーを出す。"""
-        # 1. 欄の値を設定のモデルと、用語集の行（正しい表記が入っていて誤変換が空）で確かめる（通らなければ欄ごとのエラーにして、入れた値は消さない）
+        # 1. 欄の値を設定のモデルと、用語集の行（正しい表記が入っていて誤変換が空）で確かめる（通らなければ欄ごとのエラーにして、入れた値は削除しない）
         failures: list[tuple[str, str]] = []
         settings: Settings | None = None
         try:
@@ -1424,7 +1424,7 @@ class SettingsWindow(QWidget):
             self._show_errors([(None, f"設定ファイルを書けませんでした（{error}）")])
             return False
 
-        # 3. 前の保存で出したエラー（一覧・欄の下）を消し、保存した行・値を「変えていない」の基準に置き直す
+        # 3. 前の保存で出したエラー（一覧・欄の下）を削除し、保存した行・値を「変えていない」の基準に置き直す
         self._clear_errors()
         self._glossaries_panel.mark_saved()
         self._hints_panel.mark_saved()

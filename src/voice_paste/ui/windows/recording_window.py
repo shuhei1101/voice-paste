@@ -86,7 +86,7 @@ def format_clock(elapsed_ms: int) -> str:
 
 
 class Waveform(QWidget):
-    """録音中の音量を棒の並びで流す。一時停止中は棒を止め、最後の形のまま出す。"""
+    """録音中の音量を棒の並びで流す。一時停止中は棒を止め、最後の形状のまま出す。"""
 
     def __init__(self, levels: deque[float]) -> None:
         super().__init__()
@@ -138,7 +138,7 @@ class HeadButton(QPushButton):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setPen(pen)
         cx, cy, half = self.width() / 2, self.height() / 2, HEAD_BUTTON_GLYPH_HALF_PX
-        # 「×」は斜めの 2 本、「隠す」は横の 1 本（最小化の形）
+        # 「×」は斜めの 2 本、「隠す」は横の 1 本（最小化の形状）
         if self._close:
             painter.drawLine(QLineF(cx - half, cy - half, cx + half, cy + half))
             painter.drawLine(QLineF(cx + half, cy - half, cx - half, cy + half))
@@ -204,7 +204,7 @@ class RecordingWindow(QWidget):
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(10)
 
-        # 見出しの行: つかむ印・状態・経過時間・隠す・×（行のどこをつかんでも窓を動かせる）
+        # 見出しの行: つかむマーカー・状態・経過時間・隠す・×（行のどこをつかんでも窓を動かせる）
         head_row = HeadRow()
         head_row.drag_started.connect(self._remember_drag_origin)
         header = QHBoxLayout(head_row)
@@ -426,7 +426,7 @@ class RecordingWindow(QWidget):
             self._drag_origin = self.pos()
 
     def _show_state(self, *, paused: bool) -> None:
-        """状態の表示（印と文字）と、一時停止・再開のどちらのボタンを出すかを替える。"""
+        """状態の表示（マーカーと文字）と、一時停止・再開のどちらのボタンを出すかを替える。"""
         self._state_label.setText("● 一時停止中" if paused else "● 録音中")
         self._state_label.setProperty("role", "paused" if paused else "recording")
         self._state_label.style().unpolish(self._state_label)
@@ -435,7 +435,7 @@ class RecordingWindow(QWidget):
         self._resume_button.setVisible(paused)
 
     def _refresh_clock(self) -> None:
-        """経過時間のラベルを、貯めた経過（数えている間は始めた・再開した時刻からの経過も足す）で描き直す。"""
+        """経過時間のラベルを、貯めた経過（数えている間は始めた・再開した時刻からの経過も追加する）で描き直す。"""
         elapsed_s = self._accumulated_s
         if self._running:
             elapsed_s += self._clock() - self._started_at

@@ -40,7 +40,7 @@ WHISPER_MODEL_CHOICES: tuple[str, ...] = ("tiny", "base", "small", "medium", "la
 
 @dataclass
 class Field:
-    """設定のキー 1 つの欄。キーは添字が変わる欄（送り先の行）のために、あとから直せる。"""
+    """設定のキー 1 つの欄。キーは添字が変わる欄（送信先の行）のために、あとから変更できる。"""
 
     key: str
     """settings.toml のキー（エラーの一覧と同じ書式）。"""
@@ -102,7 +102,7 @@ def value_at(settings: Settings, key: str) -> Any:
 
 
 def reload_of(key: str) -> str:
-    """設定のキーの反映の仕方を、設定のモデルの項目の印から引く（印が無ければ immediate）。"""
+    """設定のキーの反映の仕方を、設定のモデルの項目のマーカーから引く（マーカーが無ければ immediate）。"""
     model: Any = Settings
     reload = RELOAD_IMMEDIATE
     for token in key_tokens(key):
@@ -195,7 +195,7 @@ def make_radio_group(
     container = QWidget()
     layout = QHBoxLayout(container)
     layout.setContentsMargins(0, 0, 0, 0)
-    # 選択肢の間は、印と名前の間より広くして、丸がどの名前の印かを距離で分ける
+    # 選択肢の間は、マーカーと名前の間より広くして、丸がどの名前のマーカーかを距離で分ける
     layout.setSpacing(int(load_tokens()["shape"]["choice_gap"]))
     group = QButtonGroup(container)
     for choice in choices:

@@ -15,7 +15,7 @@ from voice_paste.shared.types import EnterModifier
 logger = logging.getLogger(__name__)
 
 FOCUS_SETTLE_SEC: float = 0.1
-"""貼り付けのキーを送る前に待つ秒数。貼り付け先のフォーカスが落ち着くのを待つ。"""
+"""貼り付けのキーを送信する前に待つ秒数。貼り付け先のフォーカスが落ち着くのを待つ。"""
 
 KEY_SEPARATOR: str = "+"
 """貼り付けのキーの書式（pynput の GlobalHotKeys の書式）で、キーを区切る文字。"""
@@ -47,7 +47,7 @@ def copy_to_clipboard(text: str) -> None:
 
 
 def send_paste(paste_key: str) -> None:
-    """設定の貼り付けのキーを、フォーカスが落ち着くのを待ってから今のアクティブなウィンドウへ送る。"""
+    """設定の貼り付けのキーを、フォーカスが落ち着くのを待ってから今のアクティブなウィンドウへ送信する。"""
     # 1. 貼り付けのキーを、前後の空白を除いて小文字にしたキーに区切り、修飾キーと主キーに分ける
     tokens = [token.strip().lower() for token in paste_key.split(KEY_SEPARATOR)]
     modifiers = [MODIFIER_KEYS[token] for token in tokens if token in MODIFIER_KEYS]
@@ -66,7 +66,7 @@ def send_paste(paste_key: str) -> None:
     controller.release(main_keys[0])
     for modifier in reversed(modifiers):
         controller.release(modifier)
-    logger.info(f"貼り付けのキーを送った（{paste_key}）")
+    logger.info(f"貼り付けのキーを送信した（{paste_key}）")
 
 
 def send_enter(modifiers: Sequence[EnterModifier] = ()) -> None:
@@ -87,4 +87,4 @@ def send_enter(modifiers: Sequence[EnterModifier] = ()) -> None:
         # 途中で失敗しても、押した修飾キーは逆順に離す（押されたままにしない）
         for key in reversed(pressed):
             controller.release(key)
-    logger.info(f"Enter を送った（修飾キー: {'+'.join(ordered) or 'なし'}）")
+    logger.info(f"Enter を送信した（修飾キー: {'+'.join(ordered) or 'なし'}）")

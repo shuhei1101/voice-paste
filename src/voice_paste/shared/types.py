@@ -34,10 +34,10 @@ class AudioProbe:
 
 
 class SendEnterFn(Protocol):
-    """渡した修飾キーを押したまま Enter を送る関数。修飾キーを省くと Enter だけを送る。"""
+    """渡した修飾キーを押したまま Enter を送信する関数。修飾キーを省くと Enter だけを送信する。"""
 
     def __call__(self, modifiers: Sequence[EnterModifier] = ()) -> None:
-        """修飾キーを押したまま Enter を送る。"""
+        """修飾キーを押したまま Enter を送信する。"""
         ...
 
 

@@ -26,7 +26,7 @@ TOKEN_FILE_NAME: str = "api_token"
 """起動ごとのトークンとポートを書くファイルの名前。"""
 
 UI_IMAGE_DIR_NAME: str = "ui"
-"""画面の画像（選択欄の開く印の SVG）のフォルダの名前。"""
+"""画面の画像（選択欄の開くマーカーの SVG）のフォルダの名前。"""
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

@@ -26,7 +26,7 @@ HEADING_TEXT: str = "ハルシネーション"
 """まとまりの見出し。"""
 
 INTRO_TEXT: str = "文字起こしが文頭・文末に追加する、話していない文言を削除する。"
-"""まとまりの見出しの下に出す、一覧の文言が何を消すかの説明。"""
+"""まとまりの見出しの下に出す、一覧の文言が何を削除するかの説明。"""
 
 EMPTY_TEXT: str = "削除する文言はまだありません。無い間は、文頭・文末から何も削除しません。"
 """行が 1 つも無いときの文。"""
@@ -40,7 +40,7 @@ LIST_ACCESSIBLE_NAME: str = "文頭・文末から削除する文言（上の行
 """文言の一覧の読み上げの名前。"""
 
 GRIP_TEXT: str = "⠿"
-"""行の左端のつまみに出す印。"""
+"""行の左端のつまみに出すマーカー。"""
 
 GRIP_TOOLTIP: str = "掴んで動かす"
 """行の左端のつまみに重ねたときのツールチップ。"""
@@ -52,14 +52,14 @@ POSITION_LABELS: tuple[tuple[str, str], ...] = (("start", "文頭"), ("end", "�
 """位置の選択の（値, 表示）。選択肢の並びもこの順。"""
 
 DEFAULT_POSITION: str = "end"
-"""足した行の位置。"""
+"""追加した行の位置。"""
 
 NARROW_WIDTH_PX: int = 420
-"""この幅より狭い部品では、1 行を 2 段（上に文言の欄、下に位置と消すボタン）に組み、列の見出しの行を隠す。"""
+"""この幅より狭い部品では、1 行を 2 行（上に文言の欄、下に位置と削除ボタン）に組み、列の見出しの行を隠す。"""
 
 TEXT_HEADING: str = "文言"
 POSITION_HEADING: str = "位置"
-"""行の上に出す列の見出し（つまみと消すボタンの列は見出しを出さない）。"""
+"""行の上に出す列の見出し（つまみと削除ボタンの列は見出しを出さない）。"""
 
 LOCATION_TEXT_LENGTH: int = 2
 """失敗の場所（添字, "text"）の長さ。"""
@@ -104,7 +104,7 @@ class RowGrip(QLabel):
     """つまみを離した画面上の縦の位置。"""
 
     def __init__(self) -> None:
-        """つまみの印とツールチップを出す。フォーカスは受けない。"""
+        """つまみのマーカーとツールチップを出す。フォーカスは受けない。"""
         super().__init__(GRIP_TEXT)
         self.setToolTip(GRIP_TOOLTIP)
         self.setCursor(Qt.CursorShape.SizeVerCursor)
@@ -125,17 +125,17 @@ class RowGrip(QLabel):
 class EdgePhrasePanel(QWidget):
     """設定画面の「ハルシネーション」のまとまりに置く、説明・文言の一覧・空の文・「行を追加」・凡例。
 
-    足す・消す・並べ替え・入力はこの部品の中だけを変え、settings.toml へは設定画面の保存で書く。
+    追加・削除・並べ替え・入力はこの部品の中だけを変え、settings.toml へは設定画面の保存で書く。
     """
 
     changed = Signal()
-    """足す・消す・並べ替え・欄の入力で値が変わった（設定画面が変えた欄の数えに使う）。"""
+    """追加・削除・並べ替え・欄の入力で値が変わった（設定画面が変えた欄の数えに使う）。"""
 
     def __init__(self, parent: QWidget | None = None) -> None:
         """空の一覧で部品を作る。"""
         super().__init__(parent)
         self._rows: list[_PhraseRow] = []
-        # 行を追う番号: 一覧の並びと同じ順に持つ。開いたとき・保存したときの分は 0 から振り、足した分はそれより大きい番号にする
+        # 行を追う番号: 一覧の並びと同じ順に持つ。開いたとき・保存したときの分は 0 から振り、追加した分はそれより大きい番号にする
         self._ids: list[int] = []
         self._baseline_count = 0
         self._next_id = 0
@@ -186,17 +186,17 @@ class EdgePhrasePanel(QWidget):
         self._rebuild([phrase.model_dump() for phrase in phrases], self._number_saved(len(phrases)))
 
     def collect(self) -> list[dict[str, Any]]:
-        """今の並びの行を settings.toml と同じ形の dict（text・position）の並びにする。空の文言の行もそのまま入れる。"""
+        """今の並びの行を settings.toml と同じ構造の dict（text・position）の並びにする。空の文言の行もそのまま入れる。"""
         return [
             {"text": row.text_edit.text(), "position": str(row.position_box.currentData())}
             for row in self._rows
         ]
 
     def add_phrase(self) -> None:
-        """末尾に文言が空で位置が文末の行を足し、文言の欄へフォーカスを移して changed を emit する。"""
+        """末尾に文言が空で位置が文末の行を追加し、文言の欄へフォーカスを移して changed を emit する。"""
         values = self.collect()
         values.append({"text": "", "position": DEFAULT_POSITION})
-        # 足した行には、振ったどの番号より大きい番号を振る
+        # 追加した行には、振ったどの番号より大きい番号を振る
         added_id = self._next_id
         self._next_id += 1
         self._rebuild(values, [*self._ids, added_id])
@@ -217,13 +217,13 @@ class EdgePhrasePanel(QWidget):
             f"edge_phrases[{row_id}]": (value["text"], value["position"])
             for row_id, value in zip(self._ids, self.collect(), strict=True)
         }
-        # 開いたとき・保存したときからあって今も残っている行だけで、番号の小さい順に並んでいるか（足した行は見ない）
+        # 開いたとき・保存したときからあって今も残っている行だけで、番号の小さい順に並んでいるか（追加した行は見ない）
         kept = [row_id for row_id in self._ids if row_id < self._baseline_count]
         values["edge_phrases.order"] = kept == sorted(kept)
         return values
 
     def mark_saved(self) -> None:
-        """行の番号を、今の並びの順に 0 から振り直す（足した行も保存した行として扱う）。保存が書けた後に呼ぶ。"""
+        """行の番号を、今の並びの順に 0 から振り直す（追加した行も保存した行として扱う）。保存が書けた後に呼ぶ。"""
         self._ids = self._number_saved(len(self._rows))
 
     def focus_field(self, location: tuple[int | str, ...]) -> None:
@@ -245,7 +245,7 @@ class EdgePhrasePanel(QWidget):
         set_invalid(row.text_edit, invalid=True)
 
     def clear_errors(self) -> None:
-        """前の保存で出したエラーを全て消す。"""
+        """前の保存で出したエラーを全て削除する。"""
         for row in self._rows:
             row.error_label.clear()
             row.error_label.hide()
@@ -263,7 +263,7 @@ class EdgePhrasePanel(QWidget):
     # --- 組み立て ---
 
     def _number_saved(self, count: int) -> list[int]:
-        """保存した件数の行に 0 から番号を振り直し（足す番号はその次から）、その番号の並びを返す。"""
+        """保存した件数の行に 0 から番号を振り直し（追加する番号はその次から）、その番号の並びを返す。"""
         self._baseline_count = count
         self._next_id = count
         return list(range(count))
@@ -302,7 +302,7 @@ class EdgePhrasePanel(QWidget):
         self.changed.emit()
 
     def _remove(self, position: int) -> None:
-        """行を一覧から消す。"""
+        """行を一覧から削除する。"""
         values = self.collect()
         del values[position]
         ids = list(self._ids)
@@ -322,7 +322,7 @@ class EdgePhrasePanel(QWidget):
 
     @staticmethod
     def _build_header() -> QWidget:
-        """列の見出しの行（文言・位置）を作る。つまみと消すボタンの列は、行の部品と同じ幅の空きにして欄の左端をそろえる。"""
+        """列の見出しの行（文言・位置）を作る。つまみと削除ボタンの列は、行の部品と同じ幅の空きにして欄の左端をそろえる。"""
         header = QWidget()
         header.setObjectName("edge_phrase_header")
         grid = QGridLayout(header)
@@ -352,11 +352,11 @@ class EdgePhrasePanel(QWidget):
         return header
 
     def _sync_header(self) -> None:
-        """列の見出しの行を、行があって 1 段の組みのときだけ出す（2 段の組みでは各欄の読み上げの名前に任せる）。"""
+        """列の見出しの行を、行があって 1 行の組みのときだけ出す（2 行の組みでは各欄の読み上げの名前に任せる）。"""
         self._header.setVisible(bool(self._rows) and not self._narrow)
 
     def _add_row(self, position: int, value: dict[str, Any]) -> None:
-        """行 1 つ（左端のつまみ・文言の欄・位置の選択・消すボタンと、欄の下のエラーの文）を足す。"""
+        """行 1 つ（左端のつまみ・文言の欄・位置の選択・削除ボタンと、欄の下のエラーの文）を追加する。"""
         frame = QFrame()
         frame.setProperty("role", "surface")
         grid = QGridLayout(frame)
@@ -392,11 +392,11 @@ class EdgePhrasePanel(QWidget):
         self._rows.append(row)
         self._rows_layout.addWidget(frame)
         self._arrange(row)
-        # 表示中の部品に足した部品は次のイベントの処理まで出ないため、すぐ出す
+        # 表示中の部品に追加した部品は次のイベントの処理まで出ないため、すぐ出す
         frame.show()
 
     def _arrange(self, row: _PhraseRow) -> None:
-        """行の部品を、今の幅に合わせて格子に並べる（狭ければ上の段に文言の欄、下の段に位置と消すボタン）。"""
+        """行の部品を、今の幅に合わせて格子に並べる（狭ければ上の行に文言の欄、下の行に位置と削除ボタン）。"""
         grid = row.container.layout()
         if not isinstance(grid, QGridLayout):
             return
@@ -417,7 +417,7 @@ class EdgePhrasePanel(QWidget):
         grid.setColumnStretch(1, 1)
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802 Qt の名前
-        """幅が狭ければ 1 行を 2 段に組み、広がれば 1 段に戻す。"""
+        """幅が狭ければ 1 行を 2 行に組み、広がれば 1 行に戻す。"""
         super().resizeEvent(event)
         narrow = event.size().width() < NARROW_WIDTH_PX
         if narrow != self._narrow:

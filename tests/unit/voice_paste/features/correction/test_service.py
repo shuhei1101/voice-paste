@@ -184,7 +184,7 @@ def test_apply_glossary_when_no_match() -> None:
 
 
 def test_apply_glossary_when_right_empty() -> None:
-    """正しい表記が空の行は誤変換を消す（正常系）。"""
+    """正しい表記が空の行は誤変換を削除する（正常系）。"""
     from voice_paste.features.correction.service import apply_glossary
     from voice_paste.shared.types import GlossaryEntry
 
@@ -728,7 +728,7 @@ def test_next_glossary_path_when_taken(tmp_path: Path) -> None:
 
 
 def test_strip_edge_phrases() -> None:
-    """一覧の順に文末から消し、文頭の行は文頭だけに当てる（正常系）。"""
+    """一覧の順に文末から削除し、文頭の行は文頭だけに当てる（正常系）。"""
     from voice_paste.features.correction.service import strip_edge_phrases
     from voice_paste.shared.settings import EdgePhraseSettings
 
@@ -753,7 +753,7 @@ def test_strip_edge_phrases() -> None:
 
 
 def test_strip_edge_phrases_when_middle() -> None:
-    """文頭・文末以外の同じ文言は消さない（正常系）。"""
+    """文頭・文末以外の同じ文言は削除しない（正常系）。"""
     from voice_paste.features.correction.service import strip_edge_phrases
     from voice_paste.shared.settings import EdgePhraseSettings
 
@@ -768,7 +768,7 @@ def test_strip_edge_phrases_when_middle() -> None:
 
 
 def test_strip_edge_phrases_when_wildcard_start() -> None:
-    """文頭の末尾の `*` は 1 行目の行末まで消す（正常系）。"""
+    """文頭の末尾の `*` は 1 行目の行末まで削除する（正常系）。"""
     from voice_paste.features.correction.service import strip_edge_phrases
     from voice_paste.shared.settings import EdgePhraseSettings
 
@@ -783,7 +783,7 @@ def test_strip_edge_phrases_when_wildcard_start() -> None:
 
 
 def test_strip_edge_phrases_when_wildcard_middle() -> None:
-    """途中の `*` は消す文字が最も短い一致を使う（正常系）。"""
+    """途中の `*` は削除する文字が最も短い一致を使う（正常系）。"""
     from voice_paste.features.correction.service import strip_edge_phrases
     from voice_paste.shared.settings import EdgePhraseSettings
 
@@ -798,7 +798,7 @@ def test_strip_edge_phrases_when_wildcard_middle() -> None:
 
 
 def test_strip_edge_phrases_when_repeated() -> None:
-    """同じ文言が端に続けて並ぶときは続く分も消す（正常系）。"""
+    """同じ文言が端に続けて並ぶときは続く分も削除する（正常系）。"""
     from voice_paste.features.correction.service import strip_edge_phrases
     from voice_paste.shared.settings import EdgePhraseSettings
 

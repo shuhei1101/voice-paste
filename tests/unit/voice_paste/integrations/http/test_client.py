@@ -1,6 +1,6 @@
 """integrations/http/client.py（post_json）の単体テスト。
 
-送り先は httpx.MockTransport に差し替える。
+送信先は httpx.MockTransport に差し替える。
 post_json が作る httpx.Client に MockTransport を渡すため、httpx.Client を同じ引数で作り直す関数へ差し替える。
 """
 
@@ -41,7 +41,7 @@ def _use_receiver(
 
 
 def _http_date(delta: timedelta) -> str:
-    """今から delta ずらした時刻を、Retry-After に使う HTTP の日付の形にする。"""
+    """今から delta ずらした時刻を、Retry-After に使う HTTP の日付の形式にする。"""
     return format_datetime(datetime.now(UTC) + delta, usegmt=True)
 
 

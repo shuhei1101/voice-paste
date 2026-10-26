@@ -344,7 +344,7 @@ def test_save_settings_when_invalid_existing(
 def test_save_settings_when_glossary_reset(
     settings_file: Path, settings_model: type[Settings]
 ) -> None:
-    """用語集の場所を既定（None）に戻すとキーを消す（正常系）。"""
+    """用語集の場所を既定（None）に戻すとキーを削除する（正常系）。"""
     from voice_paste.shared.settings import load_settings, save_settings
 
     # 準備
@@ -426,7 +426,7 @@ def test_save_settings_when_glossaries(tmp_path: Path, settings_model: type[Sett
 def test_save_settings_when_legacy_glossary_path(
     tmp_path: Path, settings_model: type[Settings]
 ) -> None:
-    """用語集の一覧を書くと、今までの glossary_path のキーを消す（正常系）。"""
+    """用語集の一覧を書くと、今までの glossary_path のキーを削除する（正常系）。"""
     from voice_paste.shared.settings import GlossarySettings, save_settings
 
     # 準備（glossary_path を持つ settings.toml に、glossary_path が None で glossaries が 1 件の設定を書く）
@@ -449,7 +449,7 @@ def test_save_settings_when_legacy_glossary_path(
 def test_save_settings_when_glossary_presets(
     tmp_path: Path, settings_model: type[Settings]
 ) -> None:
-    """用語集のプリセットを書き、今までの active_glossary のキーを消す（正常系）。"""
+    """用語集のプリセットを書き、今までの active_glossary のキーを削除する（正常系）。"""
     from voice_paste.shared.settings import (
         GlossaryPresetSettings,
         GlossarySettings,
@@ -754,7 +754,7 @@ AI_CHAT_DOCUMENT = {
         },
     ]
 }
-"""古い AI チャットの設定（送り先 2 件、開くまでの間 2.0 秒）を持つ settings.toml を素の dict にしたもの。"""
+"""古い AI チャットの設定（送信先 2 件、開くまでの間 2.0 秒）を持つ settings.toml を素の dict にしたもの。"""
 
 
 def test_migrate_ai_chat() -> None:
@@ -1131,7 +1131,7 @@ JAPANESE_CHAR_BYTES = 3
 
 
 def _hint_preset(name: str, words: list[str], *, enabled: bool = True) -> dict[str, Any]:
-    """settings.toml と同じ形の表記のヒントのプリセット 1 件を返す。"""
+    """settings.toml と同じ構造の表記のヒントのプリセット 1 件を返す。"""
     return {"name": name, "words": words, "enabled": enabled}
 
 

@@ -148,7 +148,7 @@ def test_append_text_when_temporary(paths: AppPaths) -> None:
 
 
 def test_discard_temporary(paths: AppPaths) -> None:
-    """一時の音声を消す（正常系）。"""
+    """一時の音声を削除する（正常系）。"""
     from voice_paste.features.history.service import discard_temporary
 
     # 準備
@@ -162,7 +162,7 @@ def test_discard_temporary(paths: AppPaths) -> None:
 
 
 def test_discard_temporary_when_history(paths: AppPaths) -> None:
-    """履歴の録音は消さない（正常系）。"""
+    """履歴の録音は削除しない（正常系）。"""
     from voice_paste.features.history.service import discard_temporary
 
     # 準備
@@ -179,7 +179,7 @@ def test_discard_temporary_when_history(paths: AppPaths) -> None:
 
 
 def test_purge_expired(paths: AppPaths) -> None:
-    """保持期間を過ぎた日付のフォルダだけ消す（正常系）。"""
+    """保持期間を過ぎた日付のフォルダだけ削除する（正常系）。"""
     from voice_paste.features.history.service import purge_expired
 
     # 準備
@@ -201,7 +201,7 @@ def test_purge_expired(paths: AppPaths) -> None:
 
 
 def test_purge_expired_when_temporary_left(paths: AppPaths) -> None:
-    """処理中でない一時の音声だけ消す（正常系）。"""
+    """処理中でない一時の音声だけ削除する（正常系）。"""
     from voice_paste.features.history.service import purge_expired
 
     # 準備
@@ -235,7 +235,7 @@ def test_purge_expired_keeps_active_segments(paths: AppPaths) -> None:
 
 
 def test_purge_expired_when_web_audio(paths: AppPaths) -> None:
-    """期限を過ぎた日付のフォルダは WAV 以外の音声も消す（正常系）。"""
+    """期限を過ぎた日付のフォルダは WAV 以外の音声も削除する（正常系）。"""
     from voice_paste.features.history.service import purge_expired
 
     # 準備: 保持期間を過ぎた日付のフォルダにブラウザの音声（.webm）と起こした文字（.txt）

@@ -86,7 +86,7 @@ def _wait_until(condition: Callable[[], bool]) -> bool:
 
 
 def test_start(tmp_path: Path) -> None:
-    """取り残しを消してスレッドを立てる（正常系）。"""
+    """取り残しを削除してスレッドを立てる（正常系）。"""
     from voice_paste.features.web_transcription.types import JobState
 
     # 準備: tmp_dir に前の起動の取り残し（.webm）がある
@@ -277,7 +277,7 @@ def test_process_when_glossary_preset() -> None:
 
 
 def test_close() -> None:
-    """待ちの一時のファイルを消す（正常系）。"""
+    """待ちの一時のファイルを削除する（正常系）。"""
     # 準備: ワーカースレッドを立てず、queued のジョブが 2 件ある
     deps = _make_deps()
     queue = _make_queue(deps)
@@ -378,7 +378,7 @@ def test_accept_audio_when_unreadable(tmp_path: Path) -> None:
 
 
 def test_accept_audio_when_queue_full(tmp_path: Path) -> None:
-    """待ちが上限なら書いたファイルを消す（異常系）。"""
+    """待ちが上限なら書いたファイルを削除する（異常系）。"""
     from voice_paste.features.web_transcription.service import accept_audio
     from voice_paste.shared.errors import WebQueueFullError
 

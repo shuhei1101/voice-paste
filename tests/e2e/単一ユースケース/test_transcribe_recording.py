@@ -368,7 +368,7 @@ def test_normal_when_edge_phrases_removed(
 def test_normal_when_worker_dies(
     run_app: RunApp, tmp_path: Path, clipboard_sentinel: str
 ) -> None:
-    """文字起こしの途中でワーカーが落ちても、ワーカーを立て直して起こし直し、起こした文字が届き、常駐サービスは動き続ける（正常シナリオ（文字起こしワーカーが落ちる））。"""
+    """文字起こしの途中でワーカーが落ちても、ワーカーを立て直して起こし直し、起こした文字が届き、常駐サービスは動き続ける（正常シナリオ（文字起こしワーカーが異常終了する））。"""
     # 準備: ワーカーを止める間に起こし終わらないよう、読み上げた音をつなげる
     keys = KeyLog()
 
@@ -394,7 +394,7 @@ def test_normal_when_worker_dies(
 def test_error_when_worker_dies_again(
     run_app: RunApp, tmp_path: Path, clipboard_sentinel: str
 ) -> None:
-    """やり直したワーカーも落ちると、失敗を知らせてワーカーを立て直し、録音は履歴に残り、常駐サービスは動き続ける（異常シナリオ（やり直したワーカーも落ちる））。"""
+    """やり直したワーカーも落ちると、失敗を知らせてワーカーを立て直し、録音は履歴に残り、常駐サービスは動き続ける（異常シナリオ（再起動したワーカーも異常終了する））。"""
     # 準備
     keys = KeyLog()
 

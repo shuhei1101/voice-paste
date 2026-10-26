@@ -1,4 +1,4 @@
-"""単一ユースケース「ブラウザから音声を送る」の E2E テスト。
+"""単一ユースケース「ブラウザから音声を送信する」の E2E テスト。
 
 常駐アプリは pytest のプロセスの中で `build_handlers` で配線し、API は 127.0.0.1 の空きポートで待ち受ける（起動・トレイ・ホットキーの受付は通さない）。
 画面は Windows の Edge を headless で起動し、DevTools Protocol で `http://localhost:{ポート}/web/` を操作する（localhost の Origin は許す Origin に入れる）。

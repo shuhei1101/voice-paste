@@ -211,7 +211,7 @@ def test_normal_when_cancel(
     clipboard_sentinel: str,
     button: str,
 ) -> None:
-    """録音の画面の「取り消す」・閉じるボタン（×）で取り消すと、録音は残らず、音量が戻り、待機中に戻って文字起こしへ進まない（正常シナリオ（録音を取り消す））。"""
+    """録音の画面の「取り消し」・閉じるボタン（×）で取り消すと、録音は残らず、音量が戻り、待機中に戻って文字起こしへ進まない（正常シナリオ（録音を取り消す））。"""
     # 準備
     transcribed = spy_on_transcribed_audio(monkeypatch)
     keys = KeyLog()
@@ -397,7 +397,7 @@ def _restore_by_tray_icon(app: ResidentApp) -> None:
 
 
 def _restore_by_tray_menu(app: ResidentApp) -> None:
-    """隠した録音の画面を、トレイのメニューの「録音の画面を出す」で戻す。"""
+    """隠した録音の画面を、トレイのメニューの「録音の画面を表示」で戻す。"""
     app.choose_tray_menu("menu_show_window")
 
 
@@ -583,7 +583,7 @@ def _duration_sec(wav_path: Path) -> float:
 def test_normal_when_split_by_silence(
     run_app: RunApp, tmp_path: Path, receiver: CallbackReceiver
 ) -> None:
-    """連続録音は、録音を止めずに文ごとの無音で区切って履歴に残し、区切った区間を通し番号の順に起こす（正常シナリオ（録音を止めずに無音で区切る））。"""
+    """連続録音は、録音を止めずに文ごとの無音で区切って履歴に残し、区切った区間を通し番号の順に起こす（正常シナリオ（録音を停止せずに無音で区切る））。"""
     # 準備: 文の間に区切りの無音より長い無音を挟んだ WAV を実時間で流す
     wav_input = speech_sequence_input(
         tmp_path, sentences_of(THREE_SENTENCES), gap_sec=SEGMENT_GAP_SEC

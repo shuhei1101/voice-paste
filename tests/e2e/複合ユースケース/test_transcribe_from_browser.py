@@ -1,4 +1,4 @@
-"""複合ユースケース「外の端末のブラウザから音声を送って文字で受け取る」の E2E テスト。
+"""複合ユースケース「外の端末のブラウザから音声を送信して文字で受け取る」の E2E テスト。
 
 常駐アプリは pytest のプロセスの中で `build_handlers` で配線し、API は 127.0.0.1 の空きポートで待ち受ける（起動・トレイ・ホットキーの受付は通さない）。
 画面は Windows の Edge を headless で起動し、DevTools Protocol で `http://localhost:{ポート}/web/` を操作する（localhost の Origin は許す Origin に入れる）。
@@ -115,7 +115,7 @@ def test_normal_when_select_file(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """書き出した文を MP3 にしたファイルを選ぶと、用語集で補正した文字が結果の先頭に出て、端末に 1 件残る（正常シナリオ（ファイルを選んで送る））。"""
+    """書き出した文を MP3 にしたファイルを選ぶと、用語集で補正した文字が結果の先頭に出て、端末に 1 件残る（正常シナリオ（ファイルを選んで送信する））。"""
     # 準備
     _put_glossary(tmp_path)
     scene = build_scene(start_inprocess, open_edge, tmp_path, monkeypatch)
@@ -141,7 +141,7 @@ def test_normal_when_hotkey_recording(
     monkeypatch: pytest.MonkeyPatch,
     clipboard_sentinel: str,
 ) -> None:
-    """ホットキーの録音中に音声ファイルを送っても、画面に起こした文字が出て、ホットキーの録音は録音中のまま続き、確定するといつもどおり貼り付けまで進む（正常シナリオ（ホットキーの録音中に送る））。"""
+    """ホットキーの録音中に音声ファイルを送っても、画面に起こした文字が出て、ホットキーの録音は録音中のまま続き、確定するといつもどおり貼り付けまで進む（正常シナリオ（ホットキーの録音中に送信する））。"""
     # 準備
     _put_glossary(tmp_path)
     scene = build_scene(
@@ -178,7 +178,7 @@ def test_error_when_unreadable_format(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """音声でない中身の MP3 を送ると 415 で返り、画面に読めない形式であることが出て件は増えない。続けて正しい MP3 を送ると受け付けられる（異常シナリオ（読めない形式を送る））。"""
+    """音声でない中身の MP3 を送ると 415 で返り、画面に読めない形式であることが出て件は増えない。続けて正しい MP3 を送ると受け付けられる（異常シナリオ（読めない形式を送信する））。"""
     # 準備
     scene = build_scene(start_inprocess, open_edge, tmp_path, monkeypatch, stub_text=STUB_TEXT)
     scene.page.record_requests()
@@ -241,7 +241,7 @@ def test_error_when_origin_not_allowed(
     start_inprocess: StartInProcess,
     tmp_path: Path,
 ) -> None:
-    """許す Origin の一覧に無い Origin から送ると 403 で返り、キューにジョブが積まれず、PC の履歴にも残らない（異常シナリオ（許可されていない Origin から送る））。"""
+    """許す Origin の一覧に無い Origin から送ると 403 で返り、キューにジョブが積まれず、PC の履歴にも残らない（異常シナリオ（許可されていない Origin から送信する））。"""
     # 準備
     app = start_inprocess(
         settings=make_settings(only_paste_and_send=True), wav_input=silence_input(tmp_path)
@@ -265,7 +265,7 @@ def test_normal_when_select_glossary_preset(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """2 つ目のプリセットを選んで MP3 のファイルを送ると、結果の先頭に 2 つ目のプリセットの用語集で補正した文字が出る。1 つ目の用語集の言葉は置き換わらず、設定で選んでいるプリセットは変わらない（正常シナリオ（用語集のプリセットを選んで送る））。"""
+    """2 つ目のプリセットを選んで MP3 のファイルを送ると、結果の先頭に 2 つ目のプリセットの用語集で補正した文字が出る。1 つ目の用語集の言葉は置き換わらず、設定で選んでいるプリセットは変わらない（正常シナリオ（用語集のプリセットを選んで送信する））。"""
     # 準備: 用語集のプリセットが 2 つあり、それぞれが別の用語集を使う。設定で選んでいるのは 1 つ目
     scene = build_scene(
         start_inprocess,

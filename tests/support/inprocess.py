@@ -9,13 +9,17 @@
 
 from __future__ import annotations
 
+import ctypes
 import math
 import os
+import re
+import signal
 import socket
 import threading
 import time
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from dataclasses import dataclass, field
+from ctypes import wintypes
 from pathlib import Path
 from typing import Any
 
@@ -27,7 +31,7 @@ from scipy.signal import resample_poly
 
 import voice_paste.main as main_module
 from tests.integration.helpers import CallbackReceiver, wait_until
-from tests.support.processes import ProcessInfo, kill_tree, processes_with
+from tests.support.processes import ProcessInfo, processes_with
 from tests.support.web_body import CONTENT_TYPE, chunks_of
 from voice_paste.features.recording.client import SAMPLE_RATE
 from voice_paste.features.session import SessionApiDeps, SessionManager
@@ -92,7 +96,7 @@ LONG_READING: tuple[tuple[str, str], ...] = (
     ("駅前の店でコーヒーを飲みます", "コーヒー"),
     ("写真を一枚撮ってください", "写真"),
     ("荷物を玄関に運びました", "荷物"),
-    ("ありがとうございました", "ありがとう"),
+    ("明日は晴れるでしょう", "晴れ"),
 )
 """話し続けて読み上げる文と、それぞれを起こした文字に含まれるはずの言葉。つなぐと話し声だけで約 28 秒になる。"""
 
@@ -123,14 +127,20 @@ WORKER_CLIENT_LOGGER = "voice_paste.integrations.whisper.client"
 WORKER_READY_LOG = "文字起こしワーカーが立ち上がった"
 """文字起こしワーカーが ready になったときのログの文の先頭。"""
 
-WORKER_KILL_TIMEOUT_SEC = 90.0
-"""文字起こしワーカーを 1 つ止めるまで待つ上限。"""
-
 WORKER_READY_TIMEOUT_SEC = 60.0
 """やり直しのワーカーが ready になるまで待つ上限。"""
 
-WORKER_KILL_INTERVAL_SEC = 0.2
-"""文字起こしワーカーを止める試みの間隔。"""
+READY_PID_PATTERN = re.compile(r"pid (\d+)")
+"""文字起こしワーカーが ready になったときのログの文から、ランチャーの番号を取る形。"""
+
+TOOLHELP_SNAPSHOT_PROCESS = 0x2
+"""Toolhelp のスナップショットに、プロセスを入れる指定（TH32CS_SNAPPROCESS）。"""
+
+TOOLHELP_EXE_FILE_CHARS = 260
+"""Toolhelp のプロセスの 1 行が持つ、実行ファイル名の最大の文字数（MAX_PATH）。"""
+
+WORKER_READY_POLL_SEC = 0.05
+"""やり直しのワーカーが ready になったかを確かめる間隔（ready の直後に止めるため短くする）。"""
 
 REQUEST_TIMEOUT_SEC = 10.0
 """テストが API を叩くときのタイムアウト。"""
@@ -888,41 +898,98 @@ def worker_processes() -> list[ProcessInfo]:
     return processes_with(WORKER_MODULE, os.getpid())
 
 
-def kill_workers() -> int:
-    """文字起こしワーカーを止め、止めたワーカーの数（ランチャーの数）を返す。"""
-    workers = worker_processes()
-    worker_pids = {worker.pid for worker in workers}
-    # ランチャー（親がワーカーでないもの）を子孫ごと止める
-    roots = [worker for worker in workers if worker.parent_pid not in worker_pids]
-    for root in roots:
-        kill_tree(root.pid)
-    return len(roots)
+def worker_process_pids() -> set[int]:
+    """文字起こしワーカーのプロセス（ランチャーと本体）の番号を返す。"""
+    return {worker.pid for worker in worker_processes()}
 
 
-def worker_ready_count(caplog: pytest.LogCaptureFixture) -> int:
-    """文字起こしワーカーが ready になった回数（立て直しを含む）を、控えたログから数える。
+def worker_ready_messages(caplog: pytest.LogCaptureFixture) -> list[str]:
+    """文字起こしワーカーが ready になったときのログの文（立て直しを含む）を、控えたログから順に返す。
 
     テストは先に `caplog.set_level(logging.INFO, logger=WORKER_CLIENT_LOGGER)` を呼んでから配線する。
     """
-    return sum(WORKER_READY_LOG in record.getMessage() for record in caplog.records)
+    return [
+        record.getMessage() for record in caplog.records if WORKER_READY_LOG in record.getMessage()
+    ]
 
 
-def kill_one_worker() -> bool:
-    """文字起こしワーカーが現れるまで待って止め、止めたかを返す。"""
-    deadline = time.monotonic() + WORKER_KILL_TIMEOUT_SEC
-    while time.monotonic() < deadline:
-        if kill_workers() > 0:
-            return True
-        time.sleep(WORKER_KILL_INTERVAL_SEC)
-    return False
+class _ProcessEntry(ctypes.Structure):
+    """Toolhelp のプロセスの 1 行（PROCESSENTRY32W）。"""
+
+    _fields_ = (
+        ("dwSize", wintypes.DWORD),
+        ("cntUsage", wintypes.DWORD),
+        ("th32ProcessID", wintypes.DWORD),
+        ("th32DefaultHeapID", ctypes.c_size_t),
+        ("th32ModuleID", wintypes.DWORD),
+        ("cntThreads", wintypes.DWORD),
+        ("th32ParentProcessID", wintypes.DWORD),
+        ("pcPriClassBase", ctypes.c_long),
+        ("dwFlags", wintypes.DWORD),
+        ("szExeFile", ctypes.c_wchar * TOOLHELP_EXE_FILE_CHARS),
+    )
 
 
-def kill_workers_twice(caplog: pytest.LogCaptureFixture) -> int:
-    """文字起こしワーカーを止め、やり直しに立ったワーカーも ready になってから止める。止めた回数を返す。"""
+def process_tree_pids(root_pid: int) -> set[int]:
+    """root_pid とその子孫のプロセスの番号を、Toolhelp のスナップショットで直ちに引いて返す（PowerShell の一覧は数秒かかる）。"""
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.CreateToolhelp32Snapshot.restype = wintypes.HANDLE
+    snapshot = kernel32.CreateToolhelp32Snapshot(TOOLHELP_SNAPSHOT_PROCESS, 0)
+    parents: dict[int, int] = {}
+    entry = _ProcessEntry()
+    entry.dwSize = ctypes.sizeof(_ProcessEntry)
+    try:
+        found = kernel32.Process32FirstW(snapshot, ctypes.byref(entry))
+        while found:
+            parents[entry.th32ProcessID] = entry.th32ParentProcessID
+            found = kernel32.Process32NextW(snapshot, ctypes.byref(entry))
+    finally:
+        kernel32.CloseHandle(snapshot)
+    tree = {root_pid}
+    # 親が tree に入っているプロセスを、増えなくなるまで足す
+    grown = True
+    while grown:
+        children = {pid for pid, parent in parents.items() if parent in tree} - tree
+        tree |= children
+        grown = bool(children)
+    return tree
+
+
+def kill_one_worker(pids: Iterable[int]) -> bool:
+    """番号のプロセス（ワーカーのランチャーと本体）を止め、止める番号があったかを返す。
+
+    プロセスの一覧は引かない（一覧を引く間に文字起こしが終わるため、番号は止める時刻より前に引いておく）。
+    taskkill も使わない（子孫を探すために数秒かかる）。Windows では os.kill が番号のプロセスを直ちに終わらせる。
+    """
+    targets = list(pids)
+    for pid in targets:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except OSError:
+            # 先に止めたランチャーとともに既に終わっているプロセス
+            continue
+    return bool(targets)
+
+
+def kill_workers_twice(
+    first_pids: Iterable[int], ready_messages: Callable[[], list[str]]
+) -> int:
+    """引いておいた番号のワーカーを止め、やり直しに立ったワーカーも ready になった直後に止める。止めた回数を返す。
+
+    first_pids は止める時刻より前に引いた、1 回目に止めるワーカーの番号。
+    ready_messages は ready になったときのログの文を順に返す関数。
+    """
     # 1. 立ち上がっているワーカーを止める（窓口が落ちたことに気づいて立て直す）
-    ready_before = worker_ready_count(caplog)
-    kills = int(kill_one_worker())
+    ready_before = len(ready_messages())
+    kills = int(kill_one_worker(first_pids))
 
-    # 2. やり直しのワーカーが ready になるのを待って止める（読み込みの途中で止めると、やり直しの前に失敗する）
-    assert wait_until(lambda: worker_ready_count(caplog) > ready_before, WORKER_READY_TIMEOUT_SEC)
-    return kills + int(kill_one_worker())
+    # 2. やり直しのワーカーが ready になるのを待つ（読み込みの途中で止めると、やり直しの前に失敗する）
+    deadline = time.monotonic() + WORKER_READY_TIMEOUT_SEC
+    while len(ready_messages()) <= ready_before:
+        assert time.monotonic() < deadline, "やり直しのワーカーが ready にならなかった"
+        time.sleep(WORKER_READY_POLL_SEC)
+
+    # 3. ready のログに書かれたランチャーの番号から、一覧を引かずに子孫ごと止める
+    match = READY_PID_PATTERN.search(ready_messages()[-1])
+    assert match is not None, "ready のログにワーカーの番号が無い"
+    return kills + int(kill_one_worker(process_tree_pids(int(match.group(1)))))

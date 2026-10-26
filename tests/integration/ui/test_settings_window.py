@@ -1469,7 +1469,7 @@ def test_save_button_when_enter_modifiers(open_window: Callable[..., Opened]) ->
 
 
 def test_save_button_when_default(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """既定のままでも保存できる（録音の開始と「貼り付けて送信」が同じホットキーなのは重なりにしない。用語集は今の 1 件を一覧に書き、「既定」のプリセットがそれだけを使う形に書く。書き戻す CSV は無い）。"""
+    """既定のままでも保存できる（録音の開始と「貼り付けて送信」が同じホットキーなのは重なりにしない。用語集は今の 1 件を一覧に書き、「既定」のプリセットがそれだけを使う構成で書く。書き戻す CSV は無い）。"""
     from voice_paste.shared.settings import GlossaryPresetSettings, GlossarySettings
 
     # 準備
@@ -1504,7 +1504,7 @@ def test_save_button_when_invalid(open_window: Callable[..., Opened]) -> None:
 
 
 def test_save_button_when_fixed_after_invalid(open_window: Callable[..., Opened]) -> None:
-    """修正して保存し直すと、前の保存で出したエラーの一覧と欄の下のエラーを消し、保存したメッセージを出す。"""
+    """修正して保存し直すと、前の保存で出したエラーの一覧と欄の下のエラーを削除し、保存したメッセージを出す。"""
     from PySide6.QtCore import QEvent
     from PySide6.QtWidgets import QApplication
 
@@ -1669,7 +1669,7 @@ def test_saved_notice_when_saved_twice(open_window: Callable[..., Opened]) -> No
 
 
 def test_saved_notice_when_field_changed(open_window: Callable[..., Opened]) -> None:
-    """保存の後に欄を変えると、保存したメッセージと「今すぐ再起動」を消し、再起動のメッセージと「保存して再起動」を開いたときの値から数え直して出す。"""
+    """保存の後に欄を変えると、保存したメッセージと「今すぐ再起動」を削除し、再起動のメッセージと「保存して再起動」を開いたときの値から数え直して出す。"""
     # 準備
     opened = open_window()
     _set_text(opened.window, RESTART_KEY, "12")
@@ -2251,7 +2251,7 @@ def test_glossary_preset_list_initial_value(
 def test_glossary_preset_list_when_presets_empty(
     open_window: Callable[..., Opened], tmp_path: Path, active: str | None, used: list[str]
 ) -> None:
-    """glossary_presets が空なら、active_glossary の用語集だけを使う「既定」の 1 件を出す（無い・一覧に無ければ 1 つ目の用語集）。保存でこのキーを削除して、プリセットの形に書く。"""
+    """glossary_presets が空なら、active_glossary の用語集だけを使う「既定」の 1 件を出す（無い・一覧に無ければ 1 つ目の用語集）。保存でこのキーを削除して、プリセットの構成で書く。"""
     # 実行
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, active=active)
 

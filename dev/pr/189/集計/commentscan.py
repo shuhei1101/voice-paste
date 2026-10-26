@@ -1,4 +1,4 @@
-"""#183 の pyscan.py と同じ語のパターンを、src/・tests/ のコメント・docstring・ログの文言に当てて数える。
+"""#183 の pyscan.py の語のパターンに「消せ・消さ・直せ・直さ」を追加し、src/・tests/ のコメント・docstring・ログの文言に当てて数える。
 
 数える文字列: .py のコメント・docstring・式文だけの文字列・ログの呼び出しの引数の文字列リテラルと、
 .ts / .js / .css / .html のコメント。
@@ -13,7 +13,7 @@ import sys
 import tokenize
 
 K = r'[一-鿿々]'
-MULTI = ['送る', '送っ', '送れ', '送ら', '送り', '足す', '足し', '足さ', '足せ', '問い', '答え', '写し', '消す', '消し', '直す', '直し']
+MULTI = ['送る', '送っ', '送れ', '送ら', '送り', '足す', '足し', '足さ', '足せ', '問い', '答え', '写し', '消す', '消し', '消せ', '消さ', '直す', '直し', '直せ', '直さ']
 SINGLE = ['版', '節', '印', '口', '形', '段', '題']
 PAT = re.compile('|'.join(MULTI) + '|' + '|'.join(f'(?<!{K}){c}(?!{K})' for c in SINGLE))
 LOG_METHODS = {'debug', 'info', 'warning', 'error', 'exception', 'critical'}

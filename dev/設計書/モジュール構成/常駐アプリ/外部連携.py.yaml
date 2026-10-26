@@ -143,11 +143,11 @@ classes:
              - それ以外で子プロセスが応答の途中で終わった場合、子プロセスを start(ready_timeout_sec=_ready_timeout_sec) で起動し直して同じ録音をもう一度送信する（やり直しは 1 回だけ）
                - `[WARNING]` 文字起こしワーカーが落ちたので立て直す（終了コード）
                - 立て直しで ready が上限までに届かなければ、start が子プロセスを止めて EngineError を送出する
-             - やり直しも落ちた場合、子プロセスを同じ上限でもう一度起動して次の録音に備え、EngineError を送出する
+             - やり直しも異常終了した場合、子プロセスを同じ上限でもう一度起動して次の録音に備え、EngineError を送出する
              - ワーカーがエラーを返した場合、起動し直さずに EngineError を送出する
         exceptions:
           - name: EngineError
-            condition: やり直したワーカーも落ちた
+            condition: やり直したワーカーも異常終了した
           - name: EngineError
             condition: ワーカーがエラーを返した
         unit_tests:
@@ -159,11 +159,11 @@ classes:
             expected: 結果が返り、Popen が 2 回呼ばれる
           - name: test_transcribe_when_retry_crashed
             case: 異常
-            summary: やり直しも落ちたら EngineError、次に備えて起動し直す
+            summary: やり直しも異常終了したら EngineError、次に備えて起動し直す
             condition: 2 つの子プロセスがどちらも応答の途中で終わる
             mock: subprocess.Popen
             expected: EngineError が送出され、Popen が 3 回呼ばれる
-            exception: やり直したワーカーも落ちた
+            exception: やり直したワーカーも異常終了した
           - name: test_transcribe
             case: 正常
             summary: 進みを知らせ、区間ごとの文字を返す
@@ -183,7 +183,7 @@ classes:
             condition: _ready_timeout_sec=0.1。1 つ目の子プロセスは応答の途中で終わり、2 つ目は ready を返さない
             mock: subprocess.Popen
             expected: EngineError が送出され、2 つ目の子プロセスが止められ、待ちが 1 秒未満で終わる
-            exception: やり直したワーカーも落ちた
+            exception: やり直したワーカーも異常終了した
           - name: test_transcribe_when_hint
             case: 正常
             summary: 手がかりを hotwords に載せて送信する

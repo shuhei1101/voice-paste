@@ -685,7 +685,7 @@ settings:
     type: list[string]
     default: '[]'
     description: '`/web/` の下へ要求を送ってよいブラウザのオリジン（`https://{ゲートウェイの公開のサブドメイン}` の形）。`/web/` の下の POST は Origin がこの一覧にあるときだけ通し、GET は Origin が無いか、この一覧にあるときだけ通す。空なら外の端末の画面から送信できない'
-    allowed: '`scheme://host[:port]` の形のオリジン。末尾の `/` とパスを付けない'
+    allowed: '`scheme://host[:port]` の形式のオリジン。末尾の `/` とパスを付けない'
     reload: restart
     status: planned
     implementation: src/voice_paste/shared/settings.py

@@ -430,7 +430,7 @@ progress {
   background: var(--notice-bg);
 }
 
-/* 送れなかったなどのエラー */
+/* 送信できなかったなどのエラー */
 .web-error {
   border: 1px solid var(--error);
   background: var(--error-bg);
@@ -482,7 +482,7 @@ progress {
 /* 送信済みの音声 */
 .kept__state--ok { color: var(--ok); }
 
-/* 送れていない・文字にできなかった音声 */
+/* 送信できていない・文字にできなかった音声 */
 .kept__state--error { color: var(--error); font-weight: 600; }
 
 /* 送信中の音声 */

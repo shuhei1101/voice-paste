@@ -4,7 +4,7 @@
 
 // ===== 定数 =====
 
-/** 本文の上限（バイト。これ以上は送らない）。常駐アプリの BodyLimitMiddleware と同じ値。 */
+/** 本文の上限（バイト。これ以上は送信しない）。常駐アプリの BodyLimitMiddleware と同じ値。 */
 const BODY_LIMIT_BYTES = 100_000_000;
 /** 画面の録音の上限時間（秒）。 */
 const RECORDING_LIMIT_SEC = 1800;
@@ -40,7 +40,7 @@ const RESULTS_STORAGE_KEY = 'voice-paste.results';
 const RECORDED_SOURCE = '画面録音';
 /** 日時の表示に使う時間帯。 */
 const TIME_ZONE = 'Asia/Tokyo';
-/** 送れていない・文字にできていない端末内の音声の状態の表示文言。 */
+/** 送信できていない・文字にできていない端末内の音声の状態の表示文言。 */
 const KEPT_ERROR_LABELS = {
   send_failed: '送信失敗',
   preset_not_found: '未送信',
@@ -563,7 +563,7 @@ async function sendKept(): Promise<void> {
 async function sendFile(file: File): Promise<void> {
   state.sendError = null;
   state.presetNotFound = null;
-  // 本文の上限以上は送らずに断る
+  // 本文の上限以上は送信せずに断る
   if (file.size >= BODY_LIMIT_BYTES) {
     state.sendError = errorForStatus(413, file.name, file.size, true);
     render();
@@ -738,7 +738,7 @@ function render(): void {
   renderResults();
 }
 
-/** 端末内の音声が、送れていない・文字にできていない状態か。 */
+/** 端末内の音声が、送信できていない・文字にできていない状態か。 */
 function keptNeedsResend(): boolean {
   return (
     state.kept !== null &&
@@ -1091,7 +1091,7 @@ async function init(): Promise<void> {
   if (kept && isExpired(kept.recorded_at)) {
     await deleteKept();
   } else if (kept) {
-    // 送信の途中で画面を閉じた音声は、送れていないものとして扱う
+    // 送信の途中で画面を閉じた音声は、送信できていないものとして扱う
     if (kept.state === 'sending') {
       kept.state = 'send_failed';
       await saveKept(kept);

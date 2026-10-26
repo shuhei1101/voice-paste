@@ -55,7 +55,7 @@ DEFAULT_POSITION: str = "end"
 """追加した行の位置。"""
 
 NARROW_WIDTH_PX: int = 420
-"""この幅より狭い部品では、1 行を 2 行（上に文言の欄、下に位置と削除ボタン）に組み、列の見出しの行を隠す。"""
+"""この幅より狭い部品では、1 行を上下 2 つの並び（上に文言の欄、下に位置と削除ボタン）に組み、列の見出しの行を隠す。"""
 
 TEXT_HEADING: str = "文言"
 POSITION_HEADING: str = "位置"
@@ -352,7 +352,7 @@ class EdgePhrasePanel(QWidget):
         return header
 
     def _sync_header(self) -> None:
-        """列の見出しの行を、行があって 1 行の組みのときだけ出す（2 行の組みでは各欄の読み上げの名前に任せる）。"""
+        """列の見出しの行を、行があって横 1 列の組みのときだけ出す（上下 2 つの並びの組みでは各欄の読み上げの名前に任せる）。"""
         self._header.setVisible(bool(self._rows) and not self._narrow)
 
     def _add_row(self, position: int, value: dict[str, Any]) -> None:
@@ -417,7 +417,7 @@ class EdgePhrasePanel(QWidget):
         grid.setColumnStretch(1, 1)
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802 Qt の名前
-        """幅が狭ければ 1 行を 2 行に組み、広がれば 1 行に戻す。"""
+        """幅が狭ければ 1 行を上下 2 つの並びに組み、広がれば横 1 列に戻す。"""
         super().resizeEvent(event)
         narrow = event.size().width() < NARROW_WIDTH_PX
         if narrow != self._narrow:

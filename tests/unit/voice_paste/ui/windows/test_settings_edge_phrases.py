@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 
 PANEL_WIDTH_PX = 600
-"""1 行の組みになる幅（NARROW_WIDTH_PX より広い）。"""
+"""横 1 列の組みになる幅（NARROW_WIDTH_PX より広い）。"""
 
 
 @pytest.fixture
@@ -110,7 +110,7 @@ def test_edge_phrase_panel_header_when_empty(open_panel: Callable[..., EdgePhras
 
 
 def test_edge_phrase_panel_header_when_narrow(open_panel: Callable[..., EdgePhrasePanel]) -> None:
-    """幅が狭くて 2 行に組むときは見出しの行を隠し、広がれば戻す（正常系）。"""
+    """幅が狭くて上下 2 つの並びに組むときは見出しの行を隠し、広がれば戻す（正常系）。"""
     from voice_paste.shared.settings import EdgePhraseSettings
     from voice_paste.ui.windows.settings_edge_phrases import NARROW_WIDTH_PX
 

@@ -1,7 +1,7 @@
 """ブラウザの本文の上限（web_body_limit）の非機能要件テスト。
 
 常駐アプリを pytest のプロセスの中で `build_handlers` で配線し、`build_fastapi` で組み立てた app を 127.0.0.1 で待ち受けさせて、
-上限（100,000,000 バイト）の前後の大きさの本文を `POST /web/transcriptions` で送る。
+上限（100,000,000 バイト）の前後の大きさの本文を `POST /web/transcriptions` で送信する。
 本文は multipart の境界とヘッダーを含めてちょうどの大きさにする。文字起こしのエンジンは決めた文を返す関数に差し替える。
 `--run-e2e` が無ければ skip する。
 """
@@ -65,7 +65,7 @@ def test_web_body_limit_when_at_limit(
     monkeypatch: pytest.MonkeyPatch,
     chunked: bool,
 ) -> None:
-    """上限ちょうどの本文を、Content-Length を付けても付けずに chunked で送っても断り、一時のファイルを残さない（実機）。"""
+    """上限ちょうどの本文を、Content-Length を付けても付けずに chunked で送信しても断り、一時のファイルを残さない（実機）。"""
     # 準備
     app = _start(start_inprocess, tmp_path, monkeypatch)
     assert app.api is not None

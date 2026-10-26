@@ -131,7 +131,7 @@ WORKER_READY_TIMEOUT_SEC = 60.0
 """やり直しのワーカーが ready になるまで待つ上限。"""
 
 READY_PID_PATTERN = re.compile(r"pid (\d+)")
-"""文字起こしワーカーが ready になったときのログの文から、ランチャーの番号を取る形。"""
+"""文字起こしワーカーが ready になったときのログの文から、ランチャーの番号を取る正規表現。"""
 
 TOOLHELP_SNAPSHOT_PROCESS = 0x2
 """Toolhelp のスナップショットに、プロセスを入れる指定（TH32CS_SNAPPROCESS）。"""
@@ -146,7 +146,7 @@ REQUEST_TIMEOUT_SEC = 10.0
 """テストが API を叩くときのタイムアウト。"""
 
 LARGE_BODY_TIMEOUT_SEC = 120.0
-"""本文の上限に近い大きさの音声を送るときのタイムアウト。"""
+"""本文の上限に近い大きさの音声を送信するときのタイムアウト。"""
 
 LOOPBACK = "127.0.0.1"
 
@@ -234,7 +234,7 @@ def speech_timeline_input(
 ) -> WavInput:
     """(文, その文の前に挟む無音の秒数) の並びを 1 文ずつ読み上げ、前後の無音を削ってつないだ WAV を、実時間で流す録音の入力を作る。
 
-    最初の文の前には、文ごとの無音ではなく lead_silence_sec 秒の無音を置く。最後の文の後に tail_silence_sec 秒の無音を足す（流し終えた後も無音を流し続けたいとき）。
+    最初の文の前には、文ごとの無音ではなく lead_silence_sec 秒の無音を置く。最後の文の後に tail_silence_sec 秒の無音を追加する（流し終えた後も無音を流し続けたいとき）。
     """
     # 1. 最初に無音を置き、1 文ずつ読み上げて前後の無音を削り、文の前に決めた長さの無音を挟んで並べる（文の終わりの位置を控える）
     pieces: list[np.ndarray] = [np.zeros(round(SAMPLE_RATE * lead_silence_sec), dtype=np.int16)]
@@ -251,7 +251,7 @@ def speech_timeline_input(
         position += len(spoken)
         ends_sec.append(position / SAMPLE_RATE)
 
-    # 2. 最後の文の後に流し続ける無音を足して 1 本につなぐ
+    # 2. 最後の文の後に流し続ける無音を追加して 1 本につなぐ
     pieces.append(np.zeros(round(SAMPLE_RATE * tail_silence_sec), dtype=np.int16))
     return WavInput(np.concatenate(pieces), realtime=True, sentence_ends_sec=tuple(ends_sec))
 
@@ -402,7 +402,7 @@ class VolumeLog:
 
 @dataclass
 class KeyLog:
-    """貼り付けのキーと Enter の送信の代わり。キーを送らずに、押された回数と Enter に添えた修飾キーを控える。"""
+    """貼り付けのキーと Enter の送信の代わり。キーを送信せずに、押された回数と Enter に添えた修飾キーを控える。"""
 
     pasted: list[str] = field(default_factory=list)
     enters: int = 0
@@ -526,7 +526,7 @@ def fail_transcription_of_segment(monkeypatch: pytest.MonkeyPatch, segment_numbe
     monkeypatch.setattr(main_module, "transcribe", _transcribe)
 
 
-# === ブラウザが送る音声 ===
+# === ブラウザが送信する音声 ===
 
 
 def encode_audio(wav_path: Path, container: str) -> bytes:
@@ -690,7 +690,7 @@ class InProcessApi:
         return response, (time.perf_counter() - started) * 1000
 
     def web_headers(self, **extra: str) -> dict[str, str]:
-        """ゲートウェイを通した形の `/web/` の要求のヘッダー（Host は localhost:{ポート}、トークン無し）に extra を足す。"""
+        """ゲートウェイを通した構成の `/web/` の要求のヘッダー（Host は localhost:{ポート}、トークン無し）に extra を追加する。"""
         return {"Host": f"localhost:{self.port}", **extra}
 
     def post_web_audio(
@@ -701,7 +701,7 @@ class InProcessApi:
         filename: str = "recording.webm",
         glossary_preset: str | None = None,
     ) -> httpx.Response:
-        """音声を multipart の audio で POST /web/transcriptions へ送る。origin が None なら画面と同じオリジンで送り、glossary_preset があれば用語集のプリセットの名前を一緒に送る。"""
+        """音声を multipart の audio で POST /web/transcriptions へ送信する。origin が None なら画面と同じオリジンで送信し、glossary_preset があれば用語集のプリセットの名前を一緒に送信する。"""
         headers = self.web_headers(Origin=self.web_origin if origin is None else origin)
         form = None if glossary_preset is None else {"glossary_preset": glossary_preset}
         return self.http.post(
@@ -712,7 +712,7 @@ class InProcessApi:
         )
 
     def post_web_body(self, body: bytes, *, chunked: bool = False) -> httpx.Response:
-        """sized_multipart_body で作った本文を POST /web/transcriptions へ送る（画面と同じオリジン）。chunked なら Content-Length を付けずに送る。"""
+        """sized_multipart_body で作った本文を POST /web/transcriptions へ送信する（画面と同じオリジン）。chunked なら Content-Length を付けずに送信する。"""
         headers = self.web_headers(Origin=self.web_origin, **{"Content-Type": CONTENT_TYPE})
         return self.http.post(
             "/web/transcriptions",
@@ -946,7 +946,7 @@ def process_tree_pids(root_pid: int) -> set[int]:
     finally:
         kernel32.CloseHandle(snapshot)
     tree = {root_pid}
-    # 親が tree に入っているプロセスを、増えなくなるまで足す
+    # 親が tree に入っているプロセスを、増えなくなるまで追加する
     grown = True
     while grown:
         children = {pid for pid, parent in parents.items() if parent in tree} - tree

@@ -17,7 +17,7 @@ VAD_CONTEXT: int = 64
 """Silero VAD が前の窓から持ち越す文脈のサンプル数（faster-whisper の context_size_samples と同じ）。"""
 
 VAD_STATE_SHAPE: tuple[int, int, int] = (1, 1, 128)
-"""Silero VAD の LSTM の状態 h・c の形。"""
+"""Silero VAD の LSTM の状態 h・c の形状。"""
 
 VAD_MODEL_RELATIVE_PATH: str = "assets/silero_vad_v6.onnx"
 """faster-whisper のパッケージからの Silero VAD のモデルの置き場所（faster-whisper 1.2.1 の get_vad_model が開くものと同じ）。"""

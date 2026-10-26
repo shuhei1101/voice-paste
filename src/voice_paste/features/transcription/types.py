@@ -17,7 +17,7 @@ class EngineName(StrEnum):
 
 
 class EngineFn(Protocol):
-    """1 つのエンジンで録音を起こす関数。エンジンを足すときはこの型の実装を足して main.py で登録する。"""
+    """1 つのエンジンで録音を起こす関数。エンジンを追加するときはこの型の実装を追加して main.py で登録する。"""
 
     def __call__(
         self, audio_path: Path, *, on_progress: ProgressFn | None = None, hint: str | None = None

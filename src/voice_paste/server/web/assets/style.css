@@ -220,7 +220,7 @@ body {
   stroke-linejoin: round;
 }
 
-/* 録音を始める印・止める印: 塗りの図形 */
+/* 録音を始めるマーカー・止めるマーカー: 塗りの図形 */
 .btn svg .fill { fill: currentColor; stroke: none; }
 
 /* 押せないボタン: 地を沈めて文字を補足の色にする（文字のコントラストを保つ） */
@@ -262,7 +262,7 @@ label.btn:focus-within { outline: 2px solid var(--text); outline-offset: 2px; }
 /* 録音中 */
 .state--rec { color: var(--rec); }
 
-/* 回る印 */
+/* 回るマーカー */
 .spinner {
   flex: none;
   width: 18px;
@@ -273,12 +273,12 @@ label.btn:focus-within { outline: 2px solid var(--text); outline-offset: 2px; }
   animation: spin 0.9s linear infinite;
 }
 
-/* 回る印の動き */
+/* 回るマーカーの動き */
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* 動きを減らす設定では止める */
 @media (prefers-reduced-motion: reduce) {
-  /* 回る印を止める */
+  /* 回るマーカーを止める */
   .spinner { animation: none; }
 }
 
@@ -430,7 +430,7 @@ progress {
   background: var(--notice-bg);
 }
 
-/* 送れなかったなどのエラー */
+/* 送信できなかったなどのエラー */
 .web-error {
   border: 1px solid var(--error);
   background: var(--error-bg);
@@ -469,7 +469,7 @@ progress {
   color: var(--text-2);
 }
 
-/* 端末内の音声の状態: 印と文言を並べる */
+/* 端末内の音声の状態: マーカーと文言を並べる */
 .kept__state {
   display: inline-flex;
   align-items: center;
@@ -482,7 +482,7 @@ progress {
 /* 送信済みの音声 */
 .kept__state--ok { color: var(--ok); }
 
-/* 送れていない・文字にできなかった音声 */
+/* 送信できていない・文字にできなかった音声 */
 .kept__state--error { color: var(--error); font-weight: 600; }
 
 /* 送信中の音声 */
@@ -561,7 +561,7 @@ progress {
 /* 失敗・見つからないの状態 */
 .result__status--error { color: var(--error); }
 
-/* 失敗の理由と直し方 */
+/* 失敗の理由と修正方法 */
 .result__detail {
   margin: 0;
   font-size: 13px;

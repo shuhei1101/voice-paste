@@ -36,7 +36,7 @@
           <p>プリセットの一覧を取得できませんでした。送信した音声は、PC の設定で選択中のプリセットで補正します。</p>
         </div>
 
-        <!-- 一覧に無いプリセットのエラー: 選んだプリセットが削除済みで 400 になったときだけ出す。次の送信か録音を始めると消す -->
+        <!-- 一覧に無いプリセットのエラー: 選んだプリセットが削除済みで 400 になったときだけ出す。次の送信か録音を始めると削除する -->
         <div class="web-error" role="alert" id="preset-not-found-error" data-element="preset_not_found_error" hidden>
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>
           <div>
@@ -57,7 +57,7 @@
             <span class="file-sending__name" data-element="file_sending_name"></span>
             <span class="kept__state kept__state--busy" role="status" data-element="file_sending_state"><span class="spinner" aria-hidden="true"></span><span id="file-sending-text"></span></span>
           </div>
-          <!-- 送っているファイルに付けたプリセット: ファイル名が長いと省かれるため別の行に出す -->
+          <!-- 送信しているファイルに付けたプリセット: ファイル名が長いと省かれるため別の行に出す -->
           <span class="file-sending__preset" id="file-sending-preset" data-element="file_sending_preset"></span>
           <progress max="100" value="0" aria-label="送信の進捗" id="file-sending-progress" data-element="file_sending_progress"></progress>
         </div>
@@ -82,7 +82,7 @@
           <p>上限 30 分に到達。録音停止・送信中</p>
         </div>
 
-        <!-- 送信・録音の開始の失敗: 次の送信か録音を始めると消す -->
+        <!-- 送信・録音の開始の失敗: 次の送信か録音を始めると削除する -->
         <div class="web-error" role="alert" id="send-error" data-element="send_error" hidden>
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>
           <div>
@@ -122,7 +122,7 @@
     </div>
   </main>
 
-  <!-- 結果 1 件の雛形: app.js が複製して一覧に足す -->
+  <!-- 結果 1 件の雛形: app.js が複製して一覧に追加する -->
   <template id="result-template">
     <li class="result">
       <div class="result__head"><span class="result__time num" data-element="result_time"></span><span class="result__src" data-element="result_source"></span></div>

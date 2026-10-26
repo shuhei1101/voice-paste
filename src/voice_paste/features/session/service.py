@@ -32,7 +32,7 @@ WORKER_THREAD_NAME: str = "session-worker"
 """文字起こしから届けるまでを動かすワーカースレッドの名前。"""
 
 type SegmentQueue = queue.Queue[tuple[int, Segment] | ContinuousEnd | None]
-"""連続録音の区間（通し番号つき）を区切った順に、ワーカースレッドへ渡す待ち行列。ContinuousEnd は終わりの印、None は終了で返さずにやめる印。"""
+"""連続録音の区間（通し番号つき）を区切った順に、ワーカースレッドへ渡す待ち行列。ContinuousEnd は終わりのマーカー、None は終了で返さずにやめるマーカー。"""
 
 
 class SessionManager:
@@ -324,7 +324,7 @@ class SessionManager:
     # === ワーカースレッドの中 ===
 
     def _run_after_confirm(self, session: Session, audio_path: Path) -> None:
-        """文字起こし → 補正 → 履歴への書き足し → 届けるを行い、待機中に戻す。"""
+        """文字起こし → 補正 → 履歴への追記 → 届けるを行い、待機中に戻す。"""
         is_api = session.entry == Entry.API
         # どこで失敗したかを知らせの種類に使う（届ける前か後か）
         stage = "transcription"
@@ -339,7 +339,7 @@ class SessionManager:
                 self._report_failure(session, str(error), stage)
                 return
 
-            # 2〜3. 用語集で補正し、履歴に書き足す
+            # 2〜3. 用語集で補正し、履歴に追記する
             corrected = self._deps.correct(text, session.glossary_preset)
             self._deps.append_text(audio_path, corrected)
 
@@ -402,7 +402,7 @@ class SessionManager:
             self._deps.notify(event, reason)
 
     def _finish(self, session: Session, audio_path: Path) -> None:
-        """一時の音声を消し、セッションを空にして待機中を知らせる。"""
+        """一時の音声を削除し、セッションを空にして待機中を知らせる。"""
         try:
             self._deps.discard_temporary(audio_path)
         finally:
@@ -416,7 +416,7 @@ class SessionManager:
     def _finish_continuous_recording(
         self, session_id: str, result: Literal["completed", "truncated"]
     ) -> bool:
-        """連続録音を transcribing にしてからロックを離して録音を止め、最後の区間の後ろに終わりの印を積む。終えられたかを返す。
+        """連続録音を transcribing にしてからロックを離して録音を止め、最後の区間の後ろに終わりのマーカーを積む。終えられたかを返す。
 
         録音を止めると区切りのスレッドが最後の区間を _on_segment へ渡す（_on_segment はロックを取る）ため、
         状態を書き換えた後にロックを離してから止める。先に transcribing にするので、同じセッションへの 2 度目の完了・打ち切りは通らない。
@@ -442,7 +442,7 @@ class SessionManager:
         except Exception:  # noqa: BLE001 止められなくても区切った区間と終わりは返すため
             logger.exception(f"連続録音を止められなかった（{session_id}）")
 
-        # 3. 最後の区間の後ろに終わりの印を積む
+        # 3. 最後の区間の後ろに終わりのマーカーを積む
         segments.put(ContinuousEnd(result=result))
         logger.info(f"連続録音を終えた（{session_id}・{result}）")
         return True
@@ -483,17 +483,17 @@ class SessionManager:
             ):
                 return
 
-            # 録音は録音が止めている。終わりの印を積めば、ワーカースレッドがそれまでの区間の後ろに終わりを返す
+            # 録音は録音が止めている。終わりのマーカーを積めば、ワーカースレッドがそれまでの区間の後ろに終わりを返す
             self._change_state(session, SessionState.TRANSCRIBING)
             segments.put(ContinuousEnd(result="failed", error=reason))
             logger.error(f"連続録音が区切りの失敗で止まった（{session.id}・{reason}）")
 
     def _run_segments(self, session: Session, segments: SegmentQueue) -> None:
-        """ワーカースレッドで、区間の待ち行列を区切った順に 1 つずつ処理し、終わりの印で終わりを返して待機中に戻す。
+        """ワーカースレッドで、区間の待ち行列を区切った順に 1 つずつ処理し、終わりのマーカーで終わりを返して待機中に戻す。
 
         前の区間の返送（再送を含む）を終えてから次の区間を処理するので、返送は通し番号の順に届き、終わりは全ての区間の後ろになる。
         """
-        # 処理した区間の数（通し番号は 1 から 1 ずつ増えるので、終わりの印のときは区切った区間の数になる）
+        # 処理した区間の数（通し番号は 1 から 1 ずつ増えるので、終わりのマーカーのときは区切った区間の数になる）
         segment_count = 0
         while True:
             item = segments.get()
@@ -502,7 +502,7 @@ class SessionManager:
             if item is None:
                 return
 
-            # 終わりの印: 終わった理由と区間の数を届けて、ループを抜ける
+            # 終わりのマーカー: 終わった理由と区間の数を届けて、ループを抜ける
             if isinstance(item, ContinuousEnd):
                 self._deliver_continuous_end(session, item, segment_count)
                 break
@@ -535,10 +535,10 @@ class SessionManager:
             logger.exception(f"連続録音の終わりを届けられなかった（{session.id}）")
 
     def _process_segment(self, session: Session, number: int, segment: Segment) -> None:
-        """1 区間を保存 → 文字起こし → 補正 → 履歴への書き足し → 返すの順に処理する。失敗はその区間の failed として返し、連続録音は止めない。"""
+        """1 区間を保存 → 文字起こし → 補正 → 履歴への追記 → 返すの順に処理する。失敗はその区間の failed として返し、連続録音は止めない。"""
         audio_path: Path | None = None
         try:
-            # 1〜3. 区間の音を保存し、文字に起こして用語集で補正し、区間の録音と同じ履歴に書き足す
+            # 1〜3. 区間の音を保存し、文字に起こして用語集で補正し、区間の録音と同じ履歴に追記する
             try:
                 audio_path = self._deps.save_recording(session.id, segment.recording, number)
                 text = self._deps.transcribe(audio_path, None)
@@ -567,7 +567,7 @@ class SessionManager:
             except Exception:  # noqa: BLE001 区間を届けられなくても次の区間へ進むため
                 logger.exception(f"区間を届けられなかった（{session.id}・{number}）")
         finally:
-            # 5. どの経路でも、保存した区間が一時の音声なら消す
+            # 5. どの経路でも、保存した区間が一時の音声なら削除する
             if audio_path is not None:
                 self._deps.discard_temporary(audio_path)
 

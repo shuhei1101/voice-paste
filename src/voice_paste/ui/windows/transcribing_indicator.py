@@ -22,13 +22,13 @@ TICK_MSEC: int = 100
 """経過と残りの時間を描き直す間隔（ミリ秒）。"""
 
 SPINNER_FRAME_MSEC: int = 16
-"""回る印を描き直す間隔（ミリ秒）。"""
+"""回るマーカーを描き直す間隔（ミリ秒）。"""
 
 SPINNER_SIZE_PX: int = 18
 """回るマーカーの大きさ。"""
 
 SPINNER_ARC_DEGREES: int = 100
-"""回る印の弧の長さ（度）。"""
+"""回るマーカーの弧の長さ（度）。"""
 
 FULL_CIRCLE_DEGREES: int = 360
 """円 1 周の角度。"""
@@ -58,13 +58,13 @@ SWITCH_WINDOW_WIDTH_PX: int = 380
 """出力先の切り替えのボタンを出す回の、窓の最小の幅（ボタンが名前を省かずに収まる幅）。"""
 
 CHECK_BADGE_SIZE_PX: int = 16
-"""今の出力先のボタンの右上の角に置く、丸い印の直径。"""
+"""今の出力先のボタンの右上の角に置く、丸いマーカーの直径。"""
 
 CHECK_BADGE_PEN_PX: float = 1.6
-"""丸い印の中のチェックの線の太さ。"""
+"""丸いマーカーの中のチェックの線の太さ。"""
 
 CHECK_POINTS: tuple[tuple[float, float], ...] = ((4.5, 8.5), (7.0, 11.0), (11.5, 5.5))
-"""丸い印の中のチェックの折れ線の 3 点（直径 16 の円の左上を原点とした座標）。"""
+"""丸いマーカーの中のチェックの折れ線の 3 点（直径 16 の円の左上を原点とした座標）。"""
 
 
 def hint_text(output_id: str | None) -> str:
@@ -89,7 +89,7 @@ def format_whole(seconds: float) -> str:
 
 
 class Spinner(QWidget):
-    """文字起こし中であることを示す、回る印。"""
+    """文字起こし中であることを示す、回るマーカー。"""
 
     def __init__(self) -> None:
         super().__init__()
@@ -126,10 +126,10 @@ class Spinner(QWidget):
 
 
 class SwitchButton(HotkeyButton):
-    """出力先の切り替えのボタン。今の出力先のボタンは選んだ状態（checked）にして、枠の右上の角から外へはみ出す丸い印（チェック）を描く。
+    """出力先の切り替えのボタン。今の出力先のボタンは選んだ状態（checked）にして、枠の右上の角から外へはみ出す丸いマーカー（チェック）を描く。
 
-    Qt のボタンは自分の矩形の中にしか描けないため、印がはみ出す分を矩形の右と上の余白に取り、地と枠はその余白の内側に描く。
-    名前とホットキーは枠の中央に置き、印は文字の範囲に重ねない。
+    Qt のボタンは自分の矩形の中にしか描けないため、マーカーがはみ出す分を矩形の右と上の余白に取り、地と枠はその余白の内側に描く。
+    名前とホットキーは枠の中央に置き、マーカーは文字の範囲に重ねない。
     """
 
     def __init__(self, name: str, text: str, hotkey: str) -> None:
@@ -147,7 +147,7 @@ class SwitchButton(HotkeyButton):
         )
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802 Qt の名前
-        """面と枠を描いた後、選んだ状態なら矩形の右上の角（枠の右上の角から外へはみ出した余白）に丸い印を描く。"""
+        """面と枠を描いた後、選んだ状態なら矩形の右上の角（枠の右上の角から外へはみ出した余白）に丸いマーカーを描く。"""
         super().paintEvent(event)
         if not self.isChecked():
             return
@@ -158,7 +158,7 @@ class SwitchButton(HotkeyButton):
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(theme_color("accent_fg"))
         painter.drawEllipse(badge)
-        # 印の中のチェック（色だけで伝えない）
+        # マーカーの中のチェック（色だけで伝えない）
         pen = QPen(theme_color("surface"), CHECK_BADGE_PEN_PX)
         pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
@@ -170,7 +170,7 @@ class TranscribingIndicator(QWidget):
     """確定から届けるまで、経過と残りの時間・進みと今の出力先をフォーカスを取らずに出し、固定の出力先への切り替えを受ける。
 
     残りの時間は、進み（区間の終わり ÷ 録音の長さ）と経過から「経過 ÷ 進み − 経過」で見積もる。
-    切り替えのボタンは、設定でオンの固定の出力先ごとに open で組み直す。差し替えるのは UiController で、印は set_output で替える。
+    切り替えのボタンは、設定でオンの固定の出力先ごとに open で組み直す。差し替えるのは UiController で、マーカーは set_output で替える。
     """
 
     output_selected = Signal(str)
@@ -202,7 +202,7 @@ class TranscribingIndicator(QWidget):
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(16, 16, 16, 16)
 
-        # 見出しの行: つかむ印・回る印・状態（行のどこをつかんでも窓を動かせる）
+        # 見出しの行: つかむマーカー・回るマーカー・状態（行のどこをつかんでも窓を動かせる）
         head_row = HeadRow()
         header = QHBoxLayout(head_row)
         header.setContentsMargins(4, 4, 4, 4)
@@ -221,7 +221,7 @@ class TranscribingIndicator(QWidget):
         self._progress_bar.setObjectName("progress_bar")
         self._progress_bar.setRange(0, PERCENT)
         self._progress_bar.setTextVisible(False)
-        # 最初の区間の終わりが届くまでは、回る印だけを出す
+        # 最初の区間の終わりが届くまでは、回るマーカーだけを出す
         self._progress_bar.hide()
         layout.addWidget(self._progress_bar)
 
@@ -332,7 +332,7 @@ class TranscribingIndicator(QWidget):
             button.setChecked(output_id == self._output_id)
 
     def _on_switch_clicked(self, output_id: str) -> None:
-        """切り替えのボタンが押された。今の出力先でなければ output_selected を emit する（印は差し替えが通って set_output を受けたときに替えるため、押しただけでは動かさない）。"""
+        """切り替えのボタンが押された。今の出力先でなければ output_selected を emit する（マーカーは差し替えが通って set_output を受けたときに替えるため、押しただけでは動かさない）。"""
         self._mark_current()
         if output_id != self._output_id:
             self.output_selected.emit(output_id)
@@ -381,13 +381,13 @@ class TranscribingIndicator(QWidget):
         self._refresh_time()
 
     def set_output(self, output_id: str) -> None:
-        """切り替えのボタンの印と貼り付けの案内を、切り替えた先の出力先に替える。"""
+        """切り替えのボタンのマーカーと貼り付けの案内を、切り替えた先の出力先に替える。"""
         self._output_id = output_id
         self._mark_current()
         self._paste_hint.setText(hint_text(output_id))
 
     def close_window(self) -> None:
-        """タイマーと回る印を止めて窓を隠す。"""
+        """タイマーと回るマーカーを止めて窓を隠す。"""
         self._timer.stop()
         self._spinner.stop()
         self.hide()

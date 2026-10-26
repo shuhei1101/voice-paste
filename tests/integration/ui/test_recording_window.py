@@ -42,7 +42,7 @@ WINDOW_MIN_WIDTH = 360
 
 LONG_HOTKEY = "<ctrl>+<alt>+<shift>+<f12>"
 LONG_HOTKEY_TEXT = "Ctrl+Alt+Shift+F12"
-"""切れやすい長いホットキーの、設定の書式と画面の形。"""
+"""切れやすい長いホットキーの、設定の書式と画面の構成。"""
 
 
 def _opened(make_ui: Callable[..., Ui], settings: Settings | None = None) -> Ui:
@@ -140,7 +140,7 @@ def test_recording_window_visible_when_idle(make_ui: Callable[..., Ui]) -> None:
 def test_recording_window_does_not_take_focus(
     make_ui: Callable[..., Ui], topmost: bool
 ) -> None:
-    """出したときにフォーカスを取らない。ui.topmost がオンなら最前面に残す指定を足す（Tool・枠なし）。"""
+    """出したときにフォーカスを取らない。ui.topmost がオンなら最前面に残す指定を追加する（Tool・枠なし）。"""
     from voice_paste.shared.settings import UiSettings
 
     # 準備
@@ -225,7 +225,7 @@ def test_state_label_when_paused(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_elapsed_label_when_opened(make_ui: Callable[..., Ui]) -> None:
-    """出したときに 0 から数え、1 時間未満は mm:ss の形（00:00）で出す。"""
+    """出したときに 0 から数え、1 時間未満は mm:ss の形式（00:00）で出す。"""
     # 実行
     ui = _opened(make_ui)
 
@@ -267,7 +267,7 @@ def test_elapsed_label_when_paused(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_elapsed_label_format_when_over_one_hour() -> None:
-    """1 時間以上は h:mm:ss の形（1:02:37）で出す。"""
+    """1 時間以上は h:mm:ss の形式（1:02:37）で出す。"""
     from voice_paste.ui.windows.recording_window import format_clock
 
     # 実行・検証
@@ -279,7 +279,7 @@ def test_elapsed_label_format_when_over_one_hour() -> None:
 
 
 def test_waveform_when_recording(make_ui: Callable[..., Ui]) -> None:
-    """録音中は音量を取り続け（UiDeps.level）、一時停止中は取らずに最後の形のまま出す。"""
+    """録音中は音量を取り続け（UiDeps.level）、一時停止中は取らずに最後の表示のまま出す。"""
     # 準備
     ui = _opened(make_ui)
     level = ui.deps.level
@@ -949,7 +949,7 @@ def test_recording_window_width_when_reopened(styled: None, make_ui: Callable[..
 
 
 def test_head_row_layout(make_ui: Callable[..., Ui]) -> None:
-    """見出しの行に、左端のつかむ印・状態の表示・経過時間・隠すと×のボタンを並べる。"""
+    """見出しの行に、左端のつかむマーカー・状態の表示・経過時間・隠すと×のボタンを並べる。"""
     from voice_paste.ui.windows.recording_window import GripIcon
 
     # 実行
@@ -968,7 +968,7 @@ def test_head_row_layout(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_head_row_cursor(make_ui: Callable[..., Ui]) -> None:
-    """行にかざすと、カーソルが移動の形になる。"""
+    """行にかざすと、カーソルが移動の形状になる。"""
     # 実行
     ui = _opened(make_ui)
 

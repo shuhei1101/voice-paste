@@ -352,7 +352,7 @@ class Stack:
         origin: str | None = WEB_ORIGIN,
         glossary_preset: str | None = None,
     ) -> httpx.Response:
-        """ゲートウェイを通した形（Host は localhost:{ポート}、許す Origin つき、トークン無し）で、音声を multipart で POST /web/transcriptions へ送る。origin が None なら Origin を付けず、glossary_preset が None なら glossary_preset の項目を付けない。"""
+        """ゲートウェイを通した構成（Host は localhost:{ポート}、許す Origin つき、トークン無し）で、音声を multipart で POST /web/transcriptions へ送信する。origin が None なら Origin を付けず、glossary_preset が None なら glossary_preset の項目を付けない。"""
         merged = {"Host": f"localhost:{self.port}"}
         if origin is not None:
             merged["Origin"] = origin
@@ -366,14 +366,14 @@ class Stack:
         )
 
     def get_glossary_presets(self, *, origin: str | None = None) -> httpx.Response:
-        """ゲートウェイを通した形（Host は localhost:{ポート}、トークン無し）で、GET /web/glossary-presets を呼ぶ。origin が None なら Origin を付けない。"""
+        """ゲートウェイを通した構成（Host は localhost:{ポート}、トークン無し）で、GET /web/glossary-presets を呼ぶ。origin が None なら Origin を付けない。"""
         merged = {"Host": f"localhost:{self.port}"}
         if origin is not None:
             merged["Origin"] = origin
         return self.http.get("/web/glossary-presets", headers=merged)
 
     def post_audio_chunked(self, data: bytes, *, filename: str = "recording.webm") -> httpx.Response:
-        """Content-Length を付けず chunked で、音声を multipart で POST /web/transcriptions へ送る（許す Origin つき）。"""
+        """Content-Length を付けず chunked で、音声を multipart で POST /web/transcriptions へ送信する（許す Origin つき）。"""
         boundary = "----chunked-boundary"
         head = (
             f"--{boundary}\r\n"
@@ -400,7 +400,7 @@ class Stack:
         )
 
     def get_job(self, job_id: str, *, headers: dict[str, str] | None = None) -> httpx.Response:
-        """ゲートウェイを通した形（Host は localhost:{ポート}、Origin 無し、トークン無し）で、GET /web/transcriptions/{job_id} を呼ぶ。"""
+        """ゲートウェイを通した構成（Host は localhost:{ポート}、Origin 無し、トークン無し）で、GET /web/transcriptions/{job_id} を呼ぶ。"""
         merged = {"Host": f"localhost:{self.port}"}
         merged.update(headers or {})
         return self.http.get(f"/web/transcriptions/{job_id}", headers=merged)

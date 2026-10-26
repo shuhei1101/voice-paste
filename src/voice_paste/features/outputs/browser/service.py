@@ -1,4 +1,4 @@
-"""ブラウザ添付。選んだプリセットの画面をアプリのウィンドウで開き、貼り付けて、設定によって Enter まで送る。"""
+"""ブラウザ添付。選んだプリセットの画面をアプリのウィンドウで開き、貼り付けて、設定によって Enter まで送信する。"""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ def send_to_browser(
     get_open_delay_sec: Callable[[], float],
     get_enter_delay_sec: Callable[[], float],
 ) -> None:
-    """起こした文字をクリップボードへ書き、プリセットの画面を開いて、設定の間を置いて貼り付け、Enter まで送るなら Enter を送る。"""
+    """起こした文字をクリップボードへ書き、プリセットの画面を開いて、設定の間を置いて貼り付け、Enter まで送信するなら Enter を送信する。"""
     # 1. ブラウザ添付のプリセットでなければ断る（種類と関数の取り違え）
     if not isinstance(preset, BrowserPreset):
         raise DeliveryError(f"ブラウザ添付のプリセットではありません（種類: {preset.kind}）")
@@ -33,14 +33,14 @@ def send_to_browser(
     copy(outcome.text)
     open_window(preset.url)
 
-    # 3. 画面が開くまで待ち、貼り付けのキーを送る
+    # 3. 画面が開くまで待ち、貼り付けのキーを送信する
     sleep(get_open_delay_sec())
     paste()
 
-    # 4. Enter まで送るプリセットだけ、貼り付けてから待って Enter を送る（送らないなら貼り付けで止める）
+    # 4. Enter まで送信するプリセットだけ、貼り付けてから待って Enter を送信する（送信しないなら貼り付けで止める）
     if preset.send_enter:
         sleep(get_enter_delay_sec())
         send_enter()
     logger.info(
-        f"ブラウザ添付で届けた（{outcome.session_id}・{preset.title}・Enter まで送った: {preset.send_enter}）"
+        f"ブラウザ添付で届けた（{outcome.session_id}・{preset.title}・Enter まで送信した: {preset.send_enter}）"
     )

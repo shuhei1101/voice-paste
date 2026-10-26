@@ -1,6 +1,6 @@
 """integrations/keyboard/sender.py（copy_to_clipboard）の外部疎通テスト。
 
-実機のクリップボードへ書いて pyperclip で読み戻し、pyperclip の版が上がって API が変わったことに気づけるようにする。
+実機のクリップボードへ書いて pyperclip で読み戻し、pyperclip のバージョンが上がって API が変わったことに気づけるようにする。
 実行中はクリップボードの中身が変わり、終わりに実行前の中身へ戻す。クリップボードを持たない環境では skip する。
 """
 

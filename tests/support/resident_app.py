@@ -8,7 +8,7 @@
 フォルダを開く呼び出し（`QDesktopServices`）は渡されたパスを控えるものに差し替える。
 動いている常駐アプリの補正（`SessionDeps` の `correct`）は、渡された関数を控える（本物の補正のまま。マイクを開かずに文字を渡して確かめる）。
 録音を始めるケースは、録音の入力（`open_input`）を渡された WAV を流すものに、システム音量（`lower_volume`・`restore_volume`）を呼ばれた値を控えるものに差し替える。
-貼り付けのキーで届けるケースは、貼り付けのキー（`send_paste`・`send_enter`）を送ったキーを控えるものに、
+貼り付けのキーで届けるケースは、貼り付けのキー（`send_paste`・`send_enter`）を送信したキーを控えるものに、
 ブラウザ添付のプリセットで届けるケースは、ブラウザを開く呼び出し（`open_app_window`）を渡された URL を控えるものに差し替える。
 """
 
@@ -564,7 +564,7 @@ class ResidentApp:
         QTest.keyClick(self.wait_widget(name, QLineEdit), key, modifiers)
 
     def hotkey_value(self, name: str) -> str:
-        """項目 ID のホットキーの欄に出ている組み合わせ（`Ctrl+Alt+D` の形）を返す。"""
+        """項目 ID のホットキーの欄に出ている組み合わせ（`Ctrl+Alt+D` の形式）を返す。"""
         return self.wait_widget(name, QLineEdit).text()
 
 
@@ -583,7 +583,7 @@ def _restored_process_state(qapp: QApplication) -> Iterator[None]:
     try:
         yield
     finally:
-        # main が足したハンドラ（日付ごとのログのファイル・標準エラー）は閉じて外す
+        # main が追加したハンドラ（日付ごとのログのファイル・標準エラー）は閉じて外す
         for handler in list(root.handlers):
             if handler not in handlers_before:
                 root.removeHandler(handler)
@@ -606,7 +606,7 @@ def _spy_on_main(
     """`main()` が作るトレイ・ホットキーの受付・フォルダを開く呼び出し・補正を、控える・始めない・開かない・控えるものに差し替える。
 
     wav_input を渡したときは、録音の入力を WAV を流すものに、システム音量を呼ばれた値を控えるもの（`app.volume`）に差し替える。
-    keys を渡したときは、貼り付けのキーと Enter を送らずに、送ったキーを keys に控える。
+    keys を渡したときは、貼り付けのキーと Enter を送信せずに、送信したキーを keys に控える。
     capture_browser が真のときは、ブラウザを開く呼び出しを、渡された URL を `app.opened_urls` に控えるだけのものに差し替える。
     """
 
@@ -646,7 +646,7 @@ def _spy_on_main(
         monkeypatch.setattr(main_module, "open_input", wav_input)
         monkeypatch.setattr(main_module, "lower_volume", app.volume.lower)
         monkeypatch.setattr(main_module, "restore_volume", app.volume.restore)
-    # 貼り付けのキーの控えが渡されたときは、キーボードへ送らない
+    # 貼り付けのキーの控えが渡されたときは、キーボードへ送信しない
     if keys is not None:
         app.keys = keys
         monkeypatch.setattr(main_module, "send_paste", keys.send_paste)
@@ -677,7 +677,7 @@ def run_resident_app(
 
     prepare は起動の前に data_dir へファイルを用意する関数。
     wav_input は録音を始めるケースが渡す録音の入力で、渡すと録音の入力とシステム音量を差し替える（渡さないケースの起動は変えない）。
-    keys は貼り付けのキーで届けるケースが渡す控えで、渡すと貼り付けのキーと Enter を送らずに控える。
+    keys は貼り付けのキーで届けるケースが渡す控えで、渡すと貼り付けのキーと Enter を送信せずに控える。
     capture_browser は真にすると、ブラウザを開く呼び出しを渡された URL を控えるものに差し替える。
     expect_exit が真のときは、case が終わった後に常駐アプリが自分でイベントループを抜けるのを待つ
     （EXIT_TIMEOUT_SEC までに抜けなければ止めて、exited_by_itself を偽にする）。偽のときは case が終わったらすぐ止める。

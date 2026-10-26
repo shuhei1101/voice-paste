@@ -44,7 +44,7 @@ def _preset(*, authorization: str = "") -> EndpointPreset:
 
 
 def _result(status: int) -> PostResult:
-    """送り先の応答（ステータスだけ）を作る。"""
+    """送信先の応答（ステータスだけ）を作る。"""
     from voice_paste.integrations.http.types import PostResult
 
     return PostResult(status=status, retry_after_sec=None)

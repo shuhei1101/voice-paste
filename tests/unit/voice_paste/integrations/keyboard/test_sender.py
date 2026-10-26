@@ -64,7 +64,7 @@ def test_copy_to_clipboard_when_failed(copy_mock: MagicMock) -> None:
 
 
 def test_send_paste(keyboard_calls: MagicMock) -> None:
-    """設定の貼り付けのキーを、フォーカスが落ち着くのを待ってから送る（正常系）。"""
+    """設定の貼り付けのキーを、フォーカスが落ち着くのを待ってから送信する（正常系）。"""
     from voice_paste.integrations.keyboard.sender import send_paste
 
     # 実行

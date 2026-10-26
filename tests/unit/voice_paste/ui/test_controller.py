@@ -382,7 +382,7 @@ def test_request_exit_when_idle(qapp: QApplication, tmp_path: Path) -> None:
 
 
 def test_request_exit_when_busy(qapp: QApplication, tmp_path: Path) -> None:
-    """処理中はアイコンを消して待たせる（正常系）。"""
+    """処理中はアイコンを非表示にして待たせる（正常系）。"""
     # 準備
     parts = _make_controller(tmp_path)
     parts.deps.current_session.return_value = make_session("hotkey", "transcribing")
@@ -539,7 +539,7 @@ def test_event_filter_when_quit_with_settings_open(
     qapp: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """設定画面を開いて欄を変えたまま終了しても、確かめずに閉じてイベントループを抜ける（正常系）。"""
-    # 準備: 設定画面を開いて欄を変え、捨てる確認が出たら「捨てない」と答える
+    # 準備: 設定画面を開いて欄を変え、捨てる確認が出たら「捨てない」と回答する
     confirm_discard = MagicMock(return_value=False)
     monkeypatch.setattr("voice_paste.ui.windows.settings_window.confirm_discard", confirm_discard)
     parts = _make_controller(tmp_path)

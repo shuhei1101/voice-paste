@@ -118,7 +118,7 @@ def test_paste_latency(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         return _FinishedStream()
 
     def _send_paste(_key: str) -> None:
-        """貼り付けのキーを送らず、最初に押された時刻だけを控える。"""
+        """貼り付けのキーを送信せず、最初に押された時刻だけを控える。"""
         if not pressed_at:
             pressed_at.append(time.perf_counter())
         pasted.set()

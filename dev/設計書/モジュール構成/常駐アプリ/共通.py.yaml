@@ -1188,7 +1188,7 @@ functions:
     process: |-
       1. log_dir の直下の `YYYY-MM-DD.log` 形式の名前のファイルを拾う（それ以外の名前は触らない）
       2. 日付が today − retention_days 日より前のものを消す
-         - `[INFO]` 古いログを消した（件数）
+         - `[INFO]` 古いログを削除した（件数）
     unit_tests:
       - name: test_purge_old_logs
         case: 正常

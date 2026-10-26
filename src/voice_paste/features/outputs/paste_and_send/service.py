@@ -1,4 +1,4 @@
-"""貼り付けて送信。クリップボードへ書き、貼り付けのキーと、設定の間を置いて設定の修飾キーを押したまま Enter を送る。"""
+"""貼り付けて送信。クリップボードへ書き、貼り付けのキーと、設定の間を置いて設定の修飾キーを押したまま Enter を送信する。"""
 
 from __future__ import annotations
 
@@ -21,20 +21,20 @@ def paste_and_send(
     get_enter_delay_sec: Callable[[], float],
     get_enter_modifiers: Callable[[], tuple[EnterModifier, ...]],
 ) -> None:
-    """起こした文字をクリップボードへ書いて貼り付け、設定の間を置いて設定の修飾キーを押したまま Enter を送る。"""
-    # 1. クリップボードへ書く（書けなければ DeliveryError のまま伝え、キーは送らない）
+    """起こした文字をクリップボードへ書いて貼り付け、設定の間を置いて設定の修飾キーを押したまま Enter を送信する。"""
+    # 1. クリップボードへ書く（書けなければ DeliveryError のまま伝え、キーは送信しない）
     copy(outcome.text)
 
-    # 2. 貼り付けのキーを送る
+    # 2. 貼り付けのキーを送信する
     paste()
 
-    # 3. 設定の間だけ待ち、設定の修飾キーを押したまま Enter を送る
+    # 3. 設定の間だけ待ち、設定の修飾キーを押したまま Enter を送信する
     sleep(get_enter_delay_sec())
     send_enter(get_enter_modifiers())
 
 
 def read_enter_delay_sec(settings: Settings) -> float:
-    """設定の outputs[] の貼り付けて送信の、貼り付けてから Enter を送るまでの秒数を返す（一覧に無ければ既定値）。"""
+    """設定の outputs[] の貼り付けて送信の、貼り付けてから Enter を送信するまでの秒数を返す（一覧に無ければ既定値）。"""
     output = next(
         (o for o in settings.outputs if isinstance(o, PasteAndSendSettings)),
         PasteAndSendSettings(),

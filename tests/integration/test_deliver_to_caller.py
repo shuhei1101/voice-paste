@@ -166,7 +166,7 @@ def test_normal_when_continuous_segment_failed(stack: Stack) -> None:
 
 
 def test_normal_when_continuous_completed(stack: Stack) -> None:
-    """連続録音を完了すると、最後の区間を送った後に完了したことと区間の数を送る（正常系）。"""
+    """連続録音を完了すると、最後の区間を送信した後に完了したことと区間の数を送信する（正常系）。"""
     # 準備
     stack.set_segments(2)
     session_id = stack.start_session(continuous=True)
@@ -188,7 +188,7 @@ def test_normal_when_continuous_completed(stack: Stack) -> None:
 
 
 def test_normal_when_continuous_segmenter_failed(stack: Stack) -> None:
-    """区切りに失敗して録音が止まった連続録音は、それまでの区間を送った後に、失敗したことと理由・区間の数を送る（正常系）。"""
+    """区切りに失敗して録音が止まった連続録音は、それまでの区間を送信した後に、失敗したことと理由・区間の数を送信する（正常系）。"""
     # 準備: 2 つの区間を区切った後の最初の窓の判定で例外を送出する
     cut_windows = sum(count for _, count in SEGMENT_PHASES) * 2
     stack.set_segments(2)

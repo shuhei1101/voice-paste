@@ -35,7 +35,7 @@ def _make_app() -> FastAPI:
 
     @app.get("/ping")
     def ping() -> dict[str, str]:
-        """疎通の確認に答える。"""
+        """疎通の確認に応答する。"""
         return {"status": "ok"}
 
     return app

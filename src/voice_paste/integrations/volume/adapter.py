@@ -16,13 +16,13 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 FADE_STEPS: int = 30
-"""音量を変えるときに分ける段の数。"""
+"""音量を変えるときに分けるステップの数。"""
 
 FADE_JOIN_TIMEOUT_SEC: float = 1.0
 """進行中のフェードを打ち切るときに、そのスレッドの終わりを待つ上限（秒）。"""
 
 SINGLE_WRITE_MAX_DELTA: float = 0.005
-"""今の音量と目標の差がこれ未満なら、段に分けず 1 回で書く。"""
+"""今の音量と目標の差がこれ未満なら、ステップに分けず 1 回で書く。"""
 
 # 音量の読み書きとフェードの状態を守るロック
 _volume_lock = threading.Lock()
@@ -64,7 +64,7 @@ def _clamp(volume: float) -> float:
 
 def _open_endpoint_volume() -> IAudioEndpointVolume:
     """既定の再生デバイスの音量のインターフェースを返す。呼ぶスレッドで COM を初期化しておく。"""
-    # pycaw は版で API が変わるため、読み込みの失敗も呼び出し側で VolumeControlError にできるよう関数の中で読む
+    # pycaw はバージョンで API が変わるため、読み込みの失敗も呼び出し側で VolumeControlError にできるよう関数の中で読む
     from pycaw.pycaw import AudioUtilities
 
     return AudioUtilities.GetSpeakers().EndpointVolume
@@ -78,7 +78,7 @@ def _read_master_volume() -> float:
             return float(_open_endpoint_volume().GetMasterVolumeLevelScalar())
         finally:
             comtypes.CoUninitialize()
-    except Exception as error:  # noqa: BLE001 pycaw・COM が送出する例外の型は版で変わる
+    except Exception as error:  # noqa: BLE001 pycaw・COM が送出する例外の型はバージョンで変わる
         raise VolumeControlError(f"音量を読めませんでした: {error}") from error
 
 
@@ -90,7 +90,7 @@ def _write_master_volume(volume: float) -> None:
             _open_endpoint_volume().SetMasterVolumeLevelScalar(volume, None)
         finally:
             comtypes.CoUninitialize()
-    except Exception as error:  # noqa: BLE001 pycaw・COM が送出する例外の型は版で変わる
+    except Exception as error:  # noqa: BLE001 pycaw・COM が送出する例外の型はバージョンで変わる
         raise VolumeControlError(f"音量を書けませんでした: {error}") from error
 
 
@@ -113,32 +113,32 @@ def _fade_to(target: float, fade_sec: float) -> None:
 
 
 def _run_fade(target: float, fade_sec: float, stop: threading.Event) -> None:
-    """フェードのスレッドの本体。今の音量から target までを FADE_STEPS 段に分けて書く。"""
+    """フェードのスレッドの本体。今の音量から target までを FADE_STEPS ステップに分けて書く。"""
     comtypes.CoInitialize()
     try:
         endpoint = _open_endpoint_volume()
         current = float(endpoint.GetMasterVolumeLevelScalar())
 
-        # 差が小さければ段に分けず 1 回で書く
+        # 差が小さければステップに分けず 1 回で書く
         if abs(current - target) < SINGLE_WRITE_MAX_DELTA:
             endpoint.SetMasterVolumeLevelScalar(target, None)
             return
 
         step_sec = fade_sec / FADE_STEPS
         for step in range(1, FADE_STEPS + 1):
-            # 打ち切りを知らされたら、次の段を書かずに終わる
+            # 打ち切りを知らされたら、次のステップを書かずに終わる
             if stop.is_set():
                 return
-            # 最後の段は目標そのものを書き、丸めの誤差を残さない
+            # 最後のステップは目標そのものを書き、丸めの誤差を残さない
             if step == FADE_STEPS:
                 endpoint.SetMasterVolumeLevelScalar(target, None)
                 return
             endpoint.SetMasterVolumeLevelScalar(
                 current + (target - current) * step / FADE_STEPS, None
             )
-            # 次の段まで待つ（打ち切られたらすぐ起きる）
+            # 次のステップまで待つ（打ち切られたらすぐ起きる）
             stop.wait(step_sec)
-    except Exception as error:  # noqa: BLE001 スレッドの最上位。pycaw・COM が送出する例外の型は版で変わる
+    except Exception as error:  # noqa: BLE001 スレッドの最上位。pycaw・COM が送出する例外の型はバージョンで変わる
         logger.exception(f"音量を変えられなかった（{error}）")
     finally:
         comtypes.CoUninitialize()

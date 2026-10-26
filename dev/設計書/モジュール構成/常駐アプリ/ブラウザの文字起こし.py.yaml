@@ -358,7 +358,7 @@ classes:
           description: なし
         process: |-
           1. tmp_dir の下のファイルを消す（前の起動で取り残された音声。消せないものは残す）
-             - `[WARNING]` 消せなかった（パス・理由）
+             - `[WARNING]` 取り残された音声を削除できなかった（パス・理由）
           2. tmp_dir を作る
           3. _run を回すデーモンのスレッドを立てる
         unit_tests:

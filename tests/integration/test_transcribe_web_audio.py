@@ -65,7 +65,7 @@ def test_normal(stack: Stack, tmp_path: Path, caplog: pytest.LogCaptureFixture) 
 
 
 def test_normal_when_history_disabled(stack: Stack, tmp_path: Path) -> None:
-    """履歴を残さない設定では、起こし終えた後に一時のファイルを消す（正常系）。"""
+    """履歴を残さない設定では、起こし終えた後に一時のファイルを削除する（正常系）。"""
     # 準備
     stack.web.history_enabled = False
     stack.engine.segments = ["決めた文"]

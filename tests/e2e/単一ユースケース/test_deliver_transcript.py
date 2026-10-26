@@ -3,13 +3,13 @@
 常駐アプリを pytest のプロセスの中で `main()` から起動し（`--data-dir` の一時フォルダ、Qt は offscreen）、
 ホットキーが押された体で登録された関数を呼び、録音の画面・文字起こし中の表示・トレイは Qt のイベントで操作する。実機のマウス・キーボードは使わない。
 録音の入力は Windows の音声合成（SAPI）で決めた文を書き出した WAV（か無音の WAV）に、システム音量は呼ばれた値を控えるものに、
-貼り付けのキーと Enter は送ったキーと Enter に添えた修飾キーを控えるものに、ブラウザを開く呼び出しは渡された URL を控えるものに差し替え、
-実機のマイクを開かず、システム音量を変えず、キーを送らず、Microsoft Edge を開かない。
+貼り付けのキーと Enter は送信したキーと Enter に添えた修飾キーを控えるものに、ブラウザを開く呼び出しは渡された URL を控えるものに差し替え、
+実機のマイクを開かず、システム音量を変えず、キーを送信せず、Microsoft Edge を開かない。
 貼り付け先の入力欄に入ることは、クリップボードの文字と、控えた貼り付けのキー・Enter・修飾キーで確かめる。
 コピーの完了の通知が出たことは知らせのログで確かめ、通知を押す操作は通知が押されたシグナルを渡す。
 文字起こしはローカルの Whisper（GPU）で、クリップボードは実物を使う（テストの後に元の文字へ戻す）。
-返送先・送り先は、テストが 127.0.0.1 に立てる受け口。
-「Enter と一緒に修飾キーを押す」の「Ctrl が押されたままになっていない」は、キーを送る部品の単体テストが確かめる。
+返送先・送信先は、テストが 127.0.0.1 に立てる受信先。
+「Enter と一緒に修飾キーを押す」の「Ctrl が押されたままになっていない」は、キーを送信する部品の単体テストが確かめる。
 `--run-e2e` が無ければ skip する。
 """
 
@@ -63,7 +63,7 @@ BROWSER_URL = "https://example.com/chat"
 
 BROWSER_TITLE = "e2e-browser"
 ENDPOINT_TITLE = "e2e-endpoint"
-"""足すプリセットのタイトル。"""
+"""追加するプリセットのタイトル。"""
 
 OVERWRITTEN_TEXT = "voice-paste-e2e-overwritten"
 """通知が出ている間に、ほかのアプリがクリップボードへコピーした文字（起こした文字と重ならない）。"""
@@ -72,10 +72,10 @@ SWITCH_REPEAT = 10
 """切り替えるまで文字起こしが続くよう、音声合成の文を繰り返す回数。"""
 
 ENDPOINT_RESPONSE_DELAY_SEC = 3.0
-"""応えない送り先が、受け取ってから応えるまで待つ秒数（設定の既定のタイムアウト 1.5 秒より長い）。"""
+"""応えない送信先が、受け取ってから応えるまで待つ秒数（設定の既定のタイムアウト 1.5 秒より長い）。"""
 
 NO_RESEND_WAIT_MS = 2000
-"""送り先に届かなかった後、送り直さないことを確かめるために待つ時間。"""
+"""送信先に届かなかった後、再送しないことを確かめるために待つ時間。"""
 
 SHORT_RETRY_BASE_SEC = 0.05
 """テストで待てる返送の再送の間隔の基数。"""
@@ -125,7 +125,7 @@ def _record_and_confirm(app: ResidentApp, button: str) -> str:
 
 
 def _single_payload(receiver: CallbackReceiver, session_id: str, result: str) -> Payload:
-    """返送先の受け口に 1 回だけ、このセッションの返送が届いていることを確かめて、その中身を返す。"""
+    """返送先の受信先に 1 回だけ、このセッションの返送が届いていることを確かめて、その中身を返す。"""
     [payload] = receiver.received
     assert payload["session_id"] == session_id
     assert payload["result"] == result
@@ -140,7 +140,7 @@ def _is_checked(app: ResidentApp, name: str) -> bool:
 
 
 def test_normal(run_app: RunApp, tmp_path: Path, clipboard_sentinel: str) -> None:
-    """「貼り付けて送信」を選ぶと、起こした文字がクリップボードに入り、貼り付けのキーと修飾キーなしの Enter が送られ、待機中に戻る（正常シナリオ）。"""
+    """「貼り付けて送信」を選ぶと、起こした文字がクリップボードに入り、貼り付けのキーと修飾キーなしの Enter が送信され、待機中に戻る（正常シナリオ）。"""
     # 準備
     keys = KeyLog()
 
@@ -161,7 +161,7 @@ def test_normal(run_app: RunApp, tmp_path: Path, clipboard_sentinel: str) -> Non
 
 
 def test_normal_when_paste_only(run_app: RunApp, tmp_path: Path, clipboard_sentinel: str) -> None:
-    """「貼り付けのみ」を選ぶと、起こした文字がクリップボードに入り、貼り付けのキーだけが送られ、Enter は送られない（正常シナリオ（貼り付けのみ））。"""
+    """「貼り付けのみ」を選ぶと、起こした文字がクリップボードに入り、貼り付けのキーだけが送信され、Enter は送信されない（正常シナリオ（貼り付けのみ））。"""
     # 準備
     keys = KeyLog()
 
@@ -180,7 +180,7 @@ def test_normal_when_paste_only(run_app: RunApp, tmp_path: Path, clipboard_senti
 
 
 def test_normal_when_copy_only(run_app: RunApp, tmp_path: Path, clipboard_sentinel: str) -> None:
-    """「コピーのみ」を選ぶと、起こした文字がクリップボードに入り、貼り付けのキーも Enter も送られず、コピーの完了の通知が出る（正常シナリオ（コピーのみ））。"""
+    """「コピーのみ」を選ぶと、起こした文字がクリップボードに入り、貼り付けのキーも Enter も送信されず、コピーの完了の通知が出る（正常シナリオ（コピーのみ））。"""
     # 準備
     keys = KeyLog()
 
@@ -202,7 +202,7 @@ def test_normal_when_copy_only(run_app: RunApp, tmp_path: Path, clipboard_sentin
 def test_normal_when_browser_preset(
     run_app: RunApp, tmp_path: Path, clipboard_sentinel: str
 ) -> None:
-    """Enter まで送信するブラウザ添付のプリセットを選ぶと、プリセットの URL を開いて貼り付け、修飾キーなしの Enter を送る（正常シナリオ（ブラウザ添付のプリセット））。"""
+    """Enter まで送信するブラウザ添付のプリセットを選ぶと、プリセットの URL を開いて貼り付け、修飾キーなしの Enter を送信する（正常シナリオ（ブラウザ添付のプリセット））。"""
     # 準備: 貼り付けて送信は Ctrl をオンにしている（プリセットには当てない）
     extra_settings = ENTER_WITH_CTRL_SETTINGS + _browser_preset_settings(send_enter=True)
     keys = KeyLog()
@@ -232,7 +232,7 @@ def test_normal_when_browser_preset(
 def test_normal_when_browser_preset_paste_only(
     run_app: RunApp, tmp_path: Path, clipboard_sentinel: str
 ) -> None:
-    """Enter まで送らないブラウザ添付のプリセットを選ぶと、プリセットの URL を開いて貼り付けるだけで、Enter は送らない（正常シナリオ（ブラウザ添付のプリセット・貼り付けだけ））。"""
+    """Enter まで送信しないブラウザ添付のプリセットを選ぶと、プリセットの URL を開いて貼り付けるだけで、Enter は送信しない（正常シナリオ（ブラウザ添付のプリセット・貼り付けだけ））。"""
     # 準備
     keys = KeyLog()
 
@@ -265,7 +265,7 @@ def test_normal_when_return_to_caller(
     keys = KeyLog()
 
     def case(app: ResidentApp) -> None:
-        """API で録音して完了し、返送先の受け口に届いた中身を確かめる。"""
+        """API で録音して完了し、返送先の受信先に届いた中身を確かめる。"""
         # 実行
         session_id = app.start_api_session(receiver.url)
         app.complete_api_session(session_id)
@@ -289,7 +289,7 @@ def test_normal_when_return_empty_text(
     """API から始めた録音の文字起こしの結果が空でも、空の文字を返送先へ 1 回返す（正常シナリオ（呼び出し元へ空の文字を返す））。"""
 
     def case(app: ResidentApp) -> None:
-        """無音の録音を API で完了し、返送先の受け口に届いた中身を確かめる。"""
+        """無音の録音を API で完了し、返送先の受信先に届いた中身を確かめる。"""
         # 実行
         session_id = app.start_api_session(receiver.url)
         app.complete_api_session(session_id)
@@ -315,7 +315,7 @@ def test_error_when_return_failure(
     break_saved_recordings(monkeypatch)
 
     def case(app: ResidentApp) -> None:
-        """読めない録音を API で完了し、返送先の受け口に届いた中身を確かめる。"""
+        """読めない録音を API で完了し、返送先の受信先に届いた中身を確かめる。"""
         # 実行
         session_id = app.start_api_session(receiver.url)
         app.complete_api_session(session_id)
@@ -355,12 +355,12 @@ def test_error_when_callback_unreachable(run_app: RunApp, tmp_path: Path) -> Non
 def test_normal_when_endpoint_preset(
     run_app: RunApp, tmp_path: Path, receiver: CallbackReceiver, clipboard_sentinel: str
 ) -> None:
-    """エンドポイントへ送信のプリセットを選ぶと、起こした文字を送り先へ 1 回送り、クリップボードも貼り付け先も変えない（正常シナリオ（エンドポイントへ送信のプリセット））。"""
+    """エンドポイントへ送信のプリセットを選ぶと、起こした文字を送信先へ 1 回送信し、クリップボードも貼り付け先も変えない（正常シナリオ（エンドポイントへ送信のプリセット））。"""
     # 準備
     keys = KeyLog()
 
     def case(app: ResidentApp) -> None:
-        """プリセットのボタンで確定し、送り先の受け口に届いた中身を確かめる。"""
+        """プリセットのボタンで確定し、送信先に届いた中身を確かめる。"""
         # 実行
         session_id = _record_and_confirm(app, "preset_button_0")
         app.wait_processed()
@@ -387,12 +387,12 @@ def test_normal_when_endpoint_preset(
 def test_error_when_endpoint_unreachable(
     run_app: RunApp, tmp_path: Path, receiver: CallbackReceiver
 ) -> None:
-    """送り先がタイムアウトまでに応えなければ、届けられなかったことを知らせてログに書き、送り直さず、履歴は残って次の録音を始められる（異常シナリオ（送信先に届かない））。"""
-    # 準備: 送り先の受け口が、設定のタイムアウトより長く応えない
+    """送信先がタイムアウトまでに応えなければ、届けられなかったことを知らせてログに書き、再送せず、履歴は残って次の録音を始められる（異常シナリオ（送信先に届かない））。"""
+    # 準備: 送信先が、設定のタイムアウトより長く応えない
     receiver.delay_sec = ENDPOINT_RESPONSE_DELAY_SEC
 
     def case(app: ResidentApp) -> None:
-        """プリセットのボタンで確定し、知らせ・ログ・送った回数・履歴・次の録音を確かめる。"""
+        """プリセットのボタンで確定し、知らせ・ログ・送信した回数・履歴・次の録音を確かめる。"""
         # 実行
         session_id = _record_and_confirm(app, "preset_button_0")
         app.wait_processed()
@@ -456,7 +456,7 @@ def test_normal_when_return_segments(
     keys = KeyLog()
 
     def case(app: ResidentApp) -> None:
-        """連続録音を始めて完了し、返送先の受け口に届いた区間を確かめる。"""
+        """連続録音を始めて完了し、返送先の受信先に届いた区間を確かめる。"""
         # 実行
         session_id = app.start_api_session(receiver.url, continuous=True)
         _finish_by_complete(app, session_id, wav_input)
@@ -528,7 +528,7 @@ def test_normal_when_return_continuous_end(
     wav_input = scenario.make_input(tmp_path)
 
     def case(app: ResidentApp) -> None:
-        """連続録音を始めて終わらせ、返送先の受け口に届いた終わりを確かめる。"""
+        """連続録音を始めて終わらせ、返送先の受信先に届いた終わりを確かめる。"""
         # 実行
         session_id = app.start_api_session(receiver.url, continuous=True)
         scenario.finish(app, session_id, wav_input)
@@ -556,7 +556,7 @@ def test_error_when_return_segment_failure(
     wav_input = _three_sentences_input(tmp_path)
 
     def case(app: ResidentApp) -> None:
-        """連続録音を始めて完了し、返送先の受け口に届いた区間を確かめる。"""
+        """連続録音を始めて完了し、返送先の受信先に届いた区間を確かめる。"""
         # 実行
         session_id = app.start_api_session(receiver.url, continuous=True)
         _finish_by_complete(app, session_id, wav_input)
@@ -598,7 +598,7 @@ def test_error_when_segment_callback_unreachable(
         payloads = app.wait_for_continuous_end(receiver)
         app.wait_processed()
 
-        # 検証: 通し番号 2 の区間の返送が、1 回目と再送の回数だけ送られ、ログに書かれている
+        # 検証: 通し番号 2 の区間の返送が、1 回目と再送の回数だけ送信され、ログに書かれている
         sent_for_unreachable = [
             payload for payload in payloads if payload["segment_number"] == TROUBLED_SEGMENT
         ]
@@ -627,7 +627,7 @@ def test_error_when_segment_callback_unreachable(
 def test_normal_when_enter_with_modifier(
     run_app: RunApp, tmp_path: Path, clipboard_sentinel: str
 ) -> None:
-    """貼り付けて送信の修飾キーを Ctrl にすると、貼り付けのキーの後に、Ctrl を添えた Enter が送られる（正常シナリオ（Enter と一緒に修飾キーを押す））。"""
+    """貼り付けて送信の修飾キーを Ctrl にすると、貼り付けのキーの後に、Ctrl を添えた Enter が送信される（正常シナリオ（Enter と一緒に修飾キーを押す））。"""
     # 準備
     keys = KeyLog()
 
@@ -684,7 +684,7 @@ def test_normal_when_copy_again_from_notification(
 def test_normal_when_switch_to_copy_only(
     run_app: RunApp, tmp_path: Path, clipboard_sentinel: str
 ) -> None:
-    """文字起こし中の表示で「コピーのみ」へ切り替えると、今の出力先が替わり、起こした文字をコピーするだけで貼り付けも Enter も送らない（正常シナリオ（文字起こし中にコピーのみへ切り替える））。"""
+    """文字起こし中の表示で「コピーのみ」へ切り替えると、今の出力先が替わり、起こした文字をコピーするだけで貼り付けも Enter も送信しない（正常シナリオ（文字起こし中にコピーのみへ切り替える））。"""
     # 準備
     keys = KeyLog()
 
@@ -704,7 +704,7 @@ def test_normal_when_switch_to_copy_only(
         assert app.label("paste_hint") == COPY_HINT_TEXT
         app.wait_processed()
 
-        # 検証: 起こした文字をコピーするだけで、キーは送られず、コピーの完了の通知が出ている
+        # 検証: 起こした文字をコピーするだけで、キーは送信されず、コピーの完了の通知が出ている
         assert pyperclip.paste() == app.history_text() != ""
         assert keys.pasted == []
         assert keys.enters == 0
@@ -716,7 +716,7 @@ def test_normal_when_switch_to_copy_only(
 def test_normal_when_switch_to_paste_only(
     run_app: RunApp, tmp_path: Path, clipboard_sentinel: str
 ) -> None:
-    """文字起こし中の表示で「貼り付けのみ」へ切り替えると、起こした文字を貼り付けるだけで Enter は送らず、コピーの完了の通知は出ない（正常シナリオ（文字起こし中に貼り付けのみへ切り替える））。"""
+    """文字起こし中の表示で「貼り付けのみ」へ切り替えると、起こした文字を貼り付けるだけで Enter は送信せず、コピーの完了の通知は出ない（正常シナリオ（文字起こし中に貼り付けのみへ切り替える））。"""
     # 準備
     keys = KeyLog()
 
@@ -731,7 +731,7 @@ def test_normal_when_switch_to_paste_only(
         assert app.wait_until(lambda: _is_checked(app, "switch_button_paste_only"))
         app.wait_processed()
 
-        # 検証: 起こした文字を貼り付けるだけで、Enter は送られず、コピーの完了の通知は出ていない
+        # 検証: 起こした文字を貼り付けるだけで、Enter は送信されず、コピーの完了の通知は出ていない
         assert pyperclip.paste() == app.history_text() != ""
         assert len(keys.pasted) == 1
         assert keys.enters == 0

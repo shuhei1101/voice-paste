@@ -35,10 +35,10 @@ from voice_paste.shared.errors import SettingsError
 logger = logging.getLogger(__name__)
 
 RELOAD_IMMEDIATE: str = "immediate"
-"""設定画面で保存すると、動いている常駐アプリに効く項目の印。"""
+"""設定画面で保存すると、動いている常駐アプリに効く項目のマーカー。"""
 
 RELOAD_RESTART: str = "restart"
-"""再起動してから効く項目の印。"""
+"""再起動してから効く項目のマーカー。"""
 
 OUTPUTS_FIELD_NAME: str = "outputs"
 """出力先の一覧を持つ Settings の項目名。"""
@@ -73,7 +73,7 @@ HINT_PRESETS_FIELD_NAME: str = "hint_presets"
 HINT_MAX_BYTES: int = 222
 """有効なプリセットの語をつないだ手がかりの UTF-8 のバイト数の上限。
 
-faster-whisper が hotwords を先頭の 223 トークンに切ることから、頭に足す空白の 1 バイトを引いた値。
+faster-whisper が hotwords を先頭の 223 トークンに切ることから、頭に追加する空白の 1 バイトを引いた値。
 Whisper のトークンは 1 バイト以上を表すため、バイト数で数えれば上限を守れる。
 """
 
@@ -96,7 +96,7 @@ HINT_PRESET_NAME_OVERLAP_ERROR_TYPE: str = "hint_preset_name_overlap"
 """表記のヒントのプリセットの名前が重なるときの ValidationError の種類。理由の文に重なった名前を `name` として持つ。"""
 
 ORIGIN_PATTERN: re.Pattern[str] = re.compile(r"https?://[^/\s?#]+")
-"""許す Origin の形（`scheme://host[:port]`。末尾の `/` とパスは持たない）。"""
+"""許す Origin の形式（`scheme://host[:port]`。末尾の `/` とパスは持たない）。"""
 
 EDGE_PHRASES_FIELD_NAME: str = "edge_phrases"
 """文頭・文末から削除する文言の一覧の設定のキー。"""
@@ -105,7 +105,7 @@ EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE: str = "edge_phrase_wildcard_only"
 """文言が `*` だけのときの ValidationError の種類。設定画面がエラーの文に変える。"""
 
 EDGE_PHRASE_WILDCARD: str = "*"
-"""文頭・文末から消す文言で、0 文字以上の任意の文字列を表す文字。"""
+"""文頭・文末から削除する文言で、0 文字以上の任意の文字列を表す文字。"""
 
 START_HOTKEY_KEY: str = "hotkeys.start"
 """録音の開始のホットキーのキー。貼り付けて送信と同じキーにしてよい（重なりにしない）。"""
@@ -114,7 +114,7 @@ PASTE_AND_SEND_ID: str = "paste_and_send"
 """録音の開始のホットキーと同じキーにしてよい出力先の ID。"""
 
 URL_PATTERN: str = r"^https?://"
-"""プリセットの URL の形（http か https で始まる）。"""
+"""プリセットの URL の形式（http か https で始まる）。"""
 
 ENDPOINT_TIMEOUT_DEFAULT_SEC: float = 1.5
 """エンドポイントへ送信するときのタイムアウトの既定（秒）。"""
@@ -126,20 +126,20 @@ ENDPOINT_TIMEOUT_MAX_SEC: float = 10
 """エンドポイントへ送信するときのタイムアウトの上限（秒）。"""
 
 AI_CHAT_ID: str = "ai_chat"
-"""前の版の AI チャットの出力先の ID。読み込むときにカスタムプリセットへ読み替える。"""
+"""前のバージョンの AI チャットの出力先の ID。読み込むときにカスタムプリセットへ読み替える。"""
 
 DEFAULT_AI_CHAT_TARGETS: tuple[dict[str, str], ...] = (
     {"name": "ChatGPT", "url": "https://chatgpt.com", "hotkey": "<ctrl>+<alt>+1"},
     {"name": "Google AI", "url": "https://gemini.google.com/app", "hotkey": "<ctrl>+<alt>+2"},
     {"name": "Claude", "url": "https://claude.ai/new", "hotkey": "<ctrl>+<alt>+3"},
 )
-"""前の版の AI チャットの既定の送り先（targets が無いときの読み替えの元）。"""
+"""前のバージョンの AI チャットの既定の送信先（targets が無いときの読み替えの元）。"""
 
 type _Location = tuple[int | str, ...]
 
 
 def _item(default: Any, description: str, *, reload: str, **constraints: Any) -> Any:
-    """説明・再起動が要るかの印・範囲を持つ設定の項目を作る。"""
+    """説明・再起動が要るかのマーカー・範囲を持つ設定の項目を作る。"""
     return Field(
         default,
         description=description,
@@ -236,7 +236,7 @@ class HotkeySettings(_SettingsModel):
 
 
 class KeyboardSettings(_SettingsModel):
-    """貼り付け先へ送る貼り付けのキー。"""
+    """貼り付け先へ送信する貼り付けのキー。"""
 
     paste_key: str = _item(
         "<ctrl>+v", "貼り付けのキーの組み合わせ（pynput の書式）", reload=RELOAD_IMMEDIATE
@@ -258,7 +258,7 @@ class OutputSettingsBase(_SettingsModel):
 
 
 class _PresetModel(_SettingsModel):
-    """セッションが確定したときの写しとして持つため、変えられないカスタムプリセットの共通の親。"""
+    """セッションが確定したときのコピーとして持つため、変えられないカスタムプリセットの共通の親。"""
 
     model_config = ConfigDict(frozen=True)
 
@@ -417,7 +417,7 @@ class UiSettings(_SettingsModel):
             or "show_hotkeys" not in data
         ):
             return data
-        # 項目が無い: 録音の画面の値を入れた写しを返す（data は書き換えない）
+        # 項目が無い: 録音の画面の値を入れたコピーを返す（data は書き換えない）
         return {**data, "transcribing_show_hotkeys": data["show_hotkeys"]}
 
 
@@ -470,9 +470,9 @@ class ApiSettings(_SettingsModel):
     @field_validator("allowed_web_origins")
     @classmethod
     def _origins_must_be_origin_form(cls, origins: list[str]) -> list[str]:
-        """許す Origin が `scheme://host[:port]` の形（末尾の `/` とパスが無い）であることを確かめる。"""
+        """許す Origin が `scheme://host[:port]` の形式（末尾の `/` とパスが無い）であることを確かめる。"""
         invalid = [origin for origin in origins if not ORIGIN_PATTERN.fullmatch(origin)]
-        # 形の合わない Origin があれば断る
+        # 形式の合わない Origin があれば断る
         if invalid:
             raise ValueError(
                 f"`scheme://host[:port]` の形で、末尾の `/` とパスを付けない（{', '.join(invalid)}）"
@@ -564,7 +564,7 @@ class HintWordSource(Protocol):
 
 
 class EdgePhraseSettings(_SettingsModel):
-    """文頭・文末から消す文言 1 行の文言と当てる位置。"""
+    """文頭・文末から削除する文言 1 行の文言と当てる位置。"""
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
@@ -578,8 +578,8 @@ class EdgePhraseSettings(_SettingsModel):
     @field_validator("text")
     @classmethod
     def _reject_wildcard_only(cls, text: str) -> str:
-        """`*` だけの文言（行を丸ごと消す）を断る。空の文言はここでは断らない。"""
-        # `*` だけで書かれた文言は、文頭・文末の行を丸ごと消すため断る
+        """`*` だけの文言（行を丸ごと削除する）を断る。空の文言はここでは断らない。"""
+        # `*` だけで書かれた文言は、文頭・文末の行を丸ごと削除するため断る
         if text and not text.strip(EDGE_PHRASE_WILDCARD):
             raise PydanticCustomError(
                 EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE, "文言が * だけで、行を丸ごと削除してしまう"
@@ -596,7 +596,7 @@ DEFAULT_EDGE_PHRASES: tuple[EdgePhraseSettings, ...] = (
 
 
 class Settings(_SettingsModel):
-    """settings.toml の全体。項目ごとに範囲・説明・再起動が要るかの印を持つ。"""
+    """settings.toml の全体。項目ごとに範囲・説明・再起動が要るかのマーカーを持つ。"""
 
     transcription: TranscriptionSettings = _group(
         TranscriptionSettings, "使うエンジンと、エンジンごとの設定"
@@ -783,7 +783,7 @@ def build_settings_model(output_models: Sequence[type[OutputSettingsBase]]) -> t
     union = reduce(operator.or_, output_models)
     outputs_type = list[Annotated[union, Field(discriminator="id")]]
 
-    # 3. outputs の既定を、各モデルを引数なしで作った一覧にする（説明・反映の印は Settings のものを引き継ぐ）
+    # 3. outputs の既定を、各モデルを引数なしで作った一覧にする（説明・反映のマーカーは Settings のものを引き継ぐ）
     base_field = Settings.model_fields[OUTPUTS_FIELD_NAME]
     outputs_field = Field(
         default_factory=lambda: [model() for model in output_models],
@@ -962,7 +962,7 @@ def list_validation_failures(error: ValidationError) -> list[tuple[str, str]]:
 
 
 def migrate_ai_chat(document: dict[str, Any]) -> dict[str, Any]:
-    """`id = "ai_chat"` の出力先を外し、送り先をブラウザ添付のプリセットへ読み替えた dict を返す。"""
+    """`id = "ai_chat"` の出力先を外し、送信先をブラウザ添付のプリセットへ読み替えた dict を返す。"""
     # 1. outputs の中の ai_chat の項目を探す
     outputs = document.get(OUTPUTS_FIELD_NAME)
     # outputs が無い・配列でないときは、検証を Settings に任せる
@@ -978,7 +978,7 @@ def migrate_ai_chat(document: dict[str, Any]) -> dict[str, Any]:
     migrated = copy.deepcopy(document)
     presets = list(migrated.get(PRESETS_FIELD_NAME, []))
     for ai_chat in copy.deepcopy(ai_chats):
-        # 2. 送り先（無ければ前の既定の 3 件）を並びのまま、ブラウザ添付のプリセットにして足す
+        # 2. 送信先（無ければ前の既定の 3 件）を並びのまま、ブラウザ添付のプリセットにして追加する
         targets = ai_chat.get("targets")
         if targets is None:
             targets = [{**target, "enabled": True} for target in DEFAULT_AI_CHAT_TARGETS]
@@ -1099,11 +1099,11 @@ def _is_table_like(value: Any) -> bool:
 
 def _merge_into(target: MutableMapping[str, Any], source: dict[str, Any]) -> None:
     """source の値で target を再帰で置き換える。表はキーごとに、配列は丸ごと入れ替える。"""
-    # source に無いキー（None の項目）は消す。知らないキーは検証で断られるので、残るのは None の項目だけ
+    # source に無いキー（None の項目）は削除する。知らないキーは検証で断られるので、残るのは None の項目だけ
     for key in [key for key in target if key not in source]:
         del target[key]
 
-    # 後ろに表が無い配列の表のコメントと空行。全ての値を置き換えた後に target の末尾へ足す
+    # 後ろに表が無い配列の表のコメントと空行。全ての値を置き換えた後に target の末尾へ追加する
     tail: list[Item] = []
 
     # 表の後に置くとその表のキーとして読まれる値を、先に並べる
@@ -1127,7 +1127,7 @@ def _merge_into(target: MutableMapping[str, Any], source: dict[str, Any]) -> Non
 def _replace_array_table(
     target: MutableMapping[str, Any], key: str, value: list[Any]
 ) -> list[Item]:
-    """target の配列の表 key を value に入れ替え、古い配列の表の最初の見出しの前と後ろのコメントを付け直す。target の末尾へ足すものを返す。"""
+    """target の配列の表 key を value に入れ替え、古い配列の表の最初の見出しの前と後ろのコメントを付け直す。target の末尾へ追加するものを返す。"""
     old = target[key]
 
     # 入れ替える前に、古い最初の見出しの前と、最後の要素の末尾のコメントと空行、古い配列の表の次の表を控える
@@ -1151,7 +1151,7 @@ def _replace_array_table(
         following.trivia.indent = moved + following.trivia.indent
         return []
 
-    # 0 件で次の表が無い: 文書の末尾へ足す
+    # 0 件で次の表が無い: 文書の末尾へ追加する
     return [Whitespace(heading_indent), *trailing] if heading_indent else trailing
 
 
@@ -1225,7 +1225,7 @@ def _write_atomically(path: Path, text: str) -> None:
 
 
 def _restart_item_changed(previous: BaseModel, current: BaseModel) -> bool:
-    """再起動が要る印の項目のうち、値が違うものがあるか。"""
+    """再起動が要るマーカーの項目のうち、値が違うものがあるか。"""
     for name, field in type(current).model_fields.items():
         before = getattr(previous, name)
         after = getattr(current, name)
@@ -1236,7 +1236,7 @@ def _restart_item_changed(previous: BaseModel, current: BaseModel) -> bool:
             continue
         extra = field.json_schema_extra
         reload = extra.get("reload") if isinstance(extra, dict) else None
-        # 再起動が要る印の項目の値が変わったか
+        # 再起動が要るマーカーの項目の値が変わったか
         if reload == RELOAD_RESTART and before != after:
             return True
     return False

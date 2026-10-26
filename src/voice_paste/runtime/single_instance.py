@@ -226,7 +226,7 @@ def acquire_single_instance(name: str, timeout_sec: float) -> SingleInstanceLock
             _kernel32.CloseHandle(mutex)
             raise StartupError(f"前の常駐サービスが {timeout_sec} 秒たっても終わらない")
 
-    # 3. 自分の終了の依頼のイベントを作り、立ったまま残っていた依頼を消す
+    # 3. 自分の終了の依頼のイベントを作り、立ったまま残っていた依頼を削除する
     # （同じ名前のイベントは前のプロセスのハンドルが残る間は引き継がれ、取る前に立った依頼は前のプロセス宛てのため）
     quit_event = _kernel32.CreateEventW(None, False, False, _quit_event_name(name))
     if not quit_event:

@@ -2,7 +2,7 @@
 
 build_handlers で配線した常駐サービスをローカルの Whisper（GPU）で立て、録音の入力だけを、Windows の音声合成（SAPI）で作った
 5 文（文の間に区切りの無音の長さより長い間を挟む）の後に 45 秒以上読み上げ続ける WAV を実時間で流すものに差し替える。
-連続録音を始めて流し終えたら完了を呼び、区切った時点（Segmenter のログ）から、同じ通し番号の返送が受け口に届いた時点までを
+連続録音を始めて流し終えたら完了を呼び、区切った時点（Segmenter のログ）から、同じ通し番号の返送が受信先に届いた時点までを
 区間ごとに測る。最初の区間はワーカーの温まりで遅れるため、測る前に別の連続録音で 1 区間を起こして温める。
 `--run-e2e` が無ければ skip する。
 """
@@ -43,7 +43,7 @@ CUT_LOG_PREFIX = "区間を区切った"
 """区間を区切ったときのログの文の先頭。"""
 
 FLUSH_MARK = "（flush・"
-"""完了で閉じた最後の区間のログに含まれる、区切った理由の印。"""
+"""完了で閉じた最後の区間のログに含まれる、区切った理由のマーカー。"""
 
 SEGMENT_GAP_SEC = 3.0
 """区切りの無音の長さの既定（2 秒）より長い、文と文の間の無音。"""
@@ -65,14 +65,14 @@ MIN_SEGMENTS = 7
 
 
 class _ArrivalList(list[dict[str, Any]]):
-    """返送先の受け口が届いた中身を足すとき、届いた時刻（time.perf_counter）も控える。"""
+    """返送先の受信先が受け取った中身を追加するとき、届いた時刻（time.perf_counter）も控える。"""
 
     def __init__(self) -> None:
         super().__init__()
         self.arrivals: list[float] = []
 
     def append(self, item: dict[str, Any]) -> None:
-        """中身を足し、足した時刻を控える。"""
+        """中身を追加し、追加した時刻を控える。"""
         self.arrivals.append(time.perf_counter())
         super().append(item)
 
@@ -134,7 +134,7 @@ def test_segment_callback_latency(
     cut_log: _CutLog,
 ) -> None:
     """区切ってからその区間の返送が届くまでが、どの区間も決定値以内である（実機）。"""
-    # 準備: 受け口が届いた時刻を控えるようにし、温めに 1 文だけを流す入力でサービスを立てる
+    # 準備: 受信先が受け取った時刻を控えるようにし、温めに 1 文だけを流す入力でサービスを立てる
     arrivals = _ArrivalList()
     receiver.received = arrivals
     app = start_inprocess(

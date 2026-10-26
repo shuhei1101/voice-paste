@@ -276,7 +276,7 @@ class Tray(QObject):
 
     @staticmethod
     def _add_item(menu: QMenu, name: str, text: str) -> QAction:
-        """メニューに項目を足し、画面設計の項目 ID を objectName にする。"""
+        """メニューに項目を追加し、画面設計の項目 ID を objectName にする。"""
         action = menu.addAction(text)
         action.setObjectName(name)
         return action

@@ -105,7 +105,7 @@ def phases_audio(phases: Phases, *, numbered: bool = False) -> np.ndarray:
 
 
 def feed_all(segmenter: Segmenter, audio: np.ndarray) -> None:
-    """audio を BLOCK_FRAMES ずつ（最後は短く）、入力と同じ形 (フレーム数, 1) にして Segmenter へ流す。"""
+    """audio を BLOCK_FRAMES ずつ（最後は短く）、入力と同じ構造 (フレーム数, 1) にして Segmenter へ流す。"""
     for start in range(0, audio.size, BLOCK_FRAMES):
         segmenter.feed(audio[start : start + BLOCK_FRAMES].reshape(-1, 1))
 

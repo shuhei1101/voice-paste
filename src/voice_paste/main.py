@@ -134,7 +134,7 @@ WORKER_STOP_TIMEOUT_SEC: float = 2.0
 """文字起こしワーカーの終わりを待つ時間。非機能要件の文字起こしワーカーの終わりを待つ時間の決定値。"""
 
 GLOSSARIES_DIR_NAME: str = "glossaries"
-"""設定画面で足した用語集の CSV を置く、settings.toml と同じフォルダの下のフォルダの名前。"""
+"""設定画面で追加した用語集の CSV を置く、settings.toml と同じフォルダの下のフォルダの名前。"""
 
 WAKE_INTERVAL_MS: int = 200
 """Qt のイベントループの中で Python のシグナルのハンドラが動くようにする、空の QTimer の間隔。PoC で 200 ms なら Ctrl+Break から 0.3 秒で終わった。"""
@@ -151,7 +151,7 @@ WEB_TMP_DIR_NAME: str = "web"
 """ブラウザから受けた音声を書く一時のフォルダの名前（`{tmp_dir}` の下）。"""
 
 PURGE_INTERVAL_SEC: float = 86400.0
-"""RepeatingTimer が purge_old_files を呼ぶ間隔。非機能要件の常駐中に古い履歴とログを消す間隔（24 時間）を秒にした値。"""
+"""RepeatingTimer が purge_old_files を呼ぶ間隔。非機能要件の常駐中に古い履歴とログを削除する間隔（24 時間）を秒にした値。"""
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -225,20 +225,20 @@ def purge_old_files(
     paths: AppPaths,
     active_session_ids: Callable[[], set[str]],
 ) -> None:
-    """設定の保持期間を過ぎたログと履歴を消す。"""
-    # 1. 保持期間を過ぎた日付のログを消す
+    """設定の保持期間を過ぎたログと履歴を削除する。"""
+    # 1. 保持期間を過ぎた日付のログを削除する
     purge_old_logs(paths.log_dir, settings.logging.retention_days, local_today())
 
     # 2. 履歴を残す設定か
     if settings.history.enabled:
-        # 残す: 保持期間を過ぎた履歴のフォルダと、取り残された一時の音声を消す
+        # 残す: 保持期間を過ぎた履歴のフォルダと、取り残された一時の音声を削除する
         purge_expired(
             retention_days=settings.history.retention_days,
             paths=paths,
             now=_local_now,
             active_session_ids=active_session_ids,
         )
-    # 残さない: 履歴は消さない
+    # 残さない: 履歴は削除しない
 
 
 def _jitter(upper: float) -> float:
@@ -250,7 +250,7 @@ def _correct(
     text: str, glossary_preset: str | None, *, settings: Settings, settings_dir: Path
 ) -> str:
     """文字起こしのたびに、補正に使う用語集のプリセットを引き、その用語集を全て読み直して補正する。"""
-    # 文頭・文末の文言を消してから、用語集で置き換える（用語集の置き換えで文言の形が変わる前に当てる）
+    # 文頭・文末の文言を削除してから、用語集で置き換える（用語集の置き換えで文言の形式が変わる前に当てる）
     stripped = strip_edge_phrases(text, settings.edge_phrases)
     preset = pick_glossary_preset(settings, settings_dir, requested=glossary_preset)
     glossaries = list_preset_glossaries(preset, resolve_glossaries(settings, settings_dir))
@@ -289,10 +289,10 @@ def _deliver_session(
 
 
 def _make_paste(get_settings: Callable[[], Settings]) -> Callable[[], None]:
-    """呼ぶたびに設定の貼り付けのキーで貼り付けのキーを送る関数を作る。"""
+    """呼ぶたびに設定の貼り付けのキーで貼り付けのキーを送信する関数を作る。"""
 
     def paste() -> None:
-        """設定の貼り付けのキーで貼り付けのキーを送る。"""
+        """設定の貼り付けのキーで貼り付けのキーを送信する。"""
         send_paste(get_settings().keyboard.paste_key)
 
     return paste
@@ -314,7 +314,7 @@ def _wire_preset_kinds(get_settings: Callable[[], Settings]) -> tuple[PresetKind
     paste = _make_paste(get_settings)
 
     def get_enter_delay_sec() -> float:
-        """設定の貼り付けて送信の、貼り付けてから Enter を送るまでの秒数を返す。"""
+        """設定の貼り付けて送信の、貼り付けてから Enter を送信するまでの秒数を返す。"""
         return read_enter_delay_sec(get_settings())
 
     def get_open_delay_sec() -> float:
@@ -815,7 +815,7 @@ class _Running:
 
 
 def _stop_all(running: _Running, tray: Tray) -> None:
-    """新しい開始が来ないように入口とタイマーを先に止め、録音を捨て、エンジンを止め、トレイを消す。"""
+    """新しい開始が来ないように入口とタイマーを先に止め、録音を捨て、エンジンを止め、トレイを削除する。"""
     if running.hotkey_listener is not None:
         running.hotkey_listener.stop()
     for timer in running.timers:
@@ -936,7 +936,7 @@ def _start_services(
     ui_notify_copied = partial(notify_copied, bridge=bridge)
     show_recording_window = partial(notify, "show_recording_window", bridge=bridge)
 
-    # 5. 設定を読む（読めなければトレイを失敗にして知らせ、設定を直して再起動できるようにする）
+    # 5. 設定を読む（読めなければトレイを失敗にして知らせ、設定を修正して再起動できるようにする）
     try:
         settings = load_settings(paths.settings_file, SETTINGS_MODEL)
     except SettingsError as error:
@@ -947,7 +947,7 @@ def _start_services(
         tray.quit_requested.connect(exit_request.request_quit)
         return
 
-    # 6. 設定の ui.theme で画面の明暗を当て直し、ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を消す（処理中のセッションは無いため、一時の音声も全て消す対象にする）
+    # 6. 設定の ui.theme で画面の明暗を当て直し、ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を削除する（処理中のセッションは無いため、一時の音声も全て削除する対象にする）
     apply_theme(app, settings.ui.theme, image_dir=paths.ui_image_dir)
     logging.getLogger().setLevel(settings.logging.level)
     purge_old_files(settings, paths=paths, active_session_ids=set)

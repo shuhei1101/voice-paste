@@ -1,8 +1,8 @@
 """設定のエンドポイントへ送信（カスタムプリセットの届け先へ POST）の結合テスト。
 
 SessionManager でホットキーのセッションを始め、エンドポイントへ送信のプリセットを選んで確定し、
-main.py の配線（_wire_preset_kinds）で作った送り先へ届くことを、127.0.0.1 のテスト用の受信先で確かめる。
-マイク・システム音量・文字起こしのエンジンと、キーボード・ブラウザのアダプタ・間は偽物。送りは本物の httpx。
+main.py の配線（_wire_preset_kinds）で作った送信先へ届くことを、127.0.0.1 のテスト用の受信先で確かめる。
+マイク・システム音量・文字起こしのエンジンと、キーボード・ブラウザのアダプタ・間は偽物。送信は本物の httpx。
 """
 
 from __future__ import annotations
@@ -56,7 +56,7 @@ def test_normal_when_authorization_set(
     receiver: CallbackReceiver,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """プリセットの Authorization の値を、ヘッダーに入れて送る（正常系）。"""
+    """プリセットの Authorization の値を、ヘッダーに入れて送信する（正常系）。"""
     # 準備
     caplog.set_level(logging.DEBUG)
     preset = _preset(receiver, AUTHORIZATION)
@@ -75,7 +75,7 @@ def test_normal_when_authorization_set(
 def test_error_when_endpoint_unreachable(
     output_stack: Callable[[Settings | None], OutputStack], receiver: CallbackReceiver
 ) -> None:
-    """2xx 以外なら送り直さず、届けられなかったことを知らせて待機中に戻る（異常系）。"""
+    """2xx 以外なら再送せず、届けられなかったことを知らせて待機中に戻る（異常系）。"""
     # 準備
     receiver.default_status = 500
     preset = _preset(receiver)

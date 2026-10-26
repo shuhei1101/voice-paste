@@ -50,19 +50,19 @@ UNREADABLE_COUNT_TEXT: str = "読めません"
 """CSV を読めなかった用語集の、行の数の表示。"""
 
 LIST_COLUMN_PADDING_PX: int = 16
-"""一覧の「補正に使う」の列の幅に、見出しの文字の幅へ足す余白。"""
+"""一覧の「補正に使う」の列の幅に、見出しの文字の幅へ追加する余白。"""
 
 NAME_DISPLAY_MAX_CHARS: int = 20
 """一覧の名前のボタンに出す名前の長さの上限（超えたら末尾を省く）。"""
 
 LAST_GLOSSARY_REMOVE_TOOLTIP: str = "最後の用語集は消せません"
-"""最後の 1 件の用語集の消すボタンに出すツールチップ。"""
+"""最後の 1 件の用語集の削除ボタンに出すツールチップ。"""
 
 ACTIVE_PRESET_REMOVE_TOOLTIP: str = "補正に使うプリセットは消せません"
-"""補正に使うプリセットの消すボタンに出すツールチップ。"""
+"""補正に使うプリセットの削除ボタンに出すツールチップ。"""
 
 DIMMED_OPACITY: float = 0.4
-"""押せない扱いの消すボタンと、オフの行の欄を薄くする濃さ。"""
+"""押せない扱いの削除ボタンと、オフの行の欄を薄くする濃さ。"""
 
 NAME_PLACEHOLDER: str = "例: 会議用"
 """名前の欄のプレースホルダ。"""
@@ -74,10 +74,10 @@ EMPTY_ROWS_TEXT: str = "この用語集にはまだ行がありません。"
 """行が 1 つも無い用語集の、行の表の代わりに出す文。"""
 
 LIST_HEADINGS: tuple[str, str, str] = ("名前", "使うプリセット", "行")
-"""用語集の一覧の列の見出し（名前のボタン・使うプリセット・行の数）。右端の消すボタンの列に見出しは無い。"""
+"""用語集の一覧の列の見出し（名前のボタン・使うプリセット・行の数）。右端の削除ボタンの列に見出しは無い。"""
 
 PRESET_LIST_HEADINGS: tuple[str, str, str] = ("補正に使う", "名前", "用語集")
-"""用語集のプリセットの一覧の列の見出し（補正に使うの選択・名前のボタン・用語集の数）。右端の消すボタンの列に見出しは無い。"""
+"""用語集のプリセットの一覧の列の見出し（補正に使うの選択・名前のボタン・用語集の数）。右端の削除ボタンの列に見出しは無い。"""
 
 COUNT_COLUMN_SAMPLE: str = "000 行（オン 000）"
 """行の数の列の幅を決める、いちばん長くなる表示の見本。"""
@@ -92,13 +92,13 @@ PRESET_SEPARATOR: str = "・"
 """使うプリセットの名前を結ぶ区切り。"""
 
 LIST_NOTE_TEXT: str = "削除した用語集は、使っているプリセットからも外れる。"
-"""用語集を消したときのプリセットへの影響を示す、用語集追加のボタンの右に出す説明。"""
+"""用語集を削除したときのプリセットへの影響を示す、用語集追加のボタンの右に出す説明。"""
 
 LEGEND_TEXT: str = "上の行から順に置き換える。オフの行は補正に使わない。"
 """行の順とオン・オフが補正にどう効くかを示す凡例。"""
 
 DELETE_NOTE_TEXT: str = "正しい表記を空にすると、誤変換を削除する。"
-"""正しい表記を空にした行が誤変換を消すことを伝える、名前の欄の下に出す説明。"""
+"""正しい表記を空にした行が誤変換を削除することを伝える、名前の欄の下に出す説明。"""
 
 PRESET_RULE_TEXT: str = (
     "上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。"
@@ -138,7 +138,7 @@ class _GlossaryState:
     path: Path
     rows: list[_RowState]
     original: list[GlossaryEntry] | None
-    """開いたときに読んだ行（保存した後は保存した行）。足してまだ保存していない用語集と、読めなかった用語集は None。"""
+    """開いたときに読んだ行（保存した後は保存した行）。追加してまだ保存していない用語集と、読めなかった用語集は None。"""
     unreadable: str | None = None
     """CSV を読めなかった理由。読めたら None。"""
 
@@ -148,7 +148,7 @@ class _PresetState:
     """一覧の用語集のプリセット 1 つの、今の入力。"""
 
     ident: int
-    """プリセットの識別（開いたときの何件目か。足したプリセットは開いたときの件数から続く番号）。変えた欄の数えのキーに使う。"""
+    """プリセットの識別（開いたときの何件目か。追加したプリセットは開いたときの件数から続く番号）。変えた欄の数えのキーに使う。"""
     name: str
     paths: list[Path]
     """使う用語集の CSV の場所の並び（用語集の名前を変えても指す先が変わらない）。"""
@@ -249,11 +249,11 @@ def _dim(widget: QWidget, *, dimmed: bool) -> None:
 class GlossaryPanel(QWidget):
     """設定画面の「用語集」のまとまりに置く、用語集のプリセットの一覧と使う用語集の表、用語集の一覧と選んだ用語集の名前の欄・行の表。
 
-    足す・消す・並べ替え・入力はこの部品の中だけを変え、settings.toml と CSV へは設定画面の保存で書く。
+    追加・削除・並べ替え・入力はこの部品の中だけを変え、settings.toml と CSV へは設定画面の保存で書く。
     """
 
     changed = Signal()
-    """用語集・行・プリセットを足す・消す、補正に使うプリセットの切り替え、プリセットの用語集の追加・外し・並べ替え、欄の入力、行のオン・オフで値が変わった。"""
+    """用語集・行・プリセットを追加する・削除する、補正に使うプリセットの切り替え、プリセットの用語集の追加・外し・並べ替え、欄の入力、行のオン・オフで値が変わった。"""
 
     def __init__(
         self,
@@ -261,7 +261,7 @@ class GlossaryPanel(QWidget):
         new_glossary_path: Callable[[Collection[Path]], Path],
         parent: QWidget | None = None,
     ) -> None:
-        """行を読む関数と、足す用語集の場所を決める関数を受けて、空の部品を作る。"""
+        """行を読む関数と、追加する用語集の場所を決める関数を受けて、空の部品を作る。"""
         super().__init__(parent)
         self._read_glossary = read_glossary
         self._new_glossary_path = new_glossary_path
@@ -386,13 +386,13 @@ class GlossaryPanel(QWidget):
         self._rebuild_detail()
 
     def collect(self) -> list[dict[str, Any]]:
-        """今の並びの用語集を、settings.toml と同じ形の dict（name・path）の並びにする。name は前後の空白を除く。"""
+        """今の並びの用語集を、settings.toml と同じ構造の dict（name・path）の並びにする。name は前後の空白を除く。"""
         return [
             {"name": glossary.name.strip(), "path": glossary.path} for glossary in self._glossaries
         ]
 
     def collect_presets(self) -> list[dict[str, Any]]:
-        """今の並びの用語集のプリセットを、settings.toml と同じ形の dict（name・glossaries）の並びにする。glossaries は使う用語集の今の名前を表の順に並べる。"""
+        """今の並びの用語集のプリセットを、settings.toml と同じ構造の dict（name・glossaries）の並びにする。glossaries は使う用語集の今の名前を表の順に並べる。"""
         return [
             {
                 "name": preset.name.strip(),
@@ -406,14 +406,14 @@ class GlossaryPanel(QWidget):
         return self._presets[self._active_preset].name.strip()
 
     def changed_rows(self) -> dict[Path, list[GlossaryEntry]]:
-        """行を変えた用語集と足した用語集だけの、CSV の場所 → 行（表の順。両方が空の行は除く）を返す。"""
+        """行を変えた用語集と追加した用語集だけの、CSV の場所 → 行（表の順。両方が空の行は除く）を返す。"""
         changed: dict[Path, list[GlossaryEntry]] = {}
         for glossary in self._glossaries:
             # 読めなかった用語集は、保存してもその CSV に触れない
             if glossary.unreadable is not None:
                 continue
             entries = self._filled_entries(glossary)
-            # 足した用語集か、開いたときと行が違う用語集だけを書き戻す（名前だけ変えた用語集は入らない）
+            # 追加した用語集か、開いたときと行が違う用語集だけを書き戻す（名前だけ変えた用語集は入らない）
             if glossary.original is None or entries != glossary.original:
                 changed[glossary.path] = entries
         return changed
@@ -438,7 +438,7 @@ class GlossaryPanel(QWidget):
             # 読めなかった用語集は、保存してもその CSV に触れないのでそのまま
             if glossary.unreadable is not None:
                 continue
-            # 足した用語集も、保存した行を基準にする（次の changed_rows は行を変えなければ入れない）
+            # 追加した用語集も、保存した行を基準にする（次の changed_rows は行を変えなければ入れない）
             glossary.original = self._filled_entries(glossary)
 
     def row_errors(self) -> list[tuple[int, int, RowField]]:
@@ -469,7 +469,7 @@ class GlossaryPanel(QWidget):
     # --- 操作 ---
 
     def add_glossary(self) -> None:
-        """末尾に名前が空で行の無い用語集を足し、その行の表を出して名前の欄へフォーカスを移し、changed を emit する。どのプリセットの使う用語集にも入れない。"""
+        """末尾に名前が空で行の無い用語集を追加し、その行の表を出して名前の欄へフォーカスを移し、changed を emit する。どのプリセットの使う用語集にも入れない。"""
         path = self._new_glossary_path([glossary.path for glossary in self._glossaries])
         self._glossaries.append(_GlossaryState("", path, [], None))
         self._shown = len(self._glossaries) - 1
@@ -480,7 +480,7 @@ class GlossaryPanel(QWidget):
         self.changed.emit()
 
     def add_glossary_preset(self) -> None:
-        """末尾に名前が空で使う用語集の無いプリセットを足し、その使う用語集の表を出して名前の欄へフォーカスを移し、changed を emit する。"""
+        """末尾に名前が空で使う用語集の無いプリセットを追加し、その使う用語集の表を出して名前の欄へフォーカスを移し、changed を emit する。"""
         self._presets.append(_PresetState(self._next_preset_ident, "", []))
         self._next_preset_ident += 1
         self._shown_preset = len(self._presets) - 1
@@ -519,7 +519,7 @@ class GlossaryPanel(QWidget):
             self._apply_preset_error()
 
     def clear_errors(self) -> None:
-        """前の保存で出したエラーを全て消す。"""
+        """前の保存で出したエラーを全て削除する。"""
         self._errors.clear()
         self._preset_errors.clear()
         for key, label in self._error_labels.items():
@@ -544,7 +544,7 @@ class GlossaryPanel(QWidget):
     # --- 用語集のプリセットの一覧と使う用語集の表 ---
 
     def _rebuild_preset_list(self) -> None:
-        """用語集のプリセットの一覧（補正に使うプリセットの選択・名前のボタン・用語集の数・消すボタン）を作り直す。"""
+        """用語集のプリセットの一覧（補正に使うプリセットの選択・名前のボタン・用語集の数・削除ボタン）を作り直す。"""
         for preset_row in self._preset_rows:
             self._active_group.removeButton(preset_row.radio)
         _clear_layout(self._preset_list_layout)
@@ -606,7 +606,7 @@ class GlossaryPanel(QWidget):
             self._sync_preset_row(index)
 
     def _sync_preset_row(self, index: int) -> None:
-        """プリセットの一覧の 1 行の表示（名前・用語集の数・読み上げの名前・消すボタンの扱い）を、今の入力に合わせる。"""
+        """プリセットの一覧の 1 行の表示（名前・用語集の数・読み上げの名前・削除ボタンの扱い）を、今の入力に合わせる。"""
         preset = self._presets[index]
         row = self._preset_rows[index]
         shown_name = _preset_display_name(preset.name)
@@ -618,13 +618,13 @@ class GlossaryPanel(QWidget):
         row.radio.setAccessibleName(f"{shown_name}を補正に使う")
         row.remove_button.setAccessibleName(f"{shown_name}を削除")
         row.count_label.setText(f"{len(preset.paths)} 件")
-        # 補正に使うプリセットの消すボタンは、フォーカスとツールチップを残すため無効にせず、薄くして押しても消さない
+        # 補正に使うプリセットの削除ボタンは、フォーカスとツールチップを残すため無効にせず、薄くして押しても削除しない
         is_active = index == self._active_preset
         row.remove_button.setToolTip(ACTIVE_PRESET_REMOVE_TOOLTIP if is_active else "")
         _dim(row.remove_button, dimmed=is_active)
 
     def _on_active_preset(self, position: int, checked: bool) -> None:
-        """補正に使うプリセットを切り替える（前に選んでいたプリセットの消すボタンが押せるようになる）。"""
+        """補正に使うプリセットを切り替える（前に選んでいたプリセットの削除ボタンが押せるようになる）。"""
         if not checked:
             return
         self._active_preset = position
@@ -633,7 +633,7 @@ class GlossaryPanel(QWidget):
         self.changed.emit()
 
     def _show_preset(self, position: int) -> None:
-        """押したプリセットの名前の欄と使う用語集の表を下に出す（切り替えても入れた値は消さない）。"""
+        """押したプリセットの名前の欄と使う用語集の表を下に出す（切り替えても入れた値は削除しない）。"""
         if position == self._shown_preset:
             return
         self._shown_preset = position
@@ -641,13 +641,13 @@ class GlossaryPanel(QWidget):
         self._rebuild_preset_detail()
 
     def _remove_preset(self, position: int) -> None:
-        """用語集のプリセットを一覧から消す。補正に使うプリセットは消さない。"""
+        """用語集のプリセットを一覧から削除する。補正に使うプリセットは削除しない。"""
         if position == self._active_preset:
             return
         del self._presets[position]
         if self._active_preset > position:
             self._active_preset -= 1
-        # 表を出していたプリセットを消したら、補正に使うプリセットの表を出す
+        # 表を出していたプリセットを削除したら、補正に使うプリセットの表を出す
         if self._shown_preset == position:
             self._shown_preset = self._active_preset
         elif self._shown_preset > position:
@@ -817,7 +817,7 @@ class GlossaryPanel(QWidget):
         return row
 
     def _attach_use(self, preset: _PresetState, combo: QComboBox) -> None:
-        """選んだ用語集を使う用語集の表の末尾に足し、選択肢から除く。"""
+        """選んだ用語集を使う用語集の表の末尾に追加し、選択肢から除く。"""
         selected = combo.currentData()
         if selected is None:
             return
@@ -825,7 +825,7 @@ class GlossaryPanel(QWidget):
         self._after_uses_changed(preset)
 
     def _detach_use(self, preset: _PresetState, position: int) -> None:
-        """用語集をこのプリセットから外す（用語集そのものは消さず、追加する用語集の選択肢へ戻す）。"""
+        """用語集をこのプリセットから外す（用語集そのものは削除せず、追加する用語集の選択肢へ戻す）。"""
         del preset.paths[position]
         self._after_uses_changed(preset)
 
@@ -857,7 +857,7 @@ class GlossaryPanel(QWidget):
         self._move_use(preset, position, target)
 
     def _after_uses_changed(self, preset: _PresetState) -> None:
-        """使う用語集を足す・外す・動かした後に、使う用語集の表と一覧の表示を作り直して changed を emit する。"""
+        """使う用語集を追加する・外す・動かした後に、使う用語集の表と一覧の表示を作り直して changed を emit する。"""
         self._rebuild_preset_detail()
         self._sync_preset_row(self._presets.index(preset))
         for index in range(len(self._glossaries)):
@@ -867,7 +867,7 @@ class GlossaryPanel(QWidget):
     # --- 用語集の一覧 ---
 
     def _rebuild_list(self) -> None:
-        """用語集の一覧（名前のボタン・使うプリセット・行の数・消すボタン）を作り直す。"""
+        """用語集の一覧（名前のボタン・使うプリセット・行の数・削除ボタン）を作り直す。"""
         _clear_layout(self._list_layout)
         self._list_rows = []
         # 見出しの行と用語集の行で、列の幅をそろえる
@@ -934,7 +934,7 @@ class GlossaryPanel(QWidget):
         return heading
 
     def _sync_list_row(self, index: int) -> None:
-        """用語集の一覧の 1 行の表示（名前・使うプリセット・行の数・読み上げの名前・消すボタンの扱い）を、今の入力に合わせる。"""
+        """用語集の一覧の 1 行の表示（名前・使うプリセット・行の数・読み上げの名前・削除ボタンの扱い）を、今の入力に合わせる。"""
         glossary = self._glossaries[index]
         row = self._list_rows[index]
         shown_name = _display_name(glossary.name)
@@ -956,13 +956,13 @@ class GlossaryPanel(QWidget):
         else:
             enabled_count = sum(1 for state in glossary.rows if state.enabled)
             row.count_label.setText(f"{len(glossary.rows)} 行（オン {enabled_count}）")
-        # 最後の 1 件の用語集の消すボタンは、フォーカスとツールチップを残すため無効にせず、薄くして押しても消さない
+        # 最後の 1 件の用語集の削除ボタンは、フォーカスとツールチップを残すため無効にせず、薄くして押しても削除しない
         is_last = len(self._glossaries) == 1
         row.remove_button.setToolTip(LAST_GLOSSARY_REMOVE_TOOLTIP if is_last else "")
         _dim(row.remove_button, dimmed=is_last)
 
     def _show(self, position: int) -> None:
-        """押した用語集の名前の欄と行の表を下に出す（切り替えても入れた値は消さない）。"""
+        """押した用語集の名前の欄と行の表を下に出す（切り替えても入れた値は削除しない）。"""
         if position == self._shown:
             return
         self._shown = position
@@ -970,13 +970,13 @@ class GlossaryPanel(QWidget):
         self._rebuild_detail()
 
     def _remove_glossary(self, position: int) -> None:
-        """用語集を一覧と全てのプリセットの使う用語集から消す（CSV のファイルは消さない）。最後の 1 件は消さない。"""
+        """用語集を一覧と全てのプリセットの使う用語集から削除する（CSV のファイルは削除しない）。最後の 1 件は削除しない。"""
         if len(self._glossaries) == 1:
             return
         removed = self._glossaries.pop(position)
         for preset in self._presets:
             preset.paths = [path for path in preset.paths if path != removed.path]
-        # 行の表を出していた用語集を消したら、一覧の 1 件目の行の表を出す
+        # 行の表を出していた用語集を削除したら、一覧の 1 件目の行の表を出す
         if self._shown == position:
             self._shown = 0
         elif self._shown > position:
@@ -1028,7 +1028,7 @@ class GlossaryPanel(QWidget):
             unreadable.setWordWrap(True)
             self._detail_layout.addWidget(unreadable)
         else:
-            # 読めた用語集は、正しい表記を空にした行が誤変換を消すことを名前の欄の下に出す
+            # 読めた用語集は、正しい表記を空にした行が誤変換を削除することを名前の欄の下に出す
             delete_note = QLabel(DELETE_NOTE_TEXT)
             delete_note.setObjectName("glossary_delete_note")
             delete_note.setProperty("role", "muted")
@@ -1066,7 +1066,7 @@ class GlossaryPanel(QWidget):
                 self._apply_error(field, row, messages)
 
     def _build_entries(self, glossary: _GlossaryState) -> QFrame:
-        """行の表（見出し・行ごとのオン・誤変換・正しい表記・消すボタン）を作る。"""
+        """行の表（見出し・行ごとのオン・誤変換・正しい表記・削除ボタン）を作る。"""
         table = QFrame()
         table.setObjectName("glossary_entries")
         table.setAccessibleName("用語集の行（上の行から順に置き換える）")
@@ -1084,7 +1084,7 @@ class GlossaryPanel(QWidget):
         return table
 
     def _build_entry_row(self, glossary: _GlossaryState, row: _RowState, position: int) -> QWidget:
-        """行の表の 1 行（オンの切り替え・誤変換の欄・正しい表記の欄・消すボタンと、欄の下のエラー）を作る。"""
+        """行の表の 1 行（オンの切り替え・誤変換の欄・正しい表記の欄・削除ボタンと、欄の下のエラー）を作る。"""
         container = QWidget()
         column = QVBoxLayout(container)
         column.setContentsMargins(0, 0, 0, 0)
@@ -1159,18 +1159,18 @@ class GlossaryPanel(QWidget):
         self.changed.emit()
 
     def _add_entry(self, glossary: _GlossaryState) -> None:
-        """誤変換と正しい表記が空でオンの行を表の末尾に足し、その行の誤変換の欄へフォーカスを移す。"""
+        """誤変換と正しい表記が空でオンの行を表の末尾に追加し、その行の誤変換の欄へフォーカスを移す。"""
         glossary.rows.append(_RowState("", "", True))
         self._after_rows_changed(glossary)
         self._inputs[("wrong", len(glossary.rows) - 1)].setFocus()
 
     def _remove_entry(self, glossary: _GlossaryState, row: _RowState) -> None:
-        """行を表から消す（保存するまで CSV には書かない）。"""
+        """行を表から削除する（保存するまで CSV には書かない）。"""
         glossary.rows.remove(row)
         self._after_rows_changed(glossary)
 
     def _after_rows_changed(self, glossary: _GlossaryState) -> None:
-        """行を足す・消した後に、行の表と行の数を作り直して changed を emit する（行の添字が変わるのでエラーは消す）。"""
+        """行を追加する・削除した後に、行の表と行の数を作り直して changed を emit する（行の添字が変わるのでエラーは削除する）。"""
         self._errors.clear()
         self._rebuild_detail()
         self._sync_list_row(self._glossaries.index(glossary))
@@ -1183,7 +1183,7 @@ class GlossaryPanel(QWidget):
         key: tuple[GlossaryField, int | None],
         layout: QVBoxLayout,
     ) -> None:
-        """名前つきの文字の欄と、その下のエラーの文（初めは隠す）を足して控える。"""
+        """名前つきの文字の欄と、その下のエラーの文（初めは隠す）を追加して控える。"""
         label = QLabel(label_text)
         label.setProperty("role", "heading")
         label.setBuddy(edit)

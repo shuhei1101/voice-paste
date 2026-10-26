@@ -448,7 +448,7 @@ def test_menu_show_window_action(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_menu_settings_enabled_when_idle(make_ui: Callable[..., Ui]) -> None:
-    """設定…は、待機中のほか、準備に失敗した起動でも押せる（設定を直して再起動できるよう）。"""
+    """設定…は、待機中のほか、準備に失敗した起動でも押せる（設定を修正して再起動できるよう）。"""
     from voice_paste.ui.tray import TrayState
 
     # 準備
@@ -556,7 +556,7 @@ def test_menu_quit_action_when_idle(make_ui: Callable[..., Ui]) -> None:
     [("menu_restart", "request_restart"), ("menu_quit", "request_quit")],
 )
 def test_menu_exit_when_busy(make_ui: Callable[..., Ui], menu: str, requested: str) -> None:
-    """処理中に「再起動」「終了」を選ぶと、アイコンはその時点で消し、その回を届け終えてから行う。"""
+    """処理中に「再起動」「終了」を選ぶと、アイコンはその時点で非表示にし、その回を届け終えてから行う。"""
     # 準備
     ui = make_ui()
     ui.notify_state("hotkey", "transcribing")

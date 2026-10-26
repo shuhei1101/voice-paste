@@ -68,7 +68,7 @@ class PresetListPanel(QWidget):
     """設定画面の 1 つの種類のタブに置く、プリセットのまとまりの縦の並びと「プリセットを追加」。"""
 
     changed = Signal()
-    """足す・消す・並べ替え・欄の入力で値が変わった（設定画面が変えた欄の数えに使う）。"""
+    """追加・削除・並べ替え・欄の入力で値が変わった（設定画面が変えた欄の数えに使う）。"""
 
     def __init__(self, kind: str, parent: QWidget | None = None) -> None:
         """この一覧が受け持つプリセットの種類で、空の一覧を作る。"""
@@ -113,7 +113,7 @@ class PresetListPanel(QWidget):
         self._rebuild([preset.model_dump() for preset in presets], self._number_saved(len(presets)))
 
     def collect(self) -> list[dict[str, Any]]:
-        """今の並びのプリセットを、settings.toml と同じ形の dict の並びにする（kind を含める）。"""
+        """今の並びのプリセットを、settings.toml と同じ構造の dict の並びにする（kind を含める）。"""
         collected: list[dict[str, Any]] = []
         for row in self._rows:
             widgets = row.widgets
@@ -132,10 +132,10 @@ class PresetListPanel(QWidget):
         return collected
 
     def add_preset(self) -> None:
-        """末尾に空のプリセット（有効。ブラウザ添付は Enter まで送るがオン）を足し、タイトルの欄へフォーカスを移して changed を emit する。"""
+        """末尾に空のプリセット（有効。ブラウザ添付は Enter まで送信するがオン）を追加し、タイトルの欄へフォーカスを移して changed を emit する。"""
         values = self.collect()
         values.append(self._empty_preset())
-        # 足したプリセットには、振ったどの番号より大きい番号を振る
+        # 追加したプリセットには、振ったどの番号より大きい番号を振る
         added_id = self._next_id
         self._next_id += 1
         self._rebuild(values, [*self._ids, added_id])
@@ -148,13 +148,13 @@ class PresetListPanel(QWidget):
             f"{PRESETS_FIELD_NAME}.{self.kind}[{preset_id}]": preset
             for preset_id, preset in zip(self._ids, self.collect(), strict=True)
         }
-        # 開いたとき・保存したときからあって今も残っているプリセットだけで、番号の小さい順に並んでいるか（足したプリセットは見ない）
+        # 開いたとき・保存したときからあって今も残っているプリセットだけで、番号の小さい順に並んでいるか（追加したプリセットは見ない）
         kept = [preset_id for preset_id in self._ids if preset_id < self._baseline_count]
         values[f"{PRESETS_FIELD_NAME}.{self.kind}.order"] = kept == sorted(kept)
         return values
 
     def mark_saved(self) -> None:
-        """プリセットの番号を、今の並びの順に 0 から振り直す（足したプリセットも保存したプリセットとして扱う）。保存が書けた後に呼ぶ。"""
+        """プリセットの番号を、今の並びの順に 0 から振り直す（追加したプリセットも保存したプリセットとして扱う）。保存が書けた後に呼ぶ。"""
         self._ids = self._number_saved(len(self._rows))
 
     def focus_field(self, position: int, field: str) -> None:
@@ -174,7 +174,7 @@ class PresetListPanel(QWidget):
         set_invalid(widget, invalid=True)
 
     def clear_errors(self) -> None:
-        """前の保存で出したエラーを全て消す。"""
+        """前の保存で出したエラーを全て削除する。"""
         for row in self._rows:
             for field, label in row.error_labels.items():
                 label.clear()
@@ -188,7 +188,7 @@ class PresetListPanel(QWidget):
         return [name for name in self._model.model_fields if name not in COMMON_ATTRIBUTES]
 
     def _empty_preset(self) -> dict[str, Any]:
-        """足すときの空のプリセット（有効。種類ごとに違う欄はモデルの既定）を dict で返す。"""
+        """追加するときの空のプリセット（有効。種類ごとに違う欄はモデルの既定）を dict で返す。"""
         return {
             "kind": self.kind,
             "enabled": True,
@@ -202,7 +202,7 @@ class PresetListPanel(QWidget):
         }
 
     def _number_saved(self, count: int) -> list[int]:
-        """保存した件数のプリセットに 0 から番号を振り直し（足す番号はその次から）、その番号の並びを返す。"""
+        """保存した件数のプリセットに 0 から番号を振り直し（追加する番号はその次から）、その番号の並びを返す。"""
         self._baseline_count = count
         self._next_id = count
         return list(range(count))
@@ -232,7 +232,7 @@ class PresetListPanel(QWidget):
         self.changed.emit()
 
     def _remove(self, position: int) -> None:
-        """プリセットを一覧から消す。"""
+        """プリセットを一覧から削除する。"""
         values = self.collect()
         del values[position]
         ids = list(self._ids)
@@ -241,7 +241,7 @@ class PresetListPanel(QWidget):
         self.changed.emit()
 
     def _add_row(self, position: int, value: dict[str, Any], *, last: bool) -> None:
-        """プリセット 1 件のまとまり（頭に有効・タイトル・上へ・下へ・消す、下に URL・種類ごとの欄・確定のホットキー）を足す。"""
+        """プリセット 1 件のまとまり（頭に有効・タイトル・上へ・下へ・削除、下に URL・種類ごとの欄・確定のホットキー）を追加する。"""
         # 設定画面と相互に import するため、ホットキーの欄はここで引く
         from voice_paste.ui.windows.settings_window import HotkeyEdit
 
@@ -250,7 +250,7 @@ class PresetListPanel(QWidget):
         frame.setProperty("role", "surface")
         column = QVBoxLayout(frame)
 
-        # 頭: 有効の切り替えと今の状態の文字・入れたタイトルの表示・上へ・下へ・消す
+        # 頭: 有効の切り替えと今の状態の文字・入れたタイトルの表示・上へ・下へ・削除
         head = QHBoxLayout()
         enabled = QCheckBox(ENABLED_TEXT if value["enabled"] else DISABLED_TEXT)
         enabled.setChecked(bool(value["enabled"]))
@@ -323,7 +323,7 @@ class PresetListPanel(QWidget):
 
     @staticmethod
     def _operation_button(text: str, prefix: str, position: int) -> QPushButton:
-        """上へ・下へ・消すのボタンを作る（見た目は印。読み上げの名前は入れたタイトルに合わせて付ける）。"""
+        """上へ・下へ・削除のボタンを作る（見た目はマーカー。読み上げの名前は入れたタイトルに合わせて付ける）。"""
         button = QPushButton(text)
         button.setObjectName(f"{prefix}_{position}")
         return button
@@ -347,7 +347,7 @@ class PresetListPanel(QWidget):
         widget: QWidget,
         extras: tuple[QWidget, ...],
     ) -> None:
-        """欄 1 つ（名前・部品・欄の下のエラー）をまとまりへ足す。"""
+        """欄 1 つ（名前・部品・欄の下のエラー）をまとまりへ追加する。"""
         # チェックボックスは名前を自分の文字に持つ
         if not isinstance(widget, QCheckBox):
             label = QLabel(PRESET_FIELD_LABELS[attribute])
@@ -363,7 +363,7 @@ class PresetListPanel(QWidget):
 
     @staticmethod
     def _add_error_label(column: QVBoxLayout, row: _PresetRow, attribute: str) -> None:
-        """欄の下に出すエラーの文（初めは隠す）を足す。"""
+        """欄の下に出すエラーの文（初めは隠す）を追加する。"""
         error_label = QLabel()
         error_label.setTextFormat(Qt.TextFormat.PlainText)
         error_label.setProperty("role", "error")

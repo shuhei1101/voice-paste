@@ -35,7 +35,7 @@ WORKER_ENCODING: str = "utf-8"
 
 
 class _WorkerExitedError(Exception):
-    """子プロセスが応答の途中で終わった（送れない・標準出力が閉じた）。"""
+    """子プロセスが応答の途中で終わった（送信できない・標準出力が閉じた）。"""
 
 
 class WhisperWorkerClient:
@@ -99,7 +99,7 @@ class WhisperWorkerClient:
                 )
                 self._wait_ready(ready_timeout_sec)
             except _WorkerExitedError:
-                # config を送る前に子プロセスが終わっていた
+                # config を送信する前に子プロセスが終わっていた
                 self._halt()
                 raise EngineError("文字起こしワーカーが起動の直後に終わった") from None
             except EngineError:
@@ -112,7 +112,7 @@ class WhisperWorkerClient:
             )
 
     def _build_environment(self) -> dict[str, str]:
-        """子プロセスの環境を作る（CUDA の DLL の場所を PATH の先頭へ足す）。"""
+        """子プロセスの環境を作る（CUDA の DLL の場所を PATH の先頭へ追加する）。"""
         environment = os.environ.copy()
         nvidia_root = Path(sys.prefix) / "Lib" / "site-packages" / "nvidia"
         dll_dirs = [
@@ -149,7 +149,7 @@ class WhisperWorkerClient:
     def transcribe(
         self, audio_path: Path, *, on_progress: ProgressFn | None = None, hint: str | None = None
     ) -> list[str]:
-        """録音と手がかりを子プロセスへ送り、区間ごとの文字を受け取る。落ちたら 1 回だけ立て直してやり直す。"""
+        """録音と手がかりを子プロセスへ送信し、区間ごとの文字を受け取る。落ちたら 1 回だけ立て直してやり直す。"""
         with self._lock:
             try:
                 return self._exchange(audio_path, on_progress, hint)
@@ -158,7 +158,7 @@ class WhisperWorkerClient:
                 logger.warning(f"文字起こしワーカーが落ちたので立て直す（終了コード {self._exit_code()}）")
                 self._restart()
 
-            # 立て直したワーカーへ同じ録音を送り直す（やり直しは 1 回だけ）
+            # 立て直したワーカーへ同じ録音を再送する（やり直しは 1 回だけ）
             try:
                 return self._exchange(audio_path, on_progress, hint)
             except _WorkerExitedError:
@@ -171,7 +171,7 @@ class WhisperWorkerClient:
     def _exchange(
         self, audio_path: Path, on_progress: ProgressFn | None, hint: str | None
     ) -> list[str]:
-        """録音・設定・手がかりを送り、区間の進みと結果を読む。子プロセスが終わっていれば _WorkerExitedError を送出する。"""
+        """録音・設定・手がかりを送信し、区間の進みと結果を読む。子プロセスが終わっていれば _WorkerExitedError を送出する。"""
         settings = self._settings
         # 手がかりがあるときだけ hotwords として載せる
         optional: dict[str, str] = {} if hint is None else {"hotwords": hint}
@@ -224,7 +224,7 @@ class WhisperWorkerClient:
     def stop(self) -> None:
         """標準入力を閉じて終わりを待ち、待ちきれなければ terminate・kill で止める。文字起こしの最中でも待たない。"""
         # 文字起こしが持つロックは取らない（文字起こしの終わりまで止まらないようにする）。
-        # 止めた子プロセスを transcribe が「落ちた」と受けて立て直さないよう、先に印を立てる
+        # 止めた子プロセスを transcribe が「落ちた」と受けて立て直さないよう、先にマーカーを立てる
         self._stopping = True
         process = self._process
         # 子プロセスが無ければ何もしない

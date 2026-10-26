@@ -1,4 +1,4 @@
-"""出力先を足すときに変える既存のモジュール（output_extensibility）の非機能要件テスト。
+"""出力先を追加するときに変える既存のモジュール（output_extensibility）の非機能要件テスト。
 
 試しの出力先（設定のモデル・届ける関数・注入するものを選ぶ関数）を OUTPUTS の後ろへ登録しただけの一覧から、
 main.py と同じ手順で設定のモデル（build_settings_model）・配線（_wire_outputs）・UiDeps を組み、
@@ -81,8 +81,8 @@ def _find_field(window: QWidget, key: str) -> QWidget | None:
 
 
 def test_output_extensibility(tmp_path: Path, qapp: QApplication) -> None:
-    """試しの出力先を OUTPUTS の並びへの登録だけで足すと、設定の読み書き・確定のホットキー・設定画面の欄・録音の画面のボタン・届けに乗る。"""
-    # 準備: OUTPUTS の後ろに試しの出力先を足した一覧から、main.py と同じ手順で設定のモデルを組む
+    """試しの出力先を OUTPUTS の並びへの登録だけで追加すると、設定の読み書き・確定のホットキー・設定画面の欄・録音の画面のボタン・届けに乗る。"""
+    # 準備: OUTPUTS の後ろに試しの出力先を追加した一覧から、main.py と同じ手順で設定のモデルを組む
     trial = OutputSpec(
         id=TRIAL_ID,
         title=TRIAL_TITLE,

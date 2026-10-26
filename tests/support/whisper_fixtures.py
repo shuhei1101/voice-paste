@@ -98,7 +98,7 @@ def load_local_whisper_settings() -> LocalWhisperSettings:
 
 
 def local_whisper_toml() -> str:
-    """固めた設定を、settings.toml の `[transcription.local_whisper]` の表にして返す（常駐サービスの起動へ足す設定）。"""
+    """固めた設定を、settings.toml の `[transcription.local_whisper]` の表にして返す（常駐サービスの起動へ追加する設定）。"""
     lines = ["[transcription.local_whisper]"]
     for key, value in load_local_whisper_settings().model_dump().items():
         # TOML の真偽値は小文字。文字列と数値は JSON の書き方と同じで書ける

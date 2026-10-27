@@ -70,14 +70,22 @@ categories:
       detail: 'PR #171 の作業ツリー（WSL・Node.js v24.14.0・npm 11.9.0）で、`node_modules/` を削除してから `npm ci` で `package-lock.json` どおりに入れ、`npm run build` が `assets/app.ts` から `assets/app.js` を生成し（再実行しても差分が出ない）、`npm run dev` が `Found 0 errors. Watching for file changes.` で保存を待つことを確かめた。`npm install --save-dev typescript eslint typescript-eslint @eslint/js` で `package.json` と `package-lock.json` が書き換わることも確かめた'
   - name: 環境構築（クローン直後）
     prerequisites:
-      - Ubuntu 24.04 のクローンのリポジトリの直下で、Linux の uv（`uv`。Windows の `uv.exe` ではない）で流す
+      - クローンしたリポジトリの直下で流す
     commands: |-
       1. `uv.lock` どおりに `.venv/` を作る（dev グループを含む）
+
+      Windows:
+
+      ```bash
+      uv.exe sync --frozen
+      ```
+
+      Ubuntu 24.04:
 
       ```bash
       uv sync --frozen
       ```
-    effects: '`.venv/` を `uv.lock` のバージョンで作る。依存のダウンロードが要る。`pycaw`・`comtypes`・`pywin32` は `sys_platform == "win32"` の条件で入らない'
+    effects: '`.venv/` を `uv.lock` のバージョンで作る。依存のダウンロードが要る。Ubuntu では `pycaw`・`comtypes`・`pywin32` は `sys_platform == "win32"` の条件で入らない'
     verification:
       state: 未確認
       detail: '`pyproject.toml` と `uv.lock` への `sys_platform == "win32"` の条件の追加は実装の工程のため、今の `uv.lock` を検証環境の VM（Ubuntu 24.04）で流すと `pywin32` の wheel が無く失敗する（2026-10-28 に確かめた）。実装の工程で、成功することを VM で確かめて記録する'
@@ -94,8 +102,8 @@ categories:
     verification:
       state: 未確認
       detail: 実装の工程で Linux の実装を入れるまで起動できないため、確かめていない。実装の工程で、検証環境の VM の Xorg のセッションでトレイのアイコンが出ることと、2 つ目の起動で前のプロセスが終わることを確かめて記録する
-lead: 依存を追加する・上げる・外すときと、取り込んだ変更に手元の環境を追従させるときに打つコマンド。
+lead: クローン直後に環境を作る・常駐サービスを起動するとき、依存を追加する・上げる・外すとき、取り込んだ変更に手元の環境を追従させるときに打つコマンド。
 prerequisites:
-  - リポジトリの直下で、Windows の uv（WSL からは `uv.exe`）で流す
+  - リポジトリの直下で、Windows では Windows の uv（WSL からは `uv.exe`）、Ubuntu 24.04 では Linux の uv（`uv`）で流す。各分類のコマンドは Windows の uv で書き、Ubuntu では `uv.exe` を `uv` に読み替える
 refs:
   - dev/設計書/モジュール構成/常駐アプリ/起動と配線.py#

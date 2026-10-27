@@ -11,11 +11,13 @@ directory: |-
   ├── vad/
   │   └── adapter.py    # load_vad_session・StreamingVad（faster-whisper 同梱の Silero VAD を onnxruntime で窓ごとに流す）
   ├── volume/
-  │   └── adapter.py    # lower_volume・restore_volume（pycaw を == で固定して包む）
+  │   ├── adapter.py    # lower_volume・restore_volume（pycaw を == で固定して包む。Windows だけが読み込む）
+  │   └── noop.py       # lower_volume_noop・restore_volume_noop（Linux の、音量を変えない実装）
   ├── keyboard/
   │   └── sender.py     # copy_to_clipboard・send_paste・send_enter
   ├── browser/
-  │   └── opener.py     # open_app_window（Edge の --app で開き、無ければ既定のブラウザ）
+  │   ├── opener.py     # open_app_window（Windows。Edge の --app で開き、無ければ既定のブラウザ）
+  │   └── opener_linux.py # open_app_window_linux（Linux。Chromium 系の --app で開き、無ければ既定のブラウザ）
   └── http/
       ├── types.py      # PostResult・PostJsonFn
       └── client.py     # post_json（httpx）
@@ -54,6 +56,10 @@ classes:
         access: 内部 (_)
         default: 'False'
         description: stop で止めている最中か。立っている間は子プロセスが終わっても立て直さない。start で下ろす
+      - name: _creationflags
+        type: int
+        access: 内部 (_)
+        description: 子プロセスの起動のフラグ。main.py が PlatformAdapters.worker_creationflags（Windows は CREATE_NO_WINDOW、Linux は 0）を渡す
     methods:
       - name: start
         title: 起動
@@ -71,7 +77,7 @@ classes:
           2. 子プロセスの環境を作る
              - venv の `Lib/site-packages/nvidia/{cublas,cudnn,cuda_nvrtc}/bin` のうち存在するものを PATH の先頭へ追加する（CUDA の DLL を子プロセスが見つけられるようにする）
              - 標準入出力を UTF-8 にする
-          3. `python -u -m voice_paste.integrations.whisper.worker` をコンソールを出さずに起動し、標準エラーを別のスレッドで読んでロガーへ流す
+          3. `python -u -m voice_paste.integrations.whisper.worker` を _creationflags で起動し（Windows ではコンソールを出さない。sys.platform は見ない）、標準エラーを別のスレッドで読んでロガーへ流す
           4. config（モデル・デバイス・量子化・スレッド数・ワーカー数・ログの置き場所）を送信し、ready・error・子プロセスの終了のどれかを待つ
              - ready_timeout_sec が渡されていれば、その間だけ待つ（立て直しの経路）
              - error が届いた・子プロセスが終わった・上限を過ぎた場合、子プロセスを止めて EngineError を送出する
@@ -887,6 +893,122 @@ functions:
     refs:
       - dev/設計書/外部ライブラリ/av#
     status: planned
+  - name: lower_volume_noop
+    title: 音量を下げない
+    kind: 関数
+    container: integrations/volume/noop.py
+    usecase: 録音する
+    summary: Linux で lower_volume の代わりに渡す。音量を読まず変えず、NOOP_VOLUME を返す
+    inherits: LowerVolumeFn
+    scope: public
+    thread_safe: true
+    args:
+      - name: ratio
+        type: float
+        required: true
+        passing: positional
+        description: 使わない
+      - name: fade_sec
+        type: float
+        required: true
+        passing: positional
+        description: 使わない
+    returns:
+      type: float
+      description: NOOP_VOLUME（restore_volume_noop にだけ渡り、捨てられる）
+    process: 1. 何もせず NOOP_VOLUME を返す
+    unit_tests:
+      - name: test_lower_volume_noop
+        case: 正常
+        summary: 音量を変えずに決まった値を返す
+        condition: ratio=0.5・fade_sec=0.5
+        mock: なし
+        expected: NOOP_VOLUME が返る
+    status: planned
+  - name: restore_volume_noop
+    title: 音量を戻さない
+    kind: 関数
+    container: integrations/volume/noop.py
+    usecase: 録音する
+    summary: Linux で restore_volume の代わりに渡す。何もしない
+    inherits: RestoreVolumeFn
+    scope: public
+    thread_safe: true
+    args:
+      - name: volume
+        type: float
+        required: true
+        passing: positional
+        description: 使わない
+      - name: fade_sec
+        type: float
+        required: true
+        passing: positional
+        description: 使わない
+    returns:
+      type: None
+      description: なし
+    process: 1. 何もしない
+    status: planned
+  - name: open_app_window_linux
+    title: Linux でアプリのウィンドウで開く
+    kind: 関数
+    container: integrations/browser/opener_linux.py
+    usecase: 起こした文字を届ける
+    summary: Linux で open_app_window の代わりに渡す。URL を Chromium 系のブラウザの `--app` で開き、見つからなければ既定のブラウザで開く
+    scope: public
+    args:
+      - name: url
+        type: str
+        required: true
+        passing: positional
+        description: 開く URL（確定の操作で選んだブラウザ添付のプリセットの URL）
+    returns:
+      type: None
+      description: なし（開いた画面の読み込みを待たない）
+    process: |-
+      1. LINUX_BROWSER_COMMANDS の並びで PATH から最初に見つかる実行ファイルを探す（shutil.which）
+      2. 見つかった場合、`[{ブラウザ}, "--app={url}"]` を subprocess.Popen で起動する
+         - `[INFO]` ブラウザ添付のプリセットの画面をアプリのウィンドウで開いた（ブラウザ・url）
+      3. 見つからない場合、webbrowser.open で既定のブラウザ（xdg-open）で開く
+         - webbrowser.open が False を返した場合、DeliveryError を送出する。理由は `ブラウザ添付のプリセットの画面を開けませんでした（開けるブラウザが見つかりません）`
+         - `[INFO]` ブラウザ添付のプリセットの画面を既定のブラウザで開いた（url）
+         - 2 で OSError が出た場合、DeliveryError を送出する。理由は `ブラウザ添付のプリセットの画面を開けませんでした（{元の例外}）` にし、元の例外を連鎖して残す（open_app_window と同じ）
+    exceptions:
+      - name: DeliveryError
+        condition: 見つかったブラウザを起動できない
+      - name: DeliveryError
+        condition: Chromium 系のブラウザが無く、既定のブラウザも開けない
+    unit_tests:
+      - name: test_open_app_window_linux
+        case: 正常
+        summary: 先に見つかった Chromium 系の --app で開く
+        condition: shutil.which が chromium と microsoft-edge だけでパスを返す
+        mock: shutil.which・subprocess.Popen・webbrowser.open
+        expected: Popen に ["/usr/bin/chromium", "--app=https://chatgpt.com"] が渡り、webbrowser.open が呼ばれない
+      - name: test_open_app_window_linux_when_browser_missing
+        case: 正常
+        summary: Chromium 系が無ければ既定のブラウザで開く
+        condition: shutil.which が全て None、webbrowser.open が True を返す
+        mock: shutil.which・subprocess.Popen・webbrowser.open
+        expected: webbrowser.open に URL が渡り、Popen が呼ばれない
+      - name: test_open_app_window_linux_when_no_browser
+        case: 異常
+        summary: 既定のブラウザも開けなければ DeliveryError
+        condition: shutil.which が全て None、webbrowser.open が False を返す
+        mock: shutil.which・webbrowser.open
+        expected: DeliveryError が送出され、理由が `ブラウザ添付のプリセットの画面を開けませんでした（` で始まる
+        exception: Chromium 系のブラウザが無く、既定のブラウザも開けない
+      - name: test_open_app_window_linux_when_failed
+        case: 異常
+        summary: 起動できなければ DeliveryError
+        condition: shutil.which が chromium を返し、subprocess.Popen が OSError を送出する
+        mock: shutil.which・subprocess.Popen
+        expected: DeliveryError が送出され、元の OSError が連鎖している
+        exception: 見つかったブラウザを起動できない
+    refs:
+      - dev/設計書/外部ライブラリ/Microsoft_Edge#
+    status: planned
 constants:
   - name: FADE_STEPS
     title: フェードの回数
@@ -958,6 +1080,21 @@ constants:
     usecase: 起こした文字を届ける
     summary: EnterModifier の値と押す pynput のキー。並びが押す順（Ctrl・Alt・Shift）
     value: '{"ctrl": Key.ctrl, "alt": Key.alt, "shift": Key.shift}'
+    status: planned
+  - name: LINUX_BROWSER_COMMANDS
+    title: Linux で探す Chromium 系のブラウザ
+    container: integrations/browser/opener_linux.py
+    usecase: 起こした文字を届ける
+    summary: open_app_window_linux がこの並びで PATH から探す、`--app` を受け付けるブラウザの実行ファイル名
+    value: ("google-chrome", "chromium", "chromium-browser", "microsoft-edge")
+    reason: Ubuntu では入れ方によって実行ファイルの名前が違い、どれか 1 つが入っていればアプリのウィンドウで開ける
+    status: planned
+  - name: NOOP_VOLUME
+    title: 音量を変えない実装が返す音量
+    container: integrations/volume/noop.py
+    usecase: 録音する
+    summary: lower_volume_noop が下げる前の音量として返す値。音量を読まないため最大の 1.0 を置く
+    value: '1.0'
     status: planned
 test_files:
   - tests/unit/voice_paste/integrations/whisper/test_client.py

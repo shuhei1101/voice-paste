@@ -9,7 +9,7 @@ catalogs:
     entries:
       - name: msedge --app={URL}
         kind: コマンド
-        purpose: ブラウザ添付のプリセットの画面をアプリのウィンドウとして開く（`msedge` が PATH に無ければ Program Files の既定の場所を探し、無ければ既定のブラウザで URL を開く）
+        purpose: ブラウザ添付のプリセットの画面をアプリのウィンドウとして開く（`msedge` が PATH に無ければ Program Files の既定の場所を探し、無ければ既定のブラウザで URL を開く。Linux では `google-chrome`・`chromium`・`chromium-browser`・`microsoft-edge` の順に PATH から探して同じ `--app` で開き、無ければ `webbrowser`（xdg-open）で開く）
       - name: msedge --headless=new --remote-debugging-port={ポート} --user-data-dir={フォルダ} --use-fake-device-for-media-stream --use-fake-ui-for-media-stream --use-file-for-fake-audio-capture={WAV}
         kind: コマンド
         purpose: E2E で、窓を出さずに画面を開き、DevTools Protocol で操作できるようにする。マイクは偽物で許可の確認を自動で通し、渡した WAV を入力に流す（`--user-data-dir` はテストごとの一時のフォルダ）

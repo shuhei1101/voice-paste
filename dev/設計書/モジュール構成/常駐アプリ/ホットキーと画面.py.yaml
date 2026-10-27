@@ -1101,6 +1101,7 @@ classes:
       保存したメッセージのホットキーの文を出すかは、変えた欄の数えの値ではなく、ホットキーの欄の値（`hotkeys.*`・`outputs[].hotkey`・種類ごとのタブの中の何件目かのプリセットの hotkey）を開いたときの値と比べて決める。
       エラーの一覧のプリセットの行は、失敗の場所 `presets[{n}].{項目}` を「プリセット「{タイトル}」の{欄の名前}」（タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」）にし、押すとそのタブへ切り替えて PresetListPanel.focus_field で欄へフォーカスを移す。
       ホットキーの欄は押したキーを format_hotkey の形式で出し、parse_hotkey で pynput の書式に戻す。
+      UiDeps.hidden_setting_keys のキーは欄を置かず、開いたときの値を collect でそのまま返す（settings.toml の値を保つ）。変えた欄の数えにも入らない。既定に戻すと、そのキーも既定値になる。
       コンストラクタは UiDeps を受ける。欄の部品は設定のキーを使った objectName（`field_{キー}`。プリセットの欄は画面設計の項目 ID）を持つ。窓が閉じたら（保存して再起動・今すぐ再起動・取り消し・窓の閉じるのどの経路でも。「保存」では閉じない）closed を emit する。
     kind: クラス
     inherits: PySide6.QtWidgets.QWidget
@@ -1131,6 +1132,13 @@ classes:
         returns:
           type: dict[str, Any]
           description: Settings.model_validate へ渡す値。presets はブラウザ添付のタブの並び → エンドポイントへ送信のタブの並びの順（各 PresetListPanel.collect をつなぐ）。glossaries は GlossaryPanel.collect、glossary_presets は GlossaryPanel.collect_presets、active_glossary_preset は GlossaryPanel.active_preset_name。hint_presets は HintPresetPanel.collect。edge_phrases は EdgePhrasePanel.collect。glossary_path と active_glossary は置かない
+        unit_tests:
+          - name: test_collect_when_hidden_keys
+            case: 正常
+            summary: 出さないキーは欄を置かず、開いたときの値を返す
+            condition: hidden_setting_keys に recording.lower_volume・recording.volume_percent・recording.fade_sec を入れ、recording.volume_percent=40 の設定で開いて collect を呼ぶ。QT_QPA_PLATFORM=offscreen
+            mock: UiDeps の全関数
+            expected: objectName が field_recording.lower_volume・field_recording.volume_percent・field_recording.fade_sec の欄が無く、collect の recording.volume_percent が 40 で lower_volume・fade_sec も開いたときの値
       - name: save
         title: 保存
         summary: 欄の値を設定のモデルで確かめ、通れば書いて効かせ、窓を開いたまま保存したメッセージを出す（restart のときだけ閉じる）。通らなければエラーを出す
@@ -3145,6 +3153,9 @@ data_models:
       - name: list_glossary_presets
         type: Callable[[], list[GlossaryPresetSettings]]
         description: 今の設定の用語集のプリセットの一覧（glossary_presets が空なら「既定」の 1 件。一覧に無い用語集の名前は外す。resolve_glossary_presets）
+      - name: hidden_setting_keys
+        type: frozenset[str]
+        description: 設定画面で出さない設定のキー（OS_HIDDEN_SETTING_KEYS[CURRENT_OS]）。Linux では録音中の音量のキー
     status: implemented
 enums:
   - name: TrayState

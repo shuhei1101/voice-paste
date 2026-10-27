@@ -33,3 +33,4 @@ install: |-
   ```
 
   リポジトリの直下で Windows の uv（WSL からは `uv.exe`）で流す。
+  dev グループに `; sys_platform == "win32"` を付けて宣言し、Linux の `uv sync --frozen` では入らない（Linux の wheel が無い）。使うテストは Linux で skip する。

@@ -1,0 +1,42 @@
+$ uv.exe lock --check
+Resolved 75 packages in 1ms
+(終了コード 0)
+$ .venv/Scripts/lint-imports.exe
+=============
+Import Linter
+=============
+
+
+---------
+Contracts
+---------
+
+Analyzed 101 files, 215 dependencies.
+-------------------------------------
+
+�w�̌��� KEPT
+feature �̓Ɨ� KEPT
+�o�͐�̓Ɨ� KEPT (13 ignored imports)
+��ʂ��� feature �̒��� KEPT (1 ignored import)
+
+Contracts: 4 kept, 0 broken.
+(終了コード 0)
+$ npm run typecheck
+
+> typecheck
+> tsc -p tsconfig.json --noEmit
+
+(終了コード 0)
+$ npm run lint
+
+> lint
+> eslint src/voice_paste/server/web
+
+(終了コード 0)
+$ npm run build && git diff --exit-code -- src/voice_paste/server/web/assets/app.js
+
+> build
+> tsc -p tsconfig.build.json
+
+(終了コード 0)
+合計の終了コード 0

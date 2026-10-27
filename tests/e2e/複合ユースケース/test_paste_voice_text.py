@@ -39,7 +39,7 @@ pytestmark = pytest.mark.real_machine
 StartInProcess = Callable[..., InProcessApp]
 
 WORKER_RESTART_TIMEOUT_SEC = 120.0
-"""やり直したワーカーも落ちた後、文字起こしワーカーが立て直されるまで待つ上限。"""
+"""やり直したワーカーも異常終了した後、文字起こしワーカーが立て直されるまで待つ上限。"""
 
 PASTE_AND_SEND = "paste_and_send"
 """確定に選ぶ出力先の ID（貼り付けて送信）。"""

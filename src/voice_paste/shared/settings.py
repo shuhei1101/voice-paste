@@ -475,7 +475,7 @@ class ApiSettings(_SettingsModel):
         # 形式の合わない Origin があれば断る
         if invalid:
             raise ValueError(
-                f"`scheme://host[:port]` の形で、末尾の `/` とパスを付けない（{', '.join(invalid)}）"
+                f"`scheme://host[:port]` の形式で、末尾の `/` とパスを付けない（{', '.join(invalid)}）"
             )
         return origins
 

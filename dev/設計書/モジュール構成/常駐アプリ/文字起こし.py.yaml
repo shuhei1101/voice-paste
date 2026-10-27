@@ -85,7 +85,7 @@ functions:
          - `[INFO]` 文字に起こした（区間の数・文字数・かかった秒）
     exceptions:
       - name: TranscriptionError
-        condition: エンジンが失敗した（ワーカーのやり直しも落ちた・ワーカーがエラーを返した）
+        condition: エンジンが失敗した（ワーカーのやり直しも異常終了した・ワーカーがエラーを返した）
     unit_tests:
       - name: test_transcribe
         case: 正常

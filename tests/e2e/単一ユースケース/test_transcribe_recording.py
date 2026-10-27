@@ -125,7 +125,7 @@ LONG_SPEECH_REPEAT = 10
 """ワーカーを止める間に起こし終わらないよう、読み上げた音をつなげる回数。"""
 
 WORKER_RESTART_TIMEOUT_SEC = 120.0
-"""やり直したワーカーも落ちた後、文字起こしワーカーが立て直されるまで待つ上限。"""
+"""やり直したワーカーも異常終了した後、文字起こしワーカーが立て直されるまで待つ上限。"""
 
 PROBE_WORKER_MODULE = "tests.support.hotwords_probe_worker"
 """ワーカーの代わりに起動する、hotwords を記録する入口のモジュール。"""

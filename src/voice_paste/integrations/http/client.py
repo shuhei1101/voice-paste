@@ -56,7 +56,7 @@ def post_json(
             response = client.post(url, json=payload, headers=headers)
     except httpx.TransportError as error:
         # 例外の文には URL もヘッダーも書かず、例外の種類だけを残す（認証の値を出さない）
-        raise DeliveryError(f"送り先へ送れませんでした（{type(error).__name__}）") from error
+        raise DeliveryError(f"送信先へ送信できませんでした（{type(error).__name__}）") from error
 
     # 2〜3. Retry-After を秒に換算し、2xx 以外でも送出せずにステータスと一緒に返す
     return PostResult(

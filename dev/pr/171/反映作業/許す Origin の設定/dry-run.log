@@ -1,13 +1,2 @@
 前提確認: ok
---- /mnt/c/Users/shuhe/AppData/Roaming/voice-paste/settings.toml
-+++ /mnt/c/Users/shuhe/AppData/Roaming/voice-paste/settings.toml
-@@ -69,6 +69,7 @@
- transcribing_show_hotkeys = true
- 
- [api]
-+allowed_web_origins = ["https://voice-paste.shuhdev.com"]
- port = 27823
- allowed_callback_hosts = []
- 
-許す Origin の書き込み: changed
-常駐アプリの起動し直し: changed
+許す Origin の書き込み: skipped

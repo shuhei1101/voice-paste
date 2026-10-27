@@ -166,7 +166,7 @@ class WhisperWorkerClient:
                 # やり直しも落ちた: 次の録音に備えて起動し直してから知らせる
                 logger.warning(f"文字起こしワーカーが落ちたので立て直す（終了コード {self._exit_code()}）")
                 self._restart()
-                raise EngineError("やり直した文字起こしワーカーも落ちた") from None
+                raise EngineError("やり直した文字起こしワーカーも異常終了した") from None
 
     def _exchange(
         self, audio_path: Path, on_progress: ProgressFn | None, hint: str | None

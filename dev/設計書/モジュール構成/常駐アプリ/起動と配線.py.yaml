@@ -213,7 +213,7 @@ functions:
     process: |-
       1. 起動の引数を読む（parse_args。argv が None なら sys.argv[1:]）
       2. 置き場所を決め、ログを INFO で設定する（resolve_app_paths・setup_logging）
-      3. OS に合った実装を選び（select_platform_adapters(CURRENT_OS)）、置き場所ごとの名前で単一インスタンスを確保する（instance_name・PlatformAdapters.acquire_single_instance(SINGLE_INSTANCE_TIMEOUT_SEC)）
+      3. OS に合った実装を選び（select_platform_adapters(CURRENT_OS, lock_file=paths.lock_file)）、置き場所ごとの名前で単一インスタンスを確保する（instance_name・PlatformAdapters.acquire_single_instance(SINGLE_INSTANCE_TIMEOUT_SEC)）
          - StartupError の場合、1 を返す（トレイを出す前のため、ログにだけ残す）
            - `[ERROR]` 起動に失敗した（理由）
       4. QApplication（最後の窓を閉じても終わらない）・UiBridge・Tray を作り、apply_theme(app, "system", image_dir=paths.ui_image_dir) で画面の明暗を当ててトレイに準備中を出す。WAKE_INTERVAL_MS ごとの空の QTimer を置き、SIGINT・SIGBREAK で QApplication.quit を呼ぶ。後から起動したプロセスに終わるよう頼まれたら、QApplication.quit をメインスレッドで呼ぶ（SingleInstanceLock.on_quit_requested に、QMetaObject.invokeMethod で QApplication.quit をキューに入れる関数を渡す）
@@ -947,13 +947,18 @@ functions:
         required: true
         passing: positional
         description: 動いている OS（main は CURRENT_OS を渡す）
+      - name: lock_file
+        type: Path
+        required: true
+        passing: keyword
+        description: Linux のロックファイル（main は AppPaths.lock_file を渡す。Windows では使わない）
     returns:
       type: PlatformAdapters
       description: OS ごとの実装
     process: |-
       1. os_kind で分ける
          - OsKind.WINDOWS の場合、integrations/volume/adapter.py（comtypes・pycaw を読み込む）をここで import し、acquire_single_instance・lower_volume・restore_volume・open_app_window・CREATE_NO_WINDOW・relaunch(os_kind=WINDOWS) を束ねる
-         - OsKind.LINUX の場合、runtime/single_instance_linux.py（fcntl を読み込む）をここで import し、acquire_single_instance_linux・lower_volume_noop・restore_volume_noop・open_app_window_linux・0・relaunch(os_kind=LINUX) を束ねる
+         - OsKind.LINUX の場合、runtime/single_instance_linux.py（fcntl を読み込む）をここで import し、acquire_single_instance_linux（functools.partial で lock_file を部分適用）・lower_volume_noop・restore_volume_noop・open_app_window_linux・0・relaunch(os_kind=LINUX) を束ねる
     unit_tests:
       - name: test_select_platform_adapters_when_windows
         case: 正常
@@ -966,7 +971,7 @@ functions:
         summary: Linux は何もしない音量・Chromium 系・flock の排他を選ぶ
         condition: os_kind=OsKind.LINUX（Windows では skip）
         mock: なし
-        expected: lower_volume が lower_volume_noop、restore_volume が restore_volume_noop、open_app_window が open_app_window_linux、acquire_single_instance が acquire_single_instance_linux、worker_creationflags が 0。voice_paste.integrations.volume.adapter が sys.modules に無い
+        expected: lower_volume が lower_volume_noop、restore_volume が restore_volume_noop、open_app_window が open_app_window_linux、acquire_single_instance が lock_file を部分適用した acquire_single_instance_linux（func と keywords で確かめる）、worker_creationflags が 0。voice_paste.integrations.volume.adapter が sys.modules に無い
     status: planned
   - name: acquire_single_instance_linux
     title: Linux の単一インスタンスの確保
@@ -981,17 +986,22 @@ functions:
         type: str
         required: true
         passing: positional
-        description: 排他の名前（instance_name）。ロックファイルは `{_lock_dir()}/{name}.lock`、終了の依頼のソケットは抽象名前空間の `\0{name}-quit` にする
+        description: 排他の名前（instance_name）。終了の依頼のソケットは抽象名前空間の `\0{name}-quit` にする
       - name: timeout_sec
         type: float
         required: true
         passing: positional
         description: 前のプロセスの終わりを待つ上限
+      - name: lock_file
+        type: Path
+        required: true
+        passing: keyword
+        description: ロックファイル（AppPaths.lock_file。環境変数によらず設定・データの置き場所ごとに 1 つに決まる）
     returns:
       type: LinuxSingleInstanceLock
       description: 取った排他（終了の依頼を待つスレッドを持つ。終了時に release で放す）
     process: |-
-      1. ロックファイルを開き（os.open、無ければ 0o600 で作る）、fcntl.flock(LOCK_EX | LOCK_NB) で取る
+      1. lock_file を開き（os.open、無ければ親のフォルダごと 0o600 で作る）、fcntl.flock(LOCK_EX | LOCK_NB) で取る
       2. 取れたか
          - 取れない場合（BlockingIOError）、前のプロセスの終了の依頼のソケットへ接続して QUIT_REQUEST を送信し、LOCK_RETRY_INTERVAL_SEC ごとに flock(LOCK_EX | LOCK_NB) を取り直しながら timeout_sec まで待つ
            - 接続できない場合（前のプロセスがロックを取ってからソケットを作るまでの間）、取り直すたびに接続し直す（送信できたら以降は送信しない）
@@ -1042,30 +1052,30 @@ functions:
         mock: なし（実物の子プロセス・flock・抽象名前空間のソケット）
         expected: LinuxSingleInstanceLock が返る
     status: planned
-  - name: _lock_dir
-    title: ロックファイルの置き場所
+    description: 単体テストは lock_file に一時フォルダの instance.lock を渡す（同じロックを取り合うケースでは同じパスを渡す）。
+  - name: _peer_uid
+    title: 接続の相手の uid
     kind: 関数
     container: runtime/single_instance_linux.py
     usecase: 常駐アプリを起動する
-    summary: Linux のロックファイルを置くフォルダを返す
+    summary: Unix ドメインソケットの接続の相手の uid を SO_PEERCRED で読む
     scope: internal
+    args:
+      - name: conn
+        type: socket.socket
+        required: true
+        passing: positional
+        description: accept した接続
     returns:
-      type: Path
-      description: 環境変数 XDG_RUNTIME_DIR のフォルダ。無いか存在しなければ tempfile.gettempdir()
-    process: 1. XDG_RUNTIME_DIR があり、そのフォルダが存在すればそれを、無ければ tempfile.gettempdir() を返す（ログアウトで消えるフォルダに置き、設定・履歴の置き場所を汚さない）
+      type: int
+      description: 相手の uid（getsockopt(SOL_SOCKET, SO_PEERCRED) の struct ucred（3 つの int）の 2 つ目）
     unit_tests:
-      - name: test_lock_dir
+      - name: test_peer_uid
         case: 正常
-        summary: XDG_RUNTIME_DIR を使う
-        condition: XDG_RUNTIME_DIR に一時フォルダを入れる
-        mock: 環境変数（monkeypatch）
-        expected: その一時フォルダ
-      - name: test_lock_dir_when_runtime_dir_missing
-        case: 正常
-        summary: XDG_RUNTIME_DIR が無ければ一時フォルダ
-        condition: XDG_RUNTIME_DIR を消す
-        mock: 環境変数（monkeypatch）
-        expected: tempfile.gettempdir() と同じ
+        summary: 自分の接続は自分の uid
+        condition: socket.socketpair(AF_UNIX) の片方を渡す
+        mock: なし
+        expected: os.getuid()
     status: planned
 notes:
   依存の向き: |-
@@ -1309,6 +1319,7 @@ classes:
     description: |-
       終了の依頼のソケット（抽象名前空間の `\0{名前}-quit`）と停止のソケットの対（socket.socketpair）を専用のデーモンスレッドが select で待ち、QUIT_REQUEST を受けたら on_quit_requested で渡された関数を 1 回呼んでスレッドを終える（呼ぶのはそのスレッド）。
       QUIT_REQUEST 以外を受けた接続は閉じて待ち続ける。
+      抽象名前空間のソケットにはファイルの権限が効かないため、接続を受けたら _peer_uid（SO_PEERCRED）で相手の uid を読み、os.getuid() と違う接続は QUIT_REQUEST を読まずに閉じて待ち続ける（ほかのユーザーが常駐サービスを終わらせられない）。
       プロセスが片付けずに落ちても、OS がロックとソケットを放すため、次の起動はそのまま取れる。
     kind: クラス
     properties:
@@ -1374,6 +1385,12 @@ classes:
             condition: 受け手を渡し、`hello` を送信してから QUIT_REQUEST を送信する
             mock: 受け手
             expected: '`hello` の後には呼ばれず、QUIT_REQUEST の後に 1 回呼ばれる'
+          - name: test_on_quit_requested_linux_when_other_user
+            case: 正常
+            summary: ほかのユーザーからの依頼では終わらない
+            condition: 受け手を渡し、_peer_uid が os.getuid() + 1 を返す状態で QUIT_REQUEST を送信し、続けて _peer_uid を os.getuid() に戻して QUIT_REQUEST を送信する
+            mock: 受け手・_peer_uid（monkeypatch）
+            expected: 1 つ目の後には呼ばれず、2 つ目の後に 1 回呼ばれる
       - name: release
         title: 排他の解放
         kind: メソッド

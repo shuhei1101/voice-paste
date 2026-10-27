@@ -9,7 +9,7 @@ files:
     notes: git の管理外。既定は `%APPDATA%\voice-paste\settings.toml`（Linux は `~/.config/voice-paste/settings.toml`）、`--data-dir` を渡したときはその下。無ければ起動時に既定値で作る。
   - file: settings.sample.toml
     manages: settings.toml の見本と既定値
-    notes: git で管理する。設定のモデルの Windows の既定値と一致させる（単体テストで確かめる）。Linux で既定値が違うキーは、各キーの「環境ごとの値」が持つ。
+    notes: git で管理する。設定のモデルの共通の既定値（Windows の既定値）と一致させる（単体テストで、動いている OS の上書きのキーは共通の既定値と、それ以外は設定のモデルの既定値と比べる）。Linux で既定値が違うキーは、各キーの「環境ごとの値」が持つ。
 settings:
   - key: transcription.engine
     title: 使う文字起こしのエンジン

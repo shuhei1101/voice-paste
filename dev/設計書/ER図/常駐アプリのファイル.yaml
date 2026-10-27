@@ -208,17 +208,17 @@ tables:
     status: planned
     introduced:
       pr: 171
-  - name: '{XDG_RUNTIME_DIR か一時フォルダ}/{instance_name}.lock'
+  - name: '%LOCALAPPDATA%\voice-paste\instance.lock'
     title: Linux の単一インスタンスのロックファイル
     datastore: ファイル
     summary: Linux で常駐サービスが fcntl.flock で排他を取るための空のファイル
-    scale: 設定の置き場所ごとに 1 つ
+    scale: データの置き場所ごとに 1 つ
     growth: 初めて起動したときに作る（権限 0o600）
-    retention: 消さない（XDG_RUNTIME_DIR はログアウトで、一時フォルダは OS が片付ける）
+    retention: 消さない
     deletion: 常駐サービスは消さない（消すと、待っているプロセスと別のファイルで取り合う）
     description: |-
-      置き場所は環境変数 XDG_RUNTIME_DIR のフォルダ。無ければ `tempfile.gettempdir()`。名前は instance_name（設定の置き場所から作る）。
-      中身は読み書きしない。プロセスが落ちると OS がロックを放す。終了の依頼のソケットは抽象名前空間に作り、ファイルを残さない。Windows は名前付きミューテックスで、ファイルを持たない。
+      Linux だけが使う（置き場所は AppPaths.lock_file。Linux は `~/.local/share/voice-paste/instance.lock`、`--data-dir` を渡したときはその下）。環境変数によらず置き場所が 1 つに決まるため、起動した環境が違っても同じロックを取り合う。
+      中身は読み書きしない。プロセスが落ちると OS がロックを放す。終了の依頼のソケットは抽象名前空間に作り、ファイルを残さない。Windows は名前付きミューテックスで、このファイルを作らない。
     columns:
       - name: '-'
         title: 中身

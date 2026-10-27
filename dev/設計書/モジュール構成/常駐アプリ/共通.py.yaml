@@ -157,6 +157,9 @@ data_models:
       - name: ui_image_dir
         type: Path
         description: '`%LOCALAPPDATA%\voice-paste\ui\`（`{data_dir}\ui\`。選択欄の開くマーカーの SVG）'
+      - name: lock_file
+        type: Path
+        description: '`%LOCALAPPDATA%\voice-paste\instance.lock`（Linux は `~/.local/share/voice-paste/instance.lock`。`{data_dir}\instance.lock`。Linux の単一インスタンスのロックファイル。Windows では使わない）'
     refs:
       - dev/設計書/外部ライブラリ/platformdirs#
     status: implemented
@@ -960,10 +963,10 @@ functions:
         expected: local_whisper.model が small、outputs が CopyOnlySettings 1 件、書いていない項目は既定値
       - name: test_load_settings_when_sample_file
         case: 正常
-        summary: リポジトリの見本は既定値と一致する
+        summary: リポジトリの見本は共通の既定値（Windows の既定値）と一致する
         condition: リポジトリの直下の settings.sample.toml
         mock: なし
-        expected: SETTINGS_MODEL() と等しい
+        expected: OS_DEFAULT_OVERRIDES[CURRENT_OS] のキーを除いて SETTINGS_MODEL() と等しい。除いたキーは、見本の値がそのキーの共通の既定値（os_default に渡す common。Windows の値）と等しい（Windows では上書きが無いため、SETTINGS_MODEL() 全体と等しい）
       - name: test_load_settings_when_invalid_value
         case: 異常
         summary: 合わない値はキーを示して断る
@@ -1239,7 +1242,7 @@ functions:
       description: 置き場所のパス
     process: |-
       1. data_dir が渡されているか
-         - ある場合、設定・履歴・ログ・一時の音声・トークン・画面の画像を全て data_dir の下に置く
+         - ある場合、設定・履歴・ログ・一時の音声・トークン・画面の画像・ロックファイルを全て data_dir の下に置く
          - 無い場合、設定は user_config_dir(APP_NAME, appauthor=False, roaming=True)、それ以外は user_data_dir(APP_NAME, appauthor=False) の下に置く
     unit_tests:
       - name: test_resolve_app_paths_when_data_dir
@@ -1247,7 +1250,7 @@ functions:
         summary: データの置き場所の下に全てを置く
         condition: data_dir=一時フォルダ
         mock: なし
-        expected: settings_file が {data_dir}/settings.toml、log_dir が {data_dir}/log、ui_image_dir が {data_dir}/ui など全てが data_dir の下。フォルダは作られていない
+        expected: settings_file が {data_dir}/settings.toml、log_dir が {data_dir}/log、ui_image_dir が {data_dir}/ui、lock_file が {data_dir}/instance.lock など全てが data_dir の下。フォルダは作られていない
       - name: test_resolve_app_paths_when_default
         case: 正常
         summary: 既定は platformdirs の置き場所

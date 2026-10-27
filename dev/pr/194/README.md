@@ -1,0 +1,1 @@
+# 反映作業「許す Origin の設定」で、allowed_web_origins が空のリストのときに Origin を書き込めるようにする

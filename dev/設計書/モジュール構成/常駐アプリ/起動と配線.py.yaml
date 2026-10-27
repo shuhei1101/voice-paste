@@ -15,13 +15,13 @@ directory: |-
 
   リポジトリの直下は `pyproject.toml`・`uv.lock`・`.python-version`・起動のバッチファイル 1 つ・`settings.sample.toml`・`README.md`・`CLAUDE.md`・`src/`・`resources/`・`tests/`・`dev/`・`docs/` に絞る。
 
-  動かす環境は、リポジトリの直下で Windows の uv（WSL からは `uv.exe`）で `uv sync --frozen` を流して `.venv/` に作る（`uv.lock` の版で入り、Python の版は `.python-version` の 3.14）。
+  動かす環境は、リポジトリの直下で Windows の uv（WSL からは `uv.exe`）で `uv sync --frozen` を流して `.venv/` に作る（`uv.lock` のバージョンで入り、Python のバージョンは `.python-version` の 3.14）。
   Linux の uv で流すと `.venv/` を Linux の構成に作り直したうえで `pywin32` を入れられず止まるため、環境を作るコマンドと環境で流すコマンドは Windows の uv で流す（`uv lock` はどちらでもよい）。
   起動のバッチファイル（`voice-paste.bat`）は、起動のたびにリポジトリの直下で `uv sync --frozen` を流し、`.venv/` を `uv.lock` に揃える（揃っていれば何も書き換えずに終わる）。uv は PATH から探し、無ければ `%USERPROFILE%\.local\bin\uv.exe` を使う。
   `uv sync --frozen` を流す前に、コンソールに `Syncing .venv with uv sync --frozen. See log: {launcher.log のパス}` を表示する。
   続けて `.venv\Scripts\python.exe -c "import voice_paste"` で `.venv` から voice_paste を import できるかを確かめる（`.venv` のフォルダや `python.exe` があるかでは判定しない）。
   uv が見つからないときは `uv sync --frozen` を飛ばして `launcher.log` にその旨を書き、import できれば起動する。
-  import できたら、`.venv` を有効にし、CUDA の DLL（`.venv` の `Lib/site-packages/nvidia/` の `cublas`・`cudnn`・`cuda_nvrtc` の `bin`）を `PATH` に足して、`.venv\Scripts\pythonw.exe -m voice_paste` を引数なしで起動する（コンソールを出さない）。システムの `pythonw` では起動しない。
+  import できたら、`.venv` を有効にし、CUDA の DLL（`.venv` の `Lib/site-packages/nvidia/` の `cublas`・`cudnn`・`cuda_nvrtc` の `bin`）を `PATH` に追加して、`.venv\Scripts\pythonw.exe -m voice_paste` を引数なしで起動する（コンソールを出さない）。システムの `pythonw` では起動しない。
   次のときは起動せず、コンソールに理由の 1 行と `See log: {launcher.log のパス}` を表示して `pause` で止まり、0 以外の終了コードで終わる（`uv sync` の失敗はその終了コード、ほかは 1）。
 
   | 起きたこと | 理由の行 |
@@ -153,7 +153,7 @@ functions:
       5. 出力先の deliver に、配線した OUTPUTS（_wire_outputs）・配線した PRESET_KINDS（_wire_preset_kinds）と、届けるたびに SettingsStore からオンの出力先の ID を引く関数を部分適用し、Session を入口・出力先の ID・選んだプリセット・返送先に分けて渡すアダプタを作る
          - 出力先には OutputDeps（copy_to_clipboard・設定の keyboard.paste_key で send_paste を呼ぶ関数・send_enter・time.sleep・random.uniform(0, x)・post_json・SettingsStore.get・notify_copied）を渡し、各出力先の inject が選ぶ
          - ブラウザ添付（種類）: copy_to_clipboard・open_app_window・send_paste を呼ぶ関数・send_enter・time.sleep・設定の preset_options.browser.open_delay_sec を返す関数・貼り付けて送信の enter_delay_sec を返す関数（read_enter_delay_sec）
-         - エンドポイントへ送る（種類）: post_json・設定の preset_options.endpoint.timeout_sec を返す関数
+         - エンドポイントへ送信（種類）: post_json・設定の preset_options.endpoint.timeout_sec を返す関数
       6. 文字起こしのたびに、SettingsStore の設定の edge_phrases で文頭・文末の文言を消してから（strip_edge_phrases）用語集を読み直して置き換える correct（起こした文字と用語集のプリセットの名前か None を受ける）を作る。そのたびに、SettingsStore の設定と settings.toml のフォルダから pick_glossary_preset（requested に受けた名前）でプリセットを引き、list_preset_glossaries（用語集の一覧は resolve_glossaries）の順に load_glossary した行を 1 本の並びにつないで apply_glossary を当てる（読めない CSV は load_glossary が空を返すので飛ばされる。使う用語集が無ければ置き換えない）
          - `[INFO]` 用語集で補正する（用語集のプリセットの名前・用語集ごとの名前と補正に使う行数）
       7. SessionDeps を組み（report_progress、起動時の設定の api.continuous.min_silence_sec を部分適用した Recorder.start_continuous、Recorder.stop_continuous を含む）、API のセッションの上限時間と、起動時の設定の api.continuous.session_limit_sec の連続録音の上限時間と共に SessionManager を作る（api.continuous.* は再起動で効く）
@@ -182,7 +182,7 @@ functions:
            - `[ERROR]` 起動に失敗した（理由）
       4. QApplication（最後の窓を閉じても終わらない）・UiBridge・Tray を作り、apply_theme(app, "system", image_dir=paths.ui_image_dir) で画面の明暗を当ててトレイに準備中を出す。WAKE_INTERVAL_MS ごとの空の QTimer を置き、SIGINT・SIGBREAK で QApplication.quit を呼ぶ。後から起動したプロセスに終わるよう頼まれたら、QApplication.quit をメインスレッドで呼ぶ（SingleInstanceLock.on_quit_requested に、QMetaObject.invokeMethod で QApplication.quit をキューに入れる関数を渡す）
       5. 設定を読む（load_settings(settings_file, SETTINGS_MODEL)）
-         - SettingsError の場合、トレイを失敗にして設定を読めないことを通知し（Tray.show_failure(settings_invalid, 理由)）、「録音を始める」「設定…」を押せないまま 11 へ（フォルダを開いて settings.toml を直し、再起動できる）
+         - SettingsError の場合、トレイを失敗にして設定を読めないことを通知し（Tray.show_failure(settings_invalid, 理由)）、「録音を開始」「設定…」を押せないまま 11 へ（フォルダを開いて settings.toml を直し、再起動できる）
            - `[ERROR]` 起動に失敗した（理由）
       6. 設定の ui.theme で画面の明暗を当て直し（apply_theme。image_dir は paths.ui_image_dir）、QStyleHints.colorSchemeChanged に、SettingsStore.get の ui.theme で apply_theme を呼ぶ関数をつなぐ（OS の明暗が変わったときに当て直す）。ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を消す（purge_old_files。処理中のセッションは無いため、一時の音声も全て消す対象にする）
          - `[INFO]` 設定を読んだ（設定ファイルのパス・エンジン・オンの出力先の ID）
@@ -472,7 +472,7 @@ functions:
       - name: test_wire_outputs_when_registered_output
         case: 正常
         summary: 登録しただけの出力先も、その inject が選んだもので配線される
-        condition: 'OUTPUTS の後ろに、inject が {"copy": deps.copy} を返す試しの出力先を足した一覧を渡す'
+        condition: 'OUTPUTS の後ろに、inject が {"copy": deps.copy} を返す試しの出力先を追加した一覧を渡す'
         mock: copy_to_clipboard
         expected: 返った一覧の最後が試しの出力先で、その handler を呼ぶと copy_to_clipboard に起こした文字が渡る
     status: implemented
@@ -606,7 +606,7 @@ functions:
         type: Mapping[Path, Sequence[GlossaryEntry]]
         required: true
         passing: positional
-        description: 書き戻す用語集の CSV の場所（絶対パス）→ 行。設定画面で行を変えた用語集と足した用語集だけを持つ（行を変えていなければ空）
+        description: 書き戻す用語集の CSV の場所（絶対パス）→ 行。設定画面で行を変えた用語集と追加した用語集だけを持つ（行を変えていなければ空）
       - name: save_glossary
         type: Callable[[Path, Sequence[GlossaryEntry]], None]
         required: true
@@ -724,7 +724,7 @@ functions:
       7. copy に copy_to_clipboard を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
     status: implemented
   - name: relaunch
-    title: 起動し直し
+    title: 再起動
     container: runtime/process.py
     usecase: トレイから操作する
     summary: 同じ Python と引数で `python -m voice_paste` を切り離したプロセスとして起動する。片付けを終えた後に呼ぶ（API のポートとエンジンを放してから次を立てる）
@@ -871,7 +871,7 @@ functions:
         expected: 返った一覧の kind が PRESET_KINDS と同じ並びで、browser の handler を send_enter True のプリセットで呼ぶと sleep に 1.5・0.2 がこの順に渡り、endpoint の handler を呼ぶと post_json の timeout_sec に 2.0 が渡る
       - name: test_wire_preset_kinds_when_settings_changed
         case: 正常
-        summary: 配線の後に変えたタイムアウトが次の送りに効く
+        summary: 配線の後に変えたタイムアウトが次の送信に効く
         condition: 配線の後に get_settings が返す設定の preset_options.endpoint.timeout_sec を 5.0 に差し替える
         mock: post_json
         expected: endpoint の handler を呼ぶと post_json の timeout_sec に 5.0 が渡る
@@ -894,7 +894,7 @@ notes:
     | 出力先の独立 | independence | `voice_paste.features.outputs.*`。ignore_imports で `voice_paste.features.outputs.registry -> voice_paste.features.outputs.*`・`voice_paste.features.outputs.service -> voice_paste.features.outputs.registry`・`voice_paste.features.outputs.** -> voice_paste.features.outputs.types` を除く |
     | 画面から feature の中へ | forbidden | source_modules は `voice_paste.ui`、forbidden_modules は `voice_paste.features`・`voice_paste.integrations`。ignore_imports で `voice_paste.ui.** -> voice_paste.features.session.types` を除く |
 
-    出力先を足すときは `features/outputs/` にサブフォルダを足すだけで契約の対象に入り、契約は直さない。
+    出力先を追加するときは `features/outputs/` にサブフォルダを追加するだけで契約の対象に入り、契約は直さない。
 classes:
   - name: RepeatingTimer
     title: 定期の呼び出し
@@ -1136,10 +1136,10 @@ constants:
     value: '54.0'
     status: implemented
   - name: PURGE_INTERVAL_SEC
-    title: 常駐中に古いログと履歴を消す間隔
+    title: 常駐中に古いログと履歴を削除する間隔
     container: main.py
     usecase: 常駐アプリを起動する
-    summary: RepeatingTimer が purge_old_files を呼ぶ間隔。非機能要件の常駐中に古い履歴とログを消す間隔（24 時間）を秒にした値
+    summary: RepeatingTimer が purge_old_files を呼ぶ間隔。非機能要件の常駐中に古い履歴とログを削除する間隔（24 時間）を秒にした値
     value: '86400.0'
     status: implemented
   - name: INSTANCE_HASH_LENGTH
@@ -1150,7 +1150,7 @@ constants:
     value: '16'
     status: implemented
   - name: OPEN_EVENT_RETRY_INTERVAL_SEC
-    title: 前のプロセスのイベントを開き直す間隔
+    title: 前のプロセスのイベントを再度開く間隔
     container: runtime/single_instance.py
     usecase: 常駐アプリを起動する
     summary: 前のプロセスがミューテックスを作ってからイベントを作るまでの間に OpenEventW が失敗したとき、開き直す間隔。前のプロセスの起動の初めの数ミリ秒の間だけ起こるため、依頼の遅れを 0.1 秒までに抑える
@@ -1164,10 +1164,10 @@ constants:
     value: build_settings_model([spec.settings_model for spec in OUTPUTS if spec.settings_model is not None])
     status: planned
   - name: GLOSSARIES_DIR_NAME
-    title: 足した用語集の CSV を置くフォルダの名前
+    title: 追加した用語集の CSV を置くフォルダの名前
     container: main.py
     usecase: 設定を変える
-    summary: 設定画面で足した用語集の CSV を置く、settings.toml と同じフォルダの下のフォルダの名前。next_glossary_path の directory に渡す
+    summary: 設定画面で追加した用語集の CSV を置く、settings.toml と同じフォルダの下のフォルダの名前。next_glossary_path の directory に渡す
     value: '"glossaries"'
     status: implemented
 test_files:

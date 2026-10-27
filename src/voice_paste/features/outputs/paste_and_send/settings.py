@@ -28,11 +28,11 @@ class PasteAndSendSettings(OutputSettingsBase):
     )
     enter_delay_sec: float = Field(
         0.5,
-        description="貼り付けてから Enter を送るまで待つ秒数",
+        description="貼り付けてから Enter を送信するまで待つ秒数",
         ge=0,
         json_schema_extra={
             "reload": RELOAD_IMMEDIATE,
-            "note": "「貼り付けて送信」と、「ブラウザ添付」の Enter まで送るプリセットで使う。",
+            "note": "「貼り付けて送信」と、「ブラウザ添付」の Enter まで送信するプリセットで使う。",
         },
     )
     enter_modifiers: list[EnterModifier] = Field(

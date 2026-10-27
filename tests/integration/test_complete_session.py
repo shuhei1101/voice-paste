@@ -22,7 +22,7 @@ BROWSER_REQUEST_HEADERS = [
 
 
 def test_normal(stack: Stack) -> None:
-    """止めた録音を確定し、文字起こしを始める（正常系）。"""
+    """停止した録音を確定し、文字起こしを始める（正常系）。"""
     # 準備
     session_id = stack.start_session()
     stack.post(f"/sessions/{session_id}/stop")
@@ -38,7 +38,7 @@ def test_normal(stack: Stack) -> None:
 
 
 def test_normal_when_recording(stack: Stack) -> None:
-    """停止せずに完了すると、録音を止めてから確定する（正常系）。"""
+    """停止せずに完了すると、録音を停止してから確定する（正常系）。"""
     # 準備
     session_id = stack.start_session()
 

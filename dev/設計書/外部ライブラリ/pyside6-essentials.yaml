@@ -5,7 +5,7 @@ version:
   latest: 6.11.2
   checked_on: '2026-10-01'
   source: 'pyproject.toml'
-  pinning: '`pyside6-essentials~=6.11.2`（パッチの版だけ上げる。PoC で動かした 6.11.2 から、イベントループとスレッドの受け渡しの振る舞いが変わりうるマイナーの版を上げない）'
+  pinning: '`pyside6-essentials~=6.11.2`（パッチのバージョンだけ上げる。PoC で動かした 6.11.2 から、イベントループとスレッドの受け渡しの振る舞いが変わりうるマイナーのバージョンを上げない）'
 catalogs:
   - name: API
     version: 6.11.2
@@ -24,7 +24,7 @@ catalogs:
         purpose: 処理中に開始が来た・起動に失敗したなどのダイアログを出す
       - name: QtCore.QTimer
         kind: クラス
-        purpose: 波形・経過時間の描き直しと、Python のシグナルのハンドラを動かす空の定期のタイマー
+        purpose: 波形・経過時間の再描画と、Python のシグナルのハンドラを動かす空の定期のタイマー
       - name: QtWidgets.QWidget
         kind: クラス
         purpose: 録音の画面・文字起こし中の表示・設定画面の窓（`WA_ShowWithoutActivating` でフォーカスを取らずに出す）
@@ -33,7 +33,7 @@ catalogs:
         purpose: カーソルのあるモニターを引く
       - name: QtTest.QTest
         kind: クラス
-        purpose: 画面の結合テストでボタンを押し、キーを送る（pytest-qt は使わない）
+        purpose: 画面の結合テストでボタンを押し、キーを送信する（pytest-qt は使わない）
       - name: QtGui.QWindow.startSystemMove
         kind: 関数
         purpose: 録音の画面を見出しの行のドラッグで動かす（枠なしの窓を `QWidget.windowHandle()` から動かす）

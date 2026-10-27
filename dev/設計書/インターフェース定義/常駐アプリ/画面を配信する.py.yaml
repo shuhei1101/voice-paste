@@ -9,7 +9,7 @@ flows:
       - name: Mock
         description: なし（常駐アプリの app を TestClient で立てる。音声のキューは空）
       - name: 要求のヘッダー
-        description: ゲートウェイが渡す形にする
+        description: ゲートウェイが渡す構造にする
         notes: '`Host: localhost:{ポート}`・Origin 無し'
     flow: |-
       ```mermaid

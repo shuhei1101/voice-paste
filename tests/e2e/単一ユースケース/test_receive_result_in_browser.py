@@ -61,7 +61,7 @@ def _stored(job_id: str, text: str, sent_at: datetime) -> dict[str, Any]:
 
 
 def _send_file(scene: WebScene) -> None:
-    """MP3 のファイルを選んで送り、結果の一覧に件が出るまで待つ。"""
+    """MP3 のファイルを選んで送信し、結果の一覧に件が出るまで待つ。"""
     scene.page.choose_file(encode_audio(scene.speech_wav, "mp3"), "speech.mp3", "audio/mpeg")
     assert wait_for(lambda: len(scene.page.results()) >= 1)
 
@@ -117,7 +117,7 @@ def test_normal_when_delete_result(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """端末に結果が 2 件ある画面で 1 件の削除を確認して消すと、一覧と端末からその 1 件だけが消え、もう 1 件は残る（正常系）。"""
+    """端末に結果が 2 件ある画面で、確認を経て 1 件を削除すると、一覧と端末からその 1 件だけが消え、もう 1 件は残る（正常系）。"""
     # 準備
     scene = build_scene(start_inprocess, open_edge, tmp_path, monkeypatch, stub_text=STUB_TEXT)
     now = datetime.now(UTC)
@@ -186,7 +186,7 @@ def test_error_when_transcription_failed(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """画面で録った音声の文字起こしが失敗すると、件に失敗が出る。端末の音声は残り、送り直せる。失敗した件は端末に残らない（異常系）。"""
+    """画面で録った音声の文字起こしが失敗すると、件に失敗が出る。端末の音声は残り、再送できる。失敗した件は端末に残らない（異常系）。"""
     # 準備
     scene = build_scene(start_inprocess, open_edge, tmp_path, monkeypatch, stub_text=STUB_TEXT)
     assert scene.stub is not None

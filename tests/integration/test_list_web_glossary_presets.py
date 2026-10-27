@@ -1,6 +1,6 @@
 """用語集のプリセットの一覧を返す（GET /web/glossary-presets）の結合テスト。
 
-本物の app を 127.0.0.1 の空きポートに立て、httpx で叩く。ゲートウェイを通した形（Host は localhost:{ポート}・トークン無し）で呼ぶ。
+本物の app を 127.0.0.1 の空きポートに立て、httpx で叩く。ゲートウェイを通した構成（Host は localhost:{ポート}・トークン無し）で呼ぶ。
 設定は一式に差した Settings から読み、呼ぶたびに今の設定を引く。
 """
 
@@ -38,7 +38,7 @@ def test_normal(web_stack: Callable[..., Stack], tmp_path: Path) -> None:
     assert response.json() == {"presets": ["既定", "会議"], "active": "会議"}
     assert "社内用語" not in response.text
 
-    # 実行: 設定画面で「会議」を消して選び直した後に呼ぶ
+    # 実行: 設定画面で「会議」を削除して選び直した後に呼ぶ
     stack.web.settings = settings.model_copy(
         update={
             "glossary_presets": [GlossaryPresetSettings(name="既定", glossaries=[])],

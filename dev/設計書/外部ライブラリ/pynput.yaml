@@ -3,7 +3,7 @@ kind: "ライブラリ"
 version:
   current: 1.8.2
   checked_on: '2026-09-30'
-  source: pyproject.toml（~=1.7）と uv.lock の版
+  source: pyproject.toml（~=1.7）と uv.lock のバージョン
   pinning: 互換リリースで固定（~=1.7）
 catalogs:
   - name: API
@@ -21,7 +21,7 @@ catalogs:
       - name: keyboard.Key / keyboard.KeyCode
         kind: 列挙
         purpose: 修飾キーと通常のキーを表す
-lead: キーボードとマウスの入力を監視し、仮想的に送るライブラリ。
+lead: キーボードとマウスの入力を監視し、仮想的に送信するライブラリ。
 purl: pkg:pypi/pynput
 dependency_scope: 必須
 adoption: 採用
@@ -31,6 +31,6 @@ used_in:
 upstream: moses-palmer/pynput
 verification:
   state: 未確認
-  detail: keyboard.Controller の生成と keyboard.Key の ctrl・shift・alt・cmd・enter が 1.8.1 で引けることだけ確かめた（2026-10-02）。キーを送って貼り付け先で受かるかは、今のアクティブなウィンドウへ入力が飛んで使っている画面を壊すため、動かしていない
+  detail: keyboard.Controller の生成と keyboard.Key の ctrl・shift・alt・cmd・enter が 1.8.1 で引けることだけ確かめた（2026-10-02）。キーを送信して貼り付け先で受かるかは、今のアクティブなウィンドウへ入力が飛んで使っている画面を壊すため、動かしていない
 license: LGPL-3.0（商用利用可。ライブラリを差し替えられる形で配布する義務がある）
 official_url: https://github.com/moses-palmer/pynput

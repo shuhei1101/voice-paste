@@ -1,6 +1,6 @@
 """integrations/volume/adapter.py（lower_volume・restore_volume）の契約テスト。
 
-Windows の実機の既定の再生デバイスで pycaw を動かし、pycaw の版が上がって API が変わったことに気づけるようにする。
+Windows の実機の既定の再生デバイスで pycaw を動かし、pycaw のバージョンが上がって API が変わったことに気づけるようにする。
 実行中はシステム音量が変わり、終わりに実行前の音量へ戻す。
 skip するのは Windows 以外と、既定の再生デバイスが無い環境だけで、pycaw の API の変化は失敗にする。
 """

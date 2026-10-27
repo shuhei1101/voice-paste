@@ -42,7 +42,7 @@ WINDOW_MIN_WIDTH = 360
 
 LONG_HOTKEY = "<ctrl>+<alt>+<shift>+<f12>"
 LONG_HOTKEY_TEXT = "Ctrl+Alt+Shift+F12"
-"""切れやすい長いホットキーの、設定の書式と画面の形。"""
+"""切れやすい長いホットキーの、設定の書式と画面の構成。"""
 
 
 def _opened(make_ui: Callable[..., Ui], settings: Settings | None = None) -> Ui:
@@ -140,7 +140,7 @@ def test_recording_window_visible_when_idle(make_ui: Callable[..., Ui]) -> None:
 def test_recording_window_does_not_take_focus(
     make_ui: Callable[..., Ui], topmost: bool
 ) -> None:
-    """出したときにフォーカスを取らない。ui.topmost がオンなら最前面に残す指定を足す（Tool・枠なし）。"""
+    """出したときにフォーカスを取らない。ui.topmost がオンなら最前面に残す指定を追加する（Tool・枠なし）。"""
     from voice_paste.shared.settings import UiSettings
 
     # 準備
@@ -225,7 +225,7 @@ def test_state_label_when_paused(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_elapsed_label_when_opened(make_ui: Callable[..., Ui]) -> None:
-    """出したときに 0 から数え、1 時間未満は mm:ss の形（00:00）で出す。"""
+    """出したときに 0 から数え、1 時間未満は mm:ss の形式（00:00）で出す。"""
     # 実行
     ui = _opened(make_ui)
 
@@ -267,7 +267,7 @@ def test_elapsed_label_when_paused(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_elapsed_label_format_when_over_one_hour() -> None:
-    """1 時間以上は h:mm:ss の形（1:02:37）で出す。"""
+    """1 時間以上は h:mm:ss の形式（1:02:37）で出す。"""
     from voice_paste.ui.windows.recording_window import format_clock
 
     # 実行・検証
@@ -279,7 +279,7 @@ def test_elapsed_label_format_when_over_one_hour() -> None:
 
 
 def test_waveform_when_recording(make_ui: Callable[..., Ui]) -> None:
-    """録音中は音量を取り続け（UiDeps.level）、一時停止中は取らずに最後の形のまま出す。"""
+    """録音中は音量を取り続け（UiDeps.level）、一時停止中は取らずに最後の表示のまま出す。"""
     # 準備
     ui = _opened(make_ui)
     level = ui.deps.level
@@ -355,7 +355,7 @@ def test_cancel_button_label(make_ui: Callable[..., Ui]) -> None:
     # 検証
     cancel = find(ui.recording_window, QPushButton, "cancel_button")
     assert cancel.isVisible()
-    assert button_texts(cancel) == ["取り消す", "Ctrl+Alt+Q"]
+    assert button_texts(cancel) == ["取り消し", "Ctrl+Alt+Q"]
 
 
 def test_cancel_button_action(make_ui: Callable[..., Ui]) -> None:
@@ -512,7 +512,7 @@ def _browser(title: str, hotkey: str = "", *, enabled: bool = True, url: str = "
 
 
 def _endpoint(title: str, hotkey: str = "", *, enabled: bool = True) -> object:
-    """エンドポイントへ送るのプリセットを作る。"""
+    """エンドポイントへ送信のプリセットを作る。"""
     from voice_paste.shared.settings import EndpointPreset
 
     return EndpointPreset(
@@ -552,12 +552,12 @@ def test_presets_heading_when_all_disabled(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_preset_buttons_order(make_ui: Callable[..., Ui]) -> None:
-    """有効なプリセットごとに 1 つずつ、ブラウザ添付の並び → エンドポイントへ送るの並びの順に出し、名前の下にホットキーを出す。"""
+    """有効なプリセットごとに 1 つずつ、ブラウザ添付の並び → エンドポイントへ送信の並びの順に出し、名前の下にホットキーを出す。"""
     # 実行（設定の並びはエンドポイントが先。ボタンはブラウザ添付が先）
     ui = _opened(
         make_ui,
         _presets_settings(
-            _endpoint("受け口", "<ctrl>+<alt>+4"),
+            _endpoint("受信先", "<ctrl>+<alt>+4"),
             _browser("ChatGPT", "<ctrl>+<alt>+1"),
             _browser("Claude", "<ctrl>+<alt>+3"),
         ),
@@ -567,7 +567,7 @@ def test_preset_buttons_order(make_ui: Callable[..., Ui]) -> None:
     window = ui.recording_window
     assert button_texts(find(window, QPushButton, "preset_button_0")) == ["ChatGPT", "Ctrl+Alt+1"]
     assert button_texts(find(window, QPushButton, "preset_button_1")) == ["Claude", "Ctrl+Alt+3"]
-    assert button_texts(find(window, QPushButton, "preset_button_2")) == ["受け口", "Ctrl+Alt+4"]
+    assert button_texts(find(window, QPushButton, "preset_button_2")) == ["受信先", "Ctrl+Alt+4"]
 
 
 def test_preset_buttons_when_disabled(make_ui: Callable[..., Ui]) -> None:
@@ -595,7 +595,7 @@ def test_preset_buttons_when_hotkey_empty(make_ui: Callable[..., Ui]) -> None:
 
 def test_preset_buttons_wrap(make_ui: Callable[..., Ui]) -> None:
     """3 件ずつ横に並べ、4 件目から次の行へ折り返す（種類の境目でも行を変えない）。"""
-    # 実行（ブラウザ添付 2 件 + エンドポイントへ送る 2 件）
+    # 実行（ブラウザ添付 2 件 + エンドポイントへ送信 2 件）
     ui = _opened(
         make_ui,
         _presets_settings(_browser("A"), _browser("B"), _endpoint("C"), _endpoint("D")),
@@ -730,7 +730,7 @@ def test_hotkey_buttons_when_hotkey_empty(styled: None, make_ui: Callable[..., U
 
 HOTKEY_BUTTONS = [
     pytest.param("pause_button", "一時停止", id="pause"),
-    pytest.param("cancel_button", "取り消す", id="cancel"),
+    pytest.param("cancel_button", "取り消し", id="cancel"),
     pytest.param("output_button_paste_and_send", "貼り付けて送信", id="paste_and_send"),
     pytest.param("output_button_paste_only", "貼り付けのみ", id="paste_only"),
     pytest.param("output_button_copy_only", "コピーのみ", id="copy_only"),
@@ -949,7 +949,7 @@ def test_recording_window_width_when_reopened(styled: None, make_ui: Callable[..
 
 
 def test_head_row_layout(make_ui: Callable[..., Ui]) -> None:
-    """見出しの行に、左端のつかむ印・状態の表示・経過時間・隠すと×のボタンを並べる。"""
+    """見出しの行に、左端のつかむマーカー・状態の表示・経過時間・隠すと×のボタンを並べる。"""
     from voice_paste.ui.windows.recording_window import GripIcon
 
     # 実行
@@ -968,7 +968,7 @@ def test_head_row_layout(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_head_row_cursor(make_ui: Callable[..., Ui]) -> None:
-    """行にかざすと、カーソルが移動の形になる。"""
+    """行にかざすと、カーソルが移動の形状になる。"""
     # 実行
     ui = _opened(make_ui)
 
@@ -1120,8 +1120,8 @@ def test_hide_button_label(make_ui: Callable[..., Ui]) -> None:
 
     # 検証
     hide = find(ui.recording_window, QPushButton, "hide_button")
-    assert hide.toolTip() == "録音の画面を隠す（トレイのアイコンで戻す）"
-    assert hide.accessibleName() == "録音の画面を隠す"
+    assert hide.toolTip() == "録音の画面を非表示にする（トレイのアイコンで再表示）"
+    assert hide.accessibleName() == "録音の画面を非表示にする"
 
 
 def test_hide_button_label_when_start_hotkey_is_free(make_ui: Callable[..., Ui]) -> None:
@@ -1133,7 +1133,7 @@ def test_hide_button_label_when_start_hotkey_is_free(make_ui: Callable[..., Ui])
 
     # 検証
     hide = find(ui.recording_window, QPushButton, "hide_button")
-    assert hide.toolTip() == "録音の画面を隠す（トレイのアイコンか Ctrl+Alt+R で戻す）"
+    assert hide.toolTip() == "録音の画面を非表示にする（トレイのアイコンか Ctrl+Alt+R で再表示）"
 
 
 def test_hide_button_action(make_ui: Callable[..., Ui]) -> None:
@@ -1244,8 +1244,8 @@ def test_close_button_label(make_ui: Callable[..., Ui]) -> None:
 
     # 検証
     close = find(ui.recording_window, QPushButton, "close_button")
-    assert close.toolTip() == "取り消す（Ctrl+Alt+Q）"
-    assert close.accessibleName() == "取り消す"
+    assert close.toolTip() == "取り消し（Ctrl+Alt+Q）"
+    assert close.accessibleName() == "取り消し"
 
 
 def test_close_button_action(make_ui: Callable[..., Ui]) -> None:

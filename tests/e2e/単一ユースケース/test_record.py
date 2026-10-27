@@ -3,8 +3,8 @@
 常駐アプリを pytest のプロセスの中で `main()` から起動し（`--data-dir` の一時フォルダ、Qt は offscreen）、
 ホットキーが押された体で登録された関数を呼び、録音の画面・トレイは Qt のイベントで操作する。実機のマウス・キーボードは使わない。
 録音の入力は Windows の音声合成（SAPI）で決めた文を書き出した WAV（か無音の WAV、マイクを開けない入力）に、
-システム音量は呼ばれた値を控えるものに、貼り付けのキーは送ったキーを控えるものに差し替え、実機のマイクを開かず、システム音量を変えず、キーを送らない。
-文字起こしはローカルの Whisper（GPU）で、クリップボードは実物を使う（テストの後に元の文字へ戻す）。API から始める録音の返送先は、テストが 127.0.0.1 に立てる受け口。
+システム音量は呼ばれた値を控えるものに、貼り付けのキーは送信したキーを控えるものに差し替え、実機のマイクを開かず、システム音量を変えず、キーを送信しない。
+文字起こしはローカルの Whisper（GPU）で、クリップボードは実物を使う（テストの後に元の文字へ戻す）。API から始める録音の返送先は、テストが 127.0.0.1 に立てる受信先。
 
 「ほかの窓を前面に出す」「主のモニターに出す」「カーソルのあるモニターに出す」「録音の画面を動かす」は、Windows の窓の重なり・モニター・窓の移動を使い
 offscreen の Qt では起こせないため置かない。前面の窓（Windows のフォアグラウンド）は確かめず、フォーカスを取らないことは Qt のアクティブな窓が録音の画面でないことで確かめる。
@@ -211,7 +211,7 @@ def test_normal_when_cancel(
     clipboard_sentinel: str,
     button: str,
 ) -> None:
-    """録音の画面の「取り消す」・閉じるボタン（×）で取り消すと、録音は残らず、音量が戻り、待機中に戻って文字起こしへ進まない（正常シナリオ（録音を取り消す））。"""
+    """録音の画面の「取り消し」・閉じるボタン（×）で取り消すと、録音は残らず、音量が戻り、待機中に戻って文字起こしへ進まない（正常シナリオ（録音を取り消す））。"""
     # 準備
     transcribed = spy_on_transcribed_audio(monkeypatch)
     keys = KeyLog()
@@ -397,7 +397,7 @@ def _restore_by_tray_icon(app: ResidentApp) -> None:
 
 
 def _restore_by_tray_menu(app: ResidentApp) -> None:
-    """隠した録音の画面を、トレイのメニューの「録音の画面を出す」で戻す。"""
+    """隠した録音の画面を、トレイのメニューの「録音の画面を表示」で戻す。"""
     app.choose_tray_menu("menu_show_window")
 
 
@@ -583,7 +583,7 @@ def _duration_sec(wav_path: Path) -> float:
 def test_normal_when_split_by_silence(
     run_app: RunApp, tmp_path: Path, receiver: CallbackReceiver
 ) -> None:
-    """連続録音は、録音を止めずに文ごとの無音で区切って履歴に残し、区切った区間を通し番号の順に起こす（正常シナリオ（録音を止めずに無音で区切る））。"""
+    """連続録音は、録音を止めずに文ごとの無音で区切って履歴に残し、区切った区間を通し番号の順に起こす（正常シナリオ（録音を停止せずに無音で区切る））。"""
     # 準備: 文の間に区切りの無音より長い無音を挟んだ WAV を実時間で流す
     wav_input = speech_sequence_input(
         tmp_path, sentences_of(THREE_SENTENCES), gap_sec=SEGMENT_GAP_SEC
@@ -636,7 +636,7 @@ def test_normal_when_split_by_max_length(
         payloads = app.wait_for_continuous_end(receiver)
         app.wait_processed()
 
-        # 検証: 区間が 2 つ以上に切れ、どれも最大の長さに余白を足した長さ以下で、話した声が落ちていない
+        # 検証: 区間が 2 つ以上に切れ、どれも最大の長さに余白を加えた長さ以下で、話した声が落ちていない
         segments = segments_of(payloads)
         assert len(segments) >= 2
         assert_numbered_in_order(segments, session_id)

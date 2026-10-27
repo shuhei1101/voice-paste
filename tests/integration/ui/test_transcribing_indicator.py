@@ -1,7 +1,7 @@
 """画面設計「文字起こし中の表示」を元にした結合テスト。
 
 窓を出す・閉じる条件は、本物のトレイ・録音の画面とつないだ UiController の state_changed で確かめる。
-出力先の切り替えのボタン・今の出力先の印・貼り付けの案内・プリセットの名前は、UiController の state_changed で確定した出力先を渡して開き、output_changed で替えて確かめる。
+出力先の切り替えのボタン・今の出力先のマーカー・貼り付けの案内・プリセットの名前は、UiController の state_changed で確定した出力先を渡して開き、output_changed で替えて確かめる。
 経過と残りの時間は、進められる時計を渡した文字起こし中の表示で確かめる。
 切り替えのボタンの選んだ状態は QPushButton.isChecked() で確かめる。
 """
@@ -55,7 +55,7 @@ SWITCH_WINDOW_MIN_WIDTH = 380
 
 BADGE_SAMPLE_FROM_RIGHT_PX = 5
 BADGE_SAMPLE_FROM_TOP_PX = 12
-"""今の出力先のボタンの右上の丸い印の、チェックの線を避けた円の内側の画素（ボタンの右端・上端からの距離）。"""
+"""今の出力先のボタンの右上の丸いマーカーの、チェックの線を避けた円の内側の画素（ボタンの右端・上端からの距離）。"""
 
 
 def _settings(**groups: object) -> Settings:
@@ -394,7 +394,7 @@ def test_paste_hint_when_reopened_after_preset(make_ui: Callable[..., Ui]) -> No
 
 
 def test_head_row_layout(make_ui: Callable[..., Ui]) -> None:
-    """見出しの行に、左端のつかむ印と状態の表示を並べる。"""
+    """見出しの行に、左端のつかむマーカーと状態の表示を並べる。"""
     from voice_paste.ui.windows.window_parts import GripIcon
 
     # 実行
@@ -407,7 +407,7 @@ def test_head_row_layout(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_head_row_cursor(make_ui: Callable[..., Ui]) -> None:
-    """行にかざすと、カーソルが移動の形になる。"""
+    """行にかざすと、カーソルが移動の形状になる。"""
     # 実行
     ui = _opened(make_ui)
 
@@ -586,7 +586,7 @@ def test_switch_buttons_when_current(make_ui: Callable[..., Ui], output_id: str)
 
 
 def test_switch_button_badge_when_current(make_ui: Callable[..., Ui]) -> None:
-    """今の出力先のボタンだけ、右上の角に丸い印（色だけで伝えない）を重ねる。"""
+    """今の出力先のボタンだけ、右上の角に丸いマーカー（色だけで伝えない）を重ねる。"""
     from voice_paste.ui.style import theme_color
 
     # 実行
@@ -594,7 +594,7 @@ def test_switch_button_badge_when_current(make_ui: Callable[..., Ui]) -> None:
 
     # 検証
     def sampled(output_id: str) -> QColor:
-        """ボタンを描いた画像の、右上の丸い印の内側の画素の色を返す。"""
+        """ボタンを描いた画像の、右上の丸いマーカーの内側の画素の色を返す。"""
         button = _switch_button(ui, output_id)
         image = button.grab().toImage()
         return image.pixelColor(
@@ -610,7 +610,7 @@ def test_switch_button_badge_when_current(make_ui: Callable[..., Ui]) -> None:
 def test_switch_button_badge_when_overhang(
     apply_theme_to_app: Callable[[str], None], make_ui: Callable[..., Ui], output_id: str
 ) -> None:
-    """今の出力先のボタンの丸い印は、枠の右上の角から外（右と上の余白）へはみ出して置く。"""
+    """今の出力先のボタンの丸いマーカーは、枠の右上の角から外（右と上の余白）へはみ出して置く。"""
     # 準備
     apply_theme_to_app("light")
 
@@ -641,7 +641,7 @@ def test_switch_button_badge_when_clear_of_text(
     show_hotkeys: bool,
     range_count: int,
 ) -> None:
-    """今の出力先のボタンの丸い印は、名前とホットキーの文字に重ねない（ui.transcribing_show_hotkeys のどちらでも）。"""
+    """今の出力先のボタンの丸いマーカーは、名前とホットキーの文字に重ねない（ui.transcribing_show_hotkeys のどちらでも）。"""
     from voice_paste.shared.settings import UiSettings
 
     # 準備
@@ -654,7 +654,7 @@ def test_switch_button_badge_when_clear_of_text(
         output_id=output_id,
     )
 
-    # 検証: 印が描かれ、名前（とホットキー）の範囲が取れ、どれも印の範囲と交わらない
+    # 検証: マーカーが描かれ、名前（とホットキー）の範囲が取れ、どれもマーカーの範囲と交わらない
     button = _switch_button(ui, output_id)
     badge = badge_range(button)
     ranges = text_ranges(button)
@@ -674,7 +674,7 @@ def test_switch_button_content_when_centered_in_frame(
     output_id: str,
     show_hotkeys: bool,
 ) -> None:
-    """ボタンの名前とホットキーは、右と上の余白（印がはみ出す分）を除いた枠の中央に置く。"""
+    """ボタンの名前とホットキーは、右と上の余白（マーカーがはみ出す分）を除いた枠の中央に置く。"""
     from voice_paste.shared.settings import UiSettings
 
     # 準備
@@ -708,7 +708,7 @@ def test_switch_buttons_when_preset(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_switch_buttons_when_reopened(make_ui: Callable[..., Ui]) -> None:
-    """次の録音で出し直すと、ボタンと印をその回の確定した出力先で組み直す。"""
+    """次の録音で出し直すと、ボタンとマーカーをその回の確定した出力先で組み直す。"""
     # 準備
     ui = _opened(make_ui, output_id="paste_and_send")
     ui.notify_output_changed("copy_only")
@@ -722,7 +722,7 @@ def test_switch_buttons_when_reopened(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_switch_button_action(make_ui: Callable[..., Ui]) -> None:
-    """今の出力先でないボタンを押すと、その出力先の ID で届ける出力先の差し替えを頼む。押しただけでは印を動かさない（差し替えが通るまで）。"""
+    """今の出力先でないボタンを押すと、その出力先の ID で届ける出力先の差し替えを頼む。押しただけではマーカーを動かさない（差し替えが通るまで）。"""
     # 準備
     ui = _opened(make_ui, output_id="paste_and_send")
 
@@ -735,7 +735,7 @@ def test_switch_button_action(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_switch_button_action_when_current(make_ui: Callable[..., Ui]) -> None:
-    """今の出力先のボタンを押しても、何もしない（差し替えを頼まず、印もそのまま）。"""
+    """今の出力先のボタンを押しても、何もしない（差し替えを頼まず、マーカーもそのまま）。"""
     # 準備
     ui = _opened(make_ui, output_id="paste_only")
 
@@ -748,7 +748,7 @@ def test_switch_button_action_when_current(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_switch_button_action_when_output_changed(make_ui: Callable[..., Ui]) -> None:
-    """差し替えが通って output_changed を受けると、今の出力先の印を切り替えた先のボタンへ移す。"""
+    """差し替えが通って output_changed を受けると、今の出力先のマーカーを切り替えた先のボタンへ移す。"""
     # 準備
     ui = _opened(make_ui, output_id="paste_and_send")
 
@@ -768,7 +768,7 @@ def test_switch_button_action_when_output_changed(make_ui: Callable[..., Ui]) ->
 
 
 def test_switch_buttons_when_delivering(make_ui: Callable[..., Ui]) -> None:
-    """届け始めた後（delivering）の知らせでは、開き直さず、ボタンも印も変えない。"""
+    """届け始めた後（delivering）の知らせでは、開き直さず、ボタンもマーカーも変えない。"""
     # 準備
     ui = _opened(make_ui, output_id="paste_and_send")
     before = _switch_button(ui, "paste_and_send")
@@ -968,7 +968,7 @@ def test_preset_label_when_output_changed(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_progress_bar_when_no_progress(clocked: tuple[TranscribingIndicator, FakeClock]) -> None:
-    """最初の区間の終わりが届くまでは、進みのバーを出さない（回る印だけ）。"""
+    """最初の区間の終わりが届くまでは、進みのバーを出さない（回るマーカーだけ）。"""
     indicator, _ = clocked
 
     # 検証
@@ -1019,7 +1019,7 @@ def test_time_label_when_no_progress(clocked: tuple[TranscribingIndicator, FakeC
 
 
 def test_time_label_when_progressed(clocked: tuple[TranscribingIndicator, FakeClock]) -> None:
-    """経過と残りの時間・全体の時間を「経過 3.0 秒 残り 2 秒 / 5 秒」の形で出す。"""
+    """経過と残りの時間・全体の時間を「経過 3.0 秒 残り 2 秒 / 5 秒」の形式で出す。"""
     indicator, clock = clocked
 
     # 実行
@@ -1031,7 +1031,7 @@ def test_time_label_when_progressed(clocked: tuple[TranscribingIndicator, FakeCl
 
 
 def test_time_label_when_over_one_minute(clocked: tuple[TranscribingIndicator, FakeClock]) -> None:
-    """1 分以上は「3 分 06 秒」の形で出す。"""
+    """1 分以上は「3 分 06 秒」の形式で出す。"""
     indicator, clock = clocked
 
     # 実行（経過 186 秒、進み 1/2、全体 372 秒）

@@ -125,7 +125,7 @@ def test_build_stylesheet_when_window_frame(
 def test_build_stylesheet_when_check_indicator(
     tokens: dict[str, dict[str, dict[str, str]]], tmp_path: Path
 ) -> None:
-    """チェックボックス・ラジオボタンのフォーカスの枠と選択欄の開く印の区画の規則を持ち、印の規則を持たない（正常系）。"""
+    """チェックボックス・ラジオボタンのフォーカスの枠と選択欄の開くマーカーの区画の規則を持ち、マーカーの規則を持たない（正常系）。"""
     from voice_paste.ui.style import build_stylesheet, write_arrow_image
 
     # 準備: 空白を含むフォルダに画像を書かせる
@@ -394,7 +394,7 @@ def test_theme_color_when_applied(
 # === IndicatorStyle ===
 
 GRAB_SIZE: int = 40
-"""印を描いた部品を画像にするときの一辺（論理ピクセル。16px の印の周りに余白を持たせる）。"""
+"""マーカーを描いた部品を画像にするときの一辺（論理ピクセル。16px のマーカーの周りに余白を持たせる）。"""
 
 COLOR_TOLERANCE: int = 6
 """同じ色とみなす、赤・緑・青のそれぞれの差の上限（縁のなだらかな混ざりを許す）。"""
@@ -561,7 +561,7 @@ def test_draw_radio_when_checked(
 
 
 def test_draw_primitive_when_other(qapp: QApplication) -> None:
-    """印でない要素は包んだスタイルへ渡す（正常系）。"""
+    """マーカーでない要素は包んだスタイルへ渡す（正常系）。"""
     from voice_paste.ui.indicator_style import IndicatorStyle
 
     # 準備: 呼び出しを控えるスタイルを包ませる
@@ -597,7 +597,7 @@ def test_draw_primitive_when_other(qapp: QApplication) -> None:
 def test_pixel_metric_when_indicator(
     qapp: QApplication, shape_tokens: dict[str, int], metric: QStyle.PixelMetric
 ) -> None:
-    """印の大きさを tokens.toml から返す（正常系）。"""
+    """マーカーの大きさを tokens.toml から返す（正常系）。"""
     from voice_paste.ui.indicator_style import IndicatorStyle
 
     # 準備

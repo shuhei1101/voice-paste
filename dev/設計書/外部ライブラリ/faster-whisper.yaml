@@ -3,7 +3,7 @@ kind: "ライブラリ"
 version:
   current: 1.2.1
   checked_on: '2026-09-30'
-  source: pyproject.toml（~=1.0）と uv.lock の版
+  source: pyproject.toml（~=1.0）と uv.lock のバージョン
   pinning: 互換リリースで固定（~=1.0）
 catalogs:
   - name: API
@@ -20,13 +20,13 @@ catalogs:
             type: str | None
             required: false
             default: None
-            description: 書き方を寄せたい語の並び。録音の長さによらず 30 秒のウィンドウごとに、頭に半角の空白を足して前の文脈の枠へ入る
+            description: 書き方を寄せたい語の並び。録音の長さによらず 30 秒のウィンドウごとに、頭に半角の空白を追加して前の文脈の枠へ入る
             constraints: トークンが 224 以上なら先頭の 223 トークン（`max_length // 2 - 1`、`max_length = 448`）に切られる（v1.2.1 の transcribe.py L1542-1548）
             notes: prefix を渡すと使われない。渡すと句読点が付く・区間ごとの改行がまとまる・口癖が一部消える、など書き方も変わる（#99 の PoC）
       - name: assets/silero_vad_v6.onnx
         kind: ファイル
         purpose: 同梱の Silero VAD のモデル。常駐アプリのプロセスが onnxruntime で直接開き、連続録音の話し声を判定する
-        description: '常駐アプリのプロセスでは faster_whisper を import しない（パッケージの `__init__` が ctranslate2・CUDA の DLL を読み、方針で子プロセスに隔離したものが常駐に入るため）。`importlib.util.find_spec("faster_whisper")` の `submodule_search_locations` でパッケージの場所だけを引き（`__init__` を実行しない）、`assets/silero_vad_v6.onnx` を開く。ファイル名は faster-whisper の `vad.get_vad_model` が開くものと同じ（1.2.1）で、版を上げるときは名前が変わっていないかを確かめる。入力は input（(1, 576) の float32）・h・c（(1, 1, 128)）、出力は確率・h・c（PoC #80 で確かめた形）。'
+        description: '常駐アプリのプロセスでは faster_whisper を import しない（パッケージの `__init__` が ctranslate2・CUDA の DLL を読み、方針で子プロセスに隔離したものが常駐に入るため）。`importlib.util.find_spec("faster_whisper")` の `submodule_search_locations` でパッケージの場所だけを引き（`__init__` を実行しない）、`assets/silero_vad_v6.onnx` を開く。ファイル名は faster-whisper の `vad.get_vad_model` が開くものと同じ（1.2.1）で、バージョンを上げるときは名前が変わっていないかを確かめる。入力は input（(1, 576) の float32）・h・c（(1, 1, 128)）、出力は確率・h・c（PoC #80 で確かめた構造）。'
         refs:
           - dev/設計書/外部ライブラリ/onnxruntime#
         status: planned
@@ -53,7 +53,7 @@ issues:
     state: 回避策あり
     description: |-
       av 19.0.1 が入った環境で faster-whisper 1.2.1 に録音を渡すと、録音を読む `av.open(input_file, mode="r", metadata_errors="ignore")` が `TypeError: open() got an unexpected keyword argument 'metadata_errors'` で失敗し、文字起こしが毎回失敗する。
-      faster-whisper 1.2.1 は `av>=11` と下限しか宣言しないため、依存を入れ直すと最新の av 19 が入る。
+      faster-whisper 1.2.1 は `av>=11` と下限しか宣言しないため、依存を再インストールすると最新の av 19 が入る。
       av 18.1.0 では同じ録音が読める（faster-whisper 1.2.1 と av 18.1.0 / 19.0.1 の組で `decode_audio` を呼んで確かめた）。
       上流では master で修正済み（コミット 2ce7f9d）だが、リリースは 1.2.1 のまま（2026-10-05 時点）。
     conditions:
@@ -61,7 +61,7 @@ issues:
       - av 19 以降（19.0.1 で確認）
     workarounds:
       - method: '`pyproject.toml` の `dependencies` に `av>=11,<19` を宣言する'
-        result: 新しく作った venv でも av 19 未満が入り、文字起こしが通る。faster-whisper が av 19 に対応した版を出すまで av の上限を外せない
+        result: 新しく作った venv でも av 19 未満が入り、文字起こしが通る。faster-whisper が av 19 に対応したバージョンを出すまで av の上限を外せない
         recommended: true
     upstream_issue: https://github.com/SYSTRAN/faster-whisper/issues/1589
     refs:
@@ -78,13 +78,13 @@ issues:
       - 録音の終わりか始めに無音・雑音の区間がある
       - '`vad_filter` をオンにしても、VAD が話し声とみなした短い雑音が残る'
     workarounds:
-      - method: 補正で、文頭・文末から消す文言の一覧に一致した文言を消す
+      - method: 補正で、文頭・文末から削除する文言の一覧に一致した文言を削除する
         result: 一覧に書いた定型句が、文中の同じ言葉を残して文頭・文末から消える
         recommended: true
       - method: '`vad_filter` をオン、`condition_on_previous_text` をオフにする（既定）'
         result: 無音の区間と前の文の繰り返しは減るが、定型句は残ることがある
         recommended: true
       - method: '`word_timestamps=True` と `hallucination_silence_threshold`（1.0 / 2.0 秒）を `transcribe` へ渡す'
-        result: 履歴の録音で起こし比べた結果、定型句が出なくなったのは 8 件中 2 件で、どの組み合わせも同じ。定型句の出ない 20 件では話した区間が欠けた（文字の変化率は最大 `word_timestamps` のみ 13.0%・しきい値 1.0 秒 66.7%・2.0 秒 25.2%）。しきい値を入れた組み合わせでは、基準に無い定型句が 1 件出た。渡さない。出た定型句は、文頭・文末から消す文言の一覧（既定に「ありがとうございました」を含む）で扱う
+        result: 履歴の録音で起こし比べた結果、定型句が出なくなったのは 8 件中 2 件で、どの組み合わせも同じ。定型句の出ない 20 件では話した区間が欠けた（文字の変化率は最大 `word_timestamps` のみ 13.0%・しきい値 1.0 秒 66.7%・2.0 秒 25.2%）。しきい値を入れた組み合わせでは、基準に無い定型句が 1 件出た。渡さない。出た定型句は、文頭・文末から削除する文言の一覧（既定に「ありがとうございました」を含む）で扱う
     refs:
       - dev/設計書/シナリオ/単一ユースケース/録音を文字に起こす#scenarios[正常シナリオ（文頭・文末の決まった文言を消す）]

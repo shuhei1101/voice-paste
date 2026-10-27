@@ -35,17 +35,17 @@ type FailureEvent = Literal[
 """トレイの通知で知らせる失敗の種類（engine_unavailable・settings_invalid は起動の失敗）。"""
 
 FAILURE_TITLES: dict[str, str] = {
-    "microphone_unavailable": "録音を始められませんでした",
-    "transcription_failed": "文字起こしに失敗しました",
+    "microphone_unavailable": "録音を開始できませんでした",
+    "transcription_failed": "文字起こしできませんでした",
     "delivery_failed": "届けられませんでした",
-    "api_unavailable": "API を使えません",
-    "engine_unavailable": "起動に失敗しました",
-    "settings_invalid": "起動に失敗しました",
+    "api_unavailable": "API を使用できません",
+    "engine_unavailable": "起動できませんでした",
+    "settings_invalid": "起動できませんでした",
 }
 """知らせの種類ごとの、通知の見出し。"""
 
 MICROPHONE_BODY: str = (
-    "マイクを開けません。マイクがつながっているか、ほかのアプリが使っていないかを確かめてください。"
+    "マイクを使用できません。マイクが接続されているか、ほかのアプリが使用していないかを確認してください。"
 )
 """マイクを開けないときの通知の本文（理由は固定）。"""
 
@@ -63,8 +63,8 @@ COPY_COMPLETED_BODY: str = "任意の場所に貼り付けてください。こ�
 """コピーの完了の通知の本文（固定の文）。"""
 
 STARTUP_BODY_FORMATS: dict[str, str] = {
-    "engine_unavailable": "文字起こしのエンジンを準備できません（{reason}）。設定を直して再起動してください。",
-    "settings_invalid": "設定ファイルを読めません（{reason}）。設定フォルダの settings.toml を直して再起動してください。",
+    "engine_unavailable": "文字起こしのエンジンを準備できませんでした（{reason}）。設定を修正して再起動してください。",
+    "settings_invalid": "設定ファイルを読み込めませんでした（{reason}）。設定フォルダの settings.toml を修正して再起動してください。",
 }
 """起動に失敗したときの通知の本文（知らせの種類ごと）。"""
 
@@ -99,7 +99,7 @@ STATE_NAMES: dict[TrayState, str] = {
 
 
 class RecordingWindowState(StrEnum):
-    """トレイの「録音の画面を出す」の出し分け。"""
+    """トレイの「録音の画面を表示」の出し分け。"""
 
     HIDDEN = "hidden"
     """隠している（ホットキー・トレイの recording・paused で、その回の録音の画面を隠している。項目を押せる）。"""
@@ -114,26 +114,26 @@ class RecordingWindowState(StrEnum):
     """録音していない（待機中・文字起こし中・準備に失敗した起動）。"""
 
 
-START_TEXT: str = "録音を始める"
-SHOW_WINDOW_TEXT: str = "録音の画面を出す"
+START_TEXT: str = "録音を開始"
+SHOW_WINDOW_TEXT: str = "録音の画面を表示"
 SETTINGS_TEXT: str = "設定…"
 BUSY_SUFFIX: str = "（処理中）"
 FAILED_SUFFIX: str = "（準備に失敗）"
-"""メニューの「録音を始める」「録音の画面を出す」「設定…」の文言と、押せない理由の添え字。"""
+"""メニューの「録音を開始」「録音の画面を表示」「設定…」の文言と、押せない理由の添え字。"""
 
 SHOW_WINDOW_REASONS: dict[RecordingWindowState, str] = {
     RecordingWindowState.SHOWN: "（表示中）",
-    RecordingWindowState.NO_WINDOW: "（画面を出さない録音）",
+    RecordingWindowState.NO_WINDOW: "（画面を表示しない録音）",
     RecordingWindowState.NOT_RECORDING: "（録音していません）",
 }
-"""「録音の画面を出す」を押せないときに、項目名へ添える理由（隠している間は押せるため添えない）。"""
+"""「録音の画面を表示」を押せないときに、項目名へ添える理由（隠している間は押せるため添えない）。"""
 
 
 class Tray(QObject):
     """QSystemTrayIcon で状態ごとのアイコン・メニュー・通知を出す。選ばれた操作は Signal で伝える。"""
 
     start_requested = Signal()
-    """「録音を始める」・アイコンの左クリック。"""
+    """「録音を開始」・アイコンの左クリック。"""
 
     settings_requested = Signal()
     """「設定…」。"""
@@ -145,7 +145,7 @@ class Tray(QObject):
     """「終了」。"""
 
     show_window_requested = Signal()
-    """「録音の画面を出す」・録音の画面を隠している間のアイコンの左クリック。"""
+    """「録音の画面を表示」・録音の画面を隠している間のアイコンの左クリック。"""
 
     recopy_requested = Signal(str)
     """コピーの完了の通知を押した（その通知のときに起こした文字を渡す）。"""
@@ -223,12 +223,12 @@ class Tray(QObject):
         self.set_state(TrayState.FAILED, busy=False)
 
     def set_start_hotkey(self, hotkey: str) -> None:
-        """「録音を始める」の右に出すホットキー（pynput の書式）を替える。"""
+        """「録音を開始」の右に出すホットキー（pynput の書式）を替える。"""
         self._start_hotkey = hotkey
         self._apply_start_text()
 
     def set_recording_window(self, state: RecordingWindowState) -> None:
-        """「録音の画面を出す」の文言・押せるか・太字を、録音の画面の状態に合わせる。"""
+        """「録音の画面を表示」の文言・押せるか・太字を、録音の画面の状態に合わせる。"""
         self._window_state = state
         # 1. 隠している間は押せるようにし、アイコンの左クリックと同じ操作の既定の項目として太字にする
         if state is RecordingWindowState.HIDDEN:
@@ -258,7 +258,7 @@ class Tray(QObject):
         )
 
     def show_copy_completed(self, text: str) -> None:
-        """コピーの完了の見出しと本文で、情報のアイコンの Windows の通知を出す。通知を押すと起こした文字をコピーし直す。"""
+        """コピーの完了の見出しと本文で、情報のアイコンの Windows の通知を出す。通知を押すと起こした文字をもう一度コピーする。"""
         # 押されたときにコピーし直せるよう、起こした文字を持つ（通知には出さない）
         self._copied_text = text
         self._icon.showMessage(
@@ -269,14 +269,14 @@ class Tray(QObject):
         )
 
     def hide(self) -> None:
-        """トレイのアイコンを消す（処理中に再起動・終了を選んだときと、終わるとき）。"""
+        """トレイのアイコンの削除（処理中に再起動・終了を選んだときと、終わるとき）。"""
         self._icon.hide()
 
     # --- 内部 ---
 
     @staticmethod
     def _add_item(menu: QMenu, name: str, text: str) -> QAction:
-        """メニューに項目を足し、画面設計の項目 ID を objectName にする。"""
+        """メニューに項目を追加し、画面設計の項目 ID を objectName にする。"""
         action = menu.addAction(text)
         action.setObjectName(name)
         return action
@@ -298,18 +298,18 @@ class Tray(QObject):
         self._settings_action.setText(settings_text)
         self._start_action.setEnabled(start_enabled)
         self._settings_action.setEnabled(settings_enabled)
-        # 「録音を始める」は押せるときだけ太字にする（既定の項目）
+        # 「録音を開始」は押せるときだけ太字にする（既定の項目）
         font = self._start_action.font()
         font.setBold(start_enabled)
         self._start_action.setFont(font)
 
     def _apply_start_text(self) -> None:
-        """「録音を始める」の文言に、右に出すホットキーを付ける（`\\t` の後ろがメニューの右に出る）。"""
+        """「録音を開始」の文言に、右に出すホットキーを付ける（`\\t` の後ろがメニューの右に出る）。"""
         suffix = f"\t{format_hotkey(self._start_hotkey)}" if self._start_hotkey else ""
         self._start_action.setText(self._start_label + suffix)
 
     def _on_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
-        """アイコンの左クリックは、録音の画面を隠している間は画面を戻し、そうでなければ「録音を始める」が押せるときだけ録音を始める。"""
+        """アイコンの左クリックは、録音の画面を隠している間は画面を戻し、そうでなければ「録音を開始」が押せるときだけ録音を始める。"""
         if reason != QSystemTrayIcon.ActivationReason.Trigger:
             return
         # 隠している: 録音の画面を戻す
@@ -321,7 +321,7 @@ class Tray(QObject):
 
     def _on_message_clicked(self) -> None:
         """通知を押したとき、最後に出した通知がコピーの完了ならコピーし直しを頼み、そうでなければログフォルダを開く。"""
-        # コピーの完了: 通知のときに起こした文字でコピーし直す
+        # コピーの完了: 通知のときに起こした文字でもう一度コピーする
         if self._copied_text is not None:
             self.recopy_requested.emit(self._copied_text)
         # 失敗の通知: ログフォルダを開く

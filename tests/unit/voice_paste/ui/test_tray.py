@@ -71,7 +71,7 @@ def test_set_state_when_busy(qapp: QApplication, tmp_path: Path) -> None:
     tray.set_state(TrayState.TRANSCRIBING, busy=True)
 
     # 検証
-    start = _menu_action(tray, "録音を始める（処理中）")
+    start = _menu_action(tray, "録音を開始（処理中）")
     settings = _menu_action(tray, "設定…（処理中）")
     assert not start.isEnabled()
     assert not settings.isEnabled()
@@ -91,7 +91,7 @@ def test_set_state_when_failed(qapp: QApplication, tmp_path: Path) -> None:
     tray.set_state(TrayState.IDLE, busy=False)
 
     # 検証
-    start = _menu_action(tray, "録音を始める（準備に失敗）")
+    start = _menu_action(tray, "録音を開始（準備に失敗）")
     settings = _menu_action(tray, "設定…")
     assert not start.isEnabled()
     assert settings.isEnabled()
@@ -116,7 +116,7 @@ def test_show_failure(
     # 検証
     show_message.assert_called_once()
     assert show_message.call_args.args[:2] == (
-        "文字起こしに失敗しました",
+        "文字起こしできませんでした",
         "録音を読めませんでした。録音は履歴に残っています。",
     )
 
@@ -206,8 +206,8 @@ def test_set_recording_window_when_hidden(qapp: QApplication, tmp_path: Path) ->
     tray.set_recording_window(RecordingWindowState.HIDDEN)
 
     # 検証
-    show = _menu_action(tray, "録音の画面を出す")
-    start = _menu_action(tray, "録音を始める（処理中）")
+    show = _menu_action(tray, "録音の画面を表示")
+    start = _menu_action(tray, "録音を開始（処理中）")
     assert show.isEnabled()
     assert show.font().bold()
     assert not start.font().bold()
@@ -224,7 +224,7 @@ def test_set_recording_window_when_shown(qapp: QApplication, tmp_path: Path) -> 
     tray.set_recording_window(RecordingWindowState.SHOWN)
 
     # 検証
-    show = _menu_action(tray, "録音の画面を出す（表示中）")
+    show = _menu_action(tray, "録音の画面を表示（表示中）")
     assert not show.isEnabled()
     assert not show.font().bold()
 
@@ -240,7 +240,7 @@ def test_set_recording_window_when_no_window(qapp: QApplication, tmp_path: Path)
     tray.set_recording_window(RecordingWindowState.NO_WINDOW)
 
     # 検証
-    show = _menu_action(tray, "録音の画面を出す（画面を出さない録音）")
+    show = _menu_action(tray, "録音の画面を表示（画面を表示しない録音）")
     assert not show.isEnabled()
     assert not show.font().bold()
 
@@ -256,7 +256,7 @@ def test_set_recording_window_when_not_recording(qapp: QApplication, tmp_path: P
     tray.set_recording_window(RecordingWindowState.NOT_RECORDING)
 
     # 検証
-    show = _menu_action(tray, "録音の画面を出す（録音していません）")
+    show = _menu_action(tray, "録音の画面を表示（録音していません）")
     assert not show.isEnabled()
     assert not show.font().bold()
 

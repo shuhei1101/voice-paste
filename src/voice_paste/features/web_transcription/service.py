@@ -73,14 +73,14 @@ class WebJobQueue:
         self._thread: threading.Thread | None = None
 
     def start(self, tmp_dir: Path) -> None:
-        """一時のフォルダに取り残された音声を消し、ワーカースレッドを立てる。"""
-        # 1. 前の起動で取り残された音声を消す（消せないものは残す）
+        """一時のフォルダに取り残された音声を削除し、ワーカースレッドを立てる。"""
+        # 1. 前の起動で取り残された音声を削除する（削除できないものは残す）
         if tmp_dir.exists():
             for leftover in tmp_dir.iterdir():
                 try:
                     leftover.unlink()
                 except OSError as error:
-                    logger.warning(f"取り残された音声を消せなかった（{leftover}・{error}）")
+                    logger.warning(f"取り残された音声を削除できなかった（{leftover}・{error}）")
 
         # 2. 受けた音声を書くフォルダを作る
         tmp_dir.mkdir(parents=True, exist_ok=True)
@@ -127,15 +127,15 @@ class WebJobQueue:
         return job
 
     def close(self) -> None:
-        """待ち行列に止める合図を積み、待ちのジョブの一時のファイルを消す。起こしている 1 件は待たない。"""
-        # 1. 待ち行列に残った ID を取り出し、そのジョブの一時のファイルを消す
+        """待ち行列に止める合図を積み、待ちのジョブの一時のファイルを削除する。起こしている 1 件は待たない。"""
+        # 1. 待ち行列に残った ID を取り出し、そのジョブの一時のファイルを削除する
         discarded = 0
         while True:
             try:
                 job_id = self._pending.get_nowait()
             except queue.Empty:
                 break
-            # 止める合図は消す音声を持たない
+            # 止める合図は削除する音声を持たない
             if job_id is None:
                 continue
             self._deps.discard_temporary(self.get(job_id).audio_path)
@@ -175,7 +175,7 @@ class WebJobQueue:
             audio_path = deps.store_audio(job_id, self.get(job_id).audio_path)
             self._update(job_id, audio_path=audio_path)
 
-            # 2. 起こして、ジョブの用語集のプリセット（None は設定で選んでいるプリセット）で補正し、履歴に書き足す
+            # 2. 起こして、ジョブの用語集のプリセット（None は設定で選んでいるプリセット）で補正し、履歴に追記する
             text = deps.correct(
                 deps.transcribe(audio_path, report_progress), self.get(job_id).glossary_preset
             )
@@ -195,7 +195,7 @@ class WebJobQueue:
             logger.exception(f"想定していない例外（{job_id}）")
             self._update(job_id, state=JobState.FAILED, error=UNEXPECTED_ERROR_MESSAGE)
 
-        # 4. 一時のファイルなら消し（失敗しても通る）、終わったジョブの一覧に足す
+        # 4. 一時のファイルなら削除し（失敗しても通る）、終わったジョブの一覧に追加する
         deps.discard_temporary(self.get(job_id).audio_path)
         self._record_finished(job_id)
 
@@ -205,7 +205,7 @@ class WebJobQueue:
         self._update(job_id, state=JobState.FAILED, error=error)
 
     def _record_finished(self, job_id: str) -> None:
-        """終わったジョブの一覧に足し、件数を超えたらいちばん古い件を一覧から捨てる。"""
+        """終わったジョブの一覧に追加し、件数を超えたらいちばん古い件を一覧から捨てる。"""
         with self._lock:
             self._finished.append(job_id)
             while len(self._finished) > self._max_finished:
@@ -251,7 +251,7 @@ def accept_audio(
         audio_path.unlink(missing_ok=True)
         raise
 
-    # 5. 用語集のプリセットの名前と共にキューに積む（上限なら写した一時のファイルを消してそのまま送出する）
+    # 5. 用語集のプリセットの名前と共にキューに積む（上限ならコピーした一時のファイルを削除してそのまま送出する）
     try:
         return deps.queue.submit(job_id, audio_path, audio, glossary_preset)
     except WebQueueFullError as error:

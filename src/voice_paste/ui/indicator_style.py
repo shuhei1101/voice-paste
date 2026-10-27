@@ -17,7 +17,7 @@ LINE_WIDTH: float = 1.0
 """箱・丸の縁の線の太さ（px）。"""
 
 CHECK_VIEWBOX: float = 12.0
-"""チェックの形を決めた正方形の一辺。"""
+"""チェックの形状を決めた正方形の一辺。"""
 
 CHECK_RATIO: float = 0.75
 """チェックを描く正方形の一辺の、箱の一辺に対する割合（16px の箱に 12px）。"""
@@ -40,7 +40,7 @@ INDICATOR_METRICS: frozenset[QStyle.PixelMetric] = frozenset(
 
 
 class IndicatorStyle(QProxyStyle):
-    """チェックボックスの箱とラジオボタンの丸を、状態に合わせた色で描くスタイル。印でない要素は包んだスタイルへ渡す。"""
+    """チェックボックスの箱とラジオボタンの丸を、状態に合わせた色で描くスタイル。マーカーでない要素は包んだスタイルへ渡す。"""
 
     @override
     def drawPrimitive(
@@ -50,14 +50,14 @@ class IndicatorStyle(QProxyStyle):
         painter: QPainter,
         widget: QWidget | None = None,
     ) -> None:
-        """チェックボックス・ラジオボタンの印を描き、ほかの要素は包んだスタイルへ渡す。"""
+        """チェックボックス・ラジオボタンのマーカーを描き、ほかの要素は包んだスタイルへ渡す。"""
         # 要素で分ける
         if element == QStyle.PrimitiveElement.PE_IndicatorCheckBox:
             self._draw_check_box(option, painter)
         elif element == QStyle.PrimitiveElement.PE_IndicatorRadioButton:
             self._draw_radio_button(option, painter)
         else:
-            # 印でない要素: 包んだスタイルが描く
+            # マーカーでない要素: 包んだスタイルが描く
             super().drawPrimitive(element, option, painter, widget)
 
     @override
@@ -67,7 +67,7 @@ class IndicatorStyle(QProxyStyle):
         option: QStyleOption | None = None,
         widget: QWidget | None = None,
     ) -> int:
-        """印の幅・高さは tokens.toml の shape.indicator にし、ほかの大きさは包んだスタイルの値を返す。"""
+        """マーカーの幅・高さは tokens.toml の shape.indicator にし、ほかの大きさは包んだスタイルの値を返す。"""
         if metric in INDICATOR_METRICS:
             return int(load_tokens()["shape"]["indicator"])
         return super().pixelMetric(metric, option, widget)

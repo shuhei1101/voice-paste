@@ -1,12 +1,12 @@
-"""複合ユースケース「外の端末のブラウザから音声を送って文字で受け取る」の E2E テスト。
+"""複合ユースケース「外の端末のブラウザから音声を送信して文字で受け取る」の E2E テスト。
 
 常駐アプリは pytest のプロセスの中で `build_handlers` で配線し、API は 127.0.0.1 の空きポートで待ち受ける（起動・トレイ・ホットキーの受付は通さない）。
 画面は Windows の Edge を headless で起動し、DevTools Protocol で `http://localhost:{ポート}/web/` を操作する（localhost の Origin は許す Origin に入れる）。
 Edge のマイクは偽物で、Windows の音声合成（SAPI）で書き出した WAV を流す。
 文字起こしはローカルの Whisper（GPU）で、用語集は設定のフォルダの CSV。クリップボードは、画面が書いた文字を呼び出しで見張って確かめる。
-ホットキーの録音を重ねるケースは、録音の入力を WAV を流すものに、貼り付けのキーを送らずに控えるものに差し替える。
+ホットキーの録音を重ねるケースは、録音の入力を WAV を流すものに、貼り付けのキーを送信せずに控えるものに差し替える。
 文字起こしの失敗と読めない形式のケースは、エンジンを失敗を返す関数に差し替える（読めない形式は差し替えず、形式の確認で断られる）。
-許されていない Origin のシナリオは画面を通さず、テストから HTTP で送る。
+許されていない Origin のシナリオは画面を通さず、テストから HTTP で送信する。
 実機の Windows・Edge・GPU が要る（`--run-e2e` が無ければ skip する）。
 """
 
@@ -45,7 +45,7 @@ RECORD_SEC = 4
 """画面で録る長さ（秒。書き出した文を 1 回以上含む）。"""
 
 RESULT_TIMEOUT_SEC = 90.0
-"""送ってから、画面に起こした文字が出るまで待つ上限。"""
+"""送信してから、画面に起こした文字が出るまで待つ上限。"""
 
 GLOSSARY_FILE_NAME = "yogo.csv"
 """設定のフォルダに置く、今までの用語集の CSV の名前。"""
@@ -115,7 +115,7 @@ def test_normal_when_select_file(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """書き出した文を MP3 にしたファイルを選ぶと、用語集で補正した文字が結果の先頭に出て、端末に 1 件残る（正常シナリオ（ファイルを選んで送る））。"""
+    """書き出した文を MP3 にしたファイルを選ぶと、用語集で補正した文字が結果の先頭に出て、端末に 1 件残る（正常シナリオ（ファイルを選んで送信する））。"""
     # 準備
     _put_glossary(tmp_path)
     scene = build_scene(start_inprocess, open_edge, tmp_path, monkeypatch)
@@ -141,7 +141,7 @@ def test_normal_when_hotkey_recording(
     monkeypatch: pytest.MonkeyPatch,
     clipboard_sentinel: str,
 ) -> None:
-    """ホットキーの録音中に音声ファイルを送っても、画面に起こした文字が出て、ホットキーの録音は録音中のまま続き、確定するといつもどおり貼り付けまで進む（正常シナリオ（ホットキーの録音中に送る））。"""
+    """ホットキーの録音中に音声ファイルを送信しても、画面に起こした文字が出て、ホットキーの録音は録音中のまま続き、確定するといつもどおり貼り付けまで進む（正常シナリオ（ホットキーの録音中に送信する））。"""
     # 準備
     _put_glossary(tmp_path)
     scene = build_scene(
@@ -178,7 +178,7 @@ def test_error_when_unreadable_format(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """音声でない中身の MP3 を送ると 415 で返り、画面に読めない形式であることが出て件は増えない。続けて正しい MP3 を送ると受け付けられる（異常シナリオ（読めない形式を送る））。"""
+    """音声でない中身の MP3 を送信すると 415 で返り、画面に読めない形式であることが出て件は増えない。続けて正しい MP3 を送信すると受け付けられる（異常シナリオ（読めない形式を送信する））。"""
     # 準備
     scene = build_scene(start_inprocess, open_edge, tmp_path, monkeypatch, stub_text=STUB_TEXT)
     scene.page.record_requests()
@@ -208,7 +208,7 @@ def test_error_when_transcription_failed(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """文字起こしが失敗すると画面に失敗が出る。端末の音声は残り送り直せて、エンジンを戻して送り直すと文字が出る（異常シナリオ（文字起こしに失敗））。"""
+    """文字起こしが失敗すると画面に失敗が出る。端末の音声は残り再送できて、エンジンを戻して再送すると文字が出る（異常シナリオ（文字起こしに失敗））。"""
     # 準備
     scene = build_scene(start_inprocess, open_edge, tmp_path, monkeypatch, stub_text=STUB_TEXT)
     assert scene.stub is not None
@@ -241,7 +241,7 @@ def test_error_when_origin_not_allowed(
     start_inprocess: StartInProcess,
     tmp_path: Path,
 ) -> None:
-    """許す Origin の一覧に無い Origin から送ると 403 で返り、キューにジョブが積まれず、PC の履歴にも残らない（異常シナリオ（許可されていない Origin から送る））。"""
+    """許す Origin の一覧に無い Origin から送信すると 403 で返り、キューにジョブが積まれず、PC の履歴にも残らない（異常シナリオ（許可されていない Origin から送信する））。"""
     # 準備
     app = start_inprocess(
         settings=make_settings(only_paste_and_send=True), wav_input=silence_input(tmp_path)
@@ -265,7 +265,7 @@ def test_normal_when_select_glossary_preset(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """2 つ目のプリセットを選んで MP3 のファイルを送ると、結果の先頭に 2 つ目のプリセットの用語集で補正した文字が出る。1 つ目の用語集の言葉は置き換わらず、設定で選んでいるプリセットは変わらない（正常シナリオ（用語集のプリセットを選んで送る））。"""
+    """2 つ目のプリセットを選んで MP3 のファイルを送信すると、結果の先頭に 2 つ目のプリセットの用語集で補正した文字が出る。1 つ目の用語集の言葉は置き換わらず、設定で選んでいるプリセットは変わらない（正常シナリオ（用語集のプリセットを選んで送信する））。"""
     # 準備: 用語集のプリセットが 2 つあり、それぞれが別の用語集を使う。設定で選んでいるのは 1 つ目
     scene = build_scene(
         start_inprocess,

@@ -1,7 +1,7 @@
 """音声を受け付ける（POST /web/transcriptions）の結合テスト。
 
-本物の app を 127.0.0.1 の空きポートに立て、httpx で叩く。ゲートウェイを通した形（Host は localhost:{ポート}・許す Origin つき・トークン無し）で送る。
-ブラウザの音声のキューは本物で、積んだジョブを取り出さない（ワーカースレッドを立てない）形にする。
+本物の app を 127.0.0.1 の空きポートに立て、httpx で叩く。ゲートウェイを通した構成（Host は localhost:{ポート}・許す Origin つき・トークン無し）で送信する。
+ブラウザの音声のキューは本物で、積んだジョブを取り出さない（ワーカースレッドを立てない）構成にする。
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ def _no_worker_stack(web_stack: Callable[..., Stack]) -> Stack:
 def test_normal(
     web_stack: Callable[..., Stack], tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """許す Origin から送られた音声を受け付け、job_id を返す（正常系）。"""
+    """許す Origin から送信された音声を受け付け、job_id を返す（正常系）。"""
     # 準備
     caplog.set_level(logging.INFO)
     stack = _no_worker_stack(web_stack)
@@ -122,7 +122,7 @@ def test_error_when_too_large(
     web_stack: Callable[..., Stack], tmp_path: Path, chunked: bool
 ) -> None:
     """本文が上限以上の要求を断り、一時のファイルを残さない（異常系）。"""
-    # 準備: 本文の上限を 1,000 バイトにし、それ以上の本文を送る
+    # 準備: 本文の上限を 1,000 バイトにし、それ以上の本文を送信する
     stack = web_stack(worker=False, body_limit=1000)
     audio = b"x" * 1500
 

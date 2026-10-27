@@ -170,10 +170,10 @@ ARROW_SVG_TEMPLATE: str = (
     '<path d="M2 3.5l3 3 3-3" fill="none" stroke="{color}" stroke-width="1.5" '
     'stroke-linecap="round" stroke-linejoin="round"/></svg>'
 )
-"""選択欄の開く印（V 字）の SVG の雛形。線の色を `{color}` に埋める。"""
+"""選択欄の開くマーカー（V 字）の SVG の雛形。線の色を `{color}` に埋める。"""
 
 ARROW_IMAGE_HASH_LENGTH: int = 16
-"""開く印の画像のファイル名に使う、中身のハッシュの文字数。"""
+"""開くマーカーの画像のファイル名に使う、中身のハッシュの文字数。"""
 
 
 @cache
@@ -188,7 +188,7 @@ def _font_family(fonts: list[str]) -> str:
 
 
 def write_arrow_image(dark: bool, *, image_dir: Path) -> Path:
-    """選択欄の開く印（text_muted の線の V 字）を明暗の組の色で SVG にして image_dir に書き、そのパスを返す。"""
+    """選択欄の開くマーカー（text_muted の線の V 字）を明暗の組の色で SVG にして image_dir に書き、そのパスを返す。"""
     color = load_tokens()["color"]["dark" if dark else "light"]["text_muted"]
     svg = ARROW_SVG_TEMPLATE.format(color=color)
     digest = hashlib.sha256(svg.encode("utf-8")).hexdigest()[:ARROW_IMAGE_HASH_LENGTH]
@@ -201,11 +201,11 @@ def write_arrow_image(dark: bool, *, image_dir: Path) -> Path:
 
 
 def build_stylesheet(dark: bool, *, image_dir: Path) -> str:
-    """明暗に合う色のトークンと、書体・大きさ・余白のトークンを QSS の雛形に埋めて返す。開く印の画像は image_dir に書く。"""
+    """明暗に合う色のトークンと、書体・大きさ・余白のトークンを QSS の雛形に埋めて返す。開くマーカーの画像は image_dir に書く。"""
     tokens = load_tokens()
     colors: dict[str, str] = tokens["color"]["dark" if dark else "light"]
 
-    # 置き換える名前と値の対応を作る（色は名前のまま、書体・大きさ・形は分類の接頭辞を付ける）
+    # 置き換える名前と値の対応を作る（色は名前のまま、書体・大きさ・形状は分類の接頭辞を付ける）
     values: dict[str, str] = dict(colors)
     values["font_ui"] = _font_family(tokens["font"]["ui"])
     values["font_mono"] = _font_family(tokens["font"]["mono"])
@@ -252,7 +252,7 @@ def apply_theme(
         hints.setColorScheme(Qt.ColorScheme.Dark if theme == "dark" else Qt.ColorScheme.Light)
     dark = resolve_dark(theme, is_dark_theme())
     _current_dark = dark
-    # 印を描くスタイルは 1 回だけ当てる（スタイルシートを当てると app.style() は Qt の内部のスタイルに替わるため、当てたかは控えで見る）
+    # マーカーを描くスタイルは 1 回だけ当てる（スタイルシートを当てると app.style() は Qt の内部のスタイルに替わるため、当てたかは控えで見る）
     if _indicator_style is None:
         # IndicatorStyle は theme_color を使うため、循環 import を避けてここで読む
         from voice_paste.ui.indicator_style import IndicatorStyle
@@ -260,7 +260,7 @@ def apply_theme(
         _indicator_style = IndicatorStyle(app.style())
         app.setStyle(_indicator_style)
     app.setStyleSheet(build_stylesheet(dark, image_dir=image_dir))
-    # 状態の印・波形・回る印は theme_color で描くため、開いている窓を描き直して新しい組の色にする
+    # 状態のマーカー・波形・回るマーカーは theme_color で描くため、開いている窓を描き直して新しい組の色にする
     for widget in QApplication.topLevelWidgets():
         widget.update()
     logger.info(f"画面の明暗を当てた（theme={theme}・暗い組={dark}）")

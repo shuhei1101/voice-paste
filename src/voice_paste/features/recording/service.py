@@ -34,7 +34,7 @@ SEGMENT_THREAD_NAME: str = "recording-segmenter"
 """連続録音で、待ち行列の音を Segmenter へ流すスレッドの名前。"""
 
 _DISCARD_MARK: np.ndarray = np.zeros(0, dtype=np.int16)
-"""待ち行列に積む、残りを区間にせずにスレッドを終える印（None は残りを区切って終える印。中身ではなく同じ物かで比べる）。"""
+"""待ち行列に積む、残りを区間にせずにスレッドを終えるマーカー（None は残りを区切って終えるマーカー。中身ではなく同じ物かで比べる）。"""
 
 
 class Recorder:
@@ -63,7 +63,7 @@ class Recorder:
         self._volume_before: float | None = None
         # 始めたときに読んだ、音量を変えるときの秒数（戻すときも同じ値を使う）
         self._fade_sec = 0.0
-        # 連続録音で、入力のスレッドから区切りのスレッドへ渡す音の待ち行列（None は残りを区切って終える印）と、そのスレッド。連続録音でなければ None
+        # 連続録音で、入力のスレッドから区切りのスレッドへ渡す音の待ち行列（None は残りを区切って終えるマーカー）と、そのスレッド。連続録音でなければ None
         self._blocks: queue.Queue[np.ndarray | None] | None = None
         self._segment_thread: threading.Thread | None = None
         # 入力のスレッドと呼び出し元のスレッドの間で、貯めた音と状態を守る
@@ -244,14 +244,14 @@ class Recorder:
         blocks: queue.Queue[np.ndarray | None],
         on_failed: OnContinuousFailedFn,
     ) -> None:
-        """区切りのスレッドの本体。待ち行列の音を Segmenter へ流し、終わりの印で残りを区切って終える。"""
+        """区切りのスレッドの本体。待ち行列の音を Segmenter へ流し、終わりのマーカーで残りを区切って終える。"""
         try:
             while True:
                 block = blocks.get()
-                # 捨てる印: 残りを区間にせずに終える
+                # 捨てるマーカー: 残りを区間にせずに終える
                 if block is _DISCARD_MARK:
                     return
-                # 終わりの印: 話し声の途中なら最後の区間を渡して終える
+                # 終わりのマーカー: 話し声の途中なら最後の区間を渡して終える
                 if block is None:
                     segmenter.flush()
                     return
@@ -281,7 +281,7 @@ class Recorder:
         if blocks is None or thread is None:
             return
 
-        # 残りを区間にしないなら待ち行列の音を捨ててから、終わりの印を積む
+        # 残りを区間にしないなら待ち行列の音を捨ててから、終わりのマーカーを積む
         if not flush:
             while not blocks.empty():
                 blocks.get_nowait()

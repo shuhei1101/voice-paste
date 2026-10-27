@@ -1,10 +1,10 @@
-"""単一ユースケース「ブラウザから音声を送る」の E2E テスト。
+"""単一ユースケース「ブラウザから音声を送信する」の E2E テスト。
 
 常駐アプリは pytest のプロセスの中で `build_handlers` で配線し、API は 127.0.0.1 の空きポートで待ち受ける（起動・トレイ・ホットキーの受付は通さない）。
 画面は Windows の Edge を headless で起動し、DevTools Protocol で `http://localhost:{ポート}/web/` を操作する（localhost の Origin は許す Origin に入れる）。
 Edge のマイクは偽物で、Windows の音声合成（SAPI）で書き出した WAV を流す。
 文字起こしのエンジンは、受けた音声のパスを控えて決めた文を返す関数に差し替える（文字起こしそのものは確かめない）。
-許されていない Origin のシナリオは画面を通さず、テストから HTTP で送る。
+許されていない Origin のシナリオは画面を通さず、テストから HTTP で送信する。
 実機の Windows と Edge が要る（`--run-e2e` が無ければ skip する）。
 """
 
@@ -32,7 +32,7 @@ RECORD_SEC = 2
 """画面で録る長さ（秒）。"""
 
 OVER_LIMIT_FILE_BYTES = 99_999_900
-"""ファイルは本文の上限（100,000,000 バイト）未満でも、multipart の枠を足すと上限を超える大きさ。"""
+"""ファイルは本文の上限（100,000,000 バイト）未満でも、multipart の枠を加えると上限を超える大きさ。"""
 
 BROKEN_AUDIO = b"this is not audio at all" * 100
 """音声として読めない中身。"""
@@ -86,7 +86,7 @@ def test_normal_when_select_file(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """MP3 のファイルを選ぶとすぐ送り、202 で受け付けられる。端末に残した音声は置き換わらない（正常系）。"""
+    """MP3 のファイルを選ぶとすぐ送信し、202 で受け付けられる。端末に残した音声は置き換わらない（正常系）。"""
     # 準備
     scene = build_scene(start_inprocess, open_edge, tmp_path, monkeypatch, stub_text=STUB_TEXT)
     assert scene.stub is not None
@@ -113,7 +113,7 @@ def test_normal_when_recording_limit_reached(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """画面の時計を録音の上限（30 分）まで進めると録音が止まり、そこまでの音声が端末に残って送られる（正常系）。"""
+    """画面の時計を録音の上限（30 分）まで進めると録音が止まり、そこまでの音声が端末に残って送信される（正常系）。"""
     # 準備
     scene = build_scene(start_inprocess, open_edge, tmp_path, monkeypatch, stub_text=STUB_TEXT)
     scene.page.record_requests()
@@ -139,7 +139,7 @@ def test_error_when_send_failed(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """API の待ち受けを止めて録音を止めると送信失敗になる。端末の音声は残り、待ち受けを戻して送り直すと 202 で受け付けられる（異常系）。"""
+    """API の待ち受けを止めて録音を止めると送信失敗になる。端末の音声は残り、待ち受けを戻して再送すると 202 で受け付けられる（異常系）。"""
     # 準備
     scene = build_scene(start_inprocess, open_edge, tmp_path, monkeypatch, stub_text=STUB_TEXT)
     scene.page.click("record_button")
@@ -160,7 +160,7 @@ def test_error_when_send_failed(
     kept = scene.page.kept_audio()
     assert kept is not None
     assert kept["state"] == "send_failed"
-    # 待ち受けを戻して送り直す
+    # 待ち受けを戻して再送する
     scene.app.start_web_api(port=port, start_queue=False)
     scene.page.click("resend_button")
     assert wait_for(lambda: len(scene.page.results()) == 1)
@@ -223,7 +223,7 @@ def test_error_when_origin_not_allowed(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """許す Origin の一覧に無い Origin から送ると 403 で返り、一時のファイルも履歴も書かれない（異常系）。"""
+    """許す Origin の一覧に無い Origin から送信すると 403 で返り、一時のファイルも履歴も書かれない（異常系）。"""
     # 準備
     app = start_inprocess(
         settings=make_settings(only_paste_and_send=True), wav_input=silence_input(tmp_path)
@@ -245,7 +245,7 @@ def test_normal_when_select_glossary_preset(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """選択欄に既定と設定のプリセットが並び、2 つ目のプリセットを選んで MP3 のファイルを送ると 202 で受け付けられ、補正が選んだプリセットの名前で呼ばれる（正常シナリオ（用語集のプリセットを選ぶ））。"""
+    """選択欄に既定と設定のプリセットが並び、2 つ目のプリセットを選んで MP3 のファイルを送信すると 202 で受け付けられ、補正が選んだプリセットの名前で呼ばれる（正常シナリオ（用語集のプリセットを選ぶ））。"""
     # 準備: 用語集のプリセットが 2 つあり、補正は受けたプリセットの名前を控える関数に差し替える
     corrected = spy_on_correct_presets(monkeypatch)
     scene = build_scene(
@@ -287,7 +287,7 @@ def test_error_when_glossary_preset_not_found(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """選んだ後に設定から削除されたプリセットで MP3 のファイルを送ると 400 で返り、選択したプリセットが見つからないことが画面に出る。選択欄は取得し直した一覧になり、既定が選ばれる（異常シナリオ（一覧に無いプリセット））。"""
+    """選んだ後に設定から削除されたプリセットで MP3 のファイルを送信すると 400 で返り、選択したプリセットが見つからないことが画面に出る。選択欄は取得し直した一覧になり、既定が選ばれる（異常シナリオ（一覧に無いプリセット））。"""
     # 準備: 用語集のプリセットが 2 つある画面で 2 つ目を選んだ後に、設定から 2 つ目のプリセットを削除する
     scene = build_scene(
         start_inprocess,

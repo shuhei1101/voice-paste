@@ -125,7 +125,7 @@ functions:
     status: implemented
     process: |-
       1. 用語集の行の順に、誤変換を含むなら全て正しい表記へ置き換える（正しい表記が空の行は空文字へ置き換えて消す）
-         - `[INFO]` 用語集で置き換えた（置き換えた誤変換 → 正しい表記の並び。消した行は「{誤変換}→（消す）」）
+         - `[INFO]` 用語集で置き換えた（置き換えた誤変換 → 正しい表記の並び。消した行は「{誤変換}→（削除）」）
   - name: read_glossary_rows
     title: 用語集の行の読み込み
     kind: 関数
@@ -212,7 +212,7 @@ functions:
     container: features/correction/service.py
     usecase: 設定を変える
     scope: public
-    summary: 用語集の行を CSV へ書く。設定画面で行を変えた用語集と足した用語集だけに呼ぶ
+    summary: 用語集の行を CSV へ書く。設定画面で行を変えた用語集と追加した用語集だけに呼ぶ
     side_effects: path を書く（親のフォルダが無ければ作る）。列 `誤変換`・`正しい表記`・`使う` のほかの列は残らない。
     args:
       - name: path
@@ -334,28 +334,28 @@ functions:
          - None か、同じ名前が無い場合、1 件目を返す
     status: removed
   - name: next_glossary_path
-    title: 足す用語集の CSV の場所
+    title: 追加する用語集の CSV の場所
     kind: 関数
     container: features/correction/service.py
     usecase: 設定を変える
     scope: public
-    summary: 設定画面で足す用語集の CSV の場所を、今あるファイルとも一覧の用語集とも重ならない連番で決める
+    summary: 設定画面で追加する用語集の CSV の場所を、今あるファイルとも一覧の用語集とも重ならない連番で決める
     args:
       - name: directory
         type: Path
         required: true
         passing: injected
-        description: 足した用語集の CSV を置くフォルダ（settings.toml と同じフォルダの `glossaries`）
+        description: 追加した用語集の CSV を置くフォルダ（settings.toml と同じフォルダの `glossaries`）
       - name: taken
         type: Collection[Path]
         required: true
         passing: positional
-        description: 設定画面の一覧にある用語集の場所（保存する前に足した分を含む）
+        description: 設定画面の一覧にある用語集の場所（保存する前に追加した分を含む）
     returns:
       type: Path
       description: '`{directory}/glossary_{n}.csv`（絶対パス）'
     process: 1. n を 1 から順に上げ、`glossary_{n}.csv` が directory に無く、taken にも無い最初の場所を返す（消した用語集の CSV が残っていれば、その番号は使わない。ファイルは作らない）
-    reason: ファイル名を用語集の名前から作ると、名前を変えたときと、消した用語集と同じ名前を足し直したときに、残った CSV と重なる。Windows はファイル名の大文字と小文字を区別しないので、名前の重なりの確かめとも食い違う
+    reason: ファイル名を用語集の名前から作ると、名前を変えたときと、消した用語集と同じ名前を再追加したときに、残った CSV と重なる。Windows はファイル名の大文字と小文字を区別しないので、名前の重なりの確かめとも食い違う
     unit_tests:
       - name: test_next_glossary_path
         case: 正常
@@ -371,7 +371,7 @@ functions:
         expected: glossary_2.csv
       - name: test_next_glossary_path_when_taken
         case: 正常
-        summary: 保存する前に足した用語集の場所とも重ねない
+        summary: 保存する前に追加した用語集の場所とも重ねない
         condition: 空の directory と、glossary_1.csv を含む taken
         mock: なし（一時フォルダ）
         expected: glossary_2.csv
@@ -407,7 +407,7 @@ functions:
          - 位置が start か both の場合、1 行目の先頭に文言が一致する間、一致した文字を消す。1 行目が空になったらその行を除き、次の行を 1 行目として続ける
          - 位置が end か both の場合、最後の行の末尾に文言が一致する間、一致した文字を消す。最後の行が空になったらその行を除き、前の行を最後の行として続ける
       3. 行を改行でつないで返す
-         - `[INFO]` 文頭・文末の文言を消した（「文頭: {消した文字}」「文末: {消した文字}」の並び。消したものが無ければ出さない）
+         - `[INFO]` 文頭・文末の文言を削除した（「文頭: {消した文字}」「文末: {消した文字}」の並び。消したものが無ければ出さない）
     unit_tests:
       - name: test_strip_edge_phrases
         case: 正常
@@ -638,7 +638,7 @@ constants:
     summary: '`glossaries` も `glossary_path` も無いときに読む、settings.toml と同じフォルダの用語集のファイル名（main.py の GLOSSARY_FILE_NAME を移す）'
     status: implemented
   - name: EDGE_TRAILING_CHARS
-    title: 文言と一緒に消す文字
+    title: 文言と一緒に削除する文字
     container: features/correction/service.py
     usecase: 録音を文字に起こす
     summary: 一致した文言の後ろに続くとき、文言と一緒に消す句読点と空白

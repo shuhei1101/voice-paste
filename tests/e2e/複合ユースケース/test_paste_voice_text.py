@@ -39,7 +39,7 @@ pytestmark = pytest.mark.real_machine
 StartInProcess = Callable[..., InProcessApp]
 
 WORKER_RESTART_TIMEOUT_SEC = 120.0
-"""やり直したワーカーも落ちた後、文字起こしワーカーが立て直されるまで待つ上限。"""
+"""やり直したワーカーも異常終了した後、文字起こしワーカーが立て直されるまで待つ上限。"""
 
 PASTE_AND_SEND = "paste_and_send"
 """確定に選ぶ出力先の ID（貼り付けて送信）。"""
@@ -65,7 +65,7 @@ def _assert_can_start_again(app: InProcessApp) -> None:
 def test_normal(
     start_inprocess: StartInProcess, tmp_path: Path, clipboard_sentinel: str
 ) -> None:
-    """録音して起こした文字が、クリップボードに入り、貼り付けと Enter が送られる（正常シナリオ）。"""
+    """録音して起こした文字が、クリップボードに入り、貼り付けと Enter が送信される（正常シナリオ）。"""
     # 準備
     app = start_inprocess(
         settings=make_settings(only_paste_and_send=True), wav_input=speech_input(tmp_path)

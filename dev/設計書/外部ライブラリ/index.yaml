@@ -11,7 +11,7 @@ items:
   - page: pyperclip.yaml
     summary: 起こした文字をクリップボードへ書く
   - page: pynput.yaml
-    summary: ホットキーを受け付け、貼り付けのキーを仮想的に送る
+    summary: ホットキーを受け付け、貼り付けのキーを仮想的に送信する
   - page: pycaw.yaml
     summary: Windows のシステム音量を読み書きする
   - page: comtypes.yaml
@@ -47,4 +47,4 @@ items:
   - page: onnxruntime.yaml
     summary: 連続録音の話し声を Silero VAD の ONNX で判定する
   - page: python-multipart.yaml
-    summary: ブラウザから送られた multipart の音声を FastAPI の UploadFile で受け取る
+    summary: ブラウザから送信された multipart の音声を FastAPI の UploadFile で受け取る

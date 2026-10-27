@@ -2,7 +2,7 @@
 
 本物の app（build_fastapi）を ApiServerRunner で 127.0.0.1 の空きポートに立て、httpx で叩く。
 マイク・システム音量・文字起こしのエンジンは偽物にし、履歴は一時フォルダに書く。
-返送先は、テストが 127.0.0.1 に立てる受け口にする。
+返送先は、テストが 127.0.0.1 に立てる受信先にする。
 
 外の端末のブラウザ向けの API（/web/）は、同じ app の ブラウザの音声のキュー（WebJobQueue）を本物のまま立て、
 文字起こしのエンジンだけを同じ偽物（FakeEngine）に差し替える。履歴は一時フォルダに書く。
@@ -226,7 +226,7 @@ class FakeEngine:
 
 @dataclass
 class VadScript:
-    """連続録音を始めるたびに作る話し声の判定の偽物の、確率の並びと失敗の指定。"""
+    """連続録音を開始するたびに作る話し声の判定の偽物の、確率の並びと失敗の指定。"""
 
     phases: tuple[tuple[float, int], ...] = ()
     """(話し声の確率, 窓の数) の並び。"""
@@ -244,7 +244,7 @@ class VadScript:
 
 
 class CallbackReceiver:
-    """返送先のテスト用の受け口。127.0.0.1 で待ち受け、届いた JSON を覚えて決めたステータスを返す。"""
+    """返送先のテスト用の受信先。127.0.0.1 で待ち受け、届いた JSON を覚えて決めたステータスを返す。"""
 
     def __init__(self) -> None:
         self.received: list[dict[str, Any]] = []
@@ -352,7 +352,7 @@ class Stack:
         origin: str | None = WEB_ORIGIN,
         glossary_preset: str | None = None,
     ) -> httpx.Response:
-        """ゲートウェイを通した形（Host は localhost:{ポート}、許す Origin つき、トークン無し）で、音声を multipart で POST /web/transcriptions へ送る。origin が None なら Origin を付けず、glossary_preset が None なら glossary_preset の項目を付けない。"""
+        """ゲートウェイを通した構成（Host は localhost:{ポート}、許す Origin つき、トークン無し）で、音声を multipart で POST /web/transcriptions へ送信する。origin が None なら Origin を付けず、glossary_preset が None なら glossary_preset の項目を付けない。"""
         merged = {"Host": f"localhost:{self.port}"}
         if origin is not None:
             merged["Origin"] = origin
@@ -366,14 +366,14 @@ class Stack:
         )
 
     def get_glossary_presets(self, *, origin: str | None = None) -> httpx.Response:
-        """ゲートウェイを通した形（Host は localhost:{ポート}、トークン無し）で、GET /web/glossary-presets を呼ぶ。origin が None なら Origin を付けない。"""
+        """ゲートウェイを通した構成（Host は localhost:{ポート}、トークン無し）で、GET /web/glossary-presets を呼ぶ。origin が None なら Origin を付けない。"""
         merged = {"Host": f"localhost:{self.port}"}
         if origin is not None:
             merged["Origin"] = origin
         return self.http.get("/web/glossary-presets", headers=merged)
 
     def post_audio_chunked(self, data: bytes, *, filename: str = "recording.webm") -> httpx.Response:
-        """Content-Length を付けず chunked で、音声を multipart で POST /web/transcriptions へ送る（許す Origin つき）。"""
+        """Content-Length を付けず chunked で、音声を multipart で POST /web/transcriptions へ送信する（許す Origin つき）。"""
         boundary = "----chunked-boundary"
         head = (
             f"--{boundary}\r\n"
@@ -400,7 +400,7 @@ class Stack:
         )
 
     def get_job(self, job_id: str, *, headers: dict[str, str] | None = None) -> httpx.Response:
-        """ゲートウェイを通した形（Host は localhost:{ポート}、Origin 無し、トークン無し）で、GET /web/transcriptions/{job_id} を呼ぶ。"""
+        """ゲートウェイを通した構成（Host は localhost:{ポート}、Origin 無し、トークン無し）で、GET /web/transcriptions/{job_id} を呼ぶ。"""
         merged = {"Host": f"localhost:{self.port}"}
         merged.update(headers or {})
         return self.http.get(f"/web/transcriptions/{job_id}", headers=merged)
@@ -418,7 +418,7 @@ class Stack:
         return str(response.json()["job_id"])
 
     def start_session(self, *, continuous: bool = False) -> str:
-        """返送先を受け口にして API の開始（continuous なら連続録音）を呼び、202 を確かめてセッションの ID を返す。"""
+        """返送先を受信先にして API の開始（continuous なら連続録音）を呼び、202 を確かめてセッションの ID を返す。"""
         body: dict[str, object] = {"callback_url": self.receiver.url}
         if continuous:
             body["continuous"] = True
@@ -427,7 +427,7 @@ class Stack:
         return str(response.json()["session_id"])
 
     def set_segments(self, count: int, *, tail: float = 0.0) -> None:
-        """話し声の判定の偽物を、区間が count 個区切れる並び（話し声の後に区切りの無音）にする。tail は並びの後の確率。連続録音を始める前に呼ぶ（判定は始めるたびに今の並びで作る）。"""
+        """話し声の判定の偽物を、区間が count 個区切れる並び（話し声の後に区切りの無音）にする。tail は並びの後の確率。連続録音を開始する前に呼ぶ（判定は開始するたびに今の並びで作る）。"""
         self.vad.phases = SEGMENT_PHASES * count
         self.vad.tail = tail
 
@@ -680,7 +680,7 @@ def build_stack(
 
 
 def stop_stack(stack: Stack) -> None:
-    """立てた app・受け口・クライアントを止める。残ったセッションの録音は捨てる。"""
+    """立てた app・受信先・クライアントを止める。残ったセッションの録音は捨てる。"""
     stack.engine.release.set()
     stack.http.close()
     stack.runner.stop()

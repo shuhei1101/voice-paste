@@ -30,8 +30,8 @@ INTRO_TEXT: str = "間違えやすい語の正しい表記を並べる。文字�
 
 NOTES_TEXT: str = (
     "・ヒントを渡すと、句読点が付く・改行がまとまる・口癖が一部消える。\n"
-    "・並べた表記にほかの語が引っ張られたら、その語も足す"
-    "（例: TypeScript がタイプスクリプトになったら「TypeScript」を足す）。"
+    "・並べた表記にほかの語が引っ張られたら、その語も追加する"
+    "（例: TypeScript がタイプスクリプトになったら「TypeScript」を追加する）。"
 )
 """まとまりの末尾に出す、ヒントを渡すと変わる書き方と、引っ張られた語への対処。"""
 
@@ -59,7 +59,7 @@ DIMMED_OPACITY: float = 0.4
 """無効のプリセットの語の欄を薄くする濃さ。"""
 
 WORD_PAIR_MIN_WIDTH_PX: int = 240
-"""語の欄と消すボタンの組 1 つに要る幅。部品の幅が組 2 つ分に足りなければ 1 列に積む。"""
+"""語の欄と削除ボタンの組 1 つに要る幅。部品の幅が組 2 つ分に足りなければ 1 列に積む。"""
 
 WORD_COLUMNS_WIDE: int = 2
 WORD_COLUMNS_NARROW: int = 1
@@ -86,7 +86,7 @@ class _WordsView:
 
 @dataclass
 class _WordCell:
-    """語 1 つの欄・消すボタン・欄の下のエラーの文。"""
+    """語 1 つの欄・削除ボタン・欄の下のエラーの文。"""
 
     container: QWidget
     edit: QLineEdit
@@ -146,19 +146,19 @@ def _dim(widget: QWidget, *, dimmed: bool) -> None:
 
 
 class HintPresetPanel(QWidget):
-    """設定画面の「表記のヒント」のまとまりに置く、有効なヒントの長さ・プリセットの縦の並び・「プリセットを足す」・補足。
+    """設定画面の「表記のヒント」のまとまりに置く、有効なヒントの長さ・プリセットの縦の並び・「プリセットを追加」・補足。
 
-    足す・消す・並べ替え・入力はこの部品の中だけを変え、settings.toml へは設定画面の保存で書く。
+    追加・削除・並べ替え・入力はこの部品の中だけを変え、settings.toml へは設定画面の保存で書く。
     """
 
     changed = Signal()
-    """足す・消す・並べ替え・切り替え・欄の入力で値が変わった（設定画面が変えた欄の数えに使う）。"""
+    """追加・削除・並べ替え・切り替え・欄の入力で値が変わった（設定画面が変えた欄の数えに使う）。"""
 
     def __init__(self, parent: QWidget | None = None) -> None:
         """空の一覧で部品を作る。"""
         super().__init__(parent)
         self._rows: list[_HintRow] = []
-        # プリセットを追う番号: 一覧の並びと同じ順に持つ。開いたとき・保存したときの分は 0 から振り、足した分はそれより大きい番号にする
+        # プリセットを追う番号: 一覧の並びと同じ順に持つ。開いたとき・保存したときの分は 0 から振り、追加した分はそれより大きい番号にする
         self._ids: list[int] = []
         self._baseline_count = 0
         self._next_id = 0
@@ -212,7 +212,7 @@ class HintPresetPanel(QWidget):
         self._rows_layout.setSpacing(8)
         outer.addLayout(self._rows_layout)
 
-        add_button = QPushButton("プリセットを足す")
+        add_button = QPushButton("プリセットを追加")
         add_button.setObjectName("hint_preset_add")
         add_button.clicked.connect(self.add_preset)
         outer.addWidget(add_button, alignment=Qt.AlignmentFlag.AlignLeft)
@@ -232,7 +232,7 @@ class HintPresetPanel(QWidget):
         self._rebuild([preset.model_dump() for preset in presets], self._number_saved(len(presets)))
 
     def collect(self) -> list[dict[str, Any]]:
-        """今の並びのプリセットを settings.toml と同じ形の dict（name・words・enabled）の並びにする。空の語の欄もそのまま入れる。"""
+        """今の並びのプリセットを settings.toml と同じ構造の dict（name・words・enabled）の並びにする。空の語の欄もそのまま入れる。"""
         return [
             {
                 "name": row.name_edit.text(),
@@ -243,10 +243,10 @@ class HintPresetPanel(QWidget):
         ]
 
     def add_preset(self) -> None:
-        """末尾に名前と語が空で有効のプリセットを足し、名前の欄へフォーカスを移して changed を emit する。"""
+        """末尾に名前と語が空で有効のプリセットを追加し、名前の欄へフォーカスを移して changed を emit する。"""
         values = self.collect()
         values.append({"name": "", "words": [], "enabled": True})
-        # 足したプリセットには、振ったどの番号より大きい番号を振る
+        # 追加したプリセットには、振ったどの番号より大きい番号を振る
         added_id = self._next_id
         self._next_id += 1
         self._rebuild(values, [*self._ids, added_id])
@@ -254,7 +254,7 @@ class HintPresetPanel(QWidget):
         self.changed.emit()
 
     def add_word(self, position: int) -> None:
-        """一覧の何件目のプリセットの語の末尾に空の欄を足してフォーカスを移し、changed を emit する。"""
+        """一覧の何件目のプリセットの語の末尾に空の欄を追加してフォーカスを移し、changed を emit する。"""
         values = self.collect()
         values[position]["words"].append("")
         self._rebuild(values, self._ids)
@@ -278,13 +278,13 @@ class HintPresetPanel(QWidget):
             f"hint_presets[{preset_id}]": (preset["name"], preset["words"], preset["enabled"])
             for preset_id, preset in zip(self._ids, self.collect(), strict=True)
         }
-        # 開いたとき・保存したときからあって今も残っているプリセットだけで、番号の小さい順に並んでいるか（足したプリセットは見ない）
+        # 開いたとき・保存したときからあって今も残っているプリセットだけで、番号の小さい順に並んでいるか（追加したプリセットは見ない）
         kept = [preset_id for preset_id in self._ids if preset_id < self._baseline_count]
         values["hint_presets.order"] = kept == sorted(kept)
         return values
 
     def mark_saved(self) -> None:
-        """プリセットの番号を、今の並びの順に 0 から振り直す（足したプリセットも保存したプリセットとして扱う）。保存が書けた後に呼ぶ。"""
+        """プリセットの番号を、今の並びの順に 0 から振り直す（追加したプリセットも保存したプリセットとして扱う）。保存が書けた後に呼ぶ。"""
         self._ids = self._number_saved(len(self._rows))
 
     def focus_field(self, location: tuple[int | str, ...]) -> None:
@@ -313,7 +313,7 @@ class HintPresetPanel(QWidget):
         set_invalid(widget, invalid=True)
 
     def clear_errors(self) -> None:
-        """前の保存で出したエラーを全て消す。"""
+        """前の保存で出したエラーを全て削除する。"""
         self._length_error.clear()
         self._length_error.hide()
         for row in self._rows:
@@ -361,7 +361,7 @@ class HintPresetPanel(QWidget):
     # --- 組み立て ---
 
     def _number_saved(self, count: int) -> list[int]:
-        """保存した件数のプリセットに 0 から番号を振り直し（足す番号はその次から）、その番号の並びを返す。"""
+        """保存した件数のプリセットに 0 から番号を振り直し（追加する番号はその次から）、その番号の並びを返す。"""
         self._baseline_count = count
         self._next_id = count
         return list(range(count))
@@ -392,7 +392,7 @@ class HintPresetPanel(QWidget):
         self.changed.emit()
 
     def _remove(self, position: int) -> None:
-        """プリセットを一覧から消す。"""
+        """プリセットを一覧から削除する。"""
         values = self.collect()
         del values[position]
         ids = list(self._ids)
@@ -401,24 +401,24 @@ class HintPresetPanel(QWidget):
         self.changed.emit()
 
     def _remove_word(self, position: int, word: int) -> None:
-        """プリセットの語を 1 つ消す。"""
+        """プリセットの語を 1 つ削除する。"""
         values = self.collect()
         del values[position]["words"][word]
         self._rebuild(values, self._ids)
         self.changed.emit()
 
     def _on_input(self) -> None:
-        """欄の入力・切り替えで、長さと薄く見せる語の欄を直し、changed を emit する。"""
+        """欄の入力・切り替えで、長さと薄く見せる語の欄を更新し、changed を emit する。"""
         self._refresh_length()
         self.changed.emit()
 
     def _add_row(self, position: int, value: dict[str, Any], *, last: bool) -> None:
-        """プリセット 1 件のまとまり（頭に有効・名前・語の数と長さ・上へ・下へ・消す、下に名前の欄と語の欄）を足す。"""
+        """プリセット 1 件のまとまり（頭に有効・名前・語の数と長さ・上へ・下へ・削除、下に名前の欄と語の欄）を追加する。"""
         frame = QFrame()
         frame.setProperty("role", "surface")
         column = QVBoxLayout(frame)
 
-        # 頭: 有効の切り替えと今の状態の文字・入れた名前の表示・語の数と長さ・上へ・下へ・消す
+        # 頭: 有効の切り替えと今の状態の文字・入れた名前の表示・語の数と長さ・上へ・下へ・削除
         head = QHBoxLayout()
         enabled_box = QCheckBox(ENABLED_TEXT if value["enabled"] else DISABLED_TEXT)
         enabled_box.setObjectName(f"hint_preset_enabled_{position}")
@@ -455,7 +455,7 @@ class HintPresetPanel(QWidget):
         name_error_label = self._error_label()
         column.addWidget(name_error_label)
 
-        # 語の欄: 入力と消すボタンの組を格子に並べる。語が無ければ代わりの文を出す
+        # 語の欄: 入力と削除ボタンの組を格子に並べる。語が無ければ代わりの文を出す
         words_title = QLabel("語")
         words_title.setProperty("role", "heading")
         column.addWidget(words_title)
@@ -470,7 +470,7 @@ class HintPresetPanel(QWidget):
             empty_words = QLabel(EMPTY_WORDS_TEXT)
             empty_words.setObjectName(f"hint_words_empty_{position}")
             column.addWidget(empty_words)
-        add_word_button = QPushButton("語を足す")
+        add_word_button = QPushButton("語を追加")
         add_word_button.setObjectName(f"hint_word_add_{position}")
         add_word_button.clicked.connect(lambda: self.add_word(position))
         column.addWidget(add_word_button, alignment=Qt.AlignmentFlag.AlignLeft)
@@ -483,7 +483,7 @@ class HintPresetPanel(QWidget):
             enabled_box.setAccessibleName(f"{spoken}を有効にする")
             up_button.setAccessibleName(f"{spoken}を上へ")
             down_button.setAccessibleName(f"{spoken}を下へ")
-            remove_button.setAccessibleName(f"{spoken}を消す")
+            remove_button.setAccessibleName(f"{spoken}を削除")
 
         def sync_enabled() -> None:
             """有効の切り替えの右の文字と、語の欄の薄さ・取り消し線を今の状態に合わせる。"""
@@ -505,11 +505,11 @@ class HintPresetPanel(QWidget):
         self._rows.append(row)
         self._rows_layout.addWidget(frame)
         self._arrange_words(row)
-        # 表示中の部品に足した部品は次のイベントの処理まで出ないため、すぐ出す
+        # 表示中の部品に追加した部品は次のイベントの処理まで出ないため、すぐ出す
         frame.show()
 
     def _make_word_cell(self, position: int, word_position: int, word: str) -> _WordCell:
-        """語 1 つの欄・消すボタン・欄の下のエラーの文を作る。"""
+        """語 1 つの欄・削除ボタン・欄の下のエラーの文を作る。"""
         container = QWidget()
         column = QVBoxLayout(container)
         column.setContentsMargins(0, 0, 0, 0)
@@ -518,7 +518,7 @@ class HintPresetPanel(QWidget):
         edit.setObjectName(f"hint_word_{position}_{word_position}")
         edit.setAccessibleName(f"{word_position + 1} つ目の語")
         remove_button = self._operation_button("×", f"hint_word_remove_{position}_{word_position}")
-        remove_button.setAccessibleName(f"{word_position + 1} つ目の語を消す")
+        remove_button.setAccessibleName(f"{word_position + 1} つ目の語を削除")
         remove_button.clicked.connect(lambda: self._remove_word(position, word_position))
         pair.addWidget(edit, 1)
         pair.addWidget(remove_button)
@@ -568,7 +568,7 @@ class HintPresetPanel(QWidget):
 
     @staticmethod
     def _operation_button(text: str, object_name: str) -> QPushButton:
-        """上へ・下へ・消すのボタンを作る（見た目は印。読み上げの名前は呼ぶ側が付ける）。"""
+        """上へ・下へ・削除のボタンを作る（見た目はマーカー。読み上げの名前は呼ぶ側が付ける）。"""
         button = QPushButton(text)
         button.setObjectName(object_name)
         return button

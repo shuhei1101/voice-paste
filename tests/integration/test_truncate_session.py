@@ -1,6 +1,6 @@
 """上限で打ち切るの結合テスト。
 
-上限時間を短い値に差し替え、時計を進めて打ち切る。マイク・システム音量・返送先の受け口は偽物（受け口は 127.0.0.1 のテスト用）。
+上限時間を短い値に差し替え、時計を進めて打ち切る。マイク・システム音量・返送先の受信先は偽物（受信先は 127.0.0.1 のテスト用）。
 """
 
 from __future__ import annotations
@@ -61,7 +61,7 @@ def test_normal_when_stopped(stack: Stack) -> None:
 
 
 def test_normal_when_continuous(stack: Stack, caplog: pytest.LogCaptureFixture) -> None:
-    """連続録音の上限時間に達したら録音を止め、残りの話し声を最後の区間として届けた後に打ち切ったことを知らせる（正常系）。"""
+    """連続録音の上限時間に達したら録音を停止し、残りの話し声を最後の区間として届けた後に打ち切ったことを通知する（正常系）。"""
     # 準備: 区間を 1 つ区切った後、話し声が続いている間に連続録音の上限時間が経つ
     caplog.set_level(logging.WARNING)
     stack.set_segments(1, tail=0.9)

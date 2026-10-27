@@ -1,6 +1,6 @@
 """server/error_handlers.py（register_exception_handlers）の単体テスト。
 
-build_fastapi が登録した例外ハンドラを、SessionManager を Mock にした app へ要求を送って確かめる。
+build_fastapi が登録した例外ハンドラを、SessionManager を Mock にした app へ要求を送信して確かめる。
 """
 
 from __future__ import annotations
@@ -68,12 +68,12 @@ def test_register_exception_handlers_when_conflict() -> None:
 
 
 def _get_job(client: TestClient) -> Response:
-    """結果の取得（GET）を送る。"""
+    """結果の取得（GET）を送信する。"""
     return client.get("/web/transcriptions/missing")
 
 
 def _post_audio(client: TestClient) -> Response:
-    """音声の受け付け（POST）を送る。"""
+    """音声の受け付け（POST）を送信する。"""
     return client.post(
         "/web/transcriptions",
         files={"audio": ("recording.webm", b"audio", "audio/webm")},

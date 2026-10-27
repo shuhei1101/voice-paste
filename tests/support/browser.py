@@ -119,7 +119,7 @@ class _WebSocket:
         return data
 
     def send(self, message: dict[str, Any]) -> None:
-        """メッセージを 1 つ送る（クライアントからはマスクを付ける）。"""
+        """メッセージを 1 つ送信する（クライアントからはマスクを付ける）。"""
         data = json.dumps(message).encode()
         mask = os.urandom(4)
         size = len(data)
@@ -266,7 +266,7 @@ class BrowserPage:
         )
 
     def record_requests(self) -> None:
-        """画面が送る XMLHttpRequest の結果（ステータス・Content-Type・本文）を、window.__responses に控え始める。"""
+        """画面が送信する XMLHttpRequest の結果（ステータス・Content-Type・本文）を、window.__responses に控え始める。"""
         self.evaluate(
             """(() => {
               window.__responses = [];

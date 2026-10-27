@@ -44,7 +44,7 @@ def build_fastapi(
     # 5. 本文の上限を組み込む
     app.add_middleware(BodyLimitMiddleware)
 
-    # 6. 要求の守りをトークン・ポート・許す Origin つきで組み込む（最後に足すため、本文の上限より先に動き、断る要求の本文を読まない）
+    # 6. 要求の守りをトークン・ポート・許す Origin つきで組み込む（最後に追加するため、本文の上限より先に動き、断る要求の本文を読まない）
     app.add_middleware(
         RequestGuardMiddleware,
         token=token,

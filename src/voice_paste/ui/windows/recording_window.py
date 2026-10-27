@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from voice_paste.ui.controller import UiDeps
 
 WAVE_INTERVAL_MS: int = 50
-"""録音の画面が経過時間と波形を描き直す間隔。PoC で 100 ms ごとのタイマーの発火の間隔の最大が 123 ms だったため、波形が滑らかに流れる 50 ms にしてもメインスレッドを塞がない。"""
+"""録音の画面が経過時間と波形を再描画する間隔。PoC で 100 ms ごとのタイマーの発火の間隔の最大が 123 ms だったため、波形が滑らかに流れる 50 ms にしてもメインスレッドを塞がない。"""
 
 WAVE_BAR_COUNT: int = 24
 """録音の画面の波形に並べる棒の本数。"""
@@ -86,7 +86,7 @@ def format_clock(elapsed_ms: int) -> str:
 
 
 class Waveform(QWidget):
-    """録音中の音量を棒の並びで流す。一時停止中は棒を止め、最後の形のまま出す。"""
+    """録音中の音量を棒の並びで流す。一時停止中は棒を止め、最後の形状のまま出す。"""
 
     def __init__(self, levels: deque[float]) -> None:
         super().__init__()
@@ -138,7 +138,7 @@ class HeadButton(QPushButton):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setPen(pen)
         cx, cy, half = self.width() / 2, self.height() / 2, HEAD_BUTTON_GLYPH_HALF_PX
-        # 「×」は斜めの 2 本、「隠す」は横の 1 本（最小化の形）
+        # 「×」は斜めの 2 本、「隠す」は横の 1 本（最小化の形状）
         if self._close:
             painter.drawLine(QLineF(cx - half, cy - half, cx + half, cy + half))
             painter.drawLine(QLineF(cx + half, cy - half, cx - half, cy + half))
@@ -204,7 +204,7 @@ class RecordingWindow(QWidget):
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(10)
 
-        # 見出しの行: つかむ印・状態・経過時間・隠す・×（行のどこをつかんでも窓を動かせる）
+        # 見出しの行: つかむマーカー・状態・経過時間・隠す・×（行のどこをつかんでも窓を動かせる）
         head_row = HeadRow()
         head_row.drag_started.connect(self._remember_drag_origin)
         header = QHBoxLayout(head_row)
@@ -223,7 +223,7 @@ class RecordingWindow(QWidget):
         self._elapsed_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         header.addWidget(self._elapsed_label)
         self._hide_button = HeadButton("hide_button", close=False)
-        self._hide_button.setAccessibleName("録音の画面を隠す")
+        self._hide_button.setAccessibleName("録音の画面を非表示にする")
         self._hide_button.clicked.connect(self.hide_requested)
         header.addWidget(self._hide_button)
         divider = QFrame()
@@ -232,7 +232,7 @@ class RecordingWindow(QWidget):
         divider.setFixedSize(1, HEAD_DIVIDER_HEIGHT_PX)
         header.addWidget(divider)
         self._close_button = HeadButton("close_button", close=True)
-        self._close_button.setAccessibleName("取り消す")
+        self._close_button.setAccessibleName("取り消し")
         self._close_button.clicked.connect(self._cancel)
         header.addWidget(self._close_button)
         layout.addWidget(head_row)
@@ -279,7 +279,7 @@ class RecordingWindow(QWidget):
         self._resume_button.clicked.connect(self._deps.resume)
         self._resume_button.hide()
         cancel_button = HotkeyButton(
-            "cancel_button", "取り消す", visible_hotkey(settings.hotkeys.cancel)
+            "cancel_button", "取り消し", visible_hotkey(settings.hotkeys.cancel)
         )
         cancel_button.clicked.connect(self._cancel)
         for button in (self._pause_button, self._resume_button, cancel_button):
@@ -334,14 +334,14 @@ class RecordingWindow(QWidget):
             output.enabled and output.hotkey.lower() == start.lower() for output in settings.outputs
         )
         restore_by = (
-            "トレイのアイコンで戻す"
+            "トレイのアイコンで再表示"
             if confirms_with_start or not start
-            else f"トレイのアイコンか {format_hotkey(start)} で戻す"
+            else f"トレイのアイコンか {format_hotkey(start)} で再表示"
         )
-        self._hide_button.setToolTip(f"録音の画面を隠す（{restore_by}）")
+        self._hide_button.setToolTip(f"録音の画面を非表示にする（{restore_by}）")
         cancel = settings.hotkeys.cancel
         self._close_button.setToolTip(
-            f"取り消す（{format_hotkey(cancel)}）" if cancel else "取り消す"
+            f"取り消し（{format_hotkey(cancel)}）" if cancel else "取り消し"
         )
 
     # --- 操作 ---
@@ -426,7 +426,7 @@ class RecordingWindow(QWidget):
             self._drag_origin = self.pos()
 
     def _show_state(self, *, paused: bool) -> None:
-        """状態の表示（印と文字）と、一時停止・再開のどちらのボタンを出すかを替える。"""
+        """状態の表示（マーカーと文字）と、一時停止・再開のどちらのボタンを出すかを替える。"""
         self._state_label.setText("● 一時停止中" if paused else "● 録音中")
         self._state_label.setProperty("role", "paused" if paused else "recording")
         self._state_label.style().unpolish(self._state_label)
@@ -435,7 +435,7 @@ class RecordingWindow(QWidget):
         self._resume_button.setVisible(paused)
 
     def _refresh_clock(self) -> None:
-        """経過時間のラベルを、貯めた経過（数えている間は始めた・再開した時刻からの経過も足す）で描き直す。"""
+        """経過時間のラベルを、貯めた経過（数えている間は始めた・再開した時刻からの経過も追加する）で描き直す。"""
         elapsed_s = self._accumulated_s
         if self._running:
             elapsed_s += self._clock() - self._started_at

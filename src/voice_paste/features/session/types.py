@@ -65,7 +65,7 @@ class Session:
     """ホットキー・トレイから始めた録音で、確定の操作で選んだ出力先の ID。"""
 
     output_preset: Preset | None
-    """ホットキー・トレイから始めた録音で、確定の操作で選んだカスタムプリセット（確定したときの設定の写し）。固定の出力先を選んだときと API のときは None。"""
+    """ホットキー・トレイから始めた録音で、確定の操作で選んだカスタムプリセット（確定したときの設定のコピー）。固定の出力先を選んだときと API のときは None。"""
 
     recording: Recording | None = None
     """API の録音を止めた後、完了までセッションが持つ貯めた音。"""
@@ -96,7 +96,7 @@ type TranscribeFn = Callable[[Path, ProgressFn | None], str]
 """録音のファイルと進みを知らせる関数を受け、起こした文字を返す。失敗は TranscriptionError。"""
 
 type AppendTextFn = Callable[[Path, str], None]
-"""保存した録音のパスと起こした文字を受け、録音と同じ履歴に書き足す。"""
+"""保存した録音のパスと起こした文字を受け、録音と同じ履歴に追記する。"""
 
 type DeliverFn = Callable[[Session, TranscriptionOutcome], None]
 """届けるセッションと結果を受け、出力先へ届ける。API のセッションは呼び出し元へ返す出力先だけを使う。"""
@@ -124,7 +124,7 @@ class SessionDeps:
     """ほかの feature と入口を関数型で束ねたもの。main.py で配線する。"""
 
     start_recording: StartRecordingFn
-    """録音を始める（音量を下げ、マイクを開く）。"""
+    """録音を開始する（音量を下げ、マイクを開く）。"""
 
     pause_recording: Callable[[], None]
     """録音した音を貯めるのを止める。"""
@@ -148,7 +148,7 @@ class SessionDeps:
     """起こした文字とセッションの glossary_preset を受け、その用語集のプリセットで補正する。"""
 
     append_text: AppendTextFn
-    """起こした文字を履歴に書き足す。"""
+    """起こした文字を履歴に追記する。"""
 
     deliver: DeliverFn
     """結果を出力先へ届ける。"""
@@ -160,7 +160,7 @@ class SessionDeps:
     """今の時刻（テストで差し替える）。"""
 
     discard_temporary: Callable[[Path], None]
-    """処理を終えた録音が一時の音声なら消す（履歴の discard_temporary）。"""
+    """処理を終えた録音が一時の音声なら削除する（履歴の discard_temporary）。"""
 
     report_progress: ProgressFn
     """ホットキー・トレイの録音で、文字起こしの進みを画面へ知らせる（配線では ui の report_progress）。"""
@@ -188,7 +188,7 @@ class SessionApiDeps:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ContinuousEnd:
-    """連続録音の区間の待ち行列へ、全ての区間の後ろに積む終わりの印。"""
+    """連続録音の区間の待ち行列へ、全ての区間の後ろに積む終わりのマーカー。"""
 
     result: Literal["completed", "truncated", "failed"]
     """完了・上限での打ち切り・区切りの失敗のどれで終えたか。"""

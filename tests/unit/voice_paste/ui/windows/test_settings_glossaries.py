@@ -1,7 +1,7 @@
 """ui/windows/settings_glossaries.py（GlossaryPanel の set_glossaries・collect・collect_presets・active_preset_name・changed_rows・change_values・mark_saved・add_glossary・add_glossary_preset、find_glossary_row_errors）の単体テスト。
 
 画面を使うため offscreen の QApplication（conftest の qapp）で動かす。
-行を読む関数と足す用語集の場所を決める関数は Mock に差し替える。
+行を読む関数と追加する用語集の場所を決める関数は Mock に差し替える。
 部品は画面設計の項目 ID（glossary_pick_{n}・glossary_count_{n}・glossary_remove_{n}・glossary_preset_pick_{n}・glossary_preset_active_{n} など）の objectName で引く。
 行の表に出ている欄は、objectName の前方一致で、画面に出ているものを名前の順で引く。
 """
@@ -170,7 +170,7 @@ def _add_preset_glossary(panel: GlossaryPanel, name: str) -> None:
 
 
 def test_glossary_panel_set_glossaries(open_panel: Callable[..., Opened], tmp_path: Path) -> None:
-    """一覧と行の数・使うプリセットを出し、補正に使うプリセットの消すボタンを無効の扱いにする（正常系）。"""
+    """一覧と行の数・使うプリセットを出し、補正に使うプリセットの削除ボタンを無効の扱いにする（正常系）。"""
     from voice_paste.shared.types import GlossaryEntry
 
     # 準備（5 行（オン 3）の「yogo」と 2 行の「会議用」、「既定」「会議」の 2 件のプリセットと、補正に使う「会議」）
@@ -201,7 +201,7 @@ def test_glossary_panel_set_glossaries(open_panel: Callable[..., Opened], tmp_pa
     assert _label(opened.panel, "glossary_detail_title").text() == "用語集「会議用」の行"
     assert (
         _label(opened.panel, "glossary_list_note").text()
-        == "消した用語集は、使っているプリセットからも外れる。"
+        == "削除した用語集は、使っているプリセットからも外れる。"
     )
     _button(opened.panel, "glossary_preset_remove_1").click()
     assert len(opened.panel.collect_presets()) == 2
@@ -271,14 +271,14 @@ def test_glossary_panel_set_glossaries_when_preset_empty(
 def test_glossary_panel_set_glossaries_when_single_glossary(
     open_panel: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """用語集が 1 件だけのときは、その消すボタンを無効の扱いにする（正常系）。"""
+    """用語集が 1 件だけのときは、その削除ボタンを無効の扱いにする（正常系）。"""
     from voice_paste.shared.types import GlossaryEntry
 
     # 準備（1 件の用語集と、それを使う「既定」の 1 件のプリセットで開く）
     first = _two_glossaries(tmp_path)[0]
     opened = open_panel([first], {first.path: [GlossaryEntry(wrong="あ", right="A")]})
 
-    # 実行（用語集の消すボタンを押す。用語集を 1 つ足してからもう一度押す）
+    # 実行（用語集の削除ボタンを押す。用語集を 1 つ追加してからもう一度押す）
     _button(opened.panel, "glossary_remove_0").click()
     after_first_click = len(opened.panel.collect())
     tooltip = _button(opened.panel, "glossary_remove_0").toolTip()
@@ -299,11 +299,11 @@ def test_glossary_panel_set_glossaries_when_single_glossary(
 
 
 def test_glossary_panel_collect(open_panel: Callable[..., Opened], tmp_path: Path) -> None:
-    """名前を変えた用語集と足した用語集を並びの順に返す（正常系）。"""
+    """名前を変えた用語集と追加した用語集を並びの順に返す（正常系）。"""
     from voice_paste.shared.settings import GlossarySettings
     from voice_paste.shared.types import GlossaryEntry
 
-    # 準備（1 件の用語集の名前を変え、用語集を 1 つ足して名前を入れる）
+    # 準備（1 件の用語集の名前を変え、用語集を 1 つ追加して名前を入れる）
     first = GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
     opened = open_panel([first], {first.path: [GlossaryEntry(wrong="あ", right="A")]})
     _visible_edits(opened.panel, "glossary_name_")[0].setText("新しい名前")
@@ -357,10 +357,10 @@ def test_glossary_panel_collect_presets(open_panel: Callable[..., Opened], tmp_p
 def test_glossary_panel_collect_presets_when_glossary_removed(
     open_panel: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """用語集を消すと、全てのプリセットから外れる（正常系）。"""
+    """用語集を削除すると、全てのプリセットから外れる（正常系）。"""
     from voice_paste.shared.types import GlossaryEntry
 
-    # 準備（用語集の一覧から「yogo」を消す）
+    # 準備（用語集の一覧から「yogo」を削除する）
     first, second = _two_glossaries(tmp_path)
     opened = open_panel(
         [first, second],
@@ -385,10 +385,10 @@ def test_glossary_panel_collect_presets_when_glossary_removed(
 def test_glossary_panel_collect_presets_when_added(
     open_panel: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """足したプリセットに用語集を追加すると末尾に返し、追加した用語集は選択肢から消える（正常系）。"""
+    """追加したプリセットに用語集を追加すると末尾に返し、追加した用語集は選択肢から消える（正常系）。"""
     from voice_paste.shared.types import GlossaryEntry
 
-    # 準備（1 件のプリセットでプリセットを足し、名前を「議事録」にして「会議用」を追加する）
+    # 準備（1 件のプリセットでプリセットを追加し、名前を「議事録」にして「会議用」を追加する）
     first, second = _two_glossaries(tmp_path)
     opened = open_panel(
         [first, second],
@@ -438,7 +438,7 @@ def test_glossary_panel_active_preset_name(
     # 実行
     name = opened.panel.active_preset_name()
 
-    # 検証（1 件目のプリセットの消すボタンが押せるようになり、押すと一覧から消える）
+    # 検証（1 件目のプリセットの削除ボタンが押せるようになり、押すと一覧から消える）
     assert name == "改名"
     _button(opened.panel, "glossary_preset_remove_0").click()
     assert len(opened.panel.collect_presets()) == 1
@@ -500,11 +500,11 @@ def test_glossary_panel_changed_rows_when_untouched(
 def test_glossary_panel_changed_rows_when_added(
     open_panel: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """足した用語集は行が無くても返し、両方が空の行は除く（正常系）。"""
+    """追加した用語集は行が無くても返し、両方が空の行は除く（正常系）。"""
     from voice_paste.shared.settings import GlossarySettings
     from voice_paste.shared.types import GlossaryEntry
 
-    # 準備（用語集を 1 つ足し、行を 2 つ足して 1 つだけに値を入れる）
+    # 準備（用語集を 1 つ追加し、行を 2 つ追加して 1 つだけに値を入れる）
     first = GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
     opened = open_panel([first], {first.path: [GlossaryEntry(wrong="あ", right="A")]})
     opened.panel.add_glossary()
@@ -517,7 +517,7 @@ def test_glossary_panel_changed_rows_when_added(
     # 実行
     changed = opened.panel.changed_rows()
 
-    # 検証（足した用語集の場所を持ち、行は値を入れた 1 つだけ）
+    # 検証（追加した用語集の場所を持ち、行は値を入れた 1 つだけ）
     assert changed == {opened.new_path: [GlossaryEntry(wrong="う", right="U")]}
 
 
@@ -552,7 +552,7 @@ def test_glossary_panel_change_values(open_panel: Callable[..., Opened], tmp_pat
     """用語集ごとの名前と行、プリセットごとの名前と使う用語集、補正に使うプリセットの識別を返す（正常系）。"""
     from voice_paste.shared.types import GlossaryEntry
 
-    # 準備（2 件の用語集と 2 件のプリセットを持ち 2 件目のプリセットを補正に使う一覧で開き、1 件目の用語集に両方が空の行を 1 つ足す）
+    # 準備（2 件の用語集と 2 件のプリセットを持ち 2 件目のプリセットを補正に使う一覧で開き、1 件目の用語集に両方が空の行を 1 つ追加する）
     first, second = _two_glossaries(tmp_path)
     opened = open_panel(
         [first, second],
@@ -569,7 +569,7 @@ def test_glossary_panel_change_values(open_panel: Callable[..., Opened], tmp_pat
     # 実行
     values = opened.panel.change_values()
 
-    # 検証（1 件目の用語集の行に足した空の行は入らない）
+    # 検証（1 件目の用語集の行に追加した空の行は入らない）
     assert set(values) == {
         f"glossaries[{first.path}]",
         f"glossaries[{second.path}]",
@@ -649,7 +649,7 @@ def test_glossary_panel_change_values_when_glossary_renamed(
 def test_glossary_panel_change_values_when_added(
     open_panel: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """足した用語集とプリセットは新しいキーで返す（正常系）。"""
+    """追加した用語集とプリセットは新しいキーで返す（正常系）。"""
     from voice_paste.shared.settings import GlossarySettings
     from voice_paste.shared.types import GlossaryEntry
 
@@ -662,7 +662,7 @@ def test_glossary_panel_change_values_when_added(
     opened.panel.add_glossary_preset()
     values = opened.panel.change_values()
 
-    # 検証（足した用語集とプリセットのキーが名前も行も使う用語集も空で、キーは 5 つ）
+    # 検証（追加した用語集とプリセットのキーが名前も行も使う用語集も空で、キーは 5 つ）
     assert values[f"glossaries[{opened.new_path}]"] == ("", [])
     assert values["glossary_presets[1]"] == ("", [])
     assert set(values) == {
@@ -739,11 +739,11 @@ def test_glossary_panel_mark_saved(open_panel: Callable[..., Opened], tmp_path: 
 def test_glossary_panel_mark_saved_when_added(
     open_panel: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """足した用語集も保存した行が基準になる（正常系）。"""
+    """追加した用語集も保存した行が基準になる（正常系）。"""
     from voice_paste.shared.settings import GlossarySettings
     from voice_paste.shared.types import GlossaryEntry
 
-    # 準備（用語集を 1 つ足し、行を 1 つ入れる）
+    # 準備（用語集を 1 つ追加し、行を 1 つ入れる）
     first = GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")
     opened = open_panel([first], {first.path: [GlossaryEntry(wrong="あ", right="A")]})
     opened.panel.add_glossary()
@@ -762,7 +762,7 @@ def test_glossary_panel_mark_saved_when_added(
 
 
 def test_glossary_panel_add_glossary(open_panel: Callable[..., Opened], tmp_path: Path) -> None:
-    """空の用語集を末尾に足し、行が無いときの文を出す（正常系）。"""
+    """空の用語集を末尾に追加し、行が無いときの文を出す（正常系）。"""
     from voice_paste.shared.settings import GlossarySettings
     from voice_paste.shared.types import GlossaryEntry
 
@@ -792,7 +792,7 @@ def test_glossary_panel_add_glossary(open_panel: Callable[..., Opened], tmp_path
 def test_glossary_panel_add_glossary_preset(
     open_panel: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """空のプリセットを末尾に足し、使う用語集が無いときの文を出す（正常系）。"""
+    """空のプリセットを末尾に追加し、使う用語集が無いときの文を出す（正常系）。"""
     from voice_paste.shared.settings import GlossarySettings
     from voice_paste.shared.types import GlossaryEntry
 

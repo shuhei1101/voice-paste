@@ -35,7 +35,7 @@ PAUSE_START_SAMPLES = 192000
 PAUSE_END_SAMPLES = 195200
 # 区間の最大の長さ（20 秒）のサンプル数
 MAX_SEGMENT_SAMPLES = 320000
-# 1 秒の話し声（31 窓）に、窓に満たない末尾の 100 サンプルを足したサンプル数
+# 1 秒の話し声（31 窓）に、窓に満たない末尾の 100 サンプルを追加したサンプル数
 SPEECH_AND_TAIL_SAMPLES = 15972
 
 

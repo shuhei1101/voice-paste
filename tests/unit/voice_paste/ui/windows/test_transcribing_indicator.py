@@ -317,7 +317,7 @@ def test_set_progress(qapp: QApplication, tmp_path: Path) -> None:
 
 
 def test_set_output(qapp: QApplication, tmp_path: Path) -> None:
-    """印と案内を切り替えた先に替える（正常系）。"""
+    """マーカーと案内を切り替えた先に替える（正常系）。"""
     from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
 
     # 準備: 貼り付けて送信・貼り付けのみ・コピーのみがオンの設定で、貼り付けて送信で確定した表示を出す
@@ -337,13 +337,13 @@ def test_set_output(qapp: QApplication, tmp_path: Path) -> None:
     assert paste_hint.text() == "起こした文字をクリップボードにコピーします"
 
 
-# === 丸い印と文字の重なり ===
+# === 丸いマーカーと文字の重なり ===
 
 BADGE_ERODE_PX = 1
-"""丸い印の画素を探すとき、同じ色の画素を内側へ削る幅（1 px の枠の線を落とし、円の塊だけを残す）。"""
+"""丸いマーカーの画素を探すとき、同じ色の画素を内側へ削る幅（1 px の枠の線を落とし、円の塊だけを残す）。"""
 
 BADGE_RIM_PX = 1
-"""丸い印の縁の、なだらかに色が混ざって印の色と一致しない画素の幅。"""
+"""丸いマーカーの縁の、なだらかに色が混ざってマーカーの色と一致しない画素の幅。"""
 
 
 @pytest.fixture
@@ -362,9 +362,9 @@ def light_app(
 
 
 def _badge_range(button: QPushButton) -> QRect | None:
-    """選んだボタンの丸い印の範囲を、ボタンを描いた画像から求める（印が描かれていなければ None）。
+    """選んだボタンの丸いマーカーの範囲を、ボタンを描いた画像から求める（マーカーが描かれていなければ None）。
 
-    印の色（accent_fg）の画素のうち、周りの画素も同じ色のものだけを残して細い枠の線を落とし、残った画素の外接の四角を削った幅と縁の幅だけ広げる。
+    マーカーの色（accent_fg）の画素のうち、周りの画素も同じ色のものだけを残して細い枠の線を落とし、残った画素の外接の四角を削った幅と縁の幅だけ広げる。
     """
     from voice_paste.ui.style import theme_color
 
@@ -373,7 +373,7 @@ def _badge_range(button: QPushButton) -> QRect | None:
     image.fill(Qt.GlobalColor.transparent)
     button.render(image)
 
-    # 印の色の画素を集める
+    # マーカーの色の画素を集める
     accent = theme_color("accent_fg").rgb()
     solid = {
         (x, y)
@@ -389,7 +389,7 @@ def _badge_range(button: QPushButton) -> QRect | None:
         for x, y in solid
         if all((x + dx, y + dy) in solid for dx in around for dy in around)
     ]
-    # 印の色の塊が無い: 印は描かれていない
+    # マーカーの色の塊が無い: マーカーは描かれていない
     if not inner:
         return None
 
@@ -440,7 +440,7 @@ def _text_ranges(button: QPushButton) -> list[QRect]:
 
 
 def _ranges_touching(badge: QRect, ranges: list[QRect]) -> list[QRect]:
-    """範囲の並びのうち、丸い印の範囲と交わるものを返す。"""
+    """範囲の並びのうち、丸いマーカーの範囲と交わるものを返す。"""
     return [text_range for text_range in ranges if text_range.intersects(badge)]
 
 
@@ -466,7 +466,7 @@ def test_set_output_badge_clear_of_text(
     show_hotkeys: bool,
     range_count: int,
 ) -> None:
-    """選んだボタンの丸い印が名前とホットキーの文字に重ならない（正常系）。"""
+    """選んだボタンの丸いマーカーが名前とホットキーの文字に重ならない（正常系）。"""
     from voice_paste.main import SETTINGS_MODEL
     from voice_paste.shared.settings import UiSettings
     from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
@@ -483,7 +483,7 @@ def test_set_output_badge_clear_of_text(
     # 実行
     indicator.set_output(output_id)
 
-    # 検証: 印が描かれ、名前（とホットキー）の範囲が取れ、どれも印の範囲と交わらない
+    # 検証: マーカーが描かれ、名前（とホットキー）の範囲が取れ、どれもマーカーの範囲と交わらない
     button = indicator.findChild(QPushButton, f"switch_button_{output_id}")
     badge = _badge_range(button)
     text_ranges = _text_ranges(button)

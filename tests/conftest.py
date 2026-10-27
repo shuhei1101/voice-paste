@@ -21,7 +21,7 @@ REAL_MACHINE_MARKER: str = "real_machine"
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
-    """実機のテストを実行するオプションを足す。"""
+    """実機のテストを実行するオプションを追加する。"""
     parser.addoption(
         RUN_E2E_OPTION,
         action="store_true",

@@ -104,7 +104,7 @@ response_example: |-
     "active": "既定"
   }
   ```
-response_notes: 呼ぶたびに今の設定を読む。設定画面でプリセットを足す・消す・選び直すと、次の呼び出しから変わった内容を返す。
+response_notes: 呼ぶたびに今の設定を読む。設定画面でプリセットを追加・削除するか選び直すと、次の呼び出しから変わった内容を返す。
 status_codes:
   - code: '200'
     condition: 一覧を返した

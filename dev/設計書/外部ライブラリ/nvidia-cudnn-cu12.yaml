@@ -3,15 +3,15 @@ kind: "ライブラリ"
 version:
   current: 9.27.0.42
   checked_on: '2026-09-30'
-  source: pyproject.toml（>=9,<10）と uv.lock の版
-  pinning: メジャー版を固定（>=9,<10）
+  source: pyproject.toml（>=9,<10）と uv.lock のバージョン
+  pinning: メジャーバージョンを固定（>=9,<10）
 catalogs:
   - name: ファイル
     version: 9.21.1.3
     entries:
       - name: nvidia/cudnn/bin の DLL
         kind: DLL
-        purpose: ローカルの Whisper を GPU で動かすときに読まれる（起動口がフォルダを PATH と DLL の検索パスに足す）
+        purpose: ローカルの Whisper を GPU で動かすときに読まれる（起動口がフォルダを PATH と DLL の検索パスに追加する）
 lead: CUDA 12 向けのディープラーニングの演算ライブラリ（cuDNN）の DLL を配るパッケージ。
 purl: pkg:pypi/nvidia-cudnn-cu12
 dependency_scope: 必須
@@ -21,6 +21,6 @@ used_in:
   - src/voice_paste/integrations/whisper/client.py
 verification:
   state: 未確認
-  detail: 現状の棚卸しで、起動口とビルドが参照している範囲を写しただけで、動かしてはいない
+  detail: 現状の棚卸しで、起動口とビルドが参照している範囲を転記しただけで、動かしてはいない
 license: NVIDIA の独自のライセンス（LicenseRef-NVIDIA-Proprietary。同梱して配布するときはライセンスの条件を確かめる）
 official_url: https://developer.nvidia.com/cuda-zone

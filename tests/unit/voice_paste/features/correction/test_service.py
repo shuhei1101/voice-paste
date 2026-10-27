@@ -184,7 +184,7 @@ def test_apply_glossary_when_no_match() -> None:
 
 
 def test_apply_glossary_when_right_empty() -> None:
-    """正しい表記が空の行は誤変換を消す（正常系）。"""
+    """正しい表記が空の行は誤変換を削除する（正常系）。"""
     from voice_paste.features.correction.service import apply_glossary
     from voice_paste.shared.types import GlossaryEntry
 
@@ -530,7 +530,7 @@ def test_resolve_glossary_presets(tmp_path: Path, settings_model: type[Settings]
         glossaries=_two_glossaries(tmp_path),
         glossary_presets=[
             GlossaryPresetSettings(name="既定", glossaries=["yogo"]),
-            GlossaryPresetSettings(name="会議", glossaries=["会議用", "消した", "yogo"]),
+            GlossaryPresetSettings(name="会議", glossaries=["会議用", "削除した", "yogo"]),
         ],
     )
 
@@ -630,11 +630,11 @@ def test_pick_glossary_preset_when_requested_missing(
     """指定した名前が一覧に無ければ、設定で選んでいるプリセットを返す（正常系）。"""
     from voice_paste.features.correction.service import pick_glossary_preset
 
-    # 準備（active_glossary_preset = 会議、requested = 消したプリセット）
+    # 準備（active_glossary_preset = 会議、requested = 削除したプリセット）
     settings = _settings_with_presets(settings_model, tmp_path, "会議")
 
     # 実行
-    preset = pick_glossary_preset(settings, tmp_path, requested="消したプリセット")
+    preset = pick_glossary_preset(settings, tmp_path, requested="削除したプリセット")
 
     # 検証
     assert preset.name == "会議"
@@ -710,7 +710,7 @@ def test_next_glossary_path_when_file_exists(tmp_path: Path) -> None:
 
 
 def test_next_glossary_path_when_taken(tmp_path: Path) -> None:
-    """保存する前に足した用語集の場所とも重ねない（正常系）。"""
+    """保存する前に追加した用語集の場所とも重ねない（正常系）。"""
     from voice_paste.features.correction.service import next_glossary_path
 
     # 準備（空の directory と、glossary_1.csv を含む taken）
@@ -728,7 +728,7 @@ def test_next_glossary_path_when_taken(tmp_path: Path) -> None:
 
 
 def test_strip_edge_phrases() -> None:
-    """一覧の順に文末から消し、文頭の行は文頭だけに当てる（正常系）。"""
+    """一覧の順に文末から削除し、文頭の行は文頭だけに当てる（正常系）。"""
     from voice_paste.features.correction.service import strip_edge_phrases
     from voice_paste.shared.settings import EdgePhraseSettings
 
@@ -753,7 +753,7 @@ def test_strip_edge_phrases() -> None:
 
 
 def test_strip_edge_phrases_when_middle() -> None:
-    """文頭・文末以外の同じ文言は消さない（正常系）。"""
+    """文頭・文末以外の同じ文言は削除しない（正常系）。"""
     from voice_paste.features.correction.service import strip_edge_phrases
     from voice_paste.shared.settings import EdgePhraseSettings
 
@@ -768,7 +768,7 @@ def test_strip_edge_phrases_when_middle() -> None:
 
 
 def test_strip_edge_phrases_when_wildcard_start() -> None:
-    """文頭の末尾の `*` は 1 行目の行末まで消す（正常系）。"""
+    """文頭の末尾の `*` は 1 行目の行末まで削除する（正常系）。"""
     from voice_paste.features.correction.service import strip_edge_phrases
     from voice_paste.shared.settings import EdgePhraseSettings
 
@@ -783,7 +783,7 @@ def test_strip_edge_phrases_when_wildcard_start() -> None:
 
 
 def test_strip_edge_phrases_when_wildcard_middle() -> None:
-    """途中の `*` は消す文字が最も短い一致を使う（正常系）。"""
+    """途中の `*` は削除する文字が最も短い一致を使う（正常系）。"""
     from voice_paste.features.correction.service import strip_edge_phrases
     from voice_paste.shared.settings import EdgePhraseSettings
 
@@ -798,7 +798,7 @@ def test_strip_edge_phrases_when_wildcard_middle() -> None:
 
 
 def test_strip_edge_phrases_when_repeated() -> None:
-    """同じ文言が端に続けて並ぶときは続く分も消す（正常系）。"""
+    """同じ文言が端に続けて並ぶときは続く分も削除する（正常系）。"""
     from voice_paste.features.correction.service import strip_edge_phrases
     from voice_paste.shared.settings import EdgePhraseSettings
 

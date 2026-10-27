@@ -158,13 +158,13 @@ lead: 受け付けたブラウザの音声を 1 件ずつ文字起こしワー�
 identifier: run_web_transcription_worker
 idempotent: false
 side_effects: 履歴を残す設定なら、音声を録れた形式の拡張子のまま履歴へ移し、起こした文字を同じ名前の `.txt` に書く。残さない設定なら、起こし終えた後（失敗しても）に一時のファイルを消す。ジョブの state・progress・text・error を書き換える。起こし終わり・失敗を job_id と音声の秒数でログに 1 行ずつ書く（起こした文字は書かない）。文字起こし中の表示・出力先への貼り付け・トレイの通知は出さない。
-exclusivity: ワーカースレッドは 1 つで、ブラウザの音声は受け付けた順に 1 件ずつ起こす。文字起こしワーカー（子プロセス）はセッションと共有し、今のロックで先に渡した方から順に起こす（セッションの録音・確定は止めない）
+exclusivity: ワーカースレッドは 1 つで、ブラウザの音声は受け付けた順に 1 件ずつ起こす。文字起こしワーカー（子プロセス）はセッションと共有し、今のロックで先に渡した方から順に起こす（セッションの録音・確定は妨げない）
 exceptions:
   - name: なし（正常終了）
     condition: ジョブを起こし終え、state を done にした
   - name: なし（ジョブを failed にして次へ進む）
-    condition: 文字起こしワーカーがエラーを返したか落ちた
-    notes: 例外はワーカースレッドの外へ出さず、スレッドを止めない
+    condition: 文字起こしワーカーがエラーを返したか異常終了した
+    notes: 例外はワーカースレッドの外へ出さず、スレッドを停止しない
 constraints:
   - item: 順番
     constraint: 受け付けた順（FIFO）に 1 件ずつ
@@ -174,11 +174,11 @@ constraints:
     constraint: 録れた形式（webm・ogg・mp4・MP3・WAV など）のまま faster-whisper（PyAV）へ渡し、WAV へ変えない
   - item: タイムアウト
     constraint: 制限なし
-    notes: 文字起こしワーカーの待ちは今の窓口（WhisperWorkerClient）のまま。ワーカーが落ちたときは今の立て直しで次のジョブへ進む
+    notes: 文字起こしワーカーの待ちは今の窓口（WhisperWorkerClient）のまま。ワーカーが異常終了したときは今の再起動で次のジョブへ進む
   - item: 終わったジョブの保持
     constraint: 終わったジョブを持つ件数を超えたら、いちばん古く終わったジョブを捨てる
     decided_by: dev/設計書/非機能要件/非機能要件#requirements[終わったジョブを持つ件数]
   - item: 終了時
-    constraint: 常駐サービスの終了時は、起こしている 1 件の終わりを待たずにスレッドを止め、待ちのジョブの一時のファイルを消す
+    constraint: 常駐サービスの終了時は、起こしている 1 件の終わりを待たずにスレッドを停止し、待ちのジョブの一時のファイルを消す
     notes: 履歴へ移した音声は残る
 test_file: tests/integration/test_transcribe_web_audio.py

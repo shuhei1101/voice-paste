@@ -44,19 +44,19 @@ DEFAULT_GLOSSARY_PRESET_NAME: str = "既定"
 """`glossary_presets` のキーが無い・空の settings.toml で、resolve_glossary_presets が作る 1 つだけのプリセットの名前。"""
 
 GLOSSARY_FILE_PATTERN: str = "glossary_{number}.csv"
-"""設定画面で足した用語集の CSV のファイル名。number は 1 からの連番。"""
+"""設定画面で追加した用語集の CSV のファイル名。number は 1 からの連番。"""
 
-DELETED_MARK: str = "（消す）"
-"""正しい表記が空の行で誤変換を消したことを、置き換えのログの「→」の右に出す表示。"""
+DELETED_MARK: str = "（削除）"
+"""正しい表記が空の行で誤変換を削除したことを、置き換えのログの「→」の右に出す表示。"""
 
 EDGE_TRAILING_CHARS: str = "。、，．,.!?！？ 　\t"
-"""一致した文言の後ろに続くとき、文言と一緒に消す句読点と空白。"""
+"""一致した文言の後ろに続くとき、文言と一緒に削除する句読点と空白。"""
 
 EDGE_START_LABEL: str = "文頭"
-"""文頭から消したことを、消した文言のログに出す表示。"""
+"""文頭から削除したことを、削除した文言のログに出す表示。"""
 
 EDGE_END_LABEL: str = "文末"
-"""文末から消したことを、消した文言のログに出す表示。"""
+"""文末から削除したことを、削除した文言のログに出す表示。"""
 
 
 def read_glossary_rows(path: Path) -> list[GlossaryEntry]:
@@ -96,7 +96,7 @@ def read_glossary_rows(path: Path) -> list[GlossaryEntry]:
 
 
 def load_glossary(path: Path) -> list[GlossaryEntry]:
-    """用語集の CSV から、補正に使う行（オンで、誤変換がある行。正しい表記が空の行は誤変換を消す行）を読む。読めなければ空を返す。"""
+    """用語集の CSV から、補正に使う行（オンで、誤変換がある行。正しい表記が空の行は誤変換を削除する行）を読む。読めなければ空を返す。"""
     # 1. 行を読む（読めない CSV は補正せずに届けるため、空にする）
     try:
         rows = read_glossary_rows(path)
@@ -104,7 +104,7 @@ def load_glossary(path: Path) -> list[GlossaryEntry]:
         logger.warning(f"用語集を読めなかった（{path}: {error}）")
         return []
 
-    # 2. オフの行と、誤変換が空の行を飛ばす（正しい表記が空の行は、誤変換を消す行として残す）
+    # 2. オフの行と、誤変換が空の行を飛ばす（正しい表記が空の行は、誤変換を削除する行として残す）
     entries = [row for row in rows if row.enabled and row.wrong]
     logger.info(f"用語集を読んだ（{path}・{len(rows)} 行・補正に使う {len(entries)} 行）")
     return entries
@@ -134,7 +134,7 @@ def save_glossary(path: Path, entries: Sequence[GlossaryEntry]) -> None:
             )
         temp_path = Path(temp_file.name)
 
-    # 3. 置き換える（置き換えられなければ一時ファイルを消す）
+    # 3. 置き換える（置き換えられなければ一時ファイルを削除する）
     try:
         os.replace(temp_path, path)
     except OSError:
@@ -195,7 +195,7 @@ def pick_glossary_preset(
         found = next((preset for preset in presets if preset.name == requested), None)
         if found is not None:
             return found
-        # 開始の後に設定でそのプリセットを消した: 設定で選んでいるプリセットで補正する
+        # 開始の後に設定でそのプリセットを削除した: 設定で選んでいるプリセットで補正する
         logger.warning(
             f"指定された用語集のプリセットが無いため、設定で選んでいるプリセットで補正する（{requested}）"
         )
@@ -215,18 +215,18 @@ def list_preset_glossaries(
 
 
 def next_glossary_path(taken: Collection[Path], *, directory: Path) -> Path:
-    """設定画面で足す用語集の CSV の場所を、今あるファイルとも一覧の用語集とも重ならない連番で決める。ファイルは作らない。"""
+    """設定画面で追加する用語集の CSV の場所を、今あるファイルとも一覧の用語集とも重ならない連番で決める。ファイルは作らない。"""
     number = 1
     while True:
         candidate = directory.absolute() / GLOSSARY_FILE_PATTERN.format(number=number)
-        # directory に無く、一覧にも無い最初の番号を使う（消した用語集の CSV が残っていれば、その番号は使わない）
+        # directory に無く、一覧にも無い最初の番号を使う（削除した用語集の CSV が残っていれば、その番号は使わない）
         if not candidate.exists() and candidate not in taken:
             return candidate
         number += 1
 
 
 def apply_glossary(text: str, entries: list[GlossaryEntry]) -> str:
-    """用語集の行の順に、前の行で置き換えた結果へ次の行を当てて誤変換を置き換える（正しい表記が空の行は誤変換を消す）。"""
+    """用語集の行の順に、前の行で置き換えた結果へ次の行を当てて誤変換を置き換える（正しい表記が空の行は誤変換を削除する）。"""
     result = text
     replaced: list[str] = []
     for entry in entries:
@@ -256,10 +256,10 @@ def _compile_edge_phrase(text: str) -> re.Pattern[str]:
 
 
 def _strip_start(lines: list[str], pattern: re.Pattern[str], removed: list[str]) -> None:
-    """1 行目の先頭に文言が一致する間、一致した文字を消す。1 行目が空になったらその行を除いて次の行で続ける。"""
+    """1 行目の先頭に文言が一致する間、一致した文字を削除する。1 行目が空になったらその行を除いて次の行で続ける。"""
     while lines:
         matched = pattern.match(lines[0])
-        # 一致しないか、何も消さない一致なら終える
+        # 一致しないか、何も削除しない一致なら終える
         if matched is None or matched.end() == 0:
             return
         removed.append(f"{EDGE_START_LABEL}: {matched.group()}")
@@ -272,7 +272,7 @@ def _strip_start(lines: list[str], pattern: re.Pattern[str], removed: list[str])
 def _strip_end(
     lines: list[str], pattern: re.Pattern[str], removed: list[str], *, from_line_start: bool
 ) -> None:
-    """最後の行の末尾に文言が一致する間、一致した文字を消す。最後の行が空になったらその行を除いて前の行で続ける。"""
+    """最後の行の末尾に文言が一致する間、一致した文字を削除する。最後の行が空になったらその行を除いて前の行で続ける。"""
     while lines:
         line = lines[-1]
         # 先頭が `*` の文言は行の先頭から、それ以外は最も後ろから始まる一致を探す
@@ -281,7 +281,7 @@ def _strip_end(
         if start is None:
             return
         removed.append(f"{EDGE_END_LABEL}: {line[start:]}")
-        # 消した後の行の末尾の空白も除く
+        # 削除した後の行の末尾の空白も除く
         lines[-1] = line[:start].rstrip()
         # 最後の行が空になったら、その行を除く
         if not lines[-1]:
@@ -289,7 +289,7 @@ def _strip_end(
 
 
 def strip_edge_phrases(text: str, phrases: Sequence[EdgePhraseSettings]) -> str:
-    """一覧の行を上から順に、前の行で消した結果へ当て、起こした文字の文頭・文末に一致した文言だけを消す。全て消えたら空文字を返す。"""
+    """一覧の行を上から順に、前の行で削除した結果へ当て、起こした文字の文頭・文末に一致した文言だけを削除する。全て消えたら空文字を返す。"""
     # 1. 文字を改行で行に分ける
     lines = text.split("\n")
     removed: list[str] = []
@@ -299,10 +299,10 @@ def strip_edge_phrases(text: str, phrases: Sequence[EdgePhraseSettings]) -> str:
         if not phrase.text:
             continue
         pattern = _compile_edge_phrase(phrase.text)
-        # 位置が文頭か両方なら、1 行目の先頭から消す
+        # 位置が文頭か両方なら、1 行目の先頭から削除する
         if phrase.position in ("start", "both"):
             _strip_start(lines, pattern, removed)
-        # 位置が文末か両方なら、最後の行の末尾から消す
+        # 位置が文末か両方なら、最後の行の末尾から削除する
         if phrase.position in ("end", "both"):
             _strip_end(
                 lines,
@@ -311,7 +311,7 @@ def strip_edge_phrases(text: str, phrases: Sequence[EdgePhraseSettings]) -> str:
                 from_line_start=phrase.text.startswith(EDGE_PHRASE_WILDCARD),
             )
 
-    # 3. 消したものがあればログに残し、行をつないで返す
+    # 3. 削除したものがあればログに残し、行をつないで返す
     if removed:
-        logger.info(f"文頭・文末の文言を消した（{', '.join(removed)}）")
+        logger.info(f"文頭・文末の文言を削除した（{', '.join(removed)}）")
     return "\n".join(lines)

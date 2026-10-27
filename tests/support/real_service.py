@@ -33,7 +33,7 @@ STARTUP_TIMEOUT_SEC = 120.0
 """常駐サービスがトークンのファイルを書くまで（モデルの読み込みを含む）待つ上限。"""
 
 SHUTDOWN_TIMEOUT_SEC = 30.0
-"""終了の合図を送ってから、サービスが終わるまで待つ上限。"""
+"""終了の合図を送信してから、サービスが終わるまで待つ上限。"""
 
 REQUEST_TIMEOUT_SEC = 10.0
 LOOPBACK = "127.0.0.1"
@@ -97,8 +97,8 @@ def spawn_process(
 ) -> subprocess.Popen[bytes]:
     """このリポジトリの src で `python -m voice_paste --data-dir {data_dir}` を、新しいプロセスグループで起動する。
 
-    終了の合図 Ctrl+Break を送れるよう新しいプロセスグループにする。標準出力は data_dir の stdout_name へ書く
-    （同じ data_dir で続けて起動するときは、前のプロセスの出力を消さないよう名前を変える）。
+    終了の合図 Ctrl+Break を送信できるよう新しいプロセスグループにする。標準出力は data_dir の stdout_name へ書く
+    （同じ data_dir で続けて起動するときは、前のプロセスの出力を削除しないよう名前を変える）。
     常駐アプリは offscreen で起動し、画面もトレイのアイコンも実機に出さない。
     """
     env = dict(
@@ -232,7 +232,7 @@ class RealService:
         return self.process.poll() is None
 
     def shutdown(self) -> int | None:
-        """終了の合図（Ctrl+Break）を送って終わりを待ち、終了コードを返す。待ちきれなければ止める。"""
+        """終了の合図（Ctrl+Break）を送信して終わりを待ち、終了コードを返す。待ちきれなければ止める。"""
         self.http.close()
         if self.process.poll() is None:
             self.process.send_signal(signal.CTRL_BREAK_EVENT)

@@ -69,20 +69,20 @@ classes:
         process: |-
           1. _stopping を下ろす
           2. 子プロセスの環境を作る
-             - venv の `Lib/site-packages/nvidia/{cublas,cudnn,cuda_nvrtc}/bin` のうち存在するものを PATH の先頭へ足す（CUDA の DLL を子プロセスが見つけられるようにする）
+             - venv の `Lib/site-packages/nvidia/{cublas,cudnn,cuda_nvrtc}/bin` のうち存在するものを PATH の先頭へ追加する（CUDA の DLL を子プロセスが見つけられるようにする）
              - 標準入出力を UTF-8 にする
           3. `python -u -m voice_paste.integrations.whisper.worker` をコンソールを出さずに起動し、標準エラーを別のスレッドで読んでロガーへ流す
-          4. config（モデル・デバイス・量子化・スレッド数・ワーカー数・ログの置き場所）を送り、ready・error・子プロセスの終了のどれかを待つ
+          4. config（モデル・デバイス・量子化・スレッド数・ワーカー数・ログの置き場所）を送信し、ready・error・子プロセスの終了のどれかを待つ
              - ready_timeout_sec が渡されていれば、その間だけ待つ（立て直しの経路）
              - error が届いた・子プロセスが終わった・上限を過ぎた場合、子プロセスを止めて EngineError を送出する
              - `[INFO]` 文字起こしワーカーが立ち上がった（pid・かかった秒）
         unit_tests:
           - name: test_start
             case: 正常
-            summary: config を送り ready を受けて立ち上がる
+            summary: config を送信し ready を受けて立ち上がる
             condition: 子プロセスが ready を返す
             mock: subprocess.Popen
-            expected: 最初に送った行が config で、Popen の環境の PATH の先頭に存在する nvidia の bin がある
+            expected: 最初に送信した行が config で、Popen の環境の PATH の先頭に存在する nvidia の bin がある
           - name: test_start_when_model_load_failed
             case: 異常
             summary: ready の代わりに error が届いたら EngineError
@@ -115,7 +115,7 @@ classes:
         kind: メソッド
         scope: public
         inherits: EngineFn
-        summary: 録音を子プロセスへ送り、区間ごとの文字を受け取る
+        summary: 録音を子プロセスへ送信し、区間ごとの文字を受け取る
         args:
           - name: audio_path
             type: Path
@@ -138,16 +138,16 @@ classes:
           type: list[str]
           description: 区間ごとの文字
         process: |-
-          1. 録音と設定を 1 行の JSON で送り、区間の進みと結果を読む。hint が None でなければ hotwords に載せる（立て直して送り直すときも同じ手がかりを載せる）
+          1. 録音と設定を 1 行の JSON で送信し、区間の進みと結果を読む。hint が None でなければ hotwords に載せる（立て直して再送するときも同じ手がかりを載せる）
              - 子プロセスが応答の途中で終わった場合、_stopping が立っていれば立て直さずに EngineError を送出する（常駐の終了で止めた）
-             - それ以外で子プロセスが応答の途中で終わった場合、子プロセスを start(ready_timeout_sec=_ready_timeout_sec) で起動し直して同じ録音をもう一度送る（やり直しは 1 回だけ）
+             - それ以外で子プロセスが応答の途中で終わった場合、子プロセスを start(ready_timeout_sec=_ready_timeout_sec) で起動し直して同じ録音をもう一度送信する（やり直しは 1 回だけ）
                - `[WARNING]` 文字起こしワーカーが落ちたので立て直す（終了コード）
                - 立て直しで ready が上限までに届かなければ、start が子プロセスを止めて EngineError を送出する
-             - やり直しも落ちた場合、子プロセスを同じ上限でもう一度起動して次の録音に備え、EngineError を送出する
+             - やり直しも異常終了した場合、子プロセスを同じ上限でもう一度起動して次の録音に備え、EngineError を送出する
              - ワーカーがエラーを返した場合、起動し直さずに EngineError を送出する
         exceptions:
           - name: EngineError
-            condition: やり直したワーカーも落ちた
+            condition: やり直したワーカーも異常終了した
           - name: EngineError
             condition: ワーカーがエラーを返した
         unit_tests:
@@ -159,17 +159,17 @@ classes:
             expected: 結果が返り、Popen が 2 回呼ばれる
           - name: test_transcribe_when_retry_crashed
             case: 異常
-            summary: やり直しも落ちたら EngineError、次に備えて起動し直す
+            summary: やり直しも異常終了したら EngineError、次に備えて起動し直す
             condition: 2 つの子プロセスがどちらも応答の途中で終わる
             mock: subprocess.Popen
             expected: EngineError が送出され、Popen が 3 回呼ばれる
-            exception: やり直したワーカーも落ちた
+            exception: やり直したワーカーも異常終了した
           - name: test_transcribe
             case: 正常
             summary: 進みを知らせ、区間ごとの文字を返す
             condition: 子プロセスが progress（end=1.0, duration=2.0）・result（["今日は", "晴れ"]）を返す
             mock: subprocess.Popen
-            expected: '["今日は", "晴れ"] が返り、on_progress が (1.0, 2.0) で 1 回呼ばれ、送った transcribe に設定の言語・ビーム幅・温度・VAD が入る'
+            expected: '["今日は", "晴れ"] が返り、on_progress が (1.0, 2.0) で 1 回呼ばれ、送信した transcribe に設定の言語・ビーム幅・温度・VAD が入る'
           - name: test_transcribe_when_worker_error
             case: 異常
             summary: ワーカーが error を返したら起動し直さずに EngineError
@@ -183,19 +183,19 @@ classes:
             condition: _ready_timeout_sec=0.1。1 つ目の子プロセスは応答の途中で終わり、2 つ目は ready を返さない
             mock: subprocess.Popen
             expected: EngineError が送出され、2 つ目の子プロセスが止められ、待ちが 1 秒未満で終わる
-            exception: やり直したワーカーも落ちた
+            exception: やり直したワーカーも異常終了した
           - name: test_transcribe_when_hint
             case: 正常
-            summary: 手がかりを hotwords に載せて送る
+            summary: 手がかりを hotwords に載せて送信する
             condition: hint="voice-paste、Whisper" で transcribe を呼ぶ。子プロセスは result（["今日は"]）を返す
             mock: subprocess.Popen
-            expected: 送った transcribe の payload の hotwords が "voice-paste、Whisper"
+            expected: 送信した transcribe の payload の hotwords が "voice-paste、Whisper"
           - name: test_transcribe_when_no_hint
             case: 正常
             summary: 手がかりが無ければ hotwords を載せない
             condition: hint を省いて transcribe を呼ぶ
             mock: subprocess.Popen
-            expected: 送った transcribe の payload に hotwords のキーが無い
+            expected: 送信した transcribe の payload に hotwords のキーが無い
       - name: stop
         title: 停止
         kind: メソッド
@@ -241,7 +241,7 @@ classes:
     summary: Silero VAD の ONNX のセッションで、512 サンプルの窓ごとに話し声の確率を返す。LSTM の状態と前の窓の末尾を次の窓へ持ち越す
     description: |-
       窓をまたいで状態（h・c・前の 64 サンプル）を持ち越すためクラスにする。連続録音を始めるたびに新しく作り、状態を持ち越さない。
-      セッションへの入出力の形は faster-whisper の SileroVADModel と同じで、状態を呼ぶたびに 0 に戻さずに持ち越す点だけが違う（PoC #80 で、一度に渡した `get_speech_timestamps` と同じ区切りになることを確かめた）。
+      セッションへの入出力の形式は faster-whisper の SileroVADModel と同じで、状態を呼ぶたびに 0 に戻さずに持ち越す点だけが違う（PoC #80 で、一度に渡した `get_speech_timestamps` と同じ区切りになることを確かめた）。
       録音の区切りのスレッドからだけ呼ぶ（並行で呼ばない）。
     properties:
       - name: _session
@@ -251,11 +251,11 @@ classes:
       - name: _h
         type: numpy.ndarray
         access: 内部 (_)
-        description: LSTM の状態 h（形 VAD_STATE_SHAPE・float32。初めは 0）
+        description: LSTM の状態 h（形状 VAD_STATE_SHAPE・float32。初めは 0）
       - name: _c
         type: numpy.ndarray
         access: 内部 (_)
-        description: LSTM の状態 c（形 VAD_STATE_SHAPE・float32。初めは 0）
+        description: LSTM の状態 c（形状 VAD_STATE_SHAPE・float32。初めは 0）
       - name: _context
         type: numpy.ndarray
         access: 内部 (_)
@@ -285,7 +285,7 @@ classes:
             summary: 状態を次の窓へ持ち越す
             condition: セッションの Mock が確率 0.9 と、呼ぶたびに違う h・c を返す。2 窓を続けて渡す
             mock: onnxruntime.InferenceSession
-            expected: 0.9 が返り、2 回目の run に 1 回目が返した h・c と、1 窓目の末尾 64 サンプルで始まる形 (1, 576) の入力が渡る
+            expected: 0.9 が返り、2 回目の run に 1 回目が返した h・c と、1 窓目の末尾 64 サンプルで始まる形状 (1, 576) の入力が渡る
           - name: test_streaming_vad_starts_fresh
             case: 正常
             summary: 新しく作ると状態を持ち越さない
@@ -376,7 +376,7 @@ functions:
         cost: 料金なし。実行中はシステム音量が変わり、終わりに実行前の音量へ戻す
         notes: 既定の再生デバイスが無い環境では skip する
     notes:
-      契約テスト: pycaw は版で API が変わるため `==` で固定し、この関数と restore_volume の疎通テストを Windows の実機で回す契約テストにする（品質シナリオ 7。依存の版を上げたら回す）。
+      契約テスト: pycaw はバージョンで API が変わるため `==` で固定し、この関数と restore_volume の疎通テストを Windows の実機で回す契約テストにする（品質シナリオ 7。依存のバージョンを上げたら回す）。
     refs:
       - dev/設計書/外部ライブラリ/pycaw#
       - dev/設計書/外部ライブラリ/comtypes#
@@ -480,7 +480,7 @@ functions:
     container: integrations/keyboard/sender.py
     usecase: 起こした文字を届ける
     scope: public
-    summary: pynput で設定の貼り付けのキー（既定 Ctrl+V）を今のアクティブなウィンドウへ送る
+    summary: pynput で設定の貼り付けのキー（既定 Ctrl+V）を今のアクティブなウィンドウへ送信する
     args:
       - name: paste_key
         type: str
@@ -493,10 +493,10 @@ functions:
     process: |-
       1. paste_key を `+` で区切り、各キーの前後の空白を除いて小文字にする（`<Ctrl> + v` も `<ctrl>+v` と同じに扱う。刷新前と同じ）
       2. `<ctrl>`・`<shift>`・`<alt>`・`<cmd>`・`<win>` を修飾キー、それ以外を主キーにする
-         - 主キーが 1 つでない場合、DeliveryError を送出する（キーを送らない）
+         - 主キーが 1 つでない場合、DeliveryError を送出する（キーを送信しない）
       3. FOCUS_SETTLE_SEC だけ待つ（貼り付け先のフォーカスが落ち着くのを待つ）
       4. 修飾キーを順に押し、主キーを押して離し、修飾キーを逆順に離す
-         - `[INFO]` 貼り付けのキーを送った（paste_key）
+         - `[INFO]` 貼り付けのキーを送信した（paste_key）
     refs:
       - dev/設計書/外部ライブラリ/pynput#
     status: implemented
@@ -515,13 +515,13 @@ functions:
         expected: sleep(0.1)・press(ctrl)・press(shift)・press('v')・release('v')・release(shift)・release(ctrl) の順に呼ばれる
       - name: test_send_paste_when_spaced_and_uppercase
         case: 正常
-        summary: キーの前後の空白と大文字を揃えて同じキーとして送る
+        summary: キーの前後の空白と大文字を揃えて同じキーとして送信する
         condition: paste_key が `<Ctrl> + V`
         mock: pynput.keyboard.Controller・time.sleep
         expected: sleep(0.1)・press(ctrl)・press('v')・release('v')・release(ctrl) の順に呼ばれる
       - name: test_send_paste_when_no_main_key
         case: 異常
-        summary: 主キーが 1 つ無ければキーを送らずに DeliveryError
+        summary: 主キーが 1 つ無ければキーを送信せずに DeliveryError
         condition: paste_key が `<ctrl>`
         mock: pynput.keyboard.Controller・time.sleep
         expected: DeliveryError が送出され、press が呼ばれない
@@ -536,7 +536,7 @@ functions:
     usecase: 起こした文字を届ける
     scope: public
     inherits: SendEnterFn
-    summary: pynput で、渡した修飾キーを押したまま Enter を今のアクティブなウィンドウへ送る（待ちは呼ぶ側が置く）
+    summary: pynput で、渡した修飾キーを押したまま Enter を今のアクティブなウィンドウへ送信する（待ちは呼ぶ側が置く）
     args:
       - name: modifiers
         type: Sequence[EnterModifier]
@@ -551,7 +551,7 @@ functions:
       1. modifiers を ENTER_MODIFIER_KEYS の並び（Ctrl・Alt・Shift）に揃え、重なりを除く
       2. 修飾キーを順に押し、Enter を押して離し、修飾キーを逆順に離す（修飾キーが無ければ Enter だけ）
          - 押している途中で例外が起きても、押した修飾キーは離してから送出する（押されたままにしない）
-         - `[INFO]` Enter を送った（修飾キー: {揃えた修飾キー。無ければ「なし」}）
+         - `[INFO]` Enter を送信した（修飾キー: {揃えた修飾キー。無ければ「なし」}）
     refs:
       - dev/設計書/外部ライブラリ/pynput#
     status: implemented
@@ -600,8 +600,8 @@ functions:
       1. fade_sec が 0 以下なら、COM を初期化して target を書き、解放する
          - pycaw・COM が例外を出した場合、VolumeControlError を送出する
       2. fade_sec が正なら、target を進行中のフェードの目標として持ち、新しい打ち切りの合図を作ってデーモンのスレッドを始める
-         - スレッドの中で COM を初期化し、今の音量から target までを FADE_STEPS 段に分け、fade_sec / FADE_STEPS 秒ごとに 1 段ずつ書く（今の音量と target の差が 0.005 未満なら 1 回で書く）
-         - 打ち切りを知らされたら、次の段を書かずに終わる
+         - スレッドの中で COM を初期化し、今の音量から target までを FADE_STEPS 回に分け、fade_sec / FADE_STEPS 秒ごとに 1 回分ずつ書く（今の音量と target の差が 0.005 未満なら 1 回で書く）
+         - 打ち切りを知らされたら、次の回を書かずに終わる
          - pycaw・COM が例外を出した場合、そこで終わる
            - `[ERROR]` 音量を変えられなかった（理由）
     exceptions:
@@ -610,7 +610,7 @@ functions:
     unit_tests:
       - name: test_fade_to
         case: 正常
-        summary: FADE_STEPS 段で目標の音量に届く
+        summary: FADE_STEPS 回で目標の音量に届く
         condition: 今の音量 0.8、target=0.4・fade_sec=0.1 で呼び、1 秒待つ
         mock: _open_endpoint_volume
         expected: 書かれた音量が FADE_STEPS 個で単調に減り、最後が 0.4
@@ -628,7 +628,7 @@ functions:
     container: integrations/volume/adapter.py
     usecase: 録音する
     scope: internal
-    summary: pycaw の AudioUtilities.GetSpeakers() の EndpointVolume を返す。pycaw の API に触れるのはこの関数と音量の読み書きの 2 つのメソッドだけにする（版を上げたときに直す場所）
+    summary: pycaw の AudioUtilities.GetSpeakers() の EndpointVolume を返す。pycaw の API に触れるのはこの関数と音量の読み書きの 2 つのメソッドだけにする（バージョンを上げたときに直す場所）
     returns:
       type: IAudioEndpointVolume
       description: 既定の再生デバイスの音量のインターフェース（呼ぶスレッドで COM を初期化しておく）
@@ -726,17 +726,17 @@ functions:
         type: str
         required: true
         passing: positional
-        description: 送り先
+        description: 送信先
       - name: payload
         type: dict[str, object]
         required: true
         passing: positional
-        description: 送る JSON
+        description: 送信する JSON
       - name: timeout_sec
         type: float
         required: true
         passing: positional
-        description: 1 回の POST のタイムアウト（呼び出し元へ返すは非機能要件の返送のタイムアウトを部分適用し、エンドポイントへ送るは設定の値を渡す）
+        description: 1 回の POST のタイムアウト（呼び出し元へ返すは非機能要件の返送のタイムアウトを部分適用し、エンドポイントへ送信は設定の値を渡す）
       - name: headers
         type: Mapping[str, str]
         required: false
@@ -745,7 +745,7 @@ functions:
         description: 付けるヘッダー（Authorization など。値はログと例外の文に書かない）
     returns:
       type: PostResult
-      description: 送り先が返したステータスと Retry-After
+      description: 送信先が返したステータスと Retry-After
     process: |-
       1. httpx.Client(timeout=timeout_sec, follow_redirects=False) で headers を付けて POST する（リダイレクトで許していないホストへ行かず、認証のヘッダーを他の先へ流さない）
          - httpx.TransportError（タイムアウト・接続できない）の場合、DeliveryError を送出する
@@ -757,44 +757,44 @@ functions:
     unit_tests:
       - name: test_post_json
         case: 正常
-        summary: JSON を送ってステータスを返す
-        condition: 受け口が 204 を返す
+        summary: JSON を送信してステータスを返す
+        condition: エンドポイントが 204 を返す
         mock: httpx.MockTransport
-        expected: status 204・retry_after_sec None が返り、受け口に Content-Type application/json で payload が届いている
+        expected: status 204・retry_after_sec None が返り、エンドポイントに Content-Type application/json で payload が届いている
       - name: test_post_json_when_headers
         case: 正常
-        summary: 渡したヘッダーを付けて送る
+        summary: 渡したヘッダーを付けて送信する
         condition: 'headers に {"Authorization": "Bearer test-token"} を渡す'
         mock: httpx.MockTransport
-        expected: '受け口に Authorization: Bearer test-token が届いている'
+        expected: 'エンドポイントに Authorization: Bearer test-token が届いている'
       - name: test_post_json_when_retry_after_seconds
         case: 正常
         summary: 秒数の Retry-After を返す
-        condition: '受け口が 429 と Retry-After: 3 を返す'
+        condition: 'エンドポイントが 429 と Retry-After: 3 を返す'
         mock: httpx.MockTransport
         expected: status 429・retry_after_sec 3.0 が返る
       - name: test_post_json_when_retry_after_invalid
         case: 正常
         summary: 読めない Retry-After は None
-        condition: '受け口が 503 と Retry-After: soon を返す'
+        condition: 'エンドポイントが 503 と Retry-After: soon を返す'
         mock: httpx.MockTransport
         expected: status 503・retry_after_sec None が返る
       - name: test_post_json_when_retry_after_past_date
         case: 正常
         summary: 過去の日付の Retry-After は 0
-        condition: 受け口が 503 と、今より 1 分前の HTTP の日付の Retry-After を返す
+        condition: エンドポイントが 503 と、今より 1 分前の HTTP の日付の Retry-After を返す
         mock: httpx.MockTransport
         expected: status 503・retry_after_sec 0.0 が返る
       - name: test_post_json_when_redirected
         case: 正常
         summary: リダイレクトを追わない
-        condition: 受け口が 307 で別のホストを指す
+        condition: エンドポイントが 307 で別のホストを指す
         mock: httpx.MockTransport
         expected: status 307 が返り、別のホストへの要求が出ない
       - name: test_post_json_when_timeout
         case: 異常
         summary: タイムアウトは DeliveryError
-        condition: 受け口が httpx.ReadTimeout を送出する
+        condition: エンドポイントが httpx.ReadTimeout を送出する
         mock: httpx.MockTransport
         expected: DeliveryError が送出される
         exception: タイムアウトか接続できない
@@ -845,7 +845,7 @@ functions:
     title: 音声の形式の読み取り
     kind: 関数
     container: integrations/audio/probe.py
-    usecase: ブラウザから音声を送る
+    usecase: ブラウザから音声を送信する
     scope: public
     inherits: ブラウザの文字起こしの ProbeAudioFn
     summary: 受けた音声を PyAV（av.open）で開き、容れ物の形式・秒数・大きさを返す。開けない・音声のストリームが無いときは AudioUnreadableError
@@ -889,10 +889,10 @@ functions:
     status: planned
 constants:
   - name: FADE_STEPS
-    title: フェードの段数
+    title: フェードの回数
     container: integrations/volume/adapter.py
     usecase: 録音する
-    summary: 音量を変えるときに分ける段の数。刷新前と同じ値
+    summary: 音量を変えるときに分ける回数。刷新前と同じ値
     value: '30'
     status: implemented
   - name: FADE_JOIN_TIMEOUT_SEC
@@ -906,14 +906,14 @@ constants:
     title: 1 回で書く音量の差
     container: integrations/volume/adapter.py
     usecase: 録音する
-    summary: 今の音量と目標の差がこの値未満なら、段に分けず 1 回で書く
+    summary: 今の音量と目標の差がこの値未満なら、分けず 1 回で書く
     value: '0.005'
     status: implemented
   - name: FOCUS_SETTLE_SEC
     title: フォーカスが落ち着くまでの待ち
     container: integrations/keyboard/sender.py
     usecase: 起こした文字を届ける
-    summary: 貼り付けのキーを送る前に待つ秒数。刷新前と同じ値
+    summary: 貼り付けのキーを送信する前に待つ秒数。刷新前と同じ値
     value: '0.1'
     status: implemented
   - name: EDGE_PATHS
@@ -933,10 +933,10 @@ constants:
     introduced:
       pr: 78
   - name: VAD_STATE_SHAPE
-    title: VAD の状態の形
+    title: VAD の状態の形状
     container: integrations/vad/adapter.py
     usecase: 録音する
-    summary: Silero VAD の LSTM の状態 h・c の形
+    summary: Silero VAD の LSTM の状態 h・c の形状
     value: (1, 1, 128)
     status: planned
     introduced:
@@ -976,12 +976,12 @@ data_models:
     container: integrations/http/types.py
     usecase: 起こした文字を届ける
     role: DTO
-    summary: post_json が返す、送り先のステータスと再送までに待つ秒数
+    summary: post_json が返す、送信先のステータスと再送までに待つ秒数
     description: '`@dataclass(frozen=True, slots=True, kw_only=True)`。'
     properties:
       - name: status
         type: int
-        description: 送り先が返したステータス
+        description: 送信先が返したステータス
       - name: retry_after_sec
         type: float | None
         description: Retry-After を秒に直した値。無い・読めないときは None
@@ -991,14 +991,14 @@ function_types:
     title: JSON の POST
     container: integrations/http/types.py
     usecase: 起こした文字を届ける
-    summary: 送り先へ JSON を POST してステータスと Retry-After を返す。タイムアウト・接続できないことは DeliveryError
+    summary: 送信先へ JSON を POST してステータスと Retry-After を返す。タイムアウト・接続できないことは DeliveryError
     args:
       - name: url
         type: str
-        description: 送り先
+        description: 送信先
       - name: payload
         type: dict[str, object]
-        description: 送る JSON
+        description: 送信する JSON
       - name: timeout_sec
         type: float
         description: 1 回の POST のタイムアウト
@@ -1007,8 +1007,8 @@ function_types:
         description: 付けるヘッダー
     returns:
       type: PostResult
-      description: 送り先が返したステータスと Retry-After
+      description: 送信先が返したステータスと Retry-After
     implementations:
       - target: post_json
-        notes: httpx で送る
+        notes: httpx で送信する
     status: implemented

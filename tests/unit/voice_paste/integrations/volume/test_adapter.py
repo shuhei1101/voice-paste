@@ -177,7 +177,7 @@ def test_restore_volume_when_lowering(
 
 
 def test_fade_to(install_endpoint: Callable[[float], FakeEndpointVolume]) -> None:
-    """FADE_STEPS 段で目標の音量に届く（正常系）。"""
+    """FADE_STEPS 回で目標の音量に届く（正常系）。"""
     from voice_paste.integrations.volume import adapter
 
     # 準備

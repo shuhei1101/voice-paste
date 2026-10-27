@@ -1,7 +1,7 @@
 """main.py（parse_args・main・start_local_session・build_hotkey_bindings・apply_settings・_wire_outputs・_wire_preset_kinds）の単体テスト。
 
 main の配線（build_handlers）・API サーバー（ApiServerRunner）・上限の打ち切りのタイマー（RepeatingTimer）・
-ホットキーの受付（HotkeyListener）・トレイ（Tray）・起動し直し（relaunch）は偽物に差し替え、
+ホットキーの受付（HotkeyListener）・トレイ（Tray）・再起動（relaunch）は偽物に差し替え、
 イベントループ（exec_loop）は、溜まったイベントを処理してすぐ戻る関数にする。
 画面は offscreen の QApplication（conftest の qapp）を使い回す（main は QApplication が既にあればそれを使う）。
 """
@@ -124,7 +124,7 @@ def install_wiring(
     calls: list[str] = []
 
     def _record(name: str) -> Callable[..., None]:
-        """呼ばれたら name を calls に足す関数を返す。"""
+        """呼ばれたら name を calls に追加する関数を返す。"""
         return lambda *_args, **_kwargs: calls.append(name)
 
     session_manager = MagicMock()
@@ -208,7 +208,7 @@ def timer_interval(timer_call: Any) -> float:
 
 
 def record_lock_release(monkeypatch: pytest.MonkeyPatch, wiring: Wiring) -> None:
-    """SingleInstanceLock.release が呼ばれたことを、止める操作の記録（wiring.calls）へ足す。本物の release も呼ぶ。"""
+    """SingleInstanceLock.release が呼ばれたことを、止める操作の記録（wiring.calls）へ追加する。本物の release も呼ぶ。"""
     from voice_paste.runtime.single_instance import SingleInstanceLock
 
     original_release = SingleInstanceLock.release
@@ -242,7 +242,7 @@ def make_exec_loop_with_quit_request(
 ) -> Callable[[QApplication], int]:
     """別のスレッドから終了を頼まれてから、本物のイベントループを回す exec_loop を作る。
 
-    頼みが効かずにループが抜けないときのために、上限で諦めて抜け、gave_up に True を足す。
+    頼みが効かずにループが抜けないときのために、上限で諦めて抜け、gave_up に True を追加する。
     """
 
     def _exec_loop(app: QApplication) -> int:
@@ -450,7 +450,7 @@ def test_main_when_restart_requested(
     # 実行
     exit_code = main(argv, exec_loop=_request_restart)
 
-    # 検証: 起動し直しは、API とエンジンを止めた後に 1 回だけ
+    # 検証: 再起動は、API とエンジンを止めた後に 1 回だけ
     assert exit_code == 0
     wiring.relaunch.assert_called_once_with(argv)
     assert wiring.calls.index("relaunch") > wiring.calls.index("runner.stop")
@@ -514,7 +514,7 @@ def test_main_when_quit_requested(
     import voice_paste.main as main_module
     from voice_paste.main import main
 
-    # 準備: 排他は偽物（SingleInstanceLock の代わり）を返し、放したことを止める操作の記録へ足す
+    # 準備: 排他は偽物（SingleInstanceLock の代わり）を返し、放したことを止める操作の記録へ追加する
     wiring = install_wiring(monkeypatch, qapp)
     lock = MagicMock()
     lock.release.side_effect = lambda: wiring.calls.append("lock.release")
@@ -723,7 +723,7 @@ def test_wire_outputs_when_registered_output(settings_model: type[Settings]) -> 
     from voice_paste.features.outputs import OUTPUTS, OutputSpec
     from voice_paste.main import _wire_outputs
 
-    # 準備: OUTPUTS の後ろに、inject が copy だけを選ぶ試しの出力先を足す
+    # 準備: OUTPUTS の後ろに、inject が copy だけを選ぶ試しの出力先を追加する
     adapters = MagicMock()
     deps = _make_output_deps(adapters, lambda: settings_model())
     trial = OutputSpec(
@@ -781,7 +781,7 @@ def test_wire_preset_kinds(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     browser_sleeps = list(adapters.sleep.mock_calls)
     by_kind["endpoint"].handler(
-        outcome, EndpointPreset(title="受け口", url="http://127.0.0.1:9000/hook")
+        outcome, EndpointPreset(title="受信先", url="http://127.0.0.1:9000/hook")
     )
 
     # 検証
@@ -793,7 +793,7 @@ def test_wire_preset_kinds(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_wire_preset_kinds_when_settings_changed(monkeypatch: pytest.MonkeyPatch) -> None:
-    """配線の後に変えたタイムアウトが次の送りに効く（正常系）。"""
+    """配線の後に変えたタイムアウトが次の送信に効く（正常系）。"""
     from voice_paste.main import _wire_preset_kinds
     from voice_paste.shared.settings import (
         EndpointPreset,
@@ -818,7 +818,7 @@ def test_wire_preset_kinds_when_settings_changed(monkeypatch: pytest.MonkeyPatch
 
     # 実行
     _kinds_by_name(wired)["endpoint"].handler(
-        outcome, EndpointPreset(title="受け口", url="http://127.0.0.1:9000/hook")
+        outcome, EndpointPreset(title="受信先", url="http://127.0.0.1:9000/hook")
     )
 
     # 検証
@@ -932,7 +932,7 @@ def test_build_hotkey_bindings_when_preset_not_bound(settings_model: type[Settin
             BrowserPreset(
                 title="ChatGPT", url="https://chatgpt.com", hotkey="<ctrl>+<alt>+7", enabled=False
             ),
-            EndpointPreset(title="受け口", url="http://127.0.0.1:9000/hook"),
+            EndpointPreset(title="受信先", url="http://127.0.0.1:9000/hook"),
         ]
     )
 
@@ -1212,7 +1212,7 @@ def _install_purges(monkeypatch: pytest.MonkeyPatch) -> tuple[MagicMock, MagicMo
 
 
 def test_purge_old_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """ログと履歴の両方を消す（正常系）。"""
+    """ログと履歴の両方を削除する（正常系）。"""
     from voice_paste.main import purge_old_files
     from voice_paste.shared.constants import resolve_app_paths
     from voice_paste.shared.settings import HistorySettings, LoggingSettings, Settings
@@ -1240,7 +1240,7 @@ def test_purge_old_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
 def test_purge_old_files_when_history_disabled(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """履歴を残さない設定ならログだけ消す（正常系）。"""
+    """履歴を残さない設定ならログだけ削除する（正常系）。"""
     from voice_paste.main import purge_old_files
     from voice_paste.shared.constants import resolve_app_paths
     from voice_paste.shared.settings import HistorySettings, Settings

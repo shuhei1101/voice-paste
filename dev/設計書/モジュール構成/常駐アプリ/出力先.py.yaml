@@ -1,11 +1,11 @@
 title: "常駐アプリ / 出力先"
-lead: 起こした文字の届け方を出力先ごと・カスタムプリセットの種類ごとのサブフォルダに分け、一覧への登録で足せる形にする。出力先どうしは import しない。
+lead: 起こした文字の届け方を出力先ごと・カスタムプリセットの種類ごとのサブフォルダに分け、一覧への登録で追加できる構造にする。出力先どうしは import しない。
 directory: |-
   ```
   src/voice_paste/features/outputs/
   ├── __init__.py          # deliver・OUTPUTS・PRESET_KINDS・is_callback_allowed の公開
-  ├── types.py             # 出力先・プリセットの種類の関数型と定義、配線に渡すもの（OutputDeps）、送る中身（pydantic）
-  ├── registry.py          # OUTPUTS・PRESET_KINDS（出力先・プリセットの種類の一覧。足すときはここに 1 行足す）
+  ├── types.py             # 出力先・プリセットの種類の関数型と定義、配線に渡すもの（OutputDeps）、送信する内容（pydantic）
+  ├── registry.py          # OUTPUTS・PRESET_KINDS（出力先・プリセットの種類の一覧。追加するときはここに 1 行追加する）
   ├── service.py           # deliver（入口と確定の操作で出力先かプリセットを選んで呼ぶ）
   ├── paste_and_send/
   │   ├── settings.py      # PasteAndSendSettings（貼り付けて送信の設定のモデル）
@@ -19,12 +19,12 @@ directory: |-
   ├── browser/
   │   └── service.py       # send_to_browser（ブラウザ添付の種類のプリセット。Edge のアプリの画面）
   ├── endpoint/
-  │   └── service.py       # deliver_to_endpoint（エンドポイントへ送るの種類のプリセット）
+  │   └── service.py       # deliver_to_endpoint（エンドポイントへ送信の種類のプリセット）
   └── callback/
       └── service.py       # deliver_to_caller・is_callback_allowed・inject_callback・返送の決定値（呼び出し元へ返す）
   ```
 
-  出力先を 1 つ足すときは、`features/outputs/{出力先}/` に届ける関数・注入するものを選ぶ関数（InjectFn）・設定のモデル（OutputSettingsBase を継ぐ。設定の outputs[] に置かない出力先は持たない）を置き、OUTPUTS に 1 件登録する。設定のモデル・既定の出力先の一覧・確定のホットキー・設定画面の欄・録音の画面のボタン・配線は OUTPUTS から組み立てるため、既存のモジュールは変えない。
+  出力先を 1 つ追加するときは、`features/outputs/{出力先}/` に届ける関数・注入するものを選ぶ関数（InjectFn）・設定のモデル（OutputSettingsBase を継ぐ。設定の outputs[] に置かない出力先は持たない）を置き、OUTPUTS に 1 件登録する。設定のモデル・既定の出力先の一覧・確定のホットキー・設定画面の欄・録音の画面のボタン・配線は OUTPUTS から組み立てるため、既存のモジュールは変えない。
 
   各出力先・プリセットの種類はクリップボード・キー・ブラウザ・HTTP の操作を関数で受け取り、`integrations` の関数を import しない（main.py が外部連携の copy_to_clipboard・send_paste・send_enter・open_app_window・post_json を OutputDeps に束ねて渡し、各出力先の InjectFn がそこから選んで部分適用させる）。型注釈のために integrations の型（PostResult・PostJsonFn）だけを import する。
 data_models:
@@ -33,7 +33,7 @@ data_models:
     container: features/outputs/types.py
     usecase: 起こした文字を届ける
     role: DTO
-    summary: 出力先の ID・表示名・届ける関数・設定のモデル・注入するものを選ぶ関数の組。出力先を足すときに既存のモジュールが要る知識はここに全て持たせる
+    summary: 出力先の ID・表示名・届ける関数・設定のモデル・注入するものを選ぶ関数の組。出力先を追加するときに既存のモジュールが要る知識はここに全て持たせる
     properties:
       - name: id
         type: str
@@ -72,17 +72,17 @@ data_models:
         example: browser
       - name: title
         type: str
-        description: 種類の名前（ブラウザ添付・エンドポイントへ送る）
+        description: 種類の名前（ブラウザ添付・エンドポイントへ送信）
       - name: handler
         type: PresetFn
         description: 届ける関数
     status: implemented
   - name: ResultPayload
-    title: 送る中身
+    title: 送信する内容
     container: features/outputs/types.py
     usecase: 起こした文字を届ける
     role: スキーマ
-    summary: 呼び出し元へ返す・エンドポイントへ送るが送る JSON
+    summary: 呼び出し元へ返す・エンドポイントへ送信が送信する JSON
     inherits: pydantic.BaseModel
     properties:
       - name: session_id
@@ -101,7 +101,7 @@ data_models:
       - name: from_outcome
         title: 結果から作る
         kind: メソッド
-        summary: 結果から送る中身を作る（@classmethod）
+        summary: 結果から送信する内容を作る（@classmethod）
         args:
           - name: outcome
             type: TranscriptionOutcome
@@ -110,17 +110,17 @@ data_models:
             description: 届ける結果
         returns:
           type: ResultPayload
-          description: outcome の session_id・result・text・error を写した中身
+          description: outcome の session_id・result・text・error をコピーした内容
         unit_tests:
           - name: test_result_payload_from_outcome
             case: 正常
-            summary: 結果を写す
+            summary: 結果をコピーする
             condition: session_id が s1・result が transcribed・text が「テスト」・error が None の outcome
             mock: なし
             expected: 'model_dump() が {session_id: s1, result: transcribed, text: テスト, error: None}'
     refs:
       - dev/設計書/インターフェース定義/常駐アプリ/呼び出し元へ返す.py#
-      - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送る.py#
+      - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送信する.py#
     status: implemented
   - name: OutputDeps
     title: 出力先の配線に渡すもの
@@ -128,17 +128,17 @@ data_models:
     usecase: 起こした文字を届ける
     role: DTO
     summary: main.py が組み、各出力先の InjectFn が handler に部分適用するものを選ぶ元にする、外部連携の関数と今の設定の束
-    description: '`@dataclass(frozen=True, slots=True, kw_only=True)`。出力先が増えても、新しい出力先が使う外部連携がここに無いときだけ項目を足す（そのときは出力先の追加ではなく外部連携の追加として扱う）。'
+    description: '`@dataclass(frozen=True, slots=True, kw_only=True)`。出力先が増えても、新しい出力先が使う外部連携がここに無いときだけ項目を追加する（そのときは出力先の追加ではなく外部連携の追加として扱う）。'
     properties:
       - name: copy
         type: Callable[[str], None]
         description: クリップボードへ書く（copy_to_clipboard。書けなければ DeliveryError）
       - name: paste
         type: Callable[[], None]
-        description: 貼り付けのキーを送る（呼ぶたびに設定の keyboard.paste_key を読んで send_paste を呼ぶ）
+        description: 貼り付けのキーを送信する（呼ぶたびに設定の keyboard.paste_key を読んで send_paste を呼ぶ）
       - name: send_enter
         type: SendEnterFn
-        description: 渡した修飾キーを押したまま Enter を送る（修飾キーを省くと Enter だけ）
+        description: 渡した修飾キーを押したまま Enter を送信する（修飾キーを省くと Enter だけ）
       - name: sleep
         type: Callable[[float], None]
         description: 間を置く（time.sleep）
@@ -178,7 +178,7 @@ data_models:
       - name: enter_delay_sec
         type: float
         default: '0.5'
-        description: 貼り付けてから Enter を送るまで待つ秒数（0 以上）。設定画面の欄の下に、`json_schema_extra` の note の「「貼り付けて送信」と、「ブラウザ添付」の Enter まで送るプリセットで使う。」を出す
+        description: 貼り付けてから Enter を送信するまで待つ秒数（0 以上）。設定画面の欄の下に、`json_schema_extra` の note の「「貼り付けて送信」と、「ブラウザ添付」の Enter まで送信するプリセットで使う。」を出す
       - name: enter_modifiers
         type: list[EnterModifier]
         default: '[]'
@@ -231,8 +231,8 @@ data_models:
     container: features/outputs/types.py
     usecase: 起こした文字を届ける
     role: スキーマ
-    summary: 呼び出し元へ返すが送る JSON。送る中身に、連続録音の区間の通し番号と区間の数を足す
-    description: 設定のエンドポイントへ送る中身（ResultPayload）は変えないため、呼び出し元へ返すときだけこの子を使う。
+    summary: 呼び出し元へ返すが送信する JSON。送信する内容に、連続録音の区間の通し番号と区間の数を追加する
+    description: 設定のエンドポイントへ送信する中身（ResultPayload）は変えないため、呼び出し元へ返すときだけこの子を使う。
     inherits: ResultPayload
     properties:
       - name: result
@@ -257,11 +257,11 @@ data_models:
             description: 届ける結果
         returns:
           type: CallbackPayload
-          description: outcome の session_id・result・text・error・segment_number・segment_count を写した中身
+          description: outcome の session_id・result・text・error・segment_number・segment_count をコピーした内容
         unit_tests:
           - name: test_callback_payload_from_outcome
             case: 正常
-            summary: 区間の結果を写す
+            summary: 区間の結果をコピーする
             condition: session_id が s1・result が transcribed・text が「テスト」・segment_number が 2 の outcome
             mock: なし
             expected: 'model_dump() が {session_id: s1, result: transcribed, text: テスト, error: None, segment_number: 2, segment_count: None}'
@@ -294,9 +294,9 @@ function_types:
       description: なし
     implementations:
       - target: paste_and_send
-        notes: クリップボードへ書き、貼り付けのキーと Enter を送る
+        notes: クリップボードへ書き、貼り付けのキーと Enter を送信する
       - target: paste_only
-        notes: クリップボードへ書き、貼り付けのキーを送る
+        notes: クリップボードへ書き、貼り付けのキーを送信する
       - target: copy_only
         notes: クリップボードへ書く
       - target: deliver_to_caller
@@ -313,15 +313,15 @@ function_types:
         description: 届ける結果
       - name: preset
         type: Preset
-        description: 確定の操作で選んだプリセット（確定したときの設定の写し）
+        description: 確定の操作で選んだプリセット（確定したときの設定のコピー）
     returns:
       type: None
       description: なし
     implementations:
       - target: send_to_browser
-        notes: ブラウザ添付。Edge のアプリの画面を開いて貼り付け、設定によって Enter まで送る
+        notes: ブラウザ添付。Edge のアプリの画面を開いて貼り付け、設定によって Enter まで送信する
       - target: deliver_to_endpoint
-        notes: エンドポイントへ送る。プリセットの URL へ JSON を 1 回 POST する
+        notes: エンドポイントへ送信。プリセットの URL へ JSON を 1 回 POST する
     status: implemented
   - name: InjectFn
     title: 注入するものの選び方
@@ -350,7 +350,7 @@ constants:
     title: 出力先の一覧
     container: features/outputs/registry.py
     usecase: 起こした文字を届ける
-    summary: 登録した出力先。出力先を 1 つ足すときに既存のモジュールで変えるのはここだけ（品質シナリオ 5）
+    summary: 登録した出力先。出力先を 1 つ追加するときに既存のモジュールで変えるのはここだけ（品質シナリオ 5）
     entries:
       - key: '0'
         value: OutputSpec(id="paste_and_send", title="貼り付けて送信", handler=paste_and_send, settings_model=PasteAndSendSettings, inject=inject_paste_and_send)
@@ -372,14 +372,14 @@ constants:
     title: プリセットの種類の一覧
     container: features/outputs/registry.py
     usecase: 起こした文字を届ける
-    summary: 登録したカスタムプリセットの種類。種類を足すときはここと、設定のプリセットのモデルの判別共用体と、画面の種類の名前に 1 行ずつ足す
+    summary: 登録したカスタムプリセットの種類。種類を追加するときはここと、設定のプリセットのモデルの判別共用体と、画面の種類の名前に 1 行ずつ追加する
     entries:
       - key: '0'
         value: PresetKindSpec(kind="browser", title="ブラウザ添付", handler=send_to_browser)
         description: ブラウザ添付
       - key: '1'
-        value: PresetKindSpec(kind="endpoint", title="エンドポイントへ送る", handler=deliver_to_endpoint)
-        description: エンドポイントへ送る
+        value: PresetKindSpec(kind="endpoint", title="エンドポイントへ送信", handler=deliver_to_endpoint)
+        description: エンドポイントへ送信
     notes:
       配線: 各 handler が受け取るクリップボード・キー・ブラウザ・HTTP の操作と設定の値は、main.py が種類ごとに部分適用する（起動と配線の _wire_preset_kinds）。
     status: implemented
@@ -605,7 +605,7 @@ functions:
            - 待ちは、Retry-After があればその秒数、無ければ jitter(retry_base_sec × 2^(回数−1))（指数バックオフとフルジッター）
            - Retry-After が retry_base_sec × 2^(再送回数−1)（待ちの上限）を超える場合、待たずに 3 へ（返送の間はセッションが残り次の開始を断るため、待ちを決めた上限に収める）
            - `[WARNING]` 返送に失敗した（セッションの ID・区間の通し番号（あれば）・回数・理由）
-         - それ以外のステータス（408・429 を除く 4xx など、送り直しても変わらない応答）の場合、再送せずに 3 へ
+         - それ以外のステータス（408・429 を除く 4xx など、再送しても変わらない応答）の場合、再送せずに 3 へ
       3. 届かなかったらログに書いて終える（送出しない。履歴は残っている。連続録音は次の区間へ進む）
          - `[ERROR]` 返送先に届かなかった（セッションの ID・区間の通し番号（あれば）・最後の理由）
     exceptions:
@@ -638,7 +638,7 @@ functions:
         expected: post が 1 回だけ呼ばれ、sleep が呼ばれず、ERROR のログが 1 行出る
       - name: test_deliver_to_caller_when_client_error
         case: 正常
-        summary: 送り直しても変わらない 4xx は再送しない
+        summary: 再送しても変わらない 4xx は再送しない
         condition: post が 404、再送回数 2
         mock: post・sleep・jitter
         expected: post が 1 回だけ呼ばれ、sleep が呼ばれず、ERROR のログが 1 行出る
@@ -650,14 +650,14 @@ functions:
         expected: post が 3 回、sleep が 2 回呼ばれ、例外が出ず、ERROR のログが 1 行出る
       - name: test_deliver_to_caller_when_not_allowed
         case: 異常
-        summary: 許されない返送先へは送らない
+        summary: 許されない返送先へは送信しない
         condition: target が http://example.com/x
         mock: post・sleep・jitter
         expected: DeliveryError が送出され、post が呼ばれない
         exception: 返送先が許されない
       - name: test_deliver_to_caller_when_segment
         case: 正常
-        summary: 連続録音の区間は通し番号を付けて送る
+        summary: 連続録音の区間は通し番号を付けて送信する
         condition: segment_number=3 の transcribed の outcome。post が 200 を返す
         mock: post・sleep・jitter
         expected: post に segment_number=3・segment_count=None を含む中身が 1 回渡る
@@ -672,7 +672,7 @@ functions:
     usecase: 起こした文字を届ける
     scope: public
     inherits: OutputFn
-    summary: クリップボードへ書き、貼り付けのキーと、設定の間を置いて設定の修飾キーを押したまま Enter を送る
+    summary: クリップボードへ書き、貼り付けのキーと、設定の間を置いて設定の修飾キーを押したまま Enter を送信する
     args:
       - name: outcome
         type: TranscriptionOutcome
@@ -693,12 +693,12 @@ functions:
         type: Callable[[], None]
         required: true
         passing: injected
-        description: 貼り付けのキーを送る（呼ぶたびに設定の keyboard.paste_key を読んで send_paste を呼ぶ）
+        description: 貼り付けのキーを送信する（呼ぶたびに設定の keyboard.paste_key を読んで send_paste を呼ぶ）
       - name: send_enter
         type: SendEnterFn
         required: true
         passing: injected
-        description: 渡した修飾キーを押したまま Enter を送る
+        description: 渡した修飾キーを押したまま Enter を送信する
       - name: sleep
         type: Callable[[float], None]
         required: true
@@ -708,7 +708,7 @@ functions:
         type: Callable[[], float]
         required: true
         passing: injected
-        description: 貼り付けてから Enter を送るまでの秒数を返す（呼ぶたびに設定の outputs[paste_and_send].enter_delay_sec を読む）
+        description: 貼り付けてから Enter を送信するまでの秒数を返す（呼ぶたびに設定の outputs[paste_and_send].enter_delay_sec を読む）
       - name: get_enter_modifiers
         type: Callable[[], tuple[EnterModifier, ...]]
         required: true
@@ -719,28 +719,28 @@ functions:
       description: なし
     process: |-
       1. outcome.text をクリップボードへ書く
-      2. 貼り付けのキーを送る
-      3. get_enter_delay_sec() の秒数だけ待ち、get_enter_modifiers() の修飾キーを渡して Enter を送る
-         - 1 が DeliveryError を送出した場合、キーを送らずにそのまま送出する
+      2. 貼り付けのキーを送信する
+      3. get_enter_delay_sec() の秒数だけ待ち、get_enter_modifiers() の修飾キーを渡して Enter を送信する
+         - 1 が DeliveryError を送出した場合、キーを送信せずにそのまま送出する
     exceptions:
       - name: DeliveryError
         condition: クリップボードへ書けない
     unit_tests:
       - name: test_paste_and_send
         case: 正常
-        summary: コピー・貼り付け・待ち・Enter の順に送る
+        summary: コピー・貼り付け・待ち・Enter の順に送信する
         condition: outcome.text が「テスト」、get_enter_delay_sec が 0.5、get_enter_modifiers が () を返す
         mock: copy・paste・send_enter・sleep・get_enter_delay_sec・get_enter_modifiers
         expected: copy("テスト")・paste()・sleep(0.5)・send_enter(()) の順に 1 回ずつ呼ばれる
       - name: test_paste_and_send_when_modifiers
         case: 正常
-        summary: 設定の修飾キーを渡して Enter を送る
+        summary: 設定の修飾キーを渡して Enter を送信する
         condition: get_enter_modifiers が ("ctrl",) を返す
         mock: copy・paste・send_enter・sleep・get_enter_delay_sec・get_enter_modifiers
         expected: send_enter が ("ctrl",) で 1 回呼ばれ、sleep の後に呼ばれる
       - name: test_paste_and_send_when_copy_failed
         case: 異常
-        summary: クリップボードへ書けなければキーを送らない
+        summary: クリップボードへ書けなければキーを送信しない
         condition: copy が DeliveryError を送出する
         mock: copy・paste・send_enter・sleep
         expected: DeliveryError が送出され、paste・send_enter が呼ばれない
@@ -753,7 +753,7 @@ functions:
     usecase: 起こした文字を届ける
     scope: public
     inherits: OutputFn
-    summary: クリップボードへ書き、貼り付けのキーを送る
+    summary: クリップボードへ書き、貼り付けのキーを送信する
     args:
       - name: outcome
         type: TranscriptionOutcome
@@ -774,14 +774,14 @@ functions:
         type: Callable[[], None]
         required: true
         passing: injected
-        description: 貼り付けのキーを送る（設定の keyboard.paste_key を部分適用した send_paste）
+        description: 貼り付けのキーを送信する（設定の keyboard.paste_key を部分適用した send_paste）
     returns:
       type: None
       description: なし
     process: |-
       1. outcome.text をクリップボードへ書く
-      2. 貼り付けのキーを送る
-         - 1 が DeliveryError を送出した場合、キーを送らずにそのまま送出する
+      2. 貼り付けのキーを送信する
+         - 1 が DeliveryError を送出した場合、キーを送信せずにそのまま送出する
     exceptions:
       - name: DeliveryError
         condition: クリップボードへ書けない
@@ -861,7 +861,7 @@ functions:
     usecase: 起こした文字を届ける
     scope: public
     inherits: PresetFn
-    summary: 選んだブラウザ添付のプリセットの URL を Edge のアプリの画面で開き、設定の間を置いて貼り付け、プリセットが Enter まで送るなら Enter を送る
+    summary: 選んだブラウザ添付のプリセットの URL を Edge のアプリの画面で開き、設定の間を置いて貼り付け、プリセットが Enter まで送信するなら Enter を送信する
     args:
       - name: outcome
         type: TranscriptionOutcome
@@ -887,12 +887,12 @@ functions:
         type: Callable[[], None]
         required: true
         passing: injected
-        description: 貼り付けのキーを送る（呼ぶたびに設定の keyboard.paste_key を読んで send_paste を呼ぶ）
+        description: 貼り付けのキーを送信する（呼ぶたびに設定の keyboard.paste_key を読んで send_paste を呼ぶ）
       - name: send_enter
         type: Callable[[], None]
         required: true
         passing: injected
-        description: Enter を送る
+        description: Enter を送信する
       - name: sleep
         type: Callable[[float], None]
         required: true
@@ -907,30 +907,30 @@ functions:
         type: Callable[[], float]
         required: true
         passing: injected
-        description: 貼り付けてから Enter を送るまでの秒数を返す（呼ぶたびに設定の outputs[paste_and_send].enter_delay_sec を読む）
+        description: 貼り付けてから Enter を送信するまでの秒数を返す（呼ぶたびに設定の outputs[paste_and_send].enter_delay_sec を読む）
     returns:
       type: None
       description: なし
     process: |-
       1. outcome.text をクリップボードへ書く
       2. preset.url をアプリのウィンドウで開く
-      3. get_open_delay_sec() の秒数だけ待ち、貼り付けのキーを送る
-      4. preset.send_enter がオンなら、get_enter_delay_sec() の秒数だけ待ち、Enter を送る（オフなら貼り付けで止める）
+      3. get_open_delay_sec() の秒数だけ待ち、貼り付けのキーを送信する
+      4. preset.send_enter がオンなら、get_enter_delay_sec() の秒数だけ待ち、Enter を送信する（オフなら貼り付けで止める）
          - 1・2 が DeliveryError を送出した場合、そこで止めてそのまま送出する
-         - `[INFO]` ブラウザ添付で届けた（セッションの ID・プリセットのタイトル・Enter まで送ったか）
+         - `[INFO]` ブラウザ添付で届けた（セッションの ID・プリセットのタイトル・Enter まで送信したか）
     exceptions:
       - name: DeliveryError
         condition: クリップボードへ書けない・画面を開けない
     unit_tests:
       - name: test_send_to_browser
         case: 正常
-        summary: Enter まで送るプリセットは、コピー・開く・待ち・貼り付け・待ち・Enter の順に送る
+        summary: Enter まで送信するプリセットは、コピー・開く・待ち・貼り付け・待ち・Enter の順に送信する
         condition: outcome.text が「テスト」、preset の url が https://chatgpt.com・send_enter が True、get_open_delay_sec が 3.0・get_enter_delay_sec が 0.5 を返す
         mock: copy・open_window・paste・send_enter・sleep・get_open_delay_sec・get_enter_delay_sec
         expected: copy("テスト")・open_window("https://chatgpt.com")・sleep(3.0)・paste()・sleep(0.5)・send_enter() の順に呼ばれる
       - name: test_send_to_browser_when_paste_only
         case: 正常
-        summary: Enter まで送らないプリセットは貼り付けで止める
+        summary: Enter まで送信しないプリセットは貼り付けで止める
         condition: preset の send_enter が False
         mock: copy・open_window・paste・send_enter・sleep・get_open_delay_sec・get_enter_delay_sec
         expected: copy・open_window・sleep(3.0)・paste が呼ばれ、send_enter と get_enter_delay_sec が呼ばれない
@@ -945,13 +945,13 @@ functions:
       - dev/設計書/外部ライブラリ/Microsoft_Edge#
     status: implemented
   - name: deliver_to_endpoint
-    title: エンドポイントへ送る
+    title: エンドポイントへ送信
     kind: 関数
     container: features/outputs/endpoint/service.py
     usecase: 起こした文字を届ける
     scope: public
     inherits: PresetFn
-    summary: 選んだエンドポイントへ送るのプリセットの URL へ、送る中身を 1 回 POST する。送り直さない
+    summary: 選んだエンドポイントへ送信のプリセットの URL へ、送信する内容を 1 回 POST する。再送しない
     args:
       - name: outcome
         type: TranscriptionOutcome
@@ -962,28 +962,28 @@ functions:
         type: EndpointPreset
         required: true
         passing: positional
-        description: 確定の操作で選んだエンドポイントへ送るのプリセット（url・authorization・title を使う）
+        description: 確定の操作で選んだエンドポイントへ送信のプリセット（url・authorization・title を使う）
       - name: post
         type: PostJsonFn
         required: true
         passing: injected
-        description: 送り先へ JSON を POST してステータスを返す（外部連携の post_json。タイムアウト・接続できないことは DeliveryError）
+        description: 送信先へ JSON を POST してステータスを返す（外部連携の post_json。タイムアウト・接続できないことは DeliveryError）
       - name: get_timeout_sec
         type: Callable[[], float]
         required: true
         passing: injected
-        description: 送るときのタイムアウトの秒数を返す（呼ぶたびに設定の preset_options.endpoint.timeout_sec を読む）
+        description: 送信するときのタイムアウトの秒数を返す（呼ぶたびに設定の preset_options.endpoint.timeout_sec を読む）
     returns:
       type: None
       description: なし
     process: |-
-      1. 送る中身（ResultPayload.from_outcome）を作る
+      1. 送信する内容（ResultPayload.from_outcome）を作る
       2. preset.authorization が空でなければ、その値を `Authorization` ヘッダーにする（空ならヘッダーを付けない）
-      3. post(preset.url, 中身, get_timeout_sec(), ヘッダー) で 1 回だけ送る
-         - post が DeliveryError を送出した（タイムアウト・接続できない）場合、送り直さずにそのまま送出する
+      3. post(preset.url, 中身, get_timeout_sec(), ヘッダー) で 1 回だけ送信する
+         - post が DeliveryError を送出した（タイムアウト・接続できない）場合、再送せずにそのまま送出する
       4. 2xx なら終える
          - `[INFO]` エンドポイントへ届けた（セッションの ID・プリセットのタイトル・ステータス）
-         - 2xx 以外（3xx を含む）の場合、送り直さずに DeliveryError を送出する
+         - 2xx 以外（3xx を含む）の場合、再送せずに DeliveryError を送出する
          - Authorization の値はログと例外の文に書かない
     exceptions:
       - name: DeliveryError
@@ -991,33 +991,33 @@ functions:
     unit_tests:
       - name: test_deliver_to_endpoint
         case: 正常
-        summary: 送る中身を 1 回送る
+        summary: 送信する内容を 1 回送信する
         condition: post が 200 を返す、preset の url が http://127.0.0.1:9000/hook・authorization が空、get_timeout_sec が 1.5 を返す
         mock: post・get_timeout_sec
         expected: post が 1 回、url・session_id・result・text・error を持つ dict・1.5・空のヘッダーで呼ばれる
       - name: test_deliver_to_endpoint_when_authorization
         case: 正常
-        summary: Authorization を付けて送り、ログに書かない
+        summary: Authorization を付けて送信し、ログに書かない
         condition: preset の authorization が Bearer test-token、post が 204
         mock: post・get_timeout_sec
         expected: 'post に {"Authorization": "Bearer test-token"} が渡り、ログに test-token が出ない'
       - name: test_deliver_to_endpoint_when_error_status
         case: 異常
-        summary: 2xx 以外は送り直さず DeliveryError
+        summary: 2xx 以外は再送せず DeliveryError
         condition: post が 500 を返す
         mock: post・get_timeout_sec
         expected: DeliveryError が送出され、post が 1 回だけ呼ばれる
         exception: 2xx 以外
       - name: test_deliver_to_endpoint_when_unreachable
         case: 異常
-        summary: 届かなければ送り直さず DeliveryError
+        summary: 届かなければ再送せず DeliveryError
         condition: post が DeliveryError を送出する
         mock: post・get_timeout_sec
         expected: DeliveryError が送出され、post が 1 回だけ呼ばれる
         exception: タイムアウト・接続できない
     refs:
-      - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送る.py#
-      - dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送るときのタイムアウト]
+      - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送信する.py#
+      - dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送信するときのタイムアウト]
     status: implemented
   - name: read_enter_delay_sec
     title: 貼り付けてから Enter までの秒数の読み出し
@@ -1034,7 +1034,7 @@ functions:
         description: 今の設定
     returns:
       type: float
-      description: 貼り付けてから Enter を送るまでの秒数。outputs[] に PasteAndSendSettings が無ければそのモデルの既定値
+      description: 貼り付けてから Enter を送信するまでの秒数。outputs[] に PasteAndSendSettings が無ければそのモデルの既定値
     unit_tests:
       - name: test_read_enter_delay_sec
         case: 正常

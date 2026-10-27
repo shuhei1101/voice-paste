@@ -1,7 +1,7 @@
 """ブラウザの音声の待ちの上限（web_queue_limit）の非機能要件テスト。
 
 常駐アプリを pytest のプロセスの中で `build_handlers` で配線し、`build_fastapi` で組み立てた app を 127.0.0.1 で待ち受けさせて、
-文字起こしのエンジンを、テストが放すまで戻らない関数に差し替え、小さい webm を `POST /web/transcriptions` で 11 回送る。
+文字起こしのエンジンを、テストが放すまで戻らない関数に差し替え、小さい webm を `POST /web/transcriptions` で 11 回送信する。
 履歴を残さない設定にして、終わっていないジョブの音声が全て一時のフォルダにある状態で数える
 （履歴を残す設定では、動き出したジョブの音声は履歴へ移るため、一時のフォルダには待ちの分だけが残る）。
 `--run-e2e` が無ければ skip する。
@@ -27,7 +27,7 @@ QUEUE_LIMIT = 10
 
 
 def _send_statuses(api: InProcessApi, audio: bytes, count: int) -> list[int]:
-    """audio を count 回送り、毎回のステータスを返す。"""
+    """audio を count 回送信し、毎回のステータスを返す。"""
     return [api.post_web_audio(audio).status_code for _ in range(count)]
 
 

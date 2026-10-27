@@ -1,4 +1,4 @@
-"""出力先・プリセットの種類の関数型と定義、送る中身。"""
+"""出力先・プリセットの種類の関数型と定義、送信する内容。"""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ type OutputFn = Callable[[TranscriptionOutcome, str | None], None]
 """結果と出力先に固有の宛先（返送先の URL。持たない出力先は None）を受け、1 つの出力先へ届ける。届けられなければ DeliveryError。"""
 
 type PresetFn = Callable[[TranscriptionOutcome, Preset], None]
-"""結果と確定の操作で選んだプリセット（確定したときの設定の写し）を受け、1 つのプリセットへ届ける。届けられなければ DeliveryError。"""
+"""結果と確定の操作で選んだプリセット（確定したときの設定のコピー）を受け、1 つのプリセットへ届ける。届けられなければ DeliveryError。"""
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -27,10 +27,10 @@ class OutputDeps:
     """クリップボードへ書く（copy_to_clipboard。書けなければ DeliveryError）。"""
 
     paste: Callable[[], None]
-    """貼り付けのキーを送る（呼ぶたびに設定の keyboard.paste_key を読んで send_paste を呼ぶ）。"""
+    """貼り付けのキーを送信する（呼ぶたびに設定の keyboard.paste_key を読んで send_paste を呼ぶ）。"""
 
     send_enter: SendEnterFn
-    """渡した修飾キーを押したまま Enter を送る（修飾キーを省くと Enter だけ）。"""
+    """渡した修飾キーを押したまま Enter を送信する（修飾キーを省くと Enter だけ）。"""
 
     sleep: Callable[[float], None]
     """間を置く（time.sleep）。"""
@@ -88,14 +88,14 @@ class PresetKindSpec:
     """プリセットの種類。設定の presets[].kind がこの値で指す。"""
 
     title: str
-    """種類の名前（ブラウザ添付・エンドポイントへ送る）。"""
+    """種類の名前（ブラウザ添付・エンドポイントへ送信）。"""
 
     handler: PresetFn
     """届ける関数。"""
 
 
 class ResultPayload(BaseModel):
-    """呼び出し元へ返す・エンドポイントへ送るが送る JSON。"""
+    """呼び出し元へ返す・エンドポイントへ送信が送信する JSON。"""
 
     session_id: str
     """セッションの ID。"""
@@ -111,7 +111,7 @@ class ResultPayload(BaseModel):
 
     @classmethod
     def from_outcome(cls, outcome: TranscriptionOutcome) -> Self:
-        """結果の session_id・result・text・error を写した中身を作る。"""
+        """結果の session_id・result・text・error をコピーした中身を作る。"""
         return cls(
             session_id=outcome.session_id,
             result=outcome.result,
@@ -121,9 +121,9 @@ class ResultPayload(BaseModel):
 
 
 class CallbackPayload(ResultPayload):
-    """呼び出し元へ返す JSON。ResultPayload に、連続録音の区間の通し番号と区間の数を足す。
+    """呼び出し元へ返す JSON。ResultPayload に、連続録音の区間の通し番号と区間の数を追加する。
 
-    設定のエンドポイントへ送る中身（ResultPayload）は変えないため、呼び出し元へ返すときだけこの子を使う。
+    設定のエンドポイントへ送信する内容（ResultPayload）は変えないため、呼び出し元へ返すときだけこの子を使う。
     """
 
     result: Literal["transcribed", "failed", "truncated", "completed"]  # type: ignore[assignment] 親より結果の種類が 1 つ多い（completed は連続録音だけ）
@@ -137,7 +137,7 @@ class CallbackPayload(ResultPayload):
 
     @classmethod
     def from_outcome(cls, outcome: TranscriptionOutcome) -> Self:
-        """結果の session_id・result・text・error・segment_number・segment_count を写した中身を作る。"""
+        """結果の session_id・result・text・error・segment_number・segment_count をコピーした中身を作る。"""
         return cls(
             session_id=outcome.session_id,
             result=outcome.result,

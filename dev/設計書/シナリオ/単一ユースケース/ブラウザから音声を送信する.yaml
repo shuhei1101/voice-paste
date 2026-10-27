@@ -1,4 +1,4 @@
-title: "ブラウザから音声を送る"
+title: "ブラウザから音声を送信する"
 scenarios:
   - name: 正常シナリオ（画面で録る）
     setup:
@@ -18,9 +18,9 @@ scenarios:
 
         U->>PG: 録音を始める
         PG->>PG: MediaRecorder の形式を選んで録り、残り時間を出す
-        U->>PG: 録音を止める
+        U->>PG: 録音を停止する
         PG->>DB: 録った音声を保存日時つきで残す（前の 1 件を置き換える）
-        PG->>API: 音声を送る（multipart の audio）
+        PG->>API: 音声を送信する（multipart の audio）
         API->>API: Origin・大きさ・形式を確かめる
         API->>SVC: 一時のファイルに書いてジョブを積む
         API-->>PG: 202（job_id）
@@ -47,8 +47,8 @@ scenarios:
         participant API as API のサーバー
         participant SVC as 常駐サービス
 
-        U->>PG: 音声ファイルを選んで送る
-        PG->>API: 音声を送る（multipart の audio）
+        U->>PG: 音声ファイルを選んで送信する
+        PG->>API: 音声を送信する（multipart の audio）
         API->>API: Origin・大きさ・形式を確かめる
         API->>SVC: 一時のファイルに書いてジョブを積む
         API-->>PG: 202（job_id）
@@ -77,14 +77,14 @@ scenarios:
 
         U->>PG: 録音を始める
         PG->>PG: 残り時間を出して録る
-        PG->>PG: 上限時間に達して録音を止める
+        PG->>PG: 上限時間に達して録音を停止する
         PG->>DB: 録った音声を残す
-        PG->>API: 音声を送る
+        PG->>API: 音声を送信する
         API-->>PG: 202（job_id）
       ```
     expected:
-      - 上限時間で録音が止まり、そこまでの音声が端末に残って送られている
-      - 録音が上限で止まったことが画面に出ている
+      - 上限時間で録音が停止し、そこまでの音声が端末に残って送信されている
+      - 録音が上限で停止したことが画面に出ている
     test: test_normal_when_recording_limit_reached
   - name: 正常シナリオ（用語集のプリセットを選ぶ）
     setup:
@@ -108,8 +108,8 @@ scenarios:
         API-->>PG: 200（プリセットの名前の一覧・設定で選んでいるプリセットの名前）
         PG->>PG: 選択欄に、既定（設定で選んでいるプリセット）と一覧のプリセットを並べる
         U->>PG: 2 つ目のプリセットを選択する
-        U->>PG: 音声ファイルを選んで送る
-        PG->>API: 音声を送る（multipart の audio・選択したプリセットの名前）
+        U->>PG: 音声ファイルを選んで送信する
+        PG->>API: 音声を送信する（multipart の audio・選択したプリセットの名前）
         API->>API: Origin・大きさ・形式と、プリセットの名前が一覧にあるかを確かめる
         API->>SVC: 一時のファイルに書き、プリセットの名前を持たせてジョブを積む
         API-->>PG: 202（job_id）
@@ -123,14 +123,14 @@ scenarios:
     test: test_normal_when_select_glossary_preset
     notes:
       選択の使われ方: |-
-        画面で録った音声と、端末内の音声の再送信も、送信した時点の選択を一緒に送る。
-        既定を選択したまま送るときは、プリセットの名前を送らない（設定で選んでいるプリセットで補正する）。
+        画面で録った音声と、端末内の音声の再送信も、送信した時点の選択を一緒に送信する。
+        既定を選択したまま送信するときは、プリセットの名前を送信しない（設定で選んでいるプリセットで補正する）。
   - name: 異常シナリオ（送信に失敗する）
     setup:
       - name: Mock
         description: Windows の Edge を偽のマイクで起動し、画面を開く
       - name: 届かない送信
-        description: 録音を止める前に常駐アプリの API の待ち受けを止め、送信が届かないようにする
+        description: 録音を停止する前に常駐アプリの API の待ち受けを停止し、送信が届かないようにする
     flow: |-
       ```mermaid
       sequenceDiagram
@@ -139,19 +139,19 @@ scenarios:
         participant DB as 端末（IndexedDB）
         participant API as API のサーバー
 
-        U->>PG: 録音を止める
+        U->>PG: 録音を停止する
         PG->>DB: 録った音声を残す
-        PG-xAPI: 音声を送る（届かない）
+        PG-xAPI: 音声を送信する（届かない）
         PG->>PG: 送信に失敗したことを出す
-        U->>PG: 送り直す（待ち受けを戻した後）
+        U->>PG: 再送信する（待ち受けを戻した後）
         PG->>DB: 残した音声を読む
-        PG->>API: 音声を送る
+        PG->>API: 音声を送信する
         API-->>PG: 202（job_id）
       ```
     expected:
-      - 送信に失敗したことが画面に出て、送り直しボタンとダウンロードボタンを押せる
+      - 送信に失敗したことが画面に出て、再送信ボタンとダウンロードボタンを押せる
       - 端末（IndexedDB）に録った音声が残っている
-      - 送り直すと `202` で受け付けられる
+      - 再送信すると `202` で受け付けられる
       - ダウンロードボタンで、残した音声を端末へ保存できる
     test: test_error_when_send_failed
   - name: 異常シナリオ（読めない形式）
@@ -167,8 +167,8 @@ scenarios:
         participant PG as 画面（ブラウザ）
         participant API as API のサーバー
 
-        U->>PG: ファイルを選んで送る
-        PG->>API: 音声を送る
+        U->>PG: ファイルを選んで送信する
+        PG->>API: 音声を送信する
         API->>API: 形式を確かめる（読めない）
         API-->>PG: 415（problem+json）
         PG->>PG: 読めない形式であることを出す
@@ -191,8 +191,8 @@ scenarios:
         participant PG as 画面（ブラウザ）
         participant API as API のサーバー
 
-        U->>PG: ファイルを選んで送る
-        PG->>API: 音声を送る
+        U->>PG: ファイルを選んで送信する
+        PG->>API: 音声を送信する
         API->>API: 大きさを確かめる（上限を超える）
         API-->>PG: 413（problem+json）
         PG->>PG: 大きすぎることを出す
@@ -205,7 +205,7 @@ scenarios:
   - name: 異常シナリオ（許可されていない Origin）
     setup:
       - name: Mock
-        description: 常駐アプリは pytest のプロセスの中で起動し、テストから HTTP で送る
+        description: 常駐アプリは pytest のプロセスの中で起動し、テストから HTTP で送信する
       - name: 許可リスト
         description: 許す Origin の一覧に、送信の Origin を入れない
     flow: |-
@@ -214,7 +214,7 @@ scenarios:
         participant C as 許可されていないオリジンのページ
         participant API as API のサーバー
 
-        C->>API: 音声を送る（許可されていない Origin）
+        C->>API: 音声を送信する（許可されていない Origin）
         API->>API: Origin を確かめる（一覧に無い）
         API-->>C: 403（problem+json）
       ```
@@ -237,8 +237,8 @@ scenarios:
         participant PG as 画面（ブラウザ）
         participant API as API のサーバー
 
-        U->>PG: 音声ファイルを選んで送る
-        PG->>API: 音声を送る（multipart の audio・削除されたプリセットの名前）
+        U->>PG: 音声ファイルを選んで送信する
+        PG->>API: 音声を送信する（multipart の audio・削除されたプリセットの名前）
         API->>API: プリセットの名前を確かめる（一覧に無い）
         API-->>PG: 400（problem+json）
         PG->>PG: 選択したプリセットが見つからないことを出す
@@ -252,10 +252,10 @@ scenarios:
       - 応答に `job_id` が無く、一時のファイルも書かれていない
       - 選択欄から削除したプリセットが消え、既定が選択されている
     test: test_error_when_glossary_preset_not_found
-lead: 外の端末のブラウザの画面で録るか音声ファイルを選び、端末に残してから常駐アプリへ送って、受け付けた `job_id` を受け取る。
+lead: 外の端末のブラウザの画面で録るか音声ファイルを選び、端末に残してから常駐アプリへ送信して、受け付けた `job_id` を受け取る。
 issue: 92
 primary_actor: ユーザー（外の端末のブラウザ）
-trigger: ユーザーが画面で録音を止めるか、音声ファイルを選んで送る
+trigger: ユーザーが画面で録音を停止するか、音声ファイルを選んで送信する
 preconditions:
   - 常駐サービスが起動しており、`/web/` でブラウザの音声を受け付けている
   - 画面（`GET /web/`）を、設定の許す Origin の一覧にあるオリジンから開いている

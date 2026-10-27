@@ -1,4 +1,4 @@
-"""録音の画面と文字起こし中の表示が使う部品（見出しの行・つかむ印・名前の下にホットキーを出すボタン）。"""
+"""録音の画面と文字起こし中の表示が使う部品（見出しの行・つかむマーカー・名前の下にホットキーを出すボタン）。"""
 
 from __future__ import annotations
 
@@ -16,14 +16,14 @@ BUTTON_KEY_GAP_PX: int = 2
 """ホットキーを持つボタンの、名前とキーの間の幅。"""
 
 GRIP_SIZE: tuple[int, int] = (12, 16)
-"""つかむ印の幅と高さ。"""
+"""つかむマーカーの幅と高さ。"""
 
 GRIP_DOT_RADIUS_PX: float = 1.4
-"""つかむ印の点の半径。"""
+"""つかむマーカーの点の半径。"""
 
 GRIP_COLUMNS: tuple[float, ...] = (3.0, 9.0)
 GRIP_ROWS: tuple[float, ...] = (3.0, 8.0, 13.0)
-"""つかむ印の点を置く列と段の座標（2 列 3 段）。"""
+"""つかむマーカーの点を置く列と行の座標（2 列 3 行）。"""
 
 
 class HeadRow(QWidget):
@@ -51,20 +51,20 @@ class HeadRow(QWidget):
         super().mousePressEvent(event)
 
     def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802 Qt の名前
-        """かざしたら、つかむ印を濃くするために子を描き直す。"""
+        """かざしたら、つかむマーカーを濃くするために子を描き直す。"""
         super().enterEvent(event)
         for child in self.findChildren(GripIcon):
             child.update()
 
     def leaveEvent(self, event: QEvent) -> None:  # noqa: N802 Qt の名前
-        """外れたら、つかむ印を戻すために子を描き直す。"""
+        """外れたら、つかむマーカーを戻すために子を描き直す。"""
         super().leaveEvent(event)
         for child in self.findChildren(GripIcon):
             child.update()
 
 
 class GripIcon(QWidget):
-    """窓をつかめることを示す、点を 2 列 3 段に並べた印。見出しの行にかざしている間は濃くする。"""
+    """窓をつかめることを示す、点を 2 列 3 行に並べたマーカー。見出しの行にかざしている間は濃くする。"""
 
     def __init__(self) -> None:
         super().__init__()

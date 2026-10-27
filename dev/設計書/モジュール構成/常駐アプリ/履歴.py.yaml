@@ -4,7 +4,7 @@ directory: |-
   ```
   src/voice_paste/features/history/
   ├── __init__.py   # save_recording・store_web_audio・append_text・discard_temporary・purge_expired の公開
-  └── service.py    # 録音の保存・ブラウザの音声の保存・文字の書き足し・一時の音声の削除・古い履歴の削除
+  └── service.py    # 録音の保存・ブラウザの音声の保存・文字の追記・一時の音声の削除・古い履歴の削除
   ```
 functions:
   - name: save_recording
@@ -77,7 +77,7 @@ functions:
       2. 書き先のフォルダを作り、録音をモノラルの 16 bit の WAV（scipy）で書く
          - `[INFO]` 録音を残した（パス・長さ）
   - name: append_text
-    title: 履歴への文字の書き足し
+    title: 履歴への文字の追記
     kind: 関数
     container: features/history/service.py
     usecase: 録音を文字に起こす
@@ -154,10 +154,10 @@ functions:
     process: |-
       1. history/ の下の `YYYYMMDD` のフォルダのうち、今日 − 保持日数より前のものを消す
          - 日付でない名前のフォルダは残す
-         - `[INFO]` 古い履歴を消した（消した数）
+         - `[INFO]` 古い履歴を削除した（消した数）
       2. tmp/ の下に取り残された一時の音声（`{session_id}.wav` か、連続録音の区間の `{session_id}_{通し番号}.wav`。普段は discard_temporary が消し、常駐が落ちたとき・消せなかったときに残る）のうち、ファイル名の session_id（最初の `_` より前）が処理中のセッションに無いものを消す
          - 消せないファイル・フォルダは残し、次へ進む
-           - `[WARNING]` 古い履歴を消せなかった（パス・理由）
+           - `[WARNING]` 古い履歴を削除できなかった（パス・理由）
     unit_tests:
       - name: test_purge_expired
         case: 正常
@@ -209,7 +209,7 @@ functions:
       1. 録音が `tmp/` の下に無ければ何もしない（履歴の録音）
       2. 録音を消す（既に無ければ何もしない）
          - 消せない場合、例外を出さずに残す（古い履歴の削除が掃除する）
-           - `[WARNING]` 一時の音声を消せなかった（パス・理由）
+           - `[WARNING]` 一時の音声を削除できなかった（パス・理由）
     unit_tests:
       - name: test_discard_temporary
         case: 正常

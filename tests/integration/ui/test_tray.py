@@ -136,7 +136,7 @@ def test_tray_icon_when_failed(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_tray_icon_left_click(make_ui: Callable[..., Ui]) -> None:
-    """左クリック（既定の操作）は「録音を始める」と同じ。押せないときは何もしない。"""
+    """左クリック（既定の操作）は「録音を開始」と同じ。押せないときは何もしない。"""
     from voice_paste.ui.tray import TrayState
 
     # 準備
@@ -155,7 +155,7 @@ def test_tray_icon_left_click(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_tray_icon_left_click_when_window_hidden(make_ui: Callable[..., Ui]) -> None:
-    """録音の画面を隠している間の左クリックは、「録音の画面を出す」と同じ（録音は始めない）。"""
+    """録音の画面を隠している間の左クリックは、「録音の画面を表示」と同じ（録音は始めない）。"""
     # 準備
     ui = make_ui()
     _hide_recording(ui)
@@ -203,7 +203,7 @@ def test_tray_icon_left_click_when_not_hidden(
 
 
 def test_menu_order(make_ui: Callable[..., Ui]) -> None:
-    """メニューは、録音を始める・録音の画面を出す・区切り・設定…・設定フォルダを開く・ログフォルダを開く・区切り・再起動・終了の順に並ぶ。"""
+    """メニューは、録音を開始・録音の画面を表示・区切り・設定…・設定フォルダを開く・ログフォルダを開く・区切り・再起動・終了の順に並ぶ。"""
     # 実行
     ui = make_ui()
 
@@ -216,7 +216,7 @@ def test_menu_order(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_menu_start_label_when_idle(make_ui: Callable[..., Ui]) -> None:
-    """待機中は「録音を始める」の右に録音開始のホットキーを出し、押せて、太字で出す。"""
+    """待機中は「録音を開始」の右に録音開始のホットキーを出し、押せて、太字で出す。"""
     from voice_paste.ui.tray import TrayState
 
     # 準備
@@ -228,13 +228,13 @@ def test_menu_start_label_when_idle(make_ui: Callable[..., Ui]) -> None:
 
     # 検証
     action = _action(ui.tray, "menu_start")
-    assert action.text() == "録音を始める\tCtrl+Alt+D"
+    assert action.text() == "録音を開始\tCtrl+Alt+D"
     assert action.isEnabled()
     assert action.font().bold()
 
 
 def test_menu_start_enabled_when_busy(make_ui: Callable[..., Ui]) -> None:
-    """録音から届けるまでの間（API から始めた録音の間を含む）は「録音を始める（処理中）」にして押せず、太字を外す。"""
+    """録音から届けるまでの間（API から始めた録音の間を含む）は「録音を開始（処理中）」にして押せず、太字を外す。"""
     # 準備
     ui = make_ui()
 
@@ -243,7 +243,7 @@ def test_menu_start_enabled_when_busy(make_ui: Callable[..., Ui]) -> None:
 
     # 検証
     action = _action(ui.tray, "menu_start")
-    assert _label(action) == "録音を始める（処理中）"
+    assert _label(action) == "録音を開始（処理中）"
     assert not action.isEnabled()
     assert not action.font().bold()
 
@@ -258,7 +258,7 @@ def test_menu_start_enabled_when_starting(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_menu_start_label_when_failed(make_ui: Callable[..., Ui]) -> None:
-    """文字起こしのエンジンを準備できなかった起動では「録音を始める（準備に失敗）」にして押せない。"""
+    """文字起こしのエンジンを準備できなかった起動では「録音を開始（準備に失敗）」にして押せない。"""
     # 準備
     ui = make_ui()
 
@@ -267,12 +267,12 @@ def test_menu_start_label_when_failed(make_ui: Callable[..., Ui]) -> None:
 
     # 検証
     action = _action(ui.tray, "menu_start")
-    assert _label(action) == "録音を始める（準備に失敗）"
+    assert _label(action) == "録音を開始（準備に失敗）"
     assert not action.isEnabled()
 
 
 def test_menu_start_action(make_ui: Callable[..., Ui]) -> None:
-    """「録音を始める」を選ぶと、録音の開始（UiDeps.start）を呼ぶ。"""
+    """「録音を開始」を選ぶと、録音の開始（UiDeps.start）を呼ぶ。"""
     from voice_paste.ui.tray import TrayState
 
     # 準備
@@ -296,7 +296,7 @@ def _hide_recording(ui: Ui) -> None:
 
 
 def test_menu_show_window_when_hidden(make_ui: Callable[..., Ui]) -> None:
-    """隠している間は「録音の画面を出す」を押せ、既定の項目として太字で出す（「録音を始める」は太字でない）。"""
+    """隠している間は「録音の画面を表示」を押せ、既定の項目として太字で出す（「録音を開始」は太字でない）。"""
     # 準備
     ui = make_ui()
 
@@ -305,14 +305,14 @@ def test_menu_show_window_when_hidden(make_ui: Callable[..., Ui]) -> None:
 
     # 検証
     action = _action(ui.tray, "menu_show_window")
-    assert action.text() == "録音の画面を出す"
+    assert action.text() == "録音の画面を表示"
     assert action.isEnabled()
     assert action.font().bold()
     assert not _action(ui.tray, "menu_start").font().bold()
 
 
 def test_menu_show_window_when_shown(make_ui: Callable[..., Ui]) -> None:
-    """録音の画面が出ている間は「録音の画面を出す（表示中）」にして押せず、太字を外す。"""
+    """録音の画面が出ている間は「録音の画面を表示（表示中）」にして押せず、太字を外す。"""
     # 準備
     ui = make_ui()
 
@@ -321,13 +321,13 @@ def test_menu_show_window_when_shown(make_ui: Callable[..., Ui]) -> None:
 
     # 検証
     action = _action(ui.tray, "menu_show_window")
-    assert action.text() == "録音の画面を出す（表示中）"
+    assert action.text() == "録音の画面を表示（表示中）"
     assert not action.isEnabled()
     assert not action.font().bold()
 
 
 def test_menu_show_window_when_hide_window_setting(make_ui: Callable[..., Ui]) -> None:
-    """画面を出さない設定の録音の間は「録音の画面を出す（画面を出さない録音）」にして押せない。"""
+    """画面を出さない設定の録音の間は「録音の画面を表示（画面を表示しない録音）」にして押せない。"""
     from voice_paste.shared.settings import RecordingSettings, Settings
 
     # 準備
@@ -338,13 +338,13 @@ def test_menu_show_window_when_hide_window_setting(make_ui: Callable[..., Ui]) -
 
     # 検証
     action = _action(ui.tray, "menu_show_window")
-    assert action.text() == "録音の画面を出す（画面を出さない録音）"
+    assert action.text() == "録音の画面を表示（画面を表示しない録音）"
     assert not action.isEnabled()
 
 
 @pytest.mark.parametrize("state", ["recording", "paused"])
 def test_menu_show_window_when_api_session(make_ui: Callable[..., Ui], state: str) -> None:
-    """API から始めた録音の間は「録音の画面を出す（画面を出さない録音）」にして押せない。"""
+    """API から始めた録音の間は「録音の画面を表示（画面を表示しない録音）」にして押せない。"""
     # 準備
     ui = make_ui()
 
@@ -353,7 +353,7 @@ def test_menu_show_window_when_api_session(make_ui: Callable[..., Ui], state: st
 
     # 検証
     action = _action(ui.tray, "menu_show_window")
-    assert action.text() == "録音の画面を出す（画面を出さない録音）"
+    assert action.text() == "録音の画面を表示（画面を表示しない録音）"
     assert not action.isEnabled()
 
 
@@ -369,7 +369,7 @@ def test_menu_show_window_when_api_session(make_ui: Callable[..., Ui], state: st
 def test_menu_show_window_when_not_recording(
     make_ui: Callable[..., Ui], entry: str | None, state: str | None
 ) -> None:
-    """待機中・文字起こし中は「録音の画面を出す（録音していません）」にして押せない。"""
+    """待機中・文字起こし中は「録音の画面を表示（録音していません）」にして押せない。"""
     # 準備
     ui = make_ui()
     ui.notify_state("hotkey", "recording")
@@ -379,12 +379,12 @@ def test_menu_show_window_when_not_recording(
 
     # 検証
     action = _action(ui.tray, "menu_show_window")
-    assert action.text() == "録音の画面を出す（録音していません）"
+    assert action.text() == "録音の画面を表示（録音していません）"
     assert not action.isEnabled()
 
 
 def test_menu_show_window_when_failed(make_ui: Callable[..., Ui]) -> None:
-    """文字起こしのエンジンを準備できなかった起動では「録音の画面を出す（録音していません）」にして押せない。"""
+    """文字起こしのエンジンを準備できなかった起動では「録音の画面を表示（録音していません）」にして押せない。"""
     from voice_paste.ui.tray import TrayState
 
     # 準備
@@ -396,12 +396,12 @@ def test_menu_show_window_when_failed(make_ui: Callable[..., Ui]) -> None:
 
     # 検証
     action = _action(ui.tray, "menu_show_window")
-    assert action.text() == "録音の画面を出す（録音していません）"
+    assert action.text() == "録音の画面を表示（録音していません）"
     assert not action.isEnabled()
 
 
 def test_menu_show_window_when_next_recording(make_ui: Callable[..., Ui]) -> None:
-    """隠すのはその回だけで、次の録音では「録音の画面を出す（表示中）」に戻る。"""
+    """隠すのはその回だけで、次の録音では「録音の画面を表示（表示中）」に戻る。"""
     # 準備
     ui = make_ui()
     _hide_recording(ui)
@@ -411,7 +411,7 @@ def test_menu_show_window_when_next_recording(make_ui: Callable[..., Ui]) -> Non
     ui.notify_state("hotkey", "recording")
 
     # 検証
-    assert _action(ui.tray, "menu_show_window").text() == "録音の画面を出す（表示中）"
+    assert _action(ui.tray, "menu_show_window").text() == "録音の画面を表示（表示中）"
 
 
 def test_menu_show_window_when_paused_while_hidden(make_ui: Callable[..., Ui]) -> None:
@@ -425,12 +425,12 @@ def test_menu_show_window_when_paused_while_hidden(make_ui: Callable[..., Ui]) -
 
     # 検証
     action = _action(ui.tray, "menu_show_window")
-    assert action.text() == "録音の画面を出す"
+    assert action.text() == "録音の画面を表示"
     assert action.isEnabled()
 
 
 def test_menu_show_window_action(make_ui: Callable[..., Ui]) -> None:
-    """「録音の画面を出す」を選ぶと、隠した録音の画面を戻し、項目は「（表示中）」に替わる。"""
+    """「録音の画面を表示」を選ぶと、隠した録音の画面を戻し、項目は「（表示中）」に替わる。"""
     # 準備
     ui = make_ui()
     _hide_recording(ui)
@@ -440,7 +440,7 @@ def test_menu_show_window_action(make_ui: Callable[..., Ui]) -> None:
 
     # 検証
     assert ui.recording_window.isVisible()
-    assert _action(ui.tray, "menu_show_window").text() == "録音の画面を出す（表示中）"
+    assert _action(ui.tray, "menu_show_window").text() == "録音の画面を表示（表示中）"
     ui.deps.start.assert_not_called()
 
 
@@ -448,7 +448,7 @@ def test_menu_show_window_action(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_menu_settings_enabled_when_idle(make_ui: Callable[..., Ui]) -> None:
-    """設定…は、待機中のほか、準備に失敗した起動でも押せる（設定を直して再起動できるよう）。"""
+    """設定…は、待機中のほか、準備に失敗した起動でも押せる（設定を修正して再起動できるよう）。"""
     from voice_paste.ui.tray import TrayState
 
     # 準備
@@ -556,7 +556,7 @@ def test_menu_quit_action_when_idle(make_ui: Callable[..., Ui]) -> None:
     [("menu_restart", "request_restart"), ("menu_quit", "request_quit")],
 )
 def test_menu_exit_when_busy(make_ui: Callable[..., Ui], menu: str, requested: str) -> None:
-    """処理中に「再起動」「終了」を選ぶと、アイコンはその時点で消し、その回を届け終えてから行う。"""
+    """処理中に「再起動」「終了」を選ぶと、アイコンはその時点で非表示にし、その回を届け終えてから行う。"""
     # 準備
     ui = make_ui()
     ui.notify_state("hotkey", "transcribing")

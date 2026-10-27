@@ -1,6 +1,6 @@
 """integrations/http/client.py（post_json）の単体テスト。
 
-送り先は httpx.MockTransport に差し替える。
+送信先は httpx.MockTransport に差し替える。
 post_json が作る httpx.Client に MockTransport を渡すため、httpx.Client を同じ引数で作り直す関数へ差し替える。
 """
 
@@ -25,7 +25,7 @@ TIMEOUT_SEC = 1.5
 def _use_receiver(
     monkeypatch: pytest.MonkeyPatch, handler: Callable[[httpx.Request], httpx.Response]
 ) -> list[httpx.Request]:
-    """httpx.Client の通信を handler（送り先の受け口）へ向け、受け口に届いた要求を覚えるリストを返す。"""
+    """httpx.Client の通信を handler（送信先のエンドポイント）へ向け、エンドポイントに届いた要求を覚えるリストを返す。"""
     received: list[httpx.Request] = []
     real_client = httpx.Client
 
@@ -41,12 +41,12 @@ def _use_receiver(
 
 
 def _http_date(delta: timedelta) -> str:
-    """今から delta ずらした時刻を、Retry-After に使う HTTP の日付の形にする。"""
+    """今から delta ずらした時刻を、Retry-After に使う HTTP の日付の形式にする。"""
     return format_datetime(datetime.now(UTC) + delta, usegmt=True)
 
 
 def test_post_json(monkeypatch: pytest.MonkeyPatch) -> None:
-    """JSON を送ってステータスを返す（正常系）。"""
+    """JSON を送信してステータスを返す（正常系）。"""
     from voice_paste.integrations.http.client import post_json
 
     # 準備
@@ -63,7 +63,7 @@ def test_post_json(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_post_json_when_headers(monkeypatch: pytest.MonkeyPatch) -> None:
-    """渡したヘッダーを付けて送る（正常系）。"""
+    """渡したヘッダーを付けて送信する（正常系）。"""
     from voice_paste.integrations.http.client import post_json
 
     # 準備

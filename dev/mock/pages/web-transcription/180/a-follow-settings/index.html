@@ -32,7 +32,7 @@
         <span class="web-top__sub">文字起こし</span>
       </header>
 
-      <!-- 送る区画 -->
+      <!-- 送信の区画 -->
       <section class="web-panel" aria-labelledby="h-send">
         <h2 id="h-send">音声送信</h2>
 
@@ -73,12 +73,12 @@
           <p>プリセットの一覧を取得できませんでした。送信した音声は、PC の設定で選択中のプリセットで補正します。</p>
         </div>
 
-        <!-- 一覧に無いプリセット（400）: 選択欄のすぐ下に出す。一覧は取得し直し、選択を既定へ戻した後 -->
+        <!-- 一覧に無いプリセット（400）: 選択欄のすぐ下に出す。一覧は再取得し、選択を既定へ戻した後 -->
         <div class="web-error" role="alert" id="preset-a-follow-settings-notfound-error" data-scene-panel="not-found" hidden>
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>
           <div>
             <p class="web-error__title">選択したプリセットが見つかりません</p>
-            <p>「下書き」は PC の設定から削除済みのため、interview-part2.m4a は未送信です。一覧を取得し直し、「設定に従う」に戻しました。プリセットを確認して、ファイルを選び直してください。</p>
+            <p>「下書き」は PC の設定から削除済みのため、interview-part2.m4a は未送信です。一覧を再取得し、「設定に従う」に戻しました。プリセットを確認して、ファイルをもう一度選択してください。</p>
           </div>
         </div>
         <!-- 一覧に無いプリセット（400）の録った音声の場合: 音声は端末内の音声の行に残り、再送信できる -->
@@ -86,11 +86,11 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>
           <div>
             <p class="web-error__title">選択したプリセットが見つかりません</p>
-            <p>「下書き」は PC の設定から削除済みのため、録った音声は未送信です。一覧を取得し直し、「設定に従う」に戻しました。プリセットを確認して、再送信してください。</p>
+            <p>「下書き」は PC の設定から削除済みのため、録った音声は未送信です。一覧を再取得し、「設定に従う」に戻しました。プリセットを確認して、再送信してください。</p>
           </div>
         </div>
 
-        <!-- 録る・ファイルを選ぶ: 録音中は録音中の表示に替わるため隠す -->
+        <!-- 録る・ファイルを選ぶ: 録音中は録音中の表示に替わるため非表示にする -->
         <div class="send-actions" data-scene-panel="default picked sending fetch-failed not-found not-found-rec" hidden>
           <button type="button" class="btn btn--lg btn--primary"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle class="fill" cx="12" cy="12" r="6"/></svg>録音開始</button>
           <label class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>ファイル送信<input type="file" accept="audio/*" class="sr-only"></label>

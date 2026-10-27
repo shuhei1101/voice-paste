@@ -5,13 +5,13 @@
 差し替え、マイクもスピーカーも通さない。システム音量・貼り付けのキー・通知は差し替える。
 文字起こしはローカルの Whisper（GPU）で、クリップボードは実物を使う（テストの後に元の文字へ戻す）。
 文字起こしワーカーは、faster-whisper へ渡された hotwords を記録する入口（`tests/support/hotwords_probe_worker.py`）から起動し、
-常駐アプリがワーカーへ送った要求と、ワーカーが faster-whisper へ渡した値を確かめる。
+常駐アプリがワーカーへ送信した要求と、ワーカーが faster-whisper へ渡した値を確かめる。
 
 それ以外のシナリオは、常駐アプリを pytest のプロセスの中で `main()` から起動し（`--data-dir` の一時フォルダ、Qt は offscreen）、
 ホットキーが押された体で登録された関数を呼び、録音の画面・文字起こし中の表示・トレイは Qt のイベントで操作する。実機のマウス・キーボードは使わない。
-録音の入力・システム音量・貼り付けのキーは差し替え（実機のマイクを開かず、システム音量を変えず、キーを送らない）、
+録音の入力・システム音量・貼り付けのキーは差し替え（実機のマイクを開かず、システム音量を変えず、キーを送信しない）、
 文字起こし中の表示が出たかは窓を見張って控え、失敗を知らせたことは知らせのログで、ログの置き場所を開くことは開く呼び出しに渡されたパスで確かめる。
-API から始める録音の返送先は、テストが 127.0.0.1 に立てる受け口。
+API から始める録音の返送先は、テストが 127.0.0.1 に立てる受信先。
 実機の Windows と GPU が要る（`--run-e2e` が無ければ skip する）。
 """
 
@@ -107,13 +107,13 @@ SECOND_CORRECTED_WORD = "THIS"
 """2 つ目の用語集の行で置き換わった、正しい表記。"""
 
 DELETE_ROW = "晴れ,,1\n"
-"""話す内容に入る文言を誤変換にして、正しい表記を空にしたオンの行（消す行）。"""
+"""話す内容に入る文言を誤変換にして、正しい表記を空にしたオンの行（削除する行）。"""
 
 CORRECTED_WORD = "試験"
 """オンの行で置き換わった、正しい表記。"""
 
 DELETED_WORD = THREE_SENTENCES[2][1]
-"""消す行の誤変換（起こした文字から消える言葉）。"""
+"""削除する行の誤変換（起こした文字から消える言葉）。"""
 
 OFF_ROW_WORD = THREE_SENTENCES[1][1]
 """オフの行の誤変換（置き換わらずに残る言葉）。"""
@@ -125,7 +125,7 @@ LONG_SPEECH_REPEAT = 10
 """ワーカーを止める間に起こし終わらないよう、読み上げた音をつなげる回数。"""
 
 WORKER_RESTART_TIMEOUT_SEC = 120.0
-"""やり直したワーカーも落ちた後、文字起こしワーカーが立て直されるまで待つ上限。"""
+"""やり直したワーカーも異常終了した後、文字起こしワーカーが立て直されるまで待つ上限。"""
 
 PROBE_WORKER_MODULE = "tests.support.hotwords_probe_worker"
 """ワーカーの代わりに起動する、hotwords を記録する入口のモジュール。"""
@@ -149,7 +149,7 @@ EDGE_PHRASE_SETTINGS = (
     '[[edge_phrases]]\ntext = "ありがとうございました"\nposition = "end"\n\n'
     '[[edge_phrases]]\ntext = "えーと"\nposition = "start"\n'
 )
-"""文頭・文末から消す文言の一覧（上から「チャンネル登録*」「ご視聴ありがとうございました」「ありがとうございました」が文末、「えーと」が文頭）。"""
+"""文頭・文末から削除する文言の一覧（上から「チャンネル登録*」「ご視聴ありがとうございました」「ありがとうございました」が文末、「えーと」が文頭）。"""
 
 EDGE_PHRASE_TRANSCRIPT = (
     "えーと、ありがとうございました。本日の議題は予算です。\n"
@@ -159,16 +159,16 @@ EDGE_PHRASE_TRANSCRIPT = (
 """文字起こしが返す文字（文頭に「えーと」、文末に決まった文言が続く 2 行）。"""
 
 EDGE_PHRASE_EXPECTED = "ありがとうございました。本日の議題は予算です。\n以上です。"
-"""文頭・文末の文言を消した後の文字。文頭の「えーと、」と文末の 3 つの文言が消え、位置が文末の行は文頭の「ありがとうございました。」に当たらない。"""
+"""文頭・文末の文言を削除した後の文字。文頭の「えーと、」と文末の 3 つの文言が消え、位置が文末の行は文頭の「ありがとうございました。」に当たらない。"""
 
 
 def _spy_transcribe_requests(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
-    """常駐アプリがワーカーへ送る transcribe の要求の中身を、送るたびに控える。"""
+    """常駐アプリがワーカーへ送信する transcribe の要求の中身を、送信するたびに控える。"""
     requests: list[dict[str, Any]] = []
     original = WhisperWorkerClient._send
 
     def _send(self: WhisperWorkerClient, message_type: str, **payload: object) -> None:
-        """transcribe なら中身を控えてから、本物で送る。"""
+        """transcribe なら中身を控えてから、本物で送信する。"""
         if message_type == "transcribe":
             requests.append(dict(payload))
         original(self, message_type, **payload)
@@ -183,7 +183,7 @@ def test_normal_when_hint(
     monkeypatch: pytest.MonkeyPatch,
     clipboard_sentinel: str,
 ) -> None:
-    """有効な手がかりのプリセットの語が、一覧の順に読点でつながってワーカーへ送られ、faster-whisper の hotwords に渡される（正常シナリオ（文字起こしの手がかりを渡す））。"""
+    """有効な手がかりのプリセットの語が、一覧の順に読点でつながってワーカーへ送信され、faster-whisper の hotwords に渡される（正常シナリオ（文字起こしの手がかりを渡す））。"""
     # 準備
     probe_file = tmp_path / "hotwords.jsonl"
     monkeypatch.setenv(PROBE_FILE_ENV, str(probe_file))
@@ -218,7 +218,7 @@ def _put_glossary(data_dir: Path) -> None:
 
 
 def _put_glossary_with_delete_row(data_dir: Path) -> None:
-    """起動の前に、消す行を足した用語集の CSV を settings.toml と同じフォルダへ置く。"""
+    """起動の前に、削除する行を追加した用語集の CSV を settings.toml と同じフォルダへ置く。"""
     (data_dir / GLOSSARY_FILE_NAME).write_text(GLOSSARY_ROWS + DELETE_ROW, encoding="utf-8")
 
 
@@ -255,7 +255,7 @@ def _confirm_with_paste_and_send(app: ResidentApp) -> None:
 
 
 def test_normal(run_app: RunApp, tmp_path: Path, clipboard_sentinel: str) -> None:
-    """確定した録音を起こすと、用語集のオンの行だけで誤変換が置き換わり、消す行の誤変換が消え、区間ごとに改行で区切られ、履歴に残り、文字起こし中の表示が閉じて、届けられる（正常シナリオ）。"""
+    """確定した録音を起こすと、用語集のオンの行だけで誤変換が置き換わり、削除する行の誤変換が消え、区間ごとに改行で区切られ、履歴に残り、文字起こし中の表示が閉じて、届けられる（正常シナリオ）。"""
     # 準備: 文の間に無音を挟んだ WAV を実時間で流す（区間を 2 つ以上にする）
     wav_input = speech_sequence_input(
         tmp_path, sentences_of(THREE_SENTENCES), gap_sec=SEGMENT_GAP_SEC
@@ -325,7 +325,7 @@ def test_normal_when_api_glossary_preset(
 def test_normal_when_edge_phrases_removed(
     run_app: RunApp, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, clipboard_sentinel: str
 ) -> None:
-    """文字起こしが返した文字の文頭・文末から、一覧の文言が一覧の順に位置つきで消え、消した文字がログに出て、文の途中の同じ文言は残り、起こした文字が届けられる（正常シナリオ（文頭・文末の決まった文言を消す））。"""
+    """文字起こしが返した文字の文頭・文末から、一覧の文言が一覧の順に位置つきで消え、削除した文字がログに出て、文の途中の同じ文言は残り、起こした文字が届けられる（正常シナリオ（文頭・文末の決まった文言を削除する））。"""
     # 準備: 文字起こしは決まった文字を返し、録音の入力は WAV（中身は問わない）を流す
     monkeypatch.setattr(main_module, "transcribe", lambda *_args, **_options: EDGE_PHRASE_TRANSCRIPT)
     wav_input = speech_input(tmp_path)
@@ -346,7 +346,7 @@ def test_normal_when_edge_phrases_removed(
         assert text.startswith("ありがとうございました。")
         assert "ご視聴" not in text
         removed = [
-            message for message in app.log_messages() if message.startswith("文頭・文末の文言を消した")
+            message for message in app.log_messages() if message.startswith("文頭・文末の文言を削除した")
         ]
         assert len(removed) == 1
         assert "文頭: えーと、" in removed[0]
@@ -362,7 +362,7 @@ def test_normal_when_edge_phrases_removed(
 def test_normal_when_worker_dies(
     run_app: RunApp, tmp_path: Path, clipboard_sentinel: str
 ) -> None:
-    """文字起こしの途中でワーカーが落ちても、ワーカーを立て直して起こし直し、起こした文字が届き、常駐サービスは動き続ける（正常シナリオ（文字起こしワーカーが落ちる））。"""
+    """文字起こしの途中でワーカーが落ちても、ワーカーを立て直して起こし直し、起こした文字が届き、常駐サービスは動き続ける（正常シナリオ（文字起こしワーカーが異常終了する））。"""
     # 準備: ワーカーを止める間に起こし終わらないよう、読み上げた音をつなげる
     keys = KeyLog()
 
@@ -388,7 +388,7 @@ def test_normal_when_worker_dies(
 def test_error_when_worker_dies_again(
     run_app: RunApp, tmp_path: Path, clipboard_sentinel: str
 ) -> None:
-    """やり直したワーカーも落ちると、失敗を知らせてワーカーを立て直し、録音は履歴に残り、常駐サービスは動き続ける（異常シナリオ（やり直したワーカーも落ちる））。"""
+    """やり直したワーカーも落ちると、失敗を知らせてワーカーを立て直し、録音は履歴に残り、常駐サービスは動き続ける（異常シナリオ（再起動したワーカーも異常終了する））。"""
     # 準備
     keys = KeyLog()
 
@@ -637,7 +637,7 @@ BROWSER_AUDIO_FAILURE_TEXT = "ブラウザの音声の文字起こしに失敗�
 """差し替えた文字起こしが送出する例外のメッセージ。"""
 
 NEXT_TEXT = "つぎの音声の文です"
-"""失敗の後、エンジンを戻して続けて送った音声が返す文。"""
+"""失敗の後、エンジンを戻して続けて送信した音声が返す文。"""
 
 JOB_POLL_SEC = 0.05
 """ジョブの状態を取りに行く間隔。"""
@@ -657,7 +657,7 @@ def _poll_job_until_finished(api: InProcessApi, job_id: str) -> tuple[dict[str, 
 
 
 def _post_webm(api: InProcessApi, wav_path: Path, *, glossary_preset: str | None = None) -> str:
-    """WAV を webm にして POST /web/transcriptions へ送り（glossary_preset があれば用語集のプリセットの名前も送り）、202 を確かめてジョブの ID を返す。"""
+    """WAV を webm にして POST /web/transcriptions へ送信し（glossary_preset があれば用語集のプリセットの名前も送信し）、202 を確かめてジョブの ID を返す。"""
     response = api.post_web_audio(encode_audio(wav_path, "webm"), glossary_preset=glossary_preset)
     assert response.status_code == 202
     return str(response.json()["job_id"])
@@ -698,7 +698,7 @@ def test_error_when_browser_audio_transcription_failed(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """ブラウザから受けた音声の文字起こしに失敗すると failed になり、履歴に音声が残る。エンジンを戻して続けて送った音声は done まで進み、知らせは出ない（異常シナリオ（ブラウザから受けた音声の文字起こしに失敗））。"""
+    """ブラウザから受けた音声の文字起こしに失敗すると failed になり、履歴に音声が残る。エンジンを戻して続けて送信した音声は done まで進み、知らせは出ない（異常シナリオ（ブラウザから受けた音声の文字起こしに失敗））。"""
     # 準備
     stub = stub_transcription(monkeypatch, NEXT_TEXT)
     stub.error = TranscriptionError(BROWSER_AUDIO_FAILURE_TEXT)

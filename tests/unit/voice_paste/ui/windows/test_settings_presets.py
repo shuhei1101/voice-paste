@@ -34,12 +34,12 @@ def test_preset_list_panel_collect(qapp: QApplication) -> None:
     panel.set_presets(
         [
             EndpointPreset(
-                title="受け口 A",
+                title="受信先 A",
                 url="http://127.0.0.1:9000/a",
                 hotkey="<ctrl>+<alt>+4",
                 authorization="Bearer x",
             ),
-            EndpointPreset(title="受け口 B", url="http://127.0.0.1:9000/b"),
+            EndpointPreset(title="受信先 B", url="http://127.0.0.1:9000/b"),
         ]
     )
 
@@ -47,7 +47,7 @@ def test_preset_list_panel_collect(qapp: QApplication) -> None:
     collected = panel.collect()
 
     # 検証
-    assert [preset["title"] for preset in collected] == ["受け口 A", "受け口 B"]
+    assert [preset["title"] for preset in collected] == ["受信先 A", "受信先 B"]
     assert [preset["kind"] for preset in collected] == ["endpoint", "endpoint"]
     assert collected[0]["hotkey"] == "<ctrl>+<alt>+4"
     assert collected[0]["authorization"] == "Bearer x"
@@ -76,7 +76,7 @@ def test_preset_list_panel_move(qapp: QApplication) -> None:
 
 
 def test_preset_list_panel_add_preset(qapp: QApplication) -> None:
-    """足したプリセットは有効で Enter まで送る（正常系）。"""
+    """追加したプリセットは有効で Enter まで送信する（正常系）。"""
     from voice_paste.ui.windows.settings_presets import PresetListPanel
 
     # 準備
@@ -129,14 +129,14 @@ def test_preset_list_panel_heading_follows_title(qapp: QApplication) -> None:
     assert heading is not None
     assert title_edit is not None
     assert heading.text() == "（タイトル未入力）"
-    assert _buttons(panel, "preset_remove_")[0].accessibleName() == "プリセット 1 件目を消す"
+    assert _buttons(panel, "preset_remove_")[0].accessibleName() == "プリセット 1 件目を削除"
 
     # 実行
     title_edit.setText("ChatGPT")
 
     # 検証
     assert heading.text() == "ChatGPT"
-    assert _buttons(panel, "preset_remove_")[0].accessibleName() == "ChatGPTを消す"
+    assert _buttons(panel, "preset_remove_")[0].accessibleName() == "ChatGPTを削除"
     assert _buttons(panel, "preset_up_")[0].accessibleName() == "ChatGPTを上へ"
     assert _buttons(panel, "preset_down_")[0].accessibleName() == "ChatGPTを下へ"
     enabled = panel.findChild(QAbstractButton, "preset_enabled_0")
@@ -238,7 +238,7 @@ def test_preset_list_panel_change_values_when_moved(qapp: QApplication) -> None:
 
 
 def test_preset_list_panel_change_values_when_removed(qapp: QApplication) -> None:
-    """途中のプリセットを消しても並びの値は変わらない（正常系）。"""
+    """途中のプリセットを削除しても並びの値は変わらない（正常系）。"""
     from voice_paste.shared.settings import BrowserPreset
     from voice_paste.ui.windows.settings_presets import PresetListPanel
 
@@ -252,7 +252,7 @@ def test_preset_list_panel_change_values_when_removed(qapp: QApplication) -> Non
         ]
     )
 
-    # 実行（B の「消す」を押す）
+    # 実行（B の「削除」を押す）
     _buttons(panel, "preset_remove_")[1].click()
 
     # 検証
@@ -270,7 +270,7 @@ def test_preset_list_panel_change_values_when_removed(qapp: QApplication) -> Non
 
 
 def test_preset_list_panel_change_values_when_added(qapp: QApplication) -> None:
-    """足したプリセットは新しい番号で返し、並びの値に入れない（正常系）。"""
+    """追加したプリセットは新しい番号で返し、並びの値に入れない（正常系）。"""
     from voice_paste.shared.settings import BrowserPreset
     from voice_paste.ui.windows.settings_presets import PresetListPanel
 
@@ -278,7 +278,7 @@ def test_preset_list_panel_change_values_when_added(qapp: QApplication) -> None:
     panel = PresetListPanel("browser")
     panel.set_presets([BrowserPreset(title="A", url="https://a.example")])
 
-    # 実行（足してから、足したプリセットの「上へ」を押す）
+    # 実行（追加してから、追加したプリセットの「上へ」を押す）
     panel.add_preset()
     _buttons(panel, "preset_up_")[1].click()
 
@@ -304,11 +304,11 @@ def test_preset_list_panel_change_values_when_added(qapp: QApplication) -> None:
 
 
 def test_preset_list_panel_mark_saved(qapp: QApplication) -> None:
-    """保存した並びと足したプリセットを基準にする（正常系）。"""
+    """保存した並びと追加したプリセットを基準にする（正常系）。"""
     from voice_paste.shared.settings import BrowserPreset
     from voice_paste.ui.windows.settings_presets import PresetListPanel
 
-    # 準備（B を上へ動かし、プリセットを 1 つ足す）
+    # 準備（B を上へ動かし、プリセットを 1 つ追加する）
     panel = PresetListPanel("browser")
     panel.set_presets(
         [
@@ -322,12 +322,12 @@ def test_preset_list_panel_mark_saved(qapp: QApplication) -> None:
     # 実行
     panel.mark_saved()
 
-    # 検証（保存した並びで番号を振り直し、足したプリセットも保存したものとして扱う）
+    # 検証（保存した並びで番号を振り直し、追加したプリセットも保存したものとして扱う）
     values = panel.change_values()
     assert values["presets.browser[0]"]["title"] == "B"
     assert values["presets.browser[1]"]["title"] == "A"
     assert values["presets.browser[2]"]["title"] == ""
     assert values["presets.browser.order"] is True
-    # 検証（続けて足すと、次の番号が増える）
+    # 検証（続けて追加すると、次の番号が増える）
     panel.add_preset()
     assert "presets.browser[3]" in panel.change_values()

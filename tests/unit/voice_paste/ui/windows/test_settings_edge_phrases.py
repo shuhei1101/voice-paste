@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 
 PANEL_WIDTH_PX = 600
-"""1 段の組みになる幅（NARROW_WIDTH_PX より広い）。"""
+"""横 1 列の組みになる幅（NARROW_WIDTH_PX より広い）。"""
 
 
 @pytest.fixture
@@ -97,7 +97,7 @@ def test_edge_phrase_panel_header(open_panel: Callable[..., EdgePhrasePanel]) ->
 
 
 def test_edge_phrase_panel_header_when_empty(open_panel: Callable[..., EdgePhrasePanel]) -> None:
-    """行が無い間は見出しの行を出さず、行を足すと出す（正常系）。"""
+    """行が無い間は見出しの行を出さず、行を追加すると出す（正常系）。"""
     # 準備（空の一覧）
     panel = open_panel([])
     assert not _is_header_visible(panel)
@@ -110,7 +110,7 @@ def test_edge_phrase_panel_header_when_empty(open_panel: Callable[..., EdgePhras
 
 
 def test_edge_phrase_panel_header_when_narrow(open_panel: Callable[..., EdgePhrasePanel]) -> None:
-    """幅が狭くて 2 段に組むときは見出しの行を隠し、広がれば戻す（正常系）。"""
+    """幅が狭くて上下 2 つの並びに組むときは見出しの行を隠し、広がれば戻す（正常系）。"""
     from voice_paste.shared.settings import EdgePhraseSettings
     from voice_paste.ui.windows.settings_edge_phrases import NARROW_WIDTH_PX
 
@@ -154,7 +154,7 @@ def test_edge_phrase_panel_collect(open_panel: Callable[..., EdgePhrasePanel]) -
 
 
 def test_edge_phrase_panel_add_phrase(open_panel: Callable[..., EdgePhrasePanel]) -> None:
-    """足した行は文末で始まる（正常系）。"""
+    """追加した行は文末で始まる（正常系）。"""
     # 準備（空の一覧では行が無いときの文が出ている）
     panel = open_panel([])
     changed_count: list[int] = []
@@ -184,7 +184,7 @@ def test_edge_phrase_panel_move_phrase(
     monkeypatch.setattr(QAccessible, "updateAccessibility", announced.append)
     panel = open_panel([EdgePhraseSettings(text="A"), EdgePhraseSettings(text="B")])
 
-    # 実行（B の文言の欄に Alt+↑ を送る）
+    # 実行（B の文言の欄に Alt+↑ を送信する）
     QTest.keyClick(_text_edits(panel)[1], Qt.Key.Key_Up, Qt.KeyboardModifier.AltModifier)
 
     # 検証

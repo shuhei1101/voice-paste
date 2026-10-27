@@ -77,7 +77,7 @@ class Segmenter:
 
     def feed(self, block: np.ndarray) -> None:
         """届いた音（int16）を貯め、1 窓ずつ話し声の確率を求めて区切りの状態を進める。"""
-        # 1. 1 次元にして、前の区切り以降の音と、窓に組み直す音に足す
+        # 1. 1 次元にして、前の区切り以降の音と、窓に組み直す音に追加する
         samples = np.asarray(block).reshape(-1)
         self._audio = np.concatenate([self._audio, samples.astype(np.int16)])
         self._pending = np.concatenate([self._pending, samples.astype(np.float32) / INT16_SCALE])

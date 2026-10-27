@@ -6,9 +6,9 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QMessageBox
 
 WINDOW_TITLE: str = "voice-paste"
-"""ダイアログの窓の題。"""
+"""ダイアログの窓のタイトル。"""
 
-HEADING: str = "録音を始められません"
+HEADING: str = "録音を開始できませんでした"
 """始められないことを伝える見出し。"""
 
 BODY: str = (

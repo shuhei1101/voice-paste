@@ -1,4 +1,4 @@
-"""連続録音の E2E が、返送先の受け口に届いた返送を確かめる補助。"""
+"""連続録音の E2E が、返送先の受信先に届いた返送を確かめる補助。"""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from typing import Any
 
 type Payload = dict[str, Any]
-"""返送先の受け口に届いた JSON 1 件。"""
+"""返送先の受信先に届いた JSON 1 件。"""
 
 SEGMENT_GAP_SEC = 3.0
 """文と文の間に挟む無音の長さ。区切る無音の長さの既定（2 秒）より長くして、文ごとに区切らせる。"""

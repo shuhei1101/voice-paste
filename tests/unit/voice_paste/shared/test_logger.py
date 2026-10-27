@@ -124,7 +124,7 @@ def test_setup_logging_when_uvicorn_logger(
 
 
 def test_purge_old_logs(log_dir: Path) -> None:
-    """保持期間を過ぎた日付のログだけ消す（正常系）。"""
+    """保持期間を過ぎた日付のログだけ削除する（正常系）。"""
     from voice_paste.shared.logger import purge_old_logs
 
     # 準備（保持 1 日: 今日・1 日前・2 日前）
@@ -142,10 +142,10 @@ def test_purge_old_logs(log_dir: Path) -> None:
 
 
 def test_purge_old_logs_when_other_names(log_dir: Path) -> None:
-    """日付の形でない名前は消さない（正常系）。"""
+    """日付の形式でない名前は削除しない（正常系）。"""
     from voice_paste.shared.logger import purge_old_logs
 
-    # 準備（保持 1 日: 日付の形でない名前 2 つと 10 日前）
+    # 準備（保持 1 日: 日付の形式でない名前 2 つと 10 日前）
     _touch_logs(log_dir, ["notes.log", "2026-13-40.log", "2026-09-21.log"])
 
     # 実行

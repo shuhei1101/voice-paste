@@ -52,7 +52,7 @@ class BodyLimitMiddleware:
             await response(scope, receive, send)
             return
 
-        # 3. 本文を読むたびに大きさを足し、上限以上になったら送出する包んだ receive を次へ渡す
+        # 3. 本文を読むたびに大きさを加算し、上限以上になったら送出する包んだ receive を次へ渡す
         received = 0
         exceeded = False
         replied = False

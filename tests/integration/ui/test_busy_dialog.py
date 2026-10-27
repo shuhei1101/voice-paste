@@ -61,7 +61,7 @@ def test_busy_dialog_visible_when_busy(make_ui: Callable[..., Ui]) -> None:
 
 
 def test_busy_dialog_properties() -> None:
-    """窓の題は voice-paste で、「常に手前に表示」のモーダル。"""
+    """窓のタイトルは voice-paste で、「常に手前に表示」のモーダル。"""
     # 実行
     dialog = _shown_dialog()
 
@@ -104,12 +104,12 @@ def test_busy_dialog_when_reopened() -> None:
 
 
 def test_busy_title() -> None:
-    """始められないことを「録音を始められません」と伝える。"""
+    """始められないことを「録音を開始できませんでした」と伝える。"""
     # 実行
     dialog = _shown_dialog()
 
     # 検証
-    assert dialog.text() == "録音を始められません"
+    assert dialog.text() == "録音を開始できませんでした"
 
 
 def test_busy_body() -> None:

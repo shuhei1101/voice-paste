@@ -35,7 +35,7 @@ scenarios:
       - 録音開始のホットキーを押すと録音が始まる
       - 127.0.0.1 の API が、トークンを付けた要求に応える
       - '`/web/` が、許す Origin の一覧にあるオリジンから送信したブラウザの音声を受け付ける'
-      - トークンのファイル（`%LOCALAPPDATA%\voice-paste\` の下）に今回の起動のトークンが書かれている
+      - トークンのファイル（Windows は `%LOCALAPPDATA%\voice-paste\`、Linux は `~/.local/share/voice-paste/` の下）に今回の起動のトークンが書かれている
       - 文字起こしワーカーの子プロセスが動いている
     test: test_normal
   - name: 正常シナリオ（前の常駐サービスが動いている）
@@ -53,7 +53,7 @@ scenarios:
 
         U->>NEW: ショートカットから起動する
         NEW->>NEW: 名前付きの排他が取られている
-        NEW->>OLD: 終わるよう頼む（名前付きのイベント）
+        NEW->>OLD: 終わるよう頼む
         OLD->>OLD: 録音・文字起こしを停止し、トレイのアイコンを消して終わる
         NEW->>NEW: 名前付きの排他を取る
         Note over NEW: 以降は 正常シナリオ と同じ
@@ -182,8 +182,8 @@ issue: 14
 primary_actor: 音声入力を使うユーザー
 trigger: ユーザーが常駐サービスのショートカットを開く
 preconditions:
-  - Windows の端末で、リポジトリの直下に仮想環境がある
-  - 設定ファイル（`%APPDATA%\voice-paste\settings.toml`）がある（無ければ既定値で作る）
+  - Windows か Linux（Ubuntu 24.04 の Xorg のセッション）の端末で、リポジトリの直下に仮想環境がある
+  - 設定ファイル（Windows は `%APPDATA%\voice-paste\settings.toml`、Linux は `~/.config/voice-paste/settings.toml`）がある（無ければ既定値で作る）
 test_file: tests/e2e/単一ユースケース/test_start_resident_app.py
 notes:
   E2E のテスト: |-

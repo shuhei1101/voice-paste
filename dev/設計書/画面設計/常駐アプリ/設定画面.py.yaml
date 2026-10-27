@@ -1099,9 +1099,9 @@ notes:
     | エンドポイントへ送信（カスタムプリセット） | `presets[]` のうち `kind = "endpoint"` の enabled・title・url・authorization・hotkey | プリセットの一覧 |
     | エンドポイントへ送信（オプション） | `preset_options.endpoint.timeout_sec` | 数値の欄（0.5 刻み）。補助文「既定は 1.5 秒で、10 秒まで入れられる。この秒数で届かなければ、再送せずにトレイで通知する。」 |
     | ホットキー | `hotkeys.start`・`hotkeys.pause`・`hotkeys.cancel`・`keyboard.paste_key` | ホットキーの欄 |
-    | 録音 | `recording.lower_volume`・`recording.hide_window` | チェックボックス。Linux では `recording.lower_volume` を出さない |
-    | 録音 | `recording.volume_percent` | つまみ（0〜100、右に %）。Linux では出さない |
-    | 録音 | `recording.fade_sec` | 数値の欄。Linux では出さない |
+    | 録音 | `recording.lower_volume`・`recording.hide_window` | チェックボックス |
+    | 録音 | `recording.volume_percent` | つまみ（0〜100、右に %） |
+    | 録音 | `recording.fade_sec` | 数値の欄 |
     | 文字起こし（エンジン） | `transcription.engine`・`transcription.local_whisper.model` | 選択の欄 |
     | 文字起こし（エンジン） | `transcription.local_whisper.device`・`transcription.local_whisper.compute_type` | ラジオボタン |
     | 文字起こし（エンジン） | `transcription.local_whisper.language` | 文字の欄 |

@@ -577,6 +577,7 @@ def test_select_platform_adapters_when_windows(tmp_path: Path) -> None:
     import subprocess
 
     from voice_paste.integrations.browser.opener import open_app_window
+    from voice_paste.integrations.keyboard.sender import send_paste
     from voice_paste.integrations.volume.adapter import lower_volume, restore_volume
     from voice_paste.main import select_platform_adapters
     from voice_paste.runtime.single_instance import acquire_single_instance
@@ -590,6 +591,7 @@ def test_select_platform_adapters_when_windows(tmp_path: Path) -> None:
     assert adapters.restore_volume is restore_volume
     assert adapters.open_app_window is open_app_window
     assert adapters.acquire_single_instance is acquire_single_instance
+    assert adapters.send_paste is send_paste
     assert adapters.worker_creationflags == subprocess.CREATE_NO_WINDOW
 
 
@@ -597,6 +599,7 @@ def test_select_platform_adapters_when_windows(tmp_path: Path) -> None:
 def test_select_platform_adapters_when_linux(tmp_path: Path) -> None:
     """Linux は何もしない音量・Chromium 系・flock の排他を選ぶ（正常系）。"""
     from voice_paste.integrations.browser.opener_linux import open_app_window_linux
+    from voice_paste.integrations.keyboard.sender_linux import send_paste_linux
     from voice_paste.integrations.volume.noop import lower_volume_noop, restore_volume_noop
     from voice_paste.main import select_platform_adapters
     from voice_paste.runtime.single_instance_linux import acquire_single_instance_linux
@@ -612,6 +615,7 @@ def test_select_platform_adapters_when_linux(tmp_path: Path) -> None:
     assert adapters.lower_volume is lower_volume_noop
     assert adapters.restore_volume is restore_volume_noop
     assert adapters.open_app_window is open_app_window_linux
+    assert adapters.send_paste is send_paste_linux
     assert isinstance(adapters.acquire_single_instance, functools.partial)
     assert adapters.acquire_single_instance.func is acquire_single_instance_linux
     assert adapters.acquire_single_instance.keywords == {"lock_file": lock_file}

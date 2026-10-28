@@ -1118,6 +1118,16 @@ def test_format_hotkey() -> None:
     assert format_hotkey("<ctrl>+<shift>+<f5>") == "Ctrl+Shift+F5"
 
 
+def test_format_hotkey_when_cmd() -> None:
+    """`<cmd>` を OS ごとの名前にする（正常系）。"""
+    from voice_paste.shared.os_kind import OsKind
+    from voice_paste.ui.windows.settings_window import format_hotkey
+
+    # 実行・検証
+    assert format_hotkey("<cmd>+<alt>+d", os_kind=OsKind.WINDOWS) == "Win+Alt+D"
+    assert format_hotkey("<cmd>+<alt>+d", os_kind=OsKind.LINUX) == "Super+Alt+D"
+
+
 # === parse_hotkey ===
 
 

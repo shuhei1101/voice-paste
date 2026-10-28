@@ -30,7 +30,7 @@ used_in:
 upstream: python-xlib/python-xlib
 verification:
   state: 未確認
-  detail: '[#211](https://github.com/shuhei1101/voice-paste/pull/211) の PoC（Ubuntu 24.04.5・Xorg、pynput 1.8.2 が入れた 0.33）で `_NET_ACTIVE_WINDOW` と WM_CLASS を 30 回読めた。本番の active_window_linux.py からはまだ動かしていない'
+  detail: '[#211](https://github.com/shuhei1101/voice-paste/pull/211) の PoC（Ubuntu 24.04.5・Xorg、pynput 1.8.2 が入れた 0.33）で `_NET_ACTIVE_WINDOW` と WM_CLASS を 30 回読めた。本番の active_window_linux.py は、Xvfb で作ったウィンドウと `_NET_ACTIVE_WINDOW` で、アクティブなウィンドウ無し・WM_CLASS あり・WM_CLASS 無しの 3 通りとも期待どおりの値を返した（[#210](https://github.com/shuhei1101/voice-paste/pull/210)）。WSLg の XWayland では `BadWindow` になり、WARNING を出して空を返した。Ubuntu 24.04 のデスクトップ（Xorg）では本番のコードをまだ動かしていない'
 license: LGPL-2.1-or-later（商用利用可。ライブラリを差し替えられる形で配布する義務がある）
 official_url: https://github.com/python-xlib/python-xlib
 docs_url: https://python-xlib.github.io/

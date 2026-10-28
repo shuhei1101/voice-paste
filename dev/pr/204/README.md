@@ -1,0 +1,1 @@
+# 文字起こしのエンジンに OpenAI API を追加し、faster-whisper・nvidia-* を入れなくても使えるようにする

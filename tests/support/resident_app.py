@@ -379,6 +379,13 @@ class ResidentApp:
             if level is None or record["level"] == level
         ]
 
+    def log_text(self) -> str:
+        """常駐アプリのログのファイルの全ての文字（API キーが書かれていないことを確かめるための、書式を解釈しない読み方）。"""
+        return "".join(
+            log_file.read_text(encoding="utf-8")
+            for log_file in sorted((self.data_dir / "log").glob("*.log"))
+        )
+
     def notified_count(self, event: str) -> int:
         """ユーザーへの知らせ（notify）のログに、event が何回書かれているか。"""
         return sum(

@@ -140,7 +140,7 @@ GLOSSARIES_DIR_NAME: str = "glossaries"
 WAKE_INTERVAL_MS: int = 200
 """Qt のイベントループの中で Python のシグナルのハンドラが動くようにする、空の QTimer の間隔。PoC で 200 ms なら Ctrl+Break から 0.3 秒で終わった。"""
 
-SINGLE_INSTANCE_TIMEOUT_SEC: float = 54.0
+SINGLE_INSTANCE_TIMEOUT_SEC: float = 55.0
 """acquire_single_instance に渡す、前のプロセスが排他を放すのを待つ上限。非機能要件の前の常駐サービスの終わりを待つ時間の決定値。"""
 
 SETTINGS_MODEL: type[Settings] = build_settings_model(

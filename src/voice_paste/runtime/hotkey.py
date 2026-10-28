@@ -12,6 +12,9 @@ from voice_paste.shared.errors import HotkeyError
 
 logger = logging.getLogger(__name__)
 
+HOTKEY_STOP_TIMEOUT_SEC: float = 0.5
+"""HotkeyListener が止めた受付のスレッドの終わりを待つ上限（秒）。Linux の pynput は次のキー入力まで終わらないため、上限で手放す。値は非機能要件のホットキーの受付の終わりを待つ時間。"""
+
 
 def _guard(handler: Callable[[], None]) -> Callable[[], None]:
     """pynput のスレッドで例外を出して受付を止めないよう、例外を握ってログに書く関数で包む。"""
@@ -55,7 +58,7 @@ class HotkeyListener:
             except ValueError as error:
                 raise HotkeyError(f"ホットキーを読めません（{error}）") from error
 
-            # 3. 動いている受付があれば止め、スレッドの終わりを待つ
+            # 3. 動いている受付があれば止め、スレッドの終わりを上限まで待つ
             self._stop_running()
 
             # 4. 新しい受付を始める
@@ -64,13 +67,19 @@ class HotkeyListener:
             logger.info(f"ホットキーの受付を始めた（{', '.join(bindings)}）")
 
     def stop(self) -> None:
-        """受付を止め、スレッドの終わりを待つ。動いていなければ何もしない。"""
+        """受付を止め、スレッドの終わりを上限まで待つ。上限を過ぎたら手放して戻る。動いていなければ何もしない。"""
         with self._lock:
             self._stop_running()
 
     def _stop_running(self) -> None:
-        """動いている受付があれば止め、スレッドの終わりを待って手放す（ロックを取った中で呼ぶ）。"""
+        """動いている受付があれば止め、スレッドの終わりを上限まで待って手放す（ロックを取った中で呼ぶ）。"""
         if self._listener is not None:
             self._listener.stop()
-            self._listener.join()
+            self._listener.join(HOTKEY_STOP_TIMEOUT_SEC)
+            # 上限までにスレッドが終わらなかったか
+            if self._listener.is_alive():
+                # 終わらなかった: 手放して進む（pynput のスレッドは daemon のため、プロセスの終了を妨げない）
+                logger.warning(
+                    f"ホットキーの受付が {HOTKEY_STOP_TIMEOUT_SEC} 秒たっても終わらないため手放した"
+                )
             self._listener = None

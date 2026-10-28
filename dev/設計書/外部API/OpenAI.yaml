@@ -67,8 +67,9 @@ lead: OpenAI のモデルを HTTP で呼ぶ API。音声の文字起こし（Aud
 used_in:
   - src/voice_paste/integrations/openai/transcriber.py
 verification:
-  state: 未確認
-  detail: 外部疎通テスト（tests/external/voice_paste/integrations/openai/test_transcriber.py）をまだ流していない。従量課金のため、規約『開発時の従量課金APIの実行』で見積もってから流す
+  state: 済
+  date: '2026-10-28'
+  detail: 外部疎通テスト（tests/external/voice_paste/integrations/openai/test_transcriber.py の test_ext_transcribe）を Windows の開発の端末で 1 回流した。約 3 秒の日本語の WAV を、既定のモデル（gpt-4o-mini-transcribe）・language=ja・prompt 付きで送信し、空でない文字が 1 区間で返った。かかった秒は 1.97。見積もりは約 $0.0002（約 0.03 円）、実費の目安は約 3 秒 × $0.003/分 ≈ $0.00015（約 0.03 円）
 base_urls:
   - env: 本番
     url: https://api.openai.com/v1

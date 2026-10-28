@@ -10,6 +10,7 @@ build_handlers を一時フォルダの置き場所で配線し、モデルの�
 
 from __future__ import annotations
 
+import os
 import statistics
 import threading
 import time
@@ -147,6 +148,7 @@ def test_paste_latency(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         lambda *_args, **_kwargs: None,
         lambda *_args, **_kwargs: None,
         adapters=adapters,
+        environ=os.environ,
     )
     original_clipboard = pyperclip.paste()
     elapsed_list: list[float] = []

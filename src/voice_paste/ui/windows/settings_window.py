@@ -43,6 +43,8 @@ from voice_paste.shared.settings import (
     HINT_WORD_EMPTY_ERROR_TYPE,
     HINT_WORD_SEPARATOR_ERROR_TYPE,
     HOTKEY_OVERLAP_ERROR_TYPE,
+    OPENAI_BASE_URL_DEFAULT,
+    OPENAI_BASE_URL_KEY,
     OUTPUTS_FIELD_NAME,
     PRESETS_FIELD_NAME,
     RELOAD_IMMEDIATE,
@@ -67,6 +69,7 @@ from voice_paste.ui.windows.settings_fields import (
     make_slider,
     plain_text_lines,
     reload_of,
+    selected_combo,
     selected_radio,
     set_nested,
     value_at,
@@ -141,6 +144,9 @@ FIELD_LAYOUT: dict[str, tuple[str, ...]] = {
         "transcription.local_whisper.vad_min_speech_ms",
         "transcription.local_whisper.vad_min_silence_ms",
         "transcription.local_whisper.condition_on_previous_text",
+        "transcription.openai.model",
+        "transcription.openai.language",
+        "transcription.openai.base_url",
     ),
     "表記のヒント": (HINT_PRESETS_FIELD_NAME,),
     "用語集": (GLOSSARIES_FIELD_NAME,),
@@ -451,6 +457,8 @@ def to_field_message(
     if error_type == "string_pattern_mismatch":
         # 空なら入れてもらい、空でなければ形式を修正してもらう
         if not error.get("input"):
+            if format_error_location(tuple(error["loc"])) == OPENAI_BASE_URL_KEY:
+                return f"API の URL を入れてください（例: {OPENAI_BASE_URL_DEFAULT}）。"
             return f"URL を入れてください（例: {PRESET_URL_EXAMPLE}）。"
         return "http:// か https:// で始まる URL を入れてください。"
     if error_type == HOTKEY_OVERLAP_ERROR_TYPE:
@@ -874,11 +882,13 @@ class SettingsWindow(QWidget):
             slider.valueChanged.connect(lambda number: percent.setText(f"{number} %"))
             return slider, slider.value, (percent,)
         if key in COMBO_KEYS:
+            extra = info.json_schema_extra
+            labels = extra.get(CHOICE_LABELS_KEY) if isinstance(extra, dict) else None
             choices = (
                 WHISPER_MODEL_CHOICES if key.endswith("model") else tuple(get_args(annotation))
             )
-            combo = make_combo(choices, value, editable=key.endswith("model"))
-            return combo, combo.currentText, ()
+            combo = make_combo(choices, value, editable=key.endswith("model"), labels=labels)
+            return combo, lambda: selected_combo(combo), ()
         if annotation is bool:
             check_box = make_check_box("オン", value)
             return check_box, check_box.isChecked, ()

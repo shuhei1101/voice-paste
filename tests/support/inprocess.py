@@ -885,6 +885,7 @@ def start_inprocess_app(
         lambda *_args, **_kwargs: None,
         lambda *_args, **_kwargs: None,
         adapters=adapters,
+        environ=os.environ,
     )
     return InProcessApp(
         handlers=handlers,

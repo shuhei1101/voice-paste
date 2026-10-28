@@ -1626,12 +1626,9 @@ dependencies = [
     { name = "av" },
     { name = "comtypes", marker = "sys_platform == 'win32'" },
     { name = "fastapi" },
-    { name = "faster-whisper" },
     { name = "httpx" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "nvidia-cublas-cu12" },
-    { name = "nvidia-cudnn-cu12" },
     { name = "onnxruntime" },
     { name = "platformdirs" },
     { name = "pycaw", marker = "sys_platform == 'win32'" },
@@ -1647,6 +1644,13 @@ dependencies = [
     { name = "uvicorn" },
 ]
 
+[package.optional-dependencies]
+local-whisper = [
+    { name = "faster-whisper" },
+    { name = "nvidia-cublas-cu12" },
+    { name = "nvidia-cudnn-cu12" },
+]
+
 [package.dev-dependencies]
 dev = [
     { name = "import-linter" },
@@ -1659,11 +1663,11 @@ requires-dist = [
     { name = "av", specifier = ">=11,<19" },
     { name = "comtypes", marker = "sys_platform == 'win32'", specifier = "~=1.4" },
     { name = "fastapi", specifier = "~=0.142.2" },
-    { name = "faster-whisper", specifier = "~=1.0" },
+    { name = "faster-whisper", marker = "extra == 'local-whisper'", specifier = "~=1.0" },
     { name = "httpx", specifier = "~=0.28.1" },
     { name = "numpy", specifier = "~=2.4" },
-    { name = "nvidia-cublas-cu12" },
-    { name = "nvidia-cudnn-cu12", specifier = ">=9,<10" },
+    { name = "nvidia-cublas-cu12", marker = "extra == 'local-whisper'" },
+    { name = "nvidia-cudnn-cu12", marker = "extra == 'local-whisper'", specifier = ">=9,<10" },
     { name = "onnxruntime", specifier = "~=1.25" },
     { name = "platformdirs", specifier = "~=4.12" },
     { name = "pycaw", marker = "sys_platform == 'win32'", specifier = "==20251023" },
@@ -1677,6 +1681,7 @@ requires-dist = [
     { name = "tomlkit", specifier = "~=0.15.1" },
     { name = "uvicorn", specifier = "~=0.54.0" },
 ]
+provides-extras = ["local-whisper"]
 
 [package.metadata.requires-dev]
 dev = [

@@ -14,6 +14,8 @@ class EngineName(StrEnum):
 
     LOCAL_WHISPER = "local_whisper"
     """文字起こしワーカーの子プロセスで起こす。"""
+    OPENAI = "openai"
+    """OpenAI API の文字起こしのエンドポイントへ送信して起こす（文字起こしワーカーを起動しない）。"""
 
 
 class EngineFn(Protocol):

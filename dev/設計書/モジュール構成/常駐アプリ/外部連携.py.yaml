@@ -1606,7 +1606,7 @@ constants:
     usecase: 起こした文字を届ける
     summary: send_paste_linux が端末アプリと見なす WM_CLASS の名前（小文字）。インスタンス名かクラス名を小文字にした値がどれかに当たれば端末アプリとする
     value: frozenset({"gnome-terminal-server", "gnome-terminal", "kgx", "org.gnome.console", "ptyxis", "org.gnome.ptyxis", "tilix", "terminator", "konsole", "xfce4-terminal", "alacritty", "kitty"})
-    reason: 設定のスキーマを変えないため定数で持つ。どれも Ctrl+Shift+V がクリップボードの貼り付けになる端末。GNOME Terminal（`gnome-terminal-server`）だけを [#211](https://github.com/shuhei1101/voice-paste/pull/211) で確かめた。Ctrl+Shift+V で貼り付けない xterm は入れない
+    reason: 設定のスキーマを変えないため定数で持つ。Ctrl+Shift+V がクリップボードの貼り付けになる端末を並べる。実際に確かめたのは GNOME Terminal（`gnome-terminal-server`。[#211](https://github.com/shuhei1101/voice-paste/pull/211)）だけで、ほかの端末のクラス名と貼り付けのキーは未確認。Ctrl+Shift+V で貼り付けない xterm は入れない
     status: planned
 test_files:
   - tests/unit/voice_paste/integrations/whisper/test_client.py

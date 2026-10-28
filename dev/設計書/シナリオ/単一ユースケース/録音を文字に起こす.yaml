@@ -530,6 +530,77 @@ scenarios:
         プリセットの名前を送信しないブラウザの音声は、起こし終えた時点で設定で選んでいるプリセットを使う（正常シナリオ（ブラウザから受けた音声））。
         受け付けた後に設定で選ぶプリセットを変えても、送信した名前のプリセットで補正する。
       起こす前に削除されたとき: 受け付けた後にそのプリセットが設定から削除されていたら、設定で選んでいるプリセットで補正する（API の録音と同じ拾い方）。
+  - name: 正常シナリオ（OpenAI API で起こす）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV。OpenAI API は、設定のベース URL を 127.0.0.1 で待ち受けるテスト用のエンドポイントに向け、受けた要求を控えて決まった文字を返す
+      - name: 文字起こしのエンジン
+        description: OpenAI API を使う設定にし、API キーを環境変数 `OPENAI_API_KEY` で渡す
+        notes: '`transcription.engine = "openai"`'
+      - name: 手がかりのプリセット
+        description: 語を持つ有効な手がかりのプリセットが 1 つある
+        notes: '-'
+      - name: 入口
+        description: ホットキーから始めた録音を確定する
+        notes: '-'
+    flow: |-
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant OV as 文字起こし中の表示
+        participant OAI as OpenAI API
+        participant HIST as 履歴
+
+        Note over SVC: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
+        SVC->>OAI: 録音の WAV・設定のモデルと言語・手がかり（prompt）を、API キーを付けて送信する
+        OAI-->>SVC: 起こした文字
+        SVC->>SVC: 文頭・文末の文言を消し、用語集で補正する
+        SVC->>HIST: 起こした文字を録音と同じ履歴に追記する
+        SVC->>OV: 閉じる
+    expected:
+      - テスト用のエンドポイントが受けた要求に、録音の WAV・設定のモデル・言語・有効なプリセットの語をつないだ手がかりが載り、`Authorization` に API キーが付いている
+      - 起こした文字の中の用語集の誤変換が、正しい表記に置き換わっている
+      - 履歴に録音と起こした文字がある
+      - 文字起こしワーカーの子プロセスが動いていない
+      - 起こした文字を届ける へ進む
+    test: test_normal_when_openai
+    notes:
+      入口とエンジン: API から始めた録音・連続録音の区間・ブラウザから受けた音声も、設定のエンジンが OpenAI API なら同じ要求で起こす。区間ごとの進みは返らないため、文字起こし中の表示の残りの時間とブラウザのジョブの進みは、起こし終えるまで進まない（表示の出し方は 画面設計『文字起こし中の表示』）。
+  - name: 異常シナリオ（OpenAI API が失敗を返す）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV。テスト用のエンドポイントは 401（API キーの誤り）を返す
+      - name: 文字起こしのエンジン
+        description: OpenAI API を使う設定にし、ベース URL をテスト用のエンドポイントに向ける
+        notes: '-'
+      - name: 入口
+        description: ホットキーから始めた録音を確定する
+        notes: '-'
+    flow: |-
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant OAI as OpenAI API
+        participant OV as 文字起こし中の表示
+        participant TRAY as トレイ
+        participant LOG as ログ
+        actor U as ユーザー
+
+        Note over SVC: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
+        SVC->>OAI: 録音を送信する
+        OAI-->>SVC: 401（API キーの誤り）
+        SVC->>LOG: 失敗した理由（ステータスとエラーの種類。API キーは書かない）を書く
+        SVC->>OV: 閉じる
+        SVC->>TRAY: 待機中のアイコンにする
+        SVC-->>U: 文字起こしに失敗したことと理由を通知する
+    expected:
+      - 文字起こしに失敗したことと理由がユーザーに知らされている
+      - ログに失敗した理由が書かれ、API キーが書かれていない
+      - 履歴にこの録音が残っている
+      - 起こした文字を届ける へ進まず、トレイのアイコンが待機中に戻っている
+    test: test_error_when_openai_failed
+    notes:
+      失敗の種類: レートリミット（429）・サーバーの失敗（5xx）・タイムアウトは、非機能要件の回数まで待って送信し直し、それでも失敗したら同じ扱いになる。API から始めた録音・連続録音の区間・ブラウザから受けた音声の失敗は、ワーカーの失敗と同じく 起こした文字を届ける かジョブの `failed` へ渡す。
 lead: 確定した録音を設定のエンジンで文字に起こし、文頭・文末の決まった文言を消して用語集で補正するまでの単一ユースケース。
 issue: 14
 primary_actor: 音声入力を使うユーザー

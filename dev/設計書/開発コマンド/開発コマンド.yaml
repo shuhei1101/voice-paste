@@ -87,8 +87,9 @@ categories:
       ```
     effects: '`.venv/` を `uv.lock` のバージョンで作る。依存のダウンロードが要る。Ubuntu では `pycaw`・`comtypes`・`pywin32` は `sys_platform == "win32"` の条件で入らない'
     verification:
-      state: 未確認
-      detail: '`pyproject.toml` と `uv.lock` への `sys_platform == "win32"` の条件の追加は実装の工程のため、今の `uv.lock` を検証環境の VM（Ubuntu 24.04）で流すと `pywin32` の wheel が無く失敗する（2026-10-28 に確かめた）。実装の工程で、成功することを VM で確かめて記録する'
+      state: 済
+      date: '2026-10-28'
+      detail: 検証環境の VM（Ubuntu 24.04・uv 0.13.6）の新しいフォルダに作業ツリー（feat/platform/linux-startup）の追跡ファイルを置いて `uv sync --frozen` を流し、成功することを確かめた。`pycaw`・`comtypes`・`pywin32` は入らず、dev グループの `pytest`・`import-linter` は入る。続けて VM で単体テスト（684 passed、21 skipped）と `lint-imports`（4 契約とも KEPT）を流した
   - name: 起動・停止
     prerequisites:
       - Ubuntu 24.04 の Xorg のセッションの端末で、『環境構築（クローン直後）』を流しておく
@@ -101,8 +102,9 @@ categories:
       ```
     effects: トレイにアイコンを出し、ホットキーを受け付け、録音の開始を待つ。同じ設定の置き場所で 2 つ目を起動すると、前のプロセスに終わるよう頼んでから起動する
     verification:
-      state: 未確認
-      detail: 実装の工程で Linux の実装を入れるまで起動できないため、確かめていない。実装の工程で、検証環境の VM の Xorg のセッションでトレイのアイコンが出ることと、2 つ目の起動で前のプロセスが終わることを確かめて記録する
+      state: 済
+      date: '2026-10-28'
+      detail: 検証環境の VM で、`--data-dir` に一時のフォルダ（`settings.toml` で `transcription.local_whisper.model = "tiny"`）を渡して `.venv/bin/python -m voice_paste` を起動し、エンジン・API・ホットキーが立ち上がること（ログの `常駐サービスを始めた`）を確かめた。同じ設定の置き場所で 2 つ目を起動すると、`前の常駐サービスに終わるよう頼んだ` の約 0.8 秒後に前のプロセスが終わり（ホットキーの受付は 0.5 秒の上限で手放した）、2 つ目が排他を取って起動することを確かめた。VM に `libxcb-cursor0` が入っていないため、deb を `apt-get download` で取得して `dpkg -x` で展開し、`LD_LIBRARY_PATH` で読ませて起動した（VM のパッケージは変えていない）。VM の Xorg のセッションは画面のロック中で GNOME のトレイの拡張が無効のため、トレイのアイコンは VM 内の Xephyr に `stalonetray`（XEmbed のトレイの受け手。deb を展開して使用）を立てて確かめ、緑のマイクのアイコンが出ることを撮影した。GNOME の実際のトレイ（`ubuntu-appindicators`）では確かめていない
 lead: クローン直後に環境を作る・常駐サービスを起動するとき、依存を追加する・上げる・外すとき、取り込んだ変更に手元の環境を追従させるときに打つコマンド。
 prerequisites:
   - リポジトリの直下で、Windows では Windows の uv（WSL からは `uv.exe`）、Ubuntu 24.04 では Linux の uv（`uv`）で流す。各分類のコマンドは Windows の uv で書き、Ubuntu では `uv.exe` を `uv` に読み替える

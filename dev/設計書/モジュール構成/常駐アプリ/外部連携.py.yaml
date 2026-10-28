@@ -14,7 +14,8 @@ directory: |-
   ├── vad/
   │   ├── adapter.py    # load_vad_session・StreamingVad（同梱の Silero VAD を onnxruntime で窓ごとに流す）
   │   └── assets/
-  │       └── silero_vad_v6.onnx # faster-whisper 1.2.1 が同梱するものと同じ Silero VAD のモデル（MIT）
+  │       ├── silero_vad_v6.onnx # faster-whisper 1.2.1 が同梱するものと同じ Silero VAD のモデル（MIT）
+  │       └── LICENSE.silero-vad # Silero VAD の MIT のライセンスの全文
   ├── volume/
   │   ├── adapter.py    # lower_volume・restore_volume（pycaw を == で固定して包む。Windows だけが読み込む）
   │   └── noop.py       # lower_volume_noop・restore_volume_noop（Linux の、音量を変えない実装）
@@ -976,7 +977,7 @@ functions:
     kind: 関数
     scope: public
     summary: 常駐アプリのパッケージに同梱した Silero VAD（ONNX）を onnxruntime の CPU で開き、セッションを返す。faster-whisper が入っていない環境でも開ける
-    description: モデルは faster-whisper 1.2.1 が同梱する `assets/silero_vad_v6.onnx` と同じファイルを `integrations/vad/assets/` に置き、常駐アプリのパッケージに含める（faster-whisper は `local-whisper` の extra へ移り、`openai` のエンジンでは入れない環境があるため）。faster_whisper を import しない（`__init__` が ctranslate2 と CUDA の DLL を常駐サービスに読み込み、文字起こしワーカーを子プロセスに隔離した構造の決定（`dev/pr/12/方針決め/4_構造の決定.md`）に反する）。起動の配線で 1 回だけ呼ぶ。
+    description: モデルは faster-whisper 1.2.1 が同梱する `assets/silero_vad_v6.onnx` と同じファイルを `integrations/vad/assets/` に、Silero VAD の LICENSE の全文（`LICENSE.silero-vad`）と並べて置き、pyproject.toml の `[tool.setuptools.package-data]` の voice_paste に `"integrations/vad/assets/*.onnx"`・`"integrations/vad/assets/LICENSE.*"` を追加して常駐アプリのパッケージに含める（faster-whisper は `local-whisper` の extra へ移り、`openai` のエンジンでは入れない環境があるため）。faster_whisper を import しない（`__init__` が ctranslate2 と CUDA の DLL を常駐サービスに読み込み、文字起こしワーカーを子プロセスに隔離した構造の決定（`dev/pr/12/方針決め/4_構造の決定.md`）に反する）。起動の配線で 1 回だけ呼ぶ。
     returns:
       type: onnxruntime.InferenceSession
       description: Silero VAD のセッション
@@ -1402,8 +1403,8 @@ constants:
     title: OpenAI API へ送信できる音声の大きさ
     container: integrations/openai/transcriber.py
     usecase: 録音を文字に起こす
-    summary: 送信する前に確かめる音声の上限（25 MB。非機能要件の OpenAIへ送信する音声の上限）
-    value: '26_214_400'
+    summary: 送信する前に確かめる音声の上限（25 MB から要求の本文の固定の消費分を引いた値。非機能要件の OpenAIへ送信する音声の上限）
+    value: '26_209_484'
     status: planned
     introduced:
       pr: 204

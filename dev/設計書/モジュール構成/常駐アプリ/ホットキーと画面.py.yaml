@@ -949,7 +949,7 @@ classes:
       切り替えのボタンは、設定でオンの固定の出力先（`outputs[]` の並び。名前は UiDeps.output_titles、ホットキーは format_hotkey で整えた `outputs[].hotkey`）ごとに open で組み直す。`ui.transcribing_show_hotkeys` がオフのときはホットキーを空で渡し、名前だけを出す（録音の画面の `ui.show_hotkeys` は見ない）。今の出力先でないボタンを押すと output_selected を emit する（差し替えるのは UiController。マーカーは output_changed の知らせを受けて set_output で替える）。
       切り替えのボタンは、`ui.transcribing_show_hotkeys` のどちらでも等しい幅で並べる。全てのボタンを同じ固定の幅（setFixedWidth）にし、行の右に stretch を 1 つ置く。組み直したときは、固定の幅をボタンの sizeHint の幅のうち最も大きい値にする（前の回の窓の幅を引き継がず、窓の最小の幅はその幅のボタンの行と SWITCH_WINDOW_WIDTH_PX から決まる）。窓の resizeEvent と、レイアウトの組み直し（QEvent.LayoutRequest。最初に表示を出した回は resizeEvent の時点で行に幅が割り当てられていない）のたびに、「（行の幅（切り替えのボタンの行のレイアウトに割り当てられた幅。テーマの枠の線と余白を除いた幅） − 間隔 ×（ボタンの数 − 1））÷ ボタンの数」の切り捨てと、その最も大きい値の、大きい方に取り直す（割り切れない数 px だけが行の右の stretch に残る）。
       切り替えのボタンは、右と上にマーカーがはみ出す分の余白を枠の外に取り、選んだときの丸いマーカーを枠の右上の角からその余白へはみ出して描く。名前とホットキーの文字の範囲にはマーカーを重ねない。
-      残りの時間は、進み（区間の終わり ÷ 録音の長さ）と経過から「経過 ÷ 進み − 経過」で見積もる。open のときに UiDeps.get_settings の transcription.engine が openai なら、進みが届かないため「残りを計っています」を出さず「経過 {秒}」だけを出す。
+      残りの時間は、進み（区間の終わり ÷ 録音の長さ）と経過から「経過 ÷ 進み − 経過」で見積もる。UiDeps.reports_progress が False なら、進みが届かないため、open で「残りを計っています」を出さず「経過 {秒}」だけを出す。
       コンストラクタは UiDeps と、経過を数える時計 clock（秒を返す関数。既定は time.monotonic）を受ける。
     kind: クラス
     inherits: PySide6.QtWidgets.QWidget
@@ -1018,10 +1018,10 @@ classes:
             condition: apply_theme(light) を当て、paste_and_send・paste_only・copy_only をオンにした回と、paste_only・copy_only だけをオンにした回で、open(at=座標) してから close_window して open(at=座標) することを 3 回繰り返す。`ui.transcribing_show_hotkeys` が true と false の両方。QT_QPA_PLATFORM=offscreen
             mock: UiDeps
             expected: 開き直した後の窓の width() がどの回も最初に開いた幅と同じで、最後のボタンの右端が行の右端を超えない
-          - name: test_open_when_openai_engine
+          - name: test_open_when_progress_not_reported
             case: 正常
-            summary: OpenAI のエンジンのときは経過だけを出す
-            condition: 設定の transcription.engine を openai にして open し、経過 1.4 秒で時間の文字を書き換える。QT_QPA_PLATFORM=offscreen
+            summary: 進みを知らせないエンジンのときは経過だけを出す
+            condition: UiDeps.reports_progress を False にし、設定の transcription.engine は local_whisper のままで open し、経過 1.4 秒で時間の文字を書き換える。QT_QPA_PLATFORM=offscreen
             mock: UiDeps・経過を返す時計
             expected: 経過と残りの時間が「経過 1.4 秒」で、進みのバーが表示されない
       - name: set_progress
@@ -3175,6 +3175,9 @@ data_models:
       - name: hidden_setting_keys
         type: frozenset[str]
         description: 設定画面で出さない設定のキー（OS_HIDDEN_SETTING_KEYS[CURRENT_OS]）。Linux では録音中の音量のキー
+      - name: reports_progress
+        type: bool
+        description: 動いているエンジンが区間ごとの進みを知らせるか（local_whisper は True、openai は False）。engine の反映は再起動のため、保存した設定ではなく起動の配線で決めた値を持つ
     status: implemented
 enums:
   - name: TrayState

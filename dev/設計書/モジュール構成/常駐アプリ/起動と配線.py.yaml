@@ -766,6 +766,7 @@ functions:
       6. list_glossaries に SettingsStore.get の設定と settings.toml のフォルダで resolve_glossaries を呼ぶ関数、list_glossary_presets に同じ設定とフォルダで resolve_glossary_presets を呼ぶ関数、read_glossary に read_glossary_rows、new_glossary_path に settings.toml のフォルダの `glossaries` を部分適用した next_glossary_path を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
       7. copy に copy_to_clipboard を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
       8. hidden_setting_keys に OS_HIDDEN_SETTING_KEYS の CURRENT_OS の集合（無ければ空）を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
+      9. reports_progress に、このときの SettingsStore.get の transcription.engine が local_whisper かを渡す（起動で配線したエンジンと同じ設定から 1 回だけ求める。エンジンを準備できなかった起動の UiDeps も同じ）
     status: implemented
   - name: relaunch
     title: 再起動

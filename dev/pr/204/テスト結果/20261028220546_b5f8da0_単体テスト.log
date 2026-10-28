@@ -1,6 +1,6 @@
 前提: uv sync --frozen --extra local-whisper で作った .venv（Windows の uv。WSL から実行）
 コマンド: .venv/Scripts/python.exe -m pytest tests/unit
-コミット: e42e70d
+コミット: b5f8da0
 
 ============================= test session starts =============================
 platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
@@ -84,5 +84,5 @@ tests\unit\voice_paste\ui\windows\test_settings_window.py .............. [ 88%]
 tests\unit\voice_paste\ui\windows\test_transcribing_indicator.py ....... [ 93%]
 ..............................................                           [100%]
 
-================= 710 passed, 12 skipped in 73.53s (0:01:13) ==================
+================= 710 passed, 12 skipped in 77.79s (0:01:17) ==================
 終了コード: 0

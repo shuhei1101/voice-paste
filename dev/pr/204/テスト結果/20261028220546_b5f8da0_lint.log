@@ -1,5 +1,5 @@
 前提: uv sync --frozen --extra local-whisper で .venv を作り、npm ci を流した後に回した（uv.exe は Windows の uv）
-コミット: e42e70d
+コミット: b5f8da0
 
 $ uv lock --check
 Resolved 75 packages in 1ms

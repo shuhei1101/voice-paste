@@ -17,11 +17,16 @@ INVALID_KEY = "<ctrl>+<nokey>"
 
 
 class FakeGlobalHotKeys:
-    """pynput.keyboard.GlobalHotKeys の偽物。登録された組と、start・stop・join の呼ばれた順を覚える。"""
+    """pynput.keyboard.GlobalHotKeys の偽物。登録された組と、start・stop・join の呼ばれた順と join に渡された上限を覚える。
+
+    alive が True の間は、join が戻ってもスレッドが終わっていない（is_alive が True）状態を表す。
+    """
 
     def __init__(self, hotkeys: dict[str, Callable[[], None]]) -> None:
         self.hotkeys = hotkeys
         self.calls: list[str] = []
+        self.join_timeouts: list[float | None] = []
+        self.alive = False
 
     def start(self) -> None:
         """受付を始めたことを覚える。"""
@@ -32,8 +37,13 @@ class FakeGlobalHotKeys:
         self.calls.append("stop")
 
     def join(self, timeout: float | None = None) -> None:
-        """スレッドの終わりを待ったことを覚える。"""
+        """スレッドの終わりを待ったことと、渡された上限を覚える。"""
         self.calls.append("join")
+        self.join_timeouts.append(timeout)
+
+    def is_alive(self) -> bool:
+        """スレッドがまだ終わっていないか。"""
+        return self.alive
 
 
 @pytest.fixture
@@ -182,6 +192,29 @@ def test_stop(listeners: list[FakeGlobalHotKeys]) -> None:
 
     # 検証
     assert listeners[0].calls == ["start", "stop", "join"]
+
+
+def test_stop_when_join_timed_out(
+    listeners: list[FakeGlobalHotKeys], caplog: pytest.LogCaptureFixture
+) -> None:
+    """スレッドが上限までに終わらなくても戻る（正常系）。"""
+    from voice_paste.runtime.hotkey import HOTKEY_STOP_TIMEOUT_SEC, HotkeyListener
+
+    # 準備: join が戻ってもスレッドが終わっていない受付を始める
+    caplog.set_level(logging.WARNING)
+    listener = HotkeyListener()
+    listener.start({START_KEY: CountingHandler()})
+    listeners[0].alive = True
+
+    # 実行
+    listener.stop()
+    listener.start({START_KEY: CountingHandler()})
+
+    # 検証: 上限を付けて待ち、手放した受付は止め直さず、新しい受付だけが動いている
+    assert listeners[0].join_timeouts == [HOTKEY_STOP_TIMEOUT_SEC]
+    assert listeners[0].calls == ["start", "stop", "join"]
+    assert len([record for record in caplog.records if record.levelno == logging.WARNING]) == 1
+    assert listeners[1].calls == ["start"]
 
 
 # === validate_hotkeys ===

@@ -1,0 +1,57 @@
+(Windows のクローン。作業ツリー: feat/platform/linux-startup @ 0d5e576)
+
+$ uv.exe lock --check
+Using CPython 3.14.3 interpreter at: C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\python.exe
+Resolved 75 packages in 1ms
+exit=0
+
+$ .venv/Scripts/lint-imports
+
+╔══╗─────────▶╔╗ ╔╗      ╔╗◀───┐
+╚╣╠╝◀─────┐  ╔╝╚╗║║────▶╔╝╚╗   │
+ ║║   ╔══╦══╦╩╗╔╝║║  ╔╦═╩╗╔╝╔═╦══╗
+ ║║╔══╣╔╗║╔╗║╔╣║ ║║ ╔╬╣╔╗║║ ║│║╔═╝
+╔╣╠╣║║║╚╝║╚╝║║║╚╗║╚═╝║║║║║╚╗║═╣║
+╚══╩╩╩╣╔═╩══╩╝╚═╝╚═══╩╩╝╚╩═╩╩═╩╝
+  └──▶║║                    ▲ 
+      ╚╝────────────────────┘
+
+
+---------
+Contracts
+---------
+
+Analyzed 105 files, 224 dependencies.
+-------------------------------------
+
+層の向き KEPT
+feature の独立 KEPT
+出力先の独立 KEPT (13 ignored imports)
+画面から feature の中へ KEPT (1 ignored import)
+
+Contracts: 4 kept, 0 broken.
+exit=0
+
+$ npm run typecheck
+
+> typecheck
+> tsc -p tsconfig.json --noEmit
+
+exit=0
+
+$ npm run lint
+
+> lint
+> eslint src/voice_paste/server/web
+
+exit=0
+
+$ npm run build
+
+> build
+> tsc -p tsconfig.build.json
+
+exit=0
+
+$ git diff --exit-code -- src/voice_paste/server/web/assets/app.js
+exit=0

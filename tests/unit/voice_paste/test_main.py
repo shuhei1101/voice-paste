@@ -683,7 +683,7 @@ def _install_adapters(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     """main が出力先・プリセットの種類へ渡す外部連携と time.sleep を偽物に差し替え、呼ばれた順を持つ親の Mock を返す。
 
     親の `copy_to_clipboard`・`send_paste`・`send_enter`・`open_app_window`・`post_json`・`sleep` がそれぞれの偽物。
-    `open_app_window` は main が OS ごとの実装として受け取るため、差し替えず、テストが `open_window` に渡す。
+    `open_app_window`・`send_paste` は main が OS ごとの実装として受け取るため、差し替えず、テストが `open_window`・`send_paste` に渡す。
     `post_json` は 200 を返す。
     """
     import voice_paste.main as main_module
@@ -692,7 +692,6 @@ def _install_adapters(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     adapters = MagicMock()
     adapters.post_json.return_value = PostResult(status=200, retry_after_sec=None)
     monkeypatch.setattr(main_module, "copy_to_clipboard", adapters.copy_to_clipboard)
-    monkeypatch.setattr(main_module, "send_paste", adapters.send_paste)
     monkeypatch.setattr(main_module, "send_enter", adapters.send_enter)
     monkeypatch.setattr(main_module, "post_json", adapters.post_json)
     monkeypatch.setattr("time.sleep", adapters.sleep)
@@ -850,7 +849,9 @@ def test_wire_preset_kinds(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
     # 実行
-    wired = _wire_preset_kinds(lambda: settings, open_window=adapters.open_app_window)
+    wired = _wire_preset_kinds(
+        lambda: settings, open_window=adapters.open_app_window, send_paste=adapters.send_paste
+    )
     by_kind = _kinds_by_name(wired)
     by_kind["browser"].handler(
         outcome, BrowserPreset(title="ChatGPT", url="https://chatgpt.com", send_enter=True)
@@ -885,7 +886,9 @@ def test_wire_preset_kinds_when_settings_changed(monkeypatch: pytest.MonkeyPatch
     outcome = TranscriptionOutcome(
         session_id="session-1", result="transcribed", text="テスト", error=None
     )
-    wired = _wire_preset_kinds(get_settings, open_window=adapters.open_app_window)
+    wired = _wire_preset_kinds(
+        get_settings, open_window=adapters.open_app_window, send_paste=adapters.send_paste
+    )
 
     # 配線の後に設定を差し替える
     get_settings.return_value = Settings(

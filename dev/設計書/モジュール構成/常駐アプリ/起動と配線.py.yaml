@@ -91,7 +91,7 @@ data_models:
         description: 録音中の音量（Recorder.level）。録音の画面の波形に使う
       - name: stop_engine
         type: Callable[[], None]
-        description: 文字起こしのエンジンを止める（WhisperWorkerClient.stop）。終了時に呼ぶ
+        description: 文字起こしのエンジンを止める（local_whisper は WhisperWorkerClient.stop、openai は何もしない）。終了時に呼ぶ
       - name: web_api
         type: WebApiDeps
         description: API サーバーへ渡すブラウザの API の依存（WebJobQueue・probe_audio・一時のフォルダ）。WebJobQueue の開始と終了は main が呼ぶ
@@ -177,13 +177,20 @@ functions:
         required: true
         passing: keyword
         description: OS ごとの実装（select_platform_adapters）
+      - name: environ
+        type: Mapping[str, str]
+        required: true
+        passing: keyword
+        description: 環境変数（main が os.environ を渡す。OpenAI の API キーを読むのに使う）
     returns:
       type: Handlers
       description: 配線済みの関数の束
     process: |-
       1. 設定を SettingsStore に入れる。以降の配線は設定を値でなく SettingsStore.get から読む（保存した immediate の項目を次の回から効かせる）
-      2. 設定のエンジン（local_whisper）の WhisperWorkerClient を adapters.worker_creationflags で作って起動し、その transcribe を文字起こしの engine に渡す。get_hint には、SettingsStore.get の hint_presets を join_hint_words でつなぎ、空なら None を返す関数を渡す
-         - EngineError の場合、StartupError を送出する
+      2. 設定のエンジンで文字起こしの engine と stop_engine を作り、engine を文字起こしに渡す。get_hint には、SettingsStore.get の hint_presets を join_hint_words でつなぎ、空なら None を返す関数を渡す
+         - local_whisper の場合、ensure_local_whisper_installed で確かめ（StartupError はそのまま送出する）、WhisperWorkerClient を adapters.worker_creationflags で作って起動する。engine はその transcribe、stop_engine はその stop
+           - EngineError の場合、StartupError を送出する
+         - openai の場合、read_openai_api_key（paths.openai_api_key_file・environ）で読んだ API キーと設定の transcription.openai で OpenAITranscriber を作る（文字起こしワーカーは起動しない）。engine はその transcribe、stop_engine は何もしない関数（StartupError はそのまま送出する）
       3. 連続録音の話し声の判定に使う VAD のセッションを 1 回だけ読む（load_vad_session。StartupError はそのまま送出する）
       4. Recorder に adapters の lower_volume・restore_volume と、SettingsStore から録音の設定を返す関数と、VAD のセッションを部分適用した StreamingVad（話し声の判定を作る）を渡す
       5. 出力先の deliver に、配線した OUTPUTS（_wire_outputs）・配線した PRESET_KINDS（_wire_preset_kinds。open_window に adapters.open_app_window）と、届けるたびに SettingsStore からオンの出力先の ID を引く関数を部分適用し、Session を入口・出力先の ID・選んだプリセット・返送先に分けて渡すアダプタを作る
@@ -198,7 +205,7 @@ functions:
       10. ブラウザの文字起こしを配線する。WebTranscriptionDeps に、履歴を残すかをそのたびに SettingsStore.get から引いて渡す store_web_audio、7 と同じ transcribe、6 の correct（ジョブの用語集のプリセットの名前を受ける）・append_text・discard_temporary を部分適用して渡し、WebJobQueue を作る。WebJobQueue・probe_audio・`{tmp_dir}/web`・8 と同じ glossary_preset_exists・そのたびに SettingsStore の設定と settings.toml のフォルダで resolve_glossary_presets した名前の一覧と pick_glossary_preset（requested なし）の名前を GlossaryPresetChoices で返す list_glossary_preset_choices を WebApiDeps に束ねる（ワーカースレッドはまだ立てない）
     exceptions:
       - name: StartupError
-        condition: 文字起こしのエンジンを準備できない
+        condition: 文字起こしのエンジンを準備できない（ローカルの Whisper の依存が無い・ワーカーが立たない・OpenAI の API キーが無い・VAD を読めない）
     status: implemented
   - name: main
     title: 起動
@@ -222,7 +229,7 @@ functions:
            - `[ERROR]` 起動に失敗した（理由）
       6. 設定の ui.theme で画面の明暗を当て直し（apply_theme。image_dir は paths.ui_image_dir）、QStyleHints.colorSchemeChanged に、SettingsStore.get の ui.theme で apply_theme を呼ぶ関数をつなぐ（OS の明暗が変わったときに当て直す）。ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を消す（purge_old_files。処理中のセッションは無いため、一時の音声も全て消す対象にする）
          - `[INFO]` 設定を読んだ（設定ファイルのパス・エンジン・オンの出力先の ID）
-      7. 配線する（build_handlers。notify・report_progress・notify_copied は UiBridge を部分適用した ui のもの、adapters は 3 で選んだ PlatformAdapters）
+      7. 配線する（build_handlers。notify・report_progress・notify_copied は UiBridge を部分適用した ui のもの、adapters は 3 で選んだ PlatformAdapters、environ は os.environ）
          - StartupError の場合、トレイを失敗にして起動の失敗を通知し（Tray.show_failure(engine_unavailable, 理由)）、「設定…」だけを押せるまま 11 へ（設定画面は読んだ設定で開き、保存は settings.toml へ書くだけにする。Handlers が無いため、UiDeps のうち録音・ホットキーの関数（start・pause・resume・complete・cancel・current_session・level・suspend_hotkeys・resume_hotkeys）は何もしない関数にし、設定画面を閉じてもホットキーの受付を始めない）
            - `[ERROR]` 起動に失敗した（理由）
       8. UiController を作り（build_ui_deps）、UiBridge の知らせの受け手につなぐ（notified → on_notified・progressed → on_progressed・copied → on_copied。9 で待ち受けを始められない知らせを取りこぼさないよう、API より先に作る）

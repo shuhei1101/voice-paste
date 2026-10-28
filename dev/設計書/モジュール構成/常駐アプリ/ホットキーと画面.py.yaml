@@ -949,7 +949,7 @@ classes:
       切り替えのボタンは、設定でオンの固定の出力先（`outputs[]` の並び。名前は UiDeps.output_titles、ホットキーは format_hotkey で整えた `outputs[].hotkey`）ごとに open で組み直す。`ui.transcribing_show_hotkeys` がオフのときはホットキーを空で渡し、名前だけを出す（録音の画面の `ui.show_hotkeys` は見ない）。今の出力先でないボタンを押すと output_selected を emit する（差し替えるのは UiController。マーカーは output_changed の知らせを受けて set_output で替える）。
       切り替えのボタンは、`ui.transcribing_show_hotkeys` のどちらでも等しい幅で並べる。全てのボタンを同じ固定の幅（setFixedWidth）にし、行の右に stretch を 1 つ置く。組み直したときは、固定の幅をボタンの sizeHint の幅のうち最も大きい値にする（前の回の窓の幅を引き継がず、窓の最小の幅はその幅のボタンの行と SWITCH_WINDOW_WIDTH_PX から決まる）。窓の resizeEvent と、レイアウトの組み直し（QEvent.LayoutRequest。最初に表示を出した回は resizeEvent の時点で行に幅が割り当てられていない）のたびに、「（行の幅（切り替えのボタンの行のレイアウトに割り当てられた幅。テーマの枠の線と余白を除いた幅） − 間隔 ×（ボタンの数 − 1））÷ ボタンの数」の切り捨てと、その最も大きい値の、大きい方に取り直す（割り切れない数 px だけが行の右の stretch に残る）。
       切り替えのボタンは、右と上にマーカーがはみ出す分の余白を枠の外に取り、選んだときの丸いマーカーを枠の右上の角からその余白へはみ出して描く。名前とホットキーの文字の範囲にはマーカーを重ねない。
-      残りの時間は、進み（区間の終わり ÷ 録音の長さ）と経過から「経過 ÷ 進み − 経過」で見積もる。
+      残りの時間は、進み（区間の終わり ÷ 録音の長さ）と経過から「経過 ÷ 進み − 経過」で見積もる。open のときに UiDeps.get_settings の transcription.engine が openai なら、進みが届かないため「残りを計っています」を出さず「経過 {秒}」だけを出す。
       コンストラクタは UiDeps と、経過を数える時計 clock（秒を返す関数。既定は time.monotonic）を受ける。
     kind: クラス
     inherits: PySide6.QtWidgets.QWidget
@@ -1018,6 +1018,12 @@ classes:
             condition: apply_theme(light) を当て、paste_and_send・paste_only・copy_only をオンにした回と、paste_only・copy_only だけをオンにした回で、open(at=座標) してから close_window して open(at=座標) することを 3 回繰り返す。`ui.transcribing_show_hotkeys` が true と false の両方。QT_QPA_PLATFORM=offscreen
             mock: UiDeps
             expected: 開き直した後の窓の width() がどの回も最初に開いた幅と同じで、最後のボタンの右端が行の右端を超えない
+          - name: test_open_when_openai_engine
+            case: 正常
+            summary: OpenAI のエンジンのときは経過だけを出す
+            condition: 設定の transcription.engine を openai にして open し、経過 1.4 秒で時間の文字を書き換える。QT_QPA_PLATFORM=offscreen
+            mock: UiDeps・経過を返す時計
+            expected: 経過と残りの時間が「経過 1.4 秒」で、進みのバーが表示されない
       - name: set_progress
         title: 進みの反映
         summary: 進みのバーと残りの時間を書き換える
@@ -1101,7 +1107,7 @@ classes:
       設定のモデルは開いたときの設定のモデル（`type(設定)`。main.py の SETTINGS_MODEL）を使い、失敗の場所の判別子の値から出力先のモデルをその output_models で引く。
       出力先は outputs[] の 1 件ごとに、名前を UiDeps.output_titles から引いて「オン」と「ホットキー」の欄を置き、その出力先のモデルが id・enabled・hotkey のほかに持つ項目（貼り付けて送信の enter_delay_sec など）を型から決めた部品で並べる。その項目の `json_schema_extra` に note があれば欄の下に出す（出力先の ID ごとの分け方を持たない）。
       リテラルの列挙の一覧（貼り付けて送信の enter_modifiers など）は、列挙の値ごとのチェックボックスを欄の名前の下の行に横に並べ、オンにした値を列挙の並びで一覧にする。チェックボックスの名前はその項目の `json_schema_extra` の choice_labels（無ければ値そのまま）、objectName は `field_{キー}_{値}`。
-      リテラルの列挙の 1 つを選ぶ欄（ui.position・ui.theme など）は make_radio_group にその項目の choice_labels を渡してラジオボタンの名前にし、保存では selected_radio が返す値を設定に入れる。
+      リテラルの列挙の 1 つを選ぶ欄（ui.position・ui.theme など）は make_radio_group にその項目の choice_labels を渡してラジオボタンの名前にし、保存では selected_radio が返す値を設定に入れる。COMBO_KEYS の欄（transcription.engine など）は、選択肢の名前をその項目の choice_labels（無ければ値そのまま）にし、保存では選んだ項目の値を設定に入れる。出力先のほかの欄も、その項目の `json_schema_extra` に note があれば欄の下に出す（transcription.openai.model の API キーの置き場所の補助文）。
       カスタムプリセットは、PRESET_KIND_NAMES の種類ごとにまとまり（「出力先」のすぐ下のタブ）を 1 つ作り、その中に PresetListPanel とその種類の preset_options の欄を置く。Authorization の欄は `QLineEdit.EchoMode.Password` にする。
       変えた欄の数えには、種類ごとの PresetListPanel.change_values のキーごとの変更を 1 件として含める。追加・削除した・有効かタイトルか URL かホットキーか種類ごとの欄を変えたプリセット 1 つが 1 件（1 つのプリセットで何度変えても 1 件）、種類のタブごとに、開いたとき・保存したときからあって今も残っているプリセットどうしの順が変わったら並べ替えが 1 件になる（追加・削除だけでは並べ替えに数えない）。
       保存したメッセージのホットキーの文を出すかは、変えた欄の数えの値ではなく、ホットキーの欄の値（`hotkeys.*`・`outputs[].hotkey`・種類ごとのタブの中の何件目かのプリセットの hotkey）を開いたときの値と比べて決める。
@@ -2671,6 +2677,7 @@ functions:
          - string_too_short（プリセットのタイトル）: 「タイトルを入れてください。」
          - string_too_short（表記のヒントのプリセットの名前）: 「名前を入れてください。」
          - URL の形式が合わない（プリセットの URL）: 空なら「URL を入れてください（例: https://example.com/hook）。」、空でなければ「http:// か https:// で始まる URL を入れてください。」
+         - URL の形式が合わない（transcription.openai.base_url）: 空なら「API の URL を入れてください（例: https://api.openai.com/v1）。」、空でなければ「http:// か https:// で始まる URL を入れてください。」
          - hotkey_overlap（find_hotkey_overlaps）: 重なった先がプリセットなら「プリセット「{タイトル}」と同じキーです。別のキーにしてください。」（もう一方の種類のプリセットなら「「{種類}」のプリセット「{タイトル}」と同じキーです。別のキーにしてください。」）、それ以外は「「{重なった欄の名前}」と同じホットキーです。別のキーにしてください。」
          - hint_too_long: 「有効なヒントが長すぎます（{今の長さ} / 222 バイト）。語を減らすか、プリセットを無効にしてください。」
          - hint_word_empty: 「語を入れるか、この欄を削除してください。」
@@ -2708,6 +2715,12 @@ functions:
         condition: 名前が「開発」の 2 件の hint_presets を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
         mock: なし
         expected: プリセット「開発」と同じ名前です。別の名前にしてください。
+      - name: test_to_field_message_when_openai_base_url_empty
+        case: 正常
+        summary: OpenAI の API の URL が空
+        condition: transcription.openai.base_url を空にした SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
+        mock: なし
+        expected: 'API の URL を入れてください（例: https://api.openai.com/v1）。'
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
     status: implemented

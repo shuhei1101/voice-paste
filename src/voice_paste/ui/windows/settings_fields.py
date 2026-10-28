@@ -178,14 +178,28 @@ def make_slider(value: float) -> QSlider:
     return slider
 
 
-def make_combo(choices: tuple[str, ...], current: str, *, editable: bool) -> QComboBox:
-    """選択の欄を作る。editable なら選択肢に無い名前も入れられる。"""
+def make_combo(
+    choices: tuple[str, ...],
+    current: str,
+    *,
+    editable: bool,
+    labels: Mapping[str, str] | None = None,
+) -> QComboBox:
+    """選択の欄を作る。editable なら選択肢に無い名前も入れられる。labels（値 → 名前）を渡すと、名前を出して値を項目に持たせる。選んだ値は `selected_combo` で読む。"""
     combo = QComboBox()
     combo.setEditable(editable)
     items = list(choices) if current in choices else [*choices, current]
-    combo.addItems(items)
-    combo.setCurrentText(current)
+    for item in items:
+        combo.addItem((labels or {}).get(item, item), item)
+    combo.setCurrentIndex(combo.findData(current))
     return combo
+
+
+def selected_combo(combo: QComboBox) -> str:
+    """選択の欄で選んだ値を返す。編集できる欄は入れた文字、編集できない欄は選んだ項目に持たせた値。"""
+    if combo.isEditable():
+        return combo.currentText()
+    return str(combo.currentData())
 
 
 def make_radio_group(

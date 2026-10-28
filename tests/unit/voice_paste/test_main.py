@@ -11,6 +11,7 @@ from __future__ import annotations
 import dataclasses
 import functools
 import logging
+import os
 import signal
 import sys
 import threading
@@ -144,6 +145,7 @@ def install_wiring(
         notify_copied: object,
         *,
         adapters: object,
+        environ: object,
     ) -> Handlers:
         """配線済みの関数の束を、偽物で作る。"""
         return Handlers(
@@ -355,6 +357,7 @@ def test_main(
 
     # 検証
     assert exit_code == 0
+    assert wiring.build_handlers.call_args.kwargs["environ"] is os.environ
     assert load_settings(data_dir / "settings.toml", SETTINGS_MODEL) == SETTINGS_MODEL()
     assert (data_dir / "api_token").exists()
     assert set(wiring.hotkey.start.call_args.args[0]) == DEFAULT_HOTKEYS

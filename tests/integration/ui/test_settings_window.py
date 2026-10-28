@@ -409,6 +409,94 @@ def test_field_widget_type_when_literal(
     assert [button.text() for button in buttons] == choices
 
 
+def test_field_engine_choices(open_window: Callable[..., Opened]) -> None:
+    """文字起こしのエンジンの選択欄は、名前（ローカルの Whisper・OpenAI API）を出し、値（local_whisper・openai）を持つ。既定はローカルの Whisper。"""
+    # 準備
+    window = open_window().window
+
+    # 実行
+    combo = _field(window, "transcription.engine", QComboBox)
+
+    # 検証
+    assert [combo.itemText(index) for index in range(combo.count())] == [
+        "ローカルの Whisper",
+        "OpenAI API",
+    ]
+    assert [combo.itemData(index) for index in range(combo.count())] == ["local_whisper", "openai"]
+    assert combo.currentText() == "ローカルの Whisper"
+
+
+def test_field_engine_when_saved(open_window: Callable[..., Opened]) -> None:
+    """選択欄で「OpenAI API」を選んで保存すると、設定の transcription.engine は openai になる。"""
+    # 準備
+    opened = open_window()
+    _field(opened.window, "transcription.engine", QComboBox).setCurrentIndex(1)
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert opened.deps.save_settings.call_args.args[0].transcription.engine == "openai"
+
+
+def test_field_engine_when_openai(open_window: Callable[..., Opened]) -> None:
+    """設定のエンジンが openai のときは、選択欄が「OpenAI API」を選んだ状態で開く。"""
+    from voice_paste.shared.settings import TranscriptionSettings
+
+    # 実行
+    window = open_window(SETTINGS_MODEL(transcription=TranscriptionSettings(engine="openai"))).window
+
+    # 検証
+    assert _field(window, "transcription.engine", QComboBox).currentText() == "OpenAI API"
+
+
+def test_field_openai_fields(open_window: Callable[..., Opened]) -> None:
+    """「文字起こし」のまとまりに OpenAI API の 3 つの文字の欄を出し、既定の値・再起動で反映のマーカー・補助文を出す。"""
+    # 準備
+    window = open_window().window
+    find(window, QListWidget, "group_menu").setCurrentRow(5)
+
+    # 実行
+    texts = [label.text() for label in window.findChildren(QLabel)]
+
+    # 検証
+    expected = {
+        "transcription.openai.model": "gpt-4o-mini-transcribe",
+        "transcription.openai.language": "ja",
+        "transcription.openai.base_url": "https://api.openai.com/v1",
+    }
+    for key, value in expected.items():
+        assert _field(window, key, QLineEdit).isVisible()
+        assert _field(window, key, QLineEdit).text() == value
+        assert find(window, QLabel, f"restart_badge_{key}").text() == "再起動で反映"
+    assert (
+        "文字起こしのエンジンが OpenAI API のときに使う。"
+        "API キーはここでは入れず、環境変数 OPENAI_API_KEY か、"
+        "settings.toml と同じフォルダの secrets/openai_api_key に置く。"
+    ) in texts
+
+
+def test_field_openai_fields_when_saved(open_window: Callable[..., Opened]) -> None:
+    """OpenAI API の 3 つの欄に入れた値は、保存で設定の transcription.openai に入る。API キーの欄は無い。"""
+    # 準備
+    opened = open_window()
+    _set_text(opened.window, "transcription.openai.model", "whisper-1")
+    _set_text(opened.window, "transcription.openai.language", "en")
+    _set_text(opened.window, "transcription.openai.base_url", "http://127.0.0.1:9000/v1")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    saved = opened.deps.save_settings.call_args.args[0].transcription.openai
+    assert (saved.model, saved.language, saved.base_url) == (
+        "whisper-1",
+        "en",
+        "http://127.0.0.1:9000/v1",
+    )
+    assert opened.window.findChild(QWidget, "field_transcription.openai.api_key") is None
+
+
 def test_field_name_and_key(open_window: Callable[..., Opened]) -> None:
     """欄の名前（設定の項目の説明）と、欄の右に settings.toml のキーを出す。"""
     from voice_paste.shared.settings import ApiSettings
@@ -1935,6 +2023,32 @@ def test_input_check_when_preset_url_invalid(
     # 検証
     assert _field_errors(opened.window) == [message]
     assert any(row.endswith(f": {message}") for row in _error_rows(opened.window))
+
+
+@pytest.mark.parametrize(
+    ("url", "message"),
+    [
+        ("", "API の URL を入れてください（例: https://api.openai.com/v1）。"),
+        ("api.openai.com/v1", "http:// か https:// で始まる URL を入れてください。"),
+    ],
+    ids=["empty", "no_scheme"],
+)
+def test_input_check_when_openai_base_url_invalid(
+    open_window: Callable[..., Opened], url: str, message: str
+) -> None:
+    """OpenAI API の URL が空・http:// か https:// で始まらない: それぞれの文言をその欄の下とエラーの一覧に出し、保存しない。"""
+    # 準備
+    opened = open_window()
+    _set_text(opened.window, "transcription.openai.base_url", url)
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert find(opened.window, QLabel, "error_transcription.openai.base_url").text() == message
+    assert _field_errors(opened.window) == [message]
+    assert any(row.endswith(f": {message}") for row in _error_rows(opened.window))
+    opened.deps.save_settings.assert_not_called()
 
 
 def test_input_check_when_preset_hotkey_overlap(open_window: Callable[..., Opened]) -> None:

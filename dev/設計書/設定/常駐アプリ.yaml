@@ -10,13 +10,16 @@ files:
   - file: settings.sample.toml
     manages: settings.toml の見本と既定値
     notes: git で管理する。設定のモデルの共通の既定値（Windows の既定値）と一致させる（単体テストで、動いている OS の上書きのキーは共通の既定値と、それ以外は設定のモデルの既定値と比べる）。Linux で既定値が違うキーは、各キーの「環境ごとの値」が持つ。
+  - file: secrets/openai_api_key
+    manages: OpenAI API の API キー（中身はキーの文字列だけ）
+    notes: git の管理外。`settings.toml` と同じフォルダの下（Windows は `%APPDATA%\voice-paste\secrets\openai_api_key`、Linux は `~/.config/voice-paste/secrets/openai_api_key`、`--data-dir` を渡したときはその下）。ユーザーが置き、常駐アプリは読むだけで作らない。環境変数 `OPENAI_API_KEY` があればそちらを使う。`transcription.engine` が `openai` のときだけ読む
 settings:
   - key: transcription.engine
     title: 使う文字起こしのエンジン
     file: settings.toml
-    type: "'local_whisper'"
+    type: "'local_whisper' | 'openai'"
     default: local_whisper
-    description: '文字起こしワーカー（faster-whisper）で文字を起こす。エンジンはこれだけで、エンジンを追加するときに値を追加する。'
+    description: '`local_whisper` は文字起こしワーカー（faster-whisper）で、`openai` は OpenAI API で文字を起こす。`local_whisper` は `local-whisper` の extra を含めて作った環境でだけ動く。'
     reload: restart
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -733,5 +736,33 @@ settings:
     implementation: src/voice_paste/shared/settings.py
     introduced:
       pr: 173
+  - key: transcription.openai.model
+    title: OpenAI のモデル
+    file: settings.toml
+    type: string
+    description: OpenAI API の文字起こしに使うモデル。
+    reload: restart
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+    default: gpt-4o-mini-transcribe
+  - key: transcription.openai.language
+    title: OpenAI の言語
+    file: settings.toml
+    type: string
+    default: ja
+    description: 文字起こしの言語（ISO-639-1）。
+    reload: restart
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+  - key: transcription.openai.base_url
+    title: OpenAI のベース URL
+    file: settings.toml
+    type: string
+    default: https://api.openai.com/v1
+    description: OpenAI API の送信先のベース URL。テストでは 127.0.0.1 のテスト用のエンドポイントへ向ける。
+    reload: restart
+    allowed: http:// か https:// で始まる URL
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
 notes:
   反映の列の読み方: '`immediate` は設定画面で保存すると動いている常駐アプリに効く項目。`settings.toml` を直接書き換えたときは、どの項目も再起動まで効かない（起動時に 1 度だけ読む）。'

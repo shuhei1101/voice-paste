@@ -2,3 +2,5 @@ summary: 採用済みの外部 API のリファレンス
 items:
   - page: Hugging_Face_Hub.yaml
     summary: faster-whisper のモデルを取得する
+  - page: OpenAI.yaml
+    summary: 録音を OpenAI API で文字に起こす

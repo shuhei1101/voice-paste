@@ -1,15 +1,14 @@
 """integrations/vad/adapter.py（load_vad_session・StreamingVad）の単体テスト。
 
-onnxruntime の InferenceSession は偽物に、faster-whisper のパッケージの場所は一時フォルダに差し替える。
+onnxruntime の InferenceSession は偽物に差し替える。
 """
 
 from __future__ import annotations
 
-import importlib.util
 import itertools
 import sys
 from pathlib import Path
-from types import SimpleNamespace
+from typing import Any
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -21,7 +20,7 @@ from voice_paste.shared.errors import StartupError
 WINDOW = 512
 CONTEXT = 64
 STATE_SHAPE = (1, 1, 128)
-MODEL_RELATIVE_PATH = Path("assets") / "silero_vad_v6.onnx"
+MODEL_FILE_NAME = "silero_vad_v6.onnx"
 
 
 def _make_session(probability: float = 0.9) -> MagicMock:
@@ -41,25 +40,6 @@ def _make_session(probability: float = 0.9) -> MagicMock:
     return session
 
 
-def _patch_find_spec(monkeypatch: pytest.MonkeyPatch, package_dir: Path | None) -> None:
-    """faster_whisper の find_spec だけを、package_dir にあるパッケージ（無ければ見つからない）に差し替える。"""
-    real_find_spec = importlib.util.find_spec
-
-    def _find_spec(name: str, package: str | None = None) -> object:
-        if name != "faster_whisper":
-            return real_find_spec(name, package)
-        if package_dir is None:
-            return None
-        return SimpleNamespace(submodule_search_locations=[str(package_dir)])
-
-    monkeypatch.setattr(importlib.util, "find_spec", _find_spec)
-
-
-def _package_dir(tmp_path: Path, package_found: bool) -> Path | None:
-    """パッケージが見つかる場合は一時フォルダ（モデルのファイルは置かない）、見つからない場合は None を返す。"""
-    return tmp_path if package_found else None
-
-
 @pytest.fixture
 def without_faster_whisper(monkeypatch: pytest.MonkeyPatch) -> None:
     """faster_whisper とその下のモジュールを sys.modules から外す（読み込みが import し直せば戻って見つかる）。"""
@@ -76,51 +56,47 @@ def without_faster_whisper(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_load_vad_session(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, without_faster_whisper: None
+    monkeypatch: pytest.MonkeyPatch, without_faster_whisper: None
 ) -> None:
     """同梱のモデルを CPU で開き、faster_whisper を import しない（正常系）。"""
+    import voice_paste.integrations.vad as vad_package
     from voice_paste.integrations.vad.adapter import load_vad_session
 
-    # 準備: パッケージの場所にモデルのファイルを置き、InferenceSession を偽物にする
-    model_path = tmp_path / MODEL_RELATIVE_PATH
-    model_path.parent.mkdir(parents=True)
-    model_path.write_bytes(b"onnx")
-    _patch_find_spec(monkeypatch, tmp_path)
-    fake_inference_session = MagicMock()
-    monkeypatch.setattr(onnxruntime, "InferenceSession", fake_inference_session)
+    # 準備: InferenceSession を、開かれたときのパスと、そのパスのファイルがあるかを控える偽物にする
+    opened: dict[str, Any] = {}
+    session = MagicMock()
+
+    def _open(model_path: str, **kwargs: Any) -> MagicMock:
+        opened["path"] = Path(model_path).resolve()
+        opened["is_file"] = Path(model_path).is_file()
+        opened["kwargs"] = kwargs
+        return session
+
+    monkeypatch.setattr(onnxruntime, "InferenceSession", _open)
 
     # 実行
-    session = load_vad_session()
+    result = load_vad_session()
 
-    # 検証
-    fake_inference_session.assert_called_once()
-    call = fake_inference_session.call_args
-    assert Path(call.args[0]) == model_path
-    assert call.kwargs["providers"] == ["CPUExecutionProvider"]
-    assert session is fake_inference_session.return_value
+    # 検証: 常駐アプリのパッケージに同梱したモデルのファイルを CPU で開いて返し、faster_whisper を import していない
+    bundled_model = (Path(vad_package.__file__).parent / "assets" / MODEL_FILE_NAME).resolve()
+    assert opened["path"] == bundled_model
+    assert opened["is_file"] is True
+    assert opened["kwargs"]["providers"] == ["CPUExecutionProvider"]
+    assert result is session
     assert "faster_whisper" not in sys.modules
 
 
-@pytest.mark.parametrize(
-    "package_found",
-    [
-        pytest.param(False, id="package_not_found"),
-        pytest.param(True, id="model_file_missing"),
-    ],
-)
-def test_load_vad_session_when_model_missing(
-    package_found: bool, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_load_vad_session_when_model_missing(monkeypatch: pytest.MonkeyPatch) -> None:
     """モデルのファイルが無ければ起動の失敗にする（異常系）。"""
-    from voice_paste.integrations.vad.adapter import load_vad_session
+    import voice_paste.integrations.vad.adapter as adapter
 
-    # 準備: パッケージが見つからないか、見つかってもモデルのファイルが無い（開く側は成功する偽物にして、ファイルの有無を確かめさせる）
-    _patch_find_spec(monkeypatch, _package_dir(tmp_path, package_found))
+    # 準備: モデルの置き場所を無いファイル名に差し替える（開く側は成功する偽物にして、ファイルの有無を確かめさせる）
+    monkeypatch.setattr(adapter, "VAD_MODEL_RESOURCE", "assets/no_such_model.onnx")
     monkeypatch.setattr(onnxruntime, "InferenceSession", MagicMock())
 
     # 実行・検証
     with pytest.raises(StartupError, match="VAD"):
-        load_vad_session()
+        adapter.load_vad_session()
 
 
 # === StreamingVad ===

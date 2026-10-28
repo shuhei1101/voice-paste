@@ -1,4 +1,4 @@
-"""実機のテストの共通フィクスチャ（返送先の受信先と、本物の常駐サービスの起動と、pytest のプロセスの中で配線した常駐アプリ）。conftest が import して使う。"""
+"""実機のテストの共通フィクスチャ（返送先の受信先と、OpenAI API の代わりのエンドポイントと、本物の常駐サービスの起動と、pytest のプロセスの中で配線した常駐アプリ）。conftest が import して使う。"""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ import pytest
 
 from tests.integration.helpers import CallbackReceiver
 from tests.support.inprocess import InProcessApp, WavInput, start_inprocess_app
+from tests.support.openai_endpoint import FakeOpenAIEndpoint
 from tests.support.real_service import RealService
 from tests.support.resident_app import kill_service_processes_for
 from voice_paste.shared.settings import Settings
@@ -21,6 +22,15 @@ def receiver() -> Iterator[CallbackReceiver]:
     callback_receiver.start()
     yield callback_receiver
     callback_receiver.stop()
+
+
+@pytest.fixture
+def openai_endpoint() -> Iterator[FakeOpenAIEndpoint]:
+    """OpenAI API の文字起こしの代わりのテスト用のエンドポイントを 127.0.0.1 に立てる。"""
+    endpoint = FakeOpenAIEndpoint()
+    endpoint.start()
+    yield endpoint
+    endpoint.stop()
 
 
 @pytest.fixture

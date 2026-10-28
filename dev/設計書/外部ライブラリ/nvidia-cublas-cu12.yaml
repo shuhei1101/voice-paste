@@ -3,7 +3,7 @@ kind: "ライブラリ"
 version:
   current: 12.9.2.10
   checked_on: '2026-09-30'
-  source: pyproject.toml（バージョンの指定なし）と uv.lock のバージョン
+  source: pyproject.toml の `[project.optional-dependencies] local-whisper`（バージョンの指定なし）と uv.lock のバージョン
   pinning: 固定していない
 catalogs:
   - name: ファイル
@@ -14,7 +14,7 @@ catalogs:
         purpose: ローカルの Whisper を GPU で動かすときに読まれる（起動口がフォルダを PATH と DLL の検索パスに追加する）
 lead: CUDA 12 向けの線形代数ライブラリ（cuBLAS）の DLL を配るパッケージ。
 purl: pkg:pypi/nvidia-cublas-cu12
-dependency_scope: 必須
+dependency_scope: 任意
 adoption: 採用
 used_in:
   - voice-paste.bat

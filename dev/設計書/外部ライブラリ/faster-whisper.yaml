@@ -3,7 +3,7 @@ kind: "ライブラリ"
 version:
   current: 1.2.1
   checked_on: '2026-09-30'
-  source: pyproject.toml（~=1.0）と uv.lock のバージョン
+  source: pyproject.toml の `[project.optional-dependencies] local-whisper`（~=1.0）と uv.lock のバージョン
   pinning: 互換リリースで固定（~=1.0）
 catalogs:
   - name: API
@@ -25,8 +25,8 @@ catalogs:
             notes: prefix を渡すと使われない。渡すと句読点が付く・区間ごとの改行がまとまる・口癖が一部消える、など書き方も変わる（#99 の PoC）
       - name: assets/silero_vad_v6.onnx
         kind: ファイル
-        purpose: 同梱の Silero VAD のモデル。常駐アプリのプロセスが onnxruntime で直接開き、連続録音の話し声を判定する
-        description: '常駐アプリのプロセスでは faster_whisper を import しない（パッケージの `__init__` が ctranslate2・CUDA の DLL を読み、方針で子プロセスに隔離したものが常駐に入るため）。`importlib.util.find_spec("faster_whisper")` の `submodule_search_locations` でパッケージの場所だけを引き（`__init__` を実行しない）、`assets/silero_vad_v6.onnx` を開く。ファイル名は faster-whisper の `vad.get_vad_model` が開くものと同じ（1.2.1）で、バージョンを上げるときは名前が変わっていないかを確かめる。入力は input（(1, 576) の float32）・h・c（(1, 1, 128)）、出力は確率・h・c（PoC #80 で確かめた構造）。'
+        purpose: 同梱の Silero VAD のモデル。常駐アプリは同じファイルを `src/voice_paste/integrations/vad/assets/` に同梱して開く
+        description: 'faster-whisper を `local-whisper` の extra へ移したため（PR #204）、常駐アプリは faster-whisper のパッケージからは開かず、faster-whisper 1.2.1 のこのファイルを `src/voice_paste/integrations/vad/assets/silero_vad_v6.onnx` へコピーして同梱する（MIT。ライセンスの表記を添える）。入力は input（(1, 576) の float32）・h・c（(1, 1, 128)）、出力は確率・h・c（PoC #80 で確かめた構造）。faster-whisper のバージョンを上げるときは、同梱したファイルと入出力が変わっていないかを確かめる。'
         refs:
           - dev/設計書/外部ライブラリ/onnxruntime#
         status: planned
@@ -34,11 +34,11 @@ catalogs:
           pr: 78
 lead: CTranslate2 で Whisper のモデルを動かし、音声を文字に起こすライブラリ。
 purl: pkg:pypi/faster-whisper
-dependency_scope: 必須
+dependency_scope: 任意
 adoption: 採用
 used_in:
   - src/voice_paste/integrations/whisper/worker.py
-  - src/voice_paste/integrations/vad/adapter.py
+  - src/voice_paste/integrations/whisper/client.py
 upstream: SYSTRAN/faster-whisper
 verification:
   state: 済

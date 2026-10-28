@@ -225,13 +225,53 @@ class LocalWhisperSettings(_SettingsModel):
     )
 
 
+ENGINE_LABELS: dict[str, str] = {
+    "local_whisper": "ローカルの Whisper",
+    "openai": "OpenAI API",
+}
+"""文字起こしのエンジンの値 → 設定画面の選択欄の名前。"""
+
+OPENAI_BASE_URL_DEFAULT: str = "https://api.openai.com/v1"
+"""OpenAI API の送信先のベース URL の既定。"""
+
+OPENAI_BASE_URL_KEY: str = "transcription.openai.base_url"
+"""OpenAI API のベース URL の設定のキー。"""
+
+OPENAI_NOTE: str = (
+    "文字起こしのエンジンが OpenAI API のときに使う。"
+    "API キーはここでは入れず、環境変数 OPENAI_API_KEY か、"
+    "settings.toml と同じフォルダの secrets/openai_api_key に置く。"
+)
+"""設定画面で OpenAI API の欄の下に出す補助文。"""
+
+
+class OpenAISettings(_SettingsModel):
+    """OpenAI API の文字起こしへ渡すモデル・言語・送信先のベース URL。API キーは持たない。"""
+
+    model: str = Field(
+        "gpt-4o-mini-transcribe",
+        description="OpenAI のモデル",
+        json_schema_extra={"reload": RELOAD_RESTART, "note": OPENAI_NOTE},
+    )
+    language: str = _item("ja", "OpenAI の言語（ISO-639-1）", reload=RELOAD_RESTART)
+    base_url: str = _item(
+        OPENAI_BASE_URL_DEFAULT,
+        "OpenAI のベース URL",
+        reload=RELOAD_RESTART,
+        pattern=URL_PATTERN,
+    )
+
+
 class TranscriptionSettings(_SettingsModel):
     """使うエンジンと、エンジンごとの設定。"""
 
-    engine: Literal["local_whisper"] = _item(
-        "local_whisper", "使う文字起こしのエンジン", reload=RELOAD_RESTART
+    engine: Literal["local_whisper", "openai"] = Field(
+        "local_whisper",
+        description="使う文字起こしのエンジン",
+        json_schema_extra={"reload": RELOAD_RESTART, "choice_labels": ENGINE_LABELS},
     )
     local_whisper: LocalWhisperSettings = _group(LocalWhisperSettings, "ローカルの Whisper の設定")
+    openai: OpenAISettings = _group(OpenAISettings, "OpenAI API の設定")
 
 
 # === 録音・ホットキー・キーボード ===

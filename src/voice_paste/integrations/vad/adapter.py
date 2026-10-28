@@ -1,10 +1,9 @@
-"""faster-whisper 同梱の Silero VAD を onnxruntime で窓ごとに流す。onnxruntime の API に触れるのはこのファイルだけ。"""
+"""常駐アプリに同梱した Silero VAD を onnxruntime で窓ごとに流す。onnxruntime の API に触れるのはこのファイルだけ。"""
 
 from __future__ import annotations
 
-import importlib.util
+import importlib.resources
 import logging
-from pathlib import Path
 
 import numpy as np
 import onnxruntime as ort
@@ -19,38 +18,35 @@ VAD_CONTEXT: int = 64
 VAD_STATE_SHAPE: tuple[int, int, int] = (1, 1, 128)
 """Silero VAD の LSTM の状態 h・c の形状。"""
 
-VAD_MODEL_RELATIVE_PATH: str = "assets/silero_vad_v6.onnx"
-"""faster-whisper のパッケージからの Silero VAD のモデルの置き場所（faster-whisper 1.2.1 の get_vad_model が開くものと同じ）。"""
+VAD_MODEL_RESOURCE: str = "assets/silero_vad_v6.onnx"
+"""常駐アプリのパッケージ（voice_paste.integrations.vad）に同梱した Silero VAD のモデルの置き場所（faster-whisper 1.2.1 が同梱するものと同じファイル）。"""
 
 ORT_LOG_SEVERITY_FATAL: int = 4
 """onnxruntime のログを致命的なものだけにする水準。"""
 
 
 def load_vad_session() -> ort.InferenceSession:
-    """faster-whisper 同梱の Silero VAD を、faster_whisper を import せずに onnxruntime の CPU で開いて返す。"""
-    # 1. find_spec でパッケージの場所だけを引く（faster_whisper の __init__ は ctranslate2 と CUDA の DLL を読むため実行しない）
-    spec = importlib.util.find_spec("faster_whisper")
-    if spec is None or not spec.submodule_search_locations:
-        logger.error("VAD を読めなかった（faster-whisper のパッケージが無い）")
-        raise StartupError("VAD のモデルを開けませんでした: faster-whisper のパッケージが見つかりません")
-    model_path = Path(next(iter(spec.submodule_search_locations))) / VAD_MODEL_RELATIVE_PATH
-    if not model_path.is_file():
-        logger.error(f"VAD を読めなかった（モデルのファイルが無い: {model_path}）")
-        raise StartupError(f"VAD のモデルを開けませんでした: {model_path} がありません")
+    """常駐アプリに同梱した Silero VAD を、onnxruntime の CPU で開いて返す。faster-whisper が入っていない環境でも開ける。"""
+    # 1. 同梱のモデルをファイルのパスにして開く（faster_whisper の __init__ は ctranslate2 と CUDA の DLL を読むため import しない）
+    resource = importlib.resources.files(__package__).joinpath(VAD_MODEL_RESOURCE)
+    with importlib.resources.as_file(resource) as model_path:
+        if not model_path.is_file():
+            logger.error(f"VAD を読めなかった（モデルのファイルが無い: {model_path}）")
+            raise StartupError(f"VAD のモデルを開けませんでした: {model_path} がありません")
 
-    # 2. 推論のスレッドを 1 つにして CPU で開く（faster-whisper の SileroVADModel と同じ設定）
-    options = ort.SessionOptions()
-    options.inter_op_num_threads = 1
-    options.intra_op_num_threads = 1
-    options.enable_cpu_mem_arena = False
-    options.log_severity_level = ORT_LOG_SEVERITY_FATAL
-    try:
-        return ort.InferenceSession(
-            str(model_path), sess_options=options, providers=["CPUExecutionProvider"]
-        )
-    except Exception as error:  # noqa: BLE001 onnxruntime が送出する例外の型は決まっていない
-        logger.exception(f"VAD を読めなかった（{error}）")
-        raise StartupError(f"VAD のモデルを開けませんでした: {error}") from error
+        # 2. 推論のスレッドを 1 つにして CPU で開く（faster-whisper の SileroVADModel と同じ設定）
+        options = ort.SessionOptions()
+        options.inter_op_num_threads = 1
+        options.intra_op_num_threads = 1
+        options.enable_cpu_mem_arena = False
+        options.log_severity_level = ORT_LOG_SEVERITY_FATAL
+        try:
+            return ort.InferenceSession(
+                str(model_path), sess_options=options, providers=["CPUExecutionProvider"]
+            )
+        except Exception as error:  # noqa: BLE001 onnxruntime が送出する例外の型は決まっていない
+            logger.exception(f"VAD を読めなかった（{error}）")
+            raise StartupError(f"VAD のモデルを開けませんでした: {error}") from error
 
 
 class StreamingVad:

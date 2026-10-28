@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import queue
@@ -14,6 +15,7 @@ import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -598,3 +600,59 @@ def test_stop_when_transcribing(
     assert transcription.finished_within(1.0)
     assert isinstance(transcription.error, EngineError)
     assert len(fake_popen.calls) == 1
+
+
+# === ensure_local_whisper_installed ===
+
+
+def _patch_find_spec(monkeypatch: pytest.MonkeyPatch, spec: object | None) -> None:
+    """faster_whisper の find_spec だけを、spec を返す（None なら見つからない）ものに差し替える。"""
+    real_find_spec = importlib.util.find_spec
+
+    def _find_spec(name: str, package: str | None = None) -> object | None:
+        if name != "faster_whisper":
+            return real_find_spec(name, package)
+        return spec
+
+    monkeypatch.setattr(importlib.util, "find_spec", _find_spec)
+
+
+@pytest.fixture
+def without_faster_whisper(monkeypatch: pytest.MonkeyPatch) -> None:
+    """faster_whisper とその下のモジュールを sys.modules から外す（import されれば入り直して分かる）。"""
+    loaded = [
+        module_name
+        for module_name in sys.modules
+        if module_name == "faster_whisper" or module_name.startswith("faster_whisper.")
+    ]
+    for module_name in loaded:
+        monkeypatch.delitem(sys.modules, module_name)
+
+
+def test_ensure_local_whisper_installed(
+    monkeypatch: pytest.MonkeyPatch, without_faster_whisper: None
+) -> None:
+    """パッケージがあれば何もしない（正常系）。"""
+    from voice_paste.integrations.whisper.client import ensure_local_whisper_installed
+
+    # 準備: find_spec が spec を返す
+    _patch_find_spec(monkeypatch, SimpleNamespace(name="faster_whisper"))
+
+    # 実行
+    ensure_local_whisper_installed()
+
+    # 検証: 送出せず、faster_whisper を import していない
+    assert "faster_whisper" not in sys.modules
+
+
+def test_ensure_local_whisper_installed_when_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    """パッケージが無ければ extra を入れるよう示して起動の失敗にする（異常系）。"""
+    from voice_paste.integrations.whisper.client import ensure_local_whisper_installed
+    from voice_paste.shared.errors import StartupError
+
+    # 準備: find_spec が None を返す
+    _patch_find_spec(monkeypatch, None)
+
+    # 実行・検証
+    with pytest.raises(StartupError, match="local-whisper"):
+        ensure_local_whisper_installed()

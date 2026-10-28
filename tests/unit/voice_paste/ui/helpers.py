@@ -83,6 +83,8 @@ def make_ui_deps(
         )
     if "hidden_setting_keys" in {field.name for field in dataclasses.fields(UiDepsModel)}:
         fields["hidden_setting_keys"] = frozenset()
+    if "reports_progress" in {field.name for field in dataclasses.fields(UiDepsModel)}:
+        fields["reports_progress"] = True
     fields.update(overrides)
     return UiDepsModel(**fields)
 

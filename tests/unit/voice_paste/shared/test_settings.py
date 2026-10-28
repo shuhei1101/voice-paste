@@ -171,9 +171,9 @@ def test_os_default_when_not_overridden() -> None:
             id="beam_size",
         ),
         pytest.param(
-            '[transcription]\nengine = "openai"\n',
+            '[transcription]\nengine = "gemini"\n',
             r"transcription\.engine",
-            id="engine_openai",
+            id="engine_unknown",
         ),
     ],
 )
@@ -199,9 +199,9 @@ def test_load_settings_when_invalid_value(
             "[recording]\nvolum_percent = 30\n", r"recording\.volum_percent", id="typo"
         ),
         pytest.param(
-            '[transcription.openai]\nmodel = "whisper-1"\n',
-            r"transcription\.openai",
-            id="removed_openai_table",
+            '[transcription.openai]\nmodle = "gpt-4o-mini-transcribe"\n',
+            r"transcription\.openai\.modle",
+            id="openai_typo",
         ),
     ],
 )

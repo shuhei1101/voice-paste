@@ -1,0 +1,89 @@
+title: "OpenAI"
+version:
+  api_version: URL 埋め込み型（/v1）
+  checked_on: '2026-10-28'
+auth:
+  method: Bearer
+  steps: |-
+    1. https://platform.openai.com/api-keys で API キーを発行する
+    2. 開発の端末と常駐アプリを動かす端末の `~/.config/voice-paste/secrets/openai_api_key`（Windows は設定のフォルダの `secrets/openai_api_key`）に、キーだけを書いた権限 600 のファイルとして置く。環境変数で渡すときは OPENAI_API_KEY
+  env_vars:
+    - OPENAI_API_KEY
+  usage: |-
+    ```
+    Authorization: Bearer {API キー}
+    ```
+endpoints:
+  - name: POST /audio/transcriptions
+    method: POST
+    path: /audio/transcriptions
+    summary: 音声のファイルを文字に起こす
+    idempotent: false
+    request:
+      - name: file
+        type: file
+        required: true
+        location: body
+        format: multipart/form-data
+        description: 起こす音声
+        constraints: 25 MB 以下。形式はガイドでは mp3・mp4・mpeg・mpga・m4a・wav・webm、API リファレンスではこれに flac・ogg を加えたもの（常駐アプリはガイドの形式だけを送信する）
+      - name: model
+        type: string
+        required: true
+        location: body
+        description: モデル（gpt-4o-mini-transcribe・gpt-4o-transcribe・whisper-1 など）
+      - name: language
+        type: string
+        required: false
+        location: body
+        description: 音声の言語（ISO-639-1。例 ja）。指定すると精度と速さが上がる
+      - name: prompt
+        type: string
+        required: false
+        location: body
+        description: 表記や文脈の手がかり
+      - name: response_format
+        type: string
+        required: false
+        default: json
+        location: body
+        description: 応答の形式。gpt-4o 系のモデルは json か text
+    response:
+      - name: text
+        type: string
+        description: 起こした文字
+    status_codes:
+      - code: '200'
+        condition: 起こせた
+      - code: '400'
+        condition: 要求が不正（形式・大きさ・パラメータ）
+      - code: '401'
+        condition: API キーが無い・誤り
+      - code: '429'
+        condition: レートの上限か利用の上限に達した
+      - code: 5xx
+        condition: OpenAI 側の障害
+lead: OpenAI のモデルを HTTP で呼ぶ API。音声の文字起こし（Audio API の transcriptions）を含む。
+used_in:
+  - src/voice_paste/integrations/openai/transcriber.py
+verification:
+  state: 済
+  date: '2026-10-28'
+  detail: 外部疎通テスト（tests/external/voice_paste/integrations/openai/test_transcriber.py の test_ext_transcribe）を Windows の開発の端末で 1 回流した。約 3 秒の日本語の WAV を、既定のモデル（gpt-4o-mini-transcribe）・language=ja・prompt 付きで送信し、空でない文字が 1 区間で返った。かかった秒は 1.97。見積もりは約 $0.0002（約 0.03 円）、実費の目安は約 3 秒 × $0.003/分 ≈ $0.00015（約 0.03 円）
+base_urls:
+  - env: 本番
+    url: https://api.openai.com/v1
+official_url: https://openai.com/api/
+docs_url: https://platform.openai.com/docs/api-reference/audio/createTranscription
+terms_url: https://openai.com/policies/
+status_page: https://status.openai.com
+retry: 429（レートの上限）・5xx・タイムアウト・接続の失敗は一時的な失敗として、指数バックオフとジッターで送信し直す。Retry-After があれば従う。回数と待ちは非機能要件が持つ
+pricing:
+  - target: gpt-4o-mini-transcribe
+    price: $0.003 / 分（音声の長さ）
+    notes: 設定の既定のモデル
+pricing_url: https://openai.com/api/pricing/
+error_format: |-
+  ```json
+  {"error": {"message": "...", "type": "invalid_request_error", "param": null, "code": "invalid_api_key"}}
+  ```

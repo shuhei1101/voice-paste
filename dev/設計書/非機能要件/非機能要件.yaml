@@ -525,3 +525,89 @@ requirements:
     refs:
       - dev/設計書/モジュール構成/常駐アプリ/ホットキーと画面.py#constants[HOTKEY_STOP_TIMEOUT_SEC]
     status: planned
+  - name: OpenAIの文字起こしのタイムアウトと再送
+    english_name: openai_transcription_retry
+    category: 耐障害
+    external_constraint: OpenAI は文字起こしの応答時間を保証しない。公式の Python SDK は既定でタイムアウト 600 秒・接続 5 秒・再送 2 回・待ち 0.5 秒から上限 8 秒で、429・5xx・タイムアウト・接続の失敗を再送する
+    source_kind: 外部 API の制限
+    source: https://github.com/openai/openai-python/blob/main/src/openai/_constants.py
+    value: タイムアウト 600 秒・接続 5 秒・再送 2 回・間隔の基数 0.5 秒・待ちの上限 8 秒
+    rationale: 規約『資源の値の決め方』で導く。下流（OpenAI API）の実測が無いため、公開仕様の値として公式の SDK が公開する既定値を使い、コードでは定数で明示する。外部疎通テストでは、約 3 秒の音声で 1.97 秒（2026-10-28、1 回）。実測の p99.9 + 50% への見直しは [#209](https://github.com/shuhei1101/voice-paste/issues/209) で行う。再送は 1 層だけで、指数バックオフとフルジッター（再送の n 回目の前に、0 以上、基数 × 2^(n−1) 以下の乱数の秒数を待つ）にし、Retry-After があれば従う。文字起こしは同じ音声を送り直しても結果が変わらないため再送できる（課金は送信ごとにかかる）
+    measurement: 単体テストで httpx.MockTransport に 503・タイムアウト・429 を返させ、再送の回数と待ちを確かめる。外部疎通テストで実際の応答の秒を記録する
+    overflow: 再送しても失敗したら EngineError にして、文字起こしの失敗として扱う（録音は履歴に残る）
+    breakdown:
+      - part: タイムアウト
+        value: 600 秒
+        notes: 公式の SDK の既定。長い録音（25 MB まで）の送信と処理を含む
+      - part: 接続
+        value: 5 秒
+        notes: 公式の SDK の既定
+      - part: 再送の回数の上限
+        value: 2 回
+        notes: 最初の 1 回と合わせて最大 3 回
+      - part: 間隔の基数
+        value: 0.5 秒
+        notes: 公式の SDK の既定
+      - part: 待ちの上限（Retry-After の上限）
+        value: 8 秒
+        notes: 公式の SDK の既定。Retry-After がこれを超えるときは 8 秒で頭打ちにする
+      - part: 文字起こしの最長
+        value: 1,816 秒
+        notes: 3 回 × 600 秒 + 待ち 8 秒 × 2。待ちが全て上限のとき
+    tests:
+      - name: test_openai_transcription_retry
+        summary: 一時的な失敗を上限まで送信し直す
+        condition: httpx.MockTransport が 500 を 3 回返す。_sleep と _uniform を差し替える
+        measurement: 要求の回数と _uniform に渡った上限
+        expected: 要求は 3 回で、_uniform の上限は 0.5・1.0、EngineError が送出される
+    refs:
+      - dev/設計書/外部API/OpenAI#
+    status: planned
+    introduced:
+      pr: 204
+    test_file: tests/nfr/test_openai_transcription_retry.py
+  - name: OpenAIへ送信する音声の上限
+    english_name: openai_audio_limit
+    category: 性能
+    external_constraint: 音声のファイルは 25 MB 以下。形式はガイドでは mp3・mp4・mpeg・mpga・m4a・wav・webm（API リファレンスは flac・ogg も挙げる）
+    source_kind: 外部 API の制限
+    source: https://platform.openai.com/docs/guides/speech-to-text
+    value: 26,209,484 バイト以下。拡張子が mp3・mp4・mpeg・mpga・m4a・wav・webm
+    unit: バイト
+    rationale: 規約『資源の値の決め方』の外部の上限がある量として、上限から要求の本文の固定の消費分と安全率を引き、送信する前に手元で確かめて弾く（上限が音声のファイルではなく multipart の本文全体と比べられても超えないようにする）。形式は公開された 2 つの一覧のうち狭い方（ガイド）に合わせる。ブラウザの本文の上限（100 MB 未満）より小さいため、この値を超えるブラウザの音声は OpenAI のエンジンではジョブの失敗になる
+    overflow: 送信せずに EngineError にして、文字起こしの失敗として扱う（録音は履歴に残る）
+    tests:
+      - name: test_openai_audio_limit_when_over
+        summary: 上限を 1 バイト超える音声は送信しない
+        condition: 26,209,484 バイトと 26,209,485 バイトの webm
+        measurement: httpx.MockTransport に届いた要求の数
+        expected: 26,209,484 バイトは 1 回届き、届いた要求の本文が 26,214,400 バイト以下。26,209,485 バイトは届かず EngineError
+    refs:
+      - dev/設計書/外部API/OpenAI#
+    status: planned
+    introduced:
+      pr: 204
+    breakdown:
+      - part: 外部の上限
+        value: 26,214,400 バイト
+        notes: 25 MB（25 × 1,048,576）
+      - part: 固定の消費分
+        value: − 4,096 バイト
+        notes: prompt の最大 222 バイト（HINT_MAX_BYTES）と、model・language・response_format・file の各パートの境界・Content-Disposition・Content-Type のヘッダー（パートごとに 200 バイト未満）を含め、切り上げて 4 KiB を見込む
+      - part: 安全率
+        value: − 820 バイト
+        notes: 固定の消費分の 20%（規約『資源の値の決め方』の既定値。819.2 を切り上げ）
+    test_file: tests/nfr/test_openai_audio_limit.py
+  - name: OpenAIの文字起こしの料金
+    english_name: openai_transcription_cost
+    category: コスト
+    external_constraint: gpt-4o-mini-transcribe は音声 1 分あたり $0.003
+    source_kind: 外部 API の制限
+    source: https://openai.com/api/pricing/
+    value: 既定のモデルは gpt-4o-mini-transcribe。常駐アプリは料金の上限を持たない
+    rationale: 文字起こし 1 回の料金は音声の長さで決まり、利用者が契約する OpenAI のアカウントにかかる。上限は利用者が OpenAI の管理画面の利用の上限で持つ（超えると 429 が返り、再送しても失敗したら文字起こしの失敗になる）。送信し直すごとに課金されうるため、再送は一時的な失敗だけにする
+    refs:
+      - dev/設計書/外部API/OpenAI#
+    status: planned
+    introduced:
+      pr: 204

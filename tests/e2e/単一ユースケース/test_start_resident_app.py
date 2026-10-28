@@ -13,6 +13,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import socket
 from collections.abc import Callable, Iterator
 from datetime import date, timedelta
@@ -34,6 +35,7 @@ from tests.support.inprocess import (
     synthesize_speech,
 )
 from tests.support.instances import service_root_count, wait_for_takeover
+from tests.support.openai_endpoint import API_KEY
 from tests.support.real_service import (
     LOOPBACK,
     UNUSED_START_HOTKEY,
@@ -50,6 +52,7 @@ from tests.support.resident_app import (
     UI_TIMEOUT_SEC,
     ResidentApp,
 )
+from voice_paste.integrations.openai.credentials import OPENAI_API_KEY_ENV
 from voice_paste.ui.windows.settings_window import format_hotkey
 
 pytestmark = pytest.mark.real_machine
@@ -58,6 +61,9 @@ RunApp = Callable[..., ResidentApp]
 
 NO_SUCH_MODEL_SETTINGS = '[transcription.local_whisper]\nmodel = "voice-paste-e2e-no-such-model"\n'
 """ローカルの Whisper のモデルに存在しない名前を設定する（文字起こしワーカーがモデルを読み込めずに error を返す）。"""
+
+OPENAI_SETTINGS = '[transcription]\nengine = "openai"\n'
+"""文字起こしのエンジンを OpenAI API にする設定。"""
 
 RETENTION_ONE_DAY_SETTINGS = "[history]\nretention_days = 1\n\n[logging]\nretention_days = 1\n"
 """履歴とログの保持期間を 1 日にする設定。"""
@@ -292,3 +298,80 @@ def test_normal_when_old_ai_chat_settings_remain(
         keys=keys,
         capture_browser=True,
     )
+
+
+def test_normal_when_openai(run_app: RunApp, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """OpenAI API を使う設定では、環境変数が無くても設定の置き場所の API キーのファイルを読んで起動し、文字起こしワーカーを起動せず、録音開始のホットキーで録音が始まり、ログに API キーが書かれない（正常シナリオ（OpenAI API を使う設定））。"""
+    # 準備: 環境変数は渡さず、設定の置き場所の secrets/openai_api_key に API キーだけを書いたファイルを置く
+    monkeypatch.delenv(OPENAI_API_KEY_ENV, raising=False)
+    wav_input = silence_input(tmp_path)
+
+    def prepare(data_dir: Path) -> None:
+        """起動の前に、API キーのファイルを置く。"""
+        key_file = data_dir / "secrets" / "openai_api_key"
+        key_file.parent.mkdir(parents=True)
+        key_file.write_text(f"{API_KEY}\n", encoding="utf-8")
+
+    def case(app: ResidentApp) -> None:
+        """待機中のトレイ・ワーカー・ログ・ホットキーの受付を確かめる。"""
+        # 検証
+        assert app.tray_state() == IDLE
+        assert app.worker_pids() == set()
+        assert any("OpenAI API" in message for message in app.log_messages("INFO"))
+        assert API_KEY not in app.log_text()
+        # 録音開始のホットキーを押すと録音が始まる
+        _start_and_cancel_recording(app)
+        assert wav_input.open_count == 1
+
+    # 実行
+    run_app(case, extra_settings=OPENAI_SETTINGS, prepare=prepare, wav_input=wav_input)
+
+
+def test_error_when_openai_api_key_missing(run_app: RunApp, monkeypatch: pytest.MonkeyPatch) -> None:
+    """OpenAI API を使う設定で API キーが環境変数にもファイルにも無ければ、トレイで起動の失敗が知らされ、ログに読む環境変数の名前とファイルのパスが書かれ、設定を開けて、録音は始まらない（異常シナリオ（OpenAI の API キーが無い））。"""
+    # 準備: 環境変数を渡さず、API キーのファイルも置かない
+    monkeypatch.delenv(OPENAI_API_KEY_ENV, raising=False)
+
+    def case(app: ResidentApp) -> None:
+        """起動に失敗した状態のトレイ・ログ・メニュー・ホットキーの受付を確かめる。"""
+        # 検証
+        key_file = app.data_dir / "secrets" / "openai_api_key"
+        assert app.tray_state() == FAILED
+        errors = app.log_messages("ERROR")
+        assert any(message.startswith("起動に失敗した（") for message in errors)
+        assert any(OPENAI_API_KEY_ENV in message and str(key_file) in message for message in errors)
+        assert app.menu_item_enabled("menu_settings")
+        assert app.hotkeys is None
+        assert app.window("recording_window") is None
+
+    # 実行
+    run_app(case, extra_settings=OPENAI_SETTINGS)
+
+
+def test_error_when_local_whisper_not_installed(
+    run_app: RunApp, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """ローカルの Whisper を使う設定で faster-whisper のパッケージが無ければ、トレイで起動の失敗が知らされ、ログに local-whisper の extra を含めて環境を作り直すことが書かれ、ワーカーは起動せず、設定を開けて、録音は始まらない（異常シナリオ（ローカルの Whisper の依存が入っていない））。"""
+    # 準備: faster-whisper のパッケージを見つけられないように差し替える
+    real_find_spec = importlib.util.find_spec
+
+    def find_spec(name: str, package: str | None = None) -> object | None:
+        """faster_whisper だけ見つからず、ほかは本物で探す。"""
+        if name == "faster_whisper":
+            return None
+        return real_find_spec(name, package)
+
+    monkeypatch.setattr(importlib.util, "find_spec", find_spec)
+
+    def case(app: ResidentApp) -> None:
+        """起動に失敗した状態のトレイ・ログ・ワーカー・メニュー・ホットキーの受付を確かめる。"""
+        # 検証
+        assert app.tray_state() == FAILED
+        assert any("local-whisper" in message for message in app.log_messages("ERROR"))
+        assert app.worker_pids() == set()
+        assert app.menu_item_enabled("menu_settings")
+        assert app.hotkeys is None
+        assert app.window("recording_window") is None
+
+    # 実行: ローカルの Whisper（既定のエンジン）で起動する
+    run_app(case)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import random
 import signal
 import sys
@@ -57,6 +58,7 @@ from voice_paste.features.session import (
     SessionManager,
 )
 from voice_paste.features.session.types import NotifyFn, SessionState
+from voice_paste.features.transcription import EngineFn, EngineName
 from voice_paste.features.transcription.service import transcribe
 from voice_paste.features.web_transcription import (
     GlossaryPresetChoices,
@@ -67,8 +69,14 @@ from voice_paste.features.web_transcription import (
 from voice_paste.integrations.audio.probe import probe_audio
 from voice_paste.integrations.http.client import post_json
 from voice_paste.integrations.keyboard.sender import copy_to_clipboard, send_enter, send_paste
+from voice_paste.integrations.openai.credentials import read_openai_api_key
+from voice_paste.integrations.openai.transcriber import OpenAITranscriber
 from voice_paste.integrations.vad.adapter import StreamingVad, load_vad_session
-from voice_paste.integrations.whisper.client import CREATE_NO_WINDOW, WhisperWorkerClient
+from voice_paste.integrations.whisper.client import (
+    CREATE_NO_WINDOW,
+    WhisperWorkerClient,
+    ensure_local_whisper_installed,
+)
 from voice_paste.runtime.hotkey import HotkeyListener, validate_hotkeys
 from voice_paste.runtime.process import relaunch
 from voice_paste.runtime.settings_store import SettingsStore
@@ -419,29 +427,20 @@ def build_handlers(
     notify_copied: Callable[[str], None],
     *,
     adapters: PlatformAdapters,
+    environ: Mapping[str, str],
 ) -> Handlers:
     """設定からエンジン・録音機・出力先・履歴を組み立て、SessionDeps を作って SessionManager と SessionApiDeps を返す。"""
     # 1. 設定を SettingsStore に入れる。以降の配線は設定を値でなく SettingsStore.get から読む
     store = SettingsStore(settings)
 
-    # 2. 設定のエンジン（local_whisper）のワーカーを作って起動する
-    engine = WhisperWorkerClient(
-        settings=settings.transcription.local_whisper,
-        ready_timeout_sec=WORKER_READY_TIMEOUT_SEC,
-        log_dir=paths.log_dir,
-        stop_timeout_sec=WORKER_STOP_TIMEOUT_SEC,
-        creationflags=adapters.worker_creationflags,
-    )
-    try:
-        engine.start()
-    except EngineError as error:
-        raise StartupError(f"文字起こしのエンジンを準備できませんでした: {error}") from error
+    # 2. 設定のエンジンで、文字起こしの関数と、エンジンを止める関数を作る
+    engine, stop_engine = _build_engine(settings, paths, adapters, environ)
 
     # 3. 連続録音の話し声の判定に使う VAD のセッションを 1 回だけ読む（読めなければ立ち上げたエンジンを止めて起動の失敗にする）
     try:
         vad_session = load_vad_session()
     except StartupError:
-        engine.stop()
+        stop_engine()
         raise
 
     # 4. 録音機に OS ごとの音量とマイクの入力の関数と、SettingsStore から録音の設定を返す関数と、VAD のセッションを部分適用した話し声の判定を作る関数を渡す
@@ -507,7 +506,7 @@ def build_handlers(
             now=_local_now,
         ),
         transcribe=partial(
-            transcribe, engine=engine.transcribe, get_hint=partial(_current_hint, store)
+            transcribe, engine=engine, get_hint=partial(_current_hint, store)
         ),
         correct=correct,
         append_text=partial(append_text, paths=paths),
@@ -559,7 +558,7 @@ def build_handlers(
         WebTranscriptionDeps(
             store_audio=store_web_audio_now,
             transcribe=partial(
-                transcribe, engine=engine.transcribe, get_hint=partial(_current_hint, store)
+                transcribe, engine=engine, get_hint=partial(_current_hint, store)
             ),
             correct=correct,
             append_text=partial(append_text, paths=paths),
@@ -584,8 +583,45 @@ def build_handlers(
             start_local_session, session_manager=session_manager, notify=notify
         ),
         recorder_level=recorder.level,
-        stop_engine=engine.stop,
+        stop_engine=stop_engine,
     )
+
+
+def _build_engine(
+    settings: Settings,
+    paths: AppPaths,
+    adapters: PlatformAdapters,
+    environ: Mapping[str, str],
+) -> tuple[EngineFn, Callable[[], None]]:
+    """設定のエンジンで、文字起こしの関数と、エンジンを止める関数を作る。準備できなければ StartupError。"""
+    # 設定のエンジンは何か
+    if EngineName(settings.transcription.engine) is EngineName.OPENAI:
+        # OpenAI API: API キーを読み、OpenAI API の文字起こしを作る（文字起こしワーカーは起動せず、止めるものも無い）
+        transcriber = OpenAITranscriber(
+            settings=settings.transcription.openai,
+            api_key=read_openai_api_key(paths.openai_api_key_file, environ),
+        )
+        logger.info(f"文字起こしのエンジンは OpenAI API（{settings.transcription.openai.model}）")
+        return transcriber.transcribe, _stop_nothing
+
+    # ローカルの Whisper: 依存が入っているかを確かめ、ワーカーを作って起動する
+    ensure_local_whisper_installed()
+    worker = WhisperWorkerClient(
+        settings=settings.transcription.local_whisper,
+        ready_timeout_sec=WORKER_READY_TIMEOUT_SEC,
+        log_dir=paths.log_dir,
+        stop_timeout_sec=WORKER_STOP_TIMEOUT_SEC,
+        creationflags=adapters.worker_creationflags,
+    )
+    try:
+        worker.start()
+    except EngineError as error:
+        raise StartupError(f"文字起こしのエンジンを準備できませんでした: {error}") from error
+    return worker.transcribe, worker.stop
+
+
+def _stop_nothing() -> None:
+    """止めるものが無いエンジン（OpenAI API）の停止の代わりに、何もしない。"""
 
 
 def start_local_session(
@@ -785,7 +821,13 @@ def build_ui_deps(
         ),
         copy=copy_to_clipboard,
         hidden_setting_keys=OS_HIDDEN_SETTING_KEYS.get(CURRENT_OS, frozenset()),
+        reports_progress=_reports_progress(store.get()),
     )
+
+
+def _reports_progress(settings: Settings) -> bool:
+    """設定のエンジンが、区間ごとの進みを知らせるか（ローカルの Whisper は知らせ、OpenAI API は知らせない）。"""
+    return EngineName(settings.transcription.engine) is EngineName.LOCAL_WHISPER
 
 
 def _apply_current_theme(
@@ -848,6 +890,7 @@ def _build_idle_ui_deps(
         ),
         copy=copy_to_clipboard,
         hidden_setting_keys=OS_HIDDEN_SETTING_KEYS.get(CURRENT_OS, frozenset()),
+        reports_progress=_reports_progress(store.get()),
     )
 
 
@@ -1030,7 +1073,13 @@ def _start_services(
     # 7. 配線する（エンジンを準備できなければトレイを失敗にして知らせ、設定画面だけを使えるようにする）
     try:
         handlers = build_handlers(
-            settings, paths, ui_notify, ui_report_progress, ui_notify_copied, adapters=adapters
+            settings,
+            paths,
+            ui_notify,
+            ui_report_progress,
+            ui_notify_copied,
+            adapters=adapters,
+            environ=os.environ,
         )
     except StartupError as error:
         logger.error(f"起動に失敗した（{error}）")

@@ -177,6 +177,98 @@ scenarios:
       - そのボタンで確定すると、送信先の URL を開いて貼り付け、Enter まで送信する
       - 起動しただけでは `settings.toml` が書き換わっていない
     test: test_normal_when_old_ai_chat_settings_remain
+  - name: 正常シナリオ（OpenAI API を使う設定）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は無音の WAV
+      - name: 文字起こしのエンジン
+        description: OpenAI API を使う設定にし、設定の置き場所の `secrets/openai_api_key` に API キーの文字列だけを書いたファイルを置く
+        notes: 環境変数 `OPENAI_API_KEY` は渡さない
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SVC as 常駐サービス
+        participant KEY as API キーのファイル
+        participant TRAY as トレイ
+
+        U->>SVC: 起動する
+        Note over SVC: 準備中のアイコンを出すまでは 正常シナリオ と同じ
+        SVC->>SVC: 環境変数 OPENAI_API_KEY が無い
+        SVC->>KEY: API キーを読む
+        KEY-->>SVC: API キー
+        SVC->>SVC: OpenAI API のエンジンを作る（文字起こしワーカーは起動しない）
+        Note over SVC: トークンを作るところからは 正常シナリオ と同じ
+        SVC->>TRAY: 待機中のアイコンにする
+      ```
+    expected:
+      - トレイのアイコンが待機中になっている
+      - 録音開始のホットキーを押すと録音が始まる
+      - 文字起こしワーカーの子プロセスが動いていない
+      - ログにエンジンが OpenAI API であることが書かれ、API キーが書かれていない
+    test: test_normal_when_openai
+    notes:
+      API キーの読み先: 環境変数 `OPENAI_API_KEY` があればそれを使い、無ければ設定の置き場所（Windows は `%APPDATA%\voice-paste\`、Linux は `~/.config/voice-paste/`）の `secrets/openai_api_key` を読む。ファイルの前後の空白と改行は除く。起動時はキーを読めるかだけを確かめ、OpenAI API へは送信しない。
+      依存: faster-whisper・nvidia-* を入れていない仮想環境でも同じ流れで起動する。
+  - name: 異常シナリオ（OpenAI の API キーが無い）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: '-'
+      - name: API キーの欠落
+        description: OpenAI API を使う設定にし、環境変数 `OPENAI_API_KEY` も `secrets/openai_api_key` も置かない
+        notes: '-'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SVC as 常駐サービス
+        participant TRAY as トレイ
+        participant LOG as ログ
+
+        U->>SVC: 起動する
+        SVC->>TRAY: 準備中のアイコンを出す
+        SVC->>SVC: 環境変数にもファイルにも API キーが無い
+        SVC->>LOG: 起動に失敗した理由（読んだ環境変数の名前とファイルのパス）を書く
+        SVC->>TRAY: 失敗のアイコンにし、起動に失敗したことを通知する
+      ```
+    expected:
+      - トレイで起動に失敗したことが知らされている
+      - ログに、API キーを読む環境変数の名前とファイルのパスが書かれている
+      - 常駐サービスのプロセスは終わらず、トレイのメニューから設定を開ける
+      - 録音開始のホットキーを押しても録音が始まらない
+    test: test_error_when_openai_api_key_missing
+    notes:
+      ファイルが空: ファイルはあるが空白だけのときも同じ扱いになる。
+  - name: 異常シナリオ（ローカルの Whisper の依存が入っていない）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: faster-whisper のパッケージを見つけられないように差し替える
+      - name: 文字起こしのエンジン
+        description: ローカルの Whisper を使う設定にする
+        notes: '-'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SVC as 常駐サービス
+        participant TRAY as トレイ
+        participant LOG as ログ
+
+        U->>SVC: 起動する
+        SVC->>TRAY: 準備中のアイコンを出す
+        SVC->>SVC: faster-whisper のパッケージが見つからない（文字起こしワーカーは起動しない）
+        SVC->>LOG: 起動に失敗した理由と、local-whisper の extra を含めて環境を作り直すことを書く
+        SVC->>TRAY: 失敗のアイコンにし、起動に失敗したことを通知する
+      ```
+    expected:
+      - トレイで起動に失敗したことが知らされている
+      - ログに、local-whisper の extra を含めて環境を作り直すことが書かれている
+      - 文字起こしワーカーの子プロセスが動いていない
+      - 常駐サービスのプロセスは終わらず、トレイのメニューから設定を開ける
+    test: test_error_when_local_whisper_not_installed
 lead: '常駐サービスを起動し、文字起こしのエンジン・API の待ち受け・ホットキーの受付を立てて、録音の開始を待つ状態にする単一ユースケース。'
 issue: 14
 primary_actor: 音声入力を使うユーザー

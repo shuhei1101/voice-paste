@@ -16,7 +16,7 @@ dependencies = [
     "pynput~=1.7",
     "nvidia-cublas-cu12",
     "nvidia-cudnn-cu12>=9,<10",
-    "pycaw==20251023",
+    "pycaw==20251023; sys_platform == \"win32\"",
     "fastapi~=0.142.2",
     "uvicorn~=0.54.0",
     "httpx~=0.28.1",
@@ -25,7 +25,7 @@ dependencies = [
     "platformdirs~=4.12",
     "numpy~=2.4",
     "onnxruntime~=1.25",
-    "comtypes~=1.4",
+    "comtypes~=1.4; sys_platform == \"win32\"",
     "pyside6-essentials~=6.11.2",
     "python-multipart~=0.0.32",
 ]
@@ -34,7 +34,7 @@ dependencies = [
 dev = [
     "pytest~=9.1",
     "import-linter~=2.15",
-    "pywin32~=312.0",
+    "pywin32~=312.0; sys_platform == \"win32\"",
 ]
 
 [project.scripts]

@@ -6,6 +6,7 @@ import html
 import logging
 import re
 from collections.abc import Callable, Mapping
+from functools import reduce
 from typing import TYPE_CHECKING, Any, Literal, TypeAliasType, get_args, get_origin
 
 from pydantic import ValidationError
@@ -604,6 +605,7 @@ class SettingsWindow(QWidget):
         self._settings_model = type(self._original)
         self._fields: list[Field] = []
         self._static: dict[str, Any] = {}
+        self._hidden_values: dict[str, Any] = {}
         self._panels: dict[str, PresetListPanel] = {}
         self._panel_groups: dict[str, int] = {}
         self._glossary_panel: GlossaryPanel | None = None
@@ -721,12 +723,19 @@ class SettingsWindow(QWidget):
         self._glossary_panel = None
         self._hint_panel = None
         self._edge_panel = None
+        # この OS で出さない設定は欄を置かず、渡された設定の値を collect でそのまま返す
+        self._hidden_values = {
+            key: reduce(getattr, key.split("."), settings) for key in self._deps.hidden_setting_keys
+        }
 
         # 2. まとまりごとの頁に、並びのとおり欄を追加する
         for group, name in enumerate(GROUP_NAMES):
             layout = QVBoxLayout()
             layout.setSpacing(12)
             for key in FIELD_LAYOUT[name]:
+                if key in self._hidden_values:
+                    # 出さない設定: 欄を置かない
+                    continue
                 if key == OUTPUTS_FIELD_NAME:
                     self._add_outputs(layout, settings, group)
                 elif key == PRESETS_FIELD_NAME:
@@ -1059,6 +1068,9 @@ class SettingsWindow(QWidget):
             set_nested(data, key, value)
         for field in self._all_fields():
             set_nested(data, field.key, field.get())
+        # 出さない設定は、開いたときの値をそのまま入れる（settings.toml の値を保つ）
+        for key, value in self._hidden_values.items():
+            set_nested(data, key, value)
         # プリセットは、種類のタブの並びの順に 1 つの一覧にする
         data[PRESETS_FIELD_NAME] = [item for _kind, _position, item in self._preset_values()]
         # 用語集は、一覧と用語集のプリセットと補正に使うプリセットを入れる（glossary_path と active_glossary は置かない）

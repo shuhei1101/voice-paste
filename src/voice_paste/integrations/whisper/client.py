@@ -48,14 +48,16 @@ class WhisperWorkerClient:
         ready_timeout_sec: float,
         log_dir: Path,
         stop_timeout_sec: float,
+        creationflags: int = 0,
     ) -> None:
-        """設定・立て直しで ready を待つ上限・ワーカーのログの置き場所・終わりを待つ時間を受ける。"""
+        """設定・立て直しで ready を待つ上限・ワーカーのログの置き場所・終わりを待つ時間・子プロセスの起動のフラグを受ける。"""
         self._process: subprocess.Popen[str] | None = None
         self._messages: queue.Queue[WorkerMessage | None] = queue.Queue()
         self._settings = settings
         self._ready_timeout_sec = ready_timeout_sec
         self._log_dir = log_dir
         self._stop_timeout_sec = stop_timeout_sec
+        self._creationflags = creationflags
         # stop で止めている最中か。立っている間は子プロセスが終わっても立て直さない（start で下ろす）
         self._stopping = False
         # 立て直しの中から start を呼ぶため、再入できるロックにする
@@ -77,7 +79,7 @@ class WhisperWorkerClient:
                 text=True,
                 encoding=WORKER_ENCODING,
                 bufsize=1,
-                creationflags=CREATE_NO_WINDOW if sys.platform == "win32" else 0,
+                creationflags=self._creationflags,
             )
             self._process = process
             self._messages = queue.Queue()

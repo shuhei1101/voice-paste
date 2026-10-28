@@ -92,6 +92,7 @@ categories:
   - name: 起動・停止
     prerequisites:
       - Ubuntu 24.04 の Xorg のセッションの端末で、『環境構築（クローン直後）』を流しておく
+      - Qt の xcb プラグインが使う `libxcb-cursor0` を `sudo apt install libxcb-cursor0` で入れておく
     commands: |-
       1. 常駐サービスを起動する
 

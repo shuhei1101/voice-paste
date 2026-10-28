@@ -91,7 +91,7 @@ classes:
                - `[ERROR]` ホットキーの処理で想定外の例外（ホットキー。logger.exception）
           3. 新しい受付を先に作る（`GlobalHotKeys(包んだ組)`。作るときに pynput が書式を確かめる）
              - ValueError（書式を読めない）の場合、動いている受付をそのままにして HotkeyError を送出する
-          4. 動いている受付があれば止め、スレッドの終わりを待つ
+          4. 動いている受付があれば止め、スレッドの終わりを HOTKEY_STOP_TIMEOUT_SEC まで待つ（上限を過ぎたら stop と同じく手放して進む）
           5. 新しい受付を始める
              - `[INFO]` ホットキーの受付を始めた（ホットキーの一覧）
         exceptions:
@@ -132,7 +132,7 @@ classes:
             exception: 書式を読めない
       - name: stop
         title: 受付の停止
-        summary: 受付を止め、スレッドの終わりを待つ。動いていなければ何もしない
+        summary: 受付を止め、スレッドの終わりを HOTKEY_STOP_TIMEOUT_SEC まで待つ。上限を過ぎたら WARNING のログを書き、スレッドを手放して戻る。動いていなければ何もしない
         kind: メソッド
         scope: public
         thread_safe: true
@@ -146,6 +146,12 @@ classes:
             condition: start の後に stop を 2 回呼ぶ
             mock: keyboard.GlobalHotKeys
             expected: 受付の stop と join が 1 回ずつ呼ばれ、2 回目は例外が出ない
+          - name: test_stop_when_join_timed_out
+            case: 正常
+            summary: スレッドが上限までに終わらなくても戻る
+            condition: start の後、差し替えた GlobalHotKeys の join が戻っても is_alive が True を返す状態で stop を呼ぶ
+            mock: keyboard.GlobalHotKeys
+            expected: join に timeout=HOTKEY_STOP_TIMEOUT_SEC が渡り、例外が出ず、WARNING のログが 1 行出て、もう一度 start すると新しい受付だけが動いている
       - name: __init__
         title: 受付の用意
         summary: 受付はまだ始めない
@@ -3234,6 +3240,13 @@ constants:
     summary: 録音の画面を作業領域の端に置くときに空ける余白（論理ピクセル）
     value: '24'
     status: implemented
+  - name: HOTKEY_STOP_TIMEOUT_SEC
+    title: ホットキーの受付の終わりを待つ上限
+    container: runtime/hotkey.py
+    usecase: 録音する
+    summary: HotkeyListener が止めた受付のスレッドの終わりを待つ上限（秒）。Linux の pynput は次のキー入力まで終わらないため、上限で手放す。値は非機能要件『ホットキーの受付の終わりを待つ時間』
+    value: '0.5'
+    status: planned
 test_files:
   - tests/unit/voice_paste/runtime/test_hotkey.py
   - tests/unit/voice_paste/ui/test_bridge.py

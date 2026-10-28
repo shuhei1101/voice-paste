@@ -16,10 +16,10 @@ directory: |-
 
   リポジトリの直下は `pyproject.toml`・`uv.lock`・`.python-version`・起動のバッチファイル 1 つ・`settings.sample.toml`・`README.md`・`CLAUDE.md`・`src/`・`resources/`・`tests/`・`dev/`・`docs/` に絞る。
 
-  動かす環境は、リポジトリの直下で Windows の uv（WSL からは `uv.exe`）で `uv sync --frozen` を流して `.venv/` に作る（`uv.lock` のバージョンで入り、Python のバージョンは `.python-version` の 3.14）。
+  動かす環境は、リポジトリの直下で Windows の uv（WSL からは `uv.exe`）で `uv sync --frozen` を流して `.venv/` に作り、ローカルの Whisper（faster-whisper・nvidia-*）を使う環境は `--extra local-whisper` を付けて流す（`uv.lock` のバージョンで入り、Python のバージョンは `.python-version` の 3.14）。
   Windows のクローンで WSL の uv で流すと `.venv/` を Linux の構成に作り直すため、Windows のクローンの環境を作るコマンドと環境で流すコマンドは Windows の uv で流す（`uv lock` はどちらでもよい）。
   Ubuntu のクローンでは、Linux の uv で `uv sync --frozen` を流して `.venv/` を作り、`.venv/bin/python -m voice_paste` で起動する（`pycaw`・`comtypes`・`pywin32` は `sys_platform == "win32"` の条件で入らない）。
-  起動のバッチファイル（`voice-paste.bat`）は、起動のたびにリポジトリの直下で `uv sync --frozen` を流し、`.venv/` を `uv.lock` に揃える（揃っていれば何も書き換えずに終わる）。uv は PATH から探し、無ければ `%USERPROFILE%\.local\bin\uv.exe` を使う。
+  起動のバッチファイル（`voice-paste.bat`）は、起動のたびにリポジトリの直下で `uv sync --frozen --extra local-whisper` を流し、`.venv/` を `uv.lock` に揃える（揃っていれば何も書き換えずに終わる）。uv は PATH から探し、無ければ `%USERPROFILE%\.local\bin\uv.exe` を使う。
   `uv sync --frozen` を流す前に、コンソールに `Syncing .venv with uv sync --frozen. See log: {launcher.log のパス}` を表示する。
   続けて `.venv\Scripts\python.exe -c "import voice_paste"` で `.venv` から voice_paste を import できるかを確かめる（`.venv` のフォルダや `python.exe` があるかでは判定しない）。
   uv が見つからないときは `uv sync --frozen` を飛ばして `launcher.log` にその旨を書き、import できれば起動する。

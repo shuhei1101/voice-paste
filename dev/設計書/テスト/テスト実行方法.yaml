@@ -105,7 +105,7 @@ layers:
       ```
     results: '`uv lock --check` は食い違いがあれば差分を出して終了コード 1。`lint-imports` は契約ごとの KEPT / BROKEN と、破った import の行を標準出力に出す（破れていれば終了コード 1）。`npm run typecheck`・`npm run lint` は違反の行を出して終了コード 1。`git diff --exit-code` はコミットした `app.js` が再生成したものと違えば差分を出して終了コード 1'
 prerequisites:
-  - リポジトリの直下で Windows の uv（WSL からは `uv.exe`）の `uv sync --frozen` を流し、`.venv/` に環境を作る（`uv.lock` のバージョンで入る。pytest と import-linter と pywin32 は pyproject.toml の `[dependency-groups]` の dev から入る）
+  - リポジトリの直下で Windows の uv（WSL からは `uv.exe`）の `uv sync --frozen --extra local-whisper` を流し、`.venv/` に環境を作る（`uv.lock` のバージョンで入る。pytest と import-linter と pywin32 は pyproject.toml の `[dependency-groups]` の dev から入る。`local-whisper` の extra は E2E・非機能要件テストがローカルの Whisper で起こすために含める。単体テストと結合テストは extra を含めない `uv sync --frozen` で作った環境でも通る）
   - 実機のテスト（E2E・非機能要件テスト）が起こす常駐アプリは、`tests/conftest.py` の `QT_QPA_PLATFORM=offscreen` のまま起動し、実機の画面に出さない（別プロセスで起動するもの・再起動で起動するものも同じ）
   - Ubuntu 24.04 のクローンでは、リポジトリの直下で Linux の uv の `uv sync --frozen` を流して `.venv/` を作り（開発コマンド『環境構築（クローン直後）』）、種別のコマンドの `.venv/Scripts/python.exe` は `.venv/bin/python` に、`.venv/Scripts/lint-imports` は `.venv/bin/lint-imports` に読み替える
   - SAPI を使う `tests/support/inprocess.py` に依存するテスト（E2E・非機能要件テスト）は Linux では skip する

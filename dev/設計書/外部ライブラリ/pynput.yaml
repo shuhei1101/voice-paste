@@ -28,9 +28,14 @@ adoption: 採用
 used_in:
   - src/voice_paste/runtime/hotkey.py
   - src/voice_paste/integrations/keyboard/sender.py
+  - src/voice_paste/integrations/keyboard/sender_linux.py
 upstream: moses-palmer/pynput
 verification:
   state: 未確認
   detail: keyboard.Controller の生成と keyboard.Key の ctrl・shift・alt・cmd・enter が 1.8.1 で引けることだけ確かめた（2026-10-02）。キーを送信して貼り付け先で受かるかは、今のアクティブなウィンドウへ入力が飛んで使っている画面を壊すため、動かしていない
 license: LGPL-3.0（商用利用可。ライブラリを差し替えられる形で配布する義務がある）
 official_url: https://github.com/moses-palmer/pynput
+limitations:
+  - item: Xorg のキーの送り方
+    content: Xorg の Controller は、vk を持つキー（修飾キー・`Key.insert` などの名前のあるキー・`KeyCode.from_vk` で作ったキー）を XTEST で、文字で渡したキー（`press("v")`）を XSendEvent で送る（1.8.2 の `pynput/keyboard/_xorg.py` の `Controller._handle`）。GTK4 のアプリ（GNOME Text Editor 等）は XSendEvent のキーを受け付けない
+    notes: 主キーを `KeyCode.from_vk(ord(文字))`（Xorg では vk が keysym）で渡すと XTEST で送られ、GTK4 のアプリも受け付ける（[#211](https://github.com/shuhei1101/voice-paste/pull/211) の PoC）。send_paste_linux がこの渡し方を使う

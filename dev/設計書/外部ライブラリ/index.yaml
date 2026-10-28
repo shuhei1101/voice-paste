@@ -48,3 +48,5 @@ items:
     summary: 連続録音の話し声を Silero VAD の ONNX で判定する
   - page: python-multipart.yaml
     summary: ブラウザから送信された multipart の音声を FastAPI の UploadFile で受け取る
+  - page: python-xlib.yaml
+    summary: Linux でアクティブなウィンドウの WM_CLASS を Xorg から読む

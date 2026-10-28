@@ -15,6 +15,7 @@ from unittest.mock import MagicMock
 import pytest
 from PySide6.QtCore import QPoint, QRect, QRegularExpression, QSize, Qt
 from PySide6.QtGui import QFontMetrics, QImage
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QFrame, QLabel, QProgressBar, QPushButton
 
 from tests.unit.voice_paste.ui.helpers import OUTPUT_TITLES, FakeClock, make_ui_deps
@@ -294,6 +295,28 @@ def test_open_when_reopened(
     assert len(reopened_widths) == REOPEN_TIMES
     assert set(reopened_widths) == {first_width}
     assert _free_space_right_of_last(indicator, buttons) >= 0
+
+
+def test_open_when_progress_not_reported(qapp: QApplication, tmp_path: Path) -> None:
+    """進みを知らせないエンジンのときは経過だけを出す（正常系）。"""
+    from voice_paste.ui.windows.transcribing_indicator import TICK_MSEC, TranscribingIndicator
+
+    # 準備: 設定の transcription.engine は local_whisper のまま、UiDeps.reports_progress だけを False にする
+    clock = FakeClock(0.0)
+    indicator = TranscribingIndicator(
+        make_ui_deps(tmp_path, reports_progress=False), clock=clock
+    )
+
+    # 実行: 開いて、経過 1.4 秒で時間の文字が書き換わるまで待つ
+    indicator.open()
+    clock.now = 1.4
+    QTest.qWait(TICK_MSEC * 3)
+
+    # 検証
+    progress_bar = indicator.findChild(QProgressBar, "progress_bar")
+    time_label = indicator.findChild(QLabel, "time_label")
+    assert time_label.text() == "経過 1.4 秒"
+    assert not progress_bar.isVisible()
 
 
 def test_set_progress(qapp: QApplication, tmp_path: Path) -> None:

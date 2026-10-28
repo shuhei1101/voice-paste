@@ -1209,6 +1209,23 @@ def test_to_field_message_when_preset_url_empty(settings_model: type[Settings]) 
     assert message == "URL を入れてください（例: https://example.com/hook）。"
 
 
+def test_to_field_message_when_openai_base_url_empty(settings_model: type[Settings]) -> None:
+    """OpenAI の API の URL が空（正常系）。"""
+    from pydantic import ValidationError
+
+    from voice_paste.ui.windows.settings_window import to_field_message
+
+    # 準備
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate({"transcription": {"openai": {"base_url": ""}}})
+
+    # 実行
+    message = to_field_message(exc_info.value.errors()[0], model=settings_model)
+
+    # 検証
+    assert message == "API の URL を入れてください（例: https://api.openai.com/v1）。"
+
+
 def test_to_field_message_when_hint_too_long(settings_model: type[Settings]) -> None:
     """有効なヒントが長すぎる（正常系）。"""
     from pydantic import ValidationError

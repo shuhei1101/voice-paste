@@ -16,6 +16,7 @@ def test_resolve_app_paths_when_data_dir(tmp_path: Path) -> None:
 
     # 検証（全てが data_dir の下で、フォルダは作られない）
     assert paths.settings_file == tmp_path / "settings.toml"
+    assert paths.openai_api_key_file == tmp_path / "secrets" / "openai_api_key"
     assert paths.history_dir == tmp_path / "history"
     assert paths.log_dir == tmp_path / "log"
     assert paths.tmp_dir == tmp_path / "tmp"
@@ -66,6 +67,7 @@ def test_resolve_app_paths_when_default(
 
     # 検証
     assert paths.settings_file == config_dir / "settings.toml"
+    assert paths.openai_api_key_file == config_dir / "secrets" / "openai_api_key"
     assert paths.history_dir == local_dir / "history"
     assert paths.log_dir == local_dir / "log"
     assert paths.tmp_dir == local_dir / "tmp"

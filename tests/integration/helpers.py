@@ -730,7 +730,6 @@ def build_output_stack(
     monkeypatch.setattr(main_module, "copy_to_clipboard", adapters.copy_to_clipboard)
     monkeypatch.setattr(main_module, "send_paste", adapters.send_paste)
     monkeypatch.setattr(main_module, "send_enter", adapters.send_enter)
-    monkeypatch.setattr(main_module, "open_app_window", adapters.open_app_window)
     # main.py が出力先へ渡す time.sleep だけを差し替える（待つ側の time.sleep は本物のまま）
     monkeypatch.setattr(main_module, "time", SimpleNamespace(sleep=adapters.sleep))
 
@@ -757,7 +756,7 @@ def build_output_stack(
         _deliver_session,
         enabled_ids=enabled_ids,
         outputs=_wire_outputs(output_deps, OUTPUTS),
-        preset_kinds=_wire_preset_kinds(lambda: settings),
+        preset_kinds=_wire_preset_kinds(lambda: settings, open_window=adapters.open_app_window),
     )
     deps = SessionDeps(
         start_recording=recorder.start,

@@ -105,7 +105,7 @@ categories:
     verification:
       state: 済
       date: '2026-10-28'
-      detail: Windows の uv（WSL からは `uv.exe`）で、作業ツリー（feat/transcription/openai-engine）に新しい `.venv/` を `uv sync --frozen` で作り、extra を含めない環境に faster-whisper が入らないこと（`importlib.util.find_spec("faster_whisper")` が None）と、その環境で単体テストと結合テスト（1394 passed、12 skipped）が通ることを確かめた。`uv sync --frozen --extra local-whisper` では faster-whisper と nvidia-* が入ることを確かめた。Ubuntu 24.04 の VM では、extra を含めない構成を確かめていない
+      detail: 検証環境の VM（Ubuntu 24.04・uv 0.13.6）の新しいフォルダに作業ツリー（feat/platform/linux-startup）の追跡ファイルを置いて `uv sync --frozen` を流し、成功することを確かめた（faster-whisper を extra へ移す前の構成）。`pycaw`・`comtypes`・`pywin32` は入らず、dev グループの `pytest`・`import-linter` は入る。続けて VM で単体テスト（684 passed、21 skipped）と `lint-imports`（4 契約とも KEPT）を流した。extra へ移した後は、Windows の uv（WSL からは `uv.exe`）で、作業ツリー（feat/transcription/openai-engine）に新しい `.venv/` を `uv sync --frozen` で作り、extra を含めない環境に faster-whisper が入らないこと（`importlib.util.find_spec("faster_whisper")` が None）と、その環境で単体テストと結合テスト（1394 passed、12 skipped）が通ることを確かめた。`uv sync --frozen --extra local-whisper` では faster-whisper と nvidia-* が入ることを確かめた。Ubuntu 24.04 の VM では、extra を含めない構成を確かめていない
   - name: 起動・停止
     prerequisites:
       - Ubuntu 24.04 の Xorg のセッションの端末で、『環境構築（クローン直後）』を流しておく

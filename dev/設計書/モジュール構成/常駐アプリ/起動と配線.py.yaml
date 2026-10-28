@@ -1517,3 +1517,4 @@ test_files:
   - tests/unit/voice_paste/runtime/test_settings_store.py
   - tests/unit/voice_paste/runtime/test_process.py
   - tests/unit/voice_paste/runtime/test_single_instance.py
+  - tests/unit/voice_paste/runtime/test_single_instance_linux.py

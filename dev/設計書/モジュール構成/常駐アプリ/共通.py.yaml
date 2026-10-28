@@ -1833,6 +1833,7 @@ test_files:
   - tests/unit/voice_paste/shared/test_settings.py
   - tests/unit/voice_paste/shared/test_logger.py
   - tests/unit/voice_paste/shared/test_constants.py
+  - tests/unit/voice_paste/shared/test_os_kind.py
 function_types:
   - name: ProgressFn
     title: 文字起こしの進みの知らせ先

@@ -1102,11 +1102,12 @@ notes:
     | 録音 | `recording.lower_volume`・`recording.hide_window` | チェックボックス |
     | 録音 | `recording.volume_percent` | つまみ（0〜100、右に %） |
     | 録音 | `recording.fade_sec` | 数値の欄 |
-    | 文字起こし（エンジン） | `transcription.engine`・`transcription.local_whisper.model` | 選択の欄 |
+    | 文字起こし（エンジン） | `transcription.engine`・`transcription.local_whisper.model` | 選択の欄。`transcription.engine` の選択肢は「ローカルの Whisper」（`local_whisper`）・「OpenAI API」（`openai`） |
     | 文字起こし（エンジン） | `transcription.local_whisper.device`・`transcription.local_whisper.compute_type` | ラジオボタン |
     | 文字起こし（エンジン） | `transcription.local_whisper.language` | 文字の欄 |
     | 文字起こし（詳しい調整） | `transcription.local_whisper` の cpu_threads・num_workers・beam_size・best_of・temperature・no_speech_threshold・vad_threshold・vad_min_speech_ms・vad_min_silence_ms | 数値の欄 |
     | 文字起こし（詳しい調整） | `transcription.local_whisper` の condition_on_previous_text・vad_filter | チェックボックス |
+    | 文字起こし（OpenAI API） | `transcription.openai.model`・`transcription.openai.language`・`transcription.openai.base_url` | 文字の欄。補助文「文字起こしのエンジンが OpenAI API のときに使う。API キーはここでは入れず、環境変数 OPENAI_API_KEY か secrets フォルダの openai_api_key に置く。」 |
     | 表記のヒント | `hint_presets[]`（name・words・enabled） | 有効なヒントの長さと、ヒントのプリセットの一覧 |
     | 用語集 | `glossary_presets[]`（name・glossaries）・`active_glossary_preset` | 用語集のプリセットの一覧と、選んだプリセットの使う用語集の表 |
     | 用語集 | `glossaries[]`（name・path）と、用語集の CSV の行（誤変換・正しい表記・オン・オフ） | 用語集の一覧と、選んだ用語集の行の表 |

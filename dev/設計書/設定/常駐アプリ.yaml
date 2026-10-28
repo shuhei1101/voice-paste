@@ -740,10 +740,11 @@ settings:
     title: OpenAI のモデル
     file: settings.toml
     type: string
-    description: OpenAI API の文字起こしに使うモデル。既定のモデルはユーザーの確認待ち（[要件](../../pr/204/要件.md) の `## 要望` の `未確定`）。
+    description: OpenAI API の文字起こしに使うモデル。
     reload: restart
     status: planned
     implementation: src/voice_paste/shared/settings.py
+    default: gpt-4o-mini-transcribe
   - key: transcription.openai.language
     title: OpenAI の言語
     file: settings.toml

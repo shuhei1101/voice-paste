@@ -1,0 +1,48 @@
+前提: uv sync --frozen --extra local-whisper で .venv を作り、npm ci を流した後に回した（uv.exe は Windows の uv）
+コミット: 831a336
+
+$ uv lock --check
+Resolved 75 packages in 1ms
+終了コード: 0
+
+$ .venv/Scripts/lint-imports
+=============
+Import Linter
+=============
+
+
+---------
+Contracts
+---------
+
+Analyzed 108 files, 231 dependencies.
+-------------------------------------
+
+層の向き KEPT
+feature の独立 KEPT
+出力先の独立 KEPT (13 ignored imports)
+画面から feature の中へ KEPT (1 ignored import)
+
+Contracts: 4 kept, 0 broken.
+終了コード: 0
+
+$ npm run typecheck
+
+> typecheck
+> tsc -p tsconfig.json --noEmit
+
+終了コード: 0
+
+$ npm run lint
+
+> lint
+> eslint src/voice_paste/server/web
+
+終了コード: 0
+
+$ npm run build && git diff --exit-code -- src/voice_paste/server/web/assets/app.js
+
+> build
+> tsc -p tsconfig.build.json
+
+終了コード: 0

@@ -1,5 +1,5 @@
 前提: uv sync --frozen --extra local-whisper で .venv を作り、npm ci を流した後に回した（uv.exe は Windows の uv）
-コミット: 831a336
+コミット: 5d4ef64
 
 $ uv lock --check
 Resolved 75 packages in 1ms
@@ -30,19 +30,16 @@ $ npm run typecheck
 
 > typecheck
 > tsc -p tsconfig.json --noEmit
-
 終了コード: 0
 
 $ npm run lint
 
 > lint
 > eslint src/voice_paste/server/web
-
 終了コード: 0
 
 $ npm run build && git diff --exit-code -- src/voice_paste/server/web/assets/app.js
 
 > build
 > tsc -p tsconfig.build.json
-
 終了コード: 0

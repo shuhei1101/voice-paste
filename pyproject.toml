@@ -13,6 +13,7 @@ dependencies = [
     "scipy~=1.13",
     "pyperclip~=1.9",
     "pynput~=1.7",
+    "python-xlib~=0.33; sys_platform == \"linux\"",
     "pycaw==20251023; sys_platform == \"win32\"",
     "fastapi~=0.142.2",
     "uvicorn~=0.54.0",

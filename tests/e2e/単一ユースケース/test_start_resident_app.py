@@ -130,7 +130,7 @@ def occupied_port() -> Iterator[int]:
 
 
 def test_normal(run_app: RunApp, tmp_path: Path) -> None:
-    """ショートカットから起動すると、トレイが待機中になり、API がトークンに応え、`/web/` が許す Origin のブラウザの音声を受け付け、ワーカーが動き、録音開始のホットキーで録音が始まる（正常シナリオ）。"""
+    """起動すると、トレイが待機中になり、API がトークンに応え、`/web/` が許す Origin のブラウザの音声を受け付け、ワーカーが動き、録音開始のホットキーで録音が始まる（正常シナリオ）。"""
     # 準備: 録音の入力は無音の WAV。ブラウザが送信する音声は書き出した文を webm にしたもの
     wav_input = silence_input(tmp_path)
     web_audio = encode_audio(synthesize_speech(SPEECH_TEXT, tmp_path / "browser_speech.wav"), "webm")

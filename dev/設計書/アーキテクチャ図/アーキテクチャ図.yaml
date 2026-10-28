@@ -97,13 +97,13 @@ subsystems:
     scope: desktop-app
     role: ショートカットから起動する 1 つの常駐サービス。ホットキー・トレイ・API のどの入口からも同じセッション（録音 → 文字起こし → 補正 → 出力先）を同時に 1 つだけ動かし、画面とトレイを出す（ローカルの文字起こしは文字起こしワーカーに任せる）
     runtime: Python 3.11
-    runs_on: ユーザーの端末（Windows）
+    runs_on: ユーザーの端末（Windows。Linux は Ubuntu 24.04 の Xorg のセッション）
     implementation: src/voice_paste/main.py
   - name: 文字起こしワーカー
     scope: transcription-worker
     role: 常駐アプリの子プロセスとしてローカルの Whisper のモデルを持ち、標準入出力の JSON Lines で受けた録音を文字に起こす
     runtime: Python 3.11
-    runs_on: ユーザーの端末（Windows。常駐アプリが起動し、落ちたら再起動する）
+    runs_on: ユーザーの端末（Windows か Linux。常駐アプリが起動し、落ちたら再起動する）
     implementation: src/voice_paste/integrations/whisper/worker.py
 lead: voice-paste のサブシステムと、ユーザー・貼り付け先のアプリ・文字起こしのモデルの取得元との境界。
 external_systems:
@@ -151,6 +151,7 @@ external_systems:
       pr: 171
 constraints: |-
   - Windows で動かす（トレイ・ホットキー・クリップボード・キー入力・システムの音量を Windows の機能で扱う）
+  - Linux（Ubuntu 24.04 の Xorg のセッション）でも起動できる。OS で分かれる実装は配線で選び、Linux ではシステムの音量を変えず、ローカルの文字起こしの既定は CPU にする
   - Windows のショートカットから起動できる（手段はバッチファイルに限らない）
   - ビルドせず、master のソースをそのまま動かす
   - Python で書く

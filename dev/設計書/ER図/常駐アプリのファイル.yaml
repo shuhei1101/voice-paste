@@ -1,5 +1,7 @@
 title: "ER 図: 常駐アプリのファイル"
-lead: 常駐アプリが書き出して持つファイル（履歴・一時の音声・トークン・ログ）。データベースは持たない。`%LOCALAPPDATA%\voice-paste\` を基準にし、名前の先頭に置き場を書く。
+lead: |-
+  常駐アプリが書き出して持つファイル（履歴・一時の音声・トークン・ログ）。データベースは持たない。`%LOCALAPPDATA%\voice-paste\` を基準にし、名前の先頭に置き場を書く。
+  Linux では `%LOCALAPPDATA%\voice-paste\` を `~/.local/share/voice-paste/`、`%APPDATA%\voice-paste\` を `~/.config/voice-paste/` に読み替え、区切りは `/` にする（platformdirs が引く）。
 tables:
   - name: '%LOCALAPPDATA%\voice-paste\history\{YYYYMMDD}\{YYYYMMDDHHMMSS}_{session_id}.wav'
     title: 録音の履歴
@@ -206,3 +208,23 @@ tables:
     status: planned
     introduced:
       pr: 171
+  - name: '%LOCALAPPDATA%\voice-paste\instance.lock'
+    title: Linux の単一インスタンスのロックファイル
+    datastore: ファイル
+    summary: Linux で常駐サービスが fcntl.flock で排他を取るための空のファイル
+    scale: データの置き場所ごとに 1 つ
+    growth: 初めて起動したときに作る（権限 0o600）
+    retention: 消さない
+    deletion: 常駐サービスは消さない（消すと、待っているプロセスと別のファイルで取り合う）
+    description: |-
+      Linux だけが使う（置き場所は AppPaths.lock_file。Linux は `~/.local/share/voice-paste/instance.lock`、`--data-dir` を渡したときはその下）。環境変数によらず置き場所が 1 つに決まるため、起動した環境が違っても同じロックを取り合う。
+      中身は読み書きしない。プロセスが落ちると OS がロックを放す。終了の依頼のソケットは抽象名前空間に作り、ファイルを残さない。Windows は名前付きミューテックスで、このファイルを作らない。
+    columns:
+      - name: '-'
+        title: 中身
+        type: なし
+        description: 空のファイル。flock の対象にするだけ
+    refs:
+      - dev/設計書/モジュール構成/常駐アプリ/起動と配線.py#functions[acquire_single_instance_linux]
+    implementation: src/voice_paste/runtime/single_instance_linux.py
+    status: planned

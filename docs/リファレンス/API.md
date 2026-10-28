@@ -7,7 +7,7 @@
 
 `/sessions` の要求には次を付ける。
 
-- `Authorization: Bearer {トークン}`。トークンは起動のたびに再生成し、`%LOCALAPPDATA%\voice-paste\api_token` に JSON（`port`・`token`）で書かれる。呼び出し元はこのファイルを読む
+- `Authorization: Bearer {トークン}`。トークンは起動のたびに再生成し、`%LOCALAPPDATA%\voice-paste\api_token`（Linux は `~/.local/share/voice-paste/api_token`）に JSON（`port`・`token`）で書かれる。呼び出し元はこのファイルを読む
 - `Host` は `127.0.0.1` か `localhost`
 - `Origin` は付けない（ブラウザのページからの要求は断る）
 
@@ -65,9 +65,14 @@ API から始めた録音は録音の画面を出さず、起こした文字は�
 次の例は、トークンのファイルを読んで開始を呼ぶ。
 
 ```python
-import json, os, urllib.request
+import json, os, sys, urllib.request
+from pathlib import Path
 
-info = json.load(open(os.path.expandvars(r"%LOCALAPPDATA%\voice-paste\api_token")))
+if sys.platform == "win32":
+    token_path = Path(os.environ["LOCALAPPDATA"]) / "voice-paste" / "api_token"
+else:
+    token_path = Path.home() / ".local" / "share" / "voice-paste" / "api_token"
+info = json.loads(token_path.read_text(encoding="utf-8"))
 request = urllib.request.Request(
     f"http://127.0.0.1:{info['port']}/sessions",
     data=json.dumps({"callback_url": "http://127.0.0.1:9000/voice-paste/result"}).encode(),

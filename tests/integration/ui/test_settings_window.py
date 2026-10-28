@@ -63,6 +63,9 @@ RESTART_KEY = "transcription.local_whisper.beam_size"
 IMMEDIATE_KEY = "recording.fade_sec"
 """反映が immediate の数値の欄。"""
 
+VOLUME_KEYS = ("recording.lower_volume", "recording.volume_percent", "recording.fade_sec")
+"""Linux の設定画面に出さない、録音中の音量の設定のキー。"""
+
 
 @dataclass
 class Opened:
@@ -102,6 +105,11 @@ def _field(window: QWidget, key: str, cls: type = QWidget) -> Any:
     found = window.findChild(cls, f"field_{key}") or window.findChild(cls, f"hotkey_{key}")
     assert found is not None, f"{key} の欄が無い"
     return found
+
+
+def _existing_fields(window: QWidget, keys: tuple[str, ...]) -> list[str]:
+    """設定のキーのうち、欄（objectName が field_{キー}）が置かれているものを並べて返す。"""
+    return [key for key in keys if window.findChild(QWidget, f"field_{key}") is not None]
 
 
 def _set_text(window: QWidget, key: str, text: str) -> None:
@@ -1485,6 +1493,30 @@ def test_save_button_when_default(open_window: Callable[..., Opened], tmp_path: 
         active_glossary_preset="既定",
     )
     opened.deps.save_settings.assert_called_once_with(expected, {})
+
+
+def test_field_when_hidden_keys(open_window: Callable[..., Opened]) -> None:
+    """出さない設定のキー（Linux の録音中の音量）は欄を置かず、保存しても settings.toml のその値を変えない。"""
+    from voice_paste.shared.settings import RecordingSettings
+
+    # 準備: 既定と違う音量の値の設定を、音量のキーを出さない UiDeps で開く
+    settings = SETTINGS_MODEL(
+        recording=RecordingSettings(lower_volume=False, volume_percent=40, fade_sec=1.5)
+    )
+    opened = open_window(settings, hidden_setting_keys=frozenset(VOLUME_KEYS))
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert _existing_fields(opened.window, VOLUME_KEYS) == []
+    assert _field(opened.window, "recording.hide_window", QCheckBox) is not None
+    opened.deps.save_settings.assert_called_once()
+    saved = opened.deps.save_settings.call_args.args[0].recording
+    assert saved.lower_volume is False
+    assert saved.volume_percent == 40
+    assert saved.fade_sec == 1.5
+    opened.saved.assert_called_once()
 
 
 def test_save_button_when_invalid(open_window: Callable[..., Opened]) -> None:

@@ -1,15 +1,18 @@
 """main.py（parse_args・main・start_local_session・build_hotkey_bindings・apply_settings・_wire_outputs・_wire_preset_kinds）の単体テスト。
 
 main の配線（build_handlers）・API サーバー（ApiServerRunner）・上限の打ち切りのタイマー（RepeatingTimer）・
-ホットキーの受付（HotkeyListener）・トレイ（Tray）・再起動（relaunch）は偽物に差し替え、
+ホットキーの受付（HotkeyListener）・トレイ（Tray）・再起動（PlatformAdapters.relaunch）は偽物に差し替え、
 イベントループ（exec_loop）は、溜まったイベントを処理してすぐ戻る関数にする。
 画面は offscreen の QApplication（conftest の qapp）を使い回す（main は QApplication が既にあればそれを使う）。
 """
 
 from __future__ import annotations
 
+import dataclasses
+import functools
 import logging
 import signal
+import sys
 import threading
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
@@ -31,6 +34,7 @@ if TYPE_CHECKING:
     from tests.unit.voice_paste.runtime.helpers import BackgroundAcquire
     from voice_paste.features.outputs import OutputSpec, PresetKindSpec
     from voice_paste.features.outputs.types import OutputDeps
+    from voice_paste.shared.os_kind import OsKind
     from voice_paste.shared.settings import Settings
     from voice_paste.shared.types import TranscriptionOutcome
     from voice_paste.ui.controller import UiDeps
@@ -92,6 +96,8 @@ class Wiring:
     relaunch: MagicMock
     ui_deps: list[UiDeps]
     """main が build_ui_deps で作った UiDeps（作られた順）。"""
+    adapter_overrides: dict[str, Any]
+    """select_platform_adapters が返す PlatformAdapters の項目のうち、差し替えるもの（項目の名前 → 偽物）。main が選ぶ前に入れる。"""
 
     @property
     def hotkey(self) -> MagicMock:
@@ -116,7 +122,7 @@ def install_wiring(
     api_started: bool = True,
     build_error: Exception | None = None,
 ) -> Wiring:
-    """main が使う build_handlers・ApiServerRunner・RepeatingTimer・HotkeyListener・Tray・relaunch を偽物に差し替える。"""
+    """main が使う build_handlers・ApiServerRunner・RepeatingTimer・HotkeyListener・Tray・再起動（PlatformAdapters.relaunch）を偽物に差し替える。"""
     import voice_paste.main as main_module
     from voice_paste.main import Handlers
     from voice_paste.runtime.settings_store import SettingsStore
@@ -136,6 +142,8 @@ def install_wiring(
         notify: object,
         report_progress: object,
         notify_copied: object,
+        *,
+        adapters: object,
     ) -> Handlers:
         """配線済みの関数の束を、偽物で作る。"""
         return Handlers(
@@ -165,6 +173,15 @@ def install_wiring(
 
     relaunch = MagicMock(side_effect=_record("relaunch"))
 
+    # OS ごとの実装は本物を選び、再起動と、テストが入れた項目だけを偽物に差し替える
+    adapter_overrides: dict[str, Any] = {}
+    real_select_platform_adapters = main_module.select_platform_adapters
+
+    def _select_platform_adapters(os_kind: OsKind, *, lock_file: Path) -> object:
+        """本物の PlatformAdapters を選び、再起動と差し替え対象の項目を偽物にして返す。"""
+        adapters = real_select_platform_adapters(os_kind, lock_file=lock_file)
+        return dataclasses.replace(adapters, relaunch=relaunch, **adapter_overrides)
+
     # build_ui_deps は本物のまま、作った UiDeps を控える（テストが request_restart などを呼べるように）
     ui_deps: list[UiDeps] = []
     real_build_ui_deps = main_module.build_ui_deps
@@ -180,7 +197,7 @@ def install_wiring(
     monkeypatch.setattr(main_module, "RepeatingTimer", timer_class)
     monkeypatch.setattr(main_module, "HotkeyListener", hotkey_class)
     monkeypatch.setattr(main_module, "Tray", tray_class)
-    monkeypatch.setattr(main_module, "relaunch", relaunch)
+    monkeypatch.setattr(main_module, "select_platform_adapters", _select_platform_adapters)
     monkeypatch.setattr(main_module, "build_ui_deps", _capture_ui_deps)
     return Wiring(
         calls=calls,
@@ -191,6 +208,7 @@ def install_wiring(
         tray_class=tray_class,
         relaunch=relaunch,
         ui_deps=ui_deps,
+        adapter_overrides=adapter_overrides,
     )
 
 
@@ -306,6 +324,10 @@ def test_parse_args_when_unknown_argument() -> None:
 # === main ===
 
 
+@pytest.mark.skipif(
+    sys.platform != "win32",
+    reason="Win32 の排他（SingleInstanceLock と background_acquire）で確かめるため Windows でだけ流す",
+)
 def test_main(
     data_dir: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -486,15 +508,12 @@ def test_main_when_previous_instance_not_released(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplication
 ) -> None:
     """前のプロセスが排他を放さなければトレイを出さずに終わる（異常系）。"""
-    import voice_paste.main as main_module
     from voice_paste.main import main
 
     # 準備
     wiring = install_wiring(monkeypatch, qapp)
-    monkeypatch.setattr(
-        main_module,
-        "acquire_single_instance",
-        MagicMock(side_effect=StartupError("前の常駐サービスが終わらない")),
+    wiring.adapter_overrides["acquire_single_instance"] = MagicMock(
+        side_effect=StartupError("前の常駐サービスが終わらない")
     )
 
     # 実行
@@ -511,14 +530,13 @@ def test_main_when_quit_requested(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplication
 ) -> None:
     """後から起動したプロセスに頼まれたら片付けて排他を放す（正常系）。"""
-    import voice_paste.main as main_module
     from voice_paste.main import main
 
     # 準備: 排他は偽物（SingleInstanceLock の代わり）を返し、放したことを止める操作の記録へ追加する
     wiring = install_wiring(monkeypatch, qapp)
     lock = MagicMock()
     lock.release.side_effect = lambda: wiring.calls.append("lock.release")
-    monkeypatch.setattr(main_module, "acquire_single_instance", MagicMock(return_value=lock))
+    wiring.adapter_overrides["acquire_single_instance"] = MagicMock(return_value=lock)
     gave_up: list[bool] = []
     about_to_quit_on_main_thread, stop_recording_quit = record_about_to_quit_threads(qapp)
     exec_loop = make_exec_loop_with_quit_request(lock, gave_up)
@@ -545,6 +563,57 @@ def test_main_when_quit_requested(
         "lock.release",
     ]
     wiring.relaunch.assert_not_called()
+
+
+# === select_platform_adapters ===
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows 専用の実装を読み込むため Linux では流さない")
+def test_select_platform_adapters_when_windows(tmp_path: Path) -> None:
+    """Windows は pycaw の音量・Edge・Win32 の排他を選ぶ（正常系）。"""
+    import subprocess
+
+    from voice_paste.integrations.browser.opener import open_app_window
+    from voice_paste.integrations.volume.adapter import lower_volume, restore_volume
+    from voice_paste.main import select_platform_adapters
+    from voice_paste.runtime.single_instance import acquire_single_instance
+    from voice_paste.shared.os_kind import OsKind
+
+    # 実行
+    adapters = select_platform_adapters(OsKind.WINDOWS, lock_file=tmp_path / "instance.lock")
+
+    # 検証
+    assert adapters.lower_volume is lower_volume
+    assert adapters.restore_volume is restore_volume
+    assert adapters.open_app_window is open_app_window
+    assert adapters.acquire_single_instance is acquire_single_instance
+    assert adapters.worker_creationflags == subprocess.CREATE_NO_WINDOW
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Linux 専用の実装を読み込むため Windows では流さない")
+def test_select_platform_adapters_when_linux(tmp_path: Path) -> None:
+    """Linux は何もしない音量・Chromium 系・flock の排他を選ぶ（正常系）。"""
+    from voice_paste.integrations.browser.opener_linux import open_app_window_linux
+    from voice_paste.integrations.volume.noop import lower_volume_noop, restore_volume_noop
+    from voice_paste.main import select_platform_adapters
+    from voice_paste.runtime.single_instance_linux import acquire_single_instance_linux
+    from voice_paste.shared.os_kind import OsKind
+
+    # 準備
+    lock_file = tmp_path / "instance.lock"
+
+    # 実行
+    adapters = select_platform_adapters(OsKind.LINUX, lock_file=lock_file)
+
+    # 検証
+    assert adapters.lower_volume is lower_volume_noop
+    assert adapters.restore_volume is restore_volume_noop
+    assert adapters.open_app_window is open_app_window_linux
+    assert isinstance(adapters.acquire_single_instance, functools.partial)
+    assert adapters.acquire_single_instance.func is acquire_single_instance_linux
+    assert adapters.acquire_single_instance.keywords == {"lock_file": lock_file}
+    assert adapters.worker_creationflags == 0
+    assert "voice_paste.integrations.volume.adapter" not in sys.modules
 
 
 # === start_local_session ===
@@ -607,6 +676,7 @@ def _install_adapters(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     """main が出力先・プリセットの種類へ渡す外部連携と time.sleep を偽物に差し替え、呼ばれた順を持つ親の Mock を返す。
 
     親の `copy_to_clipboard`・`send_paste`・`send_enter`・`open_app_window`・`post_json`・`sleep` がそれぞれの偽物。
+    `open_app_window` は main が OS ごとの実装として受け取るため、差し替えず、テストが `open_window` に渡す。
     `post_json` は 200 を返す。
     """
     import voice_paste.main as main_module
@@ -617,7 +687,6 @@ def _install_adapters(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     monkeypatch.setattr(main_module, "copy_to_clipboard", adapters.copy_to_clipboard)
     monkeypatch.setattr(main_module, "send_paste", adapters.send_paste)
     monkeypatch.setattr(main_module, "send_enter", adapters.send_enter)
-    monkeypatch.setattr(main_module, "open_app_window", adapters.open_app_window)
     monkeypatch.setattr(main_module, "post_json", adapters.post_json)
     monkeypatch.setattr("time.sleep", adapters.sleep)
     return adapters
@@ -774,7 +843,7 @@ def test_wire_preset_kinds(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
     # 実行
-    wired = _wire_preset_kinds(lambda: settings)
+    wired = _wire_preset_kinds(lambda: settings, open_window=adapters.open_app_window)
     by_kind = _kinds_by_name(wired)
     by_kind["browser"].handler(
         outcome, BrowserPreset(title="ChatGPT", url="https://chatgpt.com", send_enter=True)
@@ -809,7 +878,7 @@ def test_wire_preset_kinds_when_settings_changed(monkeypatch: pytest.MonkeyPatch
     outcome = TranscriptionOutcome(
         session_id="session-1", result="transcribed", text="テスト", error=None
     )
-    wired = _wire_preset_kinds(get_settings)
+    wired = _wire_preset_kinds(get_settings, open_window=adapters.open_app_window)
 
     # 配線の後に設定を差し替える
     get_settings.return_value = Settings(

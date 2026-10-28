@@ -11,7 +11,7 @@ import tempfile
 from collections.abc import Mapping, MutableMapping, Sequence
 from functools import reduce
 from pathlib import Path
-from typing import Annotated, Any, ClassVar, Literal, Protocol
+from typing import Annotated, Any, ClassVar, Literal, Protocol, cast
 
 import tomlkit
 from pydantic import (
@@ -31,6 +31,7 @@ from tomlkit.exceptions import TOMLKitError
 from tomlkit.items import AoT, Comment, Item, Key, Null, Table, Whitespace
 
 from voice_paste.shared.errors import SettingsError
+from voice_paste.shared.os_kind import CURRENT_OS, OsKind
 
 logger = logging.getLogger(__name__)
 
@@ -135,7 +136,31 @@ DEFAULT_AI_CHAT_TARGETS: tuple[dict[str, str], ...] = (
 )
 """前のバージョンの AI チャットの既定の送信先（targets が無いときの読み替えの元）。"""
 
+OS_DEFAULT_OVERRIDES: Mapping[OsKind, Mapping[str, object]] = {
+    OsKind.LINUX: {
+        # Linux では音量を変えない
+        "recording.lower_volume": False,
+        # Linux では CUDA のライブラリを読ませる手当てが無く、cuda では文字起こしワーカーが起動に失敗する
+        "transcription.local_whisper.device": "cpu",
+        # CPU で動く精度
+        "transcription.local_whisper.compute_type": "int8",
+    },
+}
+"""共通の既定値に重ねる、OS ごとの既定値。キーは設定のドットで結んだキー。載っていない OS・キーは共通の既定値のまま。"""
+
+OS_HIDDEN_SETTING_KEYS: Mapping[OsKind, frozenset[str]] = {
+    OsKind.LINUX: frozenset(
+        {"recording.lower_volume", "recording.volume_percent", "recording.fade_sec"}
+    ),
+}
+"""その OS では使わず、設定画面に欄を出さない設定のキー。載っていない OS は全ての欄を出す。"""
+
 type _Location = tuple[int | str, ...]
+
+
+def os_default[T](key: str, common: T, *, os_kind: OsKind = CURRENT_OS) -> T:
+    """設定のキーの既定値を、その OS の上書きがあればその値、無ければ共通の既定値で返す。"""
+    return cast("T", OS_DEFAULT_OVERRIDES.get(os_kind, {}).get(key, common))
 
 
 def _item(default: Any, description: str, *, reload: str, **constraints: Any) -> Any:
@@ -166,9 +191,15 @@ class LocalWhisperSettings(_SettingsModel):
     """ローカルの Whisper の設定。"""
 
     model: str = _item("large-v3", "faster-whisper のモデル", reload=RELOAD_RESTART)
-    device: Literal["cuda", "cpu"] = _item("cuda", "動かすデバイス", reload=RELOAD_RESTART)
+    device: Literal["cuda", "cpu"] = _item(
+        os_default("transcription.local_whisper.device", "cuda"),
+        "動かすデバイス",
+        reload=RELOAD_RESTART,
+    )
     compute_type: Literal["float16", "int8", "float32"] = _item(
-        "float16", "計算の精度", reload=RELOAD_RESTART
+        os_default("transcription.local_whisper.compute_type", "float16"),
+        "計算の精度",
+        reload=RELOAD_RESTART,
     )
     cpu_threads: int = _item(0, "CPU のスレッド数（0 は自動）", reload=RELOAD_RESTART, ge=0)
     num_workers: int = _item(1, "並列のデコードの数", reload=RELOAD_RESTART, ge=1)
@@ -209,7 +240,11 @@ class TranscriptionSettings(_SettingsModel):
 class RecordingSettings(_SettingsModel):
     """録音中のシステム音量と、画面を出さない設定。"""
 
-    lower_volume: bool = _item(True, "録音中にシステム音量を下げるか", reload=RELOAD_IMMEDIATE)
+    lower_volume: bool = _item(
+        os_default("recording.lower_volume", True),
+        "録音中にシステム音量を下げるか",
+        reload=RELOAD_IMMEDIATE,
+    )
     volume_percent: float = _item(
         50,
         "録音中の音量の、録音前の音量に対する割合（0〜100）",

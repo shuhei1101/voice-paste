@@ -13,6 +13,7 @@ from __future__ import annotations
 import statistics
 import threading
 import time
+from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -104,6 +105,7 @@ def test_paste_latency(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     import voice_paste.main as main_module
     from voice_paste.main import SETTINGS_MODEL
     from voice_paste.shared.constants import resolve_app_paths
+    from voice_paste.shared.os_kind import CURRENT_OS
     from voice_paste.shared.settings import TranscriptionSettings
 
     # 準備: 差し替えるもの（マイクの入力・音量・貼り付けのキー）
@@ -124,8 +126,6 @@ def test_paste_latency(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         pasted.set()
 
     monkeypatch.setattr(main_module, "open_input", _open_input)
-    monkeypatch.setattr(main_module, "lower_volume", lambda _ratio, _sec: 1.0)
-    monkeypatch.setattr(main_module, "restore_volume", lambda _volume, _sec: None)
     monkeypatch.setattr(main_module, "send_paste", _send_paste)
 
     # 準備: 固めた設定と用語集で配線し、モデルの読み込みを待つ（クリップボードは測った後に戻す）
@@ -133,12 +133,20 @@ def test_paste_latency(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         transcription=TranscriptionSettings(local_whisper=load_local_whisper_settings()),
         glossary_path=YOGO_FILE,
     )
+    paths = resolve_app_paths(tmp_path)
+    # OS ごとの実装は本物を選び、システム音量だけ何もしないものに差し替えて渡す
+    adapters = replace(
+        main_module.select_platform_adapters(CURRENT_OS, lock_file=paths.lock_file),
+        lower_volume=lambda _ratio, _sec: 1.0,
+        restore_volume=lambda _volume, _sec: None,
+    )
     handlers = main_module.build_handlers(
         settings,
-        resolve_app_paths(tmp_path),
+        paths,
         lambda *_args, **_kwargs: None,
         lambda *_args, **_kwargs: None,
         lambda *_args, **_kwargs: None,
+        adapters=adapters,
     )
     original_clipboard = pyperclip.paste()
     elapsed_list: list[float] = []

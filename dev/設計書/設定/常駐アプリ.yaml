@@ -6,10 +6,10 @@ files:
     notes: 列は `誤変換`・`正しい表記` と、行のオン・オフの `使う`（`0` がオフ。列が無い行はオン）。録音を確定するたびに読み直す。置き場所は `glossary_path` で変えられる。設定画面で追加した用語集は `glossaries[].path` の CSV に同じ列で持つ（列の定義は ER 図『常駐アプリのファイル』の用語集の CSV）。
   - file: settings.toml
     manages: 新しい構成（src/voice_paste/）の設定の全部
-    notes: git の管理外。既定は `%APPDATA%\voice-paste\settings.toml`、`--data-dir` を渡したときはその下。無ければ起動時に既定値で作る。
+    notes: git の管理外。既定は `%APPDATA%\voice-paste\settings.toml`（Linux は `~/.config/voice-paste/settings.toml`）、`--data-dir` を渡したときはその下。無ければ起動時に既定値で作る。
   - file: settings.sample.toml
     manages: settings.toml の見本と既定値
-    notes: git で管理する。設定のモデルの既定値と一致させる（単体テストで確かめる）。
+    notes: git で管理する。設定のモデルの共通の既定値（Windows の既定値）と一致させる（単体テストで、動いている OS の上書きのキーは共通の既定値と、それ以外は設定のモデルの既定値と比べる）。Linux で既定値が違うキーは、各キーの「環境ごとの値」が持つ。
 settings:
   - key: transcription.engine
     title: 使う文字起こしのエンジン
@@ -38,6 +38,7 @@ settings:
     reload: restart
     status: implemented
     implementation: src/voice_paste/shared/settings.py
+    per_env: 'Windows: cuda。Linux: cpu（OS_DEFAULT_OVERRIDES。Linux では CUDA のライブラリを読ませる手当てが無い）'
   - key: transcription.local_whisper.compute_type
     title: ローカルの Whisper の量子化タイプ
     file: settings.toml
@@ -47,6 +48,7 @@ settings:
     reload: restart
     status: implemented
     implementation: src/voice_paste/shared/settings.py
+    per_env: 'Windows: float16。Linux: int8（OS_DEFAULT_OVERRIDES）'
   - key: transcription.local_whisper.cpu_threads
     title: ローカルの Whisper の CPU スレッド数
     file: settings.toml
@@ -173,6 +175,7 @@ settings:
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
+    per_env: 'Windows: true。Linux: false（OS_DEFAULT_OVERRIDES）。Linux では値によらず音量を変えず、設定画面にも出さない'
   - key: recording.volume_percent
     title: 録音中の音量の割合
     file: settings.toml
@@ -183,6 +186,7 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
     allowed: 0〜100
+    per_env: Linux では使わず、設定画面にも出さない（settings.toml の値は保つ）
   - key: recording.fade_sec
     title: 音量を変えるときの秒数
     file: settings.toml
@@ -193,6 +197,7 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
     allowed: '>= 0'
+    per_env: Linux では使わず、設定画面にも出さない（settings.toml の値は保つ）
   - key: recording.hide_window
     title: 録音中に画面を出さないか
     file: settings.toml

@@ -10,9 +10,18 @@ from typing import TYPE_CHECKING, Any, Literal
 import pytest
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from voice_paste.shared.settings import OutputSettingsBase, Settings
 
 SETTINGS_FILE_NAME = "settings.toml"
+
+COMMON_DEFAULTS = {
+    "recording.lower_volume": True,
+    "transcription.local_whisper.device": "cuda",
+    "transcription.local_whisper.compute_type": "float16",
+}
+"""OS ごとに既定値を上書きする設定のキーの、共通の既定値（Windows の値）。見本はこの値で書く。"""
 
 COMMENT_AFTER_ARRAY_TABLE = "# 保存しても残るコメント"
 """配列の表（`[[hint_presets]]`）の後ろに書いておく、キーを持たないコメント。"""
@@ -70,15 +79,87 @@ def test_load_settings(settings_file: Path, settings_model: type[Settings]) -> N
     )
 
 
+def _dump_without(settings: Settings, keys: Iterable[str]) -> dict[str, Any]:
+    """設定を dict にし、ドットで結んだキーの値を取り除いて返す。"""
+    dump = settings.model_dump()
+    for key in keys:
+        *parents, leaf = key.split(".")
+        table = dump
+        for parent in parents:
+            table = table[parent]
+        del table[leaf]
+    return dump
+
+
+def _values_of(settings: Settings, keys: Iterable[str]) -> dict[str, Any]:
+    """設定から、ドットで結んだキーの値を引いて、キー → 値の dict にして返す。"""
+    dump = settings.model_dump()
+    values: dict[str, Any] = {}
+    for key in keys:
+        value: Any = dump
+        for part in key.split("."):
+            value = value[part]
+        values[key] = value
+    return values
+
+
 def test_load_settings_when_sample_file(repo_root: Path, settings_model: type[Settings]) -> None:
-    """リポジトリの見本は既定値と一致する（正常系）。"""
-    from voice_paste.shared.settings import load_settings
+    """リポジトリの見本は共通の既定値（Windows の既定値）と一致する（正常系）。"""
+    from voice_paste.shared.os_kind import CURRENT_OS
+    from voice_paste.shared.settings import OS_DEFAULT_OVERRIDES, load_settings
+
+    # 準備: この OS で既定値を上書きしているキー（上書きが無い OS は空）
+    overridden_keys = list(OS_DEFAULT_OVERRIDES.get(CURRENT_OS, {}))
 
     # 実行
     settings = load_settings(repo_root / "settings.sample.toml", settings_model)
 
+    # 検証: 上書きしているキー以外は既定値と等しく、上書きしているキーは見本が共通の既定値のまま
+    assert _dump_without(settings, overridden_keys) == _dump_without(
+        settings_model(), overridden_keys
+    )
+    assert _values_of(settings, overridden_keys) == {
+        key: COMMON_DEFAULTS[key] for key in overridden_keys
+    }
+
+
+# === os_default ===
+
+
+def test_os_default_when_linux() -> None:
+    """Linux の上書きがあるキーは上書きの値になる（正常系）。"""
+    from voice_paste.shared.os_kind import OsKind
+    from voice_paste.shared.settings import os_default
+
+    # 実行
+    value = os_default("recording.lower_volume", True, os_kind=OsKind.LINUX)
+
     # 検証
-    assert settings == settings_model()
+    assert value is False
+
+
+def test_os_default_when_windows() -> None:
+    """Windows は共通の既定値になる（正常系）。"""
+    from voice_paste.shared.os_kind import OsKind
+    from voice_paste.shared.settings import os_default
+
+    # 実行
+    value = os_default("transcription.local_whisper.device", "cuda", os_kind=OsKind.WINDOWS)
+
+    # 検証
+    assert value == "cuda"
+
+
+def test_os_default_when_not_overridden() -> None:
+    """上書きの無いキーは共通の既定値になる（正常系）。"""
+    from voice_paste.shared.os_kind import OsKind
+    from voice_paste.shared.settings import os_default
+
+    # 実行
+    value = os_default("recording.hide_window", False, os_kind=OsKind.LINUX)
+
+    # 検証
+    assert value is False
 
 
 @pytest.mark.parametrize(

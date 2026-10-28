@@ -8,6 +8,7 @@ directory: |-
   ├── logger.py         # 標準の logging の設定。日付ごとのファイルと保持期間での削除
   ├── errors.py         # 例外の階層
   ├── constants.py      # アプリ名と置き場所のパス（platformdirs）
+  ├── os_kind.py        # 動いている OS の判定（OS ごとの実装・既定値を選ぶ唯一の場所）
   └── types.py          # feature の間を渡る型（入口・録音・文字起こしの結果・用語集の行）
   ```
 enums:
@@ -63,6 +64,23 @@ enums:
     refs:
       - dev/設計書/設定/常駐アプリ#settings[outputs[].enter_modifiers]
     status: planned
+  - name: OsKind
+    title: OS の種類
+    container: shared/os_kind.py
+    usecase: 常駐アプリを起動する
+    role: OS の判定
+    summary: 動いている OS。main.py の配線が OS ごとの実装を、設定のモデルが OS ごとの既定値を選ぶのに使う
+    description: '`enum.StrEnum`。'
+    values:
+      - value: windows
+        member: WINDOWS
+        title: Windows
+        description: '`sys.platform` が `win32`'
+      - value: linux
+        member: LINUX
+        title: Linux
+        description: '`sys.platform` が `win32` 以外（対応するのは Ubuntu 24.04 の Xorg のセッション）'
+    status: planned
 data_models:
   - name: Recording
     title: 録音
@@ -117,16 +135,16 @@ data_models:
     summary: 設定・履歴・ログ・一時の音声・トークン・画面の画像の置き場所
     description: |-
       resolve_app_paths で作る。
-      既定は platformdirs で `%APPDATA%\voice-paste\`（設定）と `%LOCALAPPDATA%\voice-paste\`（それ以外）を引く。
+      既定は platformdirs で、Windows は `%APPDATA%\voice-paste\`（設定）と `%LOCALAPPDATA%\voice-paste\`（それ以外）、Linux は `~/.config/voice-paste/`（設定）と `~/.local/share/voice-paste/`（それ以外）を引く。
       データの置き場所（`--data-dir`）を渡したときは、全てをその下に置く。E2E・非機能要件テストはこれで普段使いの置き場所に触れない。
       `@dataclass(frozen=True, slots=True, kw_only=True)`。
     properties:
       - name: settings_file
         type: Path
-        description: '`%APPDATA%\voice-paste\settings.toml`（データの置き場所を渡したときは `{data_dir}\settings.toml`）'
+        description: '`%APPDATA%\voice-paste\settings.toml`（Linux は `~/.config/voice-paste/settings.toml`。データの置き場所を渡したときは `{data_dir}\settings.toml`）'
       - name: history_dir
         type: Path
-        description: '`%LOCALAPPDATA%\voice-paste\history\`（`{data_dir}\history\`）'
+        description: '`%LOCALAPPDATA%\voice-paste\history\`（Linux は `~/.local/share/voice-paste/history/`。`{data_dir}\history\`）'
       - name: log_dir
         type: Path
         description: '`%LOCALAPPDATA%\voice-paste\log\`（`{data_dir}\log\`）'
@@ -139,6 +157,9 @@ data_models:
       - name: ui_image_dir
         type: Path
         description: '`%LOCALAPPDATA%\voice-paste\ui\`（`{data_dir}\ui\`。選択欄の開くマーカーの SVG）'
+      - name: lock_file
+        type: Path
+        description: '`%LOCALAPPDATA%\voice-paste\instance.lock`（Linux は `~/.local/share/voice-paste/instance.lock`。`{data_dir}\instance.lock`。Linux の単一インスタンスのロックファイル。Windows では使わない）'
     refs:
       - dev/設計書/外部ライブラリ/platformdirs#
     status: implemented
@@ -256,11 +277,11 @@ data_models:
         description: faster-whisper のモデル
       - name: device
         type: Literal["cuda", "cpu"]
-        default: cuda
+        default: cuda（Linux は cpu。os_default）
         description: 動かすデバイス
       - name: compute_type
         type: Literal["float16", "int8", "float32"]
-        default: float16
+        default: float16（Linux は int8。os_default）
         description: 計算の精度
       - name: cpu_threads
         type: int
@@ -321,8 +342,8 @@ data_models:
     properties:
       - name: lower_volume
         type: bool
-        default: 'True'
-        description: 録音中にシステム音量を下げるか
+        default: True（Linux は False。os_default）
+        description: 録音中にシステム音量を下げるか。Linux では使わない（音量の外部連携が何もしない実装で、設定画面に出さない）
       - name: volume_percent
         type: float
         default: '50'
@@ -942,10 +963,10 @@ functions:
         expected: local_whisper.model が small、outputs が CopyOnlySettings 1 件、書いていない項目は既定値
       - name: test_load_settings_when_sample_file
         case: 正常
-        summary: リポジトリの見本は既定値と一致する
+        summary: リポジトリの見本は共通の既定値（Windows の既定値）と一致する
         condition: リポジトリの直下の settings.sample.toml
         mock: なし
-        expected: SETTINGS_MODEL() と等しい
+        expected: OS_DEFAULT_OVERRIDES[CURRENT_OS] のキーを除いて SETTINGS_MODEL() と等しい。除いたキーは、見本の値がそのキーの共通の既定値（os_default に渡す common。Windows の値）と等しい（Windows では上書きが無いため、SETTINGS_MODEL() 全体と等しい）
       - name: test_load_settings_when_invalid_value
         case: 異常
         summary: 合わない値はキーを示して断る
@@ -1221,7 +1242,7 @@ functions:
       description: 置き場所のパス
     process: |-
       1. data_dir が渡されているか
-         - ある場合、設定・履歴・ログ・一時の音声・トークン・画面の画像を全て data_dir の下に置く
+         - ある場合、設定・履歴・ログ・一時の音声・トークン・画面の画像・ロックファイルを全て data_dir の下に置く
          - 無い場合、設定は user_config_dir(APP_NAME, appauthor=False, roaming=True)、それ以外は user_data_dir(APP_NAME, appauthor=False) の下に置く
     unit_tests:
       - name: test_resolve_app_paths_when_data_dir
@@ -1229,7 +1250,7 @@ functions:
         summary: データの置き場所の下に全てを置く
         condition: data_dir=一時フォルダ
         mock: なし
-        expected: settings_file が {data_dir}/settings.toml、log_dir が {data_dir}/log、ui_image_dir が {data_dir}/ui など全てが data_dir の下。フォルダは作られていない
+        expected: settings_file が {data_dir}/settings.toml、log_dir が {data_dir}/log、ui_image_dir が {data_dir}/ui、lock_file が {data_dir}/instance.lock など全てが data_dir の下。フォルダは作られていない
       - name: test_resolve_app_paths_when_default
         case: 正常
         summary: 既定は platformdirs の置き場所
@@ -1617,6 +1638,96 @@ functions:
     status: planned
     introduced:
       pr: 173
+  - name: detect_os
+    title: OS の判定
+    kind: 関数
+    container: shared/os_kind.py
+    usecase: 常駐アプリを起動する
+    role: OS の判定
+    summary: sys.platform の値から OsKind を返す
+    scope: public
+    args:
+      - name: platform
+        title: プラットフォーム
+        type: str
+        required: false
+        default: sys.platform
+        passing: positional
+        description: 判定する sys.platform の値
+    returns:
+      type: OsKind
+      description: 動いている OS
+    process: |-
+      1. platform が `win32` か
+         - そうである場合、OsKind.WINDOWS を返す
+         - それ以外の場合、OsKind.LINUX を返す
+    unit_tests:
+      - name: test_detect_os_when_windows
+        case: 正常
+        summary: win32 は Windows
+        condition: platform="win32"
+        mock: なし
+        expected: OsKind.WINDOWS
+      - name: test_detect_os_when_linux
+        case: 正常
+        summary: linux は Linux
+        condition: platform="linux"
+        mock: なし
+        expected: OsKind.LINUX
+    status: planned
+  - name: os_default
+    title: OS ごとの既定値
+    kind: 関数
+    container: shared/settings.py
+    usecase: 設定を変える
+    role: 設定のモデル
+    summary: 設定のキーの既定値を、OS_DEFAULT_OVERRIDES にその OS の上書きがあればその値、無ければ共通の既定値で返す
+    description: 設定のモデルの項目の既定値（_item の default）に使う。スキーマ（項目・型・範囲）は OS で変えない。
+    scope: public
+    args:
+      - name: key
+        title: 設定のキー
+        type: str
+        required: true
+        passing: positional
+        description: ドットで結んだ設定のキー（例 `recording.lower_volume`）
+      - name: common
+        title: 共通の既定値
+        type: T
+        required: true
+        passing: positional
+        description: どの OS でも使う既定値
+      - name: os_kind
+        title: OS
+        type: OsKind
+        required: false
+        default: CURRENT_OS
+        passing: keyword
+        description: 既定値を引く OS
+    returns:
+      type: T
+      description: その OS の既定値
+    process: 1. OS_DEFAULT_OVERRIDES[os_kind] に key があればその値、無ければ common を返す
+    unit_tests:
+      - name: test_os_default_when_linux
+        case: 正常
+        summary: Linux の上書きがあるキーは上書きの値
+        condition: key="recording.lower_volume"・common=True・os_kind=OsKind.LINUX
+        mock: なし
+        expected: 'False'
+      - name: test_os_default_when_windows
+        case: 正常
+        summary: Windows は共通の既定値
+        condition: key="transcription.local_whisper.device"・common="cuda"・os_kind=OsKind.WINDOWS
+        mock: なし
+        expected: '"cuda"'
+      - name: test_os_default_when_not_overridden
+        case: 正常
+        summary: 上書きの無いキーは共通の既定値
+        condition: key="recording.hide_window"・common=False・os_kind=OsKind.LINUX
+        mock: なし
+        expected: False（common のまま）
+    status: planned
 constants:
   - name: APP_NAME
     title: アプリ名
@@ -1678,10 +1789,51 @@ constants:
     status: planned
     introduced:
       pr: 173
+  - name: CURRENT_OS
+    title: 動いている OS
+    container: shared/os_kind.py
+    usecase: 常駐アプリを起動する
+    role: OS の判定
+    summary: 読み込んだときに detect_os で決めた、動いている OS。OS を見る処理は sys.platform を直に読まず、これを読むか main.py の配線で渡される
+    value: detect_os()
+    status: planned
+  - name: OS_DEFAULT_OVERRIDES
+    title: OS ごとの既定値の上書き
+    container: shared/settings.py
+    usecase: 設定を変える
+    role: 設定のモデル
+    summary: 共通の既定値に重ねる、OS ごとの既定値。キーは設定のドットで結んだキー。載っていない OS・キーは共通の既定値のまま
+    entries:
+      - key: linux / recording.lower_volume
+        value: 'False'
+        description: Linux では音量を変えない
+      - key: linux / transcription.local_whisper.device
+        value: '"cpu"'
+        description: Linux では CUDA のライブラリを読ませる手当てが無く、cuda では文字起こしワーカーが起動に失敗する
+      - key: linux / transcription.local_whisper.compute_type
+        value: '"int8"'
+        description: CPU で動く精度
+    description: 型は `Mapping[OsKind, Mapping[str, object]]`。
+    status: planned
+  - name: OS_HIDDEN_SETTING_KEYS
+    title: OS ごとに設定画面へ出さない設定
+    container: shared/settings.py
+    usecase: 設定を変える
+    role: 設定のモデル
+    summary: その OS では使わず、設定画面に欄を出さない設定のキー。載っていない OS は全ての欄を出す
+    entries:
+      - key: linux
+        value: frozenset({"recording.lower_volume", "recording.volume_percent", "recording.fade_sec"})
+        description: Linux では音量を変えない
+    description: 型は `Mapping[OsKind, frozenset[str]]`。main.py が CURRENT_OS で引いて UiDeps.hidden_setting_keys に渡す。
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/設定画面.py#elements[設定の欄]
+    status: planned
 test_files:
   - tests/unit/voice_paste/shared/test_settings.py
   - tests/unit/voice_paste/shared/test_logger.py
   - tests/unit/voice_paste/shared/test_constants.py
+  - tests/unit/voice_paste/shared/test_os_kind.py
 function_types:
   - name: ProgressFn
     title: 文字起こしの進みの知らせ先

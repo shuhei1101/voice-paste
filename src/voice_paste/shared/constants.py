@@ -1,4 +1,4 @@
-"""アプリ名と、設定・履歴・ログ・一時の音声・トークンの置き場所のパス。"""
+"""アプリ名と、設定・履歴・ログ・一時の音声・トークン・ロックファイルの置き場所のパス。"""
 
 from __future__ import annotations
 
@@ -28,10 +28,13 @@ TOKEN_FILE_NAME: str = "api_token"
 UI_IMAGE_DIR_NAME: str = "ui"
 """画面の画像（選択欄の開くマーカーの SVG）のフォルダの名前。"""
 
+LOCK_FILE_NAME: str = "instance.lock"
+"""Linux の単一インスタンスのロックファイルの名前。"""
+
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class AppPaths:
-    """設定・履歴・ログ・一時の音声・トークン・画面の画像の置き場所。"""
+    """設定・履歴・ログ・一時の音声・トークン・画面の画像・ロックファイルの置き場所。"""
 
     settings_file: Path
     history_dir: Path
@@ -39,6 +42,8 @@ class AppPaths:
     tmp_dir: Path
     token_file: Path
     ui_image_dir: Path
+    lock_file: Path
+    """Linux の単一インスタンスのロックファイル。Windows では使わない。"""
 
 
 def resolve_app_paths(data_dir: Path | None) -> AppPaths:
@@ -60,4 +65,5 @@ def resolve_app_paths(data_dir: Path | None) -> AppPaths:
         tmp_dir=data_root / TMP_DIR_NAME,
         token_file=data_root / TOKEN_FILE_NAME,
         ui_image_dir=data_root / UI_IMAGE_DIR_NAME,
+        lock_file=data_root / LOCK_FILE_NAME,
     )

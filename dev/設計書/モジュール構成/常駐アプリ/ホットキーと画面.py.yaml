@@ -91,7 +91,7 @@ classes:
                - `[ERROR]` ホットキーの処理で想定外の例外（ホットキー。logger.exception）
           3. 新しい受付を先に作る（`GlobalHotKeys(包んだ組)`。作るときに pynput が書式を確かめる）
              - ValueError（書式を読めない）の場合、動いている受付をそのままにして HotkeyError を送出する
-          4. 動いている受付があれば止め、スレッドの終わりを待つ
+          4. 動いている受付があれば止め、スレッドの終わりを HOTKEY_STOP_TIMEOUT_SEC まで待つ（上限を過ぎたら stop と同じく手放して進む）
           5. 新しい受付を始める
              - `[INFO]` ホットキーの受付を始めた（ホットキーの一覧）
         exceptions:
@@ -132,7 +132,7 @@ classes:
             exception: 書式を読めない
       - name: stop
         title: 受付の停止
-        summary: 受付を止め、スレッドの終わりを待つ。動いていなければ何もしない
+        summary: 受付を止め、スレッドの終わりを HOTKEY_STOP_TIMEOUT_SEC まで待つ。上限を過ぎたら WARNING のログを書き、スレッドを手放して戻る。動いていなければ何もしない
         kind: メソッド
         scope: public
         thread_safe: true
@@ -146,6 +146,12 @@ classes:
             condition: start の後に stop を 2 回呼ぶ
             mock: keyboard.GlobalHotKeys
             expected: 受付の stop と join が 1 回ずつ呼ばれ、2 回目は例外が出ない
+          - name: test_stop_when_join_timed_out
+            case: 正常
+            summary: スレッドが上限までに終わらなくても戻る
+            condition: start の後、差し替えた GlobalHotKeys の join が戻っても is_alive が True を返す状態で stop を呼ぶ
+            mock: keyboard.GlobalHotKeys
+            expected: join に timeout=HOTKEY_STOP_TIMEOUT_SEC が渡り、例外が出ず、WARNING のログが 1 行出て、もう一度 start すると新しい受付だけが動いている
       - name: __init__
         title: 受付の用意
         summary: 受付はまだ始めない
@@ -1101,6 +1107,7 @@ classes:
       保存したメッセージのホットキーの文を出すかは、変えた欄の数えの値ではなく、ホットキーの欄の値（`hotkeys.*`・`outputs[].hotkey`・種類ごとのタブの中の何件目かのプリセットの hotkey）を開いたときの値と比べて決める。
       エラーの一覧のプリセットの行は、失敗の場所 `presets[{n}].{項目}` を「プリセット「{タイトル}」の{欄の名前}」（タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」）にし、押すとそのタブへ切り替えて PresetListPanel.focus_field で欄へフォーカスを移す。
       ホットキーの欄は押したキーを format_hotkey の形式で出し、parse_hotkey で pynput の書式に戻す。
+      UiDeps.hidden_setting_keys のキーは欄を置かず、開いたときの値を collect でそのまま返す（settings.toml の値を保つ）。変えた欄の数えにも入らない。既定に戻すと、そのキーも既定値になる。
       コンストラクタは UiDeps を受ける。欄の部品は設定のキーを使った objectName（`field_{キー}`。プリセットの欄は画面設計の項目 ID）を持つ。窓が閉じたら（保存して再起動・今すぐ再起動・取り消し・窓の閉じるのどの経路でも。「保存」では閉じない）closed を emit する。
     kind: クラス
     inherits: PySide6.QtWidgets.QWidget
@@ -1131,6 +1138,13 @@ classes:
         returns:
           type: dict[str, Any]
           description: Settings.model_validate へ渡す値。presets はブラウザ添付のタブの並び → エンドポイントへ送信のタブの並びの順（各 PresetListPanel.collect をつなぐ）。glossaries は GlossaryPanel.collect、glossary_presets は GlossaryPanel.collect_presets、active_glossary_preset は GlossaryPanel.active_preset_name。hint_presets は HintPresetPanel.collect。edge_phrases は EdgePhrasePanel.collect。glossary_path と active_glossary は置かない
+        unit_tests:
+          - name: test_collect_when_hidden_keys
+            case: 正常
+            summary: 出さないキーは欄を置かず、開いたときの値を返す
+            condition: hidden_setting_keys に recording.lower_volume・recording.volume_percent・recording.fade_sec を入れ、recording.volume_percent=40 の設定で開いて collect を呼ぶ。QT_QPA_PLATFORM=offscreen
+            mock: UiDeps の全関数
+            expected: objectName が field_recording.lower_volume・field_recording.volume_percent・field_recording.fade_sec の欄が無く、collect の recording.volume_percent が 40 で lower_volume・fade_sec も開いたときの値
       - name: save
         title: 保存
         summary: 欄の値を設定のモデルで確かめ、通れば書いて効かせ、窓を開いたまま保存したメッセージを出す（restart のときだけ閉じる）。通らなければエラーを出す
@@ -3145,6 +3159,9 @@ data_models:
       - name: list_glossary_presets
         type: Callable[[], list[GlossaryPresetSettings]]
         description: 今の設定の用語集のプリセットの一覧（glossary_presets が空なら「既定」の 1 件。一覧に無い用語集の名前は外す。resolve_glossary_presets）
+      - name: hidden_setting_keys
+        type: frozenset[str]
+        description: 設定画面で出さない設定のキー（OS_HIDDEN_SETTING_KEYS[CURRENT_OS]）。Linux では録音中の音量のキー
     status: implemented
 enums:
   - name: TrayState
@@ -3223,6 +3240,13 @@ constants:
     summary: 録音の画面を作業領域の端に置くときに空ける余白（論理ピクセル）
     value: '24'
     status: implemented
+  - name: HOTKEY_STOP_TIMEOUT_SEC
+    title: ホットキーの受付の終わりを待つ上限
+    container: runtime/hotkey.py
+    usecase: 録音する
+    summary: HotkeyListener が止めた受付のスレッドの終わりを待つ上限（秒）。Linux の pynput は次のキー入力まで終わらないため、上限で手放す。値は非機能要件『ホットキーの受付の終わりを待つ時間』
+    value: '0.5'
+    status: planned
 test_files:
   - tests/unit/voice_paste/runtime/test_hotkey.py
   - tests/unit/voice_paste/ui/test_bridge.py

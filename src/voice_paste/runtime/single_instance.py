@@ -9,6 +9,7 @@ Win32 の名前付きのミューテックス（`Local\\{名前}`）を持つプ
 from __future__ import annotations
 
 import ctypes
+import functools
 import hashlib
 import logging
 import threading
@@ -49,35 +50,40 @@ INFINITE: int = 0xFFFFFFFF
 MILLISECONDS_PER_SECOND: int = 1000
 """秒をミリ秒にする倍率。"""
 
-_kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-_kernel32.CreateMutexW.argtypes = [wintypes.LPVOID, wintypes.BOOL, wintypes.LPCWSTR]
-_kernel32.CreateMutexW.restype = wintypes.HANDLE
-_kernel32.CreateEventW.argtypes = [
-    wintypes.LPVOID,
-    wintypes.BOOL,
-    wintypes.BOOL,
-    wintypes.LPCWSTR,
-]
-_kernel32.CreateEventW.restype = wintypes.HANDLE
-_kernel32.OpenEventW.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.LPCWSTR]
-_kernel32.OpenEventW.restype = wintypes.HANDLE
-_kernel32.SetEvent.argtypes = [wintypes.HANDLE]
-_kernel32.SetEvent.restype = wintypes.BOOL
-_kernel32.ResetEvent.argtypes = [wintypes.HANDLE]
-_kernel32.ResetEvent.restype = wintypes.BOOL
-_kernel32.ReleaseMutex.argtypes = [wintypes.HANDLE]
-_kernel32.ReleaseMutex.restype = wintypes.BOOL
-_kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
-_kernel32.CloseHandle.restype = wintypes.BOOL
-_kernel32.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
-_kernel32.WaitForSingleObject.restype = wintypes.DWORD
-_kernel32.WaitForMultipleObjects.argtypes = [
-    wintypes.DWORD,
-    ctypes.POINTER(wintypes.HANDLE),
-    wintypes.BOOL,
-    wintypes.DWORD,
-]
-_kernel32.WaitForMultipleObjects.restype = wintypes.DWORD
+
+@functools.cache
+def _kernel32() -> ctypes.WinDLL:
+    """Win32 の kernel32 を、最初の呼び出しで読み込んで引数と戻り値の型を設定する（Linux でもこのファイルを import できるようにする）。"""
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.CreateMutexW.argtypes = [wintypes.LPVOID, wintypes.BOOL, wintypes.LPCWSTR]
+    kernel32.CreateMutexW.restype = wintypes.HANDLE
+    kernel32.CreateEventW.argtypes = [
+        wintypes.LPVOID,
+        wintypes.BOOL,
+        wintypes.BOOL,
+        wintypes.LPCWSTR,
+    ]
+    kernel32.CreateEventW.restype = wintypes.HANDLE
+    kernel32.OpenEventW.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.LPCWSTR]
+    kernel32.OpenEventW.restype = wintypes.HANDLE
+    kernel32.SetEvent.argtypes = [wintypes.HANDLE]
+    kernel32.SetEvent.restype = wintypes.BOOL
+    kernel32.ResetEvent.argtypes = [wintypes.HANDLE]
+    kernel32.ResetEvent.restype = wintypes.BOOL
+    kernel32.ReleaseMutex.argtypes = [wintypes.HANDLE]
+    kernel32.ReleaseMutex.restype = wintypes.BOOL
+    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+    kernel32.CloseHandle.restype = wintypes.BOOL
+    kernel32.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+    kernel32.WaitForSingleObject.restype = wintypes.DWORD
+    kernel32.WaitForMultipleObjects.argtypes = [
+        wintypes.DWORD,
+        ctypes.POINTER(wintypes.HANDLE),
+        wintypes.BOOL,
+        wintypes.DWORD,
+    ]
+    kernel32.WaitForMultipleObjects.restype = wintypes.DWORD
+    return kernel32
 
 
 def instance_name(settings_dir: Path) -> str:
@@ -117,7 +123,7 @@ class SingleInstanceLock:
         """取ったミューテックスと終了の依頼のイベントを受け、待つスレッドを始める。"""
         self._mutex = mutex
         self._quit_event = quit_event
-        self._stop_event: int = _kernel32.CreateEventW(None, False, False, None)
+        self._stop_event: int = _kernel32().CreateEventW(None, False, False, None)
         self._on_quit: Callable[[], None] | None = None
         self._quit_requested = False
         self._on_quit_called = False
@@ -142,16 +148,16 @@ class SingleInstanceLock:
             return
         self._released = True
         # 名前付きの終了の依頼のイベントは立てず、自分専用の停止のイベントでスレッドを抜けさせる
-        _kernel32.SetEvent(self._stop_event)
+        _kernel32().SetEvent(self._stop_event)
         self._thread.join()
-        _kernel32.ReleaseMutex(self._mutex)
+        _kernel32().ReleaseMutex(self._mutex)
         for handle in (self._mutex, self._quit_event, self._stop_event):
-            _kernel32.CloseHandle(handle)
+            _kernel32().CloseHandle(handle)
 
     def _wait_for_quit(self) -> None:
         """終了の依頼か停止のイベントが立つまで待ち、終了の依頼なら受け手を 1 回呼んで終わる。"""
         handles = (wintypes.HANDLE * 2)(self._quit_event, self._stop_event)
-        signaled = _kernel32.WaitForMultipleObjects(2, handles, False, INFINITE)
+        signaled = _kernel32().WaitForMultipleObjects(2, handles, False, INFINITE)
         # 停止のイベントが立った（または待つ呼び出しが失敗した）か
         if signaled != WAIT_OBJECT_0:
             # はい: 受け手を呼ばずに終わる
@@ -171,11 +177,11 @@ class SingleInstanceLock:
 
 def _ask_previous_to_quit(name: str) -> bool:
     """前のプロセスの終了の依頼のイベントを開いて立てる。開けなければ False。"""
-    event = _kernel32.OpenEventW(EVENT_MODIFY_STATE, False, _quit_event_name(name))
+    event = _kernel32().OpenEventW(EVENT_MODIFY_STATE, False, _quit_event_name(name))
     if not event:
         return False
-    _kernel32.SetEvent(event)
-    _kernel32.CloseHandle(event)
+    _kernel32().SetEvent(event)
+    _kernel32().CloseHandle(event)
     return True
 
 
@@ -196,7 +202,7 @@ def _wait_for_release(mutex: int, name: str, timeout_sec: float) -> bool:
         # 頼めた後は上限までまとめて待ち、頼めていない間は開き直す間隔で区切って待つ
         wait_sec = remaining_sec if asked else min(remaining_sec, OPEN_EVENT_RETRY_INTERVAL_SEC)
         wait_ms = max(1, int(wait_sec * MILLISECONDS_PER_SECOND))
-        result = _kernel32.WaitForSingleObject(mutex, wait_ms)
+        result = _kernel32().WaitForSingleObject(mutex, wait_ms)
         if result in (WAIT_OBJECT_0, WAIT_ABANDONED):
             return True
         if result == WAIT_FAILED:
@@ -209,7 +215,7 @@ def _wait_for_release(mutex: int, name: str, timeout_sec: float) -> bool:
 def acquire_single_instance(name: str, timeout_sec: float) -> SingleInstanceLock:
     """名前付きのミューテックスを取る。取られていれば終了の依頼のイベントで前のプロセスに終わるよう頼み、放されるのを待ってから取る。"""
     # 1. 名前付きのミューテックスを作る（無ければ作った側が持つ）
-    mutex = _kernel32.CreateMutexW(None, True, _mutex_name(name))
+    mutex = _kernel32().CreateMutexW(None, True, _mutex_name(name))
     if not mutex:
         raise _win_error("排他のミューテックスを作ること")
     already_exists = ctypes.get_last_error() == ERROR_ALREADY_EXISTS
@@ -220,19 +226,19 @@ def acquire_single_instance(name: str, timeout_sec: float) -> SingleInstanceLock
         try:
             released = _wait_for_release(mutex, name, timeout_sec)
         except StartupError:
-            _kernel32.CloseHandle(mutex)
+            _kernel32().CloseHandle(mutex)
             raise
         if not released:
-            _kernel32.CloseHandle(mutex)
+            _kernel32().CloseHandle(mutex)
             raise StartupError(f"前の常駐サービスが {timeout_sec} 秒たっても終わらない")
 
     # 3. 自分の終了の依頼のイベントを作り、立ったまま残っていた依頼を削除する
     # （同じ名前のイベントは前のプロセスのハンドルが残る間は引き継がれ、取る前に立った依頼は前のプロセス宛てのため）
-    quit_event = _kernel32.CreateEventW(None, False, False, _quit_event_name(name))
+    quit_event = _kernel32().CreateEventW(None, False, False, _quit_event_name(name))
     if not quit_event:
-        _kernel32.CloseHandle(mutex)
+        _kernel32().CloseHandle(mutex)
         raise _win_error("終了の依頼のイベントを作ること")
-    _kernel32.ResetEvent(quit_event)
+    _kernel32().ResetEvent(quit_event)
 
     # 4. 終了の依頼を待つスレッドを始める
     logger.info(f"単一インスタンスを確保した（{name}）")

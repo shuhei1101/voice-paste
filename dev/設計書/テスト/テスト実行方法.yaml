@@ -8,6 +8,8 @@ layers:
     description: pytest で実行する。`tests/unit` は `src/voice_paste/` をミラーした並びの単体テスト。
     prerequisites:
       - 外部依存なし（GPU も録音も要らない）
+      - Linux では、Win32 の単一インスタンス（`tests/unit/voice_paste/runtime/test_single_instance.py`）・pycaw の音量のアダプタ（`tests/unit/voice_paste/integrations/volume/test_adapter.py`）・読み込み時に `ctypes.WinDLL` を呼ぶ `tests/unit/voice_paste/runtime/helpers.py` に依存するテスト（`tests/unit/voice_paste/conftest.py` の該当のフィクスチャを使うものと `tests/unit/voice_paste/test_main.py` の該当のケースを含む）を skip する
+      - Linux の単一インスタンス（`src/voice_paste/runtime/single_instance_linux.py`）の単体テスト（`tests/unit/voice_paste/runtime/test_single_instance_linux.py`）は Linux でだけ流す（Windows では skip する）
     run_one:
       label: ファイル
       command: |-
@@ -105,3 +107,5 @@ layers:
 prerequisites:
   - リポジトリの直下で Windows の uv（WSL からは `uv.exe`）の `uv sync --frozen` を流し、`.venv/` に環境を作る（`uv.lock` のバージョンで入る。pytest と import-linter と pywin32 は pyproject.toml の `[dependency-groups]` の dev から入る）
   - 実機のテスト（E2E・非機能要件テスト）が起こす常駐アプリは、`tests/conftest.py` の `QT_QPA_PLATFORM=offscreen` のまま起動し、実機の画面に出さない（別プロセスで起動するもの・再起動で起動するものも同じ）
+  - Ubuntu 24.04 のクローンでは、リポジトリの直下で Linux の uv の `uv sync --frozen` を流して `.venv/` を作り（開発コマンド『環境構築（クローン直後）』）、種別のコマンドの `.venv/Scripts/python.exe` は `.venv/bin/python` に、`.venv/Scripts/lint-imports` は `.venv/bin/lint-imports` に読み替える
+  - SAPI を使う `tests/support/inprocess.py` に依存するテスト（E2E・非機能要件テスト）は Linux では skip する

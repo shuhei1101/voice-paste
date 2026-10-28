@@ -7,7 +7,8 @@ directory: |-
   ├── __main__.py              # python -m voice_paste で main() を呼ぶ
   ├── main.py                  # parse_args・build_handlers・build_ui_deps・apply_settings・start_local_session・main
   └── runtime/
-      ├── single_instance.py   # 名前付きのミューテックスと終了の依頼（名前付きのイベント）
+      ├── single_instance.py   # instance_name と、Windows の名前付きのミューテックスと終了の依頼（名前付きのイベント）
+      ├── single_instance_linux.py # Linux のロックファイル（flock）と終了の依頼（抽象名前空間の Unix ドメインソケット）
       ├── settings_store.py    # SettingsStore（動いている間の今の設定）
       ├── process.py           # relaunch（同じ引数で起動し直す）
       └── timer.py             # RepeatingTimer（上限での打ち切りを定期に呼ぶ）
@@ -16,7 +17,8 @@ directory: |-
   リポジトリの直下は `pyproject.toml`・`uv.lock`・`.python-version`・起動のバッチファイル 1 つ・`settings.sample.toml`・`README.md`・`CLAUDE.md`・`src/`・`resources/`・`tests/`・`dev/`・`docs/` に絞る。
 
   動かす環境は、リポジトリの直下で Windows の uv（WSL からは `uv.exe`）で `uv sync --frozen` を流して `.venv/` に作る（`uv.lock` のバージョンで入り、Python のバージョンは `.python-version` の 3.14）。
-  Linux の uv で流すと `.venv/` を Linux の構成に作り直したうえで `pywin32` を入れられず止まるため、環境を作るコマンドと環境で流すコマンドは Windows の uv で流す（`uv lock` はどちらでもよい）。
+  Windows のクローンで WSL の uv で流すと `.venv/` を Linux の構成に作り直すため、Windows のクローンの環境を作るコマンドと環境で流すコマンドは Windows の uv で流す（`uv lock` はどちらでもよい）。
+  Ubuntu のクローンでは、Linux の uv で `uv sync --frozen` を流して `.venv/` を作り、`.venv/bin/python -m voice_paste` で起動する（`pycaw`・`comtypes`・`pywin32` は `sys_platform == "win32"` の条件で入らない）。
   起動のバッチファイル（`voice-paste.bat`）は、起動のたびにリポジトリの直下で `uv sync --frozen` を流し、`.venv/` を `uv.lock` に揃える（揃っていれば何も書き換えずに終わる）。uv は PATH から探し、無ければ `%USERPROFILE%\.local\bin\uv.exe` を使う。
   `uv sync --frozen` を流す前に、コンソールに `Syncing .venv with uv sync --frozen. See log: {launcher.log のパス}` を表示する。
   続けて `.venv\Scripts\python.exe -c "import voice_paste"` で `.venv` から voice_paste を import できるかを確かめる（`.venv` のフォルダや `python.exe` があるかでは判定しない）。
@@ -106,6 +108,35 @@ data_models:
         type: Path | None
         description: データの置き場所（`--data-dir`）。渡したときは設定・履歴・ログ・一時の音声・トークンをこの下に置き、渡さなければ None（既定の置き場所）
     status: implemented
+  - name: PlatformAdapters
+    title: OS ごとの実装
+    container: main.py
+    usecase: 常駐アプリを起動する
+    role: DTO
+    summary: 動いている OS に合わせて選んだ、単一インスタンス・音量・ブラウザ・文字起こしワーカーの起動・再起動の実装
+    description: |-
+      select_platform_adapters が作る。OS を見て実装を選ぶのはここだけで、各モジュールは sys.platform を見ない。
+      `@dataclass(frozen=True, slots=True, kw_only=True)`。
+    properties:
+      - name: acquire_single_instance
+        type: Callable[[str, float], SingleInstanceLock | LinuxSingleInstanceLock]
+        description: 単一インスタンスの確保（名前・待つ上限）
+      - name: lower_volume
+        type: LowerVolumeFn
+        description: 録音中に音量を下げる
+      - name: restore_volume
+        type: RestoreVolumeFn
+        description: 下げた音量を戻す
+      - name: open_app_window
+        type: Callable[[str], None]
+        description: ブラウザ添付のプリセットの画面を開く
+      - name: worker_creationflags
+        type: int
+        description: 文字起こしワーカーの子プロセスの起動のフラグ（WhisperWorkerClient へ渡す）
+      - name: relaunch
+        type: Callable[[list[str]], None]
+        description: 同じ引数で起動し直す（os_kind を部分適用した relaunch）
+    status: planned
 functions:
   - name: build_handlers
     title: 配線
@@ -141,18 +172,23 @@ functions:
         required: true
         passing: positional
         description: コピーの完了の知らせ（ui の notify_copied）
+      - name: adapters
+        type: PlatformAdapters
+        required: true
+        passing: keyword
+        description: OS ごとの実装（select_platform_adapters）
     returns:
       type: Handlers
       description: 配線済みの関数の束
     process: |-
       1. 設定を SettingsStore に入れる。以降の配線は設定を値でなく SettingsStore.get から読む（保存した immediate の項目を次の回から効かせる）
-      2. 設定のエンジン（local_whisper）の WhisperWorkerClient を作って起動し、その transcribe を文字起こしの engine に渡す。get_hint には、SettingsStore.get の hint_presets を join_hint_words でつなぎ、空なら None を返す関数を渡す
+      2. 設定のエンジン（local_whisper）の WhisperWorkerClient を adapters.worker_creationflags で作って起動し、その transcribe を文字起こしの engine に渡す。get_hint には、SettingsStore.get の hint_presets を join_hint_words でつなぎ、空なら None を返す関数を渡す
          - EngineError の場合、StartupError を送出する
       3. 連続録音の話し声の判定に使う VAD のセッションを 1 回だけ読む（load_vad_session。StartupError はそのまま送出する）
-      4. Recorder に音量のアダプタと、SettingsStore から録音の設定を返す関数と、VAD のセッションを部分適用した StreamingVad（話し声の判定を作る）を渡す
-      5. 出力先の deliver に、配線した OUTPUTS（_wire_outputs）・配線した PRESET_KINDS（_wire_preset_kinds）と、届けるたびに SettingsStore からオンの出力先の ID を引く関数を部分適用し、Session を入口・出力先の ID・選んだプリセット・返送先に分けて渡すアダプタを作る
+      4. Recorder に adapters の lower_volume・restore_volume と、SettingsStore から録音の設定を返す関数と、VAD のセッションを部分適用した StreamingVad（話し声の判定を作る）を渡す
+      5. 出力先の deliver に、配線した OUTPUTS（_wire_outputs）・配線した PRESET_KINDS（_wire_preset_kinds。open_window に adapters.open_app_window）と、届けるたびに SettingsStore からオンの出力先の ID を引く関数を部分適用し、Session を入口・出力先の ID・選んだプリセット・返送先に分けて渡すアダプタを作る
          - 出力先には OutputDeps（copy_to_clipboard・設定の keyboard.paste_key で send_paste を呼ぶ関数・send_enter・time.sleep・random.uniform(0, x)・post_json・SettingsStore.get・notify_copied）を渡し、各出力先の inject が選ぶ
-         - ブラウザ添付（種類）: copy_to_clipboard・open_app_window・send_paste を呼ぶ関数・send_enter・time.sleep・設定の preset_options.browser.open_delay_sec を返す関数・貼り付けて送信の enter_delay_sec を返す関数（read_enter_delay_sec）
+         - ブラウザ添付（種類）: copy_to_clipboard・adapters.open_app_window・send_paste を呼ぶ関数・send_enter・time.sleep・設定の preset_options.browser.open_delay_sec を返す関数・貼り付けて送信の enter_delay_sec を返す関数（read_enter_delay_sec）
          - エンドポイントへ送信（種類）: post_json・設定の preset_options.endpoint.timeout_sec を返す関数
       6. 文字起こしのたびに、SettingsStore の設定の edge_phrases で文頭・文末の文言を消してから（strip_edge_phrases）用語集を読み直して置き換える correct（起こした文字と用語集のプリセットの名前か None を受ける）を作る。そのたびに、SettingsStore の設定と settings.toml のフォルダから pick_glossary_preset（requested に受けた名前）でプリセットを引き、list_preset_glossaries（用語集の一覧は resolve_glossaries）の順に load_glossary した行を 1 本の並びにつないで apply_glossary を当てる（読めない CSV は load_glossary が空を返すので飛ばされる。使う用語集が無ければ置き換えない）
          - `[INFO]` 用語集で補正する（用語集のプリセットの名前・用語集ごとの名前と補正に使う行数）
@@ -177,7 +213,7 @@ functions:
     process: |-
       1. 起動の引数を読む（parse_args。argv が None なら sys.argv[1:]）
       2. 置き場所を決め、ログを INFO で設定する（resolve_app_paths・setup_logging）
-      3. 置き場所ごとの名前で単一インスタンスを確保する（instance_name・acquire_single_instance(SINGLE_INSTANCE_TIMEOUT_SEC)）
+      3. OS に合った実装を選び（select_platform_adapters(CURRENT_OS, lock_file=paths.lock_file)）、置き場所ごとの名前で単一インスタンスを確保する（instance_name・PlatformAdapters.acquire_single_instance(SINGLE_INSTANCE_TIMEOUT_SEC)）
          - StartupError の場合、1 を返す（トレイを出す前のため、ログにだけ残す）
            - `[ERROR]` 起動に失敗した（理由）
       4. QApplication（最後の窓を閉じても終わらない）・UiBridge・Tray を作り、apply_theme(app, "system", image_dir=paths.ui_image_dir) で画面の明暗を当ててトレイに準備中を出す。WAKE_INTERVAL_MS ごとの空の QTimer を置き、SIGINT・SIGBREAK で QApplication.quit を呼ぶ。後から起動したプロセスに終わるよう頼まれたら、QApplication.quit をメインスレッドで呼ぶ（SingleInstanceLock.on_quit_requested に、QMetaObject.invokeMethod で QApplication.quit をキューに入れる関数を渡す）
@@ -186,7 +222,7 @@ functions:
            - `[ERROR]` 起動に失敗した（理由）
       6. 設定の ui.theme で画面の明暗を当て直し（apply_theme。image_dir は paths.ui_image_dir）、QStyleHints.colorSchemeChanged に、SettingsStore.get の ui.theme で apply_theme を呼ぶ関数をつなぐ（OS の明暗が変わったときに当て直す）。ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を消す（purge_old_files。処理中のセッションは無いため、一時の音声も全て消す対象にする）
          - `[INFO]` 設定を読んだ（設定ファイルのパス・エンジン・オンの出力先の ID）
-      7. 配線する（build_handlers。notify・report_progress・notify_copied は UiBridge を部分適用した ui のもの）
+      7. 配線する（build_handlers。notify・report_progress・notify_copied は UiBridge を部分適用した ui のもの、adapters は 3 で選んだ PlatformAdapters）
          - StartupError の場合、トレイを失敗にして起動の失敗を通知し（Tray.show_failure(engine_unavailable, 理由)）、「設定…」だけを押せるまま 11 へ（設定画面は読んだ設定で開き、保存は settings.toml へ書くだけにする。Handlers が無いため、UiDeps のうち録音・ホットキーの関数（start・pause・resume・complete・cancel・current_session・level・suspend_hotkeys・resume_hotkeys）は何もしない関数にし、設定画面を閉じてもホットキーの受付を始めない）
            - `[ERROR]` 起動に失敗した（理由）
       8. UiController を作り（build_ui_deps）、UiBridge の知らせの受け手につなぐ（notified → on_notified・progressed → on_progressed・copied → on_copied。9 で待ち受けを始められない知らせを取りこぼさないよう、API より先に作る）
@@ -200,7 +236,7 @@ functions:
       11. イベントループを回す（exec_loop）
       12. 抜けたら、新しい開始が来ないように入口とタイマー（ホットキー・API サーバー・2 つのタイマー）を先に止め、録音を捨て（SessionManager.close）、ブラウザの音声のキューを閉じ（WebJobQueue.close。待ちの一時のファイルを消す）、エンジンを止め、トレイを消す（8 までで立てたものだけ）。最後に単一インスタンスの排他を放す（SingleInstanceLock.release）
           - `[INFO]` 常駐サービスを終えた
-      13. 再起動を頼まれていれば、同じ引数で起動し直す（relaunch。排他を放した後に呼ぶため、次のプロセスは待たずに排他を取れる）
+      13. 再起動を頼まれていれば、同じ引数で起動し直す（PlatformAdapters.relaunch。排他を放した後に呼ぶため、次のプロセスは待たずに排他を取れる）
       14. 0 を返す
     status: implemented
     args:
@@ -296,7 +332,7 @@ functions:
       強制終了しない: プロセスの番号での強制終了はしない（番号を使い回された無関係なプロセスを止めない）。
     status: implemented
     process: |-
-      1. 名前付きのミューテックスを作る（ctypes で Win32 の CreateMutexW）
+      1. 名前付きのミューテックスを作る（ctypes で Win32 の CreateMutexW。kernel32 は最初の呼び出しで読み込み、single_instance.py を Linux でも import できるようにする）
       2. 既にあった（ERROR_ALREADY_EXISTS）か
          - ある場合、前のプロセスの終了の依頼のイベントを開いて立て（OpenEventW・SetEvent）、ミューテックスの解放を timeout_sec まで待つ（WaitForSingleObject。前のプロセスが片付けずに落ちて放棄されたミューテックス（WAIT_ABANDONED）も取れたものとして扱う）
            - イベントを開けない場合（前のプロセスがミューテックスを作ってからイベントを作るまでの間）、OPEN_EVENT_RETRY_INTERVAL_SEC ごとに開き直しながら、同じ上限までミューテックスの解放を待つ（開けたらその時点で立てる）
@@ -722,6 +758,7 @@ functions:
       5. apply_theme に引数の apply_theme を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
       6. list_glossaries に SettingsStore.get の設定と settings.toml のフォルダで resolve_glossaries を呼ぶ関数、list_glossary_presets に同じ設定とフォルダで resolve_glossary_presets を呼ぶ関数、read_glossary に read_glossary_rows、new_glossary_path に settings.toml のフォルダの `glossaries` を部分適用した next_glossary_path を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
       7. copy に copy_to_clipboard を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
+      8. hidden_setting_keys に OS_HIDDEN_SETTING_KEYS の CURRENT_OS の集合（無ければ空）を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
     status: implemented
   - name: relaunch
     title: 再起動
@@ -736,21 +773,34 @@ functions:
         required: true
         passing: positional
         description: 起動の引数（プログラム名を除く）
+      - name: os_kind
+        type: OsKind
+        required: true
+        passing: keyword
+        description: 動いている OS（select_platform_adapters が部分適用する）
     returns:
       type: None
       description: なし
     process: |-
-      1. `subprocess.Popen([sys.executable, "-m", "voice_paste", *argv], creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP, close_fds=True)` で起動する
+      1. os_kind に合わせて切り離して起動する
+         - OsKind.WINDOWS の場合、`subprocess.Popen([sys.executable, "-m", "voice_paste", *argv], creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP, close_fds=True)`（フラグは process.py の定数。Linux の subprocess には属性が無い）
+         - OsKind.LINUX の場合、`subprocess.Popen([sys.executable, "-m", "voice_paste", *argv], start_new_session=True, close_fds=True)`
          - OSError の場合、ログに書いて握る（終わり方は変えない）
            - `[ERROR]` 起動し直せなかった（logger.exception）
          - `[INFO]` 起動し直した（引数）
     unit_tests:
       - name: test_relaunch
         case: 正常
-        summary: 同じ引数で切り離して起動する
-        condition: argv=["--data-dir", "C:/tmp/vp"]
+        summary: Windows では同じ引数で切り離して起動する
+        condition: argv=["--data-dir", "C:/tmp/vp"]・os_kind=OsKind.WINDOWS
         mock: subprocess.Popen
         expected: Popen に [sys.executable, "-m", "voice_paste", "--data-dir", "C:/tmp/vp"] と DETACHED_PROCESS が渡る
+      - name: test_relaunch_when_linux
+        case: 正常
+        summary: Linux では新しいセッションで起動する
+        condition: argv=["--data-dir", "/tmp/vp"]・os_kind=OsKind.LINUX
+        mock: subprocess.Popen
+        expected: Popen に [sys.executable, "-m", "voice_paste", "--data-dir", "/tmp/vp"] と start_new_session=True が渡り、creationflags が渡らない
       - name: test_relaunch_when_failed
         case: 異常
         summary: 起動できなくても例外を漏らさない
@@ -851,6 +901,11 @@ functions:
         required: true
         passing: positional
         description: 今の設定を返す（keyboard.paste_key・outputs[]・preset_options を読む）
+      - name: open_window
+        type: Callable[[str], None]
+        required: true
+        passing: keyword
+        description: ブラウザ添付の画面を開く（PlatformAdapters.open_app_window）
     returns:
       type: tuple[PresetKindSpec, ...]
       description: handler を配線した種類の一覧（PRESET_KINDS と同じ並び）
@@ -878,6 +933,150 @@ functions:
     refs:
       - dev/設計書/モジュール構成/常駐アプリ/出力先.py#constants[PRESET_KINDS]
     status: implemented
+  - name: select_platform_adapters
+    title: OS ごとの実装の選択
+    kind: 関数
+    container: main.py
+    usecase: 常駐アプリを起動する
+    role: composition root
+    summary: OS に合った実装を PlatformAdapters に束ねる。その OS だけのモジュールは、選んだ分岐の中で import する
+    scope: public
+    args:
+      - name: os_kind
+        type: OsKind
+        required: true
+        passing: positional
+        description: 動いている OS（main は CURRENT_OS を渡す）
+      - name: lock_file
+        type: Path
+        required: true
+        passing: keyword
+        description: Linux のロックファイル（main は AppPaths.lock_file を渡す。Windows では使わない）
+    returns:
+      type: PlatformAdapters
+      description: OS ごとの実装
+    process: |-
+      1. os_kind で分ける
+         - OsKind.WINDOWS の場合、integrations/volume/adapter.py（comtypes・pycaw を読み込む）をここで import し、acquire_single_instance・lower_volume・restore_volume・open_app_window・CREATE_NO_WINDOW・relaunch(os_kind=WINDOWS) を束ねる
+         - OsKind.LINUX の場合、runtime/single_instance_linux.py（fcntl を読み込む）をここで import し、acquire_single_instance_linux（functools.partial で lock_file を部分適用）・lower_volume_noop・restore_volume_noop・open_app_window_linux・0・relaunch(os_kind=LINUX) を束ねる
+    unit_tests:
+      - name: test_select_platform_adapters_when_windows
+        case: 正常
+        summary: Windows は pycaw の音量・Edge・Win32 の排他を選ぶ
+        condition: os_kind=OsKind.WINDOWS（Linux では skip）
+        mock: なし
+        expected: lower_volume が integrations/volume/adapter.py の lower_volume、open_app_window が opener.py の open_app_window、acquire_single_instance が single_instance.py の acquire_single_instance、worker_creationflags が CREATE_NO_WINDOW
+      - name: test_select_platform_adapters_when_linux
+        case: 正常
+        summary: Linux は何もしない音量・Chromium 系・flock の排他を選ぶ
+        condition: os_kind=OsKind.LINUX（Windows では skip）
+        mock: なし
+        expected: lower_volume が lower_volume_noop、restore_volume が restore_volume_noop、open_app_window が open_app_window_linux、acquire_single_instance が lock_file を部分適用した acquire_single_instance_linux（func と keywords で確かめる）、worker_creationflags が 0。voice_paste.integrations.volume.adapter が sys.modules に無い
+    status: planned
+  - name: acquire_single_instance_linux
+    title: Linux の単一インスタンスの確保
+    kind: 関数
+    container: runtime/single_instance_linux.py
+    usecase: 常駐アプリを起動する
+    role: ランタイム
+    summary: ロックファイルを flock で取る。取られていれば終了の依頼のソケットで前のプロセスに終わるよう頼み、放されるのを待ってから取る
+    scope: public
+    args:
+      - name: name
+        type: str
+        required: true
+        passing: positional
+        description: 排他の名前（instance_name）。終了の依頼のソケットは抽象名前空間の `\0{name}-quit` にする
+      - name: timeout_sec
+        type: float
+        required: true
+        passing: positional
+        description: 前のプロセスの終わりを待つ上限
+      - name: lock_file
+        type: Path
+        required: true
+        passing: keyword
+        description: ロックファイル（AppPaths.lock_file。環境変数によらず設定・データの置き場所ごとに 1 つに決まる）
+    returns:
+      type: LinuxSingleInstanceLock
+      description: 取った排他（終了の依頼を待つスレッドを持つ。終了時に release で放す）
+    process: |-
+      1. lock_file を開き（os.open、無ければ親のフォルダごと 0o600 で作る）、fcntl.flock(LOCK_EX | LOCK_NB) で取る
+      2. 取れたか
+         - 取れない場合（BlockingIOError）、前のプロセスの終了の依頼のソケットへ接続して QUIT_REQUEST を送信し、LOCK_RETRY_INTERVAL_SEC ごとに flock(LOCK_EX | LOCK_NB) を取り直しながら timeout_sec まで待つ
+           - 接続できない場合（前のプロセスがロックを取ってからソケットを作るまでの間）、取り直すたびに接続し直す（送信できたら以降は送信しない）
+           - `[INFO]` 前の常駐サービスに終わるよう頼んだ
+           - 上限まで取れない場合、ファイル記述子を閉じて StartupError を送出する。上限まで一度も送信できなかったときは、理由にその旨を書く
+         - 取れた場合、そのまま進む（前のプロセスが片付けずに落ちていても、OS がロックを放している）
+      3. 終了の依頼のソケット（AF_UNIX・SOCK_STREAM）を `\0{name}-quit` に bind して listen する
+         - OSError の場合（同じ名前のソケットが残っている）、ロックを放して StartupError を送出する
+      4. 終了の依頼のソケットと停止のソケットを待つデーモンスレッドを始めて LinuxSingleInstanceLock を返す
+         - 接続を受けて QUIT_REQUEST を読んだ場合、受け手を 1 回呼んでスレッドを終える（2 回目以降の依頼は、既に終わりに向かっているため受けない）
+         - 停止の合図を受けた場合、受け手を呼ばずにスレッドを終える
+         - `[INFO]` 単一インスタンスを確保した（名前）
+    exceptions:
+      - name: StartupError
+        condition: 上限まで待っても前のプロセスがロックを放さない
+      - name: StartupError
+        condition: 終了の依頼のソケットを bind できない
+    unit_tests:
+      - name: test_acquire_single_instance_linux
+        case: 正常
+        summary: ほかに持つプロセスが無ければすぐ取れる
+        condition: 一意の名前（テストごとに uuid を付ける）
+        mock: なし（実物の flock と抽象名前空間のソケット）
+        expected: LinuxSingleInstanceLock が返り、release の後に同じ名前でもう一度取れる
+      - name: test_acquire_single_instance_linux_when_held
+        case: 正常
+        summary: 持っている側に終わるよう頼み、放されたら取れる
+        condition: 同じ名前の LinuxSingleInstanceLock を先に取り、その on_quit_requested に release する関数を渡す。timeout_sec=5 で取る
+        mock: なし（実物の flock と抽象名前空間のソケット）
+        expected: 先の受け手が 1 回呼ばれ、後の呼び出しが LinuxSingleInstanceLock を返す
+      - name: test_acquire_single_instance_linux_when_not_released
+        case: 異常
+        summary: 上限まで放されなければ StartupError
+        condition: 同じ名前の LinuxSingleInstanceLock を先に取り、頼まれても放さない。timeout_sec=0.2 で取る
+        mock: なし（実物の flock と抽象名前空間のソケット）
+        expected: StartupError。先の LinuxSingleInstanceLock は持ったまま
+        exception: 上限まで待っても前のプロセスがロックを放さない
+      - name: test_acquire_single_instance_linux_when_socket_not_ready
+        case: 正常
+        summary: 前のプロセスのソケットがまだ無くても、接続し直して頼む
+        condition: 別のスレッドが同じロックファイルを flock だけで持ち、0.3 秒後に同じ名前のソケットを bind し、QUIT_REQUEST を受けたら放す。timeout_sec=5 で取る
+        mock: なし（実物の flock と抽象名前空間のソケット）
+        expected: LinuxSingleInstanceLock が返り、別のスレッドが QUIT_REQUEST を受けている
+      - name: test_acquire_single_instance_linux_when_holder_crashed
+        case: 正常
+        summary: 前のプロセスが片付けずに落ちても取れる
+        condition: 子プロセスで同じ名前を acquire_single_instance_linux で取らせ、SIGKILL で終わらせてから timeout_sec=1 で取る
+        mock: なし（実物の子プロセス・flock・抽象名前空間のソケット）
+        expected: LinuxSingleInstanceLock が返る
+    status: planned
+    description: 単体テストは lock_file に一時フォルダの instance.lock を渡す（同じロックを取り合うケースでは同じパスを渡す）。
+  - name: _peer_uid
+    title: 接続の相手の uid
+    kind: 関数
+    container: runtime/single_instance_linux.py
+    usecase: 常駐アプリを起動する
+    summary: Unix ドメインソケットの接続の相手の uid を SO_PEERCRED で読む
+    scope: internal
+    args:
+      - name: conn
+        type: socket.socket
+        required: true
+        passing: positional
+        description: accept した接続
+    returns:
+      type: int
+      description: 相手の uid（getsockopt(SOL_SOCKET, SO_PEERCRED) の struct ucred（3 つの int）の 2 つ目）
+    unit_tests:
+      - name: test_peer_uid
+        case: 正常
+        summary: 自分の接続は自分の uid
+        condition: socket.socketpair(AF_UNIX) の片方を渡す
+        mock: なし
+        expected: os.getuid()
+    status: planned
 notes:
   依存の向き: |-
     コーディング規約『依存関係管理』のとおり `features`・`server`・`ui` → `integrations`・`runtime` → `shared` とし、上の層へは import しない。
@@ -895,6 +1094,18 @@ notes:
     | 画面から feature の中へ | forbidden | source_modules は `voice_paste.ui`、forbidden_modules は `voice_paste.features`・`voice_paste.integrations`。ignore_imports で `voice_paste.ui.** -> voice_paste.features.session.types` を除く |
 
     出力先を追加するときは `features/outputs/` にサブフォルダを追加するだけで契約の対象に入り、契約は直さない。
+  OS ごとの実装: |-
+    OS で分かれる実装は、Windows と Linux で別のファイルに置き、select_platform_adapters だけが CURRENT_OS で選んで import する（Windows 専用のライブラリ・ctypes の Win32 を Linux で import しない）。
+
+    | 対象 | Windows | Linux |
+    | --- | --- | --- |
+    | 単一インスタンス | runtime/single_instance.py（名前付きミューテックスとイベント） | runtime/single_instance_linux.py（flock のロックファイルと抽象名前空間のソケット） |
+    | システム音量 | integrations/volume/adapter.py（pycaw） | integrations/volume/noop.py（下げない） |
+    | ブラウザ添付のアプリのウィンドウ | integrations/browser/opener.py（Microsoft Edge の `--app`） | integrations/browser/opener_linux.py（Chromium 系の `--app`。無ければ既定のブラウザ） |
+    | 文字起こしワーカーの起動 | CREATE_NO_WINDOW | 0 |
+    | 再起動 | DETACHED_PROCESS・CREATE_NEW_PROCESS_GROUP | start_new_session |
+
+    OS に固有の実装の単体テストは、テストファイルの先頭の `pytestmark = pytest.mark.skipif(...)` で、対象でない OS では飛ばす（Windows 専用: 単一インスタンス・音量のアダプタ。Linux 専用: single_instance_linux.py）。
 classes:
   - name: RepeatingTimer
     title: 定期の呼び出し
@@ -1099,6 +1310,108 @@ classes:
             mock: 受け手
             expected: 同じ名前で timeout_sec=0.1 で取れ、受け手が呼ばれていない
     status: implemented
+  - name: LinuxSingleInstanceLock
+    title: Linux の単一インスタンスの排他
+    container: runtime/single_instance_linux.py
+    usecase: 常駐アプリを起動する
+    role: ランタイム
+    summary: 取ったロックファイルと、終了の依頼を待つソケットとスレッドを持つ。SingleInstanceLock と同じメソッドを持ち、main はどちらも同じように扱う
+    description: |-
+      終了の依頼のソケット（抽象名前空間の `\0{名前}-quit`）と停止のソケットの対（socket.socketpair）を専用のデーモンスレッドが select で待ち、QUIT_REQUEST を受けたら on_quit_requested で渡された関数を 1 回呼んでスレッドを終える（呼ぶのはそのスレッド）。
+      QUIT_REQUEST 以外を受けた接続は閉じて待ち続ける。
+      抽象名前空間のソケットにはファイルの権限が効かないため、接続を受けたら _peer_uid（SO_PEERCRED）で相手の uid を読み、os.getuid() と違う接続は QUIT_REQUEST を読まずに閉じて待ち続ける（ほかのユーザーが常駐サービスを終わらせられない）。
+      プロセスが片付けずに落ちても、OS がロックとソケットを放すため、次の起動はそのまま取れる。
+    kind: クラス
+    properties:
+      - name: _lock_fd
+        type: int
+        access: 内部 (_)
+        description: flock で排他を取ったロックファイルのファイル記述子
+      - name: _server
+        type: socket.socket
+        access: 内部 (_)
+        description: 終了の依頼を待つ Unix ドメインソケット（抽象名前空間。ファイルを残さない）
+      - name: _stop_reader
+        type: socket.socket
+        access: 内部 (_)
+        description: 待つスレッドを止める合図を受ける側（socketpair）
+      - name: _stop_writer
+        type: socket.socket
+        access: 内部 (_)
+        description: 待つスレッドを止める合図を送信する側（socketpair）
+      - name: _on_quit
+        type: Callable[[], None] | None
+        access: 内部 (_)
+        description: 終了を頼まれたときに呼ぶ関数。on_quit_requested の前は None（その間に頼まれたら、渡された時点で呼ぶ）
+      - name: _thread
+        type: threading.Thread
+        access: 内部 (_)
+        description: 終了の依頼を待つスレッド
+    methods:
+      - name: on_quit_requested
+        title: 終了の依頼の受け手の登録
+        kind: メソッド
+        summary: 終了を頼まれたときに呼ぶ関数を渡す
+        scope: public
+        thread_safe: true
+        args:
+          - name: callback
+            type: Callable[[], None]
+            required: true
+            passing: positional
+            description: 終了を頼まれたときに呼ぶ関数
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 受け手を覚える
+             - 既に頼まれていた場合、その場で 1 回呼ぶ
+        unit_tests:
+          - name: test_on_quit_requested_linux
+            case: 正常
+            summary: 頼まれたら受け手を呼ぶ
+            condition: 取った後に受け手を渡し、同じ名前のソケットへ接続して QUIT_REQUEST を送信する
+            mock: 受け手
+            expected: 受け手が 1 秒以内に 1 回呼ばれる
+          - name: test_on_quit_requested_linux_when_already_requested
+            case: 正常
+            summary: 受け手を渡す前に頼まれていても取りこぼさない
+            condition: 取った後、受け手を渡す前に QUIT_REQUEST を送信し、0.2 秒待つ
+            mock: 受け手
+            expected: 受け手を渡した時点で 1 回呼ばれる
+          - name: test_on_quit_requested_linux_when_other_message
+            case: 正常
+            summary: 知らない送信では終わらない
+            condition: 受け手を渡し、`hello` を送信してから QUIT_REQUEST を送信する
+            mock: 受け手
+            expected: '`hello` の後には呼ばれず、QUIT_REQUEST の後に 1 回呼ばれる'
+          - name: test_on_quit_requested_linux_when_other_user
+            case: 正常
+            summary: ほかのユーザーからの依頼では終わらない
+            condition: 受け手を渡し、_peer_uid が os.getuid() + 1 を返す状態で QUIT_REQUEST を送信し、続けて _peer_uid を os.getuid() に戻して QUIT_REQUEST を送信する
+            mock: 受け手・_peer_uid（monkeypatch）
+            expected: 1 つ目の後には呼ばれず、2 つ目の後に 1 回呼ばれる
+      - name: release
+        title: 排他の解放
+        kind: メソッド
+        summary: 待つスレッドを止め、ソケットを閉じてからロックを放す
+        scope: public
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 停止の合図を _stop_writer へ送信して待つスレッドを抜けさせ、終わりを待つ
+          2. 終了の依頼のソケットと停止のソケットの対を閉じる（抽象名前空間の名前が空く）
+          3. ロックを放し（fcntl.flock(LOCK_UN)）、ファイル記述子を閉じる。ロックファイルは消さない（消すと、待っているプロセスと別のファイルで取り合う）
+             - 2 回目以降の呼び出しは何もしない
+        unit_tests:
+          - name: test_release_linux
+            case: 正常
+            summary: 放した後は同じ名前ですぐ取れ、受け手は呼ばれない
+            condition: 取ってから release を 2 回呼ぶ
+            mock: 受け手
+            expected: 同じ名前で timeout_sec=0.1 で取れ、受け手が呼ばれていない
+    status: planned
 constants:
   - name: API_START_TIMEOUT_SEC
     title: API の待ち受けの始まりを待つ秒数
@@ -1133,7 +1446,7 @@ constants:
     container: main.py
     usecase: 常駐アプリを起動する
     summary: acquire_single_instance に渡す、前のプロセスが排他を放すのを待つ上限。非機能要件の前の常駐サービスの終わりを待つ時間の決定値
-    value: '54.0'
+    value: '55.0'
     status: implemented
   - name: PURGE_INTERVAL_SEC
     title: 常駐中に古いログと履歴を削除する間隔
@@ -1170,9 +1483,38 @@ constants:
     summary: 設定画面で追加した用語集の CSV を置く、settings.toml と同じフォルダの下のフォルダの名前。next_glossary_path の directory に渡す
     value: '"glossaries"'
     status: implemented
+  - name: LOCK_RETRY_INTERVAL_SEC
+    title: Linux でロックを取り直す間隔
+    container: runtime/single_instance_linux.py
+    usecase: 常駐アプリを起動する
+    summary: 前のプロセスに終わるよう頼んだ後、flock を取り直し・接続し直す間隔。OPEN_EVENT_RETRY_INTERVAL_SEC と同じく、取れるまでの遅れを 0.1 秒までに抑える
+    value: '0.1'
+    status: planned
+  - name: QUIT_REQUEST
+    title: 終了の依頼の送信内容
+    container: runtime/single_instance_linux.py
+    usecase: 常駐アプリを起動する
+    summary: 後から起動したプロセスが終了の依頼のソケットへ送信するバイト列
+    value: b"quit"
+    status: planned
+  - name: DETACHED_PROCESS
+    title: 親のコンソールから切り離すフラグ
+    container: runtime/process.py
+    usecase: トレイから操作する
+    summary: Windows で relaunch が渡す subprocess.DETACHED_PROCESS の値。Linux の subprocess には属性が無いため、値を定数で持つ
+    value: '0x00000008'
+    status: planned
+  - name: CREATE_NEW_PROCESS_GROUP
+    title: 新しいプロセスグループで起動するフラグ
+    container: runtime/process.py
+    usecase: トレイから操作する
+    summary: Windows で relaunch が渡す subprocess.CREATE_NEW_PROCESS_GROUP の値。DETACHED_PROCESS と同じ理由で定数で持つ
+    value: '0x00000200'
+    status: planned
 test_files:
   - tests/unit/voice_paste/test_main.py
   - tests/unit/voice_paste/runtime/test_timer.py
   - tests/unit/voice_paste/runtime/test_settings_store.py
   - tests/unit/voice_paste/runtime/test_process.py
   - tests/unit/voice_paste/runtime/test_single_instance.py
+  - tests/unit/voice_paste/runtime/test_single_instance_linux.py

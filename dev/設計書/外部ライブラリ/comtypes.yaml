@@ -25,3 +25,9 @@ verification:
   detail: comtypes 1.4.16 で、Windows の実機の音量のアダプタの契約テスト 3 件を --run-external で通した。メインのスレッドとフェードの別スレッドのそれぞれで CoInitialize してから pycaw の音量のインターフェースを引き、読み書きして CoUninitialize で解放できることを確かめた
 license: MIT（商用利用可）
 official_url: https://github.com/enthought/comtypes
+install: |-
+  pyproject.toml の dependencies に `; sys_platform == "win32"` を付けて宣言し、Windows だけに入れる（Linux の `uv sync --frozen` では入らない）。
+
+  ```bash
+  uv sync --frozen
+  ```

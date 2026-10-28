@@ -13,6 +13,7 @@ from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from functools import partial
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QMetaObject, Qt, QTimer
 from PySide6.QtWidgets import QApplication
@@ -48,6 +49,7 @@ from voice_paste.features.outputs import (
 from voice_paste.features.outputs.paste_and_send import read_enter_delay_sec
 from voice_paste.features.recording import Recorder
 from voice_paste.features.recording.client import open_input
+from voice_paste.features.recording.types import LowerVolumeFn, RestoreVolumeFn
 from voice_paste.features.session import (
     Session,
     SessionApiDeps,
@@ -63,20 +65,14 @@ from voice_paste.features.web_transcription import (
     WebTranscriptionDeps,
 )
 from voice_paste.integrations.audio.probe import probe_audio
-from voice_paste.integrations.browser.opener import open_app_window
 from voice_paste.integrations.http.client import post_json
 from voice_paste.integrations.keyboard.sender import copy_to_clipboard, send_enter, send_paste
 from voice_paste.integrations.vad.adapter import StreamingVad, load_vad_session
-from voice_paste.integrations.volume.adapter import lower_volume, restore_volume
-from voice_paste.integrations.whisper.client import WhisperWorkerClient
+from voice_paste.integrations.whisper.client import CREATE_NO_WINDOW, WhisperWorkerClient
 from voice_paste.runtime.hotkey import HotkeyListener, validate_hotkeys
 from voice_paste.runtime.process import relaunch
 from voice_paste.runtime.settings_store import SettingsStore
-from voice_paste.runtime.single_instance import (
-    SingleInstanceLock,
-    acquire_single_instance,
-    instance_name,
-)
+from voice_paste.runtime.single_instance import SingleInstanceLock, instance_name
 from voice_paste.runtime.timer import RepeatingTimer
 from voice_paste.server.app import build_fastapi
 from voice_paste.server.runner import ApiServerRunner
@@ -91,7 +87,9 @@ from voice_paste.shared.errors import (
     StartupError,
 )
 from voice_paste.shared.logger import local_today, purge_old_logs, setup_logging
+from voice_paste.shared.os_kind import CURRENT_OS, OsKind
 from voice_paste.shared.settings import (
+    OS_HIDDEN_SETTING_KEYS,
     Preset,
     Settings,
     build_settings_model,
@@ -106,6 +104,9 @@ from voice_paste.ui.style import apply_theme
 from voice_paste.ui.tray import Tray, TrayState
 from voice_paste.ui.windows.recording_window import RecordingWindow
 from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
+
+if TYPE_CHECKING:
+    from voice_paste.runtime.single_instance_linux import LinuxSingleInstanceLock
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +140,7 @@ GLOSSARIES_DIR_NAME: str = "glossaries"
 WAKE_INTERVAL_MS: int = 200
 """Qt のイベントループの中で Python のシグナルのハンドラが動くようにする、空の QTimer の間隔。PoC で 200 ms なら Ctrl+Break から 0.3 秒で終わった。"""
 
-SINGLE_INSTANCE_TIMEOUT_SEC: float = 54.0
+SINGLE_INSTANCE_TIMEOUT_SEC: float = 55.0
 """acquire_single_instance に渡す、前のプロセスが排他を放すのを待つ上限。非機能要件の前の常駐サービスの終わりを待つ時間の決定値。"""
 
 SETTINGS_MODEL: type[Settings] = build_settings_model(
@@ -159,6 +160,32 @@ class CliArgs:
     """`python -m voice_paste` に渡した引数。"""
 
     data_dir: Path | None
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class PlatformAdapters:
+    """動いている OS に合わせて選んだ、単一インスタンス・音量・ブラウザ・文字起こしワーカーの起動・再起動の実装。
+
+    select_platform_adapters が作る。OS を見て実装を選ぶのはここだけで、各モジュールは sys.platform を見ない。
+    """
+
+    acquire_single_instance: Callable[[str, float], SingleInstanceLock | LinuxSingleInstanceLock]
+    """単一インスタンスの確保（名前・待つ上限）。"""
+
+    lower_volume: LowerVolumeFn
+    """録音中に音量を下げる。"""
+
+    restore_volume: RestoreVolumeFn
+    """下げた音量を戻す。"""
+
+    open_app_window: Callable[[str], None]
+    """ブラウザ添付のプリセットの画面を開く。"""
+
+    worker_creationflags: int
+    """文字起こしワーカーの子プロセスの起動のフラグ（WhisperWorkerClient へ渡す）。"""
+
+    relaunch: Callable[[list[str]], None]
+    """同じ引数で起動し直す（os_kind を部分適用した relaunch）。"""
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -185,6 +212,39 @@ class Handlers:
 
     stop_engine: Callable[[], None]
     """文字起こしのエンジンを止める。終了時に呼ぶ。"""
+
+
+def select_platform_adapters(os_kind: OsKind, *, lock_file: Path) -> PlatformAdapters:
+    """OS に合った実装を PlatformAdapters に束ねる。その OS だけのモジュールは、選んだ分岐の中で import する。"""
+    # OS で分ける
+    if os_kind is OsKind.WINDOWS:
+        # Windows: pycaw の音量・Edge・Win32 の排他（comtypes・pycaw を読み込むため Linux では import しない）
+        from voice_paste.integrations.browser.opener import open_app_window
+        from voice_paste.integrations.volume.adapter import lower_volume, restore_volume
+        from voice_paste.runtime.single_instance import acquire_single_instance
+
+        return PlatformAdapters(
+            acquire_single_instance=acquire_single_instance,
+            lower_volume=lower_volume,
+            restore_volume=restore_volume,
+            open_app_window=open_app_window,
+            worker_creationflags=CREATE_NO_WINDOW,
+            relaunch=partial(relaunch, os_kind=OsKind.WINDOWS),
+        )
+
+    # Linux: 何もしない音量・Chromium 系のブラウザ・flock の排他（fcntl を読み込むため Windows では import しない）
+    from voice_paste.integrations.browser.opener_linux import open_app_window_linux
+    from voice_paste.integrations.volume.noop import lower_volume_noop, restore_volume_noop
+    from voice_paste.runtime.single_instance_linux import acquire_single_instance_linux
+
+    return PlatformAdapters(
+        acquire_single_instance=partial(acquire_single_instance_linux, lock_file=lock_file),
+        lower_volume=lower_volume_noop,
+        restore_volume=restore_volume_noop,
+        open_app_window=open_app_window_linux,
+        worker_creationflags=0,
+        relaunch=partial(relaunch, os_kind=OsKind.LINUX),
+    )
 
 
 def parse_args(argv: list[str]) -> CliArgs:
@@ -308,7 +368,9 @@ def _wire_outputs(deps: OutputDeps, outputs: Sequence[OutputSpec]) -> tuple[Outp
     return tuple(wired)
 
 
-def _wire_preset_kinds(get_settings: Callable[[], Settings]) -> tuple[PresetKindSpec, ...]:
+def _wire_preset_kinds(
+    get_settings: Callable[[], Settings], *, open_window: Callable[[str], None]
+) -> tuple[PresetKindSpec, ...]:
     """プリセットの種類の一覧の各 handler に、種類ごとの外部連携の関数と設定の値を部分適用して返す。"""
     # 1. 届けるたびに設定を読む関数を作る
     paste = _make_paste(get_settings)
@@ -329,7 +391,7 @@ def _wire_preset_kinds(get_settings: Callable[[], Settings]) -> tuple[PresetKind
     injections: dict[str, dict[str, object]] = {
         "browser": {
             "copy": copy_to_clipboard,
-            "open_window": open_app_window,
+            "open_window": open_window,
             "paste": paste,
             "send_enter": send_enter,
             "sleep": time.sleep,
@@ -355,6 +417,8 @@ def build_handlers(
     notify: NotifyFn,
     report_progress: ProgressFn,
     notify_copied: Callable[[str], None],
+    *,
+    adapters: PlatformAdapters,
 ) -> Handlers:
     """設定からエンジン・録音機・出力先・履歴を組み立て、SessionDeps を作って SessionManager と SessionApiDeps を返す。"""
     # 1. 設定を SettingsStore に入れる。以降の配線は設定を値でなく SettingsStore.get から読む
@@ -366,6 +430,7 @@ def build_handlers(
         ready_timeout_sec=WORKER_READY_TIMEOUT_SEC,
         log_dir=paths.log_dir,
         stop_timeout_sec=WORKER_STOP_TIMEOUT_SEC,
+        creationflags=adapters.worker_creationflags,
     )
     try:
         engine.start()
@@ -379,10 +444,10 @@ def build_handlers(
         engine.stop()
         raise
 
-    # 4. 録音機に音量とマイクの入力の関数と、SettingsStore から録音の設定を返す関数と、VAD のセッションを部分適用した話し声の判定を作る関数を渡す
+    # 4. 録音機に OS ごとの音量とマイクの入力の関数と、SettingsStore から録音の設定を返す関数と、VAD のセッションを部分適用した話し声の判定を作る関数を渡す
     recorder = Recorder(
-        lower_volume=lower_volume,
-        restore_volume=restore_volume,
+        lower_volume=adapters.lower_volume,
+        restore_volume=adapters.restore_volume,
         open_input=open_input,
         get_settings=lambda: store.get().recording,
         create_speech_detector=partial(StreamingVad, vad_session),
@@ -400,7 +465,7 @@ def build_handlers(
         notify_copied=notify_copied,
     )
     wired_outputs = _wire_outputs(output_deps, OUTPUTS)
-    wired_preset_kinds = _wire_preset_kinds(store.get)
+    wired_preset_kinds = _wire_preset_kinds(store.get, open_window=adapters.open_app_window)
 
     def deliver_session(session: Session, outcome: TranscriptionOutcome) -> None:
         """今の設定でオンの出力先へ、Session を分けて届ける。"""
@@ -719,6 +784,7 @@ def build_ui_deps(
             next_glossary_path, directory=paths.settings_file.parent / GLOSSARIES_DIR_NAME
         ),
         copy=copy_to_clipboard,
+        hidden_setting_keys=OS_HIDDEN_SETTING_KEYS.get(CURRENT_OS, frozenset()),
     )
 
 
@@ -781,6 +847,7 @@ def _build_idle_ui_deps(
             next_glossary_path, directory=paths.settings_file.parent / GLOSSARIES_DIR_NAME
         ),
         copy=copy_to_clipboard,
+        hidden_setting_keys=OS_HIDDEN_SETTING_KEYS.get(CURRENT_OS, frozenset()),
     )
 
 
@@ -868,9 +935,10 @@ def main(
     paths = resolve_app_paths(args.data_dir)
     setup_logging(paths.log_dir, STARTUP_LOG_LEVEL)
 
-    # 3. 置き場所ごとの名前で単一インスタンスを確保する（前のプロセスが動いていれば、終わるよう頼んで放されるのを待つ）
+    # 3. OS に合った実装を選び、置き場所ごとの名前で単一インスタンスを確保する（前のプロセスが動いていれば、終わるよう頼んで放されるのを待つ）
+    adapters = select_platform_adapters(CURRENT_OS, lock_file=paths.lock_file)
     try:
-        lock = acquire_single_instance(
+        lock = adapters.acquire_single_instance(
             instance_name(paths.settings_file.parent), SINGLE_INSTANCE_TIMEOUT_SEC
         )
     except StartupError as error:
@@ -880,20 +948,21 @@ def main(
 
     # 4〜11. 排他を持ったまま起動して回し、どう抜けても最後に排他を放す
     try:
-        exit_code, restart = _run_service(paths, lock, exec_loop)
+        exit_code, restart = _run_service(paths, lock, exec_loop, adapters)
     finally:
         lock.release()
 
     # 12. 再起動を頼まれていれば、同じ引数で起動し直す（排他を放した後のため、次のプロセスは待たずに取れる）
     if restart:
-        relaunch(argv_used)
+        adapters.relaunch(argv_used)
     return exit_code
 
 
 def _run_service(
     paths: AppPaths,
-    lock: SingleInstanceLock,
+    lock: SingleInstanceLock | LinuxSingleInstanceLock,
     exec_loop: Callable[[QApplication], int],
+    adapters: PlatformAdapters,
 ) -> tuple[int, bool]:
     """排他を持った状態で、画面の用意・起動・イベントループ・片付けを行い、終了コードと再起動の要否を返す。"""
     # 5. QApplication・UiBridge・Tray を作り、スタイルを当ててトレイに準備中を出す
@@ -911,7 +980,7 @@ def _run_service(
     running = _Running()
 
     try:
-        _start_services(app, bridge, tray, paths, exit_request, running)
+        _start_services(app, bridge, tray, paths, exit_request, running, adapters)
         # 12. イベントループを回す
         exec_loop(app)
     finally:
@@ -929,6 +998,7 @@ def _start_services(
     paths: AppPaths,
     exit_request: _ExitRequest,
     running: _Running,
+    adapters: PlatformAdapters,
 ) -> None:
     """設定を読み、配線し、画面・API・ホットキー・上限のタイマーを立てる。立てたものは running に入れる。"""
     ui_notify = partial(notify, bridge=bridge)
@@ -959,7 +1029,9 @@ def _start_services(
 
     # 7. 配線する（エンジンを準備できなければトレイを失敗にして知らせ、設定画面だけを使えるようにする）
     try:
-        handlers = build_handlers(settings, paths, ui_notify, ui_report_progress, ui_notify_copied)
+        handlers = build_handlers(
+            settings, paths, ui_notify, ui_report_progress, ui_notify_copied, adapters=adapters
+        )
     except StartupError as error:
         logger.error(f"起動に失敗した（{error}）")
         tray.set_failed()

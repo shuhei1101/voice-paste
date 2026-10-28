@@ -186,6 +186,7 @@ scenarios:
         description: OpenAI API を使う設定にし、設定の置き場所の `secrets/openai_api_key` に API キーの文字列だけを書いたファイルを置く
         notes: 環境変数 `OPENAI_API_KEY` は渡さない
     flow: |-
+      ```mermaid
       sequenceDiagram
         actor U as ユーザー
         participant SVC as 常駐サービス
@@ -200,6 +201,7 @@ scenarios:
         SVC->>SVC: OpenAI API のエンジンを作る（文字起こしワーカーは起動しない）
         Note over SVC: トークンを作るところからは 正常シナリオ と同じ
         SVC->>TRAY: 待機中のアイコンにする
+      ```
     expected:
       - トレイのアイコンが待機中になっている
       - 録音開始のホットキーを押すと録音が始まる
@@ -218,6 +220,7 @@ scenarios:
         description: OpenAI API を使う設定にし、環境変数 `OPENAI_API_KEY` も `secrets/openai_api_key` も置かない
         notes: '-'
     flow: |-
+      ```mermaid
       sequenceDiagram
         actor U as ユーザー
         participant SVC as 常駐サービス
@@ -229,6 +232,7 @@ scenarios:
         SVC->>SVC: 環境変数にもファイルにも API キーが無い
         SVC->>LOG: 起動に失敗した理由（読んだ環境変数の名前とファイルのパス）を書く
         SVC->>TRAY: 失敗のアイコンにし、起動に失敗したことを通知する
+      ```
     expected:
       - トレイで起動に失敗したことが知らされている
       - ログに、API キーを読む環境変数の名前とファイルのパスが書かれている
@@ -246,6 +250,7 @@ scenarios:
         description: ローカルの Whisper を使う設定にする
         notes: '-'
     flow: |-
+      ```mermaid
       sequenceDiagram
         actor U as ユーザー
         participant SVC as 常駐サービス
@@ -257,6 +262,7 @@ scenarios:
         SVC->>SVC: faster-whisper のパッケージが見つからない（文字起こしワーカーは起動しない）
         SVC->>LOG: 起動に失敗した理由と、local-whisper の extra を含めて環境を作り直すことを書く
         SVC->>TRAY: 失敗のアイコンにし、起動に失敗したことを通知する
+      ```
     expected:
       - トレイで起動に失敗したことが知らされている
       - ログに、local-whisper の extra を含めて環境を作り直すことが書かれている

@@ -545,6 +545,7 @@ scenarios:
         description: ホットキーから始めた録音を確定する
         notes: '-'
     flow: |-
+      ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
         participant OV as 文字起こし中の表示
@@ -552,20 +553,23 @@ scenarios:
         participant HIST as 履歴
 
         Note over SVC: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
-        SVC->>OAI: 録音の WAV・設定のモデルと言語・手がかり（prompt）を、API キーを付けて送信する
+        SVC->>SVC: 録音が 25 MB 以下で、OpenAI API が受ける形式かを確かめる
+        SVC->>OAI: 録音・設定のモデル・言語（languages）・手がかりの語（keywords）を、API キーを付けて送信する
         OAI-->>SVC: 起こした文字
         SVC->>SVC: 文頭・文末の文言を消し、用語集で補正する
         SVC->>HIST: 起こした文字を録音と同じ履歴に追記する
         SVC->>OV: 閉じる
+      ```
     expected:
-      - テスト用のエンドポイントが受けた要求に、録音の WAV・設定のモデル・言語・有効なプリセットの語をつないだ手がかりが載り、`Authorization` に API キーが付いている
+      - テスト用のエンドポイントが受けた要求に、録音・設定のモデル・言語（`languages[]`）・有効なプリセットの語を 1 語ずつ並べた手がかり（`keywords[]`）が載り、`Authorization` に API キーが付いている
       - 起こした文字の中の用語集の誤変換が、正しい表記に置き換わっている
       - 履歴に録音と起こした文字がある
       - 文字起こしワーカーの子プロセスが動いていない
       - 起こした文字を届ける へ進む
     test: test_normal_when_openai
     notes:
-      入口とエンジン: API から始めた録音・連続録音の区間・ブラウザから受けた音声も、設定のエンジンが OpenAI API なら同じ要求で起こす。区間ごとの進みは返らないため、文字起こし中の表示の残りの時間とブラウザのジョブの進みは、起こし終えるまで進まない（表示の出し方は 画面設計『文字起こし中の表示』）。
+      入口とエンジン: API から始めた録音・連続録音の区間・ブラウザから受けた音声も、設定のエンジンが OpenAI API なら同じ要求で起こす（ブラウザの音声は録れた形式のまま送信する）。区間ごとの進みは返らないため、文字起こし中の表示の残りの時間とブラウザのジョブの進みは、起こし終えるまで進まない（表示の出し方は 画面設計『文字起こし中の表示』）。
+      手がかりの渡し方: 手がかりのプリセットの語は、読点でつながず 1 語ずつ `keywords[]` に並べる。`<`・`>`・改行を含む語は OpenAI API が要求ごと断るため、送信せずにログへ書く。有効なプリセットが無いときは `keywords[]` を送信しない。
   - name: 異常シナリオ（OpenAI API が失敗を返す）
     setup:
       - name: Mock
@@ -578,6 +582,7 @@ scenarios:
         description: ホットキーから始めた録音を確定する
         notes: '-'
     flow: |-
+      ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
         participant OAI as OpenAI API
@@ -593,6 +598,7 @@ scenarios:
         SVC->>OV: 閉じる
         SVC->>TRAY: 待機中のアイコンにする
         SVC-->>U: 文字起こしに失敗したことと理由を通知する
+      ```
     expected:
       - 文字起こしに失敗したことと理由がユーザーに知らされている
       - ログに失敗した理由が書かれ、API キーが書かれていない
@@ -601,6 +607,38 @@ scenarios:
     test: test_error_when_openai_failed
     notes:
       失敗の種類: レートリミット（429）・サーバーの失敗（5xx）・タイムアウトは、非機能要件の回数まで待って送信し直し、それでも失敗したら同じ扱いになる。API から始めた録音・連続録音の区間・ブラウザから受けた音声の失敗は、ワーカーの失敗と同じく 起こした文字を届ける かジョブの `failed` へ渡す。
+  - name: 異常シナリオ（OpenAI API が受けられない音声）
+    setup:
+      - name: Mock
+        description: 常駐アプリを pytest のプロセスの中で起動し、テストから `POST /web/transcriptions` で音声を送信する
+        notes: 音声は 25 MB を超える webm のファイル。OpenAI API は、設定のベース URL を 127.0.0.1 で待ち受けるテスト用のエンドポイントに向け、受けた要求を控える
+      - name: 文字起こしのエンジン
+        description: OpenAI API を使う設定にし、API キーを環境変数 `OPENAI_API_KEY` で渡す
+        notes: '-'
+      - name: 履歴の保存
+        description: 履歴を残す設定にする
+        notes: '-'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant H as 履歴
+        participant LOG as ログ
+
+        SVC->>SVC: 受け付けたジョブを 1 件取り出す（state: running）
+        SVC->>H: 音声を録れた形式の拡張子のまま残す
+        SVC->>SVC: 音声が 25 MB を超えている（OpenAI API へ送信しない）
+        SVC->>LOG: job_id と、音声の大きさが OpenAI API の上限を超えたことを書く
+        SVC->>SVC: ジョブを終える（state: failed・error）。次のジョブへ進む
+      ```
+    expected:
+      - '`GET /web/transcriptions/{job_id}` が `failed` を返し、`error` に音声が OpenAI API の上限を超えたことが入っている'
+      - テスト用のエンドポイントが要求を受けていない
+      - 履歴にこの音声が残っている
+    test: test_error_when_openai_unsupported_audio
+    notes:
+      上限と形式: OpenAI API へ送信できるのは 25 MB 以下で、`mp3`・`mp4`・`mpeg`・`mpga`・`m4a`・`wav`・`webm` の音声に限る。形式が外れる音声（ブラウザの `ogg`）も同じ扱いになる。
+      入口ごとの結末: ホットキー・トレイから始めた録音（約 13 分で 25 MB を超える）は 異常シナリオ（OpenAI API が失敗を返す） と同じく失敗を通知し、API から始めた録音と連続録音の区間は文字起こしの失敗を 起こした文字を届ける へ渡す。
 lead: 確定した録音を設定のエンジンで文字に起こし、文頭・文末の決まった文言を消して用語集で補正するまでの単一ユースケース。
 issue: 14
 primary_actor: 音声入力を使うユーザー

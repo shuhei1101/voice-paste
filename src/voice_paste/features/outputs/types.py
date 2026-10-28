@@ -27,7 +27,7 @@ class OutputDeps:
     """クリップボードへ書く（copy_to_clipboard。書けなければ DeliveryError）。"""
 
     paste: Callable[[], None]
-    """貼り付けのキーを送信する（呼ぶたびに設定の keyboard.paste_key を読んで send_paste を呼ぶ）。"""
+    """貼り付けのキーを送信する（呼ぶたびに設定の keyboard.paste_key を読んで PlatformAdapters.send_paste を呼ぶ）。"""
 
     send_enter: SendEnterFn
     """渡した修飾キーを押したまま Enter を送信する（修飾キーを省くと Enter だけ）。"""

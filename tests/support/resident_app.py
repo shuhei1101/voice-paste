@@ -7,9 +7,10 @@
 `main()` の中で作られるトレイ（`Tray`）は作ったものを控え、ホットキーの受付（`HotkeyListener`）は何も始めない受け手に、
 フォルダを開く呼び出し（`QDesktopServices`）は渡されたパスを控えるものに差し替える。
 動いている常駐アプリの補正（`SessionDeps` の `correct`）は、渡された関数を控える（本物の補正のまま。マイクを開かずに文字を渡して確かめる）。
-録音を始めるケースは、録音の入力（`open_input`）を渡された WAV を流すものに、システム音量（`lower_volume`・`restore_volume`）を呼ばれた値を控えるものに差し替える。
+録音を始めるケースは、録音の入力（`open_input`）を渡された WAV を流すものに、システム音量（`PlatformAdapters` の `lower_volume`・`restore_volume`）を呼ばれた値を控えるものに差し替える。
 貼り付けのキーで届けるケースは、貼り付けのキー（`send_paste`・`send_enter`）を送信したキーを控えるものに、
-ブラウザ添付のプリセットで届けるケースは、ブラウザを開く呼び出し（`open_app_window`）を渡された URL を控えるものに差し替える。
+ブラウザ添付のプリセットで届けるケースは、ブラウザを開く呼び出し（`PlatformAdapters` の `open_app_window`）を渡された URL を控えるものに差し替える。
+`PlatformAdapters` の項目は、`select_platform_adapters` が選んだ OS ごとの実装のうち、差し替える項目だけを `dataclasses.replace` で替えて返す。
 """
 
 from __future__ import annotations
@@ -20,6 +21,7 @@ import signal
 import time
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
+from dataclasses import replace
 from functools import partial
 from http import HTTPStatus
 from pathlib import Path
@@ -605,10 +607,12 @@ def _spy_on_main(
 ) -> None:
     """`main()` が作るトレイ・ホットキーの受付・フォルダを開く呼び出し・補正を、控える・始めない・開かない・控えるものに差し替える。
 
-    wav_input を渡したときは、録音の入力を WAV を流すものに、システム音量を呼ばれた値を控えるもの（`app.volume`）に差し替える。
+    wav_input を渡したときは、録音の入力を WAV を流すものに、システム音量（`PlatformAdapters` の項目）を呼ばれた値を控えるもの（`app.volume`）に差し替える。
     keys を渡したときは、貼り付けのキーと Enter を送信せずに、送信したキーを keys に控える。
-    capture_browser が真のときは、ブラウザを開く呼び出しを、渡された URL を `app.opened_urls` に控えるだけのものに差し替える。
+    capture_browser が真のときは、ブラウザを開く呼び出し（`PlatformAdapters` の項目）を、渡された URL を `app.opened_urls` に控えるだけのものに差し替える。
     """
+    # select_platform_adapters が返す PlatformAdapters のうち、差し替える項目（項目の名前 → 偽物）
+    adapter_overrides: dict[str, Any] = {}
 
     def make_tray(settings_dir: Path, log_dir: Path) -> Tray:
         """本物のトレイを作り、控える。"""
@@ -644,8 +648,8 @@ def _spy_on_main(
     if wav_input is not None:
         app.volume = VolumeLog()
         monkeypatch.setattr(main_module, "open_input", wav_input)
-        monkeypatch.setattr(main_module, "lower_volume", app.volume.lower)
-        monkeypatch.setattr(main_module, "restore_volume", app.volume.restore)
+        adapter_overrides["lower_volume"] = app.volume.lower
+        adapter_overrides["restore_volume"] = app.volume.restore
     # 貼り付けのキーの控えが渡されたときは、キーボードへ送信しない
     if keys is not None:
         app.keys = keys
@@ -653,7 +657,17 @@ def _spy_on_main(
         monkeypatch.setattr(main_module, "send_enter", keys.send_enter)
     # ブラウザを開く呼び出しは、Microsoft Edge を開かず、渡された URL を控える
     if capture_browser:
-        monkeypatch.setattr(main_module, "open_app_window", app.opened_urls.append)
+        adapter_overrides["open_app_window"] = app.opened_urls.append
+    # 差し替える項目があるときは、OS ごとの実装を本物で選んだ結果のその項目だけを替えて返す
+    if adapter_overrides:
+        real_select_platform_adapters = main_module.select_platform_adapters
+
+        def select_platform_adapters(os_kind: Any, *, lock_file: Path) -> Any:
+            """本物の PlatformAdapters を選び、差し替える項目だけを替えて返す。"""
+            adapters = real_select_platform_adapters(os_kind, lock_file=lock_file)
+            return replace(adapters, **adapter_overrides)
+
+        monkeypatch.setattr(main_module, "select_platform_adapters", select_platform_adapters)
     # 文字起こしワーカーと再起動で起こす新しいプロセスが、この作業ツリーの src を読むようにする
     monkeypatch.setenv("PYTHONPATH", str(SOURCE_DIR))
     monkeypatch.setenv(QT_PLATFORM_ENV, QT_PLATFORM_OFFSCREEN)

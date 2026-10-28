@@ -1419,6 +1419,8 @@ constants:
       pr: 204
 test_files:
   - tests/unit/voice_paste/integrations/whisper/test_client.py
+  - tests/unit/voice_paste/integrations/openai/test_credentials.py
+  - tests/unit/voice_paste/integrations/openai/test_transcriber.py
   - tests/unit/voice_paste/integrations/volume/test_adapter.py
   - tests/unit/voice_paste/integrations/volume/test_noop.py
   - tests/unit/voice_paste/integrations/keyboard/test_sender.py

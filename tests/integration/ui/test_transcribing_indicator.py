@@ -114,6 +114,30 @@ def clocked(qapp: QApplication, tmp_path: Path) -> Iterator[tuple[TranscribingIn
     dispose_windows_since(before)
 
 
+@pytest.fixture
+def clocked_without_progress(
+    qapp: QApplication, tmp_path: Path
+) -> Iterator[tuple[TranscribingIndicator, FakeClock]]:
+    """進みを知らせないエンジン（OpenAI API。UiDeps.reports_progress が False）で、進められる時計を渡した文字起こし中の表示を開いて返す。テストの後に閉じて破棄する。"""
+    from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
+
+    before = top_level_windows()
+    clock = FakeClock(0.0)
+    indicator = TranscribingIndicator(make_ui_deps(tmp_path, reports_progress=False), clock=clock)
+    indicator.open()
+    yield indicator, clock
+    indicator.close_window()
+    dispose_windows_since(before)
+
+
+def _advance(indicator: TranscribingIndicator, clock: FakeClock, seconds: float) -> None:
+    """時計を seconds 秒に進め、時間の文字を書き換える描き直し（TICK_MSEC）を跨ぐ分だけ待つ。"""
+    from voice_paste.ui.windows.transcribing_indicator import TICK_MSEC
+
+    clock.now = seconds
+    QTest.qWait(TICK_MSEC * 3)
+
+
 # === transcribing_indicator ===
 
 
@@ -1003,6 +1027,19 @@ def test_progress_bar_when_reopened(clocked: tuple[TranscribingIndicator, FakeCl
     assert bar.value() == 0
 
 
+def test_progress_bar_when_progress_not_reported(
+    clocked_without_progress: tuple[TranscribingIndicator, FakeClock],
+) -> None:
+    """エンジンが OpenAI API のとき（進みを知らせない）は、時間が経っても進みのバーを出さない（回るマーカーだけ）。"""
+    indicator, clock = clocked_without_progress
+
+    # 実行
+    _advance(indicator, clock, 5.0)
+
+    # 検証
+    assert not find(indicator, QProgressBar, "progress_bar").isVisible()
+
+
 # === time_label ===
 
 
@@ -1066,3 +1103,29 @@ def test_transcribing_indicator_colors_when_theme(
     colors = load_tokens()["color"][theme]
     assert edge == QColor(colors["frame"])
     assert face == QColor(colors["surface"])
+
+
+def test_time_label_when_progress_not_reported(
+    clocked_without_progress: tuple[TranscribingIndicator, FakeClock],
+) -> None:
+    """エンジンが OpenAI API のときは、残りを見積もらず「経過 1.4 秒」だけを出す。"""
+    indicator, clock = clocked_without_progress
+
+    # 実行
+    _advance(indicator, clock, 1.4)
+
+    # 検証
+    assert find(indicator, QLabel, "time_label").text() == "経過 1.4 秒"
+
+
+def test_time_label_when_progress_not_reported_over_one_minute(
+    clocked_without_progress: tuple[TranscribingIndicator, FakeClock],
+) -> None:
+    """エンジンが OpenAI API のときも、1 分以上は「経過 3 分 06 秒」の形式で出す。"""
+    indicator, clock = clocked_without_progress
+
+    # 実行
+    _advance(indicator, clock, 186.0)
+
+    # 検証
+    assert find(indicator, QLabel, "time_label").text() == "経過 3 分 06 秒"

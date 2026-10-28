@@ -848,7 +848,10 @@ class SettingsWindow(QWidget):
         self._register(
             layout, key=key, label=label, widget=widget, get=get, group=group, extras=extras
         )
-        self._add_note(layout, OPTION_NOTES.get(key))
+        # 補助文は OPTION_NOTES、無ければ項目の json_schema_extra の note
+        extra = info.json_schema_extra
+        note = extra.get(OUTPUT_NOTE_KEY) if isinstance(extra, dict) else None
+        self._add_note(layout, OPTION_NOTES.get(key, note if isinstance(note, str) else None))
 
     @staticmethod
     def _add_note(layout: QVBoxLayout, note: str | None) -> None:

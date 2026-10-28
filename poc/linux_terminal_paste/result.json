@@ -1,0 +1,390 @@
+{
+  "identifications": [
+    {
+      "app": "terminal",
+      "wm_class": [
+        "gnome-terminal-server",
+        "Gnome-terminal"
+      ],
+      "elapsed_ms": 13.41843098634854
+    },
+    {
+      "app": "editor",
+      "wm_class": [
+        "gnome-text-editor",
+        "gnome-text-editor"
+      ],
+      "elapsed_ms": 10.607438001898117
+    },
+    {
+      "app": "firefox",
+      "wm_class": [
+        "Navigator",
+        "firefox_firefox"
+      ],
+      "elapsed_ms": 1.486327004386112
+    },
+    {
+      "app": "terminal",
+      "wm_class": [
+        "gnome-terminal-server",
+        "Gnome-terminal"
+      ],
+      "elapsed_ms": 7.928512000944465
+    },
+    {
+      "app": "editor",
+      "wm_class": [
+        "gnome-text-editor",
+        "gnome-text-editor"
+      ],
+      "elapsed_ms": 0.4025149974040687
+    },
+    {
+      "app": "firefox",
+      "wm_class": [
+        "Navigator",
+        "firefox_firefox"
+      ],
+      "elapsed_ms": 0.8868430013535544
+    },
+    {
+      "app": "terminal",
+      "wm_class": [
+        "gnome-terminal-server",
+        "Gnome-terminal"
+      ],
+      "elapsed_ms": 6.617067992920056
+    },
+    {
+      "app": "editor",
+      "wm_class": [
+        "gnome-text-editor",
+        "gnome-text-editor"
+      ],
+      "elapsed_ms": 10.453943992615677
+    },
+    {
+      "app": "firefox",
+      "wm_class": [
+        "Navigator",
+        "firefox_firefox"
+      ],
+      "elapsed_ms": 0.9225819958373904
+    },
+    {
+      "app": "terminal",
+      "wm_class": [
+        "gnome-terminal-server",
+        "Gnome-terminal"
+      ],
+      "elapsed_ms": 2.9565610020654276
+    },
+    {
+      "app": "editor",
+      "wm_class": [
+        "gnome-text-editor",
+        "gnome-text-editor"
+      ],
+      "elapsed_ms": 0.4059060011059046
+    },
+    {
+      "app": "firefox",
+      "wm_class": [
+        "Navigator",
+        "firefox_firefox"
+      ],
+      "elapsed_ms": 1.2165339867351577
+    },
+    {
+      "app": "terminal",
+      "wm_class": [
+        "gnome-terminal-server",
+        "Gnome-terminal"
+      ],
+      "elapsed_ms": 5.961624992778525
+    },
+    {
+      "app": "editor",
+      "wm_class": [
+        "gnome-text-editor",
+        "gnome-text-editor"
+      ],
+      "elapsed_ms": 13.257931990665384
+    },
+    {
+      "app": "firefox",
+      "wm_class": [
+        "Navigator",
+        "firefox_firefox"
+      ],
+      "elapsed_ms": 1.0107530106324703
+    },
+    {
+      "app": "terminal",
+      "wm_class": [
+        "gnome-terminal-server",
+        "Gnome-terminal"
+      ],
+      "elapsed_ms": 14.318950998131186
+    },
+    {
+      "app": "editor",
+      "wm_class": [
+        "gnome-text-editor",
+        "gnome-text-editor"
+      ],
+      "elapsed_ms": 14.076007006224245
+    },
+    {
+      "app": "firefox",
+      "wm_class": [
+        "Navigator",
+        "firefox_firefox"
+      ],
+      "elapsed_ms": 0.5738190084230155
+    },
+    {
+      "app": "terminal",
+      "wm_class": [
+        "gnome-terminal-server",
+        "Gnome-terminal"
+      ],
+      "elapsed_ms": 1.9858949963236228
+    },
+    {
+      "app": "editor",
+      "wm_class": [
+        "gnome-text-editor",
+        "gnome-text-editor"
+      ],
+      "elapsed_ms": 0.5318390030879527
+    },
+    {
+      "app": "firefox",
+      "wm_class": [
+        "Navigator",
+        "firefox_firefox"
+      ],
+      "elapsed_ms": 1.0127360001206398
+    },
+    {
+      "app": "terminal",
+      "wm_class": [
+        "gnome-terminal-server",
+        "Gnome-terminal"
+      ],
+      "elapsed_ms": 9.148001990979537
+    },
+    {
+      "app": "editor",
+      "wm_class": [
+        "gnome-text-editor",
+        "gnome-text-editor"
+      ],
+      "elapsed_ms": 1.8227539985673502
+    },
+    {
+      "app": "firefox",
+      "wm_class": [
+        "Navigator",
+        "firefox_firefox"
+      ],
+      "elapsed_ms": 0.5059160030214116
+    },
+    {
+      "app": "terminal",
+      "wm_class": [
+        "gnome-terminal-server",
+        "Gnome-terminal"
+      ],
+      "elapsed_ms": 9.175023005809635
+    },
+    {
+      "app": "editor",
+      "wm_class": [
+        "gnome-text-editor",
+        "gnome-text-editor"
+      ],
+      "elapsed_ms": 0.42348999704699963
+    },
+    {
+      "app": "firefox",
+      "wm_class": [
+        "Navigator",
+        "firefox_firefox"
+      ],
+      "elapsed_ms": 0.5930429906584322
+    },
+    {
+      "app": "terminal",
+      "wm_class": [
+        "gnome-terminal-server",
+        "Gnome-terminal"
+      ],
+      "elapsed_ms": 9.506271002464928
+    },
+    {
+      "app": "editor",
+      "wm_class": [
+        "gnome-text-editor",
+        "gnome-text-editor"
+      ],
+      "elapsed_ms": 10.849245998542756
+    },
+    {
+      "app": "firefox",
+      "wm_class": [
+        "Navigator",
+        "firefox_firefox"
+      ],
+      "elapsed_ms": 0.5246610089670867
+    }
+  ],
+  "pastes": [
+    {
+      "app": "terminal",
+      "method": "sendevent",
+      "key": "ctrl+v",
+      "pasted": "\u0004",
+      "matches_clipboard": false,
+      "is_primary": false
+    },
+    {
+      "app": "editor",
+      "method": "sendevent",
+      "key": "ctrl+v",
+      "pasted": "none-sentinel",
+      "matches_clipboard": false,
+      "is_primary": false
+    },
+    {
+      "app": "firefox",
+      "method": "sendevent",
+      "key": "ctrl+v",
+      "pasted": "ポック検証 clipboard\n2 行目",
+      "matches_clipboard": true,
+      "is_primary": false
+    },
+    {
+      "app": "terminal",
+      "method": "sendevent",
+      "key": "ctrl+shift+v",
+      "pasted": "ポック検証 clipboard\n2 行目",
+      "matches_clipboard": true,
+      "is_primary": false
+    },
+    {
+      "app": "editor",
+      "method": "sendevent",
+      "key": "ctrl+shift+v",
+      "pasted": "none-sentinel",
+      "matches_clipboard": false,
+      "is_primary": false
+    },
+    {
+      "app": "firefox",
+      "method": "sendevent",
+      "key": "ctrl+shift+v",
+      "pasted": "ポック検証 clipboard\n2 行目",
+      "matches_clipboard": true,
+      "is_primary": false
+    },
+    {
+      "app": "terminal",
+      "method": "sendevent",
+      "key": "shift+insert",
+      "pasted": "primary-sentinel",
+      "matches_clipboard": false,
+      "is_primary": true
+    },
+    {
+      "app": "editor",
+      "method": "sendevent",
+      "key": "shift+insert",
+      "pasted": "ポック検証 clipboard\n2 行目",
+      "matches_clipboard": true,
+      "is_primary": false
+    },
+    {
+      "app": "firefox",
+      "method": "sendevent",
+      "key": "shift+insert",
+      "pasted": "ポック検証 clipboard\n2 行目",
+      "matches_clipboard": true,
+      "is_primary": false
+    },
+    {
+      "app": "terminal",
+      "method": "xtest",
+      "key": "ctrl+v",
+      "pasted": "\u0004",
+      "matches_clipboard": false,
+      "is_primary": false
+    },
+    {
+      "app": "editor",
+      "method": "xtest",
+      "key": "ctrl+v",
+      "pasted": "ポック検証 clipboard\n2 行目",
+      "matches_clipboard": true,
+      "is_primary": false
+    },
+    {
+      "app": "firefox",
+      "method": "xtest",
+      "key": "ctrl+v",
+      "pasted": "ポック検証 clipboard\n2 行目",
+      "matches_clipboard": true,
+      "is_primary": false
+    },
+    {
+      "app": "terminal",
+      "method": "xtest",
+      "key": "ctrl+shift+v",
+      "pasted": "ポック検証 clipboard\n2 行目",
+      "matches_clipboard": true,
+      "is_primary": false
+    },
+    {
+      "app": "editor",
+      "method": "xtest",
+      "key": "ctrl+shift+v",
+      "pasted": "none-sentinel",
+      "matches_clipboard": false,
+      "is_primary": false
+    },
+    {
+      "app": "firefox",
+      "method": "xtest",
+      "key": "ctrl+shift+v",
+      "pasted": "ポック検証 clipboard\n2 行目",
+      "matches_clipboard": true,
+      "is_primary": false
+    },
+    {
+      "app": "terminal",
+      "method": "xtest",
+      "key": "shift+insert",
+      "pasted": "primary-sentinel",
+      "matches_clipboard": false,
+      "is_primary": true
+    },
+    {
+      "app": "editor",
+      "method": "xtest",
+      "key": "shift+insert",
+      "pasted": "ポック検証 clipboard\n2 行目",
+      "matches_clipboard": true,
+      "is_primary": false
+    },
+    {
+      "app": "firefox",
+      "method": "xtest",
+      "key": "shift+insert",
+      "pasted": "ポック検証 clipboard\n2 行目",
+      "matches_clipboard": true,
+      "is_primary": false
+    }
+  ]
+}

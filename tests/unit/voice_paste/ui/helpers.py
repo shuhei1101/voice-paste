@@ -81,6 +81,8 @@ def make_ui_deps(
         fields["list_glossary_presets"] = MagicMock(
             return_value=[GlossaryPresetSettings(name="既定", glossaries=["yogo"])]
         )
+    if "hidden_setting_keys" in {field.name for field in dataclasses.fields(UiDepsModel)}:
+        fields["hidden_setting_keys"] = frozenset()
     fields.update(overrides)
     return UiDepsModel(**fields)
 

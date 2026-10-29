@@ -73,5 +73,5 @@ launch_code=0
 setsid -f "$PYTHON" -m voice_paste "$@" < /dev/null > /dev/null 2>&1 || launch_code=$?
 log "launcher exited with code $launch_code"
 if [ "$launch_code" -ne 0 ]; then
-    fail "$launch_code" "[ERROR] failed to launch voice_paste with code $launch_code"
+    fail "$launch_code" "[ERROR] failed to launch voice_paste with code $launch_code."
 fi

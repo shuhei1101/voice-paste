@@ -219,6 +219,7 @@ settings:
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
+    per_env: 'Windows: <ctrl>+<alt>+d。Linux: <cmd>+<alt>+d（OS_DEFAULT_OVERRIDES。Ubuntu は Ctrl+Alt+D を「デスクトップを表示」に割り当てている）'
   - key: hotkeys.pause
     title: 録音を一時停止するホットキー
     file: settings.toml
@@ -228,6 +229,7 @@ settings:
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
+    per_env: 'Windows: <ctrl>+<alt>+z。Linux: <cmd>+<alt>+z（OS_DEFAULT_OVERRIDES）'
   - key: hotkeys.cancel
     title: 録音の取り消しのホットキー
     file: settings.toml
@@ -237,6 +239,7 @@ settings:
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
+    per_env: 'Windows: <ctrl>+<alt>+q。Linux: <cmd>+<alt>+q（OS_DEFAULT_OVERRIDES）'
   - key: keyboard.paste_key
     title: 貼り付けに送信するキー
     file: settings.toml
@@ -275,6 +278,7 @@ settings:
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
+    per_env: 'Windows: 既定値のとおり。Linux: paste_and_send: <cmd>+<alt>+d / paste_only: <cmd>+<alt>+v / copy_only: <cmd>+<alt>+c（OS_DEFAULT_OVERRIDES）'
   - key: outputs[].enter_delay_sec
     title: 貼り付けてから送信するまでの秒数
     file: settings.toml

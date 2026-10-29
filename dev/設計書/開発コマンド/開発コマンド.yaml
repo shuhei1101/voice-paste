@@ -109,7 +109,7 @@ categories:
   - name: 起動・停止
     prerequisites:
       - Ubuntu 24.04 の Xorg のセッションの端末で、『環境構築（クローン直後）』を流しておく
-      - Qt の xcb プラグインが使う `libxcb-cursor0` を `sudo apt install libxcb-cursor0` で入れておく
+      - クリップボード・録音・Qt の xcb プラグインが使う OS のパッケージを `sudo apt install xclip libportaudio2 libxcb-cursor0` で入れておく
     commands: |-
       1. 常駐サービスを起動する
 
@@ -121,6 +121,35 @@ categories:
       state: 済
       date: '2026-10-28'
       detail: 検証環境の VM で、`--data-dir` に一時のフォルダ（`settings.toml` で `transcription.local_whisper.model = "tiny"`）を渡して `.venv/bin/python -m voice_paste` を起動し、エンジン・API・ホットキーが立ち上がること（ログの `常駐サービスを始めた`）を確かめた。同じ設定の置き場所で 2 つ目を起動すると、`前の常駐サービスに終わるよう頼んだ` の約 0.8 秒後に前のプロセスが終わり（ホットキーの受付は 0.5 秒の上限で手放した）、2 つ目が排他を取って起動することを確かめた。VM に `libxcb-cursor0` が入っていないため、deb を `apt-get download` で取得して `dpkg -x` で展開し、`LD_LIBRARY_PATH` で読ませて起動した（VM のパッケージは変えていない）。VM の Xorg のセッションは画面のロック中で GNOME のトレイの拡張が無効のため、トレイのアイコンは VM 内の Xephyr に `stalonetray`（XEmbed のトレイの受け手。deb を展開して使用）を立てて確かめ、緑のマイクのアイコンが出ることを撮影した。GNOME の実際のトレイ（`ubuntu-appindicators`）では確かめていない
+  - name: 管理作業
+    prerequisites:
+      - 検証環境の VM（Ubuntu 24.04・PipeWire）の Xorg のセッションで、『起動・停止』の前提を満たしておく
+      - '`ffmpeg` を `sudo apt install ffmpeg` で入れておく'
+    commands: |-
+      VM でマイクの代わりに WAV を流して録音を確かめる。
+
+      1. PipeWire の仮想マイク（FIFO を読む入力）を作り、既定の入力にする
+
+      ```bash
+      pactl load-module module-pipe-source source_name=vp_mic file=/tmp/vp-mic.fifo format=s16le rate=16000 channels=1
+      pactl set-default-source vp_mic
+      ```
+
+      2. 常駐サービスを起動して録音を始めた後、WAV を実時間の速さで仮想マイクへ流す
+
+      ```bash
+      ffmpeg -re -i {WAV のパス} -f s16le -ar 16000 -ac 1 -y /tmp/vp-mic.fifo
+      ```
+
+      3. 仮想マイクを外す
+
+      ```bash
+      pactl unload-module module-pipe-source
+      ```
+    effects: VM の既定の入力が仮想マイクに切り替わる。外した後は `pactl set-default-source` で元の入力に戻す
+    verification:
+      state: 未確認
+      detail: 1 と 3 は PoC（#215）で流した。PoC は WAV を 0.1 秒ごとに実時間で FIFO へ書く Python のスクリプトで流し、録れた RMS が流した WAV と一致した（比 0.9999）。2 の ffmpeg での流し方は、この PR の VM での通しの確認で確かめる
 lead: クローン直後に環境を作る・常駐サービスを起動するとき、依存を追加する・上げる・外すとき、取り込んだ変更に手元の環境を追従させるときに打つコマンド。
 prerequisites:
   - リポジトリの直下で、Windows では Windows の uv（WSL からは `uv.exe`）、Ubuntu 24.04 では Linux の uv（`uv`）で流す。各分類のコマンドは Windows の uv で書き、Ubuntu では `uv.exe` を `uv` に読み替える

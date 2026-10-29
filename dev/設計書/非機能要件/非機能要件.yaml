@@ -7,7 +7,7 @@ requirements:
     source_kind: ユーザー要望
     source: https://github.com/shuhei1101/voice-paste/blob/develop/dev/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/1_%E7%9B%AE%E7%9A%84%E3%81%A8%E5%88%B6%E7%B4%84.md
     value: Windows・Linux（Ubuntu 24.04 の Xorg のセッション）
-    rationale: '方針の制約（Windows のショートカットから起動する・録音と貼り付けは端末の OS の機能）。Linux は #196 で起動までを対応し、Linux ではシステムの音量を変えない。Wayland は #200、起動から貼り付けまでの通しは #199、Mac は #9 で扱う'
+    rationale: '方針の制約（Windows のショートカットから起動する・録音と貼り付けは端末の OS の機能）。Linux は #196 で起動までを対応し、Linux ではシステムの音量を変えない。Linux の起動の手段は起動のスクリプト（`voice-paste.sh`）とログイン時の自動起動の `.desktop` で、OS のパッケージ `xclip`・`libportaudio2`・`libxcb-cursor0` が要る（#199）。Wayland は #200、Mac は #9 で扱う'
   - name: 入力方式
     english_name: input_method
     category: 動作環境

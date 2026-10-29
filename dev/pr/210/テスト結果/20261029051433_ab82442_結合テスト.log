@@ -1,0 +1,283 @@
+== Linux（Ubuntu 24.04 on WSL。PortAudio は作業フォルダの外に展開して ctypes.util.find_library を差し替えて読ませた） ==
+$ .venv/bin/python -m pytest tests/integration
+============================= test session starts ==============================
+platform linux -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: /mnt/c/Users/shuhe/repo/voice-paste/.claude/worktrees/feat-hotkey-linux-key-names-and-defaults
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collected 696 items
+tests/integration/test_accept_web_audio.py ............                  [  1%]
+tests/integration/test_complete_session.py .........                     [  3%]
+tests/integration/test_deliver_to_caller.py ...........                  [  4%]
+tests/integration/test_deliver_to_endpoint.py ...                        [  5%]
+tests/integration/test_deliver_to_output.py ......                       [  5%]
+tests/integration/test_get_web_transcription.py .....                    [  6%]
+tests/integration/test_list_web_glossary_presets.py ...                  [  7%]
+tests/integration/test_serve_web_page.py ......                          [  7%]
+tests/integration/test_settings_migration.py .                           [  8%]
+tests/integration/test_start_session.py ...........                      [  9%]
+tests/integration/test_stop_session.py ........                          [ 10%]
+tests/integration/test_transcribe_web_audio.py .....                     [ 11%]
+tests/integration/test_truncate_session.py ...                           [ 11%]
+tests/integration/ui/test_busy_dialog.py ..........                      [ 13%]
+tests/integration/ui/test_recording_window.py .......................... [ 17%]
+........................................................................ [ 27%]
+                                                                         [ 27%]
+tests/integration/ui/test_settings_window.py ........................... [ 31%]
+.......s................................................................ [ 41%]
+........................................................................ [ 52%]
+........................................................................ [ 62%]
+........................................................................ [ 72%]
+...........FF..FF...........                                             [ 76%]
+tests/integration/ui/test_transcribing_indicator.py .................... [ 79%]
+.....................................................................    [ 89%]
+tests/integration/ui/test_tray.py ...................................... [ 94%]
+........                                                                 [ 96%]
+tests/integration/ui/test_tray_notification.py ......................... [ 99%]
+..                                                                       [100%]
+=================================== FAILURES ===================================
+_________________ test_check_indicator_when_checkbox_on[light] _________________
+themed_window = <function themed_window.<locals>._open at 0x7ab70921c1a0>
+theme = 'light'
+    @pytest.mark.parametrize("theme", THEME_PARAMS)
+    def test_check_indicator_when_checkbox_on(
+        themed_window: Callable[[str], SettingsWindow], theme: str
+    ) -> None:
+        """オンのチェックボックスは、箱を accent_fg で塗り、チェックを surface で描く（正常系）。"""
+        from voice_paste.ui.style import load_tokens
+        # 準備: 録音のまとまりの、オンのチェックボックス
+        window = themed_window(theme)
+        checkbox = _show_field(window, "recording.lower_volume", QCheckBox)
+        # 実行
+        image = indicator_image(checkbox)
+        # 検証
+        colors = load_tokens()["color"][theme]
+>       assert checkbox.isChecked()
+E       assert False
+E        +  where False = <built-in method isChecked of PySide6.QtWidgets.QCheckBox object at 0x7ab70096a540>()
+E        +    where <built-in method isChecked of PySide6.QtWidgets.QCheckBox object at 0x7ab70096a540> = <PySide6.QtWidgets.QCheckBox(0x13984690, name="field_recording.lower_volume") at 0x7ab70096a540>.isChecked
+tests/integration/ui/test_settings_window.py:5811: AssertionError
+----------------------------- Captured stderr call -----------------------------
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+_________________ test_check_indicator_when_checkbox_on[dark] __________________
+themed_window = <function themed_window.<locals>._open at 0x7ab703d12400>
+theme = 'dark'
+    @pytest.mark.parametrize("theme", THEME_PARAMS)
+    def test_check_indicator_when_checkbox_on(
+        themed_window: Callable[[str], SettingsWindow], theme: str
+    ) -> None:
+        """オンのチェックボックスは、箱を accent_fg で塗り、チェックを surface で描く（正常系）。"""
+        from voice_paste.ui.style import load_tokens
+        # 準備: 録音のまとまりの、オンのチェックボックス
+        window = themed_window(theme)
+        checkbox = _show_field(window, "recording.lower_volume", QCheckBox)
+        # 実行
+        image = indicator_image(checkbox)
+        # 検証
+        colors = load_tokens()["color"][theme]
+>       assert checkbox.isChecked()
+E       assert False
+E        +  where False = <built-in method isChecked of PySide6.QtWidgets.QCheckBox object at 0x7ab708596740>()
+E        +    where <built-in method isChecked of PySide6.QtWidgets.QCheckBox object at 0x7ab708596740> = <PySide6.QtWidgets.QCheckBox(0x1459ee00, name="field_recording.lower_volume") at 0x7ab708596740>.isChecked
+tests/integration/ui/test_settings_window.py:5811: AssertionError
+----------------------------- Captured stderr call -----------------------------
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+______________ test_check_indicator_when_checkbox_disabled[light] ______________
+themed_window = <function themed_window.<locals>._open at 0x7ab700ace8d0>
+theme = 'light'
+    @pytest.mark.parametrize("theme", THEME_PARAMS)
+    def test_check_indicator_when_checkbox_disabled(
+        themed_window: Callable[[str], SettingsWindow], theme: str
+    ) -> None:
+        """使えないオンのチェックボックスは、箱を border で塗りチェックを text_muted で描き、名前を text_muted にする（正常系）。"""
+        from voice_paste.ui.style import load_tokens
+        # 準備: オンのチェックボックスを使えなくする
+        window = themed_window(theme)
+        checkbox = _show_field(window, "recording.lower_volume", QCheckBox)
+        checkbox.setEnabled(False)
+        # 実行
+        image = indicator_image(checkbox)
+        name_image = checkbox.grab().toImage()
+        # 検証
+        colors = load_tokens()["color"][theme]
+        assert count_near(image, colors["border"]) > 0
+>       assert count_closer(image, colors["text_muted"], colors["border"]) > 0
+E       AssertionError: assert 0 > 0
+E        +  where 0 = count_closer(<PySide6.QtGui.QImage(QSize(16, 16),format=QImage::Format_ARGB32_Premultiplied,depth=32,devicePixelRatio=1,bytesPerLine=64,sizeInBytes=1024) at 0x7ab708b36780>, '#59636e', '#c8d1da')
+tests/integration/ui/test_settings_window.py:5856: AssertionError
+----------------------------- Captured stderr call -----------------------------
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+______________ test_check_indicator_when_checkbox_disabled[dark] _______________
+themed_window = <function themed_window.<locals>._open at 0x7ab700aaada0>
+theme = 'dark'
+    @pytest.mark.parametrize("theme", THEME_PARAMS)
+    def test_check_indicator_when_checkbox_disabled(
+        themed_window: Callable[[str], SettingsWindow], theme: str
+    ) -> None:
+        """使えないオンのチェックボックスは、箱を border で塗りチェックを text_muted で描き、名前を text_muted にする（正常系）。"""
+        from voice_paste.ui.style import load_tokens
+        # 準備: オンのチェックボックスを使えなくする
+        window = themed_window(theme)
+        checkbox = _show_field(window, "recording.lower_volume", QCheckBox)
+        checkbox.setEnabled(False)
+        # 実行
+        image = indicator_image(checkbox)
+        name_image = checkbox.grab().toImage()
+        # 検証
+        colors = load_tokens()["color"][theme]
+        assert count_near(image, colors["border"]) > 0
+>       assert count_closer(image, colors["text_muted"], colors["border"]) > 0
+E       AssertionError: assert 0 > 0
+E        +  where 0 = count_closer(<PySide6.QtGui.QImage(QSize(16, 16),format=QImage::Format_ARGB32_Premultiplied,depth=32,devicePixelRatio=1,bytesPerLine=64,sizeInBytes=1024) at 0x7ab700a32dc0>, '#9198a1', '#3d444d')
+tests/integration/ui/test_settings_window.py:5856: AssertionError
+----------------------------- Captured stderr call -----------------------------
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+=========================== short test summary info ============================
+FAILED tests/integration/ui/test_settings_window.py::test_check_indicator_when_checkbox_on[light]
+FAILED tests/integration/ui/test_settings_window.py::test_check_indicator_when_checkbox_on[dark]
+FAILED tests/integration/ui/test_settings_window.py::test_check_indicator_when_checkbox_disabled[light]
+FAILED tests/integration/ui/test_settings_window.py::test_check_indicator_when_checkbox_disabled[dark]
+============= 4 failed, 691 passed, 1 skipped in 82.40s (0:01:22) ==============
+
+== Windows（Windows の .venv の Python。PYTHONPATH=src で作業フォルダのコードを読む） ==
+$ .venv/Scripts/python.exe -m pytest tests/integration
+........................................................................ [ 10%]
+........................................................................ [ 20%]
+........................................................................ [ 31%]
+..........s............................................................. [ 41%]
+........................................................................ [ 51%]
+........................................................................ [ 62%]
+........................................................................ [ 72%]
+........................................................................ [ 82%]
+........................................................................ [ 93%]
+................................................                         [100%]
+695 passed, 1 skipped in 64.30s (0:01:04)
+
+== Linux の fail 4 件を base ブランチ（origin/develop @ d31f049）で回した結果 ==
+$ .venv/bin/python -m pytest tests/integration/ui/test_settings_window.py -k check_indicator
+============================= test session starts ==============================
+platform linux -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: /tmp/claude-1000/-mnt-c-Users-shuhe-repo-voice-paste/a66fbbfe-3177-4931-957e-c8c3b5f38615/scratchpad/base
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collected 341 items / 324 deselected / 17 selected
+tests/integration/ui/test_settings_window.py FF..FF...........           [100%]
+=================================== FAILURES ===================================
+_________________ test_check_indicator_when_checkbox_on[light] _________________
+themed_window = <function themed_window.<locals>._open at 0x734297a7d6f0>
+theme = 'light'
+    @pytest.mark.parametrize("theme", THEME_PARAMS)
+    def test_check_indicator_when_checkbox_on(
+        themed_window: Callable[[str], SettingsWindow], theme: str
+    ) -> None:
+        """オンのチェックボックスは、箱を accent_fg で塗り、チェックを surface で描く（正常系）。"""
+        from voice_paste.ui.style import load_tokens
+        # 準備: 録音のまとまりの、オンのチェックボックス
+        window = themed_window(theme)
+        checkbox = _show_field(window, "recording.lower_volume", QCheckBox)
+        # 実行
+        image = indicator_image(checkbox)
+        # 検証
+        colors = load_tokens()["color"][theme]
+>       assert checkbox.isChecked()
+E       assert False
+E        +  where False = <built-in method isChecked of PySide6.QtWidgets.QCheckBox object at 0x734297a74500>()
+E        +    where <built-in method isChecked of PySide6.QtWidgets.QCheckBox object at 0x734297a74500> = <PySide6.QtWidgets.QCheckBox(0x1c8b78f0, name="field_recording.lower_volume") at 0x734297a74500>.isChecked
+tests/integration/ui/test_settings_window.py:5770: AssertionError
+----------------------------- Captured stderr call -----------------------------
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+_________________ test_check_indicator_when_checkbox_on[dark] __________________
+themed_window = <function themed_window.<locals>._open at 0x734297c3c9e0>
+theme = 'dark'
+    @pytest.mark.parametrize("theme", THEME_PARAMS)
+    def test_check_indicator_when_checkbox_on(
+        themed_window: Callable[[str], SettingsWindow], theme: str
+    ) -> None:
+        """オンのチェックボックスは、箱を accent_fg で塗り、チェックを surface で描く（正常系）。"""
+        from voice_paste.ui.style import load_tokens
+        # 準備: 録音のまとまりの、オンのチェックボックス
+        window = themed_window(theme)
+        checkbox = _show_field(window, "recording.lower_volume", QCheckBox)
+        # 実行
+        image = indicator_image(checkbox)
+        # 検証
+        colors = load_tokens()["color"][theme]
+>       assert checkbox.isChecked()
+E       assert False
+E        +  where False = <built-in method isChecked of PySide6.QtWidgets.QCheckBox object at 0x734297ac6740>()
+E        +    where <built-in method isChecked of PySide6.QtWidgets.QCheckBox object at 0x734297ac6740> = <PySide6.QtWidgets.QCheckBox(0x1c8d92d0, name="field_recording.lower_volume") at 0x734297ac6740>.isChecked
+tests/integration/ui/test_settings_window.py:5770: AssertionError
+----------------------------- Captured stderr call -----------------------------
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+______________ test_check_indicator_when_checkbox_disabled[light] ______________
+themed_window = <function themed_window.<locals>._open at 0x734297a96400>
+theme = 'light'
+    @pytest.mark.parametrize("theme", THEME_PARAMS)
+    def test_check_indicator_when_checkbox_disabled(
+        themed_window: Callable[[str], SettingsWindow], theme: str
+    ) -> None:
+        """使えないオンのチェックボックスは、箱を border で塗りチェックを text_muted で描き、名前を text_muted にする（正常系）。"""
+        from voice_paste.ui.style import load_tokens
+        # 準備: オンのチェックボックスを使えなくする
+        window = themed_window(theme)
+        checkbox = _show_field(window, "recording.lower_volume", QCheckBox)
+        checkbox.setEnabled(False)
+        # 実行
+        image = indicator_image(checkbox)
+        name_image = checkbox.grab().toImage()
+        # 検証
+        colors = load_tokens()["color"][theme]
+        assert count_near(image, colors["border"]) > 0
+>       assert count_closer(image, colors["text_muted"], colors["border"]) > 0
+E       AssertionError: assert 0 > 0
+E        +  where 0 = count_closer(<PySide6.QtGui.QImage(QSize(16, 16),format=QImage::Format_ARGB32_Premultiplied,depth=32,devicePixelRatio=1,bytesPerLine=64,sizeInBytes=1024) at 0x734297c4dd00>, '#59636e', '#c8d1da')
+tests/integration/ui/test_settings_window.py:5815: AssertionError
+----------------------------- Captured stderr call -----------------------------
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+______________ test_check_indicator_when_checkbox_disabled[dark] _______________
+themed_window = <function themed_window.<locals>._open at 0x734297c3ea30>
+theme = 'dark'
+    @pytest.mark.parametrize("theme", THEME_PARAMS)
+    def test_check_indicator_when_checkbox_disabled(
+        themed_window: Callable[[str], SettingsWindow], theme: str
+    ) -> None:
+        """使えないオンのチェックボックスは、箱を border で塗りチェックを text_muted で描き、名前を text_muted にする（正常系）。"""
+        from voice_paste.ui.style import load_tokens
+        # 準備: オンのチェックボックスを使えなくする
+        window = themed_window(theme)
+        checkbox = _show_field(window, "recording.lower_volume", QCheckBox)
+        checkbox.setEnabled(False)
+        # 実行
+        image = indicator_image(checkbox)
+        name_image = checkbox.grab().toImage()
+        # 検証
+        colors = load_tokens()["color"][theme]
+        assert count_near(image, colors["border"]) > 0
+>       assert count_closer(image, colors["text_muted"], colors["border"]) > 0
+E       AssertionError: assert 0 > 0
+E        +  where 0 = count_closer(<PySide6.QtGui.QImage(QSize(16, 16),format=QImage::Format_ARGB32_Premultiplied,depth=32,devicePixelRatio=1,bytesPerLine=64,sizeInBytes=1024) at 0x734297d0a340>, '#9198a1', '#3d444d')
+tests/integration/ui/test_settings_window.py:5815: AssertionError
+----------------------------- Captured stderr call -----------------------------
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+=========================== short test summary info ============================
+FAILED tests/integration/ui/test_settings_window.py::test_check_indicator_when_checkbox_on[light]
+FAILED tests/integration/ui/test_settings_window.py::test_check_indicator_when_checkbox_on[dark]
+FAILED tests/integration/ui/test_settings_window.py::test_check_indicator_when_checkbox_disabled[light]
+FAILED tests/integration/ui/test_settings_window.py::test_check_indicator_when_checkbox_disabled[dark]
+================= 4 failed, 13 passed, 324 deselected in 7.81s =================

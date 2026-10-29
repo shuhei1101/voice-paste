@@ -2599,7 +2599,7 @@ functions:
     title: ホットキーの表示形式
     container: ui/windows/settings_window.py
     usecase: 設定を変える
-    summary: pynput の書式（`<ctrl>+<alt>+d`）を画面の表示形式（`Ctrl+Alt+D`）にする。録音の画面・トレイも使う
+    summary: pynput の書式（`<ctrl>+<alt>+d`）を画面の表示形式（`Ctrl+Alt+D`）にする。録音の画面・トレイも使う。修飾キーの名前は OS ごとに MODIFIER_NAMES_BY_OS から引く（`<cmd>` は Windows で `Win`、Linux で `Super`）
     kind: 関数
     scope: public
     args:
@@ -2608,6 +2608,12 @@ functions:
         required: true
         passing: positional
         description: pynput の書式
+      - name: os_kind
+        type: OsKind
+        required: false
+        default: CURRENT_OS
+        passing: keyword
+        description: 修飾キーの名前を引く OS（画面からは渡さず、動いている OS を使う。テストが OS を指定する）
     returns:
       type: str
       description: 画面の表示形式
@@ -2618,6 +2624,12 @@ functions:
         condition: <ctrl>+<alt>+d、<ctrl>+<shift>+<f5>
         mock: なし
         expected: Ctrl+Alt+D、Ctrl+Shift+F5
+      - name: test_format_hotkey_when_cmd
+        case: 正常
+        summary: '`<cmd>` を OS ごとの名前にする'
+        condition: <cmd>+<alt>+d を os_kind=OsKind.WINDOWS、os_kind=OsKind.LINUX で渡す
+        mock: なし
+        expected: Win+Alt+D、Super+Alt+D
     status: implemented
   - name: parse_hotkey
     title: ホットキーの書式への変換
@@ -3262,6 +3274,14 @@ constants:
     usecase: 録音する
     summary: HotkeyListener が止めた受付のスレッドの終わりを待つ上限（秒）。Linux の pynput は次のキー入力まで終わらないため、上限で手放す。値は非機能要件『ホットキーの受付の終わりを待つ時間』
     value: '0.5'
+    status: planned
+  - name: MODIFIER_NAMES_BY_OS
+    title: OS ごとの修飾キーの画面の名前
+    container: ui/windows/settings_window.py
+    usecase: 設定を変える
+    summary: format_hotkey が引く、pynput の修飾キーの名前ごとの画面の名前。OS は shared/os_kind.py の OsKind で引き、sys.platform を直に読まない。今の MODIFIER_NAMES（OS によらない表）はこれに置き換える
+    value: '{OsKind.WINDOWS: {"ctrl": "Ctrl", "alt": "Alt", "shift": "Shift", "cmd": "Win"}, OsKind.LINUX: {"ctrl": "Ctrl", "alt": "Alt", "shift": "Shift", "cmd": "Super"}}'
+    reason: Ubuntu（GNOME）は Windows キーを Super と表す（[#198](https://github.com/shuhei1101/voice-paste/issues/198)）
     status: planned
 test_files:
   - tests/unit/voice_paste/runtime/test_hotkey.py

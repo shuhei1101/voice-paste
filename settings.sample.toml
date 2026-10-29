@@ -97,7 +97,7 @@ pause = "<ctrl>+<alt>+z"
 cancel = "<ctrl>+<alt>+q"
 
 [keyboard]
-# 貼り付け先へ送信する貼り付けのキー。ターミナル向けには <ctrl>+<shift>+v
+# 貼り付け先へ送信する貼り付けのキー。Linux（Xorg）では、貼り付け先が端末アプリのときだけこのキーに代えて <ctrl>+<shift>+v を送信する。Windows のターミナル向けには <ctrl>+<shift>+v
 paste_key = "<ctrl>+v"
 
 # === 出力先（id は重ならない。enabled = false の出力先は確定の操作に出さず、ホットキーも登録しない） ===

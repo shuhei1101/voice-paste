@@ -577,6 +577,7 @@ def test_select_platform_adapters_when_windows(tmp_path: Path) -> None:
     import subprocess
 
     from voice_paste.integrations.browser.opener import open_app_window
+    from voice_paste.integrations.keyboard.sender import send_paste
     from voice_paste.integrations.volume.adapter import lower_volume, restore_volume
     from voice_paste.main import select_platform_adapters
     from voice_paste.runtime.single_instance import acquire_single_instance
@@ -590,6 +591,7 @@ def test_select_platform_adapters_when_windows(tmp_path: Path) -> None:
     assert adapters.restore_volume is restore_volume
     assert adapters.open_app_window is open_app_window
     assert adapters.acquire_single_instance is acquire_single_instance
+    assert adapters.send_paste is send_paste
     assert adapters.worker_creationflags == subprocess.CREATE_NO_WINDOW
 
 
@@ -597,6 +599,7 @@ def test_select_platform_adapters_when_windows(tmp_path: Path) -> None:
 def test_select_platform_adapters_when_linux(tmp_path: Path) -> None:
     """Linux は何もしない音量・Chromium 系・flock の排他を選ぶ（正常系）。"""
     from voice_paste.integrations.browser.opener_linux import open_app_window_linux
+    from voice_paste.integrations.keyboard.sender_linux import send_paste_linux
     from voice_paste.integrations.volume.noop import lower_volume_noop, restore_volume_noop
     from voice_paste.main import select_platform_adapters
     from voice_paste.runtime.single_instance_linux import acquire_single_instance_linux
@@ -612,6 +615,7 @@ def test_select_platform_adapters_when_linux(tmp_path: Path) -> None:
     assert adapters.lower_volume is lower_volume_noop
     assert adapters.restore_volume is restore_volume_noop
     assert adapters.open_app_window is open_app_window_linux
+    assert adapters.send_paste is send_paste_linux
     assert isinstance(adapters.acquire_single_instance, functools.partial)
     assert adapters.acquire_single_instance.func is acquire_single_instance_linux
     assert adapters.acquire_single_instance.keywords == {"lock_file": lock_file}
@@ -679,7 +683,7 @@ def _install_adapters(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     """main が出力先・プリセットの種類へ渡す外部連携と time.sleep を偽物に差し替え、呼ばれた順を持つ親の Mock を返す。
 
     親の `copy_to_clipboard`・`send_paste`・`send_enter`・`open_app_window`・`post_json`・`sleep` がそれぞれの偽物。
-    `open_app_window` は main が OS ごとの実装として受け取るため、差し替えず、テストが `open_window` に渡す。
+    `open_app_window`・`send_paste` は main が OS ごとの実装として受け取るため、差し替えず、テストが `open_window`・`send_paste` に渡す。
     `post_json` は 200 を返す。
     """
     import voice_paste.main as main_module
@@ -688,7 +692,6 @@ def _install_adapters(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     adapters = MagicMock()
     adapters.post_json.return_value = PostResult(status=200, retry_after_sec=None)
     monkeypatch.setattr(main_module, "copy_to_clipboard", adapters.copy_to_clipboard)
-    monkeypatch.setattr(main_module, "send_paste", adapters.send_paste)
     monkeypatch.setattr(main_module, "send_enter", adapters.send_enter)
     monkeypatch.setattr(main_module, "post_json", adapters.post_json)
     monkeypatch.setattr("time.sleep", adapters.sleep)
@@ -846,7 +849,9 @@ def test_wire_preset_kinds(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
     # 実行
-    wired = _wire_preset_kinds(lambda: settings, open_window=adapters.open_app_window)
+    wired = _wire_preset_kinds(
+        lambda: settings, open_window=adapters.open_app_window, send_paste=adapters.send_paste
+    )
     by_kind = _kinds_by_name(wired)
     by_kind["browser"].handler(
         outcome, BrowserPreset(title="ChatGPT", url="https://chatgpt.com", send_enter=True)
@@ -881,7 +886,9 @@ def test_wire_preset_kinds_when_settings_changed(monkeypatch: pytest.MonkeyPatch
     outcome = TranscriptionOutcome(
         session_id="session-1", result="transcribed", text="テスト", error=None
     )
-    wired = _wire_preset_kinds(get_settings, open_window=adapters.open_app_window)
+    wired = _wire_preset_kinds(
+        get_settings, open_window=adapters.open_app_window, send_paste=adapters.send_paste
+    )
 
     # 配線の後に設定を差し替える
     get_settings.return_value = Settings(

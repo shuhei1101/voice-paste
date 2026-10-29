@@ -68,7 +68,7 @@ from voice_paste.features.web_transcription import (
 )
 from voice_paste.integrations.audio.probe import probe_audio
 from voice_paste.integrations.http.client import post_json
-from voice_paste.integrations.keyboard.sender import copy_to_clipboard, send_enter, send_paste
+from voice_paste.integrations.keyboard.sender import copy_to_clipboard, send_enter
 from voice_paste.integrations.openai.credentials import read_openai_api_key
 from voice_paste.integrations.openai.transcriber import OpenAITranscriber
 from voice_paste.integrations.vad.adapter import StreamingVad, load_vad_session
@@ -172,7 +172,7 @@ class CliArgs:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class PlatformAdapters:
-    """動いている OS に合わせて選んだ、単一インスタンス・音量・ブラウザ・文字起こしワーカーの起動・再起動の実装。
+    """動いている OS に合わせて選んだ、単一インスタンス・音量・ブラウザ・貼り付けのキーの送信・文字起こしワーカーの起動・再起動の実装。
 
     select_platform_adapters が作る。OS を見て実装を選ぶのはここだけで、各モジュールは sys.platform を見ない。
     """
@@ -194,6 +194,9 @@ class PlatformAdapters:
 
     relaunch: Callable[[list[str]], None]
     """同じ引数で起動し直す（os_kind を部分適用した relaunch）。"""
+
+    send_paste: Callable[[str], None]
+    """貼り付けのキーの送信（設定の keyboard.paste_key を受ける。Windows は send_paste、Linux は send_paste_linux）。"""
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -228,6 +231,7 @@ def select_platform_adapters(os_kind: OsKind, *, lock_file: Path) -> PlatformAda
     if os_kind is OsKind.WINDOWS:
         # Windows: pycaw の音量・Edge・Win32 の排他（comtypes・pycaw を読み込むため Linux では import しない）
         from voice_paste.integrations.browser.opener import open_app_window
+        from voice_paste.integrations.keyboard.sender import send_paste
         from voice_paste.integrations.volume.adapter import lower_volume, restore_volume
         from voice_paste.runtime.single_instance import acquire_single_instance
 
@@ -238,10 +242,12 @@ def select_platform_adapters(os_kind: OsKind, *, lock_file: Path) -> PlatformAda
             open_app_window=open_app_window,
             worker_creationflags=CREATE_NO_WINDOW,
             relaunch=partial(relaunch, os_kind=OsKind.WINDOWS),
+            send_paste=send_paste,
         )
 
-    # Linux: 何もしない音量・Chromium 系のブラウザ・flock の排他（fcntl を読み込むため Windows では import しない）
+    # Linux: 何もしない音量・Chromium 系のブラウザ・flock の排他・端末アプリを見分ける貼り付け（fcntl・python-xlib を読み込むため Windows では import しない）
     from voice_paste.integrations.browser.opener_linux import open_app_window_linux
+    from voice_paste.integrations.keyboard.sender_linux import send_paste_linux
     from voice_paste.integrations.volume.noop import lower_volume_noop, restore_volume_noop
     from voice_paste.runtime.single_instance_linux import acquire_single_instance_linux
 
@@ -252,6 +258,7 @@ def select_platform_adapters(os_kind: OsKind, *, lock_file: Path) -> PlatformAda
         open_app_window=open_app_window_linux,
         worker_creationflags=0,
         relaunch=partial(relaunch, os_kind=OsKind.LINUX),
+        send_paste=send_paste_linux,
     )
 
 
@@ -356,8 +363,10 @@ def _deliver_session(
     )
 
 
-def _make_paste(get_settings: Callable[[], Settings]) -> Callable[[], None]:
-    """呼ぶたびに設定の貼り付けのキーで貼り付けのキーを送信する関数を作る。"""
+def _make_paste(
+    get_settings: Callable[[], Settings], send_paste: Callable[[str], None]
+) -> Callable[[], None]:
+    """呼ぶたびに設定の貼り付けのキーで、OS ごとの貼り付けのキーの送信を呼ぶ関数を作る。"""
 
     def paste() -> None:
         """設定の貼り付けのキーで貼り付けのキーを送信する。"""
@@ -377,11 +386,14 @@ def _wire_outputs(deps: OutputDeps, outputs: Sequence[OutputSpec]) -> tuple[Outp
 
 
 def _wire_preset_kinds(
-    get_settings: Callable[[], Settings], *, open_window: Callable[[str], None]
+    get_settings: Callable[[], Settings],
+    *,
+    open_window: Callable[[str], None],
+    send_paste: Callable[[str], None],
 ) -> tuple[PresetKindSpec, ...]:
     """プリセットの種類の一覧の各 handler に、種類ごとの外部連携の関数と設定の値を部分適用して返す。"""
     # 1. 届けるたびに設定を読む関数を作る
-    paste = _make_paste(get_settings)
+    paste = _make_paste(get_settings, send_paste)
 
     def get_enter_delay_sec() -> float:
         """設定の貼り付けて送信の、貼り付けてから Enter を送信するまでの秒数を返す。"""
@@ -455,7 +467,7 @@ def build_handlers(
     # 5. 出力先とプリセットの種類を配線し、届けるたびに SettingsStore からオンの出力先の ID を引いて、Session を分けて渡すアダプタを作る
     output_deps = OutputDeps(
         copy=copy_to_clipboard,
-        paste=_make_paste(store.get),
+        paste=_make_paste(store.get, adapters.send_paste),
         send_enter=send_enter,
         sleep=time.sleep,
         jitter=_jitter,
@@ -464,7 +476,9 @@ def build_handlers(
         notify_copied=notify_copied,
     )
     wired_outputs = _wire_outputs(output_deps, OUTPUTS)
-    wired_preset_kinds = _wire_preset_kinds(store.get, open_window=adapters.open_app_window)
+    wired_preset_kinds = _wire_preset_kinds(
+        store.get, open_window=adapters.open_app_window, send_paste=adapters.send_paste
+    )
 
     def deliver_session(session: Session, outcome: TranscriptionOutcome) -> None:
         """今の設定でオンの出力先へ、Session を分けて届ける。"""

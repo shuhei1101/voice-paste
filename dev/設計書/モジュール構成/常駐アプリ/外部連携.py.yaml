@@ -20,7 +20,9 @@ directory: |-
   │   ├── adapter.py    # lower_volume・restore_volume（pycaw を == で固定して包む。Windows だけが読み込む）
   │   └── noop.py       # lower_volume_noop・restore_volume_noop（Linux の、音量を変えない実装）
   ├── keyboard/
-  │   └── sender.py     # copy_to_clipboard・send_paste・send_enter
+  │   ├── sender.py     # copy_to_clipboard・split_paste_key・send_paste・send_enter
+  │   ├── sender_linux.py # send_paste_linux（Linux。端末アプリなら Ctrl+Shift+V にし、主キーを XTEST で送信する）
+  │   └── active_window_linux.py # read_active_wm_class（Linux。python-xlib でアクティブなウィンドウの WM_CLASS を読む）
   ├── browser/
   │   ├── opener.py     # open_app_window（Windows。Edge の --app で開き、無ければ既定のブラウザ）
   │   └── opener_linux.py # open_app_window_linux（Linux。Chromium 系の --app で開き、無ければ既定のブラウザ）
@@ -659,9 +661,8 @@ functions:
       type: None
       description: なし
     process: |-
-      1. paste_key を `+` で区切り、各キーの前後の空白を除いて小文字にする（`<Ctrl> + v` も `<ctrl>+v` と同じに扱う。刷新前と同じ）
-      2. `<ctrl>`・`<shift>`・`<alt>`・`<cmd>`・`<win>` を修飾キー、それ以外を主キーにする
-         - 主キーが 1 つでない場合、DeliveryError を送出する（キーを送信しない）
+      1. split_paste_key で paste_key を修飾キーと主キーに分ける（DeliveryError はそのまま送出し、キーを送信しない）
+      2. 主キーは文字のまま pynput に渡す（Windows の送り方。Linux は send_paste_linux を使う）
       3. FOCUS_SETTLE_SEC だけ待つ（貼り付け先のフォーカスが落ち着くのを待つ）
       4. 修飾キーを順に押し、主キーを押して離し、修飾キーを逆順に離す
          - `[INFO]` 貼り付けのキーを送信した（paste_key）
@@ -1258,6 +1259,188 @@ functions:
     status: planned
     introduced:
       pr: 204
+  - name: split_paste_key
+    title: 貼り付けのキーの分解
+    kind: 関数
+    container: integrations/keyboard/sender.py
+    usecase: 起こした文字を届ける
+    scope: public
+    summary: 設定の貼り付けのキーを、押す修飾キーの並びと主キーに分ける。send_paste と send_paste_linux が使う
+    args:
+      - name: paste_key
+        type: str
+        required: true
+        passing: positional
+        description: 貼り付けのキー（pynput の GlobalHotKeys の書式。設定の keyboard.paste_key）
+    returns:
+      type: tuple[list[keyboard.Key], str]
+      description: 押す修飾キー（paste_key の並び）と、主キー（小文字にした 1 つのキー）
+    process: |-
+      1. paste_key を KEY_SEPARATOR（`+`）で区切り、各キーの前後の空白を除いて小文字にする（`<Ctrl> + v` も `<ctrl>+v` と同じに扱う。刷新前と同じ）
+      2. MODIFIER_KEYS にある `<ctrl>`・`<shift>`・`<alt>`・`<cmd>`・`<win>` を修飾キー、それ以外を主キーにする
+         - 主キーが 1 つでない場合、DeliveryError を送出する
+    status: planned
+    unit_tests:
+      - name: test_split_paste_key
+        case: 正常
+        summary: 修飾キーと主キーに分ける
+        condition: paste_key が `<ctrl>+<shift>+v`
+        mock: なし
+        expected: ([Key.ctrl, Key.shift], "v") が返る
+      - name: test_split_paste_key_when_spaced_and_uppercase
+        case: 正常
+        summary: 前後の空白と大文字を揃える
+        condition: paste_key が `<Ctrl> + V`
+        mock: なし
+        expected: ([Key.ctrl], "v") が返る
+      - name: test_split_paste_key_when_no_main_key
+        case: 異常
+        summary: 主キーが 1 つ無ければ DeliveryError
+        condition: paste_key が `<ctrl>`、`<ctrl>+v+c`
+        mock: なし
+        expected: どちらも DeliveryError が送出される
+        exception: paste_key に主キーが 1 つ無い（修飾キーだけ・主キーが 2 つ以上）
+    exceptions:
+      - name: DeliveryError
+        condition: paste_key に主キーが 1 つ無い（修飾キーだけ・主キーが 2 つ以上）
+  - name: send_paste_linux
+    title: Linux の貼り付けのキーの送信
+    kind: 関数
+    container: integrations/keyboard/sender_linux.py
+    usecase: 起こした文字を届ける
+    scope: public
+    summary: Linux で send_paste の代わりに渡す。アクティブなウィンドウが端末アプリなら Ctrl+Shift+V、それ以外なら設定の貼り付けのキーを、主キーを XTEST で送信する
+    description: pynput（Xorg）は文字で渡したキーを XSendEvent で送り、GTK4 のアプリ（GNOME Text Editor 等）はこれを受け付けない。主キーを `KeyCode.from_vk` で渡すと XTEST で送られる（[#211](https://github.com/shuhei1101/voice-paste/pull/211) の PoC で確かめた）。
+    args:
+      - name: paste_key
+        type: str
+        required: true
+        passing: positional
+        description: 貼り付けのキー（pynput の GlobalHotKeys の書式。設定の keyboard.paste_key）
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. split_paste_key で paste_key を修飾キーと主キーに分ける（DeliveryError はそのまま送出し、キーを送信しない）
+         - 主キーが 1 文字でない場合、DeliveryError を送出する。理由は `貼り付けのキーの主キーは 1 文字にしてください（{paste_key}）`
+      2. FOCUS_SETTLE_SEC だけ待つ（貼り付け先のフォーカスが落ち着くのを待つ）
+      3. read_active_wm_class でアクティブなウィンドウの WM_CLASS を読み、小文字にしたどれかの名前が TERMINAL_WM_CLASSES にあるかを見る
+         - ある場合、修飾キーを Ctrl・Shift、主キーを `v` に替える
+           - `[INFO]` 端末アプリなので Ctrl+Shift+V を送信する（WM_CLASS）
+         - 無い場合（読めずに空のときを含む）、1 のキーのまま
+      4. 主キーを `keyboard.KeyCode.from_vk(ord(主キー))` にする（Xorg の pynput では vk が keysym で、ASCII の文字の keysym は文字コードと同じ）
+      5. 修飾キーを順に押し、主キーを押して離し、修飾キーを逆順に離す。途中で失敗しても、押した修飾キーは逆順に離す（send_enter と同じ）
+         - `[INFO]` 貼り付けのキーを送信した（送信したキー）
+    refs:
+      - dev/設計書/外部ライブラリ/pynput#
+      - dev/設計書/シナリオ/単一ユースケース/起こした文字を届ける#
+    status: planned
+    notes:
+      テスト: 単体テストのファイルは `tests/unit/voice_paste/integrations/keyboard/test_sender_linux.py`。Windows では skip する（python-xlib を読み込まない）
+    unit_tests:
+      - name: test_send_paste_linux
+        case: 正常
+        summary: 端末アプリでなければ設定のキーを、主キーを vk で押して離す
+        condition: paste_key が `<ctrl>+v`、read_active_wm_class が ("gnome-text-editor", "gnome-text-editor")
+        mock: pynput.keyboard.Controller・time.sleep・read_active_wm_class
+        expected: sleep(0.1)・press(ctrl)・press(KeyCode.from_vk(0x76))・release(KeyCode.from_vk(0x76))・release(ctrl) の順に呼ばれる
+      - name: test_send_paste_linux_when_terminal
+        case: 正常
+        summary: 端末アプリなら Ctrl+Shift+V を送信する
+        condition: paste_key が `<ctrl>+v`、read_active_wm_class が ("gnome-terminal-server", "Gnome-terminal")
+        mock: pynput.keyboard.Controller・time.sleep・read_active_wm_class
+        expected: press(ctrl)・press(shift)・press(KeyCode.from_vk(0x76))・release(KeyCode.from_vk(0x76))・release(shift)・release(ctrl) の順に呼ばれる
+      - name: test_send_paste_linux_when_class_name_matches
+        case: 正常
+        summary: クラス名だけが一覧にあっても端末アプリとして扱う
+        condition: read_active_wm_class が ("console-x", "org.gnome.Console")（インスタンス名は一覧に無く、クラス名を小文字にすると一覧にある）
+        mock: pynput.keyboard.Controller・time.sleep・read_active_wm_class
+        expected: press(shift) が呼ばれる
+      - name: test_send_paste_linux_when_wm_class_unreadable
+        case: 正常
+        summary: WM_CLASS を読めなければ設定のキーを送信する
+        condition: paste_key が `<ctrl>+v`、read_active_wm_class が ()
+        mock: pynput.keyboard.Controller・time.sleep・read_active_wm_class
+        expected: press(ctrl)・press(KeyCode.from_vk(0x76)) が呼ばれ、press(shift) が呼ばれない
+      - name: test_send_paste_linux_when_no_main_key
+        case: 異常
+        summary: 主キーが 1 つ無ければキーを送信せずに DeliveryError
+        condition: paste_key が `<ctrl>`
+        mock: pynput.keyboard.Controller・time.sleep・read_active_wm_class
+        expected: DeliveryError が送出され、press と read_active_wm_class が呼ばれない
+        exception: paste_key に主キーが 1 つ無い（修飾キーだけ・主キーが 2 つ以上）
+      - name: test_send_paste_linux_when_main_key_not_char
+        case: 異常
+        summary: 主キーが 1 文字でなければキーを送信せずに DeliveryError
+        condition: paste_key が `<shift>+<insert>`
+        mock: pynput.keyboard.Controller・time.sleep・read_active_wm_class
+        expected: DeliveryError が送出され、press が呼ばれない
+        exception: 主キーが 1 文字でない
+      - name: test_send_paste_linux_when_press_failed
+        case: 異常
+        summary: 主キーの送信で失敗しても押した修飾キーを離す
+        condition: Controller.press が主キーで例外を送出する
+        mock: pynput.keyboard.Controller・time.sleep・read_active_wm_class
+        expected: 例外がそのまま送出され、release(ctrl) が呼ばれる
+    exceptions:
+      - name: DeliveryError
+        condition: paste_key に主キーが 1 つ無い（修飾キーだけ・主キーが 2 つ以上）
+      - name: DeliveryError
+        condition: 主キーが 1 文字でない
+  - name: read_active_wm_class
+    title: アクティブなウィンドウの WM_CLASS の読み取り
+    kind: 関数
+    container: integrations/keyboard/active_window_linux.py
+    usecase: 起こした文字を届ける
+    scope: public
+    summary: python-xlib で、Xorg のルートウィンドウの `_NET_ACTIVE_WINDOW` が指すウィンドウの WM_CLASS（インスタンス名・クラス名）を読む。python-xlib に触れるのはこのファイルだけ
+    returns:
+      type: tuple[str, ...]
+      description: WM_CLASS（インスタンス名, クラス名）。読めないときは空
+    process: |-
+      1. Xlib.display.Display() で DISPLAY の X サーバーへつなぐ
+      2. ルートウィンドウの `_NET_ACTIVE_WINDOW` を get_full_property で読む
+         - 無い・空の場合、空を返す
+      3. 指すウィンドウを create_resource_object("window", id) で作り、get_wm_class() を返す（None なら空）
+      4. 1〜3 で Xlib の例外（Xlib.error.DisplayError・Xlib.error.XError・Xlib.error.ConnectionClosedError）が出た場合、空を返す（貼り付けを止めない）
+         - `[WARNING]` アクティブなウィンドウの WM_CLASS を読めなかった（元の例外）
+      5. つないだ Display は最後に close する
+    refs:
+      - dev/設計書/外部ライブラリ/python-xlib#
+    status: planned
+    notes:
+      テスト: 単体テストのファイルは `tests/unit/voice_paste/integrations/keyboard/test_active_window_linux.py`。Windows では skip する（python-xlib を読み込まない）
+    unit_tests:
+      - name: test_read_active_wm_class
+        case: 正常
+        summary: アクティブなウィンドウの WM_CLASS を返す
+        condition: _NET_ACTIVE_WINDOW が 0x1234、そのウィンドウの get_wm_class が ("gnome-terminal-server", "Gnome-terminal")
+        mock: Xlib.display.Display
+        expected: ("gnome-terminal-server", "Gnome-terminal") が返り、create_resource_object に ("window", 0x1234) が渡り、close が呼ばれる
+      - name: test_read_active_wm_class_when_no_active_window
+        case: 正常
+        summary: アクティブなウィンドウが無ければ空を返す
+        condition: get_full_property が None を返す
+        mock: Xlib.display.Display
+        expected: () が返り、close が呼ばれる
+      - name: test_read_active_wm_class_when_no_wm_class
+        case: 正常
+        summary: WM_CLASS が無ければ空を返す
+        condition: get_wm_class が None を返す
+        mock: Xlib.display.Display
+        expected: () が返る
+      - name: test_read_active_wm_class_when_display_error
+        case: 異常
+        summary: X サーバーへつなげなければ空を返す
+        condition: Xlib.display.Display が Xlib.error.DisplayNameError を送出する
+        mock: Xlib.display.Display
+        expected: () が返り、WARNING のログが出る
+      - name: test_read_active_wm_class_when_x_error
+        case: 異常
+        summary: ウィンドウが読めなければ空を返して Display を閉じる
+        condition: get_wm_class が Xlib.error.BadWindow を送出する
+        mock: Xlib.display.Display
+        expected: () が返り、close が呼ばれる
 constants:
   - name: FADE_STEPS
     title: フェードの回数
@@ -1417,6 +1600,14 @@ constants:
     status: planned
     introduced:
       pr: 204
+  - name: TERMINAL_WM_CLASSES
+    title: 端末アプリの WM_CLASS
+    container: integrations/keyboard/sender_linux.py
+    usecase: 起こした文字を届ける
+    summary: send_paste_linux が端末アプリと見なす WM_CLASS の名前（小文字）。インスタンス名かクラス名を小文字にした値がどれかに当たれば端末アプリとする
+    value: frozenset({"gnome-terminal-server", "gnome-terminal", "kgx", "org.gnome.console", "ptyxis", "org.gnome.ptyxis", "tilix", "terminator", "konsole", "xfce4-terminal", "alacritty", "kitty"})
+    reason: 設定のスキーマを変えないため定数で持つ。Ctrl+Shift+V がクリップボードの貼り付けになる端末を並べる。実際に確かめたのは GNOME Terminal（`gnome-terminal-server`。[#211](https://github.com/shuhei1101/voice-paste/pull/211)）だけで、ほかの端末のクラス名と貼り付けのキーは未確認。Ctrl+Shift+V で貼り付けない xterm は入れない
+    status: planned
 test_files:
   - tests/unit/voice_paste/integrations/whisper/test_client.py
   - tests/unit/voice_paste/integrations/openai/test_credentials.py
@@ -1424,6 +1615,8 @@ test_files:
   - tests/unit/voice_paste/integrations/volume/test_adapter.py
   - tests/unit/voice_paste/integrations/volume/test_noop.py
   - tests/unit/voice_paste/integrations/keyboard/test_sender.py
+  - tests/unit/voice_paste/integrations/keyboard/test_sender_linux.py
+  - tests/unit/voice_paste/integrations/keyboard/test_active_window_linux.py
   - tests/unit/voice_paste/integrations/browser/test_opener.py
   - tests/unit/voice_paste/integrations/browser/test_opener_linux.py
   - tests/unit/voice_paste/integrations/http/test_client.py

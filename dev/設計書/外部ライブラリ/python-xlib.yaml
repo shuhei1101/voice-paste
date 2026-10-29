@@ -1,0 +1,42 @@
+title: "python-xlib"
+kind: "ライブラリ"
+version:
+  current: '0.33'
+  checked_on: '2026-10-29'
+  source: uv.lock（pynput の Linux の依存として入っている）
+  pinning: pyproject.toml に `python-xlib~=0.33; sys_platform == "linux"` で直接の依存として追加する（pynput の推移依存に頼らない）
+catalogs:
+  - name: API
+    version: '0.33'
+    entries:
+      - name: Xlib.display.Display
+        kind: クラス
+        purpose: DISPLAY の X サーバーへつなぎ、ルートウィンドウ・アトム・ウィンドウを引く（screen().root・intern_atom・create_resource_object・close）
+      - name: Window.get_full_property
+        kind: メソッド
+        purpose: ルートウィンドウの `_NET_ACTIVE_WINDOW` を読む（無ければ None）
+      - name: Window.get_wm_class
+        kind: メソッド
+        purpose: ウィンドウの WM_CLASS（インスタンス名, クラス名）を読む（無ければ None）
+      - name: Xlib.error.DisplayError / XError / ConnectionClosedError
+        kind: 例外
+        purpose: つなげない・ウィンドウが消えた・接続が切れたときに送出される
+lead: X Window System のプロトコルを Python だけで実装したクライアントライブラリ。
+purl: pkg:pypi/python-xlib
+dependency_scope: 必須
+adoption: 採用
+used_in:
+  - src/voice_paste/integrations/keyboard/active_window_linux.py
+upstream: python-xlib/python-xlib
+verification:
+  state: 未確認
+  detail: '[#211](https://github.com/shuhei1101/voice-paste/pull/211) の PoC（Ubuntu 24.04.5・Xorg、pynput 1.8.2 が入れた 0.33）で `_NET_ACTIVE_WINDOW` と WM_CLASS を 30 回読めた。本番の active_window_linux.py は、Xvfb で作ったウィンドウと `_NET_ACTIVE_WINDOW` で、アクティブなウィンドウ無し・WM_CLASS あり・WM_CLASS 無しの 3 通りとも期待どおりの値を返した（[#210](https://github.com/shuhei1101/voice-paste/pull/210)）。WSLg の XWayland では `BadWindow` になり、WARNING を出して空を返した。Ubuntu 24.04 のデスクトップ（Xorg）では本番のコードをまだ動かしていない'
+license: LGPL-2.1-or-later（商用利用可。ライブラリを差し替えられる形で配布する義務がある）
+official_url: https://github.com/python-xlib/python-xlib
+docs_url: https://python-xlib.github.io/
+limitations:
+  - item: 動くセッション
+    content: X サーバー（Xorg）へつなぐ。Wayland のセッションでは XWayland のウィンドウしか見えず、アクティブなウィンドウを引けない
+    notes: Wayland は [#200](https://github.com/shuhei1101/voice-paste/issues/200) の範囲
+refs:
+  - dev/設計書/外部ライブラリ/pynput#

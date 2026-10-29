@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
@@ -544,6 +545,46 @@ def test_hotkey_field_initial_value(open_window: Callable[..., Opened]) -> None:
     # 検証
     assert _field(window, "hotkeys.start", QLineEdit).text() == "Ctrl+Alt+D"
     assert _field(window, "hotkeys.pause", QLineEdit).text() == "Ctrl+Alt+Z"
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows の表示名を確かめるため Windows でだけ流す")
+def test_hotkey_field_initial_value_when_cmd_on_windows(open_window: Callable[..., Opened]) -> None:
+    """`<cmd>` を含むホットキーは、Windows では `Win` で出す。"""
+    from voice_paste.shared.settings import HotkeySettings, KeyboardSettings
+
+    # 準備
+    settings = SETTINGS_MODEL(
+        hotkeys=HotkeySettings(start="<cmd>+<alt>+d"),
+        keyboard=KeyboardSettings(paste_key="<cmd>+v"),
+    )
+
+    # 実行
+    window = open_window(settings).window
+
+    # 検証
+    assert _field(window, "hotkeys.start", QLineEdit).text() == "Win+Alt+D"
+    assert _field(window, "keyboard.paste_key", QLineEdit).text() == "Win+V"
+    assert window.collect()["hotkeys"]["start"] == "<cmd>+<alt>+d"
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Linux の表示名を確かめるため Windows では流さない")
+def test_hotkey_field_initial_value_when_cmd_on_linux(open_window: Callable[..., Opened]) -> None:
+    """`<cmd>` を含むホットキーは、Linux では `Super` で出す。"""
+    from voice_paste.shared.settings import HotkeySettings, KeyboardSettings
+
+    # 準備
+    settings = SETTINGS_MODEL(
+        hotkeys=HotkeySettings(start="<cmd>+<alt>+d"),
+        keyboard=KeyboardSettings(paste_key="<cmd>+v"),
+    )
+
+    # 実行
+    window = open_window(settings).window
+
+    # 検証
+    assert _field(window, "hotkeys.start", QLineEdit).text() == "Super+Alt+D"
+    assert _field(window, "keyboard.paste_key", QLineEdit).text() == "Super+V"
+    assert window.collect()["hotkeys"]["start"] == "<cmd>+<alt>+d"
 
 
 def test_hotkey_field_action(open_window: Callable[..., Opened]) -> None:

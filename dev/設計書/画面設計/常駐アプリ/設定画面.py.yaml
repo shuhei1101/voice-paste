@@ -57,7 +57,7 @@ elements:
     io: 入出力
     type: 文字列
     visible_when: その欄のまとまりを選んだとき
-    display_format: 画面では `Ctrl+Alt+D` の形で出し、保存では pynput の書式（`<ctrl>+<alt>+d`）で書く
+    display_format: 画面では `Ctrl+Alt+D` の形で出し（`<cmd>` は Windows で `Win`、Linux で `Super` と出す）、保存では pynput の書式（`<ctrl>+<alt>+d`）で書く
     initial_value: settings.toml の値
     source: Settings.hotkeys.*・Settings.keyboard.paste_key・Settings.outputs[].hotkey・Settings.presets[].hotkey
     target: 同じキー（pynput の書式へ変える）

@@ -113,7 +113,7 @@ data_models:
     container: main.py
     usecase: 常駐アプリを起動する
     role: DTO
-    summary: 動いている OS に合わせて選んだ、単一インスタンス・音量・ブラウザ・文字起こしワーカーの起動・再起動の実装
+    summary: 動いている OS に合わせて選んだ、単一インスタンス・音量・ブラウザ・貼り付けのキーの送信・文字起こしワーカーの起動・再起動の実装
     description: |-
       select_platform_adapters が作る。OS を見て実装を選ぶのはここだけで、各モジュールは sys.platform を見ない。
       `@dataclass(frozen=True, slots=True, kw_only=True)`。
@@ -136,6 +136,9 @@ data_models:
       - name: relaunch
         type: Callable[[list[str]], None]
         description: 同じ引数で起動し直す（os_kind を部分適用した relaunch）
+      - name: send_paste
+        type: Callable[[str], None]
+        description: 貼り付けのキーの送信（設定の keyboard.paste_key を受ける。Windows は send_paste、Linux は send_paste_linux）
     status: planned
 functions:
   - name: build_handlers
@@ -193,9 +196,9 @@ functions:
          - openai の場合、read_openai_api_key（paths.openai_api_key_file・environ）で読んだ API キーと設定の transcription.openai で OpenAITranscriber を作る（文字起こしワーカーは起動しない）。engine はその transcribe、stop_engine は何もしない関数（StartupError はそのまま送出する）
       3. 連続録音の話し声の判定に使う VAD のセッションを 1 回だけ読む（load_vad_session。StartupError はそのまま送出する）
       4. Recorder に adapters の lower_volume・restore_volume と、SettingsStore から録音の設定を返す関数と、VAD のセッションを部分適用した StreamingVad（話し声の判定を作る）を渡す
-      5. 出力先の deliver に、配線した OUTPUTS（_wire_outputs）・配線した PRESET_KINDS（_wire_preset_kinds。open_window に adapters.open_app_window）と、届けるたびに SettingsStore からオンの出力先の ID を引く関数を部分適用し、Session を入口・出力先の ID・選んだプリセット・返送先に分けて渡すアダプタを作る
-         - 出力先には OutputDeps（copy_to_clipboard・設定の keyboard.paste_key で send_paste を呼ぶ関数・send_enter・time.sleep・random.uniform(0, x)・post_json・SettingsStore.get・notify_copied）を渡し、各出力先の inject が選ぶ
-         - ブラウザ添付（種類）: copy_to_clipboard・adapters.open_app_window・send_paste を呼ぶ関数・send_enter・time.sleep・設定の preset_options.browser.open_delay_sec を返す関数・貼り付けて送信の enter_delay_sec を返す関数（read_enter_delay_sec）
+      5. 出力先の deliver に、配線した OUTPUTS（_wire_outputs）・配線した PRESET_KINDS（_wire_preset_kinds。open_window に adapters.open_app_window、send_paste に adapters.send_paste）と、届けるたびに SettingsStore からオンの出力先の ID を引く関数を部分適用し、Session を入口・出力先の ID・選んだプリセット・返送先に分けて渡すアダプタを作る
+         - 出力先には OutputDeps（copy_to_clipboard・設定の keyboard.paste_key で adapters.send_paste を呼ぶ関数・send_enter・time.sleep・random.uniform(0, x)・post_json・SettingsStore.get・notify_copied）を渡し、各出力先の inject が選ぶ
+         - ブラウザ添付（種類）: copy_to_clipboard・adapters.open_app_window・adapters.send_paste を呼ぶ関数・send_enter・time.sleep・設定の preset_options.browser.open_delay_sec を返す関数・貼り付けて送信の enter_delay_sec を返す関数（read_enter_delay_sec）
          - エンドポイントへ送信（種類）: post_json・設定の preset_options.endpoint.timeout_sec を返す関数
       6. 文字起こしのたびに、SettingsStore の設定の edge_phrases で文頭・文末の文言を消してから（strip_edge_phrases）用語集を読み直して置き換える correct（起こした文字と用語集のプリセットの名前か None を受ける）を作る。そのたびに、SettingsStore の設定と settings.toml のフォルダから pick_glossary_preset（requested に受けた名前）でプリセットを引き、list_preset_glossaries（用語集の一覧は resolve_glossaries）の順に load_glossary した行を 1 本の並びにつないで apply_glossary を当てる（読めない CSV は load_glossary が空を返すので飛ばされる。使う用語集が無ければ置き換えない）
          - `[INFO]` 用語集で補正する（用語集のプリセットの名前・用語集ごとの名前と補正に使う行数）
@@ -914,12 +917,17 @@ functions:
         required: true
         passing: keyword
         description: ブラウザ添付の画面を開く（PlatformAdapters.open_app_window）
+      - name: send_paste
+        type: Callable[[str], None]
+        required: true
+        passing: keyword
+        description: 貼り付けのキーの送信（PlatformAdapters.send_paste）
     returns:
       type: tuple[PresetKindSpec, ...]
       description: handler を配線した種類の一覧（PRESET_KINDS と同じ並び）
     process: |-
       1. 呼ぶたびに get_settings() を読む関数を作る（届けるたびに読む）
-         - paste: keyboard.paste_key で send_paste を呼ぶ
+         - paste: keyboard.paste_key で引数の send_paste を呼ぶ
          - get_enter_delay_sec: read_enter_delay_sec(get_settings())（貼り付けて送信の秒数）
          - get_open_delay_sec: preset_options.browser.open_delay_sec を返す
          - get_timeout_sec: preset_options.endpoint.timeout_sec を返す
@@ -965,21 +973,21 @@ functions:
       description: OS ごとの実装
     process: |-
       1. os_kind で分ける
-         - OsKind.WINDOWS の場合、integrations/volume/adapter.py（comtypes・pycaw を読み込む）をここで import し、acquire_single_instance・lower_volume・restore_volume・open_app_window・CREATE_NO_WINDOW・relaunch(os_kind=WINDOWS) を束ねる
-         - OsKind.LINUX の場合、runtime/single_instance_linux.py（fcntl を読み込む）をここで import し、acquire_single_instance_linux（functools.partial で lock_file を部分適用）・lower_volume_noop・restore_volume_noop・open_app_window_linux・0・relaunch(os_kind=LINUX) を束ねる
+         - OsKind.WINDOWS の場合、integrations/volume/adapter.py（comtypes・pycaw を読み込む）をここで import し、acquire_single_instance・lower_volume・restore_volume・open_app_window・send_paste・CREATE_NO_WINDOW・relaunch(os_kind=WINDOWS) を束ねる
+         - OsKind.LINUX の場合、runtime/single_instance_linux.py（fcntl を読み込む）と integrations/keyboard/sender_linux.py（python-xlib を読み込む）をここで import し、acquire_single_instance_linux（functools.partial で lock_file を部分適用）・lower_volume_noop・restore_volume_noop・open_app_window_linux・send_paste_linux・0・relaunch(os_kind=LINUX) を束ねる
     unit_tests:
       - name: test_select_platform_adapters_when_windows
         case: 正常
         summary: Windows は pycaw の音量・Edge・Win32 の排他を選ぶ
         condition: os_kind=OsKind.WINDOWS（Linux では skip）
         mock: なし
-        expected: lower_volume が integrations/volume/adapter.py の lower_volume、open_app_window が opener.py の open_app_window、acquire_single_instance が single_instance.py の acquire_single_instance、worker_creationflags が CREATE_NO_WINDOW
+        expected: lower_volume が integrations/volume/adapter.py の lower_volume、open_app_window が opener.py の open_app_window、acquire_single_instance が single_instance.py の acquire_single_instance、send_paste が sender.py の send_paste、worker_creationflags が CREATE_NO_WINDOW
       - name: test_select_platform_adapters_when_linux
         case: 正常
         summary: Linux は何もしない音量・Chromium 系・flock の排他を選ぶ
         condition: os_kind=OsKind.LINUX（Windows では skip）
         mock: なし
-        expected: lower_volume が lower_volume_noop、restore_volume が restore_volume_noop、open_app_window が open_app_window_linux、acquire_single_instance が lock_file を部分適用した acquire_single_instance_linux（func と keywords で確かめる）、worker_creationflags が 0。voice_paste.integrations.volume.adapter が sys.modules に無い
+        expected: lower_volume が lower_volume_noop、restore_volume が restore_volume_noop、open_app_window が open_app_window_linux、send_paste が send_paste_linux、acquire_single_instance が lock_file を部分適用した acquire_single_instance_linux（func と keywords で確かめる）、worker_creationflags が 0。voice_paste.integrations.volume.adapter が sys.modules に無い
     status: planned
   - name: acquire_single_instance_linux
     title: Linux の単一インスタンスの確保

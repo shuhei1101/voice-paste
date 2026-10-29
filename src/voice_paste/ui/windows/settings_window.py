@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
 )
 
 from voice_paste.shared.errors import HotkeyError
+from voice_paste.shared.os_kind import CURRENT_OS, OsKind
 from voice_paste.shared.settings import (
     EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE,
     EDGE_PHRASES_FIELD_NAME,
@@ -196,8 +197,11 @@ OUTPUT_NOTE_KEY: str = "note"
 CHOICE_LABELS_KEY: str = "choice_labels"
 """項目の json_schema_extra のうち、リテラルの列挙の一覧のチェックボックスの名前（値 → 名前）を持つキー。"""
 
-MODIFIER_NAMES: dict[str, str] = {"ctrl": "Ctrl", "alt": "Alt", "shift": "Shift", "cmd": "Win"}
-"""pynput の修飾キーの名前ごとの、画面の名前。"""
+MODIFIER_NAMES_BY_OS: dict[OsKind, dict[str, str]] = {
+    OsKind.WINDOWS: {"ctrl": "Ctrl", "alt": "Alt", "shift": "Shift", "cmd": "Win"},
+    OsKind.LINUX: {"ctrl": "Ctrl", "alt": "Alt", "shift": "Shift", "cmd": "Super"},
+}
+"""OS ごとの、pynput の修飾キーの名前ごとの画面の名前。Ubuntu（GNOME）は Windows キーを Super と表す。"""
 
 IGNORED_KEYS: frozenset[Qt.Key] = frozenset(
     {
@@ -304,15 +308,16 @@ OPTION_NOTES: dict[str, str] = {
 # === ホットキーの表示・読み取り ===
 
 
-def format_hotkey(hotkey: str) -> str:
-    """pynput の書式（`<ctrl>+<alt>+d`）を画面の表記（`Ctrl+Alt+D`）にする。"""
+def format_hotkey(hotkey: str, *, os_kind: OsKind = CURRENT_OS) -> str:
+    """pynput の書式（`<ctrl>+<alt>+d`）を画面の表記（`Ctrl+Alt+D`）にする。修飾キーの名前は os_kind の OS のもの。"""
+    modifier_names = MODIFIER_NAMES_BY_OS[os_kind]
     parts: list[str] = []
     for part in hotkey.split(HOTKEY_SEPARATOR):
         # `<...>` は修飾キーか名前のあるキー、そうでなければ文字のキー
         if part.startswith("<") and part.endswith(">"):
             name = part[1:-1]
             parts.append(
-                MODIFIER_NAMES.get(name) or "".join(word.capitalize() for word in name.split("_"))
+                modifier_names.get(name) or "".join(word.capitalize() for word in name.split("_"))
             )
         else:
             parts.append(part.upper())

@@ -124,7 +124,6 @@ categories:
   - name: 管理作業
     prerequisites:
       - 検証環境の VM（Ubuntu 24.04・PipeWire）の Xorg のセッションで、『起動・停止』の前提を満たしておく
-      - '`ffmpeg` を `sudo apt install ffmpeg` で入れておく'
     commands: |-
       VM でマイクの代わりに WAV を流して録音を確かめる。
 
@@ -135,10 +134,10 @@ categories:
       pactl set-default-source vp_mic
       ```
 
-      2. 常駐サービスを起動して録音を始めた後、WAV を実時間の速さで仮想マイクへ流す
+      2. 常駐サービスを起動して録音を始めた後、WAV（16 kHz・モノラル・16 bit）を実時間の速さで仮想マイクへ流す
 
       ```bash
-      ffmpeg -re -i {WAV のパス} -f s16le -ar 16000 -ac 1 -y /tmp/vp-mic.fifo
+      .venv/bin/python tests/support/feed_mic.py {WAV のパス} --fifo /tmp/vp-mic.fifo
       ```
 
       3. 仮想マイクを外す
@@ -148,8 +147,9 @@ categories:
       ```
     effects: VM の既定の入力が仮想マイクに切り替わる。外した後は `pactl set-default-source` で元の入力に戻す
     verification:
-      state: 未確認
-      detail: 1 と 3 は PoC（#215）で流した。PoC は WAV を 0.1 秒ごとに実時間で FIFO へ書く Python のスクリプトで流し、録れた RMS が流した WAV と一致した（比 0.9999）。2 の ffmpeg での流し方は、この PR の VM での通しの確認で確かめる
+      state: 済
+      date: '2026-10-29'
+      detail: PoC（#215）で 1・3 を流し、2 は同じ中身の `poc/feed_mic.py`（WAV を 0.1 秒ごとに実時間で FIFO へ書く）で流した。録れた RMS が流した WAV と一致した（比 0.9999）
 lead: クローン直後に環境を作る・常駐サービスを起動するとき、依存を追加する・上げる・外すとき、取り込んだ変更に手元の環境を追従させるときに打つコマンド。
 prerequisites:
   - リポジトリの直下で、Windows では Windows の uv（WSL からは `uv.exe`）、Ubuntu 24.04 では Linux の uv（`uv`）で流す。各分類のコマンドは Windows の uv で書き、Ubuntu では `uv.exe` を `uv` に読み替える

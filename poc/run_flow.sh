@@ -16,7 +16,7 @@ import -window root "$OUT/10_recording.png"
 .venv/bin/python poc/feed_mic.py poc/speech.wav --lead-silence-sec 0.5 --tail-silence-sec 1.0
 import -window root "$OUT/11_recording_end.png"
 date +%s.%N > "$OUT/t_confirm"
-xdotool key --clearmodifiers ctrl+alt+v
+xdotool key --clearmodifiers "${CONFIRM_KEY:-ctrl+alt+v}"
 sleep 1
 import -window root "$OUT/12_transcribing.png"
 for i in $(seq 1 120); do

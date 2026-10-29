@@ -38,4 +38,4 @@ Windows の表示と既定値は変えない。
 - [x] 単体テスト作成
 - [x] 実装
 - [x] 結合テスト作成
-- [ ] E2E テスト作成
+- [x] ~~E2E テスト作成~~（追加したシナリオは Linux のもので、Linux で E2E を動かすしくみは [#199](https://github.com/shuhei1101/voice-paste/issues/199) で扱う。Windows のシナリオは変わらない）

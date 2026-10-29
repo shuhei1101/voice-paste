@@ -776,7 +776,11 @@ def test_find_hotkey_overlaps() -> None:
 
     # 準備: 2 件目のプリセットの hotkey を、貼り付けのみと同じにする（確かめを飛ばして作る）
     settings = Settings.model_construct(
-        outputs=[PasteAndSendSettings(), PasteOnlySettings(), CopyOnlySettings()],
+        outputs=[
+            PasteAndSendSettings(hotkey="<ctrl>+<alt>+d"),
+            PasteOnlySettings(hotkey="<ctrl>+<alt>+v"),
+            CopyOnlySettings(hotkey="<ctrl>+<alt>+c"),
+        ],
         presets=[
             BrowserPreset(title="ChatGPT", url="https://chatgpt.com", hotkey="<ctrl>+<alt>+1"),
             BrowserPreset(title="Claude", url="https://claude.ai/new", hotkey="<ctrl>+<alt>+v"),
@@ -1037,7 +1041,9 @@ def test_settings_when_hotkeys_overlap() -> None:
 
     # 実行・検証
     with pytest.raises(ValidationError) as exc_info:
-        Settings.model_validate({"hotkeys": {"cancel": "<ctrl>+<alt>+z"}})
+        Settings.model_validate(
+            {"hotkeys": {"pause": "<ctrl>+<alt>+z", "cancel": "<ctrl>+<alt>+z"}}
+        )
     failures = list_validation_failures(exc_info.value)
     assert len(failures) == 1
     key, reason = failures[0]

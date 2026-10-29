@@ -69,6 +69,13 @@ from voice_paste.features.web_transcription import (
 from voice_paste.integrations.audio.probe import probe_audio
 from voice_paste.integrations.http.client import post_json
 from voice_paste.integrations.keyboard.sender import copy_to_clipboard, send_enter
+
+# PoC: Wayland のセッションでは Enter の送信を uinput に替える
+POC_WAYLAND: bool = os.environ.get("XDG_SESSION_TYPE") == "wayland"
+if POC_WAYLAND:
+    from voice_paste.integrations.keyboard.sender_wayland import (  # noqa: E402
+        send_enter_wayland as send_enter,  # type: ignore[assignment]
+    )
 from voice_paste.integrations.openai.credentials import read_openai_api_key
 from voice_paste.integrations.openai.transcriber import OpenAITranscriber
 from voice_paste.integrations.vad.adapter import StreamingVad, load_vad_session
@@ -258,8 +265,22 @@ def select_platform_adapters(os_kind: OsKind, *, lock_file: Path) -> PlatformAda
         open_app_window=open_app_window_linux,
         worker_creationflags=0,
         relaunch=partial(relaunch, os_kind=OsKind.LINUX),
-        send_paste=send_paste_linux,
+        send_paste=_poc_send_paste_linux(),
     )
+
+
+def _poc_send_paste_linux() -> Callable[[str], None]:
+    """PoC: Wayland のセッションなら uinput の貼り付け、それ以外は XTEST の貼り付けを返す。"""
+    if POC_WAYLAND:
+        from voice_paste.integrations.keyboard.sender_wayland import send_paste_wayland
+
+        return send_paste_wayland
+    from voice_paste.integrations.keyboard.sender_linux import send_paste_linux
+
+    return send_paste_linux
+
+
+_POC_LOCK: list[object] = []
 
 
 def parse_args(argv: list[str]) -> CliArgs:
@@ -1025,6 +1046,7 @@ def _run_service(
     # 5. QApplication・UiBridge・Tray を作り、スタイルを当ててトレイに準備中を出す
     app = _create_application()
     # 後から起動したプロセスに終わるよう頼まれたら、メインスレッドで QApplication.quit を呼ぶ
+    _POC_LOCK.append(lock)
     lock.on_quit_requested(
         lambda: QMetaObject.invokeMethod(app, "quit", Qt.ConnectionType.QueuedConnection)
     )
@@ -1109,6 +1131,12 @@ def _start_services(
 
     # 画面を作って知らせの受け手につなぐ（API の待ち受けを始められない知らせを取りこぼさないよう、API より先に）
     hotkey_listener = HotkeyListener()
+    if POC_WAYLAND:
+        from voice_paste.runtime.hotkey_gnome import GnomeShortcutListener
+
+        hotkey_listener = GnomeShortcutListener(  # type: ignore[assignment]
+            name=instance_name(paths.settings_file.parent), lock=_POC_LOCK[0]
+        )
     running.hotkey_listener = hotkey_listener
     save_settings_fn = partial(
         apply_settings,

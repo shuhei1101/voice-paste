@@ -44,6 +44,12 @@ PEER_UID_INDEX: int = 1
 STOP_SIGNAL: bytes = b"x"
 """待つスレッドを止める合図として停止のソケットへ送信するバイト列。"""
 
+HOTKEY_REQUEST_PREFIX: bytes = b"hotkey:"
+"""GNOME のショートカットから起動した送信のコマンドが、押されたホットキーの前に付けるバイト列。"""
+
+MAX_REQUEST_BYTES: int = 256
+"""終了の依頼のソケットで 1 つの接続から読むバイト数の上限。"""
+
 
 def _quit_socket_name(name: str) -> str:
     """排他の名前から、終了の依頼のソケットの抽象名前空間の名前（先頭が NUL）を作る。"""
@@ -73,6 +79,7 @@ class LinuxSingleInstanceLock:
         self._server = server
         self._stop_reader, self._stop_writer = socket.socketpair()
         self._on_quit: Callable[[], None] | None = None
+        self._on_hotkey: Callable[[str], None] | None = None
         self._quit_requested = False
         self._on_quit_called = False
         self._state_lock = threading.Lock()
@@ -89,6 +96,11 @@ class LinuxSingleInstanceLock:
             self._on_quit_called = self._on_quit_called or call_now
         if call_now:
             callback()
+
+    def on_hotkey(self, callback: Callable[[str], None]) -> None:
+        """押されたホットキーを受けたときに呼ぶ関数を渡す（呼ぶのは待つスレッド）。"""
+        with self._state_lock:
+            self._on_hotkey = callback
 
     def release(self) -> None:
         """待つスレッドを止め、ソケットを閉じてからロックを放す。2 回目以降は何もしない。"""
@@ -118,8 +130,17 @@ class LinuxSingleInstanceLock:
                 connection, _ = self._server.accept()
             except OSError:
                 return
+            request = self._read_request(connection)
+            # 押されたホットキーを受けたか
+            if request.startswith(HOTKEY_REQUEST_PREFIX):
+                # はい: 受け手を呼んで待ち続ける
+                with self._state_lock:
+                    on_hotkey = self._on_hotkey
+                if on_hotkey is not None:
+                    on_hotkey(request[len(HOTKEY_REQUEST_PREFIX) :].decode("utf-8"))
+                continue
             # 終了の依頼を受けたか
-            if not self._is_quit_request(connection):
+            if request != QUIT_REQUEST:
                 # いいえ: 閉じて待ち続ける
                 continue
             with self._state_lock:
@@ -134,17 +155,17 @@ class LinuxSingleInstanceLock:
             return
 
     @staticmethod
-    def _is_quit_request(connection: socket.socket) -> bool:
-        """接続を読み、同じ uid から QUIT_REQUEST を受けたか。接続は閉じる。"""
+    def _read_request(connection: socket.socket) -> bytes:
+        """同じ uid からの接続を読み、受けたバイト列を返す（ほかの uid・読めないときは空）。接続は閉じる。"""
         with connection:
             # ほかのユーザーの接続は読まない
             if _peer_uid(connection) != os.getuid():
-                return False
+                return b""
             connection.settimeout(CONNECTION_READ_TIMEOUT_SEC)
             try:
-                return connection.recv(len(QUIT_REQUEST)) == QUIT_REQUEST
+                return connection.recv(MAX_REQUEST_BYTES)
             except OSError:
-                return False
+                return b""
 
 
 def _request_quit(name: str) -> bool:

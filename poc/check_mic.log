@@ -1,0 +1,11 @@
+536870913
+vp_mic
+default input: default
+{
+  "rms_wav": 4515.874371918466,
+  "rms_silent": 0.0,
+  "rms_fed": 4515.297775896126,
+  "fed_over_wav": 0.9998723179666101,
+  "fed_over_silent": null,
+  "pass": true
+}

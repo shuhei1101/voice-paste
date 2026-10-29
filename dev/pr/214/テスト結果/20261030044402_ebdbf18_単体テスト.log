@@ -92,5 +92,5 @@ tests\unit\voice_paste\ui\windows\test_transcribing_indicator.py ....... [ 93%]
     from starlette.testclient import TestClient as TestClient  # noqa
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-============ 716 passed, 24 skipped, 1 warning in 77.41s (0:01:17) ============
+============ 716 passed, 24 skipped, 1 warning in 86.29s (0:01:26) ============
 exit code: 0

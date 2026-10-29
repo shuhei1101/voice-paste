@@ -21,6 +21,7 @@ from tests.integration.ui.helpers import (
     button_texts,
     edge_and_face_colors,
     find,
+    fixed_hotkey_settings,
     grab_head_row,
     no_modal,
 )
@@ -303,7 +304,7 @@ def test_waveform_when_recording(make_ui: Callable[..., Ui]) -> None:
 def test_pause_button_when_recording(make_ui: Callable[..., Ui]) -> None:
     """録音中は一時停止のボタンだけを出し、名前の下に一時停止のホットキーを出す。"""
     # 実行
-    ui = _opened(make_ui)
+    ui = _opened(make_ui, fixed_hotkey_settings())
 
     # 検証
     window = ui.recording_window
@@ -316,7 +317,7 @@ def test_pause_button_when_recording(make_ui: Callable[..., Ui]) -> None:
 def test_resume_button_when_paused(make_ui: Callable[..., Ui]) -> None:
     """一時停止中は、一時停止のボタンと同じ場所に再開のボタンを出し、同じホットキーを出す。"""
     # 準備
-    ui = _opened(make_ui)
+    ui = _opened(make_ui, fixed_hotkey_settings())
 
     # 実行
     ui.recording_window.set_paused(True)
@@ -350,7 +351,7 @@ def test_pause_button_action(make_ui: Callable[..., Ui]) -> None:
 def test_cancel_button_label(make_ui: Callable[..., Ui]) -> None:
     """取り消しのボタンは常に出し、名前の下に取り消しのホットキーを出す。"""
     # 実行
-    ui = _opened(make_ui)
+    ui = _opened(make_ui, fixed_hotkey_settings())
 
     # 検証
     cancel = find(ui.recording_window, QPushButton, "cancel_button")
@@ -411,7 +412,7 @@ def test_outputs_heading_when_outputs_off(make_ui: Callable[..., Ui]) -> None:
 def test_output_buttons_when_all_on(make_ui: Callable[..., Ui]) -> None:
     """オンの出力先ごとに、設定の並びで 1 つずつ出し、名前の下にその出力先のホットキーを出す。"""
     # 実行
-    ui = _opened(make_ui)
+    ui = _opened(make_ui, fixed_hotkey_settings())
 
     # 検証
     window = ui.recording_window
@@ -1240,7 +1241,7 @@ def test_hide_button_action_when_hide_window_setting(make_ui: Callable[..., Ui])
 def test_close_button_label(make_ui: Callable[..., Ui]) -> None:
     """かざすと「取り消す」と取り消しのホットキーを添えた説明を出す。"""
     # 実行
-    ui = _opened(make_ui)
+    ui = _opened(make_ui, fixed_hotkey_settings())
 
     # 検証
     close = find(ui.recording_window, QPushButton, "close_button")

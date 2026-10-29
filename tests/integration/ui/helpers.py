@@ -42,6 +42,26 @@ __all__ = ["FakeClock", "make_session", "make_ui_deps"]
 WidgetT = TypeVar("WidgetT", bound=QWidget)
 
 
+def fixed_hotkey_settings() -> Settings:
+    """ホットキーを OS の既定に頼らず固定した設定を返す（録音の開始は貼り付けて送信と同じキー）。"""
+    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
+    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
+    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
+    from voice_paste.main import SETTINGS_MODEL
+    from voice_paste.shared.settings import HotkeySettings
+
+    return SETTINGS_MODEL(
+        hotkeys=HotkeySettings(
+            start="<ctrl>+<alt>+d", pause="<ctrl>+<alt>+z", cancel="<ctrl>+<alt>+q"
+        ),
+        outputs=[
+            PasteAndSendSettings(hotkey="<ctrl>+<alt>+d"),
+            PasteOnlySettings(hotkey="<ctrl>+<alt>+v"),
+            CopyOnlySettings(hotkey="<ctrl>+<alt>+c"),
+        ],
+    )
+
+
 def top_level_windows() -> set[QWidget]:
     """今ある、親を持たない窓（トップレベルの部品）の集合を返す。"""
     return set(QApplication.topLevelWidgets())

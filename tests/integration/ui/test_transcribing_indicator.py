@@ -28,6 +28,7 @@ from tests.integration.ui.helpers import (
     edge_and_face_colors,
     face_range,
     find,
+    fixed_hotkey_settings,
     grab_head_row,
     make_ui_deps,
     text_ranges,
@@ -508,7 +509,7 @@ def test_output_heading_when_preset(make_ui: Callable[..., Ui]) -> None:
 def test_switch_buttons_when_all_on(make_ui: Callable[..., Ui]) -> None:
     """オンの固定の出力先ごとに、設定の並びで 1 つずつ出し、名前の下にその出力先のホットキーを出す。"""
     # 実行
-    ui = _opened(make_ui)
+    ui = _opened(make_ui, fixed_hotkey_settings())
 
     # 検証
     assert button_texts(_switch_button(ui, "paste_and_send")) == ["貼り付けて送信", "Ctrl+Alt+D"]

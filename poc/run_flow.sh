@@ -6,11 +6,11 @@ export DISPLAY=:0
 export XAUTHORITY="/run/user/$(id -u)/gdm/Xauthority"
 OUT="${OUT:-/tmp/vp-flow}"
 mkdir -p "$OUT"
-win=$(xdotool search --class gnome-text-editor | tail -1)
+win="${WIN:-$(xdotool search --class gnome-text-editor | tail -1)}"
 xdotool windowactivate --sync "$win"
 sleep 1
 date +%s.%N > "$OUT/t_start"
-xdotool key --clearmodifiers ctrl+alt+d
+xdotool key --clearmodifiers "${START_KEY:-ctrl+alt+d}"
 sleep 1.5
 import -window root "$OUT/10_recording.png"
 .venv/bin/python poc/feed_mic.py poc/speech.wav --lead-silence-sec 0.5 --tail-silence-sec 1.0

@@ -41,6 +41,19 @@ HINT_PRESET_A = '[[hint_presets]]\nname = "A"\nwords = ["a"]\nenabled = true\n'
 HINT_PRESET_B = '[[hint_presets]]\nname = "B"\nwords = ["b"]\nenabled = true\n'
 """settings.toml に書く表記のヒントのプリセット B。"""
 
+LINUX_DEFAULTS = {
+    "recording.lower_volume": False,
+    "transcription.local_whisper.device": "cpu",
+    "transcription.local_whisper.compute_type": "int8",
+    "hotkeys.start": "<cmd>+<alt>+d",
+    "hotkeys.pause": "<cmd>+<alt>+z",
+    "hotkeys.cancel": "<cmd>+<alt>+q",
+    "outputs.paste_and_send.hotkey": "<cmd>+<alt>+d",
+    "outputs.paste_only.hotkey": "<cmd>+<alt>+v",
+    "outputs.copy_only.hotkey": "<cmd>+<alt>+c",
+}
+"""Linux の既定値が共通の既定値と変わる設定のキーと、その Linux の値。"""
+
 LINUX_SETTINGS_MODEL_SCRIPT = """
 import json
 
@@ -226,7 +239,8 @@ def test_os_default_when_settings_model_linux() -> None:
     # 検証
     assert completed.returncode == 0, completed.stderr
     result = json.loads(completed.stdout)
-    assert _values_in(result["defaults"], result["overrides"]) == result["overrides"]
+    assert set(result["overrides"]) == set(LINUX_DEFAULTS)
+    assert _values_in(result["defaults"], LINUX_DEFAULTS) == LINUX_DEFAULTS
 
 
 @pytest.mark.parametrize(

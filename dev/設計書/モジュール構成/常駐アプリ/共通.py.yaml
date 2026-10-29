@@ -1319,7 +1319,7 @@ functions:
       - name: test_find_hotkey_overlaps
         case: 正常
         summary: 前に並んだホットキーと重なるキーを、重なった組で返す
-        condition: presets に 2 件を置き、2 件目の hotkey を <ctrl>+<alt>+v（貼り付けのみと同じ）にした設定（model_construct で確かめを飛ばして作る）
+        condition: 出力先の hotkey を <ctrl>+<alt>+d・v・c に固定し、presets に 2 件を置き、2 件目の hotkey を <ctrl>+<alt>+v（貼り付けのみと同じ）にした設定（model_construct で確かめを飛ばして作る）
         mock: なし
         expected: '[("presets[1].hotkey", "outputs[1].hotkey")]'
       - name: test_find_hotkey_overlaps_when_presets_of_different_kinds
@@ -1349,7 +1349,7 @@ functions:
       - name: test_settings_when_hotkeys_overlap
         case: 異常
         summary: ホットキーが重なる設定は、重なったキーと先のキーを持つ ValidationError で断る
-        condition: hotkeys.cancel を <ctrl>+<alt>+z にした dict を Settings.model_validate に渡す
+        condition: hotkeys.pause と hotkeys.cancel を同じ <ctrl>+<alt>+z にした dict を Settings.model_validate に渡す
         mock: なし
         expected: ValidationError。list_validation_failures のキーに hotkeys.cancel、理由に hotkeys.pause
         exception: ホットキーが重なる

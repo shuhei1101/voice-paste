@@ -579,13 +579,13 @@ functions:
       - name: test_build_hotkey_bindings_when_idle
         case: 正常
         summary: 待機中の開始のホットキーは録音を始める
-        condition: SETTINGS_MODEL()、current が None、<ctrl>+<alt>+d の関数を呼ぶ
+        condition: ホットキーを固定した設定（hotkeys の start・pause・cancel を <ctrl>+<alt>+d・z・q、出力先の hotkey を <ctrl>+<alt>+d・v・c）、current が None、<ctrl>+<alt>+d の関数を呼ぶ
         mock: session_manager・start_local_session
         expected: start_local_session(hotkey) が 1 回呼ばれ、complete が呼ばれない
       - name: test_build_hotkey_bindings_when_recording
         case: 正常
         summary: 録音中の開始のホットキーは貼り付けて送信で確定する
-        condition: SETTINGS_MODEL()、current が hotkey・recording、<ctrl>+<alt>+d の関数を呼ぶ
+        condition: ホットキーを固定した設定、current が hotkey・recording、<ctrl>+<alt>+d の関数を呼ぶ
         mock: session_manager・start_local_session・show_recording_window
         expected: complete(output_id=paste_and_send) が 1 回呼ばれ、start_local_session も show_recording_window も呼ばれない
       - name: test_build_hotkey_bindings_when_preset
@@ -597,19 +597,19 @@ functions:
       - name: test_build_hotkey_bindings_when_paused
         case: 正常
         summary: 一時停止中の一時停止のホットキーは再開する
-        condition: current が hotkey・paused、<ctrl>+<alt>+z の関数を呼ぶ
+        condition: ホットキーを固定した設定、current が hotkey・paused、<ctrl>+<alt>+z の関数を呼ぶ
         mock: session_manager・start_local_session
         expected: resume が 1 回呼ばれ、pause が呼ばれない
       - name: test_build_hotkey_bindings_when_output_disabled
         case: 正常
         summary: オフの出力先のホットキーは登録しない
-        condition: コピーのみをオフにした設定
+        condition: ホットキーを固定した設定で、コピーのみをオフにした設定
         mock: session_manager・start_local_session
         expected: <ctrl>+<alt>+c が返り値のキーに無い
       - name: test_build_hotkey_bindings_when_recording_without_confirm_output
         case: 正常
         summary: 貼り付けて送信がオフなら、録音中の開始のホットキーは録音の画面を戻す指示を出す
-        condition: 貼り付けて送信をオフにした設定、current が hotkey・recording、<ctrl>+<alt>+d の関数を呼ぶ
+        condition: ホットキーを固定した設定で、貼り付けて送信をオフにした設定、current が hotkey・recording、<ctrl>+<alt>+d の関数を呼ぶ
         mock: session_manager・start_local_session・show_recording_window
         expected: show_recording_window が 1 回呼ばれ、start_local_session も complete も呼ばれない
       - name: test_build_hotkey_bindings_when_preset_not_bound
@@ -621,13 +621,13 @@ functions:
       - name: test_build_hotkey_bindings_when_transcribing
         case: 正常
         summary: 文字起こし中の出力先のホットキーはその出力先へ差し替える
-        condition: SETTINGS_MODEL()、current が hotkey・transcribing、<ctrl>+<alt>+c の関数を呼ぶ
+        condition: ホットキーを固定した設定、current が hotkey・transcribing、<ctrl>+<alt>+c の関数を呼ぶ
         mock: session_manager・start_local_session
         expected: switch_output("copy_only") が 1 回呼ばれ、complete が呼ばれない
       - name: test_build_hotkey_bindings_when_transcribing_start_hotkey
         case: 正常
         summary: 文字起こし中の開始のホットキーは、同じキーの出力先へ差し替えて録音を始めない
-        condition: SETTINGS_MODEL()、current が hotkey・transcribing、<ctrl>+<alt>+d の関数を呼ぶ
+        condition: ホットキーを固定した設定、current が hotkey・transcribing、<ctrl>+<alt>+d の関数を呼ぶ
         mock: session_manager・start_local_session・show_recording_window
         expected: switch_output("paste_and_send") が 1 回呼ばれ、start_local_session・complete が呼ばれない
     refs:

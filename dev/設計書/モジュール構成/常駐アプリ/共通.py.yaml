@@ -1762,7 +1762,7 @@ functions:
         summary: Linux で組み立てた設定のモデルの既定値は、OS_DEFAULT_OVERRIDES[OsKind.LINUX] の全ての値になる
         condition: 子プロセス（`sys.executable -c`）で、voice_paste.shared.os_kind を先に import して CURRENT_OS を OsKind.LINUX に置き換えてから voice_paste.main を import し、引数なしで組み立てた SETTINGS_MODEL() の model_dump と OS_DEFAULT_OVERRIDES[OsKind.LINUX] を JSON で標準出力に出させる。テストのプロセスのモジュールは読み直さない（import のときに CURRENT_OS を読むのは os_default だけで、Windows でも走る）
         mock: なし
-        expected: 子プロセスが 0 で終わり、OS_DEFAULT_OVERRIDES[OsKind.LINUX] の全てのキーについて、model_dump のそのキーの値が表の値と等しい。`outputs.{出力先の ID}.{項目}` のキーは、outputs の id が一致する項目で引く（引けないキーがあれば fail）
+        expected: 子プロセスが 0 で終わる。OS_DEFAULT_OVERRIDES[OsKind.LINUX] のキーの集まりがテストに書いた 9 つのキーと等しく、model_dump のそれぞれのキーの値がテストに書いた固定の値と等しい（recording.lower_volume = False・transcription.local_whisper.device = "cpu"・transcription.local_whisper.compute_type = "int8"・hotkeys.start = "<cmd>+<alt>+d"・hotkeys.pause = "<cmd>+<alt>+z"・hotkeys.cancel = "<cmd>+<alt>+q"・outputs.paste_and_send.hotkey = "<cmd>+<alt>+d"・outputs.paste_only.hotkey = "<cmd>+<alt>+v"・outputs.copy_only.hotkey = "<cmd>+<alt>+c"）。`outputs.{出力先の ID}.{項目}` のキーは、outputs の id が一致する項目で引く（引けないキーがあれば fail）
     status: planned
 constants:
   - name: APP_NAME

@@ -908,6 +908,27 @@ def test_wire_preset_kinds_when_settings_changed(monkeypatch: pytest.MonkeyPatch
 # === build_hotkey_bindings ===
 
 
+def _fixed_hotkey_settings(
+    settings_model: type[Settings], *, confirm_enabled: bool = True, copy_enabled: bool = True
+) -> Settings:
+    """ホットキーを OS の既定に頼らず固定した設定を返す（録音の開始は貼り付けて送信と同じキー）。"""
+    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
+    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
+    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
+    from voice_paste.shared.settings import HotkeySettings
+
+    return settings_model(
+        hotkeys=HotkeySettings(
+            start="<ctrl>+<alt>+d", pause="<ctrl>+<alt>+z", cancel="<ctrl>+<alt>+q"
+        ),
+        outputs=[
+            PasteAndSendSettings(hotkey="<ctrl>+<alt>+d", enabled=confirm_enabled),
+            PasteOnlySettings(hotkey="<ctrl>+<alt>+v"),
+            CopyOnlySettings(hotkey="<ctrl>+<alt>+c", enabled=copy_enabled),
+        ],
+    )
+
+
 def test_build_hotkey_bindings_when_idle(settings_model: type[Settings]) -> None:
     """待機中の開始のホットキーは録音を始める（正常系）。"""
     from voice_paste.main import build_hotkey_bindings
@@ -917,7 +938,7 @@ def test_build_hotkey_bindings_when_idle(settings_model: type[Settings]) -> None
     session_manager.current.return_value = None
     start_local_session = MagicMock()
     bindings = build_hotkey_bindings(
-        settings_model(), session_manager, start_local_session, MagicMock()
+        _fixed_hotkey_settings(settings_model), session_manager, start_local_session, MagicMock()
     )
 
     # 実行
@@ -938,7 +959,7 @@ def test_build_hotkey_bindings_when_recording(settings_model: type[Settings]) ->
     start_local_session = MagicMock()
     show_recording_window = MagicMock()
     bindings = build_hotkey_bindings(
-        settings_model(), session_manager, start_local_session, show_recording_window
+        _fixed_hotkey_settings(settings_model), session_manager, start_local_session, show_recording_window
     )
 
     # 実行
@@ -954,15 +975,10 @@ def test_build_hotkey_bindings_when_recording_without_confirm_output(
     settings_model: type[Settings],
 ) -> None:
     """貼り付けて送信がオフなら、録音中の開始のホットキーは録音の画面を戻す指示を出す（正常系）。"""
-    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
-    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
-    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
     from voice_paste.main import build_hotkey_bindings
 
     # 準備
-    settings = settings_model(
-        outputs=[PasteAndSendSettings(enabled=False), PasteOnlySettings(), CopyOnlySettings()]
-    )
+    settings = _fixed_hotkey_settings(settings_model, confirm_enabled=False)
     session_manager = MagicMock()
     session_manager.current.return_value = make_session("hotkey", "recording")
     start_local_session = MagicMock()
@@ -1030,7 +1046,7 @@ def test_build_hotkey_bindings_when_paused(settings_model: type[Settings]) -> No
     # 準備
     session_manager = MagicMock()
     session_manager.current.return_value = make_session("hotkey", "paused")
-    bindings = build_hotkey_bindings(settings_model(), session_manager, MagicMock(), MagicMock())
+    bindings = build_hotkey_bindings(_fixed_hotkey_settings(settings_model), session_manager, MagicMock(), MagicMock())
 
     # 実行
     bindings["<ctrl>+<alt>+z"]()
@@ -1042,15 +1058,10 @@ def test_build_hotkey_bindings_when_paused(settings_model: type[Settings]) -> No
 
 def test_build_hotkey_bindings_when_output_disabled(settings_model: type[Settings]) -> None:
     """オフの出力先のホットキーは登録しない（正常系）。"""
-    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
-    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
-    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
     from voice_paste.main import build_hotkey_bindings
 
     # 準備
-    settings = settings_model(
-        outputs=[PasteAndSendSettings(), PasteOnlySettings(), CopyOnlySettings(enabled=False)]
-    )
+    settings = _fixed_hotkey_settings(settings_model, copy_enabled=False)
 
     # 実行
     bindings = build_hotkey_bindings(settings, MagicMock(), MagicMock(), MagicMock())
@@ -1066,7 +1077,7 @@ def test_build_hotkey_bindings_when_transcribing(settings_model: type[Settings])
     # 準備
     session_manager = MagicMock()
     session_manager.current.return_value = make_session("hotkey", "transcribing")
-    bindings = build_hotkey_bindings(settings_model(), session_manager, MagicMock(), MagicMock())
+    bindings = build_hotkey_bindings(_fixed_hotkey_settings(settings_model), session_manager, MagicMock(), MagicMock())
 
     # 実行
     bindings["<ctrl>+<alt>+c"]()
@@ -1087,7 +1098,7 @@ def test_build_hotkey_bindings_when_transcribing_start_hotkey(
     session_manager.current.return_value = make_session("hotkey", "transcribing")
     start_local_session = MagicMock()
     bindings = build_hotkey_bindings(
-        settings_model(), session_manager, start_local_session, MagicMock()
+        _fixed_hotkey_settings(settings_model), session_manager, start_local_session, MagicMock()
     )
 
     # 実行

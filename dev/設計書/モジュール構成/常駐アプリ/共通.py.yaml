@@ -373,15 +373,15 @@ data_models:
     properties:
       - name: start
         type: str
-        default: <ctrl>+<alt>+d
+        default: <ctrl>+<alt>+d（Linux は <cmd>+<alt>+d。os_default）
         description: 録音を始める
       - name: pause
         type: str
-        default: <ctrl>+<alt>+z
+        default: <ctrl>+<alt>+z（Linux は <cmd>+<alt>+z。os_default）
         description: 録音を一時停止・再開する
       - name: cancel
         type: str
-        default: <ctrl>+<alt>+q
+        default: <ctrl>+<alt>+q（Linux は <cmd>+<alt>+q。os_default）
         description: 録音を取り消す
     status: implemented
   - name: KeyboardSettings
@@ -996,7 +996,7 @@ functions:
         summary: リポジトリの見本は共通の既定値（Windows の既定値）と一致する
         condition: リポジトリの直下の settings.sample.toml
         mock: なし
-        expected: OS_DEFAULT_OVERRIDES[CURRENT_OS] のキーを除いて SETTINGS_MODEL() と等しい。除いたキーは、見本の値がそのキーの共通の既定値（os_default に渡す common。Windows の値）と等しい（Windows では上書きが無いため、SETTINGS_MODEL() 全体と等しい）
+        expected: OS_DEFAULT_OVERRIDES[CURRENT_OS] のキーを除いて SETTINGS_MODEL() と等しい。除いたキーは、見本の値がそのキーの共通の既定値（os_default に渡す common。Windows の値）と等しい（Windows では上書きが無いため、SETTINGS_MODEL() 全体と等しい）。`outputs.{出力先の ID}.{項目}` のキーは、outputs の id が一致する項目で引く
       - name: test_load_settings_when_invalid_value
         case: 異常
         summary: 合わない値はキーを示して断る
@@ -1319,7 +1319,7 @@ functions:
       - name: test_find_hotkey_overlaps
         case: 正常
         summary: 前に並んだホットキーと重なるキーを、重なった組で返す
-        condition: presets に 2 件を置き、2 件目の hotkey を <ctrl>+<alt>+v（貼り付けのみと同じ）にした設定（model_construct で確かめを飛ばして作る）
+        condition: 出力先の hotkey を <ctrl>+<alt>+d・v・c に固定し、presets に 2 件を置き、2 件目の hotkey を <ctrl>+<alt>+v（貼り付けのみと同じ）にした設定（model_construct で確かめを飛ばして作る）
         mock: なし
         expected: '[("presets[1].hotkey", "outputs[1].hotkey")]'
       - name: test_find_hotkey_overlaps_when_presets_of_different_kinds
@@ -1349,7 +1349,7 @@ functions:
       - name: test_settings_when_hotkeys_overlap
         case: 異常
         summary: ホットキーが重なる設定は、重なったキーと先のキーを持つ ValidationError で断る
-        condition: hotkeys.cancel を <ctrl>+<alt>+z にした dict を Settings.model_validate に渡す
+        condition: hotkeys.pause と hotkeys.cancel を同じ <ctrl>+<alt>+z にした dict を Settings.model_validate に渡す
         mock: なし
         expected: ValidationError。list_validation_failures のキーに hotkeys.cancel、理由に hotkeys.pause
         exception: ホットキーが重なる
@@ -1757,6 +1757,12 @@ functions:
         condition: key="recording.hide_window"・common=False・os_kind=OsKind.LINUX
         mock: なし
         expected: False（common のまま）
+      - name: test_os_default_when_settings_model_linux
+        case: 正常
+        summary: Linux で組み立てた設定のモデルの既定値は、OS_DEFAULT_OVERRIDES[OsKind.LINUX] の全ての値になる
+        condition: 子プロセス（`sys.executable -c`）で、voice_paste.shared.os_kind を先に import して CURRENT_OS を OsKind.LINUX に置き換えてから voice_paste.main を import し、引数なしで組み立てた SETTINGS_MODEL() の model_dump と OS_DEFAULT_OVERRIDES[OsKind.LINUX] を JSON で標準出力に出させる。テストのプロセスのモジュールは読み直さない（import のときに CURRENT_OS を読むのは os_default だけで、Windows でも走る）
+        mock: なし
+        expected: 子プロセスが 0 で終わる。OS_DEFAULT_OVERRIDES[OsKind.LINUX] のキーの集まりがテストに書いた 9 つのキーと等しく、model_dump のそれぞれのキーの値がテストに書いた固定の値と等しい（recording.lower_volume = False・transcription.local_whisper.device = "cpu"・transcription.local_whisper.compute_type = "int8"・hotkeys.start = "<cmd>+<alt>+d"・hotkeys.pause = "<cmd>+<alt>+z"・hotkeys.cancel = "<cmd>+<alt>+q"・outputs.paste_and_send.hotkey = "<cmd>+<alt>+d"・outputs.paste_only.hotkey = "<cmd>+<alt>+v"・outputs.copy_only.hotkey = "<cmd>+<alt>+c"）。`outputs.{出力先の ID}.{項目}` のキーは、outputs の id が一致する項目で引く（引けないキーがあれば fail）
     status: planned
 constants:
   - name: APP_NAME
@@ -1843,6 +1849,24 @@ constants:
       - key: linux / transcription.local_whisper.compute_type
         value: '"int8"'
         description: CPU で動く精度
+      - key: linux / hotkeys.start
+        value: '"<cmd>+<alt>+d"'
+        description: Ubuntu は `<Primary><Alt>d` を「デスクトップを表示」に割り当てており、Ctrl+Alt+D では貼り付け先のウィンドウが隠れる。Linux の既定のホットキーは修飾キーを Super+Alt にそろえる
+      - key: linux / hotkeys.pause
+        value: '"<cmd>+<alt>+z"'
+        description: hotkeys.start と同じく Super+Alt にそろえる
+      - key: linux / hotkeys.cancel
+        value: '"<cmd>+<alt>+q"'
+        description: hotkeys.start と同じく Super+Alt にそろえる
+      - key: linux / outputs.paste_and_send.hotkey
+        value: '"<cmd>+<alt>+d"'
+        description: hotkeys.start と同じキー。出力先のキーは `outputs.{出力先の ID}.{項目}`
+      - key: linux / outputs.paste_only.hotkey
+        value: '"<cmd>+<alt>+v"'
+        description: hotkeys.start と同じく Super+Alt にそろえる
+      - key: linux / outputs.copy_only.hotkey
+        value: '"<cmd>+<alt>+c"'
+        description: hotkeys.start と同じく Super+Alt にそろえる
     description: 型は `Mapping[OsKind, Mapping[str, object]]`。
     status: planned
   - name: OS_HIDDEN_SETTING_KEYS

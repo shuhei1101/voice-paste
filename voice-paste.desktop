@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=voice-paste
+Exec="@REPO_DIR@/voice-paste.sh"
+Icon=@REPO_DIR@/resources/tray/idle.png
+Terminal=false
+X-GNOME-Autostart-enabled=true

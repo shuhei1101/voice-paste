@@ -272,9 +272,10 @@ scenarios:
 lead: '常駐サービスを起動し、文字起こしのエンジン・API の待ち受け・ホットキーの受付を立てて、録音の開始を待つ状態にする単一ユースケース。'
 issue: 14
 primary_actor: 音声入力を使うユーザー
-trigger: ユーザーが常駐サービスを起動する（Windows はショートカットを開く、Linux は `python -m voice_paste` を流す）
+trigger: ユーザーが常駐サービスを起動する（Windows はショートカットを開く、Linux は起動のスクリプト `voice-paste.sh` を流すか、アプリの一覧・ログイン時の自動起動から開く）
 preconditions:
-  - Windows か Linux（Ubuntu 24.04 の Xorg のセッション）の端末で、リポジトリの直下に仮想環境がある
+  - Windows か Linux（Ubuntu 24.04 の Xorg のセッション）の端末で、リポジトリの直下に仮想環境がある（起動の手段が `uv sync --frozen` で `uv.lock` に揃える）
+  - Linux では OS のパッケージ `xclip`・`libportaudio2`・`libxcb-cursor0` が入っている
   - 設定ファイル（Windows は `%APPDATA%\voice-paste\settings.toml`、Linux は `~/.config/voice-paste/settings.toml`）がある（無ければ既定値で作る）
 test_file: tests/e2e/単一ユースケース/test_start_resident_app.py
 notes:

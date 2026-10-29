@@ -34,3 +34,9 @@ verification:
   detail: sounddevice 0.5.5 で、既定の入力デバイスを samplerate=16000・channels=1・dtype='int16' のコールバックの InputStream で開いて start し、0.3 秒のあいだに shape (n, 1)・int16・status が空のコールバックが 11 回届き、stop・close で閉じられることを実機で動かした
 license: MIT（商用利用可）
 official_url: https://python-sounddevice.readthedocs.io/
+install: |-
+  `uv sync --frozen` で入る。Windows の wheel は PortAudio を同梱するが、Linux では PortAudio を OS のパッケージで入れる。
+
+  ```bash
+  sudo apt install libportaudio2
+  ```

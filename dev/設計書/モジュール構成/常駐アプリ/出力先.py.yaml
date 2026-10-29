@@ -173,7 +173,7 @@ data_models:
         description: オンか
       - name: hotkey
         type: str
-        default: <ctrl>+<alt>+d
+        default: <ctrl>+<alt>+d（Linux は <cmd>+<alt>+d。os_default の outputs.paste_and_send.hotkey）
         description: この出力先で確定するホットキー
       - name: enter_delay_sec
         type: float
@@ -202,7 +202,7 @@ data_models:
         description: オンか
       - name: hotkey
         type: str
-        default: <ctrl>+<alt>+v
+        default: <ctrl>+<alt>+v（Linux は <cmd>+<alt>+v。os_default の outputs.paste_only.hotkey）
         description: この出力先で確定するホットキー
     status: planned
   - name: CopyOnlySettings
@@ -223,7 +223,7 @@ data_models:
         description: オンか
       - name: hotkey
         type: str
-        default: <ctrl>+<alt>+c
+        default: <ctrl>+<alt>+c（Linux は <cmd>+<alt>+c。os_default の outputs.copy_only.hotkey）
         description: この出力先で確定するホットキー
     status: planned
   - name: CallbackPayload

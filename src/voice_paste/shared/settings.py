@@ -144,6 +144,13 @@ OS_DEFAULT_OVERRIDES: Mapping[OsKind, Mapping[str, object]] = {
         "transcription.local_whisper.device": "cpu",
         # CPU で動く精度
         "transcription.local_whisper.compute_type": "int8",
+        # Ubuntu は Ctrl+Alt+D を「デスクトップを表示」に割り当てているため、ホットキーの修飾キーを Super+Alt にそろえる
+        "hotkeys.start": "<cmd>+<alt>+d",
+        "hotkeys.pause": "<cmd>+<alt>+z",
+        "hotkeys.cancel": "<cmd>+<alt>+q",
+        "outputs.paste_and_send.hotkey": "<cmd>+<alt>+d",
+        "outputs.paste_only.hotkey": "<cmd>+<alt>+v",
+        "outputs.copy_only.hotkey": "<cmd>+<alt>+c",
     },
 }
 """共通の既定値に重ねる、OS ごとの既定値。キーは設定のドットで結んだキー。載っていない OS・キーは共通の既定値のまま。"""
@@ -305,9 +312,17 @@ class RecordingSettings(_SettingsModel):
 class HotkeySettings(_SettingsModel):
     """録音の開始・一時停止・取り消しのホットキー（pynput の GlobalHotKeys の書式）。"""
 
-    start: str = _item("<ctrl>+<alt>+d", "録音開始", reload=RELOAD_IMMEDIATE)
-    pause: str = _item("<ctrl>+<alt>+z", "録音の一時停止・再開", reload=RELOAD_IMMEDIATE)
-    cancel: str = _item("<ctrl>+<alt>+q", "録音の取り消し", reload=RELOAD_IMMEDIATE)
+    start: str = _item(
+        os_default("hotkeys.start", "<ctrl>+<alt>+d"), "録音開始", reload=RELOAD_IMMEDIATE
+    )
+    pause: str = _item(
+        os_default("hotkeys.pause", "<ctrl>+<alt>+z"),
+        "録音の一時停止・再開",
+        reload=RELOAD_IMMEDIATE,
+    )
+    cancel: str = _item(
+        os_default("hotkeys.cancel", "<ctrl>+<alt>+q"), "録音の取り消し", reload=RELOAD_IMMEDIATE
+    )
 
 
 class KeyboardSettings(_SettingsModel):

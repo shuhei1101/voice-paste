@@ -44,6 +44,7 @@ from tests.integration.ui.helpers import (
     crop_logical,
     dispose_windows_since,
     find,
+    fixed_hotkey_settings,
     indicator_image,
     make_ui_deps,
     no_modal,
@@ -540,7 +541,7 @@ def test_restart_badge_when_immediate_field(open_window: Callable[..., Opened]) 
 def test_hotkey_field_initial_value(open_window: Callable[..., Opened]) -> None:
     """ホットキーの欄は、画面では `Ctrl+Alt+D` の形式で出す。"""
     # 実行
-    window = open_window().window
+    window = open_window(fixed_hotkey_settings()).window
 
     # 検証
     assert _field(window, "hotkeys.start", QLineEdit).text() == "Ctrl+Alt+D"
@@ -609,7 +610,7 @@ def test_hotkey_field_action(open_window: Callable[..., Opened]) -> None:
 def test_hotkey_field_when_modifier_only(open_window: Callable[..., Opened]) -> None:
     """修飾キーだけでは、組み合わせに入れない。"""
     # 準備
-    window = open_window().window
+    window = open_window(fixed_hotkey_settings()).window
     find(window, QListWidget, "group_menu").setCurrentRow(3)
 
     # 実行
@@ -622,7 +623,7 @@ def test_hotkey_field_when_modifier_only(open_window: Callable[..., Opened]) -> 
 def test_hotkey_field_when_tab(open_window: Callable[..., Opened]) -> None:
     """Tab は欄の移動に残し、組み合わせに入れない。"""
     # 準備
-    window = open_window().window
+    window = open_window(fixed_hotkey_settings()).window
     find(window, QListWidget, "group_menu").setCurrentRow(3)
 
     # 実行
@@ -635,7 +636,7 @@ def test_hotkey_field_when_tab(open_window: Callable[..., Opened]) -> None:
 def test_hotkey_field_when_escape(open_window: Callable[..., Opened]) -> None:
     """Esc は画面の取り消しに残し、組み合わせに入れない（欄を変えていなければ画面を閉じる）。"""
     # 準備
-    opened = open_window()
+    opened = open_window(fixed_hotkey_settings())
     find(opened.window, QListWidget, "group_menu").setCurrentRow(3)
 
     # 実行
@@ -2005,7 +2006,7 @@ def test_input_check_when_out_of_range(
 def test_input_check_when_hotkey_overlap(open_window: Callable[..., Opened]) -> None:
     """ほかのホットキーの欄と同じ組み合わせ: 「「{重なった欄の名前}」と同じホットキーです。別のキーにしてください。」を出す。"""
     # 準備
-    opened = open_window()
+    opened = open_window(fixed_hotkey_settings())
     find(opened.window, QListWidget, "group_menu").setCurrentRow(3)
     _press(
         opened.window,

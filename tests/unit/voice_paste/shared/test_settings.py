@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import json
 import re
+import subprocess
+import sys
 import tomllib
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
@@ -20,6 +23,12 @@ COMMON_DEFAULTS = {
     "recording.lower_volume": True,
     "transcription.local_whisper.device": "cuda",
     "transcription.local_whisper.compute_type": "float16",
+    "hotkeys.start": "<ctrl>+<alt>+d",
+    "hotkeys.pause": "<ctrl>+<alt>+z",
+    "hotkeys.cancel": "<ctrl>+<alt>+q",
+    "outputs.paste_and_send.hotkey": "<ctrl>+<alt>+d",
+    "outputs.paste_only.hotkey": "<ctrl>+<alt>+v",
+    "outputs.copy_only.hotkey": "<ctrl>+<alt>+c",
 }
 """OS ごとに既定値を上書きする設定のキーの、共通の既定値（Windows の値）。見本はこの値で書く。"""
 
@@ -31,6 +40,27 @@ HINT_PRESET_A = '[[hint_presets]]\nname = "A"\nwords = ["a"]\nenabled = true\n'
 
 HINT_PRESET_B = '[[hint_presets]]\nname = "B"\nwords = ["b"]\nenabled = true\n'
 """settings.toml に書く表記のヒントのプリセット B。"""
+
+LINUX_SETTINGS_MODEL_SCRIPT = """
+import json
+
+import voice_paste.shared.os_kind as os_kind
+
+os_kind.CURRENT_OS = os_kind.OsKind.LINUX
+
+from voice_paste.main import SETTINGS_MODEL
+from voice_paste.shared.settings import OS_DEFAULT_OVERRIDES
+
+print(
+    json.dumps(
+        {
+            "defaults": SETTINGS_MODEL().model_dump(mode="json"),
+            "overrides": OS_DEFAULT_OVERRIDES[os_kind.OsKind.LINUX],
+        }
+    )
+)
+"""
+"""子プロセスで CURRENT_OS を Linux にしてから main を import し、組み立てた設定のモデルの既定値と Linux の上書きを JSON で出すスクリプト。"""
 
 
 @pytest.fixture
@@ -79,28 +109,48 @@ def test_load_settings(settings_file: Path, settings_model: type[Settings]) -> N
     )
 
 
+def _locate(dump: dict[str, Any], key: str) -> tuple[dict[str, Any], str]:
+    """ドットで結んだ設定のキーの値を持つ表と、その表の中のキーを返す。
+
+    `outputs.{出力先の ID}.{項目}` は outputs の id が一致する項目で引き、引けなければ KeyError にする。
+    """
+    parts = key.split(".")
+    # 出力先のキーか
+    if parts[0] == "outputs":
+        # そう: id が一致する出力先の項目を引く
+        output_id, leaf = parts[1], parts[2]
+        for output in dump["outputs"]:
+            if output["id"] == output_id:
+                return output, leaf
+        raise KeyError(key)
+    # それ以外: 入れ子の表をたどる
+    table = dump
+    for part in parts[:-1]:
+        table = table[part]
+    return table, parts[-1]
+
+
 def _dump_without(settings: Settings, keys: Iterable[str]) -> dict[str, Any]:
     """設定を dict にし、ドットで結んだキーの値を取り除いて返す。"""
     dump = settings.model_dump()
     for key in keys:
-        *parents, leaf = key.split(".")
-        table = dump
-        for parent in parents:
-            table = table[parent]
+        table, leaf = _locate(dump, key)
         del table[leaf]
     return dump
 
 
-def _values_of(settings: Settings, keys: Iterable[str]) -> dict[str, Any]:
-    """設定から、ドットで結んだキーの値を引いて、キー → 値の dict にして返す。"""
-    dump = settings.model_dump()
+def _values_in(dump: dict[str, Any], keys: Iterable[str]) -> dict[str, Any]:
+    """設定の dict から、ドットで結んだキーの値を引いて、キー → 値の dict にして返す。"""
     values: dict[str, Any] = {}
     for key in keys:
-        value: Any = dump
-        for part in key.split("."):
-            value = value[part]
-        values[key] = value
+        table, leaf = _locate(dump, key)
+        values[key] = table[leaf]
     return values
+
+
+def _values_of(settings: Settings, keys: Iterable[str]) -> dict[str, Any]:
+    """設定から、ドットで結んだキーの値を引いて、キー → 値の dict にして返す。"""
+    return _values_in(settings.model_dump(), keys)
 
 
 def test_load_settings_when_sample_file(repo_root: Path, settings_model: type[Settings]) -> None:
@@ -160,6 +210,23 @@ def test_os_default_when_not_overridden() -> None:
 
     # 検証
     assert value is False
+
+
+def test_os_default_when_settings_model_linux() -> None:
+    """Linux で組み立てた設定のモデルの既定値は、OS_DEFAULT_OVERRIDES[OsKind.LINUX] の全ての値になる（正常系）。"""
+    # 実行: 子プロセスで CURRENT_OS を Linux にしてから main を import し、既定値と上書きを出させる
+    completed = subprocess.run(
+        [sys.executable, "-c", LINUX_SETTINGS_MODEL_SCRIPT],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+
+    # 検証
+    assert completed.returncode == 0, completed.stderr
+    result = json.loads(completed.stdout)
+    assert _values_in(result["defaults"], result["overrides"]) == result["overrides"]
 
 
 @pytest.mark.parametrize(

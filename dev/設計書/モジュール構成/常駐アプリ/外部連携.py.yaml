@@ -1828,6 +1828,7 @@ test_files:
   - tests/unit/voice_paste/integrations/volume/test_noop.py
   - tests/unit/voice_paste/integrations/keyboard/test_sender.py
   - tests/unit/voice_paste/integrations/keyboard/test_sender_linux.py
+  - tests/unit/voice_paste/integrations/keyboard/test_sender_wayland.py
   - tests/unit/voice_paste/integrations/keyboard/test_active_window_linux.py
   - tests/unit/voice_paste/integrations/browser/test_opener.py
   - tests/unit/voice_paste/integrations/browser/test_opener_linux.py

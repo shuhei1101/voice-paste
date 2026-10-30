@@ -3592,6 +3592,8 @@ constants:
     status: planned
 test_files:
   - tests/unit/voice_paste/runtime/test_hotkey.py
+  - tests/unit/voice_paste/runtime/test_hotkey_gnome.py
+  - tests/unit/voice_paste/runtime/test_send_hotkey.py
   - tests/unit/voice_paste/ui/test_bridge.py
   - tests/unit/voice_paste/ui/test_controller.py
   - tests/unit/voice_paste/ui/test_tray.py

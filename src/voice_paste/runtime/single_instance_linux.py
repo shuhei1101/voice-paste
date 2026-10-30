@@ -29,6 +29,12 @@ LOCK_RETRY_INTERVAL_SEC: float = 0.1
 QUIT_REQUEST: bytes = b"quit"
 """後から起動したプロセスが終了の依頼のソケットへ送信するバイト列。"""
 
+HOTKEY_REQUEST_PREFIX: bytes = b"hotkey:"
+"""send_hotkey が終了の依頼のソケットへ、押されたホットキーの前に付けて送信するバイト列。"""
+
+MAX_REQUEST_BYTES: int = 256
+"""終了の依頼のソケットで 1 つの接続から読むバイト数の上限（`hotkey:` と設定のホットキーが収まる長さ）。"""
+
 LOCK_FILE_MODE: int = 0o600
 """ロックファイルを作るときの権限。"""
 
@@ -63,7 +69,8 @@ class LinuxSingleInstanceLock:
 
     終了の依頼のソケットと停止のソケットの対（socket.socketpair）を専用のデーモンスレッドが select で待ち、
     QUIT_REQUEST を受けたら on_quit_requested で渡された関数を 1 回呼んでスレッドを終える（呼ぶのはそのスレッド）。
-    QUIT_REQUEST 以外を受けた接続は閉じて待ち続ける。
+    受けたバイト列（MAX_REQUEST_BYTES まで）が HOTKEY_REQUEST_PREFIX で始まれば、続きを押されたホットキーとして on_hotkey で渡された関数に渡し、待ち続ける。
+    QUIT_REQUEST・ホットキー以外を受けた接続は閉じて待ち続ける。
     抽象名前空間のソケットにはファイルの権限が効かないため、接続の相手の uid が自分と違う接続は読まずに閉じて待ち続ける。
     """
 
@@ -75,6 +82,7 @@ class LinuxSingleInstanceLock:
         self._on_quit: Callable[[], None] | None = None
         self._quit_requested = False
         self._on_quit_called = False
+        self._on_hotkey: Callable[[str], None] | None = None
         self._state_lock = threading.Lock()
         self._released = False
         self._thread = threading.Thread(target=self._wait_for_quit, name="single-instance", daemon=True)
@@ -89,6 +97,11 @@ class LinuxSingleInstanceLock:
             self._on_quit_called = self._on_quit_called or call_now
         if call_now:
             callback()
+
+    def on_hotkey(self, callback: Callable[[str], None]) -> None:
+        """押されたホットキー（pynput の書式）を受けたときに呼ぶ関数を渡す（呼ぶのは待つスレッド）。前に渡した関数は置き換える。"""
+        with self._state_lock:
+            self._on_hotkey = callback
 
     def release(self) -> None:
         """待つスレッドを止め、ソケットを閉じてからロックを放す。2 回目以降は何もしない。"""
@@ -118,8 +131,14 @@ class LinuxSingleInstanceLock:
                 connection, _ = self._server.accept()
             except OSError:
                 return
-            # 終了の依頼を受けたか
-            if not self._is_quit_request(connection):
+            request = self._read_request(connection)
+            # ホットキーか
+            if request is not None and request.startswith(HOTKEY_REQUEST_PREFIX):
+                # はい: 受け手に渡して待ち続ける
+                self._dispatch_hotkey(request.removeprefix(HOTKEY_REQUEST_PREFIX).decode("utf-8", "replace"))
+                continue
+            # 終了の依頼か
+            if request != QUIT_REQUEST:
                 # いいえ: 閉じて待ち続ける
                 continue
             with self._state_lock:
@@ -133,18 +152,26 @@ class LinuxSingleInstanceLock:
             callback()
             return
 
+    def _dispatch_hotkey(self, hotkey: str) -> None:
+        """受けたホットキーを受け手に渡す。受け手が無ければ捨てる。"""
+        with self._state_lock:
+            callback = self._on_hotkey
+        # 受け手を渡す前のホットキーは捨てる
+        if callback is not None:
+            callback(hotkey)
+
     @staticmethod
-    def _is_quit_request(connection: socket.socket) -> bool:
-        """接続を読み、同じ uid から QUIT_REQUEST を受けたか。接続は閉じる。"""
+    def _read_request(connection: socket.socket) -> bytes | None:
+        """同じ uid の接続から送信されたバイト列を MAX_REQUEST_BYTES まで読む。ほかの uid・読めない接続は None。接続は閉じる。"""
         with connection:
             # ほかのユーザーの接続は読まない
             if _peer_uid(connection) != os.getuid():
-                return False
+                return None
             connection.settimeout(CONNECTION_READ_TIMEOUT_SEC)
             try:
-                return connection.recv(len(QUIT_REQUEST)) == QUIT_REQUEST
+                return connection.recv(MAX_REQUEST_BYTES)
             except OSError:
-                return False
+                return None
 
 
 def _request_quit(name: str) -> bool:

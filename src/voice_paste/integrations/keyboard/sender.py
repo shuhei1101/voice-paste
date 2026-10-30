@@ -1,4 +1,4 @@
-"""クリップボードへの書き込みと、今のアクティブなウィンドウへのキー入力。pyperclip に触れるのはこのファイルだけ。pynput はこのファイルと sender_linux.py が触れる。"""
+"""クリップボードへの書き込みと、今のアクティブなウィンドウへのキー入力。pyperclip に触れるのはこのファイルだけ。pynput はこのファイルと sender_linux.py が触れる（Wayland のキーの送信は sender_wayland.py）。"""
 
 from __future__ import annotations
 
@@ -44,6 +44,15 @@ def copy_to_clipboard(text: str) -> None:
     except pyperclip.PyperclipException as error:
         raise DeliveryError(f"クリップボードへ書けませんでした（{error}）") from error
     logger.info(f"クリップボードへ書いた（{len(text)} 文字）")
+
+
+def use_xclip_clipboard() -> None:
+    """pyperclip の書き先を xclip（XWayland）に固定する。Wayland のセッションの配線が起動のときに 1 回呼ぶ。
+
+    pyperclip は `WAYLAND_DISPLAY` を見て `wl-copy` を選ぶが、GNOME の `wl-copy` は書くたびに貼り付け先のフォーカスを取り、貼り付けのキーが落ちる。
+    xclip はフォーカスを取らず、GNOME が X のクリップボードを Wayland のアプリへ渡す。
+    """
+    pyperclip.set_clipboard("xclip")
 
 
 def split_paste_key(paste_key: str) -> tuple[list[keyboard.Key], str]:

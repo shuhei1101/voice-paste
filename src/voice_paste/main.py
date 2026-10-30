@@ -68,10 +68,11 @@ from voice_paste.features.web_transcription import (
 )
 from voice_paste.integrations.audio.probe import probe_audio
 from voice_paste.integrations.http.client import post_json
-from voice_paste.integrations.keyboard.sender import copy_to_clipboard, send_enter
+from voice_paste.integrations.keyboard.sender import copy_to_clipboard, send_enter, use_xclip_clipboard
 from voice_paste.integrations.openai.credentials import read_openai_api_key
 from voice_paste.integrations.openai.transcriber import OpenAITranscriber
 from voice_paste.integrations.vad.adapter import StreamingVad, load_vad_session
+from voice_paste.integrations.volume.noop import lower_volume_noop, restore_volume_noop
 from voice_paste.integrations.whisper.client import (
     CREATE_NO_WINDOW,
     WhisperWorkerClient,
@@ -87,6 +88,7 @@ from voice_paste.server.runner import ApiServerRunner
 from voice_paste.server.token import create_token, write_token_file
 from voice_paste.shared.constants import AppPaths, resolve_app_paths
 from voice_paste.shared.errors import (
+    DeliveryError,
     EngineError,
     HotkeyError,
     MicrophoneUnavailableError,
@@ -95,9 +97,16 @@ from voice_paste.shared.errors import (
     StartupError,
 )
 from voice_paste.shared.logger import local_today, purge_old_logs, setup_logging
-from voice_paste.shared.os_kind import CURRENT_OS, OsKind
+from voice_paste.shared.os_kind import (
+    CURRENT_OS,
+    DisplaySession,
+    Feature,
+    OsKind,
+    detect_display_session,
+    hidden_setting_keys,
+    unavailable_features,
+)
 from voice_paste.shared.settings import (
-    OS_HIDDEN_SETTING_KEYS,
     Preset,
     Settings,
     build_settings_model,
@@ -105,7 +114,13 @@ from voice_paste.shared.settings import (
     load_settings,
     save_settings,
 )
-from voice_paste.shared.types import Entry, GlossaryEntry, ProgressFn, TranscriptionOutcome
+from voice_paste.shared.types import (
+    Entry,
+    GlossaryEntry,
+    ProgressFn,
+    SendEnterFn,
+    TranscriptionOutcome,
+)
 from voice_paste.ui.bridge import UiBridge, notify, notify_copied, report_progress
 from voice_paste.ui.controller import UiController, UiDeps
 from voice_paste.ui.style import apply_theme
@@ -114,6 +129,7 @@ from voice_paste.ui.windows.recording_window import RecordingWindow
 from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
 
 if TYPE_CHECKING:
+    from voice_paste.runtime.hotkey_gnome import GnomeShortcutListener
     from voice_paste.runtime.single_instance_linux import LinuxSingleInstanceLock
 
 logger = logging.getLogger(__name__)
@@ -126,6 +142,12 @@ EXIT_OK: int = 0
 
 EXIT_FAILED: int = 1
 """起動に失敗した終了コード。"""
+
+QT_PLATFORM_ENV: str = "QT_QPA_PLATFORM"
+"""Qt のプラットフォームを選ぶ環境変数。"""
+
+QT_PLATFORM_XCB: str = "xcb"
+"""Wayland のセッションで使う Qt のプラットフォーム（XWayland）。ネイティブの wayland では画面が設定の位置に置けず、貼り付け先のフォーカスを取る。"""
 
 API_START_TIMEOUT_SEC: float = 5.0
 """ApiServerRunner.start が started を待つ上限。uvicorn の起動の実測が無いため仮に置く。"""
@@ -172,7 +194,7 @@ class CliArgs:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class PlatformAdapters:
-    """動いている OS に合わせて選んだ、単一インスタンス・音量・ブラウザ・貼り付けのキーの送信・文字起こしワーカーの起動・再起動の実装。
+    """動いている OS とデスクトップのセッションに合わせて選んだ、単一インスタンス・音量・ブラウザ・貼り付けのキーと Enter の送信・ホットキーの受付・Qt のプラットフォーム・文字起こしワーカーの起動・再起動の実装。
 
     select_platform_adapters が作る。OS を見て実装を選ぶのはここだけで、各モジュールは sys.platform を見ない。
     """
@@ -180,11 +202,11 @@ class PlatformAdapters:
     acquire_single_instance: Callable[[str, float], SingleInstanceLock | LinuxSingleInstanceLock]
     """単一インスタンスの確保（名前・待つ上限）。"""
 
-    lower_volume: LowerVolumeFn
-    """録音中に音量を下げる。"""
+    lower_volume: LowerVolumeFn | None
+    """録音中に音量を下げる（Windows）。Linux は None（build_handlers が OS_UNAVAILABLE_FEATURES の Feature.LOWER_VOLUME を見て、何もしない関数を渡す）。"""
 
-    restore_volume: RestoreVolumeFn
-    """下げた音量を戻す。"""
+    restore_volume: RestoreVolumeFn | None
+    """下げた音量を戻す（Windows）。Linux は None。"""
 
     open_app_window: Callable[[str], None]
     """ブラウザ添付のプリセットの画面を開く。"""
@@ -196,7 +218,27 @@ class PlatformAdapters:
     """同じ引数で起動し直す（os_kind を部分適用した relaunch）。"""
 
     send_paste: Callable[[str], None]
-    """貼り付けのキーの送信（設定の keyboard.paste_key を受ける。Windows は send_paste、Linux は send_paste_linux）。"""
+    """貼り付けのキーの送信（設定の keyboard.paste_key を受ける。Windows は send_paste、Linux の Xorg のセッションは send_paste_linux、Wayland のセッションは UInputKeyboard.send_paste）。"""
+
+    send_enter: SendEnterFn
+    """Enter の送信（Windows と Linux の Xorg のセッションは send_enter、Wayland のセッションは UInputKeyboard.send_enter）。"""
+
+    create_hotkey_listener: Callable[
+        [str, SingleInstanceLock | LinuxSingleInstanceLock], HotkeyListener | GnomeShortcutListener
+    ]
+    """ホットキーの受付を作る（排他の名前・取った排他を受ける。Windows と Linux の Xorg のセッションは引数を使わず HotkeyListener()、Wayland のセッションは GnomeShortcutListener）。"""
+
+    qt_platform: str | None
+    """Qt のプラットフォーム（main が QT_QPA_PLATFORM に入れる）。Wayland のセッションは `xcb`（XWayland）、ほかは None（Qt に任せる）。"""
+
+    open_key_sender: Callable[[], None]
+    """キーの送信の機器を開く（Wayland のセッションは UInputKeyboard.open。開けなければ DeliveryError を送出する）。ほかは何もしない関数。"""
+
+    close_key_sender: Callable[[], None]
+    """キーの送信の機器を閉じる（Wayland のセッションは UInputKeyboard.close）。ほかは何もしない関数。"""
+
+    validate_hotkeys: Callable[[Iterable[str]], None]
+    """設定の保存の前に、ホットキーを動いているセッションの受付で受け付けられるかを確かめる（Windows と Linux の Xorg のセッションは validate_hotkeys、Wayland のセッションは validate_gnome_hotkeys）。"""
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -209,8 +251,8 @@ class Handlers:
     session_api: SessionApiDeps
     """API サーバーへ渡すセッションの API の依存（設定の許可ホストを部分適用した返送先の確かめを含む）。"""
 
-    web_api: WebApiDeps
-    """API サーバーへ渡すブラウザの API の依存（WebJobQueue・probe_audio・一時のフォルダ）。WebJobQueue の開始と終了は main が呼ぶ。"""
+    web_api: WebApiDeps | None
+    """API サーバーへ渡すブラウザの API の依存（WebJobQueue・probe_audio・一時のフォルダ）。WebJobQueue の開始と終了は main が呼ぶ。外の端末のブラウザの機能を使えない OS では None。"""
 
     settings_store: SettingsStore
     """今効いている設定。出力先・録音・画面はここから読むため、保存した immediate の項目が次の回から効く。"""
@@ -225,8 +267,14 @@ class Handlers:
     """文字起こしのエンジンを止める。終了時に呼ぶ。"""
 
 
-def select_platform_adapters(os_kind: OsKind, *, lock_file: Path) -> PlatformAdapters:
-    """OS に合った実装を PlatformAdapters に束ねる。その OS だけのモジュールは、選んだ分岐の中で import する。"""
+def _do_nothing() -> None:
+    """キーの送信の機器を開く・閉じる必要が無い OS・セッションで、開く・閉じるの代わりに何もしない。"""
+
+
+def select_platform_adapters(
+    os_kind: OsKind, *, lock_file: Path, display_session: DisplaySession
+) -> PlatformAdapters:
+    """OS とデスクトップのセッションに合った実装を PlatformAdapters に束ねる。その OS・セッションだけのモジュールは、選んだ分岐の中で import する。"""
     # OS で分ける
     if os_kind is OsKind.WINDOWS:
         # Windows: pycaw の音量・Edge・Win32 の排他（comtypes・pycaw を読み込むため Linux では import しない）
@@ -243,23 +291,67 @@ def select_platform_adapters(os_kind: OsKind, *, lock_file: Path) -> PlatformAda
             worker_creationflags=CREATE_NO_WINDOW,
             relaunch=partial(relaunch, os_kind=OsKind.WINDOWS),
             send_paste=send_paste,
+            send_enter=send_enter,
+            create_hotkey_listener=_create_pynput_listener,
+            qt_platform=None,
+            open_key_sender=_do_nothing,
+            close_key_sender=_do_nothing,
+            validate_hotkeys=validate_hotkeys,
         )
 
-    # Linux: 何もしない音量・Chromium 系のブラウザ・flock の排他・端末アプリを見分ける貼り付け（fcntl・python-xlib を読み込むため Windows では import しない）
+    # Linux のセッションで分ける
+    if display_session is DisplaySession.WAYLAND:
+        # Wayland のセッション: uinput のキーの送信・GNOME のショートカット・XWayland の xclip と xcb（python-evdev を読み込むため Windows では import しない）
+        from voice_paste.integrations.browser.opener_linux import open_app_window_linux
+        from voice_paste.integrations.keyboard.sender_wayland import UInputKeyboard
+        from voice_paste.runtime.hotkey_gnome import GnomeShortcutListener, validate_gnome_hotkeys
+        from voice_paste.runtime.single_instance_linux import acquire_single_instance_linux
+
+        use_xclip_clipboard()
+        keyboard = UInputKeyboard()
+        return PlatformAdapters(
+            acquire_single_instance=partial(acquire_single_instance_linux, lock_file=lock_file),
+            lower_volume=None,
+            restore_volume=None,
+            open_app_window=open_app_window_linux,
+            worker_creationflags=0,
+            relaunch=partial(relaunch, os_kind=OsKind.LINUX),
+            send_paste=keyboard.send_paste,
+            send_enter=keyboard.send_enter,
+            create_hotkey_listener=GnomeShortcutListener,
+            qt_platform=QT_PLATFORM_XCB,
+            open_key_sender=keyboard.open,
+            close_key_sender=keyboard.close,
+            validate_hotkeys=validate_gnome_hotkeys,
+        )
+
+    # Xorg のセッション: 何もしない音量・Chromium 系のブラウザ・flock の排他・端末アプリを見分ける貼り付け（fcntl・python-xlib を読み込むため Windows では import しない）
     from voice_paste.integrations.browser.opener_linux import open_app_window_linux
     from voice_paste.integrations.keyboard.sender_linux import send_paste_linux
-    from voice_paste.integrations.volume.noop import lower_volume_noop, restore_volume_noop
     from voice_paste.runtime.single_instance_linux import acquire_single_instance_linux
 
     return PlatformAdapters(
         acquire_single_instance=partial(acquire_single_instance_linux, lock_file=lock_file),
-        lower_volume=lower_volume_noop,
-        restore_volume=restore_volume_noop,
+        lower_volume=None,
+        restore_volume=None,
         open_app_window=open_app_window_linux,
         worker_creationflags=0,
         relaunch=partial(relaunch, os_kind=OsKind.LINUX),
         send_paste=send_paste_linux,
+        send_enter=send_enter,
+        create_hotkey_listener=_create_pynput_listener,
+        qt_platform=None,
+        open_key_sender=_do_nothing,
+        close_key_sender=_do_nothing,
+        validate_hotkeys=validate_hotkeys,
     )
+
+
+def _create_pynput_listener(
+    _name: str, _lock: SingleInstanceLock | LinuxSingleInstanceLock
+) -> HotkeyListener:
+    """pynput のホットキーの受付を作る（排他の名前と排他は使わない）。Windows と Linux の Xorg のセッションの create_hotkey_listener。"""
+    return HotkeyListener()
 
 
 def parse_args(argv: list[str]) -> CliArgs:
@@ -390,8 +482,12 @@ def _wire_preset_kinds(
     *,
     open_window: Callable[[str], None],
     send_paste: Callable[[str], None],
+    send_enter_fn: SendEnterFn | None = None,
 ) -> tuple[PresetKindSpec, ...]:
-    """プリセットの種類の一覧の各 handler に、種類ごとの外部連携の関数と設定の値を部分適用して返す。"""
+    """プリセットの種類の一覧の各 handler に、種類ごとの外部連携の関数と設定の値を部分適用して返す。
+
+    send_enter_fn はブラウザ添付が Enter を送信する関数（PlatformAdapters.send_enter）。渡さなければ sender.py の send_enter を使う。
+    """
     # 1. 届けるたびに設定を読む関数を作る
     paste = _make_paste(get_settings, send_paste)
 
@@ -413,7 +509,7 @@ def _wire_preset_kinds(
             "copy": copy_to_clipboard,
             "open_window": open_window,
             "paste": paste,
-            "send_enter": send_enter,
+            "send_enter": send_enter if send_enter_fn is None else send_enter_fn,
             "sleep": time.sleep,
             "get_open_delay_sec": get_open_delay_sec,
             # 貼り付けて送信と同じ間を使う
@@ -440,6 +536,7 @@ def build_handlers(
     *,
     adapters: PlatformAdapters,
     environ: Mapping[str, str],
+    unavailable: frozenset[Feature],
 ) -> Handlers:
     """設定からエンジン・録音機・出力先・履歴を組み立て、SessionDeps を作って SessionManager と SessionApiDeps を返す。"""
     # 1. 設定を SettingsStore に入れる。以降の配線は設定を値でなく SettingsStore.get から読む
@@ -455,10 +552,16 @@ def build_handlers(
         stop_engine()
         raise
 
-    # 4. 録音機に OS ごとの音量とマイクの入力の関数と、SettingsStore から録音の設定を返す関数と、VAD のセッションを部分適用した話し声の判定を作る関数を渡す
+    # 4. 録音機に音量とマイクの入力の関数と、SettingsStore から録音の設定を返す関数と、VAD のセッションを部分適用した話し声の判定を作る関数を渡す
+    # 音量を下げる機能を使えない OS か
+    if Feature.LOWER_VOLUME in unavailable:
+        # 使えない: 音量を変えない関数を渡す
+        lower_volume, restore_volume = lower_volume_noop, restore_volume_noop
+    else:
+        lower_volume, restore_volume = adapters.lower_volume, adapters.restore_volume
     recorder = Recorder(
-        lower_volume=adapters.lower_volume,
-        restore_volume=adapters.restore_volume,
+        lower_volume=lower_volume,
+        restore_volume=restore_volume,
         open_input=open_input,
         get_settings=lambda: store.get().recording,
         create_speech_detector=partial(StreamingVad, vad_session),
@@ -468,7 +571,7 @@ def build_handlers(
     output_deps = OutputDeps(
         copy=copy_to_clipboard,
         paste=_make_paste(store.get, adapters.send_paste),
-        send_enter=send_enter,
+        send_enter=adapters.send_enter,
         sleep=time.sleep,
         jitter=_jitter,
         post=post_json,
@@ -477,7 +580,10 @@ def build_handlers(
     )
     wired_outputs = _wire_outputs(output_deps, OUTPUTS)
     wired_preset_kinds = _wire_preset_kinds(
-        store.get, open_window=adapters.open_app_window, send_paste=adapters.send_paste
+        store.get,
+        open_window=adapters.open_app_window,
+        send_paste=adapters.send_paste,
+        send_enter_fn=adapters.send_enter,
     )
 
     def deliver_session(session: Session, outcome: TranscriptionOutcome) -> None:
@@ -550,7 +656,43 @@ def build_handlers(
         glossary_preset_exists=glossary_preset_exists,
     )
 
-    # 9. ブラウザの文字起こしを配線する（履歴を残すかと用語集のプリセットの一覧はそのたびに SettingsStore から引く。ワーカースレッドはまだ立てない）
+    # 9. 外の端末のブラウザの機能を使えない OS では配線せず、使える OS ではブラウザの文字起こしを配線する
+    web_api = (
+        None
+        if Feature.WEB_TRANSCRIPTION in unavailable
+        else _wire_web_api(
+            store,
+            paths,
+            engine=engine,
+            correct=correct,
+            glossary_preset_exists=glossary_preset_exists,
+        )
+    )
+
+    # 10. start_local_session に SessionManager と notify を部分適用する
+    return Handlers(
+        session_manager=session_manager,
+        session_api=session_api,
+        web_api=web_api,
+        settings_store=store,
+        start_local_session=partial(
+            start_local_session, session_manager=session_manager, notify=notify
+        ),
+        recorder_level=recorder.level,
+        stop_engine=stop_engine,
+    )
+
+
+def _wire_web_api(
+    store: SettingsStore,
+    paths: AppPaths,
+    *,
+    engine: EngineFn,
+    correct: Callable[[str, str | None], str],
+    glossary_preset_exists: Callable[[str], bool],
+) -> WebApiDeps:
+    """ブラウザの文字起こしを配線する（履歴を残すかと用語集のプリセットの一覧はそのたびに SettingsStore から引く。ワーカースレッドはまだ立てない）。"""
+
     def list_glossary_preset_choices() -> GlossaryPresetChoices:
         """今の設定の用語集のプリセットの名前の一覧と、設定で選んでいるプリセットの名前を返す。"""
         settings_dir = paths.settings_file.parent
@@ -579,25 +721,12 @@ def build_handlers(
             discard_temporary=partial(discard_temporary, paths=paths),
         )
     )
-    web_api = WebApiDeps(
+    return WebApiDeps(
         queue=web_queue,
         probe_audio=probe_audio,
         tmp_dir=paths.tmp_dir / WEB_TMP_DIR_NAME,
         glossary_preset_exists=glossary_preset_exists,
         list_glossary_presets=list_glossary_preset_choices,
-    )
-
-    # 10. start_local_session に SessionManager と notify を部分適用する
-    return Handlers(
-        session_manager=session_manager,
-        session_api=session_api,
-        web_api=web_api,
-        settings_store=store,
-        start_local_session=partial(
-            start_local_session, session_manager=session_manager, notify=notify
-        ),
-        recorder_level=recorder.level,
-        stop_engine=stop_engine,
     )
 
 
@@ -787,7 +916,7 @@ def build_ui_deps(
     save_settings: Callable[[Settings, Mapping[Path, Sequence[GlossaryEntry]]], bool],
     request_restart: Callable[[], None],
     request_quit: Callable[[], None],
-    hotkey_listener: HotkeyListener,
+    hotkey_listener: HotkeyListener | GnomeShortcutListener,
     show_recording_window: Callable[[], None],
     apply_theme: Callable[[], None],
 ) -> UiDeps:
@@ -834,7 +963,7 @@ def build_ui_deps(
             next_glossary_path, directory=paths.settings_file.parent / GLOSSARIES_DIR_NAME
         ),
         copy=copy_to_clipboard,
-        hidden_setting_keys=OS_HIDDEN_SETTING_KEYS.get(CURRENT_OS, frozenset()),
+        hidden_setting_keys=hidden_setting_keys(unavailable_features(CURRENT_OS)),
         reports_progress=_reports_progress(store.get()),
     )
 
@@ -862,6 +991,7 @@ def _build_idle_ui_deps(
     app: QApplication,
     request_restart: Callable[[], None],
     request_quit: Callable[[], None],
+    check_hotkeys: Callable[[Iterable[str]], None],
 ) -> UiDeps:
     """エンジンを準備できなかった起動の UiDeps を組む。録音・ホットキーの関数は何もせず、設定画面は読んだ設定で保存だけ行う。"""
     store = SettingsStore(settings)
@@ -883,7 +1013,7 @@ def _build_idle_ui_deps(
             apply_settings,
             settings_file=paths.settings_file,
             store=store,
-            check_hotkeys=validate_hotkeys,
+            check_hotkeys=check_hotkeys,
             save_glossary=save_glossary,
         ),
         settings_dir=paths.settings_file.parent,
@@ -903,7 +1033,7 @@ def _build_idle_ui_deps(
             next_glossary_path, directory=paths.settings_file.parent / GLOSSARIES_DIR_NAME
         ),
         copy=copy_to_clipboard,
-        hidden_setting_keys=OS_HIDDEN_SETTING_KEYS.get(CURRENT_OS, frozenset()),
+        hidden_setting_keys=hidden_setting_keys(unavailable_features(CURRENT_OS)),
         reports_progress=_reports_progress(store.get()),
     )
 
@@ -933,7 +1063,9 @@ class _Running:
     runner: ApiServerRunner | None = None
     timers: list[RepeatingTimer] = field(default_factory=list)
     """上限の打ち切りと古い履歴・ログの削除の定期の呼び出し（立てた順）。"""
-    hotkey_listener: HotkeyListener | None = None
+    hotkey_listener: HotkeyListener | GnomeShortcutListener | None = None
+    close_key_sender: Callable[[], None] | None = None
+    """キーの送信の機器を閉じる関数（開こうとした後に入る）。"""
     controller: UiController | None = None
     """画面の振り分け。Qt の部品は参照が切れると消えるため、終わりまで持つ。"""
 
@@ -948,8 +1080,12 @@ def _stop_all(running: _Running, tray: Tray) -> None:
         running.runner.stop()
     if running.handlers is not None:
         running.handlers.session_manager.close()
-        running.handlers.web_api.queue.close()
+        # ブラウザの音声のキューを始めていれば閉じる
+        if running.handlers.web_api is not None:
+            running.handlers.web_api.queue.close()
         running.handlers.stop_engine()
+    if running.close_key_sender is not None:
+        running.close_key_sender()
     tray.hide()
 
 
@@ -962,11 +1098,12 @@ def _create_application() -> QApplication:
 
 
 def _install_signal_handlers(app: QApplication) -> QTimer:
-    """SIGINT・SIGBREAK で QApplication.quit を呼ぶ。イベントループの中で Python へ戻る空のタイマーを返す。"""
+    """SIGINT・SIGBREAK・SIGTERM で QApplication.quit を呼ぶ（SIGTERM はログアウト・systemctl stop で届き、片付けを通す）。イベントループの中で Python へ戻る空のタイマーを返す。"""
     wake_timer = QTimer(app)
     wake_timer.timeout.connect(lambda: None)
     wake_timer.start(WAKE_INTERVAL_MS)
     signal.signal(signal.SIGINT, lambda *_args: app.quit())
+    signal.signal(signal.SIGTERM, lambda *_args: app.quit())
     sigbreak = getattr(signal, "SIGBREAK", None)
     if sigbreak is not None:
         signal.signal(sigbreak, lambda *_args: app.quit())
@@ -992,12 +1129,16 @@ def main(
     paths = resolve_app_paths(args.data_dir)
     setup_logging(paths.log_dir, STARTUP_LOG_LEVEL)
 
-    # 3. OS に合った実装を選び、置き場所ごとの名前で単一インスタンスを確保する（前のプロセスが動いていれば、終わるよう頼んで放されるのを待つ）
-    adapters = select_platform_adapters(CURRENT_OS, lock_file=paths.lock_file)
+    # 3. デスクトップのセッションを判定して OS に合った実装を選び、OS で使えない機能を引き、置き場所ごとの名前で単一インスタンスを確保する（前のプロセスが動いていれば、終わるよう頼んで放されるのを待つ）
+    adapters = select_platform_adapters(
+        CURRENT_OS,
+        lock_file=paths.lock_file,
+        display_session=detect_display_session(os.environ),
+    )
+    unavailable = unavailable_features(CURRENT_OS)
+    lock_name = instance_name(paths.settings_file.parent)
     try:
-        lock = adapters.acquire_single_instance(
-            instance_name(paths.settings_file.parent), SINGLE_INSTANCE_TIMEOUT_SEC
-        )
+        lock = adapters.acquire_single_instance(lock_name, SINGLE_INSTANCE_TIMEOUT_SEC)
     except StartupError as error:
         # トレイを出す前のため、ログにだけ残して終わる
         logger.error(f"起動に失敗した（{error}）")
@@ -1005,7 +1146,7 @@ def main(
 
     # 4〜11. 排他を持ったまま起動して回し、どう抜けても最後に排他を放す
     try:
-        exit_code, restart = _run_service(paths, lock, exec_loop, adapters)
+        exit_code, restart = _run_service(paths, lock, lock_name, exec_loop, adapters, unavailable)
     finally:
         lock.release()
 
@@ -1018,11 +1159,15 @@ def main(
 def _run_service(
     paths: AppPaths,
     lock: SingleInstanceLock | LinuxSingleInstanceLock,
+    lock_name: str,
     exec_loop: Callable[[QApplication], int],
     adapters: PlatformAdapters,
+    unavailable: frozenset[Feature],
 ) -> tuple[int, bool]:
     """排他を持った状態で、画面の用意・起動・イベントループ・片付けを行い、終了コードと再起動の要否を返す。"""
-    # 5. QApplication・UiBridge・Tray を作り、スタイルを当ててトレイに準備中を出す
+    # 5. Qt のプラットフォームが決まっていて、環境変数で指定されていなければ入れてから、QApplication・UiBridge・Tray を作り、スタイルを当ててトレイに準備中を出す
+    if adapters.qt_platform is not None:
+        os.environ.setdefault(QT_PLATFORM_ENV, adapters.qt_platform)
     app = _create_application()
     # 後から起動したプロセスに終わるよう頼まれたら、メインスレッドで QApplication.quit を呼ぶ
     lock.on_quit_requested(
@@ -1037,7 +1182,9 @@ def _run_service(
     running = _Running()
 
     try:
-        _start_services(app, bridge, tray, paths, exit_request, running, adapters)
+        _start_services(
+            app, bridge, tray, paths, exit_request, running, (adapters, lock, lock_name, unavailable)
+        )
         # 12. イベントループを回す
         exec_loop(app)
     finally:
@@ -1055,9 +1202,15 @@ def _start_services(
     paths: AppPaths,
     exit_request: _ExitRequest,
     running: _Running,
-    adapters: PlatformAdapters,
+    platform: tuple[
+        PlatformAdapters, SingleInstanceLock | LinuxSingleInstanceLock, str, frozenset[Feature]
+    ],
 ) -> None:
-    """設定を読み、配線し、画面・API・ホットキー・上限のタイマーを立てる。立てたものは running に入れる。"""
+    """設定を読み、配線し、画面・API・ホットキー・上限のタイマーを立てる。立てたものは running に入れる。
+
+    platform は OS ごとの実装・取った排他・排他の名前・OS で使えない機能。
+    """
+    adapters, lock, lock_name, unavailable = platform
     ui_notify = partial(notify, bridge=bridge)
     ui_report_progress = partial(report_progress, bridge=bridge)
     ui_notify_copied = partial(notify_copied, bridge=bridge)
@@ -1094,12 +1247,18 @@ def _start_services(
             ui_notify_copied,
             adapters=adapters,
             environ=os.environ,
+            unavailable=unavailable,
         )
     except StartupError as error:
         logger.error(f"起動に失敗した（{error}）")
         tray.set_failed()
         deps = _build_idle_ui_deps(
-            settings, paths, app, exit_request.request_restart, exit_request.request_quit
+            settings,
+            paths,
+            app,
+            exit_request.request_restart,
+            exit_request.request_quit,
+            adapters.validate_hotkeys,
         )
         _watch_system_theme(app, deps.apply_theme)
         running.controller = _build_controller(bridge, tray, deps)
@@ -1108,13 +1267,13 @@ def _start_services(
     running.handlers = handlers
 
     # 画面を作って知らせの受け手につなぐ（API の待ち受けを始められない知らせを取りこぼさないよう、API より先に）
-    hotkey_listener = HotkeyListener()
+    hotkey_listener = adapters.create_hotkey_listener(lock_name, lock)
     running.hotkey_listener = hotkey_listener
     save_settings_fn = partial(
         apply_settings,
         settings_file=paths.settings_file,
         store=handlers.settings_store,
-        check_hotkeys=validate_hotkeys,
+        check_hotkeys=adapters.validate_hotkeys,
         save_glossary=save_glossary,
     )
     deps = build_ui_deps(
@@ -1135,8 +1294,9 @@ def _start_services(
     _watch_system_theme(app, deps.apply_theme)
     running.controller = _build_controller(bridge, tray, deps)
 
-    # 8. ブラウザの音声のキューを始め、トークンを作り、API サーバーを起動する
-    handlers.web_api.queue.start(handlers.web_api.tmp_dir)
+    # 8. ブラウザの機能を組み込んでいれば音声のキューを始め、トークンを作り、API サーバーを起動する
+    if handlers.web_api is not None:
+        handlers.web_api.queue.start(handlers.web_api.tmp_dir)
     token = create_token()
     port = settings.api.port
     fastapi_app = build_fastapi(
@@ -1166,6 +1326,13 @@ def _start_services(
         )
     except HotkeyError as error:
         logger.error(f"ホットキーを受け付けられなかった（{error}）")
+    # キーの送信の機器を開く（開けなければ貼り付けを使えないことを知らせて続ける。「コピーのみ」は使える）
+    running.close_key_sender = adapters.close_key_sender
+    try:
+        adapters.open_key_sender()
+    except DeliveryError as error:
+        logger.error(f"キーの送信の機器を開けなかった（{error}）")
+        tray.show_failure("paste_unavailable", str(error))
     limit_timer = RepeatingTimer(
         handlers.session_manager.truncate_if_expired, SESSION_LIMIT_CHECK_INTERVAL_SEC
     )

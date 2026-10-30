@@ -21,7 +21,7 @@ def build_fastapi(
     token: SecretStr,
     port: int,
     *,
-    web_api: WebApiDeps,
+    web_api: WebApiDeps | None,
     allowed_web_origins: Sequence[str],
 ) -> FastAPI:
     """文書のページを持たない app に、route・画面の配信・例外ハンドラ・本文の上限・要求の守りを組み込んで返す。"""
@@ -32,11 +32,13 @@ def build_fastapi(
     app.state.session_api = session_api
     app.include_router(router)
 
-    # 3. ブラウザの API の依存を置き、ブラウザの文字起こしの route と画面の配信を集めて、画面の素材を組み込む
-    app.state.web_api = web_api
-    app.include_router(web_router)
-    app.include_router(web_page_router)
-    mount_web_assets(app)
+    # 3. ブラウザの機能を組み込むか（web_api が None の OS では組み込まず、/web/ の下は route が無いため 404 になる）
+    if web_api is not None:
+        # 組み込む: ブラウザの API の依存を置き、ブラウザの文字起こしの route と画面の配信を集めて、画面の素材を組み込む
+        app.state.web_api = web_api
+        app.include_router(web_router)
+        app.include_router(web_page_router)
+        mount_web_assets(app)
 
     # 4. 例外ハンドラを登録する
     register_exception_handlers(app)
@@ -44,11 +46,12 @@ def build_fastapi(
     # 5. 本文の上限を組み込む
     app.add_middleware(BodyLimitMiddleware)
 
-    # 6. 要求の守りをトークン・ポート・許す Origin つきで組み込む（最後に追加するため、本文の上限より先に動き、断る要求の本文を読まない）
+    # 6. 要求の守りをトークン・ポート・許す Origin・ブラウザの機能を組み込んだかつきで組み込む（最後に追加するため、本文の上限より先に動き、断る要求の本文を読まない）
     app.add_middleware(
         RequestGuardMiddleware,
         token=token,
         port=port,
         allowed_web_origins=allowed_web_origins,
+        web_enabled=web_api is not None,
     )
     return app

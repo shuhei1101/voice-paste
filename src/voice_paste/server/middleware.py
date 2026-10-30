@@ -35,13 +35,19 @@ class RequestGuardMiddleware(BaseHTTPMiddleware):
     """Host を確かめ、`/web/` の下は Origin の許可リストを、それ以外は Origin とトークンを確かめて、通れば次の処理へ渡す。"""
 
     def __init__(
-        self, app: ASGIApp, token: SecretStr, port: int, allowed_web_origins: Sequence[str]
+        self,
+        app: ASGIApp,
+        token: SecretStr,
+        port: int,
+        allowed_web_origins: Sequence[str],
+        web_enabled: bool,  # noqa: FBT001 starlette が add_middleware のキーワード引数で渡す
     ) -> None:
-        """今回の起動のトークンと、待ち受けのポートと、`/web/` の下に許す Origin を受ける。"""
+        """今回の起動のトークンと、待ち受けのポートと、`/web/` の下に許す Origin と、ブラウザの機能を組み込んだかを受ける。"""
         super().__init__(app)
         self._token = token
         self._port = port
         self._allowed_web_origins = frozenset(origin.rstrip("/") for origin in allowed_web_origins)
+        self._web_enabled = web_enabled
 
     async def dispatch(
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
@@ -58,6 +64,9 @@ class RequestGuardMiddleware(BaseHTTPMiddleware):
         # 2. /web/ の下か
         path = request.url.path
         if path == WEB_PATH_PREFIX or path.startswith(f"{WEB_PATH_PREFIX}/"):
+            # 下でブラウザの機能を組み込んでいない: Origin もトークンも見ずに次へ渡す（route が無いため 404 になる）
+            if not self._web_enabled:
+                return await call_next(request)
             # 下: トークンは求めず、Origin の許可リストで通す
             return await self._guard_web(request, call_next, host, origin)
 

@@ -84,3 +84,20 @@ def test_error_when_asset_not_found(stack: Stack, path: str) -> None:
     # 検証
     assert response.status_code == 404
     assert response.headers["content-type"].startswith("application/problem+json")
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        pytest.param({}, id="without_origin"),
+        pytest.param({"Origin": "http://evil.example"}, id="not_allowed_origin"),
+    ],
+)
+def test_error_when_running_on_linux(linux_stack: Stack, extra: dict[str, str]) -> None:
+    """常駐サービスが Linux で動いているときは、Origin によらず 404 を返す（異常系）。"""
+    # 実行
+    response = linux_stack.http.get("/web/", headers=_gateway_headers(linux_stack, **extra))
+
+    # 検証
+    assert response.status_code == 404
+    assert response.headers["content-type"].startswith("application/problem+json")

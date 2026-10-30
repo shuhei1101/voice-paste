@@ -20,8 +20,9 @@ directory: |-
   │   ├── adapter.py    # lower_volume・restore_volume（pycaw を == で固定して包む。Windows だけが読み込む）
   │   └── noop.py       # lower_volume_noop・restore_volume_noop（Linux の、音量を変えない実装）
   ├── keyboard/
-  │   ├── sender.py     # copy_to_clipboard・split_paste_key・send_paste・send_enter
+  │   ├── sender.py     # copy_to_clipboard・use_xclip_clipboard・split_paste_key・send_paste・send_enter
   │   ├── sender_linux.py # send_paste_linux（Linux。端末アプリなら Ctrl+Shift+V にし、主キーを XTEST で送信する）
+  │   ├── sender_wayland.py # UInputKeyboard（Linux の Wayland のセッション。python-evdev の UInput の仮想キーボードで貼り付けのキーと Enter を送信する）
   │   └── active_window_linux.py # read_active_wm_class（Linux。python-xlib でアクティブなウィンドウの WM_CLASS を読む）
   ├── browser/
   │   ├── opener.py     # open_app_window（Windows。Edge の --app で開き、無ければ既定のブラウザ）
@@ -467,6 +468,174 @@ classes:
     status: planned
     introduced:
       pr: 204
+  - name: UInputKeyboard
+    title: 仮想キーボード
+    container: integrations/keyboard/sender_wayland.py
+    usecase: 起こした文字を届ける
+    role: アダプタ
+    kind: クラス
+    summary: Wayland のセッションで、python-evdev の UInput の仮想キーボードから貼り付けのキーと Enter を送信する。起動のときに 1 回開き、終了のときに閉じる
+    description: |-
+      Wayland のセッションでは pynput・XTEST のキーがネイティブのアプリへ届かないため、カーネルの uinput で入力の機器を作ってキーを送信する。`/dev/uinput` を開く権限（udev の規則と `input` グループ）が要り、無ければ open が DeliveryError を送出する（配線がトレイで知らせ、「コピーのみ」は使える）。
+
+      send_paste は sender.py の send_paste の代わりに、send_enter は SendEnterFn として配線する。
+    properties:
+      - name: _device
+        type: evdev.UInput | None
+        access: 内部 (_)
+        default: None
+        description: 開いた仮想キーボード。open の前と close の後は None
+      - name: _lock
+        type: threading.Lock
+        access: 内部 (_)
+        description: 送信と close を 1 つずつにする（キーの並びを混ぜない）
+    methods:
+      - name: open
+        title: 仮想キーボードを開く
+        kind: メソッド
+        scope: public
+        summary: 仮想キーボードを作り、コンポジターが入力の機器として受け付けるまで待つ
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 開いていれば何もしない
+          2. `UInput(name=VIRTUAL_KEYBOARD_NAME)` で仮想キーボードを作る
+             - OSError・UInputError（`/dev/uinput` を開く権限が無い・uinput が無い）の場合、DeliveryError を送出する（理由に例外の文言を残す）
+          3. DEVICE_READY_SEC だけ待つ
+             - `[INFO]` 仮想キーボードを開いた
+        exceptions:
+          - name: DeliveryError
+            condition: '`/dev/uinput` を開けない'
+        unit_tests:
+          - name: test_open
+            case: 正常
+            summary: 仮想キーボードを作って待つ
+            condition: open を 2 回呼ぶ
+            mock: evdev.UInput・time.sleep
+            expected: UInput(name="voice-paste-keyboard") が 1 回だけ作られ、sleep(0.3) が呼ばれる
+          - name: test_open_when_permission_denied
+            case: 異常
+            summary: 開けなければ DeliveryError
+            condition: UInput が PermissionError を送出する
+            mock: evdev.UInput
+            expected: 理由に Permission denied を含む DeliveryError が送出される
+            exception: '`/dev/uinput` を開けない'
+      - name: send_paste
+        title: 貼り付けのキーの送信
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        summary: 設定の貼り付けのキーを仮想キーボードで送信する
+        args:
+          - name: paste_key
+            type: str
+            required: true
+            passing: positional
+            description: 貼り付けのキー（pynput の GlobalHotKeys の書式。設定の keyboard.paste_key）
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 開いていなければ DeliveryError（「貼り付けのキーを送信できません。起こした文字はクリップボードにあります」）を送出する
+          2. split_paste_key で修飾キーと主キーに分ける（DeliveryError はそのまま送出する）
+             - 主キーが 1 文字でない場合、DeliveryError を送出する
+          3. 修飾キーを EVDEV_MODIFIER_CODES で、主キーを `ecodes.ecodes["KEY_" + 主キーの大文字]` でキーコードに替える
+             - 替えられない場合、DeliveryError を送出する
+          4. FOCUS_SETTLE_SEC だけ待つ
+          5. 修飾キーを順に押し、主キーを押して離し、修飾キーを逆順に離してから syn で確定する（EV_KEY を write）
+             - write が OSError を送出した場合、押した修飾キーを離してから DeliveryError を送出する（押されたままにしない）
+             - `[INFO]` 貼り付けのキーを送信した（paste_key、uinput）
+        exceptions:
+          - name: DeliveryError
+            condition: 開いていない・送信できないキー・書き込めない
+        unit_tests:
+          - name: test_send_paste
+            case: 正常
+            summary: 待ってから修飾キーと主キーを順に押して離す
+            condition: open の後、paste_key が `<ctrl>+v`
+            mock: evdev.UInput・time.sleep
+            expected: sleep(0.1) の後、write が KEY_LEFTCTRL 1・KEY_V 1・KEY_V 0・KEY_LEFTCTRL 0 の順に呼ばれ、syn が 1 回呼ばれる
+          - name: test_send_paste_when_not_opened
+            case: 異常
+            summary: 開いていなければ DeliveryError
+            condition: open を呼ばずに `<ctrl>+v`
+            mock: evdev.UInput
+            expected: DeliveryError が送出され、write が呼ばれない
+            exception: 開いていない
+          - name: test_send_paste_when_unsupported_key
+            case: 異常
+            summary: 1 文字でない主キーは DeliveryError
+            condition: open の後、paste_key が `<ctrl>+<insert>`
+            mock: evdev.UInput・time.sleep
+            expected: DeliveryError が送出され、write が呼ばれない
+            exception: 送信できないキー
+          - name: test_send_paste_when_write_failed
+            case: 異常
+            summary: 書き込めなければ押した修飾キーを離して DeliveryError
+            condition: open の後、主キーの write が OSError を送出する
+            mock: evdev.UInput・time.sleep
+            expected: DeliveryError が送出され、KEY_LEFTCTRL 0 の write が呼ばれている
+            exception: 書き込めない
+      - name: send_enter
+        title: Enter の送信
+        kind: メソッド
+        scope: public
+        inherits: SendEnterFn
+        thread_safe: true
+        summary: 渡した修飾キーを押したまま Enter を仮想キーボードで送信する（待ちは呼ぶ側が置く）
+        args:
+          - name: modifiers
+            type: Sequence[EnterModifier]
+            required: false
+            default: ()
+            passing: positional
+            description: 一緒に押す修飾キー。並びと重なりは問わない
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 開いていなければ DeliveryError を送出する
+          2. modifiers を ENTER_MODIFIER_KEYS の並び（Ctrl・Alt・Shift）に揃え、重なりを除いて EVDEV_MODIFIER_CODES でキーコードに替える
+          3. 修飾キーを順に押し、Enter（KEY_ENTER）を押して離し、修飾キーを逆順に離してから syn で確定する（EV_KEY を write）
+             - write が OSError を送出した場合、押した修飾キーを離してから DeliveryError を送出する（押されたままにしない）
+             - `[INFO]` Enter を送信した（修飾キー: {揃えた修飾キー。無ければ「なし」}、uinput）
+        exceptions:
+          - name: DeliveryError
+            condition: 開いていない・書き込めない
+        unit_tests:
+          - name: test_send_enter_when_modifiers
+            case: 正常
+            summary: 修飾キーを Ctrl・Alt・Shift の順に押し、逆順に離す
+            condition: open の後、modifiers が ("shift", "ctrl", "shift")
+            mock: evdev.UInput・time.sleep
+            expected: write が KEY_LEFTCTRL 1・KEY_LEFTSHIFT 1・KEY_ENTER 1・KEY_ENTER 0・KEY_LEFTSHIFT 0・KEY_LEFTCTRL 0 の順に呼ばれ、syn が 1 回呼ばれる
+          - name: test_send_enter_when_not_opened
+            case: 異常
+            summary: 開いていなければ DeliveryError
+            condition: open を呼ばずに引数なし
+            mock: evdev.UInput
+            expected: DeliveryError が送出され、write が呼ばれない
+            exception: 開いていない
+      - name: close
+        title: 仮想キーボードを閉じる
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        summary: 仮想キーボードを閉じて _device を None にする。開いていなければ何もしない（2 回呼んでもよい）
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_close
+            case: 正常
+            summary: 閉じた後は送信できず、2 回目は何もしない
+            condition: open の後に close を 2 回呼び、send_enter を呼ぶ
+            mock: evdev.UInput・time.sleep
+            expected: UInput.close が 1 回だけ呼ばれ、send_enter は DeliveryError を送出する
+    refs:
+      - dev/設計書/外部ライブラリ/evdev#
+    status: planned
 functions:
   - name: lower_volume
     title: 音量を下げる
@@ -1441,6 +1610,28 @@ functions:
         condition: get_wm_class が Xlib.error.BadWindow を送出する
         mock: Xlib.display.Display
         expected: () が返り、close が呼ばれる
+  - name: use_xclip_clipboard
+    title: クリップボードの書き先を xclip に固定
+    kind: 関数
+    container: integrations/keyboard/sender.py
+    usecase: 起こした文字を届ける
+    scope: public
+    summary: pyperclip の書き先を xclip（XWayland）に固定する。Wayland のセッションの配線が起動のときに 1 回呼ぶ
+    description: pyperclip は `WAYLAND_DISPLAY` を見て `wl-copy` を選ぶが、GNOME の `wl-copy` は書くたびに貼り付け先のフォーカスを取り、貼り付けのキーが落ちる。xclip はフォーカスを取らず、GNOME が X のクリップボードを Wayland のアプリへ渡す。
+    returns:
+      type: None
+      description: なし
+    process: 1. `pyperclip.set_clipboard("xclip")` を呼ぶ
+    refs:
+      - dev/設計書/外部ライブラリ/pyperclip#
+    unit_tests:
+      - name: test_use_xclip_clipboard
+        case: 正常
+        summary: 書き先を xclip に固定する
+        condition: 引数なし
+        mock: pyperclip.set_clipboard
+        expected: set_clipboard("xclip") が 1 回呼ばれる
+    status: planned
 constants:
   - name: FADE_STEPS
     title: フェードの回数
@@ -1608,6 +1799,27 @@ constants:
     value: frozenset({"gnome-terminal-server", "gnome-terminal", "kgx", "org.gnome.console", "ptyxis", "org.gnome.ptyxis", "tilix", "terminator", "konsole", "xfce4-terminal", "alacritty", "kitty"})
     reason: 設定のスキーマを変えないため定数で持つ。Ctrl+Shift+V がクリップボードの貼り付けになる端末を並べる。実際に確かめたのは GNOME Terminal（`gnome-terminal-server`。[#211](https://github.com/shuhei1101/voice-paste/pull/211)）だけで、ほかの端末のクラス名と貼り付けのキーは未確認。Ctrl+Shift+V で貼り付けない xterm は入れない
     status: planned
+  - name: DEVICE_READY_SEC
+    title: 仮想キーボードの準備の待ち
+    container: integrations/keyboard/sender_wayland.py
+    usecase: 起こした文字を届ける
+    summary: 仮想キーボードを作ってから、コンポジターが入力の機器として受け付けるまで待つ秒数（PoC で測った値）
+    value: '0.3'
+    status: planned
+  - name: EVDEV_MODIFIER_CODES
+    title: 修飾キーのキーコードの対応
+    container: integrations/keyboard/sender_wayland.py
+    usecase: 起こした文字を届ける
+    summary: pynput の書式の修飾キーの名前と、evdev のキーコードの対応
+    value: '{"ctrl": ecodes.KEY_LEFTCTRL, "shift": ecodes.KEY_LEFTSHIFT, "alt": ecodes.KEY_LEFTALT, "cmd": ecodes.KEY_LEFTMETA}'
+    status: planned
+  - name: VIRTUAL_KEYBOARD_NAME
+    title: 仮想キーボードの名前
+    container: integrations/keyboard/sender_wayland.py
+    usecase: 起こした文字を届ける
+    summary: UInput の機器の名前。入力の機器の一覧で常駐サービスのものと見分ける
+    value: '"voice-paste-keyboard"'
+    status: planned
 test_files:
   - tests/unit/voice_paste/integrations/whisper/test_client.py
   - tests/unit/voice_paste/integrations/openai/test_credentials.py
@@ -1616,6 +1828,7 @@ test_files:
   - tests/unit/voice_paste/integrations/volume/test_noop.py
   - tests/unit/voice_paste/integrations/keyboard/test_sender.py
   - tests/unit/voice_paste/integrations/keyboard/test_sender_linux.py
+  - tests/unit/voice_paste/integrations/keyboard/test_sender_wayland.py
   - tests/unit/voice_paste/integrations/keyboard/test_active_window_linux.py
   - tests/unit/voice_paste/integrations/browser/test_opener.py
   - tests/unit/voice_paste/integrations/browser/test_opener_linux.py
@@ -1668,3 +1881,5 @@ function_types:
       - target: post_json
         notes: httpx で送信する
     status: implemented
+notes:
+  Wayland のキーの送信のテスト: integrations/keyboard/sender_wayland.py の単体テストのファイルは `tests/unit/voice_paste/integrations/keyboard/test_sender_wayland.py`。evdev は Linux だけの依存のため、Windows では skip する。evdev.UInput を差し替えて write の並びで確かめ、実物の `/dev/uinput` は検証環境の VM での通しの確認で確かめる。

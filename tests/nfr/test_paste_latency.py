@@ -106,7 +106,7 @@ def test_paste_latency(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     import voice_paste.main as main_module
     from voice_paste.main import SETTINGS_MODEL
     from voice_paste.shared.constants import resolve_app_paths
-    from voice_paste.shared.os_kind import CURRENT_OS
+    from voice_paste.shared.os_kind import CURRENT_OS, detect_display_session, unavailable_features
     from voice_paste.shared.settings import TranscriptionSettings
 
     # 準備: 差し替えるもの（マイクの入力・音量・貼り付けのキー）
@@ -137,7 +137,11 @@ def test_paste_latency(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     paths = resolve_app_paths(tmp_path)
     # OS ごとの実装は本物を選び、システム音量だけ何もしないものに差し替えて渡す
     adapters = replace(
-        main_module.select_platform_adapters(CURRENT_OS, lock_file=paths.lock_file),
+        main_module.select_platform_adapters(
+            CURRENT_OS,
+            lock_file=paths.lock_file,
+            display_session=detect_display_session(os.environ),
+        ),
         lower_volume=lambda _ratio, _sec: 1.0,
         restore_volume=lambda _volume, _sec: None,
     )
@@ -149,6 +153,7 @@ def test_paste_latency(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         lambda *_args, **_kwargs: None,
         adapters=adapters,
         environ=os.environ,
+        unavailable=unavailable_features(CURRENT_OS),
     )
     original_clipboard = pyperclip.paste()
     elapsed_list: list[float] = []

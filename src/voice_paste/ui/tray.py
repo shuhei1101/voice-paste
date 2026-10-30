@@ -31,8 +31,9 @@ type FailureEvent = Literal[
     "api_unavailable",
     "engine_unavailable",
     "settings_invalid",
+    "paste_unavailable",
 ]
-"""トレイの通知で知らせる失敗の種類（engine_unavailable・settings_invalid は起動の失敗）。"""
+"""トレイの通知で知らせる失敗の種類（engine_unavailable・settings_invalid・paste_unavailable は起動のときの失敗。paste_unavailable は Linux の Wayland のセッションでキーの送信の機器を開けないとき）。"""
 
 FAILURE_TITLES: dict[str, str] = {
     "microphone_unavailable": "録音を開始できませんでした",
@@ -41,6 +42,7 @@ FAILURE_TITLES: dict[str, str] = {
     "api_unavailable": "API を使用できません",
     "engine_unavailable": "起動できませんでした",
     "settings_invalid": "起動できませんでした",
+    "paste_unavailable": "貼り付けを使用できません",
 }
 """知らせの種類ごとの、通知の見出し。"""
 
@@ -65,6 +67,7 @@ COPY_COMPLETED_BODY: str = "任意の場所に貼り付けてください。こ�
 STARTUP_BODY_FORMATS: dict[str, str] = {
     "engine_unavailable": "文字起こしのエンジンを準備できませんでした（{reason}）。設定を修正して再起動してください。",
     "settings_invalid": "設定ファイルを読み込めませんでした（{reason}）。設定フォルダの settings.toml を修正して再起動してください。",
+    "paste_unavailable": "貼り付けのキーを送信できません（{reason}）。/dev/uinput の権限を設定して PC を再起動してください（使い方「起動と設定」）。「コピーのみ」は使えます。",
 }
 """起動に失敗したときの通知の本文（知らせの種類ごと）。"""
 

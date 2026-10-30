@@ -60,6 +60,24 @@ def test_copy_to_clipboard_when_failed(copy_mock: MagicMock) -> None:
         copy_to_clipboard("テスト")
 
 
+# === use_xclip_clipboard ===
+
+
+def test_use_xclip_clipboard(monkeypatch: pytest.MonkeyPatch) -> None:
+    """クリップボードの書き先を xclip に固定する（正常系）。"""
+    from voice_paste.integrations.keyboard.sender import use_xclip_clipboard
+
+    # 準備
+    set_clipboard = MagicMock()
+    monkeypatch.setattr(pyperclip, "set_clipboard", set_clipboard)
+
+    # 実行
+    use_xclip_clipboard()
+
+    # 検証
+    set_clipboard.assert_called_once_with("xclip")
+
+
 # === split_paste_key ===
 
 

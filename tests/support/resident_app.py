@@ -669,9 +669,13 @@ def _spy_on_main(
     if adapter_overrides:
         real_select_platform_adapters = main_module.select_platform_adapters
 
-        def select_platform_adapters(os_kind: Any, *, lock_file: Path) -> Any:
+        def select_platform_adapters(
+            os_kind: Any, *, lock_file: Path, display_session: Any
+        ) -> Any:
             """本物の PlatformAdapters を選び、差し替える項目だけを替えて返す。"""
-            adapters = real_select_platform_adapters(os_kind, lock_file=lock_file)
+            adapters = real_select_platform_adapters(
+                os_kind, lock_file=lock_file, display_session=display_session
+            )
             return replace(adapters, **adapter_overrides)
 
         monkeypatch.setattr(main_module, "select_platform_adapters", select_platform_adapters)

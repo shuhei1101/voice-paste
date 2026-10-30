@@ -46,6 +46,11 @@ def make_client(*, is_callback_allowed: bool = True) -> tuple[TestClient, MagicM
     return _build_client(is_callback_allowed=is_callback_allowed, web_api=MagicMock())
 
 
+def make_client_without_web() -> tuple[TestClient, MagicMock]:
+    """ブラウザの機能を組み込まない（web_api が None の）app の TestClient（base_url は 127.0.0.1:{PORT}）と、SessionManager の Mock を返す。"""
+    return _build_client(is_callback_allowed=True, web_api=None)
+
+
 def make_web_client(tmp_dir: Path) -> tuple[TestClient, MagicMock, MagicMock]:
     """ブラウザの音声のキューと形式の読み取りを Mock にした app の TestClient と、その 2 つの Mock を返す。
 

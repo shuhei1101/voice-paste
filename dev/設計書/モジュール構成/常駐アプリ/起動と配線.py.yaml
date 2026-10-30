@@ -106,8 +106,8 @@ data_models:
         type: Callable[[], None]
         description: 文字起こしのエンジンを止める（local_whisper は WhisperWorkerClient.stop、openai は何もしない）。終了時に呼ぶ
       - name: web_api
-        type: WebApiDeps
-        description: API サーバーへ渡すブラウザの API の依存（WebJobQueue・probe_audio・一時のフォルダ）。WebJobQueue の開始と終了は main が呼ぶ
+        type: WebApiDeps | None
+        description: API サーバーへ渡すブラウザの API の依存（WebJobQueue・probe_audio・一時のフォルダ）。WebJobQueue の開始と終了は main が呼ぶ。外の端末のブラウザの機能を使えない OS では None
     status: implemented
   - name: CliArgs
     title: 起動の引数
@@ -126,7 +126,7 @@ data_models:
     container: main.py
     usecase: 常駐アプリを起動する
     role: DTO
-    summary: 動いている OS に合わせて選んだ、単一インスタンス・音量・ブラウザ・貼り付けのキーの送信・文字起こしワーカーの起動・再起動の実装
+    summary: 動いている OS とデスクトップのセッションに合わせて選んだ、単一インスタンス・音量・ブラウザ・貼り付けのキーと Enter の送信・ホットキーの受付・Qt のプラットフォーム・文字起こしワーカーの起動・再起動の実装
     description: |-
       select_platform_adapters が作る。OS を見て実装を選ぶのはここだけで、各モジュールは sys.platform を見ない。
       `@dataclass(frozen=True, slots=True, kw_only=True)`。
@@ -135,11 +135,11 @@ data_models:
         type: Callable[[str, float], SingleInstanceLock | LinuxSingleInstanceLock]
         description: 単一インスタンスの確保（名前・待つ上限）
       - name: lower_volume
-        type: LowerVolumeFn
-        description: 録音中に音量を下げる
+        type: LowerVolumeFn | None
+        description: 録音中に音量を下げる（Windows）。Linux は None（build_handlers が OS_UNAVAILABLE_FEATURES の Feature.LOWER_VOLUME を見て、何もしない関数を渡す）
       - name: restore_volume
-        type: RestoreVolumeFn
-        description: 下げた音量を戻す
+        type: RestoreVolumeFn | None
+        description: 下げた音量を戻す（Windows）。Linux は None
       - name: open_app_window
         type: Callable[[str], None]
         description: ブラウザ添付のプリセットの画面を開く
@@ -151,7 +151,25 @@ data_models:
         description: 同じ引数で起動し直す（os_kind を部分適用した relaunch）
       - name: send_paste
         type: Callable[[str], None]
-        description: 貼り付けのキーの送信（設定の keyboard.paste_key を受ける。Windows は send_paste、Linux は send_paste_linux）
+        description: 貼り付けのキーの送信（設定の keyboard.paste_key を受ける。Windows は send_paste、Linux の Xorg のセッションは send_paste_linux、Wayland のセッションは UInputKeyboard.send_paste）
+      - name: send_enter
+        type: SendEnterFn
+        description: Enter の送信（Windows と Linux の Xorg のセッションは send_enter、Wayland のセッションは UInputKeyboard.send_enter）
+      - name: create_hotkey_listener
+        type: Callable[[str, SingleInstanceLock | LinuxSingleInstanceLock], HotkeyListener | GnomeShortcutListener]
+        description: ホットキーの受付を作る（排他の名前・取った排他を受ける。Windows と Linux の Xorg のセッションは引数を使わず HotkeyListener()、Wayland のセッションは GnomeShortcutListener）
+      - name: qt_platform
+        type: str | None
+        description: Qt のプラットフォーム（main が QT_QPA_PLATFORM に入れる）。Wayland のセッションは `xcb`（XWayland）、ほかは None（Qt に任せる）
+      - name: open_key_sender
+        type: Callable[[], None]
+        description: キーの送信の機器を開く（Wayland のセッションは UInputKeyboard.open。開けなければ DeliveryError を送出する）。ほかは何もしない関数
+      - name: close_key_sender
+        type: Callable[[], None]
+        description: キーの送信の機器を閉じる（Wayland のセッションは UInputKeyboard.close）。ほかは何もしない関数
+      - name: validate_hotkeys
+        type: Callable[[Iterable[str]], None]
+        description: 設定の保存の前に、ホットキーを動いているセッションの受付で受け付けられるかを確かめる（Windows と Linux の Xorg のセッションは validate_hotkeys、Wayland のセッションは validate_gnome_hotkeys）
     status: planned
 functions:
   - name: build_handlers
@@ -198,6 +216,11 @@ functions:
         required: true
         passing: keyword
         description: 環境変数（main が os.environ を渡す。OpenAI の API キーを読むのに使う）
+      - name: unavailable
+        type: frozenset[Feature]
+        required: true
+        passing: keyword
+        description: OS で使えない機能（main が unavailable_features(CURRENT_OS) を渡す）
     returns:
       type: Handlers
       description: 配線済みの関数の束
@@ -208,17 +231,17 @@ functions:
            - EngineError の場合、StartupError を送出する
          - openai の場合、read_openai_api_key（paths.openai_api_key_file・environ）で読んだ API キーと設定の transcription.openai で OpenAITranscriber を作る（文字起こしワーカーは起動しない）。engine はその transcribe、stop_engine は何もしない関数（StartupError はそのまま送出する）
       3. 連続録音の話し声の判定に使う VAD のセッションを 1 回だけ読む（load_vad_session。StartupError はそのまま送出する）
-      4. Recorder に adapters の lower_volume・restore_volume と、SettingsStore から録音の設定を返す関数と、VAD のセッションを部分適用した StreamingVad（話し声の判定を作る）を渡す
-      5. 出力先の deliver に、配線した OUTPUTS（_wire_outputs）・配線した PRESET_KINDS（_wire_preset_kinds。open_window に adapters.open_app_window、send_paste に adapters.send_paste）と、届けるたびに SettingsStore からオンの出力先の ID を引く関数を部分適用し、Session を入口・出力先の ID・選んだプリセット・返送先に分けて渡すアダプタを作る
-         - 出力先には OutputDeps（copy_to_clipboard・設定の keyboard.paste_key で adapters.send_paste を呼ぶ関数・send_enter・time.sleep・random.uniform(0, x)・post_json・SettingsStore.get・notify_copied）を渡し、各出力先の inject が選ぶ
-         - ブラウザ添付（種類）: copy_to_clipboard・adapters.open_app_window・adapters.send_paste を呼ぶ関数・send_enter・time.sleep・設定の preset_options.browser.open_delay_sec を返す関数・貼り付けて送信の enter_delay_sec を返す関数（read_enter_delay_sec）
+      4. Recorder に音量の関数（unavailable に Feature.LOWER_VOLUME があれば integrations/volume/noop.py の lower_volume_noop・restore_volume_noop、無ければ adapters の lower_volume・restore_volume）と、SettingsStore から録音の設定を返す関数と、VAD のセッションを部分適用した StreamingVad（話し声の判定を作る）を渡す
+      5. 出力先の deliver に、配線した OUTPUTS（_wire_outputs）・配線した PRESET_KINDS（_wire_preset_kinds。open_window に adapters.open_app_window、send_paste に adapters.send_paste、send_enter_fn に adapters.send_enter）と、届けるたびに SettingsStore からオンの出力先の ID を引く関数を部分適用し、Session を入口・出力先の ID・選んだプリセット・返送先に分けて渡すアダプタを作る
+         - 出力先には OutputDeps（copy_to_clipboard・設定の keyboard.paste_key で adapters.send_paste を呼ぶ関数・adapters.send_enter・time.sleep・random.uniform(0, x)・post_json・SettingsStore.get・notify_copied）を渡し、各出力先の inject が選ぶ
+         - ブラウザ添付（種類）: copy_to_clipboard・adapters.open_app_window・adapters.send_paste を呼ぶ関数・adapters.send_enter・time.sleep・設定の preset_options.browser.open_delay_sec を返す関数・貼り付けて送信の enter_delay_sec を返す関数（read_enter_delay_sec）
          - エンドポイントへ送信（種類）: post_json・設定の preset_options.endpoint.timeout_sec を返す関数
       6. 文字起こしのたびに、SettingsStore の設定の edge_phrases で文頭・文末の文言を消してから（strip_edge_phrases）用語集を読み直して置き換える correct（起こした文字と用語集のプリセットの名前か None を受ける）を作る。そのたびに、SettingsStore の設定と settings.toml のフォルダから pick_glossary_preset（requested に受けた名前）でプリセットを引き、list_preset_glossaries（用語集の一覧は resolve_glossaries）の順に load_glossary した行を 1 本の並びにつないで apply_glossary を当てる（読めない CSV は load_glossary が空を返すので飛ばされる。使う用語集が無ければ置き換えない）
          - `[INFO]` 用語集で補正する（用語集のプリセットの名前・用語集ごとの名前と補正に使う行数）
       7. SessionDeps を組み（report_progress、起動時の設定の api.continuous.min_silence_sec を部分適用した Recorder.start_continuous、Recorder.stop_continuous を含む）、API のセッションの上限時間と、起動時の設定の api.continuous.session_limit_sec の連続録音の上限時間と共に SessionManager を作る（api.continuous.* は再起動で効く）
       8. SessionManager と、設定の許可ホストを部分適用した is_callback_allowed と、SettingsStore の設定と settings.toml のフォルダで resolve_glossary_presets した一覧にその名前があるかを返す glossary_preset_exists を SessionApiDeps に束ねる
       9. start_local_session に SessionManager と notify を部分適用する
-      10. ブラウザの文字起こしを配線する。WebTranscriptionDeps に、履歴を残すかをそのたびに SettingsStore.get から引いて渡す store_web_audio、7 と同じ transcribe、6 の correct（ジョブの用語集のプリセットの名前を受ける）・append_text・discard_temporary を部分適用して渡し、WebJobQueue を作る。WebJobQueue・probe_audio・`{tmp_dir}/web`・8 と同じ glossary_preset_exists・そのたびに SettingsStore の設定と settings.toml のフォルダで resolve_glossary_presets した名前の一覧と pick_glossary_preset（requested なし）の名前を GlossaryPresetChoices で返す list_glossary_preset_choices を WebApiDeps に束ねる（ワーカースレッドはまだ立てない）
+      10. unavailable に Feature.WEB_TRANSCRIPTION があれば、ブラウザの文字起こしを配線せず web_api を None にする。無ければブラウザの文字起こしを配線する。WebTranscriptionDeps に、履歴を残すかをそのたびに SettingsStore.get から引いて渡す store_web_audio、7 と同じ transcribe、6 の correct（ジョブの用語集のプリセットの名前を受ける）・append_text・discard_temporary を部分適用して渡し、WebJobQueue を作る。WebJobQueue・probe_audio・`{tmp_dir}/web`・8 と同じ glossary_preset_exists・そのたびに SettingsStore の設定と settings.toml のフォルダで resolve_glossary_presets した名前の一覧と pick_glossary_preset（requested なし）の名前を GlossaryPresetChoices で返す list_glossary_preset_choices を WebApiDeps に束ねる（ワーカースレッドはまだ立てない）
     exceptions:
       - name: StartupError
         condition: 文字起こしのエンジンを準備できない（ローカルの Whisper の依存が無い・ワーカーが立たない・OpenAI の API キーが無い・VAD を読めない）
@@ -236,28 +259,31 @@ functions:
     process: |-
       1. 起動の引数を読む（parse_args。argv が None なら sys.argv[1:]）
       2. 置き場所を決め、ログを INFO で設定する（resolve_app_paths・setup_logging）
-      3. OS に合った実装を選び（select_platform_adapters(CURRENT_OS, lock_file=paths.lock_file)）、置き場所ごとの名前で単一インスタンスを確保する（instance_name・PlatformAdapters.acquire_single_instance(SINGLE_INSTANCE_TIMEOUT_SEC)）
+      3. デスクトップのセッションを判定して OS に合った実装を選び（select_platform_adapters(CURRENT_OS, lock_file=paths.lock_file, display_session=detect_display_session(os.environ))）、OS で使えない機能を引き（unavailable_features(CURRENT_OS)）、置き場所ごとの名前で単一インスタンスを確保する（instance_name・PlatformAdapters.acquire_single_instance(SINGLE_INSTANCE_TIMEOUT_SEC)）
          - StartupError の場合、1 を返す（トレイを出す前のため、ログにだけ残す）
            - `[ERROR]` 起動に失敗した（理由）
-      4. QApplication（最後の窓を閉じても終わらない）・UiBridge・Tray を作り、apply_theme(app, "system", image_dir=paths.ui_image_dir) で画面の明暗を当ててトレイに準備中を出す。WAKE_INTERVAL_MS ごとの空の QTimer を置き、SIGINT・SIGBREAK で QApplication.quit を呼ぶ。後から起動したプロセスに終わるよう頼まれたら、QApplication.quit をメインスレッドで呼ぶ（SingleInstanceLock.on_quit_requested に、QMetaObject.invokeMethod で QApplication.quit をキューに入れる関数を渡す）
+      4. PlatformAdapters.qt_platform が None でなく、環境変数に QT_QPA_PLATFORM が無ければ、QT_QPA_PLATFORM にその値を入れる（Wayland のセッションの xcb）。QApplication（最後の窓を閉じても終わらない）・UiBridge・Tray を作り、apply_theme(app, "system", image_dir=paths.ui_image_dir) で画面の明暗を当ててトレイに準備中を出す。WAKE_INTERVAL_MS ごとの空の QTimer を置き、SIGINT・SIGBREAK・SIGTERM で QApplication.quit を呼ぶ（SIGTERM はログアウト・systemctl stop で届き、12 の片付けを通す）。後から起動したプロセスに終わるよう頼まれたら、QApplication.quit をメインスレッドで呼ぶ（SingleInstanceLock.on_quit_requested に、QMetaObject.invokeMethod で QApplication.quit をキューに入れる関数を渡す）
       5. 設定を読む（load_settings(settings_file, SETTINGS_MODEL)）
          - SettingsError の場合、トレイを失敗にして設定を読めないことを通知し（Tray.show_failure(settings_invalid, 理由)）、「録音を開始」「設定…」を押せないまま 11 へ（フォルダを開いて settings.toml を直し、再起動できる）
            - `[ERROR]` 起動に失敗した（理由）
       6. 設定の ui.theme で画面の明暗を当て直し（apply_theme。image_dir は paths.ui_image_dir）、QStyleHints.colorSchemeChanged に、SettingsStore.get の ui.theme で apply_theme を呼ぶ関数をつなぐ（OS の明暗が変わったときに当て直す）。ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を消す（purge_old_files。処理中のセッションは無いため、一時の音声も全て消す対象にする）
          - `[INFO]` 設定を読んだ（設定ファイルのパス・エンジン・オンの出力先の ID）
-      7. 配線する（build_handlers。notify・report_progress・notify_copied は UiBridge を部分適用した ui のもの、adapters は 3 で選んだ PlatformAdapters、environ は os.environ）
+      7. 配線する（build_handlers。notify・report_progress・notify_copied は UiBridge を部分適用した ui のもの、adapters は 3 で選んだ PlatformAdapters、environ は os.environ、unavailable は 3 で引いた使えない機能）
          - StartupError の場合、トレイを失敗にして起動の失敗を通知し（Tray.show_failure(engine_unavailable, 理由)）、「設定…」だけを押せるまま 11 へ（設定画面は読んだ設定で開き、保存は settings.toml へ書くだけにする。Handlers が無いため、UiDeps のうち録音・ホットキーの関数（start・pause・resume・complete・cancel・current_session・level・suspend_hotkeys・resume_hotkeys）は何もしない関数にし、設定画面を閉じてもホットキーの受付を始めない）
            - `[ERROR]` 起動に失敗した（理由）
-      8. UiController を作り（build_ui_deps）、UiBridge の知らせの受け手につなぐ（notified → on_notified・progressed → on_progressed・copied → on_copied。9 で待ち受けを始められない知らせを取りこぼさないよう、API より先に作る）
-      9. ブラウザの音声のキューを始め（WebJobQueue.start(`{tmp_dir}/web`)）、トークンを作り、API サーバーを起動する（create_token・build_fastapi（web_api と設定の api.allowed_web_origins を渡す）・ApiServerRunner.start(API_START_TIMEOUT_SEC)）
+      8. ホットキーの受付を作り（PlatformAdapters.create_hotkey_listener(排他の名前, 3 で取った排他)）、UiController を作り（build_ui_deps）、UiBridge の知らせの受け手につなぐ（notified → on_notified・progressed → on_progressed・copied → on_copied。9 で待ち受けを始められない知らせを取りこぼさないよう、API より先に作る）
+      9. Handlers.web_api が None でなければブラウザの音声のキューを始め（WebJobQueue.start(`{tmp_dir}/web`)）、トークンを作り、API サーバーを起動する（create_token・build_fastapi（Handlers.web_api と設定の api.allowed_web_origins を渡す。web_api が None なら `/web/` の下のルートを持たない）・ApiServerRunner.start(API_START_TIMEOUT_SEC)）
          - True の場合だけ、トークンのファイルを書く（write_token_file）
          - False の場合、トークンのファイルを書かずに api_unavailable を知らせて続ける（ホットキーとトレイからの録音は使える）。理由は「ポート {ポート} で待ち受けを始められません」の 1 文にする
-      10. ホットキーの受付を始め（HotkeyListener.start(build_hotkey_bindings(設定))）、上限の打ち切りを RepeatingTimer で SESSION_LIMIT_CHECK_INTERVAL_SEC ごとに呼ぶ（SessionManager.truncate_if_expired）。古いログと履歴の削除を RepeatingTimer で PURGE_INTERVAL_SEC ごとに呼ぶ（purge_old_files。設定は呼ぶたびに SettingsStore.get から引き、設定画面で変えた保持期間・履歴を残すかを次の回から効かせる。処理中のセッションの ID は SessionManager.current から引く）。トレイを待機中にする
+      10. ホットキーの受付を始め（8 で作った受付の start(build_hotkey_bindings(設定))。Wayland のセッションでは GNOME のカスタムショートカットへ登録する）、上限の打ち切りを RepeatingTimer で SESSION_LIMIT_CHECK_INTERVAL_SEC ごとに呼ぶ（SessionManager.truncate_if_expired）。古いログと履歴の削除を RepeatingTimer で PURGE_INTERVAL_SEC ごとに呼ぶ（purge_old_files。設定は呼ぶたびに SettingsStore.get から引き、設定画面で変えた保持期間・履歴を残すかを次の回から効かせる。処理中のセッションの ID は SessionManager.current から引く）。トレイを待機中にする
          - HotkeyError の場合、ホットキーを受け付けずに続ける（トレイから録音でき、設定画面で直せる）
            - `[ERROR]` ホットキーを受け付けられなかった（理由）
+         - キーの送信の機器を開く（PlatformAdapters.open_key_sender）
+           - DeliveryError の場合、トレイで貼り付けを使えないことを知らせて続ける（Tray.show_failure(paste_unavailable, 理由)。「コピーのみ」は使える）
+             - `[ERROR]` キーの送信の機器を開けなかった（理由）
          - `[INFO]` 常駐サービスを始めた（API のポート）
       11. イベントループを回す（exec_loop）
-      12. 抜けたら、新しい開始が来ないように入口とタイマー（ホットキー・API サーバー・2 つのタイマー）を先に止め、録音を捨て（SessionManager.close）、ブラウザの音声のキューを閉じ（WebJobQueue.close。待ちの一時のファイルを消す）、エンジンを止め、トレイを消す（8 までで立てたものだけ）。最後に単一インスタンスの排他を放す（SingleInstanceLock.release）
+      12. 抜けたら、新しい開始が来ないように入口とタイマー（ホットキー・API サーバー・2 つのタイマー）を先に止め、録音を捨て（SessionManager.close）、ブラウザの音声のキューを始めていれば閉じ（WebJobQueue.close。待ちの一時のファイルを消す）、エンジンを止め、キーの送信の機器を閉じ（PlatformAdapters.close_key_sender）、トレイを消す（8 までで立てたものだけ）。最後に単一インスタンスの排他を放す（SingleInstanceLock.release）
           - `[INFO]` 常駐サービスを終えた
       13. 再起動を頼まれていれば、同じ引数で起動し直す（PlatformAdapters.relaunch。排他を放した後に呼ぶため、次のプロセスは待たずに排他を取れる）
       14. 0 を返す
@@ -327,6 +353,31 @@ functions:
         condition: --data-dir に空の一時フォルダ。exec_loop の中で、on_quit_requested に渡された関数を別のスレッドから呼び、イベントを処理してから抜ける
         mock: acquire_single_instance（SingleInstanceLock の代わりを返す）・build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray
         expected: 0。QApplication.quit がメインスレッドで呼ばれ、stop_engine・Tray.hide の後に SingleInstanceLock.release が 1 回呼ばれ、relaunch が呼ばれない
+      - name: test_main_when_sigterm
+        case: 正常
+        summary: SIGTERM を受けたら片付けて排他を放す
+        condition: Linux（Windows では skip）。--data-dir に空の一時フォルダ。exec_loop の中で自分のプロセスへ SIGTERM を送り、イベントを処理してから抜ける
+        mock: build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray
+        expected: 0。QApplication.quit が呼ばれ、HotkeyListener.stop・Tray.hide が 1 回ずつ呼ばれ、単一インスタンスの排他が放される（同じ data_dir でもう一度取れる）
+      - name: test_main_when_key_sender_unavailable
+        case: 異常
+        summary: キーの送信の機器を開けなければトレイで知らせて続ける
+        condition: --data-dir に空の一時フォルダ。select_platform_adapters の戻り値の open_key_sender が DeliveryError("Permission denied") を送出する。exec_loop はすぐ 0 を返す
+        mock: select_platform_adapters・build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray
+        expected: 0。Tray.show_failure に paste_unavailable と「Permission denied」が渡り、HotkeyListener.start が呼ばれ、トレイが待機中になり、close_key_sender が片付けで 1 回呼ばれる
+        exception: キーの送信の機器を開けない
+      - name: test_main_when_web_transcription_unavailable
+        case: 正常
+        summary: 外の端末のブラウザの機能を使えない OS ではキューを始めず、/web/ のルートを持たない
+        condition: --data-dir に空の一時フォルダ。unavailable_features が frozenset({Feature.WEB_TRANSCRIPTION}) を返す。exec_loop はすぐ 0 を返す
+        mock: unavailable_features・build_handlers（web_api が None の Handlers を返す）・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray
+        expected: 0。build_handlers の unavailable に Feature.WEB_TRANSCRIPTION が渡り、build_fastapi の web_api が None で、WebJobQueue.start・WebJobQueue.close が呼ばれない
+      - name: test_main_when_qt_platform
+        case: 正常
+        summary: Wayland のセッションでは Qt のプラットフォームを xcb にする
+        condition: --data-dir に空の一時フォルダ。環境変数 QT_QPA_PLATFORM を消し、select_platform_adapters の戻り値の qt_platform が "xcb"。QApplication の生成を差し替え、exec_loop はすぐ 0 を返す
+        mock: select_platform_adapters・QApplication・build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray
+        expected: QApplication を作る時点で環境変数 QT_QPA_PLATFORM が "xcb"。あらかじめ QT_QPA_PLATFORM=offscreen を入れたときは offscreen のまま
   - name: acquire_single_instance
     title: 単一インスタンスの確保
     kind: 関数
@@ -660,7 +711,7 @@ functions:
         type: Callable[[Iterable[str]], None]
         required: true
         passing: injected
-        description: ホットキーを受け付けられるかの確かめ（validate_hotkeys）
+        description: ホットキーを動いているセッションの受付で受け付けられるかの確かめ（PlatformAdapters.validate_hotkeys）
       - name: glossary_rows
         type: Mapping[Path, Sequence[GlossaryEntry]]
         required: true
@@ -744,7 +795,7 @@ functions:
         type: Callable[[Settings, Mapping[Path, Sequence[GlossaryEntry]]], bool]
         required: true
         passing: positional
-        description: apply_settings を部分適用したもの
+        description: apply_settings を部分適用したもの（check_hotkeys に PlatformAdapters.validate_hotkeys）
       - name: request_restart
         type: Callable[[], None]
         required: true
@@ -756,10 +807,10 @@ functions:
         passing: positional
         description: QApplication.quit
       - name: hotkey_listener
-        type: HotkeyListener
+        type: HotkeyListener | GnomeShortcutListener
         required: true
         passing: positional
-        description: ホットキーの受付（設定画面の間は止める）
+        description: ホットキーの受付（PlatformAdapters.create_hotkey_listener で作ったもの。設定画面の間は止める）
       - name: show_recording_window
         type: Callable[[], None]
         required: true
@@ -775,13 +826,13 @@ functions:
       description: 画面の依存
     process: |-
       1. start に start_local_session(tray)、pause・resume・cancel・current_session・switch_output に SessionManager のメソッド、complete に output_id・preset で SessionManager.complete を呼ぶ関数、level に recorder_level、get_settings に SettingsStore.get を渡す（エンジンを準備できなかった起動の UiDeps の switch_output は、ほかの録音の関数と同じく何もしない関数）
-      2. suspend_hotkeys に HotkeyListener.stop、resume_hotkeys に SettingsStore.get の設定と show_recording_window で build_hotkey_bindings して HotkeyListener.start を呼ぶ関数を渡す
+      2. suspend_hotkeys に hotkey_listener.stop、resume_hotkeys に SettingsStore.get の設定と show_recording_window で build_hotkey_bindings して hotkey_listener.start を呼ぶ関数を渡す（Wayland のセッションの GnomeShortcutListener では、設定画面を開いている間はカスタムショートカットの登録を外す）
       3. settings_dir に settings.toml のフォルダ、log_dir にログのフォルダを渡す
       4. output_titles に、OUTPUTS のうち api_only でない出力先の ID → title を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
       5. apply_theme に引数の apply_theme を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
       6. list_glossaries に SettingsStore.get の設定と settings.toml のフォルダで resolve_glossaries を呼ぶ関数、list_glossary_presets に同じ設定とフォルダで resolve_glossary_presets を呼ぶ関数、read_glossary に read_glossary_rows、new_glossary_path に settings.toml のフォルダの `glossaries` を部分適用した next_glossary_path を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
       7. copy に copy_to_clipboard を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
-      8. hidden_setting_keys に OS_HIDDEN_SETTING_KEYS の CURRENT_OS の集合（無ければ空）を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
+      8. hidden_setting_keys に hidden_setting_keys(unavailable_features(CURRENT_OS)) を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
       9. reports_progress に、このときの SettingsStore.get の transcription.engine が local_whisper かを渡す（起動で配線したエンジンと同じ設定から 1 回だけ求める。エンジンを準備できなかった起動の UiDeps も同じ）
     status: implemented
   - name: relaunch
@@ -935,6 +986,12 @@ functions:
         required: true
         passing: keyword
         description: 貼り付けのキーの送信（PlatformAdapters.send_paste）
+      - name: send_enter_fn
+        type: SendEnterFn | None
+        required: false
+        default: None
+        passing: keyword
+        description: ブラウザ添付が Enter を送信する関数（PlatformAdapters.send_enter）。None なら sender.py の send_enter を使う
     returns:
       type: tuple[PresetKindSpec, ...]
       description: handler を配線した種類の一覧（PRESET_KINDS と同じ並び）
@@ -968,7 +1025,7 @@ functions:
     container: main.py
     usecase: 常駐アプリを起動する
     role: composition root
-    summary: OS に合った実装を PlatformAdapters に束ねる。その OS だけのモジュールは、選んだ分岐の中で import する
+    summary: OS とデスクトップのセッションに合った実装を PlatformAdapters に束ねる。その OS・セッションだけのモジュールは、選んだ分岐の中で import する
     scope: public
     args:
       - name: os_kind
@@ -981,26 +1038,39 @@ functions:
         required: true
         passing: keyword
         description: Linux のロックファイル（main は AppPaths.lock_file を渡す。Windows では使わない）
+      - name: display_session
+        type: DisplaySession
+        required: true
+        passing: keyword
+        description: Linux のデスクトップのセッション（main は detect_display_session(os.environ) を渡す。Windows では使わない）
     returns:
       type: PlatformAdapters
       description: OS ごとの実装
     process: |-
       1. os_kind で分ける
-         - OsKind.WINDOWS の場合、integrations/volume/adapter.py（comtypes・pycaw を読み込む）をここで import し、acquire_single_instance・lower_volume・restore_volume・open_app_window・send_paste・CREATE_NO_WINDOW・relaunch(os_kind=WINDOWS) を束ねる
-         - OsKind.LINUX の場合、runtime/single_instance_linux.py（fcntl を読み込む）と integrations/keyboard/sender_linux.py（python-xlib を読み込む）をここで import し、acquire_single_instance_linux（functools.partial で lock_file を部分適用）・lower_volume_noop・restore_volume_noop・open_app_window_linux・send_paste_linux・0・relaunch(os_kind=LINUX) を束ねる
+         - OsKind.WINDOWS の場合、integrations/volume/adapter.py（comtypes・pycaw を読み込む）をここで import し、acquire_single_instance・lower_volume・restore_volume・open_app_window・send_paste・send_enter・HotkeyListener() を返す関数・validate_hotkeys・qt_platform None・何もしない open_key_sender と close_key_sender・CREATE_NO_WINDOW・relaunch(os_kind=WINDOWS) を束ねる
+         - OsKind.LINUX の場合、runtime/single_instance_linux.py（fcntl を読み込む）をここで import し、acquire_single_instance_linux（functools.partial で lock_file を部分適用）・lower_volume と restore_volume に None・open_app_window_linux・0・relaunch(os_kind=LINUX) に、display_session で分けた実装を足して束ねる
+           - DisplaySession.X11 の場合、integrations/keyboard/sender_linux.py（python-xlib を読み込む）をここで import し、send_paste_linux・send_enter・HotkeyListener() を返す関数・validate_hotkeys・qt_platform None・何もしない open_key_sender と close_key_sender
+           - DisplaySession.WAYLAND の場合、integrations/keyboard/sender_wayland.py（python-evdev を読み込む）と runtime/hotkey_gnome.py をここで import する。pyperclip の書き先を xclip にし（use_xclip_clipboard）、まだ開かない UInputKeyboard を 1 つ作って、その send_paste・send_enter・open・close と、GnomeShortcutListener(name, lock) を返す関数・validate_gnome_hotkeys・qt_platform `xcb` を束ねる
     unit_tests:
       - name: test_select_platform_adapters_when_windows
         case: 正常
         summary: Windows は pycaw の音量・Edge・Win32 の排他を選ぶ
         condition: os_kind=OsKind.WINDOWS（Linux では skip）
         mock: なし
-        expected: lower_volume が integrations/volume/adapter.py の lower_volume、open_app_window が opener.py の open_app_window、acquire_single_instance が single_instance.py の acquire_single_instance、send_paste が sender.py の send_paste、worker_creationflags が CREATE_NO_WINDOW
+        expected: lower_volume が integrations/volume/adapter.py の lower_volume、open_app_window が opener.py の open_app_window、acquire_single_instance が single_instance.py の acquire_single_instance、send_paste が sender.py の send_paste、worker_creationflags が CREATE_NO_WINDOW、send_enter が sender.py の send_enter、create_hotkey_listener が HotkeyListener を返し、qt_platform が None
       - name: test_select_platform_adapters_when_linux
         case: 正常
-        summary: Linux は何もしない音量・Chromium 系・flock の排他を選ぶ
-        condition: os_kind=OsKind.LINUX（Windows では skip）
+        summary: Linux の Xorg のセッションは何もしない音量・Chromium 系・flock の排他・XTEST の貼り付けを選ぶ
+        condition: os_kind=OsKind.LINUX・display_session=DisplaySession.X11（Windows では skip）
         mock: なし
-        expected: lower_volume が lower_volume_noop、restore_volume が restore_volume_noop、open_app_window が open_app_window_linux、send_paste が send_paste_linux、acquire_single_instance が lock_file を部分適用した acquire_single_instance_linux（func と keywords で確かめる）、worker_creationflags が 0。voice_paste.integrations.volume.adapter が sys.modules に無い
+        expected: lower_volume と restore_volume が None、validate_hotkeys が hotkey.py の validate_hotkeys、open_app_window が open_app_window_linux、send_paste が send_paste_linux、acquire_single_instance が lock_file を部分適用した acquire_single_instance_linux（func と keywords で確かめる）、worker_creationflags が 0。voice_paste.integrations.volume.adapter が sys.modules に無い。send_enter が sender.py の send_enter、create_hotkey_listener が HotkeyListener を返し、qt_platform が None。voice_paste.integrations.keyboard.sender_wayland が sys.modules に無い
+      - name: test_select_platform_adapters_when_wayland
+        case: 正常
+        summary: Wayland のセッションは uinput のキーの送信・GNOME のショートカット・xcb を選ぶ
+        condition: os_kind=OsKind.LINUX・display_session=DisplaySession.WAYLAND（Windows では skip）
+        mock: pyperclip.set_clipboard・evdev.UInput
+        expected: send_paste・send_enter・open_key_sender・close_key_sender が同じ UInputKeyboard のメソッドで、UInput が作られていない（open の前）。create_hotkey_listener(名前, 排他) が GnomeShortcutListener を返し、qt_platform が "xcb"、validate_hotkeys が validate_gnome_hotkeys、pyperclip.set_clipboard に "xclip" が 1 回渡る。voice_paste.integrations.keyboard.sender_linux が sys.modules に無い
     status: planned
   - name: acquire_single_instance_linux
     title: Linux の単一インスタンスの確保
@@ -1125,6 +1195,7 @@ notes:
     出力先を追加するときは `features/outputs/` にサブフォルダを追加するだけで契約の対象に入り、契約は直さない。
   OS ごとの実装: |-
     OS で分かれる実装は、Windows と Linux で別のファイルに置き、select_platform_adapters だけが CURRENT_OS で選んで import する（Windows 専用のライブラリ・ctypes の Win32 を Linux で import しない）。
+    Linux のうちデスクトップのセッションで分かれる実装は、select_platform_adapters が DisplaySession でさらに選ぶ。
 
     | 対象 | Windows | Linux |
     | --- | --- | --- |
@@ -1133,8 +1204,13 @@ notes:
     | ブラウザ添付のアプリのウィンドウ | integrations/browser/opener.py（Microsoft Edge の `--app`） | integrations/browser/opener_linux.py（Chromium 系の `--app`。無ければ既定のブラウザ） |
     | 文字起こしワーカーの起動 | CREATE_NO_WINDOW | 0 |
     | 再起動 | DETACHED_PROCESS・CREATE_NEW_PROCESS_GROUP | start_new_session |
+    | ホットキーの受付 | runtime/hotkey.py（pynput） | Xorg: Windows と同じ。Wayland: runtime/hotkey_gnome.py（GNOME のカスタムショートカット） |
+    | 貼り付けのキー | integrations/keyboard/sender.py（pynput） | Xorg: integrations/keyboard/sender_linux.py（XTEST）。Wayland: integrations/keyboard/sender_wayland.py（uinput） |
+    | Enter | integrations/keyboard/sender.py（pynput） | Xorg: Windows と同じ。Wayland: integrations/keyboard/sender_wayland.py（uinput） |
+    | クリップボード | pyperclip（Windows の API） | Xorg: pyperclip（xclip）。Wayland: pyperclip の書き先を xclip に指定（XWayland） |
+    | Qt のプラットフォーム | Qt に任せる | Xorg: Qt に任せる。Wayland: xcb（XWayland） |
 
-    OS に固有の実装の単体テストは、テストファイルの先頭の `pytestmark = pytest.mark.skipif(...)` で、対象でない OS では飛ばす（Windows 専用: 単一インスタンス・音量のアダプタ。Linux 専用: single_instance_linux.py）。
+    OS に固有の実装の単体テストは、テストファイルの先頭の `pytestmark = pytest.mark.skipif(...)` で、対象でない OS では飛ばす（Windows 専用: 単一インスタンス・音量のアダプタ。Linux 専用: single_instance_linux.py・sender_linux.py・sender_wayland.py・hotkey_gnome.py・send_hotkey.py）。
 classes:
   - name: RepeatingTimer
     title: 定期の呼び出し
@@ -1347,8 +1423,9 @@ classes:
     summary: 取ったロックファイルと、終了の依頼を待つソケットとスレッドを持つ。SingleInstanceLock と同じメソッドを持ち、main はどちらも同じように扱う
     description: |-
       終了の依頼のソケット（抽象名前空間の `\0{名前}-quit`）と停止のソケットの対（socket.socketpair）を専用のデーモンスレッドが select で待ち、QUIT_REQUEST を受けたら on_quit_requested で渡された関数を 1 回呼んでスレッドを終える（呼ぶのはそのスレッド）。
-      QUIT_REQUEST 以外を受けた接続は閉じて待ち続ける。
-      抽象名前空間のソケットにはファイルの権限が効かないため、接続を受けたら _peer_uid（SO_PEERCRED）で相手の uid を読み、os.getuid() と違う接続は QUIT_REQUEST を読まずに閉じて待ち続ける（ほかのユーザーが常駐サービスを終わらせられない）。
+      受けたバイト列（MAX_REQUEST_BYTES まで）が HOTKEY_REQUEST_PREFIX で始まれば、続きを押されたホットキーとして on_hotkey で渡された関数に渡し、待ち続ける（Wayland のセッションの GNOME のカスタムショートカットが流す send_hotkey が送信する）。
+      QUIT_REQUEST・ホットキー以外を受けた接続は閉じて待ち続ける。
+      抽象名前空間のソケットにはファイルの権限が効かないため、接続を受けたら _peer_uid（SO_PEERCRED）で相手の uid を読み、os.getuid() と違う接続は読まずに閉じて待ち続ける（ほかのユーザーが常駐サービスを終わらせられず、ホットキーを押した体にできない）。
       プロセスが片付けずに落ちても、OS がロックとソケットを放すため、次の起動はそのまま取れる。
     kind: クラス
     properties:
@@ -1376,6 +1453,10 @@ classes:
         type: threading.Thread
         access: 内部 (_)
         description: 終了の依頼を待つスレッド
+      - name: _on_hotkey
+        type: Callable[[str], None] | None
+        access: 内部 (_)
+        description: 押されたホットキーを受けたときに呼ぶ関数。on_hotkey の前は None（その間に受けたホットキーは捨てる）
     methods:
       - name: on_quit_requested
         title: 終了の依頼の受け手の登録
@@ -1440,6 +1521,41 @@ classes:
             condition: 取ってから release を 2 回呼ぶ
             mock: 受け手
             expected: 同じ名前で timeout_sec=0.1 で取れ、受け手が呼ばれていない
+      - name: on_hotkey
+        title: ホットキーの受け手の登録
+        kind: メソッド
+        summary: 押されたホットキーを受けたときに呼ぶ関数を渡す（呼ぶのは待つスレッド）
+        scope: public
+        thread_safe: true
+        args:
+          - name: callback
+            type: Callable[[str], None]
+            required: true
+            passing: positional
+            description: 押されたホットキー（pynput の書式）を受ける関数
+        returns:
+          type: None
+          description: なし
+        process: 1. 受け手を覚える（前に渡した受け手は置き換える）
+        unit_tests:
+          - name: test_on_hotkey
+            case: 正常
+            summary: ホットキーを受けたら受け手に渡し、待ち続ける
+            condition: 受け手を渡し、同じ名前のソケットへ `hotkey:<cmd>+<alt>+d` を 2 回送信してから QUIT_REQUEST を送信する
+            mock: ホットキーの受け手・終了の受け手
+            expected: ホットキーの受け手が "<cmd>+<alt>+d" で 2 回呼ばれ、その後に終了の受け手が 1 回呼ばれる
+          - name: test_on_hotkey_when_other_user
+            case: 正常
+            summary: ほかのユーザーからのホットキーは渡さない
+            condition: 受け手を渡し、_peer_uid が os.getuid() + 1 を返す状態で `hotkey:<cmd>+<alt>+d` を送信する
+            mock: ホットキーの受け手・_peer_uid（monkeypatch）
+            expected: ホットキーの受け手が呼ばれない
+          - name: test_on_hotkey_when_not_registered
+            case: 正常
+            summary: 受け手を渡す前のホットキーは捨てて待ち続ける
+            condition: 受け手を渡さずに `hotkey:<cmd>+<alt>+d` を送信し、続けて QUIT_REQUEST を送信する
+            mock: 終了の受け手
+            expected: 例外が出ず、終了の受け手が 1 回呼ばれる
     status: planned
 constants:
   - name: API_START_TIMEOUT_SEC
@@ -1539,6 +1655,20 @@ constants:
     usecase: トレイから操作する
     summary: Windows で relaunch が渡す subprocess.CREATE_NEW_PROCESS_GROUP の値。DETACHED_PROCESS と同じ理由で定数で持つ
     value: '0x00000200'
+    status: planned
+  - name: HOTKEY_REQUEST_PREFIX
+    title: ホットキーの送信内容の頭
+    container: runtime/single_instance_linux.py
+    usecase: 録音する
+    summary: send_hotkey が終了の依頼のソケットへ、押されたホットキーの前に付けて送信するバイト列
+    value: b"hotkey:"
+    status: planned
+  - name: MAX_REQUEST_BYTES
+    title: 1 つの接続から読む上限
+    container: runtime/single_instance_linux.py
+    usecase: 常駐アプリを起動する
+    summary: 終了の依頼のソケットで 1 つの接続から読むバイト数の上限（`hotkey:` と設定のホットキーが収まる長さ）
+    value: '256'
     status: planned
 test_files:
   - tests/unit/voice_paste/test_main.py

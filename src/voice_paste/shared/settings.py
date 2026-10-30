@@ -155,13 +155,6 @@ OS_DEFAULT_OVERRIDES: Mapping[OsKind, Mapping[str, object]] = {
 }
 """共通の既定値に重ねる、OS ごとの既定値。キーは設定のドットで結んだキー。載っていない OS・キーは共通の既定値のまま。"""
 
-OS_HIDDEN_SETTING_KEYS: Mapping[OsKind, frozenset[str]] = {
-    OsKind.LINUX: frozenset(
-        {"recording.lower_volume", "recording.volume_percent", "recording.fade_sec"}
-    ),
-}
-"""その OS では使わず、設定画面に欄を出さない設定のキー。載っていない OS は全ての欄を出す。"""
-
 type _Location = tuple[int | str, ...]
 
 

@@ -121,6 +121,26 @@ def test_show_failure(
     )
 
 
+def test_show_failure_when_paste_unavailable(
+    qapp: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """貼り付けを使えないことを権限の設定の手順と共に通知する（正常系）。"""
+    # 準備
+    tray = make_tray(tmp_path)
+    show_message = MagicMock()
+    monkeypatch.setattr(QSystemTrayIcon, "showMessage", show_message)
+
+    # 実行
+    tray.show_failure("paste_unavailable", "Permission denied")
+
+    # 検証
+    show_message.assert_called_once()
+    assert show_message.call_args.args[:2] == (
+        "貼り付けを使用できません",
+        "貼り付けのキーを送信できません（Permission denied）。/dev/uinput の権限を設定して PC を再起動してください（使い方「起動と設定」）。「コピーのみ」は使えます。",
+    )
+
+
 # === show_copy_completed ===
 
 

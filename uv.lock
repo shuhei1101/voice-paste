@@ -1625,6 +1625,7 @@ source = { editable = "." }
 dependencies = [
     { name = "av" },
     { name = "comtypes", marker = "sys_platform == 'win32'" },
+    { name = "evdev", marker = "sys_platform == 'linux'" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
@@ -1663,6 +1664,7 @@ dev = [
 requires-dist = [
     { name = "av", specifier = ">=11,<19" },
     { name = "comtypes", marker = "sys_platform == 'win32'", specifier = "~=1.4" },
+    { name = "evdev", marker = "sys_platform == 'linux'", specifier = "~=2.0" },
     { name = "fastapi", specifier = "~=0.142.2" },
     { name = "faster-whisper", marker = "extra == 'local-whisper'", specifier = "~=1.0" },
     { name = "httpx", specifier = "~=0.28.1" },

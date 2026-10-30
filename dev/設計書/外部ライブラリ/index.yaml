@@ -50,3 +50,5 @@ items:
     summary: ブラウザから送信された multipart の音声を FastAPI の UploadFile で受け取る
   - page: python-xlib.yaml
     summary: Linux でアクティブなウィンドウの WM_CLASS を Xorg から読む
+  - page: evdev.yaml
+    summary: Linux の Wayland のセッションで、仮想キーボードから貼り付けのキーと Enter を送信する

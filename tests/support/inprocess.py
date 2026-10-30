@@ -45,7 +45,7 @@ from voice_paste.shared.constants import AppPaths, resolve_app_paths
 from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
 from voice_paste.runtime.timer import RepeatingTimer
 from voice_paste.shared.errors import TranscriptionError
-from voice_paste.shared.os_kind import CURRENT_OS
+from voice_paste.shared.os_kind import CURRENT_OS, detect_display_session, unavailable_features
 from voice_paste.shared.settings import (
     ApiSettings,
     ContinuousSettings,
@@ -734,7 +734,7 @@ class InProcessApi:
 
 def serve_api(
     session_api: SessionApiDeps,
-    web_api: WebApiDeps,
+    web_api: WebApiDeps | None,
     allowed_web_origins: Sequence[str] | Callable[[int], Sequence[str]] = (),
     port: int | None = None,
 ) -> InProcessApi:
@@ -874,7 +874,11 @@ def start_inprocess_app(
     paths = resolve_app_paths(tmp_path)
     # OS ごとの実装は本物を選び、システム音量だけ呼ばれた値を控えるものに差し替えて渡す
     adapters = replace(
-        main_module.select_platform_adapters(CURRENT_OS, lock_file=paths.lock_file),
+        main_module.select_platform_adapters(
+            CURRENT_OS,
+            lock_file=paths.lock_file,
+            display_session=detect_display_session(os.environ),
+        ),
         lower_volume=volume.lower,
         restore_volume=volume.restore,
     )
@@ -886,6 +890,7 @@ def start_inprocess_app(
         lambda *_args, **_kwargs: None,
         adapters=adapters,
         environ=os.environ,
+        unavailable=unavailable_features(CURRENT_OS),
     )
     return InProcessApp(
         handlers=handlers,

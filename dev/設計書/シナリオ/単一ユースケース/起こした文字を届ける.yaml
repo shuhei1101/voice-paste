@@ -566,6 +566,63 @@ scenarios:
     expected:
       - 端末の入力欄に起こした文字が入っている
       - クリップボードに起こした文字が入っている
+  - name: 正常シナリオ（Wayland のセッションで貼り付けて送信する）
+    setup:
+      - name: Mock
+        description: なし（検証環境の VM を Ubuntu 24.04 の Wayland のセッションで起動し、実機で確かめる）
+      - name: 出力先
+        description: 録音する で「貼り付けて送信」を選んだ
+      - name: 貼り付け先
+        description: ネイティブの Wayland のアプリ（GNOME のテキストエディター）の入力欄にフォーカスがある
+        notes: XWayland のアプリでも同じに届く
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant OUT as 出力先（貼り付けて送信）
+        participant CB as クリップボード（XWayland の xclip）
+        participant KB as 仮想のキーボード（uinput）
+        participant TGT as 貼り付け先のアプリ
+
+        SVC->>OUT: 起こした文字を渡す
+        OUT->>CB: 起こした文字をコピーする
+        OUT->>KB: Xorg のセッションと同じ間を置いて、設定の貼り付けのキーを送信する
+        KB->>TGT: 貼り付けのキーが届く
+        OUT->>KB: 設定の間を置いて Enter を送信する
+        KB->>TGT: Enter が届く
+      ```
+    expected:
+      - 貼り付け先の入力欄に起こした文字が入り、Enter が送信されている
+      - クリップボードに起こした文字が入っている
+  - name: 異常シナリオ（Wayland のセッションで貼り付けのキーを送信できない）
+    setup:
+      - name: Mock
+        description: なし（検証環境の VM を Ubuntu 24.04 の Wayland のセッションで起動し、実機で確かめる）
+      - name: 権限
+        description: '`/dev/uinput` に書けず、起動のときに仮想のキーボードを作れなかった（常駐アプリを起動する の「Wayland のセッションで /dev/uinput に書けない」）'
+      - name: 出力先
+        description: 録音する で「貼り付けて送信」を選んだ
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant OUT as 出力先（貼り付けて送信）
+        participant CB as クリップボード（XWayland の xclip）
+        participant TRAY as トレイ
+        participant LOG as ログ
+
+        SVC->>OUT: 起こした文字を渡す
+        OUT->>CB: 起こした文字をコピーする
+        OUT->>OUT: 貼り付けのキーを送信できない
+        OUT->>LOG: 送信できなかった理由を書く
+        OUT->>TRAY: 貼り付けられず、クリップボードに入っていることを通知する
+        SVC->>SVC: 待機中に戻す
+      ```
+    expected:
+      - クリップボードに起こした文字が入っている
+      - トレイで、貼り付けられずクリップボードに入っていることが知らされている
+      - Enter は送信されていない
+      - ログに送信できなかった理由が書かれている
 lead: 起こした文字を、ホットキーから始めた録音は選んだ出力先へ、API から始めた録音は呼び出し元のエンドポイントへ届ける単一ユースケース。
 issue: 14
 primary_actor: 音声入力を使うユーザー
@@ -599,5 +656,12 @@ notes:
     Linux（Xorg のセッション）では、貼り付けのキーを送信する直前にアクティブなウィンドウを見て、端末アプリなら設定の貼り付けのキーに代えて `Ctrl+Shift+V` を送信する（端末アプリでは `Ctrl+V` が貼り付けにならない）。
     「貼り付けて送信」も同じキーで貼り付けてから Enter を送信する。
     Windows は、貼り付け先によらず設定の貼り付けのキーを送信する。
+    Wayland のセッションも、GNOME にアクティブなウィンドウを読む標準のインターフェースが無いため、貼り付け先によらず設定の貼り付けのキーを送信する。
     このシナリオの E2E は、Linux で E2E を動かす仕組み（[#199](https://github.com/shuhei1101/voice-paste/issues/199)）ができるまで持たない。
+  Wayland のセッションの貼り付け: |-
+    Linux の Wayland のセッションでは、クリップボードへ XWayland の `xclip` で書き、貼り付けのキーと Enter（修飾キーつき）を uinput の仮想のキーボードから送信する。
+    ネイティブの Wayland のアプリにも XWayland のアプリにも同じに届く（GNOME が X のクリップボードを Wayland のクリップボードへ渡す）。
+    `wl-copy` は、GNOME がクリップボードを外から書くプロトコルを持たないため書くたびに貼り付け先のフォーカスを取り、貼り付けのキーが落ちるため使わない。
+    「コピーのみ」で書いた文字は、常駐サービスの終了後も貼り付けられる。
+    Wayland のセッションのシナリオの E2E は、Linux で E2E を自動で流す仕組み（[#219](https://github.com/shuhei1101/voice-paste/issues/219)）ができるまで持たず、検証環境の VM で確かめる。
 test_file: tests/e2e/単一ユースケース/test_deliver_transcript.py

@@ -41,13 +41,24 @@ def _request(headers: dict[str, str], method: str, path: str) -> Request:
 
 
 def _dispatch(
-    headers: dict[str, str], method: str = "POST", path: str = "/sessions"
+    headers: dict[str, str],
+    method: str = "POST",
+    path: str = "/sessions",
+    *,
+    web_enabled: bool = True,
 ) -> tuple[Response, AsyncMock]:
-    """守りに method と path の要求を headers つきで通し、返った応答と次の処理（call_next）の Mock を返す。"""
+    """守りに method と path の要求を headers つきで通し、返った応答と次の処理（call_next）の Mock を返す。
+
+    web_enabled は、ブラウザの機能を組み込んだか（RequestGuardMiddleware の web_enabled）。
+    """
     from voice_paste.server.middleware import RequestGuardMiddleware
 
     middleware = RequestGuardMiddleware(
-        MagicMock(), token=SecretStr(TOKEN), port=PORT, allowed_web_origins=[WEB_ORIGIN]
+        MagicMock(),
+        token=SecretStr(TOKEN),
+        port=PORT,
+        allowed_web_origins=[WEB_ORIGIN],
+        web_enabled=web_enabled,
     )
     call_next = AsyncMock(return_value=Response(status_code=204))
     response = asyncio.run(middleware.dispatch(_request(headers, method, path), call_next))
@@ -163,3 +174,15 @@ def test_dispatch_when_sessions_with_allowed_origin() -> None:
     # 検証
     assert response.status_code == 403
     call_next.assert_not_awaited()
+
+
+def test_dispatch_when_web_disabled() -> None:
+    """ブラウザの機能が無ければ /web/ の下は Origin を見ずに次へ渡す（正常系）。"""
+    # 実行
+    response, call_next = _dispatch(
+        {**WEB_HEADERS, "origin": "http://evil.example"}, "GET", "/web/", web_enabled=False
+    )
+
+    # 検証
+    call_next.assert_awaited_once()
+    assert response.status_code == 204

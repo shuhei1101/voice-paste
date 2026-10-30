@@ -869,10 +869,8 @@ def start_inprocess_app(
     keys = KeyLog()
     notifications = Notifications()
     monkeypatch.setattr(main_module, "open_input", wav_input)
-    monkeypatch.setattr(main_module, "send_paste", keys.send_paste)
-    monkeypatch.setattr(main_module, "send_enter", keys.send_enter)
     paths = resolve_app_paths(tmp_path)
-    # OS ごとの実装は本物を選び、システム音量だけ呼ばれた値を控えるものに差し替えて渡す
+    # OS ごとの実装は本物を選び、システム音量・貼り付けのキー・Enter だけ呼ばれた値を控えるものに差し替えて渡す
     adapters = replace(
         main_module.select_platform_adapters(
             CURRENT_OS,
@@ -881,6 +879,8 @@ def start_inprocess_app(
         ),
         lower_volume=volume.lower,
         restore_volume=volume.restore,
+        send_paste=keys.send_paste,
+        send_enter=keys.send_enter,
     )
     handlers = main_module.build_handlers(
         settings,

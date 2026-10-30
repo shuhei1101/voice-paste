@@ -50,6 +50,7 @@ from voice_paste.shared.settings import (
     PRESETS_FIELD_NAME,
     RELOAD_IMMEDIATE,
     RELOAD_RESTART,
+    WEB_ORIGIN_FORM_ERROR_TYPE,
     OutputSettingsBase,
     Settings,
     format_error_location,
@@ -459,6 +460,12 @@ def to_field_message(
         return EDGE_WILDCARD_ONLY_MESSAGE
     if error_type == HINT_PRESET_NAME_OVERLAP_ERROR_TYPE:
         return f"プリセット「{error['ctx']['name']}」と同じ名前です。{GLOSSARY_NAME_HINT}"
+    if error_type == WEB_ORIGIN_FORM_ERROR_TYPE:
+        return (
+            f"形式の違うオリジンがあります（{'、'.join(error['ctx']['invalid'])}）。"
+            "https://example.com のように、http:// か https:// で始め、"
+            "末尾の / とパスを付けずに入れてください。"
+        )
     if error_type == "string_pattern_mismatch":
         # 空なら入れてもらい、空でなければ形式を修正してもらう
         if not error.get("input"):

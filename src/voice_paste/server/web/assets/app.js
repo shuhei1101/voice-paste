@@ -320,6 +320,7 @@ function addResult(added) {
         sentAt: new Date().toISOString(),
         text: null,
         progress: 0,
+        reportsProgress: false,
         error: null,
     });
     state.results.length = Math.min(state.results.length, MAX_RESULTS);
@@ -517,6 +518,7 @@ async function fetchResult(entry) {
     const job = (await response.json());
     entry.state = job.state;
     entry.progress = Math.round(job.progress * 100);
+    entry.reportsProgress = job.reports_progress;
     if (job.state === 'done') {
         entry.text = job.text;
     }
@@ -732,10 +734,13 @@ function resultElement(entry) {
         status.hidden = false;
         spinner.hidden = false;
         statusText.textContent = '文字起こし中';
-        percent.hidden = false;
-        percent.textContent = `${entry.progress}%`;
-        progress.hidden = false;
-        progress.value = entry.progress;
+        // 進みを返すエンジンか: 返さないエンジンは % と進みのバーを出さず「文字起こし中」だけにする
+        if (entry.reportsProgress) {
+            percent.hidden = false;
+            percent.textContent = `${entry.progress}%`;
+            progress.hidden = false;
+            progress.value = entry.progress;
+        }
     }
     else if (entry.state === 'done') {
         text.hidden = false;
@@ -881,6 +886,7 @@ async function init() {
         sentAt: stored.sent_at,
         text: stored.text,
         progress: 0,
+        reportsProgress: false,
         error: null,
     }));
     saveResults();

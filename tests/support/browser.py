@@ -331,7 +331,7 @@ class BrowserPage:
     # === 画面の観測 ===
 
     def results(self) -> list[dict[str, Any]]:
-        """結果の一覧（先頭が新しい件）を、元の音声・状態の文言・進み具合・起こした文字・失敗の理由・操作の有無の組で返す。"""
+        """結果の一覧（先頭が新しい件）を、元の音声・状態の文言・進み具合（% の文言と進みのバーを出しているか）・起こした文字・失敗の理由・操作の有無の組で返す。"""
         value = self.evaluate(
             """JSON.stringify([...document.querySelectorAll('#results > li')].map((li) => {
               const field = (id) => li.querySelector(`[data-element="${id}"]`);
@@ -341,6 +341,7 @@ class BrowserPage:
                 source: field('result_source').textContent,
                 status: field('result_status').hidden ? '' : li.querySelector('.result__status-text').textContent,
                 percent: pct.hidden ? '' : pct.textContent,
+                progress_shown: !field('result_progress').hidden,
                 text: shown('result_text'),
                 detail: shown('result_detail'),
                 can_copy: !li.querySelector('.result__actions').hidden,

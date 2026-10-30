@@ -57,6 +57,7 @@ def get_web_transcription_route(
         job_id=job.id,
         state=job.state,
         progress=job.progress,
+        reports_progress=deps.reports_progress,
         text=job.text,
         error=job.error,
     )

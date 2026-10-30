@@ -83,6 +83,7 @@ def web_stack(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Calla
         worker: bool = True,
         max_pending: int = WEB_QUEUE_LIMIT,
         max_finished: int = WEB_FINISHED_JOBS_KEPT,
+        reports_progress: bool = True,
         body_limit: int | None = None,
         settings: Settings | None = None,
     ) -> Stack:
@@ -101,6 +102,7 @@ def web_stack(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Calla
             web_worker=worker,
             web_max_pending=max_pending,
             web_max_finished=max_finished,
+            web_reports_progress=reports_progress,
             settings=settings,
         )
         built.append(stack)

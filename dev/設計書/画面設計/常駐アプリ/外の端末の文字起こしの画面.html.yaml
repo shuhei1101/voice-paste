@@ -208,15 +208,15 @@ elements:
     description: 終わっていない件と失敗した件の状態
     io: 表示
     visible_when: state が queued・running・failed か 404 のとき
-    options: 'queued: 「文字起こし待ち」。running: 「文字起こし中 {n}%」。failed: 「文字起こし失敗」。404: 「結果消失」'
-    source: 文字起こしの結果を返す.state
+    options: 'queued: 「文字起こし待ち」。running: reports_progress が true なら「文字起こし中 {n}%」、false なら「文字起こし中」。failed: 「文字起こし失敗」。404: 「結果消失」'
+    source: 文字起こしの結果を返す.state・文字起こしの結果を返す.reports_progress
   - name: 文字起こしの進捗
     id: result_progress
     kind: progress
     position: 結果 > 結果の 1 件
     description: 文字起こしの進み具合。読み上げ名は「文字起こしの進捗」
     io: 表示
-    visible_when: state が running のとき
+    visible_when: state が running で、reports_progress が true のとき（false のときは hidden にして読み上げにも出さない）
     range:
       min: '0'
       max: '100'

@@ -520,6 +520,7 @@ def build_stack(
     web_worker: bool = True,
     web_max_pending: int = WEB_QUEUE_LIMIT,
     web_max_finished: int = WEB_FINISHED_JOBS_KEPT,
+    web_reports_progress: bool = True,
     settings: Settings | None = None,
     web_enabled: bool = True,
 ) -> Stack:
@@ -653,6 +654,7 @@ def build_stack(
         tmp_dir=web_tmp_dir,
         glossary_preset_exists=web_glossary_preset_exists,
         list_glossary_presets=web_list_glossary_presets,
+        reports_progress=web_reports_progress,
     )
     app = build_fastapi(
         session_api,

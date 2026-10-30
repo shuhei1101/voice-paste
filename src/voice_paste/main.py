@@ -727,6 +727,7 @@ def _wire_web_api(
         tmp_dir=paths.tmp_dir / WEB_TMP_DIR_NAME,
         glossary_preset_exists=glossary_preset_exists,
         list_glossary_presets=list_glossary_preset_choices,
+        reports_progress=_reports_progress(store.get()),
     )
 
 

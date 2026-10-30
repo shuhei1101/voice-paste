@@ -15,6 +15,8 @@
 API から始めた録音は録音の画面を出さず、起こした文字は応答ではなく、開始で指定した返送先へ届く。
 
 `/web/` の下の要求（外の端末のブラウザ向け）は、トークンを求めず、`Host` と `Origin` で通す。
+`/web/` の下の API は、常駐サービスが Windows で動いているときだけ使える。
+Linux では `Origin` によらず 404 を返す。
 
 - `Host` は `127.0.0.1:{ポート}` か `localhost:{ポート}`。ゲートウェイ（shuhdev-gateway）を通した要求は `localhost:{ポート}` で届く
 - `Origin` は、設定の `api.allowed_web_origins`（[起動と設定](../使い方/起動と設定.md#外の端末のブラウザに許す-origin)）の一覧にあるものだけを通す。`POST` は `Origin` が必須で、`GET` は `Origin` が無いか一覧にあれば通す

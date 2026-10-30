@@ -110,17 +110,42 @@ categories:
     prerequisites:
       - Ubuntu 24.04 の Xorg のセッションの端末で、『環境構築（クローン直後）』を流しておく
       - クリップボード・録音・Qt の xcb プラグインが使う OS のパッケージを `sudo apt install xclip libportaudio2 libxcb-cursor0` で入れておく
+      - Wayland のセッションで流すときは、キーの送信に使う `/dev/uinput` の権限を設定して再起動しておく（手順 1）
     commands: |-
-      1. 常駐サービスを起動する
+      1. Wayland のセッションで流すときだけ、`/dev/uinput` の権限を設定する（sudo が要る。設定の後に再起動する。Xorg のセッションでは要らない）
+
+      ```bash
+      echo 'KERNEL=="uinput", GROUP="input", MODE="0660", OPTIONS+="static_node=uinput"' | sudo tee /etc/udev/rules.d/99-voice-paste-uinput.rules
+      sudo usermod -aG input "$USER"
+      sudo reboot
+      ```
+
+      2. 検証環境の VM のセッションを切り替える（VM は `/etc/gdm3/custom.conf` の `WaylandEnable=false` で Xorg のセッションにしている）
+
+      Wayland のセッションに切り替える:
+
+      ```bash
+      sudo sed -i 's/^WaylandEnable=false/#WaylandEnable=false/' /etc/gdm3/custom.conf
+      sudo systemctl restart gdm3
+      ```
+
+      Xorg のセッションへ戻す:
+
+      ```bash
+      sudo sed -i 's/^#WaylandEnable=false/WaylandEnable=false/' /etc/gdm3/custom.conf
+      sudo systemctl restart gdm3
+      ```
+
+      3. 常駐サービスを起動する
 
       ```bash
       .venv/bin/python -m voice_paste
       ```
-    effects: トレイにアイコンを出し、ホットキーを受け付け、録音の開始を待つ。同じ設定の置き場所で 2 つ目を起動すると、前のプロセスに終わるよう頼んでから起動する
+    effects: トレイにアイコンを出し、ホットキーを受け付け、録音の開始を待つ。同じ設定の置き場所で 2 つ目を起動すると、前のプロセスに終わるよう頼んでから起動する。手順 1 は `/etc/udev/rules.d/` に規則を置き、ユーザーを `input` グループへ追加するため、sudo と再起動が要る（グループの追加はログアウトでは反映されない）。手順 2 は gdm3 を再起動するため、ログイン中のセッションが終わる
     verification:
       state: 済
       date: '2026-10-28'
-      detail: 検証環境の VM で、`--data-dir` に一時のフォルダ（`settings.toml` で `transcription.local_whisper.model = "tiny"`）を渡して `.venv/bin/python -m voice_paste` を起動し、エンジン・API・ホットキーが立ち上がること（ログの `常駐サービスを始めた`）を確かめた。同じ設定の置き場所で 2 つ目を起動すると、`前の常駐サービスに終わるよう頼んだ` の約 0.8 秒後に前のプロセスが終わり（ホットキーの受付は 0.5 秒の上限で手放した）、2 つ目が排他を取って起動することを確かめた。VM に `libxcb-cursor0` が入っていないため、deb を `apt-get download` で取得して `dpkg -x` で展開し、`LD_LIBRARY_PATH` で読ませて起動した（VM のパッケージは変えていない）。VM の Xorg のセッションは画面のロック中で GNOME のトレイの拡張が無効のため、トレイのアイコンは VM 内の Xephyr に `stalonetray`（XEmbed のトレイの受け手。deb を展開して使用）を立てて確かめ、緑のマイクのアイコンが出ることを撮影した。GNOME の実際のトレイ（`ubuntu-appindicators`）では確かめていない
+      detail: '検証環境の VM で、`--data-dir` に一時のフォルダ（`settings.toml` で `transcription.local_whisper.model = "tiny"`）を渡して `.venv/bin/python -m voice_paste` を起動し、エンジン・API・ホットキーが立ち上がること（ログの `常駐サービスを始めた`）を確かめた。同じ設定の置き場所で 2 つ目を起動すると、`前の常駐サービスに終わるよう頼んだ` の約 0.8 秒後に前のプロセスが終わり（ホットキーの受付は 0.5 秒の上限で手放した）、2 つ目が排他を取って起動することを確かめた。VM に `libxcb-cursor0` が入っていないため、deb を `apt-get download` で取得して `dpkg -x` で展開し、`LD_LIBRARY_PATH` で読ませて起動した（VM のパッケージは変えていない）。VM の Xorg のセッションは画面のロック中で GNOME のトレイの拡張が無効のため、トレイのアイコンは VM 内の Xephyr に `stalonetray`（XEmbed のトレイの受け手。deb を展開して使用）を立てて確かめ、緑のマイクのアイコンが出ることを撮影した。GNOME の実際のトレイ（`ubuntu-appindicators`）では確かめていない。手順 1 の権限の設定と手順 2 のセッションの切り替えは、この PR では走らせて確かめていない（sudo と再起動・gdm3 の再起動が要る。PoC #221 で同じ内容の手順を VM に当てて Wayland のセッションで `/dev/uinput` を開けた）'
   - name: 管理作業
     prerequisites:
       - 検証環境の VM（Ubuntu 24.04・PipeWire）の Xorg のセッションで、『起動・停止』の前提を満たしておく

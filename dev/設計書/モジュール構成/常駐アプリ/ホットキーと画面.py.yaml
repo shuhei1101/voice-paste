@@ -2841,6 +2841,7 @@ functions:
          - hint_word_empty: 「語を入れるか、この欄を削除してください。」
          - hint_word_separator: 「読点（、）・句点（。）・改行は入れられません。語を分けて追加してください。」
          - hint_preset_name_overlap（find_hint_preset_name_overlaps）: 「プリセット「{名前}」と同じ名前です。別の名前にしてください。」
+         - WEB_ORIGIN_FORM_ERROR_TYPE（ApiSettings._origins_must_be_origin_form）: 「形式の違うオリジンがあります（{ctx の invalid を読点でつないだもの}）。https://example.com のように、http:// か https:// で始め、末尾の / とパスを付けずに入れてください。」
          - それ以外: pydantic の msg をそのまま出す
     unit_tests:
       - name: test_to_field_message_when_not_number
@@ -2879,6 +2880,12 @@ functions:
         condition: transcription.openai.base_url を空にした SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
         mock: なし
         expected: 'API の URL を入れてください（例: https://api.openai.com/v1）。'
+      - name: test_to_field_message_when_web_origin_not_form
+        case: 正常
+        summary: 形式の違う許す Origin
+        condition: api.allowed_web_origins に ["https://voice.example.com/", "voice.example.com"] を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
+        mock: なし
+        expected: 形式の違うオリジンがあります（https://voice.example.com/、voice.example.com）。https://example.com のように、http:// か https:// で始め、末尾の / とパスを付けずに入れてください。
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
     status: implemented

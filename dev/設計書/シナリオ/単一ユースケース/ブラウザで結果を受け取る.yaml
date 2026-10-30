@@ -101,7 +101,10 @@ scenarios:
   - name: 正常シナリオ（進みを返さないエンジン）
     setup:
       - name: Mock
-        description: Windows の Edge で画面を開く。常駐アプリは pytest のプロセスの中で起動し、設定のエンジン（transcription.engine）を openai にして、文字起こしのエンジンは進みを知らせずに、放すまで待ってから決めた文を返す関数に差し替える
+        description: Windows の Edge で画面を開く。常駐アプリは pytest のプロセスの中で起動し、文字起こしは進みを知らせずに、放すまで待ってから決めた文を返す関数に差し替える
+      - name: 文字起こしのエンジン
+        description: OpenAI API を使う設定にし、API キーを環境変数 `OPENAI_API_KEY` にテスト用の値で渡す。文字起こしは差し替えるため、OpenAI API へは送信しない
+        notes: '`transcription.engine = "openai"`'
       - name: 受け付けたジョブ
         description: ブラウザから音声を送信する でジョブを 1 件受け付けている
     flow: |-

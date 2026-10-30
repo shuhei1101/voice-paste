@@ -1,7 +1,7 @@
-"""main.py（parse_args・main・start_local_session・build_hotkey_bindings・apply_settings・_wire_outputs・_wire_preset_kinds）の単体テスト。
+"""main.py（parse_args・main・select_platform_adapters・start_local_session・build_hotkey_bindings・apply_settings・_wire_outputs・_wire_preset_kinds）の単体テスト。
 
 main の配線（build_handlers）・API サーバー（ApiServerRunner）・上限の打ち切りのタイマー（RepeatingTimer）・
-ホットキーの受付（HotkeyListener）・トレイ（Tray）・再起動（PlatformAdapters.relaunch）は偽物に差し替え、
+ホットキーの受付（PlatformAdapters.create_hotkey_listener）・トレイ（Tray）・再起動（PlatformAdapters.relaunch）は偽物に差し替え、
 イベントループ（exec_loop）は、溜まったイベントを処理してすぐ戻る関数にする。
 画面は offscreen の QApplication（conftest の qapp）を使い回す（main は QApplication が既にあればそれを使う）。
 """
@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from tests.unit.voice_paste.runtime.helpers import BackgroundAcquire
     from voice_paste.features.outputs import OutputSpec, PresetKindSpec
     from voice_paste.features.outputs.types import OutputDeps
-    from voice_paste.shared.os_kind import OsKind
+    from voice_paste.shared.os_kind import DisplaySession, OsKind
     from voice_paste.shared.settings import Settings
     from voice_paste.shared.types import TranscriptionOutcome
     from voice_paste.ui.controller import UiDeps
@@ -49,7 +49,7 @@ SHORT_ACQUIRE_TIMEOUT_SEC = 0.5
 QUIT_LOOP_TIMEOUT_MS = 5000
 """終了を頼まれてもイベントループが抜けないときに、諦めて抜ける上限（ミリ秒）。"""
 
-SIGNAL_NAMES = ("SIGINT", "SIGBREAK")
+SIGNAL_NAMES = ("SIGINT", "SIGBREAK", "SIGTERM")
 DEFAULT_HOTKEYS = {
     "<ctrl>+<alt>+d",
     "<ctrl>+<alt>+z",
@@ -93,8 +93,11 @@ class Wiring:
     runner_class: MagicMock
     timer_class: MagicMock
     hotkey_class: MagicMock
+    create_hotkey_listener: MagicMock
     tray_class: MagicMock
     relaunch: MagicMock
+    build_fastapi: MagicMock
+    web_api: MagicMock
     ui_deps: list[UiDeps]
     """main が build_ui_deps で作った UiDeps（作られた順）。"""
     adapter_overrides: dict[str, Any]
@@ -102,7 +105,7 @@ class Wiring:
 
     @property
     def hotkey(self) -> MagicMock:
-        """main が作った HotkeyListener の偽物。"""
+        """main が作ったホットキーの受付の偽物（create_hotkey_listener が返したもの）。"""
         return self.hotkey_class.return_value
 
     @property
@@ -123,11 +126,16 @@ def install_wiring(
     api_started: bool = True,
     build_error: Exception | None = None,
 ) -> Wiring:
-    """main が使う build_handlers・ApiServerRunner・RepeatingTimer・HotkeyListener・Tray・再起動（PlatformAdapters.relaunch）を偽物に差し替える。"""
+    """main が使う build_handlers・ApiServerRunner・RepeatingTimer・ホットキーの受付（PlatformAdapters.create_hotkey_listener）・Tray・再起動（PlatformAdapters.relaunch）を偽物に差し替える。
+
+    デスクトップのセッションは Xorg に固定する（実行する環境の XDG_SESSION_TYPE に頼らない）。
+    """
     import voice_paste.main as main_module
     from voice_paste.main import Handlers
     from voice_paste.runtime.settings_store import SettingsStore
+    from voice_paste.shared.os_kind import Feature
 
+    monkeypatch.setenv("XDG_SESSION_TYPE", "x11")
     calls: list[str] = []
 
     def _record(name: str) -> Callable[..., None]:
@@ -146,18 +154,20 @@ def install_wiring(
         *,
         adapters: object,
         environ: object,
+        unavailable: frozenset[Feature],
     ) -> Handlers:
-        """配線済みの関数の束を、偽物で作る。"""
+        """配線済みの関数の束を、偽物で作る（外の端末のブラウザの機能を使えない OS では web_api が None）。"""
         return Handlers(
             session_manager=session_manager,
             session_api=MagicMock(),
-            web_api=MagicMock(),
+            web_api=None if Feature.WEB_TRANSCRIPTION in unavailable else web_api,
             settings_store=SettingsStore(settings),
             start_local_session=MagicMock(),
             recorder_level=lambda: 0.0,
             stop_engine=_record("stop_engine"),
         )
 
+    web_api = MagicMock()
     build_handlers = MagicMock(side_effect=build_error if build_error is not None else _build)
 
     runner_class = MagicMock()
@@ -169,6 +179,7 @@ def install_wiring(
 
     hotkey_class = MagicMock()
     hotkey_class.return_value.stop.side_effect = _record("hotkey.stop")
+    create_hotkey_listener = MagicMock(return_value=hotkey_class.return_value)
 
     tray_class = MagicMock()
     tray_class.return_value.hide.side_effect = _record("tray.hide")
@@ -179,10 +190,19 @@ def install_wiring(
     adapter_overrides: dict[str, Any] = {}
     real_select_platform_adapters = main_module.select_platform_adapters
 
-    def _select_platform_adapters(os_kind: OsKind, *, lock_file: Path) -> object:
-        """本物の PlatformAdapters を選び、再起動と差し替え対象の項目を偽物にして返す。"""
-        adapters = real_select_platform_adapters(os_kind, lock_file=lock_file)
-        return dataclasses.replace(adapters, relaunch=relaunch, **adapter_overrides)
+    def _select_platform_adapters(
+        os_kind: OsKind, *, lock_file: Path, display_session: DisplaySession
+    ) -> object:
+        """本物の PlatformAdapters を選び、再起動・ホットキーの受付と差し替え対象の項目を偽物にして返す。"""
+        adapters = real_select_platform_adapters(
+            os_kind, lock_file=lock_file, display_session=display_session
+        )
+        return dataclasses.replace(
+            adapters,
+            relaunch=relaunch,
+            create_hotkey_listener=create_hotkey_listener,
+            **adapter_overrides,
+        )
 
     # build_ui_deps は本物のまま、作った UiDeps を控える（テストが request_restart などを呼べるように）
     ui_deps: list[UiDeps] = []
@@ -194,10 +214,13 @@ def install_wiring(
         ui_deps.append(deps)
         return deps
 
+    # build_fastapi は本物のまま、渡された引数を控える
+    build_fastapi = MagicMock(side_effect=main_module.build_fastapi)
+
     monkeypatch.setattr(main_module, "build_handlers", build_handlers)
+    monkeypatch.setattr(main_module, "build_fastapi", build_fastapi)
     monkeypatch.setattr(main_module, "ApiServerRunner", runner_class)
     monkeypatch.setattr(main_module, "RepeatingTimer", timer_class)
-    monkeypatch.setattr(main_module, "HotkeyListener", hotkey_class)
     monkeypatch.setattr(main_module, "Tray", tray_class)
     monkeypatch.setattr(main_module, "select_platform_adapters", _select_platform_adapters)
     monkeypatch.setattr(main_module, "build_ui_deps", _capture_ui_deps)
@@ -207,8 +230,11 @@ def install_wiring(
         runner_class=runner_class,
         timer_class=timer_class,
         hotkey_class=hotkey_class,
+        create_hotkey_listener=create_hotkey_listener,
         tray_class=tray_class,
         relaunch=relaunch,
+        build_fastapi=build_fastapi,
+        web_api=web_api,
         ui_deps=ui_deps,
         adapter_overrides=adapter_overrides,
     )
@@ -360,8 +386,9 @@ def test_main(
     assert wiring.build_handlers.call_args.kwargs["environ"] is os.environ
     assert load_settings(data_dir / "settings.toml", SETTINGS_MODEL) == SETTINGS_MODEL()
     assert (data_dir / "api_token").exists()
+    assert wiring.build_handlers.call_args.kwargs["unavailable"] == frozenset()
+    wiring.create_hotkey_listener.assert_called_once()
     assert set(wiring.hotkey.start.call_args.args[0]) == DEFAULT_HOTKEYS
-    assert wiring.hotkey_class.call_args == call()
     assert [timer_interval(c) for c in wiring.timer_class.call_args_list] == [
         SESSION_LIMIT_CHECK_INTERVAL_SEC,
         PURGE_INTERVAL_SEC,
@@ -568,6 +595,149 @@ def test_main_when_quit_requested(
     wiring.relaunch.assert_not_called()
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="SIGTERM をシグナルで受ける動きを確かめるため Windows では流さない"
+)
+def test_main_when_sigterm(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplication
+) -> None:
+    """SIGTERM を受けたら片付けて排他を放す（正常系）。"""
+    from voice_paste.main import main
+
+    # 準備: main が SIGTERM のハンドラを入れなければ、テストのプロセスが終わらないよう、控えるだけのハンドラを先に入れる
+    wiring = install_wiring(monkeypatch, qapp)
+    lock = MagicMock()
+    lock.release.side_effect = lambda: wiring.calls.append("lock.release")
+    wiring.adapter_overrides["acquire_single_instance"] = MagicMock(return_value=lock)
+    received_without_main_handler: list[bool] = []
+    signal.signal(signal.SIGTERM, lambda *_args: received_without_main_handler.append(True))
+    quit_app = MagicMock()
+    monkeypatch.setattr(qapp, "quit", quit_app)
+
+    def _send_sigterm(app: QApplication) -> int:
+        """自分のプロセスへ SIGTERM を送り、溜まったイベントを処理して 0 を返す。"""
+        signal.raise_signal(signal.SIGTERM)
+        app.processEvents()
+        return 0
+
+    # 実行
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=_send_sigterm)
+
+    # 検証: main のハンドラが QApplication.quit を呼び、止めた後に排他を放す
+    assert exit_code == 0
+    assert received_without_main_handler == []
+    quit_app.assert_called_once()
+    assert wiring.calls.count("hotkey.stop") == 1
+    assert wiring.calls.count("tray.hide") == 1
+    assert wiring.calls[-1] == "lock.release"
+
+
+def test_main_when_key_sender_unavailable(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplication
+) -> None:
+    """キーの送信の機器を開けなければトレイで知らせて続ける（異常系）。"""
+    from voice_paste.main import main
+    from voice_paste.shared.errors import DeliveryError
+    from voice_paste.ui.tray import TrayState
+
+    # 準備
+    wiring = install_wiring(monkeypatch, qapp)
+    close_key_sender = MagicMock()
+    wiring.adapter_overrides["open_key_sender"] = MagicMock(
+        side_effect=DeliveryError("Permission denied")
+    )
+    wiring.adapter_overrides["close_key_sender"] = close_key_sender
+
+    # 実行
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=exit_after_events)
+
+    # 検証
+    assert exit_code == 0
+    assert [c.args for c in wiring.tray.show_failure.call_args_list] == [
+        ("paste_unavailable", "Permission denied")
+    ]
+    wiring.hotkey.start.assert_called_once()
+    assert wiring.tray.set_state.call_args == call(TrayState.IDLE, busy=False)
+    close_key_sender.assert_called_once()
+
+
+def test_main_when_web_transcription_unavailable(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplication
+) -> None:
+    """外の端末のブラウザの機能を使えない OS ではキューを始めず、/web/ のルートを持たない（正常系）。"""
+    import voice_paste.main as main_module
+    from voice_paste.main import main
+    from voice_paste.shared.os_kind import Feature
+
+    # 準備
+    wiring = install_wiring(monkeypatch, qapp)
+    monkeypatch.setattr(
+        main_module, "unavailable_features", lambda _os_kind: frozenset({Feature.WEB_TRANSCRIPTION})
+    )
+
+    # 実行
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=exit_after_events)
+
+    # 検証
+    assert exit_code == 0
+    assert wiring.build_handlers.call_args.kwargs["unavailable"] == frozenset(
+        {Feature.WEB_TRANSCRIPTION}
+    )
+    assert wiring.build_fastapi.call_args.kwargs["web_api"] is None
+    wiring.web_api.queue.start.assert_not_called()
+    wiring.web_api.queue.close.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("initial", "expected"),
+    [
+        pytest.param(None, "xcb", id="unset"),
+        pytest.param("offscreen", "offscreen", id="preset"),
+    ],
+)
+def test_main_when_qt_platform(
+    data_dir: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    qapp: QApplication,
+    initial: str | None,
+    expected: str,
+) -> None:
+    """Wayland のセッションでは Qt のプラットフォームを xcb にする。先に入れた値があれば変えない（正常系）。"""
+    import voice_paste.main as main_module
+    from voice_paste.main import main
+
+    # 準備: QApplication を作る時点の QT_QPA_PLATFORM を控える（生成は共有の qapp を返す）
+    wiring = install_wiring(monkeypatch, qapp)
+    wiring.adapter_overrides["qt_platform"] = "xcb"
+    platform_at_creation: list[str | None] = []
+
+    class RecordingApplication:
+        """QApplication の代わり。既存のインスタンスは無いとし、作られた時点の QT_QPA_PLATFORM を控えて共有の qapp を返す。"""
+
+        @staticmethod
+        def instance() -> None:
+            """既存のインスタンスは無い。"""
+            return None
+
+        def __new__(cls, _argv: list[str]) -> QApplication:  # type: ignore[misc]
+            """作られた時点の環境変数を控え、共有の qapp を返す。"""
+            platform_at_creation.append(os.environ.get("QT_QPA_PLATFORM"))
+            return qapp
+
+    monkeypatch.setattr(main_module, "QApplication", RecordingApplication)
+    if initial is None:
+        monkeypatch.delenv("QT_QPA_PLATFORM", raising=False)
+    else:
+        monkeypatch.setenv("QT_QPA_PLATFORM", initial)
+
+    # 実行
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=exit_after_events)
+
+    # 検証
+    assert exit_code == 0
+    assert platform_at_creation == [expected]
+
+
 # === select_platform_adapters ===
 
 
@@ -577,14 +747,17 @@ def test_select_platform_adapters_when_windows(tmp_path: Path) -> None:
     import subprocess
 
     from voice_paste.integrations.browser.opener import open_app_window
-    from voice_paste.integrations.keyboard.sender import send_paste
+    from voice_paste.integrations.keyboard.sender import send_enter, send_paste
     from voice_paste.integrations.volume.adapter import lower_volume, restore_volume
     from voice_paste.main import select_platform_adapters
+    from voice_paste.runtime.hotkey import HotkeyListener
     from voice_paste.runtime.single_instance import acquire_single_instance
-    from voice_paste.shared.os_kind import OsKind
+    from voice_paste.shared.os_kind import DisplaySession, OsKind
 
     # 実行
-    adapters = select_platform_adapters(OsKind.WINDOWS, lock_file=tmp_path / "instance.lock")
+    adapters = select_platform_adapters(
+        OsKind.WINDOWS, lock_file=tmp_path / "instance.lock", display_session=DisplaySession.X11
+    )
 
     # 検証
     assert adapters.lower_volume is lower_volume
@@ -593,27 +766,37 @@ def test_select_platform_adapters_when_windows(tmp_path: Path) -> None:
     assert adapters.acquire_single_instance is acquire_single_instance
     assert adapters.send_paste is send_paste
     assert adapters.worker_creationflags == subprocess.CREATE_NO_WINDOW
+    assert adapters.send_enter is send_enter
+    assert isinstance(adapters.create_hotkey_listener("name", MagicMock()), HotkeyListener)
+    assert adapters.qt_platform is None
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Linux 専用の実装を読み込むため Windows では流さない")
-def test_select_platform_adapters_when_linux(tmp_path: Path) -> None:
-    """Linux は何もしない音量・Chromium 系・flock の排他を選ぶ（正常系）。"""
+def test_select_platform_adapters_when_linux(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Linux の Xorg のセッションは何もしない音量・Chromium 系・flock の排他・XTEST の貼り付けを選ぶ（正常系）。"""
     from voice_paste.integrations.browser.opener_linux import open_app_window_linux
+    from voice_paste.integrations.keyboard.sender import send_enter
     from voice_paste.integrations.keyboard.sender_linux import send_paste_linux
-    from voice_paste.integrations.volume.noop import lower_volume_noop, restore_volume_noop
     from voice_paste.main import select_platform_adapters
+    from voice_paste.runtime.hotkey import HotkeyListener, validate_hotkeys
     from voice_paste.runtime.single_instance_linux import acquire_single_instance_linux
-    from voice_paste.shared.os_kind import OsKind
+    from voice_paste.shared.os_kind import DisplaySession, OsKind
 
-    # 準備
+    # 準備: 他のテストが読み込み済みでも、選ぶときに読み込まれないことを確かめられるよう、Wayland のモジュールを読み込み済みでない状態にする
     lock_file = tmp_path / "instance.lock"
+    monkeypatch.delitem(sys.modules, "voice_paste.integrations.keyboard.sender_wayland", raising=False)
 
     # 実行
-    adapters = select_platform_adapters(OsKind.LINUX, lock_file=lock_file)
+    adapters = select_platform_adapters(
+        OsKind.LINUX, lock_file=lock_file, display_session=DisplaySession.X11
+    )
 
     # 検証
-    assert adapters.lower_volume is lower_volume_noop
-    assert adapters.restore_volume is restore_volume_noop
+    assert adapters.lower_volume is None
+    assert adapters.restore_volume is None
+    assert adapters.validate_hotkeys is validate_hotkeys
     assert adapters.open_app_window is open_app_window_linux
     assert adapters.send_paste is send_paste_linux
     assert isinstance(adapters.acquire_single_instance, functools.partial)
@@ -621,6 +804,45 @@ def test_select_platform_adapters_when_linux(tmp_path: Path) -> None:
     assert adapters.acquire_single_instance.keywords == {"lock_file": lock_file}
     assert adapters.worker_creationflags == 0
     assert "voice_paste.integrations.volume.adapter" not in sys.modules
+    assert adapters.send_enter is send_enter
+    assert isinstance(adapters.create_hotkey_listener("name", MagicMock()), HotkeyListener)
+    assert adapters.qt_platform is None
+    assert "voice_paste.integrations.keyboard.sender_wayland" not in sys.modules
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Linux 専用の実装を読み込むため Windows では流さない")
+def test_select_platform_adapters_when_wayland(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Wayland のセッションは uinput のキーの送信・GNOME のショートカット・xcb を選ぶ（正常系）。"""
+    import evdev
+
+    from voice_paste.main import select_platform_adapters
+    from voice_paste.runtime.hotkey_gnome import GnomeShortcutListener, validate_gnome_hotkeys
+    from voice_paste.shared.os_kind import DisplaySession, OsKind
+
+    # 準備: pyperclip の書き先の指定と UInput の生成を偽物にし、sender_linux を読み込み済みでない状態にする
+    set_clipboard = MagicMock()
+    uinput_class = MagicMock()
+    monkeypatch.setattr("pyperclip.set_clipboard", set_clipboard)
+    monkeypatch.setattr(evdev, "UInput", uinput_class)
+    monkeypatch.delitem(sys.modules, "voice_paste.integrations.keyboard.sender_linux", raising=False)
+
+    # 実行
+    adapters = select_platform_adapters(
+        OsKind.LINUX, lock_file=tmp_path / "instance.lock", display_session=DisplaySession.WAYLAND
+    )
+
+    # 検証: キーの送信は同じ UInputKeyboard のメソッドで、開く前は UInput を作らない
+    assert adapters.send_paste.__self__ is adapters.send_enter.__self__
+    assert adapters.open_key_sender.__self__ is adapters.send_enter.__self__
+    assert adapters.close_key_sender.__self__ is adapters.send_enter.__self__
+    uinput_class.assert_not_called()
+    assert isinstance(adapters.create_hotkey_listener("name", MagicMock()), GnomeShortcutListener)
+    assert adapters.qt_platform == "xcb"
+    assert adapters.validate_hotkeys is validate_gnome_hotkeys
+    set_clipboard.assert_called_once_with("xclip")
+    assert "voice_paste.integrations.keyboard.sender_linux" not in sys.modules
 
 
 # === start_local_session ===

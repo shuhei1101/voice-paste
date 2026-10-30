@@ -1,4 +1,4 @@
-"""runtime/single_instance_linux.py（acquire_single_instance_linux・_peer_uid・LinuxSingleInstanceLock）の単体テスト。
+"""runtime/single_instance_linux.py（acquire_single_instance_linux・_peer_uid・LinuxSingleInstanceLock の on_quit_requested・on_hotkey・release）の単体テスト。
 
 Mock は使わず、実物の flock と抽象名前空間の Unix ドメインソケットで確かめる（名前はテストごとに uuid を付け、
 ロックファイルは一時フォルダの instance.lock にする。同じロックを取り合うケースは同じパスを渡す）。
@@ -20,7 +20,7 @@ import time
 from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 import pytest
 
@@ -435,3 +435,78 @@ def test_release_linux(unique_name: str, acquire_linux_lock: AcquireLinuxLock) -
     # 検証
     assert isinstance(again, LinuxSingleInstanceLock)
     on_quit.assert_not_called()
+
+
+def test_on_hotkey(unique_name: str, acquire_linux_lock: AcquireLinuxLock) -> None:
+    """ホットキーを受けたら受け手に渡し、待ち続ける（正常系）。"""
+    from voice_paste.runtime.single_instance_linux import QUIT_REQUEST
+
+    # 準備
+    quit_called = threading.Event()
+    on_quit = MagicMock(side_effect=quit_called.set)
+    on_hotkey = MagicMock()
+    lock = acquire_linux_lock(unique_name, WAIT_SEC)
+    lock.on_quit_requested(on_quit)
+    lock.on_hotkey(on_hotkey)
+
+    # 実行: ホットキーを 2 回送信してから、終了の依頼を送信する
+    _send(unique_name, b"hotkey:<cmd>+<alt>+d")
+    _send(unique_name, b"hotkey:<cmd>+<alt>+d")
+    _send(unique_name, QUIT_REQUEST)
+    quit_called_in_time = quit_called.wait(CALLBACK_WAIT_SEC)
+
+    # 検証
+    assert quit_called_in_time
+    assert on_hotkey.call_args_list == [call("<cmd>+<alt>+d"), call("<cmd>+<alt>+d")]
+    on_quit.assert_called_once()
+
+
+def test_on_hotkey_when_other_user(
+    unique_name: str, acquire_linux_lock: AcquireLinuxLock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """ほかのユーザーからのホットキーは渡さない（正常系）。"""
+    import voice_paste.runtime.single_instance_linux as single_instance_linux
+    from voice_paste.runtime.single_instance_linux import QUIT_REQUEST
+
+    # 準備: 相手の uid が自分と違う状態にする
+    quit_called = threading.Event()
+    on_quit = MagicMock(side_effect=quit_called.set)
+    on_hotkey = MagicMock()
+    lock = acquire_linux_lock(unique_name, WAIT_SEC)
+    lock.on_quit_requested(on_quit)
+    lock.on_hotkey(on_hotkey)
+    original_peer_uid = single_instance_linux._peer_uid
+    monkeypatch.setattr(single_instance_linux, "_peer_uid", lambda _conn: os.getuid() + 1)
+
+    # 実行: ほかのユーザーのホットキーを送信して待ち、相手の uid を自分に戻して、終了の依頼を送信する
+    _send(unique_name, b"hotkey:<cmd>+<alt>+d")
+    time.sleep(SETTLE_SEC)
+    monkeypatch.setattr(single_instance_linux, "_peer_uid", original_peer_uid)
+    _send(unique_name, QUIT_REQUEST)
+    quit_called_in_time = quit_called.wait(CALLBACK_WAIT_SEC)
+
+    # 検証
+    assert quit_called_in_time
+    on_hotkey.assert_not_called()
+
+
+def test_on_hotkey_when_not_registered(
+    unique_name: str, acquire_linux_lock: AcquireLinuxLock
+) -> None:
+    """受け手を渡す前のホットキーは捨てて待ち続ける（正常系）。"""
+    from voice_paste.runtime.single_instance_linux import QUIT_REQUEST
+
+    # 準備: ホットキーの受け手を渡さない
+    quit_called = threading.Event()
+    on_quit = MagicMock(side_effect=quit_called.set)
+    lock = acquire_linux_lock(unique_name, WAIT_SEC)
+    lock.on_quit_requested(on_quit)
+
+    # 実行: ホットキーを送信してから、終了の依頼を送信する
+    _send(unique_name, b"hotkey:<cmd>+<alt>+d")
+    _send(unique_name, QUIT_REQUEST)
+    quit_called_in_time = quit_called.wait(CALLBACK_WAIT_SEC)
+
+    # 検証
+    assert quit_called_in_time
+    on_quit.assert_called_once()

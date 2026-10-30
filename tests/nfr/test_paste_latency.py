@@ -127,7 +127,6 @@ def test_paste_latency(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         pasted.set()
 
     monkeypatch.setattr(main_module, "open_input", _open_input)
-    monkeypatch.setattr(main_module, "send_paste", _send_paste)
 
     # 準備: 固めた設定と用語集で配線し、モデルの読み込みを待つ（クリップボードは測った後に戻す）
     settings = SETTINGS_MODEL(
@@ -135,7 +134,7 @@ def test_paste_latency(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         glossary_path=YOGO_FILE,
     )
     paths = resolve_app_paths(tmp_path)
-    # OS ごとの実装は本物を選び、システム音量だけ何もしないものに差し替えて渡す
+    # OS ごとの実装は本物を選び、システム音量と貼り付けのキーだけ差し替えて渡す
     adapters = replace(
         main_module.select_platform_adapters(
             CURRENT_OS,
@@ -144,6 +143,7 @@ def test_paste_latency(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         ),
         lower_volume=lambda _ratio, _sec: 1.0,
         restore_volume=lambda _volume, _sec: None,
+        send_paste=_send_paste,
     )
     handlers = main_module.build_handlers(
         settings,

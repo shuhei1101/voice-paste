@@ -660,8 +660,8 @@ def _spy_on_main(
     # 貼り付けのキーの控えが渡されたときは、キーボードへ送信しない
     if keys is not None:
         app.keys = keys
-        monkeypatch.setattr(main_module, "send_paste", keys.send_paste)
-        monkeypatch.setattr(main_module, "send_enter", keys.send_enter)
+        adapter_overrides["send_paste"] = keys.send_paste
+        adapter_overrides["send_enter"] = keys.send_enter
     # ブラウザを開く呼び出しは、Microsoft Edge を開かず、渡された URL を控える
     if capture_browser:
         adapter_overrides["open_app_window"] = app.opened_urls.append

@@ -132,6 +132,9 @@ data_models:
       - name: list_glossary_presets
         type: ListGlossaryPresetsFn
         description: 今の設定の用語集のプリセットの名前の一覧と、設定で選んでいるプリセットの名前を返す
+      - name: reports_progress
+        type: bool
+        description: 設定の文字起こしのエンジンが、起こしている途中の進みを返すか（起動時の transcription.engine が local_whisper か）
     status: planned
   - name: CreateWebTranscriptionResponse
     title: 音声の受け付けのレスポンス
@@ -168,6 +171,9 @@ data_models:
       - name: error
         type: str | None
         description: failed のときの失敗の理由
+      - name: reports_progress
+        type: bool
+        description: 設定の文字起こしのエンジンが途中の進みを返すか
     status: planned
   - name: GlossaryPresetChoices
     title: 用語集のプリセットの選択肢
@@ -676,7 +682,7 @@ functions:
       description: 200 の本文
     process: |-
       1. queue.get でジョブを引く（無ければ WebJobNotFoundError を例外ハンドラが 404 にする）
-      2. job_id・state・progress・text・error を返す
+      2. job_id・state・progress・text・error と、deps.reports_progress を返す
     status: planned
   - name: get_web_api_deps
     title: ブラウザの API の依存の取得

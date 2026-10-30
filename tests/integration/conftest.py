@@ -32,6 +32,14 @@ def stack(tmp_path: Path) -> Iterator[Stack]:
 
 
 @pytest.fixture
+def linux_stack(tmp_path: Path) -> Iterator[Stack]:
+    """外の端末のブラウザの機能を組み込まない app（Linux の常駐サービス）を空きポートに立てた一式を返す。ブラウザの音声のキューは始めない。"""
+    built = build_stack(tmp_path, web_enabled=False)
+    yield built
+    stop_stack(built)
+
+
+@pytest.fixture
 def stack_with_settings(tmp_path: Path) -> Iterator[Callable[[Settings], Stack]]:
     """設定を受けて、その設定で本物の app を立てた一式を作る関数を返す。テストの後に立てた一式を止める。"""
     built: list[Stack] = []

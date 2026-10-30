@@ -1649,6 +1649,34 @@ def test_field_when_hidden_keys(open_window: Callable[..., Opened]) -> None:
     opened.saved.assert_called_once()
 
 
+def test_field_when_hidden_keys_of_linux(open_window: Callable[..., Opened]) -> None:
+    """動いている OS で使えない機能（Linux の録音中の音量と外の端末のブラウザの機能）の設定のキーは欄を置かず、保存しても settings.toml のその値を変えない。"""
+    from voice_paste.shared.os_kind import OsKind, hidden_setting_keys, unavailable_features
+    from voice_paste.shared.settings import ApiSettings, RecordingSettings
+
+    # 準備: 既定と違う値の設定を、Linux で出さないキーを渡した UiDeps で開く
+    hidden_keys = hidden_setting_keys(unavailable_features(OsKind.LINUX))
+    settings = SETTINGS_MODEL(
+        recording=RecordingSettings(lower_volume=False, volume_percent=40, fade_sec=1.5),
+        api=ApiSettings(allowed_web_origins=["https://voice.example.com"]),
+    )
+    opened = open_window(settings, hidden_setting_keys=hidden_keys)
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert _existing_fields(opened.window, sorted(hidden_keys)) == []
+    assert _field(opened.window, "api.port") is not None
+    opened.deps.save_settings.assert_called_once()
+    saved = opened.deps.save_settings.call_args.args[0]
+    assert saved.recording.lower_volume is False
+    assert saved.recording.volume_percent == 40
+    assert saved.recording.fade_sec == 1.5
+    assert saved.api.allowed_web_origins == ["https://voice.example.com"]
+    opened.saved.assert_called_once()
+
+
 def test_save_button_when_invalid(open_window: Callable[..., Opened]) -> None:
     """確かめに通らなければ書かず、エラーの一覧と欄の下のエラーを出し、入れた値は削除しない。"""
     # 準備

@@ -521,10 +521,12 @@ def build_stack(
     web_max_pending: int = WEB_QUEUE_LIMIT,
     web_max_finished: int = WEB_FINISHED_JOBS_KEPT,
     settings: Settings | None = None,
+    web_enabled: bool = True,
 ) -> Stack:
     """偽物を差し込んだセッションを、本物の app と ApiServerRunner で立てる。
 
     ブラウザの音声のキューは本物で、web_worker が偽ならワーカースレッドを立てない（積んだジョブは取り出されない）。
+    web_enabled が偽なら、外の端末のブラウザの機能を組み込まない app（Linux の常駐サービス）を立て、キューも始めない。
     """
     paths = resolve_app_paths(tmp_path)
     settings = settings if settings is not None else SETTINGS_MODEL()
@@ -641,7 +643,7 @@ def build_stack(
         max_finished=web_max_finished,
     )
     web_tmp_dir = paths.tmp_dir / "web"
-    if web_worker:
+    if web_worker and web_enabled:
         web_queue.start(web_tmp_dir)
     else:
         web_tmp_dir.mkdir(parents=True, exist_ok=True)
@@ -653,7 +655,11 @@ def build_stack(
         list_glossary_presets=web_list_glossary_presets,
     )
     app = build_fastapi(
-        session_api, token, port, web_api=web_api, allowed_web_origins=[WEB_ORIGIN]
+        session_api,
+        token,
+        port,
+        web_api=web_api if web_enabled else None,
+        allowed_web_origins=[WEB_ORIGIN],
     )
     runner = ApiServerRunner(app, port)
     assert runner.start(START_TIMEOUT_SEC)

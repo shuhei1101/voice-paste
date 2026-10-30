@@ -1,0 +1,12 @@
+$ .venv/Scripts/python.exe -m pytest tests/nfr/test_openai_audio_limit.py
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\chore-transcription-openai-default-model
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collected 1 item
+
+tests\nfr\test_openai_audio_limit.py .                                   [100%]
+
+============================== 1 passed in 0.51s ==============================
+exit: 0

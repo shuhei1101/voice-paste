@@ -1090,6 +1090,42 @@ def test_ui_settings_when_transcribing_show_hotkeys_set() -> None:
     assert ui.transcribing_show_hotkeys is True
 
 
+# === ApiSettings の確かめ（_origins_must_be_origin_form） ===
+
+
+def test_api_settings_when_web_origin_form() -> None:
+    """形式の合う Origin を通す（正常系）。"""
+    from voice_paste.shared.settings import ApiSettings
+
+    # 準備
+    origins = ["https://voice.example.com", "http://localhost:47823"]
+
+    # 実行
+    api = ApiSettings.model_validate({"allowed_web_origins": origins})
+
+    # 検証
+    assert api.allowed_web_origins == ["https://voice.example.com", "http://localhost:47823"]
+
+
+def test_api_settings_when_web_origin_not_form() -> None:
+    """形式の違う Origin を断る（異常系）。"""
+    from pydantic import ValidationError
+
+    from voice_paste.shared.settings import WEB_ORIGIN_FORM_ERROR_TYPE, Settings
+
+    # 準備
+    origins = ["https://voice.example.com/", "https://ok.example.com", "voice.example.com"]
+
+    # 実行・検証
+    with pytest.raises(ValidationError) as exc_info:
+        Settings.model_validate({"api": {"allowed_web_origins": origins}})
+    errors = exc_info.value.errors()
+    assert [(error["type"], error["loc"]) for error in errors] == [
+        (WEB_ORIGIN_FORM_ERROR_TYPE, ("api", "allowed_web_origins"))
+    ]
+    assert errors[0]["ctx"]["invalid"] == ("https://voice.example.com/", "voice.example.com")
+
+
 # === find_glossary_name_overlaps ===
 
 

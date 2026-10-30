@@ -569,6 +569,35 @@ data_models:
         default: '[]'
         description: '外の端末に許す Origin。`/web/` の下に許すオリジン（設定 api.allowed_web_origins。`scheme://host[:port]` の形式だけを通し、末尾の `/` とパスは SettingsError）。pydantic の Field の description の最初の 1 文を「外の端末に許す Origin」にし、設定画面の欄の名前にする'
     status: implemented
+    methods:
+      - name: _origins_must_be_origin_form
+        title: 許す Origin の形式の確かめ
+        summary: 許す Origin の全ての行が `scheme://host[:port]` の形式（ORIGIN_PATTERN に全体が一致する）であることを確かめる（`field_validator("allowed_web_origins")` のクラスメソッド）
+        description: 一致しない行があれば `PydanticCustomError` を投げる。type は WEB_ORIGIN_FORM_ERROR_TYPE、文は「`scheme://host[:port]` の形式で、末尾の `/` とパスを付けない（{origins}）」、ctx は `origins`（一致しない行を `, ` でつないだ文字列。文に埋める）と `invalid`（一致しない行の tuple。入れた順）。失敗の場所は ("api", "allowed_web_origins")。
+        kind: メソッド
+        scope: internal
+        args:
+          - name: origins
+            type: list[str]
+            required: true
+            passing: positional
+            description: 許す Origin の一覧
+        returns:
+          type: list[str]
+          description: そのままの一覧
+        unit_tests:
+          - name: test_api_settings_when_web_origin_form
+            case: 正常
+            summary: 形式の合う Origin を通す
+            condition: allowed_web_origins が ["https://voice.example.com", "http://localhost:47823"]
+            mock: なし
+            expected: allowed_web_origins がそのまま
+          - name: test_api_settings_when_web_origin_not_form
+            case: 異常
+            summary: 形式の違う Origin を断る
+            condition: Settings の api.allowed_web_origins が ["https://voice.example.com/", "https://ok.example.com", "voice.example.com"]
+            mock: なし
+            expected: ValidationError。失敗の type が WEB_ORIGIN_FORM_ERROR_TYPE、場所が ("api", "allowed_web_origins")、ctx の invalid が ("https://voice.example.com/", "voice.example.com")
   - name: BrowserPreset
     title: ブラウザ添付のプリセット
     container: shared/settings.py
@@ -2046,6 +2075,15 @@ constants:
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#elements[設定の欄]
     status: planned
+  - name: WEB_ORIGIN_FORM_ERROR_TYPE
+    title: 形式の違う Origin の失敗の種類
+    container: shared/settings.py
+    usecase: 設定を変える
+    summary: api.allowed_web_origins に `scheme://host[:port]` の形式でない行があるときの PydanticCustomError の type。設定画面の to_field_message がエラーの文に変える
+    value: '"web_origin_form"'
+    status: planned
+    introduced:
+      pr: 226
 test_files:
   - tests/unit/voice_paste/shared/test_settings.py
   - tests/unit/voice_paste/shared/test_logger.py

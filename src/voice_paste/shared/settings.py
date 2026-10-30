@@ -99,6 +99,9 @@ HINT_PRESET_NAME_OVERLAP_ERROR_TYPE: str = "hint_preset_name_overlap"
 ORIGIN_PATTERN: re.Pattern[str] = re.compile(r"https?://[^/\s?#]+")
 """許す Origin の形式（`scheme://host[:port]`。末尾の `/` とパスは持たない）。"""
 
+WEB_ORIGIN_FORM_ERROR_TYPE: str = "web_origin_form"
+"""許す Origin に形式の違う行があるときの PydanticCustomError の種類。設定画面がエラーの文に変える。"""
+
 EDGE_PHRASES_FIELD_NAME: str = "edge_phrases"
 """文頭・文末から削除する文言の一覧の設定のキー。"""
 
@@ -557,8 +560,10 @@ class ApiSettings(_SettingsModel):
         invalid = [origin for origin in origins if not ORIGIN_PATTERN.fullmatch(origin)]
         # 形式の合わない Origin があれば断る
         if invalid:
-            raise ValueError(
-                f"`scheme://host[:port]` の形式で、末尾の `/` とパスを付けない（{', '.join(invalid)}）"
+            raise PydanticCustomError(
+                WEB_ORIGIN_FORM_ERROR_TYPE,
+                "`scheme://host[:port]` の形式で、末尾の `/` とパスを付けない（{origins}）",
+                {"origins": ", ".join(invalid), "invalid": tuple(invalid)},
             )
         return origins
 

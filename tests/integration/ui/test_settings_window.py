@@ -2121,6 +2121,36 @@ def test_input_check_when_openai_base_url_invalid(
     opened.deps.save_settings.assert_not_called()
 
 
+@pytest.mark.skipif(
+    sys.platform != "win32", reason="外の端末に許す Origin の欄は Linux では出ないため Windows でだけ流す"
+)
+@pytest.mark.parametrize("button", ["save_button", "save_and_restart_button"])
+def test_input_check_when_web_origin_not_form(
+    open_window: Callable[..., Opened], button: str
+) -> None:
+    """外の端末に許す Origin に形式の違う行: 違う行を読点でつないだ文言をその欄の下とエラーの一覧に出し、保存しない。"""
+    # 準備（形式の違う 2 行と合う 1 行）
+    opened = open_window()
+    _field(opened.window, "api.allowed_web_origins", QPlainTextEdit).setPlainText(
+        "https://voice.example.com/\nhttps://ok.example.com\nvoice.example.com"
+    )
+
+    # 実行
+    _click(opened.window, button)
+
+    # 検証
+    message = (
+        "形式の違うオリジンがあります（https://voice.example.com/、voice.example.com）。"
+        "https://example.com のように、http:// か https:// で始め、"
+        "末尾の / とパスを付けずに入れてください。"
+    )
+    assert find(opened.window, QLabel, "error_api.allowed_web_origins").text() == message
+    assert _field_errors(opened.window) == [message]
+    assert any(row.endswith(f": {message}") for row in _error_rows(opened.window))
+    opened.deps.save_settings.assert_not_called()
+    opened.restart_requested.assert_not_called()
+
+
 def test_input_check_when_preset_hotkey_overlap(open_window: Callable[..., Opened]) -> None:
     """プリセットのホットキーが、ほかのプリセットと同じ: 「プリセット「{タイトル}」と同じキーです。別のキーにしてください。」を出す。種類をまたぐときは種類も添える。"""
     # 準備

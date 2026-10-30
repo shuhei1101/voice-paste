@@ -43,6 +43,7 @@ flows:
     expected:
       - queued のジョブは 200 で progress が 0.0、text と error が null
       - running のジョブは 200 で progress が 0.42、text と error が null
+      - どちらも reports_progress が true
     test: test_normal_when_in_progress
   - name: 正常系（文字起こし失敗）
     summary: 文字起こしに失敗したジョブの理由を返す
@@ -63,6 +64,25 @@ flows:
     expected:
       - 200 で state が failed、error が失敗の理由、text が null
     test: test_normal_when_failed
+  - name: 正常系（進みを返さないエンジン）
+    summary: 設定のエンジンが進みを返さないとき、文字起こし中のジョブに進みを返さないことを添えて返す
+    setup:
+      - name: Mock
+        description: ブラウザの音声のジョブの一覧に、ジョブを直接入れる。進みを返すかを false（設定のエンジンが `openai`）にして app を立てる
+      - name: 終わっていないジョブ
+        description: state が running・progress が 0.0 のジョブ
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as ブラウザ
+        participant IF as GET /web/transcriptions/{job_id}
+
+        C->>IF: job_id
+        IF-->>C: 200・state=running・progress=0.0・reports_progress=false
+      ```
+    expected:
+      - 200 で state が running、progress が 0.0、reports_progress が false、text と error が null
+    test: test_normal_when_engine_reports_no_progress
   - name: 異常系（許されていない Origin・403）
     summary: 許す Origin に無い Origin が付いた要求を断る
     setup:
@@ -166,7 +186,11 @@ response:
   - name: progress
     type: float
     description: 進み具合。`running` の間は起こし終えた区間の終わりの時刻 ÷ 音声の秒数（`segment.end / duration`）
-    constraints: 0.0〜1.0。`queued` は 0.0、`done` は 1.0、`failed` は失敗した時点の値
+    constraints: 0.0〜1.0。`queued` は 0.0、`done` は 1.0、`failed` は失敗した時点の値。`reports_progress` が false のときは `running` の間も 0.0
+  - name: reports_progress
+    type: bool
+    description: 設定の文字起こしのエンジンが、起こしている途中の進みを返すか。`local_whisper` は true、`openai` は false
+    notes: ジョブの状態によらず同じ値。常駐サービスの起動時の設定（`transcription.engine`。反映は再起動）で決まる。デスクトップの文字起こし中の表示と同じ判定
   - name: text
     type: str | None
     description: 用語集と文頭・文末の文言で補正した起こした文字
@@ -181,6 +205,7 @@ response_example: |-
     "job_id": "q3Vb8sXk2mJf0tLw9eRzAg",
     "state": "running",
     "progress": 0.42,
+    "reports_progress": true,
     "text": null,
     "error": null
   }

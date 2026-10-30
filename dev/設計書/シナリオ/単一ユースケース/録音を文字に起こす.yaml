@@ -573,7 +573,7 @@ scenarios:
     test: test_normal_when_openai
     notes:
       入口とエンジン: API から始めた録音・連続録音の区間・ブラウザから受けた音声も、設定のエンジンが OpenAI API なら同じ要求で起こす（ブラウザの音声は録れた形式のまま送信する）。区間ごとの進みは返らないため、文字起こし中の表示の残りの時間とブラウザのジョブの進みは、起こし終えるまで進まない（表示の出し方は 画面設計『文字起こし中の表示』）。
-      手がかりの渡し方: 設定のモデルが `gpt-transcribe`（名前が `gpt-transcribe` で始まるもの）なら、有効なプリセットの語を 1 語ずつ `keywords[]` に、設定の言語を `languages[]` に渡す。`<`・`>` を含む語は OpenAI API が要求ごと拒むため `keywords[]` に入れない。有効な語が無いときは `keywords[]` を送信しない。ほかのモデルの渡し方は 正常シナリオ（OpenAI API の前のモデルで起こす）。
+      手がかりの渡し方: 設定のモデルが `gpt-transcribe`（名前が `gpt-transcribe` で始まるもの）なら、有効なプリセットの語を 1 語ずつ `keywords[]` に、設定の言語を `languages[]` に渡す。`<`・`>` を含む語は OpenAI API が要求ごと拒むため `keywords[]` に入れない。有効な語が無いときは `keywords[]` を送信しない。`prompt` は gpt-transcribe も受けるが、手がかりの文は同じ語を読点でつないだだけで `keywords[]` 以上の手がかりにならないため送信しない。ほかのモデルの渡し方は 正常シナリオ（OpenAI API の前のモデルで起こす）。
   - name: 異常シナリオ（OpenAI API が失敗を返す）
     setup:
       - name: Mock

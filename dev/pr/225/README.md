@@ -10,7 +10,7 @@ settings.toml で前のモデルを指定したユーザーの設定も、その
 [Issue #206](https://github.com/shuhei1101/voice-paste/issues/206) の要望。
 [#204](https://github.com/shuhei1101/voice-paste/pull/204) で OpenAI API のエンジンの既定のモデル（設定 `transcription.openai.model`）を、ユーザーの判断で `gpt-4o-mini-transcribe` にした（[確認事項のスレッド](https://github.com/shuhei1101/voice-paste/pull/204#discussion_r4397499388)）。
 `gpt-4o-mini-transcribe` は 2027-02-26 に提供が終わる（[Deprecations](https://developers.openai.com/api/docs/deprecations)）。
-後継の `gpt-transcribe` は、手がかり・言語を `prompt`・`language` ではなく `keywords[]`・`languages[]` で受ける。
+後継の `gpt-transcribe` は、言語を `language` ではなく `languages[]` で受け、手がかりの語を `keywords[]` でも受ける。
 使うモデルの検討と疎通確認の求め（[#213](https://github.com/shuhei1101/voice-paste/issues/213)）は、この Issue へ集約された。
 
 ## 計画書

@@ -1,0 +1,40 @@
+$ .venv/Scripts/python.exe -m pytest tests/integration   # Windows の仮想環境（uv.exe sync --frozen）
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-platform-linux-wayland
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collected 696 items
+
+tests\integration\test_accept_web_audio.py ............                  [  1%]
+tests\integration\test_complete_session.py .........                     [  3%]
+tests\integration\test_deliver_to_caller.py ...........                  [  4%]
+tests\integration\test_deliver_to_endpoint.py ...                        [  5%]
+tests\integration\test_deliver_to_output.py ......                       [  5%]
+tests\integration\test_get_web_transcription.py .....                    [  6%]
+tests\integration\test_list_web_glossary_presets.py ...                  [  7%]
+tests\integration\test_serve_web_page.py ......                          [  7%]
+tests\integration\test_settings_migration.py .                           [  8%]
+tests\integration\test_start_session.py ...........                      [  9%]
+tests\integration\test_stop_session.py ........                          [ 10%]
+tests\integration\test_transcribe_web_audio.py .....                     [ 11%]
+tests\integration\test_truncate_session.py ...                           [ 11%]
+tests\integration\ui\test_busy_dialog.py ..........                      [ 13%]
+tests\integration\ui\test_recording_window.py .......................... [ 17%]
+........................................................................ [ 27%]
+                                                                         [ 27%]
+tests\integration\ui\test_settings_window.py ........................... [ 31%]
+........s............................................................... [ 41%]
+........................................................................ [ 52%]
+........................................................................ [ 62%]
+........................................................................ [ 72%]
+............................                                             [ 76%]
+tests\integration\ui\test_transcribing_indicator.py .................... [ 79%]
+.....................................................................    [ 89%]
+tests\integration\ui\test_tray.py ...................................... [ 94%]
+........                                                                 [ 96%]
+tests\integration\ui\test_tray_notification.py ......................... [ 99%]
+..                                                                       [100%]
+
+================== 695 passed, 1 skipped in 71.93s (0:01:11) ==================
+exit=0

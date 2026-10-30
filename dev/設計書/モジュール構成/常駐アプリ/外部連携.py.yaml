@@ -466,6 +466,12 @@ classes:
             checks: 約 3 秒の日本語の WAV を既定のモデル（gpt-transcribe）・languages[]=ja・keywords[] 付きで送信し、空でない文字が 1 区間で返る。かかった秒を記録する（非機能要件のタイムアウトを実測で見直す材料）
             cost: 従量課金。約 3 秒 × $0.0045/分 で 1 回あたり約 $0.0003。実行の前に規約『開発時の従量課金APIの実行』で見積もる
             notes: API キー（環境変数 OPENAI_API_KEY か secrets/openai_api_key）が無い環境では skip する
+          - name: test_ext_transcribe_response_time
+            api: OpenAI API POST /v1/audio/transcriptions
+            summary: 実際の OpenAI API で、最長の録音の応答時間と接続にかかった時間を測る
+            checks: 600 秒（セッションの上限時間）の日本語の WAV を、既定のモデル（gpt-transcribe）・languages[]=ja で 1,000 回続けて送信する。transport に、要求の extensions に trace を付けて httpx.HTTPTransport へ渡す計測用の transport を渡し、送信から応答までの秒と、接続（TCP と TLS）にかかった秒を 1 回ごとに記録する。全ての回で空でない文字が 1 区間で返り、2 つの秒の p50・p99・p99.9・最大を出力する（非機能要件『OpenAIの文字起こしのタイムアウトと再送』のタイムアウトと接続の決定値を求める材料）
+            cost: 従量課金。600 秒 × $0.0045/分 × 1,000 回で約 $45。実行の前に規約『開発時の従量課金APIの実行』で見積もる
+            notes: 環境変数 VOICE_PASTE_MEASURE_OPENAI_RESPONSE_TIME が 1 のときだけ実行し、それ以外と API キーが無い環境・音声を作れない環境では skip する（外部疎通テストを流すたびに課金しないため）
       - name: _build_form
         title: 言語と手がかりの項目の組み立て
         kind: メソッド
@@ -1798,7 +1804,7 @@ constants:
     title: OpenAI API の応答を待つ秒数
     container: integrations/openai/transcriber.py
     usecase: 録音を文字に起こす
-    summary: 1 回の送信で応答を待つ上限（非機能要件の OpenAIの文字起こしのタイムアウトと再送）
+    summary: 1 回の送信で応答を待つ上限（非機能要件の OpenAIの文字起こしのタイムアウトと再送）。値は test_ext_transcribe_response_time で測った応答時間の p99.9 + 50%
     value: '600.0'
     status: planned
     introduced:
@@ -1807,7 +1813,7 @@ constants:
     title: OpenAI API への接続を待つ秒数
     container: integrations/openai/transcriber.py
     usecase: 録音を文字に起こす
-    summary: 接続を待つ上限（非機能要件の OpenAIの文字起こしのタイムアウトと再送）
+    summary: 接続を待つ上限（非機能要件の OpenAIの文字起こしのタイムアウトと再送）。値は test_ext_transcribe_response_time で測った接続にかかった時間の p99.9 + 50%
     value: '5.0'
     status: planned
     introduced:

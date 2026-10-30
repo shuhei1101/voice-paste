@@ -28,16 +28,20 @@ class RecordedRequest:
     """要求のヘッダー（小文字の名前）。"""
     body: bytes
 
-    def form_fields(self) -> dict[str, bytes]:
-        """multipart の本文を、欄の名前 → 値（file は音声のバイト列）に分けて返す。"""
+    def form_parts(self) -> list[tuple[str, bytes]]:
+        """multipart の本文を、届いた順の（欄の名前, 値）に分けて返す（同じ名前の欄は繰り返し並ぶ。file は音声のバイト列）。"""
         boundary = self.headers["content-type"].split("boundary=")[1].encode()
-        fields: dict[str, bytes] = {}
+        parts: list[tuple[str, bytes]] = []
         for part in self.body.split(b"--" + boundary):
             head, separator, value = part.partition(b"\r\n\r\n")
             name = re.search(rb'name="([^"]+)"', head)
             if separator and name is not None:
-                fields[name.group(1).decode()] = value.removesuffix(b"\r\n")
-        return fields
+                parts.append((name.group(1).decode(), value.removesuffix(b"\r\n")))
+        return parts
+
+    def form_fields(self) -> dict[str, bytes]:
+        """multipart の本文を、欄の名前 → 値（file は音声のバイト列）に分けて返す。"""
+        return dict(self.form_parts())
 
 
 class FakeOpenAIEndpoint:

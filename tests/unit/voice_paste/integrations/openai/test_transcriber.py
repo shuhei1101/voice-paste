@@ -1,4 +1,4 @@
-"""integrations/openai/transcriber.py（OpenAITranscriber.transcribe）の単体テスト。
+"""integrations/openai/transcriber.py（OpenAITranscriber.transcribe・_build_form）の単体テスト。
 
 送信先は httpx.MockTransport に、待つ関数・待つ秒数のジッターを引く関数は記録する関数に差し替える。
 """
@@ -22,6 +22,7 @@ BASE_URL = "http://127.0.0.1:9000/v1"
 TRANSCRIPTIONS_URL = "http://127.0.0.1:9000/v1/audio/transcriptions"
 API_KEY = "sk-test-key"
 MODEL = "gpt-4o-mini-transcribe"
+KEYWORDS_MODEL = "gpt-transcribe"
 LANGUAGE = "ja"
 HINT = "voice-paste、Whisper"
 WAV_BYTES = b"RIFF0000WAVEfmt "
@@ -43,17 +44,22 @@ class FakeEndpoint:
         return step
 
 
-def _form_fields(request: httpx.Request) -> dict[str, bytes]:
-    """multipart の本文を、欄の名前 → 値（file は音声のバイト列）に分ける。"""
+def _form_parts(request: httpx.Request) -> list[tuple[str, bytes]]:
+    """multipart の本文を、届いた順の（欄の名前, 値）に分ける（同じ名前の欄は繰り返し並ぶ。file は音声のバイト列）。"""
     boundary = request.headers["content-type"].split("boundary=")[1].encode()
-    fields: dict[str, bytes] = {}
+    parts: list[tuple[str, bytes]] = []
     for part in request.content.split(b"--" + boundary):
         head, separator, body = part.partition(b"\r\n\r\n")
         name = re.search(rb'name="([^"]+)"', head)
         if not separator or name is None:
             continue
-        fields[name.group(1).decode()] = body.removesuffix(b"\r\n")
-    return fields
+        parts.append((name.group(1).decode(), body.removesuffix(b"\r\n")))
+    return parts
+
+
+def _form_fields(request: httpx.Request) -> dict[str, bytes]:
+    """multipart の本文を、欄の名前 → 値（file は音声のバイト列）に分ける。"""
+    return dict(_form_parts(request))
 
 
 def _ok(text: str) -> httpx.Response:
@@ -82,16 +88,16 @@ def uniform() -> MagicMock:
 
 
 @pytest.fixture
-def make_transcriber(sleep: MagicMock, uniform: MagicMock) -> Callable[[FakeEndpoint], Any]:
-    """エンドポイントへ送信する OpenAITranscriber を作る関数を返す。"""
+def make_transcriber(sleep: MagicMock, uniform: MagicMock) -> Callable[..., Any]:
+    """エンドポイントへ送信する OpenAITranscriber を作る関数（モデルは省くと MODEL）を返す。"""
 
-    def _make(endpoint: FakeEndpoint) -> Any:
+    def _make(endpoint: FakeEndpoint, model: str = MODEL) -> Any:
         """MockTransport でエンドポイントへつないだ OpenAITranscriber を作る。"""
         from voice_paste.integrations.openai.transcriber import OpenAITranscriber
         from voice_paste.shared.settings import OpenAISettings
 
         return OpenAITranscriber(
-            settings=OpenAISettings(model=MODEL, language=LANGUAGE, base_url=BASE_URL),
+            settings=OpenAISettings(model=model, language=LANGUAGE, base_url=BASE_URL),
             api_key=SecretStr(API_KEY),
             sleep=sleep,
             uniform=uniform,
@@ -280,3 +286,105 @@ def test_transcribe_when_redirected(
     with pytest.raises(EngineError, match="307"):
         transcriber.transcribe(audio_path)
     assert [request.url.host for request in endpoint.requests] == ["127.0.0.1"]
+
+
+def test_transcribe_when_keywords_model(
+    audio_path: Path, make_transcriber: Callable[..., Any]
+) -> None:
+    """gpt-transcribe では keywords[] と languages[] を同じ項目名で繰り返して送信する（正常系）。"""
+    # 準備
+    endpoint = FakeEndpoint(_ok("今日は晴れ"))
+    transcriber = make_transcriber(endpoint, KEYWORDS_MODEL)
+
+    # 実行
+    segments = transcriber.transcribe(audio_path, hint=HINT)
+
+    # 検証: keywords[] が 2 つ・languages[] が 1 つ並び、language・prompt は届かない
+    assert segments == ["今日は晴れ"]
+    parts = _form_parts(endpoint.requests[0])
+    assert [value for name, value in parts if name == "keywords[]"] == [b"voice-paste", b"Whisper"]
+    assert [value for name, value in parts if name == "languages[]"] == [b"ja"]
+    assert "language" not in dict(parts)
+    assert "prompt" not in dict(parts)
+    assert dict(parts)["model"] == KEYWORDS_MODEL.encode()
+
+
+def test_build_form_when_keywords_model(make_transcriber: Callable[..., Any]) -> None:
+    """gpt-transcribe は語を keywords[]、言語を languages[] に入れる（正常系）。"""
+    # 準備
+    transcriber = make_transcriber(FakeEndpoint(), KEYWORDS_MODEL)
+
+    # 実行
+    form = transcriber._build_form(HINT)
+
+    # 検証: language・prompt は入らない
+    assert form == {"languages[]": ["ja"], "keywords[]": ["voice-paste", "Whisper"]}
+
+
+def test_build_form_when_keywords_model_snapshot(make_transcriber: Callable[..., Any]) -> None:
+    """gpt-transcribe で始まるスナップショットも keywords[] で渡す（正常系）。"""
+    # 準備
+    transcriber = make_transcriber(FakeEndpoint(), "gpt-transcribe-2026-08-26")
+
+    # 実行
+    form = transcriber._build_form("voice-paste")
+
+    # 検証
+    assert form["keywords[]"] == ["voice-paste"]
+    assert form["languages[]"] == ["ja"]
+
+
+def test_build_form_when_keywords_model_no_hint(make_transcriber: Callable[..., Any]) -> None:
+    """手がかりが無ければ keywords[] を入れない（正常系）。"""
+    # 準備
+    transcriber = make_transcriber(FakeEndpoint(), KEYWORDS_MODEL)
+
+    # 実行
+    form = transcriber._build_form(None)
+
+    # 検証
+    assert form == {"languages[]": ["ja"]}
+
+
+def test_build_form_when_forbidden_keyword(
+    make_transcriber: Callable[..., Any], caplog: pytest.LogCaptureFixture
+) -> None:
+    """< か > を含む語は keywords[] に入れない（正常系）。"""
+    # 準備
+    caplog.set_level(logging.WARNING)
+    transcriber = make_transcriber(FakeEndpoint(), KEYWORDS_MODEL)
+
+    # 実行
+    form = transcriber._build_form("<tag>、Whisper、a>b")
+
+    # 検証: 残る語は Whisper だけで、WARNING には除いた語の数 2 が書かれ、語そのものは書かれない
+    assert form["keywords[]"] == ["Whisper"]
+    warnings = [record.getMessage() for record in caplog.records]
+    assert len(warnings) == 1
+    assert "2" in warnings[0]
+    assert "<tag>" not in caplog.text
+    assert "a>b" not in caplog.text
+
+
+def test_build_form_when_all_keywords_forbidden(make_transcriber: Callable[..., Any]) -> None:
+    """全ての語が除かれたら keywords[] を入れない（正常系）。"""
+    # 準備
+    transcriber = make_transcriber(FakeEndpoint(), KEYWORDS_MODEL)
+
+    # 実行
+    form = transcriber._build_form("<tag>")
+
+    # 検証
+    assert form == {"languages[]": ["ja"]}
+
+
+def test_build_form_when_previous_model(make_transcriber: Callable[..., Any]) -> None:
+    """前のモデルは今のまま language と prompt に入れる（正常系）。"""
+    # 準備
+    transcriber = make_transcriber(FakeEndpoint(), "gpt-4o-mini-transcribe")
+
+    # 実行
+    form = transcriber._build_form(HINT)
+
+    # 検証: languages[]・keywords[] は入らない
+    assert form == {"language": "ja", "prompt": HINT}

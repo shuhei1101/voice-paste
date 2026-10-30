@@ -368,7 +368,7 @@ classes:
             required: false
             default: None
             passing: keyword
-            description: 文字起こしの手がかり。None なら prompt を送信しない
+            description: 文字起こしの手がかり（有効なプリセットの語を HINT_SEPARATOR でつないだ文）。None なら prompt も keywords[] も送信しない
         returns:
           type: list[str]
           description: 起こした文字の 1 要素の並び。起こした文字が空なら空の並び
@@ -379,7 +379,7 @@ classes:
           1. 音声の大きさが OPENAI_MAX_AUDIO_BYTES 以下で、拡張子（小文字）が OPENAI_AUDIO_SUFFIXES にあるかを確かめる
              - 外れる場合、送信せずに EngineError を送出する（理由は「音声が OpenAI API の上限（25 MB）を超えています」か「OpenAI API が受けられない形式です（{拡張子}）」）
                - `[WARNING]` OpenAI API へ送信しない音声（大きさ・拡張子）
-          2. httpx.Client（timeout は OPENAI_TIMEOUT_SEC・接続は OPENAI_CONNECT_TIMEOUT_SEC、follow_redirects=False、transport=_transport）で `{base_url}/audio/transcriptions` へ POST する。ヘッダーは `Authorization: Bearer {API キー}`、本文は multipart の file（音声）・model・language・response_format=json と、hint があるときだけ prompt
+          2. httpx.Client（timeout は OPENAI_TIMEOUT_SEC・接続は OPENAI_CONNECT_TIMEOUT_SEC、follow_redirects=False、transport=_transport）で `{base_url}/audio/transcriptions` へ POST する。ヘッダーは `Authorization: Bearer {API キー}`、本文は multipart の file（音声）・model・response_format=json と、_build_form が返す言語と手がかりの項目
           3. 応答を見る
              - 200 の場合、JSON の text の前後の空白を除き、空でなければ [text]、空なら [] を返す
                - `[INFO]` OpenAI API で起こした（モデル・音声のバイト数・かかった秒・試した回数）
@@ -391,7 +391,7 @@ classes:
           - name: test_transcribe
             case: 正常
             summary: 録音と設定を送信して起こした文字を返す
-            condition: 'エンドポイントが 200 と {"text": " 今日は晴れ "} を返す。hint="voice-paste、Whisper"'
+            condition: 'エンドポイントが 200 と {"text": " 今日は晴れ "} を返す。model="gpt-4o-mini-transcribe"・hint="voice-paste、Whisper"'
             mock: httpx.MockTransport
             expected: '["今日は晴れ"] が返り、`{base_url}/audio/transcriptions` に Authorization: Bearer {API キー}・file・model・language・response_format=json・prompt="voice-paste、Whisper" が届いている'
           - name: test_transcribe_when_no_hint
@@ -453,13 +453,79 @@ classes:
             mock: httpx.MockTransport
             expected: EngineError が送出され、別のホストへの要求が出ない
             exception: 音声が上限を超えるか受けられない形式・4xx（429 を除く。リダイレクトを含む）・送信し直しても 429・5xx・タイムアウト・接続できない
+          - name: test_transcribe_when_keywords_model
+            case: 正常
+            summary: gpt-transcribe では keywords[] と languages[] を同じ項目名で繰り返して送信する
+            condition: 'エンドポイントが 200 と {"text": "今日は晴れ"} を返す。model="gpt-transcribe"・hint="voice-paste、Whisper"'
+            mock: httpx.MockTransport
+            expected: 届いた本文に keywords[] のパートが voice-paste・Whisper の 2 つ、languages[] のパートが ja の 1 つあり、language・prompt のパートが無い
         connectivity_tests:
           - name: test_ext_transcribe
             api: OpenAI API POST /v1/audio/transcriptions
             summary: 実際の OpenAI API で、短い音声を起こせる
-            checks: 約 3 秒の日本語の WAV を既定のモデル・language=ja・prompt 付きで送信し、空でない文字が 1 区間で返る。かかった秒を記録する（非機能要件のタイムアウトを実測で見直す材料）
-            cost: 従量課金。約 3 秒 × $0.003/分 で 1 回あたり約 $0.0002。実行の前に規約『開発時の従量課金APIの実行』で見積もる
+            checks: 約 3 秒の日本語の WAV を既定のモデル（gpt-transcribe）・languages[]=ja・keywords[] 付きで送信し、空でない文字が 1 区間で返る。かかった秒を記録する（非機能要件のタイムアウトを実測で見直す材料）
+            cost: 従量課金。約 3 秒 × $0.0045/分 で 1 回あたり約 $0.0003。実行の前に規約『開発時の従量課金APIの実行』で見積もる
             notes: API キー（環境変数 OPENAI_API_KEY か secrets/openai_api_key）が無い環境では skip する
+      - name: _build_form
+        title: 言語と手がかりの項目の組み立て
+        kind: メソッド
+        scope: internal
+        summary: 設定のモデルに合わせて、言語と手がかりを載せる multipart の項目を返す
+        args:
+          - name: hint
+            type: str | None
+            required: true
+            passing: positional
+            description: transcribe が受けた手がかり
+        returns:
+          type: dict[str, str | list[str]]
+          description: multipart の項目名 → 値。list の値は同じ項目名で繰り返し送信する
+        process: |-
+          1. 設定のモデルが OPENAI_KEYWORDS_MODEL_PREFIX で始まるかを見る
+             - 始まる場合、`languages[]` に [設定の言語] を入れる。hint があれば HINT_SEPARATOR で語に分け、OPENAI_KEYWORD_FORBIDDEN_CHARS のどれかを含む語を除いた語を `keywords[]` に入れる（残る語が無ければ `keywords[]` を入れない）。`language`・`prompt` は入れない
+               - `[WARNING]` keywords[] に入れない語がある（除いた語の数。語そのものは書かない）
+             - 始まらない場合、`language` に設定の言語を入れ、hint があれば `prompt` に hint をそのまま入れる
+          2. 組み立てた項目を返す
+        unit_tests:
+          - name: test_build_form_when_keywords_model
+            case: 正常
+            summary: gpt-transcribe は語を keywords[]、言語を languages[] に入れる
+            condition: model="gpt-transcribe"・language="ja"・hint="voice-paste、Whisper"
+            mock: なし
+            expected: '{"languages[]": ["ja"], "keywords[]": ["voice-paste", "Whisper"]} が返り、language・prompt が無い'
+          - name: test_build_form_when_keywords_model_snapshot
+            case: 正常
+            summary: gpt-transcribe で始まるスナップショットも keywords[] で渡す
+            condition: model="gpt-transcribe-2026-08-26"・hint="voice-paste"
+            mock: なし
+            expected: keywords[] が ["voice-paste"]、languages[] が [設定の言語]
+          - name: test_build_form_when_keywords_model_no_hint
+            case: 正常
+            summary: 手がかりが無ければ keywords[] を入れない
+            condition: model="gpt-transcribe"・hint=None
+            mock: なし
+            expected: '{"languages[]": ["ja"]} だけが返る'
+          - name: test_build_form_when_forbidden_keyword
+            case: 正常
+            summary: < か > を含む語は keywords[] に入れない
+            condition: model="gpt-transcribe"・hint="<tag>、Whisper、a>b"
+            mock: なし
+            expected: keywords[] が ["Whisper"] だけで、WARNING のログに除いた語の数 2 が書かれ、語そのものが書かれていない
+          - name: test_build_form_when_all_keywords_forbidden
+            case: 正常
+            summary: 全ての語が除かれたら keywords[] を入れない
+            condition: model="gpt-transcribe"・hint="<tag>"
+            mock: なし
+            expected: '{"languages[]": ["ja"]} だけが返る'
+          - name: test_build_form_when_previous_model
+            case: 正常
+            summary: 前のモデルは今のまま language と prompt に入れる
+            condition: model="gpt-4o-mini-transcribe"・language="ja"・hint="voice-paste、Whisper"
+            mock: なし
+            expected: '{"language": "ja", "prompt": "voice-paste、Whisper"} が返り、languages[]・keywords[] が無い'
+        status: planned
+        introduced:
+          pr: 225
     refs:
       - dev/設計書/外部API/OpenAI#
       - dev/設計書/外部ライブラリ/httpx#
@@ -1778,7 +1844,7 @@ constants:
     container: integrations/openai/transcriber.py
     usecase: 録音を文字に起こす
     summary: 送信する前に確かめる音声の上限（25 MB から要求の本文の固定の消費分を引いた値。非機能要件の OpenAIへ送信する音声の上限）
-    value: '26_209_484'
+    value: '26_204_569'
     status: planned
     introduced:
       pr: 204
@@ -1820,6 +1886,24 @@ constants:
     summary: UInput の機器の名前。入力の機器の一覧で常駐サービスのものと見分ける
     value: '"voice-paste-keyboard"'
     status: planned
+  - name: OPENAI_KEYWORDS_MODEL_PREFIX
+    title: keywords[] と languages[] で渡すモデルの名前の頭
+    container: integrations/openai/transcriber.py
+    usecase: 録音を文字に起こす
+    summary: 設定のモデルの名前がこれで始まれば、手がかりを keywords[]、言語を languages[] で渡す（スナップショットの名前も含める）
+    value: '"gpt-transcribe"'
+    status: planned
+    introduced:
+      pr: 225
+  - name: OPENAI_KEYWORD_FORBIDDEN_CHARS
+    title: keywords[] に入れられない文字
+    container: integrations/openai/transcriber.py
+    usecase: 録音を文字に起こす
+    summary: 含むと OpenAI API が要求ごと拒む文字。改行は手がかりの語に入らない（HINT_WORD_FORBIDDEN_CHARS）ため持たない
+    value: ("<", ">")
+    status: planned
+    introduced:
+      pr: 225
 test_files:
   - tests/unit/voice_paste/integrations/whisper/test_client.py
   - tests/unit/voice_paste/integrations/openai/test_credentials.py

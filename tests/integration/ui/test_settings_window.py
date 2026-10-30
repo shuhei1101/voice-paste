@@ -463,7 +463,7 @@ def test_field_openai_fields(open_window: Callable[..., Opened]) -> None:
 
     # 検証
     expected = {
-        "transcription.openai.model": "gpt-4o-mini-transcribe",
+        "transcription.openai.model": "gpt-transcribe",
         "transcription.openai.language": "ja",
         "transcription.openai.base_url": "https://api.openai.com/v1",
     }

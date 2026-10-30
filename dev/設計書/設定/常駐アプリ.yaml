@@ -744,11 +744,11 @@ settings:
     title: OpenAI のモデル
     file: settings.toml
     type: string
-    description: OpenAI API の文字起こしに使うモデル。
+    description: OpenAI API の文字起こしに使うモデル。`gpt-transcribe` で始まるモデルは手がかりを `keywords[]`、言語を `languages[]` で、それ以外のモデル（`gpt-4o-mini-transcribe` など）は `prompt`・`language` で渡す。
     reload: restart
     status: planned
     implementation: src/voice_paste/shared/settings.py
-    default: gpt-4o-mini-transcribe
+    default: gpt-transcribe
   - key: transcription.openai.language
     title: OpenAI の言語
     file: settings.toml

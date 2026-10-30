@@ -771,18 +771,22 @@ OPENAI_HINT_SETTINGS = '[[hint_presets]]\nname = "開発"\nwords = ["voice-paste
 OPENAI_HINT = "voice-paste、Whisper"
 """OPENAI_HINT_SETTINGS の語を読点（、）でつないだ手がかり。"""
 
-OPENAI_MODEL = "gpt-4o-mini-transcribe"
+OPENAI_MODEL = "gpt-transcribe"
 """設定の OpenAI API のモデルの既定。"""
+
+OPENAI_PREVIOUS_MODEL = "gpt-4o-mini-transcribe"
+"""手がかりを prompt、言語を language で渡す前のモデル。"""
 
 OVER_LIMIT_MARGIN_BYTES = 1_000
 """25 MB の上限を確実に超えるよう、上限に足す大きさ（バイト）。"""
 
 
-def _openai_settings(endpoint: FakeOpenAIEndpoint) -> str:
-    """文字起こしのエンジンを OpenAI API にし、ベース URL をテスト用のエンドポイントに向ける settings.toml の続きを返す。"""
+def _openai_settings(endpoint: FakeOpenAIEndpoint, model: str | None = None) -> str:
+    """文字起こしのエンジンを OpenAI API にし、ベース URL をテスト用のエンドポイントに向ける settings.toml の続きを返す。model を渡せばモデルも指定する（省けば既定のモデル）。"""
+    model_line = "" if model is None else f'model = "{model}"\n'
     return (
         f'[transcription]\nengine = "openai"\n\n'
-        f'[transcription.openai]\nbase_url = "{endpoint.base_url}"\n'
+        f'[transcription.openai]\nbase_url = "{endpoint.base_url}"\n{model_line}'
     )
 
 
@@ -793,7 +797,7 @@ def test_normal_when_openai(
     clipboard_sentinel: str,
     openai_endpoint: FakeOpenAIEndpoint,
 ) -> None:
-    """OpenAI API を使う設定で確定した録音は、録音・モデル・言語・手がかりが API キーを付けて送信され、起こした文字の誤変換が用語集で置き換わって履歴に残り、ワーカーを起動せずに届けられる（正常シナリオ（OpenAI API で起こす））。"""
+    """OpenAI API を使う設定で確定した録音は、録音・既定のモデル・言語（languages[]）・手がかりの語（keywords[]）が API キーを付けて送信され、起こした文字の誤変換が用語集で置き換わって履歴に残り、ワーカーを起動せずに届けられる（正常シナリオ（OpenAI API で起こす））。"""
     # 準備: API キーは環境変数で渡し、テスト用のエンドポイントは用語集の誤変換を含む文字を返す
     monkeypatch.setenv(OPENAI_API_KEY_ENV, API_KEY)
     openai_endpoint.text = SPEECH_TEXT
@@ -809,12 +813,18 @@ def test_normal_when_openai(
         # 検証: エンドポイントが受けた要求
         [request] = openai_endpoint.requests
         fields = request.form_fields()
+        parts = request.form_parts()
         assert request.path == TRANSCRIPTIONS_PATH
         assert request.headers["authorization"] == f"Bearer {API_KEY}"
         assert fields["file"].startswith(b"RIFF")
         assert fields["model"] == OPENAI_MODEL.encode()
-        assert fields["language"] == b"ja"
-        assert fields["prompt"] == OPENAI_HINT.encode()
+        assert [value for name, value in parts if name == "languages[]"] == [b"ja"]
+        assert [value for name, value in parts if name == "keywords[]"] == [
+            b"voice-paste",
+            b"Whisper",
+        ]
+        assert "language" not in fields
+        assert "prompt" not in fields
         # 起こした文字・履歴・ワーカー・届け先
         text = app.history_text()
         assert CORRECTED_WORD in text
@@ -828,6 +838,52 @@ def test_normal_when_openai(
         case,
         extra_settings=GLOSSARY_SETTINGS + OPENAI_HINT_SETTINGS + _openai_settings(openai_endpoint),
         prepare=_put_glossary,
+        wav_input=speech_input(tmp_path),
+        keys=keys,
+    )
+
+
+def test_normal_when_openai_previous_model(
+    run_app: RunApp,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    clipboard_sentinel: str,
+    openai_endpoint: FakeOpenAIEndpoint,
+) -> None:
+    """設定のモデルが前のモデルなら、録音・モデル・言語（language）・手がかり（prompt）が API キーを付けて送信され、起こした文字が履歴に残って届けられる（正常シナリオ（OpenAI API の前のモデルで起こす））。"""
+    # 準備: settings.toml でモデルに前のモデルを指定し、テスト用のエンドポイントは文字を返す
+    monkeypatch.setenv(OPENAI_API_KEY_ENV, API_KEY)
+    openai_endpoint.text = SPEECH_TEXT
+    keys = KeyLog()
+
+    def case(app: ResidentApp) -> None:
+        """確定して、エンドポイントが受けた要求・履歴・届け先を確かめる。"""
+        # 実行
+        _confirm_with_paste_and_send(app)
+        assert app.wait_until(lambda: "transcribing_indicator" in app.seen_windows)
+        app.wait_processed()
+
+        # 検証: エンドポイントが受けた要求
+        [request] = openai_endpoint.requests
+        fields = request.form_fields()
+        assert request.path == TRANSCRIPTIONS_PATH
+        assert request.headers["authorization"] == f"Bearer {API_KEY}"
+        assert fields["file"].startswith(b"RIFF")
+        assert fields["model"] == OPENAI_PREVIOUS_MODEL.encode()
+        assert fields["language"] == b"ja"
+        assert fields["prompt"] == OPENAI_HINT.encode()
+        assert "languages[]" not in fields
+        assert "keywords[]" not in fields
+        # 履歴・届け先
+        text = app.history_text()
+        assert SPEECH_TEXT in text
+        assert pyperclip.paste() == text
+        assert len(keys.pasted) == 1
+        assert app.window("transcribing_indicator") is None
+
+    run_app(
+        case,
+        extra_settings=OPENAI_HINT_SETTINGS + _openai_settings(openai_endpoint, OPENAI_PREVIOUS_MODEL),
         wav_input=speech_input(tmp_path),
         keys=keys,
     )

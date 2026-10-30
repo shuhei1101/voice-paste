@@ -249,7 +249,7 @@ class OpenAISettings(_SettingsModel):
     """OpenAI API の文字起こしへ渡すモデル・言語・送信先のベース URL。API キーは持たない。"""
 
     model: str = Field(
-        "gpt-4o-mini-transcribe",
+        "gpt-transcribe",
         description="OpenAI のモデル",
         json_schema_extra={"reload": RELOAD_RESTART, "note": OPENAI_NOTE},
     )

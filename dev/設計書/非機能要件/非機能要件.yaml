@@ -572,16 +572,16 @@ requirements:
     external_constraint: 音声のファイルは 25 MB 以下。形式はガイドでは mp3・mp4・mpeg・mpga・m4a・wav・webm（API リファレンスは flac・ogg も挙げる）
     source_kind: 外部 API の制限
     source: https://platform.openai.com/docs/guides/speech-to-text
-    value: 26,209,484 バイト以下。拡張子が mp3・mp4・mpeg・mpga・m4a・wav・webm
+    value: 26,204,569 バイト以下。拡張子が mp3・mp4・mpeg・mpga・m4a・wav・webm
     unit: バイト
     rationale: 規約『資源の値の決め方』の外部の上限がある量として、上限から要求の本文の固定の消費分と安全率を引き、送信する前に手元で確かめて弾く（上限が音声のファイルではなく multipart の本文全体と比べられても超えないようにする）。形式は公開された 2 つの一覧のうち狭い方（ガイド）に合わせる。ブラウザの本文の上限（100 MB 未満）より小さいため、この値を超えるブラウザの音声は OpenAI のエンジンではジョブの失敗になる
     overflow: 送信せずに EngineError にして、文字起こしの失敗として扱う（録音は履歴に残る）
     tests:
       - name: test_openai_audio_limit_when_over
         summary: 上限を 1 バイト超える音声は送信しない
-        condition: 26,209,484 バイトと 26,209,485 バイトの webm
+        condition: 26,204,569 バイトと 26,204,570 バイトの webm。モデルは gpt-transcribe、手がかりは 1 バイトの語 56 個を読点でつないだ 221 バイト
         measurement: httpx.MockTransport に届いた要求の数
-        expected: 26,209,484 バイトは 1 回届き、届いた要求の本文が 26,214,400 バイト以下。26,209,485 バイトは届かず EngineError
+        expected: 26,204,569 バイトは 1 回届き、届いた要求の本文が 26,214,400 バイト以下。26,204,570 バイトは届かず EngineError
     refs:
       - dev/設計書/外部API/OpenAI#
     status: planned
@@ -592,19 +592,19 @@ requirements:
         value: 26,214,400 バイト
         notes: 25 MB（25 × 1,048,576）
       - part: 固定の消費分
-        value: − 4,096 バイト
-        notes: prompt の最大 222 バイト（HINT_MAX_BYTES）と、model・language・response_format・file の各パートの境界・Content-Disposition・Content-Type のヘッダー（パートごとに 200 バイト未満）を含め、切り上げて 4 KiB を見込む
+        value: − 8,192 バイト
+        notes: 手がかりを keywords[] で渡すときが最も大きい。手がかりの上限 222 バイト（HINT_MAX_BYTES）に 1 バイトの語を読点（3 バイト）でつなぐと最大 56 語で、語ごとのパートの境界・Content-Disposition（100 バイト未満）と、model・languages[]・response_format・file の各パートのヘッダー（200 バイト未満）を含め、切り上げて 8 KiB を見込む
       - part: 安全率
-        value: − 820 バイト
-        notes: 固定の消費分の 20%（規約『資源の値の決め方』の既定値。819.2 を切り上げ）
+        value: − 1,639 バイト
+        notes: 固定の消費分の 20%（規約『資源の値の決め方』の既定値。1,638.4 を切り上げ）
     test_file: tests/nfr/test_openai_audio_limit.py
   - name: OpenAIの文字起こしの料金
     english_name: openai_transcription_cost
     category: コスト
-    external_constraint: gpt-4o-mini-transcribe は音声 1 分あたり $0.003
+    external_constraint: gpt-transcribe は音声 1 分あたり $0.0045
     source_kind: 外部 API の制限
-    source: https://openai.com/api/pricing/
-    value: 既定のモデルは gpt-4o-mini-transcribe。常駐アプリは料金の上限を持たない
+    source: https://developers.openai.com/api/docs/models/gpt-transcribe
+    value: 既定のモデルは gpt-transcribe。常駐アプリは料金の上限を持たない
     rationale: 文字起こし 1 回の料金は音声の長さで決まり、利用者が契約する OpenAI のアカウントにかかる。上限は利用者が OpenAI の管理画面の利用の上限で持つ（超えると 429 が返り、再送しても失敗したら文字起こしの失敗になる）。送信し直すごとに課金されうるため、再送は一時的な失敗だけにする
     refs:
       - dev/設計書/外部API/OpenAI#

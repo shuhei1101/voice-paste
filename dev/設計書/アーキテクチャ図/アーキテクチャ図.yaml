@@ -161,7 +161,7 @@ external_systems:
     protocol: 'HTTPS の POST（multipart。`Authorization: Bearer`。ベース URL は設定の transcription.openai.base_url）'
     detail: dev/設計書/外部API/OpenAI#
     test_file: tests/external/voice_paste/integrations/openai/test_transcriber.py
-    cost: 従量課金（gpt-4o-mini-transcribe は音声 1 分あたり $0.003）。録音が端末の外へ送信される
+    cost: 従量課金（既定の gpt-transcribe は音声 1 分あたり $0.0045）。録音が端末の外へ送信される
     refs:
       - dev/設計書/非機能要件/非機能要件#requirements[OpenAIの文字起こしのタイムアウトと再送]
       - dev/設計書/非機能要件/非機能要件#requirements[OpenAIの文字起こしの料金]

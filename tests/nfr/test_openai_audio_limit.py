@@ -1,7 +1,7 @@
 """OpenAI へ送信する音声の上限（openai_audio_limit）の非機能要件テスト。
 
 OpenAITranscriber の送信先は httpx.MockTransport に差し替え、上限ちょうどと 1 バイト超えの webm を送信して、届いた要求の数と本文の大きさを確かめる。
-手がかり（prompt）は上限（222 バイト）いっぱいにして、要求の本文の固定の消費分が最も大きい場合を測る。
+モデルは gpt-transcribe にし、手がかりは 1 バイトの語を上限いっぱい（56 個）にして、keywords[] のパートが最も多く要求の本文の固定の消費分が最も大きい場合を測る。
 実際の OpenAI API へは送信せず、実機も要らない。
 """
 
@@ -14,19 +14,22 @@ import pytest
 from pydantic import SecretStr
 
 from voice_paste.shared.errors import EngineError
-from voice_paste.shared.settings import HINT_MAX_BYTES, OpenAISettings
+from voice_paste.shared.settings import HINT_SEPARATOR, OpenAISettings
 
 BASE_URL = "http://127.0.0.1:9000/v1"
 """テストが送信先に向ける、OpenAI API のベース URL の代わり。"""
 
-DECIDED_LIMIT_BYTES = 26_209_484
+DECIDED_LIMIT_BYTES = 26_204_569
 """決定値（送信できる音声の大きさの上限）。"""
 
 EXTERNAL_LIMIT_BYTES = 26_214_400
 """外部の上限（25 MB）。要求の本文全体がこれ以下になる。"""
 
-FULL_HINT = "あ" * (HINT_MAX_BYTES // 3)
-"""上限いっぱい（222 バイト）の手がかり。"""
+MODEL = "gpt-transcribe"
+"""keywords[] で手がかりを渡すモデル。"""
+
+FULL_HINT = HINT_SEPARATOR.join(["a"] * 56)
+"""1 バイトの語 56 個を読点でつないだ手がかり（221 バイト）。"""
 
 
 def _webm_of(path: Path, size_bytes: int) -> Path:
@@ -49,7 +52,7 @@ def test_openai_audio_limit_when_over(tmp_path: Path) -> None:
         return httpx.Response(200, json={"text": "ok"})
 
     transcriber = OpenAITranscriber(
-        settings=OpenAISettings(base_url=BASE_URL),
+        settings=OpenAISettings(model=MODEL, base_url=BASE_URL),
         api_key=SecretStr("sk-test"),
         transport=httpx.MockTransport(handler),
     )

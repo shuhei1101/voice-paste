@@ -1844,7 +1844,7 @@ constants:
     container: integrations/openai/transcriber.py
     usecase: 録音を文字に起こす
     summary: 送信する前に確かめる音声の上限（25 MB から要求の本文の固定の消費分を引いた値。非機能要件の OpenAIへ送信する音声の上限）
-    value: '''26_204_569'''
+    value: '26_204_569'
     status: planned
     introduced:
       pr: 204

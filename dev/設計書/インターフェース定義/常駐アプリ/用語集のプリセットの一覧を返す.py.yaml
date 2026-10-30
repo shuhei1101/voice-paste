@@ -11,6 +11,7 @@ flows:
       - name: 用語集のプリセット
         description: 設定に用語集のプリセット「既定」「会議」をこの並びで入れ、active_glossary_preset を「会議」にする
     flow: |-
+      ```mermaid
       sequenceDiagram
         participant C as ブラウザ
         participant IF as GET /web/glossary-presets
@@ -20,6 +21,7 @@ flows:
         IF->>IF: Host・Origin を確かめる
         IF->>S: 用語集のプリセットの一覧と選んでいるプリセットを読む
         IF-->>C: 200・presets・active
+      ```
     expected:
       - 200 で presets が ["既定", "会議"]、active が「会議」
       - 応答に用語集の名前や中身が含まれていない
@@ -33,12 +35,14 @@ flows:
       - name: 設定
         description: glossary_presets と active_glossary_preset のキーが無い settings.toml
     flow: |-
+      ```mermaid
       sequenceDiagram
         participant C as ブラウザ
         participant IF as GET /web/glossary-presets
 
         C->>IF: 要求
         IF-->>C: 200・presets=["既定"]・active="既定"
+      ```
     expected:
       - 200 で presets が ["既定"]、active が「既定」
     test: test_normal_when_presets_not_configured
@@ -51,6 +55,7 @@ flows:
         description: 許す Origin に無い Origin を付ける
         notes: '`Origin: http://evil.example`'
     flow: |-
+      ```mermaid
       sequenceDiagram
         participant C as ほかのオリジンのページ
         participant IF as GET /web/glossary-presets
@@ -59,6 +64,7 @@ flows:
         C->>IF: 要求（許していない Origin）
         IF->>LOG: 断った理由と要求元（Host・Origin）を書く
         IF-->>C: 403（problem+json）
+      ```
     expected:
       - 403 の problem+json が返り、プリセットの名前を含まない
       - ログに断った理由と要求元が書かれている
@@ -73,6 +79,7 @@ flows:
         description: Origin を付けない要求と、許す Origin に無い Origin を付けた要求の 2 つを送る
         notes: '`Origin: http://evil.example`'
     flow: |-
+      ```mermaid
       sequenceDiagram
         participant C as ブラウザ
         participant IF as GET /web/glossary-presets
@@ -80,6 +87,7 @@ flows:
         C->>IF: 一覧を読む（Origin なし・許す Origin に無い Origin）
         IF->>IF: Host を確かめる（Origin は確かめない）
         IF-->>C: 404（problem+json）
+      ```
     expected:
       - Origin を付けない要求と、許す Origin に無い Origin を付けた要求のどちらにも 404（problem+json）が返る
     test: test_error_when_running_on_linux

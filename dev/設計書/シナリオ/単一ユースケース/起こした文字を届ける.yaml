@@ -553,6 +553,7 @@ scenarios:
         description: GNOME Terminal の入力欄にフォーカスがある
         notes: アクティブなウィンドウの WM_CLASS は `gnome-terminal-server`
     flow: |-
+      ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
         participant OUT as 出力先（貼り付けのみ）
@@ -563,6 +564,7 @@ scenarios:
         OUT->>CB: 起こした文字をコピーする
         OUT->>OUT: アクティブなウィンドウが端末アプリかを見る
         OUT->>TGT: 設定の貼り付けのキーに代えて Ctrl+Shift+V を送信する
+      ```
     expected:
       - 端末の入力欄に起こした文字が入っている
       - クリップボードに起こした文字が入っている

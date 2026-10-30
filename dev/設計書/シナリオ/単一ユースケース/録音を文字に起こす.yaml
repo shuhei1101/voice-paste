@@ -342,6 +342,7 @@ scenarios:
       - name: 入口
         description: ホットキーから始めた録音を確定する
     flow: |-
+      ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
         participant WK as 文字起こしワーカー（子プロセス）
@@ -352,6 +353,7 @@ scenarios:
         WK->>WK: 手がかりを 30 秒のウィンドウごとに渡して起こす
         WK-->>SVC: 区間ごとの文字を改行でつないだ結果
         Note over SVC: 用語集での補正から後は 正常シナリオ と同じ
+      ```
     expected:
       - 文字起こしワーカーが受けた要求に、有効な 2 つのプリセットの 4 つの語が一覧の順に読点（、）でつながって載り、無効のプリセットの語が載っていない
       - 文字起こしワーカーが faster-whisper の `transcribe` の `hotwords` に、受けた手がかりをそのまま渡している
@@ -372,6 +374,7 @@ scenarios:
       - name: 入口
         description: ホットキーから始めた録音を確定する
     flow: |-
+      ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
         participant ST as 設定
@@ -384,6 +387,7 @@ scenarios:
         end
         SVC->>LOG: 消した文字を位置（文頭・文末）つきで書く
         Note over SVC: 用語集での補正から後は 正常シナリオ と同じ
+      ```
     expected:
       - 最後の行が「以上です。」になっている（「チャンネル登録よろしくお願いします。」「ご視聴ありがとうございました。」「ありがとうございました。」が一覧の順に消え、「ご視聴」が残っていない）
       - 1 行目の先頭の「えーと、」が消え、続く「ありがとうございました。」は残っている（位置が文末の行は文頭に当てない）

@@ -580,14 +580,13 @@ scenarios:
       sequenceDiagram
         participant SVC as 常駐サービス
         participant OUT as 出力先（貼り付けて送信）
-        participant CB as クリップボード（wl-copy）
+        participant CB as クリップボード（XWayland の xclip）
         participant KB as 仮想のキーボード（uinput）
         participant TGT as 貼り付け先のアプリ
 
         SVC->>OUT: 起こした文字を渡す
         OUT->>CB: 起こした文字をコピーする
-        OUT->>OUT: クリップボードへ書くときに動いたフォーカスが戻るまで待つ
-        OUT->>KB: 設定の貼り付けのキーを送信する
+        OUT->>KB: Xorg のセッションと同じ間を置いて、設定の貼り付けのキーを送信する
         KB->>TGT: 貼り付けのキーが届く
         OUT->>KB: 設定の間を置いて Enter を送信する
         KB->>TGT: Enter が届く
@@ -608,7 +607,7 @@ scenarios:
       sequenceDiagram
         participant SVC as 常駐サービス
         participant OUT as 出力先（貼り付けて送信）
-        participant CB as クリップボード（wl-copy）
+        participant CB as クリップボード（XWayland の xclip）
         participant TRAY as トレイ
         participant LOG as ログ
 
@@ -660,9 +659,9 @@ notes:
     Wayland のセッションも、GNOME にアクティブなウィンドウを読む標準のインターフェースが無いため、貼り付け先によらず設定の貼り付けのキーを送信する。
     このシナリオの E2E は、Linux で E2E を動かす仕組み（[#199](https://github.com/shuhei1101/voice-paste/issues/199)）ができるまで持たない。
   Wayland のセッションの貼り付け: |-
-    Linux の Wayland のセッションでは、クリップボードへ `wl-copy` で書き、貼り付けのキーと Enter（修飾キーつき）を uinput の仮想のキーボードから送信する。
-    ネイティブの Wayland のアプリにも XWayland のアプリにも同じに届く。
-    GNOME はクリップボードを外から書くプロトコルを持たず、`wl-copy` は書くたびに一瞬フォーカスを取るため、貼り付けのキーは Xorg より長く待ってから送信する。
+    Linux の Wayland のセッションでは、クリップボードへ XWayland の `xclip` で書き、貼り付けのキーと Enter（修飾キーつき）を uinput の仮想のキーボードから送信する。
+    ネイティブの Wayland のアプリにも XWayland のアプリにも同じに届く（GNOME が X のクリップボードを Wayland のクリップボードへ渡す）。
+    `wl-copy` は、GNOME がクリップボードを外から書くプロトコルを持たないため書くたびに貼り付け先のフォーカスを取り、貼り付けのキーが落ちるため使わない。
     「コピーのみ」で書いた文字は、常駐サービスの終了後も貼り付けられる。
     Wayland のセッションのシナリオの E2E は、Linux で E2E を自動で流す仕組み（[#219](https://github.com/shuhei1101/voice-paste/issues/219)）ができるまで持たず、検証環境の VM で確かめる。
 test_file: tests/e2e/単一ユースケース/test_deliver_transcript.py

@@ -1092,9 +1092,9 @@ input_checks:
     message: http:// か https:// で始まる URL を入れてください。
     position: その欄の下とエラーの一覧
   - element: 設定の欄
-    violation: '`api.allowed_web_origins` に `scheme://host[:port]` の形式でない行がある（末尾の `/`・パスが付いている、スキームが無い 等。空の行は違反にせず、保存で捨てる）'
+    violation: '`api.allowed_web_origins` に、`http://` か `https://`（小文字）の後にホストと `:ポート` だけが続く形式（`scheme://host[:port]`）でない行がある（末尾の `/`・パスが付いている、スキームが無い、http・https 以外か大文字のスキーム 等。空の行は違反にせず、保存で捨てる）'
     trigger: 保存・保存して再起動のボタンのクリック
-    message: 形式の違うオリジンがあります（{違う行を読点でつないだもの}）。https://example.com のように、末尾の / とパスを付けずに入れてください。
+    message: 形式の違うオリジンがあります（{違う行を読点でつないだもの}）。https://example.com のように、http:// か https:// で始め、末尾の / とパスを付けずに入れてください。
     position: その欄の下とエラーの一覧
 screen: src/voice_paste/ui/windows/settings_window.py
 mock: dev/mock/pages/settings/173/b-picked-list/

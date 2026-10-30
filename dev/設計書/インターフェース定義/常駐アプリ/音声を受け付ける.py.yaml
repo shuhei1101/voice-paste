@@ -182,6 +182,7 @@ flows:
       - name: 音声
         description: テストの中で書き出した短い webm/opus
     flow: |-
+      ```mermaid
       sequenceDiagram
         participant C as ブラウザ
         participant IF as POST /web/transcriptions
@@ -191,6 +192,7 @@ flows:
         IF->>IF: glossary_preset が設定の一覧にあるかを確かめる
         IF->>Q: プリセットの名前を持たせたジョブを積む（queued）
         IF-->>C: 202・job_id
+      ```
     expected:
       - 202 と job_id が返る
       - キューにその job_id のジョブが queued で 1 件積まれ、用語集のプリセットの名前が「会議」
@@ -205,6 +207,7 @@ flows:
         description: 設定の用語集のプリセットの一覧に無い名前を指定する
         notes: multipart の `glossary_preset` に「無いプリセット」を入れる
     flow: |-
+      ```mermaid
       sequenceDiagram
         participant C as ブラウザ
         participant IF as POST /web/transcriptions
@@ -212,6 +215,7 @@ flows:
         C->>IF: audio・一覧に無い glossary_preset
         IF->>IF: glossary_preset が設定の一覧にあるかを確かめる（無い）
         IF-->>C: 400（detail に指定したプリセットの名前）
+      ```
     expected:
       - 400 の problem+json が返り、detail に指定したプリセットの名前が含まれている
       - 一時のフォルダにファイルが残らず、キューにジョブが積まれていない
@@ -226,6 +230,7 @@ flows:
         description: Origin を付けない要求と、許す Origin に無い Origin を付けた要求の 2 つを送る
         notes: '`Origin: http://evil.example`'
     flow: |-
+      ```mermaid
       sequenceDiagram
         participant C as ブラウザ
         participant IF as POST /web/transcriptions
@@ -233,6 +238,7 @@ flows:
         C->>IF: 音声を送信する（Origin なし・許す Origin に無い Origin）
         IF->>IF: Host を確かめる（Origin は確かめない）
         IF-->>C: 404（problem+json）
+      ```
     expected:
       - Origin を付けない要求と、許す Origin に無い Origin を付けた要求のどちらにも 404（problem+json）が返る
       - ジョブを積んでいない（ブラウザの音声のキューを立てていない）

@@ -135,6 +135,7 @@ flows:
       - name: 積んだジョブ
         description: 用語集のプリセットの名前が「会議」のジョブと、空のジョブを 1 件ずつ積んでいる
     flow: |-
+      ```mermaid
       sequenceDiagram
         participant Q as ブラウザの音声のキュー
         participant IF as ブラウザの音声を文字に起こす
@@ -149,6 +150,7 @@ flows:
         IF->>WK: 音声のパスと設定を渡す
         WK-->>IF: 区間ごとの文字
         IF->>IF: 設定で選んでいる「既定」の用語集で補正する
+      ```
     expected:
       - 「会議」のジョブの text が「会議」の用語集で置き換えた文
       - プリセットが空のジョブの text が「既定」の用語集で置き換えた文

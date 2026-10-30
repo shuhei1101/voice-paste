@@ -115,6 +115,7 @@ flows:
         description: Origin を付けない要求と、許す Origin に無い Origin を付けた要求の 2 つを送る
         notes: '`Origin: http://evil.example`'
     flow: |-
+      ```mermaid
       sequenceDiagram
         participant C as ブラウザ
         participant IF as GET /web/transcriptions/{job_id}
@@ -122,6 +123,7 @@ flows:
         C->>IF: 結果を取りに行く（Origin なし・許す Origin に無い Origin）
         IF->>IF: Host を確かめる（Origin は確かめない）
         IF-->>C: 404（problem+json）
+      ```
     expected:
       - Origin を付けない要求と、許す Origin に無い Origin を付けた要求のどちらにも 404（problem+json）が返る
     test: test_error_when_running_on_linux

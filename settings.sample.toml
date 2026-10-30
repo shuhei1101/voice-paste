@@ -70,7 +70,7 @@ no_speech_threshold = 0.6
 
 [transcription.openai]
 # OpenAI API の文字起こしに使うモデル（再起動）。API キーはここには書かず、環境変数 OPENAI_API_KEY か、この設定ファイルと同じフォルダの secrets/openai_api_key に置く
-model = "gpt-4o-mini-transcribe"
+model = "gpt-transcribe"
 # 文字起こしの言語（再起動）。ISO-639-1
 language = "ja"
 # OpenAI API の送信先のベース URL（再起動）。http:// か https:// で始まる

@@ -13,7 +13,7 @@ import httpx
 from pydantic import SecretStr
 
 from voice_paste.shared.errors import EngineError
-from voice_paste.shared.settings import OpenAISettings
+from voice_paste.shared.settings import HINT_SEPARATOR, OpenAISettings
 from voice_paste.shared.types import ProgressFn
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ OPENAI_RETRY_BASE_SEC: float = 0.5
 OPENAI_RETRY_MAX_SEC: float = 8.0
 """送信し直す前に待つ秒数の上限（Retry-After にもかける）。"""
 
-OPENAI_MAX_AUDIO_BYTES: int = 26_209_484
+OPENAI_MAX_AUDIO_BYTES: int = 26_204_569
 """送信する前に確かめる音声の大きさの上限（25 MB から要求の本文の固定の消費分を引いた値）。"""
 
 OPENAI_AUDIO_SUFFIXES: frozenset[str] = frozenset(
@@ -43,6 +43,12 @@ OPENAI_AUDIO_SUFFIXES: frozenset[str] = frozenset(
 
 OPENAI_MAX_AUDIO_MB: int = 25
 """音声の大きさの上限として利用者に示す MB 数。"""
+
+OPENAI_KEYWORDS_MODEL_PREFIX: str = "gpt-transcribe"
+"""設定のモデルの名前がこれで始まれば、手がかりを keywords[]、言語を languages[] で渡す（スナップショットの名前も含める）。"""
+
+OPENAI_KEYWORD_FORBIDDEN_CHARS: tuple[str, ...] = ("<", ">")
+"""含むと OpenAI API が要求ごと拒む文字。改行は手がかりの語に入らないため持たない。"""
 
 HTTP_OK: int = 200
 """文字起こしに成功したときのステータス。"""
@@ -94,12 +100,9 @@ class OpenAITranscriber:
         url = f"{self._settings.base_url.rstrip('/')}{TRANSCRIPTIONS_PATH}"
         form = {
             "model": self._settings.model,
-            "language": self._settings.language,
             "response_format": "json",
+            **self._build_form(hint),
         }
-        if hint is not None:
-            # 手がかりがあるときだけ prompt を送信する
-            form["prompt"] = hint
         files = {"file": (audio_path.name, audio_path.read_bytes())}
         headers = {"Authorization": f"Bearer {self._api_key.get_secret_value()}"}
         timeout = httpx.Timeout(OPENAI_TIMEOUT_SEC, connect=OPENAI_CONNECT_TIMEOUT_SEC)
@@ -137,6 +140,30 @@ class OpenAITranscriber:
                 logger.warning(f"OpenAI API へ送信し直す（{failure}・{wait_sec} 秒待つ）")
                 self._sleep(wait_sec)
                 attempt += 1
+
+    def _build_form(self, hint: str | None) -> dict[str, str | list[str]]:
+        """設定のモデルに合わせて、言語と手がかりを載せる multipart の項目を返す。list の値は同じ項目名で繰り返す。"""
+        # 設定のモデルが keywords[] と languages[] で受けるモデルか
+        if self._settings.model.startswith(OPENAI_KEYWORDS_MODEL_PREFIX):
+            # 受ける: 言語は languages[]、手がかりは語に分けて keywords[] に入れる（language・prompt は入れない）
+            form: dict[str, str | list[str]] = {"languages[]": [self._settings.language]}
+            if hint:
+                words = hint.split(HINT_SEPARATOR)
+                keywords = [
+                    word
+                    for word in words
+                    if not any(char in word for char in OPENAI_KEYWORD_FORBIDDEN_CHARS)
+                ]
+                if len(keywords) < len(words):
+                    logger.warning(f"keywords[] に入れない語がある（{len(words) - len(keywords)} 語）")
+                if keywords:
+                    form["keywords[]"] = keywords
+            return form
+        # 受けない: 言語は language、手がかりがあれば prompt にそのまま入れる
+        form = {"language": self._settings.language}
+        if hint is not None:
+            form["prompt"] = hint
+        return form
 
     @staticmethod
     def _check_audio(audio_path: Path) -> int:

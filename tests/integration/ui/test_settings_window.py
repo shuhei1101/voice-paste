@@ -5826,13 +5826,13 @@ MIN_INDICATOR_CONTRAST = 3
 @pytest.fixture
 def themed_window(
     open_window: Callable[..., Opened], apply_theme_to_app: Callable[[str], None]
-) -> Callable[[str], SettingsWindow]:
-    """明暗を当ててから設定画面（既定の設定）を開く関数を返す。"""
+) -> Callable[..., SettingsWindow]:
+    """明暗を当ててから設定画面（設定が無ければ既定）を開く関数を返す。"""
 
-    def _open(theme: str) -> SettingsWindow:
+    def _open(theme: str, settings: Settings | None = None) -> SettingsWindow:
         """明暗を当てて設定画面を開く。"""
         apply_theme_to_app(theme)
-        return open_window().window
+        return open_window(settings).window
 
     return _open
 
@@ -5853,13 +5853,14 @@ def _show_field(window: QWidget, key: str, cls: type = QWidget) -> Any:
 
 @pytest.mark.parametrize("theme", THEME_PARAMS)
 def test_check_indicator_when_checkbox_on(
-    themed_window: Callable[[str], SettingsWindow], theme: str
+    themed_window: Callable[..., SettingsWindow], theme: str
 ) -> None:
     """オンのチェックボックスは、箱を accent_fg で塗り、チェックを surface で描く（正常系）。"""
+    from voice_paste.shared.settings import RecordingSettings
     from voice_paste.ui.style import load_tokens
 
-    # 準備: 録音のまとまりの、オンのチェックボックス
-    window = themed_window(theme)
+    # 準備: 録音のまとまりの、オンのチェックボックス（OS の既定値によらずオンにする）
+    window = themed_window(theme, SETTINGS_MODEL(recording=RecordingSettings(lower_volume=True)))
     checkbox = _show_field(window, "recording.lower_volume", QCheckBox)
 
     # 実行
@@ -5895,13 +5896,14 @@ def test_check_indicator_when_checkbox_off(
 
 @pytest.mark.parametrize("theme", THEME_PARAMS)
 def test_check_indicator_when_checkbox_disabled(
-    themed_window: Callable[[str], SettingsWindow], theme: str
+    themed_window: Callable[..., SettingsWindow], theme: str
 ) -> None:
     """使えないオンのチェックボックスは、箱を border で塗りチェックを text_muted で描き、名前を text_muted にする（正常系）。"""
+    from voice_paste.shared.settings import RecordingSettings
     from voice_paste.ui.style import load_tokens
 
-    # 準備: オンのチェックボックスを使えなくする
-    window = themed_window(theme)
+    # 準備: オンのチェックボックス（OS の既定値によらずオンにする）を使えなくする
+    window = themed_window(theme, SETTINGS_MODEL(recording=RecordingSettings(lower_volume=True)))
     checkbox = _show_field(window, "recording.lower_volume", QCheckBox)
     checkbox.setEnabled(False)
 

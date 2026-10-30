@@ -1274,3 +1274,26 @@ def test_to_field_message_when_hint_preset_name_overlap(settings_model: type[Set
 
     # 検証
     assert message == "プリセット「開発」と同じ名前です。別の名前にしてください。"
+
+
+def test_to_field_message_when_web_origin_not_form(settings_model: type[Settings]) -> None:
+    """形式の違う許す Origin（正常系）。"""
+    from pydantic import ValidationError
+
+    from voice_paste.ui.windows.settings_window import to_field_message
+
+    # 準備（形式の違う 2 件の api.allowed_web_origins）
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate(
+            {"api": {"allowed_web_origins": ["https://voice.example.com/", "voice.example.com"]}}
+        )
+
+    # 実行
+    message = to_field_message(exc_info.value.errors()[0], model=settings_model)
+
+    # 検証
+    assert message == (
+        "形式の違うオリジンがあります（https://voice.example.com/、voice.example.com）。"
+        "https://example.com のように、http:// か https:// で始め、"
+        "末尾の / とパスを付けずに入れてください。"
+    )

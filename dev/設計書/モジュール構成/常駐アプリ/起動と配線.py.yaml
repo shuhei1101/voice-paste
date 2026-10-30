@@ -135,11 +135,11 @@ data_models:
         type: Callable[[str, float], SingleInstanceLock | LinuxSingleInstanceLock]
         description: 単一インスタンスの確保（名前・待つ上限）
       - name: lower_volume
-        type: LowerVolumeFn
-        description: 録音中に音量を下げる
+        type: LowerVolumeFn | None
+        description: 録音中に音量を下げる（Windows）。Linux は None（build_handlers が OS_UNAVAILABLE_FEATURES の Feature.LOWER_VOLUME を見て、何もしない関数を渡す）
       - name: restore_volume
-        type: RestoreVolumeFn
-        description: 下げた音量を戻す
+        type: RestoreVolumeFn | None
+        description: 下げた音量を戻す（Windows）。Linux は None
       - name: open_app_window
         type: Callable[[str], None]
         description: ブラウザ添付のプリセットの画面を開く
@@ -167,6 +167,9 @@ data_models:
       - name: close_key_sender
         type: Callable[[], None]
         description: キーの送信の機器を閉じる（Wayland のセッションは UInputKeyboard.close）。ほかは何もしない関数
+      - name: validate_hotkeys
+        type: Callable[[Iterable[str]], None]
+        description: 設定の保存の前に、ホットキーを動いているセッションの受付で受け付けられるかを確かめる（Windows と Linux の Xorg のセッションは validate_hotkeys、Wayland のセッションは validate_gnome_hotkeys）
     status: planned
 functions:
   - name: build_handlers
@@ -228,7 +231,7 @@ functions:
            - EngineError の場合、StartupError を送出する
          - openai の場合、read_openai_api_key（paths.openai_api_key_file・environ）で読んだ API キーと設定の transcription.openai で OpenAITranscriber を作る（文字起こしワーカーは起動しない）。engine はその transcribe、stop_engine は何もしない関数（StartupError はそのまま送出する）
       3. 連続録音の話し声の判定に使う VAD のセッションを 1 回だけ読む（load_vad_session。StartupError はそのまま送出する）
-      4. Recorder に adapters の lower_volume・restore_volume と、SettingsStore から録音の設定を返す関数と、VAD のセッションを部分適用した StreamingVad（話し声の判定を作る）を渡す
+      4. Recorder に音量の関数（unavailable に Feature.LOWER_VOLUME があれば integrations/volume/noop.py の lower_volume_noop・restore_volume_noop、無ければ adapters の lower_volume・restore_volume）と、SettingsStore から録音の設定を返す関数と、VAD のセッションを部分適用した StreamingVad（話し声の判定を作る）を渡す
       5. 出力先の deliver に、配線した OUTPUTS（_wire_outputs）・配線した PRESET_KINDS（_wire_preset_kinds。open_window に adapters.open_app_window、send_paste に adapters.send_paste）と、届けるたびに SettingsStore からオンの出力先の ID を引く関数を部分適用し、Session を入口・出力先の ID・選んだプリセット・返送先に分けて渡すアダプタを作る
          - 出力先には OutputDeps（copy_to_clipboard・設定の keyboard.paste_key で adapters.send_paste を呼ぶ関数・adapters.send_enter・time.sleep・random.uniform(0, x)・post_json・SettingsStore.get・notify_copied）を渡し、各出力先の inject が選ぶ
          - ブラウザ添付（種類）: copy_to_clipboard・adapters.open_app_window・adapters.send_paste を呼ぶ関数・adapters.send_enter・time.sleep・設定の preset_options.browser.open_delay_sec を返す関数・貼り付けて送信の enter_delay_sec を返す関数（read_enter_delay_sec）
@@ -708,7 +711,7 @@ functions:
         type: Callable[[Iterable[str]], None]
         required: true
         passing: injected
-        description: ホットキーを受け付けられるかの確かめ（validate_hotkeys）
+        description: ホットキーを動いているセッションの受付で受け付けられるかの確かめ（PlatformAdapters.validate_hotkeys）
       - name: glossary_rows
         type: Mapping[Path, Sequence[GlossaryEntry]]
         required: true
@@ -792,7 +795,7 @@ functions:
         type: Callable[[Settings, Mapping[Path, Sequence[GlossaryEntry]]], bool]
         required: true
         passing: positional
-        description: apply_settings を部分適用したもの
+        description: apply_settings を部分適用したもの（check_hotkeys に PlatformAdapters.validate_hotkeys）
       - name: request_restart
         type: Callable[[], None]
         required: true
@@ -1039,10 +1042,10 @@ functions:
       description: OS ごとの実装
     process: |-
       1. os_kind で分ける
-         - OsKind.WINDOWS の場合、integrations/volume/adapter.py（comtypes・pycaw を読み込む）をここで import し、acquire_single_instance・lower_volume・restore_volume・open_app_window・send_paste・send_enter・HotkeyListener() を返す関数・qt_platform None・何もしない open_key_sender と close_key_sender・CREATE_NO_WINDOW・relaunch(os_kind=WINDOWS) を束ねる
-         - OsKind.LINUX の場合、runtime/single_instance_linux.py（fcntl を読み込む）をここで import し、acquire_single_instance_linux（functools.partial で lock_file を部分適用）・lower_volume_noop・restore_volume_noop・open_app_window_linux・0・relaunch(os_kind=LINUX) に、display_session で分けた実装を足して束ねる
-           - DisplaySession.X11 の場合、integrations/keyboard/sender_linux.py（python-xlib を読み込む）をここで import し、send_paste_linux・send_enter・HotkeyListener() を返す関数・qt_platform None・何もしない open_key_sender と close_key_sender
-           - DisplaySession.WAYLAND の場合、integrations/keyboard/sender_wayland.py（python-evdev を読み込む）と runtime/hotkey_gnome.py をここで import する。pyperclip の書き先を xclip にし（use_xclip_clipboard）、まだ開かない UInputKeyboard を 1 つ作って、その send_paste・send_enter・open・close と、GnomeShortcutListener(name, lock) を返す関数・qt_platform `xcb` を束ねる
+         - OsKind.WINDOWS の場合、integrations/volume/adapter.py（comtypes・pycaw を読み込む）をここで import し、acquire_single_instance・lower_volume・restore_volume・open_app_window・send_paste・send_enter・HotkeyListener() を返す関数・validate_hotkeys・qt_platform None・何もしない open_key_sender と close_key_sender・CREATE_NO_WINDOW・relaunch(os_kind=WINDOWS) を束ねる
+         - OsKind.LINUX の場合、runtime/single_instance_linux.py（fcntl を読み込む）をここで import し、acquire_single_instance_linux（functools.partial で lock_file を部分適用）・lower_volume と restore_volume に None・open_app_window_linux・0・relaunch(os_kind=LINUX) に、display_session で分けた実装を足して束ねる
+           - DisplaySession.X11 の場合、integrations/keyboard/sender_linux.py（python-xlib を読み込む）をここで import し、send_paste_linux・send_enter・HotkeyListener() を返す関数・validate_hotkeys・qt_platform None・何もしない open_key_sender と close_key_sender
+           - DisplaySession.WAYLAND の場合、integrations/keyboard/sender_wayland.py（python-evdev を読み込む）と runtime/hotkey_gnome.py をここで import する。pyperclip の書き先を xclip にし（use_xclip_clipboard）、まだ開かない UInputKeyboard を 1 つ作って、その send_paste・send_enter・open・close と、GnomeShortcutListener(name, lock) を返す関数・validate_gnome_hotkeys・qt_platform `xcb` を束ねる
     unit_tests:
       - name: test_select_platform_adapters_when_windows
         case: 正常
@@ -1055,13 +1058,13 @@ functions:
         summary: Linux の Xorg のセッションは何もしない音量・Chromium 系・flock の排他・XTEST の貼り付けを選ぶ
         condition: os_kind=OsKind.LINUX・display_session=DisplaySession.X11（Windows では skip）
         mock: なし
-        expected: lower_volume が lower_volume_noop、restore_volume が restore_volume_noop、open_app_window が open_app_window_linux、send_paste が send_paste_linux、acquire_single_instance が lock_file を部分適用した acquire_single_instance_linux（func と keywords で確かめる）、worker_creationflags が 0。voice_paste.integrations.volume.adapter が sys.modules に無い。send_enter が sender.py の send_enter、create_hotkey_listener が HotkeyListener を返し、qt_platform が None。voice_paste.integrations.keyboard.sender_wayland が sys.modules に無い
+        expected: lower_volume と restore_volume が None、validate_hotkeys が hotkey.py の validate_hotkeys、open_app_window が open_app_window_linux、send_paste が send_paste_linux、acquire_single_instance が lock_file を部分適用した acquire_single_instance_linux（func と keywords で確かめる）、worker_creationflags が 0。voice_paste.integrations.volume.adapter が sys.modules に無い。send_enter が sender.py の send_enter、create_hotkey_listener が HotkeyListener を返し、qt_platform が None。voice_paste.integrations.keyboard.sender_wayland が sys.modules に無い
       - name: test_select_platform_adapters_when_wayland
         case: 正常
         summary: Wayland のセッションは uinput のキーの送信・GNOME のショートカット・xcb を選ぶ
         condition: os_kind=OsKind.LINUX・display_session=DisplaySession.WAYLAND（Windows では skip）
         mock: pyperclip.set_clipboard・evdev.UInput
-        expected: send_paste・send_enter・open_key_sender・close_key_sender が同じ UInputKeyboard のメソッドで、UInput が作られていない（open の前）。create_hotkey_listener(名前, 排他) が GnomeShortcutListener を返し、qt_platform が "xcb"、pyperclip.set_clipboard に "xclip" が 1 回渡る。voice_paste.integrations.keyboard.sender_linux が sys.modules に無い
+        expected: send_paste・send_enter・open_key_sender・close_key_sender が同じ UInputKeyboard のメソッドで、UInput が作られていない（open の前）。create_hotkey_listener(名前, 排他) が GnomeShortcutListener を返し、qt_platform が "xcb"、validate_hotkeys が validate_gnome_hotkeys、pyperclip.set_clipboard に "xclip" が 1 回渡る。voice_paste.integrations.keyboard.sender_linux が sys.modules に無い
     status: planned
   - name: acquire_single_instance_linux
     title: Linux の単一インスタンスの確保

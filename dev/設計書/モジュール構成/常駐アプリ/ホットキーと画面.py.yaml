@@ -4,7 +4,7 @@ directory: |-
   ```
   src/voice_paste/runtime/
   ├── hotkey.py                     # HotkeyListener（pynput の GlobalHotKeys を別のスレッドで動かす）
-  ├── hotkey_gnome.py               # GnomeShortcutListener（Wayland のセッション。設定のホットキーを GNOME のカスタムショートカットへ登録する）・to_gnome_accelerator
+  ├── hotkey_gnome.py               # GnomeShortcutListener（Wayland のセッション。設定のホットキーを GNOME のカスタムショートカットへ登録する）・to_gnome_accelerator・validate_gnome_hotkeys
   └── send_hotkey.py                # GNOME のカスタムショートカットが流すコマンド。押されたホットキーを常駐サービスへ送信する
   src/voice_paste/ui/
   ├── bridge.py                     # UiBridge（ほかのスレッドからメインスレッドへの Signal）・notify・notify_copied・report_progress
@@ -431,7 +431,7 @@ classes:
           1. 設定画面を手放し、deleteLater で破棄する（中のコンボボックスのポップアップの窓も一緒に消える）
              - 欄のシグナルに SettingsWindow のメソッドをつないでいるため、参照を手放しただけでは GC で消えず、トップレベルの窓が開くたびに積もる
           2. resume_hotkeys を呼ぶ
-             - HotkeyError の場合、ホットキーを受け付けないまま続ける（保存した設定は保存の前に受け付けられることを確かめているため、ここに来るのは手で書いた settings.toml だけ）
+             - HotkeyError の場合、ホットキーを受け付けないまま続ける（保存した設定は、保存の前に動いているセッションのホットキーの受付で受け付けられることを確かめているため（PlatformAdapters.validate_hotkeys）、ここに来るのは手で書いた settings.toml だけ）
                - `[ERROR]` ホットキーを受け付けられなかった（理由）
       - name: hide_recording
         title: 録音の画面を隠す
@@ -3336,6 +3336,44 @@ functions:
         mock: なし
         expected: 2 が返る
         exception: 引数の数が違う
+    status: planned
+  - name: validate_gnome_hotkeys
+    title: GNOME のショートカットに登録できるかの確かめ
+    kind: 関数
+    container: runtime/hotkey_gnome.py
+    usecase: 設定を変える
+    scope: public
+    summary: ホットキーを pynput が読めて、GNOME のアクセラレーターに替えられるかを、登録せずに確かめる。Wayland のセッションの PlatformAdapters.validate_hotkeys
+    args:
+      - name: hotkeys
+        type: Iterable[str]
+        required: true
+        passing: positional
+        description: pynput の書式のホットキー
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. validate_hotkeys で pynput が読めるかを確かめる（HotkeyError はそのまま送出する）
+      2. 各ホットキーを to_gnome_accelerator で替える
+         - ValueError の場合、HotkeyError（「GNOME のショートカットに登録できないキーです（{ホットキー}）」）を送出する
+    exceptions:
+      - name: HotkeyError
+        condition: pynput が読めない・GNOME のアクセラレーターに替えられないホットキーがある
+    unit_tests:
+      - name: test_validate_gnome_hotkeys
+        case: 正常
+        summary: 替えられるホットキーは通す
+        condition: '["<cmd>+<alt>+d", "<ctrl>+<f9>"]'
+        mock: なし
+        expected: 例外が出ない
+      - name: test_validate_gnome_hotkeys_when_unsupported
+        case: 異常
+        summary: pynput は読めるが替えられないキーを断る
+        condition: '["<ctrl>+<page_up>"]'
+        mock: なし
+        expected: HotkeyError が送出され、メッセージに <ctrl>+<page_up> が出る
+        exception: GNOME のアクセラレーターに替えられないホットキーがある
     status: planned
 notes:
   画面が触ってよいもの: |-

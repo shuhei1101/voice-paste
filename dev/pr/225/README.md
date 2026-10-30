@@ -1,0 +1,1 @@
+# OpenAI の既定のモデルを gpt-4o-mini-transcribe の提供終了の前に後継へ変える

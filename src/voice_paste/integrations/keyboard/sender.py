@@ -1,4 +1,4 @@
-"""クリップボードへの書き込みと、今のアクティブなウィンドウへのキー入力。pyperclip・pynput に触れるのはこのファイルだけ。"""
+"""クリップボードへの書き込みと、今のアクティブなウィンドウへのキー入力。pyperclip に触れるのはこのファイルだけ。pynput はこのファイルと sender_linux.py が触れる（Wayland のキーの送信は sender_wayland.py）。"""
 
 from __future__ import annotations
 
@@ -46,14 +46,32 @@ def copy_to_clipboard(text: str) -> None:
     logger.info(f"クリップボードへ書いた（{len(text)} 文字）")
 
 
-def send_paste(paste_key: str) -> None:
-    """設定の貼り付けのキーを、フォーカスが落ち着くのを待ってから今のアクティブなウィンドウへ送信する。"""
-    # 1. 貼り付けのキーを、前後の空白を除いて小文字にしたキーに区切り、修飾キーと主キーに分ける
+def use_xclip_clipboard() -> None:
+    """pyperclip の書き先を xclip（XWayland）に固定する。Wayland のセッションの配線が起動のときに 1 回呼ぶ。
+
+    pyperclip は `WAYLAND_DISPLAY` を見て `wl-copy` を選ぶが、GNOME の `wl-copy` は書くたびに貼り付け先のフォーカスを取り、貼り付けのキーが落ちる。
+    xclip はフォーカスを取らず、GNOME が X のクリップボードを Wayland のアプリへ渡す。
+    """
+    pyperclip.set_clipboard("xclip")
+
+
+def split_paste_key(paste_key: str) -> tuple[list[keyboard.Key], str]:
+    """設定の貼り付けのキーを、押す修飾キー（貼り付けのキーの並び）と、小文字にした主キーに分ける。主キーが 1 つでなければ DeliveryError にする。"""
+    # 1. 貼り付けのキーを、前後の空白を除いて小文字にしたキーに区切る
     tokens = [token.strip().lower() for token in paste_key.split(KEY_SEPARATOR)]
+
+    # 2. 修飾キーとそれ以外（主キー）に分ける
     modifiers = [MODIFIER_KEYS[token] for token in tokens if token in MODIFIER_KEYS]
     main_keys = [token for token in tokens if token not in MODIFIER_KEYS]
     if len(main_keys) != 1:
         raise DeliveryError(f"貼り付けのキーに主キーが 1 つありません（{paste_key}）")
+    return modifiers, main_keys[0]
+
+
+def send_paste(paste_key: str) -> None:
+    """設定の貼り付けのキーを、フォーカスが落ち着くのを待ってから今のアクティブなウィンドウへ送信する。主キーは文字のまま渡す（Windows の送り方）。"""
+    # 1. 貼り付けのキーを修飾キーと主キーに分ける
+    modifiers, main_key = split_paste_key(paste_key)
 
     # 2. 貼り付け先のフォーカスが落ち着くのを待つ
     time.sleep(FOCUS_SETTLE_SEC)
@@ -62,8 +80,8 @@ def send_paste(paste_key: str) -> None:
     controller = keyboard.Controller()
     for modifier in modifiers:
         controller.press(modifier)
-    controller.press(main_keys[0])
-    controller.release(main_keys[0])
+    controller.press(main_key)
+    controller.release(main_key)
     for modifier in reversed(modifiers):
         controller.release(modifier)
     logger.info(f"貼り付けのキーを送信した（{paste_key}）")

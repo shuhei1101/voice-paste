@@ -17,6 +17,9 @@ enums:
       - value: local_whisper
         title: ローカルの Whisper
         description: 文字起こしワーカーの子プロセスで起こす
+      - value: openai
+        title: OpenAI API
+        description: OpenAI API の文字起こしのエンドポイントへ送信して起こす（文字起こしワーカーを起動しない）
     status: implemented
 function_types:
   - name: EngineFn
@@ -39,7 +42,9 @@ function_types:
       description: 区間ごとの文字
     implementations:
       - target: 外部連携の WhisperWorkerClient.transcribe
-        notes: エンジンが local_whisper のとき（いまのエンジンはこれだけ）
+        notes: エンジンが local_whisper のとき
+      - target: 外部連携の OpenAITranscriber.transcribe
+        notes: エンジンが openai のとき。on_progress を呼ばない（OpenAI API は途中の進みを返さない）
     status: implemented
 functions:
   - name: transcribe

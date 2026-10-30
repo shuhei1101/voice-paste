@@ -6,17 +6,20 @@ files:
     notes: 列は `誤変換`・`正しい表記` と、行のオン・オフの `使う`（`0` がオフ。列が無い行はオン）。録音を確定するたびに読み直す。置き場所は `glossary_path` で変えられる。設定画面で追加した用語集は `glossaries[].path` の CSV に同じ列で持つ（列の定義は ER 図『常駐アプリのファイル』の用語集の CSV）。
   - file: settings.toml
     manages: 新しい構成（src/voice_paste/）の設定の全部
-    notes: git の管理外。既定は `%APPDATA%\voice-paste\settings.toml`、`--data-dir` を渡したときはその下。無ければ起動時に既定値で作る。
+    notes: git の管理外。既定は `%APPDATA%\voice-paste\settings.toml`（Linux は `~/.config/voice-paste/settings.toml`）、`--data-dir` を渡したときはその下。無ければ起動時に既定値で作る。
   - file: settings.sample.toml
     manages: settings.toml の見本と既定値
-    notes: git で管理する。設定のモデルの既定値と一致させる（単体テストで確かめる）。
+    notes: git で管理する。設定のモデルの共通の既定値（Windows の既定値）と一致させる（単体テストで、動いている OS の上書きのキーは共通の既定値と、それ以外は設定のモデルの既定値と比べる）。Linux で既定値が違うキーは、各キーの「環境ごとの値」が持つ。
+  - file: secrets/openai_api_key
+    manages: OpenAI API の API キー（中身はキーの文字列だけ）
+    notes: git の管理外。`settings.toml` と同じフォルダの下（Windows は `%APPDATA%\voice-paste\secrets\openai_api_key`、Linux は `~/.config/voice-paste/secrets/openai_api_key`、`--data-dir` を渡したときはその下）。ユーザーが置き、常駐アプリは読むだけで作らない。環境変数 `OPENAI_API_KEY` があればそちらを使う。`transcription.engine` が `openai` のときだけ読む
 settings:
   - key: transcription.engine
     title: 使う文字起こしのエンジン
     file: settings.toml
-    type: "'local_whisper'"
+    type: "'local_whisper' | 'openai'"
     default: local_whisper
-    description: '文字起こしワーカー（faster-whisper）で文字を起こす。エンジンはこれだけで、エンジンを追加するときに値を追加する。'
+    description: '`local_whisper` は文字起こしワーカー（faster-whisper）で、`openai` は OpenAI API で文字を起こす。`local_whisper` は `local-whisper` の extra を含めて作った環境でだけ動く。'
     reload: restart
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -38,6 +41,7 @@ settings:
     reload: restart
     status: implemented
     implementation: src/voice_paste/shared/settings.py
+    per_env: 'Windows: cuda。Linux: cpu（OS_DEFAULT_OVERRIDES。Linux では CUDA のライブラリを読ませる手当てが無い）'
   - key: transcription.local_whisper.compute_type
     title: ローカルの Whisper の量子化タイプ
     file: settings.toml
@@ -47,6 +51,7 @@ settings:
     reload: restart
     status: implemented
     implementation: src/voice_paste/shared/settings.py
+    per_env: 'Windows: float16。Linux: int8（OS_DEFAULT_OVERRIDES）'
   - key: transcription.local_whisper.cpu_threads
     title: ローカルの Whisper の CPU スレッド数
     file: settings.toml
@@ -173,6 +178,7 @@ settings:
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
+    per_env: 'Windows: true。Linux: false（OS_DEFAULT_OVERRIDES）。Linux では値によらず音量を変えず、設定画面にも出さない'
   - key: recording.volume_percent
     title: 録音中の音量の割合
     file: settings.toml
@@ -183,6 +189,7 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
     allowed: 0〜100
+    per_env: Linux では使わず、設定画面にも出さない（settings.toml の値は保つ）
   - key: recording.fade_sec
     title: 音量を変えるときの秒数
     file: settings.toml
@@ -193,6 +200,7 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
     allowed: '>= 0'
+    per_env: Linux では使わず、設定画面にも出さない（settings.toml の値は保つ）
   - key: recording.hide_window
     title: 録音中に画面を出さないか
     file: settings.toml
@@ -211,6 +219,7 @@ settings:
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
+    per_env: 'Windows: <ctrl>+<alt>+d。Linux: <cmd>+<alt>+d（OS_DEFAULT_OVERRIDES。Ubuntu は Ctrl+Alt+D を「デスクトップを表示」に割り当てている）'
   - key: hotkeys.pause
     title: 録音を一時停止するホットキー
     file: settings.toml
@@ -220,6 +229,7 @@ settings:
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
+    per_env: 'Windows: <ctrl>+<alt>+z。Linux: <cmd>+<alt>+z（OS_DEFAULT_OVERRIDES）'
   - key: hotkeys.cancel
     title: 録音の取り消しのホットキー
     file: settings.toml
@@ -229,12 +239,13 @@ settings:
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
+    per_env: 'Windows: <ctrl>+<alt>+q。Linux: <cmd>+<alt>+q（OS_DEFAULT_OVERRIDES）'
   - key: keyboard.paste_key
     title: 貼り付けに送信するキー
     file: settings.toml
     type: string（pynput の GlobalHotKeys 形式）
     default: <ctrl>+v
-    description: 貼り付け先へ送信する貼り付けのキーの組み合わせ。
+    description: 貼り付け先へ送信する貼り付けのキーの組み合わせ。Linux（Xorg）では、貼り付け先が端末アプリのときだけこのキーに代えて Ctrl+Shift+V を送信する。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -267,6 +278,7 @@ settings:
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
+    per_env: 'Windows: 既定値のとおり。Linux: paste_and_send: <cmd>+<alt>+d / paste_only: <cmd>+<alt>+v / copy_only: <cmd>+<alt>+c（OS_DEFAULT_OVERRIDES）'
   - key: outputs[].enter_delay_sec
     title: 貼り付けてから送信するまでの秒数
     file: settings.toml
@@ -728,5 +740,33 @@ settings:
     implementation: src/voice_paste/shared/settings.py
     introduced:
       pr: 173
+  - key: transcription.openai.model
+    title: OpenAI のモデル
+    file: settings.toml
+    type: string
+    description: OpenAI API の文字起こしに使うモデル。`gpt-transcribe` で始まるモデルは手がかりを `keywords[]`、言語を `languages[]` で、それ以外のモデル（`gpt-4o-mini-transcribe` など）は `prompt`・`language` で渡す。
+    reload: restart
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+    default: gpt-transcribe
+  - key: transcription.openai.language
+    title: OpenAI の言語
+    file: settings.toml
+    type: string
+    default: ja
+    description: 文字起こしの言語（ISO-639-1）。
+    reload: restart
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+  - key: transcription.openai.base_url
+    title: OpenAI のベース URL
+    file: settings.toml
+    type: string
+    default: https://api.openai.com/v1
+    description: OpenAI API の送信先のベース URL。テストでは 127.0.0.1 のテスト用のエンドポイントへ向ける。
+    reload: restart
+    allowed: http:// か https:// で始まる URL
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
 notes:
   反映の列の読み方: '`immediate` は設定画面で保存すると動いている常駐アプリに効く項目。`settings.toml` を直接書き換えたときは、どの項目も再起動まで効かない（起動時に 1 度だけ読む）。'

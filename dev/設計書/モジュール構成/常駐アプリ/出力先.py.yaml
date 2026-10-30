@@ -135,7 +135,7 @@ data_models:
         description: クリップボードへ書く（copy_to_clipboard。書けなければ DeliveryError）
       - name: paste
         type: Callable[[], None]
-        description: 貼り付けのキーを送信する（呼ぶたびに設定の keyboard.paste_key を読んで send_paste を呼ぶ）
+        description: 貼り付けのキーを送信する（呼ぶたびに設定の keyboard.paste_key を読んで OS ごとの貼り付けのキーの送信（PlatformAdapters.send_paste）を呼ぶ）
       - name: send_enter
         type: SendEnterFn
         description: 渡した修飾キーを押したまま Enter を送信する（修飾キーを省くと Enter だけ）
@@ -173,7 +173,7 @@ data_models:
         description: オンか
       - name: hotkey
         type: str
-        default: <ctrl>+<alt>+d
+        default: <ctrl>+<alt>+d（Linux は <cmd>+<alt>+d。os_default の outputs.paste_and_send.hotkey）
         description: この出力先で確定するホットキー
       - name: enter_delay_sec
         type: float
@@ -202,7 +202,7 @@ data_models:
         description: オンか
       - name: hotkey
         type: str
-        default: <ctrl>+<alt>+v
+        default: <ctrl>+<alt>+v（Linux は <cmd>+<alt>+v。os_default の outputs.paste_only.hotkey）
         description: この出力先で確定するホットキー
     status: planned
   - name: CopyOnlySettings
@@ -223,7 +223,7 @@ data_models:
         description: オンか
       - name: hotkey
         type: str
-        default: <ctrl>+<alt>+c
+        default: <ctrl>+<alt>+c（Linux は <cmd>+<alt>+c。os_default の outputs.copy_only.hotkey）
         description: この出力先で確定するホットキー
     status: planned
   - name: CallbackPayload

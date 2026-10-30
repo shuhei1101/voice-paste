@@ -34,6 +34,10 @@ classes:
         type: frozenset[str]
         access: 内部 (_)
         description: '`/web/` の下に許す Origin（設定 api.allowed_web_origins。末尾の `/` を落として持つ）'
+      - name: _web_enabled
+        type: bool
+        access: 内部 (_)
+        description: ブラウザの機能を組み込んだか。False なら `/web/` の下に許す Origin を見ない
     methods:
       - name: dispatch
         title: 要求の確かめ
@@ -59,6 +63,7 @@ classes:
           1. Host が `127.0.0.1:{ポート}` か `localhost:{ポート}` でなければ 403 を返す
              - `[WARNING]` 断った要求（理由・Host・Origin。トークンは書かない）
           2. パスが `/web` か `/web/` で始まるかで分ける
+             - `/web/` の下で _web_enabled が False の場合、次へ渡す（route が無いため 404 になる。Origin とトークンを見ない）
              - `/web/` の下の場合
                - GET・HEAD で Origin が無いか、Origin が _allowed_web_origins にあれば次へ渡す（トークンは求めない）
                - それ以外のメソッドで Origin が _allowed_web_origins にあれば次へ渡す
@@ -121,6 +126,12 @@ classes:
             mock: call_next
             expected: 403 が返る
             exception: Origin が付いている
+          - name: test_dispatch_when_web_disabled
+            case: 正常
+            summary: ブラウザの機能が無ければ /web/ の下は Origin を見ずに次へ渡す
+            condition: _web_enabled が False で、GET /web/ を Origin http://evil.example・Authorization 無しで送る
+            mock: call_next
+            expected: call_next が呼ばれる
     refs:
       - dev/設計書/外部ライブラリ/fastapi#
     status: implemented
@@ -313,10 +324,10 @@ functions:
         passing: positional
         description: 待ち受けのポート
       - name: web_api
-        type: WebApiDeps
+        type: WebApiDeps | None
         required: true
         passing: keyword
-        description: ブラウザの API の依存（app.state.web_api に置く）
+        description: ブラウザの API の依存（app.state.web_api に置く）。None なら外の端末のブラウザの機能を組み込まない（Linux）
       - name: allowed_web_origins
         type: Sequence[str]
         required: true
@@ -329,10 +340,10 @@ functions:
     process: |-
       1. 自動で作られる文書のページ（docs・redoc・openapi.json）を持たない FastAPI を作る
       2. app.state.session_api にセッションの API の依存を置き、セッションの route（開始・停止・完了）を include_router で集める
-      3. app.state.web_api にブラウザの API の依存を置き、ブラウザの文字起こしの route（受け付け・結果の取得）と画面の配信（web_page_router）を集め、画面の素材を組み込む（mount_web_assets）
+      3. web_api が None でなければ、app.state.web_api にブラウザの API の依存を置き、ブラウザの文字起こしの route（受け付け・結果の取得）と画面の配信（web_page_router）を集め、画面の素材を組み込む（mount_web_assets）
       4. 例外ハンドラを登録する（register_exception_handlers）
       5. 本文の上限（BodyLimitMiddleware）を組み込む
-      6. 要求の守り（RequestGuardMiddleware）にトークン・ポート・許す Origin を渡して組み込む（最後に追加するため、本文の上限より先に動き、断る要求の本文を読まない）
+      6. 要求の守り（RequestGuardMiddleware）にトークン・ポート・許す Origin・ブラウザの機能を組み込んだか（web_api が None でないか）を渡して組み込む（最後に追加するため、本文の上限より先に動き、断る要求の本文を読まない）
     unit_tests:
       - name: test_build_fastapi
         case: 正常
@@ -346,6 +357,12 @@ functions:
         condition: 正しいトークンで GET /docs と GET /openapi.json
         mock: SessionManager
         expected: どちらも 404
+      - name: test_build_fastapi_when_web_disabled
+        case: 正常
+        summary: web_api が None ならブラウザの画面と API を持たない
+        condition: 'web_api=None で組み立て、GET /web/ を Origin 無しと Origin: http://evil.example で、POST /web/transcriptions を Origin 無しで送る'
+        mock: SessionManager
+        expected: どれも 404
   - name: register_exception_handlers
     title: 例外ハンドラの登録
     kind: 関数

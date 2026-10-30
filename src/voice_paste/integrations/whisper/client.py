@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import logging
 import os
 import queue
@@ -15,7 +16,7 @@ from typing import IO
 from pydantic import ValidationError
 
 from voice_paste.integrations.whisper.protocol import WorkerMessage
-from voice_paste.shared.errors import EngineError
+from voice_paste.shared.errors import EngineError, StartupError
 from voice_paste.shared.settings import LocalWhisperSettings
 from voice_paste.shared.types import ProgressFn
 
@@ -33,6 +34,20 @@ CREATE_NO_WINDOW: int = 0x08000000
 WORKER_ENCODING: str = "utf-8"
 """子プロセスとの標準入出力の文字コード。"""
 
+LOCAL_WHISPER_PACKAGE: str = "faster_whisper"
+"""ローカルの Whisper の依存（`local-whisper` の extra に入る faster-whisper）の import 名。"""
+
+
+def ensure_local_whisper_installed() -> None:
+    """faster-whisper のパッケージが仮想環境にあるかを、import せずに確かめる。無ければ起動の失敗にする。"""
+    # find_spec は __init__ を実行しない（faster_whisper の import は ctranslate2 と CUDA の DLL を読み込むため、常駐サービスでは行わない）
+    if importlib.util.find_spec(LOCAL_WHISPER_PACKAGE) is None:
+        logger.error("ローカルの Whisper の依存が無い")
+        raise StartupError(
+            "ローカルの Whisper の依存（faster-whisper）が入っていません: "
+            "local-whisper の extra を含めて環境を作り直してください（uv sync --extra local-whisper）"
+        )
+
 
 class _WorkerExitedError(Exception):
     """子プロセスが応答の途中で終わった（送信できない・標準出力が閉じた）。"""
@@ -48,14 +63,16 @@ class WhisperWorkerClient:
         ready_timeout_sec: float,
         log_dir: Path,
         stop_timeout_sec: float,
+        creationflags: int = 0,
     ) -> None:
-        """設定・立て直しで ready を待つ上限・ワーカーのログの置き場所・終わりを待つ時間を受ける。"""
+        """設定・立て直しで ready を待つ上限・ワーカーのログの置き場所・終わりを待つ時間・子プロセスの起動のフラグを受ける。"""
         self._process: subprocess.Popen[str] | None = None
         self._messages: queue.Queue[WorkerMessage | None] = queue.Queue()
         self._settings = settings
         self._ready_timeout_sec = ready_timeout_sec
         self._log_dir = log_dir
         self._stop_timeout_sec = stop_timeout_sec
+        self._creationflags = creationflags
         # stop で止めている最中か。立っている間は子プロセスが終わっても立て直さない（start で下ろす）
         self._stopping = False
         # 立て直しの中から start を呼ぶため、再入できるロックにする
@@ -77,7 +94,7 @@ class WhisperWorkerClient:
                 text=True,
                 encoding=WORKER_ENCODING,
                 bufsize=1,
-                creationflags=CREATE_NO_WINDOW if sys.platform == "win32" else 0,
+                creationflags=self._creationflags,
             )
             self._process = process
             self._messages = queue.Queue()

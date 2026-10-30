@@ -8,6 +8,7 @@ directory: |-
   ├── logger.py         # 標準の logging の設定。日付ごとのファイルと保持期間での削除
   ├── errors.py         # 例外の階層
   ├── constants.py      # アプリ名と置き場所のパス（platformdirs）
+  ├── os_kind.py        # 動いている OS とデスクトップのセッションの判定と、OS ごとに使えない機能（OS ごとの実装・既定値・機能を選ぶ唯一の場所）
   └── types.py          # feature の間を渡る型（入口・録音・文字起こしの結果・用語集の行）
   ```
 enums:
@@ -63,6 +64,57 @@ enums:
     refs:
       - dev/設計書/設定/常駐アプリ#settings[outputs[].enter_modifiers]
     status: planned
+  - name: OsKind
+    title: OS の種類
+    container: shared/os_kind.py
+    usecase: 常駐アプリを起動する
+    role: OS の判定
+    summary: 動いている OS。main.py の配線が OS ごとの実装を、設定のモデルが OS ごとの既定値を選ぶのに使う
+    description: '`enum.StrEnum`。'
+    values:
+      - value: windows
+        member: WINDOWS
+        title: Windows
+        description: '`sys.platform` が `win32`'
+      - value: linux
+        member: LINUX
+        title: Linux
+        description: '`sys.platform` が `win32` 以外（対応するのは Ubuntu 24.04 の Xorg のセッションと、GNOME の Wayland のセッション）'
+    status: planned
+  - name: DisplaySession
+    title: デスクトップのセッションの種類
+    container: shared/os_kind.py
+    usecase: 常駐アプリを起動する
+    role: OS の判定
+    summary: Linux のデスクトップのセッションの種類。main.py の配線が、Linux のホットキー・貼り付けのキー・画面の実装を選ぶのに使う（Windows では使わない）
+    description: '`enum.StrEnum`。'
+    values:
+      - value: x11
+        member: X11
+        title: Xorg のセッション
+        description: '`XDG_SESSION_TYPE` が `wayland` 以外（無いときを含む）'
+      - value: wayland
+        member: WAYLAND
+        title: Wayland のセッション
+        description: '`XDG_SESSION_TYPE` が `wayland`'
+    status: planned
+  - name: Feature
+    title: OS で使えるかが分かれる機能
+    container: shared/os_kind.py
+    usecase: 常駐アプリを起動する
+    role: OS ごとの機能
+    summary: OS によって使えないことがある機能。OS_UNAVAILABLE_FEATURES と FEATURE_SETTING_KEYS のキー
+    description: '`enum.StrEnum`。'
+    values:
+      - value: lower_volume
+        member: LOWER_VOLUME
+        title: 録音中の音量を下げる
+        description: 録音中にシステムの音量を下げ、終わったら戻す
+      - value: web_transcription
+        member: WEB_TRANSCRIPTION
+        title: 外の端末のブラウザの文字起こし
+        description: '`/web/` の下の画面と API・ブラウザの音声のジョブのキュー'
+    status: planned
 data_models:
   - name: Recording
     title: 録音
@@ -117,16 +169,16 @@ data_models:
     summary: 設定・履歴・ログ・一時の音声・トークン・画面の画像の置き場所
     description: |-
       resolve_app_paths で作る。
-      既定は platformdirs で `%APPDATA%\voice-paste\`（設定）と `%LOCALAPPDATA%\voice-paste\`（それ以外）を引く。
+      既定は platformdirs で、Windows は `%APPDATA%\voice-paste\`（設定）と `%LOCALAPPDATA%\voice-paste\`（それ以外）、Linux は `~/.config/voice-paste/`（設定）と `~/.local/share/voice-paste/`（それ以外）を引く。
       データの置き場所（`--data-dir`）を渡したときは、全てをその下に置く。E2E・非機能要件テストはこれで普段使いの置き場所に触れない。
       `@dataclass(frozen=True, slots=True, kw_only=True)`。
     properties:
       - name: settings_file
         type: Path
-        description: '`%APPDATA%\voice-paste\settings.toml`（データの置き場所を渡したときは `{data_dir}\settings.toml`）'
+        description: '`%APPDATA%\voice-paste\settings.toml`（Linux は `~/.config/voice-paste/settings.toml`。データの置き場所を渡したときは `{data_dir}\settings.toml`）'
       - name: history_dir
         type: Path
-        description: '`%LOCALAPPDATA%\voice-paste\history\`（`{data_dir}\history\`）'
+        description: '`%LOCALAPPDATA%\voice-paste\history\`（Linux は `~/.local/share/voice-paste/history/`。`{data_dir}\history\`）'
       - name: log_dir
         type: Path
         description: '`%LOCALAPPDATA%\voice-paste\log\`（`{data_dir}\log\`）'
@@ -139,6 +191,12 @@ data_models:
       - name: ui_image_dir
         type: Path
         description: '`%LOCALAPPDATA%\voice-paste\ui\`（`{data_dir}\ui\`。選択欄の開くマーカーの SVG）'
+      - name: lock_file
+        type: Path
+        description: '`%LOCALAPPDATA%\voice-paste\instance.lock`（Linux は `~/.local/share/voice-paste/instance.lock`。`{data_dir}\instance.lock`。Linux の単一インスタンスのロックファイル。Windows では使わない）'
+      - name: openai_api_key_file
+        type: Path
+        description: '`%APPDATA%\voice-paste\secrets\openai_api_key`（Linux は `~/.config/voice-paste/secrets/openai_api_key`。`{data_dir}\secrets\openai_api_key`）。settings.toml と同じフォルダの下。ユーザーが置き、常駐アプリは読むだけで作らない'
     refs:
       - dev/設計書/外部ライブラリ/platformdirs#
     status: implemented
@@ -235,12 +293,15 @@ data_models:
     inherits: pydantic.BaseModel
     properties:
       - name: engine
-        type: Literal["local_whisper"]
+        type: Literal["local_whisper", "openai"]
         default: local_whisper
-        description: 使う文字起こしのエンジン（文字起こしの EngineName）。エンジンはローカルの Whisper だけで、エンジンを追加するときに値を追加する
+        description: 使う文字起こしのエンジン（文字起こしの EngineName）。反映は restart。設定画面は `json_schema_extra` の choice_labels（local_whisper → ローカルの Whisper・openai → OpenAI API）で選択の欄の名前を出す
       - name: local_whisper
         type: LocalWhisperSettings
         description: ローカルの Whisper の設定
+      - name: openai
+        type: OpenAISettings
+        description: OpenAI API の設定（engine が openai のときだけ使う）
     status: implemented
   - name: LocalWhisperSettings
     title: ローカルの Whisper の設定
@@ -256,11 +317,11 @@ data_models:
         description: faster-whisper のモデル
       - name: device
         type: Literal["cuda", "cpu"]
-        default: cuda
+        default: cuda（Linux は cpu。os_default）
         description: 動かすデバイス
       - name: compute_type
         type: Literal["float16", "int8", "float32"]
-        default: float16
+        default: float16（Linux は int8。os_default）
         description: 計算の精度
       - name: cpu_threads
         type: int
@@ -321,8 +382,8 @@ data_models:
     properties:
       - name: lower_volume
         type: bool
-        default: 'True'
-        description: 録音中にシステム音量を下げるか
+        default: True（Linux は False。os_default）
+        description: 録音中にシステム音量を下げるか。Linux では使わない（音量の外部連携が何もしない実装で、設定画面に出さない）
       - name: volume_percent
         type: float
         default: '50'
@@ -346,15 +407,15 @@ data_models:
     properties:
       - name: start
         type: str
-        default: <ctrl>+<alt>+d
+        default: <ctrl>+<alt>+d（Linux は <cmd>+<alt>+d。os_default）
         description: 録音を始める
       - name: pause
         type: str
-        default: <ctrl>+<alt>+z
+        default: <ctrl>+<alt>+z（Linux は <cmd>+<alt>+z。os_default）
         description: 録音を一時停止・再開する
       - name: cancel
         type: str
-        default: <ctrl>+<alt>+q
+        default: <ctrl>+<alt>+q（Linux は <cmd>+<alt>+q。os_default）
         description: 録音を取り消す
     status: implemented
   - name: KeyboardSettings
@@ -508,6 +569,35 @@ data_models:
         default: '[]'
         description: '外の端末に許す Origin。`/web/` の下に許すオリジン（設定 api.allowed_web_origins。`scheme://host[:port]` の形式だけを通し、末尾の `/` とパスは SettingsError）。pydantic の Field の description の最初の 1 文を「外の端末に許す Origin」にし、設定画面の欄の名前にする'
     status: implemented
+    methods:
+      - name: _origins_must_be_origin_form
+        title: 許す Origin の形式の確かめ
+        summary: 許す Origin の全ての行が `scheme://host[:port]` の形式（ORIGIN_PATTERN に全体が一致する）であることを確かめる（`field_validator("allowed_web_origins")` のクラスメソッド）
+        description: 一致しない行があれば `PydanticCustomError` を投げる。type は WEB_ORIGIN_FORM_ERROR_TYPE、文は「`scheme://host[:port]` の形式で、末尾の `/` とパスを付けない（{origins}）」、ctx は `origins`（一致しない行を `, ` でつないだ文字列。文に埋める）と `invalid`（一致しない行の tuple。入れた順）。失敗の場所は ("api", "allowed_web_origins")。
+        kind: メソッド
+        scope: internal
+        args:
+          - name: origins
+            type: list[str]
+            required: true
+            passing: positional
+            description: 許す Origin の一覧
+        returns:
+          type: list[str]
+          description: そのままの一覧
+        unit_tests:
+          - name: test_api_settings_when_web_origin_form
+            case: 正常
+            summary: 形式の合う Origin を通す
+            condition: allowed_web_origins が ["https://voice.example.com", "http://localhost:47823"]
+            mock: なし
+            expected: allowed_web_origins がそのまま
+          - name: test_api_settings_when_web_origin_not_form
+            case: 異常
+            summary: 形式の違う Origin を断る
+            condition: Settings の api.allowed_web_origins が ["https://voice.example.com/", "https://ok.example.com", "voice.example.com"]
+            mock: なし
+            expected: ValidationError。失敗の type が WEB_ORIGIN_FORM_ERROR_TYPE、場所が ("api", "allowed_web_origins")、ctx の invalid が ("https://voice.example.com/", "voice.example.com")
   - name: BrowserPreset
     title: ブラウザ添付のプリセット
     container: shared/settings.py
@@ -852,6 +942,30 @@ data_models:
     status: planned
     introduced:
       pr: 173
+  - name: OpenAISettings
+    title: OpenAI API の設定
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: OpenAI API の文字起こしへ渡すモデル・言語・送信先のベース URL。API キーは持たない
+    inherits: pydantic.BaseModel
+    description: API キーは settings.toml に置かず、起動の配線が外部連携の read_openai_api_key で環境変数か秘匿のファイルから読む。反映は全て restart。
+    properties:
+      - name: model
+        type: str
+        default: gpt-transcribe
+        description: 文字起こしに使うモデル。設定画面は `json_schema_extra` の note で、まとまりの補助文（「文字起こしのエンジンが OpenAI API のときに使う。API キーはここでは入れず、環境変数 OPENAI_API_KEY か、settings.toml と同じフォルダの secrets/openai_api_key に置く。」）を欄の下に出す
+      - name: language
+        type: str
+        default: ja
+        description: 文字起こしの言語（ISO-639-1）
+      - name: base_url
+        type: str
+        default: https://api.openai.com/v1
+        description: 送信先のベース URL。`pattern=URL_PATTERN`（http:// か https:// で始まる）。テストでは 127.0.0.1 のテスト用のエンドポイントへ向ける
+    status: planned
+    introduced:
+      pr: 204
 classes:
   - name: AppError
     title: アプリの例外
@@ -942,23 +1056,23 @@ functions:
         expected: local_whisper.model が small、outputs が CopyOnlySettings 1 件、書いていない項目は既定値
       - name: test_load_settings_when_sample_file
         case: 正常
-        summary: リポジトリの見本は既定値と一致する
+        summary: リポジトリの見本は共通の既定値（Windows の既定値）と一致する
         condition: リポジトリの直下の settings.sample.toml
         mock: なし
-        expected: SETTINGS_MODEL() と等しい
+        expected: OS_DEFAULT_OVERRIDES[CURRENT_OS] のキーを除いて SETTINGS_MODEL() と等しい。除いたキーは、見本の値がそのキーの共通の既定値（os_default に渡す common。Windows の値）と等しい（Windows では上書きが無いため、SETTINGS_MODEL() 全体と等しい）。`outputs.{出力先の ID}.{項目}` のキーは、outputs の id が一致する項目で引く
       - name: test_load_settings_when_invalid_value
         case: 異常
         summary: 合わない値はキーを示して断る
-        condition: parametrize で (1) transcription.local_whisper.beam_size = "x" (2) transcription.engine = "openai"（作らないエンジン）
+        condition: parametrize で (1) transcription.local_whisper.beam_size = "x" (2) transcription.engine = "gemini"（作らないエンジン）
         mock: なし（一時フォルダ）
         expected: SettingsError。メッセージに (1) transcription.local_whisper.beam_size (2) transcription.engine を含む
         exception: 値がモデルに合わない
       - name: test_load_settings_when_unknown_key
         case: 異常
         summary: 知らないキーを断る
-        condition: parametrize で (1) recording.volum_percent = 30（書き間違い） (2) [transcription.openai] の表に model = "whisper-1"（消した設定）
+        condition: parametrize で (1) recording.volum_percent = 30（書き間違い） (2) [transcription.openai] の表に modle = "gpt-4o-mini-transcribe"（書き間違い）
         mock: なし（一時フォルダ）
-        expected: SettingsError。メッセージに (1) recording.volum_percent (2) transcription.openai を含む
+        expected: SettingsError。メッセージに (1) recording.volum_percent (2) transcription.openai.modle を含む
         exception: 知らないキーがある
       - name: test_load_settings_when_duplicate_output_id
         case: 異常
@@ -1221,21 +1335,21 @@ functions:
       description: 置き場所のパス
     process: |-
       1. data_dir が渡されているか
-         - ある場合、設定・履歴・ログ・一時の音声・トークン・画面の画像を全て data_dir の下に置く
-         - 無い場合、設定は user_config_dir(APP_NAME, appauthor=False, roaming=True)、それ以外は user_data_dir(APP_NAME, appauthor=False) の下に置く
+         - ある場合、設定・OpenAI の API キーのファイル・履歴・ログ・一時の音声・トークン・画面の画像・ロックファイルを全て data_dir の下に置く
+         - 無い場合、設定と OpenAI の API キーのファイル（`secrets/openai_api_key`）は user_config_dir(APP_NAME, appauthor=False, roaming=True)、それ以外は user_data_dir(APP_NAME, appauthor=False) の下に置く
     unit_tests:
       - name: test_resolve_app_paths_when_data_dir
         case: 正常
         summary: データの置き場所の下に全てを置く
         condition: data_dir=一時フォルダ
         mock: なし
-        expected: settings_file が {data_dir}/settings.toml、log_dir が {data_dir}/log、ui_image_dir が {data_dir}/ui など全てが data_dir の下。フォルダは作られていない
+        expected: settings_file が {data_dir}/settings.toml、openai_api_key_file が {data_dir}/secrets/openai_api_key、log_dir が {data_dir}/log、ui_image_dir が {data_dir}/ui、lock_file が {data_dir}/instance.lock など全てが data_dir の下。フォルダは作られていない
       - name: test_resolve_app_paths_when_default
         case: 正常
         summary: 既定は platformdirs の置き場所
         condition: data_dir=None
         mock: platformdirs の user_config_dir・user_data_dir（それぞれ一時フォルダの config・local を返す）
-        expected: settings_file が config/settings.toml、それ以外が local の下。user_config_dir に roaming=True が渡る
+        expected: settings_file が config/settings.toml、openai_api_key_file が config/secrets/openai_api_key、それ以外が local の下。user_config_dir に roaming=True が渡る
     refs:
       - dev/設計書/外部ライブラリ/platformdirs#
     status: implemented
@@ -1268,7 +1382,7 @@ functions:
       - name: test_find_hotkey_overlaps
         case: 正常
         summary: 前に並んだホットキーと重なるキーを、重なった組で返す
-        condition: presets に 2 件を置き、2 件目の hotkey を <ctrl>+<alt>+v（貼り付けのみと同じ）にした設定（model_construct で確かめを飛ばして作る）
+        condition: 出力先の hotkey を <ctrl>+<alt>+d・v・c に固定し、presets に 2 件を置き、2 件目の hotkey を <ctrl>+<alt>+v（貼り付けのみと同じ）にした設定（model_construct で確かめを飛ばして作る）
         mock: なし
         expected: '[("presets[1].hotkey", "outputs[1].hotkey")]'
       - name: test_find_hotkey_overlaps_when_presets_of_different_kinds
@@ -1298,7 +1412,7 @@ functions:
       - name: test_settings_when_hotkeys_overlap
         case: 異常
         summary: ホットキーが重なる設定は、重なったキーと先のキーを持つ ValidationError で断る
-        condition: hotkeys.cancel を <ctrl>+<alt>+z にした dict を Settings.model_validate に渡す
+        condition: hotkeys.pause と hotkeys.cancel を同じ <ctrl>+<alt>+z にした dict を Settings.model_validate に渡す
         mock: なし
         expected: ValidationError。list_validation_failures のキーに hotkeys.cancel、理由に hotkeys.pause
         exception: ホットキーが重なる
@@ -1617,6 +1731,216 @@ functions:
     status: planned
     introduced:
       pr: 173
+  - name: detect_os
+    title: OS の判定
+    kind: 関数
+    container: shared/os_kind.py
+    usecase: 常駐アプリを起動する
+    role: OS の判定
+    summary: sys.platform の値から OsKind を返す
+    scope: public
+    args:
+      - name: platform
+        title: プラットフォーム
+        type: str
+        required: false
+        default: sys.platform
+        passing: positional
+        description: 判定する sys.platform の値
+    returns:
+      type: OsKind
+      description: 動いている OS
+    process: |-
+      1. platform が `win32` か
+         - そうである場合、OsKind.WINDOWS を返す
+         - それ以外の場合、OsKind.LINUX を返す
+    unit_tests:
+      - name: test_detect_os_when_windows
+        case: 正常
+        summary: win32 は Windows
+        condition: platform="win32"
+        mock: なし
+        expected: OsKind.WINDOWS
+      - name: test_detect_os_when_linux
+        case: 正常
+        summary: linux は Linux
+        condition: platform="linux"
+        mock: なし
+        expected: OsKind.LINUX
+    status: planned
+  - name: os_default
+    title: OS ごとの既定値
+    kind: 関数
+    container: shared/settings.py
+    usecase: 設定を変える
+    role: 設定のモデル
+    summary: 設定のキーの既定値を、OS_DEFAULT_OVERRIDES にその OS の上書きがあればその値、無ければ共通の既定値で返す
+    description: 設定のモデルの項目の既定値（_item の default）に使う。スキーマ（項目・型・範囲）は OS で変えない。
+    scope: public
+    args:
+      - name: key
+        title: 設定のキー
+        type: str
+        required: true
+        passing: positional
+        description: ドットで結んだ設定のキー（例 `recording.lower_volume`）
+      - name: common
+        title: 共通の既定値
+        type: T
+        required: true
+        passing: positional
+        description: どの OS でも使う既定値
+      - name: os_kind
+        title: OS
+        type: OsKind
+        required: false
+        default: CURRENT_OS
+        passing: keyword
+        description: 既定値を引く OS
+    returns:
+      type: T
+      description: その OS の既定値
+    process: 1. OS_DEFAULT_OVERRIDES[os_kind] に key があればその値、無ければ common を返す
+    unit_tests:
+      - name: test_os_default_when_linux
+        case: 正常
+        summary: Linux の上書きがあるキーは上書きの値
+        condition: key="recording.lower_volume"・common=True・os_kind=OsKind.LINUX
+        mock: なし
+        expected: 'False'
+      - name: test_os_default_when_windows
+        case: 正常
+        summary: Windows は共通の既定値
+        condition: key="transcription.local_whisper.device"・common="cuda"・os_kind=OsKind.WINDOWS
+        mock: なし
+        expected: '"cuda"'
+      - name: test_os_default_when_not_overridden
+        case: 正常
+        summary: 上書きの無いキーは共通の既定値
+        condition: key="recording.hide_window"・common=False・os_kind=OsKind.LINUX
+        mock: なし
+        expected: False（common のまま）
+      - name: test_os_default_when_settings_model_linux
+        case: 正常
+        summary: Linux で組み立てた設定のモデルの既定値は、OS_DEFAULT_OVERRIDES[OsKind.LINUX] の全ての値になる
+        condition: 子プロセス（`sys.executable -c`）で、voice_paste.shared.os_kind を先に import して CURRENT_OS を OsKind.LINUX に置き換えてから voice_paste.main を import し、引数なしで組み立てた SETTINGS_MODEL() の model_dump と OS_DEFAULT_OVERRIDES[OsKind.LINUX] を JSON で標準出力に出させる。テストのプロセスのモジュールは読み直さない（import のときに CURRENT_OS を読むのは os_default だけで、Windows でも走る）
+        mock: なし
+        expected: 子プロセスが 0 で終わる。OS_DEFAULT_OVERRIDES[OsKind.LINUX] のキーの集まりがテストに書いた 9 つのキーと等しく、model_dump のそれぞれのキーの値がテストに書いた固定の値と等しい（recording.lower_volume = False・transcription.local_whisper.device = "cpu"・transcription.local_whisper.compute_type = "int8"・hotkeys.start = "<cmd>+<alt>+d"・hotkeys.pause = "<cmd>+<alt>+z"・hotkeys.cancel = "<cmd>+<alt>+q"・outputs.paste_and_send.hotkey = "<cmd>+<alt>+d"・outputs.paste_only.hotkey = "<cmd>+<alt>+v"・outputs.copy_only.hotkey = "<cmd>+<alt>+c"）。`outputs.{出力先の ID}.{項目}` のキーは、outputs の id が一致する項目で引く（引けないキーがあれば fail）
+    status: planned
+  - name: detect_display_session
+    title: デスクトップのセッションの判定
+    kind: 関数
+    container: shared/os_kind.py
+    usecase: 常駐アプリを起動する
+    role: OS の判定
+    summary: 環境変数 `XDG_SESSION_TYPE` から DisplaySession を返す
+    scope: public
+    args:
+      - name: environ
+        title: 環境変数
+        type: Mapping[str, str]
+        required: true
+        passing: positional
+        description: 環境変数（main が os.environ を渡す）
+    returns:
+      type: DisplaySession
+      description: デスクトップのセッションの種類
+    process: |-
+      1. environ の `XDG_SESSION_TYPE` が `wayland` か
+         - そうである場合、DisplaySession.WAYLAND を返す
+         - それ以外の場合（無いときを含む）、DisplaySession.X11 を返す
+    unit_tests:
+      - name: test_detect_display_session_when_wayland
+        case: 正常
+        summary: wayland は Wayland のセッション
+        condition: 'environ={"XDG_SESSION_TYPE": "wayland"}'
+        mock: なし
+        expected: DisplaySession.WAYLAND
+      - name: test_detect_display_session_when_x11
+        case: 正常
+        summary: x11 は Xorg のセッション
+        condition: 'environ={"XDG_SESSION_TYPE": "x11"}'
+        mock: なし
+        expected: DisplaySession.X11
+      - name: test_detect_display_session_when_missing
+        case: 正常
+        summary: 無ければ Xorg のセッション
+        condition: environ={}
+        mock: なし
+        expected: DisplaySession.X11
+    status: planned
+  - name: unavailable_features
+    title: 使えない機能の取得
+    kind: 関数
+    container: shared/os_kind.py
+    usecase: 常駐アプリを起動する
+    role: OS ごとの機能
+    summary: その OS で使えない機能を OS_UNAVAILABLE_FEATURES から返す
+    scope: public
+    args:
+      - name: os_kind
+        title: OS
+        type: OsKind
+        required: true
+        passing: positional
+        description: 動いている OS（main は CURRENT_OS を渡す）
+    returns:
+      type: frozenset[Feature]
+      description: 使えない機能（無ければ空）
+    process: 1. OS_UNAVAILABLE_FEATURES に os_kind があればその集合、無ければ空の集合を返す
+    unit_tests:
+      - name: test_unavailable_features_when_linux
+        case: 正常
+        summary: Linux は音量と外の端末のブラウザの機能を使えない
+        condition: os_kind=OsKind.LINUX
+        mock: なし
+        expected: frozenset({Feature.LOWER_VOLUME, Feature.WEB_TRANSCRIPTION})
+      - name: test_unavailable_features_when_windows
+        case: 正常
+        summary: Windows は全ての機能を使える
+        condition: os_kind=OsKind.WINDOWS
+        mock: なし
+        expected: 空の frozenset
+    status: planned
+  - name: hidden_setting_keys
+    title: 出さない設定のキーの導出
+    kind: 関数
+    container: shared/os_kind.py
+    usecase: 設定を変える
+    role: OS ごとの機能
+    summary: 使えない機能の設定のキーを FEATURE_SETTING_KEYS から集めて返す（設定画面で出さない欄）
+    scope: public
+    args:
+      - name: features
+        title: 使えない機能
+        type: Iterable[Feature]
+        required: true
+        passing: positional
+        description: 使えない機能（unavailable_features の戻り値）
+    returns:
+      type: frozenset[str]
+      description: 出さない設定のキー
+    process: 1. features の各機能の FEATURE_SETTING_KEYS の集合をつないだ集合を返す（FEATURE_SETTING_KEYS に無い機能は空として扱う）
+    unit_tests:
+      - name: test_hidden_setting_keys
+        case: 正常
+        summary: 使えない機能の設定のキーを集める
+        condition: features=unavailable_features(OsKind.LINUX)
+        mock: なし
+        expected: frozenset({"recording.lower_volume", "recording.volume_percent", "recording.fade_sec", "api.allowed_web_origins"})
+      - name: test_hidden_setting_keys_when_empty
+        case: 正常
+        summary: 使えない機能が無ければ空
+        condition: features=frozenset()
+        mock: なし
+        expected: 空の frozenset
+      - name: test_hidden_setting_keys_when_keys_exist
+        case: 正常
+        summary: 表の設定のキーは全て設定のモデルにある
+        condition: FEATURE_SETTING_KEYS の全てのキーを、Settings() の既定の値からドットで辿る
+        mock: なし
+        expected: 全てのキーを辿れる（辿れないキーがあれば fail）
+    status: planned
 constants:
   - name: APP_NAME
     title: アプリ名
@@ -1678,10 +2002,93 @@ constants:
     status: planned
     introduced:
       pr: 173
+  - name: CURRENT_OS
+    title: 動いている OS
+    container: shared/os_kind.py
+    usecase: 常駐アプリを起動する
+    role: OS の判定
+    summary: 読み込んだときに detect_os で決めた、動いている OS。OS を見る処理は sys.platform を直に読まず、これを読むか main.py の配線で渡される
+    value: detect_os()
+    status: planned
+  - name: OS_DEFAULT_OVERRIDES
+    title: OS ごとの既定値の上書き
+    container: shared/settings.py
+    usecase: 設定を変える
+    role: 設定のモデル
+    summary: 共通の既定値に重ねる、OS ごとの既定値。キーは設定のドットで結んだキー。載っていない OS・キーは共通の既定値のまま
+    entries:
+      - key: linux / recording.lower_volume
+        value: 'False'
+        description: Linux では音量を変えない
+      - key: linux / transcription.local_whisper.device
+        value: '"cpu"'
+        description: Linux では CUDA のライブラリを読ませる手当てが無く、cuda では文字起こしワーカーが起動に失敗する
+      - key: linux / transcription.local_whisper.compute_type
+        value: '"int8"'
+        description: CPU で動く精度
+      - key: linux / hotkeys.start
+        value: '"<cmd>+<alt>+d"'
+        description: Ubuntu は `<Primary><Alt>d` を「デスクトップを表示」に割り当てており、Ctrl+Alt+D では貼り付け先のウィンドウが隠れる。Linux の既定のホットキーは修飾キーを Super+Alt にそろえる
+      - key: linux / hotkeys.pause
+        value: '"<cmd>+<alt>+z"'
+        description: hotkeys.start と同じく Super+Alt にそろえる
+      - key: linux / hotkeys.cancel
+        value: '"<cmd>+<alt>+q"'
+        description: hotkeys.start と同じく Super+Alt にそろえる
+      - key: linux / outputs.paste_and_send.hotkey
+        value: '"<cmd>+<alt>+d"'
+        description: hotkeys.start と同じキー。出力先のキーは `outputs.{出力先の ID}.{項目}`
+      - key: linux / outputs.paste_only.hotkey
+        value: '"<cmd>+<alt>+v"'
+        description: hotkeys.start と同じく Super+Alt にそろえる
+      - key: linux / outputs.copy_only.hotkey
+        value: '"<cmd>+<alt>+c"'
+        description: hotkeys.start と同じく Super+Alt にそろえる
+    description: 型は `Mapping[OsKind, Mapping[str, object]]`。
+    status: planned
+  - name: OS_UNAVAILABLE_FEATURES
+    title: OS ごとに使えない機能
+    container: shared/os_kind.py
+    usecase: 常駐アプリを起動する
+    role: OS ごとの機能
+    summary: その OS では使えない機能。載っていない OS は全ての機能を使える。OS で機能を止めるのはこの表だけで決める
+    entries:
+      - key: linux
+        value: frozenset({Feature.LOWER_VOLUME, Feature.WEB_TRANSCRIPTION})
+        description: Linux では音量を変えず、外の端末のブラウザの機能を持たない
+    description: 型は `Mapping[OsKind, frozenset[Feature]]`。macOS などの OS は、OsKind と表の行の追加で足す。
+    status: planned
+  - name: FEATURE_SETTING_KEYS
+    title: 機能ごとの設定のキー
+    container: shared/os_kind.py
+    usecase: 設定を変える
+    role: OS ごとの機能
+    summary: 機能だけが使う設定のキー。その機能を使えない OS では、設定画面にこれらの欄を出さない
+    entries:
+      - key: lower_volume
+        value: frozenset({"recording.lower_volume", "recording.volume_percent", "recording.fade_sec"})
+        description: 録音中の音量
+      - key: web_transcription
+        value: frozenset({"api.allowed_web_origins"})
+        description: 外の端末のブラウザに許す Origin
+    description: 型は `Mapping[Feature, frozenset[str]]`。キーは設定のドットで結んだキー。
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/設定画面.py#elements[設定の欄]
+    status: planned
+  - name: WEB_ORIGIN_FORM_ERROR_TYPE
+    title: 形式の違う Origin の失敗の種類
+    container: shared/settings.py
+    usecase: 設定を変える
+    summary: api.allowed_web_origins に `scheme://host[:port]` の形式でない行があるときの PydanticCustomError の type。設定画面の to_field_message がエラーの文に変える
+    value: '"web_origin_form"'
+    status: planned
+    introduced:
+      pr: 226
 test_files:
   - tests/unit/voice_paste/shared/test_settings.py
   - tests/unit/voice_paste/shared/test_logger.py
   - tests/unit/voice_paste/shared/test_constants.py
+  - tests/unit/voice_paste/shared/test_os_kind.py
 function_types:
   - name: ProgressFn
     title: 文字起こしの進みの知らせ先
@@ -1743,5 +2150,7 @@ function_types:
       description: なし
     implementations:
       - target: send_enter
-        notes: pynput で送信する（外部連携）
+        notes: pynput で送信する（外部連携。Windows と Xorg のセッション）
+      - target: UInputKeyboard.send_enter
+        notes: python-evdev の UInput の仮想キーボードで送信する（外部連携。Wayland のセッション）
     status: planned

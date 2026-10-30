@@ -17,15 +17,17 @@ scenarios:
         participant WK as 文字起こしワーカー（子プロセス）
         participant API as API のサーバー
 
-        U->>SVC: ショートカットから起動する
+        U->>SVC: 起動する
         SVC->>SVC: 名前付きの排他を取る
         SVC->>FS: 保持期間を過ぎたログと履歴を消す
         SVC->>TRAY: 準備中のアイコンを出す
         SVC->>WK: 子プロセスを起動し、エンジンの設定を送信する
         WK-->>SVC: モデルを読み込んだ（ready）
         SVC->>FS: 起動ごとのトークンを作り、トークンのファイルに書く
-        SVC->>SVC: ブラウザの音声のキューとジョブのワーカースレッドを立てる
-        SVC->>API: 127.0.0.1 で待ち受けを始める（`/sessions` と `/web/`）
+        opt 動いている OS で外の端末のブラウザの機能を使える（Windows）
+          SVC->>SVC: ブラウザの音声のキューとジョブのワーカースレッドを立てる
+        end
+        SVC->>API: 127.0.0.1 で待ち受けを始める（`/sessions`。Windows は `/web/` も）
         API-->>SVC: 待ち受けを始めた
         SVC->>SVC: 録音開始のホットキーの受付を始める
         SVC->>TRAY: 待機中のアイコンにする
@@ -34,8 +36,9 @@ scenarios:
       - トレイのアイコンが待機中になっている
       - 録音開始のホットキーを押すと録音が始まる
       - 127.0.0.1 の API が、トークンを付けた要求に応える
-      - '`/web/` が、許す Origin の一覧にあるオリジンから送信したブラウザの音声を受け付ける'
-      - トークンのファイル（`%LOCALAPPDATA%\voice-paste\` の下）に今回の起動のトークンが書かれている
+      - Windows では、`/web/` が、許す Origin の一覧にあるオリジンから送信したブラウザの音声を受け付ける
+      - Linux では、ブラウザの音声のキューが立たず、`/web/` の下の要求が 404 になる
+      - トークンのファイル（Windows は `%LOCALAPPDATA%\voice-paste\`、Linux は `~/.local/share/voice-paste/` の下）に今回の起動のトークンが書かれている
       - 文字起こしワーカーの子プロセスが動いている
     test: test_normal
   - name: 正常シナリオ（前の常駐サービスが動いている）
@@ -51,9 +54,9 @@ scenarios:
         participant NEW as 新しい常駐サービス
         participant OLD as 前の常駐サービス
 
-        U->>NEW: ショートカットから起動する
+        U->>NEW: 起動する
         NEW->>NEW: 名前付きの排他が取られている
-        NEW->>OLD: 終わるよう頼む（名前付きのイベント）
+        NEW->>OLD: 終わるよう頼む
         OLD->>OLD: 録音・文字起こしを停止し、トレイのアイコンを消して終わる
         NEW->>NEW: 名前付きの排他を取る
         Note over NEW: 以降は 正常シナリオ と同じ
@@ -80,7 +83,7 @@ scenarios:
         participant SVC as 常駐サービス
         participant FS as 履歴・ログ
 
-        U->>SVC: ショートカットから起動する
+        U->>SVC: 起動する
         SVC->>FS: 保持期間を過ぎた履歴とログを消す
         Note over SVC: 以降は 正常シナリオ と同じ
         loop 常駐中、非機能要件の削除の間隔ごと
@@ -106,7 +109,7 @@ scenarios:
         participant WK as 文字起こしワーカー（子プロセス）
         participant LOG as ログ
 
-        U->>SVC: ショートカットから起動する
+        U->>SVC: 起動する
         SVC->>TRAY: 準備中のアイコンを出す
         SVC->>WK: 子プロセスを起動し、エンジンの設定を送信する
         WK-->>SVC: モデルを読み込めない（error）
@@ -137,7 +140,7 @@ scenarios:
         participant TRAY as トレイ
         participant LOG as ログ
 
-        U->>SVC: ショートカットから起動する
+        U->>SVC: 起動する
         Note over SVC: エンジンの準備までは 正常シナリオ と同じ
         SVC->>API: 127.0.0.1 で待ち受けを始める
         API-->>SVC: 待ち受けを始められない
@@ -165,7 +168,7 @@ scenarios:
         participant TOML as settings.toml
         participant TRAY as トレイ
 
-        U->>SVC: ショートカットから起動する
+        U->>SVC: 起動する
         SVC->>TOML: 設定を読む
         SVC->>SVC: ai_chat の送信先を、ブラウザ添付の種類のプリセットへ読み替える
         Note over SVC: 以降は 正常シナリオ と同じ
@@ -177,13 +180,161 @@ scenarios:
       - そのボタンで確定すると、送信先の URL を開いて貼り付け、Enter まで送信する
       - 起動しただけでは `settings.toml` が書き換わっていない
     test: test_normal_when_old_ai_chat_settings_remain
-lead: 'ショートカットから常駐サービスを起動し、文字起こしのエンジン・API の待ち受け・ホットキーの受付を立てて、録音の開始を待つ状態にする単一ユースケース。'
+  - name: 正常シナリオ（OpenAI API を使う設定）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は無音の WAV
+      - name: 文字起こしのエンジン
+        description: OpenAI API を使う設定にし、設定の置き場所の `secrets/openai_api_key` に API キーの文字列だけを書いたファイルを置く
+        notes: 環境変数 `OPENAI_API_KEY` は渡さない
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SVC as 常駐サービス
+        participant KEY as API キーのファイル
+        participant TRAY as トレイ
+
+        U->>SVC: 起動する
+        Note over SVC: 準備中のアイコンを出すまでは 正常シナリオ と同じ
+        SVC->>SVC: 環境変数 OPENAI_API_KEY が無い
+        SVC->>KEY: API キーを読む
+        KEY-->>SVC: API キー
+        SVC->>SVC: OpenAI API のエンジンを作る（文字起こしワーカーは起動しない）
+        Note over SVC: トークンを作るところからは 正常シナリオ と同じ
+        SVC->>TRAY: 待機中のアイコンにする
+      ```
+    expected:
+      - トレイのアイコンが待機中になっている
+      - 録音開始のホットキーを押すと録音が始まる
+      - 文字起こしワーカーの子プロセスが動いていない
+      - ログにエンジンが OpenAI API であることが書かれ、API キーが書かれていない
+    test: test_normal_when_openai
+    notes:
+      API キーの読み先: 環境変数 `OPENAI_API_KEY` があればそれを使い、無ければ設定の置き場所（Windows は `%APPDATA%\voice-paste\`、Linux は `~/.config/voice-paste/`）の `secrets/openai_api_key` を読む。ファイルの前後の空白と改行は除く。起動時はキーを読めるかだけを確かめ、OpenAI API へは送信しない。
+      依存: faster-whisper・nvidia-* を入れていない仮想環境でも同じ流れで起動する。
+  - name: 異常シナリオ（OpenAI の API キーが無い）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: '-'
+      - name: API キーの欠落
+        description: OpenAI API を使う設定にし、環境変数 `OPENAI_API_KEY` も `secrets/openai_api_key` も置かない
+        notes: '-'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SVC as 常駐サービス
+        participant TRAY as トレイ
+        participant LOG as ログ
+
+        U->>SVC: 起動する
+        SVC->>TRAY: 準備中のアイコンを出す
+        SVC->>SVC: 環境変数にもファイルにも API キーが無い
+        SVC->>LOG: 起動に失敗した理由（読んだ環境変数の名前とファイルのパス）を書く
+        SVC->>TRAY: 失敗のアイコンにし、起動に失敗したことを通知する
+      ```
+    expected:
+      - トレイで起動に失敗したことが知らされている
+      - ログに、API キーを読む環境変数の名前とファイルのパスが書かれている
+      - 常駐サービスのプロセスは終わらず、トレイのメニューから設定を開ける
+      - 録音開始のホットキーを押しても録音が始まらない
+    test: test_error_when_openai_api_key_missing
+    notes:
+      ファイルが空: ファイルはあるが空白だけのときも同じ扱いになる。
+  - name: 異常シナリオ（ローカルの Whisper の依存が入っていない）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: faster-whisper のパッケージを見つけられないように差し替える
+      - name: 文字起こしのエンジン
+        description: ローカルの Whisper を使う設定にする
+        notes: '-'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SVC as 常駐サービス
+        participant TRAY as トレイ
+        participant LOG as ログ
+
+        U->>SVC: 起動する
+        SVC->>TRAY: 準備中のアイコンを出す
+        SVC->>SVC: faster-whisper のパッケージが見つからない（文字起こしワーカーは起動しない）
+        SVC->>LOG: 起動に失敗した理由と、local-whisper の extra を含めて環境を作り直すことを書く
+        SVC->>TRAY: 失敗のアイコンにし、起動に失敗したことを通知する
+      ```
+    expected:
+      - トレイで起動に失敗したことが知らされている
+      - ログに、local-whisper の extra を含めて環境を作り直すことが書かれている
+      - 文字起こしワーカーの子プロセスが動いていない
+      - 常駐サービスのプロセスは終わらず、トレイのメニューから設定を開ける
+    test: test_error_when_local_whisper_not_installed
+  - name: 正常シナリオ（Wayland のセッション）
+    setup:
+      - name: Mock
+        description: なし（検証環境の VM を Ubuntu 24.04 の Wayland のセッションで起動し、実機で確かめる）
+      - name: セッションの種類
+        description: '`XDG_SESSION_TYPE` が `wayland`'
+      - name: 前の登録の残り
+        description: 前の常駐サービスが SIGTERM で終わり、GNOME のカスタムショートカットに常駐サービスの登録が残っている
+        notes: ユーザーが自分で作ったカスタムショートカットも 1 つある
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SVC as 常駐サービス
+        participant GN as GNOME のカスタムショートカット
+        participant TRAY as トレイ
+
+        U->>SVC: 起動する
+        Note over SVC: API の待ち受けまでは 正常シナリオ と同じ
+        SVC->>SVC: Wayland のセッションと判定する
+        SVC->>GN: 常駐サービスの前の登録の残りを外す
+        SVC->>GN: 設定のホットキーをカスタムショートカットへ登録する
+        SVC->>TRAY: 待機中のアイコンにする
+      ```
+    expected:
+      - GNOME のカスタムショートカットに、設定のホットキーのうち異なる組み合わせごとに 1 つずつ（既定の設定で 5 つ）常駐サービスの登録があり、前の登録の残りが無い
+      - ユーザーが自分で作ったカスタムショートカットが残っている
+      - 録音開始のホットキーを押すと録音が始まる
+      - トレイのアイコンが待機中になっている
+  - name: 異常シナリオ（Wayland のセッションで /dev/uinput に書けない）
+    setup:
+      - name: Mock
+        description: なし（検証環境の VM を Ubuntu 24.04 の Wayland のセッションで起動し、実機で確かめる）
+      - name: 権限
+        description: ユーザーが `input` グループに入っておらず、`/dev/uinput` に書けない
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SVC as 常駐サービス
+        participant TRAY as トレイ
+        participant LOG as ログ
+
+        U->>SVC: 起動する
+        Note over SVC: カスタムショートカットの登録までは 正常シナリオ（Wayland のセッション） と同じ
+        SVC->>SVC: キーを送信する仮想のキーボードを作れない
+        SVC->>LOG: 作れなかった理由を書く
+        SVC->>TRAY: 貼り付けのキーを送信できないことと、権限の設定の手順を通知する
+        SVC->>TRAY: 待機中のアイコンにする
+      ```
+    expected:
+      - トレイで、貼り付けのキーを送信できないことと権限の設定の手順が知らされている
+      - ログに仮想のキーボードを作れなかった理由が書かれている
+      - 録音開始のホットキーを押すと録音が始まり、「コピーのみ」で確定するとクリップボードに起こした文字が入る
+lead: '常駐サービスを起動し、文字起こしのエンジン・API の待ち受け・ホットキーの受付を立てて、録音の開始を待つ状態にする単一ユースケース。'
 issue: 14
 primary_actor: 音声入力を使うユーザー
-trigger: ユーザーが常駐サービスのショートカットを開く
+trigger: ユーザーが常駐サービスを起動する（Windows はショートカットを開く、Linux は起動のスクリプト `voice-paste.sh` を流すか、アプリの一覧・ログイン時の自動起動から開く）
 preconditions:
-  - Windows の端末で、リポジトリの直下に仮想環境がある
-  - 設定ファイル（`%APPDATA%\voice-paste\settings.toml`）がある（無ければ既定値で作る）
+  - Windows か Linux（Ubuntu 24.04 の GNOME の Xorg か Wayland のセッション）の端末で、リポジトリの直下に仮想環境がある（起動の手段が `uv sync --frozen` で `uv.lock` に揃える）
+  - Linux では OS のパッケージ `xclip`・`libportaudio2`・`libxcb-cursor0` が入っている
+  - Linux の Wayland のセッションでは、`/dev/uinput` に書ける（udev の規則と `input` グループへの追加の後に再起動している）
+  - 設定ファイル（Windows は `%APPDATA%\voice-paste\settings.toml`、Linux は `~/.config/voice-paste/settings.toml`）がある（無ければ既定値で作る）
 test_file: tests/e2e/単一ユースケース/test_start_resident_app.py
 notes:
   E2E のテスト: |-
@@ -194,3 +345,10 @@ notes:
     トレイのメニューは項目を trigger して選び、画面のボタン・欄はクリックとキーを Qt のイベントで渡す。
     ホットキーの受付は差し替え、ホットキーが押された体で登録された関数を呼ぶ。「文字起こしのエンジンを準備できない」の「録音開始のホットキーを押しても録音が始まらない」は、ホットキーの受付が始まっていないことで確かめる。
     「前の常駐サービスが動いている」は、別プロセスで 2 つ起動し、ログ・トークンのファイル・プロセスで確かめる。前のアイコンが残っていないことは、前のプロセスが片付けでアイコンを消して終わったことで確かめる
+  Wayland のセッションのホットキー: |-
+    Linux の Wayland のセッションでは、常駐サービスは設定のホットキーを GNOME のカスタムショートカットへ登録する。
+    押されたホットキーは、GNOME が登録のコマンドを流し、コマンドが同じ uid の常駐サービスへ伝える。
+    「ホットキーの受付を始める」は登録、「停止する」は登録を外すことに当たる。
+    登録は、トレイの終了・再起動、SIGTERM での終了、新しい常駐サービスからの終わる依頼で外し、設定画面を開いている間も外す。
+    残った登録は押したキーを GNOME が受けてアプリへ届けないため、起動のたびに前の登録の残りを外してから登録する。
+    Wayland のセッションのシナリオの E2E は、Linux で E2E を自動で流す仕組み（[#219](https://github.com/shuhei1101/voice-paste/issues/219)）ができるまで持たず、検証環境の VM で確かめる。

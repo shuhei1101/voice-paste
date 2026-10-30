@@ -28,7 +28,7 @@ flows:
     summary: 文字起こし待ち・文字起こし中のジョブの進み具合を返す
     setup:
       - name: Mock
-        description: ブラウザの音声のジョブの一覧に、ジョブを直接入れる
+        description: ブラウザの音声のジョブの一覧に、ジョブを直接入れる。進みを返すかを true（設定のエンジンが `local_whisper`）にして app を立てる
       - name: 終わっていないジョブ
         description: state が queued のジョブと、state が running・progress が 0.42 のジョブ
     flow: |-
@@ -43,6 +43,7 @@ flows:
     expected:
       - queued のジョブは 200 で progress が 0.0、text と error が null
       - running のジョブは 200 で progress が 0.42、text と error が null
+      - どちらも reports_progress が true
     test: test_normal_when_in_progress
   - name: 正常系（文字起こし失敗）
     summary: 文字起こしに失敗したジョブの理由を返す
@@ -63,6 +64,25 @@ flows:
     expected:
       - 200 で state が failed、error が失敗の理由、text が null
     test: test_normal_when_failed
+  - name: 正常系（進みを返さないエンジン）
+    summary: 設定のエンジンが進みを返さないとき、文字起こし中のジョブに進みを返さないことを添えて返す
+    setup:
+      - name: Mock
+        description: ブラウザの音声のジョブの一覧に、ジョブを直接入れる。進みを返すかを false（設定のエンジンが `openai`）にして app を立てる
+      - name: 終わっていないジョブ
+        description: state が running・progress が 0.0 のジョブ
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as ブラウザ
+        participant IF as GET /web/transcriptions/{job_id}
+
+        C->>IF: job_id
+        IF-->>C: 200・state=running・progress=0.0・reports_progress=false
+      ```
+    expected:
+      - 200 で state が running、progress が 0.0、reports_progress が false、text と error が null
+    test: test_normal_when_engine_reports_no_progress
   - name: 異常系（許されていない Origin・403）
     summary: 許す Origin に無い Origin が付いた要求を断る
     setup:
@@ -105,6 +125,28 @@ flows:
       - どちらも 404 の problem+json が返る
       - 後に終わったジョブは 200 で返る
     test: test_error_when_job_not_found
+  - name: 異常系（Linux で動いている・404）
+    summary: 常駐サービスが Linux で動いているときは `/web/` の下のルートが無く、Origin によらず 404 を返す
+    setup:
+      - name: Mock
+        description: なし（常駐アプリの app を、Linux で使えない機能を外して TestClient で立てる）
+        notes: 動いている OS を Linux にする
+      - name: 要求のヘッダー
+        description: Origin を付けない要求と、許す Origin に無い Origin を付けた要求の 2 つを送る
+        notes: '`Origin: http://evil.example`'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as ブラウザ
+        participant IF as GET /web/transcriptions/{job_id}
+
+        C->>IF: 結果を取りに行く（Origin なし・許す Origin に無い Origin）
+        IF->>IF: Host を確かめる（Origin は確かめない）
+        IF-->>C: 404（problem+json）
+      ```
+    expected:
+      - Origin を付けない要求と、許す Origin に無い Origin を付けた要求のどちらにも 404（problem+json）が返る
+    test: test_error_when_running_on_linux
 lead: 受け付けたジョブの状態・進み具合と、終わっていれば起こした文字か失敗の理由を返す。
 identifier: get_web_transcription
 permissions: job_id を知っていること（外からの認証は Cloudflare Access が持つ。常駐アプリは Host と Origin だけを確かめる）
@@ -144,7 +186,11 @@ response:
   - name: progress
     type: float
     description: 進み具合。`running` の間は起こし終えた区間の終わりの時刻 ÷ 音声の秒数（`segment.end / duration`）
-    constraints: 0.0〜1.0。`queued` は 0.0、`done` は 1.0、`failed` は失敗した時点の値
+    constraints: 0.0〜1.0。`queued` は 0.0、`done` は 1.0、`failed` は失敗した時点の値。`reports_progress` が false のときは `running` の間も 0.0
+  - name: reports_progress
+    type: bool
+    description: 設定の文字起こしのエンジンが、起こしている途中の進みを返すか。`local_whisper` は true、`openai` は false
+    notes: ジョブの状態によらず同じ値。常駐サービスの起動時の設定（`transcription.engine`。反映は再起動）で決まる。デスクトップの文字起こし中の表示と同じ判定
   - name: text
     type: str | None
     description: 用語集と文頭・文末の文言で補正した起こした文字
@@ -159,6 +205,7 @@ response_example: |-
     "job_id": "q3Vb8sXk2mJf0tLw9eRzAg",
     "state": "running",
     "progress": 0.42,
+    "reports_progress": true,
     "text": null,
     "error": null
   }
@@ -168,9 +215,9 @@ status_codes:
   - code: '200'
     condition: ジョブがあり、状態を返した
   - code: '403'
-    condition: Host が 127.0.0.1 でも localhost でもないか、Origin が付いていて許す Origin に無い
+    condition: Host が 127.0.0.1 でも localhost でもないか、Origin が付いていて許す Origin に無い（Linux では Origin を確かめず、Host が合わないときだけ）
   - code: '404'
-    condition: job_id のジョブが無い（受け付けていない・常駐サービスを再起動した・終わったジョブを持つ件数を超えて捨てた）
+    condition: job_id のジョブが無い（受け付けていない・常駐サービスを再起動した・終わったジョブを持つ件数を超えて捨てた）。または、常駐サービスが Linux で動いている（`/web/` の下のルートを登録していない。Origin によらない）
 error_format: RFC 9457 の `application/problem+json`（`type`・`title`・`status`・`detail`）で返す。今の API の `problem_response` に揃える。
 constraints:
   - item: 待ち受け
@@ -187,4 +234,7 @@ constraints:
   - item: 取りに来る間隔
     constraint: 制限なし
     notes: 画面は取りに来る間隔を画面設計で決める
+  - item: 使える OS
+    constraint: 常駐サービスが Windows で動いているときだけ。Linux では `/web/` の下のルートを登録せず、Origin によらず 404 を返す（要求の守りは Host だけを確かめ、Origin を確かめずにルートへ渡す）
+    notes: OS ごとに使える機能の表で、外の端末のブラウザの機能を Linux で使えない機能にしている。Host が合わない要求は Linux でも 403
 test_file: tests/integration/test_get_web_transcription.py

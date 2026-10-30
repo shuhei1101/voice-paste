@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import json
 import re
+import subprocess
+import sys
 import tomllib
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
@@ -10,9 +13,24 @@ from typing import TYPE_CHECKING, Any, Literal
 import pytest
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from voice_paste.shared.settings import OutputSettingsBase, Settings
 
 SETTINGS_FILE_NAME = "settings.toml"
+
+COMMON_DEFAULTS = {
+    "recording.lower_volume": True,
+    "transcription.local_whisper.device": "cuda",
+    "transcription.local_whisper.compute_type": "float16",
+    "hotkeys.start": "<ctrl>+<alt>+d",
+    "hotkeys.pause": "<ctrl>+<alt>+z",
+    "hotkeys.cancel": "<ctrl>+<alt>+q",
+    "outputs.paste_and_send.hotkey": "<ctrl>+<alt>+d",
+    "outputs.paste_only.hotkey": "<ctrl>+<alt>+v",
+    "outputs.copy_only.hotkey": "<ctrl>+<alt>+c",
+}
+"""OS ごとに既定値を上書きする設定のキーの、共通の既定値（Windows の値）。見本はこの値で書く。"""
 
 COMMENT_AFTER_ARRAY_TABLE = "# 保存しても残るコメント"
 """配列の表（`[[hint_presets]]`）の後ろに書いておく、キーを持たないコメント。"""
@@ -22,6 +40,40 @@ HINT_PRESET_A = '[[hint_presets]]\nname = "A"\nwords = ["a"]\nenabled = true\n'
 
 HINT_PRESET_B = '[[hint_presets]]\nname = "B"\nwords = ["b"]\nenabled = true\n'
 """settings.toml に書く表記のヒントのプリセット B。"""
+
+LINUX_DEFAULTS = {
+    "recording.lower_volume": False,
+    "transcription.local_whisper.device": "cpu",
+    "transcription.local_whisper.compute_type": "int8",
+    "hotkeys.start": "<cmd>+<alt>+d",
+    "hotkeys.pause": "<cmd>+<alt>+z",
+    "hotkeys.cancel": "<cmd>+<alt>+q",
+    "outputs.paste_and_send.hotkey": "<cmd>+<alt>+d",
+    "outputs.paste_only.hotkey": "<cmd>+<alt>+v",
+    "outputs.copy_only.hotkey": "<cmd>+<alt>+c",
+}
+"""Linux の既定値が共通の既定値と変わる設定のキーと、その Linux の値。"""
+
+LINUX_SETTINGS_MODEL_SCRIPT = """
+import json
+
+import voice_paste.shared.os_kind as os_kind
+
+os_kind.CURRENT_OS = os_kind.OsKind.LINUX
+
+from voice_paste.main import SETTINGS_MODEL
+from voice_paste.shared.settings import OS_DEFAULT_OVERRIDES
+
+print(
+    json.dumps(
+        {
+            "defaults": SETTINGS_MODEL().model_dump(mode="json"),
+            "overrides": OS_DEFAULT_OVERRIDES[os_kind.OsKind.LINUX],
+        }
+    )
+)
+"""
+"""子プロセスで CURRENT_OS を Linux にしてから main を import し、組み立てた設定のモデルの既定値と Linux の上書きを JSON で出すスクリプト。"""
 
 
 @pytest.fixture
@@ -70,15 +122,125 @@ def test_load_settings(settings_file: Path, settings_model: type[Settings]) -> N
     )
 
 
+def _locate(dump: dict[str, Any], key: str) -> tuple[dict[str, Any], str]:
+    """ドットで結んだ設定のキーの値を持つ表と、その表の中のキーを返す。
+
+    `outputs.{出力先の ID}.{項目}` は outputs の id が一致する項目で引き、引けなければ KeyError にする。
+    """
+    parts = key.split(".")
+    # 出力先のキーか
+    if parts[0] == "outputs":
+        # そう: id が一致する出力先の項目を引く
+        output_id, leaf = parts[1], parts[2]
+        for output in dump["outputs"]:
+            if output["id"] == output_id:
+                return output, leaf
+        raise KeyError(key)
+    # それ以外: 入れ子の表をたどる
+    table = dump
+    for part in parts[:-1]:
+        table = table[part]
+    return table, parts[-1]
+
+
+def _dump_without(settings: Settings, keys: Iterable[str]) -> dict[str, Any]:
+    """設定を dict にし、ドットで結んだキーの値を取り除いて返す。"""
+    dump = settings.model_dump()
+    for key in keys:
+        table, leaf = _locate(dump, key)
+        del table[leaf]
+    return dump
+
+
+def _values_in(dump: dict[str, Any], keys: Iterable[str]) -> dict[str, Any]:
+    """設定の dict から、ドットで結んだキーの値を引いて、キー → 値の dict にして返す。"""
+    values: dict[str, Any] = {}
+    for key in keys:
+        table, leaf = _locate(dump, key)
+        values[key] = table[leaf]
+    return values
+
+
+def _values_of(settings: Settings, keys: Iterable[str]) -> dict[str, Any]:
+    """設定から、ドットで結んだキーの値を引いて、キー → 値の dict にして返す。"""
+    return _values_in(settings.model_dump(), keys)
+
+
 def test_load_settings_when_sample_file(repo_root: Path, settings_model: type[Settings]) -> None:
-    """リポジトリの見本は既定値と一致する（正常系）。"""
-    from voice_paste.shared.settings import load_settings
+    """リポジトリの見本は共通の既定値（Windows の既定値）と一致する（正常系）。"""
+    from voice_paste.shared.os_kind import CURRENT_OS
+    from voice_paste.shared.settings import OS_DEFAULT_OVERRIDES, load_settings
+
+    # 準備: この OS で既定値を上書きしているキー（上書きが無い OS は空）
+    overridden_keys = list(OS_DEFAULT_OVERRIDES.get(CURRENT_OS, {}))
 
     # 実行
     settings = load_settings(repo_root / "settings.sample.toml", settings_model)
 
+    # 検証: 上書きしているキー以外は既定値と等しく、上書きしているキーは見本が共通の既定値のまま
+    assert _dump_without(settings, overridden_keys) == _dump_without(
+        settings_model(), overridden_keys
+    )
+    assert _values_of(settings, overridden_keys) == {
+        key: COMMON_DEFAULTS[key] for key in overridden_keys
+    }
+
+
+# === os_default ===
+
+
+def test_os_default_when_linux() -> None:
+    """Linux の上書きがあるキーは上書きの値になる（正常系）。"""
+    from voice_paste.shared.os_kind import OsKind
+    from voice_paste.shared.settings import os_default
+
+    # 実行
+    value = os_default("recording.lower_volume", True, os_kind=OsKind.LINUX)
+
     # 検証
-    assert settings == settings_model()
+    assert value is False
+
+
+def test_os_default_when_windows() -> None:
+    """Windows は共通の既定値になる（正常系）。"""
+    from voice_paste.shared.os_kind import OsKind
+    from voice_paste.shared.settings import os_default
+
+    # 実行
+    value = os_default("transcription.local_whisper.device", "cuda", os_kind=OsKind.WINDOWS)
+
+    # 検証
+    assert value == "cuda"
+
+
+def test_os_default_when_not_overridden() -> None:
+    """上書きの無いキーは共通の既定値になる（正常系）。"""
+    from voice_paste.shared.os_kind import OsKind
+    from voice_paste.shared.settings import os_default
+
+    # 実行
+    value = os_default("recording.hide_window", False, os_kind=OsKind.LINUX)
+
+    # 検証
+    assert value is False
+
+
+def test_os_default_when_settings_model_linux() -> None:
+    """Linux で組み立てた設定のモデルの既定値は、OS_DEFAULT_OVERRIDES[OsKind.LINUX] の全ての値になる（正常系）。"""
+    # 実行: 子プロセスで CURRENT_OS を Linux にしてから main を import し、既定値と上書きを出させる
+    completed = subprocess.run(
+        [sys.executable, "-c", LINUX_SETTINGS_MODEL_SCRIPT],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+
+    # 検証
+    assert completed.returncode == 0, completed.stderr
+    result = json.loads(completed.stdout)
+    assert set(result["overrides"]) == set(LINUX_DEFAULTS)
+    assert _values_in(result["defaults"], LINUX_DEFAULTS) == LINUX_DEFAULTS
 
 
 @pytest.mark.parametrize(
@@ -90,9 +252,9 @@ def test_load_settings_when_sample_file(repo_root: Path, settings_model: type[Se
             id="beam_size",
         ),
         pytest.param(
-            '[transcription]\nengine = "openai"\n',
+            '[transcription]\nengine = "gemini"\n',
             r"transcription\.engine",
-            id="engine_openai",
+            id="engine_unknown",
         ),
     ],
 )
@@ -118,9 +280,9 @@ def test_load_settings_when_invalid_value(
             "[recording]\nvolum_percent = 30\n", r"recording\.volum_percent", id="typo"
         ),
         pytest.param(
-            '[transcription.openai]\nmodel = "whisper-1"\n',
-            r"transcription\.openai",
-            id="removed_openai_table",
+            '[transcription.openai]\nmodle = "gpt-4o-mini-transcribe"\n',
+            r"transcription\.openai\.modle",
+            id="openai_typo",
         ),
     ],
 )
@@ -614,7 +776,11 @@ def test_find_hotkey_overlaps() -> None:
 
     # 準備: 2 件目のプリセットの hotkey を、貼り付けのみと同じにする（確かめを飛ばして作る）
     settings = Settings.model_construct(
-        outputs=[PasteAndSendSettings(), PasteOnlySettings(), CopyOnlySettings()],
+        outputs=[
+            PasteAndSendSettings(hotkey="<ctrl>+<alt>+d"),
+            PasteOnlySettings(hotkey="<ctrl>+<alt>+v"),
+            CopyOnlySettings(hotkey="<ctrl>+<alt>+c"),
+        ],
         presets=[
             BrowserPreset(title="ChatGPT", url="https://chatgpt.com", hotkey="<ctrl>+<alt>+1"),
             BrowserPreset(title="Claude", url="https://claude.ai/new", hotkey="<ctrl>+<alt>+v"),
@@ -875,7 +1041,9 @@ def test_settings_when_hotkeys_overlap() -> None:
 
     # 実行・検証
     with pytest.raises(ValidationError) as exc_info:
-        Settings.model_validate({"hotkeys": {"cancel": "<ctrl>+<alt>+z"}})
+        Settings.model_validate(
+            {"hotkeys": {"pause": "<ctrl>+<alt>+z", "cancel": "<ctrl>+<alt>+z"}}
+        )
     failures = list_validation_failures(exc_info.value)
     assert len(failures) == 1
     key, reason = failures[0]
@@ -920,6 +1088,42 @@ def test_ui_settings_when_transcribing_show_hotkeys_set() -> None:
     # 検証
     assert ui.show_hotkeys is False
     assert ui.transcribing_show_hotkeys is True
+
+
+# === ApiSettings の確かめ（_origins_must_be_origin_form） ===
+
+
+def test_api_settings_when_web_origin_form() -> None:
+    """形式の合う Origin を通す（正常系）。"""
+    from voice_paste.shared.settings import ApiSettings
+
+    # 準備
+    origins = ["https://voice.example.com", "http://localhost:47823"]
+
+    # 実行
+    api = ApiSettings.model_validate({"allowed_web_origins": origins})
+
+    # 検証
+    assert api.allowed_web_origins == ["https://voice.example.com", "http://localhost:47823"]
+
+
+def test_api_settings_when_web_origin_not_form() -> None:
+    """形式の違う Origin を断る（異常系）。"""
+    from pydantic import ValidationError
+
+    from voice_paste.shared.settings import WEB_ORIGIN_FORM_ERROR_TYPE, Settings
+
+    # 準備
+    origins = ["https://voice.example.com/", "https://ok.example.com", "voice.example.com"]
+
+    # 実行・検証
+    with pytest.raises(ValidationError) as exc_info:
+        Settings.model_validate({"api": {"allowed_web_origins": origins}})
+    errors = exc_info.value.errors()
+    assert [(error["type"], error["loc"]) for error in errors] == [
+        (WEB_ORIGIN_FORM_ERROR_TYPE, ("api", "allowed_web_origins"))
+    ]
+    assert errors[0]["ctx"]["invalid"] == ("https://voice.example.com/", "voice.example.com")
 
 
 # === find_glossary_name_overlaps ===

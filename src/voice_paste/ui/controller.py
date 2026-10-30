@@ -112,6 +112,12 @@ class UiDeps:
     switch_output: Callable[[str], None]
     """文字起こし中に届ける出力先を差し替える（SessionManager.switch_output）。文字起こし中の表示の切り替えのボタンが呼ぶ。"""
 
+    hidden_setting_keys: frozenset[str]
+    """設定画面で出さない設定のキー（hidden_setting_keys(unavailable_features(CURRENT_OS))）。Linux では録音中の音量のキーと api.allowed_web_origins。"""
+
+    reports_progress: bool
+    """動いているエンジンが区間ごとの進みを知らせるか（local_whisper は True、openai は False）。エンジンの反映は再起動のため、保存した設定ではなく起動で決めた値を持つ。"""
+
 
 class UiController(QObject):
     """UiBridge の知らせを受けて、トレイ・録音の画面・文字起こし中の表示・ダイアログを開く・閉じる・替える。

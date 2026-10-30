@@ -3,7 +3,7 @@ kind: "ライブラリ"
 version:
   current: 9.27.0.42
   checked_on: '2026-09-30'
-  source: pyproject.toml（>=9,<10）と uv.lock のバージョン
+  source: pyproject.toml の `[project.optional-dependencies] local-whisper`（>=9,<10）と uv.lock のバージョン
   pinning: メジャーバージョンを固定（>=9,<10）
 catalogs:
   - name: ファイル
@@ -14,7 +14,7 @@ catalogs:
         purpose: ローカルの Whisper を GPU で動かすときに読まれる（起動口がフォルダを PATH と DLL の検索パスに追加する）
 lead: CUDA 12 向けのディープラーニングの演算ライブラリ（cuDNN）の DLL を配るパッケージ。
 purl: pkg:pypi/nvidia-cudnn-cu12
-dependency_scope: 必須
+dependency_scope: 任意
 adoption: 採用
 used_in:
   - voice-paste.bat

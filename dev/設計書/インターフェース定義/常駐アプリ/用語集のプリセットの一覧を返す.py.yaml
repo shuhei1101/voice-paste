@@ -11,6 +11,7 @@ flows:
       - name: 用語集のプリセット
         description: 設定に用語集のプリセット「既定」「会議」をこの並びで入れ、active_glossary_preset を「会議」にする
     flow: |-
+      ```mermaid
       sequenceDiagram
         participant C as ブラウザ
         participant IF as GET /web/glossary-presets
@@ -20,6 +21,7 @@ flows:
         IF->>IF: Host・Origin を確かめる
         IF->>S: 用語集のプリセットの一覧と選んでいるプリセットを読む
         IF-->>C: 200・presets・active
+      ```
     expected:
       - 200 で presets が ["既定", "会議"]、active が「会議」
       - 応答に用語集の名前や中身が含まれていない
@@ -33,12 +35,14 @@ flows:
       - name: 設定
         description: glossary_presets と active_glossary_preset のキーが無い settings.toml
     flow: |-
+      ```mermaid
       sequenceDiagram
         participant C as ブラウザ
         participant IF as GET /web/glossary-presets
 
         C->>IF: 要求
         IF-->>C: 200・presets=["既定"]・active="既定"
+      ```
     expected:
       - 200 で presets が ["既定"]、active が「既定」
     test: test_normal_when_presets_not_configured
@@ -51,6 +55,7 @@ flows:
         description: 許す Origin に無い Origin を付ける
         notes: '`Origin: http://evil.example`'
     flow: |-
+      ```mermaid
       sequenceDiagram
         participant C as ほかのオリジンのページ
         participant IF as GET /web/glossary-presets
@@ -59,10 +64,33 @@ flows:
         C->>IF: 要求（許していない Origin）
         IF->>LOG: 断った理由と要求元（Host・Origin）を書く
         IF-->>C: 403（problem+json）
+      ```
     expected:
       - 403 の problem+json が返り、プリセットの名前を含まない
       - ログに断った理由と要求元が書かれている
     test: test_error_when_origin_not_allowed
+  - name: 異常系（Linux で動いている・404）
+    summary: 常駐サービスが Linux で動いているときは `/web/` の下のルートが無く、Origin によらず 404 を返す
+    setup:
+      - name: Mock
+        description: なし（常駐アプリの app を、Linux で使えない機能を外して TestClient で立てる）
+        notes: 動いている OS を Linux にする
+      - name: 要求のヘッダー
+        description: Origin を付けない要求と、許す Origin に無い Origin を付けた要求の 2 つを送る
+        notes: '`Origin: http://evil.example`'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as ブラウザ
+        participant IF as GET /web/glossary-presets
+
+        C->>IF: 一覧を読む（Origin なし・許す Origin に無い Origin）
+        IF->>IF: Host を確かめる（Origin は確かめない）
+        IF-->>C: 404（problem+json）
+      ```
+    expected:
+      - Origin を付けない要求と、許す Origin に無い Origin を付けた要求のどちらにも 404（problem+json）が返る
+    test: test_error_when_running_on_linux
 lead: 外の端末の文字起こしの画面が選択欄に並べる、用語集のプリセットの名前の一覧と、設定で選んでいるプリセットの名前を返す。
 identifier: list_web_glossary_presets
 permissions: なし（外からの認証は Cloudflare Access が持つ。常駐アプリは Host と Origin だけを確かめる）
@@ -109,7 +137,9 @@ status_codes:
   - code: '200'
     condition: 一覧を返した
   - code: '403'
-    condition: Host が 127.0.0.1 でも localhost でもないか、Origin が付いていて許す Origin に無い
+    condition: Host が 127.0.0.1 でも localhost でもないか、Origin が付いていて許す Origin に無い（Linux では Origin を確かめず、Host が合わないときだけ）
+  - code: '404'
+    condition: 常駐サービスが Linux で動いている（`/web/` の下のルートを登録していない。Origin によらない）
 error_format: RFC 9457 の `application/problem+json`（`type`・`title`・`status`・`detail`）で返す。今の API の `problem_response` に揃える。
 constraints:
   - item: 待ち受け
@@ -123,4 +153,7 @@ constraints:
   - item: レート制限
     constraint: 制限なし
     notes: 画面は開いたときに 1 回だけ呼ぶ
+  - item: 使える OS
+    constraint: 常駐サービスが Windows で動いているときだけ。Linux では `/web/` の下のルートを登録せず、Origin によらず 404 を返す（要求の守りは Host だけを確かめ、Origin を確かめずにルートへ渡す）
+    notes: OS ごとに使える機能の表で、外の端末のブラウザの機能を Linux で使えない機能にしている。Host が合わない要求は Linux でも 403
 test_file: tests/integration/test_list_web_glossary_presets.py

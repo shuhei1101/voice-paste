@@ -1,0 +1,40 @@
+$ .venv/bin/python -m pytest tests/integration   # Linux（Ubuntu 24.04 on WSL2）。.venv/Scripts/python.exe を .venv/bin/python に読み替え
+# sudo が使えず libportaudio2 を入れられないため、apt download で取得して展開した libportaudio.so.2 を ctypes.util.find_library("portaudio") が返すよう差し替えた起動スクリプトから、同じ引数で pytest を実行した
+============================= test session starts ==============================
+platform linux -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: /mnt/c/Users/shuhe/repo/voice-paste/.claude/worktrees/test-settings-window-checkbox-on-indicator-linux
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collected 712 items
+
+tests/integration/test_accept_web_audio.py ..............                [  1%]
+tests/integration/test_complete_session.py .........                     [  3%]
+tests/integration/test_deliver_to_caller.py ...........                  [  4%]
+tests/integration/test_deliver_to_endpoint.py ...                        [  5%]
+tests/integration/test_deliver_to_output.py ......                       [  6%]
+tests/integration/test_get_web_transcription.py ........                 [  7%]
+tests/integration/test_list_web_glossary_presets.py .....                [  7%]
+tests/integration/test_serve_web_page.py ........                        [  8%]
+tests/integration/test_settings_migration.py .                           [  9%]
+tests/integration/test_start_session.py ...........                      [ 10%]
+tests/integration/test_stop_session.py ........                          [ 11%]
+tests/integration/test_transcribe_web_audio.py .....                     [ 12%]
+tests/integration/test_truncate_session.py ...                           [ 12%]
+tests/integration/ui/test_busy_dialog.py ..........                      [ 14%]
+tests/integration/ui/test_recording_window.py .......................... [ 17%]
+........................................................................ [ 28%]
+                                                                         [ 28%]
+tests/integration/ui/test_settings_window.py ........................... [ 31%]
+.......s................................................................ [ 41%]
+...................ss................................................... [ 52%]
+........................................................................ [ 62%]
+........................................................................ [ 72%]
+...............................                                          [ 76%]
+tests/integration/ui/test_transcribing_indicator.py .................... [ 79%]
+.....................................................................    [ 89%]
+tests/integration/ui/test_tray.py ...................................... [ 94%]
+........                                                                 [ 95%]
+tests/integration/ui/test_tray_notification.py ......................... [ 99%]
+......                                                                   [100%]
+
+================== 709 passed, 3 skipped in 87.32s (0:01:27) ===================

@@ -3,7 +3,9 @@ lead: 'グローバルのホットキーの受付（runtime/hotkey）と、PySid
 directory: |-
   ```
   src/voice_paste/runtime/
-  └── hotkey.py                     # HotkeyListener（pynput の GlobalHotKeys を別のスレッドで動かす）
+  ├── hotkey.py                     # HotkeyListener（pynput の GlobalHotKeys を別のスレッドで動かす）
+  ├── hotkey_gnome.py               # GnomeShortcutListener（Wayland のセッション。設定のホットキーを GNOME のカスタムショートカットへ登録する）・to_gnome_accelerator・validate_gnome_hotkeys
+  └── send_hotkey.py                # GNOME のカスタムショートカットが流すコマンド。押されたホットキーを常駐サービスへ送信する
   src/voice_paste/ui/
   ├── bridge.py                     # UiBridge（ほかのスレッドからメインスレッドへの Signal）・notify・notify_copied・report_progress
   ├── controller.py                 # UiController（知らせを画面・トレイへ振り分ける）・UiDeps
@@ -91,7 +93,7 @@ classes:
                - `[ERROR]` ホットキーの処理で想定外の例外（ホットキー。logger.exception）
           3. 新しい受付を先に作る（`GlobalHotKeys(包んだ組)`。作るときに pynput が書式を確かめる）
              - ValueError（書式を読めない）の場合、動いている受付をそのままにして HotkeyError を送出する
-          4. 動いている受付があれば止め、スレッドの終わりを待つ
+          4. 動いている受付があれば止め、スレッドの終わりを HOTKEY_STOP_TIMEOUT_SEC まで待つ（上限を過ぎたら stop と同じく手放して進む）
           5. 新しい受付を始める
              - `[INFO]` ホットキーの受付を始めた（ホットキーの一覧）
         exceptions:
@@ -132,7 +134,7 @@ classes:
             exception: 書式を読めない
       - name: stop
         title: 受付の停止
-        summary: 受付を止め、スレッドの終わりを待つ。動いていなければ何もしない
+        summary: 受付を止め、スレッドの終わりを HOTKEY_STOP_TIMEOUT_SEC まで待つ。上限を過ぎたら WARNING のログを書き、スレッドを手放して戻る。動いていなければ何もしない
         kind: メソッド
         scope: public
         thread_safe: true
@@ -146,6 +148,12 @@ classes:
             condition: start の後に stop を 2 回呼ぶ
             mock: keyboard.GlobalHotKeys
             expected: 受付の stop と join が 1 回ずつ呼ばれ、2 回目は例外が出ない
+          - name: test_stop_when_join_timed_out
+            case: 正常
+            summary: スレッドが上限までに終わらなくても戻る
+            condition: start の後、差し替えた GlobalHotKeys の join が戻っても is_alive が True を返す状態で stop を呼ぶ
+            mock: keyboard.GlobalHotKeys
+            expected: join に timeout=HOTKEY_STOP_TIMEOUT_SEC が渡り、例外が出ず、WARNING のログが 1 行出て、もう一度 start すると新しい受付だけが動いている
       - name: __init__
         title: 受付の用意
         summary: 受付はまだ始めない
@@ -423,7 +431,7 @@ classes:
           1. 設定画面を手放し、deleteLater で破棄する（中のコンボボックスのポップアップの窓も一緒に消える）
              - 欄のシグナルに SettingsWindow のメソッドをつないでいるため、参照を手放しただけでは GC で消えず、トップレベルの窓が開くたびに積もる
           2. resume_hotkeys を呼ぶ
-             - HotkeyError の場合、ホットキーを受け付けないまま続ける（保存した設定は保存の前に受け付けられることを確かめているため、ここに来るのは手で書いた settings.toml だけ）
+             - HotkeyError の場合、ホットキーを受け付けないまま続ける（保存した設定は、保存の前に動いているセッションのホットキーの受付で受け付けられることを確かめているため（PlatformAdapters.validate_hotkeys）、ここに来るのは手で書いた settings.toml だけ）
                - `[ERROR]` ホットキーを受け付けられなかった（理由）
       - name: hide_recording
         title: 録音の画面を隠す
@@ -673,10 +681,10 @@ classes:
         scope: public
         args:
           - name: event
-            type: Literal["microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable", "engine_unavailable", "settings_invalid"]
+            type: Literal["microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable", "engine_unavailable", "settings_invalid", "paste_unavailable"]
             required: true
             passing: positional
-            description: 通知の種類（engine_unavailable・settings_invalid は起動の失敗）
+            description: 通知の種類（engine_unavailable・settings_invalid・paste_unavailable は起動のときの失敗。paste_unavailable は Linux の Wayland のセッションでキーの送信の機器を開けないとき）
           - name: detail
             type: str | None
             required: true
@@ -692,6 +700,12 @@ classes:
             condition: show_failure("transcription_failed", "録音を読めませんでした")
             mock: QSystemTrayIcon.showMessage
             expected: 見出し「文字起こしできませんでした」、本文「録音を読めませんでした。録音は履歴に残っています。」で呼ばれる
+          - name: test_show_failure_when_paste_unavailable
+            case: 正常
+            summary: 貼り付けを使えないことを権限の設定の手順と共に通知する
+            condition: show_failure("paste_unavailable", "Permission denied")
+            mock: QSystemTrayIcon.showMessage
+            expected: 見出し「貼り付けを使用できません」、本文「貼り付けのキーを送信できません（Permission denied）。/dev/uinput の権限を設定して PC を再起動してください（使い方「起動と設定」）。「コピーのみ」は使えます。」で呼ばれる
       - name: hide
         title: アイコンの削除
         summary: トレイのアイコンを消す（処理中に再起動・終了を選んだときと、終わるとき）
@@ -943,7 +957,7 @@ classes:
       切り替えのボタンは、設定でオンの固定の出力先（`outputs[]` の並び。名前は UiDeps.output_titles、ホットキーは format_hotkey で整えた `outputs[].hotkey`）ごとに open で組み直す。`ui.transcribing_show_hotkeys` がオフのときはホットキーを空で渡し、名前だけを出す（録音の画面の `ui.show_hotkeys` は見ない）。今の出力先でないボタンを押すと output_selected を emit する（差し替えるのは UiController。マーカーは output_changed の知らせを受けて set_output で替える）。
       切り替えのボタンは、`ui.transcribing_show_hotkeys` のどちらでも等しい幅で並べる。全てのボタンを同じ固定の幅（setFixedWidth）にし、行の右に stretch を 1 つ置く。組み直したときは、固定の幅をボタンの sizeHint の幅のうち最も大きい値にする（前の回の窓の幅を引き継がず、窓の最小の幅はその幅のボタンの行と SWITCH_WINDOW_WIDTH_PX から決まる）。窓の resizeEvent と、レイアウトの組み直し（QEvent.LayoutRequest。最初に表示を出した回は resizeEvent の時点で行に幅が割り当てられていない）のたびに、「（行の幅（切り替えのボタンの行のレイアウトに割り当てられた幅。テーマの枠の線と余白を除いた幅） − 間隔 ×（ボタンの数 − 1））÷ ボタンの数」の切り捨てと、その最も大きい値の、大きい方に取り直す（割り切れない数 px だけが行の右の stretch に残る）。
       切り替えのボタンは、右と上にマーカーがはみ出す分の余白を枠の外に取り、選んだときの丸いマーカーを枠の右上の角からその余白へはみ出して描く。名前とホットキーの文字の範囲にはマーカーを重ねない。
-      残りの時間は、進み（区間の終わり ÷ 録音の長さ）と経過から「経過 ÷ 進み − 経過」で見積もる。
+      残りの時間は、進み（区間の終わり ÷ 録音の長さ）と経過から「経過 ÷ 進み − 経過」で見積もる。UiDeps.reports_progress が False なら、進みが届かないため、open で「残りを計っています」を出さず「経過 {秒}」だけを出す。
       コンストラクタは UiDeps と、経過を数える時計 clock（秒を返す関数。既定は time.monotonic）を受ける。
     kind: クラス
     inherits: PySide6.QtWidgets.QWidget
@@ -1012,6 +1026,12 @@ classes:
             condition: apply_theme(light) を当て、paste_and_send・paste_only・copy_only をオンにした回と、paste_only・copy_only だけをオンにした回で、open(at=座標) してから close_window して open(at=座標) することを 3 回繰り返す。`ui.transcribing_show_hotkeys` が true と false の両方。QT_QPA_PLATFORM=offscreen
             mock: UiDeps
             expected: 開き直した後の窓の width() がどの回も最初に開いた幅と同じで、最後のボタンの右端が行の右端を超えない
+          - name: test_open_when_progress_not_reported
+            case: 正常
+            summary: 進みを知らせないエンジンのときは経過だけを出す
+            condition: UiDeps.reports_progress を False にし、設定の transcription.engine は local_whisper のままで open し、経過 1.4 秒で時間の文字を書き換える。QT_QPA_PLATFORM=offscreen
+            mock: UiDeps・経過を返す時計
+            expected: 経過と残りの時間が「経過 1.4 秒」で、進みのバーが表示されない
       - name: set_progress
         title: 進みの反映
         summary: 進みのバーと残りの時間を書き換える
@@ -1095,12 +1115,13 @@ classes:
       設定のモデルは開いたときの設定のモデル（`type(設定)`。main.py の SETTINGS_MODEL）を使い、失敗の場所の判別子の値から出力先のモデルをその output_models で引く。
       出力先は outputs[] の 1 件ごとに、名前を UiDeps.output_titles から引いて「オン」と「ホットキー」の欄を置き、その出力先のモデルが id・enabled・hotkey のほかに持つ項目（貼り付けて送信の enter_delay_sec など）を型から決めた部品で並べる。その項目の `json_schema_extra` に note があれば欄の下に出す（出力先の ID ごとの分け方を持たない）。
       リテラルの列挙の一覧（貼り付けて送信の enter_modifiers など）は、列挙の値ごとのチェックボックスを欄の名前の下の行に横に並べ、オンにした値を列挙の並びで一覧にする。チェックボックスの名前はその項目の `json_schema_extra` の choice_labels（無ければ値そのまま）、objectName は `field_{キー}_{値}`。
-      リテラルの列挙の 1 つを選ぶ欄（ui.position・ui.theme など）は make_radio_group にその項目の choice_labels を渡してラジオボタンの名前にし、保存では selected_radio が返す値を設定に入れる。
+      リテラルの列挙の 1 つを選ぶ欄（ui.position・ui.theme など）は make_radio_group にその項目の choice_labels を渡してラジオボタンの名前にし、保存では selected_radio が返す値を設定に入れる。COMBO_KEYS の欄（transcription.engine など）は、選択肢の名前をその項目の choice_labels（無ければ値そのまま）にし、保存では選んだ項目の値を設定に入れる。出力先のほかの欄も、その項目の `json_schema_extra` に note があれば欄の下に出す（transcription.openai.model の API キーの置き場所の補助文）。
       カスタムプリセットは、PRESET_KIND_NAMES の種類ごとにまとまり（「出力先」のすぐ下のタブ）を 1 つ作り、その中に PresetListPanel とその種類の preset_options の欄を置く。Authorization の欄は `QLineEdit.EchoMode.Password` にする。
       変えた欄の数えには、種類ごとの PresetListPanel.change_values のキーごとの変更を 1 件として含める。追加・削除した・有効かタイトルか URL かホットキーか種類ごとの欄を変えたプリセット 1 つが 1 件（1 つのプリセットで何度変えても 1 件）、種類のタブごとに、開いたとき・保存したときからあって今も残っているプリセットどうしの順が変わったら並べ替えが 1 件になる（追加・削除だけでは並べ替えに数えない）。
       保存したメッセージのホットキーの文を出すかは、変えた欄の数えの値ではなく、ホットキーの欄の値（`hotkeys.*`・`outputs[].hotkey`・種類ごとのタブの中の何件目かのプリセットの hotkey）を開いたときの値と比べて決める。
       エラーの一覧のプリセットの行は、失敗の場所 `presets[{n}].{項目}` を「プリセット「{タイトル}」の{欄の名前}」（タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」）にし、押すとそのタブへ切り替えて PresetListPanel.focus_field で欄へフォーカスを移す。
       ホットキーの欄は押したキーを format_hotkey の形式で出し、parse_hotkey で pynput の書式に戻す。
+      UiDeps.hidden_setting_keys のキーは欄を置かず、開いたときの値を collect でそのまま返す（settings.toml の値を保つ）。変えた欄の数えにも入らない。既定に戻すと、そのキーも既定値になる。
       コンストラクタは UiDeps を受ける。欄の部品は設定のキーを使った objectName（`field_{キー}`。プリセットの欄は画面設計の項目 ID）を持つ。窓が閉じたら（保存して再起動・今すぐ再起動・取り消し・窓の閉じるのどの経路でも。「保存」では閉じない）closed を emit する。
     kind: クラス
     inherits: PySide6.QtWidgets.QWidget
@@ -1131,6 +1152,13 @@ classes:
         returns:
           type: dict[str, Any]
           description: Settings.model_validate へ渡す値。presets はブラウザ添付のタブの並び → エンドポイントへ送信のタブの並びの順（各 PresetListPanel.collect をつなぐ）。glossaries は GlossaryPanel.collect、glossary_presets は GlossaryPanel.collect_presets、active_glossary_preset は GlossaryPanel.active_preset_name。hint_presets は HintPresetPanel.collect。edge_phrases は EdgePhrasePanel.collect。glossary_path と active_glossary は置かない
+        unit_tests:
+          - name: test_collect_when_hidden_keys
+            case: 正常
+            summary: 出さないキーは欄を置かず、開いたときの値を返す
+            condition: hidden_setting_keys に recording.lower_volume・recording.volume_percent・recording.fade_sec を入れ、recording.volume_percent=40 の設定で開いて collect を呼ぶ。QT_QPA_PLATFORM=offscreen
+            mock: UiDeps の全関数
+            expected: objectName が field_recording.lower_volume・field_recording.volume_percent・field_recording.fade_sec の欄が無く、collect の recording.volume_percent が 40 で lower_volume・fade_sec も開いたときの値
       - name: save
         title: 保存
         summary: 欄の値を設定のモデルで確かめ、通れば書いて効かせ、窓を開いたまま保存したメッセージを出す（restart のときだけ閉じる）。通らなければエラーを出す
@@ -2352,6 +2380,144 @@ classes:
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#elements[文言の一覧]
     status: implemented
+  - name: GnomeShortcutListener
+    title: GNOME のショートカットのホットキーの受付
+    container: runtime/hotkey_gnome.py
+    usecase: 録音する
+    role: ランタイム
+    summary: Wayland のセッションで HotkeyListener の代わりに使う。設定のホットキーを GNOME のカスタムショートカットへ登録し、押されたら配線された関数を呼ぶ。セッションは import しない
+    description: |-
+      HotkeyListener と同じ start・stop を持ち、main・UiDeps はどちらも同じように扱う。
+
+      ショートカットのコマンドは send_hotkey を流し、send_hotkey が単一インスタンスの終了の依頼のソケットへ押されたホットキーを送信する。LinuxSingleInstanceLock の待つスレッドが on_hotkey で渡した _dispatch を呼ぶ。
+
+      登録は gsettings（`org.gnome.settings-daemon.plugins.media-keys` の `custom-keybindings` の一覧と、ショートカットごとの name・command・binding）で行う。常駐サービスの登録はパスが CUSTOM_KEYBINDING_PATH_PREFIX で始まり、ユーザーが自分で作ったショートカットは一覧に残す。
+
+      呼ぶ関数は単一インスタンスの待つスレッドで動くため、例外を握ってログに書き、受付を止めない（HotkeyListener と同じ包み方）。
+    kind: クラス
+    properties:
+      - name: _name
+        type: str
+        access: 内部 (_)
+        description: 排他の名前（instance_name）。send_hotkey のコマンドに渡す
+      - name: _bindings
+        type: dict[str, Callable[[], None]]
+        access: 内部 (_)
+        description: 登録したホットキー（pynput の書式）→ 例外を握る関数で包んだ関数。start の前と stop の後は空
+      - name: _lock
+        type: threading.Lock
+        access: 内部 (_)
+        description: start・stop・_dispatch の _bindings の読み書きを 1 つずつにする
+    methods:
+      - name: __init__
+        title: 受付の用意
+        kind: メソッド
+        scope: public
+        summary: 排他の名前と単一インスタンスの排他を受け、排他の on_hotkey に _dispatch を渡す。登録はまだしない
+        args:
+          - name: name
+            type: str
+            required: true
+            passing: positional
+            description: 排他の名前（instance_name）
+          - name: lock
+            type: LinuxSingleInstanceLock
+            required: true
+            passing: positional
+            description: 押されたホットキーを受ける単一インスタンスの排他
+        returns:
+          type: None
+          description: なし
+      - name: start
+        title: 受付の開始
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        summary: 常駐サービスの前の登録を外してから、ホットキーごとにカスタムショートカットを登録する
+        args:
+          - name: bindings
+            type: dict[str, Callable[[], None]]
+            required: true
+            passing: positional
+            description: pynput の書式のホットキー → 呼ぶ関数（build_hotkey_bindings。同じキーは 1 つにまとまっている）
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. ロックを取る
+          2. 各ホットキーを to_gnome_accelerator で GNOME のアクセラレーターに替える
+             - ValueError（替えられないキー）の場合、登録を変えずに HotkeyError を送出する
+          3. 各関数を例外を握る関数で包む
+             - 呼んだ関数が例外を出した場合、握って受付を続ける
+               - `[ERROR]` ホットキーの処理で想定外の例外（ホットキー。logger.exception）
+          4. `custom-keybindings` の一覧を読み、常駐サービスの登録（CUSTOM_KEYBINDING_PATH_PREFIX で始まるパス）を除いた一覧を書き戻す（前の起動の残りと、張り直す前の登録を外す）
+          5. ホットキーごとに `{CUSTOM_KEYBINDING_PATH_PREFIX}{番号}/` のショートカットへ、name（`voice-paste {ホットキー}`）・command（`shlex.join([sys.executable, "-m", "voice_paste.runtime.send_hotkey", 排他の名前, ホットキー])`）・binding（2 のアクセラレーター）を書き、4 の一覧の後ろに追加して書く
+             - gsettings が 0 以外で終わるか見つからない場合、5 で書いた登録を外してから HotkeyError を送出する（理由に gsettings の標準エラーを残す）
+          6. 包んだ関数を _bindings に入れる
+             - `[INFO]` GNOME のショートカットを登録した（ホットキーの一覧）
+        exceptions:
+          - name: HotkeyError
+            condition: GNOME のアクセラレーターに替えられないキー
+          - name: HotkeyError
+            condition: gsettings で登録できない
+        unit_tests:
+          - name: test_start
+            case: 正常
+            summary: ホットキーごとにショートカットを登録し、ユーザーの登録を残す
+            condition: '一覧が [ユーザーのパス] の状態で {"<cmd>+<alt>+d": 関数, "<cmd>+<alt>+v": 関数} で始める'
+            mock: subprocess.run（gsettings）
+            expected: '`voice-paste-0/`・`voice-paste-1/` の binding に `<Super><Alt>d`・`<Super><Alt>v`、command に send_hotkey と排他の名前とホットキーが書かれ、一覧が [ユーザーのパス, voice-paste-0/, voice-paste-1/] で書かれる'
+          - name: test_start_when_leftover
+            case: 正常
+            summary: 前の起動の登録の残りを外してから登録する
+            condition: 一覧が [ユーザーのパス, voice-paste-0/, voice-paste-1/, voice-paste-2/] の状態で、ホットキー 1 つで始める
+            mock: subprocess.run（gsettings）
+            expected: 最後に書かれた一覧が [ユーザーのパス, voice-paste-0/]
+          - name: test_start_when_dispatched
+            case: 正常
+            summary: 受けたホットキーの関数を呼び、例外で受付を止めない
+            condition: 始めた後、排他の on_hotkey に渡された関数を、登録したホットキー・登録していないホットキーで呼ぶ。登録した関数は 1 回目に RuntimeError を送出する
+            mock: subprocess.run（gsettings）・LinuxSingleInstanceLock
+            expected: 登録したホットキーで関数が呼ばれ、例外が漏れず ERROR のログが 1 行出て、もう一度呼ぶとまた呼ばれる。登録していないホットキーでは何も呼ばれない
+          - name: test_start_when_unsupported_key
+            case: 異常
+            summary: 替えられないキーは登録を変えずに断る
+            condition: '{"<cmd>+<alt>+<page_up>": 関数}'
+            mock: subprocess.run（gsettings）
+            expected: HotkeyError が送出され、gsettings の set が呼ばれない
+            exception: GNOME のアクセラレーターに替えられないキー
+          - name: test_start_when_gsettings_failed
+            case: 異常
+            summary: gsettings で登録できなければ書いた登録を外して断る
+            condition: 2 つ目のショートカットの binding の set が CalledProcessError を送出する
+            mock: subprocess.run（gsettings）
+            expected: HotkeyError が送出され、最後に書かれた一覧に常駐サービスのパスが無い
+            exception: gsettings で登録できない
+      - name: stop
+        title: 受付の停止
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        summary: 常駐サービスの登録を一覧から外し、_bindings を空にする。gsettings が失敗しても送出せず WARNING のログを書く（終了の片付けで呼ぶため）。登録が無ければ一覧を書かない
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_stop
+            case: 正常
+            summary: 常駐サービスの登録を外し、ユーザーの登録を残す
+            condition: start の後に stop を 2 回呼ぶ
+            mock: subprocess.run（gsettings）
+            expected: 一覧が [ユーザーのパス] で 1 回だけ書かれ、2 回目は一覧を書かない。stop の後に受けたホットキーでは関数が呼ばれない
+          - name: test_stop_when_gsettings_failed
+            case: 正常
+            summary: 外せなくても例外を出さない
+            condition: start の後、gsettings が FileNotFoundError を送出する状態で stop を呼ぶ
+            mock: subprocess.run（gsettings）
+            expected: 例外が出ず、WARNING のログが 1 行出る
+    refs:
+      - dev/設計書/シナリオ/単一ユースケース/常駐アプリを起動する#
+    status: planned
 functions:
   - name: notify
     title: ユーザーへの知らせ
@@ -2579,7 +2745,7 @@ functions:
     title: ホットキーの表示形式
     container: ui/windows/settings_window.py
     usecase: 設定を変える
-    summary: pynput の書式（`<ctrl>+<alt>+d`）を画面の表示形式（`Ctrl+Alt+D`）にする。録音の画面・トレイも使う
+    summary: pynput の書式（`<ctrl>+<alt>+d`）を画面の表示形式（`Ctrl+Alt+D`）にする。録音の画面・トレイも使う。修飾キーの名前は OS ごとに MODIFIER_NAMES_BY_OS から引く（`<cmd>` は Windows で `Win`、Linux で `Super`）
     kind: 関数
     scope: public
     args:
@@ -2588,6 +2754,12 @@ functions:
         required: true
         passing: positional
         description: pynput の書式
+      - name: os_kind
+        type: OsKind
+        required: false
+        default: CURRENT_OS
+        passing: keyword
+        description: 修飾キーの名前を引く OS（画面からは渡さず、動いている OS を使う。テストが OS を指定する）
     returns:
       type: str
       description: 画面の表示形式
@@ -2598,6 +2770,12 @@ functions:
         condition: <ctrl>+<alt>+d、<ctrl>+<shift>+<f5>
         mock: なし
         expected: Ctrl+Alt+D、Ctrl+Shift+F5
+      - name: test_format_hotkey_when_cmd
+        case: 正常
+        summary: '`<cmd>` を OS ごとの名前にする'
+        condition: <cmd>+<alt>+d を os_kind=OsKind.WINDOWS、os_kind=OsKind.LINUX で渡す
+        mock: なし
+        expected: Win+Alt+D、Super+Alt+D
     status: implemented
   - name: parse_hotkey
     title: ホットキーの書式への変換
@@ -2657,11 +2835,13 @@ functions:
          - string_too_short（プリセットのタイトル）: 「タイトルを入れてください。」
          - string_too_short（表記のヒントのプリセットの名前）: 「名前を入れてください。」
          - URL の形式が合わない（プリセットの URL）: 空なら「URL を入れてください（例: https://example.com/hook）。」、空でなければ「http:// か https:// で始まる URL を入れてください。」
+         - URL の形式が合わない（transcription.openai.base_url）: 空なら「API の URL を入れてください（例: https://api.openai.com/v1）。」、空でなければ「http:// か https:// で始まる URL を入れてください。」
          - hotkey_overlap（find_hotkey_overlaps）: 重なった先がプリセットなら「プリセット「{タイトル}」と同じキーです。別のキーにしてください。」（もう一方の種類のプリセットなら「「{種類}」のプリセット「{タイトル}」と同じキーです。別のキーにしてください。」）、それ以外は「「{重なった欄の名前}」と同じホットキーです。別のキーにしてください。」
          - hint_too_long: 「有効なヒントが長すぎます（{今の長さ} / 222 バイト）。語を減らすか、プリセットを無効にしてください。」
          - hint_word_empty: 「語を入れるか、この欄を削除してください。」
          - hint_word_separator: 「読点（、）・句点（。）・改行は入れられません。語を分けて追加してください。」
          - hint_preset_name_overlap（find_hint_preset_name_overlaps）: 「プリセット「{名前}」と同じ名前です。別の名前にしてください。」
+         - WEB_ORIGIN_FORM_ERROR_TYPE（ApiSettings._origins_must_be_origin_form）: 「形式の違うオリジンがあります（{ctx の invalid を読点でつないだもの}）。https://example.com のように、http:// か https:// で始め、末尾の / とパスを付けずに入れてください。」
          - それ以外: pydantic の msg をそのまま出す
     unit_tests:
       - name: test_to_field_message_when_not_number
@@ -2694,6 +2874,18 @@ functions:
         condition: 名前が「開発」の 2 件の hint_presets を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
         mock: なし
         expected: プリセット「開発」と同じ名前です。別の名前にしてください。
+      - name: test_to_field_message_when_openai_base_url_empty
+        case: 正常
+        summary: OpenAI の API の URL が空
+        condition: transcription.openai.base_url を空にした SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
+        mock: なし
+        expected: 'API の URL を入れてください（例: https://api.openai.com/v1）。'
+      - name: test_to_field_message_when_web_origin_not_form
+        case: 正常
+        summary: 形式の違う許す Origin
+        condition: api.allowed_web_origins に ["https://voice.example.com/", "voice.example.com"] を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
+        mock: なし
+        expected: 形式の違うオリジンがあります（https://voice.example.com/、voice.example.com）。https://example.com のように、http:// か https:// で始め、末尾の / とパスを付けずに入れてください。
     refs:
       - dev/設計書/画面設計/常駐アプリ/設定画面.py#
     status: implemented
@@ -3059,6 +3251,137 @@ functions:
     status: implemented
     introduced:
       pr: 159
+  - name: to_gnome_accelerator
+    title: GNOME のアクセラレーターへの変換
+    kind: 関数
+    container: runtime/hotkey_gnome.py
+    usecase: 録音する
+    scope: public
+    summary: pynput の書式のホットキー（`<cmd>+<alt>+d`）を GNOME のアクセラレーター（`<Super><Alt>d`）に替える
+    args:
+      - name: hotkey
+        type: str
+        required: true
+        passing: positional
+        description: pynput の書式のホットキー
+    returns:
+      type: str
+      description: GNOME のアクセラレーター
+    process: |-
+      1. `+` で分け、最後を主キー、それより前を修飾キーとする
+      2. 修飾キーを PYNPUT_TO_GNOME_MODIFIERS で替えてつなぐ
+         - 表に無い修飾キーの場合、ValueError を送出する
+      3. 主キーを替えて後ろにつなぐ
+         - 1 文字の場合、そのまま
+         - `<f1>`〜`<f24>` の場合、`F1`〜`F24`
+         - それ以外の場合、ValueError を送出する
+    exceptions:
+      - name: ValueError
+        condition: 表に無い修飾キー・1 文字でもファンクションキーでもない主キー
+    unit_tests:
+      - name: test_to_gnome_accelerator
+        case: 正常
+        summary: 修飾キーと 1 文字の主キーを替える
+        condition: '"<cmd>+<alt>+d" と "<ctrl>+<shift>+v"'
+        mock: なし
+        expected: '"<Super><Alt>d" と "<Control><Shift>v"'
+      - name: test_to_gnome_accelerator_when_function_key
+        case: 正常
+        summary: ファンクションキーを替える
+        condition: '"<ctrl>+<f9>"'
+        mock: なし
+        expected: '"<Control>F9"'
+      - name: test_to_gnome_accelerator_when_unsupported
+        case: 異常
+        summary: 替えられないキーは ValueError
+        condition: '"<cmd>+<page_up>"'
+        mock: なし
+        expected: ValueError が送出される
+        exception: 1 文字でもファンクションキーでもない主キー
+    status: planned
+  - name: main
+    title: 押されたホットキーの送信
+    kind: 関数
+    container: runtime/send_hotkey.py
+    usecase: 録音する
+    scope: public
+    summary: GNOME のカスタムショートカットから `python -m voice_paste.runtime.send_hotkey {排他の名前} {ホットキー}` で起動し、常駐サービスの終了の依頼のソケットへ押されたホットキーを送信する
+    description: 常駐サービスが動いていない（接続できない）ときは何もせず 0 で終わる。登録が残ったまま常駐サービスが終わっていても、押すたびにエラーを出さない。
+    args:
+      - name: argv
+        type: list[str] | None
+        required: false
+        default: None
+        passing: positional
+        description: コマンドの引数。None なら sys.argv[1:]
+    returns:
+      type: int
+      description: 終了コード（引数の数が違えば 2、それ以外は 0）
+    process: |-
+      1. 引数が排他の名前・ホットキーの 2 つか
+         - 違う場合、2 を返す
+      2. 抽象名前空間の `\0{排他の名前}-quit` へ接続し、HOTKEY_REQUEST_PREFIX にホットキーの UTF-8 をつないだバイト列を送信する
+         - OSError の場合（常駐サービスが動いていない）、何もせず進む
+      3. 0 を返す
+    unit_tests:
+      - name: test_main
+        case: 正常
+        summary: 常駐サービスへホットキーを送信する
+        condition: 一意の名前で LinuxSingleInstanceLock を取り、on_hotkey に受け手を渡してから、argv=[名前, "<cmd>+<alt>+d"] で呼ぶ
+        mock: ホットキーの受け手（実物の抽象名前空間のソケット）
+        expected: 0 が返り、受け手が "<cmd>+<alt>+d" で 1 秒以内に 1 回呼ばれる
+      - name: test_main_when_not_running
+        case: 正常
+        summary: 常駐サービスが動いていなければ何もしない
+        condition: 誰も待っていない一意の名前で argv=[名前, "<cmd>+<alt>+d"]
+        mock: なし
+        expected: 0 が返り、例外が出ない
+      - name: test_main_when_wrong_args
+        case: 異常
+        summary: 引数の数が違えば 2
+        condition: argv=[名前]
+        mock: なし
+        expected: 2 が返る
+        exception: 引数の数が違う
+    status: planned
+  - name: validate_gnome_hotkeys
+    title: GNOME のショートカットに登録できるかの確かめ
+    kind: 関数
+    container: runtime/hotkey_gnome.py
+    usecase: 設定を変える
+    scope: public
+    summary: ホットキーを pynput が読めて、GNOME のアクセラレーターに替えられるかを、登録せずに確かめる。Wayland のセッションの PlatformAdapters.validate_hotkeys
+    args:
+      - name: hotkeys
+        type: Iterable[str]
+        required: true
+        passing: positional
+        description: pynput の書式のホットキー
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. validate_hotkeys で pynput が読めるかを確かめる（HotkeyError はそのまま送出する）
+      2. 各ホットキーを to_gnome_accelerator で替える
+         - ValueError の場合、HotkeyError（「GNOME のショートカットに登録できないキーです（{ホットキー}）」）を送出する
+    exceptions:
+      - name: HotkeyError
+        condition: pynput が読めない・GNOME のアクセラレーターに替えられないホットキーがある
+    unit_tests:
+      - name: test_validate_gnome_hotkeys
+        case: 正常
+        summary: 替えられるホットキーは通す
+        condition: '["<cmd>+<alt>+d", "<ctrl>+<f9>"]'
+        mock: なし
+        expected: 例外が出ない
+      - name: test_validate_gnome_hotkeys_when_unsupported
+        case: 異常
+        summary: pynput は読めるが替えられないキーを断る
+        condition: '["<ctrl>+<page_up>"]'
+        mock: なし
+        expected: HotkeyError が送出され、メッセージに <ctrl>+<page_up> が出る
+        exception: GNOME のアクセラレーターに替えられないホットキーがある
+    status: planned
 notes:
   画面が触ってよいもの: |-
     ui は UiDeps の関数（配線された SessionManager のメソッド・音量・設定の読み書き・再起動と終了）と、共通の設定のモデルだけを呼ぶ。録音・文字起こし・出力先を直に呼ばない。
@@ -3066,7 +3389,9 @@ notes:
   スレッド: |-
     画面の部品はメインスレッド（Qt のイベントループ）だけが触る。API・ホットキー・ワーカーのスレッドからは notify・report_progress で UiBridge の Signal を emit するだけにする。
     ホットキーが呼ぶ関数は SessionManager（ロックで守られている）だけを呼び、画面は state_changed の知らせで変える。
-  テスト: 画面を使う単体テスト・結合テストは `QT_QPA_PLATFORM=offscreen` で QApplication を 1 つ作り、操作は PySide6 の QtTest（QTest）で行う。画面の振る舞いは画面設計を元にした結合テスト（`tests/integration/ui/`）で確かめる。
+  テスト: |-
+    画面を使う単体テスト・結合テストは `QT_QPA_PLATFORM=offscreen` で QApplication を 1 つ作り、操作は PySide6 の QtTest（QTest）で行う。画面の振る舞いは画面設計を元にした結合テスト（`tests/integration/ui/`）で確かめる。
+    runtime/hotkey_gnome.py・runtime/send_hotkey.py の単体テストのファイルは `tests/unit/voice_paste/runtime/test_hotkey_gnome.py`・`tests/unit/voice_paste/runtime/test_send_hotkey.py`。Windows では skip する（single_instance_linux.py の fcntl を読み込む）。gsettings は subprocess.run を差し替えて呼び出しの引数で確かめ、実物の GNOME のショートカットは検証環境の VM での通しの確認で確かめる。
 data_models:
   - name: UiDeps
     title: 画面の依存
@@ -3117,10 +3442,10 @@ data_models:
         description: イベントループを抜ける（QApplication.quit）
       - name: suspend_hotkeys
         type: Callable[[], None]
-        description: ホットキーの受付を止める（HotkeyListener.stop）。設定画面を開いている間、欄で押したキーで録音が始まらないようにする
+        description: ホットキーの受付を止める（HotkeyListener.stop か GnomeShortcutListener.stop）。設定画面を開いている間、欄で押したキーで録音が始まらないようにする
       - name: resume_hotkeys
         type: Callable[[], None]
-        description: 今の設定でホットキーの受付を始める（build_hotkey_bindings → HotkeyListener.start）。設定画面を閉じたときに呼ぶ
+        description: 今の設定でホットキーの受付を始める（build_hotkey_bindings → HotkeyListener.start か GnomeShortcutListener.start）。設定画面を閉じたときに呼ぶ
       - name: output_titles
         type: Mapping[str, str]
         description: 画面に出す出力先の名前（出力先の ID → OUTPUTS の title。API 専用の出力先を除く）。設定画面の欄と録音の画面のボタンが引く
@@ -3145,6 +3470,12 @@ data_models:
       - name: list_glossary_presets
         type: Callable[[], list[GlossaryPresetSettings]]
         description: 今の設定の用語集のプリセットの一覧（glossary_presets が空なら「既定」の 1 件。一覧に無い用語集の名前は外す。resolve_glossary_presets）
+      - name: hidden_setting_keys
+        type: frozenset[str]
+        description: 設定画面で出さない設定のキー（hidden_setting_keys(unavailable_features(CURRENT_OS))）。Linux では録音中の音量のキーと api.allowed_web_origins
+      - name: reports_progress
+        type: bool
+        description: 動いているエンジンが区間ごとの進みを知らせるか（local_whisper は True、openai は False）。engine の反映は再起動のため、保存した設定ではなく起動の配線で決めた値を持つ
     status: implemented
 enums:
   - name: TrayState
@@ -3223,8 +3554,53 @@ constants:
     summary: 録音の画面を作業領域の端に置くときに空ける余白（論理ピクセル）
     value: '24'
     status: implemented
+  - name: HOTKEY_STOP_TIMEOUT_SEC
+    title: ホットキーの受付の終わりを待つ上限
+    container: runtime/hotkey.py
+    usecase: 録音する
+    summary: HotkeyListener が止めた受付のスレッドの終わりを待つ上限（秒）。Linux の pynput は次のキー入力まで終わらないため、上限で手放す。値は非機能要件『ホットキーの受付の終わりを待つ時間』
+    value: '0.5'
+    status: planned
+  - name: MODIFIER_NAMES_BY_OS
+    title: OS ごとの修飾キーの画面の名前
+    container: ui/windows/settings_window.py
+    usecase: 設定を変える
+    summary: format_hotkey が引く、pynput の修飾キーの名前ごとの画面の名前。OS は shared/os_kind.py の OsKind で引き、sys.platform を直に読まない。今の MODIFIER_NAMES（OS によらない表）はこれに置き換える
+    value: '{OsKind.WINDOWS: {"ctrl": "Ctrl", "alt": "Alt", "shift": "Shift", "cmd": "Win"}, OsKind.LINUX: {"ctrl": "Ctrl", "alt": "Alt", "shift": "Shift", "cmd": "Super"}}'
+    reason: Ubuntu（GNOME）は Windows キーを Super と表す（[#198](https://github.com/shuhei1101/voice-paste/issues/198)）
+    status: planned
+  - name: MEDIA_KEYS_SCHEMA
+    title: カスタムショートカットの一覧のスキーマ
+    container: runtime/hotkey_gnome.py
+    usecase: 録音する
+    summary: カスタムショートカットのパスの一覧（`custom-keybindings`）を持つ gsettings のスキーマ
+    value: '"org.gnome.settings-daemon.plugins.media-keys"'
+    status: planned
+  - name: CUSTOM_KEYBINDING_SCHEMA
+    title: カスタムショートカットのスキーマ
+    container: runtime/hotkey_gnome.py
+    usecase: 録音する
+    summary: カスタムショートカット 1 つ（name・command・binding）の gsettings のスキーマ。`{スキーマ}:{パス}` で指す
+    value: '"org.gnome.settings-daemon.plugins.media-keys.custom-keybinding"'
+    status: planned
+  - name: CUSTOM_KEYBINDING_PATH_PREFIX
+    title: 常駐サービスの登録のパスの前半
+    container: runtime/hotkey_gnome.py
+    usecase: 録音する
+    summary: 常駐サービスが登録するカスタムショートカットのパスの前半。ユーザーが自分で作ったショートカットと見分ける
+    value: '"/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/voice-paste-"'
+    status: planned
+  - name: PYNPUT_TO_GNOME_MODIFIERS
+    title: 修飾キーの書式の対応
+    container: runtime/hotkey_gnome.py
+    usecase: 録音する
+    summary: pynput の書式の修飾キーと、GNOME のアクセラレーターの修飾キーの対応
+    value: '{"<ctrl>": "<Control>", "<alt>": "<Alt>", "<shift>": "<Shift>", "<cmd>": "<Super>"}'
+    status: planned
 test_files:
   - tests/unit/voice_paste/runtime/test_hotkey.py
+  - tests/unit/voice_paste/runtime/test_hotkey_gnome.py
+  - tests/unit/voice_paste/runtime/test_send_hotkey.py
   - tests/unit/voice_paste/ui/test_bridge.py
   - tests/unit/voice_paste/ui/test_controller.py
   - tests/unit/voice_paste/ui/test_tray.py

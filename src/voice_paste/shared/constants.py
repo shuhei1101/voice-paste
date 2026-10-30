@@ -1,4 +1,4 @@
-"""アプリ名と、設定・履歴・ログ・一時の音声・トークンの置き場所のパス。"""
+"""アプリ名と、設定・履歴・ログ・一時の音声・トークン・ロックファイルの置き場所のパス。"""
 
 from __future__ import annotations
 
@@ -28,17 +28,30 @@ TOKEN_FILE_NAME: str = "api_token"
 UI_IMAGE_DIR_NAME: str = "ui"
 """画面の画像（選択欄の開くマーカーの SVG）のフォルダの名前。"""
 
+LOCK_FILE_NAME: str = "instance.lock"
+"""Linux の単一インスタンスのロックファイルの名前。"""
+
+SECRETS_DIR_NAME: str = "secrets"
+"""設定ファイルと同じフォルダの下にある、秘匿の値のファイルのフォルダの名前。"""
+
+OPENAI_API_KEY_FILE_NAME: str = "openai_api_key"
+"""OpenAI の API キーを置くファイルの名前。"""
+
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class AppPaths:
-    """設定・履歴・ログ・一時の音声・トークン・画面の画像の置き場所。"""
+    """設定・OpenAI の API キーのファイル・履歴・ログ・一時の音声・トークン・画面の画像・ロックファイルの置き場所。"""
 
     settings_file: Path
+    openai_api_key_file: Path
+    """OpenAI の API キーのファイル。設定ファイルと同じフォルダの下で、ユーザーが置き、読むだけで作らない。"""
     history_dir: Path
     log_dir: Path
     tmp_dir: Path
     token_file: Path
     ui_image_dir: Path
+    lock_file: Path
+    """Linux の単一インスタンスのロックファイル。Windows では使わない。"""
 
 
 def resolve_app_paths(data_dir: Path | None) -> AppPaths:
@@ -55,9 +68,11 @@ def resolve_app_paths(data_dir: Path | None) -> AppPaths:
 
     return AppPaths(
         settings_file=config_root / SETTINGS_FILE_NAME,
+        openai_api_key_file=config_root / SECRETS_DIR_NAME / OPENAI_API_KEY_FILE_NAME,
         history_dir=data_root / HISTORY_DIR_NAME,
         log_dir=data_root / LOG_DIR_NAME,
         tmp_dir=data_root / TMP_DIR_NAME,
         token_file=data_root / TOKEN_FILE_NAME,
         ui_image_dir=data_root / UI_IMAGE_DIR_NAME,
+        lock_file=data_root / LOCK_FILE_NAME,
     )

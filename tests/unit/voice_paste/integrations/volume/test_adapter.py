@@ -5,6 +5,7 @@ pycaw の音量のインターフェースは、音量を持って書き込み�
 
 from __future__ import annotations
 
+import sys
 import threading
 import time
 from collections.abc import Callable
@@ -12,7 +13,11 @@ from types import ModuleType
 from typing import Any
 
 import pytest
-from comtypes import COMError
+
+# pycaw・comtypes を使うアダプタのため、Linux では流さない（Linux には comtypes が入らない）
+pytestmark = pytest.mark.skipif(
+    sys.platform != "win32", reason="pycaw の音量のアダプタは Windows でだけ流す"
+)
 
 FADE_WAIT_SEC = 1.0
 SETTLE_SEC = 0.3
@@ -116,6 +121,8 @@ def test_lower_volume_when_read_failed(
     install_endpoint: Callable[[float], FakeEndpointVolume],
 ) -> None:
     """読めなければ VolumeControlError（異常系）。"""
+    from comtypes import COMError
+
     from voice_paste.integrations.volume.adapter import lower_volume
     from voice_paste.shared.errors import VolumeControlError
 
@@ -197,6 +204,8 @@ def test_fade_to_when_write_failed(
     install_endpoint: Callable[[float], FakeEndpointVolume],
 ) -> None:
     """すぐ変えるときに書けなければ VolumeControlError（異常系）。"""
+    from comtypes import COMError
+
     from voice_paste.integrations.volume.adapter import _fade_to
     from voice_paste.shared.errors import VolumeControlError
 

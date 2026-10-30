@@ -11,7 +11,12 @@ import pytest
 from PySide6.QtWidgets import QApplication
 
 from tests.support.browser import EdgeBrowser, launch_edge
-from tests.support.fixtures import receiver, start_inprocess, start_service  # noqa: F401 フィクスチャとして使う
+from tests.support.fixtures import (  # noqa: F401 フィクスチャとして使う
+    openai_endpoint,
+    receiver,
+    start_inprocess,
+    start_service,
+)
 from tests.support.inprocess import KeyLog
 from tests.support.resident_app import (
     Case,

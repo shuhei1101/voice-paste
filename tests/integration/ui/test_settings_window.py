@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
@@ -43,6 +44,7 @@ from tests.integration.ui.helpers import (
     crop_logical,
     dispose_windows_since,
     find,
+    fixed_hotkey_settings,
     indicator_image,
     make_ui_deps,
     no_modal,
@@ -62,6 +64,9 @@ RESTART_KEY = "transcription.local_whisper.beam_size"
 
 IMMEDIATE_KEY = "recording.fade_sec"
 """反映が immediate の数値の欄。"""
+
+VOLUME_KEYS = ("recording.lower_volume", "recording.volume_percent", "recording.fade_sec")
+"""Linux の設定画面に出さない、録音中の音量の設定のキー。"""
 
 
 @dataclass
@@ -102,6 +107,11 @@ def _field(window: QWidget, key: str, cls: type = QWidget) -> Any:
     found = window.findChild(cls, f"field_{key}") or window.findChild(cls, f"hotkey_{key}")
     assert found is not None, f"{key} の欄が無い"
     return found
+
+
+def _existing_fields(window: QWidget, keys: tuple[str, ...]) -> list[str]:
+    """設定のキーのうち、欄（objectName が field_{キー}）が置かれているものを並べて返す。"""
+    return [key for key in keys if window.findChild(QWidget, f"field_{key}") is not None]
 
 
 def _set_text(window: QWidget, key: str, text: str) -> None:
@@ -401,6 +411,94 @@ def test_field_widget_type_when_literal(
     assert [button.text() for button in buttons] == choices
 
 
+def test_field_engine_choices(open_window: Callable[..., Opened]) -> None:
+    """文字起こしのエンジンの選択欄は、名前（ローカルの Whisper・OpenAI API）を出し、値（local_whisper・openai）を持つ。既定はローカルの Whisper。"""
+    # 準備
+    window = open_window().window
+
+    # 実行
+    combo = _field(window, "transcription.engine", QComboBox)
+
+    # 検証
+    assert [combo.itemText(index) for index in range(combo.count())] == [
+        "ローカルの Whisper",
+        "OpenAI API",
+    ]
+    assert [combo.itemData(index) for index in range(combo.count())] == ["local_whisper", "openai"]
+    assert combo.currentText() == "ローカルの Whisper"
+
+
+def test_field_engine_when_saved(open_window: Callable[..., Opened]) -> None:
+    """選択欄で「OpenAI API」を選んで保存すると、設定の transcription.engine は openai になる。"""
+    # 準備
+    opened = open_window()
+    _field(opened.window, "transcription.engine", QComboBox).setCurrentIndex(1)
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert opened.deps.save_settings.call_args.args[0].transcription.engine == "openai"
+
+
+def test_field_engine_when_openai(open_window: Callable[..., Opened]) -> None:
+    """設定のエンジンが openai のときは、選択欄が「OpenAI API」を選んだ状態で開く。"""
+    from voice_paste.shared.settings import TranscriptionSettings
+
+    # 実行
+    window = open_window(SETTINGS_MODEL(transcription=TranscriptionSettings(engine="openai"))).window
+
+    # 検証
+    assert _field(window, "transcription.engine", QComboBox).currentText() == "OpenAI API"
+
+
+def test_field_openai_fields(open_window: Callable[..., Opened]) -> None:
+    """「文字起こし」のまとまりに OpenAI API の 3 つの文字の欄を出し、既定の値・再起動で反映のマーカー・補助文を出す。"""
+    # 準備
+    window = open_window().window
+    find(window, QListWidget, "group_menu").setCurrentRow(5)
+
+    # 実行
+    texts = [label.text() for label in window.findChildren(QLabel)]
+
+    # 検証
+    expected = {
+        "transcription.openai.model": "gpt-transcribe",
+        "transcription.openai.language": "ja",
+        "transcription.openai.base_url": "https://api.openai.com/v1",
+    }
+    for key, value in expected.items():
+        assert _field(window, key, QLineEdit).isVisible()
+        assert _field(window, key, QLineEdit).text() == value
+        assert find(window, QLabel, f"restart_badge_{key}").text() == "再起動で反映"
+    assert (
+        "文字起こしのエンジンが OpenAI API のときに使う。"
+        "API キーはここでは入れず、環境変数 OPENAI_API_KEY か、"
+        "settings.toml と同じフォルダの secrets/openai_api_key に置く。"
+    ) in texts
+
+
+def test_field_openai_fields_when_saved(open_window: Callable[..., Opened]) -> None:
+    """OpenAI API の 3 つの欄に入れた値は、保存で設定の transcription.openai に入る。API キーの欄は無い。"""
+    # 準備
+    opened = open_window()
+    _set_text(opened.window, "transcription.openai.model", "whisper-1")
+    _set_text(opened.window, "transcription.openai.language", "en")
+    _set_text(opened.window, "transcription.openai.base_url", "http://127.0.0.1:9000/v1")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    saved = opened.deps.save_settings.call_args.args[0].transcription.openai
+    assert (saved.model, saved.language, saved.base_url) == (
+        "whisper-1",
+        "en",
+        "http://127.0.0.1:9000/v1",
+    )
+    assert opened.window.findChild(QWidget, "field_transcription.openai.api_key") is None
+
+
 def test_field_name_and_key(open_window: Callable[..., Opened]) -> None:
     """欄の名前（設定の項目の説明）と、欄の右に settings.toml のキーを出す。"""
     from voice_paste.shared.settings import ApiSettings
@@ -443,11 +541,51 @@ def test_restart_badge_when_immediate_field(open_window: Callable[..., Opened]) 
 def test_hotkey_field_initial_value(open_window: Callable[..., Opened]) -> None:
     """ホットキーの欄は、画面では `Ctrl+Alt+D` の形式で出す。"""
     # 実行
-    window = open_window().window
+    window = open_window(fixed_hotkey_settings()).window
 
     # 検証
     assert _field(window, "hotkeys.start", QLineEdit).text() == "Ctrl+Alt+D"
     assert _field(window, "hotkeys.pause", QLineEdit).text() == "Ctrl+Alt+Z"
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows の表示名を確かめるため Windows でだけ流す")
+def test_hotkey_field_initial_value_when_cmd_on_windows(open_window: Callable[..., Opened]) -> None:
+    """`<cmd>` を含むホットキーは、Windows では `Win` で出す。"""
+    from voice_paste.shared.settings import HotkeySettings, KeyboardSettings
+
+    # 準備
+    settings = SETTINGS_MODEL(
+        hotkeys=HotkeySettings(start="<cmd>+<alt>+d"),
+        keyboard=KeyboardSettings(paste_key="<cmd>+v"),
+    )
+
+    # 実行
+    window = open_window(settings).window
+
+    # 検証
+    assert _field(window, "hotkeys.start", QLineEdit).text() == "Win+Alt+D"
+    assert _field(window, "keyboard.paste_key", QLineEdit).text() == "Win+V"
+    assert window.collect()["hotkeys"]["start"] == "<cmd>+<alt>+d"
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Linux の表示名を確かめるため Windows では流さない")
+def test_hotkey_field_initial_value_when_cmd_on_linux(open_window: Callable[..., Opened]) -> None:
+    """`<cmd>` を含むホットキーは、Linux では `Super` で出す。"""
+    from voice_paste.shared.settings import HotkeySettings, KeyboardSettings
+
+    # 準備
+    settings = SETTINGS_MODEL(
+        hotkeys=HotkeySettings(start="<cmd>+<alt>+d"),
+        keyboard=KeyboardSettings(paste_key="<cmd>+v"),
+    )
+
+    # 実行
+    window = open_window(settings).window
+
+    # 検証
+    assert _field(window, "hotkeys.start", QLineEdit).text() == "Super+Alt+D"
+    assert _field(window, "keyboard.paste_key", QLineEdit).text() == "Super+V"
+    assert window.collect()["hotkeys"]["start"] == "<cmd>+<alt>+d"
 
 
 def test_hotkey_field_action(open_window: Callable[..., Opened]) -> None:
@@ -472,7 +610,7 @@ def test_hotkey_field_action(open_window: Callable[..., Opened]) -> None:
 def test_hotkey_field_when_modifier_only(open_window: Callable[..., Opened]) -> None:
     """修飾キーだけでは、組み合わせに入れない。"""
     # 準備
-    window = open_window().window
+    window = open_window(fixed_hotkey_settings()).window
     find(window, QListWidget, "group_menu").setCurrentRow(3)
 
     # 実行
@@ -485,7 +623,7 @@ def test_hotkey_field_when_modifier_only(open_window: Callable[..., Opened]) -> 
 def test_hotkey_field_when_tab(open_window: Callable[..., Opened]) -> None:
     """Tab は欄の移動に残し、組み合わせに入れない。"""
     # 準備
-    window = open_window().window
+    window = open_window(fixed_hotkey_settings()).window
     find(window, QListWidget, "group_menu").setCurrentRow(3)
 
     # 実行
@@ -498,7 +636,7 @@ def test_hotkey_field_when_tab(open_window: Callable[..., Opened]) -> None:
 def test_hotkey_field_when_escape(open_window: Callable[..., Opened]) -> None:
     """Esc は画面の取り消しに残し、組み合わせに入れない（欄を変えていなければ画面を閉じる）。"""
     # 準備
-    opened = open_window()
+    opened = open_window(fixed_hotkey_settings())
     find(opened.window, QListWidget, "group_menu").setCurrentRow(3)
 
     # 実行
@@ -1487,6 +1625,58 @@ def test_save_button_when_default(open_window: Callable[..., Opened], tmp_path: 
     opened.deps.save_settings.assert_called_once_with(expected, {})
 
 
+def test_field_when_hidden_keys(open_window: Callable[..., Opened]) -> None:
+    """出さない設定のキー（Linux の録音中の音量）は欄を置かず、保存しても settings.toml のその値を変えない。"""
+    from voice_paste.shared.settings import RecordingSettings
+
+    # 準備: 既定と違う音量の値の設定を、音量のキーを出さない UiDeps で開く
+    settings = SETTINGS_MODEL(
+        recording=RecordingSettings(lower_volume=False, volume_percent=40, fade_sec=1.5)
+    )
+    opened = open_window(settings, hidden_setting_keys=frozenset(VOLUME_KEYS))
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert _existing_fields(opened.window, VOLUME_KEYS) == []
+    assert _field(opened.window, "recording.hide_window", QCheckBox) is not None
+    opened.deps.save_settings.assert_called_once()
+    saved = opened.deps.save_settings.call_args.args[0].recording
+    assert saved.lower_volume is False
+    assert saved.volume_percent == 40
+    assert saved.fade_sec == 1.5
+    opened.saved.assert_called_once()
+
+
+def test_field_when_hidden_keys_of_linux(open_window: Callable[..., Opened]) -> None:
+    """動いている OS で使えない機能（Linux の録音中の音量と外の端末のブラウザの機能）の設定のキーは欄を置かず、保存しても settings.toml のその値を変えない。"""
+    from voice_paste.shared.os_kind import OsKind, hidden_setting_keys, unavailable_features
+    from voice_paste.shared.settings import ApiSettings, RecordingSettings
+
+    # 準備: 既定と違う値の設定を、Linux で出さないキーを渡した UiDeps で開く
+    hidden_keys = hidden_setting_keys(unavailable_features(OsKind.LINUX))
+    settings = SETTINGS_MODEL(
+        recording=RecordingSettings(lower_volume=False, volume_percent=40, fade_sec=1.5),
+        api=ApiSettings(allowed_web_origins=["https://voice.example.com"]),
+    )
+    opened = open_window(settings, hidden_setting_keys=hidden_keys)
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert _existing_fields(opened.window, sorted(hidden_keys)) == []
+    assert _field(opened.window, "api.port") is not None
+    opened.deps.save_settings.assert_called_once()
+    saved = opened.deps.save_settings.call_args.args[0]
+    assert saved.recording.lower_volume is False
+    assert saved.recording.volume_percent == 40
+    assert saved.recording.fade_sec == 1.5
+    assert saved.api.allowed_web_origins == ["https://voice.example.com"]
+    opened.saved.assert_called_once()
+
+
 def test_save_button_when_invalid(open_window: Callable[..., Opened]) -> None:
     """確かめに通らなければ書かず、エラーの一覧と欄の下のエラーを出し、入れた値は削除しない。"""
     # 準備
@@ -1844,7 +2034,7 @@ def test_input_check_when_out_of_range(
 def test_input_check_when_hotkey_overlap(open_window: Callable[..., Opened]) -> None:
     """ほかのホットキーの欄と同じ組み合わせ: 「「{重なった欄の名前}」と同じホットキーです。別のキーにしてください。」を出す。"""
     # 準備
-    opened = open_window()
+    opened = open_window(fixed_hotkey_settings())
     find(opened.window, QListWidget, "group_menu").setCurrentRow(3)
     _press(
         opened.window,
@@ -1903,6 +2093,62 @@ def test_input_check_when_preset_url_invalid(
     # 検証
     assert _field_errors(opened.window) == [message]
     assert any(row.endswith(f": {message}") for row in _error_rows(opened.window))
+
+
+@pytest.mark.parametrize(
+    ("url", "message"),
+    [
+        ("", "API の URL を入れてください（例: https://api.openai.com/v1）。"),
+        ("api.openai.com/v1", "http:// か https:// で始まる URL を入れてください。"),
+    ],
+    ids=["empty", "no_scheme"],
+)
+def test_input_check_when_openai_base_url_invalid(
+    open_window: Callable[..., Opened], url: str, message: str
+) -> None:
+    """OpenAI API の URL が空・http:// か https:// で始まらない: それぞれの文言をその欄の下とエラーの一覧に出し、保存しない。"""
+    # 準備
+    opened = open_window()
+    _set_text(opened.window, "transcription.openai.base_url", url)
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    assert find(opened.window, QLabel, "error_transcription.openai.base_url").text() == message
+    assert _field_errors(opened.window) == [message]
+    assert any(row.endswith(f": {message}") for row in _error_rows(opened.window))
+    opened.deps.save_settings.assert_not_called()
+
+
+@pytest.mark.skipif(
+    sys.platform != "win32", reason="外の端末に許す Origin の欄は Linux では出ないため Windows でだけ流す"
+)
+@pytest.mark.parametrize("button", ["save_button", "save_and_restart_button"])
+def test_input_check_when_web_origin_not_form(
+    open_window: Callable[..., Opened], button: str
+) -> None:
+    """外の端末に許す Origin に形式の違う行: 違う行を読点でつないだ文言をその欄の下とエラーの一覧に出し、保存しない。"""
+    # 準備（形式の違う 2 行と合う 1 行）
+    opened = open_window()
+    _field(opened.window, "api.allowed_web_origins", QPlainTextEdit).setPlainText(
+        "https://voice.example.com/\nhttps://ok.example.com\nvoice.example.com"
+    )
+
+    # 実行
+    _click(opened.window, button)
+
+    # 検証
+    message = (
+        "形式の違うオリジンがあります（https://voice.example.com/、voice.example.com）。"
+        "https://example.com のように、http:// か https:// で始め、"
+        "末尾の / とパスを付けずに入れてください。"
+    )
+    assert find(opened.window, QLabel, "error_api.allowed_web_origins").text() == message
+    assert _field_errors(opened.window) == [message]
+    assert any(row.endswith(f": {message}") for row in _error_rows(opened.window))
+    opened.deps.save_settings.assert_not_called()
+    opened.restart_requested.assert_not_called()
 
 
 def test_input_check_when_preset_hotkey_overlap(open_window: Callable[..., Opened]) -> None:
@@ -5580,13 +5826,13 @@ MIN_INDICATOR_CONTRAST = 3
 @pytest.fixture
 def themed_window(
     open_window: Callable[..., Opened], apply_theme_to_app: Callable[[str], None]
-) -> Callable[[str], SettingsWindow]:
-    """明暗を当ててから設定画面（既定の設定）を開く関数を返す。"""
+) -> Callable[..., SettingsWindow]:
+    """明暗を当ててから設定画面（設定が無ければ既定）を開く関数を返す。"""
 
-    def _open(theme: str) -> SettingsWindow:
+    def _open(theme: str, settings: Settings | None = None) -> SettingsWindow:
         """明暗を当てて設定画面を開く。"""
         apply_theme_to_app(theme)
-        return open_window().window
+        return open_window(settings).window
 
     return _open
 
@@ -5607,13 +5853,14 @@ def _show_field(window: QWidget, key: str, cls: type = QWidget) -> Any:
 
 @pytest.mark.parametrize("theme", THEME_PARAMS)
 def test_check_indicator_when_checkbox_on(
-    themed_window: Callable[[str], SettingsWindow], theme: str
+    themed_window: Callable[..., SettingsWindow], theme: str
 ) -> None:
     """オンのチェックボックスは、箱を accent_fg で塗り、チェックを surface で描く（正常系）。"""
+    from voice_paste.shared.settings import RecordingSettings
     from voice_paste.ui.style import load_tokens
 
-    # 準備: 録音のまとまりの、オンのチェックボックス
-    window = themed_window(theme)
+    # 準備: 録音のまとまりの、オンのチェックボックス（OS の既定値によらずオンにする）
+    window = themed_window(theme, SETTINGS_MODEL(recording=RecordingSettings(lower_volume=True)))
     checkbox = _show_field(window, "recording.lower_volume", QCheckBox)
 
     # 実行
@@ -5649,13 +5896,14 @@ def test_check_indicator_when_checkbox_off(
 
 @pytest.mark.parametrize("theme", THEME_PARAMS)
 def test_check_indicator_when_checkbox_disabled(
-    themed_window: Callable[[str], SettingsWindow], theme: str
+    themed_window: Callable[..., SettingsWindow], theme: str
 ) -> None:
     """使えないオンのチェックボックスは、箱を border で塗りチェックを text_muted で描き、名前を text_muted にする（正常系）。"""
+    from voice_paste.shared.settings import RecordingSettings
     from voice_paste.ui.style import load_tokens
 
-    # 準備: オンのチェックボックスを使えなくする
-    window = themed_window(theme)
+    # 準備: オンのチェックボックス（OS の既定値によらずオンにする）を使えなくする
+    window = themed_window(theme, SETTINGS_MODEL(recording=RecordingSettings(lower_volume=True)))
     checkbox = _show_field(window, "recording.lower_volume", QCheckBox)
     checkbox.setEnabled(False)
 

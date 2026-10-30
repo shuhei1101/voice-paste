@@ -9,6 +9,7 @@ Mock は使わず、実物の Win32 の名前付きのミューテックスと�
 from __future__ import annotations
 
 import re
+import sys
 import threading
 import time
 from collections.abc import Callable
@@ -16,16 +17,16 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
-from tests.unit.voice_paste.runtime.helpers import (
-    BackgroundAcquire,
-    OtherProcessHolder,
-    request_quit,
-    set_event,
-)
+import pytest
+
 from voice_paste.shared.errors import StartupError
 
 if TYPE_CHECKING:
+    from tests.unit.voice_paste.runtime.helpers import BackgroundAcquire, OtherProcessHolder
     from voice_paste.runtime.single_instance import SingleInstanceLock
+
+# Win32 の名前付きのミューテックスと、読み込み時に ctypes.WinDLL を呼ぶ helpers.py を使うため、Linux では流さない
+pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Win32 の排他は Windows でだけ流す")
 
 WAIT_SEC = 5.0
 """別のスレッドで取れる・頼まれるのを待つ上限。"""
@@ -158,6 +159,8 @@ def test_acquire_single_instance_when_taken_over(
     open_quit_event: Callable[[str], int],
 ) -> None:
     """前の持ち主が依頼を受けて放した直後に取ったロックは、受け手を呼ばない（正常系）。"""
+    from tests.unit.voice_paste.runtime.helpers import set_event
+
     # 準備: 先に取ったロックは、頼まれたら知らせる
     requested = threading.Event()
     first = acquire_lock(unique_name, WAIT_SEC)
@@ -207,6 +210,8 @@ def test_acquire_single_instance_when_event_not_ready(
 
 def test_on_quit_requested(unique_name: str, acquire_lock: AcquireLock) -> None:
     """頼まれたら受け手を呼ぶ（正常系）。"""
+    from tests.unit.voice_paste.runtime.helpers import request_quit
+
     # 準備
     called = threading.Event()
     on_quit = MagicMock(side_effect=lambda: called.set())
@@ -226,6 +231,8 @@ def test_on_quit_requested_when_already_requested(
     unique_name: str, acquire_lock: AcquireLock
 ) -> None:
     """受け手を渡す前に頼まれていても取りこぼさない（正常系）。"""
+    from tests.unit.voice_paste.runtime.helpers import request_quit
+
     # 準備: 受け手を渡す前に頼まれ、待つスレッドがそれを受けるのを待つ
     called = threading.Event()
     on_quit = MagicMock(side_effect=lambda: called.set())

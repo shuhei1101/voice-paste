@@ -1,4 +1,4 @@
-"""integrations/keyboard/sender.py（copy_to_clipboard・send_paste・send_enter）の単体テスト。
+"""integrations/keyboard/sender.py（copy_to_clipboard・split_paste_key・send_paste・send_enter）の単体テスト。
 
 pyperclip.copy・pynput.keyboard.Controller・time.sleep は Mock に差し替え、実機のクリップボードとキー入力には触れない。
 """
@@ -58,6 +58,65 @@ def test_copy_to_clipboard_when_failed(copy_mock: MagicMock) -> None:
     # 実行・検証
     with pytest.raises(DeliveryError):
         copy_to_clipboard("テスト")
+
+
+# === use_xclip_clipboard ===
+
+
+def test_use_xclip_clipboard(monkeypatch: pytest.MonkeyPatch) -> None:
+    """クリップボードの書き先を xclip に固定する（正常系）。"""
+    from voice_paste.integrations.keyboard.sender import use_xclip_clipboard
+
+    # 準備
+    set_clipboard = MagicMock()
+    monkeypatch.setattr(pyperclip, "set_clipboard", set_clipboard)
+
+    # 実行
+    use_xclip_clipboard()
+
+    # 検証
+    set_clipboard.assert_called_once_with("xclip")
+
+
+# === split_paste_key ===
+
+
+def test_split_paste_key() -> None:
+    """修飾キーと主キーに分ける（正常系）。"""
+    from voice_paste.integrations.keyboard.sender import split_paste_key
+
+    # 実行
+    result = split_paste_key("<ctrl>+<shift>+v")
+
+    # 検証
+    assert result == ([keyboard.Key.ctrl, keyboard.Key.shift], "v")
+
+
+def test_split_paste_key_when_spaced_and_uppercase() -> None:
+    """前後の空白と大文字を揃える（正常系）。"""
+    from voice_paste.integrations.keyboard.sender import split_paste_key
+
+    # 実行
+    result = split_paste_key("<Ctrl> + V")
+
+    # 検証
+    assert result == ([keyboard.Key.ctrl], "v")
+
+
+@pytest.mark.parametrize(
+    "paste_key",
+    [
+        pytest.param("<ctrl>", id="modifier_only"),
+        pytest.param("<ctrl>+v+c", id="two_main_keys"),
+    ],
+)
+def test_split_paste_key_when_no_main_key(paste_key: str) -> None:
+    """主キーが 1 つ無ければ DeliveryError にする（異常系）。"""
+    from voice_paste.integrations.keyboard.sender import split_paste_key
+
+    # 実行・検証
+    with pytest.raises(DeliveryError, match="主キー"):
+        split_paste_key(paste_key)
 
 
 # === send_paste ===

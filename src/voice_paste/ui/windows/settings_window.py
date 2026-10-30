@@ -6,6 +6,7 @@ import html
 import logging
 import re
 from collections.abc import Callable, Mapping
+from functools import reduce
 from typing import TYPE_CHECKING, Any, Literal, TypeAliasType, get_args, get_origin
 
 from pydantic import ValidationError
@@ -28,6 +29,7 @@ from PySide6.QtWidgets import (
 )
 
 from voice_paste.shared.errors import HotkeyError
+from voice_paste.shared.os_kind import CURRENT_OS, OsKind
 from voice_paste.shared.settings import (
     EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE,
     EDGE_PHRASES_FIELD_NAME,
@@ -42,10 +44,13 @@ from voice_paste.shared.settings import (
     HINT_WORD_EMPTY_ERROR_TYPE,
     HINT_WORD_SEPARATOR_ERROR_TYPE,
     HOTKEY_OVERLAP_ERROR_TYPE,
+    OPENAI_BASE_URL_DEFAULT,
+    OPENAI_BASE_URL_KEY,
     OUTPUTS_FIELD_NAME,
     PRESETS_FIELD_NAME,
     RELOAD_IMMEDIATE,
     RELOAD_RESTART,
+    WEB_ORIGIN_FORM_ERROR_TYPE,
     OutputSettingsBase,
     Settings,
     format_error_location,
@@ -66,6 +71,7 @@ from voice_paste.ui.windows.settings_fields import (
     make_slider,
     plain_text_lines,
     reload_of,
+    selected_combo,
     selected_radio,
     set_nested,
     value_at,
@@ -140,6 +146,9 @@ FIELD_LAYOUT: dict[str, tuple[str, ...]] = {
         "transcription.local_whisper.vad_min_speech_ms",
         "transcription.local_whisper.vad_min_silence_ms",
         "transcription.local_whisper.condition_on_previous_text",
+        "transcription.openai.model",
+        "transcription.openai.language",
+        "transcription.openai.base_url",
     ),
     "表記のヒント": (HINT_PRESETS_FIELD_NAME,),
     "用語集": (GLOSSARIES_FIELD_NAME,),
@@ -189,8 +198,11 @@ OUTPUT_NOTE_KEY: str = "note"
 CHOICE_LABELS_KEY: str = "choice_labels"
 """項目の json_schema_extra のうち、リテラルの列挙の一覧のチェックボックスの名前（値 → 名前）を持つキー。"""
 
-MODIFIER_NAMES: dict[str, str] = {"ctrl": "Ctrl", "alt": "Alt", "shift": "Shift", "cmd": "Win"}
-"""pynput の修飾キーの名前ごとの、画面の名前。"""
+MODIFIER_NAMES_BY_OS: dict[OsKind, dict[str, str]] = {
+    OsKind.WINDOWS: {"ctrl": "Ctrl", "alt": "Alt", "shift": "Shift", "cmd": "Win"},
+    OsKind.LINUX: {"ctrl": "Ctrl", "alt": "Alt", "shift": "Shift", "cmd": "Super"},
+}
+"""OS ごとの、pynput の修飾キーの名前ごとの画面の名前。Ubuntu（GNOME）は Windows キーを Super と表す。"""
 
 IGNORED_KEYS: frozenset[Qt.Key] = frozenset(
     {
@@ -297,15 +309,16 @@ OPTION_NOTES: dict[str, str] = {
 # === ホットキーの表示・読み取り ===
 
 
-def format_hotkey(hotkey: str) -> str:
-    """pynput の書式（`<ctrl>+<alt>+d`）を画面の表記（`Ctrl+Alt+D`）にする。"""
+def format_hotkey(hotkey: str, *, os_kind: OsKind = CURRENT_OS) -> str:
+    """pynput の書式（`<ctrl>+<alt>+d`）を画面の表記（`Ctrl+Alt+D`）にする。修飾キーの名前は os_kind の OS のもの。"""
+    modifier_names = MODIFIER_NAMES_BY_OS[os_kind]
     parts: list[str] = []
     for part in hotkey.split(HOTKEY_SEPARATOR):
         # `<...>` は修飾キーか名前のあるキー、そうでなければ文字のキー
         if part.startswith("<") and part.endswith(">"):
             name = part[1:-1]
             parts.append(
-                MODIFIER_NAMES.get(name) or "".join(word.capitalize() for word in name.split("_"))
+                modifier_names.get(name) or "".join(word.capitalize() for word in name.split("_"))
             )
         else:
             parts.append(part.upper())
@@ -447,9 +460,17 @@ def to_field_message(
         return EDGE_WILDCARD_ONLY_MESSAGE
     if error_type == HINT_PRESET_NAME_OVERLAP_ERROR_TYPE:
         return f"プリセット「{error['ctx']['name']}」と同じ名前です。{GLOSSARY_NAME_HINT}"
+    if error_type == WEB_ORIGIN_FORM_ERROR_TYPE:
+        return (
+            f"形式の違うオリジンがあります（{'、'.join(error['ctx']['invalid'])}）。"
+            "https://example.com のように、http:// か https:// で始め、"
+            "末尾の / とパスを付けずに入れてください。"
+        )
     if error_type == "string_pattern_mismatch":
         # 空なら入れてもらい、空でなければ形式を修正してもらう
         if not error.get("input"):
+            if format_error_location(tuple(error["loc"])) == OPENAI_BASE_URL_KEY:
+                return f"API の URL を入れてください（例: {OPENAI_BASE_URL_DEFAULT}）。"
             return f"URL を入れてください（例: {PRESET_URL_EXAMPLE}）。"
         return "http:// か https:// で始まる URL を入れてください。"
     if error_type == HOTKEY_OVERLAP_ERROR_TYPE:
@@ -604,6 +625,7 @@ class SettingsWindow(QWidget):
         self._settings_model = type(self._original)
         self._fields: list[Field] = []
         self._static: dict[str, Any] = {}
+        self._hidden_values: dict[str, Any] = {}
         self._panels: dict[str, PresetListPanel] = {}
         self._panel_groups: dict[str, int] = {}
         self._glossary_panel: GlossaryPanel | None = None
@@ -721,12 +743,19 @@ class SettingsWindow(QWidget):
         self._glossary_panel = None
         self._hint_panel = None
         self._edge_panel = None
+        # この OS で出さない設定は欄を置かず、渡された設定の値を collect でそのまま返す
+        self._hidden_values = {
+            key: reduce(getattr, key.split("."), settings) for key in self._deps.hidden_setting_keys
+        }
 
         # 2. まとまりごとの頁に、並びのとおり欄を追加する
         for group, name in enumerate(GROUP_NAMES):
             layout = QVBoxLayout()
             layout.setSpacing(12)
             for key in FIELD_LAYOUT[name]:
+                if key in self._hidden_values:
+                    # 出さない設定: 欄を置かない
+                    continue
                 if key == OUTPUTS_FIELD_NAME:
                     self._add_outputs(layout, settings, group)
                 elif key == PRESETS_FIELD_NAME:
@@ -831,7 +860,10 @@ class SettingsWindow(QWidget):
         self._register(
             layout, key=key, label=label, widget=widget, get=get, group=group, extras=extras
         )
-        self._add_note(layout, OPTION_NOTES.get(key))
+        # 補助文は OPTION_NOTES、無ければ項目の json_schema_extra の note
+        extra = info.json_schema_extra
+        note = extra.get(OUTPUT_NOTE_KEY) if isinstance(extra, dict) else None
+        self._add_note(layout, OPTION_NOTES.get(key, note if isinstance(note, str) else None))
 
     @staticmethod
     def _add_note(layout: QVBoxLayout, note: str | None) -> None:
@@ -865,11 +897,13 @@ class SettingsWindow(QWidget):
             slider.valueChanged.connect(lambda number: percent.setText(f"{number} %"))
             return slider, slider.value, (percent,)
         if key in COMBO_KEYS:
+            extra = info.json_schema_extra
+            labels = extra.get(CHOICE_LABELS_KEY) if isinstance(extra, dict) else None
             choices = (
                 WHISPER_MODEL_CHOICES if key.endswith("model") else tuple(get_args(annotation))
             )
-            combo = make_combo(choices, value, editable=key.endswith("model"))
-            return combo, combo.currentText, ()
+            combo = make_combo(choices, value, editable=key.endswith("model"), labels=labels)
+            return combo, lambda: selected_combo(combo), ()
         if annotation is bool:
             check_box = make_check_box("オン", value)
             return check_box, check_box.isChecked, ()
@@ -1059,6 +1093,9 @@ class SettingsWindow(QWidget):
             set_nested(data, key, value)
         for field in self._all_fields():
             set_nested(data, field.key, field.get())
+        # 出さない設定は、開いたときの値をそのまま入れる（settings.toml の値を保つ）
+        for key, value in self._hidden_values.items():
+            set_nested(data, key, value)
         # プリセットは、種類のタブの並びの順に 1 つの一覧にする
         data[PRESETS_FIELD_NAME] = [item for _kind, _position, item in self._preset_values()]
         # 用語集は、一覧と用語集のプリセットと補正に使うプリセットを入れる（glossary_path と active_glossary は置かない）

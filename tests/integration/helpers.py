@@ -520,11 +520,14 @@ def build_stack(
     web_worker: bool = True,
     web_max_pending: int = WEB_QUEUE_LIMIT,
     web_max_finished: int = WEB_FINISHED_JOBS_KEPT,
+    web_reports_progress: bool = True,
     settings: Settings | None = None,
+    web_enabled: bool = True,
 ) -> Stack:
     """偽物を差し込んだセッションを、本物の app と ApiServerRunner で立てる。
 
     ブラウザの音声のキューは本物で、web_worker が偽ならワーカースレッドを立てない（積んだジョブは取り出されない）。
+    web_enabled が偽なら、外の端末のブラウザの機能を組み込まない app（Linux の常駐サービス）を立て、キューも始めない。
     """
     paths = resolve_app_paths(tmp_path)
     settings = settings if settings is not None else SETTINGS_MODEL()
@@ -641,7 +644,7 @@ def build_stack(
         max_finished=web_max_finished,
     )
     web_tmp_dir = paths.tmp_dir / "web"
-    if web_worker:
+    if web_worker and web_enabled:
         web_queue.start(web_tmp_dir)
     else:
         web_tmp_dir.mkdir(parents=True, exist_ok=True)
@@ -651,9 +654,14 @@ def build_stack(
         tmp_dir=web_tmp_dir,
         glossary_preset_exists=web_glossary_preset_exists,
         list_glossary_presets=web_list_glossary_presets,
+        reports_progress=web_reports_progress,
     )
     app = build_fastapi(
-        session_api, token, port, web_api=web_api, allowed_web_origins=[WEB_ORIGIN]
+        session_api,
+        token,
+        port,
+        web_api=web_api if web_enabled else None,
+        allowed_web_origins=[WEB_ORIGIN],
     )
     runner = ApiServerRunner(app, port)
     assert runner.start(START_TIMEOUT_SEC)
@@ -728,9 +736,7 @@ def build_output_stack(
     # キーボード・ブラウザのアダプタと間は、呼ばれた順を 1 本の列で見られる偽物に差し替える
     adapters = MagicMock()
     monkeypatch.setattr(main_module, "copy_to_clipboard", adapters.copy_to_clipboard)
-    monkeypatch.setattr(main_module, "send_paste", adapters.send_paste)
     monkeypatch.setattr(main_module, "send_enter", adapters.send_enter)
-    monkeypatch.setattr(main_module, "open_app_window", adapters.open_app_window)
     # main.py が出力先へ渡す time.sleep だけを差し替える（待つ側の time.sleep は本物のまま）
     monkeypatch.setattr(main_module, "time", SimpleNamespace(sleep=adapters.sleep))
 
@@ -745,7 +751,7 @@ def build_output_stack(
     # main.py の build_handlers と同じ束を、偽物にした外部連携で組む
     output_deps = OutputDeps(
         copy=adapters.copy_to_clipboard,
-        paste=_make_paste(lambda: settings),
+        paste=_make_paste(lambda: settings, adapters.send_paste),
         send_enter=adapters.send_enter,
         sleep=adapters.sleep,
         jitter=lambda upper: upper,
@@ -757,7 +763,9 @@ def build_output_stack(
         _deliver_session,
         enabled_ids=enabled_ids,
         outputs=_wire_outputs(output_deps, OUTPUTS),
-        preset_kinds=_wire_preset_kinds(lambda: settings),
+        preset_kinds=_wire_preset_kinds(
+            lambda: settings, open_window=adapters.open_app_window, send_paste=adapters.send_paste
+        ),
     )
     deps = SessionDeps(
         start_recording=recorder.start,

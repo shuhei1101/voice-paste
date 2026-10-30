@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from voice_paste.shared.settings import RELOAD_IMMEDIATE, OutputSettingsBase
+from voice_paste.shared.settings import RELOAD_IMMEDIATE, OutputSettingsBase, os_default
 
 
 class PasteOnlySettings(OutputSettingsBase):
@@ -18,7 +18,7 @@ class PasteOnlySettings(OutputSettingsBase):
         json_schema_extra={"reload": RELOAD_IMMEDIATE},
     )
     hotkey: str = Field(
-        "<ctrl>+<alt>+v",
+        os_default("outputs.paste_only.hotkey", "<ctrl>+<alt>+v"),
         description="この出力先で確定するホットキー",
         json_schema_extra={"reload": RELOAD_IMMEDIATE},
     )

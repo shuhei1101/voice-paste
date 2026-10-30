@@ -11,7 +11,7 @@ import tempfile
 from collections.abc import Mapping, MutableMapping, Sequence
 from functools import reduce
 from pathlib import Path
-from typing import Annotated, Any, ClassVar, Literal, Protocol
+from typing import Annotated, Any, ClassVar, Literal, Protocol, cast
 
 import tomlkit
 from pydantic import (
@@ -31,6 +31,7 @@ from tomlkit.exceptions import TOMLKitError
 from tomlkit.items import AoT, Comment, Item, Key, Null, Table, Whitespace
 
 from voice_paste.shared.errors import SettingsError
+from voice_paste.shared.os_kind import CURRENT_OS, OsKind
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +99,9 @@ HINT_PRESET_NAME_OVERLAP_ERROR_TYPE: str = "hint_preset_name_overlap"
 ORIGIN_PATTERN: re.Pattern[str] = re.compile(r"https?://[^/\s?#]+")
 """許す Origin の形式（`scheme://host[:port]`。末尾の `/` とパスは持たない）。"""
 
+WEB_ORIGIN_FORM_ERROR_TYPE: str = "web_origin_form"
+"""許す Origin に形式の違う行があるときの PydanticCustomError の種類。設定画面がエラーの文に変える。"""
+
 EDGE_PHRASES_FIELD_NAME: str = "edge_phrases"
 """文頭・文末から削除する文言の一覧の設定のキー。"""
 
@@ -135,7 +139,31 @@ DEFAULT_AI_CHAT_TARGETS: tuple[dict[str, str], ...] = (
 )
 """前のバージョンの AI チャットの既定の送信先（targets が無いときの読み替えの元）。"""
 
+OS_DEFAULT_OVERRIDES: Mapping[OsKind, Mapping[str, object]] = {
+    OsKind.LINUX: {
+        # Linux では音量を変えない
+        "recording.lower_volume": False,
+        # Linux では CUDA のライブラリを読ませる手当てが無く、cuda では文字起こしワーカーが起動に失敗する
+        "transcription.local_whisper.device": "cpu",
+        # CPU で動く精度
+        "transcription.local_whisper.compute_type": "int8",
+        # Ubuntu は Ctrl+Alt+D を「デスクトップを表示」に割り当てているため、ホットキーの修飾キーを Super+Alt にそろえる
+        "hotkeys.start": "<cmd>+<alt>+d",
+        "hotkeys.pause": "<cmd>+<alt>+z",
+        "hotkeys.cancel": "<cmd>+<alt>+q",
+        "outputs.paste_and_send.hotkey": "<cmd>+<alt>+d",
+        "outputs.paste_only.hotkey": "<cmd>+<alt>+v",
+        "outputs.copy_only.hotkey": "<cmd>+<alt>+c",
+    },
+}
+"""共通の既定値に重ねる、OS ごとの既定値。キーは設定のドットで結んだキー。載っていない OS・キーは共通の既定値のまま。"""
+
 type _Location = tuple[int | str, ...]
+
+
+def os_default[T](key: str, common: T, *, os_kind: OsKind = CURRENT_OS) -> T:
+    """設定のキーの既定値を、その OS の上書きがあればその値、無ければ共通の既定値で返す。"""
+    return cast("T", OS_DEFAULT_OVERRIDES.get(os_kind, {}).get(key, common))
 
 
 def _item(default: Any, description: str, *, reload: str, **constraints: Any) -> Any:
@@ -166,9 +194,15 @@ class LocalWhisperSettings(_SettingsModel):
     """ローカルの Whisper の設定。"""
 
     model: str = _item("large-v3", "faster-whisper のモデル", reload=RELOAD_RESTART)
-    device: Literal["cuda", "cpu"] = _item("cuda", "動かすデバイス", reload=RELOAD_RESTART)
+    device: Literal["cuda", "cpu"] = _item(
+        os_default("transcription.local_whisper.device", "cuda"),
+        "動かすデバイス",
+        reload=RELOAD_RESTART,
+    )
     compute_type: Literal["float16", "int8", "float32"] = _item(
-        "float16", "計算の精度", reload=RELOAD_RESTART
+        os_default("transcription.local_whisper.compute_type", "float16"),
+        "計算の精度",
+        reload=RELOAD_RESTART,
     )
     cpu_threads: int = _item(0, "CPU のスレッド数（0 は自動）", reload=RELOAD_RESTART, ge=0)
     num_workers: int = _item(1, "並列のデコードの数", reload=RELOAD_RESTART, ge=1)
@@ -194,13 +228,53 @@ class LocalWhisperSettings(_SettingsModel):
     )
 
 
+ENGINE_LABELS: dict[str, str] = {
+    "local_whisper": "ローカルの Whisper",
+    "openai": "OpenAI API",
+}
+"""文字起こしのエンジンの値 → 設定画面の選択欄の名前。"""
+
+OPENAI_BASE_URL_DEFAULT: str = "https://api.openai.com/v1"
+"""OpenAI API の送信先のベース URL の既定。"""
+
+OPENAI_BASE_URL_KEY: str = "transcription.openai.base_url"
+"""OpenAI API のベース URL の設定のキー。"""
+
+OPENAI_NOTE: str = (
+    "文字起こしのエンジンが OpenAI API のときに使う。"
+    "API キーはここでは入れず、環境変数 OPENAI_API_KEY か、"
+    "settings.toml と同じフォルダの secrets/openai_api_key に置く。"
+)
+"""設定画面で OpenAI API の欄の下に出す補助文。"""
+
+
+class OpenAISettings(_SettingsModel):
+    """OpenAI API の文字起こしへ渡すモデル・言語・送信先のベース URL。API キーは持たない。"""
+
+    model: str = Field(
+        "gpt-transcribe",
+        description="OpenAI のモデル",
+        json_schema_extra={"reload": RELOAD_RESTART, "note": OPENAI_NOTE},
+    )
+    language: str = _item("ja", "OpenAI の言語（ISO-639-1）", reload=RELOAD_RESTART)
+    base_url: str = _item(
+        OPENAI_BASE_URL_DEFAULT,
+        "OpenAI のベース URL",
+        reload=RELOAD_RESTART,
+        pattern=URL_PATTERN,
+    )
+
+
 class TranscriptionSettings(_SettingsModel):
     """使うエンジンと、エンジンごとの設定。"""
 
-    engine: Literal["local_whisper"] = _item(
-        "local_whisper", "使う文字起こしのエンジン", reload=RELOAD_RESTART
+    engine: Literal["local_whisper", "openai"] = Field(
+        "local_whisper",
+        description="使う文字起こしのエンジン",
+        json_schema_extra={"reload": RELOAD_RESTART, "choice_labels": ENGINE_LABELS},
     )
     local_whisper: LocalWhisperSettings = _group(LocalWhisperSettings, "ローカルの Whisper の設定")
+    openai: OpenAISettings = _group(OpenAISettings, "OpenAI API の設定")
 
 
 # === 録音・ホットキー・キーボード ===
@@ -209,7 +283,11 @@ class TranscriptionSettings(_SettingsModel):
 class RecordingSettings(_SettingsModel):
     """録音中のシステム音量と、画面を出さない設定。"""
 
-    lower_volume: bool = _item(True, "録音中にシステム音量を下げるか", reload=RELOAD_IMMEDIATE)
+    lower_volume: bool = _item(
+        os_default("recording.lower_volume", True),
+        "録音中にシステム音量を下げるか",
+        reload=RELOAD_IMMEDIATE,
+    )
     volume_percent: float = _item(
         50,
         "録音中の音量の、録音前の音量に対する割合（0〜100）",
@@ -230,9 +308,17 @@ class RecordingSettings(_SettingsModel):
 class HotkeySettings(_SettingsModel):
     """録音の開始・一時停止・取り消しのホットキー（pynput の GlobalHotKeys の書式）。"""
 
-    start: str = _item("<ctrl>+<alt>+d", "録音開始", reload=RELOAD_IMMEDIATE)
-    pause: str = _item("<ctrl>+<alt>+z", "録音の一時停止・再開", reload=RELOAD_IMMEDIATE)
-    cancel: str = _item("<ctrl>+<alt>+q", "録音の取り消し", reload=RELOAD_IMMEDIATE)
+    start: str = _item(
+        os_default("hotkeys.start", "<ctrl>+<alt>+d"), "録音開始", reload=RELOAD_IMMEDIATE
+    )
+    pause: str = _item(
+        os_default("hotkeys.pause", "<ctrl>+<alt>+z"),
+        "録音の一時停止・再開",
+        reload=RELOAD_IMMEDIATE,
+    )
+    cancel: str = _item(
+        os_default("hotkeys.cancel", "<ctrl>+<alt>+q"), "録音の取り消し", reload=RELOAD_IMMEDIATE
+    )
 
 
 class KeyboardSettings(_SettingsModel):
@@ -474,8 +560,10 @@ class ApiSettings(_SettingsModel):
         invalid = [origin for origin in origins if not ORIGIN_PATTERN.fullmatch(origin)]
         # 形式の合わない Origin があれば断る
         if invalid:
-            raise ValueError(
-                f"`scheme://host[:port]` の形式で、末尾の `/` とパスを付けない（{', '.join(invalid)}）"
+            raise PydanticCustomError(
+                WEB_ORIGIN_FORM_ERROR_TYPE,
+                "`scheme://host[:port]` の形式で、末尾の `/` とパスを付けない（{origins}）",
+                {"origins": ", ".join(invalid), "invalid": tuple(invalid)},
             )
         return origins
 

@@ -40,6 +40,12 @@ if TYPE_CHECKING:
 
 ENTER_DELAY_DESCRIPTION = "貼り付けてから Enter を送信するまで待つ秒数"
 NEW_VOLUME_PERCENT = 30
+VOLUME_KEYS = (
+    "recording.lower_volume",
+    "recording.volume_percent",
+    "recording.fade_sec",
+)
+"""Linux の設定画面に出さない、録音中の音量の設定のキー。"""
 
 
 @dataclass
@@ -67,6 +73,11 @@ def _field(window: SettingsWindow, key: str) -> QWidget:
     widget = window.findChild(QWidget, f"field_{key}")
     assert widget is not None, f"field_{key} の欄が無い"
     return widget
+
+
+def _existing_fields(window: SettingsWindow, keys: tuple[str, ...]) -> list[str]:
+    """設定のキーのうち、欄（objectName が field_{キー}）が置かれているものを並べて返す。"""
+    return [key for key in keys if window.findChild(QWidget, f"field_{key}") is not None]
 
 
 def _enter_modifier_checkbox(window: SettingsWindow, value: str) -> QAbstractButton:
@@ -975,6 +986,33 @@ def test_save_then_close(
     assert closed_count == [1]
 
 
+# === collect ===
+
+
+def test_collect_when_hidden_keys(
+    qapp: QApplication, tmp_path: Path, settings_model: type[Settings]
+) -> None:
+    """出さないキーは欄を置かず、開いたときの値を返す（正常系）。"""
+    from voice_paste.shared.settings import RecordingSettings
+    from voice_paste.ui.windows.settings_window import SettingsWindow
+
+    # 準備: 音量のキーを出さない設定で、既定と違う音量の値を入れて開く
+    settings = settings_model(
+        recording=RecordingSettings(lower_volume=False, volume_percent=40, fade_sec=1.5)
+    )
+    deps = make_ui_deps(tmp_path, settings=settings, hidden_setting_keys=frozenset(VOLUME_KEYS))
+    window = SettingsWindow(deps)
+
+    # 実行
+    collected = window.collect()
+
+    # 検証
+    assert _existing_fields(window, VOLUME_KEYS) == []
+    assert collected["recording"]["volume_percent"] == 40
+    assert collected["recording"]["lower_volume"] is False
+    assert collected["recording"]["fade_sec"] == 1.5
+
+
 # === close_without_confirm ===
 
 
@@ -1080,6 +1118,16 @@ def test_format_hotkey() -> None:
     assert format_hotkey("<ctrl>+<shift>+<f5>") == "Ctrl+Shift+F5"
 
 
+def test_format_hotkey_when_cmd() -> None:
+    """`<cmd>` を OS ごとの名前にする（正常系）。"""
+    from voice_paste.shared.os_kind import OsKind
+    from voice_paste.ui.windows.settings_window import format_hotkey
+
+    # 実行・検証
+    assert format_hotkey("<cmd>+<alt>+d", os_kind=OsKind.WINDOWS) == "Win+Alt+D"
+    assert format_hotkey("<cmd>+<alt>+d", os_kind=OsKind.LINUX) == "Super+Alt+D"
+
+
 # === parse_hotkey ===
 
 
@@ -1171,6 +1219,23 @@ def test_to_field_message_when_preset_url_empty(settings_model: type[Settings]) 
     assert message == "URL を入れてください（例: https://example.com/hook）。"
 
 
+def test_to_field_message_when_openai_base_url_empty(settings_model: type[Settings]) -> None:
+    """OpenAI の API の URL が空（正常系）。"""
+    from pydantic import ValidationError
+
+    from voice_paste.ui.windows.settings_window import to_field_message
+
+    # 準備
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate({"transcription": {"openai": {"base_url": ""}}})
+
+    # 実行
+    message = to_field_message(exc_info.value.errors()[0], model=settings_model)
+
+    # 検証
+    assert message == "API の URL を入れてください（例: https://api.openai.com/v1）。"
+
+
 def test_to_field_message_when_hint_too_long(settings_model: type[Settings]) -> None:
     """有効なヒントが長すぎる（正常系）。"""
     from pydantic import ValidationError
@@ -1209,3 +1274,26 @@ def test_to_field_message_when_hint_preset_name_overlap(settings_model: type[Set
 
     # 検証
     assert message == "プリセット「開発」と同じ名前です。別の名前にしてください。"
+
+
+def test_to_field_message_when_web_origin_not_form(settings_model: type[Settings]) -> None:
+    """形式の違う許す Origin（正常系）。"""
+    from pydantic import ValidationError
+
+    from voice_paste.ui.windows.settings_window import to_field_message
+
+    # 準備（形式の違う 2 件の api.allowed_web_origins）
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate(
+            {"api": {"allowed_web_origins": ["https://voice.example.com/", "voice.example.com"]}}
+        )
+
+    # 実行
+    message = to_field_message(exc_info.value.errors()[0], model=settings_model)
+
+    # 検証
+    assert message == (
+        "形式の違うオリジンがあります（https://voice.example.com/、voice.example.com）。"
+        "https://example.com のように、http:// か https:// で始め、"
+        "末尾の / とパスを付けずに入れてください。"
+    )

@@ -33,7 +33,7 @@
 
 # === 文字起こし ===
 [transcription]
-# 使うエンジン（再起動）。local_whisper
+# 使うエンジン（再起動）。local_whisper または openai
 engine = "local_whisper"
 
 [transcription.local_whisper]
@@ -68,6 +68,14 @@ temperature = 0.0
 # 区間を無音とみなす確信度の閾値（再起動）。0〜1
 no_speech_threshold = 0.6
 
+[transcription.openai]
+# OpenAI API の文字起こしに使うモデル（再起動）。API キーはここには書かず、環境変数 OPENAI_API_KEY か、この設定ファイルと同じフォルダの secrets/openai_api_key に置く
+model = "gpt-transcribe"
+# 文字起こしの言語（再起動）。ISO-639-1
+language = "ja"
+# OpenAI API の送信先のベース URL（再起動）。http:// か https:// で始まる
+base_url = "https://api.openai.com/v1"
+
 # === 録音 ===
 [recording]
 # 録音中にシステム音量を下げるか
@@ -89,7 +97,7 @@ pause = "<ctrl>+<alt>+z"
 cancel = "<ctrl>+<alt>+q"
 
 [keyboard]
-# 貼り付け先へ送信する貼り付けのキー。ターミナル向けには <ctrl>+<shift>+v
+# 貼り付け先へ送信する貼り付けのキー。Linux（Xorg）では、貼り付け先が端末アプリのときだけこのキーに代えて <ctrl>+<shift>+v を送信する。Windows のターミナル向けには <ctrl>+<shift>+v
 paste_key = "<ctrl>+v"
 
 # === 出力先（id は重ならない。enabled = false の出力先は確定の操作に出さず、ホットキーも登録しない） ===

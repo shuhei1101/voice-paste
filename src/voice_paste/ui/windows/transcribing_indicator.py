@@ -170,6 +170,7 @@ class TranscribingIndicator(QWidget):
     """確定から届けるまで、経過と残りの時間・進みと今の出力先をフォーカスを取らずに出し、固定の出力先への切り替えを受ける。
 
     残りの時間は、進み（区間の終わり ÷ 録音の長さ）と経過から「経過 ÷ 進み − 経過」で見積もる。
+    エンジンが進みを知らせない（UiDeps.reports_progress が False）ときは、進みのバーを出さず、経過だけを出す。
     切り替えのボタンは、設定でオンの固定の出力先ごとに open で組み直す。差し替えるのは UiController で、マーカーは set_output で替える。
     """
 
@@ -395,6 +396,11 @@ class TranscribingIndicator(QWidget):
     def _refresh_time(self) -> None:
         """経過と、見積もった残りの時間・全体の時間の文字を書き換える。"""
         elapsed = self._clock() - self._started_at
+        # エンジンが進みを知らせるか
+        if not self._deps.reports_progress:
+            # 知らせない（OpenAI API）: 進みが届かないため、残りを見積もらず経過だけを出す
+            self._time_label.setText(f"経過 {format_elapsed(elapsed)}")
+            return
         # 最初の区間の終わりが届くまでは、残りを計っている
         if self._ratio is None or self._ratio <= 0:
             self._time_label.setText(f"経過 {format_elapsed(elapsed)} 残りを計っています")

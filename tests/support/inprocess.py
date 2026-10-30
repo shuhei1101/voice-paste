@@ -18,7 +18,7 @@ import socket
 import threading
 import time
 from collections.abc import Callable, Iterable, Iterator, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from ctypes import wintypes
 from pathlib import Path
 from typing import Any
@@ -45,6 +45,7 @@ from voice_paste.shared.constants import AppPaths, resolve_app_paths
 from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
 from voice_paste.runtime.timer import RepeatingTimer
 from voice_paste.shared.errors import TranscriptionError
+from voice_paste.shared.os_kind import CURRENT_OS, detect_display_session, unavailable_features
 from voice_paste.shared.settings import (
     ApiSettings,
     ContinuousSettings,
@@ -733,7 +734,7 @@ class InProcessApi:
 
 def serve_api(
     session_api: SessionApiDeps,
-    web_api: WebApiDeps,
+    web_api: WebApiDeps | None,
     allowed_web_origins: Sequence[str] | Callable[[int], Sequence[str]] = (),
     port: int | None = None,
 ) -> InProcessApi:
@@ -868,17 +869,28 @@ def start_inprocess_app(
     keys = KeyLog()
     notifications = Notifications()
     monkeypatch.setattr(main_module, "open_input", wav_input)
-    monkeypatch.setattr(main_module, "lower_volume", volume.lower)
-    monkeypatch.setattr(main_module, "restore_volume", volume.restore)
-    monkeypatch.setattr(main_module, "send_paste", keys.send_paste)
-    monkeypatch.setattr(main_module, "send_enter", keys.send_enter)
     paths = resolve_app_paths(tmp_path)
+    # OS ごとの実装は本物を選び、システム音量・貼り付けのキー・Enter だけ呼ばれた値を控えるものに差し替えて渡す
+    adapters = replace(
+        main_module.select_platform_adapters(
+            CURRENT_OS,
+            lock_file=paths.lock_file,
+            display_session=detect_display_session(os.environ),
+        ),
+        lower_volume=volume.lower,
+        restore_volume=volume.restore,
+        send_paste=keys.send_paste,
+        send_enter=keys.send_enter,
+    )
     handlers = main_module.build_handlers(
         settings,
         paths,
         notifications,
         lambda *_args, **_kwargs: None,
         lambda *_args, **_kwargs: None,
+        adapters=adapters,
+        environ=os.environ,
+        unavailable=unavailable_features(CURRENT_OS),
     )
     return InProcessApp(
         handlers=handlers,

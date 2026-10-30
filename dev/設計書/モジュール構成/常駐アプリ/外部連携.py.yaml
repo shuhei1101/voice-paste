@@ -1,21 +1,32 @@
 title: "常駐アプリ / 外部連携"
-lead: 文字起こしワーカーの子プロセス・システム音量・キーボードとクリップボード・ブラウザ添付の画面を開くブラウザ・HTTP の POST・話し声の判定（Silero VAD）を包むアダプタ。feature の関数型を満たし、外の例外をアプリの例外に変える。
+lead: 文字起こしワーカーの子プロセス・OpenAI API の文字起こし・システム音量・キーボードとクリップボード・ブラウザ添付の画面を開くブラウザ・HTTP の POST・話し声の判定（Silero VAD）を包むアダプタ。feature の関数型を満たし、外の例外をアプリの例外に変える。
 directory: |-
   ```
   src/voice_paste/integrations/
   ├── whisper/
-  │   ├── client.py     # WhisperWorkerClient（子プロセスの起動・監視・立て直し・やり直し）
+  │   ├── client.py     # WhisperWorkerClient（子プロセスの起動・監視・立て直し・やり直し）・ensure_local_whisper_installed
   │   └── worker.py     # 子プロセスの本体（文字起こしワーカーのサブシステム）
+  ├── openai/
+  │   ├── credentials.py # read_openai_api_key（環境変数か秘匿のファイルから API キーを読む）
+  │   └── transcriber.py # OpenAITranscriber（OpenAI API の文字起こしへ httpx で送信する）
   ├── audio/
   │   └── probe.py      # probe_audio（受けた音声を PyAV で開いて容れ物・秒数を読む）
   ├── vad/
-  │   └── adapter.py    # load_vad_session・StreamingVad（faster-whisper 同梱の Silero VAD を onnxruntime で窓ごとに流す）
+  │   ├── adapter.py    # load_vad_session・StreamingVad（同梱の Silero VAD を onnxruntime で窓ごとに流す）
+  │   └── assets/
+  │       ├── silero_vad_v6.onnx # faster-whisper 1.2.1 が同梱するものと同じ Silero VAD のモデル（MIT）
+  │       └── LICENSE.silero-vad # Silero VAD の MIT のライセンスの全文
   ├── volume/
-  │   └── adapter.py    # lower_volume・restore_volume（pycaw を == で固定して包む）
+  │   ├── adapter.py    # lower_volume・restore_volume（pycaw を == で固定して包む。Windows だけが読み込む）
+  │   └── noop.py       # lower_volume_noop・restore_volume_noop（Linux の、音量を変えない実装）
   ├── keyboard/
-  │   └── sender.py     # copy_to_clipboard・send_paste・send_enter
+  │   ├── sender.py     # copy_to_clipboard・use_xclip_clipboard・split_paste_key・send_paste・send_enter
+  │   ├── sender_linux.py # send_paste_linux（Linux。端末アプリなら Ctrl+Shift+V にし、主キーを XTEST で送信する）
+  │   ├── sender_wayland.py # UInputKeyboard（Linux の Wayland のセッション。python-evdev の UInput の仮想キーボードで貼り付けのキーと Enter を送信する）
+  │   └── active_window_linux.py # read_active_wm_class（Linux。python-xlib でアクティブなウィンドウの WM_CLASS を読む）
   ├── browser/
-  │   └── opener.py     # open_app_window（Edge の --app で開き、無ければ既定のブラウザ）
+  │   ├── opener.py     # open_app_window（Windows。Edge の --app で開き、無ければ既定のブラウザ）
+  │   └── opener_linux.py # open_app_window_linux（Linux。Chromium 系の --app で開き、無ければ既定のブラウザ）
   └── http/
       ├── types.py      # PostResult・PostJsonFn
       └── client.py     # post_json（httpx）
@@ -54,6 +65,10 @@ classes:
         access: 内部 (_)
         default: 'False'
         description: stop で止めている最中か。立っている間は子プロセスが終わっても立て直さない。start で下ろす
+      - name: _creationflags
+        type: int
+        access: 内部 (_)
+        description: 子プロセスの起動のフラグ。main.py が PlatformAdapters.worker_creationflags（Windows は CREATE_NO_WINDOW、Linux は 0）を渡す
     methods:
       - name: start
         title: 起動
@@ -71,7 +86,7 @@ classes:
           2. 子プロセスの環境を作る
              - venv の `Lib/site-packages/nvidia/{cublas,cudnn,cuda_nvrtc}/bin` のうち存在するものを PATH の先頭へ追加する（CUDA の DLL を子プロセスが見つけられるようにする）
              - 標準入出力を UTF-8 にする
-          3. `python -u -m voice_paste.integrations.whisper.worker` をコンソールを出さずに起動し、標準エラーを別のスレッドで読んでロガーへ流す
+          3. `python -u -m voice_paste.integrations.whisper.worker` を _creationflags で起動し（Windows ではコンソールを出さない。sys.platform は見ない）、標準エラーを別のスレッドで読んでロガーへ流す
           4. config（モデル・デバイス・量子化・スレッド数・ワーカー数・ログの置き場所）を送信し、ready・error・子プロセスの終了のどれかを待つ
              - ready_timeout_sec が渡されていれば、その間だけ待つ（立て直しの経路）
              - error が届いた・子プロセスが終わった・上限を過ぎた場合、子プロセスを止めて EngineError を送出する
@@ -297,6 +312,396 @@ classes:
     status: planned
     introduced:
       pr: 78
+  - name: OpenAITranscriber
+    title: OpenAI API の文字起こし
+    container: integrations/openai/transcriber.py
+    usecase: 録音を文字に起こす
+    role: アダプタ
+    kind: クラス
+    summary: 録音を OpenAI API の文字起こし（POST {base_url}/audio/transcriptions）へ httpx の multipart で送信し、起こした文字を返す。一時的な失敗は回数の上限まで送信し直す
+    description: API キーはヘッダーにだけ載せ、ログ・例外の文に書かない。リダイレクトを追わない（認証のヘッダーを設定のベース URL 以外へ送信しない）。
+    properties:
+      - name: _settings
+        type: OpenAISettings
+        access: 内部 (_)
+        description: モデル・言語・ベース URL
+      - name: _api_key
+        type: pydantic.SecretStr
+        access: 内部 (_)
+        description: API キー（read_openai_api_key が返したもの。送信のときだけ get_secret_value で取り出す）
+      - name: _sleep
+        type: Callable[[float], None]
+        access: 内部 (_)
+        default: time.sleep
+        description: 送信し直す前に待つ関数（テストで差し替える）
+      - name: _uniform
+        type: Callable[[float, float], float]
+        access: 内部 (_)
+        default: random.uniform
+        description: 待つ秒数のジッターを引く関数（テストで差し替える）
+      - name: _transport
+        type: httpx.BaseTransport | None
+        access: 内部 (_)
+        default: None
+        description: httpx.Client に渡すトランスポート（テストで httpx.MockTransport に差し替える）
+    methods:
+      - name: transcribe
+        title: 文字起こし
+        kind: メソッド
+        inherits: 文字起こしの EngineFn
+        scope: public
+        summary: 録音を送信し、起こした文字を 1 区間の並びで返す
+        args:
+          - name: audio_path
+            type: Path
+            required: true
+            passing: positional
+            description: 録音の WAV か、ブラウザから受けた音声
+          - name: on_progress
+            type: ProgressFn | None
+            required: false
+            default: None
+            passing: keyword
+            description: 受けるが呼ばない（OpenAI API は途中の進みを返さない）
+          - name: hint
+            type: str | None
+            required: false
+            default: None
+            passing: keyword
+            description: 文字起こしの手がかり（有効なプリセットの語を HINT_SEPARATOR でつないだ文）。None なら prompt も keywords[] も送信しない
+        returns:
+          type: list[str]
+          description: 起こした文字の 1 要素の並び。起こした文字が空なら空の並び
+        exceptions:
+          - name: EngineError
+            condition: 音声が上限を超えるか受けられない形式・4xx（429 を除く。リダイレクトを含む）・送信し直しても 429・5xx・タイムアウト・接続できない
+        process: |-
+          1. 音声の大きさが OPENAI_MAX_AUDIO_BYTES 以下で、拡張子（小文字）が OPENAI_AUDIO_SUFFIXES にあるかを確かめる
+             - 外れる場合、送信せずに EngineError を送出する（理由は「音声が OpenAI API の上限（25 MB）を超えています」か「OpenAI API が受けられない形式です（{拡張子}）」）
+               - `[WARNING]` OpenAI API へ送信しない音声（大きさ・拡張子）
+          2. httpx.Client（timeout は OPENAI_TIMEOUT_SEC・接続は OPENAI_CONNECT_TIMEOUT_SEC、follow_redirects=False、transport=_transport）で `{base_url}/audio/transcriptions` へ POST する。ヘッダーは `Authorization: Bearer {API キー}`、本文は multipart の file（音声）・model・response_format=json と、_build_form が返す言語と手がかりの項目
+          3. 応答を見る
+             - 200 の場合、JSON の text の前後の空白を除き、空でなければ [text]、空なら [] を返す
+               - `[INFO]` OpenAI API で起こした（モデル・音声のバイト数・かかった秒・試した回数）
+             - 429・500 以上か、httpx.TimeoutException・httpx.TransportError の場合、送信し直した回数が OPENAI_MAX_RETRIES 未満なら待ってから 2 へ戻る。待つ秒数は Retry-After（秒数）があればそれ、無ければ _uniform(0, OPENAI_RETRY_BASE_SEC × 2^回数)。どちらも OPENAI_RETRY_MAX_SEC で頭打ちにする
+               - `[WARNING]` OpenAI API へ送信し直す（ステータスか例外の種類・待つ秒）
+             - それ以外の応答（3xx・4xx）か、回数の上限に達した場合、EngineError を送出する（理由はステータスと、JSON の error.type・error.code。読めなければステータスか例外の種類だけ。API キー・本文は書かない）
+               - `[ERROR]` OpenAI API の文字起こしに失敗した（ステータスか例外の種類・error.type・error.code）
+        unit_tests:
+          - name: test_transcribe
+            case: 正常
+            summary: 録音と設定を送信して起こした文字を返す
+            condition: 'エンドポイントが 200 と {"text": " 今日は晴れ "} を返す。model="gpt-4o-mini-transcribe"・hint="voice-paste、Whisper"'
+            mock: httpx.MockTransport
+            expected: '["今日は晴れ"] が返り、`{base_url}/audio/transcriptions` に Authorization: Bearer {API キー}・file・model・language・response_format=json・prompt="voice-paste、Whisper" が届いている'
+          - name: test_transcribe_when_no_hint
+            case: 正常
+            summary: 手がかりが無ければ prompt を送信しない
+            condition: hint=None
+            mock: httpx.MockTransport
+            expected: 届いた本文に prompt が無い
+          - name: test_transcribe_when_empty_text
+            case: 正常
+            summary: 起こした文字が空なら空の並び
+            condition: 'エンドポイントが 200 と {"text": ""} を返す'
+            mock: httpx.MockTransport
+            expected: '[] が返る'
+          - name: test_transcribe_when_retry_after
+            case: 正常
+            summary: 429 は Retry-After を待って送信し直す
+            condition: '1 回目が 429 と Retry-After: 2、2 回目が 200 を返す'
+            mock: httpx.MockTransport・_sleep
+            expected: _sleep が 2.0 で 1 回呼ばれ、起こした文字が返る
+          - name: test_transcribe_when_server_error_retried
+            case: 正常
+            summary: 5xx とタイムアウトは待って送信し直す
+            condition: 1 回目が 503、2 回目が httpx.ReadTimeout、3 回目が 200 を返す
+            mock: httpx.MockTransport・_sleep・_uniform
+            expected: _uniform が (0, 0.5)・(0, 1.0) で呼ばれ、起こした文字が返る
+          - name: test_transcribe_when_retry_exhausted
+            case: 異常
+            summary: 回数の上限まで失敗したら EngineError
+            condition: エンドポイントが 3 回とも 500 を返す
+            mock: httpx.MockTransport・_sleep
+            expected: EngineError が送出され、要求は 3 回（最初と送信し直し 2 回）
+            exception: 音声が上限を超えるか受けられない形式・4xx（429 を除く。リダイレクトを含む）・送信し直しても 429・5xx・タイムアウト・接続できない
+          - name: test_transcribe_when_unauthorized
+            case: 異常
+            summary: 401 は送信し直さずに EngineError にし、API キーを書かない
+            condition: 'エンドポイントが 401 と {"error": {"type": "invalid_request_error", "code": "invalid_api_key"}} を返す'
+            mock: httpx.MockTransport
+            expected: 要求は 1 回で、EngineError の理由に 401・invalid_api_key が入り API キーが入っていない。ログにも API キーが無い
+            exception: 音声が上限を超えるか受けられない形式・4xx（429 を除く。リダイレクトを含む）・送信し直しても 429・5xx・タイムアウト・接続できない
+          - name: test_transcribe_when_audio_too_large
+            case: 異常
+            summary: 25 MB を超える音声は送信しない
+            condition: OPENAI_MAX_AUDIO_BYTES + 1 バイトの webm
+            mock: httpx.MockTransport
+            expected: EngineError が送出され、エンドポイントに要求が届いていない
+            exception: 音声が上限を超えるか受けられない形式・4xx（429 を除く。リダイレクトを含む）・送信し直しても 429・5xx・タイムアウト・接続できない
+          - name: test_transcribe_when_unsupported_suffix
+            case: 異常
+            summary: 受けられない形式は送信しない
+            condition: 拡張子 .ogg の音声
+            mock: httpx.MockTransport
+            expected: EngineError の理由に ogg が入り、エンドポイントに要求が届いていない
+            exception: 音声が上限を超えるか受けられない形式・4xx（429 を除く。リダイレクトを含む）・送信し直しても 429・5xx・タイムアウト・接続できない
+          - name: test_transcribe_when_redirected
+            case: 異常
+            summary: リダイレクトを追わない
+            condition: エンドポイントが 307 で別のホストを指す
+            mock: httpx.MockTransport
+            expected: EngineError が送出され、別のホストへの要求が出ない
+            exception: 音声が上限を超えるか受けられない形式・4xx（429 を除く。リダイレクトを含む）・送信し直しても 429・5xx・タイムアウト・接続できない
+          - name: test_transcribe_when_keywords_model
+            case: 正常
+            summary: gpt-transcribe では keywords[] と languages[] を同じ項目名で繰り返して送信する
+            condition: 'エンドポイントが 200 と {"text": "今日は晴れ"} を返す。model="gpt-transcribe"・hint="voice-paste、Whisper"'
+            mock: httpx.MockTransport
+            expected: 届いた本文に keywords[] のパートが voice-paste・Whisper の 2 つ、languages[] のパートが ja の 1 つあり、language・prompt のパートが無い
+        connectivity_tests:
+          - name: test_ext_transcribe
+            api: OpenAI API POST /v1/audio/transcriptions
+            summary: 実際の OpenAI API で、短い音声を起こせる
+            checks: 約 3 秒の日本語の WAV を既定のモデル（gpt-transcribe）・languages[]=ja・keywords[] 付きで送信し、空でない文字が 1 区間で返る。かかった秒を記録する（非機能要件のタイムアウトを実測で見直す材料）
+            cost: 従量課金。約 3 秒 × $0.0045/分 で 1 回あたり約 $0.0003。実行の前に規約『開発時の従量課金APIの実行』で見積もる
+            notes: API キー（環境変数 OPENAI_API_KEY か secrets/openai_api_key）が無い環境では skip する
+      - name: _build_form
+        title: 言語と手がかりの項目の組み立て
+        kind: メソッド
+        scope: internal
+        summary: 設定のモデルに合わせて、言語と手がかりを載せる multipart の項目を返す
+        args:
+          - name: hint
+            type: str | None
+            required: true
+            passing: positional
+            description: transcribe が受けた手がかり
+        returns:
+          type: dict[str, str | list[str]]
+          description: multipart の項目名 → 値。list の値は同じ項目名で繰り返し送信する
+        process: |-
+          1. 設定のモデルが OPENAI_KEYWORDS_MODEL_PREFIX で始まるかを見る
+             - 始まる場合、`languages[]` に [設定の言語] を入れる。hint があれば HINT_SEPARATOR で語に分け、OPENAI_KEYWORD_FORBIDDEN_CHARS のどれかを含む語を除いた語を `keywords[]` に入れる（残る語が無ければ `keywords[]` を入れない）。`language`・`prompt` は入れない
+               - `[WARNING]` keywords[] に入れない語がある（除いた語の数。語そのものは書かない）
+             - 始まらない場合、`language` に設定の言語を入れ、hint があれば `prompt` に hint をそのまま入れる
+          2. 組み立てた項目を返す
+        unit_tests:
+          - name: test_build_form_when_keywords_model
+            case: 正常
+            summary: gpt-transcribe は語を keywords[]、言語を languages[] に入れる
+            condition: model="gpt-transcribe"・language="ja"・hint="voice-paste、Whisper"
+            mock: なし
+            expected: '{"languages[]": ["ja"], "keywords[]": ["voice-paste", "Whisper"]} が返り、language・prompt が無い'
+          - name: test_build_form_when_keywords_model_snapshot
+            case: 正常
+            summary: gpt-transcribe で始まるスナップショットも keywords[] で渡す
+            condition: model="gpt-transcribe-2026-08-26"・hint="voice-paste"
+            mock: なし
+            expected: keywords[] が ["voice-paste"]、languages[] が [設定の言語]
+          - name: test_build_form_when_keywords_model_no_hint
+            case: 正常
+            summary: 手がかりが無ければ keywords[] を入れない
+            condition: model="gpt-transcribe"・hint=None
+            mock: なし
+            expected: '{"languages[]": ["ja"]} だけが返る'
+          - name: test_build_form_when_forbidden_keyword
+            case: 正常
+            summary: < か > を含む語は keywords[] に入れない
+            condition: model="gpt-transcribe"・hint="<tag>、Whisper、a>b"
+            mock: なし
+            expected: keywords[] が ["Whisper"] だけで、WARNING のログに除いた語の数 2 が書かれ、語そのものが書かれていない
+          - name: test_build_form_when_all_keywords_forbidden
+            case: 正常
+            summary: 全ての語が除かれたら keywords[] を入れない
+            condition: model="gpt-transcribe"・hint="<tag>"
+            mock: なし
+            expected: '{"languages[]": ["ja"]} だけが返る'
+          - name: test_build_form_when_previous_model
+            case: 正常
+            summary: 前のモデルは今のまま language と prompt に入れる
+            condition: model="gpt-4o-mini-transcribe"・language="ja"・hint="voice-paste、Whisper"
+            mock: なし
+            expected: '{"language": "ja", "prompt": "voice-paste、Whisper"} が返り、languages[]・keywords[] が無い'
+        status: planned
+        introduced:
+          pr: 225
+    refs:
+      - dev/設計書/外部API/OpenAI#
+      - dev/設計書/外部ライブラリ/httpx#
+      - dev/設計書/非機能要件/非機能要件#requirements[OpenAIの文字起こしのタイムアウトと再送]
+      - dev/設計書/非機能要件/非機能要件#requirements[OpenAIへ送信する音声の上限]
+    status: planned
+    introduced:
+      pr: 204
+  - name: UInputKeyboard
+    title: 仮想キーボード
+    container: integrations/keyboard/sender_wayland.py
+    usecase: 起こした文字を届ける
+    role: アダプタ
+    kind: クラス
+    summary: Wayland のセッションで、python-evdev の UInput の仮想キーボードから貼り付けのキーと Enter を送信する。起動のときに 1 回開き、終了のときに閉じる
+    description: |-
+      Wayland のセッションでは pynput・XTEST のキーがネイティブのアプリへ届かないため、カーネルの uinput で入力の機器を作ってキーを送信する。`/dev/uinput` を開く権限（udev の規則と `input` グループ）が要り、無ければ open が DeliveryError を送出する（配線がトレイで知らせ、「コピーのみ」は使える）。
+
+      send_paste は sender.py の send_paste の代わりに、send_enter は SendEnterFn として配線する。
+    properties:
+      - name: _device
+        type: evdev.UInput | None
+        access: 内部 (_)
+        default: None
+        description: 開いた仮想キーボード。open の前と close の後は None
+      - name: _lock
+        type: threading.Lock
+        access: 内部 (_)
+        description: 送信と close を 1 つずつにする（キーの並びを混ぜない）
+    methods:
+      - name: open
+        title: 仮想キーボードを開く
+        kind: メソッド
+        scope: public
+        summary: 仮想キーボードを作り、コンポジターが入力の機器として受け付けるまで待つ
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 開いていれば何もしない
+          2. `UInput(name=VIRTUAL_KEYBOARD_NAME)` で仮想キーボードを作る
+             - OSError・UInputError（`/dev/uinput` を開く権限が無い・uinput が無い）の場合、DeliveryError を送出する（理由に例外の文言を残す）
+          3. DEVICE_READY_SEC だけ待つ
+             - `[INFO]` 仮想キーボードを開いた
+        exceptions:
+          - name: DeliveryError
+            condition: '`/dev/uinput` を開けない'
+        unit_tests:
+          - name: test_open
+            case: 正常
+            summary: 仮想キーボードを作って待つ
+            condition: open を 2 回呼ぶ
+            mock: evdev.UInput・time.sleep
+            expected: UInput(name="voice-paste-keyboard") が 1 回だけ作られ、sleep(0.3) が呼ばれる
+          - name: test_open_when_permission_denied
+            case: 異常
+            summary: 開けなければ DeliveryError
+            condition: UInput が PermissionError を送出する
+            mock: evdev.UInput
+            expected: 理由に Permission denied を含む DeliveryError が送出される
+            exception: '`/dev/uinput` を開けない'
+      - name: send_paste
+        title: 貼り付けのキーの送信
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        summary: 設定の貼り付けのキーを仮想キーボードで送信する
+        args:
+          - name: paste_key
+            type: str
+            required: true
+            passing: positional
+            description: 貼り付けのキー（pynput の GlobalHotKeys の書式。設定の keyboard.paste_key）
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 開いていなければ DeliveryError（「貼り付けのキーを送信できません。起こした文字はクリップボードにあります」）を送出する
+          2. split_paste_key で修飾キーと主キーに分ける（DeliveryError はそのまま送出する）
+             - 主キーが 1 文字でない場合、DeliveryError を送出する
+          3. 修飾キーを EVDEV_MODIFIER_CODES で、主キーを `ecodes.ecodes["KEY_" + 主キーの大文字]` でキーコードに替える
+             - 替えられない場合、DeliveryError を送出する
+          4. FOCUS_SETTLE_SEC だけ待つ
+          5. 修飾キーを順に押し、主キーを押して離し、修飾キーを逆順に離してから syn で確定する（EV_KEY を write）
+             - write が OSError を送出した場合、押した修飾キーを離してから DeliveryError を送出する（押されたままにしない）
+             - `[INFO]` 貼り付けのキーを送信した（paste_key、uinput）
+        exceptions:
+          - name: DeliveryError
+            condition: 開いていない・送信できないキー・書き込めない
+        unit_tests:
+          - name: test_send_paste
+            case: 正常
+            summary: 待ってから修飾キーと主キーを順に押して離す
+            condition: open の後、paste_key が `<ctrl>+v`
+            mock: evdev.UInput・time.sleep
+            expected: sleep(0.1) の後、write が KEY_LEFTCTRL 1・KEY_V 1・KEY_V 0・KEY_LEFTCTRL 0 の順に呼ばれ、syn が 1 回呼ばれる
+          - name: test_send_paste_when_not_opened
+            case: 異常
+            summary: 開いていなければ DeliveryError
+            condition: open を呼ばずに `<ctrl>+v`
+            mock: evdev.UInput
+            expected: DeliveryError が送出され、write が呼ばれない
+            exception: 開いていない
+          - name: test_send_paste_when_unsupported_key
+            case: 異常
+            summary: 1 文字でない主キーは DeliveryError
+            condition: open の後、paste_key が `<ctrl>+<insert>`
+            mock: evdev.UInput・time.sleep
+            expected: DeliveryError が送出され、write が呼ばれない
+            exception: 送信できないキー
+          - name: test_send_paste_when_write_failed
+            case: 異常
+            summary: 書き込めなければ押した修飾キーを離して DeliveryError
+            condition: open の後、主キーの write が OSError を送出する
+            mock: evdev.UInput・time.sleep
+            expected: DeliveryError が送出され、KEY_LEFTCTRL 0 の write が呼ばれている
+            exception: 書き込めない
+      - name: send_enter
+        title: Enter の送信
+        kind: メソッド
+        scope: public
+        inherits: SendEnterFn
+        thread_safe: true
+        summary: 渡した修飾キーを押したまま Enter を仮想キーボードで送信する（待ちは呼ぶ側が置く）
+        args:
+          - name: modifiers
+            type: Sequence[EnterModifier]
+            required: false
+            default: ()
+            passing: positional
+            description: 一緒に押す修飾キー。並びと重なりは問わない
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 開いていなければ DeliveryError を送出する
+          2. modifiers を ENTER_MODIFIER_KEYS の並び（Ctrl・Alt・Shift）に揃え、重なりを除いて EVDEV_MODIFIER_CODES でキーコードに替える
+          3. 修飾キーを順に押し、Enter（KEY_ENTER）を押して離し、修飾キーを逆順に離してから syn で確定する（EV_KEY を write）
+             - write が OSError を送出した場合、押した修飾キーを離してから DeliveryError を送出する（押されたままにしない）
+             - `[INFO]` Enter を送信した（修飾キー: {揃えた修飾キー。無ければ「なし」}、uinput）
+        exceptions:
+          - name: DeliveryError
+            condition: 開いていない・書き込めない
+        unit_tests:
+          - name: test_send_enter_when_modifiers
+            case: 正常
+            summary: 修飾キーを Ctrl・Alt・Shift の順に押し、逆順に離す
+            condition: open の後、modifiers が ("shift", "ctrl", "shift")
+            mock: evdev.UInput・time.sleep
+            expected: write が KEY_LEFTCTRL 1・KEY_LEFTSHIFT 1・KEY_ENTER 1・KEY_ENTER 0・KEY_LEFTSHIFT 0・KEY_LEFTCTRL 0 の順に呼ばれ、syn が 1 回呼ばれる
+          - name: test_send_enter_when_not_opened
+            case: 異常
+            summary: 開いていなければ DeliveryError
+            condition: open を呼ばずに引数なし
+            mock: evdev.UInput
+            expected: DeliveryError が送出され、write が呼ばれない
+            exception: 開いていない
+      - name: close
+        title: 仮想キーボードを閉じる
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        summary: 仮想キーボードを閉じて _device を None にする。開いていなければ何もしない（2 回呼んでもよい）
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_close
+            case: 正常
+            summary: 閉じた後は送信できず、2 回目は何もしない
+            condition: open の後に close を 2 回呼び、send_enter を呼ぶ
+            mock: evdev.UInput・time.sleep
+            expected: UInput.close が 1 回だけ呼ばれ、send_enter は DeliveryError を送出する
+    refs:
+      - dev/設計書/外部ライブラリ/evdev#
+    status: planned
 functions:
   - name: lower_volume
     title: 音量を下げる
@@ -491,9 +896,8 @@ functions:
       type: None
       description: なし
     process: |-
-      1. paste_key を `+` で区切り、各キーの前後の空白を除いて小文字にする（`<Ctrl> + v` も `<ctrl>+v` と同じに扱う。刷新前と同じ）
-      2. `<ctrl>`・`<shift>`・`<alt>`・`<cmd>`・`<win>` を修飾キー、それ以外を主キーにする
-         - 主キーが 1 つでない場合、DeliveryError を送出する（キーを送信しない）
+      1. split_paste_key で paste_key を修飾キーと主キーに分ける（DeliveryError はそのまま送出し、キーを送信しない）
+      2. 主キーは文字のまま pynput に渡す（Windows の送り方。Linux は send_paste_linux を使う）
       3. FOCUS_SETTLE_SEC だけ待つ（貼り付け先のフォーカスが落ち着くのを待つ）
       4. 修飾キーを順に押し、主キーを押して離し、修飾キーを逆順に離す
          - `[INFO]` 貼り付けのキーを送信した（paste_key）
@@ -808,36 +1212,35 @@ functions:
     role: アダプタ
     kind: 関数
     scope: public
-    summary: faster-whisper に同梱の Silero VAD（ONNX）を、faster-whisper を import せずに onnxruntime の CPU で開き、セッションを返す
-    description: faster_whisper を import するとパッケージの `__init__` が ctranslate2 と CUDA の DLL を常駐サービスに読み込み、文字起こしワーカーを子プロセスに隔離した構造の決定（`dev/pr/12/方針決め/4_構造の決定.md`）に反する。そのため `importlib.util.find_spec` でパッケージの場所だけを引いてモデルのファイルを開く（`find_spec` は `__init__` を実行しない）。起動の配線で 1 回だけ呼ぶ。
+    summary: 常駐アプリのパッケージに同梱した Silero VAD（ONNX）を onnxruntime の CPU で開き、セッションを返す。faster-whisper が入っていない環境でも開ける
+    description: モデルは faster-whisper 1.2.1 が同梱する `assets/silero_vad_v6.onnx` と同じファイルを `integrations/vad/assets/` に、Silero VAD の LICENSE の全文（`LICENSE.silero-vad`）と並べて置き、pyproject.toml の `[tool.setuptools.package-data]` の voice_paste に `"integrations/vad/assets/*.onnx"`・`"integrations/vad/assets/LICENSE.*"` を追加して常駐アプリのパッケージに含める（faster-whisper は `local-whisper` の extra へ移り、`openai` のエンジンでは入れない環境があるため）。faster_whisper を import しない（`__init__` が ctranslate2 と CUDA の DLL を常駐サービスに読み込み、文字起こしワーカーを子プロセスに隔離した構造の決定（`dev/pr/12/方針決め/4_構造の決定.md`）に反する）。起動の配線で 1 回だけ呼ぶ。
     returns:
       type: onnxruntime.InferenceSession
       description: Silero VAD のセッション
     process: |-
-      1. `importlib.util.find_spec("faster_whisper")` の submodule_search_locations からパッケージの場所を引き、VAD_MODEL_RELATIVE_PATH をつなぐ
+      1. `importlib.resources.files("voice_paste.integrations.vad")` から VAD_MODEL_RESOURCE を引き、`as_file` でファイルのパスにする
       2. onnxruntime の SessionOptions（inter_op_num_threads=1・intra_op_num_threads=1・enable_cpu_mem_arena=False・log_severity_level=4）と CPUExecutionProvider で InferenceSession を開いて返す
-         - パッケージが見つからない・モデルのファイルが無い・開けない場合、StartupError を送出する（理由に元の例外を残す）
+         - モデルのファイルが無い・開けない場合、StartupError を送出する（理由に元の例外を残す）
            - `[ERROR]` VAD を読めなかった（理由）
     exceptions:
       - name: StartupError
-        condition: VAD のモデルを開けない（faster-whisper のパッケージが無い・モデルのファイルが無い・onnxruntime が開けない）
+        condition: VAD のモデルを開けない（モデルのファイルが無い・onnxruntime が開けない）
     unit_tests:
       - name: test_load_vad_session
         case: 正常
         summary: 同梱のモデルを CPU で開き、faster_whisper を import しない
-        condition: find_spec を一時フォルダ（assets/silero_vad_v6.onnx を置く）を指すものに、InferenceSession を Mock に差し替える
-        mock: importlib.util.find_spec・onnxruntime.InferenceSession
-        expected: InferenceSession にそのファイルのパスと providers=["CPUExecutionProvider"] が渡って返り、sys.modules に faster_whisper が入っていない
+        condition: InferenceSession を Mock に差し替える
+        mock: onnxruntime.InferenceSession
+        expected: InferenceSession に同梱の silero_vad_v6.onnx（ファイルとしてある）のパスと providers=["CPUExecutionProvider"] が渡って返り、sys.modules に faster_whisper が入っていない
       - name: test_load_vad_session_when_model_missing
         case: 異常
         summary: モデルのファイルが無ければ起動の失敗にする
-        condition: find_spec が None を返す場合と、フォルダにモデルのファイルが無い場合
-        mock: importlib.util.find_spec
-        expected: どちらも StartupError が送出される
+        condition: VAD_MODEL_RESOURCE を無いファイル名に差し替える
+        mock: VAD_MODEL_RESOURCE
+        expected: StartupError が送出される
         exception: VAD のモデルを開けない
     refs:
       - dev/設計書/外部ライブラリ/onnxruntime#
-      - dev/設計書/外部ライブラリ/faster-whisper#
     status: planned
     introduced:
       pr: 78
@@ -886,6 +1289,414 @@ functions:
         exception: PyAV で開けないか、音声のストリームが無い
     refs:
       - dev/設計書/外部ライブラリ/av#
+    status: planned
+  - name: lower_volume_noop
+    title: 音量を下げない
+    kind: 関数
+    container: integrations/volume/noop.py
+    usecase: 録音する
+    summary: Linux で lower_volume の代わりに渡す。音量を読まず変えず、NOOP_VOLUME を返す
+    inherits: LowerVolumeFn
+    scope: public
+    thread_safe: true
+    args:
+      - name: ratio
+        type: float
+        required: true
+        passing: positional
+        description: 使わない
+      - name: fade_sec
+        type: float
+        required: true
+        passing: positional
+        description: 使わない
+    returns:
+      type: float
+      description: NOOP_VOLUME（restore_volume_noop にだけ渡り、捨てられる）
+    process: 1. 何もせず NOOP_VOLUME を返す
+    unit_tests:
+      - name: test_lower_volume_noop
+        case: 正常
+        summary: 音量を変えずに決まった値を返す
+        condition: ratio=0.5・fade_sec=0.5
+        mock: なし
+        expected: NOOP_VOLUME が返る
+    status: planned
+  - name: restore_volume_noop
+    title: 音量を戻さない
+    kind: 関数
+    container: integrations/volume/noop.py
+    usecase: 録音する
+    summary: Linux で restore_volume の代わりに渡す。何もしない
+    inherits: RestoreVolumeFn
+    scope: public
+    thread_safe: true
+    args:
+      - name: volume
+        type: float
+        required: true
+        passing: positional
+        description: 使わない
+      - name: fade_sec
+        type: float
+        required: true
+        passing: positional
+        description: 使わない
+    returns:
+      type: None
+      description: なし
+    process: 1. 何もしない
+    status: planned
+  - name: open_app_window_linux
+    title: Linux でアプリのウィンドウで開く
+    kind: 関数
+    container: integrations/browser/opener_linux.py
+    usecase: 起こした文字を届ける
+    summary: Linux で open_app_window の代わりに渡す。URL を Chromium 系のブラウザの `--app` で開き、見つからなければ既定のブラウザで開く
+    scope: public
+    args:
+      - name: url
+        type: str
+        required: true
+        passing: positional
+        description: 開く URL（確定の操作で選んだブラウザ添付のプリセットの URL）
+    returns:
+      type: None
+      description: なし（開いた画面の読み込みを待たない）
+    process: |-
+      1. LINUX_BROWSER_COMMANDS の並びで PATH から最初に見つかる実行ファイルを探す（shutil.which）
+      2. 見つかった場合、`[{ブラウザ}, "--app={url}"]` を subprocess.Popen で起動する
+         - `[INFO]` ブラウザ添付のプリセットの画面をアプリのウィンドウで開いた（ブラウザ・url）
+      3. 見つからない場合、webbrowser.open で既定のブラウザ（xdg-open）で開く
+         - webbrowser.open が False を返した場合、DeliveryError を送出する。理由は `ブラウザ添付のプリセットの画面を開けませんでした（開けるブラウザが見つかりません）`
+         - `[INFO]` ブラウザ添付のプリセットの画面を既定のブラウザで開いた（url）
+         - 2 で OSError が出た場合、DeliveryError を送出する。理由は `ブラウザ添付のプリセットの画面を開けませんでした（{元の例外}）` にし、元の例外を連鎖して残す（open_app_window と同じ）
+    exceptions:
+      - name: DeliveryError
+        condition: 見つかったブラウザを起動できない
+      - name: DeliveryError
+        condition: Chromium 系のブラウザが無く、既定のブラウザも開けない
+    unit_tests:
+      - name: test_open_app_window_linux
+        case: 正常
+        summary: 先に見つかった Chromium 系の --app で開く
+        condition: shutil.which が chromium と microsoft-edge だけでパスを返す
+        mock: shutil.which・subprocess.Popen・webbrowser.open
+        expected: Popen に ["/usr/bin/chromium", "--app=https://chatgpt.com"] が渡り、webbrowser.open が呼ばれない
+      - name: test_open_app_window_linux_when_browser_missing
+        case: 正常
+        summary: Chromium 系が無ければ既定のブラウザで開く
+        condition: shutil.which が全て None、webbrowser.open が True を返す
+        mock: shutil.which・subprocess.Popen・webbrowser.open
+        expected: webbrowser.open に URL が渡り、Popen が呼ばれない
+      - name: test_open_app_window_linux_when_no_browser
+        case: 異常
+        summary: 既定のブラウザも開けなければ DeliveryError
+        condition: shutil.which が全て None、webbrowser.open が False を返す
+        mock: shutil.which・webbrowser.open
+        expected: DeliveryError が送出され、理由が `ブラウザ添付のプリセットの画面を開けませんでした（` で始まる
+        exception: Chromium 系のブラウザが無く、既定のブラウザも開けない
+      - name: test_open_app_window_linux_when_failed
+        case: 異常
+        summary: 起動できなければ DeliveryError
+        condition: shutil.which が chromium を返し、subprocess.Popen が OSError を送出する
+        mock: shutil.which・subprocess.Popen
+        expected: DeliveryError が送出され、元の OSError が連鎖している
+        exception: 見つかったブラウザを起動できない
+    refs:
+      - dev/設計書/外部ライブラリ/Microsoft_Edge#
+    status: planned
+  - name: read_openai_api_key
+    title: OpenAI の API キーの読み込み
+    kind: 関数
+    container: integrations/openai/credentials.py
+    usecase: 常駐アプリを起動する
+    scope: public
+    summary: 環境変数 OPENAI_API_KEY があればそれを、無ければ秘匿のファイルの中身を、前後の空白を除いて SecretStr で返す。設定のエンジンが openai のときだけ起動の配線が 1 回呼ぶ
+    args:
+      - name: key_file
+        type: Path
+        required: true
+        passing: positional
+        description: API キーのファイル（AppPaths.openai_api_key_file）
+      - name: environ
+        type: Mapping[str, str]
+        required: true
+        passing: positional
+        description: 環境変数（main.py が os.environ を渡す）
+    returns:
+      type: pydantic.SecretStr
+      description: API キー
+    process: |-
+      1. environ の OPENAI_API_KEY_ENV の値の前後の空白を除き、空でなければ返す
+      2. key_file を UTF-8 で読み、前後の空白と改行を除いて、空でなければ返す
+         - ファイルが無い・読めない・空の場合、StartupError を送出する（理由は「OpenAI の API キーがありません: 環境変数 OPENAI_API_KEY か {key_file} に置いてください」。キーの中身は書かない）
+           - `[ERROR]` OpenAI の API キーを読めなかった（環境変数の名前・ファイルのパス）
+    exceptions:
+      - name: StartupError
+        condition: 環境変数にもファイルにも API キーが無い（空白だけのときを含む）
+    unit_tests:
+      - name: test_read_openai_api_key_when_env
+        case: 正常
+        summary: 環境変数を先に使う
+        condition: 'environ={"OPENAI_API_KEY": " sk-env "}、key_file にも別のキーがある'
+        mock: なし
+        expected: get_secret_value() が "sk-env"
+      - name: test_read_openai_api_key_when_file
+        case: 正常
+        summary: 環境変数が無ければファイルを読む
+        condition: environ={}、key_file の中身が "sk-file\n"
+        mock: なし
+        expected: get_secret_value() が "sk-file"
+      - name: test_read_openai_api_key_when_missing
+        case: 異常
+        summary: どちらにも無ければ起動の失敗にする
+        condition: environ={} で、key_file が無い場合と、中身が空白だけの場合
+        mock: なし
+        expected: どちらも StartupError が送出され、理由に OPENAI_API_KEY と key_file のパスが入り、キーの中身は入らない
+        exception: 環境変数にもファイルにも API キーが無い（空白だけのときを含む）
+    status: planned
+    introduced:
+      pr: 204
+  - name: ensure_local_whisper_installed
+    title: ローカルの Whisper の依存の確かめ
+    kind: 関数
+    container: integrations/whisper/client.py
+    usecase: 常駐アプリを起動する
+    scope: public
+    summary: faster-whisper のパッケージが仮想環境にあるかを import せずに確かめる。設定のエンジンが local_whisper のとき、文字起こしワーカーを起動する前に起動の配線が呼ぶ
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. `importlib.util.find_spec("faster_whisper")` で探す（`__init__` を実行しない）
+         - None の場合、StartupError を送出する（理由は「ローカルの Whisper の依存（faster-whisper）が入っていません: local-whisper の extra を含めて環境を作り直してください（uv sync --extra local-whisper）」）
+           - `[ERROR]` ローカルの Whisper の依存が無い
+    exceptions:
+      - name: StartupError
+        condition: faster-whisper のパッケージが見つからない
+    unit_tests:
+      - name: test_ensure_local_whisper_installed
+        case: 正常
+        summary: パッケージがあれば何もしない
+        condition: find_spec が spec を返す
+        mock: importlib.util.find_spec
+        expected: 送出しない。sys.modules に faster_whisper が入っていない
+      - name: test_ensure_local_whisper_installed_when_missing
+        case: 異常
+        summary: パッケージが無ければ extra を入れるよう示して起動の失敗にする
+        condition: find_spec が None を返す
+        mock: importlib.util.find_spec
+        expected: StartupError が送出され、理由に local-whisper が入る
+        exception: faster-whisper のパッケージが見つからない
+    refs:
+      - dev/設計書/外部ライブラリ/faster-whisper#
+    status: planned
+    introduced:
+      pr: 204
+  - name: split_paste_key
+    title: 貼り付けのキーの分解
+    kind: 関数
+    container: integrations/keyboard/sender.py
+    usecase: 起こした文字を届ける
+    scope: public
+    summary: 設定の貼り付けのキーを、押す修飾キーの並びと主キーに分ける。send_paste と send_paste_linux が使う
+    args:
+      - name: paste_key
+        type: str
+        required: true
+        passing: positional
+        description: 貼り付けのキー（pynput の GlobalHotKeys の書式。設定の keyboard.paste_key）
+    returns:
+      type: tuple[list[keyboard.Key], str]
+      description: 押す修飾キー（paste_key の並び）と、主キー（小文字にした 1 つのキー）
+    process: |-
+      1. paste_key を KEY_SEPARATOR（`+`）で区切り、各キーの前後の空白を除いて小文字にする（`<Ctrl> + v` も `<ctrl>+v` と同じに扱う。刷新前と同じ）
+      2. MODIFIER_KEYS にある `<ctrl>`・`<shift>`・`<alt>`・`<cmd>`・`<win>` を修飾キー、それ以外を主キーにする
+         - 主キーが 1 つでない場合、DeliveryError を送出する
+    status: planned
+    unit_tests:
+      - name: test_split_paste_key
+        case: 正常
+        summary: 修飾キーと主キーに分ける
+        condition: paste_key が `<ctrl>+<shift>+v`
+        mock: なし
+        expected: ([Key.ctrl, Key.shift], "v") が返る
+      - name: test_split_paste_key_when_spaced_and_uppercase
+        case: 正常
+        summary: 前後の空白と大文字を揃える
+        condition: paste_key が `<Ctrl> + V`
+        mock: なし
+        expected: ([Key.ctrl], "v") が返る
+      - name: test_split_paste_key_when_no_main_key
+        case: 異常
+        summary: 主キーが 1 つ無ければ DeliveryError
+        condition: paste_key が `<ctrl>`、`<ctrl>+v+c`
+        mock: なし
+        expected: どちらも DeliveryError が送出される
+        exception: paste_key に主キーが 1 つ無い（修飾キーだけ・主キーが 2 つ以上）
+    exceptions:
+      - name: DeliveryError
+        condition: paste_key に主キーが 1 つ無い（修飾キーだけ・主キーが 2 つ以上）
+  - name: send_paste_linux
+    title: Linux の貼り付けのキーの送信
+    kind: 関数
+    container: integrations/keyboard/sender_linux.py
+    usecase: 起こした文字を届ける
+    scope: public
+    summary: Linux で send_paste の代わりに渡す。アクティブなウィンドウが端末アプリなら Ctrl+Shift+V、それ以外なら設定の貼り付けのキーを、主キーを XTEST で送信する
+    description: pynput（Xorg）は文字で渡したキーを XSendEvent で送り、GTK4 のアプリ（GNOME Text Editor 等）はこれを受け付けない。主キーを `KeyCode.from_vk` で渡すと XTEST で送られる（[#211](https://github.com/shuhei1101/voice-paste/pull/211) の PoC で確かめた）。
+    args:
+      - name: paste_key
+        type: str
+        required: true
+        passing: positional
+        description: 貼り付けのキー（pynput の GlobalHotKeys の書式。設定の keyboard.paste_key）
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. split_paste_key で paste_key を修飾キーと主キーに分ける（DeliveryError はそのまま送出し、キーを送信しない）
+         - 主キーが 1 文字でない場合、DeliveryError を送出する。理由は `貼り付けのキーの主キーは 1 文字にしてください（{paste_key}）`
+      2. FOCUS_SETTLE_SEC だけ待つ（貼り付け先のフォーカスが落ち着くのを待つ）
+      3. read_active_wm_class でアクティブなウィンドウの WM_CLASS を読み、小文字にしたどれかの名前が TERMINAL_WM_CLASSES にあるかを見る
+         - ある場合、修飾キーを Ctrl・Shift、主キーを `v` に替える
+           - `[INFO]` 端末アプリなので Ctrl+Shift+V を送信する（WM_CLASS）
+         - 無い場合（読めずに空のときを含む）、1 のキーのまま
+      4. 主キーを `keyboard.KeyCode.from_vk(ord(主キー))` にする（Xorg の pynput では vk が keysym で、ASCII の文字の keysym は文字コードと同じ）
+      5. 修飾キーを順に押し、主キーを押して離し、修飾キーを逆順に離す。途中で失敗しても、押した修飾キーは逆順に離す（send_enter と同じ）
+         - `[INFO]` 貼り付けのキーを送信した（送信したキー）
+    refs:
+      - dev/設計書/外部ライブラリ/pynput#
+      - dev/設計書/シナリオ/単一ユースケース/起こした文字を届ける#
+    status: planned
+    notes:
+      テスト: 単体テストのファイルは `tests/unit/voice_paste/integrations/keyboard/test_sender_linux.py`。Windows では skip する（python-xlib を読み込まない）
+    unit_tests:
+      - name: test_send_paste_linux
+        case: 正常
+        summary: 端末アプリでなければ設定のキーを、主キーを vk で押して離す
+        condition: paste_key が `<ctrl>+v`、read_active_wm_class が ("gnome-text-editor", "gnome-text-editor")
+        mock: pynput.keyboard.Controller・time.sleep・read_active_wm_class
+        expected: sleep(0.1)・press(ctrl)・press(KeyCode.from_vk(0x76))・release(KeyCode.from_vk(0x76))・release(ctrl) の順に呼ばれる
+      - name: test_send_paste_linux_when_terminal
+        case: 正常
+        summary: 端末アプリなら Ctrl+Shift+V を送信する
+        condition: paste_key が `<ctrl>+v`、read_active_wm_class が ("gnome-terminal-server", "Gnome-terminal")
+        mock: pynput.keyboard.Controller・time.sleep・read_active_wm_class
+        expected: press(ctrl)・press(shift)・press(KeyCode.from_vk(0x76))・release(KeyCode.from_vk(0x76))・release(shift)・release(ctrl) の順に呼ばれる
+      - name: test_send_paste_linux_when_class_name_matches
+        case: 正常
+        summary: クラス名だけが一覧にあっても端末アプリとして扱う
+        condition: read_active_wm_class が ("console-x", "org.gnome.Console")（インスタンス名は一覧に無く、クラス名を小文字にすると一覧にある）
+        mock: pynput.keyboard.Controller・time.sleep・read_active_wm_class
+        expected: press(shift) が呼ばれる
+      - name: test_send_paste_linux_when_wm_class_unreadable
+        case: 正常
+        summary: WM_CLASS を読めなければ設定のキーを送信する
+        condition: paste_key が `<ctrl>+v`、read_active_wm_class が ()
+        mock: pynput.keyboard.Controller・time.sleep・read_active_wm_class
+        expected: press(ctrl)・press(KeyCode.from_vk(0x76)) が呼ばれ、press(shift) が呼ばれない
+      - name: test_send_paste_linux_when_no_main_key
+        case: 異常
+        summary: 主キーが 1 つ無ければキーを送信せずに DeliveryError
+        condition: paste_key が `<ctrl>`
+        mock: pynput.keyboard.Controller・time.sleep・read_active_wm_class
+        expected: DeliveryError が送出され、press と read_active_wm_class が呼ばれない
+        exception: paste_key に主キーが 1 つ無い（修飾キーだけ・主キーが 2 つ以上）
+      - name: test_send_paste_linux_when_main_key_not_char
+        case: 異常
+        summary: 主キーが 1 文字でなければキーを送信せずに DeliveryError
+        condition: paste_key が `<shift>+<insert>`
+        mock: pynput.keyboard.Controller・time.sleep・read_active_wm_class
+        expected: DeliveryError が送出され、press が呼ばれない
+        exception: 主キーが 1 文字でない
+      - name: test_send_paste_linux_when_press_failed
+        case: 異常
+        summary: 主キーの送信で失敗しても押した修飾キーを離す
+        condition: Controller.press が主キーで例外を送出する
+        mock: pynput.keyboard.Controller・time.sleep・read_active_wm_class
+        expected: 例外がそのまま送出され、release(ctrl) が呼ばれる
+    exceptions:
+      - name: DeliveryError
+        condition: paste_key に主キーが 1 つ無い（修飾キーだけ・主キーが 2 つ以上）
+      - name: DeliveryError
+        condition: 主キーが 1 文字でない
+  - name: read_active_wm_class
+    title: アクティブなウィンドウの WM_CLASS の読み取り
+    kind: 関数
+    container: integrations/keyboard/active_window_linux.py
+    usecase: 起こした文字を届ける
+    scope: public
+    summary: python-xlib で、Xorg のルートウィンドウの `_NET_ACTIVE_WINDOW` が指すウィンドウの WM_CLASS（インスタンス名・クラス名）を読む。python-xlib に触れるのはこのファイルだけ
+    returns:
+      type: tuple[str, ...]
+      description: WM_CLASS（インスタンス名, クラス名）。読めないときは空
+    process: |-
+      1. Xlib.display.Display() で DISPLAY の X サーバーへつなぐ
+      2. ルートウィンドウの `_NET_ACTIVE_WINDOW` を get_full_property で読む
+         - 無い・空の場合、空を返す
+      3. 指すウィンドウを create_resource_object("window", id) で作り、get_wm_class() を返す（None なら空）
+      4. 1〜3 で Xlib の例外（Xlib.error.DisplayError・Xlib.error.XError・Xlib.error.ConnectionClosedError）が出た場合、空を返す（貼り付けを止めない）
+         - `[WARNING]` アクティブなウィンドウの WM_CLASS を読めなかった（元の例外）
+      5. つないだ Display は最後に close する
+    refs:
+      - dev/設計書/外部ライブラリ/python-xlib#
+    status: planned
+    notes:
+      テスト: 単体テストのファイルは `tests/unit/voice_paste/integrations/keyboard/test_active_window_linux.py`。Windows では skip する（python-xlib を読み込まない）
+    unit_tests:
+      - name: test_read_active_wm_class
+        case: 正常
+        summary: アクティブなウィンドウの WM_CLASS を返す
+        condition: _NET_ACTIVE_WINDOW が 0x1234、そのウィンドウの get_wm_class が ("gnome-terminal-server", "Gnome-terminal")
+        mock: Xlib.display.Display
+        expected: ("gnome-terminal-server", "Gnome-terminal") が返り、create_resource_object に ("window", 0x1234) が渡り、close が呼ばれる
+      - name: test_read_active_wm_class_when_no_active_window
+        case: 正常
+        summary: アクティブなウィンドウが無ければ空を返す
+        condition: get_full_property が None を返す
+        mock: Xlib.display.Display
+        expected: () が返り、close が呼ばれる
+      - name: test_read_active_wm_class_when_no_wm_class
+        case: 正常
+        summary: WM_CLASS が無ければ空を返す
+        condition: get_wm_class が None を返す
+        mock: Xlib.display.Display
+        expected: () が返る
+      - name: test_read_active_wm_class_when_display_error
+        case: 異常
+        summary: X サーバーへつなげなければ空を返す
+        condition: Xlib.display.Display が Xlib.error.DisplayNameError を送出する
+        mock: Xlib.display.Display
+        expected: () が返り、WARNING のログが出る
+      - name: test_read_active_wm_class_when_x_error
+        case: 異常
+        summary: ウィンドウが読めなければ空を返して Display を閉じる
+        condition: get_wm_class が Xlib.error.BadWindow を送出する
+        mock: Xlib.display.Display
+        expected: () が返り、close が呼ばれる
+  - name: use_xclip_clipboard
+    title: クリップボードの書き先を xclip に固定
+    kind: 関数
+    container: integrations/keyboard/sender.py
+    usecase: 起こした文字を届ける
+    scope: public
+    summary: pyperclip の書き先を xclip（XWayland）に固定する。Wayland のセッションの配線が起動のときに 1 回呼ぶ
+    description: pyperclip は `WAYLAND_DISPLAY` を見て `wl-copy` を選ぶが、GNOME の `wl-copy` は書くたびに貼り付け先のフォーカスを取り、貼り付けのキーが落ちる。xclip はフォーカスを取らず、GNOME が X のクリップボードを Wayland のアプリへ渡す。
+    returns:
+      type: None
+      description: なし
+    process: 1. `pyperclip.set_clipboard("xclip")` を呼ぶ
+    refs:
+      - dev/設計書/外部ライブラリ/pyperclip#
+    unit_tests:
+      - name: test_use_xclip_clipboard
+        case: 正常
+        summary: 書き先を xclip に固定する
+        condition: 引数なし
+        mock: pyperclip.set_clipboard
+        expected: set_clipboard("xclip") が 1 回呼ばれる
     status: planned
 constants:
   - name: FADE_STEPS
@@ -941,11 +1752,11 @@ constants:
     status: planned
     introduced:
       pr: 78
-  - name: VAD_MODEL_RELATIVE_PATH
+  - name: VAD_MODEL_RESOURCE
     title: VAD のモデルの置き場所
     container: integrations/vad/adapter.py
     usecase: 録音する
-    summary: faster-whisper のパッケージからの Silero VAD のモデルの置き場所（faster-whisper 1.2.1 の get_vad_model が開くものと同じ）
+    summary: 常駐アプリのパッケージ（voice_paste.integrations.vad）に同梱した Silero VAD のモデルの置き場所（faster-whisper 1.2.1 の get_vad_model が開くものと同じファイル）
     value: '"assets/silero_vad_v6.onnx"'
     refs:
       - dev/設計書/外部ライブラリ/faster-whisper#
@@ -959,17 +1770,159 @@ constants:
     summary: EnterModifier の値と押す pynput のキー。並びが押す順（Ctrl・Alt・Shift）
     value: '{"ctrl": Key.ctrl, "alt": Key.alt, "shift": Key.shift}'
     status: planned
+  - name: LINUX_BROWSER_COMMANDS
+    title: Linux で探す Chromium 系のブラウザ
+    container: integrations/browser/opener_linux.py
+    usecase: 起こした文字を届ける
+    summary: open_app_window_linux がこの並びで PATH から探す、`--app` を受け付けるブラウザの実行ファイル名
+    value: ("google-chrome", "chromium", "chromium-browser", "microsoft-edge")
+    reason: Ubuntu では入れ方によって実行ファイルの名前が違い、どれか 1 つが入っていればアプリのウィンドウで開ける
+    status: planned
+  - name: NOOP_VOLUME
+    title: 音量を変えない実装が返す音量
+    container: integrations/volume/noop.py
+    usecase: 録音する
+    summary: lower_volume_noop が下げる前の音量として返す値。音量を読まないため最大の 1.0 を置く
+    value: '1.0'
+    status: planned
+  - name: OPENAI_API_KEY_ENV
+    title: OpenAI の API キーの環境変数
+    container: integrations/openai/credentials.py
+    usecase: 常駐アプリを起動する
+    summary: read_openai_api_key が秘匿のファイルより先に読む環境変数の名前（OpenAI の公式 SDK と同じ名前）
+    value: '"OPENAI_API_KEY"'
+    status: planned
+    introduced:
+      pr: 204
+  - name: OPENAI_TIMEOUT_SEC
+    title: OpenAI API の応答を待つ秒数
+    container: integrations/openai/transcriber.py
+    usecase: 録音を文字に起こす
+    summary: 1 回の送信で応答を待つ上限（非機能要件の OpenAIの文字起こしのタイムアウトと再送）
+    value: '600.0'
+    status: planned
+    introduced:
+      pr: 204
+  - name: OPENAI_CONNECT_TIMEOUT_SEC
+    title: OpenAI API への接続を待つ秒数
+    container: integrations/openai/transcriber.py
+    usecase: 録音を文字に起こす
+    summary: 接続を待つ上限（非機能要件の OpenAIの文字起こしのタイムアウトと再送）
+    value: '5.0'
+    status: planned
+    introduced:
+      pr: 204
+  - name: OPENAI_MAX_RETRIES
+    title: OpenAI API へ送信し直す回数
+    container: integrations/openai/transcriber.py
+    usecase: 録音を文字に起こす
+    summary: 429・5xx・タイムアウト・接続できないときに送信し直す上限（最初の 1 回を含まない）
+    value: '2'
+    status: planned
+    introduced:
+      pr: 204
+  - name: OPENAI_RETRY_BASE_SEC
+    title: 送信し直しの待ちの基数
+    container: integrations/openai/transcriber.py
+    usecase: 録音を文字に起こす
+    summary: 指数バックオフの基数。n 回目の待ちは 0 から基数 × 2^n の間の一様な乱数
+    value: '0.5'
+    status: planned
+    introduced:
+      pr: 204
+  - name: OPENAI_RETRY_MAX_SEC
+    title: 送信し直しの待ちの上限
+    container: integrations/openai/transcriber.py
+    usecase: 録音を文字に起こす
+    summary: 送信し直す前に待つ秒数の上限（Retry-After にもかける）
+    value: '8.0'
+    status: planned
+    introduced:
+      pr: 204
+  - name: OPENAI_MAX_AUDIO_BYTES
+    title: OpenAI API へ送信できる音声の大きさ
+    container: integrations/openai/transcriber.py
+    usecase: 録音を文字に起こす
+    summary: 送信する前に確かめる音声の上限（25 MB から要求の本文の固定の消費分を引いた値。非機能要件の OpenAIへ送信する音声の上限）
+    value: '26_204_569'
+    status: planned
+    introduced:
+      pr: 204
+  - name: OPENAI_AUDIO_SUFFIXES
+    title: OpenAI API が受ける音声の拡張子
+    container: integrations/openai/transcriber.py
+    usecase: 録音を文字に起こす
+    summary: 送信する前に確かめる拡張子（公式のリファレンスの file の形式）
+    value: frozenset({".mp3", ".mp4", ".mpeg", ".mpga", ".m4a", ".wav", ".webm"})
+    status: planned
+    introduced:
+      pr: 204
+  - name: TERMINAL_WM_CLASSES
+    title: 端末アプリの WM_CLASS
+    container: integrations/keyboard/sender_linux.py
+    usecase: 起こした文字を届ける
+    summary: send_paste_linux が端末アプリと見なす WM_CLASS の名前（小文字）。インスタンス名かクラス名を小文字にした値がどれかに当たれば端末アプリとする
+    value: frozenset({"gnome-terminal-server", "gnome-terminal", "kgx", "org.gnome.console", "ptyxis", "org.gnome.ptyxis", "tilix", "terminator", "konsole", "xfce4-terminal", "alacritty", "kitty"})
+    reason: 設定のスキーマを変えないため定数で持つ。Ctrl+Shift+V がクリップボードの貼り付けになる端末を並べる。実際に確かめたのは GNOME Terminal（`gnome-terminal-server`。[#211](https://github.com/shuhei1101/voice-paste/pull/211)）だけで、ほかの端末のクラス名と貼り付けのキーは未確認。Ctrl+Shift+V で貼り付けない xterm は入れない
+    status: planned
+  - name: DEVICE_READY_SEC
+    title: 仮想キーボードの準備の待ち
+    container: integrations/keyboard/sender_wayland.py
+    usecase: 起こした文字を届ける
+    summary: 仮想キーボードを作ってから、コンポジターが入力の機器として受け付けるまで待つ秒数（PoC で測った値）
+    value: '0.3'
+    status: planned
+  - name: EVDEV_MODIFIER_CODES
+    title: 修飾キーのキーコードの対応
+    container: integrations/keyboard/sender_wayland.py
+    usecase: 起こした文字を届ける
+    summary: pynput の書式の修飾キーの名前と、evdev のキーコードの対応
+    value: '{"ctrl": ecodes.KEY_LEFTCTRL, "shift": ecodes.KEY_LEFTSHIFT, "alt": ecodes.KEY_LEFTALT, "cmd": ecodes.KEY_LEFTMETA}'
+    status: planned
+  - name: VIRTUAL_KEYBOARD_NAME
+    title: 仮想キーボードの名前
+    container: integrations/keyboard/sender_wayland.py
+    usecase: 起こした文字を届ける
+    summary: UInput の機器の名前。入力の機器の一覧で常駐サービスのものと見分ける
+    value: '"voice-paste-keyboard"'
+    status: planned
+  - name: OPENAI_KEYWORDS_MODEL_PREFIX
+    title: keywords[] と languages[] で渡すモデルの名前の頭
+    container: integrations/openai/transcriber.py
+    usecase: 録音を文字に起こす
+    summary: 設定のモデルの名前がこれで始まれば、手がかりを keywords[]、言語を languages[] で渡す（スナップショットの名前も含める）
+    value: '"gpt-transcribe"'
+    status: planned
+    introduced:
+      pr: 225
+  - name: OPENAI_KEYWORD_FORBIDDEN_CHARS
+    title: keywords[] に入れられない文字
+    container: integrations/openai/transcriber.py
+    usecase: 録音を文字に起こす
+    summary: 含むと OpenAI API が要求ごと拒む文字。改行は手がかりの語に入らない（HINT_WORD_FORBIDDEN_CHARS）ため持たない
+    value: ("<", ">")
+    status: planned
+    introduced:
+      pr: 225
 test_files:
   - tests/unit/voice_paste/integrations/whisper/test_client.py
+  - tests/unit/voice_paste/integrations/openai/test_credentials.py
+  - tests/unit/voice_paste/integrations/openai/test_transcriber.py
   - tests/unit/voice_paste/integrations/volume/test_adapter.py
+  - tests/unit/voice_paste/integrations/volume/test_noop.py
   - tests/unit/voice_paste/integrations/keyboard/test_sender.py
+  - tests/unit/voice_paste/integrations/keyboard/test_sender_linux.py
+  - tests/unit/voice_paste/integrations/keyboard/test_sender_wayland.py
+  - tests/unit/voice_paste/integrations/keyboard/test_active_window_linux.py
   - tests/unit/voice_paste/integrations/browser/test_opener.py
+  - tests/unit/voice_paste/integrations/browser/test_opener_linux.py
   - tests/unit/voice_paste/integrations/http/test_client.py
   - tests/unit/voice_paste/integrations/vad/test_adapter.py
   - tests/unit/voice_paste/integrations/audio/test_probe.py
 external_test_files:
   - tests/external/voice_paste/integrations/volume/test_adapter.py
   - tests/external/voice_paste/integrations/keyboard/test_sender.py
+  - tests/external/voice_paste/integrations/openai/test_transcriber.py
 data_models:
   - name: PostResult
     title: POST の応答
@@ -1012,3 +1965,5 @@ function_types:
       - target: post_json
         notes: httpx で送信する
     status: implemented
+notes:
+  Wayland のキーの送信のテスト: integrations/keyboard/sender_wayland.py の単体テストのファイルは `tests/unit/voice_paste/integrations/keyboard/test_sender_wayland.py`。evdev は Linux だけの依存のため、Windows では skip する。evdev.UInput を差し替えて write の並びで確かめ、実物の `/dev/uinput` は検証環境の VM での通しの確認で確かめる。

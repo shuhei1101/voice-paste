@@ -6,8 +6,8 @@ requirements:
     external_constraint: 録音・貼り付け・システム音量の操作を Windows の機能（pycaw・Win32）で行う
     source_kind: ユーザー要望
     source: https://github.com/shuhei1101/voice-paste/blob/develop/dev/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/1_%E7%9B%AE%E7%9A%84%E3%81%A8%E5%88%B6%E7%B4%84.md
-    value: Windows
-    rationale: '方針の制約（Windows のショートカットから起動する・録音と貼り付けは端末の OS の機能）。Linux・Mac は #9 で扱う'
+    value: Windows・Linux（Ubuntu 24.04 の Xorg のセッションと Wayland のセッション）
+    rationale: '方針の制約（Windows のショートカットから起動する・録音と貼り付けは端末の OS の機能）。Linux は #196 で起動までを対応し、Linux ではシステムの音量を変えない。Linux の起動の手段は起動のスクリプト（`voice-paste.sh`）とログイン時の自動起動の `.desktop` で、OS のパッケージ `xclip`・`libportaudio2`・`libxcb-cursor0` が要る（#199）。Wayland のセッションは、貼り付けのキーと Enter を uinput の仮想のキーボードから送信するため、`/dev/uinput` の権限（udev の規則と `input` グループへの追加の後に再起動）が要る（#200）。Mac は #9 で扱う'
   - name: 入力方式
     english_name: input_method
     category: 動作環境
@@ -241,10 +241,10 @@ requirements:
     category: 可用性
     external_constraint: 制限なし
     source_kind: 制限なし
-    value: '54'
+    value: '55'
     unit: 秒
-    rationale: 'ショートカットから起動したときに前の常駐サービスが動いていれば、終わるよう頼んで名前付きの排他が放されるのを待つ上限。前のプロセスがモデルの読み込み中だと、依頼はイベントループが回るまで処理されないため、内側の待ちはワーカーの立て直しの時間（ready を待つ上限 27 秒）と片付けの待ち（API サーバーの停止 5 秒・ワーカーの終わりを待つ 2 秒 × 2 回）の和 36 秒になる。規約『資源の値の決め方』の入れ子の待ちの余裕を加算した 54 秒にする。余裕は内側の待ち以外の処理の実測で決めるが、test_single_instance_timeout で測った依頼から確保までの時間は内側の待ち（前のプロセスの読み込みと片付け）を含んでおり、それ以外の処理だけを切り出せないため、既定の内側の合計の 50% を置く。上限を超えると後のプロセスは終わり、前のプロセスもキューの依頼で終わるため、常駐サービスが 0 個になる。#22 の実測（PR #41 の `dev/pr/41/テスト結果/20261003154619_1c1e118_非機能要件テスト.log`、2026-10-03）では、前が待機中なら最大 0.78 秒、前がモデルの読み込み中なら最大 8.10 秒だった（再決定し前の実行の `20261003152550_948b9f5_非機能要件テスト.log` では 0.81 秒・12.64 秒）。文字起こしワーカーの立て直しの時間・終わりを待つ時間を再決定したときは、内訳とこの決定値も再導出する'
-    measurement: 実機で常駐サービスが動いている状態から同じ置き場所でもう 1 つ起動し、終わるよう頼んでから名前付きの排他を取れるまでを測る。`--run-e2e` を付けて実行する（Windows 11・NVIDIA GPU）
+    rationale: 'ショートカットから起動したときに前の常駐サービスが動いていれば、終わるよう頼んで名前付きの排他が放されるのを待つ上限。前のプロセスがモデルの読み込み中だと、依頼はイベントループが回るまで処理されないため、内側の待ちはワーカーの立て直しの時間（ready を待つ上限 27 秒）と片付けの待ち（API サーバーの停止 5 秒・ワーカーの終わりを待つ 2 秒 × 2 回・ホットキーの受付の終わりを待つ 0.5 秒）の和 36.5 秒になる。規約『資源の値の決め方』の入れ子の待ちの余裕を加算して整数の秒に切り上げた 55 秒にする。余裕は内側の待ち以外の処理の実測で決めるが、test_single_instance_timeout で測った依頼から確保までの時間は内側の待ち（前のプロセスの読み込みと片付け）を含んでおり、それ以外の処理だけを切り出せないため、既定の内側の合計の 50% を置く。上限を超えると後のプロセスは終わり、前のプロセスもキューの依頼で終わるため、常駐サービスが 0 個になる。#22 の実測（PR #41 の `dev/pr/41/テスト結果/20261003154619_1c1e118_非機能要件テスト.log`、2026-10-03）では、前が待機中なら最大 0.78 秒、前がモデルの読み込み中なら最大 8.10 秒だった（再決定し前の実行の `20261003152550_948b9f5_非機能要件テスト.log` では 0.81 秒・12.64 秒）。文字起こしワーカーの立て直しの時間・終わりを待つ時間を再決定したときは、内訳とこの決定値も再導出する'
+    measurement: 実機で常駐サービスが動いている状態から同じ置き場所でもう 1 つ起動し、終わるよう頼んでから単一インスタンスの排他（Windows は名前付きミューテックス、Linux はロックファイルの flock）を取れるまでを測る。決定値は OS で分けない。`--run-e2e` を付けて実行する（Windows 11・NVIDIA GPU）
     overflow: 上限までに排他を取れなければ、新しいプロセスは起動に失敗した理由をログに書いて終わる（前のプロセスを番号で強制終了しない）
     breakdown:
       - part: ワーカーの立て直しの時間
@@ -256,24 +256,26 @@ requirements:
       - part: ワーカーの終わりを待つ時間
         value: + 4 秒
         notes: 標準入力を閉じてから 2 秒と terminate から 2 秒（文字起こしワーカーの終わりを待つ時間）
+      - part: ホットキーの受付の終わりを待つ時間
+        value: + 0.5 秒
+        notes: 片付けで HotkeyListener.stop が待つ上限（Linux では毎回この上限まで待つ）
       - part: 余裕
-        value: + 18 秒
-        notes: 内側の待ちの合計の 50%（規約『資源の値の決め方』の既定）
+        value: + 18.5 秒
+        notes: 内側の待ちの合計 36.5 秒の 50%（規約『資源の値の決め方』の既定。合計を整数の秒に切り上げる分を含む）
       - part: 合計
-        value: 54 秒
-        notes: '-'
+        value: 55 秒
     tests:
       - name: test_single_instance_timeout
         summary: 常駐中に同じ置き場所でもう 1 つ起動すると、前の常駐サービスが終わり、決定値以内に後のプロセスが排他を取る
         condition: 固めた設定（`tests/nfr/fixtures/whisper.env` の large-v3・cuda）で `python -m voice_paste --data-dir {一時フォルダ}` を起動して待機中（トークンのファイルが書かれる）を待ち、同じ `--data-dir` でもう 1 つ起動する。これを 10 回続ける
         measurement: 後のプロセスのログの「前の常駐サービスに終わるよう頼んだ」から「単一インスタンスを確保した」までの時間（秒）を測り、生の値と中央値・最大を出す。前のプロセスが終わったことも確かめる
-        expected: 10 回とも前のプロセスが終わって後のプロセスが待機中になり、常駐サービスのプロセスが 1 つだけで、最大が 54 秒以内
+        expected: 10 回とも前のプロセスが終わって後のプロセスが待機中になり、常駐サービスのプロセスが 1 つだけで、最大が 55 秒以内
         notes: 測った値から余裕を再決定する。`--run-e2e` が無い環境・`tests/nfr/fixtures/` が無い環境では skip する
       - name: test_single_instance_timeout_when_previous_starting
         summary: 前の常駐サービスがモデルの読み込み中でも、決定値以内に入れ替わり、常駐サービスが 0 個にならない
         condition: 固めた設定で `python -m voice_paste --data-dir {一時フォルダ}` を起動し、ログに「単一インスタンスを確保した」が出た直後（トークンのファイルが書かれる前の、モデルの読み込み中）に同じ `--data-dir` でもう 1 つ起動する。これを 5 回続ける
         measurement: 後のプロセスのログの「前の常駐サービスに終わるよう頼んだ」から「単一インスタンスを確保した」までの時間（秒）を測り、生の値と中央値・最大を出す
-        expected: 5 回とも後のプロセスが待機中になり、常駐サービスのプロセスが 1 つだけで、最大が 54 秒以内
+        expected: 5 回とも後のプロセスが待機中になり、常駐サービスのプロセスが 1 つだけで、最大が 55 秒以内
         notes: '`--run-e2e` が無い環境・`tests/nfr/fixtures/` が無い環境では skip する'
     test_file: tests/nfr/test_single_instance_timeout.py
   - name: エンドポイントへ送信するときのタイムアウト
@@ -509,3 +511,103 @@ requirements:
     status: planned
     introduced:
       pr: 171
+  - name: ホットキーの受付の終わりを待つ時間
+    english_name: hotkey_stop_timeout
+    category: 可用性
+    external_constraint: Linux（Xorg）の pynput 1.8.2 は、GlobalHotKeys.stop() の後も次のキー入力が届くまでリスナーのスレッドが終わらない（python-xlib の record の応答待ち）。Windows は停止がすぐに届く
+    source_kind: 外部ライブラリの制限
+    source: https://github.com/shuhei1101/voice-paste/pull/202#discussion_r4396904459
+    value: '0.5'
+    unit: 秒
+    rationale: スレッドの終わりを待つのは、設定画面を開くとき・張り直すとき・終了の片付けで、いずれもメインスレッドを塞ぐ。Windows の待ちの実測が無いため、メインスレッドを塞いでも操作の応答が遅れて見えにくい 0.5 秒を仮に置き、実装の工程で Windows の stop から join が戻るまでを測って、その p99.9 に 50% の余裕を足しても 0.5 秒に収まることを確かめる。上限で手放したスレッドは daemon で、次のキー入力で終わり、プロセスの終了を妨げない
+    measurement: Windows の実機で、pynput の GlobalHotKeys を始めてから stop し、join が戻るまでの時間を 100 回測る
+    overflow: 上限を過ぎたら WARNING のログを書き、スレッドを手放して進む
+    refs:
+      - dev/設計書/モジュール構成/常駐アプリ/ホットキーと画面.py#constants[HOTKEY_STOP_TIMEOUT_SEC]
+    status: planned
+  - name: OpenAIの文字起こしのタイムアウトと再送
+    english_name: openai_transcription_retry
+    category: 耐障害
+    external_constraint: OpenAI は文字起こしの応答時間を保証しない。公式の Python SDK は既定でタイムアウト 600 秒・接続 5 秒・再送 2 回・待ち 0.5 秒から上限 8 秒で、429・5xx・タイムアウト・接続の失敗を再送する
+    source_kind: 外部 API の制限
+    source: https://github.com/openai/openai-python/blob/main/src/openai/_constants.py
+    value: タイムアウト 600 秒・接続 5 秒・再送 2 回・間隔の基数 0.5 秒・待ちの上限 8 秒
+    rationale: 規約『資源の値の決め方』で導く。下流（OpenAI API）の実測が無いため、公開仕様の値として公式の SDK が公開する既定値を使い、コードでは定数で明示する。外部疎通テストでは、約 3 秒の音声で 1.97 秒（2026-10-28、1 回）。実測の p99.9 + 50% への見直しは [#209](https://github.com/shuhei1101/voice-paste/issues/209) で行う。再送は 1 層だけで、指数バックオフとフルジッター（再送の n 回目の前に、0 以上、基数 × 2^(n−1) 以下の乱数の秒数を待つ）にし、Retry-After があれば従う。文字起こしは同じ音声を送り直しても結果が変わらないため再送できる（課金は送信ごとにかかる）
+    measurement: 単体テストで httpx.MockTransport に 503・タイムアウト・429 を返させ、再送の回数と待ちを確かめる。外部疎通テストで実際の応答の秒を記録する
+    overflow: 再送しても失敗したら EngineError にして、文字起こしの失敗として扱う（録音は履歴に残る）
+    breakdown:
+      - part: タイムアウト
+        value: 600 秒
+        notes: 公式の SDK の既定。長い録音（25 MB まで）の送信と処理を含む
+      - part: 接続
+        value: 5 秒
+        notes: 公式の SDK の既定
+      - part: 再送の回数の上限
+        value: 2 回
+        notes: 最初の 1 回と合わせて最大 3 回
+      - part: 間隔の基数
+        value: 0.5 秒
+        notes: 公式の SDK の既定
+      - part: 待ちの上限（Retry-After の上限）
+        value: 8 秒
+        notes: 公式の SDK の既定。Retry-After がこれを超えるときは 8 秒で頭打ちにする
+      - part: 文字起こしの最長
+        value: 1,816 秒
+        notes: 3 回 × 600 秒 + 待ち 8 秒 × 2。待ちが全て上限のとき
+    tests:
+      - name: test_openai_transcription_retry
+        summary: 一時的な失敗を上限まで送信し直す
+        condition: httpx.MockTransport が 500 を 3 回返す。_sleep と _uniform を差し替える
+        measurement: 要求の回数と _uniform に渡った上限
+        expected: 要求は 3 回で、_uniform の上限は 0.5・1.0、EngineError が送出される
+    refs:
+      - dev/設計書/外部API/OpenAI#
+    status: planned
+    introduced:
+      pr: 204
+    test_file: tests/nfr/test_openai_transcription_retry.py
+  - name: OpenAIへ送信する音声の上限
+    english_name: openai_audio_limit
+    category: 性能
+    external_constraint: 音声のファイルは 25 MB 以下。形式はガイドでは mp3・mp4・mpeg・mpga・m4a・wav・webm（API リファレンスは flac・ogg も挙げる）
+    source_kind: 外部 API の制限
+    source: https://platform.openai.com/docs/guides/speech-to-text
+    value: 26,204,569 バイト以下。拡張子が mp3・mp4・mpeg・mpga・m4a・wav・webm
+    unit: バイト
+    rationale: 規約『資源の値の決め方』の外部の上限がある量として、上限から要求の本文の固定の消費分と安全率を引き、送信する前に手元で確かめて弾く（上限が音声のファイルではなく multipart の本文全体と比べられても超えないようにする）。形式は公開された 2 つの一覧のうち狭い方（ガイド）に合わせる。ブラウザの本文の上限（100 MB 未満）より小さいため、この値を超えるブラウザの音声は OpenAI のエンジンではジョブの失敗になる
+    overflow: 送信せずに EngineError にして、文字起こしの失敗として扱う（録音は履歴に残る）
+    tests:
+      - name: test_openai_audio_limit_when_over
+        summary: 上限を 1 バイト超える音声は送信しない
+        condition: 26,204,569 バイトと 26,204,570 バイトの webm。モデルは gpt-transcribe、手がかりは 1 バイトの語 56 個を読点でつないだ 221 バイト
+        measurement: httpx.MockTransport に届いた要求の数
+        expected: 26,204,569 バイトは 1 回届き、届いた要求の本文が 26,214,400 バイト以下。26,204,570 バイトは届かず EngineError
+    refs:
+      - dev/設計書/外部API/OpenAI#
+    status: planned
+    introduced:
+      pr: 204
+    breakdown:
+      - part: 外部の上限
+        value: 26,214,400 バイト
+        notes: 25 MB（25 × 1,048,576）
+      - part: 固定の消費分
+        value: − 8,192 バイト
+        notes: 手がかりを keywords[] で渡すときが最も大きい。手がかりの上限 222 バイト（HINT_MAX_BYTES）に 1 バイトの語を読点（3 バイト）でつなぐと最大 56 語で、語ごとのパートの境界・Content-Disposition（100 バイト未満）と、model・languages[]・response_format・file の各パートのヘッダー（200 バイト未満）を含め、切り上げて 8 KiB を見込む
+      - part: 安全率
+        value: − 1,639 バイト
+        notes: 固定の消費分の 20%（規約『資源の値の決め方』の既定値。1,638.4 を切り上げ）
+    test_file: tests/nfr/test_openai_audio_limit.py
+  - name: OpenAIの文字起こしの料金
+    english_name: openai_transcription_cost
+    category: コスト
+    external_constraint: gpt-transcribe は音声 1 分あたり $0.0045
+    source_kind: 外部 API の制限
+    source: https://developers.openai.com/api/docs/models/gpt-transcribe
+    value: 既定のモデルは gpt-transcribe。常駐アプリは料金の上限を持たない
+    rationale: 文字起こし 1 回の料金は音声の長さで決まり、利用者が契約する OpenAI のアカウントにかかる。上限は利用者が OpenAI の管理画面の利用の上限で持つ（超えると 429 が返り、再送しても失敗したら文字起こしの失敗になる）。送信し直すごとに課金されうるため、再送は一時的な失敗だけにする
+    refs:
+      - dev/設計書/外部API/OpenAI#
+    status: planned
+    introduced:
+      pr: 204

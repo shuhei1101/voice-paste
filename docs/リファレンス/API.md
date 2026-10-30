@@ -7,7 +7,7 @@
 
 `/sessions` の要求には次を付ける。
 
-- `Authorization: Bearer {トークン}`。トークンは起動のたびに再生成し、`%LOCALAPPDATA%\voice-paste\api_token` に JSON（`port`・`token`）で書かれる。呼び出し元はこのファイルを読む
+- `Authorization: Bearer {トークン}`。トークンは起動のたびに再生成し、`%LOCALAPPDATA%\voice-paste\api_token`（Linux は `~/.local/share/voice-paste/api_token`）に JSON（`port`・`token`）で書かれる。呼び出し元はこのファイルを読む
 - `Host` は `127.0.0.1` か `localhost`
 - `Origin` は付けない（ブラウザのページからの要求は断る）
 
@@ -15,6 +15,8 @@
 API から始めた録音は録音の画面を出さず、起こした文字は応答ではなく、開始で指定した返送先へ届く。
 
 `/web/` の下の要求（外の端末のブラウザ向け）は、トークンを求めず、`Host` と `Origin` で通す。
+`/web/` の下の API は、常駐サービスが Windows で動いているときだけ使える。
+Linux では `Origin` によらず 404 を返す。
 
 - `Host` は `127.0.0.1:{ポート}` か `localhost:{ポート}`。ゲートウェイ（shuhdev-gateway）を通した要求は `localhost:{ポート}` で届く
 - `Origin` は、設定の `api.allowed_web_origins`（[起動と設定](../使い方/起動と設定.md#外の端末のブラウザに許す-origin)）の一覧にあるものだけを通す。`POST` は `Origin` が必須で、`GET` は `Origin` が無いか一覧にあれば通す
@@ -65,9 +67,14 @@ API から始めた録音は録音の画面を出さず、起こした文字は�
 次の例は、トークンのファイルを読んで開始を呼ぶ。
 
 ```python
-import json, os, urllib.request
+import json, os, sys, urllib.request
+from pathlib import Path
 
-info = json.load(open(os.path.expandvars(r"%LOCALAPPDATA%\voice-paste\api_token")))
+if sys.platform == "win32":
+    token_path = Path(os.environ["LOCALAPPDATA"]) / "voice-paste" / "api_token"
+else:
+    token_path = Path.home() / ".local" / "share" / "voice-paste" / "api_token"
+info = json.loads(token_path.read_text(encoding="utf-8"))
 request = urllib.request.Request(
     f"http://127.0.0.1:{info['port']}/sessions",
     data=json.dumps({"callback_url": "http://127.0.0.1:9000/voice-paste/result"}).encode(),
@@ -324,6 +331,7 @@ API から始めた録音の結果を、開始で指定した `callback_url` へ
 起こした文字は、`glossary_preset` で指定した用語集のプリセット（省略時は、設定で補正に使うプリセット）で補正し、PC の履歴にも残す。
 同じ音声を 2 回送信すると、別のジョブが 2 つ積まれる。
 音声は録れた形式（webm・ogg・mp4 など）のまま文字起こしに渡し、WAV へは変換しない。
+PC の[文字起こしのエンジン](../使い方/起動と設定.md#文字起こしのエンジン)が OpenAI API のときは、ogg の音声と 26,209,484 バイトを超える音声を受け付けても起こせず、ジョブは失敗になる。
 
 ### リクエスト
 
@@ -349,7 +357,7 @@ Content-Disposition: form-data; name="glossary_preset"
 
 | フィールド | 必須 / 任意 | 説明 |
 | --- | --- | --- |
-| `audio` | 必須 | 送信する音声。webm・ogg・mp4・MP3・WAV など、音声のストリームを読める形式。形式は `Content-Type` やファイル名ではなく、中身で判定する |
+| `audio` | 必須 | 送信する音声。webm・ogg・mp4・MP3・WAV など、音声のストリームを読める形式。形式は `Content-Type` やファイル名ではなく、中身で判定する。文字起こしのエンジンが OpenAI API のときは ogg を起こせない |
 | `glossary_preset` | 任意 | この音声の補正に使う用語集のプリセットの名前（[用語集のプリセットの一覧を取得する](#用語集のプリセットの一覧を取得する)の `presets` にある名前。大文字と小文字は区別する）。省略時・空文字のときは、文字起こしを終えた時点で設定で補正に使うプリセットを使う。送信の後に設定でプリセットを切り替えても、この音声は指定したプリセットで補正する |
 
 本文は 100,000,000 バイト未満にする（multipart の境界とヘッダーを含めて数える）。
@@ -398,6 +406,7 @@ Content-Disposition: form-data; name="glossary_preset"
   "job_id": "q3Vb8sXk2mJf0tLw9eRzAg",
   "state": "running",
   "progress": 0.42,
+  "reports_progress": true,
   "text": null,
   "error": null
 }
@@ -407,7 +416,8 @@ Content-Disposition: form-data; name="glossary_preset"
 | --- | --- | --- |
 | `job_id` | str | 要求の `job_id` |
 | `state` | str | `queued`（文字起こし待ち）・`running`（文字起こし中）・`done`（完了）・`failed`（失敗） |
-| `progress` | float | 進み具合（0.0〜1.0）。`queued` は 0.0、`running` は起こし終えた区間の終わりの時刻 ÷ 音声の秒数、`done` は 1.0、`failed` は失敗した時点の値 |
+| `progress` | float | 進み具合（0.0〜1.0）。`queued` は 0.0、`running` は起こし終えた区間の終わりの時刻 ÷ 音声の秒数、`done` は 1.0、`failed` は失敗した時点の値。`reports_progress` が `false` のときは `running` の間も 0.0 |
+| `reports_progress` | bool | 設定の文字起こしのエンジンが途中の進みを返すか。`local_whisper` は `true`、`openai` は `false` |
 | `text` | str または null | `done` のときだけ文字列。文頭・文末の文言を削除した後に、用語集で補正した文字（話し声が無ければ空文字）。それ以外は `null` |
 | `error` | str または null | `failed` のときだけ文字列。失敗の理由。それ以外は `null` |
 

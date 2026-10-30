@@ -32,6 +32,14 @@ def stack(tmp_path: Path) -> Iterator[Stack]:
 
 
 @pytest.fixture
+def linux_stack(tmp_path: Path) -> Iterator[Stack]:
+    """外の端末のブラウザの機能を組み込まない app（Linux の常駐サービス）を空きポートに立てた一式を返す。ブラウザの音声のキューは始めない。"""
+    built = build_stack(tmp_path, web_enabled=False)
+    yield built
+    stop_stack(built)
+
+
+@pytest.fixture
 def stack_with_settings(tmp_path: Path) -> Iterator[Callable[[Settings], Stack]]:
     """設定を受けて、その設定で本物の app を立てた一式を作る関数を返す。テストの後に立てた一式を止める。"""
     built: list[Stack] = []
@@ -75,6 +83,7 @@ def web_stack(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Calla
         worker: bool = True,
         max_pending: int = WEB_QUEUE_LIMIT,
         max_finished: int = WEB_FINISHED_JOBS_KEPT,
+        reports_progress: bool = True,
         body_limit: int | None = None,
         settings: Settings | None = None,
     ) -> Stack:
@@ -93,6 +102,7 @@ def web_stack(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Calla
             web_worker=worker,
             web_max_pending=max_pending,
             web_max_finished=max_finished,
+            web_reports_progress=reports_progress,
             settings=settings,
         )
         built.append(stack)

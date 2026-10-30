@@ -43,6 +43,9 @@ overview:
     - id: GW
       label: ゲートウェイ（shuhdev-gateway・Cloudflare Access）
       kind: external
+    - id: OAI
+      label: OpenAI API
+      kind: external
   edges:
     - from: U
       to: APP
@@ -80,6 +83,9 @@ overview:
     - from: GW
       to: APP
       label: /web/ の下（127.0.0.1・Origin の許可リスト）
+    - from: APP
+      to: OAI
+      label: 録音（HTTPS・API キー。エンジンが openai のとき）
   subgraphs:
     - id: SYS
       label: voice-paste
@@ -97,13 +103,13 @@ subsystems:
     scope: desktop-app
     role: ショートカットから起動する 1 つの常駐サービス。ホットキー・トレイ・API のどの入口からも同じセッション（録音 → 文字起こし → 補正 → 出力先）を同時に 1 つだけ動かし、画面とトレイを出す（ローカルの文字起こしは文字起こしワーカーに任せる）
     runtime: Python 3.11
-    runs_on: ユーザーの端末（Windows）
+    runs_on: ユーザーの端末（Windows。Linux は Ubuntu 24.04 の Xorg のセッションと Wayland のセッション）
     implementation: src/voice_paste/main.py
   - name: 文字起こしワーカー
     scope: transcription-worker
     role: 常駐アプリの子プロセスとしてローカルの Whisper のモデルを持ち、標準入出力の JSON Lines で受けた録音を文字に起こす
     runtime: Python 3.11
-    runs_on: ユーザーの端末（Windows。常駐アプリが起動し、落ちたら再起動する）
+    runs_on: ユーザーの端末（Windows か Linux。常駐アプリが起動し、落ちたら再起動する）
     implementation: src/voice_paste/integrations/whisper/worker.py
 lead: voice-paste のサブシステムと、ユーザー・貼り付け先のアプリ・文字起こしのモデルの取得元との境界。
 external_systems:
@@ -149,9 +155,23 @@ external_systems:
     status: planned
     introduced:
       pr: 171
+  - name: OpenAI API
+    purpose: 設定のエンジンが openai のときに、録音とブラウザの音声を文字に起こす（文字起こしワーカーの代わり）
+    direction: 双方向
+    protocol: 'HTTPS の POST（multipart。`Authorization: Bearer`。ベース URL は設定の transcription.openai.base_url）'
+    detail: dev/設計書/外部API/OpenAI#
+    test_file: tests/external/voice_paste/integrations/openai/test_transcriber.py
+    cost: 従量課金（既定の gpt-transcribe は音声 1 分あたり $0.0045）。録音が端末の外へ送信される
+    refs:
+      - dev/設計書/非機能要件/非機能要件#requirements[OpenAIの文字起こしのタイムアウトと再送]
+      - dev/設計書/非機能要件/非機能要件#requirements[OpenAIの文字起こしの料金]
+    status: planned
+    introduced:
+      pr: 204
 constraints: |-
   - Windows で動かす（トレイ・ホットキー・クリップボード・キー入力・システムの音量を Windows の機能で扱う）
-  - Windows のショートカットから起動できる（手段はバッチファイルに限らない）
+  - Linux（Ubuntu 24.04 の Xorg のセッションと Wayland のセッション）でも起動できる。OS で分かれる実装は配線で選び、Linux ではシステムの音量を変えず、ローカルの文字起こしの既定は CPU にする
+  - Windows のショートカットから起動できる（手段はバッチファイルに限らない）。Linux は起動のスクリプト（`voice-paste.sh`）から起動でき、ログイン時の自動起動とアプリの一覧の `.desktop` の雛形を持つ
   - ビルドせず、master のソースをそのまま動かす
   - Python で書く
   - API は 127.0.0.1 だけで待ち受ける。`/web/` の外は起動ごとのトークンで照合し、`/web/` の下はトークンを求めず Host と Origin の許可リストで通す（外からの認証はゲートウェイの Cloudflare Access が持つ）

@@ -32,5 +32,7 @@
 | [pywin32](./pywin32.yaml) | テストが Windows のウィンドウ・マウス・キーを操作する |
 | [onnxruntime](./onnxruntime.yaml) | 連続録音の話し声を Silero VAD の ONNX で判定する |
 | [python-multipart](./python-multipart.yaml) | ブラウザから送信された multipart の音声を FastAPI の UploadFile で受け取る |
+| [python-xlib](./python-xlib.yaml) | Linux でアクティブなウィンドウの WM_CLASS を Xorg から読む |
+| [evdev](./evdev.yaml) | Linux の Wayland のセッションで、仮想キーボードから貼り付けのキーと Enter を送信する |
 
 <!-- /table -->

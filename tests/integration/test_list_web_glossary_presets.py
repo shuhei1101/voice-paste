@@ -85,3 +85,20 @@ def test_error_when_origin_not_allowed(
     assert "秘密の名前" not in response.text
     assert f"localhost:{stack.port}" in caplog.text
     assert "http://evil.example" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        pytest.param(None, id="without_origin"),
+        pytest.param("http://evil.example", id="not_allowed_origin"),
+    ],
+)
+def test_error_when_running_on_linux(linux_stack: Stack, origin: str | None) -> None:
+    """常駐サービスが Linux で動いているときは、Origin によらず 404 を返す（異常系）。"""
+    # 実行
+    response = linux_stack.get_glossary_presets(origin=origin)
+
+    # 検証
+    assert response.status_code == 404
+    assert response.headers["content-type"].startswith("application/problem+json")

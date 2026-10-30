@@ -2,16 +2,18 @@ title: "開発コマンド"
 categories:
   - name: 取り込み後の追従（pull 後）
     commands: |-
-      1. `uv.lock` どおりに環境を合わせる
+      1. `uv.lock` どおりに環境を合わせる（ローカルの Whisper を使う環境は `local-whisper` の extra を含める）
 
       ```bash
-      uv.exe sync --frozen
+      uv.exe sync --frozen --extra local-whisper
       ```
+
+      extra を含めない環境は `uv.exe sync --frozen`
     effects: '`.venv/` を `uv.lock` のバージョンに再作成する。依存のダウンロードが要り、`.venv/` が無いときは時間がかかる'
     verification:
       state: 済
-      date: '2026-10-20'
-      detail: '`.venv/` の無い作業ツリーで流し、`uv.lock` どおりに依存が入ることを確かめた'
+      date: '2026-10-28'
+      detail: '`.venv/` を新しく作るフォルダで `uv sync --frozen --extra local-whisper` を流し、`uv.lock` どおりに faster-whisper・ctranslate2・nvidia-* を含む依存が入ることを確かめた。すでにある `.venv/` で流すとプロジェクトだけ再インストールすることも確かめた'
   - name: 依存の追加・更新・削除
     commands: |-
       1. 依存を追加する
@@ -68,8 +70,113 @@ categories:
       state: 済
       date: '2026-10-24'
       detail: 'PR #171 の作業ツリー（WSL・Node.js v24.14.0・npm 11.9.0）で、`node_modules/` を削除してから `npm ci` で `package-lock.json` どおりに入れ、`npm run build` が `assets/app.ts` から `assets/app.js` を生成し（再実行しても差分が出ない）、`npm run dev` が `Found 0 errors. Watching for file changes.` で保存を待つことを確かめた。`npm install --save-dev typescript eslint typescript-eslint @eslint/js` で `package.json` と `package-lock.json` が書き換わることも確かめた'
-lead: 依存を追加する・上げる・外すときと、取り込んだ変更に手元の環境を追従させるときに打つコマンド。
+  - name: 環境構築（クローン直後）
+    prerequisites:
+      - クローンしたリポジトリの直下で流す
+    commands: |-
+      1. `uv.lock` どおりに `.venv/` を作る（dev グループを含む。ローカルの Whisper の依存（faster-whisper・nvidia-*）は含まない。OpenAI API で文字を起こす環境はこれで足りる）
+
+      Windows:
+
+      ```bash
+      uv.exe sync --frozen
+      ```
+
+      Ubuntu 24.04:
+
+      ```bash
+      uv sync --frozen
+      ```
+
+      2. ローカルの Whisper で文字を起こす環境は、`local-whisper` の extra を含めて作る
+
+      Windows:
+
+      ```bash
+      uv.exe sync --frozen --extra local-whisper
+      ```
+
+      Ubuntu 24.04:
+
+      ```bash
+      uv sync --frozen --extra local-whisper
+      ```
+    effects: '`.venv/` を `uv.lock` のバージョンで作る。依存のダウンロードが要る。Ubuntu では `pycaw`・`comtypes`・`pywin32` は `sys_platform == "win32"` の条件で入らない。extra を含めない環境では faster-whisper・nvidia-* が入らず、設定の `transcription.engine` が `local_whisper` のままだと常駐アプリは起動を止める（`openai` を選ぶと起動できる）'
+    verification:
+      state: 済
+      date: '2026-10-28'
+      detail: 検証環境の VM（Ubuntu 24.04・uv 0.13.6）の新しいフォルダに作業ツリー（feat/platform/linux-startup）の追跡ファイルを置いて `uv sync --frozen` を流し、成功することを確かめた（faster-whisper を extra へ移す前の構成）。`pycaw`・`comtypes`・`pywin32` は入らず、dev グループの `pytest`・`import-linter` は入る。続けて VM で単体テスト（684 passed、21 skipped）と `lint-imports`（4 契約とも KEPT）を流した。extra へ移した後は、Windows の uv（WSL からは `uv.exe`）で、作業ツリー（feat/transcription/openai-engine）に新しい `.venv/` を `uv sync --frozen` で作り、extra を含めない環境に faster-whisper が入らないこと（`importlib.util.find_spec("faster_whisper")` が None）と、その環境で単体テストと結合テスト（1394 passed、12 skipped）が通ることを確かめた。`uv sync --frozen --extra local-whisper` では faster-whisper と nvidia-* が入ることを確かめた。Ubuntu 24.04 の VM では、extra を含めない構成を確かめていない
+  - name: 起動・停止
+    prerequisites:
+      - Ubuntu 24.04 の Xorg のセッションの端末で、『環境構築（クローン直後）』を流しておく
+      - クリップボード・録音・Qt の xcb プラグインが使う OS のパッケージを `sudo apt install xclip libportaudio2 libxcb-cursor0` で入れておく
+      - Wayland のセッションで流すときは、キーの送信に使う `/dev/uinput` の権限を設定して再起動しておく（手順 1）
+    commands: |-
+      1. Wayland のセッションで流すときだけ、`/dev/uinput` の権限を設定する（sudo が要る。設定の後に再起動する。Xorg のセッションでは要らない）
+
+      ```bash
+      echo 'KERNEL=="uinput", GROUP="input", MODE="0660", OPTIONS+="static_node=uinput"' | sudo tee /etc/udev/rules.d/99-voice-paste-uinput.rules
+      sudo usermod -aG input "$USER"
+      sudo reboot
+      ```
+
+      2. 検証環境の VM のセッションを切り替える（VM は `/etc/gdm3/custom.conf` の `WaylandEnable=false` で Xorg のセッションにしている）
+
+      Wayland のセッションに切り替える:
+
+      ```bash
+      sudo sed -i 's/^WaylandEnable=false/#WaylandEnable=false/' /etc/gdm3/custom.conf
+      sudo systemctl restart gdm3
+      ```
+
+      Xorg のセッションへ戻す:
+
+      ```bash
+      sudo sed -i 's/^#WaylandEnable=false/WaylandEnable=false/' /etc/gdm3/custom.conf
+      sudo systemctl restart gdm3
+      ```
+
+      3. 常駐サービスを起動する
+
+      ```bash
+      .venv/bin/python -m voice_paste
+      ```
+    effects: トレイにアイコンを出し、ホットキーを受け付け、録音の開始を待つ。同じ設定の置き場所で 2 つ目を起動すると、前のプロセスに終わるよう頼んでから起動する。手順 1 は `/etc/udev/rules.d/` に規則を置き、ユーザーを `input` グループへ追加するため、sudo と再起動が要る（グループの追加はログアウトでは反映されない）。手順 2 は gdm3 を再起動するため、ログイン中のセッションが終わる
+    verification:
+      state: 済
+      date: '2026-10-28'
+      detail: '検証環境の VM で、`--data-dir` に一時のフォルダ（`settings.toml` で `transcription.local_whisper.model = "tiny"`）を渡して `.venv/bin/python -m voice_paste` を起動し、エンジン・API・ホットキーが立ち上がること（ログの `常駐サービスを始めた`）を確かめた。同じ設定の置き場所で 2 つ目を起動すると、`前の常駐サービスに終わるよう頼んだ` の約 0.8 秒後に前のプロセスが終わり（ホットキーの受付は 0.5 秒の上限で手放した）、2 つ目が排他を取って起動することを確かめた。VM に `libxcb-cursor0` が入っていないため、deb を `apt-get download` で取得して `dpkg -x` で展開し、`LD_LIBRARY_PATH` で読ませて起動した（VM のパッケージは変えていない）。VM の Xorg のセッションは画面のロック中で GNOME のトレイの拡張が無効のため、トレイのアイコンは VM 内の Xephyr に `stalonetray`（XEmbed のトレイの受け手。deb を展開して使用）を立てて確かめ、緑のマイクのアイコンが出ることを撮影した。GNOME の実際のトレイ（`ubuntu-appindicators`）では確かめていない。手順 1 の権限の設定と手順 2 のセッションの切り替えは、この PR では走らせて確かめていない（sudo と再起動・gdm3 の再起動が要る。PoC #221 で同じ内容の手順を VM に当てて Wayland のセッションで `/dev/uinput` を開けた）'
+  - name: 管理作業
+    prerequisites:
+      - 検証環境の VM（Ubuntu 24.04・PipeWire）の Xorg のセッションで、『起動・停止』の前提を満たしておく
+    commands: |-
+      VM でマイクの代わりに WAV を流して録音を確かめる。
+
+      1. PipeWire の仮想マイク（FIFO を読む入力）を作り、既定の入力にする
+
+      ```bash
+      pactl load-module module-pipe-source source_name=vp_mic file=/tmp/vp-mic.fifo format=s16le rate=16000 channels=1
+      pactl set-default-source vp_mic
+      ```
+
+      2. 常駐サービスを起動して録音を始めた後、WAV（16 kHz・モノラル・16 bit）を実時間の速さで仮想マイクへ流す
+
+      ```bash
+      .venv/bin/python tests/support/feed_mic.py {WAV のパス} --fifo /tmp/vp-mic.fifo
+      ```
+
+      3. 仮想マイクを外す
+
+      ```bash
+      pactl unload-module module-pipe-source
+      ```
+    effects: VM の既定の入力が仮想マイクに切り替わる。外した後は `pactl set-default-source` で元の入力に戻す
+    verification:
+      state: 済
+      date: '2026-10-29'
+      detail: PoC（#215）で 1・3 を流し、2 は同じ中身の `poc/feed_mic.py`（WAV を 0.1 秒ごとに実時間で FIFO へ書く）で流した。録れた RMS が流した WAV と一致した（比 0.9999）
+lead: クローン直後に環境を作る・常駐サービスを起動するとき、依存を追加する・上げる・外すとき、取り込んだ変更に手元の環境を追従させるときに打つコマンド。
 prerequisites:
-  - リポジトリの直下で、Windows の uv（WSL からは `uv.exe`）で流す
+  - リポジトリの直下で、Windows では Windows の uv（WSL からは `uv.exe`）、Ubuntu 24.04 では Linux の uv（`uv`）で流す。各分類のコマンドは Windows の uv で書き、Ubuntu では `uv.exe` を `uv` に読み替える
 refs:
   - dev/設計書/モジュール構成/常駐アプリ/起動と配線.py#

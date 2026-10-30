@@ -21,9 +21,9 @@ goto check
 :sync
 echo [%date% %time%] uv: %UV_EXE% >> "%BAT_LOG%"
 echo Syncing .venv with uv sync --frozen. See log: %BAT_LOG%
-echo [%date% %time%] running: uv sync --frozen >> "%BAT_LOG%"
+echo [%date% %time%] running: uv sync --frozen --extra local-whisper >> "%BAT_LOG%"
 pushd "%~dp0"
-call "%UV_EXE%" sync --frozen >> "%BAT_LOG%" 2>&1
+call "%UV_EXE%" sync --frozen --extra local-whisper >> "%BAT_LOG%" 2>&1
 set "SYNC_CODE=%ERRORLEVEL%"
 popd
 echo [%date% %time%] uv sync --frozen exited with code %SYNC_CODE% >> "%BAT_LOG%"

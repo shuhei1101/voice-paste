@@ -49,6 +49,13 @@ NOTIFICATIONS = [
         "ポート 47823 で待ち受けを始められません。ホットキーとトレイからの録音は使えます。",
         id="api_unavailable",
     ),
+    pytest.param(
+        "delivery_failed",
+        "貼り付けのキーを送信できません。起こした文字はクリップボードにあります",
+        "届けられませんでした",
+        "貼り付けのキーを送信できません。起こした文字はクリップボードにあります。起こした文字は履歴に残っています。",
+        id="delivery_failed_when_wayland_key_sender_not_opened",
+    ),
 ]
 """知らせの種類・理由・見出し・本文（画面設計の「知らせの種類ごとの文言」の表）。"""
 
@@ -106,12 +113,13 @@ def test_tray_notification_not_visible_when(
     [
         ("engine_unavailable", "モデルを読めません", "起動できませんでした"),
         ("settings_invalid", "api.port: 1024〜65535 の値を入れてください", "起動できませんでした"),
+        ("paste_unavailable", "Permission denied", "貼り付けを使用できません"),
     ],
 )
 def test_tray_notification_when_startup_failed(
     make_ui: Callable[..., Ui], shown: MagicMock, event: str, reason: str, title: str
 ) -> None:
-    """文字起こしのエンジンを準備できなかった・設定ファイルを読めなかった起動のときも、通知を出す。"""
+    """文字起こしのエンジンを準備できなかった・設定ファイルを読めなかった・貼り付けのキーを送信する仮想のキーボードを作れなかった起動のときも、通知を出す。"""
     # 準備
     ui = make_ui()
 
@@ -216,6 +224,22 @@ def test_notification_body_when_settings_invalid(
     # 検証
     assert shown.call_args.args[1] == (
         "設定ファイルを読み込めませんでした（api.port が合わない）。設定フォルダの settings.toml を修正して再起動してください。"
+    )
+
+
+def test_notification_body_when_paste_unavailable(
+    make_ui: Callable[..., Ui], shown: MagicMock
+) -> None:
+    """貼り付けのキーを送信できない起動の本文は、理由と /dev/uinput の権限の設定の手順と「コピーのみ」を使えることを出す。"""
+    # 準備
+    ui = make_ui()
+
+    # 実行
+    ui.tray.show_failure("paste_unavailable", "Permission denied")
+
+    # 検証
+    assert shown.call_args.args[1] == (
+        "貼り付けのキーを送信できません（Permission denied）。/dev/uinput の権限を設定して PC を再起動してください（使い方「起動と設定」）。「コピーのみ」は使えます。"
     )
 
 

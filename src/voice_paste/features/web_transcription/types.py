@@ -132,3 +132,6 @@ class WebApiDeps:
 
     list_glossary_presets: ListGlossaryPresetsFn
     """今の設定の用語集のプリセットの名前の一覧と、設定で選んでいるプリセットの名前を返す。"""
+
+    reports_progress: bool
+    """設定の文字起こしのエンジンが、起こしている途中の進みを返すか（起動時の transcription.engine が local_whisper か）。"""

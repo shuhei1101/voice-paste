@@ -35,6 +35,7 @@ def test_normal(stack: Stack, tmp_path: Path) -> None:
         "job_id": job_id,
         "state": "done",
         "progress": 1.0,
+        "reports_progress": True,
         "text": "補正後の文",
         "error": None,
     }
@@ -76,6 +77,34 @@ def test_normal_when_in_progress(stack: Stack, tmp_path: Path) -> None:
         None,
         None,
     )
+    assert running["reports_progress"] is True
+    assert queued["reports_progress"] is True
+
+
+def test_normal_when_engine_reports_no_progress(
+    web_stack: Callable[..., Stack], tmp_path: Path
+) -> None:
+    """設定のエンジンが進みを返さないとき、文字起こし中のジョブに進みを返さないことを添えて返す（正常系）。"""
+    # 準備: 進みを返さないエンジンで立て、1 件を進みを知らせないまま止める
+    stack = web_stack(reports_progress=False)
+    started = {"count": 0}
+
+    def hook(audio_path: Path, on_progress: Callable[[float, float], None]) -> None:
+        started["count"] += 1
+        stack.engine.release.wait(timeout=5.0)
+
+    stack.engine.hook = hook
+    job_id = stack.submit_audio(make_audio("webm", tmp_path))
+    assert wait_until(lambda: started["count"] == 1)
+
+    # 実行
+    response = stack.get_job(job_id)
+
+    # 検証
+    body = response.json()
+    assert response.status_code == 200
+    assert (body["state"], body["progress"], body["reports_progress"]) == ("running", 0.0, False)
+    assert (body["text"], body["error"]) == (None, None)
 
 
 def test_normal_when_failed(stack: Stack, tmp_path: Path) -> None:

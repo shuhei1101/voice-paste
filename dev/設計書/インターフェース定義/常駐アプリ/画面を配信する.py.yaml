@@ -113,20 +113,24 @@ flows:
       - どちらも 404 が返り、置き場所の外のファイルの中身を返していない
     test: test_error_when_asset_not_found
   - name: 異常系（Linux で動いている・404）
-    summary: 常駐サービスが Linux で動いているときは `/web/` の下のルートが無く、404 を返す
+    summary: 常駐サービスが Linux で動いているときは `/web/` の下のルートが無く、Origin によらず 404 を返す
     setup:
       - name: Mock
         description: なし（常駐アプリの app を、Linux で使えない機能を外して TestClient で立てる）
         notes: 動いている OS を Linux にする
+      - name: 要求のヘッダー
+        description: Origin を付けない要求と、許す Origin に無い Origin を付けた要求の 2 つを送る
+        notes: '`Origin: http://evil.example`'
     flow: |-
       sequenceDiagram
         participant C as ブラウザ
         participant IF as GET /web/
 
-        C->>IF: 画面を開く
+        C->>IF: 画面を開く（Origin なし・許す Origin に無い Origin）
+        IF->>IF: Host を確かめる（Origin は確かめない）
         IF-->>C: 404（problem+json）
     expected:
-      - 404（problem+json）が返る
+      - Origin を付けない要求と、許す Origin に無い Origin を付けた要求のどちらにも 404（problem+json）が返る
     test: test_error_when_running_on_linux
 lead: 外の端末のブラウザで開く文字起こしの画面（HTML）と、画面が読む JS・CSS を返す。
 identifier: serve_web_page
@@ -169,9 +173,9 @@ status_codes:
   - code: '307'
     condition: '`/web` を開いた（`/web/` へ移す）'
   - code: '403'
-    condition: Host が 127.0.0.1 でも localhost でもないか、Origin が付いていて許す Origin に無い
+    condition: Host が 127.0.0.1 でも localhost でもないか、Origin が付いていて許す Origin に無い（Linux では Origin を確かめず、Host が合わないときだけ）
   - code: '404'
-    condition: 同梱していない素材のパス。または、常駐サービスが Linux で動いている（`/web/` の下のルートを登録していない）
+    condition: 同梱していない素材のパス。または、常駐サービスが Linux で動いている（`/web/` の下のルートを登録していない。Origin によらない）
 error_format: RFC 9457 の `application/problem+json`（`type`・`title`・`status`・`detail`）で返す。今の API の `problem_response` に揃える。
 constraints:
   - item: 待ち受け
@@ -185,6 +189,6 @@ constraints:
   - item: レート制限
     constraint: 制限なし
   - item: 使える OS
-    constraint: 常駐サービスが Windows で動いているときだけ。Linux では `/web/` の下のルートを登録せず、404 を返す
-    notes: OS ごとに使える機能の表で、外の端末のブラウザの機能を Linux で使えない機能にしている
+    constraint: 常駐サービスが Windows で動いているときだけ。Linux では `/web/` の下のルートを登録せず、Origin によらず 404 を返す（要求の守りは Host だけを確かめ、Origin を確かめずにルートへ渡す）
+    notes: OS ごとに使える機能の表で、外の端末のブラウザの機能を Linux で使えない機能にしている。Host が合わない要求は Linux でも 403
 test_file: tests/integration/test_serve_web_page.py

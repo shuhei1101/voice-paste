@@ -105,6 +105,22 @@ flows:
       - どちらも 404 の problem+json が返る
       - 後に終わったジョブは 200 で返る
     test: test_error_when_job_not_found
+  - name: 異常系（Linux で動いている・404）
+    summary: 常駐サービスが Linux で動いているときは `/web/` の下のルートが無く、404 を返す
+    setup:
+      - name: Mock
+        description: なし（常駐アプリの app を、Linux で使えない機能を外して TestClient で立てる）
+        notes: 動いている OS を Linux にする
+    flow: |-
+      sequenceDiagram
+        participant C as ブラウザ
+        participant IF as GET /web/transcriptions/{job_id}
+
+        C->>IF: 結果を取りに行く
+        IF-->>C: 404（problem+json）
+    expected:
+      - 404（problem+json）が返る
+    test: test_error_when_running_on_linux
 lead: 受け付けたジョブの状態・進み具合と、終わっていれば起こした文字か失敗の理由を返す。
 identifier: get_web_transcription
 permissions: job_id を知っていること（外からの認証は Cloudflare Access が持つ。常駐アプリは Host と Origin だけを確かめる）
@@ -170,7 +186,7 @@ status_codes:
   - code: '403'
     condition: Host が 127.0.0.1 でも localhost でもないか、Origin が付いていて許す Origin に無い
   - code: '404'
-    condition: job_id のジョブが無い（受け付けていない・常駐サービスを再起動した・終わったジョブを持つ件数を超えて捨てた）
+    condition: job_id のジョブが無い（受け付けていない・常駐サービスを再起動した・終わったジョブを持つ件数を超えて捨てた）。または、常駐サービスが Linux で動いている（`/web/` の下のルートを登録していない）
 error_format: RFC 9457 の `application/problem+json`（`type`・`title`・`status`・`detail`）で返す。今の API の `problem_response` に揃える。
 constraints:
   - item: 待ち受け
@@ -187,4 +203,7 @@ constraints:
   - item: 取りに来る間隔
     constraint: 制限なし
     notes: 画面は取りに来る間隔を画面設計で決める
+  - item: 使える OS
+    constraint: 常駐サービスが Windows で動いているときだけ。Linux では `/web/` の下のルートを登録せず、404 を返す
+    notes: OS ごとに使える機能の表で、外の端末のブラウザの機能を Linux で使えない機能にしている
 test_file: tests/integration/test_get_web_transcription.py

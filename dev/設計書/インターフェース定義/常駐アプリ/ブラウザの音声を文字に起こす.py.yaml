@@ -181,4 +181,7 @@ constraints:
   - item: 終了時
     constraint: 常駐サービスの終了時は、起こしている 1 件の終わりを待たずにスレッドを停止し、待ちのジョブの一時のファイルを消す
     notes: 履歴へ移した音声は残る
+  - item: 使える OS
+    constraint: 常駐サービスが Windows で動いているときだけ。Linux ではブラウザの音声のキューとワーカースレッドを立てない
+    notes: OS ごとに使える機能の表で、外の端末のブラウザの機能を Linux で使えない機能にしている
 test_file: tests/integration/test_transcribe_web_audio.py

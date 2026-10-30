@@ -216,6 +216,23 @@ flows:
       - 400 の problem+json が返り、detail に指定したプリセットの名前が含まれている
       - 一時のフォルダにファイルが残らず、キューにジョブが積まれていない
     test: test_error_when_glossary_preset_not_found
+  - name: 異常系（Linux で動いている・404）
+    summary: 常駐サービスが Linux で動いているときは `/web/` の下のルートが無く、404 を返す
+    setup:
+      - name: Mock
+        description: なし（常駐アプリの app を、Linux で使えない機能を外して TestClient で立てる）
+        notes: 動いている OS を Linux にする
+    flow: |-
+      sequenceDiagram
+        participant C as ブラウザ
+        participant IF as POST /web/transcriptions
+
+        C->>IF: 音声を送信する
+        IF-->>C: 404（problem+json）
+    expected:
+      - 404（problem+json）が返る
+      - ジョブを積んでいない（ブラウザの音声のキューを立てていない）
+    test: test_error_when_running_on_linux
 lead: 外の端末のブラウザから送信された音声を受け、一時のファイルに書いて文字起こしのジョブを積み、ジョブの ID を返す。
 identifier: create_web_transcription
 permissions: なし（外からの認証は Cloudflare Access が持つ。常駐アプリは Host と Origin だけを確かめる）
@@ -303,6 +320,8 @@ status_codes:
     condition: multipart でないか、`audio` の項目が無い。または、glossary_preset が設定の用語集のプリセットの一覧に無い
   - code: '403'
     condition: Host が 127.0.0.1 でも localhost でもないか、Origin が無いか許す Origin に無い
+  - code: '404'
+    condition: 常駐サービスが Linux で動いている（`/web/` の下のルートを登録していない）
   - code: '413'
     condition: 本文がブラウザの本文の上限以上
   - code: '415'
@@ -330,4 +349,7 @@ constraints:
   - item: レート制限
     constraint: 制限なし
     notes: 待ちの上限で足りる
+  - item: 使える OS
+    constraint: 常駐サービスが Windows で動いているときだけ。Linux では `/web/` の下のルートを登録せず、404 を返す
+    notes: OS ごとに使える機能の表で、外の端末のブラウザの機能を Linux で使えない機能にしている
 test_file: tests/integration/test_accept_web_audio.py

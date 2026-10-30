@@ -540,11 +540,11 @@ scenarios:
         description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
         notes: 録音の入力は音声合成の WAV。OpenAI API は、設定のベース URL を 127.0.0.1 で待ち受けるテスト用のエンドポイントに向け、受けた要求を控えて決まった文字を返す
       - name: 文字起こしのエンジン
-        description: OpenAI API を使う設定にし、API キーを環境変数 `OPENAI_API_KEY` で渡す
-        notes: '`transcription.engine = "openai"`'
+        description: OpenAI API を使う設定にし、API キーを環境変数 `OPENAI_API_KEY` で渡す。モデルは既定のまま
+        notes: '`transcription.engine = "openai"`。既定のモデルは `gpt-transcribe`'
       - name: 手がかりのプリセット
         description: 語を持つ有効な手がかりのプリセットが 1 つある
-        notes: '-'
+        notes: 語は 2 つ
       - name: 入口
         description: ホットキーから始めた録音を確定する
         notes: '-'
@@ -558,14 +558,14 @@ scenarios:
 
         Note over SVC: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
         SVC->>SVC: 録音が 25 MB 以下で、OpenAI API が受ける形式かを確かめる
-        SVC->>OAI: 録音・設定のモデル・言語（language）・手がかり（prompt）を、API キーを付けて送信する
+        SVC->>OAI: 録音・設定のモデル・言語（languages[]）・手がかりの語（keywords[]）を、API キーを付けて送信する
         OAI-->>SVC: 起こした文字
         SVC->>SVC: 文頭・文末の文言を消し、用語集で補正する
         SVC->>HIST: 起こした文字を録音と同じ履歴に追記する
         SVC->>OV: 閉じる
       ```
     expected:
-      - テスト用のエンドポイントが受けた要求に、録音・設定のモデル・言語（`language`）・有効なプリセットの語から作った手がかり（`prompt`）が載り、`Authorization` に API キーが付いている
+      - テスト用のエンドポイントが受けた要求に、録音・既定のモデル（`gpt-transcribe`）・設定の言語の `languages[]`・有効なプリセットの語を 1 つずつ並べた `keywords[]` が載り、`language`・`prompt` が無く、`Authorization` に API キーが付いている
       - 起こした文字の中の用語集の誤変換が、正しい表記に置き換わっている
       - 履歴に録音と起こした文字がある
       - 文字起こしワーカーの子プロセスが動いていない
@@ -573,7 +573,7 @@ scenarios:
     test: test_normal_when_openai
     notes:
       入口とエンジン: API から始めた録音・連続録音の区間・ブラウザから受けた音声も、設定のエンジンが OpenAI API なら同じ要求で起こす（ブラウザの音声は録れた形式のまま送信する）。区間ごとの進みは返らないため、文字起こし中の表示の残りの時間とブラウザのジョブの進みは、起こし終えるまで進まない（表示の出し方は 画面設計『文字起こし中の表示』）。
-      手がかりの渡し方: ローカルの Whisper と同じ手がかりの文を `prompt` に渡す。有効なプリセットが無いときは `prompt` を送信しない。
+      手がかりの渡し方: 設定のモデルが `gpt-transcribe`（名前が `gpt-transcribe` で始まるもの）なら、有効なプリセットの語を 1 語ずつ `keywords[]` に、設定の言語を `languages[]` に渡す。`<`・`>` を含む語は OpenAI API が要求ごと拒むため `keywords[]` に入れない。有効な語が無いときは `keywords[]` を送信しない。ほかのモデルの渡し方は 正常シナリオ（OpenAI API の前のモデルで起こす）。
   - name: 異常シナリオ（OpenAI API が失敗を返す）
     setup:
       - name: Mock
@@ -643,6 +643,43 @@ scenarios:
     notes:
       上限と形式: OpenAI API へ送信できるのは 25 MB 以下で、`mp3`・`mp4`・`mpeg`・`mpga`・`m4a`・`wav`・`webm` の音声に限る。形式が外れる音声（ブラウザの `ogg`）も同じ扱いになる。
       入口ごとの結末: ホットキー・トレイから始めた録音（約 13 分で 25 MB を超える）は 異常シナリオ（OpenAI API が失敗を返す） と同じく失敗を通知し、API から始めた録音と連続録音の区間は文字起こしの失敗を 起こした文字を届ける へ渡す。
+  - name: 正常シナリオ（OpenAI API の前のモデルで起こす）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV。OpenAI API は、設定のベース URL を 127.0.0.1 で待ち受けるテスト用のエンドポイントに向け、受けた要求を控えて決まった文字を返す
+      - name: 文字起こしのエンジン
+        description: OpenAI API を使う設定にし、settings.toml でモデルに前のモデルを指定する。API キーを環境変数 `OPENAI_API_KEY` で渡す
+        notes: '`transcription.openai.model = "gpt-4o-mini-transcribe"`'
+      - name: 手がかりのプリセット
+        description: 語を持つ有効な手がかりのプリセットが 1 つある
+        notes: 語は 2 つ
+      - name: 入口
+        description: ホットキーから始めた録音を確定する
+        notes: '-'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant OV as 文字起こし中の表示
+        participant OAI as OpenAI API
+        participant HIST as 履歴
+
+        Note over SVC: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
+        SVC->>SVC: 録音が 25 MB 以下で、OpenAI API が受ける形式かを確かめる
+        SVC->>OAI: 録音・設定のモデル・言語（language）・手がかり（prompt）を、API キーを付けて送信する
+        OAI-->>SVC: 起こした文字
+        SVC->>SVC: 文頭・文末の文言を消し、用語集で補正する
+        SVC->>HIST: 起こした文字を録音と同じ履歴に追記する
+        SVC->>OV: 閉じる
+      ```
+    expected:
+      - テスト用のエンドポイントが受けた要求に、録音・設定のモデル（`gpt-4o-mini-transcribe`）・言語（`language`）・有効なプリセットの語から作った手がかり（`prompt`）が載り、`languages[]`・`keywords[]` が無く、`Authorization` に API キーが付いている
+      - 履歴に録音と起こした文字がある
+      - 起こした文字を届ける へ進む
+    test: test_normal_when_openai_previous_model
+    notes:
+      手がかりの渡し方: 設定のモデルが `gpt-transcribe` で始まらないとき（`gpt-4o-mini-transcribe`・`gpt-4o-transcribe`・`whisper-1` など）は、ローカルの Whisper と同じ手がかりの文を `prompt` に、設定の言語を `language` に渡す。有効なプリセットが無いときは `prompt` を送信しない。
 lead: 確定した録音を設定のエンジンで文字に起こし、文頭・文末の決まった文言を消して用語集で補正するまでの単一ユースケース。
 issue: 14
 primary_actor: 音声入力を使うユーザー

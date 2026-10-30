@@ -80,8 +80,8 @@ used_in:
   - src/voice_paste/integrations/openai/transcriber.py
 verification:
   state: 済
-  date: '2026-10-28'
-  detail: 外部疎通テスト（tests/external/voice_paste/integrations/openai/test_transcriber.py の test_ext_transcribe）を Windows の開発の端末で 1 回流した。約 3 秒の日本語の WAV を、既定のモデル（gpt-4o-mini-transcribe）・language=ja・prompt 付きで送信し、空でない文字が 1 区間で返った。かかった秒は 1.97。見積もりは約 $0.0002（約 0.03 円）、実費の目安は約 3 秒 × $0.003/分 ≈ $0.00015（約 0.03 円）
+  date: '2026-10-30'
+  detail: 外部疎通テスト（tests/external/voice_paste/integrations/openai/test_transcriber.py の test_ext_transcribe）を Windows の開発の端末で 1 回流した。約 3 秒の日本語の WAV を、既定のモデル（gpt-transcribe）・languages[]=ja・keywords[]（voice-paste・Whisper）付きで送信し、空でない文字が 1 区間で返った。かかった秒は 1.81。見積もりは約 $0.0003（約 0.05 円）、実費の目安は約 3 秒 × $0.0045/分 ≈ $0.00023（約 0.04 円）
 base_urls:
   - env: 本番
     url: https://api.openai.com/v1

@@ -2081,6 +2081,9 @@ constants:
     usecase: 設定を変える
     summary: api.allowed_web_origins に `scheme://host[:port]` の形式でない行があるときの PydanticCustomError の type。設定画面の to_field_message がエラーの文に変える
     value: '"web_origin_form"'
+    status: planned
+    introduced:
+      pr: 226
 test_files:
   - tests/unit/voice_paste/shared/test_settings.py
   - tests/unit/voice_paste/shared/test_logger.py

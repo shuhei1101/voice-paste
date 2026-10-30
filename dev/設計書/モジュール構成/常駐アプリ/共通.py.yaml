@@ -924,7 +924,7 @@ data_models:
     properties:
       - name: model
         type: str
-        default: gpt-4o-mini-transcribe
+        default: gpt-transcribe
         description: 文字起こしに使うモデル。設定画面は `json_schema_extra` の note で、まとまりの補助文（「文字起こしのエンジンが OpenAI API のときに使う。API キーはここでは入れず、環境変数 OPENAI_API_KEY か、settings.toml と同じフォルダの secrets/openai_api_key に置く。」）を欄の下に出す
       - name: language
         type: str

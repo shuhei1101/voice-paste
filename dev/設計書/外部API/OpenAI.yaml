@@ -31,23 +31,35 @@ endpoints:
         type: string
         required: true
         location: body
-        description: モデル（gpt-4o-mini-transcribe・gpt-4o-transcribe・whisper-1 など）
+        description: モデル（gpt-transcribe・gpt-4o-mini-transcribe・gpt-4o-transcribe・whisper-1 など）。gpt-4o-mini-transcribe・gpt-4o-transcribe・whisper-1 は 2027-02-26 に提供が終わる（https://developers.openai.com/api/docs/deprecations）。gpt-live-transcribe は Realtime だけでこのエンドポイントでは使えない
       - name: language
         type: string
         required: false
         location: body
-        description: 音声の言語（ISO-639-1。例 ja）。指定すると精度と速さが上がる
+        description: 音声の言語（ISO-639-1。例 ja）。指定すると精度と速さが上がる。gpt-transcribe では languages[] が代わりになり、両方を送信しない
       - name: prompt
         type: string
         required: false
         location: body
-        description: 表記や文脈の手がかり
+        description: 表記や文脈の手がかり。gpt-transcribe も受ける（録音の話題など自由な文脈）
       - name: response_format
         type: string
         required: false
         default: json
         location: body
         description: 応答の形式。gpt-4o 系のモデルは json か text
+      - name: languages[]
+        type: string[]
+        required: false
+        location: body
+        description: gpt-transcribe で音声に想定する言語の並び。multipart では同じ項目名を繰り返す
+        constraints: ISO 639-1・一部の ISO 639-3・地域付きの zh。対応しないコードは要求ごと拒まれる
+      - name: keywords[]
+        type: string[]
+        required: false
+        location: body
+        description: gpt-transcribe・gpt-live-transcribe で、発話に出る用語の手がかり。multipart では同じ項目名を繰り返す
+        constraints: 語ごとに 1 行で、`<`・`>`・改行を含まない。違反すると要求ごと拒まれる。数・長さの上限は公開されていない（https://developers.openai.com/api/docs/guides/speech-to-text）
     response:
       - name: text
         type: string
@@ -79,9 +91,12 @@ terms_url: https://openai.com/policies/
 status_page: https://status.openai.com
 retry: 429（レートの上限）・5xx・タイムアウト・接続の失敗は一時的な失敗として、指数バックオフとジッターで送信し直す。Retry-After があれば従う。回数と待ちは非機能要件が持つ
 pricing:
+  - target: gpt-transcribe
+    price: $0.0045 / 分（音声の長さ）
+    notes: 設定の既定のモデル（https://developers.openai.com/api/docs/models/gpt-transcribe）
   - target: gpt-4o-mini-transcribe
     price: $0.003 / 分（音声の長さ）
-    notes: 設定の既定のモデル
+    notes: 2027-02-26 に提供が終わる
 pricing_url: https://openai.com/api/pricing/
 error_format: |-
   ```json

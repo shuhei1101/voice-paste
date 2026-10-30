@@ -19,7 +19,9 @@ import pytest
 from tests.support.browser import BrowserPage, wait_for
 from tests.support.inprocess import encode_audio, make_settings, silence_input
 from tests.support.web_scene import STUB_TEXT, OpenEdge, StartInProcess, WebScene, build_scene, record_for
+from voice_paste.integrations.openai.credentials import OPENAI_API_KEY_ENV
 from voice_paste.shared.errors import TranscriptionError
+from voice_paste.shared.settings import TranscriptionSettings
 
 pytestmark = pytest.mark.real_machine
 
@@ -46,6 +48,9 @@ GLOSSARY_ROWS = "誤変換,正しい表記\nきめたぶん,決めた文\n"
 
 TRANSCRIPTION_ERROR_TEXT = "文字起こしに失敗させた"
 """差し替えた文字起こしが送出する例外のメッセージ。"""
+
+OPENAI_TEST_API_KEY = "sk-test-not-sent"
+"""OpenAI API のエンジンを組み立てるためだけに環境変数で渡す、テスト用の API キー（文字起こしは差し替えるため送信しない）。"""
 
 
 def _stored(job_id: str, text: str, sent_at: datetime) -> dict[str, Any]:
@@ -109,6 +114,36 @@ def test_normal(
     assert stored[0]["text"] == CORRECTED_TEXT
     assert stored[0]["sent_at"]
     assert wait_for(lambda: scene.page.copied_text() == CORRECTED_TEXT)
+
+
+def test_normal_when_engine_reports_no_progress(
+    start_inprocess: StartInProcess,
+    open_edge: OpenEdge,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """進みを返さないエンジン（OpenAI API）では、待ちの間は件に「文字起こし中」だけが出て % と進みのバーが出ず、終わると起こした文字が出る（正常系）。"""
+    # 準備: OpenAI API のエンジンで立て、文字起こしは進みを知らせずに放すまで待つ
+    monkeypatch.setenv(OPENAI_API_KEY_ENV, OPENAI_TEST_API_KEY)
+    settings = make_settings(only_paste_and_send=True).model_copy(
+        update={"transcription": TranscriptionSettings(engine="openai")}
+    )
+    scene = build_scene(
+        start_inprocess, open_edge, tmp_path, monkeypatch, stub_text=STUB_TEXT, settings=settings
+    )
+    assert scene.stub is not None
+    scene.stub.hold()
+    # 実行
+    _send_file(scene)
+    running = wait_for(lambda: scene.page.results()[0]["status"] == "文字起こし中")
+    shown = scene.page.results()[0]
+    scene.stub.release.set()
+    done = wait_for(lambda: _first_text(scene.page) == STUB_TEXT)
+    # 検証
+    assert running
+    assert shown["percent"] == ""
+    assert shown["progress_shown"] is False
+    assert done
 
 
 def test_normal_when_delete_result(

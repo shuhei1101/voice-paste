@@ -1,0 +1,46 @@
+title: "evdev"
+kind: "ライブラリ"
+version:
+  current: 2.0.0
+  checked_on: '2026-10-30'
+  source: pyproject.toml
+  pinning: pyproject.toml に `evdev~=2.0; sys_platform == "linux"` で直接の依存として追加する（Linux だけの依存。Windows では入らない）
+catalogs:
+  - name: API
+    version: 2.0.0
+    entries:
+      - name: evdev.UInput
+        kind: クラス
+        purpose: '`/dev/uinput` に仮想の入力の機器を作る（name で機器の名前。write・syn・close）'
+      - name: UInput.write
+        kind: メソッド
+        purpose: イベント（EV_KEY のキーコードと 1 = 押す / 0 = 離す）を書き込む
+      - name: UInput.syn
+        kind: メソッド
+        purpose: 書き込んだイベントを SYN_REPORT で確定する
+      - name: evdev.ecodes
+        kind: 定数
+        purpose: キーコード（KEY_LEFTCTRL・KEY_V・KEY_ENTER など）と、名前からキーコードを引く ecodes.ecodes
+      - name: evdev.uinput.UInputError
+        kind: 例外
+        purpose: uinput の機器を作れないときに送出される（権限が無いときは OSError）
+lead: Linux の evdev（入力の機器）を読み、uinput で仮想の入力の機器を作ってイベントを書き込む Python のバインディング（python-evdev）。
+purl: pkg:pypi/evdev
+dependency_scope: 必須
+adoption: 採用
+used_in:
+  - src/voice_paste/integrations/keyboard/sender_wayland.py
+upstream: gvalkov/python-evdev
+verification:
+  state: 未確認
+  detail: '[#221](https://github.com/shuhei1101/voice-paste/pull/221) の PoC（Ubuntu 24.04.5・GNOME Shell 46.0 の Wayland のセッション、evdev 2.0.0）で、`UInput` の仮想キーボードから送信した Ctrl+V と Enter が、ネイティブのアプリと XWayland のアプリへ届いた。`/dev/uinput` の udev の規則と `input` グループへの追加の後、再起動するまでは PermissionError で開けなかった。本番の sender_wayland.py はまだ動かしていない'
+license: BSD-3-Clause（商用利用可）
+official_url: https://github.com/gvalkov/python-evdev
+docs_url: https://python-evdev.readthedocs.io/
+limitations:
+  - item: 権限
+    content: '`/dev/uinput` を開ける権限が要る。udev の規則と `input` グループへの追加の後、GNOME のセッションと systemd のユーザーマネージャーへ反映するには再起動が要る（ログインし直しでは反映されない）'
+  - item: 動く OS
+    content: Linux だけ。Windows の wheel は無い
+refs:
+  - dev/設計書/外部ライブラリ/pyperclip#

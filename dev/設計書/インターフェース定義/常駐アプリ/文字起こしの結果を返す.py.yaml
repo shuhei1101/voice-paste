@@ -28,7 +28,7 @@ flows:
     summary: 文字起こし待ち・文字起こし中のジョブの進み具合を返す
     setup:
       - name: Mock
-        description: ブラウザの音声のジョブの一覧に、ジョブを直接入れる
+        description: ブラウザの音声のジョブの一覧に、ジョブを直接入れる。進みを返すかを true（設定のエンジンが `local_whisper`）にして app を立てる
       - name: 終わっていないジョブ
         description: state が queued のジョブと、state が running・progress が 0.42 のジョブ
     flow: |-

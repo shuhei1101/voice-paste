@@ -469,8 +469,8 @@ classes:
           - name: test_ext_transcribe_response_time
             api: OpenAI API POST /v1/audio/transcriptions
             summary: 実際の OpenAI API で、最長の録音の応答時間と接続にかかった時間を測る
-            checks: 600 秒（セッションの上限時間）の日本語の WAV を、既定のモデル（gpt-transcribe）・languages[]=ja で 1,000 回続けて送信する。transport に、要求の extensions に trace を付けて httpx.HTTPTransport へ渡す計測用の transport を渡し、送信から応答までの秒と、接続（TCP と TLS）にかかった秒を 1 回ごとに記録する。全ての回で空でない文字が 1 区間で返り、2 つの秒の p50・p99・p99.9・最大を出力する（非機能要件『OpenAIの文字起こしのタイムアウトと再送』のタイムアウトと接続の決定値を求める材料）
-            cost: 従量課金。600 秒 × $0.0045/分 × 1,000 回で約 $45。実行の前に規約『開発時の従量課金APIの実行』で見積もる
+            checks: 画面の録音の上限時間（1,800 秒）の日本語の音声を、ブラウザと同じ圧縮の形式（AAC 約 100 kbps の m4a、25 MB 未満）で、既定のモデル（gpt-transcribe）・languages[]=ja で 1,000 回続けて送信する。transport に、要求の extensions に trace を付けて httpx.HTTPTransport へ渡す計測用の transport を渡し、HTTP の要求ごとに 2 つの秒を記録する（再送の待ちを含めない）。応答を待つ秒は OPENAI_TIMEOUT_SEC の read が効く区間で、trace の http11.send_request_body.complete から http11.receive_response_headers.complete まで。接続の秒は connection.connect_tcp.started から connection.start_tls.complete まで（接続を使い回した要求は記録しない）。全ての回で空でない文字が 1 区間で返り、2 つの秒の p50・p99・p99.9・最大を出力する（非機能要件『OpenAIの文字起こしのタイムアウトと再送』のタイムアウトと接続の決定値を求める材料）
+            cost: 従量課金。1,800 秒 × $0.0045/分 × 1,000 回で約 $135。実行の前に規約『開発時の従量課金APIの実行』で見積もる
             notes: 環境変数 VOICE_PASTE_MEASURE_OPENAI_RESPONSE_TIME が 1 のときだけ実行し、それ以外と API キーが無い環境・音声を作れない環境では skip する（外部疎通テストを流すたびに課金しないため）
       - name: _build_form
         title: 言語と手がかりの項目の組み立て

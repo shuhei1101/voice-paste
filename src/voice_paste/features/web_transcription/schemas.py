@@ -36,6 +36,9 @@ class WebTranscriptionStatus(BaseModel):
     progress: float
     """進み具合（0.0〜1.0）。"""
 
+    reports_progress: bool
+    """設定の文字起こしのエンジンが途中の進みを返すか（false のとき progress は running の間も 0.0）。"""
+
     text: str | None
     """done のときの補正した文字。"""
 

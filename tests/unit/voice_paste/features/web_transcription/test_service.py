@@ -335,6 +335,7 @@ def _make_api_deps(
         tmp_dir=tmp_dir,
         glossary_preset_exists=MagicMock(return_value=preset_exists),
         list_glossary_presets=MagicMock(),  # accept_audio は呼ばない
+        reports_progress=True,
     )
 
 

@@ -579,7 +579,7 @@ requirements:
     tests:
       - name: test_openai_audio_limit_when_over
         summary: 上限を 1 バイト超える音声は送信しない
-        condition: 26,204,569 バイトと 26,204,570 バイトの webm。モデルは gpt-transcribe、手がかりは 1 バイトの語 56 個を読点でつないだ 222 バイト
+        condition: 26,204,569 バイトと 26,204,570 バイトの webm。モデルは gpt-transcribe、手がかりは 1 バイトの語 56 個を読点でつないだ 221 バイト
         measurement: httpx.MockTransport に届いた要求の数
         expected: 26,204,569 バイトは 1 回届き、届いた要求の本文が 26,214,400 バイト以下。26,204,570 バイトは届かず EngineError
     refs:

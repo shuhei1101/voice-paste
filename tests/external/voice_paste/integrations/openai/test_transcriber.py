@@ -56,6 +56,8 @@ def test_ext_transcribe(
     # 準備
     settings = OpenAISettings()
     transcriber = OpenAITranscriber(settings=settings, api_key=api_key)
+    # 既定が変わったときは、課金する前に止める
+    assert settings.model == "gpt-transcribe"
 
     # 実行
     started = time.perf_counter()
@@ -64,7 +66,6 @@ def test_ext_transcribe(
     record_property("elapsed_sec", f"{elapsed_sec:.2f}")
     print(f"OpenAI API の文字起こしにかかった秒: {elapsed_sec:.2f}")
 
-    # 検証: 既定のモデルは gpt-transcribe で、空でない文字が 1 区間で返る
-    assert settings.model == "gpt-transcribe"
+    # 検証: 空でない文字が 1 区間で返る
     assert len(segments) == 1
     assert segments[0] != ""

@@ -221,15 +221,21 @@ functions:
         required: true
         passing: keyword
         description: OS で使えない機能（main が unavailable_features(CURRENT_OS) を渡す）
+      - name: on_engine_created
+        type: Callable[[Callable[[], None]], None]
+        required: false
+        default: 何もしない関数
+        passing: keyword
+        description: エンジンを止める関数を、エンジンの準備（ワーカーの ready の待ち）を始める前に受け取る関数（main は _StartupBuild の控える関数を渡す）
     returns:
       type: Handlers
       description: 配線済みの関数の束
     process: |-
       1. 設定を SettingsStore に入れる。以降の配線は設定を値でなく SettingsStore.get から読む（保存した immediate の項目を次の回から効かせる）
       2. 設定のエンジンで文字起こしの engine と stop_engine を作り、engine を文字起こしに渡す。get_hint には、SettingsStore.get の hint_presets を join_hint_words でつなぎ、空なら None を返す関数を渡す
-         - local_whisper の場合、ensure_local_whisper_installed で確かめ（StartupError はそのまま送出する）、WhisperWorkerClient を adapters.worker_creationflags で作って起動する。engine はその transcribe、stop_engine はその stop
+         - local_whisper の場合、ensure_local_whisper_installed で確かめ（StartupError はそのまま送出する）、WhisperWorkerClient を adapters.worker_creationflags で作り、on_engine_created にその stop を渡してから起動する。engine はその transcribe、stop_engine はその stop
            - EngineError の場合、StartupError を送出する
-         - openai の場合、read_openai_api_key（paths.openai_api_key_file・environ）で読んだ API キーと設定の transcription.openai で OpenAITranscriber を作る（文字起こしワーカーは起動しない）。engine はその transcribe、stop_engine は何もしない関数（StartupError はそのまま送出する）
+         - openai の場合、read_openai_api_key（paths.openai_api_key_file・environ）で読んだ API キーと設定の transcription.openai で OpenAITranscriber を作る（文字起こしワーカーは起動しない）。engine はその transcribe、stop_engine は何もしない関数（StartupError はそのまま送出する）。on_engine_created には stop_engine を渡す
       3. 連続録音の話し声の判定に使う VAD のセッションを 1 回だけ読む（load_vad_session。StartupError はそのまま送出する）
       4. Recorder に音量の関数（unavailable に Feature.LOWER_VOLUME があれば integrations/volume/noop.py の lower_volume_noop・restore_volume_noop、無ければ adapters の lower_volume・restore_volume）と、SettingsStore から録音の設定を返す関数と、VAD のセッションを部分適用した StreamingVad（話し声の判定を作る）を渡す
       5. 出力先の deliver に、配線した OUTPUTS（_wire_outputs）・配線した PRESET_KINDS（_wire_preset_kinds。open_window に adapters.open_app_window、send_paste に adapters.send_paste、send_enter_fn に adapters.send_enter）と、届けるたびに SettingsStore からオンの出力先の ID を引く関数を部分適用し、Session を入口・出力先の ID・選んだプリセット・返送先に分けて渡すアダプタを作る
@@ -262,13 +268,13 @@ functions:
       3. デスクトップのセッションを判定して OS に合った実装を選び（select_platform_adapters(CURRENT_OS, lock_file=paths.lock_file, display_session=detect_display_session(os.environ))）、OS で使えない機能を引き（unavailable_features(CURRENT_OS)）、置き場所ごとの名前で単一インスタンスを確保する（instance_name・PlatformAdapters.acquire_single_instance(SINGLE_INSTANCE_TIMEOUT_SEC)）
          - StartupError の場合、1 を返す（トレイを出す前のため、ログにだけ残す）
            - `[ERROR]` 起動に失敗した（理由）
-      4. PlatformAdapters.qt_platform が None でなく、環境変数に QT_QPA_PLATFORM が無ければ、QT_QPA_PLATFORM にその値を入れる（Wayland のセッションの xcb）。QApplication（最後の窓を閉じても終わらない）・UiBridge・Tray を作り、apply_theme(app, "system", image_dir=paths.ui_image_dir) で画面の明暗を当ててトレイに準備中を出す。WAKE_INTERVAL_MS ごとの空の QTimer を置き、SIGINT・SIGBREAK・SIGTERM で QApplication.quit を呼ぶ（SIGTERM はログアウト・systemctl stop で届き、12 の片付けを通す）。後から起動したプロセスに終わるよう頼まれたら、QApplication.quit をメインスレッドで呼ぶ（SingleInstanceLock.on_quit_requested に、QMetaObject.invokeMethod で QApplication.quit をキューに入れる関数を渡す）
+      4. PlatformAdapters.qt_platform が None でなく、環境変数に QT_QPA_PLATFORM が無ければ、QT_QPA_PLATFORM にその値を入れる（Wayland のセッションの xcb）。QApplication（最後の窓を閉じても終わらない）・UiBridge・Tray を作り、apply_theme(app, "system", image_dir=paths.ui_image_dir) で画面の明暗を当ててトレイに準備中を出す。WAKE_INTERVAL_MS ごとの空の QTimer を置き、SIGINT・SIGBREAK・SIGTERM で QApplication.quit を呼ぶ（SIGTERM はログアウト・systemctl stop で届き、12 の片付けを通す）。後から起動したプロセスに終わるよう頼まれたら、QApplication.quit をメインスレッドで呼ぶ（SingleInstanceLock.on_quit_requested に、QMetaObject.invokeMethod で QApplication.quit をキューに入れる関数を渡す）。トレイの「再起動」「終了」を _ExitRequest の request_restart・request_quit へつなぐ（7 の配線の間も抜けられるようにする。7 の結果を受けたら外す）
       5. 設定を読む（load_settings(settings_file, SETTINGS_MODEL)）
          - SettingsError の場合、トレイを失敗にして設定を読めないことを通知し（Tray.show_failure(settings_invalid, 理由)）、「録音を開始」「設定…」を押せないまま 11 へ（フォルダを開いて settings.toml を直し、再起動できる）
            - `[ERROR]` 起動に失敗した（理由）
       6. 設定の ui.theme で画面の明暗を当て直し（apply_theme。image_dir は paths.ui_image_dir）、QStyleHints.colorSchemeChanged に、SettingsStore.get の ui.theme で apply_theme を呼ぶ関数をつなぐ（OS の明暗が変わったときに当て直す）。ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を消す（purge_old_files。処理中のセッションは無いため、一時の音声も全て消す対象にする）
          - `[INFO]` 設定を読んだ（設定ファイルのパス・エンジン・オンの出力先の ID）
-      7. 配線する（build_handlers。notify・report_progress・notify_copied は UiBridge を部分適用した ui のもの、adapters は 3 で選んだ PlatformAdapters、environ は os.environ、unavailable は 3 で引いた使えない機能）
+      7. 配線を、_StartupBuild でメインスレッドの外のスレッドに流す（build_handlers。notify・report_progress・notify_copied は UiBridge を部分適用した ui のもの、adapters は 3 で選んだ PlatformAdapters、environ は os.environ、unavailable は 3 で引いた使えない機能、on_engine_created は _StartupBuild がエンジンを止める関数を控える関数）。流している間も 11 のイベントループを回し、トレイを準備中のまま出す（モデルの取得の間もトレイのアイコンが出て、メニューを操作できる）。結果は _StartupBuild.done でメインスレッドへ戻り、4 でつないだ「再起動」「終了」を外してから、8〜10 か下の StartupError の扱いをメインスレッドで行う
          - StartupError の場合、トレイを失敗にして起動の失敗を通知し（Tray.show_failure(engine_unavailable, 理由)）、「設定…」だけを押せるまま 11 へ（設定画面は読んだ設定で開き、保存は settings.toml へ書くだけにする。Handlers が無いため、UiDeps のうち録音・ホットキーの関数（start・pause・resume・complete・cancel・current_session・level・suspend_hotkeys・resume_hotkeys）は何もしない関数にし、設定画面を閉じてもホットキーの受付を始めない）
            - `[ERROR]` 起動に失敗した（理由）
       8. ホットキーの受付を作り（PlatformAdapters.create_hotkey_listener(排他の名前, 3 で取った排他)）、UiController を作り（build_ui_deps）、UiBridge の知らせの受け手につなぐ（notified → on_notified・progressed → on_progressed・copied → on_copied。9 で待ち受けを始められない知らせを取りこぼさないよう、API より先に作る）
@@ -283,7 +289,7 @@ functions:
              - `[ERROR]` キーの送信の機器を開けなかった（理由）
          - `[INFO]` 常駐サービスを始めた（API のポート）
       11. イベントループを回す（exec_loop）
-      12. 抜けたら、新しい開始が来ないように入口とタイマー（ホットキー・API サーバー・2 つのタイマー）を先に止め、録音を捨て（SessionManager.close）、ブラウザの音声のキューを始めていれば閉じ（WebJobQueue.close。待ちの一時のファイルを消す）、エンジンを止め、キーの送信の機器を閉じ（PlatformAdapters.close_key_sender）、トレイを消す（8 までで立てたものだけ）。最後に単一インスタンスの排他を放す（SingleInstanceLock.release）
+      12. 抜けたら、新しい開始が来ないように入口とタイマー（ホットキー・API サーバー・2 つのタイマー）を先に止め、録音を捨て（SessionManager.close）、ブラウザの音声のキューを始めていれば閉じ（WebJobQueue.close。待ちの一時のファイルを消す）、エンジンを止め、キーの送信の機器を閉じ（PlatformAdapters.close_key_sender）、トレイを消す（8 までで立てたものだけ）。7 の配線を流している間に抜けた場合は、_StartupBuild.cancel(STARTUP_CANCEL_TIMEOUT_SEC) でエンジンを止め、配線のスレッドの終わりを待つ。最後に単一インスタンスの排他を放す（SingleInstanceLock.release）
           - `[INFO]` 常駐サービスを終えた
       13. 再起動を頼まれていれば、同じ引数で起動し直す（PlatformAdapters.relaunch。排他を放した後に呼ぶため、次のプロセスは待たずに排他を取れる）
       14. 0 を返す
@@ -305,9 +311,27 @@ functions:
       - name: test_main
         case: 正常
         summary: 設定を読んで API・ホットキー・トレイを立て、イベントループが抜けたら片付けて 0 を返す
-        condition: --data-dir に空の一時フォルダ。QT_QPA_PLATFORM=offscreen、exec_loop はすぐ 0 を返す
+        condition: --data-dir に空の一時フォルダ。QT_QPA_PLATFORM=offscreen、exec_loop は _StartupBuild.done を受けて 10 が終わるまでイベントを処理してから 0 を返す
         mock: build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray
         expected: 0。{data_dir}/settings.toml が既定値ででき、token_file があり、HotkeyListener が引数なしで作られ、HotkeyListener.start に既定のホットキーが渡り、RepeatingTimer が SESSION_LIMIT_CHECK_INTERVAL_SEC と PURGE_INTERVAL_SEC の 2 つ作られ、HotkeyListener.stop・2 つの RepeatingTimer.stop・ApiServerRunner.stop・SessionManager.close・stop_engine・Tray.hide がこの順に 1 回ずつ呼ばれ、最後に単一インスタンスの排他が放される（同じ data_dir でもう一度取れる）
+      - name: test_main_when_building_off_main_thread
+        case: 正常
+        summary: 配線をメインスレッドの外で流し、その間もイベントループを回す
+        condition: --data-dir に空の一時フォルダ。build_handlers が threading.Event を待ってから Handlers を返す。exec_loop の中でイベントを処理し、トレイが準備中のままであることを確かめてから Event を立て、10 が終わるまでイベントを処理して抜ける
+        mock: build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray
+        expected: 0。build_handlers がスレッド名 `startup-build` のスレッドで呼ばれ、Event を立てる前は Tray.set_state(IDLE) と HotkeyListener.start が呼ばれておらず、立てた後に呼ばれる
+      - name: test_main_when_quit_while_building
+        case: 正常
+        summary: 配線の間に終了を頼まれたら、エンジンを止めて排他を放す
+        condition: --data-dir に空の一時フォルダ。build_handlers が on_engine_created に止める関数を渡した後、その関数が呼ばれるまで戻らない（呼ばれたら StartupError を送出する）。exec_loop の中で Tray.quit_requested を送出し、イベントを処理してから抜ける
+        mock: build_handlers・ApiServerRunner・RepeatingTimer・HotkeyListener・Tray
+        expected: 0。on_engine_created に渡した止める関数が 1 回呼ばれ、HotkeyListener と ApiServerRunner が作られず、Tray.show_failure が呼ばれず、Tray.hide の後に排他が放され、relaunch が呼ばれない
+      - name: test_main_when_restart_while_building
+        case: 正常
+        summary: 配線の間に再起動を頼まれたら、エンジンを止めてから起動し直す
+        condition: test_main_when_quit_while_building と同じで、exec_loop の中で Tray.restart_requested を送出する
+        mock: build_handlers・ApiServerRunner・RepeatingTimer・HotkeyListener・Tray・relaunch
+        expected: 0。止める関数が 1 回呼ばれ、排他を放した後に relaunch が 1 回呼ばれる
       - name: test_main_when_invalid_settings
         case: 異常
         summary: 設定が合わなければトレイで知らせて入口を立てない
@@ -378,6 +402,8 @@ functions:
         condition: --data-dir に空の一時フォルダ。環境変数 QT_QPA_PLATFORM を消し、select_platform_adapters の戻り値の qt_platform が "xcb"。QApplication の生成を差し替え、exec_loop はすぐ 0 を返す
         mock: select_platform_adapters・QApplication・build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray
         expected: QApplication を作る時点で環境変数 QT_QPA_PLATFORM が "xcb"。あらかじめ QT_QPA_PLATFORM=offscreen を入れたときは offscreen のまま
+    notes:
+      テスト: 7 の配線の結果はイベントループの中で届くため、exec_loop の差し替えは、_StartupBuild.done を受けて 10（StartupError の場合は 7 の扱い）が終わるまでイベントを処理してから抜ける
   - name: acquire_single_instance
     title: 単一インスタンスの確保
     kind: 関数
@@ -1212,6 +1238,130 @@ notes:
 
     OS に固有の実装の単体テストは、テストファイルの先頭の `pytestmark = pytest.mark.skipif(...)` で、対象でない OS では飛ばす（Windows 専用: 単一インスタンス・音量のアダプタ。Linux 専用: single_instance_linux.py・sender_linux.py・sender_wayland.py・hotkey_gnome.py・send_hotkey.py）。
 classes:
+  - name: _StartupBuild
+    title: 起動の配線のスレッド
+    container: main.py
+    usecase: 常駐アプリを起動する
+    role: ランタイム
+    kind: クラス
+    summary: 配線（build_handlers）をメインスレッドの外のスレッドで流し、結果を Qt のシグナルでメインスレッドへ戻す。配線の間に抜けたときはエンジンを止める
+    description: |-
+      QObject を継承し、`done = Signal(object)` を持つ。main は done を結果の扱いへ QueuedConnection でつなぎ、受け取りをメインスレッドで行う。
+      参照が切れて消えないよう、main は片付けまで持つ。
+    inherits: QObject
+    properties:
+      - name: done
+        type: Signal(object)
+        access: public
+        description: 配線の結果（Handlers か StartupError）を渡すシグナル。cancel の後は送出しない
+      - name: _thread
+        type: threading.Thread | None
+        access: 内部 (_)
+        description: 配線のスレッド。start の前は None
+      - name: _stop_engine
+        type: Callable[[], None] | None
+        access: 内部 (_)
+        description: build_handlers の on_engine_created で控えたエンジンを止める関数
+      - name: _cancelled
+        type: bool
+        access: 内部 (_)
+        default: 'False'
+        description: cancel が呼ばれたか
+      - name: _lock
+        type: threading.Lock
+        access: 内部 (_)
+        description: _stop_engine・_cancelled の読み書きと done の送出を 1 つずつにする
+    methods:
+      - name: start
+        title: 配線の開始
+        kind: メソッド
+        scope: public
+        summary: 渡した配線の関数をデーモンスレッド（名前 `startup-build`）で流し、結果を done で渡す
+        args:
+          - name: build
+            type: Callable[[Callable[[Callable[[], None]], None]], Handlers]
+            required: true
+            passing: positional
+            description: エンジンを止める関数を控える関数を受け取り、Handlers を返す配線（main は build_handlers を部分適用して渡す）
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. デーモンスレッド（名前 `startup-build`）で build に _register_stop を渡して呼ぶ
+             - StartupError の場合、その例外を結果にする
+          2. ロックを取り、cancel が呼ばれていなければ done で結果を送出する
+             - 呼ばれていて、結果が Handlers の場合、Handlers.stop_engine を呼んで捨てる（done は送出しない）
+        unit_tests:
+          - name: test_start
+            case: 正常
+            summary: 配線の結果を done で渡す
+            condition: build が Handlers を返す
+            mock: build・done を受ける関数
+            expected: done で Handlers が 1 回渡り、build がスレッド名 `startup-build` のスレッドで呼ばれる
+          - name: test_start_when_startup_error
+            case: 正常
+            summary: 配線の失敗を done で渡す
+            condition: build が StartupError を送出する
+            mock: build・done を受ける関数
+            expected: done でその StartupError が 1 回渡る
+      - name: _register_stop
+        title: エンジンを止める関数を控える
+        kind: メソッド
+        scope: internal
+        thread_safe: true
+        summary: build_handlers の on_engine_created として、エンジンを止める関数を控える
+        args:
+          - name: stop
+            type: Callable[[], None]
+            required: true
+            passing: positional
+            description: エンジンを止める関数
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. ロックを取り、stop を控える
+          2. cancel が既に呼ばれていれば、ロックを放してから stop を呼ぶ
+      - name: cancel
+        title: 配線の取り消し
+        kind: メソッド
+        scope: public
+        summary: 控えたエンジンを止め、配線のスレッドの終わりを待つ。以降は done を送出しない
+        args:
+          - name: timeout_sec
+            type: float
+            required: true
+            passing: positional
+            description: スレッドの終わりを待つ秒数（main は STARTUP_CANCEL_TIMEOUT_SEC）
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. ロックを取り、cancel が呼ばれたことにして、控えたエンジンを止める関数を引く
+          2. ロックを放してから、控えた関数があれば呼ぶ（ワーカーが終わり、配線は StartupError で終わる）
+          3. スレッドの終わりを timeout_sec だけ待つ
+             - 待ちきれない場合、そのまま戻る
+               - `[WARNING]` 起動の配線が終わらないまま終える
+        unit_tests:
+          - name: test_cancel
+            case: 正常
+            summary: 控えた関数でエンジンを止め、done を送出しない
+            condition: build が止める関数を控えた後、その関数が呼ばれるまで待ってから StartupError を送出する。start の後に cancel(1.0)
+            mock: build・止める関数・done を受ける関数
+            expected: 止める関数が 1 回呼ばれ、cancel が戻った時点でスレッドが終わっていて、done が送出されない
+          - name: test_cancel_when_not_registered
+            case: 正常
+            summary: 控える前に取り消されたら、控えたときに止める
+            condition: build が Event を待ってから止める関数を控え、Handlers を返す。start の後に cancel(0.01) を呼んでから Event を立てる
+            mock: build・止める関数・Handlers.stop_engine・done を受ける関数
+            expected: 止める関数が控えたときに呼ばれ、返った Handlers の stop_engine が呼ばれ、done が送出されない
+          - name: test_cancel_when_thread_not_finished
+            case: 異常
+            summary: スレッドが終わらなければ待つのをやめて戻る
+            condition: build が止める関数を控えた後、Event を待ち続ける（止める関数では戻らない）。start の後に cancel(0.05)
+            mock: build・止める関数
+            expected: cancel が 0.05 秒ほどで戻り、WARNING のログが出る
+    status: planned
   - name: RepeatingTimer
     title: 定期の呼び出し
     container: runtime/timer.py
@@ -1558,6 +1708,14 @@ classes:
             expected: 例外が出ず、終了の受け手が 1 回呼ばれる
     status: planned
 constants:
+  - name: STARTUP_CANCEL_TIMEOUT_SEC
+    title: 起動の配線の取り消しの待ち
+    container: main.py
+    usecase: 常駐アプリを起動する
+    summary: 配線の間に抜けたときに、配線のスレッドの終わりを待つ秒数
+    value: '5.0'
+    reason: WhisperWorkerClient.stop は終わりを最大で WORKER_STOP_TIMEOUT_SEC（2.0 秒）の 2 回待ってから kill する。止めた後に配線が StartupError で終わるまでの余裕を 1 秒置く
+    status: planned
   - name: API_START_TIMEOUT_SEC
     title: API の待ち受けの始まりを待つ秒数
     container: main.py

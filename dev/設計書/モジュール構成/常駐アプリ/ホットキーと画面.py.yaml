@@ -637,9 +637,15 @@ classes:
           description: なし
         process: |-
           1. 失敗の起動なら、状態を FAILED のままにし、「録音を開始（準備に失敗）」を押せなくして「設定…」は押せるままにする
-          2. それ以外は、状態の画像とヒント（voice-paste: {状態の名前}）に替え、busy なら「録音を開始（処理中）」「設定…（処理中）」を押せなくする
+          2. それ以外は、状態の画像とヒント（voice-paste: {状態の名前}）に替え、busy なら「録音を開始（処理中）」「設定…（処理中）」を押せなくする。STARTING（準備中）なら「録音を開始」「設定…」を押せなくする（配線が終わるまで受け手が無い）
           3. 「録音を開始」は押せるときだけ太字にする
         unit_tests:
+          - name: test_set_state_when_starting
+            case: 正常
+            summary: 準備中は録音と設定を押せず、再起動と終了は押せる
+            condition: set_state(STARTING, busy=False)
+            mock: なし（offscreen の QApplication）
+            expected: '「録音を開始」と「設定…」が押せず、「再起動」「終了」が押せ、ヒントが voice-paste: 準備中'
           - name: test_set_state_when_busy
             case: 正常
             summary: 処理中は録音と設定を押せなくする
@@ -2741,6 +2747,44 @@ functions:
     refs:
       - dev/設計書/画面設計/常駐アプリ/既定に戻す確認.py#
     status: implemented
+  - name: group_menu_width
+    title: まとまりのメニューの幅
+    kind: 関数
+    container: ui/windows/settings_window.py
+    usecase: 設定を変える
+    scope: public
+    summary: まとまりのメニューの幅を、GROUP_MENU_MIN_WIDTH_PX を下限に、最も長い項目が横のスクロールバーなしで収まる幅にする
+    args:
+      - name: menu
+        type: QListWidget
+        required: true
+        passing: positional
+        description: 項目を入れたまとまりのメニュー
+    returns:
+      type: int
+      description: メニューの幅（px）
+    process: |-
+      1. menu.ensurePolished() でスタイルシート（項目の余白）を当ててから、sizeHintForColumn(0) で最も長い項目の幅を測る
+      2. 1 の幅に、枠の幅（frameWidth の 2 倍）・縦のスクロールバーの幅（verticalScrollBar().sizeHint().width()）・GROUP_MENU_MARGIN_PX を加える
+      3. 2 と GROUP_MENU_MIN_WIDTH_PX の大きい方を返す
+    refs:
+      - dev/設計書/画面設計/常駐アプリ/設定画面.py#elements[まとまりのメニュー]
+    status: planned
+    notes:
+      使い方: SettingsWindow は、まとまりのメニューに項目を入れた後に setFixedWidth(group_menu_width(menu)) で幅を決め、setHorizontalScrollBarPolicy(ScrollBarAlwaysOff) で横のスクロールバーを出さない
+    unit_tests:
+      - name: test_group_menu_width
+        case: 正常
+        summary: 項目が収まれば下限の幅にする
+        condition: 項目が「出力先」「履歴とログ」だけの QListWidget
+        mock: なし（offscreen の QApplication）
+        expected: 160 が返る
+      - name: test_group_menu_width_when_long_item
+        case: 正常
+        summary: 収まらない項目があれば項目に合わせて広げる
+        condition: 項目に 40 文字の文字列を含む QListWidget
+        mock: なし（offscreen の QApplication）
+        expected: 160 より大きく、sizeHintForColumn(0)・frameWidth の 2 倍・縦のスクロールバーの幅・GROUP_MENU_MARGIN_PX の和が返る
   - name: format_hotkey
     title: ホットキーの表示形式
     container: ui/windows/settings_window.py
@@ -3568,6 +3612,21 @@ constants:
     summary: format_hotkey が引く、pynput の修飾キーの名前ごとの画面の名前。OS は shared/os_kind.py の OsKind で引き、sys.platform を直に読まない。今の MODIFIER_NAMES（OS によらない表）はこれに置き換える
     value: '{OsKind.WINDOWS: {"ctrl": "Ctrl", "alt": "Alt", "shift": "Shift", "cmd": "Win"}, OsKind.LINUX: {"ctrl": "Ctrl", "alt": "Alt", "shift": "Shift", "cmd": "Super"}}'
     reason: Ubuntu（GNOME）は Windows キーを Super と表す（[#198](https://github.com/shuhei1101/voice-paste/issues/198)）
+    status: planned
+  - name: GROUP_MENU_MIN_WIDTH_PX
+    title: まとまりのメニューの幅の下限
+    container: ui/windows/settings_window.py
+    usecase: 設定を変える
+    summary: まとまりのメニューの幅の下限（px）。Windows の項目はこの幅に収まる
+    value: '160'
+    reason: 今までの固定の幅。Windows の表示を変えない（#218）
+    status: planned
+  - name: GROUP_MENU_MARGIN_PX
+    title: まとまりのメニューの幅の余白
+    container: ui/windows/settings_window.py
+    usecase: 設定を変える
+    summary: 最も長い項目の幅に加える余白（px）。項目の末尾が枠に触れないようにする
+    value: '4'
     status: planned
   - name: MEDIA_KEYS_SCHEMA
     title: カスタムショートカットの一覧のスキーマ

@@ -20,10 +20,11 @@ directory: |-
   │   ├── adapter.py    # lower_volume・restore_volume（pycaw を == で固定して包む。Windows だけが読み込む）
   │   └── noop.py       # lower_volume_noop・restore_volume_noop（Linux の、音量を変えない実装）
   ├── keyboard/
-  │   ├── sender.py     # copy_to_clipboard・use_xclip_clipboard・split_paste_key・send_paste・send_enter
+  │   ├── sender.py     # copy_to_clipboard・use_xclip_clipboard・split_paste_key・send_paste・send_enter・TERMINAL_WM_CLASSES
   │   ├── sender_linux.py # send_paste_linux（Linux。端末アプリなら Ctrl+Shift+V にし、主キーを XTEST で送信する）
   │   ├── sender_wayland.py # UInputKeyboard（Linux の Wayland のセッション。python-evdev の UInput の仮想キーボードで貼り付けのキーと Enter を送信する）
-  │   └── active_window_linux.py # read_active_wm_class（Linux。python-xlib でアクティブなウィンドウの WM_CLASS を読む）
+  │   ├── active_window_linux.py # read_active_wm_class（Linux。python-xlib でアクティブなウィンドウの WM_CLASS を読む）
+  │   └── active_window_wayland.py # read_focused_wm_class（Linux の Wayland のセッション。拡張 Focused Window D-Bus からフォーカスしているウィンドウの wm_class を読む）
   ├── browser/
   │   ├── opener.py     # open_app_window（Windows。Edge の --app で開き、無ければ既定のブラウザ）
   │   └── opener_linux.py # open_app_window_linux（Linux。Chromium 系の --app で開き、無ければ既定のブラウザ）
@@ -592,7 +593,7 @@ classes:
         kind: メソッド
         scope: public
         thread_safe: true
-        summary: 設定の貼り付けのキーを仮想キーボードで送信する
+        summary: 設定の貼り付けのキーを仮想キーボードで送信する。フォーカスしているウィンドウが端末アプリなら Ctrl+Shift+V に替える
         args:
           - name: paste_key
             type: str
@@ -609,9 +610,13 @@ classes:
           3. 修飾キーを EVDEV_MODIFIER_CODES で、主キーを `ecodes.ecodes["KEY_" + 主キーの大文字]` でキーコードに替える
              - 替えられない場合、DeliveryError を送出する
           4. FOCUS_SETTLE_SEC だけ待つ
-          5. 修飾キーを順に押し、主キーを押して離し、修飾キーを逆順に離してから syn で確定する（EV_KEY を write）
+          5. read_focused_wm_class でフォーカスしているウィンドウの wm_class を読み、小文字にしたどれかの名前が TERMINAL_WM_CLASSES にあるかを見る
+             - ある場合、修飾キーを KEY_LEFTCTRL・KEY_LEFTSHIFT、主キーを KEY_V に替える
+               - `[INFO]` 端末アプリなので Ctrl+Shift+V を送信する（wm_class）
+             - 無い場合（読めずに空のときを含む）、3 のキーのまま
+          6. 修飾キーを順に押し、主キーを押して離し、修飾キーを逆順に離してから syn で確定する（EV_KEY を write）
              - write が OSError を送出した場合、押した修飾キーを離してから DeliveryError を送出する（押されたままにしない）
-             - `[INFO]` 貼り付けのキーを送信した（paste_key、uinput）
+             - `[INFO]` 貼り付けのキーを送信した（送信したキー、uinput）
         exceptions:
           - name: DeliveryError
             condition: 開いていない・送信できないキー・書き込めない
@@ -620,8 +625,26 @@ classes:
             case: 正常
             summary: 待ってから修飾キーと主キーを順に押して離す
             condition: open の後、paste_key が `<ctrl>+v`
-            mock: evdev.UInput・time.sleep
+            mock: evdev.UInput・time.sleep・read_focused_wm_class
             expected: sleep(0.1) の後、write が KEY_LEFTCTRL 1・KEY_V 1・KEY_V 0・KEY_LEFTCTRL 0 の順に呼ばれ、syn が 1 回呼ばれる
+          - name: test_send_paste_when_terminal
+            case: 正常
+            summary: 端末アプリなら Ctrl+Shift+V を送信する
+            condition: open の後、paste_key が `<ctrl>+v`、read_focused_wm_class が ("gnome-terminal-server", "gnome-terminal-server")
+            mock: evdev.UInput・time.sleep・read_focused_wm_class
+            expected: write が KEY_LEFTCTRL 1・KEY_LEFTSHIFT 1・KEY_V 1・KEY_V 0・KEY_LEFTSHIFT 0・KEY_LEFTCTRL 0 の順に呼ばれる
+          - name: test_send_paste_when_class_name_matches
+            case: 正常
+            summary: クラス名だけが一覧にあっても端末アプリとして扱う
+            condition: open の後、read_focused_wm_class が ("console-x", "org.gnome.Console")
+            mock: evdev.UInput・time.sleep・read_focused_wm_class
+            expected: KEY_LEFTSHIFT 1 の write が呼ばれる
+          - name: test_send_paste_when_wm_class_unreadable
+            case: 正常
+            summary: wm_class を読めなければ設定のキーを送信する
+            condition: open の後、paste_key が `<ctrl>+v`、read_focused_wm_class が ()
+            mock: evdev.UInput・time.sleep・read_focused_wm_class
+            expected: write が KEY_LEFTCTRL 1・KEY_V 1・KEY_V 0・KEY_LEFTCTRL 0 の順に呼ばれ、KEY_LEFTSHIFT の write が呼ばれない
           - name: test_send_paste_when_not_opened
             case: 異常
             summary: 開いていなければ DeliveryError
@@ -640,7 +663,7 @@ classes:
             case: 異常
             summary: 書き込めなければ押した修飾キーを離して DeliveryError
             condition: open の後、主キーの write が OSError を送出する
-            mock: evdev.UInput・time.sleep
+            mock: evdev.UInput・time.sleep・read_focused_wm_class
             expected: DeliveryError が送出され、KEY_LEFTCTRL 0 の write が呼ばれている
             exception: 書き込めない
       - name: send_enter
@@ -1676,6 +1699,64 @@ functions:
         condition: get_wm_class が Xlib.error.BadWindow を送出する
         mock: Xlib.display.Display
         expected: () が返り、close が呼ばれる
+  - name: read_focused_wm_class
+    title: フォーカスしているウィンドウの wm_class の読み取り（Wayland）
+    kind: 関数
+    container: integrations/keyboard/active_window_wayland.py
+    usecase: 起こした文字を届ける
+    scope: public
+    summary: GNOME Shell の拡張 Focused Window D-Bus の Get を `gdbus call` で呼び、フォーカスしているウィンドウの wm_class_instance・wm_class を読む。拡張に触れるのはこのファイルだけ
+    returns:
+      type: tuple[str, ...]
+      description: （wm_class_instance, wm_class）のうち空でないもの。読めないときは空
+    process: |-
+      1. FOCUSED_WINDOW_COMMAND を subprocess.run（capture_output・text・check=True・timeout=FOCUSED_WINDOW_TIMEOUT_SEC）で流す
+      2. 標準出力（`('{...}',)` の GVariant の書式）を ast.literal_eval でタプルにし、先頭の文字列を json.loads で読む
+      3. wm_class_instance・wm_class のうち空でない文字列をこの順に返す
+      4. 1〜3 で OSError（`gdbus` が無い）・subprocess.SubprocessError（拡張が無い・無効で終了コードが 0 でない・時間切れ）・ValueError・SyntaxError（出力の書式が違う）が出た場合、空を返す（貼り付けを止めない）
+         - `[WARNING]` フォーカスしているウィンドウの wm_class を読めなかった（元の例外）
+    refs:
+      - dev/設計書/外部ライブラリ/Focused_Window_D-Bus#
+    status: planned
+    notes:
+      テスト: 単体テストのファイルは `tests/unit/voice_paste/integrations/keyboard/test_active_window_wayland.py`。subprocess.run を差し替える。実物の拡張は検証環境の VM での通しの確認で確かめる
+    unit_tests:
+      - name: test_read_focused_wm_class
+        case: 正常
+        summary: 拡張の返す wm_class_instance・wm_class を返す
+        condition: subprocess.run の標準出力が `('{"wm_class":"Gnome-terminal","wm_class_instance":"gnome-terminal-server","title":"端末"}',)` と改行
+        mock: subprocess.run
+        expected: ("gnome-terminal-server", "Gnome-terminal") が返り、subprocess.run に FOCUSED_WINDOW_COMMAND と timeout=1.0・check=True が渡る
+      - name: test_read_focused_wm_class_when_empty_values
+        case: 正常
+        summary: 空の値を除いて返す
+        condition: 標準出力の JSON が `{"wm_class":"python3","wm_class_instance":""}`
+        mock: subprocess.run
+        expected: ("python3",) が返る
+      - name: test_read_focused_wm_class_when_extension_missing
+        case: 異常
+        summary: 拡張が無ければ空を返す
+        condition: subprocess.run が CalledProcessError（終了コード 1）を送出する
+        mock: subprocess.run
+        expected: () が返り、WARNING のログが出る
+      - name: test_read_focused_wm_class_when_gdbus_missing
+        case: 異常
+        summary: gdbus が無ければ空を返す
+        condition: subprocess.run が FileNotFoundError を送出する
+        mock: subprocess.run
+        expected: () が返る
+      - name: test_read_focused_wm_class_when_timeout
+        case: 異常
+        summary: 応答が遅ければ空を返す
+        condition: subprocess.run が TimeoutExpired を送出する
+        mock: subprocess.run
+        expected: () が返る
+      - name: test_read_focused_wm_class_when_malformed
+        case: 異常
+        summary: 出力の書式が違えば空を返す
+        condition: 標準出力が `('not json',)`
+        mock: subprocess.run
+        expected: () が返る
   - name: use_xclip_clipboard
     title: クリップボードの書き先を xclip に固定
     kind: 関数
@@ -1859,11 +1940,26 @@ constants:
       pr: 204
   - name: TERMINAL_WM_CLASSES
     title: 端末アプリの WM_CLASS
-    container: integrations/keyboard/sender_linux.py
+    container: integrations/keyboard/sender.py
     usecase: 起こした文字を届ける
-    summary: send_paste_linux が端末アプリと見なす WM_CLASS の名前（小文字）。インスタンス名かクラス名を小文字にした値がどれかに当たれば端末アプリとする
+    summary: 'send_paste_linux（Xorg）と UInputKeyboard.send_paste（Wayland）が端末アプリと見なす WM_CLASS の名前（小文字）。インスタンス名かクラス名を小文字にした値がどれかに当たれば端末アプリとする。Wayland では拡張 Focused Window D-Bus が Xorg と同じ名前を返す（PoC #239）'
     value: frozenset({"gnome-terminal-server", "gnome-terminal", "kgx", "org.gnome.console", "ptyxis", "org.gnome.ptyxis", "tilix", "terminator", "konsole", "xfce4-terminal", "alacritty", "kitty"})
     reason: 設定のスキーマを変えないため定数で持つ。Ctrl+Shift+V がクリップボードの貼り付けになる端末を並べる。実際に確かめたのは GNOME Terminal（`gnome-terminal-server`。[#211](https://github.com/shuhei1101/voice-paste/pull/211)）だけで、ほかの端末のクラス名と貼り付けのキーは未確認。Ctrl+Shift+V で貼り付けない xterm は入れない
+    status: planned
+  - name: FOCUSED_WINDOW_COMMAND
+    title: フォーカスしているウィンドウを読むコマンド
+    container: integrations/keyboard/active_window_wayland.py
+    usecase: 起こした文字を届ける
+    summary: 拡張 Focused Window D-Bus の Get をセッションバスで呼ぶ gdbus の引数
+    value: ("gdbus", "call", "--session", "--dest", "org.gnome.Shell", "--object-path", "/org/gnome/shell/extensions/FocusedWindow", "--method", "org.gnome.shell.extensions.FocusedWindow.Get")
+    status: planned
+  - name: FOCUSED_WINDOW_TIMEOUT_SEC
+    title: フォーカスしているウィンドウを読む上限
+    container: integrations/keyboard/active_window_wayland.py
+    usecase: 起こした文字を届ける
+    summary: gdbus の応答を待つ秒数。超えたら読めなかったとして設定の貼り付けのキーを送信する
+    value: '1.0'
+    reason: 'PoC #239 で読む時間は 0.006〜0.009 秒だった。応答しない GNOME Shell で貼り付けを長く止めない上限にする'
     status: planned
   - name: DEVICE_READY_SEC
     title: 仮想キーボードの準備の待ち
@@ -1914,6 +2010,7 @@ test_files:
   - tests/unit/voice_paste/integrations/keyboard/test_sender_linux.py
   - tests/unit/voice_paste/integrations/keyboard/test_sender_wayland.py
   - tests/unit/voice_paste/integrations/keyboard/test_active_window_linux.py
+  - tests/unit/voice_paste/integrations/keyboard/test_active_window_wayland.py
   - tests/unit/voice_paste/integrations/browser/test_opener.py
   - tests/unit/voice_paste/integrations/browser/test_opener_linux.py
   - tests/unit/voice_paste/integrations/http/test_client.py

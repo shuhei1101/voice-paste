@@ -1,9 +1,11 @@
 """AI Monitor の settings.yaml に my_plugins_repo を追加し、voice-input の rule_indexes から実在しない索引を外す。"""
 
 import difflib
+import json
 import shutil
 import sys
 import tempfile
+import urllib.request
 from pathlib import Path
 
 import yaml
@@ -20,6 +22,8 @@ MY_PLUGINS_BLOCK = [
 MISSING_INDEX = "/mnt/c/Users/shuhe/repo/voice-paste/rules.yaml"
 KEPT_INDEX = "/mnt/c/Users/shuhe/repo/voice-paste/docs/rules.yaml"
 MISSING_INDEX_LINE = f"    - {MISSING_INDEX}\n"
+MONITOR_PORT_FILE = Path("/mnt/c/Users/shuhe/repo/ai-monitor/data/monitor.port")
+RELOAD_TIMEOUT_SEC = 30
 
 
 def project_block(lines: list[str]) -> tuple[int, int]:
@@ -70,11 +74,26 @@ def verify(text: str) -> bool:
     )
 
 
+def reload_monitor() -> bool:
+    """モニターへ設定の再読込を要求し、反映しなかった項目と捨てたキーが無いかを返す。"""
+    port = MONITOR_PORT_FILE.read_text(encoding="utf-8").strip()
+    request = urllib.request.Request(f"http://127.0.0.1:{port}/reload", method="POST")
+    with urllib.request.urlopen(request, timeout=RELOAD_TIMEOUT_SEC) as response:
+        result = json.load(response)
+    print(f"再読込の応答: ignored={result['ignored']} dropped={result['dropped']}")
+    return not result["ignored"] and not result["dropped"]
+
+
 def main() -> int:
-    """前提確認 → 計画 → 適用の順に進め、--dry-run なら計画で止める。"""
+    """前提確認 → 計画 → 適用 → モニターへの反映の順に進め、--dry-run なら計画で止める。"""
     dry_run = sys.argv[1:] == ["--dry-run"]
-    # 1. 前提確認（設定があり、残す索引が実在し、外す索引が実在しない）
-    if not TARGET.is_file() or not Path(KEPT_INDEX).is_file() or Path(MISSING_INDEX).exists():
+    # 1. 前提確認（設定とモニターのポートのファイルがあり、残す索引が実在し、外す索引が実在しない）
+    if (
+        not TARGET.is_file()
+        or not Path(KEPT_INDEX).is_file()
+        or Path(MISSING_INDEX).exists()
+        or not MONITOR_PORT_FILE.is_file()
+    ):
         print("前提確認: failed")
         return 1
     lines = TARGET.read_text(encoding="utf-8").splitlines(keepends=True)
@@ -108,6 +127,11 @@ def main() -> int:
     Path(f.name).replace(TARGET)
     for line in results:
         print(line)
+    # 4. モニターへの反映（書き換えたときだけ通る）
+    if not reload_monitor():
+        print("モニターへの反映: failed")
+        return 1
+    print("モニターへの反映: ok")
     return 0
 
 

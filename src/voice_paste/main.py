@@ -8,6 +8,7 @@ import os
 import random
 import signal
 import sys
+import threading
 import time
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
@@ -16,7 +17,7 @@ from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QMetaObject, Qt, QTimer
+from PySide6.QtCore import QMetaObject, QObject, Qt, QTimer, Signal
 from PySide6.QtWidgets import QApplication
 
 from voice_paste.features.correction import (
@@ -1069,6 +1070,7 @@ class _Running:
     """キーの送信の機器を閉じる関数（開こうとした後に入る）。"""
     controller: UiController | None = None
     """画面の振り分け。Qt の部品は参照が切れると消えるため、終わりまで持つ。"""
+    startup_relay: object | None = None
 
 
 def _stop_all(running: _Running, tray: Tray) -> None:
@@ -1239,121 +1241,144 @@ def _start_services(
     )
 
     # 7. 配線する（エンジンを準備できなければトレイを失敗にして知らせ、設定画面だけを使えるようにする）
-    try:
-        handlers = build_handlers(
-            settings,
-            paths,
-            ui_notify,
-            ui_report_progress,
-            ui_notify_copied,
-            adapters=adapters,
-            environ=os.environ,
-            unavailable=unavailable,
+    # PoC #217: エンジンの準備（ワーカーの ready の待ち）をメインスレッドの外で流し、イベントループを止めない
+    relay = _StartupRelay()
+    running.startup_relay = relay
+
+    def build_in_thread() -> None:
+        result: object
+        try:
+            result = build_handlers(
+                settings,
+                paths,
+                ui_notify,
+                ui_report_progress,
+                ui_notify_copied,
+                adapters=adapters,
+                environ=os.environ,
+                unavailable=unavailable,
+            )
+        except StartupError as error:
+            result = error
+        relay.done.emit(result)
+
+    def finish(result: object) -> None:
+        if isinstance(result, StartupError):
+            error = result
+            logger.error(f"起動に失敗した（{error}）")
+            tray.set_failed()
+            deps = _build_idle_ui_deps(
+                settings,
+                paths,
+                app,
+                exit_request.request_restart,
+                exit_request.request_quit,
+                adapters.validate_hotkeys,
+            )
+            _watch_system_theme(app, deps.apply_theme)
+            running.controller = _build_controller(bridge, tray, deps)
+            tray.show_failure("engine_unavailable", str(error))
+            return
+        handlers = result
+        running.handlers = handlers
+
+        # 画面を作って知らせの受け手につなぐ（API の待ち受けを始められない知らせを取りこぼさないよう、API より先に）
+        hotkey_listener = adapters.create_hotkey_listener(lock_name, lock)
+        running.hotkey_listener = hotkey_listener
+        save_settings_fn = partial(
+            apply_settings,
+            settings_file=paths.settings_file,
+            store=handlers.settings_store,
+            check_hotkeys=adapters.validate_hotkeys,
+            save_glossary=save_glossary,
         )
-    except StartupError as error:
-        logger.error(f"起動に失敗した（{error}）")
-        tray.set_failed()
-        deps = _build_idle_ui_deps(
-            settings,
+        deps = build_ui_deps(
+            handlers,
             paths,
-            app,
+            save_settings_fn,
             exit_request.request_restart,
             exit_request.request_quit,
-            adapters.validate_hotkeys,
+            hotkey_listener,
+            show_recording_window,
+            partial(
+                _apply_current_theme,
+                app,
+                handlers.settings_store.get,
+                image_dir=paths.ui_image_dir,
+            ),
         )
         _watch_system_theme(app, deps.apply_theme)
         running.controller = _build_controller(bridge, tray, deps)
-        tray.show_failure("engine_unavailable", str(error))
-        return
-    running.handlers = handlers
 
-    # 画面を作って知らせの受け手につなぐ（API の待ち受けを始められない知らせを取りこぼさないよう、API より先に）
-    hotkey_listener = adapters.create_hotkey_listener(lock_name, lock)
-    running.hotkey_listener = hotkey_listener
-    save_settings_fn = partial(
-        apply_settings,
-        settings_file=paths.settings_file,
-        store=handlers.settings_store,
-        check_hotkeys=adapters.validate_hotkeys,
-        save_glossary=save_glossary,
-    )
-    deps = build_ui_deps(
-        handlers,
-        paths,
-        save_settings_fn,
-        exit_request.request_restart,
-        exit_request.request_quit,
-        hotkey_listener,
-        show_recording_window,
-        partial(
-            _apply_current_theme,
-            app,
-            handlers.settings_store.get,
-            image_dir=paths.ui_image_dir,
-        ),
-    )
-    _watch_system_theme(app, deps.apply_theme)
-    running.controller = _build_controller(bridge, tray, deps)
-
-    # 8. ブラウザの機能を組み込んでいれば音声のキューを始め、トークンを作り、API サーバーを起動する
-    if handlers.web_api is not None:
-        handlers.web_api.queue.start(handlers.web_api.tmp_dir)
-    token = create_token()
-    port = settings.api.port
-    fastapi_app = build_fastapi(
-        handlers.session_api,
-        token,
-        port,
-        web_api=handlers.web_api,
-        allowed_web_origins=settings.api.allowed_web_origins,
-    )
-    runner = ApiServerRunner(fastapi_app, port)
-    if runner.start(API_START_TIMEOUT_SEC):
-        running.runner = runner
-        write_token_file(paths.token_file, port, token)
-    else:
-        # 待ち受けを始められなかった: トークンのファイルは書かず（ほかの起動のトークンを上書きしない）、知らせて続ける
-        ui_notify("api_unavailable", f"ポート {port} で待ち受けを始められません")
-
-    # 9. ホットキーの受付と上限の打ち切りのタイマーを始め、トレイを待機中にする
-    try:
-        hotkey_listener.start(
-            build_hotkey_bindings(
-                handlers.settings_store.get(),
-                handlers.session_manager,
-                handlers.start_local_session,
-                show_recording_window,
-            )
+        # 8. ブラウザの機能を組み込んでいれば音声のキューを始め、トークンを作り、API サーバーを起動する
+        if handlers.web_api is not None:
+            handlers.web_api.queue.start(handlers.web_api.tmp_dir)
+        token = create_token()
+        port = settings.api.port
+        fastapi_app = build_fastapi(
+            handlers.session_api,
+            token,
+            port,
+            web_api=handlers.web_api,
+            allowed_web_origins=settings.api.allowed_web_origins,
         )
-    except HotkeyError as error:
-        logger.error(f"ホットキーを受け付けられなかった（{error}）")
-    # キーの送信の機器を開く（開けなければ貼り付けを使えないことを知らせて続ける。「コピーのみ」は使える）
-    running.close_key_sender = adapters.close_key_sender
-    try:
-        adapters.open_key_sender()
-    except DeliveryError as error:
-        logger.error(f"キーの送信の機器を開けなかった（{error}）")
-        tray.show_failure("paste_unavailable", str(error))
-    limit_timer = RepeatingTimer(
-        handlers.session_manager.truncate_if_expired, SESSION_LIMIT_CHECK_INTERVAL_SEC
-    )
-    limit_timer.start()
-    running.timers.append(limit_timer)
-    # 常駐中の古いログと履歴の削除（設定は呼ぶたびに引き、設定画面で変えた保持期間を次の回から効かせる）
-    purge_timer = RepeatingTimer(
-        partial(
-            _purge_while_running,
-            handlers.settings_store,
-            handlers.session_manager,
-            paths,
-        ),
-        PURGE_INTERVAL_SEC,
-    )
-    purge_timer.start()
-    running.timers.append(purge_timer)
-    tray.set_start_hotkey(settings.hotkeys.start)
-    tray.set_state(TrayState.IDLE, busy=False)
-    logger.info(f"常駐サービスを始めた（API のポート: {port}）")
+        runner = ApiServerRunner(fastapi_app, port)
+        if runner.start(API_START_TIMEOUT_SEC):
+            running.runner = runner
+            write_token_file(paths.token_file, port, token)
+        else:
+            # 待ち受けを始められなかった: トークンのファイルは書かず（ほかの起動のトークンを上書きしない）、知らせて続ける
+            ui_notify("api_unavailable", f"ポート {port} で待ち受けを始められません")
+
+        # 9. ホットキーの受付と上限の打ち切りのタイマーを始め、トレイを待機中にする
+        try:
+            hotkey_listener.start(
+                build_hotkey_bindings(
+                    handlers.settings_store.get(),
+                    handlers.session_manager,
+                    handlers.start_local_session,
+                    show_recording_window,
+                )
+            )
+        except HotkeyError as error:
+            logger.error(f"ホットキーを受け付けられなかった（{error}）")
+        # キーの送信の機器を開く（開けなければ貼り付けを使えないことを知らせて続ける。「コピーのみ」は使える）
+        running.close_key_sender = adapters.close_key_sender
+        try:
+            adapters.open_key_sender()
+        except DeliveryError as error:
+            logger.error(f"キーの送信の機器を開けなかった（{error}）")
+            tray.show_failure("paste_unavailable", str(error))
+        limit_timer = RepeatingTimer(
+            handlers.session_manager.truncate_if_expired, SESSION_LIMIT_CHECK_INTERVAL_SEC
+        )
+        limit_timer.start()
+        running.timers.append(limit_timer)
+        # 常駐中の古いログと履歴の削除（設定は呼ぶたびに引き、設定画面で変えた保持期間を次の回から効かせる）
+        purge_timer = RepeatingTimer(
+            partial(
+                _purge_while_running,
+                handlers.settings_store,
+                handlers.session_manager,
+                paths,
+            ),
+            PURGE_INTERVAL_SEC,
+        )
+        purge_timer.start()
+        running.timers.append(purge_timer)
+        tray.set_start_hotkey(settings.hotkeys.start)
+        tray.set_state(TrayState.IDLE, busy=False)
+        logger.info(f"常駐サービスを始めた（API のポート: {port}）")
+
+    relay.done.connect(finish, Qt.ConnectionType.QueuedConnection)
+    threading.Thread(target=build_in_thread, name="startup-build", daemon=True).start()
+    logger.info("PoC: エンジンの準備をメインスレッドの外で始めた")
+
+
+class _StartupRelay(QObject):
+    """PoC #217: 別スレッドで組み立てた結果をメインスレッドへ戻す。"""
+
+    done = Signal(object)
 
 
 def _build_controller(bridge: UiBridge, tray: Tray, deps: UiDeps) -> UiController:

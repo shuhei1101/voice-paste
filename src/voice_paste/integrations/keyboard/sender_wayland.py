@@ -6,7 +6,10 @@ Wayland のセッションでは pynput・XTEST のキーがネイティブの�
 
 from __future__ import annotations
 
+import ast
 import contextlib
+import json
+import subprocess
 import logging
 import threading
 import time
@@ -46,6 +49,38 @@ KEY_UP: int = 0
 
 NOT_OPENED_MESSAGE: str = "貼り付けのキーを送信できません。起こした文字はクリップボードにあります"
 """仮想キーボードを開いていないときの DeliveryError の理由。"""
+
+
+POC_TERMINAL_NAMES: frozenset[str] = frozenset(
+    {"gnome-terminal-server", "gnome-terminal", "org.gnome.terminal", "kgx", "org.gnome.console", "ptyxis", "org.gnome.ptyxis"}
+)
+"""PoC #223: 端末アプリと見なす名前（小文字）。拡張が返す値を記録してから決める。"""
+
+
+def poc_read_focused_window() -> tuple[str, ...]:
+    """PoC #223: Focused Window D-Bus の拡張から、フォーカスしているウィンドウの wm_class と wm_class_instance を読む。読めなければ空。"""
+    started = time.perf_counter()
+    try:
+        completed = subprocess.run(  # noqa: S603 引数は固定
+            [
+                "gdbus", "call", "--session", "--dest", "org.gnome.Shell",
+                "--object-path", "/org/gnome/shell/extensions/FocusedWindow",
+                "--method", "org.gnome.shell.extensions.FocusedWindow.Get",
+            ],
+            capture_output=True, text=True, timeout=1.0, check=True,
+        )
+        raw = ast.literal_eval(completed.stdout.strip())[0]
+        window = json.loads(raw)
+    except (OSError, subprocess.SubprocessError, ValueError, SyntaxError) as error:
+        logger.info(f"PoC: フォーカスしているウィンドウを読めなかった（{error}・{time.perf_counter() - started:.3f} 秒）")
+        return ()
+    names = tuple(str(window.get(key)) for key in ("wm_class", "wm_class_instance") if window.get(key))
+    logger.info(
+        f"PoC: フォーカスしているウィンドウ wm_class={window.get('wm_class')!r} "
+        f"wm_class_instance={window.get('wm_class_instance')!r} title={window.get('title')!r} "
+        f"（{time.perf_counter() - started:.3f} 秒）"
+    )
+    return names
 
 
 class UInputKeyboard:
@@ -88,6 +123,12 @@ class UInputKeyboard:
 
             # 3. 貼り付け先のフォーカスが落ち着くのを待ってから送信する
             time.sleep(FOCUS_SETTLE_SEC)
+            # PoC #223: 端末アプリなら Ctrl+Shift+V に替える
+            names = poc_read_focused_window()
+            if any(name.lower() in POC_TERMINAL_NAMES for name in names):
+                modifier_codes = [ecodes.KEY_LEFTCTRL, ecodes.KEY_LEFTSHIFT]
+                main_code = ecodes.KEY_V
+                paste_key = "<ctrl>+<shift>+v"
             self._press(device, modifier_codes, main_code)
         logger.info(f"貼り付けのキーを送信した（{paste_key}、uinput）")
 

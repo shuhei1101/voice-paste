@@ -65,7 +65,7 @@ classes:
         type: bool
         access: 内部 (_)
         default: 'False'
-        description: stop で止めている最中か。立っている間は子プロセスが終わっても立て直さない。start で下ろす
+        description: stop で止めている最中か。立っている間は子プロセスが終わっても立て直さず、start は子プロセスを起動しない。一度立てたら下ろさない
       - name: _creationflags
         type: int
         access: 内部 (_)
@@ -83,11 +83,12 @@ classes:
           - name: EngineError
             condition: モデルを読み込めず ready が届かない（error が届いた・子プロセスが終わった・立て直しで上限を過ぎた）
         process: |-
-          1. _stopping を下ろす
+          1. _stopping が立っていれば、子プロセスを起動せずに EngineError を送出する（stop の後に起動しない）
           2. 子プロセスの環境を作る
              - venv の `Lib/site-packages/nvidia/{cublas,cudnn,cuda_nvrtc}/bin` のうち存在するものを PATH の先頭へ追加する（CUDA の DLL を子プロセスが見つけられるようにする）
              - 標準入出力を UTF-8 にする
           3. `python -u -m voice_paste.integrations.whisper.worker` を _creationflags で起動し（Windows ではコンソールを出さない。sys.platform は見ない）、標準エラーを別のスレッドで読んでロガーへ流す
+             - 起動した後に _stopping が立っていた場合（起動の間に stop が呼ばれ、stop が子プロセスを見つけられなかった）、子プロセスを止めて EngineError を送出する
           4. config（モデル・デバイス・量子化・スレッド数・ワーカー数・ログの置き場所）を送信し、ready・error・子プロセスの終了のどれかを待つ
              - ready_timeout_sec が渡されていれば、その間だけ待つ（立て直しの経路）
              - error が届いた・子プロセスが終わった・上限を過ぎた場合、子プロセスを止めて EngineError を送出する
@@ -119,6 +120,18 @@ classes:
             condition: ready_timeout_sec を渡さず、子プロセスは _ready_timeout_sec（0.1 にする）より遅れて 0.3 秒後に ready を返す
             mock: subprocess.Popen
             expected: 例外が出ずに立ち上がり、子プロセスが止められない
+          - name: test_start_when_stopped
+            case: 異常
+            summary: stop の後の start は子プロセスを起動しない
+            condition: 子プロセスを起動する前に stop を呼び、続けて start を呼ぶ
+            mock: subprocess.Popen
+            expected: EngineError が送出され、subprocess.Popen が呼ばれない
+          - name: test_start_when_stopped_during_launch
+            case: 異常
+            summary: 起動の間に stop が呼ばれたら、起動した子プロセスを止める
+            condition: subprocess.Popen の差し替えが、戻る前に stop を呼ぶ
+            mock: subprocess.Popen
+            expected: EngineError が送出され、起動した子プロセスが止められる（標準入力を閉じる）
         args:
           - name: ready_timeout_sec
             type: float | None

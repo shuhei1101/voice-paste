@@ -1,0 +1,19 @@
+PoC #223（Ubuntu 24.04・GNOME 46 の Wayland のセッション・拡張 Focused Window D-Bus を有効）。paste223.py を run223.sh で流した結果の要約。
+
+terminal（GNOME Terminal、bash -c "stty -icanon -echo; cat > term.txt"）: 10/10
+  wm_class='gnome-terminal-server' wm_class_instance='gnome-terminal-server' title='端末'（読む時間 0.006〜0.008 秒）
+  送信したキー: <ctrl>+<shift>+v ×10
+native（Qt の Wayland のプローブ、QT_QPA_PLATFORM=wayland）: 10/10
+  wm_class='python3' wm_class_instance='python3' title='probe-wayland'（0.007〜0.009 秒）
+  送信したキー: <ctrl>+v ×10
+xwayland（Qt の XWayland のプローブ、QT_QPA_PLATFORM=xcb）: 10/10
+  wm_class='probe.py' wm_class_instance='probe.py' title='probe-xcb'（0.007〜0.009 秒）
+  送信したキー: <ctrl>+v ×10
+editor（GNOME テキストエディター）: 10/10（223_poc_texteditor.png）
+  wm_class='org.gnome.TextEditor' wm_class_instance='org.gnome.TextEditor'（0.008 秒前後）
+  送信したキー: <ctrl>+v ×10
+
+拡張を無効にしたとき（gnome-extensions disable focused-window-dbus@flexagoon.com）
+terminal: 0/10（端末には ^V（0x16）が 10 個入った。今の動きと同じ）
+native: 10/10
+  gdbus が exit status 1 を返し「フォーカスしているウィンドウを読めなかった」をログに出して、設定の貼り付けのキー <ctrl>+v を送信した（0.006〜0.009 秒）。例外で止まらない

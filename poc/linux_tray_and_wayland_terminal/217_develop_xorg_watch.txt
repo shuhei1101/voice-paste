@@ -1,0 +1,27 @@
+1 s items=(<@as []>,) started_lines=21
+31 s items=(<[':1.110@/StatusNotifierIteivepatch']>,) started_lines=21
+61 s items=(<[':1.110@/StatusNotifierIteivepatch']>,) started_lines=22
+91 s items=(<[':1.110@/StatusNotifierIteivepatch']>,) started_lines=22
+121 s items=(<[':1.110@/StatusNotifierItlivepatch']>,) started_lines=22
+151 s items=(<[':1.110@/StatusNotifierItlivepatch']>,) started_lines=22
+181 s items=(<[':1.110@/StatusNotifierItlivepatch']>,) started_lines=22
+212 s items=(<[':1.110@/StatusNotifierItlivepatch']>,) started_lines=22
+242 s items=(<[':1.110@/StatusNotifierItlivepatch']>,) started_lines=22
+272 s items=(<[':1.110@/StatusNotifierItlivepatch']>,) started_lines=22
+302 s items=(<[':1.110@/StatusNotifierItlivepatch']>,) started_lines=22
+332 s items=(<[':1.110@/StatusNotifierItlivepatch']>,) started_lines=22
+362 s items=(<[':1.110@/StatusNotifierItlivepatch']>,) started_lines=22
+392 s items=(<[':1.110@/StatusNotifierItlivepatch']>,) started_lines=22
+422 s items=(<[':1.110@/StatusNotifierItlivepatch']>,) started_lines=22
+453 s items=(<[':1.110@/StatusNotifierItlivepatch']>,) started_lines=22
+483 s items=(<[':1.110@/StatusNotifierItlivepatch']>,) started_lines=22
+513 s items=(<[':1.110@/StatusNotifierItlivepatch']>,) started_lines=22
+543 s items=(<[':1.110@/StatusNotifierItlivepatch']>,) started_lines=22
+573 s items=(<[':1.110@/StatusNotifierItlivepatch']>,) started_lines=22
+3.5M	/home/shuhe/.cache/huggingface/hub/
+3.5M	/home/shuhe/.cache/huggingface/hub/models--Systran--faster-whisper-large-v3
+{"ts": "2026-11-01T02:11:27.486327+09:00", "level": "INFO", "name": "voice_paste.main", "msg": "設定を読んだ（/home/shuhe/.config/voice-paste/settings.toml、エンジン: local_whisper、オ�
+{"ts": "2026-11-01T02:12:11.478310+09:00", "level": "INFO", "name": "voice_paste.integrations.whisper.client", "msg": "文字起こしワーカーが立ち上がった（pid 2873・44.0 秒）"}
+{"ts": "2026-11-01T02:12:11.557266+09:00", "level": "INFO", "name": "voice_paste.main", "msg": "常駐サービスを始めた（API のポート: 47823）"}
+
+[exited with code 0]

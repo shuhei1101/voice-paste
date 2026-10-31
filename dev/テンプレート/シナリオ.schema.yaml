@@ -34,7 +34,6 @@ properties:
     title: 対応テストファイル
     description: |-
       `tests/e2e/{単一ユースケース,複合ユースケース}/…`。
-      エージェントが登場しないユースケースは `tests/integration/{サブシステム名}/…`（規約『V字モデル』）。
     pattern: ^tests/.+
   primary_actor:
     type: string
@@ -81,7 +80,7 @@ properties:
   reading:
     $ref: 共通.schema.yaml#/$defs/markdown
     title: 読み替え
-    description: 1 ファイルで複数のレイヤー・エージェントを代表するときの読み替えの表。
+    description: 1 ファイルで複数のレイヤー・役割を代表するときの読み替えの表。
     x-heading: 読み替え
   scenarios:
     type: array

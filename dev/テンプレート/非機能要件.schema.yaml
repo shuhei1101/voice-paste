@@ -100,6 +100,49 @@ properties:
           title: 対応テスト
           description: 非機能要件テストのファイル（`tests/nfr/test_{英語名}.py`）。測れない項目・実機での確認に回す項目は持たない。
           pattern: ^tests/.+
+        verification:
+          type: object
+          title: 確認の記録
+          description: |-
+            実機での確認に回した項目だけが持つ、確かめた結果。確かめた側（tester かユーザー）が release ブランチの行へ書く。
+            修正の後に合格の記録を持たない項目は、確かめ直して書き換える。
+          x-heading: 確認の記録
+          x-shape: attributes
+          additionalProperties: false
+          required:
+          - device
+          - version
+          - date
+          - result
+          properties:
+            device:
+              type: string
+              title: 端末
+              description: 確かめた端末（OS・ブラウザなど）。
+            version:
+              type: string
+              title: 版
+              description: 確かめた端末の版（OS・ブラウザの版）。
+            date:
+              type: string
+              title: 確認日
+              description: '`YYYY-MM-DD`。'
+              pattern: ^[0-9]{4}-[0-9]{2}-[0-9]{2}$
+            result:
+              type: string
+              title: 合否
+              enum:
+              - 合格
+              - 不合格
+            detail:
+              type: string
+              title: 確認内容
+              description: 不合格のとき、起きた事象。
+          examples:
+          - device: Windows 11 の PC の Edge
+            version: Edge 140
+            date: '2026-10-05'
+            result: 合格
         overflow:
           $ref: 共通.schema.yaml#/$defs/markdown
           title: 超過時の挙動
@@ -273,6 +316,11 @@ examples:
     value: Chrome と Edge の最新版
     rationale: 利用者が社内の PC だけで使うため
     measurement: Chrome と Edge の実機で、全ての画面の操作を最後まで完了できるかを確かめる
+    verification:
+      device: Windows 11 の PC の Edge
+      version: Edge 140
+      date: '2026-10-05'
+      result: 合格
   - name: 最小画面幅
     english_name: min_viewport_width
     category: 動作環境
@@ -301,6 +349,11 @@ examples:
     value: Windows の PC と Nintendo Switch
     rationale: 企画の段で決めた販売先
     measurement: 各端末の実機で、タイトル画面から 1 ステージを最後まで遊べるかを確かめる
+    verification:
+      device: Nintendo Switch の実機
+      version: システムソフトウェア 19.0.0
+      date: '2026-10-05'
+      result: 合格
   - name: 入力方式
     english_name: input_devices
     category: 動作環境

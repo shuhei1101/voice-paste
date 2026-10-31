@@ -1,0 +1,23 @@
+前提確認: ok
+--- /home/shuhei2441/.config/ai-monitor/settings.yaml
++++ /home/shuhei2441/.config/ai-monitor/settings.yaml
+@@ -155,6 +155,9 @@
+   kind: discord
+   channels:
+     - general
++# 言語・フレームワークの規約を持つリポジトリ（ルール改修 Issue の起票先）
++my_plugins_repo: shuhei1101/my-plugins
++
+ # 監視対象プロジェクト（複数可）
+ projects:
+ - name: ai-monitor
+@@ -195,7 +198,6 @@
+   task_plan_issue: 2
+   work_pr_max: 1
+   rule_indexes:
+-    - /mnt/c/Users/shuhe/repo/voice-paste/rules.yaml
+     - /mnt/c/Users/shuhe/repo/voice-paste/docs/rules.yaml
+ - name: text-factory
+   sprint_capacity: 30
+my_plugins_repo の追加: changed
+rule_indexes の整理: changed

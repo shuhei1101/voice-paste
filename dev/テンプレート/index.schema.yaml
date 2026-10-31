@@ -67,19 +67,20 @@ properties:
         description: '`columns` で並べた、`page`・`summary`・`group` 以外の列の値。'
       required:
       - page
-      - summary
       properties:
         page:
           type: string
           title: ページ
           description: |-
-            直下のファイル（`{ファイル名}.md`）か、サブフォルダ（`{フォルダ名}/`）。
-            フェーズ索引が共有のフェーズを並べるときだけ、`../` から始まる別のフォルダのページ（`../共通/ターンの返却.md`）を書く。
+            直下のファイルは実体のファイル名（Markdown は `{ファイル名}.md`、YAML の設計書は `{ファイル名}.yaml`）、サブフォルダは `{フォルダ名}/`。
+            フェーズ索引が共有のフェーズを並べるときだけ、`../` から始まる別のフォルダのページ（`../共通/ターンの返却.yaml`）を書く。
           pattern: ^(?:[^/\s][^/]*/?|(?:\.\./)+[^/\s.][^/]*(?:/[^/\s][^/]*)*)$
         summary:
           $ref: 共通.schema.yaml#/$defs/summary
           title: 概要
-          description: 1 行の説明。
+          description: |-
+            1 行の説明。YAML のフェーズを指す行は書かない（フェーズの YAML の `summary` から取る）。
+            それ以外の行は必須で、無い行は設計書の検証が誤りにする。
         group:
           type: string
           title: 分類
@@ -100,9 +101,5 @@ examples:
   - key: condition
     title: 実行条件
   items:
-  - page: 初期処理.md
-    summary: 本文・ラベル・自分宛コメントの取得とフェーズの決定
-    condition: 毎ターン最初に必ず実行
-  - page: ../共通/ターンの返却.md
-    summary: ターンの中身が無いまま起こされたときの確認ラベル返却
-    condition: 上のどれにも該当しない
+  - page: 初期処理.yaml
+  - page: ../共通/ターンの返却.yaml

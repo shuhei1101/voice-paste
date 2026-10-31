@@ -385,6 +385,7 @@ examples:
     visible_when: 常時
   - name: 保存ボタン
     kind: button
+    component: dev/設計書/部品設計/共通/ボタン.html#
     position: フッター
     description: 入力内容でタスクを作成
     label: 保存

@@ -31,7 +31,12 @@ properties:
   layers:
     type: array
     title: テスト種別
-    description: テスト種別ごとの実行コマンド。初期構築では種別だけを作り、コマンドはテストを作る担当が確定させる（確定させるまでは `run_all` を `未確定`）。
+    description: |-
+      テスト種別ごとの実行コマンド。初期構築では種別だけを作り、コマンドはテストを作る担当が確定させる（確定させるまでは `run_all` を `未確定`）。
+      `lint` 層は、プロジェクトの言語に応じて linter・formatter の check・型検査・構造と依存の向きの検査を揃える（コンパイラが担う検査は除く）。
+      CI・pre-commit・マニフェストのスクリプト・コーディング規約で使うと決めたツールが持つ検査は `lint` 層へ写し、`lint` 層に無い検査を残さない。
+      型検査と構造の検査は、変更ファイルだけでなくプロジェクト全体に回す。
+      全件実行は、どれかが失敗しても全ての検査を最後まで回し、1 つでも失敗したら失敗で終える 1 コマンドにまとめる（task runner・スクリプト・終了コードを集約するサブシェル 等）。
     x-shape: sections
     x-key: name
     x-unique-in-kind: true
@@ -160,3 +165,11 @@ examples:
         uv run pytest {外部疎通テストファイルパス} --run-external
         ```
     external_cost: テストごとの料金は外部API の設計書の料金を見る
+  - name: lint
+    description: ruff で linter・formatter の check を、mypy で型検査を、import-linter で依存の向きを検査する。型検査と依存の向きの検査はプロジェクト全体に回す。
+    prerequisites:
+    - 検査の設定は `pyproject.toml` が持つ
+    run_all: |-
+      ```bash
+      (rc=0; uv run ruff check . || rc=1; uv run ruff format --check . || rc=1; uv run mypy . || rc=1; uv run lint-imports || rc=1; exit $rc)
+      ```

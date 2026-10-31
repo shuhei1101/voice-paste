@@ -1,5 +1,7 @@
 # 部品
 
+<!-- table: data -->
+
 | 部品 | 中身 |
 | --- | --- |
 | [recording-window-head](./recording-window-head/index.html) | 録音の画面の見出しの行（通常・行にかざす・非表示 / × にかざす・押下・フォーカス・長い経過時間） |
@@ -16,3 +18,5 @@
 | [web-kept-audio](./web-kept-audio/index.html) | 外の端末の文字起こしの画面の端末内の音声の行（送信中・送信済み・送信失敗・文字起こし前・長い録音） |
 | [web-result-item](./web-result-item/index.html) | 外の端末の文字起こしの画面の結果の 1 件（文字起こし待ち・文字起こし中・文字起こし完了・コピー済み・文字起こし失敗・結果消失・長い名前と文） |
 | [web-glossary-preset-select](./web-glossary-preset-select/index.html) | 外の端末の文字起こしの画面の用語集のプリセットの選択欄（案 A・案 B ごとに 既定のまま・別のプリセットを選択・録音中・送信中・一覧の取得失敗・一覧に無いプリセット・長い名前） |
+
+<!-- /table -->

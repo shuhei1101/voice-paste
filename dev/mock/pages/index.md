@@ -1,5 +1,7 @@
 # 画面
 
+<!-- table: data -->
+
 | 画面 | 名前 | 現役の案 |
 | --- | --- | --- |
 | [recording-window](./recording-window/) | 録音の画面 | [37 / a-standard](./recording-window/37/a-standard/index.html) |
@@ -12,3 +14,5 @@
 | [settings-reset-dialog](./settings-reset-dialog/) | 既定に戻す確認 | [37 / a-standard](./settings-reset-dialog/37/a-standard/index.html) |
 | [web-transcription](./web-transcription/) | 外の端末の文字起こしの画面 | [171 / a-standard](./web-transcription/171/a-standard/index.html) |
 | [web-confirm-dialog](./web-confirm-dialog/) | 外の端末の取り消せない操作の確認 | [171 / a-standard](./web-confirm-dialog/171/a-standard/index.html) |
+
+<!-- /table -->

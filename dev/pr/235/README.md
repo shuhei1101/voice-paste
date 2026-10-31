@@ -32,7 +32,7 @@ voice-paste が準拠する AI Monitor の配布物を v0.2.0 から v0.3.0 へ�
 - [x] ~~部品設計~~（部品を作らない）
 - [x] ~~画面設計~~（画面の要素を変えない。v0.3.0 の Schema でも設計書の検証の結果が変わらない）
 - [x] ~~モジュール構成設計~~（モジュールを変えない。v0.3.0 の Schema でも設計書の検証の結果が変わらない）
-- [ ] ドキュメント修正（dev/テンプレート/ の Schema・docs/_theme/・docs/_config.yml・ai-monitor-theme.yaml・ai-monitor-version.ini）
+- [x] ドキュメント修正（dev/テンプレート/ の Schema・docs/_theme/・docs/_config.yml・ai-monitor-theme.yaml・ai-monitor-version.ini）
 - [x] ~~単体テスト作成~~（コードを変えない）
 - [x] ~~実装~~（コードを変えない）
 - [x] ~~結合テスト作成~~（コードを変えない）

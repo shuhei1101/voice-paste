@@ -625,6 +625,37 @@ scenarios:
       - トレイで、貼り付けられずクリップボードに入っていることが知らされている
       - Enter は送信されていない
       - ログに送信できなかった理由が書かれている
+  - name: 正常シナリオ（Wayland のセッションで端末アプリへ貼り付ける）
+    setup:
+      - name: Mock
+        description: なし（検証環境の VM を Ubuntu 24.04 の Wayland のセッションで起動し、実機で確かめる）
+      - name: 拡張
+        description: GNOME Shell の拡張 Focused Window D-Bus を入れて有効にしてある
+      - name: 出力先
+        description: 録音する で「貼り付けのみ」を選んだ
+      - name: 貼り付けのキー
+        description: 設定の貼り付けのキーは既定（`<ctrl>+v`）
+      - name: 貼り付け先
+        description: GNOME Terminal の入力欄にフォーカスがある
+        notes: 拡張が返す `wm_class` は `gnome-terminal-server`
+    flow: |-
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant OUT as 出力先（貼り付けのみ）
+        participant CB as クリップボード（XWayland の xclip）
+        participant EXT as GNOME Shell の拡張
+        participant KB as 仮想のキーボード（uinput）
+        participant TGT as 貼り付け先のアプリ（端末）
+
+        SVC->>OUT: 起こした文字を渡す
+        OUT->>CB: 起こした文字をコピーする
+        OUT->>EXT: Xorg のセッションと同じ間を置いて、フォーカスしているウィンドウを読む
+        EXT-->>OUT: wm_class は gnome-terminal-server
+        OUT->>KB: 設定の貼り付けのキーに代えて Ctrl+Shift+V を送信する
+        KB->>TGT: Ctrl+Shift+V が届く
+    expected:
+      - 端末の入力欄に起こした文字が入っている
+      - クリップボードに起こした文字が入っている
 lead: 起こした文字を、ホットキーから始めた録音は選んだ出力先へ、API から始めた録音は呼び出し元のエンドポイントへ届ける単一ユースケース。
 issue: 14
 primary_actor: 音声入力を使うユーザー
@@ -655,10 +686,11 @@ notes:
     届け始めた後の切り替えは受けず、届けている出力先のまま届ける。
     実機で決定的に起こせないため、シナリオにはしていない。
   Linux の端末アプリへの貼り付け: |-
-    Linux（Xorg のセッション）では、貼り付けのキーを送信する直前にアクティブなウィンドウを見て、端末アプリなら設定の貼り付けのキーに代えて `Ctrl+Shift+V` を送信する（端末アプリでは `Ctrl+V` が貼り付けにならない）。
+    Linux では、貼り付けのキーを送信する直前にアクティブなウィンドウを見て、端末アプリなら設定の貼り付けのキーに代えて `Ctrl+Shift+V` を送信する（端末アプリでは `Ctrl+V` が貼り付けにならない）。
     「貼り付けて送信」も同じキーで貼り付けてから Enter を送信する。
     Windows は、貼り付け先によらず設定の貼り付けのキーを送信する。
-    Wayland のセッションも、GNOME にアクティブなウィンドウを読む標準のインターフェースが無いため、貼り付け先によらず設定の貼り付けのキーを送信する。
+    Xorg のセッションは X の WM_CLASS を読む。Wayland のセッションは GNOME にアクティブなウィンドウを読む標準のインターフェースが無いため、ユーザーが入れた GNOME Shell の拡張 Focused Window D-Bus から `wm_class`・`wm_class_instance` を D-Bus で読み、Xorg と同じ端末アプリの一覧と照らす。
+    拡張が入っていない・無効で読めないときは、貼り付け先によらず設定の貼り付けのキーを送信する（エラーにしない）。
     このシナリオの E2E は、Linux で E2E を動かす仕組み（[#199](https://github.com/shuhei1101/voice-paste/issues/199)）ができるまで持たない。
   Wayland のセッションの貼り付け: |-
     Linux の Wayland のセッションでは、クリップボードへ XWayland の `xclip` で書き、貼り付けのキーと Enter（修飾キーつき）を uinput の仮想のキーボードから送信する。

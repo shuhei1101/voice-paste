@@ -11,4 +11,4 @@
   切り戻し: 設定スキーマの追従/切り戻し.py
   失敗時: 既定の対処を 1 回、2 回連続で失敗したら依頼元へ返す
   確認方法: "`settings.yaml` の `my_plugins_repo` が `shuhei1101/my-plugins` で、`voice-input` の `rule_indexes` が `/mnt/c/Users/shuhe/repo/voice-paste/docs/rules.yaml` だけになっている。実行の出力の `/reload` の応答で `ignored`・`dropped` が空で、その後に起動したエージェントで rule-inject が `voice-paste/rules.yaml` の FileNotFoundError を出さない"
-  状態: 未
+  状態: 済

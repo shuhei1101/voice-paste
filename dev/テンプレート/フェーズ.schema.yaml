@@ -1,0 +1,119 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: フェーズ
+description: |-
+  エージェントのフェーズ 1 つの概要・実行条件・タグ・対象のエージェントと、上から順に実行する手順。
+  1 ファイル = 1 フェーズ。エージェントへ渡すときは `steps` を `###` の節に並べた 1 つの Markdown にする。
+x-kind: phase
+x-folder: dev/エージェント運用/エージェント
+x-tag-registry: dev/エージェント運用/エージェント/タグ.yaml
+type: object
+additionalProperties: false
+required:
+- title
+- summary
+- condition
+- steps
+properties:
+  title:
+    type: string
+    title: タイトル
+    description: フェーズ名。ファイル名・フェーズ索引の行と一致させる。
+    examples:
+    - 問い合わせ応答
+  summary:
+    $ref: 共通.schema.yaml#/$defs/summary
+    title: 概要
+    description: そのフェーズで何をするかを体言止めの 1 行で書く。フェーズ索引の行の概要になる。
+    examples:
+    - どのフェーズにも当たらない自分宛コメントへの返答
+  condition:
+    $ref: 共通.schema.yaml#/$defs/summary
+    title: 実行条件
+    description: このフェーズを選ぶ条件を 1 行で書く。フェーズ索引の行の実行条件になる。
+    examples:
+    - 未解決の自分宛コメントがある（索引のどの行にも該当しない）
+  tags:
+    type: array
+    title: タグ
+    description: |-
+      フェーズを検索で絞り込むタグ。`x-tag-registry` が指すタグの一覧に登録した名前だけを書ける。
+      先にタグの一覧のツール（`list_design_doc_tags`）で登録済みのタグを確かめる。
+    uniqueItems: true
+    items:
+      type: string
+    examples:
+    - - 応答
+  agents:
+    type: array
+    title: 対象のエージェント
+    description: 共通のフェーズを使うエージェントの名前。
+    uniqueItems: true
+    items:
+      type: string
+    examples:
+    - - planner
+      - implementer
+  steps:
+    type: array
+    title: 手順
+    description: |-
+      上から順に実行する手順。1 要素が Markdown のフェーズの `###` の 1 節に当たる。
+      `body` か `ref` のどちらか 1 つを持つ。
+    x-heading: 手順
+    x-shape: sections
+    x-key: name
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      properties:
+        name:
+          type: string
+          title: 名前
+          description: 手順の名前。`###` の見出しになり、`ref` が手順を指すキーになる。フェーズの中で一意にする。
+          examples:
+          - ターンの返却
+        when:
+          type: string
+          title: 実行する条件
+          description: 当てはまらないときは飛ばす手順の条件。組み立てた節の頭に `{when} ときだけ実行する。` と置く。
+          examples:
+          - 未解決の自分宛コメントが 0 件
+        body:
+          $ref: 共通.schema.yaml#/$defs/markdown
+          title: 本文
+          description: |-
+            手順の本文。テンプレート『フェーズ』の手順の書き方に従う。
+            `!{名前}` の定数は、エージェントへ渡すときに実値へ展開される。
+          examples:
+          - MCP `report_completion` を呼ぶ。
+        ref:
+          $ref: 共通.schema.yaml#/$defs/ref
+          title: 参照
+          description: |-
+            別のフェーズの手順を共通の手順として使う。`{フェーズのパス}#steps[{名前}]` で書く。
+            エージェントへ渡すときは、参照先の手順の本文を埋め込む。
+          pattern: "^[^#\\s]+#steps\\[[^\\]]+\\]$"
+          examples:
+          - dev/エージェント運用/エージェント/共通/ターンの返却#steps[確認ラベルの返却]
+      oneOf:
+      - required: [body]
+      - required: [ref]
+examples:
+- title: 問い合わせ応答
+  summary: どのフェーズにも当たらない自分宛コメントへの返答
+  condition: 未解決の自分宛コメントがある（索引のどの行にも該当しない）
+  tags:
+  - 応答
+  agents:
+  - planner
+  - implementer
+  steps:
+  - name: コメントへの返信
+    body: |-
+      MCP `reply_review_thread` で、コメントの内容に答える。
+  - name: 確認ラベルの返却
+    when: 返信を投稿した
+    ref: dev/エージェント運用/エージェント/共通/ターンの返却#steps[確認ラベルの返却]

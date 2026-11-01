@@ -101,11 +101,20 @@ categories:
       ```bash
       uv sync --frozen --extra local-whisper
       ```
-    effects: '`.venv/` を `uv.lock` のバージョンで作る。依存のダウンロードが要る。Ubuntu では `pycaw`・`comtypes`・`pywin32` は `sys_platform == "win32"` の条件で入らない。extra を含めない環境では faster-whisper・nvidia-* が入らず、設定の `transcription.engine` が `local_whisper` のままだと常駐アプリは起動を止める（`openai` を選ぶと起動できる）'
+
+      3. Ubuntu 24.04 で E2E を流す環境は、録音の入力の WAV を書き出す Open JTalk を、sudo を使わず `~/.local/opt/open-jtalk` へ展開する
+
+      ```bash
+      mkdir -p ~/.local/opt/open-jtalk/debs
+      cd ~/.local/opt/open-jtalk/debs
+      apt-get download open-jtalk libhtsengine1 open-jtalk-mecab-naist-jdic hts-voice-nitech-jp-atr503-m001
+      for deb in *.deb; do dpkg -x "$deb" ~/.local/opt/open-jtalk; done
+      ```
+    effects: '`.venv/` を `uv.lock` のバージョンで作る。依存のダウンロードが要る。Ubuntu では `pycaw`・`comtypes`・`pywin32` は `sys_platform == "win32"` の条件で入らない。extra を含めない環境では faster-whisper・nvidia-* が入らず、設定の `transcription.engine` が `local_whisper` のままだと常駐アプリは起動を止める（`openai` を選ぶと起動できる）。手順 3 は約 21 MB の deb をダウンロードして `~/.local/opt/open-jtalk` へ展開するだけで、OS のパッケージは入れない'
     verification:
       state: 済
-      date: '2026-10-28'
-      detail: 検証環境の VM（Ubuntu 24.04・uv 0.13.6）の新しいフォルダに作業ツリー（feat/platform/linux-startup）の追跡ファイルを置いて `uv sync --frozen` を流し、成功することを確かめた（faster-whisper を extra へ移す前の構成）。`pycaw`・`comtypes`・`pywin32` は入らず、dev グループの `pytest`・`import-linter` は入る。続けて VM で単体テスト（684 passed、21 skipped）と `lint-imports`（4 契約とも KEPT）を流した。extra へ移した後は、Windows の uv（WSL からは `uv.exe`）で、作業ツリー（feat/transcription/openai-engine）に新しい `.venv/` を `uv sync --frozen` で作り、extra を含めない環境に faster-whisper が入らないこと（`importlib.util.find_spec("faster_whisper")` が None）と、その環境で単体テストと結合テスト（1394 passed、12 skipped）が通ることを確かめた。`uv sync --frozen --extra local-whisper` では faster-whisper と nvidia-* が入ることを確かめた。Ubuntu 24.04 の VM では、extra を含めない構成を確かめていない
+      date: '2026-11-01'
+      detail: 検証環境の VM（Ubuntu 24.04・uv 0.13.6）の新しいフォルダに作業ツリー（feat/platform/linux-startup）の追跡ファイルを置いて `uv sync --frozen` を流し、成功することを確かめた（faster-whisper を extra へ移す前の構成）。`pycaw`・`comtypes`・`pywin32` は入らず、dev グループの `pytest`・`import-linter` は入る。続けて VM で単体テスト（684 passed、21 skipped）と `lint-imports`（4 契約とも KEPT）を流した。extra へ移した後は、Windows の uv（WSL からは `uv.exe`）で、作業ツリー（feat/transcription/openai-engine）に新しい `.venv/` を `uv sync --frozen` で作り、extra を含めない環境に faster-whisper が入らないこと（`importlib.util.find_spec("faster_whisper")` が None）と、その環境で単体テストと結合テスト（1394 passed、12 skipped）が通ることを確かめた。`uv sync --frozen --extra local-whisper` では faster-whisper と nvidia-* が入ることを確かめた。Ubuntu 24.04 の VM では、extra を含めない構成を確かめていない。手順 3 は 2026-11-01 に、検証環境の VM（Ubuntu 24.04.5）で `~/.local/opt/open-jtalk` の代わりに新しい一時フォルダへ同じコマンドで展開し、展開した `open_jtalk`（`LD_LIBRARY_PATH` に展開した `usr/lib/x86_64-linux-gnu`）が 16 bit・モノラル・48 kHz の WAV を書き出すことを確かめた
   - name: 起動・停止
     prerequisites:
       - Ubuntu 24.04 の Xorg のセッションの端末で、『環境構築（クローン直後）』を流しておく

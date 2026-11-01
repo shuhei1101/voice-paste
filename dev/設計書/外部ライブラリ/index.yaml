@@ -54,3 +54,5 @@ items:
     summary: Linux の Wayland のセッションで、仮想キーボードから貼り付けのキーと Enter を送信する
   - page: Focused_Window_D-Bus.yaml
     summary: Linux の Wayland のセッションで、フォーカスしているウィンドウの wm_class を GNOME Shell の拡張から読む
+  - page: Open_JTalk.yaml
+    summary: Linux の E2E で、録音の入力にする文を WAV に書き出す

@@ -40,15 +40,18 @@ layers:
       ```
     description: pytest で実行する。`tests/e2e/` の下に、シナリオごとのファイルを置く（複合ユースケースは `tests/e2e/複合ユースケース/test_transcribe_from_other_system.py`）。
     prerequisites:
-      - Windows の実機が要る。実機のマイクは開かない
-      - 複合ユースケースの E2E（`tests/e2e/複合ユースケース/`）は、常駐アプリを pytest のプロセスの中で `build_handlers` で配線し、録音の入力・システム音量・貼り付けのキー・通知を差し替える（起動・トレイ・ホットキーの受付は通さない）。録音の入力は、テストの中で Windows の音声合成（SAPI）で決めた文を書き出した WAV を流す。API は `build_fastapi` で組み立てた app を 127.0.0.1 で待ち受けさせる。実物のクリップボードを書き換える（テストの後に元の文字へ戻す）ため、実行中はクリップボードを使わない
-      - ローカルの Whisper（GPU）で起こす。NVIDIA GPU が要り、CUDA の DLL は .venv の `Lib/site-packages/nvidia/` から読む
+      - Windows の実機か、Ubuntu 24.04 の Xorg のセッション（検証環境の VM `voice-paste-ubuntu`）が要る。実機のマイクは開かない
+      - 複合ユースケースの E2E（`tests/e2e/複合ユースケース/`）は、常駐アプリを pytest のプロセスの中で `build_handlers` で配線し、録音の入力・システム音量・貼り付けのキー・通知を差し替える（起動・トレイ・ホットキーの受付は通さない）。録音の入力は、テストの中で決めた文を音声合成で書き出した WAV（16 kHz・モノラル・16 bit）を流す。音声合成は、Windows では Windows の音声合成（SAPI）、Linux では Open JTalk を使う。API は `build_fastapi` で組み立てた app を 127.0.0.1 で待ち受けさせる。実物のクリップボードを書き換える（テストの後に元の文字へ戻す）ため、実行中はクリップボードを使わない
+      - ローカルの Whisper で起こす。Windows では GPU で起こし、NVIDIA GPU が要り、CUDA の DLL は .venv の `Lib/site-packages/nvidia/` から読む。Linux では既定の設定（`local_whisper`・`device = "cpu"`・`compute_type = "int8"`）の CPU で起こし、GPU は要らない
       - 返送先は 127.0.0.1 で待ち受けるテスト用のエンドポイントで、テストが立てて返送を受ける
-      - 常駐アプリを起動し、GPU を使う。誤実行を防ぐため `--run-e2e` を必須にする（付けなければ全て skip する）
+      - 常駐アプリを起動し、Windows では GPU を使う。誤実行を防ぐため `--run-e2e` を必須にする（付けなければ全て skip する）
       - 画面・トレイの E2E（`tests/e2e/単一ユースケース/`）は、常駐アプリを pytest のプロセスの中で `main()` から起動し（`--data-dir {一時フォルダ}`、Qt は offscreen で画面に出さない）、実機のマウス・キーボードを使わない。トレイのメニューは項目を trigger して選び、画面のボタン・欄はクリックとキーを Qt のイベントで渡す。ホットキーの受付は差し替え、ホットキーが押された体で登録された関数を呼ぶ。トレイの状態はトレイのアイコンのヒントの文字で、知らせはログで、フォルダを開くのは開く呼び出しを差し替えて渡されたパスで確かめ、Windows のシェル（タスクバーのトレイ・通知・エクスプローラー）は読まない。流している間も PC の操作を止めずに使える
       - 画面・トレイの E2E のうち、録音を始めるケースは、録音の入力を WAV を流すものに、システム音量を下げた値と戻した値を控えるものに差し替える（マイクを開かず、システム音量を変えない）。貼り付けのキーで届けるケースは、さらに貼り付けのキーを送信したキーを控えるものに差し替える（キーを送信しない）。ブラウザ添付のプリセットで届けるケースは、ブラウザを開く呼び出しを渡された URL を控えるものに差し替える（Microsoft Edge を開かない）。返送先と追加するプリセットの送信先は、テストが立てる 127.0.0.1 のエンドポイントにする。届けるケースは実物のクリップボードを書き換える（テストの後に元の文字へ戻す）ため、実行中はクリップボードを使わない
-      - 画面・トレイの E2E で、常駐アプリのプロセスが終わることは `main()` が戻ったことで、終了コードはその戻り値で、文字起こしワーカーが終わることは `main()` が戻った後に pytest のプロセスの子孫にワーカーが残っていないことで確かめる。Ctrl+Break は `signal.raise_signal(signal.SIGBREAK)` で自分のプロセスの中で上げる。ケースの後に、`main()` が入れた SIGINT・SIGBREAK のハンドラとルートロガーのハンドラ・レベルを元に戻す
+      - 画面・トレイの E2E で、常駐アプリのプロセスが終わることは `main()` が戻ったことで、終了コードはその戻り値で、文字起こしワーカーが終わることは `main()` が戻った後に pytest のプロセスの子孫にワーカーが残っていないことで確かめる。Ctrl+Break は `signal.raise_signal(signal.SIGBREAK)` で自分のプロセスの中で上げる。ケースの後に、`main()` が入れた SIGINT・SIGBREAK のハンドラとルートロガーのハンドラ・レベルを元に戻す。Linux には SIGBREAK が無いため、Ctrl+Break のケースは skip し、後片付けでは SIGINT のハンドラだけを戻す
       - 単一インスタンスの入れ替わりのケースと、再起動で起動する新しいプロセスは、別プロセスの `python -m voice_paste --data-dir {一時フォルダ}`（Qt は offscreen）で動かし、操作をせずにログ・トークンのファイル・プロセスで確かめる。別プロセスの常駐アプリは、録音開始のホットキーを普段使わない組み合わせにした設定で起動し、ユーザーの打鍵で録音を始めない。`--data-dir` の一時フォルダで起動した常駐アプリは普段使いと単一インスタンスの名前が違うため、普段使いの voice-paste を終わらせずに流せる
+      - Linux では、開発コマンド『環境構築（クローン直後）』の手順 2（`local-whisper` の extra）・手順 3（Open JTalk を sudo を使わず `~/.local/opt/open-jtalk` へ展開する）と、『起動・停止』の前提の OS のパッケージを済ませておき、Xorg のセッションの端末で流す（クリップボードの `xclip` が `DISPLAY` を要る）。Open JTalk の置き場所は環境変数 `VOICE_PASTE_OPEN_JTALK_HOME` で替えられる
+      - Linux では、常駐アプリがブラウザーの文字起こしを持たないため外の端末の画面のケースを skip し、録音中に音量を下げないため音量を確かめるケースは音量を下げないことを確かめる
+      - 検証環境の VM では、自動起動にした常駐アプリを終わらせてから流す（E2E のメモリの使用量は最大約 3.9 GB で、常駐アプリのワーカーの約 1.7 GB と合わせると OOM で止まる）
     run_one:
       label: ファイル
       command: |-
@@ -108,4 +111,4 @@ prerequisites:
   - リポジトリの直下で Windows の uv（WSL からは `uv.exe`）の `uv sync --frozen --extra local-whisper` を流し、`.venv/` に環境を作る（`uv.lock` のバージョンで入る。pytest と import-linter と pywin32 は pyproject.toml の `[dependency-groups]` の dev から入る。`local-whisper` の extra は E2E・非機能要件テストがローカルの Whisper で起こすために含める。単体テストと結合テストは extra を含めない `uv sync --frozen` で作った環境でも通る）
   - 実機のテスト（E2E・非機能要件テスト）が起こす常駐アプリは、`tests/conftest.py` の `QT_QPA_PLATFORM=offscreen` のまま起動し、実機の画面に出さない（別プロセスで起動するもの・再起動で起動するものも同じ）
   - Ubuntu 24.04 のクローンでは、リポジトリの直下で Linux の uv の `uv sync --frozen` を流して `.venv/` を作り（開発コマンド『環境構築（クローン直後）』）、種別のコマンドの `.venv/Scripts/python.exe` は `.venv/bin/python` に、`.venv/Scripts/lint-imports` は `.venv/bin/lint-imports` に読み替える
-  - SAPI を使う `tests/support/inprocess.py` に依存するテスト（E2E・非機能要件テスト）は Linux では skip する
+  - E2E は Linux でも流す（前提は『E2E テスト』）。非機能要件テストのうち Windows の音声合成（SAPI）で書き出した WAV を前提にするものは Linux では skip する

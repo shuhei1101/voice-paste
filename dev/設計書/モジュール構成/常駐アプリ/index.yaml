@@ -34,6 +34,9 @@ items:
   - page: 共通.py.yaml
     summary: 設定のモデル・ログ・例外・置き場所・feature の間を渡る型
     group: 基盤
+  - page: YAMLの文書.py.yaml
+    summary: コメントを保った YAML の読み書きと、レイヤーの重ね合わせ
+    group: 基盤
   - page: ブラウザの文字起こし.py.yaml
     summary: 外の端末のブラウザから受けた音声のジョブのキューと API の route
     group: 機能

@@ -5,7 +5,6 @@ directory: |-
   src/voice_paste/shared/
   ├── __init__.py
   ├── settings.py       # 設定のモデル（pydantic）と出力先の設定の共通の親・設定のモデルの組み立て、3 レイヤーの読み込みと環境の値の書き戻し・settings.toml からの移行
-  ├── yaml_document.py  # コメントを保った YAML の読み書き（ruamel.yaml）と、キーの追加・削除でのコメントの付け替え・レイヤーの重ね合わせ
   ├── logger.py         # 標準の logging の設定。日付ごとのファイルと保持期間での削除
   ├── errors.py         # 例外の階層
   ├── constants.py      # アプリ名と置き場所のパス（platformdirs）・リポジトリの直下の既定値と checkout の上書きのパス
@@ -512,48 +511,20 @@ data_models:
       - name: transcribing_show_hotkeys
         type: bool
         default: 'True'
-        description: 文字起こし中の表示のボタンにホットキーを表示するか。反映は immediate。description の最初の文を設定の設計書の `title` にそろえる（設定画面の欄の名前になる）。項目が無いときは _inherit_transcribing_show_hotkeys が show_hotkeys の値を入れる
+        description: 文字起こし中の表示のボタンにホットキーを表示するか。反映は immediate。description の最初の文を設定の設計書の `title` にそろえる（設定画面の欄の名前になる）。show_hotkeys を持ち transcribing_show_hotkeys を持たないレイヤーは、重ねる前に inherit_transcribing_show_hotkeys が show_hotkeys の値を入れる
     status: implemented
     methods:
       - name: _inherit_transcribing_show_hotkeys
         title: 文字起こし中の表示のホットキーの引き継ぎ
         container: shared/settings.py
         usecase: 設定を変える
-        summary: transcribing_show_hotkeys を持たない画面の設定へ、show_hotkeys の値を入れる。UiSettings の確かめ（`model_validator(mode="before")`）
+        summary: transcribing_show_hotkeys を持たない画面の設定へ、show_hotkeys の値を入れる。既定値を重ねた後の検証では transcribing_show_hotkeys が必ずあって働かないため、重ねる前のレイヤーに当てる inherit_transcribing_show_hotkeys へ移す
         kind: メソッド
         scope: internal
-        args:
-          - name: data
-            type: Any
-            required: true
-            passing: positional
-            description: 検証の前の画面の設定（設定の `ui` の表から作った dict）
         returns:
           type: Any
-          description: transcribing_show_hotkeys を入れたコピー。入れる必要が無いときは data をそのまま返す
-        process: |-
-          1. data が dict でないか、transcribing_show_hotkeys を持つか、show_hotkeys を持たないときは data をそのまま返す（両方を持たないときは既定の True に任せる）
-          2. data のコピーに transcribing_show_hotkeys として show_hotkeys の値を入れて返す（data は書き換えない）
-        unit_tests:
-          - name: test_ui_settings_when_transcribing_show_hotkeys_missing
-            case: 正常
-            summary: 文字起こし中の表示の項目が無ければ録音の画面の値で読む
-            condition: '{"show_hotkeys": false} を UiSettings.model_validate に渡す'
-            mock: なし
-            expected: show_hotkeys も transcribing_show_hotkeys も False
-          - name: test_ui_settings_when_both_show_hotkeys_missing
-            case: 正常
-            summary: どちらの項目も無ければ既定で読む
-            condition: '{} を UiSettings.model_validate に渡す'
-            mock: なし
-            expected: show_hotkeys も transcribing_show_hotkeys も True
-          - name: test_ui_settings_when_transcribing_show_hotkeys_set
-            case: 正常
-            summary: 文字起こし中の表示の項目があればその値で読む
-            condition: '{"show_hotkeys": false, "transcribing_show_hotkeys": true} を UiSettings.model_validate に渡す'
-            mock: なし
-            expected: show_hotkeys は False、transcribing_show_hotkeys は True
-        status: planned
+          description: transcribing_show_hotkeys を入れたコピー
+        status: removed
         introduced:
           pr: 131
   - name: ApiSettings
@@ -1044,6 +1015,7 @@ functions:
          - SettingsError の場合、settings_file を作らずにそのまま送出する
       3. 環境の値と checkout の上書きを読む（read_yaml_mapping。無いファイルは空の dict にする。local_settings_file が None なら読まない）
          - SettingsError の場合、そのまま送出する
+         - 読んだレイヤーごとに、文字起こし中の表示のホットキーを引き継ぐ（inherit_transcribing_show_hotkeys）
       4. 既定値 → 環境の値 → checkout の上書きの順に重ねる（merge_layers）
       5. 古い AI チャットの設定を読み替え（migrate_ai_chat。ファイルは書き換えない）、model.model_validate で検証して返す
          - pydantic.ValidationError の場合、合わないキーをドット区切り（例 `transcription.local_whisper.beam_size`、出力先は `outputs[0].hotkey`、プリセットは `presets[0].url`）で並べた SettingsError を送出する
@@ -1153,6 +1125,12 @@ functions:
         condition: リポジトリの直下の settings.sample.yaml を settings_file に写す
         mock: なし（一時フォルダ）
         expected: SettingsError にならない
+      - name: test_load_settings_when_only_show_hotkeys
+        case: 正常
+        summary: 録音の画面のホットキーの表示だけを書いたレイヤーは、文字起こし中の表示も同じ値で読む
+        condition: parametrize で (1) settings_file (2) local_settings_file に ui.show_hotkeys = false だけを書く
+        mock: なし（一時フォルダ）
+        expected: ui.show_hotkeys も ui.transcribing_show_hotkeys も False
     refs:
       - dev/設計書/外部ライブラリ/ruamel.yaml#
     status: planned
@@ -1456,7 +1434,7 @@ functions:
     process: |-
       1. legacy_settings_file を UTF-8 で読み、tomlkit で解釈して素の dict にする（unwrap）
          - TOMLKitError の場合、SettingsError を送出する（settings_file を作らない）
-      2. 古い AI チャットの設定を読み替える（migrate_ai_chat）
+      2. 古い AI チャットの設定を読み替え（migrate_ai_chat）、文字起こし中の表示のホットキーを引き継ぐ（inherit_transcribing_show_hotkeys）
       3. 既定値と違うキーだけを集める（diff_from_defaults。表はキーごと、一覧と値は丸ごとで比べる）
       4. 集めた dict を書く（write_yaml_document）
          - `[INFO]` settings.toml から settings.yaml へ移した（移した元と先のパス・移したキーの数）
@@ -1489,300 +1467,53 @@ functions:
         condition: outputs に id = "ai_chat" を書いた settings.toml
         mock: なし（一時フォルダ）
         expected: settings_file の outputs に ai_chat が無く、presets に読み替えたプリセットが書かれる
+      - name: test_migrate_settings_toml_when_only_show_hotkeys
+        case: 正常
+        summary: 録音の画面のホットキーの表示だけが既定と違えば、文字起こし中の表示も同じ値で移す
+        condition: '[ui] に show_hotkeys = false だけを書き、transcribing_show_hotkeys を書いていない settings.toml'
+        mock: なし（一時フォルダ）
+        expected: settings_file に ui.show_hotkeys と ui.transcribing_show_hotkeys が false で書かれ、load_settings の ui.transcribing_show_hotkeys が False
     refs:
       - dev/設計書/外部ライブラリ/tomlkit#
     status: planned
-  - name: make_yaml
-    title: YAML の読み書きの準備
+  - name: inherit_transcribing_show_hotkeys
+    title: 文字起こし中の表示のホットキーの引き継ぎ
     kind: 関数
-    container: shared/yaml_document.py
-    usecase: 設定を変える
+    container: shared/settings.py
+    usecase: 共通
     scope: internal
-    summary: コメントと引用符を保って読み書きする ruamel.yaml の YAML を、字下げと引用符の決まりを当てて返す
-    returns:
-      type: ruamel.yaml.YAML
-      description: typ="rt" の YAML
-    process: |-
-      1. `YAML(typ="rt")` を作り、`preserve_quotes = True`・`indent(mapping=2, sequence=4, offset=2)`・`width` を十分大きな値にする
-      2. 文字列の representer を、YAML 1.1 で文字列でなくなる値（yes・no・on・off・y・n と大文字の形・null・`~`・数・`*` で始まる値）を単引用符で囲むものに替える
-    refs:
-      - dev/設計書/外部ライブラリ/ruamel.yaml#
-    status: planned
-  - name: read_yaml_document
-    title: YAML の文書の読み込み
-    kind: 関数
-    container: shared/yaml_document.py
-    usecase: 設定を変える
-    scope: public
-    summary: YAML のファイルを、コメントを保った文書（CommentedMap）として UTF-8 で読む。無ければ空の文書を返す
+    summary: show_hotkeys を持ち transcribing_show_hotkeys を持たないレイヤーの `ui` へ、show_hotkeys の値を入れる。既定値に重ねる前の環境の値・checkout の上書き・移すときの settings.toml の dict に当てる
     args:
-      - name: path
-        type: Path
+      - name: layer
+        type: dict[str, Any]
         required: true
         passing: positional
-        description: 読むファイル
-    returns:
-      type: CommentedMap
-      description: 読んだ文書（空のファイルは空の文書）
-    process: |-
-      1. path が無ければ空の CommentedMap を返す
-      2. UTF-8 で読み、make_yaml の YAML で解釈する
-         - YAMLError の場合、パスと行・列（problem_mark の line と column に 1 を足した値）を示した SettingsError を送出する
-         - 一番上が表でない場合、SettingsError を送出する
-    exceptions:
-      - name: SettingsError
-        condition: YAML として読めない・一番上が表でない・UTF-8 で読めない
-        message: '設定ファイルを読めない（{path}: {行}行目 {列}列目: {理由}）'
-    unit_tests:
-      - name: test_read_yaml_document_when_broken
-        case: 異常
-        summary: 読めない YAML はパスと行・列を示して断る
-        condition: 3 行目の字下げが崩れたファイル
-        mock: なし（一時フォルダ）
-        expected: SettingsError。メッセージにパスと「3行目」を含む
-        exception: YAML として読めない
-      - name: test_read_yaml_document_when_not_mapping
-        case: 異常
-        summary: 一番上が一覧のファイルを断る
-        condition: '`- a` だけのファイル'
-        mock: なし（一時フォルダ）
-        expected: SettingsError
-        exception: 一番上が表でない
-    status: planned
-  - name: read_yaml_mapping
-    title: YAML の値の読み込み
-    kind: 関数
-    container: shared/yaml_document.py
-    usecase: 常駐アプリを起動する
-    scope: public
-    summary: YAML のファイルを、コメントを持たない素の dict として読む。無ければ空の dict を返す
-    args:
-      - name: path
-        type: Path
-        required: true
-        passing: positional
-        description: 読むファイル
+        description: 重ねる前の 1 つのレイヤー（素の dict）
     returns:
       type: dict[str, Any]
-      description: 素の dict・list・値に変えた中身
-    process: 1. read_yaml_document で読み、表と一覧を素の dict と list へ再帰で変えて返す
-    exceptions:
-      - name: SettingsError
-        condition: read_yaml_document と同じ
-    status: planned
-  - name: write_yaml_document
-    title: YAML の文書の書き込み
-    kind: 関数
-    container: shared/yaml_document.py
-    usecase: 設定を変える
-    scope: public
-    summary: 文書か dict を UTF-8 の YAML として、同じフォルダの一時ファイルに書いてから置き換える
-    side_effects: path を書く（親のフォルダが無ければ作る）。
-    args:
-      - name: path
-        type: Path
-        required: true
-        passing: positional
-        description: 書くファイル
-      - name: document
-        type: Mapping[str, Any]
-        required: true
-        passing: positional
-        description: 書く文書（CommentedMap か dict）
-    returns:
-      type: None
-      description: なし
+      description: transcribing_show_hotkeys を入れたコピー。入れる必要が無いときは layer をそのまま返す
     process: |-
-      1. 親のフォルダを作る
-      2. 同じフォルダの一時ファイルへ make_yaml の YAML で UTF-8 で書き、os.replace で path に置き換える
-         - OSError の場合、一時ファイルを削除してから送出する
-    status: planned
-  - name: set_key
-    title: キーの書き込み
-    kind: 関数
-    container: shared/yaml_document.py
-    usecase: 設定を変える
-    scope: public
-    summary: ドット区切りのキーの値を文書に書く。無い表は作り、新しく追加するキーは次のキーの前のコメントより前に置く
-    side_effects: document を書き換える。
-    args:
-      - name: document
-        type: CommentedMap
-        required: true
-        passing: positional
-        description: 書き換える文書
-      - name: key
-        type: tuple[str, ...]
-        required: true
-        passing: positional
-        description: 一番上からのキーの並び（例 ("hotkeys", "start")）
-      - name: value
-        type: Any
-        required: true
-        passing: positional
-        description: 書く値（素の dict・list・値）
-    returns:
-      type: None
-      description: なし
-    process: |-
-      1. 途中の表をたどり、無い表は CommentedMap を作って追加する
-      2. 末尾のキーがあれば値だけを置き換える（行末のコメントは残す）
-      3. 無ければ追加する。追加の前に、表の最後のキーに付いた後ろのコメント（ruamel.yaml が `ca.items[key][2]` に持つ、次の表の見出しのコメント）を外し、追加したキーの後ろへ付け直す
+      1. layer の `ui` が dict でないか、transcribing_show_hotkeys を持つか、show_hotkeys を持たないときは layer をそのまま返す（両方を持たないときは前のレイヤーの値に任せる）
+      2. layer のコピーの `ui` に transcribing_show_hotkeys として show_hotkeys の値を入れて返す（layer は書き換えない）
     unit_tests:
-      - name: test_set_key_when_added
+      - name: test_inherit_transcribing_show_hotkeys_when_missing
         case: 正常
-        summary: 追加したキーが、次の表の見出しのコメントより前に入る
-        condition: 'hotkeys の表（start だけ）の後ろに「# 文字起こし」と transcription の表がある文書に ("hotkeys", "pause") を書く'
+        summary: 文字起こし中の表示の項目が無ければ録音の画面の値を入れる
+        condition: '{"ui": {"show_hotkeys": false}} を渡す'
         mock: なし
-        expected: 書き出した YAML で hotkeys.pause の行が「# 文字起こし」の行より前にあり、他の行が全て残る
-      - name: test_set_key_when_nested_table_added
+        expected: '{"ui": {"show_hotkeys": false, "transcribing_show_hotkeys": false}}。渡した dict が変わっていない'
+      - name: test_inherit_transcribing_show_hotkeys_when_both_missing
         case: 正常
-        summary: 無い表を作って書く
-        condition: 空の文書に ("transcription", "local_whisper", "model") を書く
+        summary: どちらの項目も無ければそのまま返す
+        condition: 'parametrize で (1) {} (2) {"ui": {"theme": "dark"}} を渡す'
         mock: なし
-        expected: 'transcription.local_whisper.model が書いた値'
-      - name: test_set_key_when_existing
+        expected: 渡した dict と等しい
+      - name: test_inherit_transcribing_show_hotkeys_when_set
         case: 正常
-        summary: 既にあるキーは値だけを替え、行末のコメントを残す
-        condition: '`start: a  # 録音の開始` の行を持つ文書に ("hotkeys", "start") を b で書く'
+        summary: 文字起こし中の表示の項目があればその値を保つ
+        condition: '{"ui": {"show_hotkeys": false, "transcribing_show_hotkeys": true}} を渡す'
         mock: なし
-        expected: 書き出した行に b と「# 録音の開始」がある
-    refs:
-      - dev/設計書/外部ライブラリ/ruamel.yaml#
-    status: planned
-  - name: delete_key
-    title: キーの削除
-    kind: 関数
-    container: shared/yaml_document.py
-    usecase: 設定を変える
-    scope: public
-    summary: ドット区切りのキーを文書から外し、中のキーが無くなった表も外す。外したキーの後ろのコメントは前のキーへ付け直す
-    side_effects: document を書き換える。
-    args:
-      - name: document
-        type: CommentedMap
-        required: true
-        passing: positional
-        description: 書き換える文書
-      - name: key
-        type: tuple[str, ...]
-        required: true
-        passing: positional
-        description: 一番上からのキーの並び
-    returns:
-      type: None
-      description: なし
-    process: |-
-      1. キーが無ければ何もしない
-      2. 外すキーに付いた後ろのコメント（行末のコメントを除く。入れ子の表なら、その表の最後のキーに付いたもの）を取り出してからキーを外す
-      3. 取り出したコメントを、同じ表の前のキー（前のキーが表ならその最後のキー）の後ろへ付け直す。前のキーが無ければ、表の先頭のコメントに付ける
-      4. 外した後に空になった表を、親から同じ手順で外す
-    unit_tests:
-      - name: test_delete_key_when_trailing_comment
-        case: 正常
-        summary: 外したキーの後ろのコメントと空行が残る
-        condition: hotkeys.cancel の後ろに空行と「# 文字起こし」がある文書から ("hotkeys", "cancel") を外す
-        mock: なし
-        expected: 書き出した YAML に cancel の行が無く、空行と「# 文字起こし」の行が transcription の表の前に残る
-      - name: test_delete_key_when_table_emptied
-        case: 正常
-        summary: 中のキーが無くなった表を外し、表の後ろのコメントを前の表へ付け直す
-        condition: recording・hotkeys（start だけ）・transcription の表の順で、hotkeys の後ろに「# 文字起こし」がある文書から ("hotkeys", "start") を外す
-        mock: なし
-        expected: 書き出した YAML に hotkeys の表が無く、「# 文字起こし」の行が transcription の表の直前に残り、YAML として読める
-      - name: test_delete_key_when_missing
-        case: 正常
-        summary: 無いキーは何もしない
-        condition: 空の文書から ("hotkeys", "start") を外す
-        mock: なし
-        expected: 文書が空のまま
-    refs:
-      - dev/設計書/外部ライブラリ/ruamel.yaml#
-    status: planned
-  - name: merge_layers
-    title: レイヤーの重ね合わせ
-    kind: 関数
-    container: shared/yaml_document.py
-    usecase: 常駐アプリを起動する
-    scope: public
-    summary: 後ろのレイヤーの値で前のレイヤーを上書きした新しい dict を返す。表はキーごとに重ね、一覧と値は丸ごと替える
-    args:
-      - name: layers
-        type: Mapping[str, Any]
-        required: true
-        passing: positional
-        description: 前から順に重ねるレイヤー（可変長の位置引数 `*layers`）
-    returns:
-      type: dict[str, Any]
-      description: 重ねた dict（渡した dict は書き換えない）
-    process: 1. 前から順に、両方が表のキーは再帰で重ね、それ以外は後ろの値を深いコピーで置く
-    unit_tests:
-      - name: test_merge_layers
-        case: 正常
-        summary: 表はキーごと、一覧は丸ごと上書きする
-        condition: 'layers が ({"a": {"x": 1, "y": 2}, "l": [1, 2]}, {"a": {"y": 3}, "l": [9]})'
-        mock: なし
-        expected: '{"a": {"x": 1, "y": 3}, "l": [9]}。渡した dict が変わっていない'
-    status: planned
-  - name: changed_keys
-    title: 変わったキーの洗い出し
-    kind: 関数
-    container: shared/yaml_document.py
-    usecase: 設定を変える
-    scope: public
-    summary: 2 つの dict で値が違うキーを、表はキーごとにたどって、一覧と値は丸ごと比べて返す
-    args:
-      - name: before
-        type: Mapping[str, Any]
-        required: true
-        passing: positional
-        description: 前の値
-      - name: after
-        type: Mapping[str, Any]
-        required: true
-        passing: positional
-        description: 後の値
-    returns:
-      type: list[tuple[str, ...]]
-      description: 値が違うキーの並び（片方にしか無いキーを含む）
-    process: 1. 両方のキーの和集合を順にたどり、両方が表なら再帰で比べ、それ以外は値が違えばキーを集める
-    unit_tests:
-      - name: test_changed_keys
-        case: 正常
-        summary: 表の中の違うキーと、一覧の違いを返す
-        condition: 'before {"a": {"x": 1, "y": 2}, "l": [1, 2]}・after {"a": {"x": 1, "y": 3}, "l": [1]}'
-        mock: なし
-        expected: '[("a", "y"), ("l",)]'
-    status: planned
-  - name: diff_from_defaults
-    title: 既定値と違う値の抜き出し
-    kind: 関数
-    container: shared/yaml_document.py
-    usecase: 常駐アプリを起動する
-    scope: public
-    summary: 値のうち既定値と違うキーだけを残した dict を返す。表はキーごとに比べ、一覧と値は丸ごと比べる
-    args:
-      - name: values
-        type: Mapping[str, Any]
-        required: true
-        passing: positional
-        description: 比べる値
-      - name: defaults
-        type: Mapping[str, Any]
-        required: true
-        passing: positional
-        description: 既定値
-    returns:
-      type: dict[str, Any]
-      description: 既定値と違うキーだけの dict（空になった表は含めない）
-    process: 1. changed_keys(defaults, values) のうち values にあるキーを、merge_layers で重ねると values と等しくなるように集める
-    unit_tests:
-      - name: test_diff_from_defaults
-        case: 正常
-        summary: 違うキーだけが残り、既定値に重ねると元に戻る
-        condition: 'values {"a": {"x": 1, "y": 3}, "l": [1, 2], "b": {"z": 0}}・defaults {"a": {"x": 1, "y": 2}, "l": [1], "b": {"z": 0}}'
-        mock: なし
-        expected: '{"a": {"y": 3}, "l": [1, 2]}。merge_layers(defaults, 戻り値) が values と等しい'
+        expected: transcribing_show_hotkeys が true のまま
     status: planned
   - name: setup_logging
     title: ログの設定
@@ -2706,7 +2437,6 @@ constants:
       pr: 226
 test_files:
   - tests/unit/voice_paste/shared/test_settings.py
-  - tests/unit/voice_paste/shared/test_yaml_document.py
   - tests/unit/voice_paste/shared/test_logger.py
   - tests/unit/voice_paste/shared/test_constants.py
   - tests/unit/voice_paste/shared/test_os_kind.py

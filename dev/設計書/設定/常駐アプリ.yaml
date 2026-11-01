@@ -9,7 +9,7 @@ files:
     notes: git で管理する。3 レイヤーの 1 つ目で、全てのキーを持つ（欠けていれば起動時に設定を読めない扱い）。`os_overrides` の中は動いている OS の分だけを共通の既定値に重ねる（表はキーごと、一覧は丸ごと）。
   - file: settings.yaml
     manages: 環境の値（この端末で既定値から変えたキー）
-    notes: git の管理外。3 レイヤーの 2 つ目。既定は `%APPDATA%\voice-paste\settings.yaml`（Linux は `~/.config/voice-paste/settings.yaml`）、`--data-dir` を渡したときはその下。起動では作らない（`settings.yaml` だけがあるときに移すのを除く）。設定画面の保存は、変えたキーのうち既定値と違うものを書き、既定値と同じにしたキーは外す（コメントは保つ）。「既定に戻す」は全てのキーを外す。
+    notes: git の管理外。3 レイヤーの 2 つ目。既定は `%APPDATA%\voice-paste\settings.yaml`（Linux は `~/.config/voice-paste/settings.yaml`）、`--data-dir` を渡したときはその下。起動では作らない（`settings.toml` だけがあるときに移すのを除く）。設定画面の保存は、変えたキーのうち既定値と違うものを書き、既定値と同じにしたキーは外す（コメントは保つ）。「既定に戻す」は全てのキーを外す。
   - file: settings.local.yaml
     manages: checkout の上書き（この checkout でだけ変えたいキー）
     notes: git の管理外。リポジトリの直下に置く 3 レイヤーの 3 つ目で、settings.yaml の値に勝つ。`--data-dir` を渡した起動では読まない。常駐アプリは書かない。
@@ -671,7 +671,7 @@ settings:
     default: 'true'
     description: '`true` のとき、文字起こし中の表示の出力先の切り替えのボタンの名前の下にホットキーを出す。`false` のときは名前だけを出す。ホットキーでの切り替えは変えない。'
     reload: immediate
-    missing: 項目が無い `settings.yaml` は `ui.show_hotkeys` の値で読む（`ui.show_hotkeys` も無ければ `true`）
+    missing: '`ui.show_hotkeys` を持ち、この項目を持たないレイヤー（`settings.yaml`・`settings.local.yaml`、移すときの `settings.toml`）は `ui.show_hotkeys` の値で読む（どちらも持たないレイヤーは前のレイヤーの値に従う）'
     reason: 1 つだった `ui.show_hotkeys` を分けた後も、更新した直後の文字起こし中の表示の出し方を今の値のとおりにするため
     status: planned
     implementation: src/voice_paste/shared/settings.py

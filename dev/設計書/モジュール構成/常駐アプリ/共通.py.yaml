@@ -219,7 +219,8 @@ data_models:
     inherits: pydantic.BaseModel
     description: |-
       キーの一つ一つ（型・既定値・範囲・反映）は設計書『設定』の行が持つ。
-      既定値はモデルに持たず `config/defaults.yaml` が持ち、全ての項目を必須にする（既定値のファイルにキーが欠けていれば、起動の検証で分かる）。出力先の設定のモデルの `id` だけは判別子として既定値を持つ。
+      表のまとまりのモデル（このモデルと、TranscriptionSettings・HotkeySettings など表で持つモデル）は既定値を持たず、全ての項目を必須にする。既定値は `config/defaults.yaml` が持ち（既定値のファイルにキーが欠けていれば、起動の検証で分かる）、これらのモデルの項目の `default` はそのファイルに書く値を示す。
+      一覧の要素のモデル（出力先の設定のモデル・BrowserPreset・EndpointPreset・GlossarySettings・GlossaryPresetSettings・HintPresetSettings・EdgePhraseSettings）は、項目の既定値をモデルに持つ。一覧はレイヤーの間で丸ごと置き換わり、`config/defaults.yaml` に行ごとの既定を置けないため、項目を省いた行（前のバージョンの settings.toml の行・手で書いた行）を既定値で補う。ただし出力先の `hotkey` は OS で既定が変わるため既定値を持たず必須にし、出力先の `id` は判別子として既定値を持つ。
       まとまりのモデルも全て `pydantic.BaseModel` で、どれも `model_config = ConfigDict(extra="forbid")` にして知らないキー（書き間違い）を断る。
       各項目は `Field(description=..., json_schema_extra={"reload": "immediate" | "restart"})` で再起動が要るかのマーカーを持つ。
       出力先ごとの設定のモデルは出力先が持ち（shared は features を import しない）、アプリが使う設定のモデルは build_settings_model がこのモデルを継いで組み立てる（main.py の SETTINGS_MODEL）。既定の設定は load_default_settings で既定値のファイルから作る。
@@ -1778,13 +1779,13 @@ functions:
     container: shared/settings.py
     usecase: 共通
     scope: public
-    summary: 出力先の設定のモデルを受け、outputs をその判別共用体と既定の一覧にした Settings の子のモデルを返す
+    summary: 出力先の設定のモデルを受け、outputs をその判別共用体にした Settings の子のモデルを返す
     args:
       - name: output_models
         type: Sequence[type[OutputSettingsBase]]
         required: true
         passing: positional
-        description: 出力先の設定のモデル（OUTPUTS の並び。この並びが既定の一覧の並びになる）
+        description: 出力先の設定のモデル（OUTPUTS の並び）
     returns:
       type: type[Settings]
       description: 組み立てた設定のモデル
@@ -1792,7 +1793,7 @@ functions:
       1. 各モデルの id の既定値を集める
          - 空か、重なる ID がある場合、ValueError を送出する（登録の誤り。起動の前に単体テストで止める）
       2. outputs の型を、モデルの数によらず `list[Annotated[Union[...], Field(discriminator="id")]]` にする（モデルが 1 つでも判別共用体にし、失敗の場所に添字の次の判別子の値を入れる。format_error_location がそれを外す）
-      3. outputs の既定を、各モデルを引数なしで作った一覧（渡した並び）にする。説明・反映のマーカーは Settings の outputs のものを引き継ぐ
+      3. outputs は既定値を持たない必須の項目にする（既定の一覧は `config/defaults.yaml` が持つ）。説明・反映のマーカーは Settings の outputs のものを引き継ぐ
       4. Settings を継いだモデルを `pydantic.create_model` で作り、output_models に ID → モデルを入れて返す（確かめは Settings のものを引き継ぐ）
     exceptions:
       - name: ValueError
@@ -1800,22 +1801,22 @@ functions:
     unit_tests:
       - name: test_build_settings_model
         case: 正常
-        summary: 渡したモデルで outputs を検証し、既定の一覧をその並びで持つ
-        condition: '試しのモデル 2 つ（ID a・b。b だけ delay_sec: float = 1.0 を持つ）を渡し、返ったモデルで既定値を作り、outputs = [{id: b, hotkey: <ctrl>+<alt>+b, delay_sec: 2.0}] の dict を model_validate する'
+        summary: 渡したモデルで outputs を検証する
+        condition: '試しのモデル 2 つ（ID a・b。b だけ delay_sec: float = 1.0 を持つ）を渡し、リポジトリの config/defaults.yaml を _read_defaults で読んだ dict の outputs を [{id: b, hotkey: <ctrl>+<alt>+b, delay_sec: 2.0}] に替えて、返ったモデルで model_validate する'
         mock: なし
-        expected: '既定値の outputs が [a のモデル, b のモデル] の順で、model_validate の outputs[0] が b のモデル（delay_sec 2.0）、model_dump(mode="json") の outputs[0] に delay_sec があり、output_models が {a: a のモデル, b: b のモデル}'
+        expected: 'model_validate の outputs[0] が b のモデル（delay_sec 2.0）、model_dump(mode="json") の outputs[0] に delay_sec があり、output_models が {a: a のモデル, b: b のモデル}'
       - name: test_build_settings_model_when_unknown_output
         case: 異常
         summary: 渡していない出力先の ID を断る
-        condition: '試しのモデル a・b で組み立て、outputs = [{id: c}] を model_validate する'
+        condition: '試しのモデル a・b で組み立て、_read_defaults で読んだ dict の outputs を [{id: c}] に替えて model_validate する'
         mock: なし
         expected: ValidationError。list_validation_failures のキーが outputs[0] で始まる
       - name: test_build_settings_model_when_single_output
         case: 正常
         summary: 出力先が 1 つでも組み立てられる
-        condition: '試しのモデル a だけを渡して組み立て、outputs = [{id: a, hotkey: 1}]（hotkey が文字列でない）を model_validate する'
+        condition: '試しのモデル a だけを渡して組み立て、_read_defaults で読んだ dict の outputs を [{id: a, hotkey: 1}]（hotkey が文字列でない）に替えて model_validate する'
         mock: なし
-        expected: 既定値の outputs が [a のモデル]。model_validate は ValidationError で、list_validation_failures のキーが outputs[0].hotkey
+        expected: model_validate は ValidationError で、list_validation_failures のキーが outputs[0].hotkey
       - name: test_build_settings_model_when_duplicate_id
         case: 異常
         summary: ID が重なる登録を断る

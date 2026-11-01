@@ -173,8 +173,7 @@ data_models:
         description: オンか
       - name: hotkey
         type: str
-        default: <ctrl>+<alt>+d（Linux は <cmd>+<alt>+d。config/defaults.yaml の os_overrides の outputs.paste_and_send.hotkey）
-        description: この出力先で確定するホットキー
+        description: この出力先で確定するホットキー。OS で既定が変わるため既定値を持たず必須（既定の一覧の値は config/defaults.yaml の outputs と os_overrides が持ち、<ctrl>+<alt>+d、Linux は <cmd>+<alt>+d）
       - name: enter_delay_sec
         type: float
         default: '0.5'
@@ -202,8 +201,7 @@ data_models:
         description: オンか
       - name: hotkey
         type: str
-        default: <ctrl>+<alt>+v（Linux は <cmd>+<alt>+v。config/defaults.yaml の os_overrides の outputs.paste_only.hotkey）
-        description: この出力先で確定するホットキー
+        description: この出力先で確定するホットキー。OS で既定が変わるため既定値を持たず必須（既定の一覧の値は config/defaults.yaml の outputs と os_overrides が持ち、<ctrl>+<alt>+v、Linux は <cmd>+<alt>+v）
     status: planned
   - name: CopyOnlySettings
     title: コピーのみの設定
@@ -223,8 +221,7 @@ data_models:
         description: オンか
       - name: hotkey
         type: str
-        default: <ctrl>+<alt>+c（Linux は <cmd>+<alt>+c。config/defaults.yaml の os_overrides の outputs.copy_only.hotkey）
-        description: この出力先で確定するホットキー
+        description: この出力先で確定するホットキー。OS で既定が変わるため既定値を持たず必須（既定の一覧の値は config/defaults.yaml の outputs と os_overrides が持ち、<ctrl>+<alt>+c、Linux は <cmd>+<alt>+c）
     status: planned
   - name: CallbackPayload
     title: 呼び出し元へ返す中身

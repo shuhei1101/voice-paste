@@ -1,4 +1,4 @@
-"""ui/windows/settings_window.py（SettingsWindow の save・close_without_confirm、format_hotkey・parse_hotkey・to_field_message）の単体テスト。
+"""ui/windows/settings_window.py（SettingsWindow の save・close_without_confirm、group_menu_width・format_hotkey・parse_hotkey・to_field_message）の単体テスト。
 
 画面を使うため offscreen の QApplication（conftest の qapp）で動かす。UiDeps の関数は Mock に差し替える。
 欄は画面設計の項目 ID（field_{キー}・error_summary）の objectName で引く。キーは設定のキーで、エラーの一覧と同じ書式（`outputs[0].enter_delay_sec`）。
@@ -1104,6 +1104,75 @@ def test_selected_radio_when_labels(qapp: QApplication) -> None:
 
     # 検証
     assert result == "dark"
+
+
+# === group_menu_width ===
+
+LONG_ITEM = "エンドポイントへ送信" * 4
+"""40 文字の項目（下限の幅に収まらない）。"""
+
+SCROLLING_ITEM_COUNT = 30
+"""高さ 100px では縦のスクロールバーが出る項目の数。"""
+
+
+def _show_menu(qapp: QApplication, items: list[str], height: int) -> QListWidget:
+    """項目を入れた QListWidget を、幅 400px・指定の高さで表示して返す。"""
+    menu = QListWidget()
+    menu.addItems(items)
+    menu.resize(400, height)
+    menu.show()
+    qapp.processEvents()
+    return menu
+
+
+def test_group_menu_width(qapp: QApplication) -> None:
+    """項目が収まり、縦のスクロールバーが出ていなければ下限の幅にする（正常系）。"""
+    from voice_paste.ui.windows.settings_window import group_menu_width
+
+    # 準備
+    menu = _show_menu(qapp, ["出力先", "履歴とログ"], 400)
+
+    # 実行
+    width = group_menu_width(menu)
+
+    # 検証
+    assert width == 160
+
+
+def test_group_menu_width_when_long_item(qapp: QApplication) -> None:
+    """収まらない項目があれば項目に合わせて広げる（正常系）。"""
+    from voice_paste.ui.windows.settings_window import GROUP_MENU_MARGIN_PX, group_menu_width
+
+    # 準備
+    menu = _show_menu(qapp, ["出力先", LONG_ITEM], 400)
+    assert menu.verticalScrollBar().maximum() == 0
+
+    # 実行
+    width = group_menu_width(menu)
+
+    # 検証
+    assert width > 160
+    assert width == menu.sizeHintForColumn(0) + menu.frameWidth() * 2 + GROUP_MENU_MARGIN_PX
+
+
+def test_group_menu_width_when_scrollbar_shown(qapp: QApplication) -> None:
+    """縦のスクロールバーが出ていれば、その幅も加える（正常系）。"""
+    from voice_paste.ui.windows.settings_window import GROUP_MENU_MARGIN_PX, group_menu_width
+
+    # 準備
+    menu = _show_menu(qapp, [LONG_ITEM] + ["出力先"] * SCROLLING_ITEM_COUNT, 100)
+    assert menu.verticalScrollBar().maximum() > 0
+
+    # 実行
+    width = group_menu_width(menu)
+
+    # 検証
+    assert width == (
+        menu.sizeHintForColumn(0)
+        + menu.frameWidth() * 2
+        + menu.verticalScrollBar().sizeHint().width()
+        + GROUP_MENU_MARGIN_PX
+    )
 
 
 # === format_hotkey ===

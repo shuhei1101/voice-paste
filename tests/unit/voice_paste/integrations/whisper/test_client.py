@@ -383,6 +383,46 @@ def test_start_when_first_ready_is_slow(
     assert not process.was_stopped
 
 
+def test_start_when_stopped(
+    make_client: Callable[..., Any], install_popen: Callable[..., FakePopen]
+) -> None:
+    """stop の後の start は子プロセスを起動しない（異常系）。"""
+    from voice_paste.shared.errors import EngineError
+
+    # 準備（子プロセスを起動する前に止める）
+    fake_popen = install_popen(FakeProcess(ready_worker))
+    client = make_client()
+    client.stop()
+
+    # 実行・検証
+    with pytest.raises(EngineError):
+        client.start()
+    assert fake_popen.calls == []
+
+
+def test_start_when_stopped_during_launch(
+    monkeypatch: pytest.MonkeyPatch, make_client: Callable[..., Any]
+) -> None:
+    """起動の間に stop が呼ばれたら、起動した子プロセスを止める（異常系）。"""
+    from voice_paste.shared.errors import EngineError
+
+    # 準備（subprocess.Popen の差し替えは、子プロセスを返す前に stop を呼ぶ）
+    process = FakeProcess(ready_worker)
+    client = make_client()
+
+    def _popen_with_stop(*_args: Any, **_kwargs: Any) -> FakeProcess:
+        """stop を呼んでから、起動した子プロセスを返す。"""
+        client.stop()
+        return process
+
+    monkeypatch.setattr(subprocess, "Popen", _popen_with_stop)
+
+    # 実行・検証
+    with pytest.raises(EngineError):
+        client.start()
+    assert process.stdin.closed
+
+
 # === transcribe ===
 
 

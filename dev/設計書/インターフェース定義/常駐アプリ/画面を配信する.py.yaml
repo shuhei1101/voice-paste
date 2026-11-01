@@ -99,7 +99,7 @@ flows:
         description: なし（常駐アプリの app を TestClient で立てる）
       - name: パス
         description: 無いファイル名と、`..` で置き場所の外を指すパス
-        notes: '`/web/assets/none.js`・`/web/assets/..%2F..%2Fsettings.toml`'
+        notes: '`/web/assets/none.js`・`/web/assets/..%2F..%2Fsettings.yaml`'
     flow: |-
       ```mermaid
       sequenceDiagram

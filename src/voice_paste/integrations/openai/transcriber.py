@@ -18,12 +18,6 @@ from voice_paste.shared.types import ProgressFn
 
 logger = logging.getLogger(__name__)
 
-OPENAI_TIMEOUT_SEC: float = 600.0
-"""1 回の送信で応答を待つ上限（秒）。"""
-
-OPENAI_CONNECT_TIMEOUT_SEC: float = 5.0
-"""接続を待つ上限（秒）。"""
-
 OPENAI_MAX_RETRIES: int = 2
 """429・5xx・タイムアウト・接続できないときに送信し直す上限（最初の 1 回を含まない）。"""
 
@@ -105,12 +99,12 @@ class OpenAITranscriber:
         }
         files = {"file": (audio_path.name, audio_path.read_bytes())}
         headers = {"Authorization": f"Bearer {self._api_key.get_secret_value()}"}
-        timeout = httpx.Timeout(OPENAI_TIMEOUT_SEC, connect=OPENAI_CONNECT_TIMEOUT_SEC)
 
         started = time.perf_counter()
         attempt = 0
+        # アプリ側では待つ時間の上限を設けない（省くと httpx の既定の 5 秒が掛かるため None を明示する）
         with httpx.Client(
-            timeout=timeout, follow_redirects=False, transport=self._transport
+            timeout=None, follow_redirects=False, transport=self._transport
         ) as client:
             while True:
                 try:

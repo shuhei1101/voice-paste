@@ -541,7 +541,7 @@ scenarios:
         notes: 録音の入力は音声合成の WAV。OpenAI API は、設定のベース URL を 127.0.0.1 で待ち受けるテスト用のエンドポイントに向け、受けた要求を控えて決まった文字を返す
       - name: 文字起こしのエンジン
         description: OpenAI API を使う設定にし、API キーを環境変数 `OPENAI_API_KEY` で渡す。モデルは既定のまま
-        notes: '`transcription.engine = "openai"`。既定のモデルは `gpt-transcribe`'
+        notes: '`transcription.engine: openai`。既定のモデルは `gpt-transcribe`'
       - name: 手がかりのプリセット
         description: 語を持つ有効な手がかりのプリセットが 1 つある
         notes: 語は 2 つ
@@ -649,8 +649,8 @@ scenarios:
         description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
         notes: 録音の入力は音声合成の WAV。OpenAI API は、設定のベース URL を 127.0.0.1 で待ち受けるテスト用のエンドポイントに向け、受けた要求を控えて決まった文字を返す
       - name: 文字起こしのエンジン
-        description: OpenAI API を使う設定にし、settings.toml でモデルに前のモデルを指定する。API キーを環境変数 `OPENAI_API_KEY` で渡す
-        notes: '`transcription.openai.model = "gpt-4o-mini-transcribe"`'
+        description: OpenAI API を使う設定にし、settings.yaml でモデルに前のモデルを指定する。API キーを環境変数 `OPENAI_API_KEY` で渡す
+        notes: '`transcription.openai.model: gpt-4o-mini-transcribe`'
       - name: 手がかりのプリセット
         description: 語を持つ有効な手がかりのプリセットが 1 つある
         notes: 語は 2 つ

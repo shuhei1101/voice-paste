@@ -1106,8 +1106,6 @@ refs:
 notes:
   設定のレイヤー: |-
     設定の値は、既定値 `config/defaults.yaml` → 環境の値 `settings.yaml` → checkout の上書き `settings.local.yaml` を重ねた値（シナリオ 設定を変える の補足『設定のレイヤー』）。
-    保存は `settings.yaml` だけに書き、既定値と同じ値にしたキーは `settings.yaml` から外す。
-    `settings.local.yaml` にあるキーは、欄でその値を変えて保存しても `settings.local.yaml` の値で動く。
   まとまりと欄: |-
     | まとまり | キー | 欄の部品 |
     | --- | --- | --- |

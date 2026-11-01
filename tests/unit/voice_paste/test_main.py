@@ -1010,6 +1010,28 @@ def test_start_when_startup_error(qapp: QApplication, startup_probe: StartupBuil
     assert startup_probe.received == [error]
 
 
+def test_start_when_unexpected_error(
+    qapp: QApplication, startup_probe: StartupBuildProbe, caplog: pytest.LogCaptureFixture
+) -> None:
+    """想定外の例外も StartupError にして done で渡す（異常系）。"""
+
+    # 準備
+    def _build(_register_stop: Callable[[Callable[[], None]], None]) -> object:
+        """RuntimeError を送出する。"""
+        raise RuntimeError("配線の不具合")
+
+    startup = _make_startup_build(startup_probe)
+    caplog.set_level(logging.ERROR)
+
+    # 実行
+    startup.start(_build)
+    _wait_received(qapp, startup_probe)
+
+    # 検証
+    assert [type(result) for result in startup_probe.received] == [StartupError]
+    assert [record.levelno for record in caplog.records] == [logging.ERROR]
+
+
 def test_cancel(qapp: QApplication, startup_probe: StartupBuildProbe) -> None:
     """控えた関数でエンジンを止め、done を送出しない（正常系）。"""
     # 準備: build は止める関数を控えた後、それが呼ばれるまで待ってから StartupError を送出する

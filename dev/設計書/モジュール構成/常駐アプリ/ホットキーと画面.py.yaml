@@ -431,7 +431,7 @@ classes:
           1. 設定画面を手放し、deleteLater で破棄する（中のコンボボックスのポップアップの窓も一緒に消える）
              - 欄のシグナルに SettingsWindow のメソッドをつないでいるため、参照を手放しただけでは GC で消えず、トップレベルの窓が開くたびに積もる
           2. resume_hotkeys を呼ぶ
-             - HotkeyError の場合、ホットキーを受け付けないまま続ける（保存した設定は、保存の前に動いているセッションのホットキーの受付で受け付けられることを確かめているため（PlatformAdapters.validate_hotkeys）、ここに来るのは手で書いた settings.toml だけ）
+             - HotkeyError の場合、ホットキーを受け付けないまま続ける（保存した設定は、保存の前に動いているセッションのホットキーの受付で受け付けられることを確かめているため（PlatformAdapters.validate_hotkeys）、ここに来るのは手で書いた設定のファイルだけ）
                - `[ERROR]` ホットキーを受け付けられなかった（理由）
       - name: hide_recording
         title: 録音の画面を隠す
@@ -1127,7 +1127,7 @@ classes:
       保存したメッセージのホットキーの文を出すかは、変えた欄の数えの値ではなく、ホットキーの欄の値（`hotkeys.*`・`outputs[].hotkey`・種類ごとのタブの中の何件目かのプリセットの hotkey）を開いたときの値と比べて決める。
       エラーの一覧のプリセットの行は、失敗の場所 `presets[{n}].{項目}` を「プリセット「{タイトル}」の{欄の名前}」（タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」）にし、押すとそのタブへ切り替えて PresetListPanel.focus_field で欄へフォーカスを移す。
       ホットキーの欄は押したキーを format_hotkey の形式で出し、parse_hotkey で pynput の書式に戻す。
-      UiDeps.hidden_setting_keys のキーは欄を置かず、開いたときの値を collect でそのまま返す（settings.toml の値を保つ）。変えた欄の数えにも入らない。既定に戻すと、そのキーも既定値になる。
+      UiDeps.hidden_setting_keys のキーは欄を置かず、開いたときの値を collect でそのまま返す（設定の値を保つ）。変えた欄の数えにも入らない。既定に戻すと、そのキーも既定値になる。
       コンストラクタは UiDeps を受ける。欄の部品は設定のキーを使った objectName（`field_{キー}`。プリセットの欄は画面設計の項目 ID）を持つ。窓が閉じたら（保存して再起動・今すぐ再起動・取り消し・窓の閉じるのどの経路でも。「保存」では閉じない）closed を emit する。
     kind: クラス
     inherits: PySide6.QtWidgets.QWidget
@@ -1152,7 +1152,7 @@ classes:
     methods:
       - name: collect
         title: 欄の値の収集
-        summary: 全ての欄の値を settings.toml と同じ構造の dict にする
+        summary: 全ての欄の値を 設定と同じ構造の dict にする
         kind: メソッド
         scope: internal
         returns:
@@ -1184,7 +1184,7 @@ classes:
              - ValidationError か行の失敗がある場合、失敗ごとに to_field_message で欄ごとのエラーにし（行の失敗は「誤変換を入れてください。」）、エラーの一覧と欄の下のエラーを出して一覧へフォーカスを移し、False を返す（入れた値は消さない）
                - `[INFO]` 設定画面の値が確かめに通らなかった（キーの一覧）
           2. save_settings（UiDeps）に、確かめた設定と GlossaryPanel.changed_rows（行を変えた用語集と追加した用語集の場所 → 行）を渡して書いて効かせる
-             - HotkeyError の場合、エラーの一覧に「ホットキーを受け付けられませんでした（{理由}）。別のキーにしてください。」を出し、False を返す（settings.toml も用語集の CSV も書かれていない）
+             - HotkeyError の場合、エラーの一覧に「ホットキーを受け付けられませんでした（{理由}）。別のキーにしてください。」を出し、False を返す（settings.yaml も用語集の CSV も書かれていない）
                - `[WARNING]` 保存するホットキーを受け付けられなかった（理由）
              - OSError の場合、エラーの一覧に「設定ファイルを書けませんでした（{理由}）」を出し、False を返す（用語集の CSV を書けないときも同じ文言で、理由にそのパスが出る）
                - `[ERROR]` 設定ファイルを書けなかった（logger.exception）
@@ -1349,7 +1349,7 @@ classes:
             expected: 2 回目は True。エラーの一覧が隠れて行が残らず、outputs[0].enter_delay_sec の欄の下のエラーが空で隠れ、保存したメッセージが「保存しました。」
       - name: reset_to_defaults
         title: 既定に戻す
-        summary: confirm_reset で確かめ、戻すなら開いたときの設定と同じ設定のモデルの既定値（`type(開いたときの設定)()`）を書いて欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す
+        summary: confirm_reset で確かめ、戻すなら UiDeps.reset_settings で環境の値を空にして読み直した設定を欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す
         kind: メソッド
         scope: public
         returns:
@@ -1358,8 +1358,9 @@ classes:
         process: |-
           1. confirm_reset で確かめる
              - 戻さない場合、何もせずに終える
-          2. 開いたときの設定と同じ設定のモデルの既定値を、save_settings（UiDeps）に空の書き戻し（`{}`）と共に渡して書く（用語集の CSV は書き換えない）
-          3. 既定の値を欄に入れ、用語集の一覧と用語集のプリセットを UiDeps.list_glossaries・list_glossary_presets で引き直して GlossaryPanel.set_glossaries に入れ直す（設定ファイルと同じフォルダの yogo.csv の 1 件と、それを使う「既定」のプリセットに戻る）
+          2. UiDeps.reset_settings で戻す（用語集の CSV は書き換えない）
+             - SettingsError の場合、欄を変えずにエラーの一覧に理由を出して終える
+          3. 返った設定（既定値。checkout の上書きにあるキーはその値）を欄に入れ、用語集の一覧と用語集のプリセットを UiDeps.list_glossaries・list_glossary_presets で引き直して GlossaryPanel.set_glossaries に入れ直す（設定ファイルと同じフォルダの yogo.csv の 1 件と、それを使う「既定」のプリセットに戻る）
           4. 再起動が要る設定が変わっていれば、件数と「今すぐ再起動」を出す
       - name: try_close
         title: 取り消し
@@ -1405,7 +1406,7 @@ classes:
         「用語集」の次のまとまり「ハルシネーション」に EdgePhrasePanel を 1 つ置き、開くときに設定の edge_phrases を EdgePhrasePanel.set_phrases に渡す。
         収集では `edge_phrases` に EdgePhrasePanel.collect を入れる。変えた欄の数えには、EdgePhrasePanel.change_values のキーごとの変更を 1 件として含める（反映は immediate）。追加・削除した・文言か位置を変えた行 1 つが 1 件、残っている行どうしの順が変わったら並べ替えが 1 件になる。
         エラーの一覧の行は、失敗の場所 `edge_phrases[{n}].text` を「ハルシネーションの {n+1} 行目の文言」にし、押すと「ハルシネーション」のまとまりへ切り替えて EdgePhrasePanel.focus_field で欄へフォーカスを移す。to_field_message は EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE を「* だけの文言は、文頭・文末の行を丸ごと削除します。削除したい文言を入れてください。」にする。
-        既定に戻すと、文言の一覧は DEFAULT_EDGE_PHRASES に戻る。
+        既定に戻すと、文言の一覧は config/defaults.yaml の edge_phrases に戻る。
   - name: PresetListPanel
     title: プリセットの一覧
     container: ui/windows/settings_presets.py
@@ -1417,7 +1418,7 @@ classes:
     description: |-
       要素（有効の切り替え・タイトル・URL・Enter まで送信・Authorization・確定のホットキー・上へ・下へ・削除・追加・空の案内）と読み上げの名前は画面設計「設定画面」が持つ。
       種類ごとに違う欄（browser は Enter まで送信、endpoint は Authorization）は、種類の設定のモデル（BrowserPreset・EndpointPreset）の共通でない項目から組み立てる。
-      並べ替え・追加・削除はこの部品の中だけを変え、settings.toml へは設定画面の保存で書く。
+      並べ替え・追加・削除はこの部品の中だけを変え、settings.yaml へは設定画面の保存で書く。
       変えた欄の数えのため、プリセットごとに、開いたとき・保存したときのプリセットを追う番号を持つ。set_presets と mark_saved で今の並びの順に 0 から振り直し、追加したプリセットには振ったどの番号より大きい番号を振る。削除・並べ替えで一覧を作り直しても番号を引き継ぐ。
     properties:
       - name: kind
@@ -1445,7 +1446,7 @@ classes:
         title: 一覧の値の収集
         kind: メソッド
         scope: public
-        summary: 今の並びのプリセットを settings.toml と同じ構造の dict の並びにする（kind を含める。ホットキーは parse_hotkey で pynput の書式に戻し、空は空文字）
+        summary: 今の並びのプリセットを 設定と同じ構造の dict の並びにする（kind を含める。ホットキーは parse_hotkey で pynput の書式に戻し、空は空文字）
         returns:
           type: list[dict[str, Any]]
           description: この種類のプリセットの並び
@@ -1562,7 +1563,7 @@ classes:
     summary: 設定画面の「用語集」のまとまりに置く、用語集の一覧と、選んだ用語集の名前の欄・行の表。用語集のプリセットの一覧と、選んだプリセットの名前の欄・使う用語集の表。用語集・行・プリセットを追加・削除する、補正に使うプリセットを選ぶ、プリセットの用語集を追加する・外す・並べ替える、行のオン・オフを受ける
     description: |-
       要素（用語集の一覧・名前のボタン・使うプリセット・行の数・削除・追加・名前の欄・誤変換を削除する行の説明・行の表・行が無いときの文・凡例、用語集のプリセットの一覧・補正に使うプリセットの選択・名前のボタン・用語集の数・削除・追加・見出し・名前の欄・使う用語集の表・追加する用語集の選択・追加ボタン・凡例）と読み上げの名前・objectName（項目 ID）は画面設計「設定画面」が持つ。
-      用語集ごとに、名前・CSV の場所・行・開いたときの行（追加した用語集は無し）を持つ。プリセットごとに、名前と使う用語集の CSV の場所の並びを持ち（用語集の名前を変えても指す先が変わらない）、名前には collect_presets でそのときの用語集の名前を当てる。追加・削除・入力はこの部品の中だけを変え、settings.toml と CSV へは設定画面の保存で書く。
+      用語集ごとに、名前・CSV の場所・行・開いたときの行（追加した用語集は無し）を持つ。プリセットごとに、名前と使う用語集の CSV の場所の並びを持ち（用語集の名前を変えても指す先が変わらない）、名前には collect_presets でそのときの用語集の名前を当てる。追加・削除・入力はこの部品の中だけを変え、settings.yaml と CSV へは設定画面の保存で書く。
       用語集を一覧から消すと、その用語集を全てのプリセットの使う用語集から外す。
       最後の 1 件の用語集と補正に使うプリセットの削除ボタンは、フォーカスとツールチップを残すため `setEnabled(False)` にせず、押しても消さない扱いと薄い見た目にする（用語集もプリセットも常に 1 件以上残る）。
       コンストラクタは、行を読む関数（UiDeps.read_glossary）と、追加する用語集の場所を決める関数（UiDeps.new_glossary_path）を受ける。
@@ -1629,7 +1630,7 @@ classes:
         title: 一覧の値の収集
         kind: メソッド
         scope: public
-        summary: 今の並びの用語集を settings.toml と同じ構造の dict（name・path）の並びにする（name は前後の空白を除く）
+        summary: 今の並びの用語集を 設定と同じ構造の dict（name・path）の並びにする（name は前後の空白を除く）
         returns:
           type: list[dict[str, Any]]
           description: 用語集の一覧
@@ -1842,7 +1843,7 @@ classes:
         title: 用語集のプリセットの収集
         kind: メソッド
         scope: public
-        summary: 今の並びの用語集のプリセットを settings.toml と同じ構造の dict（name・glossaries）の並びにする（name は前後の空白を除き、glossaries は使う用語集の今の名前を表の順に並べる）
+        summary: 今の並びの用語集のプリセットを 設定と同じ構造の dict（name・glossaries）の並びにする（name は前後の空白を除き、glossaries は使う用語集の今の名前を表の順に並べる）
         status: planned
         returns:
           type: list[dict[str, Any]]
@@ -1955,7 +1956,7 @@ classes:
       プリセットのまとまりは PresetListPanel と同じ構造（頭に切り替え・名前・上へ・下へ・削除、下に欄）で作る。語の欄は入力と削除ボタンの組を `QGridLayout` の 2 列（左から右、上から下が語の順）に並べ、部品の幅が 2 組入らないときは 1 列に並べ直す（resizeEvent）。幅に応じて列の数を 3 以上に増やす自前のレイアウトは作らない。
       長さは欄の入力・切り替え・追加・削除・並べ替えのたびに、今の欄の値（プリセットごとの有効かと語の並び。HintWordSource を満たす値で、HintPresetSettings にはしない）を join_hint_words でつないだ UTF-8 のバイト数で数え直し、HINT_MAX_BYTES を超えたらバーと数字を赤にして「（{超えた分} バイト超過）」を添える。空の名前・空の語・区切りを含む語もそのまま数える（確かめは保存で行う）。
       無効のプリセットの語の欄は、用語集のオフの行と同じく文字を薄くして取り消し線を引く（編集はできる）。
-      追加・削除・並べ替えはこの部品の中だけを変え、settings.toml へは設定画面の保存で書く。
+      追加・削除・並べ替えはこの部品の中だけを変え、settings.yaml へは設定画面の保存で書く。
       変えた欄の数えのため、プリセットごとに、開いたとき・保存したときのプリセットを追う番号を持つ。set_presets と mark_saved で今の並びの順に 0 から振り直し、追加したプリセットには振ったどの番号より大きい番号を振る。削除・並べ替え・語の追加・削除で一覧を作り直しても番号を引き継ぐ。単体テストは tests/unit/voice_paste/ui/windows/test_settings_hints.py に置く。
     properties:
       - name: changed
@@ -1980,7 +1981,7 @@ classes:
         title: 一覧の値の収集
         kind: メソッド
         scope: public
-        summary: 今の並びのプリセットを settings.toml と同じ構造の dict（name・words・enabled）の並びにする。空の語の欄もそのまま入れ（確かめで断る）、前後の空白は設定のモデルが除く
+        summary: 今の並びのプリセットを 設定と同じ構造の dict（name・words・enabled）の並びにする。空の語の欄もそのまま入れ（確かめで断る）、前後の空白は設定のモデルが除く
         returns:
           type: list[dict[str, Any]]
           description: hint_presets の並び
@@ -2262,7 +2263,7 @@ classes:
       要素（説明・一覧・つまみ・文言・位置・削除・空の文・追加・凡例）と読み上げの名前は画面設計「設定画面」が持つ。
       一覧は、用語集・表記のヒントの部品と同じく行ごとの部品（つまみ・文言の欄・位置の選択・削除ボタンと欄の下のエラーの文）を縦に並べる。行の入れ替えは、つまみ（自前の部品。離した縦の位置より上に中心がある他の行の数を移し先にする）と、文言の欄の Alt+↑ / Alt+↓（move_phrase）で行う。部品の幅が NARROW_WIDTH_PX より狭いときは、1 行を上下 2 行（上に文言の欄、下に位置と削除ボタン）に組む。行の部品の objectName の末尾の `{n}` は一覧の並びの 0 からの番号で、行を動かすたびに付け直す。動かしたら動かした行の文言の欄へフォーカスを移し、「{何行目か} 行目へ動かしました」を `QAccessible.updateAccessibility(QAccessibleAnnouncementEvent(...))` で読み上げに伝える。
       位置の選択は「文頭」「文末」「両方」を出し、値を start / end / both にする。
-      追加・削除・並べ替えはこの部品の中だけを変え、settings.toml へは設定画面の保存で書く。
+      追加・削除・並べ替えはこの部品の中だけを変え、settings.yaml へは設定画面の保存で書く。
       変えた欄の数えのため、行ごとに、開いたとき・保存したときの行を追う番号を持つ（HintPresetPanel と同じ番号の振り方）。単体テストは tests/unit/voice_paste/ui/windows/test_settings_edge_phrases.py に置く。
     inherits: PySide6.QtWidgets.QWidget
     properties:
@@ -2286,7 +2287,7 @@ classes:
           description: なし
       - name: collect
         title: 一覧の値の収集
-        summary: 今の並びの行を settings.toml と同じ構造の dict（text・position）の並びにする。空の文言の行もそのまま入れる（設定のモデルが除くため、失敗の場所の番号が一覧の行とそろう）
+        summary: 今の並びの行を 設定と同じ構造の dict（text・position）の並びにする。空の文言の行もそのまま入れる（設定のモデルが除くため、失敗の場所の番号が一覧の行とそろう）
         kind: メソッド
         scope: public
         returns:
@@ -3479,9 +3480,12 @@ data_models:
       - name: save_settings
         type: Callable[[Settings, Mapping[Path, Sequence[GlossaryEntry]]], bool]
         description: 設定と、行を変えた用語集の CSV（場所 → 行）を書いて効かせ、再起動が要る項目が変わったかを返す（apply_settings）
+      - name: reset_settings
+        type: Callable[[], tuple[Settings, bool]]
+        description: 環境の値を空にして読み直した設定を効かせ、その設定と再起動が要る項目が変わったかを返す（reset_applied_settings）
       - name: settings_dir
         type: Path
-        description: settings.toml のあるフォルダ
+        description: settings.yaml のあるフォルダ
       - name: log_dir
         type: Path
         description: ログのフォルダ

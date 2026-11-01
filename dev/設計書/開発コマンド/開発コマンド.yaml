@@ -154,7 +154,7 @@ categories:
     verification:
       state: 済
       date: '2026-10-28'
-      detail: '検証環境の VM で、`--data-dir` に一時のフォルダ（`settings.toml` で `transcription.local_whisper.model = "tiny"`）を渡して `.venv/bin/python -m voice_paste` を起動し、エンジン・API・ホットキーが立ち上がること（ログの `常駐サービスを始めた`）を確かめた。同じ設定の置き場所で 2 つ目を起動すると、`前の常駐サービスに終わるよう頼んだ` の約 0.8 秒後に前のプロセスが終わり（ホットキーの受付は 0.5 秒の上限で手放した）、2 つ目が排他を取って起動することを確かめた。VM に `libxcb-cursor0` が入っていないため、deb を `apt-get download` で取得して `dpkg -x` で展開し、`LD_LIBRARY_PATH` で読ませて起動した（VM のパッケージは変えていない）。VM の Xorg のセッションは画面のロック中で GNOME のトレイの拡張が無効のため、トレイのアイコンは VM 内の Xephyr に `stalonetray`（XEmbed のトレイの受け手。deb を展開して使用）を立てて確かめ、緑のマイクのアイコンが出ることを撮影した。GNOME の実際のトレイ（`ubuntu-appindicators`）では確かめていない。手順 1 の権限の設定と手順 2 のセッションの切り替えは、この PR では走らせて確かめていない（sudo と再起動・gdm3 の再起動が要る。PoC #221 で同じ内容の手順を VM に当てて Wayland のセッションで `/dev/uinput` を開けた）'
+      detail: '検証環境の VM で、`--data-dir` に一時のフォルダ（`settings.yaml` で `transcription.local_whisper.model` を `tiny`）を渡して `.venv/bin/python -m voice_paste` を起動し、エンジン・API・ホットキーが立ち上がること（ログの `常駐サービスを始めた`）を確かめた。同じ設定の置き場所で 2 つ目を起動すると、`前の常駐サービスに終わるよう頼んだ` の約 0.8 秒後に前のプロセスが終わり（ホットキーの受付は 0.5 秒の上限で手放した）、2 つ目が排他を取って起動することを確かめた。VM に `libxcb-cursor0` が入っていないため、deb を `apt-get download` で取得して `dpkg -x` で展開し、`LD_LIBRARY_PATH` で読ませて起動した（VM のパッケージは変えていない）。VM の Xorg のセッションは画面のロック中で GNOME のトレイの拡張が無効のため、トレイのアイコンは VM 内の Xephyr に `stalonetray`（XEmbed のトレイの受け手。deb を展開して使用）を立てて確かめ、緑のマイクのアイコンが出ることを撮影した。GNOME の実際のトレイ（`ubuntu-appindicators`）では確かめていない。手順 1 の権限の設定と手順 2 のセッションの切り替えは、この PR では走らせて確かめていない（sudo と再起動・gdm3 の再起動が要る。PoC #221 で同じ内容の手順を VM に当てて Wayland のセッションで `/dev/uinput` を開けた）'
   - name: 管理作業
     prerequisites:
       - 検証環境の VM（Ubuntu 24.04・PipeWire）の Xorg のセッションで、『起動・停止』の前提を満たしておく

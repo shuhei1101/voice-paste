@@ -12,30 +12,13 @@ catalogs:
     entries:
       - name: parse
         kind: 関数
-        purpose: settings.toml をコメントを保った文書として読む
-      - name: dumps
-        kind: 関数
-        purpose: 値を書き換えた文書を文字列に戻す
-      - name: document
-        kind: 関数
-        purpose: 設定ファイルが無いときの空の文書を作る
-      - name: table
-        kind: 関数
-        purpose: まとまりの表を作る
-      - name: aot
-        kind: 関数
-        purpose: 出力先の一覧（表の配列）を作る
+        purpose: 前のバージョンの settings.toml を、settings.yaml へ移すために読む
+      - name: TOMLDocument.unwrap
+        kind: メソッド
+        purpose: 読んだ文書を素の dict に戻し、既定値との差分を求める
       - name: TOMLKitError
         kind: 例外
-        purpose: 書式の壊れた settings.toml を読んだときに送出される（SettingsError に変える）
-      - name: Container.body
-        kind: 属性
-        purpose: 配列の表の最後の要素（`Table.value`）の末尾にある、キーを持たないコメントと空行（キーが `None` の `Comment`・`Whitespace`）を取り出し、入れ替えた後の表の末尾へ付け替える
-        description: 配列の表の後ろに書いたコメントは、parse で最後の要素の中（`body` の末尾の `(None, Comment)`・`(None, Whitespace)`）として読まれる。`body` は `(キー, 項目)` のリストで、末尾へ `(None, 項目)` を追加すると dumps でその位置に書かれる
-      - name: Trivia.indent
-        kind: 属性
-        purpose: 表・配列の表の要素の見出しの前に書かれる文字列。配列の表を入れ替えるとき、最初の要素の分を引き継ぎ、0 件になるときは次の表の頭へコメントを付け替える
-        description: '`Table.trivia.indent` の頭へコメントの行を追加すると、dumps でその表の見出しの直前に書かれる。文書の `body` の途中へ追加するのと違い、キーから位置を引く対応表をずらさない。super table（見出しを持たない表）の indent は書かれないため、中の最初の表の indent を使う'
+        purpose: 書式の壊れた settings.toml を移すときに送出される（SettingsError に変え、settings.yaml を作らない）
 lead: コメントと書式を保ったまま TOML を読み書きするライブラリ。
 purl: pkg:pypi/tomlkit
 dependency_scope: 必須

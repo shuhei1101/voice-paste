@@ -73,7 +73,7 @@ class WhisperWorkerClient:
         self._log_dir = log_dir
         self._stop_timeout_sec = stop_timeout_sec
         self._creationflags = creationflags
-        # stop で止めている最中か。立っている間は子プロセスが終わっても立て直さない（start で下ろす）
+        # stop で止めている最中か。立っている間は子プロセスが終わっても立て直さず、start は子プロセスを起動しない（一度立てたら下ろさない）
         self._stopping = False
         # 立て直しの中から start を呼ぶため、再入できるロックにする
         self._lock = threading.RLock()
@@ -83,7 +83,8 @@ class WhisperWorkerClient:
     def start(self, *, ready_timeout_sec: float | None = None) -> None:
         """子プロセスを起動し、ready を待つ。None（起動時の 1 回目）は待つ上限をかけない。"""
         with self._lock:
-            self._stopping = False
+            # stop の後には起動しない
+            self._raise_if_stopping()
             started = time.perf_counter()
             process = subprocess.Popen(  # noqa: S603 引数は固定で、シェルを通さない
                 [sys.executable, "-u", "-m", WORKER_MODULE],
@@ -97,6 +98,10 @@ class WhisperWorkerClient:
                 creationflags=self._creationflags,
             )
             self._process = process
+            # 起動の間に stop が呼ばれていた（stop は起動した子プロセスを見つけられない）: 起動した子プロセスを止める
+            if self._stopping:
+                self._halt()
+                raise EngineError("文字起こしワーカーが起動の間に終了のために止められた")
             self._messages = queue.Queue()
             # 標準出力は 1 行ずつキューへ、標準エラーはロガーへ流す
             threading.Thread(

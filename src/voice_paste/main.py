@@ -8,6 +8,7 @@ import os
 import random
 import signal
 import sys
+import threading
 import time
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
@@ -16,7 +17,7 @@ from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QMetaObject, Qt, QTimer
+from PySide6.QtCore import QMetaObject, QObject, Qt, QTimer, Signal
 from PySide6.QtWidgets import QApplication
 
 from voice_paste.features.correction import (
@@ -180,6 +181,12 @@ SETTINGS_MODEL: type[Settings] = build_settings_model(
 
 WEB_TMP_DIR_NAME: str = "web"
 """ブラウザから受けた音声を書く一時のフォルダの名前（`{tmp_dir}` の下）。"""
+
+STARTUP_CANCEL_TIMEOUT_SEC: float = 5.0
+"""配線の間に抜けたときに、配線のスレッドの終わりを待つ秒数。ワーカーの終わりを WORKER_STOP_TIMEOUT_SEC の 2 回待ってから kill するまでに、配線が StartupError で終わる余裕の 1 秒を加えた値。"""
+
+STARTUP_THREAD_NAME: str = "startup-build"
+"""配線を流すスレッドの名前。"""
 
 PURGE_INTERVAL_SEC: float = 86400.0
 """RepeatingTimer が purge_old_files を呼ぶ間隔。非機能要件の常駐中に古い履歴とログを削除する間隔（24 時間）を秒にした値。"""
@@ -527,6 +534,10 @@ def _wire_preset_kinds(
     )
 
 
+def _ignore_engine_stop(_stop: Callable[[], None]) -> None:
+    """エンジンを止める関数を受け取っても控えない（build_handlers の on_engine_created の既定）。"""
+
+
 def build_handlers(
     settings: Settings,
     paths: AppPaths,
@@ -537,13 +548,17 @@ def build_handlers(
     adapters: PlatformAdapters,
     environ: Mapping[str, str],
     unavailable: frozenset[Feature],
+    on_engine_created: Callable[[Callable[[], None]], None] = _ignore_engine_stop,
 ) -> Handlers:
-    """設定からエンジン・録音機・出力先・履歴を組み立て、SessionDeps を作って SessionManager と SessionApiDeps を返す。"""
+    """設定からエンジン・録音機・出力先・履歴を組み立て、SessionDeps を作って SessionManager と SessionApiDeps を返す。
+
+    on_engine_created は、エンジンの準備（ワーカーの ready の待ち）を始める前に、エンジンを止める関数を受け取る。
+    """
     # 1. 設定を SettingsStore に入れる。以降の配線は設定を値でなく SettingsStore.get から読む
     store = SettingsStore(settings)
 
     # 2. 設定のエンジンで、文字起こしの関数と、エンジンを止める関数を作る
-    engine, stop_engine = _build_engine(settings, paths, adapters, environ)
+    engine, stop_engine = _build_engine(settings, paths, adapters, environ, on_engine_created)
 
     # 3. 連続録音の話し声の判定に使う VAD のセッションを 1 回だけ読む（読めなければ立ち上げたエンジンを止めて起動の失敗にする）
     try:
@@ -736,8 +751,9 @@ def _build_engine(
     paths: AppPaths,
     adapters: PlatformAdapters,
     environ: Mapping[str, str],
+    on_engine_created: Callable[[Callable[[], None]], None],
 ) -> tuple[EngineFn, Callable[[], None]]:
-    """設定のエンジンで、文字起こしの関数と、エンジンを止める関数を作る。準備できなければ StartupError。"""
+    """設定のエンジンで、文字起こしの関数と、エンジンを止める関数を作る。止める関数は準備を始める前に on_engine_created へ渡す。準備できなければ StartupError。"""
     # 設定のエンジンは何か
     if EngineName(settings.transcription.engine) is EngineName.OPENAI:
         # OpenAI API: API キーを読み、OpenAI API の文字起こしを作る（文字起こしワーカーは起動せず、止めるものも無い）
@@ -746,6 +762,7 @@ def _build_engine(
             api_key=read_openai_api_key(paths.openai_api_key_file, environ),
         )
         logger.info(f"文字起こしのエンジンは OpenAI API（{settings.transcription.openai.model}）")
+        on_engine_created(_stop_nothing)
         return transcriber.transcribe, _stop_nothing
 
     # ローカルの Whisper: 依存が入っているかを確かめ、ワーカーを作って起動する
@@ -757,6 +774,8 @@ def _build_engine(
         stop_timeout_sec=WORKER_STOP_TIMEOUT_SEC,
         creationflags=adapters.worker_creationflags,
     )
+    # ready を待つ間に止められるよう、起動する前に止める関数を渡す
+    on_engine_created(worker.stop)
     try:
         worker.start()
     except EngineError as error:
@@ -1039,6 +1058,73 @@ def _build_idle_ui_deps(
     )
 
 
+class _StartupBuild(QObject):
+    """配線をメインスレッドの外のスレッドで流し、結果を done でメインスレッドへ戻す。配線の間に抜けたときはエンジンを止める。"""
+
+    done = Signal(object)
+    """配線の結果（Handlers か StartupError）。cancel の後は送出しない。"""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._thread: threading.Thread | None = None
+        # build_handlers の on_engine_created で控えた、エンジンを止める関数
+        self._stop_engine: Callable[[], None] | None = None
+        self._cancelled = False
+        # _stop_engine・_cancelled の読み書きと done の送出を 1 つずつにする
+        self._lock = threading.Lock()
+
+    def start(self, build: Callable[[Callable[[Callable[[], None]], None]], Handlers]) -> None:
+        """渡した配線をデーモンスレッドで流し、結果を done で渡す。"""
+        self._thread = threading.Thread(
+            target=self._run, args=(build,), name=STARTUP_THREAD_NAME, daemon=True
+        )
+        self._thread.start()
+
+    def _run(self, build: Callable[[Callable[[Callable[[], None]], None]], Handlers]) -> None:
+        """配線を呼び、取り消されていなければ結果を done で送出する。"""
+        # 1. 配線を呼ぶ（エンジンを準備できなければ、その StartupError を結果にする）
+        result: Handlers | StartupError
+        try:
+            result = build(self._register_stop)
+        except StartupError as error:
+            result = error
+
+        # 2. 取り消されていなければ結果を送出する
+        with self._lock:
+            if not self._cancelled:
+                self.done.emit(result)
+                return
+        # 取り消された後に配線できた（StartupError でない）: 立ち上げたエンジンを止めて捨てる
+        if not isinstance(result, StartupError):
+            result.stop_engine()
+
+    def _register_stop(self, stop: Callable[[], None]) -> None:
+        """エンジンを止める関数を控える。既に取り消されていれば、すぐ止める。"""
+        with self._lock:
+            self._stop_engine = stop
+            cancelled = self._cancelled
+        if cancelled:
+            stop()
+
+    def cancel(self, timeout_sec: float) -> None:
+        """控えたエンジンを止め、配線のスレッドの終わりを待つ。以降は done を送出しない。"""
+        # 1. 取り消したことにして、控えた止める関数を引く
+        with self._lock:
+            self._cancelled = True
+            stop = self._stop_engine
+
+        # 2. ロックを放してから止める（ワーカーが終わり、配線は StartupError で終わる）
+        if stop is not None:
+            stop()
+
+        # 3. スレッドの終わりを待つ（待ちきれなければ、そのまま戻る）
+        if self._thread is None:
+            return
+        self._thread.join(timeout_sec)
+        if self._thread.is_alive():
+            logger.warning("起動の配線が終わらないまま終える")
+
+
 class _ExitRequest:
     """イベントループを抜ける依頼と、抜けた後に起動し直すかを持つ（長く持つ実行時の状態）。"""
 
@@ -1069,10 +1155,18 @@ class _Running:
     """キーの送信の機器を閉じる関数（開こうとした後に入る）。"""
     controller: UiController | None = None
     """画面の振り分け。Qt の部品は参照が切れると消えるため、終わりまで持つ。"""
+    startup: _StartupBuild | None = None
+    """配線のスレッド。参照が切れると消えるため、終わりまで持つ。"""
+    building: bool = False
+    """配線を流していて、まだ結果を受けていないか。"""
 
 
 def _stop_all(running: _Running, tray: Tray) -> None:
     """新しい開始が来ないように入口とタイマーを先に止め、録音を捨て、エンジンを止め、トレイを削除する。"""
+    # 配線を流している間に抜けた: 控えたエンジンを止め、配線のスレッドの終わりを待つ
+    if running.building and running.startup is not None:
+        running.building = False
+        running.startup.cancel(STARTUP_CANCEL_TIMEOUT_SEC)
     if running.hotkey_listener is not None:
         running.hotkey_listener.stop()
     for timer in running.timers:
@@ -1181,6 +1275,9 @@ def _run_service(
     wake_timer = _install_signal_handlers(app)
     exit_request = _ExitRequest(app)
     running = _Running()
+    # 配線の間も抜けられるよう、トレイの「再起動」「終了」をつなぐ（配線の結果を受けたら外す）
+    tray.restart_requested.connect(exit_request.request_restart)
+    tray.quit_requested.connect(exit_request.request_quit)
 
     try:
         _start_services(
@@ -1207,15 +1304,14 @@ def _start_services(
         PlatformAdapters, SingleInstanceLock | LinuxSingleInstanceLock, str, frozenset[Feature]
     ],
 ) -> None:
-    """設定を読み、配線し、画面・API・ホットキー・上限のタイマーを立てる。立てたものは running に入れる。
+    """設定を読み、配線をメインスレッドの外のスレッドで始める。配線の結果は _finish_startup がメインスレッドで受ける。
 
     platform は OS ごとの実装・取った排他・排他の名前・OS で使えない機能。
     """
-    adapters, lock, lock_name, unavailable = platform
+    adapters, _lock, _lock_name, unavailable = platform
     ui_notify = partial(notify, bridge=bridge)
     ui_report_progress = partial(report_progress, bridge=bridge)
     ui_notify_copied = partial(notify_copied, bridge=bridge)
-    show_recording_window = partial(notify, "show_recording_window", bridge=bridge)
 
     # 5. 設定を読む（読めなければトレイを失敗にして知らせ、設定を修正して再起動できるようにする）
     try:
@@ -1224,8 +1320,6 @@ def _start_services(
         logger.error(f"起動に失敗した（{error}）")
         tray.set_failed()
         tray.show_failure("settings_invalid", str(error))
-        tray.restart_requested.connect(exit_request.request_restart)
-        tray.quit_requested.connect(exit_request.request_quit)
         return
 
     # 6. 設定の ui.theme で画面の明暗を当て直し、ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を削除する（処理中のセッションは無いため、一時の音声も全て削除する対象にする）
@@ -1238,19 +1332,59 @@ def _start_services(
         f"オンの出力先: {', '.join(enabled_outputs)}）"
     )
 
-    # 7. 配線する（エンジンを準備できなければトレイを失敗にして知らせ、設定画面だけを使えるようにする）
-    try:
-        handlers = build_handlers(
-            settings,
-            paths,
-            ui_notify,
-            ui_report_progress,
-            ui_notify_copied,
-            adapters=adapters,
-            environ=os.environ,
-            unavailable=unavailable,
-        )
-    except StartupError as error:
+    # 7. 配線をメインスレッドの外のスレッドに流す（流している間もイベントループを回し、トレイを準備中のまま出す）。結果はメインスレッドで受ける
+    build = partial(
+        build_handlers,
+        settings,
+        paths,
+        ui_notify,
+        ui_report_progress,
+        ui_notify_copied,
+        adapters=adapters,
+        environ=os.environ,
+        unavailable=unavailable,
+    )
+    startup = _StartupBuild()
+    running.startup = startup
+    running.building = True
+    startup.done.connect(
+        lambda result: _finish_startup(
+            result, app, bridge, tray, paths, exit_request, running, platform, settings
+        ),
+        Qt.ConnectionType.QueuedConnection,
+    )
+    startup.start(lambda register_stop: build(on_engine_created=register_stop))
+
+
+def _finish_startup(
+    result: Handlers | StartupError,
+    app: QApplication,
+    bridge: UiBridge,
+    tray: Tray,
+    paths: AppPaths,
+    exit_request: _ExitRequest,
+    running: _Running,
+    platform: tuple[
+        PlatformAdapters, SingleInstanceLock | LinuxSingleInstanceLock, str, frozenset[Feature]
+    ],
+    settings: Settings,
+) -> None:
+    """配線の結果をメインスレッドで受け、画面・API・ホットキー・上限のタイマーを立てる。立てたものは running に入れる。"""
+    # 抜けた後に届いた結果は受けない（片付けで取り消し済み）
+    if not running.building:
+        return
+    running.building = False
+    adapters, lock, lock_name, _unavailable = platform
+    ui_notify = partial(notify, bridge=bridge)
+    show_recording_window = partial(notify, "show_recording_window", bridge=bridge)
+
+    # 7. 配線の間だけつないでいた「再起動」「終了」を外す（以降は画面の振り分けが受ける）
+    tray.restart_requested.disconnect(exit_request.request_restart)
+    tray.quit_requested.disconnect(exit_request.request_quit)
+
+    # エンジンを準備できなければトレイを失敗にして知らせ、設定画面だけを使えるようにする
+    if isinstance(result, StartupError):
+        error = result
         logger.error(f"起動に失敗した（{error}）")
         tray.set_failed()
         deps = _build_idle_ui_deps(
@@ -1265,6 +1399,7 @@ def _start_services(
         running.controller = _build_controller(bridge, tray, deps)
         tray.show_failure("engine_unavailable", str(error))
         return
+    handlers = result
     running.handlers = handlers
 
     # 画面を作って知らせの受け手につなぐ（API の待ち受けを始められない知らせを取りこぼさないよう、API より先に）

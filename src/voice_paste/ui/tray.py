@@ -211,13 +211,14 @@ class Tray(QObject):
             )
             return
 
-        # 2. それ以外は、状態の画像とヒントに替え、処理中なら録音と設定を押せなくする
+        # 2. それ以外は、状態の画像とヒントに替え、処理中なら録音と設定を押せなくする。
+        #    準備中も、配線が終わるまで受け手が無いため録音と設定を押せなくする
         self._apply(
             state,
             start_text=START_TEXT + (BUSY_SUFFIX if busy else ""),
             settings_text=SETTINGS_TEXT + (BUSY_SUFFIX if busy else ""),
             start_enabled=state is TrayState.IDLE and not busy,
-            settings_enabled=not busy,
+            settings_enabled=state is not TrayState.STARTING and not busy,
         )
 
     def set_failed(self) -> None:

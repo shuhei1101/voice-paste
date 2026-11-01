@@ -100,6 +100,12 @@ WINDOW_TITLE: str = "voice-paste の設定"
 MIN_WIDTH_PX: int = 720
 """設定画面の最小の幅（欄の名前と設定のキーが語の途中で折り返さない幅）。"""
 
+GROUP_MENU_MIN_WIDTH_PX: int = 160
+"""まとまりのメニューの幅の下限（px）。Windows の項目は縦のスクロールバーが出ていなければこの幅に収まる。"""
+
+GROUP_MENU_MARGIN_PX: int = 4
+"""まとまりのメニューの最も長い項目の幅に加える余白（px）。項目の末尾が枠に触れないようにする。"""
+
 PRESET_KIND_NAMES: dict[str, str] = {"browser": "ブラウザ添付", "endpoint": "エンドポイントへ送信"}
 """カスタムプリセットの種類ごとの画面の名前（設定画面のタブの名前）。種類の並びが、タブと録音の画面のボタンの並びになる。"""
 
@@ -304,6 +310,24 @@ OPTION_NOTES: dict[str, str] = {
     ),
 }
 """欄の下に出す補助文（欄のキーごと）。"""
+
+
+# === まとまりのメニュー ===
+
+
+def group_menu_width(menu: QListWidget) -> int:
+    """まとまりのメニューの幅を、下限を守りつつ最も長い項目が横のスクロールバーなしで収まる幅にする。"""
+    # 1. スタイルシート（項目の余白）を当ててから、最も長い項目の幅を測る
+    menu.ensurePolished()
+    width = menu.sizeHintForColumn(0) + menu.frameWidth() * 2 + GROUP_MENU_MARGIN_PX
+
+    # 2. 縦のスクロールバーが出ていれば、その幅も加える
+    scroll_bar = menu.verticalScrollBar()
+    if scroll_bar.maximum() > 0:
+        width += scroll_bar.sizeHint().width()
+
+    # 3. 下限より狭ければ下限にする
+    return max(width, GROUP_MENU_MIN_WIDTH_PX)
 
 
 # === ホットキーの表示・読み取り ===
@@ -650,6 +674,10 @@ class SettingsWindow(QWidget):
 
     # --- 窓の枠 ---
 
+    def _fit_group_menu(self, *_range: int) -> None:
+        """まとまりのメニューの幅を、項目と縦のスクロールバーに合わせて決める。"""
+        self._group_menu.setFixedWidth(group_menu_width(self._group_menu))
+
     def _build_frame(self) -> None:
         """まとまりのメニュー・エラーの一覧・欄の置き場・フッターを並べる（欄は _populate が入れる）。"""
         root = QVBoxLayout(self)
@@ -658,8 +686,11 @@ class SettingsWindow(QWidget):
 
         self._group_menu = QListWidget()
         self._group_menu.setObjectName("group_menu")
-        self._group_menu.setFixedWidth(160)
+        self._group_menu.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._group_menu.addItems(GROUP_NAMES)
+        self._fit_group_menu()
+        # 窓の高さで縦のスクロールバーが出る・消えるのに合わせて幅を決め直す
+        self._group_menu.verticalScrollBar().rangeChanged.connect(self._fit_group_menu)
         body.addWidget(self._group_menu)
 
         right = QVBoxLayout()

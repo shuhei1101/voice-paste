@@ -1250,6 +1250,7 @@ functions:
       2. previous と settings で値が変わったキーを集める（changed_keys。表はキーごと、一覧と値は丸ごとで比べる）
       3. settings_file を読む（read_yaml_document。無ければ空の文書）
          - SettingsError の場合、そのまま送出する（読めない settings.yaml は書き換えない）
+         - 文書の outputs に `id = "ai_chat"` の項目がある場合、outputs・presets・preset_options を変わったキーに加える（読み替えた値を書き、古い項目を残さない）
       4. 変わったキーごとに、新しい値が既定の設定の値と等しければ文書から外し（delete_key。中のキーが無くなった表も外す）、違えば書く（set_key。無い表は作る）
       5. None の項目（glossary_path・active_glossary・active_glossary_preset）を変えたときは、キーを書かずに外す
       6. 親のフォルダを作り、同じフォルダの一時ファイルに UTF-8 で書いて os.replace で置き換える（write_yaml_document）
@@ -1285,9 +1286,9 @@ functions:
       - name: test_save_settings_when_quoted_strings
         case: 正常
         summary: YAML 1.1 で文字列でなくなる値を引用符で囲んで書く
-        condition: edge_phrases に文言 yes・on・* の 3 行を持つ設定を書く
+        condition: edge_phrases に文言 yes・on・*ご視聴 の 3 行を持つ設定を書く
         mock: なし（一時フォルダ）
-        expected: ファイルに 'yes'・'on'・'*' が単引用符つきで書かれ、load_settings で文字列のまま読める
+        expected: ファイルに 'yes'・'on'・'*ご視聴' が単引用符つきで書かれ、load_settings で文字列のまま読める
       - name: test_save_settings_when_restart_item_changed
         case: 正常
         summary: 再起動が要る項目が変われば True
@@ -2109,31 +2110,6 @@ functions:
       type: T
       description: その OS の既定値
     process: 1. OS_DEFAULT_OVERRIDES[os_kind] に key があればその値、無ければ common を返す
-    unit_tests:
-      - name: test_os_default_when_linux
-        case: 正常
-        summary: Linux の上書きがあるキーは上書きの値
-        condition: key="recording.lower_volume"・common=True・os_kind=OsKind.LINUX
-        mock: なし
-        expected: 'False'
-      - name: test_os_default_when_windows
-        case: 正常
-        summary: Windows は共通の既定値
-        condition: key="transcription.local_whisper.device"・common="cuda"・os_kind=OsKind.WINDOWS
-        mock: なし
-        expected: '"cuda"'
-      - name: test_os_default_when_not_overridden
-        case: 正常
-        summary: 上書きの無いキーは共通の既定値
-        condition: key="recording.hide_window"・common=False・os_kind=OsKind.LINUX
-        mock: なし
-        expected: False（common のまま）
-      - name: test_os_default_when_settings_model_linux
-        case: 正常
-        summary: Linux で組み立てた設定のモデルの既定値は、OS_DEFAULT_OVERRIDES[OsKind.LINUX] の全ての値になる
-        condition: 子プロセス（`sys.executable -c`）で、voice_paste.shared.os_kind を先に import して CURRENT_OS を OsKind.LINUX に置き換えてから voice_paste.main を import し、引数なしで組み立てた SETTINGS_MODEL() の model_dump と OS_DEFAULT_OVERRIDES[OsKind.LINUX] を JSON で標準出力に出させる。テストのプロセスのモジュールは読み直さない（import のときに CURRENT_OS を読むのは os_default だけで、Windows でも走る）
-        mock: なし
-        expected: 子プロセスが 0 で終わる。OS_DEFAULT_OVERRIDES[OsKind.LINUX] のキーの集まりがテストに書いた 9 つのキーと等しく、model_dump のそれぞれのキーの値がテストに書いた固定の値と等しい（recording.lower_volume = False・transcription.local_whisper.device = "cpu"・transcription.local_whisper.compute_type = "int8"・hotkeys.start = "<cmd>+<alt>+d"・hotkeys.pause = "<cmd>+<alt>+z"・hotkeys.cancel = "<cmd>+<alt>+q"・outputs.paste_and_send.hotkey = "<cmd>+<alt>+d"・outputs.paste_only.hotkey = "<cmd>+<alt>+v"・outputs.copy_only.hotkey = "<cmd>+<alt>+c"）。`outputs.{出力先の ID}.{項目}` のキーは、outputs の id が一致する項目で引く（引けないキーがあれば fail）
     status: removed
   - name: detect_display_session
     title: デスクトップのセッションの判定

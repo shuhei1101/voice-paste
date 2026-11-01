@@ -254,8 +254,8 @@ def test_normal_when_reset(run_app: RunApp) -> None:
             RESET_TIMEOUT_SEC,
         )
         assert app.window("settings_window") is not None
-        app.select_group("録音")
-        assert app.field_value("recording.fade_sec") == "0.5"
+        app.select_group("出力先")
+        assert app.field_value("outputs[0].enter_delay_sec") == "0.5"
 
     # 実行
     run_app(case, extra_settings=COMMENTED_SETTINGS)
@@ -269,8 +269,8 @@ def test_normal_when_cancel(run_app: RunApp) -> None:
         # 準備
         before = _settings_file(app).read_bytes()
         app.open_settings()
-        app.select_group("録音")
-        app.set_field("recording.fade_sec", "2.5")
+        app.select_group("出力先")
+        app.set_field("outputs[0].enter_delay_sec", "2.5")
 
         # 実行
         with app.answering("discard_dialog", "discard_button"):

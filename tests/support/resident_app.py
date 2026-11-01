@@ -70,9 +70,13 @@ from tests.support.real_service import (
     read_token_file,
     settings_text,
 )
+from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
+from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
+from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
 from voice_paste.features.session import Session, SessionManager
 from voice_paste.integrations.whisper.client import WORKER_MODULE
 from voice_paste.shared.errors import MicrophoneUnavailableError
+from voice_paste.shared.settings import HotkeySettings
 from voice_paste.ui.tray import STATE_NAMES, TOOLTIP_PREFIX, Tray, TrayState
 
 SERVICE_COMMAND = "-m voice_paste"
@@ -107,12 +111,12 @@ MILLISECONDS_PER_SECOND = 1000
 RESTORED_SIGNAL_NAMES = ("SIGINT", "SIGBREAK")
 """ケースの後にハンドラを元に戻すシグナル。その OS に無いもの（Linux の SIGBREAK）は戻さない。"""
 
-PAUSE_HOTKEY = "<ctrl>+<alt>+z"
-CANCEL_HOTKEY = "<ctrl>+<alt>+q"
-PASTE_AND_SEND_HOTKEY = "<ctrl>+<alt>+d"
-PASTE_ONLY_HOTKEY = "<ctrl>+<alt>+v"
-COPY_ONLY_HOTKEY = "<ctrl>+<alt>+c"
-"""設定の既定のホットキー（一時停止・取り消し・各出力先の確定。録音開始は普段使わない組み合わせに替えている）。"""
+PAUSE_HOTKEY = HotkeySettings().pause
+CANCEL_HOTKEY = HotkeySettings().cancel
+PASTE_AND_SEND_HOTKEY = PasteAndSendSettings().hotkey
+PASTE_ONLY_HOTKEY = PasteOnlySettings().hotkey
+COPY_ONLY_HOTKEY = CopyOnlySettings().hotkey
+"""動いている OS の設定の既定のホットキー（一時停止・取り消し・各出力先の確定。録音開始は普段使わない組み合わせに替えている）。"""
 
 PROBE_RECORDING = "probe.wav"
 """手がかりを確かめるときにエンジンへ渡す録音の名前（エンジンを替えているので、開かれない）。"""

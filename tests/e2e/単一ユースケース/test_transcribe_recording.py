@@ -61,6 +61,7 @@ from tests.support.inprocess import (
     kill_workers_twice,
     make_glossary_preset_settings,
     make_settings,
+    requires_web_transcription,
     silence_input,
     speech_input,
     speech_sequence_input,
@@ -676,6 +677,7 @@ def _post_webm(api: InProcessApi, wav_path: Path, *, glossary_preset: str | None
     return str(response.json()["job_id"])
 
 
+@requires_web_transcription
 def test_normal_when_browser_audio(start_inprocess: StartInProcess, tmp_path: Path) -> None:
     """ブラウザから受けた音声が、用語集で補正した文字になって done になる。進みが増え、履歴に webm のままの音声と同じ名前の .txt が残り、貼り付けは起きない（正常シナリオ（ブラウザから受けた音声））。"""
     # 準備
@@ -705,6 +707,7 @@ def test_normal_when_browser_audio(start_inprocess: StartInProcess, tmp_path: Pa
     assert app.notifications.events == []
 
 
+@requires_web_transcription
 def test_error_when_browser_audio_transcription_failed(
     start_inprocess: StartInProcess,
     tmp_path: Path,
@@ -743,6 +746,7 @@ def test_error_when_browser_audio_transcription_failed(
     assert app.keys.pasted == []
 
 
+@requires_web_transcription
 def test_normal_when_browser_glossary_preset(start_inprocess: StartInProcess, tmp_path: Path) -> None:
     """ブラウザから受けた音声に 2 つ目のプリセットを指定すると、2 つ目のプリセットの用語集の言葉だけが置き換わり、1 つ目の用語集の言葉は残る。設定で選んでいるプリセットは 1 つ目のまま変わらない（正常シナリオ（ブラウザで選んだプリセットで補正する））。"""
     # 準備: 2 つのプリセットがそれぞれ別の用語集を使い、書き出した文の別々の言葉を置き換える行を 1 つずつ持つ。設定で選んでいるのは 1 つ目
@@ -929,6 +933,7 @@ def test_error_when_openai_failed(
     )
 
 
+@requires_web_transcription
 def test_error_when_openai_unsupported_audio(
     start_inprocess: StartInProcess,
     tmp_path: Path,

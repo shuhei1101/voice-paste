@@ -147,8 +147,8 @@ def _quit_by_ctrl_break(app: ResidentApp) -> None:
 def _change_settings_field(app: ResidentApp) -> None:
     """設定画面を開いて、保存せずに欄の値を変える。"""
     app.open_settings()
-    app.select_group("録音")
-    app.set_field("recording.fade_sec", "2.5")
+    app.select_group("出力先")
+    app.set_field("outputs[0].enter_delay_sec", "2.5")
 
 
 @pytest.mark.parametrize(

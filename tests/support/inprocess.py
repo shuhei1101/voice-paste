@@ -85,8 +85,11 @@ VOLUME_BEFORE = 0.8
 LOWERS_VOLUME = Feature.LOWER_VOLUME not in unavailable_features(CURRENT_OS)
 """動いている OS で、常駐アプリが録音中にシステム音量を下げて終わったら戻すか（Linux は下げない）。"""
 
+HAS_WEB_TRANSCRIPTION = Feature.WEB_TRANSCRIPTION not in unavailable_features(CURRENT_OS)
+"""動いている OS で、常駐アプリが外の端末のブラウザの文字起こし（`/web/`）を持つか（Linux は持たない）。"""
+
 requires_web_transcription = pytest.mark.skipif(
-    Feature.WEB_TRANSCRIPTION in unavailable_features(CURRENT_OS),
+    not HAS_WEB_TRANSCRIPTION,
     reason="常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない",
 )
 """外の端末の画面のケースを、ブラウザの文字起こしを持たない OS（Linux）では skip するマーカー。"""

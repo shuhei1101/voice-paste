@@ -245,7 +245,7 @@ settings:
     file: settings.toml
     type: string（pynput の GlobalHotKeys 形式）
     default: <ctrl>+v
-    description: 貼り付け先へ送信する貼り付けのキーの組み合わせ。Linux（Xorg）では、貼り付け先が端末アプリのときだけこのキーに代えて Ctrl+Shift+V を送信する。
+    description: 貼り付け先へ送信する貼り付けのキーの組み合わせ。Linux の Xorg のセッションと、拡張 Focused Window D-Bus を入れた Wayland のセッションでは、貼り付け先が端末アプリのときだけこのキーに代えて Ctrl+Shift+V を送信する。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py

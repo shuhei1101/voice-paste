@@ -1,0 +1,247 @@
+$ git rev-parse --short HEAD
+1f57b330
+$ .venv/bin/python -m pytest tests/e2e --run-e2e
+============================= test session starts ==============================
+platform linux -- Python 3.14.10, pytest-9.1.1, pluggy-1.7.0
+rootdir: /home/shuhe/vp-241
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collected 128 items
+
+tests/e2e/単一ユースケース/test_change_settings.py ...........           [  8%]
+tests/e2e/単一ユースケース/test_deliver_transcript.py .................. [ 22%]
+...                                                                      [ 25%]
+tests/e2e/単一ユースケース/test_operate_from_tray.py .....s.             [ 30%]
+tests/e2e/単一ユースケース/test_receive_result_in_browser.py sssssss     [ 35%]
+tests/e2e/単一ユースケース/test_record.py ...................            [ 50%]
+tests/e2e/単一ユースケース/test_send_audio_from_browser.py sssssssss     [ 57%]
+tests/e2e/単一ユースケース/test_start_resident_app.py .........          [ 64%]
+tests/e2e/単一ユースケース/test_transcribe_recording.py .....F...F...sss [ 77%]
+...s                                                                     [ 80%]
+tests/e2e/複合ユースケース/test_paste_voice_text.py ......               [ 85%]
+tests/e2e/複合ユースケース/test_transcribe_continuously_from_other_system.py . [ 85%]
+......                                                                   [ 90%]
+tests/e2e/複合ユースケース/test_transcribe_from_browser.py sssssss       [ 96%]
+tests/e2e/複合ユースケース/test_transcribe_from_other_system.py .....    [100%]
+
+=================================== FAILURES ===================================
+______________________ test_error_when_worker_dies_again _______________________
+
+run_app = <function run_app.<locals>._run at 0x76c460722ae0>
+tmp_path = PosixPath('/tmp/pytest-of-shuhe/pytest-11/test_error_when_worker_dies_ag0')
+clipboard_sentinel = 'voice-paste-e2e-clipboard-sentinel'
+
+    def test_error_when_worker_dies_again(
+        run_app: RunApp, tmp_path: Path, clipboard_sentinel: str
+    ) -> None:
+        """やり直したワーカーも落ちると、失敗を知らせてワーカーを立て直し、録音は履歴に残り、常駐サービスは動き続ける（異常シナリオ（再起動したワーカーも異常終了する））。"""
+        # 準備
+        keys = KeyLog()
+    
+        def case(app: ResidentApp) -> None:
+            """確定した直後にワーカーを 2 回止め、知らせ・履歴・ワーカー・常駐サービスを確かめる。"""
+            # 実行（止めるワーカーの番号は、確定の前に引いておく）
+            workers_before = app.worker_pids()
+            _confirm_with_paste_and_send(app)
+            assert _kill_workers_twice(app, workers_before) >= 2
+            app.wait_processed()
+    
+            # 検証
+            assert app.notified("transcription_failed")
+            assert pyperclip.paste() == clipboard_sentinel
+            assert keys.pasted == []
+            assert len(app.history_files(".wav")) == 1
+            assert app.wait_until(lambda: app.worker_pids() != set(), WORKER_RESTART_TIMEOUT_SEC), (
+                "文字起こしワーカーが立て直されなかった"
+            )
+            assert app.tray_state() == IDLE
+            assert app.post("/sessions/unknown/stop").status_code == 404
+    
+>       run_app(case, wav_input=speech_input(tmp_path, repeat=LONG_SPEECH_REPEAT), keys=keys)
+
+tests/e2e/単一ユースケース/test_transcribe_recording.py:428: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/e2e/conftest.py:66: in _run
+    return run_resident_app(
+tests/support/resident_app.py:777: in run_resident_app
+    raise failures[0]
+tests/support/resident_app.py:754: in run_case
+    case(app)
+tests/e2e/単一ユースケース/test_transcribe_recording.py:414: in case
+    assert _kill_workers_twice(app, workers_before) >= 2
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/e2e/単一ユースケース/test_transcribe_recording.py:252: in _kill_workers_twice
+    return kill_workers_twice(first_pids, lambda: _ready_messages(app))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+first_pids = {25961}
+ready_messages = <function _kill_workers_twice.<locals>.<lambda> at 0x76c46079cbf0>
+
+    def kill_workers_twice(
+        first_pids: Iterable[int], ready_messages: Callable[[], list[str]]
+    ) -> int:
+        """引いておいた番号のワーカーを止め、やり直しに立ったワーカーも ready になった直後に止める。止めた回数を返す。
+    
+        first_pids は止める時刻より前に引いた、1 回目に止めるワーカーの番号。
+        ready_messages は ready になったときのログの文を順に返す関数。
+        """
+        # 1. 立ち上がっているワーカーを止める（窓口が落ちたことに気づいて立て直す）
+        ready_before = len(ready_messages())
+        kills = int(kill_one_worker(first_pids))
+    
+        # 2. やり直しのワーカーが ready になるのを待つ（読み込みの途中で止めると、やり直しの前に失敗する）
+        deadline = time.monotonic() + WORKER_READY_TIMEOUT_SEC
+        while len(ready_messages()) <= ready_before:
+>           assert time.monotonic() < deadline, "やり直しのワーカーが ready にならなかった"
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           AssertionError: やり直しのワーカーが ready にならなかった
+
+tests/support/inprocess.py:1087: AssertionError
+----------------------------- Captured stderr call -----------------------------
+{"ts": "2026-11-01T18:18:32.461432+09:00", "level": "INFO", "name": "voice_paste.runtime.single_instance_linux", "msg": "単一インスタンスを確保した（voice-paste-e1936bb989f03526）"}
+qt.core.qobject.connect: QObject::connect: No such signal QPlatformNativeInterface::systemTrayWindowChanged(QScreen*)
+{"ts": "2026-11-01T18:18:34.244842+09:00", "level": "INFO", "name": "voice_paste.ui.style", "msg": "画面の明暗を当てた（theme=system・暗い組=False）"}
+{"ts": "2026-11-01T18:18:42.849568+09:00", "level": "INFO", "name": "voice_paste.ui.style", "msg": "画面の明暗を当てた（theme=system・暗い組=False）"}
+{"ts": "2026-11-01T18:18:42.849998+09:00", "level": "INFO", "name": "voice_paste.features.history.service", "msg": "古い履歴を削除した（0 件）"}
+{"ts": "2026-11-01T18:18:42.850142+09:00", "level": "INFO", "name": "voice_paste.main", "msg": "設定を読んだ（/tmp/pytest-of-shuhe/pytest-11/test_error_when_worker_dies_ag0/app0/settings.toml、エンジン: local_whisper、オンの出力先: paste_and_send, paste_only, copy_only）"}
+{"ts": "2026-11-01T18:18:43.393624+09:00", "level": "INFO", "name": "voice_paste.integrations.whisper.client", "msg": "[ワーカー] INFO:httpx2:HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-large-v3/revision/main \"HTTP/1.1 200 OK\""}
+{"ts": "2026-11-01T18:18:47.879742+09:00", "level": "INFO", "name": "voice_paste.integrations.whisper.client", "msg": "文字起こしワーカーが立ち上がった（pid 25961・5.0 秒）"}
+{"ts": "2026-11-01T18:18:47.967903+09:00", "level": "INFO", "name": "uvicorn.error", "msg": "Started server process [20174]"}
+{"ts": "2026-11-01T18:18:47.968161+09:00", "level": "INFO", "name": "uvicorn.error", "msg": "Waiting for application startup."}
+{"ts": "2026-11-01T18:18:47.968374+09:00", "level": "INFO", "name": "uvicorn.error", "msg": "Application startup complete."}
+{"ts": "2026-11-01T18:18:47.968544+09:00", "level": "INFO", "name": "uvicorn.error", "msg": "Uvicorn running on http://127.0.0.1:51175 (Press CTRL+C to quit)"}
+{"ts": "2026-11-01T18:18:47.978126+09:00", "level": "INFO", "name": "voice_paste.server.token", "msg": "トークンのファイルを書いた（/tmp/pytest-of-shuhe/pytest-11/test_error_when_worker_dies_ag0/app0/api_token・ポート: 51175）"}
+{"ts": "2026-11-01T18:18:47.979446+09:00", "level": "INFO", "name": "voice_paste.main", "msg": "常駐サービスを始めた（API のポート: 51175）"}
+{"ts": "2026-11-01T18:18:47.997165+09:00", "level": "INFO", "name": "voice_paste.features.recording.service", "msg": "録音を始めた（音量を下げた: False）"}
+{"ts": "2026-11-01T18:18:47.997346+09:00", "level": "INFO", "name": "voice_paste.features.session.service", "msg": "セッションを始めた（4a976b11-aaaa-4c11-850c-933d845ef227・入口: hotkey・連続録音: False）"}
+{"ts": "2026-11-01T18:18:47.997436+09:00", "level": "INFO", "name": "voice_paste.ui.bridge", "msg": "ユーザーへの知らせ（state_changed・recording）"}
+This plugin does not support raise()
+{"ts": "2026-11-01T18:18:48.119940+09:00", "level": "INFO", "name": "voice_paste.features.recording.service", "msg": "録音を止めた（19.8 秒）"}
+{"ts": "2026-11-01T18:18:48.120833+09:00", "level": "INFO", "name": "voice_paste.features.history.service", "msg": "録音を残した（/tmp/pytest-of-shuhe/pytest-11/test_error_when_worker_dies_ag0/app0/history/20261101/20261101181848_4a976b11-aaaa-4c11-850c-933d845ef227.wav・19.8 秒）"}
+{"ts": "2026-11-01T18:18:48.120950+09:00", "level": "INFO", "name": "voice_paste.features.session.service", "msg": "録音を確定した（4a976b11-aaaa-4c11-850c-933d845ef227・19.8 秒・/tmp/pytest-of-shuhe/pytest-11/test_error_when_worker_dies_ag0/app0/history/20261101/20261101181848_4a976b11-aaaa-4c11-850c-933d845ef227.wav）"}
+{"ts": "2026-11-01T18:18:48.121020+09:00", "level": "INFO", "name": "voice_paste.ui.bridge", "msg": "ユーザーへの知らせ（state_changed・transcribing）"}
+{"ts": "2026-11-01T18:18:48.256157+09:00", "level": "INFO", "name": "voice_paste.integrations.whisper.client", "msg": "[ワーカー] /home/shuhe/.local/share/uv/python/cpython-3.14.10-linux-x86_64-gnu/lib/python3.14/multiprocessing/resource_tracker.py:475: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown: {'/mp-geti102l'}"}
+{"ts": "2026-11-01T18:18:48.256398+09:00", "level": "INFO", "name": "voice_paste.integrations.whisper.client", "msg": "[ワーカー]   warnings.warn("}
+{"ts": "2026-11-01T18:18:48.262017+09:00", "level": "WARNING", "name": "voice_paste.integrations.whisper.client", "msg": "文字起こしワーカーが落ちたので立て直す（終了コード -15）"}
+{"ts": "2026-11-01T18:19:15.279955+09:00", "level": "ERROR", "name": "voice_paste.features.session.service", "msg": "文字起こしに失敗した（4a976b11-aaaa-4c11-850c-933d845ef227・文字起こしに失敗した（文字起こしワーカーの ready を 27.0 秒待ったが届かない））"}
+{"ts": "2026-11-01T18:19:15.280303+09:00", "level": "WARNING", "name": "voice_paste.ui.bridge", "msg": "ユーザーへの知らせ（transcription_failed・文字起こしに失敗した（文字起こしワーカーの ready を 27.0 秒待ったが届かない））"}
+{"ts": "2026-11-01T18:19:15.280723+09:00", "level": "INFO", "name": "voice_paste.ui.bridge", "msg": "ユーザーへの知らせ（state_changed・idle）"}
+{"ts": "2026-11-01T18:19:15.280879+09:00", "level": "INFO", "name": "voice_paste.features.session.service", "msg": "セッションを終えた（4a976b11-aaaa-4c11-850c-933d845ef227）"}
+{"ts": "2026-11-01T18:19:48.282728+09:00", "level": "INFO", "name": "uvicorn.error", "msg": "Shutting down"}
+{"ts": "2026-11-01T18:19:48.384137+09:00", "level": "INFO", "name": "uvicorn.error", "msg": "Waiting for application shutdown."}
+{"ts": "2026-11-01T18:19:48.384643+09:00", "level": "INFO", "name": "uvicorn.error", "msg": "Application shutdown complete."}
+{"ts": "2026-11-01T18:19:48.384805+09:00", "level": "INFO", "name": "uvicorn.error", "msg": "Finished server process [20174]"}
+{"ts": "2026-11-01T18:19:48.385380+09:00", "level": "INFO", "name": "voice_paste.server.runner", "msg": "API の待ち受けを止めた（ポート: 51175）"}
+{"ts": "2026-11-01T18:19:48.385566+09:00", "level": "INFO", "name": "voice_paste.main", "msg": "常駐サービスを終えた"}
+------------------------------ Captured log call -------------------------------
+INFO     voice_paste.runtime.single_instance_linux:single_instance_linux.py:249 単一インスタンスを確保した（voice-paste-e1936bb989f03526）
+INFO     voice_paste.ui.style:style.py:266 画面の明暗を当てた（theme=system・暗い組=False）
+INFO     voice_paste.ui.style:style.py:266 画面の明暗を当てた（theme=system・暗い組=False）
+INFO     voice_paste.features.history.service:service.py:182 古い履歴を削除した（0 件）
+INFO     voice_paste.main:main.py:1334 設定を読んだ（/tmp/pytest-of-shuhe/pytest-11/test_error_when_worker_dies_ag0/app0/settings.toml、エンジン: local_whisper、オンの出力先: paste_and_send, paste_only, copy_only）
+INFO     voice_paste.integrations.whisper.client:client.py:330 [ワーカー] INFO:httpx2:HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-large-v3/revision/main "HTTP/1.1 200 OK"
+INFO     voice_paste.integrations.whisper.client:client.py:131 文字起こしワーカーが立ち上がった（pid 25961・5.0 秒）
+INFO     uvicorn.error:server.py:103 Started server process [20174]
+INFO     uvicorn.error:on.py:48 Waiting for application startup.
+INFO     uvicorn.error:on.py:62 Application startup complete.
+INFO     uvicorn.error:server.py:234 Uvicorn running on http://127.0.0.1:51175 (Press CTRL+C to quit)
+INFO     voice_paste.server.token:token.py:39 トークンのファイルを書いた（/tmp/pytest-of-shuhe/pytest-11/test_error_when_worker_dies_ag0/app0/api_token・ポート: 51175）
+INFO     voice_paste.main:main.py:1495 常駐サービスを始めた（API のポート: 51175）
+INFO     voice_paste.features.recording.service:service.py:88 録音を始めた（音量を下げた: False）
+INFO     voice_paste.features.session.service:service.py:105 セッションを始めた（4a976b11-aaaa-4c11-850c-933d845ef227・入口: hotkey・連続録音: False）
+INFO     voice_paste.ui.bridge:bridge.py:52 ユーザーへの知らせ（state_changed・recording）
+INFO     voice_paste.features.recording.service:service.py:185 録音を止めた（19.8 秒）
+INFO     voice_paste.features.history.service:service.py:77 録音を残した（/tmp/pytest-of-shuhe/pytest-11/test_error_when_worker_dies_ag0/app0/history/20261101/20261101181848_4a976b11-aaaa-4c11-850c-933d845ef227.wav・19.8 秒）
+INFO     voice_paste.features.session.service:service.py:210 録音を確定した（4a976b11-aaaa-4c11-850c-933d845ef227・19.8 秒・/tmp/pytest-of-shuhe/pytest-11/test_error_when_worker_dies_ag0/app0/history/20261101/20261101181848_4a976b11-aaaa-4c11-850c-933d845ef227.wav）
+INFO     voice_paste.ui.bridge:bridge.py:52 ユーザーへの知らせ（state_changed・transcribing）
+INFO     voice_paste.integrations.whisper.client:client.py:330 [ワーカー] /home/shuhe/.local/share/uv/python/cpython-3.14.10-linux-x86_64-gnu/lib/python3.14/multiprocessing/resource_tracker.py:475: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown: {'/mp-geti102l'}
+INFO     voice_paste.integrations.whisper.client:client.py:330 [ワーカー]   warnings.warn(
+WARNING  voice_paste.integrations.whisper.client:client.py:180 文字起こしワーカーが落ちたので立て直す（終了コード -15）
+ERROR    voice_paste.features.session.service:service.py:338 文字起こしに失敗した（4a976b11-aaaa-4c11-850c-933d845ef227・文字起こしに失敗した（文字起こしワーカーの ready を 27.0 秒待ったが届かない））
+WARNING  voice_paste.ui.bridge:bridge.py:52 ユーザーへの知らせ（transcription_failed・文字起こしに失敗した（文字起こしワーカーの ready を 27.0 秒待ったが届かない））
+INFO     voice_paste.ui.bridge:bridge.py:52 ユーザーへの知らせ（state_changed・idle）
+INFO     voice_paste.features.session.service:service.py:412 セッションを終えた（4a976b11-aaaa-4c11-850c-933d845ef227）
+INFO     uvicorn.error:server.py:282 Shutting down
+INFO     uvicorn.error:on.py:67 Waiting for application shutdown.
+INFO     uvicorn.error:on.py:76 Application shutdown complete.
+INFO     uvicorn.error:server.py:113 Finished server process [20174]
+INFO     voice_paste.server.runner:runner.py:75 API の待ち受けを止めた（ポート: 51175）
+INFO     voice_paste.main:main.py:1296 常駐サービスを終えた
+___________________ test_error_when_api_transcription_failed ___________________
+
+run_app = <function run_app.<locals>._run at 0x76c4605eaa30>
+tmp_path = PosixPath('/tmp/pytest-of-shuhe/pytest-11/test_error_when_api_transcript0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x76c4607c0050>
+receiver = <tests.integration.helpers.CallbackReceiver object at 0x76c460603750>
+
+    def test_error_when_api_transcription_failed(
+        run_app: RunApp,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        receiver: CallbackReceiver,
+    ) -> None:
+        """API から始めた録音の文字起こしに失敗すると、失敗を届け先へ渡し、録音は履歴に残り、ダイアログも文字起こし中の表示も出ない（異常シナリオ（API から始めた録音の文字起こしに失敗））。"""
+        # 準備: 保存した録音を読めない中身に書き換える
+        break_saved_recordings(monkeypatch)
+    
+        def case(app: ResidentApp) -> None:
+            """読めない録音を API で完了して、届け先・履歴・ダイアログ・文字起こし中の表示を確かめる。"""
+            # 実行
+            session_id = app.start_api_session(receiver.url)
+            app.complete_api_session(session_id)
+            app.wait_processed()
+    
+            # 検証
+            [payload] = receiver.received
+            assert payload["session_id"] == session_id
+            assert payload["result"] == "failed"
+            assert payload["error"]
+            assert len(app.history_files(".wav")) == 1
+            assert app.unexpected_dialogs == []
+            assert app.seen_windows == set()
+    
+>       run_app(case, wav_input=speech_input(tmp_path))
+
+tests/e2e/単一ユースケース/test_transcribe_recording.py:537: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/e2e/conftest.py:66: in _run
+    return run_resident_app(
+tests/support/resident_app.py:777: in run_resident_app
+    raise failures[0]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def run_case() -> None:
+        """case を進める。失敗は控える。"""
+        app.worker_pids_at_start = app.worker_pids()
+        try:
+            # 起動の配線（別スレッド）が終わり、トークンのファイルを書くかトレイを失敗にするまで待つ
+>           assert app.wait_until(lambda: app.tray_state() != STARTING, STARTUP_TIMEOUT_SEC), (
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                "起動の配線が終わらなかった"
+            )
+E           AssertionError: 起動の配線が終わらなかった
+
+tests/support/resident_app.py:751: AssertionError
+----------------------------- Captured stderr call -----------------------------
+{"ts": "2026-11-01T18:20:46.624172+09:00", "level": "INFO", "name": "voice_paste.runtime.single_instance_linux", "msg": "単一インスタンスを確保した（voice-paste-e8b8dcedecb1f57e）"}
+qt.core.qobject.connect: QObject::connect: No such signal QPlatformNativeInterface::systemTrayWindowChanged(QScreen*)
+{"ts": "2026-11-01T18:20:48.623967+09:00", "level": "INFO", "name": "voice_paste.ui.style", "msg": "画面の明暗を当てた（theme=system・暗い組=False）"}
+{"ts": "2026-11-01T18:20:58.391173+09:00", "level": "INFO", "name": "voice_paste.ui.style", "msg": "画面の明暗を当てた（theme=system・暗い組=False）"}
+{"ts": "2026-11-01T18:20:58.391594+09:00", "level": "INFO", "name": "voice_paste.features.history.service", "msg": "古い履歴を削除した（0 件）"}
+{"ts": "2026-11-01T18:20:58.391718+09:00", "level": "INFO", "name": "voice_paste.main", "msg": "設定を読んだ（/tmp/pytest-of-shuhe/pytest-11/test_error_when_api_transcript0/app0/settings.toml、エンジン: local_whisper、オンの出力先: paste_and_send, paste_only, copy_only）"}
+{"ts": "2026-11-01T18:23:00.415161+09:00", "level": "WARNING", "name": "voice_paste.integrations.whisper.client", "msg": "文字起こしワーカーが終わらないので止めた（terminate）"}
+{"ts": "2026-11-01T18:23:00.431232+09:00", "level": "INFO", "name": "voice_paste.main", "msg": "常駐サービスを終えた"}
+------------------------------ Captured log call -------------------------------
+INFO     voice_paste.runtime.single_instance_linux:single_instance_linux.py:249 単一インスタンスを確保した（voice-paste-e8b8dcedecb1f57e）
+INFO     voice_paste.ui.style:style.py:266 画面の明暗を当てた（theme=system・暗い組=False）
+INFO     voice_paste.ui.style:style.py:266 画面の明暗を当てた（theme=system・暗い組=False）
+INFO     voice_paste.features.history.service:service.py:182 古い履歴を削除した（0 件）
+INFO     voice_paste.main:main.py:1334 設定を読んだ（/tmp/pytest-of-shuhe/pytest-11/test_error_when_api_transcript0/app0/settings.toml、エンジン: local_whisper、オンの出力先: paste_and_send, paste_only, copy_only）
+WARNING  voice_paste.integrations.whisper.client:client.py:260 文字起こしワーカーが終わらないので止めた（terminate）
+INFO     voice_paste.main:main.py:1296 常駐サービスを終えた
+=========================== short test summary info ============================
+FAILED tests/e2e/単一ユースケース/test_transcribe_recording.py::test_error_when_worker_dies_again
+FAILED tests/e2e/単一ユースケース/test_transcribe_recording.py::test_error_when_api_transcription_failed
+============ 2 failed, 98 passed, 28 skipped in 2514.03s (0:41:54) =============
+exit=1

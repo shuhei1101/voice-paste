@@ -1,0 +1,45 @@
+$ git rev-parse --short HEAD
+1f57b33
+$ uv.exe lock --check
+Resolved 75 packages in 2ms
+exit=0
+$ .venv/Scripts/lint-imports.exe
+=============
+Import Linter
+=============
+
+
+---------
+Contracts
+---------
+
+Analyzed 114 files, 246 dependencies.
+-------------------------------------
+
+層の向き KEPT
+feature の独立 KEPT
+出力先の独立 KEPT (13 ignored imports)
+画面から feature の中へ KEPT (1 ignored import)
+
+Contracts: 4 kept, 0 broken.
+exit=0
+$ cmd.exe /c npm run typecheck
+
+> typecheck
+> tsc -p tsconfig.json --noEmit
+
+exit=0
+$ cmd.exe /c npm run lint
+
+> lint
+> eslint src/voice_paste/server/web
+
+exit=0
+$ cmd.exe /c npm run build
+
+> build
+> tsc -p tsconfig.build.json
+
+exit=0
+$ git diff --exit-code -- src/voice_paste/server/web/assets/app.js
+exit=0

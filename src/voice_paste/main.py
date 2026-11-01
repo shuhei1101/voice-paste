@@ -1088,6 +1088,10 @@ class _StartupBuild(QObject):
             result = build(self._register_stop)
         except StartupError as error:
             result = error
+        except Exception as error:
+            # 想定外の例外: ログに残し、StartupError にしてトレイを失敗にする（準備中のまま止めない）
+            logger.exception("起動の配線で想定外のエラーが起きた")
+            result = StartupError(f"起動の配線で想定外のエラーが起きた（{error!r}）")
 
         # 2. 取り消されていなければ結果を送出する
         with self._lock:

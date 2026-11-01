@@ -23,7 +23,7 @@ SAPI を使う `tests/support/inprocess.py` に依存するテストは Linux �
 - [x] ~~初期構築~~（[#8](https://github.com/shuhei1101/voice-paste/pull/8) で済んでいる）
 - [x] ~~リバースエンジニアリング~~（[#10](https://github.com/shuhei1101/voice-paste/pull/10) で現状の設計書が揃っている）
 - [x] ~~方針決め~~（方針決めを依頼する Issue ではない）
-- [ ] PoC 検証
+- [x] PoC 検証
 - [x] ~~複合ユースケース設計~~（影響なし: シナリオを変えない）
 - [x] ~~デザインスタイル選定~~（利用者に見える画面を変えない）
 - [x] ~~画面一覧・画面遷移~~（利用者に見える画面を変えない）

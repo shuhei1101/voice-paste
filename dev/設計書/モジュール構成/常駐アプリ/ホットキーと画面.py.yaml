@@ -696,10 +696,22 @@ classes:
             required: true
             passing: positional
             description: 理由
+          - name: paths
+            type: Sequence[Path]
+            required: false
+            default: ()
+            passing: keyword
+            description: settings_invalid の本文に出す、読めなかったファイルのパス（SettingsError.paths）。複数のときは「・」でつなぐ
         returns:
           type: None
           description: なし
         unit_tests:
+          - name: test_show_failure_when_settings_invalid
+            case: 正常
+            summary: 設定を読めないときは、読めなかったファイルのパスを本文に出す
+            condition: parametrize で paths が (1) (C:/a/settings.yaml,) (2) (C:/a/settings.yaml, C:/r/settings.local.yaml) で show_failure("settings_invalid", "理由", paths=paths)
+            mock: QSystemTrayIcon.showMessage
+            expected: 見出し「起動できませんでした」、本文「設定ファイルを読み込めませんでした（理由）。{パス} を修正して再起動してください。」で呼ばれる（{パス} は (1) C:/a/settings.yaml (2) C:/a/settings.yaml・C:/r/settings.local.yaml）
           - name: test_show_failure
             case: 正常
             summary: 種類ごとの文言で通知する
@@ -1157,7 +1169,7 @@ classes:
         scope: internal
         returns:
           type: dict[str, Any]
-          description: Settings.model_validate へ渡す値。presets はブラウザ添付のタブの並び → エンドポイントへ送信のタブの並びの順（各 PresetListPanel.collect をつなぐ）。glossaries は GlossaryPanel.collect、glossary_presets は GlossaryPanel.collect_presets、active_glossary_preset は GlossaryPanel.active_preset_name。hint_presets は HintPresetPanel.collect。edge_phrases は EdgePhrasePanel.collect。glossary_path と active_glossary は置かない
+          description: Settings.model_validate へ渡す値。presets はブラウザ添付のタブの並び → エンドポイントへ送信のタブの並びの順（各 PresetListPanel.collect をつなぐ）。glossaries は GlossaryPanel.collect、glossary_presets は GlossaryPanel.collect_presets、active_glossary_preset は GlossaryPanel.active_preset_name。hint_presets は HintPresetPanel.collect。edge_phrases は EdgePhrasePanel.collect。glossary_path と active_glossary は None を入れる（表のモデルの項目は必須のため。None は既定値と同じで、保存でキーが外れる）
         unit_tests:
           - name: test_collect_when_hidden_keys
             case: 正常
@@ -1181,7 +1193,7 @@ classes:
           description: 保存できたか
         process: |-
           1. collect した値を Settings.model_validate に渡し、あわせて GlossaryPanel.row_errors で用語集の行（正しい表記が入っていて誤変換が空）を確かめる
-             - ValidationError か行の失敗がある場合、失敗ごとに to_field_message で欄ごとのエラーにし（行の失敗は「誤変換を入れてください。」）、エラーの一覧と欄の下のエラーを出して一覧へフォーカスを移し、False を返す（入れた値は消さない）
+             - ValidationError か行の失敗がある場合、失敗ごとに to_field_message（defaults は UiDeps.default_settings）で欄ごとのエラーにし（行の失敗は「誤変換を入れてください。」）、エラーの一覧と欄の下のエラーを出して一覧へフォーカスを移し、False を返す（入れた値は消さない）
                - `[INFO]` 設定画面の値が確かめに通らなかった（キーの一覧）
           2. save_settings（UiDeps）に、確かめた設定と GlossaryPanel.changed_rows（行を変えた用語集と追加した用語集の場所 → 行）を渡して書いて効かせる
              - HotkeyError の場合、エラーの一覧に「ホットキーを受け付けられませんでした（{理由}）。別のキーにしてください。」を出し、False を返す（settings.yaml も用語集の CSV も書かれていない）
@@ -1393,7 +1405,7 @@ classes:
     notes:
       用語集のまとまり: |-
         「文字起こし」の次のまとまり「用語集」に GlossaryPanel を 1 つ置く（今の `glossary_path` の欄と「選ぶ…」は消す）。開くときに UiDeps.list_glossaries の一覧と、UiDeps.list_glossary_presets の一覧と、補正に使うプリセットの名前（設定の active_glossary_preset。None か一覧に無ければ 1 件目）を GlossaryPanel.set_glossaries に渡す。
-        収集では `glossaries` に GlossaryPanel.collect、`glossary_presets` に GlossaryPanel.collect_presets、`active_glossary_preset` に GlossaryPanel.active_preset_name を入れ、`glossary_path` と `active_glossary` は置かない（None。保存でキーが消える）。
+        収集では `glossaries` に GlossaryPanel.collect、`glossary_presets` に GlossaryPanel.collect_presets、`active_glossary_preset` に GlossaryPanel.active_preset_name を入れ、`glossary_path` と `active_glossary` は None を入れる（保存でキーが外れる）。
         変えた欄の数えには、GlossaryPanel.change_values のキーごとの変更を 1 件として含める（反映はどれも immediate）。追加・削除した・名前か行を変えた用語集 1 つが 1 件（1 つの用語集で何度変えても 1 件）、追加・削除した・名前か使う用語集を変えたプリセット 1 つが 1 件、補正に使うプリセットの切り替えが 1 件になる。
         エラーの一覧の用語集の行は、失敗の場所 `glossaries[{n}].name` を「用語集 {n+1} 件目の名前」、行の失敗を「用語集 {n+1} 件目の {m+1} 行目の誤変換」にし、押すと「用語集」のまとまりへ切り替えて GlossaryPanel.focus_field でその用語集の行の表を出し、欄へフォーカスを移す。
         失敗の場所 `glossary_presets[{n}].name` は「用語集のプリセット {n+1} 件目の名前」にし、欄の下に GlossaryPanel.show_preset_error で出し、押すと「用語集」のまとまりへ切り替えて GlossaryPanel.focus_preset_name でそのプリセットの名前の欄へフォーカスを移す。文言は画面設計「設定画面」の入力チェック（空は「名前を入れてください。」、重なり（GLOSSARY_PRESET_NAME_OVERLAP_ERROR_TYPE）は「用語集のプリセット「{名前}」と同じ名前です。別の名前にしてください。」）。
@@ -2877,12 +2889,17 @@ functions:
         required: true
         passing: keyword
         description: 失敗の場所から項目（既定値・範囲）を引く設定のモデル。出力先の項目はその output_models から引く。SettingsWindow は開いたときの設定のモデル（`type(設定)`）を渡す（ui は features・main を import しない）
+      - name: defaults
+        type: Settings
+        required: true
+        passing: keyword
+        description: 既定の設定（UiDeps.default_settings）。表のまとまりのモデルの項目は既定値を持たないため、数値の例はこの設定の同じキーの値から引く
     returns:
       type: str
       description: 欄の下とエラーの一覧に出す文言
     process: |-
       1. type と場所で文言を選ぶ
-         - float_parsing・int_parsing・int_from_float: 「数値を入れてください（例: {既定の値}）。」
+         - float_parsing・int_parsing・int_from_float: 「数値を入れてください（例: {既定の値}）。」。既定の値は、項目が既定値を持てば（一覧の要素のモデル）その値、持たなければ defaults の同じキーの値
          - greater_than_equal・less_than_equal・greater_than: 「{最小}〜{最大} の値を入れてください。」（上限が無ければ「{最小} 以上の値を入れてください。」）
          - string_too_short（プリセットのタイトル）: 「タイトルを入れてください。」
          - string_too_short（表記のヒントのプリセットの名前）: 「名前を入れてください。」
@@ -2899,9 +2916,15 @@ functions:
       - name: test_to_field_message_when_not_number
         case: 正常
         summary: 数値でない文字
-        condition: outputs[0].enter_delay_sec に abc を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
+        condition: outputs[0].enter_delay_sec に abc を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL・defaults=既定の設定で渡す
         mock: なし
         expected: '数値を入れてください（例: 0.5）。'
+      - name: test_to_field_message_when_not_number_in_table
+        case: 正常
+        summary: 表のまとまりの項目の数値の例は、既定の設定の値から引く
+        condition: transcription.local_whisper.beam_size に abc を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL・defaults=beam_size を 7 にした既定の設定で渡す
+        mock: なし
+        expected: '数値を入れてください（例: 7）。'
       - name: test_to_field_message_when_out_of_range
         case: 正常
         summary: 範囲の外
@@ -3483,6 +3506,9 @@ data_models:
       - name: reset_settings
         type: Callable[[], tuple[Settings, bool]]
         description: 環境の値を空にして読み直した設定を効かせ、その設定と再起動が要る項目が変わったかを返す（reset_applied_settings）
+      - name: default_settings
+        type: Callable[[], Settings]
+        description: 既定の設定（load_default_settings）。設定画面の入力エラーの数値の例に使う
       - name: settings_dir
         type: Path
         description: settings.yaml のあるフォルダ

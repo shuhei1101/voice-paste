@@ -18,7 +18,7 @@ files:
     notes: settings.yaml が無く、同じフォルダにこのファイルがあれば、起動時に既定値と違うキーだけを settings.yaml へ移す（このファイルは残す）。settings.yaml があれば読まない。
   - file: settings.sample.yaml
     manages: settings.yaml・settings.local.yaml の見本
-    notes: git で管理する。よく変えるキーをコメントつきで並べる。既定値に重ねて設定のモデルの検証に通ることを単体テストで確かめる。
+    notes: git で管理する。よく変えるキーを、コメントにした行で並べる（コメントを外したキーだけが既定値に勝つ）。既定値に重ねて設定のモデルの検証に通ることを単体テストで確かめる。
   - file: secrets/openai_api_key
     manages: OpenAI API の API キー（中身はキーの文字列だけ）
     notes: git の管理外。`settings.yaml` と同じフォルダの下（Windows は `%APPDATA%\voice-paste\secrets\openai_api_key`、Linux は `~/.config/voice-paste/secrets/openai_api_key`、`--data-dir` を渡したときはその下）。ユーザーが置き、常駐アプリは読むだけで作らない。環境変数 `OPENAI_API_KEY` があればそちらを使う。`transcription.engine` が `openai` のときだけ読む

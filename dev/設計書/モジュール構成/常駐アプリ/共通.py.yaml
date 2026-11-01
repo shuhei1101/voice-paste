@@ -979,12 +979,12 @@ classes:
       | `DeliveryError` | 出力先へ届けられない | - |
       | `UnknownOutputError` | 選んだ出力先が一覧に無いかオフ（`DeliveryError` の子） | - |
       | `VolumeControlError` | システム音量を操作できない | - |
-      | `SettingsError` | 設定の値が合わない（合わないキーをメッセージに並べる） | - |
+      | `SettingsError` | 設定の値が合わない（合わないキーをメッセージに並べる）。読めなかったファイルのパスを `paths`（`tuple[Path, ...]`。キーワード引数で渡し、既定は空）に持ち、トレイの通知が本文に出す | - |
       | `StartupError` | 起動に失敗した（エンジンを準備できない・前のプロセスが排他を放さない） | - |
       | `HotkeyError` | ホットキーの書式を pynput が読めない | - |
       | `GlossaryReadError` | 用語集の CSV を読めない（開けない・UTF-8 でない・見出しの列が無い・csv が解釈できない。メッセージが設定画面に出す理由になる） | - |
 
-      全ての例外は docstring だけを持つクラスで `shared/errors.py` に置き、親は表に書かない限り `AppError`。
+      全ての例外は docstring だけを持つクラス（`SettingsError` の `paths` を除く）で `shared/errors.py` に置き、親は表に書かない限り `AppError`。
     status: implemented
 functions:
   - name: load_settings
@@ -1014,15 +1014,15 @@ functions:
          - SettingsError の場合、そのまま送出する
       2. settings_file が無く legacy_settings_file があれば、settings.toml を移す（migrate_settings_toml(legacy_settings_file, settings_file, 既定値)）
          - SettingsError の場合、settings_file を作らずにそのまま送出する
-      3. 環境の値と checkout の上書きを読む（read_yaml_mapping。無いファイルは空の dict にする。local_settings_file が None なら読まない）
+      3. 環境の値と checkout の上書きを読み（read_yaml_mapping。無いファイルは空の dict にする。local_settings_file が None なら読まない）、レイヤーごとに古い AI チャットの設定を読み替える（migrate_ai_chat。ファイルは書き換えない。重ねた後では既定値の preset_options.browser.open_delay_sec が先にあり、移す値が負けるため）
          - SettingsError の場合、そのまま送出する
       4. 既定値 → 環境の値 → checkout の上書きの順に重ねる（merge_layers）
-      5. 古い AI チャットの設定を読み替え（migrate_ai_chat。ファイルは書き換えない）、model.model_validate で検証して返す
-         - pydantic.ValidationError の場合、合わないキーをドット区切り（例 `transcription.local_whisper.beam_size`、出力先は `outputs[0].hotkey`、プリセットは `presets[0].url`）で並べた SettingsError を送出する
+      5. model.model_validate で検証して返す
+         - pydantic.ValidationError の場合、合わないキーをドット区切り（例 `transcription.local_whisper.beam_size`、出力先は `outputs[0].hotkey`、プリセットは `presets[0].url`）で並べた SettingsError を送出する（paths は読んだ環境の値・checkout の上書きのファイル。どちらも読んでいなければ既定値のファイル）
          - `[INFO]` 設定を読んだレイヤー（既定値・環境の値・checkout の上書きのうち読んだファイルのパス）
     exceptions:
       - name: SettingsError
-        condition: 既定値が無い・YAML として読めない・あるのに読めない環境の値か checkout の上書き・移すときに読めない settings.toml
+        condition: 既定値が無い・YAML として読めない・あるのに読めない環境の値か checkout の上書き・移すときに読めない settings.toml（paths は読めなかったファイル 1 つ）
         message: '設定ファイルを読めない（{path}: {理由}）'
       - name: SettingsError
         condition: 重ねた値がモデルに合わない・知らないキーがある・出力先の ID が重なる
@@ -1071,6 +1071,13 @@ functions:
         mock: なし（一時フォルダ）
         expected: SettingsError。メッセージに (1) transcription.local_whisper.beam_size (2) transcription.engine を含む
         exception: 値がモデルに合わない
+      - name: test_load_settings_when_invalid_value_paths
+        case: 異常
+        summary: 重ねた値が合わないときは、読んだ環境の値と checkout の上書きのファイルを paths に持つ
+        condition: parametrize で (1) settings_file だけ (2) settings_file と local_settings_file の両方 (3) どちらも無い（defaults_file の beam_size を "x" にする）で、transcription.local_whisper.beam_size = "x" を置く
+        mock: なし（一時フォルダ）
+        expected: SettingsError。paths が (1) (settings_file,) (2) (settings_file, local_settings_file) (3) (defaults_file,)
+        exception: 値がモデルに合わない
       - name: test_load_settings_when_unknown_key
         case: 異常
         summary: 知らないキーを断る
@@ -1090,7 +1097,7 @@ functions:
         summary: 読めない YAML は、読めなかったファイルと行・列を示して断る
         condition: parametrize で settings_file・local_settings_file・defaults_file のそれぞれを、字下げの崩れた YAML にする
         mock: なし（一時フォルダ）
-        expected: SettingsError。メッセージにそのファイルのパスと行・列を含み、settings_file が書き換わっていない
+        expected: SettingsError。メッセージにそのファイルのパスと行・列を含み、paths がそのファイルだけで、settings_file が書き換わっていない
         exception: YAML として読めない
       - name: test_load_settings_when_defaults_missing
         case: 異常

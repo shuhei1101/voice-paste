@@ -14,7 +14,7 @@ directory: |-
       └── timer.py             # RepeatingTimer（上限での打ち切りを定期に呼ぶ）
   ```
 
-  リポジトリの直下は `pyproject.toml`・`uv.lock`・`.python-version`・起動のバッチファイル（`voice-paste.bat`）・Linux の起動のスクリプト（`voice-paste.sh`）・自動起動の雛形（`voice-paste.desktop`）・`settings.sample.toml`・`README.md`・`CLAUDE.md`・`src/`・`resources/`・`tests/`・`dev/`・`docs/` に絞る。
+  リポジトリの直下は `pyproject.toml`・`uv.lock`・`.python-version`・起動のバッチファイル（`voice-paste.bat`）・Linux の起動のスクリプト（`voice-paste.sh`）・自動起動の雛形（`voice-paste.desktop`）・`config/`・`settings.sample.yaml`・`README.md`・`CLAUDE.md`・`src/`・`resources/`・`tests/`・`dev/`・`docs/` に絞る。
 
   動かす環境は、リポジトリの直下で Windows の uv（WSL からは `uv.exe`）で `uv sync --frozen` を流して `.venv/` に作り、ローカルの Whisper（faster-whisper・nvidia-*）を使う環境は `--extra local-whisper` を付けて流す（`uv.lock` のバージョンで入り、Python のバージョンは `.python-version` の 3.14）。
   Windows のクローンで WSL の uv で流すと `.venv/` を Linux の構成に作り直すため、Windows のクローンの環境を作るコマンドと環境で流すコマンドは Windows の uv で流す（`uv lock` はどちらでもよい）。
@@ -270,7 +270,7 @@ functions:
            - `[ERROR]` 起動に失敗した（理由）
       4. PlatformAdapters.qt_platform が None でなく、環境変数に QT_QPA_PLATFORM が無ければ、QT_QPA_PLATFORM にその値を入れる（Wayland のセッションの xcb）。QApplication（最後の窓を閉じても終わらない）・UiBridge・Tray を作り、apply_theme(app, "system", image_dir=paths.ui_image_dir) で画面の明暗を当ててトレイに準備中を出す。WAKE_INTERVAL_MS ごとの空の QTimer を置き、SIGINT・SIGBREAK・SIGTERM で QApplication.quit を呼ぶ（SIGTERM はログアウト・systemctl stop で届き、12 の片付けを通す）。後から起動したプロセスに終わるよう頼まれたら、QApplication.quit をメインスレッドで呼ぶ（SingleInstanceLock.on_quit_requested に、QMetaObject.invokeMethod で QApplication.quit をキューに入れる関数を渡す）。トレイの「再起動」「終了」を _ExitRequest の request_restart・request_quit へつなぐ（7 の配線の間も抜けられるようにする。7 の結果を受けたら外す）
       5. 設定を読む（load_settings(paths, SETTINGS_MODEL)。--data-dir を渡したときは checkout の上書きを読まない）
-         - SettingsError の場合、トレイを失敗にして設定を読めないことを通知し（Tray.show_failure(settings_invalid, 理由)）、「録音を開始」「設定…」を押せないまま 11 へ（フォルダを開いて読めなかったファイルを直し、再起動できる）
+         - SettingsError の場合、トレイを失敗にして設定を読めないことを通知し（Tray.show_failure(settings_invalid, 理由, paths=SettingsError.paths)）、「録音を開始」「設定…」を押せないまま 11 へ（フォルダを開いて読めなかったファイルを直し、再起動できる）
            - `[ERROR]` 起動に失敗した（理由）
       6. 設定の ui.theme で画面の明暗を当て直し（apply_theme。image_dir は paths.ui_image_dir）、QStyleHints.colorSchemeChanged に、SettingsStore.get の ui.theme で apply_theme を呼ぶ関数をつなぐ（OS の明暗が変わったときに当て直す）。ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を消す（purge_old_files。処理中のセッションは無いため、一時の音声も全て消す対象にする）
          - `[INFO]` 設定を読んだ（設定ファイルのパス・エンジン・オンの出力先の ID）
@@ -337,7 +337,7 @@ functions:
         summary: 設定が合わなければトレイで知らせて入口を立てない
         condition: transcription.local_whisper.beam_size = "x" の settings.yaml がある data_dir。exec_loop はすぐ 0 を返す
         mock: build_handlers・ApiServerRunner・HotkeyListener・Tray
-        expected: 0。Tray.set_failed と Tray.show_failure(settings_invalid, 理由) が呼ばれ（理由に transcription.local_whisper.beam_size が出る）、ERROR のログに transcription.local_whisper.beam_size が出、build_handlers・ApiServerRunner・HotkeyListener.start が呼ばれない
+        expected: 0。Tray.set_failed と Tray.show_failure(settings_invalid, 理由, paths=(settings.yaml のパス,)) が呼ばれ（理由に transcription.local_whisper.beam_size が出る）、ERROR のログに transcription.local_whisper.beam_size が出、build_handlers・ApiServerRunner・HotkeyListener.start が呼ばれない
         exception: SettingsError
       - name: test_main_when_startup_error
         case: 異常
@@ -862,7 +862,7 @@ functions:
       4. output_titles に、OUTPUTS のうち api_only でない出力先の ID → title を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
       5. apply_theme に引数の apply_theme を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
       6. list_glossaries に SettingsStore.get の設定と settings.yaml のフォルダで resolve_glossaries を呼ぶ関数、list_glossary_presets に同じ設定とフォルダで resolve_glossary_presets を呼ぶ関数、read_glossary に read_glossary_rows、new_glossary_path に settings.yaml のフォルダの `glossaries` を部分適用した next_glossary_path を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
-      7. copy に copy_to_clipboard、reset_settings に引数の reset_settings を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
+      7. copy に copy_to_clipboard、reset_settings に引数の reset_settings、default_settings に paths.defaults_file と SETTINGS_MODEL で load_default_settings を呼ぶ関数を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
       8. hidden_setting_keys に hidden_setting_keys(unavailable_features(CURRENT_OS)) を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
       9. reports_progress に、このときの SettingsStore.get の transcription.engine が local_whisper かを渡す（起動で配線したエンジンと同じ設定から 1 回だけ求める。エンジンを準備できなかった起動の UiDeps も同じ）
     status: implemented

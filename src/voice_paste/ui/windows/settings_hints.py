@@ -148,7 +148,7 @@ def _dim(widget: QWidget, *, dimmed: bool) -> None:
 class HintPresetPanel(QWidget):
     """設定画面の「表記のヒント」のまとまりに置く、有効なヒントの長さ・プリセットの縦の並び・「プリセットを追加」・補足。
 
-    追加・削除・並べ替え・入力はこの部品の中だけを変え、settings.toml へは設定画面の保存で書く。
+    追加・削除・並べ替え・入力はこの部品の中だけを変え、settings.yaml へは設定画面の保存で書く。
     """
 
     changed = Signal()
@@ -232,7 +232,7 @@ class HintPresetPanel(QWidget):
         self._rebuild([preset.model_dump() for preset in presets], self._number_saved(len(presets)))
 
     def collect(self) -> list[dict[str, Any]]:
-        """今の並びのプリセットを settings.toml と同じ構造の dict（name・words・enabled）の並びにする。空の語の欄もそのまま入れる。"""
+        """今の並びのプリセットを 設定と同じ構造の dict（name・words・enabled）の並びにする。空の語の欄もそのまま入れる。"""
         return [
             {
                 "name": row.name_edit.text(),

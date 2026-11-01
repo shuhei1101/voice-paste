@@ -38,10 +38,10 @@ DISABLED_VALUE: str = "0"
 """列 `使う` で、オフの値（列が無い・空・ほかの値はオン）。"""
 
 DEFAULT_GLOSSARY_FILE_NAME: str = "yogo.csv"
-"""`glossaries` も `glossary_path` も無いときに読む、settings.toml と同じフォルダの用語集のファイル名。"""
+"""`glossaries` も `glossary_path` も無いときに読む、settings.yaml と同じフォルダの用語集のファイル名。"""
 
 DEFAULT_GLOSSARY_PRESET_NAME: str = "既定"
-"""`glossary_presets` のキーが無い・空の settings.toml で、resolve_glossary_presets が作る 1 つだけのプリセットの名前。"""
+"""`glossary_presets` のキーが無い・空の設定で、resolve_glossary_presets が作る 1 つだけのプリセットの名前。"""
 
 GLOSSARY_FILE_PATTERN: str = "glossary_{number}.csv"
 """設定画面で追加した用語集の CSV のファイル名。number は 1 からの連番。"""

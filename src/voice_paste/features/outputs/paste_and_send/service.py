@@ -35,19 +35,19 @@ def paste_and_send(
 
 def read_enter_delay_sec(settings: Settings) -> float:
     """設定の outputs[] の貼り付けて送信の、貼り付けてから Enter を送信するまでの秒数を返す（一覧に無ければ既定値）。"""
-    output = next(
-        (o for o in settings.outputs if isinstance(o, PasteAndSendSettings)),
-        PasteAndSendSettings(),
-    )
+    output = next((o for o in settings.outputs if isinstance(o, PasteAndSendSettings)), None)
+    # 一覧に無い: モデルの既定値
+    if output is None:
+        return PasteAndSendSettings.model_fields["enter_delay_sec"].default
     return output.enter_delay_sec
 
 
 def read_enter_modifiers(settings: Settings) -> tuple[EnterModifier, ...]:
     """設定の outputs[] の貼り付けて送信の、Enter と一緒に押す修飾キーを返す（一覧に無ければ空）。"""
-    output = next(
-        (o for o in settings.outputs if isinstance(o, PasteAndSendSettings)),
-        PasteAndSendSettings(),
-    )
+    output = next((o for o in settings.outputs if isinstance(o, PasteAndSendSettings)), None)
+    # 一覧に無い: 修飾キーなし
+    if output is None:
+        return ()
     return tuple(output.enter_modifiers)
 
 

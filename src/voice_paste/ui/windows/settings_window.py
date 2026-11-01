@@ -28,7 +28,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from voice_paste.shared.errors import HotkeyError
+from voice_paste.shared.errors import HotkeyError, SettingsError
 from voice_paste.shared.os_kind import CURRENT_OS, OsKind
 from voice_paste.shared.settings import (
     EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE,
@@ -1117,19 +1117,21 @@ class SettingsWindow(QWidget):
         return values
 
     def collect(self) -> dict[str, Any]:
-        """全ての欄の値を settings.toml と同じ構造の dict にする。"""
+        """全ての欄の値を 設定と同じ構造の dict にする。"""
         data: dict[str, Any] = {}
         # 一覧の要素は添字の順に作るため、出力先の ID と空の送信先の一覧を先に置く
         for key, value in self._static.items():
             set_nested(data, key, value)
         for field in self._all_fields():
             set_nested(data, field.key, field.get())
-        # 出さない設定は、開いたときの値をそのまま入れる（settings.toml の値を保つ）
+        # 出さない設定は、開いたときの値をそのまま入れる（設定の値を保つ）
         for key, value in self._hidden_values.items():
             set_nested(data, key, value)
         # プリセットは、種類のタブの並びの順に 1 つの一覧にする
         data[PRESETS_FIELD_NAME] = [item for _kind, _position, item in self._preset_values()]
-        # 用語集は、一覧と用語集のプリセットと補正に使うプリセットを入れる（glossary_path と active_glossary は置かない）
+        # 用語集は、一覧と用語集のプリセットと補正に使うプリセットを入れる（glossary_path と active_glossary は None にし、保存でキーを外す）
+        data["glossary_path"] = None
+        data["active_glossary"] = None
         data[GLOSSARIES_FIELD_NAME] = self._glossaries_panel.collect()
         data[GLOSSARY_PRESETS_FIELD_NAME] = self._glossaries_panel.collect_presets()
         data["active_glossary_preset"] = self._glossaries_panel.active_preset_name()
@@ -1551,11 +1553,15 @@ class SettingsWindow(QWidget):
         )
 
     def reset_to_defaults(self) -> None:
-        """確かめて、戻すなら既定の設定を書いて欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す。"""
+        """確かめて、戻すなら環境の値を空にして読み直した設定を欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す。"""
         if not confirm_reset(self):
             return
-        defaults = self._settings_model()
-        self._deps.save_settings(defaults, {})
+        # 環境の値を空にして読み直す（読めなければ欄を変えずに理由を出す）
+        try:
+            defaults, _restart_needed = self._deps.reset_settings()
+        except SettingsError as error:
+            self._show_errors([(None, str(error))])
+            return
         self._clear_errors()
         self._saved_notice.hide()
         self._populate(defaults)

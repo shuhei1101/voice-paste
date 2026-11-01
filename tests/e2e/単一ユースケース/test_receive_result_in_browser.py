@@ -17,13 +17,18 @@ from typing import Any
 import pytest
 
 from tests.support.browser import BrowserPage, wait_for
-from tests.support.inprocess import encode_audio, make_settings, silence_input
+from tests.support.inprocess import (
+    encode_audio,
+    make_settings,
+    requires_web_transcription,
+    silence_input,
+)
 from tests.support.web_scene import STUB_TEXT, OpenEdge, StartInProcess, WebScene, build_scene, record_for
 from voice_paste.integrations.openai.credentials import OPENAI_API_KEY_ENV
 from voice_paste.shared.errors import TranscriptionError
 from voice_paste.shared.settings import TranscriptionSettings
 
-pytestmark = pytest.mark.real_machine
+pytestmark = [pytest.mark.real_machine, requires_web_transcription]
 
 RECORD_SEC = 2
 """画面で録る長さ（秒）。"""

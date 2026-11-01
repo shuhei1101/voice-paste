@@ -1,10 +1,10 @@
 """複合ユースケース「声で入力した文字を貼り付ける」の E2E テスト。
 
 常駐アプリを pytest のプロセスの中で `build_handlers` で配線し、ホットキーの入口（`start_local_session`）から録音を始める
-（起動・トレイ・ホットキーの受付は通さない）。録音の入力は、Windows の音声合成（SAPI）で決めた文を書き出した WAV を流す
+（起動・トレイ・ホットキーの受付は通さない）。録音の入力は、音声合成（Windows は SAPI、Linux は Open JTalk）で決めた文を書き出した WAV を流す
 ものに差し替え、マイクもスピーカーも通さない。システム音量・貼り付けのキー・通知は差し替えて、呼ばれた値を控える。
-文字起こしはローカルの Whisper（GPU）、クリップボードは実物を使う（テストの後に元の文字へ戻す）。
-実機の Windows と GPU が要る（`--run-e2e` が無ければ skip する）。
+文字起こしはローカルの Whisper（Windows は GPU、Linux は CPU）、クリップボードは実物を使う（テストの後に元の文字へ戻す）。
+実機の Windows と GPU か、Ubuntu 24.04 の Xorg のセッションが要る（`--run-e2e` が無ければ skip する）。
 """
 
 from __future__ import annotations
@@ -19,7 +19,9 @@ import pytest
 from tests.integration.helpers import CallbackReceiver, wait_until
 from tests.support.inprocess import (
     SPEECH_WORD,
-    VOLUME_BEFORE,
+    LOWERS_VOLUME,
+    expected_lowered_ratios,
+    expected_restored_volumes,
     WORKER_CLIENT_LOGGER,
     InProcessApp,
     break_saved_recordings,
@@ -77,7 +79,7 @@ def test_normal(
 
     # 検証
     assert app.wait_idle()
-    assert app.volume.lowered_ratios == [LOWERED_RATIO]
+    assert app.volume.lowered_ratios == expected_lowered_ratios(LOWERED_RATIO)
     assert len(app.keys.pasted) == 1
     assert app.keys.enters == 1
     assert SPEECH_WORD in pyperclip.paste()
@@ -85,7 +87,7 @@ def test_normal(
     [text_file] = app.history_files(".txt")
     assert recording.stem == text_file.stem
     assert text_file.read_text(encoding="utf-8") == pyperclip.paste()
-    assert app.volume.restored == [VOLUME_BEFORE]
+    assert app.volume.restored == expected_restored_volumes()
     _assert_can_start_again(app)
 
 
@@ -96,7 +98,7 @@ def test_normal_when_cancel(
     # 準備
     app = start_inprocess(settings=make_settings(), wav_input=speech_input(tmp_path))
     app.start_hotkey()
-    assert app.volume.lowered_ratios != []
+    assert (app.volume.lowered_ratios != []) == LOWERS_VOLUME
 
     # 実行
     app.manager.cancel()
@@ -106,7 +108,7 @@ def test_normal_when_cancel(
     assert pyperclip.paste() == clipboard_sentinel
     assert app.keys.pasted == []
     assert app.history_files(".wav") == []
-    assert app.volume.restored == [VOLUME_BEFORE]
+    assert app.volume.restored == expected_restored_volumes()
     _assert_can_start_again(app)
 
 

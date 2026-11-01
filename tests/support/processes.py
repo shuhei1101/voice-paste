@@ -3,11 +3,19 @@
 from __future__ import annotations
 
 import json
+import os
+import signal
 import subprocess
 from collections.abc import Iterable
 from dataclasses import dataclass
+from pathlib import Path
+
+from voice_paste.shared.os_kind import CURRENT_OS, OsKind
 
 POWERSHELL_TIMEOUT_SEC = 30.0
+
+PROC_DIR = Path("/proc")
+"""Linux でプロセスの一覧を読むフォルダ。"""
 
 
 @dataclass(frozen=True)
@@ -20,7 +28,11 @@ class ProcessInfo:
 
 
 def process_table() -> list[ProcessInfo]:
-    """全てのプロセスを PowerShell（Get-CimInstance）で引く。"""
+    """全てのプロセスを、Windows では PowerShell（Get-CimInstance）で、Linux では /proc から引く。"""
+    # Windows か
+    if CURRENT_OS != OsKind.WINDOWS:
+        # 違う: /proc から読む
+        return _proc_table()
     script = (
         "[Console]::OutputEncoding=[Text.Encoding]::UTF8;"
         "Get-CimInstance Win32_Process | "
@@ -39,6 +51,30 @@ def process_table() -> list[ProcessInfo]:
         ProcessInfo(int(row["ProcessId"]), int(row["ParentProcessId"]), row["CommandLine"] or "")
         for row in rows
     ]
+
+
+def _proc_table() -> list[ProcessInfo]:
+    """全てのプロセスを /proc の stat と cmdline から引く（読む間に終わったプロセスは除く）。"""
+    rows: list[ProcessInfo] = []
+    for entry in PROC_DIR.iterdir():
+        if not entry.name.isdigit():
+            continue
+        try:
+            stat = (entry / "stat").read_text(encoding="utf-8", errors="replace")
+            command_line = (entry / "cmdline").read_bytes()
+        except OSError:
+            # 読む間に終わったプロセス
+            continue
+        # 2 つ目の欄（comm）は括弧に囲まれて空白や括弧を含みうるため、最後の ")" の後ろの欄（state・ppid ...）から親を読む
+        parent_pid = int(stat[stat.rindex(")") + 1 :].split()[1])
+        rows.append(
+            ProcessInfo(
+                int(entry.name),
+                parent_pid,
+                command_line.replace(b"\0", b" ").decode(errors="replace").strip(),
+            )
+        )
+    return rows
 
 
 def descendants(root_pid: int, table: Iterable[ProcessInfo] | None = None) -> list[ProcessInfo]:
@@ -60,6 +96,15 @@ def descendants(root_pid: int, table: Iterable[ProcessInfo] | None = None) -> li
 
 def kill_tree(pid: int) -> None:
     """プロセスと子孫を止める。"""
+    # Windows か
+    if CURRENT_OS != OsKind.WINDOWS:
+        # 違う: 子孫から順に SIGKILL を送る（送る前に終わったプロセスは飛ばす）
+        for process in reversed(descendants(pid)):
+            try:
+                os.kill(process.pid, signal.SIGKILL)
+            except OSError:
+                continue
+        return
     subprocess.run(  # noqa: S603 固定のコマンド
         ["taskkill", "/F", "/T", "/PID", str(pid)], capture_output=True, check=False
     )

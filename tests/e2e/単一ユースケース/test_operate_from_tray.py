@@ -155,7 +155,13 @@ def _change_settings_field(app: ResidentApp) -> None:
     "quit_app",
     [
         pytest.param(_quit_by_tray_menu, id="tray_quit"),
-        pytest.param(_quit_by_ctrl_break, id="ctrl_break"),
+        pytest.param(
+            _quit_by_ctrl_break,
+            id="ctrl_break",
+            marks=pytest.mark.skipif(
+                not hasattr(signal, "SIGBREAK"), reason="SIGBREAK は Windows にだけある"
+            ),
+        ),
     ],
 )
 def test_normal_when_quit_with_unsaved_settings(

@@ -62,6 +62,7 @@ from tests.support.real_service import (
     QT_PLATFORM_OFFSCREEN,
     REQUEST_TIMEOUT_SEC,
     SOURCE_DIR,
+    STARTUP_TIMEOUT_SEC,
     UNUSED_START_HOTKEY,
     free_port,
     post_to_api,
@@ -77,6 +78,7 @@ from voice_paste.ui.tray import STATE_NAMES, TOOLTIP_PREFIX, Tray, TrayState
 SERVICE_COMMAND = "-m voice_paste"
 """常駐アプリのコマンドラインに含まれる言葉（venv の python.exe は本体のプロセスを子に持つ）。"""
 
+STARTING = STATE_NAMES[TrayState.STARTING]
 IDLE = STATE_NAMES[TrayState.IDLE]
 RECORDING = STATE_NAMES[TrayState.RECORDING]
 FAILED = STATE_NAMES[TrayState.FAILED]
@@ -101,6 +103,9 @@ WATCHED_WINDOWS = ("recording_window", "transcribing_indicator", "busy_dialog")
 """一度でも出たかを控える窓の項目 ID（録音の画面・文字起こし中の表示・処理中のダイアログ）。"""
 
 MILLISECONDS_PER_SECOND = 1000
+
+RESTORED_SIGNAL_NAMES = ("SIGINT", "SIGBREAK")
+"""ケースの後にハンドラを元に戻すシグナル。その OS に無いもの（Linux の SIGBREAK）は戻さない。"""
 
 PAUSE_HOTKEY = "<ctrl>+<alt>+z"
 CANCEL_HOTKEY = "<ctrl>+<alt>+q"
@@ -586,7 +591,7 @@ def _restored_process_state(qapp: QApplication) -> Iterator[None]:
     root = logging.getLogger()
     handlers_before = list(root.handlers)
     level_before = root.level
-    signals = (signal.SIGINT, signal.SIGBREAK)
+    signals = tuple(getattr(signal, name) for name in RESTORED_SIGNAL_NAMES if hasattr(signal, name))
     signal_handlers_before = {number: signal.getsignal(number) for number in signals}
     style_before = qapp.styleSheet()
     try:
@@ -738,6 +743,10 @@ def run_resident_app(
             """case を進める。失敗は控える。"""
             app.worker_pids_at_start = app.worker_pids()
             try:
+                # 起動の配線（別スレッド）が終わり、トークンのファイルを書くかトレイを失敗にするまで待つ
+                assert app.wait_until(lambda: app.tray_state() != STARTING, STARTUP_TIMEOUT_SEC), (
+                    "起動の配線が終わらなかった"
+                )
                 case(app)
                 app.case_finished = True
             except BaseException as error:  # noqa: BLE001 slot の中の失敗を main の後に出し直す

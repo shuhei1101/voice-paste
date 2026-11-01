@@ -538,7 +538,7 @@ requirements:
     breakdown:
       - part: タイムアウト
         value: 設けない
-        notes: ユーザーの判断。timeout=None で接続・応答・書き込みの待ちに上限を掛けない
+        notes: ユーザーの判断。timeout=None で接続・応答・書き込み・プールの待ちに上限を掛けない
       - part: 再送の回数の上限
         value: 2 回
         notes: 最初の 1 回と合わせて最大 3 回

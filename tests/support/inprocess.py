@@ -15,11 +15,14 @@ import os
 import re
 import signal
 import socket
+import subprocess
+import sys
 import threading
 import time
 from collections.abc import Callable, Iterable, Iterator, Sequence
 from dataclasses import dataclass, field, replace
-from ctypes import wintypes
+if sys.platform == "win32":
+    from ctypes import wintypes
 from pathlib import Path
 from typing import Any
 
@@ -166,8 +169,34 @@ def write_silence(wav_path: Path, seconds: float) -> Path:
     return write_wav(wav_path, np.zeros(round(SAMPLE_RATE * seconds), dtype=np.int16))
 
 
+OPEN_JTALK_HOME = Path(os.environ.get("VOICE_PASTE_OPEN_JTALK_HOME", Path.home() / ".local/opt/open-jtalk"))
+"""Linux で sudo を使わずに展開した Open JTalk の置き場所（PoC）。"""
+
+
+def _synthesize_open_jtalk(text: str, raw_path: Path) -> None:
+    """Open JTalk で text を読み上げた音を raw_path へ書き出す（PoC）。"""
+    home = OPEN_JTALK_HOME
+    env = {**os.environ, "LD_LIBRARY_PATH": str(home / "usr/lib/x86_64-linux-gnu")}
+    subprocess.run(  # noqa: S603 固定の open_jtalk
+        [
+            str(home / "usr/bin/open_jtalk"),
+            "-x", str(home / "var/lib/mecab/dic/open-jtalk/naist-jdic"),
+            "-m", str(home / "usr/share/hts-voice/nitech-jp-atr503-m001/nitech_jp_atr503_m001.htsvoice"),
+            "-ow", str(raw_path),
+        ],
+        input=text.encode("utf-8"),
+        env=env,
+        check=True,
+        capture_output=True,
+    )
+
+
 def synthesize_speech(text: str, wav_path: Path) -> Path:
     """Windows の音声合成（SAPI）で text を読み上げた音を、16 kHz・モノラル・16 bit の WAV へ書き出す。"""
+    if sys.platform != "win32":
+        raw_path = wav_path.with_suffix(".jtalk.wav")
+        _synthesize_open_jtalk(text, raw_path)
+        return _resample_to_wav(raw_path, wav_path)
     import win32com.client
 
     # 1. 既定の声で、音声合成の出力をファイルへ向けて読み上げる（書き出す標本化周波数は声で決まる）
@@ -178,7 +207,11 @@ def synthesize_speech(text: str, wav_path: Path) -> Path:
     voice.AudioOutputStream = stream
     voice.Speak(text)
     stream.Close()
+    return _resample_to_wav(raw_path, wav_path)
 
+
+def _resample_to_wav(raw_path: Path, wav_path: Path) -> Path:
+    """raw_path の WAV を 16 kHz に変えて wav_path へ書き直す。"""
     # 2. 16 kHz に変えて書き直す
     rate, samples = wavfile.read(raw_path)
     assert samples.dtype == np.int16
@@ -925,10 +958,10 @@ def worker_ready_messages(caplog: pytest.LogCaptureFixture) -> list[str]:
     ]
 
 
-class _ProcessEntry(ctypes.Structure):
+class _ProcessEntry(ctypes.Structure if sys.platform == "win32" else object):
     """Toolhelp のプロセスの 1 行（PROCESSENTRY32W）。"""
 
-    _fields_ = (
+    _fields_ = () if sys.platform != "win32" else (
         ("dwSize", wintypes.DWORD),
         ("cntUsage", wintypes.DWORD),
         ("th32ProcessID", wintypes.DWORD),
@@ -944,6 +977,10 @@ class _ProcessEntry(ctypes.Structure):
 
 def process_tree_pids(root_pid: int) -> set[int]:
     """root_pid とその子孫のプロセスの番号を、Toolhelp のスナップショットで直ちに引いて返す（PowerShell の一覧は数秒かかる）。"""
+    if sys.platform != "win32":
+        from tests.support.processes import descendants
+
+        return {p.pid for p in descendants(root_pid)}
     kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
     kernel32.CreateToolhelp32Snapshot.restype = wintypes.HANDLE
     snapshot = kernel32.CreateToolhelp32Snapshot(TOOLHELP_SNAPSHOT_PROCESS, 0)

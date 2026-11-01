@@ -15,6 +15,7 @@ import os
 import socket
 import struct
 import subprocess
+import sys
 import time
 import urllib.request
 from collections.abc import Callable, Iterator
@@ -22,7 +23,11 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
-EDGE_PATH = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+EDGE_PATH = (
+    r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+    if sys.platform == "win32"
+    else "/usr/bin/microsoft-edge-stable"
+)
 """Edge の実行ファイル。"""
 
 LAUNCH_TIMEOUT_SEC = 20.0

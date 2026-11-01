@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 import json
+import os
+import signal
 import subprocess
+import sys
+from pathlib import Path
 from collections.abc import Iterable
 from dataclasses import dataclass
 
@@ -19,8 +23,27 @@ class ProcessInfo:
     command_line: str
 
 
+def _proc_table() -> list[ProcessInfo]:
+    """全てのプロセスを /proc から引く（Linux。PoC）。"""
+    rows: list[ProcessInfo] = []
+    for entry in Path("/proc").iterdir():
+        if not entry.name.isdigit():
+            continue
+        try:
+            stat = (entry / "stat").read_text()
+            command = (entry / "cmdline").read_bytes().replace(b"\0", b" ").decode(errors="replace").strip()
+        except OSError:
+            continue
+        # comm は括弧に囲まれ空白を含みうるため、最後の ')' の後ろから読む
+        parent = int(stat[stat.rindex(")") + 2 :].split()[1])
+        rows.append(ProcessInfo(int(entry.name), parent, command))
+    return rows
+
+
 def process_table() -> list[ProcessInfo]:
     """全てのプロセスを PowerShell（Get-CimInstance）で引く。"""
+    if sys.platform != "win32":
+        return _proc_table()
     script = (
         "[Console]::OutputEncoding=[Text.Encoding]::UTF8;"
         "Get-CimInstance Win32_Process | "
@@ -60,6 +83,13 @@ def descendants(root_pid: int, table: Iterable[ProcessInfo] | None = None) -> li
 
 def kill_tree(pid: int) -> None:
     """プロセスと子孫を止める。"""
+    if sys.platform != "win32":
+        for process in reversed(descendants(pid)):
+            try:
+                os.kill(process.pid, signal.SIGKILL)
+            except OSError:
+                continue
+        return
     subprocess.run(  # noqa: S603 固定のコマンド
         ["taskkill", "/F", "/T", "/PID", str(pid)], capture_output=True, check=False
     )

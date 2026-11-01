@@ -586,7 +586,7 @@ def _restored_process_state(qapp: QApplication) -> Iterator[None]:
     root = logging.getLogger()
     handlers_before = list(root.handlers)
     level_before = root.level
-    signals = (signal.SIGINT, signal.SIGBREAK)
+    signals = tuple(getattr(signal, name) for name in ("SIGINT", "SIGBREAK") if hasattr(signal, name))
     signal_handlers_before = {number: signal.getsignal(number) for number in signals}
     style_before = qapp.styleSheet()
     try:

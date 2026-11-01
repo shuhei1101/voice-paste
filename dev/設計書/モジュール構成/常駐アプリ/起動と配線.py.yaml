@@ -1289,6 +1289,8 @@ classes:
         process: |-
           1. デーモンスレッド（名前 `startup-build`）で build に _register_stop を渡して呼ぶ
              - StartupError の場合、その例外を結果にする
+             - それ以外の例外の場合、StartupError（「起動の配線で想定外のエラーが起きた（元の例外）」）を結果にする（トレイを失敗にし、設定画面と「再起動」を使えるようにする。準備中のまま止めない）
+               - `[ERROR]` 起動の配線で想定外のエラーが起きた（logger.exception）
           2. ロックを取り、cancel が呼ばれていなければ done で結果を送出する
              - 呼ばれていて、結果が Handlers の場合、Handlers.stop_engine を呼んで捨てる（done は送出しない）
         unit_tests:
@@ -1304,6 +1306,12 @@ classes:
             condition: build が StartupError を送出する
             mock: build・done を受ける関数
             expected: done でその StartupError が 1 回渡る
+          - name: test_start_when_unexpected_error
+            case: 異常
+            summary: 想定外の例外も StartupError にして done で渡す
+            condition: build が RuntimeError を送出する
+            mock: build・done を受ける関数
+            expected: done で StartupError が 1 回渡り、ERROR のログが 1 行出る
       - name: _register_stop
         title: エンジンを止める関数を控える
         kind: メソッド

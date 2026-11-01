@@ -1,0 +1,1 @@
+# PoC: Linux の E2E で Open JTalk の WAV と Edge の Linux 版を使う

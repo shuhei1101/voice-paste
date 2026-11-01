@@ -309,6 +309,26 @@ def test_transcribe_when_keywords_model(
     assert dict(parts)["model"] == KEYWORDS_MODEL.encode()
 
 
+def test_transcribe_when_no_timeout(
+    audio_path: Path, make_transcriber: Callable[[FakeEndpoint], Any]
+) -> None:
+    """待つ時間の上限を設けずに送信する（正常系）。"""
+    # 準備
+    endpoint = FakeEndpoint(_ok("今日は晴れ"))
+    transcriber = make_transcriber(endpoint)
+
+    # 実行
+    transcriber.transcribe(audio_path)
+
+    # 検証: httpx の既定の 5 秒が掛かっていない
+    assert endpoint.requests[0].extensions["timeout"] == {
+        "connect": None,
+        "read": None,
+        "write": None,
+        "pool": None,
+    }
+
+
 def test_build_form_when_keywords_model(make_transcriber: Callable[..., Any]) -> None:
     """gpt-transcribe は語を keywords[]、言語を languages[] に入れる（正常系）。"""
     # 準備

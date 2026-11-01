@@ -13,14 +13,14 @@ from pathlib import Path
 import pytest
 
 from tests.integration.helpers import Stack
-from voice_paste.main import SETTINGS_MODEL
+from tests.support.settings import load_test_default_settings, make_settings
 from voice_paste.shared.settings import GlossaryPresetSettings, GlossarySettings
 
 
 def test_normal(web_stack: Callable[..., Stack], tmp_path: Path) -> None:
     """設定の並びのままのプリセットの名前と、設定で選んでいるプリセットの名前を返す（正常系）。"""
     # 準備: プリセット「既定」「会議」をこの並びで入れ、選んでいるのを「会議」にする
-    settings = SETTINGS_MODEL(
+    settings = make_settings(
         glossaries=[GlossarySettings(name="社内用語", path=tmp_path / "company.csv")],
         glossary_presets=[
             GlossaryPresetSettings(name="既定", glossaries=[]),
@@ -54,7 +54,7 @@ def test_normal(web_stack: Callable[..., Stack], tmp_path: Path) -> None:
 def test_normal_when_presets_not_configured(web_stack: Callable[..., Stack]) -> None:
     """glossary_presets のキーが無い設定では「既定」の 1 件を返す（正常系）。"""
     # 準備: glossary_presets と active_glossary_preset を持たない設定
-    stack = web_stack(worker=False, settings=SETTINGS_MODEL())
+    stack = web_stack(worker=False, settings=load_test_default_settings())
 
     # 実行
     response = stack.get_glossary_presets()
@@ -70,7 +70,7 @@ def test_error_when_origin_not_allowed(
     """許す Origin に無い Origin が付いた要求を断る（異常系）。"""
     # 準備
     caplog.set_level(logging.WARNING)
-    settings = SETTINGS_MODEL(
+    settings = make_settings(
         glossary_presets=[GlossaryPresetSettings(name="秘密の名前", glossaries=[])],
         active_glossary_preset="秘密の名前",
     )

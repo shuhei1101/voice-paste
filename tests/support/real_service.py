@@ -20,6 +20,7 @@ from typing import Any
 
 import httpx
 
+from voice_paste.shared.constants import SETTINGS_FILE_NAME
 from voice_paste.shared.os_kind import CURRENT_OS, OsKind
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -85,10 +86,10 @@ def read_log_records(data_dir: Path) -> list[dict[str, Any]]:
 
 
 def settings_text(api_port: int, extra_settings: str = "") -> str:
-    """テストの常駐アプリの settings.toml の中身（API のポートと、画面を localhost で開く Origin、録音開始のホットキー。extra_settings は TOML の続き）。"""
+    """テストの常駐アプリの settings.yaml の中身（API のポートと、画面を localhost で開く Origin、録音開始のホットキー。extra_settings は api・hotkeys 以外のまとまりの YAML の続き）。"""
     return (
-        f'[api]\nport = {api_port}\nallowed_web_origins = ["http://localhost:{api_port}"]\n\n'
-        f'[hotkeys]\nstart = "{UNUSED_START_HOTKEY}"\n\n{extra_settings}\n'
+        f"api:\n  port: {api_port}\n  allowed_web_origins:\n    - http://localhost:{api_port}\n"
+        f'hotkeys:\n  start: "{UNUSED_START_HOTKEY}"\n{extra_settings}\n'
     )
 
 
@@ -159,10 +160,10 @@ class RealService:
         wait_for_api が False なら、トークンのファイルを待たずに返す（起動に失敗する・API を使えない起動の確認用。
         返す RealService のトークンは空）。
         """
-        # 1. API のポートを書いた設定を置く（extra_settings は TOML の続き）
+        # 1. API のポートを書いた設定を置く（extra_settings は YAML の続き）
         data_dir.mkdir(parents=True, exist_ok=True)
         api_port = free_port() if port is None else port
-        (data_dir / "settings.toml").write_text(
+        (data_dir / SETTINGS_FILE_NAME).write_text(
             settings_text(api_port, extra_settings), encoding="utf-8"
         )
 

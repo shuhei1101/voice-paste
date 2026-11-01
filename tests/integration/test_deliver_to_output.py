@@ -10,11 +10,8 @@ from collections.abc import Callable
 from unittest.mock import call
 
 from tests.integration.helpers import OutputStack
-from voice_paste.main import SETTINGS_MODEL
-from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
-from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
-from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
-from voice_paste.shared.settings import BrowserPreset, BrowserPresetOptions, PresetOptions, Settings
+from tests.support.settings import default_output, make_settings
+from voice_paste.shared.settings import BrowserPreset, Settings
 
 CHAT_URL = "https://chatgpt.com"
 
@@ -43,11 +40,11 @@ def test_normal_when_enter_modifiers(
 ) -> None:
     """貼り付けて送信で Ctrl をオンにして確定すると、待った後に Ctrl を押したまま Enter を送信する（正常系）。"""
     # 準備
-    settings = SETTINGS_MODEL(
+    settings = make_settings(
         outputs=[
-            PasteAndSendSettings(enter_modifiers=["ctrl"]),
-            PasteOnlySettings(),
-            CopyOnlySettings(),
+            default_output("paste_and_send", enter_modifiers=["ctrl"]),
+            default_output("paste_only"),
+            default_output("copy_only"),
         ]
     )
     stack = output_stack(settings)
@@ -72,7 +69,7 @@ def test_normal_when_browser_preset(
     """ブラウザ添付のプリセットを選んで確定すると、その URL を開いて貼り付けて Enter まで送信する（正常系）。"""
     # 準備
     preset = BrowserPreset(title="ChatGPT", url=CHAT_URL)
-    stack = output_stack(SETTINGS_MODEL(presets=[preset]))
+    stack = output_stack(make_settings(presets=[preset]))
 
     # 実行
     stack.confirm(preset=preset)
@@ -96,12 +93,12 @@ def test_normal_when_browser_preset_and_enter_modifiers(
     """貼り付けて送信で Ctrl をオンにしていても、ブラウザ添付のプリセットは修飾キーなしで Enter を送信する（正常系）。"""
     # 準備
     preset = BrowserPreset(title="ChatGPT", url=CHAT_URL)
-    settings = SETTINGS_MODEL(
+    settings = make_settings(
         presets=[preset],
         outputs=[
-            PasteAndSendSettings(enter_modifiers=["ctrl"]),
-            PasteOnlySettings(),
-            CopyOnlySettings(),
+            default_output("paste_and_send", enter_modifiers=["ctrl"]),
+            default_output("paste_only"),
+            default_output("copy_only"),
         ],
     )
     stack = output_stack(settings)
@@ -128,9 +125,9 @@ def test_normal_when_browser_preset_without_enter(
     """Enter まで送信しないブラウザ添付のプリセットを選んで確定すると、貼り付けで止まる（正常系）。"""
     # 準備
     preset = BrowserPreset(title="ChatGPT", url=CHAT_URL, send_enter=False)
-    settings = SETTINGS_MODEL(
+    settings = make_settings(
         presets=[preset],
-        preset_options=PresetOptions(browser=BrowserPresetOptions(open_delay_sec=1.0)),
+        preset_options=dict(browser=dict(open_delay_sec=1.0)),
     )
     stack = output_stack(settings)
 
@@ -151,8 +148,12 @@ def test_normal_when_browser_preset_without_enter(
 def test_error_when_output_disabled(output_stack: Callable[[Settings | None], OutputStack]) -> None:
     """設定でオフの出力先を選んで確定すると、届けずに delivery_failed を知らせて待機中に戻る（異常系）。"""
     # 準備
-    settings = SETTINGS_MODEL(
-        outputs=[PasteAndSendSettings(), PasteOnlySettings(), CopyOnlySettings(enabled=False)]
+    settings = make_settings(
+        outputs=[
+            default_output("paste_and_send"),
+            default_output("paste_only"),
+            default_output("copy_only", enabled=False),
+        ]
     )
     stack = output_stack(settings)
 

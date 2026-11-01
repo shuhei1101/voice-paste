@@ -31,6 +31,7 @@ import httpx
 import numpy as np
 import pytest
 
+from tests.support.settings import load_test_default_settings
 from tests.unit.voice_paste.features.recording.helpers import ScriptedDetector, windows
 from voice_paste.features.correction import (
     apply_glossary,
@@ -72,7 +73,6 @@ from voice_paste.features.outputs.callback.service import (
 )
 from voice_paste.features.outputs.types import OutputDeps
 from voice_paste.main import (
-    SETTINGS_MODEL,
     _deliver_session,
     _make_paste,
     _wire_outputs,
@@ -301,7 +301,7 @@ class WebSettings:
     """補正に使う用語集の行（プリセットごとの行 `preset_glossaries` に無いプリセットで使う）。"""
     preset_glossaries: dict[str, list[GlossaryEntry]] = field(default_factory=dict)
     """用語集のプリセットの名前ごとの、補正に使う用語集の行。"""
-    settings: Settings = field(default_factory=SETTINGS_MODEL)
+    settings: Settings = field(default_factory=load_test_default_settings)
     """今の設定（用語集のプリセットの一覧と、設定で選んでいるプリセットを引く）。"""
 
 
@@ -530,7 +530,7 @@ def build_stack(
     web_enabled が偽なら、外の端末のブラウザの機能を組み込まない app（Linux の常駐サービス）を立て、キューも始めない。
     """
     paths = resolve_app_paths(tmp_path)
-    settings = settings if settings is not None else SETTINGS_MODEL()
+    settings = settings if settings is not None else load_test_default_settings()
     clock = Clock(START)
     microphone = FakeMicrophone()
     volume = FakeVolume()
@@ -725,7 +725,7 @@ def build_output_stack(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, settings: Settings | None = None
 ) -> OutputStack:
     """ホットキーのセッションが、main.py の配線で作った出力先へ届く SessionManager を作る。"""
-    settings = settings if settings is not None else SETTINGS_MODEL()
+    settings = settings if settings is not None else load_test_default_settings()
     paths = resolve_app_paths(tmp_path)
     clock = Clock(START)
     microphone = FakeMicrophone()

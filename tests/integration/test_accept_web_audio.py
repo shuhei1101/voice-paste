@@ -13,10 +13,10 @@ from pathlib import Path
 import pytest
 
 from tests.integration.helpers import Stack, make_audio
-from voice_paste.main import SETTINGS_MODEL
+from tests.support.settings import make_settings
 from voice_paste.shared.settings import GlossaryPresetSettings
 
-PRESET_SETTINGS = SETTINGS_MODEL(
+PRESET_SETTINGS = make_settings(
     glossary_presets=[
         GlossaryPresetSettings(name="既定", glossaries=[]),
         GlossaryPresetSettings(name="会議", glossaries=[]),

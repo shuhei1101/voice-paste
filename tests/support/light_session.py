@@ -14,6 +14,7 @@ from functools import partial
 from pathlib import Path
 
 from tests.support.inprocess import WavInput, ignore_lower_volume, ignore_restore_volume
+from tests.support.settings import load_test_default_settings
 from voice_paste.features.history import append_text, discard_temporary, save_recording
 from voice_paste.features.outputs import OUTPUTS, deliver
 from voice_paste.features.outputs.callback.service import (
@@ -28,7 +29,6 @@ from voice_paste.features.session.types import TranscribeFn
 from voice_paste.features.transcription.service import transcribe
 from voice_paste.integrations.http.client import post_json
 from voice_paste.integrations.vad.adapter import StreamingVad, load_vad_session
-from voice_paste.main import SETTINGS_MODEL
 from voice_paste.shared.constants import resolve_app_paths
 from voice_paste.shared.errors import EngineError
 from voice_paste.shared.types import TranscriptionOutcome
@@ -58,7 +58,7 @@ def build_light_manager(
     """
     # 1. 録音機に、WAV を流す入力と何もしない音量と本物の話し声の判定を渡す
     paths = resolve_app_paths(tmp_path)
-    settings = SETTINGS_MODEL()
+    settings = load_test_default_settings()
     vad_session = load_vad_session()
     recorder = Recorder(
         lower_volume=ignore_lower_volume,

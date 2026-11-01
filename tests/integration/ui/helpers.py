@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from tests.support.settings import default_output, make_settings
 from tests.unit.voice_paste.ui.helpers import FakeClock, make_session, make_ui_deps
 
 if TYPE_CHECKING:
@@ -44,20 +45,14 @@ WidgetT = TypeVar("WidgetT", bound=QWidget)
 
 def fixed_hotkey_settings() -> Settings:
     """ホットキーを OS の既定に頼らず固定した設定を返す（録音の開始は貼り付けて送信と同じキー）。"""
-    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
-    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
-    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
-    from voice_paste.main import SETTINGS_MODEL
-    from voice_paste.shared.settings import HotkeySettings
-
-    return SETTINGS_MODEL(
-        hotkeys=HotkeySettings(
+    return make_settings(
+        hotkeys=dict(
             start="<ctrl>+<alt>+d", pause="<ctrl>+<alt>+z", cancel="<ctrl>+<alt>+q"
         ),
         outputs=[
-            PasteAndSendSettings(hotkey="<ctrl>+<alt>+d"),
-            PasteOnlySettings(hotkey="<ctrl>+<alt>+v"),
-            CopyOnlySettings(hotkey="<ctrl>+<alt>+c"),
+            default_output("paste_and_send", hotkey="<ctrl>+<alt>+d"),
+            default_output("paste_only", hotkey="<ctrl>+<alt>+v"),
+            default_output("copy_only", hotkey="<ctrl>+<alt>+c"),
         ],
     )
 

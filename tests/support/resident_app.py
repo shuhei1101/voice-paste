@@ -70,13 +70,11 @@ from tests.support.real_service import (
     read_token_file,
     settings_text,
 )
-from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
-from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
-from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
+from tests.support.settings import default_output, load_test_default_settings
 from voice_paste.features.session import Session, SessionManager
 from voice_paste.integrations.whisper.client import WORKER_MODULE
+from voice_paste.shared.constants import SETTINGS_FILE_NAME
 from voice_paste.shared.errors import MicrophoneUnavailableError
-from voice_paste.shared.settings import HotkeySettings
 from voice_paste.ui.tray import STATE_NAMES, TOOLTIP_PREFIX, Tray, TrayState
 
 SERVICE_COMMAND = "-m voice_paste"
@@ -111,11 +109,11 @@ MILLISECONDS_PER_SECOND = 1000
 RESTORED_SIGNAL_NAMES = ("SIGINT", "SIGBREAK", "SIGTERM")
 """ケースの後にハンドラを元に戻すシグナル。その OS に無いもの（Linux の SIGBREAK）は戻さない。"""
 
-PAUSE_HOTKEY = HotkeySettings().pause
-CANCEL_HOTKEY = HotkeySettings().cancel
-PASTE_AND_SEND_HOTKEY = PasteAndSendSettings().hotkey
-PASTE_ONLY_HOTKEY = PasteOnlySettings().hotkey
-COPY_ONLY_HOTKEY = CopyOnlySettings().hotkey
+PAUSE_HOTKEY = load_test_default_settings().hotkeys.pause
+CANCEL_HOTKEY = load_test_default_settings().hotkeys.cancel
+PASTE_AND_SEND_HOTKEY = default_output("paste_and_send").hotkey
+PASTE_ONLY_HOTKEY = default_output("paste_only").hotkey
+COPY_ONLY_HOTKEY = default_output("copy_only").hotkey
 """動いている OS の設定の既定のホットキー（一時停止・取り消し・各出力先の確定。録音開始は普段使わない組み合わせに替えている）。"""
 
 PROBE_RECORDING = "probe.wav"
@@ -722,7 +720,9 @@ def run_resident_app(
     if prepare is not None:
         prepare(data_dir)
     api_port = free_port() if port is None else port
-    (data_dir / "settings.toml").write_text(settings_text(api_port, extra_settings), encoding="utf-8")
+    (data_dir / SETTINGS_FILE_NAME).write_text(
+        settings_text(api_port, extra_settings), encoding="utf-8"
+    )
     app = ResidentApp(data_dir, api_port)
     _spy_on_main(app, monkeypatch, wav_input, keys, capture_browser=capture_browser)
     failures: list[BaseException] = []

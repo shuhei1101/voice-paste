@@ -42,7 +42,7 @@ elements:
     id: menu_open_settings_folder
     kind: menu_item
     position: メニュー > 4 番目
-    description: settings.toml のあるフォルダをエクスプローラーで開く
+    description: settings.yaml のあるフォルダをエクスプローラーで開く
     label: 設定フォルダを開く
     visible_when: 常時
     action: 設定のフォルダを開く

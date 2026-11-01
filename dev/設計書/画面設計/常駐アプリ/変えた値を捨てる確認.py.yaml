@@ -29,7 +29,7 @@ elements:
     description: 変えた値を捨て、設定画面を閉じて待機中に戻る
     label: 破棄して閉じる
     visible_when: 常時
-    action: ダイアログと設定画面を閉じる（settings.toml は書かない）
+    action: ダイアログと設定画面を閉じる（settings.yaml は書かない）
   - name: 設定画面へ戻るボタン
     id: back_button
     kind: button

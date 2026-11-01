@@ -531,17 +531,14 @@ requirements:
     external_constraint: OpenAI は文字起こしの応答時間を保証しない。公式の Python SDK は既定でタイムアウト 600 秒・接続 5 秒・再送 2 回・待ち 0.5 秒から上限 8 秒で、429・5xx・タイムアウト・接続の失敗を再送する
     source_kind: 外部 API の制限
     source: https://github.com/openai/openai-python/blob/main/src/openai/_constants.py
-    value: タイムアウト 600 秒・接続 5 秒・再送 2 回・間隔の基数 0.5 秒・待ちの上限 8 秒
-    rationale: 規約『資源の値の決め方』で導く。下流（OpenAI API）の実測が無いため、公開仕様の値として公式の SDK が公開する既定値を使い、コードでは定数で明示する。外部疎通テストでは、約 3 秒の音声で 1.97 秒（2026-10-28、1 回）。実測の p99.9 + 50% への見直しは [#209](https://github.com/shuhei1101/voice-paste/issues/209) で行う。再送は 1 層だけで、指数バックオフとフルジッター（再送の n 回目の前に、0 以上、基数 × 2^(n−1) 以下の乱数の秒数を待つ）にし、Retry-After があれば従う。文字起こしは同じ音声を送り直しても結果が変わらないため再送できる（課金は送信ごとにかかる）
+    value: タイムアウトを設けない・再送 2 回・間隔の基数 0.5 秒・待ちの上限 8 秒
+    rationale: タイムアウトはユーザーの判断（[#232 の回答](https://github.com/shuhei1101/voice-paste/pull/232#discussion_r4431424473)）で、アプリ側では設けない。httpx の既定の 5 秒が掛からないよう、要求には timeout=None を渡す。再送は規約『資源の値の決め方』で導く。下流（OpenAI API）の実測が無いため、公開仕様の値として公式の SDK が公開する既定値を使う。外部疎通テストでは、約 3 秒の音声で 1.97 秒（2026-10-28、1 回）。再送は 1 層だけで、指数バックオフとフルジッター（再送の n 回目の前に、0 以上、基数 × 2^(n−1) 以下の乱数の秒数を待つ）にし、Retry-After があれば従う。文字起こしは同じ音声を送り直しても結果が変わらないため再送できる（課金は送信ごとにかかる）
     measurement: 単体テストで httpx.MockTransport に 503・タイムアウト・429 を返させ、再送の回数と待ちを確かめる。外部疎通テストで実際の応答の秒を記録する
     overflow: 再送しても失敗したら EngineError にして、文字起こしの失敗として扱う（録音は履歴に残る）
     breakdown:
       - part: タイムアウト
-        value: 600 秒
-        notes: 公式の SDK の既定。長い録音（25 MB まで）の送信と処理を含む
-      - part: 接続
-        value: 5 秒
-        notes: 公式の SDK の既定
+        value: 設けない
+        notes: ユーザーの判断。timeout=None で接続・応答・書き込みの待ちに上限を掛けない
       - part: 再送の回数の上限
         value: 2 回
         notes: 最初の 1 回と合わせて最大 3 回
@@ -552,8 +549,8 @@ requirements:
         value: 8 秒
         notes: 公式の SDK の既定。Retry-After がこれを超えるときは 8 秒で頭打ちにする
       - part: 文字起こしの最長
-        value: 1,816 秒
-        notes: 3 回 × 600 秒 + 待ち 8 秒 × 2。待ちが全て上限のとき
+        value: 上限なし
+        notes: タイムアウトを設けないため、応答か接続の失敗が返るまで待つ
     tests:
       - name: test_openai_transcription_retry
         summary: 一時的な失敗を上限まで送信し直す

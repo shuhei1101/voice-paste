@@ -1,0 +1,33 @@
+session=w XDG_SESSION_TYPE=wayland commit=9f64154
+3s blobs_kb=73784 started=0 failed=0
+6s blobs_kb=73784 started=0 failed=0
+9s blobs_kb=73784 started=0 failed=0
+19s blobs_kb=73784 started=0 failed=0
+22s blobs_kb=73784 started=0 failed=0
+25s blobs_kb=73784 started=0 failed=0
+28s blobs_kb=73784 started=0 failed=0
+31s blobs_kb=73784 started=0 failed=0
+34s blobs_kb=73784 started=0 failed=0
+37s blobs_kb=73784 started=0 failed=0
+40s blobs_kb=73784 started=0 failed=0
+43s blobs_kb=3088724 started=0 failed=0
+46s blobs_kb=3088724 started=1 failed=0
+{"ts": "2026-11-01T13:09:39.097949+09:00", "level": "INFO", "name": "voice_paste.integrations.whisper.client", "msg": "[ワーカー] INFO:httpx2:HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/Systran
+{"ts": "2026-11-01T13:09:39.113832+09:00", "level": "INFO", "name": "voice_paste.integrations.whisper.client", "msg": "[ワーカー] INFO:httpx2:HTTP Request: GET https://huggingface.co/api/resolve-cache/models/Systran/
+{"ts": "2026-11-01T13:09:39.126168+09:00", "level": "INFO", "name": "voice_paste.integrations.whisper.client", "msg": "[ワーカー] INFO:httpx2:HTTP Request: HEAD https://huggingface.co/Systran/faster-whisper-large-v3/
+{"ts": "2026-11-01T13:09:39.141026+09:00", "level": "INFO", "name": "voice_paste.integrations.whisper.client", "msg": "[ワーカー] INFO:httpx2:HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/Systran
+{"ts": "2026-11-01T13:09:39.145319+09:00", "level": "INFO", "name": "voice_paste.integrations.whisper.client", "msg": "[ワーカー] INFO:httpx2:HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper
+{"ts": "2026-11-01T13:09:39.156557+09:00", "level": "INFO", "name": "voice_paste.integrations.whisper.client", "msg": "[ワーカー] INFO:httpx2:HTTP Request: HEAD https://huggingface.co/Systran/faster-whisper-large-v3/
+{"ts": "2026-11-01T13:09:39.157923+09:00", "level": "INFO", "name": "voice_paste.integrations.whisper.client", "msg": "[ワーカー] INFO:httpx2:HTTP Request: GET https://huggingface.co/api/resolve-cache/models/Systran/
+{"ts": "2026-11-01T13:09:39.170010+09:00", "level": "INFO", "name": "voice_paste.integrations.whisper.client", "msg": "[ワーカー] INFO:httpx2:HTTP Request: HEAD https://huggingface.co/Systran/faster-whisper-large-v3/
+{"ts": "2026-11-01T13:09:39.172263+09:00", "level": "INFO", "name": "voice_paste.integrations.whisper.client", "msg": "[ワーカー] INFO:httpx2:HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/Systran
+{"ts": "2026-11-01T13:09:39.185591+09:00", "level": "INFO", "name": "voice_paste.integrations.whisper.client", "msg": "[ワーカー] INFO:httpx2:HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/Systran
+{"ts": "2026-11-01T13:09:39.187272+09:00", "level": "INFO", "name": "voice_paste.integrations.whisper.client", "msg": "[ワーカー] INFO:httpx2:HTTP Request: GET https://huggingface.co/api/resolve-cache/models/Systran/
+{"ts": "2026-11-01T13:09:39.200619+09:00", "level": "INFO", "name": "voice_paste.integrations.whisper.client", "msg": "[ワーカー] INFO:httpx2:HTTP Request: GET https://huggingface.co/api/resolve-cache/models/Systran/
+{"ts": "2026-11-01T13:10:19.902326+09:00", "level": "INFO", "name": "voice_paste.integrations.whisper.client", "msg": "文字起こしワーカーが立ち上がった（pid 9248・41.8 秒）"}
+{"ts": "2026-11-01T13:10:20.556790+09:00", "level": "INFO", "name": "voice_paste.main", "msg": "常駐サービスを始めた（API のポート: 47823）"}
+{"ts": "2026-11-01T13:10:27.373958+09:00", "level": "INFO", "name": "voice_paste.features.recording.service", "msg": "録音を始めた（音量を下げた: False）"}
+{"ts": "2026-11-01T13:10:27.374152+09:00", "level": "INFO", "name": "voice_paste.features.session.service", "msg": "セッションを始めた（6d84a08c-69be-4007-a322-8cccb5553dca・入口: hotkey・連続録音: Fals
+{"ts": "2026-11-01T13:10:32.791517+09:00", "level": "INFO", "name": "voice_paste.features.recording.service", "msg": "録音を捨てた"}
+{"ts": "2026-11-01T13:10:32.791675+09:00", "level": "INFO", "name": "voice_paste.features.session.service", "msg": "録音を取り消した（6d84a08c-69be-4007-a322-8cccb5553dca）"}
+3.5M	/home/shuhe/.cache/huggingface/hub/models--Systran--faster-whisper-large-v3

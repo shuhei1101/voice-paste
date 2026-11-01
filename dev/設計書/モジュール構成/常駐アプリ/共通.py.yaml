@@ -511,14 +511,14 @@ data_models:
       - name: transcribing_show_hotkeys
         type: bool
         default: 'True'
-        description: 文字起こし中の表示のボタンにホットキーを表示するか。反映は immediate。description の最初の文を設定の設計書の `title` にそろえる（設定画面の欄の名前になる）。show_hotkeys を持ち transcribing_show_hotkeys を持たないレイヤーは、重ねる前に inherit_transcribing_show_hotkeys が show_hotkeys の値を入れる
+        description: 文字起こし中の表示のボタンにホットキーを表示するか。反映は immediate。description の最初の文を設定の設計書の `title` にそろえる（設定画面の欄の名前になる）。前のバージョンの settings.toml を移すときだけ、項目が無ければ inherit_transcribing_show_hotkeys が show_hotkeys の値を入れる
     status: implemented
     methods:
       - name: _inherit_transcribing_show_hotkeys
         title: 文字起こし中の表示のホットキーの引き継ぎ
         container: shared/settings.py
         usecase: 設定を変える
-        summary: transcribing_show_hotkeys を持たない画面の設定へ、show_hotkeys の値を入れる。既定値を重ねた後の検証では transcribing_show_hotkeys が必ずあって働かないため、重ねる前のレイヤーに当てる inherit_transcribing_show_hotkeys へ移す
+        summary: transcribing_show_hotkeys を持たない画面の設定へ、show_hotkeys の値を入れる。既定値を重ねた後の検証では transcribing_show_hotkeys が必ずあって働かないため、移すときの settings.toml の dict に当てる inherit_transcribing_show_hotkeys へ移す
         kind: メソッド
         scope: internal
         returns:
@@ -1015,7 +1015,6 @@ functions:
          - SettingsError の場合、settings_file を作らずにそのまま送出する
       3. 環境の値と checkout の上書きを読む（read_yaml_mapping。無いファイルは空の dict にする。local_settings_file が None なら読まない）
          - SettingsError の場合、そのまま送出する
-         - 読んだレイヤーごとに、文字起こし中の表示のホットキーを引き継ぐ（inherit_transcribing_show_hotkeys）
       4. 既定値 → 環境の値 → checkout の上書きの順に重ねる（merge_layers）
       5. 古い AI チャットの設定を読み替え（migrate_ai_chat。ファイルは書き換えない）、model.model_validate で検証して返す
          - pydantic.ValidationError の場合、合わないキーをドット区切り（例 `transcription.local_whisper.beam_size`、出力先は `outputs[0].hotkey`、プリセットは `presets[0].url`）で並べた SettingsError を送出する
@@ -1127,10 +1126,10 @@ functions:
         expected: SettingsError にならない
       - name: test_load_settings_when_only_show_hotkeys
         case: 正常
-        summary: 録音の画面のホットキーの表示だけを書いたレイヤーは、文字起こし中の表示も同じ値で読む
+        summary: 録音の画面のホットキーの表示だけを書いたレイヤーは、文字起こし中の表示を既定値で読む
         condition: parametrize で (1) settings_file (2) local_settings_file に ui.show_hotkeys = false だけを書く
         mock: なし（一時フォルダ）
-        expected: ui.show_hotkeys も ui.transcribing_show_hotkeys も False
+        expected: ui.show_hotkeys が False、ui.transcribing_show_hotkeys が既定値の True
     refs:
       - dev/設計書/外部ライブラリ/ruamel.yaml#
     status: planned
@@ -1473,6 +1472,12 @@ functions:
         condition: '[ui] に show_hotkeys = false だけを書き、transcribing_show_hotkeys を書いていない settings.toml'
         mock: なし（一時フォルダ）
         expected: settings_file に ui.show_hotkeys と ui.transcribing_show_hotkeys が false で書かれ、load_settings の ui.transcribing_show_hotkeys が False
+      - name: test_migrate_settings_toml_when_transcribing_show_hotkeys_default
+        case: 正常
+        summary: 文字起こし中の表示が既定値と同じなら外して移し、読み直しても既定値のまま
+        condition: '[ui] に show_hotkeys = false・transcribing_show_hotkeys = true を書いた settings.toml'
+        mock: なし（一時フォルダ）
+        expected: settings_file に ui.show_hotkeys だけが false で書かれ、load_settings の ui.transcribing_show_hotkeys が True
     refs:
       - dev/設計書/外部ライブラリ/tomlkit#
     status: planned
@@ -1480,20 +1485,20 @@ functions:
     title: 文字起こし中の表示のホットキーの引き継ぎ
     kind: 関数
     container: shared/settings.py
-    usecase: 共通
+    usecase: 常駐アプリを起動する
     scope: internal
-    summary: show_hotkeys を持ち transcribing_show_hotkeys を持たないレイヤーの `ui` へ、show_hotkeys の値を入れる。既定値に重ねる前の環境の値・checkout の上書き・移すときの settings.toml の dict に当てる
+    summary: show_hotkeys を持ち transcribing_show_hotkeys を持たない `ui` へ、show_hotkeys の値を入れる。移すときの settings.toml の dict にだけ当てる
     args:
       - name: layer
         type: dict[str, Any]
         required: true
         passing: positional
-        description: 重ねる前の 1 つのレイヤー（素の dict）
+        description: 移すときに読んだ settings.toml の素の dict
     returns:
       type: dict[str, Any]
       description: transcribing_show_hotkeys を入れたコピー。入れる必要が無いときは layer をそのまま返す
     process: |-
-      1. layer の `ui` が dict でないか、transcribing_show_hotkeys を持つか、show_hotkeys を持たないときは layer をそのまま返す（両方を持たないときは前のレイヤーの値に任せる）
+      1. layer の `ui` が dict でないか、transcribing_show_hotkeys を持つか、show_hotkeys を持たないときは layer をそのまま返す（両方を持たないときは既定値に任せる）
       2. layer のコピーの `ui` に transcribing_show_hotkeys として show_hotkeys の値を入れて返す（layer は書き換えない）
     unit_tests:
       - name: test_inherit_transcribing_show_hotkeys_when_missing

@@ -671,7 +671,7 @@ settings:
     default: 'true'
     description: '`true` のとき、文字起こし中の表示の出力先の切り替えのボタンの名前の下にホットキーを出す。`false` のときは名前だけを出す。ホットキーでの切り替えは変えない。'
     reload: immediate
-    missing: '`ui.show_hotkeys` を持ち、この項目を持たないレイヤー（`settings.yaml`・`settings.local.yaml`、移すときの `settings.toml`）は `ui.show_hotkeys` の値で読む（どちらも持たないレイヤーは前のレイヤーの値に従う）'
+    missing: 前のバージョンの `settings.toml` を移すとき、この項目が無ければ `ui.show_hotkeys` の値で移す（`ui.show_hotkeys` も無ければ `true`）。`settings.yaml`・`settings.local.yaml` に無ければ既定値で読む
     reason: 1 つだった `ui.show_hotkeys` を分けた後も、更新した直後の文字起こし中の表示の出し方を今の値のとおりにするため
     status: planned
     implementation: src/voice_paste/shared/settings.py

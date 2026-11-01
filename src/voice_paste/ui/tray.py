@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from enum import StrEnum
 from pathlib import Path
 from typing import Literal
@@ -66,10 +67,13 @@ COPY_COMPLETED_BODY: str = "任意の場所に貼り付けてください。こ�
 
 STARTUP_BODY_FORMATS: dict[str, str] = {
     "engine_unavailable": "文字起こしのエンジンを準備できませんでした（{reason}）。設定を修正して再起動してください。",
-    "settings_invalid": "設定ファイルを読み込めませんでした（{reason}）。設定フォルダの settings.toml を修正して再起動してください。",
+    "settings_invalid": "設定ファイルを読み込めませんでした（{reason}）。{paths} を修正して再起動してください。",
     "paste_unavailable": "貼り付けのキーを送信できません（{reason}）。/dev/uinput の権限を設定して PC を再起動してください（使い方「起動と設定」）。「コピーのみ」は使えます。",
 }
 """起動に失敗したときの通知の本文（知らせの種類ごと）。"""
+
+PATH_SEPARATOR: str = "・"
+"""設定を読めないときの通知の本文で、読めなかったファイルのパスをつなぐ文字。"""
 
 
 class TrayState(StrEnum):
@@ -246,7 +250,9 @@ class Tray(QObject):
         font.setBold(enabled)
         self._show_window_action.setFont(font)
 
-    def show_failure(self, event: FailureEvent, detail: str | None) -> None:
+    def show_failure(
+        self, event: FailureEvent, detail: str | None, *, paths: Sequence[Path] = ()
+    ) -> None:
         """知らせの種類の見出しと本文で、警告のアイコンの Windows の通知を出す。通知を押すとログフォルダを開く。"""
         # 押されたときにログフォルダを開くよう、コピーの完了の起こした文字を手放す
         self._copied_text = None
@@ -254,7 +260,10 @@ class Tray(QObject):
         if event == "microphone_unavailable":
             body = MICROPHONE_BODY
         elif event in STARTUP_BODY_FORMATS:
-            body = STARTUP_BODY_FORMATS[event].format(reason=detail)
+            # 設定を読めないときは、読めなかったファイルのパスを「・」でつないで出す
+            body = STARTUP_BODY_FORMATS[event].format(
+                reason=detail, paths=PATH_SEPARATOR.join(str(path) for path in paths)
+            )
         else:
             body = (f"{detail}。" if detail else "") + FAILURE_BODY_SUFFIXES[event]
         self._icon.showMessage(

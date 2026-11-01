@@ -73,6 +73,9 @@ class UiDeps:
     reset_settings: Callable[[], tuple[Settings, bool]]
     """環境の値を空にして読み直した設定を効かせ、その設定と再起動が要る項目が変わったかを返す（reset_applied_settings）。"""
 
+    default_settings: Callable[[], Settings]
+    """既定の設定（load_default_settings）。設定画面の入力エラーの数値の例に使う。"""
+
     settings_dir: Path
     """settings.yaml のあるフォルダ。"""
 

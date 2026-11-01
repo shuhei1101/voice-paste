@@ -87,6 +87,8 @@ def make_ui_deps(
         fields["reports_progress"] = True
     if "reset_settings" in {field.name for field in dataclasses.fields(UiDepsModel)}:
         fields["reset_settings"] = MagicMock(return_value=(load_test_default_settings(), False))
+    if "default_settings" in {field.name for field in dataclasses.fields(UiDepsModel)}:
+        fields["default_settings"] = MagicMock(return_value=load_test_default_settings())
     fields.update(overrides)
     return UiDepsModel(**fields)
 

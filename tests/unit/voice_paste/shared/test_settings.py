@@ -278,6 +278,47 @@ def test_load_settings_when_invalid_value(
 
 
 @pytest.mark.parametrize(
+    ("written_fields", "expected_fields"),
+    [
+        pytest.param(("settings_file",), ("settings_file",), id="settings_file"),
+        pytest.param(
+            ("settings_file", "local_settings_file"),
+            ("settings_file", "local_settings_file"),
+            id="settings_file_and_local",
+        ),
+        pytest.param((), ("defaults_file",), id="defaults_only"),
+    ],
+)
+def test_load_settings_when_invalid_value_paths(
+    paths: AppPaths,
+    settings_model: type[Settings],
+    tmp_path: Path,
+    written_fields: tuple[str, ...],
+    expected_fields: tuple[str, ...],
+) -> None:
+    """重ねた値が合わないときは、読んだ環境の値と checkout の上書きのファイルを paths に持つ（異常系）。"""
+    import dataclasses
+
+    from voice_paste.shared.errors import SettingsError
+    from voice_paste.shared.settings import load_settings
+
+    # 準備（既定値を一時フォルダへ写して beam_size を合わない値にし、渡したファイルにも合わない値を置く）
+    copied = dataclasses.replace(paths, defaults_file=tmp_path / "config" / "defaults.yaml")
+    copied.defaults_file.parent.mkdir(parents=True)
+    copied.defaults_file.write_text(
+        DEFAULTS_FILE.read_text(encoding="utf-8").replace("beam_size: 10", 'beam_size: "x"'),
+        encoding="utf-8",
+    )
+    for field in written_fields:
+        _write(getattr(copied, field), 'transcription:\n  local_whisper:\n    beam_size: "x"\n')
+
+    # 実行・検証
+    with pytest.raises(SettingsError, match=r"transcription\.local_whisper\.beam_size") as exc_info:
+        load_settings(copied, settings_model)
+    assert exc_info.value.paths == tuple(getattr(copied, field) for field in expected_fields)
+
+
+@pytest.mark.parametrize(
     ("content", "expected_key"),
     [
         pytest.param("recording:\n  volum_percent: 30\n", r"recording\.volum_percent", id="typo"),
@@ -357,6 +398,7 @@ def test_load_settings_when_broken_yaml(
     with pytest.raises(SettingsError, match=r"3行目 \d+列目") as exc_info:
         load_settings(copied, settings_model)
     assert str(broken_path) in str(exc_info.value)
+    assert exc_info.value.paths == (broken_path,)
     assert copied.settings_file.read_text(encoding="utf-8") == settings_text
 
 

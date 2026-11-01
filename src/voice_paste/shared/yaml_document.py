@@ -68,15 +68,17 @@ def read_yaml_document(path: Path) -> CommentedMap:
     try:
         loaded = make_yaml().load(path.read_text(encoding="utf-8"))
     except YAMLError as error:
-        raise SettingsError(f"設定ファイルを読めない（{path}: {_describe_yaml_error(error)}）") from error
+        raise SettingsError(
+            f"設定ファイルを読めない（{path}: {_describe_yaml_error(error)}）", paths=(path,)
+        ) from error
     except UnicodeDecodeError as error:
-        raise SettingsError(f"設定ファイルを読めない（{path}: {error}）") from error
+        raise SettingsError(f"設定ファイルを読めない（{path}: {error}）", paths=(path,)) from error
     # 空のファイルは空の文書
     if loaded is None:
         return CommentedMap()
     # 一番上が表でないファイルは断る
     if not isinstance(loaded, CommentedMap):
-        raise SettingsError(f"設定ファイルを読めない（{path}: 一番上が表でない）")
+        raise SettingsError(f"設定ファイルを読めない（{path}: 一番上が表でない）", paths=(path,))
     return loaded
 
 

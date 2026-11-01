@@ -613,6 +613,7 @@ def test_main_when_invalid_settings(
     wiring.tray.show_failure.assert_called_once()
     assert wiring.tray.show_failure.call_args.args[0] == "settings_invalid"
     assert "transcription.local_whisper.beam_size" in wiring.tray.show_failure.call_args.args[1]
+    assert wiring.tray.show_failure.call_args.kwargs == {"paths": (data_dir / "settings.yaml",)}
     assert "transcription.local_whisper.beam_size" in str(
         read_log_records(data_dir / "log", "ERROR")
     )

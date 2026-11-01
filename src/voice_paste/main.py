@@ -113,6 +113,7 @@ from voice_paste.shared.settings import (
     build_settings_model,
     has_restart_change,
     join_hint_words,
+    load_default_settings,
     load_settings,
     reset_settings,
     save_settings,
@@ -1004,6 +1005,7 @@ def build_ui_deps(
         ),
         copy=copy_to_clipboard,
         reset_settings=reset_settings,
+        default_settings=partial(load_default_settings, paths.defaults_file, SETTINGS_MODEL),
         hidden_setting_keys=hidden_setting_keys(unavailable_features(CURRENT_OS)),
         reports_progress=_reports_progress(store.get()),
     )
@@ -1077,6 +1079,7 @@ def _build_idle_ui_deps(
         reset_settings=partial(
             reset_applied_settings, paths=paths, store=store, model=SETTINGS_MODEL
         ),
+        default_settings=partial(load_default_settings, paths.defaults_file, SETTINGS_MODEL),
         hidden_setting_keys=hidden_setting_keys(unavailable_features(CURRENT_OS)),
         reports_progress=_reports_progress(store.get()),
     )
@@ -1347,7 +1350,7 @@ def _start_services(
     except SettingsError as error:
         logger.error(f"起動に失敗した（{error}）")
         tray.set_failed()
-        tray.show_failure("settings_invalid", str(error))
+        tray.show_failure("settings_invalid", str(error), paths=error.paths)
         return
 
     # 6. 設定の ui.theme で画面の明暗を当て直し、ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を削除する（処理中のセッションは無いため、一時の音声も全て削除する対象にする）

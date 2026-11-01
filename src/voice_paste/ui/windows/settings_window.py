@@ -444,18 +444,35 @@ def _range_text(info: FieldInfo) -> str:
     return f"{upper} 以下の値を入れてください。"
 
 
+def _number_example(info: FieldInfo, location: tuple[int | str, ...], defaults: Settings) -> Any:
+    """数値の欄の例にする値を返す。項目が既定値を持てばその値、持たなければ defaults の同じキーの値。"""
+    # 一覧の要素のモデルの項目: 項目の既定値
+    if not info.is_required():
+        return info.get_default(call_default_factory=True)
+    # 表のまとまりのモデルの項目: 既定の設定の同じキーの値
+    value: Any = defaults
+    for part in location:
+        value = getattr(value, str(part))
+    return value
+
+
 def to_field_message(
-    error: Any, *, model: type[Settings], name_of: Callable[[str], str] = lambda key: key
+    error: Any,
+    *,
+    model: type[Settings],
+    defaults: Settings,
+    name_of: Callable[[str], str] = lambda key: key,
 ) -> str:
     """pydantic の失敗 1 件を、画面設計「設定画面」の入力チェックの文言にする。
 
     model は失敗の場所から項目（既定値・範囲）を引く設定のモデル。
+    defaults は既定の設定で、既定値を持たない項目の数値の例をここから引く。
     name_of は設定のキーから欄の名前を引く関数（ホットキーが重なった欄の名前を出すのに使う）。
     """
     error_type = error["type"]
     info = _field_info_at(tuple(error["loc"]), model)
     if error_type in NUMBER_ERROR_TYPES and info is not None:
-        return f"数値を入れてください（例: {info.get_default(call_default_factory=True)}）。"
+        return f"数値を入れてください（例: {_number_example(info, tuple(error['loc']), defaults)}）。"
     if error_type in RANGE_ERROR_TYPES and info is not None:
         return _range_text(info)
     if error_type == "string_too_short":
@@ -1458,12 +1475,14 @@ class SettingsWindow(QWidget):
         try:
             settings = self._settings_model.model_validate(self.collect())
         except ValidationError as error:
+            defaults = self._deps.default_settings()
             failures = [
                 (
                     format_error_location(tuple(failure["loc"])),
                     to_field_message(
                         failure,
                         model=self._settings_model,
+                        defaults=defaults,
                         name_of=lambda other, own=format_error_location(tuple(failure["loc"])): (
                             self._label_of(other, own)
                         ),

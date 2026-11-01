@@ -1234,7 +1234,9 @@ def test_parse_hotkey_when_modifier_only() -> None:
 # === to_field_message ===
 
 
-def test_to_field_message_when_not_number(settings_model: type[Settings]) -> None:
+def test_to_field_message_when_not_number(
+    settings_model: type[Settings], default_settings: Settings
+) -> None:
     """数値でない文字（正常系）。"""
     from pydantic import ValidationError
 
@@ -1257,13 +1259,36 @@ def test_to_field_message_when_not_number(settings_model: type[Settings]) -> Non
         )
 
     # 実行
-    message = to_field_message(exc_info.value.errors()[0], model=settings_model)
+    message = to_field_message(exc_info.value.errors()[0], model=settings_model, defaults=default_settings)
 
     # 検証
     assert message == "数値を入れてください（例: 0.5）。"
 
 
-def test_to_field_message_when_out_of_range(settings_model: type[Settings]) -> None:
+def test_to_field_message_when_not_number_in_table(
+    settings_model: type[Settings], make_settings: MakeSettings
+) -> None:
+    """表のまとまりの項目の数値の例は、既定の設定の値から引く（正常系）。"""
+    from pydantic import ValidationError
+
+    from voice_paste.ui.windows.settings_window import to_field_message
+
+    # 準備
+    defaults = make_settings({"transcription": {"local_whisper": {"beam_size": 7}}})
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate(
+            make_test_document({"transcription": {"local_whisper": {"beam_size": "abc"}}})
+        )
+
+    # 実行
+    message = to_field_message(exc_info.value.errors()[0], model=settings_model, defaults=defaults)
+
+    # 検証
+    assert message == "数値を入れてください（例: 7）。"
+
+def test_to_field_message_when_out_of_range(
+    settings_model: type[Settings], default_settings: Settings
+) -> None:
     """範囲の外（正常系）。"""
     from pydantic import ValidationError
 
@@ -1274,13 +1299,15 @@ def test_to_field_message_when_out_of_range(settings_model: type[Settings]) -> N
         settings_model.model_validate(make_test_document({"api": {"port": 80}}))
 
     # 実行
-    message = to_field_message(exc_info.value.errors()[0], model=settings_model)
+    message = to_field_message(exc_info.value.errors()[0], model=settings_model, defaults=default_settings)
 
     # 検証
     assert message == "1024〜65535 の値を入れてください。"
 
 
-def test_to_field_message_when_preset_url_empty(settings_model: type[Settings]) -> None:
+def test_to_field_message_when_preset_url_empty(
+    settings_model: type[Settings], default_settings: Settings
+) -> None:
     """プリセットの URL が空（正常系）。"""
     from pydantic import ValidationError
 
@@ -1295,13 +1322,15 @@ def test_to_field_message_when_preset_url_empty(settings_model: type[Settings]) 
         )
 
     # 実行
-    message = to_field_message(exc_info.value.errors()[0], model=settings_model)
+    message = to_field_message(exc_info.value.errors()[0], model=settings_model, defaults=default_settings)
 
     # 検証
     assert message == "URL を入れてください（例: https://example.com/hook）。"
 
 
-def test_to_field_message_when_openai_base_url_empty(settings_model: type[Settings]) -> None:
+def test_to_field_message_when_openai_base_url_empty(
+    settings_model: type[Settings], default_settings: Settings
+) -> None:
     """OpenAI の API の URL が空（正常系）。"""
     from pydantic import ValidationError
 
@@ -1314,13 +1343,15 @@ def test_to_field_message_when_openai_base_url_empty(settings_model: type[Settin
         )
 
     # 実行
-    message = to_field_message(exc_info.value.errors()[0], model=settings_model)
+    message = to_field_message(exc_info.value.errors()[0], model=settings_model, defaults=default_settings)
 
     # 検証
     assert message == "API の URL を入れてください（例: https://api.openai.com/v1）。"
 
 
-def test_to_field_message_when_hint_too_long(settings_model: type[Settings]) -> None:
+def test_to_field_message_when_hint_too_long(
+    settings_model: type[Settings], default_settings: Settings
+) -> None:
     """有効なヒントが長すぎる（正常系）。"""
     from pydantic import ValidationError
 
@@ -1335,7 +1366,7 @@ def test_to_field_message_when_hint_too_long(settings_model: type[Settings]) -> 
         )
 
     # 実行
-    message = to_field_message(exc_info.value.errors()[0], model=settings_model)
+    message = to_field_message(exc_info.value.errors()[0], model=settings_model, defaults=default_settings)
 
     # 検証
     assert message == (
@@ -1343,7 +1374,9 @@ def test_to_field_message_when_hint_too_long(settings_model: type[Settings]) -> 
     )
 
 
-def test_to_field_message_when_hint_preset_name_overlap(settings_model: type[Settings]) -> None:
+def test_to_field_message_when_hint_preset_name_overlap(
+    settings_model: type[Settings], default_settings: Settings
+) -> None:
     """表記のヒントのプリセットの名前が重なる（正常系）。"""
     from pydantic import ValidationError
 
@@ -1358,13 +1391,15 @@ def test_to_field_message_when_hint_preset_name_overlap(settings_model: type[Set
         )
 
     # 実行
-    message = to_field_message(exc_info.value.errors()[0], model=settings_model)
+    message = to_field_message(exc_info.value.errors()[0], model=settings_model, defaults=default_settings)
 
     # 検証
     assert message == "プリセット「開発」と同じ名前です。別の名前にしてください。"
 
 
-def test_to_field_message_when_web_origin_not_form(settings_model: type[Settings]) -> None:
+def test_to_field_message_when_web_origin_not_form(
+    settings_model: type[Settings], default_settings: Settings
+) -> None:
     """形式の違う許す Origin（正常系）。"""
     from pydantic import ValidationError
 
@@ -1386,7 +1421,7 @@ def test_to_field_message_when_web_origin_not_form(settings_model: type[Settings
         )
 
     # 実行
-    message = to_field_message(exc_info.value.errors()[0], model=settings_model)
+    message = to_field_message(exc_info.value.errors()[0], model=settings_model, defaults=default_settings)
 
     # 検証
     assert message == (

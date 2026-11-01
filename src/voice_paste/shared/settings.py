@@ -1031,20 +1031,22 @@ def migrate_ai_chat(document: dict[str, Any]) -> dict[str, Any]:
 # === 読み込み ===
 
 
-def _validate(model: type[Settings], data: dict[str, Any]) -> Settings:
-    """model で検証する。合わなければ、合わないキーを並べた SettingsError を送出する。"""
+def _validate(model: type[Settings], data: dict[str, Any], *, paths: tuple[Path, ...]) -> Settings:
+    """model で検証する。合わなければ、合わないキーを並べ、paths を持つ SettingsError を送出する。"""
     try:
         return model.model_validate(data)
     except ValidationError as error:
         failures = "、".join(f"{key}: {reason}" for key, reason in list_validation_failures(error))
-        raise SettingsError(f"設定の値が合わない（{failures}）") from error
+        raise SettingsError(f"設定の値が合わない（{failures}）", paths=paths) from error
 
 
 def _read_defaults(defaults_file: Path, *, os_kind: OsKind = CURRENT_OS) -> dict[str, Any]:
     """既定値のファイルを読み、os_overrides のうち os_kind の分を重ねて、os_overrides を外した dict を返す。"""
     # 1. 既定値のファイルが無ければ断る
     if not defaults_file.exists():
-        raise SettingsError(f"設定ファイルを読めない（{defaults_file}: ファイルが無い）")
+        raise SettingsError(
+            f"設定ファイルを読めない（{defaults_file}: ファイルが無い）", paths=(defaults_file,)
+        )
 
     # 2. 読む
     defaults = read_yaml_mapping(defaults_file)
@@ -1061,7 +1063,7 @@ def load_default_settings(
     defaults_file: Path, model: type[Settings], *, os_kind: OsKind = CURRENT_OS
 ) -> Settings:
     """既定値のファイルに、os_kind の上書きを重ねて検証した既定の設定を返す。"""
-    return _validate(model, _read_defaults(defaults_file, os_kind=os_kind))
+    return _validate(model, _read_defaults(defaults_file, os_kind=os_kind), paths=(defaults_file,))
 
 
 def load_settings(paths: AppPaths, model: type[Settings]) -> Settings:
@@ -1083,8 +1085,9 @@ def load_settings(paths: AppPaths, model: type[Settings]) -> Settings:
         # 古い AI チャットの設定はレイヤーごとに読み替える（重ねた後では既定値の preset_options が先にあり、移す値が負けるため）
         layers.append(migrate_ai_chat(read_yaml_mapping(layer_file)))
 
-    # 4. 重ねて検証する
-    settings = _validate(model, merge_layers(*layers))
+    # 4. 重ねて検証する（合わないときは、読んだ環境の値・checkout の上書きのファイルを示す。どちらも読んでいなければ既定値のファイル）
+    layer_files = tuple(read_files[1:]) or (paths.defaults_file,)
+    settings = _validate(model, merge_layers(*layers), paths=layer_files)
     logger.info(f"設定を読んだ（{'・'.join(str(path) for path in read_files)}）")
     return settings
 
@@ -1214,7 +1217,9 @@ def migrate_settings_toml(
     try:
         legacy = tomlkit.parse(legacy_settings_file.read_text(encoding="utf-8")).unwrap()
     except TOMLKitError as error:
-        raise SettingsError(f"設定ファイルを読めない（{legacy_settings_file}: {error}）") from error
+        raise SettingsError(
+            f"設定ファイルを読めない（{legacy_settings_file}: {error}）", paths=(legacy_settings_file,)
+        ) from error
 
     # 2. 古い AI チャットの設定を読み替え、文字起こし中の表示のホットキーを引き継ぐ
     migrated = inherit_transcribing_show_hotkeys(migrate_ai_chat(legacy))

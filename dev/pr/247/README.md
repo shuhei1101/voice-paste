@@ -1,0 +1,1 @@
+# PoC: ruamel.yaml でコメントを保った設定の round-trip と settings.toml からの移行を確かめる

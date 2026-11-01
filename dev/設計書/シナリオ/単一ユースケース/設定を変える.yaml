@@ -99,7 +99,7 @@ scenarios:
     expected:
       - '`settings.yaml` に設定のキーが無く、全てのキーが `config/defaults.yaml` の値（`settings.local.yaml` があるキーはその値）で動いている'
       - 反映が `immediate` のキーは動いている常駐アプリに効き、`restart` のキーは再起動するまで前の値のまま動く
-      - 設定画面が開いたまま、欄に既定の値が入っている
+      - 設定画面が開いたまま、欄に既定の値（`settings.local.yaml` があるキーはその値）が入っている
     test: test_normal_when_reset
   - name: 正常シナリオ（取り消す）
     setup:

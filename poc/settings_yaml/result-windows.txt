@@ -1,0 +1,139 @@
+# Windows / Python 3.14.3 / ruamel.yaml 0.19.1 / preferred encoding=cp932
+## OK 値の変更
+変わった行: ['-   start: ctrl+shift+r  # 行末のコメント', '+   start: ctrl+alt+r    # 行末のコメント']
+
+## OK キーの追加
+消えた・変わった既存の行: []
+そのまま追加したとき:
+# voice-paste の環境の値
+# 先頭のコメント
+
+hotkeys:
+  # 録音開始
+  start: ctrl+shift+r  # 行末のコメント
+  cancel: f12
+
+# 文字起こし
+transcription:
+  beam_size: 3
+  # VAD の切り替え
+  vad: false
+
+# 末尾のコメント
+  engine: openai
+glossary:
+  presets:
+    - name: 追加
+      files:
+        - a.csv
+        - b.csv
+
+コメントを移して追加したとき:
+# voice-paste の環境の値
+# 先頭のコメント
+
+hotkeys:
+  # 録音開始
+  start: ctrl+shift+r  # 行末のコメント
+  cancel: f12
+  pause: f9
+
+# 文字起こし
+transcription:
+  beam_size: 3
+  # VAD の切り替え
+  vad: false
+  engine: openai
+glossary:
+  presets:
+    - name: 追加
+      files:
+        - a.csv
+        - b.csv
+
+# 末尾のコメント
+
+
+## OK キーの削除
+hotkeys.cancel: del だけで失うコメント=['文字起こし'] / 移して失うコメント=[]
+transcription.vad: del だけで失うコメント=['末尾のコメント'] / 移して失うコメント=[]
+hotkeys.start: del だけで失うコメント=['行末のコメント'] / 移して失うコメント=['行末のコメント']
+transcription.beam_size: del だけで失うコメント=['VAD の切り替え'] / 移して失うコメント=[]
+transcription を表ごと外した後:
+# voice-paste の環境の値
+# 先頭のコメント
+
+hotkeys:
+  # 録音開始
+  start: ctrl+shift+r  # 行末のコメント
+  cancel: f12
+
+# 文字起こし
+
+
+# 末尾のコメント
+
+
+## OK 移行
+書いた settings.yaml:
+note: 移行のメモ
+hotkeys:
+  start: ctrl+shift+r
+transcription:
+  engine: openai
+  vad: false
+glossary:
+  presets:
+    - name: 既定
+      files:
+        - default.csv
+        - extra.csv
+strip_phrases:
+  - '*'
+  - 'yes'
+  - 'no'
+  - 'on'
+  - 'off'
+  - '0123'
+  - '123'
+  - '1.5'
+  - 'a: b'
+  - 日本語の文言
+  - 'null'
+  - '~'
+  - 'true'
+  - '- x'
+  - '#x'
+
+
+## OK 特別な意味を持つ文字列
+書いた値:
+values:
+  - '*'
+  - 'yes'
+  - 'no'
+  - 'on'
+  - 'off'
+  - '0123'
+  - '123'
+  - '1.5'
+  - 'a: b'
+  - 日本語の文言
+  - 'null'
+  - '~'
+  - 'true'
+  - '- x'
+  - '#x'
+引用符なしの * を読んだとき: ruamel.yaml.scanner.ScannerError
+YAML 1.1 で読んだ値: ['*', 'yes', 'no', 'on', 'off', '0123', '123', '1.5', 'a: b', '日本語の文言', 'null', '~', 'true', '- x', '#x']
+
+## OK 3 レイヤーの重ね合わせ
+{'hotkeys': {'start': 'ctrl+alt+b', 'cancel': 'f12'}, 'transcription': {'engine': 'local_whisper', 'beam_size': 3, 'vad': False}, 'glossary': {'presets': [{'name': '既定', 'files': ['default.csv']}]}, 'strip_phrases': ['えーと'], 'note': ''}
+
+## OK 読めない YAML
+ScannerError > MarkedYAMLError > YAMLError > Exception / line=3 column=10
+mapping values are not allowed here
+  in "<unicode string>", line 3, column 10:
+       cancel: esc
+             ^ (line: 3)
+

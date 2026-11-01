@@ -466,6 +466,17 @@ def test_menu_settings_enabled_when_idle(make_ui: Callable[..., Ui]) -> None:
     assert _label(action) == "設定…"
 
 
+def test_menu_settings_enabled_when_starting(make_ui: Callable[..., Ui]) -> None:
+    """準備中（起動してから待機中か失敗になるまで）は「設定…」のまま押せない。"""
+    # 実行
+    ui = make_ui()
+
+    # 検証
+    action = _action(ui.tray, "menu_settings")
+    assert _label(action) == "設定…"
+    assert not action.isEnabled()
+
+
 def test_menu_settings_when_busy(make_ui: Callable[..., Ui]) -> None:
     """録音から届けるまでの間（API から始めた録音の間を含む）は「設定…（処理中）」にして押せない。"""
     # 準備

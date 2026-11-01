@@ -1,0 +1,28 @@
+$ git rev-parse --short HEAD
+1f57b330
+$ .venv/bin/python -m pytest tests/e2e --run-e2e
+============================= test session starts ==============================
+platform linux -- Python 3.14.10, pytest-9.1.1, pluggy-1.7.0
+rootdir: /home/shuhe/vp-241
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collected 128 items
+
+tests/e2e/単一ユースケース/test_change_settings.py ...........           [  8%]
+tests/e2e/単一ユースケース/test_deliver_transcript.py .................. [ 22%]
+...                                                                      [ 25%]
+tests/e2e/単一ユースケース/test_operate_from_tray.py .....s.             [ 30%]
+tests/e2e/単一ユースケース/test_receive_result_in_browser.py sssssss     [ 35%]
+tests/e2e/単一ユースケース/test_record.py ...................            [ 50%]
+tests/e2e/単一ユースケース/test_send_audio_from_browser.py sssssssss     [ 57%]
+tests/e2e/単一ユースケース/test_start_resident_app.py .........          [ 64%]
+tests/e2e/単一ユースケース/test_transcribe_recording.py .............sss [ 77%]
+...s                                                                     [ 80%]
+tests/e2e/複合ユースケース/test_paste_voice_text.py ......               [ 85%]
+tests/e2e/複合ユースケース/test_transcribe_continuously_from_other_system.py . [ 85%]
+......                                                                   [ 90%]
+tests/e2e/複合ユースケース/test_transcribe_from_browser.py sssssss       [ 96%]
+tests/e2e/複合ユースケース/test_transcribe_from_other_system.py .....    [100%]
+
+================= 100 passed, 28 skipped in 2149.50s (0:35:49) =================
+exit=0

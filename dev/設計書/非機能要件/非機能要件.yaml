@@ -7,7 +7,7 @@ requirements:
     source_kind: ユーザー要望
     source: https://github.com/shuhei1101/voice-paste/blob/develop/dev/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/1_%E7%9B%AE%E7%9A%84%E3%81%A8%E5%88%B6%E7%B4%84.md
     value: Windows・Linux（Ubuntu 24.04 の Xorg のセッションと Wayland のセッション）
-    rationale: '方針の制約（Windows のショートカットから起動する・録音と貼り付けは端末の OS の機能）。Linux は #196 で起動までを対応し、Linux ではシステムの音量を変えない。Linux の起動の手段は起動のスクリプト（`voice-paste.sh`）とログイン時の自動起動の `.desktop` で、OS のパッケージ `xclip`・`libportaudio2`・`libxcb-cursor0` が要る（#199）。Wayland のセッションは、貼り付けのキーと Enter を uinput の仮想のキーボードから送信するため、`/dev/uinput` の権限（udev の規則と `input` グループへの追加の後に再起動）が要る（#200）。Mac は #9 で扱う'
+    rationale: '方針の制約（Windows のショートカットから起動する・録音と貼り付けは端末の OS の機能）。Linux は #196 で起動までを対応し、Linux ではシステムの音量を変えない。Linux の起動の手段は起動のスクリプト（`voice-paste.sh`）とログイン時の自動起動の `.desktop` で、OS のパッケージ `xclip`・`libportaudio2`・`libxcb-cursor0` と、依存の `evdev` のビルドに使う `gcc`・`linux-libc-dev` が要る（#199・#222）。Wayland のセッションは、貼り付けのキーと Enter を uinput の仮想のキーボードから送信するため、`/dev/uinput` の権限（udev の規則と `input` グループへの追加の後に再起動）が要る（#200）。Wayland のセッションで端末アプリへ Ctrl+Shift+V で貼り付けるには、GNOME Shell の拡張 Focused Window D-Bus が要る（無ければ設定の貼り付けのキーを送信する。#223）。Mac は #9 で扱う'
   - name: 入力方式
     english_name: input_method
     category: 動作環境

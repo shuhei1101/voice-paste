@@ -60,6 +60,24 @@ def test_init_shows_icon_before_tooltip(
 # === set_state ===
 
 
+def test_set_state_when_starting(qapp: QApplication, tmp_path: Path) -> None:
+    """準備中は録音と設定を押せず、再起動と終了は押せる（正常系）。"""
+    from voice_paste.ui.tray import TrayState
+
+    # 準備
+    tray = make_tray(tmp_path)
+
+    # 実行
+    tray.set_state(TrayState.STARTING, busy=False)
+
+    # 検証
+    assert not _menu_action(tray, "録音を開始").isEnabled()
+    assert not _menu_action(tray, "設定…").isEnabled()
+    assert _menu_action(tray, "再起動").isEnabled()
+    assert _menu_action(tray, "終了").isEnabled()
+    assert tray._icon.toolTip() == "voice-paste: 準備中"
+
+
 def test_set_state_when_busy(qapp: QApplication, tmp_path: Path) -> None:
     """処理中は録音と設定を押せなくする（正常系）。"""
     from voice_paste.ui.tray import TrayState

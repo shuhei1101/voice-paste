@@ -336,6 +336,85 @@ def test_group_menu_action(
     assert not _field(window, hidden_key).isVisible()
 
 
+@pytest.fixture
+def app_point_size(qapp: QApplication) -> Iterator[Callable[[int], None]]:
+    """QApplication の文字の大きさ（pt）を変える関数を返す。テストの後に元の文字に戻す。"""
+    original = qapp.font()
+
+    def _set(point_size: int) -> None:
+        """窓を開く前に、文字の大きさを変える。"""
+        font = qapp.font()
+        font.setPointSize(point_size)
+        qapp.setFont(font)
+
+    yield _set
+    qapp.setFont(original)
+
+
+GROUP_MENU_SHORT_WINDOW_HEIGHT_PX = 200
+"""まとまりのメニューの全ての項目が収まらず、縦のスクロールバーが出る窓の高さ。"""
+
+
+def _shrink_until_vertical_scroll_bar(opened: Opened, qapp: QApplication) -> QListWidget:
+    """窓の高さを縮めて、まとまりのメニューに縦のスクロールバーを出す。"""
+    opened.window.resize(opened.window.width(), GROUP_MENU_SHORT_WINDOW_HEIGHT_PX)
+    qapp.processEvents()
+    return find(opened.window, QListWidget, "group_menu")
+
+
+def test_group_menu_width_when_items_fit_min_width(
+    open_window: Callable[..., Opened], app_point_size: Callable[[int], None]
+) -> None:
+    """最も長い項目が収まるときは、幅は下限の 160px のままで、横のスクロールバーを出さない。"""
+    # 準備
+    app_point_size(6)
+
+    # 実行
+    menu = find(open_window().window, QListWidget, "group_menu")
+
+    # 検証
+    assert menu.width() == 160
+    assert menu.sizeHintForColumn(0) <= menu.viewport().width()
+    assert menu.horizontalScrollBarPolicy() == Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+    assert not menu.horizontalScrollBar().isVisible()
+
+
+def test_group_menu_width_when_items_exceed_min_width(
+    open_window: Callable[..., Opened], app_point_size: Callable[[int], None]
+) -> None:
+    """最も長い項目が 160px に収まらないときだけ、項目が横のスクロールバーなしで収まる幅に広げる。"""
+    # 準備
+    app_point_size(20)
+
+    # 実行
+    menu = find(open_window().window, QListWidget, "group_menu")
+
+    # 検証
+    assert menu.width() > 160
+    assert menu.sizeHintForColumn(0) <= menu.viewport().width()
+    assert not menu.horizontalScrollBar().isVisible()
+
+
+def test_group_menu_width_when_vertical_scroll_bar(
+    qapp: QApplication, open_window: Callable[..., Opened], app_point_size: Callable[[int], None]
+) -> None:
+    """縦のスクロールバーが出たら、その幅も加えて広げ、項目は横のスクロールバーなしで収まる。"""
+    # 準備
+    app_point_size(20)
+    opened = open_window()
+    width_before = find(opened.window, QListWidget, "group_menu").width()
+
+    # 実行
+    menu = _shrink_until_vertical_scroll_bar(opened, qapp)
+
+    # 検証
+    scroll_bar = menu.verticalScrollBar()
+    assert scroll_bar.isVisible()
+    assert menu.width() == width_before + scroll_bar.sizeHint().width()
+    assert menu.sizeHintForColumn(0) <= menu.viewport().width()
+    assert not menu.horizontalScrollBar().isVisible()
+
+
 def test_group_menu_keeps_values(open_window: Callable[..., Opened]) -> None:
     """切り替えても入れた値は削除しない。"""
     # 準備

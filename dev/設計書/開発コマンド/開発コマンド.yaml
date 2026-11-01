@@ -109,7 +109,7 @@ categories:
   - name: 起動・停止
     prerequisites:
       - Ubuntu 24.04 の Xorg のセッションの端末で、『環境構築（クローン直後）』を流しておく
-      - クリップボード・録音・Qt の xcb プラグインが使う OS のパッケージを `sudo apt install xclip libportaudio2 libxcb-cursor0` で入れておく
+      - クリップボード・録音・Qt の xcb プラグインが使う OS のパッケージと、依存の `evdev` のビルドに使う `gcc`・`linux-libc-dev` を `sudo apt install xclip libportaudio2 libxcb-cursor0 gcc linux-libc-dev` で入れておく
       - Wayland のセッションで流すときは、キーの送信に使う `/dev/uinput` の権限を設定して再起動しておく（手順 1）
     commands: |-
       1. Wayland のセッションで流すときだけ、`/dev/uinput` の権限を設定する（sudo が要る。設定の後に再起動する。Xorg のセッションでは要らない）

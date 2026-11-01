@@ -36,7 +36,7 @@ elements:
     description: 設定画面を開く。文字起こしのエンジンを準備できなかった起動でも、設定を直して再起動できるよう押せるまま残す
     label: 設定…（処理中は「設定…（処理中）」）
     visible_when: 常時
-    enabled_when: 録音から届けるまでの間（API から始めた録音の間を含む）でないとき
+    enabled_when: 準備中（起動してから待機中か失敗になるまで）でなく、録音から届けるまでの間（API から始めた録音の間を含む）でもないとき
     action_ref: dev/設計書/画面設計/常駐アプリ/設定画面.py#
   - name: 設定フォルダを開く
     id: menu_open_settings_folder

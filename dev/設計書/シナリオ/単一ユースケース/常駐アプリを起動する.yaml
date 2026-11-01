@@ -326,13 +326,41 @@ scenarios:
       - トレイで、貼り付けのキーを送信できないことと権限の設定の手順が知らされている
       - ログに仮想のキーボードを作れなかった理由が書かれている
       - 録音開始のホットキーを押すと録音が始まり、「コピーのみ」で確定するとクリップボードに起こした文字が入る
+  - name: 正常シナリオ（Linux でモデルを取得する初回の起動）
+    setup:
+      - name: Mock
+        description: なし（検証環境の VM を Ubuntu 24.04 の Xorg と Wayland のセッションで起動し、実機で確かめる）
+      - name: モデルのキャッシュ
+        description: ローカルの Whisper の設定のモデル（既定の `large-v3`）を Hugging Face のキャッシュから消してあり、文字起こしワーカーが起動のときにモデルを取得する
+        notes: 取得に数十秒から数分かかる
+    flow: |-
+      sequenceDiagram
+        actor U as ユーザー
+        participant SVC as 常駐サービス
+        participant TRAY as トレイ
+        participant WK as 文字起こしワーカー（子プロセス）
+
+        U->>SVC: 起動する
+        SVC->>TRAY: 準備中のアイコンを出す
+        SVC->>WK: 子プロセスを起動し、エンジンの設定を送信する
+        Note over SVC: ready を待つ間も画面とトレイの操作を受け付ける
+        WK->>WK: モデルを取得して読み込む
+        U->>TRAY: 取得中にアイコンを押す
+        TRAY-->>U: メニューを出す（録音の開始は選べない）
+        WK-->>SVC: モデルを読み込んだ（ready）
+        Note over SVC: ready の後は 正常シナリオ と同じ
+        SVC->>TRAY: 待機中のアイコンにする
+    expected:
+      - モデルの取得中から、上のバーにトレイの準備中のアイコンが出ている
+      - 取得中にトレイのアイコンを押すとメニューが開き、「録音を開始」は選べない
+      - ready の後、トレイのアイコンが待機中になり、録音開始のホットキーを押すと録音が始まる
 lead: '常駐サービスを起動し、文字起こしのエンジン・API の待ち受け・ホットキーの受付を立てて、録音の開始を待つ状態にする単一ユースケース。'
 issue: 14
 primary_actor: 音声入力を使うユーザー
 trigger: ユーザーが常駐サービスを起動する（Windows はショートカットを開く、Linux は起動のスクリプト `voice-paste.sh` を流すか、アプリの一覧・ログイン時の自動起動から開く）
 preconditions:
   - Windows か Linux（Ubuntu 24.04 の GNOME の Xorg か Wayland のセッション）の端末で、リポジトリの直下に仮想環境がある（起動の手段が `uv sync --frozen` で `uv.lock` に揃える）
-  - Linux では OS のパッケージ `xclip`・`libportaudio2`・`libxcb-cursor0` が入っている
+  - Linux では OS のパッケージ `xclip`・`libportaudio2`・`libxcb-cursor0` と、依存の `evdev` のビルドに使う `gcc`・`linux-libc-dev` が入っている
   - Linux の Wayland のセッションでは、`/dev/uinput` に書ける（udev の規則と `input` グループへの追加の後に再起動している）
   - 設定ファイル（Windows は `%APPDATA%\voice-paste\settings.toml`、Linux は `~/.config/voice-paste/settings.toml`）がある（無ければ既定値で作る）
 test_file: tests/e2e/単一ユースケース/test_start_resident_app.py

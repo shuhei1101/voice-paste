@@ -1,0 +1,32 @@
+label=off commit=9f64154 extension=  状態: INACTIVE
+--- 端末へ入った文字（od）
+0000000 026
+0000001
+--- 端末へ入った文字
+
+--- クリップボード（wl-paste）
+今日は良い天気です。散歩に行きましょう。
+
+--- クリップボード（XWayland の xclip）
+今日は良い天気です。散歩に行きましょう。--- ログ
+{"ts": "2026-11-01T13:12:04.039536+09:00", "level": "INFO", "name": "voice_paste.features.transcription.service", "msg": "文字に起こした（区間 1・20 文字・10.9 秒）"}
+{"ts": "2026-11-01T13:12:04.040424+09:00", "level": "WARNING", "name": "voice_paste.features.correction.service", "msg": "用語集が無い（/home/shuhe/.config/voice-paste/yogo.csv）"}
+{"ts": "2026-11-01T13:12:04.041821+09:00", "level": "INFO", "name": "voice_paste.features.correction.service", "msg": "用語集を読んだ（/home/shuhe/.config/voice-paste/yogo.csv・0 行・補正に使う 0 行）"}
+{"ts": "2026-11-01T13:12:04.041883+09:00", "level": "INFO", "name": "voice_paste.main", "msg": "用語集で補正する（既定・補正に使う yogo 0 行）"}
+{"ts": "2026-11-01T13:12:04.042103+09:00", "level": "INFO", "name": "voice_paste.ui.bridge", "msg": "ユーザーへの知らせ（state_changed・delivering）"}
+{"ts": "2026-11-01T13:12:04.046057+09:00", "level": "INFO", "name": "voice_paste.integrations.keyboard.sender", "msg": "クリップボードへ書いた（20 文字）"}
+{"ts": "2026-11-01T13:12:04.153408+09:00", "level": "WARNING", "name": "voice_paste.integrations.keyboard.active_window_wayland", "msg": "フォーカスしているウィンドウの wm_class を読めなかった（CalledProcessError(1, ('gdbus', 'call', '--
+{"ts": "2026-11-01T13:12:04.153629+09:00", "level": "INFO", "name": "voice_paste.integrations.keyboard.sender_wayland", "msg": "貼り付けのキーを送信した（<ctrl>+v、uinput）"}
+{"ts": "2026-11-01T13:12:04.153696+09:00", "level": "INFO", "name": "voice_paste.features.outputs.service", "msg": "出力先へ渡した（7278371c-1662-4a68-9ea2-2bfbd3324009・出力先: paste_only）"}
+{"ts": "2026-11-01T13:12:04.153849+09:00", "level": "INFO", "name": "voice_paste.ui.bridge", "msg": "ユーザーへの知らせ（state_changed・idle）"}
+{"ts": "2026-11-01T13:12:04.153937+09:00", "level": "INFO", "name": "voice_paste.features.session.service", "msg": "セッションを終えた（7278371c-1662-4a68-9ea2-2bfbd3324009）"}
+[2026-11-01T13:09:36+09:00] voice-paste.sh start
+[2026-11-01T13:09:36+09:00] cwd=/home/shuhe/vp-238
+[2026-11-01T13:09:36+09:00] uv: /home/shuhe/.local/bin/uv
+[2026-11-01T13:09:36+09:00] running: uv sync --frozen --extra local-whisper
+Checked 62 packages in 14ms
+[2026-11-01T13:09:36+09:00] uv sync --frozen exited with code 0
+[2026-11-01T13:09:36+09:00] import voice_paste from .venv exited with code 0
+[2026-11-01T13:09:36+09:00] python: /home/shuhe/vp-238/.venv/bin/python 3.14.10
+[2026-11-01T13:09:36+09:00] launching: .venv/bin/python -m voice_paste 
+[2026-11-01T13:09:36+09:00] launcher exited with code 0

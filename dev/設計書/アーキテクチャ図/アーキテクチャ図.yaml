@@ -46,6 +46,9 @@ overview:
     - id: OAI
       label: OpenAI API
       kind: external
+    - id: FWD
+      label: Focused Window D-Bus（GNOME Shell の拡張）
+      kind: external
   edges:
     - from: U
       to: APP
@@ -86,6 +89,9 @@ overview:
     - from: APP
       to: OAI
       label: 録音（HTTPS・API キー。エンジンが openai のとき）
+    - from: APP
+      to: FWD
+      label: フォーカスしているウィンドウの読み取り（Wayland）
   subgraphs:
     - id: SYS
       label: voice-paste
@@ -168,6 +174,16 @@ external_systems:
     status: planned
     introduced:
       pr: 204
+  - name: Focused Window D-Bus（GNOME Shell の拡張）
+    purpose: Linux の Wayland のセッションで、貼り付けのキーを送信する直前にフォーカスしているウィンドウの wm_class を読み、端末アプリかを見分ける
+    direction: 双方向
+    protocol: D-Bus（セッションバス。`gdbus call` を子プロセスで起動する）
+    detail: dev/設計書/外部ライブラリ/Focused_Window_D-Bus#
+    notes:
+      事前確認: 不要。読めない（拡張が無い・無効）ときは設定の貼り付けのキーを送信し、貼り付けを止めない。
+    status: planned
+    introduced:
+      pr: 238
 constraints: |-
   - Windows で動かす（トレイ・ホットキー・クリップボード・キー入力・システムの音量を Windows の機能で扱う）
   - Linux（Ubuntu 24.04 の Xorg のセッションと Wayland のセッション）でも起動できる。OS で分かれる実装は配線で選び、Linux ではシステムの音量を変えず、ローカルの文字起こしの既定は CPU にする

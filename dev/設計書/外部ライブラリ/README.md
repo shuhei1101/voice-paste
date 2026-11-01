@@ -34,5 +34,6 @@
 | [python-multipart](./python-multipart.yaml) | ブラウザから送信された multipart の音声を FastAPI の UploadFile で受け取る |
 | [python-xlib](./python-xlib.yaml) | Linux でアクティブなウィンドウの WM_CLASS を Xorg から読む |
 | [evdev](./evdev.yaml) | Linux の Wayland のセッションで、仮想キーボードから貼り付けのキーと Enter を送信する |
+| [Focused_Window_D-Bus](./Focused_Window_D-Bus.yaml) | Linux の Wayland のセッションで、フォーカスしているウィンドウの wm_class を GNOME Shell の拡張から読む |
 
 <!-- /table -->

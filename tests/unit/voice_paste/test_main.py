@@ -1,8 +1,8 @@
-"""main.py（parse_args・main・select_platform_adapters・start_local_session・build_hotkey_bindings・apply_settings・_wire_outputs・_wire_preset_kinds）の単体テスト。
+"""main.py（parse_args・main・_StartupBuild・select_platform_adapters・start_local_session・build_hotkey_bindings・apply_settings・_wire_outputs・_wire_preset_kinds）の単体テスト。
 
 main の配線（build_handlers）・API サーバー（ApiServerRunner）・上限の打ち切りのタイマー（RepeatingTimer）・
 ホットキーの受付（PlatformAdapters.create_hotkey_listener）・トレイ（Tray）・再起動（PlatformAdapters.relaunch）は偽物に差し替え、
-イベントループ（exec_loop）は、溜まったイベントを処理してすぐ戻る関数にする。
+イベントループ（exec_loop）は、配線の結果を受けて起動を終えるまでイベントを処理してから戻る関数にする（配線はメインスレッドの外で流れ、結果はイベントで届く）。
 画面は offscreen の QApplication（conftest の qapp）を使い回す（main は QApplication が既にあればそれを使う）。
 """
 
@@ -15,11 +15,12 @@ import os
 import signal
 import sys
 import threading
+import time
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, NoReturn
 from unittest.mock import MagicMock, call
 
 import pytest
@@ -48,6 +49,18 @@ SHORT_ACQUIRE_TIMEOUT_SEC = 0.5
 
 QUIT_LOOP_TIMEOUT_MS = 5000
 """終了を頼まれてもイベントループが抜けないときに、諦めて抜ける上限（ミリ秒）。"""
+
+STARTUP_WAIT_SEC = 5.0
+"""配線の結果を受けて起動を終えるまでイベントを処理する上限。"""
+
+BUILD_WAIT_SEC = 3.0
+"""配線の偽物が、止める関数・合図を待つ上限（実装が待ちを解かなくてもテストが止まらないようにする）。"""
+
+SETTLE_SEC = 0.2
+"""起きてはいけないことが起きないのを確かめるために、イベントを処理し続ける時間。"""
+
+POLL_INTERVAL_SEC = 0.01
+"""イベントを処理しながら待つときの、1 回ごとの間。"""
 
 SIGNAL_NAMES = ("SIGINT", "SIGBREAK", "SIGTERM")
 DEFAULT_HOTKEYS = {
@@ -102,6 +115,8 @@ class Wiring:
     """main が build_ui_deps で作った UiDeps（作られた順）。"""
     adapter_overrides: dict[str, Any]
     """select_platform_adapters が返す PlatformAdapters の項目のうち、差し替えるもの（項目の名前 → 偽物）。main が選ぶ前に入れる。"""
+    build_threads: list[str]
+    """build_handlers が呼ばれたスレッドの名前（呼ばれた順）。"""
 
     @property
     def hotkey(self) -> MagicMock:
@@ -118,6 +133,20 @@ class Wiring:
         """main が作った ApiServerRunner の偽物。"""
         return self.runner_class.return_value
 
+    @property
+    def startup_finished(self) -> bool:
+        """起動を終えたか（トレイが待機中になったか、失敗になった）。"""
+        from voice_paste.ui.tray import TrayState
+
+        return self.tray.set_failed.called or (
+            call(TrayState.IDLE, busy=False) in self.tray.set_state.call_args_list
+        )
+
+    def exit_after_startup(self, app: QApplication) -> int:
+        """起動を終えるまでイベントを処理して、0 を返す。main の exec_loop に渡す。"""
+        wait_for_startup(app, self)
+        return 0
+
 
 def install_wiring(
     monkeypatch: pytest.MonkeyPatch,
@@ -125,10 +154,12 @@ def install_wiring(
     *,
     api_started: bool = True,
     build_error: Exception | None = None,
+    build_hook: Callable[[Callable[[Callable[[], None]], None]], None] | None = None,
 ) -> Wiring:
     """main が使う build_handlers・ApiServerRunner・RepeatingTimer・ホットキーの受付（PlatformAdapters.create_hotkey_listener）・Tray・再起動（PlatformAdapters.relaunch）を偽物に差し替える。
 
     デスクトップのセッションは Xorg に固定する（実行する環境の XDG_SESSION_TYPE に頼らない）。
+    build_hook を渡すと、build_handlers の偽物が Handlers を返す前に、on_engine_created を渡して呼ぶ（待ち・例外を差し込む）。
     """
     import voice_paste.main as main_module
     from voice_paste.main import Handlers
@@ -137,6 +168,7 @@ def install_wiring(
 
     monkeypatch.setenv("XDG_SESSION_TYPE", "x11")
     calls: list[str] = []
+    build_threads: list[str] = []
 
     def _record(name: str) -> Callable[..., None]:
         """呼ばれたら name を calls に追加する関数を返す。"""
@@ -155,8 +187,12 @@ def install_wiring(
         adapters: object,
         environ: object,
         unavailable: frozenset[Feature],
+        on_engine_created: Callable[[Callable[[], None]], None] = lambda _stop: None,
     ) -> Handlers:
         """配線済みの関数の束を、偽物で作る（外の端末のブラウザの機能を使えない OS では web_api が None）。"""
+        build_threads.append(threading.current_thread().name)
+        if build_hook is not None:
+            build_hook(on_engine_created)
         return Handlers(
             session_manager=session_manager,
             session_api=MagicMock(),
@@ -237,13 +273,62 @@ def install_wiring(
         web_api=web_api,
         ui_deps=ui_deps,
         adapter_overrides=adapter_overrides,
+        build_threads=build_threads,
     )
 
 
-def exit_after_events(app: QApplication) -> int:
-    """溜まったイベント（知らせの Signal）を処理して、すぐ 0 を返す。main の exec_loop に渡す。"""
+def wait_for_startup(app: QApplication, wiring: Wiring) -> None:
+    """配線の結果を受けて起動を終えるまで（上限は STARTUP_WAIT_SEC）、イベントを処理する。"""
+    deadline = time.monotonic() + STARTUP_WAIT_SEC
+    while not wiring.startup_finished and time.monotonic() < deadline:
+        app.processEvents()
+        time.sleep(POLL_INTERVAL_SEC)
     app.processEvents()
-    return 0
+
+
+def process_events_for(app: QApplication, seconds: float) -> None:
+    """指定した秒数の間、イベントを処理し続ける。"""
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        app.processEvents()
+        time.sleep(POLL_INTERVAL_SEC)
+
+
+def emit_connected(signal_mock: MagicMock) -> None:
+    """偽物の Signal に connect されたまま（disconnect されていない）の受け手を、つないだ順に呼ぶ。"""
+    disconnected = [c.args[0] for c in signal_mock.disconnect.call_args_list]
+    for connected in signal_mock.connect.call_args_list:
+        if connected.args[0] not in disconnected:
+            connected.args[0]()
+
+
+@dataclass
+class BlockingBuild:
+    """配線の偽物の差し込み。止める関数を on_engine_created に渡し、それが呼ばれるまで戻らず、呼ばれたら StartupError を送出する。"""
+
+    stop_engine: MagicMock
+    """on_engine_created に渡す、エンジンを止める関数。"""
+    registered: threading.Event
+    """止める関数を on_engine_created に渡したら立つ。"""
+    stopped: threading.Event
+    """止める関数が呼ばれたら立つ。"""
+
+    @classmethod
+    def create(cls) -> BlockingBuild:
+        """止める関数が呼ばれたら stopped を立てる差し込みを作る。"""
+        stopped = threading.Event()
+        return cls(
+            stop_engine=MagicMock(side_effect=lambda: stopped.set()),
+            registered=threading.Event(),
+            stopped=stopped,
+        )
+
+    def __call__(self, on_engine_created: Callable[[Callable[[], None]], None]) -> NoReturn:
+        """止める関数を渡し、呼ばれるまで（上限は BUILD_WAIT_SEC）待ってから StartupError を送出する。"""
+        on_engine_created(self.stop_engine)
+        self.registered.set()
+        self.stopped.wait(BUILD_WAIT_SEC)
+        raise StartupError("文字起こしワーカーを止めた")
 
 
 def timer_interval(timer_call: Any) -> float:
@@ -284,15 +369,16 @@ def record_about_to_quit_threads(app: QApplication) -> tuple[list[bool], Callabl
 
 
 def make_exec_loop_with_quit_request(
-    lock: MagicMock, gave_up: list[bool]
+    lock: MagicMock, gave_up: list[bool], wiring: Wiring
 ) -> Callable[[QApplication], int]:
-    """別のスレッドから終了を頼まれてから、本物のイベントループを回す exec_loop を作る。
+    """起動を終えた後に別のスレッドから終了を頼まれてから、本物のイベントループを回す exec_loop を作る。
 
     頼みが効かずにループが抜けないときのために、上限で諦めて抜け、gave_up に True を追加する。
     """
 
     def _exec_loop(app: QApplication) -> int:
-        """on_quit_requested に渡された関数を別のスレッドから呼び、ループを回す。"""
+        """起動を終えるまで待ち、on_quit_requested に渡された関数を別のスレッドから呼び、ループを回す。"""
+        wait_for_startup(app, wiring)
         on_quit = lock.on_quit_requested.call_args.args[0]
         thread = threading.Thread(target=on_quit)
         thread.start()
@@ -377,7 +463,7 @@ def test_main(
     record_lock_release(monkeypatch, wiring)
 
     # 実行
-    exit_code = main(["--data-dir", str(data_dir)], exec_loop=exit_after_events)
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=wiring.exit_after_startup)
     reacquired = background_acquire(instance_name(data_dir), SHORT_ACQUIRE_TIMEOUT_SEC)
     reacquired_decided = reacquired.wait(ACQUIRE_WAIT_SEC)
 
@@ -407,6 +493,105 @@ def test_main(
     assert reacquired.error is None
 
 
+def test_main_when_building_off_main_thread(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplication
+) -> None:
+    """配線をメインスレッドの外で流し、その間もイベントループを回す（正常系）。"""
+    from voice_paste.main import main
+    from voice_paste.ui.tray import TrayState
+
+    # 準備: 配線の偽物は release が立つまで戻らない
+    release = threading.Event()
+    wiring = install_wiring(
+        monkeypatch, qapp, build_hook=lambda _on_engine_created: release.wait(BUILD_WAIT_SEC)
+    )
+    set_state_before_release: list[Any] = []
+    hotkey_started_before_release: list[bool] = []
+
+    def _exec_loop(app: QApplication) -> int:
+        """配線の間もイベントを処理し、トレイが準備中のままかを控えてから配線を戻し、起動を終えるまで処理する。"""
+        process_events_for(app, SETTLE_SEC)
+        set_state_before_release.extend(wiring.tray.set_state.call_args_list)
+        hotkey_started_before_release.append(wiring.hotkey.start.called)
+        release.set()
+        wait_for_startup(app, wiring)
+        return 0
+
+    # 実行
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=_exec_loop)
+
+    # 検証
+    assert exit_code == 0
+    assert wiring.build_threads == ["startup-build"]
+    assert set_state_before_release == [call(TrayState.STARTING, busy=False)]
+    assert hotkey_started_before_release == [False]
+    assert call(TrayState.IDLE, busy=False) in wiring.tray.set_state.call_args_list
+    wiring.hotkey.start.assert_called_once()
+
+
+def test_main_when_quit_while_building(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplication
+) -> None:
+    """配線の間に終了を頼まれたら、エンジンを止めて排他を放す（正常系）。"""
+    from voice_paste.main import main
+
+    # 準備: 配線の偽物は止める関数を渡した後、それが呼ばれるまで戻らない（呼ばれたら StartupError）
+    blocking_build = BlockingBuild.create()
+    wiring = install_wiring(monkeypatch, qapp, build_hook=blocking_build)
+    lock = MagicMock()
+    lock.release.side_effect = lambda: wiring.calls.append("lock.release")
+    wiring.adapter_overrides["acquire_single_instance"] = MagicMock(return_value=lock)
+
+    def _exec_loop(app: QApplication) -> int:
+        """止める関数が渡るのを待ってから、トレイの「終了」を送出し、イベントを処理して抜ける。"""
+        blocking_build.registered.wait(BUILD_WAIT_SEC)
+        emit_connected(wiring.tray.quit_requested)
+        app.processEvents()
+        return 0
+
+    # 実行
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=_exec_loop)
+
+    # 検証
+    assert exit_code == 0
+    blocking_build.stop_engine.assert_called_once()
+    wiring.create_hotkey_listener.assert_not_called()
+    wiring.runner_class.assert_not_called()
+    wiring.tray.show_failure.assert_not_called()
+    assert wiring.calls[-2:] == ["tray.hide", "lock.release"]
+    wiring.relaunch.assert_not_called()
+
+
+def test_main_when_restart_while_building(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplication
+) -> None:
+    """配線の間に再起動を頼まれたら、エンジンを止めてから起動し直す（正常系）。"""
+    from voice_paste.main import main
+
+    # 準備: 配線の偽物は止める関数を渡した後、それが呼ばれるまで戻らない（呼ばれたら StartupError）
+    blocking_build = BlockingBuild.create()
+    wiring = install_wiring(monkeypatch, qapp, build_hook=blocking_build)
+    lock = MagicMock()
+    lock.release.side_effect = lambda: wiring.calls.append("lock.release")
+    wiring.adapter_overrides["acquire_single_instance"] = MagicMock(return_value=lock)
+
+    def _exec_loop(app: QApplication) -> int:
+        """止める関数が渡るのを待ってから、トレイの「再起動」を送出し、イベントを処理して抜ける。"""
+        blocking_build.registered.wait(BUILD_WAIT_SEC)
+        emit_connected(wiring.tray.restart_requested)
+        app.processEvents()
+        return 0
+
+    # 実行
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=_exec_loop)
+
+    # 検証
+    assert exit_code == 0
+    blocking_build.stop_engine.assert_called_once()
+    wiring.relaunch.assert_called_once()
+    assert wiring.calls.index("relaunch") > wiring.calls.index("lock.release")
+
+
 def test_main_when_invalid_settings(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplication
 ) -> None:
@@ -420,7 +605,7 @@ def test_main_when_invalid_settings(
     )
 
     # 実行
-    exit_code = main(["--data-dir", str(data_dir)], exec_loop=exit_after_events)
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=wiring.exit_after_startup)
 
     # 検証
     assert exit_code == 0
@@ -448,7 +633,7 @@ def test_main_when_startup_error(
     )
 
     # 実行
-    exit_code = main(["--data-dir", str(data_dir)], exec_loop=exit_after_events)
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=wiring.exit_after_startup)
 
     # 検証
     assert exit_code == 0
@@ -472,7 +657,7 @@ def test_main_when_api_unavailable(
     token_file.write_text(previous_content, encoding="utf-8")
 
     # 実行
-    exit_code = main(["--data-dir", str(data_dir)], exec_loop=exit_after_events)
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=wiring.exit_after_startup)
 
     # 検証
     assert exit_code == 0
@@ -493,7 +678,8 @@ def test_main_when_restart_requested(
     wiring = install_wiring(monkeypatch, qapp)
 
     def _request_restart(app: QApplication) -> int:
-        """UiDeps.request_restart を呼んで、すぐ 0 を返す。"""
+        """起動を終えるまで待ち、UiDeps.request_restart を呼んで 0 を返す。"""
+        wait_for_startup(app, wiring)
         wiring.ui_deps[0].request_restart()
         return 0
 
@@ -520,12 +706,12 @@ def test_main_when_no_data_dir(
     # 準備: platformdirs の置き場所を、一時フォルダの config・local へ向ける
     config_dir = tmp_path / "config"
     local_dir = tmp_path / "local"
-    install_wiring(monkeypatch, qapp)
+    wiring = install_wiring(monkeypatch, qapp)
     monkeypatch.setattr(constants_module, "user_config_dir", lambda *_a, **_k: str(config_dir))
     monkeypatch.setattr(constants_module, "user_data_dir", lambda *_a, **_k: str(local_dir))
 
     # 実行
-    exit_code = main([], exec_loop=exit_after_events)
+    exit_code = main([], exec_loop=wiring.exit_after_startup)
 
     # 検証
     assert exit_code == 0
@@ -547,7 +733,7 @@ def test_main_when_previous_instance_not_released(
     )
 
     # 実行
-    exit_code = main(["--data-dir", str(data_dir)], exec_loop=exit_after_events)
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=wiring.exit_after_startup)
 
     # 検証
     assert exit_code == 1
@@ -569,7 +755,7 @@ def test_main_when_quit_requested(
     wiring.adapter_overrides["acquire_single_instance"] = MagicMock(return_value=lock)
     gave_up: list[bool] = []
     about_to_quit_on_main_thread, stop_recording_quit = record_about_to_quit_threads(qapp)
-    exec_loop = make_exec_loop_with_quit_request(lock, gave_up)
+    exec_loop = make_exec_loop_with_quit_request(lock, gave_up, wiring)
 
     # 実行
     try:
@@ -615,7 +801,8 @@ def test_main_when_sigterm(
     monkeypatch.setattr(qapp, "quit", quit_app)
 
     def _send_sigterm(app: QApplication) -> int:
-        """自分のプロセスへ SIGTERM を送り、溜まったイベントを処理して 0 を返す。"""
+        """起動を終えるまで待ち、自分のプロセスへ SIGTERM を送り、溜まったイベントを処理して 0 を返す。"""
+        wait_for_startup(app, wiring)
         signal.raise_signal(signal.SIGTERM)
         app.processEvents()
         return 0
@@ -649,7 +836,7 @@ def test_main_when_key_sender_unavailable(
     wiring.adapter_overrides["close_key_sender"] = close_key_sender
 
     # 実行
-    exit_code = main(["--data-dir", str(data_dir)], exec_loop=exit_after_events)
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=wiring.exit_after_startup)
 
     # 検証
     assert exit_code == 0
@@ -676,7 +863,7 @@ def test_main_when_web_transcription_unavailable(
     )
 
     # 実行
-    exit_code = main(["--data-dir", str(data_dir)], exec_loop=exit_after_events)
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=wiring.exit_after_startup)
 
     # 検証
     assert exit_code == 0
@@ -731,11 +918,203 @@ def test_main_when_qt_platform(
         monkeypatch.setenv("QT_QPA_PLATFORM", initial)
 
     # 実行
-    exit_code = main(["--data-dir", str(data_dir)], exec_loop=exit_after_events)
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=wiring.exit_after_startup)
 
     # 検証
     assert exit_code == 0
     assert platform_at_creation == [expected]
+
+
+# === _StartupBuild ===
+
+
+@dataclass
+class StartupBuildProbe:
+    """_StartupBuild の done で受けた結果と、build が呼ばれたスレッドの控え。"""
+
+    received: list[object]
+    """done で受けた結果（受けた順）。"""
+    threads: list[threading.Thread]
+    """build が呼ばれたスレッド（呼ばれた順）。"""
+    started: threading.Event
+    """build が呼ばれたら立つ。"""
+
+
+@pytest.fixture
+def startup_probe() -> StartupBuildProbe:
+    """_StartupBuild の結果とスレッドを控える入れ物を返す。"""
+    return StartupBuildProbe(received=[], threads=[], started=threading.Event())
+
+
+def _make_startup_build(probe: StartupBuildProbe) -> Any:
+    """done を probe.received へつないだ _StartupBuild を作る。"""
+    from voice_paste.main import _StartupBuild
+
+    startup = _StartupBuild()
+    startup.done.connect(lambda result: probe.received.append(result))
+    return startup
+
+
+def _record_thread(probe: StartupBuildProbe) -> None:
+    """build を呼んだスレッドを控え、started を立てる。"""
+    probe.threads.append(threading.current_thread())
+    probe.started.set()
+
+
+def _wait_received(app: QApplication, probe: StartupBuildProbe) -> None:
+    """done で結果を受けるまで（上限は STARTUP_WAIT_SEC）イベントを処理し、その後も SETTLE_SEC だけ処理を続ける。"""
+    deadline = time.monotonic() + STARTUP_WAIT_SEC
+    while not probe.received and time.monotonic() < deadline:
+        app.processEvents()
+        time.sleep(POLL_INTERVAL_SEC)
+    process_events_for(app, SETTLE_SEC)
+
+
+def test_start(qapp: QApplication, startup_probe: StartupBuildProbe) -> None:
+    """配線の結果を done で渡す（正常系）。"""
+    # 準備
+    handlers = MagicMock()
+
+    def _build(_register_stop: Callable[[Callable[[], None]], None]) -> object:
+        """呼ばれたスレッドを控えて Handlers を返す。"""
+        _record_thread(startup_probe)
+        return handlers
+
+    startup = _make_startup_build(startup_probe)
+
+    # 実行
+    startup.start(_build)
+    _wait_received(qapp, startup_probe)
+
+    # 検証
+    assert startup_probe.received == [handlers]
+    assert [thread.name for thread in startup_probe.threads] == ["startup-build"]
+
+
+def test_start_when_startup_error(qapp: QApplication, startup_probe: StartupBuildProbe) -> None:
+    """配線の失敗を done で渡す（正常系）。"""
+    # 準備
+    error = StartupError("文字起こしのエンジンを準備できない")
+
+    def _build(_register_stop: Callable[[Callable[[], None]], None]) -> object:
+        """StartupError を送出する。"""
+        raise error
+
+    startup = _make_startup_build(startup_probe)
+
+    # 実行
+    startup.start(_build)
+    _wait_received(qapp, startup_probe)
+
+    # 検証
+    assert startup_probe.received == [error]
+
+
+def test_start_when_unexpected_error(
+    qapp: QApplication, startup_probe: StartupBuildProbe, caplog: pytest.LogCaptureFixture
+) -> None:
+    """想定外の例外も StartupError にして done で渡す（異常系）。"""
+
+    # 準備
+    def _build(_register_stop: Callable[[Callable[[], None]], None]) -> object:
+        """RuntimeError を送出する。"""
+        raise RuntimeError("配線の不具合")
+
+    startup = _make_startup_build(startup_probe)
+    caplog.set_level(logging.ERROR)
+
+    # 実行
+    startup.start(_build)
+    _wait_received(qapp, startup_probe)
+
+    # 検証
+    assert [type(result) for result in startup_probe.received] == [StartupError]
+    assert [record.levelno for record in caplog.records] == [logging.ERROR]
+
+
+def test_cancel(qapp: QApplication, startup_probe: StartupBuildProbe) -> None:
+    """控えた関数でエンジンを止め、done を送出しない（正常系）。"""
+    # 準備: build は止める関数を控えた後、それが呼ばれるまで待ってから StartupError を送出する
+    blocking_build = BlockingBuild.create()
+
+    def _build(register_stop: Callable[[Callable[[], None]], None]) -> NoReturn:
+        """呼ばれたスレッドを控え、止める関数を控えて、呼ばれるまで待つ。"""
+        _record_thread(startup_probe)
+        blocking_build(register_stop)
+
+    startup = _make_startup_build(startup_probe)
+    startup.start(_build)
+    blocking_build.registered.wait(BUILD_WAIT_SEC)
+
+    # 実行
+    startup.cancel(1.0)
+
+    # 検証
+    blocking_build.stop_engine.assert_called_once()
+    assert not startup_probe.threads[0].is_alive()
+    process_events_for(qapp, SETTLE_SEC)
+    assert startup_probe.received == []
+
+
+def test_cancel_when_not_registered(qapp: QApplication, startup_probe: StartupBuildProbe) -> None:
+    """控える前に取り消されたら、控えたときに止める（正常系）。"""
+    # 準備: build は gate が立つまで待ってから止める関数を控え、Handlers を返す
+    gate = threading.Event()
+    stop_engine = MagicMock()
+    handlers = MagicMock()
+
+    def _build(register_stop: Callable[[Callable[[], None]], None]) -> object:
+        """gate が立つまで待ち、止める関数を控えて Handlers を返す。"""
+        _record_thread(startup_probe)
+        gate.wait(BUILD_WAIT_SEC)
+        register_stop(stop_engine)
+        return handlers
+
+    startup = _make_startup_build(startup_probe)
+    startup.start(_build)
+    startup_probe.started.wait(BUILD_WAIT_SEC)
+
+    # 実行
+    startup.cancel(0.01)
+    gate.set()
+    startup_probe.threads[0].join(BUILD_WAIT_SEC)
+
+    # 検証
+    stop_engine.assert_called_once()
+    handlers.stop_engine.assert_called_once()
+    process_events_for(qapp, SETTLE_SEC)
+    assert startup_probe.received == []
+
+
+def test_cancel_when_thread_not_finished(
+    qapp: QApplication, startup_probe: StartupBuildProbe, caplog: pytest.LogCaptureFixture
+) -> None:
+    """スレッドが終わらなければ待つのをやめて戻る（異常系）。"""
+    # 準備: build は止める関数を控えた後、hold が立つまで待ち続ける（止める関数では戻らない）
+    registered = threading.Event()
+    hold = threading.Event()
+
+    def _build(register_stop: Callable[[Callable[[], None]], None]) -> object:
+        """止める関数を控え、hold が立つまで待つ。"""
+        register_stop(MagicMock())
+        registered.set()
+        hold.wait(BUILD_WAIT_SEC)
+        return MagicMock()
+
+    startup = _make_startup_build(startup_probe)
+    startup.start(_build)
+    registered.wait(BUILD_WAIT_SEC)
+    caplog.set_level(logging.WARNING)
+
+    # 実行
+    started_at = time.monotonic()
+    startup.cancel(0.05)
+    elapsed = time.monotonic() - started_at
+    hold.set()
+
+    # 検証
+    assert elapsed < 1.0
+    assert [record.levelno for record in caplog.records] == [logging.WARNING]
 
 
 # === select_platform_adapters ===

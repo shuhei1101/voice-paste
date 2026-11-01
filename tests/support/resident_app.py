@@ -51,6 +51,7 @@ from tests.support.inprocess import (
     CONTINUOUS_END_QUIET_SEC,
     CONTINUOUS_END_TIMEOUT_SEC,
     PLAYED_OUT_TIMEOUT_SEC,
+    WORKER_READY_TIMEOUT_SEC,
     KeyLog,
     VolumeLog,
     WavInput,
@@ -738,6 +739,9 @@ def run_resident_app(
             """case を進める。失敗は控える。"""
             app.worker_pids_at_start = app.worker_pids()
             try:
+                assert app.wait_until(
+                    lambda: read_token_file(app.data_dir) is not None, WORKER_READY_TIMEOUT_SEC
+                ), "API が待ち受けを始めなかった"
                 case(app)
                 app.case_finished = True
             except BaseException as error:  # noqa: BLE001 slot の中の失敗を main の後に出し直す

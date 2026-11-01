@@ -886,7 +886,8 @@ class InProcessApp:
         if self.api is not None:
             self.api.close()
         self.manager.close()
-        self.handlers.web_api.queue.close()
+        if self.handlers.web_api is not None:
+            self.handlers.web_api.queue.close()
         self.handlers.stop_engine()
 
 

@@ -81,13 +81,9 @@ from voice_paste.integrations.openai.credentials import OPENAI_API_KEY_ENV
 from voice_paste.integrations.openai.transcriber import OPENAI_MAX_AUDIO_BYTES
 from voice_paste.integrations.whisper.client import WhisperWorkerClient
 from voice_paste.main import SETTINGS_MODEL
+from voice_paste.shared.constants import resolve_app_paths
 from voice_paste.shared.errors import TranscriptionError
-from voice_paste.shared.settings import (
-    HintPresetSettings,
-    OpenAISettings,
-    TranscriptionSettings,
-    load_settings,
-)
+from voice_paste.shared.settings import HintPresetSettings, load_settings
 
 pytestmark = pytest.mark.real_machine
 
@@ -95,22 +91,22 @@ StartInProcess = Callable[..., InProcessApp]
 RunApp = Callable[..., ResidentApp]
 
 GLOSSARY_FILE_NAME = "e2e.csv"
-"""設定で選んでいる用語集の CSV の名前（settings.toml と同じフォルダ）。"""
+"""設定で選んでいる用語集の CSV の名前（settings.yaml と同じフォルダ）。"""
 
 SECOND_GLOSSARY_FILE_NAME = "second.csv"
-"""設定で選んでいないプリセットが使う用語集の CSV の名前（settings.toml と同じフォルダ）。"""
+"""設定で選んでいないプリセットが使う用語集の CSV の名前（settings.yaml と同じフォルダ）。"""
 
-GLOSSARY_SETTINGS = f'[[glossaries]]\nname = "e2e"\npath = "{GLOSSARY_FILE_NAME}"\n'
+GLOSSARY_SETTINGS = f"glossaries:\n  - name: e2e\n    path: {GLOSSARY_FILE_NAME}\n"
 """設定で選んでいる用語集のプリセット。"""
 
 GLOSSARY_ROWS = "誤変換,正しい表記,使う\nテスト,試験,1\n天気,WEATHER,0\n"
 """用語集の行（話す内容で起きる誤変換のオンの行と、別の誤変換のオフの行）。"""
 
 PRESET_GLOSSARY_SETTINGS = (
-    f'[[glossaries]]\nname = "e2e"\npath = "{GLOSSARY_FILE_NAME}"\n'
-    f'\n[[glossaries]]\nname = "second"\npath = "{SECOND_GLOSSARY_FILE_NAME}"\n'
-    '\n[[glossary_presets]]\nname = "既定"\nglossaries = ["e2e"]\n'
-    '\n[[glossary_presets]]\nname = "別"\nglossaries = ["second"]\n'
+    f"glossaries:\n  - name: e2e\n    path: {GLOSSARY_FILE_NAME}\n"
+    f"  - name: second\n    path: {SECOND_GLOSSARY_FILE_NAME}\n"
+    "glossary_presets:\n  - name: 既定\n    glossaries:\n      - e2e\n"
+    "  - name: 別\n    glossaries:\n      - second\n"
 )
 """用語集のプリセットを 2 つ（それぞれ別の用語集を使う）持つ設定。設定で選んでいるプリセットのキーは書かず、1 つ目の「既定」を使う。"""
 
@@ -132,7 +128,7 @@ DELETED_WORD = THREE_SENTENCES[2][1]
 OFF_ROW_WORD = THREE_SENTENCES[1][1]
 """オフの行の誤変換（置き換わらずに残る言葉）。"""
 
-NO_VOICE_SETTINGS = "[transcription.local_whisper]\nvad_threshold = 1.0\n"
+NO_VOICE_SETTINGS = "transcription:\n  local_whisper:\n    vad_threshold: 1.0\n"
 """どんな音も話し声と見なさず、起こした文字を空にする設定（無音の区間を除く閾値を最大にする）。"""
 
 LONG_SPEECH_REPEAT = 10
@@ -158,10 +154,11 @@ EXPECTED_HINT = "voice-paste、Whisper、議事録、返信"
 """有効なプリセットの語を一覧の順に読点（、）でつないだ手がかり。"""
 
 EDGE_PHRASE_SETTINGS = (
-    '[[edge_phrases]]\ntext = "チャンネル登録*"\nposition = "end"\n\n'
-    '[[edge_phrases]]\ntext = "ご視聴ありがとうございました"\nposition = "end"\n\n'
-    '[[edge_phrases]]\ntext = "ありがとうございました"\nposition = "end"\n\n'
-    '[[edge_phrases]]\ntext = "えーと"\nposition = "start"\n'
+    "edge_phrases:\n"
+    '  - text: "チャンネル登録*"\n    position: end\n'
+    "  - text: ご視聴ありがとうございました\n    position: end\n"
+    "  - text: ありがとうございました\n    position: end\n"
+    "  - text: えーと\n    position: start\n"
 )
 """文頭・文末から削除する文言の一覧（上から「チャンネル登録*」「ご視聴ありがとうございました」「ありがとうございました」が文末、「えーと」が文頭）。"""
 
@@ -227,17 +224,17 @@ def test_normal_when_hint(
 
 
 def _put_glossary(data_dir: Path) -> None:
-    """起動の前に、設定で選んでいる用語集の CSV を settings.toml と同じフォルダへ置く。"""
+    """起動の前に、設定で選んでいる用語集の CSV を settings.yaml と同じフォルダへ置く。"""
     (data_dir / GLOSSARY_FILE_NAME).write_text(GLOSSARY_ROWS, encoding="utf-8")
 
 
 def _put_glossary_with_delete_row(data_dir: Path) -> None:
-    """起動の前に、削除する行を追加した用語集の CSV を settings.toml と同じフォルダへ置く。"""
+    """起動の前に、削除する行を追加した用語集の CSV を settings.yaml と同じフォルダへ置く。"""
     (data_dir / GLOSSARY_FILE_NAME).write_text(GLOSSARY_ROWS + DELETE_ROW, encoding="utf-8")
 
 
 def _put_preset_glossaries(data_dir: Path) -> None:
-    """起動の前に、2 つのプリセットがそれぞれ使う用語集の CSV を settings.toml と同じフォルダへ置く。"""
+    """起動の前に、2 つのプリセットがそれぞれ使う用語集の CSV を settings.yaml と同じフォルダへ置く。"""
     (data_dir / GLOSSARY_FILE_NAME).write_text(GLOSSARY_ROWS, encoding="utf-8")
     (data_dir / SECOND_GLOSSARY_FILE_NAME).write_text(SECOND_GLOSSARY_ROWS, encoding="utf-8")
 
@@ -325,7 +322,7 @@ def test_normal_when_api_glossary_preset(
         assert SPEECH_WORD in payload["text"]
         assert CORRECTED_WORD not in payload["text"]
         assert app.history_text() == payload["text"]
-        settings = load_settings(app.data_dir / "settings.toml", SETTINGS_MODEL)
+        settings = load_settings(resolve_app_paths(app.data_dir), SETTINGS_MODEL)
         assert pick_glossary_preset(settings, app.data_dir).name == "既定"
 
     run_app(
@@ -769,7 +766,9 @@ def test_normal_when_browser_glossary_preset(start_inprocess: StartInProcess, tm
     assert pick_glossary_preset(current, app.paths.settings_file.parent).name == FIRST_PRESET_NAME
 
 
-OPENAI_HINT_SETTINGS = '[[hint_presets]]\nname = "開発"\nwords = ["voice-paste", "Whisper"]\nenabled = true\n'
+OPENAI_HINT_SETTINGS = (
+    "hint_presets:\n  - name: 開発\n    words:\n      - voice-paste\n      - Whisper\n    enabled: true\n"
+)
 """語を持つ有効な手がかりのプリセット 1 つ。"""
 
 OPENAI_HINT = "voice-paste、Whisper"
@@ -786,11 +785,11 @@ OVER_LIMIT_MARGIN_BYTES = 1_000
 
 
 def _openai_settings(endpoint: FakeOpenAIEndpoint, model: str | None = None) -> str:
-    """文字起こしのエンジンを OpenAI API にし、ベース URL をテスト用のエンドポイントに向ける settings.toml の続きを返す。model を渡せばモデルも指定する（省けば既定のモデル）。"""
-    model_line = "" if model is None else f'model = "{model}"\n'
+    """文字起こしのエンジンを OpenAI API にし、ベース URL をテスト用のエンドポイントに向ける settings.yaml の続きを返す。model を渡せばモデルも指定する（省けば既定のモデル）。"""
+    model_line = "" if model is None else f"    model: {model}\n"
     return (
-        f'[transcription]\nengine = "openai"\n\n'
-        f'[transcription.openai]\nbase_url = "{endpoint.base_url}"\n{model_line}'
+        "transcription:\n  engine: openai\n"
+        f"  openai:\n    base_url: {endpoint.base_url}\n{model_line}"
     )
 
 
@@ -855,7 +854,7 @@ def test_normal_when_openai_previous_model(
     openai_endpoint: FakeOpenAIEndpoint,
 ) -> None:
     """設定のモデルが前のモデルなら、録音・モデル・言語（language）・手がかり（prompt）が API キーを付けて送信され、起こした文字が履歴に残って届けられる（正常シナリオ（OpenAI API の前のモデルで起こす））。"""
-    # 準備: settings.toml でモデルに前のモデルを指定し、テスト用のエンドポイントは文字を返す
+    # 準備: settings.yaml でモデルに前のモデルを指定し、テスト用のエンドポイントは文字を返す
     monkeypatch.setenv(OPENAI_API_KEY_ENV, API_KEY)
     openai_endpoint.text = SPEECH_TEXT
     keys = KeyLog()
@@ -944,12 +943,10 @@ def test_error_when_openai_unsupported_audio(
     """OpenAI API が受けられない 25 MB を超える音声は、OpenAI API へ送信せずに failed になり、理由に上限が入り、履歴に音声が残る（異常シナリオ（OpenAI API が受けられない音声））。"""
     # 準備: 25 MB を超える webm を、履歴を残す設定の常駐アプリへ送信する
     monkeypatch.setenv(OPENAI_API_KEY_ENV, API_KEY)
-    transcription = TranscriptionSettings(
-        engine="openai", openai=OpenAISettings(base_url=openai_endpoint.base_url)
-    )
-    settings = make_settings(only_paste_and_send=True).model_copy(
-        update={"transcription": transcription}
-    )
+    settings = make_settings(only_paste_and_send=True)
+    openai = settings.transcription.openai.model_copy(update={"base_url": openai_endpoint.base_url})
+    transcription = settings.transcription.model_copy(update={"engine": "openai", "openai": openai})
+    settings = settings.model_copy(update={"transcription": transcription})
     app = start_inprocess(settings=settings, wav_input=silence_input(tmp_path))
     api = app.start_web_api()
     caplog.set_level(logging.INFO)

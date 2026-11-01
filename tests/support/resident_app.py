@@ -65,6 +65,7 @@ from tests.support.real_service import (
     STARTUP_TIMEOUT_SEC,
     UNUSED_START_HOTKEY,
     free_port,
+    legacy_settings_text,
     post_to_api,
     read_log_records,
     read_token_file,
@@ -73,7 +74,7 @@ from tests.support.real_service import (
 from tests.support.settings import default_output, load_test_default_settings
 from voice_paste.features.session import Session, SessionManager
 from voice_paste.integrations.whisper.client import WORKER_MODULE
-from voice_paste.shared.constants import SETTINGS_FILE_NAME
+from voice_paste.shared.constants import LEGACY_SETTINGS_FILE_NAME, SETTINGS_FILE_NAME
 from voice_paste.shared.errors import MicrophoneUnavailableError
 from voice_paste.ui.tray import STATE_NAMES, TOOLTIP_PREFIX, Tray, TrayState
 
@@ -698,6 +699,8 @@ def run_resident_app(
     monkeypatch: pytest.MonkeyPatch,
     data_dir: Path,
     extra_settings: str = "",
+    api_settings: str = "",
+    legacy_settings: bool = False,
     port: int | None = None,
     prepare: Callable[[Path], None] | None = None,
     expect_exit: bool = False,
@@ -707,6 +710,8 @@ def run_resident_app(
 ) -> ResidentApp:
     """常駐アプリを `main()` から起動し、イベントループの中で case を進めて、`main()` が戻った後の ResidentApp を返す。
 
+    extra_settings・api_settings は settings.yaml に書く YAML の続き（`settings_text`）。
+    legacy_settings が真のときは、settings.yaml を置かずに、前のバージョンの settings.toml（`legacy_settings_text`）を置く。
     prepare は起動の前に data_dir へファイルを用意する関数。
     wav_input は録音を始めるケースが渡す録音の入力で、渡すと録音の入力とシステム音量を差し替える（渡さないケースの起動は変えない）。
     keys は貼り付けのキーで届けるケースが渡す控えで、渡すと貼り付けのキーと Enter を送信せずに控える。
@@ -720,9 +725,14 @@ def run_resident_app(
     if prepare is not None:
         prepare(data_dir)
     api_port = free_port() if port is None else port
-    (data_dir / SETTINGS_FILE_NAME).write_text(
-        settings_text(api_port, extra_settings), encoding="utf-8"
-    )
+    if legacy_settings:
+        (data_dir / LEGACY_SETTINGS_FILE_NAME).write_text(
+            legacy_settings_text(api_port), encoding="utf-8"
+        )
+    else:
+        (data_dir / SETTINGS_FILE_NAME).write_text(
+            settings_text(api_port, extra_settings, api_settings), encoding="utf-8"
+        )
     app = ResidentApp(data_dir, api_port)
     _spy_on_main(app, monkeypatch, wav_input, keys, capture_browser=capture_browser)
     failures: list[BaseException] = []

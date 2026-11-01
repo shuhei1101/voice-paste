@@ -85,11 +85,19 @@ def read_log_records(data_dir: Path) -> list[dict[str, Any]]:
     ]
 
 
-def settings_text(api_port: int, extra_settings: str = "") -> str:
-    """テストの常駐アプリの settings.yaml の中身（API のポートと、画面を localhost で開く Origin、録音開始のホットキー。extra_settings は api・hotkeys 以外のまとまりの YAML の続き）。"""
+def settings_text(api_port: int, extra_settings: str = "", api_settings: str = "") -> str:
+    """テストの常駐アプリの settings.yaml の中身（API のポートと、画面を localhost で開く Origin、録音開始のホットキー。extra_settings は api・hotkeys 以外のまとまりの YAML の続き、api_settings は api の下に続ける YAML）。"""
     return (
-        f"api:\n  port: {api_port}\n  allowed_web_origins:\n    - http://localhost:{api_port}\n"
+        f"api:\n  port: {api_port}\n  allowed_web_origins:\n    - http://localhost:{api_port}\n{api_settings}"
         f'hotkeys:\n  start: "{UNUSED_START_HOTKEY}"\n{extra_settings}\n'
+    )
+
+
+def legacy_settings_text(api_port: int) -> str:
+    """前のバージョンの settings.toml の中身（settings_text と同じ API のポート・Origin・録音開始のホットキーを TOML で書く）。"""
+    return (
+        f'[api]\nport = {api_port}\nallowed_web_origins = ["http://localhost:{api_port}"]\n\n'
+        f'[hotkeys]\nstart = "{UNUSED_START_HOTKEY}"\n'
     )
 
 

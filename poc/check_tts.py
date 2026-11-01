@@ -35,8 +35,8 @@ with tempfile.TemporaryDirectory() as tmp:
         print(json.dumps(results[-1], ensure_ascii=False), flush=True)
 
     long_input = speech_sequence_input(tmp_path, sentences_of(LONG_READING), gap_sec=SHORT_GAP_SEC)
-    # tests/nfr/test_max_segment_length.py と同じ間（0.5 秒）と前の無音（1 秒）でつなぐ
-    reading = speech_sequence_input(tmp_path, long_reading_texts(), gap_sec=0.5, lead_silence_sec=1.0)
+    # tests/nfr/test_max_segment_length.py と同じ間（0.4 秒）と前の無音（1 秒）でつなぐ
+    reading = speech_sequence_input(tmp_path, long_reading_texts(), gap_sec=0.4, lead_silence_sec=1.0)
     print(json.dumps({
         "ok_count": sum(r["ok"] for r in results), "total": len(results),
         "long_reading_sequence_sec": round(long_input.duration_sec, 2),

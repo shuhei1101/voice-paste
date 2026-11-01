@@ -6,12 +6,16 @@ POST（post）・間を置く関数（sleep）・乱数（jitter）は Mock に�
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
 
 from tests.unit.voice_paste.features.outputs.helpers import make_output_deps
 from voice_paste.shared.errors import DeliveryError
+
+if TYPE_CHECKING:
+    from tests.unit.voice_paste.settings_helpers import MakeSettings
 
 TARGET = "http://127.0.0.1:9000/result"
 RETRY_COUNT = 2
@@ -273,15 +277,14 @@ def test_deliver_to_caller_when_not_allowed() -> None:
 # === inject_callback ===
 
 
-def test_inject_callback() -> None:
+def test_inject_callback(make_settings: MakeSettings) -> None:
     """返送の決定値と設定の許可ホストを渡す（正常系）。"""
     from voice_paste.features.outputs.callback.service import inject_callback
-    from voice_paste.shared.settings import ApiSettings, Settings
 
     # 準備
     deps = make_output_deps(
         get_settings=MagicMock(
-            return_value=Settings(api=ApiSettings(allowed_callback_hosts=["host.local"]))
+            return_value=make_settings({"api": {"allowed_callback_hosts": ["host.local"]}})
         )
     )
 

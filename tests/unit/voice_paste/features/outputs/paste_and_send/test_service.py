@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock, call
 
 import pytest
@@ -13,6 +14,15 @@ import pytest
 from tests.unit.voice_paste.features.outputs.helpers import make_output_deps
 from voice_paste.shared.errors import DeliveryError
 from voice_paste.shared.types import TranscriptionOutcome
+
+if TYPE_CHECKING:
+    from tests.unit.voice_paste.settings_helpers import MakeSettings
+
+PASTE_AND_SEND: dict[str, Any] = {"id": "paste_and_send", "hotkey": "<ctrl>+<alt>+d"}
+"""設定の outputs に書く、貼り付けて送信の出力先。"""
+
+PASTE_ONLY: dict[str, Any] = {"id": "paste_only", "hotkey": "<ctrl>+<alt>+v"}
+"""設定の outputs に書く、貼り付けのみの出力先。"""
 
 
 def _outcome() -> TranscriptionOutcome:
@@ -109,14 +119,12 @@ def test_paste_and_send_when_copy_failed() -> None:
 # === read_enter_delay_sec ===
 
 
-def test_read_enter_delay_sec() -> None:
+def test_read_enter_delay_sec(make_settings: MakeSettings) -> None:
     """貼り付けて送信の秒数を返す（正常系）。"""
     from voice_paste.features.outputs.paste_and_send.service import read_enter_delay_sec
-    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
-    from voice_paste.shared.settings import Settings
 
     # 準備
-    settings = Settings(outputs=[PasteAndSendSettings(enter_delay_sec=0.2)])
+    settings = make_settings({"outputs": [{**PASTE_AND_SEND, "enter_delay_sec": 0.2}]})
 
     # 実行
     seconds = read_enter_delay_sec(settings)
@@ -125,14 +133,12 @@ def test_read_enter_delay_sec() -> None:
     assert seconds == 0.2
 
 
-def test_read_enter_delay_sec_when_missing() -> None:
+def test_read_enter_delay_sec_when_missing(make_settings: MakeSettings) -> None:
     """一覧に無ければ既定値を返す（正常系）。"""
     from voice_paste.features.outputs.paste_and_send.service import read_enter_delay_sec
-    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
-    from voice_paste.shared.settings import Settings
 
     # 準備
-    settings = Settings(outputs=[PasteOnlySettings()])
+    settings = make_settings({"outputs": [PASTE_ONLY]})
 
     # 実行
     seconds = read_enter_delay_sec(settings)
@@ -144,14 +150,14 @@ def test_read_enter_delay_sec_when_missing() -> None:
 # === read_enter_modifiers ===
 
 
-def test_read_enter_modifiers() -> None:
+def test_read_enter_modifiers(make_settings: MakeSettings) -> None:
     """貼り付けて送信の修飾キーを返す（正常系）。"""
     from voice_paste.features.outputs.paste_and_send.service import read_enter_modifiers
-    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
-    from voice_paste.shared.settings import Settings
 
     # 準備
-    settings = Settings(outputs=[PasteAndSendSettings(enter_modifiers=["ctrl", "shift"])])
+    settings = make_settings(
+        {"outputs": [{**PASTE_AND_SEND, "enter_modifiers": ["ctrl", "shift"]}]}
+    )
 
     # 実行
     modifiers = read_enter_modifiers(settings)
@@ -160,14 +166,12 @@ def test_read_enter_modifiers() -> None:
     assert modifiers == ("ctrl", "shift")
 
 
-def test_read_enter_modifiers_when_missing() -> None:
+def test_read_enter_modifiers_when_missing(make_settings: MakeSettings) -> None:
     """一覧に無ければ空を返す（正常系）。"""
     from voice_paste.features.outputs.paste_and_send.service import read_enter_modifiers
-    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
-    from voice_paste.shared.settings import Settings
 
     # 準備
-    settings = Settings(outputs=[PasteOnlySettings()])
+    settings = make_settings({"outputs": [PASTE_ONLY]})
 
     # 実行
     modifiers = read_enter_modifiers(settings)
@@ -179,16 +183,14 @@ def test_read_enter_modifiers_when_missing() -> None:
 # === inject_paste_and_send ===
 
 
-def test_inject_paste_and_send() -> None:
+def test_inject_paste_and_send(make_settings: MakeSettings) -> None:
     """呼ぶたびに今の設定の秒数と修飾キーを返す関数を渡す（正常系）。"""
     from voice_paste.features.outputs.paste_and_send.service import inject_paste_and_send
-    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
-    from voice_paste.shared.settings import Settings
 
     # 準備
     get_settings = MagicMock(
-        return_value=Settings(
-            outputs=[PasteAndSendSettings(enter_delay_sec=0.2, enter_modifiers=[])]
+        return_value=make_settings(
+            {"outputs": [{**PASTE_AND_SEND, "enter_delay_sec": 0.2, "enter_modifiers": []}]}
         )
     )
     deps = make_output_deps(get_settings=get_settings)
@@ -197,8 +199,8 @@ def test_inject_paste_and_send() -> None:
     injected = inject_paste_and_send(deps)
     seconds_before = injected["get_enter_delay_sec"]()
     modifiers_before = injected["get_enter_modifiers"]()
-    get_settings.return_value = Settings(
-        outputs=[PasteAndSendSettings(enter_delay_sec=1.0, enter_modifiers=["ctrl"])]
+    get_settings.return_value = make_settings(
+        {"outputs": [{**PASTE_AND_SEND, "enter_delay_sec": 1.0, "enter_modifiers": ["ctrl"]}]}
     )
     seconds_after = injected["get_enter_delay_sec"]()
     modifiers_after = injected["get_enter_modifiers"]()

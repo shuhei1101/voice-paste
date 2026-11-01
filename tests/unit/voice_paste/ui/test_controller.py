@@ -23,6 +23,7 @@ from voice_paste.shared.errors import DeliveryError
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QApplication
 
+    from tests.unit.voice_paste.settings_helpers import MakeSettings
     from voice_paste.shared.settings import Settings
     from voice_paste.ui.controller import UiController, UiDeps
 
@@ -94,15 +95,14 @@ def test_on_notified_when_recording(qapp: QApplication, tmp_path: Path) -> None:
     parts.indicator.close_window.assert_called_once()
 
 
-def test_on_notified_when_hidden_window(qapp: QApplication, tmp_path: Path) -> None:
+def test_on_notified_when_hidden_window(
+    qapp: QApplication, tmp_path: Path, make_settings: MakeSettings
+) -> None:
     """画面を出さない設定では録音の画面を出さない（正常系）。"""
-    from voice_paste.shared.settings import RecordingSettings, Settings
     from voice_paste.ui.tray import TrayState
 
     # 準備
-    parts = _make_controller(
-        tmp_path, settings=Settings(recording=RecordingSettings(hide_window=True))
-    )
+    parts = _make_controller(tmp_path, settings=make_settings({"recording": {"hide_window": True}}))
     parts.deps.current_session.return_value = make_session("hotkey", "recording")
 
     # 実行
@@ -480,12 +480,10 @@ def test_open_settings_when_reopened(qapp: QApplication, tmp_path: Path) -> None
 # === on_settings_saved ===
 
 
-def test_on_settings_saved(qapp: QApplication, tmp_path: Path) -> None:
+def test_on_settings_saved(qapp: QApplication, tmp_path: Path, make_settings: MakeSettings) -> None:
     """保存したら明暗を当て直す（正常系）。"""
-    from voice_paste.main import SETTINGS_MODEL
-
     # 準備: ui.theme=dark の設定が効いている
-    settings = SETTINGS_MODEL.model_validate({"ui": {"theme": "dark"}})
+    settings = make_settings({"ui": {"theme": "dark"}})
     apply_theme = MagicMock(return_value=None)
     parts = _make_controller(tmp_path, settings=settings, apply_theme=apply_theme)
 

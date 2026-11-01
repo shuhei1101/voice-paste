@@ -42,8 +42,8 @@ class FakeClock:
 def make_ui_deps(
     tmp_path: Path, *, settings: Settings | None = None, **overrides: Any
 ) -> UiDeps:
-    """全ての関数を Mock にした UiDeps を作る。settings は get_settings が返す設定（既定は既定の出力先を持つ設定）、overrides は項目ごとの差し替え。"""
-    from voice_paste.main import SETTINGS_MODEL
+    """全ての関数を Mock にした UiDeps を作る。settings は get_settings が返す設定（既定は既定の設定）、overrides は項目ごとの差し替え。"""
+    from tests.unit.voice_paste.settings_helpers import load_test_default_settings
     from voice_paste.shared.settings import GlossarySettings
     from voice_paste.ui.controller import UiDeps as UiDepsModel
 
@@ -55,7 +55,7 @@ def make_ui_deps(
         "cancel": MagicMock(return_value=None),
         "current_session": MagicMock(return_value=None),
         "level": MagicMock(return_value=0.0),
-        "get_settings": MagicMock(return_value=settings or SETTINGS_MODEL()),
+        "get_settings": MagicMock(return_value=settings or load_test_default_settings()),
         "save_settings": MagicMock(return_value=False),
         "settings_dir": tmp_path,
         "log_dir": tmp_path / "log",
@@ -85,6 +85,8 @@ def make_ui_deps(
         fields["hidden_setting_keys"] = frozenset()
     if "reports_progress" in {field.name for field in dataclasses.fields(UiDepsModel)}:
         fields["reports_progress"] = True
+    if "reset_settings" in {field.name for field in dataclasses.fields(UiDepsModel)}:
+        fields["reset_settings"] = MagicMock(return_value=(load_test_default_settings(), False))
     fields.update(overrides)
     return UiDepsModel(**fields)
 

@@ -2,7 +2,7 @@
 
 単一インスタンスの排他（実物の Win32 の名前付きのミューテックスとイベント）を使うテストが、
 名前・取ったロック・開いたハンドルを後始末つきで扱えるようにする。
-アプリが使う設定のモデル（main.py の SETTINGS_MODEL）も返す。
+アプリが使う設定のモデル（main.py の SETTINGS_MODEL）と既定の設定も返す。
 """
 
 from __future__ import annotations
@@ -15,17 +15,34 @@ import pytest
 
 if TYPE_CHECKING:
     from tests.unit.voice_paste.runtime.helpers import BackgroundAcquire, OtherProcessHolder
+    from tests.unit.voice_paste.settings_helpers import MakeSettings
     from voice_paste.runtime.single_instance import SingleInstanceLock
     from voice_paste.shared.settings import Settings
 
 
 @pytest.fixture
 def settings_model() -> type[Settings]:
-    """アプリが使う設定のモデル（main.py の SETTINGS_MODEL）を返す。既定の出力先の一覧を持つ。"""
+    """アプリが使う設定のモデル（main.py の SETTINGS_MODEL）を返す。"""
     # テストの本体で import し、実装が無いときはそのテストが ImportError で落ちるようにする
     from voice_paste.main import SETTINGS_MODEL
 
     return SETTINGS_MODEL
+
+
+@pytest.fixture
+def default_settings() -> Settings:
+    """リポジトリの config/defaults.yaml を読んだ既定の設定を返す。"""
+    from tests.unit.voice_paste.settings_helpers import load_test_default_settings
+
+    return load_test_default_settings()
+
+
+@pytest.fixture
+def make_settings() -> MakeSettings:
+    """既定の設定に、設定と同じ構造の dict を重ね、一番上の項目を替えて検証した設定を返す関数を返す。"""
+    from tests.unit.voice_paste.settings_helpers import make_test_settings
+
+    return make_test_settings
 
 
 @pytest.fixture

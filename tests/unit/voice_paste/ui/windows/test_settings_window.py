@@ -28,11 +28,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from tests.unit.voice_paste.settings_helpers import make_test_document
 from tests.unit.voice_paste.ui.helpers import make_ui_deps
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QApplication
 
+    from tests.unit.voice_paste.settings_helpers import MakeSettings
     from voice_paste.shared.settings import GlossaryPresetSettings, GlossarySettings, Settings
     from voice_paste.shared.types import GlossaryEntry
     from voice_paste.ui.controller import UiDeps
@@ -404,7 +406,7 @@ def test_save_when_theme(opened: Opened) -> None:
 
 
 def test_save_when_glossaries(
-    open_with_glossaries: Callable[..., Opened], settings_model: type[Settings], tmp_path: Path
+    open_with_glossaries: Callable[..., Opened], make_settings: MakeSettings, tmp_path: Path
 ) -> None:
     """用語集の一覧と補正に使うプリセットを設定に入れ、行を変えた用語集だけを書き戻しに渡す（正常系）。"""
     from voice_paste.shared.settings import GlossaryPresetSettings, GlossarySettings
@@ -426,7 +428,7 @@ def test_save_when_glossaries(
                 GlossaryEntry(wrong="う", right="C"),
             ],
         },
-        settings=settings_model(glossaries=[first, second], glossary_presets=presets),
+        settings=make_settings(glossaries=[first, second], glossary_presets=presets),
         presets=presets,
     )
     _select_group(opened.window, "用語集")
@@ -573,7 +575,7 @@ def _add_hint_preset(window: SettingsWindow, *, name: str, word_count: int) -> l
 
 
 def test_save_when_glossary_presets(
-    open_with_glossaries: Callable[..., Opened], settings_model: type[Settings], tmp_path: Path
+    open_with_glossaries: Callable[..., Opened], make_settings: MakeSettings, tmp_path: Path
 ) -> None:
     """用語集のプリセットを使う用語集の順のまま設定に入れる（正常系）。"""
     from voice_paste.shared.settings import GlossaryPresetSettings, GlossarySettings
@@ -588,7 +590,7 @@ def test_save_when_glossary_presets(
             first.path: [GlossaryEntry(wrong="あ", right="A")],
             second.path: [GlossaryEntry(wrong="い", right="B")],
         },
-        settings=settings_model(glossaries=[first, second], active_glossary="会議用"),
+        settings=make_settings(glossaries=[first, second], active_glossary="会議用"),
         presets=[GlossaryPresetSettings(name="既定", glossaries=["会議用"])],
     )
     _select_group(opened.window, "用語集")
@@ -902,7 +904,7 @@ def test_save_when_restart_field_changed(opened: Opened) -> None:
 
 
 def test_save_when_glossary_reverted(
-    open_with_glossaries: Callable[..., Opened], settings_model: type[Settings], tmp_path: Path
+    open_with_glossaries: Callable[..., Opened], make_settings: MakeSettings, tmp_path: Path
 ) -> None:
     """開いたままの 2 回目の保存で、開いたときの行へ戻した用語集も書き戻す（正常系）。"""
     from voice_paste.shared.settings import GlossarySettings
@@ -920,7 +922,7 @@ def test_save_when_glossary_reverted(
             ],
             second.path: [GlossaryEntry(wrong="う", right="C")],
         },
-        settings=settings_model(glossaries=[first, second]),
+        settings=make_settings(glossaries=[first, second]),
     )
     _select_group(opened.window, "用語集")
     _visible_buttons(opened.window, "glossary_entry_on_")[0].click()
@@ -944,7 +946,7 @@ def test_save_when_glossary_reverted(
 
 def test_save_then_close(
     open_with_glossaries: Callable[..., Opened],
-    settings_model: type[Settings],
+    make_settings: MakeSettings,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -959,7 +961,7 @@ def test_save_then_close(
     opened = open_with_glossaries(
         [glossary],
         {glossary.path: [GlossaryEntry(wrong="あ", right="A"), GlossaryEntry(wrong="い", right="B")]},
-        settings=settings_model(glossaries=[glossary]),
+        settings=make_settings(glossaries=[glossary]),
     )
     closed_count: list[int] = []
     opened.window.closed.connect(lambda: closed_count.append(1))
@@ -990,15 +992,14 @@ def test_save_then_close(
 
 
 def test_collect_when_hidden_keys(
-    qapp: QApplication, tmp_path: Path, settings_model: type[Settings]
+    qapp: QApplication, tmp_path: Path, make_settings: MakeSettings
 ) -> None:
     """出さないキーは欄を置かず、開いたときの値を返す（正常系）。"""
-    from voice_paste.shared.settings import RecordingSettings
     from voice_paste.ui.windows.settings_window import SettingsWindow
 
     # 準備: 音量のキーを出さない設定で、既定と違う音量の値を入れて開く
-    settings = settings_model(
-        recording=RecordingSettings(lower_volume=False, volume_percent=40, fade_sec=1.5)
+    settings = make_settings(
+        {"recording": {"lower_volume": False, "volume_percent": 40, "fade_sec": 1.5}}
     )
     deps = make_ui_deps(tmp_path, settings=settings, hidden_setting_keys=frozenset(VOLUME_KEYS))
     window = SettingsWindow(deps)
@@ -1242,7 +1243,17 @@ def test_to_field_message_when_not_number(settings_model: type[Settings]) -> Non
     # 準備
     with pytest.raises(ValidationError) as exc_info:
         settings_model.model_validate(
-            {"outputs": [{"id": "paste_and_send", "enter_delay_sec": "abc"}]}
+            make_test_document(
+                {
+                    "outputs": [
+                        {
+                            "id": "paste_and_send",
+                            "hotkey": "<ctrl>+<alt>+d",
+                            "enter_delay_sec": "abc",
+                        }
+                    ]
+                }
+            )
         )
 
     # 実行
@@ -1260,7 +1271,7 @@ def test_to_field_message_when_out_of_range(settings_model: type[Settings]) -> N
 
     # 準備
     with pytest.raises(ValidationError) as exc_info:
-        settings_model.model_validate({"api": {"port": 80}})
+        settings_model.model_validate(make_test_document({"api": {"port": 80}}))
 
     # 実行
     message = to_field_message(exc_info.value.errors()[0], model=settings_model)
@@ -1278,7 +1289,9 @@ def test_to_field_message_when_preset_url_empty(settings_model: type[Settings]) 
     # 準備
     with pytest.raises(ValidationError) as exc_info:
         settings_model.model_validate(
-            {"presets": [{"kind": "endpoint", "title": "受信先", "url": ""}]}
+            make_test_document(
+                {"presets": [{"kind": "endpoint", "title": "受信先", "url": ""}]}
+            )
         )
 
     # 実行
@@ -1296,7 +1309,9 @@ def test_to_field_message_when_openai_base_url_empty(settings_model: type[Settin
 
     # 準備
     with pytest.raises(ValidationError) as exc_info:
-        settings_model.model_validate({"transcription": {"openai": {"base_url": ""}}})
+        settings_model.model_validate(
+            make_test_document({"transcription": {"openai": {"base_url": ""}}})
+        )
 
     # 実行
     message = to_field_message(exc_info.value.errors()[0], model=settings_model)
@@ -1314,7 +1329,9 @@ def test_to_field_message_when_hint_too_long(settings_model: type[Settings]) -> 
     # 準備（有効な語をつないだ長さが 258 バイトの hint_presets）
     with pytest.raises(ValidationError) as exc_info:
         settings_model.model_validate(
-            {"hint_presets": [{"name": "開発", "words": ["あ" * 86], "enabled": True}]}
+            make_test_document(
+                {"hint_presets": [{"name": "開発", "words": ["あ" * 86], "enabled": True}]}
+            )
         )
 
     # 実行
@@ -1335,7 +1352,9 @@ def test_to_field_message_when_hint_preset_name_overlap(settings_model: type[Set
     # 準備（名前が「開発」の 2 件の hint_presets）
     with pytest.raises(ValidationError) as exc_info:
         settings_model.model_validate(
-            {"hint_presets": [{"name": "開発", "words": ["A"]}, {"name": "開発", "words": ["B"]}]}
+            make_test_document(
+                {"hint_presets": [{"name": "開発", "words": ["A"]}, {"name": "開発", "words": ["B"]}]}
+            )
         )
 
     # 実行
@@ -1354,7 +1373,16 @@ def test_to_field_message_when_web_origin_not_form(settings_model: type[Settings
     # 準備（形式の違う 2 件の api.allowed_web_origins）
     with pytest.raises(ValidationError) as exc_info:
         settings_model.model_validate(
-            {"api": {"allowed_web_origins": ["https://voice.example.com/", "voice.example.com"]}}
+            make_test_document(
+                {
+                    "api": {
+                        "allowed_web_origins": [
+                            "https://voice.example.com/",
+                            "voice.example.com",
+                        ]
+                    }
+                }
+            )
         )
 
     # 実行

@@ -255,18 +255,22 @@ def wait_until_received(process: FakeProcess, message_type: str, timeout_sec: fl
 @pytest.fixture
 def local_whisper_settings() -> LocalWhisperSettings:
     """既定と違う値の、ローカルの Whisper の設定を返す。"""
-    return LocalWhisperSettings(
-        language="en",
-        beam_size=3,
-        best_of=2,
-        temperature=0.2,
-        vad_filter=False,
-        vad_threshold=0.4,
-        vad_min_speech_ms=300,
-        vad_min_silence_ms=1500,
-        condition_on_previous_text=True,
-        no_speech_threshold=0.7,
-    )
+    from tests.unit.voice_paste.settings_helpers import make_test_settings
+
+    overrides = {
+        "language": "en",
+        "beam_size": 3,
+        "best_of": 2,
+        "temperature": 0.2,
+        "vad_filter": False,
+        "vad_threshold": 0.4,
+        "vad_min_speech_ms": 300,
+        "vad_min_silence_ms": 1500,
+        "condition_on_previous_text": True,
+        "no_speech_threshold": 0.7,
+    }
+    settings = make_test_settings({"transcription": {"local_whisper": overrides}})
+    return settings.transcription.local_whisper
 
 
 @pytest.fixture

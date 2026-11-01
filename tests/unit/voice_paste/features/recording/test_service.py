@@ -25,7 +25,6 @@ from tests.unit.voice_paste.features.recording.helpers import (
     windows,
 )
 from voice_paste.shared.errors import MicrophoneUnavailableError, VolumeControlError
-from voice_paste.shared.settings import RecordingSettings
 
 if TYPE_CHECKING:
     from voice_paste.features.recording.service import Recorder
@@ -95,11 +94,18 @@ def harness_factory() -> Iterator[Callable[..., Harness]]:
         volume_percent: float = 50,
         fade_sec: float = FADE_SEC,
     ) -> Harness:
+        from tests.unit.voice_paste.settings_helpers import make_test_settings
         from voice_paste.features.recording.service import Recorder
 
-        settings = RecordingSettings(
-            lower_volume=lower_volume, volume_percent=volume_percent, fade_sec=fade_sec
-        )
+        settings = make_test_settings(
+            {
+                "recording": {
+                    "lower_volume": lower_volume,
+                    "volume_percent": volume_percent,
+                    "fade_sec": fade_sec,
+                }
+            }
+        ).recording
         harness = Harness()
 
         def fake_lower_volume(ratio: float, fade: float) -> float:

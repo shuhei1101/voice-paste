@@ -254,8 +254,8 @@ def test_normal_when_reset(run_app: RunApp) -> None:
             RESET_TIMEOUT_SEC,
         )
         assert app.window("settings_window") is not None
-        app.select_group("出力先")
-        assert app.field_value("outputs[0].enter_delay_sec") == "0.5"
+        app.select_group("画面")
+        assert app.field_value("ui.wave_gain") == "4"
 
     # 実行
     run_app(case, extra_settings=COMMENTED_SETTINGS)

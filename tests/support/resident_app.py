@@ -108,7 +108,7 @@ WATCHED_WINDOWS = ("recording_window", "transcribing_indicator", "busy_dialog")
 
 MILLISECONDS_PER_SECOND = 1000
 
-RESTORED_SIGNAL_NAMES = ("SIGINT", "SIGBREAK")
+RESTORED_SIGNAL_NAMES = ("SIGINT", "SIGBREAK", "SIGTERM")
 """ケースの後にハンドラを元に戻すシグナル。その OS に無いもの（Linux の SIGBREAK）は戻さない。"""
 
 PAUSE_HOTKEY = HotkeySettings().pause

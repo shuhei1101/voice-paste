@@ -2,9 +2,9 @@
 
 常駐アプリを pytest のプロセスの中で `main()` から起動し（`--data-dir` の一時フォルダ、Qt は offscreen）、
 ホットキーが押された体で登録された関数を呼び、録音の画面・トレイは Qt のイベントで操作する。実機のマウス・キーボードは使わない。
-録音の入力は Windows の音声合成（SAPI）で決めた文を書き出した WAV（か無音の WAV、マイクを開けない入力）に、
+録音の入力は 音声合成（Windows は SAPI、Linux は Open JTalk）で決めた文を書き出した WAV（か無音の WAV、マイクを開けない入力）に、
 システム音量は呼ばれた値を控えるものに、貼り付けのキーは送信したキーを控えるものに差し替え、実機のマイクを開かず、システム音量を変えず、キーを送信しない。
-文字起こしはローカルの Whisper（GPU）で、クリップボードは実物を使う（テストの後に元の文字へ戻す）。API から始める録音の返送先は、テストが 127.0.0.1 に立てる受信先。
+文字起こしはローカルの Whisper（Windows は GPU、Linux は CPU）で、クリップボードは実物を使う（テストの後に元の文字へ戻す）。API から始める録音の返送先は、テストが 127.0.0.1 に立てる受信先。
 
 「ほかの窓を前面に出す」「主のモニターに出す」「カーソルのあるモニターに出す」「録音の画面を動かす」は、Windows の窓の重なり・モニター・窓の移動を使い
 offscreen の Qt では起こせないため置かない。前面の窓（Windows のフォアグラウンド）は確かめず、フォーカスを取らないことは Qt のアクティブな窓が録音の画面でないことで確かめる。
@@ -38,7 +38,8 @@ from tests.support.continuous import (
 from tests.support.inprocess import (
     LONG_READING,
     SPEECH_WORD,
-    VOLUME_BEFORE,
+    expected_lowered_ratios,
+    expected_restored_volumes,
     KeyLog,
     WavInput,
     read_wav,
@@ -142,14 +143,14 @@ def test_normal(run_app: RunApp, tmp_path: Path, clipboard_sentinel: str) -> Non
         """録音を始めて確定し、録音の画面・履歴・音量・届け先を確かめる。"""
         # 実行: 録音を始め、録音の画面で「貼り付けて送信」を選んで確定する
         app.start_recording()
-        assert app.volume_log().lowered_ratios == [LOWERED_RATIO]
+        assert app.volume_log().lowered_ratios == expected_lowered_ratios(LOWERED_RATIO)
         app.press("output_button_paste_and_send")
 
         # 検証
         assert app.wait_window_gone("recording_window")
         app.wait_processed()
         assert SPEECH_WORD in app.history_text()
-        assert app.volume_log().restored == [VOLUME_BEFORE]
+        assert app.volume_log().restored == expected_restored_volumes()
         assert len(keys.pasted) == 1
         assert keys.enters == 1
 
@@ -220,7 +221,7 @@ def test_normal_when_cancel(
         """録音を始めて取り消し、録音の画面・履歴・音量・トレイを確かめる。"""
         # 準備
         app.start_recording()
-        assert app.volume_log().lowered_ratios == [LOWERED_RATIO]
+        assert app.volume_log().lowered_ratios == expected_lowered_ratios(LOWERED_RATIO)
 
         # 実行
         app.press(button)
@@ -230,7 +231,7 @@ def test_normal_when_cancel(
         assert app.wait_until(lambda: app.tray_state() == IDLE)
         QTest.qWait(500)
         assert app.history_files(".wav") == []
-        assert app.volume_log().restored == [VOLUME_BEFORE]
+        assert app.volume_log().restored == expected_restored_volumes()
         assert app.current_session() is None
         assert transcribed == []
         assert keys.pasted == []
@@ -279,8 +280,8 @@ def test_normal_when_no_window(
 
         # 検証
         assert SPEECH_WORD in app.history_text()
-        assert app.volume_log().lowered_ratios == [LOWERED_RATIO]
-        assert app.volume_log().restored == [VOLUME_BEFORE]
+        assert app.volume_log().lowered_ratios == expected_lowered_ratios(LOWERED_RATIO)
+        assert app.volume_log().restored == expected_restored_volumes()
         assert app.window("recording_window") is None
         assert app.window("transcribing_indicator") is None
 
@@ -362,8 +363,8 @@ def test_error_when_microphone_unavailable(run_app: RunApp) -> None:
 
         # 検証
         assert app.window("recording_window") is None
-        assert app.volume_log().lowered_ratios == [LOWERED_RATIO]
-        assert app.volume_log().restored == [VOLUME_BEFORE]
+        assert app.volume_log().lowered_ratios == expected_lowered_ratios(LOWERED_RATIO)
+        assert app.volume_log().restored == expected_restored_volumes()
         assert app.tray_state() == IDLE
         assert app.current_session() is None
         assert app.notified_count("microphone_unavailable") == 1
@@ -595,7 +596,7 @@ def test_normal_when_split_by_silence(
         session_id = app.start_api_session(receiver.url, continuous=True)
         assert app.wait_until(lambda: app.tray_state() == RECORDING)
         assert app.window("recording_window") is None
-        assert app.volume_log().lowered_ratios == [LOWERED_RATIO]
+        assert app.volume_log().lowered_ratios == expected_lowered_ratios(LOWERED_RATIO)
         app.wait_played_out(wav_input)
         app.complete_api_session(session_id)
         payloads = app.wait_for_continuous_end(receiver)
@@ -612,7 +613,7 @@ def test_normal_when_split_by_silence(
         for recording, segment in zip(recordings, segments, strict=True):
             assert session_id in recording.name
             assert recording.with_suffix(".txt").read_text(encoding="utf-8") == segment["text"]
-        assert app.volume_log().restored == [VOLUME_BEFORE]
+        assert app.volume_log().restored == expected_restored_volumes()
 
     run_app(case, wav_input=wav_input, keys=KeyLog())
 

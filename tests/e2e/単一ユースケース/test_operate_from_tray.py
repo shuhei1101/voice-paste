@@ -147,15 +147,21 @@ def _quit_by_ctrl_break(app: ResidentApp) -> None:
 def _change_settings_field(app: ResidentApp) -> None:
     """設定画面を開いて、保存せずに欄の値を変える。"""
     app.open_settings()
-    app.select_group("録音")
-    app.set_field("recording.fade_sec", "2.5")
+    app.select_group("出力先")
+    app.set_field("outputs[0].enter_delay_sec", "2.5")
 
 
 @pytest.mark.parametrize(
     "quit_app",
     [
         pytest.param(_quit_by_tray_menu, id="tray_quit"),
-        pytest.param(_quit_by_ctrl_break, id="ctrl_break"),
+        pytest.param(
+            _quit_by_ctrl_break,
+            id="ctrl_break",
+            marks=pytest.mark.skipif(
+                not hasattr(signal, "SIGBREAK"), reason="SIGBREAK は Windows にだけある"
+            ),
+        ),
     ],
 )
 def test_normal_when_quit_with_unsaved_settings(

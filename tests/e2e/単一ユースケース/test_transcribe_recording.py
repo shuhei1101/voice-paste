@@ -1,9 +1,9 @@
 """単一ユースケース「録音を文字に起こす」の E2E テスト。
 
 文字起こしの手がかりを渡す正常シナリオは、常駐アプリを pytest のプロセスの中で `build_handlers` で配線し、ホットキーの入口（`start_local_session`）から録音を始める
-（起動・トレイ・ホットキーの受付は通さない）。録音の入力は、Windows の音声合成（SAPI）で決めた文を書き出した WAV を流すものに
+（起動・トレイ・ホットキーの受付は通さない）。録音の入力は、音声合成（Windows は SAPI、Linux は Open JTalk）で決めた文を書き出した WAV を流すものに
 差し替え、マイクもスピーカーも通さない。システム音量・貼り付けのキー・通知は差し替える。
-文字起こしはローカルの Whisper（GPU）で、クリップボードは実物を使う（テストの後に元の文字へ戻す）。
+文字起こしはローカルの Whisper（Windows は GPU、Linux は CPU）で、クリップボードは実物を使う（テストの後に元の文字へ戻す）。
 文字起こしワーカーは、faster-whisper へ渡された hotwords を記録する入口（`tests/support/hotwords_probe_worker.py`）から起動し、
 常駐アプリがワーカーへ送信した要求と、ワーカーが faster-whisper へ渡した値を確かめる。
 
@@ -12,7 +12,7 @@
 録音の入力・システム音量・貼り付けのキーは差し替え（実機のマイクを開かず、システム音量を変えず、キーを送信しない）、
 文字起こし中の表示が出たかは窓を見張って控え、失敗を知らせたことは知らせのログで、ログの置き場所を開くことは開く呼び出しに渡されたパスで確かめる。
 API から始める録音の返送先は、テストが 127.0.0.1 に立てる受信先。
-実機の Windows と GPU が要る（`--run-e2e` が無ければ skip する）。
+実機の Windows と GPU か、Ubuntu 24.04 の Xorg のセッションが要る（`--run-e2e` が無ければ skip する）。
 """
 
 from __future__ import annotations
@@ -61,6 +61,7 @@ from tests.support.inprocess import (
     kill_workers_twice,
     make_glossary_preset_settings,
     make_settings,
+    requires_web_transcription,
     silence_input,
     speech_input,
     speech_sequence_input,
@@ -676,6 +677,7 @@ def _post_webm(api: InProcessApi, wav_path: Path, *, glossary_preset: str | None
     return str(response.json()["job_id"])
 
 
+@requires_web_transcription
 def test_normal_when_browser_audio(start_inprocess: StartInProcess, tmp_path: Path) -> None:
     """ブラウザから受けた音声が、用語集で補正した文字になって done になる。進みが増え、履歴に webm のままの音声と同じ名前の .txt が残り、貼り付けは起きない（正常シナリオ（ブラウザから受けた音声））。"""
     # 準備
@@ -705,6 +707,7 @@ def test_normal_when_browser_audio(start_inprocess: StartInProcess, tmp_path: Pa
     assert app.notifications.events == []
 
 
+@requires_web_transcription
 def test_error_when_browser_audio_transcription_failed(
     start_inprocess: StartInProcess,
     tmp_path: Path,
@@ -743,6 +746,7 @@ def test_error_when_browser_audio_transcription_failed(
     assert app.keys.pasted == []
 
 
+@requires_web_transcription
 def test_normal_when_browser_glossary_preset(start_inprocess: StartInProcess, tmp_path: Path) -> None:
     """ブラウザから受けた音声に 2 つ目のプリセットを指定すると、2 つ目のプリセットの用語集の言葉だけが置き換わり、1 つ目の用語集の言葉は残る。設定で選んでいるプリセットは 1 つ目のまま変わらない（正常シナリオ（ブラウザで選んだプリセットで補正する））。"""
     # 準備: 2 つのプリセットがそれぞれ別の用語集を使い、書き出した文の別々の言葉を置き換える行を 1 つずつ持つ。設定で選んでいるのは 1 つ目
@@ -929,6 +933,7 @@ def test_error_when_openai_failed(
     )
 
 
+@requires_web_transcription
 def test_error_when_openai_unsupported_audio(
     start_inprocess: StartInProcess,
     tmp_path: Path,

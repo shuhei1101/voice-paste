@@ -22,7 +22,13 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QComboBox, QLineEdit, QPushButton
 
 from tests.integration.helpers import CallbackReceiver, wait_until
-from tests.support.inprocess import SPEECH_WORD, VOLUME_BEFORE, silence_input, speech_input
+from tests.support.inprocess import (
+    SPEECH_WORD,
+    expected_lowered_ratios,
+    expected_restored_volumes,
+    silence_input,
+    speech_input,
+)
 from tests.support.instances import started_count
 from tests.support.real_service import UNUSED_START_HOTKEY, read_token_file
 from tests.support.resident_app import IDLE, RECORDING, ResidentApp, service_processes_for
@@ -181,14 +187,14 @@ def test_normal(run_app: RunApp, tmp_path: Path) -> None:
 
         # 検証（録音が始まり、システム音量を下げる）
         assert app.wait_until(lambda: app.tray_state() == RECORDING)
-        assert _lowered_ratios(app) == [LOWERED_RATIO]
+        assert _lowered_ratios(app) == expected_lowered_ratios(LOWERED_RATIO)
 
         # 実行（取り消しの関数で録音を終える）
         bindings[SETTINGS_MODEL().hotkeys.cancel]()
 
         # 検証
         assert app.wait_until(lambda: app.tray_state() == IDLE)
-        assert app.wait_until(lambda: _restored_volumes(app) == [VOLUME_BEFORE])
+        assert app.wait_until(lambda: _restored_volumes(app) == expected_restored_volumes())
 
     # 実行
     run_app(case, extra_settings=COMMENTED_SETTINGS, wav_input=silence_input(tmp_path))
@@ -248,8 +254,8 @@ def test_normal_when_reset(run_app: RunApp) -> None:
             RESET_TIMEOUT_SEC,
         )
         assert app.window("settings_window") is not None
-        app.select_group("録音")
-        assert app.field_value("recording.fade_sec") == "0.5"
+        app.select_group("画面")
+        assert app.field_value("ui.wave_gain") == "4"
 
     # 実行
     run_app(case, extra_settings=COMMENTED_SETTINGS)
@@ -263,8 +269,8 @@ def test_normal_when_cancel(run_app: RunApp) -> None:
         # 準備
         before = _settings_file(app).read_bytes()
         app.open_settings()
-        app.select_group("録音")
-        app.set_field("recording.fade_sec", "2.5")
+        app.select_group("出力先")
+        app.set_field("outputs[0].enter_delay_sec", "2.5")
 
         # 実行
         with app.answering("discard_dialog", "discard_button"):
@@ -361,8 +367,8 @@ def test_normal_when_add_custom_preset(
         assert receiver.received[0]["result"] == "transcribed"
         assert SPEECH_WORD in receiver.received[0]["text"]
         assert app.wait_until(lambda: app.tray_state() == IDLE)
-        assert _lowered_ratios(app) == [LOWERED_RATIO]
-        assert app.wait_until(lambda: _restored_volumes(app) == [VOLUME_BEFORE])
+        assert _lowered_ratios(app) == expected_lowered_ratios(LOWERED_RATIO)
+        assert app.wait_until(lambda: _restored_volumes(app) == expected_restored_volumes())
 
     # 実行
     run_app(case, extra_settings=COMMENTED_SETTINGS, wav_input=speech_input(tmp_path))

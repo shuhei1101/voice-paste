@@ -20,6 +20,8 @@ from typing import Any
 
 import httpx
 
+from voice_paste.shared.os_kind import CURRENT_OS, OsKind
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_DIR = REPO_ROOT / "src"
 TOKEN_FILE_NAME = "api_token"
@@ -97,7 +99,7 @@ def spawn_process(
 ) -> subprocess.Popen[bytes]:
     """このリポジトリの src で `python -m voice_paste --data-dir {data_dir}` を、新しいプロセスグループで起動する。
 
-    終了の合図 Ctrl+Break を送信できるよう新しいプロセスグループにする。標準出力は data_dir の stdout_name へ書く
+    Windows では終了の合図 Ctrl+Break を送信できるよう新しいプロセスグループに、Linux では pytest の端末の Ctrl+C が届かないよう新しいセッションにする。標準出力は data_dir の stdout_name へ書く
     （同じ data_dir で続けて起動するときは、前のプロセスの出力を削除しないよう名前を変える）。
     常駐アプリは offscreen で起動し、画面もトレイのアイコンも実機に出さない。
     """
@@ -108,13 +110,26 @@ def spawn_process(
         **{QT_PLATFORM_ENV: QT_PLATFORM_OFFSCREEN},
     )
     stdout = (data_dir / stdout_name).open("wb")
+    command = [sys.executable, "-m", "voice_paste", "--data-dir", str(data_dir)]
+    # Windows か
+    if CURRENT_OS == OsKind.WINDOWS:
+        # そう: 新しいプロセスグループで起動する
+        return subprocess.Popen(  # noqa: S603 自分のインタープリタでこのリポジトリのモジュールを起動する
+            command,
+            env=env,
+            cwd=REPO_ROOT,
+            stdout=stdout,
+            stderr=subprocess.STDOUT,
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+        )
+    # 違う: 新しいセッションで起動する
     return subprocess.Popen(  # noqa: S603 自分のインタープリタでこのリポジトリのモジュールを起動する
-        [sys.executable, "-m", "voice_paste", "--data-dir", str(data_dir)],
+        command,
         env=env,
         cwd=REPO_ROOT,
         stdout=stdout,
         stderr=subprocess.STDOUT,
-        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+        start_new_session=True,
     )
 
 
@@ -232,10 +247,12 @@ class RealService:
         return self.process.poll() is None
 
     def shutdown(self) -> int | None:
-        """終了の合図（Ctrl+Break）を送信して終わりを待ち、終了コードを返す。待ちきれなければ止める。"""
+        """終了の合図（Windows は Ctrl+Break、Linux は SIGTERM）を送信して終わりを待ち、終了コードを返す。待ちきれなければ止める。"""
         self.http.close()
         if self.process.poll() is None:
-            self.process.send_signal(signal.CTRL_BREAK_EVENT)
+            self.process.send_signal(
+                signal.CTRL_BREAK_EVENT if CURRENT_OS == OsKind.WINDOWS else signal.SIGTERM
+            )
             try:
                 self.process.wait(timeout=SHUTDOWN_TIMEOUT_SEC)
             except subprocess.TimeoutExpired:

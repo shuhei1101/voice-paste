@@ -26,6 +26,7 @@ from PySide6.QtWidgets import QWidget
 
 from tests.integration.helpers import wait_until
 from tests.support.inprocess import (
+    HAS_WEB_TRANSCRIPTION,
     SPEECH_TEXT,
     SPEECH_WORD,
     KeyLog,
@@ -162,8 +163,14 @@ def test_normal(run_app: RunApp, tmp_path: Path) -> None:
                 files={"audio": ("recording.webm", web_audio, "audio/webm")},
                 headers={"Host": f"localhost:{app.port}", "Origin": f"http://localhost:{app.port}"},
             )
-        assert accepted.status_code == 202
-        assert accepted.json()["job_id"]
+        # ブラウザの文字起こしを持つ OS か
+        if HAS_WEB_TRANSCRIPTION:
+            # 持つ: 受け付けてジョブの ID を返す
+            assert accepted.status_code == 202
+            assert accepted.json()["job_id"]
+        else:
+            # 持たない（Linux）: `/web/` の route が無い
+            assert accepted.status_code == 404
         assert app.worker_pids() != set()
         # 録音開始のホットキーの受付が始まっていて、押すと録音が始まる
         assert app.hotkeys is not None

@@ -1,10 +1,10 @@
 """複合ユースケース「ほかのシステムから録音を文字に起こす」の E2E テスト。
 
 常駐アプリを pytest のプロセスの中で `build_handlers` で配線し、API は `build_fastapi` で組み立てた app を 127.0.0.1 で待ち受けさせて叩く。
-返送先は 127.0.0.1 でテストが立てる受信先。録音の入力は、Windows の音声合成（SAPI）で決めた文を書き出した WAV を流すものに
+返送先は 127.0.0.1 でテストが立てる受信先。録音の入力は、音声合成（Windows は SAPI、Linux は Open JTalk）で決めた文を書き出した WAV を流すものに
 差し替え、マイクもスピーカーも通さない。貼り付けのキーは差し替えて、送信されないことを確かめる。
-文字起こしはローカルの Whisper（GPU）、クリップボードは実物を使う（テストの後に元の文字へ戻す）。
-実機の Windows と GPU が要る（`--run-e2e` が無ければ skip する）。
+文字起こしはローカルの Whisper（Windows は GPU、Linux は CPU）、クリップボードは実物を使う（テストの後に元の文字へ戻す）。
+実機の Windows と GPU か、Ubuntu 24.04 の Xorg のセッションが要る（`--run-e2e` が無ければ skip する）。
 """
 
 from __future__ import annotations

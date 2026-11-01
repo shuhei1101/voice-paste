@@ -1,5 +1,5 @@
 $ git rev-parse --short HEAD
-1f57b33
+6a1de12
 $ .venv/Scripts/python.exe -m pytest tests/e2e --run-e2e
 ============================= test session starts =============================
 platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
@@ -24,5 +24,5 @@ tests\e2e\複合ユースケース\test_transcribe_continuously_from_other_syste
 tests\e2e\複合ユースケース\test_transcribe_from_browser.py .......       [ 96%]
 tests\e2e\複合ユースケース\test_transcribe_from_other_system.py .....    [100%]
 
-====================== 128 passed in 2285.86s (0:38:05) =======================
+====================== 128 passed in 2279.32s (0:37:59) =======================
 exit=0

@@ -393,7 +393,7 @@ classes:
           1. 音声の大きさが OPENAI_MAX_AUDIO_BYTES 以下で、拡張子（小文字）が OPENAI_AUDIO_SUFFIXES にあるかを確かめる
              - 外れる場合、送信せずに EngineError を送出する（理由は「音声が OpenAI API の上限（25 MB）を超えています」か「OpenAI API が受けられない形式です（{拡張子}）」）
                - `[WARNING]` OpenAI API へ送信しない音声（大きさ・拡張子）
-          2. httpx.Client（timeout は OPENAI_TIMEOUT_SEC・接続は OPENAI_CONNECT_TIMEOUT_SEC、follow_redirects=False、transport=_transport）で `{base_url}/audio/transcriptions` へ POST する。ヘッダーは `Authorization: Bearer {API キー}`、本文は multipart の file（音声）・model・response_format=json と、_build_form が返す言語と手がかりの項目
+          2. httpx.Client（timeout=None でアプリ側では待つ時間の上限を設けない、follow_redirects=False、transport=_transport）で `{base_url}/audio/transcriptions` へ POST する。ヘッダーは `Authorization: Bearer {API キー}`、本文は multipart の file（音声）・model・response_format=json と、_build_form が返す言語と手がかりの項目
           3. 応答を見る
              - 200 の場合、JSON の text の前後の空白を除き、空でなければ [text]、空なら [] を返す
                - `[INFO]` OpenAI API で起こした（モデル・音声のバイト数・かかった秒・試した回数）
@@ -473,11 +473,17 @@ classes:
             condition: 'エンドポイントが 200 と {"text": "今日は晴れ"} を返す。model="gpt-transcribe"・hint="voice-paste、Whisper"'
             mock: httpx.MockTransport
             expected: 届いた本文に keywords[] のパートが voice-paste・Whisper の 2 つ、languages[] のパートが ja の 1 つあり、language・prompt のパートが無い
+          - name: test_transcribe_when_no_timeout
+            case: 正常
+            summary: 待つ時間の上限を設けずに送信する
+            condition: 'エンドポイントが 200 と {"text": "今日は晴れ"} を返す'
+            mock: httpx.MockTransport
+            expected: 届いた要求の extensions["timeout"] の connect・read・write・pool が全て None（httpx の既定の 5 秒が掛かっていない）
         connectivity_tests:
           - name: test_ext_transcribe
             api: OpenAI API POST /v1/audio/transcriptions
             summary: 実際の OpenAI API で、短い音声を起こせる
-            checks: 約 3 秒の日本語の WAV を既定のモデル（gpt-transcribe）・languages[]=ja・keywords[] 付きで送信し、空でない文字が 1 区間で返る。かかった秒を記録する（非機能要件のタイムアウトを実測で見直す材料）
+            checks: 約 3 秒の日本語の WAV を既定のモデル（gpt-transcribe）・languages[]=ja・keywords[] 付きで送信し、空でない文字が 1 区間で返る。かかった秒を記録する
             cost: 従量課金。約 3 秒 × $0.0045/分 で 1 回あたり約 $0.0003。実行の前に規約『開発時の従量課金APIの実行』で見積もる
             notes: API キー（環境変数 OPENAI_API_KEY か secrets/openai_api_key）が無い環境では skip する
       - name: _build_form
@@ -1885,24 +1891,6 @@ constants:
     usecase: 常駐アプリを起動する
     summary: read_openai_api_key が秘匿のファイルより先に読む環境変数の名前（OpenAI の公式 SDK と同じ名前）
     value: '"OPENAI_API_KEY"'
-    status: planned
-    introduced:
-      pr: 204
-  - name: OPENAI_TIMEOUT_SEC
-    title: OpenAI API の応答を待つ秒数
-    container: integrations/openai/transcriber.py
-    usecase: 録音を文字に起こす
-    summary: 1 回の送信で応答を待つ上限（非機能要件の OpenAIの文字起こしのタイムアウトと再送）
-    value: '600.0'
-    status: planned
-    introduced:
-      pr: 204
-  - name: OPENAI_CONNECT_TIMEOUT_SEC
-    title: OpenAI API への接続を待つ秒数
-    container: integrations/openai/transcriber.py
-    usecase: 録音を文字に起こす
-    summary: 接続を待つ上限（非機能要件の OpenAIの文字起こしのタイムアウトと再送）
-    value: '5.0'
     status: planned
     introduced:
       pr: 204

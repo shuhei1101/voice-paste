@@ -1,0 +1,270 @@
+[0;93m2026-11-02 12:07:27.394279824 [W:onnxruntime:Default, device_discovery.cc:95 GetPciBusId] Skipping pci_bus_id for PCI path at "/sys/devices/LNXSYSTM:00/LNXSYBUS:00/ACPI0004:00/MSFT1000:00/5620e0c7-8062-4dce-aeb7-520c7ef76171" because filename "5620e0c7-8062-4dce-aeb7-520c7ef76171" did not match expected pattern of [0-9a-f]+:[0-9a-f]+:[0-9a-f]+[.][0-9a-f]+[m
+============================= test session starts ==============================
+platform linux -- Python 3.14.10, pytest-9.1.1, pluggy-1.7.0
+rootdir: /home/shuhe/vp-251
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collected 9 items
+
+tests/nfr/test_max_segment_length.py max_segment_length: reading=51.1s segments=['18.91s', '18.74s', '12.71s']
+.
+tests/nfr/test_openai_audio_limit.py .
+tests/nfr/test_openai_transcription_retry.py .
+tests/nfr/test_web_body_limit.py FFF
+tests/nfr/test_web_finished_jobs_kept.py F
+tests/nfr/test_web_queue_limit.py F
+tests/nfr/test_web_response_time.py F
+
+=================================== FAILURES ===================================
+________________________ test_web_body_limit_when_under ________________________
+
+start_inprocess = <function start_inprocess.<locals>._start at 0x76a62ef0d6f0>
+tmp_path = PosixPath('/tmp/pytest-of-shuhe/pytest-5/test_web_body_limit_when_under0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x76a62f015a70>
+
+    def test_web_body_limit_when_under(
+        start_inprocess: Callable[..., InProcessApp],  # noqa: F811
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """上限より 1 バイト小さい本文を受け付ける（実機）。"""
+        # 準備
+>       app = _start(start_inprocess, tmp_path, monkeypatch)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/nfr/test_web_body_limit.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/nfr/test_web_body_limit.py:38: in _start
+    app.start_web_api()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = InProcessApp(handlers=Handlers(session_manager=<voice_paste.features.session.service.SessionManager object at 0x76a62f...ys=KeyLog(pasted=[], enters=0, enter_modifiers=[]), notifications=Notifications(events=[]), api=None, limit_timer=None)
+allowed = True, port = None, start_queue = True
+
+    def start_web_api(
+        self, *, allowed: bool = True, port: int | None = None, start_queue: bool = True
+    ) -> InProcessApi:
+        """ブラウザの音声のキューを始め、localhost で開く `/web/` の Origin を許して API を待ち受けさせる。
+    
+        allowed が偽なら、どの Origin も許さない。port を渡すと、そのポートで待ち受ける（止めた API を同じポートで立て直す）。
+        start_queue が偽なら、キューは始めない（立て直しでワーカースレッドを重ねない）。
+        """
+        web_api = self.handlers.web_api
+        if start_queue:
+>           web_api.queue.start(web_api.tmp_dir)
+            ^^^^^^^^^^^^^
+E           AttributeError: 'NoneType' object has no attribute 'queue'
+
+tests/support/inprocess.py:904: AttributeError
+______________ test_web_body_limit_when_at_limit[content_length] _______________
+
+start_inprocess = <function start_inprocess.<locals>._start at 0x76a62effa610>
+tmp_path = PosixPath('/tmp/pytest-of-shuhe/pytest-5/test_web_body_limit_when_at_li0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x76a62f0b08a0>
+chunked = False
+
+    @pytest.mark.parametrize("chunked", [False, True], ids=["content_length", "chunked"])
+    def test_web_body_limit_when_at_limit(
+        start_inprocess: Callable[..., InProcessApp],  # noqa: F811
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        chunked: bool,
+    ) -> None:
+        """上限ちょうどの本文を、Content-Length を付けても付けずに chunked で送信しても断り、一時のファイルを残さない（実機）。"""
+        # 準備
+>       app = _start(start_inprocess, tmp_path, monkeypatch)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/nfr/test_web_body_limit.py:70: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/nfr/test_web_body_limit.py:38: in _start
+    app.start_web_api()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = InProcessApp(handlers=Handlers(session_manager=<voice_paste.features.session.service.SessionManager object at 0x76a62e...ys=KeyLog(pasted=[], enters=0, enter_modifiers=[]), notifications=Notifications(events=[]), api=None, limit_timer=None)
+allowed = True, port = None, start_queue = True
+
+    def start_web_api(
+        self, *, allowed: bool = True, port: int | None = None, start_queue: bool = True
+    ) -> InProcessApi:
+        """ブラウザの音声のキューを始め、localhost で開く `/web/` の Origin を許して API を待ち受けさせる。
+    
+        allowed が偽なら、どの Origin も許さない。port を渡すと、そのポートで待ち受ける（止めた API を同じポートで立て直す）。
+        start_queue が偽なら、キューは始めない（立て直しでワーカースレッドを重ねない）。
+        """
+        web_api = self.handlers.web_api
+        if start_queue:
+>           web_api.queue.start(web_api.tmp_dir)
+            ^^^^^^^^^^^^^
+E           AttributeError: 'NoneType' object has no attribute 'queue'
+
+tests/support/inprocess.py:904: AttributeError
+__________________ test_web_body_limit_when_at_limit[chunked] __________________
+
+start_inprocess = <function start_inprocess.<locals>._start at 0x76a62effa770>
+tmp_path = PosixPath('/tmp/pytest-of-shuhe/pytest-5/test_web_body_limit_when_at_li1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x76a62ef69370>
+chunked = True
+
+    @pytest.mark.parametrize("chunked", [False, True], ids=["content_length", "chunked"])
+    def test_web_body_limit_when_at_limit(
+        start_inprocess: Callable[..., InProcessApp],  # noqa: F811
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        chunked: bool,
+    ) -> None:
+        """上限ちょうどの本文を、Content-Length を付けても付けずに chunked で送信しても断り、一時のファイルを残さない（実機）。"""
+        # 準備
+>       app = _start(start_inprocess, tmp_path, monkeypatch)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/nfr/test_web_body_limit.py:70: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/nfr/test_web_body_limit.py:38: in _start
+    app.start_web_api()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = InProcessApp(handlers=Handlers(session_manager=<voice_paste.features.session.service.SessionManager object at 0x76a62e...ys=KeyLog(pasted=[], enters=0, enter_modifiers=[]), notifications=Notifications(events=[]), api=None, limit_timer=None)
+allowed = True, port = None, start_queue = True
+
+    def start_web_api(
+        self, *, allowed: bool = True, port: int | None = None, start_queue: bool = True
+    ) -> InProcessApi:
+        """ブラウザの音声のキューを始め、localhost で開く `/web/` の Origin を許して API を待ち受けさせる。
+    
+        allowed が偽なら、どの Origin も許さない。port を渡すと、そのポートで待ち受ける（止めた API を同じポートで立て直す）。
+        start_queue が偽なら、キューは始めない（立て直しでワーカースレッドを重ねない）。
+        """
+        web_api = self.handlers.web_api
+        if start_queue:
+>           web_api.queue.start(web_api.tmp_dir)
+            ^^^^^^^^^^^^^
+E           AttributeError: 'NoneType' object has no attribute 'queue'
+
+tests/support/inprocess.py:904: AttributeError
+_________________________ test_web_finished_jobs_kept __________________________
+
+start_inprocess = <function start_inprocess.<locals>._start at 0x76a62effa350>
+tmp_path = PosixPath('/tmp/pytest-of-shuhe/pytest-5/test_web_finished_jobs_kept0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x76a62efddd00>
+
+    def test_web_finished_jobs_kept(
+        start_inprocess: Callable[..., InProcessApp],  # noqa: F811
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """終わったジョブが 100 件を超えると、1 件目が 404 になり、2 件目と 101 件目は done で取れる（実機）。"""
+        # 準備
+        stub_transcription(monkeypatch, STUB_TEXT)
+        app = start_inprocess(
+            settings=make_settings(only_paste_and_send=True), wav_input=silence_input(tmp_path)
+        )
+>       api = app.start_web_api()
+              ^^^^^^^^^^^^^^^^^^^
+
+tests/nfr/test_web_finished_jobs_kept.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = InProcessApp(handlers=Handlers(session_manager=<voice_paste.features.session.service.SessionManager object at 0x76a62f...ys=KeyLog(pasted=[], enters=0, enter_modifiers=[]), notifications=Notifications(events=[]), api=None, limit_timer=None)
+allowed = True, port = None, start_queue = True
+
+    def start_web_api(
+        self, *, allowed: bool = True, port: int | None = None, start_queue: bool = True
+    ) -> InProcessApi:
+        """ブラウザの音声のキューを始め、localhost で開く `/web/` の Origin を許して API を待ち受けさせる。
+    
+        allowed が偽なら、どの Origin も許さない。port を渡すと、そのポートで待ち受ける（止めた API を同じポートで立て直す）。
+        start_queue が偽なら、キューは始めない（立て直しでワーカースレッドを重ねない）。
+        """
+        web_api = self.handlers.web_api
+        if start_queue:
+>           web_api.queue.start(web_api.tmp_dir)
+            ^^^^^^^^^^^^^
+E           AttributeError: 'NoneType' object has no attribute 'queue'
+
+tests/support/inprocess.py:904: AttributeError
+_____________________________ test_web_queue_limit _____________________________
+
+start_inprocess = <function start_inprocess.<locals>._start at 0x76a62eeaecf0>
+tmp_path = PosixPath('/tmp/pytest-of-shuhe/pytest-5/test_web_queue_limit0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x76a62efde250>
+
+    def test_web_queue_limit(
+        start_inprocess: Callable[..., InProcessApp],  # noqa: F811
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """終わっていないジョブが 10 件あるとき次の受け付けは 503 になり、エンジンを放して 1 件終わると次の受け付けが 202 になる（実機）。"""
+        # 準備
+        stub = stub_transcription(monkeypatch, STUB_TEXT)
+        stub.hold()
+        settings = make_settings(only_paste_and_send=True).model_copy(
+            update={"history": load_test_default_settings().history.model_copy(update={"enabled": False})}
+        )
+        app = start_inprocess(settings=settings, wav_input=silence_input(tmp_path))
+>       api = app.start_web_api()
+              ^^^^^^^^^^^^^^^^^^^
+
+tests/nfr/test_web_queue_limit.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = InProcessApp(handlers=Handlers(session_manager=<voice_paste.features.session.service.SessionManager object at 0x76a62e...ys=KeyLog(pasted=[], enters=0, enter_modifiers=[]), notifications=Notifications(events=[]), api=None, limit_timer=None)
+allowed = True, port = None, start_queue = True
+
+    def start_web_api(
+        self, *, allowed: bool = True, port: int | None = None, start_queue: bool = True
+    ) -> InProcessApi:
+        """ブラウザの音声のキューを始め、localhost で開く `/web/` の Origin を許して API を待ち受けさせる。
+    
+        allowed が偽なら、どの Origin も許さない。port を渡すと、そのポートで待ち受ける（止めた API を同じポートで立て直す）。
+        start_queue が偽なら、キューは始めない（立て直しでワーカースレッドを重ねない）。
+        """
+        web_api = self.handlers.web_api
+        if start_queue:
+>           web_api.queue.start(web_api.tmp_dir)
+            ^^^^^^^^^^^^^
+E           AttributeError: 'NoneType' object has no attribute 'queue'
+
+tests/support/inprocess.py:904: AttributeError
+____________________________ test_web_response_time ____________________________
+
+start_inprocess = <function start_inprocess.<locals>._start at 0x76a62eeafab0>
+tmp_path = PosixPath('/tmp/pytest-of-shuhe/pytest-5/test_web_response_time0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x76a62ee84950>
+
+    def test_web_response_time(
+        start_inprocess: Callable[..., InProcessApp],  # noqa: F811
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """本文が 99,000,000 バイトの音声の受け付けが、5 回とも 202 で、最大が決定値（66 秒）以内に返る（実機）。"""
+        # 準備
+        stub_transcription(monkeypatch, STUB_TEXT)
+        app = start_inprocess(
+            settings=make_settings(only_paste_and_send=True), wav_input=silence_input(tmp_path)
+        )
+>       api = app.start_web_api()
+              ^^^^^^^^^^^^^^^^^^^
+
+tests/nfr/test_web_response_time.py:58: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = InProcessApp(handlers=Handlers(session_manager=<voice_paste.features.session.service.SessionManager object at 0x76a62e...ys=KeyLog(pasted=[], enters=0, enter_modifiers=[]), notifications=Notifications(events=[]), api=None, limit_timer=None)
+allowed = True, port = None, start_queue = True
+
+    def start_web_api(
+        self, *, allowed: bool = True, port: int | None = None, start_queue: bool = True
+    ) -> InProcessApi:
+        """ブラウザの音声のキューを始め、localhost で開く `/web/` の Origin を許して API を待ち受けさせる。
+    
+        allowed が偽なら、どの Origin も許さない。port を渡すと、そのポートで待ち受ける（止めた API を同じポートで立て直す）。
+        start_queue が偽なら、キューは始めない（立て直しでワーカースレッドを重ねない）。
+        """
+        web_api = self.handlers.web_api
+        if start_queue:
+>           web_api.queue.start(web_api.tmp_dir)
+            ^^^^^^^^^^^^^
+E           AttributeError: 'NoneType' object has no attribute 'queue'
+
+tests/support/inprocess.py:904: AttributeError
+========================= 6 failed, 3 passed in 32.31s =========================

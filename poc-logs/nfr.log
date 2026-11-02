@@ -1,0 +1,451 @@
+============================= test session starts ==============================
+platform linux -- Python 3.14.10, pytest-9.1.1, pluggy-1.7.0 -- /home/shuhe/vp-251/.venv/bin/python
+rootdir: /home/shuhe/vp-251
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collecting ... [0;93m2026-11-02 11:59:06.148836470 [W:onnxruntime:Default, device_discovery.cc:95 GetPciBusId] Skipping pci_bus_id for PCI path at "/sys/devices/LNXSYSTM:00/LNXSYBUS:00/ACPI0004:00/MSFT1000:00/5620e0c7-8062-4dce-aeb7-520c7ef76171" because filename "5620e0c7-8062-4dce-aeb7-520c7ef76171" did not match expected pattern of [0-9a-f]+:[0-9a-f]+:[0-9a-f]+[.][0-9a-f]+[m
+collected 23 items
+
+tests/nfr/test_api_session_limit.py::test_api_session_limit_when_recording api_session_limit: elapsed=3.07s wav=3.01s 96300B projected_600s=19.21MB
+PASSED
+tests/nfr/test_api_session_limit.py::test_api_session_limit_when_stopped api_session_limit: elapsed=3.01s wav=1.02s 32812B projected_600s=19.23MB
+PASSED
+tests/nfr/test_api_start_response_time.py::test_api_start_response_time api_start_response_time: n=50 min=2.5 p50=2.9 max=6.7 ms
+PASSED
+tests/nfr/test_busy_response_time.py::test_busy_response_time busy_response_time: n=20 min=1.6 max=4.7 ms
+PASSED
+tests/nfr/test_continuous_session_limit.py::test_continuous_session_limit continuous_session_limit: elapsed=4.01s results=[('transcribed', 1, None), ('truncated', None, 1)]
+PASSED
+tests/nfr/test_max_segment_length.py::test_max_segment_length FAILED
+tests/nfr/test_openai_audio_limit.py::test_openai_audio_limit_when_over FAILED
+tests/nfr/test_openai_transcription_retry.py::test_openai_transcription_retry FAILED
+tests/nfr/test_output_extensibility.py::test_output_extensibility This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support raise()
+PASSED
+tests/nfr/test_paste_latency.py::test_paste_latency SKIPPED (Windows...)
+tests/nfr/test_segment_callback_latency.py::test_segment_callback_latency segment_callback_latency: #1=8.28s #2=12.77s #3=16.30s #4=21.46s #5=26.96s #6=33.63s #7=43.85s #8=53.13s
+FAILED
+tests/nfr/test_single_instance_timeout.py::test_single_instance_timeout SKIPPED
+tests/nfr/test_single_instance_timeout.py::test_single_instance_timeout_when_previous_starting SKIPPED
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_history_recordings[NOTSET] SKIPPED
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_correction_only[NOTSET] SKIPPED
+tests/nfr/test_web_body_limit.py::test_web_body_limit_when_under FAILED
+tests/nfr/test_web_body_limit.py::test_web_body_limit_when_at_limit[content_length] FAILED
+tests/nfr/test_web_body_limit.py::test_web_body_limit_when_at_limit[chunked] FAILED
+tests/nfr/test_web_finished_jobs_kept.py::test_web_finished_jobs_kept FAILED
+tests/nfr/test_web_queue_limit.py::test_web_queue_limit FAILED
+tests/nfr/test_web_response_time.py::test_web_response_time FAILED
+tests/nfr/test_worker_recovery_time.py::test_worker_recovery_time SKIPPED
+tests/nfr/test_worker_stop_timeout.py::test_worker_stop_timeout SKIPPED
+
+=================================== FAILURES ===================================
+___________________________ test_max_segment_length ____________________________
+
+tmp_path = PosixPath('/tmp/pytest-of-shuhe/pytest-3/test_max_segment_length0')
+
+    def test_max_segment_length(tmp_path: Path) -> None:
+        """話し続けた録音から切り出した区間が、どれも決定値に前の余白を加えた長さ以下である。"""
+        # 準備: 文の間を 0.5 秒以下にして 45 秒以上読み上げ続けた WAV を、前に 1 秒の無音を置いて作り、区切りの部品を本物の話し声の判定で組む
+        samples = speech_sequence_input(
+            tmp_path, long_reading_texts(), gap_sec=SENTENCE_GAP_SEC, lead_silence_sec=LEAD_SILENCE_SEC
+        ).samples
+        assert len(samples) / SAMPLE_RATE >= MIN_READING_SEC
+        segments: list[Segment] = []
+        segmenter = Segmenter(
+            detect_speech=StreamingVad(load_vad_session()),
+            on_segment=segments.append,
+>           min_silence_sec=ContinuousSettings().min_silence_sec,
+                            ^^^^^^^^^^^^^^^^^^^^
+        )
+E       pydantic_core._pydantic_core.ValidationError: 2 validation errors for ContinuousSettings
+E       min_silence_sec
+E         Field required [type=missing, input_value={}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.14/v/missing
+E       session_limit_sec
+E         Field required [type=missing, input_value={}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.14/v/missing
+
+tests/nfr/test_max_segment_length.py:60: ValidationError
+______________________ test_openai_audio_limit_when_over _______________________
+
+tmp_path = PosixPath('/tmp/pytest-of-shuhe/pytest-3/test_openai_audio_limit_when_o0')
+
+    def test_openai_audio_limit_when_over(tmp_path: Path) -> None:
+        """上限ちょうどの音声は送信し、1 バイト超える音声は送信せずに EngineError にする。"""
+        from voice_paste.integrations.openai.transcriber import OpenAITranscriber
+    
+        # 準備: 届いた要求を控えて文字を返す送信先
+        requests: list[httpx.Request] = []
+    
+        def handler(request: httpx.Request) -> httpx.Response:
+            """要求を控えて 200 を返す。"""
+            requests.append(request)
+            return httpx.Response(200, json={"text": "ok"})
+    
+        transcriber = OpenAITranscriber(
+>           settings=OpenAISettings(model=MODEL, base_url=BASE_URL),
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            api_key=SecretStr("sk-test"),
+            transport=httpx.MockTransport(handler),
+        )
+E       pydantic_core._pydantic_core.ValidationError: 1 validation error for OpenAISettings
+E       language
+E         Field required [type=missing, input_value={'model': 'gpt-transcribe...tp://127.0.0.1:9000/v1'}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.14/v/missing
+
+tests/nfr/test_openai_audio_limit.py:55: ValidationError
+_______________________ test_openai_transcription_retry ________________________
+
+tmp_path = PosixPath('/tmp/pytest-of-shuhe/pytest-3/test_openai_transcription_retr0')
+
+    def test_openai_transcription_retry(tmp_path: Path) -> None:
+        """一時的な失敗を上限まで送信し直し、それでも失敗したら EngineError にする（一時的な失敗は 500 が 3 回続く）。"""
+        from voice_paste.integrations.openai.transcriber import OpenAITranscriber
+    
+        # 準備: 500 を返し続ける送信先と、待たない・上限をそのまま返す偽物
+        requests: list[httpx.Request] = []
+    
+        def handler(request: httpx.Request) -> httpx.Response:
+            """要求を控えて 500 を返す。"""
+            requests.append(request)
+            return httpx.Response(500)
+    
+        sleep = MagicMock(return_value=None)
+        uniform = MagicMock(side_effect=lambda _low, high: high)
+        transcriber = OpenAITranscriber(
+>           settings=OpenAISettings(base_url=BASE_URL),
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            api_key=SecretStr("sk-test"),
+            sleep=sleep,
+            uniform=uniform,
+            transport=httpx.MockTransport(handler),
+        )
+E       pydantic_core._pydantic_core.ValidationError: 2 validation errors for OpenAISettings
+E       model
+E         Field required [type=missing, input_value={'base_url': 'http://127.0.0.1:9000/v1'}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.14/v/missing
+E       language
+E         Field required [type=missing, input_value={'base_url': 'http://127.0.0.1:9000/v1'}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.14/v/missing
+
+tests/nfr/test_openai_transcription_retry.py:41: ValidationError
+________________________ test_segment_callback_latency _________________________
+
+start_inprocess = <function start_inprocess.<locals>._start at 0x7963d4df0ca0>
+tmp_path = PosixPath('/tmp/pytest-of-shuhe/pytest-3/test_segment_callback_latency0')
+receiver = <tests.integration.helpers.CallbackReceiver object at 0x7963d78a3ad0>
+cut_log = <_CutLog (INFO)>
+
+    def test_segment_callback_latency(
+        start_inprocess: StartInProcess,
+        tmp_path: Path,
+        receiver: CallbackReceiver,
+        cut_log: _CutLog,
+    ) -> None:
+        """区切ってからその区間の返送が届くまでが、どの区間も決定値以内である（実機）。"""
+        # 準備: 受信先が受け取った時刻を控えるようにし、温めに 1 文だけを流す入力でサービスを立てる
+        arrivals = _ArrivalList()
+        receiver.received = arrivals
+        app = start_inprocess(
+            settings=make_settings(),
+            wav_input=speech_sequence_input(tmp_path, [SPEECH_TEXT], gap_sec=SEGMENT_GAP_SEC),
+        )
+        api = app.start_api()
+    
+        # 温める: 別の連続録音で 1 区間を起こして、ワーカーを温める
+        warm_session = start_continuous(api, receiver)
+        assert app.wav_input.wait_played_out()
+        complete_session(api, warm_session)
+        wait_for_continuous_end(receiver)
+        assert app.wait_idle()
+        offset = len(receiver.received)
+        cut_log.cuts.clear()
+    
+        # 実行: 5 文の後に 45 秒以上読み上げ続ける入力に替えて連続録音を始め、流し終えたら完了を呼ぶ
+        items = [(sentence, SEGMENT_GAP_SEC) for sentence in SILENCE_SENTENCES]
+        # 話し続ける読み上げの最初の文だけ、前の文との間に区切りの無音の長さより長い間を挟み、後の文は短い間でつなぐ
+        long_texts = long_reading_texts()
+        items.append((long_texts[0], SEGMENT_GAP_SEC))
+        items += [(sentence, SHORT_GAP_SEC) for sentence in long_texts[1:]]
+        app.wav_input.samples = speech_timeline_input(tmp_path, items).samples
+        session_id = start_continuous(api, receiver)
+        assert app.wav_input.wait_played_out()
+        complete_called_at = time.perf_counter()
+        complete_session(api, session_id)
+        wait_for_continuous_end(receiver, offset=offset)
+    
+        # 検証
+        latencies = _measure_latencies(cut_log, arrivals, offset, complete_called_at)
+        print(  # noqa: T201 測った値を実行の出力に残す
+            "segment_callback_latency: "
+            + " ".join(f"#{number}={seconds:.2f}s" for number, seconds in latencies)
+        )
+        assert len(latencies) >= MIN_SEGMENTS
+>       assert max(seconds for _number, seconds in latencies) <= SEGMENT_CALLBACK_LATENCY_SEC
+E       assert 53.13405761199829 <= 4.0
+E        +  where 53.13405761199829 = max(<generator object test_segment_callback_latency.<locals>.<genexpr> at 0x7963d4dbfbc0>)
+
+tests/nfr/test_segment_callback_latency.py:175: AssertionError
+------------------------------ Captured log call -------------------------------
+INFO     voice_paste.features.recording.segmenter:segmenter.py:164 区間を区切った（flush・1.1 秒）
+WARNING  voice_paste.features.correction.service:service.py:69 用語集が無い（/tmp/pytest-of-shuhe/pytest-3/test_segment_callback_latency0/yogo.csv）
+INFO     voice_paste.features.recording.segmenter:segmenter.py:164 区間を区切った（silence・1.4 秒）
+INFO     voice_paste.features.recording.segmenter:segmenter.py:164 区間を区切った（silence・1.8 秒）
+WARNING  voice_paste.features.correction.service:service.py:69 用語集が無い（/tmp/pytest-of-shuhe/pytest-3/test_segment_callback_latency0/yogo.csv）
+INFO     voice_paste.features.recording.segmenter:segmenter.py:164 区間を区切った（silence・1.9 秒）
+INFO     voice_paste.features.recording.segmenter:segmenter.py:164 区間を区切った（silence・2.3 秒）
+WARNING  voice_paste.features.correction.service:service.py:69 用語集が無い（/tmp/pytest-of-shuhe/pytest-3/test_segment_callback_latency0/yogo.csv）
+INFO     voice_paste.features.recording.segmenter:segmenter.py:164 区間を区切った（silence・2.1 秒）
+WARNING  voice_paste.features.correction.service:service.py:69 用語集が無い（/tmp/pytest-of-shuhe/pytest-3/test_segment_callback_latency0/yogo.csv）
+WARNING  voice_paste.features.correction.service:service.py:69 用語集が無い（/tmp/pytest-of-shuhe/pytest-3/test_segment_callback_latency0/yogo.csv）
+INFO     voice_paste.features.recording.segmenter:segmenter.py:164 区間を区切った（max_length・18.9 秒）
+WARNING  voice_paste.features.correction.service:service.py:69 用語集が無い（/tmp/pytest-of-shuhe/pytest-3/test_segment_callback_latency0/yogo.csv）
+INFO     voice_paste.features.recording.segmenter:segmenter.py:164 区間を区切った（max_length・18.7 秒）
+INFO     voice_paste.features.recording.segmenter:segmenter.py:164 区間を区切った（flush・12.7 秒）
+WARNING  voice_paste.features.correction.service:service.py:69 用語集が無い（/tmp/pytest-of-shuhe/pytest-3/test_segment_callback_latency0/yogo.csv）
+WARNING  voice_paste.features.correction.service:service.py:69 用語集が無い（/tmp/pytest-of-shuhe/pytest-3/test_segment_callback_latency0/yogo.csv）
+WARNING  voice_paste.features.correction.service:service.py:69 用語集が無い（/tmp/pytest-of-shuhe/pytest-3/test_segment_callback_latency0/yogo.csv）
+________________________ test_web_body_limit_when_under ________________________
+
+start_inprocess = <function start_inprocess.<locals>._start at 0x7963d8f18880>
+tmp_path = PosixPath('/tmp/pytest-of-shuhe/pytest-3/test_web_body_limit_when_under0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7963d78229c0>
+
+    def test_web_body_limit_when_under(
+        start_inprocess: Callable[..., InProcessApp],  # noqa: F811
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """上限より 1 バイト小さい本文を受け付ける（実機）。"""
+        # 準備
+>       app = _start(start_inprocess, tmp_path, monkeypatch)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/nfr/test_web_body_limit.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/nfr/test_web_body_limit.py:38: in _start
+    app.start_web_api()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = InProcessApp(handlers=Handlers(session_manager=<voice_paste.features.session.service.SessionManager object at 0x7963d9...ys=KeyLog(pasted=[], enters=0, enter_modifiers=[]), notifications=Notifications(events=[]), api=None, limit_timer=None)
+allowed = True, port = None, start_queue = True
+
+    def start_web_api(
+        self, *, allowed: bool = True, port: int | None = None, start_queue: bool = True
+    ) -> InProcessApi:
+        """ブラウザの音声のキューを始め、localhost で開く `/web/` の Origin を許して API を待ち受けさせる。
+    
+        allowed が偽なら、どの Origin も許さない。port を渡すと、そのポートで待ち受ける（止めた API を同じポートで立て直す）。
+        start_queue が偽なら、キューは始めない（立て直しでワーカースレッドを重ねない）。
+        """
+        web_api = self.handlers.web_api
+        if start_queue:
+>           web_api.queue.start(web_api.tmp_dir)
+            ^^^^^^^^^^^^^
+E           AttributeError: 'NoneType' object has no attribute 'queue'
+
+tests/support/inprocess.py:904: AttributeError
+______________ test_web_body_limit_when_at_limit[content_length] _______________
+
+start_inprocess = <function start_inprocess.<locals>._start at 0x7963d4df3690>
+tmp_path = PosixPath('/tmp/pytest-of-shuhe/pytest-3/test_web_body_limit_when_at_li0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7963d6f427a0>
+chunked = False
+
+    @pytest.mark.parametrize("chunked", [False, True], ids=["content_length", "chunked"])
+    def test_web_body_limit_when_at_limit(
+        start_inprocess: Callable[..., InProcessApp],  # noqa: F811
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        chunked: bool,
+    ) -> None:
+        """上限ちょうどの本文を、Content-Length を付けても付けずに chunked で送信しても断り、一時のファイルを残さない（実機）。"""
+        # 準備
+>       app = _start(start_inprocess, tmp_path, monkeypatch)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/nfr/test_web_body_limit.py:70: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/nfr/test_web_body_limit.py:38: in _start
+    app.start_web_api()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = InProcessApp(handlers=Handlers(session_manager=<voice_paste.features.session.service.SessionManager object at 0x7963d6...ys=KeyLog(pasted=[], enters=0, enter_modifiers=[]), notifications=Notifications(events=[]), api=None, limit_timer=None)
+allowed = True, port = None, start_queue = True
+
+    def start_web_api(
+        self, *, allowed: bool = True, port: int | None = None, start_queue: bool = True
+    ) -> InProcessApi:
+        """ブラウザの音声のキューを始め、localhost で開く `/web/` の Origin を許して API を待ち受けさせる。
+    
+        allowed が偽なら、どの Origin も許さない。port を渡すと、そのポートで待ち受ける（止めた API を同じポートで立て直す）。
+        start_queue が偽なら、キューは始めない（立て直しでワーカースレッドを重ねない）。
+        """
+        web_api = self.handlers.web_api
+        if start_queue:
+>           web_api.queue.start(web_api.tmp_dir)
+            ^^^^^^^^^^^^^
+E           AttributeError: 'NoneType' object has no attribute 'queue'
+
+tests/support/inprocess.py:904: AttributeError
+__________________ test_web_body_limit_when_at_limit[chunked] __________________
+
+start_inprocess = <function start_inprocess.<locals>._start at 0x7963d4db1590>
+tmp_path = PosixPath('/tmp/pytest-of-shuhe/pytest-3/test_web_body_limit_when_at_li1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7963d6f49650>
+chunked = True
+
+    @pytest.mark.parametrize("chunked", [False, True], ids=["content_length", "chunked"])
+    def test_web_body_limit_when_at_limit(
+        start_inprocess: Callable[..., InProcessApp],  # noqa: F811
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        chunked: bool,
+    ) -> None:
+        """上限ちょうどの本文を、Content-Length を付けても付けずに chunked で送信しても断り、一時のファイルを残さない（実機）。"""
+        # 準備
+>       app = _start(start_inprocess, tmp_path, monkeypatch)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/nfr/test_web_body_limit.py:70: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/nfr/test_web_body_limit.py:38: in _start
+    app.start_web_api()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = InProcessApp(handlers=Handlers(session_manager=<voice_paste.features.session.service.SessionManager object at 0x7963d6...ys=KeyLog(pasted=[], enters=0, enter_modifiers=[]), notifications=Notifications(events=[]), api=None, limit_timer=None)
+allowed = True, port = None, start_queue = True
+
+    def start_web_api(
+        self, *, allowed: bool = True, port: int | None = None, start_queue: bool = True
+    ) -> InProcessApi:
+        """ブラウザの音声のキューを始め、localhost で開く `/web/` の Origin を許して API を待ち受けさせる。
+    
+        allowed が偽なら、どの Origin も許さない。port を渡すと、そのポートで待ち受ける（止めた API を同じポートで立て直す）。
+        start_queue が偽なら、キューは始めない（立て直しでワーカースレッドを重ねない）。
+        """
+        web_api = self.handlers.web_api
+        if start_queue:
+>           web_api.queue.start(web_api.tmp_dir)
+            ^^^^^^^^^^^^^
+E           AttributeError: 'NoneType' object has no attribute 'queue'
+
+tests/support/inprocess.py:904: AttributeError
+_________________________ test_web_finished_jobs_kept __________________________
+
+start_inprocess = <function start_inprocess.<locals>._start at 0x7963d6f3cf60>
+tmp_path = PosixPath('/tmp/pytest-of-shuhe/pytest-3/test_web_finished_jobs_kept0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7963d6f48750>
+
+    def test_web_finished_jobs_kept(
+        start_inprocess: Callable[..., InProcessApp],  # noqa: F811
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """終わったジョブが 100 件を超えると、1 件目が 404 になり、2 件目と 101 件目は done で取れる（実機）。"""
+        # 準備
+        stub_transcription(monkeypatch, STUB_TEXT)
+        app = start_inprocess(
+            settings=make_settings(only_paste_and_send=True), wav_input=silence_input(tmp_path)
+        )
+>       api = app.start_web_api()
+              ^^^^^^^^^^^^^^^^^^^
+
+tests/nfr/test_web_finished_jobs_kept.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = InProcessApp(handlers=Handlers(session_manager=<voice_paste.features.session.service.SessionManager object at 0x7963d6...ys=KeyLog(pasted=[], enters=0, enter_modifiers=[]), notifications=Notifications(events=[]), api=None, limit_timer=None)
+allowed = True, port = None, start_queue = True
+
+    def start_web_api(
+        self, *, allowed: bool = True, port: int | None = None, start_queue: bool = True
+    ) -> InProcessApi:
+        """ブラウザの音声のキューを始め、localhost で開く `/web/` の Origin を許して API を待ち受けさせる。
+    
+        allowed が偽なら、どの Origin も許さない。port を渡すと、そのポートで待ち受ける（止めた API を同じポートで立て直す）。
+        start_queue が偽なら、キューは始めない（立て直しでワーカースレッドを重ねない）。
+        """
+        web_api = self.handlers.web_api
+        if start_queue:
+>           web_api.queue.start(web_api.tmp_dir)
+            ^^^^^^^^^^^^^
+E           AttributeError: 'NoneType' object has no attribute 'queue'
+
+tests/support/inprocess.py:904: AttributeError
+_____________________________ test_web_queue_limit _____________________________
+
+start_inprocess = <function start_inprocess.<locals>._start at 0x7963d8f19a60>
+tmp_path = PosixPath('/tmp/pytest-of-shuhe/pytest-3/test_web_queue_limit0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7963d6f688c0>
+
+    def test_web_queue_limit(
+        start_inprocess: Callable[..., InProcessApp],  # noqa: F811
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """終わっていないジョブが 10 件あるとき次の受け付けは 503 になり、エンジンを放して 1 件終わると次の受け付けが 202 になる（実機）。"""
+        # 準備
+        stub = stub_transcription(monkeypatch, STUB_TEXT)
+        stub.hold()
+        settings = make_settings(only_paste_and_send=True).model_copy(
+>           update={"history": HistorySettings(enabled=False)}
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        )
+E       pydantic_core._pydantic_core.ValidationError: 1 validation error for HistorySettings
+E       retention_days
+E         Field required [type=missing, input_value={'enabled': False}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.14/v/missing
+
+tests/nfr/test_web_queue_limit.py:44: ValidationError
+____________________________ test_web_response_time ____________________________
+
+start_inprocess = <function start_inprocess.<locals>._start at 0x7963d8f1a560>
+tmp_path = PosixPath('/tmp/pytest-of-shuhe/pytest-3/test_web_response_time0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7963d6f685f0>
+
+    def test_web_response_time(
+        start_inprocess: Callable[..., InProcessApp],  # noqa: F811
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """本文が 99,000,000 バイトの音声の受け付けが、5 回とも 202 で、最大が決定値（66 秒）以内に返る（実機）。"""
+        # 準備
+        stub_transcription(monkeypatch, STUB_TEXT)
+        app = start_inprocess(
+            settings=make_settings(only_paste_and_send=True), wav_input=silence_input(tmp_path)
+        )
+>       api = app.start_web_api()
+              ^^^^^^^^^^^^^^^^^^^
+
+tests/nfr/test_web_response_time.py:58: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = InProcessApp(handlers=Handlers(session_manager=<voice_paste.features.session.service.SessionManager object at 0x7963d6...ys=KeyLog(pasted=[], enters=0, enter_modifiers=[]), notifications=Notifications(events=[]), api=None, limit_timer=None)
+allowed = True, port = None, start_queue = True
+
+    def start_web_api(
+        self, *, allowed: bool = True, port: int | None = None, start_queue: bool = True
+    ) -> InProcessApi:
+        """ブラウザの音声のキューを始め、localhost で開く `/web/` の Origin を許して API を待ち受けさせる。
+    
+        allowed が偽なら、どの Origin も許さない。port を渡すと、そのポートで待ち受ける（止めた API を同じポートで立て直す）。
+        start_queue が偽なら、キューは始めない（立て直しでワーカースレッドを重ねない）。
+        """
+        web_api = self.handlers.web_api
+        if start_queue:
+>           web_api.queue.start(web_api.tmp_dir)
+            ^^^^^^^^^^^^^
+E           AttributeError: 'NoneType' object has no attribute 'queue'
+
+tests/support/inprocess.py:904: AttributeError
+=========================== short test summary info ============================
+SKIPPED [1] tests/nfr/test_paste_latency.py:104: Windows の NVIDIA GPU と、tests/nfr/fixtures/ の固めた設定（whisper.env）が要る
+SKIPPED [1] tests/nfr/test_single_instance_timeout.py:82: Windows の NVIDIA GPU と、tests/nfr/fixtures/ の固めた設定（whisper.env）が要る
+SKIPPED [1] tests/nfr/test_single_instance_timeout.py:96: Windows の NVIDIA GPU と、tests/nfr/fixtures/ の固めた設定（whisper.env）が要る
+SKIPPED [1] tests/nfr/test_transcription_parity.py:58: Windows の NVIDIA GPU が要る
+SKIPPED [1] tests/nfr/test_transcription_parity.py:80: tests/nfr/fixtures/ の用語集が要る
+SKIPPED [1] tests/nfr/test_worker_recovery_time.py:32: Windows の NVIDIA GPU と、tests/nfr/fixtures/ の固めた設定（whisper.env）が要る
+SKIPPED [1] tests/nfr/test_worker_stop_timeout.py:49: Windows の NVIDIA GPU と、tests/nfr/fixtures/ の固めた設定（whisper.env）が要る
+============= 10 failed, 6 passed, 7 skipped in 215.04s (0:03:35) ==============
+exit=1

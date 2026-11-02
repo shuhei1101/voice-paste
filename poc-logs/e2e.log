@@ -1,0 +1,169 @@
+============================= test session starts ==============================
+platform linux -- Python 3.14.10, pytest-9.1.1, pluggy-1.7.0 -- /home/shuhe/vp-251/.venv/bin/python
+rootdir: /home/shuhe/vp-251
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collecting ... collected 130 items
+
+tests/e2e/単一ユースケース/test_change_settings.py::test_normal PASSED   [  0%]
+tests/e2e/単一ユースケース/test_change_settings.py::test_normal_when_save_and_restart PASSED [  1%]
+tests/e2e/単一ユースケース/test_change_settings.py::test_normal_when_reset PASSED [  2%]
+tests/e2e/単一ユースケース/test_change_settings.py::test_normal_when_cancel PASSED [  3%]
+tests/e2e/単一ユースケース/test_change_settings.py::test_error_when_invalid_value PASSED [  3%]
+tests/e2e/単一ユースケース/test_change_settings.py::test_normal_when_add_custom_preset PASSED [  4%]
+tests/e2e/単一ユースケース/test_change_settings.py::test_normal_when_edit_glossary PASSED [  5%]
+tests/e2e/単一ユースケース/test_change_settings.py::test_normal_when_switch_glossary_preset PASSED [  6%]
+tests/e2e/単一ユースケース/test_change_settings.py::test_normal_when_edit_hint_presets PASSED [  6%]
+tests/e2e/単一ユースケース/test_change_settings.py::test_normal_when_edit_edge_phrases PASSED [  7%]
+tests/e2e/単一ユースケース/test_change_settings.py::test_error_when_hints_too_long PASSED [  8%]
+tests/e2e/単一ユースケース/test_deliver_transcript.py::test_normal PASSED [  9%]
+tests/e2e/単一ユースケース/test_deliver_transcript.py::test_normal_when_paste_only PASSED [ 10%]
+tests/e2e/単一ユースケース/test_deliver_transcript.py::test_normal_when_copy_only PASSED [ 10%]
+tests/e2e/単一ユースケース/test_deliver_transcript.py::test_normal_when_browser_preset PASSED [ 11%]
+tests/e2e/単一ユースケース/test_deliver_transcript.py::test_normal_when_browser_preset_paste_only PASSED [ 12%]
+tests/e2e/単一ユースケース/test_deliver_transcript.py::test_normal_when_return_to_caller PASSED [ 13%]
+tests/e2e/単一ユースケース/test_deliver_transcript.py::test_normal_when_return_empty_text PASSED [ 13%]
+tests/e2e/単一ユースケース/test_deliver_transcript.py::test_error_when_return_failure PASSED [ 14%]
+tests/e2e/単一ユースケース/test_deliver_transcript.py::test_error_when_callback_unreachable PASSED [ 15%]
+tests/e2e/単一ユースケース/test_deliver_transcript.py::test_normal_when_endpoint_preset PASSED [ 16%]
+tests/e2e/単一ユースケース/test_deliver_transcript.py::test_error_when_endpoint_unreachable PASSED [ 16%]
+tests/e2e/単一ユースケース/test_deliver_transcript.py::test_normal_when_return_segments PASSED [ 17%]
+tests/e2e/単一ユースケース/test_deliver_transcript.py::test_normal_when_return_continuous_end[completed] PASSED [ 18%]
+tests/e2e/単一ユースケース/test_deliver_transcript.py::test_normal_when_return_continuous_end[completed_without_segments] PASSED [ 19%]
+tests/e2e/単一ユースケース/test_deliver_transcript.py::test_normal_when_return_continuous_end[truncated] PASSED [ 20%]
+tests/e2e/単一ユースケース/test_deliver_transcript.py::test_error_when_return_segment_failure PASSED [ 20%]
+tests/e2e/単一ユースケース/test_deliver_transcript.py::test_error_when_segment_callback_unreachable PASSED [ 21%]
+tests/e2e/単一ユースケース/test_deliver_transcript.py::test_normal_when_enter_with_modifier PASSED [ 22%]
+tests/e2e/単一ユースケース/test_deliver_transcript.py::test_normal_when_copy_again_from_notification PASSED [ 23%]
+tests/e2e/単一ユースケース/test_deliver_transcript.py::test_normal_when_switch_to_copy_only PASSED [ 23%]
+tests/e2e/単一ユースケース/test_deliver_transcript.py::test_normal_when_switch_to_paste_only PASSED [ 24%]
+tests/e2e/単一ユースケース/test_operate_from_tray.py::test_normal_when_open_log_folder PASSED [ 25%]
+tests/e2e/単一ユースケース/test_operate_from_tray.py::test_normal_when_open_settings_folder PASSED [ 26%]
+tests/e2e/単一ユースケース/test_operate_from_tray.py::test_normal_when_restart PASSED [ 26%]
+tests/e2e/単一ユースケース/test_operate_from_tray.py::test_normal_when_quit PASSED [ 27%]
+tests/e2e/単一ユースケース/test_operate_from_tray.py::test_normal_when_quit_with_unsaved_settings[tray_quit] PASSED [ 28%]
+tests/e2e/単一ユースケース/test_operate_from_tray.py::test_normal_when_quit_with_unsaved_settings[ctrl_break] SKIPPED [ 29%]
+tests/e2e/単一ユースケース/test_operate_from_tray.py::test_normal_when_restart_with_unsaved_settings PASSED [ 30%]
+tests/e2e/単一ユースケース/test_receive_result_in_browser.py::test_normal SKIPPED [ 30%]
+tests/e2e/単一ユースケース/test_receive_result_in_browser.py::test_normal_when_engine_reports_no_progress SKIPPED [ 31%]
+tests/e2e/単一ユースケース/test_receive_result_in_browser.py::test_normal_when_delete_result SKIPPED [ 32%]
+tests/e2e/単一ユースケース/test_receive_result_in_browser.py::test_normal_when_over_result_limit SKIPPED [ 33%]
+tests/e2e/単一ユースケース/test_receive_result_in_browser.py::test_normal_when_expired SKIPPED [ 33%]
+tests/e2e/単一ユースケース/test_receive_result_in_browser.py::test_error_when_transcription_failed SKIPPED [ 34%]
+tests/e2e/単一ユースケース/test_receive_result_in_browser.py::test_error_when_job_not_found SKIPPED [ 35%]
+tests/e2e/単一ユースケース/test_record.py::test_normal PASSED            [ 36%]
+tests/e2e/単一ユースケース/test_record.py::test_normal_when_pause_and_resume PASSED [ 36%]
+tests/e2e/単一ユースケース/test_record.py::test_normal_when_cancel[cancel_button] PASSED [ 37%]
+tests/e2e/単一ユースケース/test_record.py::test_normal_when_cancel[close_button] PASSED [ 38%]
+tests/e2e/単一ユースケース/test_record.py::test_normal_when_no_window[api] PASSED [ 39%]
+tests/e2e/単一ユースケース/test_record.py::test_normal_when_no_window[hotkey] PASSED [ 40%]
+tests/e2e/単一ユースケース/test_record.py::test_normal_when_no_history PASSED [ 40%]
+tests/e2e/単一ユースケース/test_record.py::test_error_when_busy PASSED   [ 41%]
+tests/e2e/単一ユースケース/test_record.py::test_error_when_microphone_unavailable PASSED [ 42%]
+tests/e2e/単一ユースケース/test_record.py::test_normal_when_hide_and_restore[tray_icon-nothing] PASSED [ 43%]
+tests/e2e/単一ユースケース/test_record.py::test_normal_when_hide_and_restore[tray_icon-pause] PASSED [ 43%]
+tests/e2e/単一ユースケース/test_record.py::test_normal_when_hide_and_restore[tray_menu-nothing] PASSED [ 44%]
+tests/e2e/単一ユースケース/test_record.py::test_normal_when_hide_and_restore[tray_menu-pause] PASSED [ 45%]
+tests/e2e/単一ユースケース/test_record.py::test_normal_when_hide_and_restore[start_hotkey-nothing] PASSED [ 46%]
+tests/e2e/単一ユースケース/test_record.py::test_normal_when_hide_and_restore[start_hotkey-pause] PASSED [ 46%]
+tests/e2e/単一ユースケース/test_record.py::test_normal_when_confirm_while_hidden PASSED [ 47%]
+tests/e2e/単一ユースケース/test_record.py::test_normal_when_cancel_while_hidden PASSED [ 48%]
+tests/e2e/単一ユースケース/test_record.py::test_normal_when_split_by_silence PASSED [ 49%]
+tests/e2e/単一ユースケース/test_record.py::test_normal_when_split_by_max_length PASSED [ 50%]
+tests/e2e/単一ユースケース/test_send_audio_from_browser.py::test_normal_when_record_in_page SKIPPED [ 50%]
+tests/e2e/単一ユースケース/test_send_audio_from_browser.py::test_normal_when_select_file SKIPPED [ 51%]
+tests/e2e/単一ユースケース/test_send_audio_from_browser.py::test_normal_when_recording_limit_reached SKIPPED [ 52%]
+tests/e2e/単一ユースケース/test_send_audio_from_browser.py::test_error_when_send_failed SKIPPED [ 53%]
+tests/e2e/単一ユースケース/test_send_audio_from_browser.py::test_error_when_unreadable_format SKIPPED [ 53%]
+tests/e2e/単一ユースケース/test_send_audio_from_browser.py::test_error_when_too_large SKIPPED [ 54%]
+tests/e2e/単一ユースケース/test_send_audio_from_browser.py::test_error_when_origin_not_allowed SKIPPED [ 55%]
+tests/e2e/単一ユースケース/test_send_audio_from_browser.py::test_normal_when_select_glossary_preset SKIPPED [ 56%]
+tests/e2e/単一ユースケース/test_send_audio_from_browser.py::test_error_when_glossary_preset_not_found SKIPPED [ 56%]
+tests/e2e/単一ユースケース/test_start_resident_app.py::test_normal PASSED [ 57%]
+tests/e2e/単一ユースケース/test_start_resident_app.py::test_normal_when_previous_running PASSED [ 58%]
+tests/e2e/単一ユースケース/test_start_resident_app.py::test_normal_when_expired_history_and_logs PASSED [ 59%]
+tests/e2e/単一ユースケース/test_start_resident_app.py::test_error_when_engine_unavailable PASSED [ 60%]
+tests/e2e/単一ユースケース/test_start_resident_app.py::test_error_when_api_unavailable PASSED [ 60%]
+tests/e2e/単一ユースケース/test_start_resident_app.py::test_normal_when_old_ai_chat_settings_remain PASSED [ 61%]
+tests/e2e/単一ユースケース/test_start_resident_app.py::test_normal_when_only_settings_toml PASSED [ 62%]
+tests/e2e/単一ユースケース/test_start_resident_app.py::test_error_when_settings_unreadable PASSED [ 63%]
+tests/e2e/単一ユースケース/test_start_resident_app.py::test_normal_when_openai PASSED [ 63%]
+tests/e2e/単一ユースケース/test_start_resident_app.py::test_error_when_openai_api_key_missing PASSED [ 64%]
+tests/e2e/単一ユースケース/test_start_resident_app.py::test_error_when_local_whisper_not_installed PASSED [ 65%]
+tests/e2e/単一ユースケース/test_transcribe_recording.py::test_normal_when_hint PASSED [ 66%]
+tests/e2e/単一ユースケース/test_transcribe_recording.py::test_normal PASSED [ 66%]
+tests/e2e/単一ユースケース/test_transcribe_recording.py::test_normal_when_api_glossary_preset PASSED [ 67%]
+tests/e2e/単一ユースケース/test_transcribe_recording.py::test_normal_when_edge_phrases_removed PASSED [ 68%]
+tests/e2e/単一ユースケース/test_transcribe_recording.py::test_normal_when_worker_dies PASSED [ 69%]
+tests/e2e/単一ユースケース/test_transcribe_recording.py::test_error_when_worker_dies_again PASSED [ 70%]
+tests/e2e/単一ユースケース/test_transcribe_recording.py::test_error_when_transcription_failed PASSED [ 70%]
+tests/e2e/単一ユースケース/test_transcribe_recording.py::test_error_when_transcription_empty PASSED [ 71%]
+tests/e2e/単一ユースケース/test_transcribe_recording.py::test_normal_when_api_transcription_empty PASSED [ 72%]
+tests/e2e/単一ユースケース/test_transcribe_recording.py::test_error_when_api_transcription_failed PASSED [ 73%]
+tests/e2e/単一ユースケース/test_transcribe_recording.py::test_error_when_failure_notification_clicked PASSED [ 73%]
+tests/e2e/単一ユースケース/test_transcribe_recording.py::test_normal_when_segments_in_order PASSED [ 74%]
+tests/e2e/単一ユースケース/test_transcribe_recording.py::test_error_when_segment_transcription_failed PASSED [ 75%]
+tests/e2e/単一ユースケース/test_transcribe_recording.py::test_normal_when_browser_audio SKIPPED [ 76%]
+tests/e2e/単一ユースケース/test_transcribe_recording.py::test_error_when_browser_audio_transcription_failed SKIPPED [ 76%]
+tests/e2e/単一ユースケース/test_transcribe_recording.py::test_normal_when_browser_glossary_preset SKIPPED [ 77%]
+tests/e2e/単一ユースケース/test_transcribe_recording.py::test_normal_when_openai PASSED [ 78%]
+tests/e2e/単一ユースケース/test_transcribe_recording.py::test_normal_when_openai_previous_model PASSED [ 79%]
+tests/e2e/単一ユースケース/test_transcribe_recording.py::test_error_when_openai_failed PASSED [ 80%]
+tests/e2e/単一ユースケース/test_transcribe_recording.py::test_error_when_openai_unsupported_audio SKIPPED [ 80%]
+tests/e2e/複合ユースケース/test_paste_voice_text.py::test_normal PASSED  [ 81%]
+tests/e2e/複合ユースケース/test_paste_voice_text.py::test_normal_when_cancel PASSED [ 82%]
+tests/e2e/複合ユースケース/test_paste_voice_text.py::test_error_when_transcription_failed PASSED [ 83%]
+tests/e2e/複合ユースケース/test_paste_voice_text.py::test_error_when_worker_dies_again PASSED [ 83%]
+tests/e2e/複合ユースケース/test_paste_voice_text.py::test_error_when_transcription_empty PASSED [ 84%]
+tests/e2e/複合ユースケース/test_paste_voice_text.py::test_error_when_api_session_busy PASSED [ 85%]
+tests/e2e/複合ユースケース/test_transcribe_continuously_from_other_system.py::test_normal PASSED [ 86%]
+tests/e2e/複合ユースケース/test_transcribe_continuously_from_other_system.py::test_normal_when_speaking_without_pause PASSED [ 86%]
+tests/e2e/複合ユースケース/test_transcribe_continuously_from_other_system.py::test_normal_when_no_speech PASSED [ 87%]
+tests/e2e/複合ユースケース/test_transcribe_continuously_from_other_system.py::test_error_when_session_limit_reached PASSED [ 88%]
+tests/e2e/複合ユースケース/test_transcribe_continuously_from_other_system.py::test_error_when_hotkey_during_continuous_recording PASSED [ 89%]
+tests/e2e/複合ユースケース/test_transcribe_continuously_from_other_system.py::test_error_when_segment_transcription_failed PASSED [ 90%]
+tests/e2e/複合ユースケース/test_transcribe_continuously_from_other_system.py::test_error_when_segment_callback_unreachable PASSED [ 90%]
+tests/e2e/複合ユースケース/test_transcribe_from_browser.py::test_normal_when_record_in_page SKIPPED [ 91%]
+tests/e2e/複合ユースケース/test_transcribe_from_browser.py::test_normal_when_select_file SKIPPED [ 92%]
+tests/e2e/複合ユースケース/test_transcribe_from_browser.py::test_normal_when_hotkey_recording SKIPPED [ 93%]
+tests/e2e/複合ユースケース/test_transcribe_from_browser.py::test_error_when_unreadable_format SKIPPED [ 93%]
+tests/e2e/複合ユースケース/test_transcribe_from_browser.py::test_error_when_transcription_failed SKIPPED [ 94%]
+tests/e2e/複合ユースケース/test_transcribe_from_browser.py::test_error_when_origin_not_allowed SKIPPED [ 95%]
+tests/e2e/複合ユースケース/test_transcribe_from_browser.py::test_normal_when_select_glossary_preset SKIPPED [ 96%]
+tests/e2e/複合ユースケース/test_transcribe_from_other_system.py::test_normal PASSED [ 96%]
+tests/e2e/複合ユースケース/test_transcribe_from_other_system.py::test_normal_when_glossary_preset PASSED [ 97%]
+tests/e2e/複合ユースケース/test_transcribe_from_other_system.py::test_normal_when_transcription_empty PASSED [ 98%]
+tests/e2e/複合ユースケース/test_transcribe_from_other_system.py::test_error_when_transcription_failed PASSED [ 99%]
+tests/e2e/複合ユースケース/test_transcribe_from_other_system.py::test_error_when_hotkey_recording PASSED [100%]
+
+=========================== short test summary info ============================
+SKIPPED [1] tests/e2e/単一ユースケース/test_operate_from_tray.py:154: SIGBREAK は Windows にだけある
+SKIPPED [1] tests/e2e/単一ユースケース/test_receive_result_in_browser.py:89: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/単一ユースケース/test_receive_result_in_browser.py:123: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/単一ユースケース/test_receive_result_in_browser.py:153: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/単一ユースケース/test_receive_result_in_browser.py:176: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/単一ユースケース/test_receive_result_in_browser.py:200: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/単一ユースケース/test_receive_result_in_browser.py:222: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/単一ユースケース/test_receive_result_in_browser.py:250: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/単一ユースケース/test_send_audio_from_browser.py:54: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/単一ユースケース/test_send_audio_from_browser.py:84: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/単一ユースケース/test_send_audio_from_browser.py:111: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/単一ユースケース/test_send_audio_from_browser.py:137: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/単一ユースケース/test_send_audio_from_browser.py:172: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/単一ユースケース/test_send_audio_from_browser.py:197: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/単一ユースケース/test_send_audio_from_browser.py:222: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/単一ユースケース/test_send_audio_from_browser.py:243: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/単一ユースケース/test_send_audio_from_browser.py:285: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/単一ユースケース/test_transcribe_recording.py:677: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/単一ユースケース/test_transcribe_recording.py:707: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/単一ユースケース/test_transcribe_recording.py:746: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/単一ユースケース/test_transcribe_recording.py:935: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/複合ユースケース/test_transcribe_from_browser.py:81: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/複合ユースケース/test_transcribe_from_browser.py:113: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/複合ユースケース/test_transcribe_from_browser.py:138: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/複合ユースケース/test_transcribe_from_browser.py:176: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/複合ユースケース/test_transcribe_from_browser.py:206: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/複合ユースケース/test_transcribe_from_browser.py:241: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+SKIPPED [1] tests/e2e/複合ユースケース/test_transcribe_from_browser.py:263: 常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない
+================= 102 passed, 28 skipped in 2188.25s (0:36:28) =================
+exit=0

@@ -1,0 +1,98 @@
+============================= test session starts ==============================
+platform linux -- Python 3.14.10, pytest-9.1.1, pluggy-1.7.0 -- /home/shuhe/vp-251/.venv/bin/python
+rootdir: /home/shuhe/vp-251
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collecting ... [0;93m2026-11-02 12:02:42.066752566 [W:onnxruntime:Default, device_discovery.cc:95 GetPciBusId] Skipping pci_bus_id for PCI path at "/sys/devices/LNXSYSTM:00/LNXSYBUS:00/ACPI0004:00/MSFT1000:00/5620e0c7-8062-4dce-aeb7-520c7ef76171" because filename "5620e0c7-8062-4dce-aeb7-520c7ef76171" did not match expected pattern of [0-9a-f]+:[0-9a-f]+:[0-9a-f]+[.][0-9a-f]+[m
+collected 7 items
+
+tests/nfr/test_worker_recovery_time.py::test_worker_recovery_time FAILED
+tests/nfr/test_worker_stop_timeout.py::test_worker_stop_timeout FAILED
+tests/nfr/test_single_instance_timeout.py::test_single_instance_timeout single_instance_timeout: n=10 raw=[0.9, 0.9, 0.9, 0.9, 0.9, 1.0, 1.0, 0.9, 0.9, 1.0] median=0.90 max=1.00 sec
+PASSED
+tests/nfr/test_single_instance_timeout.py::test_single_instance_timeout_when_previous_starting single_instance_timeout_when_previous_starting: n=5 raw=[2.31, 2.31, 2.31, 2.31, 2.31] median=2.31 max=2.31 sec
+PASSED
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_history_recordings[NOTSET] SKIPPED
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_correction_only[NOTSET] SKIPPED
+tests/nfr/test_paste_latency.py::test_paste_latency SKIPPED (tests/n...)
+
+=================================== FAILURES ===================================
+__________________________ test_worker_recovery_time ___________________________
+
+tmp_path = PosixPath('/tmp/pytest-of-shuhe/pytest-4/test_worker_recovery_time0')
+
+    def test_worker_recovery_time(tmp_path: Path) -> None:
+        """新しい構成のワーカーの起動からモデルの読み込みが終わるまでが決定値以内である（実機）。"""
+        from voice_paste.integrations.whisper.client import WhisperWorkerClient
+    
+        # 準備
+        client = WhisperWorkerClient(
+            settings=load_local_whisper_settings(),
+            ready_timeout_sec=WORKER_READY_TIMEOUT_SEC,
+            log_dir=tmp_path,
+            stop_timeout_sec=WORKER_STOP_TIMEOUT_SEC,
+        )
+        elapsed_list: list[float] = []
+    
+        # 実行: 毎回の start（起動から ready を受けるまで。ready を受けられなければ例外）の時間を測り、止める
+        for _ in range(CYCLES):
+            started = time.perf_counter()
+>           client.start()
+
+tests/nfr/test_worker_recovery_time.py:48: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/voice_paste/integrations/whisper/client.py:87: in start
+    self._raise_if_stopping()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <voice_paste.integrations.whisper.client.WhisperWorkerClient object at 0x749a71401550>
+
+    def _raise_if_stopping(self) -> None:
+        """stop で止めている最中なら、立て直さずに EngineError を送出する。"""
+        if self._stopping:
+>           raise EngineError("文字起こしワーカーが終了のために止められた") from None
+E           voice_paste.shared.errors.EngineError: 文字起こしワーカーが終了のために止められた
+
+src/voice_paste/integrations/whisper/client.py:233: EngineError
+___________________________ test_worker_stop_timeout ___________________________
+
+tmp_path = PosixPath('/tmp/pytest-of-shuhe/pytest-4/test_worker_stop_timeout0')
+
+    def test_worker_stop_timeout(tmp_path: Path) -> None:
+        """モデルを読み込んだワーカーが、標準入力を閉じてから決定値以内に終わる（実機）。"""
+        from voice_paste.integrations.whisper.client import WhisperWorkerClient
+    
+        # 準備
+        client = WhisperWorkerClient(
+            settings=load_local_whisper_settings(),
+            ready_timeout_sec=WORKER_READY_TIMEOUT_SEC,
+            log_dir=tmp_path,
+            stop_timeout_sec=WORKER_STOP_TIMEOUT_SEC,
+        )
+        elapsed_list: list[float] = []
+    
+        # 実行: 毎回 start（ready まで）し、標準入力を閉じてから終わるまでを測る（terminate は使わない）
+        for _ in range(CYCLES):
+>           client.start()
+
+tests/nfr/test_worker_stop_timeout.py:64: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/voice_paste/integrations/whisper/client.py:87: in start
+    self._raise_if_stopping()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <voice_paste.integrations.whisper.client.WhisperWorkerClient object at 0x749a71448410>
+
+    def _raise_if_stopping(self) -> None:
+        """stop で止めている最中なら、立て直さずに EngineError を送出する。"""
+        if self._stopping:
+>           raise EngineError("文字起こしワーカーが終了のために止められた") from None
+E           voice_paste.shared.errors.EngineError: 文字起こしワーカーが終了のために止められた
+
+src/voice_paste/integrations/whisper/client.py:233: EngineError
+=========================== short test summary info ============================
+SKIPPED [1] tests/nfr/test_transcription_parity.py:58: Windows の NVIDIA GPU が要る
+SKIPPED [1] tests/nfr/test_transcription_parity.py:80: tests/nfr/fixtures/ の用語集が要る
+SKIPPED [1] tests/nfr/test_paste_latency.py:104: tests/nfr/fixtures/ の録音と用語集が要る
+============== 2 failed, 2 passed, 3 skipped in 177.12s (0:02:57) ==============
+exit=1

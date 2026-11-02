@@ -1,0 +1,110 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/shuhei1101/dev-docs/v0.0.0/schemas/dev-docs.schema.json
+version: "3"
+name: voice-input
+description: 録音・区切り・文字起こし・用語の補正をほかのシステムへ提供する音声入力のサービスの設計書と目次
+github:
+  repository: shuhei1101/voice-input
+documents:
+  - id: architecture
+    title: アーキテクチャ図
+    paths: ["dev/設計書/アーキテクチャ図/*.yaml"]
+    exclude: [index.yaml]
+    schema: dev/テンプレート/アーキテクチャ図.schema.yaml
+    metadata:
+      name: title
+      description: lead
+  - id: nonfunctional
+    title: 非機能要件
+    paths: ["dev/設計書/非機能要件/*.yaml"]
+    exclude: [index.yaml]
+    schema: dev/テンプレート/非機能要件.schema.yaml
+    metadata:
+      name: title
+  - id: scenario
+    title: シナリオ
+    paths: ["dev/設計書/シナリオ/**/*.yaml"]
+    exclude: [index.yaml]
+    schema: dev/テンプレート/シナリオ.schema.yaml
+    metadata:
+      name: title
+      description: lead
+  - id: interface
+    title: インターフェース定義
+    paths: ["dev/設計書/インターフェース定義/**/*.yaml"]
+    exclude: [index.yaml]
+    schema: dev/テンプレート/インターフェース定義.schema.yaml
+    metadata:
+      name: title
+      description: lead
+  - id: module
+    title: モジュール構成
+    paths: ["dev/設計書/モジュール構成/**/*.yaml"]
+    exclude: [index.yaml]
+    schema: dev/テンプレート/モジュール構成.schema.yaml
+    metadata:
+      name: title
+  - id: screen
+    title: 画面設計
+    paths: ["dev/設計書/画面設計/**/*.yaml"]
+    exclude: [index.yaml]
+    schema: dev/テンプレート/画面設計.schema.yaml
+    metadata:
+      name: title
+      description: lead
+  - id: er
+    title: ER 図
+    paths: ["dev/設計書/ER図/*.yaml"]
+    exclude: [index.yaml]
+    schema: dev/テンプレート/ER図.schema.yaml
+    metadata:
+      name: title
+      description: lead
+  - id: config
+    title: 設定
+    paths: ["dev/設計書/設定/*.yaml"]
+    exclude: [index.yaml]
+    schema: dev/テンプレート/設定.schema.yaml
+    metadata:
+      name: title
+      description: lead
+  - id: api
+    title: 外部API
+    paths: ["dev/設計書/外部API/*.yaml"]
+    exclude: [index.yaml]
+    schema: dev/テンプレート/外部API.schema.yaml
+    metadata:
+      name: title
+      description: lead
+  - id: library
+    title: 外部ライブラリ
+    paths: ["dev/設計書/外部ライブラリ/*.yaml"]
+    exclude: [index.yaml]
+    schema: dev/テンプレート/外部ライブラリ.schema.yaml
+    metadata:
+      name: title
+      description: lead
+  - id: test_procedure
+    title: テスト実行方法
+    paths: ["dev/設計書/テスト/*.yaml"]
+    exclude: [index.yaml]
+    schema: dev/テンプレート/テスト実行方法.schema.yaml
+    metadata:
+      name: title
+  - id: dev_command
+    title: 開発コマンド
+    paths: ["dev/設計書/開発コマンド/*.yaml"]
+    exclude: [index.yaml]
+    schema: dev/テンプレート/開発コマンド.schema.yaml
+    metadata:
+      name: title
+  - id: index
+    title: 目次
+    paths:
+      - dev/index.yaml
+      - dev/コーディング規約/index.yaml
+      - dev/テンプレート/index.yaml
+      - "dev/設計書/**/index.yaml"
+      - "docs/**/index.yaml"
+    schema: dev/テンプレート/index.schema.yaml
+    metadata:
+      description: summary

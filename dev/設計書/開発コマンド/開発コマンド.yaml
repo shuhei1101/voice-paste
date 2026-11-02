@@ -161,7 +161,7 @@ categories:
       - WSL の `~/.ssh/config` の `Host voice-paste-ubuntu` の鍵で、パスワードを聞かれずに VM へ入れる（`ssh -o BatchMode=yes voice-paste-ubuntu true` が終了コード 0）
       - VM は別のホストの Hyper-V で動き、WSL からは起動できない。SSH が通らないときは、ユーザーに VM の起動を頼む
       - VM は Xorg のセッションへ自動ログインし（`/etc/gdm3/custom.conf` の `AutomaticLogin`）、画面のロックを無効にしている
-      - VM の中の作業用のクローン（`~/vp-e2e`）は、『環境構築（クローン直後）』の手順 2・3 を済ませておく
+      - VM の中の作業用のクローン（`~/vp-e2e`）は、手順 2 の bundle から 1 回だけ `git clone /tmp/vp-e2e.bundle ~/vp-e2e` で作り、『環境構築（クローン直後）』の手順 3（Open JTalk）を済ませておく
     commands: |-
       WSL から SSH で、VM の Xorg のセッションの画面を渡して E2E・非機能要件テストを流す。
 
@@ -183,7 +183,7 @@ categories:
       3. SSH が切れても止まらないよう `systemd-run --user` で流す（E2E の全件は約 36 分）
 
       ```bash
-      ssh voice-paste-ubuntu 'systemd-run --user --unit=vp-e2e --collect --setenv=DISPLAY=:0 --setenv=XAUTHORITY=/run/user/1000/gdm/Xauthority --working-directory=%h/vp-e2e bash -c ".venv/bin/python -m pytest tests/e2e --run-e2e -v -rs -p no:cacheprovider > e2e.log 2>&1; echo exit=\$? >> e2e.log"'
+      ssh voice-paste-ubuntu 'systemd-run --user --unit=vp-e2e --collect --setenv=DISPLAY=:0 --setenv=XAUTHORITY=/run/user/1000/gdm/Xauthority --working-directory=$HOME/vp-e2e bash -c ".venv/bin/python -m pytest tests/e2e --run-e2e -v -rs -p no:cacheprovider > e2e.log 2>&1; echo exit=\$? >> e2e.log"'
       ```
 
       4. 終わり（`systemctl --user is-active vp-e2e` が `active` でなくなる）を待ち、ログを取ってくる
@@ -198,7 +198,7 @@ categories:
     verification:
       state: 済
       date: '2026-11-02'
-      detail: PoC（#252）で、WSL から鍵の SSH で VM に入り、`systemd-run --user` に `DISPLAY=:0`・`XAUTHORITY=/run/user/1000/gdm/Xauthority` を渡して `tests/e2e --run-e2e` を流した。36 分 28 秒で 102 pass・28 skip で終わり、SSH の切断で止まらなかった。クローンは `~/vp-251` に bundle から作った（`~/vp-e2e` と `git fetch` での追従、`pkill` の手順は PoC で走らせていない）。WSL の Windows には Hyper-V の管理の手段が無く、VM を起動できないことを確かめた
+      detail: PoC（#252）で、WSL から鍵の SSH で VM に入り、`systemd-run --user` に `DISPLAY=:0`・`XAUTHORITY=/run/user/1000/gdm/Xauthority` を渡して `tests/e2e --run-e2e` を流した。36 分 28 秒で 102 pass・28 skip で終わり、SSH の切断で止まらなかった。続けて書いたコマンドを手順 1〜4 のとおりに走らせ（手順 1 は動いている常駐アプリが無く `kill` は打っていない。`~/vp-e2e` は bundle から `git clone` で作った）、手順 3 の対象を `tests/e2e/複合ユースケース/test_paste_voice_text.py` にして 6 pass（85.97 秒）を取ってこられた。WSL の Windows には Hyper-V の管理の手段が無く、VM を起動できないことを確かめた
   - name: 管理作業
     prerequisites:
       - 検証環境の VM（Ubuntu 24.04・PipeWire）の Xorg のセッションで、『起動・停止』の前提を満たしておく

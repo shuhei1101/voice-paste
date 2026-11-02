@@ -163,6 +163,7 @@ class Tray(QObject):
         self._settings_dir = settings_dir
         self._log_dir = log_dir
         self._failed = False
+        self._failed_settings_enabled = True
         self._copied_text: str | None = None
         self._start_hotkey = ""
         self._start_label = START_TEXT
@@ -204,14 +205,14 @@ class Tray(QObject):
 
     def set_state(self, state: TrayState, *, busy: bool) -> None:
         """アイコン・ヒント・メニューの押せる項目と文言を状態に合わせる。"""
-        # 1. 失敗の起動なら、状態を失敗のままにし、録音を押せなくして設定は押せるままにする
+        # 1. 失敗の起動なら、状態を失敗のままにし、録音を押せなくする。設定は settings_enabled のときだけ押せるままにする
         if self._failed:
             self._apply(
                 TrayState.FAILED,
                 start_text=START_TEXT + FAILED_SUFFIX,
                 settings_text=SETTINGS_TEXT,
                 start_enabled=False,
-                settings_enabled=True,
+                settings_enabled=self._failed_settings_enabled,
             )
             return
 
@@ -225,9 +226,10 @@ class Tray(QObject):
             settings_enabled=state is not TrayState.STARTING and not busy,
         )
 
-    def set_failed(self) -> None:
-        """文字起こしのエンジンを準備できなかった起動として、アイコンを失敗にする。"""
+    def set_failed(self, *, settings_enabled: bool) -> None:
+        """起動に失敗した起動として、アイコンを失敗にする。settings_enabled が偽なら「設定…」も押せなくする。"""
         self._failed = True
+        self._failed_settings_enabled = settings_enabled
         self.set_state(TrayState.FAILED, busy=False)
 
     def set_start_hotkey(self, hotkey: str) -> None:

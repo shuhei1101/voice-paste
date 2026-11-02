@@ -1349,7 +1349,7 @@ def _start_services(
         settings = load_settings(paths, SETTINGS_MODEL)
     except SettingsError as error:
         logger.error(f"起動に失敗した（{error}）")
-        tray.set_failed()
+        tray.set_failed(settings_enabled=False)
         tray.show_failure("settings_invalid", str(error), paths=error.paths)
         return
 
@@ -1417,7 +1417,7 @@ def _finish_startup(
     if isinstance(result, StartupError):
         error = result
         logger.error(f"起動に失敗した（{error}）")
-        tray.set_failed()
+        tray.set_failed(settings_enabled=True)
         deps = _build_idle_ui_deps(
             settings,
             paths,

@@ -38,6 +38,7 @@ from tests.support.resident_app import (
     ResidentApp,
     service_processes_for,
 )
+from tests.support.settings import load_test_default_settings
 from voice_paste.features.correction import read_glossary_rows
 from voice_paste.shared.types import GlossaryEntry
 from voice_paste.shared.yaml_document import read_yaml_mapping
@@ -256,7 +257,7 @@ def test_normal_when_reset(run_app: RunApp) -> None:
         assert app.wait_until(lambda: _yaml(app) == {}, RESET_TIMEOUT_SEC)
         assert app.window("settings_window") is not None
         app.select_group("画面")
-        assert app.field_value("ui.wave_gain") == "4"
+        assert app.field_value("ui.wave_gain") == str(load_test_default_settings().ui.wave_gain)
 
     # 実行
     run_app(case, extra_settings=COMMENTED_SETTINGS)

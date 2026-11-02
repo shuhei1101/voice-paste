@@ -17,13 +17,18 @@ release PR の対象ケースを、Windows での全 pass の後に検証環境�
 開発コマンド『検証環境の VM でのテストの実行』の手順 1〜4 で、release ブランチを VM の作業用のクローンへ送り、対象ケースを流してログを取ってくる。
 対象ケースは、release PR の最後の Windows の実行の結果の報告に並んだケースで、手順 3 の `tests/e2e` の代わりに pytest のノード ID で並べて渡す。
 
+### fail したケースの再実行
+
+ログに fail したケースがある場合、そのケースだけを開発コマンドの手順 3〜4 でノード ID を並べて VM で流し直す。
+流し直して pass したケースは `pass` として扱う。
+
 ### 結果の報告
 
 MCP `create_file_comment` を呼ぶ:
 - `pr_number`: release PR の番号
 - `sender`: `tester`
 - `receiver`: `tester`
-- `body`: 先頭に `## Linux での E2E の結果` の見出しを置き、流した release の位置（commit）と、対象ケース全件をケースごとに `pass` / `fail` / `skip` / `対象外` のいずれかを添えた 1 行で並べる。skip の理由がテスト実行方法『E2E テスト』の前提にある Linux で skip するケース（Ctrl+Break・外の端末の画面）に当たるものは `対象外` と書く
+- `body`: 先頭に `## Linux での E2E の結果` の見出しを置き、流した release の位置（commit）と、対象ケースをケースごとに `pass` / `fail` / `skip` のいずれかを添えた 1 行で並べる。テスト実行方法『E2E テスト』の前提にある Linux で skip するケース（Ctrl+Break・外の端末の画面）は一覧に並べず、本文の末尾の `### Linux で skip するケース` の項に `-rs` の skip の理由とともに書く。流し直したケースがあれば、本文の末尾の `### VM で流し直したケース` の項に書く。fail か skip のケースがある場合、流し直しは VM で済ませており、Windows で流し直して `## 起票しない判定` にしない旨を書く
 
 ### 作業完了報告
 

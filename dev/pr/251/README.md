@@ -1,0 +1,1 @@
+# 非機能要件テストと release の E2E の実行を Linux（Ubuntu 24.04 の Xorg）でも行えるようにする

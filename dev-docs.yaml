@@ -1,6 +1,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/shuhei1101/dev-docs/v0.0.0/schemas/dev-docs.schema.json
 version: "3"
 name: voice-input
+worktrees: [".claude/worktrees/*"]
 description: 録音・区切り・文字起こし・用語の補正をほかのシステムへ提供する音声入力のサービスの設計書と目次
 github:
   repository: shuhei1101/voice-input

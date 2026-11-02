@@ -53,7 +53,7 @@ layers:
       - Linux では、開発コマンド『環境構築（クローン直後）』の手順 2（`local-whisper` の extra）・手順 3（Open JTalk を sudo を使わず `~/.local/opt/open-jtalk` へ展開する）と、『起動・停止』の前提の OS のパッケージを済ませておき、Xorg のセッションの端末で流す（クリップボードの `xclip` が `DISPLAY` を要る）。Open JTalk の置き場所は環境変数 `VOICE_PASTE_OPEN_JTALK_HOME` で替えられる
       - Linux では、常駐アプリがブラウザーの文字起こしを持たないため外の端末の画面のケースを skip し、録音中に音量を下げないため音量を確かめるケースは音量を下げないことを確かめる
       - 検証環境の VM では、自動起動にした常駐アプリを終わらせてから流す（E2E のメモリの使用量は最大約 3.9 GB で、常駐アプリのワーカーの約 1.7 GB と合わせると OOM で止まる）
-      - スプリントの release の E2E の実行では、tester が Windows に加えて検証環境の VM でも全件流す（手順は tester のフェーズ『Linux での E2E の実行』（`dev/エージェント運用/エージェント/tester/LinuxでのE2Eの実行.md`））
+      - スプリントの release の E2E の実行では、tester が Windows に加えて検証環境の VM でも全件流す（手順は tester の拡張のフェーズ『Linux での E2E の実行』（`dev/エージェント運用/拡張/tester/LinuxでのE2Eの実行.md`））
     run_one:
       label: ファイル
       command: |-

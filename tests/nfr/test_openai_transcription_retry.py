@@ -11,6 +11,8 @@ from unittest.mock import MagicMock
 
 import httpx
 import pytest
+
+from tests.support.settings import load_test_default_settings
 from pydantic import SecretStr
 
 from voice_paste.shared.errors import EngineError
@@ -38,7 +40,7 @@ def test_openai_transcription_retry(tmp_path: Path) -> None:
     sleep = MagicMock(return_value=None)
     uniform = MagicMock(side_effect=lambda _low, high: high)
     transcriber = OpenAITranscriber(
-        settings=OpenAISettings(base_url=BASE_URL),
+        settings=load_test_default_settings().transcription.openai.model_copy(update={"base_url": BASE_URL}),
         api_key=SecretStr("sk-test"),
         sleep=sleep,
         uniform=uniform,

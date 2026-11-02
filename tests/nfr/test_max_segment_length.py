@@ -14,6 +14,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from tests.support.settings import load_test_default_settings
+
 from tests.support.inprocess import long_reading_texts, speech_sequence_input
 from voice_paste.features.recording.client import SAMPLE_RATE
 from voice_paste.features.recording.segmenter import MAX_SEGMENT_SEC, SEGMENT_PAD_SEC, Segmenter
@@ -57,7 +59,7 @@ def test_max_segment_length(tmp_path: Path) -> None:
     segmenter = Segmenter(
         detect_speech=StreamingVad(load_vad_session()),
         on_segment=segments.append,
-        min_silence_sec=ContinuousSettings().min_silence_sec,
+        min_silence_sec=load_test_default_settings().api.continuous.min_silence_sec,
     )
 
     # 実行

@@ -1,3 +1,4 @@
+id: SC-2
 title: "トレイから操作する"
 scenarios:
   - name: 正常シナリオ（ログフォルダを開く）

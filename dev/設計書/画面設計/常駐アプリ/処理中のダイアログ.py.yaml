@@ -1,3 +1,4 @@
+id: SCR-3
 title: "処理中のダイアログ"
 elements:
   - name: ダイアログ
@@ -35,5 +36,5 @@ screen: src/voice_paste/ui/windows/busy_dialog.py
 mock: dev/mock/pages/busy-dialog/37/a-standard/
 lead: API から始めた録音の処理中に録音開始のホットキーを押したとき、始められない理由を知らせるダイアログ。
 refs:
-  - dev/設計書/モジュール構成/常駐アプリ/ホットキーと画面.py#functions[notify]
+  - MOD-32#functions[notify]
 test_file: tests/integration/ui/test_busy_dialog.py

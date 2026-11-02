@@ -1,3 +1,4 @@
+id: SC-9
 title: "録音を文字に起こす"
 scenarios:
   - name: 正常シナリオ

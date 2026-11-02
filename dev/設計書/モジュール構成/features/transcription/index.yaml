@@ -1,0 +1,6 @@
+summary: transcription の設計書
+items:
+  - page: service.py.yaml
+    summary: 常駐アプリ / 文字起こし / service.py
+  - page: types.py.yaml
+    summary: 常駐アプリ / 文字起こし / types.py

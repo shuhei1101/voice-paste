@@ -3,15 +3,21 @@ title: 外部API
 description: 利用する外部 API 1 つにつき 1 ファイル。そのプロジェクトで使うエンドポイントだけを公式ドキュメントから抜き出す。
 x-kind: external_api
 x-folder: dev/設計書/外部API
+x-id-prefix: API
 x-cross: endpoints
 type: object
 additionalProperties: false
 required:
+- id
 - title
 - version
 - auth
 - endpoints
 properties:
+  id:
+    $ref: 共通.schema.yaml#/$defs/id
+    title: ID
+    description: 設計書の変わらない ID。書くツールの `create` が振り、改名・移動でも変わらない。他の設計書からは `{ID}#{項目のパス}` で指す。
   title:
     type: string
     title: タイトル
@@ -520,7 +526,8 @@ properties:
     x-heading: 補足
     x-shape: sections
 examples:
-- title: OpenAI
+- id: API-1
+  title: OpenAI
   lead: OpenAI が提供する LLM・埋め込み・音声の API。
   used_in:
   - integrations/openai/

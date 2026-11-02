@@ -1,0 +1,12 @@
+summary: keyboard の設計書
+items:
+  - page: active_window_linux.py.yaml
+    summary: 常駐アプリ / 外部連携 / active_window_linux.py
+  - page: active_window_wayland.py.yaml
+    summary: 常駐アプリ / 外部連携 / active_window_wayland.py
+  - page: sender.py.yaml
+    summary: 常駐アプリ / 外部連携 / sender.py
+  - page: sender_linux.py.yaml
+    summary: 常駐アプリ / 外部連携 / sender_linux.py
+  - page: sender_wayland.py.yaml
+    summary: 常駐アプリ / 外部連携 / sender_wayland.py

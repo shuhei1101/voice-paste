@@ -1,0 +1,89 @@
+id: MOD-80
+title: 常駐アプリ / 外部連携 / sender_linux.py
+test_files:
+  - tests/unit/voice_paste/integrations/keyboard/test_sender_linux.py
+functions:
+  - name: send_paste_linux
+    title: Linux の貼り付けのキーの送信
+    kind: 関数
+    container: integrations/keyboard/sender_linux.py
+    usecase: 起こした文字を届ける
+    scope: public
+    summary: Linux で send_paste の代わりに渡す。アクティブなウィンドウが端末アプリなら Ctrl+Shift+V、それ以外なら設定の貼り付けのキーを、主キーを XTEST で送信する
+    description: pynput（Xorg）は文字で渡したキーを XSendEvent で送り、GTK4 のアプリ（GNOME Text Editor 等）はこれを受け付けない。主キーを `KeyCode.from_vk` で渡すと XTEST で送られる（[#211](https://github.com/shuhei1101/voice-paste/pull/211) の PoC で確かめた）。
+    args:
+      - name: paste_key
+        type: str
+        required: true
+        passing: positional
+        description: 貼り付けのキー（pynput の GlobalHotKeys の書式。設定の keyboard.paste_key）
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. split_paste_key で paste_key を修飾キーと主キーに分ける（DeliveryError はそのまま送出し、キーを送信しない）
+         - 主キーが 1 文字でない場合、DeliveryError を送出する。理由は `貼り付けのキーの主キーは 1 文字にしてください（{paste_key}）`
+      2. FOCUS_SETTLE_SEC だけ待つ（貼り付け先のフォーカスが落ち着くのを待つ）
+      3. read_active_wm_class でアクティブなウィンドウの WM_CLASS を読み、小文字にしたどれかの名前が TERMINAL_WM_CLASSES にあるかを見る
+         - ある場合、修飾キーを Ctrl・Shift、主キーを `v` に替える
+           - `[INFO]` 端末アプリなので Ctrl+Shift+V を送信する（WM_CLASS）
+         - 無い場合（読めずに空のときを含む）、1 のキーのまま
+      4. 主キーを `keyboard.KeyCode.from_vk(ord(主キー))` にする（Xorg の pynput では vk が keysym で、ASCII の文字の keysym は文字コードと同じ）
+      5. 修飾キーを順に押し、主キーを押して離し、修飾キーを逆順に離す。途中で失敗しても、押した修飾キーは逆順に離す（send_enter と同じ）
+         - `[INFO]` 貼り付けのキーを送信した（送信したキー）
+    refs:
+      - LIB-19#
+      - SC-7#
+    status: planned
+    notes:
+      テスト: 単体テストのファイルは `tests/unit/voice_paste/integrations/keyboard/test_sender_linux.py`。Windows では skip する（python-xlib を読み込まない）
+    unit_tests:
+      - name: test_send_paste_linux
+        case: 正常
+        summary: 端末アプリでなければ設定のキーを、主キーを vk で押して離す
+        condition: paste_key が `<ctrl>+v`、read_active_wm_class が ("gnome-text-editor", "gnome-text-editor")
+        mock: pynput.keyboard.Controller・time.sleep・read_active_wm_class
+        expected: sleep(0.1)・press(ctrl)・press(KeyCode.from_vk(0x76))・release(KeyCode.from_vk(0x76))・release(ctrl) の順に呼ばれる
+      - name: test_send_paste_linux_when_terminal
+        case: 正常
+        summary: 端末アプリなら Ctrl+Shift+V を送信する
+        condition: paste_key が `<ctrl>+v`、read_active_wm_class が ("gnome-terminal-server", "Gnome-terminal")
+        mock: pynput.keyboard.Controller・time.sleep・read_active_wm_class
+        expected: press(ctrl)・press(shift)・press(KeyCode.from_vk(0x76))・release(KeyCode.from_vk(0x76))・release(shift)・release(ctrl) の順に呼ばれる
+      - name: test_send_paste_linux_when_class_name_matches
+        case: 正常
+        summary: クラス名だけが一覧にあっても端末アプリとして扱う
+        condition: read_active_wm_class が ("console-x", "org.gnome.Console")（インスタンス名は一覧に無く、クラス名を小文字にすると一覧にある）
+        mock: pynput.keyboard.Controller・time.sleep・read_active_wm_class
+        expected: press(shift) が呼ばれる
+      - name: test_send_paste_linux_when_wm_class_unreadable
+        case: 正常
+        summary: WM_CLASS を読めなければ設定のキーを送信する
+        condition: paste_key が `<ctrl>+v`、read_active_wm_class が ()
+        mock: pynput.keyboard.Controller・time.sleep・read_active_wm_class
+        expected: press(ctrl)・press(KeyCode.from_vk(0x76)) が呼ばれ、press(shift) が呼ばれない
+      - name: test_send_paste_linux_when_no_main_key
+        case: 異常
+        summary: 主キーが 1 つ無ければキーを送信せずに DeliveryError
+        condition: paste_key が `<ctrl>`
+        mock: pynput.keyboard.Controller・time.sleep・read_active_wm_class
+        expected: DeliveryError が送出され、press と read_active_wm_class が呼ばれない
+        exception: paste_key に主キーが 1 つ無い（修飾キーだけ・主キーが 2 つ以上）
+      - name: test_send_paste_linux_when_main_key_not_char
+        case: 異常
+        summary: 主キーが 1 文字でなければキーを送信せずに DeliveryError
+        condition: paste_key が `<shift>+<insert>`
+        mock: pynput.keyboard.Controller・time.sleep・read_active_wm_class
+        expected: DeliveryError が送出され、press が呼ばれない
+        exception: 主キーが 1 文字でない
+      - name: test_send_paste_linux_when_press_failed
+        case: 異常
+        summary: 主キーの送信で失敗しても押した修飾キーを離す
+        condition: Controller.press が主キーで例外を送出する
+        mock: pynput.keyboard.Controller・time.sleep・read_active_wm_class
+        expected: 例外がそのまま送出され、release(ctrl) が呼ばれる
+    exceptions:
+      - name: DeliveryError
+        condition: paste_key に主キーが 1 つ無い（修飾キーだけ・主キーが 2 つ以上）
+      - name: DeliveryError
+        condition: 主キーが 1 文字でない

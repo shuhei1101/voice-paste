@@ -1,0 +1,140 @@
+id: MOD-49
+title: 常駐アプリ / 共通 / constants.py
+test_files:
+  - tests/unit/voice_paste/shared/test_constants.py
+data_models:
+  - name: AppPaths
+    title: 置き場所のパス
+    container: shared/constants.py
+    usecase: 共通
+    role: DTO
+    summary: 設定の 3 レイヤーのファイル・settings.toml・履歴・ログ・一時の音声・トークン・画面の画像の置き場所
+    description: |-
+      resolve_app_paths で作る。
+      既定値と checkout の上書きはリポジトリの直下（REPO_ROOT）から引き、環境の値はユーザーごとの設定のフォルダから引く。
+      既定は platformdirs で、Windows は `%APPDATA%\voice-paste\`（設定）と `%LOCALAPPDATA%\voice-paste\`（それ以外）、Linux は `~/.config/voice-paste/`（設定）と `~/.local/share/voice-paste/`（それ以外）を引く。
+      データの置き場所（`--data-dir`）を渡したときは、既定値の他は全てをその下に置き、checkout の上書きを読まない（local_settings_file を None にする）。E2E・非機能要件テストはこれで普段使いの置き場所と手元の `settings.local.yaml` に触れない。
+      `@dataclass(frozen=True, slots=True, kw_only=True)`。
+    properties:
+      - name: defaults_file
+        type: Path
+        description: '`{REPO_ROOT}/config/defaults.yaml`（データの置き場所を渡したときも同じ）。設定の既定値'
+      - name: settings_file
+        type: Path
+        description: '`%APPDATA%\voice-paste\settings.yaml`（Linux は `~/.config/voice-paste/settings.yaml`。データの置き場所を渡したときは `{data_dir}\settings.yaml`）。環境の値で、設定画面の保存が書く'
+      - name: local_settings_file
+        type: Path | None
+        description: '`{REPO_ROOT}/settings.local.yaml`。checkout の上書き。データの置き場所を渡したときは None（読まない）'
+      - name: legacy_settings_file
+        type: Path
+        description: '`%APPDATA%\voice-paste\settings.toml`（`{data_dir}\settings.toml`）。前のバージョンの設定で、settings_file が無いときに移す元'
+      - name: history_dir
+        type: Path
+        description: '`%LOCALAPPDATA%\voice-paste\history\`（Linux は `~/.local/share/voice-paste/history/`。`{data_dir}\history\`）'
+      - name: log_dir
+        type: Path
+        description: '`%LOCALAPPDATA%\voice-paste\log\`（`{data_dir}\log\`）'
+      - name: tmp_dir
+        type: Path
+        description: '`%LOCALAPPDATA%\voice-paste\tmp\`（`{data_dir}\tmp\`。履歴を残さないときの一時の音声）'
+      - name: token_file
+        type: Path
+        description: '`%LOCALAPPDATA%\voice-paste\api_token`（`{data_dir}\api_token`。起動ごとのトークンとポート）'
+      - name: ui_image_dir
+        type: Path
+        description: '`%LOCALAPPDATA%\voice-paste\ui\`（`{data_dir}\ui\`。選択欄の開くマーカーの SVG）'
+      - name: lock_file
+        type: Path
+        description: '`%LOCALAPPDATA%\voice-paste\instance.lock`（Linux は `~/.local/share/voice-paste/instance.lock`。`{data_dir}\instance.lock`。Linux の単一インスタンスのロックファイル。Windows では使わない）'
+      - name: openai_api_key_file
+        type: Path
+        description: '`%APPDATA%\voice-paste\secrets\openai_api_key`（Linux は `~/.config/voice-paste/secrets/openai_api_key`。`{data_dir}\secrets\openai_api_key`）。settings.yaml と同じフォルダの下。ユーザーが置き、常駐アプリは読むだけで作らない'
+    refs:
+      - LIB-16#
+    status: implemented
+constants:
+  - name: APP_NAME
+    title: アプリ名
+    container: shared/constants.py
+    usecase: 共通
+    summary: 置き場所のフォルダ名に使うアプリの名前
+    value: '"voice-paste"'
+    status: implemented
+  - name: REPO_ROOT
+    title: リポジトリの直下
+    container: shared/constants.py
+    usecase: 常駐アプリを起動する
+    role: 置き場所
+    summary: config/defaults.yaml と settings.local.yaml を引く、リポジトリの直下のフォルダ
+    value: Path(__file__).resolve().parents[3]
+    status: planned
+  - name: DEFAULTS_FILE_NAME
+    title: 既定値のファイルの名前
+    container: shared/constants.py
+    usecase: 常駐アプリを起動する
+    role: 置き場所
+    summary: リポジトリの直下の config フォルダに置く既定値のファイル
+    value: '"defaults.yaml"'
+    status: planned
+  - name: SETTINGS_FILE_NAME
+    title: 環境の値のファイルの名前
+    container: shared/constants.py
+    usecase: 常駐アプリを起動する
+    role: 置き場所
+    summary: 設定のフォルダ（data_dir）に置く環境の値のファイル
+    value: '"settings.yaml"'
+    status: planned
+  - name: LOCAL_SETTINGS_FILE_NAME
+    title: checkout の上書きのファイルの名前
+    container: shared/constants.py
+    usecase: 常駐アプリを起動する
+    role: 置き場所
+    summary: リポジトリの直下に置く checkout の上書きのファイル（git の管理から外す）
+    value: '"settings.local.yaml"'
+    status: planned
+  - name: LEGACY_SETTINGS_FILE_NAME
+    title: 前のバージョンの設定のファイルの名前
+    container: shared/constants.py
+    usecase: 常駐アプリを起動する
+    role: 置き場所
+    summary: settings.yaml が無いときに移す元のファイル
+    value: '"settings.toml"'
+    status: planned
+functions:
+  - name: resolve_app_paths
+    title: 置き場所の解決
+    kind: 関数
+    container: shared/constants.py
+    usecase: 共通
+    scope: public
+    summary: データの置き場所が渡されればその下、無ければ platformdirs で引いた既定の置き場所で AppPaths を作る。フォルダは作らない
+    args:
+      - name: data_dir
+        type: Path | None
+        required: true
+        passing: positional
+        description: データの置き場所（`--data-dir`）。None は既定の置き場所
+    returns:
+      type: AppPaths
+      description: 置き場所のパス
+    process: |-
+      1. data_dir が渡されているか
+         - ある場合、環境の値・settings.toml・OpenAI の API キーのファイル・履歴・ログ・一時の音声・トークン・画面の画像・ロックファイルを全て data_dir の下に置き、local_settings_file を None にする
+         - 無い場合、環境の値・settings.toml・OpenAI の API キーのファイル（`secrets/openai_api_key`）は user_config_dir(APP_NAME, appauthor=False, roaming=True)、それ以外は user_data_dir(APP_NAME, appauthor=False) の下に置き、local_settings_file を `{REPO_ROOT}/settings.local.yaml` にする
+      2. defaults_file はどちらも `{REPO_ROOT}/config/defaults.yaml` にする
+    unit_tests:
+      - name: test_resolve_app_paths_when_data_dir
+        case: 正常
+        summary: データの置き場所の下に全てを置く
+        condition: data_dir=一時フォルダ
+        mock: なし
+        expected: settings_file が {data_dir}/settings.yaml、legacy_settings_file が {data_dir}/settings.toml、local_settings_file が None、defaults_file が {REPO_ROOT}/config/defaults.yaml、openai_api_key_file が {data_dir}/secrets/openai_api_key、log_dir が {data_dir}/log、ui_image_dir が {data_dir}/ui、lock_file が {data_dir}/instance.lock など全てが data_dir の下。フォルダは作られていない
+      - name: test_resolve_app_paths_when_default
+        case: 正常
+        summary: 既定は platformdirs の置き場所
+        condition: data_dir=None
+        mock: platformdirs の user_config_dir・user_data_dir（それぞれ一時フォルダの config・local を返す）
+        expected: settings_file が config/settings.yaml、legacy_settings_file が config/settings.toml、local_settings_file が {REPO_ROOT}/settings.local.yaml、openai_api_key_file が config/secrets/openai_api_key、それ以外が local の下。user_config_dir に roaming=True が渡る
+    refs:
+      - LIB-16#
+    status: implemented

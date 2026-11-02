@@ -86,12 +86,12 @@ properties:
           title: 分類
           description: 行をまとまりで見せるときの分類。サイドバーの見出しになる。行のページ名と同じ値にしない。
 examples:
-- summary: 実体ファイルの書式定義・要件洗い出しの観点集
+- summary: 実体ファイルの書式定義
   items:
   - page: 共通.schema.yaml
     summary: 種別をまたいで使う型
-  - page: 観点/
-    summary: 要件洗い出しの観点集
+  - page: PRドキュメント/
+    summary: 作業 PR の計画フォルダ（目次 + 要件 + 対象システム計画）
 - summary: planner のフェーズ索引
   columns:
   - key: page

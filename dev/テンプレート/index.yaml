@@ -23,8 +23,8 @@ items:
     summary: データストア構造（DB / JSON / YAML）。分類別
     target: '`設計書/ER図/{分類}.yaml`'
   - page: モジュール構成.schema.yaml
-    summary: クラス / 関数 / 関数型 / 定数 をドメイン分類でまとめる
-    target: '`設計書/モジュール構成/{サブシステム}/{分類}.{lang}.yaml`'
+    summary: 物理ファイル 1 つのクラス / 関数 / 関数型 / 定数
+    target: '`設計書/モジュール構成/{container}.yaml`（束ねる設計書は `設計書/モジュール構成/分類/{分類のパス}.yaml`）'
   - page: 設定.schema.yaml
     summary: 設定値 / 環境変数の一覧
     target: '`設計書/設定/{サブシステム名}.yaml`'

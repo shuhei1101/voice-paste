@@ -1,0 +1,70 @@
+id: MOD-75
+title: 常駐アプリ / 外部連携 / noop.py
+test_files:
+  - tests/unit/voice_paste/integrations/volume/test_noop.py
+constants:
+  - name: NOOP_VOLUME
+    title: 音量を変えない実装が返す音量
+    container: integrations/volume/noop.py
+    usecase: 録音する
+    summary: lower_volume_noop が下げる前の音量として返す値。音量を読まないため最大の 1.0 を置く
+    value: '1.0'
+    status: planned
+functions:
+  - name: lower_volume_noop
+    title: 音量を下げない
+    kind: 関数
+    container: integrations/volume/noop.py
+    usecase: 録音する
+    summary: Linux で lower_volume の代わりに渡す。音量を読まず変えず、NOOP_VOLUME を返す
+    inherits: LowerVolumeFn
+    scope: public
+    thread_safe: true
+    args:
+      - name: ratio
+        type: float
+        required: true
+        passing: positional
+        description: 使わない
+      - name: fade_sec
+        type: float
+        required: true
+        passing: positional
+        description: 使わない
+    returns:
+      type: float
+      description: NOOP_VOLUME（restore_volume_noop にだけ渡り、捨てられる）
+    process: 1. 何もせず NOOP_VOLUME を返す
+    unit_tests:
+      - name: test_lower_volume_noop
+        case: 正常
+        summary: 音量を変えずに決まった値を返す
+        condition: ratio=0.5・fade_sec=0.5
+        mock: なし
+        expected: NOOP_VOLUME が返る
+    status: planned
+  - name: restore_volume_noop
+    title: 音量を戻さない
+    kind: 関数
+    container: integrations/volume/noop.py
+    usecase: 録音する
+    summary: Linux で restore_volume の代わりに渡す。何もしない
+    inherits: RestoreVolumeFn
+    scope: public
+    thread_safe: true
+    args:
+      - name: volume
+        type: float
+        required: true
+        passing: positional
+        description: 使わない
+      - name: fade_sec
+        type: float
+        required: true
+        passing: positional
+        description: 使わない
+    returns:
+      type: None
+      description: なし
+    process: 1. 何もしない
+    status: planned

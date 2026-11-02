@@ -1,3 +1,4 @@
+id: SC-1
 title: "APIで録音を操作する"
 scenarios:
   - name: 正常シナリオ

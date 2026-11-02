@@ -1,3 +1,4 @@
+id: LIB-1
 title: "Focused Window D-Bus"
 kind: "サービス"
 version:
@@ -44,4 +45,4 @@ license: MIT（常駐アプリに同梱せず、D-Bus で呼ぶだけ）
 official_url: https://extensions.gnome.org/extension/5592/focused-window-d-bus/
 install: ユーザーが GNOME の拡張のページ（公式 URL）か「拡張機能マネージャー」で入れて有効にする。対応する GNOME Shell のバージョンは公式 URL のページで確かめる。呼び出しに使う `gdbus` は Ubuntu の `libglib2.0-bin` に入っている
 refs:
-  - dev/設計書/シナリオ/単一ユースケース/起こした文字を届ける#
+  - SC-7#

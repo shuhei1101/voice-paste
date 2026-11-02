@@ -1,3 +1,4 @@
+id: IF-1
 title: "ブラウザの音声を文字に起こす"
 entry:
   kind: trigger
@@ -179,7 +180,7 @@ constraints:
     notes: 文字起こしワーカーの待ちは今の窓口（WhisperWorkerClient）のまま。ワーカーが異常終了したときは今の再起動で次のジョブへ進む
   - item: 終わったジョブの保持
     constraint: 終わったジョブを持つ件数を超えたら、いちばん古く終わったジョブを捨てる
-    decided_by: dev/設計書/非機能要件/非機能要件#requirements[終わったジョブを持つ件数]
+    decided_by: NFR-1#requirements[終わったジョブを持つ件数]
   - item: 終了時
     constraint: 常駐サービスの終了時は、起こしている 1 件の終わりを待たずにスレッドを停止し、待ちのジョブの一時のファイルを消す
     notes: 履歴へ移した音声は残る

@@ -1,3 +1,4 @@
+id: SCR-2
 title: "トレイの通知"
 elements:
   - name: 通知
@@ -46,8 +47,8 @@ screen: src/voice_paste/ui/tray.py
 mock: dev/mock/pages/tray-notification/37/a-notification/
 lead: 裏の処理で起きた失敗と、「コピーのみ」のコピーの完了を Windows の通知で知らせる。通知は数秒で畳まれ、通知センターには残らない。畳まれた後は、失敗の理由をトレイのメニューの「ログフォルダを開く」から見る。
 refs:
-  - dev/設計書/モジュール構成/常駐アプリ/ホットキーと画面.py#functions[notify]
-  - dev/設計書/シナリオ/単一ユースケース/常駐アプリを起動する#
+  - MOD-32#functions[notify]
+  - SC-5#
 notes:
   知らせの種類ごとの文言: |-
     | 通知 | 見出し | 本文 |

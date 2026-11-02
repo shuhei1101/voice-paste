@@ -1,3 +1,4 @@
+id: IF-10
 title: "録音を開始する"
 entry:
   kind: endpoint
@@ -319,9 +320,9 @@ constraints:
     notes: 同時に 1 つだけの排他で足りる
   - item: セッションの長さ
     constraint: continuous が false のときは非機能要件の API のセッションの上限時間、true のときは設定の連続録音のセッションの上限時間（api.continuous.session_limit_sec）。どちらも開始からの経過時間で数え、達したら 上限で打ち切る
-    decided_by: dev/設計書/非機能要件/非機能要件#requirements[連続録音のセッションの上限時間]
+    decided_by: NFR-1#requirements[連続録音のセッションの上限時間]
   - item: 区切り
     constraint: continuous が true のときだけ。話し声の後で、設定の区切る無音の長さ（api.continuous.min_silence_sec）以上無音が続いたところで区切る。無音が来ないまま区間が区間の最大の長さに達したら、直近の短い無音の中（無ければその位置）で区切る。話し声を含まない間は区間にしない
-    decided_by: dev/設計書/非機能要件/非機能要件#requirements[区間の最大の長さ]
+    decided_by: NFR-1#requirements[区間の最大の長さ]
     notes: 話し声か無音かは常駐アプリに同梱の Silero VAD（faster-whisper 1.2.1 と同じモデル） で判定する。背景にノイズがあると区切りの無音をわずかに超える間では区切れず、区間が長くなることがある
 test_file: tests/integration/test_start_session.py

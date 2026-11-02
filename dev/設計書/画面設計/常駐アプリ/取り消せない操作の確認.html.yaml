@@ -1,3 +1,4 @@
+id: SCR-4
 title: "取り消せない操作の確認"
 elements:
   - name: 削除の確認
@@ -86,4 +87,4 @@ screen: src/voice_paste/server/web/index.html
 mock: dev/mock/pages/web-confirm-dialog/171/a-standard/
 lead: 外の端末の文字起こしの画面で、結果の削除と、文字起こし前の音声を新しい録音で置換することを確かめるモーダル。
 refs:
-  - dev/設計書/シナリオ/単一ユースケース/ブラウザで結果を受け取る#
+  - SC-4#

@@ -1,24 +1,30 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 title: モジュール構成
 description: |-
-  サブシステム × 分類 1 つ分の構成要素（データモデル / クラス / 関数 / 関数型 / 定数 / 画面・コンポーネント / フック / ストア / スタイル）。
-  1 ファイル = 分類 1 つ。分類は業務ドメインの軸で切り、プロセスの入口は専用の分類に切り出す。
+  物理ファイル 1 つ分の構成要素（データモデル / クラス / 関数 / 関数型 / 定数 / 画面・コンポーネント / フック / ストア / スタイル）。
+  1 ファイル = 物理ファイル 1 つ。全ての要素の `container` は同じ物理ファイルを指し、`test_files` はその物理ファイルの単体テストのファイル 1 つだけを持つ。置き場所は `モジュール構成/{container}.yaml`。
   設計書の中を横断する一覧（ユースケース・役割・コンテナ・種別・名前・概要）は、各要素の項目から生成する。
-  分類を細分化したフォルダは、細分類のページどうしのつながりの図とフォルダ全体の決まりを、束ねの設計書 `全体.yaml`（`diagrams` と `notes`）に置く。
+  分類の構成図・ディレクトリ構成と分類全体の決まりは、分類ごとの束ねる設計書に置く。束ねる設計書は `モジュール構成/分類/` の下に置き、要素を持たず `diagrams`・`directory`・`notes` だけを持つ。
 x-kind: module
 x-folder: dev/設計書/モジュール構成
+x-id-prefix: MOD
 x-cross: functions
 x-test-file: test_files
 x-test-file-optional: true
 type: object
 additionalProperties: false
 required:
+- id
 - title
 properties:
+  id:
+    $ref: 共通.schema.yaml#/$defs/id
+    title: ID
+    description: 設計書の変わらない ID。書くツールの `create` が振り、改名・移動でも変わらない。他の設計書からは `{ID}#{項目のパス}` で指す。
   title:
     type: string
     title: タイトル
-    description: '`{サブシステム名} / {分類名}`（細分化した分類は `{サブシステム名} / {分類名} / {細分類名}`）。フォルダとファイル名に合わせる。'
+    description: '`{サブシステム名} / {分類名}`（物理ファイルの設計書は `{サブシステム名} / {分類名} / {物理ファイルの名前}`）。'
     pattern: ^.+ / .+$
   lead:
     $ref: 共通.schema.yaml#/$defs/markdown
@@ -1185,7 +1191,8 @@ $defs:
       notes:
         $ref: 共通.schema.yaml#/$defs/notes
 examples:
-- title: 設計書 / 種別とSchema
+- id: MOD-1
+  title: 設計書 / 種別とSchema
   lead: 種別の Schema を読み込んで種別の一覧と `$ref` の解決先を持ち、設計書のパスから種別を解決する。
   test_files:
   - tests/unit/ai_monitor/features/design_docs/test_schemas.py

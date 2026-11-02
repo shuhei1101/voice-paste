@@ -1,0 +1,1 @@
+# PoC: tester が SSH で VM の E2E・非機能要件テストを流せるか

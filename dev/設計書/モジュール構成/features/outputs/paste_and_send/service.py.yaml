@@ -1,0 +1,171 @@
+id: MOD-61
+title: 常駐アプリ / 出力先 / service.py
+test_files:
+  - tests/unit/voice_paste/features/outputs/paste_and_send/test_service.py
+functions:
+  - name: paste_and_send
+    title: 貼り付けて送信
+    kind: 関数
+    container: features/outputs/paste_and_send/service.py
+    usecase: 起こした文字を届ける
+    scope: public
+    inherits: OutputFn
+    summary: クリップボードへ書き、貼り付けのキーと、設定の間を置いて設定の修飾キーを押したまま Enter を送信する
+    args:
+      - name: outcome
+        type: TranscriptionOutcome
+        required: true
+        passing: positional
+        description: 届ける結果
+      - name: target
+        type: str | None
+        required: true
+        passing: positional
+        description: 使わない（OutputFn に合わせて受ける）
+      - name: copy
+        type: Callable[[str], None]
+        required: true
+        passing: injected
+        description: クリップボードへ書く（copy_to_clipboard。書けなければ DeliveryError）
+      - name: paste
+        type: Callable[[], None]
+        required: true
+        passing: injected
+        description: 貼り付けのキーを送信する（呼ぶたびに設定の keyboard.paste_key を読んで send_paste を呼ぶ）
+      - name: send_enter
+        type: SendEnterFn
+        required: true
+        passing: injected
+        description: 渡した修飾キーを押したまま Enter を送信する
+      - name: sleep
+        type: Callable[[float], None]
+        required: true
+        passing: injected
+        description: 間を置く（time.sleep。テストで差し替える）
+      - name: get_enter_delay_sec
+        type: Callable[[], float]
+        required: true
+        passing: injected
+        description: 貼り付けてから Enter を送信するまでの秒数を返す（呼ぶたびに設定の outputs[paste_and_send].enter_delay_sec を読む）
+      - name: get_enter_modifiers
+        type: Callable[[], tuple[EnterModifier, ...]]
+        required: true
+        passing: injected
+        description: Enter と一緒に押す修飾キーを返す（呼ぶたびに設定の outputs[paste_and_send].enter_modifiers を読む）
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. outcome.text をクリップボードへ書く
+      2. 貼り付けのキーを送信する
+      3. get_enter_delay_sec() の秒数だけ待ち、get_enter_modifiers() の修飾キーを渡して Enter を送信する
+         - 1 が DeliveryError を送出した場合、キーを送信せずにそのまま送出する
+    exceptions:
+      - name: DeliveryError
+        condition: クリップボードへ書けない
+    unit_tests:
+      - name: test_paste_and_send
+        case: 正常
+        summary: コピー・貼り付け・待ち・Enter の順に送信する
+        condition: outcome.text が「テスト」、get_enter_delay_sec が 0.5、get_enter_modifiers が () を返す
+        mock: copy・paste・send_enter・sleep・get_enter_delay_sec・get_enter_modifiers
+        expected: copy("テスト")・paste()・sleep(0.5)・send_enter(()) の順に 1 回ずつ呼ばれる
+      - name: test_paste_and_send_when_modifiers
+        case: 正常
+        summary: 設定の修飾キーを渡して Enter を送信する
+        condition: get_enter_modifiers が ("ctrl",) を返す
+        mock: copy・paste・send_enter・sleep・get_enter_delay_sec・get_enter_modifiers
+        expected: send_enter が ("ctrl",) で 1 回呼ばれ、sleep の後に呼ばれる
+      - name: test_paste_and_send_when_copy_failed
+        case: 異常
+        summary: クリップボードへ書けなければキーを送信しない
+        condition: copy が DeliveryError を送出する
+        mock: copy・paste・send_enter・sleep
+        expected: DeliveryError が送出され、paste・send_enter が呼ばれない
+        exception: クリップボードへ書けない
+    status: implemented
+  - name: read_enter_delay_sec
+    title: 貼り付けてから Enter までの秒数の読み出し
+    kind: 関数
+    container: features/outputs/paste_and_send/service.py
+    usecase: 起こした文字を届ける
+    scope: public
+    summary: 設定の outputs[] の貼り付けて送信の enter_delay_sec を返す。inject_paste_and_send と、ブラウザ添付の種類の配線（main.py の _wire_preset_kinds）が使う
+    args:
+      - name: settings
+        type: Settings
+        required: true
+        passing: positional
+        description: 今の設定
+    returns:
+      type: float
+      description: 貼り付けてから Enter を送信するまでの秒数。outputs[] に PasteAndSendSettings が無ければそのモデルの既定値
+    unit_tests:
+      - name: test_read_enter_delay_sec
+        case: 正常
+        summary: 貼り付けて送信の秒数を返す
+        condition: outputs に enter_delay_sec が 0.2 の PasteAndSendSettings を持つ設定
+        mock: なし
+        expected: '0.2'
+      - name: test_read_enter_delay_sec_when_missing
+        case: 正常
+        summary: 一覧に無ければ既定値
+        condition: outputs に PasteAndSendSettings が無い設定
+        mock: なし
+        expected: PasteAndSendSettings() の enter_delay_sec（0.5）
+    status: planned
+  - name: inject_paste_and_send
+    title: 貼り付けて送信の注入
+    kind: 関数
+    container: features/outputs/paste_and_send/service.py
+    usecase: 起こした文字を届ける
+    scope: public
+    inherits: InjectFn
+    summary: paste_and_send に部分適用する copy・paste・send_enter・sleep・get_enter_delay_sec・get_enter_modifiers を返す
+    args:
+      - name: deps
+        type: OutputDeps
+        required: true
+        passing: positional
+        description: 外部連携の関数と今の設定
+    returns:
+      type: Mapping[str, object]
+      description: copy・paste・send_enter・sleep は deps のもの、get_enter_delay_sec は呼ぶたびに read_enter_delay_sec(deps.get_settings())、get_enter_modifiers は呼ぶたびに read_enter_modifiers(deps.get_settings()) を返す関数
+    unit_tests:
+      - name: test_inject_paste_and_send
+        case: 正常
+        summary: 呼ぶたびに今の設定の秒数と修飾キーを返す関数を渡す
+        condition: deps.get_settings が enter_delay_sec 0.2・enter_modifiers [] の設定を返し、取り出した後に 1.0・["ctrl"] の設定へ差し替える
+        mock: OutputDeps の全関数
+        expected: 返った copy・paste・send_enter・sleep が deps のものと同じで、get_enter_delay_sec() が差し替えの前は 0.2、後は 1.0、get_enter_modifiers() が前は ()、後は ("ctrl",) を返す
+    status: planned
+  - name: read_enter_modifiers
+    title: Enter と一緒に押す修飾キーの読み出し
+    kind: 関数
+    container: features/outputs/paste_and_send/service.py
+    usecase: 起こした文字を届ける
+    scope: public
+    summary: 設定の outputs[] の貼り付けて送信の enter_modifiers を返す。inject_paste_and_send が使う（ブラウザ添付の種類の配線は使わない）
+    args:
+      - name: settings
+        type: Settings
+        required: true
+        passing: positional
+        description: 今の設定
+    returns:
+      type: tuple[EnterModifier, ...]
+      description: Enter と一緒に押す修飾キー。outputs[] に PasteAndSendSettings が無ければ空
+    unit_tests:
+      - name: test_read_enter_modifiers
+        case: 正常
+        summary: 貼り付けて送信の修飾キーを返す
+        condition: outputs に enter_modifiers が ["ctrl", "shift"] の PasteAndSendSettings を持つ設定
+        mock: なし
+        expected: ("ctrl", "shift")
+      - name: test_read_enter_modifiers_when_missing
+        case: 正常
+        summary: 一覧に無ければ空
+        condition: outputs に PasteAndSendSettings が無い設定
+        mock: なし
+        expected: ()
+    status: planned

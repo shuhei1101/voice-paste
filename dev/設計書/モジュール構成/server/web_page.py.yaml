@@ -1,0 +1,49 @@
+id: MOD-21
+title: 常駐アプリ / APIサーバー / web_page.py
+test_files:
+  - tests/unit/voice_paste/server/test_web_page.py
+functions:
+  - name: serve_web_page
+    title: 画面の配信
+    kind: 関数
+    container: server/web_page.py
+    usecase: ブラウザから音声を送信する
+    scope: public
+    summary: '`GET /web/`。`server/web/index.html` を `Cache-Control: no-cache` で返す（web_page_router。`GET /web` は `/web/` への 307）'
+    returns:
+      type: FileResponse
+      description: 画面の HTML
+    process: '1. パッケージに同梱した `server/web/index.html` を `text/html; charset=utf-8`・`Cache-Control: no-cache` で返す'
+    unit_tests:
+      - name: test_serve_web_page
+        case: 正常
+        summary: 画面を返す
+        condition: TestClient で GET /web/ と GET /web
+        mock: なし
+        expected: /web/ が 200・text/html・no-cache、/web が /web/ への 307
+    status: planned
+  - name: mount_web_assets
+    title: 画面の素材の組み込み
+    kind: 関数
+    container: server/web_page.py
+    usecase: ブラウザから音声を送信する
+    scope: public
+    summary: '`/web/assets/` に `server/web/assets/` を StaticFiles で組み込む'
+    args:
+      - name: app
+        type: FastAPI
+        required: true
+        passing: positional
+        description: 組み込み先
+    returns:
+      type: None
+      description: なし
+    process: 1. `/web/assets` に `StaticFiles(directory=server/web/assets)` を mount する（置き場所の外を指す `..` と無いファイルは StaticFiles が 404 にする）
+    unit_tests:
+      - name: test_mount_web_assets
+        case: 正常
+        summary: 素材を返し、置き場所の外は 404
+        condition: GET /web/assets/app.js と GET /web/assets/..%2F..%2Fapp.py
+        mock: なし
+        expected: app.js は 200・text/javascript、置き場所の外は 404 の problem+json
+    status: planned

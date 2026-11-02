@@ -1,0 +1,290 @@
+id: MOD-9
+title: 常駐アプリ / 履歴 / service.py
+lead: 確定した録音と起こした文字を `%LOCALAPPDATA%\voice-paste\history\`（Linux は `~/.local/share/voice-paste/history/`）に残し、保持期間を過ぎたものを消す。文字起こしの成否より先に録音を残す。
+test_files:
+  - tests/unit/voice_paste/features/history/test_service.py
+directory: |-
+  ```
+  src/voice_paste/features/history/
+  ├── __init__.py   # save_recording・store_web_audio・append_text・discard_temporary・purge_expired の公開
+  └── service.py    # 録音の保存・ブラウザの音声の保存・文字の追記・一時の音声の削除・古い履歴の削除
+  ```
+functions:
+  - name: save_recording
+    title: 録音の保存
+    kind: 関数
+    container: features/history/service.py
+    usecase: 録音する
+    scope: public
+    inherits: SaveRecordingFn
+    summary: 履歴を残す設定なら history の日付のフォルダ、残さない設定なら一時の音声のフォルダへ WAV を書く
+    args:
+      - name: session_id
+        type: str
+        required: true
+        passing: positional
+        description: セッションの ID（ファイル名に含める）
+      - name: recording
+        type: Recording
+        required: true
+        passing: positional
+        description: 確定した録音
+      - name: history_enabled
+        type: bool
+        required: true
+        passing: injected
+        description: 履歴を残す設定
+      - name: paths
+        type: AppPaths
+        required: true
+        passing: injected
+        description: 置き場所のパス（共通）
+      - name: now
+        type: Callable[[], datetime]
+        required: true
+        passing: injected
+        description: 今の時刻
+      - name: segment_number
+        type: int | None
+        required: false
+        default: None
+        passing: positional
+        description: 連続録音の区間の通し番号。あればファイル名の末尾へ `_{通し番号}` を付ける
+    returns:
+      type: Path
+      description: 書いた WAV（`history/{YYYYMMDD}/{日時}_{session_id}.wav` か `tmp/{session_id}.wav`。区間は `_{通し番号}` を付けた名前）
+    unit_tests:
+      - name: test_save_recording
+        case: 正常
+        summary: 日付のフォルダへ書く
+        condition: history_enabled=True、now=2026-10-01 12:00
+        mock: なし（一時フォルダ）
+        expected: history/20261001/ の下に WAV があり、そのパスが返る
+      - name: test_save_recording_when_history_disabled
+        case: 正常
+        summary: 履歴を残さない設定は一時の音声へ書く
+        condition: history_enabled=False
+        mock: なし（一時フォルダ）
+        expected: tmp/ の下に WAV があり、history/ に無い
+      - name: test_save_recording_when_segment
+        case: 正常
+        summary: 区間は通し番号を付けた名前で書き、同じ秒に書いても重ならない
+        condition: history_enabled=True、now を同じ時刻にして segment_number=1 と 2 を続けて書く。history_enabled=False でも同じく書く
+        mock: なし（一時フォルダ）
+        expected: '`{日時}_{session_id}_1.wav` と `_2.wav` が別々にあり、tmp/ でも `{session_id}_1.wav` と `_2.wav` が別々にある'
+    status: implemented
+    process: |-
+      1. 履歴を残す設定かで書き先を決める（segment_number があれば、拡張子の前に `_{segment_number}` を付ける）
+         - 残す場合、`history/{now の YYYYMMDD}/{now の YYYYMMDDHHMMSS}_{session_id}.wav`
+         - 残さない場合、`tmp/{session_id}.wav`
+      2. 書き先のフォルダを作り、録音をモノラルの 16 bit の WAV（scipy）で書く
+         - `[INFO]` 録音を残した（パス・長さ）
+  - name: append_text
+    title: 履歴への文字の追記
+    kind: 関数
+    container: features/history/service.py
+    usecase: 録音を文字に起こす
+    scope: public
+    inherits: AppendTextFn
+    summary: 録音と同じ名前の .txt へ起こした文字を書く。一時の音声（履歴を残さない設定）なら何もしない
+    args:
+      - name: audio_path
+        type: Path
+        required: true
+        passing: positional
+        description: 保存した録音
+      - name: text
+        type: str
+        required: true
+        passing: positional
+        description: 起こした文字
+      - name: paths
+        type: AppPaths
+        required: true
+        passing: injected
+        description: 置き場所のパス（一時の音声かを見分ける）
+    returns:
+      type: None
+      description: なし
+    status: implemented
+    process: |-
+      1. 録音が `tmp/` の下にあれば何もしない（履歴を残さない設定）
+      2. 録音と同じフォルダ・同じ名前の `.txt` へ UTF-8 で文字を書く（空の文字も書く）
+    unit_tests:
+      - name: test_append_text
+        case: 正常
+        summary: 録音と同じ名前の .txt に書く
+        condition: history/20261001/20261001120000_s1.wav と「今日は晴れ」
+        mock: なし（一時フォルダ）
+        expected: history/20261001/20261001120000_s1.txt の中身が「今日は晴れ」
+      - name: test_append_text_when_temporary
+        case: 正常
+        summary: 一時の音声には書かない
+        condition: tmp/s1.wav と「今日は晴れ」
+        mock: なし（一時フォルダ）
+        expected: tmp/ に .txt が無い
+  - name: purge_expired
+    title: 古い履歴の削除
+    kind: 関数
+    container: features/history/service.py
+    usecase: 常駐アプリを起動する
+    scope: public
+    summary: フォルダ名の日付が保持期間を過ぎた履歴のフォルダと、残った一時の音声を消す。起動時と非機能要件の削除の間隔ごとに呼ぶ
+    args:
+      - name: retention_days
+        type: int
+        required: true
+        passing: injected
+        description: 保持期間（設定）
+      - name: paths
+        type: AppPaths
+        required: true
+        passing: injected
+        description: 置き場所のパス
+      - name: now
+        type: Callable[[], datetime]
+        required: true
+        passing: injected
+        description: 今の時刻
+      - name: active_session_ids
+        type: Callable[[], set[str]]
+        required: true
+        passing: injected
+        description: 処理中のセッションの ID（セッションが渡す。セッションが無い間は空）
+    returns:
+      type: int
+      description: 消したフォルダの数
+    process: |-
+      1. history/ の下の `YYYYMMDD` のフォルダのうち、今日 − 保持日数より前のものを消す
+         - 日付でない名前のフォルダは残す
+         - `[INFO]` 古い履歴を削除した（消した数）
+      2. tmp/ の下に取り残された一時の音声（`{session_id}.wav` か、連続録音の区間の `{session_id}_{通し番号}.wav`。普段は discard_temporary が消し、常駐が落ちたとき・消せなかったときに残る）のうち、ファイル名の session_id（最初の `_` より前）が処理中のセッションに無いものを消す
+         - 消せないファイル・フォルダは残し、次へ進む
+           - `[WARNING]` 古い履歴を削除できなかった（パス・理由）
+    unit_tests:
+      - name: test_purge_expired
+        case: 正常
+        summary: 保持期間を過ぎた日付のフォルダだけ消す
+        condition: 保持 1 日、今日・1 日前・2 日前・名前が日付でないフォルダ
+        mock: なし（一時フォルダ）
+        expected: 2 日前だけが消え、戻り値が 1
+      - name: test_purge_expired_when_temporary_left
+        case: 正常
+        summary: 処理中でない一時の音声だけ消す
+        condition: tmp/s1.wav・tmp/s2.wav があり、active_session_ids が {"s2"} を返す
+        mock: なし（一時フォルダ）
+        expected: tmp/s1.wav が消え、tmp/s2.wav が残る
+      - name: test_purge_expired_keeps_active_segments
+        case: 正常
+        summary: 処理中の連続録音の区間の一時の音声は残す
+        condition: tmp/ に `{処理中の ID}_3.wav` と `{終わった ID}_1.wav` を置き、active_session_ids が処理中の ID だけを返す
+        mock: なし（一時フォルダ）
+        expected: '`{処理中の ID}_3.wav` が残り、`{終わった ID}_1.wav` が消える'
+      - name: test_purge_expired_when_web_audio
+        case: 正常
+        summary: 期限を過ぎた日付のフォルダは WAV 以外の音声も消す
+        condition: 保持期間を過ぎた日付のフォルダに `.webm`・`.txt` を置く
+        mock: now
+        expected: 日付のフォルダごと消える
+    status: implemented
+  - name: discard_temporary
+    title: 一時の音声の削除
+    kind: 関数
+    container: features/history/service.py
+    usecase: 録音を文字に起こす
+    scope: public
+    summary: 処理を終えた録音が一時の音声（履歴を残さない設定）なら消す。履歴の録音なら何もしない。セッションが確定後の流れの最後に呼ぶ
+    args:
+      - name: audio_path
+        type: Path
+        required: true
+        passing: positional
+        description: 保存した録音
+      - name: paths
+        type: AppPaths
+        required: true
+        passing: injected
+        description: 置き場所のパス（一時の音声かを見分ける）
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. 録音が `tmp/` の下に無ければ何もしない（履歴の録音）
+      2. 録音を消す（既に無ければ何もしない）
+         - 消せない場合、例外を出さずに残す（古い履歴の削除が掃除する）
+           - `[WARNING]` 一時の音声を削除できなかった（パス・理由）
+    unit_tests:
+      - name: test_discard_temporary
+        case: 正常
+        summary: 一時の音声を消す
+        condition: tmp/s1.wav
+        mock: なし（一時フォルダ）
+        expected: tmp/s1.wav が消える
+      - name: test_discard_temporary_when_history
+        case: 正常
+        summary: 履歴の録音は消さない
+        condition: history/20261001/20261001120000_s1.wav
+        mock: なし（一時フォルダ）
+        expected: history/20261001/20261001120000_s1.wav が残る
+    status: implemented
+  - name: store_web_audio
+    title: ブラウザの音声の保存
+    kind: 関数
+    container: features/history/service.py
+    usecase: 録音を文字に起こす
+    scope: public
+    inherits: ブラウザの文字起こしの StoreWebAudioFn
+    summary: ブラウザから受けた音声の一時のファイルを、履歴を残す設定なら録れた形式の拡張子のまま履歴へ移し、そのパスを返す
+    args:
+      - name: job_id
+        type: str
+        required: true
+        passing: positional
+        description: ジョブの ID
+      - name: source
+        type: Path
+        required: true
+        passing: positional
+        description: 一時のファイル（`tmp/web/{ID}{拡張子}`）
+      - name: history_enabled
+        type: bool
+        required: true
+        passing: keyword
+        description: 履歴を残す設定か（main.py が今の設定を引いて渡す）
+      - name: paths
+        type: AppPaths
+        required: true
+        passing: keyword
+        description: 置き場所
+      - name: now
+        type: Callable[[], datetime]
+        required: true
+        passing: keyword
+        description: 今の時刻
+    returns:
+      type: Path
+      description: 文字起こしに渡す音声のパス
+    process: |-
+      1. 履歴を残さない設定なら source をそのまま返す（起こし終えた後に discard_temporary が消す）
+      2. 日付のフォルダの下に `{日時}_web_{job_id}{source の拡張子}` の名前で移す（shutil.move）
+         - `[INFO]` ブラウザの音声を残した（パス）
+      3. 移した先のパスを返す
+    exceptions:
+      - name: OSError
+        condition: 移せない（履歴のフォルダに書けない）。WebJobQueue が受けてジョブを failed にする
+    unit_tests:
+      - name: test_store_web_audio
+        case: 正常
+        summary: 録れた形式のまま履歴へ移す
+        condition: history_enabled=True、source は tmp/web/{ID}.webm
+        mock: now（2026-10-23 14:05:00）
+        expected: history/20261023/20261023140500_web_{ID}.webm があり、source が無く、そのパスが返る
+      - name: test_store_web_audio_when_history_disabled
+        case: 正常
+        summary: 残さない設定なら移さない
+        condition: history_enabled=False
+        mock: now
+        expected: source がそのまま返り、history/ に何も書かれない
+    refs:
+      - MOD-26#function_types[StoreWebAudioFn]
+    status: planned

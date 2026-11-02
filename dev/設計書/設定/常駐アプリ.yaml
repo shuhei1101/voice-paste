@@ -1,3 +1,4 @@
+id: CFG-1
 title: "設定: 常駐アプリ"
 lead: 常駐アプリが既定値（`config/defaults.yaml`）・環境の値（`settings.yaml`）・checkout の上書き（`settings.local.yaml`）の順に重ねて読む設定の一覧。読み書きは `src/voice_paste/shared/settings.py`、見本は `settings.sample.yaml`。
 files:
@@ -477,7 +478,7 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
     refs:
-      - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送信する.py#
+      - IF-7#
   - key: presets[].hotkey
     title: カスタムプリセットで確定するホットキー
     file: settings.yaml
@@ -517,7 +518,7 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
     refs:
-      - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送信する.py#
+      - IF-7#
   - key: preset_options.browser.open_delay_sec
     title: ブラウザで開いてから貼り付けるまでの秒数
     file: settings.yaml
@@ -539,8 +540,8 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
     refs:
-      - dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送信するときのタイムアウト]
-      - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送信する.py#
+      - NFR-1#requirements[エンドポイントへ送信するときのタイムアウト]
+      - IF-7#
   - key: api.continuous.min_silence_sec
     title: 連続録音を区切る無音の長さ
     file: settings.yaml
@@ -551,7 +552,7 @@ settings:
     allowed: 0.5〜10
     reason: PoC（#80）で 2.0 秒のとき、間 2.1 秒の文は区切り、間 1.0 秒の文は区切らないことを確かめた
     refs:
-      - dev/設計書/インターフェース定義/常駐アプリ/録音を開始する.py#
+      - IF-10#
     status: planned
     implementation: src/voice_paste/shared/settings.py
     introduced:
@@ -565,7 +566,7 @@ settings:
     reload: restart
     allowed: 60〜86400
     refs:
-      - dev/設計書/非機能要件/非機能要件#requirements[連続録音のセッションの上限時間]
+      - NFR-1#requirements[連続録音のセッションの上限時間]
     status: planned
     implementation: src/voice_paste/shared/settings.py
     introduced:
@@ -633,7 +634,7 @@ settings:
     status: deprecated
     implementation: src/voice_paste/shared/settings.py
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[glossary_presets[].name]
+      - CFG-1#settings[glossary_presets[].name]
   - key: hint_presets[].name
     title: 表記のヒントのプリセットの名前
     file: settings.yaml
@@ -654,7 +655,7 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
     refs:
-      - dev/設計書/外部ライブラリ/faster-whisper#
+      - LIB-8#
   - key: hint_presets[].enabled
     title: 表記のヒントのプリセットが有効か
     file: settings.yaml
@@ -686,8 +687,8 @@ settings:
     reload: immediate
     allowed: 1 文字以上（前後の空白を除いて）。`*` だけの文言は入れられない（文頭・文末の行を丸ごと消すため）
     refs:
-      - dev/設計書/シナリオ/単一ユースケース/録音を文字に起こす#scenarios[正常シナリオ（文頭・文末の決まった文言を消す）]
-      - dev/設計書/外部ライブラリ/faster-whisper#
+      - SC-9#scenarios[正常シナリオ（文頭・文末の決まった文言を消す）]
+      - LIB-8#
     status: implemented
     implementation: src/voice_paste/shared/settings.py
   - key: edge_phrases[].position
@@ -711,8 +712,8 @@ settings:
     status: planned
     implementation: src/voice_paste/shared/settings.py
     refs:
-      - dev/設計書/インターフェース定義/常駐アプリ/音声を受け付ける.py#
-      - dev/設計書/インターフェース定義/常駐アプリ/画面を配信する.py#
+      - IF-11#
+      - IF-6#
   - key: glossary_presets[].name
     title: 用語集のプリセットの名前
     file: settings.yaml
@@ -725,7 +726,7 @@ settings:
     introduced:
       pr: 173
     refs:
-      - dev/設計書/インターフェース定義/常駐アプリ/録音を開始する.py#request[glossary_preset]
+      - IF-10#request[glossary_preset]
   - key: glossary_presets[].glossaries
     title: 用語集のプリセットで使う用語集
     file: settings.yaml

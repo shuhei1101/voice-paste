@@ -1,3 +1,4 @@
+id: SC-8
 title: "録音する"
 scenarios:
   - name: 正常シナリオ

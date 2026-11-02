@@ -1,3 +1,4 @@
+id: ER-2
 title: "ER 図: 常駐アプリのファイル"
 lead: |-
   常駐アプリが書き出して持つファイル（履歴・一時の音声・トークン・ログ）。データベースは持たない。`%LOCALAPPDATA%\voice-paste\` を基準にし、名前の先頭に置き場を書く。
@@ -152,7 +153,7 @@ tables:
     status: implemented
     implementation: src/voice_paste/features/correction/service.py
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[glossaries[].path]
+      - CFG-1#settings[glossaries[].path]
   - name: '%LOCALAPPDATA%\voice-paste\ui\{ハッシュ}.svg'
     title: 開くマーカーの画像
     datastore: SVG
@@ -225,6 +226,6 @@ tables:
         type: なし
         description: 空のファイル。flock の対象にするだけ
     refs:
-      - dev/設計書/モジュール構成/常駐アプリ/起動と配線.py#functions[acquire_single_instance_linux]
+      - MOD-88#functions[acquire_single_instance_linux]
     implementation: src/voice_paste/runtime/single_instance_linux.py
     status: planned

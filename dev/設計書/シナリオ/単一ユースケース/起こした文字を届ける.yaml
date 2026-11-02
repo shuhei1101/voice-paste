@@ -1,3 +1,4 @@
+id: SC-7
 title: "起こした文字を届ける"
 scenarios:
   - name: 正常シナリオ

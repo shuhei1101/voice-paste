@@ -1,0 +1,68 @@
+id: MOD-73
+title: 常駐アプリ / 外部連携 / opener.py
+test_files:
+  - tests/unit/voice_paste/integrations/browser/test_opener.py
+constants:
+  - name: EDGE_PATHS
+    title: Edge の既定の置き場所
+    container: integrations/browser/opener.py
+    usecase: 起こした文字を届ける
+    summary: PATH に msedge が無いときに探す Edge の実行ファイル。刷新前と同じ並び
+    value: (r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe", r"C:\Program Files\Microsoft\Edge\Application\msedge.exe")
+    status: implemented
+functions:
+  - name: open_app_window
+    title: アプリのウィンドウで開く
+    kind: 関数
+    container: integrations/browser/opener.py
+    usecase: 起こした文字を届ける
+    scope: public
+    summary: URL を Microsoft Edge の `--app` でアプリのウィンドウとして開く。Edge が見つからなければ既定のブラウザで開く
+    args:
+      - name: url
+        type: str
+        required: true
+        passing: positional
+        description: 開く URL（確定の操作で選んだブラウザ添付のプリセットの URL）
+    returns:
+      type: None
+      description: なし（開いた画面の読み込みを待たない）
+    process: |-
+      1. Edge の実行ファイルを探す（PATH の `msedge`、無ければ EDGE_PATHS の順に存在するもの）
+      2. 見つかった場合、`[{Edge}, "--app={url}"]` を subprocess.Popen で起動する
+         - `[INFO]` URL を Edge のアプリのウィンドウで開いた（url）
+      3. 見つからない場合、os.startfile で既定のブラウザで開く
+         - `[INFO]` URL を既定のブラウザで開いた（url）
+         - 2・3 で OSError が出た場合、DeliveryError を送出する。理由は `ブラウザ添付のプリセットの画面を開けませんでした（{元の例外}）` にし、元の例外を連鎖して残す（トレイの通知の `{理由}` にそのまま出る）
+    exceptions:
+      - name: DeliveryError
+        condition: Edge も既定のブラウザも起動できない
+    refs:
+      - LIB-2#
+    status: implemented
+    unit_tests:
+      - name: test_open_app_window
+        case: 正常
+        summary: Edge があれば --app で開く
+        condition: shutil.which が msedge を返す
+        mock: shutil.which・subprocess.Popen・os.startfile
+        expected: Popen に ["msedge", "--app=https://chatgpt.com"] が渡り、os.startfile が呼ばれない
+      - name: test_open_app_window_when_installed_path
+        case: 正常
+        summary: PATH に無くても既定の置き場所の Edge で開く
+        condition: shutil.which が None で、EDGE_PATHS の 2 つ目だけが存在する
+        mock: shutil.which・Path.exists・subprocess.Popen
+        expected: Popen の先頭に EDGE_PATHS の 2 つ目が渡る
+      - name: test_open_app_window_when_edge_missing
+        case: 正常
+        summary: Edge が無ければ既定のブラウザで開く
+        condition: shutil.which が None で、EDGE_PATHS がどれも存在しない
+        mock: shutil.which・Path.exists・subprocess.Popen・os.startfile
+        expected: os.startfile に URL が渡り、Popen が呼ばれない
+      - name: test_open_app_window_when_failed
+        case: 異常
+        summary: 起動できなければ DeliveryError
+        condition: subprocess.Popen が OSError を送出する
+        mock: shutil.which・subprocess.Popen
+        expected: DeliveryError が送出され、理由が `ブラウザ添付のプリセットの画面を開けませんでした（` で始まり「起動できない」を含む（「AI チャット」を含まない）
+        exception: Edge も既定のブラウザも起動できない

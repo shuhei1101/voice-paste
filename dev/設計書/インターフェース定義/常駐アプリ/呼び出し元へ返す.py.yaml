@@ -1,3 +1,4 @@
+id: IF-3
 title: "呼び出し元へ返す"
 entry:
   kind: trigger
@@ -242,16 +243,16 @@ constraints:
     constraint: 開始で受け取った callback_url だけ。ホストが loopback か設定で許可したホストであることを送信する前にもう一度確かめる
   - item: タイムアウト
     constraint: 非機能要件の返送のタイムアウト
-    decided_by: dev/設計書/非機能要件/非機能要件#requirements[返送のタイムアウトと再送]
+    decided_by: NFR-1#requirements[返送のタイムアウトと再送]
   - item: 再送
     constraint: 非機能要件の返送の再送回数と間隔
-    decided_by: dev/設計書/非機能要件/非機能要件#requirements[返送のタイムアウトと再送]
+    decided_by: NFR-1#requirements[返送のタイムアウトと再送]
   - item: リダイレクト
     constraint: 追わない
     notes: 許可していないホストへ流れるのを防ぐ
   - item: エンドポイントの応答時間
     constraint: エンドポイントは返送を受け取ったら 1 秒以内に 2xx を返す。重い処理は 2xx を返した後で行う
-    decided_by: dev/設計書/非機能要件/非機能要件#requirements[返送のタイムアウトと再送]
+    decided_by: NFR-1#requirements[返送のタイムアウトと再送]
     notes: 呼び出し元との取り決め。返送のタイムアウトはこの時間から導く
   - item: 重なって届く返送
     constraint: エンドポイントが 2xx を返す前にタイムアウトすると、同じ中身が同じ session_id（連続録音の区間は同じ session_id と segment_number）で再送される。エンドポイントは session_id（連続録音は session_id と segment_number、終わりは session_id と result）で重複を見分ける
@@ -261,7 +262,7 @@ constraints:
     notes: 終了の時点で API サーバーも停止しており、返送を待つと終了が返送の最長まで遅れるため。呼び出し元は返送が来ないことで気づく
   - item: 連続録音の順
     constraint: 区間は通し番号の順に送信し、終わりは全ての区間の後に送信する。届かなかった区間も通し番号を飛ばして次の区間へ進むため、エンドポイントは通し番号の欠けと segment_count で届かなかった区間に気づける
-    decided_by: dev/設計書/非機能要件/非機能要件#requirements[区切ってから返送が届くまでの時間]
+    decided_by: NFR-1#requirements[区切ってから返送が届くまでの時間]
     notes: 前の区間を再送している間は、後の区間が返送の最長（13 秒）まで待つ
 notes:
   送信する内容: |-

@@ -1,3 +1,4 @@
+id: NFR-1
 title: "非機能要件"
 requirements:
   - name: 対応 OS
@@ -523,7 +524,7 @@ requirements:
     measurement: Windows の実機で、pynput の GlobalHotKeys を始めてから stop し、join が戻るまでの時間を 100 回測る
     overflow: 上限を過ぎたら WARNING のログを書き、スレッドを手放して進む
     refs:
-      - dev/設計書/モジュール構成/常駐アプリ/ホットキーと画面.py#constants[HOTKEY_STOP_TIMEOUT_SEC]
+      - MOD-33#constants[HOTKEY_STOP_TIMEOUT_SEC]
     status: planned
   - name: OpenAIの文字起こしのタイムアウトと再送
     english_name: openai_transcription_retry
@@ -558,7 +559,7 @@ requirements:
         measurement: 要求の回数と _uniform に渡った上限
         expected: 要求は 3 回で、_uniform の上限は 0.5・1.0、EngineError が送出される
     refs:
-      - dev/設計書/外部API/OpenAI#
+      - API-2#
     status: planned
     introduced:
       pr: 204
@@ -580,7 +581,7 @@ requirements:
         measurement: httpx.MockTransport に届いた要求の数
         expected: 26,204,569 バイトは 1 回届き、届いた要求の本文が 26,214,400 バイト以下。26,204,570 バイトは届かず EngineError
     refs:
-      - dev/設計書/外部API/OpenAI#
+      - API-2#
     status: planned
     introduced:
       pr: 204
@@ -604,7 +605,7 @@ requirements:
     value: 既定のモデルは gpt-transcribe。常駐アプリは料金の上限を持たない
     rationale: 文字起こし 1 回の料金は音声の長さで決まり、利用者が契約する OpenAI のアカウントにかかる。上限は利用者が OpenAI の管理画面の利用の上限で持つ（超えると 429 が返り、再送しても失敗したら文字起こしの失敗になる）。送信し直すごとに課金されうるため、再送は一時的な失敗だけにする
     refs:
-      - dev/設計書/外部API/OpenAI#
+      - API-2#
     status: planned
     introduced:
       pr: 204

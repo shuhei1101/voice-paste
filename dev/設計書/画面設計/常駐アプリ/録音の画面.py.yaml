@@ -1,3 +1,4 @@
+id: SCR-10
 title: "録音の画面"
 elements:
   - name: 窓
@@ -9,11 +10,11 @@ elements:
     action: 確定・取り消し・× で閉じ、前面を貼り付け先へ戻す。「隠す」でその回だけ隠し、前面を貼り付け先へ戻す。隠した窓は、トレイのアイコンの左クリック・トレイの「録音の画面を表示」・録音開始のホットキー（同じホットキーの出力先が無いとき）で、隠す前の位置にフォーカスを取らずに戻す
     source: UiBridge.notified（state_changed）
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[ui.topmost]
-      - dev/設計書/設定/常駐アプリ#settings[ui.position]
-      - dev/設計書/設定/常駐アプリ#settings[ui.follow_cursor]
-      - dev/設計書/設定/常駐アプリ#settings[recording.hide_window]
-      - dev/設計書/設定/常駐アプリ#settings[ui.theme]
+      - CFG-1#settings[ui.topmost]
+      - CFG-1#settings[ui.position]
+      - CFG-1#settings[ui.follow_cursor]
+      - CFG-1#settings[recording.hide_window]
+      - CFG-1#settings[ui.theme]
   - name: 状態の表示
     id: state_label
     kind: label
@@ -44,7 +45,7 @@ elements:
     visible_when: 常時
     source: UiDeps.level（Recorder.level。`ui.wave_gain` を掛けて高さを決める）
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[ui.wave_gain]
+      - CFG-1#settings[ui.wave_gain]
   - name: 一時停止のボタン
     id: pause_button
     kind: button
@@ -52,9 +53,9 @@ elements:
     description: 録音を一時停止する。一時停止の間に話した声は録らない。名前の下に一時停止のホットキーを出す
     label: 一時停止 [hotkeys.pause]
     visible_when: 状態が recording のとき
-    action_ref: dev/設計書/モジュール構成/常駐アプリ/セッション.py#classes[SessionManager].methods[pause]
+    action_ref: MOD-24#classes[SessionManager].methods[pause]
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[ui.show_hotkeys]
+      - CFG-1#settings[ui.show_hotkeys]
   - name: 再開のボタン
     id: resume_button
     kind: button
@@ -62,9 +63,9 @@ elements:
     description: 一時停止した録音を再開する。一時停止のボタンと同じ場所に出し、同じホットキーを出す
     label: 再開 [hotkeys.pause]
     visible_when: 状態が paused のとき
-    action_ref: dev/設計書/モジュール構成/常駐アプリ/セッション.py#classes[SessionManager].methods[resume]
+    action_ref: MOD-24#classes[SessionManager].methods[resume]
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[ui.show_hotkeys]
+      - CFG-1#settings[ui.show_hotkeys]
   - name: 取り消しのボタン
     id: cancel_button
     kind: button
@@ -73,9 +74,9 @@ elements:
     label: 取り消し [hotkeys.cancel]
     visible_when: 常時
     action: 窓を閉じる
-    action_ref: dev/設計書/モジュール構成/常駐アプリ/セッション.py#classes[SessionManager].methods[cancel]
+    action_ref: MOD-24#classes[SessionManager].methods[cancel]
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[ui.show_hotkeys]
+      - CFG-1#settings[ui.show_hotkeys]
   - name: 出力先の確定のボタン
     id: output_button_{output_id}
     kind: button
@@ -86,12 +87,12 @@ elements:
     options: '`outputs[]` の並び（paste_and_send・paste_only・copy_only）のうちオンのもの'
     target: SessionManager.complete.output_id（押したボタンの出力先の ID）
     action: 窓を閉じる
-    action_ref: dev/設計書/モジュール構成/常駐アプリ/セッション.py#classes[SessionManager].methods[complete]
+    action_ref: MOD-24#classes[SessionManager].methods[complete]
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[outputs[].enabled]
-      - dev/設計書/設定/常駐アプリ#settings[outputs[].hotkey]
-      - dev/設計書/画面設計/常駐アプリ/文字起こし中の表示.py#
-      - dev/設計書/設定/常駐アプリ#settings[ui.show_hotkeys]
+      - CFG-1#settings[outputs[].enabled]
+      - CFG-1#settings[outputs[].hotkey]
+      - SCR-7#
+      - CFG-1#settings[ui.show_hotkeys]
   - name: カスタムプリセットの見出し
     id: presets_heading
     kind: label
@@ -109,13 +110,13 @@ elements:
     options: '`presets[]` のうち `kind` が browser のものを並びのまま出し、続けて endpoint のものを並びのまま出す。無効のものは出さない'
     target: SessionManager.complete（押したボタンのプリセット）
     action: 窓を閉じる
-    action_ref: dev/設計書/モジュール構成/常駐アプリ/セッション.py#classes[SessionManager].methods[complete]
+    action_ref: MOD-24#classes[SessionManager].methods[complete]
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[presets[].title]
-      - dev/設計書/設定/常駐アプリ#settings[presets[].hotkey]
-      - dev/設計書/設定/常駐アプリ#settings[presets[].enabled]
-      - dev/設計書/画面設計/常駐アプリ/文字起こし中の表示.py#
-      - dev/設計書/設定/常駐アプリ#settings[ui.show_hotkeys]
+      - CFG-1#settings[presets[].title]
+      - CFG-1#settings[presets[].hotkey]
+      - CFG-1#settings[presets[].enabled]
+      - SCR-7#
+      - CFG-1#settings[ui.show_hotkeys]
   - name: 見出しの行
     id: head_row
     kind: drag_handle
@@ -132,8 +133,8 @@ elements:
     visible_when: 常時
     action: 窓を隠し、前面を貼り付け先へ戻す
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[hotkeys.start]
-      - dev/設計書/画面設計/常駐アプリ/トレイ.py#
+      - CFG-1#settings[hotkeys.start]
+      - SCR-1#
   - name: 閉じるのボタン
     id: close_button
     kind: button
@@ -142,15 +143,15 @@ elements:
     label: '×（かざしたときの説明: 取り消し [hotkeys.cancel]）'
     visible_when: 常時
     action: 窓を閉じる
-    action_ref: dev/設計書/モジュール構成/常駐アプリ/セッション.py#classes[SessionManager].methods[cancel]
+    action_ref: MOD-24#classes[SessionManager].methods[cancel]
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[hotkeys.cancel]
+      - CFG-1#settings[hotkeys.cancel]
 screen: src/voice_paste/ui/windows/recording_window.py
 mock: dev/mock/pages/recording-window/94/a-cool-gray/
 lead: ホットキー・トレイから始めた録音の間だけ出る小さな窓。状態・経過時間・波形と、一時停止・取り消し・確定の操作を並べる。
 refs:
-  - dev/設計書/シナリオ/単一ユースケース/録音する#
-  - dev/設計書/モジュール構成/常駐アプリ/ホットキーと画面.py#classes[UiBridge]
+  - SC-8#
+  - MOD-32#classes[UiBridge]
 notes:
   ホットキー: ボタンと同じ操作は、どこにフォーカスがあってもホットキーで行える（`HotkeyListener`）。窓のキーボードの操作は持たず、窓を押してフォーカスを取った後に Tab で移ったときだけフォーカスの枠を出す
   ボタンのホットキーの出し方: 一時停止・再開・取り消し・出力先の確定・カスタムプリセットのボタンは、名前を 1 行目に、同じ操作のホットキーを 2 行目に出す。ホットキーは `format_hotkey` で整えた全体を省略せず、枠で囲んだ等幅のキー（キーキャップ風）で出す。ボタンの大きさは中の名前とホットキーが要る大きさから決め、幅は名前とホットキーの長い方にする。窓は既定の幅（360px）より狭くせず、ボタンが要る幅まで広げる。プリセットの列は列ごとにいちばん広いボタンの幅に揃える。ホットキーが空のボタンは名前だけを出す。`ui.show_hotkeys` がオフのときは、全てのボタンをホットキーが空のボタンと同じく名前だけで出す（ホットキーでの操作はそのまま効く）

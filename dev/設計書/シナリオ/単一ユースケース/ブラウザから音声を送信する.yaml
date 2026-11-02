@@ -1,3 +1,4 @@
+id: SC-3
 title: "ブラウザから音声を送信する"
 scenarios:
   - name: 正常シナリオ（画面で録る）

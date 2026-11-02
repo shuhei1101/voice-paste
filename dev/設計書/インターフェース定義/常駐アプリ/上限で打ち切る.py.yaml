@@ -1,3 +1,4 @@
+id: IF-2
 title: "上限で打ち切る"
 entry:
   kind: trigger
@@ -110,6 +111,6 @@ constraints:
     constraint: API から始めたセッションだけ。ホットキー・トレイから始めた録音は対象外
   - item: 連続録音の上限時間
     constraint: 設定の連続録音のセッションの上限時間（api.continuous.session_limit_sec）。開始からの経過時間で数える
-    decided_by: dev/設計書/非機能要件/非機能要件#requirements[連続録音のセッションの上限時間]
+    decided_by: NFR-1#requirements[連続録音のセッションの上限時間]
     notes: 連続録音は区間ごとに録音を手放すため、上限は録音の大きさではなく、呼び出し元が異常終了したときにマイクを閉じるために持つ
 test_file: tests/integration/test_truncate_session.py

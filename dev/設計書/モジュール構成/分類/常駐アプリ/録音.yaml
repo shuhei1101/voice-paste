@@ -1,0 +1,12 @@
+id: MOD-13
+title: "常駐アプリ / 録音"
+lead: マイクで録音し、録音中はシステム音量を下げて戻す。入口を問わず同じ録音を使い、画面には触れない。連続録音では録音を止めずに無音で区切り、区間を区切った順に渡す。
+directory: |-
+  ```
+  src/voice_paste/features/recording/
+  ├── __init__.py   # Recorder・Segmenter の公開
+  ├── types.py      # 音量の操作・マイクの入力を開く・話し声の判定の関数型
+  ├── service.py    # Recorder（開始・一時停止・再開・停止・破棄・音の大きさ・連続録音の開始と停止）
+  ├── segmenter.py  # Segmenter（窓ごとの話し声の確率から区間を切り出す）
+  └── client.py     # sounddevice の入力を開く（open_input）
+  ```

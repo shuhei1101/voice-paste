@@ -1,3 +1,4 @@
+id: SC-4
 title: "ブラウザで結果を受け取る"
 scenarios:
   - name: 正常シナリオ

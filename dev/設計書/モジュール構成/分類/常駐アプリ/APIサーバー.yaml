@@ -1,0 +1,21 @@
+id: MOD-1
+title: "常駐アプリ / APIサーバー"
+lead: FastAPI の app を組み立て、127.0.0.1 での待ち受け・Host・Origin・トークンの守りと、例外の HTTP への変換を持つ。uvicorn を専用のスレッドで動かす。
+directory: |-
+  ```
+  src/voice_paste/server/
+  ├── app.py              # build_fastapi（route の集約・middleware・例外ハンドラ）
+  ├── middleware.py       # RequestGuardMiddleware（Host・Origin・トークン。/web/ の下は Origin の許可リスト）
+  ├── body_limit.py       # BodyLimitMiddleware（/web/transcriptions の本文の上限で 413）
+  ├── web_page.py         # web_page_router（GET /web/・/web の移し）・mount_web_assets（/web/assets/）
+  ├── web/                # 外の端末の画面（index.html・assets/app.ts と tsc が出す assets/app.js・assets/style.css）
+  ├── error_handlers.py   # register_exception_handlers（RFC 9457）
+  ├── token.py            # create_token・write_token_file（起動ごとのトークンを作り、待ち受けを始めてからファイルへ書く）
+  └── runner.py           # ApiServerRunner（uvicorn をスレッドで動かし started を確かめる）
+  ```
+notes:
+  外の端末の画面: |-
+    `server/web/` に画面設計『外の端末の文字起こしの画面』『取り消せない操作の確認』の HTML（`index.html`）・スクリプト（`assets/app.ts`）・CSS（`assets/style.css`。デザイン方針の値を CSS の変数で持つ）を置く。画面の処理（録音・送信・IndexedDB・localStorage・取りに行く間隔）は画面設計の要素の説明に従い、単体テスト・画面の結合テストは持たず、画面が呼ぶ API はインターフェース定義の結合テストで、画面の操作は Edge で画面を開く E2E で確かめる。
+    スクリプトは外部規約『ビルドレス原則』『tsc運用』に従い `.ts` で書き、`tsc` で同じフォルダの `assets/app.js`（ネイティブ ES module。バンドルしない）へ出す。API の応答（`WebTranscriptionStatus` の `state`・`progress`・`text`・`error`）と、ER図『ブラウザの端末のデータ』の IndexedDB・localStorage の項目は型で持つ。
+    配信はビルドせずに `assets/app.js` を直接読むため、生成した `src/voice_paste/server/web/assets/app.js` は `app.ts` と同じ階層へコミットする（コミットする生成 `.js` はこれだけ）。`tsc` の設定（`tsconfig.json`・`tsconfig.build.json`）・`eslint.config.mjs`・`package.json`・`package-lock.json` はリポジトリの直下に置き、開発のときだけ使う。
+    パッケージに同梱するため、pyproject.toml の `[tool.setuptools.package-data]` に `voice_paste = ["server/web/index.html", "server/web/assets/*.js", "server/web/assets/*.css"]` を書く（`.ts` は同梱しない）。

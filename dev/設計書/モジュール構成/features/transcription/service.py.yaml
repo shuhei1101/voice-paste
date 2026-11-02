@@ -1,0 +1,88 @@
+id: MOD-83
+title: 常駐アプリ / 文字起こし / service.py
+test_files:
+  - tests/unit/voice_paste/features/transcription/test_service.py
+functions:
+  - name: transcribe
+    title: 文字起こし
+    kind: 関数
+    container: features/transcription/service.py
+    usecase: 録音を文字に起こす
+    role: サービス
+    scope: public
+    inherits: TranscribeFn
+    summary: 設定のエンジンで録音を起こし、区間を改行でつなぐ
+    args:
+      - name: audio_path
+        type: Path
+        required: true
+        passing: positional
+        description: 録音の WAV
+      - name: on_progress
+        type: Callable[[float, float], None] | None
+        required: false
+        default: None
+        passing: keyword
+        description: 進みの知らせ先
+      - name: engine
+        type: EngineFn
+        required: true
+        passing: injected
+        description: 設定で選んだエンジン（main.py で partial で渡す）
+      - name: get_hint
+        type: Callable[[], str | None]
+        required: true
+        passing: injected
+        description: 今の設定の手がかりを返す（main.py で partial で渡す。SettingsStore.get の hint_presets を join_hint_words でつなぎ、空なら None）。録音を起こすたびに呼ぶので、保存した設定が再起動せずに次の確定から効く
+    returns:
+      type: str
+      description: 区間ごとの文字を改行でつないだもの。無音なら空文字
+    process: |-
+      1. get_hint で今の設定の手がかりを引く
+         - 手がかりがある場合、`[INFO]` 手がかりを渡す（UTF-8 のバイト数）
+      2. エンジンに録音と手がかりを渡して起こす（エンジン）
+         - EngineError の場合、理由を持たせた TranscriptionError を送出する
+      3. 区間ごとに前後の空白を除き、空になった区間を除いて改行でつなぐ
+         - `[INFO]` 文字に起こした（区間の数・文字数・かかった秒）
+    exceptions:
+      - name: TranscriptionError
+        condition: エンジンが失敗した（ワーカーのやり直しも異常終了した・ワーカーがエラーを返した）
+    unit_tests:
+      - name: test_transcribe
+        case: 正常
+        summary: 区間を改行でつなぐ
+        condition: engine が ["今日は", "晴れ"] を返す
+        mock: engine
+        expected: '"今日は\n晴れ" が返る'
+      - name: test_transcribe_when_empty
+        case: 正常
+        summary: 区間が無ければ空文字
+        condition: engine が [] を返す
+        mock: engine
+        expected: '"" が返る'
+      - name: test_transcribe_when_engine_failed
+        case: 異常
+        summary: エンジンの失敗を TranscriptionError にする
+        condition: engine が EngineError を送出する
+        mock: engine
+        expected: TranscriptionError が送出され、理由が残る
+        exception: エンジンが失敗した
+      - name: test_transcribe_when_blank_segment
+        case: 正常
+        summary: 区間の前後の空白と空白だけの区間を除く
+        condition: engine が [" 今日は ", "  ", "晴れ"] を返す
+        mock: engine
+        expected: '"今日は\n晴れ" が返る'
+      - name: test_transcribe_when_hint
+        case: 正常
+        summary: 今の手がかりをエンジンに渡す
+        condition: get_hint が "voice-paste、Whisper" を返す
+        mock: engine・get_hint
+        expected: engine が hint="voice-paste、Whisper" で呼ばれる
+      - name: test_transcribe_when_no_hint
+        case: 正常
+        summary: 手がかりが無ければ渡さない
+        condition: get_hint が None を返す
+        mock: engine・get_hint
+        expected: engine が hint=None で呼ばれる
+    status: implemented

@@ -1,0 +1,108 @@
+id: MOD-34
+title: 常駐アプリ / ホットキーと画面 / recording_window.py
+classes:
+  - name: RecordingWindow
+    title: 録音の画面
+    container: ui/windows/recording_window.py
+    usecase: 録音する
+    role: 画面
+    summary: 状態・経過時間・波形と、一時停止・取り消し・確定のボタンを並べる小さな窓
+    description: |-
+      要素は画面設計「録音の画面」が持つ。
+      窓は `Qt.Tool | Qt.FramelessWindowHint`（`ui.topmost` がオンなら `Qt.WindowStaysOnTopHint` を追加する）、`WA_ShowWithoutActivating` で出し、出したときにフォーカスを取らない。
+      窓の外側の枠（Surface）の role は `window` にし、縁を frame で描かせる（`surface` は設定画面の中の枠と共有するため使わない）。
+      経過時間はコンストラクタで受けた時計 clock で数え（一時停止の間の分は加算しない）、経過時間と波形は WAVE_INTERVAL_MS ごとの QTimer で描き直す。
+      見出しの行（状態・経過時間・隠す・×）は、隠す・× の外を押したまま動かすと `QWindow.startSystemMove` で窓を動かし、その回に動かしたフラグを立てる（open で下ろす）。× は「取り消し」と同じく UiDeps.cancel を呼んで閉じ、「隠す」は hide_requested を emit する（隠すのは UiController）。
+      コンストラクタは UiDeps と、経過を数える時計 clock（秒を返す関数。既定は time.monotonic）を受ける。
+    kind: クラス
+    inherits: PySide6.QtWidgets.QWidget
+    properties:
+      - name: _deps
+        type: UiDeps
+        access: 内部 (_)
+        description: 確定・一時停止・取り消し・音量・設定
+      - name: _levels
+        type: collections.deque[float]
+        access: 内部 (_)
+        description: 波形に描く直近の音量（WAVE_BAR_COUNT 本分）
+      - name: hide_requested
+        type: Signal()
+        description: 「隠す」のボタンが押された
+    methods:
+      - name: open
+        title: 画面を出す
+        summary: 新しい録音として経過時間と波形を空にし、設定でオンの出力先のボタン（名前は UiDeps.output_titles）と、有効なカスタムプリセットのボタン（browser・endpoint の順に presets[] の並び。3 件ごとに折り返す）を組み直して、設定の位置に出す（place_window）。プリセットのボタンは押すと UiDeps.complete(None, そのプリセット) を呼ぶ。`ui.show_hotkeys` がオフのときは、一時停止・再開・取り消し・出力先・プリセットの全てのボタンへホットキーを空で渡し、名前だけを出す
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+      - name: set_paused
+        title: 一時停止の切り替え
+        summary: 状態の表示と一時停止・再開のボタンを替え、経過時間と波形を止める・動かす
+        kind: メソッド
+        scope: public
+        args:
+          - name: paused
+            type: bool
+            required: true
+            passing: positional
+            description: 一時停止中か
+        returns:
+          type: None
+          description: なし
+      - name: close_window
+        title: 画面を閉じる
+        summary: タイマーを止めて窓を隠す
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+      - name: hide_window
+        title: 画面を隠す
+        summary: その回の録音を続けたまま窓を隠す。経過は数え続け、描き直しのタイマーだけを止める。窓の位置は残す
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+        status: implemented
+      - name: restore
+        title: 隠した画面を戻す
+        summary: 経過時間・波形・ボタンを組み直さずに、隠す前の位置へフォーカスを取らずに出し、描き直しのタイマーを動かす
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+        status: implemented
+      - name: moved_position
+        title: 動かした位置
+        summary: その回に窓を動かしていれば、窓の左上の座標（隠していれば隠す前の位置）を返す。動かしていなければ None を返す
+        kind: メソッド
+        scope: public
+        returns:
+          type: QPoint | None
+          description: その回に動かした窓の左上の座標。動かしていなければ None
+        status: implemented
+    refs:
+      - SCR-10#
+    status: implemented
+    notes:
+      テスト: 画面の振る舞い（ボタンで UiDeps の関数が呼ばれること・出し分け）は画面設計を元にした結合テスト（`tests/integration/ui/`）で確かめる。
+constants:
+  - name: WAVE_INTERVAL_MS
+    title: 波形を再描画する間隔
+    container: ui/windows/recording_window.py
+    usecase: 録音する
+    summary: 録音の画面が経過時間と波形を再描画する間隔。PoC で 100 ms ごとのタイマーの発火の間隔の最大が 123 ms だったため、波形が滑らかに流れる 50 ms にしてもメインスレッドを塞がない
+    value: '50'
+    status: implemented
+  - name: WAVE_BAR_COUNT
+    title: 波形の棒の本数
+    container: ui/windows/recording_window.py
+    usecase: 録音する
+    summary: 録音の画面の波形に並べる棒の本数（モックと同じ）
+    value: '24'
+    status: implemented

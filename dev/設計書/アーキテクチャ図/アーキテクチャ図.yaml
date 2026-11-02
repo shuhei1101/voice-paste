@@ -1,3 +1,4 @@
+id: ARCH-1
 title: "アーキテクチャ図"
 overview:
   direction: LR
@@ -125,37 +126,37 @@ external_systems:
     protocol: HTTPS（faster-whisper が取得する）
     notes:
       事前確認: 文字起こしワーカーの起動時に、モデルを読み込めることを確かめる（手元に無ければその時点で取得する）。
-    detail: dev/設計書/外部API/Hugging_Face_Hub#
+    detail: API-1#
   - name: Microsoft Edge
     purpose: ブラウザ添付のプリセットで確定したときに、プリセットの URL の画面を開く
     direction: 送信のみ
     protocol: 子プロセスの起動（`--app={URL}`）
     notes:
       事前確認: 不要。開けなかったときはそのボタンの操作だけが失敗し、音声入力には影響しない。
-    detail: dev/設計書/外部ライブラリ/Microsoft_Edge#
+    detail: LIB-2#
   - name: API の呼び出し元
     purpose: 同じ端末のほかのプロセスが録音を開始・停止・完了し、指定したエンドポイントで起こした文字を受け取る
     direction: 双方向
     protocol: HTTP（127.0.0.1・Bearer のトークン。返送は呼び出し元のエンドポイントへ POST）
     notes:
       事前確認: 起動時に API の待ち受けを始められたか（uvicorn の started）を確かめ、始められなければトレイで知らせてホットキーだけで続ける。返送先は開始の要求を受けたときに許されるホストかを確かめる。届くかは返送のたびに確かめ、届かなくても常駐アプリを止めない。
-    detail: dev/設計書/インターフェース定義/常駐アプリ/録音を開始する.py#
+    detail: IF-10#
   - name: 設定の送信先のエンドポイント
     purpose: ホットキー・トレイから始めた録音を「エンドポイントへ送信」種類のカスタムプリセットで確定したときに、起こした文字を受け取る
     direction: 送信のみ
     protocol: HTTP / HTTPS の POST（プリセットの URL。任意で `Authorization` ヘッダー）
     notes:
       事前確認: 不要。届くかは送信するたびに確かめ、届かなければトレイで知らせて常駐アプリを止めない。
-    detail: dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送信する.py#
+    detail: IF-7#
   - name: ゲートウェイ（shuhdev-gateway）
     purpose: 外の端末のブラウザの要求を、Cloudflare Access で認証してから 127.0.0.1 の API の `/web/` の下へ中継する
     direction: 双方向
     protocol: HTTPS（外）→ HTTP（127.0.0.1。Host を `localhost:{ポート}` に書き換え、Origin はそのまま渡す）。常駐アプリは受けて応答を返すだけで、自分からは接続しない
-    detail: dev/設計書/インターフェース定義/常駐アプリ/音声を受け付ける.py#
+    detail: IF-11#
     cost: 無料。本文は 100 MB まで（Cloudflare の無料プラン）・応答待ちは 83 秒まで（ゲートウェイの `upstream.header_timeout_sec`）
     refs:
-      - dev/設計書/非機能要件/非機能要件#requirements[ブラウザの要求の応答時間]
-      - dev/設計書/非機能要件/非機能要件#requirements[ブラウザの本文の上限]
+      - NFR-1#requirements[ブラウザの要求の応答時間]
+      - NFR-1#requirements[ブラウザの本文の上限]
     notes:
       事前確認: 常駐アプリはゲートウェイへ問い合わせない（受ける側のため）。公開の登録は反映作業『ゲートウェイへの登録』で行い、外の端末から `/web/` が画面を返すことで確かめる。
     status: planned
@@ -165,12 +166,12 @@ external_systems:
     purpose: 設定のエンジンが openai のときに、録音とブラウザの音声を文字に起こす（文字起こしワーカーの代わり）
     direction: 双方向
     protocol: 'HTTPS の POST（multipart。`Authorization: Bearer`。ベース URL は設定の transcription.openai.base_url）'
-    detail: dev/設計書/外部API/OpenAI#
+    detail: API-2#
     test_file: tests/external/voice_paste/integrations/openai/test_transcriber.py
     cost: 従量課金（既定の gpt-transcribe は音声 1 分あたり $0.0045）。録音が端末の外へ送信される
     refs:
-      - dev/設計書/非機能要件/非機能要件#requirements[OpenAIの文字起こしのタイムアウトと再送]
-      - dev/設計書/非機能要件/非機能要件#requirements[OpenAIの文字起こしの料金]
+      - NFR-1#requirements[OpenAIの文字起こしのタイムアウトと再送]
+      - NFR-1#requirements[OpenAIの文字起こしの料金]
     status: planned
     introduced:
       pr: 204
@@ -178,7 +179,7 @@ external_systems:
     purpose: Linux の Wayland のセッションで、貼り付けのキーを送信する直前にフォーカスしているウィンドウの wm_class を読み、端末アプリかを見分ける
     direction: 双方向
     protocol: D-Bus（セッションバス。`gdbus call` を子プロセスで起動する）
-    detail: dev/設計書/外部ライブラリ/Focused_Window_D-Bus#
+    detail: LIB-1#
     notes:
       事前確認: 不要。読めない（拡張が無い・無効）ときは設定の貼り付けのキーを送信し、貼り付けを止めない。
     status: planned

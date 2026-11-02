@@ -1,0 +1,6 @@
+summary: openai の設計書
+items:
+  - page: credentials.py.yaml
+    summary: 常駐アプリ / 外部連携 / credentials.py
+  - page: transcriber.py.yaml
+    summary: 常駐アプリ / 外部連携 / transcriber.py

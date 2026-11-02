@@ -1,3 +1,4 @@
+id: SC-5
 title: "常駐アプリを起動する"
 scenarios:
   - name: 正常シナリオ

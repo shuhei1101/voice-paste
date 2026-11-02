@@ -1,0 +1,298 @@
+id: MOD-22
+title: 常駐アプリ / セッション / types.py
+data_models:
+  - name: Session
+    title: セッション
+    container: features/session/types.py
+    usecase: 共通
+    role: DTO
+    summary: 動いている 1 回分の流れ
+    properties:
+      - name: id
+        type: str
+        description: セッションの ID（uuid4）
+      - name: entry
+        type: Entry
+        description: 始めた入口
+      - name: state
+        type: SessionState
+        description: 今の状態
+      - name: started_at
+        type: datetime
+        description: 始めた時刻。API のセッションの上限時間をここから数える
+      - name: callback_url
+        type: str | None
+        description: API から始めたときの返送先。それ以外は None
+      - name: output_id
+        type: str | None
+        description: ホットキー・トレイから始めた録音で、確定の操作で選んだ出力先の ID
+      - name: recording
+        type: Recording | None
+        default: None
+        description: API の録音を止めた後、完了までセッションが持つ貯めた音
+      - name: output_preset
+        type: Preset | None
+        description: ホットキー・トレイから始めた録音で、確定の操作で選んだカスタムプリセット（確定したときの設定のコピー）。固定の出力先を選んだときと API のときは None
+      - name: continuous
+        type: bool
+        default: 'False'
+        description: API の連続録音か
+      - name: segment_count
+        type: int
+        default: '0'
+        description: 連続録音でこれまでに区切った区間の数（最後に付けた通し番号）
+      - name: glossary_preset
+        type: str | None
+        default: None
+        description: API の開始で指定した用語集のプリセットの名前。None は設定で選んでいるプリセットで補正する（ホットキー・トレイの録音は常に None）
+    status: implemented
+  - name: SessionDeps
+    title: セッションの依存
+    container: features/session/types.py
+    usecase: 共通
+    role: DTO
+    summary: ほかの feature と入口を関数型で束ねたもの。main.py で配線する
+    properties:
+      - name: start_recording
+        type: StartRecordingFn
+        description: 録音を始める（音量を下げ、マイクを開く）
+      - name: pause_recording
+        type: Callable[[], None]
+        description: 録音した音を貯めるのを止める
+      - name: resume_recording
+        type: Callable[[], None]
+        description: 録音した音を貯めるのを再び始める
+      - name: stop_recording
+        type: StopRecordingFn
+        description: 録音を止めて音量を戻し、録音を返す
+      - name: discard_recording
+        type: Callable[[], None]
+        description: 録音を止めて音量を戻し、貯めた音を捨てる
+      - name: save_recording
+        type: SaveRecordingFn
+        description: 確定した録音を履歴か一時の音声へ保存する
+      - name: transcribe
+        type: TranscribeFn
+        description: 録音を文字に起こす（失敗は TranscriptionError）
+      - name: correct
+        type: Callable[[str, str | None], str]
+        description: 起こした文字とセッションの glossary_preset を受け、その用語集のプリセットで補正する
+      - name: append_text
+        type: AppendTextFn
+        description: 起こした文字を履歴に追記する
+      - name: deliver
+        type: DeliverFn
+        description: 結果を出力先へ届ける
+      - name: notify
+        type: NotifyFn
+        description: ユーザーへ知らせる（画面・トレイ。メインスレッドへは Signal で渡す）
+      - name: now
+        type: Callable[[], datetime]
+        description: 今の時刻（テストで差し替える）
+      - name: discard_temporary
+        type: Callable[[Path], None]
+        description: 処理を終えた録音が一時の音声なら消す（履歴の discard_temporary）
+      - name: report_progress
+        type: ProgressFn
+        description: ホットキー・トレイの録音で、文字起こしの進みを画面へ知らせる（配線では ui の report_progress）
+      - name: start_continuous_recording
+        type: StartContinuousRecordingFn
+        description: 連続録音を始める（音量を下げ、マイクを開き、区切った区間を渡し先へ渡す）
+      - name: stop_continuous_recording
+        type: Callable[[], None]
+        description: 連続録音を止めて音量を戻し、区間に切り出していない話し声を最後の区間として渡し終えてから戻る（録音の stop_continuous）
+    status: implemented
+  - name: SessionApiDeps
+    title: セッションの API の依存
+    container: features/session/types.py
+    usecase: APIで録音を操作する
+    role: DTO
+    summary: route が使う配線済みのもの。main.py で組み、build_fastapi が app.state.session_api に置く
+    properties:
+      - name: session_manager
+        type: SessionManager
+        description: セッション管理
+      - name: is_callback_allowed
+        type: Callable[[str], bool]
+        description: 設定の許可ホストを部分適用した返送先の確かめ（出力先の is_callback_allowed）
+      - name: glossary_preset_exists
+        type: Callable[[str], bool]
+        description: 今の設定の用語集のプリセットの一覧に、その名前があるか（補正の resolve_glossary_presets で引いた一覧で判定する）
+    status: implemented
+  - name: ContinuousEnd
+    title: 連続録音の終わりのマーカー
+    container: features/session/types.py
+    usecase: APIで録音を操作する
+    role: DTO
+    summary: 連続録音の区間の待ち行列へ、全ての区間の後ろに積む終わりのマーカー。終わった理由を持つ
+    properties:
+      - name: result
+        type: Literal["completed", "truncated", "failed"]
+        description: 完了・上限での打ち切り・区切りの失敗のどれで終えたか
+      - name: error
+        type: str | None
+        default: None
+        description: failed のときの理由
+    status: planned
+    introduced:
+      pr: 78
+enums:
+  - name: SessionState
+    title: セッションの状態
+    container: features/session/types.py
+    usecase: 共通
+    summary: セッションがどこまで進んだか
+    values:
+      - value: recording
+        title: 録音中
+        description: マイクで録音している（連続録音では、区切った区間を起こして返しながら録音を続けている）
+      - value: paused
+        title: 一時停止中
+        description: ホットキー・トレイから始めた録音を一時停止している（再開できる）
+      - value: stopped
+        title: 停止中
+        description: API から始めた録音を止め、完了を待っている
+      - value: transcribing
+        title: 文字起こし中
+        description: 確定した録音を文字に起こしている（連続録音では、完了か上限の後に残りの区間と終わりを返している）
+      - value: delivering
+        title: 届け中
+        description: 出力先へ届けている
+    status: implemented
+function_types:
+  - name: StartRecordingFn
+    title: 録音の開始
+    container: features/session/types.py
+    usecase: 共通
+    summary: 音量を下げてマイクを開く。開けなければ音量を戻して MicrophoneUnavailableError
+    returns:
+      type: None
+      description: なし
+    implementations:
+      - target: 録音の Recorder.start
+    status: implemented
+  - name: StopRecordingFn
+    title: 録音の停止
+    container: features/session/types.py
+    usecase: 共通
+    summary: 録音を止めて音量を戻し、貯めた音を返す
+    returns:
+      type: Recording
+      description: 貯めた音（サンプルレートと長さつき）
+    implementations:
+      - target: 録音の Recorder.stop
+    status: implemented
+  - name: SaveRecordingFn
+    title: 録音の保存
+    container: features/session/types.py
+    usecase: 共通
+    summary: 確定した録音を履歴（残さない設定なら一時の音声）へ書き、そのパスを返す
+    args:
+      - name: session_id
+        type: str
+        description: セッションの ID
+      - name: recording
+        type: Recording
+        description: 確定した録音（連続録音では区間の音）
+      - name: segment_number
+        type: int | None
+        description: 連続録音の区間の通し番号。それ以外は None
+    returns:
+      type: Path
+      description: 書いた WAV のパス
+    implementations:
+      - target: 履歴の save_recording
+    status: implemented
+  - name: TranscribeFn
+    title: 文字起こし
+    container: features/session/types.py
+    usecase: 共通
+    summary: 録音のファイルを文字に起こす。進みは on_progress で知らせる
+    args:
+      - name: audio_path
+        type: Path
+        description: 録音の WAV
+      - name: on_progress
+        type: Callable[[float, float], None] | None
+        description: 経過秒と録音の長さを受け取る
+    returns:
+      type: str
+      description: 区間ごとの文字を改行でつないだもの（空もある）
+    implementations:
+      - target: 文字起こしの transcribe
+    status: implemented
+  - name: AppendTextFn
+    title: 履歴への文字の追記
+    container: features/session/types.py
+    usecase: 共通
+    summary: 起こした文字を録音と同じ履歴に追記する
+    args:
+      - name: audio_path
+        type: Path
+        description: 保存した録音のパス
+      - name: text
+        type: str
+        description: 起こした文字
+    returns:
+      type: None
+      description: なし
+    implementations:
+      - target: 履歴の append_text
+    status: implemented
+  - name: DeliverFn
+    title: 出力先への配送
+    container: features/session/types.py
+    usecase: 共通
+    summary: 結果を出力先へ届ける。API のセッションは呼び出し元へ返す出力先だけを使う
+    args:
+      - name: session
+        type: Session
+        description: 届けるセッション（入口・選んだ出力先・返送先）
+      - name: outcome
+        type: TranscriptionOutcome
+        description: 届ける結果
+    returns:
+      type: None
+      description: なし
+    implementations:
+      - target: 出力先の deliver
+        notes: main.py で Session を入口・選んだ出力先・返送先に分けて渡す（出力先はセッションを import しない）
+    status: implemented
+  - name: NotifyFn
+    title: ユーザーへの知らせ
+    container: features/session/types.py
+    usecase: 共通
+    summary: 状態の変化と失敗を画面・トレイへ渡す
+    args:
+      - name: event
+        type: Literal["state_changed", "busy", "microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable", "output_changed"]
+        description: 通知の種類（output_changed は、文字起こし中に届ける出力先を差し替えたこと。理由は切り替えた先の出力先の ID）
+      - name: detail
+        type: str | None
+        description: 理由などの文字
+    returns:
+      type: None
+      description: なし
+    implementations:
+      - target: ホットキーと画面の notify
+    status: implemented
+  - name: StartContinuousRecordingFn
+    title: 連続録音の開始
+    container: features/session/types.py
+    usecase: APIで録音を操作する
+    summary: 音量を下げてマイクを開き、区切った区間を区切った順に on_segment へ渡す。開けなければ音量を戻して MicrophoneUnavailableError を送出する
+    args:
+      - name: on_segment
+        type: OnSegmentFn
+        description: 区切った区間の渡し先（録音の区切りのスレッドから呼ばれる）
+      - name: on_failed
+        type: OnContinuousFailedFn
+        description: 区切りに失敗して録音を止めたことの知らせ先（録音の区切りのスレッドから呼ばれる）
+    returns:
+      type: None
+      description: なし
+    implementations:
+      - target: 録音の Recorder.start_continuous（main.py が設定の api.continuous.min_silence_sec を部分適用する）
+    status: planned
+    introduced:
+      pr: 78

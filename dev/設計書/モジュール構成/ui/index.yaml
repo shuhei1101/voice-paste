@@ -1,0 +1,16 @@
+summary: ui の設計書
+items:
+  - page: bridge.py.yaml
+    summary: 常駐アプリ / ホットキーと画面 / bridge.py
+  - page: controller.py.yaml
+    summary: 常駐アプリ / ホットキーと画面 / controller.py
+  - page: indicator_style.py.yaml
+    summary: 常駐アプリ / ホットキーと画面 / indicator_style.py
+  - page: placement.py.yaml
+    summary: 常駐アプリ / ホットキーと画面 / placement.py
+  - page: style.py.yaml
+    summary: 常駐アプリ / ホットキーと画面 / style.py
+  - page: tray.py.yaml
+    summary: 常駐アプリ / ホットキーと画面 / tray.py
+  - page: windows/
+    summary: windows の設計書

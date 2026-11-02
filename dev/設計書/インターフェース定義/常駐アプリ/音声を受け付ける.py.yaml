@@ -1,3 +1,4 @@
+id: IF-11
 title: "音声を受け付ける"
 entry:
   kind: endpoint
@@ -346,13 +347,13 @@ constraints:
     constraint: トークンを求めない。Host が待ち受けのホストで、Origin が許す Origin にあること（Origin が無い要求も断る）
   - item: 応答時間
     constraint: ブラウザの要求の応答時間以内。文字起こしを待たずに返す
-    decided_by: dev/設計書/非機能要件/非機能要件#requirements[ブラウザの要求の応答時間]
+    decided_by: NFR-1#requirements[ブラウザの要求の応答時間]
   - item: 本文の大きさ
     constraint: ブラウザの本文の上限未満。Content-Length があれば読む前に、無ければ読みながら数えて、上限に達した時点で断る
-    decided_by: dev/設計書/非機能要件/非機能要件#requirements[ブラウザの本文の上限]
+    decided_by: NFR-1#requirements[ブラウザの本文の上限]
   - item: 待ちの上限
     constraint: 終わっていないジョブ（queued・running）の数がブラウザの音声の待ちの上限に達していれば断る
-    decided_by: dev/設計書/非機能要件/非機能要件#requirements[ブラウザの音声の待ちの上限]
+    decided_by: NFR-1#requirements[ブラウザの音声の待ちの上限]
   - item: 音声の長さ
     constraint: 制限なし
     notes: 画面で録る長さは画面の録音の上限時間で抑え、選んだファイルは本文の上限で抑える

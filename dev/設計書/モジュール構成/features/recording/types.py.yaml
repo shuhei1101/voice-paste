@@ -1,0 +1,84 @@
+id: MOD-93
+title: 常駐アプリ / 録音 / types.py
+function_types:
+  - name: LowerVolumeFn
+    title: 音量を下げる
+    container: features/recording/types.py
+    usecase: 録音する
+    summary: 今の音量に対する割合へ fade_sec をかけて下げ始め、下げる前の音量を返す
+    args:
+      - name: ratio
+        type: float
+        description: 今の音量に対する割合（0.0〜1.0）
+      - name: fade_sec
+        type: float
+        description: 下げるのにかける秒数（0 なら呼び出しの中ですぐ変える）
+    returns:
+      type: float
+      description: 下げる前の音量（0.0〜1.0）
+    implementations:
+      - target: 外部連携の lower_volume（pycaw のアダプタ）
+    status: implemented
+  - name: RestoreVolumeFn
+    title: 音量を戻す
+    container: features/recording/types.py
+    usecase: 録音する
+    summary: 下げる前の音量へ fade_sec をかけて戻し始める
+    args:
+      - name: volume
+        type: float
+        description: 戻す音量（0.0〜1.0）
+      - name: fade_sec
+        type: float
+        description: 戻すのにかける秒数（0 なら呼び出しの中ですぐ変える）
+    returns:
+      type: None
+      description: なし
+    implementations:
+      - target: 外部連携の restore_volume（pycaw のアダプタ）
+    status: implemented
+  - name: OpenInputFn
+    title: マイクの入力を開く
+    container: features/recording/types.py
+    usecase: 録音する
+    summary: 既定のマイクの入力を開いて始め、届いた音を on_frames へ渡す。閉じる操作を持つストリームを返す
+    args:
+      - name: on_frames
+        type: Callable[[numpy.ndarray], None]
+        description: 入力のスレッドから、届いた音（モノラル・int16）を受け取る
+    returns:
+      type: sounddevice.InputStream
+      description: 開いて始めた入力（stop・close で閉じる）
+    implementations:
+      - target: 録音の open_input
+    status: implemented
+  - name: SpeechProbabilityFn
+    title: 話し声の判定
+    container: features/recording/types.py
+    usecase: 録音する
+    summary: 1 窓（VAD_WINDOW サンプル・float32）の話し声の確率を返す。前の窓からの状態を持ち越す
+    args:
+      - name: window
+        type: numpy.ndarray
+        description: 1 窓の音（float32・-1.0〜1.0）
+    returns:
+      type: float
+      description: 話し声の確率（0.0〜1.0）
+    implementations:
+      - target: 外部連携の StreamingVad
+    status: planned
+    introduced:
+      pr: 78
+  - name: CreateSpeechDetectorFn
+    title: 話し声の判定を作る
+    container: features/recording/types.py
+    usecase: 録音する
+    summary: 状態を持たない新しい話し声の判定を作って返す（連続録音を始めるたびに呼ぶ）
+    returns:
+      type: SpeechProbabilityFn
+      description: 新しい話し声の判定
+    implementations:
+      - target: main.py が load_vad_session のセッションを部分適用した StreamingVad
+    status: planned
+    introduced:
+      pr: 78

@@ -1,3 +1,4 @@
+id: CMD-1
 title: "開発コマンド"
 categories:
   - name: 取り込み後の追従（pull 後）
@@ -188,4 +189,4 @@ lead: クローン直後に環境を作る・常駐サービスを起動する�
 prerequisites:
   - リポジトリの直下で、Windows では Windows の uv（WSL からは `uv.exe`）、Ubuntu 24.04 では Linux の uv（`uv`）で流す。各分類のコマンドは Windows の uv で書き、Ubuntu では `uv.exe` を `uv` に読み替える
 refs:
-  - dev/設計書/モジュール構成/常駐アプリ/起動と配線.py#
+  - MOD-12#

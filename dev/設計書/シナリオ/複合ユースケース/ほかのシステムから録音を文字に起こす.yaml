@@ -1,3 +1,4 @@
+id: SC-11
 title: "ほかのシステムから録音を文字に起こす"
 scenarios:
   - name: 正常シナリオ

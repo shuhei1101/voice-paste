@@ -1,3 +1,4 @@
+id: IF-6
 title: "画面を配信する"
 entry:
   kind: endpoint
@@ -187,7 +188,7 @@ constraints:
     notes: '`/web/` の外（`/sessions`）は今の守り（Origin が付いていれば断る・Host・トークン）のまま'
   - item: 応答時間
     constraint: ブラウザの要求の応答時間以内
-    decided_by: dev/設計書/非機能要件/非機能要件#requirements[ブラウザの要求の応答時間]
+    decided_by: NFR-1#requirements[ブラウザの要求の応答時間]
   - item: レート制限
     constraint: 制限なし
   - item: 使える OS

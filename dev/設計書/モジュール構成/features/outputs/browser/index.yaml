@@ -1,0 +1,4 @@
+summary: browser の設計書
+items:
+  - page: service.py.yaml
+    summary: 常駐アプリ / 出力先 / service.py

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import sys
 from collections.abc import Callable
@@ -60,7 +61,11 @@ LOCAL_WHISPER_FIELDS: dict[str, tuple[str, Callable[[str], object]]] = {
 """固めた設定（whisper.env の変数）と、対応する LocalWhisperSettings の項目・型への変換。"""
 
 requires_real_whisper = pytest.mark.skipif(
-    not WHISPER_ENV_FILE.exists() or sys.platform != "win32" or shutil.which("nvidia-smi") is None,
+    not WHISPER_ENV_FILE.exists()
+    or (
+        os.environ.get("VOICE_PASTE_POC_ALLOW_CPU") != "1"
+        and (sys.platform != "win32" or shutil.which("nvidia-smi") is None)
+    ),
     reason="Windows の NVIDIA GPU と、tests/nfr/fixtures/ の固めた設定（whisper.env）が要る",
 )
 """固めた設定・GPU が無い環境で、ローカルの Whisper を使う実機のテストを skip するマーカー。"""

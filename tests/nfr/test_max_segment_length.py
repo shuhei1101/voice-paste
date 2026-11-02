@@ -8,7 +8,6 @@ Windows の音声合成（SAPI）で、文の間を区切る無音の長さよ�
 
 from __future__ import annotations
 
-import sys
 from itertools import cycle
 from pathlib import Path
 
@@ -22,9 +21,6 @@ from voice_paste.integrations.vad.adapter import StreamingVad, load_vad_session
 from voice_paste.shared.settings import ContinuousSettings
 from voice_paste.shared.types import Segment
 
-pytestmark = pytest.mark.skipif(
-    sys.platform != "win32", reason="Windows の音声合成（SAPI）が要る"
-)
 
 SENTENCE_GAP_SEC = 0.4
 """文と文の間に挟む無音の長さ。区切る無音の長さの既定（2 秒）より十分に短い。"""

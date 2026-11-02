@@ -1,15 +1,17 @@
 """区切ってから返送が届くまでの時間（segment_callback_latency）の非機能要件テスト。
 
-build_handlers で配線した常駐サービスをローカルの Whisper（GPU）で立て、録音の入力だけを、Windows の音声合成（SAPI）で作った
+build_handlers で配線した常駐サービスをローカルの Whisper（GPU）で立て、録音の入力だけを、音声合成（Windows は SAPI、Linux は Open JTalk）で作った
 5 文（文の間に区切りの無音の長さより長い間を挟む）の後に 45 秒以上読み上げ続ける WAV を実時間で流すものに差し替える。
 連続録音を始めて流し終えたら完了を呼び、区切った時点（Segmenter のログ）から、同じ通し番号の返送が受信先に届いた時点までを
 区間ごとに測る。最初の区間はワーカーの温まりで遅れるため、測る前に別の連続録音で 1 区間を起こして温める。
-`--run-e2e` が無ければ skip する。
+`--run-e2e` が無いか、Windows の NVIDIA GPU が無ければ skip する。
 """
 
 from __future__ import annotations
 
 import logging
+import shutil
+import sys
 import time
 from collections.abc import Callable, Iterator
 from pathlib import Path
@@ -32,7 +34,13 @@ from tests.support.inprocess import (
     wait_for_continuous_end,
 )
 
-pytestmark = pytest.mark.real_machine
+pytestmark = [
+    pytest.mark.real_machine,
+    pytest.mark.skipif(
+        sys.platform != "win32" or shutil.which("nvidia-smi") is None,
+        reason="Windows の NVIDIA GPU が要る",
+    ),
+]
 
 StartInProcess = Callable[..., InProcessApp]
 

@@ -609,7 +609,7 @@ def test_main_when_invalid_settings(
 
     # 検証
     assert exit_code == 0
-    wiring.tray.set_failed.assert_called_once()
+    wiring.tray.set_failed.assert_called_once_with(settings_enabled=False)
     wiring.tray.show_failure.assert_called_once()
     assert wiring.tray.show_failure.call_args.args[0] == "settings_invalid"
     assert "transcription.local_whisper.beam_size" in wiring.tray.show_failure.call_args.args[1]
@@ -638,7 +638,7 @@ def test_main_when_startup_error(
 
     # 検証
     assert exit_code == 0
-    wiring.tray.set_failed.assert_called_once()
+    wiring.tray.set_failed.assert_called_once_with(settings_enabled=True)
     assert [c.args[0] for c in wiring.tray.show_failure.call_args_list] == ["engine_unavailable"]
     wiring.runner_class.assert_not_called()
     wiring.hotkey.start.assert_not_called()

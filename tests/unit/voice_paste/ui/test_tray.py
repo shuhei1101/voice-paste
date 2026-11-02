@@ -98,12 +98,12 @@ def test_set_state_when_busy(qapp: QApplication, tmp_path: Path) -> None:
 
 
 def test_set_state_when_failed(qapp: QApplication, tmp_path: Path) -> None:
-    """失敗の起動では設定だけ押せる（正常系）。"""
+    """エンジンを準備できなかった起動では設定だけ押せる（正常系）。"""
     from voice_paste.ui.tray import TrayState
 
     # 準備
     tray = make_tray(tmp_path)
-    tray.set_failed()
+    tray.set_failed(settings_enabled=True)
 
     # 実行
     tray.set_state(TrayState.IDLE, busy=False)
@@ -113,6 +113,27 @@ def test_set_state_when_failed(qapp: QApplication, tmp_path: Path) -> None:
     settings = _menu_action(tray, "設定…")
     assert not start.isEnabled()
     assert settings.isEnabled()
+    assert tray._icon.toolTip() == "voice-paste: 失敗"
+
+
+def test_set_state_when_failed_without_settings(qapp: QApplication, tmp_path: Path) -> None:
+    """設定を読めなかった起動では録音も設定も押せない（正常系）。"""
+    from voice_paste.ui.tray import TrayState
+
+    # 準備
+    tray = make_tray(tmp_path)
+    tray.set_failed(settings_enabled=False)
+
+    # 実行
+    tray.set_state(TrayState.IDLE, busy=False)
+
+    # 検証
+    start = _menu_action(tray, "録音を開始（準備に失敗）")
+    settings = _menu_action(tray, "設定…")
+    restart = _menu_action(tray, "再起動")
+    assert not start.isEnabled()
+    assert not settings.isEnabled()
+    assert restart.isEnabled()
     assert tray._icon.toolTip() == "voice-paste: 失敗"
 
 

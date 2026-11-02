@@ -127,7 +127,7 @@ def test_tray_icon_when_failed(make_ui: Callable[..., Ui]) -> None:
 
     # 準備
     ui = make_ui()
-    ui.tray.set_failed()
+    ui.tray.set_failed(settings_enabled=True)
 
     # 実行
     ui.tray.set_state(TrayState.IDLE, busy=False)
@@ -262,7 +262,7 @@ def test_menu_start_label_when_failed(make_ui: Callable[..., Ui]) -> None:
     ui = make_ui()
 
     # 実行
-    ui.tray.set_failed()
+    ui.tray.set_failed(settings_enabled=True)
 
     # 検証
     action = _action(ui.tray, "menu_start")
@@ -388,7 +388,7 @@ def test_menu_show_window_when_failed(make_ui: Callable[..., Ui]) -> None:
     ui = make_ui()
 
     # 実行
-    ui.tray.set_failed()
+    ui.tray.set_failed(settings_enabled=True)
     ui.tray.set_state(TrayState.IDLE, busy=False)
 
     # 検証
@@ -454,7 +454,7 @@ def test_menu_settings_enabled_when_idle(make_ui: Callable[..., Ui]) -> None:
     idle_enabled = _action(ui.tray, "menu_settings").isEnabled()
 
     # 実行
-    ui.tray.set_failed()
+    ui.tray.set_failed(settings_enabled=True)
 
     # 検証
     action = _action(ui.tray, "menu_settings")

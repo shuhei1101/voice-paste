@@ -5,15 +5,21 @@ description: |-
   1 ファイル = 1 フェーズ。エージェントへ渡すときは `steps` を `###` の節に並べた 1 つの Markdown にする。
 x-kind: phase
 x-folder: dev/エージェント運用/エージェント
+x-id-prefix: PH
 x-tag-registry: dev/エージェント運用/エージェント/タグ.yaml
 type: object
 additionalProperties: false
 required:
+- id
 - title
 - summary
 - condition
 - steps
 properties:
+  id:
+    $ref: 共通.schema.yaml#/$defs/id
+    title: ID
+    description: 設計書の変わらない ID。書くツールの `create` が振り、改名・移動でも変わらない。他の設計書からは `{ID}#{項目のパス}` で指す。
   title:
     type: string
     title: タイトル
@@ -37,7 +43,7 @@ properties:
     title: タグ
     description: |-
       フェーズを検索で絞り込むタグ。`x-tag-registry` が指すタグの一覧に登録した名前だけを書ける。
-      先にタグの一覧のツール（`list_design_doc_tags`）で登録済みのタグを確かめる。
+      先にタグの一覧（`x-tag-registry` が指すファイル）で登録済みのタグを確かめる。
     uniqueItems: true
     items:
       type: string
@@ -102,7 +108,8 @@ properties:
       - required: [body]
       - required: [ref]
 examples:
-- title: 問い合わせ応答
+- id: PH-1
+  title: 問い合わせ応答
   summary: どのフェーズにも当たらない自分宛コメントへの返答
   condition: 未解決の自分宛コメントがある（索引のどの行にも該当しない）
   tags:

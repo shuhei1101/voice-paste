@@ -5,13 +5,19 @@ description: |-
   1 コンポーネント内で閉じる要件は作業 PR の非機能要件に書く（判定フローチャート『非機能要件のレイヤー』）。
 x-kind: nonfunctional
 x-folder: dev/設計書/非機能要件
+x-id-prefix: NFR
 x-cross: requirements
 type: object
 additionalProperties: false
 required:
+- id
 - title
 - requirements
 properties:
+  id:
+    $ref: 共通.schema.yaml#/$defs/id
+    title: ID
+    description: 設計書の変わらない ID。書くツールの `create` が振り、改名・移動でも変わらない。他の設計書からは `{ID}#{項目のパス}` で指す。
   title:
     type: string
     title: タイトル
@@ -241,7 +247,8 @@ properties:
     x-heading: 補足
     x-shape: sections
 examples:
-- title: 非機能要件
+- id: NFR-1
+  title: 非機能要件
   lead: 外部の制約から逆算したアプリの決定値。
   requirements:
   - name: 入力トークン上限

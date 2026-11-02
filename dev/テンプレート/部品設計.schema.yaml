@@ -3,17 +3,23 @@ title: 部品設計
 description: 画面の要素が使う部品 1 つの仕様（引数・スロット・イベント・CSS カスタムプロパティ・状態）。1 ファイル = 1 部品。状態 1 つが Storybook のストーリー 1 つに当たる。
 x-kind: component
 x-folder: dev/設計書/部品設計
+x-id-prefix: CMP
 x-cross: args
 x-test-file: test_file
 x-test-file-optional: true
 type: object
 additionalProperties: false
 required:
+- id
 - title
 - implementation
 - story
 - states
 properties:
+  id:
+    $ref: 共通.schema.yaml#/$defs/id
+    title: ID
+    description: 設計書の変わらない ID。書くツールの `create` が振り、改名・移動でも変わらない。他の設計書からは `{ID}#{項目のパス}` で指す。
   title:
     type: string
     title: タイトル
@@ -240,7 +246,7 @@ properties:
     title: 状態
     description: |-
       確かめる状態（通常・無効・読み込み中・エラー・長文など）。状態 1 つ = Storybook のストーリー 1 つ。
-      開発ドキュメントサーバーでは、行を開くとその状態で上書きする引数が出る。
+      dev-docs の画面では、その状態で上書きする引数が件数で出る。
     x-heading: 状態
     x-shape: table
     x-key: name
@@ -351,7 +357,8 @@ properties:
   notes:
     $ref: 共通.schema.yaml#/$defs/notes
 examples:
-- title: 列見出し
+- id: CMP-1
+  title: 列見出し
   lead: 表の列見出しの中身。見出しの文字（押すと並べ替え）と、絞り込み・固定のボタンを並べる。
   implementation: src/ai_monitor/features/plan/screen/templates/macros.html#header_controls
   story: Plan/HeaderControls

@@ -5,14 +5,20 @@ description: |-
   参照はモジュール構成 → 外部ライブラリの一方向。自プロジェクトのファイル・モジュールには言及しない（使用箇所を除く）。
 x-kind: library
 x-folder: dev/設計書/外部ライブラリ
+x-id-prefix: LIB
 type: object
 additionalProperties: false
 required:
+- id
 - title
 - kind
 - version
 - catalogs
 properties:
+  id:
+    $ref: 共通.schema.yaml#/$defs/id
+    title: ID
+    description: 設計書の変わらない ID。書くツールの `create` が振り、改名・移動でも変わらない。他の設計書からは `{ID}#{項目のパス}` で指す。
   title:
     type: string
     title: タイトル
@@ -451,7 +457,8 @@ properties:
     x-shape: sections
     description: 対象固有の解説節（節の名前 → 本文）。一覧・制限事項・不具合に属さないもの。
 examples:
-- title: react-image-crop
+- id: LIB-1
+  title: react-image-crop
   lead: |-
     React 用の画像トリミング（クロップ）UI ライブラリ。
     選択範囲のプレビューを提供し、トリミング後の画像を Blob / dataURL で出す。

@@ -5,12 +5,18 @@ description: |-
   何を書くか・どの分類かは判定フローチャート『コマンドの書き先』で決める。
 x-kind: dev_command
 x-folder: dev/設計書/開発コマンド
+x-id-prefix: CMD
 type: object
 additionalProperties: false
 required:
+- id
 - title
 - categories
 properties:
+  id:
+    $ref: 共通.schema.yaml#/$defs/id
+    title: ID
+    description: 設計書の変わらない ID。書くツールの `create` が振り、改名・移動でも変わらない。他の設計書からは `{ID}#{項目のパス}` で指す。
   title:
     type: string
     title: タイトル
@@ -141,7 +147,8 @@ properties:
     x-heading: 補足
     x-shape: sections
 examples:
-- title: 開発コマンド
+- id: CMD-1
+  title: 開発コマンド
   lead: 開発で使うコマンドの、分類ごとの前提・順序・コマンド・確かめた記録。
   prerequisites:
   - Python 3.12 と uv

@@ -2,6 +2,8 @@ id: MOD-69
 title: 常駐アプリ / 外部連携 / transcriber.py
 test_files:
   - tests/unit/voice_paste/integrations/openai/test_transcriber.py
+external_test_files:
+  - tests/external/voice_paste/integrations/openai/test_transcriber.py
 classes:
   - name: OpenAITranscriber
     title: OpenAI API の文字起こし

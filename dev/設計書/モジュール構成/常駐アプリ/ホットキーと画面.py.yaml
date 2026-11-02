@@ -602,7 +602,12 @@ classes:
       - name: _failed
         type: bool
         access: 内部 (_)
-        description: 文字起こしのエンジンを準備できなかった起動か。立つと次の起動まで失敗のまま
+        description: 起動に失敗した（文字起こしのエンジンを準備できなかったか、設定を読めなかった）か。立つと次の起動まで失敗のまま
+      - name: _failed_settings_enabled
+        type: bool
+        access: 内部 (_)
+        default: 'True'
+        description: 失敗の起動で「設定…」を押せるままにするか（set_failed の settings_enabled）
       - name: show_window_requested
         type: Signal()
         description: 「録音の画面を表示」・録音の画面を隠している間のアイコンの左クリック
@@ -636,7 +641,7 @@ classes:
           type: None
           description: なし
         process: |-
-          1. 失敗の起動なら、状態を FAILED のままにし、「録音を開始（準備に失敗）」を押せなくして「設定…」は押せるままにする
+          1. 失敗の起動なら、状態を FAILED のままにし、「録音を開始（準備に失敗）」を押せなくする。「設定…」は _failed_settings_enabled のときだけ押せるままにする
           2. それ以外は、状態の画像とヒント（voice-paste: {状態の名前}）に替え、busy なら「録音を開始（処理中）」「設定…（処理中）」を押せなくする。STARTING（準備中）なら「録音を開始」「設定…」を押せなくする（配線が終わるまで受け手が無い）
           3. 「録音を開始」は押せるときだけ太字にする
         unit_tests:
@@ -654,15 +659,27 @@ classes:
             expected: '「録音を開始（処理中）」と「設定…（処理中）」が押せず、「録音を開始」が太字でなく、ヒントが voice-paste: 文字起こし中'
           - name: test_set_state_when_failed
             case: 正常
-            summary: 失敗の起動では設定だけ押せる
-            condition: set_failed() の後に set_state(IDLE, busy=False)
+            summary: エンジンを準備できなかった起動では設定だけ押せる
+            condition: set_failed(settings_enabled=True) の後に set_state(IDLE, busy=False)
             mock: なし（offscreen の QApplication）
             expected: '「録音を開始（準備に失敗）」が押せず、「設定…」が押せ、ヒントが voice-paste: 失敗'
+          - name: test_set_state_when_failed_without_settings
+            case: 正常
+            summary: 設定を読めなかった起動では録音も設定も押せない
+            condition: set_failed(settings_enabled=False) の後に set_state(IDLE, busy=False)
+            mock: なし（offscreen の QApplication）
+            expected: '「録音を開始（準備に失敗）」と「設定…」が押せず、「再起動」が押せ、ヒントが voice-paste: 失敗'
       - name: set_failed
         title: 失敗の起動にする
-        summary: 文字起こしのエンジンを準備できなかった起動として、アイコンを失敗にする
+        summary: 起動に失敗した起動として、アイコンを失敗にする
         kind: メソッド
         scope: public
+        args:
+          - name: settings_enabled
+            type: bool
+            required: true
+            passing: keyword
+            description: 「設定…」を押せるままにするか（文字起こしのエンジンを準備できなかった起動は True、設定を読めなかった起動は読んだ設定が無いため False）
         returns:
           type: None
           description: なし

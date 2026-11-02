@@ -270,12 +270,12 @@ functions:
            - `[ERROR]` 起動に失敗した（理由）
       4. PlatformAdapters.qt_platform が None でなく、環境変数に QT_QPA_PLATFORM が無ければ、QT_QPA_PLATFORM にその値を入れる（Wayland のセッションの xcb）。QApplication（最後の窓を閉じても終わらない）・UiBridge・Tray を作り、apply_theme(app, "system", image_dir=paths.ui_image_dir) で画面の明暗を当ててトレイに準備中を出す。WAKE_INTERVAL_MS ごとの空の QTimer を置き、SIGINT・SIGBREAK・SIGTERM で QApplication.quit を呼ぶ（SIGTERM はログアウト・systemctl stop で届き、12 の片付けを通す）。後から起動したプロセスに終わるよう頼まれたら、QApplication.quit をメインスレッドで呼ぶ（SingleInstanceLock.on_quit_requested に、QMetaObject.invokeMethod で QApplication.quit をキューに入れる関数を渡す）。トレイの「再起動」「終了」を _ExitRequest の request_restart・request_quit へつなぐ（7 の配線の間も抜けられるようにする。7 の結果を受けたら外す）
       5. 設定を読む（load_settings(paths, SETTINGS_MODEL)。--data-dir を渡したときは checkout の上書きを読まない）
-         - SettingsError の場合、トレイを失敗にして設定を読めないことを通知し（Tray.show_failure(settings_invalid, 理由, paths=SettingsError.paths)）、「録音を開始」「設定…」を押せないまま 11 へ（フォルダを開いて読めなかったファイルを直し、再起動できる）
+         - SettingsError の場合、トレイを失敗にして設定を読めないことを通知し（Tray.set_failed(settings_enabled=False)・Tray.show_failure(settings_invalid, 理由, paths=SettingsError.paths)）、「録音を開始」「設定…」を押せないまま 11 へ（フォルダを開いて読めなかったファイルを直し、再起動できる）
            - `[ERROR]` 起動に失敗した（理由）
       6. 設定の ui.theme で画面の明暗を当て直し（apply_theme。image_dir は paths.ui_image_dir）、QStyleHints.colorSchemeChanged に、SettingsStore.get の ui.theme で apply_theme を呼ぶ関数をつなぐ（OS の明暗が変わったときに当て直す）。ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を消す（purge_old_files。処理中のセッションは無いため、一時の音声も全て消す対象にする）
          - `[INFO]` 設定を読んだ（設定ファイルのパス・エンジン・オンの出力先の ID）
       7. 配線を、_StartupBuild でメインスレッドの外のスレッドに流す（build_handlers。notify・report_progress・notify_copied は UiBridge を部分適用した ui のもの、adapters は 3 で選んだ PlatformAdapters、environ は os.environ、unavailable は 3 で引いた使えない機能、on_engine_created は _StartupBuild がエンジンを止める関数を控える関数）。流している間も 11 のイベントループを回し、トレイを準備中のまま出す（モデルの取得の間もトレイのアイコンが出て、メニューを操作できる）。結果は _StartupBuild.done でメインスレッドへ戻り、4 でつないだ「再起動」「終了」を外してから、8〜10 か下の StartupError の扱いをメインスレッドで行う
-         - StartupError の場合、トレイを失敗にして起動の失敗を通知し（Tray.show_failure(engine_unavailable, 理由)）、「設定…」だけを押せるまま 11 へ（設定画面は読んだ設定で開き、保存は settings.yaml へ書くだけにする。Handlers が無いため、UiDeps のうち録音・ホットキーの関数（start・pause・resume・complete・cancel・current_session・level・suspend_hotkeys・resume_hotkeys）は何もしない関数にし、設定画面を閉じてもホットキーの受付を始めない）
+         - StartupError の場合、トレイを失敗にして起動の失敗を通知し（Tray.set_failed(settings_enabled=True)・Tray.show_failure(engine_unavailable, 理由)）、「設定…」だけを押せるまま 11 へ（設定画面は読んだ設定で開き、保存は settings.yaml へ書くだけにする。Handlers が無いため、UiDeps のうち録音・ホットキーの関数（start・pause・resume・complete・cancel・current_session・level・suspend_hotkeys・resume_hotkeys）は何もしない関数にし、設定画面を閉じてもホットキーの受付を始めない）
            - `[ERROR]` 起動に失敗した（理由）
       8. ホットキーの受付を作り（PlatformAdapters.create_hotkey_listener(排他の名前, 3 で取った排他)）、UiController を作り（build_ui_deps）、UiBridge の知らせの受け手につなぐ（notified → on_notified・progressed → on_progressed・copied → on_copied。9 で待ち受けを始められない知らせを取りこぼさないよう、API より先に作る）
       9. Handlers.web_api が None でなければブラウザの音声のキューを始め（WebJobQueue.start(`{tmp_dir}/web`)）、トークンを作り、API サーバーを起動する（create_token・build_fastapi（Handlers.web_api と設定の api.allowed_web_origins を渡す。web_api が None なら `/web/` の下のルートを持たない）・ApiServerRunner.start(API_START_TIMEOUT_SEC)）
@@ -337,14 +337,14 @@ functions:
         summary: 設定が合わなければトレイで知らせて入口を立てない
         condition: transcription.local_whisper.beam_size = "x" の settings.yaml がある data_dir。exec_loop はすぐ 0 を返す
         mock: build_handlers・ApiServerRunner・HotkeyListener・Tray
-        expected: 0。Tray.set_failed と Tray.show_failure(settings_invalid, 理由, paths=(settings.yaml のパス,)) が呼ばれ（理由に transcription.local_whisper.beam_size が出る）、ERROR のログに transcription.local_whisper.beam_size が出、build_handlers・ApiServerRunner・HotkeyListener.start が呼ばれない
+        expected: 0。Tray.set_failed(settings_enabled=False) と Tray.show_failure(settings_invalid, 理由, paths=(settings.yaml のパス,)) が呼ばれ（理由に transcription.local_whisper.beam_size が出る）、ERROR のログに transcription.local_whisper.beam_size が出、build_handlers・ApiServerRunner・HotkeyListener.start が呼ばれない
         exception: SettingsError
       - name: test_main_when_startup_error
         case: 異常
         summary: エンジンを準備できなければトレイを失敗にして続ける
         condition: build_handlers が StartupError を送出する。exec_loop はすぐ 0 を返す
         mock: build_handlers・ApiServerRunner・HotkeyListener・Tray
-        expected: 0。Tray.set_failed と Tray.show_failure(engine_unavailable) が呼ばれ、ApiServerRunner が作られず、HotkeyListener.start が呼ばれない
+        expected: 0。Tray.set_failed(settings_enabled=True) と Tray.show_failure(engine_unavailable) が呼ばれ、ApiServerRunner が作られず、HotkeyListener.start が呼ばれない
         exception: StartupError
       - name: test_main_when_api_unavailable
         case: 正常

@@ -28,7 +28,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from voice_paste.shared.errors import HotkeyError
+from voice_paste.shared.errors import HotkeyError, SettingsError
 from voice_paste.shared.os_kind import CURRENT_OS, OsKind
 from voice_paste.shared.settings import (
     EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE,
@@ -444,18 +444,35 @@ def _range_text(info: FieldInfo) -> str:
     return f"{upper} 以下の値を入れてください。"
 
 
+def _number_example(info: FieldInfo, location: tuple[int | str, ...], defaults: Settings) -> Any:
+    """数値の欄の例にする値を返す。項目が既定値を持てばその値、持たなければ defaults の同じキーの値。"""
+    # 一覧の要素のモデルの項目: 項目の既定値
+    if not info.is_required():
+        return info.get_default(call_default_factory=True)
+    # 表のまとまりのモデルの項目: 既定の設定の同じキーの値
+    value: Any = defaults
+    for part in location:
+        value = getattr(value, str(part))
+    return value
+
+
 def to_field_message(
-    error: Any, *, model: type[Settings], name_of: Callable[[str], str] = lambda key: key
+    error: Any,
+    *,
+    model: type[Settings],
+    defaults: Settings,
+    name_of: Callable[[str], str] = lambda key: key,
 ) -> str:
     """pydantic の失敗 1 件を、画面設計「設定画面」の入力チェックの文言にする。
 
     model は失敗の場所から項目（既定値・範囲）を引く設定のモデル。
+    defaults は既定の設定で、既定値を持たない項目の数値の例をここから引く。
     name_of は設定のキーから欄の名前を引く関数（ホットキーが重なった欄の名前を出すのに使う）。
     """
     error_type = error["type"]
     info = _field_info_at(tuple(error["loc"]), model)
     if error_type in NUMBER_ERROR_TYPES and info is not None:
-        return f"数値を入れてください（例: {info.get_default(call_default_factory=True)}）。"
+        return f"数値を入れてください（例: {_number_example(info, tuple(error['loc']), defaults)}）。"
     if error_type in RANGE_ERROR_TYPES and info is not None:
         return _range_text(info)
     if error_type == "string_too_short":
@@ -1117,19 +1134,21 @@ class SettingsWindow(QWidget):
         return values
 
     def collect(self) -> dict[str, Any]:
-        """全ての欄の値を settings.toml と同じ構造の dict にする。"""
+        """全ての欄の値を 設定と同じ構造の dict にする。"""
         data: dict[str, Any] = {}
         # 一覧の要素は添字の順に作るため、出力先の ID と空の送信先の一覧を先に置く
         for key, value in self._static.items():
             set_nested(data, key, value)
         for field in self._all_fields():
             set_nested(data, field.key, field.get())
-        # 出さない設定は、開いたときの値をそのまま入れる（settings.toml の値を保つ）
+        # 出さない設定は、開いたときの値をそのまま入れる（設定の値を保つ）
         for key, value in self._hidden_values.items():
             set_nested(data, key, value)
         # プリセットは、種類のタブの並びの順に 1 つの一覧にする
         data[PRESETS_FIELD_NAME] = [item for _kind, _position, item in self._preset_values()]
-        # 用語集は、一覧と用語集のプリセットと補正に使うプリセットを入れる（glossary_path と active_glossary は置かない）
+        # 用語集は、一覧と用語集のプリセットと補正に使うプリセットを入れる（glossary_path と active_glossary は None にし、保存でキーを外す）
+        data["glossary_path"] = None
+        data["active_glossary"] = None
         data[GLOSSARIES_FIELD_NAME] = self._glossaries_panel.collect()
         data[GLOSSARY_PRESETS_FIELD_NAME] = self._glossaries_panel.collect_presets()
         data["active_glossary_preset"] = self._glossaries_panel.active_preset_name()
@@ -1456,12 +1475,14 @@ class SettingsWindow(QWidget):
         try:
             settings = self._settings_model.model_validate(self.collect())
         except ValidationError as error:
+            defaults = self._deps.default_settings()
             failures = [
                 (
                     format_error_location(tuple(failure["loc"])),
                     to_field_message(
                         failure,
                         model=self._settings_model,
+                        defaults=defaults,
                         name_of=lambda other, own=format_error_location(tuple(failure["loc"])): (
                             self._label_of(other, own)
                         ),
@@ -1551,11 +1572,15 @@ class SettingsWindow(QWidget):
         )
 
     def reset_to_defaults(self) -> None:
-        """確かめて、戻すなら既定の設定を書いて欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す。"""
+        """確かめて、戻すなら環境の値を空にして読み直した設定を欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す。"""
         if not confirm_reset(self):
             return
-        defaults = self._settings_model()
-        self._deps.save_settings(defaults, {})
+        # 環境の値を空にして読み直す（読めなければ欄を変えずに理由を出す）
+        try:
+            defaults, _restart_needed = self._deps.reset_settings()
+        except SettingsError as error:
+            self._show_errors([(None, str(error))])
+            return
         self._clear_errors()
         self._saved_notice.hide()
         self._populate(defaults)

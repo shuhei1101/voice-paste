@@ -140,14 +140,14 @@ def test_hidden_setting_keys_when_empty() -> None:
 
 def test_hidden_setting_keys_when_keys_exist() -> None:
     """表の設定のキーは全て設定のモデルにある（正常系）。"""
+    from tests.unit.voice_paste.settings_helpers import load_test_default_settings
     from voice_paste.shared.os_kind import FEATURE_SETTING_KEYS, hidden_setting_keys
-    from voice_paste.shared.settings import Settings
 
     # 準備
     all_keys = hidden_setting_keys(FEATURE_SETTING_KEYS.keys())
 
     # 実行
-    untraceable = _untraceable_keys(Settings(), all_keys)
+    untraceable = _untraceable_keys(load_test_default_settings(), all_keys)
 
     # 検証
     assert untraceable == []

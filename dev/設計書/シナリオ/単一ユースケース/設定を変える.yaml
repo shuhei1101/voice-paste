@@ -15,7 +15,7 @@ scenarios:
         participant TRAY as トレイ
         participant SW as 設定画面
         participant MDL as 設定のモデル
-        participant TOML as settings.toml
+        participant ENV as settings.yaml
         participant APP as 常駐アプリ
 
         U->>TRAY: 「設定…」を選ぶ
@@ -26,7 +26,7 @@ scenarios:
         U->>SW: 「保存」を押す
         SW->>MDL: 欄の値を確かめる
         MDL-->>SW: 通った
-        SW->>TOML: 変わった値を、コメントを保ったまま書く
+        SW->>ENV: 変わった値を、コメントを保ったまま書く
         SW->>APP: 反映が immediate の値を動いている常駐アプリに効かせる
         SW-->>U: 開いたまま、保存できたことを出す
         U->>SW: 「キャンセル」を押す
@@ -35,7 +35,7 @@ scenarios:
         APP->>APP: ホットキーの受付を張り直す
       ```
     expected:
-      - '`settings.toml` の `hotkeys.start` が新しい組み合わせになり、ほかのキーとコメントが変わっていない'
+      - '`settings.yaml` の `hotkeys.start` が新しい組み合わせになり、ほかのキーとコメントが変わっていない'
       - 「保存」の後、設定画面が開いたまま、入れた値と選んでいたまとまりが残り、保存できたことが出ている
       - 保存の後に欄を変えずに「キャンセル」を押すと、変えた値を捨てる確認を出さずに設定画面が閉じる
       - 設定画面を閉じた後、再起動せずに、新しい組み合わせで録音が始まり、前の組み合わせでは始まらない
@@ -53,7 +53,7 @@ scenarios:
         actor U as ユーザー
         participant SW as 設定画面
         participant MDL as 設定のモデル
-        participant TOML as settings.toml
+        participant ENV as settings.yaml
         participant APP as 常駐アプリ
         participant NEW as 新しい常駐アプリ
 
@@ -63,14 +63,14 @@ scenarios:
         U->>SW: 「保存して再起動」を押す
         SW->>MDL: 欄の値を確かめる
         MDL-->>SW: 通った
-        SW->>TOML: 変わった値を書く
+        SW->>ENV: 変わった値を書く
         SW->>APP: 閉じて再起動を求める
         APP->>NEW: 同じ引数で新しいプロセスを起動する
         APP->>APP: 自分のプロセスを終える
         Note over NEW: 以降は 常駐アプリを起動する の 正常シナリオ（新しいモデルを読み込む）
       ```
     expected:
-      - '`settings.toml` の `transcription.local_whisper.model` が新しいモデルになっている'
+      - '`settings.yaml` の `transcription.local_whisper.model` が新しいモデルになっている'
       - 前の常駐アプリのプロセスが終わり、新しいプロセスが新しいモデルで文字を起こす
     test: test_normal_when_save_and_restart
   - name: 正常シナリオ（既定に戻す）
@@ -78,28 +78,28 @@ scenarios:
       - name: Mock
         description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
       - name: 変えた設定
-        description: '`settings.toml` に既定と違う値がある'
+        description: '`settings.yaml` に既定と違う値がある'
     flow: |-
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
         participant SW as 設定画面
         participant DLG as 既定に戻す確認
-        participant TOML as settings.toml
+        participant ENV as settings.yaml
         participant APP as 常駐アプリ
 
         Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
         U->>SW: 「既定に戻す」を押す
         SW->>DLG: 全ての設定を既定の値へ戻すかを確かめる
         U->>DLG: 「既定に戻す」を押す
-        DLG->>TOML: 全てのキーを既定の値で書く
+        DLG->>ENV: 設定のキーを全て外す
         DLG->>APP: 反映が immediate の値を動いている常駐アプリに効かせる
         DLG->>SW: 戻り、既定の値を欄に入れる
       ```
     expected:
-      - '`settings.toml` の全てのキーが既定の値になっている'
+      - '`settings.yaml` に設定のキーが無く、全てのキーが `config/defaults.yaml` の値（`settings.local.yaml` があるキーはその値）で動いている'
       - 反映が `immediate` のキーは動いている常駐アプリに効き、`restart` のキーは再起動するまで前の値のまま動く
-      - 設定画面が開いたまま、欄に既定の値が入っている
+      - 設定画面が開いたまま、欄に既定の値（`settings.local.yaml` があるキーはその値）が入っている
     test: test_normal_when_reset
   - name: 正常シナリオ（取り消す）
     setup:
@@ -122,7 +122,7 @@ scenarios:
         DLG->>SW: 何も書かずに閉じる
       ```
     expected:
-      - '`settings.toml` が変わっていない'
+      - '`settings.yaml` が変わっていない'
       - 動いている常駐アプリの設定が変わっていない
       - 設定画面が閉じている
     test: test_normal_when_cancel
@@ -139,7 +139,7 @@ scenarios:
         actor U as ユーザー
         participant SW as 設定画面
         participant MDL as 設定のモデル
-        participant TOML as settings.toml
+        participant ENV as settings.yaml
 
         Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
         U->>SW: Enter までの秒数を abc にして「保存」を押す
@@ -148,7 +148,7 @@ scenarios:
         SW-->>U: その欄の下にエラーを出し、最初のエラーの欄へフォーカスを移す
       ```
     expected:
-      - '`settings.toml` が変わっていない'
+      - '`settings.yaml` が変わっていない'
       - 設定画面が開いたまま、Enter までの秒数の欄の下にエラーが出て、その欄にフォーカスがある
       - 動いている常駐アプリの設定が変わっていない
     test: test_error_when_invalid_value
@@ -166,7 +166,7 @@ scenarios:
         actor U as ユーザー
         participant SW as 設定画面
         participant MDL as 設定のモデル
-        participant TOML as settings.toml
+        participant ENV as settings.yaml
         participant APP as 常駐アプリ
 
         Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
@@ -175,7 +175,7 @@ scenarios:
         U->>SW: 「保存」を押す
         SW->>MDL: 欄の値を確かめる
         MDL-->>SW: 通った
-        SW->>TOML: プリセットの一覧を、コメントを保ったまま書く
+        SW->>ENV: プリセットの一覧を、コメントを保ったまま書く
         SW->>APP: 効かせる
         SW-->>U: 開いたまま、保存できたことを出す
         U->>SW: 「キャンセル」を押す
@@ -184,7 +184,7 @@ scenarios:
         APP->>APP: プリセットのホットキーの受付を張り直す
       ```
     expected:
-      - '`settings.toml` に追加したプリセットが書かれ、ほかのキーとコメントが変わっていない'
+      - '`settings.yaml` に追加したプリセットが書かれ、ほかのキーとコメントが変わっていない'
       - 「保存」の後、設定画面が開いたまま、追加したプリセットが一覧に残り、保存できたことが出ている
       - 設定画面を閉じた後、再起動せずに、次の録音の画面にそのプリセットのボタンが出、そのホットキーで確定できる
     test: test_normal_when_add_custom_preset
@@ -206,7 +206,7 @@ scenarios:
         participant SW as 設定画面
         participant MDL as 設定のモデル
         participant GL as 用語集のファイル
-        participant TOML as settings.toml
+        participant ENV as settings.yaml
         participant APP as 常駐アプリ
 
         Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
@@ -218,7 +218,7 @@ scenarios:
         SW->>MDL: 欄の値を確かめる
         MDL-->>SW: 通った
         SW->>GL: 用語集の行とオン・オフを書き戻す
-        SW->>TOML: 変わった値を、コメントを保ったまま書く
+        SW->>ENV: 変わった値を、コメントを保ったまま書く
         SW->>APP: 効かせる
         SW-->>U: 開いたまま、保存できたことを出す
       ```
@@ -245,7 +245,7 @@ scenarios:
         participant SW as 設定画面
         participant MDL as 設定のモデル
         participant GL as 用語集のファイル
-        participant TOML as settings.toml
+        participant ENV as settings.yaml
         participant APP as 常駐アプリ
 
         Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
@@ -257,18 +257,18 @@ scenarios:
         SW->>MDL: 欄の値を確かめる
         MDL-->>SW: 通った
         SW->>GL: 追加した用語集の行を書く
-        SW->>TOML: 用語集の一覧・用語集のプリセットの一覧・補正に使うプリセットを、コメントを保ったまま書く
+        SW->>ENV: 用語集の一覧・用語集のプリセットの一覧・補正に使うプリセットを、コメントを保ったまま書く
         SW->>APP: 効かせる
         SW-->>U: 開いたまま、保存できたことを出す
       ```
     expected:
       - 追加した用語集のファイルに入れた行があり、今の用語集のファイルが変わっていない
-      - '`settings.toml` に、追加した用語集と、両方の用語集を使う追加したプリセットと、補正に使うプリセットがそのプリセットであることが書かれ、ほかのキーとコメントが変わっていない'
+      - '`settings.yaml` に、追加した用語集と、両方の用語集を使う追加したプリセットと、補正に使うプリセットがそのプリセットであることが書かれ、ほかのキーとコメントが変わっていない'
       - 再起動せずに、動いている常駐アプリの補正に文字を渡すと、今の用語集と追加した用語集の両方の行の誤変換が置き換わる（マイクを開かずに確かめる）
       - 設定画面が開いたまま、保存できたことが出ている
     test: test_normal_when_switch_glossary_preset
     notes:
-      既定のプリセット: 用語集のプリセットのキーが無い settings.toml は、今の補正に使う用語集（`active_glossary`。無ければ 1 つ目の用語集）だけを使うプリセットを 1 つ持ち、それを補正に使うとして読む。
+      既定のプリセット: 用語集のプリセットのキーが無い設定は、今の補正に使う用語集（`active_glossary`。無ければ 1 つ目の用語集）だけを使うプリセットを 1 つ持ち、それを補正に使うとして読む。
       入力の確かめ: |-
         プリセットの名前が空・ほかのプリセットと同じ名前のときは、確かめに通らず保存しない（異常シナリオ（確かめに通らない値を入れる）と同じ流れ）。
         使う用語集を 1 つも選ばないプリセットは保存でき、補正では何も置き換えない。
@@ -293,7 +293,7 @@ scenarios:
         actor U as ユーザー
         participant SW as 設定画面
         participant MDL as 設定のモデル
-        participant TOML as settings.toml
+        participant ENV as settings.yaml
         participant APP as 常駐アプリ
 
         Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
@@ -303,12 +303,12 @@ scenarios:
         U->>SW: 「保存」を押す
         SW->>MDL: 欄の値を確かめる
         MDL-->>SW: 通った
-        SW->>TOML: 手がかりのプリセットの一覧を、コメントを保ったまま書く
+        SW->>ENV: 手がかりのプリセットの一覧を、コメントを保ったまま書く
         SW->>APP: 効かせる
         SW-->>U: 開いたまま、保存できたことを出す
       ```
     expected:
-      - '`settings.toml` に、追加したプリセット・追加した語と書き換えた語・プリセットごとの有効か無効かが一覧の順に書かれ、ほかのキーとコメントが変わっていない'
+      - '`settings.yaml` に、追加したプリセット・追加した語と書き換えた語・プリセットごとの有効か無効かが一覧の順に書かれ、ほかのキーとコメントが変わっていない'
       - 再起動せずに、動いている常駐アプリが次に組み立てる文字起こしの要求に、有効なプリセットの語が一覧の順に読点（、）でつながって載り、無効のプリセットの語が載らない（マイクを開かずに確かめる。録音を通した文字起こしは 録音を文字に起こす の 正常シナリオ（文字起こしの手がかりを渡す））
       - 設定画面が開いたまま、保存できたことが出ている
     test: test_normal_when_edit_hint_presets
@@ -326,7 +326,7 @@ scenarios:
         actor U as ユーザー
         participant SW as 設定画面
         participant MDL as 設定のモデル
-        participant TOML as settings.toml
+        participant ENV as settings.yaml
 
         Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
         U->>SW: 有効なプリセットに語を追加して「保存」を押す
@@ -335,7 +335,7 @@ scenarios:
         SW-->>U: エラーの一覧と有効な手がかりの長さの行の下にエラーを出す
       ```
     expected:
-      - '`settings.toml` が変わっていない'
+      - '`settings.yaml` が変わっていない'
       - 設定画面が開いたまま、手がかりが長すぎることと、語を減らすかプリセットを無効にすることを求めるエラーが出ている
       - 動いている常駐アプリの設定が変わっていない
     test: test_error_when_hints_too_long
@@ -346,7 +346,7 @@ scenarios:
       - name: Mock
         description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
       - name: 文頭・文末から削除する文言
-        description: '`settings.toml` に一覧のキーが無く、既定の一覧を使っている'
+        description: '`settings.yaml` に一覧のキーが無く、既定の一覧を使っている'
         notes: 反映は `immediate`
       - name: 変える行
         description: 「ハルシネーション」のまとまりで、文言「お疲れ様でした」・位置「文頭」の行を追加して一覧の先頭へ動かし、既定の「ありがとうございました」の行を消す
@@ -359,7 +359,7 @@ scenarios:
         actor U as ユーザー
         participant SW as 設定画面
         participant MDL as 設定のモデル
-        participant TOML as settings.toml
+        participant ENV as settings.yaml
         participant APP as 常駐アプリ
 
         Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
@@ -369,28 +369,32 @@ scenarios:
         U->>SW: 「保存」を押す
         SW->>MDL: 欄の値を確かめる
         MDL-->>SW: 通った
-        SW->>TOML: 一覧を、コメントを保ったまま書く
+        SW->>ENV: 一覧を、コメントを保ったまま書く
         SW->>APP: 効かせる
         SW-->>U: 開いたまま、保存できたことを出す
       ```
     expected:
-      - '`settings.toml` に、追加した行を先頭にして消した行を除いた一覧が、行ごとの文言と位置つきで一覧の順に書かれ、ほかのキーとコメントが変わっていない'
+      - '`settings.yaml` に、追加した行を先頭にして消した行を除いた一覧が、行ごとの文言と位置つきで一覧の順に書かれ、ほかのキーとコメントが変わっていない'
       - 再起動せずに、動いている常駐アプリの補正に補正に渡す文字を渡すと、「本日はここまでです。ありがとうございました。」が返る（文頭の「お疲れ様でした。」が消え、消した行の「ありがとうございました。」は文末に残る。マイクを開かずに確かめる。録音を通した補正は 録音を文字に起こす の 正常シナリオ（文頭・文末の決まった文言を消す））
       - 設定画面が開いたまま、保存できたことが出ている
     test: test_normal_when_edit_edge_phrases
     notes:
       入力の確かめ: 文言が空の行は保存で捨てる。文言が `*` だけの行は文頭・文末の行を丸ごと消すため、異常シナリオ（確かめに通らない値を入れる）と同じく保存しない。
       既定の一覧: キーが無いときは既定の一覧を出し、保存で一覧を書く。既定の値は 設定/常駐アプリ が持つ。
-lead: トレイの「設定…」から設定画面を開き、変えた設定を設定のモデルで確かめてから `settings.toml` に保存する単一ユースケース。
+lead: トレイの「設定…」から設定画面を開き、変えた設定を設定のモデルで確かめてから環境の値の `settings.yaml` に保存する単一ユースケース。
 issue: 21
 primary_actor: 音声入力を使うユーザー
 trigger: トレイのメニューの「設定…」を選ぶ
 preconditions:
   - 常駐アプリが待機中である（録音から届けるまでの間は、API から始めた録音の間を含めて、トレイの「設定…」を押せない）
 notes:
-  画面の項目: '`settings.toml` の全てのキーを、出力先・ホットキー・録音・文字起こし・表記のヒント・用語集・ハルシネーション・画面・履歴とログ・API のまとまりに分け、左のメニューで切り替える。欄は設定のモデルから組み立てる（キーの一覧は 設定/常駐アプリ）。手がかりのプリセットは、画面では「表記のヒント」のまとまりに「ヒントのプリセット」として出す。
+  画面の項目: '設定の全てのキーを、出力先・ホットキー・録音・文字起こし・表記のヒント・用語集・ハルシネーション・画面・履歴とログ・API のまとまりに分け、左のメニューで切り替える。欄は設定のモデルから組み立てる（キーの一覧は 設定/常駐アプリ）。手がかりのプリセットは、画面では「表記のヒント」のまとまりに「ヒントのプリセット」として出す。
 
     用語集のプリセットは、「用語集」のまとまりに用語集の一覧と並べて出す。'
+  設定のレイヤー: |-
+    欄には、既定値 `config/defaults.yaml` → 環境の値 `settings.yaml` → checkout の上書き `settings.local.yaml` を重ねた値を入れる（常駐アプリを起動する の補足『設定のレイヤー』）。
+    保存は `settings.yaml` だけに書き、既定値と同じ値にしたキーは `settings.yaml` から外す。`config/defaults.yaml` と `settings.local.yaml` は書き換えない。
+    `settings.local.yaml` にあるキーは、保存しても `settings.local.yaml` の値で動く。
   反映の種類: |-
     キーごとの反映（`immediate` / `restart`）は 設定/常駐アプリ が持つ。反映が `restart` の欄には「再起動で反映」を出し、そうした欄を変えたときだけ「保存して再起動」を出す。`immediate` の値は保存した時点で動いている常駐アプリに効く。
     ホットキーの欄の値は `immediate` でも、設定画面を開いている間はホットキーを受け付けないため、設定画面を閉じた時点で新しい組み合わせが効く。

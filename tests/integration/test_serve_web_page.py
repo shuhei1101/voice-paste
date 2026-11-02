@@ -73,7 +73,7 @@ def test_error_when_host_not_loopback(stack: Stack) -> None:
     "path",
     [
         pytest.param("/web/assets/none.js", id="missing_file"),
-        pytest.param("/web/assets/..%2F..%2Fsettings.toml", id="outside_directory"),
+        pytest.param("/web/assets/..%2F..%2Fsettings.yaml", id="outside_directory"),
     ],
 )
 def test_error_when_asset_not_found(stack: Stack, path: str) -> None:

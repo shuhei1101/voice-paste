@@ -7,7 +7,7 @@ elements:
     description: 状態ごとに同梱した画像（`resources/` の下）を出し分ける。失敗は録音中と同じ赤の地にマイクの斜線を入れ、色だけでなく形でも分ける。左クリック（既定の操作）は「録音を開始」と同じ。右クリックでメニューを開く。録音の画面を隠している間の左クリックは「録音の画面を表示」と同じで、それ以外の録音から届けるまでの間は何もしない
     io: 表示
     visible_when: 起動してから終了まで
-    options: 準備中・待機中・録音中・文字起こし中・失敗（文字起こしのエンジンを準備できなかった起動のときだけで、次の起動まで続く）
+    options: 準備中・待機中・録音中・文字起こし中・失敗（文字起こしのエンジンを準備できなかったか、設定を読めなかった起動のときだけで、次の起動まで続く）
     source: UiBridge.notified（state_changed）と起動の結果
     action_ref: dev/設計書/モジュール構成/常駐アプリ/セッション.py#classes[SessionManager].methods[start]
   - name: アイコンのヒント
@@ -25,7 +25,7 @@ elements:
     description: 録音を開始する。後の流れは録音開始のホットキーと同じで、`recording.hide_window` がオンなら録音の画面を出さない。右に録音開始のホットキーを出す。既定の項目として太字で出し、押せないときは太字を外す
     label: 録音を開始 [hotkeys.start]（処理中は「録音を開始（処理中）」、準備に失敗した起動では「録音を開始（準備に失敗）」）
     visible_when: 常時
-    enabled_when: 待機中のとき。録音から届けるまでの間（API から始めた録音の間を含む）と、文字起こしのエンジンを準備できなかった起動では押せない
+    enabled_when: 待機中のとき。録音から届けるまでの間（API から始めた録音の間を含む）と、起動に失敗した起動では押せない
     action_ref: dev/設計書/モジュール構成/常駐アプリ/セッション.py#classes[SessionManager].methods[start]
     refs:
       - dev/設計書/画面設計/常駐アプリ/録音の画面.py#
@@ -33,16 +33,16 @@ elements:
     id: menu_settings
     kind: menu_item
     position: メニュー > 区切りの後 > 3 番目
-    description: 設定画面を開く。文字起こしのエンジンを準備できなかった起動でも、設定を直して再起動できるよう押せるまま残す
+    description: 設定画面を開く。文字起こしのエンジンを準備できなかった起動でも、設定を直して再起動できるよう押せるまま残す。設定を読めなかった起動では、読んだ設定が無いため押せない
     label: 設定…（処理中は「設定…（処理中）」）
     visible_when: 常時
-    enabled_when: 準備中（起動してから待機中か失敗になるまで）でなく、録音から届けるまでの間（API から始めた録音の間を含む）でもないとき
+    enabled_when: 準備中（起動してから待機中か失敗になるまで）でなく、録音から届けるまでの間（API から始めた録音の間を含む）でもなく、設定を読めなかった起動でもないとき
     action_ref: dev/設計書/画面設計/常駐アプリ/設定画面.py#
   - name: 設定フォルダを開く
     id: menu_open_settings_folder
     kind: menu_item
     position: メニュー > 4 番目
-    description: settings.toml のあるフォルダをエクスプローラーで開く
+    description: settings.yaml のあるフォルダをエクスプローラーで開く
     label: 設定フォルダを開く
     visible_when: 常時
     action: 設定のフォルダを開く

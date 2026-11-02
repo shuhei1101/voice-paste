@@ -33,17 +33,17 @@ from scipy.signal import resample_poly
 import voice_paste.main as main_module
 from tests.integration.helpers import CallbackReceiver, wait_until
 from tests.support.processes import ProcessInfo, descendants, processes_with
+from tests.support.settings import default_output, load_test_default_settings, make_test_settings
 from tests.support.web_body import CONTENT_TYPE, chunks_of
 from voice_paste.features.recording.client import SAMPLE_RATE
 from voice_paste.features.session import SessionApiDeps, SessionManager
 from voice_paste.features.web_transcription import WebApiDeps
 from voice_paste.integrations.whisper.client import WORKER_MODULE
-from voice_paste.main import API_START_TIMEOUT_SEC, SETTINGS_MODEL, Handlers
+from voice_paste.main import API_START_TIMEOUT_SEC, Handlers
 from voice_paste.server.app import build_fastapi
 from voice_paste.server.runner import ApiServerRunner
 from voice_paste.server.token import create_token
 from voice_paste.shared.constants import AppPaths, resolve_app_paths
-from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
 from voice_paste.runtime.timer import RepeatingTimer
 from voice_paste.shared.errors import TranscriptionError
 from voice_paste.shared.os_kind import (
@@ -54,13 +54,9 @@ from voice_paste.shared.os_kind import (
     unavailable_features,
 )
 from voice_paste.shared.settings import (
-    ApiSettings,
-    ContinuousSettings,
     GlossaryPresetSettings,
     GlossarySettings,
-    LocalWhisperSettings,
     Settings,
-    TranscriptionSettings,
 )
 from voice_paste.shared.types import EnterModifier, Entry, Recording
 
@@ -646,24 +642,23 @@ def make_settings(
 
     連続録音のセッションの上限時間は、設定で許す下限（60 秒）より短い値も、テストで待てるよう検査を通さずに入れる。
     """
-    outputs = [PasteAndSendSettings()] if only_paste_and_send else SETTINGS_MODEL().outputs
-    local_whisper = (
-        LocalWhisperSettings()
-        if vad_threshold is None
-        else LocalWhisperSettings(vad_threshold=vad_threshold)
+    outputs = (
+        [default_output("paste_and_send")]
+        if only_paste_and_send
+        else load_test_default_settings().outputs
     )
-    api = ApiSettings()
-    if continuous_session_limit_sec is not None:
-        continuous = ContinuousSettings.model_construct(
-            min_silence_sec=ContinuousSettings().min_silence_sec,
-            session_limit_sec=continuous_session_limit_sec,
-        )
-        api = ApiSettings(continuous=continuous)
-    return SETTINGS_MODEL(
-        outputs=outputs,
-        transcription=TranscriptionSettings(local_whisper=local_whisper),
-        api=api,
+    local_whisper = {} if vad_threshold is None else {"vad_threshold": vad_threshold}
+    settings = make_test_settings(
+        {"transcription": {"local_whisper": local_whisper}}, outputs=outputs
     )
+    if continuous_session_limit_sec is None:
+        return settings
+    # 連続録音のセッションの上限時間は、検査を通さずに入れる
+    continuous = settings.api.continuous.model_copy(
+        update={"session_limit_sec": continuous_session_limit_sec}
+    )
+    api = settings.api.model_copy(update={"continuous": continuous})
+    return settings.model_copy(update={"api": api})
 
 
 FIRST_PRESET_NAME = "既定"

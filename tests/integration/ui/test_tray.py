@@ -18,6 +18,7 @@ from PySide6.QtGui import QAction, QColor, QDesktopServices
 from PySide6.QtWidgets import QSystemTrayIcon
 
 from tests.integration.ui.helpers import Ui, edge_and_face_colors
+from tests.support.settings import make_settings
 
 if TYPE_CHECKING:
     from voice_paste.ui.tray import Tray, TrayState
@@ -126,7 +127,7 @@ def test_tray_icon_when_failed(make_ui: Callable[..., Ui]) -> None:
 
     # 準備
     ui = make_ui()
-    ui.tray.set_failed()
+    ui.tray.set_failed(settings_enabled=True)
 
     # 実行
     ui.tray.set_state(TrayState.IDLE, busy=False)
@@ -181,10 +182,8 @@ def test_tray_icon_left_click_when_not_hidden(
     make_ui: Callable[..., Ui], entry: str, state: str, hide_window: bool
 ) -> None:
     """録音から届けるまでの間で、録音の画面を隠していないときの左クリックは何もしない。"""
-    from voice_paste.shared.settings import RecordingSettings, Settings
-
     # 準備
-    ui = make_ui(Settings(recording=RecordingSettings(hide_window=hide_window)))
+    ui = make_ui(make_settings(recording=dict(hide_window=hide_window)))
     ui.notify_state(entry, state)
     visible = ui.recording_window.isVisible()
     show_requested = MagicMock()
@@ -263,7 +262,7 @@ def test_menu_start_label_when_failed(make_ui: Callable[..., Ui]) -> None:
     ui = make_ui()
 
     # 実行
-    ui.tray.set_failed()
+    ui.tray.set_failed(settings_enabled=True)
 
     # 検証
     action = _action(ui.tray, "menu_start")
@@ -328,10 +327,8 @@ def test_menu_show_window_when_shown(make_ui: Callable[..., Ui]) -> None:
 
 def test_menu_show_window_when_hide_window_setting(make_ui: Callable[..., Ui]) -> None:
     """画面を出さない設定の録音の間は「録音の画面を表示（画面を表示しない録音）」にして押せない。"""
-    from voice_paste.shared.settings import RecordingSettings, Settings
-
     # 準備
-    ui = make_ui(Settings(recording=RecordingSettings(hide_window=True)))
+    ui = make_ui(make_settings(recording=dict(hide_window=True)))
 
     # 実行
     ui.notify_state("hotkey", "recording")
@@ -391,7 +388,7 @@ def test_menu_show_window_when_failed(make_ui: Callable[..., Ui]) -> None:
     ui = make_ui()
 
     # 実行
-    ui.tray.set_failed()
+    ui.tray.set_failed(settings_enabled=True)
     ui.tray.set_state(TrayState.IDLE, busy=False)
 
     # 検証
@@ -457,7 +454,7 @@ def test_menu_settings_enabled_when_idle(make_ui: Callable[..., Ui]) -> None:
     idle_enabled = _action(ui.tray, "menu_settings").isEnabled()
 
     # 実行
-    ui.tray.set_failed()
+    ui.tray.set_failed(settings_enabled=True)
 
     # 検証
     action = _action(ui.tray, "menu_settings")
@@ -497,7 +494,7 @@ def test_menu_settings_when_busy(make_ui: Callable[..., Ui]) -> None:
 def test_menu_open_settings_folder_action(
     make_ui: Callable[..., Ui], opened_urls: list[QUrl]
 ) -> None:
-    """「設定フォルダを開く」は settings.toml のあるフォルダをエクスプローラーで開く。"""
+    """「設定フォルダを開く」は settings.yaml のあるフォルダをエクスプローラーで開く。"""
     # 準備
     ui = make_ui()
 

@@ -273,7 +273,7 @@ functions:
         type: Path
         required: true
         passing: positional
-        description: settings.toml のあるフォルダ
+        description: settings.yaml のあるフォルダ
     returns:
       type: list[GlossarySettings]
       description: 用語集の一覧（1 件以上。path は絶対パス）
@@ -324,7 +324,7 @@ functions:
         type: Path
         required: true
         passing: positional
-        description: settings.toml のあるフォルダ
+        description: settings.yaml のあるフォルダ
     returns:
       type: GlossarySettings
       description: 補正に使う用語集（path は絶対パス）
@@ -345,7 +345,7 @@ functions:
         type: Path
         required: true
         passing: injected
-        description: 追加した用語集の CSV を置くフォルダ（settings.toml と同じフォルダの `glossaries`）
+        description: 追加した用語集の CSV を置くフォルダ（settings.yaml と同じフォルダの `glossaries`）
       - name: taken
         type: Collection[Path]
         required: true
@@ -477,7 +477,7 @@ functions:
         type: Path
         required: true
         passing: positional
-        description: settings.toml のあるフォルダ
+        description: settings.yaml のあるフォルダ
     returns:
       type: list[GlossaryPresetSettings]
       description: 用語集のプリセットの一覧（1 件以上。glossaries は用語集の一覧にある名前だけ）
@@ -535,7 +535,7 @@ functions:
         type: Path
         required: true
         passing: positional
-        description: settings.toml のあるフォルダ
+        description: settings.yaml のあるフォルダ
       - name: requested
         type: str | None
         required: false
@@ -635,7 +635,7 @@ constants:
     title: 既定の用語集のファイル名
     container: features/correction/service.py
     value: '"yogo.csv"'
-    summary: '`glossaries` も `glossary_path` も無いときに読む、settings.toml と同じフォルダの用語集のファイル名（main.py の GLOSSARY_FILE_NAME を移す）'
+    summary: '`glossaries` も `glossary_path` も無いときに読む、settings.yaml と同じフォルダの用語集のファイル名（main.py の GLOSSARY_FILE_NAME を移す）'
     status: implemented
   - name: EDGE_TRAILING_CHARS
     title: 文言と一緒に削除する文字
@@ -648,7 +648,7 @@ constants:
     title: 既定の用語集のプリセットの名前
     container: features/correction/service.py
     usecase: 共通
-    summary: '`glossary_presets` のキーが無い・空の settings.toml で、resolve_glossary_presets が作る 1 つだけのプリセットの名前'
+    summary: '`glossary_presets` のキーが無い・空の設定で、resolve_glossary_presets が作る 1 つだけのプリセットの名前'
     value: '"既定"'
     status: planned
     introduced:

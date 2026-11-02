@@ -1,17 +1,15 @@
-"""設定のモデル（pydantic）と、settings.toml の読み書き（tomlkit）。"""
+"""設定のモデル（pydantic）と、既定値・環境の値・checkout の上書きの 3 レイヤーの読み込みと環境の値の書き戻し、settings.toml からの移行。"""
 
 from __future__ import annotations
 
 import copy
 import logging
 import operator
-import os
 import re
-import tempfile
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, Sequence
 from functools import reduce
 from pathlib import Path
-from typing import Annotated, Any, ClassVar, Literal, Protocol, cast
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, Protocol
 
 import tomlkit
 from pydantic import (
@@ -26,12 +24,23 @@ from pydantic import (
     model_validator,
 )
 from pydantic_core import InitErrorDetails, PydanticCustomError
-from tomlkit.container import Container
 from tomlkit.exceptions import TOMLKitError
-from tomlkit.items import AoT, Comment, Item, Key, Null, Table, Whitespace
 
 from voice_paste.shared.errors import SettingsError
 from voice_paste.shared.os_kind import CURRENT_OS, OsKind
+from voice_paste.shared.yaml_document import (
+    changed_keys,
+    delete_key,
+    diff_from_defaults,
+    merge_layers,
+    read_yaml_document,
+    read_yaml_mapping,
+    set_key,
+    write_yaml_document,
+)
+
+if TYPE_CHECKING:
+    from voice_paste.shared.constants import AppPaths
 
 logger = logging.getLogger(__name__)
 
@@ -120,9 +129,6 @@ PASTE_AND_SEND_ID: str = "paste_and_send"
 URL_PATTERN: str = r"^https?://"
 """プリセットの URL の形式（http か https で始まる）。"""
 
-ENDPOINT_TIMEOUT_DEFAULT_SEC: float = 1.5
-"""エンドポイントへ送信するときのタイムアウトの既定（秒）。"""
-
 ENDPOINT_TIMEOUT_MIN_SEC: float = 0.5
 """エンドポイントへ送信するときのタイムアウトの下限（秒）。"""
 
@@ -139,35 +145,22 @@ DEFAULT_AI_CHAT_TARGETS: tuple[dict[str, str], ...] = (
 )
 """前のバージョンの AI チャットの既定の送信先（targets が無いときの読み替えの元）。"""
 
-OS_DEFAULT_OVERRIDES: Mapping[OsKind, Mapping[str, object]] = {
-    OsKind.LINUX: {
-        # Linux では音量を変えない
-        "recording.lower_volume": False,
-        # Linux では CUDA のライブラリを読ませる手当てが無く、cuda では文字起こしワーカーが起動に失敗する
-        "transcription.local_whisper.device": "cpu",
-        # CPU で動く精度
-        "transcription.local_whisper.compute_type": "int8",
-        # Ubuntu は Ctrl+Alt+D を「デスクトップを表示」に割り当てているため、ホットキーの修飾キーを Super+Alt にそろえる
-        "hotkeys.start": "<cmd>+<alt>+d",
-        "hotkeys.pause": "<cmd>+<alt>+z",
-        "hotkeys.cancel": "<cmd>+<alt>+q",
-        "outputs.paste_and_send.hotkey": "<cmd>+<alt>+d",
-        "outputs.paste_only.hotkey": "<cmd>+<alt>+v",
-        "outputs.copy_only.hotkey": "<cmd>+<alt>+c",
-    },
-}
-"""共通の既定値に重ねる、OS ごとの既定値。キーは設定のドットで結んだキー。載っていない OS・キーは共通の既定値のまま。"""
+DEFAULTS_OS_OVERRIDES_KEY: str = "os_overrides"
+"""config/defaults.yaml の中で、OS ごとの既定値の上書きを持つ一番上のキー。中は OsKind の値 → 設定と同じ構造の上書き。"""
+
+PRESET_OPTIONS_FIELD_NAME: str = "preset_options"
+"""プリセットの種類ごとのオプションを持つ Settings の項目名。"""
 
 type _Location = tuple[int | str, ...]
 
 
-def os_default[T](key: str, common: T, *, os_kind: OsKind = CURRENT_OS) -> T:
-    """設定のキーの既定値を、その OS の上書きがあればその値、無ければ共通の既定値で返す。"""
-    return cast("T", OS_DEFAULT_OVERRIDES.get(os_kind, {}).get(key, common))
+def _required(description: str, *, reload: str, **constraints: Any) -> Any:
+    """説明・再起動が要るかのマーカー・範囲を持つ、既定値の無い設定の項目を作る（既定値は config/defaults.yaml が持つ）。"""
+    return Field(description=description, json_schema_extra={"reload": reload}, **constraints)
 
 
 def _item(default: Any, description: str, *, reload: str, **constraints: Any) -> Any:
-    """説明・再起動が要るかのマーカー・範囲を持つ設定の項目を作る。"""
+    """説明・再起動が要るかのマーカー・範囲と既定値を持つ、一覧の要素の設定の項目を作る。"""
     return Field(
         default,
         description=description,
@@ -176,9 +169,9 @@ def _item(default: Any, description: str, *, reload: str, **constraints: Any) ->
     )
 
 
-def _group(factory: Any, description: str) -> Any:
-    """入れ子の設定のまとまりの項目を作る（既定は中の項目の既定値）。"""
-    return Field(default_factory=factory, description=description)
+def _group(description: str) -> Any:
+    """入れ子の設定のまとまりの項目を作る（既定値は持たない）。"""
+    return Field(description=description)
 
 
 class _SettingsModel(BaseModel):
@@ -193,38 +186,34 @@ class _SettingsModel(BaseModel):
 class LocalWhisperSettings(_SettingsModel):
     """ローカルの Whisper の設定。"""
 
-    model: str = _item("large-v3", "faster-whisper のモデル", reload=RELOAD_RESTART)
-    device: Literal["cuda", "cpu"] = _item(
-        os_default("transcription.local_whisper.device", "cuda"),
+    model: str = _required("faster-whisper のモデル", reload=RELOAD_RESTART)
+    device: Literal["cuda", "cpu"] = _required(
         "動かすデバイス",
         reload=RELOAD_RESTART,
     )
-    compute_type: Literal["float16", "int8", "float32"] = _item(
-        os_default("transcription.local_whisper.compute_type", "float16"),
+    compute_type: Literal["float16", "int8", "float32"] = _required(
         "計算の精度",
         reload=RELOAD_RESTART,
     )
-    cpu_threads: int = _item(0, "CPU のスレッド数（0 は自動）", reload=RELOAD_RESTART, ge=0)
-    num_workers: int = _item(1, "並列のデコードの数", reload=RELOAD_RESTART, ge=1)
-    beam_size: int = _item(10, "ビームサーチの幅", reload=RELOAD_RESTART, ge=1)
-    best_of: int = _item(5, "サンプリングの候補の数", reload=RELOAD_RESTART, ge=1)
-    language: str = _item("ja", "認識する言語", reload=RELOAD_RESTART)
-    vad_filter: bool = _item(True, "無音の区間を除くか", reload=RELOAD_RESTART)
-    vad_threshold: float = _item(
-        0.5, "音声とみなす確信度の閾値", reload=RELOAD_RESTART, ge=0, le=1
+    cpu_threads: int = _required("CPU のスレッド数（0 は自動）", reload=RELOAD_RESTART, ge=0)
+    num_workers: int = _required("並列のデコードの数", reload=RELOAD_RESTART, ge=1)
+    beam_size: int = _required("ビームサーチの幅", reload=RELOAD_RESTART, ge=1)
+    best_of: int = _required("サンプリングの候補の数", reload=RELOAD_RESTART, ge=1)
+    language: str = _required("認識する言語", reload=RELOAD_RESTART)
+    vad_filter: bool = _required("無音の区間を除くか", reload=RELOAD_RESTART)
+    vad_threshold: float = _required("音声とみなす確信度の閾値", reload=RELOAD_RESTART, ge=0, le=1)
+    vad_min_speech_ms: int = _required(
+        "これより短い音を雑音として除く（ミリ秒）", reload=RELOAD_RESTART, ge=0
     )
-    vad_min_speech_ms: int = _item(
-        250, "これより短い音を雑音として除く（ミリ秒）", reload=RELOAD_RESTART, ge=0
+    vad_min_silence_ms: int = _required(
+        "これ以上の無音で区間を区切る（ミリ秒）", reload=RELOAD_RESTART, ge=0
     )
-    vad_min_silence_ms: int = _item(
-        2000, "これ以上の無音で区間を区切る（ミリ秒）", reload=RELOAD_RESTART, ge=0
+    condition_on_previous_text: bool = _required(
+        "前の区間の文字を次の区間の文脈に使うか", reload=RELOAD_RESTART
     )
-    condition_on_previous_text: bool = _item(
-        False, "前の区間の文字を次の区間の文脈に使うか", reload=RELOAD_RESTART
-    )
-    temperature: float = _item(0.0, "サンプリングの温度", reload=RELOAD_RESTART, ge=0)
-    no_speech_threshold: float = _item(
-        0.6, "区間を無音とみなす確信度の閾値", reload=RELOAD_RESTART, ge=0, le=1
+    temperature: float = _required("サンプリングの温度", reload=RELOAD_RESTART, ge=0)
+    no_speech_threshold: float = _required(
+        "区間を無音とみなす確信度の閾値", reload=RELOAD_RESTART, ge=0, le=1
     )
 
 
@@ -243,7 +232,7 @@ OPENAI_BASE_URL_KEY: str = "transcription.openai.base_url"
 OPENAI_NOTE: str = (
     "文字起こしのエンジンが OpenAI API のときに使う。"
     "API キーはここでは入れず、環境変数 OPENAI_API_KEY か、"
-    "settings.toml と同じフォルダの secrets/openai_api_key に置く。"
+    "settings.yaml と同じフォルダの secrets/openai_api_key に置く。"
 )
 """設定画面で OpenAI API の欄の下に出す補助文。"""
 
@@ -252,13 +241,11 @@ class OpenAISettings(_SettingsModel):
     """OpenAI API の文字起こしへ渡すモデル・言語・送信先のベース URL。API キーは持たない。"""
 
     model: str = Field(
-        "gpt-transcribe",
         description="OpenAI のモデル",
         json_schema_extra={"reload": RELOAD_RESTART, "note": OPENAI_NOTE},
     )
-    language: str = _item("ja", "OpenAI の言語（ISO-639-1）", reload=RELOAD_RESTART)
-    base_url: str = _item(
-        OPENAI_BASE_URL_DEFAULT,
+    language: str = _required("OpenAI の言語（ISO-639-1）", reload=RELOAD_RESTART)
+    base_url: str = _required(
         "OpenAI のベース URL",
         reload=RELOAD_RESTART,
         pattern=URL_PATTERN,
@@ -269,12 +256,11 @@ class TranscriptionSettings(_SettingsModel):
     """使うエンジンと、エンジンごとの設定。"""
 
     engine: Literal["local_whisper", "openai"] = Field(
-        "local_whisper",
         description="使う文字起こしのエンジン",
         json_schema_extra={"reload": RELOAD_RESTART, "choice_labels": ENGINE_LABELS},
     )
-    local_whisper: LocalWhisperSettings = _group(LocalWhisperSettings, "ローカルの Whisper の設定")
-    openai: OpenAISettings = _group(OpenAISettings, "OpenAI API の設定")
+    local_whisper: LocalWhisperSettings = _group("ローカルの Whisper の設定")
+    openai: OpenAISettings = _group("OpenAI API の設定")
 
 
 # === 録音・ホットキー・キーボード ===
@@ -283,23 +269,18 @@ class TranscriptionSettings(_SettingsModel):
 class RecordingSettings(_SettingsModel):
     """録音中のシステム音量と、画面を出さない設定。"""
 
-    lower_volume: bool = _item(
-        os_default("recording.lower_volume", True),
+    lower_volume: bool = _required(
         "録音中にシステム音量を下げるか",
         reload=RELOAD_IMMEDIATE,
     )
-    volume_percent: float = _item(
-        50,
+    volume_percent: float = _required(
         "録音中の音量の、録音前の音量に対する割合（0〜100）",
         reload=RELOAD_IMMEDIATE,
         ge=0,
         le=100,
     )
-    fade_sec: float = _item(
-        0.5, "音量を下げる・戻すときにかける秒数", reload=RELOAD_IMMEDIATE, ge=0
-    )
-    hide_window: bool = _item(
-        False,
+    fade_sec: float = _required("音量を下げる・戻すときにかける秒数", reload=RELOAD_IMMEDIATE, ge=0)
+    hide_window: bool = _required(
         "録音の画面も文字起こし中の表示も表示せず、トレイとホットキーだけで操作するか",
         reload=RELOAD_IMMEDIATE,
     )
@@ -308,24 +289,19 @@ class RecordingSettings(_SettingsModel):
 class HotkeySettings(_SettingsModel):
     """録音の開始・一時停止・取り消しのホットキー（pynput の GlobalHotKeys の書式）。"""
 
-    start: str = _item(
-        os_default("hotkeys.start", "<ctrl>+<alt>+d"), "録音開始", reload=RELOAD_IMMEDIATE
-    )
-    pause: str = _item(
-        os_default("hotkeys.pause", "<ctrl>+<alt>+z"),
+    start: str = _required("録音開始", reload=RELOAD_IMMEDIATE)
+    pause: str = _required(
         "録音の一時停止・再開",
         reload=RELOAD_IMMEDIATE,
     )
-    cancel: str = _item(
-        os_default("hotkeys.cancel", "<ctrl>+<alt>+q"), "録音の取り消し", reload=RELOAD_IMMEDIATE
-    )
+    cancel: str = _required("録音の取り消し", reload=RELOAD_IMMEDIATE)
 
 
 class KeyboardSettings(_SettingsModel):
     """貼り付け先へ送信する貼り付けのキー。"""
 
-    paste_key: str = _item(
-        "<ctrl>+v", "貼り付けのキーの組み合わせ（pynput の書式）", reload=RELOAD_IMMEDIATE
+    paste_key: str = _required(
+        "貼り付けのキーの組み合わせ（pynput の書式）", reload=RELOAD_IMMEDIATE
     )
 
 
@@ -412,16 +388,15 @@ Preset = Annotated[BrowserPreset | EndpointPreset, Field(discriminator="kind")]
 class BrowserPresetOptions(_SettingsModel):
     """ブラウザ添付の全てのプリセットで使う、開いてから貼り付けるまでの間。"""
 
-    open_delay_sec: float = _item(
-        3.0, "画面を開いてから貼り付けるまで待つ秒数", reload=RELOAD_IMMEDIATE, ge=0
+    open_delay_sec: float = _required(
+        "画面を開いてから貼り付けるまで待つ秒数", reload=RELOAD_IMMEDIATE, ge=0
     )
 
 
 class EndpointPresetOptions(_SettingsModel):
     """エンドポイントへ送信の全てのプリセットで使う、送信のタイムアウト。"""
 
-    timeout_sec: float = _item(
-        ENDPOINT_TIMEOUT_DEFAULT_SEC,
+    timeout_sec: float = _required(
         "送信のタイムアウトの秒数",
         reload=RELOAD_IMMEDIATE,
         ge=ENDPOINT_TIMEOUT_MIN_SEC,
@@ -432,10 +407,8 @@ class EndpointPresetOptions(_SettingsModel):
 class PresetOptions(_SettingsModel):
     """プリセットの種類ごとに、その種類の全てのプリセットで使う設定。"""
 
-    browser: BrowserPresetOptions = _group(BrowserPresetOptions, "ブラウザ添付のオプション")
-    endpoint: EndpointPresetOptions = _group(
-        EndpointPresetOptions, "エンドポイントへ送信のオプション"
-    )
+    browser: BrowserPresetOptions = _group("ブラウザ添付のオプション")
+    endpoint: EndpointPresetOptions = _group("エンドポイントへ送信のオプション")
 
 
 # === 履歴・ログ・画面・API ===
@@ -444,18 +417,18 @@ class PresetOptions(_SettingsModel):
 class HistorySettings(_SettingsModel):
     """履歴を残すかと保持期間。"""
 
-    enabled: bool = _item(True, "録音と起こした文字を履歴に残すか", reload=RELOAD_RESTART)
-    retention_days: int = _item(1, "保持する日数（1 以上）", reload=RELOAD_RESTART, ge=1)
+    enabled: bool = _required("録音と起こした文字を履歴に残すか", reload=RELOAD_RESTART)
+    retention_days: int = _required("保持する日数（1 以上）", reload=RELOAD_RESTART, ge=1)
 
 
 class LoggingSettings(_SettingsModel):
     """ログのレベルと保持期間。"""
 
-    level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = _item(
-        "INFO", "ログのレベル", reload=RELOAD_RESTART
+    level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = _required(
+        "ログのレベル", reload=RELOAD_RESTART
     )
-    retention_days: int = _item(
-        7, "日付ごとのログを保持する日数（1 以上）", reload=RELOAD_RESTART, ge=1
+    retention_days: int = _required(
+        "日付ごとのログを保持する日数（1 以上）", reload=RELOAD_RESTART, ge=1
     )
 
 
@@ -471,54 +444,37 @@ class UiSettings(_SettingsModel):
     """画面の明暗と、録音の画面・文字起こし中の表示の出し方。"""
 
     theme: Literal["system", "light", "dark"] = Field(
-        "system",
         description="画面の明暗。system は Windows の明暗に従う",
         json_schema_extra={"reload": RELOAD_IMMEDIATE, "choice_labels": THEME_LABELS},
     )
-    topmost: bool = _item(True, "常に最前面に表示するか", reload=RELOAD_IMMEDIATE)
-    position: Literal["center", "top-left", "top-right", "bottom-left", "bottom-right"] = _item(
-        "center", "表示する位置", reload=RELOAD_IMMEDIATE
+    topmost: bool = _required("常に最前面に表示するか", reload=RELOAD_IMMEDIATE)
+    position: Literal["center", "top-left", "top-right", "bottom-left", "bottom-right"] = _required(
+        "表示する位置", reload=RELOAD_IMMEDIATE
     )
-    follow_cursor: bool = _item(
-        True, "マウスカーソルのあるモニターに表示するか", reload=RELOAD_IMMEDIATE
+    follow_cursor: bool = _required(
+        "マウスカーソルのあるモニターに表示するか", reload=RELOAD_IMMEDIATE
     )
-    wave_gain: float = _item(
-        4, "波形の振れの大きさ（0 より大きい）", reload=RELOAD_IMMEDIATE, gt=0
+    wave_gain: float = _required(
+        "波形の振れの大きさ（0 より大きい）", reload=RELOAD_IMMEDIATE, gt=0
     )
-    show_hotkeys: bool = _item(
-        True, "録音の画面のボタンにホットキーを表示するか", reload=RELOAD_IMMEDIATE
+    show_hotkeys: bool = _required(
+        "録音の画面のボタンにホットキーを表示するか", reload=RELOAD_IMMEDIATE
     )
-    transcribing_show_hotkeys: bool = _item(
-        True, "文字起こし中の表示のボタンにホットキーを表示するか", reload=RELOAD_IMMEDIATE
+    transcribing_show_hotkeys: bool = _required(
+        "文字起こし中の表示のボタンにホットキーを表示するか", reload=RELOAD_IMMEDIATE
     )
-
-    @model_validator(mode="before")
-    @classmethod
-    def _inherit_transcribing_show_hotkeys(cls, data: Any) -> Any:
-        """transcribing_show_hotkeys を持たない画面の設定へ、show_hotkeys の値を入れる。"""
-        # dict でない・文字起こし中の表示の項目がある・録音の画面の項目が無い: そのまま返す（どちらも無ければ既定に任せる）
-        if (
-            not isinstance(data, dict)
-            or "transcribing_show_hotkeys" in data
-            or "show_hotkeys" not in data
-        ):
-            return data
-        # 項目が無い: 録音の画面の値を入れたコピーを返す（data は書き換えない）
-        return {**data, "transcribing_show_hotkeys": data["show_hotkeys"]}
 
 
 class ContinuousSettings(_SettingsModel):
     """API で始めた連続録音の、区切りの無音の長さとセッションの上限時間。"""
 
-    min_silence_sec: float = _item(
-        2.0,
+    min_silence_sec: float = _required(
         "連続録音を区切る無音の長さ（0.5〜10 秒）。話し声の後にこの秒数以上無音が続いたところで区間を区切る",
         reload=RELOAD_RESTART,
         ge=0.5,
         le=10,
     )
-    session_limit_sec: int = _item(
-        14400,
+    session_limit_sec: int = _required(
         "連続録音のセッションの上限時間（60〜86400 秒）。完了が来ないまま開始からこの秒数が経ったところで打ち切る",
         reload=RELOAD_RESTART,
         ge=60,
@@ -529,23 +485,18 @@ class ContinuousSettings(_SettingsModel):
 class ApiSettings(_SettingsModel):
     """API の待ち受けのポートと、返送を許すホスト、連続録音の設定。"""
 
-    port: int = _item(
-        47823,
+    port: int = _required(
         "127.0.0.1 で待ち受けるポート（1024〜65535）",
         reload=RELOAD_RESTART,
         ge=1024,
         le=65535,
     )
     allowed_callback_hosts: list[str] = Field(
-        default_factory=list,
         description="loopback のほかに返送を許すホスト",
         json_schema_extra={"reload": RELOAD_RESTART},
     )
-    continuous: ContinuousSettings = _group(
-        ContinuousSettings, "連続録音の区切りと上限時間"
-    )
+    continuous: ContinuousSettings = _group("連続録音の区切りと上限時間")
     allowed_web_origins: list[str] = Field(
-        default_factory=list,
         description=(
             "外の端末に許す Origin。`/web/` の下へ要求を送ってよいブラウザのオリジン"
             "（`https://{ゲートウェイの公開のサブドメイン}` の形。1 行に 1 つ）"
@@ -578,7 +529,7 @@ class GlossarySettings(_SettingsModel):
         description="用語集の名前（設定画面の一覧に出す。前後の空白を除いて 1 文字以上。ほかの用語集と重ならない）",
     )
     path: Path = Field(
-        description="その用語集の CSV の場所（settings.toml のフォルダからの相対パスか絶対パス）"
+        description="その用語集の CSV の場所（settings.yaml のフォルダからの相対パスか絶対パス）"
     )
 
 
@@ -675,75 +626,54 @@ class EdgePhraseSettings(_SettingsModel):
         return text
 
 
-DEFAULT_EDGE_PHRASES: tuple[EdgePhraseSettings, ...] = (
-    EdgePhraseSettings(text="チャンネル登録*", position="end"),
-    EdgePhraseSettings(text="ご視聴ありがとうございました", position="end"),
-    EdgePhraseSettings(text="ありがとうございました", position="end"),
-)
-"""`edge_phrases` のキーが無いときに使う既定の一覧（文末）。"""
-
-
 class Settings(_SettingsModel):
-    """settings.toml の全体。項目ごとに範囲・説明・再起動が要るかのマーカーを持つ。"""
+    """3 レイヤーを重ねた設定の全体。項目ごとに範囲・説明・再起動が要るかのマーカーを持つ。"""
 
-    transcription: TranscriptionSettings = _group(
-        TranscriptionSettings, "使うエンジンと、エンジンごとの設定"
-    )
-    recording: RecordingSettings = _group(RecordingSettings, "録音中の音量・画面を出さない設定")
-    hotkeys: HotkeySettings = _group(
-        HotkeySettings, "録音の開始・一時停止・取り消しのホットキー"
-    )
-    keyboard: KeyboardSettings = _group(KeyboardSettings, "貼り付けのキー")
+    transcription: TranscriptionSettings = _group("使うエンジンと、エンジンごとの設定")
+    recording: RecordingSettings = _group("録音中の音量・画面を出さない設定")
+    hotkeys: HotkeySettings = _group("録音の開始・一時停止・取り消しのホットキー")
+    keyboard: KeyboardSettings = _group("貼り付けのキー")
     outputs: list[SerializeAsAny[OutputSettingsBase]] = Field(
-        default_factory=list,
         description="出力先ごとのオン・オフ・確定のホットキー・出力先ごとの設定。ID は重ならない",
         json_schema_extra={"reload": RELOAD_IMMEDIATE},
     )
-    history: HistorySettings = _group(HistorySettings, "履歴を残すか・保持期間")
-    logging: LoggingSettings = _group(LoggingSettings, "ログのレベル・保持期間")
-    ui: UiSettings = _group(UiSettings, "録音の画面の出し方")
-    glossary_path: Path | None = _item(
-        None,
+    history: HistorySettings = _group("履歴を残すか・保持期間")
+    logging: LoggingSettings = _group("ログのレベル・保持期間")
+    ui: UiSettings = _group("録音の画面の出し方")
+    glossary_path: Path | None = _required(
         "今までの用語集の CSV。glossaries が空のときだけ使う。None は設定ファイルと同じフォルダの yogo.csv",
         reload=RELOAD_IMMEDIATE,
     )
     glossaries: list[GlossarySettings] = Field(
-        default_factory=list,
         description="用語集の一覧。並びが設定画面の一覧の並びになる。空のときは glossary_path の CSV を 1 つ目の用語集として扱う",
         json_schema_extra={"reload": RELOAD_IMMEDIATE},
     )
-    active_glossary: str | None = _item(
-        None,
+    active_glossary: str | None = _required(
         "補正に使う用語集の名前。glossary_presets が空のときだけ、「既定」のプリセットの用語集を決めるのに読む（非推奨。設定画面で保存すると削除する）",
         reload=RELOAD_IMMEDIATE,
     )
     glossary_presets: list[GlossaryPresetSettings] = Field(
-        default_factory=list,
         description="用語集のプリセットの一覧。並びが設定画面の一覧の並びになる。空なら「既定」の 1 件として読む",
         json_schema_extra={"reload": RELOAD_IMMEDIATE},
     )
-    active_glossary_preset: str | None = _item(
-        None,
+    active_glossary_preset: str | None = _required(
         "補正に使う用語集のプリセットの名前。None か一覧に無い名前のときは 1 件目のプリセットを使う",
         reload=RELOAD_IMMEDIATE,
     )
     hint_presets: list[HintPresetSettings] = Field(
-        default_factory=list,
         description="表記のヒント（文字起こしの手がかり）のプリセットの一覧。並びが設定画面の一覧と語をつなぐ順になる。有効な語をつないだ長さが HINT_MAX_BYTES を超える設定は断る",
         json_schema_extra={"reload": RELOAD_IMMEDIATE},
     )
     edge_phrases: list[EdgePhraseSettings] = Field(
-        default_factory=lambda: list(DEFAULT_EDGE_PHRASES),
-        description="起こした文字の文頭・文末から削除する文言の一覧。並びが当てる順と設定画面の一覧の並びになる。キーが無いときは既定の一覧、空の一覧なら何も削除しない。文言が空の行は一覧から除く",
+        description="起こした文字の文頭・文末から削除する文言の一覧。並びが当てる順と設定画面の一覧の並びになる。空の一覧なら何も削除しない。文言が空の行は一覧から除く",
         json_schema_extra={"reload": RELOAD_IMMEDIATE},
     )
-    api: ApiSettings = _group(ApiSettings, "待ち受けのポート・返送を許すホスト")
+    api: ApiSettings = _group("待ち受けのポート・返送を許すホスト")
     presets: list[Preset] = Field(
-        default_factory=list,
         description="カスタムプリセットの一覧。種類ごとの並びが、設定画面のタブと録音の画面のボタンの並びになる",
         json_schema_extra={"reload": RELOAD_IMMEDIATE},
     )
-    preset_options: PresetOptions = _group(PresetOptions, "プリセットの種類ごとのオプション")
+    preset_options: PresetOptions = _group("プリセットの種類ごとのオプション")
 
     output_models: ClassVar[Mapping[str, type[OutputSettingsBase]]] = {}
     """出力先の ID → 設定のモデル。build_settings_model が組み立てたモデルに入る。"""
@@ -858,7 +788,7 @@ class Settings(_SettingsModel):
 
 
 def build_settings_model(output_models: Sequence[type[OutputSettingsBase]]) -> type[Settings]:
-    """出力先の設定のモデルを受け、outputs をその判別共用体と既定の一覧にした Settings の子のモデルを返す。"""
+    """出力先の設定のモデルを受け、outputs をその判別共用体の一覧にした Settings の子のモデルを返す。"""
     # 1. 各モデルの id の既定値を集める（空か重なるなら登録の誤りなので断る）
     ids = [model.model_fields["id"].default for model in output_models]
     duplicated = sorted({output_id for output_id in ids if ids.count(output_id) > 1})
@@ -871,10 +801,9 @@ def build_settings_model(output_models: Sequence[type[OutputSettingsBase]]) -> t
     union = reduce(operator.or_, output_models)
     outputs_type = list[Annotated[union, Field(discriminator="id")]]
 
-    # 3. outputs の既定を、各モデルを引数なしで作った一覧にする（説明・反映のマーカーは Settings のものを引き継ぐ）
+    # 3. outputs を既定値の無い必須の項目にする（既定の一覧は config/defaults.yaml が持つ。説明・反映のマーカーは Settings のものを引き継ぐ）
     base_field = Settings.model_fields[OUTPUTS_FIELD_NAME]
     outputs_field = Field(
-        default_factory=lambda: [model() for model in output_models],
         description=base_field.description,
         json_schema_extra=base_field.json_schema_extra,
     )
@@ -1102,224 +1031,144 @@ def migrate_ai_chat(document: dict[str, Any]) -> dict[str, Any]:
 # === 読み込み ===
 
 
-def load_settings(path: Path, model: type[Settings]) -> Settings:
-    """settings.toml を読んで model で検証する。無ければ既定値で作る。"""
-    # 1. 設定ファイルが無いか
-    if not path.exists():
-        # 無い: 既定の設定を書いて返す
-        settings = model()
-        save_settings(path, settings)
-        logger.info(f"設定ファイルが無いため既定値で作った（{path}）")
-        return settings
-
-    # 2. UTF-8 で読み、tomlkit で解釈する
+def _validate(model: type[Settings], data: dict[str, Any], *, paths: tuple[Path, ...]) -> Settings:
+    """model で検証する。合わなければ、合わないキーを並べ、paths を持つ SettingsError を送出する。"""
     try:
-        document = tomlkit.parse(path.read_text(encoding="utf-8"))
-    except TOMLKitError as error:
-        raise SettingsError(f"設定ファイルを読めない（{path}: {error}）") from error
-
-    # 3. 素の dict にして検証する
-    try:
-        return model.model_validate(migrate_ai_chat(document.unwrap()))
+        return model.model_validate(data)
     except ValidationError as error:
         failures = "、".join(f"{key}: {reason}" for key, reason in list_validation_failures(error))
-        raise SettingsError(f"設定の値が合わない（{failures}）") from error
+        raise SettingsError(f"設定の値が合わない（{failures}）", paths=paths) from error
+
+
+def _read_defaults(defaults_file: Path, *, os_kind: OsKind = CURRENT_OS) -> dict[str, Any]:
+    """既定値のファイルを読み、os_overrides のうち os_kind の分を重ねて、os_overrides を外した dict を返す。"""
+    # 1. 既定値のファイルが無ければ断る
+    if not defaults_file.exists():
+        raise SettingsError(
+            f"設定ファイルを読めない（{defaults_file}: ファイルが無い）", paths=(defaults_file,)
+        )
+
+    # 2. 読む
+    defaults = read_yaml_mapping(defaults_file)
+
+    # 3. OS ごとの上書きを取り外し、os_kind の分があれば重ねる
+    overrides = defaults.pop(DEFAULTS_OS_OVERRIDES_KEY, None) or {}
+    override = overrides.get(os_kind.value)
+    if override:
+        return merge_layers(defaults, override)
+    return defaults
+
+
+def load_default_settings(
+    defaults_file: Path, model: type[Settings], *, os_kind: OsKind = CURRENT_OS
+) -> Settings:
+    """既定値のファイルに、os_kind の上書きを重ねて検証した既定の設定を返す。"""
+    return _validate(model, _read_defaults(defaults_file, os_kind=os_kind), paths=(defaults_file,))
+
+
+def load_settings(paths: AppPaths, model: type[Settings]) -> Settings:
+    """既定値 → 環境の値 → checkout の上書きの順に重ねて model で検証する。環境の値が無く settings.toml があれば、先に移す。"""
+    # 1. 既定値を読む
+    defaults = _read_defaults(paths.defaults_file)
+
+    # 2. 環境の値が無く settings.toml があれば、先に移す
+    if not paths.settings_file.exists() and paths.legacy_settings_file.exists():
+        migrate_settings_toml(paths.legacy_settings_file, paths.settings_file, defaults)
+
+    # 3. 環境の値と checkout の上書きを読む（無いファイルは空。checkout の上書きを読まない起動は飛ばす）
+    read_files = [paths.defaults_file]
+    layers = [defaults]
+    for layer_file in (paths.settings_file, paths.local_settings_file):
+        if layer_file is None or not layer_file.exists():
+            continue
+        read_files.append(layer_file)
+        # 古い AI チャットの設定はレイヤーごとに読み替える（重ねた後では既定値の preset_options が先にあり、移す値が負けるため）
+        layers.append(migrate_ai_chat(read_yaml_mapping(layer_file)))
+
+    # 4. 重ねて検証する（合わないときは、読んだ環境の値・checkout の上書きのファイルを示す。どちらも読んでいなければ既定値のファイル）
+    layer_files = tuple(read_files[1:]) or (paths.defaults_file,)
+    settings = _validate(model, merge_layers(*layers), paths=layer_files)
+    logger.info(f"設定を読んだ（{'・'.join(str(path) for path in read_files)}）")
+    return settings
 
 
 # === 書き戻し ===
 
 
-def save_settings(path: Path, settings: Settings) -> bool:
-    """検証した設定をコメントを保ったまま書き戻し、再起動が要る項目が変わったかを返す。"""
-    # 1・2. 既にある設定ファイルを読み、前の設定にする
-    document, previous, unreadable = _read_existing(path, type(settings))
-
-    # 3. 設定を JSON の値にする（用語集の場所は、設定のフォルダの下なら相対パスにする）
-    data = settings.model_dump(mode="json", exclude_none=True)
+def _dump_settings(settings: Settings, settings_dir: Path) -> dict[str, Any]:
+    """設定を JSON の値にする。用語集の場所は、設定のフォルダの下なら相対パス（区切りは `/`）にする。"""
+    data = settings.model_dump(mode="json")
     for glossary in data.get(GLOSSARIES_FIELD_NAME, []):
         glossary_path = Path(glossary["path"])
-        if glossary_path.is_relative_to(path.parent):
-            glossary["path"] = glossary_path.relative_to(path.parent).as_posix()
-
-    # 4. 文書の値を置き換える
-    _merge_into(document, data)
-
-    # 5. 同じフォルダの一時ファイルへ書いて置き換える
-    _write_atomically(path, tomlkit.dumps(document))
-
-    # 6. 再起動が要る項目が変わったか
-    # 読めない・検証に通らなかった設定は、全て変わったとして扱う
-    if unreadable:
-        return True
-    # 前の設定が無い（新しく作った）
-    if previous is None:
-        return False
-    return _restart_item_changed(previous, settings)
+        if glossary_path.is_relative_to(settings_dir):
+            glossary["path"] = glossary_path.relative_to(settings_dir).as_posix()
+    return data
 
 
-def _read_existing(
-    path: Path, model: type[Settings]
-) -> tuple[tomlkit.TOMLDocument, Settings | None, bool]:
-    """既にある settings.toml を model で検証し、（文書, 前の設定, 読めないか）にして返す。"""
-    # 設定ファイルが無いか
-    if not path.exists():
-        return tomlkit.document(), None, False
-
-    try:
-        document = tomlkit.parse(path.read_text(encoding="utf-8"))
-        return document, model.model_validate(migrate_ai_chat(document.unwrap())), False
-    except (TOMLKitError, ValidationError):
-        # 読めない・検証に通らない: 内容を空の文書にして書き直す
-        return tomlkit.document(), None, True
+def _value_at(data: Mapping[str, Any], key: tuple[str, ...]) -> Any:
+    """入れ子の dict から key の値を返す。途中に無ければ None。"""
+    value: Any = data
+    for name in key:
+        if not isinstance(value, Mapping) or name not in value:
+            return None
+        value = value[name]
+    return value
 
 
-def _unwrap(value: Any) -> Any:
-    """tomlkit の値を素の Python の値にする。"""
-    return value.unwrap() if hasattr(value, "unwrap") else value
-
-
-def _is_table_like(value: Any) -> bool:
-    """TOML では表（`[name]`・`[[name]]`）になる値か。"""
-    return isinstance(value, dict) or (
-        isinstance(value, list) and bool(value) and isinstance(value[0], dict)
+def _has_ai_chat(document: Mapping[str, Any]) -> bool:
+    """文書の outputs に古い AI チャットの項目があるか。"""
+    outputs = document.get(OUTPUTS_FIELD_NAME)
+    return isinstance(outputs, list) and any(
+        isinstance(output, Mapping) and output.get("id") == AI_CHAT_ID for output in outputs
     )
 
 
-def _merge_into(target: MutableMapping[str, Any], source: dict[str, Any]) -> None:
-    """source の値で target を再帰で置き換える。表はキーごとに、配列は丸ごと入れ替える。"""
-    # source に無いキー（None の項目）は削除する。知らないキーは検証で断られるので、残るのは None の項目だけ
-    for key in [key for key in target if key not in source]:
-        del target[key]
+def save_settings(paths: AppPaths, previous: Settings, settings: Settings) -> bool:
+    """前の設定から変わったキーだけを環境の値に書き、既定値と同じ値にしたキーは外す。再起動が要る項目が変わったかを返す。"""
+    # 1. 前の設定・新しい設定・既定の設定を JSON の値にする
+    settings_dir = paths.settings_file.parent
+    before = _dump_settings(previous, settings_dir)
+    after = _dump_settings(settings, settings_dir)
+    defaults = _dump_settings(
+        load_default_settings(paths.defaults_file, type(settings)), settings_dir
+    )
 
-    # 後ろに表が無い配列の表のコメントと空行。全ての値を置き換えた後に target の末尾へ追加する
-    tail: list[Item] = []
+    # 2. 値が変わったキーを集める
+    keys = changed_keys(before, after)
 
-    # 表の後に置くとその表のキーとして読まれる値を、先に並べる
-    for key, value in sorted(source.items(), key=lambda entry: _is_table_like(entry[1])):
-        existing = target.get(key)
-        # 表: 既にある表の中を再帰で置き換える
-        if isinstance(value, dict) and isinstance(existing, MutableMapping):
-            _merge_into(existing, value)
-        # 変わった配列の表: 後ろのコメントを付け直して入れ替える
-        elif isinstance(existing, AoT) and isinstance(value, list) and _unwrap(existing) != value:
-            tail.extend(_replace_array_table(target, key, value))
-        # 値が変わっていなければ書式とコメントのために触らない
-        elif key not in target or _unwrap(existing) != value:
-            target[key] = value
+    # 3. 環境の値を読む（読めなければ書き換えずに断る）
+    document = read_yaml_document(paths.settings_file)
+    # 古い AI チャットの項目が残っていれば、読み替えた値を書いて古い項目を残さない
+    if _has_ai_chat(document):
+        keys += [(OUTPUTS_FIELD_NAME,), (PRESETS_FIELD_NAME,)]
+        keys += [
+            (PRESET_OPTIONS_FIELD_NAME, *key)
+            for key in changed_keys({}, after[PRESET_OPTIONS_FIELD_NAME])
+        ]
 
-    if isinstance(target, Container | Table):
-        for item in tail:
-            target.append(None, item)
+    # 4. 既定値と同じか None にしたキーは外し、違えば書く
+    for key in dict.fromkeys(keys):
+        value = _value_at(after, key)
+        if value is None or value == _value_at(defaults, key):
+            delete_key(document, key)
+        else:
+            set_key(document, key, value)
 
+    # 5. 同じフォルダの一時ファイルへ書いて置き換える
+    write_yaml_document(paths.settings_file, document)
 
-def _replace_array_table(
-    target: MutableMapping[str, Any], key: str, value: list[Any]
-) -> list[Item]:
-    """target の配列の表 key を value に入れ替え、古い配列の表の最初の見出しの前と後ろのコメントを付け直す。target の末尾へ追加するものを返す。"""
-    old = target[key]
-
-    # 入れ替える前に、古い最初の見出しの前と、最後の要素の末尾のコメントと空行、古い配列の表の次の表を控える
-    heading_indent = old.body[0].trivia.indent
-    trailing = _trailing_trivia(old.body[-1])
-    following = _following_heading(target, key)
-
-    target[key] = value
-    new = target[key]
-
-    # 1 件以上: 新しい最初の見出しの前と、新しい最後の要素の末尾へ同じ並びで付け直す
-    if isinstance(new, AoT):
-        new.body[0].trivia.indent = heading_indent
-        for item in trailing:
-            new.body[-1].append(None, item)
-        return []
-
-    # 0 件で次の表がある: 次の表の見出しの前の頭へ付け直す
-    moved = heading_indent + "".join(item.as_string() for item in trailing)
-    if following is not None:
-        following.trivia.indent = moved + following.trivia.indent
-        return []
-
-    # 0 件で次の表が無い: 文書の末尾へ追加する
-    return [Whitespace(heading_indent), *trailing] if heading_indent else trailing
+    # 6. 再起動が要る項目が変わったか
+    return has_restart_change(previous, settings)
 
 
-def _trailing_trivia(table: Table) -> list[Item]:
-    """表の末尾にある、キーを持たないコメントと空行を並びのまま返す。"""
-    body = table.value.body
-    start = len(body)
-    while start > 0 and _is_trivia(body[start - 1]):
-        start -= 1
-    return [item for _key, item in body[start:]]
-
-
-def _is_trivia(entry: tuple[Key | None, Item]) -> bool:
-    """表の中身の 1 つが、キーを持たないコメントか空行か。"""
-    key, item = entry
-    return key is None and isinstance(item, Comment | Whitespace)
-
-
-def _following_heading(target: MutableMapping[str, Any], key: str) -> Table | None:
-    """target で key の配列の表の次に並ぶ表のうち、見出しを持つ最初の表を返す。無ければ None。"""
-    if not isinstance(target, Container | Table):
-        return None
-    body = target.body if isinstance(target, Container) else target.value.body
-    position = max(index for index, (name, _item) in enumerate(body) if name and name.key == key)
-    for _name, item in body[position + 1 :]:
-        heading = _first_heading(item)
-        if heading is not None:
-            return heading
-    return None
-
-
-def _first_heading(item: Item) -> Table | None:
-    """item の中で最初に見出しを書く表を返す。super table（見出しを持たない表）は中の最初の表を探す。"""
-    if isinstance(item, AoT):
-        return item.body[0]
-    if not isinstance(item, Table):
-        return None
-    children = [child for _key, child in item.value.body]
-    # 見出しを書く表: super table でない、または表以外の値を持つ
-    if not item.is_super_table() or any(
-        not isinstance(child, Table | AoT | Whitespace | Null) for child in children
-    ):
-        return item
-    # 見出しを書かない表: 中の最初の見出しを探す
-    for child in children:
-        heading = _first_heading(child)
-        if heading is not None:
-            return heading
-    return None
-
-
-def _write_atomically(path: Path, text: str) -> None:
-    """親のフォルダを作り、同じフォルダの一時ファイルへ UTF-8 で書いて os.replace で置き換える。"""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile(
-        "w",
-        encoding="utf-8",
-        newline="",
-        dir=path.parent,
-        prefix=f"{path.name}.",
-        suffix=".tmp",
-        delete=False,
-    ) as temp_file:
-        temp_file.write(text)
-        temp_path = Path(temp_file.name)
-    try:
-        os.replace(temp_path, path)
-    except OSError:
-        temp_path.unlink(missing_ok=True)
-        raise
-
-
-def _restart_item_changed(previous: BaseModel, current: BaseModel) -> bool:
+def has_restart_change(previous: BaseModel, settings: BaseModel) -> bool:
     """再起動が要るマーカーの項目のうち、値が違うものがあるか。"""
-    for name, field in type(current).model_fields.items():
+    for name, field in type(settings).model_fields.items():
         before = getattr(previous, name)
-        after = getattr(current, name)
+        after = getattr(settings, name)
         # 入れ子のまとまり: 中の項目を見る
         if isinstance(after, BaseModel):
-            if _restart_item_changed(before, after):
+            if has_restart_change(before, after):
                 return True
             continue
         extra = field.json_schema_extra
@@ -1328,3 +1177,56 @@ def _restart_item_changed(previous: BaseModel, current: BaseModel) -> bool:
         if reload == RELOAD_RESTART and before != after:
             return True
     return False
+
+
+def reset_settings(settings_file: Path) -> None:
+    """環境の値から全てのキーを外す。無ければ何もしない。"""
+    # 1. 環境の値が無ければ作らない
+    if not settings_file.exists():
+        return
+
+    # 2. 読み、一番上のキーを全て外して書く（読めなければ空の文書で置き換える）
+    try:
+        document = read_yaml_document(settings_file)
+    except SettingsError:
+        write_yaml_document(settings_file, {})
+        return
+    for name in list(document):
+        delete_key(document, (name,))
+    write_yaml_document(settings_file, document)
+
+
+# === settings.toml からの移行 ===
+
+
+def inherit_transcribing_show_hotkeys(layer: dict[str, Any]) -> dict[str, Any]:
+    """show_hotkeys を持ち transcribing_show_hotkeys を持たない ui へ、show_hotkeys の値を入れたコピーを返す。"""
+    ui = layer.get("ui")
+    # ui が表でない・文字起こし中の表示の項目がある・録音の画面の項目が無い: そのまま返す（どちらも無ければ既定値に任せる）
+    if not isinstance(ui, dict) or "transcribing_show_hotkeys" in ui or "show_hotkeys" not in ui:
+        return layer
+    # 項目が無い: 録音の画面の値を入れたコピーを返す（layer は書き換えない）
+    return {**layer, "ui": {**ui, "transcribing_show_hotkeys": ui["show_hotkeys"]}}
+
+
+def migrate_settings_toml(
+    legacy_settings_file: Path, settings_file: Path, defaults: dict[str, Any]
+) -> None:
+    """settings.toml を読み、既定値と違うキーだけを settings.yaml に書く。settings.toml は残す。"""
+    # 1. settings.toml を読んで素の dict にする（読めなければ settings.yaml を作らずに断る）
+    try:
+        legacy = tomlkit.parse(legacy_settings_file.read_text(encoding="utf-8")).unwrap()
+    except TOMLKitError as error:
+        raise SettingsError(
+            f"設定ファイルを読めない（{legacy_settings_file}: {error}）", paths=(legacy_settings_file,)
+        ) from error
+
+    # 2. 古い AI チャットの設定を読み替え、文字起こし中の表示のホットキーを引き継ぐ
+    migrated = inherit_transcribing_show_hotkeys(migrate_ai_chat(legacy))
+
+    # 3. 既定値と違うキーだけを書く
+    diff = diff_from_defaults(migrated, defaults)
+    write_yaml_document(settings_file, diff)
+    logger.info(
+        f"settings.toml から settings.yaml へ移した（{legacy_settings_file} → {settings_file}・{len(diff)} キー）"
+    )

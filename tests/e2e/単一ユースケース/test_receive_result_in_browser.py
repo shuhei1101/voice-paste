@@ -26,7 +26,6 @@ from tests.support.inprocess import (
 from tests.support.web_scene import STUB_TEXT, OpenEdge, StartInProcess, WebScene, build_scene, record_for
 from voice_paste.integrations.openai.credentials import OPENAI_API_KEY_ENV
 from voice_paste.shared.errors import TranscriptionError
-from voice_paste.shared.settings import TranscriptionSettings
 
 pytestmark = [pytest.mark.real_machine, requires_web_transcription]
 
@@ -130,9 +129,9 @@ def test_normal_when_engine_reports_no_progress(
     """進みを返さないエンジン（OpenAI API）では、待ちの間は件に「文字起こし中」だけが出て % と進みのバーが出ず、終わると起こした文字が出る（正常系）。"""
     # 準備: OpenAI API のエンジンで立て、文字起こしは進みを知らせずに放すまで待つ
     monkeypatch.setenv(OPENAI_API_KEY_ENV, OPENAI_TEST_API_KEY)
-    settings = make_settings(only_paste_and_send=True).model_copy(
-        update={"transcription": TranscriptionSettings(engine="openai")}
-    )
+    settings = make_settings(only_paste_and_send=True)
+    transcription = settings.transcription.model_copy(update={"engine": "openai"})
+    settings = settings.model_copy(update={"transcription": transcription})
     scene = build_scene(
         start_inprocess, open_edge, tmp_path, monkeypatch, stub_text=STUB_TEXT, settings=settings
     )

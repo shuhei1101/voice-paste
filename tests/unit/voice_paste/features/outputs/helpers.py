@@ -14,8 +14,8 @@ if TYPE_CHECKING:
 
 def make_output_deps(**overrides: Any) -> OutputDeps:
     """全ての関数を Mock にした OutputDeps を作る。overrides は項目ごとの差し替え。"""
+    from tests.unit.voice_paste.settings_helpers import load_test_default_settings
     from voice_paste.features.outputs.types import OutputDeps as OutputDepsModel
-    from voice_paste.shared.settings import Settings
 
     fields: dict[str, Any] = {
         "copy": MagicMock(),
@@ -24,7 +24,7 @@ def make_output_deps(**overrides: Any) -> OutputDeps:
         "sleep": MagicMock(),
         "jitter": MagicMock(),
         "post": MagicMock(),
-        "get_settings": MagicMock(return_value=Settings()),
+        "get_settings": MagicMock(return_value=load_test_default_settings()),
         "notify_copied": MagicMock(),
     }
     fields.update(overrides)

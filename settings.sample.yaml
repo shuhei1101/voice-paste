@@ -1,0 +1,56 @@
+# voice-paste の settings.yaml・settings.local.yaml の見本。
+# 全てのキーの既定値は config/defaults.yaml にある。ここには既定値から変えることの多いキーを並べる。
+# 書いたキーだけが既定値に勝つ（表はキーごと、一覧は丸ごと替わる）。変えたいキーの行のコメントを外して値を書く。
+# settings.yaml は %APPDATA%\voice-paste\（Linux は ~/.config/voice-paste/）に、settings.local.yaml はリポジトリの直下に置く。
+# 「再起動」と書いた項目は、アプリを再起動してから効く。
+
+# === 文字起こし ===
+# transcription:
+#   # 使うエンジン（再起動）。local_whisper または openai
+#   engine: openai
+#   local_whisper:
+#     # faster-whisper のモデル（再起動）
+#     model: small
+#     # 動かすデバイス（再起動）。cuda または cpu
+#     device: cpu
+#     # 計算の精度（再起動）。float16・int8・float32。cuda は float16、cpu は int8 が目安
+#     compute_type: int8
+
+# === ホットキー（pynput の GlobalHotKeys の書式） ===
+# hotkeys:
+#   start: <ctrl>+<alt>+r
+
+# === 出力先（一覧は丸ごと替わるため、全ての出力先を書く） ===
+# outputs:
+#   - id: paste_and_send
+#     enabled: true
+#     hotkey: <ctrl>+<alt>+d
+#     enter_delay_sec: 0.5
+#     enter_modifiers: []
+#   - id: paste_only
+#     enabled: true
+#     hotkey: <ctrl>+<alt>+v
+#   - id: copy_only
+#     enabled: false
+#     hotkey: <ctrl>+<alt>+c
+
+# === カスタムプリセット ===
+# presets:
+#   - kind: browser
+#     title: ChatGPT
+#     url: https://chatgpt.com
+#     hotkey: <ctrl>+<alt>+1
+#     enabled: true
+#     send_enter: true
+
+# === 録音の画面と文字起こし中の表示 ===
+# ui:
+#   # 画面の明暗。system（OS の設定に従う）・light・dark
+#   theme: dark
+#   # 表示する位置。center・top-left・top-right・bottom-left・bottom-right
+#   position: bottom-right
+
+# === API ===
+# api:
+#   # 127.0.0.1 で待ち受けるポート（再起動）。1024〜65535
+#   port: 47824

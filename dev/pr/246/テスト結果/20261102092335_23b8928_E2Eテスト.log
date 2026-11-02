@@ -1,0 +1,96 @@
+$ .venv/Scripts/python.exe -m pytest tests/e2e/蜊倅ｸ繝ｦ繝ｼ繧ｹ繧ｱ繝ｼ繧ｹ/test_change_settings.py tests/e2e/蜊倅ｸ繝ｦ繝ｼ繧ｹ繧ｱ繝ｼ繧ｹ/test_start_resident_app.py --run-e2e
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\chore-settings-three-layers
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collected 22 items
+
+tests\e2e\単一ユースケース\test_change_settings.py ...........           [ 50%]
+tests\e2e\単一ユースケース\test_start_resident_app.py .......F...        [100%]
+
+================================== FAILURES ===================================
+_____________________ test_error_when_settings_unreadable _____________________
+
+run_app = <function run_app.<locals>._run at 0x000001DC2580D010>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001DC2582C690>
+
+    def test_error_when_settings_unreadable(run_app: RunApp, monkeypatch: pytest.MonkeyPatch) -> None:
+        """settings.yaml を YAML として読めなければ、トレイで設定を読めないことが知らされ、ログに読めなかったファイルのパスと理由が書かれ、「録音を開始」と「設定…」が押せず「設定フォルダを開く」と「再起動」が押せ、settings.yaml は書き換わらない（異常シナリオ（設定を読めない））。"""
+        # 準備: トレイが出した知らせ（種類と、読めなかったファイルのパス）を控える
+        failures: list[tuple[FailureEvent, tuple[Path, ...]]] = []
+        real_show_failure = Tray.show_failure
+    
+        def show_failure(
+            self: Tray, event: FailureEvent, detail: str | None, *, paths: Sequence[Path] = ()
+        ) -> None:
+            """出した知らせを控えてから、本物で通知を出す。"""
+            failures.append((event, tuple(paths)))
+            real_show_failure(self, event, detail, paths=paths)
+    
+        monkeypatch.setattr(Tray, "show_failure", show_failure)
+    
+        def case(app: ResidentApp) -> None:
+            """設定を読めない起動のトレイ・知らせ・ログ・メニュー・settings.yaml を確かめる。"""
+            settings_file = app.data_dir / "settings.yaml"
+            # 検証
+            assert app.tray_state() == FAILED
+            assert failures == [("settings_invalid", (settings_file,))]
+            assert any(
+                message.startswith("起動に失敗した（") and str(settings_file) in message
+                for message in app.log_messages("ERROR")
+            )
+            assert not app.menu_item_enabled("menu_start")
+            assert not app.menu_item_enabled("menu_settings")
+            assert app.menu_item_enabled("menu_open_settings_folder")
+            assert app.menu_item_enabled("menu_restart")
+            assert settings_file.read_text(encoding="utf-8") == settings_text(
+                app.port, UNREADABLE_SETTINGS
+            )
+    
+        # 実行: 読めない settings.yaml で起動する
+>       run_app(case, extra_settings=UNREADABLE_SETTINGS)
+
+tests\e2e\単一ユースケース\test_start_resident_app.py:380: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\e2e\conftest.py:68: in _run
+    return run_resident_app(
+tests\support\resident_app.py:787: in run_resident_app
+    raise failures[0]
+tests\support\resident_app.py:764: in run_case
+    case(app)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+app = <tests.support.resident_app.ResidentApp object at 0x000001DC24551A90>
+
+    def case(app: ResidentApp) -> None:
+        """設定を読めない起動のトレイ・知らせ・ログ・メニュー・settings.yaml を確かめる。"""
+        settings_file = app.data_dir / "settings.yaml"
+        # 検証
+        assert app.tray_state() == FAILED
+        assert failures == [("settings_invalid", (settings_file,))]
+        assert any(
+            message.startswith("起動に失敗した（") and str(settings_file) in message
+            for message in app.log_messages("ERROR")
+        )
+        assert not app.menu_item_enabled("menu_start")
+>       assert not app.menu_item_enabled("menu_settings")
+E       AssertionError: assert not True
+E        +  where True = menu_item_enabled('menu_settings')
+E        +    where menu_item_enabled = <tests.support.resident_app.ResidentApp object at 0x000001DC24551A90>.menu_item_enabled
+
+tests\e2e\単一ユースケース\test_start_resident_app.py:372: AssertionError
+---------------------------- Captured stderr call -----------------------------
+{"ts": "2026-11-02T09:28:29.058863+09:00", "level": "INFO", "name": "voice_paste.runtime.single_instance", "msg": "単一インスタンスを確保した（voice-paste-4e55e5866ed38598）"}
+{"ts": "2026-11-02T09:28:29.203747+09:00", "level": "INFO", "name": "voice_paste.ui.style", "msg": "画面の明暗を当てた（theme=system・暗い組=False）"}
+{"ts": "2026-11-02T09:28:29.220206+09:00", "level": "ERROR", "name": "voice_paste.main", "msg": "起動に失敗した（設定ファイルを読めない（C:\\Users\\shuhe\\AppData\\Local\\Temp\\pytest-of-shuhe\\pytest-1972\\test_error_when_settings_unrea0\\app0\\settings.yaml: 9行目 1列目: expected the node content, but found '<stream end>'））"}
+{"ts": "2026-11-02T09:28:35.319861+09:00", "level": "INFO", "name": "voice_paste.main", "msg": "常駐サービスを終えた"}
+------------------------------ Captured log call ------------------------------
+INFO     voice_paste.runtime.single_instance:single_instance.py:244 単一インスタンスを確保した（voice-paste-4e55e5866ed38598）
+INFO     voice_paste.ui.style:style.py:266 画面の明暗を当てた（theme=system・暗い組=False）
+ERROR    voice_paste.main:main.py:1351 起動に失敗した（設定ファイルを読めない（C:\Users\shuhe\AppData\Local\Temp\pytest-of-shuhe\pytest-1972\test_error_when_settings_unrea0\app0\settings.yaml: 9行目 1列目: expected the node content, but found '<stream end>'））
+INFO     voice_paste.main:main.py:1323 常駐サービスを終えた
+=========================== short test summary info ===========================
+FAILED tests/e2e/単一ユースケース/test_start_resident_app.py::test_error_when_settings_unreadable
+================== 1 failed, 21 passed in 343.79s (0:05:43) ===================
+exit=1

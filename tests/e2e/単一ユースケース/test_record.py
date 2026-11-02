@@ -89,10 +89,10 @@ FEED_TIMEOUT_SEC = 60.0
 SECONDS_PER_MINUTE = 60
 SECONDS_PER_HOUR = 3600
 
-HIDE_WINDOW_SETTINGS = "[recording]\nhide_window = true\n"
+HIDE_WINDOW_SETTINGS = "recording:\n  hide_window: true\n"
 """録音の画面も文字起こし中の表示も出さない設定。"""
 
-NO_HISTORY_SETTINGS = "[history]\nenabled = false\n"
+NO_HISTORY_SETTINGS = "history:\n  enabled: false\n"
 """履歴を残さない設定。"""
 
 

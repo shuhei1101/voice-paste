@@ -25,7 +25,8 @@
 | [httpx](./httpx.yaml) | 起こした文字を呼び出し元のエンドポイントへ返す |
 | [pydantic](./pydantic.yaml) | 設定と API の入出力を検証する |
 | [pyside6-essentials](./pyside6-essentials.yaml) | 画面とトレイを出し、ほかのスレッドからメインスレッドへ操作を渡す |
-| [tomlkit](./tomlkit.yaml) | 設定をコメントを保ったまま TOML で読み書きする |
+| [tomlkit](./tomlkit.yaml) | 前のバージョンの settings.toml を、settings.yaml へ移すために読む |
+| [ruamel.yaml](./ruamel.yaml.yaml) | 設定をコメントを保ったまま YAML で読み書きする |
 | [platformdirs](./platformdirs.yaml) | 設定・履歴・ログの置き場所を Windows の慣習で引く |
 | [import-linter](./import-linter.yaml) | 新しい構成の import の向きを検査する |
 | [av](./av.yaml) | faster-whisper が録音を読むために使う、FFmpeg の Python バインディング |

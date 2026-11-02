@@ -17,7 +17,7 @@ overview:
       label: 文字起こしワーカー（子プロセス）
       kind: process
     - id: ENV
-      label: 設定（settings.toml）
+      label: 設定（defaults.yaml・settings.yaml・settings.local.yaml）
       shape: cylinder
       kind: store
     - id: HIST

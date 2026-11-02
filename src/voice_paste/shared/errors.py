@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 
 class AppError(Exception):
     """このアプリが送出する例外の根。"""
@@ -76,7 +78,11 @@ class VolumeControlError(AppError):
 
 
 class SettingsError(AppError):
-    """設定の値が合わない。"""
+    """設定の値が合わない。読めなかったファイルのパスを paths に持つ。"""
+
+    def __init__(self, *args: object, paths: tuple[Path, ...] = ()) -> None:
+        super().__init__(*args)
+        self.paths = paths
 
 
 class StartupError(AppError):

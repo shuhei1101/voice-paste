@@ -7,7 +7,7 @@ flows:
     summary: 設定の並びのままのプリセットの名前と、設定で選んでいるプリセットの名前を返す
     setup:
       - name: Mock
-        description: 設定をテストの一時フォルダの settings.toml から読む
+        description: 設定をテストの一時フォルダの settings.yaml から読む
       - name: 用語集のプリセット
         description: 設定に用語集のプリセット「既定」「会議」をこの並びで入れ、active_glossary_preset を「会議」にする
     flow: |-
@@ -31,9 +31,9 @@ flows:
     summary: glossary_presets のキーが無い設定では「既定」の 1 件を返す
     setup:
       - name: Mock
-        description: 設定をテストの一時フォルダの settings.toml から読む
+        description: 設定をテストの一時フォルダの settings.yaml から読む
       - name: 設定
-        description: glossary_presets と active_glossary_preset のキーが無い settings.toml
+        description: glossary_presets と active_glossary_preset のキーが無い settings.yaml（既定値の config/defaults.yaml の値で動く）
     flow: |-
       ```mermaid
       sequenceDiagram
@@ -50,7 +50,7 @@ flows:
     summary: 許す Origin に無い Origin が付いた要求を断る
     setup:
       - name: Mock
-        description: 設定をテストの一時フォルダの settings.toml から読む
+        description: 設定をテストの一時フォルダの settings.yaml から読む
       - name: 要求のヘッダー
         description: 許す Origin に無い Origin を付ける
         notes: '`Origin: http://evil.example`'

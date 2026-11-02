@@ -111,8 +111,11 @@ from voice_paste.shared.settings import (
     Preset,
     Settings,
     build_settings_model,
+    has_restart_change,
     join_hint_words,
+    load_default_settings,
     load_settings,
+    reset_settings,
     save_settings,
 )
 from voice_paste.shared.types import (
@@ -166,7 +169,7 @@ WORKER_STOP_TIMEOUT_SEC: float = 2.0
 """文字起こしワーカーの終わりを待つ時間。非機能要件の文字起こしワーカーの終わりを待つ時間の決定値。"""
 
 GLOSSARIES_DIR_NAME: str = "glossaries"
-"""設定画面で追加した用語集の CSV を置く、settings.toml と同じフォルダの下のフォルダの名前。"""
+"""設定画面で追加した用語集の CSV を置く、settings.yaml と同じフォルダの下のフォルダの名前。"""
 
 WAKE_INTERVAL_MS: int = 200
 """Qt のイベントループの中で Python のシグナルのハンドラが動くようにする、空の QTimer の間隔。PoC で 200 ms なら Ctrl+Break から 0.3 秒で終わった。"""
@@ -896,7 +899,7 @@ def apply_settings(
     settings: Settings,
     glossary_rows: Mapping[Path, Sequence[GlossaryEntry]],
     *,
-    settings_file: Path,
+    paths: AppPaths,
     store: SettingsStore,
     check_hotkeys: Callable[[Iterable[str]], None],
     save_glossary: Callable[[Path, Sequence[GlossaryEntry]], None],
@@ -904,7 +907,7 @@ def apply_settings(
     """設定画面で確かめた設定と行を変えた用語集の CSV を書き、反映が immediate の項目を動いている常駐アプリに効かせる。
 
     新しい設定のホットキーを pynput が読めなければ、何も書かず入れ替えずに HotkeyError を送出する。
-    用語集の CSV か settings.toml を書けなければ OSError のまま伝え、SettingsStore は入れ替えない。
+    用語集の CSV か settings.yaml を書けなければ OSError のまま伝え、SettingsStore は入れ替えない。
     """
     # 1. 新しい設定で受け付けるホットキーを確かめる
     check_hotkeys(_collect_hotkeys(settings))
@@ -913,16 +916,33 @@ def apply_settings(
     for glossary_path, rows in glossary_rows.items():
         save_glossary(glossary_path, rows)
 
-    # 3. settings.toml へ書く（書けなければ OSError のまま伝え、SettingsStore は入れ替えない）
-    restart_needed = save_settings(settings_file, settings)
+    # 3. settings.yaml へ、今効いている設定から変わったキーだけを書く（書けなければ OSError のまま伝え、SettingsStore は入れ替えない）
+    restart_needed = save_settings(paths, store.get(), settings)
 
     # 4. SettingsStore を入れ替える（ホットキーは設定画面が閉じたときに今の設定で張り直す）
     store.replace(settings)
     logger.info(
-        f"設定を保存した（{settings_file}・再起動が要る: {restart_needed}・"
+        f"設定を保存した（{paths.settings_file}・再起動が要る: {restart_needed}・"
         f"書いた用語集の CSV: {len(glossary_rows)} 件）"
     )
     return restart_needed
+
+
+def reset_applied_settings(
+    *, paths: AppPaths, store: SettingsStore, model: type[Settings]
+) -> tuple[Settings, bool]:
+    """環境の値から全てのキーを外し、読み直した設定に SettingsStore を入れ替える。読み直した設定と再起動が要る項目が変わったかを返す。"""
+    # 1. 環境の値のキーを全て外す
+    reset_settings(paths.settings_file)
+
+    # 2. 設定を読み直す（読めなければ SettingsStore を入れ替えずに SettingsError のまま伝える）
+    settings = load_settings(paths, model)
+
+    # 3. 再起動が要るかを控えてから入れ替える
+    restart_needed = has_restart_change(store.get(), settings)
+    store.replace(settings)
+    logger.info(f"設定を既定に戻した（{paths.settings_file}・再起動が要る: {restart_needed}）")
+    return settings, restart_needed
 
 
 def _output_titles() -> dict[str, str]:
@@ -934,6 +954,7 @@ def build_ui_deps(
     handlers: Handlers,
     paths: AppPaths,
     save_settings: Callable[[Settings, Mapping[Path, Sequence[GlossaryEntry]]], bool],
+    reset_settings: Callable[[], tuple[Settings, bool]],
     request_restart: Callable[[], None],
     request_quit: Callable[[], None],
     hotkey_listener: HotkeyListener | GnomeShortcutListener,
@@ -983,6 +1004,8 @@ def build_ui_deps(
             next_glossary_path, directory=paths.settings_file.parent / GLOSSARIES_DIR_NAME
         ),
         copy=copy_to_clipboard,
+        reset_settings=reset_settings,
+        default_settings=partial(load_default_settings, paths.defaults_file, SETTINGS_MODEL),
         hidden_setting_keys=hidden_setting_keys(unavailable_features(CURRENT_OS)),
         reports_progress=_reports_progress(store.get()),
     )
@@ -1031,7 +1054,7 @@ def _build_idle_ui_deps(
         get_settings=store.get,
         save_settings=partial(
             apply_settings,
-            settings_file=paths.settings_file,
+            paths=paths,
             store=store,
             check_hotkeys=check_hotkeys,
             save_glossary=save_glossary,
@@ -1053,6 +1076,10 @@ def _build_idle_ui_deps(
             next_glossary_path, directory=paths.settings_file.parent / GLOSSARIES_DIR_NAME
         ),
         copy=copy_to_clipboard,
+        reset_settings=partial(
+            reset_applied_settings, paths=paths, store=store, model=SETTINGS_MODEL
+        ),
+        default_settings=partial(load_default_settings, paths.defaults_file, SETTINGS_MODEL),
         hidden_setting_keys=hidden_setting_keys(unavailable_features(CURRENT_OS)),
         reports_progress=_reports_progress(store.get()),
     )
@@ -1319,11 +1346,11 @@ def _start_services(
 
     # 5. 設定を読む（読めなければトレイを失敗にして知らせ、設定を修正して再起動できるようにする）
     try:
-        settings = load_settings(paths.settings_file, SETTINGS_MODEL)
+        settings = load_settings(paths, SETTINGS_MODEL)
     except SettingsError as error:
         logger.error(f"起動に失敗した（{error}）")
-        tray.set_failed()
-        tray.show_failure("settings_invalid", str(error))
+        tray.set_failed(settings_enabled=False)
+        tray.show_failure("settings_invalid", str(error), paths=error.paths)
         return
 
     # 6. 設定の ui.theme で画面の明暗を当て直し、ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を削除する（処理中のセッションは無いため、一時の音声も全て削除する対象にする）
@@ -1390,7 +1417,7 @@ def _finish_startup(
     if isinstance(result, StartupError):
         error = result
         logger.error(f"起動に失敗した（{error}）")
-        tray.set_failed()
+        tray.set_failed(settings_enabled=True)
         deps = _build_idle_ui_deps(
             settings,
             paths,
@@ -1411,7 +1438,7 @@ def _finish_startup(
     running.hotkey_listener = hotkey_listener
     save_settings_fn = partial(
         apply_settings,
-        settings_file=paths.settings_file,
+        paths=paths,
         store=handlers.settings_store,
         check_hotkeys=adapters.validate_hotkeys,
         save_glossary=save_glossary,
@@ -1420,6 +1447,12 @@ def _finish_startup(
         handlers,
         paths,
         save_settings_fn,
+        partial(
+            reset_applied_settings,
+            paths=paths,
+            store=handlers.settings_store,
+            model=SETTINGS_MODEL,
+        ),
         exit_request.request_restart,
         exit_request.request_quit,
         hotkey_listener,

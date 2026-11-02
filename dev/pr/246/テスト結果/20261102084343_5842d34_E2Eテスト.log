@@ -1,0 +1,221 @@
+$ .venv/Scripts/python.exe -m pytest tests/e2e --run-e2e
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\chore-settings-three-layers
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collected 130 items
+
+tests\e2e\単一ユースケース\test_change_settings.py ..F........           [  8%]
+tests\e2e\単一ユースケース\test_deliver_transcript.py .................. [ 22%]
+...                                                                      [ 24%]
+tests\e2e\単一ユースケース\test_operate_from_tray.py .......             [ 30%]
+tests\e2e\単一ユースケース\test_receive_result_in_browser.py .......     [ 35%]
+tests\e2e\単一ユースケース\test_record.py ...................            [ 50%]
+tests\e2e\単一ユースケース\test_send_audio_from_browser.py .........     [ 56%]
+tests\e2e\単一ユースケース\test_start_resident_app.py .......F...        [ 65%]
+tests\e2e\単一ユースケース\test_transcribe_recording.py ................ [ 77%]
+....                                                                     [ 80%]
+tests\e2e\複合ユースケース\test_paste_voice_text.py ......               [ 85%]
+tests\e2e\複合ユースケース\test_transcribe_continuously_from_other_system.py . [ 86%]
+......                                                                   [ 90%]
+tests\e2e\複合ユースケース\test_transcribe_from_browser.py .......       [ 96%]
+tests\e2e\複合ユースケース\test_transcribe_from_other_system.py .....    [100%]
+
+================================== FAILURES ===================================
+___________________________ test_normal_when_reset ____________________________
+
+run_app = <function run_app.<locals>._run at 0x000001C413D82350>
+
+    def test_normal_when_reset(run_app: RunApp) -> None:
+        """「既定に戻す」で確認に回答すると、settings.yaml から設定のキーが外れ、設定画面は開いたまま欄に既定の値が入る（正常シナリオ）。"""
+    
+        def case(app: ResidentApp) -> None:
+            """設定画面で「既定に戻す」を押して確認に回答する。"""
+            # 準備
+            app.open_settings()
+    
+            # 実行
+            with app.answering("reset_dialog", "reset_button"):
+                app.press("reset_button")
+    
+            # 検証
+            assert app.wait_until(lambda: _yaml(app) == {}, RESET_TIMEOUT_SEC)
+            assert app.window("settings_window") is not None
+            app.select_group("画面")
+            assert app.field_value("ui.wave_gain") == "4"
+    
+        # 実行
+>       run_app(case, extra_settings=COMMENTED_SETTINGS)
+
+tests\e2e\単一ユースケース\test_change_settings.py:262: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\e2e\conftest.py:68: in _run
+    return run_resident_app(
+tests\support\resident_app.py:787: in run_resident_app
+    raise failures[0]
+tests\support\resident_app.py:764: in run_case
+    case(app)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+app = <tests.support.resident_app.ResidentApp object at 0x000001C414008E10>
+
+    def case(app: ResidentApp) -> None:
+        """設定画面で「既定に戻す」を押して確認に回答する。"""
+        # 準備
+        app.open_settings()
+    
+        # 実行
+        with app.answering("reset_dialog", "reset_button"):
+            app.press("reset_button")
+    
+        # 検証
+        assert app.wait_until(lambda: _yaml(app) == {}, RESET_TIMEOUT_SEC)
+        assert app.window("settings_window") is not None
+        app.select_group("画面")
+>       assert app.field_value("ui.wave_gain") == "4"
+E       AssertionError: assert '4.0' == '4'
+E         
+E         - 4
+E         + 4.0
+
+tests\e2e\単一ユースケース\test_change_settings.py:259: AssertionError
+---------------------------- Captured stderr call -----------------------------
+{"ts": "2026-11-02T08:44:29.705493+09:00", "level": "INFO", "name": "voice_paste.runtime.single_instance", "msg": "単一インスタンスを確保した（voice-paste-47a1227a5a6c6373）"}
+{"ts": "2026-11-02T08:44:29.711015+09:00", "level": "INFO", "name": "voice_paste.ui.style", "msg": "画面の明暗を当てた（theme=system・暗い組=False）"}
+{"ts": "2026-11-02T08:44:29.724753+09:00", "level": "INFO", "name": "voice_paste.shared.settings", "msg": "設定を読んだ（C:\\Users\\shuhe\\repo\\voice-paste\\.claude\\worktrees\\chore-settings-three-layers\\config\\defaults.yaml・C:\\Users\\shuhe\\AppData\\Local\\Temp\\pytest-of-shuhe\\pytest-1971\\test_normal_when_reset0\\app0\\settings.yaml）"}
+{"ts": "2026-11-02T08:44:29.736827+09:00", "level": "INFO", "name": "voice_paste.ui.style", "msg": "画面の明暗を当てた（theme=system・暗い組=False）"}
+{"ts": "2026-11-02T08:44:29.737098+09:00", "level": "INFO", "name": "voice_paste.features.history.service", "msg": "古い履歴を削除した（0 件）"}
+{"ts": "2026-11-02T08:44:29.737181+09:00", "level": "INFO", "name": "voice_paste.main", "msg": "設定を読んだ（C:\\Users\\shuhe\\AppData\\Local\\Temp\\pytest-of-shuhe\\pytest-1971\\test_normal_when_reset0\\app0\\settings.yaml、エンジン: local_whisper、オンの出力先: paste_and_send, paste_only, copy_only）"}
+{"ts": "2026-11-02T08:44:30.763590+09:00", "level": "INFO", "name": "voice_paste.integrations.whisper.client", "msg": "[ワーカー] INFO:httpx2:HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-large-v3/revision/main \"HTTP/1.1 200 OK\""}
+{"ts": "2026-11-02T08:44:33.313614+09:00", "level": "INFO", "name": "voice_paste.integrations.whisper.client", "msg": "文字起こしワーカーが立ち上がった（pid 4476・3.6 秒）"}
+{"ts": "2026-11-02T08:44:35.797269+09:00", "level": "INFO", "name": "uvicorn.error", "msg": "Started server process [870180]"}
+{"ts": "2026-11-02T08:44:35.797441+09:00", "level": "INFO", "name": "uvicorn.error", "msg": "Waiting for application startup."}
+{"ts": "2026-11-02T08:44:35.797636+09:00", "level": "INFO", "name": "uvicorn.error", "msg": "Application startup complete."}
+{"ts": "2026-11-02T08:44:35.797844+09:00", "level": "INFO", "name": "uvicorn.error", "msg": "Uvicorn running on http://127.0.0.1:55361 (Press CTRL+C to quit)"}
+{"ts": "2026-11-02T08:44:35.808022+09:00", "level": "INFO", "name": "voice_paste.server.token", "msg": "トークンのファイルを書いた（C:\\Users\\shuhe\\AppData\\Local\\Temp\\pytest-of-shuhe\\pytest-1971\\test_normal_when_reset0\\app0\\api_token・ポート: 55361）"}
+{"ts": "2026-11-02T08:44:35.809000+09:00", "level": "INFO", "name": "voice_paste.main", "msg": "常駐サービスを始めた（API のポート: 55361）"}
+{"ts": "2026-11-02T08:44:35.914872+09:00", "level": "WARNING", "name": "voice_paste.features.correction.service", "msg": "用語集が無い（C:\\Users\\shuhe\\AppData\\Local\\Temp\\pytest-of-shuhe\\pytest-1971\\test_normal_when_reset0\\app0\\yogo.csv）"}
+{"ts": "2026-11-02T08:44:36.089921+09:00", "level": "INFO", "name": "voice_paste.shared.settings", "msg": "設定を読んだ（C:\\Users\\shuhe\\repo\\voice-paste\\.claude\\worktrees\\chore-settings-three-layers\\config\\defaults.yaml・C:\\Users\\shuhe\\AppData\\Local\\Temp\\pytest-of-shuhe\\pytest-1971\\test_normal_when_reset0\\app0\\settings.yaml）"}
+{"ts": "2026-11-02T08:44:36.090166+09:00", "level": "INFO", "name": "voice_paste.main", "msg": "設定を既定に戻した（C:\\Users\\shuhe\\AppData\\Local\\Temp\\pytest-of-shuhe\\pytest-1971\\test_normal_when_reset0\\app0\\settings.yaml・再起動が要る: True）"}
+{"ts": "2026-11-02T08:44:36.213060+09:00", "level": "WARNING", "name": "voice_paste.features.correction.service", "msg": "用語集が無い（C:\\Users\\shuhe\\AppData\\Local\\Temp\\pytest-of-shuhe\\pytest-1971\\test_normal_when_reset0\\app0\\yogo.csv）"}
+{"ts": "2026-11-02T08:44:36.904090+09:00", "level": "INFO", "name": "voice_paste.ui.style", "msg": "画面の明暗を当てた（theme=system・暗い組=False）"}
+{"ts": "2026-11-02T08:44:36.950602+09:00", "level": "INFO", "name": "uvicorn.error", "msg": "Shutting down"}
+{"ts": "2026-11-02T08:44:37.052405+09:00", "level": "INFO", "name": "uvicorn.error", "msg": "Waiting for application shutdown."}
+{"ts": "2026-11-02T08:44:37.052785+09:00", "level": "INFO", "name": "uvicorn.error", "msg": "Application shutdown complete."}
+{"ts": "2026-11-02T08:44:37.052903+09:00", "level": "INFO", "name": "uvicorn.error", "msg": "Finished server process [870180]"}
+{"ts": "2026-11-02T08:44:37.053584+09:00", "level": "INFO", "name": "voice_paste.server.runner", "msg": "API の待ち受けを止めた（ポート: 55361）"}
+{"ts": "2026-11-02T08:44:37.053703+09:00", "level": "INFO", "name": "voice_paste.features.web_transcription.service", "msg": "ブラウザの音声のキューを閉じた（捨てた待ちの数: 0）"}
+{"ts": "2026-11-02T08:44:37.160575+09:00", "level": "INFO", "name": "voice_paste.main", "msg": "常駐サービスを終えた"}
+------------------------------ Captured log call ------------------------------
+INFO     voice_paste.runtime.single_instance:single_instance.py:244 単一インスタンスを確保した（voice-paste-47a1227a5a6c6373）
+INFO     voice_paste.ui.style:style.py:266 画面の明暗を当てた（theme=system・暗い組=False）
+INFO     voice_paste.shared.settings:settings.py:1091 設定を読んだ（C:\Users\shuhe\repo\voice-paste\.claude\worktrees\chore-settings-three-layers\config\defaults.yaml・C:\Users\shuhe\AppData\Local\Temp\pytest-of-shuhe\pytest-1971\test_normal_when_reset0\app0\settings.yaml）
+INFO     voice_paste.ui.style:style.py:266 画面の明暗を当てた（theme=system・暗い組=False）
+INFO     voice_paste.features.history.service:service.py:182 古い履歴を削除した（0 件）
+INFO     voice_paste.main:main.py:1361 設定を読んだ（C:\Users\shuhe\AppData\Local\Temp\pytest-of-shuhe\pytest-1971\test_normal_when_reset0\app0\settings.yaml、エンジン: local_whisper、オンの出力先: paste_and_send, paste_only, copy_only）
+INFO     voice_paste.integrations.whisper.client:client.py:330 [ワーカー] INFO:httpx2:HTTP Request: GET https://huggingface.co/api/models/Systran/faster-whisper-large-v3/revision/main "HTTP/1.1 200 OK"
+INFO     voice_paste.integrations.whisper.client:client.py:131 文字起こしワーカーが立ち上がった（pid 4476・3.6 秒）
+INFO     uvicorn.error:server.py:103 Started server process [870180]
+INFO     uvicorn.error:on.py:48 Waiting for application startup.
+INFO     uvicorn.error:on.py:62 Application startup complete.
+INFO     uvicorn.error:server.py:234 Uvicorn running on http://127.0.0.1:55361 (Press CTRL+C to quit)
+INFO     voice_paste.server.token:token.py:39 トークンのファイルを書いた（C:\Users\shuhe\AppData\Local\Temp\pytest-of-shuhe\pytest-1971\test_normal_when_reset0\app0\api_token・ポート: 55361）
+INFO     voice_paste.main:main.py:1528 常駐サービスを始めた（API のポート: 55361）
+WARNING  voice_paste.features.correction.service:service.py:69 用語集が無い（C:\Users\shuhe\AppData\Local\Temp\pytest-of-shuhe\pytest-1971\test_normal_when_reset0\app0\yogo.csv）
+INFO     voice_paste.shared.settings:settings.py:1091 設定を読んだ（C:\Users\shuhe\repo\voice-paste\.claude\worktrees\chore-settings-three-layers\config\defaults.yaml・C:\Users\shuhe\AppData\Local\Temp\pytest-of-shuhe\pytest-1971\test_normal_when_reset0\app0\settings.yaml）
+INFO     voice_paste.main:main.py:944 設定を既定に戻した（C:\Users\shuhe\AppData\Local\Temp\pytest-of-shuhe\pytest-1971\test_normal_when_reset0\app0\settings.yaml・再起動が要る: True）
+WARNING  voice_paste.features.correction.service:service.py:69 用語集が無い（C:\Users\shuhe\AppData\Local\Temp\pytest-of-shuhe\pytest-1971\test_normal_when_reset0\app0\yogo.csv）
+INFO     voice_paste.ui.style:style.py:266 画面の明暗を当てた（theme=system・暗い組=False）
+INFO     uvicorn.error:server.py:282 Shutting down
+INFO     uvicorn.error:on.py:67 Waiting for application shutdown.
+INFO     uvicorn.error:on.py:76 Application shutdown complete.
+INFO     uvicorn.error:server.py:113 Finished server process [870180]
+INFO     voice_paste.server.runner:runner.py:75 API の待ち受けを止めた（ポート: 55361）
+INFO     voice_paste.features.web_transcription.service:service.py:146 ブラウザの音声のキューを閉じた（捨てた待ちの数: 0）
+INFO     voice_paste.main:main.py:1323 常駐サービスを終えた
+_____________________ test_error_when_settings_unreadable _____________________
+
+run_app = <function run_app.<locals>._run at 0x000001C41C1A8040>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001C41AD94C90>
+
+    def test_error_when_settings_unreadable(run_app: RunApp, monkeypatch: pytest.MonkeyPatch) -> None:
+        """settings.yaml を YAML として読めなければ、トレイで設定を読めないことが知らされ、ログに読めなかったファイルのパスと理由が書かれ、「録音を開始」と「設定…」が押せず「設定フォルダを開く」と「再起動」が押せ、settings.yaml は書き換わらない（異常シナリオ（設定を読めない））。"""
+        # 準備: トレイが出した知らせ（種類と、読めなかったファイルのパス）を控える
+        failures: list[tuple[FailureEvent, tuple[Path, ...]]] = []
+        real_show_failure = Tray.show_failure
+    
+        def show_failure(
+            self: Tray, event: FailureEvent, detail: str | None, *, paths: Sequence[Path] = ()
+        ) -> None:
+            """出した知らせを控えてから、本物で通知を出す。"""
+            failures.append((event, tuple(paths)))
+            real_show_failure(self, event, detail, paths=paths)
+    
+        monkeypatch.setattr(Tray, "show_failure", show_failure)
+    
+        def case(app: ResidentApp) -> None:
+            """設定を読めない起動のトレイ・知らせ・ログ・メニュー・settings.yaml を確かめる。"""
+            settings_file = app.data_dir / "settings.yaml"
+            # 検証
+            assert app.tray_state() == FAILED
+            assert failures == [("settings_invalid", (settings_file,))]
+            assert any(
+                message.startswith("起動に失敗した（") and str(settings_file) in message
+                for message in app.log_messages("ERROR")
+            )
+            assert not app.menu_item_enabled("menu_start")
+            assert not app.menu_item_enabled("menu_settings")
+            assert app.menu_item_enabled("menu_open_settings_folder")
+            assert app.menu_item_enabled("menu_restart")
+            assert settings_file.read_text(encoding="utf-8") == settings_text(
+                app.port, UNREADABLE_SETTINGS
+            )
+    
+        # 実行: 読めない settings.yaml で起動する
+>       run_app(case, extra_settings=UNREADABLE_SETTINGS)
+
+tests\e2e\単一ユースケース\test_start_resident_app.py:380: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\e2e\conftest.py:68: in _run
+    return run_resident_app(
+tests\support\resident_app.py:787: in run_resident_app
+    raise failures[0]
+tests\support\resident_app.py:764: in run_case
+    case(app)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+app = <tests.support.resident_app.ResidentApp object at 0x000001C418A5C050>
+
+    def case(app: ResidentApp) -> None:
+        """設定を読めない起動のトレイ・知らせ・ログ・メニュー・settings.yaml を確かめる。"""
+        settings_file = app.data_dir / "settings.yaml"
+        # 検証
+        assert app.tray_state() == FAILED
+        assert failures == [("settings_invalid", (settings_file,))]
+        assert any(
+            message.startswith("起動に失敗した（") and str(settings_file) in message
+            for message in app.log_messages("ERROR")
+        )
+        assert not app.menu_item_enabled("menu_start")
+>       assert not app.menu_item_enabled("menu_settings")
+E       AssertionError: assert not True
+E        +  where True = menu_item_enabled('menu_settings')
+E        +    where menu_item_enabled = <tests.support.resident_app.ResidentApp object at 0x000001C418A5C050>.menu_item_enabled
+
+tests\e2e\単一ユースケース\test_start_resident_app.py:372: AssertionError
+---------------------------- Captured stderr call -----------------------------
+{"ts": "2026-11-02T09:07:54.277125+09:00", "level": "INFO", "name": "voice_paste.runtime.single_instance", "msg": "単一インスタンスを確保した（voice-paste-32611cc1312fc061）"}
+{"ts": "2026-11-02T09:07:55.855635+09:00", "level": "INFO", "name": "voice_paste.ui.style", "msg": "画面の明暗を当てた（theme=system・暗い組=False）"}
+{"ts": "2026-11-02T09:07:55.871273+09:00", "level": "ERROR", "name": "voice_paste.main", "msg": "起動に失敗した（設定ファイルを読めない（C:\\Users\\shuhe\\AppData\\Local\\Temp\\pytest-of-shuhe\\pytest-1971\\test_error_when_settings_unrea0\\app0\\settings.yaml: 9行目 1列目: expected the node content, but found '<stream end>'））"}
+{"ts": "2026-11-02T09:08:01.122559+09:00", "level": "INFO", "name": "voice_paste.main", "msg": "常駐サービスを終えた"}
+------------------------------ Captured log call ------------------------------
+INFO     voice_paste.runtime.single_instance:single_instance.py:244 単一インスタンスを確保した（voice-paste-32611cc1312fc061）
+INFO     voice_paste.ui.style:style.py:266 画面の明暗を当てた（theme=system・暗い組=False）
+ERROR    voice_paste.main:main.py:1351 起動に失敗した（設定ファイルを読めない（C:\Users\shuhe\AppData\Local\Temp\pytest-of-shuhe\pytest-1971\test_error_when_settings_unrea0\app0\settings.yaml: 9行目 1列目: expected the node content, but found '<stream end>'））
+INFO     voice_paste.main:main.py:1323 常駐サービスを終えた
+=========================== short test summary info ===========================
+FAILED tests/e2e/単一ユースケース/test_change_settings.py::test_normal_when_reset
+FAILED tests/e2e/単一ユースケース/test_start_resident_app.py::test_error_when_settings_unreadable
+================= 2 failed, 128 passed in 2333.25s (0:38:53) ==================
+exit=1

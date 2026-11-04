@@ -1,0 +1,17 @@
+$ .venv/Scripts/python.exe -m pytest tests/nfr/test_max_segment_length.py tests/nfr/test_openai_transcription_retry.py tests/nfr/test_openai_audio_limit.py tests/nfr/test_web_queue_limit.py tests/nfr/test_paste_latency.py --run-e2e -rs
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\fix-tests-settings-from-defaults
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collected 5 items
+
+tests\nfr\test_max_segment_length.py .                                   [ 20%]
+tests\nfr\test_openai_transcription_retry.py .                           [ 40%]
+tests\nfr\test_openai_audio_limit.py .                                   [ 60%]
+tests\nfr\test_web_queue_limit.py .                                      [ 80%]
+tests\nfr\test_paste_latency.py s                                        [100%]
+
+=========================== short test summary info ===========================
+SKIPPED [1] tests\nfr\test_paste_latency.py:105: Windows の NVIDIA GPU と、tests/nfr/fixtures/ の固めた設定（whisper.env）が要る
+======================== 4 passed, 1 skipped in 9.22s =========================

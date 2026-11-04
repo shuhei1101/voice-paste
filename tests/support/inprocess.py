@@ -1,7 +1,7 @@
 """常駐アプリを pytest のプロセスの中で配線して動かす、E2E・非機能要件テストの補助。
 
 `build_handlers` で配線し、録音の入力を WAV を流すものに差し替える（マイクもスピーカーも通らない）。
-流す WAV は、Windows の音声合成（SAPI）で決めた文を書き出したものか、無音のもの。
+流す WAV は、音声合成（Windows は SAPI、Linux は Open JTalk）で決めた文を書き出したものか、無音のもの。
 システム音量・貼り付けのキーは差し替えて呼ばれた値を控え、通知も控える。
 クリップボードと文字起こし（ローカルの Whisper・GPU）は実物を使う。常駐アプリの起動・トレイ・ホットキーの受付は通さず、
 ホットキーの入口（`start_local_session`）から録音を始める。
@@ -15,6 +15,7 @@ import os
 import re
 import signal
 import socket
+import subprocess
 import threading
 import time
 from collections.abc import Callable, Iterable, Iterator, Sequence
@@ -31,29 +32,31 @@ from scipy.signal import resample_poly
 
 import voice_paste.main as main_module
 from tests.integration.helpers import CallbackReceiver, wait_until
-from tests.support.processes import ProcessInfo, processes_with
+from tests.support.processes import ProcessInfo, descendants, processes_with
+from tests.support.settings import default_output, load_test_default_settings, make_test_settings
 from tests.support.web_body import CONTENT_TYPE, chunks_of
 from voice_paste.features.recording.client import SAMPLE_RATE
 from voice_paste.features.session import SessionApiDeps, SessionManager
 from voice_paste.features.web_transcription import WebApiDeps
 from voice_paste.integrations.whisper.client import WORKER_MODULE
-from voice_paste.main import API_START_TIMEOUT_SEC, SETTINGS_MODEL, Handlers
+from voice_paste.main import API_START_TIMEOUT_SEC, Handlers
 from voice_paste.server.app import build_fastapi
 from voice_paste.server.runner import ApiServerRunner
 from voice_paste.server.token import create_token
 from voice_paste.shared.constants import AppPaths, resolve_app_paths
-from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
 from voice_paste.runtime.timer import RepeatingTimer
 from voice_paste.shared.errors import TranscriptionError
-from voice_paste.shared.os_kind import CURRENT_OS, detect_display_session, unavailable_features
+from voice_paste.shared.os_kind import (
+    CURRENT_OS,
+    Feature,
+    OsKind,
+    detect_display_session,
+    unavailable_features,
+)
 from voice_paste.shared.settings import (
-    ApiSettings,
-    ContinuousSettings,
     GlossaryPresetSettings,
     GlossarySettings,
-    LocalWhisperSettings,
     Settings,
-    TranscriptionSettings,
 )
 from voice_paste.shared.types import EnterModifier, Entry, Recording
 
@@ -74,6 +77,30 @@ BROKEN_WAV_BYTES = b"voice-paste-e2e-broken-recording"
 
 VOLUME_BEFORE = 0.8
 """録音前のシステム音量として控える値。"""
+
+LOWERS_VOLUME = Feature.LOWER_VOLUME not in unavailable_features(CURRENT_OS)
+"""動いている OS で、常駐アプリが録音中にシステム音量を下げて終わったら戻すか（Linux は下げない）。"""
+
+HAS_WEB_TRANSCRIPTION = Feature.WEB_TRANSCRIPTION not in unavailable_features(CURRENT_OS)
+"""動いている OS で、常駐アプリが外の端末のブラウザの文字起こし（`/web/`）を持つか（Linux は持たない）。"""
+
+requires_web_transcription = pytest.mark.skipif(
+    not HAS_WEB_TRANSCRIPTION,
+    reason="常駐アプリはこの OS で外の端末のブラウザの文字起こしを持たない",
+)
+"""外の端末の画面のケースを、ブラウザの文字起こしを持たない OS（Linux）では skip するマーカー。"""
+
+OPEN_JTALK_HOME_ENV = "VOICE_PASTE_OPEN_JTALK_HOME"
+"""Linux で Open JTalk を展開した置き場所を替える環境変数。"""
+
+OPEN_JTALK_DEFAULT_HOME = Path.home() / ".local/opt/open-jtalk"
+"""Linux で Open JTalk を sudo を使わずに展開した既定の置き場所（開発コマンド『環境構築（クローン直後）』の手順 3）。"""
+
+OPEN_JTALK_LIBRARY_DIR = "usr/lib/x86_64-linux-gnu"
+OPEN_JTALK_COMMAND = "usr/bin/open_jtalk"
+OPEN_JTALK_DICTIONARY_DIR = "var/lib/mecab/dic/open-jtalk/naist-jdic"
+OPEN_JTALK_VOICE_FILE = "usr/share/hts-voice/nitech-jp-atr503-m001/nitech_jp_atr503_m001.htsvoice"
+"""Open JTalk の置き場所からの、読み込むライブラリ・コマンド・辞書・声の相対パス。"""
 
 SILENCE_SEC = 2.0
 """何も話さない録音として流す無音の長さ。"""
@@ -166,18 +193,28 @@ def write_silence(wav_path: Path, seconds: float) -> Path:
     return write_wav(wav_path, np.zeros(round(SAMPLE_RATE * seconds), dtype=np.int16))
 
 
-def synthesize_speech(text: str, wav_path: Path) -> Path:
-    """Windows の音声合成（SAPI）で text を読み上げた音を、16 kHz・モノラル・16 bit の WAV へ書き出す。"""
-    import win32com.client
+def expected_lowered_ratios(ratio: float) -> list[float]:
+    """録音を 1 回始めたときに、システム音量を下げた割合の控えの期待値（下げない OS では空）。"""
+    return [ratio] if LOWERS_VOLUME else []
 
-    # 1. 既定の声で、音声合成の出力をファイルへ向けて読み上げる（書き出す標本化周波数は声で決まる）
-    raw_path = wav_path.with_suffix(".sapi.wav")
-    stream = win32com.client.Dispatch("SAPI.SpFileStream")
-    stream.Open(str(raw_path), SAPI_CREATE_FOR_WRITE)
-    voice = win32com.client.Dispatch("SAPI.SpVoice")
-    voice.AudioOutputStream = stream
-    voice.Speak(text)
-    stream.Close()
+
+def expected_restored_volumes() -> list[float]:
+    """録音を 1 回終えたときに、システム音量を戻した値の控えの期待値（下げない OS では空）。"""
+    return [VOLUME_BEFORE] if LOWERS_VOLUME else []
+
+
+def synthesize_speech(text: str, wav_path: Path) -> Path:
+    """音声合成（Windows は SAPI、Linux は Open JTalk）で text を読み上げた音を、16 kHz・モノラル・16 bit の WAV へ書き出す。"""
+    # 1. OS の音声合成で、読み上げた音を一時の WAV へ書き出す（書き出す標本化周波数は声で決まる）
+    # Windows か
+    if CURRENT_OS == OsKind.WINDOWS:
+        # そう: SAPI の既定の声で書き出す
+        raw_path = wav_path.with_suffix(".sapi.wav")
+        _synthesize_sapi(text, raw_path)
+    else:
+        # 違う: ユーザーの配下に展開した Open JTalk で書き出す
+        raw_path = wav_path.with_suffix(".jtalk.wav")
+        _synthesize_open_jtalk(text, raw_path)
 
     # 2. 16 kHz に変えて書き直す
     rate, samples = wavfile.read(raw_path)
@@ -188,6 +225,41 @@ def synthesize_speech(text: str, wav_path: Path) -> Path:
     clipped = np.clip(np.rint(resampled), np.iinfo(np.int16).min, np.iinfo(np.int16).max)
     raw_path.unlink()
     return write_wav(wav_path, clipped.astype(np.int16))
+
+
+def _synthesize_sapi(text: str, raw_path: Path) -> None:
+    """Windows の音声合成（SAPI）の既定の声で、text を読み上げた音を raw_path の WAV へ書き出す。"""
+    import win32com.client
+
+    stream = win32com.client.Dispatch("SAPI.SpFileStream")
+    stream.Open(str(raw_path), SAPI_CREATE_FOR_WRITE)
+    voice = win32com.client.Dispatch("SAPI.SpVoice")
+    voice.AudioOutputStream = stream
+    voice.Speak(text)
+    stream.Close()
+
+
+def _synthesize_open_jtalk(text: str, raw_path: Path) -> None:
+    """Open JTalk で、text を読み上げた音を raw_path の WAV（48 kHz）へ書き出す。
+
+    パッケージを入れずに展開しているため、open_jtalk が読む libHTSEngine の場所を LD_LIBRARY_PATH で渡す。
+    """
+    home = Path(os.environ.get(OPEN_JTALK_HOME_ENV, OPEN_JTALK_DEFAULT_HOME))
+    subprocess.run(  # noqa: S603 置き場所の下の固定の open_jtalk
+        [
+            str(home / OPEN_JTALK_COMMAND),
+            "-x",
+            str(home / OPEN_JTALK_DICTIONARY_DIR),
+            "-m",
+            str(home / OPEN_JTALK_VOICE_FILE),
+            "-ow",
+            str(raw_path),
+        ],
+        input=text.encode("utf-8"),
+        env={**os.environ, "LD_LIBRARY_PATH": str(home / OPEN_JTALK_LIBRARY_DIR)},
+        capture_output=True,
+        check=True,
+    )
 
 
 def read_wav(wav_path: Path) -> np.ndarray:
@@ -570,24 +642,23 @@ def make_settings(
 
     連続録音のセッションの上限時間は、設定で許す下限（60 秒）より短い値も、テストで待てるよう検査を通さずに入れる。
     """
-    outputs = [PasteAndSendSettings()] if only_paste_and_send else SETTINGS_MODEL().outputs
-    local_whisper = (
-        LocalWhisperSettings()
-        if vad_threshold is None
-        else LocalWhisperSettings(vad_threshold=vad_threshold)
+    outputs = (
+        [default_output("paste_and_send")]
+        if only_paste_and_send
+        else load_test_default_settings().outputs
     )
-    api = ApiSettings()
-    if continuous_session_limit_sec is not None:
-        continuous = ContinuousSettings.model_construct(
-            min_silence_sec=ContinuousSettings().min_silence_sec,
-            session_limit_sec=continuous_session_limit_sec,
-        )
-        api = ApiSettings(continuous=continuous)
-    return SETTINGS_MODEL(
-        outputs=outputs,
-        transcription=TranscriptionSettings(local_whisper=local_whisper),
-        api=api,
+    local_whisper = {} if vad_threshold is None else {"vad_threshold": vad_threshold}
+    settings = make_test_settings(
+        {"transcription": {"local_whisper": local_whisper}}, outputs=outputs
     )
+    if continuous_session_limit_sec is None:
+        return settings
+    # 連続録音のセッションの上限時間は、検査を通さずに入れる
+    continuous = settings.api.continuous.model_copy(
+        update={"session_limit_sec": continuous_session_limit_sec}
+    )
+    api = settings.api.model_copy(update={"continuous": continuous})
+    return settings.model_copy(update={"api": api})
 
 
 FIRST_PRESET_NAME = "既定"
@@ -853,7 +924,10 @@ class InProcessApp:
         if self.api is not None:
             self.api.close()
         self.manager.close()
-        self.handlers.web_api.queue.close()
+        # ブラウザの文字起こしを配線した OS か（Linux は配線しない）
+        if self.handlers.web_api is not None:
+            # した: ブラウザの音声のキューを閉じる
+            self.handlers.web_api.queue.close()
         self.handlers.stop_engine()
 
 
@@ -943,7 +1017,14 @@ class _ProcessEntry(ctypes.Structure):
 
 
 def process_tree_pids(root_pid: int) -> set[int]:
-    """root_pid とその子孫のプロセスの番号を、Toolhelp のスナップショットで直ちに引いて返す（PowerShell の一覧は数秒かかる）。"""
+    """root_pid とその子孫のプロセスの番号を直ちに引いて返す。
+
+    Windows は Toolhelp のスナップショットで引く（PowerShell の一覧は数秒かかる）。Linux は /proc から引く。
+    """
+    # Windows か
+    if CURRENT_OS != OsKind.WINDOWS:
+        # 違う: /proc の一覧から子孫を辿る
+        return {process.pid for process in descendants(root_pid)}
     kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
     kernel32.CreateToolhelp32Snapshot.restype = wintypes.HANDLE
     snapshot = kernel32.CreateToolhelp32Snapshot(TOOLHELP_SNAPSHOT_PROCESS, 0)

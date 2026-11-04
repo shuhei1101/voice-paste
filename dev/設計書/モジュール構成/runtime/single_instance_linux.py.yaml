@@ -1,0 +1,281 @@
+id: MOD-88
+title: 常駐アプリ / 起動と配線 / single_instance_linux.py
+test_files:
+  - tests/unit/voice_paste/runtime/test_single_instance_linux.py
+classes:
+  - name: LinuxSingleInstanceLock
+    title: Linux の単一インスタンスの排他
+    container: runtime/single_instance_linux.py
+    usecase: 常駐アプリを起動する
+    role: ランタイム
+    summary: 取ったロックファイルと、終了の依頼を待つソケットとスレッドを持つ。SingleInstanceLock と同じメソッドを持ち、main はどちらも同じように扱う
+    description: |-
+      終了の依頼のソケット（抽象名前空間の `\0{名前}-quit`）と停止のソケットの対（socket.socketpair）を専用のデーモンスレッドが select で待ち、QUIT_REQUEST を受けたら on_quit_requested で渡された関数を 1 回呼んでスレッドを終える（呼ぶのはそのスレッド）。
+      受けたバイト列（MAX_REQUEST_BYTES まで）が HOTKEY_REQUEST_PREFIX で始まれば、続きを押されたホットキーとして on_hotkey で渡された関数に渡し、待ち続ける（Wayland のセッションの GNOME のカスタムショートカットが流す send_hotkey が送信する）。
+      QUIT_REQUEST・ホットキー以外を受けた接続は閉じて待ち続ける。
+      抽象名前空間のソケットにはファイルの権限が効かないため、接続を受けたら _peer_uid（SO_PEERCRED）で相手の uid を読み、os.getuid() と違う接続は読まずに閉じて待ち続ける（ほかのユーザーが常駐サービスを終わらせられず、ホットキーを押した体にできない）。
+      プロセスが片付けずに落ちても、OS がロックとソケットを放すため、次の起動はそのまま取れる。
+    kind: クラス
+    properties:
+      - name: _lock_fd
+        type: int
+        access: 内部 (_)
+        description: flock で排他を取ったロックファイルのファイル記述子
+      - name: _server
+        type: socket.socket
+        access: 内部 (_)
+        description: 終了の依頼を待つ Unix ドメインソケット（抽象名前空間。ファイルを残さない）
+      - name: _stop_reader
+        type: socket.socket
+        access: 内部 (_)
+        description: 待つスレッドを止める合図を受ける側（socketpair）
+      - name: _stop_writer
+        type: socket.socket
+        access: 内部 (_)
+        description: 待つスレッドを止める合図を送信する側（socketpair）
+      - name: _on_quit
+        type: Callable[[], None] | None
+        access: 内部 (_)
+        description: 終了を頼まれたときに呼ぶ関数。on_quit_requested の前は None（その間に頼まれたら、渡された時点で呼ぶ）
+      - name: _thread
+        type: threading.Thread
+        access: 内部 (_)
+        description: 終了の依頼を待つスレッド
+      - name: _on_hotkey
+        type: Callable[[str], None] | None
+        access: 内部 (_)
+        description: 押されたホットキーを受けたときに呼ぶ関数。on_hotkey の前は None（その間に受けたホットキーは捨てる）
+    methods:
+      - name: on_quit_requested
+        title: 終了の依頼の受け手の登録
+        kind: メソッド
+        summary: 終了を頼まれたときに呼ぶ関数を渡す
+        scope: public
+        thread_safe: true
+        args:
+          - name: callback
+            type: Callable[[], None]
+            required: true
+            passing: positional
+            description: 終了を頼まれたときに呼ぶ関数
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 受け手を覚える
+             - 既に頼まれていた場合、その場で 1 回呼ぶ
+        unit_tests:
+          - name: test_on_quit_requested_linux
+            case: 正常
+            summary: 頼まれたら受け手を呼ぶ
+            condition: 取った後に受け手を渡し、同じ名前のソケットへ接続して QUIT_REQUEST を送信する
+            mock: 受け手
+            expected: 受け手が 1 秒以内に 1 回呼ばれる
+          - name: test_on_quit_requested_linux_when_already_requested
+            case: 正常
+            summary: 受け手を渡す前に頼まれていても取りこぼさない
+            condition: 取った後、受け手を渡す前に QUIT_REQUEST を送信し、0.2 秒待つ
+            mock: 受け手
+            expected: 受け手を渡した時点で 1 回呼ばれる
+          - name: test_on_quit_requested_linux_when_other_message
+            case: 正常
+            summary: 知らない送信では終わらない
+            condition: 受け手を渡し、`hello` を送信してから QUIT_REQUEST を送信する
+            mock: 受け手
+            expected: '`hello` の後には呼ばれず、QUIT_REQUEST の後に 1 回呼ばれる'
+          - name: test_on_quit_requested_linux_when_other_user
+            case: 正常
+            summary: ほかのユーザーからの依頼では終わらない
+            condition: 受け手を渡し、_peer_uid が os.getuid() + 1 を返す状態で QUIT_REQUEST を送信し、続けて _peer_uid を os.getuid() に戻して QUIT_REQUEST を送信する
+            mock: 受け手・_peer_uid（monkeypatch）
+            expected: 1 つ目の後には呼ばれず、2 つ目の後に 1 回呼ばれる
+      - name: release
+        title: 排他の解放
+        kind: メソッド
+        summary: 待つスレッドを止め、ソケットを閉じてからロックを放す
+        scope: public
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 停止の合図を _stop_writer へ送信して待つスレッドを抜けさせ、終わりを待つ
+          2. 終了の依頼のソケットと停止のソケットの対を閉じる（抽象名前空間の名前が空く）
+          3. ロックを放し（fcntl.flock(LOCK_UN)）、ファイル記述子を閉じる。ロックファイルは消さない（消すと、待っているプロセスと別のファイルで取り合う）
+             - 2 回目以降の呼び出しは何もしない
+        unit_tests:
+          - name: test_release_linux
+            case: 正常
+            summary: 放した後は同じ名前ですぐ取れ、受け手は呼ばれない
+            condition: 取ってから release を 2 回呼ぶ
+            mock: 受け手
+            expected: 同じ名前で timeout_sec=0.1 で取れ、受け手が呼ばれていない
+      - name: on_hotkey
+        title: ホットキーの受け手の登録
+        kind: メソッド
+        summary: 押されたホットキーを受けたときに呼ぶ関数を渡す（呼ぶのは待つスレッド）
+        scope: public
+        thread_safe: true
+        args:
+          - name: callback
+            type: Callable[[str], None]
+            required: true
+            passing: positional
+            description: 押されたホットキー（pynput の書式）を受ける関数
+        returns:
+          type: None
+          description: なし
+        process: 1. 受け手を覚える（前に渡した受け手は置き換える）
+        unit_tests:
+          - name: test_on_hotkey
+            case: 正常
+            summary: ホットキーを受けたら受け手に渡し、待ち続ける
+            condition: 受け手を渡し、同じ名前のソケットへ `hotkey:<cmd>+<alt>+d` を 2 回送信してから QUIT_REQUEST を送信する
+            mock: ホットキーの受け手・終了の受け手
+            expected: ホットキーの受け手が "<cmd>+<alt>+d" で 2 回呼ばれ、その後に終了の受け手が 1 回呼ばれる
+          - name: test_on_hotkey_when_other_user
+            case: 正常
+            summary: ほかのユーザーからのホットキーは渡さない
+            condition: 受け手を渡し、_peer_uid が os.getuid() + 1 を返す状態で `hotkey:<cmd>+<alt>+d` を送信する
+            mock: ホットキーの受け手・_peer_uid（monkeypatch）
+            expected: ホットキーの受け手が呼ばれない
+          - name: test_on_hotkey_when_not_registered
+            case: 正常
+            summary: 受け手を渡す前のホットキーは捨てて待ち続ける
+            condition: 受け手を渡さずに `hotkey:<cmd>+<alt>+d` を送信し、続けて QUIT_REQUEST を送信する
+            mock: 終了の受け手
+            expected: 例外が出ず、終了の受け手が 1 回呼ばれる
+    status: planned
+constants:
+  - name: LOCK_RETRY_INTERVAL_SEC
+    title: Linux でロックを取り直す間隔
+    container: runtime/single_instance_linux.py
+    usecase: 常駐アプリを起動する
+    summary: 前のプロセスに終わるよう頼んだ後、flock を取り直し・接続し直す間隔。OPEN_EVENT_RETRY_INTERVAL_SEC と同じく、取れるまでの遅れを 0.1 秒までに抑える
+    value: '0.1'
+    status: planned
+  - name: QUIT_REQUEST
+    title: 終了の依頼の送信内容
+    container: runtime/single_instance_linux.py
+    usecase: 常駐アプリを起動する
+    summary: 後から起動したプロセスが終了の依頼のソケットへ送信するバイト列
+    value: b"quit"
+    status: planned
+  - name: HOTKEY_REQUEST_PREFIX
+    title: ホットキーの送信内容の頭
+    container: runtime/single_instance_linux.py
+    usecase: 録音する
+    summary: send_hotkey が終了の依頼のソケットへ、押されたホットキーの前に付けて送信するバイト列
+    value: b"hotkey:"
+    status: planned
+  - name: MAX_REQUEST_BYTES
+    title: 1 つの接続から読む上限
+    container: runtime/single_instance_linux.py
+    usecase: 常駐アプリを起動する
+    summary: 終了の依頼のソケットで 1 つの接続から読むバイト数の上限（`hotkey:` と設定のホットキーが収まる長さ）
+    value: '256'
+    status: planned
+functions:
+  - name: acquire_single_instance_linux
+    title: Linux の単一インスタンスの確保
+    kind: 関数
+    container: runtime/single_instance_linux.py
+    usecase: 常駐アプリを起動する
+    role: ランタイム
+    summary: ロックファイルを flock で取る。取られていれば終了の依頼のソケットで前のプロセスに終わるよう頼み、放されるのを待ってから取る
+    scope: public
+    args:
+      - name: name
+        type: str
+        required: true
+        passing: positional
+        description: 排他の名前（instance_name）。終了の依頼のソケットは抽象名前空間の `\0{name}-quit` にする
+      - name: timeout_sec
+        type: float
+        required: true
+        passing: positional
+        description: 前のプロセスの終わりを待つ上限
+      - name: lock_file
+        type: Path
+        required: true
+        passing: keyword
+        description: ロックファイル（AppPaths.lock_file。環境変数によらず設定・データの置き場所ごとに 1 つに決まる）
+    returns:
+      type: LinuxSingleInstanceLock
+      description: 取った排他（終了の依頼を待つスレッドを持つ。終了時に release で放す）
+    process: |-
+      1. lock_file を開き（os.open、無ければ親のフォルダごと 0o600 で作る）、fcntl.flock(LOCK_EX | LOCK_NB) で取る
+      2. 取れたか
+         - 取れない場合（BlockingIOError）、前のプロセスの終了の依頼のソケットへ接続して QUIT_REQUEST を送信し、LOCK_RETRY_INTERVAL_SEC ごとに flock(LOCK_EX | LOCK_NB) を取り直しながら timeout_sec まで待つ
+           - 接続できない場合（前のプロセスがロックを取ってからソケットを作るまでの間）、取り直すたびに接続し直す（送信できたら以降は送信しない）
+           - `[INFO]` 前の常駐サービスに終わるよう頼んだ
+           - 上限まで取れない場合、ファイル記述子を閉じて StartupError を送出する。上限まで一度も送信できなかったときは、理由にその旨を書く
+         - 取れた場合、そのまま進む（前のプロセスが片付けずに落ちていても、OS がロックを放している）
+      3. 終了の依頼のソケット（AF_UNIX・SOCK_STREAM）を `\0{name}-quit` に bind して listen する
+         - OSError の場合（同じ名前のソケットが残っている）、ロックを放して StartupError を送出する
+      4. 終了の依頼のソケットと停止のソケットを待つデーモンスレッドを始めて LinuxSingleInstanceLock を返す
+         - 接続を受けて QUIT_REQUEST を読んだ場合、受け手を 1 回呼んでスレッドを終える（2 回目以降の依頼は、既に終わりに向かっているため受けない）
+         - 停止の合図を受けた場合、受け手を呼ばずにスレッドを終える
+         - `[INFO]` 単一インスタンスを確保した（名前）
+    exceptions:
+      - name: StartupError
+        condition: 上限まで待っても前のプロセスがロックを放さない
+      - name: StartupError
+        condition: 終了の依頼のソケットを bind できない
+    unit_tests:
+      - name: test_acquire_single_instance_linux
+        case: 正常
+        summary: ほかに持つプロセスが無ければすぐ取れる
+        condition: 一意の名前（テストごとに uuid を付ける）
+        mock: なし（実物の flock と抽象名前空間のソケット）
+        expected: LinuxSingleInstanceLock が返り、release の後に同じ名前でもう一度取れる
+      - name: test_acquire_single_instance_linux_when_held
+        case: 正常
+        summary: 持っている側に終わるよう頼み、放されたら取れる
+        condition: 同じ名前の LinuxSingleInstanceLock を先に取り、その on_quit_requested に release する関数を渡す。timeout_sec=5 で取る
+        mock: なし（実物の flock と抽象名前空間のソケット）
+        expected: 先の受け手が 1 回呼ばれ、後の呼び出しが LinuxSingleInstanceLock を返す
+      - name: test_acquire_single_instance_linux_when_not_released
+        case: 異常
+        summary: 上限まで放されなければ StartupError
+        condition: 同じ名前の LinuxSingleInstanceLock を先に取り、頼まれても放さない。timeout_sec=0.2 で取る
+        mock: なし（実物の flock と抽象名前空間のソケット）
+        expected: StartupError。先の LinuxSingleInstanceLock は持ったまま
+        exception: 上限まで待っても前のプロセスがロックを放さない
+      - name: test_acquire_single_instance_linux_when_socket_not_ready
+        case: 正常
+        summary: 前のプロセスのソケットがまだ無くても、接続し直して頼む
+        condition: 別のスレッドが同じロックファイルを flock だけで持ち、0.3 秒後に同じ名前のソケットを bind し、QUIT_REQUEST を受けたら放す。timeout_sec=5 で取る
+        mock: なし（実物の flock と抽象名前空間のソケット）
+        expected: LinuxSingleInstanceLock が返り、別のスレッドが QUIT_REQUEST を受けている
+      - name: test_acquire_single_instance_linux_when_holder_crashed
+        case: 正常
+        summary: 前のプロセスが片付けずに落ちても取れる
+        condition: 子プロセスで同じ名前を acquire_single_instance_linux で取らせ、SIGKILL で終わらせてから timeout_sec=1 で取る
+        mock: なし（実物の子プロセス・flock・抽象名前空間のソケット）
+        expected: LinuxSingleInstanceLock が返る
+    status: planned
+    description: 単体テストは lock_file に一時フォルダの instance.lock を渡す（同じロックを取り合うケースでは同じパスを渡す）。
+  - name: _peer_uid
+    title: 接続の相手の uid
+    kind: 関数
+    container: runtime/single_instance_linux.py
+    usecase: 常駐アプリを起動する
+    summary: Unix ドメインソケットの接続の相手の uid を SO_PEERCRED で読む
+    scope: internal
+    args:
+      - name: conn
+        type: socket.socket
+        required: true
+        passing: positional
+        description: accept した接続
+    returns:
+      type: int
+      description: 相手の uid（getsockopt(SOL_SOCKET, SO_PEERCRED) の struct ucred（3 つの int）の 2 つ目）
+    unit_tests:
+      - name: test_peer_uid
+        case: 正常
+        summary: 自分の接続は自分の uid
+        condition: socket.socketpair(AF_UNIX) の片方を渡す
+        mock: なし
+        expected: os.getuid()
+    status: planned

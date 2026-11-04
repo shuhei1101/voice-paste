@@ -125,7 +125,7 @@ class RowGrip(QLabel):
 class EdgePhrasePanel(QWidget):
     """設定画面の「ハルシネーション」のまとまりに置く、説明・文言の一覧・空の文・「行を追加」・凡例。
 
-    追加・削除・並べ替え・入力はこの部品の中だけを変え、settings.toml へは設定画面の保存で書く。
+    追加・削除・並べ替え・入力はこの部品の中だけを変え、settings.yaml へは設定画面の保存で書く。
     """
 
     changed = Signal()
@@ -186,7 +186,7 @@ class EdgePhrasePanel(QWidget):
         self._rebuild([phrase.model_dump() for phrase in phrases], self._number_saved(len(phrases)))
 
     def collect(self) -> list[dict[str, Any]]:
-        """今の並びの行を settings.toml と同じ構造の dict（text・position）の並びにする。空の文言の行もそのまま入れる。"""
+        """今の並びの行を 設定と同じ構造の dict（text・position）の並びにする。空の文言の行もそのまま入れる。"""
         return [
             {"text": row.text_edit.text(), "position": str(row.position_box.currentData())}
             for row in self._rows

@@ -90,19 +90,20 @@ def test_open_when_preset(qapp: QApplication, tmp_path: Path) -> None:
 
 def _switch_settings(show_hotkeys: bool, enabled_ids: tuple[str, ...]) -> Settings:
     """enabled_ids の出力先だけをオンにし、文字起こし中の表示のホットキーを出すかを show_hotkeys にした設定を作る。"""
-    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
-    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
-    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
-    from voice_paste.main import SETTINGS_MODEL
-    from voice_paste.shared.settings import UiSettings
+    from tests.unit.voice_paste.settings_helpers import (
+        load_test_default_settings,
+        make_test_settings,
+    )
 
-    return SETTINGS_MODEL(
-        ui=UiSettings(show_hotkeys=True, transcribing_show_hotkeys=show_hotkeys),
-        outputs=[
-            PasteAndSendSettings(enabled="paste_and_send" in enabled_ids),
-            PasteOnlySettings(enabled="paste_only" in enabled_ids),
-            CopyOnlySettings(enabled="copy_only" in enabled_ids),
-        ],
+    outputs = [
+        {**output.model_dump(mode="json"), "enabled": output.id in enabled_ids}
+        for output in load_test_default_settings().outputs
+    ]
+    return make_test_settings(
+        {
+            "ui": {"show_hotkeys": True, "transcribing_show_hotkeys": show_hotkeys},
+            "outputs": outputs,
+        }
     )
 
 
@@ -490,13 +491,12 @@ def test_set_output_badge_clear_of_text(
     range_count: int,
 ) -> None:
     """選んだボタンの丸いマーカーが名前とホットキーの文字に重ならない（正常系）。"""
-    from voice_paste.main import SETTINGS_MODEL
-    from voice_paste.shared.settings import UiSettings
+    from tests.unit.voice_paste.settings_helpers import make_test_settings
     from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
 
     # 準備: 貼り付けて送信・貼り付けのみ・コピーのみがオンの設定で、貼り付けて送信で確定した表示を出す
-    settings = SETTINGS_MODEL(
-        ui=UiSettings(show_hotkeys=True, transcribing_show_hotkeys=show_hotkeys)
+    settings = make_test_settings(
+        {"ui": {"show_hotkeys": True, "transcribing_show_hotkeys": show_hotkeys}}
     )
     indicator = TranscribingIndicator(
         make_ui_deps(tmp_path, settings=settings), clock=FakeClock(0.0)

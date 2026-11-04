@@ -1,3 +1,4 @@
+id: LIB-8
 title: "faster-whisper"
 kind: "ライブラリ"
 version:
@@ -28,7 +29,7 @@ catalogs:
         purpose: 同梱の Silero VAD のモデル。常駐アプリは同じファイルを `src/voice_paste/integrations/vad/assets/` に同梱して開く
         description: 'faster-whisper を `local-whisper` の extra へ移したため（PR #204）、常駐アプリは faster-whisper のパッケージからは開かず、faster-whisper 1.2.1 のこのファイルを `src/voice_paste/integrations/vad/assets/silero_vad_v6.onnx` へコピーして同梱する（MIT。ライセンスの表記を添える）。入力は input（(1, 576) の float32）・h・c（(1, 1, 128)）、出力は確率・h・c（PoC #80 で確かめた構造）。faster-whisper のバージョンを上げるときは、同梱したファイルと入出力が変わっていないかを確かめる。'
         refs:
-          - dev/設計書/外部ライブラリ/onnxruntime#
+          - LIB-15#
         status: planned
         introduced:
           pr: 78
@@ -65,7 +66,7 @@ issues:
         recommended: true
     upstream_issue: https://github.com/SYSTRAN/faster-whisper/issues/1589
     refs:
-      - dev/設計書/外部ライブラリ/av#
+      - LIB-4#
   - title: 話していない定型句が文末に入る
     summary: 無音・雑音の区間に、話していない「ご視聴ありがとうございました」などの定型句が起こした文字に入る
     occurred_on: '2026-10-22'
@@ -87,4 +88,4 @@ issues:
       - method: '`word_timestamps=True` と `hallucination_silence_threshold`（1.0 / 2.0 秒）を `transcribe` へ渡す'
         result: 履歴の録音で起こし比べた結果、定型句が出なくなったのは 8 件中 2 件で、どの組み合わせも同じ。定型句の出ない 20 件では話した区間が欠けた（文字の変化率は最大 `word_timestamps` のみ 13.0%・しきい値 1.0 秒 66.7%・2.0 秒 25.2%）。しきい値を入れた組み合わせでは、基準に無い定型句が 1 件出た。渡さない。出た定型句は、文頭・文末から削除する文言の一覧（既定に「ありがとうございました」を含む）で扱う
     refs:
-      - dev/設計書/シナリオ/単一ユースケース/録音を文字に起こす#scenarios[正常シナリオ（文頭・文末の決まった文言を消す）]
+      - SC-9#scenarios[正常シナリオ（文頭・文末の決まった文言を消す）]

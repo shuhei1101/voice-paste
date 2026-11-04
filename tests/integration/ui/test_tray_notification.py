@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -211,19 +211,35 @@ def test_notification_body_when_engine_unavailable(
     )
 
 
+@pytest.mark.parametrize(
+    ("paths", "shown_paths"),
+    [
+        pytest.param(
+            (PureWindowsPath("C:/a/settings.yaml"),), "C:\\a\\settings.yaml", id="one_file"
+        ),
+        pytest.param(
+            (PureWindowsPath("C:/a/settings.yaml"), PureWindowsPath("C:/r/settings.local.yaml")),
+            "C:\\a\\settings.yaml・C:\\r\\settings.local.yaml",
+            id="two_files",
+        ),
+    ],
+)
 def test_notification_body_when_settings_invalid(
-    make_ui: Callable[..., Ui], shown: MagicMock
+    make_ui: Callable[..., Ui],
+    shown: MagicMock,
+    paths: tuple[PureWindowsPath, ...],
+    shown_paths: str,
 ) -> None:
-    """設定ファイルを読めない起動の本文は、理由と「設定フォルダの settings.toml を修正して再起動してください」を出す。"""
+    """設定ファイルを読めない起動の本文は、理由と「{読めなかったファイルのパス} を修正して再起動してください」を出す。読めなかったファイルが複数なら「・」でつなぐ。"""
     # 準備
     ui = make_ui()
 
     # 実行
-    ui.tray.show_failure("settings_invalid", "api.port が合わない")
+    ui.tray.show_failure("settings_invalid", "api.port が合わない", paths=paths)
 
     # 検証
     assert shown.call_args.args[1] == (
-        "設定ファイルを読み込めませんでした（api.port が合わない）。設定フォルダの settings.toml を修正して再起動してください。"
+        f"設定ファイルを読み込めませんでした（api.port が合わない）。{shown_paths} を修正して再起動してください。"
     )
 
 

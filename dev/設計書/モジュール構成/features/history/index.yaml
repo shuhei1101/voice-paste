@@ -1,0 +1,4 @@
+summary: history の設計書
+items:
+  - page: service.py.yaml
+    summary: 確定した録音と起こした文字を `%LOCALAPPDATA%\voice-paste\history\`（Linux は `~/.local/share/voice-paste/history/`）に残し、保持期間を過ぎたものを消す。文字起こしの成否より先に録音を残す。

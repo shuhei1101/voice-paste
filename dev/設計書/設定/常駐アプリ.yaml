@@ -1,22 +1,32 @@
-title: "設定: 常駐アプリ"
-lead: 常駐アプリが `settings.toml` から読む設定の一覧。読み書きは `src/voice_paste/shared/settings.py`、見本は `settings.sample.toml`。
+id: CFG-1
+title: '設定: 常駐アプリ'
+lead: 常駐アプリが既定値（`config/defaults.yaml`）・環境の値（`settings.yaml`）・checkout の上書き（`settings.local.yaml`）の順に重ねて読む設定の一覧。読み書きは `src/voice_paste/shared/settings.py`、見本は `settings.sample.yaml`。
 files:
   - file: resources/yogo.csv
     manages: 用語集（誤変換 → 正しい表記。正しい表記が空の行は誤変換を消す）
     notes: 列は `誤変換`・`正しい表記` と、行のオン・オフの `使う`（`0` がオフ。列が無い行はオン）。録音を確定するたびに読み直す。置き場所は `glossary_path` で変えられる。設定画面で追加した用語集は `glossaries[].path` の CSV に同じ列で持つ（列の定義は ER 図『常駐アプリのファイル』の用語集の CSV）。
+  - file: config/defaults.yaml
+    manages: 設定の全てのキーの既定値と、OS ごとの既定値の上書き（`os_overrides.{windows|linux}`）
+    notes: git で管理する。3 レイヤーの 1 つ目で、全てのキーを持つ（欠けていれば起動時に設定を読めない扱い）。`os_overrides` の中は動いている OS の分だけを共通の既定値に重ねる（表はキーごと、一覧は丸ごと）。
+  - file: settings.yaml
+    manages: 環境の値（この端末で既定値から変えたキー）
+    notes: git の管理外。3 レイヤーの 2 つ目。既定は `%APPDATA%\voice-paste\settings.yaml`（Linux は `~/.config/voice-paste/settings.yaml`）、`--data-dir` を渡したときはその下。起動では作らない（`settings.toml` だけがあるときに移すのを除く）。設定画面の保存は、変えたキーのうち既定値と違うものを書き、既定値と同じにしたキーは外す（コメントは保つ）。「既定に戻す」は全てのキーを外す。
+  - file: settings.local.yaml
+    manages: checkout の上書き（この checkout でだけ変えたいキー）
+    notes: git の管理外。リポジトリの直下に置く 3 レイヤーの 3 つ目で、settings.yaml の値に勝つ。`--data-dir` を渡した起動では読まない。常駐アプリは書かない。
   - file: settings.toml
-    manages: 新しい構成（src/voice_paste/）の設定の全部
-    notes: git の管理外。既定は `%APPDATA%\voice-paste\settings.toml`（Linux は `~/.config/voice-paste/settings.toml`）、`--data-dir` を渡したときはその下。無ければ起動時に既定値で作る。
-  - file: settings.sample.toml
-    manages: settings.toml の見本と既定値
-    notes: git で管理する。設定のモデルの共通の既定値（Windows の既定値）と一致させる（単体テストで、動いている OS の上書きのキーは共通の既定値と、それ以外は設定のモデルの既定値と比べる）。Linux で既定値が違うキーは、各キーの「環境ごとの値」が持つ。
+    manages: 前のバージョンの設定
+    notes: settings.yaml が無く、同じフォルダにこのファイルがあれば、起動時に既定値と違うキーだけを settings.yaml へ移す（このファイルは残す）。settings.yaml があれば読まない。
+  - file: settings.sample.yaml
+    manages: settings.yaml・settings.local.yaml の見本
+    notes: git で管理する。よく変えるキーを、コメントにした行で並べる（コメントを外したキーだけが既定値に勝つ）。既定値に重ねて設定のモデルの検証に通ることを単体テストで確かめる。
   - file: secrets/openai_api_key
     manages: OpenAI API の API キー（中身はキーの文字列だけ）
-    notes: git の管理外。`settings.toml` と同じフォルダの下（Windows は `%APPDATA%\voice-paste\secrets\openai_api_key`、Linux は `~/.config/voice-paste/secrets/openai_api_key`、`--data-dir` を渡したときはその下）。ユーザーが置き、常駐アプリは読むだけで作らない。環境変数 `OPENAI_API_KEY` があればそちらを使う。`transcription.engine` が `openai` のときだけ読む
+    notes: git の管理外。`settings.yaml` と同じフォルダの下（Windows は `%APPDATA%\voice-paste\secrets\openai_api_key`、Linux は `~/.config/voice-paste/secrets/openai_api_key`、`--data-dir` を渡したときはその下）。ユーザーが置き、常駐アプリは読むだけで作らない。環境変数 `OPENAI_API_KEY` があればそちらを使う。`transcription.engine` が `openai` のときだけ読む
 settings:
   - key: transcription.engine
     title: 使う文字起こしのエンジン
-    file: settings.toml
+    file: settings.yaml
     type: "'local_whisper' | 'openai'"
     default: local_whisper
     description: '`local_whisper` は文字起こしワーカー（faster-whisper）で、`openai` は OpenAI API で文字を起こす。`local_whisper` は `local-whisper` の extra を含めて作った環境でだけ動く。'
@@ -25,7 +35,7 @@ settings:
     implementation: src/voice_paste/shared/settings.py
   - key: transcription.local_whisper.model
     title: ローカルの Whisper のモデル
-    file: settings.toml
+    file: settings.yaml
     type: string
     default: large-v3
     description: faster-whisper に読み込ませるモデル。
@@ -34,27 +44,27 @@ settings:
     implementation: src/voice_paste/shared/settings.py
   - key: transcription.local_whisper.device
     title: ローカルの Whisper のデバイス
-    file: settings.toml
+    file: settings.yaml
     type: "'cuda' | 'cpu'"
     default: cuda
     description: GPU（cuda）と CPU のどちらで動かすか。
     reload: restart
     status: implemented
     implementation: src/voice_paste/shared/settings.py
-    per_env: 'Windows: cuda。Linux: cpu（OS_DEFAULT_OVERRIDES。Linux では CUDA のライブラリを読ませる手当てが無い）'
+    per_env: 'Windows: cuda。Linux: cpu（config/defaults.yaml の os_overrides。Linux では CUDA のライブラリを読ませる手当てが無い）'
   - key: transcription.local_whisper.compute_type
     title: ローカルの Whisper の量子化タイプ
-    file: settings.toml
+    file: settings.yaml
     type: "'float16' | 'int8' | 'float32'"
     default: float16
     description: 計算の精度。
     reload: restart
     status: implemented
     implementation: src/voice_paste/shared/settings.py
-    per_env: 'Windows: float16。Linux: int8（OS_DEFAULT_OVERRIDES）'
+    per_env: 'Windows: float16。Linux: int8（config/defaults.yaml の os_overrides）'
   - key: transcription.local_whisper.cpu_threads
     title: ローカルの Whisper の CPU スレッド数
-    file: settings.toml
+    file: settings.yaml
     type: int
     default: '0'
     description: 使う CPU のスレッド数（0 は自動）。
@@ -64,7 +74,7 @@ settings:
     allowed: '>= 0'
   - key: transcription.local_whisper.num_workers
     title: ローカルの Whisper の並列ワーカー数
-    file: settings.toml
+    file: settings.yaml
     type: int
     default: '1'
     description: 並列のデコードの数。
@@ -74,7 +84,7 @@ settings:
     allowed: '>= 1'
   - key: transcription.local_whisper.beam_size
     title: ローカルの Whisper のビーム幅
-    file: settings.toml
+    file: settings.yaml
     type: int
     default: '10'
     description: ビームサーチの幅。
@@ -84,7 +94,7 @@ settings:
     allowed: '>= 1'
   - key: transcription.local_whisper.best_of
     title: ローカルの Whisper の候補数
-    file: settings.toml
+    file: settings.yaml
     type: int
     default: '5'
     description: サンプリングの候補の数。
@@ -94,7 +104,7 @@ settings:
     allowed: '>= 1'
   - key: transcription.local_whisper.language
     title: ローカルの Whisper の言語
-    file: settings.toml
+    file: settings.yaml
     type: string
     default: ja
     description: 文字起こしの言語。
@@ -103,7 +113,7 @@ settings:
     implementation: src/voice_paste/shared/settings.py
   - key: transcription.local_whisper.vad_filter
     title: ローカルの Whisper で無音の区間を除くか
-    file: settings.toml
+    file: settings.yaml
     type: bool
     default: 'true'
     description: VAD で無音の区間を除くか。
@@ -112,7 +122,7 @@ settings:
     implementation: src/voice_paste/shared/settings.py
   - key: transcription.local_whisper.vad_threshold
     title: ローカルの Whisper の VAD の閾値
-    file: settings.toml
+    file: settings.yaml
     type: float
     default: '0.5'
     description: 音声とみなす確信度の閾値。
@@ -122,7 +132,7 @@ settings:
     allowed: 0〜1
   - key: transcription.local_whisper.vad_min_speech_ms
     title: ローカルの Whisper の VAD の最小の音声
-    file: settings.toml
+    file: settings.yaml
     type: int（ミリ秒）
     default: '250'
     description: これより短い音を雑音として除く。
@@ -132,7 +142,7 @@ settings:
     allowed: '>= 0'
   - key: transcription.local_whisper.vad_min_silence_ms
     title: ローカルの Whisper の VAD の最小の無音
-    file: settings.toml
+    file: settings.yaml
     type: int（ミリ秒）
     default: '2000'
     description: これ以上の無音で区間を区切る（起こした文字の改行の位置に効く）。
@@ -142,7 +152,7 @@ settings:
     allowed: '>= 0'
   - key: transcription.local_whisper.condition_on_previous_text
     title: ローカルの Whisper で前の区間を文脈に使うか
-    file: settings.toml
+    file: settings.yaml
     type: bool
     default: 'false'
     description: 前の区間の文字を次の区間の文脈に使うか。
@@ -151,7 +161,7 @@ settings:
     implementation: src/voice_paste/shared/settings.py
   - key: transcription.local_whisper.temperature
     title: ローカルの Whisper の温度
-    file: settings.toml
+    file: settings.yaml
     type: float
     default: '0.0'
     description: サンプリングの温度（0.0 は決定的）。
@@ -161,7 +171,7 @@ settings:
     allowed: '>= 0'
   - key: transcription.local_whisper.no_speech_threshold
     title: ローカルの Whisper の無音判定の閾値
-    file: settings.toml
+    file: settings.yaml
     type: float
     default: '0.6'
     description: 区間を無音とみなす確信度の閾値。
@@ -171,17 +181,17 @@ settings:
     allowed: 0〜1
   - key: recording.lower_volume
     title: 録音中に音量を下げるか
-    file: settings.toml
+    file: settings.yaml
     type: bool
     default: 'true'
     description: '`true` のとき、録音を始める前にシステム音量を下げ、録音を終えたら戻す。'
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
-    per_env: 'Windows: true。Linux: false（OS_DEFAULT_OVERRIDES）。Linux では値によらず音量を変えず、設定画面にも出さない'
+    per_env: 'Windows: true。Linux: false（config/defaults.yaml の os_overrides）。Linux では値によらず音量を変えず、設定画面にも出さない'
   - key: recording.volume_percent
     title: 録音中の音量の割合
-    file: settings.toml
+    file: settings.yaml
     type: float（%）
     default: '50'
     description: 録音中のシステム音量を、録音前の音量に対する割合で指定する（50 は半分）。
@@ -189,10 +199,10 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
     allowed: 0〜100
-    per_env: Linux では使わず、設定画面にも出さない（settings.toml の値は保つ）
+    per_env: Linux では使わず、設定画面にも出さない（settings.yaml の値は保つ）
   - key: recording.fade_sec
     title: 音量を変えるときの秒数
-    file: settings.toml
+    file: settings.yaml
     type: float（秒）
     default: '0.5'
     description: 音量を下げるときと戻すときにかける秒数。
@@ -200,10 +210,10 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
     allowed: '>= 0'
-    per_env: Linux では使わず、設定画面にも出さない（settings.toml の値は保つ）
+    per_env: Linux では使わず、設定画面にも出さない（settings.yaml の値は保つ）
   - key: recording.hide_window
     title: 録音中に画面を出さないか
-    file: settings.toml
+    file: settings.yaml
     type: bool
     default: 'false'
     description: '`true` のとき、録音の画面も文字起こし中の表示も出さず、トレイとホットキーだけで操作する。'
@@ -212,46 +222,46 @@ settings:
     implementation: src/voice_paste/shared/settings.py
   - key: hotkeys.start
     title: 録音開始のホットキー
-    file: settings.toml
+    file: settings.yaml
     type: string（pynput の GlobalHotKeys 形式）
     default: <ctrl>+<alt>+d
     description: 待機中に録音を始める。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
-    per_env: 'Windows: <ctrl>+<alt>+d。Linux: <cmd>+<alt>+d（OS_DEFAULT_OVERRIDES。Ubuntu は Ctrl+Alt+D を「デスクトップを表示」に割り当てている）'
+    per_env: 'Windows: <ctrl>+<alt>+d。Linux: <cmd>+<alt>+d（config/defaults.yaml の os_overrides。Ubuntu は Ctrl+Alt+D を「デスクトップを表示」に割り当てている）'
   - key: hotkeys.pause
     title: 録音を一時停止するホットキー
-    file: settings.toml
+    file: settings.yaml
     type: string（pynput の GlobalHotKeys 形式）
     default: <ctrl>+<alt>+z
     description: 録音を一時停止・再開する。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
-    per_env: 'Windows: <ctrl>+<alt>+z。Linux: <cmd>+<alt>+z（OS_DEFAULT_OVERRIDES）'
+    per_env: 'Windows: <ctrl>+<alt>+z。Linux: <cmd>+<alt>+z（config/defaults.yaml の os_overrides）'
   - key: hotkeys.cancel
     title: 録音の取り消しのホットキー
-    file: settings.toml
+    file: settings.yaml
     type: string（pynput の GlobalHotKeys 形式）
     default: <ctrl>+<alt>+q
     description: 録音を確定せずに捨てる。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
-    per_env: 'Windows: <ctrl>+<alt>+q。Linux: <cmd>+<alt>+q（OS_DEFAULT_OVERRIDES）'
+    per_env: 'Windows: <ctrl>+<alt>+q。Linux: <cmd>+<alt>+q（config/defaults.yaml の os_overrides）'
   - key: keyboard.paste_key
     title: 貼り付けに送信するキー
-    file: settings.toml
+    file: settings.yaml
     type: string（pynput の GlobalHotKeys 形式）
     default: <ctrl>+v
-    description: 貼り付け先へ送信する貼り付けのキーの組み合わせ。Linux（Xorg）では、貼り付け先が端末アプリのときだけこのキーに代えて Ctrl+Shift+V を送信する。
+    description: 貼り付け先へ送信する貼り付けのキーの組み合わせ。Linux の Xorg のセッションと、拡張 Focused Window D-Bus を入れた Wayland のセッションでは、貼り付け先が端末アプリのときだけこのキーに代えて Ctrl+Shift+V を送信する。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
   - key: outputs[].id
     title: 出力先の ID
-    file: settings.toml
+    file: settings.yaml
     type: "'paste_and_send' | 'paste_only' | 'copy_only'"
     default: 3 件（paste_and_send・paste_only・copy_only の順）
     description: 出力先の一覧の 1 件がどの出力先かを表す。一覧の中で重ならない。`id = "ai_chat"` の項目は、読み込むときに送信先（`targets[]`）をブラウザ添付種類のカスタムプリセットへ読み替えて外す。
@@ -260,7 +270,7 @@ settings:
     implementation: src/voice_paste/shared/settings.py
   - key: outputs[].enabled
     title: 出力先がオンか
-    file: settings.toml
+    file: settings.yaml
     type: bool
     default: 'true'
     description: '`false` の出力先は確定の操作に出さず、ホットキーも登録しない。'
@@ -269,7 +279,7 @@ settings:
     implementation: src/voice_paste/shared/settings.py
   - key: outputs[].hotkey
     title: 出力先で確定するホットキー
-    file: settings.toml
+    file: settings.yaml
     type: string（pynput の GlobalHotKeys 形式）
     default: 'paste_and_send: <ctrl>+<alt>+d / paste_only: <ctrl>+<alt>+v / copy_only: <ctrl>+<alt>+c'
     description: |-
@@ -278,10 +288,10 @@ settings:
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
-    per_env: 'Windows: 既定値のとおり。Linux: paste_and_send: <cmd>+<alt>+d / paste_only: <cmd>+<alt>+v / copy_only: <cmd>+<alt>+c（OS_DEFAULT_OVERRIDES）'
+    per_env: 'Windows: 既定値のとおり。Linux: paste_and_send: <cmd>+<alt>+d / paste_only: <cmd>+<alt>+v / copy_only: <cmd>+<alt>+c（config/defaults.yaml の os_overrides）'
   - key: outputs[].enter_delay_sec
     title: 貼り付けてから送信するまでの秒数
-    file: settings.toml
+    file: settings.yaml
     type: float（秒）
     default: '0.5'
     description: paste_and_send だけが持つ。貼り付けてから Enter を送信するまで待つ秒数。ブラウザ添付種類の、Enter まで送信するプリセットでも使う。
@@ -291,7 +301,7 @@ settings:
     allowed: '>= 0'
   - key: outputs[].open_delay_sec
     title: AI チャットを開いてから貼り付けるまでの秒数
-    file: settings.toml
+    file: settings.yaml
     type: float（秒）
     default: '3.0'
     description: ai_chat だけが持つ。読み込むときに `preset_options.browser.open_delay_sec` へ読み替え、保存では書かない。
@@ -301,7 +311,7 @@ settings:
     allowed: '>= 0'
   - key: outputs[].targets[].name
     title: AI チャットの送信先の名前
-    file: settings.toml
+    file: settings.yaml
     type: string
     default: '（1: ChatGPT / 2: Google AI / 3: Claude）'
     description: ai_chat だけが持つ。読み込むときにブラウザ添付種類のプリセットの `presets[].title` へ読み替え、保存では書かない。
@@ -311,7 +321,7 @@ settings:
     allowed: 1 文字以上
   - key: outputs[].targets[].url
     title: AI チャットの送信先の URL
-    file: settings.toml
+    file: settings.yaml
     type: string（URL）
     default: '（1: https://chatgpt.com / 2: https://gemini.google.com/app / 3: https://claude.ai/new）'
     description: ai_chat だけが持つ。読み込むときにブラウザ添付種類のプリセットの `presets[].url` へ読み替え、保存では書かない。
@@ -321,7 +331,7 @@ settings:
     allowed: http か https
   - key: outputs[].targets[].hotkey
     title: AI チャットの送信先へ送信するホットキー
-    file: settings.toml
+    file: settings.yaml
     type: string（pynput の GlobalHotKeys 形式）
     default: <ctrl>+<alt>+{n}
     description: ai_chat だけが持つ。読み込むときにブラウザ添付種類のプリセットの `presets[].hotkey` へ読み替え、保存では書かない。
@@ -330,16 +340,16 @@ settings:
     implementation: src/voice_paste/shared/settings.py
   - key: outputs[].targets[].enabled
     title: AI チャットの送信先を出すか
-    file: settings.toml
+    file: settings.yaml
     type: bool
     default: 'true'
-    description: 'ai_chat だけが持つ。読み込むときにブラウザ添付種類のプリセットの `presets[].enabled` へ読み替え、保存では書かない。'
+    description: ai_chat だけが持つ。読み込むときにブラウザ添付種類のプリセットの `presets[].enabled` へ読み替え、保存では書かない。
     reload: immediate
     status: deprecated
     implementation: src/voice_paste/shared/settings.py
   - key: history.enabled
     title: 履歴に残すか
-    file: settings.toml
+    file: settings.yaml
     type: bool
     default: 'true'
     description: 録音の WAV と起こした文字を履歴に残すか。
@@ -348,7 +358,7 @@ settings:
     implementation: src/voice_paste/shared/settings.py
   - key: history.retention_days
     title: 履歴を残す日数
-    file: settings.toml
+    file: settings.yaml
     type: int（日）
     default: '1'
     description: この日数より前の日付の履歴を、起動時と常駐中に消す。
@@ -358,7 +368,7 @@ settings:
     allowed: '>= 1'
   - key: logging.level
     title: ログに書くレベル
-    file: settings.toml
+    file: settings.yaml
     type: "'DEBUG' | 'INFO' | 'WARNING' | 'ERROR'"
     default: INFO
     description: ログに書くレベル。
@@ -367,7 +377,7 @@ settings:
     implementation: src/voice_paste/shared/settings.py
   - key: logging.retention_days
     title: ログを残す日数
-    file: settings.toml
+    file: settings.yaml
     type: int（日）
     default: '7'
     description: この日数より前の日付のログを、起動時と常駐中に消す。
@@ -377,7 +387,7 @@ settings:
     allowed: '>= 1'
   - key: ui.topmost
     title: 画面を最前面に表示するか
-    file: settings.toml
+    file: settings.yaml
     type: bool
     default: 'true'
     description: 録音の画面と文字起こし中の表示を最前面に出すか。
@@ -386,7 +396,7 @@ settings:
     implementation: src/voice_paste/shared/settings.py
   - key: ui.position
     title: 画面を表示する位置
-    file: settings.toml
+    file: settings.yaml
     type: "'center' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'"
     default: center
     description: 録音の画面と文字起こし中の表示を出す位置。
@@ -395,7 +405,7 @@ settings:
     implementation: src/voice_paste/shared/settings.py
   - key: ui.follow_cursor
     title: カーソルのあるモニターに画面を表示するか
-    file: settings.toml
+    file: settings.yaml
     type: bool
     default: 'true'
     description: '`true` のとき、マウスカーソルのあるモニターに画面を出す。'
@@ -404,7 +414,7 @@ settings:
     implementation: src/voice_paste/shared/settings.py
   - key: ui.wave_gain
     title: 録音の画面の波形の感度
-    file: settings.toml
+    file: settings.yaml
     type: float
     default: '4'
     description: 波形の振れの大きさ。大きいほど小さい声でも大きく振れる。
@@ -414,16 +424,16 @@ settings:
     allowed: '> 0'
   - key: glossary_path
     title: 用語集の CSV の場所
-    file: settings.toml
+    file: settings.yaml
     type: string（パス）
-    default: （無し。settings.toml と同じフォルダの yogo.csv）
-    description: 用語集の CSV の場所。`glossaries` が空のときだけ読み、この CSV を 1 つ目の用語集として扱う（名前は CSV のファイル名から拡張子を除いたもの）。キーが無いときは settings.toml と同じフォルダの `yogo.csv` を使う。設定画面で保存すると `glossaries` へ書き、このキーは消す。
+    default: （無し。settings.yaml と同じフォルダの yogo.csv）
+    description: 用語集の CSV の場所。`glossaries` が空のときだけ読み、この CSV を 1 つ目の用語集として扱う（名前は CSV のファイル名から拡張子を除いたもの）。キーが無いときは settings.yaml と同じフォルダの `yogo.csv` を使う。設定画面で保存すると `glossaries` へ書き、このキーは消す。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
   - key: api.port
     title: API を待ち受けるポート
-    file: settings.toml
+    file: settings.yaml
     type: int
     default: '47823'
     description: 127.0.0.1 で待ち受けるポート。
@@ -433,7 +443,7 @@ settings:
     allowed: 1024〜65535
   - key: api.allowed_callback_hosts
     title: 返送を許すホスト
-    file: settings.toml
+    file: settings.yaml
     type: list[string]
     default: '[]'
     description: loopback のほかに、起こした文字の返送を許すホスト。
@@ -442,7 +452,7 @@ settings:
     implementation: src/voice_paste/shared/settings.py
   - key: presets[].kind
     title: カスタムプリセットの種類
-    file: settings.toml
+    file: settings.yaml
     type: "'browser' | 'endpoint'"
     default: （既定のプリセットは無く、`presets` は空の一覧）
     description: プリセットの届け方。`browser` はブラウザ添付（URL をアプリのウィンドウで開いて貼り付ける）、`endpoint` はエンドポイントへ送信（URL へ JSON で POST する）。設定画面は種類ごとのタブに分けて並べ、録音の画面は browser・endpoint の順に、それぞれ `presets[]` の並びで出す。
@@ -451,7 +461,7 @@ settings:
     implementation: src/voice_paste/shared/settings.py
   - key: presets[].title
     title: カスタムプリセットのタイトル
-    file: settings.toml
+    file: settings.yaml
     type: string
     description: 録音の画面のボタンに出す名前。
     reload: immediate
@@ -460,7 +470,7 @@ settings:
     implementation: src/voice_paste/shared/settings.py
   - key: presets[].url
     title: カスタムプリセットの URL
-    file: settings.toml
+    file: settings.yaml
     type: string（URL）
     description: browser は Microsoft Edge の `--app` で開く画面の URL、endpoint は起こした文字を POST する送信先。
     reload: immediate
@@ -468,10 +478,10 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
     refs:
-      - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送信する.py#
+      - IF-7#
   - key: presets[].hotkey
     title: カスタムプリセットで確定するホットキー
-    file: settings.toml
+    file: settings.yaml
     type: string（pynput の GlobalHotKeys 形式）
     default: 空文字
     description: 録音の画面でこのプリセットとして確定する。空ならホットキーを登録せず、録音の画面のボタンだけで選ぶ。
@@ -481,7 +491,7 @@ settings:
     implementation: src/voice_paste/shared/settings.py
   - key: presets[].enabled
     title: カスタムプリセットが有効か
-    file: settings.toml
+    file: settings.yaml
     type: bool
     default: 'true'
     description: '`false` のとき、録音の画面のボタンを出さず、ホットキーも登録しない。'
@@ -490,7 +500,7 @@ settings:
     implementation: src/voice_paste/shared/settings.py
   - key: presets[].send_enter
     title: 貼り付けた後に Enter まで送信するか
-    file: settings.toml
+    file: settings.yaml
     type: bool
     default: 'true'
     description: browser だけが持つ。`true` なら貼り付けてから `outputs[paste_and_send].enter_delay_sec` の秒数を置いて Enter を送信し、`false` なら貼り付けで止める。
@@ -499,7 +509,7 @@ settings:
     implementation: src/voice_paste/shared/settings.py
   - key: presets[].authorization
     title: 送信先へ付ける Authorization ヘッダー
-    file: settings.toml
+    file: settings.yaml
     type: string
     default: 空文字
     description: endpoint だけが持つ。空でなければ `Authorization` ヘッダーにそのまま入れて送る（例 `Bearer {トークン}`）。空なら付けない。
@@ -508,10 +518,10 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
     refs:
-      - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送信する.py#
+      - IF-7#
   - key: preset_options.browser.open_delay_sec
     title: ブラウザで開いてから貼り付けるまでの秒数
-    file: settings.toml
+    file: settings.yaml
     type: float（秒）
     default: '3.0'
     description: ブラウザ添付種類の全てのプリセットで使う。画面を開いてから貼り付けるまで待つ秒数。
@@ -521,7 +531,7 @@ settings:
     implementation: src/voice_paste/shared/settings.py
   - key: preset_options.endpoint.timeout_sec
     title: エンドポイントへ送信するときのタイムアウトの秒数
-    file: settings.toml
+    file: settings.yaml
     type: float（秒）
     default: '1.5'
     description: エンドポイントへ送信の種類の全てのプリセットで使う。この秒数で届かなければ再送せず、届けられなかったことを知らせる。
@@ -530,11 +540,11 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
     refs:
-      - dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送信するときのタイムアウト]
-      - dev/設計書/インターフェース定義/常駐アプリ/設定のエンドポイントへ送信する.py#
+      - NFR-1#requirements[エンドポイントへ送信するときのタイムアウト]
+      - IF-7#
   - key: api.continuous.min_silence_sec
     title: 連続録音を区切る無音の長さ
-    file: settings.toml
+    file: settings.yaml
     type: float（秒）
     default: '2.0'
     description: API で始めた連続録音で、話し声の後にこの秒数以上無音が続いたところで区間を区切る。
@@ -542,28 +552,28 @@ settings:
     allowed: 0.5〜10
     reason: PoC（#80）で 2.0 秒のとき、間 2.1 秒の文は区切り、間 1.0 秒の文は区切らないことを確かめた
     refs:
-      - dev/設計書/インターフェース定義/常駐アプリ/録音を開始する.py#
+      - IF-10#
     status: planned
     implementation: src/voice_paste/shared/settings.py
     introduced:
       pr: 78
   - key: api.continuous.session_limit_sec
     title: 連続録音のセッションの上限時間
-    file: settings.toml
+    file: settings.yaml
     type: int（秒）
     default: '14400'
     description: API で始めた連続録音を、完了が来ないまま開始からこの秒数が経ったところで打ち切る。
     reload: restart
     allowed: 60〜86400
     refs:
-      - dev/設計書/非機能要件/非機能要件#requirements[連続録音のセッションの上限時間]
+      - NFR-1#requirements[連続録音のセッションの上限時間]
     status: planned
     implementation: src/voice_paste/shared/settings.py
     introduced:
       pr: 78
   - key: outputs[].enter_modifiers
     title: Enter と一緒に押す修飾キー
-    file: settings.toml
+    file: settings.yaml
     type: list['ctrl' | 'alt' | 'shift']
     default: '[]'
     description: paste_and_send だけが持つ。貼り付けて `enter_delay_sec` の秒数を置いた後、並べた修飾キーを押したまま Enter を送信する。空なら Enter だけを送る。ブラウザ添付種類の、Enter まで送信するプリセットには当てない。
@@ -574,31 +584,31 @@ settings:
     implementation: src/voice_paste/features/outputs/paste_and_send/settings.py
   - key: ui.theme
     title: 画面の明暗
-    file: settings.toml
+    file: settings.yaml
     type: "'system' | 'light' | 'dark'"
     default: system
     description: 全ての画面（録音の画面・文字起こし中の表示・設定画面・ダイアログ・トレイのメニュー）の明暗。`system` は Windows の明暗に従い、常駐中に Windows の明暗が変わると画面も切り替わる。`light`・`dark` は Windows の明暗によらずその配色にする。
     reload: immediate
-    missing: 項目が無い `settings.toml` は `system` として読む
+    missing: 項目が無い `settings.yaml` は `system` として読む
     status: implemented
     implementation: src/voice_paste/shared/settings.py
     introduced:
       pr: 94
   - key: ui.show_hotkeys
     title: 録音の画面のボタンにホットキーを表示するか
-    file: settings.toml
+    file: settings.yaml
     type: bool
     default: 'true'
     description: '`true` のとき、録音の画面の一時停止・再開・取り消し・出力先の確定・カスタムプリセットのボタンの名前の下にホットキーを出す。`false` のときは名前だけを出す。ホットキーの受付は変えない。文字起こし中の表示のボタンは `ui.transcribing_show_hotkeys` で決める。'
     reload: immediate
-    missing: 項目が無い `settings.toml` は `true` として読む
+    missing: 項目が無い `settings.yaml` は `true` として読む
     status: planned
     implementation: src/voice_paste/shared/settings.py
     introduced:
       pr: 96
   - key: glossaries[].name
     title: 用語集の名前
-    file: settings.toml
+    file: settings.yaml
     type: string
     description: 設定画面の用語集の一覧に出す名前。
     reload: immediate
@@ -607,36 +617,36 @@ settings:
     implementation: src/voice_paste/shared/settings.py
   - key: glossaries[].path
     title: 用語集の CSV の場所（用語集ごと）
-    file: settings.toml
+    file: settings.yaml
     type: string（パス）
-    description: その用語集の CSV の場所。相対パスは settings.toml のフォルダから読む。設定画面で追加した用語集の CSV は、settings.toml と同じフォルダの `glossaries/glossary_{n}.csv`（n は 1 からの連番。フォルダに残っているファイルの番号は使わない）に作る。一覧から消しても CSV のファイルは消さない。
+    description: その用語集の CSV の場所。相対パスは settings.yaml のフォルダから読む。設定画面で追加した用語集の CSV は、settings.yaml と同じフォルダの `glossaries/glossary_{n}.csv`（n は 1 からの連番。フォルダに残っているファイルの番号は使わない）に作る。一覧から消しても CSV のファイルは消さない。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
-    allowed: settings.toml のフォルダからの相対パスか、絶対パス。設定画面の保存は、settings.toml のフォルダの下の場所を相対パス（区切りは `/`。例 `glossaries/glossary_1.csv`・`yogo.csv`）で、それ以外を絶対パスで書く
+    allowed: settings.yaml のフォルダからの相対パスか、絶対パス。設定画面の保存は、settings.yaml のフォルダの下の場所を相対パス（区切りは `/`。例 `glossaries/glossary_1.csv`・`yogo.csv`）で、それ以外を絶対パスで書く
   - key: active_glossary
     title: 補正に使う用語集
-    file: settings.toml
+    file: settings.yaml
     type: string
     default: （無し。1 つ目の用語集）
-    description: 補正に使う用語集の名前（`glossaries[].name`）。`glossary_presets` のキーが無い settings.toml でだけ読み、この用語集（キーが無いとき・名前が一覧に無いときは 1 つ目の用語集）だけを使う「既定」のプリセットを作る。設定画面で保存すると `glossary_presets`・`active_glossary_preset` へ書き、このキーは消す。
+    description: 補正に使う用語集の名前（`glossaries[].name`）。`glossary_presets` のキーが無い settings.yaml でだけ読み、この用語集（キーが無いとき・名前が一覧に無いときは 1 つ目の用語集）だけを使う「既定」のプリセットを作る。設定画面で保存すると `glossary_presets`・`active_glossary_preset` へ書き、このキーは消す。
     reload: immediate
     status: deprecated
     implementation: src/voice_paste/shared/settings.py
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[glossary_presets[].name]
+      - CFG-1#settings[glossary_presets[].name]
   - key: hint_presets[].name
     title: 表記のヒントのプリセットの名前
-    file: settings.toml
+    file: settings.yaml
     type: string
-    description: 設定画面の表記のヒントの一覧に出す名前。`hint_presets` のキーが無い settings.toml は、プリセットの無い空の一覧として読む。
+    description: 設定画面の表記のヒントの一覧に出す名前。`hint_presets` のキーが無い settings.yaml は、プリセットの無い空の一覧として読む。
     reload: immediate
     allowed: 1 文字以上（前後の空白を除いて）。ほかのヒントのプリセットと同じ名前にできない
     status: implemented
     implementation: src/voice_paste/shared/settings.py
   - key: hint_presets[].words
     title: 表記のヒントの語
-    file: settings.toml
+    file: settings.yaml
     type: list[string]
     default: '[]'
     description: 文字起こしに渡す、間違えやすい語の正しい表記の並び。有効なプリセットの語を一覧の上から順に読点（、）でつなぎ、faster-whisper の `hotwords` に渡す。
@@ -645,10 +655,10 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
     refs:
-      - dev/設計書/外部ライブラリ/faster-whisper#
+      - LIB-8#
   - key: hint_presets[].enabled
     title: 表記のヒントのプリセットが有効か
-    file: settings.toml
+    file: settings.yaml
     type: bool
     default: 'true'
     description: '`false` のとき、そのプリセットの語を文字起こしに渡さない。全てのプリセットが無効か、プリセットが無いときは、手がかりを渡さずに文字を起こす。'
@@ -657,12 +667,12 @@ settings:
     implementation: src/voice_paste/shared/settings.py
   - key: ui.transcribing_show_hotkeys
     title: 文字起こし中の表示のボタンにホットキーを表示するか
-    file: settings.toml
+    file: settings.yaml
     type: bool
     default: 'true'
     description: '`true` のとき、文字起こし中の表示の出力先の切り替えのボタンの名前の下にホットキーを出す。`false` のときは名前だけを出す。ホットキーでの切り替えは変えない。'
     reload: immediate
-    missing: 項目が無い `settings.toml` は `ui.show_hotkeys` の値で読む（`ui.show_hotkeys` も無ければ `true`）
+    missing: 前のバージョンの `settings.toml` を移すとき、この項目が無ければ `ui.show_hotkeys` の値で移す（`ui.show_hotkeys` も無ければ `true`）。`settings.yaml`・`settings.local.yaml` に無ければ既定値で読む
     reason: 1 つだった `ui.show_hotkeys` を分けた後も、更新した直後の文字起こし中の表示の出し方を今の値のとおりにするため
     status: planned
     implementation: src/voice_paste/shared/settings.py
@@ -670,20 +680,20 @@ settings:
       pr: 131
   - key: edge_phrases[].text
     title: 文頭・文末から削除する文言
-    file: settings.toml
+    file: settings.yaml
     type: string
     default: （キーが無いときは既定の一覧。上から「チャンネル登録*」「ご視聴ありがとうございました」「ありがとうございました」で、位置は全て `end`）
-    description: 起こした文字の文頭・文末に一致したときに消す文言。書いた文字との完全な一致で、`*` は 0 文字以上の任意の文字列に一致する（端の `*` は行の端まで）。`edge_phrases` の並びの上から順に当てる。`edge_phrases` のキーが無い settings.toml は既定の一覧として読む。キーがあって空の一覧なら何も消さない
+    description: 起こした文字の文頭・文末に一致したときに消す文言。書いた文字との完全な一致で、`*` は 0 文字以上の任意の文字列に一致する（端の `*` は行の端まで）。`edge_phrases` の並びの上から順に当てる。`edge_phrases` のキーが無い settings.yaml は既定の一覧として読む。キーがあって空の一覧なら何も消さない
     reload: immediate
     allowed: 1 文字以上（前後の空白を除いて）。`*` だけの文言は入れられない（文頭・文末の行を丸ごと消すため）
     refs:
-      - dev/設計書/シナリオ/単一ユースケース/録音を文字に起こす#scenarios[正常シナリオ（文頭・文末の決まった文言を消す）]
-      - dev/設計書/外部ライブラリ/faster-whisper#
+      - SC-9#scenarios[正常シナリオ（文頭・文末の決まった文言を消す）]
+      - LIB-8#
     status: implemented
     implementation: src/voice_paste/shared/settings.py
   - key: edge_phrases[].position
     title: 文言を当てる位置
-    file: settings.toml
+    file: settings.yaml
     type: "'start' | 'end' | 'both'"
     default: end
     description: その行の文言を当てる位置。`start` は文頭（1 行目の先頭）、`end` は文末（最後の行の末尾）、`both` はその両方。設定画面では「文頭」「文末」「両方」と出す
@@ -693,22 +703,22 @@ settings:
     implementation: src/voice_paste/shared/settings.py
   - key: api.allowed_web_origins
     title: 外の端末に許す Origin
-    file: settings.toml
+    file: settings.yaml
     type: list[string]
     default: '[]'
-    description: '`/web/` の下へ要求を送ってよいブラウザのオリジン（`https://{ゲートウェイの公開のサブドメイン}` の形式）。`/web/` の下の POST は Origin がこの一覧にあるときだけ通し、GET は Origin が無いか、この一覧にあるときだけ通す。空なら外の端末の画面から送信できない'
+    description: '`/web/` の下へ要求を送ってよいブラウザのオリジン（`https://{ゲートウェイの公開のサブドメイン}` の形式）。`/web/` の下の要求は、Origin が無いか、この一覧にあるときだけ通す。空なら外の端末の画面から送信できない'
     allowed: '`scheme://host[:port]` の形式のオリジン。末尾の `/` とパスを付けない'
     reload: restart
     status: planned
     implementation: src/voice_paste/shared/settings.py
     refs:
-      - dev/設計書/インターフェース定義/常駐アプリ/音声を受け付ける.py#
-      - dev/設計書/インターフェース定義/常駐アプリ/画面を配信する.py#
+      - IF-11#
+      - IF-6#
   - key: glossary_presets[].name
     title: 用語集のプリセットの名前
-    file: settings.toml
+    file: settings.yaml
     type: string
-    description: 設定画面の用語集のプリセットの一覧に出す名前。`POST /sessions` の `glossary_preset` でもこの名前で指す。`glossary_presets` のキーが無い・空の settings.toml は、`active_glossary` の用語集（無ければ 1 つ目の用語集。用語集が無ければ空）だけを使う「既定」のプリセットを 1 つ持つとして読む。
+    description: 設定画面の用語集のプリセットの一覧に出す名前。`POST /sessions` の `glossary_preset` でもこの名前で指す。`glossary_presets` のキーが無い・空の settings.yaml は、`active_glossary` の用語集（無ければ 1 つ目の用語集。用語集が無ければ空）だけを使う「既定」のプリセットを 1 つ持つとして読む。
     reload: immediate
     allowed: 1 文字以上（前後の空白を除いて）。ほかの用語集のプリセットと同じ名前にできない（大文字と小文字は区別する）
     status: planned
@@ -716,12 +726,12 @@ settings:
     introduced:
       pr: 173
     refs:
-      - dev/設計書/インターフェース定義/常駐アプリ/録音を開始する.py#request[glossary_preset]
+      - IF-10#request[glossary_preset]
   - key: glossary_presets[].glossaries
     title: 用語集のプリセットで使う用語集
-    file: settings.toml
+    file: settings.yaml
     type: list[string]
-    default: "[]"
+    default: '[]'
     description: そのプリセットで補正に使う用語集の名前（`glossaries[].name`）の並び。補正は、この並びの順・用語集の中の行の順に、オンの行を 1 本の並びとして続けて当て、前の行で置き換えた結果へ次の行を当てる。空なら何も置き換えない。読めない CSV の用語集は飛ばし、残りの用語集で補正する。一覧に無い名前は読むときに外す。用語集を一覧から消すと、その名前を全てのプリセットから外し、用語集の名前を変えるとプリセットの指す名前も変える。
     reload: immediate
     allowed: '`glossaries[].name` にある名前。同じ名前を 2 回並べられない'
@@ -731,7 +741,7 @@ settings:
       pr: 173
   - key: active_glossary_preset
     title: 補正に使う用語集のプリセット
-    file: settings.toml
+    file: settings.yaml
     type: string
     default: （無し。1 つ目の用語集のプリセット）
     description: 補正に使う用語集のプリセットの名前（`glossary_presets[].name`）。ホットキー・トレイ・ブラウザの音声の録音と、`glossary_preset` を指定しない API の録音がこのプリセットで補正する。キーが無いとき・名前が一覧に無いときは 1 つ目のプリセットを使う。
@@ -742,7 +752,7 @@ settings:
       pr: 173
   - key: transcription.openai.model
     title: OpenAI のモデル
-    file: settings.toml
+    file: settings.yaml
     type: string
     description: OpenAI API の文字起こしに使うモデル。`gpt-transcribe` で始まるモデルは手がかりを `keywords[]`、言語を `languages[]` で、それ以外のモデル（`gpt-4o-mini-transcribe` など）は `prompt`・`language` で渡す。
     reload: restart
@@ -751,7 +761,7 @@ settings:
     default: gpt-transcribe
   - key: transcription.openai.language
     title: OpenAI の言語
-    file: settings.toml
+    file: settings.yaml
     type: string
     default: ja
     description: 文字起こしの言語（ISO-639-1）。
@@ -760,7 +770,7 @@ settings:
     implementation: src/voice_paste/shared/settings.py
   - key: transcription.openai.base_url
     title: OpenAI のベース URL
-    file: settings.toml
+    file: settings.yaml
     type: string
     default: https://api.openai.com/v1
     description: OpenAI API の送信先のベース URL。テストでは 127.0.0.1 のテスト用のエンドポイントへ向ける。
@@ -769,4 +779,4 @@ settings:
     status: planned
     implementation: src/voice_paste/shared/settings.py
 notes:
-  反映の列の読み方: '`immediate` は設定画面で保存すると動いている常駐アプリに効く項目。`settings.toml` を直接書き換えたときは、どの項目も再起動まで効かない（起動時に 1 度だけ読む）。'
+  反映の列の読み方: '`immediate` は設定画面で保存すると動いている常駐アプリに効く項目。`settings.yaml`・`settings.local.yaml` を直接書き換えたときは、どの項目も再起動まで効かない（起動時に 1 度だけ読む）。'

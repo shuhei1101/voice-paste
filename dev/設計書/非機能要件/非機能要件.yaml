@@ -1,3 +1,4 @@
+id: NFR-1
 title: "非機能要件"
 requirements:
   - name: 対応 OS
@@ -7,7 +8,7 @@ requirements:
     source_kind: ユーザー要望
     source: https://github.com/shuhei1101/voice-paste/blob/develop/dev/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/1_%E7%9B%AE%E7%9A%84%E3%81%A8%E5%88%B6%E7%B4%84.md
     value: Windows・Linux（Ubuntu 24.04 の Xorg のセッションと Wayland のセッション）
-    rationale: '方針の制約（Windows のショートカットから起動する・録音と貼り付けは端末の OS の機能）。Linux は #196 で起動までを対応し、Linux ではシステムの音量を変えない。Linux の起動の手段は起動のスクリプト（`voice-paste.sh`）とログイン時の自動起動の `.desktop` で、OS のパッケージ `xclip`・`libportaudio2`・`libxcb-cursor0` が要る（#199）。Wayland のセッションは、貼り付けのキーと Enter を uinput の仮想のキーボードから送信するため、`/dev/uinput` の権限（udev の規則と `input` グループへの追加の後に再起動）が要る（#200）。Mac は #9 で扱う'
+    rationale: '方針の制約（Windows のショートカットから起動する・録音と貼り付けは端末の OS の機能）。Linux は #196 で起動までを対応し、Linux ではシステムの音量を変えない。Linux の起動の手段は起動のスクリプト（`voice-paste.sh`）とログイン時の自動起動の `.desktop` で、OS のパッケージ `xclip`・`libportaudio2`・`libxcb-cursor0` と、依存の `evdev` のビルドに使う `gcc`・`linux-libc-dev` が要る（#199・#222）。Wayland のセッションは、貼り付けのキーと Enter を uinput の仮想のキーボードから送信するため、`/dev/uinput` の権限（udev の規則と `input` グループへの追加の後に再起動）が要る（#200）。Wayland のセッションで端末アプリへ Ctrl+Shift+V で貼り付けるには、GNOME Shell の拡張 Focused Window D-Bus が要る（無ければ設定の貼り付けのキーを送信する。#223）。Mac は #9 で扱う'
   - name: 入力方式
     english_name: input_method
     category: 動作環境
@@ -98,7 +99,7 @@ requirements:
         condition: 固めた設定（`tests/nfr/fixtures/whisper.env` の large-v3・cuda・int8）と用語集（`tests/nfr/fixtures/yogo.csv`。`resources/yogo.csv` と同じ）で build_handlers を一時フォルダの置き場所で配線し、モデルの読み込みを待つ。マイクの入力（open_input）は、刷新前を再測定したのと同じ録音（`tests/nfr/fixtures/recordings/latency/20261002212623.wav`）の先頭 10 秒を 1024 フレームずつ渡すもの、音量の操作は何もしないもの、貼り付けのキー（send_paste）は押した時刻だけを控えるものに差し替える。ホットキーの入口でセッションを始め、録音が 10 秒分たまったら貼り付けのみ（paste_only）で確定する。先に捨てる 1 回の後、これを 20 回続ける
         measurement: SessionManager.complete を呼んだ時点から、差し替えた貼り付けのキーが押された時点までを time.perf_counter で測り、20 回の生の値と中央値・最小・最大を出す
         expected: 20 回とも貼り付けのキーが押され、中央値が 1.59 秒以下
-        notes: クリップボードは実物を書き換えるため、測る前の文字を控えて測った後に戻す。録音は特性テスト（test_transcription_parity）が拾わない `recordings/latency/` に置く。`--run-e2e` が無い環境・録音が無い環境では skip する
+        notes: クリップボードは実物を書き換えるため、測る前の文字を控えて測った後に戻す。録音は特性テスト（test_transcription_parity）が拾わない `recordings/latency/` に置く。`--run-e2e` が無い環境・録音が無い環境・GPU が無い環境（Linux を含む）では skip する
     test_file: tests/nfr/test_paste_latency.py
   - name: 文字起こしワーカーの立て直しの時間
     english_name: worker_recovery_time
@@ -126,7 +127,7 @@ requirements:
         condition: 固めた設定（`tests/nfr/fixtures/whisper.env` の large-v3・cuda）で WhisperWorkerClient を作り、start → stop を 20 回続ける
         measurement: 毎回の start（ワーカーの起動から ready を受けるまで）の時間（秒）を測り、生の値と中央値・最大を出す
         expected: 20 回とも ready を受け、最大が 27 秒以内
-        notes: 測った最大から規約『資源の値の決め方』で決定値を再決定する。`tests/nfr/fixtures/` が無い環境・GPU が無い環境では skip する
+        notes: 測った最大から規約『資源の値の決め方』で決定値を再決定する。`tests/nfr/fixtures/` が無い環境・GPU が無い環境（Linux を含む）では skip する
     test_file: tests/nfr/test_worker_recovery_time.py
   - name: 刷新の前後での起こした文字の一致
     english_name: transcription_parity
@@ -145,7 +146,7 @@ requirements:
         condition: 履歴から選んでローカルのエンジンで起こした 10 件の録音と、コピーした時点で効いている用語集と `.env` の文字起こしの設定を `tests/nfr/fixtures/` へコピーし、その用語集と設定で新しい構成の文字起こし（文字起こしワーカーの窓口と transcribe、ローカルの Whisper（GPU））で起こし、新しい構成の補正（load_glossary・apply_glossary）で補正する。期待値は、同じ録音・用語集・設定で `voice_paste_legacy` が返した文字を `tests/nfr/fixtures/` に固めたもの
         measurement: 10 件それぞれで、起こして補正した文字と固めた期待値を比べ、一致した件数を数える（一致しない件は差分を記録する）
         expected: 10 件中 10 件が一致する
-        notes: Windows の GPU と `tests/nfr/fixtures/` の録音が要り、どちらかが無い環境では skip する。履歴の文字は録音を選ぶときの目安にだけ使う
+        notes: Windows の GPU と `tests/nfr/fixtures/` の録音が要り、どちらかが無い環境（Linux を含む）では skip する。履歴の文字は録音を選ぶときの目安にだけ使う
       - name: test_transcription_parity_when_correction_only
         summary: 用語集の補正だけを切り出し、決まった入力に決まった出力を返す
         condition: 誤変換を含む決まった入力の文字列と、`tests/nfr/fixtures/` へコピーした用語集を与え、新しい構成の補正（load_glossary・apply_glossary）で補正する。録音と Whisper は使わない
@@ -182,7 +183,7 @@ requirements:
       - part: 返送の最長
         value: 13 秒
         notes: 4 回 × 1.5 秒 + 待ち（1 + 2 + 4 秒）。待ちが全て上限のとき
-    source: dev/設計書/インターフェース定義/常駐アプリ/呼び出し元へ返す.py#constraints[エンドポイントの応答時間]
+    source: IF-3#constraints[エンドポイントの応答時間]
   - name: 常駐中に古い履歴とログを削除する間隔
     english_name: purge_interval
     category: 保守性
@@ -234,7 +235,7 @@ requirements:
         condition: 固めた設定（`tests/nfr/fixtures/whisper.env` の large-v3・cuda）で WhisperWorkerClient を start しては標準入力を閉じることを 20 回続ける
         measurement: 毎回、標準入力を閉じてからワーカーのプロセスが終わるまでの時間（秒）を測り、生の値と中央値・最大を出す
         expected: 20 回とも terminate せずに終わり、最大が 2 秒以内
-        notes: 測った最大から規約『資源の値の決め方』の下流を待つタイムアウトで決定値を再決定する。`tests/nfr/fixtures/` が無い環境・GPU が無い環境では skip する
+        notes: 測った最大から規約『資源の値の決め方』の下流を待つタイムアウトで決定値を再決定する。`tests/nfr/fixtures/` が無い環境・GPU が無い環境（Linux を含む）では skip する
     test_file: tests/nfr/test_worker_stop_timeout.py
   - name: 前の常駐サービスの終わりを待つ時間
     english_name: single_instance_timeout
@@ -270,13 +271,13 @@ requirements:
         condition: 固めた設定（`tests/nfr/fixtures/whisper.env` の large-v3・cuda）で `python -m voice_paste --data-dir {一時フォルダ}` を起動して待機中（トークンのファイルが書かれる）を待ち、同じ `--data-dir` でもう 1 つ起動する。これを 10 回続ける
         measurement: 後のプロセスのログの「前の常駐サービスに終わるよう頼んだ」から「単一インスタンスを確保した」までの時間（秒）を測り、生の値と中央値・最大を出す。前のプロセスが終わったことも確かめる
         expected: 10 回とも前のプロセスが終わって後のプロセスが待機中になり、常駐サービスのプロセスが 1 つだけで、最大が 55 秒以内
-        notes: 測った値から余裕を再決定する。`--run-e2e` が無い環境・`tests/nfr/fixtures/` が無い環境では skip する
+        notes: 測った値から余裕を再決定する。`--run-e2e` が無い環境・`tests/nfr/fixtures/` が無い環境・GPU が無い環境（Linux を含む）では skip する
       - name: test_single_instance_timeout_when_previous_starting
         summary: 前の常駐サービスがモデルの読み込み中でも、決定値以内に入れ替わり、常駐サービスが 0 個にならない
         condition: 固めた設定で `python -m voice_paste --data-dir {一時フォルダ}` を起動し、ログに「単一インスタンスを確保した」が出た直後（トークンのファイルが書かれる前の、モデルの読み込み中）に同じ `--data-dir` でもう 1 つ起動する。これを 5 回続ける
         measurement: 後のプロセスのログの「前の常駐サービスに終わるよう頼んだ」から「単一インスタンスを確保した」までの時間（秒）を測り、生の値と中央値・最大を出す
         expected: 5 回とも後のプロセスが待機中になり、常駐サービスのプロセスが 1 つだけで、最大が 55 秒以内
-        notes: '`--run-e2e` が無い環境・`tests/nfr/fixtures/` が無い環境では skip する'
+        notes: '`--run-e2e` が無い環境・`tests/nfr/fixtures/` が無い環境・GPU が無い環境（Linux を含む）では skip する'
     test_file: tests/nfr/test_single_instance_timeout.py
   - name: エンドポイントへ送信するときのタイムアウト
     english_name: endpoint_timeout
@@ -331,7 +332,7 @@ requirements:
     category: 性能
     external_constraint: Whisper は音を 30 秒の窓ごとに起こす（30 秒を超える音は窓をずらして繰り返し起こす）
     source_kind: 外部ライブラリの制限
-    source: dev/設計書/外部ライブラリ/faster-whisper#
+    source: LIB-8#
     value: '20'
     unit: 秒
     rationale: 無音が来ないまま話し続けても、区切ってから返送が届くまでの時間の決定値（4 秒）に収まるように、この長さで区切る。PoC（#80）は 30 秒で区切り、28.3 秒の区間を区切ってから文字が出るまで 2.53 秒だったが、非機能要件テスト（#78、2026-10-10、Windows 11・RTX 5070）では 30.1 秒の区間が 3.24〜3.75 秒かかり、20 秒にすると 18〜19 秒の区間で 2.0〜3.5 秒だった。そのため 20 秒にする。区間の長さは、話し声の前の余白（SEGMENT_PAD_SEC、0.3 秒）を加算して最大 20.3 秒になり、Whisper の 1 窓（30 秒）に収まる。区切りが増える分、短い無音が無い所では言葉の途中で切れることが増える
@@ -341,10 +342,10 @@ requirements:
     tests:
       - name: test_max_segment_length
         summary: 話し続けた録音から切り出した区間が、どれも決定値に前の余白を加算した長さ以下である
-        condition: Windows の音声合成（SAPI）で、文の間を 0.5 秒以下にして 45 秒以上読み上げ続けた WAV を作り、前に 1 秒の無音を置いて（前の余白を区間に含めるため）、区切りの部品に録音の入力と同じ大きさの塊（160〜1024 フレーム）で流す
+        condition: 音声合成（Windows は SAPI、Linux は Open JTalk）で、文の間を 0.5 秒以下にして 45 秒以上読み上げ続けた WAV を作り、前に 1 秒の無音を置いて（前の余白を区間に含めるため）、区切りの部品に録音の入力と同じ大きさの塊（160〜1024 フレーム）で流す
         measurement: 切り出した区間ごとの長さ（秒）を測る
         expected: 区間が 2 つ以上あり、どの区間の長さも 20.3 秒（決定値 + 前の余白 0.3 秒）以下
-        notes: SAPI が使えない環境では skip する
+        notes: Windows と Linux（Ubuntu 24.04 の Xorg）の両方で流す
     status: planned
     introduced:
       pr: 78
@@ -374,10 +375,10 @@ requirements:
     tests:
       - name: test_segment_callback_latency
         summary: 区切ってからその区間の返送が届くまでが、どの区間も決定値以内である
-        condition: build_handlers で配線した常駐サービスをローカルの Whisper（GPU）で立て、モデルの読み込みを待つ。録音の入力は、Windows の音声合成（SAPI）で作った、区切りの無音の長さより長い間を挟んだ 5 文の後に 45 秒以上読み上げ続ける WAV を実時間で流すものに差し替え、continuous=true で始めて流し終えたら完了を呼ぶ。返送先は 127.0.0.1 のテスト用のエンドポイント
+        condition: build_handlers で配線した常駐サービスをローカルの Whisper（GPU）で立て、モデルの読み込みを待つ。録音の入力は、音声合成（Windows は SAPI）で作った、区切りの無音の長さより長い間を挟んだ 5 文の後に 45 秒以上読み上げ続ける WAV を実時間で流すものに差し替え、continuous=true で始めて流し終えたら完了を呼ぶ。返送先は 127.0.0.1 のテスト用のエンドポイント
         measurement: 区切った時点（常駐サービスのログ）から、同じ通し番号の返送がエンドポイントに届いた時点までを time.perf_counter の時刻で区間ごとに測る
         expected: 全ての区間で 4 秒以下
-        notes: 最初の区間はワーカーの温まりで遅れるため、測る前に別の連続録音で 1 区間を起こして温める。完了で閉じた最後の区間は、完了を呼んだ時点から測る。--run-e2e が無い環境では skip する
+        notes: 最初の区間はワーカーの温まりで遅れるため、測る前に別の連続録音で 1 区間を起こして温める。完了で閉じた最後の区間は、完了を呼んだ時点から測る。--run-e2e が無い環境・GPU が無い環境（Linux を含む）では skip する
     status: planned
     introduced:
       pr: 78
@@ -407,7 +408,7 @@ requirements:
         value: 約 12 Mbps
         notes: 100,000,000 バイト × 8 ÷ 66 秒。画面で録った 30 分（約 22.5 MB）は約 2.7 Mbps
     overflow: ゲートウェイが 504 で要求を打ち切り、画面は送信失敗を出して端末内の音声を残す（遅い回線で大きなファイルを選んだとき）
-    measurement: pytest のプロセスの中で配線した常駐サービスへ、本文の上限に近い音声を `POST /web/transcriptions` で送信し、202 が返るまでを測る
+    measurement: pytest のプロセスの中で配線した常駐サービスへ、本文の上限に近い音声を `POST /web/transcriptions` で送信し、202 が返るまでを測る。常駐アプリがブラウザの文字起こしを持たない OS（Linux）では skip する
     test_file: tests/nfr/test_web_response_time.py
     tests:
       - name: test_web_response_time
@@ -428,7 +429,7 @@ requirements:
     unit: バイト未満
     rationale: '本文の大きさは推定ではなくバイト数で正確に数えられるため、安全率を引かず、100 MB を 10 進の 100,000,000 バイトと読んで小さい方に揃える。multipart の境界とヘッダーも本文に含めて数える。PR #171 の PoC で、127.0.0.1 へ直接送信した 95 MiB（99,614,720 バイト）を受け付けた（Cloudflare とゲートウェイは通していない。2026-10-23）。上限に近い大きさをゲートウェイ越しに送信するには、ブラウザの要求の応答時間の内訳の上りの速さが要る'
     overflow: 413 の problem+json で断り、一時のファイルもジョブも作らない
-    measurement: pytest のプロセスの中で配線した常駐サービスへ、上限の前後の大きさの本文を送信する
+    measurement: pytest のプロセスの中で配線した常駐サービスへ、上限の前後の大きさの本文を送信する。常駐アプリがブラウザの文字起こしを持たない OS（Linux）では skip する
     test_file: tests/nfr/test_web_body_limit.py
     tests:
       - name: test_web_body_limit_when_under
@@ -480,7 +481,7 @@ requirements:
     unit: 件（文字起こし待ちと文字起こし中のジョブの合計）
     rationale: 終わっていないジョブは音声を一時のファイルに持つため、ディスクの使用を本文の上限 × 10 件で最大 1 GB に抑える。使うのは外の端末の利用者 1 人で、画面は 1 件ずつ録って送信するため、10 件を超えて待たせる使い方は想定しない
     overflow: 503 の problem+json で断り、画面は送信失敗を出して端末内の音声を残す
-    measurement: 文字起こしのエンジンを止めたままにして音声を送信し続け、断られる件目を数える
+    measurement: 文字起こしのエンジンを止めたままにして音声を送信し続け、断られる件目を数える。常駐アプリがブラウザの文字起こしを持たない OS（Linux）では skip する
     test_file: tests/nfr/test_web_queue_limit.py
     tests:
       - name: test_web_queue_limit
@@ -500,7 +501,7 @@ requirements:
     unit: 件
     rationale: 終わったジョブ（done・failed）は、画面が結果を取りに来るまで常駐サービスのメモリに持つ。画面を閉じて後で再度開いても取りに来られるように、時間では捨てず件数で古い順に捨てる。画面が残す結果の件数（10 件）の 10 倍にし、30 分の録音の文字（約 2 万字・約 60 KB）が 100 件でも約 6 MB に収まる。常駐サービスを再起動すると全て消える（起こした文字は PC の履歴に残る）
     overflow: いちばん古く終わったジョブを捨て、その結果の取得は 404 になる
-    measurement: ジョブを 101 件終わらせ、最初のジョブと最後のジョブの結果を取りに行く
+    measurement: ジョブを 101 件終わらせ、最初のジョブと最後のジョブの結果を取りに行く。常駐アプリがブラウザの文字起こしを持たない OS（Linux）では skip する
     test_file: tests/nfr/test_web_finished_jobs_kept.py
     tests:
       - name: test_web_finished_jobs_kept
@@ -523,7 +524,7 @@ requirements:
     measurement: Windows の実機で、pynput の GlobalHotKeys を始めてから stop し、join が戻るまでの時間を 100 回測る
     overflow: 上限を過ぎたら WARNING のログを書き、スレッドを手放して進む
     refs:
-      - dev/設計書/モジュール構成/常駐アプリ/ホットキーと画面.py#constants[HOTKEY_STOP_TIMEOUT_SEC]
+      - MOD-33#constants[HOTKEY_STOP_TIMEOUT_SEC]
     status: planned
   - name: OpenAIの文字起こしのタイムアウトと再送
     english_name: openai_transcription_retry
@@ -531,17 +532,14 @@ requirements:
     external_constraint: OpenAI は文字起こしの応答時間を保証しない。公式の Python SDK は既定でタイムアウト 600 秒・接続 5 秒・再送 2 回・待ち 0.5 秒から上限 8 秒で、429・5xx・タイムアウト・接続の失敗を再送する
     source_kind: 外部 API の制限
     source: https://github.com/openai/openai-python/blob/main/src/openai/_constants.py
-    value: タイムアウト 600 秒・接続 5 秒・再送 2 回・間隔の基数 0.5 秒・待ちの上限 8 秒
-    rationale: 規約『資源の値の決め方』で導く。下流（OpenAI API）の実測が無いため、公開仕様の値として公式の SDK が公開する既定値を使い、コードでは定数で明示する。外部疎通テストでは、約 3 秒の音声で 1.97 秒（2026-10-28、1 回）。実測の p99.9 + 50% への見直しは [#209](https://github.com/shuhei1101/voice-paste/issues/209) で行う。再送は 1 層だけで、指数バックオフとフルジッター（再送の n 回目の前に、0 以上、基数 × 2^(n−1) 以下の乱数の秒数を待つ）にし、Retry-After があれば従う。文字起こしは同じ音声を送り直しても結果が変わらないため再送できる（課金は送信ごとにかかる）
+    value: タイムアウトを設けない・再送 2 回・間隔の基数 0.5 秒・待ちの上限 8 秒
+    rationale: タイムアウトはユーザーの判断（[#232 の回答](https://github.com/shuhei1101/voice-paste/pull/232#discussion_r4431424473)）で、アプリ側では設けない。httpx の既定の 5 秒が掛からないよう、要求には timeout=None を渡す。再送は規約『資源の値の決め方』で導く。下流（OpenAI API）の実測が無いため、公開仕様の値として公式の SDK が公開する既定値を使う。外部疎通テストでは、約 3 秒の音声で 1.97 秒（2026-10-28、1 回）。再送は 1 層だけで、指数バックオフとフルジッター（再送の n 回目の前に、0 以上、基数 × 2^(n−1) 以下の乱数の秒数を待つ）にし、Retry-After があれば従う。文字起こしは同じ音声を送り直しても結果が変わらないため再送できる（課金は送信ごとにかかる）
     measurement: 単体テストで httpx.MockTransport に 503・タイムアウト・429 を返させ、再送の回数と待ちを確かめる。外部疎通テストで実際の応答の秒を記録する
     overflow: 再送しても失敗したら EngineError にして、文字起こしの失敗として扱う（録音は履歴に残る）
     breakdown:
       - part: タイムアウト
-        value: 600 秒
-        notes: 公式の SDK の既定。長い録音（25 MB まで）の送信と処理を含む
-      - part: 接続
-        value: 5 秒
-        notes: 公式の SDK の既定
+        value: 設けない
+        notes: ユーザーの判断。timeout=None で接続・応答・書き込み・プールの待ちに上限を掛けない
       - part: 再送の回数の上限
         value: 2 回
         notes: 最初の 1 回と合わせて最大 3 回
@@ -552,8 +550,8 @@ requirements:
         value: 8 秒
         notes: 公式の SDK の既定。Retry-After がこれを超えるときは 8 秒で頭打ちにする
       - part: 文字起こしの最長
-        value: 1,816 秒
-        notes: 3 回 × 600 秒 + 待ち 8 秒 × 2。待ちが全て上限のとき
+        value: 上限なし
+        notes: タイムアウトを設けないため、応答か接続の失敗が返るまで待つ
     tests:
       - name: test_openai_transcription_retry
         summary: 一時的な失敗を上限まで送信し直す
@@ -561,7 +559,7 @@ requirements:
         measurement: 要求の回数と _uniform に渡った上限
         expected: 要求は 3 回で、_uniform の上限は 0.5・1.0、EngineError が送出される
     refs:
-      - dev/設計書/外部API/OpenAI#
+      - API-2#
     status: planned
     introduced:
       pr: 204
@@ -583,7 +581,7 @@ requirements:
         measurement: httpx.MockTransport に届いた要求の数
         expected: 26,204,569 バイトは 1 回届き、届いた要求の本文が 26,214,400 バイト以下。26,204,570 バイトは届かず EngineError
     refs:
-      - dev/設計書/外部API/OpenAI#
+      - API-2#
     status: planned
     introduced:
       pr: 204
@@ -607,7 +605,7 @@ requirements:
     value: 既定のモデルは gpt-transcribe。常駐アプリは料金の上限を持たない
     rationale: 文字起こし 1 回の料金は音声の長さで決まり、利用者が契約する OpenAI のアカウントにかかる。上限は利用者が OpenAI の管理画面の利用の上限で持つ（超えると 429 が返り、再送しても失敗したら文字起こしの失敗になる）。送信し直すごとに課金されうるため、再送は一時的な失敗だけにする
     refs:
-      - dev/設計書/外部API/OpenAI#
+      - API-2#
     status: planned
     introduced:
       pr: 204

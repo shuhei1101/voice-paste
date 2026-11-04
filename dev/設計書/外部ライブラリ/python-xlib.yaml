@@ -1,3 +1,4 @@
+id: LIB-23
 title: "python-xlib"
 kind: "ライブラリ"
 version:
@@ -39,4 +40,4 @@ limitations:
     content: X サーバー（Xorg）へつなぐ。Wayland のセッションでは XWayland のウィンドウしか見えず、アクティブなウィンドウを引けない
     notes: Wayland は [#200](https://github.com/shuhei1101/voice-paste/issues/200) の範囲
 refs:
-  - dev/設計書/外部ライブラリ/pynput#
+  - LIB-19#

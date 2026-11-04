@@ -34,7 +34,7 @@ from tests.integration.ui.helpers import (
     text_ranges,
     top_level_windows,
 )
-from voice_paste.main import SETTINGS_MODEL
+from tests.support.settings import default_output, make_settings
 
 if TYPE_CHECKING:
     from unittest.mock import MagicMock
@@ -61,7 +61,7 @@ BADGE_SAMPLE_FROM_TOP_PX = 12
 
 def _settings(**groups: object) -> Settings:
     """グループごとの設定（ui・outputs・hotkeys）を差し替えた設定を作る。"""
-    return SETTINGS_MODEL(**groups)
+    return make_settings(**groups)
 
 
 def _opened(
@@ -156,10 +156,8 @@ def test_transcribing_indicator_visible_when(
     make_ui: Callable[..., Ui], entry: str, state: str, hide_window: bool, shown: bool
 ) -> None:
     """ホットキー・トレイのセッションが transcribing か delivering の間だけ出る。画面を出さない設定・API の録音では出さない（表示条件）。"""
-    from voice_paste.shared.settings import RecordingSettings, Settings
-
     # 準備
-    ui = make_ui(Settings(recording=RecordingSettings(hide_window=hide_window)))
+    ui = make_ui(make_settings(recording=dict(hide_window=hide_window)))
 
     # 実行
     ui.notify_state(entry, state)
@@ -186,10 +184,8 @@ def test_transcribing_indicator_does_not_take_focus(
     make_ui: Callable[..., Ui], topmost: bool
 ) -> None:
     """フォーカスを取らない（貼り付け先の入力欄からフォーカスを奪わない）。ui.topmost がオンなら最前面に残す。"""
-    from voice_paste.shared.settings import Settings, UiSettings
-
     # 準備
-    ui = make_ui(Settings(ui=UiSettings(topmost=topmost)))
+    ui = make_ui(make_settings(ui=dict(topmost=topmost)))
 
     # 実行
     ui.indicator.open()
@@ -206,10 +202,8 @@ def test_transcribing_indicator_does_not_take_focus(
 
 def test_transcribing_indicator_position(make_ui: Callable[..., Ui]) -> None:
     """録音の画面と同じ位置に出る（左上の位置なら、2 つの窓の左上が同じ）。"""
-    from voice_paste.shared.settings import Settings, UiSettings
-
     # 準備
-    ui = make_ui(Settings(ui=UiSettings(position="top-left")))
+    ui = make_ui(make_settings(ui=dict(position="top-left")))
 
     # 実行
     ui.recording_window.open()
@@ -231,10 +225,8 @@ def test_transcribing_indicator_position_when_at(make_ui: Callable[..., Ui]) -> 
 
 def test_transcribing_indicator_position_when_not_moved(make_ui: Callable[..., Ui]) -> None:
     """録音の画面を動かしていない回は、設定の位置（右下は作業領域の右下から 24px）に出る。"""
-    from voice_paste.shared.settings import Settings, UiSettings
-
     # 準備
-    ui = make_ui(Settings(ui=UiSettings(position="bottom-right")))
+    ui = make_ui(make_settings(ui=dict(position="bottom-right")))
     ui.notify_state("hotkey", "recording")
 
     # 実行
@@ -251,10 +243,8 @@ def test_transcribing_indicator_position_when_only_pressed(
     make_ui: Callable[..., Ui], system_move: MagicMock
 ) -> None:
     """録音の画面の見出しの行を押しただけで動かしていない回も、設定の位置に出る。"""
-    from voice_paste.shared.settings import Settings, UiSettings
-
     # 準備
-    ui = make_ui(Settings(ui=UiSettings(position="bottom-right")))
+    ui = make_ui(make_settings(ui=dict(position="bottom-right")))
     ui.notify_state("hotkey", "recording")
     grab_head_row(ui.recording_window)
 
@@ -309,10 +299,8 @@ def test_transcribing_indicator_position_when_next_recording(
     make_ui: Callable[..., Ui], system_move: MagicMock
 ) -> None:
     """動かした位置はその回だけ使い、次の回の文字起こし中の表示は設定の位置に出る。"""
-    from voice_paste.shared.settings import Settings, UiSettings
-
     # 準備
-    ui = make_ui(Settings(ui=UiSettings(position="bottom-right")))
+    ui = make_ui(make_settings(ui=dict(position="bottom-right")))
     ui.notify_state("hotkey", "recording")
     grab_head_row(ui.recording_window)
     ui.recording_window.move(ui.recording_window.pos() + QPoint(-200, -150))
@@ -520,15 +508,15 @@ def test_switch_buttons_when_all_on(make_ui: Callable[..., Ui]) -> None:
 
 def test_switch_buttons_when_some_off(make_ui: Callable[..., Ui]) -> None:
     """オフの出力先のボタンは出さない。"""
-    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
-    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
-    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
-
     # 実行
     ui = _opened(
         make_ui,
         _settings(
-            outputs=[PasteAndSendSettings(), PasteOnlySettings(enabled=False), CopyOnlySettings()]
+            outputs=[
+                default_output("paste_and_send"),
+                default_output("paste_only", enabled=False),
+                default_output("copy_only"),
+            ]
         ),
     )
 
@@ -540,14 +528,16 @@ def test_switch_buttons_when_some_off(make_ui: Callable[..., Ui]) -> None:
 
 def test_switch_buttons_order(make_ui: Callable[..., Ui]) -> None:
     """ボタンは、設定の並びで、左から右へ並べる。"""
-    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
-    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
-    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
-
     # 実行
     ui = _opened(
         make_ui,
-        _settings(outputs=[CopyOnlySettings(), PasteAndSendSettings(), PasteOnlySettings()]),
+        _settings(
+            outputs=[
+                default_output("copy_only"),
+                default_output("paste_and_send"),
+                default_output("paste_only"),
+            ]
+        ),
     )
 
     # 検証
@@ -582,12 +572,10 @@ def test_switch_buttons_width(
     widen_px: int,
 ) -> None:
     """ボタンは等しい幅で横に並べる。"""
-    from voice_paste.shared.settings import UiSettings
-
     # 準備: ホットキーを出す設定と出さない設定の両方で、明るい組のテーマを当てて開く
     apply_theme_to_app("light")
     ui = _opened(
-        make_ui, _settings(ui=UiSettings(transcribing_show_hotkeys=show_hotkeys))
+        make_ui, _settings(ui=dict(transcribing_show_hotkeys=show_hotkeys))
     )
     qapp.processEvents()
 
@@ -667,15 +655,13 @@ def test_switch_button_badge_when_clear_of_text(
     range_count: int,
 ) -> None:
     """今の出力先のボタンの丸いマーカーは、名前とホットキーの文字に重ねない（ui.transcribing_show_hotkeys のどちらでも）。"""
-    from voice_paste.shared.settings import UiSettings
-
     # 準備
     apply_theme_to_app("light")
 
     # 実行
     ui = _opened(
         make_ui,
-        _settings(ui=UiSettings(show_hotkeys=True, transcribing_show_hotkeys=show_hotkeys)),
+        _settings(ui=dict(show_hotkeys=True, transcribing_show_hotkeys=show_hotkeys)),
         output_id=output_id,
     )
 
@@ -700,15 +686,13 @@ def test_switch_button_content_when_centered_in_frame(
     show_hotkeys: bool,
 ) -> None:
     """ボタンの名前とホットキーは、右と上の余白（マーカーがはみ出す分）を除いた枠の中央に置く。"""
-    from voice_paste.shared.settings import UiSettings
-
     # 準備
     apply_theme_to_app("light")
 
     # 実行
     ui = _opened(
         make_ui,
-        _settings(ui=UiSettings(show_hotkeys=True, transcribing_show_hotkeys=show_hotkeys)),
+        _settings(ui=dict(show_hotkeys=True, transcribing_show_hotkeys=show_hotkeys)),
         output_id=output_id,
     )
 
@@ -833,11 +817,9 @@ def test_switch_buttons_when_transcribing_show_hotkeys_off(
     make_ui: Callable[..., Ui], output_id: str, name: str
 ) -> None:
     """ui.transcribing_show_hotkeys がオフのとき、全てのボタンがホットキーを出さず、名前だけを出す。"""
-    from voice_paste.shared.settings import UiSettings
-
     # 実行
     ui = _opened(
-        make_ui, _settings(ui=UiSettings(show_hotkeys=True, transcribing_show_hotkeys=False))
+        make_ui, _settings(ui=dict(show_hotkeys=True, transcribing_show_hotkeys=False))
     )
 
     # 検証
@@ -848,11 +830,9 @@ def test_switch_buttons_when_transcribing_show_hotkeys_off(
 
 def test_switch_buttons_when_only_show_hotkeys_off(make_ui: Callable[..., Ui]) -> None:
     """録音の画面の ui.show_hotkeys だけがオフでも、ui.transcribing_show_hotkeys がオンなら全てのボタンがホットキーを出す。"""
-    from voice_paste.shared.settings import UiSettings
-
     # 実行
     ui = _opened(
-        make_ui, _settings(ui=UiSettings(show_hotkeys=False, transcribing_show_hotkeys=True))
+        make_ui, _settings(ui=dict(show_hotkeys=False, transcribing_show_hotkeys=True))
     )
 
     # 検証
@@ -864,8 +844,6 @@ def test_switch_buttons_when_transcribing_show_hotkeys_off_then_reopened(
     make_ui: Callable[..., Ui],
 ) -> None:
     """ui.transcribing_show_hotkeys を切り替えた後に出す文字起こし中の表示から、ボタンの出し方が変わる（再起動は要らない）。"""
-    from voice_paste.shared.settings import UiSettings
-
     # 準備
     ui = _opened(make_ui)
     assert _name_and_key(_switch_button(ui, "copy_only"))[1] is not None
@@ -873,7 +851,7 @@ def test_switch_buttons_when_transcribing_show_hotkeys_off_then_reopened(
 
     # 実行
     ui.deps.get_settings.return_value = _settings(
-        ui=UiSettings(show_hotkeys=True, transcribing_show_hotkeys=False)
+        ui=dict(show_hotkeys=True, transcribing_show_hotkeys=False)
     )
     ui.notify_state("hotkey", "transcribing", output_id="paste_and_send")
 
@@ -885,10 +863,6 @@ def test_switch_buttons_when_hotkey_empty(
     apply_theme_to_app: Callable[[str], None], make_ui: Callable[..., Ui]
 ) -> None:
     """ホットキーが空の出力先は名前だけのボタンにし、同じ行のボタンと高さを揃えて、名前を上下の中央に置く。"""
-    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
-    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
-    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
-
     # 準備
     apply_theme_to_app("light")
 
@@ -896,7 +870,11 @@ def test_switch_buttons_when_hotkey_empty(
     ui = _opened(
         make_ui,
         _settings(
-            outputs=[PasteAndSendSettings(), PasteOnlySettings(hotkey=""), CopyOnlySettings()]
+            outputs=[
+                default_output("paste_and_send"),
+                default_output("paste_only", hotkey=""),
+                default_output("copy_only"),
+            ]
         ),
     )
 

@@ -1,3 +1,4 @@
+id: ER-1
 title: "ER 図: ブラウザの端末のデータ"
 lead: 外の端末の文字起こしの画面が、その端末のブラウザに残す音声（IndexedDB）と、結果・選んだ用語集のプリセット（localStorage）。どちらもオリジン（ゲートウェイの公開のサブドメイン）ごとに分かれる。
 tables:
@@ -114,9 +115,9 @@ tables:
         description: 選んだ用語集のプリセットの名前（用語集のプリセットの一覧を返す の presets の名前）。「設定に従う」は空文字。JSON ではなく文字列のまま置く
         example: 会議
     refs:
-      - dev/設計書/画面設計/常駐アプリ/外の端末の文字起こしの画面.html#elements[用語集のプリセットの選択欄]
+      - SCR-6#elements[用語集のプリセットの選択欄]
     status: planned
     introduced:
       pr: 180
 refs:
-  - dev/設計書/画面設計/常駐アプリ/外の端末の文字起こしの画面.html#
+  - SCR-6#

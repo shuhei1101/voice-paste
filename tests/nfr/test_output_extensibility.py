@@ -19,6 +19,7 @@ from tests.integration.ui.helpers import button_texts
 from tests.unit.voice_paste.ui.helpers import OUTPUT_TITLES, make_ui_deps
 from voice_paste.features.outputs import OUTPUTS, OutputDeps, OutputSpec, deliver
 from voice_paste.main import _wire_outputs, build_hotkey_bindings
+from voice_paste.shared.constants import resolve_app_paths
 from voice_paste.shared.settings import (
     RELOAD_IMMEDIATE,
     OutputSettingsBase,
@@ -94,13 +95,18 @@ def test_output_extensibility(tmp_path: Path, qapp: QApplication) -> None:
     settings_model = build_settings_model(
         [spec.settings_model for spec in outputs if spec.settings_model is not None]
     )
-    settings_file = tmp_path / "settings.toml"
+    paths = resolve_app_paths(tmp_path)
 
-    # 実行: 設定の読み書き（無ければ既定を書き、書いた設定を読み直し、保存して読み直す）
-    load_settings(settings_file, settings_model)
-    loaded = load_settings(settings_file, settings_model)
-    save_settings(settings_file, loaded)
-    reloaded = load_settings(settings_file, settings_model)
+    # 実行: 設定の読み書き（既定の出力先の後ろに試しの出力先の既定を加えた設定を settings.yaml へ書き、読み直し、保存して読み直す）
+    defaults = load_settings(paths, settings_model)
+    save_settings(
+        paths,
+        defaults,
+        defaults.model_copy(update={"outputs": [*defaults.outputs, TrialOutputSettings()]}),
+    )
+    loaded = load_settings(paths, settings_model)
+    save_settings(paths, loaded, loaded)
+    reloaded = load_settings(paths, settings_model)
 
     # 検証: 読み直した設定の outputs の最後が試しの出力先（delay_sec 1.0）
     for settings in (loaded, reloaded):

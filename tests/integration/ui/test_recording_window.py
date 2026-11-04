@@ -25,7 +25,7 @@ from tests.integration.ui.helpers import (
     grab_head_row,
     no_modal,
 )
-from voice_paste.main import SETTINGS_MODEL
+from tests.support.settings import default_output, make_settings
 from voice_paste.ui.style import build_stylesheet, is_dark_theme
 
 if TYPE_CHECKING:
@@ -55,7 +55,7 @@ def _opened(make_ui: Callable[..., Ui], settings: Settings | None = None) -> Ui:
 
 def _settings(**groups: object) -> Settings:
     """グループごとの設定（recording・ui・outputs・hotkeys）を差し替えた設定を作る。"""
-    return SETTINGS_MODEL(**groups)
+    return make_settings(**groups)
 
 
 @pytest.fixture
@@ -112,10 +112,8 @@ def test_recording_window_visible_when(
     make_ui: Callable[..., Ui], entry: str, state: str, hide_window: bool, shown: bool
 ) -> None:
     """ホットキー・トレイから始めた録音の間だけ出る。画面を出さない設定・API の録音では出さない（表示条件）。"""
-    from voice_paste.shared.settings import RecordingSettings
-
     # 準備
-    ui = make_ui(_settings(recording=RecordingSettings(hide_window=hide_window)))
+    ui = make_ui(_settings(recording=dict(hide_window=hide_window)))
 
     # 実行
     ui.notify_state(entry, state)
@@ -142,10 +140,8 @@ def test_recording_window_does_not_take_focus(
     make_ui: Callable[..., Ui], topmost: bool
 ) -> None:
     """出したときにフォーカスを取らない。ui.topmost がオンなら最前面に残す指定を追加する（Tool・枠なし）。"""
-    from voice_paste.shared.settings import UiSettings
-
     # 準備
-    ui = make_ui(_settings(ui=UiSettings(topmost=topmost)))
+    ui = make_ui(_settings(ui=dict(topmost=topmost)))
 
     # 実行
     ui.recording_window.open()
@@ -164,10 +160,8 @@ def test_recording_window_position_when_top_left(
     make_ui: Callable[..., Ui], follow_cursor: bool
 ) -> None:
     """設定のモニターの作業領域の、設定の位置（左上は端から 24px）に出る。"""
-    from voice_paste.shared.settings import UiSettings
-
     # 準備
-    ui = make_ui(_settings(ui=UiSettings(position="top-left", follow_cursor=follow_cursor)))
+    ui = make_ui(_settings(ui=dict(position="top-left", follow_cursor=follow_cursor)))
 
     # 実行
     ui.recording_window.open()
@@ -181,10 +175,8 @@ def test_recording_window_position_when_top_left(
 
 def test_recording_window_position_when_bottom_right(make_ui: Callable[..., Ui]) -> None:
     """右下の位置は、作業領域の右下から 24px 離れる。"""
-    from voice_paste.shared.settings import UiSettings
-
     # 準備
-    ui = make_ui(_settings(ui=UiSettings(position="bottom-right")))
+    ui = make_ui(_settings(ui=dict(position="bottom-right")))
 
     # 実行
     ui.recording_window.open()
@@ -389,18 +381,14 @@ def test_outputs_heading_when_outputs_on(make_ui: Callable[..., Ui]) -> None:
 
 def test_outputs_heading_when_outputs_off(make_ui: Callable[..., Ui]) -> None:
     """出力先が全てオフでも、見出し「確定して届ける」を出さない。"""
-    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
-    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
-    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
-
     # 実行
     ui = _opened(
         make_ui,
         _settings(
             outputs=[
-                PasteAndSendSettings(enabled=False),
-                PasteOnlySettings(enabled=False),
-                CopyOnlySettings(enabled=False),
+                default_output("paste_and_send", enabled=False),
+                default_output("paste_only", enabled=False),
+                default_output("copy_only", enabled=False),
             ]
         ),
     )
@@ -432,18 +420,14 @@ def test_output_buttons_when_all_on(make_ui: Callable[..., Ui]) -> None:
 
 def test_output_buttons_when_some_off(make_ui: Callable[..., Ui]) -> None:
     """オフの出力先のボタンは出さない。"""
-    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
-    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
-    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
-
     # 実行
     ui = _opened(
         make_ui,
         _settings(
             outputs=[
-                PasteAndSendSettings(),
-                PasteOnlySettings(enabled=False),
-                CopyOnlySettings(),
+                default_output("paste_and_send"),
+                default_output("paste_only", enabled=False),
+                default_output("copy_only"),
             ]
         ),
     )
@@ -457,18 +441,14 @@ def test_output_buttons_when_some_off(make_ui: Callable[..., Ui]) -> None:
 
 def test_output_buttons_primary(make_ui: Callable[..., Ui]) -> None:
     """オンのうち一番上の出力先のボタンを、主の操作にする。"""
-    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
-    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
-    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
-
     # 実行（一番上の貼り付けて送信をオフにする）
     ui = _opened(
         make_ui,
         _settings(
             outputs=[
-                PasteAndSendSettings(enabled=False),
-                PasteOnlySettings(),
-                CopyOnlySettings(),
+                default_output("paste_and_send", enabled=False),
+                default_output("paste_only"),
+                default_output("copy_only"),
             ]
         ),
     )
@@ -653,23 +633,18 @@ def _long_hotkeys_settings(
     *, show_hotkeys: bool = True, transcribing_show_hotkeys: bool | None = None
 ) -> Settings:
     """一時停止・取り消し・全ての出力先・プリセットのホットキーを、長いものにした設定を作る。"""
-    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
-    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
-    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
-    from voice_paste.shared.settings import HotkeySettings, UiSettings
-
     return _settings(
-        ui=UiSettings(
+        ui=dict(
             show_hotkeys=show_hotkeys,
             transcribing_show_hotkeys=(
                 show_hotkeys if transcribing_show_hotkeys is None else transcribing_show_hotkeys
             ),
         ),
-        hotkeys=HotkeySettings(pause="<ctrl>+<alt>+<shift>+<f11>", cancel="<ctrl>+<alt>+<shift>+<f10>"),
+        hotkeys=dict(pause="<ctrl>+<alt>+<shift>+<f11>", cancel="<ctrl>+<alt>+<shift>+<f10>"),
         outputs=[
-            PasteAndSendSettings(hotkey="<ctrl>+<alt>+<shift>+<f9>"),
-            PasteOnlySettings(hotkey="<ctrl>+<alt>+<shift>+<f8>"),
-            CopyOnlySettings(hotkey="<ctrl>+<alt>+<shift>+<f7>"),
+            default_output("paste_and_send", hotkey="<ctrl>+<alt>+<shift>+<f9>"),
+            default_output("paste_only", hotkey="<ctrl>+<alt>+<shift>+<f8>"),
+            default_output("copy_only", hotkey="<ctrl>+<alt>+<shift>+<f7>"),
         ],
         presets=[_browser("ChatGPT", LONG_HOTKEY)],
     )
@@ -874,18 +849,14 @@ def test_hotkey_buttons_width_when_preset_columns(styled: None, make_ui: Callabl
 
 def test_recording_window_width_when_narrow(styled: None, make_ui: Callable[..., Ui]) -> None:
     """ボタンが要る幅が既定の幅（360px）より狭いときは、窓を 360px にする。"""
-    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
-    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
-    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
-
     # 実行（出力先もプリセットも出さず、一時停止と取り消しだけ）
     ui = _opened(
         make_ui,
         _settings(
             outputs=[
-                PasteAndSendSettings(enabled=False),
-                PasteOnlySettings(enabled=False),
-                CopyOnlySettings(enabled=False),
+                default_output("paste_and_send", enabled=False),
+                default_output("paste_only", enabled=False),
+                default_output("copy_only", enabled=False),
             ]
         ),
     )
@@ -929,15 +900,12 @@ def test_recording_window_width_when_reopened(styled: None, make_ui: Callable[..
     ui.recording_window.close_window()
 
     # 実行（出力先もプリセットも無い設定で開き直す）
-    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
-    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
-    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
 
     ui.deps.get_settings.return_value = _settings(
         outputs=[
-            PasteAndSendSettings(enabled=False),
-            PasteOnlySettings(enabled=False),
-            CopyOnlySettings(enabled=False),
+            default_output("paste_and_send", enabled=False),
+            default_output("paste_only", enabled=False),
+            default_output("copy_only", enabled=False),
         ]
     )
     ui.recording_window.open()
@@ -1093,10 +1061,8 @@ def test_moved_position_when_shifted_after_open(
 
 def test_moved_position_when_reopened(make_ui: Callable[..., Ui], system_move: MagicMock) -> None:
     """動かした位置はその回だけ使い、次の録音は設定の位置に出す。"""
-    from voice_paste.shared.settings import UiSettings
-
     # 準備
-    ui = _opened(make_ui, _settings(ui=UiSettings(position="top-left")))
+    ui = _opened(make_ui, _settings(ui=dict(position="top-left")))
     window = ui.recording_window
     grab_head_row(window)
     window.move(window.pos() + QPoint(120, 90))
@@ -1127,10 +1093,8 @@ def test_hide_button_label(make_ui: Callable[..., Ui]) -> None:
 
 def test_hide_button_label_when_start_hotkey_is_free(make_ui: Callable[..., Ui]) -> None:
     """録音開始と同じホットキーの出力先が無い設定では、トレイのアイコンか録音開始のホットキーで戻すと添える。"""
-    from voice_paste.shared.settings import HotkeySettings
-
     # 実行
-    ui = _opened(make_ui, _settings(hotkeys=HotkeySettings(start="<ctrl>+<alt>+r")))
+    ui = _opened(make_ui, _settings(hotkeys=dict(start="<ctrl>+<alt>+r")))
 
     # 検証
     hide = find(ui.recording_window, QPushButton, "hide_button")
@@ -1222,10 +1186,8 @@ def test_hide_button_action_then_restore(
 
 def test_hide_button_action_when_hide_window_setting(make_ui: Callable[..., Ui]) -> None:
     """画面を出さない設定の録音では、戻す操作をしても窓を出さない。"""
-    from voice_paste.shared.settings import RecordingSettings
-
     # 準備
-    ui = make_ui(_settings(recording=RecordingSettings(hide_window=True)))
+    ui = make_ui(_settings(recording=dict(hide_window=True)))
     ui.notify_state("hotkey", "recording")
 
     # 実行

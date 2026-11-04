@@ -25,7 +25,8 @@
 | [httpx](./httpx.yaml) | 起こした文字を呼び出し元のエンドポイントへ返す |
 | [pydantic](./pydantic.yaml) | 設定と API の入出力を検証する |
 | [pyside6-essentials](./pyside6-essentials.yaml) | 画面とトレイを出し、ほかのスレッドからメインスレッドへ操作を渡す |
-| [tomlkit](./tomlkit.yaml) | 設定をコメントを保ったまま TOML で読み書きする |
+| [tomlkit](./tomlkit.yaml) | 前のバージョンの settings.toml を、settings.yaml へ移すために読む |
+| [ruamel.yaml](./ruamel.yaml.yaml) | 設定をコメントを保ったまま YAML で読み書きする |
 | [platformdirs](./platformdirs.yaml) | 設定・履歴・ログの置き場所を Windows の慣習で引く |
 | [import-linter](./import-linter.yaml) | 新しい構成の import の向きを検査する |
 | [av](./av.yaml) | faster-whisper が録音を読むために使う、FFmpeg の Python バインディング |
@@ -34,5 +35,7 @@
 | [python-multipart](./python-multipart.yaml) | ブラウザから送信された multipart の音声を FastAPI の UploadFile で受け取る |
 | [python-xlib](./python-xlib.yaml) | Linux でアクティブなウィンドウの WM_CLASS を Xorg から読む |
 | [evdev](./evdev.yaml) | Linux の Wayland のセッションで、仮想キーボードから貼り付けのキーと Enter を送信する |
+| [Focused_Window_D-Bus](./Focused_Window_D-Bus.yaml) | Linux の Wayland のセッションで、フォーカスしているウィンドウの wm_class を GNOME Shell の拡張から読む |
+| [Open_JTalk](./Open_JTalk.yaml) | Linux の E2E で、録音の入力にする文を WAV に書き出す |
 
 <!-- /table -->

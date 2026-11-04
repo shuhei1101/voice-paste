@@ -1,3 +1,4 @@
+id: SCR-5
 title: "変えた値を捨てる確認"
 elements:
   - name: ダイアログ
@@ -29,7 +30,7 @@ elements:
     description: 変えた値を捨て、設定画面を閉じて待機中に戻る
     label: 破棄して閉じる
     visible_when: 常時
-    action: ダイアログと設定画面を閉じる（settings.toml は書かない）
+    action: ダイアログと設定画面を閉じる（settings.yaml は書かない）
   - name: 設定画面へ戻るボタン
     id: back_button
     kind: button
@@ -43,5 +44,5 @@ screen: src/voice_paste/ui/windows/settings_window.py
 mock: dev/mock/pages/settings-discard-dialog/37/a-standard/
 lead: 設定画面で欄を変えたまま取り消す・窓を閉じるときに、変えた値を捨てて閉じるかを確かめるダイアログ。
 refs:
-  - dev/設計書/シナリオ/単一ユースケース/設定を変える#
+  - SC-6#
 test_file: tests/integration/ui/test_settings_window.py

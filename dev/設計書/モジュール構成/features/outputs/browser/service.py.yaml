@@ -1,0 +1,95 @@
+id: MOD-64
+title: 常駐アプリ / 出力先 / service.py
+test_files:
+  - tests/unit/voice_paste/features/outputs/browser/test_service.py
+functions:
+  - name: send_to_browser
+    title: ブラウザ添付
+    kind: 関数
+    container: features/outputs/browser/service.py
+    usecase: 起こした文字を届ける
+    scope: public
+    inherits: PresetFn
+    summary: 選んだブラウザ添付のプリセットの URL を Edge のアプリの画面で開き、設定の間を置いて貼り付け、プリセットが Enter まで送信するなら Enter を送信する
+    args:
+      - name: outcome
+        type: TranscriptionOutcome
+        required: true
+        passing: positional
+        description: 届ける結果
+      - name: preset
+        type: BrowserPreset
+        required: true
+        passing: positional
+        description: 確定の操作で選んだブラウザ添付のプリセット（url・send_enter を使う）
+      - name: copy
+        type: Callable[[str], None]
+        required: true
+        passing: injected
+        description: クリップボードへ書く（copy_to_clipboard）
+      - name: open_window
+        type: Callable[[str], None]
+        required: true
+        passing: injected
+        description: URL をアプリのウィンドウで開く（open_app_window。開けなければ DeliveryError）
+      - name: paste
+        type: Callable[[], None]
+        required: true
+        passing: injected
+        description: 貼り付けのキーを送信する（呼ぶたびに設定の keyboard.paste_key を読んで send_paste を呼ぶ）
+      - name: send_enter
+        type: Callable[[], None]
+        required: true
+        passing: injected
+        description: Enter を送信する
+      - name: sleep
+        type: Callable[[float], None]
+        required: true
+        passing: injected
+        description: 間を置く（time.sleep。テストで差し替える）
+      - name: get_open_delay_sec
+        type: Callable[[], float]
+        required: true
+        passing: injected
+        description: 画面を開いてから貼り付けるまでの秒数を返す（呼ぶたびに設定の preset_options.browser.open_delay_sec を読む）
+      - name: get_enter_delay_sec
+        type: Callable[[], float]
+        required: true
+        passing: injected
+        description: 貼り付けてから Enter を送信するまでの秒数を返す（呼ぶたびに設定の outputs[paste_and_send].enter_delay_sec を読む）
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. outcome.text をクリップボードへ書く
+      2. preset.url をアプリのウィンドウで開く
+      3. get_open_delay_sec() の秒数だけ待ち、貼り付けのキーを送信する
+      4. preset.send_enter がオンなら、get_enter_delay_sec() の秒数だけ待ち、Enter を送信する（オフなら貼り付けで止める）
+         - 1・2 が DeliveryError を送出した場合、そこで止めてそのまま送出する
+         - `[INFO]` ブラウザ添付で届けた（セッションの ID・プリセットのタイトル・Enter まで送信したか）
+    exceptions:
+      - name: DeliveryError
+        condition: クリップボードへ書けない・画面を開けない
+    unit_tests:
+      - name: test_send_to_browser
+        case: 正常
+        summary: Enter まで送信するプリセットは、コピー・開く・待ち・貼り付け・待ち・Enter の順に送信する
+        condition: outcome.text が「テスト」、preset の url が https://chatgpt.com・send_enter が True、get_open_delay_sec が 3.0・get_enter_delay_sec が 0.5 を返す
+        mock: copy・open_window・paste・send_enter・sleep・get_open_delay_sec・get_enter_delay_sec
+        expected: copy("テスト")・open_window("https://chatgpt.com")・sleep(3.0)・paste()・sleep(0.5)・send_enter() の順に呼ばれる
+      - name: test_send_to_browser_when_paste_only
+        case: 正常
+        summary: Enter まで送信しないプリセットは貼り付けで止める
+        condition: preset の send_enter が False
+        mock: copy・open_window・paste・send_enter・sleep・get_open_delay_sec・get_enter_delay_sec
+        expected: copy・open_window・sleep(3.0)・paste が呼ばれ、send_enter と get_enter_delay_sec が呼ばれない
+      - name: test_send_to_browser_when_open_failed
+        case: 異常
+        summary: 画面を開けなければ貼り付けない
+        condition: open_window が DeliveryError を送出する
+        mock: copy・open_window・paste・send_enter・sleep
+        expected: DeliveryError が送出され、paste・send_enter が呼ばれない
+        exception: 画面を開けない
+    refs:
+      - LIB-2#
+    status: implemented

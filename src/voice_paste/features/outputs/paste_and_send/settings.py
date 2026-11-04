@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from voice_paste.shared.settings import RELOAD_IMMEDIATE, OutputSettingsBase, os_default
+from voice_paste.shared.settings import RELOAD_IMMEDIATE, OutputSettingsBase
 from voice_paste.shared.types import EnterModifier
 
 ENTER_MODIFIER_LABELS: dict[str, str] = {"ctrl": "Ctrl", "alt": "Alt", "shift": "Shift"}
@@ -22,7 +22,6 @@ class PasteAndSendSettings(OutputSettingsBase):
         json_schema_extra={"reload": RELOAD_IMMEDIATE},
     )
     hotkey: str = Field(
-        os_default("outputs.paste_and_send.hotkey", "<ctrl>+<alt>+d"),
         description="この出力先で確定するホットキー",
         json_schema_extra={"reload": RELOAD_IMMEDIATE},
     )

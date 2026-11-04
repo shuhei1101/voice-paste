@@ -1,3 +1,4 @@
+id: LIB-16
 title: "platformdirs"
 kind: "ライブラリ"
 version:
@@ -12,7 +13,7 @@ catalogs:
     entries:
       - name: user_config_dir
         kind: 関数
-        purpose: 設定の置き場所（Windows で roaming=True は `%APPDATA%\voice-paste`、Linux は `~/.config/voice-paste`）を引く
+        purpose: 環境の値の `settings.yaml`（と移す元の `settings.toml`）の置き場所（Windows で roaming=True は `%APPDATA%\voice-paste`、Linux は `~/.config/voice-paste`）を引く
       - name: user_data_dir
         kind: 関数
         purpose: 履歴・ログ・一時の音声・トークンの置き場所（Windows で `%LOCALAPPDATA%\voice-paste`、Linux は `~/.local/share/voice-paste`）を引く

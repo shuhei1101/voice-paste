@@ -1,3 +1,4 @@
+id: IF-5
 title: "用語集のプリセットの一覧を返す"
 entry:
   kind: endpoint
@@ -7,7 +8,7 @@ flows:
     summary: 設定の並びのままのプリセットの名前と、設定で選んでいるプリセットの名前を返す
     setup:
       - name: Mock
-        description: 設定をテストの一時フォルダの settings.toml から読む
+        description: 設定をテストの一時フォルダの settings.yaml から読む
       - name: 用語集のプリセット
         description: 設定に用語集のプリセット「既定」「会議」をこの並びで入れ、active_glossary_preset を「会議」にする
     flow: |-
@@ -31,9 +32,9 @@ flows:
     summary: glossary_presets のキーが無い設定では「既定」の 1 件を返す
     setup:
       - name: Mock
-        description: 設定をテストの一時フォルダの settings.toml から読む
+        description: 設定をテストの一時フォルダの settings.yaml から読む
       - name: 設定
-        description: glossary_presets と active_glossary_preset のキーが無い settings.toml
+        description: glossary_presets と active_glossary_preset のキーが無い settings.yaml（既定値の config/defaults.yaml の値で動く）
     flow: |-
       ```mermaid
       sequenceDiagram
@@ -50,7 +51,7 @@ flows:
     summary: 許す Origin に無い Origin が付いた要求を断る
     setup:
       - name: Mock
-        description: 設定をテストの一時フォルダの settings.toml から読む
+        description: 設定をテストの一時フォルダの settings.yaml から読む
       - name: 要求のヘッダー
         description: 許す Origin に無い Origin を付ける
         notes: '`Origin: http://evil.example`'
@@ -149,7 +150,7 @@ constraints:
     notes: 文字起こしの結果を返す と同じ守り。画面と同じオリジンの fetch の GET には Origin が付かないため、Origin が無い要求を通す
   - item: 応答時間
     constraint: ブラウザの要求の応答時間以内
-    decided_by: dev/設計書/非機能要件/非機能要件#requirements[ブラウザの要求の応答時間]
+    decided_by: NFR-1#requirements[ブラウザの要求の応答時間]
   - item: レート制限
     constraint: 制限なし
     notes: 画面は開いたときに 1 回だけ呼ぶ

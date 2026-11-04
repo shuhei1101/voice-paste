@@ -1,0 +1,4 @@
+summary: AI Monitor の共通のエージェントへ、このプロジェクトでだけ足すフェーズ
+items:
+  - page: tester/
+    summary: tester へ足すフェーズ

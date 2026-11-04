@@ -1,0 +1,74 @@
+id: MOD-85
+title: 常駐アプリ / 起動と配線 / timer.py
+test_files:
+  - tests/unit/voice_paste/runtime/test_timer.py
+classes:
+  - name: RepeatingTimer
+    title: 定期の呼び出し
+    container: runtime/timer.py
+    usecase: APIで録音を操作する
+    role: ランタイム
+    kind: クラス
+    summary: 渡された関数を専用のデーモンスレッドで一定の間隔ごとに呼ぶ
+    description: |-
+      終わりの合図を threading.Event で持ち、Event.wait(間隔) で待つ。
+      呼んだ関数が例外を出してもスレッドを止めず、logger.exception で残して次の回を待つ（上限での打ち切りが 1 回の失敗で止まらない）。
+    properties:
+      - name: _action
+        type: Callable[[], object]
+        access: 内部 (_)
+        description: 呼ぶ関数
+      - name: _interval_sec
+        type: float
+        access: 内部 (_)
+        description: 呼ぶ間隔
+      - name: _stopped
+        type: threading.Event
+        access: 内部 (_)
+        description: 終わりの合図
+      - name: _thread
+        type: threading.Thread | None
+        access: 内部 (_)
+        description: 呼び出しのスレッド。start の前は None
+    methods:
+      - name: start
+        title: 開始
+        kind: メソッド
+        scope: public
+        summary: スレッドを始め、間隔ごとに関数を呼ぶ
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. デーモンスレッドで、終わりの合図が立つまで「間隔だけ待つ → 関数を呼ぶ」を繰り返す
+             - 関数が例外を出した場合、次の回を待つ
+               - `[ERROR]` 定期の呼び出しで想定外の例外（logger.exception）
+        unit_tests:
+          - name: test_start
+            case: 正常
+            summary: 間隔ごとに呼ぶ
+            condition: 間隔 0.01 秒で始め、呼ばれた回数が 3 になるまで待つ
+            mock: 呼ぶ関数
+            expected: 1 秒以内に 3 回呼ばれる
+          - name: test_start_when_action_raised
+            case: 正常
+            summary: 例外でも止まらない
+            condition: 呼ぶ関数が 1 回目だけ RuntimeError を送出する
+            mock: 呼ぶ関数
+            expected: 2 回目以降も呼ばれ、ERROR のログが 1 行出る
+      - name: stop
+        title: 停止
+        kind: メソッド
+        scope: public
+        summary: 終わりの合図を立て、スレッドの終わりを待つ
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_stop
+            case: 正常
+            summary: 止めた後は呼ばない
+            condition: start の後に stop を呼び、間隔の 5 倍待つ
+            mock: 呼ぶ関数
+            expected: stop の後に呼ばれた回数が増えず、スレッドが終わっている
+    status: implemented

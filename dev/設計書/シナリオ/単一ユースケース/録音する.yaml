@@ -1,3 +1,4 @@
+id: SC-8
 title: "録音する"
 scenarios:
   - name: 正常シナリオ
@@ -255,7 +256,7 @@ scenarios:
         notes: 1 枚なら枚数を出して skip する
       - name: 表示位置
         description: カーソルのあるモニターに出さない設定にし、カーソルを主でないモニターに置く
-        notes: '`ui.follow_cursor = false`'
+        notes: '`ui.follow_cursor: false`'
     flow: |-
       ```mermaid
       sequenceDiagram
@@ -278,7 +279,7 @@ scenarios:
         notes: 1 枚なら枚数を出して skip する。拡大率の違うモニターをつないだ環境でも流す
       - name: 表示位置
         description: カーソルのあるモニターに出す設定にする
-        notes: '`ui.follow_cursor = true`'
+        notes: '`ui.follow_cursor: true`'
       - name: 入口
         description: 主のモニターと、それ以外のモニターの中央にカーソルを置いて、それぞれ録音開始のホットキーを押す
     flow: |-

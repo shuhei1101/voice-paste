@@ -1,3 +1,4 @@
+id: SC-12
 title: "声で入力した文字を貼り付ける"
 scenarios:
   - name: 正常シナリオ

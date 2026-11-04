@@ -26,6 +26,7 @@ from tests.support.inprocess import (
     encode_audio,
     make_glossary_preset_settings,
     make_settings,
+    requires_web_transcription,
     silence_input,
     speech_input,
 )
@@ -39,7 +40,7 @@ from tests.support.web_scene import (
 from voice_paste.features.correction import pick_glossary_preset
 from voice_paste.shared.errors import TranscriptionError
 
-pytestmark = pytest.mark.real_machine
+pytestmark = [pytest.mark.real_machine, requires_web_transcription]
 
 RECORD_SEC = 4
 """画面で録る長さ（秒。書き出した文を 1 回以上含む）。"""

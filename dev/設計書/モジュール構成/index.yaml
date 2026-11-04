@@ -1,6 +1,18 @@
 summary: クラス / 関数 / 関数型 インデックス（単体テストの元）
 items:
-  - page: 常駐アプリ/
-    summary: 常駐アプリ（src/voice_paste/）の分類ごとのモジュール構成
-  - page: 文字起こしワーカー/
-    summary: 文字起こしワーカー（子プロセス）のモジュール構成
+  - page: features/
+    summary: features の設計書
+  - page: integrations/
+    summary: integrations の設計書
+  - page: main.py.yaml
+    summary: 常駐アプリ / 起動と配線 / main.py
+  - page: runtime/
+    summary: runtime の設計書
+  - page: server/
+    summary: server の設計書
+  - page: shared/
+    summary: shared の設計書
+  - page: ui/
+    summary: ui の設計書
+  - page: 分類/
+    summary: 分類 の設計書

@@ -27,9 +27,6 @@ BEARER_PREFIX: str = "Bearer "
 WEB_PATH_PREFIX: str = "/web"
 """外の端末のブラウザ向けの route の頭（`/web` と `/web/` の下）。"""
 
-SAFE_METHODS: tuple[str, ...] = ("GET", "HEAD")
-"""画面と同じオリジンの要求では Origin が付かないメソッド。"""
-
 
 class RequestGuardMiddleware(BaseHTTPMiddleware):
     """Host を確かめ、`/web/` の下は Origin の許可リストを、それ以外は Origin とトークンを確かめて、通れば次の処理へ渡す。"""
@@ -91,15 +88,11 @@ class RequestGuardMiddleware(BaseHTTPMiddleware):
         origin: str | None,
     ) -> Response:
         """`/web/` の下の要求を Origin の許可リストで確かめ、通れば次の処理へ渡す。"""
-        # GET・HEAD は画面と同じオリジンなら Origin が付かないため、Origin が無い要求も通す
-        if request.method in SAFE_METHODS and origin is None:
+        # Origin が無い要求（同じオリジンの GET・同じ端末のほかのプロセス）と、許す Origin が付いた要求はメソッドによらず通す
+        if origin is None or origin in self._allowed_web_origins:
             return await call_next(request)
 
-        # 許す Origin が付いていれば通す
-        if origin is not None and origin in self._allowed_web_origins:
-            return await call_next(request)
-
-        # どちらでもなければ断る（Origin が無い POST・ほかのオリジン）
+        # ほかのオリジンが付いていれば断る
         return self._reject(HTTPStatus.FORBIDDEN, "Origin が許されていない", host, origin)
 
     @staticmethod

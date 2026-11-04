@@ -113,7 +113,7 @@ class PresetListPanel(QWidget):
         self._rebuild([preset.model_dump() for preset in presets], self._number_saved(len(presets)))
 
     def collect(self) -> list[dict[str, Any]]:
-        """今の並びのプリセットを、settings.toml と同じ構造の dict の並びにする（kind を含める）。"""
+        """今の並びのプリセットを、設定と同じ構造の dict の並びにする（kind を含める）。"""
         collected: list[dict[str, Any]] = []
         for row in self._rows:
             widgets = row.widgets

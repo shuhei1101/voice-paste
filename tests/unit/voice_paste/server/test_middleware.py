@@ -142,24 +142,29 @@ def test_dispatch_when_web_post_with_allowed_origin() -> None:
     assert response.status_code == 204
 
 
+def test_dispatch_when_web_post_without_origin() -> None:
+    """/web/ の下の Origin の無い POST をトークン無しで通す（正常系）。"""
+    # 実行
+    response, call_next = _dispatch(WEB_HEADERS, method="POST", path="/web/transcriptions")
+
+    # 検証
+    call_next.assert_awaited_once()
+    assert response.status_code == 204
+
+
 @pytest.mark.parametrize(
-    ("headers", "method", "path"),
+    ("method", "path"),
     [
-        pytest.param(WEB_HEADERS, "POST", "/web/transcriptions", id="post_without_origin"),
-        pytest.param(
-            {**WEB_HEADERS, "origin": "http://evil.example"},
-            "GET",
-            "/web/",
-            id="get_with_other_origin",
-        ),
+        pytest.param("POST", "/web/transcriptions", id="post"),
+        pytest.param("GET", "/web/", id="get"),
     ],
 )
-def test_dispatch_when_web_post_without_origin(
-    headers: dict[str, str], method: str, path: str
-) -> None:
-    """/web/ の下の Origin の無い POST・許さない Origin は 403（異常系）。"""
+def test_dispatch_when_web_origin_not_allowed(method: str, path: str) -> None:
+    """/web/ の下の許さない Origin は 403（異常系）。"""
     # 実行
-    response, call_next = _dispatch(headers, method=method, path=path)
+    response, call_next = _dispatch(
+        {**WEB_HEADERS, "origin": "http://evil.example"}, method=method, path=path
+    )
 
     # 検証
     assert response.status_code == 403

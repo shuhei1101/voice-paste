@@ -1,0 +1,12 @@
+$ .venv/Scripts/python.exe -m pytest tests/nfr/test_output_extensibility.py --run-e2e
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\chore-settings-three-layers
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collected 1 item
+
+tests\nfr\test_output_extensibility.py .                                 [100%]
+
+============================== 1 passed in 1.40s ==============================
+exit=0

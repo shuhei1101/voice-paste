@@ -1,0 +1,26 @@
+id: MOD-3
+title: "常駐アプリ / セッション"
+lead: 録音から出力までの 1 回分の流れ（セッション）の状態と、入口をまたいで同時に 1 つだけ動かす排他を持つ。録音・文字起こし・補正・出力先・履歴は関数型越しに受け取り、API の route もここに置く。API の連続録音では、区切った区間を区切った順に起こして返し、最後に終わりを返す。
+directory: |-
+  ```
+  src/voice_paste/features/session/
+  ├── __init__.py   # SessionManager・route の公開
+  ├── types.py      # セッションの状態・セッション・ほかの feature を受け取る関数型（入口・録音・結果の型は shared/types.py）
+  ├── service.py    # SessionManager（状態の遷移と排他、録音から出力までの流れ）
+  ├── schemas.py    # API のリクエスト・レスポンス
+  └── route.py      # POST /sessions・/stop・/complete
+  ```
+diagrams:
+  - name: 全体
+    diagram: |-
+      ```mermaid
+      classDiagram
+        direction LR
+        class セッション管理
+        class セッション
+        class セッションの依存
+        class セッションのroute
+        セッションのroute --> セッション管理 : 開始・停止・完了
+        セッション管理 --> セッション : 持つ（0..1）
+        セッション管理 --> セッションの依存 : 呼ぶ
+      ```

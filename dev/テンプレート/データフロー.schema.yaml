@@ -5,13 +5,19 @@ description: |-
   図は各レベルのノードと辺から生成する。実装の関数とは 1:1 に対応させない。
 x-kind: dataflow
 x-folder: dev/設計書/データフロー
+x-id-prefix: DF
 x-cross: dictionary
 type: object
 additionalProperties: false
 required:
+- id
 - title
 - levels
 properties:
+  id:
+    $ref: 共通.schema.yaml#/$defs/id
+    title: ID
+    description: 設計書の変わらない ID。書くツールの `create` が振り、改名・移動でも変わらない。他の設計書からは `{ID}#{項目のパス}` で指す。
   title:
     type: string
     title: タイトル
@@ -129,7 +135,8 @@ properties:
     x-heading: 補足
     x-shape: sections
 examples:
-- title: 'データフロー: 問い合わせメッセージ'
+- id: DF-1
+  title: 'データフロー: 問い合わせメッセージ'
   lead: '`問い合わせメッセージ` がシステムを流れる過程。'
   source: 問い合わせ者
   sink: 問い合わせ DB とサポート担当

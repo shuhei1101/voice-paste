@@ -1,0 +1,55 @@
+id: MOD-86
+title: 常駐アプリ / 起動と配線 / settings_store.py
+test_files:
+  - tests/unit/voice_paste/runtime/test_settings_store.py
+classes:
+  - name: SettingsStore
+    title: 今の設定
+    container: runtime/settings_store.py
+    usecase: 設定を変える
+    role: ランタイム
+    summary: 動いている間の今の設定を 1 つ持ち、設定画面で保存した設定に入れ替える
+    description: 出力先・録音・用語集・画面は設定を値で持たず、使うたびに get で読む。Settings は不変として扱い、入れ替えるだけにする。
+    kind: クラス
+    properties:
+      - name: _settings
+        type: Settings
+        access: 内部 (_)
+        description: 今の設定
+      - name: _lock
+        type: threading.Lock
+        access: 内部 (_)
+        description: 入れ替えと読み出しを 1 つずつにする
+    methods:
+      - name: get
+        title: 読む
+        summary: 今の設定を返す
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        returns:
+          type: Settings
+          description: 今の設定
+      - name: replace
+        title: 入れ替える
+        summary: 今の設定を入れ替える
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        args:
+          - name: settings
+            type: Settings
+            required: true
+            passing: positional
+            description: 新しい設定
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_replace
+            case: 正常
+            summary: 入れ替えた設定を読める
+            condition: SETTINGS_MODEL() で作り、recording.volume_percent=30 の設定に replace する
+            mock: なし
+            expected: get().recording.volume_percent が 30
+    status: implemented

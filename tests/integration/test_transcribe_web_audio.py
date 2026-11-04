@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from tests.integration.helpers import Stack, make_audio, wait_until
-from voice_paste.main import SETTINGS_MODEL
+from tests.support.settings import make_settings
 from voice_paste.shared.settings import GlossaryPresetSettings
 from voice_paste.shared.types import GlossaryEntry
 
@@ -134,7 +134,7 @@ def test_error_when_transcription_failed(stack: Stack, tmp_path: Path, caplog: p
 def test_normal_when_glossary_preset(web_stack: Callable[..., Stack], tmp_path: Path) -> None:
     """ジョブが持つ用語集のプリセットで補正する（正常系）。"""
     # 準備: 設定に「既定」と「会議」があり、設定で選んでいるのは「既定」。同じ言葉を別の言葉へ置き換える
-    settings = SETTINGS_MODEL(
+    settings = make_settings(
         glossary_presets=[
             GlossaryPresetSettings(name="既定", glossaries=[]),
             GlossaryPresetSettings(name="会議", glossaries=[]),

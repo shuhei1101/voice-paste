@@ -4,6 +4,7 @@
 トレイのヒント・API・ログ・履歴を観測する。実機のマウス・キーボードは使わない。
 録音を始めるケースは、録音の入力を WAV を流すものに、システム音量を呼ばれた値を控えるものに差し替え、実機のマイクを開かず、システム音量を変えない。
 古い AI チャットの設定が残っているケースは、さらに貼り付けのキーを送信したキーを控えるものに、ブラウザを開く呼び出しを渡された URL を控えるものに差し替える。
+設定を読めないケースは、トレイの通知を出す呼び出しを、出した知らせを控えるものでくるむ。
 「前の常駐サービスが動いている」だけは、別プロセスで 2 つ起動して、ログ・トークンのファイル・プロセスで確かめる
 （`--run-e2e` が無ければ skip する）。
 
@@ -15,7 +16,7 @@ from __future__ import annotations
 
 import importlib.util
 import socket
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -26,6 +27,7 @@ from PySide6.QtWidgets import QWidget
 
 from tests.integration.helpers import wait_until
 from tests.support.inprocess import (
+    HAS_WEB_TRANSCRIPTION,
     SPEECH_TEXT,
     SPEECH_WORD,
     KeyLog,
@@ -40,6 +42,7 @@ from tests.support.real_service import (
     LOOPBACK,
     UNUSED_START_HOTKEY,
     RealService,
+    legacy_settings_text,
     read_log_records,
     settings_text,
     spawn_process,
@@ -48,24 +51,27 @@ from tests.support.resident_app import (
     CANCEL_HOTKEY,
     FAILED,
     IDLE,
+    PASTE_AND_SEND_HOTKEY,
     RECORDING,
     UI_TIMEOUT_SEC,
     ResidentApp,
 )
 from voice_paste.integrations.openai.credentials import OPENAI_API_KEY_ENV
+from voice_paste.shared.yaml_document import read_yaml_mapping
+from voice_paste.ui.tray import FailureEvent, Tray
 from voice_paste.ui.windows.settings_window import format_hotkey
 
 pytestmark = pytest.mark.real_machine
 
 RunApp = Callable[..., ResidentApp]
 
-NO_SUCH_MODEL_SETTINGS = '[transcription.local_whisper]\nmodel = "voice-paste-e2e-no-such-model"\n'
+NO_SUCH_MODEL_SETTINGS = "transcription:\n  local_whisper:\n    model: voice-paste-e2e-no-such-model\n"
 """ローカルの Whisper のモデルに存在しない名前を設定する（文字起こしワーカーがモデルを読み込めずに error を返す）。"""
 
-OPENAI_SETTINGS = '[transcription]\nengine = "openai"\n'
+OPENAI_SETTINGS = "transcription:\n  engine: openai\n"
 """文字起こしのエンジンを OpenAI API にする設定。"""
 
-RETENTION_ONE_DAY_SETTINGS = "[history]\nretention_days = 1\n\n[logging]\nretention_days = 1\n"
+RETENTION_ONE_DAY_SETTINGS = "history:\n  retention_days: 1\nlogging:\n  retention_days: 1\n"
 """履歴とログの保持期間を 1 日にする設定。"""
 
 PREVIOUS_EXIT_TIMEOUT_SEC = 30.0
@@ -83,16 +89,19 @@ AI_CHAT_HOTKEY = "<ctrl>+<alt>+1"
 AI_CHAT_TITLE = "ChatGPT"
 """古い AI チャットの設定の、出す送信先のタイトル。"""
 
+UNREADABLE_SETTINGS = "recording: [\n"
+"""settings.yaml を YAML として読めなくする続き（閉じない一覧）。"""
+
 
 def _old_ai_chat_settings() -> str:
-    """古い AI チャットの設定（送信先 2 つ。うち 1 つは出さない）を書いた settings.toml の続きを返す。"""
+    """古い AI チャットの設定（送信先 2 つ。うち 1 つは出さない）を書いた settings.yaml の続きを返す。"""
     return (
-        '[[outputs]]\nid = "paste_and_send"\n\n'
-        '[[outputs]]\nid = "ai_chat"\n\n'
-        f'[[outputs.targets]]\nname = "{AI_CHAT_TITLE}"\nurl = "{AI_CHAT_URL}"\n'
-        f'hotkey = "{AI_CHAT_HOTKEY}"\nenabled = true\n\n'
-        '[[outputs.targets]]\nname = "Claude"\nurl = "https://claude.ai/new"\n'
-        'hotkey = "<ctrl>+<alt>+3"\nenabled = false\n'
+        f'outputs:\n  - id: paste_and_send\n    hotkey: "{PASTE_AND_SEND_HOTKEY}"\n'
+        "  - id: ai_chat\n    targets:\n"
+        f"      - name: {AI_CHAT_TITLE}\n        url: {AI_CHAT_URL}\n"
+        f'        hotkey: "{AI_CHAT_HOTKEY}"\n        enabled: true\n'
+        "      - name: Claude\n        url: https://claude.ai/new\n"
+        '        hotkey: "<ctrl>+<alt>+3"\n        enabled: false\n'
     )
 
 
@@ -162,8 +171,14 @@ def test_normal(run_app: RunApp, tmp_path: Path) -> None:
                 files={"audio": ("recording.webm", web_audio, "audio/webm")},
                 headers={"Host": f"localhost:{app.port}", "Origin": f"http://localhost:{app.port}"},
             )
-        assert accepted.status_code == 202
-        assert accepted.json()["job_id"]
+        # ブラウザの文字起こしを持つ OS か
+        if HAS_WEB_TRANSCRIPTION:
+            # 持つ: 受け付けてジョブの ID を返す
+            assert accepted.status_code == 202
+            assert accepted.json()["job_id"]
+        else:
+            # 持たない（Linux）: `/web/` の route が無い
+            assert accepted.status_code == 404
         assert app.worker_pids() != set()
         # 録音開始のホットキーの受付が始まっていて、押すと録音が始まる
         assert app.hotkeys is not None
@@ -264,7 +279,7 @@ def test_error_when_api_unavailable(run_app: RunApp, occupied_port: int, tmp_pat
 def test_normal_when_old_ai_chat_settings_remain(
     run_app: RunApp, tmp_path: Path, clipboard_sentinel: str
 ) -> None:
-    """古い AI チャットの設定が残った settings.toml でも起動でき、出すとした送信先のボタンで確定すると送信先の URL を開いて貼り付け、Enter まで送信し、settings.toml は書き換わらない（正常シナリオ）。"""
+    """古い AI チャットの設定が残った settings.yaml でも起動でき、出すとした送信先のボタンで確定すると送信先の URL を開いて貼り付け、Enter まで送信し、settings.yaml は書き換わらない（正常シナリオ）。"""
     # 準備: 録音の入力は音声合成の WAV。貼り付けのキーとブラウザを開く呼び出しは控える
     extra_settings = _old_ai_chat_settings()
     keys = KeyLog()
@@ -282,12 +297,12 @@ def test_normal_when_old_ai_chat_settings_remain(
         app.press("preset_button_0")
         app.wait_processed()
 
-        # 検証: 送信先の URL を開いて貼り付け、Enter まで送信し、settings.toml は書き換わっていない
+        # 検証: 送信先の URL を開いて貼り付け、Enter まで送信し、settings.yaml は書き換わっていない
         assert app.opened_urls == [AI_CHAT_URL]
         assert SPEECH_WORD in pyperclip.paste()
         assert len(keys.pasted) == 1
         assert keys.enters == 1
-        settings_file = app.data_dir / "settings.toml"
+        settings_file = app.data_dir / "settings.yaml"
         assert settings_file.read_text(encoding="utf-8") == settings_text(app.port, extra_settings)
 
     # 実行: 古い設定で起動する
@@ -298,6 +313,71 @@ def test_normal_when_old_ai_chat_settings_remain(
         keys=keys,
         capture_browser=True,
     )
+
+
+def test_normal_when_only_settings_toml(run_app: RunApp, tmp_path: Path) -> None:
+    """settings.yaml が無く settings.toml だけがあると、既定値と違うキーだけを書いた settings.yaml を作り、settings.toml を残し、settings.toml の録音開始のホットキーで録音が始まり、移した元と先のパスをログに書く（正常シナリオ（settings.toml だけが残っている））。"""
+    # 準備: 録音の入力は無音の WAV
+    wav_input = silence_input(tmp_path)
+
+    def case(app: ResidentApp) -> None:
+        """移した settings.yaml・残った settings.toml・ログと、settings.toml のホットキーで録音が始まることを確かめる。"""
+        settings_file = app.data_dir / "settings.yaml"
+        legacy_file = app.data_dir / "settings.toml"
+        # 検証: 既定値と違うキーだけが settings.yaml に書かれ、settings.toml は変わらない
+        assert app.tray_state() == IDLE
+        assert read_yaml_mapping(settings_file) == {
+            "api": {"port": app.port, "allowed_web_origins": [f"http://localhost:{app.port}"]},
+            "hotkeys": {"start": UNUSED_START_HOTKEY},
+        }
+        assert legacy_file.read_text(encoding="utf-8") == legacy_settings_text(app.port)
+        assert any(
+            str(legacy_file) in message and str(settings_file) in message
+            for message in app.log_messages("INFO")
+        )
+        # 録音開始のホットキー（settings.toml の組み合わせ）を押すと録音が始まる
+        _start_and_cancel_recording(app)
+        assert wav_input.open_count == 1
+
+    # 実行: settings.toml だけを置いて起動する
+    run_app(case, legacy_settings=True, wav_input=wav_input)
+
+
+def test_error_when_settings_unreadable(run_app: RunApp, monkeypatch: pytest.MonkeyPatch) -> None:
+    """settings.yaml を YAML として読めなければ、トレイで設定を読めないことが知らされ、ログに読めなかったファイルのパスと理由が書かれ、「録音を開始」と「設定…」が押せず「設定フォルダを開く」と「再起動」が押せ、settings.yaml は書き換わらない（異常シナリオ（設定を読めない））。"""
+    # 準備: トレイが出した知らせ（種類と、読めなかったファイルのパス）を控える
+    failures: list[tuple[FailureEvent, tuple[Path, ...]]] = []
+    real_show_failure = Tray.show_failure
+
+    def show_failure(
+        self: Tray, event: FailureEvent, detail: str | None, *, paths: Sequence[Path] = ()
+    ) -> None:
+        """出した知らせを控えてから、本物で通知を出す。"""
+        failures.append((event, tuple(paths)))
+        real_show_failure(self, event, detail, paths=paths)
+
+    monkeypatch.setattr(Tray, "show_failure", show_failure)
+
+    def case(app: ResidentApp) -> None:
+        """設定を読めない起動のトレイ・知らせ・ログ・メニュー・settings.yaml を確かめる。"""
+        settings_file = app.data_dir / "settings.yaml"
+        # 検証
+        assert app.tray_state() == FAILED
+        assert failures == [("settings_invalid", (settings_file,))]
+        assert any(
+            message.startswith("起動に失敗した（") and str(settings_file) in message
+            for message in app.log_messages("ERROR")
+        )
+        assert not app.menu_item_enabled("menu_start")
+        assert not app.menu_item_enabled("menu_settings")
+        assert app.menu_item_enabled("menu_open_settings_folder")
+        assert app.menu_item_enabled("menu_restart")
+        assert settings_file.read_text(encoding="utf-8") == settings_text(
+            app.port, UNREADABLE_SETTINGS
+        )
+
+    # 実行: 読めない settings.yaml で起動する
+    run_app(case, extra_settings=UNREADABLE_SETTINGS)
 
 
 def test_normal_when_openai(run_app: RunApp, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

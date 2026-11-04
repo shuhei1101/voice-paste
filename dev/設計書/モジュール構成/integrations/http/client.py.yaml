@@ -1,0 +1,94 @@
+id: MOD-78
+title: 常駐アプリ / 外部連携 / client.py
+test_files:
+  - tests/unit/voice_paste/integrations/http/test_client.py
+functions:
+  - name: post_json
+    title: JSON の POST
+    kind: 関数
+    container: integrations/http/client.py
+    usecase: 起こした文字を届ける
+    role: client
+    scope: public
+    inherits: PostJsonFn
+    summary: httpx で JSON を POST してステータスと Retry-After を返す。タイムアウトと接続できないことは DeliveryError に変える
+    args:
+      - name: url
+        type: str
+        required: true
+        passing: positional
+        description: 送信先
+      - name: payload
+        type: dict[str, object]
+        required: true
+        passing: positional
+        description: 送信する JSON
+      - name: timeout_sec
+        type: float
+        required: true
+        passing: positional
+        description: 1 回の POST のタイムアウト（呼び出し元へ返すは非機能要件の返送のタイムアウトを部分適用し、エンドポイントへ送信は設定の値を渡す）
+      - name: headers
+        type: Mapping[str, str]
+        required: false
+        default: 空の辞書
+        passing: positional
+        description: 付けるヘッダー（Authorization など。値はログと例外の文に書かない）
+    returns:
+      type: PostResult
+      description: 送信先が返したステータスと Retry-After
+    process: |-
+      1. httpx.Client(timeout=timeout_sec, follow_redirects=False) で headers を付けて POST する（リダイレクトで許していないホストへ行かず、認証のヘッダーを他の先へ流さない）
+         - httpx.TransportError（タイムアウト・接続できない）の場合、DeliveryError を送出する
+      2. Retry-After を秒に直す（秒数はそのまま、HTTP の日付は今の時刻からの差。負の値は 0 にそろえる。無い・読めない場合は None）
+      3. ステータスと Retry-After を PostResult で返す（2xx 以外でも送出しない）
+    exceptions:
+      - name: DeliveryError
+        condition: タイムアウトか接続できない
+    unit_tests:
+      - name: test_post_json
+        case: 正常
+        summary: JSON を送信してステータスを返す
+        condition: エンドポイントが 204 を返す
+        mock: httpx.MockTransport
+        expected: status 204・retry_after_sec None が返り、エンドポイントに Content-Type application/json で payload が届いている
+      - name: test_post_json_when_headers
+        case: 正常
+        summary: 渡したヘッダーを付けて送信する
+        condition: 'headers に {"Authorization": "Bearer test-token"} を渡す'
+        mock: httpx.MockTransport
+        expected: 'エンドポイントに Authorization: Bearer test-token が届いている'
+      - name: test_post_json_when_retry_after_seconds
+        case: 正常
+        summary: 秒数の Retry-After を返す
+        condition: 'エンドポイントが 429 と Retry-After: 3 を返す'
+        mock: httpx.MockTransport
+        expected: status 429・retry_after_sec 3.0 が返る
+      - name: test_post_json_when_retry_after_invalid
+        case: 正常
+        summary: 読めない Retry-After は None
+        condition: 'エンドポイントが 503 と Retry-After: soon を返す'
+        mock: httpx.MockTransport
+        expected: status 503・retry_after_sec None が返る
+      - name: test_post_json_when_retry_after_past_date
+        case: 正常
+        summary: 過去の日付の Retry-After は 0
+        condition: エンドポイントが 503 と、今より 1 分前の HTTP の日付の Retry-After を返す
+        mock: httpx.MockTransport
+        expected: status 503・retry_after_sec 0.0 が返る
+      - name: test_post_json_when_redirected
+        case: 正常
+        summary: リダイレクトを追わない
+        condition: エンドポイントが 307 で別のホストを指す
+        mock: httpx.MockTransport
+        expected: status 307 が返り、別のホストへの要求が出ない
+      - name: test_post_json_when_timeout
+        case: 異常
+        summary: タイムアウトは DeliveryError
+        condition: エンドポイントが httpx.ReadTimeout を送出する
+        mock: httpx.MockTransport
+        expected: DeliveryError が送出される
+        exception: タイムアウトか接続できない
+    refs:
+      - LIB-9#
+    status: implemented

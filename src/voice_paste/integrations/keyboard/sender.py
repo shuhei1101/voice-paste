@@ -17,6 +17,24 @@ logger = logging.getLogger(__name__)
 FOCUS_SETTLE_SEC: float = 0.1
 """貼り付けのキーを送信する前に待つ秒数。貼り付け先のフォーカスが落ち着くのを待つ。"""
 
+TERMINAL_WM_CLASSES: frozenset[str] = frozenset(
+    {
+        "gnome-terminal-server",
+        "gnome-terminal",
+        "kgx",
+        "org.gnome.console",
+        "ptyxis",
+        "org.gnome.ptyxis",
+        "tilix",
+        "terminator",
+        "konsole",
+        "xfce4-terminal",
+        "alacritty",
+        "kitty",
+    }
+)
+"""端末アプリと見なす WM_CLASS の名前（小文字）。インスタンス名かクラス名を小文字にした値がどれかに当たれば端末アプリとする。"""
+
 KEY_SEPARATOR: str = "+"
 """貼り付けのキーの書式（pynput の GlobalHotKeys の書式）で、キーを区切る文字。"""
 

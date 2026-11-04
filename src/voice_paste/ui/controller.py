@@ -70,8 +70,14 @@ class UiDeps:
     save_settings: Callable[[Settings, Mapping[Path, Sequence[GlossaryEntry]]], bool]
     """設定と、行を変えた用語集の CSV（場所 → 行）を書いて効かせ、再起動が要る項目が変わったかを返す（apply_settings）。"""
 
+    reset_settings: Callable[[], tuple[Settings, bool]]
+    """環境の値を空にして読み直した設定を効かせ、その設定と再起動が要る項目が変わったかを返す（reset_applied_settings）。"""
+
+    default_settings: Callable[[], Settings]
+    """既定の設定（load_default_settings）。設定画面の入力エラーの数値の例に使う。"""
+
     settings_dir: Path
-    """settings.toml のあるフォルダ。"""
+    """settings.yaml のあるフォルダ。"""
 
     log_dir: Path
     """ログのフォルダ。"""
@@ -235,7 +241,7 @@ class UiController(QObject):
         try:
             self._deps.resume_hotkeys()
         except HotkeyError as error:
-            # 保存の前に受け付けられることを確かめているため、ここに来るのは手で書いた settings.toml だけ
+            # 保存の前に受け付けられることを確かめているため、ここに来るのは手で書いた設定のファイルだけ
             logger.error(f"ホットキーを受け付けられなかった（{error}）")
 
     def hide_recording(self) -> None:

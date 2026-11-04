@@ -21,12 +21,13 @@ from tests.support.inprocess import (
     encode_audio,
     make_glossary_preset_settings,
     make_settings,
+    requires_web_transcription,
     silence_input,
     spy_on_correct_presets,
 )
 from tests.support.web_scene import STUB_TEXT, OpenEdge, StartInProcess, build_scene, record_for
 
-pytestmark = pytest.mark.real_machine
+pytestmark = [pytest.mark.real_machine, requires_web_transcription]
 
 RECORD_SEC = 2
 """画面で録る長さ（秒）。"""

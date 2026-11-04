@@ -1,8 +1,8 @@
-"""main.py（parse_args・main・select_platform_adapters・start_local_session・build_hotkey_bindings・apply_settings・_wire_outputs・_wire_preset_kinds）の単体テスト。
+"""main.py（parse_args・main・_StartupBuild・select_platform_adapters・start_local_session・build_hotkey_bindings・apply_settings・reset_applied_settings・_wire_outputs・_wire_preset_kinds）の単体テスト。
 
 main の配線（build_handlers）・API サーバー（ApiServerRunner）・上限の打ち切りのタイマー（RepeatingTimer）・
 ホットキーの受付（PlatformAdapters.create_hotkey_listener）・トレイ（Tray）・再起動（PlatformAdapters.relaunch）は偽物に差し替え、
-イベントループ（exec_loop）は、溜まったイベントを処理してすぐ戻る関数にする。
+イベントループ（exec_loop）は、配線の結果を受けて起動を終えるまでイベントを処理してから戻る関数にする（配線はメインスレッドの外で流れ、結果はイベントで届く）。
 画面は offscreen の QApplication（conftest の qapp）を使い回す（main は QApplication が既にあればそれを使う）。
 """
 
@@ -15,17 +15,19 @@ import os
 import signal
 import sys
 import threading
+import time
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, NoReturn
 from unittest.mock import MagicMock, call
 
 import pytest
 from PySide6.QtCore import QTimer
 
 from tests.unit.log_helpers import read_log_records
+from tests.unit.voice_paste.settings_helpers import DEFAULTS_FILE
 from tests.unit.voice_paste.ui.helpers import make_session
 from voice_paste.shared.errors import StartupError
 
@@ -35,6 +37,7 @@ if TYPE_CHECKING:
     from tests.unit.voice_paste.runtime.helpers import BackgroundAcquire
     from voice_paste.features.outputs import OutputSpec, PresetKindSpec
     from voice_paste.features.outputs.types import OutputDeps
+    from voice_paste.shared.constants import AppPaths
     from voice_paste.shared.os_kind import DisplaySession, OsKind
     from voice_paste.shared.settings import Settings
     from voice_paste.shared.types import TranscriptionOutcome
@@ -48,6 +51,18 @@ SHORT_ACQUIRE_TIMEOUT_SEC = 0.5
 
 QUIT_LOOP_TIMEOUT_MS = 5000
 """終了を頼まれてもイベントループが抜けないときに、諦めて抜ける上限（ミリ秒）。"""
+
+STARTUP_WAIT_SEC = 5.0
+"""配線の結果を受けて起動を終えるまでイベントを処理する上限。"""
+
+BUILD_WAIT_SEC = 3.0
+"""配線の偽物が、止める関数・合図を待つ上限（実装が待ちを解かなくてもテストが止まらないようにする）。"""
+
+SETTLE_SEC = 0.2
+"""起きてはいけないことが起きないのを確かめるために、イベントを処理し続ける時間。"""
+
+POLL_INTERVAL_SEC = 0.01
+"""イベントを処理しながら待つときの、1 回ごとの間。"""
 
 SIGNAL_NAMES = ("SIGINT", "SIGBREAK", "SIGTERM")
 DEFAULT_HOTKEYS = {
@@ -102,6 +117,8 @@ class Wiring:
     """main が build_ui_deps で作った UiDeps（作られた順）。"""
     adapter_overrides: dict[str, Any]
     """select_platform_adapters が返す PlatformAdapters の項目のうち、差し替えるもの（項目の名前 → 偽物）。main が選ぶ前に入れる。"""
+    build_threads: list[str]
+    """build_handlers が呼ばれたスレッドの名前（呼ばれた順）。"""
 
     @property
     def hotkey(self) -> MagicMock:
@@ -118,6 +135,20 @@ class Wiring:
         """main が作った ApiServerRunner の偽物。"""
         return self.runner_class.return_value
 
+    @property
+    def startup_finished(self) -> bool:
+        """起動を終えたか（トレイが待機中になったか、失敗になった）。"""
+        from voice_paste.ui.tray import TrayState
+
+        return self.tray.set_failed.called or (
+            call(TrayState.IDLE, busy=False) in self.tray.set_state.call_args_list
+        )
+
+    def exit_after_startup(self, app: QApplication) -> int:
+        """起動を終えるまでイベントを処理して、0 を返す。main の exec_loop に渡す。"""
+        wait_for_startup(app, self)
+        return 0
+
 
 def install_wiring(
     monkeypatch: pytest.MonkeyPatch,
@@ -125,10 +156,12 @@ def install_wiring(
     *,
     api_started: bool = True,
     build_error: Exception | None = None,
+    build_hook: Callable[[Callable[[Callable[[], None]], None]], None] | None = None,
 ) -> Wiring:
     """main が使う build_handlers・ApiServerRunner・RepeatingTimer・ホットキーの受付（PlatformAdapters.create_hotkey_listener）・Tray・再起動（PlatformAdapters.relaunch）を偽物に差し替える。
 
     デスクトップのセッションは Xorg に固定する（実行する環境の XDG_SESSION_TYPE に頼らない）。
+    build_hook を渡すと、build_handlers の偽物が Handlers を返す前に、on_engine_created を渡して呼ぶ（待ち・例外を差し込む）。
     """
     import voice_paste.main as main_module
     from voice_paste.main import Handlers
@@ -137,6 +170,7 @@ def install_wiring(
 
     monkeypatch.setenv("XDG_SESSION_TYPE", "x11")
     calls: list[str] = []
+    build_threads: list[str] = []
 
     def _record(name: str) -> Callable[..., None]:
         """呼ばれたら name を calls に追加する関数を返す。"""
@@ -155,8 +189,12 @@ def install_wiring(
         adapters: object,
         environ: object,
         unavailable: frozenset[Feature],
+        on_engine_created: Callable[[Callable[[], None]], None] = lambda _stop: None,
     ) -> Handlers:
         """配線済みの関数の束を、偽物で作る（外の端末のブラウザの機能を使えない OS では web_api が None）。"""
+        build_threads.append(threading.current_thread().name)
+        if build_hook is not None:
+            build_hook(on_engine_created)
         return Handlers(
             session_manager=session_manager,
             session_api=MagicMock(),
@@ -237,13 +275,62 @@ def install_wiring(
         web_api=web_api,
         ui_deps=ui_deps,
         adapter_overrides=adapter_overrides,
+        build_threads=build_threads,
     )
 
 
-def exit_after_events(app: QApplication) -> int:
-    """溜まったイベント（知らせの Signal）を処理して、すぐ 0 を返す。main の exec_loop に渡す。"""
+def wait_for_startup(app: QApplication, wiring: Wiring) -> None:
+    """配線の結果を受けて起動を終えるまで（上限は STARTUP_WAIT_SEC）、イベントを処理する。"""
+    deadline = time.monotonic() + STARTUP_WAIT_SEC
+    while not wiring.startup_finished and time.monotonic() < deadline:
+        app.processEvents()
+        time.sleep(POLL_INTERVAL_SEC)
     app.processEvents()
-    return 0
+
+
+def process_events_for(app: QApplication, seconds: float) -> None:
+    """指定した秒数の間、イベントを処理し続ける。"""
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        app.processEvents()
+        time.sleep(POLL_INTERVAL_SEC)
+
+
+def emit_connected(signal_mock: MagicMock) -> None:
+    """偽物の Signal に connect されたまま（disconnect されていない）の受け手を、つないだ順に呼ぶ。"""
+    disconnected = [c.args[0] for c in signal_mock.disconnect.call_args_list]
+    for connected in signal_mock.connect.call_args_list:
+        if connected.args[0] not in disconnected:
+            connected.args[0]()
+
+
+@dataclass
+class BlockingBuild:
+    """配線の偽物の差し込み。止める関数を on_engine_created に渡し、それが呼ばれるまで戻らず、呼ばれたら StartupError を送出する。"""
+
+    stop_engine: MagicMock
+    """on_engine_created に渡す、エンジンを止める関数。"""
+    registered: threading.Event
+    """止める関数を on_engine_created に渡したら立つ。"""
+    stopped: threading.Event
+    """止める関数が呼ばれたら立つ。"""
+
+    @classmethod
+    def create(cls) -> BlockingBuild:
+        """止める関数が呼ばれたら stopped を立てる差し込みを作る。"""
+        stopped = threading.Event()
+        return cls(
+            stop_engine=MagicMock(side_effect=lambda: stopped.set()),
+            registered=threading.Event(),
+            stopped=stopped,
+        )
+
+    def __call__(self, on_engine_created: Callable[[Callable[[], None]], None]) -> NoReturn:
+        """止める関数を渡し、呼ばれるまで（上限は BUILD_WAIT_SEC）待ってから StartupError を送出する。"""
+        on_engine_created(self.stop_engine)
+        self.registered.set()
+        self.stopped.wait(BUILD_WAIT_SEC)
+        raise StartupError("文字起こしワーカーを止めた")
 
 
 def timer_interval(timer_call: Any) -> float:
@@ -284,15 +371,16 @@ def record_about_to_quit_threads(app: QApplication) -> tuple[list[bool], Callabl
 
 
 def make_exec_loop_with_quit_request(
-    lock: MagicMock, gave_up: list[bool]
+    lock: MagicMock, gave_up: list[bool], wiring: Wiring
 ) -> Callable[[QApplication], int]:
-    """別のスレッドから終了を頼まれてから、本物のイベントループを回す exec_loop を作る。
+    """起動を終えた後に別のスレッドから終了を頼まれてから、本物のイベントループを回す exec_loop を作る。
 
     頼みが効かずにループが抜けないときのために、上限で諦めて抜け、gave_up に True を追加する。
     """
 
     def _exec_loop(app: QApplication) -> int:
-        """on_quit_requested に渡された関数を別のスレッドから呼び、ループを回す。"""
+        """起動を終えるまで待ち、on_quit_requested に渡された関数を別のスレッドから呼び、ループを回す。"""
+        wait_for_startup(app, wiring)
         on_quit = lock.on_quit_requested.call_args.args[0]
         thread = threading.Thread(target=on_quit)
         thread.start()
@@ -366,25 +454,23 @@ def test_main(
     from voice_paste.main import (
         PURGE_INTERVAL_SEC,
         SESSION_LIMIT_CHECK_INTERVAL_SEC,
-        SETTINGS_MODEL,
         main,
     )
     from voice_paste.runtime.single_instance import instance_name
-    from voice_paste.shared.settings import load_settings
 
     # 準備
     wiring = install_wiring(monkeypatch, qapp)
     record_lock_release(monkeypatch, wiring)
 
     # 実行
-    exit_code = main(["--data-dir", str(data_dir)], exec_loop=exit_after_events)
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=wiring.exit_after_startup)
     reacquired = background_acquire(instance_name(data_dir), SHORT_ACQUIRE_TIMEOUT_SEC)
     reacquired_decided = reacquired.wait(ACQUIRE_WAIT_SEC)
 
     # 検証
     assert exit_code == 0
     assert wiring.build_handlers.call_args.kwargs["environ"] is os.environ
-    assert load_settings(data_dir / "settings.toml", SETTINGS_MODEL) == SETTINGS_MODEL()
+    assert not (data_dir / "settings.yaml").exists()
     assert (data_dir / "api_token").exists()
     assert wiring.build_handlers.call_args.kwargs["unavailable"] == frozenset()
     wiring.create_hotkey_listener.assert_called_once()
@@ -407,6 +493,105 @@ def test_main(
     assert reacquired.error is None
 
 
+def test_main_when_building_off_main_thread(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplication
+) -> None:
+    """配線をメインスレッドの外で流し、その間もイベントループを回す（正常系）。"""
+    from voice_paste.main import main
+    from voice_paste.ui.tray import TrayState
+
+    # 準備: 配線の偽物は release が立つまで戻らない
+    release = threading.Event()
+    wiring = install_wiring(
+        monkeypatch, qapp, build_hook=lambda _on_engine_created: release.wait(BUILD_WAIT_SEC)
+    )
+    set_state_before_release: list[Any] = []
+    hotkey_started_before_release: list[bool] = []
+
+    def _exec_loop(app: QApplication) -> int:
+        """配線の間もイベントを処理し、トレイが準備中のままかを控えてから配線を戻し、起動を終えるまで処理する。"""
+        process_events_for(app, SETTLE_SEC)
+        set_state_before_release.extend(wiring.tray.set_state.call_args_list)
+        hotkey_started_before_release.append(wiring.hotkey.start.called)
+        release.set()
+        wait_for_startup(app, wiring)
+        return 0
+
+    # 実行
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=_exec_loop)
+
+    # 検証
+    assert exit_code == 0
+    assert wiring.build_threads == ["startup-build"]
+    assert set_state_before_release == [call(TrayState.STARTING, busy=False)]
+    assert hotkey_started_before_release == [False]
+    assert call(TrayState.IDLE, busy=False) in wiring.tray.set_state.call_args_list
+    wiring.hotkey.start.assert_called_once()
+
+
+def test_main_when_quit_while_building(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplication
+) -> None:
+    """配線の間に終了を頼まれたら、エンジンを止めて排他を放す（正常系）。"""
+    from voice_paste.main import main
+
+    # 準備: 配線の偽物は止める関数を渡した後、それが呼ばれるまで戻らない（呼ばれたら StartupError）
+    blocking_build = BlockingBuild.create()
+    wiring = install_wiring(monkeypatch, qapp, build_hook=blocking_build)
+    lock = MagicMock()
+    lock.release.side_effect = lambda: wiring.calls.append("lock.release")
+    wiring.adapter_overrides["acquire_single_instance"] = MagicMock(return_value=lock)
+
+    def _exec_loop(app: QApplication) -> int:
+        """止める関数が渡るのを待ってから、トレイの「終了」を送出し、イベントを処理して抜ける。"""
+        blocking_build.registered.wait(BUILD_WAIT_SEC)
+        emit_connected(wiring.tray.quit_requested)
+        app.processEvents()
+        return 0
+
+    # 実行
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=_exec_loop)
+
+    # 検証
+    assert exit_code == 0
+    blocking_build.stop_engine.assert_called_once()
+    wiring.create_hotkey_listener.assert_not_called()
+    wiring.runner_class.assert_not_called()
+    wiring.tray.show_failure.assert_not_called()
+    assert wiring.calls[-2:] == ["tray.hide", "lock.release"]
+    wiring.relaunch.assert_not_called()
+
+
+def test_main_when_restart_while_building(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplication
+) -> None:
+    """配線の間に再起動を頼まれたら、エンジンを止めてから起動し直す（正常系）。"""
+    from voice_paste.main import main
+
+    # 準備: 配線の偽物は止める関数を渡した後、それが呼ばれるまで戻らない（呼ばれたら StartupError）
+    blocking_build = BlockingBuild.create()
+    wiring = install_wiring(monkeypatch, qapp, build_hook=blocking_build)
+    lock = MagicMock()
+    lock.release.side_effect = lambda: wiring.calls.append("lock.release")
+    wiring.adapter_overrides["acquire_single_instance"] = MagicMock(return_value=lock)
+
+    def _exec_loop(app: QApplication) -> int:
+        """止める関数が渡るのを待ってから、トレイの「再起動」を送出し、イベントを処理して抜ける。"""
+        blocking_build.registered.wait(BUILD_WAIT_SEC)
+        emit_connected(wiring.tray.restart_requested)
+        app.processEvents()
+        return 0
+
+    # 実行
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=_exec_loop)
+
+    # 検証
+    assert exit_code == 0
+    blocking_build.stop_engine.assert_called_once()
+    wiring.relaunch.assert_called_once()
+    assert wiring.calls.index("relaunch") > wiring.calls.index("lock.release")
+
+
 def test_main_when_invalid_settings(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplication
 ) -> None:
@@ -415,19 +600,20 @@ def test_main_when_invalid_settings(
 
     # 準備
     wiring = install_wiring(monkeypatch, qapp)
-    (data_dir / "settings.toml").write_text(
-        '[transcription.local_whisper]\nbeam_size = "x"\n', encoding="utf-8"
+    (data_dir / "settings.yaml").write_text(
+        "transcription:\n  local_whisper:\n    beam_size: x\n", encoding="utf-8"
     )
 
     # 実行
-    exit_code = main(["--data-dir", str(data_dir)], exec_loop=exit_after_events)
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=wiring.exit_after_startup)
 
     # 検証
     assert exit_code == 0
-    wiring.tray.set_failed.assert_called_once()
+    wiring.tray.set_failed.assert_called_once_with(settings_enabled=False)
     wiring.tray.show_failure.assert_called_once()
     assert wiring.tray.show_failure.call_args.args[0] == "settings_invalid"
     assert "transcription.local_whisper.beam_size" in wiring.tray.show_failure.call_args.args[1]
+    assert wiring.tray.show_failure.call_args.kwargs == {"paths": (data_dir / "settings.yaml",)}
     assert "transcription.local_whisper.beam_size" in str(
         read_log_records(data_dir / "log", "ERROR")
     )
@@ -448,22 +634,24 @@ def test_main_when_startup_error(
     )
 
     # 実行
-    exit_code = main(["--data-dir", str(data_dir)], exec_loop=exit_after_events)
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=wiring.exit_after_startup)
 
     # 検証
     assert exit_code == 0
-    wiring.tray.set_failed.assert_called_once()
+    wiring.tray.set_failed.assert_called_once_with(settings_enabled=True)
     assert [c.args[0] for c in wiring.tray.show_failure.call_args_list] == ["engine_unavailable"]
     wiring.runner_class.assert_not_called()
     wiring.hotkey.start.assert_not_called()
 
 
 def test_main_when_api_unavailable(
-    data_dir: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplication
+    data_dir: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    qapp: QApplication,
+    default_settings: Settings,
 ) -> None:
     """待ち受けを始められなければトークンのファイルを書かずに知らせて続ける（正常系）。"""
     from voice_paste.main import main
-    from voice_paste.shared.settings import Settings
 
     # 準備
     wiring = install_wiring(monkeypatch, qapp, api_started=False)
@@ -472,13 +660,13 @@ def test_main_when_api_unavailable(
     token_file.write_text(previous_content, encoding="utf-8")
 
     # 実行
-    exit_code = main(["--data-dir", str(data_dir)], exec_loop=exit_after_events)
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=wiring.exit_after_startup)
 
     # 検証
     assert exit_code == 0
     assert token_file.read_text(encoding="utf-8") == previous_content
     assert [c.args for c in wiring.tray.show_failure.call_args_list] == [
-        ("api_unavailable", f"ポート {Settings().api.port} で待ち受けを始められません")
+        ("api_unavailable", f"ポート {default_settings.api.port} で待ち受けを始められません")
     ]
     wiring.hotkey.start.assert_called_once()
 
@@ -493,7 +681,8 @@ def test_main_when_restart_requested(
     wiring = install_wiring(monkeypatch, qapp)
 
     def _request_restart(app: QApplication) -> int:
-        """UiDeps.request_restart を呼んで、すぐ 0 を返す。"""
+        """起動を終えるまで待ち、UiDeps.request_restart を呼んで 0 を返す。"""
+        wait_for_startup(app, wiring)
         wiring.ui_deps[0].request_restart()
         return 0
 
@@ -513,23 +702,32 @@ def test_main_when_no_data_dir(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplication
 ) -> None:
     """データの置き場所を渡さなければ既定の置き場所で起動する（正常系）。"""
+    import voice_paste.main as main_module
     import voice_paste.shared.constants as constants_module
-    from voice_paste.main import SETTINGS_MODEL, main
-    from voice_paste.shared.settings import load_settings
+    from voice_paste.main import main
 
-    # 準備: platformdirs の置き場所を、一時フォルダの config・local へ向ける
+    # 準備: platformdirs の置き場所を一時フォルダの config・local へ、checkout の上書きを一時フォルダの checkout の下へ向ける
     config_dir = tmp_path / "config"
     local_dir = tmp_path / "local"
-    install_wiring(monkeypatch, qapp)
+    local_settings_file = tmp_path / "checkout" / "settings.local.yaml"
+    wiring = install_wiring(monkeypatch, qapp)
     monkeypatch.setattr(constants_module, "user_config_dir", lambda *_a, **_k: str(config_dir))
     monkeypatch.setattr(constants_module, "user_data_dir", lambda *_a, **_k: str(local_dir))
+    resolve_app_paths = constants_module.resolve_app_paths
+    monkeypatch.setattr(
+        main_module,
+        "resolve_app_paths",
+        lambda data_dir: dataclasses.replace(
+            resolve_app_paths(data_dir), local_settings_file=local_settings_file
+        ),
+    )
 
     # 実行
-    exit_code = main([], exec_loop=exit_after_events)
+    exit_code = main([], exec_loop=wiring.exit_after_startup)
 
     # 検証
     assert exit_code == 0
-    assert load_settings(config_dir / "settings.toml", SETTINGS_MODEL) == SETTINGS_MODEL()
+    assert not (config_dir / "settings.yaml").exists()
     assert (local_dir / "api_token").exists()
     assert list((local_dir / "log").glob("*.log"))
 
@@ -547,7 +745,7 @@ def test_main_when_previous_instance_not_released(
     )
 
     # 実行
-    exit_code = main(["--data-dir", str(data_dir)], exec_loop=exit_after_events)
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=wiring.exit_after_startup)
 
     # 検証
     assert exit_code == 1
@@ -569,7 +767,7 @@ def test_main_when_quit_requested(
     wiring.adapter_overrides["acquire_single_instance"] = MagicMock(return_value=lock)
     gave_up: list[bool] = []
     about_to_quit_on_main_thread, stop_recording_quit = record_about_to_quit_threads(qapp)
-    exec_loop = make_exec_loop_with_quit_request(lock, gave_up)
+    exec_loop = make_exec_loop_with_quit_request(lock, gave_up, wiring)
 
     # 実行
     try:
@@ -615,7 +813,8 @@ def test_main_when_sigterm(
     monkeypatch.setattr(qapp, "quit", quit_app)
 
     def _send_sigterm(app: QApplication) -> int:
-        """自分のプロセスへ SIGTERM を送り、溜まったイベントを処理して 0 を返す。"""
+        """起動を終えるまで待ち、自分のプロセスへ SIGTERM を送り、溜まったイベントを処理して 0 を返す。"""
+        wait_for_startup(app, wiring)
         signal.raise_signal(signal.SIGTERM)
         app.processEvents()
         return 0
@@ -649,7 +848,7 @@ def test_main_when_key_sender_unavailable(
     wiring.adapter_overrides["close_key_sender"] = close_key_sender
 
     # 実行
-    exit_code = main(["--data-dir", str(data_dir)], exec_loop=exit_after_events)
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=wiring.exit_after_startup)
 
     # 検証
     assert exit_code == 0
@@ -676,7 +875,7 @@ def test_main_when_web_transcription_unavailable(
     )
 
     # 実行
-    exit_code = main(["--data-dir", str(data_dir)], exec_loop=exit_after_events)
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=wiring.exit_after_startup)
 
     # 検証
     assert exit_code == 0
@@ -731,11 +930,203 @@ def test_main_when_qt_platform(
         monkeypatch.setenv("QT_QPA_PLATFORM", initial)
 
     # 実行
-    exit_code = main(["--data-dir", str(data_dir)], exec_loop=exit_after_events)
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=wiring.exit_after_startup)
 
     # 検証
     assert exit_code == 0
     assert platform_at_creation == [expected]
+
+
+# === _StartupBuild ===
+
+
+@dataclass
+class StartupBuildProbe:
+    """_StartupBuild の done で受けた結果と、build が呼ばれたスレッドの控え。"""
+
+    received: list[object]
+    """done で受けた結果（受けた順）。"""
+    threads: list[threading.Thread]
+    """build が呼ばれたスレッド（呼ばれた順）。"""
+    started: threading.Event
+    """build が呼ばれたら立つ。"""
+
+
+@pytest.fixture
+def startup_probe() -> StartupBuildProbe:
+    """_StartupBuild の結果とスレッドを控える入れ物を返す。"""
+    return StartupBuildProbe(received=[], threads=[], started=threading.Event())
+
+
+def _make_startup_build(probe: StartupBuildProbe) -> Any:
+    """done を probe.received へつないだ _StartupBuild を作る。"""
+    from voice_paste.main import _StartupBuild
+
+    startup = _StartupBuild()
+    startup.done.connect(lambda result: probe.received.append(result))
+    return startup
+
+
+def _record_thread(probe: StartupBuildProbe) -> None:
+    """build を呼んだスレッドを控え、started を立てる。"""
+    probe.threads.append(threading.current_thread())
+    probe.started.set()
+
+
+def _wait_received(app: QApplication, probe: StartupBuildProbe) -> None:
+    """done で結果を受けるまで（上限は STARTUP_WAIT_SEC）イベントを処理し、その後も SETTLE_SEC だけ処理を続ける。"""
+    deadline = time.monotonic() + STARTUP_WAIT_SEC
+    while not probe.received and time.monotonic() < deadline:
+        app.processEvents()
+        time.sleep(POLL_INTERVAL_SEC)
+    process_events_for(app, SETTLE_SEC)
+
+
+def test_start(qapp: QApplication, startup_probe: StartupBuildProbe) -> None:
+    """配線の結果を done で渡す（正常系）。"""
+    # 準備
+    handlers = MagicMock()
+
+    def _build(_register_stop: Callable[[Callable[[], None]], None]) -> object:
+        """呼ばれたスレッドを控えて Handlers を返す。"""
+        _record_thread(startup_probe)
+        return handlers
+
+    startup = _make_startup_build(startup_probe)
+
+    # 実行
+    startup.start(_build)
+    _wait_received(qapp, startup_probe)
+
+    # 検証
+    assert startup_probe.received == [handlers]
+    assert [thread.name for thread in startup_probe.threads] == ["startup-build"]
+
+
+def test_start_when_startup_error(qapp: QApplication, startup_probe: StartupBuildProbe) -> None:
+    """配線の失敗を done で渡す（正常系）。"""
+    # 準備
+    error = StartupError("文字起こしのエンジンを準備できない")
+
+    def _build(_register_stop: Callable[[Callable[[], None]], None]) -> object:
+        """StartupError を送出する。"""
+        raise error
+
+    startup = _make_startup_build(startup_probe)
+
+    # 実行
+    startup.start(_build)
+    _wait_received(qapp, startup_probe)
+
+    # 検証
+    assert startup_probe.received == [error]
+
+
+def test_start_when_unexpected_error(
+    qapp: QApplication, startup_probe: StartupBuildProbe, caplog: pytest.LogCaptureFixture
+) -> None:
+    """想定外の例外も StartupError にして done で渡す（異常系）。"""
+
+    # 準備
+    def _build(_register_stop: Callable[[Callable[[], None]], None]) -> object:
+        """RuntimeError を送出する。"""
+        raise RuntimeError("配線の不具合")
+
+    startup = _make_startup_build(startup_probe)
+    caplog.set_level(logging.ERROR)
+
+    # 実行
+    startup.start(_build)
+    _wait_received(qapp, startup_probe)
+
+    # 検証
+    assert [type(result) for result in startup_probe.received] == [StartupError]
+    assert [record.levelno for record in caplog.records] == [logging.ERROR]
+
+
+def test_cancel(qapp: QApplication, startup_probe: StartupBuildProbe) -> None:
+    """控えた関数でエンジンを止め、done を送出しない（正常系）。"""
+    # 準備: build は止める関数を控えた後、それが呼ばれるまで待ってから StartupError を送出する
+    blocking_build = BlockingBuild.create()
+
+    def _build(register_stop: Callable[[Callable[[], None]], None]) -> NoReturn:
+        """呼ばれたスレッドを控え、止める関数を控えて、呼ばれるまで待つ。"""
+        _record_thread(startup_probe)
+        blocking_build(register_stop)
+
+    startup = _make_startup_build(startup_probe)
+    startup.start(_build)
+    blocking_build.registered.wait(BUILD_WAIT_SEC)
+
+    # 実行
+    startup.cancel(1.0)
+
+    # 検証
+    blocking_build.stop_engine.assert_called_once()
+    assert not startup_probe.threads[0].is_alive()
+    process_events_for(qapp, SETTLE_SEC)
+    assert startup_probe.received == []
+
+
+def test_cancel_when_not_registered(qapp: QApplication, startup_probe: StartupBuildProbe) -> None:
+    """控える前に取り消されたら、控えたときに止める（正常系）。"""
+    # 準備: build は gate が立つまで待ってから止める関数を控え、Handlers を返す
+    gate = threading.Event()
+    stop_engine = MagicMock()
+    handlers = MagicMock()
+
+    def _build(register_stop: Callable[[Callable[[], None]], None]) -> object:
+        """gate が立つまで待ち、止める関数を控えて Handlers を返す。"""
+        _record_thread(startup_probe)
+        gate.wait(BUILD_WAIT_SEC)
+        register_stop(stop_engine)
+        return handlers
+
+    startup = _make_startup_build(startup_probe)
+    startup.start(_build)
+    startup_probe.started.wait(BUILD_WAIT_SEC)
+
+    # 実行
+    startup.cancel(0.01)
+    gate.set()
+    startup_probe.threads[0].join(BUILD_WAIT_SEC)
+
+    # 検証
+    stop_engine.assert_called_once()
+    handlers.stop_engine.assert_called_once()
+    process_events_for(qapp, SETTLE_SEC)
+    assert startup_probe.received == []
+
+
+def test_cancel_when_thread_not_finished(
+    qapp: QApplication, startup_probe: StartupBuildProbe, caplog: pytest.LogCaptureFixture
+) -> None:
+    """スレッドが終わらなければ待つのをやめて戻る（異常系）。"""
+    # 準備: build は止める関数を控えた後、hold が立つまで待ち続ける（止める関数では戻らない）
+    registered = threading.Event()
+    hold = threading.Event()
+
+    def _build(register_stop: Callable[[Callable[[], None]], None]) -> object:
+        """止める関数を控え、hold が立つまで待つ。"""
+        register_stop(MagicMock())
+        registered.set()
+        hold.wait(BUILD_WAIT_SEC)
+        return MagicMock()
+
+    startup = _make_startup_build(startup_probe)
+    startup.start(_build)
+    registered.wait(BUILD_WAIT_SEC)
+    caplog.set_level(logging.WARNING)
+
+    # 実行
+    started_at = time.monotonic()
+    startup.cancel(0.05)
+    elapsed = time.monotonic() - started_at
+    hold.set()
+
+    # 検証
+    assert elapsed < 1.0
+    assert [record.levelno for record in caplog.records] == [logging.WARNING]
 
 
 # === select_platform_adapters ===
@@ -960,20 +1351,22 @@ def _trial_handler(
     copy(outcome.text)
 
 
-def test_wire_outputs(settings_model: type[Settings]) -> None:
+def test_wire_outputs(make_settings: Callable[..., Settings]) -> None:
     """各出力先に設定の値を配線する（正常系）。"""
     from voice_paste.features.outputs import OUTPUTS
-    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
-    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
-    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
     from voice_paste.main import _wire_outputs
-    from voice_paste.shared.settings import KeyboardSettings
 
     # 準備
     adapters = MagicMock()
-    settings = settings_model(
-        keyboard=KeyboardSettings(paste_key="<ctrl>+<shift>+v"),
-        outputs=[PasteAndSendSettings(enter_delay_sec=0.2), PasteOnlySettings(), CopyOnlySettings()],
+    settings = make_settings(
+        {
+            "keyboard": {"paste_key": "<ctrl>+<shift>+v"},
+            "outputs": [
+                {"id": "paste_and_send", "hotkey": "<ctrl>+<alt>+d", "enter_delay_sec": 0.2},
+                {"id": "paste_only", "hotkey": "<ctrl>+<alt>+v"},
+                {"id": "copy_only", "hotkey": "<ctrl>+<alt>+c"},
+            ],
+        }
     )
     deps = _make_output_deps(adapters, lambda: settings)
 
@@ -987,23 +1380,32 @@ def test_wire_outputs(settings_model: type[Settings]) -> None:
     adapters.sleep.assert_called_once_with(0.2)
 
 
-def test_wire_outputs_when_settings_changed(settings_model: type[Settings]) -> None:
+def test_wire_outputs_when_settings_changed(
+    default_settings: Settings, make_settings: Callable[..., Settings]
+) -> None:
     """配線の後に変えた設定が次の届け方に効く（正常系）。"""
     from voice_paste.features.outputs import OUTPUTS
-    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
     from voice_paste.main import _wire_outputs
-    from voice_paste.shared.settings import KeyboardSettings
 
     # 準備
     adapters = MagicMock()
-    get_settings = MagicMock(return_value=settings_model())
+    get_settings = MagicMock(return_value=default_settings)
     deps = _make_output_deps(adapters, get_settings)
     wired = _wire_outputs(deps, OUTPUTS)
 
     # 配線の後に設定を差し替える
-    get_settings.return_value = settings_model(
-        keyboard=KeyboardSettings(paste_key="<ctrl>+<alt>+v"),
-        outputs=[PasteAndSendSettings(enter_delay_sec=1.0, enter_modifiers=["ctrl"])],
+    get_settings.return_value = make_settings(
+        {
+            "keyboard": {"paste_key": "<ctrl>+<alt>+v"},
+            "outputs": [
+                {
+                    "id": "paste_and_send",
+                    "hotkey": "<ctrl>+<alt>+d",
+                    "enter_delay_sec": 1.0,
+                    "enter_modifiers": ["ctrl"],
+                }
+            ],
+        }
     )
 
     # 実行
@@ -1015,14 +1417,14 @@ def test_wire_outputs_when_settings_changed(settings_model: type[Settings]) -> N
     adapters.send_enter.assert_called_once_with(("ctrl",))
 
 
-def test_wire_outputs_when_registered_output(settings_model: type[Settings]) -> None:
+def test_wire_outputs_when_registered_output(default_settings: Settings) -> None:
     """登録しただけの出力先も、その inject が選んだもので配線される（正常系）。"""
     from voice_paste.features.outputs import OUTPUTS, OutputSpec
     from voice_paste.main import _wire_outputs
 
     # 準備: OUTPUTS の後ろに、inject が copy だけを選ぶ試しの出力先を追加する
     adapters = MagicMock()
-    deps = _make_output_deps(adapters, lambda: settings_model())
+    deps = _make_output_deps(adapters, lambda: default_settings)
     trial = OutputSpec(
         id="trial",
         title="試し",
@@ -1042,29 +1444,27 @@ def test_wire_outputs_when_registered_output(settings_model: type[Settings]) -> 
 # === _wire_preset_kinds ===
 
 
-def test_wire_preset_kinds(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_wire_preset_kinds(
+    monkeypatch: pytest.MonkeyPatch, make_settings: Callable[..., Settings]
+) -> None:
     """各種類に設定の値を配線する（正常系）。"""
     from voice_paste.features.outputs import PRESET_KINDS
-    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
     from voice_paste.main import _wire_preset_kinds
-    from voice_paste.shared.settings import (
-        BrowserPreset,
-        BrowserPresetOptions,
-        EndpointPreset,
-        EndpointPresetOptions,
-        PresetOptions,
-        Settings,
-    )
+    from voice_paste.shared.settings import BrowserPreset, EndpointPreset
     from voice_paste.shared.types import TranscriptionOutcome
 
     # 準備
     adapters = _install_adapters(monkeypatch)
-    settings = Settings(
-        outputs=[PasteAndSendSettings(enter_delay_sec=0.2)],
-        preset_options=PresetOptions(
-            browser=BrowserPresetOptions(open_delay_sec=1.5),
-            endpoint=EndpointPresetOptions(timeout_sec=2.0),
-        ),
+    settings = make_settings(
+        {
+            "outputs": [
+                {"id": "paste_and_send", "hotkey": "<ctrl>+<alt>+d", "enter_delay_sec": 0.2}
+            ],
+            "preset_options": {
+                "browser": {"open_delay_sec": 1.5},
+                "endpoint": {"timeout_sec": 2.0},
+            },
+        }
     )
     outcome = TranscriptionOutcome(
         session_id="session-1", result="transcribed", text="テスト", error=None
@@ -1091,20 +1491,19 @@ def test_wire_preset_kinds(monkeypatch: pytest.MonkeyPatch) -> None:
     assert adapters.post_json.call_args.args[2] == 2.0
 
 
-def test_wire_preset_kinds_when_settings_changed(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_wire_preset_kinds_when_settings_changed(
+    monkeypatch: pytest.MonkeyPatch,
+    default_settings: Settings,
+    make_settings: Callable[..., Settings],
+) -> None:
     """配線の後に変えたタイムアウトが次の送信に効く（正常系）。"""
     from voice_paste.main import _wire_preset_kinds
-    from voice_paste.shared.settings import (
-        EndpointPreset,
-        EndpointPresetOptions,
-        PresetOptions,
-        Settings,
-    )
+    from voice_paste.shared.settings import EndpointPreset
     from voice_paste.shared.types import TranscriptionOutcome
 
     # 準備
     adapters = _install_adapters(monkeypatch)
-    get_settings = MagicMock(return_value=Settings())
+    get_settings = MagicMock(return_value=default_settings)
     outcome = TranscriptionOutcome(
         session_id="session-1", result="transcribed", text="テスト", error=None
     )
@@ -1113,8 +1512,8 @@ def test_wire_preset_kinds_when_settings_changed(monkeypatch: pytest.MonkeyPatch
     )
 
     # 配線の後に設定を差し替える
-    get_settings.return_value = Settings(
-        preset_options=PresetOptions(endpoint=EndpointPresetOptions(timeout_sec=5.0))
+    get_settings.return_value = make_settings(
+        {"preset_options": {"endpoint": {"timeout_sec": 5.0}}}
     )
 
     # 実行
@@ -1131,27 +1530,29 @@ def test_wire_preset_kinds_when_settings_changed(monkeypatch: pytest.MonkeyPatch
 
 
 def _fixed_hotkey_settings(
-    settings_model: type[Settings], *, confirm_enabled: bool = True, copy_enabled: bool = True
+    make_settings: Callable[..., Settings],
+    *,
+    confirm_enabled: bool = True,
+    copy_enabled: bool = True,
 ) -> Settings:
     """ホットキーを OS の既定に頼らず固定した設定を返す（録音の開始は貼り付けて送信と同じキー）。"""
-    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
-    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
-    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
-    from voice_paste.shared.settings import HotkeySettings
-
-    return settings_model(
-        hotkeys=HotkeySettings(
-            start="<ctrl>+<alt>+d", pause="<ctrl>+<alt>+z", cancel="<ctrl>+<alt>+q"
-        ),
-        outputs=[
-            PasteAndSendSettings(hotkey="<ctrl>+<alt>+d", enabled=confirm_enabled),
-            PasteOnlySettings(hotkey="<ctrl>+<alt>+v"),
-            CopyOnlySettings(hotkey="<ctrl>+<alt>+c", enabled=copy_enabled),
-        ],
+    return make_settings(
+        {
+            "hotkeys": {
+                "start": "<ctrl>+<alt>+d",
+                "pause": "<ctrl>+<alt>+z",
+                "cancel": "<ctrl>+<alt>+q",
+            },
+            "outputs": [
+                {"id": "paste_and_send", "hotkey": "<ctrl>+<alt>+d", "enabled": confirm_enabled},
+                {"id": "paste_only", "hotkey": "<ctrl>+<alt>+v"},
+                {"id": "copy_only", "hotkey": "<ctrl>+<alt>+c", "enabled": copy_enabled},
+            ],
+        }
     )
 
 
-def test_build_hotkey_bindings_when_idle(settings_model: type[Settings]) -> None:
+def test_build_hotkey_bindings_when_idle(make_settings: Callable[..., Settings]) -> None:
     """待機中の開始のホットキーは録音を始める（正常系）。"""
     from voice_paste.main import build_hotkey_bindings
 
@@ -1160,7 +1561,7 @@ def test_build_hotkey_bindings_when_idle(settings_model: type[Settings]) -> None
     session_manager.current.return_value = None
     start_local_session = MagicMock()
     bindings = build_hotkey_bindings(
-        _fixed_hotkey_settings(settings_model), session_manager, start_local_session, MagicMock()
+        _fixed_hotkey_settings(make_settings), session_manager, start_local_session, MagicMock()
     )
 
     # 実行
@@ -1171,7 +1572,7 @@ def test_build_hotkey_bindings_when_idle(settings_model: type[Settings]) -> None
     session_manager.complete.assert_not_called()
 
 
-def test_build_hotkey_bindings_when_recording(settings_model: type[Settings]) -> None:
+def test_build_hotkey_bindings_when_recording(make_settings: Callable[..., Settings]) -> None:
     """録音中の開始のホットキーは貼り付けて送信で確定する（正常系）。"""
     from voice_paste.main import build_hotkey_bindings
 
@@ -1181,7 +1582,7 @@ def test_build_hotkey_bindings_when_recording(settings_model: type[Settings]) ->
     start_local_session = MagicMock()
     show_recording_window = MagicMock()
     bindings = build_hotkey_bindings(
-        _fixed_hotkey_settings(settings_model), session_manager, start_local_session, show_recording_window
+        _fixed_hotkey_settings(make_settings), session_manager, start_local_session, show_recording_window
     )
 
     # 実行
@@ -1194,13 +1595,13 @@ def test_build_hotkey_bindings_when_recording(settings_model: type[Settings]) ->
 
 
 def test_build_hotkey_bindings_when_recording_without_confirm_output(
-    settings_model: type[Settings],
+    make_settings: Callable[..., Settings],
 ) -> None:
     """貼り付けて送信がオフなら、録音中の開始のホットキーは録音の画面を戻す指示を出す（正常系）。"""
     from voice_paste.main import build_hotkey_bindings
 
     # 準備
-    settings = _fixed_hotkey_settings(settings_model, confirm_enabled=False)
+    settings = _fixed_hotkey_settings(make_settings, confirm_enabled=False)
     session_manager = MagicMock()
     session_manager.current.return_value = make_session("hotkey", "recording")
     start_local_session = MagicMock()
@@ -1218,7 +1619,7 @@ def test_build_hotkey_bindings_when_recording_without_confirm_output(
     session_manager.complete.assert_not_called()
 
 
-def test_build_hotkey_bindings_when_preset(settings_model: type[Settings]) -> None:
+def test_build_hotkey_bindings_when_preset(default_settings: Settings) -> None:
     """プリセットのホットキーはそのプリセットで確定する（正常系）。"""
     from voice_paste.main import build_hotkey_bindings
     from voice_paste.shared.settings import BrowserPreset
@@ -1228,7 +1629,10 @@ def test_build_hotkey_bindings_when_preset(settings_model: type[Settings]) -> No
     session_manager = MagicMock()
     start_local_session = MagicMock()
     bindings = build_hotkey_bindings(
-        settings_model(presets=[preset]), session_manager, start_local_session, MagicMock()
+        default_settings.model_copy(update={"presets": [preset]}),
+        session_manager,
+        start_local_session,
+        MagicMock(),
     )
 
     # 実行
@@ -1238,19 +1642,24 @@ def test_build_hotkey_bindings_when_preset(settings_model: type[Settings]) -> No
     session_manager.complete.assert_called_once_with(preset=preset)
 
 
-def test_build_hotkey_bindings_when_preset_not_bound(settings_model: type[Settings]) -> None:
+def test_build_hotkey_bindings_when_preset_not_bound(default_settings: Settings) -> None:
     """無効のプリセットとホットキーが空のプリセットは登録しない（正常系）。"""
     from voice_paste.main import build_hotkey_bindings
     from voice_paste.shared.settings import BrowserPreset, EndpointPreset
 
     # 準備
-    settings = settings_model(
-        presets=[
-            BrowserPreset(
-                title="ChatGPT", url="https://chatgpt.com", hotkey="<ctrl>+<alt>+7", enabled=False
-            ),
-            EndpointPreset(title="受信先", url="http://127.0.0.1:9000/hook"),
-        ]
+    settings = default_settings.model_copy(
+        update={
+            "presets": [
+                BrowserPreset(
+                    title="ChatGPT",
+                    url="https://chatgpt.com",
+                    hotkey="<ctrl>+<alt>+7",
+                    enabled=False,
+                ),
+                EndpointPreset(title="受信先", url="http://127.0.0.1:9000/hook"),
+            ]
+        }
     )
 
     # 実行
@@ -1261,14 +1670,14 @@ def test_build_hotkey_bindings_when_preset_not_bound(settings_model: type[Settin
     assert "" not in bindings
 
 
-def test_build_hotkey_bindings_when_paused(settings_model: type[Settings]) -> None:
+def test_build_hotkey_bindings_when_paused(make_settings: Callable[..., Settings]) -> None:
     """一時停止中の一時停止のホットキーは再開する（正常系）。"""
     from voice_paste.main import build_hotkey_bindings
 
     # 準備
     session_manager = MagicMock()
     session_manager.current.return_value = make_session("hotkey", "paused")
-    bindings = build_hotkey_bindings(_fixed_hotkey_settings(settings_model), session_manager, MagicMock(), MagicMock())
+    bindings = build_hotkey_bindings(_fixed_hotkey_settings(make_settings), session_manager, MagicMock(), MagicMock())
 
     # 実行
     bindings["<ctrl>+<alt>+z"]()
@@ -1278,12 +1687,12 @@ def test_build_hotkey_bindings_when_paused(settings_model: type[Settings]) -> No
     session_manager.pause.assert_not_called()
 
 
-def test_build_hotkey_bindings_when_output_disabled(settings_model: type[Settings]) -> None:
+def test_build_hotkey_bindings_when_output_disabled(make_settings: Callable[..., Settings]) -> None:
     """オフの出力先のホットキーは登録しない（正常系）。"""
     from voice_paste.main import build_hotkey_bindings
 
     # 準備
-    settings = _fixed_hotkey_settings(settings_model, copy_enabled=False)
+    settings = _fixed_hotkey_settings(make_settings, copy_enabled=False)
 
     # 実行
     bindings = build_hotkey_bindings(settings, MagicMock(), MagicMock(), MagicMock())
@@ -1292,14 +1701,14 @@ def test_build_hotkey_bindings_when_output_disabled(settings_model: type[Setting
     assert "<ctrl>+<alt>+c" not in bindings
 
 
-def test_build_hotkey_bindings_when_transcribing(settings_model: type[Settings]) -> None:
+def test_build_hotkey_bindings_when_transcribing(make_settings: Callable[..., Settings]) -> None:
     """文字起こし中の出力先のホットキーはその出力先へ差し替える（正常系）。"""
     from voice_paste.main import build_hotkey_bindings
 
     # 準備
     session_manager = MagicMock()
     session_manager.current.return_value = make_session("hotkey", "transcribing")
-    bindings = build_hotkey_bindings(_fixed_hotkey_settings(settings_model), session_manager, MagicMock(), MagicMock())
+    bindings = build_hotkey_bindings(_fixed_hotkey_settings(make_settings), session_manager, MagicMock(), MagicMock())
 
     # 実行
     bindings["<ctrl>+<alt>+c"]()
@@ -1310,7 +1719,7 @@ def test_build_hotkey_bindings_when_transcribing(settings_model: type[Settings])
 
 
 def test_build_hotkey_bindings_when_transcribing_start_hotkey(
-    settings_model: type[Settings],
+    make_settings: Callable[..., Settings],
 ) -> None:
     """文字起こし中の開始のホットキーは、同じキーの出力先へ差し替えて録音を始めない（正常系）。"""
     from voice_paste.main import build_hotkey_bindings
@@ -1320,7 +1729,7 @@ def test_build_hotkey_bindings_when_transcribing_start_hotkey(
     session_manager.current.return_value = make_session("hotkey", "transcribing")
     start_local_session = MagicMock()
     bindings = build_hotkey_bindings(
-        _fixed_hotkey_settings(settings_model), session_manager, start_local_session, MagicMock()
+        _fixed_hotkey_settings(make_settings), session_manager, start_local_session, MagicMock()
     )
 
     # 実行
@@ -1335,65 +1744,80 @@ def test_build_hotkey_bindings_when_transcribing_start_hotkey(
 # === apply_settings ===
 
 
-def test_apply_settings(tmp_path: Path, settings_model: type[Settings]) -> None:
+def _settings_paths(tmp_path: Path, local_settings_file: Path | None = None) -> AppPaths:
+    """一時フォルダの置き場所を返す。既定値はリポジトリの config/defaults.yaml、checkout の上書きは local_settings_file。"""
+    from voice_paste.shared.constants import resolve_app_paths
+
+    return dataclasses.replace(
+        resolve_app_paths(tmp_path),
+        defaults_file=DEFAULTS_FILE,
+        local_settings_file=local_settings_file,
+    )
+
+
+def test_apply_settings(
+    tmp_path: Path,
+    settings_model: type[Settings],
+    default_settings: Settings,
+    make_settings: Callable[..., Settings],
+) -> None:
     """確かめてから書いて入れ替える（正常系）。"""
-    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
-    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
-    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
     from voice_paste.main import apply_settings
     from voice_paste.runtime.settings_store import SettingsStore
     from voice_paste.shared.settings import load_settings
+    from voice_paste.shared.yaml_document import read_yaml_mapping
 
     # 準備
-    settings_file = tmp_path / "settings.toml"
-    store = SettingsStore(load_settings(settings_file, settings_model))
+    paths = _settings_paths(tmp_path)
+    store = SettingsStore(default_settings)
     check_hotkeys = MagicMock()
-    new_settings = settings_model(
-        outputs=[PasteAndSendSettings(), PasteOnlySettings(), CopyOnlySettings(enabled=False)]
+    new_settings = make_settings(
+        {
+            "outputs": [
+                {"id": "paste_and_send", "hotkey": "<ctrl>+<alt>+d"},
+                {"id": "paste_only", "hotkey": "<ctrl>+<alt>+v"},
+                {"id": "copy_only", "hotkey": "<ctrl>+<alt>+c", "enabled": False},
+            ]
+        }
     )
 
     # 実行
     restart_needed = apply_settings(
         new_settings,
         {},
-        settings_file=settings_file,
+        paths=paths,
         store=store,
         check_hotkeys=check_hotkeys,
         save_glossary=MagicMock(),
     )
 
     # 検証
+    written = read_yaml_mapping(paths.settings_file)
     assert restart_needed is False
     check_hotkeys.assert_called_once()
     assert "<ctrl>+<alt>+c" not in set(check_hotkeys.call_args.args[0])
-    assert load_settings(settings_file, settings_model) == new_settings
+    assert {output["id"]: output["enabled"] for output in written["outputs"]}["copy_only"] is False
+    assert load_settings(paths, settings_model) == new_settings
     assert store.get() == new_settings
 
 
 def test_apply_settings_when_restart_item_changed(
-    tmp_path: Path, settings_model: type[Settings]
+    tmp_path: Path, default_settings: Settings, make_settings: Callable[..., Settings]
 ) -> None:
     """再起動が要る項目の変更を返す（正常系）。"""
     from voice_paste.main import apply_settings
     from voice_paste.runtime.settings_store import SettingsStore
-    from voice_paste.shared.settings import (
-        LocalWhisperSettings,
-        TranscriptionSettings,
-        load_settings,
-    )
 
     # 準備
-    settings_file = tmp_path / "settings.toml"
-    store = SettingsStore(load_settings(settings_file, settings_model))
-    new_settings = settings_model(
-        transcription=TranscriptionSettings(local_whisper=LocalWhisperSettings(model="small"))
-    )
+    paths = _settings_paths(tmp_path)
+    store = SettingsStore(default_settings)
+    new_settings = make_settings({"transcription": {"local_whisper": {"model": "small"}}})
 
     # 実行
     restart_needed = apply_settings(
         new_settings,
         {},
-        settings_file=settings_file,
+        paths=paths,
         store=store,
         check_hotkeys=MagicMock(),
         save_glossary=MagicMock(),
@@ -1404,54 +1828,58 @@ def test_apply_settings_when_restart_item_changed(
 
 
 def test_apply_settings_when_hotkey_unavailable(
-    tmp_path: Path, settings_model: type[Settings]
+    tmp_path: Path, default_settings: Settings, make_settings: Callable[..., Settings]
 ) -> None:
     """受け付けられないホットキーなら何も書かない（異常系）。"""
     from voice_paste.main import apply_settings
     from voice_paste.runtime.settings_store import SettingsStore
     from voice_paste.shared.errors import HotkeyError
-    from voice_paste.shared.settings import HotkeySettings, load_settings
 
     # 準備
-    settings_file = tmp_path / "settings.toml"
-    previous_settings = load_settings(settings_file, settings_model)
-    settings_before = settings_file.read_bytes()
-    store = SettingsStore(previous_settings)
+    paths = _settings_paths(tmp_path)
+    store = SettingsStore(default_settings)
     check_hotkeys = MagicMock(side_effect=HotkeyError("<ctrl>+<nokey> を読めない"))
     save_glossary = MagicMock()
 
     # 実行・検証
     with pytest.raises(HotkeyError):
         apply_settings(
-            settings_model(hotkeys=HotkeySettings(start="<ctrl>+<nokey>")),
+            make_settings({"hotkeys": {"start": "<ctrl>+<nokey>"}}),
             {},
-            settings_file=settings_file,
+            paths=paths,
             store=store,
             check_hotkeys=check_hotkeys,
             save_glossary=save_glossary,
         )
-    assert settings_file.read_bytes() == settings_before
-    assert store.get() == previous_settings
+    assert not paths.settings_file.exists()
+    assert store.get() == default_settings
     save_glossary.assert_not_called()
 
 
-def test_apply_settings_when_glossary_rows(tmp_path: Path, settings_model: type[Settings]) -> None:
+def test_apply_settings_when_glossary_rows(
+    tmp_path: Path,
+    settings_model: type[Settings],
+    default_settings: Settings,
+    make_settings: Callable[..., Settings],
+) -> None:
     """渡した用語集の CSV だけを書く（正常系）。"""
     from voice_paste.main import apply_settings
     from voice_paste.runtime.settings_store import SettingsStore
-    from voice_paste.shared.settings import GlossarySettings, load_settings
+    from voice_paste.shared.settings import load_settings
     from voice_paste.shared.types import GlossaryEntry
 
     # 準備（2 件の glossaries を持つ設定と、1 件目の場所だけを持つ glossary_rows）
-    settings_file = tmp_path / "settings.toml"
-    store = SettingsStore(load_settings(settings_file, settings_model))
+    paths = _settings_paths(tmp_path)
+    store = SettingsStore(default_settings)
     first_path = tmp_path / "glossaries" / "glossary_1.csv"
     second_path = tmp_path / "glossaries" / "glossary_2.csv"
-    new_settings = settings_model(
-        glossaries=[
-            GlossarySettings(name="yogo", path=first_path),
-            GlossarySettings(name="会議用", path=second_path),
-        ]
+    new_settings = make_settings(
+        {
+            "glossaries": [
+                {"name": "yogo", "path": str(first_path)},
+                {"name": "会議用", "path": str(second_path)},
+            ]
+        }
     )
     rows = [GlossaryEntry(wrong="あ", right="A", enabled=False)]
     save_glossary = MagicMock()
@@ -1460,7 +1888,7 @@ def test_apply_settings_when_glossary_rows(tmp_path: Path, settings_model: type[
     apply_settings(
         new_settings,
         {first_path: rows},
-        settings_file=settings_file,
+        paths=paths,
         store=store,
         check_hotkeys=MagicMock(),
         save_glossary=save_glossary,
@@ -1468,27 +1896,24 @@ def test_apply_settings_when_glossary_rows(tmp_path: Path, settings_model: type[
 
     # 検証
     save_glossary.assert_called_once_with(first_path, rows)
-    written = load_settings(settings_file, settings_model)
+    written = load_settings(paths, settings_model)
     assert [glossary.name for glossary in written.glossaries] == ["yogo", "会議用"]
     assert store.get() == new_settings
 
 
 def test_apply_settings_when_glossary_write_fails(
-    tmp_path: Path, settings_model: type[Settings]
+    tmp_path: Path, default_settings: Settings, make_settings: Callable[..., Settings]
 ) -> None:
     """用語集の CSV を書けなければ、設定を書かず入れ替えない（異常系）。"""
     from voice_paste.main import apply_settings
     from voice_paste.runtime.settings_store import SettingsStore
-    from voice_paste.shared.settings import GlossarySettings, load_settings
     from voice_paste.shared.types import GlossaryEntry
 
     # 準備（save_glossary が OSError を送出する glossary_rows）
-    settings_file = tmp_path / "settings.toml"
-    previous_settings = load_settings(settings_file, settings_model)
-    settings_before = settings_file.read_bytes()
-    store = SettingsStore(previous_settings)
+    paths = _settings_paths(tmp_path)
+    store = SettingsStore(default_settings)
     glossary_path = tmp_path / "glossaries" / "glossary_1.csv"
-    new_settings = settings_model(glossaries=[GlossarySettings(name="yogo", path=glossary_path)])
+    new_settings = make_settings({"glossaries": [{"name": "yogo", "path": str(glossary_path)}]})
     save_glossary = MagicMock(side_effect=OSError("disk full"))
 
     # 実行・検証
@@ -1496,13 +1921,71 @@ def test_apply_settings_when_glossary_write_fails(
         apply_settings(
             new_settings,
             {glossary_path: [GlossaryEntry(wrong="あ", right="A")]},
-            settings_file=settings_file,
+            paths=paths,
             store=store,
             check_hotkeys=MagicMock(),
             save_glossary=save_glossary,
         )
-    assert settings_file.read_bytes() == settings_before
-    assert store.get() == previous_settings
+    assert not paths.settings_file.exists()
+    assert store.get() == default_settings
+
+
+# === reset_applied_settings ===
+
+
+def test_reset_applied_settings(
+    tmp_path: Path, settings_model: type[Settings], default_settings: Settings
+) -> None:
+    """環境の値を空にし、既定値の設定に入れ替える（正常系）。"""
+    from voice_paste.main import reset_applied_settings
+    from voice_paste.runtime.settings_store import SettingsStore
+    from voice_paste.shared.settings import load_settings
+    from voice_paste.shared.yaml_document import read_yaml_mapping
+
+    # 準備（hotkeys.start と transcription.local_whisper.model を既定と違う値にした settings.yaml）
+    paths = _settings_paths(tmp_path)
+    paths.settings_file.parent.mkdir(parents=True, exist_ok=True)
+    paths.settings_file.write_text(
+        "hotkeys:\n  start: <ctrl>+<alt>+a\ntranscription:\n  local_whisper:\n    model: small\n",
+        encoding="utf-8",
+    )
+    store = SettingsStore(load_settings(paths, settings_model))
+
+    # 実行
+    result = reset_applied_settings(paths=paths, store=store, model=settings_model)
+
+    # 検証
+    assert result == (default_settings, True)
+    assert read_yaml_mapping(paths.settings_file) == {}
+    assert store.get() == default_settings
+
+
+def test_reset_applied_settings_when_local_override(
+    tmp_path: Path, settings_model: type[Settings]
+) -> None:
+    """checkout の上書きの値は残る（正常系）。"""
+    from voice_paste.main import reset_applied_settings
+    from voice_paste.runtime.settings_store import SettingsStore
+    from voice_paste.shared.settings import load_settings
+
+    # 準備（settings.local.yaml に hotkeys.start = B、settings.yaml に hotkeys.start = A）
+    local_settings_file = tmp_path / "checkout" / "settings.local.yaml"
+    paths = _settings_paths(tmp_path, local_settings_file)
+    local_text = "hotkeys:\n  start: <ctrl>+<alt>+b\n"
+    local_settings_file.parent.mkdir(parents=True)
+    local_settings_file.write_text(local_text, encoding="utf-8")
+    paths.settings_file.parent.mkdir(parents=True, exist_ok=True)
+    paths.settings_file.write_text("hotkeys:\n  start: <ctrl>+<alt>+a\n", encoding="utf-8")
+    store = SettingsStore(load_settings(paths, settings_model))
+
+    # 実行
+    settings, _restart_needed = reset_applied_settings(
+        paths=paths, store=store, model=settings_model
+    )
+
+    # 検証
+    assert settings.hotkeys.start == "<ctrl>+<alt>+b"
+    assert local_settings_file.read_text(encoding="utf-8") == local_text
 
 
 # === purge_old_files ===
@@ -1523,18 +2006,18 @@ def _install_purges(monkeypatch: pytest.MonkeyPatch) -> tuple[MagicMock, MagicMo
     return purge_old_logs, purge_expired
 
 
-def test_purge_old_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_purge_old_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, make_settings: Callable[..., Settings]
+) -> None:
     """ログと履歴の両方を削除する（正常系）。"""
     from voice_paste.main import purge_old_files
     from voice_paste.shared.constants import resolve_app_paths
-    from voice_paste.shared.settings import HistorySettings, LoggingSettings, Settings
 
     # 準備
     purge_old_logs, purge_expired = _install_purges(monkeypatch)
     paths = resolve_app_paths(tmp_path)
-    settings = Settings(
-        history=HistorySettings(enabled=True, retention_days=1),
-        logging=LoggingSettings(retention_days=7),
+    settings = make_settings(
+        {"history": {"enabled": True, "retention_days": 1}, "logging": {"retention_days": 7}}
     )
     active_session_ids = MagicMock(return_value={"session-1"})
 
@@ -1550,16 +2033,15 @@ def test_purge_old_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 def test_purge_old_files_when_history_disabled(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, make_settings: Callable[..., Settings]
 ) -> None:
     """履歴を残さない設定ならログだけ削除する（正常系）。"""
     from voice_paste.main import purge_old_files
     from voice_paste.shared.constants import resolve_app_paths
-    from voice_paste.shared.settings import HistorySettings, Settings
 
     # 準備
     purge_old_logs, purge_expired = _install_purges(monkeypatch)
-    settings = Settings(history=HistorySettings(enabled=False))
+    settings = make_settings({"history": {"enabled": False}})
 
     # 実行
     purge_old_files(

@@ -2,7 +2,7 @@
 
 実際の OpenAI API（POST /v1/audio/transcriptions）へ短い日本語の音声を送信する。従量課金がかかる（既定のモデル gpt-transcribe で 1 回あたり約 $0.0003）。
 API キー（環境変数 `OPENAI_API_KEY` か、設定の置き場所の `secrets/openai_api_key`）が無い環境と、音声を作れない環境（Windows の音声合成が無い）では skip する。
-かかった秒を記録する（非機能要件のタイムアウトを実測で見直す材料）。
+かかった秒を記録する。
 """
 
 from __future__ import annotations
@@ -50,11 +50,11 @@ def test_ext_transcribe(
     api_key: SecretStr, spoken_wav: Path, record_property: pytest.RecordProperty
 ) -> None:
     """実際の OpenAI API で、既定のモデル（gpt-transcribe）・languages[]=ja・keywords[] 付きの短い音声を起こせる（正常系）。"""
+    from tests.support.settings import load_test_default_settings
     from voice_paste.integrations.openai.transcriber import OpenAITranscriber
-    from voice_paste.shared.settings import OpenAISettings
 
     # 準備
-    settings = OpenAISettings()
+    settings = load_test_default_settings().transcription.openai
     transcriber = OpenAITranscriber(settings=settings, api_key=api_key)
     # 既定が変わったときは、課金する前に止める
     assert settings.model == "gpt-transcribe"

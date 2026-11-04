@@ -35,7 +35,9 @@ items:
   - page: pyside6-essentials.yaml
     summary: 画面とトレイを出し、ほかのスレッドからメインスレッドへ操作を渡す
   - page: tomlkit.yaml
-    summary: 設定をコメントを保ったまま TOML で読み書きする
+    summary: 前のバージョンの settings.toml を、settings.yaml へ移すために読む
+  - page: ruamel.yaml.yaml
+    summary: 設定をコメントを保ったまま YAML で読み書きする
   - page: platformdirs.yaml
     summary: 設定・履歴・ログの置き場所を Windows の慣習で引く
   - page: import-linter.yaml
@@ -52,3 +54,7 @@ items:
     summary: Linux でアクティブなウィンドウの WM_CLASS を Xorg から読む
   - page: evdev.yaml
     summary: Linux の Wayland のセッションで、仮想キーボードから貼り付けのキーと Enter を送信する
+  - page: Focused_Window_D-Bus.yaml
+    summary: Linux の Wayland のセッションで、フォーカスしているウィンドウの wm_class を GNOME Shell の拡張から読む
+  - page: Open_JTalk.yaml
+    summary: Linux の E2E で、録音の入力にする文を WAV に書き出す

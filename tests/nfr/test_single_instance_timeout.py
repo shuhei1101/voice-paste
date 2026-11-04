@@ -21,7 +21,7 @@ from tests.support.instances import (
 )
 from tests.support.real_service import RealService, spawn_process
 from tests.support.resident_app import kill_service_processes_for
-from tests.support.whisper_fixtures import local_whisper_toml, requires_real_whisper
+from tests.support.whisper_fixtures import local_whisper_yaml, requires_real_whisper
 
 pytestmark = [pytest.mark.real_machine, requires_real_whisper]
 
@@ -48,7 +48,7 @@ def _replace_once(data_dir: Path, *, previous_starting: bool) -> float:
     """
     # 準備: 前のプロセスを起動する（待機中を待つか、排他を取っただけで次へ進むか）
     first = RealService.launch(
-        data_dir, extra_settings=local_whisper_toml(), wait_for_api=not previous_starting
+        data_dir, extra_settings=local_whisper_yaml(), wait_for_api=not previous_starting
     )
     try:
         if previous_starting:

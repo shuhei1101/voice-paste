@@ -5,15 +5,21 @@ description: |-
   1 ファイル = 1 ユースケース = テストの 1 ファイル。外部 API は Mock 前提。
 x-kind: scenario
 x-folder: dev/設計書/シナリオ
+x-id-prefix: SC
 x-cross: scenarios
 x-test-file: test_file
 x-test-file-optional: true
 type: object
 additionalProperties: false
 required:
+- id
 - title
 - scenarios
 properties:
+  id:
+    $ref: 共通.schema.yaml#/$defs/id
+    title: ID
+    description: 設計書の変わらない ID。書くツールの `create` が振り、改名・移動でも変わらない。他の設計書からは `{ID}#{項目のパス}` で指す。
   title:
     type: string
     title: タイトル
@@ -34,7 +40,6 @@ properties:
     title: 対応テストファイル
     description: |-
       `tests/e2e/{単一ユースケース,複合ユースケース}/…`。
-      エージェントが登場しないユースケースは `tests/integration/{サブシステム名}/…`（規約『V字モデル』）。
     pattern: ^tests/.+
   primary_actor:
     type: string
@@ -81,7 +86,7 @@ properties:
   reading:
     $ref: 共通.schema.yaml#/$defs/markdown
     title: 読み替え
-    description: 1 ファイルで複数のレイヤー・エージェントを代表するときの読み替えの表。
+    description: 1 ファイルで複数のレイヤー・役割を代表するときの読み替えの表。
     x-heading: 読み替え
   scenarios:
     type: array
@@ -177,7 +182,8 @@ properties:
     x-heading: 補足
     x-shape: sections
 examples:
-- title: プロフィール編集
+- id: SC-1
+  title: プロフィール編集
   lead: ログイン中のユーザーが自身のプロフィール（氏名・自己紹介・アバター画像）を編集する単一ユースケース。
   issue: 12
   test_file: tests/e2e/単一ユースケース/test_profile_edit.py

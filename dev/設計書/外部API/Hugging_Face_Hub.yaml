@@ -1,3 +1,4 @@
+id: API-1
 title: "Hugging Face Hub"
 version:
   api_version: バージョンの指定なし（URL は huggingface_hub が組む）

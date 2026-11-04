@@ -19,7 +19,7 @@ API から始めた録音は録音の画面を出さず、起こした文字は�
 Linux では `Origin` によらず 404 を返す。
 
 - `Host` は `127.0.0.1:{ポート}` か `localhost:{ポート}`。ゲートウェイ（shuhdev-gateway）を通した要求は `localhost:{ポート}` で届く
-- `Origin` は、設定の `api.allowed_web_origins`（[起動と設定](../使い方/起動と設定.md#外の端末のブラウザに許す-origin)）の一覧にあるものだけを通す。`POST` は `Origin` が必須で、`GET` は `Origin` が無いか一覧にあれば通す
+- `Origin` が無いか、設定の `api.allowed_web_origins`（[起動と設定](../使い方/起動と設定.md#外の端末のブラウザに許す-origin)）の一覧にあれば通す（同じ端末のほかのプロセスは `Origin` を付けずに送信できる）
 - 外からの認証は、ゲートウェイの Cloudflare Access が持つ
 
 `/web/` の下の音声の受け付けは `/sessions` と排他せず、録音・文字起こしの処理中も受け付ける。
@@ -27,6 +27,8 @@ Linux では `Origin` によらず 404 を返す。
 エラーは `application/problem+json`（`type`・`title`・`status`・`detail`）で返る。
 
 ## 一覧
+
+<!-- table: data -->
 
 | 名前 | エンドポイント | 説明 |
 | --- | --- | --- |
@@ -38,6 +40,8 @@ Linux では `Origin` によらず 404 を返す。
 | [用語集のプリセットの一覧を取得する](#用語集のプリセットの一覧を取得する) | `GET /web/glossary-presets` | 用語集のプリセットの名前の一覧と、設定で補正に使うプリセットを返す |
 | [音声を送信する](#音声を送信する) | `POST /web/transcriptions` | ブラウザから音声を受け付け、ジョブの ID を返す |
 | [文字起こしの結果を取得する](#文字起こしの結果を取得する) | `GET /web/transcriptions/{job_id}` | ジョブの状態・進み具合と、起こした文字か失敗の理由を返す |
+
+<!-- /table -->
 
 ## 録音を開始する
 
@@ -190,6 +194,8 @@ API から始めた録音の結果を、開始で指定した `callback_url` へ
 }
 ```
 
+<!-- table: data -->
+
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
 | `session_id` | str | 開始で返したセッションの ID |
@@ -198,6 +204,8 @@ API から始めた録音の結果を、開始で指定した `callback_url` へ
 | `error` | str または null | `failed` のときの理由。それ以外は `null` |
 | `segment_number` | int または null | 連続録音の区間の通し番号（1 から 1 ずつ増える）。連続録音の `transcribed` と、区間の `failed` のときだけ入る。それ以外は `null` |
 | `segment_count` | int または null | 連続録音で区切った区間の数（届かなかった区間も含む。区間が無ければ 0）。連続録音の終わり（`completed`・`truncated`、区切りの失敗で止まったときの `failed`）だけに入る。それ以外は `null` |
+
+<!-- /table -->
 
 `continuous` を指定しない開始では、`segment_number` と `segment_count` は常に `null` で、それ以外の中身は変わらない。
 
@@ -378,7 +386,7 @@ Content-Disposition: form-data; name="glossary_preset"
 | ステータスコード | 発生条件 |
 | --- | --- |
 | `400` | `multipart/form-data` でない・`audio` の項目が無い。または `glossary_preset` が用語集のプリセットの一覧に無い |
-| `403` | `Host` が待ち受けのホストでない。`Origin` が無いか、許す `Origin` の一覧に無い |
+| `403` | `Host` が待ち受けのホストでない。`Origin` が付いていて、許す `Origin` の一覧に無い |
 | `413` | 本文が 100,000,000 バイト以上 |
 | `415` | `audio` を開けない・音声のストリームが無い |
 | `503` | 終わっていないジョブ（文字起こし待ちと文字起こし中）が 10 件に達している |
@@ -412,6 +420,8 @@ Content-Disposition: form-data; name="glossary_preset"
 }
 ```
 
+<!-- table: data -->
+
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
 | `job_id` | str | 要求の `job_id` |
@@ -420,6 +430,8 @@ Content-Disposition: form-data; name="glossary_preset"
 | `reports_progress` | bool | 設定の文字起こしのエンジンが途中の進みを返すか。`local_whisper` は `true`、`openai` は `false` |
 | `text` | str または null | `done` のときだけ文字列。文頭・文末の文言を削除した後に、用語集で補正した文字（話し声が無ければ空文字）。それ以外は `null` |
 | `error` | str または null | `failed` のときだけ文字列。失敗の理由。それ以外は `null` |
+
+<!-- /table -->
 
 ### エラー
 

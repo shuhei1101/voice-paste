@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 if TYPE_CHECKING:
+    from tests.unit.voice_paste.settings_helpers import MakeSettings
     from voice_paste.shared.settings import GlossarySettings, Settings
 
 CSV_HEADER = "誤変換,正しい表記\n"
@@ -374,7 +375,7 @@ def test_save_glossary_when_both_empty_row(glossary_file: Path) -> None:
 # === resolve_glossaries ===
 
 
-def test_resolve_glossaries_when_empty(tmp_path: Path, settings_model: type[Settings]) -> None:
+def test_resolve_glossaries_when_empty(tmp_path: Path, make_settings: MakeSettings) -> None:
     """一覧が空でキーも無ければ、設定のフォルダの yogo.csv が 1 件目（正常系）。"""
     from voice_paste.features.correction.service import resolve_glossaries
     from voice_paste.shared.settings import GlossarySettings
@@ -383,14 +384,14 @@ def test_resolve_glossaries_when_empty(tmp_path: Path, settings_model: type[Sett
     settings_dir = tmp_path / "settings"
 
     # 実行
-    glossaries = resolve_glossaries(settings_model(), settings_dir)
+    glossaries = resolve_glossaries(make_settings(), settings_dir)
 
     # 検証
     assert glossaries == [GlossarySettings(name="yogo", path=settings_dir / "yogo.csv")]
 
 
 def test_resolve_glossaries_when_legacy_path(
-    tmp_path: Path, settings_model: type[Settings]
+    tmp_path: Path, make_settings: MakeSettings
 ) -> None:
     """一覧が空で glossary_path があれば、その CSV が 1 件目（正常系）。"""
     from voice_paste.features.correction.service import resolve_glossaries
@@ -398,7 +399,7 @@ def test_resolve_glossaries_when_legacy_path(
 
     # 準備
     legacy_path = tmp_path / "elsewhere" / "terms.csv"
-    settings = settings_model(glossary_path=legacy_path)
+    settings = make_settings(glossary_path=legacy_path)
 
     # 実行
     glossaries = resolve_glossaries(settings, tmp_path / "settings")
@@ -408,7 +409,7 @@ def test_resolve_glossaries_when_legacy_path(
 
 
 def test_resolve_glossaries_when_relative_path(
-    tmp_path: Path, settings_model: type[Settings]
+    tmp_path: Path, make_settings: MakeSettings
 ) -> None:
     """相対パスを設定のフォルダから解決し、絶対パスはそのまま返す（正常系）。"""
     from voice_paste.features.correction.service import resolve_glossaries
@@ -417,7 +418,7 @@ def test_resolve_glossaries_when_relative_path(
     # 準備（path が `glossaries/glossary_1.csv` と絶対パスの 2 件）
     settings_dir = tmp_path / "settings"
     absolute_path = tmp_path / "elsewhere" / "terms.csv"
-    settings = settings_model(
+    settings = make_settings(
         glossaries=[
             GlossarySettings(name="会議用", path=Path("glossaries/glossary_1.csv")),
             GlossarySettings(name="雑談用", path=absolute_path),
@@ -435,7 +436,7 @@ def test_resolve_glossaries_when_relative_path(
 
 
 def test_resolve_glossaries_when_relative_legacy_path(
-    tmp_path: Path, settings_model: type[Settings], monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, make_settings: MakeSettings, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """相対パスの glossary_path は、起動したフォルダからの絶対パスにする（正常系）。"""
     from voice_paste.features.correction.service import resolve_glossaries
@@ -444,7 +445,7 @@ def test_resolve_glossaries_when_relative_legacy_path(
     launch_dir = tmp_path / "launch"
     launch_dir.mkdir()
     monkeypatch.chdir(launch_dir)
-    settings = settings_model(glossary_path=Path("terms.csv"))
+    settings = make_settings(glossary_path=Path("terms.csv"))
 
     # 実行
     glossaries = resolve_glossaries(settings, tmp_path / "settings")
@@ -468,14 +469,14 @@ def _two_glossaries(settings_dir: Path) -> list[GlossarySettings]:
 
 
 def test_resolve_glossary_presets_when_empty(
-    tmp_path: Path, settings_model: type[Settings]
+    tmp_path: Path, make_settings: MakeSettings
 ) -> None:
     """プリセットのキーが無く active_glossary も無ければ、1 つ目の用語集だけの「既定」（正常系）。"""
     from voice_paste.features.correction.service import resolve_glossary_presets
     from voice_paste.shared.settings import GlossaryPresetSettings
 
     # 準備
-    settings = settings_model(glossaries=_two_glossaries(tmp_path), active_glossary=None)
+    settings = make_settings(glossaries=_two_glossaries(tmp_path), active_glossary=None)
 
     # 実行
     presets = resolve_glossary_presets(settings, tmp_path)
@@ -485,14 +486,14 @@ def test_resolve_glossary_presets_when_empty(
 
 
 def test_resolve_glossary_presets_when_legacy_active(
-    tmp_path: Path, settings_model: type[Settings]
+    tmp_path: Path, make_settings: MakeSettings
 ) -> None:
     """プリセットのキーが無ければ、active_glossary の用語集だけの「既定」（正常系）。"""
     from voice_paste.features.correction.service import resolve_glossary_presets
     from voice_paste.shared.settings import GlossaryPresetSettings
 
     # 準備
-    settings = settings_model(glossaries=_two_glossaries(tmp_path), active_glossary="会議用")
+    settings = make_settings(glossaries=_two_glossaries(tmp_path), active_glossary="会議用")
 
     # 実行
     presets = resolve_glossary_presets(settings, tmp_path)
@@ -502,14 +503,14 @@ def test_resolve_glossary_presets_when_legacy_active(
 
 
 def test_resolve_glossary_presets_when_legacy_unknown_active(
-    tmp_path: Path, settings_model: type[Settings]
+    tmp_path: Path, make_settings: MakeSettings
 ) -> None:
     """active_glossary が一覧に無ければ、1 つ目の用語集だけの「既定」（正常系）。"""
     from voice_paste.features.correction.service import resolve_glossary_presets
     from voice_paste.shared.settings import GlossaryPresetSettings
 
     # 準備
-    settings = settings_model(
+    settings = make_settings(
         glossaries=_two_glossaries(tmp_path), active_glossary="存在しない名前"
     )
 
@@ -520,13 +521,13 @@ def test_resolve_glossary_presets_when_legacy_unknown_active(
     assert presets == [GlossaryPresetSettings(name="既定", glossaries=["yogo"])]
 
 
-def test_resolve_glossary_presets(tmp_path: Path, settings_model: type[Settings]) -> None:
+def test_resolve_glossary_presets(tmp_path: Path, make_settings: MakeSettings) -> None:
     """プリセットの並びと中の用語集の並びをそのまま返し、一覧に無い名前を外す（正常系）。"""
     from voice_paste.features.correction.service import resolve_glossary_presets
     from voice_paste.shared.settings import GlossaryPresetSettings
 
     # 準備
-    settings = settings_model(
+    settings = make_settings(
         glossaries=_two_glossaries(tmp_path),
         glossary_presets=[
             GlossaryPresetSettings(name="既定", glossaries=["yogo"]),
@@ -548,12 +549,12 @@ def test_resolve_glossary_presets(tmp_path: Path, settings_model: type[Settings]
 
 
 def _settings_with_presets(
-    settings_model: type[Settings], settings_dir: Path, active_glossary_preset: str | None
+    make_settings: MakeSettings, settings_dir: Path, active_glossary_preset: str | None
 ) -> Settings:
     """「既定」「会議」の 2 件の glossary_presets と active_glossary_preset を持つ設定を作る。"""
     from voice_paste.shared.settings import GlossaryPresetSettings
 
-    return settings_model(
+    return make_settings(
         glossaries=_two_glossaries(settings_dir),
         glossary_presets=[
             GlossaryPresetSettings(name="既定", glossaries=["yogo"]),
@@ -563,13 +564,13 @@ def _settings_with_presets(
     )
 
 
-def test_pick_glossary_preset(tmp_path: Path, settings_model: type[Settings]) -> None:
+def test_pick_glossary_preset(tmp_path: Path, make_settings: MakeSettings) -> None:
     """active_glossary_preset の名前のプリセットを返す（正常系）。"""
     from voice_paste.features.correction.service import pick_glossary_preset
     from voice_paste.shared.settings import GlossaryPresetSettings
 
     # 準備
-    settings = _settings_with_presets(settings_model, tmp_path, "会議")
+    settings = _settings_with_presets(make_settings, tmp_path, "会議")
 
     # 実行
     preset = pick_glossary_preset(settings, tmp_path)
@@ -578,12 +579,12 @@ def test_pick_glossary_preset(tmp_path: Path, settings_model: type[Settings]) ->
     assert preset == GlossaryPresetSettings(name="会議", glossaries=["会議用", "yogo"])
 
 
-def test_pick_glossary_preset_when_unset(tmp_path: Path, settings_model: type[Settings]) -> None:
+def test_pick_glossary_preset_when_unset(tmp_path: Path, make_settings: MakeSettings) -> None:
     """active_glossary_preset が無ければ 1 件目（正常系）。"""
     from voice_paste.features.correction.service import pick_glossary_preset
 
     # 準備
-    settings = _settings_with_presets(settings_model, tmp_path, None)
+    settings = _settings_with_presets(make_settings, tmp_path, None)
 
     # 実行
     preset = pick_glossary_preset(settings, tmp_path)
@@ -593,13 +594,13 @@ def test_pick_glossary_preset_when_unset(tmp_path: Path, settings_model: type[Se
 
 
 def test_pick_glossary_preset_when_unknown_name(
-    tmp_path: Path, settings_model: type[Settings]
+    tmp_path: Path, make_settings: MakeSettings
 ) -> None:
     """一覧に無い名前なら 1 件目（正常系）。"""
     from voice_paste.features.correction.service import pick_glossary_preset
 
     # 準備
-    settings = _settings_with_presets(settings_model, tmp_path, "存在しない名前")
+    settings = _settings_with_presets(make_settings, tmp_path, "存在しない名前")
 
     # 実行
     preset = pick_glossary_preset(settings, tmp_path)
@@ -609,13 +610,13 @@ def test_pick_glossary_preset_when_unknown_name(
 
 
 def test_pick_glossary_preset_when_requested(
-    tmp_path: Path, settings_model: type[Settings]
+    tmp_path: Path, make_settings: MakeSettings
 ) -> None:
     """指定した名前があれば、設定で選んでいるプリセットより優先する（正常系）。"""
     from voice_paste.features.correction.service import pick_glossary_preset
 
     # 準備（active_glossary_preset = 既定、requested = 会議）
-    settings = _settings_with_presets(settings_model, tmp_path, "既定")
+    settings = _settings_with_presets(make_settings, tmp_path, "既定")
 
     # 実行
     preset = pick_glossary_preset(settings, tmp_path, requested="会議")
@@ -625,13 +626,13 @@ def test_pick_glossary_preset_when_requested(
 
 
 def test_pick_glossary_preset_when_requested_missing(
-    tmp_path: Path, settings_model: type[Settings]
+    tmp_path: Path, make_settings: MakeSettings
 ) -> None:
     """指定した名前が一覧に無ければ、設定で選んでいるプリセットを返す（正常系）。"""
     from voice_paste.features.correction.service import pick_glossary_preset
 
     # 準備（active_glossary_preset = 会議、requested = 削除したプリセット）
-    settings = _settings_with_presets(settings_model, tmp_path, "会議")
+    settings = _settings_with_presets(make_settings, tmp_path, "会議")
 
     # 実行
     preset = pick_glossary_preset(settings, tmp_path, requested="削除したプリセット")

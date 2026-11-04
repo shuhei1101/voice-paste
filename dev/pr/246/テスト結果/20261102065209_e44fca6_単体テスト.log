@@ -1,0 +1,110 @@
+# 実行したコマンド
+.venv/Scripts/python.exe -m pytest tests/unit @deselect_args.txt
+（deselect_args.txt は、実装が無いために落ちる Red の 293 件を --deselect で外す引数の一覧）
+
+# 出力
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\chore-settings-three-layers
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collected 849 items / 294 deselected / 555 selected
+
+tests\unit\voice_paste\features\correction\test_service.py ............. [  2%]
+......................                                                   [  6%]
+tests\unit\voice_paste\features\history\test_service.py .............    [  8%]
+tests\unit\voice_paste\features\outputs\browser\test_service.py ...      [  9%]
+tests\unit\voice_paste\features\outputs\callback\test_service.py ....... [ 10%]
+......                                                                   [ 11%]
+tests\unit\voice_paste\features\outputs\copy_only\test_service.py ..     [ 11%]
+tests\unit\voice_paste\features\outputs\endpoint\test_service.py ....    [ 12%]
+tests\unit\voice_paste\features\outputs\paste_and_send\test_service.py . [ 12%]
+..                                                                       [ 13%]
+tests\unit\voice_paste\features\outputs\paste_only\test_service.py ..    [ 13%]
+tests\unit\voice_paste\features\outputs\test_service.py .....            [ 14%]
+tests\unit\voice_paste\features\outputs\test_types.py ...                [ 14%]
+tests\unit\voice_paste\features\recording\test_client.py .               [ 15%]
+tests\unit\voice_paste\features\recording\test_segmenter.py ............ [ 17%]
+                                                                         [ 17%]
+tests\unit\voice_paste\features\session\test_route.py ......             [ 18%]
+tests\unit\voice_paste\features\session\test_service.py ................ [ 21%]
+...........................................                              [ 29%]
+tests\unit\voice_paste\features\transcription\test_service.py ......     [ 30%]
+tests\unit\voice_paste\features\web_transcription\test_service.py ...... [ 31%]
+..........                                                               [ 32%]
+tests\unit\voice_paste\integrations\audio\test_probe.py .......          [ 34%]
+tests\unit\voice_paste\integrations\browser\test_opener.py ....          [ 34%]
+tests\unit\voice_paste\integrations\browser\test_opener_linux.py ....    [ 35%]
+tests\unit\voice_paste\integrations\http\test_client.py .......          [ 36%]
+tests\unit\voice_paste\integrations\keyboard\test_active_window_linux.py s [ 37%]
+ssss                                                                     [ 37%]
+tests\unit\voice_paste\integrations\keyboard\test_active_window_wayland.py . [ 38%]
+.....                                                                    [ 38%]
+tests\unit\voice_paste\integrations\keyboard\test_sender.py ............ [ 41%]
+..                                                                       [ 41%]
+tests\unit\voice_paste\integrations\keyboard\test_sender_linux.py ssssss [ 42%]
+s                                                                        [ 42%]
+tests\unit\voice_paste\integrations\keyboard\test_sender_wayland.py ssss [ 43%]
+ssssssss                                                                 [ 44%]
+tests\unit\voice_paste\integrations\openai\test_credentials.py ....      [ 45%]
+tests\unit\voice_paste\integrations\openai\test_transcriber.py ......... [ 47%]
+.........                                                                [ 48%]
+tests\unit\voice_paste\integrations\vad\test_adapter.py ....             [ 49%]
+tests\unit\voice_paste\integrations\volume\test_adapter.py .........     [ 51%]
+tests\unit\voice_paste\integrations\volume\test_noop.py .                [ 51%]
+tests\unit\voice_paste\integrations\whisper\test_client.py ..            [ 51%]
+tests\unit\voice_paste\integrations\whisper\test_worker.py .......       [ 52%]
+tests\unit\voice_paste\runtime\test_hotkey.py .........                  [ 54%]
+tests\unit\voice_paste\runtime\test_hotkey_gnome.py ssssssssssss         [ 56%]
+tests\unit\voice_paste\runtime\test_process.py ...                       [ 57%]
+tests\unit\voice_paste\runtime\test_send_hotkey.py sss                   [ 57%]
+tests\unit\voice_paste\runtime\test_single_instance.py ..........        [ 59%]
+tests\unit\voice_paste\runtime\test_single_instance_linux.py sssssssssss [ 61%]
+sss                                                                      [ 62%]
+tests\unit\voice_paste\runtime\test_timer.py ...                         [ 62%]
+tests\unit\voice_paste\server\test_app.py ....                           [ 63%]
+tests\unit\voice_paste\server\test_body_limit.py .....                   [ 64%]
+tests\unit\voice_paste\server\test_error_handlers.py .......             [ 65%]
+tests\unit\voice_paste\server\test_middleware.py ...........             [ 67%]
+tests\unit\voice_paste\server\test_runner.py ....                        [ 68%]
+tests\unit\voice_paste\server\test_token.py ...                          [ 68%]
+tests\unit\voice_paste\server\test_web_page.py ..                        [ 69%]
+tests\unit\voice_paste\shared\test_logger.py ......                      [ 70%]
+tests\unit\voice_paste\shared\test_os_kind.py .........                  [ 71%]
+tests\unit\voice_paste\shared\test_settings.py ..............            [ 74%]
+tests\unit\voice_paste\test_main.py ...........s...........ss...         [ 79%]
+tests\unit\voice_paste\ui\test_bridge.py ....                            [ 80%]
+tests\unit\voice_paste\ui\test_placement.py ..                           [ 80%]
+tests\unit\voice_paste\ui\test_style.py ...........................      [ 85%]
+tests\unit\voice_paste\ui\test_tray.py ...............                   [ 88%]
+tests\unit\voice_paste\ui\windows\test_settings_edge_phrases.py ........ [ 89%]
+                                                                         [ 89%]
+tests\unit\voice_paste\ui\windows\test_settings_glossaries.py .......... [ 91%]
+..............                                                           [ 93%]
+tests\unit\voice_paste\ui\windows\test_settings_hints.py ............    [ 96%]
+tests\unit\voice_paste\ui\windows\test_settings_presets.py ...........   [ 98%]
+tests\unit\voice_paste\ui\windows\test_settings_window.py ...........    [100%]
+
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\shuhe\repo\voice-paste\.claude\worktrees\chore-settings-three-layers\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========= 499 passed, 56 skipped, 294 deselected, 1 warning in 15.00s =========
+
+# 実行したコマンド
+（上の --deselect の前方一致で test_build_settings_model と一緒に外れた、通るテスト 1 件を流す）
+.venv/Scripts/python.exe -m pytest "tests/unit/voice_paste/shared/test_settings.py::test_build_settings_model_when_duplicate_id"
+
+# 出力
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\chore-settings-three-layers
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collected 1 item
+
+tests\unit\voice_paste\shared\test_settings.py .                         [100%]
+
+============================== 1 passed in 0.13s ==============================

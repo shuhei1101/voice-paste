@@ -1,0 +1,42 @@
+$ .venv/Scripts/python.exe -m pytest tests/nfr --run-e2e -v -rs -p no:cacheprovider
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0 -- C:\Users\shuhe\repo\voice-paste\.claude\worktrees\test-nfr-linux-xorg-and-release-e2e\.venv\Scripts\python.exe
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\test-nfr-linux-xorg-and-release-e2e
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collecting ... collected 23 items
+
+tests/nfr/test_api_session_limit.py::test_api_session_limit_when_recording PASSED [  4%]
+tests/nfr/test_api_session_limit.py::test_api_session_limit_when_stopped PASSED [  8%]
+tests/nfr/test_api_start_response_time.py::test_api_start_response_time PASSED [ 13%]
+tests/nfr/test_busy_response_time.py::test_busy_response_time PASSED     [ 17%]
+tests/nfr/test_continuous_session_limit.py::test_continuous_session_limit PASSED [ 21%]
+tests/nfr/test_max_segment_length.py::test_max_segment_length PASSED     [ 26%]
+tests/nfr/test_openai_audio_limit.py::test_openai_audio_limit_when_over PASSED [ 30%]
+tests/nfr/test_openai_transcription_retry.py::test_openai_transcription_retry PASSED [ 34%]
+tests/nfr/test_output_extensibility.py::test_output_extensibility PASSED [ 39%]
+tests/nfr/test_paste_latency.py::test_paste_latency SKIPPED (Windows...) [ 43%]
+tests/nfr/test_segment_callback_latency.py::test_segment_callback_latency PASSED [ 47%]
+tests/nfr/test_single_instance_timeout.py::test_single_instance_timeout SKIPPED [ 52%]
+tests/nfr/test_single_instance_timeout.py::test_single_instance_timeout_when_previous_starting SKIPPED [ 56%]
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_history_recordings[NOTSET] SKIPPED [ 60%]
+tests/nfr/test_transcription_parity.py::test_transcription_parity_when_correction_only[NOTSET] SKIPPED [ 65%]
+tests/nfr/test_web_body_limit.py::test_web_body_limit_when_under PASSED  [ 69%]
+tests/nfr/test_web_body_limit.py::test_web_body_limit_when_at_limit[content_length] PASSED [ 73%]
+tests/nfr/test_web_body_limit.py::test_web_body_limit_when_at_limit[chunked] PASSED [ 78%]
+tests/nfr/test_web_finished_jobs_kept.py::test_web_finished_jobs_kept PASSED [ 82%]
+tests/nfr/test_web_queue_limit.py::test_web_queue_limit PASSED           [ 86%]
+tests/nfr/test_web_response_time.py::test_web_response_time PASSED       [ 91%]
+tests/nfr/test_worker_recovery_time.py::test_worker_recovery_time SKIPPED [ 95%]
+tests/nfr/test_worker_stop_timeout.py::test_worker_stop_timeout SKIPPED  [100%]
+
+=========================== short test summary info ===========================
+SKIPPED [1] tests\nfr\test_paste_latency.py:105: Windows の NVIDIA GPU と、tests/nfr/fixtures/ の固めた設定（whisper.env）が要る
+SKIPPED [1] \mnt\c\Users\shuhe\repo\voice-paste\.claude\worktrees\test-nfr-linux-xorg-and-release-e2e\tests\nfr\test_single_instance_timeout.py:82: Windows の NVIDIA GPU と、tests/nfr/fixtures/ の固めた設定（whisper.env）が要る
+SKIPPED [1] \mnt\c\Users\shuhe\repo\voice-paste\.claude\worktrees\test-nfr-linux-xorg-and-release-e2e\tests\nfr\test_single_instance_timeout.py:96: Windows の NVIDIA GPU と、tests/nfr/fixtures/ の固めた設定（whisper.env）が要る
+SKIPPED [1] \mnt\c\Users\shuhe\repo\voice-paste\.claude\worktrees\test-nfr-linux-xorg-and-release-e2e\tests\nfr\test_transcription_parity.py:58: got empty parameter set for (recording)
+SKIPPED [1] \mnt\c\Users\shuhe\repo\voice-paste\.claude\worktrees\test-nfr-linux-xorg-and-release-e2e\tests\nfr\test_transcription_parity.py:80: tests/nfr/fixtures/ の用語集が要る
+SKIPPED [1] \mnt\c\Users\shuhe\repo\voice-paste\.claude\worktrees\test-nfr-linux-xorg-and-release-e2e\tests\nfr\test_worker_recovery_time.py:32: Windows の NVIDIA GPU と、tests/nfr/fixtures/ の固めた設定（whisper.env）が要る
+SKIPPED [1] \mnt\c\Users\shuhe\repo\voice-paste\.claude\worktrees\test-nfr-linux-xorg-and-release-e2e\tests\nfr\test_worker_stop_timeout.py:49: Windows の NVIDIA GPU と、tests/nfr/fixtures/ の固めた設定（whisper.env）が要る
+================== 16 passed, 7 skipped in 180.38s (0:03:00) ==================
+exit=0

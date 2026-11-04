@@ -1,0 +1,14 @@
+設定スキーマの追従:
+  説明: AI Monitor の `settings.yaml`（`~/.config/ai-monitor/settings.yaml`）に、v0.3.0 で増えたキーのうち既定値で動かない `my_plugins_repo` を追加し、voice-paste の行（`name` が `voice-input`）の `rule_indexes` から実在しない `voice-paste/rules.yaml` を外す。書き換える前に `settings.yaml.bak-pr235` へ退避し、書き換えたらモニターへ `POST /reload` で反映する
+  タグ: [設定]
+  実行者: planner
+  時期: マージの前
+  回数: 1 回限り
+  可逆: true
+  疎通確認: 設定スキーマの追従/疎通確認.py
+  実行: 設定スキーマの追従/実行.py
+  確認: 設定スキーマの追従/確認.py
+  切り戻し: 設定スキーマの追従/切り戻し.py
+  失敗時: 既定の対処を 1 回、2 回連続で失敗したら依頼元へ返す
+  確認方法: "`settings.yaml` の `my_plugins_repo` が `shuhei1101/my-plugins` で、`voice-input` の `rule_indexes` が `/mnt/c/Users/shuhe/repo/voice-paste/docs/rules.yaml` だけになっている。実行の出力の `/reload` の応答で `ignored`・`dropped` が空で、その後に起動したエージェントで rule-inject が `voice-paste/rules.yaml` の FileNotFoundError を出さない"
+  状態: 済

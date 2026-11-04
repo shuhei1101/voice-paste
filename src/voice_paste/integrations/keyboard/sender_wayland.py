@@ -14,9 +14,11 @@ from collections.abc import Sequence
 
 from evdev import UInput, UInputError, ecodes
 
+from voice_paste.integrations.keyboard.active_window_wayland import read_focused_wm_class
 from voice_paste.integrations.keyboard.sender import (
     ENTER_MODIFIER_KEYS,
     FOCUS_SETTLE_SEC,
+    TERMINAL_WM_CLASSES,
     split_paste_key,
 )
 from voice_paste.shared.errors import DeliveryError
@@ -72,7 +74,7 @@ class UInputKeyboard:
             logger.info("仮想キーボードを開いた")
 
     def send_paste(self, paste_key: str) -> None:
-        """設定の貼り付けのキーを、フォーカスが落ち着くのを待ってから仮想キーボードで送信する。"""
+        """設定の貼り付けのキーを、フォーカスが落ち着くのを待ってから仮想キーボードで送信する。端末アプリなら Ctrl+Shift+V に替える。"""
         # 1. 開いていなければ断る
         with self._lock:
             device = self._opened_device()
@@ -86,10 +88,22 @@ class UInputKeyboard:
             if main_code is None:
                 raise DeliveryError(f"貼り付けのキーの主キーを送信できません（{paste_key}）")
 
-            # 3. 貼り付け先のフォーカスが落ち着くのを待ってから送信する
+            # 3. 貼り付け先のフォーカスが落ち着くのを待つ
             time.sleep(FOCUS_SETTLE_SEC)
+
+            # 4. フォーカスしているウィンドウが端末アプリか（読めずに空のときは設定のキーのまま）
+            wm_class = read_focused_wm_class()
+            sent_key = paste_key
+            if any(name.lower() in TERMINAL_WM_CLASSES for name in wm_class):
+                # 端末アプリ: Ctrl+V は貼り付けにならないため Ctrl+Shift+V に替える
+                modifier_codes = [ecodes.KEY_LEFTCTRL, ecodes.KEY_LEFTSHIFT]
+                main_code = ecodes.KEY_V
+                sent_key = "<ctrl>+<shift>+v"
+                logger.info(f"端末アプリなので Ctrl+Shift+V を送信する（{', '.join(wm_class)}）")
+
+            # 5. 送信する
             self._press(device, modifier_codes, main_code)
-        logger.info(f"貼り付けのキーを送信した（{paste_key}、uinput）")
+        logger.info(f"貼り付けのキーを送信した（{sent_key}、uinput）")
 
     def send_enter(self, modifiers: Sequence[EnterModifier] = ()) -> None:
         """渡した修飾キーを押したまま Enter を仮想キーボードで送信する。待ちは呼ぶ側が置く。"""

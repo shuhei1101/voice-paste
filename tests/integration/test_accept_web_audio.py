@@ -13,10 +13,10 @@ from pathlib import Path
 import pytest
 
 from tests.integration.helpers import Stack, make_audio
-from voice_paste.main import SETTINGS_MODEL
+from tests.support.settings import make_settings
 from voice_paste.shared.settings import GlossaryPresetSettings
 
-PRESET_SETTINGS = SETTINGS_MODEL(
+PRESET_SETTINGS = make_settings(
     glossary_presets=[
         GlossaryPresetSettings(name="既定", glossaries=[]),
         GlossaryPresetSettings(name="会議", glossaries=[]),
@@ -75,6 +75,21 @@ def test_normal_when_session_busy(web_stack: Callable[..., Stack], tmp_path: Pat
     assert stack.state() == "recording"
 
 
+def test_normal_when_no_origin(web_stack: Callable[..., Stack], tmp_path: Path) -> None:
+    """同じ端末のほかのプロセスが Origin を付けずに送信した音声を受け付け、job_id を返す（正常系）。"""
+    # 準備
+    stack = _no_worker_stack(web_stack)
+
+    # 実行
+    response = stack.post_audio(make_audio("webm", tmp_path), origin=None)
+
+    # 検証
+    assert response.status_code == 202
+    job_id = response.json()["job_id"]
+    assert len(job_id) == JOB_ID_LENGTH
+    assert stack.get_job(job_id).json()["state"] == "queued"
+
+
 def test_error_when_audio_missing(web_stack: Callable[..., Stack], tmp_path: Path) -> None:
     """audio の項目が無い要求を断る（異常系）。"""
     # 準備
@@ -89,26 +104,18 @@ def test_error_when_audio_missing(web_stack: Callable[..., Stack], tmp_path: Pat
     assert list(stack.web_tmp_dir.iterdir()) == []
 
 
-@pytest.mark.parametrize(
-    "origin",
-    [
-        pytest.param("http://evil.example", id="other_origin"),
-        pytest.param(None, id="no_origin"),
-    ],
-)
 def test_error_when_origin_not_allowed(
     web_stack: Callable[..., Stack],
     tmp_path: Path,
     caplog: pytest.LogCaptureFixture,
-    origin: str | None,
 ) -> None:
-    """Origin が無いか許す Origin に無い要求を、本文を読まずに断る（異常系）。"""
+    """許す Origin に無い Origin が付いた要求を、本文を読まずに断る（異常系）。"""
     # 準備
     caplog.set_level(logging.WARNING)
     stack = _no_worker_stack(web_stack)
 
     # 実行
-    response = stack.post_audio(make_audio("webm", tmp_path), origin=origin)
+    response = stack.post_audio(make_audio("webm", tmp_path), origin="http://evil.example")
 
     # 検証
     assert response.status_code == 403

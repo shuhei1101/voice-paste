@@ -62,21 +62,26 @@ from tests.support.real_service import (
     QT_PLATFORM_OFFSCREEN,
     REQUEST_TIMEOUT_SEC,
     SOURCE_DIR,
+    STARTUP_TIMEOUT_SEC,
     UNUSED_START_HOTKEY,
     free_port,
+    legacy_settings_text,
     post_to_api,
     read_log_records,
     read_token_file,
     settings_text,
 )
+from tests.support.settings import default_output, load_test_default_settings
 from voice_paste.features.session import Session, SessionManager
 from voice_paste.integrations.whisper.client import WORKER_MODULE
+from voice_paste.shared.constants import LEGACY_SETTINGS_FILE_NAME, SETTINGS_FILE_NAME
 from voice_paste.shared.errors import MicrophoneUnavailableError
 from voice_paste.ui.tray import STATE_NAMES, TOOLTIP_PREFIX, Tray, TrayState
 
 SERVICE_COMMAND = "-m voice_paste"
 """常駐アプリのコマンドラインに含まれる言葉（venv の python.exe は本体のプロセスを子に持つ）。"""
 
+STARTING = STATE_NAMES[TrayState.STARTING]
 IDLE = STATE_NAMES[TrayState.IDLE]
 RECORDING = STATE_NAMES[TrayState.RECORDING]
 FAILED = STATE_NAMES[TrayState.FAILED]
@@ -102,12 +107,15 @@ WATCHED_WINDOWS = ("recording_window", "transcribing_indicator", "busy_dialog")
 
 MILLISECONDS_PER_SECOND = 1000
 
-PAUSE_HOTKEY = "<ctrl>+<alt>+z"
-CANCEL_HOTKEY = "<ctrl>+<alt>+q"
-PASTE_AND_SEND_HOTKEY = "<ctrl>+<alt>+d"
-PASTE_ONLY_HOTKEY = "<ctrl>+<alt>+v"
-COPY_ONLY_HOTKEY = "<ctrl>+<alt>+c"
-"""設定の既定のホットキー（一時停止・取り消し・各出力先の確定。録音開始は普段使わない組み合わせに替えている）。"""
+RESTORED_SIGNAL_NAMES = ("SIGINT", "SIGBREAK", "SIGTERM")
+"""ケースの後にハンドラを元に戻すシグナル。その OS に無いもの（Linux の SIGBREAK）は戻さない。"""
+
+PAUSE_HOTKEY = load_test_default_settings().hotkeys.pause
+CANCEL_HOTKEY = load_test_default_settings().hotkeys.cancel
+PASTE_AND_SEND_HOTKEY = default_output("paste_and_send").hotkey
+PASTE_ONLY_HOTKEY = default_output("paste_only").hotkey
+COPY_ONLY_HOTKEY = default_output("copy_only").hotkey
+"""動いている OS の設定の既定のホットキー（一時停止・取り消し・各出力先の確定。録音開始は普段使わない組み合わせに替えている）。"""
 
 PROBE_RECORDING = "probe.wav"
 """手がかりを確かめるときにエンジンへ渡す録音の名前（エンジンを替えているので、開かれない）。"""
@@ -586,7 +594,7 @@ def _restored_process_state(qapp: QApplication) -> Iterator[None]:
     root = logging.getLogger()
     handlers_before = list(root.handlers)
     level_before = root.level
-    signals = (signal.SIGINT, signal.SIGBREAK)
+    signals = tuple(getattr(signal, name) for name in RESTORED_SIGNAL_NAMES if hasattr(signal, name))
     signal_handlers_before = {number: signal.getsignal(number) for number in signals}
     style_before = qapp.styleSheet()
     try:
@@ -691,6 +699,8 @@ def run_resident_app(
     monkeypatch: pytest.MonkeyPatch,
     data_dir: Path,
     extra_settings: str = "",
+    api_settings: str = "",
+    legacy_settings: bool = False,
     port: int | None = None,
     prepare: Callable[[Path], None] | None = None,
     expect_exit: bool = False,
@@ -700,6 +710,8 @@ def run_resident_app(
 ) -> ResidentApp:
     """常駐アプリを `main()` から起動し、イベントループの中で case を進めて、`main()` が戻った後の ResidentApp を返す。
 
+    extra_settings・api_settings は settings.yaml に書く YAML の続き（`settings_text`）。
+    legacy_settings が真のときは、settings.yaml を置かずに、前のバージョンの settings.toml（`legacy_settings_text`）を置く。
     prepare は起動の前に data_dir へファイルを用意する関数。
     wav_input は録音を始めるケースが渡す録音の入力で、渡すと録音の入力とシステム音量を差し替える（渡さないケースの起動は変えない）。
     keys は貼り付けのキーで届けるケースが渡す控えで、渡すと貼り付けのキーと Enter を送信せずに控える。
@@ -713,7 +725,14 @@ def run_resident_app(
     if prepare is not None:
         prepare(data_dir)
     api_port = free_port() if port is None else port
-    (data_dir / "settings.toml").write_text(settings_text(api_port, extra_settings), encoding="utf-8")
+    if legacy_settings:
+        (data_dir / LEGACY_SETTINGS_FILE_NAME).write_text(
+            legacy_settings_text(api_port), encoding="utf-8"
+        )
+    else:
+        (data_dir / SETTINGS_FILE_NAME).write_text(
+            settings_text(api_port, extra_settings, api_settings), encoding="utf-8"
+        )
     app = ResidentApp(data_dir, api_port)
     _spy_on_main(app, monkeypatch, wav_input, keys, capture_browser=capture_browser)
     failures: list[BaseException] = []
@@ -738,6 +757,10 @@ def run_resident_app(
             """case を進める。失敗は控える。"""
             app.worker_pids_at_start = app.worker_pids()
             try:
+                # 起動の配線（別スレッド）が終わり、トークンのファイルを書くかトレイを失敗にするまで待つ
+                assert app.wait_until(lambda: app.tray_state() != STARTING, STARTUP_TIMEOUT_SEC), (
+                    "起動の配線が終わらなかった"
+                )
                 case(app)
                 app.case_finished = True
             except BaseException as error:  # noqa: BLE001 slot の中の失敗を main の後に出し直す

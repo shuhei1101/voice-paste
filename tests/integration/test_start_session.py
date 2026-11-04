@@ -11,6 +11,7 @@ from collections.abc import Callable
 import pytest
 
 from tests.integration.helpers import VOLUME_BEFORE, Stack
+from tests.support.settings import load_test_default_settings, make_settings
 from voice_paste.features.correction import pick_glossary_preset
 from voice_paste.main import SETTINGS_MODEL
 from voice_paste.shared.settings import (
@@ -59,7 +60,7 @@ def test_normal_when_continuous(stack: Stack) -> None:
 def test_normal_when_glossary_preset(stack_with_settings: Callable[[Settings], Stack]) -> None:
     """glossary_preset で指定した用語集のプリセットをセッションに持たせて録音を始め、セッションの ID を返す（正常系）。"""
     # 準備（設定に用語集のプリセット「既定」と「会議」があり、設定で選んでいるのは「既定」）
-    settings = SETTINGS_MODEL(
+    settings = make_settings(
         glossary_presets=[
             GlossaryPresetSettings(name="既定", glossaries=[]),
             GlossaryPresetSettings(name="会議", glossaries=[]),
@@ -67,19 +68,19 @@ def test_normal_when_glossary_preset(stack_with_settings: Callable[[Settings], S
         active_glossary_preset="既定",
     )
     stack = stack_with_settings(settings)
-    save_settings(stack.paths.settings_file, settings)
+    save_settings(stack.paths, load_test_default_settings(), settings)
 
     # 実行
     response = stack.post(
         "/sessions", json_body={"callback_url": stack.receiver.url, "glossary_preset": "会議"}
     )
 
-    # 検証（開始の後に settings.toml を読み直しても、設定で選んでいるプリセットは「既定」のまま）
+    # 検証（開始の後に settings.yaml を読み直しても、設定で選んでいるプリセットは「既定」のまま）
     assert response.status_code == 202
     assert response.json()["session_id"] == stack.session().id
     assert stack.state() == "recording"
     assert stack.session().glossary_preset == "会議"
-    reloaded = load_settings(stack.paths.settings_file, SETTINGS_MODEL)
+    reloaded = load_settings(stack.paths, SETTINGS_MODEL)
     assert reloaded.active_glossary_preset == "既定"
     assert pick_glossary_preset(reloaded, stack.paths.settings_file.parent).name == "既定"
 

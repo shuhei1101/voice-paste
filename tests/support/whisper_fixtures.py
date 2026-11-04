@@ -88,20 +88,27 @@ def load_local_whisper_settings() -> LocalWhisperSettings:
     """固めた設定（whisper.env）を、ローカルの Whisper の設定にして返す。"""
     from voice_paste.shared.settings import LocalWhisperSettings
 
+    from tests.support.settings import load_test_default_settings
+
+    # 既定の設定に、固めた値を重ねる
     env_values = _read_env_values(WHISPER_ENV_FILE)
-    return LocalWhisperSettings(
-        **{
-            field: parse(env_values[key])
-            for key, (field, parse) in LOCAL_WHISPER_FIELDS.items()
+    defaults = load_test_default_settings().transcription.local_whisper
+    return LocalWhisperSettings.model_validate(
+        {
+            **defaults.model_dump(),
+            **{
+                field: parse(env_values[key])
+                for key, (field, parse) in LOCAL_WHISPER_FIELDS.items()
+            },
         }
     )
 
 
-def local_whisper_toml() -> str:
-    """固めた設定を、settings.toml の `[transcription.local_whisper]` の表にして返す（常駐サービスの起動へ追加する設定）。"""
-    lines = ["[transcription.local_whisper]"]
+def local_whisper_yaml() -> str:
+    """固めた設定を、settings.yaml の `transcription.local_whisper` の表にして返す（常駐サービスの起動へ追加する設定）。"""
+    lines = ["transcription:", "  local_whisper:"]
     for key, value in load_local_whisper_settings().model_dump().items():
-        # TOML の真偽値は小文字。文字列と数値は JSON の書き方と同じで書ける
+        # JSON の書き方の値は、そのまま YAML の値として読める
         literal = json.dumps(value)
-        lines.append(f"{key} = {literal}")
+        lines.append(f"    {key}: {literal}")
     return "\n".join(lines) + "\n"

@@ -249,7 +249,7 @@ def _dim(widget: QWidget, *, dimmed: bool) -> None:
 class GlossaryPanel(QWidget):
     """設定画面の「用語集」のまとまりに置く、用語集のプリセットの一覧と使う用語集の表、用語集の一覧と選んだ用語集の名前の欄・行の表。
 
-    追加・削除・並べ替え・入力はこの部品の中だけを変え、settings.toml と CSV へは設定画面の保存で書く。
+    追加・削除・並べ替え・入力はこの部品の中だけを変え、settings.yaml と CSV へは設定画面の保存で書く。
     """
 
     changed = Signal()
@@ -386,13 +386,13 @@ class GlossaryPanel(QWidget):
         self._rebuild_detail()
 
     def collect(self) -> list[dict[str, Any]]:
-        """今の並びの用語集を、settings.toml と同じ構造の dict（name・path）の並びにする。name は前後の空白を除く。"""
+        """今の並びの用語集を、設定と同じ構造の dict（name・path）の並びにする。name は前後の空白を除く。"""
         return [
             {"name": glossary.name.strip(), "path": glossary.path} for glossary in self._glossaries
         ]
 
     def collect_presets(self) -> list[dict[str, Any]]:
-        """今の並びの用語集のプリセットを、settings.toml と同じ構造の dict（name・glossaries）の並びにする。glossaries は使う用語集の今の名前を表の順に並べる。"""
+        """今の並びの用語集のプリセットを、設定と同じ構造の dict（name・glossaries）の並びにする。glossaries は使う用語集の今の名前を表の順に並べる。"""
         return [
             {
                 "name": preset.name.strip(),

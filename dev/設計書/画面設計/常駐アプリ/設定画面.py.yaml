@@ -1,3 +1,4 @@
+id: SCR-9
 title: "設定画面"
 elements:
   - name: 窓
@@ -7,7 +8,7 @@ elements:
     description: 設定画面の窓。ウィンドウのタイトルは「voice-paste の設定」。左にまとまりのメニュー、右に欄、下にフッターを置く。窓の閉じる・Esc は「キャンセル」と同じ。開いている間はホットキーを受け付けず（ホットキーの欄で押したキーで録音や確定が動かない）、閉じると今の設定で受付を始める
     visible_when: トレイの「設定…」を選んだとき。開いていれば前面に出す
     width: 最小 720px（欄の名前と設定のキーが語の途中で折り返さない幅）
-    initial_value: 開いたときの settings.toml の値
+    initial_value: 開いたときの設定の値（補足の「設定のレイヤー」）
     source: Settings（設定のモデル）
   - name: まとまりのメニュー
     id: group_menu
@@ -19,6 +20,7 @@ elements:
     options: 出力先・ブラウザ添付・エンドポイントへ送信・ホットキー・録音・文字起こし・表記のヒント・用語集・ハルシネーション・画面・履歴とログ・API の順。既定は出力先
     initial_value: 出力先
     action: 右の欄を選んだまとまりに切り替える
+    width: 160px を下限にし、最も長い項目の文字幅に余白を加えた幅（縦のスクロールバーが出ているときはその幅も加える）が収まらないときだけ広げる。横のスクロールバーは出さない（Linux のフォントでは「エンドポイントへ送信」が 160px に収まらない。Windows は縦のスクロールバーが出ていなければ 160px のままで、実測は 155px）
   - name: エラーの一覧
     id: error_summary
     kind: alert
@@ -31,16 +33,16 @@ elements:
     id: field_{key}
     kind: input
     position: 窓 > 右 > まとまり
-    description: settings.toml のキー 1 つの欄。設定のモデルの項目から組み立て、欄の名前（設定の設計書の論理名を画面向けにしたもの）と、欄の右に settings.toml のキーを等幅で出す。まとまりと部品は補足の「まとまりと欄」
+    description: 設定のキー 1 つの欄。設定のモデルの項目から組み立て、欄の名前（設定の設計書の論理名を画面向けにしたもの）と、欄の右に設定のキーを等幅で出す。まとまりと部品は補足の「まとまりと欄」
     io: 入出力
-    visible_when: その欄のまとまりを選んだとき。動いている OS で使えない機能の設定のキーの欄は出さず、保存しても settings.toml のその値を変えない。Linux では録音中の音量を下げる機能（`recording.lower_volume`・`recording.volume_percent`・`recording.fade_sec`）と外の端末のブラウザの機能（`api.allowed_web_origins`）の欄を出さない
+    visible_when: その欄のまとまりを選んだとき。動いている OS で使えない機能の設定のキーの欄は出さず、保存しても settings.yaml のその値を変えない。Linux では録音中の音量を下げる機能（`recording.lower_volume`・`recording.volume_percent`・`recording.fade_sec`）と外の端末のブラウザの機能（`api.allowed_web_origins`）の欄を出さない
     constraints: 設定の設計書の「許す値や範囲」
-    initial_value: settings.toml の値（無ければ既定の値）
+    initial_value: 設定の値
     source: Settings.{キー}
-    target: Settings.{キー}（保存で settings.toml へ書く）
+    target: Settings.{キー}（保存で settings.yaml へ書く）
     error_message: 欄の下に赤で出す（入力チェック）
     refs:
-      - dev/設計書/設定/常駐アプリ#
+      - CFG-1#
   - name: 再起動で反映のマーカー
     id: restart_badge_{key}
     kind: label
@@ -58,11 +60,11 @@ elements:
     type: 文字列
     visible_when: その欄のまとまりを選んだとき
     display_format: 画面では `Ctrl+Alt+D` の形で出し（`<cmd>` は Windows で `Win`、Linux で `Super` と出す）、保存では pynput の書式（`<ctrl>+<alt>+d`）で書く
-    initial_value: settings.toml の値
+    initial_value: 設定の値
     source: Settings.hotkeys.*・Settings.keyboard.paste_key・Settings.outputs[].hotkey・Settings.presets[].hotkey
     target: 同じキー（pynput の書式へ変える）
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[hotkeys.start]
+      - CFG-1#settings[hotkeys.start]
   - name: 再起動のメッセージ
     id: restart_notice
     kind: label
@@ -92,7 +94,7 @@ elements:
     description: 既定に戻す確認を出す
     label: 既定に戻す
     visible_when: 常時
-    action_ref: dev/設計書/画面設計/常駐アプリ/既定に戻す確認.py#
+    action_ref: SCR-8#
   - name: キャンセルボタン
     id: cancel_button
     kind: button
@@ -101,12 +103,12 @@ elements:
     label: キャンセル
     visible_when: 常時
     action: 欄を変えていなければ設定画面を閉じる
-    action_ref: dev/設計書/画面設計/常駐アプリ/変えた値を捨てる確認.py#
+    action_ref: SCR-5#
   - name: 保存して再起動のボタン
     id: save_and_restart_button
     kind: button
     position: 窓 > フッター > 右
-    description: 保存のボタンと同じく確かめてから settings.toml へ書き、設定画面を閉じて常駐アプリを再起動する。確かめに通らなければ書かず、エラーの一覧を出す
+    description: 保存のボタンと同じく確かめてから settings.yaml へ書き、設定画面を閉じて常駐アプリを再起動する。確かめに通らなければ書かず、エラーの一覧を出す
     label: 保存して再起動
     visible_when: 再起動のメッセージを出しているとき
     action: 保存して再起動する
@@ -114,7 +116,7 @@ elements:
     id: save_button
     kind: button
     position: 窓 > フッター > 右端
-    description: 全ての欄を設定のモデルで確かめ、ホットキーを受け付けられることも確かめてから settings.toml へ書き、設定画面を開いたまま保存したメッセージを出す。入れた値・選んでいたまとまり・欄のフォーカスは保つ。反映が immediate の設定（出力先のオン・オフ・`ui.*` を含む）は動いている常駐アプリに効かせ、ホットキーは設定画面を閉じたときに新しい設定で受付を張り直す。保存した値を「変えていない」の基準にし、保存の後に欄を変えずに閉じると変えた値を捨てる確認を出さない。書けたら、前の保存で出したエラーの一覧と欄の下のエラーを消す。通らなければ書かず、エラーの一覧と欄の下のエラーを出し、入れた値は消さない
+    description: 全ての欄を設定のモデルで確かめ、ホットキーを受け付けられることも確かめてから settings.yaml へ書き、設定画面を開いたまま保存したメッセージを出す。入れた値・選んでいたまとまり・欄のフォーカスは保つ。反映が immediate の設定（出力先のオン・オフ・`ui.*` を含む）は動いている常駐アプリに効かせ、ホットキーは設定画面を閉じたときに新しい設定で受付を張り直す。保存した値を「変えていない」の基準にし、保存の後に欄を変えずに閉じると変えた値を捨てる確認を出さない。書けたら、前の保存で出したエラーの一覧と欄の下のエラーを消す。通らなければ書かず、エラーの一覧と欄の下のエラーを出し、入れた値は消さない
     label: 保存
     visible_when: 常時
     action: 確かめて保存し、開いたまま保存したメッセージを出す
@@ -125,12 +127,12 @@ elements:
     description: そのタブの種類のプリセットを 1 件ずつ、全ての欄を開いたまとまりで縦に積む。まとまりの頭に有効の切り替え・タイトル・上へ・下へ・削除のボタンを並べ、下にタイトル・URL・種類ごとの欄・確定のホットキーの欄を置く。見出しは「カスタムプリセット」
     io: 入出力
     visible_when: ブラウザ添付かエンドポイントへ送信のまとまりを選んだとき（選んだタブの種類だけを出す）
-    sorting: 上へ・下へのボタンで、同じ種類の中だけで並べ替える。既定は settings.toml の並び
-    initial_value: settings.toml の `presets[]` のうち `kind` がそのタブの種類のもの
+    sorting: 上へ・下へのボタンで、同じ種類の中だけで並べ替える。既定は設定の並び
+    initial_value: 設定の `presets[]` のうち `kind` がそのタブの種類のもの
     source: Settings.presets[]（kind で絞る）
     target: Settings.presets[]（ブラウザ添付のタブの並び → エンドポイントへ送信のタブの並びの順で書く）
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[presets[].kind]
+      - CFG-1#settings[presets[].kind]
   - name: プリセットが無いときの案内
     id: preset_empty_{kind}
     kind: label
@@ -147,11 +149,11 @@ elements:
     io: 入出力
     type: 真偽値
     visible_when: プリセットごと
-    initial_value: settings.toml の値（追加したプリセットはオン）
+    initial_value: 設定の値（追加したプリセットはオン）
     source: Settings.presets[].enabled
     target: Settings.presets[].enabled
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[presets[].enabled]
+      - CFG-1#settings[presets[].enabled]
   - name: プリセットのタイトルの欄
     id: preset_title_{n}
     kind: input
@@ -164,11 +166,11 @@ elements:
     visible_when: プリセットごと
     required: true
     min_length: 1
-    initial_value: settings.toml の値（追加したプリセットは空）
+    initial_value: 設定の値（追加したプリセットは空）
     source: Settings.presets[].title
     target: Settings.presets[].title
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[presets[].title]
+      - CFG-1#settings[presets[].title]
   - name: プリセットの URL の欄
     id: preset_url_{n}
     kind: input
@@ -181,11 +183,11 @@ elements:
     visible_when: プリセットごと
     required: true
     constraints: http:// か https:// で始まる
-    initial_value: settings.toml の値（追加したプリセットは空）
+    initial_value: 設定の値（追加したプリセットは空）
     source: Settings.presets[].url
     target: Settings.presets[].url
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[presets[].url]
+      - CFG-1#settings[presets[].url]
   - name: Enter まで送信の切り替え
     id: preset_send_enter_{n}
     kind: checkbox
@@ -195,11 +197,11 @@ elements:
     io: 入出力
     type: 真偽値
     visible_when: ブラウザ添付のプリセットごと
-    initial_value: settings.toml の値（追加したプリセットはオン）
+    initial_value: 設定の値（追加したプリセットはオン）
     source: Settings.presets[].send_enter
     target: Settings.presets[].send_enter
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[presets[].send_enter]
+      - CFG-1#settings[presets[].send_enter]
   - name: Authorization の欄
     id: preset_authorization_{n}
     kind: input
@@ -210,12 +212,12 @@ elements:
     type: 文字列
     visible_when: エンドポイントへ送信のプリセットごと
     required: false
-    initial_value: settings.toml の値（追加したプリセットは空）
+    initial_value: 設定の値（追加したプリセットは空）
     hint: 空なら付けずに送信する。
     source: Settings.presets[].authorization
     target: Settings.presets[].authorization
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[presets[].authorization]
+      - CFG-1#settings[presets[].authorization]
   - name: プリセットのホットキーの欄
     id: preset_hotkey_{n}
     kind: input
@@ -227,11 +229,11 @@ elements:
     type: 文字列
     visible_when: プリセットごと
     required: false
-    initial_value: settings.toml の値（追加したプリセットは空）
+    initial_value: 設定の値（追加したプリセットは空）
     source: Settings.presets[].hotkey
     target: Settings.presets[].hotkey（空は空文字で書く）
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[presets[].hotkey]
+      - CFG-1#settings[presets[].hotkey]
   - name: プリセットを上へのボタン
     id: preset_up_{n}
     kind: button
@@ -254,7 +256,7 @@ elements:
     id: preset_remove_{n}
     kind: button
     position: 窓 > 右 > プリセットの一覧 > まとまりの頭 > 右端
-    description: プリセットを一覧から消す。保存するまで settings.toml には書かず、キャンセルで戻せる
+    description: プリセットを一覧から消す。保存するまで settings.yaml には書かず、キャンセルで戻せる
     label: '{タイトル}を削除（読み上げの名前。見た目は削除のアイコン）'
     visible_when: プリセットごと
     action: プリセットを一覧から消す
@@ -282,14 +284,14 @@ elements:
     description: 用語集を 1 行ずつ並べる。列は「名前」「使うプリセット」「行」と削除ボタン。行の表を出している用語集の行は、背景を変えて示す。見出しは「用語集の一覧」。読み上げの表の名前は「用語集の一覧」
     io: 入出力
     visible_when: 用語集のまとまりを選んだとき
-    initial_value: settings.toml の `glossaries[]`。空なら `glossary_path`（キーが無ければ settings.toml と同じフォルダの yogo.csv）の CSV を 1 件目にし、名前を CSV のファイル名から拡張子を除いたものにする
-    sorting: 並べ替えない。settings.toml の並びで、追加した用語集は末尾
+    initial_value: 設定の `glossaries[]`。空なら `glossary_path`（キーが無ければ settings.yaml と同じフォルダの yogo.csv）の CSV を 1 件目にし、名前を CSV のファイル名から拡張子を除いたものにする
+    sorting: 並べ替えない。設定の並びで、追加した用語集は末尾
     source: Settings.glossaries[]
-    target: Settings.glossaries[]（保存で settings.toml へ書き、`glossary_path` のキーは消す）
+    target: Settings.glossaries[]（保存で settings.yaml へ書き、`glossary_path` のキーは消す）
     reason: 用語集は再起動の要らない日々の編集で、メニューから直接開けるまとまりにした（確認ログ）
     status: planned
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[glossaries[].name]
+      - CFG-1#settings[glossaries[].name]
   - name: 補正に使う用語集の選択
     id: glossary_active_{n}
     kind: radio
@@ -298,14 +300,14 @@ elements:
     io: 入出力
     type: 真偽値
     visible_when: 用語集ごと
-    initial_value: settings.toml の `active_glossary` の名前の用語集。キーが無い・名前が一覧に無いときは 1 件目
+    initial_value: 設定の `active_glossary` の名前の用語集。キーが無い・名前が一覧に無いときは 1 件目
     options: 一覧の用語集のうち 1 つだけ。複数は選べない
     source: Settings.active_glossary
     target: Settings.active_glossary（選んだ用語集の名前）
     action: 選んだ用語集の削除ボタンを無効にし、前に選んでいた用語集の削除ボタンを有効にする
     status: removed
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[active_glossary]
+      - CFG-1#settings[active_glossary]
   - name: 用語集の名前のボタン
     id: glossary_pick_{n}
     kind: button
@@ -328,7 +330,7 @@ elements:
     id: glossary_remove_{n}
     kind: button
     position: 窓 > 右 > 用語集 > 用語集の一覧 > 行 > 右端
-    description: 用語集を一覧から消し、その用語集を使っているプリセットの使う用語集からも外す。保存するまで settings.toml には書かず、キャンセルで戻せる。CSV のファイルは消さない。行の表を出している用語集を消したら、一覧の 1 件目の行の表を出す
+    description: 用語集を一覧から消し、その用語集を使っているプリセットの使う用語集からも外す。保存するまで settings.yaml には書かず、キャンセルで戻せる。CSV のファイルは消さない。行の表を出している用語集を消したら、一覧の 1 件目の行の表を出す
     label: '{名前}を削除（読み上げの名前。名前が空なら「名前未入力の用語集を削除」。見た目は削除のアイコン）'
     visible_when: 用語集ごと
     action: 用語集を一覧と全てのプリセットの使う用語集から消す
@@ -365,12 +367,12 @@ elements:
     required: true
     min_length: 1
     constraints: ほかの用語集と同じ名前にできない（前後の空白を除いて比べる）
-    initial_value: settings.toml の値（追加した用語集は空）
+    initial_value: 設定の値（追加した用語集は空）
     source: Settings.glossaries[].name
     target: Settings.glossaries[].name（前後の空白を除く）
     status: planned
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[glossaries[].name]
+      - CFG-1#settings[glossaries[].name]
   - name: 用語集の行の表
     id: glossary_entries
     kind: table
@@ -384,7 +386,7 @@ elements:
     target: その用語集の CSV。保存で書き戻すのは、設定画面で行を変えた用語集（誤変換・正しい表記・オン・オフのどれかを変えた、行を追加した・削除した）と、追加した用語集の CSV だけで、表の順に行とオン・オフを書く。行を変えていない用語集の CSV には触れない（`glossary_path` から `glossaries` へ書き移すだけの保存や、ほかのまとまりだけを変えた保存でも触れない）
     status: implemented
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[glossaries[].path]
+      - CFG-1#settings[glossaries[].path]
   - name: 行を使うの切り替え
     id: glossary_entry_on_{n}
     kind: checkbox
@@ -496,7 +498,7 @@ elements:
     source: Settings.hint_presets[]（enabled が true のものの words）
     status: implemented
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[hint_presets[].words]
+      - CFG-1#settings[hint_presets[].words]
   - name: ヒントのプリセットの一覧
     id: hint_preset_list
     kind: list
@@ -504,13 +506,13 @@ elements:
     description: ヒントのプリセットを 1 件ずつ、全ての欄を開いたまとまりで縦に積む（カスタムプリセットの一覧と同じ形）。まとまりの頭に有効の切り替え・名前・語の数と長さ・上へ・下へ・削除のボタンを並べ、下に名前の欄と語の欄を置く。読み上げの名前は「表記のヒントのプリセット（上から順に語をつなぐ）」
     io: 入出力
     visible_when: 表記のヒントのまとまりを選んだとき
-    sorting: 上へ・下へのボタンで並べ替える。既定は settings.toml の並びで、追加したプリセットは末尾
-    initial_value: settings.toml の `hint_presets[]`（キーが無ければ空）
+    sorting: 上へ・下へのボタンで並べ替える。既定は設定の並びで、追加したプリセットは末尾
+    initial_value: 設定の `hint_presets[]`（キーが無ければ空）
     source: Settings.hint_presets[]
     target: Settings.hint_presets[]（一覧の順に書く）
     status: implemented
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[hint_presets[].name]
+      - CFG-1#settings[hint_presets[].name]
   - name: ヒントのプリセットが無いときの案内
     id: hint_preset_empty
     kind: label
@@ -529,12 +531,12 @@ elements:
     io: 入出力
     type: 真偽値
     visible_when: プリセットごと
-    initial_value: settings.toml の値（追加したプリセットはオン）
+    initial_value: 設定の値（追加したプリセットはオン）
     source: Settings.hint_presets[].enabled
     target: Settings.hint_presets[].enabled
     status: implemented
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[hint_presets[].enabled]
+      - CFG-1#settings[hint_presets[].enabled]
   - name: ヒントのプリセットの語の数と長さ
     id: hint_preset_size_{n}
     kind: label
@@ -557,12 +559,12 @@ elements:
     required: true
     min_length: 1
     constraints: ほかのヒントのプリセットと同じ名前にできない（前後の空白を除いて比べる）
-    initial_value: settings.toml の値（追加したプリセットは空）
+    initial_value: 設定の値（追加したプリセットは空）
     source: Settings.hint_presets[].name
     target: Settings.hint_presets[].name（前後の空白を除く）
     status: implemented
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[hint_presets[].name]
+      - CFG-1#settings[hint_presets[].name]
   - name: ヒントの語の欄
     id: hint_word_{n}_{m}
     kind: input
@@ -575,18 +577,18 @@ elements:
     required: true
     min_length: 1
     constraints: 読点（、）・句点（。）・改行を含められない
-    initial_value: settings.toml の値（追加した語は空）
+    initial_value: 設定の値（追加した語は空）
     source: Settings.hint_presets[].words[]
     target: Settings.hint_presets[].words[]（前後の空白を除く）
     reason: 語のエラーをその語の欄の下に出すため、複数行の文字の欄 1 つではなく語ごとの欄にした
     status: implemented
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[hint_presets[].words]
+      - CFG-1#settings[hint_presets[].words]
   - name: ヒントの語の削除ボタン
     id: hint_word_remove_{n}_{m}
     kind: button
     position: 窓 > 右 > ヒントのプリセットの一覧 > まとまり > 語 > 語の欄の右
-    description: その語を消す。保存するまで settings.toml には書かず、キャンセルで戻せる
+    description: その語を消す。保存するまで settings.yaml には書かず、キャンセルで戻せる
     label: '{何つ目か} つ目の語を削除（読み上げの名前。見た目は削除のアイコン）'
     visible_when: 語ごと
     action: 語を消して長さを数え直す
@@ -633,7 +635,7 @@ elements:
     id: hint_preset_remove_{n}
     kind: button
     position: 窓 > 右 > ヒントのプリセットの一覧 > まとまりの頭 > 右端
-    description: プリセットを一覧から消す。保存するまで settings.toml には書かず、キャンセルで戻せる
+    description: プリセットを一覧から消す。保存するまで settings.yaml には書かず、キャンセルで戻せる
     label: '{名前}を削除（読み上げの名前。見た目は削除のアイコン）'
     visible_when: プリセットごと
     action: プリセットを一覧から消して長さを数え直す
@@ -665,7 +667,7 @@ elements:
     label: 保存しました。（ホットキーの欄が開いたときの値から変わっているとき「新しいホットキーは、設定画面を閉じると効きます。」、反映が restart の欄が変わっているとき「「再起動で反映」の設定 {件数} 件は、再起動するまで前の値で動きます。」をこの順に続ける）
     visible_when: 「保存」で確かめに通って書けた後。欄を変えると消す
     refs:
-      - dev/設計書/設定/常駐アプリ#
+      - CFG-1#
   - name: 誤変換を削除する行の説明
     id: glossary_delete_note
     kind: label
@@ -693,12 +695,12 @@ elements:
     description: 文頭・文末から削除する文言を 1 行ずつ、当てる順に並べる。列は「つまみ」「文言」「位置」と削除ボタン。読み上げの表の名前は「文頭・文末から削除する文言（上の行から順に当てる）」。行を動かしたら、動かした先を「{何行目か} 行目へ動かしました」と読み上げに伝える。幅の狭い窓では 1 行を 2 段に組み、上の段に文言の欄、下の段に位置と削除ボタンを置く
     io: 入出力
     visible_when: ハルシネーションのまとまりを選んだときで、行が 1 つ以上あるとき
-    initial_value: settings.toml の `edge_phrases[]`。キーが無ければ既定の一覧（上から「チャンネル登録*」「ご視聴ありがとうございました」「ありがとうございました」。全て文末）
-    sorting: 行の左端のつまみを掴んで動かすか、文言の欄で Alt+↑ / Alt+↓ を押して 1 行ずつ動かす。既定は settings.toml の並びで、追加した行は末尾
+    initial_value: 設定の `edge_phrases[]`。キーが無ければ既定の一覧（上から「チャンネル登録*」「ご視聴ありがとうございました」「ありがとうございました」。全て文末）
+    sorting: 行の左端のつまみを掴んで動かすか、文言の欄で Alt+↑ / Alt+↓ を押して 1 行ずつ動かす。既定は設定の並びで、追加した行は末尾
     source: Settings.edge_phrases[]
     target: Settings.edge_phrases[]（一覧の順に書く。文言が空の行は捨てる）
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[edge_phrases[].text]
+      - CFG-1#settings[edge_phrases[].text]
     reason: 並べ替えをつまみにした（確認ログ）
     status: implemented
   - name: 行のつまみ
@@ -719,12 +721,12 @@ elements:
     type: 文字列
     visible_when: 行ごと
     constraints: '`*` だけにできない。空の行は保存で捨てる'
-    initial_value: settings.toml の値（追加した行は空）
+    initial_value: 設定の値（追加した行は空）
     error_message: 欄の下に赤で出す（入力チェック）
     source: Settings.edge_phrases[].text
     target: Settings.edge_phrases[].text（前後の空白を除く）
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[edge_phrases[].text]
+      - CFG-1#settings[edge_phrases[].text]
     status: implemented
   - name: 位置の選択
     id: edge_phrase_position_{n}
@@ -735,18 +737,18 @@ elements:
     io: 入出力
     type: 列挙
     visible_when: 行ごと
-    initial_value: settings.toml の値（追加した行は文末）
+    initial_value: 設定の値（追加した行は文末）
     options: 文頭（`start`）・文末（`end`）・両方（`both`）の順。複数は選べない
     source: Settings.edge_phrases[].position
     target: Settings.edge_phrases[].position
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[edge_phrases[].position]
+      - CFG-1#settings[edge_phrases[].position]
     status: implemented
   - name: 文言の行の削除ボタン
     id: edge_phrase_remove_{n}
     kind: button
     position: 窓 > 右 > ハルシネーション > 文言の一覧 > 行 > 右端
-    description: その行を一覧から消す。保存するまで settings.toml には書かず、キャンセルで戻せる
+    description: その行を一覧から消す。保存するまで settings.yaml には書かず、キャンセルで戻せる
     label: '{何行目か} 行目を削除（読み上げの名前。見た目は削除のアイコン）'
     visible_when: 行ごと
     action: 行を一覧から消す
@@ -785,12 +787,12 @@ elements:
     description: 用語集のプリセットを 1 行ずつ並べる。列は「補正に使う」「名前」「用語集」と削除ボタン。使う用語集の表を出しているプリセットの行は、背景を変えて示す。見出しは「用語集のプリセット」。読み上げの表の名前は「用語集のプリセットの一覧（補正に使うプリセットを 1 つ選ぶ）」
     io: 入出力
     visible_when: 用語集のまとまりを選んだとき
-    initial_value: settings.toml の `glossary_presets[]`。キーが無い・空なら「既定」のプリセットを 1 件出す（`active_glossary` の用語集だけを使う。キーが無い・名前が一覧に無いときは 1 つ目の用語集、用語集が無ければ空）
-    sorting: 並べ替えない。settings.toml の並びで、追加したプリセットは末尾
+    initial_value: 設定の `glossary_presets[]`。キーが無い・空なら「既定」のプリセットを 1 件出す（`active_glossary` の用語集だけを使う。キーが無い・名前が一覧に無いときは 1 つ目の用語集、用語集が無ければ空）
+    sorting: 並べ替えない。設定の並びで、追加したプリセットは末尾
     source: Settings.glossary_presets[]
-    target: Settings.glossary_presets[]（保存で settings.toml へ書き、`active_glossary` のキーは消す）
+    target: Settings.glossary_presets[]（保存で settings.yaml へ書き、`active_glossary` のキーは消す）
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[glossary_presets[].name]
+      - CFG-1#settings[glossary_presets[].name]
     status: planned
     introduced:
       pr: 173
@@ -805,7 +807,7 @@ elements:
     source: Settings.active_glossary_preset
     target: Settings.active_glossary_preset
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[active_glossary_preset]
+      - CFG-1#settings[active_glossary_preset]
     status: planned
     introduced:
       pr: 173
@@ -835,7 +837,7 @@ elements:
     position: 窓 > 右 > 用語集 > 用語集のプリセットの一覧 > 行 > 右端
     description: プリセットを一覧から消す。消したプリセットの表を出していたときは、補正に使うプリセットの表を出す。読み上げ名は「{名前}を削除」（名前が空なら「名前未入力のプリセットを削除」）
     enabled_when: 補正に使うプリセットでないとき。無効のときはツールチップ「補正に使うプリセットは削除できません」を出す
-    action: プリセットを一覧から消す（保存するまで settings.toml へは書かない）
+    action: プリセットを一覧から消す（保存するまで settings.yaml へは書かない）
     status: planned
     introduced:
       pr: 173
@@ -872,7 +874,7 @@ elements:
     source: Settings.glossary_presets[].name
     target: Settings.glossary_presets[].name（前後の空白を除く）
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[glossary_presets[].name]
+      - CFG-1#settings[glossary_presets[].name]
     status: planned
     introduced:
       pr: 173
@@ -887,7 +889,7 @@ elements:
     source: Settings.glossary_presets[].glossaries
     target: Settings.glossary_presets[].glossaries
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[glossary_presets[].glossaries]
+      - CFG-1#settings[glossary_presets[].glossaries]
     status: planned
     introduced:
       pr: 173
@@ -1098,11 +1100,13 @@ input_checks:
     position: その欄の下とエラーの一覧
 screen: src/voice_paste/ui/windows/settings_window.py
 mock: dev/mock/pages/settings/173/b-picked-list/
-lead: トレイの「設定…」から開く画面。settings.toml の全てのキーをまとまりに並べ、設定のモデルで確かめてから保存する。
+lead: トレイの「設定…」から開く画面。設定の全てのキーをまとまりに並べ、設定のモデルで確かめてから保存する。
 refs:
-  - dev/設計書/シナリオ/単一ユースケース/設定を変える#
-  - dev/設計書/設定/常駐アプリ#
+  - SC-6#
+  - CFG-1#
 notes:
+  設定のレイヤー: |-
+    設定の値は、既定値 `config/defaults.yaml` → 環境の値 `settings.yaml` → checkout の上書き `settings.local.yaml` を重ねた値（シナリオ 設定を変える の補足『設定のレイヤー』）。
   まとまりと欄: |-
     | まとまり | キー | 欄の部品 |
     | --- | --- | --- |
@@ -1122,7 +1126,7 @@ notes:
     | 文字起こし（エンジン） | `transcription.local_whisper.language` | 文字の欄 |
     | 文字起こし（詳しい調整） | `transcription.local_whisper` の cpu_threads・num_workers・beam_size・best_of・temperature・no_speech_threshold・vad_threshold・vad_min_speech_ms・vad_min_silence_ms | 数値の欄 |
     | 文字起こし（詳しい調整） | `transcription.local_whisper` の condition_on_previous_text・vad_filter | チェックボックス |
-    | 文字起こし（OpenAI API） | `transcription.openai.model`・`transcription.openai.language`・`transcription.openai.base_url` | 文字の欄。補助文「文字起こしのエンジンが OpenAI API のときに使う。API キーはここでは入れず、環境変数 OPENAI_API_KEY か、settings.toml と同じフォルダの secrets/openai_api_key に置く。」 |
+    | 文字起こし（OpenAI API） | `transcription.openai.model`・`transcription.openai.language`・`transcription.openai.base_url` | 文字の欄。補助文「文字起こしのエンジンが OpenAI API のときに使う。API キーはここでは入れず、環境変数 OPENAI_API_KEY か、settings.yaml と同じフォルダの secrets/openai_api_key に置く。」 |
     | 表記のヒント | `hint_presets[]`（name・words・enabled） | 有効なヒントの長さと、ヒントのプリセットの一覧 |
     | 用語集 | `glossary_presets[]`（name・glossaries）・`active_glossary_preset` | 用語集のプリセットの一覧と、選んだプリセットの使う用語集の表 |
     | 用語集 | `glossaries[]`（name・path）と、用語集の CSV の行（誤変換・正しい表記・オン・オフ） | 用語集の一覧と、選んだ用語集の行の表 |

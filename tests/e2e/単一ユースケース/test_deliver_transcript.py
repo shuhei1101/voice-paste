@@ -2,12 +2,12 @@
 
 常駐アプリを pytest のプロセスの中で `main()` から起動し（`--data-dir` の一時フォルダ、Qt は offscreen）、
 ホットキーが押された体で登録された関数を呼び、録音の画面・文字起こし中の表示・トレイは Qt のイベントで操作する。実機のマウス・キーボードは使わない。
-録音の入力は Windows の音声合成（SAPI）で決めた文を書き出した WAV（か無音の WAV）に、システム音量は呼ばれた値を控えるものに、
+録音の入力は 音声合成（Windows は SAPI、Linux は Open JTalk）で決めた文を書き出した WAV（か無音の WAV）に、システム音量は呼ばれた値を控えるものに、
 貼り付けのキーと Enter は送信したキーと Enter に添えた修飾キーを控えるものに、ブラウザを開く呼び出しは渡された URL を控えるものに差し替え、
 実機のマイクを開かず、システム音量を変えず、キーを送信せず、Microsoft Edge を開かない。
 貼り付け先の入力欄に入ることは、クリップボードの文字と、控えた貼り付けのキー・Enter・修飾キーで確かめる。
 コピーの完了の通知が出たことは知らせのログで確かめ、通知を押す操作は通知が押されたシグナルを渡す。
-文字起こしはローカルの Whisper（GPU）で、クリップボードは実物を使う（テストの後に元の文字へ戻す）。
+文字起こしはローカルの Whisper（Windows は GPU、Linux は CPU）で、クリップボードは実物を使う（テストの後に元の文字へ戻す）。
 返送先・送信先は、テストが 127.0.0.1 に立てる受信先。
 「Enter と一緒に修飾キーを押す」の「Ctrl が押されたままになっていない」は、キーを送信する部品の単体テストが確かめる。
 `--run-e2e` が無ければ skip する。
@@ -49,7 +49,7 @@ from tests.support.inprocess import (
     speech_sequence_input,
 )
 from tests.support.real_service import LOOPBACK, free_port
-from tests.support.resident_app import IDLE, ResidentApp
+from tests.support.resident_app import IDLE, PASTE_AND_SEND_HOTKEY, ResidentApp
 from voice_paste.features.outputs.callback import service as callback_service
 from voice_paste.features.outputs.callback.service import CALLBACK_RETRY_COUNT
 from voice_paste.ui.windows.transcribing_indicator import COPY_HINT_TEXT, HINT_TEXT
@@ -89,30 +89,33 @@ SESSION_LIMIT_SEC = 60
 LIMIT_TAIL_SEC = 70.0
 """上限での打ち切りのとき、読み上げを流し終えた後に流し続ける無音の長さ（上限時間より長くする）。"""
 
-ENTER_WITH_CTRL_SETTINGS = '[[outputs]]\nid = "paste_and_send"\nenter_modifiers = ["ctrl"]\n'
+ENTER_WITH_CTRL_SETTINGS = (
+    f'outputs:\n  - id: paste_and_send\n    hotkey: "{PASTE_AND_SEND_HOTKEY}"\n'
+    "    enter_modifiers:\n      - ctrl\n"
+)
 """貼り付けて送信の Enter と一緒に押す修飾キーを Ctrl だけにした設定。"""
 
-NO_VOICE_SETTINGS = "[transcription.local_whisper]\nvad_threshold = 1.0\n"
+NO_VOICE_SETTINGS = "transcription:\n  local_whisper:\n    vad_threshold: 1.0\n"
 """どんな音も話し声と見なさず、起こした文字を空にする設定（無音の区間を除く閾値を最大にする）。"""
 
-LIMIT_SETTINGS = f"[api.continuous]\nsession_limit_sec = {SESSION_LIMIT_SEC}\n"
-"""連続録音のセッションの上限時間を、設定で許す下限にする設定。"""
+LIMIT_SETTINGS = f"  continuous:\n    session_limit_sec: {SESSION_LIMIT_SEC}\n"
+"""連続録音のセッションの上限時間を、設定で許す下限にする設定（`api` の下に書く）。"""
 
 
 def _browser_preset_settings(*, send_enter: bool) -> str:
     """ブラウザ添付のプリセットを 1 つ追加する設定を返す。"""
     return (
-        "[[presets]]\n"
-        'kind = "browser"\n'
-        f'title = "{BROWSER_TITLE}"\n'
-        f'url = "{BROWSER_URL}"\n'
-        f"send_enter = {str(send_enter).lower()}\n"
+        "presets:\n"
+        "  - kind: browser\n"
+        f"    title: {BROWSER_TITLE}\n"
+        f"    url: {BROWSER_URL}\n"
+        f"    send_enter: {str(send_enter).lower()}\n"
     )
 
 
 def _endpoint_preset_settings(url: str) -> str:
     """エンドポイントへ送信のプリセットを 1 つ追加する設定を返す。"""
-    return f'[[presets]]\nkind = "endpoint"\ntitle = "{ENDPOINT_TITLE}"\nurl = "{url}"\n'
+    return f"presets:\n  - kind: endpoint\n    title: {ENDPOINT_TITLE}\n    url: {url}\n"
 
 
 def _record_and_confirm(app: ResidentApp, button: str) -> str:
@@ -480,7 +483,7 @@ class ContinuousEnd:
 
     make_input: Callable[[Path], WavInput]
     finish: Callable[[ResidentApp, str, WavInput], None]
-    extra_settings: str
+    api_settings: str
     result: str
     segment_count: int
 
@@ -492,7 +495,7 @@ class ContinuousEnd:
             ContinuousEnd(
                 make_input=_three_sentences_input,
                 finish=_finish_by_complete,
-                extra_settings="",
+                api_settings="",
                 result="completed",
                 segment_count=len(THREE_SENTENCES),
             ),
@@ -502,7 +505,7 @@ class ContinuousEnd:
             ContinuousEnd(
                 make_input=_no_speech_input,
                 finish=_finish_by_complete,
-                extra_settings="",
+                api_settings="",
                 result="completed",
                 segment_count=0,
             ),
@@ -512,7 +515,7 @@ class ContinuousEnd:
             ContinuousEnd(
                 make_input=_three_sentences_then_silence_input,
                 finish=_finish_by_limit,
-                extra_settings=LIMIT_SETTINGS,
+                api_settings=LIMIT_SETTINGS,
                 result="truncated",
                 segment_count=len(THREE_SENTENCES),
             ),
@@ -541,7 +544,7 @@ def test_normal_when_return_continuous_end(
         assert app.tray_state() == IDLE
         assert app.start_api_session(receiver.url)
 
-    run_app(case, extra_settings=scenario.extra_settings, wav_input=wav_input, keys=KeyLog())
+    run_app(case, api_settings=scenario.api_settings, wav_input=wav_input, keys=KeyLog())
 
 
 def test_error_when_return_segment_failure(

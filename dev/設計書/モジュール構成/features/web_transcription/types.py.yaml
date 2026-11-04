@@ -1,0 +1,217 @@
+id: MOD-26
+title: 常駐アプリ / ブラウザの文字起こし / types.py
+data_models:
+  - name: WebJob
+    title: ジョブ
+    container: features/web_transcription/types.py
+    usecase: 共通
+    role: DTO
+    summary: ブラウザから受けた音声 1 件分の状態と結果（frozen。状態が変わるたびに WebJobQueue が `replace` で差し替える）
+    properties:
+      - name: id
+        type: str
+        description: ジョブの ID（`secrets.token_urlsafe(16)`、22 文字）
+      - name: state
+        type: JobState
+        description: 今の状態
+      - name: audio_path
+        type: Path
+        description: 受けた音声の一時のファイル（`tmp/web/{id}{拡張子}`）。履歴へ移した後は履歴のパス
+      - name: audio
+        type: AudioProbe
+        description: 受け付けで読んだ容れ物の形式・秒数・大きさ
+      - name: progress
+        type: float
+        default: '0.0'
+        description: 進み具合（0.0〜1.0）
+      - name: text
+        type: str | None
+        default: None
+        description: done のときの補正した文字
+      - name: error
+        type: str | None
+        default: None
+        description: failed のときの失敗の理由
+      - name: glossary_preset
+        type: str | None
+        default: None
+        description: 受け付けの時点で指定された用語集のプリセットの名前。None は指定なし（補正の時点で設定で選んでいるプリセットを使う）
+    status: planned
+  - name: WebTranscriptionDeps
+    title: ブラウザの文字起こしの依存
+    container: features/web_transcription/types.py
+    usecase: 共通
+    role: 依存の束
+    summary: WebJobQueue が呼ぶほかの feature・外部連携の関数（main.py が部分適用して渡す）
+    properties:
+      - name: store_audio
+        type: StoreWebAudioFn
+        description: 受けた音声を履歴へ移す（残さない設定なら一時のファイルのまま）
+      - name: transcribe
+        type: TranscribeFn
+        description: 音声を起こす（セッションと同じ文字起こしワーカーを、今のロックで順番に使う）
+      - name: correct
+        type: CorrectFn
+        description: 用語集のプリセットの名前（None は設定で選んでいるプリセット）の用語集と、文頭・文末の文言で補正する
+      - name: append_text
+        type: AppendTextFn
+        description: 履歴の音声と同じ名前の .txt に書く
+      - name: discard_temporary
+        type: DiscardTemporaryFn
+        description: 一時のファイルなら消す
+    status: planned
+  - name: WebApiDeps
+    title: ブラウザの API の依存
+    container: features/web_transcription/types.py
+    usecase: 共通
+    role: 依存の束
+    summary: route が使う WebJobQueue と受け付けの関数（app.state.web_api に置く）
+    properties:
+      - name: queue
+        type: WebJobQueue
+        description: ジョブの一覧とワーカースレッド
+      - name: probe_audio
+        type: ProbeAudioFn
+        description: 受けた音声を PyAV で開いて形式と秒数を読む
+      - name: tmp_dir
+        type: Path
+        description: 受けた音声を書く一時のフォルダ（`{AppPaths.tmp_dir}/web`）
+      - name: glossary_preset_exists
+        type: GlossaryPresetExistsFn
+        description: 指定された用語集のプリセットの名前が今の設定の一覧にあるか
+      - name: list_glossary_presets
+        type: ListGlossaryPresetsFn
+        description: 今の設定の用語集のプリセットの名前の一覧と、設定で選んでいるプリセットの名前を返す
+      - name: reports_progress
+        type: bool
+        description: 設定の文字起こしのエンジンが、起こしている途中の進みを返すか（起動時の transcription.engine が local_whisper か）
+    status: planned
+  - name: GlossaryPresetChoices
+    title: 用語集のプリセットの選択肢
+    container: features/web_transcription/types.py
+    usecase: 用語集のプリセットを選んで送信する
+    role: DTO
+    summary: 画面の選択欄に並べるプリセットの名前の一覧と、設定で選んでいるプリセットの名前（frozen）
+    properties:
+      - name: presets
+        type: list[str]
+        description: 用語集のプリセットの名前の一覧（設定の並びのまま。1 件以上）
+      - name: active
+        type: str
+        description: 設定で選んでいるプリセットの名前（presets のどれか）
+    status: planned
+    introduced:
+      pr: 180
+enums:
+  - name: JobState
+    title: ジョブの状態
+    container: features/web_transcription/types.py
+    usecase: 共通
+    summary: ジョブがどこまで進んだか。値は API の `state` にそのまま出る
+    values:
+      - value: queued
+        title: 文字起こし待ち
+        description: 受け付けてキューに積んだ
+      - value: running
+        title: 文字起こし中
+        description: ワーカースレッドが起こしている
+      - value: done
+        title: 文字起こし完了
+        description: 起こして補正した文字を持つ
+      - value: failed
+        title: 文字起こし失敗
+        description: 文字起こしに失敗した理由を持つ
+    status: planned
+function_types:
+  - name: StoreWebAudioFn
+    title: 受けた音声の保存
+    container: features/web_transcription/types.py
+    usecase: 共通
+    summary: ジョブの ID と一時のファイルを受け、履歴を残す設定なら履歴へ移してそのパスを、残さない設定なら一時のファイルのままそのパスを返す
+    returns:
+      type: Path
+      description: 文字起こしに渡す音声のパス
+    implementations:
+      - target: 履歴の store_web_audio
+    status: planned
+  - name: TranscribeFn
+    title: 文字起こし
+    container: features/web_transcription/types.py
+    usecase: 共通
+    summary: 音声のファイルと進みを知らせる関数を受け、起こした文字を返す。失敗は TranscriptionError
+    returns:
+      type: str
+      description: 区間を改行でつないだ文字
+    implementations:
+      - target: 文字起こしの transcribe
+    status: planned
+  - name: CorrectFn
+    title: 補正
+    container: features/web_transcription/types.py
+    usecase: 共通
+    summary: 起こした文字と用語集のプリセットの名前（None は補正の時点で設定で選んでいるプリセット）を受け、そのプリセットの用語集と文頭・文末の文言で補正して返す。設定から消えた名前は設定で選んでいるプリセットで補正する
+    returns:
+      type: str
+      description: 補正した文字
+    implementations:
+      - target: main.py の build_handlers の correct（セッションと同じ）
+    status: planned
+  - name: AppendTextFn
+    title: 起こした文字の追記
+    container: features/web_transcription/types.py
+    usecase: 共通
+    summary: 音声のパスと起こした文字を受け、同じ名前の .txt に書く（一時のファイルなら何もしない）
+    returns:
+      type: None
+      description: なし
+    implementations:
+      - target: 履歴の append_text
+    status: planned
+  - name: DiscardTemporaryFn
+    title: 一時のファイルの削除
+    container: features/web_transcription/types.py
+    usecase: 共通
+    summary: 音声のパスを受け、一時のファイル（`tmp/` の下）なら消す
+    returns:
+      type: None
+      description: なし
+    implementations:
+      - target: 履歴の discard_temporary
+    status: planned
+  - name: ProbeAudioFn
+    title: 音声の形式の読み取り
+    container: features/web_transcription/types.py
+    usecase: ブラウザから音声を送信する
+    summary: 音声のファイルを受け、容れ物の形式・秒数・大きさを返す。開けない・音声が無いときは AudioUnreadableError
+    returns:
+      type: AudioProbe
+      description: 読んだ形式
+    implementations:
+      - target: 外部連携の probe_audio
+    status: planned
+  - name: GlossaryPresetExistsFn
+    title: 用語集のプリセットの確かめ
+    container: features/web_transcription/types.py
+    usecase: 用語集のプリセットを選んで送信する
+    summary: 用語集のプリセットの名前を受け、今の設定の一覧にあるかを返す（大文字と小文字を区別する）
+    returns:
+      type: bool
+      description: 一覧にあれば True
+    implementations:
+      - target: main.py の build_handlers の glossary_preset_exists（SessionApiDeps と同じ）
+    status: planned
+    introduced:
+      pr: 180
+  - name: ListGlossaryPresetsFn
+    title: 用語集のプリセットの一覧の取得
+    container: features/web_transcription/types.py
+    usecase: 用語集のプリセットを選んで送信する
+    summary: 引数を受けず、呼んだ時点の設定の用語集のプリセットの名前の一覧と、設定で選んでいるプリセットの名前を返す
+    returns:
+      type: GlossaryPresetChoices
+      description: プリセットの選択肢
+    implementations:
+      - target: main.py の build_handlers の list_glossary_preset_choices
+    status: planned
+    introduced:
+      pr: 180

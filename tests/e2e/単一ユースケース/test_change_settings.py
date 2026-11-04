@@ -2,7 +2,7 @@
 
 常駐アプリを pytest のプロセスの中で `main()` から起動し、トレイの「設定…」の項目を trigger して設定画面を開き、
 クリックとキーを Qt のイベントで渡して欄・ボタンを操作する（欄は項目 ID `field_{キー}`、確認ダイアログは予約して回答する）。
-設定ファイルは起動した一時フォルダの `settings.toml`（`--data-dir`）で、普段使いの設定には触れない。
+設定ファイルは起動した一時フォルダの `settings.yaml`（`--data-dir`）で、普段使いの設定には触れない。
 「保存して再起動」で起動し直す新しいプロセスだけは別プロセスで動き（Qt は offscreen）、ログとトークンのファイルで確かめる。
 変えた設定で録音を始めるケース（正常シナリオ・カスタムプリセットを追加する）は、録音の入力を WAV を流すものに、
 システム音量を呼ばれた値を控えるものに差し替える（マイクを開かず、システム音量を変えない）。
@@ -12,9 +12,9 @@
 
 from __future__ import annotations
 
-import tomllib
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import pytest
 from PySide6.QtCore import Qt
@@ -22,14 +22,26 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QComboBox, QLineEdit, QPushButton
 
 from tests.integration.helpers import CallbackReceiver, wait_until
-from tests.support.inprocess import SPEECH_WORD, VOLUME_BEFORE, silence_input, speech_input
+from tests.support.inprocess import (
+    SPEECH_WORD,
+    expected_lowered_ratios,
+    expected_restored_volumes,
+    silence_input,
+    speech_input,
+)
 from tests.support.instances import started_count
 from tests.support.real_service import UNUSED_START_HOTKEY, read_token_file
-from tests.support.resident_app import IDLE, RECORDING, ResidentApp, service_processes_for
+from tests.support.resident_app import (
+    CANCEL_HOTKEY,
+    IDLE,
+    RECORDING,
+    ResidentApp,
+    service_processes_for,
+)
+from tests.support.settings import load_test_default_settings
 from voice_paste.features.correction import read_glossary_rows
-from voice_paste.main import SETTINGS_MODEL
-from voice_paste.shared.settings import load_settings
 from voice_paste.shared.types import GlossaryEntry
+from voice_paste.shared.yaml_document import read_yaml_mapping
 
 pytestmark = pytest.mark.real_machine
 
@@ -37,25 +49,24 @@ RunApp = Callable[..., ResidentApp]
 
 COMMENTED_SETTINGS = (
     "# E2E: このコメントは保存しても残る\n"
-    "[recording]\n"
-    "fade_sec = 1.5\n"
-    "\n"
-    "[ui]\n"
-    "wave_gain = 2.0\n"
+    "recording:\n"
+    "  fade_sec: 1.5\n"
+    "ui:\n"
+    "  wave_gain: 2.0\n"
 )
-"""既定と違う値とコメントを持つ設定（`[api]` の続きに書く）。"""
+"""既定と違う値とコメントを持つ設定（`hotkeys` の続きに書く）。"""
 
 RESTART_KEY = "transcription.local_whisper.beam_size"
 """反映が restart の数値のキー。"""
 
 RESET_TIMEOUT_SEC = 15.0
-"""「既定に戻す」で settings.toml が既定の値で書かれるまで待つ上限。"""
+"""「既定に戻す」で settings.yaml から設定のキーが外れるまで待つ上限。"""
 
 RESTARTED_TIMEOUT_SEC = 180.0
 """再起動した新しい常駐アプリが待ち受けを始めるまで待つ上限。"""
 
 GLOSSARY_FILE_NAME = "yogo.csv"
-"""設定に用語集の一覧が無いときに読む、settings.toml と同じフォルダの用語集の CSV。"""
+"""設定に用語集の一覧が無いときに読む、settings.yaml と同じフォルダの用語集の CSV。"""
 
 GLOSSARY_TWO_ROWS = "誤変換,正しい表記\nkuroudo,Claude\ngitto,Git\n"
 """用語集に 2 つある行（キーを打つ操作が確かな ASCII の語にしている）。"""
@@ -97,13 +108,13 @@ DELIVERED_TIMEOUT_SEC = 120.0
 
 
 def _settings_file(app: ResidentApp) -> Path:
-    """起動した常駐アプリの settings.toml のパス。"""
-    return app.data_dir / "settings.toml"
+    """起動した常駐アプリの settings.yaml のパス。"""
+    return app.data_dir / "settings.yaml"
 
 
-def _toml(app: ResidentApp) -> dict[str, object]:
-    """settings.toml を読む。"""
-    return tomllib.loads(_settings_file(app).read_text(encoding="utf-8"))
+def _yaml(app: ResidentApp) -> dict[str, Any]:
+    """settings.yaml を読む。"""
+    return read_yaml_mapping(_settings_file(app))
 
 
 def _glossary_file(app: ResidentApp) -> Path:
@@ -162,9 +173,9 @@ def test_normal(run_app: RunApp, tmp_path: Path) -> None:
         assert app.window("settings_window") is not None
         assert app.selected_group() == "ホットキー"
         assert app.hotkey_value(START_HOTKEY_FIELD) == NEW_START_HOTKEY_TEXT
-        assert _toml(app)["hotkeys"]["start"] == NEW_START_HOTKEY  # type: ignore[index]
+        assert _yaml(app)["hotkeys"]["start"] == NEW_START_HOTKEY
         assert COMMENT_LINE in _settings_file(app).read_text(encoding="utf-8")
-        assert _toml(app)["recording"]["fade_sec"] == 1.5  # type: ignore[index]
+        assert _yaml(app)["recording"]["fade_sec"] == 1.5
 
         # 実行（保存の後に欄を変えずに閉じる）
         app.press("cancel_button")
@@ -181,21 +192,21 @@ def test_normal(run_app: RunApp, tmp_path: Path) -> None:
 
         # 検証（録音が始まり、システム音量を下げる）
         assert app.wait_until(lambda: app.tray_state() == RECORDING)
-        assert _lowered_ratios(app) == [LOWERED_RATIO]
+        assert _lowered_ratios(app) == expected_lowered_ratios(LOWERED_RATIO)
 
         # 実行（取り消しの関数で録音を終える）
-        bindings[SETTINGS_MODEL().hotkeys.cancel]()
+        bindings[CANCEL_HOTKEY]()
 
         # 検証
         assert app.wait_until(lambda: app.tray_state() == IDLE)
-        assert app.wait_until(lambda: _restored_volumes(app) == [VOLUME_BEFORE])
+        assert app.wait_until(lambda: _restored_volumes(app) == expected_restored_volumes())
 
     # 実行
     run_app(case, extra_settings=COMMENTED_SETTINGS, wav_input=silence_input(tmp_path))
 
 
 def test_normal_when_save_and_restart(run_app: RunApp) -> None:
-    """反映が restart の設定を変えて「保存して再起動」を押すと、settings.toml が書かれ、前のプロセスが終わり、新しいプロセスが起動する（正常シナリオ）。
+    """反映が restart の設定を変えて「保存して再起動」を押すと、settings.yaml が書かれ、前のプロセスが終わり、新しいプロセスが起動する（正常シナリオ）。
 
     変える設定は、モデルの取得を伴わない `transcription.local_whisper.beam_size`（反映は restart）にしている。
     """
@@ -217,7 +228,7 @@ def test_normal_when_save_and_restart(run_app: RunApp) -> None:
     app = run_app(case, expect_exit=True)
 
     # 検証: 前のプロセスが終わり、新しいプロセスが起動して待ち受けを始める
-    assert _toml(app)["transcription"]["local_whisper"]["beam_size"] == 5  # type: ignore[index]
+    assert _yaml(app)["transcription"]["local_whisper"]["beam_size"] == 5
     assert app.exited_by_itself, "前のプロセスが終わらなかった"
     assert app.exit_code == 0
     assert wait_until(lambda: bool(service_processes_for(app.data_dir)), 60), (
@@ -231,7 +242,7 @@ def test_normal_when_save_and_restart(run_app: RunApp) -> None:
 
 
 def test_normal_when_reset(run_app: RunApp) -> None:
-    """「既定に戻す」で確認に回答すると、全てのキーが既定の値で書かれ、設定画面は開いたまま欄に既定の値が入る（正常シナリオ）。"""
+    """「既定に戻す」で確認に回答すると、settings.yaml から設定のキーが外れ、設定画面は開いたまま欄に既定の値が入る（正常シナリオ）。"""
 
     def case(app: ResidentApp) -> None:
         """設定画面で「既定に戻す」を押して確認に回答する。"""
@@ -243,13 +254,10 @@ def test_normal_when_reset(run_app: RunApp) -> None:
             app.press("reset_button")
 
         # 検証
-        assert app.wait_until(
-            lambda: load_settings(_settings_file(app), SETTINGS_MODEL) == SETTINGS_MODEL(),
-            RESET_TIMEOUT_SEC,
-        )
+        assert app.wait_until(lambda: _yaml(app) == {}, RESET_TIMEOUT_SEC)
         assert app.window("settings_window") is not None
-        app.select_group("録音")
-        assert app.field_value("recording.fade_sec") == "0.5"
+        app.select_group("画面")
+        assert app.field_value("ui.wave_gain") == str(load_test_default_settings().ui.wave_gain)
 
     # 実行
     run_app(case, extra_settings=COMMENTED_SETTINGS)
@@ -263,8 +271,8 @@ def test_normal_when_cancel(run_app: RunApp) -> None:
         # 準備
         before = _settings_file(app).read_bytes()
         app.open_settings()
-        app.select_group("録音")
-        app.set_field("recording.fade_sec", "2.5")
+        app.select_group("出力先")
+        app.set_field("outputs[0].enter_delay_sec", "2.5")
 
         # 実行
         with app.answering("discard_dialog", "discard_button"):
@@ -326,7 +334,7 @@ def test_normal_when_add_custom_preset(
         assert app.label("saved_notice") == SAVED_WITH_HOTKEY_NOTICE
         assert app.window("settings_window") is not None
         assert app.label("preset_heading_0") == PRESET_TITLE
-        preset = _toml(app)["presets"][0]  # type: ignore[index]
+        preset = _yaml(app)["presets"][0]
         assert (
             preset["kind"],
             preset["title"],
@@ -335,7 +343,7 @@ def test_normal_when_add_custom_preset(
             preset["enabled"],
         ) == ("endpoint", PRESET_TITLE, receiver.url, PRESET_HOTKEY, True)
         assert COMMENT_LINE in _settings_file(app).read_text(encoding="utf-8")
-        assert _toml(app)["recording"]["fade_sec"] == 1.5  # type: ignore[index]
+        assert _yaml(app)["recording"]["fade_sec"] == 1.5
 
         # 実行（保存の後に欄を変えずに閉じる）
         app.press("cancel_button")
@@ -361,8 +369,8 @@ def test_normal_when_add_custom_preset(
         assert receiver.received[0]["result"] == "transcribed"
         assert SPEECH_WORD in receiver.received[0]["text"]
         assert app.wait_until(lambda: app.tray_state() == IDLE)
-        assert _lowered_ratios(app) == [LOWERED_RATIO]
-        assert app.wait_until(lambda: _restored_volumes(app) == [VOLUME_BEFORE])
+        assert _lowered_ratios(app) == expected_lowered_ratios(LOWERED_RATIO)
+        assert app.wait_until(lambda: _restored_volumes(app) == expected_restored_volumes())
 
     # 実行
     run_app(case, extra_settings=COMMENTED_SETTINGS, wav_input=speech_input(tmp_path))
@@ -400,7 +408,7 @@ def test_normal_when_edit_glossary(run_app: RunApp) -> None:
             GlossaryEntry(wrong=DELETED_WORD, right=""),
         ]
         assert COMMENT_LINE in _settings_file(app).read_text(encoding="utf-8")
-        assert _toml(app)["recording"]["fade_sec"] == 1.5  # type: ignore[index]
+        assert _yaml(app)["recording"]["fade_sec"] == 1.5
         assert (
             app.correct_text(f"kuroudo gitto {DELETED_WORD} paison") == "Claude Code gitto  Python"
         )
@@ -440,31 +448,33 @@ def test_normal_when_switch_glossary_preset(run_app: RunApp) -> None:
         added = app.data_dir / "glossaries" / "glossary_1.csv"
         assert read_glossary_rows(added) == [GlossaryEntry(wrong="paison", right="Python")]
         assert _glossary_file(app).read_bytes() == before
-        toml = _toml(app)
-        assert toml["active_glossary_preset"] == "combined"
-        assert "active_glossary" not in toml
-        assert [(item["name"], item["path"]) for item in toml["glossaries"]] == [  # type: ignore[attr-defined]
+        saved = _yaml(app)
+        assert saved["active_glossary_preset"] == "combined"
+        assert "active_glossary" not in saved
+        assert [(item["name"], item["path"]) for item in saved["glossaries"]] == [
             ("yogo", GLOSSARY_FILE_NAME),
             ("meeting", "glossaries/glossary_1.csv"),
         ]
-        assert [(item["name"], item["glossaries"]) for item in toml["glossary_presets"]] == [  # type: ignore[attr-defined]
+        assert [(item["name"], item["glossaries"]) for item in saved["glossary_presets"]] == [
             ("既定", ["yogo"]),
             ("combined", ["yogo", "meeting"]),
         ]
         assert COMMENT_LINE in _settings_file(app).read_text(encoding="utf-8")
-        assert _toml(app)["recording"]["fade_sec"] == 1.5  # type: ignore[index]
+        assert _yaml(app)["recording"]["fade_sec"] == 1.5
         assert app.correct_text("kuroudo gitto paison") == "Claude Git Python"
 
     run_app(case, extra_settings=COMMENTED_SETTINGS, prepare=_put_glossary)
 
 
 HINT_PRESET_SETTINGS = (
-    "\n[[hint_presets]]\n"
-    'name = "開発"\n'
-    'words = ["voice-paste", "Whisper"]\n'
-    "enabled = true\n"
+    "hint_presets:\n"
+    "  - name: 開発\n"
+    "    words:\n"
+    "      - voice-paste\n"
+    "      - Whisper\n"
+    "    enabled: true\n"
 )
-"""手がかりのプリセットを 1 つ（語が 2 つ・有効）持つ設定（`[api]` の続きに書く）。"""
+"""手がかりのプリセットを 1 つ（語が 2 つ・有効）持つ設定（`hotkeys` の続きに書く）。"""
 
 HINT_LIMIT_BYTES = 222
 """有効なヒントの長さの上限（UTF-8 のバイト数）。"""
@@ -474,7 +484,7 @@ HINT_OVER_WORD_LENGTH = 209
 
 
 def test_normal_when_edit_hint_presets(run_app: RunApp) -> None:
-    """手がかりのプリセットを追加し・語を追加して書き換え・無効にして保存すると、settings.toml に書かれ、設定画面は開いたまま保存できたことを出し、再起動せずに次の文字起こしの手がかりへ効く（正常シナリオ）。
+    """手がかりのプリセットを追加し・語を追加して書き換え・無効にして保存すると、settings.yaml に書かれ、設定画面は開いたまま保存できたことを出し、再起動せずに次の文字起こしの手がかりへ効く（正常シナリオ）。
 
     手がかりは、動いている常駐アプリの文字起こしがエンジンへ渡す値で確かめる（マイクは開かない。録音を通した文字起こしは「録音を文字に起こす」の E2E）。
     """
@@ -504,13 +514,13 @@ def test_normal_when_edit_hint_presets(run_app: RunApp) -> None:
         # 検証
         assert app.window("settings_window") is not None
         assert app.label("saved_notice") == "保存しました。"
-        assert _toml(app)["hint_presets"] == [
+        assert _yaml(app)["hint_presets"] == [
             {"name": "開発", "words": ["Claude", "Whisper", "tool"], "enabled": True},
             {"name": "meeting", "words": ["Git"], "enabled": True},
             {"name": "memo", "words": ["notes"], "enabled": False},
         ]
         assert COMMENT_LINE in _settings_file(app).read_text(encoding="utf-8")
-        assert _toml(app)["recording"]["fade_sec"] == 1.5  # type: ignore[index]
+        assert _yaml(app)["recording"]["fade_sec"] == 1.5
         assert app.hint_for_next_request() == "Claude、Whisper、tool、Git"
 
     run_app(case, extra_settings=HINT_PRESET_SETTINGS + COMMENTED_SETTINGS)
@@ -529,7 +539,7 @@ def _keeps_values(before: dict[str, object], after: dict[str, object]) -> bool:
 
 
 def test_normal_when_edit_edge_phrases(run_app: RunApp) -> None:
-    """文頭・文末から削除する文言の行を追加して先頭へ動かし、既定の行を削除して保存すると、settings.toml に一覧の順で書かれ、設定画面は開いたまま保存できたことを出し、再起動せずに補正へ効く（正常シナリオ（文頭・文末から削除する文言を編集する））。
+    """文頭・文末から削除する文言の行を追加して先頭へ動かし、既定の行を削除して保存すると、settings.yaml に一覧の順で書かれ、設定画面は開いたまま保存できたことを出し、再起動せずに補正へ効く（正常シナリオ（文頭・文末から削除する文言を編集する））。
 
     補正は、動いている常駐アプリの補正に文字を渡して確かめる（マイクは開かない。録音を通した補正は「録音を文字に起こす」の E2E）。
     """
@@ -537,9 +547,9 @@ def test_normal_when_edit_edge_phrases(run_app: RunApp) -> None:
     def case(app: ResidentApp) -> None:
         """設定画面の「ハルシネーション」で、「お疲れ様でした」（文頭）の行を追加して先頭へ動かし、「ありがとうございました」の行を削除して保存する。"""
         # 準備（キーが無い一覧は既定の 3 行で、文末の「ありがとうございました。」が消える）
-        assert "edge_phrases" not in _toml(app)
+        assert "edge_phrases" not in _yaml(app)
         assert app.correct_text(EDGE_TRANSCRIPT) == "お疲れ様でした。本日はここまでです。"
-        other_keys_before = _toml(app)
+        other_keys_before = _yaml(app)
         app.open_settings()
         app.select_group("ハルシネーション")
 
@@ -562,15 +572,15 @@ def test_normal_when_edit_edge_phrases(run_app: RunApp) -> None:
         # 検証
         assert app.window("settings_window") is not None
         assert app.label("saved_notice") == "保存しました。"
-        toml = _toml(app)
-        assert toml["edge_phrases"] == [
+        saved = _yaml(app)
+        assert saved["edge_phrases"] == [
             {"text": "お疲れ様でした", "position": "start"},
             {"text": "チャンネル登録*", "position": "end"},
             {"text": "ご視聴ありがとうございました", "position": "end"},
         ]
-        assert _keeps_values(other_keys_before, toml)
+        assert _keeps_values(other_keys_before, saved)
         assert COMMENT_LINE in _settings_file(app).read_text(encoding="utf-8")
-        assert toml["recording"]["fade_sec"] == 1.5  # type: ignore[index]
+        assert saved["recording"]["fade_sec"] == 1.5
         assert app.correct_text(EDGE_TRANSCRIPT) == "本日はここまでです。ありがとうございました。"
 
     run_app(case, extra_settings=COMMENTED_SETTINGS)

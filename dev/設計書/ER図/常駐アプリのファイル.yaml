@@ -1,3 +1,4 @@
+id: ER-2
 title: "ER 図: 常駐アプリのファイル"
 lead: |-
   常駐アプリが書き出して持つファイル（履歴・一時の音声・トークン・ログ）。データベースは持たない。`%LOCALAPPDATA%\voice-paste\` を基準にし、名前の先頭に置き場を書く。
@@ -129,7 +130,7 @@ tables:
     deletion: 削除しない（設定画面の一覧から用語集を削除しても、ファイルは残す）
     access: 全件。補正は録音を確定するたびに、補正に使う用語集の CSV を再読み込みする
     description: |-
-      用語集ごとの場所は設定の `glossaries[].path` が持つ。設定画面で追加した用語集はこの名前で作り、今までの用語集（`glossary_path`。キーが無ければ settings.toml と同じフォルダの `yogo.csv`）も同じ列で読む。
+      用語集ごとの場所は設定の `glossaries[].path` が持つ。設定画面で追加した用語集はこの名前で作り、今までの用語集（`glossary_path`。キーが無ければ settings.yaml と同じフォルダの `yogo.csv`）も同じ列で読む。
       手で書いた CSV は列 `使う` が無くても読める。設定画面でその用語集の行を変えて保存すると、3 つの列だけの CSV に書き換える（ほかの列と、誤変換と正しい表記の両方が空の行は残らない）。行を変えていない用語集の CSV は書き換えない。
     columns:
       - name: 誤変換
@@ -152,7 +153,7 @@ tables:
     status: implemented
     implementation: src/voice_paste/features/correction/service.py
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[glossaries[].path]
+      - CFG-1#settings[glossaries[].path]
   - name: '%LOCALAPPDATA%\voice-paste\ui\{ハッシュ}.svg'
     title: 開くマーカーの画像
     datastore: SVG
@@ -225,6 +226,6 @@ tables:
         type: なし
         description: 空のファイル。flock の対象にするだけ
     refs:
-      - dev/設計書/モジュール構成/常駐アプリ/起動と配線.py#functions[acquire_single_instance_linux]
+      - MOD-88#functions[acquire_single_instance_linux]
     implementation: src/voice_paste/runtime/single_instance_linux.py
     status: planned

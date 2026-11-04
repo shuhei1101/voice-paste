@@ -1,3 +1,4 @@
+id: SC-5
 title: "常駐アプリを起動する"
 scenarios:
   - name: 正常シナリオ
@@ -159,17 +160,17 @@ scenarios:
         description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー・ブラウザを開く呼び出し。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
         notes: 録音の入力は音声合成の WAV。ブラウザを開く呼び出しは渡された URL を控え、Microsoft Edge を開かない
       - name: 古い設定
-        description: '`settings.toml` の `outputs` に `id = "ai_chat"` の項目と送信先（`targets[]`）を 2 つ書いておく（うち 1 つは出さない）'
+        description: '`settings.yaml` の `outputs` に `id: ai_chat` の項目と送信先（`targets[]`）を 2 つ書いておく（うち 1 つは出さない）'
     flow: |-
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
         participant SVC as 常駐サービス
-        participant TOML as settings.toml
+        participant ENV as settings.yaml
         participant TRAY as トレイ
 
         U->>SVC: 起動する
-        SVC->>TOML: 設定を読む
+        SVC->>ENV: 設定を読む
         SVC->>SVC: ai_chat の送信先を、ブラウザ添付の種類のプリセットへ読み替える
         Note over SVC: 以降は 正常シナリオ と同じ
         SVC->>TRAY: 待機中のアイコンにする
@@ -178,8 +179,98 @@ scenarios:
       - トレイのアイコンが待機中になっている（起動が中断されない）
       - 録音の画面に、出すとした送信先と同じタイトル・ホットキーのプリセットのボタンだけが出る
       - そのボタンで確定すると、送信先の URL を開いて貼り付け、Enter まで送信する
-      - 起動しただけでは `settings.toml` が書き換わっていない
+      - 起動しただけでは `settings.yaml` が書き換わっていない
     test: test_normal_when_old_ai_chat_settings_remain
+  - name: 正常シナリオ（settings.toml だけが残っている）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+      - name: 前のバージョンの設定
+        description: 設定の置き場所に `settings.yaml` が無く、`settings.toml` があり、録音開始のホットキー（`hotkeys.start`）を既定と違う組み合わせにしてある
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SVC as 常駐サービス
+        participant TOML as settings.toml
+        participant ENV as settings.yaml
+        participant LOG as ログ
+        participant TRAY as トレイ
+
+        U->>SVC: 起動する
+        SVC->>SVC: settings.yaml が無く、settings.toml がある
+        SVC->>TOML: 設定を読む
+        SVC->>ENV: 既定値と違う値を書いて作る
+        SVC->>LOG: settings.toml から settings.yaml へ移したことを書く
+        Note over SVC: 以降は 正常シナリオ と同じ
+        SVC->>TRAY: 待機中のアイコンにする
+      ```
+    expected:
+      - '`settings.yaml` に `hotkeys.start` の組み合わせが書かれ、既定値と同じキーが書かれていない'
+      - '`settings.toml` が変わらずに残っている'
+      - 既定と違う組み合わせで録音が始まる
+      - ログに、移した元と先のファイルのパスが書かれている
+    notes:
+      移す条件: '`settings.yaml` があるときは `settings.toml` を読まない。`settings.toml` を読めないときは、`settings.yaml` を作らずに 異常シナリオ（設定を読めない） と同じ扱いになる。'
+    test: test_normal_when_only_settings_toml
+  - name: 正常シナリオ（checkout の上書きがある）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+      - name: 環境の値
+        description: '`settings.yaml` で、録音開始のホットキー（`hotkeys.start`）を既定と違う組み合わせ A にしてある'
+      - name: checkout の上書き
+        description: リポジトリ直下の `settings.local.yaml` で、`hotkeys.start` を組み合わせ B にしてある
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SVC as 常駐サービス
+        participant DEF as config/defaults.yaml
+        participant ENV as settings.yaml
+        participant LOCAL as settings.local.yaml
+
+        U->>SVC: 起動する
+        SVC->>DEF: 既定値を読む
+        SVC->>ENV: 環境の値を読み、既定値に重ねる
+        SVC->>LOCAL: checkout の上書きを読み、さらに重ねる
+        SVC->>SVC: 重ねた値を設定のモデルで確かめる
+        Note over SVC: 以降は 正常シナリオ と同じ
+      ```
+    expected:
+      - 組み合わせ B で録音が始まり、組み合わせ A では始まらない
+      - '`settings.yaml` と `settings.local.yaml` が書き換わっていない'
+    notes:
+      E2E を持たない理由: E2E は `--data-dir` の一時フォルダで起動するため、リポジトリ直下の `settings.local.yaml` を使えない。重ねる順は単体テストと結合テストで確かめる。
+  - name: 異常シナリオ（設定を読めない）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+      - name: 読めない設定
+        description: '`settings.yaml` を YAML として読めない中身にする'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SVC as 常駐サービス
+        participant ENV as settings.yaml
+        participant TRAY as トレイ
+        participant LOG as ログ
+
+        U->>SVC: 起動する
+        SVC->>ENV: 設定を読む
+        ENV-->>SVC: 読めない
+        SVC->>LOG: 読めなかったファイルのパスと理由を書く
+        SVC->>TRAY: 失敗のアイコンにし、設定を読めないことを通知する
+      ```
+    expected:
+      - トレイで設定を読めないことが知らされている
+      - ログに読めなかったファイルのパスと理由が書かれている
+      - トレイのメニューの「録音を開始」と「設定…」が押せず、「設定フォルダを開く」と「再起動」が押せる
+      - '`settings.yaml` が書き換わっていない'
+    notes:
+      同じ扱いになる失敗: '`config/defaults.yaml` を読めないとき、あるのに読めない `settings.local.yaml`・`settings.toml`（移すとき）と、重ねた値が設定のモデルの確かめに通らないときも同じ扱いになる。'
+    test: test_error_when_settings_unreadable
   - name: 正常シナリオ（OpenAI API を使う設定）
     setup:
       - name: Mock
@@ -326,17 +417,55 @@ scenarios:
       - トレイで、貼り付けのキーを送信できないことと権限の設定の手順が知らされている
       - ログに仮想のキーボードを作れなかった理由が書かれている
       - 録音開始のホットキーを押すと録音が始まり、「コピーのみ」で確定するとクリップボードに起こした文字が入る
+  - name: 正常シナリオ（Linux でモデルを取得する初回の起動）
+    setup:
+      - name: Mock
+        description: なし（検証環境の VM を Ubuntu 24.04 の Xorg と Wayland のセッションで起動し、実機で確かめる）
+      - name: モデルのキャッシュ
+        description: ローカルの Whisper の設定のモデル（既定の `large-v3`）を Hugging Face のキャッシュから消してあり、文字起こしワーカーが起動のときにモデルを取得する
+        notes: 取得に数十秒から数分かかる
+    flow: |-
+      sequenceDiagram
+        actor U as ユーザー
+        participant SVC as 常駐サービス
+        participant TRAY as トレイ
+        participant WK as 文字起こしワーカー（子プロセス）
+
+        U->>SVC: 起動する
+        SVC->>TRAY: 準備中のアイコンを出す
+        SVC->>WK: 子プロセスを起動し、エンジンの設定を送信する
+        Note over SVC: ready を待つ間も画面とトレイの操作を受け付ける
+        WK->>WK: モデルを取得して読み込む
+        U->>TRAY: 取得中にアイコンを押す
+        TRAY-->>U: メニューを出す（録音の開始は選べない）
+        WK-->>SVC: モデルを読み込んだ（ready）
+        Note over SVC: ready の後は 正常シナリオ と同じ
+        SVC->>TRAY: 待機中のアイコンにする
+    expected:
+      - モデルの取得中から、上のバーにトレイの準備中のアイコンが出ている
+      - 取得中にトレイのアイコンを押すとメニューが開き、「録音を開始」は選べない
+      - ready の後、トレイのアイコンが待機中になり、録音開始のホットキーを押すと録音が始まる
 lead: '常駐サービスを起動し、文字起こしのエンジン・API の待ち受け・ホットキーの受付を立てて、録音の開始を待つ状態にする単一ユースケース。'
 issue: 14
 primary_actor: 音声入力を使うユーザー
 trigger: ユーザーが常駐サービスを起動する（Windows はショートカットを開く、Linux は起動のスクリプト `voice-paste.sh` を流すか、アプリの一覧・ログイン時の自動起動から開く）
 preconditions:
   - Windows か Linux（Ubuntu 24.04 の GNOME の Xorg か Wayland のセッション）の端末で、リポジトリの直下に仮想環境がある（起動の手段が `uv sync --frozen` で `uv.lock` に揃える）
-  - Linux では OS のパッケージ `xclip`・`libportaudio2`・`libxcb-cursor0` が入っている
+  - Linux では OS のパッケージ `xclip`・`libportaudio2`・`libxcb-cursor0` と、依存の `evdev` のビルドに使う `gcc`・`linux-libc-dev` が入っている
   - Linux の Wayland のセッションでは、`/dev/uinput` に書ける（udev の規則と `input` グループへの追加の後に再起動している）
-  - 設定ファイル（Windows は `%APPDATA%\voice-paste\settings.toml`、Linux は `~/.config/voice-paste/settings.toml`）がある（無ければ既定値で作る）
+  - リポジトリの `config/defaults.yaml` に設定の既定値がある。環境の値の `settings.yaml` とリポジトリ直下の `settings.local.yaml` は無くてもよい（補足『設定のレイヤー』）
 test_file: tests/e2e/単一ユースケース/test_start_resident_app.py
 notes:
+  設定のレイヤー: |-
+    設定は、既定値 → 環境の値 → checkout の上書きの順に、キーごとに後のレイヤーの値で上書きして読む。
+
+    | レイヤー | ファイル | 無いとき |
+    | --- | --- | --- |
+    | 既定値 | リポジトリの `config/defaults.yaml` | 起動の失敗（異常シナリオ（設定を読めない）） |
+    | 環境の値 | 設定の置き場所（Windows は `%APPDATA%\voice-paste\`、Linux は `~/.config/voice-paste/`。`--data-dir` を渡した起動ではそのフォルダ）の `settings.yaml` | 飛ばす（作らない） |
+    | checkout の上書き | リポジトリ直下の `settings.local.yaml` | 飛ばす |
+
+    起動しただけではどのファイルも書き換えない（`settings.toml` だけが残っているときに `settings.yaml` を作るのを除く）。
   E2E のテスト: |-
     正常シナリオと「API の待ち受けを始められない」の期待値「録音開始のホットキーを押すと録音が始まる」と、「古い AI チャットの設定が残っている」の期待値のうちプリセットのボタンと確定して送信するまでの 2 つは、録音の入力を WAV を流すものに、システム音量を下げた値と戻した値を控えるものに差し替えて確かめる（マイクを開かない）。「古い AI チャットの設定が残っている」は、さらに貼り付けのキーを送信したキーを控えるものに、ブラウザを開く呼び出しを渡された URL を控えるものに差し替え、送信先の URL を開いて貼り付け、Enter まで送信することを、控えた URL・クリップボード・控えたキーで確かめる
 

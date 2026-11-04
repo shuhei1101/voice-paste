@@ -1,0 +1,28 @@
+$ git rev-parse --short HEAD
+6a1de12
+$ .venv/Scripts/python.exe -m pytest tests/e2e --run-e2e
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\test-e2e-linux-xorg
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collected 128 items
+
+tests\e2e\単一ユースケース\test_change_settings.py ...........           [  8%]
+tests\e2e\単一ユースケース\test_deliver_transcript.py .................. [ 22%]
+...                                                                      [ 25%]
+tests\e2e\単一ユースケース\test_operate_from_tray.py .......             [ 30%]
+tests\e2e\単一ユースケース\test_receive_result_in_browser.py .......     [ 35%]
+tests\e2e\単一ユースケース\test_record.py ...................            [ 50%]
+tests\e2e\単一ユースケース\test_send_audio_from_browser.py .........     [ 57%]
+tests\e2e\単一ユースケース\test_start_resident_app.py .........          [ 64%]
+tests\e2e\単一ユースケース\test_transcribe_recording.py ................ [ 77%]
+....                                                                     [ 80%]
+tests\e2e\複合ユースケース\test_paste_voice_text.py ......               [ 85%]
+tests\e2e\複合ユースケース\test_transcribe_continuously_from_other_system.py . [ 85%]
+......                                                                   [ 90%]
+tests\e2e\複合ユースケース\test_transcribe_from_browser.py .......       [ 96%]
+tests\e2e\複合ユースケース\test_transcribe_from_other_system.py .....    [100%]
+
+====================== 128 passed in 2279.32s (0:37:59) =======================
+exit=0

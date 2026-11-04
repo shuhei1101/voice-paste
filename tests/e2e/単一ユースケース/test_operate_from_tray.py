@@ -39,9 +39,9 @@ def _token(data_dir: Path) -> object:
 
 
 def _settings_bytes(data_dir: Path) -> bytes | None:
-    """settings.toml の中身を読む（まだ無ければ None）。"""
+    """settings.yaml の中身を読む（まだ無ければ None）。"""
     try:
-        return (data_dir / "settings.toml").read_bytes()
+        return (data_dir / "settings.yaml").read_bytes()
     except OSError:
         return None
 
@@ -75,7 +75,7 @@ def test_normal_when_open_log_folder(run_app: RunApp) -> None:
 
 
 def test_normal_when_open_settings_folder(run_app: RunApp) -> None:
-    """「設定フォルダを開く」を選ぶと、settings.toml のあるフォルダを開く（正常シナリオ）。"""
+    """「設定フォルダを開く」を選ぶと、settings.yaml のあるフォルダを開く（正常シナリオ）。"""
 
     def case(app: ResidentApp) -> None:
         """メニューの項目を選び、開くはずのフォルダを確かめる。"""
@@ -147,15 +147,21 @@ def _quit_by_ctrl_break(app: ResidentApp) -> None:
 def _change_settings_field(app: ResidentApp) -> None:
     """設定画面を開いて、保存せずに欄の値を変える。"""
     app.open_settings()
-    app.select_group("録音")
-    app.set_field("recording.fade_sec", "2.5")
+    app.select_group("出力先")
+    app.set_field("outputs[0].enter_delay_sec", "2.5")
 
 
 @pytest.mark.parametrize(
     "quit_app",
     [
         pytest.param(_quit_by_tray_menu, id="tray_quit"),
-        pytest.param(_quit_by_ctrl_break, id="ctrl_break"),
+        pytest.param(
+            _quit_by_ctrl_break,
+            id="ctrl_break",
+            marks=pytest.mark.skipif(
+                not hasattr(signal, "SIGBREAK"), reason="SIGBREAK は Windows にだけある"
+            ),
+        ),
     ],
 )
 def test_normal_when_quit_with_unsaved_settings(
@@ -202,5 +208,5 @@ def test_normal_when_restart_with_unsaved_settings(run_app: RunApp) -> None:
     assert app.unexpected_dialogs == [], "変えた値を捨てる確認のダイアログが出た"
     _assert_restarted(app, old_tokens[0])
     assert _settings_bytes(app.data_dir) == settings_before[0], (
-        "設定画面で変えた値が settings.toml に保存された"
+        "設定画面で変えた値が settings.yaml に保存された"
     )

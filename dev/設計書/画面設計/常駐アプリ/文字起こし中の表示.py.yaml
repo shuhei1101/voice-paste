@@ -1,3 +1,4 @@
+id: SCR-7
 title: "文字起こし中の表示"
 elements:
   - name: 窓
@@ -8,8 +9,8 @@ elements:
     visible_when: ホットキー・トレイから始めたセッションが transcribing か delivering の間（`recording.hide_window` がオフのとき）。API から始めた録音では出さない
     source: UiBridge.notified（state_changed）
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[recording.hide_window]
-      - dev/設計書/設定/常駐アプリ#settings[ui.theme]
+      - CFG-1#settings[recording.hide_window]
+      - CFG-1#settings[ui.theme]
   - name: 状態の表示
     id: state_label
     kind: label
@@ -53,7 +54,7 @@ elements:
     visible_when: 常時
     action: ドラッグで窓を動かし、放した位置に置く
     refs:
-      - dev/設計書/画面設計/常駐アプリ/録音の画面.py#elements[見出しの行]
+      - SCR-10#elements[見出しの行]
     status: planned
     introduced:
       pr: 108
@@ -80,10 +81,10 @@ elements:
     target: 届ける出力先の差し替え（押したボタンの出力先の ID。入り口はモジュール構成『セッション』）
     action: 今の出力先のマーカーと貼り付けの案内を切り替えた先に変える
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[outputs[].enabled]
-      - dev/設計書/設定/常駐アプリ#settings[outputs[].hotkey]
-      - dev/設計書/設定/常駐アプリ#settings[ui.transcribing_show_hotkeys]
-      - dev/設計書/画面設計/常駐アプリ/録音の画面.py#elements[出力先の確定のボタン]
+      - CFG-1#settings[outputs[].enabled]
+      - CFG-1#settings[outputs[].hotkey]
+      - CFG-1#settings[ui.transcribing_show_hotkeys]
+      - SCR-10#elements[出力先の確定のボタン]
     status: planned
     introduced:
       pr: 108
@@ -97,7 +98,7 @@ elements:
     visible_when: カスタムプリセットで確定した録音のとき
     source: Session.output_preset.title
     refs:
-      - dev/設計書/設定/常駐アプリ#settings[presets[].title]
+      - CFG-1#settings[presets[].title]
     status: planned
     introduced:
       pr: 108
@@ -105,7 +106,7 @@ screen: src/voice_paste/ui/windows/transcribing_indicator.py
 mock: dev/mock/pages/transcribing-indicator/108/c-both/
 lead: 確定から届けるまで、録音の画面と同じ位置に出る小さな表示。文字起こしの経過と残りの時間、今の出力先を出し、固定の出力先への切り替えを受ける。
 refs:
-  - dev/設計書/シナリオ/単一ユースケース/録音を文字に起こす#
+  - SC-9#
 notes:
   閉じるとき: 届けた・結果が空のときは閉じてトレイだけに戻る。文字起こしに失敗・届けられないときは閉じてトレイの通知で知らせる
   出力先の切り替え: |-

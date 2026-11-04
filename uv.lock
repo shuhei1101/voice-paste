@@ -1323,6 +1323,15 @@ wheels = [
 ]
 
 [[package]]
+name = "ruamel-yaml"
+version = "0.19.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c7/3b/ebda527b56beb90cb7652cb1c7e4f91f48649fbcd8d2eb2fb6e77cd3329b/ruamel_yaml-0.19.1.tar.gz", hash = "sha256:53eb66cd27849eff968ebf8f0bf61f46cdac2da1d1f3576dd4ccee9b25c31993", size = 142709, upload-time = "2026-01-02T16:50:31.84Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b8/0c/51f6841f1d84f404f92463fc2b1ba0da357ca1e3db6b7fbda26956c3b82a/ruamel_yaml-0.19.1-py3-none-any.whl", hash = "sha256:27592957fedf6e0b62f281e96effd28043345e0e66001f97683aa9a40c667c93", size = 118102, upload-time = "2026-01-02T16:50:29.201Z" },
+]
+
+[[package]]
 name = "scipy"
 version = "1.17.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1620,7 +1629,7 @@ wheels = [
 
 [[package]]
 name = "voice-paste"
-version = "0.7.0"
+version = "0.7.1"
 source = { editable = "." }
 dependencies = [
     { name = "av" },
@@ -1639,6 +1648,7 @@ dependencies = [
     { name = "pyside6-essentials" },
     { name = "python-multipart" },
     { name = "python-xlib", marker = "sys_platform == 'linux'" },
+    { name = "ruamel-yaml" },
     { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "sounddevice" },
@@ -1680,6 +1690,7 @@ requires-dist = [
     { name = "pyside6-essentials", specifier = "~=6.11.2" },
     { name = "python-multipart", specifier = "~=0.0.32" },
     { name = "python-xlib", marker = "sys_platform == 'linux'", specifier = "~=0.33" },
+    { name = "ruamel-yaml", specifier = "~=0.19.1" },
     { name = "scipy", specifier = "~=1.13" },
     { name = "sounddevice", specifier = "~=0.5" },
     { name = "tomlkit", specifier = "~=0.15.1" },

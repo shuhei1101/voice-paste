@@ -1,6 +1,7 @@
 """integrations/keyboard/sender_wayland.py（UInputKeyboard の open・send_paste・send_enter・close）の単体テスト。
 
 evdev.UInput・time.sleep は Mock に差し替え、実物の `/dev/uinput` には触れない。
+フォーカスしているウィンドウの wm_class（read_focused_wm_class）も Mock に差し替え、拡張は呼ばない。
 キーの並びは UInput.write の呼び出しの並びで確かめる。
 evdev は Linux だけの依存のため、Windows では流さない。
 """
@@ -24,6 +25,9 @@ DEVICE_READY_SEC = 0.3
 FOCUS_SETTLE_SEC = 0.1
 """貼り付けのキーを送信する前の待ち。"""
 
+EDITOR_WM_CLASS = ("org.gnome.TextEditor", "org.gnome.TextEditor")
+"""既定でフォーカスしているウィンドウ（端末アプリでない GNOME テキストエディター）の wm_class。"""
+
 
 @pytest.fixture
 def uinput(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
@@ -43,11 +47,28 @@ def uinput(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     return parent
 
 
+@pytest.fixture
+def focused_wm_class(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
+    """sender_wayland が呼ぶ read_focused_wm_class を差し替えた Mock を返す。既定は端末アプリでないウィンドウ。"""
+    from voice_paste.integrations.keyboard import sender_wayland
+
+    mock = MagicMock(return_value=EDITOR_WM_CLASS)
+    monkeypatch.setattr(sender_wayland, "read_focused_wm_class", mock, raising=False)
+    return mock
+
+
 def _key(code: int, value: int) -> object:
     """仮想キーボードへ EV_KEY を書く呼び出し（value は 1 が押す、0 が離す）。"""
     from evdev import ecodes
 
     return call.device.write(ecodes.EV_KEY, code, value)
+
+
+def _write(code: int, value: int) -> object:
+    """UInput.write へ EV_KEY を書いた呼び出しの引数（value は 1 が押す、0 が離す）。"""
+    from evdev import ecodes
+
+    return call(ecodes.EV_KEY, code, value)
 
 
 # === UInputKeyboard.open ===
@@ -87,6 +108,7 @@ def test_open_when_permission_denied(uinput: MagicMock) -> None:
 # === UInputKeyboard.send_paste ===
 
 
+@pytest.mark.usefixtures("focused_wm_class")
 def test_send_paste(uinput: MagicMock) -> None:
     """待ってから修飾キーと主キーを順に押して離す（正常系）。"""
     from evdev import ecodes
@@ -109,6 +131,78 @@ def test_send_paste(uinput: MagicMock) -> None:
         _key(ecodes.KEY_V, 0),
         _key(ecodes.KEY_LEFTCTRL, 0),
         call.device.syn(),
+    ]
+
+
+def test_send_paste_when_terminal(uinput: MagicMock, focused_wm_class: MagicMock) -> None:
+    """端末アプリなら Ctrl+Shift+V を送信する（正常系）。"""
+    from evdev import ecodes
+
+    from voice_paste.integrations.keyboard.sender_wayland import UInputKeyboard
+
+    # 準備
+    focused_wm_class.return_value = ("gnome-terminal-server", "gnome-terminal-server")
+    keyboard = UInputKeyboard()
+    keyboard.open()
+    uinput.reset_mock()
+
+    # 実行
+    keyboard.send_paste("<ctrl>+v")
+
+    # 検証
+    assert uinput.device.write.call_args_list == [
+        _write(ecodes.KEY_LEFTCTRL, 1),
+        _write(ecodes.KEY_LEFTSHIFT, 1),
+        _write(ecodes.KEY_V, 1),
+        _write(ecodes.KEY_V, 0),
+        _write(ecodes.KEY_LEFTSHIFT, 0),
+        _write(ecodes.KEY_LEFTCTRL, 0),
+    ]
+
+
+def test_send_paste_when_class_name_matches(
+    uinput: MagicMock, focused_wm_class: MagicMock
+) -> None:
+    """クラス名だけが一覧にあっても端末アプリとして扱う（正常系）。"""
+    from evdev import ecodes
+
+    from voice_paste.integrations.keyboard.sender_wayland import UInputKeyboard
+
+    # 準備
+    focused_wm_class.return_value = ("console-x", "org.gnome.Console")
+    keyboard = UInputKeyboard()
+    keyboard.open()
+
+    # 実行
+    keyboard.send_paste("<ctrl>+v")
+
+    # 検証
+    assert _key(ecodes.KEY_LEFTSHIFT, 1) in uinput.mock_calls
+
+
+def test_send_paste_when_wm_class_unreadable(
+    uinput: MagicMock, focused_wm_class: MagicMock
+) -> None:
+    """wm_class を読めなければ設定のキーを送信する（正常系）。"""
+    from evdev import ecodes
+
+    from voice_paste.integrations.keyboard.sender_wayland import UInputKeyboard
+
+    # 準備
+    focused_wm_class.return_value = ()
+    keyboard = UInputKeyboard()
+    keyboard.open()
+    uinput.reset_mock()
+
+    # 実行
+    keyboard.send_paste("<ctrl>+v")
+
+    # 検証
+    assert uinput.device.write.call_args_list == [
+        _write(ecodes.KEY_LEFTCTRL, 1),
+        _write(ecodes.KEY_V, 1),
+        _write(ecodes.KEY_V, 0),
+        _write(ecodes.KEY_LEFTCTRL, 0),
     ]
 
 
@@ -139,6 +233,7 @@ def test_send_paste_when_unsupported_key(uinput: MagicMock) -> None:
     uinput.device.write.assert_not_called()
 
 
+@pytest.mark.usefixtures("focused_wm_class")
 def test_send_paste_when_write_failed(uinput: MagicMock) -> None:
     """書き込めなければ押した修飾キーを離して DeliveryError にする（異常系）。"""
     from evdev import ecodes

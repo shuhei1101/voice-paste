@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
@@ -60,6 +60,24 @@ def test_init_shows_icon_before_tooltip(
 # === set_state ===
 
 
+def test_set_state_when_starting(qapp: QApplication, tmp_path: Path) -> None:
+    """準備中は録音と設定を押せず、再起動と終了は押せる（正常系）。"""
+    from voice_paste.ui.tray import TrayState
+
+    # 準備
+    tray = make_tray(tmp_path)
+
+    # 実行
+    tray.set_state(TrayState.STARTING, busy=False)
+
+    # 検証
+    assert not _menu_action(tray, "録音を開始").isEnabled()
+    assert not _menu_action(tray, "設定…").isEnabled()
+    assert _menu_action(tray, "再起動").isEnabled()
+    assert _menu_action(tray, "終了").isEnabled()
+    assert tray._icon.toolTip() == "voice-paste: 準備中"
+
+
 def test_set_state_when_busy(qapp: QApplication, tmp_path: Path) -> None:
     """処理中は録音と設定を押せなくする（正常系）。"""
     from voice_paste.ui.tray import TrayState
@@ -80,12 +98,12 @@ def test_set_state_when_busy(qapp: QApplication, tmp_path: Path) -> None:
 
 
 def test_set_state_when_failed(qapp: QApplication, tmp_path: Path) -> None:
-    """失敗の起動では設定だけ押せる（正常系）。"""
+    """エンジンを準備できなかった起動では設定だけ押せる（正常系）。"""
     from voice_paste.ui.tray import TrayState
 
     # 準備
     tray = make_tray(tmp_path)
-    tray.set_failed()
+    tray.set_failed(settings_enabled=True)
 
     # 実行
     tray.set_state(TrayState.IDLE, busy=False)
@@ -95,6 +113,27 @@ def test_set_state_when_failed(qapp: QApplication, tmp_path: Path) -> None:
     settings = _menu_action(tray, "設定…")
     assert not start.isEnabled()
     assert settings.isEnabled()
+    assert tray._icon.toolTip() == "voice-paste: 失敗"
+
+
+def test_set_state_when_failed_without_settings(qapp: QApplication, tmp_path: Path) -> None:
+    """設定を読めなかった起動では録音も設定も押せない（正常系）。"""
+    from voice_paste.ui.tray import TrayState
+
+    # 準備
+    tray = make_tray(tmp_path)
+    tray.set_failed(settings_enabled=False)
+
+    # 実行
+    tray.set_state(TrayState.IDLE, busy=False)
+
+    # 検証
+    start = _menu_action(tray, "録音を開始（準備に失敗）")
+    settings = _menu_action(tray, "設定…")
+    restart = _menu_action(tray, "再起動")
+    assert not start.isEnabled()
+    assert not settings.isEnabled()
+    assert restart.isEnabled()
     assert tray._icon.toolTip() == "voice-paste: 失敗"
 
 
@@ -118,6 +157,43 @@ def test_show_failure(
     assert show_message.call_args.args[:2] == (
         "文字起こしできませんでした",
         "録音を読めませんでした。録音は履歴に残っています。",
+    )
+
+
+@pytest.mark.parametrize(
+    ("paths", "shown_paths"),
+    [
+        pytest.param(
+            (PureWindowsPath("C:/a/settings.yaml"),), "C:\\a\\settings.yaml", id="one_file"
+        ),
+        pytest.param(
+            (PureWindowsPath("C:/a/settings.yaml"), PureWindowsPath("C:/r/settings.local.yaml")),
+            "C:\\a\\settings.yaml・C:\\r\\settings.local.yaml",
+            id="two_files",
+        ),
+    ],
+)
+def test_show_failure_when_settings_invalid(
+    qapp: QApplication,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    paths: tuple[PureWindowsPath, ...],
+    shown_paths: str,
+) -> None:
+    """設定を読めないときは、読めなかったファイルのパスを本文に出す（正常系）。"""
+    # 準備
+    tray = make_tray(tmp_path)
+    show_message = MagicMock()
+    monkeypatch.setattr(QSystemTrayIcon, "showMessage", show_message)
+
+    # 実行
+    tray.show_failure("settings_invalid", "理由", paths=paths)
+
+    # 検証
+    show_message.assert_called_once()
+    assert show_message.call_args.args[:2] == (
+        "起動できませんでした",
+        f"設定ファイルを読み込めませんでした（理由）。{shown_paths} を修正して再起動してください。",
     )
 
 

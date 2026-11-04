@@ -1,3 +1,4 @@
+id: LIB-6
 title: "evdev"
 kind: "ライブラリ"
 version:
@@ -43,4 +44,4 @@ limitations:
   - item: 動く OS
     content: Linux だけ。Windows の wheel は無い
 refs:
-  - dev/設計書/外部ライブラリ/pyperclip#
+  - LIB-20#

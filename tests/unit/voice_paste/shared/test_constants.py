@@ -6,6 +6,9 @@ from pathlib import Path
 
 import pytest
 
+REPO_ROOT = Path(__file__).resolve().parents[4]
+"""リポジトリの直下。"""
+
 
 def test_resolve_app_paths_when_data_dir(tmp_path: Path) -> None:
     """データの置き場所の下に全てを置く（正常系）。"""
@@ -14,8 +17,11 @@ def test_resolve_app_paths_when_data_dir(tmp_path: Path) -> None:
     # 実行
     paths = resolve_app_paths(tmp_path)
 
-    # 検証（全てが data_dir の下で、フォルダは作られない）
-    assert paths.settings_file == tmp_path / "settings.toml"
+    # 検証（既定値の他は全てが data_dir の下で、checkout の上書きを読まず、フォルダは作られない）
+    assert paths.settings_file == tmp_path / "settings.yaml"
+    assert paths.legacy_settings_file == tmp_path / "settings.toml"
+    assert paths.local_settings_file is None
+    assert paths.defaults_file == REPO_ROOT / "config" / "defaults.yaml"
     assert paths.openai_api_key_file == tmp_path / "secrets" / "openai_api_key"
     assert paths.history_dir == tmp_path / "history"
     assert paths.log_dir == tmp_path / "log"
@@ -66,7 +72,9 @@ def test_resolve_app_paths_when_default(
     paths = resolve_app_paths(None)
 
     # 検証
-    assert paths.settings_file == config_dir / "settings.toml"
+    assert paths.settings_file == config_dir / "settings.yaml"
+    assert paths.legacy_settings_file == config_dir / "settings.toml"
+    assert paths.local_settings_file == REPO_ROOT / "settings.local.yaml"
     assert paths.openai_api_key_file == config_dir / "secrets" / "openai_api_key"
     assert paths.history_dir == local_dir / "history"
     assert paths.log_dir == local_dir / "log"

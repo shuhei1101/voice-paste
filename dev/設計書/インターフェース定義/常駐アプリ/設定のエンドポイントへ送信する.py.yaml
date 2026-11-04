@@ -1,3 +1,4 @@
+id: IF-7
 title: "設定のエンドポイントへ送信する"
 entry:
   kind: trigger
@@ -82,7 +83,7 @@ constraints:
     constraint: プリセットの Authorization の値が空でなければ、その値を `Authorization` ヘッダーに入れて送信する。空なら付けない。値は秘密としてログに書かない
   - item: タイムアウト
     constraint: 「エンドポイントへ送信」の全てのプリセットで共通の設定の値（既定・範囲は非機能要件のエンドポイントへ送信するときのタイムアウト）。届けるたびに設定を読む
-    decided_by: dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送信するときのタイムアウト]
+    decided_by: NFR-1#requirements[エンドポイントへ送信するときのタイムアウト]
   - item: 再送
     constraint: しない（1 回で届かなければ DeliveryError）
   - item: リダイレクト
@@ -90,7 +91,7 @@ constraints:
     notes: 認証のヘッダーを設定に書いていない先へ流さない
   - item: エンドポイントの応答時間
     constraint: エンドポイントは受け取ってから 1 秒以内に 2xx を返す。重い処理は 2xx を返した後で行う
-    decided_by: dev/設計書/非機能要件/非機能要件#requirements[エンドポイントへ送信するときのタイムアウト]
+    decided_by: NFR-1#requirements[エンドポイントへ送信するときのタイムアウト]
     notes: 利用者が用意するエンドポイントとの取り決めで、既定のタイムアウトはこの時間から導く。取り決めを守らない外のエンドポイント（Webhook 等）は、設定でタイムアウトを延ばす
 notes:
   送信する内容: |-
@@ -106,5 +107,5 @@ notes:
     }
     ```
 refs:
-  - dev/設計書/インターフェース定義/常駐アプリ/呼び出し元へ返す.py#notes.送信する内容
+  - IF-3#notes.送信する内容
 test_file: tests/integration/test_deliver_to_endpoint.py

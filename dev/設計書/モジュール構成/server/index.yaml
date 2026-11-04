@@ -1,0 +1,16 @@
+summary: server の設計書
+items:
+  - page: app.py.yaml
+    summary: 常駐アプリ / APIサーバー / app.py
+  - page: body_limit.py.yaml
+    summary: 常駐アプリ / APIサーバー / body_limit.py
+  - page: error_handlers.py.yaml
+    summary: 常駐アプリ / APIサーバー / error_handlers.py
+  - page: middleware.py.yaml
+    summary: 常駐アプリ / APIサーバー / middleware.py
+  - page: runner.py.yaml
+    summary: 常駐アプリ / APIサーバー / runner.py
+  - page: token.py.yaml
+    summary: 常駐アプリ / APIサーバー / token.py
+  - page: web_page.py.yaml
+    summary: 常駐アプリ / APIサーバー / web_page.py

@@ -1,0 +1,6 @@
+summary: browser の設計書
+items:
+  - page: opener.py.yaml
+    summary: 常駐アプリ / 外部連携 / opener.py
+  - page: opener_linux.py.yaml
+    summary: 常駐アプリ / 外部連携 / opener_linux.py

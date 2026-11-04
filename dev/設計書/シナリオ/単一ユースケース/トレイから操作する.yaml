@@ -1,3 +1,4 @@
+id: SC-2
 title: "トレイから操作する"
 scenarios:
   - name: 正常シナリオ（ログフォルダを開く）
@@ -30,10 +31,10 @@ scenarios:
         participant EXP as エクスプローラー
 
         U->>TRAY: 「設定フォルダを開く」を選ぶ
-        TRAY->>EXP: settings.toml のあるフォルダを開く
+        TRAY->>EXP: settings.yaml のあるフォルダを開く
       ```
     expected:
-      - エクスプローラーで `settings.toml` のあるフォルダ（`%APPDATA%\voice-paste\`。データの置き場所を渡した起動ではそのフォルダ）が開いている
+      - エクスプローラーで `settings.yaml` のあるフォルダ（`%APPDATA%\voice-paste\`。データの置き場所を渡した起動ではそのフォルダ）が開いている
     test: test_normal_when_open_settings_folder
   - name: 正常シナリオ（再起動する）
     setup:
@@ -58,7 +59,7 @@ scenarios:
       ```
     expected:
       - 前の常駐アプリのプロセスが終わっている
-      - 新しい常駐アプリが待機中になり、`settings.toml` の今の設定で動いている
+      - 新しい常駐アプリが待機中になり、今の設定（`config/defaults.yaml`・`settings.yaml`・`settings.local.yaml` を重ねた値）で動いている
     test: test_normal_when_restart
   - name: 正常シナリオ（終了する）
     setup:
@@ -137,7 +138,7 @@ scenarios:
       ```
     expected:
       - 変えた値を捨てる確認を出さずに、前の常駐アプリのプロセスが終わっている
-      - 新しい常駐アプリが待機中になり、設定画面で変えた値は `settings.toml` に保存されていない
+      - 新しい常駐アプリが待機中になり、設定画面で変えた値は `settings.yaml` に保存されていない
     test: test_normal_when_restart_with_unsaved_settings
 lead: トレイのアイコンのメニューから、フォルダを開く・再起動する・終了する単一ユースケース。
 issue: 21

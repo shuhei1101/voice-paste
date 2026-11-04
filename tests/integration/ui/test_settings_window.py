@@ -50,6 +50,7 @@ from tests.integration.ui.helpers import (
     no_modal,
     top_level_windows,
 )
+from tests.support.settings import default_output, load_test_default_settings, make_settings
 from voice_paste.main import SETTINGS_MODEL
 
 if TYPE_CHECKING:
@@ -243,22 +244,17 @@ def test_settings_window_title_and_width(open_window: Callable[..., Opened]) -> 
 
 
 def test_settings_window_initial_value(open_window: Callable[..., Opened]) -> None:
-    """開いたときの settings.toml の値を欄に入れる。"""
-    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
-    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
-    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
-    from voice_paste.shared.settings import HistorySettings, HotkeySettings, RecordingSettings, Settings, UiSettings
-
+    """開いたときの settings.yaml の値を欄に入れる。"""
     # 準備
-    settings = SETTINGS_MODEL(
-        recording=RecordingSettings(fade_sec=1.5, hide_window=True, volume_percent=35),
-        ui=UiSettings(position="top-left"),
-        hotkeys=HotkeySettings(start="<ctrl>+<alt>+s"),
-        history=HistorySettings(retention_days=3),
+    settings = make_settings(
+        recording=dict(fade_sec=1.5, hide_window=True, volume_percent=35),
+        ui=dict(position="top-left"),
+        hotkeys=dict(start="<ctrl>+<alt>+s"),
+        history=dict(retention_days=3),
         outputs=[
-            PasteAndSendSettings(enabled=False, enter_delay_sec=0.8),
-            PasteOnlySettings(),
-            CopyOnlySettings(),
+            default_output("paste_and_send", enabled=False, enter_delay_sec=0.8),
+            default_output("paste_only"),
+            default_output("copy_only"),
         ],
     )
 
@@ -336,6 +332,85 @@ def test_group_menu_action(
     assert not _field(window, hidden_key).isVisible()
 
 
+@pytest.fixture
+def app_point_size(qapp: QApplication) -> Iterator[Callable[[int], None]]:
+    """QApplication の文字の大きさ（pt）を変える関数を返す。テストの後に元の文字に戻す。"""
+    original = qapp.font()
+
+    def _set(point_size: int) -> None:
+        """窓を開く前に、文字の大きさを変える。"""
+        font = qapp.font()
+        font.setPointSize(point_size)
+        qapp.setFont(font)
+
+    yield _set
+    qapp.setFont(original)
+
+
+GROUP_MENU_SHORT_WINDOW_HEIGHT_PX = 200
+"""まとまりのメニューの全ての項目が収まらず、縦のスクロールバーが出る窓の高さ。"""
+
+
+def _shrink_until_vertical_scroll_bar(opened: Opened, qapp: QApplication) -> QListWidget:
+    """窓の高さを縮めて、まとまりのメニューに縦のスクロールバーを出す。"""
+    opened.window.resize(opened.window.width(), GROUP_MENU_SHORT_WINDOW_HEIGHT_PX)
+    qapp.processEvents()
+    return find(opened.window, QListWidget, "group_menu")
+
+
+def test_group_menu_width_when_items_fit_min_width(
+    open_window: Callable[..., Opened], app_point_size: Callable[[int], None]
+) -> None:
+    """最も長い項目が収まるときは、幅は下限の 160px のままで、横のスクロールバーを出さない。"""
+    # 準備
+    app_point_size(6)
+
+    # 実行
+    menu = find(open_window().window, QListWidget, "group_menu")
+
+    # 検証
+    assert menu.width() == 160
+    assert menu.sizeHintForColumn(0) <= menu.viewport().width()
+    assert menu.horizontalScrollBarPolicy() == Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+    assert not menu.horizontalScrollBar().isVisible()
+
+
+def test_group_menu_width_when_items_exceed_min_width(
+    open_window: Callable[..., Opened], app_point_size: Callable[[int], None]
+) -> None:
+    """最も長い項目が 160px に収まらないときだけ、項目が横のスクロールバーなしで収まる幅に広げる。"""
+    # 準備
+    app_point_size(20)
+
+    # 実行
+    menu = find(open_window().window, QListWidget, "group_menu")
+
+    # 検証
+    assert menu.width() > 160
+    assert menu.sizeHintForColumn(0) <= menu.viewport().width()
+    assert not menu.horizontalScrollBar().isVisible()
+
+
+def test_group_menu_width_when_vertical_scroll_bar(
+    qapp: QApplication, open_window: Callable[..., Opened], app_point_size: Callable[[int], None]
+) -> None:
+    """縦のスクロールバーが出たら、その幅も加えて広げ、項目は横のスクロールバーなしで収まる。"""
+    # 準備
+    app_point_size(20)
+    opened = open_window()
+    width_before = find(opened.window, QListWidget, "group_menu").width()
+
+    # 実行
+    menu = _shrink_until_vertical_scroll_bar(opened, qapp)
+
+    # 検証
+    scroll_bar = menu.verticalScrollBar()
+    assert scroll_bar.isVisible()
+    assert menu.width() == width_before + scroll_bar.sizeHint().width()
+    assert menu.sizeHintForColumn(0) <= menu.viewport().width()
+    assert not menu.horizontalScrollBar().isVisible()
+
+
 def test_group_menu_keeps_values(open_window: Callable[..., Opened]) -> None:
     """切り替えても入れた値は削除しない。"""
     # 準備
@@ -356,14 +431,14 @@ def test_group_menu_keeps_values(open_window: Callable[..., Opened]) -> None:
 
 
 def test_field_for_every_setting_key(open_window: Callable[..., Opened]) -> None:
-    """settings.toml の全てのキーに欄がある（項目を追加しても画面の修正が増えない。出力先・プリセット・用語集は、それぞれのまとまりの一覧が持つ）。"""
+    """settings.yaml の全てのキーに欄がある（項目を追加しても画面の修正が増えない。出力先・プリセット・用語集は、それぞれのまとまりの一覧が持つ）。"""
     from voice_paste.shared.settings import Settings
 
     # 実行
     window = open_window().window
 
     # 検証
-    for key in _leaf_keys(SETTINGS_MODEL()):
+    for key in _leaf_keys(load_test_default_settings()):
         assert window.findChild(QWidget, f"field_{key}") or window.findChild(
             QWidget, f"hotkey_{key}"
         ), f"{key} の欄が無い"
@@ -443,10 +518,8 @@ def test_field_engine_when_saved(open_window: Callable[..., Opened]) -> None:
 
 def test_field_engine_when_openai(open_window: Callable[..., Opened]) -> None:
     """設定のエンジンが openai のときは、選択欄が「OpenAI API」を選んだ状態で開く。"""
-    from voice_paste.shared.settings import TranscriptionSettings
-
     # 実行
-    window = open_window(SETTINGS_MODEL(transcription=TranscriptionSettings(engine="openai"))).window
+    window = open_window(make_settings(transcription=dict(engine="openai"))).window
 
     # 検証
     assert _field(window, "transcription.engine", QComboBox).currentText() == "OpenAI API"
@@ -474,7 +547,7 @@ def test_field_openai_fields(open_window: Callable[..., Opened]) -> None:
     assert (
         "文字起こしのエンジンが OpenAI API のときに使う。"
         "API キーはここでは入れず、環境変数 OPENAI_API_KEY か、"
-        "settings.toml と同じフォルダの secrets/openai_api_key に置く。"
+        "settings.yaml と同じフォルダの secrets/openai_api_key に置く。"
     ) in texts
 
 
@@ -500,7 +573,7 @@ def test_field_openai_fields_when_saved(open_window: Callable[..., Opened]) -> N
 
 
 def test_field_name_and_key(open_window: Callable[..., Opened]) -> None:
-    """欄の名前（設定の項目の説明）と、欄の右に settings.toml のキーを出す。"""
+    """欄の名前（設定の項目の説明）と、欄の右に settings.yaml のキーを出す。"""
     from voice_paste.shared.settings import ApiSettings
 
     # 準備
@@ -551,12 +624,10 @@ def test_hotkey_field_initial_value(open_window: Callable[..., Opened]) -> None:
 @pytest.mark.skipif(sys.platform != "win32", reason="Windows の表示名を確かめるため Windows でだけ流す")
 def test_hotkey_field_initial_value_when_cmd_on_windows(open_window: Callable[..., Opened]) -> None:
     """`<cmd>` を含むホットキーは、Windows では `Win` で出す。"""
-    from voice_paste.shared.settings import HotkeySettings, KeyboardSettings
-
     # 準備
-    settings = SETTINGS_MODEL(
-        hotkeys=HotkeySettings(start="<cmd>+<alt>+d"),
-        keyboard=KeyboardSettings(paste_key="<cmd>+v"),
+    settings = make_settings(
+        hotkeys=dict(start="<cmd>+<alt>+d"),
+        keyboard=dict(paste_key="<cmd>+v"),
     )
 
     # 実行
@@ -571,12 +642,10 @@ def test_hotkey_field_initial_value_when_cmd_on_windows(open_window: Callable[..
 @pytest.mark.skipif(sys.platform == "win32", reason="Linux の表示名を確かめるため Windows では流さない")
 def test_hotkey_field_initial_value_when_cmd_on_linux(open_window: Callable[..., Opened]) -> None:
     """`<cmd>` を含むホットキーは、Linux では `Super` で出す。"""
-    from voice_paste.shared.settings import HotkeySettings, KeyboardSettings
-
     # 準備
-    settings = SETTINGS_MODEL(
-        hotkeys=HotkeySettings(start="<cmd>+<alt>+d"),
-        keyboard=KeyboardSettings(paste_key="<cmd>+v"),
+    settings = make_settings(
+        hotkeys=dict(start="<cmd>+<alt>+d"),
+        keyboard=dict(paste_key="<cmd>+v"),
     )
 
     # 実行
@@ -657,7 +726,7 @@ def _settings_with_presets() -> Settings:
     """ブラウザ添付 2 件とエンドポイントへ送信 1 件のプリセットを持つ設定を作る。"""
     from voice_paste.shared.settings import BrowserPreset, EndpointPreset, Settings
 
-    return SETTINGS_MODEL(
+    return make_settings(
         presets=[
             EndpointPreset(
                 title="受信先",
@@ -804,7 +873,7 @@ def test_preset_move_buttons_action(open_window: Callable[..., Opened]) -> None:
 
 
 def test_preset_remove_button_action(open_window: Callable[..., Opened]) -> None:
-    """削除ボタンは、プリセットを一覧から削除する（保存するまで settings.toml には書かない）。最後の 1 件を削除すると案内が出る。"""
+    """削除ボタンは、プリセットを一覧から削除する（保存するまで settings.yaml には書かない）。最後の 1 件を削除すると案内が出る。"""
     # 準備
     opened = open_window(_settings_with_presets())
     window = opened.window
@@ -988,10 +1057,8 @@ def test_save_and_restart_button_when_invalid(open_window: Callable[..., Opened]
 
 def _settings_with_small_model() -> Settings:
     """文字起こしのモデルを既定から変えた設定（既定に戻すと「再起動で反映」の設定が 1 件変わる）。"""
-    from voice_paste.shared.settings import LocalWhisperSettings, Settings, TranscriptionSettings
-
-    return SETTINGS_MODEL(
-        transcription=TranscriptionSettings(local_whisper=LocalWhisperSettings(model="small"))
+    return make_settings(
+        transcription=dict(local_whisper=dict(model="small"))
     )
 
 
@@ -1055,9 +1122,7 @@ def test_reset_dialog_when_back(open_window: Callable[..., Opened]) -> None:
 
 
 def test_reset_dialog_when_reset(open_window: Callable[..., Opened]) -> None:
-    """「既定に戻す」は全てのキーを既定の値で書き、設定画面に戻って既定の値を欄に入れる。"""
-    from voice_paste.shared.settings import Settings
-
+    """「既定に戻す」は settings.yaml から全てのキーを外し、設定画面に戻って既定の値を欄に入れる。"""
     # 準備
     opened = open_window()
     _set_text(opened.window, IMMEDIATE_KEY, "1.75")
@@ -1069,10 +1134,62 @@ def test_reset_dialog_when_reset(open_window: Callable[..., Opened]) -> None:
 
     # 検証
     driver.verify()
-    opened.deps.save_settings.assert_called_once_with(SETTINGS_MODEL(), {})
+    opened.deps.reset_settings.assert_called_once_with()
+    opened.deps.save_settings.assert_not_called()
     assert _field(opened.window, IMMEDIATE_KEY, QLineEdit).text() == "0.5"
     assert opened.window.isVisible()
 
+
+def test_reset_dialog_when_local_settings(
+    open_window: Callable[..., Opened], tmp_path: Path
+) -> None:
+    """「既定に戻す」は settings.yaml から全てのキーを外し、settings.local.yaml にあるキーはその値を欄に入れる。"""
+    import dataclasses
+    from functools import partial
+
+    from voice_paste.main import reset_applied_settings
+    from voice_paste.runtime.settings_store import SettingsStore
+    from voice_paste.shared.constants import resolve_app_paths
+    from voice_paste.shared.settings import load_settings
+    from voice_paste.shared.yaml_document import read_yaml_mapping
+
+    # 準備: 環境の値で 2 つのキーを、checkout の上書き（一時フォルダ）で 1 つのキーを変えた設定で開く
+    paths = dataclasses.replace(
+        resolve_app_paths(tmp_path / "data"),
+        local_settings_file=tmp_path / "checkout" / "settings.local.yaml",
+    )
+    paths.settings_file.parent.mkdir(parents=True)
+    paths.settings_file.write_text(
+        "recording:\n  fade_sec: 1.25\n  volume_percent: 30\n", encoding="utf-8"
+    )
+    assert paths.local_settings_file is not None
+    paths.local_settings_file.parent.mkdir(parents=True)
+    paths.local_settings_file.write_text("recording:\n  volume_percent: 70\n", encoding="utf-8")
+    store = SettingsStore(load_settings(paths, SETTINGS_MODEL))
+    opened = open_window(
+        store.get(),
+        get_settings=store.get,
+        reset_settings=partial(
+            reset_applied_settings, paths=paths, store=store, model=SETTINGS_MODEL
+        ),
+    )
+    driver = ModalDriver()
+    driver.answer("reset_button")
+
+    # 実行
+    _click(opened.window, "reset_button")
+
+    # 検証
+    driver.verify()
+    assert read_yaml_mapping(paths.settings_file) == {}
+    assert _field(opened.window, IMMEDIATE_KEY, QLineEdit).text() == "0.5"
+    assert _field(opened.window, "recording.volume_percent", QSlider).value() == 70
+    assert store.get().recording.volume_percent == 70
+    assert paths.local_settings_file.read_text(encoding="utf-8") == (
+        "recording:\n  volume_percent: 70\n"
+    )
+    opened.deps.save_settings.assert_not_called()
+    assert opened.window.isVisible()
 
 def test_reset_notice_when_restart_setting_changed(open_window: Callable[..., Opened]) -> None:
     """既定に戻して「再起動で反映」の設定の値が変わったとき、件数つきの知らせと「今すぐ再起動」を出す。"""
@@ -1204,7 +1321,7 @@ def test_discard_dialog_content(open_window: Callable[..., Opened]) -> None:
 
 
 def test_discard_dialog_when_discard(open_window: Callable[..., Opened]) -> None:
-    """「捨てて閉じる」はダイアログと設定画面を閉じる。settings.toml は書かない。"""
+    """「捨てて閉じる」はダイアログと設定画面を閉じる。settings.yaml は書かない。"""
     # 準備
     opened = open_window()
     _set_text(opened.window, IMMEDIATE_KEY, "1.0")
@@ -1311,14 +1428,14 @@ def test_enter_modifiers_when_visible(open_window: Callable[..., Opened]) -> Non
 
 
 def test_enter_modifiers_when_initial_value(open_window: Callable[..., Opened]) -> None:
-    """開いたときの settings.toml の修飾キーだけをオンにして開く（既定は全てオフ）。"""
-    from voice_paste.features.outputs.copy_only.settings import CopyOnlySettings
-    from voice_paste.features.outputs.paste_and_send.settings import PasteAndSendSettings
-    from voice_paste.features.outputs.paste_only.settings import PasteOnlySettings
-
+    """開いたときの settings.yaml の修飾キーだけをオンにして開く（既定は全てオフ）。"""
     # 準備
-    settings = SETTINGS_MODEL(
-        outputs=[PasteAndSendSettings(enter_modifiers=["alt"]), PasteOnlySettings(), CopyOnlySettings()]
+    settings = make_settings(
+        outputs=[
+            default_output("paste_and_send", enter_modifiers=["alt"]),
+            default_output("paste_only"),
+            default_output("copy_only"),
+        ]
     )
 
     # 実行
@@ -1357,10 +1474,8 @@ def test_ui_theme_field_initial_value(
     open_window: Callable[..., Opened], theme: str, checked: str
 ) -> None:
     """「画面」のまとまりの先頭に「画面の明暗」があり、今の ui.theme のボタンが選ばれている。"""
-    from voice_paste.shared.settings import UiSettings
-
     # 準備
-    window = open_window(SETTINGS_MODEL(ui=UiSettings(theme=theme))).window
+    window = open_window(make_settings(ui=dict(theme=theme))).window
 
     # 実行
     find(window, QListWidget, "group_menu").setCurrentRow(THEME_GROUP_ROW)
@@ -1378,23 +1493,25 @@ def test_ui_theme_field_initial_value(
 def test_ui_theme_field_action(
     make_ui: Callable[..., Ui], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """別の値を選んで保存すると settings.toml の ui.theme が書き換わり、再起動せずに明暗を当て直す（再起動のマーカーは出ない）。"""
+    """別の値を選んで保存すると settings.yaml の ui.theme が書き換わり、再起動せずに明暗を当て直す（再起動のマーカーは出ない）。"""
     from functools import partial
 
     from voice_paste.main import apply_settings
     from voice_paste.runtime.settings_store import SettingsStore
+    from voice_paste.shared.constants import resolve_app_paths
     from voice_paste.shared.settings import load_settings
+    from voice_paste.shared.yaml_document import read_yaml_mapping
 
-    # 準備: 本物の保存（settings.toml へ書く）につなぎ、ui.theme=system で設定画面を開く
-    settings_file = tmp_path / "settings.toml"
-    store = SettingsStore(load_settings(settings_file, SETTINGS_MODEL))
+    # 準備: 本物の保存（settings.yaml へ書く）につなぎ、ui.theme=system で設定画面を開く
+    paths = resolve_app_paths(tmp_path)
+    store = SettingsStore(load_settings(paths, SETTINGS_MODEL))
     apply_theme = MagicMock(return_value=None)
     ui = make_ui(
         store.get(),
         get_settings=store.get,
         save_settings=partial(
             apply_settings,
-            settings_file=settings_file,
+            paths=paths,
             store=store,
             check_hotkeys=lambda _hotkeys: None,
             save_glossary=MagicMock(),
@@ -1415,8 +1532,8 @@ def test_ui_theme_field_action(
     _click(window, "save_button")
 
     # 検証
-    assert load_settings(settings_file, SETTINGS_MODEL).ui.theme == "light"
-    assert 'theme = "light"' in settings_file.read_text(encoding="utf-8")
+    assert load_settings(paths, SETTINGS_MODEL).ui.theme == "light"
+    assert read_yaml_mapping(paths.settings_file)["ui"] == {"theme": "light"}
     apply_theme.assert_called_once_with()
     assert window.isVisible()
     assert find(window, QLabel, "saved_notice").text() == "保存しました。"
@@ -1436,10 +1553,8 @@ def test_ui_show_hotkeys_field_initial_value(
     open_window: Callable[..., Opened], show_hotkeys: bool
 ) -> None:
     """「画面」のまとまりの末尾に、欄の名前が「録音の画面のボタンにホットキーを表示するか」のチェックボックスがあり、今の ui.show_hotkeys の値になっている（再起動のマーカーは出ない）。"""
-    from voice_paste.shared.settings import UiSettings
-
     # 準備
-    window = open_window(SETTINGS_MODEL(ui=UiSettings(show_hotkeys=show_hotkeys))).window
+    window = open_window(make_settings(ui=dict(show_hotkeys=show_hotkeys))).window
 
     # 実行
     find(window, QListWidget, "group_menu").setCurrentRow(THEME_GROUP_ROW)
@@ -1455,22 +1570,24 @@ def test_ui_show_hotkeys_field_initial_value(
 def test_ui_show_hotkeys_field_action(
     make_ui: Callable[..., Ui], tmp_path: Path
 ) -> None:
-    """チェックを外して保存すると settings.toml の ui.show_hotkeys が false に書き換わり、再起動せずに効く（再起動のマーカーは出ない）。"""
+    """チェックを外して保存すると settings.yaml の ui.show_hotkeys が false に書き換わり、再起動せずに効く（再起動のマーカーは出ない）。"""
     from functools import partial
 
     from voice_paste.main import apply_settings
     from voice_paste.runtime.settings_store import SettingsStore
+    from voice_paste.shared.constants import resolve_app_paths
     from voice_paste.shared.settings import load_settings
+    from voice_paste.shared.yaml_document import read_yaml_mapping
 
-    # 準備: 本物の保存（settings.toml へ書く）につなぎ、既定（ui.show_hotkeys=true）で設定画面を開く
-    settings_file = tmp_path / "settings.toml"
-    store = SettingsStore(load_settings(settings_file, SETTINGS_MODEL))
+    # 準備: 本物の保存（settings.yaml へ書く）につなぎ、既定（ui.show_hotkeys=true）で設定画面を開く
+    paths = resolve_app_paths(tmp_path)
+    store = SettingsStore(load_settings(paths, SETTINGS_MODEL))
     ui = make_ui(
         store.get(),
         get_settings=store.get,
         save_settings=partial(
             apply_settings,
-            settings_file=settings_file,
+            paths=paths,
             store=store,
             check_hotkeys=lambda _hotkeys: None,
             save_glossary=MagicMock(),
@@ -1486,10 +1603,10 @@ def test_ui_show_hotkeys_field_action(
     _click(window, "save_button")
 
     # 検証
-    saved = load_settings(settings_file, SETTINGS_MODEL)
+    saved = load_settings(paths, SETTINGS_MODEL)
     assert not saved.ui.show_hotkeys
     assert saved.ui.transcribing_show_hotkeys
-    assert "show_hotkeys = false" in settings_file.read_text(encoding="utf-8").splitlines()
+    assert read_yaml_mapping(paths.settings_file)["ui"] == {"show_hotkeys": False}
     assert not store.get().ui.show_hotkeys
     assert store.get().ui.transcribing_show_hotkeys
     assert window.isVisible()
@@ -1501,12 +1618,10 @@ def test_ui_transcribing_show_hotkeys_field_initial_value(
     open_window: Callable[..., Opened], transcribing_show_hotkeys: bool
 ) -> None:
     """「画面」のまとまりの末尾の ui.show_hotkeys の次に、欄の名前が「文字起こし中の表示のボタンにホットキーを表示するか」のチェックボックスがあり、今の ui.transcribing_show_hotkeys の値になっている（再起動のマーカーは出ない）。"""
-    from voice_paste.shared.settings import UiSettings
-
     # 準備: 録音の画面の値とは逆にして、欄が自分のキーの値を出すことを確かめる
     window = open_window(
-        SETTINGS_MODEL(
-            ui=UiSettings(
+        make_settings(
+            ui=dict(
                 show_hotkeys=not transcribing_show_hotkeys,
                 transcribing_show_hotkeys=transcribing_show_hotkeys,
             )
@@ -1527,22 +1642,24 @@ def test_ui_transcribing_show_hotkeys_field_initial_value(
 def test_ui_transcribing_show_hotkeys_field_action(
     make_ui: Callable[..., Ui], tmp_path: Path
 ) -> None:
-    """チェックを外して保存すると settings.toml の ui.transcribing_show_hotkeys だけが false に書き換わり、再起動せずに効く（再起動のマーカーは出ない）。"""
+    """チェックを外して保存すると settings.yaml の ui.transcribing_show_hotkeys だけが false に書き換わり、再起動せずに効く（再起動のマーカーは出ない）。"""
     from functools import partial
 
     from voice_paste.main import apply_settings
     from voice_paste.runtime.settings_store import SettingsStore
+    from voice_paste.shared.constants import resolve_app_paths
     from voice_paste.shared.settings import load_settings
+    from voice_paste.shared.yaml_document import read_yaml_mapping
 
-    # 準備: 本物の保存（settings.toml へ書く）につなぎ、既定（どちらも true）で設定画面を開く
-    settings_file = tmp_path / "settings.toml"
-    store = SettingsStore(load_settings(settings_file, SETTINGS_MODEL))
+    # 準備: 本物の保存（settings.yaml へ書く）につなぎ、既定（どちらも true）で設定画面を開く
+    paths = resolve_app_paths(tmp_path)
+    store = SettingsStore(load_settings(paths, SETTINGS_MODEL))
     ui = make_ui(
         store.get(),
         get_settings=store.get,
         save_settings=partial(
             apply_settings,
-            settings_file=settings_file,
+            paths=paths,
             store=store,
             check_hotkeys=lambda _hotkeys: None,
             save_glossary=MagicMock(),
@@ -1558,10 +1675,10 @@ def test_ui_transcribing_show_hotkeys_field_action(
     _click(window, "save_button")
 
     # 検証
-    saved = load_settings(settings_file, SETTINGS_MODEL)
+    saved = load_settings(paths, SETTINGS_MODEL)
     assert not saved.ui.transcribing_show_hotkeys
     assert saved.ui.show_hotkeys
-    assert "transcribing_show_hotkeys = false" in settings_file.read_text(encoding="utf-8")
+    assert read_yaml_mapping(paths.settings_file)["ui"] == {"transcribing_show_hotkeys": False}
     assert not store.get().ui.transcribing_show_hotkeys
     assert store.get().ui.show_hotkeys
     assert window.isVisible()
@@ -1591,7 +1708,7 @@ def test_save_button_action(open_window: Callable[..., Opened]) -> None:
 
 
 def test_save_button_when_enter_modifiers(open_window: Callable[..., Opened]) -> None:
-    """オンにした修飾キーを、列挙の並び（Ctrl・Alt・Shift）で settings.toml の enter_modifiers に書く。"""
+    """オンにした修飾キーを、列挙の並び（Ctrl・Alt・Shift）で settings.yaml の enter_modifiers に書く。"""
     # 準備（Shift → Ctrl の順にオンにする）
     opened = open_window()
     _field(opened.window, "outputs[0].enter_modifiers_shift", QCheckBox).setChecked(True)
@@ -1617,7 +1734,7 @@ def test_save_button_when_default(open_window: Callable[..., Opened], tmp_path: 
     _click(opened.window, "save_button")
 
     # 検証
-    expected = SETTINGS_MODEL(
+    expected = make_settings(
         glossaries=[GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")],
         glossary_presets=[GlossaryPresetSettings(name="既定", glossaries=["yogo"])],
         active_glossary_preset="既定",
@@ -1626,12 +1743,10 @@ def test_save_button_when_default(open_window: Callable[..., Opened], tmp_path: 
 
 
 def test_field_when_hidden_keys(open_window: Callable[..., Opened]) -> None:
-    """出さない設定のキー（Linux の録音中の音量）は欄を置かず、保存しても settings.toml のその値を変えない。"""
-    from voice_paste.shared.settings import RecordingSettings
-
+    """出さない設定のキー（Linux の録音中の音量）は欄を置かず、保存しても settings.yaml のその値を変えない。"""
     # 準備: 既定と違う音量の値の設定を、音量のキーを出さない UiDeps で開く
-    settings = SETTINGS_MODEL(
-        recording=RecordingSettings(lower_volume=False, volume_percent=40, fade_sec=1.5)
+    settings = make_settings(
+        recording=dict(lower_volume=False, volume_percent=40, fade_sec=1.5)
     )
     opened = open_window(settings, hidden_setting_keys=frozenset(VOLUME_KEYS))
 
@@ -1650,15 +1765,14 @@ def test_field_when_hidden_keys(open_window: Callable[..., Opened]) -> None:
 
 
 def test_field_when_hidden_keys_of_linux(open_window: Callable[..., Opened]) -> None:
-    """動いている OS で使えない機能（Linux の録音中の音量と外の端末のブラウザの機能）の設定のキーは欄を置かず、保存しても settings.toml のその値を変えない。"""
+    """動いている OS で使えない機能（Linux の録音中の音量と外の端末のブラウザの機能）の設定のキーは欄を置かず、保存しても settings.yaml のその値を変えない。"""
     from voice_paste.shared.os_kind import OsKind, hidden_setting_keys, unavailable_features
-    from voice_paste.shared.settings import ApiSettings, RecordingSettings
 
     # 準備: 既定と違う値の設定を、Linux で出さないキーを渡した UiDeps で開く
     hidden_keys = hidden_setting_keys(unavailable_features(OsKind.LINUX))
-    settings = SETTINGS_MODEL(
-        recording=RecordingSettings(lower_volume=False, volume_percent=40, fade_sec=1.5),
-        api=ApiSettings(allowed_web_origins=["https://voice.example.com"]),
+    settings = make_settings(
+        recording=dict(lower_volume=False, volume_percent=40, fade_sec=1.5),
+        api=dict(allowed_web_origins=["https://voice.example.com"]),
     )
     opened = open_window(settings, hidden_setting_keys=hidden_keys)
 
@@ -2274,7 +2388,7 @@ def _open_glossaries(
 
     行を読む関数と追加する場所を決める関数と用語集のプリセットの一覧を引く関数は本物（read_glossary_rows・next_glossary_path・resolve_glossary_presets）を渡す。
     中身が None の CSV は書かない（フォルダを置いて開けない CSV にするときに使う）。
-    presets は（プリセットの名前, 使う用語集の名前の並び）の並び。渡さなければ settings.toml に glossary_presets が無い状態で、active は今までの active_glossary。
+    presets は（プリセットの名前, 使う用語集の名前の並び）の並び。渡さなければ settings.yaml に glossary_presets が無い状態で、active は今までの active_glossary。
     """
     from functools import partial
 
@@ -2293,7 +2407,7 @@ def _open_glossaries(
         elif content is not None:
             path.write_text(content, encoding="utf-8")
         glossaries.append(GlossarySettings(name=name, path=path))
-    settings = SETTINGS_MODEL(
+    settings = make_settings(
         glossaries=glossaries,
         active_glossary=active,
         glossary_presets=[
@@ -2362,7 +2476,7 @@ def test_glossary_list_when_visible(open_window: Callable[..., Opened]) -> None:
 
 
 def test_glossary_list_initial_value(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """一覧は settings.toml の glossaries の並びで 1 行ずつ出し、列は「名前」「使うプリセット」「行」と削除ボタン。"""
+    """一覧は settings.yaml の glossaries の並びで 1 行ずつ出し、列は「名前」「使うプリセット」「行」と削除ボタン。"""
     # 実行
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
 
@@ -2385,7 +2499,7 @@ def test_glossary_list_when_glossaries_empty(
     # 準備
     csv_file = tmp_path / "terms.csv"
     csv_file.write_text(CSV_TWO_ROWS, encoding="utf-8")
-    settings = SETTINGS_MODEL(glossary_path=csv_file)
+    settings = make_settings(glossary_path=csv_file)
 
     # 実行
     opened = open_window(
@@ -2472,7 +2586,7 @@ def test_glossary_preset_list_when_visible(open_window: Callable[..., Opened]) -
 def test_glossary_preset_list_initial_value(
     open_window: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """一覧は settings.toml の glossary_presets の並びで 1 行ずつ出し、列は「補正に使う」「名前」「用語集」と削除ボタン。"""
+    """一覧は settings.yaml の glossary_presets の並びで 1 行ずつ出し、列は「補正に使う」「名前」「用語集」と削除ボタン。"""
     # 実行
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
 
@@ -2525,7 +2639,7 @@ def test_glossary_preset_list_when_presets_empty(
 def test_glossary_preset_active_initial_value(
     open_window: Callable[..., Opened], tmp_path: Path, active: str | None, checked: list[bool]
 ) -> None:
-    """補正に使うプリセットは、settings.toml の active_glossary_preset の名前のプリセット。キーが無い・一覧に無ければ 1 件目。"""
+    """補正に使うプリセットは、settings.yaml の active_glossary_preset の名前のプリセット。キーが無い・一覧に無ければ 1 件目。"""
     # 実行
     opened = _open_glossaries(
         open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS, active_preset=active
@@ -2656,7 +2770,7 @@ def test_glossary_preset_count_action(open_window: Callable[..., Opened], tmp_pa
 
 
 def test_glossary_preset_remove_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """プリセットを一覧から削除する。用語集は削除せず、保存するまで settings.toml に書かない。"""
+    """プリセットを一覧から削除する。用語集は削除せず、保存するまで settings.yaml に書かない。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
 
@@ -2674,7 +2788,7 @@ def test_glossary_preset_remove_action(open_window: Callable[..., Opened], tmp_p
 def test_glossary_preset_remove_when_cancelled(
     open_window: Callable[..., Opened], tmp_path: Path
 ) -> None:
-    """削除した後にキャンセルで閉じれば、settings.toml には書かない。"""
+    """削除した後にキャンセルで閉じれば、settings.yaml には書かない。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
     _click(opened.window, "glossary_preset_remove_1")
@@ -3242,7 +3356,7 @@ def test_glossary_count_when_unreadable(open_window: Callable[..., Opened], tmp_
 
 
 def test_glossary_remove_action(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """用語集を一覧から削除する。CSV のファイルは削除せず、保存するまで settings.toml に書かず、キャンセルで戻せる。"""
+    """用語集を一覧から削除する。CSV のファイルは削除せず、保存するまで settings.yaml に書かず、キャンセルで戻せる。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
 
@@ -3260,7 +3374,7 @@ def test_glossary_remove_action(open_window: Callable[..., Opened], tmp_path: Pa
 
 
 def test_glossary_remove_when_cancelled(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """削除した後にキャンセルで閉じれば、settings.toml には書かない。"""
+    """削除した後にキャンセルで閉じれば、settings.yaml には書かない。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES)
     _click(opened.window, "glossary_remove_1")
@@ -4158,7 +4272,7 @@ def test_error_summary_row_action_when_glossary(
 
 
 def test_save_button_when_glossary_changed(open_window: Callable[..., Opened], tmp_path: Path) -> None:
-    """用語集の一覧・用語集のプリセット・補正に使うプリセット・行を、保存で settings.toml と CSV へ書く。行を変えた用語集の CSV だけを書き戻しに渡す。"""
+    """用語集の一覧・用語集のプリセット・補正に使うプリセット・行を、保存で settings.yaml と CSV へ書く。行を変えた用語集の CSV だけを書き戻しに渡す。"""
     # 準備
     opened = _open_glossaries(open_window, tmp_path, TWO_GLOSSARIES, presets=TWO_PRESETS)
     _click(opened.window, "glossary_pick_1")
@@ -4203,7 +4317,8 @@ def test_reset_dialog_when_glossaries(open_window: Callable[..., Opened], tmp_pa
     assert _glossary_names(opened.window) == ["yogo"]
     assert _preset_names(opened.window) == ["既定"]
     assert len(two) == 2
-    opened.deps.save_settings.assert_called_once_with(SETTINGS_MODEL(), {})
+    opened.deps.reset_settings.assert_called_once_with()
+    opened.deps.save_settings.assert_not_called()
     assert (tmp_path / "会議用.csv").read_text(encoding="utf-8") == CSV_TWO_ROWS
 
 
@@ -4228,7 +4343,7 @@ def _hint_presets(*presets: tuple[str, list[str], bool]) -> list[Any]:
 
 def _open_hints(open_window: Callable[..., Opened], *presets: tuple[str, list[str], bool]) -> Opened:
     """表記のヒントのプリセットを持つ設定で設定画面を開いて、表記のヒントのまとまりを選ぶ。"""
-    opened = open_window(SETTINGS_MODEL(hint_presets=_hint_presets(*presets)))
+    opened = open_window(make_settings(hint_presets=_hint_presets(*presets)))
     find(opened.window, QListWidget, "group_menu").setCurrentRow(HINT_GROUP_ROW)
     return opened
 
@@ -4299,7 +4414,7 @@ def test_hint_preset_empty_when_presets_exist(open_window: Callable[..., Opened]
 
 
 def test_hint_preset_list_initial_value(open_window: Callable[..., Opened]) -> None:
-    """settings.toml の hint_presets の並びのとおりに、名前・語・有効かを出す。"""
+    """settings.yaml の hint_presets の並びのとおりに、名前・語・有効かを出す。"""
     # 実行
     opened = _open_hints(open_window, ("開発", ["voice-paste", "Whisper"], True), ("会議", ["議事録"], False))
 
@@ -4311,7 +4426,7 @@ def test_hint_preset_list_initial_value(open_window: Callable[..., Opened]) -> N
     assert find(window, QLineEdit, "hint_word_0_1").accessibleName() == "2 つ目の語"
 
 
-def test_hint_preset_list_when_not_in_settings_toml(open_window: Callable[..., Opened]) -> None:
+def test_hint_preset_list_when_not_in_settings(open_window: Callable[..., Opened]) -> None:
     """hint_presets のキーが無い今の設定でも開け、プリセットは空。"""
     # 実行
     opened = _open_hints(open_window)
@@ -4512,7 +4627,7 @@ def test_hint_preset_move_action(open_window: Callable[..., Opened]) -> None:
 
 
 def test_hint_preset_remove_action(open_window: Callable[..., Opened]) -> None:
-    """削除すると一覧から外して長さを数え直す。保存するまで settings.toml には書かず、キャンセルで戻せる。"""
+    """削除すると一覧から外して長さを数え直す。保存するまで settings.yaml には書かず、キャンセルで戻せる。"""
     # 準備
     opened = _open_hints(open_window, ("開発", ["abc"], True), ("会議", ["de"], True))
     window = opened.window
@@ -4843,7 +4958,7 @@ def test_save_button_when_hint_changed(open_window: Callable[..., Opened]) -> No
 
 
 def test_cancel_button_when_hint_changed(open_window: Callable[..., Opened]) -> None:
-    """表記のヒントを変えてキャンセルすると、変えた値を捨てる確認を出し、捨てると settings.toml には書かない。"""
+    """表記のヒントを変えてキャンセルすると、変えた値を捨てる確認を出し、捨てると settings.yaml には書かない。"""
     # 準備
     opened = _open_hints(open_window, ("開発", ["a"], True))
     find(opened.window, QLineEdit, "hint_word_0_0").setText("b")
@@ -4871,7 +4986,8 @@ def test_reset_dialog_when_hint_presets(open_window: Callable[..., Opened]) -> N
 
     # 検証
     driver.verify()
-    opened.deps.save_settings.assert_called_once_with(SETTINGS_MODEL(), {})
+    opened.deps.reset_settings.assert_called_once_with()
+    opened.deps.save_settings.assert_not_called()
     assert _widgets(opened.window, QLineEdit, "hint_preset_name_") == []
     assert len(_widgets(opened.window, QLabel, "hint_preset_empty")) == 1
 
@@ -5028,7 +5144,7 @@ def _edge_phrases(*phrases: tuple[str, str]) -> list[Any]:
 
 def _open_edge(open_window: Callable[..., Opened], *phrases: tuple[str, str]) -> Opened:
     """文頭・文末から削除する文言を持つ設定で設定画面を開いて、ハルシネーションのまとまりを選ぶ。"""
-    opened = open_window(SETTINGS_MODEL(edge_phrases=_edge_phrases(*phrases)))
+    opened = open_window(make_settings(edge_phrases=_edge_phrases(*phrases)))
     find(opened.window, QListWidget, "group_menu").setCurrentRow(EDGE_GROUP_ROW)
     return opened
 
@@ -5091,7 +5207,7 @@ def test_edge_phrase_group_when_visible(open_window: Callable[..., Opened]) -> N
 
 
 def test_edge_phrase_list_initial_value(open_window: Callable[..., Opened]) -> None:
-    """settings.toml の edge_phrases の値と並びのとおりに、文言と位置を出す。読み上げの表の名前は「文頭・文末から削除する文言（上の行から順に当てる）」。"""
+    """settings.yaml の edge_phrases の値と並びのとおりに、文言と位置を出す。読み上げの表の名前は「文頭・文末から削除する文言（上の行から順に当てる）」。"""
     # 実行
     opened = _open_edge(open_window, ("えーと", "start"), ("ありがとうございました", "both"), ("字幕*", "end"))
 
@@ -5105,7 +5221,7 @@ def test_edge_phrase_list_initial_value(open_window: Callable[..., Opened]) -> N
     assert not find(window, QLabel, "edge_phrase_empty").isVisible()
 
 
-def test_edge_phrase_list_when_not_in_settings_toml(open_window: Callable[..., Opened]) -> None:
+def test_edge_phrase_list_when_not_in_settings(open_window: Callable[..., Opened]) -> None:
     """edge_phrases のキーが無い今の設定では、既定の 3 行（全て文末）を出す。"""
     # 実行
     opened = open_window()
@@ -5182,7 +5298,7 @@ def test_edge_phrase_grip_does_not_take_focus(open_window: Callable[..., Opened]
 
 
 def test_edge_phrase_grip_action_when_dropped_below(open_window: Callable[..., Opened]) -> None:
-    """つまみを掴んで下の行より下で離すと、その位置へ行が動く。保存するまで settings.toml には書かない。"""
+    """つまみを掴んで下の行より下で離すと、その位置へ行が動く。保存するまで settings.yaml には書かない。"""
     # 準備
     opened = _open_edge(open_window, ("A", "start"), ("B", "end"), ("C", "both"))
     window = opened.window
@@ -5332,7 +5448,7 @@ def test_edge_phrase_position_action(open_window: Callable[..., Opened]) -> None
 
 
 def test_edge_phrase_remove_action(open_window: Callable[..., Opened]) -> None:
-    """削除すると一覧から外す。保存するまで settings.toml には書かない。"""
+    """削除すると一覧から外す。保存するまで settings.yaml には書かない。"""
     # 準備
     opened = _open_edge(open_window, ("A", "start"), ("B", "end"), ("C", "both"))
     window = opened.window
@@ -5348,7 +5464,7 @@ def test_edge_phrase_remove_action(open_window: Callable[..., Opened]) -> None:
 
 
 def test_edge_phrase_remove_when_cancelled(open_window: Callable[..., Opened]) -> None:
-    """削除してからキャンセルして捨てると、settings.toml には書かず、開き直すと削除する前の行が出る。"""
+    """削除してからキャンセルして捨てると、settings.yaml には書かず、開き直すと削除する前の行が出る。"""
     # 準備
     opened = _open_edge(open_window, ("A", "end"), ("B", "end"))
     _click(opened.window, "edge_phrase_remove_0")
@@ -5558,7 +5674,7 @@ def _three_browser_presets() -> Settings:
     """ブラウザ添付 3 件のプリセットを持つ設定を作る。"""
     from voice_paste.shared.settings import BrowserPreset
 
-    return SETTINGS_MODEL(
+    return make_settings(
         presets=[
             BrowserPreset(title="A", url="https://a.example"),
             BrowserPreset(title="B", url="https://b.example"),
@@ -5856,11 +5972,10 @@ def test_check_indicator_when_checkbox_on(
     themed_window: Callable[..., SettingsWindow], theme: str
 ) -> None:
     """オンのチェックボックスは、箱を accent_fg で塗り、チェックを surface で描く（正常系）。"""
-    from voice_paste.shared.settings import RecordingSettings
     from voice_paste.ui.style import load_tokens
 
     # 準備: 録音のまとまりの、オンのチェックボックス（OS の既定値によらずオンにする）
-    window = themed_window(theme, SETTINGS_MODEL(recording=RecordingSettings(lower_volume=True)))
+    window = themed_window(theme, make_settings(recording=dict(lower_volume=True)))
     checkbox = _show_field(window, "recording.lower_volume", QCheckBox)
 
     # 実行
@@ -5899,11 +6014,10 @@ def test_check_indicator_when_checkbox_disabled(
     themed_window: Callable[..., SettingsWindow], theme: str
 ) -> None:
     """使えないオンのチェックボックスは、箱を border で塗りチェックを text_muted で描き、名前を text_muted にする（正常系）。"""
-    from voice_paste.shared.settings import RecordingSettings
     from voice_paste.ui.style import load_tokens
 
     # 準備: オンのチェックボックス（OS の既定値によらずオンにする）を使えなくする
-    window = themed_window(theme, SETTINGS_MODEL(recording=RecordingSettings(lower_volume=True)))
+    window = themed_window(theme, make_settings(recording=dict(lower_volume=True)))
     checkbox = _show_field(window, "recording.lower_volume", QCheckBox)
     checkbox.setEnabled(False)
 

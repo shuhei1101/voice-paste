@@ -8,28 +8,14 @@ import time
 from pynput import keyboard
 
 from voice_paste.integrations.keyboard.active_window_linux import read_active_wm_class
-from voice_paste.integrations.keyboard.sender import FOCUS_SETTLE_SEC, split_paste_key
+from voice_paste.integrations.keyboard.sender import (
+    FOCUS_SETTLE_SEC,
+    TERMINAL_WM_CLASSES,
+    split_paste_key,
+)
 from voice_paste.shared.errors import DeliveryError
 
 logger = logging.getLogger(__name__)
-
-TERMINAL_WM_CLASSES: frozenset[str] = frozenset(
-    {
-        "gnome-terminal-server",
-        "gnome-terminal",
-        "kgx",
-        "org.gnome.console",
-        "ptyxis",
-        "org.gnome.ptyxis",
-        "tilix",
-        "terminator",
-        "konsole",
-        "xfce4-terminal",
-        "alacritty",
-        "kitty",
-    }
-)
-"""端末アプリと見なす WM_CLASS の名前（小文字）。インスタンス名かクラス名を小文字にした値がどれかに当たれば端末アプリとする。"""
 
 TERMINAL_PASTE_MODIFIERS: list[keyboard.Key] = [keyboard.Key.ctrl, keyboard.Key.shift]
 """端末アプリへ貼り付けるときに押す修飾キー（主キーは `v`）。"""

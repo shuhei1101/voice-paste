@@ -113,7 +113,7 @@ layers:
       - セッションの上限時間のテスト（`tests/nfr/test_api_session_limit.py`）は、SessionManager を上限時間 3 秒で自分で組み、録音機の入力をテストの中で書き出した無音の WAV を流すものに、システム音量を何もしないものに差し替える（実機のマイクを開かず、GPU を使わない）。`--run-e2e` を付けたときだけ走る（付けなければ skip する）
       - 話し終えてから貼り付くまでの時間のテスト（`tests/nfr/test_paste_latency.py`）は実物のクリップボードを書き換える（測った後に元の文字へ戻す）ため、`--run-e2e` を付けたときだけ走る。測っている間はクリップボードを使わない
       - 区間の最大の長さのテスト（`tests/nfr/test_max_segment_length.py`）の WAV は、E2E と同じ音声合成（Windows では SAPI、Linux では Open JTalk）で書き出す
-      - Ubuntu 24.04 の Xorg のセッション（検証環境の VM `voice-paste-ubuntu`）でも流せる（前提は『E2E テスト』の Linux の行と同じ。流し方は『E2E テスト』の `notes` の『検証環境の VM で流す』で、3 の `tests/e2e` を `tests/nfr` に、`vp-e2e`・`e2e.log` を `vp-nfr`・`nfr.log` に替える）。GPU を前提にするテスト（`tests/support/whisper_fixtures.py` の `requires_real_whisper` を付けたテスト・`test_transcription_parity.py`・`test_segment_callback_latency.py`）と、外の端末のブラウザの文字起こしを使うテスト（`test_web_*.py`。常駐アプリが Linux でブラウザの文字起こしを持たない）は Linux では skip する。決定値は OS で分けない
+      - Ubuntu 24.04 の Xorg のセッション（検証環境の VM `voice-paste-ubuntu`）でも流せる（前提は『E2E テスト』の Linux の行と同じ。流し方は『E2E テスト』の `notes` の『検証環境の VM で流す』で、3 の `tests/e2e` を `tests/nfr` に、3・4 の `e2e.log` を `nfr.log` に替える）。GPU を前提にするテスト（`tests/support/whisper_fixtures.py` の `requires_real_whisper` を付けたテスト・`test_transcription_parity.py`・`test_segment_callback_latency.py`）と、外の端末のブラウザの文字起こしを使うテスト（`test_web_*.py`。常駐アプリが Linux でブラウザの文字起こしを持たない）は Linux では skip する。決定値は OS で分けない
     run_one:
       label: ファイル
       command: |-

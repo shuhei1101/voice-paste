@@ -1,0 +1,14 @@
+$ .venv/Scripts/python.exe -m pytest tests/integration/test_accept_web_audio.py tests/integration/test_get_web_transcription.py tests/integration/test_list_web_glossary_presets.py tests/integration/test_serve_web_page.py
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\chore-server-allow-web-post-without-origin
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collected 35 items
+
+tests\integration\test_accept_web_audio.py ..............                [ 40%]
+tests\integration\test_get_web_transcription.py ........                 [ 62%]
+tests\integration\test_list_web_glossary_presets.py .....                [ 77%]
+tests\integration\test_serve_web_page.py ........                        [100%]
+
+============================= 35 passed in 18.58s =============================

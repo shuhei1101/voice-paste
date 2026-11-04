@@ -1,5 +1,5 @@
 id: IF-11
-title: "音声を受け付ける"
+title: 音声を受け付ける
 entry:
   kind: endpoint
   value: POST /web/transcriptions
@@ -80,12 +80,12 @@ flows:
       - キューにジョブが積まれていない
     test: test_error_when_audio_missing
   - name: 異常系（許されていない Origin・403）
-    summary: Origin が無いか許す Origin に無い要求を、本文を読まずに断る
+    summary: 許す Origin に無い Origin が付いた要求を、本文を読まずに断る
     setup:
       - name: Mock
         description: ブラウザの音声のキューは積まれたジョブを控えるもの。一時のフォルダはテストの一時フォルダ
       - name: 要求のヘッダー
-        description: 許す Origin に無い Origin を付ける要求と、Origin を付けない要求の 2 通り
+        description: 許す Origin に無い Origin を付ける
         notes: '`Origin: http://evil.example`'
     flow: |-
       ```mermaid
@@ -99,7 +99,7 @@ flows:
         IF-->>C: 403（problem+json）
       ```
     expected:
-      - どちらも 403 の problem+json が返る
+      - 403 の problem+json が返る
       - 一時のフォルダにファイルが無く、キューにジョブが積まれていない
       - ログに断った理由と要求元が書かれている
     test: test_error_when_origin_not_allowed
@@ -244,6 +244,31 @@ flows:
       - Origin を付けない要求と、許す Origin に無い Origin を付けた要求のどちらにも 404（problem+json）が返る
       - ジョブを積んでいない（ブラウザの音声のキューを立てていない）
     test: test_error_when_running_on_linux
+  - name: 正常系（Origin が無い）
+    summary: 同じ端末のほかのプロセスが Origin を付けずに送信した音声を受け付け、job_id を返す
+    setup:
+      - name: Mock
+        description: ブラウザの音声のキューを、積まれたジョブを控えて取り出さないものに差し替える。一時のフォルダはテストの一時フォルダ
+      - name: 要求のヘッダー
+        description: Origin を付けない。Host は `localhost:{ポート}`
+      - name: 音声
+        description: テストの中で書き出した短い webm/opus
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as 同じ端末のほかのプロセス
+        participant IF as POST /web/transcriptions
+        participant Q as ブラウザの音声のキュー
+
+        C->>IF: audio（Origin なし）
+        IF->>IF: Host を確かめる（Origin が無いため許可リストを見ない）
+        IF->>Q: ジョブを積む（queued）
+        IF-->>C: 202・job_id
+      ```
+    expected:
+      - 202 と 22 文字の job_id が返る
+      - キューにその job_id のジョブが queued で 1 件積まれている
+    test: test_normal_when_no_origin
 lead: 外の端末のブラウザから送信された音声を受け、一時のファイルに書いて文字起こしのジョブを積み、ジョブの ID を返す。
 identifier: create_web_transcription
 permissions: なし（外からの認証は Cloudflare Access が持つ。常駐アプリは Host と Origin だけを確かめる）
@@ -260,12 +285,13 @@ request:
     status: planned
   - name: Origin
     type: str
-    required: true
+    required: false
     location: header
-    description: 画面を開いたオリジン。ブラウザは POST に必ず付ける
-    constraints: 設定の許す Origin（api.allowed_web_origins）にあること
+    description: 画面を開いたオリジン。ブラウザは POST に必ず付け、同じ端末のほかのプロセスは付けない
+    constraints: 付いていれば、設定の許す Origin（api.allowed_web_origins）にあること
     example: https://voice.example.com
     status: planned
+    default: なし（Origin を確かめずに通す）
   - name: Content-Length
     type: int
     required: false
@@ -330,7 +356,7 @@ status_codes:
   - code: '400'
     condition: multipart でないか、`audio` の項目が無い。または、glossary_preset が設定の用語集のプリセットの一覧に無い
   - code: '403'
-    condition: Host が 127.0.0.1 でも localhost でもないか、Origin が無いか許す Origin に無い（Linux では Origin を確かめず、Host が合わないときだけ）
+    condition: Host が 127.0.0.1 でも localhost でもないか、Origin が付いていて許す Origin に無い（Linux では Origin を確かめず、Host が合わないときだけ）
   - code: '404'
     condition: 常駐サービスが Linux で動いている（`/web/` の下のルートを登録していない。Origin によらない）
   - code: '413'
@@ -344,7 +370,7 @@ constraints:
   - item: 待ち受け
     constraint: 127.0.0.1 だけ。外からはゲートウェイ（shuhdev-gateway、Cloudflare Access）を通して届く
   - item: 認可
-    constraint: トークンを求めない。Host が待ち受けのホストで、Origin が許す Origin にあること（Origin が無い要求も断る）
+    constraint: トークンを求めない。Host が待ち受けのホストで、Origin が無いか許す Origin にあること
   - item: 応答時間
     constraint: ブラウザの要求の応答時間以内。文字起こしを待たずに返す
     decided_by: NFR-1#requirements[ブラウザの要求の応答時間]

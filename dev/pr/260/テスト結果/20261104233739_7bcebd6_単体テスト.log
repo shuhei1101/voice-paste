@@ -1,0 +1,133 @@
+$ .venv/Scripts/python.exe -m pytest tests/unit
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\chore-server-allow-web-post-without-origin
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collected 857 items
+
+tests\unit\voice_paste\features\correction\test_service.py ............. [  1%]
+...................................                                      [  5%]
+tests\unit\voice_paste\features\history\test_service.py .............    [  7%]
+tests\unit\voice_paste\features\outputs\browser\test_service.py ...      [  7%]
+tests\unit\voice_paste\features\outputs\callback\test_service.py ....... [  8%]
+.......                                                                  [  9%]
+tests\unit\voice_paste\features\outputs\copy_only\test_service.py ...    [  9%]
+tests\unit\voice_paste\features\outputs\endpoint\test_service.py ....    [  9%]
+tests\unit\voice_paste\features\outputs\paste_and_send\test_service.py . [ 10%]
+.......                                                                  [ 10%]
+tests\unit\voice_paste\features\outputs\paste_only\test_service.py ...   [ 11%]
+tests\unit\voice_paste\features\outputs\test_service.py .....            [ 11%]
+tests\unit\voice_paste\features\outputs\test_types.py ...                [ 12%]
+tests\unit\voice_paste\features\recording\test_client.py .               [ 12%]
+tests\unit\voice_paste\features\recording\test_segmenter.py ............ [ 13%]
+                                                                         [ 13%]
+tests\unit\voice_paste\features\recording\test_service.py .............. [ 15%]
+........                                                                 [ 16%]
+tests\unit\voice_paste\features\session\test_route.py ......             [ 16%]
+tests\unit\voice_paste\features\session\test_service.py ................ [ 18%]
+...........................................                              [ 23%]
+tests\unit\voice_paste\features\transcription\test_service.py ......     [ 24%]
+tests\unit\voice_paste\features\web_transcription\test_service.py ...... [ 25%]
+..........                                                               [ 26%]
+tests\unit\voice_paste\integrations\audio\test_probe.py .......          [ 27%]
+tests\unit\voice_paste\integrations\browser\test_opener.py ....          [ 27%]
+tests\unit\voice_paste\integrations\browser\test_opener_linux.py ....    [ 28%]
+tests\unit\voice_paste\integrations\http\test_client.py .......          [ 28%]
+tests\unit\voice_paste\integrations\keyboard\test_active_window_linux.py s [ 29%]
+ssss                                                                     [ 29%]
+tests\unit\voice_paste\integrations\keyboard\test_active_window_wayland.py . [ 29%]
+.....                                                                    [ 30%]
+tests\unit\voice_paste\integrations\keyboard\test_sender.py ............ [ 31%]
+..                                                                       [ 31%]
+tests\unit\voice_paste\integrations\keyboard\test_sender_linux.py ssssss [ 32%]
+s                                                                        [ 32%]
+tests\unit\voice_paste\integrations\keyboard\test_sender_wayland.py ssss [ 33%]
+ssssssss                                                                 [ 34%]
+tests\unit\voice_paste\integrations\openai\test_credentials.py ....      [ 34%]
+tests\unit\voice_paste\integrations\openai\test_transcriber.py ......... [ 35%]
+.........                                                                [ 36%]
+tests\unit\voice_paste\integrations\vad\test_adapter.py ....             [ 37%]
+tests\unit\voice_paste\integrations\volume\test_adapter.py .........     [ 38%]
+tests\unit\voice_paste\integrations\volume\test_noop.py .                [ 38%]
+tests\unit\voice_paste\integrations\whisper\test_client.py ............. [ 39%]
+.....                                                                    [ 40%]
+tests\unit\voice_paste\integrations\whisper\test_worker.py .......       [ 41%]
+tests\unit\voice_paste\runtime\test_hotkey.py .........                  [ 42%]
+tests\unit\voice_paste\runtime\test_hotkey_gnome.py ssssssssssss         [ 43%]
+tests\unit\voice_paste\runtime\test_process.py ...                       [ 43%]
+tests\unit\voice_paste\runtime\test_send_hotkey.py sss                   [ 44%]
+tests\unit\voice_paste\runtime\test_settings_store.py .                  [ 44%]
+tests\unit\voice_paste\runtime\test_single_instance.py ..........        [ 45%]
+tests\unit\voice_paste\runtime\test_single_instance_linux.py sssssssssss [ 46%]
+sss                                                                      [ 47%]
+tests\unit\voice_paste\runtime\test_timer.py ...                         [ 47%]
+tests\unit\voice_paste\server\test_app.py ....                           [ 48%]
+tests\unit\voice_paste\server\test_body_limit.py .....                   [ 48%]
+tests\unit\voice_paste\server\test_error_handlers.py .......             [ 49%]
+tests\unit\voice_paste\server\test_middleware.py .......F....            [ 50%]
+tests\unit\voice_paste\server\test_runner.py ....                        [ 51%]
+tests\unit\voice_paste\server\test_token.py ...                          [ 51%]
+tests\unit\voice_paste\server\test_web_page.py ..                        [ 51%]
+tests\unit\voice_paste\shared\test_constants.py ..                       [ 52%]
+tests\unit\voice_paste\shared\test_logger.py ......                      [ 52%]
+tests\unit\voice_paste\shared\test_os_kind.py ..........                 [ 54%]
+tests\unit\voice_paste\shared\test_settings.py ......................... [ 56%]
+.......................................................................  [ 65%]
+tests\unit\voice_paste\shared\test_yaml_document.py ...........          [ 66%]
+tests\unit\voice_paste\test_main.py ..............s...........ss........ [ 70%]
+..................                                                       [ 72%]
+tests\unit\voice_paste\ui\test_bridge.py ....                            [ 73%]
+tests\unit\voice_paste\ui\test_controller.py ..........................  [ 76%]
+tests\unit\voice_paste\ui\test_placement.py ..                           [ 76%]
+tests\unit\voice_paste\ui\test_style.py ...........................      [ 79%]
+tests\unit\voice_paste\ui\test_tray.py ..................                [ 81%]
+tests\unit\voice_paste\ui\windows\test_settings_edge_phrases.py ........ [ 82%]
+                                                                         [ 82%]
+tests\unit\voice_paste\ui\windows\test_settings_glossaries.py .......... [ 83%]
+..............                                                           [ 85%]
+tests\unit\voice_paste\ui\windows\test_settings_hints.py ............    [ 86%]
+tests\unit\voice_paste\ui\windows\test_settings_presets.py ...........   [ 88%]
+tests\unit\voice_paste\ui\windows\test_settings_window.py .............. [ 89%]
+..................................                                       [ 93%]
+tests\unit\voice_paste\ui\windows\test_transcribing_indicator.py ....... [ 94%]
+..............................................                           [100%]
+
+================================== FAILURES ===================================
+_________________ test_dispatch_when_web_post_without_origin __________________
+
+    def test_dispatch_when_web_post_without_origin() -> None:
+        """/web/ の下の Origin の無い POST をトークン無しで通す（正常系）。"""
+        # 実行
+        response, call_next = _dispatch(WEB_HEADERS, method="POST", path="/web/transcriptions")
+    
+        # 検証
+>       call_next.assert_awaited_once()
+
+tests\unit\voice_paste\server\test_middleware.py:151: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <AsyncMock id='2815316281728'>
+
+    def assert_awaited_once(self):
+        """
+        Assert that the mock was awaited exactly once.
+        """
+        if not self.await_count == 1:
+            msg = (f"Expected {self._mock_name or 'mock'} to have been awaited once."
+                   f" Awaited {self.await_count} times.")
+>           raise AssertionError(msg)
+E           AssertionError: Expected mock to have been awaited once. Awaited 0 times.
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\unittest\mock.py:2369: AssertionError
+------------------------------ Captured log call ------------------------------
+WARNING  voice_paste.server.middleware:middleware.py:108 断った要求（Origin が許されていない・Host: localhost:47823・Origin: None）
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\shuhe\repo\voice-paste\.claude\worktrees\chore-server-allow-web-post-without-origin\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/unit/voice_paste/server/test_middleware.py::test_dispatch_when_web_post_without_origin
+====== 1 failed, 800 passed, 56 skipped, 1 warning in 305.54s (0:05:05) =======

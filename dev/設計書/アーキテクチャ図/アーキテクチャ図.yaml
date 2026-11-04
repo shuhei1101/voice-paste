@@ -1,5 +1,5 @@
 id: ARCH-1
-title: "アーキテクチャ図"
+title: アーキテクチャ図
 overview:
   direction: LR
   nodes:
@@ -191,6 +191,6 @@ constraints: |-
   - Windows のショートカットから起動できる（手段はバッチファイルに限らない）。Linux は起動のスクリプト（`voice-paste.sh`）から起動でき、ログイン時の自動起動とアプリの一覧の `.desktop` の雛形を持つ
   - ビルドせず、master のソースをそのまま動かす
   - Python で書く
-  - API は 127.0.0.1 だけで待ち受ける。`/web/` の外は起動ごとのトークンで照合し、`/web/` の下はトークンを求めず Host と Origin の許可リストで通す（外からの認証はゲートウェイの Cloudflare Access が持つ）
+  - API は 127.0.0.1 だけで待ち受ける。`/web/` の外は起動ごとのトークンで照合し、`/web/` の下はトークンを求めず Host と Origin の許可リストで通し、Origin の無い要求も通す（外からの認証はゲートウェイの Cloudflare Access が持つ）
   - ローカルの文字起こしは GPU（CUDA）で動かす
   - ユーザーは master のコードをビルドせずに普段使いしている（ショートカットは起動のバッチファイルから常駐アプリを起動する）

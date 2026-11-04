@@ -55,9 +55,8 @@ classes:
           2. パスが `/web` か `/web/` で始まるかで分ける
              - `/web/` の下で _web_enabled が False の場合、次へ渡す（route が無いため 404 になる。Origin とトークンを見ない）
              - `/web/` の下の場合
-               - GET・HEAD で Origin が無いか、Origin が _allowed_web_origins にあれば次へ渡す（トークンは求めない）
-               - それ以外のメソッドで Origin が _allowed_web_origins にあれば次へ渡す
-               - どちらでもなければ 403 を返す
+               - Origin が無いか、Origin が _allowed_web_origins にあれば、メソッドによらず次へ渡す（トークンは求めない）
+               - それ以外（Origin が付いていて _allowed_web_origins に無い）は 403 を返す
                  - `[WARNING]` 同上
              - それ以外の場合
                - Origin が付いていれば 403 を返す
@@ -102,10 +101,10 @@ classes:
             condition: POST /web/transcriptions、Origin https://voice.example.com（許可リストにある）、Authorization 無し
             mock: call_next
             expected: call_next が呼ばれる
-          - name: test_dispatch_when_web_post_without_origin
+          - name: test_dispatch_when_web_origin_not_allowed
             case: 異常
-            summary: /web/ の下の Origin の無い POST・許さない Origin は 403
-            condition: POST /web/transcriptions で Origin 無しと、GET /web/ で Origin http://evil.example
+            summary: /web/ の下の許さない Origin は 403
+            condition: POST /web/transcriptions と GET /web/ を、Origin http://evil.example で送る
             mock: call_next
             expected: どちらも 403 が返り、call_next が呼ばれない
             exception: Origin が許可リストに無い
@@ -120,6 +119,12 @@ classes:
             case: 正常
             summary: ブラウザの機能が無ければ /web/ の下は Origin を見ずに次へ渡す
             condition: _web_enabled が False で、GET /web/ を Origin http://evil.example・Authorization 無しで送る
+            mock: call_next
+            expected: call_next が呼ばれる
+          - name: test_dispatch_when_web_post_without_origin
+            case: 正常
+            summary: /web/ の下の Origin の無い POST をトークン無しで通す
+            condition: POST /web/transcriptions、Host localhost:{ポート}、Origin と Authorization 無し
             mock: call_next
             expected: call_next が呼ばれる
     refs:

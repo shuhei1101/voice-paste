@@ -19,7 +19,7 @@ API から始めた録音は録音の画面を出さず、起こした文字は�
 Linux では `Origin` によらず 404 を返す。
 
 - `Host` は `127.0.0.1:{ポート}` か `localhost:{ポート}`。ゲートウェイ（shuhdev-gateway）を通した要求は `localhost:{ポート}` で届く
-- `Origin` は、設定の `api.allowed_web_origins`（[起動と設定](../使い方/起動と設定.md#外の端末のブラウザに許す-origin)）の一覧にあるものだけを通す。`POST` は `Origin` が必須で、`GET` は `Origin` が無いか一覧にあれば通す
+- `Origin` は、設定の `api.allowed_web_origins`（[起動と設定](../使い方/起動と設定.md#外の端末のブラウザに許す-origin)）の一覧にあるものだけを通す。`Origin` の無い要求は、`GET`・`POST` とも通す（同じ端末のほかのプロセスは `Origin` を付けずに送信できる）
 - 外からの認証は、ゲートウェイの Cloudflare Access が持つ
 
 `/web/` の下の音声の受け付けは `/sessions` と排他せず、録音・文字起こしの処理中も受け付ける。
@@ -386,7 +386,7 @@ Content-Disposition: form-data; name="glossary_preset"
 | ステータスコード | 発生条件 |
 | --- | --- |
 | `400` | `multipart/form-data` でない・`audio` の項目が無い。または `glossary_preset` が用語集のプリセットの一覧に無い |
-| `403` | `Host` が待ち受けのホストでない。`Origin` が無いか、許す `Origin` の一覧に無い |
+| `403` | `Host` が待ち受けのホストでない。`Origin` が付いていて、許す `Origin` の一覧に無い |
 | `413` | 本文が 100,000,000 バイト以上 |
 | `415` | `audio` を開けない・音声のストリームが無い |
 | `503` | 終わっていないジョブ（文字起こし待ちと文字起こし中）が 10 件に達している |

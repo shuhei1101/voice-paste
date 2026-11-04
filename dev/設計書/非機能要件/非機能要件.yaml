@@ -99,7 +99,7 @@ requirements:
         condition: 固めた設定（`tests/nfr/fixtures/whisper.env` の large-v3・cuda・int8）と用語集（`tests/nfr/fixtures/yogo.csv`。`resources/yogo.csv` と同じ）で build_handlers を一時フォルダの置き場所で配線し、モデルの読み込みを待つ。マイクの入力（open_input）は、刷新前を再測定したのと同じ録音（`tests/nfr/fixtures/recordings/latency/20261002212623.wav`）の先頭 10 秒を 1024 フレームずつ渡すもの、音量の操作は何もしないもの、貼り付けのキー（send_paste）は押した時刻だけを控えるものに差し替える。ホットキーの入口でセッションを始め、録音が 10 秒分たまったら貼り付けのみ（paste_only）で確定する。先に捨てる 1 回の後、これを 20 回続ける
         measurement: SessionManager.complete を呼んだ時点から、差し替えた貼り付けのキーが押された時点までを time.perf_counter で測り、20 回の生の値と中央値・最小・最大を出す
         expected: 20 回とも貼り付けのキーが押され、中央値が 1.59 秒以下
-        notes: クリップボードは実物を書き換えるため、測る前の文字を控えて測った後に戻す。録音は特性テスト（test_transcription_parity）が拾わない `recordings/latency/` に置く。`--run-e2e` が無い環境・録音が無い環境では skip する
+        notes: クリップボードは実物を書き換えるため、測る前の文字を控えて測った後に戻す。録音は特性テスト（test_transcription_parity）が拾わない `recordings/latency/` に置く。`--run-e2e` が無い環境・録音が無い環境・GPU が無い環境（Linux を含む）では skip する
     test_file: tests/nfr/test_paste_latency.py
   - name: 文字起こしワーカーの立て直しの時間
     english_name: worker_recovery_time
@@ -127,7 +127,7 @@ requirements:
         condition: 固めた設定（`tests/nfr/fixtures/whisper.env` の large-v3・cuda）で WhisperWorkerClient を作り、start → stop を 20 回続ける
         measurement: 毎回の start（ワーカーの起動から ready を受けるまで）の時間（秒）を測り、生の値と中央値・最大を出す
         expected: 20 回とも ready を受け、最大が 27 秒以内
-        notes: 測った最大から規約『資源の値の決め方』で決定値を再決定する。`tests/nfr/fixtures/` が無い環境・GPU が無い環境では skip する
+        notes: 測った最大から規約『資源の値の決め方』で決定値を再決定する。`tests/nfr/fixtures/` が無い環境・GPU が無い環境（Linux を含む）では skip する
     test_file: tests/nfr/test_worker_recovery_time.py
   - name: 刷新の前後での起こした文字の一致
     english_name: transcription_parity
@@ -146,7 +146,7 @@ requirements:
         condition: 履歴から選んでローカルのエンジンで起こした 10 件の録音と、コピーした時点で効いている用語集と `.env` の文字起こしの設定を `tests/nfr/fixtures/` へコピーし、その用語集と設定で新しい構成の文字起こし（文字起こしワーカーの窓口と transcribe、ローカルの Whisper（GPU））で起こし、新しい構成の補正（load_glossary・apply_glossary）で補正する。期待値は、同じ録音・用語集・設定で `voice_paste_legacy` が返した文字を `tests/nfr/fixtures/` に固めたもの
         measurement: 10 件それぞれで、起こして補正した文字と固めた期待値を比べ、一致した件数を数える（一致しない件は差分を記録する）
         expected: 10 件中 10 件が一致する
-        notes: Windows の GPU と `tests/nfr/fixtures/` の録音が要り、どちらかが無い環境では skip する。履歴の文字は録音を選ぶときの目安にだけ使う
+        notes: Windows の GPU と `tests/nfr/fixtures/` の録音が要り、どちらかが無い環境（Linux を含む）では skip する。履歴の文字は録音を選ぶときの目安にだけ使う
       - name: test_transcription_parity_when_correction_only
         summary: 用語集の補正だけを切り出し、決まった入力に決まった出力を返す
         condition: 誤変換を含む決まった入力の文字列と、`tests/nfr/fixtures/` へコピーした用語集を与え、新しい構成の補正（load_glossary・apply_glossary）で補正する。録音と Whisper は使わない
@@ -235,7 +235,7 @@ requirements:
         condition: 固めた設定（`tests/nfr/fixtures/whisper.env` の large-v3・cuda）で WhisperWorkerClient を start しては標準入力を閉じることを 20 回続ける
         measurement: 毎回、標準入力を閉じてからワーカーのプロセスが終わるまでの時間（秒）を測り、生の値と中央値・最大を出す
         expected: 20 回とも terminate せずに終わり、最大が 2 秒以内
-        notes: 測った最大から規約『資源の値の決め方』の下流を待つタイムアウトで決定値を再決定する。`tests/nfr/fixtures/` が無い環境・GPU が無い環境では skip する
+        notes: 測った最大から規約『資源の値の決め方』の下流を待つタイムアウトで決定値を再決定する。`tests/nfr/fixtures/` が無い環境・GPU が無い環境（Linux を含む）では skip する
     test_file: tests/nfr/test_worker_stop_timeout.py
   - name: 前の常駐サービスの終わりを待つ時間
     english_name: single_instance_timeout
@@ -271,13 +271,13 @@ requirements:
         condition: 固めた設定（`tests/nfr/fixtures/whisper.env` の large-v3・cuda）で `python -m voice_paste --data-dir {一時フォルダ}` を起動して待機中（トークンのファイルが書かれる）を待ち、同じ `--data-dir` でもう 1 つ起動する。これを 10 回続ける
         measurement: 後のプロセスのログの「前の常駐サービスに終わるよう頼んだ」から「単一インスタンスを確保した」までの時間（秒）を測り、生の値と中央値・最大を出す。前のプロセスが終わったことも確かめる
         expected: 10 回とも前のプロセスが終わって後のプロセスが待機中になり、常駐サービスのプロセスが 1 つだけで、最大が 55 秒以内
-        notes: 測った値から余裕を再決定する。`--run-e2e` が無い環境・`tests/nfr/fixtures/` が無い環境では skip する
+        notes: 測った値から余裕を再決定する。`--run-e2e` が無い環境・`tests/nfr/fixtures/` が無い環境・GPU が無い環境（Linux を含む）では skip する
       - name: test_single_instance_timeout_when_previous_starting
         summary: 前の常駐サービスがモデルの読み込み中でも、決定値以内に入れ替わり、常駐サービスが 0 個にならない
         condition: 固めた設定で `python -m voice_paste --data-dir {一時フォルダ}` を起動し、ログに「単一インスタンスを確保した」が出た直後（トークンのファイルが書かれる前の、モデルの読み込み中）に同じ `--data-dir` でもう 1 つ起動する。これを 5 回続ける
         measurement: 後のプロセスのログの「前の常駐サービスに終わるよう頼んだ」から「単一インスタンスを確保した」までの時間（秒）を測り、生の値と中央値・最大を出す
         expected: 5 回とも後のプロセスが待機中になり、常駐サービスのプロセスが 1 つだけで、最大が 55 秒以内
-        notes: '`--run-e2e` が無い環境・`tests/nfr/fixtures/` が無い環境では skip する'
+        notes: '`--run-e2e` が無い環境・`tests/nfr/fixtures/` が無い環境・GPU が無い環境（Linux を含む）では skip する'
     test_file: tests/nfr/test_single_instance_timeout.py
   - name: エンドポイントへ送信するときのタイムアウト
     english_name: endpoint_timeout
@@ -342,10 +342,10 @@ requirements:
     tests:
       - name: test_max_segment_length
         summary: 話し続けた録音から切り出した区間が、どれも決定値に前の余白を加算した長さ以下である
-        condition: Windows の音声合成（SAPI）で、文の間を 0.5 秒以下にして 45 秒以上読み上げ続けた WAV を作り、前に 1 秒の無音を置いて（前の余白を区間に含めるため）、区切りの部品に録音の入力と同じ大きさの塊（160〜1024 フレーム）で流す
+        condition: 音声合成（Windows は SAPI、Linux は Open JTalk）で、文の間を 0.5 秒以下にして 45 秒以上読み上げ続けた WAV を作り、前に 1 秒の無音を置いて（前の余白を区間に含めるため）、区切りの部品に録音の入力と同じ大きさの塊（160〜1024 フレーム）で流す
         measurement: 切り出した区間ごとの長さ（秒）を測る
         expected: 区間が 2 つ以上あり、どの区間の長さも 20.3 秒（決定値 + 前の余白 0.3 秒）以下
-        notes: SAPI が使えない環境では skip する
+        notes: Windows と Linux（Ubuntu 24.04 の Xorg）の両方で流す
     status: planned
     introduced:
       pr: 78
@@ -375,10 +375,10 @@ requirements:
     tests:
       - name: test_segment_callback_latency
         summary: 区切ってからその区間の返送が届くまでが、どの区間も決定値以内である
-        condition: build_handlers で配線した常駐サービスをローカルの Whisper（GPU）で立て、モデルの読み込みを待つ。録音の入力は、Windows の音声合成（SAPI）で作った、区切りの無音の長さより長い間を挟んだ 5 文の後に 45 秒以上読み上げ続ける WAV を実時間で流すものに差し替え、continuous=true で始めて流し終えたら完了を呼ぶ。返送先は 127.0.0.1 のテスト用のエンドポイント
+        condition: build_handlers で配線した常駐サービスをローカルの Whisper（GPU）で立て、モデルの読み込みを待つ。録音の入力は、音声合成（Windows は SAPI）で作った、区切りの無音の長さより長い間を挟んだ 5 文の後に 45 秒以上読み上げ続ける WAV を実時間で流すものに差し替え、continuous=true で始めて流し終えたら完了を呼ぶ。返送先は 127.0.0.1 のテスト用のエンドポイント
         measurement: 区切った時点（常駐サービスのログ）から、同じ通し番号の返送がエンドポイントに届いた時点までを time.perf_counter の時刻で区間ごとに測る
         expected: 全ての区間で 4 秒以下
-        notes: 最初の区間はワーカーの温まりで遅れるため、測る前に別の連続録音で 1 区間を起こして温める。完了で閉じた最後の区間は、完了を呼んだ時点から測る。--run-e2e が無い環境では skip する
+        notes: 最初の区間はワーカーの温まりで遅れるため、測る前に別の連続録音で 1 区間を起こして温める。完了で閉じた最後の区間は、完了を呼んだ時点から測る。--run-e2e が無い環境・GPU が無い環境（Linux を含む）では skip する
     status: planned
     introduced:
       pr: 78
@@ -408,7 +408,7 @@ requirements:
         value: 約 12 Mbps
         notes: 100,000,000 バイト × 8 ÷ 66 秒。画面で録った 30 分（約 22.5 MB）は約 2.7 Mbps
     overflow: ゲートウェイが 504 で要求を打ち切り、画面は送信失敗を出して端末内の音声を残す（遅い回線で大きなファイルを選んだとき）
-    measurement: pytest のプロセスの中で配線した常駐サービスへ、本文の上限に近い音声を `POST /web/transcriptions` で送信し、202 が返るまでを測る
+    measurement: pytest のプロセスの中で配線した常駐サービスへ、本文の上限に近い音声を `POST /web/transcriptions` で送信し、202 が返るまでを測る。常駐アプリがブラウザの文字起こしを持たない OS（Linux）では skip する
     test_file: tests/nfr/test_web_response_time.py
     tests:
       - name: test_web_response_time
@@ -429,7 +429,7 @@ requirements:
     unit: バイト未満
     rationale: '本文の大きさは推定ではなくバイト数で正確に数えられるため、安全率を引かず、100 MB を 10 進の 100,000,000 バイトと読んで小さい方に揃える。multipart の境界とヘッダーも本文に含めて数える。PR #171 の PoC で、127.0.0.1 へ直接送信した 95 MiB（99,614,720 バイト）を受け付けた（Cloudflare とゲートウェイは通していない。2026-10-23）。上限に近い大きさをゲートウェイ越しに送信するには、ブラウザの要求の応答時間の内訳の上りの速さが要る'
     overflow: 413 の problem+json で断り、一時のファイルもジョブも作らない
-    measurement: pytest のプロセスの中で配線した常駐サービスへ、上限の前後の大きさの本文を送信する
+    measurement: pytest のプロセスの中で配線した常駐サービスへ、上限の前後の大きさの本文を送信する。常駐アプリがブラウザの文字起こしを持たない OS（Linux）では skip する
     test_file: tests/nfr/test_web_body_limit.py
     tests:
       - name: test_web_body_limit_when_under
@@ -481,7 +481,7 @@ requirements:
     unit: 件（文字起こし待ちと文字起こし中のジョブの合計）
     rationale: 終わっていないジョブは音声を一時のファイルに持つため、ディスクの使用を本文の上限 × 10 件で最大 1 GB に抑える。使うのは外の端末の利用者 1 人で、画面は 1 件ずつ録って送信するため、10 件を超えて待たせる使い方は想定しない
     overflow: 503 の problem+json で断り、画面は送信失敗を出して端末内の音声を残す
-    measurement: 文字起こしのエンジンを止めたままにして音声を送信し続け、断られる件目を数える
+    measurement: 文字起こしのエンジンを止めたままにして音声を送信し続け、断られる件目を数える。常駐アプリがブラウザの文字起こしを持たない OS（Linux）では skip する
     test_file: tests/nfr/test_web_queue_limit.py
     tests:
       - name: test_web_queue_limit
@@ -501,7 +501,7 @@ requirements:
     unit: 件
     rationale: 終わったジョブ（done・failed）は、画面が結果を取りに来るまで常駐サービスのメモリに持つ。画面を閉じて後で再度開いても取りに来られるように、時間では捨てず件数で古い順に捨てる。画面が残す結果の件数（10 件）の 10 倍にし、30 分の録音の文字（約 2 万字・約 60 KB）が 100 件でも約 6 MB に収まる。常駐サービスを再起動すると全て消える（起こした文字は PC の履歴に残る）
     overflow: いちばん古く終わったジョブを捨て、その結果の取得は 404 になる
-    measurement: ジョブを 101 件終わらせ、最初のジョブと最後のジョブの結果を取りに行く
+    measurement: ジョブを 101 件終わらせ、最初のジョブと最後のジョブの結果を取りに行く。常駐アプリがブラウザの文字起こしを持たない OS（Linux）では skip する
     test_file: tests/nfr/test_web_finished_jobs_kept.py
     tests:
       - name: test_web_finished_jobs_kept

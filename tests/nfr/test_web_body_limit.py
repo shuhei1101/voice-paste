@@ -15,11 +15,17 @@ import pytest
 
 from tests.integration.helpers import make_audio
 from tests.support.fixtures import start_inprocess  # noqa: F401 フィクスチャとして使う
-from tests.support.inprocess import InProcessApp, make_settings, silence_input, stub_transcription
+from tests.support.inprocess import (
+    InProcessApp,
+    make_settings,
+    silence_input,
+    stub_transcription,
+    requires_web_transcription,
+)
 from tests.support.web_scene import STUB_TEXT
 from tests.support.web_body import sized_multipart_body
 
-pytestmark = pytest.mark.real_machine
+pytestmark = [pytest.mark.real_machine, requires_web_transcription]
 
 BODY_LIMIT_BYTES = 100_000_000
 """ブラウザの本文の上限（バイト。これ未満を受け付ける）。"""

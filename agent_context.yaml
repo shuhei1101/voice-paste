@@ -1,0 +1,6 @@
+phase_extensions:
+  tester:
+    - key: linux-e2e
+      title: release PR の対象ケースを、Windows での全 pass の後に検証環境の VM（Ubuntu 24.04 の Xorg）でも流し、結果を報告する
+      when: release PR が open で、release PR の最後の報告が Windows の実行の結果の報告で、対象ケースの全 pass であり、release PR にその release の位置での `## Linux での E2E の結果` の報告が無い。または release PR に未解決の `## VM の起動の依頼` のスレッドがあり、最後のコメントがユーザーの返信である。当てはまるときは『リリースマージ』より先にこの行を選ぶ
+      path: dev/エージェント運用/拡張/tester/LinuxでのE2Eの実行.md

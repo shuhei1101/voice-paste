@@ -1,19 +1,17 @@
 """区間の最大の長さ（max_segment_length）の非機能要件テスト。
 
-Windows の音声合成（SAPI）で、文の間を区切る無音の長さより短くして 45 秒以上読み上げ続けた WAV を、前に 1 秒の無音を置いて
+音声合成（Windows は SAPI、Linux は Open JTalk）で、文の間を区切る無音の長さより短くして 45 秒以上読み上げ続けた WAV を、前に 1 秒の無音を置いて
 （前の余白を区間に含めるため）作り、区切りの部品（Segmenter・本物の話し声の判定）に、録音の入力と同じ大きさの塊で流して、
 切り出した区間の長さを測る。区間の長さは、区間の最大の長さに前の余白を加えた長さ以下になる。
-文字起こしと実機のマイクは使わない。SAPI が使えない環境では skip する。
+文字起こしと実機のマイクは使わない。
 """
 
 from __future__ import annotations
 
-import sys
 from itertools import cycle
 from pathlib import Path
 
 import numpy as np
-import pytest
 
 from tests.support.inprocess import long_reading_texts, speech_sequence_input
 from tests.support.settings import load_test_default_settings
@@ -21,10 +19,6 @@ from voice_paste.features.recording.client import SAMPLE_RATE
 from voice_paste.features.recording.segmenter import MAX_SEGMENT_SEC, SEGMENT_PAD_SEC, Segmenter
 from voice_paste.integrations.vad.adapter import StreamingVad, load_vad_session
 from voice_paste.shared.types import Segment
-
-pytestmark = pytest.mark.skipif(
-    sys.platform != "win32", reason="Windows の音声合成（SAPI）が要る"
-)
 
 SENTENCE_GAP_SEC = 0.4
 """文と文の間に挟む無音の長さ。区切る無音の長さの既定（2 秒）より十分に短い。"""

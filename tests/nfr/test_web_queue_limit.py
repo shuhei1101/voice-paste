@@ -17,8 +17,8 @@ import pytest
 from tests.integration.helpers import make_audio, wait_until
 from tests.support.fixtures import start_inprocess  # noqa: F401 フィクスチャとして使う
 from tests.support.inprocess import InProcessApi, InProcessApp, make_settings, silence_input, stub_transcription
+from tests.support.settings import load_test_default_settings
 from tests.support.web_scene import STUB_TEXT
-from voice_paste.shared.settings import HistorySettings
 
 pytestmark = pytest.mark.real_machine
 
@@ -41,7 +41,9 @@ def test_web_queue_limit(
     stub = stub_transcription(monkeypatch, STUB_TEXT)
     stub.hold()
     settings = make_settings(only_paste_and_send=True).model_copy(
-        update={"history": HistorySettings(enabled=False)}
+        update={
+            "history": load_test_default_settings().history.model_copy(update={"enabled": False})
+        }
     )
     app = start_inprocess(settings=settings, wav_input=silence_input(tmp_path))
     api = app.start_web_api()

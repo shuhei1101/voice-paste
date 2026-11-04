@@ -50,11 +50,11 @@ def test_ext_transcribe(
     api_key: SecretStr, spoken_wav: Path, record_property: pytest.RecordProperty
 ) -> None:
     """実際の OpenAI API で、既定のモデル（gpt-transcribe）・languages[]=ja・keywords[] 付きの短い音声を起こせる（正常系）。"""
+    from tests.support.settings import load_test_default_settings
     from voice_paste.integrations.openai.transcriber import OpenAITranscriber
-    from voice_paste.shared.settings import OpenAISettings
 
     # 準備
-    settings = OpenAISettings()
+    settings = load_test_default_settings().transcription.openai
     transcriber = OpenAITranscriber(settings=settings, api_key=api_key)
     # 既定が変わったときは、課金する前に止める
     assert settings.model == "gpt-transcribe"

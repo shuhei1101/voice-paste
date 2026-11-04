@@ -13,8 +13,8 @@ import httpx
 import pytest
 from pydantic import SecretStr
 
+from tests.support.settings import load_test_default_settings
 from voice_paste.shared.errors import EngineError
-from voice_paste.shared.settings import OpenAISettings
 
 BASE_URL = "http://127.0.0.1:9000/v1"
 """テストが送信先に向ける、OpenAI API のベース URL の代わり。"""
@@ -38,7 +38,9 @@ def test_openai_transcription_retry(tmp_path: Path) -> None:
     sleep = MagicMock(return_value=None)
     uniform = MagicMock(side_effect=lambda _low, high: high)
     transcriber = OpenAITranscriber(
-        settings=OpenAISettings(base_url=BASE_URL),
+        settings=load_test_default_settings().transcription.openai.model_copy(
+            update={"base_url": BASE_URL}
+        ),
         api_key=SecretStr("sk-test"),
         sleep=sleep,
         uniform=uniform,

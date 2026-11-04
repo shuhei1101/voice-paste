@@ -13,8 +13,9 @@ import httpx
 import pytest
 from pydantic import SecretStr
 
+from tests.support.settings import load_test_default_settings
 from voice_paste.shared.errors import EngineError
-from voice_paste.shared.settings import HINT_SEPARATOR, OpenAISettings
+from voice_paste.shared.settings import HINT_SEPARATOR
 
 BASE_URL = "http://127.0.0.1:9000/v1"
 """テストが送信先に向ける、OpenAI API のベース URL の代わり。"""
@@ -52,7 +53,9 @@ def test_openai_audio_limit_when_over(tmp_path: Path) -> None:
         return httpx.Response(200, json={"text": "ok"})
 
     transcriber = OpenAITranscriber(
-        settings=OpenAISettings(model=MODEL, base_url=BASE_URL),
+        settings=load_test_default_settings().transcription.openai.model_copy(
+            update={"model": MODEL, "base_url": BASE_URL}
+        ),
         api_key=SecretStr("sk-test"),
         transport=httpx.MockTransport(handler),
     )

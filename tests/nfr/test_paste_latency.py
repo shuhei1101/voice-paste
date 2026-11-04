@@ -24,6 +24,7 @@ import pytest
 from scipy.io import wavfile
 
 from tests.integration.helpers import wait_until
+from tests.support.settings import make_settings
 from tests.support.whisper_fixtures import (
     PASTE_LATENCY_RECORDING,
     YOGO_FILE,
@@ -104,10 +105,8 @@ def _measure_once(handlers: Handlers, pressed_at: list[float], pasted: threading
 def test_paste_latency(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """録音を止めてから貼り付けのキーを押す直前までの中央値が決定値以下である（実機）。"""
     import voice_paste.main as main_module
-    from voice_paste.main import SETTINGS_MODEL
     from voice_paste.shared.constants import resolve_app_paths
     from voice_paste.shared.os_kind import CURRENT_OS, detect_display_session, unavailable_features
-    from voice_paste.shared.settings import TranscriptionSettings
 
     # 準備: 差し替えるもの（マイクの入力・音量・貼り付けのキー）
     clip = _load_clip()
@@ -129,9 +128,9 @@ def test_paste_latency(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(main_module, "open_input", _open_input)
 
     # 準備: 固めた設定と用語集で配線し、モデルの読み込みを待つ（クリップボードは測った後に戻す）
-    settings = SETTINGS_MODEL(
-        transcription=TranscriptionSettings(local_whisper=load_local_whisper_settings()),
-        glossary_path=YOGO_FILE,
+    settings = make_settings(
+        transcription={"local_whisper": load_local_whisper_settings().model_dump(mode="json")},
+        glossary_path=str(YOGO_FILE),
     )
     paths = resolve_app_paths(tmp_path)
     # OS ごとの実装は本物を選び、システム音量と貼り付けのキーだけ差し替えて渡す

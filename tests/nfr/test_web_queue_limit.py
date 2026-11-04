@@ -24,8 +24,8 @@ from tests.support.inprocess import (
     stub_transcription,
     requires_web_transcription,
 )
+from tests.support.settings import load_test_default_settings
 from tests.support.web_scene import STUB_TEXT
-from voice_paste.shared.settings import HistorySettings
 
 pytestmark = [pytest.mark.real_machine, requires_web_transcription]
 
@@ -48,7 +48,9 @@ def test_web_queue_limit(
     stub = stub_transcription(monkeypatch, STUB_TEXT)
     stub.hold()
     settings = make_settings(only_paste_and_send=True).model_copy(
-        update={"history": HistorySettings(enabled=False)}
+        update={
+            "history": load_test_default_settings().history.model_copy(update={"enabled": False})
+        }
     )
     app = start_inprocess(settings=settings, wav_input=silence_input(tmp_path))
     api = app.start_web_api()

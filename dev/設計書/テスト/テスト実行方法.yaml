@@ -53,13 +53,53 @@ layers:
       - Linux では、開発コマンド『環境構築（クローン直後）』の手順 2（`local-whisper` の extra）・手順 3（Open JTalk を sudo を使わず `~/.local/opt/open-jtalk` へ展開する）と、『起動・停止』の前提の OS のパッケージを済ませておき、Xorg のセッションの端末で流す（クリップボードの `xclip` が `DISPLAY` を要る）。Open JTalk の置き場所は環境変数 `VOICE_PASTE_OPEN_JTALK_HOME` で替えられる
       - Linux では、常駐アプリがブラウザーの文字起こしを持たないため外の端末の画面のケースを skip し、録音中に音量を下げないため音量を確かめるケースは音量を下げないことを確かめる
       - 検証環境の VM では、自動起動にした常駐アプリを終わらせてから流す（E2E のメモリの使用量は最大約 3.9 GB で、常駐アプリのワーカーの約 1.7 GB と合わせると OOM で止まる）
-      - スプリントの release の E2E の実行では、tester が Windows に加えて検証環境の VM でも全件流す（手順は tester の拡張のフェーズ『Linux での E2E の実行』（`dev/エージェント運用/拡張/tester/LinuxでのE2Eの実行.md`））
+      - スプリントの release の E2E の実行では、tester が Windows に加えて検証環境の VM でも全件流す（流し方は `notes` の『検証環境の VM で流す』、release の E2E の実行の手順は tester の拡張のフェーズ『Linux での E2E の実行』（`dev/エージェント運用/拡張/tester/LinuxでのE2Eの実行.md`））
     run_one:
       label: ファイル
       command: |-
         ```bash
         .venv/Scripts/python.exe -m pytest {E2Eテストファイルパス} --run-e2e
         ```
+    notes:
+      検証環境の VM で流す: |-
+        WSL から SSH で、VM の Xorg のセッションの画面を渡して流す。
+
+        前提:
+
+        - WSL の `~/.ssh/config` の `Host voice-paste-ubuntu` の鍵で、パスワードを聞かれずに VM へ入れる（`ssh -o BatchMode=yes voice-paste-ubuntu true` が終了コード 0）
+        - VM は別のホストの Hyper-V で動き、WSL からは起動できない。SSH が通らないときは、ユーザーに VM の起動を頼む
+        - VM は Xorg のセッションへ自動ログインし（`/etc/gdm3/custom.conf` の `AutomaticLogin`）、画面のロックを無効にしている
+        - VM の中の作業用のクローン（`~/vp-e2e`）は、手順 2 の bundle から 1 回だけ `git clone /tmp/vp-e2e.bundle ~/vp-e2e` で作り、開発コマンド『環境構築（クローン直後）』の手順 3（Open JTalk）を済ませておく
+
+        1. 自動起動の常駐アプリが動いていれば終わらせる。PID を確かめてから、出た PID だけを終わらせる
+
+        ```bash
+        ssh voice-paste-ubuntu 'pgrep -af "[-]m voice_paste"'
+        ssh voice-paste-ubuntu 'kill {PID}'
+        ```
+
+        2. 流すブランチを bundle にして VM へ送り、作業用のクローンをそのブランチにして環境を追従させる（VM の作業ツリーと `.venv/` が置き換わる）
+
+        ```bash
+        git bundle create /tmp/vp-e2e.bundle {ブランチ}
+        scp /tmp/vp-e2e.bundle voice-paste-ubuntu:/tmp/vp-e2e.bundle
+        ssh voice-paste-ubuntu 'cd ~/vp-e2e && git fetch /tmp/vp-e2e.bundle {ブランチ} && git checkout --force FETCH_HEAD && ~/.local/bin/uv sync --frozen --extra local-whisper'
+        ```
+
+        3. SSH が切れても止まらないよう `systemd-run --user` で流す（E2E の全件は約 36 分）
+
+        ```bash
+        ssh voice-paste-ubuntu 'systemd-run --user --unit=vp-e2e --collect --setenv=DISPLAY=:0 --setenv=XAUTHORITY=/run/user/1000/gdm/Xauthority --working-directory=$HOME/vp-e2e bash -c ".venv/bin/python -m pytest tests/e2e --run-e2e -v -rs -p no:cacheprovider > e2e.log 2>&1; echo exit=\$? >> e2e.log"'
+        ```
+
+        4. 終わり（`systemctl --user is-active vp-e2e` が `active` でなくなる）を待ち、ログを取ってくる
+
+        ```bash
+        until ! ssh voice-paste-ubuntu 'systemctl --user is-active --quiet vp-e2e'; do sleep 60; done
+        scp voice-paste-ubuntu:vp-e2e/e2e.log {保存先}
+        ```
+
+        特定のケースだけを流すときは、3 の `tests/e2e` を pytest のノード ID の並びに替える。
   - name: 非機能要件テスト
     run_all: |-
       ```bash
@@ -73,7 +113,7 @@ layers:
       - セッションの上限時間のテスト（`tests/nfr/test_api_session_limit.py`）は、SessionManager を上限時間 3 秒で自分で組み、録音機の入力をテストの中で書き出した無音の WAV を流すものに、システム音量を何もしないものに差し替える（実機のマイクを開かず、GPU を使わない）。`--run-e2e` を付けたときだけ走る（付けなければ skip する）
       - 話し終えてから貼り付くまでの時間のテスト（`tests/nfr/test_paste_latency.py`）は実物のクリップボードを書き換える（測った後に元の文字へ戻す）ため、`--run-e2e` を付けたときだけ走る。測っている間はクリップボードを使わない
       - 区間の最大の長さのテスト（`tests/nfr/test_max_segment_length.py`）の WAV は、E2E と同じ音声合成（Windows では SAPI、Linux では Open JTalk）で書き出す
-      - Ubuntu 24.04 の Xorg のセッション（検証環境の VM `voice-paste-ubuntu`）でも流せる（前提は『E2E テスト』の Linux の行と同じ）。GPU を前提にするテスト（`tests/support/whisper_fixtures.py` の `requires_real_whisper` を付けたテスト・`test_transcription_parity.py`・`test_segment_callback_latency.py`）と、外の端末のブラウザの文字起こしを使うテスト（`test_web_*.py`。常駐アプリが Linux でブラウザの文字起こしを持たない）は Linux では skip する。決定値は OS で分けない
+      - Ubuntu 24.04 の Xorg のセッション（検証環境の VM `voice-paste-ubuntu`）でも流せる（前提は『E2E テスト』の Linux の行と同じ。流し方は『E2E テスト』の `notes` の『検証環境の VM で流す』で、3 の `tests/e2e` を `tests/nfr` に、`vp-e2e`・`e2e.log` を `vp-nfr`・`nfr.log` に替える）。GPU を前提にするテスト（`tests/support/whisper_fixtures.py` の `requires_real_whisper` を付けたテスト・`test_transcription_parity.py`・`test_segment_callback_latency.py`）と、外の端末のブラウザの文字起こしを使うテスト（`test_web_*.py`。常駐アプリが Linux でブラウザの文字起こしを持たない）は Linux では skip する。決定値は OS で分けない
     run_one:
       label: ファイル
       command: |-

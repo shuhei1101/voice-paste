@@ -1,0 +1,74 @@
+[NeMo W 2026-11-05 21:04:00 megatron_init:62] Megatron num_microbatches_calculator not found, using Apex version.
+OneLogger: Setting error_handling_strategy to DISABLE_QUIETLY_AND_REPORT_METRIC_ERROR for rank (rank=0) with OneLogger disabled. To override: explicitly set error_handling_strategy parameter.
+No exporters were provided. This means that no telemetry data will be collected.
+[NeMo I 2026-11-05 21:04:06 mixins:184] Tokenizer SentencePieceTokenizer initialized with 3072 tokens
+[NeMo W 2026-11-05 21:04:08 modelPT:195] If you intend to do validation, please call the ModelPT.setup_validation_data() or ModelPT.setup_multiple_validation_data() method and provide a valid configuration file to setup the validation data loader(s). 
+    Validation config : 
+    use_start_end_token: false
+    
+[NeMo I 2026-11-05 21:04:14 rnnt_models:226] Using RNNT Loss : tdt
+    Loss tdt_kwargs: {'fastemit_lambda': 0.0, 'clamp': -1.0, 'durations': [0, 1, 2, 3, 4], 'sigma': 0.05, 'omega': 0.1}
+[NeMo I 2026-11-05 21:04:14 rnnt_models:226] Using RNNT Loss : tdt
+    Loss tdt_kwargs: {'fastemit_lambda': 0.0, 'clamp': -1.0, 'durations': [0, 1, 2, 3, 4], 'sigma': 0.05, 'omega': 0.1}
+[NeMo I 2026-11-05 21:04:14 rnnt_models:226] Using RNNT Loss : tdt
+    Loss tdt_kwargs: {'fastemit_lambda': 0.0, 'clamp': -1.0, 'durations': [0, 1, 2, 3, 4], 'sigma': 0.05, 'omega': 0.1}
+[NeMo I 2026-11-05 21:04:16 save_restore_connector:285] Model EncDecRNNTBPEModel was successfully restored from /home/shuhei2441/.cache/huggingface/hub/models--third-intelligence--Haas-ja-v1.0/snapshots/660728d39019e5e065046154beca44ac9a66a540/Haas-ja-v1.0.nemo.
+[NeMo I 2026-11-05 21:04:17 rnnt_models:226] Using RNNT Loss : tdt
+    Loss tdt_kwargs: {'fastemit_lambda': 0.0, 'clamp': -1.0, 'durations': [0, 1, 2, 3, 4], 'sigma': 0.05, 'omega': 0.1}
+[NeMo I 2026-11-05 21:04:17 boosting_graph_batched:362] GPUBoostingTreeModel: reading boosting tree from <nemo.collections.asr.parts.context_biasing.context_graph_universal.ContextGraph object at 0x77d0621e61d0>
+[NeMo I 2026-11-05 21:04:26 boosting_graph_batched:362] GPUBoostingTreeModel: reading boosting tree from <nemo.collections.asr.parts.context_biasing.context_graph_universal.ContextGraph object at 0x77d0617e62d0>
+short_00 none batch 0.041 変更をgithubへプスしてからレビューを頼みます。
+short_00 v1 batch 0.055 変更をGitHubへプスしてからレビューを頼みます。
+short_00 v2 batch 0.06 変更をGitHubへプスしてからレビューを頼みます。
+short_01 none batch 0.042 クロードに設計書を読ませて作文をまとめてもらいました
+short_01 v1 batch 0.081 Claudeに設計書を読ませて作文をまとめてもらいました
+short_01 v2 batch 0.057 クロードに設計書を読ませて作文をまとめてもらいました
+short_02 none batch 0.049 作業用のワークツリーを作ってからブランチを切り替えます。
+short_02 v1 batch 0.051 作業用のworktreeを作ってからブランチを切り替えます。
+short_02 v2 batch 0.067 作業用のワークツリーを作ってからブランチを切り替えます。
+short_03 none batch 0.052 wslの中で文字起こしのサーバーを動かします。
+short_03 v1 batch 0.052 WSLの中で文字起こしのサーバーを動かします。
+short_03 v2 batch 0.05 WSLの中で文字起こしのサーバーを動かします。
+short_04 none batch 0.045 haus のモデルは日本語の音声認識に特化しています
+short_04 v1 batch 0.067 Haas のモデルは日本語の音声認識に特化しています
+short_04 v2 batch 0.08 Haas のモデルは日本語の音声認識に特化しています
+short_05 none batch 0.068 この処理は何度読んでも結果が変わらないべきトーナ作りにします。
+short_05 v1 batch 0.063 この処理は何度読んでも結果が変わらないべきトーナ作りにします。
+short_05 v2 batch 0.053 この処理は何度読んでも結果が変わらないべきトーナ作りにします。
+short_06 none batch 0.045 請求データと入金データを月末にと都合します
+short_06 v1 batch 0.057 請求データと入金データを月末にと都合します
+short_06 v2 batch 0.064 請求データと入金データを月末にと都合します
+short_07 none batch 0.055 新しい伝票は登録した順に裁判されます。
+short_07 v1 batch 0.046 新しい伝票は登録した順に裁判されます。
+short_07 v2 batch 0.05 新しい伝票は登録した順に裁判されます。
+short_08 none batch 0.046 音量が式1を下回ったら無音とみなします。
+short_08 v1 batch 0.056 音量が式1を下回ったら無音とみなします。
+short_08 v2 batch 0.046 音量が式1を下回ったら無音とみなします。
+short_09 none batch 0.042 古い画面を来月までに改修する予定です。
+short_09 v1 batch 0.049 古い画面を来月までに改修する予定です。
+short_09 v2 batch 0.056 古い画面を来月までに改修する予定です。
+short_10 none batch 0.049 本番の前に外部のサーバーとの疎通確認を済ませておきます。
+short_10 v1 batch 0.052 本番の前に外部のサーバーとの疎通確認を済ませておきます。
+short_10 v2 batch 0.055 本番の前に外部のサーバーとの疎通確認を済ませておきます。
+short_11 none batch 0.051 重複した顧客の情報を名寄せしてまとめます
+short_11 v1 batch 0.052 重複した顧客の情報を名寄せしてまとめます
+short_11 v2 batch 0.052 重複した顧客の情報を名寄せしてまとめます
+medium_00 none batch 0.082 変更をgit hubへプッシュしてからレビューを頼みます。クロードに設計書を読ま
+medium_00 v1 batch 0.1 変更をgit hubへプッシュしてからレビューを頼みます。Claudeに設計書を
+medium_00 v2 batch 0.103 変更をgit hubへプッシュしてからレビューを頼みます。クロードに設計書を読ま
+medium_01 none batch 0.084 請求データと入金データを月末にと都合します。新しい伝票は登録した順に裁判されます
+medium_01 v1 batch 0.121 請求データと入金データを月末に突合します。新しい伝票は登録した順に裁判されます。
+medium_01 v2 batch 0.114 請求データと入金データを月末に突合します。新しい伝票は登録した順に裁判されます。
+long_00 none batch 0.238 変更をgit hubへプッシュしてからレビューを頼みます。クロードに設計書を読ま
+long_00 none sequential 0.475 変更をgit hubへプッシュしてからレビューを頼みます。クロードに設計書を読ま
+long_00 v1 batch 0.207 変更をgit hubへプッシュしてからレビューを頼みます。Claudeに設計書を
+long_00 v1 sequential 0.615 変更をgit hubへプッシュしてからレビューを頼みます。Claudeに設計書を
+long_00 v2 batch 0.244 変更をgit hubへプッシュしてからレビューを頼みます。クロードに設計書を読ま
+long_00 v2 sequential 0.606 変更をgit hubへプッシュしてからレビューを頼みます。クロードに設計書を読ま
+long_01 none batch 0.193 重複した顧客の情報を名寄せして一つにまとめます。本番の前に外部のサーバーとの疎通
+long_01 none sequential 0.419 重複した顧客の情報を名寄せして一つにまとめます。本番の前に外部のサーバーとの疎通
+long_01 v1 batch 0.219 重複した顧客の情報を名寄せして一つにまとめます。本番の前に外部のサーバーとの疎通
+long_01 v1 sequential 0.626 重複した顧客の情報を名寄せして一つにまとめます。本番の前に外部のサーバーとの疎通
+long_01 v2 batch 0.22 重複した顧客の情報を名寄せして一つにまとめます。本番の前に外部のサーバーとの疎通
+long_01 v2 sequential 0.81 重複した顧客の情報を名寄せして一つにまとめます。本番の前に外部のサーバーとの疎通
+exit=0

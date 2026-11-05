@@ -169,3 +169,5 @@ classes:
       - IF-14#
     status: planned
 id: MOD-96
+test_files:
+  - tests/unit/voice_paste/integrations/haas/test_server.py

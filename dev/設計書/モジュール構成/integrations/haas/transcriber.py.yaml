@@ -125,3 +125,5 @@ classes:
       - SC-9#
     status: planned
 id: MOD-97
+test_files:
+  - tests/unit/voice_paste/integrations/haas/test_transcriber.py

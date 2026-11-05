@@ -548,11 +548,11 @@ def test_normal_when_edit_hint_readings(run_app: RunApp) -> None:
         app.select_group("表記のヒント")
 
         # 実行
-        app.set_text("hint_reading_0_0", "とつごう")
-        app.set_text("hint_reading_0_1", "ギットハブ")
+        app.commit_text("hint_reading_0_0", "とつごう")
+        app.commit_text("hint_reading_0_1", "ギットハブ")
         app.press("hint_word_add_0")
-        app.set_text("hint_word_0_2", "議事録")
-        app.set_text("hint_reading_0_2", "ぎじろく")
+        app.commit_text("hint_word_0_2", "議事録")
+        app.commit_text("hint_reading_0_2", "ぎじろく")
         app.press("save_button")
 
         # 検証
@@ -568,7 +568,8 @@ def test_normal_when_edit_hint_readings(run_app: RunApp) -> None:
         ]
         assert COMMENT_LINE in _settings_file(app).read_text(encoding="utf-8")
         assert _yaml(app)["recording"]["fade_sec"] == 1.5
-        presets = app.handlers.settings_store.get().hint_presets
+        assert app.settings_store is not None
+        presets = app.settings_store.get().hint_presets
         assert collect_hint_vocabulary(presets) == [
             ("突合", "とつごう"),
             ("GitHub", "ギットハブ"),

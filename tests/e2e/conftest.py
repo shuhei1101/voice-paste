@@ -12,6 +12,7 @@ from PySide6.QtWidgets import QApplication
 
 from tests.support.browser import EdgeBrowser, launch_edge
 from tests.support.fixtures import (  # noqa: F401 フィクスチャとして使う
+    haas_endpoint,
     openai_endpoint,
     receiver,
     start_inprocess,

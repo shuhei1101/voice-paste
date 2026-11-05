@@ -74,6 +74,7 @@ from tests.support.real_service import (
 from tests.support.settings import default_output, load_test_default_settings
 from voice_paste.features.session import Session, SessionManager
 from voice_paste.integrations.whisper.client import WORKER_MODULE
+from voice_paste.runtime.settings_store import SettingsStore
 from voice_paste.shared.constants import LEGACY_SETTINGS_FILE_NAME, SETTINGS_FILE_NAME
 from voice_paste.shared.errors import MicrophoneUnavailableError
 from voice_paste.ui.tray import STATE_NAMES, TOOLTIP_PREFIX, Tray, TrayState
@@ -202,6 +203,7 @@ class ResidentApp:
         self.correct: Callable[[str, str | None], str] | None = None
         self.transcribe: partial[str] | None = None
         self.session_manager: SessionManager | None = None
+        self.settings_store: SettingsStore | None = None
         self.opened_folders: list[Path] = []
         self.opened_urls: list[str] = []
         self.volume: VolumeLog | None = None
@@ -654,10 +656,18 @@ def _spy_on_main(
         app.session_manager = session_manager(*args)
         return app.session_manager
 
+    settings_store = main_module.SettingsStore
+
+    def make_settings_store(*args: Any) -> SettingsStore:
+        """本物の SettingsStore を作り、記録する。"""
+        app.settings_store = settings_store(*args)
+        return app.settings_store
+
     monkeypatch.setattr(main_module, "Tray", make_tray)
     monkeypatch.setattr(main_module, "HotkeyListener", make_hotkey_listener)
     monkeypatch.setattr(main_module, "SessionDeps", make_session_deps)
     monkeypatch.setattr(main_module, "SessionManager", make_session_manager)
+    monkeypatch.setattr(main_module, "SettingsStore", make_settings_store)
     monkeypatch.setattr(tray_module, "QDesktopServices", _fake_desktop_services(app.opened_folders))
     # 録音の入力が渡されたときは、マイクを開かず、システム音量を変えない
     if wav_input is not None:

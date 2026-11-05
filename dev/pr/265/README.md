@@ -1,0 +1,1 @@
+# PoC: WSL の Haas-ja-v1.0 と faster-whisper の文字起こしの比較

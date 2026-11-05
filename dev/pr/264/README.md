@@ -25,7 +25,7 @@ voice-paste は表記のヒントの単語を faster-whisper の `hotwords` に�
 - [x] ~~初期構築~~（[#8](https://github.com/shuhei1101/voice-paste/pull/8) で済んでいる）
 - [x] ~~リバースエンジニアリング~~（[#10](https://github.com/shuhei1101/voice-paste/pull/10) で現状の設計書が揃っている）
 - [x] ~~方針決め~~（方針決めを依頼する Issue ではない）
-- [ ] PoC 検証（WSL で Haas を動かし、voice-paste の録音で faster-whisper と精度・速さ・表記のヒントの単語の認識を比べる。Windows の常駐アプリから WSL のサーバーへ HTTP で届くかも確認する）
+- [x] PoC 検証（WSL で Haas を動かし、voice-paste の録音で faster-whisper と精度・速さ・表記のヒントの単語の認識を比べる。Windows の常駐アプリから WSL のサーバーへ HTTP で届くかも確認する）
 - [x] ~~複合ユースケース設計~~（影響なし: 複合ユースケースの流れを変えない。エンジンの違いは単一ユースケースの中に収まる）
 - [x] ~~デザインスタイル選定~~（デザイン方針があり、見た目の方向を変えない）
 - [x] ~~画面一覧・画面遷移~~（画面の追加・削除と画面遷移の変更を含まない）

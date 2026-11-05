@@ -133,6 +133,7 @@ subsystems:
     role: WSL の中で Haas-ja-v1.0 のモデルを持ち、常駐アプリから HTTP で受けた音声を文字に起こす。設定のエンジンが haas のときに常駐アプリが起動し、終了・再起動で止める
     runtime: Python 3.11
     runs_on: ユーザーの端末の WSL2（Ubuntu・NVIDIA GPU。ネットワークは mirrored のモード）
+    implementation: haas_server/main.py
 lead: voice-paste のサブシステムと、ユーザー・貼り付け先のアプリ・文字起こしのモデルの取得元との境界。
 external_systems:
   - name: Hugging Face Hub

@@ -2,6 +2,8 @@ summary: クラス / 関数 / 関数型 インデックス（単体テストの�
 items:
   - page: features/
     summary: features の設計書
+  - page: haas_server/
+    summary: haas_server の設計書
   - page: integrations/
     summary: integrations の設計書
   - page: main.py.yaml

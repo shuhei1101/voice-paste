@@ -800,12 +800,13 @@ settings:
   - key: hint_presets[].readings
     title: 表記のヒントの語の読み
     file: settings.yaml
-    type: dict[string, string]
-    default: "'{}'"
-    description: そのプリセットの語（`words` の要素）から読みへの対応。エンジンが `haas` のときだけ、語の表記と読みの組を Haas の Vocabulary に渡す。読みの無い語は表記だけを渡す。`local_whisper`・`openai` は読みを使わない。キーが無い settings.yaml は、全ての語が読みを持たないものとして読む。
+    type: list[string]
+    default: "'[]'"
+    description: '`words` と同じ並びの読み。空文字はその語に読みが無いことを表す。エンジンが `haas` のときだけ、語の表記と読みの組を Haas の Vocabulary に渡す。読みの無い語は表記だけを渡す。`local_whisper`・`openai` は読みを使わない。キーが無い settings.yaml は、全ての語が読みを持たないものとして読む。'
     reload: immediate
-    allowed: 読みはひらがな・カタカナ・長音符（ー）だけ。1 文字以上。キーは同じプリセットの `words` にある語。同じプリセットの同じ語に違う読みを持てない。有効なヒントの長さ（222 バイト）に数えない
+    allowed: 空の一覧か、`words` と同じ長さ。読みはひらがな・カタカナ・長音符（ー）だけか空文字。同じプリセットの同じ語に違う読みを持てない（片方が空なら持てる）。有効なヒントの長さ（222 バイト）に数えない
     status: planned
     implementation: src/voice_paste/shared/settings.py
+    reason: 読みの確かめの失敗を、語と同じく `readings[{m}]` の場所で読みの欄へ出すため、語をキーにした対応ではなく語と同じ並びの一覧にした
 notes:
   反映の列の読み方: '`immediate` は設定画面で保存すると動いている常駐アプリに効く項目。`settings.yaml`・`settings.local.yaml` を直接書き換えたときは、どの項目も再起動まで効かない（起動時に 1 度だけ読む）。'

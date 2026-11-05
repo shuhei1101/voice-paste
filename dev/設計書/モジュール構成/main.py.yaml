@@ -31,6 +31,9 @@ data_models:
       - name: web_api
         type: WebApiDeps | None
         description: API サーバーへ渡すブラウザの API の依存（WebJobQueue・probe_audio・一時のフォルダ）。WebJobQueue の開始と終了は main が呼ぶ。外の端末のブラウザの機能を使えない OS では None
+      - name: active_engine
+        type: EngineName
+        description: 実際に動いているエンジン。設定が haas で切り戻した起動では local_whisper
     status: implemented
   - name: CliArgs
     title: 起動の引数
@@ -357,6 +360,10 @@ functions:
          - local_whisper の場合、ensure_local_whisper_installed で確かめ（StartupError はそのまま送出する）、WhisperWorkerClient を adapters.worker_creationflags で作り、on_engine_created にその stop を渡してから起動する。engine はその transcribe、stop_engine はその stop
            - EngineError の場合、StartupError を送出する
          - openai の場合、read_openai_api_key（paths.openai_api_key_file・environ）で読んだ API キーと設定の transcription.openai で OpenAITranscriber を作る（文字起こしワーカーは起動しない）。engine はその transcribe、stop_engine は何もしない関数（StartupError はそのまま送出する）。on_engine_created には stop_engine を渡す
+         - haas の場合、設定の transcription.haas で HaasServer を作り、on_engine_created にその stop を渡してから ensure_started を呼ぶ。動いているのが Linux（unavailable に Feature.WEB_TRANSCRIPTION がある）なら ensure_started を呼ばずに次の切り戻しへ進む
+           - 通った場合、HaasTranscriber（SettingsStore.get の hint_presets を collect_hint_vocabulary で集める関数を get_vocabulary に渡す）を作る。engine はその transcribe、stop_engine は HaasServer.stop、動いているエンジンは haas
+           - EngineError の場合、ローカルの Whisper へ切り戻す。notify で「Haas のサーバーへ接続できないため、ローカルの Whisper で起こします。」を知らせ、上の local_whisper の場合と同じ流れで作る。動いているエンジンは local_whisper
+             - `[WARNING]` Haas のサーバーへ接続できないためローカルの Whisper で起こす（理由）
       3. 連続録音の話し声の判定に使う VAD のセッションを 1 回だけ読む（load_vad_session。StartupError はそのまま送出する）
       4. Recorder に音量の関数（unavailable に Feature.LOWER_VOLUME があれば integrations/volume/noop.py の lower_volume_noop・restore_volume_noop、無ければ adapters の lower_volume・restore_volume）と、SettingsStore から録音の設定を返す関数と、VAD のセッションを部分適用した StreamingVad（話し声の判定を作る）を渡す
       5. 出力先の deliver に、配線した OUTPUTS（_wire_outputs）・配線した PRESET_KINDS（_wire_preset_kinds。open_window に adapters.open_app_window、send_paste に adapters.send_paste、send_enter_fn に adapters.send_enter）と、届けるたびに SettingsStore からオンの出力先の ID を引く関数を部分適用し、Session を入口・出力先の ID・選んだプリセット・返送先に分けて渡すアダプタを作る
@@ -368,10 +375,10 @@ functions:
       7. SessionDeps を組み（report_progress、起動時の設定の api.continuous.min_silence_sec を部分適用した Recorder.start_continuous、Recorder.stop_continuous を含む）、API のセッションの上限時間と、起動時の設定の api.continuous.session_limit_sec の連続録音の上限時間と共に SessionManager を作る（api.continuous.* は再起動で効く）
       8. SessionManager と、設定の許可ホストを部分適用した is_callback_allowed と、SettingsStore の設定と settings.yaml のフォルダで resolve_glossary_presets した一覧にその名前があるかを返す glossary_preset_exists を SessionApiDeps に束ねる
       9. start_local_session に SessionManager と notify を部分適用する
-      10. unavailable に Feature.WEB_TRANSCRIPTION があれば、ブラウザの文字起こしを配線せず web_api を None にする。無ければブラウザの文字起こしを配線する。WebTranscriptionDeps に、履歴を残すかをそのたびに SettingsStore.get から引いて渡す store_web_audio、7 と同じ transcribe、6 の correct（ジョブの用語集のプリセットの名前を受ける）・append_text・discard_temporary を部分適用して渡し、WebJobQueue を作る。WebJobQueue・probe_audio・`{tmp_dir}/web`・8 と同じ glossary_preset_exists・そのたびに SettingsStore の設定と settings.yaml のフォルダで resolve_glossary_presets した名前の一覧と pick_glossary_preset（requested なし）の名前を GlossaryPresetChoices で返す list_glossary_preset_choices・起動時の SettingsStore.get の transcription.engine が local_whisper か（reports_progress。build_ui_deps の reports_progress と同じ判定）を WebApiDeps に束ねる（ワーカースレッドはまだ立てない）
+      10. unavailable に Feature.WEB_TRANSCRIPTION があれば、ブラウザの文字起こしを配線せず web_api を None にする。無ければブラウザの文字起こしを配線する。WebTranscriptionDeps に、履歴を残すかをそのたびに SettingsStore.get から引いて渡す store_web_audio、7 と同じ transcribe、6 の correct（ジョブの用語集のプリセットの名前を受ける）・append_text・discard_temporary を部分適用して渡し、WebJobQueue を作る。WebJobQueue・probe_audio・`{tmp_dir}/web`・8 と同じ glossary_preset_exists・そのたびに SettingsStore の設定と settings.yaml のフォルダで resolve_glossary_presets した名前の一覧と pick_glossary_preset（requested なし）の名前を GlossaryPresetChoices で返す list_glossary_preset_choices・2 で決まった動いているエンジンが local_whisper か（reports_progress。build_ui_deps の reports_progress と同じ判定）を WebApiDeps に束ねる（ワーカースレッドはまだ立てない）
     exceptions:
       - name: StartupError
-        condition: 文字起こしのエンジンを準備できない（ローカルの Whisper の依存が無い・ワーカーが立たない・OpenAI の API キーが無い・VAD を読めない）
+        condition: 文字起こしのエンジンを準備できない（ローカルの Whisper の依存が無い（Haas から切り戻した先でも同じ）・ワーカーが立たない・OpenAI の API キーが無い・VAD を読めない）
     status: implemented
   - name: main
     title: 起動
@@ -913,7 +920,7 @@ functions:
       6. list_glossaries に SettingsStore.get の設定と settings.yaml のフォルダで resolve_glossaries を呼ぶ関数、list_glossary_presets に同じ設定とフォルダで resolve_glossary_presets を呼ぶ関数、read_glossary に read_glossary_rows、new_glossary_path に settings.yaml のフォルダの `glossaries` を部分適用した next_glossary_path を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
       7. copy に copy_to_clipboard、reset_settings に引数の reset_settings、default_settings に paths.defaults_file と SETTINGS_MODEL で load_default_settings を呼ぶ関数を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
       8. hidden_setting_keys に hidden_setting_keys(unavailable_features(CURRENT_OS)) を渡す（エンジンを準備できなかった起動の UiDeps も同じ）
-      9. reports_progress に、このときの SettingsStore.get の transcription.engine が local_whisper かを渡す（起動で配線したエンジンと同じ設定から 1 回だけ求める。エンジンを準備できなかった起動の UiDeps も同じ）
+      9. reports_progress に、Handlers.active_engine が local_whisper かを渡す（切り戻した起動では進みを知らせる。エンジンを準備できなかった起動の UiDeps は、このときの SettingsStore.get の transcription.engine が local_whisper か）
     status: implemented
   - name: reset_applied_settings
     title: 設定を既定に戻して反映

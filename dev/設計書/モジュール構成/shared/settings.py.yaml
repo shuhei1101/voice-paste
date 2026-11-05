@@ -17,6 +17,7 @@ data_models:
       まとまりのモデルも全て `pydantic.BaseModel` で、どれも `model_config = ConfigDict(extra="forbid")` にして知らないキー（書き間違い）を断る。
       各項目は `Field(description=..., json_schema_extra={"reload": "immediate" | "restart"})` で再起動が要るかのマーカーを持つ。
       出力先ごとの設定のモデルは出力先が持ち（shared は features を import しない）、アプリが使う設定のモデルは build_settings_model がこのモデルを継いで組み立てる（main.py の SETTINGS_MODEL）。既定の設定は load_default_settings で既定値のファイルから作る。
+      `model_validator(mode="after")` が、`transcription.haas.port` と `api.port` が同じ番号の設定を `PydanticCustomError`（type `haas_port_overlap`、場所 `transcription.haas.port`）にする。
       設定を受ける関数・画面は型としては Settings を使い、検証には受けた設定のモデル（`type(settings)`）を使う。
     properties:
       - name: transcription
@@ -98,15 +99,18 @@ data_models:
     inherits: pydantic.BaseModel
     properties:
       - name: engine
-        type: Literal["local_whisper", "openai"]
+        type: Literal["local_whisper", "openai", "haas"]
         default: local_whisper
-        description: 使う文字起こしのエンジン（文字起こしの EngineName）。反映は restart。設定画面は `json_schema_extra` の choice_labels（local_whisper → ローカルの Whisper・openai → OpenAI API）で選択の欄の名前を出す
+        description: 使う文字起こしのエンジン（文字起こしの EngineName）。反映は restart。設定画面は `json_schema_extra` の choice_labels（local_whisper → ローカルの Whisper・openai → OpenAI API・haas → Haas（WSL））で選択の欄の名前を出す
       - name: local_whisper
         type: LocalWhisperSettings
         description: ローカルの Whisper の設定
       - name: openai
         type: OpenAISettings
         description: OpenAI API の設定（engine が openai のときだけ使う）
+      - name: haas
+        type: HaasSettings
+        description: Haas の文字起こしのサーバーの設定（engine が haas のときだけ使う）
     status: implemented
   - name: LocalWhisperSettings
     title: ローカルの Whisper の設定
@@ -555,7 +559,7 @@ data_models:
     usecase: 設定を変える
     role: 設定のモデル
     summary: 表記のヒントのプリセット 1 つの名前・語の並び・有効か
-    description: 語は `field_validator` で 1 つずつ前後の空白を除いて確かめる。空の語は `PydanticCustomError`（type `hint_word_empty`）、読点（、）・句点（。）・改行を含む語は `PydanticCustomError`（type `hint_word_separator`）にし、失敗の場所を `words[{m}]` にする。無効のプリセットの語も確かめる。
+    description: 語は `field_validator` で 1 つずつ前後の空白を除いて確かめる。空の語は `PydanticCustomError`（type `hint_word_empty`）、読点（、）・句点（。）・改行を含む語は `PydanticCustomError`（type `hint_word_separator`）にし、失敗の場所を `words[{m}]` にする。無効のプリセットの語も確かめる。読みも `field_validator` で 1 つずつ前後の空白を除き、ひらがな・カタカナ・長音符（ー）以外の文字を含むものは `PydanticCustomError`（type `hint_reading_not_kana`）にし、失敗の場所を `readings[{m}]` にする。`model_validator(mode="after")` が、readings が空でなく長さが words と違う設定を `PydanticCustomError`（type `hint_readings_length`、場所 `readings`）に、同じ語に違う読み（空を除く）がある設定を、後ろの語の読みの場所の `PydanticCustomError`（type `hint_reading_conflict`、場所 `readings[{m}]`）にする。
     inherits: pydantic.BaseModel
     properties:
       - name: name
@@ -569,10 +573,15 @@ data_models:
         type: bool
         default: 'True'
         description: このプリセットの語を文字起こしに渡すか
+      - name: readings
+        type: list[str]
+        default: '[]'
+        description: words と同じ並びの読み（各読みの前後の空白を除く）。空の一覧か words と同じ長さ。空文字は読みが無い語
     refs:
       - CFG-1#settings[hint_presets[].name]
       - CFG-1#settings[hint_presets[].words]
       - CFG-1#settings[hint_presets[].enabled]
+      - CFG-1#settings[hint_presets[].readings]
     status: implemented
   - name: HintWordSource
     title: 手がかりの語の出所
@@ -684,6 +693,42 @@ data_models:
     status: planned
     introduced:
       pr: 204
+  - name: HaasSettings
+    title: Haas の文字起こしのサーバーの設定
+    container: shared/settings.py
+    usecase: 常駐アプリを起動する
+    role: 設定のモデル
+    summary: Haas の文字起こしのサーバーを動かす WSL のディストリビューションと、待ち受けのポート
+    description: 反映は全て restart。設定画面は `json_schema_extra` の note で、まとまりの補助文を欄の下に出す。
+    inherits: pydantic.BaseModel
+    properties:
+      - name: distribution
+        type: str
+        default: "''"
+        description: '`wsl.exe -d` に渡すディストリビューションの名前。空なら `-d` を付けない'
+      - name: port
+        type: int
+        default: '47824'
+        description: サーバーが待ち受けるポート。`ge=1024`・`le=65535`
+    refs:
+      - CFG-1#settings[transcription.haas.distribution]
+      - CFG-1#settings[transcription.haas.port]
+    status: planned
+  - name: HintVocabularyWord
+    title: 表記のヒントの表記と読み
+    container: shared/settings.py
+    usecase: 録音を文字に起こす
+    role: DTO
+    summary: Haas へ渡す語 1 つの表記と読み
+    description: '`NamedTuple`。'
+    properties:
+      - name: written
+        type: str
+        description: 語の表記
+      - name: reading
+        type: str | None
+        description: 読み。読みの無い語は None
+    status: planned
 enums:
   - name: Preset
     title: カスタムプリセット
@@ -1766,3 +1811,42 @@ functions:
       description: その OS の既定値
     process: 1. OS_DEFAULT_OVERRIDES[os_kind] に key があればその値、無ければ common を返す
     status: removed
+  - name: collect_hint_vocabulary
+    title: 表記のヒントの表記と読みの集め
+    container: shared/settings.py
+    usecase: 録音を文字に起こす
+    kind: 関数
+    scope: public
+    summary: 有効なプリセットの語を、一覧の上から順に表記と読みの組で返す。同じ表記は 1 つにまとめる
+    args:
+      - name: presets
+        type: Sequence[HintPresetSettings]
+        required: true
+        passing: positional
+        description: 設定の hint_presets
+    returns:
+      type: list[HintVocabularyWord]
+      description: 表記と読みの組。有効な語が無ければ空の一覧
+    process: |-
+      1. enabled が True のプリセットの words と readings を一覧の順に並べる（readings が空の一覧なら読みは全て None、空文字の読みも None）
+      2. 同じ表記は最初の位置に 1 つにまとめ、読みが None で後の語に読みがあればその読みを使う
+    unit_tests:
+      - name: test_collect_hint_vocabulary
+        case: 正常
+        summary: 有効なプリセットの語を表記と読みの組で返す
+        condition: 有効なプリセットに語 突合（読み とつごう）・voice-paste（読み 空）、無効なプリセットに語 議事録
+        mock: なし
+        expected: '[("突合", "とつごう"), ("voice-paste", None)]'
+      - name: test_collect_hint_vocabulary_when_no_readings
+        case: 正常
+        summary: readings が空の一覧なら読みは全て None
+        condition: words が 2 つ、readings が空の一覧
+        mock: なし
+        expected: 2 つとも reading が None
+      - name: test_collect_hint_vocabulary_when_duplicate_word
+        case: 正常
+        summary: 同じ表記は 1 つにまとめ、読みのある方を残す
+        condition: 1 つ目のプリセットに 突合（読み 空）、2 つ目のプリセットに 突合（読み とつごう）
+        mock: なし
+        expected: '[("突合", "とつごう")]'
+    status: planned

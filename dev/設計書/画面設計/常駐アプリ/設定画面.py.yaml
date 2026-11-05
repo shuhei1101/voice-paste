@@ -994,8 +994,8 @@ elements:
     required: false
     constraints: ひらがな・カタカナ・長音符（ー）だけ
     initial_value: 設定の値（読みの無い語と追加した語は空）
-    source: Settings.hint_presets[].readings[語]
-    target: Settings.hint_presets[].readings[語]（前後の空白を除く。空ならその語の対応を書かない）
+    source: Settings.hint_presets[].readings[]（語と同じ並び）
+    target: Settings.hint_presets[].readings[]（前後の空白を除く。全ての語の読みが空なら空の一覧）
     status: planned
     refs:
       - CFG-1#settings[hint_presets[].readings]

@@ -91,7 +91,7 @@ data_models:
         description: 設定画面で出さない設定のキー（hidden_setting_keys(unavailable_features(CURRENT_OS))）。Linux では録音中の音量のキーと api.allowed_web_origins
       - name: reports_progress
         type: bool
-        description: 動いているエンジンが区間ごとの進みを知らせるか（local_whisper は True、openai は False）。engine の反映は再起動のため、保存した設定ではなく起動の配線で決めた値を持つ
+        description: 動いているエンジンが区間ごとの進みを知らせるか（local_whisper は True、openai・haas は False。haas から切り戻した起動は local_whisper として True）。engine の反映は再起動のため、保存した設定ではなく起動の配線で決めた値を持つ
     status: implemented
 classes:
   - name: UiController

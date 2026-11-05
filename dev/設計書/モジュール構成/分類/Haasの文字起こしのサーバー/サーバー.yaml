@@ -1,0 +1,17 @@
+title: Haas の文字起こしのサーバー / サーバー
+lead: WSL の中で Haas-ja-v1.0 のモデルを持ち、常駐アプリから HTTP で受けた音声を文字に起こす。依存が重く Linux でしか動かないため、voice_paste のパッケージとは別の Python の環境で動かす。
+directory: |-
+  ```
+  haas_server/
+  ├── pyproject.toml # サーバーの環境の依存（haas-asr・fastapi・uvicorn・python-multipart・av。uv の package = false）
+  ├── uv.lock
+  ├── start.sh       # 起動スクリプト（uv run python -m haas_server.main {ポート}）
+  ├── __init__.py
+  ├── main.py        # モデルを読み込んで待ち受ける入口・ログの設定
+  ├── app.py         # FastAPI の app（3 つの API と Host・Origin の守り）
+  └── audio.py       # 音声の 16 kHz モノラルへの復号
+  ```
+notes:
+  ログ: ログは WSL の中の `~/.local/state/voice-paste/haas_server.log` に書く（logging の RotatingFileHandler。1 MB を 3 世代）。起動の前から動いているサーバーでは常駐アプリが標準エラーを受けられないため、WSL の中のファイルにする。
+  テスト: 単体テストと結合テストは Windows の常駐アプリと同じ `.venv` で流す。haas_asr は main.py の load_engine の中でだけ import し、app.py・audio.py は関数を受けるため、GPU も haas_asr も要らない。
+id: MOD-98

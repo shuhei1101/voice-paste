@@ -10,6 +10,9 @@ directory: |-
   ├── openai/
   │   ├── credentials.py # read_openai_api_key（環境変数か秘匿のファイルから API キーを読む）
   │   └── transcriber.py # OpenAITranscriber（OpenAI API の文字起こしへ httpx で送信する）
+  ├── haas/
+  │   ├── server.py     # HaasServer（WSL のサーバーの起動・応答の確認・停止）
+  │   └── transcriber.py # HaasTranscriber（Haas の文字起こしのサーバーへ httpx で送信する）
   ├── audio/
   │   └── probe.py      # probe_audio（受けた音声を PyAV で開いて容れ物・秒数を読む）
   ├── vad/

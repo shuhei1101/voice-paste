@@ -11,6 +11,7 @@ layers:
       - 外部依存なし（GPU も録音も要らない）
       - Linux では、Win32 の単一インスタンス（`tests/unit/voice_paste/runtime/test_single_instance.py`）・pycaw の音量のアダプタ（`tests/unit/voice_paste/integrations/volume/test_adapter.py`）・読み込み時に `ctypes.WinDLL` を呼ぶ `tests/unit/voice_paste/runtime/helpers.py` に依存するテスト（`tests/unit/voice_paste/conftest.py` の該当のフィクスチャを使うものと `tests/unit/voice_paste/test_main.py` の該当のケースを含む）を skip する
       - Linux の単一インスタンス（`src/voice_paste/runtime/single_instance_linux.py`）の単体テスト（`tests/unit/voice_paste/runtime/test_single_instance_linux.py`）は Linux でだけ流す（Windows では skip する）
+      - Haas の文字起こしのサーバーの単体テスト（`tests/unit/haas_server/`）も同じ `.venv` で流す。haas_asr・GPU は要らない
     run_one:
       label: ファイル
       command: |-
@@ -28,6 +29,7 @@ layers:
       - マイク・システム音量・文字起こしのエンジンは Mock に差し替え、履歴は一時フォルダに書く
       - 画面のテスト（`tests/integration/ui/`）は offscreen（`QT_QPA_PLATFORM=offscreen`。`tests/conftest.py` が設定する）の QApplication で開き、操作は QtTest で行う。実機の画面・トレイ・ホットキーは使わず、UiDeps の関数は Mock で受ける
       - 返送先は 127.0.0.1 で待ち受けるテスト用のエンドポイントで、テストが立てる
+      - Haas の文字起こしのサーバーの結合テスト（`tests/integration/haas_server/`）は、モデルを決まった文字を返す関数に差し替える。haas_asr・GPU は要らない
     run_one:
       label: ファイル
       command: |-

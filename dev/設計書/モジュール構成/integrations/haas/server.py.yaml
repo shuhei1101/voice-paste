@@ -1,0 +1,164 @@
+title: 常駐アプリ / 外部連携 / server.py
+constants:
+  - name: HAAS_START_TIMEOUT_SEC
+    title: Haas のサーバーの起動の待ち時間
+    container: integrations/haas/server.py
+    usecase: 常駐アプリを起動する
+    summary: サーバーを起動してから応答するまで待つ秒数
+    value: '60.0'
+    refs:
+      - NFR-1#requirements[Haasのサーバーの起動の待ち時間]
+    status: planned
+  - name: HAAS_HEALTH_INTERVAL_SEC
+    title: Haas のサーバーの応答の確認の間隔
+    container: integrations/haas/server.py
+    usecase: 常駐アプリを起動する
+    summary: 起動を待つ間に GET /health を送信する間隔
+    value: '0.5'
+    refs:
+      - NFR-1#requirements[Haasのサーバーの起動の待ち時間]
+    status: planned
+  - name: HAAS_SERVER_DIR
+    title: Haas のサーバーのフォルダ
+    container: integrations/haas/server.py
+    usecase: 常駐アプリを起動する
+    summary: リポジトリの haas_server フォルダ。wsl.exe の --cd に渡す
+    value: REPO_ROOT / "haas_server"
+    status: planned
+classes:
+  - name: HaasServer
+    title: Haas の文字起こしのサーバー
+    container: integrations/haas/server.py
+    usecase: 常駐アプリを起動する
+    role: アダプタ
+    kind: クラス
+    summary: WSL の中の Haas の文字起こしのサーバーを、必要なら wsl.exe で起動して応答を待ち、自分が起動したサーバーだけを止める
+    description: 起動の前から応答するサーバーは使うだけで止めない。止めるのは POST /shutdown で、wsl.exe のプロセスの強制終了はしない。
+    properties:
+      - name: _settings
+        type: HaasSettings
+        access: 内部 (_)
+        description: ディストリビューションとポート
+      - name: _started
+        type: bool
+        access: 内部 (_)
+        default: 'False'
+        description: このインスタンスがサーバーを起動したか
+      - name: _stopped
+        type: threading.Event
+        access: 内部 (_)
+        description: stop が呼ばれたら起動の待ちを打ち切る
+      - name: _popen
+        type: Callable[..., subprocess.Popen]
+        access: 内部 (_)
+        default: subprocess.Popen
+        description: wsl.exe を起動する関数（テストで差し替える）
+      - name: _clock
+        type: Callable[[], float]
+        access: 内部 (_)
+        default: time.monotonic
+        description: 待ちの時計（テストで差し替える）
+      - name: _transport
+        type: httpx.BaseTransport | None
+        access: 内部 (_)
+        default: None
+        description: httpx.Client に渡すトランスポート（テストで差し替える）
+    methods:
+      - name: ensure_started
+        title: サーバーの起動の確認
+        kind: メソッド
+        scope: public
+        summary: 接続先が応答すればそのまま使い、応答が無ければ wsl.exe で起動して応答を待つ
+        returns:
+          type: None
+          description: 応答を確かめた
+        process: |-
+          1. GET /health を送信する（_is_ready）
+             - 200 の場合、終える
+               - `[INFO]` 動いている Haas のサーバーを使う（ポート）
+          2. `wsl.exe [-d {distribution}] --cd {HAAS_SERVER_DIR} -e bash start.sh {port}` を _popen で起動する（標準入出力は開かない。Windows では CREATE_NO_WINDOW）。_started を True にする
+             - wsl.exe を起動できない（OSError）場合、EngineError を送出する
+          3. HAAS_START_TIMEOUT_SEC まで、HAAS_HEALTH_INTERVAL_SEC ごとに _is_ready を呼ぶ
+             - 200 の場合、終える
+               - `[INFO]` Haas のサーバーを起動した（かかった秒・ポート）
+             - 起動した wsl.exe が 0 以外で終わった場合、EngineError を送出する
+             - stop が呼ばれた場合、EngineError を送出する
+          4. EngineError を送出する（理由は待ち時間までに応答が無いこと）
+        exceptions:
+          - name: EngineError
+            condition: wsl.exe を起動できない・起動スクリプトが失敗して終わった・待ち時間までに応答が無い・起動の待ちの間に stop された
+        unit_tests:
+          - name: test_ensure_started_when_already_running
+            case: 正常
+            summary: 接続先が応答すれば起動しない
+            condition: /health が 200
+            mock: httpx.MockTransport・_popen
+            expected: _popen が呼ばれない。stop の後に /shutdown が送信されない
+          - name: test_ensure_started_when_not_running
+            case: 正常
+            summary: 応答が無ければ起動して応答を待つ
+            condition: /health が 1 回目は接続エラー、2 回目は 200。distribution="Ubuntu-24.04"・port=47824
+            mock: httpx.MockTransport・_popen・_clock
+            expected: _popen に wsl.exe -d Ubuntu-24.04 --cd {HAAS_SERVER_DIR} -e bash start.sh 47824 が渡る
+          - name: test_ensure_started_when_default_distribution
+            case: 正常
+            summary: ディストリビューションが空なら -d を付けない
+            condition: distribution=""
+            mock: httpx.MockTransport・_popen・_clock
+            expected: _popen の引数に -d が無い
+          - name: test_ensure_started_when_wsl_missing
+            case: 異常
+            summary: wsl.exe を起動できない
+            condition: _popen が FileNotFoundError を送出する
+            mock: httpx.MockTransport・_popen
+            expected: EngineError
+            exception: wsl.exe を起動できない
+          - name: test_ensure_started_when_script_failed
+            case: 異常
+            summary: 起動スクリプトが失敗して終わる
+            condition: Popen.poll が 1 を返す
+            mock: httpx.MockTransport・_popen・_clock
+            expected: EngineError
+            exception: 起動スクリプトが失敗して終わった
+          - name: test_ensure_started_when_timeout
+            case: 異常
+            summary: 待ち時間までに応答が無い
+            condition: /health が接続エラーのまま _clock が HAAS_START_TIMEOUT_SEC を過ぎる
+            mock: httpx.MockTransport・_popen・_clock
+            expected: EngineError
+            exception: 待ち時間までに応答が無い
+        status: planned
+      - name: stop
+        title: サーバーの停止
+        kind: メソッド
+        scope: public
+        summary: このインスタンスが起動したサーバーに POST /shutdown を送信する。起動の待ちも打ち切る
+        returns:
+          type: None
+          description: 応答を待たない
+        process: |-
+          1. _stopped をセットする
+          2. _started が True なら POST /shutdown を送信する（接続 HAAS_CONNECT_TIMEOUT_SEC）
+             - httpx.HTTPError の場合、握りつぶして終える
+               - `[WARNING]` Haas のサーバーを止められなかった（例外の種類）
+        unit_tests:
+          - name: test_stop
+            case: 正常
+            summary: 起動したサーバーを止める
+            condition: ensure_started で起動した後に stop
+            mock: httpx.MockTransport・_popen・_clock
+            expected: POST /shutdown が 1 回送信される
+          - name: test_stop_when_unreachable
+            case: 正常
+            summary: 止められなくても例外を出さない
+            condition: /shutdown が接続エラー
+            mock: httpx.MockTransport・_popen・_clock
+            expected: 例外が出ない
+        status: planned
+    refs:
+      - SC-5#
+      - SC-2#
+      - IF-13#
+      - IF-14#
+    status: planned
+id: MOD-96

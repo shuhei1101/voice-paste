@@ -4,3 +4,5 @@ items:
     summary: 常駐アプリ の設計書
   - page: 文字起こしワーカー/
     summary: 文字起こしワーカー の設計書
+  - page: Haasの文字起こしのサーバー/
+    summary: Haas の文字起こしのサーバー の設計書

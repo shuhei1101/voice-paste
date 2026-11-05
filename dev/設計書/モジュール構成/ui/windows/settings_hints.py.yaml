@@ -12,8 +12,8 @@ classes:
     inherits: PySide6.QtWidgets.QWidget
     summary: 設定画面の「表記のヒント」のまとまりに置く、有効なヒントの長さ・プリセットのまとまりの縦の並び・「プリセットを追加」・補足。プリセットと語の追加・削除・並べ替えを受け、長さを数え直す
     description: |-
-      要素（説明・有効なヒントの長さ・一覧・空の案内・有効の切り替え・語の数と長さ・名前・語・語を削除・語が無いときの文・語を追加・上へ・下へ・削除・追加・補足）と読み上げの名前は画面設計「設定画面」が持つ。
-      プリセットのまとまりは PresetListPanel と同じ構造（頭に切り替え・名前・上へ・下へ・削除、下に欄）で作る。語の欄は入力と削除ボタンの組を `QGridLayout` の 2 列（左から右、上から下が語の順）に並べ、部品の幅が 2 組入らないときは 1 列に並べ直す（resizeEvent）。幅に応じて列の数を 3 以上に増やす自前のレイアウトは作らない。
+      要素（説明・有効なヒントの長さ・一覧・空の案内・有効の切り替え・語の数と長さ・名前・列の見出し・語・読み・語を削除・語が無いときの文・語を追加・上へ・下へ・削除・追加・補足）と読み上げの名前は画面設計「設定画面」が持つ。
+      プリセットのまとまりは PresetListPanel と同じ構造（頭に切り替え・名前・上へ・下へ・削除、下に欄）で作る。語の欄は、語の入力・読みの入力・削除ボタンを 1 行に（幅は語 3 : 読み 2）、上から下が語の順に縦に積む。語が 1 つ以上あるときだけ、上に列の見出し「語」「読み」を左端を欄に合わせて出す。エラーはその行の下に出す。
       長さは欄の入力・切り替え・追加・削除・並べ替えのたびに、今の欄の値（プリセットごとの有効かと語の並び。HintWordSource を満たす値で、HintPresetSettings にはしない）を join_hint_words でつないだ UTF-8 のバイト数で数え直し、HINT_MAX_BYTES を超えたらバーと数字を赤にして「（{超えた分} バイト超過）」を添える。空の名前・空の語・区切りを含む語もそのまま数える（確かめは保存で行う）。
       無効のプリセットの語の欄は、用語集のオフの行と同じく文字を薄くして取り消し線を引く（編集はできる）。
       追加・削除・並べ替えはこの部品の中だけを変え、settings.yaml へは設定画面の保存で書く。
@@ -44,7 +44,7 @@ classes:
         summary: 今の並びのプリセットを 設定と同じ構造の dict（name・words・enabled）の並びにする。空の語の欄もそのまま入れ（確かめで断る）、前後の空白は設定のモデルが除く
         returns:
           type: list[dict[str, Any]]
-          description: hint_presets の並び
+          description: hint_presets の並び。readings は全ての語の読みが空なら空の一覧
         unit_tests:
           - name: test_hint_preset_panel_collect
             case: 正常
@@ -124,7 +124,7 @@ classes:
             type: tuple[int | str, ...]
             required: true
             passing: positional
-            description: hint_presets より後ろの失敗の場所（例 (1, "words", 3)・(2, "name")・()）
+            description: hint_presets より後ろの失敗の場所（例 (1, "words", 3)・(1, "readings", 3)・(2, "name")・()）
         returns:
           type: None
           description: なし

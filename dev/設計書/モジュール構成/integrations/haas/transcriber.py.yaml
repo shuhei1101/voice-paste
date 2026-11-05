@@ -1,0 +1,127 @@
+title: 常駐アプリ / 外部連携 / transcriber.py
+constants:
+  - name: HAAS_CONNECT_TIMEOUT_SEC
+    title: Haas のサーバーへの接続のタイムアウト
+    container: integrations/haas/transcriber.py
+    usecase: 録音を文字に起こす
+    summary: 接続を待つ秒数
+    value: '3.0'
+    refs:
+      - NFR-1#requirements[Haasの文字起こしのタイムアウト]
+    status: planned
+  - name: HAAS_RESPONSE_TIMEOUT_SEC
+    title: Haas の文字起こしの応答のタイムアウト
+    container: integrations/haas/transcriber.py
+    usecase: 録音を文字に起こす
+    summary: 応答を待つ秒数
+    value: '180.0'
+    refs:
+      - NFR-1#requirements[Haasの文字起こしのタイムアウト]
+    status: planned
+classes:
+  - name: HaasTranscriber
+    title: Haas の文字起こし
+    container: integrations/haas/transcriber.py
+    usecase: 録音を文字に起こす
+    role: アダプタ
+    kind: クラス
+    summary: 録音を Haas の文字起こしのサーバー（POST /transcriptions）へ httpx の multipart で送信し、起こした文字を返す
+    properties:
+      - name: _port
+        type: int
+        access: 内部 (_)
+        description: サーバーのポート
+      - name: _get_vocabulary
+        type: Callable[[], list[HintVocabularyWord]]
+        access: 内部 (_)
+        description: 送信するたびに表記と読みの組を読む関数
+      - name: _transport
+        type: httpx.BaseTransport | None
+        access: 内部 (_)
+        default: None
+        description: httpx.Client に渡すトランスポート（テストで差し替える）
+    methods:
+      - name: transcribe
+        title: 文字起こし
+        kind: メソッド
+        inherits: 文字起こしの EngineFn
+        scope: public
+        summary: 録音を送信し、起こした文字を 1 区間の並びで返す
+        args:
+          - name: audio_path
+            type: Path
+            required: true
+            passing: positional
+            description: 録音の WAV か、ブラウザから受けた音声
+          - name: on_progress
+            type: ProgressFn | None
+            required: false
+            default: None
+            passing: keyword
+            description: 受けるが呼ばない（サーバーは途中の進みを返さない）
+          - name: hint
+            type: str | None
+            required: false
+            default: None
+            passing: keyword
+            description: 受けるが使わない（読みを持たないため、_get_vocabulary の組を送信する）
+        returns:
+          type: list[str]
+          description: 起こした文字の 1 要素の並び。起こした文字が空なら空の並び
+        exceptions:
+          - name: EngineError
+            condition: 接続できない・タイムアウト・200 以外の応答
+        process: |-
+          1. _get_vocabulary を呼び、空でなければ `[{"written", "reading"}]` の JSON にする
+          2. httpx.Client（timeout は接続 HAAS_CONNECT_TIMEOUT_SEC・応答 HAAS_RESPONSE_TIMEOUT_SEC、transport=_transport）で `http://127.0.0.1:{port}/transcriptions` へ POST する。本文は multipart の audio と、語があれば vocabulary
+          3. 応答を見る
+             - 200 の場合、text の前後の空白を除き、空でなければ [text]、空なら [] を返す
+               - `[INFO]` Haas で起こした（音声のバイト数・かかった秒）
+             - それ以外の応答か httpx.HTTPError の場合、EngineError を送出する（理由はステータスと problem+json の detail、読めなければステータスか例外の種類）
+               - `[ERROR]` Haas の文字起こしに失敗した（ステータスか例外の種類・detail）
+        unit_tests:
+          - name: test_transcribe
+            case: 正常
+            summary: 録音と語を送信して起こした文字を返す
+            condition: 'サーバーが 200 と {"text": " 今日は晴れ "} を返す。語は 突合（とつごう）と voice-paste（読み None）'
+            mock: httpx.MockTransport
+            expected: '["今日は晴れ"] が返り、multipart に audio と vocabulary（written・reading の配列）が届いている'
+          - name: test_transcribe_when_no_vocabulary
+            case: 正常
+            summary: 語が無ければ vocabulary を送信しない
+            condition: _get_vocabulary が空の一覧を返す
+            mock: httpx.MockTransport
+            expected: 本文に vocabulary が無い
+          - name: test_transcribe_when_empty_text
+            case: 正常
+            summary: 起こした文字が空なら空の並び
+            condition: 'サーバーが 200 と {"text": ""} を返す'
+            mock: httpx.MockTransport
+            expected: '[] が返る'
+          - name: test_transcribe_when_server_error
+            case: 異常
+            summary: サーバーが失敗を返す
+            condition: サーバーが 500 と detail を返す
+            mock: httpx.MockTransport
+            expected: EngineError。文に 500 と detail が入っている
+            exception: 200 以外の応答
+          - name: test_transcribe_when_unreachable
+            case: 異常
+            summary: 接続できない
+            condition: トランスポートが httpx.ConnectError を送出する
+            mock: httpx.MockTransport
+            expected: EngineError
+            exception: 接続できない
+          - name: test_transcribe_when_timeout
+            case: 異常
+            summary: 応答のタイムアウト
+            condition: トランスポートが httpx.ReadTimeout を送出する
+            mock: httpx.MockTransport
+            expected: EngineError
+            exception: タイムアウト
+        status: planned
+    refs:
+      - IF-12#
+      - SC-9#
+    status: planned
+id: MOD-97

@@ -1,0 +1,35 @@
+title: haas_asr
+kind: ライブラリ
+lead: Haas-ja-v1.0 のモデルで日本語の音声を文字に起こす Python のライブラリ。
+used_in:
+  - haas_server/main.py
+version:
+  current: 0.1.0（acc614f）
+  checked_on: '2026-11-06'
+  source: haas_server/pyproject.toml の git の依存と haas_server/uv.lock
+  pinning: git の commit で固定（PyPI に無いため）
+license: Apache-2.0
+official_url: https://github.com/third-intelligence/Haas-ASR
+verification:
+  state: 済
+  date: '2026-11-05'
+  detail: PoC（#265）で、WSL の RTX 5070 で load_model・transcribe・transcribe_longform・Vocabulary を動かし、全件を起こせることを確かめた
+catalogs:
+  - name: API
+    version: 0.1.0
+    entries:
+      - name: load_model
+        kind: 関数
+        purpose: モデルを読み込む
+      - name: transcribe
+        kind: 関数
+        purpose: 約 30 秒までの音声の配列を起こす
+      - name: transcribe_longform
+        kind: 関数
+        purpose: 30 秒を超える音声を静かな箇所で区切って起こす。途中の進みは返さない
+      - name: Vocabulary
+        kind: クラス
+        purpose: 表記 → 読みの一覧の対応で語の手がかりを持つ。読みが空の語は表記だけで持つ
+notes:
+  制限: load_audio は soundfile で読むため webm・mp4 を読めない。voice-paste は PyAV で復号した配列を渡す
+id: LIB-30

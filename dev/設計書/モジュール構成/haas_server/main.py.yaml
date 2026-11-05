@@ -1,0 +1,60 @@
+title: Haas の文字起こしのサーバー / サーバー / main.py
+test_files:
+  - tests/unit/haas_server/test_main.py
+constants:
+  - name: HAAS_MODEL_NAME
+    title: Haas のモデルの名前
+    container: haas_server/main.py
+    usecase: 常駐アプリを起動する
+    summary: Hugging Face Hub から取得するモデル
+    value: '"third-intelligence/Haas-ja-v1.0"'
+    status: planned
+  - name: LONGFORM_BATCH_SIZE
+    title: 長い音声のバッチの大きさ
+    container: haas_server/main.py
+    usecase: 録音を文字に起こす
+    summary: transcribe_longform に渡すバッチの大きさ（PoC で約 176 秒の音声を 0.18 秒で起こした値）
+    value: '64'
+    status: planned
+functions:
+  - name: load_engine
+    title: Haas のモデルの読み込み
+    kind: 関数
+    container: haas_server/main.py
+    usecase: 常駐アプリを起動する
+    scope: public
+    summary: haas_asr を import してモデルを読み込み、HaasEngine にする
+    returns:
+      type: HaasEngine
+      description: モデルの関数の束
+    process: |-
+      1. haas_asr を import し、load_model(HAAS_MODEL_NAME) で読み込む
+         - `[INFO]` モデルを読み込んだ（かかった秒）
+      2. transcribe・transcribe_longform（batch_size=LONGFORM_BATCH_SIZE）・Vocabulary を HaasEngine に束ねる
+    status: planned
+  - name: main
+    title: サーバーの入口
+    kind: 関数
+    container: haas_server/main.py
+    usecase: 常駐アプリを起動する
+    scope: public
+    summary: ログを設定し、モデルを読み込んでから 127.0.0.1 で待ち受ける
+    args:
+      - name: argv
+        type: list[str]
+        required: true
+        passing: positional
+        description: 引数（ポート）
+    returns:
+      type: None
+      description: サーバーが止まると戻る（終了コード 0）
+    process: |-
+      1. ログの設定をする（分類『サーバー』の補足『ログ』）
+      2. load_engine でモデルを読み込む（読み込みの間は待ち受けない）
+      3. create_app で app を作り、uvicorn.Server を 127.0.0.1:{ポート} で動かす。request_shutdown は should_exit を True にする
+    status: planned
+refs:
+  - SC-5#
+  - LIB-30#
+  - LIB-31#
+id: MOD-101

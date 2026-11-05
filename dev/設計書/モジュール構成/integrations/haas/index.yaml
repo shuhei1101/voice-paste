@@ -1,0 +1,6 @@
+summary: haas の設計書
+items:
+  - page: server.py.yaml
+    summary: 常駐アプリ / 外部連携 / server.py
+  - page: transcriber.py.yaml
+    summary: 常駐アプリ / 外部連携 / transcriber.py

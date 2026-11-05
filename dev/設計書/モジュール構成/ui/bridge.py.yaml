@@ -37,7 +37,7 @@ functions:
     summary: UiBridge.notified を emit して、メインスレッドでトレイのアイコン・ダイアログ・画面を変える
     args:
       - name: event
-        type: Literal["state_changed", "busy", "microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable", "show_recording_window", "output_changed"]
+        type: Literal["state_changed", "busy", "microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable", "engine_fallback", "show_recording_window", "output_changed"]
         required: true
         passing: positional
         description: 通知の種類（show_recording_window は、録音開始のホットキーで隠した録音の画面を戻す指示。output_changed は、文字起こし中に届ける出力先を差し替えたこと）

@@ -31,5 +31,5 @@ catalogs:
         kind: クラス
         purpose: 表記 → 読みの一覧の対応で語の手がかりを持つ。読みが空の語は表記だけで持つ
 notes:
-  制限: load_audio は soundfile で読むため webm・mp4 を読めない。voice-paste は PyAV で復号した配列を渡す
+  制限: load_audio は soundfile で読むため webm・mp4 を読めない。voice-paste は PyAV で復号した配列を渡す。Haas-ASR の pyproject.toml の `[tool.uv]`（compile-bytecode・override-dependencies）は依存へ伝わらないため `haas_server/pyproject.toml` へ写す。flash-linear-attention 0.5.2 は triton 3.9 でモデルの読み込みに失敗するため torch・triton を PoC の版に固定する
 id: LIB-30

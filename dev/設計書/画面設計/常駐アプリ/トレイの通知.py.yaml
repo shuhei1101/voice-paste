@@ -6,7 +6,7 @@ elements:
     kind: notification
     position: 通知
     description: トレイのアイコンから出す Windows の通知。アプリ名は voice-paste。モーダルにせず、作業中のアプリの入力を遮らない。失敗の通知は警告のアイコン、コピーの完了の通知は情報のアイコンで出す
-    visible_when: '`notify` で microphone_unavailable・transcription_failed・delivery_failed・api_unavailable を受けたとき、`notify_copied` でコピーの完了を受けたときと、文字起こしのエンジンを準備できなかった・設定ファイルを読めなかった・Linux の Wayland のセッションで貼り付けのキーを送信する仮想のキーボードを作れなかった（`paste_unavailable`）起動のとき'
+    visible_when: '`notify` で microphone_unavailable・transcription_failed・delivery_failed・api_unavailable・engine_fallback を受けたとき、`notify_copied` でコピーの完了を受けたときと、文字起こしのエンジンを準備できなかった・設定ファイルを読めなかった・Linux の Wayland のセッションで貼り付けのキーを送信する仮想のキーボードを作れなかった（`paste_unavailable`）起動のとき'
     source: UiBridge.notified（通知の種類と理由）・UiBridge.copied（起こした文字）
     action: 押すと、失敗の通知はログフォルダを開き、コピーの完了の通知は起こした文字をもう一度コピーする。閉じると待機中（トレイ）に戻る
   - name: 見出し
@@ -58,6 +58,7 @@ notes:
     | `delivery_failed` | 届けられませんでした | {理由}。起こした文字は履歴に残っています。 |
     | `api_unavailable` | API を使用できません | {理由}。ホットキーとトレイからの録音は使えます。 |
     | 貼り付けのキーを送信できない（`paste_unavailable`。Linux の Wayland のセッションの起動のとき） | 貼り付けを使用できません | 貼り付けのキーを送信できません（{理由}）。/dev/uinput の権限を設定して PC を再起動してください（使い方「起動と設定」）。「コピーのみ」は使えます。 |
+    | Haas からローカルの Whisper へ切り戻した（`engine_fallback`。起動のとき） | Haas を使用できません | Haas のサーバーへ接続できないため、ローカルの Whisper で起こします。 |
     | 文字起こしのエンジンを準備できない（`engine_unavailable`） | 起動できませんでした | 文字起こしのエンジンを準備できませんでした（{理由}）。設定を修正して再起動してください。 |
     | 設定ファイルを読めない（`settings_invalid`） | 起動できませんでした | 設定ファイルを読み込めませんでした（{理由}）。{読めなかったファイルのパス} を修正して再起動してください。 |
     | コピーの完了（`notify_copied`） | コピーしました | 任意の場所に貼り付けてください。この通知を押すと、もう一度コピーします。 |

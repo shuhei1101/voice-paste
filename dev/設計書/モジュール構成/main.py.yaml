@@ -362,7 +362,7 @@ functions:
          - openai の場合、read_openai_api_key（paths.openai_api_key_file・environ）で読んだ API キーと設定の transcription.openai で OpenAITranscriber を作る（文字起こしワーカーは起動しない）。engine はその transcribe、stop_engine は何もしない関数（StartupError はそのまま送出する）。on_engine_created には stop_engine を渡す
          - haas の場合、設定の transcription.haas で HaasServer を作り、on_engine_created にその stop を渡してから ensure_started を呼ぶ。unavailable に Feature.HAAS_ENGINE があれば ensure_started を呼ばずに次の切り戻しへ進む
            - 通った場合、HaasTranscriber（SettingsStore.get の hint_presets を collect_hint_vocabulary で集める関数を get_vocabulary に渡す）を作る。engine はその transcribe、stop_engine は HaasServer.stop、動いているエンジンは haas
-           - EngineError の場合、ローカルの Whisper へ切り戻す。notify で「Haas のサーバーへ接続できないため、ローカルの Whisper で起こします。」を知らせ、上の local_whisper の場合と同じ流れで作る。動いているエンジンは local_whisper
+           - EngineError の場合、ローカルの Whisper へ切り戻す。notify（engine_fallback）で「Haas のサーバーへ接続できないため、ローカルの Whisper で起こします。」を知らせ、上の local_whisper の場合と同じ流れで作る。動いているエンジンは local_whisper
              - `[WARNING]` Haas のサーバーへ接続できないためローカルの Whisper で起こす（理由）
       3. 連続録音の話し声の判定に使う VAD のセッションを 1 回だけ読む（load_vad_session。StartupError はそのまま送出する）
       4. Recorder に音量の関数（unavailable に Feature.LOWER_VOLUME があれば integrations/volume/noop.py の lower_volume_noop・restore_volume_noop、無ければ adapters の lower_volume・restore_volume）と、SettingsStore から録音の設定を返す関数と、VAD のセッションを部分適用した StreamingVad（話し声の判定を作る）を渡す
@@ -421,7 +421,7 @@ functions:
            - `[ERROR]` 起動に失敗した（理由）
       6. 設定の ui.theme で画面の明暗を当て直し（apply_theme。image_dir は paths.ui_image_dir）、QStyleHints.colorSchemeChanged に、SettingsStore.get の ui.theme で apply_theme を呼ぶ関数をつなぐ（OS の明暗が変わったときに当て直す）。ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を消す（purge_old_files。処理中のセッションは無いため、一時の音声も全て消す対象にする）
          - `[INFO]` 設定を読んだ（設定ファイルのパス・エンジン・オンの出力先の ID）
-      7. 配線を、_StartupBuild でメインスレッドの外のスレッドに流す（build_handlers。notify・report_progress・notify_copied は UiBridge を部分適用した ui のもの、adapters は 3 で選んだ PlatformAdapters、environ は os.environ、unavailable は 3 で引いた使えない機能、on_engine_created は _StartupBuild がエンジンを止める関数を控える関数）。流している間も 11 のイベントループを回し、トレイを準備中のまま出す（モデルの取得の間もトレイのアイコンが出て、メニューを操作できる）。結果は _StartupBuild.done でメインスレッドへ戻り、4 でつないだ「再起動」「終了」を外してから、8〜10 か下の StartupError の扱いをメインスレッドで行う
+      7. 配線を、_StartupBuild でメインスレッドの外のスレッドに流す（build_handlers。notify・report_progress・notify_copied は UiBridge を部分適用した ui のもの、adapters は 3 で選んだ PlatformAdapters、environ は os.environ、unavailable は 3 で引いた使えない機能、on_engine_created は _StartupBuild がエンジンを止める関数を控える関数）。配線の間の知らせ（engine_fallback）は、受ける UiController がまだ無いため、UiBridge.notified を Tray.show_failure へ queued でつなぎ、配線の結果を受けたときに外す。流している間も 11 のイベントループを回し、トレイを準備中のまま出す（モデルの取得の間もトレイのアイコンが出て、メニューを操作できる）。結果は _StartupBuild.done でメインスレッドへ戻り、4 でつないだ「再起動」「終了」を外してから、8〜10 か下の StartupError の扱いをメインスレッドで行う
          - StartupError の場合、トレイを失敗にして起動の失敗を通知し（Tray.set_failed(settings_enabled=True)・Tray.show_failure(engine_unavailable, 理由)）、「設定…」だけを押せるまま 11 へ（設定画面は読んだ設定で開き、保存は settings.yaml へ書くだけにする。Handlers が無いため、UiDeps のうち録音・ホットキーの関数（start・pause・resume・complete・cancel・current_session・level・suspend_hotkeys・resume_hotkeys）は何もしない関数にし、設定画面を閉じてもホットキーの受付を始めない）
            - `[ERROR]` 起動に失敗した（理由）
       8. ホットキーの受付を作り（PlatformAdapters.create_hotkey_listener(排他の名前, 3 で取った排他)）、UiController を作り（build_ui_deps）、UiBridge の知らせの受け手につなぐ（notified → on_notified・progressed → on_progressed・copied → on_copied。9 で待ち受けを始められない知らせを取りこぼさないよう、API より先に作る）
@@ -549,6 +549,12 @@ functions:
         condition: --data-dir に空の一時フォルダ。環境変数 QT_QPA_PLATFORM を消し、select_platform_adapters の戻り値の qt_platform が "xcb"。QApplication の生成を差し替え、exec_loop はすぐ 0 を返す
         mock: select_platform_adapters・QApplication・build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray
         expected: QApplication を作る時点で環境変数 QT_QPA_PLATFORM が "xcb"。あらかじめ QT_QPA_PLATFORM=offscreen を入れたときは offscreen のまま
+      - name: test_main_when_engine_fallback
+        case: 正常
+        summary: 配線の間の知らせをトレイの通知で出す
+        condition: build_handlers の中で notify に engine_fallback と文を渡す
+        mock: select_platform_adapters・build_handlers・ApiServerRunner・RepeatingTimer・HotkeyListener・Tray
+        expected: 0。Tray.show_failure に engine_fallback と文が渡る
     notes:
       テスト: 7 の配線の結果はイベントループの中で届くため、exec_loop の差し替えは、_StartupBuild.done を受けて 10（StartupError の場合は 7 の扱い）が終わるまでイベントを処理してから抜ける
   - name: start_local_session

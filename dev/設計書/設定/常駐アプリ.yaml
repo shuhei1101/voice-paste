@@ -804,7 +804,7 @@ settings:
     default: "'{}'"
     description: そのプリセットの語（`words` の要素）から読みへの対応。エンジンが `haas` のときだけ、語の表記と読みの組を Haas の Vocabulary に渡す。読みの無い語は表記だけを渡す。`local_whisper`・`openai` は読みを使わない。キーが無い settings.yaml は、全ての語が読みを持たないものとして読む。
     reload: immediate
-    allowed: 読みはひらがな・カタカナ・長音符（ー）だけ。1 文字以上。キーは同じプリセットの `words` にある語。有効なヒントの長さ（222 バイト）に数えない
+    allowed: 読みはひらがな・カタカナ・長音符（ー）だけ。1 文字以上。キーは同じプリセットの `words` にある語。同じプリセットの同じ語に違う読みを持てない。有効なヒントの長さ（222 バイト）に数えない
     status: planned
     implementation: src/voice_paste/shared/settings.py
 notes:

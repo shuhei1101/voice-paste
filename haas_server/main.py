@@ -74,7 +74,11 @@ def main(argv: list[str]) -> None:
     port = int(argv[0])
     _setup_logging()
     # 読み込みの間は待ち受けない（/health の応答が準備できたことを表す）
-    engine = load_engine()
+    try:
+        engine = load_engine()
+    except Exception:  # noqa: BLE001 標準エラーは常駐アプリが受けないため、種類を問わずログへ残す
+        logger.exception("モデルの読み込みに失敗した")
+        raise SystemExit(1) from None
     holder: dict[str, uvicorn.Server] = {}
 
     def request_shutdown() -> None:

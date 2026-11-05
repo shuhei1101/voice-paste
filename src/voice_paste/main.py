@@ -278,9 +278,10 @@ class Handlers:
     """録音中の音量（Recorder.level）。録音の画面の波形に使う。"""
 
     stop_engine: Callable[[], None]
+    """文字起こしのエンジンを止める。終了時に呼ぶ。"""
+
     active_engine: EngineName
     """実際に動いているエンジン。設定が haas で切り戻した起動では local_whisper。"""
-    """文字起こしのエンジンを止める。終了時に呼ぶ。"""
 
 
 def _do_nothing() -> None:

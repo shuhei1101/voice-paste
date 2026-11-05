@@ -4946,7 +4946,7 @@ def test_hint_reading_when_word_added(open_window: Callable[..., Opened]) -> Non
 
 
 def test_input_check_when_hint_reading_not_kana(open_window: Callable[..., Opened]) -> None:
-    """読みにかな以外の文字が入っている: その欄の下とエラーの一覧に出す。一覧を押すと読みの欄へ移る。"""
+    """読みにかな以外の文字が入っている: その欄の下とエラーの一覧に出す。"""
     # 準備
     opened = _open_readings(open_window)
     find(opened.window, QLineEdit, "hint_reading_0_1").setText("github")
@@ -4960,6 +4960,26 @@ def test_input_check_when_hint_reading_not_kana(open_window: Callable[..., Opene
     assert f"プリセット 1 件目の 2 つ目の語の読み: {message}" in _error_rows(opened.window)
     assert find(opened.window, QLineEdit, "hint_reading_0_1").property("invalid")
     opened.deps.save_settings.assert_not_called()
+
+
+def test_error_summary_row_action_when_hint_reading(open_window: Callable[..., Opened]) -> None:
+    """読みの欄の行を押すと、表記のヒントのまとまりへ切り替えて、その読みの欄へフォーカスを移す。"""
+    # 準備
+    opened = _open_readings(open_window)
+    find(opened.window, QLineEdit, "hint_reading_0_1").setText("github")
+    _click(opened.window, "save_button")
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(10)
+    link = next(
+        label for label in find(opened.window, QFrame, "error_summary").findChildren(QLabel)
+        if "href" in label.text()
+    )
+
+    # 実行
+    link.linkActivated.emit("hint_presets[0].readings[1]")
+
+    # 検証
+    assert find(opened.window, QListWidget, "group_menu").currentRow() == HINT_GROUP_ROW
+    assert opened.window.focusWidget() is find(opened.window, QLineEdit, "hint_reading_0_1")
 
 
 def test_input_check_when_hint_reading_conflict(open_window: Callable[..., Opened]) -> None:

@@ -122,7 +122,7 @@ class UiDeps:
     """設定画面で出さない設定のキー（hidden_setting_keys(unavailable_features(CURRENT_OS))）。Linux では録音中の音量のキーと api.allowed_web_origins。"""
 
     reports_progress: bool
-    """動いているエンジンが区間ごとの進みを知らせるか（local_whisper は True、openai は False）。エンジンの反映は再起動のため、保存した設定ではなく起動で決めた値を持つ。"""
+    """動いているエンジンが区間ごとの進みを知らせるか（local_whisper は True、openai・haas は False）。エンジンの反映は再起動のため、保存した設定ではなく起動で決めた値を持つ。"""
 
 
 class UiController(QObject):

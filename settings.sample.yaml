@@ -6,7 +6,7 @@
 
 # === 文字起こし ===
 # transcription:
-#   # 使うエンジン（再起動）。local_whisper または openai
+#   # 使うエンジン（再起動）。local_whisper・openai・haas
 #   engine: openai
 #   local_whisper:
 #     # faster-whisper のモデル（再起動）

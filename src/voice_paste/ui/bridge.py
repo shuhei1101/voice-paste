@@ -39,6 +39,7 @@ def notify(
         "transcription_failed",
         "delivery_failed",
         "api_unavailable",
+        "engine_fallback",
         "show_recording_window",
         "output_changed",
     ],

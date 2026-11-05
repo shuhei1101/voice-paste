@@ -9,7 +9,7 @@ import re
 from collections.abc import Mapping, Sequence
 from functools import reduce
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, Protocol
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, NamedTuple, Protocol
 
 import tomlkit
 from pydantic import (
@@ -101,6 +101,21 @@ HINT_WORD_EMPTY_ERROR_TYPE: str = "hint_word_empty"
 
 HINT_WORD_SEPARATOR_ERROR_TYPE: str = "hint_word_separator"
 """手がかりの語が読点・句点・改行を含むときの ValidationError の種類。"""
+
+HINT_READING_NOT_KANA_ERROR_TYPE: str = "hint_reading_not_kana"
+"""読みにひらがな・カタカナ・長音符以外の文字が入っているときの、失敗の種類。"""
+
+HINT_READINGS_LENGTH_ERROR_TYPE: str = "hint_readings_length"
+"""読みの数が語の数と合わないときの、失敗の種類。"""
+
+HINT_READING_CONFLICT_ERROR_TYPE: str = "hint_reading_conflict"
+"""同じプリセットの同じ語に違う読みがあるときの、失敗の種類。"""
+
+HINT_READING_PATTERN: re.Pattern[str] = re.compile(r"[ぁ-ゖゝゞァ-ヺーヽヾ]*")
+"""読みに使えるひらがな・カタカナ・長音符の並び。"""
+
+HAAS_PORT_OVERLAP_ERROR_TYPE: str = "haas_port_overlap"
+"""Haas のサーバーのポートが API のポートと同じときの、失敗の種類。"""
 
 HINT_PRESET_NAME_OVERLAP_ERROR_TYPE: str = "hint_preset_name_overlap"
 """表記のヒントのプリセットの名前が重なるときの ValidationError の種類。理由の文に重なった名前を `name` として持つ。"""
@@ -220,6 +235,7 @@ class LocalWhisperSettings(_SettingsModel):
 ENGINE_LABELS: dict[str, str] = {
     "local_whisper": "ローカルの Whisper",
     "openai": "OpenAI API",
+    "haas": "Haas（WSL）",
 }
 """文字起こしのエンジンの値 → 設定画面の選択欄の名前。"""
 
@@ -252,15 +268,34 @@ class OpenAISettings(_SettingsModel):
     )
 
 
+HAAS_NOTE: str = (
+    "文字起こしのエンジンが Haas（WSL）のときに使う。"
+    "WSL2 のネットワークを mirrored にし、このディストリビューションにサーバーの環境を作っておく。"
+    "空なら WSL の既定のディストリビューションを使う。"
+)
+"""Haas の設定のまとまりの欄の下に出す補助文。"""
+
+
+class HaasSettings(_SettingsModel):
+    """Haas の文字起こしのサーバーを動かす WSL のディストリビューションと、待ち受けのポート。"""
+
+    distribution: str = Field(
+        description="WSL のディストリビューション",
+        json_schema_extra={"reload": RELOAD_RESTART, "note": HAAS_NOTE},
+    )
+    port: int = _required("サーバーのポート", reload=RELOAD_RESTART, ge=1024, le=65535)
+
+
 class TranscriptionSettings(_SettingsModel):
     """使うエンジンと、エンジンごとの設定。"""
 
-    engine: Literal["local_whisper", "openai"] = Field(
+    engine: Literal["local_whisper", "openai", "haas"] = Field(
         description="使う文字起こしのエンジン",
         json_schema_extra={"reload": RELOAD_RESTART, "choice_labels": ENGINE_LABELS},
     )
     local_whisper: LocalWhisperSettings = _group("ローカルの Whisper の設定")
     openai: OpenAISettings = _group("OpenAI API の設定")
+    haas: HaasSettings = _group("Haas の文字起こしのサーバーの設定")
 
 
 # === 録音・ホットキー・キーボード ===
@@ -572,6 +607,19 @@ type HintWord = Annotated[str, AfterValidator(_check_hint_word)]
 """手がかりの語 1 つ。前後の空白を除いたうえで _check_hint_word で確かめる。"""
 
 
+def _check_hint_reading(reading: str) -> str:
+    """読み 1 つの前後の空白を除き、空か、ひらがな・カタカナ・長音符だけであることを確かめる。"""
+    stripped = reading.strip()
+    # かな以外の文字を含む読みは断る
+    if HINT_READING_PATTERN.fullmatch(stripped) is None:
+        raise PydanticCustomError(HINT_READING_NOT_KANA_ERROR_TYPE, "読みにかな以外の文字がある")
+    return stripped
+
+
+type HintReading = Annotated[str, AfterValidator(_check_hint_reading)]
+"""語の読み 1 つ。空文字は読みが無い語。_check_hint_reading で確かめる。"""
+
+
 class HintPresetSettings(_SettingsModel):
     """表記のヒントのプリセット 1 つの名前・語の並び・有効か。"""
 
@@ -586,6 +634,55 @@ class HintPresetSettings(_SettingsModel):
         description="文字起こしに渡す語の並び（各語の前後の空白を除く。空の語・読点・句点・改行を含む語は断る。無効のプリセットの語も確かめる）",
     )
     enabled: bool = Field(True, description="このプリセットの語を文字起こしに渡すか")
+    readings: list[HintReading] = Field(
+        default_factory=list,
+        description="words と同じ並びの読み（各読みの前後の空白を除く）。空の一覧か words と同じ長さ。空文字は読みが無い語",
+    )
+
+    @model_validator(mode="after")
+    def _readings_must_match_words(self) -> HintPresetSettings:
+        """読みの数が語の数と合い、同じ語に違う読みが無いことを確かめる。"""
+        # 読みの数が語の数と違えば、読みの場所で断る
+        if self.readings and len(self.readings) != len(self.words):
+            raise ValidationError.from_exception_data(
+                type(self).__name__,
+                [
+                    {
+                        "type": PydanticCustomError(
+                            HINT_READINGS_LENGTH_ERROR_TYPE, "読みの数が語の数と合わない"
+                        ),
+                        "loc": ("readings",),
+                        "input": self.readings,
+                    }
+                ],
+            )
+        # 同じ語に違う読みがあれば、後ろの語の読みの場所で断る（空の読みは比べない）
+        first_readings: dict[str, str] = {}
+        line_errors: list[InitErrorDetails] = []
+        for index, (word, reading) in enumerate(zip(self.words, self.readings, strict=False)):
+            if not reading:
+                continue
+            first = first_readings.setdefault(word, reading)
+            if first != reading:
+                line_errors.append(
+                    {
+                        "type": PydanticCustomError(
+                            HINT_READING_CONFLICT_ERROR_TYPE, "同じ語に違う読みがある"
+                        ),
+                        "loc": ("readings", index),
+                        "input": reading,
+                    }
+                )
+        if line_errors:
+            raise ValidationError.from_exception_data(type(self).__name__, line_errors)
+        return self
+
+
+class HintVocabularyWord(NamedTuple):
+    """Haas へ渡す語 1 つの表記と読み。"""
+
+    written: str
+    reading: str | None
 
 
 class HintWordSource(Protocol):
@@ -764,6 +861,17 @@ class Settings(_SettingsModel):
             }
             for location, name in _find_hint_preset_name_overlap_locations(self)
         ]
+        # Haas のサーバーのポートが API のポートと同じなら、Haas のポートの場所で断る
+        if self.transcription.haas.port == self.api.port:
+            line_errors.append(
+                {
+                    "type": PydanticCustomError(
+                        HAAS_PORT_OVERLAP_ERROR_TYPE, "API のポートと同じ番号"
+                    ),
+                    "loc": ("transcription", "haas", "port"),
+                    "input": self.transcription.haas.port,
+                }
+            )
         # 有効な語をつないだ長さが上限を超えたら、一覧の場所で、今のバイト数を添える
         hint_length = len(join_hint_words(self.hint_presets).encode("utf-8"))
         if hint_length > HINT_MAX_BYTES:
@@ -922,6 +1030,20 @@ def join_hint_words(presets: Sequence[HintWordSource]) -> str:
     """有効なプリセットの語を、一覧の上から順に読点でつなぐ。有効な語が無ければ空文字を返す。"""
     words = [word for preset in presets if preset.enabled for word in preset.words]
     return HINT_SEPARATOR.join(words)
+
+
+def collect_hint_vocabulary(presets: Sequence[HintPresetSettings]) -> list[HintVocabularyWord]:
+    """有効なプリセットの語を、一覧の上から順に表記と読みの組で返す。同じ表記は 1 つにまとめる。"""
+    readings_by_word: dict[str, str | None] = {}
+    for preset in presets:
+        if not preset.enabled:
+            continue
+        for index, word in enumerate(preset.words):
+            reading = (preset.readings[index] if preset.readings else "") or None
+            # 同じ表記は最初の位置に残し、読みが無ければ後の語の読みを使う
+            if readings_by_word.get(word) is None:
+                readings_by_word[word] = reading
+    return [HintVocabularyWord(word, reading) for word, reading in readings_by_word.items()]
 
 
 def _find_hint_preset_name_overlap_locations(settings: Settings) -> list[tuple[_Location, str]]:

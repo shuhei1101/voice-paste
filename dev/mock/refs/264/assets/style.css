@@ -39,7 +39,7 @@
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) var(--control-h);
   gap: 4px;
-  margin-bottom: 4px;
+  width: 100%;
   color: var(--text-2);
   font-size: 12px;
 }

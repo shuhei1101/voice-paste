@@ -427,7 +427,7 @@ Content-Disposition: form-data; name="glossary_preset"
 | `job_id` | str | 要求の `job_id` |
 | `state` | str | `queued`（文字起こし待ち）・`running`（文字起こし中）・`done`（完了）・`failed`（失敗） |
 | `progress` | float | 進み具合（0.0〜1.0）。`queued` は 0.0、`running` は起こし終えた区間の終わりの時刻 ÷ 音声の秒数、`done` は 1.0、`failed` は失敗した時点の値。`reports_progress` が `false` のときは `running` の間も 0.0 |
-| `reports_progress` | bool | 設定の文字起こしのエンジンが途中の進みを返すか。`local_whisper` は `true`、`openai` は `false` |
+| `reports_progress` | bool | 設定の文字起こしのエンジンが途中の進みを返すか。`local_whisper` は `true`、`openai`・`haas` は `false` |
 | `text` | str または null | `done` のときだけ文字列。文頭・文末の文言を削除した後に、用語集で補正した文字（話し声が無ければ空文字）。それ以外は `null` |
 | `error` | str または null | `failed` のときだけ文字列。失敗の理由。それ以外は `null` |
 

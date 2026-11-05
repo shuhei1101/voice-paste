@@ -34,7 +34,7 @@ class TranscribeFn(Protocol):
         ...
 
 
-type BuildVocabularyFn = Callable[[dict[str, list[str]]], Any]
+BuildVocabularyFn = Callable[[dict[str, list[str]]], Any]
 """表記 → 読みの一覧の対応から Vocabulary を作る関数（haas_asr.Vocabulary）。読みが無い語は空の一覧。"""
 
 

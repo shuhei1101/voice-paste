@@ -863,6 +863,29 @@ def test_main_when_key_sender_unavailable(
     close_key_sender.assert_called_once()
 
 
+def test_main_when_engine_fallback(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplication
+) -> None:
+    """配線の間の知らせをトレイの通知で出す（正常系）。"""
+    from voice_paste.main import main
+
+    # 準備（配線の間に notify を呼ぶ）
+    message = "Haas のサーバーへ接続できないため、ローカルの Whisper で起こします。"
+
+    def build_hook(_register_stop: Callable[[Callable[[], None]], None]) -> None:
+        """配線の関数が受けた notify へ切り戻しを渡す。"""
+        wiring.build_handlers.call_args.args[2]("engine_fallback", message)
+
+    wiring = install_wiring(monkeypatch, qapp, build_hook=build_hook)
+
+    # 実行
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=wiring.exit_after_startup)
+
+    # 検証
+    assert exit_code == 0
+    wiring.tray.show_failure.assert_called_once_with("engine_fallback", message)
+
+
 def test_main_when_web_transcription_unavailable(
     data_dir: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplication
 ) -> None:

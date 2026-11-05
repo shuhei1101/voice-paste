@@ -53,6 +53,10 @@ enums:
         member: WEB_TRANSCRIPTION
         title: 外の端末のブラウザの文字起こし
         description: '`/web/` の下の画面と API・ブラウザの音声のジョブのキュー'
+      - value: haas_engine
+        member: HAAS_ENGINE
+        title: Haas のエンジン
+        description: WSL の中の Haas の文字起こしのサーバーで起こす
     status: planned
 constants:
   - name: CURRENT_OS
@@ -71,8 +75,8 @@ constants:
     summary: その OS では使えない機能。載っていない OS は全ての機能を使える。OS で機能を止めるのはこの表だけで決める
     entries:
       - key: linux
-        value: frozenset({Feature.LOWER_VOLUME, Feature.WEB_TRANSCRIPTION})
-        description: Linux では音量を変えず、外の端末のブラウザの機能を持たない
+        value: frozenset({Feature.LOWER_VOLUME, Feature.WEB_TRANSCRIPTION, Feature.HAAS_ENGINE})
+        description: Linux では音量を変えず、外の端末のブラウザの機能と Haas のエンジンを持たない
     description: 型は `Mapping[OsKind, frozenset[Feature]]`。macOS などの OS は、OsKind と表の行の追加で足す。
     status: planned
   - name: FEATURE_SETTING_KEYS
@@ -88,6 +92,9 @@ constants:
       - key: web_transcription
         value: frozenset({"api.allowed_web_origins"})
         description: 外の端末のブラウザに許す Origin
+      - key: haas_engine
+        value: frozenset({"transcription.haas.distribution", "transcription.haas.port"})
+        description: Haas の文字起こしのサーバー
     description: 型は `Mapping[Feature, frozenset[str]]`。キーは設定のドットで結んだキー。
     refs:
       - SCR-9#elements[設定の欄]

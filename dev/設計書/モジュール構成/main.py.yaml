@@ -360,7 +360,7 @@ functions:
          - local_whisper の場合、ensure_local_whisper_installed で確かめ（StartupError はそのまま送出する）、WhisperWorkerClient を adapters.worker_creationflags で作り、on_engine_created にその stop を渡してから起動する。engine はその transcribe、stop_engine はその stop
            - EngineError の場合、StartupError を送出する
          - openai の場合、read_openai_api_key（paths.openai_api_key_file・environ）で読んだ API キーと設定の transcription.openai で OpenAITranscriber を作る（文字起こしワーカーは起動しない）。engine はその transcribe、stop_engine は何もしない関数（StartupError はそのまま送出する）。on_engine_created には stop_engine を渡す
-         - haas の場合、設定の transcription.haas で HaasServer を作り、on_engine_created にその stop を渡してから ensure_started を呼ぶ。動いているのが Linux（unavailable に Feature.WEB_TRANSCRIPTION がある）なら ensure_started を呼ばずに次の切り戻しへ進む
+         - haas の場合、設定の transcription.haas で HaasServer を作り、on_engine_created にその stop を渡してから ensure_started を呼ぶ。unavailable に Feature.HAAS_ENGINE があれば ensure_started を呼ばずに次の切り戻しへ進む
            - 通った場合、HaasTranscriber（SettingsStore.get の hint_presets を collect_hint_vocabulary で集める関数を get_vocabulary に渡す）を作る。engine はその transcribe、stop_engine は HaasServer.stop、動いているエンジンは haas
            - EngineError の場合、ローカルの Whisper へ切り戻す。notify で「Haas のサーバーへ接続できないため、ローカルの Whisper で起こします。」を知らせ、上の local_whisper の場合と同じ流れで作る。動いているエンジンは local_whisper
              - `[WARNING]` Haas のサーバーへ接続できないためローカルの Whisper で起こす（理由）
@@ -380,6 +380,25 @@ functions:
       - name: StartupError
         condition: 文字起こしのエンジンを準備できない（ローカルの Whisper の依存が無い（Haas から切り戻した先でも同じ）・ワーカーが立たない・OpenAI の API キーが無い・VAD を読めない）
     status: implemented
+    unit_tests:
+      - name: test_build_handlers_when_haas
+        case: 正常
+        summary: 設定が haas でサーバーが応答する
+        condition: transcription.engine=haas、HaasServer.ensure_started が通る
+        mock: HaasServer・WhisperWorkerClient
+        expected: active_engine が haas、stop_engine が HaasServer.stop、WhisperWorkerClient が作られない
+      - name: test_build_handlers_when_haas_unavailable
+        case: 正常
+        summary: サーバーへ接続できなければローカルの Whisper へ切り戻す
+        condition: transcription.engine=haas、ensure_started が EngineError を送出する
+        mock: HaasServer・WhisperWorkerClient・notify
+        expected: notify に切り戻しの文が渡り、active_engine が local_whisper、WhisperWorkerClient が起動され、reports_progress が True
+      - name: test_build_handlers_when_haas_not_supported_on_os
+        case: 正常
+        summary: Haas を使えない OS では接続先を確かめずに切り戻す
+        condition: transcription.engine=haas、unavailable に Feature.HAAS_ENGINE がある
+        mock: HaasServer・WhisperWorkerClient・notify
+        expected: ensure_started が呼ばれず、active_engine が local_whisper
   - name: main
     title: 起動
     kind: 関数

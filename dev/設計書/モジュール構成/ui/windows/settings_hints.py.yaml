@@ -37,6 +37,19 @@ classes:
         returns:
           type: None
           description: なし
+        unit_tests:
+          - name: test_hint_preset_panel_set_presets_when_readings
+            case: 正常
+            summary: 読みを語の欄の右に出す
+            condition: 語 2 つ・読みは 1 つ目だけのプリセットを set_presets に渡す。QT_QPA_PLATFORM=offscreen
+            mock: なし
+            expected: hint_reading_0_0 に読みが、hint_reading_0_1 が空で、列の見出しが出ている
+          - name: test_hint_preset_panel_set_presets_when_no_words
+            case: 正常
+            summary: 語が無ければ列の見出しを出さない
+            condition: 語の無いプリセットを set_presets に渡す
+            mock: なし
+            expected: 列の見出しが隠れ、語が無いときの文が出ている
       - name: collect
         title: 一覧の値の収集
         kind: メソッド
@@ -58,6 +71,24 @@ classes:
             condition: A・B の 2 件で、A の「下へ」を押す
             mock: なし（offscreen）
             expected: collect の名前が B・A の順
+          - name: test_hint_preset_panel_collect_when_readings
+            case: 正常
+            summary: 読みを語と同じ並びで集める
+            condition: 1 つ目の語に読みを入れ、2 つ目は空
+            mock: なし
+            expected: readings が [読み, ""]
+          - name: test_hint_preset_panel_collect_when_no_readings
+            case: 正常
+            summary: 全ての読みが空なら空の一覧
+            condition: 語 2 つで読みは全て空
+            mock: なし
+            expected: readings が []
+          - name: test_hint_preset_panel_collect_when_word_removed
+            case: 正常
+            summary: 語を削除すると読みも消える
+            condition: 語 A（読み あ）・B（読み い）の A を削除する
+            mock: なし
+            expected: words が ["B"]、readings が ["い"]
       - name: add_preset
         title: プリセットを追加
         kind: メソッド
@@ -135,7 +166,7 @@ classes:
         summary: 変えた欄の数えに使う値を、プリセット 1 つ = 1 キーと、並べ替えの 1 キーで返す（SettingsWindow が開いたとき・保存したときの値と比べて件数にする）
         returns:
           type: dict[str, object]
-          description: '`hint_presets[{番号}]` → （名前, 語の並び, 有効か）（collect と同じ値）、`hint_presets.order` → 開いたとき・保存したときからあって今も残っているプリセットが、番号の小さい順に並んでいるか'
+          description: '`hint_presets[{番号}]` → （名前, 語の並び, 読みの並び, 有効か）（collect と同じ値）、`hint_presets.order` → 開いたとき・保存したときからあって今も残っているプリセットが、番号の小さい順に並んでいるか'
         process: |-
           1. 今の並びのプリセットごとに、番号をキーにして名前・語の並び・有効かを入れる
           2. set_presets か mark_saved で番号を振ったプリセット（追加したプリセットを除く）を今の並びで取り出し、番号の小さい順に並んでいるかを `hint_presets.order` に入れる（消したプリセットは入らず、追加したプリセットも見ないため、追加・削除だけでは変わらない）

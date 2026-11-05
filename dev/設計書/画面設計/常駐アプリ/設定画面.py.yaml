@@ -35,7 +35,7 @@ elements:
     position: 窓 > 右 > まとまり
     description: 設定のキー 1 つの欄。設定のモデルの項目から組み立て、欄の名前（設定の設計書の論理名を画面向けにしたもの）と、欄の右に設定のキーを等幅で出す。まとまりと部品は補足の「まとまりと欄」
     io: 入出力
-    visible_when: その欄のまとまりを選んだとき。動いている OS で使えない機能の設定のキーの欄は出さず、保存しても settings.yaml のその値を変えない。Linux では録音中の音量を下げる機能（`recording.lower_volume`・`recording.volume_percent`・`recording.fade_sec`）と外の端末のブラウザの機能（`api.allowed_web_origins`）の欄を出さない
+    visible_when: その欄のまとまりを選んだとき。動いている OS で使えない機能の設定のキーの欄は出さず、保存しても settings.yaml のその値を変えない。Linux では録音中の音量を下げる機能（`recording.lower_volume`・`recording.volume_percent`・`recording.fade_sec`）と外の端末のブラウザの機能（`api.allowed_web_origins`）と Haas のエンジン（`transcription.haas.distribution`・`transcription.haas.port`）の欄を出さない。`transcription.engine` の選択肢「Haas（WSL）」も Linux では出さない（settings.yaml の値が haas のときだけ、値を黙って変えないように出す）
     constraints: 設定の設計書の「許す値や範囲」
     initial_value: 設定の値
     source: Settings.{キー}

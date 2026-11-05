@@ -1684,6 +1684,36 @@ functions:
         condition: enabled True・words ["", "A、B"] を持つ（HintPresetSettings でない）値を渡す
         mock: なし
         expected: '"、A、B" が返り、例外が出ない'
+      - name: test_settings_when_hint_reading_not_kana
+        case: 異常
+        summary: 読みにかな以外の文字が入っている
+        condition: readings が ["totsugou"] の hint_presets を SETTINGS_MODEL.model_validate に渡す
+        mock: なし
+        expected: ValidationError。type が hint_reading_not_kana、失敗の場所が hint_presets[0].readings[0]
+      - name: test_settings_when_hint_readings_length
+        case: 異常
+        summary: 読みの数が語の数と違う
+        condition: words が 2 つ、readings が 1 つ
+        mock: なし
+        expected: ValidationError。type が hint_readings_length、失敗の場所が hint_presets[0].readings
+      - name: test_settings_when_hint_reading_conflict
+        case: 異常
+        summary: 同じ語に違う読みがある
+        condition: words が 突合・突合、readings が とつごう・とつあわせ
+        mock: なし
+        expected: ValidationError。type が hint_reading_conflict、失敗の場所が hint_presets[0].readings[1]
+      - name: test_settings_when_hint_reading_blank_on_duplicate_word
+        case: 正常
+        summary: 同じ語で片方の読みが空なら通る
+        condition: words が 突合・突合、readings が とつごう・空文字
+        mock: なし
+        expected: 検証を通る
+      - name: test_settings_when_haas_port_overlap
+        case: 異常
+        summary: Haas のポートが API のポートと同じ
+        condition: transcription.haas.port と api.port が同じ番号
+        mock: なし
+        expected: ValidationError。type が haas_port_overlap、失敗の場所が transcription.haas.port
     refs:
       - CFG-1#settings[hint_presets[].words]
     status: implemented

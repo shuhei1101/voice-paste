@@ -5,7 +5,7 @@ directory: |-
   haas_server/
   ├── pyproject.toml # サーバーの環境の依存（haas-asr・fastapi・uvicorn・python-multipart・av。uv の package = false）
   ├── uv.lock
-  ├── start.sh       # 起動スクリプト（uv run python -m haas_server.main {ポート}）
+  ├── start.sh       # 起動スクリプト（リポジトリの直下へ移り、環境の python を絶対パスで -m haas_server.main {ポート} に exec する）
   ├── __init__.py
   ├── main.py        # モデルを読み込んで待ち受ける入口・ログの設定
   ├── app.py         # FastAPI の app（3 つの API と Host・Origin の守り）
@@ -14,4 +14,6 @@ directory: |-
 notes:
   ログ: ログは WSL の中の `~/.local/state/voice-paste/haas_server.log` に書く（logging の RotatingFileHandler。1 MB を 3 世代）。起動の前から動いているサーバーでは常駐アプリが標準エラーを受けられないため、WSL の中のファイルにする。
   テスト: 単体テストと結合テストは Windows の常駐アプリと同じ `.venv` で流す。haas_asr は main.py の load_engine の中でだけ import し、app.py・audio.py は関数を受けるため、GPU も haas_asr も要らない。
+  起動スクリプト: '`wsl.exe -e bash` は `.profile` を読まず `uv` が見つからないため、start.sh は `uv` を使わず `$HOME/.local/share/voice-paste/haas_server/.venv/bin/python` を起動する。`python -m haas_server.main` は `haas_server` の親フォルダで流すため、start.sh が `cd "$(dirname "$0")/.."` する。同じ構成の最小のスクリプトを 2026-11-06 に `wsl.exe -d Ubuntu-24.04 --cd {Windows のパス} -e bash start.sh 47825` で流し、終了コード 0 で haas_server.main が引数を受けて動くことを確かめた（このとき HOME は入り、`uv` は見つからなかった）'
+  環境の置き場所: 環境は WSL の ext4 の `~/.local/share/voice-paste/haas_server/.venv` に置く（`UV_PROJECT_ENVIRONMENT`）。PoC の実測は ext4 の環境の値で、`/mnt/c` の下に置くと NeMo・torch の import が延びて起動の待ち時間を超えうるため
 id: MOD-98

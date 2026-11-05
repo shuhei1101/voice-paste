@@ -229,3 +229,21 @@ tables:
       - MOD-88#functions[acquire_single_instance_linux]
     implementation: src/voice_paste/runtime/single_instance_linux.py
     status: planned
+  - name: ~/.local/state/voice-paste/haas_server.log
+    title: Haas の文字起こしのサーバーのログ
+    summary: WSL の中のサーバーが書くログ
+    datastore: ファイル
+    description: WSL の中のファイルで、常駐アプリは読み書きしない。
+    columns:
+      - name: '-'
+        title: 中身
+        type: テキスト
+        description: logging の 1 行。[ERROR] はスタックトレースつき
+    growth: 要求ごとに追記する
+    scale: 1 MB を 3 世代（RotatingFileHandler）
+    retention: 世代を超えた分を消す
+    deletion: RotatingFileHandler が古い世代を消す。常駐アプリの保持期間の削除の対象にしない
+    implementation: haas_server/main.py
+    refs:
+      - MOD-101#functions[main]
+    status: planned

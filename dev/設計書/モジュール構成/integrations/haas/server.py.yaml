@@ -33,17 +33,12 @@ classes:
     role: アダプタ
     kind: クラス
     summary: WSL の中の Haas の文字起こしのサーバーを、必要なら wsl.exe で起動して応答を待ち、自分が起動したサーバーだけを止める
-    description: 起動の前から応答するサーバーは使うだけで止めない。止めるのは POST /shutdown で、wsl.exe のプロセスの強制終了はしない。
+    description: 起動の前から応答するサーバーは使うだけで止めない。止めるのは POST /shutdown で、モデルの読み込み中など /shutdown が届かないときだけ wsl.exe のプロセスを終わらせる。wsl.exe を終わらせると WSL の中のプロセスも終わることを、2026-11-06 に Windows の Stop-Process で確かめた（torch を import した python。wsl.exe を止めた直後に終了した）。
     properties:
       - name: _settings
         type: HaasSettings
         access: 内部 (_)
         description: ディストリビューションとポート
-      - name: _started
-        type: bool
-        access: 内部 (_)
-        default: 'False'
-        description: このインスタンスがサーバーを起動したか
       - name: _stopped
         type: threading.Event
         access: 内部 (_)
@@ -63,6 +58,11 @@ classes:
         access: 内部 (_)
         default: None
         description: httpx.Client に渡すトランスポート（テストで差し替える）
+      - name: _process
+        type: subprocess.Popen | None
+        access: 内部 (_)
+        default: None
+        description: このインスタンスが起動した wsl.exe。None なら起動していない
     methods:
       - name: ensure_started
         title: サーバーの起動の確認
@@ -76,14 +76,14 @@ classes:
           1. GET /health を送信する（_is_ready）
              - 200 の場合、終える
                - `[INFO]` 動いている Haas のサーバーを使う（ポート）
-          2. `wsl.exe [-d {distribution}] --cd {HAAS_SERVER_DIR} -e bash start.sh {port}` を _popen で起動する（標準入出力は開かない。Windows では CREATE_NO_WINDOW）。_started を True にする
+          2. `wsl.exe [-d {distribution}] --cd {HAAS_SERVER_DIR} -e bash start.sh {port}` を _popen で起動し、_process に持つ（標準入出力は開かない。Windows では CREATE_NO_WINDOW）
              - wsl.exe を起動できない（OSError）場合、EngineError を送出する
           3. HAAS_START_TIMEOUT_SEC まで、HAAS_HEALTH_INTERVAL_SEC ごとに _is_ready を呼ぶ
              - 200 の場合、終える
                - `[INFO]` Haas のサーバーを起動した（かかった秒・ポート）
              - 起動した wsl.exe が 0 以外で終わった場合、EngineError を送出する
              - stop が呼ばれた場合、EngineError を送出する
-          4. EngineError を送出する（理由は待ち時間までに応答が無いこと）
+          4. _process.terminate で wsl.exe を終わらせ、EngineError を送出する（理由は待ち時間までに応答が無いこと。読み込み中のサーバーが残って GPU を使い続けないようにする）
         exceptions:
           - name: EngineError
             condition: wsl.exe を起動できない・起動スクリプトが失敗して終わった・待ち時間までに応答が無い・起動の待ちの間に stop された
@@ -125,22 +125,23 @@ classes:
             summary: 待ち時間までに応答が無い
             condition: /health が接続エラーのまま _clock が HAAS_START_TIMEOUT_SEC を過ぎる
             mock: httpx.MockTransport・_popen・_clock
-            expected: EngineError
+            expected: EngineError。Popen.terminate が呼ばれている
             exception: 待ち時間までに応答が無い
         status: planned
       - name: stop
         title: サーバーの停止
         kind: メソッド
         scope: public
-        summary: このインスタンスが起動したサーバーに POST /shutdown を送信する。起動の待ちも打ち切る
+        summary: このインスタンスが起動したサーバーを止める。起動の待ちも打ち切る
         returns:
           type: None
           description: 応答を待たない
         process: |-
           1. _stopped をセットする
-          2. _started が True なら POST /shutdown を送信する（接続 HAAS_CONNECT_TIMEOUT_SEC）
-             - httpx.HTTPError の場合、握りつぶして終える
-               - `[WARNING]` Haas のサーバーを止められなかった（例外の種類）
+          2. _process が None なら終える（起動の前から動いていたサーバーは止めない）
+          3. POST /shutdown を送信する（接続 HAAS_CONNECT_TIMEOUT_SEC）
+             - httpx.HTTPError の場合、_process.terminate で wsl.exe を終わらせる
+               - `[WARNING]` Haas のサーバーへ /shutdown が届かないため wsl.exe を終わらせた（例外の種類）
         unit_tests:
           - name: test_stop
             case: 正常
@@ -154,6 +155,12 @@ classes:
             condition: /shutdown が接続エラー
             mock: httpx.MockTransport・_popen・_clock
             expected: 例外が出ない
+          - name: test_stop_when_loading
+            case: 正常
+            summary: 起動の待ちの間に止めると wsl.exe を終わらせる
+            condition: /health も /shutdown も接続エラーの間に別スレッドから stop を呼ぶ
+            mock: httpx.MockTransport・_popen・_clock
+            expected: Popen.terminate が呼ばれ、ensure_started が EngineError を送出する
         status: planned
     refs:
       - SC-5#

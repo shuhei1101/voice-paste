@@ -5,7 +5,7 @@ entry:
 lead: 常駐アプリから受けた音声を Haas-ja-v1.0 で文字に起こし、起こした文字を返す。
 test_file: tests/integration/haas_server/test_transcribe.py
 identifier: transcribe
-permissions: なし（127.0.0.1 だけで待ち受け、同じ端末のプロセスだけが届く）
+permissions: なし（トークンを求めない。Host と Origin だけを確かめる）
 idempotent: true
 side_effects: なし（受けた音声を保存しない）
 exclusivity: 1 件ずつ起こす。起こしている間に届いた要求は、前の要求が終わるまで待たせる（GPU のモデルを 1 つだけ持つ）
@@ -42,14 +42,16 @@ status_codes:
     condition: 音声を復号できない、または vocabulary が JSON の配列でないか written が空の要素がある
   - code: '500'
     condition: 文字起こしに失敗した（GPU のメモリが足りない・モデルが例外を送出した）
+  - code: '403'
+    condition: Host が 127.0.0.1 でも localhost でもないか、Origin が付いている
 error_format: RFC 9457 の `application/problem+json`（`type`・`title`・`status`・`detail`）で返す。常駐アプリはステータスと `detail` をログと失敗の通知の理由に使う。
 constraints:
   - item: 待ち受け
     constraint: WSL の中の 127.0.0.1 だけ。ポートは設定の Haas の接続先のポート
     notes: WSL2 の mirrored のモードで、Windows の 127.0.0.1 から届く
   - item: 認可
-    constraint: 求めない
-    notes: 同じ端末のプロセスだけが届く。録音を端末の外へ送信しない
+    constraint: トークンを求めない。Host が `127.0.0.1:{ポート}` か `localhost:{ポート}` で、Origin が付いていないこと
+    notes: ブラウザも同じ端末のプロセスで、mirrored のモードでは Windows のブラウザのページから届く。ほかのサイトのページからの要求（Origin が付く）と DNS rebinding（Host が合わない）を断る。常駐アプリの API の Host・Origin の守りと同じ
   - item: 音声の長さ
     constraint: 30 秒以下は一度に（transcribe）、30 秒を超えるものは静かな箇所で区切ってまとめて（transcribe_longform）起こす
     notes: Haas-ja-v1.0 が学習した発話の長さの上限が約 30 秒
@@ -222,10 +224,12 @@ flows:
         participant C as 常駐アプリ
         participant IF as POST /transcriptions
         participant M as Haas-ja-v1.0
+        participant LOG as ログ
 
         C->>IF: audio
         IF->>M: 起こす
         M--xIF: 例外
+        IF->>LOG: [ERROR] 例外（スタックトレースつき）を書く
         IF-->>C: 500（problem+json）
         C->>IF: audio
         IF->>M: 起こす
@@ -235,5 +239,32 @@ flows:
     expected:
       - 1 回目は 500 の problem+json が返り、detail に失敗した理由が入っている
       - 2 回目は 200 で text が決まった文字
+      - サーバーのログに `[ERROR]` で例外がスタックトレースつきで書かれている
     test: test_error_when_transcription_failed
+    notes:
+      ログの書き先: サーバーのログの書き先（WSL の中のログファイルか、常駐アプリが wsl.exe の標準エラーを受けて常駐アプリのログへ書くか）はモジュール構成設計で決める。400 は `[WARNING]` で理由だけを書く。
+  - name: 異常系（許されていない要求元・403）
+    summary: Host が合わない要求と、Origin が付いた要求を、起こさずに断る
+    setup:
+      - name: Mock
+        description: 正常系と同じ
+      - name: 要求のヘッダー
+        description: Host をほかのホストにした要求と、Origin を付けた要求の 2 つを送る
+        notes: '`Host: evil.example:{ポート}`、`Origin: http://evil.example`'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as ほかのサイトのページ
+        participant IF as POST /transcriptions
+        participant LOG as ログ
+
+        C->>IF: audio（Host が合わない・Origin が付いている）
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書く
+        IF-->>C: 403（problem+json）
+      ```
+    expected:
+      - どちらの要求にも 403 の problem+json が返る
+      - モデルが呼ばれていない
+      - サーバーのログに断った理由と要求元が書かれている
+    test: test_error_when_origin_not_allowed
 id: IF-12

@@ -61,6 +61,7 @@ from tests.support.inprocess import (
     kill_workers_twice,
     make_glossary_preset_settings,
     make_settings,
+    requires_haas_engine,
     requires_web_transcription,
     silence_input,
     speech_input,
@@ -68,6 +69,7 @@ from tests.support.inprocess import (
     stub_transcription,
     synthesize_speech,
 )
+from tests.support.haas_endpoint import FakeHaasEndpoint
 from tests.support.openai_endpoint import (
     API_KEY,
     TRANSCRIPTIONS_PATH,
@@ -887,6 +889,117 @@ def test_normal_when_openai_previous_model(
     run_app(
         case,
         extra_settings=OPENAI_HINT_SETTINGS + _openai_settings(openai_endpoint, OPENAI_PREVIOUS_MODEL),
+        wav_input=speech_input(tmp_path),
+        keys=keys,
+    )
+
+
+HAAS_HINT_SETTINGS = (
+    "hint_presets:\n"
+    "  - name: 開発\n"
+    "    words:\n"
+    "      - 突合\n"
+    "      - GitHub\n"
+    "      - voice-paste\n"
+    "    readings:\n"
+    "      - とつごう\n"
+    "      - ギットハブ\n"
+    "      - ''\n"
+    "    enabled: true\n"
+)
+"""読みのある語 2 つと読みの無い語 1 つを持つ有効なプリセット。"""
+
+
+def _haas_settings(endpoint: FakeHaasEndpoint) -> str:
+    """文字起こしのエンジンを Haas にし、接続先をテスト用のエンドポイントに向ける settings.yaml の続きを返す。"""
+    return f"transcription:\n  engine: haas\n  haas:\n    port: {endpoint.port}\n"
+
+
+@requires_haas_engine
+def test_normal_when_haas(
+    run_app: RunApp,
+    tmp_path: Path,
+    clipboard_sentinel: str,
+    haas_endpoint: FakeHaasEndpoint,
+) -> None:
+    """Haas を使う設定で確定した録音は、録音と語の表記と読みの組が送信され、起こした文字の誤変換が用語集で置き換わって履歴に残り、ワーカーを起動せずに届けられる（正常シナリオ（Haas で起こす））。"""
+    # 準備: テスト用のエンドポイントは用語集の誤変換を含む文字を返す
+    haas_endpoint.text = SPEECH_TEXT
+    haas_endpoint.start()
+    keys = KeyLog()
+
+    def case(app: ResidentApp) -> None:
+        """確定して、エンドポイントが受けた要求・起こした文字・履歴・ワーカー・届け先を確かめる。"""
+        # 実行
+        _confirm_with_paste_and_send(app)
+        assert app.wait_until(lambda: "transcribing_indicator" in app.seen_windows)
+        app.wait_processed()
+
+        # 検証: エンドポイントが受けた要求
+        [request] = haas_endpoint.requests
+        fields = request.form_fields()
+        assert request.path == "/transcriptions"
+        assert fields["audio"].startswith(b"RIFF")
+        assert json.loads(fields["vocabulary"]) == [
+            {"written": "突合", "reading": "とつごう"},
+            {"written": "GitHub", "reading": "ギットハブ"},
+            {"written": "voice-paste", "reading": None},
+        ]
+        # 起こした文字・履歴・ワーカー・届け先
+        text = app.history_text()
+        assert CORRECTED_WORD in text
+        assert SPEECH_WORD not in text
+        assert app.worker_pids() == set()
+        assert pyperclip.paste() == text
+        assert len(keys.pasted) == 1
+        assert app.window("transcribing_indicator") is None
+
+    run_app(
+        case,
+        extra_settings=GLOSSARY_SETTINGS + HAAS_HINT_SETTINGS + _haas_settings(haas_endpoint),
+        prepare=_put_glossary,
+        wav_input=speech_input(tmp_path),
+        keys=keys,
+    )
+
+    # 検証: 起動の前から動いていたサーバーは止めない
+    assert haas_endpoint.shutdown_count == 0
+
+
+@requires_haas_engine
+def test_error_when_haas_failed(
+    run_app: RunApp,
+    tmp_path: Path,
+    clipboard_sentinel: str,
+    haas_endpoint: FakeHaasEndpoint,
+) -> None:
+    """Haas のサーバーが 500 を返すと、文字起こしの失敗を理由つきで知らせ、録音は履歴に残り、届けず、待機中に戻る（異常シナリオ（Haas のサーバーが失敗を返す））。"""
+    # 準備: テスト用のエンドポイントは 500 を返す
+    haas_endpoint.status = 500
+    haas_endpoint.detail = "GPU のメモリが足りない"
+    haas_endpoint.start()
+    keys = KeyLog()
+
+    def case(app: ResidentApp) -> None:
+        """確定して、知らせ・ログ・履歴・届け先・トレイを確かめる。"""
+        # 実行
+        _confirm_with_paste_and_send(app)
+        app.wait_processed()
+
+        # 検証
+        [reason] = _failure_reasons(app, "transcription_failed")
+        assert "500" in reason
+        assert "GPU のメモリが足りない" in reason
+        assert any("Haas の文字起こしに失敗した" in message for message in app.log_messages("ERROR"))
+        assert len(app.history_files(".wav")) == 1
+        assert keys.pasted == []
+        assert pyperclip.paste() == clipboard_sentinel
+        assert app.window("transcribing_indicator") is None
+        assert app.tray_state() == IDLE
+
+    run_app(
+        case,
+        extra_settings=_haas_settings(haas_endpoint),
         wav_input=speech_input(tmp_path),
         keys=keys,
     )

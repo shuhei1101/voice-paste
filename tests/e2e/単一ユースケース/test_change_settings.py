@@ -40,6 +40,7 @@ from tests.support.resident_app import (
 )
 from tests.support.settings import load_test_default_settings
 from voice_paste.features.correction import read_glossary_rows
+from voice_paste.shared.settings import collect_hint_vocabulary
 from voice_paste.shared.types import GlossaryEntry
 from voice_paste.shared.yaml_document import read_yaml_mapping
 
@@ -515,15 +516,67 @@ def test_normal_when_edit_hint_presets(run_app: RunApp) -> None:
         assert app.window("settings_window") is not None
         assert app.label("saved_notice") == "保存しました。"
         assert _yaml(app)["hint_presets"] == [
-            {"name": "開発", "words": ["Claude", "Whisper", "tool"], "enabled": True},
-            {"name": "meeting", "words": ["Git"], "enabled": True},
-            {"name": "memo", "words": ["notes"], "enabled": False},
+            {"name": "開発", "words": ["Claude", "Whisper", "tool"], "readings": [], "enabled": True},
+            {"name": "meeting", "words": ["Git"], "readings": [], "enabled": True},
+            {"name": "memo", "words": ["notes"], "readings": [], "enabled": False},
         ]
         assert COMMENT_LINE in _settings_file(app).read_text(encoding="utf-8")
         assert _yaml(app)["recording"]["fade_sec"] == 1.5
         assert app.hint_for_next_request() == "Claude、Whisper、tool、Git"
 
     run_app(case, extra_settings=HINT_PRESET_SETTINGS + COMMENTED_SETTINGS)
+
+
+HINT_READING_SETTINGS = (
+    "hint_presets:\n"
+    "  - name: 開発\n"
+    "    words:\n"
+    "      - 突合\n"
+    "      - GitHub\n"
+    "    enabled: true\n"
+)
+"""読みの無い語を 2 つ持つ有効なプリセットの設定（`hotkeys` の続きに書く）。"""
+
+
+def test_normal_when_edit_hint_readings(run_app: RunApp) -> None:
+    """語に読みを入れ、読みつきの語を追加して保存すると、settings.yaml に語ごとの読みが書かれ、再起動せずに Haas への語の組へ効き、ローカルの Whisper の手がかりは表記だけのまま（正常シナリオ（表記のヒントに読みを入れる））。"""
+
+    def case(app: ResidentApp) -> None:
+        """設定画面の「表記のヒント」で読みを入れて保存する。"""
+        # 準備
+        app.open_settings()
+        app.select_group("表記のヒント")
+
+        # 実行
+        app.set_text("hint_reading_0_0", "とつごう")
+        app.set_text("hint_reading_0_1", "ギットハブ")
+        app.press("hint_word_add_0")
+        app.set_text("hint_word_0_2", "議事録")
+        app.set_text("hint_reading_0_2", "ぎじろく")
+        app.press("save_button")
+
+        # 検証
+        assert app.window("settings_window") is not None
+        assert app.label("saved_notice") == "保存しました。"
+        assert _yaml(app)["hint_presets"] == [
+            {
+                "name": "開発",
+                "words": ["突合", "GitHub", "議事録"],
+                "readings": ["とつごう", "ギットハブ", "ぎじろく"],
+                "enabled": True,
+            }
+        ]
+        assert COMMENT_LINE in _settings_file(app).read_text(encoding="utf-8")
+        assert _yaml(app)["recording"]["fade_sec"] == 1.5
+        presets = app.handlers.settings_store.get().hint_presets
+        assert collect_hint_vocabulary(presets) == [
+            ("突合", "とつごう"),
+            ("GitHub", "ギットハブ"),
+            ("議事録", "ぎじろく"),
+        ]
+        assert app.hint_for_next_request() == "突合、GitHub、議事録"
+
+    run_app(case, extra_settings=HINT_READING_SETTINGS + COMMENTED_SETTINGS)
 
 
 EDGE_TRANSCRIPT = "お疲れ様でした。本日はここまでです。ありがとうございました。"

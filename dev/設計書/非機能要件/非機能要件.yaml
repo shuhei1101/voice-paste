@@ -615,8 +615,8 @@ requirements:
     external_constraint: Haas-ja-v1.0 は Linux と NVIDIA GPU（Triton・CUDA）が必須で、Windows の常駐アプリの中では動かない
     source_kind: 外部ライブラリの制限
     source: https://github.com/shuhei1101/voice-paste/blob/feat/transcription/haas-engine/dev/pr/264/%E7%A2%BA%E8%AA%8D%E3%83%AD%E3%82%B0.md
-    value: Windows の端末の WSL2（Ubuntu・NVIDIA GPU・GPU のメモリの空き約 4 GB）で、ネットワークが mirrored のモード
-    rationale: Windows から WSL の 127.0.0.1 へ届くことを PoC で確かめたのは mirrored のモードだけで、対象を mirrored に限るのはユーザーの判断（確認ログ）。GPU のメモリは PoC の実測の約 4.0 GB
+    value: Windows 11 22H2 以降の端末の WSL2（Ubuntu・NVIDIA GPU・GPU のメモリの空き約 4 GB）で、ネットワークが mirrored のモード
+    rationale: Windows から WSL の 127.0.0.1 へ届くことを PoC で確かめたのは mirrored のモードだけで、対象を mirrored に限るのはユーザーの判断（確認ログ）。mirrored のモードは Windows 11 22H2 以降の機能（https://learn.microsoft.com/en-us/windows/wsl/networking）。GPU のメモリは PoC の実測の約 4.0 GB
     measurement: PoC の実測（計画書の `## PoC 結果`）
     overflow: 環境が合わずにサーバーへ接続できないときは、終了までローカルの Whisper で起こす
     status: planned

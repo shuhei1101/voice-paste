@@ -1,0 +1,26 @@
+| 長さ | 構成 | 本数 | CER | 表記のヒントの単語 | 合計の秒数 | 音声 1 秒あたりの秒数 |
+| --- | --- | --- | --- | --- | --- | --- |
+| short | faster-whisper（none） | 12 | 12.64% | 4/12（33%） | 7.11 | 0.1211 |
+| short | faster-whisper（hotwords） | 12 | 4.69% | 9/12（75%） | 7.02 | 0.1195 |
+| short | Haas（none・batch） | 12 | 12.27% | 5/12（42%） | 0.58 | 0.0100 |
+| short | Haas（v1・batch） | 12 | 6.86% | 8/12（67%） | 0.68 | 0.0116 |
+| short | Haas（v2・batch） | 12 | 11.91% | 6/12（50%） | 0.69 | 0.0117 |
+| short | Haas（none・sequential） | 12 | 12.27% | 5/12（42%） | 0.58 | 0.0100 |
+| short | Haas（v1・sequential） | 12 | 6.86% | 8/12（67%） | 0.68 | 0.0116 |
+| short | Haas（v2・sequential） | 12 | 11.91% | 6/12（50%） | 0.69 | 0.0117 |
+| medium | faster-whisper（none） | 2 | 12.27% | 4/12（33%） | 5.47 | 0.0931 |
+| medium | faster-whisper（hotwords） | 2 | 5.05% | 9/12（75%） | 5.62 | 0.0957 |
+| medium | Haas（none・batch） | 2 | 11.19% | 4/12（33%） | 0.17 | 0.0028 |
+| medium | Haas（v1・batch） | 2 | 3.97% | 8/12（67%） | 0.22 | 0.0038 |
+| medium | Haas（v2・batch） | 2 | 10.47% | 5/12（42%） | 0.22 | 0.0037 |
+| medium | Haas（none・sequential） | 2 | 11.19% | 4/12（33%） | 0.17 | 0.0028 |
+| medium | Haas（v1・sequential） | 2 | 3.97% | 8/12（67%） | 0.22 | 0.0038 |
+| medium | Haas（v2・sequential） | 2 | 10.47% | 5/12（42%） | 0.22 | 0.0037 |
+| long | faster-whisper（none） | 2 | 13.00% | 24/72（33%） | 32.69 | 0.0928 |
+| long | faster-whisper（hotwords） | 2 | 8.12% | 47/72（65%） | 33.40 | 0.0947 |
+| long | Haas（none・batch） | 2 | 11.91% | 23/72（32%） | 0.43 | 0.0012 |
+| long | Haas（v1・batch） | 2 | 4.27% | 51/72（71%） | 0.43 | 0.0012 |
+| long | Haas（v2・batch） | 2 | 11.19% | 29/72（40%） | 0.46 | 0.0013 |
+| long | Haas（none・sequential） | 2 | 11.85% | 23/72（32%） | 0.89 | 0.0025 |
+| long | Haas（v1・sequential） | 2 | 4.21% | 51/72（71%） | 1.24 | 0.0035 |
+| long | Haas（v2・sequential） | 2 | 11.13% | 29/72（40%） | 1.42 | 0.0040 |

@@ -4,12 +4,19 @@ voice-paste の Windows の Python で動かす: `python bench_whisper.py {音�
 """
 
 import json
+import os
 import statistics
 import sys
 import time
 from pathlib import Path
 
-from faster_whisper import WhisperModel
+# 文字起こしワーカーと同じく、venv の nvidia-* の DLL の場所を PATH の先頭へ追加する
+_NVIDIA_ROOT = Path(sys.prefix) / "Lib" / "site-packages" / "nvidia"
+os.environ["PATH"] = os.pathsep.join(
+    [str(_NVIDIA_ROOT / name / "bin") for name in ("cublas", "cudnn", "cuda_nvrtc")] + [os.environ["PATH"]]
+)
+
+from faster_whisper import WhisperModel  # noqa: E402 DLL の場所を追加した後に読み込む
 
 from sentences import HINT_WORDS
 

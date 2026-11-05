@@ -26,7 +26,7 @@ elements:
     label: 文字起こしの進み
     io: 表示
     type: 数値（%）
-    visible_when: 最初の区間の終わりが届いてから（それまでは回るマーカーだけを出す）。OpenAI API は区間ごとの進みを返さないため、設定のエンジンが OpenAI API のときは出さない
+    visible_when: 最初の区間の終わりが届いてから（それまでは回るマーカーだけを出す）。OpenAI API と Haas は区間ごとの進みを返さないため、設定のエンジンが OpenAI API か Haas のときは出さない
     display_format: 整数の %（例 62%）
     source: 文字起こしの経過（起こし終えた区間の終わり ÷ 録音の長さ）
   - name: 経過と残りの時間
@@ -37,7 +37,7 @@ elements:
     io: 表示
     type: 時間
     visible_when: 常時
-    display_format: 「経過 3.2 秒 残り 2 秒 / 5 秒」。1 分以上は「3 分 06 秒」。残りが分かるまでは「経過 1.4 秒 残りを計っています」。設定のエンジン（`transcription.engine`）が OpenAI API のときは残りを見積もらず、経過だけを出す（「経過 1.4 秒」）
+    display_format: 「経過 3.2 秒 残り 2 秒 / 5 秒」。1 分以上は「3 分 06 秒」。残りが分かるまでは「経過 1.4 秒 残りを計っています」。設定のエンジン（`transcription.engine`）が OpenAI API か Haas のときは残りを見積もらず、経過だけを出す（「経過 1.4 秒」）
     source: 文字起こしの経過
   - name: 貼り付けの案内
     id: paste_hint

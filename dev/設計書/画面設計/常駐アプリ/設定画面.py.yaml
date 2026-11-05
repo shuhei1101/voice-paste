@@ -569,7 +569,7 @@ elements:
     id: hint_word_{n}_{m}
     kind: input
     position: 窓 > 右 > ヒントのプリセットの一覧 > まとまり > 語
-    description: 語 1 つの欄。入力と削除ボタンの組を 2 列に並べ、左から右、上から下が語の順になる。幅の狭い窓（組が 2 列入らない幅）では 1 列に積む。欄より長い語は欄の中で横に流す。読み上げの名前は「{何つ目か} つ目の語」
+    description: 語 1 つの欄。語の欄・読みの欄・削除ボタンの組を 2 列に並べ、左から右、上から下が語の順になる。幅の狭い窓（組が 2 列入らない幅）では 1 列に積む。欄より長い語は欄の中で横に流す。読み上げの名前は「{何つ目か} つ目の語」
     label: 語
     io: 入出力
     type: 文字列
@@ -982,6 +982,25 @@ elements:
     status: planned
     introduced:
       pr: 173
+  - name: ヒントの語の読みの欄
+    id: hint_reading_{n}_{m}
+    kind: input
+    position: 窓 > 右 > ヒントのプリセットの一覧 > まとまり > 語 > 語の欄の右
+    description: その語の読みの欄。エンジンが Haas（WSL）のときだけ文字起こしに使うが、エンジンによらず出して保存する。語の欄より短くし、語の欄と同じ高さで並べる。読み上げの名前は「{何つ目か} つ目の語の読み」
+    label: 読み
+    placeholder: '例: とつごう'
+    hint: エンジンが Haas（WSL）のときに使う。空なら読みを渡さない。
+    io: 入出力
+    type: 文字列
+    visible_when: 語ごと
+    required: false
+    constraints: ひらがな・カタカナ・長音符（ー）だけ
+    initial_value: 設定の値（読みの無い語と追加した語は空）
+    source: Settings.hint_presets[].readings[語]
+    target: Settings.hint_presets[].readings[語]（前後の空白を除く。空ならその語の対応を書かない）
+    status: planned
+    refs:
+      - CFG-1#settings[hint_presets[].readings]
 input_checks:
   - element: 設定の欄
     violation: 数値の欄に数値でない文字が入っている
@@ -1098,6 +1117,11 @@ input_checks:
     trigger: 保存・保存して再起動のボタンのクリック
     message: 形式の違うオリジンがあります（{違う行を読点でつないだもの}）。https://example.com のように、http:// か https:// で始め、末尾の / とパスを付けずに入れてください。
     position: その欄の下とエラーの一覧
+  - element: ヒントの語の読みの欄
+    violation: 空でなく、ひらがな・カタカナ・長音符（ー）以外の文字が入っている（無効のプリセットも確かめる）
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: 読みはひらがなかカタカナで入れてください。
+    position: その欄の下とエラーの一覧
 screen: src/voice_paste/ui/windows/settings_window.py
 mock: dev/mock/pages/settings/173/b-picked-list/
 lead: トレイの「設定…」から開く画面。設定の全てのキーをまとまりに並べ、設定のモデルで確かめてから保存する。
@@ -1121,13 +1145,15 @@ notes:
     | 録音 | `recording.lower_volume`・`recording.hide_window` | チェックボックス |
     | 録音 | `recording.volume_percent` | つまみ（0〜100、右に %） |
     | 録音 | `recording.fade_sec` | 数値の欄 |
-    | 文字起こし（エンジン） | `transcription.engine`・`transcription.local_whisper.model` | 選択の欄。`transcription.engine` の選択肢は「ローカルの Whisper」（`local_whisper`）・「OpenAI API」（`openai`） |
+    | 文字起こし（エンジン） | `transcription.engine`・`transcription.local_whisper.model` | 選択の欄。`transcription.engine` の選択肢は「ローカルの Whisper」（`local_whisper`）・「OpenAI API」（`openai`）・「Haas（WSL）」（`haas`） |
     | 文字起こし（エンジン） | `transcription.local_whisper.device`・`transcription.local_whisper.compute_type` | ラジオボタン |
     | 文字起こし（エンジン） | `transcription.local_whisper.language` | 文字の欄 |
     | 文字起こし（詳しい調整） | `transcription.local_whisper` の cpu_threads・num_workers・beam_size・best_of・temperature・no_speech_threshold・vad_threshold・vad_min_speech_ms・vad_min_silence_ms | 数値の欄 |
     | 文字起こし（詳しい調整） | `transcription.local_whisper` の condition_on_previous_text・vad_filter | チェックボックス |
     | 文字起こし（OpenAI API） | `transcription.openai.model`・`transcription.openai.language`・`transcription.openai.base_url` | 文字の欄。補助文「文字起こしのエンジンが OpenAI API のときに使う。API キーはここでは入れず、環境変数 OPENAI_API_KEY か、settings.yaml と同じフォルダの secrets/openai_api_key に置く。」 |
-    | 表記のヒント | `hint_presets[]`（name・words・enabled） | 有効なヒントの長さと、ヒントのプリセットの一覧 |
+    | 文字起こし（Haas） | `transcription.haas.distribution` | 文字の欄。補助文「文字起こしのエンジンが Haas（WSL）のときに使う。WSL2 のネットワークを mirrored にし、このディストリビューションにサーバーの環境を作っておく。空なら WSL の既定のディストリビューションを使う。」 |
+    | 文字起こし（Haas） | `transcription.haas.port` | 数値の欄 |
+    | 表記のヒント | `hint_presets[]`（name・words・readings・enabled） | 有効なヒントの長さと、ヒントのプリセットの一覧 |
     | 用語集 | `glossary_presets[]`（name・glossaries）・`active_glossary_preset` | 用語集のプリセットの一覧と、選んだプリセットの使う用語集の表 |
     | 用語集 | `glossaries[]`（name・path）と、用語集の CSV の行（誤変換・正しい表記・オン・オフ） | 用語集の一覧と、選んだ用語集の行の表 |
     | ハルシネーション | `edge_phrases[]`（text・position） | 文言の一覧 |

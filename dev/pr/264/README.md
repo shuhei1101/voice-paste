@@ -11,7 +11,7 @@ WSL を使用できない環境では今の faster-whisper のまま動く。
 文字起こしのエンジンは `local_whisper`（faster-whisper の large-v3）と `openai`（[#204](https://github.com/shuhei1101/voice-paste/pull/204) で追加）の 2 つ。
 Haas-ja-v1.0（Third Intelligence、Apache 2.0）は日本語の CER 6.12% で、Whisper large-v3 の約 15〜17 倍速いと発表された。
 Haas は Linux と NVIDIA GPU（Triton・CUDA）が必須で、Windows の常駐アプリの中では動かない。
-voice-paste は用語集の単語を faster-whisper の `hotwords` に指定しているが、Haas には単語の手がかりを指定する仕組みの記載が無い。
+voice-paste は表記のヒントの単語を faster-whisper の `hotwords` に指定している。Haas は `haas_asr.Vocabulary`（表記 → 読みの組）で単語の手がかりを受け付けるが、表記のヒントは読みを持たない。
 
 ## 計画書
 
@@ -25,7 +25,7 @@ voice-paste は用語集の単語を faster-whisper の `hotwords` に指定し�
 - [x] ~~初期構築~~（[#8](https://github.com/shuhei1101/voice-paste/pull/8) で済んでいる）
 - [x] ~~リバースエンジニアリング~~（[#10](https://github.com/shuhei1101/voice-paste/pull/10) で現状の設計書が揃っている）
 - [x] ~~方針決め~~（方針決めを依頼する Issue ではない）
-- [ ] PoC 検証（WSL で Haas を動かし、voice-paste の録音で faster-whisper と精度・速さ・用語集の単語の認識を比べる。Windows の常駐アプリから WSL のサーバーへ HTTP で届くかも確認する）
+- [ ] PoC 検証（WSL で Haas を動かし、voice-paste の録音で faster-whisper と精度・速さ・表記のヒントの単語の認識を比べる。Windows の常駐アプリから WSL のサーバーへ HTTP で届くかも確認する）
 - [x] ~~複合ユースケース設計~~（影響なし: 複合ユースケースの流れを変えない。エンジンの違いは単一ユースケースの中に収まる）
 - [x] ~~デザインスタイル選定~~（デザイン方針があり、見た目の方向を変えない）
 - [x] ~~画面一覧・画面遷移~~（画面の追加・削除と画面遷移の変更を含まない）

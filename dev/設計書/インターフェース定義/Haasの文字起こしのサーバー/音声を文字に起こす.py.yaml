@@ -1,0 +1,239 @@
+title: 音声を文字に起こす
+entry:
+  kind: endpoint
+  value: POST /transcriptions
+lead: 常駐アプリから受けた音声を Haas-ja-v1.0 で文字に起こし、起こした文字を返す。
+test_file: tests/integration/haas_server/test_transcribe.py
+identifier: transcribe
+permissions: なし（127.0.0.1 だけで待ち受け、同じ端末のプロセスだけが届く）
+idempotent: true
+side_effects: なし（受けた音声を保存しない）
+exclusivity: 1 件ずつ起こす。起こしている間に届いた要求は、前の要求が終わるまで待たせる（GPU のモデルを 1 つだけ持つ）
+request:
+  - name: audio
+    type: UploadFile
+    required: true
+    location: body
+    description: 起こす音声（multipart の file）
+    constraints: PyAV（FFmpeg）で復号できる形式。常駐アプリは録音・連続録音の区間は WAV を、ブラウザの音声は録れた形式（webm・ogg・mp4 など）のまま送信する
+  - name: vocabulary
+    type: str
+    required: false
+    default: なし（手がかりを指定せずに起こす）
+    location: body
+    description: 表記のヒントの単語の一覧（multipart の項目。JSON の配列の文字列）
+    constraints: '要素は `{"written": str, "reading": str | null}`。written は空でない文字列。reading が null か空の単語は表記だけを指定する'
+    example: '[{"written": "突合", "reading": "とつごう"}, {"written": "voice-paste", "reading": null}]'
+response:
+  - name: text
+    type: str
+    description: 起こした文字
+    notes: 話し声が無ければ空文字。用語集と文頭・文末の文言の補正は常駐アプリが行い、サーバーは行わない
+response_example: |-
+  ```json
+  {
+    "text": "請求データと入金データを月末に突合します。"
+  }
+  ```
+status_codes:
+  - code: '200'
+    condition: 起こした文字を返した
+  - code: '400'
+    condition: 音声を復号できない、または vocabulary が JSON の配列でないか written が空の要素がある
+  - code: '500'
+    condition: 文字起こしに失敗した（GPU のメモリが足りない・モデルが例外を送出した）
+error_format: RFC 9457 の `application/problem+json`（`type`・`title`・`status`・`detail`）で返す。常駐アプリはステータスと `detail` をログと失敗の通知の理由に使う。
+constraints:
+  - item: 待ち受け
+    constraint: WSL の中の 127.0.0.1 だけ。ポートは設定の Haas の接続先のポート
+    notes: WSL2 の mirrored のモードで、Windows の 127.0.0.1 から届く
+  - item: 認可
+    constraint: 求めない
+    notes: 同じ端末のプロセスだけが届く。録音を端末の外へ送信しない
+  - item: 音声の長さ
+    constraint: 30 秒以下は一度に（transcribe）、30 秒を超えるものは静かな箇所で区切ってまとめて（transcribe_longform）起こす
+    notes: Haas-ja-v1.0 が学習した発話の長さの上限が約 30 秒
+  - item: 音声の大きさ
+    constraint: 制限なし
+    notes: 常駐アプリが受け付けた音声だけが届く（ブラウザの音声は常駐アプリの本文の上限で弾く）
+  - item: タイムアウト
+    constraint: 設けない
+    notes: 待つ時間の上限は呼び出し元の常駐アプリが持つ
+  - item: 途中の進み
+    constraint: 返さない
+    notes: 起こし終えたときに 1 回だけ応答する
+flows:
+  - name: 正常系
+    summary: 短い WAV を、読みのある単語と読みの無い単語の手がかりつきで起こす
+    setup:
+      - name: Mock
+        description: Haas のモデルを、決まった文字を返す関数に差し替え、受けた音声の長さと Vocabulary を記録する
+        notes: GPU を使わない
+      - name: 音声
+        description: 約 3 秒の 16 bit・モノラル・48 kHz の WAV
+      - name: 手がかり
+        description: 読みのある単語 1 つと、reading が null の単語 1 つ
+        notes: '`[{"written": "突合", "reading": "とつごう"}, {"written": "voice-paste", "reading": null}]`'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as 常駐アプリ
+        participant IF as POST /transcriptions
+        participant M as Haas-ja-v1.0
+
+        C->>IF: audio（WAV）・vocabulary
+        IF->>IF: 音声を 16 kHz のモノラルへ復号する
+        IF->>IF: 表記と読みの組から Vocabulary を作る
+        IF->>M: 音声と Vocabulary で起こす（transcribe）
+        M-->>IF: 起こした文字
+        IF-->>C: 200・text
+      ```
+    expected:
+      - 200 で text が決まった文字
+      - モデルが受けた音声が 16 kHz のモノラルで、長さが約 3 秒
+      - モデルが受けた Vocabulary が「突合」に読み「とつごう」を持ち、「voice-paste」が読みを持たない
+      - 30 秒を超える音声の起こし方（transcribe_longform）が呼ばれていない
+    test: test_normal
+  - name: 正常系（30 秒を超える音声）
+    summary: 30 秒を超える音声を静かな箇所で区切って起こす
+    setup:
+      - name: Mock
+        description: 正常系と同じ
+      - name: 音声
+        description: 約 40 秒の WAV
+        notes: 30 秒を超える
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as 常駐アプリ
+        participant IF as POST /transcriptions
+        participant M as Haas-ja-v1.0
+
+        C->>IF: audio（WAV）
+        IF->>M: 音声を静かな箇所で区切ってまとめて起こす（transcribe_longform）
+        M-->>IF: 起こした文字
+        IF-->>C: 200・text
+      ```
+    expected:
+      - 200 で text が決まった文字
+      - transcribe_longform が 1 回呼ばれ、transcribe が呼ばれていない
+    test: test_normal_when_longer_than_30_seconds
+  - name: 正常系（手がかりが無い）
+    summary: vocabulary を付けない要求は、手がかりを指定せずに起こす
+    setup:
+      - name: Mock
+        description: 正常系と同じ
+      - name: 要求
+        description: vocabulary の項目を付けない
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as 常駐アプリ
+        participant IF as POST /transcriptions
+        participant M as Haas-ja-v1.0
+
+        C->>IF: audio（WAV）
+        IF->>M: 手がかりなしで起こす
+        M-->>IF: 起こした文字
+        IF-->>C: 200・text
+      ```
+    expected:
+      - 200 で text が決まった文字
+      - モデルが受けた Vocabulary が無い（None）
+    test: test_normal_when_no_vocabulary
+  - name: 正常系（ブラウザの形式の音声）
+    summary: ブラウザが録った webm の音声を復号して起こす
+    setup:
+      - name: Mock
+        description: 正常系と同じ
+      - name: 音声
+        description: 約 3 秒の webm（Opus）の音声
+        notes: テストの資材として置く
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as 常駐アプリ
+        participant IF as POST /transcriptions
+        participant M as Haas-ja-v1.0
+
+        C->>IF: audio（webm）
+        IF->>IF: 音声を 16 kHz のモノラルへ復号する
+        IF->>M: 起こす
+        M-->>IF: 起こした文字
+        IF-->>C: 200・text
+      ```
+    expected:
+      - 200 で text が決まった文字
+      - モデルが受けた音声が 16 kHz のモノラルで、長さが約 3 秒
+    test: test_normal_when_browser_audio
+  - name: 異常系（音声を復号できない・400）
+    summary: 音声として読めないファイルを断る
+    setup:
+      - name: Mock
+        description: 正常系と同じ
+      - name: 音声
+        description: 音声でないテキストのファイル
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as 常駐アプリ
+        participant IF as POST /transcriptions
+
+        C->>IF: audio（音声でないファイル）
+        IF->>IF: 復号に失敗する
+        IF-->>C: 400（problem+json）
+      ```
+    expected:
+      - 400 の problem+json が返り、detail に音声を読めないことが入っている
+      - モデルが呼ばれていない
+    test: test_error_when_audio_unreadable
+  - name: 異常系（手がかりの形が合わない・400）
+    summary: vocabulary が JSON の配列でないか、written が空の要素がある要求を断る
+    setup:
+      - name: Mock
+        description: 正常系と同じ
+      - name: 要求
+        description: vocabulary に written が空の要素を入れる
+        notes: '`[{"written": "", "reading": "から"}]`'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as 常駐アプリ
+        participant IF as POST /transcriptions
+
+        C->>IF: audio・vocabulary（written が空）
+        IF->>IF: 手がかりの検証に失敗する
+        IF-->>C: 400（problem+json）
+      ```
+    expected:
+      - 400 の problem+json が返り、detail に手がかりの形が合わないことが入っている
+      - モデルが呼ばれていない
+    test: test_error_when_vocabulary_invalid
+  - name: 異常系（文字起こしに失敗・500）
+    summary: モデルが例外を送出したら 500 を返し、次の要求は受け付ける
+    setup:
+      - name: Mock
+        description: Haas のモデルを、1 回目は例外を送出し 2 回目は決まった文字を返す関数に差し替える
+      - name: 音声
+        description: 約 3 秒の WAV を 2 回送信する
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as 常駐アプリ
+        participant IF as POST /transcriptions
+        participant M as Haas-ja-v1.0
+
+        C->>IF: audio
+        IF->>M: 起こす
+        M--xIF: 例外
+        IF-->>C: 500（problem+json）
+        C->>IF: audio
+        IF->>M: 起こす
+        M-->>IF: 起こした文字
+        IF-->>C: 200・text
+      ```
+    expected:
+      - 1 回目は 500 の problem+json が返り、detail に失敗した理由が入っている
+      - 2 回目は 200 で text が決まった文字
+    test: test_error_when_transcription_failed
+id: IF-12

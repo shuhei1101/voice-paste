@@ -1,0 +1,9 @@
+summary: "WSL の中で Haas-ja-v1.0 を持つ文字起こしのサーバーの API"
+docs_index: true
+items:
+  - page: 音声を文字に起こす.py.yaml
+    summary: POST /transcriptions。受けた音声を Haas-ja-v1.0 で文字に起こして返す
+  - page: 準備できたかを返す.py.yaml
+    summary: GET /health。モデルを読み込み終えたことを返す
+  - page: 停止する.py.yaml
+    summary: POST /shutdown。常駐アプリが起動したサーバーを止める

@@ -1,0 +1,58 @@
+title: 準備できたかを返す
+entry:
+  kind: endpoint
+  value: GET /health
+lead: モデルを読み込み終え、文字起こしの要求を受けられることを返す。常駐アプリが起動のときに接続先を確かめるのに使う。
+test_file: tests/integration/haas_server/test_health.py
+identifier: health
+permissions: なし（127.0.0.1 だけで待ち受ける）
+idempotent: true
+side_effects: なし
+exclusivity: 制限なし（文字起こしの最中も返す）
+response:
+  - name: ok
+    type: Literal[True]
+    description: モデルを読み込み終えた
+  - name: model
+    type: str
+    description: 読み込んだモデルの名前
+    example: third-intelligence/Haas-ja-v1.0
+response_example: |-
+  ```json
+  {
+    "ok": true,
+    "model": "third-intelligence/Haas-ja-v1.0"
+  }
+  ```
+response_notes: サーバーはモデルを読み込み終えてから待ち受けを始める。読み込みの間は接続できず、常駐アプリは応答が無いものとして待つ。
+status_codes:
+  - code: '200'
+    condition: モデルを読み込み終えている
+constraints:
+  - item: 待ち受け
+    constraint: 音声を文字に起こす と同じ
+  - item: 認可
+    constraint: 求めない
+  - item: 応答時間
+    constraint: 制限なし
+    notes: モデルを使わずに返す
+flows:
+  - name: 正常系
+    summary: モデルを読み込んだ後に呼ぶと、ok とモデルの名前を返す
+    setup:
+      - name: Mock
+        description: Haas のモデルの読み込みを、決まったモデルを返す関数に差し替える
+        notes: GPU を使わない
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as 常駐アプリ
+        participant IF as GET /health
+
+        C->>IF: 要求
+        IF-->>C: 200・ok・model
+      ```
+    expected:
+      - 200 で ok が true、model が third-intelligence/Haas-ja-v1.0
+    test: test_normal
+id: IF-13

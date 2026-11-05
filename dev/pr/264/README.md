@@ -39,4 +39,4 @@ voice-paste は表記のヒントの単語を faster-whisper の `hotwords` に�
 - [x] 単体テスト作成
 - [x] 実装
 - [x] 結合テスト作成
-- [ ] E2E テスト作成
+- [x] E2E テスト作成

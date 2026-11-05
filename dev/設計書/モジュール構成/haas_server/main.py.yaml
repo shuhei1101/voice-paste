@@ -51,8 +51,18 @@ functions:
     process: |-
       1. ログの設定をする（分類『サーバー』の補足『ログ』）
       2. load_engine でモデルを読み込む（読み込みの間は待ち受けない）
+         - 例外の場合、終了コード 1 で終える
+           - `[ERROR]` モデルの読み込みに失敗した（スタックトレースつき）
       3. create_app で app を作り、uvicorn.Server を 127.0.0.1:{ポート} で動かす。request_shutdown は should_exit を True にする
     status: planned
+    unit_tests:
+      - name: test_main_when_load_failed
+        case: 異常
+        summary: モデルの読み込みの失敗をログへ書いて終わる
+        condition: load_engine が RuntimeError を送出する
+        mock: load_engine・LOG_FILE
+        expected: 終了コード 1。ログのファイルに [ERROR] と例外の文がある
+        exception: モデルを読み込めない
 refs:
   - SC-5#
   - LIB-30#

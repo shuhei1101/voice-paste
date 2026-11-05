@@ -2059,3 +2059,117 @@ def test_build_settings_model_when_duplicate_id() -> None:
     # 実行・検証
     with pytest.raises(ValueError, match="dup_id"):
         build_settings_model(models)
+
+
+# === Haas と表記のヒントの読み ===
+
+
+def test_collect_hint_vocabulary() -> None:
+    """有効なプリセットの語を表記と読みの組で返す（正常系）。"""
+    from voice_paste.shared.settings import HintPresetSettings, collect_hint_vocabulary
+
+    # 準備
+    presets = [
+        HintPresetSettings(name="A", words=["突合", "voice-paste"], readings=["とつごう", ""]),
+        HintPresetSettings(name="B", words=["議事録"], enabled=False),
+    ]
+
+    # 実行
+    words = collect_hint_vocabulary(presets)
+
+    # 検証
+    assert words == [("突合", "とつごう"), ("voice-paste", None)]
+
+
+def test_collect_hint_vocabulary_when_no_readings() -> None:
+    """readings が空の一覧なら読みは全て None（正常系）。"""
+    from voice_paste.shared.settings import HintPresetSettings, collect_hint_vocabulary
+
+    # 実行
+    words = collect_hint_vocabulary([HintPresetSettings(name="A", words=["A", "B"])])
+
+    # 検証
+    assert words == [("A", None), ("B", None)]
+
+
+def test_collect_hint_vocabulary_when_duplicate_word() -> None:
+    """同じ表記は 1 つにまとめ、読みのある方を残す（正常系）。"""
+    from voice_paste.shared.settings import HintPresetSettings, collect_hint_vocabulary
+
+    # 準備
+    presets = [
+        HintPresetSettings(name="A", words=["突合"], readings=[""]),
+        HintPresetSettings(name="B", words=["突合"], readings=["とつごう"]),
+    ]
+
+    # 実行
+    words = collect_hint_vocabulary(presets)
+
+    # 検証
+    assert words == [("突合", "とつごう")]
+
+
+def _hint_document(words: list[str], readings: list[str]) -> dict[str, Any]:
+    """語と読みを持つプリセットが 1 つの設定の値を作る。"""
+    return make_test_document({"hint_presets": [{"name": "A", "words": words, "readings": readings}]})
+
+
+def test_settings_when_hint_reading_not_kana(settings_model: type[Settings]) -> None:
+    """読みにかな以外の文字が入っていたら断る（異常系）。"""
+    from pydantic import ValidationError
+
+    # 実行・検証
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate(_hint_document(["突合"], ["totsugou"]))
+    error = exc_info.value.errors()[0]
+    assert error["type"] == "hint_reading_not_kana"
+    assert error["loc"] == ("hint_presets", 0, "readings", 0)
+
+
+def test_settings_when_hint_readings_length(settings_model: type[Settings]) -> None:
+    """読みの数が語の数と違えば断る（異常系）。"""
+    from pydantic import ValidationError
+
+    # 実行・検証
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate(_hint_document(["A", "B"], ["あ"]))
+    error = exc_info.value.errors()[0]
+    assert error["type"] == "hint_readings_length"
+    assert error["loc"] == ("hint_presets", 0, "readings")
+
+
+def test_settings_when_hint_reading_conflict(settings_model: type[Settings]) -> None:
+    """同じ語に違う読みがあれば、後ろの語の読みの場所で断る（異常系）。"""
+    from pydantic import ValidationError
+
+    # 実行・検証
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate(_hint_document(["突合", "突合"], ["とつごう", "とつあわせ"]))
+    error = exc_info.value.errors()[0]
+    assert error["type"] == "hint_reading_conflict"
+    assert error["loc"] == ("hint_presets", 0, "readings", 1)
+
+
+def test_settings_when_hint_reading_blank_on_duplicate_word(settings_model: type[Settings]) -> None:
+    """同じ語で片方の読みが空なら通る（正常系）。"""
+    # 実行
+    settings = settings_model.model_validate(_hint_document(["突合", "突合"], ["とつごう", ""]))
+
+    # 検証
+    assert settings.hint_presets[0].readings == ["とつごう", ""]
+
+
+def test_settings_when_haas_port_overlap(settings_model: type[Settings]) -> None:
+    """Haas のポートが API のポートと同じなら断る（異常系）。"""
+    from pydantic import ValidationError
+
+    # 実行・検証
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate(
+            make_test_document(
+                {"api": {"port": 47900}, "transcription": {"haas": {"port": 47900}}}
+            )
+        )
+    error = exc_info.value.errors()[0]
+    assert error["type"] == "haas_port_overlap"
+    assert error["loc"] == ("transcription", "haas", "port")

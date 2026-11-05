@@ -38,7 +38,8 @@ if TYPE_CHECKING:
     from voice_paste.features.outputs import OutputSpec, PresetKindSpec
     from voice_paste.features.outputs.types import OutputDeps
     from voice_paste.shared.constants import AppPaths
-    from voice_paste.shared.os_kind import DisplaySession, OsKind
+    from voice_paste.main import Handlers
+    from voice_paste.shared.os_kind import DisplaySession, Feature, OsKind
     from voice_paste.shared.settings import Settings
     from voice_paste.shared.types import TranscriptionOutcome
     from voice_paste.ui.controller import UiDeps
@@ -2051,3 +2052,96 @@ def test_purge_old_files_when_history_disabled(
     # 検証
     purge_old_logs.assert_called_once()
     purge_expired.assert_not_called()
+
+
+# === build_handlers（Haas のエンジン） ===
+
+
+def _build_haas_handlers(
+    monkeypatch: pytest.MonkeyPatch,
+    make_settings: Callable[..., Settings],
+    tmp_path: Path,
+    *,
+    server_error: Exception | None = None,
+    unavailable: frozenset[Feature] = frozenset(),
+) -> tuple[Handlers, MagicMock, MagicMock, MagicMock]:
+    """エンジンが haas の設定で build_handlers を呼び、結果と HaasServer・WhisperWorkerClient・notify の偽物を返す。"""
+    import voice_paste.main as main_module
+    from voice_paste.shared.constants import resolve_app_paths
+
+    server = MagicMock()
+    server.return_value.ensure_started.side_effect = server_error
+    worker = MagicMock()
+    notify = MagicMock()
+    monkeypatch.setattr(main_module, "HaasServer", server)
+    monkeypatch.setattr(main_module, "WhisperWorkerClient", worker)
+    monkeypatch.setattr(main_module, "ensure_local_whisper_installed", lambda: None)
+    monkeypatch.setattr(main_module, "load_vad_session", MagicMock())
+    handlers = main_module.build_handlers(
+        make_settings({"transcription": {"engine": "haas"}}),
+        resolve_app_paths(tmp_path),
+        notify,
+        MagicMock(),
+        MagicMock(),
+        adapters=MagicMock(),
+        environ={},
+        unavailable=unavailable,
+    )
+    return handlers, server, worker, notify
+
+
+def test_build_handlers_when_haas(
+    monkeypatch: pytest.MonkeyPatch, make_settings: Callable[..., Settings], tmp_path: Path
+) -> None:
+    """設定が haas でサーバーが応答する（正常系）。"""
+    from voice_paste.features.transcription import EngineName
+
+    # 実行
+    handlers, server, worker, _notify = _build_haas_handlers(monkeypatch, make_settings, tmp_path)
+
+    # 検証
+    assert handlers.active_engine is EngineName.HAAS
+    assert handlers.stop_engine == server.return_value.stop
+    worker.assert_not_called()
+
+
+def test_build_handlers_when_haas_unavailable(
+    monkeypatch: pytest.MonkeyPatch, make_settings: Callable[..., Settings], tmp_path: Path
+) -> None:
+    """サーバーへ接続できなければローカルの Whisper へ切り戻す（正常系）。"""
+    from voice_paste.features.transcription import EngineName
+    from voice_paste.shared.errors import EngineError
+
+    # 実行
+    handlers, _server, worker, notify = _build_haas_handlers(
+        monkeypatch, make_settings, tmp_path, server_error=EngineError("接続できない")
+    )
+
+    # 検証
+    notify.assert_called_once()
+    assert "Haas のサーバーへ接続できないため、ローカルの Whisper で起こします。" in notify.call_args.args
+    assert handlers.active_engine is EngineName.LOCAL_WHISPER
+    worker.return_value.start.assert_called_once()
+    assert handlers.web_api is not None
+    assert handlers.web_api.reports_progress is True
+
+
+def test_build_handlers_when_haas_not_supported_on_os(
+    monkeypatch: pytest.MonkeyPatch, make_settings: Callable[..., Settings], tmp_path: Path
+) -> None:
+    """Haas を使えない OS では接続先を確かめずに切り戻す（正常系）。"""
+    from voice_paste.features.transcription import EngineName
+    from voice_paste.shared.os_kind import Feature
+
+    # 実行
+    handlers, server, worker, _notify = _build_haas_handlers(
+        monkeypatch,
+        make_settings,
+        tmp_path,
+        unavailable=frozenset({Feature.HAAS_ENGINE}),
+    )
+
+    # 検証
+    server.return_value.ensure_started.assert_not_called()
+    assert handlers.active_engine is EngineName.LOCAL_WHISPER
+    worker.return_value.start.assert_called_once()

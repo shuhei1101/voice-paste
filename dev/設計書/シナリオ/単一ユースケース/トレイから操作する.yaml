@@ -75,12 +75,16 @@ scenarios:
         participant APP as 常駐アプリ
         participant API as API のサーバー
         participant WK as 文字起こしワーカー（子プロセス）
+        participant HS as Haas の文字起こしのサーバー（WSL）
 
         U->>TRAY: 「終了」を選ぶ
         TRAY->>APP: 終了を求め、アイコンを消す
         APP->>APP: ホットキーの受付を停止する
         APP->>API: 待ち受けを停止する
         APP->>WK: 終了を送信し、終わらなければ停止する
+        opt 常駐サービスが Haas のサーバーを起動した
+          APP->>HS: サーバーを止める
+        end
         APP->>APP: プロセスを終える
       ```
     expected:
@@ -88,6 +92,8 @@ scenarios:
       - 常駐アプリと文字起こしワーカーのプロセスが終わり、常駐アプリの終了コードが 0 である
       - 127.0.0.1 の API が応えない
     test: test_normal_when_quit
+    notes:
+      Haas のサーバー: 止めるのは常駐サービスが起動したサーバーだけで、起動の前から動いていたサーバーは止めない（常駐アプリを起動する の 正常シナリオ（Haas を使う設定））。再起動と、新しい常駐サービスからの終わる依頼で終わるときも同じく止める。
   - name: 正常シナリオ（設定画面で値を変えたまま終了する）
     setup:
       - name: Mock

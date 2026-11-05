@@ -681,6 +681,84 @@ scenarios:
     test: test_normal_when_openai_previous_model
     notes:
       手がかりの渡し方: 設定のモデルが `gpt-transcribe` で始まらないとき（`gpt-4o-mini-transcribe`・`gpt-4o-transcribe`・`whisper-1` など）は、ローカルの Whisper と同じ手がかりの文を `prompt` に、設定の言語を `language` に渡す。有効なプリセットが無いときは `prompt` を送信しない。
+  - name: 正常シナリオ（Haas で起こす）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV。Haas の文字起こしのサーバーは、設定の接続先を 127.0.0.1 で待ち受けるテスト用のエンドポイントに向け、受けた要求を控えて決まった文字を返す
+      - name: 文字起こしのエンジン
+        description: Haas を使う設定にする
+        notes: '`transcription.engine: haas`'
+      - name: 手がかりのプリセット
+        description: 有効な手がかりのプリセットが 1 つあり、読みを入れた語が 2 つと、読みを入れていない語が 1 つある
+        notes: '読みは かな（例: 「突合」に「とつごう」、「GitHub」に「ギットハブ」）'
+      - name: 入口
+        description: ホットキーから始めた録音を確定する
+        notes: '-'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant OV as 文字起こし中の表示
+        participant HS as Haas の文字起こしのサーバー（WSL）
+        participant HIST as 履歴
+
+        Note over SVC: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
+        SVC->>HS: 録音と、有効なプリセットの語の表記と読みの組を送信する
+        HS->>HS: 30 秒以下は一度に、30 秒を超えるものは静かな箇所で区切って起こす
+        HS-->>SVC: 起こした文字
+        SVC->>SVC: 文頭・文末の文言を消し、用語集で補正する
+        SVC->>HIST: 起こした文字を録音と同じ履歴に追記する
+        SVC->>OV: 閉じる
+      ```
+    expected:
+      - テスト用のエンドポイントが受けた要求に、録音と、読みを入れた 2 つの語の表記と読みの組と、読みを入れていない語の表記だけが載っている
+      - 起こした文字の中の用語集の誤変換が、正しい表記に置き換わっている
+      - 履歴に録音と起こした文字がある
+      - 文字起こしワーカーの子プロセスが動いていない
+      - 起こした文字を届ける へ進む
+    test: test_normal_when_haas
+    notes:
+      入口とエンジン: API から始めた録音・連続録音の区間・ブラウザから受けた音声も、設定のエンジンが Haas なら同じ要求で起こす。区間ごとの進みは返らないため、文字起こし中の表示の残りの時間とブラウザのジョブの進みは、起こし終えるまで進まない（OpenAI API と同じ。表示の出し方は 画面設計『文字起こし中の表示』）。ブラウザの音声を送信する形式はインターフェース定義で決める。
+      手がかりの渡し方: Haas は表記と読みの組で語の手がかりを受ける。読みを入れた語は表記と読みの組を、読みを入れていない語は表記だけを渡す（PoC で、読みを渡さない語は手がかりがほとんど効かなかった）。読みはエンジンが Haas のときだけ使い、ローカルの Whisper の `hotwords` と OpenAI API の `keywords[]`・`prompt` には今のとおり表記だけを渡す。有効な語が無いときは手がかりを送信しない。
+      起動の後にサーバーが落ちたとき: 起動の後にサーバーへ届かなくなった録音は、異常シナリオ（Haas のサーバーが失敗を返す） と同じく失敗にし、ローカルの Whisper へは切り戻さない（切り戻すのは起動のときだけ。常駐アプリを起動する の 正常シナリオ（Haas のサーバーへ接続できない））。
+  - name: 異常シナリオ（Haas のサーバーが失敗を返す）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV。テスト用のエンドポイントは 500 を返す
+      - name: 文字起こしのエンジン
+        description: Haas を使う設定にし、接続先をテスト用のエンドポイントに向ける
+        notes: '-'
+      - name: 入口
+        description: ホットキーから始めた録音を確定する
+        notes: '-'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant HS as Haas の文字起こしのサーバー（WSL）
+        participant OV as 文字起こし中の表示
+        participant TRAY as トレイ
+        participant LOG as ログ
+        actor U as ユーザー
+
+        Note over SVC: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
+        SVC->>HS: 録音を送信する
+        HS-->>SVC: 500
+        SVC->>LOG: 失敗した理由（ステータスとサーバーが返した理由）を書く
+        SVC->>OV: 閉じる
+        SVC->>TRAY: 待機中のアイコンにする
+        SVC-->>U: 文字起こしに失敗したことと理由を通知する
+      ```
+    expected:
+      - 文字起こしに失敗したことと理由がユーザーに知らされている
+      - ログに失敗した理由が書かれている
+      - 履歴にこの録音が残っている
+      - 起こした文字を届ける へ進まず、トレイのアイコンが待機中に戻っている
+    test: test_error_when_haas_failed
+    notes:
+      失敗の種類: 接続できない・非機能要件の応答のタイムアウトを過ぎたときも同じ扱いになる。API から始めた録音・連続録音の区間・ブラウザから受けた音声の失敗は、ワーカーの失敗と同じく 起こした文字を届ける かジョブの `failed` へ渡す。
 lead: 確定した録音を設定のエンジンで文字に起こし、文頭・文末の決まった文言を消して用語集で補正するまでの単一ユースケース。
 issue: 14
 primary_actor: 音声入力を使うユーザー

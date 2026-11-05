@@ -135,7 +135,7 @@ def test_hint_preset_panel_add_preset(open_panel: Callable[..., HintPresetPanel]
     panel.add_preset()
 
     # 検証
-    assert panel.collect() == [{"name": "", "words": [], "enabled": True}]
+    assert panel.collect() == [{"name": "", "words": [], "readings": [], "enabled": True}]
     assert changed_count == [1]
     assert not _is_empty_guide_visible(panel)
 
@@ -220,8 +220,8 @@ def test_hint_preset_panel_change_values(open_panel: Callable[..., HintPresetPan
 
     # 検証
     assert len(values) == 3
-    assert values["hint_presets[0]"] == ("開発", ["voice-paste"], True)
-    assert values["hint_presets[1]"] == ("会議", ["議事録"], False)
+    assert values["hint_presets[0]"] == ("開発", ["voice-paste"], [], True)
+    assert values["hint_presets[1]"] == ("会議", ["議事録"], [], False)
     assert values["hint_presets.order"] is True
 
 
@@ -245,9 +245,9 @@ def test_hint_preset_panel_change_values_when_moved(
 
     # 検証
     values = panel.change_values()
-    assert values["hint_presets[0]"] == ("A", ["a"], True)
-    assert values["hint_presets[1]"] == ("B", ["b"], True)
-    assert values["hint_presets[2]"] == ("C", ["c"], False)
+    assert values["hint_presets[0]"] == ("A", ["a"], [], True)
+    assert values["hint_presets[1]"] == ("B", ["b"], [], True)
+    assert values["hint_presets[2]"] == ("C", ["c"], [], False)
     assert values["hint_presets.order"] is False
 
 
@@ -272,7 +272,7 @@ def test_hint_preset_panel_change_values_when_removed(
     # 検証
     values = panel.change_values()
     assert set(values) == {"hint_presets[0]", "hint_presets[2]", "hint_presets.order"}
-    assert values["hint_presets[2]"] == ("C", ["c"], False)
+    assert values["hint_presets[2]"] == ("C", ["c"], [], False)
     assert values["hint_presets.order"] is True
 
 
@@ -291,8 +291,8 @@ def test_hint_preset_panel_change_values_when_added(
 
     # 検証
     values = panel.change_values()
-    assert values["hint_presets[0]"] == ("A", ["a"], True)
-    assert values["hint_presets[1]"] == ("", [], True)
+    assert values["hint_presets[0]"] == ("A", ["a"], [], True)
+    assert values["hint_presets[1]"] == ("", [], [], True)
     assert values["hint_presets.order"] is True
 
 
@@ -315,8 +315,8 @@ def test_hint_preset_panel_change_values_when_word_removed(
 
     # 検証
     values = panel.change_values()
-    assert values["hint_presets[0]"] == ("A", ["y"], True)
-    assert values["hint_presets[1]"] == ("B", ["z"], False)
+    assert values["hint_presets[0]"] == ("A", ["y"], [], True)
+    assert values["hint_presets[1]"] == ("B", ["z"], [], False)
     assert values["hint_presets.order"] is True
 
 
@@ -342,9 +342,9 @@ def test_hint_preset_panel_mark_saved(open_panel: Callable[..., HintPresetPanel]
 
     # 検証（保存した並びの B・A と追加したプリセットが番号 0・1・2 で、並びの値は True）
     values = panel.change_values()
-    assert values["hint_presets[0]"] == ("B", ["b"], False)
-    assert values["hint_presets[1]"] == ("A", ["a"], True)
-    assert values["hint_presets[2]"] == ("", [], True)
+    assert values["hint_presets[0]"] == ("B", ["b"], [], False)
+    assert values["hint_presets[1]"] == ("A", ["a"], [], True)
+    assert values["hint_presets[2]"] == ("", [], [], True)
     assert values["hint_presets.order"] is True
     # 続けて追加したプリセットは、振った番号より大きい番号で増える
     panel.add_preset()

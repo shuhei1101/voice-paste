@@ -92,7 +92,9 @@ def test_unavailable_features_when_linux() -> None:
     features = unavailable_features(OsKind.LINUX)
 
     # 検証
-    assert features == frozenset({Feature.LOWER_VOLUME, Feature.WEB_TRANSCRIPTION})
+    assert features == frozenset(
+        {Feature.LOWER_VOLUME, Feature.WEB_TRANSCRIPTION, Feature.HAAS_ENGINE}
+    )
 
 
 def test_unavailable_features_when_windows() -> None:
@@ -123,6 +125,8 @@ def test_hidden_setting_keys() -> None:
             "recording.volume_percent",
             "recording.fade_sec",
             "api.allowed_web_origins",
+            "transcription.haas.distribution",
+            "transcription.haas.port",
         }
     )
 

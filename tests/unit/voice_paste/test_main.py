@@ -165,6 +165,7 @@ def install_wiring(
     build_hook を渡すと、build_handlers の偽物が Handlers を返す前に、on_engine_created を渡して呼ぶ（待ち・例外を差し込む）。
     """
     import voice_paste.main as main_module
+    from voice_paste.features.transcription import EngineName
     from voice_paste.main import Handlers
     from voice_paste.runtime.settings_store import SettingsStore
     from voice_paste.shared.os_kind import Feature
@@ -204,6 +205,7 @@ def install_wiring(
             start_local_session=MagicMock(),
             recorder_level=lambda: 0.0,
             stop_engine=_record("stop_engine"),
+            active_engine=EngineName.LOCAL_WHISPER,
         )
 
     web_api = MagicMock()

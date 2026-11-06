@@ -13,6 +13,9 @@ enums:
       - value: openai
         title: OpenAI API
         description: OpenAI API の文字起こしのエンドポイントへ送信して起こす（文字起こしワーカーを起動しない）
+      - value: haas
+        title: Haas
+        description: WSL の中の Haas の文字起こしのサーバーへ HTTP で送信して起こす（文字起こしワーカーを起動しない）
     status: implemented
 function_types:
   - name: EngineFn
@@ -38,4 +41,6 @@ function_types:
         notes: エンジンが local_whisper のとき
       - target: 外部連携の OpenAITranscriber.transcribe
         notes: エンジンが openai のとき。on_progress を呼ばない（OpenAI API は途中の進みを返さない）
+      - target: 外部連携の HaasTranscriber.transcribe
+        notes: エンジンが haas のとき。on_progress を呼ばず（サーバーは途中の進みを返さない）、hint を使わない（表記と読みの組を get_vocabulary で読む）
     status: implemented

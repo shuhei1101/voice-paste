@@ -45,6 +45,11 @@ transcription:
     language: ja
     # OpenAI API の送信先のベース URL（再起動）。http:// か https:// で始まる
     base_url: https://api.openai.com/v1
+  haas:
+    # Haas の文字起こしのサーバーを動かす WSL のディストリビューション（再起動）。空なら WSL の既定のディストリビューション
+    distribution: ''
+    # サーバーが WSL の中の 127.0.0.1 で待ち受けるポート（再起動）。1024〜65535。api.port と同じ番号にできない
+    port: 47824
 
 # === 録音 ===
 recording:
@@ -143,6 +148,7 @@ active_glossary_preset: null
 # hint_presets:
 #   - name: 開発
 #     words: [voice-paste, Whisper]
+#     readings: [ぼいすぺーすと, ういすぱー]
 #     enabled: true
 hint_presets: []
 

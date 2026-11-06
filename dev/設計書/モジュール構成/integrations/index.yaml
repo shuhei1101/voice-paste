@@ -10,6 +10,8 @@ items:
     summary: keyboard の設計書
   - page: openai/
     summary: openai の設計書
+  - page: haas/
+    summary: haas の設計書
   - page: vad/
     summary: vad の設計書
   - page: volume/

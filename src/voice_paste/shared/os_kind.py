@@ -33,6 +33,9 @@ class Feature(StrEnum):
     WEB_TRANSCRIPTION = "web_transcription"
     """`/web/` の下の画面と API・ブラウザの音声のジョブのキュー。"""
 
+    HAAS_ENGINE = "haas_engine"
+    """WSL の中の Haas の文字起こしのサーバーで起こす。"""
+
 
 def detect_os(platform: str = sys.platform) -> OsKind:
     """sys.platform の値から OsKind を返す。"""
@@ -58,7 +61,7 @@ CURRENT_OS: OsKind = detect_os()
 """読み込んだときに detect_os で決めた、動いている OS。OS を見る処理は sys.platform を直に読まず、これを読むか main.py の配線で渡される。"""
 
 OS_UNAVAILABLE_FEATURES: Mapping[OsKind, frozenset[Feature]] = {
-    OsKind.LINUX: frozenset({Feature.LOWER_VOLUME, Feature.WEB_TRANSCRIPTION}),
+    OsKind.LINUX: frozenset({Feature.LOWER_VOLUME, Feature.WEB_TRANSCRIPTION, Feature.HAAS_ENGINE}),
 }
 """その OS では使えない機能。載っていない OS は全ての機能を使える。OS で機能を止めるのはこの表だけで決める。"""
 
@@ -67,6 +70,7 @@ FEATURE_SETTING_KEYS: Mapping[Feature, frozenset[str]] = {
         {"recording.lower_volume", "recording.volume_percent", "recording.fade_sec"}
     ),
     Feature.WEB_TRANSCRIPTION: frozenset({"api.allowed_web_origins"}),
+    Feature.HAAS_ENGINE: frozenset({"transcription.haas.distribution", "transcription.haas.port"}),
 }
 """機能だけが使う設定のキー（設定のドットで結んだキー）。その機能を使えない OS では、設定画面にこれらの欄を出さない。"""
 

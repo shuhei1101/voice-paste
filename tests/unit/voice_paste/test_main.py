@@ -38,7 +38,8 @@ if TYPE_CHECKING:
     from voice_paste.features.outputs import OutputSpec, PresetKindSpec
     from voice_paste.features.outputs.types import OutputDeps
     from voice_paste.shared.constants import AppPaths
-    from voice_paste.shared.os_kind import DisplaySession, OsKind
+    from voice_paste.main import Handlers
+    from voice_paste.shared.os_kind import DisplaySession, Feature, OsKind
     from voice_paste.shared.settings import Settings
     from voice_paste.shared.types import TranscriptionOutcome
     from voice_paste.ui.controller import UiDeps
@@ -164,6 +165,7 @@ def install_wiring(
     build_hook を渡すと、build_handlers の偽物が Handlers を返す前に、on_engine_created を渡して呼ぶ（待ち・例外を差し込む）。
     """
     import voice_paste.main as main_module
+    from voice_paste.features.transcription import EngineName
     from voice_paste.main import Handlers
     from voice_paste.runtime.settings_store import SettingsStore
     from voice_paste.shared.os_kind import Feature
@@ -203,6 +205,7 @@ def install_wiring(
             start_local_session=MagicMock(),
             recorder_level=lambda: 0.0,
             stop_engine=_record("stop_engine"),
+            active_engine=EngineName.LOCAL_WHISPER,
         )
 
     web_api = MagicMock()
@@ -858,6 +861,29 @@ def test_main_when_key_sender_unavailable(
     wiring.hotkey.start.assert_called_once()
     assert wiring.tray.set_state.call_args == call(TrayState.IDLE, busy=False)
     close_key_sender.assert_called_once()
+
+
+def test_main_when_engine_fallback(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch, qapp: QApplication
+) -> None:
+    """配線の間の知らせをトレイの通知で出す（正常系）。"""
+    from voice_paste.main import main
+
+    # 準備（配線の間に notify を呼ぶ）
+    message = "Haas のサーバーへ接続できないため、ローカルの Whisper で起こします。"
+
+    def build_hook(_register_stop: Callable[[Callable[[], None]], None]) -> None:
+        """配線の関数が受けた notify へ切り戻しを渡す。"""
+        wiring.build_handlers.call_args.args[2]("engine_fallback", message)
+
+    wiring = install_wiring(monkeypatch, qapp, build_hook=build_hook)
+
+    # 実行
+    exit_code = main(["--data-dir", str(data_dir)], exec_loop=wiring.exit_after_startup)
+
+    # 検証
+    assert exit_code == 0
+    wiring.tray.show_failure.assert_called_once_with("engine_fallback", message)
 
 
 def test_main_when_web_transcription_unavailable(
@@ -2051,3 +2077,96 @@ def test_purge_old_files_when_history_disabled(
     # 検証
     purge_old_logs.assert_called_once()
     purge_expired.assert_not_called()
+
+
+# === build_handlers（Haas のエンジン） ===
+
+
+def _build_haas_handlers(
+    monkeypatch: pytest.MonkeyPatch,
+    make_settings: Callable[..., Settings],
+    tmp_path: Path,
+    *,
+    server_error: Exception | None = None,
+    unavailable: frozenset[Feature] = frozenset(),
+) -> tuple[Handlers, MagicMock, MagicMock, MagicMock]:
+    """エンジンが haas の設定で build_handlers を呼び、結果と HaasServer・WhisperWorkerClient・notify の偽物を返す。"""
+    import voice_paste.main as main_module
+    from voice_paste.shared.constants import resolve_app_paths
+
+    server = MagicMock()
+    server.return_value.ensure_started.side_effect = server_error
+    worker = MagicMock()
+    notify = MagicMock()
+    monkeypatch.setattr(main_module, "HaasServer", server)
+    monkeypatch.setattr(main_module, "WhisperWorkerClient", worker)
+    monkeypatch.setattr(main_module, "ensure_local_whisper_installed", lambda: None)
+    monkeypatch.setattr(main_module, "load_vad_session", MagicMock())
+    handlers = main_module.build_handlers(
+        make_settings({"transcription": {"engine": "haas"}}),
+        resolve_app_paths(tmp_path),
+        notify,
+        MagicMock(),
+        MagicMock(),
+        adapters=MagicMock(),
+        environ={},
+        unavailable=unavailable,
+    )
+    return handlers, server, worker, notify
+
+
+def test_build_handlers_when_haas(
+    monkeypatch: pytest.MonkeyPatch, make_settings: Callable[..., Settings], tmp_path: Path
+) -> None:
+    """設定が haas でサーバーが応答する（正常系）。"""
+    from voice_paste.features.transcription import EngineName
+
+    # 実行
+    handlers, server, worker, _notify = _build_haas_handlers(monkeypatch, make_settings, tmp_path)
+
+    # 検証
+    assert handlers.active_engine is EngineName.HAAS
+    assert handlers.stop_engine == server.return_value.stop
+    worker.assert_not_called()
+
+
+def test_build_handlers_when_haas_unavailable(
+    monkeypatch: pytest.MonkeyPatch, make_settings: Callable[..., Settings], tmp_path: Path
+) -> None:
+    """サーバーへ接続できなければローカルの Whisper へ切り戻す（正常系）。"""
+    from voice_paste.features.transcription import EngineName
+    from voice_paste.shared.errors import EngineError
+
+    # 実行
+    handlers, _server, worker, notify = _build_haas_handlers(
+        monkeypatch, make_settings, tmp_path, server_error=EngineError("接続できない")
+    )
+
+    # 検証
+    notify.assert_called_once()
+    assert "Haas のサーバーへ接続できないため、ローカルの Whisper で起こします。" in notify.call_args.args
+    assert handlers.active_engine is EngineName.LOCAL_WHISPER
+    worker.return_value.start.assert_called_once()
+    assert handlers.web_api is not None
+    assert handlers.web_api.reports_progress is True
+
+
+def test_build_handlers_when_haas_not_supported_on_os(
+    monkeypatch: pytest.MonkeyPatch, make_settings: Callable[..., Settings], tmp_path: Path
+) -> None:
+    """Haas を使えない OS では接続先を確かめずに切り戻す（正常系）。"""
+    from voice_paste.features.transcription import EngineName
+    from voice_paste.shared.os_kind import Feature
+
+    # 実行
+    handlers, server, worker, _notify = _build_haas_handlers(
+        monkeypatch,
+        make_settings,
+        tmp_path,
+        unavailable=frozenset({Feature.HAAS_ENGINE}),
+    )
+
+    # 検証
+    server.return_value.ensure_started.assert_not_called()
+    assert handlers.active_engine is EngineName.LOCAL_WHISPER
+    worker.return_value.start.assert_called_once()

@@ -27,9 +27,9 @@ settings:
   - key: transcription.engine
     title: 使う文字起こしのエンジン
     file: settings.yaml
-    type: "'local_whisper' | 'openai'"
+    type: "'local_whisper' | 'openai' | 'haas'"
     default: local_whisper
-    description: '`local_whisper` は文字起こしワーカー（faster-whisper）で、`openai` は OpenAI API で文字を起こす。`local_whisper` は `local-whisper` の extra を含めて作った環境でだけ動く。'
+    description: '`local_whisper` は文字起こしワーカー（faster-whisper）で、`openai` は OpenAI API で、`haas` は WSL の中の Haas の文字起こしのサーバーで文字を起こす。`local_whisper` は `local-whisper` の extra を含めて作った環境でだけ動く。`haas` は起動のときにサーバーへ接続できなければ、終了まで `local_whisper` で起こす。'
     reload: restart
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -778,5 +778,35 @@ settings:
     allowed: http:// か https:// で始まる URL
     status: planned
     implementation: src/voice_paste/shared/settings.py
+  - key: transcription.haas.distribution
+    title: Haas のサーバーを動かす WSL のディストリビューション
+    file: settings.yaml
+    type: string
+    default: "''"
+    description: 常駐アプリが `wsl.exe -d {値}` で Haas の文字起こしのサーバーを起動するディストリビューションの名前。空なら `-d` を付けず、WSL の既定のディストリビューションで起動する。`transcription.engine` が `haas` のときだけ使う。
+    reload: restart
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+  - key: transcription.haas.port
+    title: Haas のサーバーのポート
+    file: settings.yaml
+    type: int
+    default: "'47824'"
+    description: Haas の文字起こしのサーバーが WSL の中の 127.0.0.1 で待ち受けるポート。常駐アプリは起動のときにサーバーへこのポートを渡し、`http://127.0.0.1:{ポート}` へ接続する。`transcription.engine` が `haas` のときだけ使う。
+    reload: restart
+    allowed: 1024〜65535。`api.port` と同じ番号にできない
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+  - key: hint_presets[].readings
+    title: 表記のヒントの語の読み
+    file: settings.yaml
+    type: list[string]
+    default: "'[]'"
+    description: '`words` と同じ並びの読み。空文字はその語に読みが無いことを表す。エンジンが `haas` のときだけ、語の表記と読みの組を Haas の Vocabulary に渡す。読みの無い語は表記だけを渡す。`local_whisper`・`openai` は読みを使わない。キーが無い settings.yaml は、全ての語が読みを持たないものとして読む。'
+    reload: immediate
+    allowed: 空の一覧か、`words` と同じ長さ。読みはひらがな・カタカナ・長音符（ー）だけか空文字。同じプリセットの同じ語に違う読みを持てない（片方が空なら持てる）。有効なヒントの長さ（222 バイト）に数えない
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+    reason: 読みの確かめの失敗を、語と同じく `readings[{m}]` の場所で読みの欄へ出すため、語をキーにした対応ではなく語と同じ並びの一覧にした
 notes:
   反映の列の読み方: '`immediate` は設定画面で保存すると動いている常駐アプリに効く項目。`settings.yaml`・`settings.local.yaml` を直接書き換えたときは、どの項目も再起動まで効かない（起動時に 1 度だけ読む）。'

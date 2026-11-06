@@ -90,6 +90,12 @@ requires_web_transcription = pytest.mark.skipif(
 )
 """外の端末の画面のケースを、ブラウザの文字起こしを持たない OS（Linux）では skip するマーカー。"""
 
+requires_haas_engine = pytest.mark.skipif(
+    Feature.HAAS_ENGINE in unavailable_features(CURRENT_OS),
+    reason="常駐アプリはこの OS で Haas のエンジンを使えない",
+)
+"""Haas で起こすケースを、Haas のエンジンを使えない OS（Linux）では skip する。"""
+
 OPEN_JTALK_HOME_ENV = "VOICE_PASTE_OPEN_JTALK_HOME"
 """Linux で Open JTalk を展開した置き場所を替える環境変数。"""
 

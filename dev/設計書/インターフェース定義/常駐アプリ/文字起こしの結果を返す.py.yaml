@@ -190,7 +190,7 @@ response:
     constraints: 0.0〜1.0。`queued` は 0.0、`done` は 1.0、`failed` は失敗した時点の値。`reports_progress` が false のときは `running` の間も 0.0
   - name: reports_progress
     type: bool
-    description: 設定の文字起こしのエンジンが、起こしている途中の進みを返すか。`local_whisper` は true、`openai` は false
+    description: 設定の文字起こしのエンジンが、起こしている途中の進みを返すか。`local_whisper` は true、`openai`・`haas` は false
     notes: ジョブの状態によらず同じ値。常駐サービスの起動時の設定（`transcription.engine`。反映は再起動）で決まる。デスクトップの文字起こし中の表示と同じ判定
   - name: text
     type: str | None

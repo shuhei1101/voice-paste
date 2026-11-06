@@ -1,0 +1,1314 @@
+$ .venv/Scripts/python.exe -m pytest tests/unit -q
+FFFF.................................................................... [  8%]
+........................................................................ [ 16%]
+........................................................................ [ 24%]
+.............................EEEEEEEEEFFFFFF.......sssss................ [ 32%]
+....sssssssssssssssssss................................................. [ 40%]
+.....................ssssssssssss...sss...........ssssssssssssss........ [ 48%]
+........................................................................ [ 56%]
+........................................................................ [ 64%]
+..FFFFFFFF.........................s...........ss....................... [ 72%]
+...FFF.................................................................. [ 80%]
+.......................................................FFFFF............ [ 88%]
+...............................................FFF...................... [ 96%]
+...............................                                          [100%]
+=================================== ERRORS ====================================
+_________ ERROR at setup of test_ensure_started_when_already_running __________
+
+name = 'voice_paste.integrations.haas', package = None
+
+    def import_module(name, package=None):
+        """Import a module.
+    
+        The 'package' argument is required when performing a relative import. It
+        specifies the package to use as the anchor point from which to resolve the
+        relative import to an absolute import.
+    
+        """
+        level = 0
+        if name.startswith('.'):
+            if not package:
+                raise TypeError("the 'package' argument is required to perform a "
+                                f"relative import for {name!r}")
+            for character in name:
+                if character != '.':
+                    break
+                level += 1
+>       return _bootstrap._gcd_import(name[level:], package, level)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ModuleNotFoundError: No module named 'voice_paste.integrations.haas'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\importlib\__init__.py:88: ModuleNotFoundError
+
+The above exception was the direct cause of the following exception:
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000191574DA430>
+
+    @pytest.fixture(autouse=True)
+    def no_interval(monkeypatch: pytest.MonkeyPatch) -> None:
+        """応答の確認の間隔を 0 にする。"""
+>       monkeypatch.setattr("voice_paste.integrations.haas.server.HAAS_HEALTH_INTERVAL_SEC", 0.0)
+
+tests\unit\voice_paste\integrations\haas\test_server.py:39: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+.venv\Lib\site-packages\_pytest\monkeypatch.py:107: in derive_importpath
+    target = resolve(module)
+             ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'voice_paste.integrations.haas.server'
+
+    def resolve(name: str) -> object:
+        # Simplified from zope.dottedname.
+        parts = name.split(".")
+    
+        used = parts.pop(0)
+        found: object = importlib.import_module(used)
+        for part in parts:
+            used += "." + part
+            try:
+                found = getattr(found, part)
+            except AttributeError:
+                pass
+            else:
+                continue
+            # We use explicit un-nesting of the handling block in order
+            # to avoid nested exceptions.
+            try:
+                importlib.import_module(used)
+            except ImportError as ex:
+                expected = str(ex).split()[-1]
+                if expected == used:
+                    raise
+                else:
+>                   raise ImportError(f"import error in {used}: {ex}") from ex
+E                   ImportError: import error in voice_paste.integrations.haas: No module named 'voice_paste.integrations.haas'
+
+.venv\Lib\site-packages\_pytest\monkeypatch.py:88: ImportError
+___________ ERROR at setup of test_ensure_started_when_not_running ____________
+
+name = 'voice_paste.integrations.haas', package = None
+
+    def import_module(name, package=None):
+        """Import a module.
+    
+        The 'package' argument is required when performing a relative import. It
+        specifies the package to use as the anchor point from which to resolve the
+        relative import to an absolute import.
+    
+        """
+        level = 0
+        if name.startswith('.'):
+            if not package:
+                raise TypeError("the 'package' argument is required to perform a "
+                                f"relative import for {name!r}")
+            for character in name:
+                if character != '.':
+                    break
+                level += 1
+>       return _bootstrap._gcd_import(name[level:], package, level)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ModuleNotFoundError: No module named 'voice_paste.integrations.haas'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\importlib\__init__.py:88: ModuleNotFoundError
+
+The above exception was the direct cause of the following exception:
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000191593372A0>
+
+    @pytest.fixture(autouse=True)
+    def no_interval(monkeypatch: pytest.MonkeyPatch) -> None:
+        """応答の確認の間隔を 0 にする。"""
+>       monkeypatch.setattr("voice_paste.integrations.haas.server.HAAS_HEALTH_INTERVAL_SEC", 0.0)
+
+tests\unit\voice_paste\integrations\haas\test_server.py:39: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+.venv\Lib\site-packages\_pytest\monkeypatch.py:107: in derive_importpath
+    target = resolve(module)
+             ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'voice_paste.integrations.haas.server'
+
+    def resolve(name: str) -> object:
+        # Simplified from zope.dottedname.
+        parts = name.split(".")
+    
+        used = parts.pop(0)
+        found: object = importlib.import_module(used)
+        for part in parts:
+            used += "." + part
+            try:
+                found = getattr(found, part)
+            except AttributeError:
+                pass
+            else:
+                continue
+            # We use explicit un-nesting of the handling block in order
+            # to avoid nested exceptions.
+            try:
+                importlib.import_module(used)
+            except ImportError as ex:
+                expected = str(ex).split()[-1]
+                if expected == used:
+                    raise
+                else:
+>                   raise ImportError(f"import error in {used}: {ex}") from ex
+E                   ImportError: import error in voice_paste.integrations.haas: No module named 'voice_paste.integrations.haas'
+
+.venv\Lib\site-packages\_pytest\monkeypatch.py:88: ImportError
+_______ ERROR at setup of test_ensure_started_when_default_distribution _______
+
+name = 'voice_paste.integrations.haas', package = None
+
+    def import_module(name, package=None):
+        """Import a module.
+    
+        The 'package' argument is required when performing a relative import. It
+        specifies the package to use as the anchor point from which to resolve the
+        relative import to an absolute import.
+    
+        """
+        level = 0
+        if name.startswith('.'):
+            if not package:
+                raise TypeError("the 'package' argument is required to perform a "
+                                f"relative import for {name!r}")
+            for character in name:
+                if character != '.':
+                    break
+                level += 1
+>       return _bootstrap._gcd_import(name[level:], package, level)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ModuleNotFoundError: No module named 'voice_paste.integrations.haas'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\importlib\__init__.py:88: ModuleNotFoundError
+
+The above exception was the direct cause of the following exception:
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001915BA9FEE0>
+
+    @pytest.fixture(autouse=True)
+    def no_interval(monkeypatch: pytest.MonkeyPatch) -> None:
+        """応答の確認の間隔を 0 にする。"""
+>       monkeypatch.setattr("voice_paste.integrations.haas.server.HAAS_HEALTH_INTERVAL_SEC", 0.0)
+
+tests\unit\voice_paste\integrations\haas\test_server.py:39: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+.venv\Lib\site-packages\_pytest\monkeypatch.py:107: in derive_importpath
+    target = resolve(module)
+             ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'voice_paste.integrations.haas.server'
+
+    def resolve(name: str) -> object:
+        # Simplified from zope.dottedname.
+        parts = name.split(".")
+    
+        used = parts.pop(0)
+        found: object = importlib.import_module(used)
+        for part in parts:
+            used += "." + part
+            try:
+                found = getattr(found, part)
+            except AttributeError:
+                pass
+            else:
+                continue
+            # We use explicit un-nesting of the handling block in order
+            # to avoid nested exceptions.
+            try:
+                importlib.import_module(used)
+            except ImportError as ex:
+                expected = str(ex).split()[-1]
+                if expected == used:
+                    raise
+                else:
+>                   raise ImportError(f"import error in {used}: {ex}") from ex
+E                   ImportError: import error in voice_paste.integrations.haas: No module named 'voice_paste.integrations.haas'
+
+.venv\Lib\site-packages\_pytest\monkeypatch.py:88: ImportError
+___________ ERROR at setup of test_ensure_started_when_wsl_missing ____________
+
+name = 'voice_paste.integrations.haas', package = None
+
+    def import_module(name, package=None):
+        """Import a module.
+    
+        The 'package' argument is required when performing a relative import. It
+        specifies the package to use as the anchor point from which to resolve the
+        relative import to an absolute import.
+    
+        """
+        level = 0
+        if name.startswith('.'):
+            if not package:
+                raise TypeError("the 'package' argument is required to perform a "
+                                f"relative import for {name!r}")
+            for character in name:
+                if character != '.':
+                    break
+                level += 1
+>       return _bootstrap._gcd_import(name[level:], package, level)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ModuleNotFoundError: No module named 'voice_paste.integrations.haas'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\importlib\__init__.py:88: ModuleNotFoundError
+
+The above exception was the direct cause of the following exception:
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000191578B6740>
+
+    @pytest.fixture(autouse=True)
+    def no_interval(monkeypatch: pytest.MonkeyPatch) -> None:
+        """応答の確認の間隔を 0 にする。"""
+>       monkeypatch.setattr("voice_paste.integrations.haas.server.HAAS_HEALTH_INTERVAL_SEC", 0.0)
+
+tests\unit\voice_paste\integrations\haas\test_server.py:39: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+.venv\Lib\site-packages\_pytest\monkeypatch.py:107: in derive_importpath
+    target = resolve(module)
+             ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'voice_paste.integrations.haas.server'
+
+    def resolve(name: str) -> object:
+        # Simplified from zope.dottedname.
+        parts = name.split(".")
+    
+        used = parts.pop(0)
+        found: object = importlib.import_module(used)
+        for part in parts:
+            used += "." + part
+            try:
+                found = getattr(found, part)
+            except AttributeError:
+                pass
+            else:
+                continue
+            # We use explicit un-nesting of the handling block in order
+            # to avoid nested exceptions.
+            try:
+                importlib.import_module(used)
+            except ImportError as ex:
+                expected = str(ex).split()[-1]
+                if expected == used:
+                    raise
+                else:
+>                   raise ImportError(f"import error in {used}: {ex}") from ex
+E                   ImportError: import error in voice_paste.integrations.haas: No module named 'voice_paste.integrations.haas'
+
+.venv\Lib\site-packages\_pytest\monkeypatch.py:88: ImportError
+__________ ERROR at setup of test_ensure_started_when_script_failed ___________
+
+name = 'voice_paste.integrations.haas', package = None
+
+    def import_module(name, package=None):
+        """Import a module.
+    
+        The 'package' argument is required when performing a relative import. It
+        specifies the package to use as the anchor point from which to resolve the
+        relative import to an absolute import.
+    
+        """
+        level = 0
+        if name.startswith('.'):
+            if not package:
+                raise TypeError("the 'package' argument is required to perform a "
+                                f"relative import for {name!r}")
+            for character in name:
+                if character != '.':
+                    break
+                level += 1
+>       return _bootstrap._gcd_import(name[level:], package, level)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ModuleNotFoundError: No module named 'voice_paste.integrations.haas'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\importlib\__init__.py:88: ModuleNotFoundError
+
+The above exception was the direct cause of the following exception:
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000191594386E0>
+
+    @pytest.fixture(autouse=True)
+    def no_interval(monkeypatch: pytest.MonkeyPatch) -> None:
+        """応答の確認の間隔を 0 にする。"""
+>       monkeypatch.setattr("voice_paste.integrations.haas.server.HAAS_HEALTH_INTERVAL_SEC", 0.0)
+
+tests\unit\voice_paste\integrations\haas\test_server.py:39: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+.venv\Lib\site-packages\_pytest\monkeypatch.py:107: in derive_importpath
+    target = resolve(module)
+             ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'voice_paste.integrations.haas.server'
+
+    def resolve(name: str) -> object:
+        # Simplified from zope.dottedname.
+        parts = name.split(".")
+    
+        used = parts.pop(0)
+        found: object = importlib.import_module(used)
+        for part in parts:
+            used += "." + part
+            try:
+                found = getattr(found, part)
+            except AttributeError:
+                pass
+            else:
+                continue
+            # We use explicit un-nesting of the handling block in order
+            # to avoid nested exceptions.
+            try:
+                importlib.import_module(used)
+            except ImportError as ex:
+                expected = str(ex).split()[-1]
+                if expected == used:
+                    raise
+                else:
+>                   raise ImportError(f"import error in {used}: {ex}") from ex
+E                   ImportError: import error in voice_paste.integrations.haas: No module named 'voice_paste.integrations.haas'
+
+.venv\Lib\site-packages\_pytest\monkeypatch.py:88: ImportError
+_____________ ERROR at setup of test_ensure_started_when_timeout ______________
+
+name = 'voice_paste.integrations.haas', package = None
+
+    def import_module(name, package=None):
+        """Import a module.
+    
+        The 'package' argument is required when performing a relative import. It
+        specifies the package to use as the anchor point from which to resolve the
+        relative import to an absolute import.
+    
+        """
+        level = 0
+        if name.startswith('.'):
+            if not package:
+                raise TypeError("the 'package' argument is required to perform a "
+                                f"relative import for {name!r}")
+            for character in name:
+                if character != '.':
+                    break
+                level += 1
+>       return _bootstrap._gcd_import(name[level:], package, level)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ModuleNotFoundError: No module named 'voice_paste.integrations.haas'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\importlib\__init__.py:88: ModuleNotFoundError
+
+The above exception was the direct cause of the following exception:
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019159438910>
+
+    @pytest.fixture(autouse=True)
+    def no_interval(monkeypatch: pytest.MonkeyPatch) -> None:
+        """応答の確認の間隔を 0 にする。"""
+>       monkeypatch.setattr("voice_paste.integrations.haas.server.HAAS_HEALTH_INTERVAL_SEC", 0.0)
+
+tests\unit\voice_paste\integrations\haas\test_server.py:39: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+.venv\Lib\site-packages\_pytest\monkeypatch.py:107: in derive_importpath
+    target = resolve(module)
+             ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'voice_paste.integrations.haas.server'
+
+    def resolve(name: str) -> object:
+        # Simplified from zope.dottedname.
+        parts = name.split(".")
+    
+        used = parts.pop(0)
+        found: object = importlib.import_module(used)
+        for part in parts:
+            used += "." + part
+            try:
+                found = getattr(found, part)
+            except AttributeError:
+                pass
+            else:
+                continue
+            # We use explicit un-nesting of the handling block in order
+            # to avoid nested exceptions.
+            try:
+                importlib.import_module(used)
+            except ImportError as ex:
+                expected = str(ex).split()[-1]
+                if expected == used:
+                    raise
+                else:
+>                   raise ImportError(f"import error in {used}: {ex}") from ex
+E                   ImportError: import error in voice_paste.integrations.haas: No module named 'voice_paste.integrations.haas'
+
+.venv\Lib\site-packages\_pytest\monkeypatch.py:88: ImportError
+_________________________ ERROR at setup of test_stop _________________________
+
+name = 'voice_paste.integrations.haas', package = None
+
+    def import_module(name, package=None):
+        """Import a module.
+    
+        The 'package' argument is required when performing a relative import. It
+        specifies the package to use as the anchor point from which to resolve the
+        relative import to an absolute import.
+    
+        """
+        level = 0
+        if name.startswith('.'):
+            if not package:
+                raise TypeError("the 'package' argument is required to perform a "
+                                f"relative import for {name!r}")
+            for character in name:
+                if character != '.':
+                    break
+                level += 1
+>       return _bootstrap._gcd_import(name[level:], package, level)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ModuleNotFoundError: No module named 'voice_paste.integrations.haas'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\importlib\__init__.py:88: ModuleNotFoundError
+
+The above exception was the direct cause of the following exception:
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019159438DE0>
+
+    @pytest.fixture(autouse=True)
+    def no_interval(monkeypatch: pytest.MonkeyPatch) -> None:
+        """応答の確認の間隔を 0 にする。"""
+>       monkeypatch.setattr("voice_paste.integrations.haas.server.HAAS_HEALTH_INTERVAL_SEC", 0.0)
+
+tests\unit\voice_paste\integrations\haas\test_server.py:39: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+.venv\Lib\site-packages\_pytest\monkeypatch.py:107: in derive_importpath
+    target = resolve(module)
+             ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'voice_paste.integrations.haas.server'
+
+    def resolve(name: str) -> object:
+        # Simplified from zope.dottedname.
+        parts = name.split(".")
+    
+        used = parts.pop(0)
+        found: object = importlib.import_module(used)
+        for part in parts:
+            used += "." + part
+            try:
+                found = getattr(found, part)
+            except AttributeError:
+                pass
+            else:
+                continue
+            # We use explicit un-nesting of the handling block in order
+            # to avoid nested exceptions.
+            try:
+                importlib.import_module(used)
+            except ImportError as ex:
+                expected = str(ex).split()[-1]
+                if expected == used:
+                    raise
+                else:
+>                   raise ImportError(f"import error in {used}: {ex}") from ex
+E                   ImportError: import error in voice_paste.integrations.haas: No module named 'voice_paste.integrations.haas'
+
+.venv\Lib\site-packages\_pytest\monkeypatch.py:88: ImportError
+________________ ERROR at setup of test_stop_when_unreachable _________________
+
+name = 'voice_paste.integrations.haas', package = None
+
+    def import_module(name, package=None):
+        """Import a module.
+    
+        The 'package' argument is required when performing a relative import. It
+        specifies the package to use as the anchor point from which to resolve the
+        relative import to an absolute import.
+    
+        """
+        level = 0
+        if name.startswith('.'):
+            if not package:
+                raise TypeError("the 'package' argument is required to perform a "
+                                f"relative import for {name!r}")
+            for character in name:
+                if character != '.':
+                    break
+                level += 1
+>       return _bootstrap._gcd_import(name[level:], package, level)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ModuleNotFoundError: No module named 'voice_paste.integrations.haas'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\importlib\__init__.py:88: ModuleNotFoundError
+
+The above exception was the direct cause of the following exception:
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000191594392B0>
+
+    @pytest.fixture(autouse=True)
+    def no_interval(monkeypatch: pytest.MonkeyPatch) -> None:
+        """応答の確認の間隔を 0 にする。"""
+>       monkeypatch.setattr("voice_paste.integrations.haas.server.HAAS_HEALTH_INTERVAL_SEC", 0.0)
+
+tests\unit\voice_paste\integrations\haas\test_server.py:39: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+.venv\Lib\site-packages\_pytest\monkeypatch.py:107: in derive_importpath
+    target = resolve(module)
+             ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'voice_paste.integrations.haas.server'
+
+    def resolve(name: str) -> object:
+        # Simplified from zope.dottedname.
+        parts = name.split(".")
+    
+        used = parts.pop(0)
+        found: object = importlib.import_module(used)
+        for part in parts:
+            used += "." + part
+            try:
+                found = getattr(found, part)
+            except AttributeError:
+                pass
+            else:
+                continue
+            # We use explicit un-nesting of the handling block in order
+            # to avoid nested exceptions.
+            try:
+                importlib.import_module(used)
+            except ImportError as ex:
+                expected = str(ex).split()[-1]
+                if expected == used:
+                    raise
+                else:
+>                   raise ImportError(f"import error in {used}: {ex}") from ex
+E                   ImportError: import error in voice_paste.integrations.haas: No module named 'voice_paste.integrations.haas'
+
+.venv\Lib\site-packages\_pytest\monkeypatch.py:88: ImportError
+__________________ ERROR at setup of test_stop_when_loading ___________________
+
+name = 'voice_paste.integrations.haas', package = None
+
+    def import_module(name, package=None):
+        """Import a module.
+    
+        The 'package' argument is required when performing a relative import. It
+        specifies the package to use as the anchor point from which to resolve the
+        relative import to an absolute import.
+    
+        """
+        level = 0
+        if name.startswith('.'):
+            if not package:
+                raise TypeError("the 'package' argument is required to perform a "
+                                f"relative import for {name!r}")
+            for character in name:
+                if character != '.':
+                    break
+                level += 1
+>       return _bootstrap._gcd_import(name[level:], package, level)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ModuleNotFoundError: No module named 'voice_paste.integrations.haas'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\importlib\__init__.py:88: ModuleNotFoundError
+
+The above exception was the direct cause of the following exception:
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019159439B00>
+
+    @pytest.fixture(autouse=True)
+    def no_interval(monkeypatch: pytest.MonkeyPatch) -> None:
+        """応答の確認の間隔を 0 にする。"""
+>       monkeypatch.setattr("voice_paste.integrations.haas.server.HAAS_HEALTH_INTERVAL_SEC", 0.0)
+
+tests\unit\voice_paste\integrations\haas\test_server.py:39: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+.venv\Lib\site-packages\_pytest\monkeypatch.py:107: in derive_importpath
+    target = resolve(module)
+             ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'voice_paste.integrations.haas.server'
+
+    def resolve(name: str) -> object:
+        # Simplified from zope.dottedname.
+        parts = name.split(".")
+    
+        used = parts.pop(0)
+        found: object = importlib.import_module(used)
+        for part in parts:
+            used += "." + part
+            try:
+                found = getattr(found, part)
+            except AttributeError:
+                pass
+            else:
+                continue
+            # We use explicit un-nesting of the handling block in order
+            # to avoid nested exceptions.
+            try:
+                importlib.import_module(used)
+            except ImportError as ex:
+                expected = str(ex).split()[-1]
+                if expected == used:
+                    raise
+                else:
+>                   raise ImportError(f"import error in {used}: {ex}") from ex
+E                   ImportError: import error in voice_paste.integrations.haas: No module named 'voice_paste.integrations.haas'
+
+.venv\Lib\site-packages\_pytest\monkeypatch.py:88: ImportError
+================================== FAILURES ===================================
+____________________ test_create_app_when_host_not_allowed ____________________
+
+    def test_create_app_when_host_not_allowed() -> None:
+        """Host が合わない要求を断る（異常系）。"""
+>       from haas_server.app import HaasEngine, create_app
+E       ModuleNotFoundError: No module named 'haas_server'
+
+tests\unit\haas_server\test_app.py:14: ModuleNotFoundError
+______________________________ test_decode_audio ______________________________
+
+    def test_decode_audio() -> None:
+        """48 kHz のステレオの WAV を 16 kHz のモノラルにする（正常系）。"""
+>       from haas_server.audio import decode_audio
+E       ModuleNotFoundError: No module named 'haas_server'
+
+tests\unit\haas_server\test_audio.py:49: ModuleNotFoundError
+_________________________ test_decode_audio_when_webm _________________________
+
+    def test_decode_audio_when_webm() -> None:
+        """webm（Opus）を復号できる（正常系）。"""
+>       from haas_server.audio import decode_audio
+E       ModuleNotFoundError: No module named 'haas_server'
+
+tests\unit\haas_server\test_audio.py:62: ModuleNotFoundError
+______________________ test_decode_audio_when_not_audio _______________________
+
+    def test_decode_audio_when_not_audio() -> None:
+        """音声でないバイト列は AudioDecodeError を送出する（異常系）。"""
+>       from haas_server.audio import AudioDecodeError, decode_audio
+E       ModuleNotFoundError: No module named 'haas_server'
+
+tests\unit\haas_server\test_audio.py:73: ModuleNotFoundError
+_______________________________ test_transcribe _______________________________
+
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2027/test_transcribe0')
+
+    def test_transcribe(tmp_path: Path) -> None:
+        """録音と語を送信して起こした文字を返す（正常系）。"""
+>       from voice_paste.shared.settings import HintVocabularyWord
+E       ImportError: cannot import name 'HintVocabularyWord' from 'voice_paste.shared.settings' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-transcription-haas-engine\src\voice_paste\shared\settings.py)
+
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:59: ImportError
+_____________________ test_transcribe_when_no_vocabulary ______________________
+
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2027/test_transcribe_when_no_vocabu0')
+
+    def test_transcribe_when_no_vocabulary(tmp_path: Path) -> None:
+        """語が無ければ vocabulary を送信しない（正常系）。"""
+        # 準備
+        requests: list[httpx.Request] = []
+    
+        def handler(request: httpx.Request) -> httpx.Response:
+            """要求を覚えて、起こした文字を返す。"""
+            requests.append(request)
+            return httpx.Response(200, json={"text": "文字"})
+    
+        # 実行
+>       _transcribe(tmp_path, handler)
+
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:98: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2027/test_transcribe_when_no_vocabu0')
+handler = <function test_transcribe_when_no_vocabulary.<locals>.handler at 0x0000019159427110>
+vocabulary = None
+
+    def _transcribe(
+        tmp_path: Path,
+        handler: Callable[[httpx.Request], httpx.Response],
+        vocabulary: list[HintVocabularyWord] | None = None,
+    ) -> list[str]:
+        """録音のファイルを作り、差し替えた送信先で transcribe を呼ぶ。"""
+>       from voice_paste.integrations.haas.transcriber import HaasTranscriber
+E       ModuleNotFoundError: No module named 'voice_paste.integrations.haas'
+
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:45: ModuleNotFoundError
+_______________________ test_transcribe_when_empty_text _______________________
+
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2027/test_transcribe_when_empty_tex0')
+
+    def test_transcribe_when_empty_text(tmp_path: Path) -> None:
+        """起こした文字が空なら空の並びを返す（正常系）。"""
+        # 実行
+>       result = _transcribe(tmp_path, lambda _request: httpx.Response(200, json={"text": ""}))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:107: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2027/test_transcribe_when_empty_tex0')
+handler = <function test_transcribe_when_empty_text.<locals>.<lambda> at 0x0000019159426400>
+vocabulary = None
+
+    def _transcribe(
+        tmp_path: Path,
+        handler: Callable[[httpx.Request], httpx.Response],
+        vocabulary: list[HintVocabularyWord] | None = None,
+    ) -> list[str]:
+        """録音のファイルを作り、差し替えた送信先で transcribe を呼ぶ。"""
+>       from voice_paste.integrations.haas.transcriber import HaasTranscriber
+E       ModuleNotFoundError: No module named 'voice_paste.integrations.haas'
+
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:45: ModuleNotFoundError
+______________________ test_transcribe_when_server_error ______________________
+
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2027/test_transcribe_when_server_er0')
+
+    def test_transcribe_when_server_error(tmp_path: Path) -> None:
+        """サーバーが失敗を返したら EngineError を送出する（異常系）。"""
+        # 準備
+        response = httpx.Response(500, json={"detail": "GPU のメモリが足りない"})
+    
+        # 実行・検証
+        with pytest.raises(EngineError) as exc_info:
+>           _transcribe(tmp_path, lambda _request: response)
+
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:120: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2027/test_transcribe_when_server_er0')
+handler = <function test_transcribe_when_server_error.<locals>.<lambda> at 0x0000019159426090>
+vocabulary = None
+
+    def _transcribe(
+        tmp_path: Path,
+        handler: Callable[[httpx.Request], httpx.Response],
+        vocabulary: list[HintVocabularyWord] | None = None,
+    ) -> list[str]:
+        """録音のファイルを作り、差し替えた送信先で transcribe を呼ぶ。"""
+>       from voice_paste.integrations.haas.transcriber import HaasTranscriber
+E       ModuleNotFoundError: No module named 'voice_paste.integrations.haas'
+
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:45: ModuleNotFoundError
+______________________ test_transcribe_when_unreachable _______________________
+
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2027/test_transcribe_when_unreachab0')
+
+    def test_transcribe_when_unreachable(tmp_path: Path) -> None:
+        """接続できなければ EngineError を送出する（異常系）。"""
+        # 実行・検証
+        with pytest.raises(EngineError):
+>           _transcribe(tmp_path, _raise_connect_error)
+
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:139: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2027/test_transcribe_when_unreachab0')
+handler = <function _raise_connect_error at 0x000001915791F270>
+vocabulary = None
+
+    def _transcribe(
+        tmp_path: Path,
+        handler: Callable[[httpx.Request], httpx.Response],
+        vocabulary: list[HintVocabularyWord] | None = None,
+    ) -> list[str]:
+        """録音のファイルを作り、差し替えた送信先で transcribe を呼ぶ。"""
+>       from voice_paste.integrations.haas.transcriber import HaasTranscriber
+E       ModuleNotFoundError: No module named 'voice_paste.integrations.haas'
+
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:45: ModuleNotFoundError
+________________________ test_transcribe_when_timeout _________________________
+
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2027/test_transcribe_when_timeout0')
+
+    def test_transcribe_when_timeout(tmp_path: Path) -> None:
+        """応答がタイムアウトすれば EngineError を送出する（異常系）。"""
+        # 実行・検証
+        with pytest.raises(EngineError):
+>           _transcribe(tmp_path, _raise_read_timeout)
+
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:146: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2027/test_transcribe_when_timeout0')
+handler = <function _raise_read_timeout at 0x000001915791F3D0>
+vocabulary = None
+
+    def _transcribe(
+        tmp_path: Path,
+        handler: Callable[[httpx.Request], httpx.Response],
+        vocabulary: list[HintVocabularyWord] | None = None,
+    ) -> list[str]:
+        """録音のファイルを作り、差し替えた送信先で transcribe を呼ぶ。"""
+>       from voice_paste.integrations.haas.transcriber import HaasTranscriber
+E       ModuleNotFoundError: No module named 'voice_paste.integrations.haas'
+
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:45: ModuleNotFoundError
+________________________ test_collect_hint_vocabulary _________________________
+
+    def test_collect_hint_vocabulary() -> None:
+        """有効なプリセットの語を表記と読みの組で返す（正常系）。"""
+>       from voice_paste.shared.settings import HintPresetSettings, collect_hint_vocabulary
+E       ImportError: cannot import name 'collect_hint_vocabulary' from 'voice_paste.shared.settings' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-transcription-haas-engine\src\voice_paste\shared\settings.py)
+
+tests\unit\voice_paste\shared\test_settings.py:2069: ImportError
+________________ test_collect_hint_vocabulary_when_no_readings ________________
+
+    def test_collect_hint_vocabulary_when_no_readings() -> None:
+        """readings が空の一覧なら読みは全て None（正常系）。"""
+>       from voice_paste.shared.settings import HintPresetSettings, collect_hint_vocabulary
+E       ImportError: cannot import name 'collect_hint_vocabulary' from 'voice_paste.shared.settings' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-transcription-haas-engine\src\voice_paste\shared\settings.py)
+
+tests\unit\voice_paste\shared\test_settings.py:2086: ImportError
+______________ test_collect_hint_vocabulary_when_duplicate_word _______________
+
+    def test_collect_hint_vocabulary_when_duplicate_word() -> None:
+        """同じ表記は 1 つにまとめ、読みのある方を残す（正常系）。"""
+>       from voice_paste.shared.settings import HintPresetSettings, collect_hint_vocabulary
+E       ImportError: cannot import name 'collect_hint_vocabulary' from 'voice_paste.shared.settings' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-transcription-haas-engine\src\voice_paste\shared\settings.py)
+
+tests\unit\voice_paste\shared\test_settings.py:2097: ImportError
+__________________ test_settings_when_hint_reading_not_kana ___________________
+
+settings_model = <class 'voice_paste.shared.settings.AppSettings'>
+
+    def test_settings_when_hint_reading_not_kana(settings_model: type[Settings]) -> None:
+        """読みにかな以外の文字が入っていたら断る（異常系）。"""
+        from pydantic import ValidationError
+    
+        # 実行・検証
+        with pytest.raises(ValidationError) as exc_info:
+            settings_model.model_validate(_hint_document(["突合"], ["totsugou"]))
+        error = exc_info.value.errors()[0]
+>       assert error["type"] == "hint_reading_not_kana"
+E       AssertionError: assert 'extra_forbidden' == 'hint_reading_not_kana'
+E         
+E         - hint_reading_not_kana
+E         + extra_forbidden
+
+tests\unit\voice_paste\shared\test_settings.py:2125: AssertionError
+___________________ test_settings_when_hint_readings_length ___________________
+
+settings_model = <class 'voice_paste.shared.settings.AppSettings'>
+
+    def test_settings_when_hint_readings_length(settings_model: type[Settings]) -> None:
+        """読みの数が語の数と違えば断る（異常系）。"""
+        from pydantic import ValidationError
+    
+        # 実行・検証
+        with pytest.raises(ValidationError) as exc_info:
+            settings_model.model_validate(_hint_document(["A", "B"], ["あ"]))
+        error = exc_info.value.errors()[0]
+>       assert error["type"] == "hint_readings_length"
+E       AssertionError: assert 'extra_forbidden' == 'hint_readings_length'
+E         
+E         - hint_readings_length
+E         + extra_forbidden
+
+tests\unit\voice_paste\shared\test_settings.py:2137: AssertionError
+__________________ test_settings_when_hint_reading_conflict ___________________
+
+settings_model = <class 'voice_paste.shared.settings.AppSettings'>
+
+    def test_settings_when_hint_reading_conflict(settings_model: type[Settings]) -> None:
+        """同じ語に違う読みがあれば、後ろの語の読みの場所で断る（異常系）。"""
+        from pydantic import ValidationError
+    
+        # 実行・検証
+        with pytest.raises(ValidationError) as exc_info:
+            settings_model.model_validate(_hint_document(["突合", "突合"], ["とつごう", "とつあわせ"]))
+        error = exc_info.value.errors()[0]
+>       assert error["type"] == "hint_reading_conflict"
+E       AssertionError: assert 'extra_forbidden' == 'hint_reading_conflict'
+E         
+E         - hint_reading_conflict
+E         + extra_forbidden
+
+tests\unit\voice_paste\shared\test_settings.py:2149: AssertionError
+___________ test_settings_when_hint_reading_blank_on_duplicate_word ___________
+
+settings_model = <class 'voice_paste.shared.settings.AppSettings'>
+
+    def test_settings_when_hint_reading_blank_on_duplicate_word(settings_model: type[Settings]) -> None:
+        """同じ語で片方の読みが空なら通る（正常系）。"""
+        # 実行
+>       settings = settings_model.model_validate(_hint_document(["突合", "突合"], ["とつごう", ""]))
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       pydantic_core._pydantic_core.ValidationError: 1 validation error for AppSettings
+E       hint_presets.0.readings
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=['とつごう', ''], input_type=list]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+
+tests\unit\voice_paste\shared\test_settings.py:2156: ValidationError
+____________________ test_settings_when_haas_port_overlap _____________________
+
+settings_model = <class 'voice_paste.shared.settings.AppSettings'>
+
+    def test_settings_when_haas_port_overlap(settings_model: type[Settings]) -> None:
+        """Haas のポートが API のポートと同じなら断る（異常系）。"""
+        from pydantic import ValidationError
+    
+        # 実行・検証
+        with pytest.raises(ValidationError) as exc_info:
+            settings_model.model_validate(
+                make_test_document(
+                    {"api": {"port": 47900}, "transcription": {"haas": {"port": 47900}}}
+                )
+            )
+        error = exc_info.value.errors()[0]
+>       assert error["type"] == "haas_port_overlap"
+E       AssertionError: assert 'extra_forbidden' == 'haas_port_overlap'
+E         
+E         - haas_port_overlap
+E         + extra_forbidden
+
+tests\unit\voice_paste\shared\test_settings.py:2174: AssertionError
+________________________ test_build_handlers_when_haas ________________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001915CA7ACF0>
+make_settings = <function make_test_settings at 0x0000019158E50E00>
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2027/test_build_handlers_when_haas0')
+
+    def test_build_handlers_when_haas(
+        monkeypatch: pytest.MonkeyPatch, make_settings: Callable[..., Settings], tmp_path: Path
+    ) -> None:
+        """設定が haas でサーバーが応答する（正常系）。"""
+        from voice_paste.features.transcription import EngineName
+    
+        # 実行
+>       handlers, server, worker, _notify = _build_haas_handlers(monkeypatch, make_settings, tmp_path)
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\test_main.py:2100: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001915CA7ACF0>
+make_settings = <function make_test_settings at 0x0000019158E50E00>
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2027/test_build_handlers_when_haas0')
+server_error = None, unavailable = frozenset()
+
+    def _build_haas_handlers(
+        monkeypatch: pytest.MonkeyPatch,
+        make_settings: Callable[..., Settings],
+        tmp_path: Path,
+        *,
+        server_error: Exception | None = None,
+        unavailable: frozenset[Feature] = frozenset(),
+    ) -> tuple[Handlers, MagicMock, MagicMock, MagicMock]:
+        """エンジンが haas の設定で build_handlers を呼び、結果と HaasServer・WhisperWorkerClient・notify の偽物を返す。"""
+        import voice_paste.main as main_module
+        from voice_paste.shared.constants import resolve_app_paths
+    
+        server = MagicMock()
+        server.return_value.ensure_started.side_effect = server_error
+        worker = MagicMock()
+        notify = MagicMock()
+>       monkeypatch.setattr(main_module, "HaasServer", server)
+E       AttributeError: <module 'voice_paste.main' from 'C:\\Users\\shuhe\\repo\\voice-paste\\.claude\\worktrees\\feat-transcription-haas-engine\\src\\voice_paste\\main.py'> has no attribute 'HaasServer'
+
+tests\unit\voice_paste\test_main.py:2076: AttributeError
+__________________ test_build_handlers_when_haas_unavailable __________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001915CA8C210>
+make_settings = <function make_test_settings at 0x0000019158E50E00>
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2027/test_build_handlers_when_haas_0')
+
+    def test_build_handlers_when_haas_unavailable(
+        monkeypatch: pytest.MonkeyPatch, make_settings: Callable[..., Settings], tmp_path: Path
+    ) -> None:
+        """サーバーへ接続できなければローカルの Whisper へ切り戻す（正常系）。"""
+        from voice_paste.features.transcription import EngineName
+        from voice_paste.shared.errors import EngineError
+    
+        # 実行
+>       handlers, _server, worker, notify = _build_haas_handlers(
+            monkeypatch, make_settings, tmp_path, server_error=EngineError("接続できない")
+        )
+
+tests\unit\voice_paste\test_main.py:2116: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001915CA8C210>
+make_settings = <function make_test_settings at 0x0000019158E50E00>
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2027/test_build_handlers_when_haas_0')
+server_error = EngineError('接続できない'), unavailable = frozenset()
+
+    def _build_haas_handlers(
+        monkeypatch: pytest.MonkeyPatch,
+        make_settings: Callable[..., Settings],
+        tmp_path: Path,
+        *,
+        server_error: Exception | None = None,
+        unavailable: frozenset[Feature] = frozenset(),
+    ) -> tuple[Handlers, MagicMock, MagicMock, MagicMock]:
+        """エンジンが haas の設定で build_handlers を呼び、結果と HaasServer・WhisperWorkerClient・notify の偽物を返す。"""
+        import voice_paste.main as main_module
+        from voice_paste.shared.constants import resolve_app_paths
+    
+        server = MagicMock()
+        server.return_value.ensure_started.side_effect = server_error
+        worker = MagicMock()
+        notify = MagicMock()
+>       monkeypatch.setattr(main_module, "HaasServer", server)
+E       AttributeError: <module 'voice_paste.main' from 'C:\\Users\\shuhe\\repo\\voice-paste\\.claude\\worktrees\\feat-transcription-haas-engine\\src\\voice_paste\\main.py'> has no attribute 'HaasServer'
+
+tests\unit\voice_paste\test_main.py:2076: AttributeError
+______________ test_build_handlers_when_haas_not_supported_on_os ______________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001915CA8F8C0>
+make_settings = <function make_test_settings at 0x0000019158E50E00>
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2027/test_build_handlers_when_haas_1')
+
+    def test_build_handlers_when_haas_not_supported_on_os(
+        monkeypatch: pytest.MonkeyPatch, make_settings: Callable[..., Settings], tmp_path: Path
+    ) -> None:
+        """Haas を使えない OS では接続先を確かめずに切り戻す（正常系）。"""
+        from voice_paste.features.transcription import EngineName
+        from voice_paste.shared.os_kind import Feature
+    
+        # 実行
+        handlers, server, worker, _notify = _build_haas_handlers(
+            monkeypatch,
+            make_settings,
+            tmp_path,
+>           unavailable=frozenset({Feature.HAAS_ENGINE}),
+                                   ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: type object 'Feature' has no attribute 'HAAS_ENGINE'
+
+tests\unit\voice_paste\test_main.py:2141: AttributeError
+______________ test_hint_preset_panel_set_presets_when_readings _______________
+
+open_panel = <function open_panel.<locals>._open at 0x000001915CBD96F0>
+
+    def test_hint_preset_panel_set_presets_when_readings(
+        open_panel: Callable[..., HintPresetPanel],
+    ) -> None:
+        """読みを語の欄の右に出し、列の見出しを出す（正常系）。"""
+        # 実行
+>       panel = open_panel(_reading_presets())
+                           ^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\windows\test_settings_hints.py:369: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _reading_presets() -> list[HintPresetSettings]:
+        """語 2 つで 1 つ目だけ読みのあるプリセットを返す。"""
+        from voice_paste.shared.settings import HintPresetSettings
+    
+>       return [HintPresetSettings(name="開発", words=["突合", "GitHub"], readings=["とつごう", ""])]
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       pydantic_core._pydantic_core.ValidationError: 1 validation error for HintPresetSettings
+E       readings
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=['とつごう', ''], input_type=list]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+
+tests\unit\voice_paste\ui\windows\test_settings_hints.py:361: ValidationError
+______________ test_hint_preset_panel_set_presets_when_no_words _______________
+
+open_panel = <function open_panel.<locals>._open at 0x000001915CBDA400>
+
+    def test_hint_preset_panel_set_presets_when_no_words(
+        open_panel: Callable[..., HintPresetPanel],
+    ) -> None:
+        """語が無ければ列の見出しを出さず、語が無いときの文を出す（正常系）。"""
+        from voice_paste.shared.settings import HintPresetSettings
+    
+        # 実行
+        panel = open_panel([HintPresetSettings(name="開発")])
+    
+        # 検証
+>       assert not panel.findChild(QWidget, "hint_words_head_0").isVisible()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'NoneType' object has no attribute 'isVisible'
+
+tests\unit\voice_paste\ui\windows\test_settings_hints.py:387: AttributeError
+________________ test_hint_preset_panel_collect_when_readings _________________
+
+open_panel = <function open_panel.<locals>._open at 0x000001915CBDB320>
+
+    def test_hint_preset_panel_collect_when_readings(
+        open_panel: Callable[..., HintPresetPanel],
+    ) -> None:
+        """読みを語と同じ並びで集める（正常系）。"""
+        # 準備
+>       panel = open_panel(_reading_presets())
+                           ^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\windows\test_settings_hints.py:396: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _reading_presets() -> list[HintPresetSettings]:
+        """語 2 つで 1 つ目だけ読みのあるプリセットを返す。"""
+        from voice_paste.shared.settings import HintPresetSettings
+    
+>       return [HintPresetSettings(name="開発", words=["突合", "GitHub"], readings=["とつごう", ""])]
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       pydantic_core._pydantic_core.ValidationError: 1 validation error for HintPresetSettings
+E       readings
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=['とつごう', ''], input_type=list]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+
+tests\unit\voice_paste\ui\windows\test_settings_hints.py:361: ValidationError
+_______________ test_hint_preset_panel_collect_when_no_readings _______________
+
+open_panel = <function open_panel.<locals>._open at 0x000001915CBDB950>
+
+    def test_hint_preset_panel_collect_when_no_readings(
+        open_panel: Callable[..., HintPresetPanel],
+    ) -> None:
+        """全ての読みが空なら空の一覧にする（正常系）。"""
+        from voice_paste.shared.settings import HintPresetSettings
+    
+        # 準備
+        panel = open_panel([HintPresetSettings(name="開発", words=["A", "B"])])
+    
+        # 実行
+        collected = panel.collect()
+    
+        # 検証
+>       assert collected[0]["readings"] == []
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'readings'
+
+tests\unit\voice_paste\ui\windows\test_settings_hints.py:418: KeyError
+______________ test_hint_preset_panel_collect_when_word_removed _______________
+
+open_panel = <function open_panel.<locals>._open at 0x000001915CC84A90>
+
+    def test_hint_preset_panel_collect_when_word_removed(
+        open_panel: Callable[..., HintPresetPanel],
+    ) -> None:
+        """語を削除すると読みも消える（正常系）。"""
+        from voice_paste.shared.settings import HintPresetSettings
+    
+        # 準備
+>       panel = open_panel([HintPresetSettings(name="開発", words=["A", "B"], readings=["あ", "い"])])
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       pydantic_core._pydantic_core.ValidationError: 1 validation error for HintPresetSettings
+E       readings
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=['あ', 'い'], input_type=list]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+
+tests\unit\voice_paste\ui\windows\test_settings_hints.py:428: ValidationError
+______________ test_to_field_message_when_hint_reading_not_kana _______________
+
+settings_model = <class 'voice_paste.shared.settings.AppSettings'>
+default_settings = AppSettings(transcription=TranscriptionSettings(engine='local_whisper', local_whisper=LocalWhisperSettings(model='larg...tions=PresetOptions(browser=BrowserPresetOptions(open_delay_sec=3.0), endpoint=EndpointPresetOptions(timeout_sec=1.5)))
+
+    def test_to_field_message_when_hint_reading_not_kana(
+        settings_model: type[Settings], default_settings: Settings
+    ) -> None:
+        """読みにかな以外の文字が入っている（正常系）。"""
+        # 実行
+        message, _loc = _field_message(
+            settings_model,
+            default_settings,
+            {"hint_presets": [{"name": "A", "words": ["突合"], "readings": ["totsugou"]}]},
+        )
+    
+        # 検証
+>       assert message == "読みはひらがなかカタカナで入れてください。"
+E       AssertionError: assert 'Extra inputs...not permitted' == '読みはひらがなかカタカナで入れてください。'
+E         
+E         - 読みはひらがなかカタカナで入れてください。
+E         + Extra inputs are not permitted
+
+tests\unit\voice_paste\ui\windows\test_settings_window.py:1463: AssertionError
+______________ test_to_field_message_when_hint_reading_conflict _______________
+
+settings_model = <class 'voice_paste.shared.settings.AppSettings'>
+default_settings = AppSettings(transcription=TranscriptionSettings(engine='local_whisper', local_whisper=LocalWhisperSettings(model='larg...tions=PresetOptions(browser=BrowserPresetOptions(open_delay_sec=3.0), endpoint=EndpointPresetOptions(timeout_sec=1.5)))
+
+    def test_to_field_message_when_hint_reading_conflict(
+        settings_model: type[Settings], default_settings: Settings
+    ) -> None:
+        """同じ語に違う読みが入っている（正常系）。"""
+        # 実行
+        message, loc = _field_message(
+            settings_model,
+            default_settings,
+            {
+                "hint_presets": [
+                    {"name": "A", "words": ["突合", "突合"], "readings": ["とつごう", "とつあわせ"]}
+                ]
+            },
+        )
+    
+        # 検証
+>       assert message == "同じ語に違う読みが入っています。読みを揃えるか、語を削除してください。"
+E       AssertionError: assert 'Extra inputs...not permitted' == '同じ語に違う読みが入って...か、語を削除してください。'
+E         
+E         - 同じ語に違う読みが入っています。読みを揃えるか、語を削除してください。
+E         + Extra inputs are not permitted
+
+tests\unit\voice_paste\ui\windows\test_settings_window.py:1482: AssertionError
+________________ test_to_field_message_when_haas_port_overlap _________________
+
+settings_model = <class 'voice_paste.shared.settings.AppSettings'>
+default_settings = AppSettings(transcription=TranscriptionSettings(engine='local_whisper', local_whisper=LocalWhisperSettings(model='larg...tions=PresetOptions(browser=BrowserPresetOptions(open_delay_sec=3.0), endpoint=EndpointPresetOptions(timeout_sec=1.5)))
+
+    def test_to_field_message_when_haas_port_overlap(
+        settings_model: type[Settings], default_settings: Settings
+    ) -> None:
+        """Haas のポートが API のポートと同じ（正常系）。"""
+        # 実行
+        message, loc = _field_message(
+            settings_model,
+            default_settings,
+            {"api": {"port": 47900}, "transcription": {"haas": {"port": 47900}}},
+        )
+    
+        # 検証
+>       assert message == "API を待ち受けるポートと同じ番号です。別の番号を入れてください。"
+E       AssertionError: assert 'Extra inputs...not permitted' == 'API を待ち受けるポー...別の番号を入れてください。'
+E         
+E         - API を待ち受けるポートと同じ番号です。別の番号を入れてください。
+E         + Extra inputs are not permitted
+
+tests\unit\voice_paste\ui\windows\test_settings_window.py:1498: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/unit/haas_server/test_app.py::test_create_app_when_host_not_allowed
+FAILED tests/unit/haas_server/test_audio.py::test_decode_audio - ModuleNotFou...
+FAILED tests/unit/haas_server/test_audio.py::test_decode_audio_when_webm - Mo...
+FAILED tests/unit/haas_server/test_audio.py::test_decode_audio_when_not_audio
+FAILED tests/unit/voice_paste/integrations/haas/test_transcriber.py::test_transcribe
+FAILED tests/unit/voice_paste/integrations/haas/test_transcriber.py::test_transcribe_when_no_vocabulary
+FAILED tests/unit/voice_paste/integrations/haas/test_transcriber.py::test_transcribe_when_empty_text
+FAILED tests/unit/voice_paste/integrations/haas/test_transcriber.py::test_transcribe_when_server_error
+FAILED tests/unit/voice_paste/integrations/haas/test_transcriber.py::test_transcribe_when_unreachable
+FAILED tests/unit/voice_paste/integrations/haas/test_transcriber.py::test_transcribe_when_timeout
+FAILED tests/unit/voice_paste/shared/test_settings.py::test_collect_hint_vocabulary
+FAILED tests/unit/voice_paste/shared/test_settings.py::test_collect_hint_vocabulary_when_no_readings
+FAILED tests/unit/voice_paste/shared/test_settings.py::test_collect_hint_vocabulary_when_duplicate_word
+FAILED tests/unit/voice_paste/shared/test_settings.py::test_settings_when_hint_reading_not_kana
+FAILED tests/unit/voice_paste/shared/test_settings.py::test_settings_when_hint_readings_length
+FAILED tests/unit/voice_paste/shared/test_settings.py::test_settings_when_hint_reading_conflict
+FAILED tests/unit/voice_paste/shared/test_settings.py::test_settings_when_hint_reading_blank_on_duplicate_word
+FAILED tests/unit/voice_paste/shared/test_settings.py::test_settings_when_haas_port_overlap
+FAILED tests/unit/voice_paste/test_main.py::test_build_handlers_when_haas - A...
+FAILED tests/unit/voice_paste/test_main.py::test_build_handlers_when_haas_unavailable
+FAILED tests/unit/voice_paste/test_main.py::test_build_handlers_when_haas_not_supported_on_os
+FAILED tests/unit/voice_paste/ui/windows/test_settings_hints.py::test_hint_preset_panel_set_presets_when_readings
+FAILED tests/unit/voice_paste/ui/windows/test_settings_hints.py::test_hint_preset_panel_set_presets_when_no_words
+FAILED tests/unit/voice_paste/ui/windows/test_settings_hints.py::test_hint_preset_panel_collect_when_readings
+FAILED tests/unit/voice_paste/ui/windows/test_settings_hints.py::test_hint_preset_panel_collect_when_no_readings
+FAILED tests/unit/voice_paste/ui/windows/test_settings_hints.py::test_hint_preset_panel_collect_when_word_removed
+FAILED tests/unit/voice_paste/ui/windows/test_settings_window.py::test_to_field_message_when_hint_reading_not_kana
+FAILED tests/unit/voice_paste/ui/windows/test_settings_window.py::test_to_field_message_when_hint_reading_conflict
+FAILED tests/unit/voice_paste/ui/windows/test_settings_window.py::test_to_field_message_when_haas_port_overlap
+ERROR tests/unit/voice_paste/integrations/haas/test_server.py::test_ensure_started_when_already_running
+ERROR tests/unit/voice_paste/integrations/haas/test_server.py::test_ensure_started_when_not_running
+ERROR tests/unit/voice_paste/integrations/haas/test_server.py::test_ensure_started_when_default_distribution
+ERROR tests/unit/voice_paste/integrations/haas/test_server.py::test_ensure_started_when_wsl_missing
+ERROR tests/unit/voice_paste/integrations/haas/test_server.py::test_ensure_started_when_script_failed
+ERROR tests/unit/voice_paste/integrations/haas/test_server.py::test_ensure_started_when_timeout
+ERROR tests/unit/voice_paste/integrations/haas/test_server.py::test_stop - Im...
+ERROR tests/unit/voice_paste/integrations/haas/test_server.py::test_stop_when_unreachable
+ERROR tests/unit/voice_paste/integrations/haas/test_server.py::test_stop_when_loading
+29 failed, 801 passed, 56 skipped, 9 errors in 278.32s (0:04:38)

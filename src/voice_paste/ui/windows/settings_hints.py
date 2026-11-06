@@ -7,12 +7,10 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QResizeEvent
 from PySide6.QtWidgets import (
     QCheckBox,
     QFrame,
     QGraphicsOpacityEffect,
-    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -25,8 +23,12 @@ from PySide6.QtWidgets import (
 from voice_paste.shared.settings import HINT_MAX_BYTES, HintPresetSettings, join_hint_words
 from voice_paste.ui.windows.settings_fields import set_invalid
 
-INTRO_TEXT: str = "間違えやすい語の正しい表記を並べる。文字起こしへの指示としては効かない。"
-"""まとまりの見出しの下に出す、並べるものと、指示としては効かないことの説明。"""
+INTRO_TEXT: str = (
+    "間違えやすい語の正しい表記を並べる。文字起こしへの指示としては効かない。\n"
+    "読みは、文字起こしのエンジンが Haas（WSL）のときに使う。"
+    "読みが無い語は、認識の手がかりがほとんど効かない。"
+)
+"""まとまりの見出しの下に出す、並べるものと、指示としては効かないこと、読みを使うエンジンの説明。"""
 
 NOTES_TEXT: str = (
     "・ヒントを渡すと、句読点が付く・改行がまとまる・口癖が一部消える。\n"
@@ -58,12 +60,9 @@ NAME_DISPLAY_MAX_CHARS: int = 20
 DIMMED_OPACITY: float = 0.4
 """無効のプリセットの語の欄を薄くする濃さ。"""
 
-WORD_PAIR_MIN_WIDTH_PX: int = 240
-"""語の欄と削除ボタンの組 1 つに要る幅。部品の幅が組 2 つ分に足りなければ 1 列に積む。"""
-
-WORD_COLUMNS_WIDE: int = 2
-WORD_COLUMNS_NARROW: int = 1
-"""語の組を並べる列の数（幅があるとき・狭いとき）。"""
+WORD_COLUMN_STRETCH: int = 3
+READING_COLUMN_STRETCH: int = 2
+"""語の欄と読みの欄の幅の比。"""
 
 ENABLED_TEXT: str = "有効"
 DISABLED_TEXT: str = "無効"
@@ -73,7 +72,7 @@ LOCATION_NAME_LENGTH: int = 2
 """失敗の場所（添字, "name"）の長さ。"""
 
 LOCATION_WORD_LENGTH: int = 3
-"""失敗の場所（添字, "words", 語の添字）の長さ。"""
+"""失敗の場所（添字, "words" か "readings", 語の添字）の長さ。"""
 
 
 @dataclass
@@ -86,10 +85,11 @@ class _WordsView:
 
 @dataclass
 class _WordCell:
-    """語 1 つの欄・削除ボタン・欄の下のエラーの文。"""
+    """語 1 つの語の欄・読みの欄・削除ボタン・行の下のエラーの文。"""
 
     container: QWidget
     edit: QLineEdit
+    reading_edit: QLineEdit
     error_label: QLabel
 
 
@@ -102,7 +102,6 @@ class _HintRow:
     size_label: QLabel
     name_edit: QLineEdit
     name_error_label: QLabel
-    words_grid: QGridLayout
     cells: list[_WordCell] = field(default_factory=list)
 
 
@@ -127,6 +126,12 @@ def _byte_length(words: _WordsView) -> int:
 def _stripped_words(texts: Sequence[str]) -> list[str]:
     """欄の文字から前後の空白を除く（保存の確かめと同じ数え方にそろえる）。"""
     return [text.strip() for text in texts]
+
+
+def _collect_readings(cells: Sequence[_WordCell]) -> list[str]:
+    """語の欄の読みを語と同じ並びで返す。全ての読みが空なら空の一覧にする。"""
+    readings = [cell.reading_edit.text() for cell in cells]
+    return readings if any(reading.strip() for reading in readings) else []
 
 
 def _repolish(widget: QWidget) -> None:
@@ -162,7 +167,6 @@ class HintPresetPanel(QWidget):
         self._ids: list[int] = []
         self._baseline_count = 0
         self._next_id = 0
-        self._columns = WORD_COLUMNS_WIDE
         self.setObjectName("hint_preset_panel")
 
         outer = QVBoxLayout(self)
@@ -232,11 +236,12 @@ class HintPresetPanel(QWidget):
         self._rebuild([preset.model_dump() for preset in presets], self._number_saved(len(presets)))
 
     def collect(self) -> list[dict[str, Any]]:
-        """今の並びのプリセットを 設定と同じ構造の dict（name・words・enabled）の並びにする。空の語の欄もそのまま入れる。"""
+        """今の並びのプリセットを 設定と同じ構造の dict（name・words・readings・enabled）の並びにする。空の語の欄もそのまま入れる。全ての読みが空なら readings は空の一覧。"""
         return [
             {
                 "name": row.name_edit.text(),
                 "words": [cell.edit.text() for cell in row.cells],
+                "readings": _collect_readings(row.cells),
                 "enabled": row.enabled_box.isChecked(),
             }
             for row in self._rows
@@ -245,7 +250,7 @@ class HintPresetPanel(QWidget):
     def add_preset(self) -> None:
         """末尾に名前と語が空で有効のプリセットを追加し、名前の欄へフォーカスを移して changed を emit する。"""
         values = self.collect()
-        values.append({"name": "", "words": [], "enabled": True})
+        values.append({"name": "", "words": [], "readings": [], "enabled": True})
         # 追加したプリセットには、振ったどの番号より大きい番号を振る
         added_id = self._next_id
         self._next_id += 1
@@ -257,6 +262,8 @@ class HintPresetPanel(QWidget):
         """一覧の何件目のプリセットの語の末尾に空の欄を追加してフォーカスを移し、changed を emit する。"""
         values = self.collect()
         values[position]["words"].append("")
+        if values[position]["readings"]:
+            values[position]["readings"].append("")
         self._rebuild(values, self._ids)
         self._rows[position].cells[-1].edit.setFocus()
         self.changed.emit()
@@ -275,7 +282,12 @@ class HintPresetPanel(QWidget):
     def change_values(self) -> dict[str, object]:
         """変えた欄の数えに使う値を、プリセット 1 つ = 1 キーと、並べ替えの 1 キーで返す。"""
         values: dict[str, object] = {
-            f"hint_presets[{preset_id}]": (preset["name"], preset["words"], preset["enabled"])
+            f"hint_presets[{preset_id}]": (
+                preset["name"],
+                preset["words"],
+                preset["readings"],
+                preset["enabled"],
+            )
             for preset_id, preset in zip(self._ids, self.collect(), strict=True)
         }
         # 開いたとき・保存したときからあって今も残っているプリセットだけで、番号の小さい順に並んでいるか（追加したプリセットは見ない）
@@ -324,6 +336,7 @@ class HintPresetPanel(QWidget):
                 cell.error_label.clear()
                 cell.error_label.hide()
                 set_invalid(cell.edit, invalid=False)
+                set_invalid(cell.reading_edit, invalid=False)
 
     @staticmethod
     def _append_error(label: QLabel, message: str) -> None:
@@ -332,17 +345,18 @@ class HintPresetPanel(QWidget):
         label.show()
 
     def _widget_at(self, location: tuple[int | str, ...]) -> QWidget | None:
-        """失敗の場所（（何件目か, "name"）か（何件目か, "words", 何つ目か））の欄を返す。無ければ None。"""
+        """失敗の場所（（何件目か, "name"）か（何件目か, "words" か "readings", 何つ目か））の欄を返す。無ければ None。"""
         position = location[0]
         if not isinstance(position, int) or not 0 <= position < len(self._rows):
             return None
         row = self._rows[position]
         if len(location) == LOCATION_NAME_LENGTH and location[1] == "name":
             return row.name_edit
-        if len(location) == LOCATION_WORD_LENGTH and location[1] == "words":
+        if len(location) == LOCATION_WORD_LENGTH and location[1] in ("words", "readings"):
             word = location[2]
             if isinstance(word, int) and 0 <= word < len(row.cells):
-                return row.cells[word].edit
+                cell = row.cells[word]
+                return cell.edit if location[1] == "words" else cell.reading_edit
         return None
 
     def _error_label_at(self, location: tuple[int | str, ...]) -> QLabel | None:
@@ -404,6 +418,8 @@ class HintPresetPanel(QWidget):
         """プリセットの語を 1 つ削除する。"""
         values = self.collect()
         del values[position]["words"][word]
+        if values[position]["readings"]:
+            del values[position]["readings"][word]
         self._rebuild(values, self._ids)
         self.changed.emit()
 
@@ -455,18 +471,19 @@ class HintPresetPanel(QWidget):
         name_error_label = self._error_label()
         column.addWidget(name_error_label)
 
-        # 語の欄: 入力と削除ボタンの組を格子に並べる。語が無ければ代わりの文を出す
-        words_title = QLabel("語")
-        words_title.setProperty("role", "heading")
-        column.addWidget(words_title)
+        # 語の欄: 列の見出しの下に、語・読み・削除ボタンの行を語の順に積む。語が無ければ代わりの文を出す
         words: list[str] = [str(word) for word in value["words"]]
-        words_grid = QGridLayout()
-        row = _HintRow(frame, enabled_box, size_label, name_edit, name_error_label, words_grid)
+        readings: list[str] = [str(reading) for reading in value.get("readings", [])]
+        words_head = self._make_words_head(position)
+        words_head.setVisible(bool(words))
+        column.addWidget(words_head)
+        row = _HintRow(frame, enabled_box, size_label, name_edit, name_error_label)
         for word_position, word in enumerate(words):
-            row.cells.append(self._make_word_cell(position, word_position, word))
-        if words:
-            column.addLayout(words_grid)
-        else:
+            reading = readings[word_position] if word_position < len(readings) else ""
+            cell = self._make_word_cell(position, word_position, word, reading)
+            row.cells.append(cell)
+            column.addWidget(cell.container)
+        if not words:
             empty_words = QLabel(EMPTY_WORDS_TEXT)
             empty_words.setObjectName(f"hint_words_empty_{position}")
             column.addWidget(empty_words)
@@ -490,26 +507,48 @@ class HintPresetPanel(QWidget):
             enabled = enabled_box.isChecked()
             enabled_box.setText(ENABLED_TEXT if enabled else DISABLED_TEXT)
             for cell in row.cells:
-                font = cell.edit.font()
-                font.setStrikeOut(not enabled)
-                cell.edit.setFont(font)
-                _dim(cell.edit, dimmed=not enabled)
+                for edit in (cell.edit, cell.reading_edit):
+                    font = edit.font()
+                    font.setStrikeOut(not enabled)
+                    edit.setFont(font)
+                    _dim(edit, dimmed=not enabled)
 
         name_edit.textChanged.connect(lambda _text: (sync_names(), self._on_input()))
         enabled_box.toggled.connect(lambda _checked: (sync_enabled(), self._on_input()))
         for cell in row.cells:
             cell.edit.textChanged.connect(lambda _text: self._on_input())
+            cell.reading_edit.textChanged.connect(lambda _text: self._on_input())
         sync_names()
         sync_enabled()
 
         self._rows.append(row)
         self._rows_layout.addWidget(frame)
-        self._arrange_words(row)
         # 表示中の部品に追加した部品は次のイベントの処理まで出ないため、すぐ出す
         frame.show()
 
-    def _make_word_cell(self, position: int, word_position: int, word: str) -> _WordCell:
-        """語 1 つの欄・削除ボタン・欄の下のエラーの文を作る。"""
+    def _make_words_head(self, position: int) -> QWidget:
+        """語の欄と読みの欄の列の見出しを作る。左端を合わせるため、行と同じ幅の比と、見えない削除ボタンの幅を持つ。"""
+        head = QWidget()
+        head.setObjectName(f"hint_words_head_{position}")
+        head.setAccessibleName("語と読み")
+        layout = QHBoxLayout(head)
+        layout.setContentsMargins(0, 0, 0, 0)
+        for text, stretch in (("語", WORD_COLUMN_STRETCH), ("読み", READING_COLUMN_STRETCH)):
+            title = QLabel(text)
+            title.setProperty("role", "heading")
+            layout.addWidget(title, stretch)
+        spacer = self._operation_button("×", "")
+        policy = spacer.sizePolicy()
+        policy.setRetainSizeWhenHidden(True)
+        spacer.setSizePolicy(policy)
+        spacer.hide()
+        layout.addWidget(spacer)
+        return head
+
+    def _make_word_cell(
+        self, position: int, word_position: int, word: str, reading: str
+    ) -> _WordCell:
+        """語 1 つの語の欄・読みの欄・削除ボタン・行の下のエラーの文を作る。"""
         container = QWidget()
         column = QVBoxLayout(container)
         column.setContentsMargins(0, 0, 0, 0)
@@ -517,35 +556,19 @@ class HintPresetPanel(QWidget):
         edit = QLineEdit(word)
         edit.setObjectName(f"hint_word_{position}_{word_position}")
         edit.setAccessibleName(f"{word_position + 1} つ目の語")
+        reading_edit = QLineEdit(reading)
+        reading_edit.setObjectName(f"hint_reading_{position}_{word_position}")
+        reading_edit.setAccessibleName(f"{word_position + 1} つ目の語の読み")
         remove_button = self._operation_button("×", f"hint_word_remove_{position}_{word_position}")
         remove_button.setAccessibleName(f"{word_position + 1} つ目の語を削除")
         remove_button.clicked.connect(lambda: self._remove_word(position, word_position))
-        pair.addWidget(edit, 1)
+        pair.addWidget(edit, WORD_COLUMN_STRETCH)
+        pair.addWidget(reading_edit, READING_COLUMN_STRETCH)
         pair.addWidget(remove_button)
         column.addLayout(pair)
         error_label = self._error_label()
         column.addWidget(error_label)
-        return _WordCell(container, edit, error_label)
-
-    def _arrange_words(self, row: _HintRow) -> None:
-        """語の組を、今の列の数で格子に並べる（左から右、上から下が語の順）。"""
-        for cell in row.cells:
-            row.words_grid.removeWidget(cell.container)
-        for index, cell in enumerate(row.cells):
-            row.words_grid.addWidget(cell.container, index // self._columns, index % self._columns)
-
-    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802 Qt の名前
-        """幅が組 2 つ分に足りなければ語を 1 列に積み、足りていれば 2 列に戻す。"""
-        super().resizeEvent(event)
-        columns = (
-            WORD_COLUMNS_WIDE
-            if event.size().width() >= WORD_PAIR_MIN_WIDTH_PX * WORD_COLUMNS_WIDE
-            else WORD_COLUMNS_NARROW
-        )
-        if columns != self._columns:
-            self._columns = columns
-            for row in self._rows:
-                self._arrange_words(row)
+        return _WordCell(container, edit, reading_edit, error_label)
 
     def _refresh_length(self) -> None:
         """有効なヒントの長さ（バー・文字）と、プリセットごとの語の数と長さを数え直す。"""

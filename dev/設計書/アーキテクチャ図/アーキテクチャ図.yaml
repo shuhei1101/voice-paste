@@ -50,6 +50,9 @@ overview:
     - id: FWD
       label: Focused Window D-Bus（GNOME Shell の拡張）
       kind: external
+    - id: HAAS
+      label: Haas の文字起こしのサーバー（WSL）
+      kind: process
   edges:
     - from: U
       to: APP
@@ -93,6 +96,12 @@ overview:
     - from: APP
       to: FWD
       label: フォーカスしているウィンドウの読み取り（Wayland）
+    - from: APP
+      to: HAAS
+      label: 起動（wsl.exe）・録音（HTTP・127.0.0.1。エンジンが haas のとき）
+    - from: HAAS
+      to: HF
+      label: モデルの取得
   subgraphs:
     - id: SYS
       label: voice-paste
@@ -101,6 +110,7 @@ overview:
         - WORKER
         - ENV
         - HIST
+        - HAAS
 repository:
   style: モノレポ
   repositories:
@@ -118,6 +128,12 @@ subsystems:
     runtime: Python 3.11
     runs_on: ユーザーの端末（Windows か Linux。常駐アプリが起動し、落ちたら再起動する）
     implementation: src/voice_paste/integrations/whisper/worker.py
+  - name: Haas の文字起こしのサーバー
+    scope: haas-server
+    role: WSL の中で Haas-ja-v1.0 のモデルを持ち、常駐アプリから HTTP で受けた音声を文字に起こす。設定のエンジンが haas のときに常駐アプリが起動し、終了・再起動で止める
+    runtime: Python 3.11
+    runs_on: ユーザーの端末の WSL2（Ubuntu・NVIDIA GPU。ネットワークは mirrored のモード）
+    implementation: haas_server/main.py
 lead: voice-paste のサブシステムと、ユーザー・貼り付け先のアプリ・文字起こしのモデルの取得元との境界。
 external_systems:
   - name: Hugging Face Hub

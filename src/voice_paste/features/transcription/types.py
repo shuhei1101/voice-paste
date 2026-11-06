@@ -16,6 +16,8 @@ class EngineName(StrEnum):
     """文字起こしワーカーの子プロセスで起こす。"""
     OPENAI = "openai"
     """OpenAI API の文字起こしのエンドポイントへ送信して起こす（文字起こしワーカーを起動しない）。"""
+    HAAS = "haas"
+    """WSL の中の Haas の文字起こしのサーバーへ HTTP で送信して起こす（文字起こしワーカーを起動しない）。"""
 
 
 class EngineFn(Protocol):

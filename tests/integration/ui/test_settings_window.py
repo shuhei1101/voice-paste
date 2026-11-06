@@ -487,7 +487,7 @@ def test_field_widget_type_when_literal(
 
 
 def test_field_engine_choices(open_window: Callable[..., Opened]) -> None:
-    """文字起こしのエンジンの選択欄は、名前（ローカルの Whisper・OpenAI API）を出し、値（local_whisper・openai）を持つ。既定はローカルの Whisper。"""
+    """文字起こしのエンジンの選択欄は、名前（ローカルの Whisper・OpenAI API・Haas（WSL））を出し、値（local_whisper・openai・haas）を持つ。既定はローカルの Whisper。"""
     # 準備
     window = open_window().window
 
@@ -498,8 +498,13 @@ def test_field_engine_choices(open_window: Callable[..., Opened]) -> None:
     assert [combo.itemText(index) for index in range(combo.count())] == [
         "ローカルの Whisper",
         "OpenAI API",
+        "Haas（WSL）",
     ]
-    assert [combo.itemData(index) for index in range(combo.count())] == ["local_whisper", "openai"]
+    assert [combo.itemData(index) for index in range(combo.count())] == [
+        "local_whisper",
+        "openai",
+        "haas",
+    ]
     assert combo.currentText() == "ローカルの Whisper"
 
 
@@ -570,6 +575,73 @@ def test_field_openai_fields_when_saved(open_window: Callable[..., Opened]) -> N
         "http://127.0.0.1:9000/v1",
     )
     assert opened.window.findChild(QWidget, "field_transcription.openai.api_key") is None
+
+
+def test_field_haas_fields(open_window: Callable[..., Opened]) -> None:
+    """「文字起こし」のまとまりに Haas の欄を出し、既定の値・欄の名前・再起動で反映のマーカー・補助文を出す。"""
+    # 準備
+    window = open_window().window
+    find(window, QListWidget, "group_menu").setCurrentRow(5)
+
+    # 実行
+    texts = [label.text() for label in window.findChildren(QLabel)]
+
+    # 検証
+    assert _field(window, "transcription.haas.distribution", QLineEdit).text() == ""
+    assert _field(window, "transcription.haas.port", QLineEdit).text() == "47824"
+    assert "WSL のディストリビューション" in texts
+    assert "サーバーのポート" in texts
+    for key in ("transcription.haas.distribution", "transcription.haas.port"):
+        assert find(window, QLabel, f"restart_badge_{key}").text() == "再起動で反映"
+    assert (
+        "文字起こしのエンジンが Haas（WSL）のときに使う。"
+        "WSL2 のネットワークを mirrored にし、このディストリビューションにサーバーの環境を作っておく。"
+        "空なら WSL の既定のディストリビューションを使う。"
+    ) in texts
+
+
+def test_field_haas_fields_when_saved(open_window: Callable[..., Opened]) -> None:
+    """Haas の欄に入れた値は、保存で設定の transcription.haas に入る。"""
+    # 準備
+    opened = open_window()
+    _set_text(opened.window, "transcription.haas.distribution", "Ubuntu-24.04")
+    _set_text(opened.window, "transcription.haas.port", "47830")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    saved = opened.deps.save_settings.call_args.args[0].transcription.haas
+    assert (saved.distribution, saved.port) == ("Ubuntu-24.04", 47830)
+
+
+def test_field_when_hidden_keys_of_haas(open_window: Callable[..., Opened]) -> None:
+    """Haas のエンジンを使えない OS では、Haas の欄を置かない。"""
+    from voice_paste.shared.os_kind import Feature, hidden_setting_keys
+
+    # 実行
+    opened = open_window(hidden_setting_keys=hidden_setting_keys({Feature.HAAS_ENGINE}))
+
+    # 検証
+    assert opened.window.findChild(QWidget, "field_transcription.haas.distribution") is None
+    assert opened.window.findChild(QWidget, "field_transcription.haas.port") is None
+
+
+def test_input_check_when_haas_port_overlap(open_window: Callable[..., Opened]) -> None:
+    """Haas のポートが API のポートと同じ: その欄の下とエラーの一覧に出し、保存しない。"""
+    # 準備
+    opened = open_window()
+    _set_text(opened.window, "api.port", "47900")
+    _set_text(opened.window, "transcription.haas.port", "47900")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    message = "API を待ち受けるポートと同じ番号です。別の番号を入れてください。"
+    assert message in _field_errors(opened.window)
+    assert f"サーバーのポート: {message}" in _error_rows(opened.window)
+    opened.deps.save_settings.assert_not_called()
 
 
 def test_field_name_and_key(open_window: Callable[..., Opened]) -> None:
@@ -4376,7 +4448,9 @@ def test_hint_group_when_visible(open_window: Callable[..., Opened]) -> None:
     find(opened.window, QListWidget, "group_menu").setCurrentRow(HINT_GROUP_ROW)
     assert find(opened.window, QLabel, "hint_intro").isVisible()
     assert find(opened.window, QLabel, "hint_intro").text() == (
-        "間違えやすい語の正しい表記を並べる。文字起こしへの指示としては効かない。"
+        "間違えやすい語の正しい表記を並べる。文字起こしへの指示としては効かない。\n"
+        "読みは、文字起こしのエンジンが Haas（WSL）のときに使う。"
+        "読みが無い語は、認識の手がかりがほとんど効かない。"
     )
     assert find(opened.window, QWidget, "hint_length").isVisible()
     assert find(opened.window, QPushButton, "hint_preset_add").text() == "プリセットを追加"
@@ -4743,32 +4817,188 @@ def test_hint_word_remove_action(open_window: Callable[..., Opened]) -> None:
 
 
 def test_hint_words_when_narrow_window(open_window: Callable[..., Opened]) -> None:
-    """語の欄は入力と削除ボタンの組を 2 列に並べ、左から右、上から下が語の順になる。幅が組 2 つに足りなければ 1 列に積む。"""
+    """語の欄・読みの欄・削除ボタンを 1 行に並べ、窓の幅によらず上から下が語の順になる。"""
     # 準備
     opened = _open_hints(open_window, ("開発", ["a", "b", "c", "d"], True))
     window = opened.window
     panel = find(window, QWidget, "hint_preset_panel")
 
-    # 実行・検証（広いとき）
-    panel.setFixedWidth(900)
-    QTest.qWait(0)
-    edits = [find(window, QLineEdit, f"hint_word_0_{m}") for m in range(4)]
-    tops = [_top_of(edit, window) for edit in edits]
-    lefts = [_left_of(edit, window) for edit in edits]
-    assert tops[0] == tops[1] < tops[2] == tops[3]
-    assert lefts[0] == lefts[2] < lefts[1] == lefts[3]
+    for width in (900, 300):
+        # 実行
+        panel.setFixedWidth(width)
+        QTest.qWait(0)
 
-    # 実行・検証（狭いとき）
-    panel.setFixedWidth(300)
-    QTest.qWait(0)
-    lefts = [_left_of(edit, window) for edit in edits]
-    tops = [_top_of(edit, window) for edit in edits]
-    assert len(set(lefts)) == 1
-    assert tops == sorted(tops)
-    assert len(set(tops)) == 4
+        # 検証
+        edits = [find(window, QLineEdit, f"hint_word_0_{m}") for m in range(4)]
+        tops = [_top_of(edit, window) for edit in edits]
+        assert len({_left_of(edit, window) for edit in edits}) == 1
+        assert tops == sorted(tops)
+        assert len(set(tops)) == 4
+        reading = find(window, QLineEdit, "hint_reading_0_0")
+        assert _top_of(reading, window) == tops[0]
+        assert _left_of(reading, window) > _left_of(edits[0], window)
+        assert reading.width() < edits[0].width()
+
+
+# === hint_reading_{n}_{m}・hint_words_head_{n} ===
+
+
+def _open_readings(open_window: Callable[..., Opened]) -> Opened:
+    """語 2 つで 1 つ目だけ読みのあるプリセットで設定画面を開く。"""
+    from voice_paste.shared.settings import HintPresetSettings
+
+    preset = HintPresetSettings(name="開発", words=["突合", "GitHub"], readings=["とつごう", ""])
+    opened = open_window(make_settings(hint_presets=[preset]))
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(HINT_GROUP_ROW)
+    return opened
+
+
+def test_hint_reading_initial_value(open_window: Callable[..., Opened]) -> None:
+    """語の欄の右に読みの欄を出し、設定の読みを入れる。読みの無い語は空。読み上げの名前は「{何つ目か} つ目の語の読み」。"""
+    # 実行
+    window = _open_readings(open_window).window
+
+    # 検証
+    first = find(window, QLineEdit, "hint_reading_0_0")
+    assert first.isVisible()
+    assert first.text() == "とつごう"
+    assert first.accessibleName() == "1 つ目の語の読み"
+    assert find(window, QLineEdit, "hint_reading_0_1").text() == ""
+
+
+def test_hint_words_head_when_words_exist(open_window: Callable[..., Opened]) -> None:
+    """語があるプリセットに、語と読みの列の見出しを出し、左端を欄に合わせる。"""
+    # 実行
+    window = _open_readings(open_window).window
+
+    # 検証
+    head = find(window, QWidget, "hint_words_head_0")
+    assert head.isVisible()
+    assert head.accessibleName() == "語と読み"
+    titles = {label.text(): label for label in head.findChildren(QLabel)}
+    assert set(titles) == {"語", "読み"}
+    for title, edit_name in (("語", "hint_word_0_0"), ("読み", "hint_reading_0_0")):
+        assert _left_of(titles[title], window) == _left_of(find(window, QLineEdit, edit_name), window)
+
+
+def test_hint_words_head_when_no_words(open_window: Callable[..., Opened]) -> None:
+    """語が無いプリセットでは、列の見出しを出さない。"""
+    # 実行
+    opened = _open_hints(open_window, ("開発", [], True))
+
+    # 検証
+    assert not find(opened.window, QWidget, "hint_words_head_0").isVisible()
+
+
+def test_hint_reading_when_saved(open_window: Callable[..., Opened]) -> None:
+    """読みの欄に入れた値は、前後の空白を除いて語と同じ並びで保存する。"""
+    # 準備
+    opened = _open_readings(open_window)
+    find(opened.window, QLineEdit, "hint_reading_0_1").setText(" ギットハブ ")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    saved, _rows = _saved(opened)
+    assert saved.hint_presets[0].readings == ["とつごう", "ギットハブ"]
+
+
+def test_hint_reading_when_all_empty(open_window: Callable[..., Opened]) -> None:
+    """全ての語の読みが空なら、空の一覧で保存する。"""
+    # 準備
+    opened = _open_hints(open_window, ("開発", ["a", "b"], True))
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    saved, _rows = _saved(opened)
+    assert saved.hint_presets[0].readings == []
+
+
+def test_hint_reading_when_word_removed(open_window: Callable[..., Opened]) -> None:
+    """語を削除すると、その語の読みも消え、残りの語の読みは残る。"""
+    # 準備
+    opened = _open_readings(open_window)
+
+    # 実行
+    _click(opened.window, "hint_word_remove_0_1")
+
+    # 検証
+    assert find(opened.window, QLineEdit, "hint_reading_0_0").text() == "とつごう"
+    assert opened.window.findChild(QLineEdit, "hint_reading_0_1") is None
+
+
+def test_hint_reading_when_word_added(open_window: Callable[..., Opened]) -> None:
+    """語を追加すると、読みの欄も空で増える。"""
+    # 準備
+    opened = _open_readings(open_window)
+
+    # 実行
+    _click(opened.window, "hint_word_add_0")
+
+    # 検証
+    assert find(opened.window, QLineEdit, "hint_reading_0_2").text() == ""
 
 
 # === input_checks（表記のヒント） ===
+
+
+def test_input_check_when_hint_reading_not_kana(open_window: Callable[..., Opened]) -> None:
+    """読みにかな以外の文字が入っている: その欄の下とエラーの一覧に出す。"""
+    # 準備
+    opened = _open_readings(open_window)
+    find(opened.window, QLineEdit, "hint_reading_0_1").setText("github")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    message = "読みはひらがなかカタカナで入れてください。"
+    assert message in _field_errors(opened.window)
+    assert f"プリセット 1 件目の 2 つ目の語の読み: {message}" in _error_rows(opened.window)
+    assert find(opened.window, QLineEdit, "hint_reading_0_1").property("invalid")
+    opened.deps.save_settings.assert_not_called()
+
+
+def test_error_summary_row_action_when_hint_reading(open_window: Callable[..., Opened]) -> None:
+    """読みの欄の行を押すと、表記のヒントのまとまりへ切り替えて、その読みの欄へフォーカスを移す。"""
+    # 準備
+    opened = _open_readings(open_window)
+    find(opened.window, QLineEdit, "hint_reading_0_1").setText("github")
+    _click(opened.window, "save_button")
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(10)
+    link = next(
+        label for label in find(opened.window, QFrame, "error_summary").findChildren(QLabel)
+        if "href" in label.text()
+    )
+
+    # 実行
+    link.linkActivated.emit("hint_presets[0].readings[1]")
+
+    # 検証
+    assert find(opened.window, QListWidget, "group_menu").currentRow() == HINT_GROUP_ROW
+    assert opened.window.focusWidget() is find(opened.window, QLineEdit, "hint_reading_0_1")
+
+
+def test_input_check_when_hint_reading_conflict(open_window: Callable[..., Opened]) -> None:
+    """同じ語に違う読み: 後ろの語の読みの欄の下とエラーの一覧に出す。"""
+    from voice_paste.shared.settings import HintPresetSettings
+
+    # 準備
+    preset = HintPresetSettings(name="開発", words=["突合", "突合"], readings=["とつごう", ""])
+    opened = open_window(make_settings(hint_presets=[preset]))
+    find(opened.window, QLineEdit, "hint_reading_0_1").setText("とつあわせ")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    message = "同じ語に違う読みが入っています。読みを揃えるか、語を削除してください。"
+    assert message in _field_errors(opened.window)
+    assert f"プリセット 1 件目の 2 つ目の語の読み: {message}" in _error_rows(opened.window)
+    opened.deps.save_settings.assert_not_called()
 
 
 def test_input_check_when_hint_too_long(open_window: Callable[..., Opened]) -> None:

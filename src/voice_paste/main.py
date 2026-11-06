@@ -68,6 +68,8 @@ from voice_paste.features.web_transcription import (
     WebTranscriptionDeps,
 )
 from voice_paste.integrations.audio.probe import probe_audio
+from voice_paste.integrations.haas.server import HaasServer
+from voice_paste.integrations.haas.transcriber import HaasTranscriber
 from voice_paste.integrations.http.client import post_json
 from voice_paste.integrations.keyboard.sender import copy_to_clipboard, send_enter, use_xclip_clipboard
 from voice_paste.integrations.openai.credentials import read_openai_api_key
@@ -108,9 +110,11 @@ from voice_paste.shared.os_kind import (
     unavailable_features,
 )
 from voice_paste.shared.settings import (
+    HintVocabularyWord,
     Preset,
     Settings,
     build_settings_model,
+    collect_hint_vocabulary,
     has_restart_change,
     join_hint_words,
     load_default_settings,
@@ -275,6 +279,9 @@ class Handlers:
 
     stop_engine: Callable[[], None]
     """文字起こしのエンジンを止める。終了時に呼ぶ。"""
+
+    active_engine: EngineName
+    """実際に動いているエンジン。設定が haas で切り戻した起動では local_whisper。"""
 
 
 def _do_nothing() -> None:
@@ -561,7 +568,16 @@ def build_handlers(
     store = SettingsStore(settings)
 
     # 2. 設定のエンジンで、文字起こしの関数と、エンジンを止める関数を作る
-    engine, stop_engine = _build_engine(settings, paths, adapters, environ, on_engine_created)
+    engine, stop_engine, active_engine = _build_engine(
+        settings,
+        paths,
+        adapters,
+        environ,
+        on_engine_created,
+        get_vocabulary=lambda: collect_hint_vocabulary(store.get().hint_presets),
+        notify=notify,
+        unavailable=unavailable,
+    )
 
     # 3. 連続録音の話し声の判定に使う VAD のセッションを 1 回だけ読む（読めなければ立ち上げたエンジンを止めて起動の失敗にする）
     try:
@@ -684,6 +700,7 @@ def build_handlers(
             engine=engine,
             correct=correct,
             glossary_preset_exists=glossary_preset_exists,
+            active_engine=active_engine,
         )
     )
 
@@ -698,6 +715,7 @@ def build_handlers(
         ),
         recorder_level=recorder.level,
         stop_engine=stop_engine,
+        active_engine=active_engine,
     )
 
 
@@ -708,6 +726,7 @@ def _wire_web_api(
     engine: EngineFn,
     correct: Callable[[str, str | None], str],
     glossary_preset_exists: Callable[[str], bool],
+    active_engine: EngineName,
 ) -> WebApiDeps:
     """ブラウザの文字起こしを配線する（履歴を残すかと用語集のプリセットの一覧はそのたびに SettingsStore から引く。ワーカースレッドはまだ立てない）。"""
 
@@ -745,8 +764,12 @@ def _wire_web_api(
         tmp_dir=paths.tmp_dir / WEB_TMP_DIR_NAME,
         glossary_preset_exists=glossary_preset_exists,
         list_glossary_presets=list_glossary_preset_choices,
-        reports_progress=_reports_progress(store.get()),
+        reports_progress=_reports_progress(active_engine),
     )
+
+
+HAAS_FALLBACK_MESSAGE: str = "Haas のサーバーへ接続できないため、ローカルの Whisper で起こします。"
+"""Haas からローカルの Whisper へ切り戻したときの知らせの文。"""
 
 
 def _build_engine(
@@ -755,8 +778,12 @@ def _build_engine(
     adapters: PlatformAdapters,
     environ: Mapping[str, str],
     on_engine_created: Callable[[Callable[[], None]], None],
-) -> tuple[EngineFn, Callable[[], None]]:
-    """設定のエンジンで、文字起こしの関数と、エンジンを止める関数を作る。止める関数は準備を始める前に on_engine_created へ渡す。準備できなければ StartupError。"""
+    *,
+    get_vocabulary: Callable[[], list[HintVocabularyWord]],
+    notify: NotifyFn,
+    unavailable: frozenset[Feature],
+) -> tuple[EngineFn, Callable[[], None], EngineName]:
+    """設定のエンジンで、文字起こしの関数と、エンジンを止める関数と、動いているエンジンを作る。止める関数は準備を始める前に on_engine_created へ渡す。準備できなければ StartupError。"""
     # 設定のエンジンは何か
     if EngineName(settings.transcription.engine) is EngineName.OPENAI:
         # OpenAI API: API キーを読み、OpenAI API の文字起こしを作る（文字起こしワーカーは起動せず、止めるものも無い）
@@ -766,9 +793,36 @@ def _build_engine(
         )
         logger.info(f"文字起こしのエンジンは OpenAI API（{settings.transcription.openai.model}）")
         on_engine_created(_stop_nothing)
-        return transcriber.transcribe, _stop_nothing
+        return transcriber.transcribe, _stop_nothing, EngineName.OPENAI
 
-    # ローカルの Whisper: 依存が入っているかを確かめ、ワーカーを作って起動する
+    # Haas: サーバーを確かめる。使えなければローカルの Whisper へ切り戻す
+    if EngineName(settings.transcription.engine) is EngineName.HAAS:
+        haas_settings = settings.transcription.haas
+        server = HaasServer(settings=haas_settings)
+        on_engine_created(server.stop)
+        try:
+            if Feature.HAAS_ENGINE in unavailable:
+                raise EngineError("この OS では使えない")
+            server.ensure_started()
+        except EngineError as error:
+            logger.warning(f"Haas のサーバーへ接続できないためローカルの Whisper で起こす（{error}）")
+            notify("engine_fallback", HAAS_FALLBACK_MESSAGE)
+        else:
+            transcriber = HaasTranscriber(port=haas_settings.port, get_vocabulary=get_vocabulary)
+            return transcriber.transcribe, server.stop, EngineName.HAAS
+
+    # ローカルの Whisper
+    engine, stop = _start_local_whisper(settings, paths, adapters, on_engine_created)
+    return engine, stop, EngineName.LOCAL_WHISPER
+
+
+def _start_local_whisper(
+    settings: Settings,
+    paths: AppPaths,
+    adapters: PlatformAdapters,
+    on_engine_created: Callable[[Callable[[], None]], None],
+) -> tuple[EngineFn, Callable[[], None]]:
+    """依存が入っているかを確かめ、文字起こしワーカーを作って起動する。準備できなければ StartupError。"""
     ensure_local_whisper_installed()
     worker = WhisperWorkerClient(
         settings=settings.transcription.local_whisper,
@@ -1007,13 +1061,13 @@ def build_ui_deps(
         reset_settings=reset_settings,
         default_settings=partial(load_default_settings, paths.defaults_file, SETTINGS_MODEL),
         hidden_setting_keys=hidden_setting_keys(unavailable_features(CURRENT_OS)),
-        reports_progress=_reports_progress(store.get()),
+        reports_progress=_reports_progress(handlers.active_engine),
     )
 
 
-def _reports_progress(settings: Settings) -> bool:
-    """設定のエンジンが、区間ごとの進みを知らせるか（ローカルの Whisper は知らせ、OpenAI API は知らせない）。"""
-    return EngineName(settings.transcription.engine) is EngineName.LOCAL_WHISPER
+def _reports_progress(engine: EngineName) -> bool:
+    """動いているエンジンが、区間ごとの進みを知らせるか（ローカルの Whisper は知らせ、OpenAI API と Haas は知らせない）。"""
+    return engine is EngineName.LOCAL_WHISPER
 
 
 def _apply_current_theme(
@@ -1081,7 +1135,7 @@ def _build_idle_ui_deps(
         ),
         default_settings=partial(load_default_settings, paths.defaults_file, SETTINGS_MODEL),
         hidden_setting_keys=hidden_setting_keys(unavailable_features(CURRENT_OS)),
-        reports_progress=_reports_progress(store.get()),
+        reports_progress=_reports_progress(EngineName(settings.transcription.engine)),
     )
 
 
@@ -1375,6 +1429,8 @@ def _start_services(
         environ=os.environ,
         unavailable=unavailable,
     )
+    # 配線の間の知らせ（Haas からの切り戻し）はトレイが受ける（画面の振り分けは配線の後に作る）
+    bridge.notified.connect(tray.show_failure, Qt.ConnectionType.QueuedConnection)
     startup = _StartupBuild()
     running.startup = startup
     running.building = True
@@ -1409,7 +1465,8 @@ def _finish_startup(
     ui_notify = partial(notify, bridge=bridge)
     show_recording_window = partial(notify, "show_recording_window", bridge=bridge)
 
-    # 7. 配線の間だけつないでいた「再起動」「終了」を外す（以降は画面の振り分けが受ける）
+    # 7. 配線の間だけつないでいた「再起動」「終了」と知らせを外す（以降は画面の振り分けが受ける）
+    bridge.notified.disconnect(tray.show_failure)
     tray.restart_requested.disconnect(exit_request.request_restart)
     tray.quit_requested.disconnect(exit_request.request_quit)
 

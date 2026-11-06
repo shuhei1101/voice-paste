@@ -112,6 +112,7 @@ def test_tray_notification_not_visible_when(
     ("event", "reason", "title"),
     [
         ("engine_unavailable", "モデルを読めません", "起動できませんでした"),
+        ("engine_fallback", "切り戻す", "Haas を使用できません"),
         ("settings_invalid", "api.port: 1024〜65535 の値を入れてください", "起動できませんでした"),
         ("paste_unavailable", "Permission denied", "貼り付けを使用できません"),
     ],
@@ -193,6 +194,21 @@ def test_notification_title_and_body_when_copy_completed(
     args: tuple[Any, ...] = shown.call_args.args
     assert args[0] == "コピーしました"
     assert args[1] == "任意の場所に貼り付けてください。この通知を押すと、もう一度コピーします。"
+
+
+def test_notification_body_when_engine_fallback(
+    make_ui: Callable[..., Ui], shown: MagicMock
+) -> None:
+    """Haas から切り戻した起動の本文は、切り戻しの文だけを出す。"""
+    # 準備
+    ui = make_ui()
+    message = "Haas のサーバーへ接続できないため、ローカルの Whisper で起こします。"
+
+    # 実行
+    ui.tray.show_failure("engine_fallback", message)
+
+    # 検証
+    assert shown.call_args.args[:2] == ("Haas を使用できません", message)
 
 
 def test_notification_body_when_engine_unavailable(

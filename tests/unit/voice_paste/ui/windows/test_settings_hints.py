@@ -135,7 +135,7 @@ def test_hint_preset_panel_add_preset(open_panel: Callable[..., HintPresetPanel]
     panel.add_preset()
 
     # 検証
-    assert panel.collect() == [{"name": "", "words": [], "enabled": True}]
+    assert panel.collect() == [{"name": "", "words": [], "readings": [], "enabled": True}]
     assert changed_count == [1]
     assert not _is_empty_guide_visible(panel)
 
@@ -220,8 +220,8 @@ def test_hint_preset_panel_change_values(open_panel: Callable[..., HintPresetPan
 
     # 検証
     assert len(values) == 3
-    assert values["hint_presets[0]"] == ("開発", ["voice-paste"], True)
-    assert values["hint_presets[1]"] == ("会議", ["議事録"], False)
+    assert values["hint_presets[0]"] == ("開発", ["voice-paste"], [], True)
+    assert values["hint_presets[1]"] == ("会議", ["議事録"], [], False)
     assert values["hint_presets.order"] is True
 
 
@@ -245,9 +245,9 @@ def test_hint_preset_panel_change_values_when_moved(
 
     # 検証
     values = panel.change_values()
-    assert values["hint_presets[0]"] == ("A", ["a"], True)
-    assert values["hint_presets[1]"] == ("B", ["b"], True)
-    assert values["hint_presets[2]"] == ("C", ["c"], False)
+    assert values["hint_presets[0]"] == ("A", ["a"], [], True)
+    assert values["hint_presets[1]"] == ("B", ["b"], [], True)
+    assert values["hint_presets[2]"] == ("C", ["c"], [], False)
     assert values["hint_presets.order"] is False
 
 
@@ -272,7 +272,7 @@ def test_hint_preset_panel_change_values_when_removed(
     # 検証
     values = panel.change_values()
     assert set(values) == {"hint_presets[0]", "hint_presets[2]", "hint_presets.order"}
-    assert values["hint_presets[2]"] == ("C", ["c"], False)
+    assert values["hint_presets[2]"] == ("C", ["c"], [], False)
     assert values["hint_presets.order"] is True
 
 
@@ -291,8 +291,8 @@ def test_hint_preset_panel_change_values_when_added(
 
     # 検証
     values = panel.change_values()
-    assert values["hint_presets[0]"] == ("A", ["a"], True)
-    assert values["hint_presets[1]"] == ("", [], True)
+    assert values["hint_presets[0]"] == ("A", ["a"], [], True)
+    assert values["hint_presets[1]"] == ("", [], [], True)
     assert values["hint_presets.order"] is True
 
 
@@ -315,8 +315,8 @@ def test_hint_preset_panel_change_values_when_word_removed(
 
     # 検証
     values = panel.change_values()
-    assert values["hint_presets[0]"] == ("A", ["y"], True)
-    assert values["hint_presets[1]"] == ("B", ["z"], False)
+    assert values["hint_presets[0]"] == ("A", ["y"], [], True)
+    assert values["hint_presets[1]"] == ("B", ["z"], [], False)
     assert values["hint_presets.order"] is True
 
 
@@ -342,10 +342,96 @@ def test_hint_preset_panel_mark_saved(open_panel: Callable[..., HintPresetPanel]
 
     # 検証（保存した並びの B・A と追加したプリセットが番号 0・1・2 で、並びの値は True）
     values = panel.change_values()
-    assert values["hint_presets[0]"] == ("B", ["b"], False)
-    assert values["hint_presets[1]"] == ("A", ["a"], True)
-    assert values["hint_presets[2]"] == ("", [], True)
+    assert values["hint_presets[0]"] == ("B", ["b"], [], False)
+    assert values["hint_presets[1]"] == ("A", ["a"], [], True)
+    assert values["hint_presets[2]"] == ("", [], [], True)
     assert values["hint_presets.order"] is True
     # 続けて追加したプリセットは、振った番号より大きい番号で増える
     panel.add_preset()
     assert "hint_presets[3]" in panel.change_values()
+
+
+# === 読みの欄 ===
+
+
+def _reading_presets() -> list[HintPresetSettings]:
+    """語 2 つで 1 つ目だけ読みのあるプリセットを返す。"""
+    from voice_paste.shared.settings import HintPresetSettings
+
+    return [HintPresetSettings(name="開発", words=["突合", "GitHub"], readings=["とつごう", ""])]
+
+
+def test_hint_preset_panel_set_presets_when_readings(
+    open_panel: Callable[..., HintPresetPanel],
+) -> None:
+    """読みを語の欄の右に出し、列の見出しを出す（正常系）。"""
+    # 実行
+    panel = open_panel(_reading_presets())
+
+    # 検証
+    assert panel.findChild(QLineEdit, "hint_reading_0_0").text() == "とつごう"
+    assert panel.findChild(QLineEdit, "hint_reading_0_1").text() == ""
+    assert panel.findChild(QWidget, "hint_words_head_0").isVisible()
+
+
+def test_hint_preset_panel_set_presets_when_no_words(
+    open_panel: Callable[..., HintPresetPanel],
+) -> None:
+    """語が無ければ列の見出しを出さず、語が無いときの文を出す（正常系）。"""
+    from voice_paste.shared.settings import HintPresetSettings
+
+    # 実行
+    panel = open_panel([HintPresetSettings(name="開発")])
+
+    # 検証
+    assert not panel.findChild(QWidget, "hint_words_head_0").isVisible()
+    assert panel.findChild(QLabel, "hint_words_empty_0").isVisible()
+
+
+def test_hint_preset_panel_collect_when_readings(
+    open_panel: Callable[..., HintPresetPanel],
+) -> None:
+    """読みを語と同じ並びで集める（正常系）。"""
+    # 準備
+    panel = open_panel(_reading_presets())
+
+    # 実行
+    collected = panel.collect()
+
+    # 検証
+    assert collected[0]["readings"] == ["とつごう", ""]
+
+
+def test_hint_preset_panel_collect_when_no_readings(
+    open_panel: Callable[..., HintPresetPanel],
+) -> None:
+    """全ての読みが空なら空の一覧にする（正常系）。"""
+    from voice_paste.shared.settings import HintPresetSettings
+
+    # 準備
+    panel = open_panel([HintPresetSettings(name="開発", words=["A", "B"])])
+
+    # 実行
+    collected = panel.collect()
+
+    # 検証
+    assert collected[0]["readings"] == []
+
+
+def test_hint_preset_panel_collect_when_word_removed(
+    open_panel: Callable[..., HintPresetPanel],
+) -> None:
+    """語を削除すると読みも消える（正常系）。"""
+    from voice_paste.shared.settings import HintPresetSettings
+
+    # 準備
+    panel = open_panel([HintPresetSettings(name="開発", words=["A", "B"], readings=["あ", "い"])])
+
+    # 実行
+    panel.findChild(QAbstractButton, "hint_word_remove_0_0").click()
+    collected = panel.collect()
+
+    # 検証
+    assert collected[0]["words"] == ["B"]
+    assert collected[0]["readings"] == ["い"]
+

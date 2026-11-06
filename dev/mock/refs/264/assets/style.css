@@ -1,0 +1,50 @@
+/* ===== PR 264 の画面モック: 表記のヒントの読みの欄（refs/37・refs/44・refs/99 の style.css に重ねる） ===== */
+
+/* 設定画面の最小の幅で開く場面 */
+.settings--min {
+  width: 720px;
+  max-width: 100%;
+}
+
+/* 語と読みの入力: 語の欄の幅を広めに取る */
+.hint-words--reading li {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) auto;
+}
+
+/* 読みの入力: 語の入力と同じ大きさで並べる */
+.hint-words--reading input[type="text"] {
+  width: 100%;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* 列の見出し: 案 A は格子の組ごとに見出しが付かないため出さない */
+.hint-words-head {
+  display: none;
+}
+
+/* 案 A: 組が 2 列入る幅（1 組 260px）だけ 2 列にする */
+.a-word-pairs .hint-words--reading {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+}
+
+/* 案 B: 語を 1 行に 1 つ並べる */
+.b-word-table .hint-words--reading {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* 案 B の列の見出し: 下の行と列を揃える（削除のボタンの幅は --control-h） */
+.b-word-table .hint-words-head {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) var(--control-h);
+  gap: 4px;
+  width: 100%;
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+/* 見出しを隠す hidden を、上の display より優先する */
+.hint-words-head[hidden] {
+  display: none;
+}

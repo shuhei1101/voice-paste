@@ -2,3 +2,5 @@ summary: サブシステムの外部インターフェースと処理フロー�
 items:
   - page: 常駐アプリ/
     summary: 常駐アプリの API と、呼び出し元への返送
+  - page: Haasの文字起こしのサーバー/
+    summary: WSL の中で Haas-ja-v1.0 を持つ文字起こしのサーバーの API

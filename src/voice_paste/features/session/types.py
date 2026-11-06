@@ -110,6 +110,7 @@ type NotifyFn = Callable[
             "transcription_failed",
             "delivery_failed",
             "api_unavailable",
+            "engine_fallback",
             "output_changed",
         ],
         str | None,

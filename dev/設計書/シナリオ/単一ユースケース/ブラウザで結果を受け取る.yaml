@@ -127,6 +127,8 @@ scenarios:
       - 文字起こし中の間、件に「文字起こし中」が出て、% と進みのバーが出ていない
       - 終わると、件に起こした文字が出ている
     test: test_normal_when_engine_reports_no_progress
+    notes:
+      進みを返さないエンジン: 進みを返さないのは OpenAI API と Haas のエンジン。どちらも同じ出し方になるため、このシナリオは OpenAI API の設定で確かめる。
   - name: 異常シナリオ（文字起こしに失敗）
     setup:
       - name: Mock

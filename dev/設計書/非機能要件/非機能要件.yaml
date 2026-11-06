@@ -609,3 +609,40 @@ requirements:
     status: planned
     introduced:
       pr: 204
+  - name: Haasの動作環境
+    english_name: haas_environment
+    category: 動作環境
+    external_constraint: Haas-ja-v1.0 は Linux と NVIDIA GPU（Triton・CUDA）が必須で、Windows の常駐アプリの中では動かない
+    source_kind: 外部ライブラリの制限
+    source: https://github.com/shuhei1101/voice-paste/blob/feat/transcription/haas-engine/dev/pr/264/%E7%A2%BA%E8%AA%8D%E3%83%AD%E3%82%B0.md
+    value: Windows 11 22H2 以降の端末の WSL2（Ubuntu・NVIDIA GPU・GPU のメモリの空き約 4 GB）で、ネットワークが mirrored のモード
+    rationale: Windows から WSL の 127.0.0.1 へ届くことを PoC で確かめたのは mirrored のモードだけで、対象を mirrored に限るのはユーザーの判断（確認ログ）。mirrored のモードは Windows 11 22H2 以降の機能（https://learn.microsoft.com/en-us/windows/wsl/networking）。GPU のメモリは PoC の実測の約 4.0 GB
+    measurement: PoC の実測（計画書の `## PoC 結果`）
+    overflow: 環境が合わずにサーバーへ接続できないときは、終了までローカルの Whisper で起こす
+    status: planned
+  - name: Haasのサーバーの起動の待ち時間
+    english_name: haas_server_start_timeout
+    category: 耐障害
+    external_constraint: サーバーはモデルを読み込み終えてから待ち受ける。PoC の実測は WSL が起動済みで wsl.exe の起動から最初の応答まで 22.2 秒（うちモデルの読み込み 13.9 秒。1 回）。WSL が止まっている状態からの時間は測っていない
+    source_kind: PC 性能
+    value: 60 秒（応答の確認の間隔 0.5 秒）
+    unit: 秒
+    rationale: 規約『資源の値の決め方』の下流を待つタイムアウト。実測 22.2 秒に余裕 50% を足して 33.3 秒にし、WSL の起動の実測が無いため 1 件の外の余裕として 25 秒を足して切り上げた仮の値。エージェントが同じ WSL の中で動くため `wsl --shutdown` の後を開発の中で測れない。測る作業を残す
+    measurement: 実装の後に、Windows の再起動の直後に常駐アプリを起動し、HaasServer.ensure_started が書く `[INFO]` のかかった秒を読む。60 秒に近ければ値を見直す
+    overflow: 待ち時間までに応答が無ければ、終了までローカルの Whisper で起こし、トレイとログで知らせる
+    refs:
+      - SC-5#
+    status: planned
+  - name: Haasの文字起こしのタイムアウト
+    english_name: haas_transcription_timeout
+    category: 耐障害
+    external_constraint: PoC の実測は約 176 秒の音声で 0.43 秒（HTTP の往復を含む中央値）。サーバーは 1 件ずつ起こす
+    source_kind: PC 性能
+    value: 接続 3 秒・応答 180 秒・再送なし
+    unit: 秒
+    rationale: 規約『資源の値の決め方』の下流を待つタイムアウト。音声の最長をブラウザの本文の上限に近い 6 時間（21,600 秒）と見て、実測の比 0.43 / 176 で 53 秒。サーバーは 1 件ずつ起こすため前の要求の分を足して 106 秒、余裕 50% を足して 159 秒を 180 秒に切り上げた。接続は 127.0.0.1 のため 3 秒。再送は、失敗の多くがサーバーの停止で、送り直しても通らないため行わない
+    measurement: 単体テストで httpx.MockTransport にタイムアウトを返させ、EngineError になることを確かめる。実測は外部疎通テストで記録する
+    overflow: EngineError にして、文字起こしの失敗として扱う（録音は履歴に残る。ローカルの Whisper へは切り戻さない）
+    refs:
+      - IF-12#
+    status: planned

@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from tests.integration.helpers import CallbackReceiver
+from tests.support.haas_endpoint import FakeHaasEndpoint
 from tests.support.inprocess import InProcessApp, WavInput, start_inprocess_app
 from tests.support.openai_endpoint import FakeOpenAIEndpoint
 from tests.support.real_service import RealService
@@ -22,6 +23,14 @@ def receiver() -> Iterator[CallbackReceiver]:
     callback_receiver.start()
     yield callback_receiver
     callback_receiver.stop()
+
+
+@pytest.fixture
+def haas_endpoint() -> Iterator[FakeHaasEndpoint]:
+    """Haas の文字起こしのサーバーの代わりのテスト用のエンドポイントを 127.0.0.1 に立てる。待ち受けはテストが始める。"""
+    endpoint = FakeHaasEndpoint()
+    yield endpoint
+    endpoint.stop()
 
 
 @pytest.fixture

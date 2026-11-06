@@ -1429,3 +1429,71 @@ def test_to_field_message_when_web_origin_not_form(
         "https://example.com のように、http:// か https:// で始め、"
         "末尾の / とパスを付けずに入れてください。"
     )
+
+
+# === to_field_message（読み・Haas のポート） ===
+
+
+def _field_message(
+    settings_model: type[Settings], default_settings: Settings, overrides: dict[str, Any]
+) -> tuple[str, tuple[str | int, ...]]:
+    """overrides の検証の失敗を文言にして、文言と失敗の場所を返す。"""
+    from pydantic import ValidationError
+
+    from voice_paste.ui.windows.settings_window import to_field_message
+
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate(make_test_document(overrides))
+    error = exc_info.value.errors()[0]
+    return to_field_message(error, model=settings_model, defaults=default_settings), error["loc"]
+
+
+def test_to_field_message_when_hint_reading_not_kana(
+    settings_model: type[Settings], default_settings: Settings
+) -> None:
+    """読みにかな以外の文字が入っている（正常系）。"""
+    # 実行
+    message, _loc = _field_message(
+        settings_model,
+        default_settings,
+        {"hint_presets": [{"name": "A", "words": ["突合"], "readings": ["totsugou"]}]},
+    )
+
+    # 検証
+    assert message == "読みはひらがなかカタカナで入れてください。"
+
+
+def test_to_field_message_when_hint_reading_conflict(
+    settings_model: type[Settings], default_settings: Settings
+) -> None:
+    """同じ語に違う読みが入っている（正常系）。"""
+    # 実行
+    message, loc = _field_message(
+        settings_model,
+        default_settings,
+        {
+            "hint_presets": [
+                {"name": "A", "words": ["突合", "突合"], "readings": ["とつごう", "とつあわせ"]}
+            ]
+        },
+    )
+
+    # 検証
+    assert message == "同じ語に違う読みが入っています。読みを揃えるか、語を削除してください。"
+    assert loc == ("hint_presets", 0, "readings", 1)
+
+
+def test_to_field_message_when_haas_port_overlap(
+    settings_model: type[Settings], default_settings: Settings
+) -> None:
+    """Haas のポートが API のポートと同じ（正常系）。"""
+    # 実行
+    message, loc = _field_message(
+        settings_model,
+        default_settings,
+        {"api": {"port": 47900}, "transcription": {"haas": {"port": 47900}}},
+    )
+
+    # 検証
+    assert message == "API を待ち受けるポートと同じ番号です。別の番号を入れてください。"
+    assert loc == ("transcription", "haas", "port")

@@ -1,0 +1,1 @@
+# Linux（Ubuntu）の文字起こしは OpenAI API に限ることを使い方へ記載する

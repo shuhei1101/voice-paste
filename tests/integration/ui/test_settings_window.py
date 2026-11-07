@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QRadioButton,
     QSlider,
+    QTabWidget,
     QWidget,
 )
 
@@ -150,11 +151,13 @@ def _error_rows(window: QWidget) -> list[str]:
 
 
 def _field_errors(window: QWidget) -> list[str]:
-    """欄の下（行の下）に出ているエラーの文を並べる。"""
+    """欄の下（行の下）に出ているエラーの文を並べる（エンジンのタブの「エラー {件数} 件」は含めない）。"""
     return [
         label.text()
         for label in window.findChildren(QLabel)
-        if label.property("role") == "error" and not label.isHidden()
+        if label.property("role") == "error"
+        and not label.isHidden()
+        and not label.objectName().startswith("engine_error_count_")
     ]
 
 
@@ -531,10 +534,11 @@ def test_field_engine_when_openai(open_window: Callable[..., Opened]) -> None:
 
 
 def test_field_openai_fields(open_window: Callable[..., Opened]) -> None:
-    """「文字起こし」のまとまりに OpenAI API の 3 つの文字の欄を出し、既定の値・再起動で反映のマーカー・補助文を出す。"""
+    """「文字起こし」のまとまりの「OpenAI API」のタブに 3 つの文字の欄を出し、既定の値・再起動で反映のマーカー・補助文を出す。"""
     # 準備
     window = open_window().window
     find(window, QListWidget, "group_menu").setCurrentRow(5)
+    find(window, QTabWidget, "engine_tabs").setCurrentIndex(1)
 
     # 実行
     texts = [label.text() for label in window.findChildren(QLabel)]
@@ -578,15 +582,17 @@ def test_field_openai_fields_when_saved(open_window: Callable[..., Opened]) -> N
 
 
 def test_field_haas_fields(open_window: Callable[..., Opened]) -> None:
-    """「文字起こし」のまとまりに Haas の欄を出し、既定の値・欄の名前・再起動で反映のマーカー・補助文を出す。"""
+    """「文字起こし」のまとまりの「Haas（WSL）」のタブに欄を出し、既定の値・欄の名前・再起動で反映のマーカー・補助文を出す。"""
     # 準備
     window = open_window().window
     find(window, QListWidget, "group_menu").setCurrentRow(5)
+    find(window, QTabWidget, "engine_tabs").setCurrentIndex(2)
 
     # 実行
     texts = [label.text() for label in window.findChildren(QLabel)]
 
     # 検証
+    assert _field(window, "transcription.haas.distribution", QLineEdit).isVisible()
     assert _field(window, "transcription.haas.distribution", QLineEdit).text() == ""
     assert _field(window, "transcription.haas.port", QLineEdit).text() == "47824"
     assert "WSL のディストリビューション" in texts
@@ -744,6 +750,96 @@ def test_input_check_when_haas_model_empty(open_window: Callable[..., Opened]) -
     # 準備
     opened = open_window()
     _set_text(opened.window, "transcription.haas.model", " ")
+# === エンジンのタブ ===
+
+TRANSCRIPTION_GROUP_ROW = 5
+"""まとまりのメニューの「文字起こし」の行。"""
+
+
+def _engine_tabs(window: QWidget) -> QTabWidget:
+    """エンジンのタブ（`engine_tabs`）を引く。"""
+    return find(window, QTabWidget, "engine_tabs")
+
+
+def _tab_titles(tabs: QTabWidget) -> list[str]:
+    """タブの名前を並びのとおり返す。"""
+    return [tabs.tabText(index) for index in range(tabs.count())]
+
+
+def _shown_markers(window: QWidget, prefix: str) -> list[str]:
+    """隠していない、項目 ID が prefix で始まるラベルの項目 ID を名前の順で返す。"""
+    found = window.findChildren(QLabel, QRegularExpression(f"^{prefix}"))
+    return sorted(label.objectName() for label in found if not label.isHidden())
+
+
+def test_engine_tabs_initial(open_window: Callable[..., Opened]) -> None:
+    """エンジンのタブは、ローカルの Whisper・OpenAI API・Haas（WSL）の順で、開いたときは設定のエンジンのタブを出し、そのタブのエンジンの欄だけを出す。"""
+    # 準備
+    window = open_window(make_settings(transcription=dict(engine="openai"))).window
+
+    # 実行
+    find(window, QListWidget, "group_menu").setCurrentRow(TRANSCRIPTION_GROUP_ROW)
+
+    # 検証
+    tabs = _engine_tabs(window)
+    assert _tab_titles(tabs) == ["ローカルの Whisper", "OpenAI API", "Haas（WSL）"]
+    assert tabs.tabText(tabs.currentIndex()) == "OpenAI API"
+    assert _field(window, "transcription.openai.base_url", QLineEdit).isVisible()
+    assert not _field(window, RESTART_KEY, QLineEdit).isVisible()
+    assert not _field(window, "transcription.haas.port", QLineEdit).isVisible()
+
+
+def test_engine_tabs_action(open_window: Callable[..., Opened]) -> None:
+    """タブを選ぶとそのエンジンの欄に切り替わり、切り替えても入れた値は残る。"""
+    # 準備
+    window = open_window().window
+    find(window, QListWidget, "group_menu").setCurrentRow(TRANSCRIPTION_GROUP_ROW)
+    tabs = _engine_tabs(window)
+    _set_text(window, RESTART_KEY, "7")
+
+    # 実行
+    tabs.setCurrentIndex(2)
+
+    # 検証
+    assert _field(window, "transcription.haas.port", QLineEdit).isVisible()
+    assert not _field(window, RESTART_KEY, QLineEdit).isVisible()
+    tabs.setCurrentIndex(0)
+    assert _field(window, RESTART_KEY, QLineEdit).text() == "7"
+
+
+def test_engine_tabs_when_haas_hidden(open_window: Callable[..., Opened]) -> None:
+    """Haas のエンジンを使えない OS では、Haas（WSL）のタブを置かない。"""
+    from voice_paste.shared.os_kind import Feature, hidden_setting_keys
+
+    # 実行
+    window = open_window(hidden_setting_keys=hidden_setting_keys({Feature.HAAS_ENGINE})).window
+
+    # 検証
+    assert _tab_titles(_engine_tabs(window)) == ["ローカルの Whisper", "OpenAI API"]
+
+
+def test_engine_in_use_when_engine_changed(open_window: Callable[..., Opened]) -> None:
+    """「使用中」はエンジンの選択の欄で選んでいるエンジンのタブにだけ出し、選択を変えると「使用中」だけが移り、出しているタブは替わらない。"""
+    # 準備
+    window = open_window().window
+    find(window, QListWidget, "group_menu").setCurrentRow(TRANSCRIPTION_GROUP_ROW)
+    assert _shown_markers(window, "engine_in_use_") == ["engine_in_use_local_whisper"]
+    assert find(window, QLabel, "engine_in_use_local_whisper").text() == "使用中"
+
+    # 実行
+    _field(window, "transcription.engine", QComboBox).setCurrentIndex(2)
+
+    # 検証
+    assert _shown_markers(window, "engine_in_use_") == ["engine_in_use_haas"]
+    assert _engine_tabs(window).currentIndex() == 0
+
+
+def test_engine_error_count_when_unselected_engine_invalid(open_window: Callable[..., Opened]) -> None:
+    """選んでいないエンジンの欄が確認に通らない: そのタブに「エラー {件数} 件」を出し、エラーの一覧の行を押すとそのタブへ切り替えて欄へフォーカスを移す。修正して保存すると件数を削除する。"""
+    # 準備
+    opened = open_window()
+    find(opened.window, QListWidget, "group_menu").setCurrentRow(TRANSCRIPTION_GROUP_ROW)
+    _set_text(opened.window, "transcription.openai.base_url", "api.openai.com/v1")
 
     # 実行
     _click(opened.window, "save_button")
@@ -785,6 +881,19 @@ def test_input_check_when_haas_separator_too_long(open_window: Callable[..., Ope
     assert message in _field_errors(opened.window)
     assert f"区切りをつなぐ文字: {message}" in _error_rows(opened.window)
     opened.deps.save_settings.assert_not_called()
+    # 検証: OpenAI API のタブにだけ件数を出す
+    assert _shown_markers(opened.window, "engine_error_count_") == ["engine_error_count_openai"]
+    assert find(opened.window, QLabel, "engine_error_count_openai").text() == "エラー 1 件"
+    # 検証: エラーの一覧の行を押すと、OpenAI API のタブへ切り替えて欄へフォーカスを移す
+    summary = find(opened.window, QFrame, "error_summary")
+    link = next(label for label in summary.findChildren(QLabel) if "transcription.openai.base_url" in label.text())
+    link.linkActivated.emit("transcription.openai.base_url")
+    assert _engine_tabs(opened.window).currentIndex() == 1
+    assert opened.window.focusWidget() is _field(opened.window, "transcription.openai.base_url", QLineEdit)
+    # 検証: 修正して保存すると件数を削除する
+    _set_text(opened.window, "transcription.openai.base_url", "https://api.openai.com/v1")
+    _click(opened.window, "save_button")
+    assert _shown_markers(opened.window, "engine_error_count_") == []
 
 
 def test_field_name_and_key(open_window: Callable[..., Opened]) -> None:

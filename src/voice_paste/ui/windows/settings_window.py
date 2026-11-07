@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, Literal, TypeAliasType, get_args, get_ori
 
 from pydantic import ValidationError
 from pydantic.fields import FieldInfo
-from PySide6.QtCore import QEvent, QKeyCombination, Qt, Signal
+from PySide6.QtCore import QEvent, QKeyCombination, QObject, Qt, Signal
 from PySide6.QtGui import QAccessible, QAccessibleAnnouncementEvent, QCloseEvent, QKeyEvent
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -24,6 +24,8 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QStackedWidget,
+    QTabBar,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -33,6 +35,7 @@ from voice_paste.shared.os_kind import CURRENT_OS, OsKind
 from voice_paste.shared.settings import (
     EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE,
     EDGE_PHRASES_FIELD_NAME,
+    ENGINE_LABELS,
     GLOSSARIES_FIELD_NAME,
     GLOSSARY_NAME_OVERLAP_ERROR_TYPE,
     GLOSSARY_PRESET_NAME_OVERLAP_ERROR_TYPE,
@@ -116,6 +119,53 @@ GROUP_MENU_MARGIN_PX: int = 4
 PRESET_KIND_NAMES: dict[str, str] = {"browser": "ブラウザ添付", "endpoint": "エンドポイントへ送信"}
 """カスタムプリセットの種類ごとの画面の名前（設定画面のタブの名前）。種類の並びが、タブと録音の画面のボタンの並びになる。"""
 
+ENGINE_TABS_FIELD_NAME: str = "engine_tabs"
+"""FIELD_LAYOUT「文字起こし」の並びで、エンジンのタブを配置する位置を示す名前（_populate が _add_engine_tabs を呼ぶ）。"""
+
+ENGINE_TAB_LAYOUT: dict[str, tuple[str, ...]] = {
+    "local_whisper": (
+        "transcription.local_whisper.model",
+        "transcription.local_whisper.device",
+        "transcription.local_whisper.compute_type",
+        "transcription.local_whisper.language",
+        "transcription.local_whisper.cpu_threads",
+        "transcription.local_whisper.num_workers",
+        "transcription.local_whisper.beam_size",
+        "transcription.local_whisper.best_of",
+        "transcription.local_whisper.temperature",
+        "transcription.local_whisper.no_speech_threshold",
+        "transcription.local_whisper.vad_filter",
+        "transcription.local_whisper.vad_threshold",
+        "transcription.local_whisper.vad_min_speech_ms",
+        "transcription.local_whisper.vad_min_silence_ms",
+        "transcription.local_whisper.condition_on_previous_text",
+    ),
+    "openai": (
+        "transcription.openai.model",
+        "transcription.openai.language",
+        "transcription.openai.base_url",
+    ),
+    "haas": (
+        "transcription.haas.distribution",
+        "transcription.haas.port",
+        "transcription.haas.model",
+        "transcription.haas.dtype",
+        "transcription.haas.device",
+        "transcription.haas.alpha",
+        "transcription.haas.guard",
+        "transcription.haas.short_audio_limit_sec",
+        "transcription.haas.chunk_sec",
+        "transcription.haas.search_sec",
+        "transcription.haas.window_sec",
+        "transcription.haas.separator",
+        "transcription.haas.batch_size",
+    ),
+}
+"""エンジンの値 → そのタブに並べる欄のキー。並びがタブの並びになる。"""
+
+ENGINE_KEY: str = "transcription.engine"
+"""文字起こしのエンジンの選択の欄の設定のキー。"""
+
 GROUP_NAMES: tuple[str, ...] = (
     "出力先",
     *PRESET_KIND_NAMES.values(),
@@ -142,40 +192,7 @@ FIELD_LAYOUT: dict[str, tuple[str, ...]] = {
         "recording.volume_percent",
         "recording.fade_sec",
     ),
-    "文字起こし": (
-        "transcription.engine",
-        "transcription.local_whisper.model",
-        "transcription.local_whisper.device",
-        "transcription.local_whisper.compute_type",
-        "transcription.local_whisper.language",
-        "transcription.local_whisper.cpu_threads",
-        "transcription.local_whisper.num_workers",
-        "transcription.local_whisper.beam_size",
-        "transcription.local_whisper.best_of",
-        "transcription.local_whisper.temperature",
-        "transcription.local_whisper.no_speech_threshold",
-        "transcription.local_whisper.vad_filter",
-        "transcription.local_whisper.vad_threshold",
-        "transcription.local_whisper.vad_min_speech_ms",
-        "transcription.local_whisper.vad_min_silence_ms",
-        "transcription.local_whisper.condition_on_previous_text",
-        "transcription.openai.model",
-        "transcription.openai.language",
-        "transcription.openai.base_url",
-        "transcription.haas.distribution",
-        "transcription.haas.port",
-        "transcription.haas.model",
-        "transcription.haas.dtype",
-        "transcription.haas.device",
-        "transcription.haas.alpha",
-        "transcription.haas.guard",
-        "transcription.haas.short_audio_limit_sec",
-        "transcription.haas.chunk_sec",
-        "transcription.haas.search_sec",
-        "transcription.haas.window_sec",
-        "transcription.haas.separator",
-        "transcription.haas.batch_size",
-    ),
+    "文字起こし": (ENGINE_KEY, ENGINE_TABS_FIELD_NAME),
     "表記のヒント": (HINT_PRESETS_FIELD_NAME,),
     "用語集": (GLOSSARIES_FIELD_NAME,),
     "ハルシネーション": (EDGE_PHRASES_FIELD_NAME,),
@@ -709,6 +726,11 @@ class SettingsWindow(QWidget):
         self._hint_group = GROUP_NAMES.index("表記のヒント")
         self._edge_panel: EdgePhrasePanel | None = None
         self._edge_group = GROUP_NAMES.index("ハルシネーション")
+        self._engine_tabs: QTabWidget | None = None
+        self._engine_tab_engines: list[str] = []
+        self._engine_tab_of_key: dict[str, int] = {}
+        self._engine_in_use_labels: dict[str, QLabel] = {}
+        self._engine_error_labels: dict[str, QLabel] = {}
         self._baseline: dict[str, Any] = {}
         self._restart_baseline: dict[str, Any] = {}
         self._hotkey_baseline: dict[str, str] = {}
@@ -825,6 +847,11 @@ class SettingsWindow(QWidget):
         self._glossary_panel = None
         self._hint_panel = None
         self._edge_panel = None
+        self._engine_tabs = None
+        self._engine_tab_engines = []
+        self._engine_tab_of_key = {}
+        self._engine_in_use_labels = {}
+        self._engine_error_labels = {}
         # この OS で出さない設定は欄を置かず、渡された設定の値を collect でそのまま返す
         self._hidden_values = {
             key: reduce(getattr, key.split("."), settings) for key in self._deps.hidden_setting_keys
@@ -848,6 +875,8 @@ class SettingsWindow(QWidget):
                     self._add_hints(layout, settings)
                 elif key == EDGE_PHRASES_FIELD_NAME:
                     self._add_edge_phrases(layout, settings)
+                elif key == ENGINE_TABS_FIELD_NAME:
+                    self._add_engine_tabs(layout, settings, group)
                 else:
                     self._add_model_field(layout, settings, key, group)
             layout.addStretch(1)
@@ -1007,6 +1036,78 @@ class SettingsWindow(QWidget):
             plain = make_plain_text(value)
             return plain, lambda: plain_text_lines(plain), ()
         raise TypeError(f"欄の部品を決められない型です（{key}: {annotation}）")
+
+    def _add_engine_tabs(self, layout: QVBoxLayout, settings: Settings, group: int) -> None:
+        """「文字起こし」のまとまりに、エンジンごとの欄を並べたタブ（engine_tabs）を追加する。"""
+        tabs = QTabWidget()
+        tabs.setObjectName(ENGINE_TABS_FIELD_NAME)
+        for engine, keys in ENGINE_TAB_LAYOUT.items():
+            shown_keys = [key for key in keys if key not in self._hidden_values]
+            # 動いている OS で全ての欄を出さないエンジン（Linux の Haas）: タブを置かない
+            if not shown_keys:
+                continue
+            # 1. エンジンの欄を並べたタブを追加し、欄のキー → タブの番号を記録する
+            page_layout = QVBoxLayout()
+            page_layout.setSpacing(12)
+            for key in shown_keys:
+                self._add_model_field(page_layout, settings, key, group)
+            page_layout.addStretch(1)
+            page = QWidget()
+            page.setLayout(page_layout)
+            index = tabs.addTab(page, ENGINE_LABELS[engine])
+            self._engine_tab_engines.append(engine)
+            for key in shown_keys:
+                self._engine_tab_of_key[key] = index
+            # 2. タブの名前の右に「使用中」と「エラー {件数} 件」のラベルを配置する（件数は隠したまま）
+            in_use = QLabel("使用中")
+            in_use.setObjectName(f"engine_in_use_{engine}")
+            in_use.setProperty("role", "notice")
+            error_count = QLabel()
+            error_count.setObjectName(f"engine_error_count_{engine}")
+            error_count.setProperty("role", "error")
+            error_count.hide()
+            markers = QWidget()
+            markers_layout = QHBoxLayout(markers)
+            markers_layout.setContentsMargins(0, 0, 0, 0)
+            markers_layout.addWidget(in_use)
+            markers_layout.addWidget(error_count)
+            tabs.tabBar().setTabButton(index, QTabBar.ButtonPosition.RightSide, markers)
+            self._engine_in_use_labels[engine] = in_use
+            self._engine_error_labels[engine] = error_count
+        # 3. 設定のエンジンのタブを出し（そのタブが無ければ先頭）、Home・End をタブの並びで受ける
+        current = settings.transcription.engine
+        if current in self._engine_tab_engines:
+            tabs.setCurrentIndex(self._engine_tab_engines.index(current))
+        tabs.tabBar().installEventFilter(self)
+        layout.addWidget(tabs)
+        self._engine_tabs = tabs
+        # 4. 「使用中」を出し、エンジンの選択の欄を変えたら「使用中」だけを移す（出しているタブは替えない）
+        self._refresh_engine_in_use()
+        for field in self._fields:
+            if field.key == ENGINE_KEY:
+                connect_changed(field.widget, self._refresh_engine_in_use)
+
+    def _refresh_engine_in_use(self) -> None:
+        """エンジンの選択の欄で選んでいるエンジンのタブにだけ「使用中」を出す。"""
+        engine = next((field.get() for field in self._fields if field.key == ENGINE_KEY), None)
+        for tab_engine, label in self._engine_in_use_labels.items():
+            label.setVisible(tab_engine == engine)
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802 Qt の名前
+        """エンジンのタブの並びで Home・End を受け、先頭・末尾のタブを選ぶ（←→ は QTabBar の既定の処理に任せる）。"""
+        tabs = self._engine_tabs
+        # エンジンのタブの並びで押したキーか
+        if tabs is not None and watched is tabs.tabBar() and event.type() == QEvent.Type.KeyPress:
+            key = event.key() if isinstance(event, QKeyEvent) else None
+            # Home: 先頭のタブを選ぶ
+            if key == Qt.Key.Key_Home:
+                tabs.setCurrentIndex(0)
+                return True
+            # End: 末尾のタブを選ぶ
+            if key == Qt.Key.Key_End:
+                tabs.setCurrentIndex(tabs.count() - 1)
+                return True
+        return super().eventFilter(watched, event)
 
     def _add_glossaries(self, layout: QVBoxLayout, settings: Settings) -> None:
         """用語集のプリセットの一覧と使う用語集の表、用語集の一覧と、選んだ用語集の名前の欄・行の表を追加する。補正に使うプリセットは設定の active_glossary_preset（無い・一覧に無ければ 1 件目）。"""
@@ -1342,6 +1443,9 @@ class SettingsWindow(QWidget):
             self._hint_panel.clear_errors()
         if self._edge_panel is not None:
             self._edge_panel.clear_errors()
+        for label in self._engine_error_labels.values():
+            label.clear()
+            label.hide()
         for field in self._all_fields():
             if field.error_label is not None:
                 field.error_label.clear()
@@ -1450,8 +1554,21 @@ class SettingsWindow(QWidget):
             field.widget.setProperty("invalid", True)
             field.widget.style().unpolish(field.widget)
             field.widget.style().polish(field.widget)
+        self._show_engine_error_counts(rows)
         self._error_summary.show()
         self._error_summary.setFocus()
+
+    def _show_engine_error_counts(self, rows: list[tuple[str | None, str]]) -> None:
+        """エンジンのタブごとに、確認に通らなかった欄の件数を「エラー {件数} 件」で出す。"""
+        counts: dict[int, set[str]] = {}
+        for key, _message in rows:
+            # 文字起こしのエンジンの欄の失敗だけを、その欄のタブに数える
+            if key is not None and key in self._engine_tab_of_key:
+                counts.setdefault(self._engine_tab_of_key[key], set()).add(key)
+        for index, keys in counts.items():
+            label = self._engine_error_labels[self._engine_tab_engines[index]]
+            label.setText(f"エラー {len(keys)} 件")
+            label.show()
 
     @staticmethod
     def _plain_label(text: str) -> QLabel:
@@ -1497,6 +1614,9 @@ class SettingsWindow(QWidget):
         for field in self._all_fields():
             if field.key == key:
                 self._group_menu.setCurrentRow(field.group)
+                # 文字起こしのエンジンの欄: そのエンジンのタブへ切り替える
+                if self._engine_tabs is not None and key in self._engine_tab_of_key:
+                    self._engine_tabs.setCurrentIndex(self._engine_tab_of_key[key])
                 field.widget.setFocus()
                 return
 

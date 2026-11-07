@@ -19,7 +19,8 @@ classes:
       カスタムプリセットは、PRESET_KIND_NAMES の種類ごとにまとまり（「出力先」のすぐ下のタブ）を 1 つ作り、その中に PresetListPanel とその種類の preset_options の欄を置く。Authorization の欄は `QLineEdit.EchoMode.Password` にする。
       変えた欄の数えには、種類ごとの PresetListPanel.change_values のキーごとの変更を 1 件として含める。追加・削除した・有効かタイトルか URL かホットキーか種類ごとの欄を変えたプリセット 1 つが 1 件（1 つのプリセットで何度変えても 1 件）、種類のタブごとに、開いたとき・保存したときからあって今も残っているプリセットどうしの順が変わったら並べ替えが 1 件になる（追加・削除だけでは並べ替えに数えない）。
       保存したメッセージのホットキーの文を出すかは、変えた欄の数えの値ではなく、ホットキーの欄の値（`hotkeys.*`・`outputs[].hotkey`・種類ごとのタブの中の何件目かのプリセットの hotkey）を開いたときの値と比べて決める。
-      エラーの一覧の表記のヒントの行は、失敗の場所 `hint_presets[{n}].readings[{m}]` を「プリセット {n+1} 件目の {m+1} つ目の語の読み」にし、押すと HintPresetPanel.focus_field で読みの欄へフォーカスを移す（HINT_KEY_PATTERN に readings を加える）。「文字起こし（Haas）」の小見出しと欄は「文字起こし（OpenAI API）」と同じ組み立てで、欄の名前と補助文は画面設計が持つ。欄は hidden_setting_keys にある OS では出さない。transcription.engine の選択欄は、`transcription.haas.port` が hidden_setting_keys にあるとき選択肢「Haas（WSL）」を出さない（今の値が haas のときだけ出す）。
+      エラーの一覧の表記のヒントの行は、失敗の場所 `hint_presets[{n}].readings[{m}]` を「プリセット {n+1} 件目の {m+1} つ目の語の読み」にし、押すと HintPresetPanel.focus_field で読みの欄へフォーカスを移す（HINT_KEY_PATTERN に readings を加える）。「文字起こし」のまとまりは、`transcription.engine` の欄の下に ENGINE_TAB_LAYOUT のエンジンごとのタブ（_add_engine_tabs）を配置し、エンジンの欄はそのエンジンのタブの中に並べる。欄の名前と補助文は画面設計が持つ。欄は hidden_setting_keys にある OS では出さない。transcription.engine の選択欄は、`transcription.haas.port` が hidden_setting_keys にあるとき選択肢「Haas（WSL）」を出さない（今の値が haas のときだけ出す）。
+      エラーの一覧の文字起こしのエンジンの欄の行は、押すと「文字起こし」のまとまりとその欄のエンジンのタブへ切り替えて欄へフォーカスを移す（_focus_field）。エラーの一覧を出すときは、エンジンのタブごとにそのタブの欄のエラーの件数を「エラー {件数} 件」のラベル（`engine_error_count_{エンジン}`）に出し、_clear_errors で隠す。
       エラーの一覧のプリセットの行は、失敗の場所 `presets[{n}].{項目}` を「プリセット「{タイトル}」の{欄の名前}」（タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」）にし、押すとそのタブへ切り替えて PresetListPanel.focus_field で欄へフォーカスを移す。
       ホットキーの欄は押したキーを format_hotkey の形式で出し、parse_hotkey で pynput の書式に戻す。
       UiDeps.hidden_setting_keys のキーは欄を置かず、開いたときの値を collect でそのまま返す（設定の値を保つ）。変えた欄の数えにも入らない。既定に戻すと、そのキーも既定値になる。
@@ -242,6 +243,13 @@ classes:
             condition: 「貼り付けてから Enter を送信するまで待つ秒数」に abc を入れて save(restart=False) した後、欄を 0.5 に直してもう一度 save(restart=False)
             mock: UiDeps.save_settings
             expected: 2 回目は True。エラーの一覧が隠れて行が残らず、outputs[0].enter_delay_sec の欄の下のエラーが空で隠れ、保存したメッセージが「保存しました。」
+          - name: test_save_when_unselected_engine_invalid
+            case: 異常
+            summary: 選んでいないエンジンの欄が通らなければ、そのタブにエラーの件数を出し、一覧の行からタブへ移る
+            condition: transcription.engine=local_whisper の設定で開き、transcription.openai.base_url を api.openai.com/v1 にして save(restart=False) し、エラーの一覧の行を押す
+            mock: UiDeps.save_settings
+            expected: False。engine_error_count_openai が「エラー 1 件」で出て、ほかのエンジンの件数は隠れている。行を押すと出しているタブが「OpenAI API」になり、field_transcription.openai.base_url にフォーカスがある。修正して保存し直すと件数が隠れる
+            exception: 確かめに通らない
       - name: reset_to_defaults
         title: 既定に戻す
         summary: confirm_reset で確かめ、戻すなら UiDeps.reset_settings で環境の値を空にして読み直した設定を欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す
@@ -282,6 +290,80 @@ classes:
             mock: UiDeps の全関数・confirm_discard
             expected: confirm_discard が呼ばれず、closed が 1 回知らされ、save_settings が呼ばれない
         status: implemented
+      - name: _add_engine_tabs
+        title: エンジンのタブの組み立て
+        summary: 「文字起こし」のまとまりに、エンジンごとの欄を並べたタブ（QTabWidget、objectName は engine_tabs）を追加する
+        kind: メソッド
+        scope: internal
+        args:
+          - name: layout
+            type: QVBoxLayout
+            required: true
+            passing: positional
+            description: 「文字起こし」のまとまりの欄の並び
+          - name: settings
+            type: Settings
+            required: true
+            passing: positional
+            description: 欄に入れる設定
+          - name: group
+            type: int
+            required: true
+            passing: positional
+            description: 「文字起こし」のまとまりの番号
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. ENGINE_TAB_LAYOUT のエンジンごとに、欄のキーが全て hidden_setting_keys にあるエンジンを飛ばし、残りのエンジンのタブを並びのとおり追加する。タブの名前は `transcription.engine` の項目の choice_labels（ENGINE_LABELS）
+          2. タブごとに、エンジンの欄を _add_model_field で並べ（hidden_setting_keys のキーは配置しない）、欄のキー → タブの番号を記録する（_focus_field とエラーの件数が参照する）
+          3. タブの名前の右（QTabBar.setTabButton の右側）に、「使用中」のラベル（`engine_in_use_{エンジン}`）と「エラー {件数} 件」のラベル（`engine_error_count_{エンジン}`、隠したまま）を配置する
+          4. 設定の `transcription.engine` のタブを選んでおき（そのタブが無ければ先頭）、_refresh_engine_in_use で「使用中」を出し、`transcription.engine` の選択の欄の変更を _refresh_engine_in_use へつなぐ（出しているタブは替えない）
+          5. タブの並び（QTabWidget.tabBar）に eventFilter を付け、Home で先頭、End で末尾のタブを setCurrentIndex で選ぶ（処理したキーは QTabBar の既定の処理に回さない）。←→ は QTabBar の既定の処理に任せる（端では止まり、反対側へ回り込まない）
+        unit_tests:
+          - name: test_add_engine_tabs
+            case: 正常
+            summary: エンジンごとのタブに欄を分け、今のエンジンのタブを出す
+            condition: transcription.engine=haas の設定で開き、「文字起こし」のまとまりを選ぶ。QT_QPA_PLATFORM=offscreen
+            mock: UiDeps の全関数
+            expected: engine_tabs のタブの名前が「ローカルの Whisper」「OpenAI API」「Haas（WSL）」の順で、出しているタブが「Haas（WSL）」。field_transcription.local_whisper.beam_size が「ローカルの Whisper」のタブ、field_transcription.openai.base_url が「OpenAI API」のタブにある。「使用中」は engine_in_use_haas だけが出ている
+          - name: test_add_engine_tabs_when_haas_hidden
+            case: 正常
+            summary: 全ての欄を出さないエンジンのタブは置かない
+            condition: hidden_setting_keys に transcription.haas.distribution・transcription.haas.port を入れ、transcription.engine=local_whisper の設定で開く。QT_QPA_PLATFORM=offscreen
+            mock: UiDeps の全関数
+            expected: engine_tabs のタブが「ローカルの Whisper」「OpenAI API」の 2 つで、出しているタブが「ローカルの Whisper」
+          - name: test_add_engine_tabs_when_unselected_engine_edited
+            case: 正常
+            summary: 選んでいないエンジンのタブの欄も変えて保存できる
+            condition: transcription.engine=haas の設定で開き、「ローカルの Whisper」のタブを選んで beam_size を 8 にして save(restart=False)
+            mock: UiDeps.save_settings
+            expected: True。save_settings に渡った Settings の transcription.local_whisper.beam_size が 8 で transcription.engine が haas
+          - name: test_add_engine_tabs_when_keys_pressed
+            case: 正常
+            summary: ←→ で隣のタブへ、Home・End で先頭・末尾のタブへ移る
+            condition: transcription.engine=local_whisper の設定で開き、「文字起こし」のまとまりを選んで engine_tabs の tabBar にフォーカスを移し、QTest.keyClick で Right・Left・End・Home の順に送信する。QT_QPA_PLATFORM=offscreen
+            mock: UiDeps の全関数
+            expected: 出しているタブが Right の後に「OpenAI API」、Left の後に「ローカルの Whisper」、End の後に「Haas（WSL）」、Home の後に「ローカルの Whisper」
+        status: planned
+        notes:
+          QTabBar のキー操作の測定: PySide6（uv.lock のバージョン）・offscreen（スタイル fusion）で、タブ 3 つの QTabWidget の tabBar へ QTest.keyClick でキーを送信して測った（2026-11-08）。Right は 0→1→2、2 では 2 のまま、Left は 2→1、Home・End は動かない。Home・End だけを eventFilter で処理する
+      - name: _refresh_engine_in_use
+        title: 使用中のマーカーの更新
+        summary: '`transcription.engine` の選択の欄で選んでいるエンジンのタブにだけ「使用中」を出す（出しているタブは替えない）'
+        kind: メソッド
+        scope: internal
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_refresh_engine_in_use
+            case: 正常
+            summary: エンジンの選択を変えると「使用中」だけが移る
+            condition: transcription.engine=local_whisper の設定で開き、エンジンの選択の欄を「OpenAI API」にする。QT_QPA_PLATFORM=offscreen
+            mock: UiDeps の全関数
+            expected: engine_in_use_openai だけが出ていて、出しているタブが「ローカルの Whisper」のまま
+        status: planned
     refs:
       - SCR-9#
     status: implemented
@@ -325,6 +407,35 @@ constants:
     usecase: 設定を変える
     summary: 最も長い項目の幅に加える余白（px）。項目の末尾が枠に触れないようにする
     value: '4'
+    status: planned
+  - name: ENGINE_TABS_FIELD_NAME
+    title: エンジンのタブの置き場所
+    container: ui/windows/settings_window.py
+    usecase: 設定を変える
+    summary: FIELD_LAYOUT「文字起こし」の並びで、エンジンのタブを配置する位置を示す名前（_populate が _add_engine_tabs を呼ぶ）。FIELD_LAYOUT「文字起こし」は (ENGINE_KEY, ENGINE_TABS_FIELD_NAME) になる
+    value: "'engine_tabs'"
+    status: planned
+  - name: ENGINE_TAB_LAYOUT
+    title: エンジンのタブごとの欄の並び
+    container: ui/windows/settings_window.py
+    usecase: 設定を変える
+    summary: エンジンの値 → そのタブに並べる欄のキー。並びがタブの並びになる。画面設計の補足「まとまりと欄」のタブの行を写す
+    entries:
+      - key: local_whisper
+        value: model・device・compute_type・language・cpu_threads・num_workers・beam_size・best_of・temperature・no_speech_threshold・vad_filter・vad_threshold・vad_min_speech_ms・vad_min_silence_ms・condition_on_previous_text（各 `transcription.local_whisper.` を頭に付けたキー。今の FIELD_LAYOUT「文字起こし」の並び）
+      - key: openai
+        value: '`transcription.openai.model`・`transcription.openai.language`・`transcription.openai.base_url`'
+      - key: haas
+        value: '`transcription.haas.distribution`・`transcription.haas.port`・`transcription.haas.model`・`transcription.haas.dtype`・`transcription.haas.device`・`transcription.haas.alpha`・`transcription.haas.guard`・`transcription.haas.short_audio_limit_sec`・`transcription.haas.chunk_sec`・`transcription.haas.search_sec`・`transcription.haas.window_sec`・`transcription.haas.separator`・`transcription.haas.batch_size`'
+    refs:
+      - SCR-9#
+    status: planned
+  - name: ENGINE_KEY
+    title: 文字起こしのエンジンの設定のキー
+    container: ui/windows/settings_window.py
+    usecase: 設定を変える
+    summary: エンジンの選択の欄の設定のキー。FIELD_LAYOUT「文字起こし」・_add_engine_tabs・_refresh_engine_in_use が参照する
+    value: "'transcription.engine'"
     status: planned
 functions:
   - name: confirm_discard

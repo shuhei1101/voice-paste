@@ -41,6 +41,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QSystemTrayIcon,
+    QTabWidget,
     QWidget,
 )
 
@@ -542,6 +543,19 @@ class ResidentApp:
             menu.viewport(), Qt.MouseButton.LeftButton, pos=menu.visualItemRect(items[0]).center()
         )
         assert self.wait_until(lambda: menu.currentItem() is items[0]), f"まとまり {name} を選べない"
+
+    def select_engine_tab(self, title: str) -> None:
+        """設定画面の「文字起こし」のまとまりの、エンジンのタブ（engine_tabs）をクリックして選ぶ。"""
+        tabs = self.wait_widget("engine_tabs", QTabWidget)
+        titles = [tabs.tabText(index) for index in range(tabs.count())]
+        assert title in titles, f"エンジンのタブ {title} が見つからない"
+        bar = tabs.tabBar()
+        QTest.mouseClick(
+            bar, Qt.MouseButton.LeftButton, pos=bar.tabRect(titles.index(title)).center()
+        )
+        assert self.wait_until(lambda: tabs.tabText(tabs.currentIndex()) == title), (
+            f"エンジンのタブ {title} を選べない"
+        )
 
     def set_field(self, key: str, text: str) -> None:
         """設定画面の文字の欄（field_{キー}）をクリックし、入っている文字を選んでから文字を打つ。"""

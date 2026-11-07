@@ -219,6 +219,7 @@ def test_normal_when_save_and_restart(run_app: RunApp) -> None:
         old_tokens.append(_token(app))
         app.open_settings()
         app.select_group("文字起こし")
+        app.select_engine_tab("ローカルの Whisper")
         app.set_field(RESTART_KEY, "5")
         assert app.window("restart_notice") is not None, "再起動のメッセージが出なかった"
 

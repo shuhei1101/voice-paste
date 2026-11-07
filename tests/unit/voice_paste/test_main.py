@@ -2088,6 +2088,7 @@ def _build_haas_handlers(
     tmp_path: Path,
     *,
     server_error: Exception | None = None,
+    mismatch: tuple[str, ...] = (),
     unavailable: frozenset[Feature] = frozenset(),
 ) -> tuple[Handlers, MagicMock, MagicMock, MagicMock]:
     """エンジンが haas の設定で build_handlers を呼び、結果と HaasServer・WhisperWorkerClient・notify の偽物を返す。"""
@@ -2096,6 +2097,7 @@ def _build_haas_handlers(
 
     server = MagicMock()
     server.return_value.ensure_started.side_effect = server_error
+    server.return_value.ensure_started.return_value = mismatch
     worker = MagicMock()
     notify = MagicMock()
     monkeypatch.setattr(main_module, "HaasServer", server)
@@ -2127,6 +2129,23 @@ def test_build_handlers_when_haas(
     # 検証
     assert handlers.active_engine is EngineName.HAAS
     assert handlers.stop_engine == server.return_value.stop
+    worker.assert_not_called()
+
+
+def test_build_handlers_when_haas_settings_mismatch(
+    monkeypatch: pytest.MonkeyPatch, make_settings: Callable[..., Settings], tmp_path: Path
+) -> None:
+    """動いている Haas のサーバーが設定と違う（正常系）。"""
+    from voice_paste.features.transcription import EngineName
+
+    # 実行
+    handlers, _server, worker, notify = _build_haas_handlers(
+        monkeypatch, make_settings, tmp_path, mismatch=("dtype", "device")
+    )
+
+    # 検証
+    notify.assert_called_once_with("engine_settings_mismatch", "計算の精度・装置")
+    assert handlers.active_engine is EngineName.HAAS
     worker.assert_not_called()
 
 

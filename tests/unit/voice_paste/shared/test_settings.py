@@ -2173,3 +2173,63 @@ def test_settings_when_haas_port_overlap(settings_model: type[Settings]) -> None
     error = exc_info.value.errors()[0]
     assert error["type"] == "haas_port_overlap"
     assert error["loc"] == ("transcription", "haas", "port")
+
+
+def test_settings_when_haas_model_empty(settings_model: type[Settings]) -> None:
+    """Haas のモデルが空白だけなら断る（異常系）。"""
+    from pydantic import ValidationError
+
+    # 実行・検証
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate(make_test_document({"transcription": {"haas": {"model": "  "}}}))
+    error = exc_info.value.errors()[0]
+    assert error["type"] == "haas_model_empty"
+    assert error["loc"] == ("transcription", "haas", "model")
+
+
+def test_settings_when_haas_device_invalid(settings_model: type[Settings]) -> None:
+    """Haas の装置の形式が違えば断る（異常系）。"""
+    from pydantic import ValidationError
+
+    # 実行・検証
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate(make_test_document({"transcription": {"haas": {"device": "gpu"}}}))
+    error = exc_info.value.errors()[0]
+    assert error["type"] == "haas_device_form"
+    assert error["loc"] == ("transcription", "haas", "device")
+
+
+def test_settings_when_haas_device_numbered(settings_model: type[Settings]) -> None:
+    """番号つきの cuda は通る（正常系）。"""
+    # 実行
+    settings = settings_model.model_validate(
+        make_test_document({"transcription": {"haas": {"device": "cuda:1"}}})
+    )
+
+    # 検証
+    assert settings.transcription.haas.device == "cuda:1"
+
+
+def test_settings_when_haas_separator_too_long(settings_model: type[Settings]) -> None:
+    """Haas の区切りをつなぐ文字が 16 文字を超えれば断る（異常系）。"""
+    from pydantic import ValidationError
+
+    # 実行・検証
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate(
+            make_test_document({"transcription": {"haas": {"separator": "あ" * 17}}})
+        )
+    error = exc_info.value.errors()[0]
+    assert error["type"] == "haas_separator_too_long"
+    assert error["loc"] == ("transcription", "haas", "separator")
+
+
+def test_settings_when_haas_out_of_range(settings_model: type[Settings]) -> None:
+    """Haas の数値が範囲の外なら断る（異常系）。"""
+    from pydantic import ValidationError
+
+    # 実行・検証
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate(make_test_document({"transcription": {"haas": {"chunk_sec": 0.5}}}))
+    error = exc_info.value.errors()[0]
+    assert error["loc"] == ("transcription", "haas", "chunk_sec")

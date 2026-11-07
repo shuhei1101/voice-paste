@@ -11,9 +11,11 @@ from typing import Any
 import av
 import numpy as np
 
-from haas_server.app import HaasEngine
+from haas_server.app import HaasEngine, TranscribeOptions
 
 MODEL_NAME = "third-intelligence/Haas-ja-v1.0"
+MODEL_DTYPE = "auto"
+MODEL_DEVICE = "cuda"
 FAKE_TEXT = "請求データと入金データを月末に突合します。"
 SOURCE_RATE = 48000
 MODEL_RATE = 16000
@@ -22,33 +24,47 @@ TOLERANCE_SAMPLES = 1600
 
 @dataclass
 class FakeModel:
-    """Haas のモデルの代わり。受けた音声と Vocabulary を記録し、決まった文字を返す。"""
+    """Haas のモデルの代わり。受けた音声・Vocabulary・調整の値を記録し、決まった文字を返す。"""
 
     samples: list[np.ndarray] = field(default_factory=list)
     vocabularies: list[Any] = field(default_factory=list)
+    options: list[TranscribeOptions] = field(default_factory=list)
+    alphas: list[float] = field(default_factory=list)
     longform_calls: int = 0
     errors: list[Exception] = field(default_factory=list)
 
-    def transcribe(self, samples: np.ndarray, vocabulary: Any | None) -> str:
-        """音声と Vocabulary を記録し、決まった文字を返す。errors があれば先頭を送出する。"""
+    def transcribe(
+        self, samples: np.ndarray, vocabulary: Any | None, options: TranscribeOptions
+    ) -> str:
+        """音声・Vocabulary・調整の値を記録し、決まった文字を返す。errors があれば先頭を送出する。"""
         self.samples.append(samples)
         self.vocabularies.append(vocabulary)
+        self.options.append(options)
         if self.errors:
             raise self.errors.pop(0)
         return FAKE_TEXT
 
-    def transcribe_longform(self, samples: np.ndarray, vocabulary: Any | None) -> str:
-        """30 秒を超える音声の起こし方。呼ばれた回数を数える。"""
+    def transcribe_longform(
+        self, samples: np.ndarray, vocabulary: Any | None, options: TranscribeOptions
+    ) -> str:
+        """上限の長さを超える音声の起こし方。呼ばれた回数を数える。"""
         self.longform_calls += 1
-        return self.transcribe(samples, vocabulary)
+        return self.transcribe(samples, vocabulary, options)
+
+    def build_vocabulary(self, words: dict[str, list[str]], alpha: float) -> Any:
+        """手がかりの強さを記録し、受けた対応をそのまま返す。"""
+        self.alphas.append(alpha)
+        return words
 
     def engine(self) -> HaasEngine:
-        """このモデルの関数を束ねる。Vocabulary は受けた対応をそのまま返す。"""
+        """このモデルの関数を束ねる。"""
         return HaasEngine(
             model_name=MODEL_NAME,
+            dtype=MODEL_DTYPE,
+            device=MODEL_DEVICE,
             transcribe=self.transcribe,
             transcribe_longform=self.transcribe_longform,
-            build_vocabulary=lambda words: words,
+            build_vocabulary=self.build_vocabulary,
         )
 
 

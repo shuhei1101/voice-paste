@@ -644,6 +644,149 @@ def test_input_check_when_haas_port_overlap(open_window: Callable[..., Opened]) 
     opened.deps.save_settings.assert_not_called()
 
 
+def test_field_haas_tuning_fields(open_window: Callable[..., Opened]) -> None:
+    """「文字起こし」のまとまりに Haas の調整の欄を出し、既定の値・欄の名前・再起動で反映のマーカーを出す。"""
+    # 準備
+    window = open_window().window
+    find(window, QListWidget, "group_menu").setCurrentRow(5)
+
+    # 実行
+    texts = [label.text() for label in window.findChildren(QLabel)]
+
+    # 検証
+    assert _field(window, "transcription.haas.model", QLineEdit).text() == "third-intelligence/Haas-ja-v1.0"
+    assert [
+        button.text()
+        for button in _field(window, "transcription.haas.dtype").findChildren(QRadioButton)
+        if button.isChecked()
+    ] == ["自動"]
+    assert _field(window, "transcription.haas.device", QLineEdit).text() == "cuda"
+    assert _field(window, "transcription.haas.alpha", QLineEdit).text() == "2.0"
+    assert _field(window, "transcription.haas.guard", QCheckBox).isChecked()
+    assert _field(window, "transcription.haas.short_audio_limit_sec", QLineEdit).text() == "30.0"
+    assert _field(window, "transcription.haas.chunk_sec", QLineEdit).text() == "30.0"
+    assert _field(window, "transcription.haas.search_sec", QLineEdit).text() == "2.0"
+    assert _field(window, "transcription.haas.window_sec", QLineEdit).text() == "0.1"
+    assert _field(window, "transcription.haas.separator", QLineEdit).text() == ""
+    assert _field(window, "transcription.haas.batch_size", QLineEdit).text() == "64"
+    assert {
+        "モデル",
+        "計算の精度",
+        "装置",
+        "手がかりの強さ",
+        "手がかりの採否を確認する",
+        "一度に起こす長さの上限（秒）",
+        "区切る長さ（秒）",
+        "静かな箇所を探す幅（秒）",
+        "静かさを測る窓（秒）",
+        "区切りをつなぐ文字",
+        "まとめて起こす数",
+    } <= set(texts)
+    assert find(window, QLabel, "restart_badge_transcription.haas.model").text() == "再起動で反映"
+    assert find(window, QLabel, "restart_badge_transcription.haas.dtype").text() == "再起動で反映"
+    assert find(window, QLabel, "restart_badge_transcription.haas.device").text() == "再起動で反映"
+    assert window.findChild(QLabel, "restart_badge_transcription.haas.alpha") is None
+    assert window.findChild(QLabel, "restart_badge_transcription.haas.batch_size") is None
+
+
+def test_field_haas_tuning_fields_when_saved(open_window: Callable[..., Opened]) -> None:
+    """Haas の調整の欄に入れた値は、保存で設定の transcription.haas に入る。"""
+    # 準備
+    opened = open_window()
+    _set_text(opened.window, "transcription.haas.device", "cuda:1")
+    _set_text(opened.window, "transcription.haas.alpha", "3.5")
+    _set_text(opened.window, "transcription.haas.separator", "。")
+    _set_text(opened.window, "transcription.haas.batch_size", "8")
+    _field(opened.window, "transcription.haas.guard", QCheckBox).setChecked(False)
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    saved = opened.deps.save_settings.call_args.args[0].transcription.haas
+    assert (saved.device, saved.alpha, saved.separator, saved.batch_size, saved.guard) == (
+        "cuda:1",
+        3.5,
+        "。",
+        8,
+        False,
+    )
+
+
+def test_field_when_hidden_tuning_keys_of_haas(open_window: Callable[..., Opened]) -> None:
+    """Haas のエンジンを使えない OS では、Haas の調整の欄も置かない。"""
+    from voice_paste.shared.os_kind import Feature, hidden_setting_keys
+
+    # 準備
+    keys = (
+        "transcription.haas.model",
+        "transcription.haas.dtype",
+        "transcription.haas.device",
+        "transcription.haas.alpha",
+        "transcription.haas.guard",
+        "transcription.haas.short_audio_limit_sec",
+        "transcription.haas.chunk_sec",
+        "transcription.haas.search_sec",
+        "transcription.haas.window_sec",
+        "transcription.haas.separator",
+        "transcription.haas.batch_size",
+    )
+
+    # 実行
+    opened = open_window(hidden_setting_keys=hidden_setting_keys({Feature.HAAS_ENGINE}))
+
+    # 検証
+    assert _existing_fields(opened.window, keys) == []
+
+
+def test_input_check_when_haas_model_empty(open_window: Callable[..., Opened]) -> None:
+    """Haas のモデルが空: その欄の下とエラーの一覧に出し、保存しない。"""
+    # 準備
+    opened = open_window()
+    _set_text(opened.window, "transcription.haas.model", " ")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    message = "モデルの名前かパスを入れてください。"
+    assert message in _field_errors(opened.window)
+    assert f"モデル: {message}" in _error_rows(opened.window)
+    opened.deps.save_settings.assert_not_called()
+
+
+def test_input_check_when_haas_device_form(open_window: Callable[..., Opened]) -> None:
+    """Haas の装置の形式が違う: その欄の下とエラーの一覧に出し、保存しない。"""
+    # 準備
+    opened = open_window()
+    _set_text(opened.window, "transcription.haas.device", "gpu")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    message = "cuda・cuda:0 のような番号つきの cuda・cpu のどれかを入れてください。"
+    assert message in _field_errors(opened.window)
+    assert f"装置: {message}" in _error_rows(opened.window)
+    opened.deps.save_settings.assert_not_called()
+
+
+def test_input_check_when_haas_separator_too_long(open_window: Callable[..., Opened]) -> None:
+    """Haas の区切りをつなぐ文字が長い: その欄の下とエラーの一覧に出し、保存しない。"""
+    # 準備
+    opened = open_window()
+    _set_text(opened.window, "transcription.haas.separator", "あいうえおかきくけこさしすせそたち")
+
+    # 実行
+    _click(opened.window, "save_button")
+
+    # 検証
+    message = "16 文字以内で入れてください。"
+    assert message in _field_errors(opened.window)
+    assert f"区切りをつなぐ文字: {message}" in _error_rows(opened.window)
+    opened.deps.save_settings.assert_not_called()
+
+
 def test_field_name_and_key(open_window: Callable[..., Opened]) -> None:
     """欄の名前（設定の項目の説明）と、欄の右に settings.yaml のキーを出す。"""
     from voice_paste.shared.settings import ApiSettings

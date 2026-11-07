@@ -8,13 +8,18 @@ from tests.integration.haas_server.helpers import MODEL_NAME
 
 
 def test_normal(client: TestClient) -> None:
-    """モデルを読み込んだ後に呼ぶと、ok とモデルの名前を返す（正常系）。"""
+    """モデルを読み込んだ後に呼ぶと、ok と、起動の引数で受けたモデル・計算の精度・装置を返す（正常系）。"""
     # 実行
     response = client.get("/health")
 
     # 検証
     assert response.status_code == 200
-    assert response.json() == {"ok": True, "model": MODEL_NAME}
+    assert response.json() == {
+        "ok": True,
+        "model": "third-intelligence/Haas-ja-v1.0",
+        "dtype": "auto",
+        "device": "cuda",
+    }
 
 
 def test_error_when_origin_not_allowed(client: TestClient) -> None:

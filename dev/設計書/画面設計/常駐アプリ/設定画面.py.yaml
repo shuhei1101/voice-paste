@@ -25,7 +25,7 @@ elements:
     id: error_summary
     kind: alert
     position: 窓 > 右 > 上
-    description: 保存できなかったことと直す欄の件数、欄ごとのエラーを並べる。各行はその欄へのリンクで、押すとその欄のまとまりへ切り替えて欄へフォーカスを移す。出したときにフォーカスを一覧へ移す
+    description: 保存できなかったことと直す欄の件数、欄ごとのエラーを並べる。各行はその欄へのリンクで、押すとその欄のまとまり（文字起こしのエンジンの欄はそのエンジンのタブも）へ切り替えて欄へフォーカスを移す。出したときにフォーカスを一覧へ移す
     label: 保存できませんでした。{件数} 件の欄を修正してください。
     visible_when: 保存を押して確かめに通らない欄があったとき。入力の途中では出さない
     display_format: '1 行 = 「{欄の名前}: {エラー}」。プリセットの欄は「プリセット「{タイトル}」の{欄の名前}」、タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」。用語集のプリセットの欄は「用語集のプリセット {一覧の何件目か} 件目の名前」。用語集の欄は「用語集 {一覧の何件目か} 件目の名前」「用語集 {一覧の何件目か} 件目の {何行目か} 行目の誤変換」。表記のヒントの欄は「有効なヒントの長さ」「プリセット {一覧の何件目か} 件目の名前」「プリセット {一覧の何件目か} 件目の {何つ目か} つ目の語」「プリセット {一覧の何件目か} 件目の {何つ目か} つ目の語の読み」。ハルシネーションの欄は「ハルシネーションの {何行目か} 行目の文言」'
@@ -35,7 +35,7 @@ elements:
     position: 窓 > 右 > まとまり
     description: 設定のキー 1 つの欄。設定のモデルの項目から組み立て、欄の名前（設定の設計書の論理名を画面向けにしたもの）と、欄の右に設定のキーを等幅で出す。まとまりと部品は補足の「まとまりと欄」
     io: 入出力
-    visible_when: その欄のまとまりを選んだとき。動いている OS で使えない機能の設定のキーの欄は出さず、保存しても settings.yaml のその値を変えない。Linux では録音中の音量を下げる機能（`recording.lower_volume`・`recording.volume_percent`・`recording.fade_sec`）と外の端末のブラウザの機能（`api.allowed_web_origins`）と Haas のエンジン（`transcription.haas.distribution`・`transcription.haas.port`）の欄を出さない。`transcription.engine` の選択肢「Haas（WSL）」も Linux では出さない（settings.yaml の値が haas のときだけ、値を黙って変えないように出す）
+    visible_when: その欄のまとまり（文字起こしのエンジンの欄はそのエンジンのタブ）を選んだとき。動いている OS で使えない機能の設定のキーの欄は出さず、保存しても settings.yaml のその値を変えない。Linux では録音中の音量を下げる機能（`recording.lower_volume`・`recording.volume_percent`・`recording.fade_sec`）と外の端末のブラウザの機能（`api.allowed_web_origins`）と Haas のエンジン（`transcription.haas.distribution`・`transcription.haas.port`）の欄を出さない。`transcription.engine` の選択肢「Haas（WSL）」も Linux では出さない（settings.yaml の値が haas のときだけ、値を黙って変えないように出す）
     constraints: 設定の設計書の「許す値や範囲」
     initial_value: 設定の値
     source: Settings.{キー}
@@ -1008,6 +1008,33 @@ elements:
     io: 表示
     visible_when: そのプリセットに語が 1 つ以上あるとき
     status: planned
+  - name: エンジンのタブ
+    id: engine_tabs
+    kind: tab
+    position: 窓 > 右 > 文字起こし > エンジンの選択の欄の下
+    description: 文字起こしのエンジンごとの欄をタブに分け、選んだタブのエンジンの欄だけを出す。エンジンの選択に関係なく、どのタブの欄も変えて保存できる。タブを切り替えても入れた値は消さない。←→ で隣のタブへ、Home・End で先頭・末尾のタブへ移る
+    io: 入力
+    visible_when: 文字起こしのまとまりを選んだとき。動いている OS で全ての欄を出さないエンジンのタブは出さない（Linux の Haas（WSL））
+    options: ローカルの Whisper・OpenAI API・Haas（WSL）の順。タブの名前は `transcription.engine` の選択肢の名前
+    initial_value: 設定画面を開いたときの `transcription.engine` のエンジンのタブ
+    action: 選んだタブのエンジンの欄に切り替える。エンジンの選択の欄を変えても、出しているタブは替えない
+    refs:
+      - CFG-1#
+  - name: 使用中のマーカー
+    id: engine_in_use_{engine}
+    kind: label
+    position: 窓 > 右 > 文字起こし > エンジンのタブ > タブの名前の右
+    description: エンジンの選択の欄で選んでいるエンジンのタブを文字で示す。エンジンの選択の欄を変えると、保存の前でもマーカーだけを選んだエンジンのタブへ移す
+    label: 使用中
+    visible_when: エンジンの選択の欄で選んでいるエンジンのタブ
+    source: エンジンの選択の欄の値
+  - name: エラーの件数
+    id: engine_error_count_{engine}
+    kind: label
+    position: 窓 > 右 > 文字起こし > エンジンのタブ > タブの名前の右
+    description: 保存の確認に通らなかった欄があるタブと、その欄の件数を文字で示す
+    label: エラー {件数} 件
+    visible_when: 保存を押して、そのタブに確認に通らない欄があったとき。エラーの一覧と同じときに出し、同じときに閉じる
 input_checks:
   - element: 設定の欄
     violation: 数値の欄に数値でない文字が入っている
@@ -1162,14 +1189,15 @@ notes:
     | 録音 | `recording.lower_volume`・`recording.hide_window` | チェックボックス |
     | 録音 | `recording.volume_percent` | つまみ（0〜100、右に %） |
     | 録音 | `recording.fade_sec` | 数値の欄 |
-    | 文字起こし（エンジン） | `transcription.engine`・`transcription.local_whisper.model` | 選択の欄。`transcription.engine` の選択肢は「ローカルの Whisper」（`local_whisper`）・「OpenAI API」（`openai`）・「Haas（WSL）」（`haas`） |
-    | 文字起こし（エンジン） | `transcription.local_whisper.device`・`transcription.local_whisper.compute_type` | ラジオボタン |
-    | 文字起こし（エンジン） | `transcription.local_whisper.language` | 文字の欄 |
-    | 文字起こし（詳しい調整） | `transcription.local_whisper` の cpu_threads・num_workers・beam_size・best_of・temperature・no_speech_threshold・vad_threshold・vad_min_speech_ms・vad_min_silence_ms | 数値の欄 |
-    | 文字起こし（詳しい調整） | `transcription.local_whisper` の condition_on_previous_text・vad_filter | チェックボックス |
-    | 文字起こし（OpenAI API） | `transcription.openai.model`・`transcription.openai.language`・`transcription.openai.base_url` | 文字の欄。補助文「文字起こしのエンジンが OpenAI API のときに使う。API キーはここでは入れず、環境変数 OPENAI_API_KEY か、settings.yaml と同じフォルダの secrets/openai_api_key に置く。」 |
-    | 文字起こし（Haas） | `transcription.haas.distribution` | 文字の欄。欄の名前「WSL のディストリビューション」。補助文「文字起こしのエンジンが Haas（WSL）のときに使う。WSL2 のネットワークを mirrored にし、このディストリビューションにサーバーの環境を作っておく。空なら WSL の既定のディストリビューションを使う。」 |
-    | 文字起こし（Haas） | `transcription.haas.port` | 数値の欄。欄の名前「サーバーのポート」 |
+    | 文字起こし | `transcription.engine` | 選択の欄。選択肢は「ローカルの Whisper」（`local_whisper`）・「OpenAI API」（`openai`）・「Haas（WSL）」（`haas`）。まとまりの先頭に配置し、下にエンジンのタブを配置する |
+    | 文字起こし（ローカルの Whisper のタブ） | `transcription.local_whisper.model` | 選択の欄 |
+    | 文字起こし（ローカルの Whisper のタブ） | `transcription.local_whisper.device`・`transcription.local_whisper.compute_type` | ラジオボタン |
+    | 文字起こし（ローカルの Whisper のタブ） | `transcription.local_whisper.language` | 文字の欄 |
+    | 文字起こし（ローカルの Whisper のタブ・詳しい調整） | `transcription.local_whisper` の cpu_threads・num_workers・beam_size・best_of・temperature・no_speech_threshold・vad_threshold・vad_min_speech_ms・vad_min_silence_ms | 数値の欄 |
+    | 文字起こし（ローカルの Whisper のタブ・詳しい調整） | `transcription.local_whisper` の condition_on_previous_text・vad_filter | チェックボックス |
+    | 文字起こし（OpenAI API のタブ） | `transcription.openai.model`・`transcription.openai.language`・`transcription.openai.base_url` | 文字の欄。補助文「文字起こしのエンジンが OpenAI API のときに使う。API キーはここでは入れず、環境変数 OPENAI_API_KEY か、settings.yaml と同じフォルダの secrets/openai_api_key に置く。」 |
+    | 文字起こし（Haas（WSL）のタブ） | `transcription.haas.distribution` | 文字の欄。欄の名前「WSL のディストリビューション」。補助文「文字起こしのエンジンが Haas（WSL）のときに使う。WSL2 のネットワークを mirrored にし、このディストリビューションにサーバーの環境を作っておく。空なら WSL の既定のディストリビューションを使う。」 |
+    | 文字起こし（Haas（WSL）のタブ） | `transcription.haas.port` | 数値の欄。欄の名前「サーバーのポート」 |
     | 表記のヒント | `hint_presets[]`（name・words・readings・enabled） | 有効なヒントの長さと、ヒントのプリセットの一覧 |
     | 用語集 | `glossary_presets[]`（name・glossaries）・`active_glossary_preset` | 用語集のプリセットの一覧と、選んだプリセットの使う用語集の表 |
     | 用語集 | `glossaries[]`（name・path）と、用語集の CSV の行（誤変換・正しい表記・オン・オフ） | 用語集の一覧と、選んだ用語集の行の表 |

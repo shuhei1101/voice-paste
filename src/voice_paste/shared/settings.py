@@ -117,6 +117,21 @@ HINT_READING_PATTERN: re.Pattern[str] = re.compile(r"[ぁ-ゖゝゞァ-ヺーヽ
 HAAS_PORT_OVERLAP_ERROR_TYPE: str = "haas_port_overlap"
 """Haas のサーバーのポートが API のポートと同じときの、失敗の種類。"""
 
+HAAS_MODEL_EMPTY_ERROR_TYPE: str = "haas_model_empty"
+"""Haas のモデルが空のときの、失敗の種類。"""
+
+HAAS_DEVICE_FORM_ERROR_TYPE: str = "haas_device_form"
+"""Haas の装置が HAAS_DEVICE_PATTERN に合わないときの、失敗の種類。"""
+
+HAAS_SEPARATOR_TOO_LONG_ERROR_TYPE: str = "haas_separator_too_long"
+"""Haas の区切りをつなぐ文字が HAAS_SEPARATOR_MAX_LENGTH 文字を超えるときの、失敗の種類。"""
+
+HAAS_DEVICE_PATTERN: re.Pattern[str] = re.compile(r"\A(cuda(:\d+)?|cpu)\Z")
+"""transcription.haas.device に許す形式（cuda・cuda:{番号}・cpu）。"""
+
+HAAS_SEPARATOR_MAX_LENGTH: int = 16
+"""transcription.haas.separator の文字数の上限（Haas のサーバーの要求の制約と同じ）。"""
+
 HINT_PRESET_NAME_OVERLAP_ERROR_TYPE: str = "hint_preset_name_overlap"
 """表記のヒントのプリセットの名前が重なるときの ValidationError の種類。理由の文に重なった名前を `name` として持つ。"""
 
@@ -275,15 +290,122 @@ HAAS_NOTE: str = (
 )
 """Haas の設定のまとまりの欄の下に出す補助文。"""
 
+HAAS_DTYPE_LABELS: dict[str, str] = {
+    "auto": "自動",
+    "bfloat16": "bfloat16",
+    "float16": "float16",
+    "float32": "float32",
+}
+"""Haas の計算の精度の値 → 設定画面のラジオボタンの名前。"""
+
+
+def _haas_field(
+    description: str, note: str | None, *, reload: str, **constraints: Any
+) -> Any:
+    """説明・補助文・再起動が要るかのマーカー・範囲を持つ、既定値の無い Haas の設定の項目を作る。"""
+    extra: dict[str, Any] = {"reload": reload}
+    if note is not None:
+        extra["note"] = note
+    return Field(description=description, json_schema_extra=extra, **constraints)
+
 
 class HaasSettings(_SettingsModel):
-    """Haas の文字起こしのサーバーを動かす WSL のディストリビューションと、待ち受けのポート。"""
+    """Haas の文字起こしのサーバーを動かす WSL のディストリビューション・待ち受けのポートと、認識の調整の値。
+
+    model・dtype・device はサーバーの起動で決まるため restart、ほかの調整の値は送信するたびに読むため immediate。
+    範囲は Haas のサーバーの要求の制約と同じにする（サーバーは別のサブシステムで import できないため、値は両方に持つ）。
+    """
 
     distribution: str = Field(
         description="WSL のディストリビューション",
         json_schema_extra={"reload": RELOAD_RESTART, "note": HAAS_NOTE},
     )
     port: int = _required("サーバーのポート", reload=RELOAD_RESTART, ge=1024, le=65535)
+    model: str = _haas_field(
+        "モデル",
+        "Hugging Face Hub のモデルの名前か、WSL の中の .nemo ファイルのパス。",
+        reload=RELOAD_RESTART,
+    )
+    dtype: Literal["auto", "bfloat16", "float16", "float32"] = Field(
+        description="計算の精度",
+        json_schema_extra={
+            "reload": RELOAD_RESTART,
+            "choice_labels": HAAS_DTYPE_LABELS,
+            "note": "自動は GPU では bfloat16、CPU では float32。公開された精度と速さは bfloat16 で測られている。",
+        },
+    )
+    device: str = _haas_field("装置", "cuda・cuda:{番号}・cpu のどれか。", reload=RELOAD_RESTART)
+    alpha: float = _haas_field(
+        "手がかりの強さ",
+        "表記のヒントの単語をどれだけ強く優先するか。"
+        "上げると聞き逃した単語を検出しやすくなるが、話していない単語を出力することも増える。",
+        reload=RELOAD_IMMEDIATE,
+        ge=0.0,
+        le=10.0,
+    )
+    guard: bool = _haas_field(
+        "手がかりの採否を確認する",
+        "手がかりなしでも起こし、ヒントの単語が丸ごと入った変化だけを採用する。",
+        reload=RELOAD_IMMEDIATE,
+    )
+    short_audio_limit_sec: float = _haas_field(
+        "一度に起こす長さの上限（秒）",
+        "これより長い音声は静かな箇所で区切って起こす。モデルが学習した発話は約 30 秒まで。",
+        reload=RELOAD_IMMEDIATE,
+        ge=1.0,
+        le=60.0,
+    )
+    chunk_sec: float = _haas_field(
+        "区切る長さ（秒）",
+        "区切る位置は、この長さの前後でいちばん静かな箇所にずらす。",
+        reload=RELOAD_IMMEDIATE,
+        ge=1.0,
+        le=60.0,
+    )
+    search_sec: float = _haas_field(
+        "静かな箇所を探す幅（秒）", None, reload=RELOAD_IMMEDIATE, ge=0.0, le=10.0
+    )
+    window_sec: float = _haas_field(
+        "静かさを測る窓（秒）", None, reload=RELOAD_IMMEDIATE, ge=0.01, le=1.0
+    )
+    separator: str = _haas_field(
+        "区切りをつなぐ文字",
+        "既定は空（日本語は単語の間を空けない）。",
+        reload=RELOAD_IMMEDIATE,
+    )
+    batch_size: int = _haas_field(
+        "まとめて起こす数",
+        "長い音声の区切りをいくつまとめて起こすか。変えると紙一重の箇所の結果がまれに変わる。",
+        reload=RELOAD_IMMEDIATE,
+        ge=1,
+        le=256,
+    )
+
+    @field_validator("model")
+    @classmethod
+    def _model_must_not_be_empty(cls, value: str) -> str:
+        """前後の空白を除いて空のモデルを断る。"""
+        if not value.strip():
+            raise PydanticCustomError(HAAS_MODEL_EMPTY_ERROR_TYPE, "モデルが空")
+        return value
+
+    @field_validator("device")
+    @classmethod
+    def _device_must_match_form(cls, value: str) -> str:
+        """cuda・cuda:{番号}・cpu 以外の装置を断る。"""
+        if HAAS_DEVICE_PATTERN.match(value) is None:
+            raise PydanticCustomError(HAAS_DEVICE_FORM_ERROR_TYPE, "装置の形式が違う")
+        return value
+
+    @field_validator("separator")
+    @classmethod
+    def _separator_must_be_short(cls, value: str) -> str:
+        """HAAS_SEPARATOR_MAX_LENGTH 文字を超える区切りをつなぐ文字を断る。"""
+        if len(value) > HAAS_SEPARATOR_MAX_LENGTH:
+            raise PydanticCustomError(
+                HAAS_SEPARATOR_TOO_LONG_ERROR_TYPE, "区切りをつなぐ文字が長い"
+            )
+        return value
 
 
 class TranscriptionSettings(_SettingsModel):

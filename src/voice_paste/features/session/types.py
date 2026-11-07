@@ -111,6 +111,7 @@ type NotifyFn = Callable[
             "delivery_failed",
             "api_unavailable",
             "engine_fallback",
+            "engine_settings_mismatch",
             "output_changed",
         ],
         str | None,

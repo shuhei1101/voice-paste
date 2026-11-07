@@ -32,10 +32,11 @@ type FailureEvent = Literal[
     "api_unavailable",
     "engine_unavailable",
     "engine_fallback",
+    "engine_settings_mismatch",
     "settings_invalid",
     "paste_unavailable",
 ]
-"""トレイの通知で知らせる失敗の種類（engine_unavailable・engine_fallback・settings_invalid・paste_unavailable は起動のときの失敗。engine_fallback は Haas からローカルの Whisper へ切り戻したとき。paste_unavailable は Linux の Wayland のセッションでキーの送信の機器を開けないとき）。"""
+"""トレイの通知で知らせる失敗の種類（engine_unavailable・engine_fallback・engine_settings_mismatch・settings_invalid・paste_unavailable は起動のときの失敗。engine_fallback は Haas からローカルの Whisper へ切り戻したとき。engine_settings_mismatch は起動の前から動いている Haas のサーバーが設定と違うとき。paste_unavailable は Linux の Wayland のセッションでキーの送信の機器を開けないとき）。"""
 
 FAILURE_TITLES: dict[str, str] = {
     "microphone_unavailable": "録音を開始できませんでした",
@@ -44,6 +45,7 @@ FAILURE_TITLES: dict[str, str] = {
     "api_unavailable": "API を使用できません",
     "engine_unavailable": "起動できませんでした",
     "engine_fallback": "Haas を使用できません",
+    "engine_settings_mismatch": "Haas の設定を反映できません",
     "settings_invalid": "起動できませんでした",
     "paste_unavailable": "貼り付けを使用できません",
 }
@@ -70,6 +72,7 @@ COPY_COMPLETED_BODY: str = "任意の場所に貼り付けてください。こ�
 STARTUP_BODY_FORMATS: dict[str, str] = {
     "engine_unavailable": "文字起こしのエンジンを準備できませんでした（{reason}）。設定を修正して再起動してください。",
     "engine_fallback": "{reason}",
+    "engine_settings_mismatch": "動いている Haas のサーバーの{reason}が設定と違います。今のサーバーのまま起こします。設定の値を使うには、サーバーを止めてから再起動してください（使い方「起動と設定」）。",
     "settings_invalid": "設定ファイルを読み込めませんでした（{reason}）。{paths} を修正して再起動してください。",
     "paste_unavailable": "貼り付けのキーを送信できません（{reason}）。/dev/uinput の権限を設定して PC を再起動してください（使い方「起動と設定」）。「コピーのみ」は使えます。",
 }

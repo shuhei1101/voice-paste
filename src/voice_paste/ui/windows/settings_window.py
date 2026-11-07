@@ -37,7 +37,10 @@ from voice_paste.shared.settings import (
     GLOSSARY_NAME_OVERLAP_ERROR_TYPE,
     GLOSSARY_PRESET_NAME_OVERLAP_ERROR_TYPE,
     GLOSSARY_PRESETS_FIELD_NAME,
+    HAAS_DEVICE_FORM_ERROR_TYPE,
+    HAAS_MODEL_EMPTY_ERROR_TYPE,
     HAAS_PORT_OVERLAP_ERROR_TYPE,
+    HAAS_SEPARATOR_TOO_LONG_ERROR_TYPE,
     HINT_MAX_BYTES,
     HINT_PRESET_NAME_OVERLAP_ERROR_TYPE,
     HINT_PRESETS_FIELD_NAME,
@@ -161,6 +164,17 @@ FIELD_LAYOUT: dict[str, tuple[str, ...]] = {
         "transcription.openai.base_url",
         "transcription.haas.distribution",
         "transcription.haas.port",
+        "transcription.haas.model",
+        "transcription.haas.dtype",
+        "transcription.haas.device",
+        "transcription.haas.alpha",
+        "transcription.haas.guard",
+        "transcription.haas.short_audio_limit_sec",
+        "transcription.haas.chunk_sec",
+        "transcription.haas.search_sec",
+        "transcription.haas.window_sec",
+        "transcription.haas.separator",
+        "transcription.haas.batch_size",
     ),
     "表記のヒント": (HINT_PRESETS_FIELD_NAME,),
     "用語集": (GLOSSARIES_FIELD_NAME,),
@@ -511,6 +525,12 @@ def to_field_message(
         return "読みの数が語の数と合いません。settings.yaml の readings を修正してください。"
     if error_type == HAAS_PORT_OVERLAP_ERROR_TYPE:
         return "API を待ち受けるポートと同じ番号です。別の番号を入れてください。"
+    if error_type == HAAS_MODEL_EMPTY_ERROR_TYPE:
+        return "モデルの名前かパスを入れてください。"
+    if error_type == HAAS_DEVICE_FORM_ERROR_TYPE:
+        return "cuda・cuda:0 のような番号つきの cuda・cpu のどれかを入れてください。"
+    if error_type == HAAS_SEPARATOR_TOO_LONG_ERROR_TYPE:
+        return "16 文字以内で入れてください。"
     if error_type == EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE:
         return EDGE_WILDCARD_ONLY_MESSAGE
     if error_type == HINT_PRESET_NAME_OVERLAP_ERROR_TYPE:

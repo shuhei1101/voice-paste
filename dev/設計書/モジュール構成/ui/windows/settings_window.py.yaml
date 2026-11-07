@@ -319,6 +319,7 @@ classes:
           2. タブごとに、エンジンの欄を _add_model_field で並べ（hidden_setting_keys のキーは配置しない）、欄のキー → タブの番号を記録する（_focus_field とエラーの件数が参照する）
           3. タブの名前の右（QTabBar.setTabButton の右側）に、「使用中」のラベル（`engine_in_use_{エンジン}`）と「エラー {件数} 件」のラベル（`engine_error_count_{エンジン}`、隠したまま）を配置する
           4. 設定の `transcription.engine` のタブを選んでおき（そのタブが無ければ先頭）、_refresh_engine_in_use で「使用中」を出し、`transcription.engine` の選択の欄の変更を _refresh_engine_in_use へつなぐ（出しているタブは替えない）
+          5. タブの並び（QTabWidget.tabBar）に eventFilter を付け、Home で先頭、End で末尾のタブを setCurrentIndex で選ぶ（処理したキーは QTabBar の既定の処理に回さない）。←→ は QTabBar の既定の処理に任せる（端では止まり、反対側へ回り込まない）
         unit_tests:
           - name: test_add_engine_tabs
             case: 正常
@@ -338,7 +339,15 @@ classes:
             condition: transcription.engine=haas の設定で開き、「ローカルの Whisper」のタブを選んで beam_size を 8 にして save(restart=False)
             mock: UiDeps.save_settings
             expected: True。save_settings に渡った Settings の transcription.local_whisper.beam_size が 8 で transcription.engine が haas
+          - name: test_add_engine_tabs_when_keys_pressed
+            case: 正常
+            summary: ←→ で隣のタブへ、Home・End で先頭・末尾のタブへ移る
+            condition: transcription.engine=local_whisper の設定で開き、「文字起こし」のまとまりを選んで engine_tabs の tabBar にフォーカスを移し、QTest.keyClick で Right・Left・End・Home の順に送信する。QT_QPA_PLATFORM=offscreen
+            mock: UiDeps の全関数
+            expected: 出しているタブが Right の後に「OpenAI API」、Left の後に「ローカルの Whisper」、End の後に「Haas（WSL）」、Home の後に「ローカルの Whisper」
         status: planned
+        notes:
+          QTabBar のキー操作の測定: PySide6（uv.lock のバージョン）・offscreen（スタイル fusion）で、タブ 3 つの QTabWidget の tabBar へ QTest.keyClick でキーを送信して測った（2026-11-08）。Right は 0→1→2、2 では 2 のまま、Left は 2→1、Home・End は動かない。Home・End だけを eventFilter で処理する
       - name: _refresh_engine_in_use
         title: 使用中のマーカーの更新
         summary: '`transcription.engine` の選択の欄で選んでいるエンジンのタブにだけ「使用中」を出す（出しているタブは替えない）'

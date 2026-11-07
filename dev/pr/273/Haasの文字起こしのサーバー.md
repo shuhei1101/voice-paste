@@ -25,6 +25,12 @@
 | 起こし方 | 受けた値を `transcribe`・`transcribe_longform`・`Vocabulary(alpha=...)` に指定する | `batch_size` は `transcribe` にも指定する |
 | 準備の確認 | `GET /health` が起動の引数で受けたモデル・`dtype`・`device`（`auto` は解決する前のまま）を返却する | 常駐アプリが設定と文字列で比べる |
 
+## 設計書の確定コミット
+
+| 工程 | 範囲 | 補足 |
+| --- | --- | --- |
+| インターフェース定義設計 | `40cebdc..40d2119` | - |
+
 ## テスト結果
 
 なし

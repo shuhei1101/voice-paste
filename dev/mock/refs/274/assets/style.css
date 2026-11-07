@@ -64,9 +64,24 @@
     min-height: 40px;
     padding: 0 12px;
     font-weight: 600;
+    list-style: none;
     cursor: pointer;
+    /* 開閉の向きを示す山形（閉じているときは右、開いているときは下を向く） */
+    &::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      margin: 0 6px 0 2px;
+      border-right: 2px solid var(--text-2);
+      border-bottom: 2px solid var(--text-2);
+      transform: rotate(-45deg);
+    }
+    &::-webkit-details-marker { display: none; }
     &:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: -2px; }
   }
-  &[open] > summary { border-bottom: 1px solid var(--line); }
+  &[open] > summary {
+    border-bottom: 1px solid var(--line);
+    &::before { transform: rotate(45deg); }
+  }
   > .engine-panel { padding: 12px; }
 }

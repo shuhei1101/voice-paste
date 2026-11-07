@@ -1,0 +1,87 @@
+/* ===== PR 274 の画面モック: 文字起こしのエンジンごとの区画（refs/37・refs/264 の style.css に重ねる） ===== */
+
+/* 案 A: エンジンごとのタブの並び */
+.engine-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* 案 A: タブ 1 つ（選んだタブは枠の全体と面の色で示す） */
+.engine-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--control-h);
+  margin-bottom: -1px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  cursor: pointer;
+  &:hover { color: var(--text); }
+  &[aria-selected="true"] {
+    border-color: var(--line);
+    border-bottom-color: var(--surface);
+    background: var(--surface);
+    color: var(--text);
+  }
+  &:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: -2px; }
+}
+
+/* 案 A: タブの中身 */
+.engine-panel {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+}
+
+/* 使用中のエンジンのマーカー（文字で伝える） */
+.badge--using {
+  border: 1px solid var(--accent-fg);
+  color: var(--accent-fg);
+}
+
+/* 確認に通らない欄があるエンジンのマーカー（文字で伝える） */
+.badge--error {
+  background: var(--error-bg);
+  color: var(--error);
+}
+
+/* 案 B: エンジンごとの開閉できるまとまり */
+.engine-section {
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  > summary {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 0 12px;
+    font-weight: 600;
+    list-style: none;
+    cursor: pointer;
+    /* 開閉の向きを示す山形（閉じているときは右、開いているときは下を向く） */
+    &::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      margin: 0 6px 0 2px;
+      border-right: 2px solid var(--text-2);
+      border-bottom: 2px solid var(--text-2);
+      transform: rotate(-45deg);
+    }
+    &::-webkit-details-marker { display: none; }
+    &:focus-visible { outline: 2px solid var(--accent-fg); outline-offset: -2px; }
+  }
+  &[open] > summary {
+    border-bottom: 1px solid var(--line);
+    &::before { transform: rotate(45deg); }
+  }
+  > .engine-panel { padding: 12px; }
+}

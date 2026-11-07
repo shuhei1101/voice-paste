@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>設定画面 | voice-paste のモック</title>
+  <!-- 採用スタイルの部品は #37、最小の幅は #264、エンジンごとの区画は #274 の共有 CSS に置く -->
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/264/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/274/assets/style.css">
+  <script src="../../../../refs/37/assets/app.js" defer></script>
+  <script src="../../../../refs/274/assets/app.js" defer></script>
+</head>
+<body class="a-engine-tabs">
+  <nav class="mock-bar" data-mock-bar aria-label="案と場面の切り替え（モック専用）">
+    <span class="mock-bar__label">案</span>
+    <ul><li><a href="../a-engine-tabs/index.html" aria-current="page">案 A</a></li><li><a href="../b-engine-sections/index.html">案 B</a></li></ul>
+    <span class="mock-bar__label">場面</span>
+    <ul><li><button type="button" data-scene="open">ローカルの Whisper を使っているときに開く</button></li><li><button type="button" data-scene="other">Haas（WSL）を使いながらローカルの Whisper の欄を変える</button></li><li><button type="button" data-scene="error">選んでいないエンジンの欄が確認に通らない</button></li><li><button type="button" data-scene="min">最小の幅（720px）</button></li></ul>
+  </nav>
+
+  <main>
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">settings</a> / <a href="../">274</a> / <span>a-engine-tabs</span></nav>
+
+    <header class="intro">
+      <h1>設定画面（案 A）</h1>
+      <p>エンジンの選択の下に、エンジンごとのタブを並べたもの。開いたときは使用中のエンジンのタブを出す。</p>
+    </header>
+
+    <div class="desk desk--single">
+
+      <section class="specimen" data-scene-panel="open" aria-labelledby="h-open">
+        <h2 id="h-open">ローカルの Whisper を使っているときに開く</h2>
+        <div class="win settings settings--full">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり（ローカルの Whisper を使っているときに開く）"><ul><li><a href="../../44/a-inline/kind-tabs/index.html">出力先</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ブラウザ添付</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">エンドポイントへ送信</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ホットキー</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">録音</a></li><li><a href="#open-group" aria-current="page">文字起こし</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">表記のヒント</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">用語集</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ハルシネーション</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">画面</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">履歴とログ</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">API</a></li></ul></nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（ローカルの Whisper を使っているときに開く）">
+<fieldset id="open-group" data-group>
+<legend>文字起こし</legend>
+<div class="row" data-reload="restart">
+<label for="open-engine">使う文字起こしのエンジン <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.engine</code>
+<select id="open-engine" name="transcription.engine" data-engine-select><option value="local_whisper" selected>ローカルの Whisper</option><option value="openai">OpenAI API</option><option value="haas">Haas（WSL）</option></select>
+</div>
+<div class="engine-tabs" role="tablist" aria-label="エンジンごとの設定" data-engine-tabs><button type="button" role="tab" class="engine-tab" id="open-tab-whisper" aria-controls="open-panel-whisper" aria-selected="true" tabindex="0">ローカルの Whisper<span class="badge badge--using" data-using="local_whisper">使用中</span></button><button type="button" role="tab" class="engine-tab" id="open-tab-openai" aria-controls="open-panel-openai" aria-selected="false" tabindex="-1">OpenAI API<span class="badge badge--using" data-using="openai" hidden>使用中</span></button><button type="button" role="tab" class="engine-tab" id="open-tab-haas" aria-controls="open-panel-haas" aria-selected="false" tabindex="-1">Haas（WSL）<span class="badge badge--using" data-using="haas" hidden>使用中</span></button></div>
+<div class="engine-panel" role="tabpanel" id="open-panel-whisper" aria-labelledby="open-tab-whisper" data-engine-panel>
+<div class="row" data-reload="restart">
+<label for="open-transcription.local_whisper.model">faster-whisper のモデル <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.model</code>
+<select id="open-transcription.local_whisper.model" name="transcription.local_whisper.model"><option selected>large-v3</option><option>large-v3-turbo</option><option>medium</option><option>small</option><option>base</option></select>
+</div>
+<div class="row" data-reload="restart">
+<span>動かすデバイス <span class="badge badge--restart">再起動で反映</span></span>
+<code class="key">transcription.local_whisper.device</code>
+<fieldset class="radios" aria-label="動かすデバイス"><label><input type="radio" name="open-transcription.local_whisper.device" value="cuda" checked> cuda</label><label><input type="radio" name="open-transcription.local_whisper.device" value="cpu"> cpu</label></fieldset>
+</div>
+<div class="row" data-reload="restart">
+<span>計算の精度 <span class="badge badge--restart">再起動で反映</span></span>
+<code class="key">transcription.local_whisper.compute_type</code>
+<fieldset class="radios" aria-label="計算の精度"><label><input type="radio" name="open-transcription.local_whisper.compute_type" value="float16" checked> float16</label><label><input type="radio" name="open-transcription.local_whisper.compute_type" value="int8"> int8</label><label><input type="radio" name="open-transcription.local_whisper.compute_type" value="float32"> float32</label></fieldset>
+</div>
+<div class="row" data-reload="restart">
+<label for="open-transcription.local_whisper.language">認識する言語 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.language</code>
+<input type="text" class="wide" id="open-transcription.local_whisper.language" name="transcription.local_whisper.language" value="ja">
+</div>
+<h4 class="subhead">詳しい調整</h4>
+<div class="row" data-reload="restart">
+<label for="open-transcription.local_whisper.cpu_threads">CPU のスレッド数（0 は自動） <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.cpu_threads</code>
+<input type="number" id="open-transcription.local_whisper.cpu_threads" name="transcription.local_whisper.cpu_threads" value="0" step="1" min="0">
+</div>
+<div class="row" data-reload="restart">
+<label for="open-transcription.local_whisper.num_workers">並列のデコードの数 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.num_workers</code>
+<input type="number" id="open-transcription.local_whisper.num_workers" name="transcription.local_whisper.num_workers" value="1" step="1" min="1">
+</div>
+<div class="row" data-reload="restart">
+<label for="open-transcription.local_whisper.beam_size">ビームサーチの幅 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.beam_size</code>
+<input type="number" id="open-transcription.local_whisper.beam_size" name="transcription.local_whisper.beam_size" value="5" step="1" min="1">
+</div>
+<div class="row" data-reload="restart">
+<label for="open-transcription.local_whisper.best_of">サンプリングの候補の数 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.best_of</code>
+<input type="number" id="open-transcription.local_whisper.best_of" name="transcription.local_whisper.best_of" value="5" step="1" min="1">
+</div>
+<div class="row" data-reload="restart">
+<label for="open-transcription.local_whisper.temperature">サンプリングの温度 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.temperature</code>
+<input type="number" id="open-transcription.local_whisper.temperature" name="transcription.local_whisper.temperature" value="0.0" step="0.1" min="0">
+</div>
+<div class="row" data-reload="restart">
+<label for="open-transcription.local_whisper.no_speech_threshold">区間を無音とみなす確信度の閾値 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.no_speech_threshold</code>
+<input type="number" id="open-transcription.local_whisper.no_speech_threshold" name="transcription.local_whisper.no_speech_threshold" value="0.6" step="0.05" min="0" max="1">
+</div>
+<div class="row" data-reload="restart">
+<label class="check" for="open-transcription.local_whisper.vad_filter"><input type="checkbox" id="open-transcription.local_whisper.vad_filter" name="transcription.local_whisper.vad_filter" checked> 無音の区間を除くか <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.vad_filter</code>
+</div>
+<div class="row" data-reload="restart">
+<label for="open-transcription.local_whisper.vad_threshold">音声とみなす確信度の閾値 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.vad_threshold</code>
+<input type="number" id="open-transcription.local_whisper.vad_threshold" name="transcription.local_whisper.vad_threshold" value="0.5" step="0.05" min="0" max="1">
+</div>
+<div class="row" data-reload="restart">
+<label for="open-transcription.local_whisper.vad_min_speech_ms">これより短い音を雑音として除く（ミリ秒） <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.vad_min_speech_ms</code>
+<input type="number" id="open-transcription.local_whisper.vad_min_speech_ms" name="transcription.local_whisper.vad_min_speech_ms" value="250" step="50" min="0">
+</div>
+<div class="row" data-reload="restart">
+<label for="open-transcription.local_whisper.vad_min_silence_ms">これ以上の無音で区間を区切る（ミリ秒） <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.vad_min_silence_ms</code>
+<input type="number" id="open-transcription.local_whisper.vad_min_silence_ms" name="transcription.local_whisper.vad_min_silence_ms" value="2000" step="100" min="0">
+</div>
+<div class="row" data-reload="restart">
+<label class="check" for="open-transcription.local_whisper.condition_on_previous_text"><input type="checkbox" id="open-transcription.local_whisper.condition_on_previous_text" name="transcription.local_whisper.condition_on_previous_text"> 前の区間の文字を次の区間の文脈に使うか <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.condition_on_previous_text</code>
+</div>
+</div>
+<div class="engine-panel" role="tabpanel" id="open-panel-openai" aria-labelledby="open-tab-openai" data-engine-panel hidden>
+<p class="field-help">文字起こしのエンジンが OpenAI API のときに使う。API キーはここでは入れず、環境変数 OPENAI_API_KEY か、settings.yaml と同じフォルダの secrets/openai_api_key に置く。</p>
+<div class="row" data-reload="restart">
+<label for="open-transcription.openai.model">OpenAI のモデル <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.openai.model</code>
+<input type="text" class="wide" id="open-transcription.openai.model" name="transcription.openai.model" value="gpt-4o-transcribe">
+</div>
+<div class="row" data-reload="restart">
+<label for="open-transcription.openai.language">OpenAI の言語（ISO-639-1） <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.openai.language</code>
+<input type="text" class="wide" id="open-transcription.openai.language" name="transcription.openai.language" value="ja">
+</div>
+<div class="row" data-reload="restart">
+<label for="open-transcription.openai.base_url">OpenAI のベース URL <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.openai.base_url</code>
+<input type="text" class="wide" id="open-transcription.openai.base_url" name="transcription.openai.base_url" value="https://api.openai.com/v1">
+</div>
+</div>
+<div class="engine-panel" role="tabpanel" id="open-panel-haas" aria-labelledby="open-tab-haas" data-engine-panel hidden>
+<p class="field-help">文字起こしのエンジンが Haas（WSL）のときに使う。WSL2 のネットワークを mirrored にし、このディストリビューションにサーバーの環境を作っておく。空なら WSL の既定のディストリビューションを使う。</p>
+<div class="row" data-reload="restart">
+<label for="open-transcription.haas.distribution">WSL のディストリビューション <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.haas.distribution</code>
+<input type="text" class="wide" id="open-transcription.haas.distribution" name="transcription.haas.distribution" value="" placeholder="例: Ubuntu-24.04">
+</div>
+<div class="row" data-reload="restart">
+<label for="open-transcription.haas.port">サーバーのポート <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.haas.port</code>
+<input type="number" id="open-transcription.haas.port" name="transcription.haas.port" value="47824" step="1" min="1024" max="65535">
+</div>
+</div>
+</fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <div class="settings__actions">
+              <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn btn--primary" href="../../../tray/37/a-standard/index.html">保存</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">使用中のタブに「使用中」を出す。ほかのタブも押せば欄を変えられる。</p>
+      </section>
+      <section class="specimen" data-scene-panel="other" aria-labelledby="h-other">
+        <h2 id="h-other">Haas（WSL）を使いながらローカルの Whisper の欄を変える</h2>
+        <div class="win settings settings--full">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり（Haas（WSL）を使いながらローカルの Whisper の欄を変える）"><ul><li><a href="../../44/a-inline/kind-tabs/index.html">出力先</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ブラウザ添付</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">エンドポイントへ送信</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ホットキー</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">録音</a></li><li><a href="#other-group" aria-current="page">文字起こし</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">表記のヒント</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">用語集</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ハルシネーション</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">画面</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">履歴とログ</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">API</a></li></ul></nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（Haas（WSL）を使いながらローカルの Whisper の欄を変える）">
+<fieldset id="other-group" data-group>
+<legend>文字起こし</legend>
+<div class="row" data-reload="restart">
+<label for="other-engine">使う文字起こしのエンジン <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.engine</code>
+<select id="other-engine" name="transcription.engine" data-engine-select><option value="local_whisper">ローカルの Whisper</option><option value="openai">OpenAI API</option><option value="haas" selected>Haas（WSL）</option></select>
+</div>
+<div class="engine-tabs" role="tablist" aria-label="エンジンごとの設定" data-engine-tabs><button type="button" role="tab" class="engine-tab" id="other-tab-whisper" aria-controls="other-panel-whisper" aria-selected="true" tabindex="0">ローカルの Whisper<span class="badge badge--using" data-using="local_whisper" hidden>使用中</span></button><button type="button" role="tab" class="engine-tab" id="other-tab-openai" aria-controls="other-panel-openai" aria-selected="false" tabindex="-1">OpenAI API<span class="badge badge--using" data-using="openai" hidden>使用中</span></button><button type="button" role="tab" class="engine-tab" id="other-tab-haas" aria-controls="other-panel-haas" aria-selected="false" tabindex="-1">Haas（WSL）<span class="badge badge--using" data-using="haas">使用中</span></button></div>
+<div class="engine-panel" role="tabpanel" id="other-panel-whisper" aria-labelledby="other-tab-whisper" data-engine-panel>
+<div class="row" data-reload="restart">
+<label for="other-transcription.local_whisper.model">faster-whisper のモデル <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.model</code>
+<select id="other-transcription.local_whisper.model" name="transcription.local_whisper.model"><option selected>large-v3</option><option>large-v3-turbo</option><option>medium</option><option>small</option><option>base</option></select>
+</div>
+<div class="row" data-reload="restart">
+<span>動かすデバイス <span class="badge badge--restart">再起動で反映</span></span>
+<code class="key">transcription.local_whisper.device</code>
+<fieldset class="radios" aria-label="動かすデバイス"><label><input type="radio" name="other-transcription.local_whisper.device" value="cuda" checked> cuda</label><label><input type="radio" name="other-transcription.local_whisper.device" value="cpu"> cpu</label></fieldset>
+</div>
+<div class="row" data-reload="restart">
+<span>計算の精度 <span class="badge badge--restart">再起動で反映</span></span>
+<code class="key">transcription.local_whisper.compute_type</code>
+<fieldset class="radios" aria-label="計算の精度"><label><input type="radio" name="other-transcription.local_whisper.compute_type" value="float16" checked> float16</label><label><input type="radio" name="other-transcription.local_whisper.compute_type" value="int8"> int8</label><label><input type="radio" name="other-transcription.local_whisper.compute_type" value="float32"> float32</label></fieldset>
+</div>
+<div class="row" data-reload="restart">
+<label for="other-transcription.local_whisper.language">認識する言語 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.language</code>
+<input type="text" class="wide" id="other-transcription.local_whisper.language" name="transcription.local_whisper.language" value="ja">
+</div>
+<h4 class="subhead">詳しい調整</h4>
+<div class="row" data-reload="restart">
+<label for="other-transcription.local_whisper.cpu_threads">CPU のスレッド数（0 は自動） <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.cpu_threads</code>
+<input type="number" id="other-transcription.local_whisper.cpu_threads" name="transcription.local_whisper.cpu_threads" value="0" step="1" min="0">
+</div>
+<div class="row" data-reload="restart">
+<label for="other-transcription.local_whisper.num_workers">並列のデコードの数 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.num_workers</code>
+<input type="number" id="other-transcription.local_whisper.num_workers" name="transcription.local_whisper.num_workers" value="1" step="1" min="1">
+</div>
+<div class="row" data-reload="restart">
+<label for="other-transcription.local_whisper.beam_size">ビームサーチの幅 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.beam_size</code>
+<input type="number" id="other-transcription.local_whisper.beam_size" name="transcription.local_whisper.beam_size" value="8" step="1" min="1">
+</div>
+<div class="row" data-reload="restart">
+<label for="other-transcription.local_whisper.best_of">サンプリングの候補の数 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.best_of</code>
+<input type="number" id="other-transcription.local_whisper.best_of" name="transcription.local_whisper.best_of" value="5" step="1" min="1">
+</div>
+<div class="row" data-reload="restart">
+<label for="other-transcription.local_whisper.temperature">サンプリングの温度 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.temperature</code>
+<input type="number" id="other-transcription.local_whisper.temperature" name="transcription.local_whisper.temperature" value="0.0" step="0.1" min="0">
+</div>
+<div class="row" data-reload="restart">
+<label for="other-transcription.local_whisper.no_speech_threshold">区間を無音とみなす確信度の閾値 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.no_speech_threshold</code>
+<input type="number" id="other-transcription.local_whisper.no_speech_threshold" name="transcription.local_whisper.no_speech_threshold" value="0.6" step="0.05" min="0" max="1">
+</div>
+<div class="row" data-reload="restart">
+<label class="check" for="other-transcription.local_whisper.vad_filter"><input type="checkbox" id="other-transcription.local_whisper.vad_filter" name="transcription.local_whisper.vad_filter" checked> 無音の区間を除くか <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.vad_filter</code>
+</div>
+<div class="row" data-reload="restart">
+<label for="other-transcription.local_whisper.vad_threshold">音声とみなす確信度の閾値 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.vad_threshold</code>
+<input type="number" id="other-transcription.local_whisper.vad_threshold" name="transcription.local_whisper.vad_threshold" value="0.5" step="0.05" min="0" max="1">
+</div>
+<div class="row" data-reload="restart">
+<label for="other-transcription.local_whisper.vad_min_speech_ms">これより短い音を雑音として除く（ミリ秒） <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.vad_min_speech_ms</code>
+<input type="number" id="other-transcription.local_whisper.vad_min_speech_ms" name="transcription.local_whisper.vad_min_speech_ms" value="250" step="50" min="0">
+</div>
+<div class="row" data-reload="restart">
+<label for="other-transcription.local_whisper.vad_min_silence_ms">これ以上の無音で区間を区切る（ミリ秒） <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.vad_min_silence_ms</code>
+<input type="number" id="other-transcription.local_whisper.vad_min_silence_ms" name="transcription.local_whisper.vad_min_silence_ms" value="2000" step="100" min="0">
+</div>
+<div class="row" data-reload="restart">
+<label class="check" for="other-transcription.local_whisper.condition_on_previous_text"><input type="checkbox" id="other-transcription.local_whisper.condition_on_previous_text" name="transcription.local_whisper.condition_on_previous_text"> 前の区間の文字を次の区間の文脈に使うか <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.condition_on_previous_text</code>
+</div>
+</div>
+<div class="engine-panel" role="tabpanel" id="other-panel-openai" aria-labelledby="other-tab-openai" data-engine-panel hidden>
+<p class="field-help">文字起こしのエンジンが OpenAI API のときに使う。API キーはここでは入れず、環境変数 OPENAI_API_KEY か、settings.yaml と同じフォルダの secrets/openai_api_key に置く。</p>
+<div class="row" data-reload="restart">
+<label for="other-transcription.openai.model">OpenAI のモデル <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.openai.model</code>
+<input type="text" class="wide" id="other-transcription.openai.model" name="transcription.openai.model" value="gpt-4o-transcribe">
+</div>
+<div class="row" data-reload="restart">
+<label for="other-transcription.openai.language">OpenAI の言語（ISO-639-1） <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.openai.language</code>
+<input type="text" class="wide" id="other-transcription.openai.language" name="transcription.openai.language" value="ja">
+</div>
+<div class="row" data-reload="restart">
+<label for="other-transcription.openai.base_url">OpenAI のベース URL <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.openai.base_url</code>
+<input type="text" class="wide" id="other-transcription.openai.base_url" name="transcription.openai.base_url" value="https://api.openai.com/v1">
+</div>
+</div>
+<div class="engine-panel" role="tabpanel" id="other-panel-haas" aria-labelledby="other-tab-haas" data-engine-panel hidden>
+<p class="field-help">文字起こしのエンジンが Haas（WSL）のときに使う。WSL2 のネットワークを mirrored にし、このディストリビューションにサーバーの環境を作っておく。空なら WSL の既定のディストリビューションを使う。</p>
+<div class="row" data-reload="restart">
+<label for="other-transcription.haas.distribution">WSL のディストリビューション <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.haas.distribution</code>
+<input type="text" class="wide" id="other-transcription.haas.distribution" name="transcription.haas.distribution" value="" placeholder="例: Ubuntu-24.04">
+</div>
+<div class="row" data-reload="restart">
+<label for="other-transcription.haas.port">サーバーのポート <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.haas.port</code>
+<input type="number" id="other-transcription.haas.port" name="transcription.haas.port" value="47824" step="1" min="1024" max="65535">
+</div>
+</div>
+</fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <div class="settings__actions">
+              <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn btn--primary" href="../../../tray/37/a-standard/index.html">保存</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">エンジンは Haas（WSL）のまま、「ローカルの Whisper」のタブを押してビームサーチの幅を変えたところ。エンジンの選択を変えても、出しているタブは替えない。</p>
+      </section>
+      <section class="specimen" data-scene-panel="error" aria-labelledby="h-error">
+        <h2 id="h-error">選んでいないエンジンの欄が確認に通らない</h2>
+        <div class="win settings settings--full">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり（選んでいないエンジンの欄が確認に通らない）"><ul><li><a href="../../44/a-inline/kind-tabs/index.html">出力先</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ブラウザ添付</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">エンドポイントへ送信</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ホットキー</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">録音</a></li><li><a href="#error-group" aria-current="page">文字起こし</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">表記のヒント</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">用語集</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ハルシネーション</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">画面</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">履歴とログ</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">API</a></li></ul></nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（選んでいないエンジンの欄が確認に通らない）">
+<div class="error-summary" role="alert" tabindex="-1">
+保存できませんでした。1 件の欄を直してください。
+<ul>
+<li><a href="#error-transcription.openai.base_url" data-engine-error-link>OpenAI のベース URL: http:// か https:// で始まる URL を入れてください。</a></li>
+</ul>
+</div>
+<fieldset id="error-group" data-group>
+<legend>文字起こし</legend>
+<div class="row" data-reload="restart">
+<label for="error-engine">使う文字起こしのエンジン <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.engine</code>
+<select id="error-engine" name="transcription.engine" data-engine-select><option value="local_whisper" selected>ローカルの Whisper</option><option value="openai">OpenAI API</option><option value="haas">Haas（WSL）</option></select>
+</div>
+<div class="engine-tabs" role="tablist" aria-label="エンジンごとの設定" data-engine-tabs><button type="button" role="tab" class="engine-tab" id="error-tab-whisper" aria-controls="error-panel-whisper" aria-selected="true" tabindex="0">ローカルの Whisper<span class="badge badge--using" data-using="local_whisper">使用中</span></button><button type="button" role="tab" class="engine-tab" id="error-tab-openai" aria-controls="error-panel-openai" aria-selected="false" tabindex="-1">OpenAI API<span class="badge badge--using" data-using="openai" hidden>使用中</span> <span class="badge badge--error">エラー 1 件</span></button><button type="button" role="tab" class="engine-tab" id="error-tab-haas" aria-controls="error-panel-haas" aria-selected="false" tabindex="-1">Haas（WSL）<span class="badge badge--using" data-using="haas" hidden>使用中</span></button></div>
+<div class="engine-panel" role="tabpanel" id="error-panel-whisper" aria-labelledby="error-tab-whisper" data-engine-panel>
+<div class="row" data-reload="restart">
+<label for="error-transcription.local_whisper.model">faster-whisper のモデル <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.model</code>
+<select id="error-transcription.local_whisper.model" name="transcription.local_whisper.model"><option selected>large-v3</option><option>large-v3-turbo</option><option>medium</option><option>small</option><option>base</option></select>
+</div>
+<div class="row" data-reload="restart">
+<span>動かすデバイス <span class="badge badge--restart">再起動で反映</span></span>
+<code class="key">transcription.local_whisper.device</code>
+<fieldset class="radios" aria-label="動かすデバイス"><label><input type="radio" name="error-transcription.local_whisper.device" value="cuda" checked> cuda</label><label><input type="radio" name="error-transcription.local_whisper.device" value="cpu"> cpu</label></fieldset>
+</div>
+<div class="row" data-reload="restart">
+<span>計算の精度 <span class="badge badge--restart">再起動で反映</span></span>
+<code class="key">transcription.local_whisper.compute_type</code>
+<fieldset class="radios" aria-label="計算の精度"><label><input type="radio" name="error-transcription.local_whisper.compute_type" value="float16" checked> float16</label><label><input type="radio" name="error-transcription.local_whisper.compute_type" value="int8"> int8</label><label><input type="radio" name="error-transcription.local_whisper.compute_type" value="float32"> float32</label></fieldset>
+</div>
+<div class="row" data-reload="restart">
+<label for="error-transcription.local_whisper.language">認識する言語 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.language</code>
+<input type="text" class="wide" id="error-transcription.local_whisper.language" name="transcription.local_whisper.language" value="ja">
+</div>
+<h4 class="subhead">詳しい調整</h4>
+<div class="row" data-reload="restart">
+<label for="error-transcription.local_whisper.cpu_threads">CPU のスレッド数（0 は自動） <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.cpu_threads</code>
+<input type="number" id="error-transcription.local_whisper.cpu_threads" name="transcription.local_whisper.cpu_threads" value="0" step="1" min="0">
+</div>
+<div class="row" data-reload="restart">
+<label for="error-transcription.local_whisper.num_workers">並列のデコードの数 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.num_workers</code>
+<input type="number" id="error-transcription.local_whisper.num_workers" name="transcription.local_whisper.num_workers" value="1" step="1" min="1">
+</div>
+<div class="row" data-reload="restart">
+<label for="error-transcription.local_whisper.beam_size">ビームサーチの幅 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.beam_size</code>
+<input type="number" id="error-transcription.local_whisper.beam_size" name="transcription.local_whisper.beam_size" value="5" step="1" min="1">
+</div>
+<div class="row" data-reload="restart">
+<label for="error-transcription.local_whisper.best_of">サンプリングの候補の数 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.best_of</code>
+<input type="number" id="error-transcription.local_whisper.best_of" name="transcription.local_whisper.best_of" value="5" step="1" min="1">
+</div>
+<div class="row" data-reload="restart">
+<label for="error-transcription.local_whisper.temperature">サンプリングの温度 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.temperature</code>
+<input type="number" id="error-transcription.local_whisper.temperature" name="transcription.local_whisper.temperature" value="0.0" step="0.1" min="0">
+</div>
+<div class="row" data-reload="restart">
+<label for="error-transcription.local_whisper.no_speech_threshold">区間を無音とみなす確信度の閾値 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.no_speech_threshold</code>
+<input type="number" id="error-transcription.local_whisper.no_speech_threshold" name="transcription.local_whisper.no_speech_threshold" value="0.6" step="0.05" min="0" max="1">
+</div>
+<div class="row" data-reload="restart">
+<label class="check" for="error-transcription.local_whisper.vad_filter"><input type="checkbox" id="error-transcription.local_whisper.vad_filter" name="transcription.local_whisper.vad_filter" checked> 無音の区間を除くか <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.vad_filter</code>
+</div>
+<div class="row" data-reload="restart">
+<label for="error-transcription.local_whisper.vad_threshold">音声とみなす確信度の閾値 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.vad_threshold</code>
+<input type="number" id="error-transcription.local_whisper.vad_threshold" name="transcription.local_whisper.vad_threshold" value="0.5" step="0.05" min="0" max="1">
+</div>
+<div class="row" data-reload="restart">
+<label for="error-transcription.local_whisper.vad_min_speech_ms">これより短い音を雑音として除く（ミリ秒） <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.vad_min_speech_ms</code>
+<input type="number" id="error-transcription.local_whisper.vad_min_speech_ms" name="transcription.local_whisper.vad_min_speech_ms" value="250" step="50" min="0">
+</div>
+<div class="row" data-reload="restart">
+<label for="error-transcription.local_whisper.vad_min_silence_ms">これ以上の無音で区間を区切る（ミリ秒） <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.vad_min_silence_ms</code>
+<input type="number" id="error-transcription.local_whisper.vad_min_silence_ms" name="transcription.local_whisper.vad_min_silence_ms" value="2000" step="100" min="0">
+</div>
+<div class="row" data-reload="restart">
+<label class="check" for="error-transcription.local_whisper.condition_on_previous_text"><input type="checkbox" id="error-transcription.local_whisper.condition_on_previous_text" name="transcription.local_whisper.condition_on_previous_text"> 前の区間の文字を次の区間の文脈に使うか <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.condition_on_previous_text</code>
+</div>
+</div>
+<div class="engine-panel" role="tabpanel" id="error-panel-openai" aria-labelledby="error-tab-openai" data-engine-panel hidden>
+<p class="field-help">文字起こしのエンジンが OpenAI API のときに使う。API キーはここでは入れず、環境変数 OPENAI_API_KEY か、settings.yaml と同じフォルダの secrets/openai_api_key に置く。</p>
+<div class="row" data-reload="restart">
+<label for="error-transcription.openai.model">OpenAI のモデル <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.openai.model</code>
+<input type="text" class="wide" id="error-transcription.openai.model" name="transcription.openai.model" value="gpt-4o-transcribe">
+</div>
+<div class="row" data-reload="restart">
+<label for="error-transcription.openai.language">OpenAI の言語（ISO-639-1） <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.openai.language</code>
+<input type="text" class="wide" id="error-transcription.openai.language" name="transcription.openai.language" value="ja">
+</div>
+<div class="row" data-reload="restart">
+<label for="error-transcription.openai.base_url">OpenAI のベース URL <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.openai.base_url</code>
+<input type="text" class="wide" id="error-transcription.openai.base_url" name="transcription.openai.base_url" value="api.openai.com/v1" aria-invalid="true" aria-describedby="error-transcription.openai.base_url-err">
+<p class="field-error" id="error-transcription.openai.base_url-err">http:// か https:// で始まる URL を入れてください。</p>
+</div>
+</div>
+<div class="engine-panel" role="tabpanel" id="error-panel-haas" aria-labelledby="error-tab-haas" data-engine-panel hidden>
+<p class="field-help">文字起こしのエンジンが Haas（WSL）のときに使う。WSL2 のネットワークを mirrored にし、このディストリビューションにサーバーの環境を作っておく。空なら WSL の既定のディストリビューションを使う。</p>
+<div class="row" data-reload="restart">
+<label for="error-transcription.haas.distribution">WSL のディストリビューション <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.haas.distribution</code>
+<input type="text" class="wide" id="error-transcription.haas.distribution" name="transcription.haas.distribution" value="" placeholder="例: Ubuntu-24.04">
+</div>
+<div class="row" data-reload="restart">
+<label for="error-transcription.haas.port">サーバーのポート <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.haas.port</code>
+<input type="number" id="error-transcription.haas.port" name="transcription.haas.port" value="47824" step="1" min="1024" max="65535">
+</div>
+</div>
+</fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <div class="settings__actions">
+              <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn btn--primary" href="../../../tray/37/a-standard/index.html">保存</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">OpenAI API の欄が確認に通らない。タブに「エラー 1 件」を出し、エラーの一覧の行を押すと OpenAI API のタブへ切り替えて欄へフォーカスを移す。</p>
+      </section>
+      <section class="specimen" data-scene-panel="min" aria-labelledby="h-min">
+        <h2 id="h-min">最小の幅（720px）</h2>
+        <div class="win settings settings--full settings--min">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり（最小の幅（720px））"><ul><li><a href="../../44/a-inline/kind-tabs/index.html">出力先</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ブラウザ添付</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">エンドポイントへ送信</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ホットキー</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">録音</a></li><li><a href="#min-group" aria-current="page">文字起こし</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">表記のヒント</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">用語集</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ハルシネーション</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">画面</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">履歴とログ</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">API</a></li></ul></nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（最小の幅（720px））">
+<fieldset id="min-group" data-group>
+<legend>文字起こし</legend>
+<div class="row" data-reload="restart">
+<label for="min-engine">使う文字起こしのエンジン <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.engine</code>
+<select id="min-engine" name="transcription.engine" data-engine-select><option value="local_whisper" selected>ローカルの Whisper</option><option value="openai">OpenAI API</option><option value="haas">Haas（WSL）</option></select>
+</div>
+<div class="engine-tabs" role="tablist" aria-label="エンジンごとの設定" data-engine-tabs><button type="button" role="tab" class="engine-tab" id="min-tab-whisper" aria-controls="min-panel-whisper" aria-selected="true" tabindex="0">ローカルの Whisper<span class="badge badge--using" data-using="local_whisper">使用中</span></button><button type="button" role="tab" class="engine-tab" id="min-tab-openai" aria-controls="min-panel-openai" aria-selected="false" tabindex="-1">OpenAI API<span class="badge badge--using" data-using="openai" hidden>使用中</span></button><button type="button" role="tab" class="engine-tab" id="min-tab-haas" aria-controls="min-panel-haas" aria-selected="false" tabindex="-1">Haas（WSL）<span class="badge badge--using" data-using="haas" hidden>使用中</span></button></div>
+<div class="engine-panel" role="tabpanel" id="min-panel-whisper" aria-labelledby="min-tab-whisper" data-engine-panel>
+<div class="row" data-reload="restart">
+<label for="min-transcription.local_whisper.model">faster-whisper のモデル <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.model</code>
+<select id="min-transcription.local_whisper.model" name="transcription.local_whisper.model"><option selected>large-v3</option><option>large-v3-turbo</option><option>medium</option><option>small</option><option>base</option></select>
+</div>
+<div class="row" data-reload="restart">
+<span>動かすデバイス <span class="badge badge--restart">再起動で反映</span></span>
+<code class="key">transcription.local_whisper.device</code>
+<fieldset class="radios" aria-label="動かすデバイス"><label><input type="radio" name="min-transcription.local_whisper.device" value="cuda" checked> cuda</label><label><input type="radio" name="min-transcription.local_whisper.device" value="cpu"> cpu</label></fieldset>
+</div>
+<div class="row" data-reload="restart">
+<span>計算の精度 <span class="badge badge--restart">再起動で反映</span></span>
+<code class="key">transcription.local_whisper.compute_type</code>
+<fieldset class="radios" aria-label="計算の精度"><label><input type="radio" name="min-transcription.local_whisper.compute_type" value="float16" checked> float16</label><label><input type="radio" name="min-transcription.local_whisper.compute_type" value="int8"> int8</label><label><input type="radio" name="min-transcription.local_whisper.compute_type" value="float32"> float32</label></fieldset>
+</div>
+<div class="row" data-reload="restart">
+<label for="min-transcription.local_whisper.language">認識する言語 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.language</code>
+<input type="text" class="wide" id="min-transcription.local_whisper.language" name="transcription.local_whisper.language" value="ja">
+</div>
+<h4 class="subhead">詳しい調整</h4>
+<div class="row" data-reload="restart">
+<label for="min-transcription.local_whisper.cpu_threads">CPU のスレッド数（0 は自動） <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.cpu_threads</code>
+<input type="number" id="min-transcription.local_whisper.cpu_threads" name="transcription.local_whisper.cpu_threads" value="0" step="1" min="0">
+</div>
+<div class="row" data-reload="restart">
+<label for="min-transcription.local_whisper.num_workers">並列のデコードの数 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.num_workers</code>
+<input type="number" id="min-transcription.local_whisper.num_workers" name="transcription.local_whisper.num_workers" value="1" step="1" min="1">
+</div>
+<div class="row" data-reload="restart">
+<label for="min-transcription.local_whisper.beam_size">ビームサーチの幅 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.beam_size</code>
+<input type="number" id="min-transcription.local_whisper.beam_size" name="transcription.local_whisper.beam_size" value="5" step="1" min="1">
+</div>
+<div class="row" data-reload="restart">
+<label for="min-transcription.local_whisper.best_of">サンプリングの候補の数 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.best_of</code>
+<input type="number" id="min-transcription.local_whisper.best_of" name="transcription.local_whisper.best_of" value="5" step="1" min="1">
+</div>
+<div class="row" data-reload="restart">
+<label for="min-transcription.local_whisper.temperature">サンプリングの温度 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.temperature</code>
+<input type="number" id="min-transcription.local_whisper.temperature" name="transcription.local_whisper.temperature" value="0.0" step="0.1" min="0">
+</div>
+<div class="row" data-reload="restart">
+<label for="min-transcription.local_whisper.no_speech_threshold">区間を無音とみなす確信度の閾値 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.no_speech_threshold</code>
+<input type="number" id="min-transcription.local_whisper.no_speech_threshold" name="transcription.local_whisper.no_speech_threshold" value="0.6" step="0.05" min="0" max="1">
+</div>
+<div class="row" data-reload="restart">
+<label class="check" for="min-transcription.local_whisper.vad_filter"><input type="checkbox" id="min-transcription.local_whisper.vad_filter" name="transcription.local_whisper.vad_filter" checked> 無音の区間を除くか <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.vad_filter</code>
+</div>
+<div class="row" data-reload="restart">
+<label for="min-transcription.local_whisper.vad_threshold">音声とみなす確信度の閾値 <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.vad_threshold</code>
+<input type="number" id="min-transcription.local_whisper.vad_threshold" name="transcription.local_whisper.vad_threshold" value="0.5" step="0.05" min="0" max="1">
+</div>
+<div class="row" data-reload="restart">
+<label for="min-transcription.local_whisper.vad_min_speech_ms">これより短い音を雑音として除く（ミリ秒） <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.vad_min_speech_ms</code>
+<input type="number" id="min-transcription.local_whisper.vad_min_speech_ms" name="transcription.local_whisper.vad_min_speech_ms" value="250" step="50" min="0">
+</div>
+<div class="row" data-reload="restart">
+<label for="min-transcription.local_whisper.vad_min_silence_ms">これ以上の無音で区間を区切る（ミリ秒） <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.vad_min_silence_ms</code>
+<input type="number" id="min-transcription.local_whisper.vad_min_silence_ms" name="transcription.local_whisper.vad_min_silence_ms" value="2000" step="100" min="0">
+</div>
+<div class="row" data-reload="restart">
+<label class="check" for="min-transcription.local_whisper.condition_on_previous_text"><input type="checkbox" id="min-transcription.local_whisper.condition_on_previous_text" name="transcription.local_whisper.condition_on_previous_text"> 前の区間の文字を次の区間の文脈に使うか <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.local_whisper.condition_on_previous_text</code>
+</div>
+</div>
+<div class="engine-panel" role="tabpanel" id="min-panel-openai" aria-labelledby="min-tab-openai" data-engine-panel hidden>
+<p class="field-help">文字起こしのエンジンが OpenAI API のときに使う。API キーはここでは入れず、環境変数 OPENAI_API_KEY か、settings.yaml と同じフォルダの secrets/openai_api_key に置く。</p>
+<div class="row" data-reload="restart">
+<label for="min-transcription.openai.model">OpenAI のモデル <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.openai.model</code>
+<input type="text" class="wide" id="min-transcription.openai.model" name="transcription.openai.model" value="gpt-4o-transcribe">
+</div>
+<div class="row" data-reload="restart">
+<label for="min-transcription.openai.language">OpenAI の言語（ISO-639-1） <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.openai.language</code>
+<input type="text" class="wide" id="min-transcription.openai.language" name="transcription.openai.language" value="ja">
+</div>
+<div class="row" data-reload="restart">
+<label for="min-transcription.openai.base_url">OpenAI のベース URL <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.openai.base_url</code>
+<input type="text" class="wide" id="min-transcription.openai.base_url" name="transcription.openai.base_url" value="https://api.openai.com/v1">
+</div>
+</div>
+<div class="engine-panel" role="tabpanel" id="min-panel-haas" aria-labelledby="min-tab-haas" data-engine-panel hidden>
+<p class="field-help">文字起こしのエンジンが Haas（WSL）のときに使う。WSL2 のネットワークを mirrored にし、このディストリビューションにサーバーの環境を作っておく。空なら WSL の既定のディストリビューションを使う。</p>
+<div class="row" data-reload="restart">
+<label for="min-transcription.haas.distribution">WSL のディストリビューション <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.haas.distribution</code>
+<input type="text" class="wide" id="min-transcription.haas.distribution" name="transcription.haas.distribution" value="" placeholder="例: Ubuntu-24.04">
+</div>
+<div class="row" data-reload="restart">
+<label for="min-transcription.haas.port">サーバーのポート <span class="badge badge--restart">再起動で反映</span></label>
+<code class="key">transcription.haas.port</code>
+<input type="number" id="min-transcription.haas.port" name="transcription.haas.port" value="47824" step="1" min="1024" max="65535">
+</div>
+</div>
+</fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <div class="settings__actions">
+              <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn btn--primary" href="../../../tray/37/a-standard/index.html">保存</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">最小の幅でも、タブは 1 行に収まる。</p>
+      </section>
+
+    </div>
+  </main>
+</body>
+</html>

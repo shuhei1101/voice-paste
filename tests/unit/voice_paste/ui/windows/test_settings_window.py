@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QListWidget,
     QRadioButton,
     QSlider,
+    QTabWidget,
     QWidget,
 )
 
@@ -1012,6 +1013,191 @@ def test_collect_when_hidden_keys(
     assert collected["recording"]["volume_percent"] == 40
     assert collected["recording"]["lower_volume"] is False
     assert collected["recording"]["fade_sec"] == 1.5
+
+
+# === _add_engine_tabs・_refresh_engine_in_use ===
+
+ENGINE_TAB_TITLES = ("ローカルの Whisper", "OpenAI API", "Haas（WSL）")
+"""エンジンのタブの名前の並び。"""
+
+HAAS_KEYS = ("transcription.haas.distribution", "transcription.haas.port")
+"""Linux の設定画面に出さない、Haas のエンジンの設定のキー。"""
+
+NEW_BEAM_SIZE = 8
+
+
+@pytest.fixture
+def open_with_engine(
+    qapp: QApplication, tmp_path: Path, make_settings: MakeSettings
+) -> Iterator[Callable[..., Opened]]:
+    """文字起こしのエンジンを指定して設定画面を開く関数を返す。開いた窓はテストの後に隠す。"""
+    from voice_paste.ui.windows.settings_window import SettingsWindow
+
+    windows: list[SettingsWindow] = []
+
+    def _open(engine: str, *, hidden_setting_keys: frozenset[str] = frozenset()) -> Opened:
+        """transcription.engine を engine にした設定で開き、「文字起こし」のまとまりを選ぶ。"""
+        settings = make_settings({"transcription": {"engine": engine}})
+        deps = make_ui_deps(tmp_path, settings=settings, hidden_setting_keys=hidden_setting_keys)
+        window = SettingsWindow(deps)
+        window.show()
+        windows.append(window)
+        _select_group(window, "文字起こし")
+        return Opened(window=window, deps=deps)
+
+    yield _open
+    for window in windows:
+        window.hide()
+
+
+def _engine_tabs(window: SettingsWindow) -> QTabWidget:
+    """エンジンのタブ（objectName が engine_tabs）を返す。"""
+    tabs = window.findChild(QTabWidget, "engine_tabs")
+    assert tabs is not None, "engine_tabs のタブが無い"
+    return tabs
+
+
+def _tab_titles(tabs: QTabWidget) -> list[str]:
+    """タブの名前を並びのとおり返す。"""
+    return [tabs.tabText(index) for index in range(tabs.count())]
+
+
+def _current_tab_title(tabs: QTabWidget) -> str:
+    """出しているタブの名前を返す。"""
+    return tabs.tabText(tabs.currentIndex())
+
+
+def _tab_title_of(tabs: QTabWidget, widget: QWidget) -> str:
+    """欄が入っているタブの名前を返す。"""
+    for index in range(tabs.count()):
+        page = tabs.widget(index)
+        # そのタブの中身か、中身の子孫の欄なら、そのタブの名前を返す
+        if page is widget or page.isAncestorOf(widget):
+            return tabs.tabText(index)
+    raise AssertionError(f"{widget.objectName()} がどのタブにも無い")
+
+
+def _shown_labels(window: SettingsWindow, prefix: str) -> list[str]:
+    """隠していない、objectName が prefix で始まるラベルの objectName を名前の順で返す。"""
+    found = window.findChildren(QLabel, QRegularExpression(f"^{prefix}"))
+    return sorted(label.objectName() for label in found if not label.isHidden())
+
+
+def _summary_link(window: SettingsWindow, key: str) -> QLabel:
+    """エラーの一覧の、設定のキーの欄へのリンクを持つ行を返す。"""
+    summary = window.findChild(QWidget, "error_summary")
+    assert summary is not None
+    return next(label for label in summary.findChildren(QLabel) if key in label.text())
+
+
+def test_add_engine_tabs(open_with_engine: Callable[..., Opened]) -> None:
+    """エンジンごとのタブに欄を分け、今のエンジンのタブを出す（正常系）。"""
+    # 準備・実行
+    opened = open_with_engine("haas")
+
+    # 検証
+    tabs = _engine_tabs(opened.window)
+    assert _tab_titles(tabs) == ["ローカルの Whisper", "OpenAI API", "Haas（WSL）"]
+    assert _current_tab_title(tabs) == "Haas（WSL）"
+    beam_size = _field(opened.window, "transcription.local_whisper.beam_size")
+    assert _tab_title_of(tabs, beam_size) == "ローカルの Whisper"
+    base_url = _field(opened.window, "transcription.openai.base_url")
+    assert _tab_title_of(tabs, base_url) == "OpenAI API"
+    assert _shown_labels(opened.window, "engine_in_use_") == ["engine_in_use_haas"]
+
+
+def test_add_engine_tabs_when_haas_hidden(open_with_engine: Callable[..., Opened]) -> None:
+    """全ての欄を出さないエンジンのタブは置かない（正常系）。"""
+    # 準備・実行
+    opened = open_with_engine("local_whisper", hidden_setting_keys=frozenset(HAAS_KEYS))
+
+    # 検証
+    tabs = _engine_tabs(opened.window)
+    assert _tab_titles(tabs) == ["ローカルの Whisper", "OpenAI API"]
+    assert _current_tab_title(tabs) == "ローカルの Whisper"
+
+
+def test_add_engine_tabs_when_unselected_engine_edited(
+    open_with_engine: Callable[..., Opened],
+) -> None:
+    """選んでいないエンジンのタブの欄も変えて保存できる（正常系）。"""
+    # 準備: Haas を使う設定で開き、「ローカルの Whisper」のタブでビームサーチの幅を変える
+    opened = open_with_engine("haas")
+    _engine_tabs(opened.window).setCurrentIndex(ENGINE_TAB_TITLES.index("ローカルの Whisper"))
+    beam_size = _field(opened.window, "transcription.local_whisper.beam_size")
+    assert isinstance(beam_size, QLineEdit)
+    beam_size.setText(str(NEW_BEAM_SIZE))
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is True
+    saved = opened.deps.save_settings.call_args.args[0]
+    assert saved.transcription.local_whisper.beam_size == NEW_BEAM_SIZE
+    assert saved.transcription.engine == "haas"
+
+
+def test_add_engine_tabs_when_keys_pressed(open_with_engine: Callable[..., Opened]) -> None:
+    """←→ で隣のタブへ、Home・End で先頭・末尾のタブへ移る（正常系）。"""
+    # 準備
+    opened = open_with_engine("local_whisper")
+    tabs = _engine_tabs(opened.window)
+    bar = tabs.tabBar()
+    bar.setFocus()
+
+    # 実行・検証: キーを 1 つ送信するたびに、出しているタブを確かめる
+    QTest.keyClick(bar, Qt.Key.Key_Right)
+    assert _current_tab_title(tabs) == "OpenAI API"
+    QTest.keyClick(bar, Qt.Key.Key_Left)
+    assert _current_tab_title(tabs) == "ローカルの Whisper"
+    QTest.keyClick(bar, Qt.Key.Key_End)
+    assert _current_tab_title(tabs) == "Haas（WSL）"
+    QTest.keyClick(bar, Qt.Key.Key_Home)
+    assert _current_tab_title(tabs) == "ローカルの Whisper"
+
+
+def test_refresh_engine_in_use(open_with_engine: Callable[..., Opened]) -> None:
+    """エンジンの選択を変えると「使用中」だけが移る（正常系）。"""
+    # 準備
+    opened = open_with_engine("local_whisper")
+    engine = _field(opened.window, "transcription.engine")
+    assert isinstance(engine, QComboBox)
+
+    # 実行
+    engine.setCurrentIndex(engine.findText("OpenAI API"))
+
+    # 検証
+    assert _shown_labels(opened.window, "engine_in_use_") == ["engine_in_use_openai"]
+    assert _current_tab_title(_engine_tabs(opened.window)) == "ローカルの Whisper"
+
+
+def test_save_when_unselected_engine_invalid(open_with_engine: Callable[..., Opened]) -> None:
+    """選んでいないエンジンの欄が通らなければ、そのタブにエラーの件数を出し、一覧の行からタブへ移る（異常系）。"""
+    # 準備
+    opened = open_with_engine("local_whisper")
+    base_url = _field(opened.window, "transcription.openai.base_url")
+    assert isinstance(base_url, QLineEdit)
+    base_url.setText("api.openai.com/v1")
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証: OpenAI API のタブにだけ件数が出る
+    assert result is False
+    opened.deps.save_settings.assert_not_called()
+    assert _shown_labels(opened.window, "engine_error_count_") == ["engine_error_count_openai"]
+    assert _label(opened.window, "engine_error_count_openai").text() == "エラー 1 件"
+    # 検証: 一覧の行を押すと OpenAI API のタブへ切り替わり、欄へフォーカスが移る
+    _summary_link(opened.window, "transcription.openai.base_url").linkActivated.emit(
+        "transcription.openai.base_url"
+    )
+    assert _current_tab_title(_engine_tabs(opened.window)) == "OpenAI API"
+    assert opened.window.focusWidget() is base_url
+    # 検証: 修正して保存し直すと件数が隠れる
+    base_url.setText("https://api.openai.com/v1")
+    assert opened.window.save(restart=False) is True
+    assert _shown_labels(opened.window, "engine_error_count_") == []
 
 
 # === close_without_confirm ===

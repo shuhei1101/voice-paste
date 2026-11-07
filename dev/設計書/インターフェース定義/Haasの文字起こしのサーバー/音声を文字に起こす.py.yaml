@@ -24,6 +24,62 @@ request:
     description: 表記のヒントの単語の一覧（multipart の項目。JSON の配列の文字列）
     constraints: '要素は `{"written": str, "reading": str | null}`。written は空でない文字列。reading が null か空の単語は表記だけを指定する'
     example: '[{"written": "突合", "reading": "とつごう"}, {"written": "voice-paste", "reading": null}]'
+  - name: short_audio_limit_sec
+    type: float
+    required: false
+    default: '30.0'
+    location: body
+    description: 一度に起こす音声の長さの上限（秒。multipart の項目）。これ以下は transcribe で一度に、超えるものは transcribe_longform で区切って起こす
+    constraints: 1.0 以上 60.0 以下
+  - name: batch_size
+    type: int
+    required: false
+    default: '64'
+    location: body
+    description: まとめて起こす区切りの数（multipart の項目）。transcribe と transcribe_longform の batch_size に指定する
+    constraints: 1 以上 256 以下
+  - name: alpha
+    type: float
+    required: false
+    default: '2.0'
+    location: body
+    description: 手がかりの強さ（multipart の項目）。Vocabulary の alpha に指定する。vocabulary が無い要求では使用しない
+    constraints: 0.0 以上 10.0 以下
+  - name: guard
+    type: bool
+    required: false
+    default: 'true'
+    location: body
+    description: 手がかりの採否の守り（multipart の項目。`true` / `false`）。transcribe と transcribe_longform の guard に指定する
+    constraints: '`true` か `false`'
+  - name: chunk_sec
+    type: float
+    required: false
+    default: '30.0'
+    location: body
+    description: 長い音声を区切る長さ（秒。multipart の項目）。split_at_quiet_points の chunk_seconds に指定する
+    constraints: 1.0 以上 60.0 以下
+  - name: search_sec
+    type: float
+    required: false
+    default: '2.0'
+    location: body
+    description: 区切る位置の前後で静かな箇所を探す幅（秒。multipart の項目）。split_at_quiet_points の search_seconds に指定する
+    constraints: 0.0 以上 10.0 以下
+  - name: window_sec
+    type: float
+    required: false
+    default: '0.1'
+    location: body
+    description: 静かさを測る窓の長さ（秒。multipart の項目）。split_at_quiet_points の window_seconds に指定する
+    constraints: 0.01 以上 1.0 以下
+  - name: separator
+    type: str
+    required: false
+    default: 空文字
+    location: body
+    description: 区切って起こした文字をつなぐ文字（multipart の項目）。transcribe_longform の separator に指定する
+    constraints: 16 文字以下
 response:
   - name: text
     type: str
@@ -39,7 +95,7 @@ status_codes:
   - code: '200'
     condition: 起こした文字を返した
   - code: '400'
-    condition: 音声を復号できない、または vocabulary が JSON の配列でないか written が空の要素がある
+    condition: 音声を復号できない、vocabulary が JSON の配列でないか written が空の要素がある、または調整の値が範囲の外か型が合わない
   - code: '500'
     condition: 文字起こしに失敗した（GPU のメモリが足りない・モデルが例外を送出した）
   - code: '403'
@@ -53,8 +109,8 @@ constraints:
     constraint: トークンを求めない。Host が `127.0.0.1:{ポート}` か `localhost:{ポート}` で、Origin が付いていないこと
     notes: ブラウザも同じ端末のプロセスで、mirrored のモードでは Windows のブラウザのページから届く。ほかのサイトのページからの要求（Origin が付く）と DNS rebinding（Host が合わない）を断る。常駐アプリの API の Host・Origin の守りと同じ
   - item: 音声の長さ
-    constraint: 30 秒以下は一度に（transcribe）、30 秒を超えるものは静かな箇所で区切ってまとめて（transcribe_longform）起こす
-    notes: Haas-ja-v1.0 が学習した発話の長さの上限が約 30 秒
+    constraint: short_audio_limit_sec 以下は一度に（transcribe）、超えるものは chunk_sec・search_sec・window_sec で静かな箇所を選んで区切り、まとめて（transcribe_longform）起こす
+    notes: Haas-ja-v1.0 が学習した発話の長さの上限が約 30 秒のため、既定は 30 秒
   - item: 音声の大きさ
     constraint: 制限なし
     notes: 常駐アプリが受け付けた音声だけが届く（ブラウザの音声は常駐アプリの本文の上限で弾く）
@@ -267,4 +323,57 @@ flows:
       - モデルが呼ばれていない
       - サーバーのログに断った理由と要求元が書かれている
     test: test_error_when_origin_not_allowed
+  - name: 正常系（調整の値を指定）
+    summary: 要求の調整の値を、起こし方の選択と haas_asr の引数に使用する
+    setup:
+      - name: Mock
+        description: 正常系と同じ。受けた batch_size・guard・Vocabulary の alpha・区切りの値・separator も記録する
+      - name: 音声
+        description: 約 25 秒の WAV
+      - name: 要求
+        description: 手がかりと、既定と違う調整の値を付ける
+        notes: '`short_audio_limit_sec=20`・`batch_size=8`・`alpha=3.0`・`guard=false`・`chunk_sec=15`・`search_sec=1`・`window_sec=0.05`・`separator=。`'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as 常駐アプリ
+        participant IF as POST /transcriptions
+        participant M as Haas-ja-v1.0
+
+        C->>IF: audio・vocabulary・調整の値
+        IF->>IF: 調整の値を検証する
+        IF->>IF: alpha で Vocabulary を作る
+        IF->>M: 上限（20 秒）を超えるため、区切りの値・batch_size・guard・separator で区切って起こす（transcribe_longform）
+        M-->>IF: 起こした文字
+        IF-->>C: 200・text
+      ```
+    expected:
+      - 200 で text が決まった文字
+      - transcribe_longform が 1 回呼ばれ、batch_size が 8、guard が false、chunk_seconds が 15、search_seconds が 1、window_seconds が 0.05、separator が「。」
+      - Vocabulary の alpha が 3.0
+      - transcribe が呼ばれていない
+    test: test_normal_when_tuning_values
+  - name: 異常系（調整の値が範囲の外・400）
+    summary: 範囲の外か型の合わない調整の値を持つ要求を、起こさずに断る
+    setup:
+      - name: Mock
+        description: 正常系と同じ
+      - name: 要求
+        description: batch_size を 0 にした要求と、guard を `yes` にした要求の 2 つを送信する
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as 常駐アプリ
+        participant IF as POST /transcriptions
+        participant LOG as ログ
+
+        C->>IF: audio・範囲の外の調整の値
+        IF->>IF: 調整の値の検証に失敗する
+        IF->>LOG: [WARNING] 合わない項目の名前と理由を書く
+        IF-->>C: 400（problem+json）
+      ```
+    expected:
+      - どちらの要求にも 400 の problem+json が返り、detail に合わない項目の名前が入っている
+      - モデルが呼ばれていない
+    test: test_error_when_tuning_value_invalid
 id: IF-12

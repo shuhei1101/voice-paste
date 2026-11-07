@@ -1818,7 +1818,7 @@ functions:
         summary: Haas の装置の形式が違う
         condition: transcription.haas.device が gpu
         mock: なし
-        expected: ValidationError。type が haas_device_form、失敗の場所が transcription.haas.device。cuda:1 は検証を通る
+        expected: ValidationError。type が haas_device_form、失敗の場所が transcription.haas.device
       - name: test_settings_when_haas_separator_too_long
         case: 異常
         summary: Haas の区切りをつなぐ文字が長い
@@ -1831,6 +1831,12 @@ functions:
         condition: transcription.haas.chunk_sec が 0.5
         mock: なし
         expected: ValidationError。失敗の場所が transcription.haas.chunk_sec
+      - name: test_settings_when_haas_device_numbered
+        case: 正常
+        summary: 番号つきの cuda は通る
+        condition: transcription.haas.device が cuda:1
+        mock: なし
+        expected: 検証を通り、device が cuda:1
     refs:
       - CFG-1#settings[hint_presets[].words]
     status: implemented

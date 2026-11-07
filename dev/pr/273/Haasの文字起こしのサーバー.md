@@ -46,3 +46,13 @@
 ### ドキュメント修正
 
 利用者向けの使い方『起動と設定』の修正だけで、規約『V字モデル』の対応表で対応する単体・結合テストが無いため、テストを実行していない。
+
+### 結合
+
+関連する結合テストだけを実行し、422 passed・1 skipped。lint は `テスト結果/20261108051033_192da31_lint.log`（全て exit 0）。
+
+| ファイル | メソッド | 変更種別 | 結果 | 補足 |
+| --- | --- | --- | --- | --- |
+| [tests/integration/haas_server/test_transcribe.py](https://github.com/shuhei1101/voice-paste/blob/192da31/tests/integration/haas_server/test_transcribe.py) | `test_normal_when_tuning_values`・`test_error_when_tuning_value_invalid` | 変更 | ✅ | 新規追加テスト。既存のテストは偽のモデルの引数（options・alpha）の追従<br>`テスト結果/20261108051033_192da31_結合テスト.log` |
+| [tests/integration/haas_server/test_health.py](https://github.com/shuhei1101/voice-paste/blob/192da31/tests/integration/haas_server/test_health.py) | `test_normal` | 変更 | ✅ | 応答に dtype・device を追加<br>`テスト結果/20261108051033_192da31_結合テスト.log` |
+| [tests/integration/haas_server/test_shutdown.py](https://github.com/shuhei1101/voice-paste/blob/192da31/tests/integration/haas_server/test_shutdown.py) | 全実行 | 実行のみ | ✅ | 偽のサーバー（fake_server.py）の引数の追従の回帰確認<br>`テスト結果/20261108051033_192da31_結合テスト.log` |

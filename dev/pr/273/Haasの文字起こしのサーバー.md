@@ -36,12 +36,12 @@
 
 ### 単体
 
-全件（`tests/unit`）を実行し、866 passed・56 skipped。lint は `テスト結果/20261108045652_86e8c05_lint.log`（全て exit 0）。
+develop（[#274](https://github.com/shuhei1101/voice-paste/pull/274)）の取り込み（[5b56569](https://github.com/shuhei1101/voice-paste/commit/5b56569)）の後に全件（`tests/unit`）を実行し、872 passed・56 skipped。lint は `テスト結果/20261108061111_1d8c0dd_lint.log`（全て exit 0）。
 
 | ファイル | メソッド | 変更種別 | 結果 | 補足 |
 | --- | --- | --- | --- | --- |
-| [tests/unit/haas_server/test_app.py](https://github.com/shuhei1101/voice-paste/blob/86e8c05/tests/unit/haas_server/test_app.py) | 全実行 | 変更 | ✅ | `テスト結果/20261108045652_86e8c05_単体テスト.log` |
-| [tests/unit/haas_server/test_main.py](https://github.com/shuhei1101/voice-paste/blob/86e8c05/tests/unit/haas_server/test_main.py) | 全実行 | 変更 | ✅ | `テスト結果/20261108045652_86e8c05_単体テスト.log` |
+| [tests/unit/haas_server/test_app.py](https://github.com/shuhei1101/voice-paste/blob/1d8c0dd/tests/unit/haas_server/test_app.py) | 全実行 | 変更 | ✅ | `テスト結果/20261108061111_1d8c0dd_単体テスト.log` |
+| [tests/unit/haas_server/test_main.py](https://github.com/shuhei1101/voice-paste/blob/1d8c0dd/tests/unit/haas_server/test_main.py) | 全実行 | 変更 | ✅ | `テスト結果/20261108061111_1d8c0dd_単体テスト.log` |
 
 ### ドキュメント修正
 
@@ -49,10 +49,10 @@
 
 ### 結合
 
-全件（`tests/integration`）を実行し、761 passed・1 skipped。下の表は今回変えた・関係するファイル。lint は `テスト結果/20261108051033_192da31_lint.log`（全て exit 0）。
+develop の取り込みの後に全件（`tests/integration`）を実行し、766 passed・1 skipped。下の表は今回変えた・関係するファイル。lint は `テスト結果/20261108061111_1d8c0dd_lint.log`（全て exit 0）。
 
 | ファイル | メソッド | 変更種別 | 結果 | 補足 |
 | --- | --- | --- | --- | --- |
-| [tests/integration/haas_server/test_transcribe.py](https://github.com/shuhei1101/voice-paste/blob/192da31/tests/integration/haas_server/test_transcribe.py) | `test_normal_when_tuning_values`・`test_error_when_tuning_value_invalid` | 変更 | ✅ | 新規追加テスト。既存のテストは偽のモデルの引数（options・alpha）の追従<br>`テスト結果/20261108051837_192da31_結合テスト.log` |
-| [tests/integration/haas_server/test_health.py](https://github.com/shuhei1101/voice-paste/blob/192da31/tests/integration/haas_server/test_health.py) | `test_normal` | 変更 | ✅ | 応答に dtype・device を追加<br>`テスト結果/20261108051837_192da31_結合テスト.log` |
-| [tests/integration/haas_server/test_shutdown.py](https://github.com/shuhei1101/voice-paste/blob/192da31/tests/integration/haas_server/test_shutdown.py) | 全実行 | 実行のみ | ✅ | 偽のサーバー（fake_server.py）の引数の追従の回帰確認<br>`テスト結果/20261108051837_192da31_結合テスト.log` |
+| [tests/integration/haas_server/test_transcribe.py](https://github.com/shuhei1101/voice-paste/blob/1d8c0dd/tests/integration/haas_server/test_transcribe.py) | `test_normal_when_tuning_values`・`test_error_when_tuning_value_invalid` | 変更 | ✅ | 新規追加テスト。既存のテストは偽のモデルの引数（options・alpha）の追従<br>`テスト結果/20261108061111_1d8c0dd_結合テスト.log` |
+| [tests/integration/haas_server/test_health.py](https://github.com/shuhei1101/voice-paste/blob/1d8c0dd/tests/integration/haas_server/test_health.py) | `test_normal` | 変更 | ✅ | 応答に dtype・device を追加<br>`テスト結果/20261108061111_1d8c0dd_結合テスト.log` |
+| [tests/integration/haas_server/test_shutdown.py](https://github.com/shuhei1101/voice-paste/blob/1d8c0dd/tests/integration/haas_server/test_shutdown.py) | 全実行 | 実行のみ | ✅ | 偽のサーバー（fake_server.py）の引数の追従の回帰確認<br>`テスト結果/20261108061111_1d8c0dd_結合テスト.log` |

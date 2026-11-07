@@ -586,11 +586,13 @@ def test_field_haas_fields(open_window: Callable[..., Opened]) -> None:
     # 準備
     window = open_window().window
     find(window, QListWidget, "group_menu").setCurrentRow(5)
+    find(window, QTabWidget, "engine_tabs").setCurrentIndex(2)
 
     # 実行
     texts = [label.text() for label in window.findChildren(QLabel)]
 
     # 検証
+    assert _field(window, "transcription.haas.distribution", QLineEdit).isVisible()
     assert _field(window, "transcription.haas.distribution", QLineEdit).text() == ""
     assert _field(window, "transcription.haas.port", QLineEdit).text() == "47824"
     assert "WSL のディストリビューション" in texts

@@ -412,7 +412,7 @@ constants:
     title: エンジンのタブの置き場所
     container: ui/windows/settings_window.py
     usecase: 設定を変える
-    summary: FIELD_LAYOUT「文字起こし」の並びで、エンジンのタブを配置する位置を示す名前（_populate が _add_engine_tabs を呼ぶ）。FIELD_LAYOUT「文字起こし」は (`transcription.engine`, ENGINE_TABS_FIELD_NAME) になる
+    summary: FIELD_LAYOUT「文字起こし」の並びで、エンジンのタブを配置する位置を示す名前（_populate が _add_engine_tabs を呼ぶ）。FIELD_LAYOUT「文字起こし」は (ENGINE_KEY, ENGINE_TABS_FIELD_NAME) になる
     value: "'engine_tabs'"
     status: planned
   - name: ENGINE_TAB_LAYOUT
@@ -429,6 +429,13 @@ constants:
         value: '`transcription.haas.distribution`・`transcription.haas.port`'
     refs:
       - SCR-9#
+    status: planned
+  - name: ENGINE_KEY
+    title: 文字起こしのエンジンの設定のキー
+    container: ui/windows/settings_window.py
+    usecase: 設定を変える
+    summary: エンジンの選択の欄の設定のキー。FIELD_LAYOUT「文字起こし」・_add_engine_tabs・_refresh_engine_in_use が参照する
+    value: "'transcription.engine'"
     status: planned
 functions:
   - name: confirm_discard

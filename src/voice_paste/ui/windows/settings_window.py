@@ -178,7 +178,7 @@ FIELD_LAYOUT: dict[str, tuple[str, ...]] = {
         "recording.volume_percent",
         "recording.fade_sec",
     ),
-    "文字起こし": ("transcription.engine", ENGINE_TABS_FIELD_NAME),
+    "文字起こし": (ENGINE_KEY, ENGINE_TABS_FIELD_NAME),
     "表記のヒント": (HINT_PRESETS_FIELD_NAME,),
     "用語集": (GLOSSARIES_FIELD_NAME,),
     "ハルシネーション": (EDGE_PHRASES_FIELD_NAME,),

@@ -1019,7 +1019,8 @@ elements:
     initial_value: 設定画面を開いたときの `transcription.engine` のエンジンのタブ
     action: 選んだタブのエンジンの欄に切り替える。エンジンの選択の欄を変えても、出しているタブは替えない
     refs:
-      - CFG-1#
+      - CFG-1#settings[transcription.engine]
+    status: planned
   - name: 使用中のマーカー
     id: engine_in_use_{engine}
     kind: label
@@ -1028,6 +1029,7 @@ elements:
     label: 使用中
     visible_when: エンジンの選択の欄で選んでいるエンジンのタブ
     source: エンジンの選択の欄の値
+    status: planned
   - name: エラーの件数
     id: engine_error_count_{engine}
     kind: label
@@ -1035,6 +1037,7 @@ elements:
     description: 保存の確認に通らなかった欄があるタブと、その欄の件数を文字で示す
     label: エラー {件数} 件
     visible_when: 保存を押して、そのタブに確認に通らない欄があったとき。エラーの一覧と同じときに出し、同じときに閉じる
+    status: planned
 input_checks:
   - element: 設定の欄
     violation: 数値の欄に数値でない文字が入っている

@@ -15,13 +15,23 @@ response:
     description: モデルを読み込み終えた
   - name: model
     type: str
-    description: 読み込んだモデルの名前
+    description: 起動の引数で受けたモデルの名前
     example: third-intelligence/Haas-ja-v1.0
+  - name: dtype
+    type: str
+    description: 起動の引数で受けた計算の精度（`auto` は解決する前の `auto` のまま）
+    example: auto
+  - name: device
+    type: str
+    description: 起動の引数で受けた装置
+    example: cuda
 response_example: |-
   ```json
   {
     "ok": true,
-    "model": "third-intelligence/Haas-ja-v1.0"
+    "model": "third-intelligence/Haas-ja-v1.0",
+    "dtype": "auto",
+    "device": "cuda"
   }
   ```
 response_notes: サーバーはモデルを読み込み終えてから待ち受けを始める。読み込みの間は接続できず、常駐アプリは応答が無いものとして待つ。
@@ -38,13 +48,19 @@ constraints:
   - item: 応答時間
     constraint: 制限なし
     notes: モデルを使わずに返す
+  - item: 起動の引数
+    constraint: 起動スクリプトはポート・model・dtype・device を受ける。dtype は `auto`・`bfloat16`・`float16`・`float32`、device は `cuda`・`cuda:{番号}`・`cpu`
+    notes: 引数が無いときは既定（third-intelligence/Haas-ja-v1.0・auto・cuda）で起動する。読み込めない値はモデルの読み込みの失敗と同じく、待ち受けずに終わる
+  - item: 返す値
+    constraint: model・dtype・device は起動の引数で受けた文字列をそのまま返却する
+    notes: 常駐アプリは起動の前から動いているサーバーの値を設定の値と文字列で比べる（常駐アプリを起動する の 正常シナリオ（動いている Haas のサーバーが設定と違う））
 flows:
   - name: 正常系
-    summary: モデルを読み込んだ後に呼ぶと、ok とモデルの名前を返す
+    summary: モデルを読み込んだ後に呼ぶと、ok と、起動の引数で受けたモデル・計算の精度・装置を返す
     setup:
       - name: Mock
         description: Haas のモデルの読み込みを、決まったモデルを返す関数に差し替える
-        notes: GPU を使わない
+        notes: GPU を使わない。起動の引数は model を third-intelligence/Haas-ja-v1.0、dtype を auto、device を cuda にする
     flow: |-
       ```mermaid
       sequenceDiagram
@@ -52,10 +68,10 @@ flows:
         participant IF as GET /health
 
         C->>IF: 要求
-        IF-->>C: 200・ok・model
+        IF-->>C: 200・ok・model・dtype・device
       ```
     expected:
-      - 200 で ok が true、model が third-intelligence/Haas-ja-v1.0
+      - 200 で ok が true、model が third-intelligence/Haas-ja-v1.0、dtype が auto、device が cuda
     test: test_normal
   - name: 異常系（許されていない要求元・403）
     summary: Origin が付いた要求を断る

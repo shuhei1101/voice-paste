@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 from collections.abc import Callable, Iterator
 from typing import Any
@@ -252,25 +253,31 @@ def test_stop_when_loading() -> None:
     popen.return_value.terminate.assert_called()
 
 
-@pytest.mark.parametrize(
-    ("body", "expected"),
-    [
-        pytest.param(
-            {"ok": True, "model": "x/model", "dtype": "float32", "device": "cpu"},
-            ("dtype", "device"),
-            id="running_differs",
-        ),
-        pytest.param({"ok": True, "model": "x/model"}, ("dtype", "device"), id="running_without_fields"),
-    ],
-)
-def test_ensure_started_when_running_differs(body: dict[str, Any], expected: tuple[str, ...]) -> None:
-    """動いているサーバーが設定と違う・dtype と device を返さない（正常系）。"""
+def test_ensure_started_when_running_differs(caplog: pytest.LogCaptureFixture) -> None:
+    """動いているサーバーが設定と違う（正常系）。"""
     # 準備
-    server, popen = _make_server(lambda request: httpx.Response(200, json=body))
+    body = {"ok": True, "model": "x/model", "dtype": "float32", "device": "cpu"}
+    server, popen = _make_server(lambda _request: httpx.Response(200, json=body))
+
+    # 実行
+    with caplog.at_level(logging.WARNING):
+        result = server.ensure_started()
+
+    # 検証
+    assert result == ("dtype", "device")
+    popen.assert_not_called()
+    assert [record.levelno for record in caplog.records] == [logging.WARNING]
+
+
+def test_ensure_started_when_running_without_fields() -> None:
+    """動いているサーバーが dtype・device を返さない（正常系）。"""
+    # 準備
+    body = {"ok": True, "model": "x/model"}
+    server, popen = _make_server(lambda _request: httpx.Response(200, json=body))
 
     # 実行
     result = server.ensure_started()
 
     # 検証
-    assert result == expected
+    assert result == ("dtype", "device")
     popen.assert_not_called()

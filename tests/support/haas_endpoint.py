@@ -23,6 +23,10 @@ class FakeHaasEndpoint:
         """ステータスが 200 のときに返す、起こした文字。"""
         self.detail = ""
         """ステータスが 200 でないときに返す detail。"""
+        self.dtype = "auto"
+        """GET /health が返す計算の精度（起動の引数で受けた値の代わり。既定は設定の既定値と同じ）。"""
+        self.device = "cuda"
+        """GET /health が返す装置（既定は設定の既定値と同じ）。"""
         self.requests: list[RecordedRequest] = []
         self.shutdown_count = 0
         self._started = False
@@ -31,7 +35,15 @@ class FakeHaasEndpoint:
 
         class _Handler(BaseHTTPRequestHandler):
             def do_GET(self) -> None:
-                self._respond(200, {"ok": True, "model": MODEL_NAME})
+                self._respond(
+                    200,
+                    {
+                        "ok": True,
+                        "model": MODEL_NAME,
+                        "dtype": endpoint.dtype,
+                        "device": endpoint.device,
+                    },
+                )
 
             def do_POST(self) -> None:
                 body = self.rfile.read(int(self.headers.get("Content-Length", 0)))

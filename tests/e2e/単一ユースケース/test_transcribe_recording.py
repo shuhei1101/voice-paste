@@ -910,9 +910,13 @@ HAAS_HINT_SETTINGS = (
 """読みのある語 2 つと読みの無い語 1 つを持つ有効なプリセット。"""
 
 
-def _haas_settings(endpoint: FakeHaasEndpoint) -> str:
-    """文字起こしのエンジンを Haas にし、接続先をテスト用のエンドポイントに向ける settings.yaml の続きを返す。"""
-    return f"transcription:\n  engine: haas\n  haas:\n    port: {endpoint.port}\n"
+def _haas_settings(endpoint: FakeHaasEndpoint, extra: str = "") -> str:
+    """文字起こしのエンジンを Haas にし、接続先をテスト用のエンドポイントに向ける（と extra の Haas のキー）settings.yaml の続きを返す。"""
+    return f"transcription:\n  engine: haas\n  haas:\n    port: {endpoint.port}\n{extra}"
+
+
+HAAS_TUNING_SETTINGS = "    alpha: 3.0\n    guard: false\n    short_audio_limit_sec: 20.0\n"
+"""既定と違う Haas の要求ごとの調整の値（settings.yaml の transcription.haas の続き）。"""
 
 
 @requires_haas_engine
@@ -922,7 +926,7 @@ def test_normal_when_haas(
     clipboard_sentinel: str,
     haas_endpoint: FakeHaasEndpoint,
 ) -> None:
-    """Haas を使う設定で確定した録音は、録音と語の表記と読みの組が送信され、起こした文字の誤変換が用語集で置き換わって履歴に残り、ワーカーを起動せずに届けられる（正常シナリオ（Haas で起こす））。"""
+    """Haas を使う設定で確定した録音は、録音と語の表記と読みの組と設定の調整の値が送信され、起こした文字の誤変換が用語集で置き換わって履歴に残り、ワーカーを起動せずに届けられる（正常シナリオ（Haas で起こす））。"""
     # 準備: テスト用のエンドポイントは用語集の誤変換を含む文字を返す
     haas_endpoint.text = SPEECH_TEXT
     haas_endpoint.start()
@@ -945,6 +949,11 @@ def test_normal_when_haas(
             {"written": "GitHub", "reading": "ギットハブ"},
             {"written": "voice-paste", "reading": None},
         ]
+        assert (fields["alpha"], fields["guard"], fields["short_audio_limit_sec"]) == (
+            b"3.0",
+            b"false",
+            b"20.0",
+        )
         # 起こした文字・履歴・ワーカー・届け先
         text = app.history_text()
         assert CORRECTED_WORD in text
@@ -956,7 +965,9 @@ def test_normal_when_haas(
 
     run_app(
         case,
-        extra_settings=GLOSSARY_SETTINGS + HAAS_HINT_SETTINGS + _haas_settings(haas_endpoint),
+        extra_settings=GLOSSARY_SETTINGS
+        + HAAS_HINT_SETTINGS
+        + _haas_settings(haas_endpoint, HAAS_TUNING_SETTINGS),
         prepare=_put_glossary,
         wav_input=speech_input(tmp_path),
         keys=keys,

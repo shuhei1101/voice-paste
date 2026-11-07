@@ -93,8 +93,8 @@ constants:
         value: frozenset({"api.allowed_web_origins"})
         description: 外の端末のブラウザに許す Origin
       - key: haas_engine
-        value: frozenset({"transcription.haas.distribution", "transcription.haas.port"})
-        description: Haas の文字起こしのサーバー
+        value: frozenset({"transcription.haas.distribution", "transcription.haas.port", "transcription.haas.model", "transcription.haas.dtype", "transcription.haas.device", "transcription.haas.alpha", "transcription.haas.guard", "transcription.haas.short_audio_limit_sec", "transcription.haas.chunk_sec", "transcription.haas.search_sec", "transcription.haas.window_sec", "transcription.haas.separator", "transcription.haas.batch_size"})
+        description: Haas の文字起こしのサーバー（`transcription.haas` の全てのキー）
     description: 型は `Mapping[Feature, frozenset[str]]`。キーは設定のドットで結んだキー。
     refs:
       - SCR-9#elements[設定の欄]

@@ -12,8 +12,8 @@ from pathlib import Path
 from typing import Any
 
 import haas_server.main as main_module
-from haas_server.app import HaasEngine
-from tests.integration.haas_server.helpers import FAKE_TEXT, MODEL_NAME
+from haas_server.app import HaasEngine, TranscribeOptions
+from tests.integration.haas_server.helpers import FAKE_TEXT, MODEL_DEVICE, MODEL_DTYPE, MODEL_NAME
 
 POLL_SEC = 0.01
 
@@ -22,7 +22,7 @@ def _run(port: str, log_file: str, work_dir: str) -> None:
     """読み込みを偽物に差し替えて、サーバーの入口を動かす。"""
     work = Path(work_dir)
 
-    def transcribe(_samples: Any, _vocabulary: Any | None) -> str:
+    def transcribe(_samples: Any, _vocabulary: Any | None, _options: TranscribeOptions) -> str:
         """放されるまで待ってから、決まった文字を返す。"""
         (work / "started").touch()
         while not (work / "released").exists():
@@ -30,11 +30,13 @@ def _run(port: str, log_file: str, work_dir: str) -> None:
         return FAKE_TEXT
 
     main_module.LOG_FILE = Path(log_file)
-    main_module.load_engine = lambda: HaasEngine(
+    main_module.load_engine = lambda _args: HaasEngine(
         model_name=MODEL_NAME,
+        dtype=MODEL_DTYPE,
+        device=MODEL_DEVICE,
         transcribe=transcribe,
         transcribe_longform=transcribe,
-        build_vocabulary=lambda words: words,
+        build_vocabulary=lambda words, _alpha: words,
     )
     main_module.main([port])
 

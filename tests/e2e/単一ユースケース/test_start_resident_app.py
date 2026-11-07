@@ -62,6 +62,7 @@ from tests.support.resident_app import (
 )
 import voice_paste.integrations.haas.server as haas_server_module
 import voice_paste.main as main_module
+import voice_paste.ui.tray as tray_module
 from voice_paste.integrations.haas.server import HaasServer
 from voice_paste.integrations.openai.credentials import OPENAI_API_KEY_ENV
 from voice_paste.shared.yaml_document import read_yaml_mapping
@@ -424,11 +425,21 @@ HAAS_FALLBACK_MESSAGE = "Haas のサーバーへ接続できないため、ロ�
 """切り戻しのトレイの通知の文。"""
 
 
-def _haas_settings(port: int) -> str:
-    """文字起こしのエンジンを Haas にし、ディストリビューションとポートを指定する settings.yaml の続きを返す。"""
+HAAS_MISMATCH_TITLE = "Haas の設定を反映できません"
+"""動いている Haas のサーバーが設定と違うときのトレイの通知の見出し。"""
+
+HAAS_MISMATCH_BODY = (
+    "動いている Haas のサーバーの計算の精度が設定と違います。今のサーバーのまま起こします。"
+    "設定の値を使うには、サーバーを止めてから再起動してください（使い方「起動と設定」）。"
+)
+"""計算の精度だけが違うときのトレイの通知の本文。"""
+
+
+def _haas_settings(port: int, extra: str = "") -> str:
+    """文字起こしのエンジンを Haas にし、ディストリビューションとポート（と extra の Haas のキー）を指定する settings.yaml の続きを返す。"""
     return (
         "transcription:\n  engine: haas\n"
-        f"  haas:\n    distribution: {HAAS_DISTRIBUTION}\n    port: {port}\n"
+        f"  haas:\n    distribution: {HAAS_DISTRIBUTION}\n    port: {port}\n{extra}"
     )
 
 
@@ -451,18 +462,75 @@ def test_normal_when_haas(
         assert app.tray_state() == IDLE
         [args] = wsl.calls
         assert args[:3] == ["wsl.exe", "-d", HAAS_DISTRIBUTION]
-        assert args[-1] == str(haas_endpoint.port)
+        assert args[-4:] == [
+            str(haas_endpoint.port),
+            "third-intelligence/Haas-ja-v1.0",
+            "float32",
+            "cpu",
+        ]
         assert app.worker_pids() == set()
         assert any("Haas" in message for message in app.log_messages("INFO"))
         # 録音開始のホットキーを押すと録音が始まる
         _start_and_cancel_recording(app)
         assert wav_input.open_count == 1
 
-    # 実行
-    run_app(case, extra_settings=_haas_settings(haas_endpoint.port), wav_input=wav_input)
+    # 実行（起動の調整の値は既定と違う値にする）
+    run_app(
+        case,
+        extra_settings=_haas_settings(haas_endpoint.port, "    dtype: float32\n    device: cpu\n"),
+        wav_input=wav_input,
+    )
 
     # 検証: 終了で、起動したサーバーを止める
     assert haas_endpoint.shutdown_count == 1
+
+
+@requires_haas_engine
+def test_normal_when_running_haas_differs(
+    run_app: RunApp,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    haas_endpoint: FakeHaasEndpoint,
+) -> None:
+    """起動の前から動いている Haas のサーバーが設定と違う計算の精度で動いていれば、トレイの通知とログで知らせ、サーバーを起動せずに使い、録音開始のホットキーで録音が始まる（正常シナリオ（動いている Haas のサーバーが設定と違う））。"""
+    # 準備: テスト用のエンドポイントを先に待ち受け、設定（auto）と違う計算の精度を返す。トレイが出した知らせを記録する
+    haas_endpoint.dtype = "float32"
+    haas_endpoint.start()
+    wsl = FakeWsl()
+    monkeypatch.setattr(main_module, "HaasServer", partial(HaasServer, popen=wsl))
+    failures: list[tuple[FailureEvent, str | None]] = []
+    real_show_failure = Tray.show_failure
+
+    def show_failure(
+        self: Tray, event: FailureEvent, detail: str | None, *, paths: Sequence[Path] = ()
+    ) -> None:
+        """出した知らせを記録してから、本物で通知を出す。"""
+        failures.append((event, detail))
+        real_show_failure(self, event, detail, paths=paths)
+
+    monkeypatch.setattr(Tray, "show_failure", show_failure)
+    wav_input = silence_input(tmp_path)
+
+    def case(app: ResidentApp) -> None:
+        """トレイの通知・ログ・サーバーの起動・ホットキーの受付を確かめる。"""
+        # 検証
+        assert ("engine_settings_mismatch", "計算の精度") in failures
+        assert tray_module.FAILURE_TITLES["engine_settings_mismatch"] == HAAS_MISMATCH_TITLE
+        assert (
+            tray_module.STARTUP_BODY_FORMATS["engine_settings_mismatch"].format(reason="計算の精度")
+            == HAAS_MISMATCH_BODY
+        )
+        assert any(
+            "動いている Haas のサーバーが設定と違う" in message
+            for message in app.log_messages("WARNING")
+        )
+        assert wsl.calls == []
+        assert app.tray_state() == IDLE
+        _start_and_cancel_recording(app)
+        assert wav_input.open_count == 1
+
+    # 実行
+    run_app(case, extra_settings=_haas_settings(haas_endpoint.port), wav_input=wav_input)
 
 
 def test_normal_when_haas_unavailable(

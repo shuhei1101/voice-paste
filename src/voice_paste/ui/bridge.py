@@ -40,6 +40,7 @@ def notify(
         "delivery_failed",
         "api_unavailable",
         "engine_fallback",
+        "engine_settings_mismatch",
         "show_recording_window",
         "output_changed",
     ],

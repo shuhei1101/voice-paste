@@ -1020,7 +1020,21 @@ def test_collect_when_hidden_keys(
 ENGINE_TAB_TITLES = ("ローカルの Whisper", "OpenAI API", "Haas（WSL）")
 """エンジンのタブの名前の並び。"""
 
-HAAS_KEYS = ("transcription.haas.distribution", "transcription.haas.port")
+HAAS_KEYS = (
+    "transcription.haas.distribution",
+    "transcription.haas.port",
+    "transcription.haas.model",
+    "transcription.haas.dtype",
+    "transcription.haas.device",
+    "transcription.haas.alpha",
+    "transcription.haas.guard",
+    "transcription.haas.short_audio_limit_sec",
+    "transcription.haas.chunk_sec",
+    "transcription.haas.search_sec",
+    "transcription.haas.window_sec",
+    "transcription.haas.separator",
+    "transcription.haas.batch_size",
+)
 """Linux の設定画面に出さない、Haas のエンジンの設定のキー。"""
 
 NEW_BEAM_SIZE = 8
@@ -1683,3 +1697,45 @@ def test_to_field_message_when_haas_port_overlap(
     # 検証
     assert message == "API を待ち受けるポートと同じ番号です。別の番号を入れてください。"
     assert loc == ("transcription", "haas", "port")
+
+
+def test_to_field_message_when_haas_device_form(
+    settings_model: type[Settings], default_settings: Settings
+) -> None:
+    """Haas の装置の形式が違う（正常系）。"""
+    # 実行
+    message, loc = _field_message(
+        settings_model, default_settings, {"transcription": {"haas": {"device": "gpu"}}}
+    )
+
+    # 検証
+    assert message == "cuda・cuda:0 のような番号つきの cuda・cpu のどれかを入れてください。"
+    assert loc == ("transcription", "haas", "device")
+
+
+def test_to_field_message_when_haas_model_empty(
+    settings_model: type[Settings], default_settings: Settings
+) -> None:
+    """Haas のモデルが空（正常系）。"""
+    # 実行
+    message, loc = _field_message(
+        settings_model, default_settings, {"transcription": {"haas": {"model": ""}}}
+    )
+
+    # 検証
+    assert message == "モデルの名前かパスを入れてください。"
+    assert loc == ("transcription", "haas", "model")
+
+
+def test_to_field_message_when_haas_separator_too_long(
+    settings_model: type[Settings], default_settings: Settings
+) -> None:
+    """Haas の区切りをつなぐ文字が長い（正常系）。"""
+    # 実行
+    message, loc = _field_message(
+        settings_model, default_settings, {"transcription": {"haas": {"separator": "あ" * 17}}}
+    )
+
+    # 検証
+    assert message == "16 文字以内で入れてください。"
+    assert loc == ("transcription", "haas", "separator")

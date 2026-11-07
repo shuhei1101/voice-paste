@@ -193,10 +193,10 @@ classes:
         scope: public
         args:
           - name: event
-            type: Literal["microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable", "engine_unavailable", "engine_fallback", "settings_invalid", "paste_unavailable"]
+            type: Literal["microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable", "engine_unavailable", "engine_fallback", "engine_settings_mismatch", "settings_invalid", "paste_unavailable"]
             required: true
             passing: positional
-            description: 通知の種類（engine_unavailable・engine_fallback・settings_invalid・paste_unavailable は起動のときの失敗。engine_fallback は Haas からローカルの Whisper へ切り戻したとき。paste_unavailable は Linux の Wayland のセッションでキーの送信の機器を開けないとき）
+            description: 通知の種類（engine_unavailable・engine_fallback・engine_settings_mismatch・settings_invalid・paste_unavailable は起動のときの失敗。engine_settings_mismatch は起動の前から動いている Haas のサーバーが設定と違うときで、理由は違う項目の名前（画面設計『トレイの通知』の {違う項目}）。見出しは FAILURE_TITLES、本文は STARTUP_BODY_FORMATS に画面設計の文面で加える。engine_fallback は Haas からローカルの Whisper へ切り戻したとき。paste_unavailable は Linux の Wayland のセッションでキーの送信の機器を開けないとき）
           - name: detail
             type: str | None
             required: true

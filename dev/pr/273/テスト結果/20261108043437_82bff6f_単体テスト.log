@@ -1,0 +1,1893 @@
+$ .venv/Scripts/python.exe -m pytest tests/unit
+FFFFFFFFF...FFFFFF...................................................... [  7%]
+........................................................................ [ 15%]
+........................................................................ [ 23%]
+...........................................FFFFFFFFFFFFFFFFFF.......ssss [ 31%]
+s....................sssssssssssssssssss................................ [ 39%]
+......................................ssssssssssss...sss...........sssss [ 46%]
+sssssssss............................................................... [ 54%]
+........................................................................ [ 62%]
+...........................FFFF..........................s............ss [ 70%]
+...........................F............................................ [ 78%]
+........................................................................ [ 85%]
+........................................................................ [ 93%]
+..FFF.....................................................               [100%]
+================================== FAILURES ===================================
+____________________ test_create_app_when_host_not_allowed ____________________
+
+    def test_create_app_when_host_not_allowed() -> None:
+        """Host が合わない要求を断る（異常系）。"""
+        from haas_server.app import HaasEngine, create_app
+    
+        # 準備
+>       engine = HaasEngine(
+            model_name="m",
+            dtype="auto",
+            device="cuda",
+            transcribe=MagicMock(return_value="文字"),
+            transcribe_longform=MagicMock(return_value="文字"),
+            build_vocabulary=MagicMock(),
+        )
+E       TypeError: HaasEngine.__init__() got an unexpected keyword argument 'dtype'
+
+tests\unit\haas_server\test_app.py:19: TypeError
+______________________________ test_parse_tuning ______________________________
+
+    def test_parse_tuning() -> None:
+        """全ての項目を読む（正常系）。"""
+>       from haas_server.app import TranscribeOptions, parse_tuning
+E       ImportError: cannot import name 'TranscribeOptions' from 'haas_server.app' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-haas-expose-recognition-settings\haas_server\app.py)
+
+tests\unit\haas_server\test_app.py:39: ImportError
+_______________________ test_parse_tuning_when_missing ________________________
+
+    def test_parse_tuning_when_missing() -> None:
+        """無い項目は既定値（正常系）。"""
+>       from haas_server.app import TranscribeOptions, parse_tuning
+E       ImportError: cannot import name 'TranscribeOptions' from 'haas_server.app' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-haas-expose-recognition-settings\haas_server\app.py)
+
+tests\unit\haas_server\test_app.py:71: ImportError
+____________ test_parse_tuning_when_out_of_range[batch_size_zero] _____________
+
+fields = {'batch_size': '0'}, field = 'batch_size'
+
+    @pytest.mark.parametrize(
+        ("fields", "field"),
+        [
+            pytest.param({"batch_size": "0"}, "batch_size", id="batch_size_zero"),
+            pytest.param({"chunk_sec": "0.5"}, "chunk_sec", id="chunk_sec_below"),
+            pytest.param({"window_sec": "nan"}, "window_sec", id="window_sec_nan"),
+        ],
+    )
+    def test_parse_tuning_when_out_of_range(fields: dict[str, str | None], field: str) -> None:
+        """範囲の外（異常系）。"""
+>       from haas_server.app import TuningValueError, parse_tuning
+E       ImportError: cannot import name 'TuningValueError' from 'haas_server.app' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-haas-expose-recognition-settings\haas_server\app.py)
+
+tests\unit\haas_server\test_app.py:102: ImportError
+____________ test_parse_tuning_when_out_of_range[chunk_sec_below] _____________
+
+fields = {'chunk_sec': '0.5'}, field = 'chunk_sec'
+
+    @pytest.mark.parametrize(
+        ("fields", "field"),
+        [
+            pytest.param({"batch_size": "0"}, "batch_size", id="batch_size_zero"),
+            pytest.param({"chunk_sec": "0.5"}, "chunk_sec", id="chunk_sec_below"),
+            pytest.param({"window_sec": "nan"}, "window_sec", id="window_sec_nan"),
+        ],
+    )
+    def test_parse_tuning_when_out_of_range(fields: dict[str, str | None], field: str) -> None:
+        """範囲の外（異常系）。"""
+>       from haas_server.app import TuningValueError, parse_tuning
+E       ImportError: cannot import name 'TuningValueError' from 'haas_server.app' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-haas-expose-recognition-settings\haas_server\app.py)
+
+tests\unit\haas_server\test_app.py:102: ImportError
+_____________ test_parse_tuning_when_out_of_range[window_sec_nan] _____________
+
+fields = {'window_sec': 'nan'}, field = 'window_sec'
+
+    @pytest.mark.parametrize(
+        ("fields", "field"),
+        [
+            pytest.param({"batch_size": "0"}, "batch_size", id="batch_size_zero"),
+            pytest.param({"chunk_sec": "0.5"}, "chunk_sec", id="chunk_sec_below"),
+            pytest.param({"window_sec": "nan"}, "window_sec", id="window_sec_nan"),
+        ],
+    )
+    def test_parse_tuning_when_out_of_range(fields: dict[str, str | None], field: str) -> None:
+        """範囲の外（異常系）。"""
+>       from haas_server.app import TuningValueError, parse_tuning
+E       ImportError: cannot import name 'TuningValueError' from 'haas_server.app' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-haas-expose-recognition-settings\haas_server\app.py)
+
+tests\unit\haas_server\test_app.py:102: ImportError
+____________________ test_parse_tuning_when_guard_invalid _____________________
+
+    def test_parse_tuning_when_guard_invalid() -> None:
+        """guard が true でも false でもない（異常系）。"""
+>       from haas_server.app import TuningValueError, parse_tuning
+E       ImportError: cannot import name 'TuningValueError' from 'haas_server.app' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-haas-expose-recognition-settings\haas_server\app.py)
+
+tests\unit\haas_server\test_app.py:112: ImportError
+______________________ test_parse_tuning_when_not_number ______________________
+
+    def test_parse_tuning_when_not_number() -> None:
+        """数値に読めない（異常系）。"""
+>       from haas_server.app import TuningValueError, parse_tuning
+E       ImportError: cannot import name 'TuningValueError' from 'haas_server.app' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-haas-expose-recognition-settings\haas_server\app.py)
+
+tests\unit\haas_server\test_app.py:122: ImportError
+__________________ test_parse_tuning_when_separator_too_long __________________
+
+    def test_parse_tuning_when_separator_too_long() -> None:
+        """separator が長い（異常系）。"""
+>       from haas_server.app import TuningValueError, parse_tuning
+E       ImportError: cannot import name 'TuningValueError' from 'haas_server.app' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-haas-expose-recognition-settings\haas_server\app.py)
+
+tests\unit\haas_server\test_app.py:132: ImportError
+_________________________ test_main_when_load_failed __________________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001D5269EB100>
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2052/test_main_when_load_failed0')
+
+    @pytest.mark.usefixtures("restore_root_logger")
+    def test_main_when_load_failed(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+        """モデルの読み込みの失敗をログへ書いて終わる（異常系）。"""
+        import haas_server.main as main_module
+    
+        # 準備
+        log_file = tmp_path / "haas_server.log"
+    
+        def fail_to_load(args: Any) -> NoReturn:
+            """読み込みに失敗する。"""
+            raise RuntimeError("GPU のメモリが足りない")
+    
+        monkeypatch.setattr(main_module, "LOG_FILE", log_file)
+        monkeypatch.setattr(main_module, "load_engine", fail_to_load)
+    
+        # 実行
+        with pytest.raises(SystemExit) as exc_info:
+            main_module.main(["47826"])
+    
+        # 検証
+        assert exc_info.value.code == 1
+        written = log_file.read_text(encoding="utf-8")
+        assert "[ERROR]" in written
+>       assert "GPU のメモリが足りない" in written
+E       assert 'GPU のメモリが足りない' in '2026-11-08 04:27:15,254 [ERROR] haas_server.main: モデルの読み込みに失敗した\nTraceback (most recent call last):\n  File "C:\\User...ne()\nTypeError: test_main_when_load_failed.<locals>.fail_to_load() missing 1 required positional argument: \'args\'\n'
+
+tests\unit\haas_server\test_main.py:55: AssertionError
+------------------------------ Captured log call ------------------------------
+ERROR    haas_server.main:main.py:80 モデルの読み込みに失敗した
+Traceback (most recent call last):
+  File "C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-haas-expose-recognition-settings\haas_server\main.py", line 78, in main
+    engine = load_engine()
+TypeError: test_main_when_load_failed.<locals>.fail_to_load() missing 1 required positional argument: 'args'
+_______________________________ test_parse_args _______________________________
+
+    def test_parse_args() -> None:
+        """全ての引数を読む（正常系）。"""
+>       from haas_server.main import ServerArgs, parse_args
+E       ImportError: cannot import name 'ServerArgs' from 'haas_server.main' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-haas-expose-recognition-settings\haas_server\main.py)
+
+tests\unit\haas_server\test_main.py:60: ImportError
+_______________________ test_parse_args_when_port_only ________________________
+
+    def test_parse_args_when_port_only() -> None:
+        """ポートだけなら既定値（正常系）。"""
+>       from haas_server.main import ServerArgs, parse_args
+E       ImportError: cannot import name 'ServerArgs' from 'haas_server.main' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-haas-expose-recognition-settings\haas_server\main.py)
+
+tests\unit\haas_server\test_main.py:71: ImportError
+_____________________ test_parse_args_when_dtype_invalid ______________________
+
+    def test_parse_args_when_dtype_invalid() -> None:
+        """計算の精度が読めない（異常系）。"""
+>       from haas_server.main import parse_args
+E       ImportError: cannot import name 'parse_args' from 'haas_server.main' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-haas-expose-recognition-settings\haas_server\main.py)
+
+tests\unit\haas_server\test_main.py:84: ImportError
+______________________________ test_load_engine _______________________________
+
+fake_haas_asr = <MagicMock name='haas_asr' id='2014993147488'>
+
+    def test_load_engine(fake_haas_asr: MagicMock) -> None:
+        """引数と調整の値を haas_asr に渡す（正常系）。"""
+>       from haas_server.app import TranscribeOptions
+E       ImportError: cannot import name 'TranscribeOptions' from 'haas_server.app' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-haas-expose-recognition-settings\haas_server\app.py)
+
+tests\unit\haas_server\test_main.py:104: ImportError
+_________________________ test_load_engine_when_auto __________________________
+
+fake_haas_asr = <MagicMock name='haas_asr' id='2014993148160'>
+
+    def test_load_engine_when_auto(fake_haas_asr: MagicMock) -> None:
+        """auto はそのまま渡す（正常系）。"""
+>       from haas_server.main import ServerArgs, load_engine
+E       ImportError: cannot import name 'ServerArgs' from 'haas_server.main' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-haas-expose-recognition-settings\haas_server\main.py)
+
+tests\unit\haas_server\test_main.py:136: ImportError
+__________________ test_ensure_started_when_already_running ___________________
+
+    def test_ensure_started_when_already_running() -> None:
+        """接続先が応答すれば起動しない（正常系）。"""
+        # 準備
+        paths: list[str] = []
+        inner = _health(True)
+    
+        def handler(request: httpx.Request) -> httpx.Response:
+            """パスを覚えて台本へ渡す。"""
+            paths.append(request.url.path)
+            return inner(request)
+    
+>       server, popen = _make_server(handler)
+                        ^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\integrations\haas\test_server.py:106: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+handler = <function test_ensure_started_when_already_running.<locals>.handler at 0x000001D5269F8930>
+distribution = 'Ubuntu-24.04'
+
+    def _make_server(handler: Handler, *, distribution: str = "Ubuntu-24.04") -> tuple[Any, MagicMock]:
+        """差し替えた HaasServer と wsl.exe の起動の偽物を返す。"""
+        from voice_paste.integrations.haas.server import HaasServer
+        from voice_paste.shared.settings import HaasSettings
+    
+        popen = MagicMock()
+        popen.return_value.poll.return_value = None
+        server = HaasServer(
+>           settings=HaasSettings(
+                distribution=distribution,
+                port=PORT,
+                model="x/model",
+                dtype="auto",
+                device="cuda",
+                short_audio_limit_sec=30.0,
+                batch_size=64,
+                alpha=2.0,
+                guard=True,
+                chunk_sec=30.0,
+                search_sec=2.0,
+                window_sec=0.1,
+                separator="",
+            ),
+            popen=popen,
+            clock=FakeClock(),
+            transport=httpx.MockTransport(handler),
+        )
+E       pydantic_core._pydantic_core.ValidationError: 11 validation errors for HaasSettings
+E       model
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='x/model', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       dtype
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='auto', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       device
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='cuda', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       short_audio_limit_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       batch_size
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=64, input_type=int]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       alpha
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       guard
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       chunk_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       search_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       window_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=0.1, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       separator
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+
+tests\unit\voice_paste\integrations\haas\test_server.py:73: ValidationError
+____________________ test_ensure_started_when_not_running _____________________
+
+    def test_ensure_started_when_not_running() -> None:
+        """応答が無ければ起動して応答を待つ（正常系）。"""
+        from voice_paste.integrations.haas.server import HAAS_SERVER_DIR
+    
+        # 準備
+>       server, popen = _make_server(_health(False, True))
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\integrations\haas\test_server.py:123: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+handler = <function _health.<locals>.handler at 0x000001D5269F8EB0>
+distribution = 'Ubuntu-24.04'
+
+    def _make_server(handler: Handler, *, distribution: str = "Ubuntu-24.04") -> tuple[Any, MagicMock]:
+        """差し替えた HaasServer と wsl.exe の起動の偽物を返す。"""
+        from voice_paste.integrations.haas.server import HaasServer
+        from voice_paste.shared.settings import HaasSettings
+    
+        popen = MagicMock()
+        popen.return_value.poll.return_value = None
+        server = HaasServer(
+>           settings=HaasSettings(
+                distribution=distribution,
+                port=PORT,
+                model="x/model",
+                dtype="auto",
+                device="cuda",
+                short_audio_limit_sec=30.0,
+                batch_size=64,
+                alpha=2.0,
+                guard=True,
+                chunk_sec=30.0,
+                search_sec=2.0,
+                window_sec=0.1,
+                separator="",
+            ),
+            popen=popen,
+            clock=FakeClock(),
+            transport=httpx.MockTransport(handler),
+        )
+E       pydantic_core._pydantic_core.ValidationError: 11 validation errors for HaasSettings
+E       model
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='x/model', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       dtype
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='auto', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       device
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='cuda', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       short_audio_limit_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       batch_size
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=64, input_type=int]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       alpha
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       guard
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       chunk_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       search_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       window_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=0.1, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       separator
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+
+tests\unit\voice_paste\integrations\haas\test_server.py:73: ValidationError
+________________ test_ensure_started_when_default_distribution ________________
+
+    def test_ensure_started_when_default_distribution() -> None:
+        """ディストリビューションが空なら -d を付けない（正常系）。"""
+        # 準備
+>       server, popen = _make_server(_health(False, True), distribution="")
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\integrations\haas\test_server.py:148: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+handler = <function _health.<locals>.handler at 0x000001D526414930>
+distribution = ''
+
+    def _make_server(handler: Handler, *, distribution: str = "Ubuntu-24.04") -> tuple[Any, MagicMock]:
+        """差し替えた HaasServer と wsl.exe の起動の偽物を返す。"""
+        from voice_paste.integrations.haas.server import HaasServer
+        from voice_paste.shared.settings import HaasSettings
+    
+        popen = MagicMock()
+        popen.return_value.poll.return_value = None
+        server = HaasServer(
+>           settings=HaasSettings(
+                distribution=distribution,
+                port=PORT,
+                model="x/model",
+                dtype="auto",
+                device="cuda",
+                short_audio_limit_sec=30.0,
+                batch_size=64,
+                alpha=2.0,
+                guard=True,
+                chunk_sec=30.0,
+                search_sec=2.0,
+                window_sec=0.1,
+                separator="",
+            ),
+            popen=popen,
+            clock=FakeClock(),
+            transport=httpx.MockTransport(handler),
+        )
+E       pydantic_core._pydantic_core.ValidationError: 11 validation errors for HaasSettings
+E       model
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='x/model', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       dtype
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='auto', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       device
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='cuda', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       short_audio_limit_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       batch_size
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=64, input_type=int]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       alpha
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       guard
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       chunk_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       search_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       window_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=0.1, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       separator
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+
+tests\unit\voice_paste\integrations\haas\test_server.py:73: ValidationError
+____________________ test_ensure_started_when_wsl_missing _____________________
+
+    def test_ensure_started_when_wsl_missing() -> None:
+        """wsl.exe を起動できない（異常系）。"""
+        # 準備
+>       server, popen = _make_server(_health(False))
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\integrations\haas\test_server.py:160: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+handler = <function _health.<locals>.handler at 0x000001D5263DF8A0>
+distribution = 'Ubuntu-24.04'
+
+    def _make_server(handler: Handler, *, distribution: str = "Ubuntu-24.04") -> tuple[Any, MagicMock]:
+        """差し替えた HaasServer と wsl.exe の起動の偽物を返す。"""
+        from voice_paste.integrations.haas.server import HaasServer
+        from voice_paste.shared.settings import HaasSettings
+    
+        popen = MagicMock()
+        popen.return_value.poll.return_value = None
+        server = HaasServer(
+>           settings=HaasSettings(
+                distribution=distribution,
+                port=PORT,
+                model="x/model",
+                dtype="auto",
+                device="cuda",
+                short_audio_limit_sec=30.0,
+                batch_size=64,
+                alpha=2.0,
+                guard=True,
+                chunk_sec=30.0,
+                search_sec=2.0,
+                window_sec=0.1,
+                separator="",
+            ),
+            popen=popen,
+            clock=FakeClock(),
+            transport=httpx.MockTransport(handler),
+        )
+E       pydantic_core._pydantic_core.ValidationError: 11 validation errors for HaasSettings
+E       model
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='x/model', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       dtype
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='auto', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       device
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='cuda', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       short_audio_limit_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       batch_size
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=64, input_type=int]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       alpha
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       guard
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       chunk_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       search_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       window_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=0.1, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       separator
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+
+tests\unit\voice_paste\integrations\haas\test_server.py:73: ValidationError
+___________________ test_ensure_started_when_script_failed ____________________
+
+    def test_ensure_started_when_script_failed() -> None:
+        """起動スクリプトが失敗して終わる（異常系）。"""
+        # 準備
+>       server, popen = _make_server(_health(False))
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\integrations\haas\test_server.py:171: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+handler = <function _health.<locals>.handler at 0x000001D5263F00F0>
+distribution = 'Ubuntu-24.04'
+
+    def _make_server(handler: Handler, *, distribution: str = "Ubuntu-24.04") -> tuple[Any, MagicMock]:
+        """差し替えた HaasServer と wsl.exe の起動の偽物を返す。"""
+        from voice_paste.integrations.haas.server import HaasServer
+        from voice_paste.shared.settings import HaasSettings
+    
+        popen = MagicMock()
+        popen.return_value.poll.return_value = None
+        server = HaasServer(
+>           settings=HaasSettings(
+                distribution=distribution,
+                port=PORT,
+                model="x/model",
+                dtype="auto",
+                device="cuda",
+                short_audio_limit_sec=30.0,
+                batch_size=64,
+                alpha=2.0,
+                guard=True,
+                chunk_sec=30.0,
+                search_sec=2.0,
+                window_sec=0.1,
+                separator="",
+            ),
+            popen=popen,
+            clock=FakeClock(),
+            transport=httpx.MockTransport(handler),
+        )
+E       pydantic_core._pydantic_core.ValidationError: 11 validation errors for HaasSettings
+E       model
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='x/model', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       dtype
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='auto', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       device
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='cuda', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       short_audio_limit_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       batch_size
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=64, input_type=int]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       alpha
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       guard
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       chunk_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       search_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       window_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=0.1, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       separator
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+
+tests\unit\voice_paste\integrations\haas\test_server.py:73: ValidationError
+______________________ test_ensure_started_when_timeout _______________________
+
+    def test_ensure_started_when_timeout() -> None:
+        """待ち時間までに応答が無い（異常系）。"""
+        # 準備
+>       server, popen = _make_server(_health(False))
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\integrations\haas\test_server.py:182: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+handler = <function _health.<locals>.handler at 0x000001D5262C6F00>
+distribution = 'Ubuntu-24.04'
+
+    def _make_server(handler: Handler, *, distribution: str = "Ubuntu-24.04") -> tuple[Any, MagicMock]:
+        """差し替えた HaasServer と wsl.exe の起動の偽物を返す。"""
+        from voice_paste.integrations.haas.server import HaasServer
+        from voice_paste.shared.settings import HaasSettings
+    
+        popen = MagicMock()
+        popen.return_value.poll.return_value = None
+        server = HaasServer(
+>           settings=HaasSettings(
+                distribution=distribution,
+                port=PORT,
+                model="x/model",
+                dtype="auto",
+                device="cuda",
+                short_audio_limit_sec=30.0,
+                batch_size=64,
+                alpha=2.0,
+                guard=True,
+                chunk_sec=30.0,
+                search_sec=2.0,
+                window_sec=0.1,
+                separator="",
+            ),
+            popen=popen,
+            clock=FakeClock(),
+            transport=httpx.MockTransport(handler),
+        )
+E       pydantic_core._pydantic_core.ValidationError: 11 validation errors for HaasSettings
+E       model
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='x/model', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       dtype
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='auto', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       device
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='cuda', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       short_audio_limit_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       batch_size
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=64, input_type=int]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       alpha
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       guard
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       chunk_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       search_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       window_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=0.1, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       separator
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+
+tests\unit\voice_paste\integrations\haas\test_server.py:73: ValidationError
+__________________________________ test_stop __________________________________
+
+    def test_stop() -> None:
+        """起動したサーバーを止める（正常系）。"""
+        # 準備
+        calls: list[tuple[str, str]] = []
+        inner = _health(False, True)
+    
+        def handler(request: httpx.Request) -> httpx.Response:
+            """方法とパスを覚えて台本へ渡す。"""
+            calls.append((request.method, request.url.path))
+            return inner(request)
+    
+>       server, popen = _make_server(handler)
+                        ^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\integrations\haas\test_server.py:201: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+handler = <function test_stop.<locals>.handler at 0x000001D5262C5D20>
+distribution = 'Ubuntu-24.04'
+
+    def _make_server(handler: Handler, *, distribution: str = "Ubuntu-24.04") -> tuple[Any, MagicMock]:
+        """差し替えた HaasServer と wsl.exe の起動の偽物を返す。"""
+        from voice_paste.integrations.haas.server import HaasServer
+        from voice_paste.shared.settings import HaasSettings
+    
+        popen = MagicMock()
+        popen.return_value.poll.return_value = None
+        server = HaasServer(
+>           settings=HaasSettings(
+                distribution=distribution,
+                port=PORT,
+                model="x/model",
+                dtype="auto",
+                device="cuda",
+                short_audio_limit_sec=30.0,
+                batch_size=64,
+                alpha=2.0,
+                guard=True,
+                chunk_sec=30.0,
+                search_sec=2.0,
+                window_sec=0.1,
+                separator="",
+            ),
+            popen=popen,
+            clock=FakeClock(),
+            transport=httpx.MockTransport(handler),
+        )
+E       pydantic_core._pydantic_core.ValidationError: 11 validation errors for HaasSettings
+E       model
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='x/model', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       dtype
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='auto', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       device
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='cuda', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       short_audio_limit_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       batch_size
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=64, input_type=int]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       alpha
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       guard
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       chunk_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       search_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       window_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=0.1, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       separator
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+
+tests\unit\voice_paste\integrations\haas\test_server.py:73: ValidationError
+_________________________ test_stop_when_unreachable __________________________
+
+    def test_stop_when_unreachable() -> None:
+        """/shutdown が届かなくても例外を出さず、wsl.exe を終わらせる（正常系）。"""
+        # 準備
+        inner = _health(False, True)
+    
+        def handler(request: httpx.Request) -> httpx.Response:
+            """/shutdown は接続エラー、/health は台本のとおり。"""
+            if request.url.path == "/shutdown":
+                raise httpx.ConnectError("refused")
+            return inner(request)
+    
+>       server, popen = _make_server(handler)
+                        ^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\integrations\haas\test_server.py:223: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+handler = <function test_stop_when_unreachable.<locals>.handler at 0x000001D5262A9220>
+distribution = 'Ubuntu-24.04'
+
+    def _make_server(handler: Handler, *, distribution: str = "Ubuntu-24.04") -> tuple[Any, MagicMock]:
+        """差し替えた HaasServer と wsl.exe の起動の偽物を返す。"""
+        from voice_paste.integrations.haas.server import HaasServer
+        from voice_paste.shared.settings import HaasSettings
+    
+        popen = MagicMock()
+        popen.return_value.poll.return_value = None
+        server = HaasServer(
+>           settings=HaasSettings(
+                distribution=distribution,
+                port=PORT,
+                model="x/model",
+                dtype="auto",
+                device="cuda",
+                short_audio_limit_sec=30.0,
+                batch_size=64,
+                alpha=2.0,
+                guard=True,
+                chunk_sec=30.0,
+                search_sec=2.0,
+                window_sec=0.1,
+                separator="",
+            ),
+            popen=popen,
+            clock=FakeClock(),
+            transport=httpx.MockTransport(handler),
+        )
+E       pydantic_core._pydantic_core.ValidationError: 11 validation errors for HaasSettings
+E       model
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='x/model', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       dtype
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='auto', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       device
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='cuda', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       short_audio_limit_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       batch_size
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=64, input_type=int]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       alpha
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       guard
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       chunk_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       search_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       window_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=0.1, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       separator
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+
+tests\unit\voice_paste\integrations\haas\test_server.py:73: ValidationError
+___________________________ test_stop_when_loading ____________________________
+
+    def test_stop_when_loading() -> None:
+        """起動の待ちの間に止めると wsl.exe を終わらせる（正常系）。"""
+        # 準備（2 回目の /health の間に別スレッドから stop を呼ぶ）
+        holder: dict[str, Any] = {"count": 0}
+    
+        def handler(request: httpx.Request) -> httpx.Response:
+            """/health も /shutdown も接続エラー。"""
+            if request.url.path == "/health":
+                holder["count"] += 1
+                if holder["count"] == 2:
+                    stopper = threading.Thread(target=holder["server"].stop)
+                    stopper.start()
+                    stopper.join()
+            raise httpx.ConnectError("refused")
+    
+>       holder["server"], popen = _make_server(handler)
+                                  ^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\integrations\haas\test_server.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+handler = <function test_stop_when_loading.<locals>.handler at 0x000001D528F64E00>
+distribution = 'Ubuntu-24.04'
+
+    def _make_server(handler: Handler, *, distribution: str = "Ubuntu-24.04") -> tuple[Any, MagicMock]:
+        """差し替えた HaasServer と wsl.exe の起動の偽物を返す。"""
+        from voice_paste.integrations.haas.server import HaasServer
+        from voice_paste.shared.settings import HaasSettings
+    
+        popen = MagicMock()
+        popen.return_value.poll.return_value = None
+        server = HaasServer(
+>           settings=HaasSettings(
+                distribution=distribution,
+                port=PORT,
+                model="x/model",
+                dtype="auto",
+                device="cuda",
+                short_audio_limit_sec=30.0,
+                batch_size=64,
+                alpha=2.0,
+                guard=True,
+                chunk_sec=30.0,
+                search_sec=2.0,
+                window_sec=0.1,
+                separator="",
+            ),
+            popen=popen,
+            clock=FakeClock(),
+            transport=httpx.MockTransport(handler),
+        )
+E       pydantic_core._pydantic_core.ValidationError: 11 validation errors for HaasSettings
+E       model
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='x/model', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       dtype
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='auto', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       device
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='cuda', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       short_audio_limit_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       batch_size
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=64, input_type=int]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       alpha
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       guard
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       chunk_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       search_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       window_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=0.1, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       separator
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+
+tests\unit\voice_paste\integrations\haas\test_server.py:73: ValidationError
+__________________ test_ensure_started_when_running_differs ___________________
+
+caplog = <_pytest.logging.LogCaptureFixture object at 0x000001D52927E9F0>
+
+    def test_ensure_started_when_running_differs(caplog: pytest.LogCaptureFixture) -> None:
+        """動いているサーバーが設定と違う（正常系）。"""
+        # 準備
+        body = {"ok": True, "model": "x/model", "dtype": "float32", "device": "cpu"}
+>       server, popen = _make_server(lambda _request: httpx.Response(200, json=body))
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\integrations\haas\test_server.py:260: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+handler = <function test_ensure_started_when_running_differs.<locals>.<lambda> at 0x000001D528F657A0>
+distribution = 'Ubuntu-24.04'
+
+    def _make_server(handler: Handler, *, distribution: str = "Ubuntu-24.04") -> tuple[Any, MagicMock]:
+        """差し替えた HaasServer と wsl.exe の起動の偽物を返す。"""
+        from voice_paste.integrations.haas.server import HaasServer
+        from voice_paste.shared.settings import HaasSettings
+    
+        popen = MagicMock()
+        popen.return_value.poll.return_value = None
+        server = HaasServer(
+>           settings=HaasSettings(
+                distribution=distribution,
+                port=PORT,
+                model="x/model",
+                dtype="auto",
+                device="cuda",
+                short_audio_limit_sec=30.0,
+                batch_size=64,
+                alpha=2.0,
+                guard=True,
+                chunk_sec=30.0,
+                search_sec=2.0,
+                window_sec=0.1,
+                separator="",
+            ),
+            popen=popen,
+            clock=FakeClock(),
+            transport=httpx.MockTransport(handler),
+        )
+E       pydantic_core._pydantic_core.ValidationError: 11 validation errors for HaasSettings
+E       model
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='x/model', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       dtype
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='auto', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       device
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='cuda', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       short_audio_limit_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       batch_size
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=64, input_type=int]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       alpha
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       guard
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       chunk_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       search_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       window_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=0.1, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       separator
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+
+tests\unit\voice_paste\integrations\haas\test_server.py:73: ValidationError
+_______________ test_ensure_started_when_running_without_fields _______________
+
+    def test_ensure_started_when_running_without_fields() -> None:
+        """動いているサーバーが dtype・device を返さない（正常系）。"""
+        # 準備
+        body = {"ok": True, "model": "x/model"}
+>       server, popen = _make_server(lambda _request: httpx.Response(200, json=body))
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\integrations\haas\test_server.py:276: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+handler = <function test_ensure_started_when_running_without_fields.<locals>.<lambda> at 0x000001D528F65C70>
+distribution = 'Ubuntu-24.04'
+
+    def _make_server(handler: Handler, *, distribution: str = "Ubuntu-24.04") -> tuple[Any, MagicMock]:
+        """差し替えた HaasServer と wsl.exe の起動の偽物を返す。"""
+        from voice_paste.integrations.haas.server import HaasServer
+        from voice_paste.shared.settings import HaasSettings
+    
+        popen = MagicMock()
+        popen.return_value.poll.return_value = None
+        server = HaasServer(
+>           settings=HaasSettings(
+                distribution=distribution,
+                port=PORT,
+                model="x/model",
+                dtype="auto",
+                device="cuda",
+                short_audio_limit_sec=30.0,
+                batch_size=64,
+                alpha=2.0,
+                guard=True,
+                chunk_sec=30.0,
+                search_sec=2.0,
+                window_sec=0.1,
+                separator="",
+            ),
+            popen=popen,
+            clock=FakeClock(),
+            transport=httpx.MockTransport(handler),
+        )
+E       pydantic_core._pydantic_core.ValidationError: 11 validation errors for HaasSettings
+E       model
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='x/model', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       dtype
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='auto', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       device
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='cuda', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       short_audio_limit_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       batch_size
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=64, input_type=int]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       alpha
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       guard
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       chunk_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       search_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       window_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=0.1, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       separator
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+
+tests\unit\voice_paste\integrations\haas\test_server.py:73: ValidationError
+_______________________________ test_transcribe _______________________________
+
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2052/test_transcribe0')
+
+    def test_transcribe(tmp_path: Path) -> None:
+        """録音と語を送信して起こした文字を返す（正常系）。"""
+        from voice_paste.shared.settings import HintVocabularyWord
+    
+        # 準備
+        requests: list[httpx.Request] = []
+    
+        def handler(request: httpx.Request) -> httpx.Response:
+            """要求を覚えて、起こした文字を返す。"""
+            requests.append(request)
+            return httpx.Response(200, json={"text": " 今日は晴れ "})
+    
+        # 実行
+>       result = _transcribe(
+            tmp_path,
+            handler,
+            [HintVocabularyWord("突合", "とつごう"), HintVocabularyWord("voice-paste", None)],
+        )
+
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:96: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:70: in _transcribe
+    haas_settings = settings or _haas_settings()
+                                ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+overrides = {}
+
+    def _haas_settings(**overrides: object) -> HaasSettings:
+        """既定値の Haas の設定に、渡した項目を重ねて返す。"""
+        from voice_paste.shared.settings import HaasSettings
+    
+        values: dict[str, object] = {
+            "distribution": "",
+            "port": PORT,
+            "model": "third-intelligence/Haas-ja-v1.0",
+            "dtype": "auto",
+            "device": "cuda",
+            "short_audio_limit_sec": 30.0,
+            "batch_size": 64,
+            "alpha": 2.0,
+            "guard": True,
+            "chunk_sec": 30.0,
+            "search_sec": 2.0,
+            "window_sec": 0.1,
+            "separator": "",
+        }
+>       return HaasSettings.model_validate(values | overrides)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       pydantic_core._pydantic_core.ValidationError: 11 validation errors for HaasSettings
+E       model
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='third-intelligence/Haas-ja-v1.0', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       dtype
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='auto', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       device
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='cuda', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       short_audio_limit_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       batch_size
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=64, input_type=int]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       alpha
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       guard
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       chunk_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       search_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       window_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=0.1, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       separator
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:58: ValidationError
+_____________________ test_transcribe_when_no_vocabulary ______________________
+
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2052/test_transcribe_when_no_vocabu0')
+
+    def test_transcribe_when_no_vocabulary(tmp_path: Path) -> None:
+        """語が無ければ vocabulary を送信しない（正常系）。"""
+        # 準備
+        requests: list[httpx.Request] = []
+    
+        def handler(request: httpx.Request) -> httpx.Response:
+            """要求を覚えて、起こした文字を返す。"""
+            requests.append(request)
+            return httpx.Response(200, json={"text": "文字"})
+    
+        # 実行
+>       _transcribe(tmp_path, handler)
+
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:124: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:70: in _transcribe
+    haas_settings = settings or _haas_settings()
+                                ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+overrides = {}
+
+    def _haas_settings(**overrides: object) -> HaasSettings:
+        """既定値の Haas の設定に、渡した項目を重ねて返す。"""
+        from voice_paste.shared.settings import HaasSettings
+    
+        values: dict[str, object] = {
+            "distribution": "",
+            "port": PORT,
+            "model": "third-intelligence/Haas-ja-v1.0",
+            "dtype": "auto",
+            "device": "cuda",
+            "short_audio_limit_sec": 30.0,
+            "batch_size": 64,
+            "alpha": 2.0,
+            "guard": True,
+            "chunk_sec": 30.0,
+            "search_sec": 2.0,
+            "window_sec": 0.1,
+            "separator": "",
+        }
+>       return HaasSettings.model_validate(values | overrides)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       pydantic_core._pydantic_core.ValidationError: 11 validation errors for HaasSettings
+E       model
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='third-intelligence/Haas-ja-v1.0', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       dtype
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='auto', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       device
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='cuda', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       short_audio_limit_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       batch_size
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=64, input_type=int]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       alpha
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       guard
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       chunk_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       search_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       window_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=0.1, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       separator
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:58: ValidationError
+_______________________ test_transcribe_when_empty_text _______________________
+
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2052/test_transcribe_when_empty_tex0')
+
+    def test_transcribe_when_empty_text(tmp_path: Path) -> None:
+        """起こした文字が空なら空の並びを返す（正常系）。"""
+        # 実行
+>       result = _transcribe(tmp_path, lambda _request: httpx.Response(200, json={"text": ""}))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:133: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:70: in _transcribe
+    haas_settings = settings or _haas_settings()
+                                ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+overrides = {}
+
+    def _haas_settings(**overrides: object) -> HaasSettings:
+        """既定値の Haas の設定に、渡した項目を重ねて返す。"""
+        from voice_paste.shared.settings import HaasSettings
+    
+        values: dict[str, object] = {
+            "distribution": "",
+            "port": PORT,
+            "model": "third-intelligence/Haas-ja-v1.0",
+            "dtype": "auto",
+            "device": "cuda",
+            "short_audio_limit_sec": 30.0,
+            "batch_size": 64,
+            "alpha": 2.0,
+            "guard": True,
+            "chunk_sec": 30.0,
+            "search_sec": 2.0,
+            "window_sec": 0.1,
+            "separator": "",
+        }
+>       return HaasSettings.model_validate(values | overrides)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       pydantic_core._pydantic_core.ValidationError: 11 validation errors for HaasSettings
+E       model
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='third-intelligence/Haas-ja-v1.0', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       dtype
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='auto', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       device
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='cuda', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       short_audio_limit_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       batch_size
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=64, input_type=int]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       alpha
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       guard
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       chunk_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       search_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       window_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=0.1, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       separator
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:58: ValidationError
+______________________ test_transcribe_when_server_error ______________________
+
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2052/test_transcribe_when_server_er0')
+
+    def test_transcribe_when_server_error(tmp_path: Path) -> None:
+        """サーバーが失敗を返したら EngineError を送出する（異常系）。"""
+        # 準備
+        response = httpx.Response(500, json={"detail": "GPU のメモリが足りない"})
+    
+        # 実行・検証
+        with pytest.raises(EngineError) as exc_info:
+>           _transcribe(tmp_path, lambda _request: response)
+
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:146: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:70: in _transcribe
+    haas_settings = settings or _haas_settings()
+                                ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+overrides = {}
+
+    def _haas_settings(**overrides: object) -> HaasSettings:
+        """既定値の Haas の設定に、渡した項目を重ねて返す。"""
+        from voice_paste.shared.settings import HaasSettings
+    
+        values: dict[str, object] = {
+            "distribution": "",
+            "port": PORT,
+            "model": "third-intelligence/Haas-ja-v1.0",
+            "dtype": "auto",
+            "device": "cuda",
+            "short_audio_limit_sec": 30.0,
+            "batch_size": 64,
+            "alpha": 2.0,
+            "guard": True,
+            "chunk_sec": 30.0,
+            "search_sec": 2.0,
+            "window_sec": 0.1,
+            "separator": "",
+        }
+>       return HaasSettings.model_validate(values | overrides)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       pydantic_core._pydantic_core.ValidationError: 11 validation errors for HaasSettings
+E       model
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='third-intelligence/Haas-ja-v1.0', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       dtype
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='auto', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       device
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='cuda', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       short_audio_limit_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       batch_size
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=64, input_type=int]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       alpha
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       guard
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       chunk_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       search_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       window_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=0.1, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       separator
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:58: ValidationError
+______________________ test_transcribe_when_unreachable _______________________
+
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2052/test_transcribe_when_unreachab0')
+
+    def test_transcribe_when_unreachable(tmp_path: Path) -> None:
+        """接続できなければ EngineError を送出する（異常系）。"""
+        # 実行・検証
+        with pytest.raises(EngineError):
+>           _transcribe(tmp_path, _raise_connect_error)
+
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:165: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:70: in _transcribe
+    haas_settings = settings or _haas_settings()
+                                ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+overrides = {}
+
+    def _haas_settings(**overrides: object) -> HaasSettings:
+        """既定値の Haas の設定に、渡した項目を重ねて返す。"""
+        from voice_paste.shared.settings import HaasSettings
+    
+        values: dict[str, object] = {
+            "distribution": "",
+            "port": PORT,
+            "model": "third-intelligence/Haas-ja-v1.0",
+            "dtype": "auto",
+            "device": "cuda",
+            "short_audio_limit_sec": 30.0,
+            "batch_size": 64,
+            "alpha": 2.0,
+            "guard": True,
+            "chunk_sec": 30.0,
+            "search_sec": 2.0,
+            "window_sec": 0.1,
+            "separator": "",
+        }
+>       return HaasSettings.model_validate(values | overrides)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       pydantic_core._pydantic_core.ValidationError: 11 validation errors for HaasSettings
+E       model
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='third-intelligence/Haas-ja-v1.0', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       dtype
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='auto', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       device
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='cuda', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       short_audio_limit_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       batch_size
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=64, input_type=int]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       alpha
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       guard
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       chunk_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       search_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       window_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=0.1, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       separator
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:58: ValidationError
+________________________ test_transcribe_when_timeout _________________________
+
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2052/test_transcribe_when_timeout0')
+
+    def test_transcribe_when_timeout(tmp_path: Path) -> None:
+        """応答がタイムアウトすれば EngineError を送出する（異常系）。"""
+        # 実行・検証
+        with pytest.raises(EngineError):
+>           _transcribe(tmp_path, _raise_read_timeout)
+
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:172: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:70: in _transcribe
+    haas_settings = settings or _haas_settings()
+                                ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+overrides = {}
+
+    def _haas_settings(**overrides: object) -> HaasSettings:
+        """既定値の Haas の設定に、渡した項目を重ねて返す。"""
+        from voice_paste.shared.settings import HaasSettings
+    
+        values: dict[str, object] = {
+            "distribution": "",
+            "port": PORT,
+            "model": "third-intelligence/Haas-ja-v1.0",
+            "dtype": "auto",
+            "device": "cuda",
+            "short_audio_limit_sec": 30.0,
+            "batch_size": 64,
+            "alpha": 2.0,
+            "guard": True,
+            "chunk_sec": 30.0,
+            "search_sec": 2.0,
+            "window_sec": 0.1,
+            "separator": "",
+        }
+>       return HaasSettings.model_validate(values | overrides)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       pydantic_core._pydantic_core.ValidationError: 11 validation errors for HaasSettings
+E       model
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='third-intelligence/Haas-ja-v1.0', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       dtype
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='auto', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       device
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='cuda', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       short_audio_limit_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       batch_size
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=64, input_type=int]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       alpha
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       guard
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       chunk_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=30.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       search_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=2.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       window_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=0.1, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       separator
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:58: ValidationError
+_________________________ test_transcribe_when_tuning _________________________
+
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2052/test_transcribe_when_tuning0')
+
+    def test_transcribe_when_tuning(tmp_path: Path) -> None:
+        """調整の値を送信する（正常系）。"""
+        # 準備
+        requests: list[httpx.Request] = []
+    
+        def handler(request: httpx.Request) -> httpx.Response:
+            """要求を覚えて、起こした文字を返す。"""
+            requests.append(request)
+            return httpx.Response(200, json={"text": "文字"})
+    
+>       settings = _haas_settings(
+            short_audio_limit_sec=20.0,
+            batch_size=8,
+            alpha=3.0,
+            guard=False,
+            chunk_sec=15.0,
+            search_sec=1.0,
+            window_sec=0.05,
+            separator="。",
+        )
+
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:185: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+overrides = {'short_audio_limit_sec': 20.0, 'batch_size': 8, 'alpha': 3.0, 'guard': False, ...}
+
+    def _haas_settings(**overrides: object) -> HaasSettings:
+        """既定値の Haas の設定に、渡した項目を重ねて返す。"""
+        from voice_paste.shared.settings import HaasSettings
+    
+        values: dict[str, object] = {
+            "distribution": "",
+            "port": PORT,
+            "model": "third-intelligence/Haas-ja-v1.0",
+            "dtype": "auto",
+            "device": "cuda",
+            "short_audio_limit_sec": 30.0,
+            "batch_size": 64,
+            "alpha": 2.0,
+            "guard": True,
+            "chunk_sec": 30.0,
+            "search_sec": 2.0,
+            "window_sec": 0.1,
+            "separator": "",
+        }
+>       return HaasSettings.model_validate(values | overrides)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       pydantic_core._pydantic_core.ValidationError: 11 validation errors for HaasSettings
+E       model
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='third-intelligence/Haas-ja-v1.0', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       dtype
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='auto', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       device
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='cuda', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       short_audio_limit_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=20.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       batch_size
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=8, input_type=int]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       alpha
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=3.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       guard
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=False, input_type=bool]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       chunk_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=15.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       search_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=1.0, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       window_sec
+E         Extra inputs are not permitted [type=extra_forbidden, input_value=0.05, input_type=float]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+E       separator
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='。', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+
+tests\unit\voice_paste\integrations\haas\test_transcriber.py:58: ValidationError
+_____________________ test_settings_when_haas_model_empty _____________________
+
+settings_model = <class 'voice_paste.shared.settings.AppSettings'>
+
+    def test_settings_when_haas_model_empty(settings_model: type[Settings]) -> None:
+        """Haas のモデルが空白だけなら断る（異常系）。"""
+        from pydantic import ValidationError
+    
+        # 実行・検証
+        with pytest.raises(ValidationError) as exc_info:
+            settings_model.model_validate(make_test_document({"transcription": {"haas": {"model": "  "}}}))
+        error = exc_info.value.errors()[0]
+>       assert error["type"] == "haas_model_empty"
+E       AssertionError: assert 'extra_forbidden' == 'haas_model_empty'
+E         
+E         - haas_model_empty
+E         + extra_forbidden
+
+tests\unit\voice_paste\shared\test_settings.py:2186: AssertionError
+___________________ test_settings_when_haas_device_invalid ____________________
+
+settings_model = <class 'voice_paste.shared.settings.AppSettings'>
+
+    def test_settings_when_haas_device_invalid(settings_model: type[Settings]) -> None:
+        """Haas の装置の形式が違えば断る（異常系）。"""
+        from pydantic import ValidationError
+    
+        # 実行・検証
+        with pytest.raises(ValidationError) as exc_info:
+            settings_model.model_validate(make_test_document({"transcription": {"haas": {"device": "gpu"}}}))
+        error = exc_info.value.errors()[0]
+>       assert error["type"] == "haas_device_form"
+E       AssertionError: assert 'extra_forbidden' == 'haas_device_form'
+E         
+E         - haas_device_form
+E         + extra_forbidden
+
+tests\unit\voice_paste\shared\test_settings.py:2198: AssertionError
+___________________ test_settings_when_haas_device_numbered ___________________
+
+settings_model = <class 'voice_paste.shared.settings.AppSettings'>
+
+    def test_settings_when_haas_device_numbered(settings_model: type[Settings]) -> None:
+        """番号つきの cuda は通る（正常系）。"""
+        # 実行
+>       settings = settings_model.model_validate(
+            make_test_document({"transcription": {"haas": {"device": "cuda:1"}}})
+        )
+E       pydantic_core._pydantic_core.ValidationError: 1 validation error for AppSettings
+E       transcription.haas.device
+E         Extra inputs are not permitted [type=extra_forbidden, input_value='cuda:1', input_type=str]
+E           For further information visit https://errors.pydantic.dev/2.14/v/extra_forbidden
+
+tests\unit\voice_paste\shared\test_settings.py:2205: ValidationError
+_________________ test_settings_when_haas_separator_too_long __________________
+
+settings_model = <class 'voice_paste.shared.settings.AppSettings'>
+
+    def test_settings_when_haas_separator_too_long(settings_model: type[Settings]) -> None:
+        """Haas の区切りをつなぐ文字が 16 文字を超えれば断る（異常系）。"""
+        from pydantic import ValidationError
+    
+        # 実行・検証
+        with pytest.raises(ValidationError) as exc_info:
+            settings_model.model_validate(
+                make_test_document({"transcription": {"haas": {"separator": "あ" * 17}}})
+            )
+        error = exc_info.value.errors()[0]
+>       assert error["type"] == "haas_separator_too_long"
+E       AssertionError: assert 'extra_forbidden' == 'haas_separator_too_long'
+E         
+E         - haas_separator_too_long
+E         + extra_forbidden
+
+tests\unit\voice_paste\shared\test_settings.py:2223: AssertionError
+_______________ test_build_handlers_when_haas_settings_mismatch _______________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001D52A194DE0>
+make_settings = <function make_test_settings at 0x000001D5263C0720>
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2052/test_build_handlers_when_haas_0')
+
+    def test_build_handlers_when_haas_settings_mismatch(
+        monkeypatch: pytest.MonkeyPatch, make_settings: Callable[..., Settings], tmp_path: Path
+    ) -> None:
+        """動いている Haas のサーバーが設定と違う（正常系）。"""
+        from voice_paste.features.transcription import EngineName
+    
+        # 実行
+        handlers, _server, worker, notify = _build_haas_handlers(
+            monkeypatch, make_settings, tmp_path, mismatch=("dtype", "device")
+        )
+    
+        # 検証
+>       notify.assert_called_once_with("engine_settings_mismatch", "計算の精度・装置")
+
+tests\unit\voice_paste\test_main.py:2147: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <MagicMock id='2015047635632'>
+args = ('engine_settings_mismatch', '計算の精度・装置'), kwargs = {}
+
+    def assert_called_once_with(self, /, *args, **kwargs):
+        """assert that the mock was called exactly once and that that call was
+        with the specified arguments."""
+        if not self.call_count == 1:
+            msg = ("Expected '%s' to be called once. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+>           raise AssertionError(msg)
+E           AssertionError: Expected 'mock' to be called once. Called 0 times.
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\unittest\mock.py:996: AssertionError
+_________________ test_to_field_message_when_haas_device_form _________________
+
+settings_model = <class 'voice_paste.shared.settings.AppSettings'>
+default_settings = AppSettings(transcription=TranscriptionSettings(engine='local_whisper', local_whisper=LocalWhisperSettings(model='larg...tions=PresetOptions(browser=BrowserPresetOptions(open_delay_sec=3.0), endpoint=EndpointPresetOptions(timeout_sec=1.5)))
+
+    def test_to_field_message_when_haas_device_form(
+        settings_model: type[Settings], default_settings: Settings
+    ) -> None:
+        """Haas の装置の形式が違う（正常系）。"""
+        # 実行
+        message, loc = _field_message(
+            settings_model, default_settings, {"transcription": {"haas": {"device": "gpu"}}}
+        )
+    
+        # 検証
+>       assert message == "cuda・cuda:0 のような番号つきの cuda・cpu のどれかを入れてください。"
+E       AssertionError: assert 'Extra inputs...not permitted' == 'cuda・cuda:0 ...のどれかを入れてください。'
+E         
+E         - cuda・cuda:0 のような番号つきの cuda・cpu のどれかを入れてください。
+E         + Extra inputs are not permitted
+
+tests\unit\voice_paste\ui\windows\test_settings_window.py:1512: AssertionError
+_________________ test_to_field_message_when_haas_model_empty _________________
+
+settings_model = <class 'voice_paste.shared.settings.AppSettings'>
+default_settings = AppSettings(transcription=TranscriptionSettings(engine='local_whisper', local_whisper=LocalWhisperSettings(model='larg...tions=PresetOptions(browser=BrowserPresetOptions(open_delay_sec=3.0), endpoint=EndpointPresetOptions(timeout_sec=1.5)))
+
+    def test_to_field_message_when_haas_model_empty(
+        settings_model: type[Settings], default_settings: Settings
+    ) -> None:
+        """Haas のモデルが空（正常系）。"""
+        # 実行
+        message, loc = _field_message(
+            settings_model, default_settings, {"transcription": {"haas": {"model": ""}}}
+        )
+    
+        # 検証
+>       assert message == "モデルの名前かパスを入れてください。"
+E       AssertionError: assert 'Extra inputs...not permitted' == 'モデルの名前かパスを入れてください。'
+E         
+E         - モデルの名前かパスを入れてください。
+E         + Extra inputs are not permitted
+
+tests\unit\voice_paste\ui\windows\test_settings_window.py:1526: AssertionError
+_____________ test_to_field_message_when_haas_separator_too_long ______________
+
+settings_model = <class 'voice_paste.shared.settings.AppSettings'>
+default_settings = AppSettings(transcription=TranscriptionSettings(engine='local_whisper', local_whisper=LocalWhisperSettings(model='larg...tions=PresetOptions(browser=BrowserPresetOptions(open_delay_sec=3.0), endpoint=EndpointPresetOptions(timeout_sec=1.5)))
+
+    def test_to_field_message_when_haas_separator_too_long(
+        settings_model: type[Settings], default_settings: Settings
+    ) -> None:
+        """Haas の区切りをつなぐ文字が長い（正常系）。"""
+        # 実行
+        message, loc = _field_message(
+            settings_model, default_settings, {"transcription": {"haas": {"separator": "あ" * 17}}}
+        )
+    
+        # 検証
+>       assert message == "16 文字以内で入れてください。"
+E       AssertionError: assert 'Extra inputs...not permitted' == '16 文字以内で入れてください。'
+E         
+E         - 16 文字以内で入れてください。
+E         + Extra inputs are not permitted
+
+tests\unit\voice_paste\ui\windows\test_settings_window.py:1540: AssertionError
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-haas-expose-recognition-settings\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/unit/haas_server/test_app.py::test_create_app_when_host_not_allowed
+FAILED tests/unit/haas_server/test_app.py::test_parse_tuning - ImportError: c...
+FAILED tests/unit/haas_server/test_app.py::test_parse_tuning_when_missing - I...
+FAILED tests/unit/haas_server/test_app.py::test_parse_tuning_when_out_of_range[batch_size_zero]
+FAILED tests/unit/haas_server/test_app.py::test_parse_tuning_when_out_of_range[chunk_sec_below]
+FAILED tests/unit/haas_server/test_app.py::test_parse_tuning_when_out_of_range[window_sec_nan]
+FAILED tests/unit/haas_server/test_app.py::test_parse_tuning_when_guard_invalid
+FAILED tests/unit/haas_server/test_app.py::test_parse_tuning_when_not_number
+FAILED tests/unit/haas_server/test_app.py::test_parse_tuning_when_separator_too_long
+FAILED tests/unit/haas_server/test_main.py::test_main_when_load_failed - asse...
+FAILED tests/unit/haas_server/test_main.py::test_parse_args - ImportError: ca...
+FAILED tests/unit/haas_server/test_main.py::test_parse_args_when_port_only - ...
+FAILED tests/unit/haas_server/test_main.py::test_parse_args_when_dtype_invalid
+FAILED tests/unit/haas_server/test_main.py::test_load_engine - ImportError: c...
+FAILED tests/unit/haas_server/test_main.py::test_load_engine_when_auto - Impo...
+FAILED tests/unit/voice_paste/integrations/haas/test_server.py::test_ensure_started_when_already_running
+FAILED tests/unit/voice_paste/integrations/haas/test_server.py::test_ensure_started_when_not_running
+FAILED tests/unit/voice_paste/integrations/haas/test_server.py::test_ensure_started_when_default_distribution
+FAILED tests/unit/voice_paste/integrations/haas/test_server.py::test_ensure_started_when_wsl_missing
+FAILED tests/unit/voice_paste/integrations/haas/test_server.py::test_ensure_started_when_script_failed
+FAILED tests/unit/voice_paste/integrations/haas/test_server.py::test_ensure_started_when_timeout
+FAILED tests/unit/voice_paste/integrations/haas/test_server.py::test_stop - p...
+FAILED tests/unit/voice_paste/integrations/haas/test_server.py::test_stop_when_unreachable
+FAILED tests/unit/voice_paste/integrations/haas/test_server.py::test_stop_when_loading
+FAILED tests/unit/voice_paste/integrations/haas/test_server.py::test_ensure_started_when_running_differs
+FAILED tests/unit/voice_paste/integrations/haas/test_server.py::test_ensure_started_when_running_without_fields
+FAILED tests/unit/voice_paste/integrations/haas/test_transcriber.py::test_transcribe
+FAILED tests/unit/voice_paste/integrations/haas/test_transcriber.py::test_transcribe_when_no_vocabulary
+FAILED tests/unit/voice_paste/integrations/haas/test_transcriber.py::test_transcribe_when_empty_text
+FAILED tests/unit/voice_paste/integrations/haas/test_transcriber.py::test_transcribe_when_server_error
+FAILED tests/unit/voice_paste/integrations/haas/test_transcriber.py::test_transcribe_when_unreachable
+FAILED tests/unit/voice_paste/integrations/haas/test_transcriber.py::test_transcribe_when_timeout
+FAILED tests/unit/voice_paste/integrations/haas/test_transcriber.py::test_transcribe_when_tuning
+FAILED tests/unit/voice_paste/shared/test_settings.py::test_settings_when_haas_model_empty
+FAILED tests/unit/voice_paste/shared/test_settings.py::test_settings_when_haas_device_invalid
+FAILED tests/unit/voice_paste/shared/test_settings.py::test_settings_when_haas_device_numbered
+FAILED tests/unit/voice_paste/shared/test_settings.py::test_settings_when_haas_separator_too_long
+FAILED tests/unit/voice_paste/test_main.py::test_build_handlers_when_haas_settings_mismatch
+FAILED tests/unit/voice_paste/ui/windows/test_settings_window.py::test_to_field_message_when_haas_device_form
+FAILED tests/unit/voice_paste/ui/windows/test_settings_window.py::test_to_field_message_when_haas_model_empty
+FAILED tests/unit/voice_paste/ui/windows/test_settings_window.py::test_to_field_message_when_haas_separator_too_long
+41 failed, 825 passed, 56 skipped, 1 warning in 350.67s (0:05:50)
+exit=1

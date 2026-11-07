@@ -110,6 +110,7 @@ from voice_paste.shared.os_kind import (
     unavailable_features,
 )
 from voice_paste.shared.settings import (
+    HaasSettings,
     HintVocabularyWord,
     Preset,
     Settings,
@@ -575,6 +576,7 @@ def build_handlers(
         environ,
         on_engine_created,
         get_vocabulary=lambda: collect_hint_vocabulary(store.get().hint_presets),
+        get_haas_settings=lambda: store.get().transcription.haas,
         notify=notify,
         unavailable=unavailable,
     )
@@ -771,6 +773,12 @@ def _wire_web_api(
 HAAS_FALLBACK_MESSAGE: str = "Haas のサーバーへ接続できないため、ローカルの Whisper で起こします。"
 """Haas からローカルの Whisper へ切り戻したときの知らせの文。"""
 
+HAAS_SETTING_LABELS: dict[str, str] = {"model": "モデル", "dtype": "計算の精度", "device": "装置"}
+"""動いている Haas のサーバーが設定と違うときの通知に出す項目の名前（画面設計『トレイの通知』の {違う項目}）。"""
+
+HAAS_SETTING_SEPARATOR: str = "・"
+"""通知に出す違う項目の名前をつなぐ文字。"""
+
 
 def _build_engine(
     settings: Settings,
@@ -780,6 +788,7 @@ def _build_engine(
     on_engine_created: Callable[[Callable[[], None]], None],
     *,
     get_vocabulary: Callable[[], list[HintVocabularyWord]],
+    get_haas_settings: Callable[[], HaasSettings],
     notify: NotifyFn,
     unavailable: frozenset[Feature],
 ) -> tuple[EngineFn, Callable[[], None], EngineName]:
@@ -803,12 +812,20 @@ def _build_engine(
         try:
             if Feature.HAAS_ENGINE in unavailable:
                 raise EngineError("この OS では使えない")
-            server.ensure_started()
+            differs = server.ensure_started()
         except EngineError as error:
             logger.warning(f"Haas のサーバーへ接続できないためローカルの Whisper で起こす（{error}）")
             notify("engine_fallback", HAAS_FALLBACK_MESSAGE)
         else:
-            transcriber = HaasTranscriber(port=haas_settings.port, get_vocabulary=get_vocabulary)
+            # 起動の前から動いていたサーバーが設定と違えば知らせ、そのサーバーのまま起こす
+            if differs:
+                names = HAAS_SETTING_SEPARATOR.join(HAAS_SETTING_LABELS[item] for item in differs)
+                notify("engine_settings_mismatch", names)
+            transcriber = HaasTranscriber(
+                port=haas_settings.port,
+                get_vocabulary=get_vocabulary,
+                get_settings=get_haas_settings,
+            )
             return transcriber.transcribe, server.stop, EngineName.HAAS
 
     # ローカルの Whisper

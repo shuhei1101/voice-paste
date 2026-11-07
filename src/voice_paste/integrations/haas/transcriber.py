@@ -11,7 +11,7 @@ from pathlib import Path
 import httpx
 
 from voice_paste.shared.errors import EngineError
-from voice_paste.shared.settings import HintVocabularyWord
+from voice_paste.shared.settings import HaasSettings, HintVocabularyWord
 from voice_paste.shared.types import ProgressFn
 
 logger = logging.getLogger(__name__)
@@ -34,11 +34,13 @@ class HaasTranscriber:
         *,
         port: int,
         get_vocabulary: Callable[[], list[HintVocabularyWord]],
+        get_settings: Callable[[], HaasSettings],
         transport: httpx.BaseTransport | None = None,
     ) -> None:
-        """サーバーのポートと、送信するたびに表記と読みの組を読む関数を受ける。transport はテストで差し替える。"""
+        """サーバーのポートと、送信するたびに表記と読みの組・調整の値を読む関数を受ける。transport はテストで差し替える。"""
         self._port = port
         self._get_vocabulary = get_vocabulary
+        self._get_settings = get_settings
         self._transport = transport
 
     def transcribe(
@@ -55,7 +57,7 @@ class HaasTranscriber:
         """
         # 1. 語があれば、表記と読みの組を JSON にする
         words = self._get_vocabulary()
-        form: dict[str, str] = {}
+        form: dict[str, str] = _tuning_form(self._get_settings())
         if words:
             form["vocabulary"] = json.dumps(
                 [{"written": word.written, "reading": word.reading} for word in words],
@@ -87,6 +89,20 @@ class HaasTranscriber:
             f"Haas で起こした（{len(audio)} バイト・{time.perf_counter() - started:.2f} 秒）"
         )
         return [text] if text else []
+
+
+def _tuning_form(settings: HaasSettings) -> dict[str, str]:
+    """要求ごとの調整の値を multipart の項目の文字列にする（guard は true / false）。"""
+    return {
+        "short_audio_limit_sec": str(settings.short_audio_limit_sec),
+        "batch_size": str(settings.batch_size),
+        "alpha": str(settings.alpha),
+        "guard": "true" if settings.guard else "false",
+        "chunk_sec": str(settings.chunk_sec),
+        "search_sec": str(settings.search_sec),
+        "window_sec": str(settings.window_sec),
+        "separator": settings.separator,
+    }
 
 
 def _describe_failure(response: httpx.Response) -> str:

@@ -127,6 +127,17 @@ def test_hidden_setting_keys() -> None:
             "api.allowed_web_origins",
             "transcription.haas.distribution",
             "transcription.haas.port",
+            "transcription.haas.model",
+            "transcription.haas.dtype",
+            "transcription.haas.device",
+            "transcription.haas.alpha",
+            "transcription.haas.guard",
+            "transcription.haas.short_audio_limit_sec",
+            "transcription.haas.chunk_sec",
+            "transcription.haas.search_sec",
+            "transcription.haas.window_sec",
+            "transcription.haas.separator",
+            "transcription.haas.batch_size",
         }
     )
 

@@ -12,6 +12,7 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
+from haas_server.app import TranscribeOptions
 from tests.integration.haas_server.helpers import (
     FAKE_TEXT,
     MODEL_RATE,
@@ -23,6 +24,7 @@ from tests.integration.haas_server.helpers import (
 
 SHORT_SECONDS = 3
 LONG_SECONDS = 40
+TUNING_SECONDS = 25
 
 
 def _post(
@@ -30,10 +32,11 @@ def _post(
     audio: bytes,
     *,
     vocabulary: str | None = None,
+    tuning: dict[str, str] | None = None,
     headers: dict[str, str] | None = None,
 ) -> httpx.Response:
-    """音声と手がかりを multipart で送信する。"""
-    data = {} if vocabulary is None else {"vocabulary": vocabulary}
+    """音声と手がかりと調整の値を multipart で送信する。"""
+    data = ({} if vocabulary is None else {"vocabulary": vocabulary}) | (tuning or {})
     return client.post(
         "/transcriptions", files={"audio": ("audio", audio)}, data=data, headers=headers
     )
@@ -173,3 +176,67 @@ def test_error_when_origin_not_allowed(
     assert response.headers["content-type"].startswith("application/problem+json")
     assert model.samples == []
     assert "evil.example" in caplog.text
+
+
+def test_normal_when_tuning_values(client: TestClient, model: FakeModel) -> None:
+    """要求の調整の値を、起こし方の選択と haas_asr の引数に使用する（正常系）。"""
+    # 準備
+    vocabulary = json.dumps([{"written": "突合", "reading": "とつごう"}])
+    tuning = {
+        "short_audio_limit_sec": "20",
+        "batch_size": "8",
+        "alpha": "3.0",
+        "guard": "false",
+        "chunk_sec": "15",
+        "search_sec": "1",
+        "window_sec": "0.05",
+        "separator": "。",
+    }
+
+    # 実行
+    response = _post(client, make_wav(TUNING_SECONDS), vocabulary=vocabulary, tuning=tuning)
+
+    # 検証
+    assert response.status_code == 200
+    assert response.json() == {"text": FAKE_TEXT}
+    assert model.longform_calls == 1
+    assert model.options == [
+        TranscribeOptions(
+            short_audio_limit_sec=20.0,
+            batch_size=8,
+            alpha=3.0,
+            guard=False,
+            chunk_sec=15.0,
+            search_sec=1.0,
+            window_sec=0.05,
+            separator="。",
+        )
+    ]
+    assert model.alphas == [3.0]
+
+
+@pytest.mark.parametrize(
+    ("tuning", "field"),
+    [
+        pytest.param({"batch_size": "0"}, "batch_size", id="batch_size_zero"),
+        pytest.param({"guard": "yes"}, "guard", id="guard_yes"),
+    ],
+)
+def test_error_when_tuning_value_invalid(
+    client: TestClient,
+    model: FakeModel,
+    caplog: pytest.LogCaptureFixture,
+    tuning: dict[str, str],
+    field: str,
+) -> None:
+    """範囲の外か型の合わない調整の値を持つ要求を、起こさずに断る（異常系）。"""
+    # 実行
+    with caplog.at_level(logging.WARNING):
+        response = _post(client, make_wav(SHORT_SECONDS), tuning=tuning)
+
+    # 検証
+    assert response.status_code == 400
+    assert response.headers["content-type"].startswith("application/problem+json")
+    assert field in response.json()["detail"]
+    assert model.samples == []
+    assert [record.levelno for record in caplog.records] == [logging.WARNING]

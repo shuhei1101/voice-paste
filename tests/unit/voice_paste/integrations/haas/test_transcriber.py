@@ -17,7 +17,7 @@ import pytest
 from voice_paste.shared.errors import EngineError
 
 if TYPE_CHECKING:
-    from voice_paste.shared.settings import HintVocabularyWord
+    from voice_paste.shared.settings import HaasSettings, HintVocabularyWord
 
 PORT = 47824
 TRANSCRIPTIONS_URL = f"http://127.0.0.1:{PORT}/transcriptions"
@@ -36,19 +36,45 @@ def _form_fields(request: httpx.Request) -> dict[str, bytes]:
     return fields
 
 
+def _haas_settings(**overrides: object) -> HaasSettings:
+    """既定値の Haas の設定に、渡した項目を重ねて返す。"""
+    from voice_paste.shared.settings import HaasSettings
+
+    values: dict[str, object] = {
+        "distribution": "",
+        "port": PORT,
+        "model": "third-intelligence/Haas-ja-v1.0",
+        "dtype": "auto",
+        "device": "cuda",
+        "short_audio_limit_sec": 30.0,
+        "batch_size": 64,
+        "alpha": 2.0,
+        "guard": True,
+        "chunk_sec": 30.0,
+        "search_sec": 2.0,
+        "window_sec": 0.1,
+        "separator": "",
+    }
+    return HaasSettings.model_validate(values | overrides)
+
+
 def _transcribe(
     tmp_path: Path,
     handler: Callable[[httpx.Request], httpx.Response],
     vocabulary: list[HintVocabularyWord] | None = None,
+    settings: HaasSettings | None = None,
 ) -> list[str]:
     """録音のファイルを作り、差し替えた送信先で transcribe を呼ぶ。"""
     from voice_paste.integrations.haas.transcriber import HaasTranscriber
+
+    haas_settings = settings or _haas_settings()
 
     audio_path = tmp_path / "recording.wav"
     audio_path.write_bytes(WAV_BYTES)
     transcriber = HaasTranscriber(
         port=PORT,
         get_vocabulary=lambda: vocabulary or [],
+        get_settings=lambda: haas_settings,
         transport=httpx.MockTransport(handler),
     )
     return transcriber.transcribe(audio_path)
@@ -144,3 +170,41 @@ def test_transcribe_when_timeout(tmp_path: Path) -> None:
     # 実行・検証
     with pytest.raises(EngineError):
         _transcribe(tmp_path, _raise_read_timeout)
+
+
+def test_transcribe_when_tuning(tmp_path: Path) -> None:
+    """調整の値を送信する（正常系）。"""
+    # 準備
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        """要求を覚えて、起こした文字を返す。"""
+        requests.append(request)
+        return httpx.Response(200, json={"text": "文字"})
+
+    settings = _haas_settings(
+        short_audio_limit_sec=20.0,
+        batch_size=8,
+        alpha=3.0,
+        guard=False,
+        chunk_sec=15.0,
+        search_sec=1.0,
+        window_sec=0.05,
+        separator="。",
+    )
+
+    # 実行
+    _transcribe(tmp_path, handler, settings=settings)
+
+    # 検証
+    fields = _form_fields(requests[0])
+    assert {name: value for name, value in fields.items() if name != "audio"} == {
+        "short_audio_limit_sec": b"20.0",
+        "batch_size": b"8",
+        "alpha": b"3.0",
+        "guard": b"false",
+        "chunk_sec": b"15.0",
+        "search_sec": b"1.0",
+        "window_sec": b"0.05",
+        "separator": "。".encode(),
+    }

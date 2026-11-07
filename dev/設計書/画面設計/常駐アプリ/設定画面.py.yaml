@@ -1169,6 +1169,21 @@ input_checks:
     trigger: 保存・保存して再起動のボタンのクリック
     message: API を待ち受けるポートと同じ番号です。別の番号を入れてください。
     position: '`transcription.haas.port` の欄の下とエラーの一覧'
+  - element: 設定の欄
+    violation: '`transcription.haas.model` が空（前後の空白を除いて）'
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: モデルの名前かパスを入れてください。
+    position: '`transcription.haas.model` の欄の下とエラーの一覧'
+  - element: 設定の欄
+    violation: '`transcription.haas.device` が `cuda`・`cuda:{番号}`・`cpu` のどれでもない'
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: cuda・cuda:0 のような番号つきの cuda・cpu のどれかを入れてください。
+    position: '`transcription.haas.device` の欄の下とエラーの一覧'
+  - element: 設定の欄
+    violation: '`transcription.haas.separator` が 16 文字を超える'
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: 16 文字以内で入れてください。
+    position: '`transcription.haas.separator` の欄の下とエラーの一覧'
 screen: src/voice_paste/ui/windows/settings_window.py
 mock: dev/mock/pages/settings/173/b-picked-list/
 lead: トレイの「設定…」から開く画面。設定の全てのキーをまとまりに並べ、設定のモデルで確かめてから保存する。
@@ -1201,6 +1216,15 @@ notes:
     | 文字起こし（OpenAI API のタブ） | `transcription.openai.model`・`transcription.openai.language`・`transcription.openai.base_url` | 文字の欄。補助文「文字起こしのエンジンが OpenAI API のときに使う。API キーはここでは入れず、環境変数 OPENAI_API_KEY か、settings.yaml と同じフォルダの secrets/openai_api_key に置く。」 |
     | 文字起こし（Haas（WSL）のタブ） | `transcription.haas.distribution` | 文字の欄。欄の名前「WSL のディストリビューション」。補助文「文字起こしのエンジンが Haas（WSL）のときに使う。WSL2 のネットワークを mirrored にし、このディストリビューションにサーバーの環境を作っておく。空なら WSL の既定のディストリビューションを使う。」 |
     | 文字起こし（Haas（WSL）のタブ） | `transcription.haas.port` | 数値の欄。欄の名前「サーバーのポート」 |
+    | 文字起こし（Haas（WSL）のタブ） | `transcription.haas.model` | 文字の欄。欄の名前「モデル」。補助文「Hugging Face Hub のモデルの名前か、WSL の中の .nemo ファイルのパス。」 |
+    | 文字起こし（Haas（WSL）のタブ） | `transcription.haas.dtype` | ラジオボタン（自動・bfloat16・float16・float32）。欄の名前「計算の精度」。補助文「自動は GPU では bfloat16、CPU では float32。公開された精度と速さは bfloat16 で測られている。」 |
+    | 文字起こし（Haas（WSL）のタブ） | `transcription.haas.device` | 文字の欄。欄の名前「装置」。補助文「cuda・cuda:{番号}・cpu のどれか。」 |
+    | 文字起こし（Haas（WSL）のタブ） | `transcription.haas.alpha` | 数値の欄（0.1 刻み）。欄の名前「手がかりの強さ」。補助文「表記のヒントの単語をどれだけ強く優先するか。上げると聞き逃した単語を検出しやすくなるが、話していない単語を出力することも増える。」 |
+    | 文字起こし（Haas（WSL）のタブ） | `transcription.haas.guard` | チェックボックス。欄の名前「手がかりの採否を確認する」。補助文「手がかりなしでも起こし、ヒントの単語が丸ごと入った変化だけを採用する。」 |
+    | 文字起こし（Haas（WSL）のタブ） | `transcription.haas.short_audio_limit_sec` | 数値の欄。欄の名前「一度に起こす長さの上限（秒）」。補助文「これより長い音声は静かな箇所で区切って起こす。モデルが学習した発話は約 30 秒まで。」 |
+    | 文字起こし（Haas（WSL）のタブ） | `transcription.haas.chunk_sec`・`transcription.haas.search_sec`・`transcription.haas.window_sec` | 数値の欄。欄の名前「区切る長さ（秒）」「静かな箇所を探す幅（秒）」「静かさを測る窓（秒）」。`chunk_sec` の補助文「区切る位置は、この長さの前後でいちばん静かな箇所にずらす。」 |
+    | 文字起こし（Haas（WSL）のタブ） | `transcription.haas.separator` | 文字の欄。欄の名前「区切りをつなぐ文字」。補助文「既定は空（日本語は単語の間を空けない）。」 |
+    | 文字起こし（Haas（WSL）のタブ） | `transcription.haas.batch_size` | 数値の欄。欄の名前「まとめて起こす数」。補助文「長い音声の区切りをいくつまとめて起こすか。変えると紙一重の箇所の結果がまれに変わる。」 |
     | 表記のヒント | `hint_presets[]`（name・words・readings・enabled） | 有効なヒントの長さと、ヒントのプリセットの一覧 |
     | 用語集 | `glossary_presets[]`（name・glossaries）・`active_glossary_preset` | 用語集のプリセットの一覧と、選んだプリセットの使う用語集の表 |
     | 用語集 | `glossaries[]`（name・path）と、用語集の CSV の行（誤変換・正しい表記・オン・オフ） | 用語集の一覧と、選んだ用語集の行の表 |

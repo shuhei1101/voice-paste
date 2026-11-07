@@ -698,8 +698,11 @@ data_models:
     container: shared/settings.py
     usecase: 常駐アプリを起動する
     role: 設定のモデル
-    summary: Haas の文字起こしのサーバーを動かす WSL のディストリビューションと、待ち受けのポート
-    description: 反映は全て restart。設定画面は `json_schema_extra` の note で、まとまりの補助文を欄の下に出す。
+    summary: Haas の文字起こしのサーバーを動かす WSL のディストリビューション・待ち受けのポートと、認識の調整の値
+    description: |-
+      反映は distribution・port・model・dtype・device が restart（サーバーの起動で決まる）、ほかは immediate（送信するたびに読む）。設定画面は `json_schema_extra` の note で、欄ごとの補助文（画面設計『設定画面』の補足『まとまりと欄』）を欄の下に出し、dtype は choice_labels（HAAS_DTYPE_LABELS）でラジオボタンの名前を出す。
+      `field_validator` が、前後の空白を除いて空の model を `PydanticCustomError`（type `haas_model_empty`）、HAAS_DEVICE_PATTERN に合わない device を（type `haas_device_form`）、HAAS_SEPARATOR_MAX_LENGTH 文字を超える separator を（type `haas_separator_too_long`）にする。数値の範囲は `Field` の ge・le で断る。
+      範囲はインターフェース定義『音声を文字に起こす』『準備できたかを返す』の制約と同じにする（サーバーは別のサブシステムで import できないため、値は両方に持つ）。
     inherits: pydantic.BaseModel
     properties:
       - name: distribution
@@ -710,9 +713,64 @@ data_models:
         type: int
         default: '47824'
         description: サーバーが待ち受けるポート。`ge=1024`・`le=65535`
+      - name: model
+        type: str
+        default: third-intelligence/Haas-ja-v1.0
+        description: サーバーが読み込むモデル（Hugging Face Hub の名前か WSL の中の .nemo のパス）。restart
+      - name: dtype
+        type: Literal["auto", "bfloat16", "float16", "float32"]
+        default: auto
+        description: 計算の精度。restart
+      - name: device
+        type: str
+        default: cuda
+        description: 装置（cuda・cuda:{番号}・cpu）。restart
+      - name: short_audio_limit_sec
+        type: float
+        default: '30.0'
+        description: 一度に起こす音声の長さの上限。`ge=1.0`・`le=60.0`
+      - name: batch_size
+        type: int
+        default: '64'
+        description: まとめて起こす区切りの数。`ge=1`・`le=256`
+      - name: alpha
+        type: float
+        default: '2.0'
+        description: 手がかりの強さ。`ge=0.0`・`le=10.0`
+      - name: guard
+        type: bool
+        default: 'true'
+        description: 手がかりの採否の守り
+      - name: chunk_sec
+        type: float
+        default: '30.0'
+        description: 長い音声を区切る長さ。`ge=1.0`・`le=60.0`
+      - name: search_sec
+        type: float
+        default: '2.0'
+        description: 静かな箇所を探す幅。`ge=0.0`・`le=10.0`
+      - name: window_sec
+        type: float
+        default: '0.1'
+        description: 静かさを測る窓。`ge=0.01`・`le=1.0`
+      - name: separator
+        type: str
+        default: "''"
+        description: 区切って起こした文字をつなぐ文字
     refs:
       - CFG-1#settings[transcription.haas.distribution]
       - CFG-1#settings[transcription.haas.port]
+      - CFG-1#settings[transcription.haas.model]
+      - CFG-1#settings[transcription.haas.dtype]
+      - CFG-1#settings[transcription.haas.device]
+      - CFG-1#settings[transcription.haas.short_audio_limit_sec]
+      - CFG-1#settings[transcription.haas.batch_size]
+      - CFG-1#settings[transcription.haas.alpha]
+      - CFG-1#settings[transcription.haas.guard]
+      - CFG-1#settings[transcription.haas.chunk_sec]
+      - CFG-1#settings[transcription.haas.search_sec]
+      - CFG-1#settings[transcription.haas.window_sec]
+      - CFG-1#settings[transcription.haas.separator]
     status: planned
   - name: HintVocabularyWord
     title: 表記のヒントの表記と読み
@@ -856,6 +914,41 @@ constants:
     status: planned
     introduced:
       pr: 226
+  - name: HAAS_DEVICE_PATTERN
+    title: Haas の装置の形式
+    container: shared/settings.py
+    usecase: 常駐アプリを起動する
+    summary: transcription.haas.device に許す形式（cuda・cuda:{番号}・cpu）
+    value: r"\A(cuda(:\d+)?|cpu)\Z"
+    refs:
+      - IF-13#constraints[起動の引数]
+    status: planned
+  - name: HAAS_SEPARATOR_MAX_LENGTH
+    title: Haas の区切りをつなぐ文字の長さの上限
+    container: shared/settings.py
+    usecase: 録音を文字に起こす
+    summary: transcription.haas.separator の文字数の上限
+    value: '16'
+    refs:
+      - IF-12#request[separator]
+    status: planned
+  - name: HAAS_DTYPE_LABELS
+    title: Haas の計算の精度の名前
+    container: shared/settings.py
+    usecase: 常駐アプリを起動する
+    summary: 設定画面の計算の精度のラジオボタンの名前（choice_labels）
+    entries:
+      - key: auto
+        value: 自動
+      - key: bfloat16
+        value: bfloat16
+      - key: float16
+        value: float16
+      - key: float32
+        value: float32
+    refs:
+      - SCR-9#
+    status: planned
 functions:
   - name: load_settings
     title: 設定の読み込み
@@ -1714,6 +1807,36 @@ functions:
         condition: transcription.haas.port と api.port が同じ番号
         mock: なし
         expected: ValidationError。type が haas_port_overlap、失敗の場所が transcription.haas.port
+      - name: test_settings_when_haas_model_empty
+        case: 異常
+        summary: Haas のモデルが空
+        condition: transcription.haas.model が空白だけ
+        mock: なし
+        expected: ValidationError。type が haas_model_empty、失敗の場所が transcription.haas.model
+      - name: test_settings_when_haas_device_invalid
+        case: 異常
+        summary: Haas の装置の形式が違う
+        condition: transcription.haas.device が gpu
+        mock: なし
+        expected: ValidationError。type が haas_device_form、失敗の場所が transcription.haas.device
+      - name: test_settings_when_haas_separator_too_long
+        case: 異常
+        summary: Haas の区切りをつなぐ文字が長い
+        condition: transcription.haas.separator が 17 文字
+        mock: なし
+        expected: ValidationError。type が haas_separator_too_long、失敗の場所が transcription.haas.separator
+      - name: test_settings_when_haas_out_of_range
+        case: 異常
+        summary: Haas の数値が範囲の外
+        condition: transcription.haas.chunk_sec が 0.5
+        mock: なし
+        expected: ValidationError。失敗の場所が transcription.haas.chunk_sec
+      - name: test_settings_when_haas_device_numbered
+        case: 正常
+        summary: 番号つきの cuda は通る
+        condition: transcription.haas.device が cuda:1
+        mock: なし
+        expected: 検証を通り、device が cuda:1
     refs:
       - CFG-1#settings[hint_presets[].words]
     status: implemented

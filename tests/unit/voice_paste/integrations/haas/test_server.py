@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 from collections.abc import Callable, Iterator
 from typing import Any
@@ -40,8 +41,8 @@ def no_interval(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _ready() -> httpx.Response:
-    """/health の応答を返す。"""
-    return httpx.Response(200, json={"ok": True, "model": "m"})
+    """設定と同じ起動の引数の /health の応答を返す。"""
+    return httpx.Response(200, json={"ok": True, "model": "x/model", "dtype": "auto", "device": "cuda"})
 
 
 def _health(*steps: bool) -> Handler:
@@ -69,7 +70,21 @@ def _make_server(handler: Handler, *, distribution: str = "Ubuntu-24.04") -> tup
     popen = MagicMock()
     popen.return_value.poll.return_value = None
     server = HaasServer(
-        settings=HaasSettings(distribution=distribution, port=PORT),
+        settings=HaasSettings(
+            distribution=distribution,
+            port=PORT,
+            model="x/model",
+            dtype="auto",
+            device="cuda",
+            short_audio_limit_sec=30.0,
+            batch_size=64,
+            alpha=2.0,
+            guard=True,
+            chunk_sec=30.0,
+            search_sec=2.0,
+            window_sec=0.1,
+            separator="",
+        ),
         popen=popen,
         clock=FakeClock(),
         transport=httpx.MockTransport(handler),
@@ -91,10 +106,11 @@ def test_ensure_started_when_already_running() -> None:
     server, popen = _make_server(handler)
 
     # 実行
-    server.ensure_started()
+    result = server.ensure_started()
     server.stop()
 
     # 検証
+    assert result == ()
     popen.assert_not_called()
     assert "/shutdown" not in paths
 
@@ -120,6 +136,9 @@ def test_ensure_started_when_not_running() -> None:
         "bash",
         "start.sh",
         "47824",
+        "x/model",
+        "auto",
+        "cuda",
     ]
 
 
@@ -232,3 +251,33 @@ def test_stop_when_loading() -> None:
     with pytest.raises(EngineError):
         holder["server"].ensure_started()
     popen.return_value.terminate.assert_called()
+
+
+def test_ensure_started_when_running_differs(caplog: pytest.LogCaptureFixture) -> None:
+    """動いているサーバーが設定と違う（正常系）。"""
+    # 準備
+    body = {"ok": True, "model": "x/model", "dtype": "float32", "device": "cpu"}
+    server, popen = _make_server(lambda _request: httpx.Response(200, json=body))
+
+    # 実行
+    with caplog.at_level(logging.WARNING):
+        result = server.ensure_started()
+
+    # 検証
+    assert result == ("dtype", "device")
+    popen.assert_not_called()
+    assert [record.levelno for record in caplog.records] == [logging.WARNING]
+
+
+def test_ensure_started_when_running_without_fields() -> None:
+    """動いているサーバーが dtype・device を返さない（正常系）。"""
+    # 準備
+    body = {"ok": True, "model": "x/model"}
+    server, popen = _make_server(lambda _request: httpx.Response(200, json=body))
+
+    # 実行
+    result = server.ensure_started()
+
+    # 検証
+    assert result == ("dtype", "device")
+    popen.assert_not_called()

@@ -808,5 +808,113 @@ settings:
     status: planned
     implementation: src/voice_paste/shared/settings.py
     reason: 読みの確かめの失敗を、語と同じく `readings[{m}]` の場所で読みの欄へ出すため、語をキーにした対応ではなく語と同じ並びの一覧にした
+  - key: transcription.haas.model
+    title: Haas のモデル
+    file: settings.yaml
+    type: string
+    default: third-intelligence/Haas-ja-v1.0
+    description: Haas の文字起こしのサーバーが起動のときに読み込むモデル。Hugging Face Hub のモデルの名前か、WSL の中の .nemo ファイルのパス。常駐アプリがサーバーを起動するときの引数で渡す。起動の前から動いているサーバーが違う値ならトレイで知らせ、そのサーバーのまま起こす。
+    reload: restart
+    allowed: 前後の空白を除いて空でない
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+  - key: transcription.haas.dtype
+    title: Haas の計算の精度
+    file: settings.yaml
+    type: "'auto' | 'bfloat16' | 'float16' | 'float32'"
+    default: auto
+    description: モデルを読み込むときの計算の精度（haas_asr.load_model の dtype）。`auto` は GPU では bfloat16、CPU では float32。公開された精度と速さは bfloat16 で測られている。
+    reload: restart
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+  - key: transcription.haas.device
+    title: Haas の装置
+    file: settings.yaml
+    type: string
+    default: cuda
+    description: モデルを読み込む装置（haas_asr.load_model の device）。
+    reload: restart
+    allowed: '`cuda`・`cuda:{番号}`・`cpu`'
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+  - key: transcription.haas.short_audio_limit_sec
+    title: Haas で一度に起こす音声の長さの上限
+    file: settings.yaml
+    type: float
+    default: '30.0'
+    description: これ以下の長さの音声は一度に（transcribe）、超える音声は静かな箇所で区切って（transcribe_longform）起こす。Haas-ja-v1.0 が学習した発話は約 30 秒まで。文字起こしのたびに要求で渡す。
+    reload: immediate
+    allowed: 1.0〜60.0
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+  - key: transcription.haas.batch_size
+    title: Haas でまとめて起こす数
+    file: settings.yaml
+    type: int
+    default: '64'
+    description: 区切った音声をいくつまとめて起こすか（haas_asr の batch_size）。既定は PoC で約 176 秒の音声を 0.18 秒で起こした値。変えると紙一重の箇所の結果がまれに変わる。
+    reload: immediate
+    allowed: 1〜256
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+  - key: transcription.haas.alpha
+    title: Haas の手がかりの強さ
+    file: settings.yaml
+    type: float
+    default: '2.0'
+    description: 表記のヒントの語をどれだけ強く優先するか（haas_asr.Vocabulary の alpha）。上げると聞き逃した語を拾いやすくなるが、言っていない語を書くことも増える。語が無いときは使わない。
+    reload: immediate
+    allowed: 0.0〜10.0
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+  - key: transcription.haas.guard
+    title: Haas の手がかりの採否の守り
+    file: settings.yaml
+    type: bool
+    default: 'true'
+    description: 手がかりなしでも起こし、ヒントの語が丸ごと入った変化だけを採る（haas_asr の guard）。
+    reload: immediate
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+  - key: transcription.haas.chunk_sec
+    title: Haas で区切る長さ
+    file: settings.yaml
+    type: float
+    default: '30.0'
+    description: 長い音声を区切る長さ（split_at_quiet_points の chunk_seconds）。区切る位置はこの長さの前後でいちばん静かな箇所にずらす。
+    reload: immediate
+    allowed: 1.0〜60.0
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+  - key: transcription.haas.search_sec
+    title: Haas で静かな箇所を探す幅
+    file: settings.yaml
+    type: float
+    default: '2.0'
+    description: 区切る位置の前後で静かな箇所を探す幅（split_at_quiet_points の search_seconds）。
+    reload: immediate
+    allowed: 0.0〜10.0
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+  - key: transcription.haas.window_sec
+    title: Haas で静かさを測る窓
+    file: settings.yaml
+    type: float
+    default: '0.1'
+    description: 静かさを測る窓の長さ（split_at_quiet_points の window_seconds）。
+    reload: immediate
+    allowed: 0.01〜1.0
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+  - key: transcription.haas.separator
+    title: Haas で区切りをつなぐ文字
+    file: settings.yaml
+    type: string
+    default: "''"
+    description: 区切って起こした文字をつなぐ文字（transcribe_longform の separator）。日本語は語の間を空けないため既定は空。
+    reload: immediate
+    allowed: 16 文字以下
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
 notes:
   反映の列の読み方: '`immediate` は設定画面で保存すると動いている常駐アプリに効く項目。`settings.yaml`・`settings.local.yaml` を直接書き換えたときは、どの項目も再起動まで効かない（起動時に 1 度だけ読む）。'

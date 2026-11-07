@@ -14,6 +14,9 @@ function_types:
       - name: vocabulary
         type: object | None
         description: haas_asr.Vocabulary か None
+      - name: options
+        type: TranscribeOptions
+        description: 要求の調整の値
     returns:
       type: str
       description: 起こした文字
@@ -22,11 +25,14 @@ function_types:
     title: Vocabulary の組み立て
     container: haas_server/app.py
     usecase: 録音を文字に起こす
-    summary: 表記 → 読みの一覧の対応から Vocabulary を作る（haas_asr.Vocabulary）
+    summary: 表記 → 読みの一覧の対応と手がかりの強さから Vocabulary を作る（haas_asr.Vocabulary）
     args:
       - name: words
         type: dict[str, list[str]]
         description: 表記 → 読みの一覧。読みが無い語は空の一覧
+      - name: alpha
+        type: float
+        description: 手がかりの強さ（Vocabulary の alpha）
     returns:
       type: object
       description: Vocabulary
@@ -37,30 +43,109 @@ data_models:
     container: haas_server/app.py
     usecase: 録音を文字に起こす
     role: DTO
-    summary: create_app に渡す、モデルの関数と名前
+    summary: create_app に渡す、モデルの関数と、起動の引数で受けたモデル・計算の精度・装置
     properties:
       - name: model_name
         type: str
-        description: モデルの名前
+        description: 起動の引数で受けたモデルの名前
+      - name: dtype
+        type: str
+        description: 起動の引数で受けた計算の精度（`auto` は解決する前のまま）
+      - name: device
+        type: str
+        description: 起動の引数で受けた装置
       - name: transcribe
         type: TranscribeFn
-        description: 30 秒以下の音声を起こす関数
+        description: 上限の長さ以下の音声を一度に起こす関数
       - name: transcribe_longform
         type: TranscribeFn
-        description: 30 秒を超える音声を静かな箇所で区切って起こす関数
+        description: 上限の長さを超える音声を静かな箇所で区切って起こす関数
       - name: build_vocabulary
         type: BuildVocabularyFn
         description: Vocabulary を作る関数
     status: planned
-constants:
-  - name: SHORT_AUDIO_LIMIT_SEC
-    title: 一度に起こす音声の長さの上限
+  - name: TranscribeOptions
+    title: 要求の調整の値
     container: haas_server/app.py
     usecase: 録音を文字に起こす
-    summary: これを超える音声は transcribe_longform で起こす
-    value: '30.0'
+    role: DTO
+    summary: POST /transcriptions の調整の値を検証した後の値
+    description: '`@dataclass(frozen=True, slots=True, kw_only=True)`。既定値はインターフェース定義『音声を文字に起こす』の default と同じ。'
+    properties:
+      - name: short_audio_limit_sec
+        type: float
+        default: '30.0'
+        description: これ以下の長さは transcribe、超えるものは transcribe_longform で起こす
+      - name: batch_size
+        type: int
+        default: '64'
+        description: transcribe・transcribe_longform の batch_size
+      - name: alpha
+        type: float
+        default: '2.0'
+        description: Vocabulary の alpha
+      - name: guard
+        type: bool
+        default: 'True'
+        description: transcribe・transcribe_longform の guard
+      - name: chunk_sec
+        type: float
+        default: '30.0'
+        description: split_at_quiet_points の chunk_seconds
+      - name: search_sec
+        type: float
+        default: '2.0'
+        description: split_at_quiet_points の search_seconds
+      - name: window_sec
+        type: float
+        default: '0.1'
+        description: split_at_quiet_points の window_seconds
+      - name: separator
+        type: str
+        default: '""'
+        description: transcribe_longform の separator
+    refs:
+      - IF-12#request[short_audio_limit_sec]
+    status: planned
+constants:
+  - name: TUNING_FLOAT_RANGES
+    title: 小数の調整の値の範囲
+    container: haas_server/app.py
+    usecase: 録音を文字に起こす
+    summary: 小数の調整の値ごとの下限と上限（両端を含む）
+    entries:
+      - key: short_audio_limit_sec
+        value: (1.0, 60.0)
+      - key: alpha
+        value: (0.0, 10.0)
+      - key: chunk_sec
+        value: (1.0, 60.0)
+        description: 0 だと区切りが進まない
+      - key: search_sec
+        value: (0.0, 10.0)
+      - key: window_sec
+        value: (0.01, 1.0)
+        description: 16 kHz で 1 サンプル以上の窓にする
     refs:
       - IF-12#
+    status: planned
+  - name: BATCH_SIZE_RANGE
+    title: バッチの大きさの範囲
+    container: haas_server/app.py
+    usecase: 録音を文字に起こす
+    summary: batch_size の下限と上限（両端を含む）
+    value: (1, 256)
+    refs:
+      - IF-12#request[batch_size]
+    status: planned
+  - name: SEPARATOR_MAX_LENGTH
+    title: 区切りをつなぐ文字の長さの上限
+    container: haas_server/app.py
+    usecase: 録音を文字に起こす
+    summary: separator の文字数の上限
+    value: '16'
+    refs:
+      - IF-12#request[separator]
     status: planned
   - name: SAMPLE_RATE
     title: モデルのサンプリングレート
@@ -70,6 +155,75 @@ constants:
     value: '16000'
     status: planned
 functions:
+  - name: parse_tuning
+    title: 調整の値の読み取り
+    kind: 関数
+    container: haas_server/app.py
+    usecase: 録音を文字に起こす
+    scope: public
+    summary: multipart の項目の文字列から調整の値を読み、範囲を確かめて TranscribeOptions にする
+    args:
+      - name: fields
+        type: Mapping[str, str | None]
+        required: true
+        passing: positional
+        description: 項目の名前 → multipart の値（無い項目は None）
+    returns:
+      type: TranscribeOptions
+      description: 無い項目は既定値にした調整の値
+    process: |-
+      1. 小数の項目（TUNING_FLOAT_RANGES のキー）は float にし、範囲の中かを確かめる（NaN・無限大は外す）
+      2. batch_size は int にし、BATCH_SIZE_RANGE の中かを確かめる
+      3. guard は `true` か `false`（小文字）だけを受ける
+      4. separator は SEPARATOR_MAX_LENGTH 文字以下かを確かめる
+         - どれかが外れる場合、TuningValueError（field にその項目の名前）を送出する
+    exceptions:
+      - name: TuningValueError
+        condition: 数値に読めない・範囲の外・guard が true でも false でもない・separator が長い
+    unit_tests:
+      - name: test_parse_tuning
+        case: 正常
+        summary: 全ての項目を読む
+        condition: short_audio_limit_sec=20・batch_size=8・alpha=3.0・guard=false・chunk_sec=15・search_sec=1・window_sec=0.05・separator=。
+        mock: なし
+        expected: それぞれの値を持つ TranscribeOptions
+      - name: test_parse_tuning_when_missing
+        case: 正常
+        summary: 無い項目は既定値
+        condition: 全ての項目が None
+        mock: なし
+        expected: TranscribeOptions() と等しい
+      - name: test_parse_tuning_when_out_of_range
+        case: 異常
+        summary: 範囲の外
+        condition: batch_size=0
+        mock: なし
+        expected: TuningValueError。field が batch_size
+        exception: 範囲の外
+      - name: test_parse_tuning_when_guard_invalid
+        case: 異常
+        summary: guard が true でも false でもない
+        condition: guard=yes
+        mock: なし
+        expected: TuningValueError。field が guard
+        exception: guard が true でも false でもない
+      - name: test_parse_tuning_when_not_number
+        case: 異常
+        summary: 数値に読めない
+        condition: alpha=abc
+        mock: なし
+        expected: TuningValueError。field が alpha
+        exception: 数値に読めない
+      - name: test_parse_tuning_when_separator_too_long
+        case: 異常
+        summary: separator が長い
+        condition: separator が 17 文字
+        mock: なし
+        expected: TuningValueError。field が separator
+        exception: separator が長い
+    refs:
+      - IF-12#
+    status: planned
   - name: create_app
     title: サーバーの app の組み立て
     kind: 関数
@@ -100,19 +254,22 @@ functions:
       1. 全ての要求の前に、Host が `127.0.0.1:{port}` か `localhost:{port}` で、Origin が付いていないかを確かめる
          - 外れる場合、403 の problem+json を返す
            - `[WARNING]` 要求を断った（理由・Host・Origin）
-      2. GET /health: ok=True と engine.model_name を返す
+      2. GET /health: ok=True と engine.model_name・engine.dtype・engine.device を返す
       3. POST /shutdown: 202 を返した後に request_shutdown を呼ぶ（uvicorn が処理中の要求を返し終えてから終わる）
       4. POST /transcriptions:
          1. vocabulary を読む（JSON の配列で、各要素の written が空でない）
             - 外れる場合、400 の problem+json を返す
               - `[WARNING]` 手がかりの形が合わない
-         2. audio を decode_audio で復号する
+         2. 調整の値の項目を `Form` の `str | None` で受け、parse_tuning で読む（bool・数値の型で受けると FastAPI が `yes` を通し、型の合わない値を 422 にするため）
+            - TuningValueError の場合、400 の problem+json（detail に項目の名前）を返す
+              - `[WARNING]` 調整の値が合わない（項目の名前・理由）
+         3. audio を decode_audio で復号する
             - AudioDecodeError の場合、400 の problem+json を返す
               - `[WARNING]` 音声を復号できない（理由）
-         3. threading.Lock を取り、長さが SHORT_AUDIO_LIMIT_SEC 以下なら engine.transcribe、超えるなら engine.transcribe_longform で起こす（Vocabulary は語があるときだけ engine.build_vocabulary で作る）。FastAPI のスレッドプールで動かす
+         4. threading.Lock を取り、長さが options.short_audio_limit_sec 以下なら engine.transcribe、超えるなら engine.transcribe_longform に音声・Vocabulary・options を渡して起こす（Vocabulary は語があるときだけ engine.build_vocabulary(words, options.alpha) で作る）。FastAPI のスレッドプールで動かす
             - 例外の場合、500 の problem+json（detail に例外の文）を返す
               - `[ERROR]` 文字起こしに失敗した（スタックトレースつき）
-         4. text を返す
+         5. text を返す
             - `[INFO]` 起こした（音声の秒・かかった秒）
     unit_tests:
       - name: test_create_app_when_host_not_allowed
@@ -127,3 +284,18 @@ refs:
   - IF-13#
   - IF-14#
 id: MOD-99
+classes:
+  - name: TuningValueError
+    title: 調整の値の誤り
+    container: haas_server/app.py
+    usecase: 録音を文字に起こす
+    role: 例外
+    kind: クラス
+    inherits: Exception
+    summary: 要求の調整の値が範囲の外か型が合わない
+    properties:
+      - name: field
+        type: str
+        access: 公開
+        description: 合わない項目の名前（例 `batch_size`）
+    status: planned

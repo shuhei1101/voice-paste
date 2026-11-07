@@ -1020,7 +1020,21 @@ def test_collect_when_hidden_keys(
 ENGINE_TAB_TITLES = ("ローカルの Whisper", "OpenAI API", "Haas（WSL）")
 """エンジンのタブの名前の並び。"""
 
-HAAS_KEYS = ("transcription.haas.distribution", "transcription.haas.port")
+HAAS_KEYS = (
+    "transcription.haas.distribution",
+    "transcription.haas.port",
+    "transcription.haas.model",
+    "transcription.haas.dtype",
+    "transcription.haas.device",
+    "transcription.haas.alpha",
+    "transcription.haas.guard",
+    "transcription.haas.short_audio_limit_sec",
+    "transcription.haas.chunk_sec",
+    "transcription.haas.search_sec",
+    "transcription.haas.window_sec",
+    "transcription.haas.separator",
+    "transcription.haas.batch_size",
+)
 """Linux の設定画面に出さない、Haas のエンジンの設定のキー。"""
 
 NEW_BEAM_SIZE = 8

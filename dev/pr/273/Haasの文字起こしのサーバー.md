@@ -23,7 +23,7 @@
 | 起動の引数 | `start.sh` と `main` がポートに続けてモデル・`dtype`・`device` を受け、`haas_asr.load_model` に指定する | 引数が無ければ今の値で起動する |
 | 要求の項目 | `POST /transcriptions` が `short_audio_limit_sec`・`batch_size`・`alpha`・`guard`・`chunk_sec`・`search_sec`・`window_sec`・`separator` を multipart の項目で受ける | 項目が無ければ今の値で起こす。範囲の外は 400 |
 | 起こし方 | 受けた値を `transcribe`・`transcribe_longform`・`Vocabulary(alpha=...)` に指定する | `batch_size` は `transcribe` にも指定する |
-| 準備の確認 | `GET /health` が `dtype`・`device` を返却する | 常駐アプリが設定と比べる |
+| 準備の確認 | `GET /health` が起動の引数で受けたモデル・`dtype`・`device`（`auto` は解決する前のまま）を返却する | 常駐アプリが設定と文字列で比べる |
 
 ## テスト結果
 

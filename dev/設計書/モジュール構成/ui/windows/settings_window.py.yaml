@@ -523,6 +523,9 @@ functions:
          - hint_reading_conflict: 「同じ語に違う読みが入っています。読みを揃えるか、語を削除してください。」
          - hint_readings_length: 「読みの数が語の数と合いません。settings.yaml の readings を修正してください。」
          - haas_port_overlap: 「API を待ち受けるポートと同じ番号です。別の番号を入れてください。」
+         - haas_model_empty: 「モデルの名前かパスを入れてください。」
+         - haas_device_form: 「cuda・cuda:0 のような番号つきの cuda・cpu のどれかを入れてください。」
+         - haas_separator_too_long: 「16 文字以内で入れてください。」
          - hint_preset_name_overlap（find_hint_preset_name_overlaps）: 「プリセット「{名前}」と同じ名前です。別の名前にしてください。」
          - WEB_ORIGIN_FORM_ERROR_TYPE（ApiSettings._origins_must_be_origin_form）: 「形式の違うオリジンがあります（{ctx の invalid を読点でつないだもの}）。https://example.com のように、http:// か https:// で始め、末尾の / とパスを付けずに入れてください。」
          - それ以外: pydantic の msg をそのまま出す
@@ -593,6 +596,24 @@ functions:
         condition: transcription.haas.port と api.port が同じ番号の SETTINGS_MODEL.model_validate の失敗を渡す
         mock: なし
         expected: API を待ち受けるポートと同じ番号です。別の番号を入れてください。（失敗の場所は transcription.haas.port）
+      - name: test_to_field_message_when_haas_device_form
+        case: 正常
+        summary: Haas の装置の形式が違う
+        condition: transcription.haas.device が gpu の SETTINGS_MODEL.model_validate の失敗を渡す
+        mock: なし
+        expected: cuda・cuda:0 のような番号つきの cuda・cpu のどれかを入れてください。（失敗の場所は transcription.haas.device）
+      - name: test_to_field_message_when_haas_model_empty
+        case: 正常
+        summary: Haas のモデルが空
+        condition: transcription.haas.model が空の SETTINGS_MODEL.model_validate の失敗を渡す
+        mock: なし
+        expected: モデルの名前かパスを入れてください。（失敗の場所は transcription.haas.model）
+      - name: test_to_field_message_when_haas_separator_too_long
+        case: 正常
+        summary: Haas の区切りをつなぐ文字が長い
+        condition: transcription.haas.separator が 17 文字の SETTINGS_MODEL.model_validate の失敗を渡す
+        mock: なし
+        expected: 16 文字以内で入れてください。（失敗の場所は transcription.haas.separator）
     refs:
       - SCR-9#
     status: implemented

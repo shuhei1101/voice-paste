@@ -265,8 +265,8 @@ function_types:
     summary: 状態の変化と失敗を画面・トレイへ渡す
     args:
       - name: event
-        type: Literal["state_changed", "busy", "microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable", "engine_fallback", "output_changed"]
-        description: 通知の種類（engine_fallback は、Haas からローカルの Whisper へ切り戻したこと。output_changed は、文字起こし中に届ける出力先を差し替えたこと。理由は切り替えた先の出力先の ID）
+        type: Literal["state_changed", "busy", "microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable", "engine_fallback", "engine_settings_mismatch", "output_changed"]
+        description: 通知の種類（engine_fallback は、Haas からローカルの Whisper へ切り戻したこと。engine_settings_mismatch は、起動の前から動いている Haas のサーバーが設定と違うこと。理由は違う項目の名前を「・」でつないだ文字。output_changed は、文字起こし中に届ける出力先を差し替えたこと。理由は切り替えた先の出力先の ID）
       - name: detail
         type: str | None
         description: 理由などの文字

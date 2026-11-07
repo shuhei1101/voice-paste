@@ -70,7 +70,23 @@ FEATURE_SETTING_KEYS: Mapping[Feature, frozenset[str]] = {
         {"recording.lower_volume", "recording.volume_percent", "recording.fade_sec"}
     ),
     Feature.WEB_TRANSCRIPTION: frozenset({"api.allowed_web_origins"}),
-    Feature.HAAS_ENGINE: frozenset({"transcription.haas.distribution", "transcription.haas.port"}),
+    Feature.HAAS_ENGINE: frozenset(
+        {
+            "transcription.haas.distribution",
+            "transcription.haas.port",
+            "transcription.haas.model",
+            "transcription.haas.dtype",
+            "transcription.haas.device",
+            "transcription.haas.alpha",
+            "transcription.haas.guard",
+            "transcription.haas.short_audio_limit_sec",
+            "transcription.haas.chunk_sec",
+            "transcription.haas.search_sec",
+            "transcription.haas.window_sec",
+            "transcription.haas.separator",
+            "transcription.haas.batch_size",
+        }
+    ),
 }
 """機能だけが使う設定のキー（設定のドットで結んだキー）。その機能を使えない OS では、設定画面にこれらの欄を出さない。"""
 

@@ -1,0 +1,204 @@
+summary: クラス / 関数 / 関数型 インデックス（単体テストの元）
+items:
+- page: MOD-11.py.yaml
+  summary: 用語集の CSV を読み書きし、補正に使う用語集の誤変換を正しい表記へ置き換える。決まった入力に決まった出力を返し、特性テストの基準になる。
+- page: MOD-9.py.yaml
+  summary: 確定した録音と起こした文字を `%LOCALAPPDATA%\voice-paste\history\`（Linux は `~/.local/share/voice-paste/history/`）に残し、保持期間を過ぎたものを消す。文字起こしの成否より先に録音を残す。
+- page: MOD-64.py.yaml
+  summary: 常駐アプリ / 出力先 / service.py
+- page: MOD-59.py.yaml
+  summary: 常駐アプリ / 出力先 / service.py
+- page: MOD-63.py.yaml
+  summary: 常駐アプリ / 出力先 / service.py
+- page: MOD-57.py.yaml
+  summary: 常駐アプリ / 出力先 / settings.py
+- page: MOD-65.py.yaml
+  summary: 常駐アプリ / 出力先 / service.py
+- page: MOD-61.py.yaml
+  summary: 常駐アプリ / 出力先 / service.py
+- page: MOD-55.py.yaml
+  summary: 常駐アプリ / 出力先 / settings.py
+- page: MOD-62.py.yaml
+  summary: 常駐アプリ / 出力先 / service.py
+- page: MOD-56.py.yaml
+  summary: 常駐アプリ / 出力先 / settings.py
+- page: MOD-58.py.yaml
+  summary: 常駐アプリ / 出力先 / registry.py
+- page: MOD-60.py.yaml
+  summary: 常駐アプリ / 出力先 / service.py
+- page: MOD-54.py.yaml
+  summary: 常駐アプリ / 出力先 / types.py
+- page: MOD-92.py.yaml
+  summary: 常駐アプリ / 録音 / client.py
+- page: MOD-91.py.yaml
+  summary: 常駐アプリ / 録音 / segmenter.py
+- page: MOD-90.py.yaml
+  summary: 常駐アプリ / 録音 / service.py
+- page: MOD-93.py.yaml
+  summary: 常駐アプリ / 録音 / types.py
+- page: MOD-25.py.yaml
+  summary: 常駐アプリ / セッション / route.py
+- page: MOD-23.py.yaml
+  summary: 常駐アプリ / セッション / schemas.py
+- page: MOD-24.py.yaml
+  summary: 常駐アプリ / セッション / service.py
+- page: MOD-22.py.yaml
+  summary: 常駐アプリ / セッション / types.py
+- page: MOD-83.py.yaml
+  summary: 常駐アプリ / 文字起こし / service.py
+- page: MOD-82.py.yaml
+  summary: 常駐アプリ / 文字起こし / types.py
+- page: MOD-29.py.yaml
+  summary: 常駐アプリ / ブラウザの文字起こし / route.py
+- page: MOD-27.py.yaml
+  summary: 常駐アプリ / ブラウザの文字起こし / schemas.py
+- page: MOD-28.py.yaml
+  summary: 常駐アプリ / ブラウザの文字起こし / service.py
+- page: MOD-26.py.yaml
+  summary: 常駐アプリ / ブラウザの文字起こし / types.py
+- page: MOD-99.py.yaml
+  summary: Haas の文字起こしのサーバー / サーバー / app.py
+- page: MOD-100.py.yaml
+  summary: Haas の文字起こしのサーバー / サーバー / audio.py
+- page: MOD-101.py.yaml
+  summary: Haas の文字起こしのサーバー / サーバー / main.py
+- page: MOD-79.py.yaml
+  summary: 常駐アプリ / 外部連携 / probe.py
+- page: MOD-73.py.yaml
+  summary: 常駐アプリ / 外部連携 / opener.py
+- page: MOD-74.py.yaml
+  summary: 常駐アプリ / 外部連携 / opener_linux.py
+- page: MOD-78.py.yaml
+  summary: 常駐アプリ / 外部連携 / client.py
+- page: MOD-66.py.yaml
+  summary: 常駐アプリ / 外部連携 / types.py
+- page: MOD-81.py.yaml
+  summary: 常駐アプリ / 外部連携 / active_window_linux.py
+- page: MOD-77.py.yaml
+  summary: 常駐アプリ / 外部連携 / active_window_wayland.py
+- page: MOD-72.py.yaml
+  summary: 常駐アプリ / 外部連携 / sender.py
+- page: MOD-80.py.yaml
+  summary: 常駐アプリ / 外部連携 / sender_linux.py
+- page: MOD-70.py.yaml
+  summary: 常駐アプリ / 外部連携 / sender_wayland.py
+- page: MOD-76.py.yaml
+  summary: 常駐アプリ / 外部連携 / credentials.py
+- page: MOD-69.py.yaml
+  summary: 常駐アプリ / 外部連携 / transcriber.py
+- page: MOD-96.py.yaml
+  summary: 常駐アプリ / 外部連携 / server.py
+- page: MOD-97.py.yaml
+  summary: 常駐アプリ / 外部連携 / transcriber.py
+- page: MOD-68.py.yaml
+  summary: 常駐アプリ / 外部連携 / adapter.py
+- page: MOD-71.py.yaml
+  summary: 常駐アプリ / 外部連携 / adapter.py
+- page: MOD-75.py.yaml
+  summary: 常駐アプリ / 外部連携 / noop.py
+- page: MOD-67.py.yaml
+  summary: 常駐アプリ / 外部連携 / client.py
+- page: MOD-94.py.yaml
+  summary: 文字起こしワーカー / ワーカー / protocol.py
+- page: MOD-95.py.yaml
+  summary: 文字起こしワーカー / ワーカー / worker.py
+- page: MOD-84.py.yaml
+  summary: 常駐アプリ / 起動と配線 / main.py
+- page: MOD-33.py.yaml
+  summary: 常駐アプリ / ホットキーと画面 / hotkey.py
+- page: MOD-42.py.yaml
+  summary: 常駐アプリ / ホットキーと画面 / hotkey_gnome.py
+- page: MOD-89.py.yaml
+  summary: 常駐アプリ / 起動と配線 / process.py
+- page: MOD-47.py.yaml
+  summary: 常駐アプリ / ホットキーと画面 / send_hotkey.py
+- page: MOD-86.py.yaml
+  summary: 常駐アプリ / 起動と配線 / settings_store.py
+- page: MOD-87.py.yaml
+  summary: 常駐アプリ / 起動と配線 / single_instance.py
+- page: MOD-88.py.yaml
+  summary: 常駐アプリ / 起動と配線 / single_instance_linux.py
+- page: MOD-85.py.yaml
+  summary: 常駐アプリ / 起動と配線 / timer.py
+- page: MOD-19.py.yaml
+  summary: 常駐アプリ / APIサーバー / app.py
+- page: MOD-17.py.yaml
+  summary: 常駐アプリ / APIサーバー / body_limit.py
+- page: MOD-20.py.yaml
+  summary: 常駐アプリ / APIサーバー / error_handlers.py
+- page: MOD-15.py.yaml
+  summary: 常駐アプリ / APIサーバー / middleware.py
+- page: MOD-16.py.yaml
+  summary: 常駐アプリ / APIサーバー / runner.py
+- page: MOD-18.py.yaml
+  summary: 常駐アプリ / APIサーバー / token.py
+- page: MOD-21.py.yaml
+  summary: 常駐アプリ / APIサーバー / web_page.py
+- page: MOD-49.py.yaml
+  summary: 常駐アプリ / 共通 / constants.py
+- page: MOD-52.py.yaml
+  summary: 常駐アプリ / 共通 / errors.py
+- page: MOD-53.py.yaml
+  summary: 常駐アプリ / 共通 / logger.py
+- page: MOD-51.py.yaml
+  summary: 常駐アプリ / 共通 / os_kind.py
+- page: MOD-50.py.yaml
+  summary: 常駐アプリ / 共通 / settings.py
+- page: MOD-48.py.yaml
+  summary: 常駐アプリ / 共通 / types.py
+- page: MOD-2.py.yaml
+  summary: コメントを保った YAML の読み書き（ruamel.yaml）と、キーの追加・削除でのコメントの付け替え・レイヤーの重ね合わせを持つ。設定の読み書き（共通 の shared/settings.py）が使う。
+- page: MOD-32.py.yaml
+  summary: 常駐アプリ / ホットキーと画面 / bridge.py
+- page: MOD-30.py.yaml
+  summary: 常駐アプリ / ホットキーと画面 / controller.py
+- page: MOD-40.py.yaml
+  summary: 常駐アプリ / ホットキーと画面 / indicator_style.py
+- page: MOD-43.py.yaml
+  summary: 常駐アプリ / ホットキーと画面 / placement.py
+- page: MOD-44.py.yaml
+  summary: 常駐アプリ / ホットキーと画面 / style.py
+- page: MOD-31.py.yaml
+  summary: 常駐アプリ / ホットキーと画面 / tray.py
+- page: MOD-45.py.yaml
+  summary: 常駐アプリ / ホットキーと画面 / busy_dialog.py
+- page: MOD-34.py.yaml
+  summary: 常駐アプリ / ホットキーと画面 / recording_window.py
+- page: MOD-41.py.yaml
+  summary: 常駐アプリ / ホットキーと画面 / settings_edge_phrases.py
+- page: MOD-46.py.yaml
+  summary: 常駐アプリ / ホットキーと画面 / settings_fields.py
+- page: MOD-38.py.yaml
+  summary: 常駐アプリ / ホットキーと画面 / settings_glossaries.py
+- page: MOD-39.py.yaml
+  summary: 常駐アプリ / ホットキーと画面 / settings_hints.py
+- page: MOD-37.py.yaml
+  summary: 常駐アプリ / ホットキーと画面 / settings_presets.py
+- page: MOD-36.py.yaml
+  summary: 常駐アプリ / ホットキーと画面 / settings_window.py
+- page: MOD-35.py.yaml
+  summary: 常駐アプリ / ホットキーと画面 / transcribing_indicator.py
+- page: MOD-1.yaml
+  summary: FastAPI の app を組み立て、127.0.0.1 での待ち受け・Host・Origin・トークンの守りと、例外の HTTP への変換を持つ。uvicorn を専用のスレッドで動かす。
+- page: MOD-3.yaml
+  summary: 録音から出力までの 1 回分の流れ（セッション）の状態と、入口をまたいで同時に 1 つだけ動かす排他を持つ。録音・文字起こし・補正・出力先・履歴は関数型越しに受け取り、API の route もここに置く。API の連続録音では、区切った区間を区切った順に起こして返し、最後に終わりを返す。
+- page: MOD-4.yaml
+  summary: 外の端末のブラウザから受けた音声のジョブを積み、1 件ずつ起こして補正し、状態と結果を返す feature（`features/web_transcription/`）。
+- page: MOD-5.yaml
+  summary: 'グローバルのホットキーの受付（runtime/hotkey）と、PySide6 の画面とトレイ（ui）の入口としての境界。画面の構成・見た目・部品は #21 のデザインの工程で起こす。'
+- page: MOD-6.yaml
+  summary: どの層からも使う設定のモデル・ログ・例外・置き場所のパスと、feature の間を渡る型を持つ。ほかの層に依存しない。
+- page: MOD-7.yaml
+  summary: 起こした文字の届け方を出力先ごと・カスタムプリセットの種類ごとのサブフォルダに分け、一覧への登録で追加できる構造にする。出力先どうしは import しない。
+- page: MOD-8.yaml
+  summary: 文字起こしワーカーの子プロセス・OpenAI API の文字起こし・システム音量・キーボードとクリップボード・ブラウザ添付の画面を開くブラウザ・HTTP の POST・話し声の判定（Silero VAD）を包むアダプタ。feature の関数型を満たし、外の例外をアプリの例外に変える。
+- page: MOD-10.yaml
+  summary: 設定で選んだエンジンで録音を文字に起こす。エンジンは関数型で受け取り、エンジンごとの設定を渡す。
+- page: MOD-12.yaml
+  summary: 常駐サービスの入口。単一インスタンスを確かめ、各 feature と外部連携を関数で配線し（composition root）、API・ホットキー・トレイを立てて画面のイベントループを回す。
+- page: MOD-13.yaml
+  summary: マイクで録音し、録音中はシステム音量を下げて戻す。入口を問わず同じ録音を使い、画面には触れない。連続録音では録音を止めずに無音で区切り、区間を区切った順に渡す。
+- page: MOD-14.yaml
+  summary: 常駐サービスの子プロセスとして faster-whisper のモデルを持ち、標準入出力の JSON Lines で受けた録音を文字に起こす。CUDA のクラッシュから常駐サービスを守るためにプロセスを分ける。
+- page: MOD-98.yaml
+  summary: WSL の中で Haas-ja-v1.0 のモデルを持ち、常駐アプリから HTTP で受けた音声を文字に起こす。依存が重く Linux でしか動かないため、voice_paste のパッケージとは別の Python の環境で動かす。

@@ -1,0 +1,85 @@
+id: MOD-62
+visibility: internal
+title: 常駐アプリ / 出力先 / service.py
+test_files:
+  - tests/unit/voice_paste/features/outputs/paste_only/test_service.py
+functions:
+  - name: paste_only
+    title: 貼り付けのみ
+    kind: 関数
+    container: features/outputs/paste_only/service.py
+    usecase: 起こした文字を届ける
+    scope: public
+    inherits: OutputFn
+    summary: クリップボードへ書き、貼り付けのキーを送信する
+    args:
+      - name: outcome
+        type: TranscriptionOutcome
+        required: true
+        passing: positional
+        description: 届ける結果
+      - name: target
+        type: str | None
+        required: true
+        passing: positional
+        description: 使わない（OutputFn に合わせて受ける）
+      - name: copy
+        type: Callable[[str], None]
+        required: true
+        passing: injected
+        description: クリップボードへ書く（copy_to_clipboard）
+      - name: paste
+        type: Callable[[], None]
+        required: true
+        passing: injected
+        description: 貼り付けのキーを送信する（設定の keyboard.paste_key を部分適用した send_paste）
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. outcome.text をクリップボードへ書く
+      2. 貼り付けのキーを送信する
+         - 1 が DeliveryError を送出した場合、キーを送信せずにそのまま送出する
+    exceptions:
+      - name: DeliveryError
+        condition: クリップボードへ書けない
+    unit_tests:
+      - name: test_paste_only
+        case: 正常
+        summary: コピーして貼り付ける
+        condition: outcome.text が「テスト」
+        mock: copy・paste
+        expected: copy("テスト")・paste() の順に 1 回ずつ呼ばれる
+      - name: test_paste_only_when_copy_failed
+        case: 異常
+        summary: クリップボードへ書けなければ貼り付けない
+        condition: copy が DeliveryError を送出する
+        mock: copy・paste
+        expected: DeliveryError が送出され、paste が呼ばれない
+        exception: クリップボードへ書けない
+    status: implemented
+  - name: inject_paste_only
+    title: 貼り付けのみの注入
+    kind: 関数
+    container: features/outputs/paste_only/service.py
+    usecase: 起こした文字を届ける
+    scope: public
+    inherits: InjectFn
+    summary: paste_only に部分適用する copy・paste を返す
+    args:
+      - name: deps
+        type: OutputDeps
+        required: true
+        passing: positional
+        description: 外部連携の関数と今の設定
+    returns:
+      type: Mapping[str, object]
+      description: deps の copy・paste
+    unit_tests:
+      - name: test_inject_paste_only
+        case: 正常
+        summary: copy・paste だけを渡す
+        condition: OutputDeps を渡す
+        mock: OutputDeps の全関数
+        expected: キーが copy・paste だけで、値が deps のものと同じ
+    status: planned

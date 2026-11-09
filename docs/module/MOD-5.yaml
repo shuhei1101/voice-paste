@@ -1,0 +1,42 @@
+id: MOD-5
+visibility: internal
+title: "常駐アプリ / ホットキーと画面"
+lead: 'グローバルのホットキーの受付（runtime/hotkey）と、PySide6 の画面とトレイ（ui）の入口としての境界。画面の構成・見た目・部品は #21 のデザインの工程で起こす。'
+directory: |-
+  ```
+  src/voice_paste/runtime/
+  ├── hotkey.py                     # HotkeyListener（pynput の GlobalHotKeys を別のスレッドで動かす）
+  ├── hotkey_gnome.py               # GnomeShortcutListener（Wayland のセッション。設定のホットキーを GNOME のカスタムショートカットへ登録する）・to_gnome_accelerator・validate_gnome_hotkeys
+  └── send_hotkey.py                # GNOME のカスタムショートカットが流すコマンド。押されたホットキーを常駐サービスへ送信する
+  src/voice_paste/ui/
+  ├── bridge.py                     # UiBridge（ほかのスレッドからメインスレッドへの Signal）・notify・notify_copied・report_progress
+  ├── controller.py                 # UiController（知らせを画面・トレイへ振り分ける）・UiDeps
+  ├── tray.py                       # Tray（アイコン・メニュー・通知）・TrayState
+  ├── placement.py                  # place_window（カーソルのあるモニターの設定の位置）
+  ├── style.py                      # build_stylesheet（tokens.toml から QSS を作る）・write_arrow_image（選択欄の開くマーカーの SVG）・is_dark_theme・resolve_dark・apply_theme・theme_color（画面の明暗）
+  ├── indicator_style.py            # IndicatorStyle（チェックボックス・ラジオボタンのマーカーを tokens.toml の色で描く）
+  ├── tokens.toml                   # 色・書体・余白のトークン（デザイン方針）
+  └── windows/
+      ├── recording_window.py       # RecordingWindow
+      ├── transcribing_indicator.py # TranscribingIndicator
+      ├── window_parts.py           # HeadRow・GripIcon・HotkeyButton（録音の画面と文字起こし中の表示が使う見出しの行・ドラッグのハンドル・名前の下にホットキーを出すボタン）
+      ├── busy_dialog.py            # show_busy_dialog
+      ├── settings_window.py        # SettingsWindow・confirm_discard・confirm_reset・PRESET_KIND_NAMES
+      ├── settings_fields.py        # make_radio_group・selected_radio など設定画面の欄の部品
+      ├── settings_presets.py       # PresetListPanel（設定画面の種類ごとのタブのプリセットの一覧）
+      ├── settings_glossaries.py    # GlossaryPanel（設定画面の用語集の一覧と行の表）・find_glossary_row_errors
+      ├── settings_hints.py         # HintPresetPanel（設定画面の表記のヒントの長さとプリセットの一覧）
+      └── settings_edge_phrases.py  # EdgePhrasePanel（設定画面のハルシネーションの文言の一覧）
+  resources/tray/
+  └── starting.png・idle.png・recording.png・transcribing.png・failed.png  # トレイのアイコン（状態ごと）
+  ```
+notes:
+  画面が触ってよいもの: |-
+    ui は UiDeps の関数（配線された SessionManager のメソッド・音量・設定の読み書き・再起動と終了）と、共通の設定のモデルだけを呼ぶ。録音・文字起こし・出力先を直に呼ばない。
+    設定画面の欄は Settings のモデルから組み立て、項目を追加しても画面の直しが増えないようにする。
+  スレッド: |-
+    画面の部品はメインスレッド（Qt のイベントループ）だけが触る。API・ホットキー・ワーカーのスレッドからは notify・report_progress で UiBridge の Signal を emit するだけにする。
+    ホットキーが呼ぶ関数は SessionManager（ロックで守られている）だけを呼び、画面は state_changed の知らせで変える。
+  テスト: |-
+    画面を使う単体テスト・結合テストは `QT_QPA_PLATFORM=offscreen` で QApplication を 1 つ作り、操作は PySide6 の QtTest（QTest）で行う。画面の振る舞いは画面設計を元にした結合テスト（`tests/integration/ui/`）で確かめる。
+    runtime/hotkey_gnome.py・runtime/send_hotkey.py の単体テストのファイルは `tests/unit/voice_paste/runtime/test_hotkey_gnome.py`・`tests/unit/voice_paste/runtime/test_send_hotkey.py`。Windows では skip する（single_instance_linux.py の fcntl を読み込む）。gsettings は subprocess.run を差し替えて呼び出しの引数で確かめ、実物の GNOME のショートカットは検証環境の VM での通しの確認で確かめる。

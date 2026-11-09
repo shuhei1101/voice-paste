@@ -1,0 +1,74 @@
+id: MOD-74
+visibility: internal
+title: 常駐アプリ / 外部連携 / opener_linux.py
+test_files:
+  - tests/unit/voice_paste/integrations/browser/test_opener_linux.py
+constants:
+  - name: LINUX_BROWSER_COMMANDS
+    title: Linux で探す Chromium 系のブラウザ
+    container: integrations/browser/opener_linux.py
+    usecase: 起こした文字を届ける
+    summary: open_app_window_linux がこの並びで PATH から探す、`--app` を受け付けるブラウザの実行ファイル名
+    value: ("google-chrome", "chromium", "chromium-browser", "microsoft-edge")
+    reason: Ubuntu では入れ方によって実行ファイルの名前が違い、どれか 1 つが入っていればアプリのウィンドウで開ける
+    status: planned
+functions:
+  - name: open_app_window_linux
+    title: Linux でアプリのウィンドウで開く
+    kind: 関数
+    container: integrations/browser/opener_linux.py
+    usecase: 起こした文字を届ける
+    summary: Linux で open_app_window の代わりに渡す。URL を Chromium 系のブラウザの `--app` で開き、見つからなければ既定のブラウザで開く
+    scope: public
+    args:
+      - name: url
+        type: str
+        required: true
+        passing: positional
+        description: 開く URL（確定の操作で選んだブラウザ添付のプリセットの URL）
+    returns:
+      type: None
+      description: なし（開いた画面の読み込みを待たない）
+    process: |-
+      1. LINUX_BROWSER_COMMANDS の並びで PATH から最初に見つかる実行ファイルを探す（shutil.which）
+      2. 見つかった場合、`[{ブラウザ}, "--app={url}"]` を subprocess.Popen で起動する
+         - `[INFO]` ブラウザ添付のプリセットの画面をアプリのウィンドウで開いた（ブラウザ・url）
+      3. 見つからない場合、webbrowser.open で既定のブラウザ（xdg-open）で開く
+         - webbrowser.open が False を返した場合、DeliveryError を送出する。理由は `ブラウザ添付のプリセットの画面を開けませんでした（開けるブラウザが見つかりません）`
+         - `[INFO]` ブラウザ添付のプリセットの画面を既定のブラウザで開いた（url）
+         - 2 で OSError が出た場合、DeliveryError を送出する。理由は `ブラウザ添付のプリセットの画面を開けませんでした（{元の例外}）` にし、元の例外を連鎖して残す（open_app_window と同じ）
+    exceptions:
+      - name: DeliveryError
+        condition: 見つかったブラウザを起動できない
+      - name: DeliveryError
+        condition: Chromium 系のブラウザが無く、既定のブラウザも開けない
+    unit_tests:
+      - name: test_open_app_window_linux
+        case: 正常
+        summary: 先に見つかった Chromium 系の --app で開く
+        condition: shutil.which が chromium と microsoft-edge だけでパスを返す
+        mock: shutil.which・subprocess.Popen・webbrowser.open
+        expected: Popen に ["/usr/bin/chromium", "--app=https://chatgpt.com"] が渡り、webbrowser.open が呼ばれない
+      - name: test_open_app_window_linux_when_browser_missing
+        case: 正常
+        summary: Chromium 系が無ければ既定のブラウザで開く
+        condition: shutil.which が全て None、webbrowser.open が True を返す
+        mock: shutil.which・subprocess.Popen・webbrowser.open
+        expected: webbrowser.open に URL が渡り、Popen が呼ばれない
+      - name: test_open_app_window_linux_when_no_browser
+        case: 異常
+        summary: 既定のブラウザも開けなければ DeliveryError
+        condition: shutil.which が全て None、webbrowser.open が False を返す
+        mock: shutil.which・webbrowser.open
+        expected: DeliveryError が送出され、理由が `ブラウザ添付のプリセットの画面を開けませんでした（` で始まる
+        exception: Chromium 系のブラウザが無く、既定のブラウザも開けない
+      - name: test_open_app_window_linux_when_failed
+        case: 異常
+        summary: 起動できなければ DeliveryError
+        condition: shutil.which が chromium を返し、subprocess.Popen が OSError を送出する
+        mock: shutil.which・subprocess.Popen
+        expected: DeliveryError が送出され、元の OSError が連鎖している
+        exception: 見つかったブラウザを起動できない
+    refs:
+      - LIB-2#
+    status: planned

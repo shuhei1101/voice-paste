@@ -1,0 +1,75 @@
+id: MOD-18
+visibility: internal
+title: 常駐アプリ / APIサーバー / token.py
+test_files:
+  - tests/unit/voice_paste/server/test_token.py
+constants:
+  - name: TOKEN_BYTES
+    title: トークンのバイト数
+    container: server/token.py
+    usecase: 常駐アプリを起動する
+    summary: secrets.token_urlsafe に渡す乱数のバイト数。256 bit で推測できない長さにする
+    value: '32'
+    status: implemented
+functions:
+  - name: write_token_file
+    title: トークンのファイルの書き出し
+    kind: 関数
+    container: server/token.py
+    usecase: 常駐アプリを起動する
+    scope: public
+    summary: 待ち受けを始めた後に、今回のトークンとポートをトークンのファイル（置き場所の token_file）へ書く
+    args:
+      - name: token_file
+        type: Path
+        required: true
+        passing: positional
+        description: トークンのファイル
+      - name: port
+        type: int
+        required: true
+        passing: positional
+        description: 待ち受けのポート
+      - name: token
+        type: SecretStr
+        required: true
+        passing: positional
+        description: create_token で作った今回の起動のトークン
+    returns:
+      type: None
+      description: なし
+    status: implemented
+    process: |-
+      1. `{"port": {ポート}, "token": "{トークン}"}` の JSON を、同じフォルダの一時ファイルに UTF-8 で書いてから token_file へ置き換える（読む側が書きかけを読まない）
+         - `[INFO]` トークンのファイルを書いた（パス・ポート。トークンは書かない）
+    unit_tests:
+      - name: test_write_token_file
+        case: 正常
+        summary: トークンとポートを書く
+        condition: 一時フォルダの token_file、ポート 47823、create_token で作ったトークン
+        mock: なし（一時フォルダ）
+        expected: token_file の JSON の port が 47823、token が渡したトークンの値と一致し、INFO のログにトークンが含まれない
+      - name: test_write_token_file_when_exists
+        case: 正常
+        summary: 前の起動のファイルを置き換える
+        condition: 別のトークンの token_file がある
+        mock: なし（一時フォルダ）
+        expected: token_file には今回のトークンだけがあり、一時ファイルが残らない
+  - name: create_token
+    title: トークンの作成
+    kind: 関数
+    container: server/token.py
+    usecase: 常駐アプリを起動する
+    scope: public
+    summary: secrets.token_urlsafe(TOKEN_BYTES) で起動ごとのトークンを作る。ファイルには書かない（待ち受けを始めてから write_token_file で書く）
+    returns:
+      type: SecretStr
+      description: 作ったトークン
+    unit_tests:
+      - name: test_create_token
+        case: 正常
+        summary: 呼ぶたびに違うトークンになる
+        condition: 2 回呼ぶ
+        mock: なし
+        expected: 2 つの値が違い、どちらも 43 文字以上
+    status: implemented

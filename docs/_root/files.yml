@@ -1,0 +1,5 @@
+files:
+- path: ../index.md
+  visibility: public
+- path: ../design-policy.md
+  visibility: internal

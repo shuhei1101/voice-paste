@@ -1,0 +1,25 @@
+title: NeMo
+kind: ライブラリ
+lead: haas_asr がモデルの推論に使う音声認識のフレームワーク。voice-paste のコードからは直接呼ばない。
+used_in:
+  - haas_server/pyproject.toml
+version:
+  current: 2.7.x
+  checked_on: '2026-11-06'
+  source: haas_server/uv.lock（haas_asr の依存 nemo-toolkit[asr]>=2.7.3,<2.8）
+  pinning: haas_asr の範囲に従う
+license: Apache-2.0
+official_url: https://github.com/NVIDIA-NeMo/NeMo
+verification:
+  state: 済
+  date: '2026-11-05'
+  detail: PoC（#265）で haas_asr の依存として WSL の torch 2.14.0+cu130 と動かした
+catalogs:
+  - name: API
+    version: '2.7'
+    entries:
+      - name: nemo-toolkit[asr]
+        kind: パッケージ
+        purpose: haas_asr の依存として入れる
+id: LIB-31
+visibility: internal

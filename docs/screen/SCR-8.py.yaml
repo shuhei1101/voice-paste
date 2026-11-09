@@ -1,0 +1,47 @@
+id: SCR-8
+visibility: internal
+title: "既定に戻す確認"
+elements:
+  - name: ダイアログ
+    id: reset_dialog
+    kind: dialog
+    position: 既定に戻す確認
+    description: 設定画面の上に出すモーダル。ウィンドウのタイトルは「voice-paste の設定」。Esc は「設定画面へ戻る」と同じ
+    visible_when: 設定画面の「既定に戻す」を押したとき
+  - name: 見出し
+    id: reset_title
+    kind: label
+    position: 既定に戻す確認 > 本体
+    description: 全ての設定を既定に戻すかを問う
+    label: 全ての設定を既定に戻しますか
+    visible_when: 常時
+  - name: 本文
+    id: reset_body
+    kind: label
+    position: 既定に戻す確認 > 本体
+    description: 戻る範囲と、元に戻せないこと・再起動で反映の設定の扱いを伝える
+    label: 出力先・ホットキーを含む全ての設定が既定の値になり、カスタムプリセットは全て削除されます。元に戻せません。「再起動で反映」の設定は、再起動するまで今の値で動きます。
+    visible_when: 常時
+  - name: 設定画面へ戻るボタン
+    id: back_button
+    kind: button
+    position: 既定に戻す確認 > フッター
+    description: 戻さずにダイアログを閉じる。最初のフォーカスを置く
+    label: 設定画面へ戻る
+    visible_when: 常時
+    autofocus: true
+    action: ダイアログを閉じる
+  - name: 既定に戻すボタン
+    id: reset_button
+    kind: button
+    position: 既定に戻す確認 > フッター
+    description: settings.yaml から全てのキーを外し、設定画面に戻って既定の値（settings.local.yaml にあるキーはその値）を欄に入れる。反映が immediate の設定はすぐに効かせる
+    label: 既定に戻す
+    visible_when: 常時
+    action: ダイアログを閉じ、設定画面に「既定に戻したメッセージ」を出す
+screen: src/voice_paste/ui/windows/settings_window.py
+mock: docs/mock/pages/settings-reset-dialog/37/a-standard/
+lead: 設定画面の「既定に戻す」で、全ての設定を既定の値へ戻すかを確かめるダイアログ。
+refs:
+  - SC-6#
+test_file: tests/integration/ui/test_settings_window.py

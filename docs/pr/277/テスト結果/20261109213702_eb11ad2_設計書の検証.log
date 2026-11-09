@@ -1,0 +1,60 @@
+# 移す前（origin/develop 05cdec615 の作業ツリー。ai-monitor develop の validate）
+$ PYTHONPATH=src uv run python -m ai_monitor.design_docs validate --root {worktree}
+dev/pr/114/反映作業/index.yaml:items: 必須の項目が無い
+dev/pr/114/反映作業/index.yaml:summary: 必須の項目が無い
+dev/pr/114/反映作業/index.yaml:普段使いの環境の作り直し: Schema に無い項目
+dev/pr/142/反映作業/index.yaml:items: 必須の項目が無い
+dev/pr/142/反映作業/index.yaml:summary: 必須の項目が無い
+dev/pr/142/反映作業/index.yaml:普段使いのクローンの作業ツリーの書き出し直し: Schema に無い項目
+dev/pr/171/反映作業/index.yaml:items: 必須の項目が無い
+dev/pr/171/反映作業/index.yaml:summary: 必須の項目が無い
+dev/pr/171/反映作業/index.yaml:許す Origin の設定: Schema に無い項目
+dev/pr/235/反映作業/index.yaml:items: 必須の項目が無い
+dev/pr/235/反映作業/index.yaml:summary: 必須の項目が無い
+dev/pr/235/反映作業/index.yaml:設定スキーマの追従: Schema に無い項目
+dev/pr/264/反映作業/index.yaml:Haas のサーバーの起動の待ち時間の測定: Schema に無い項目
+dev/pr/264/反映作業/index.yaml:items: 必須の項目が無い
+dev/pr/264/反映作業/index.yaml:summary: 必須の項目が無い
+dev/設計書/シナリオ/単一ユースケース/トレイから操作する.yaml:test_file: 対応テストファイルがありません: tests/e2e/単一ユースケース/test_operate_from_tray.py
+dev/設計書/シナリオ/単一ユースケース/ブラウザから音声を送信する.yaml:test_file: 対応テストファイルがありません: tests/e2e/単一ユースケース/test_send_audio_from_browser.py
+dev/設計書/シナリオ/単一ユースケース/ブラウザで結果を受け取る.yaml:test_file: 対応テストファイルがありません: tests/e2e/単一ユースケース/test_receive_result_in_browser.py
+dev/設計書/シナリオ/単一ユースケース/常駐アプリを起動する.yaml:test_file: 対応テストファイルがありません: tests/e2e/単一ユースケース/test_start_resident_app.py
+dev/設計書/シナリオ/単一ユースケース/設定を変える.yaml:test_file: 対応テストファイルがありません: tests/e2e/単一ユースケース/test_change_settings.py
+dev/設計書/シナリオ/単一ユースケース/起こした文字を届ける.yaml:test_file: 対応テストファイルがありません: tests/e2e/単一ユースケース/test_deliver_transcript.py
+dev/設計書/シナリオ/単一ユースケース/録音する.yaml:test_file: 対応テストファイルがありません: tests/e2e/単一ユースケース/test_record.py
+dev/設計書/シナリオ/単一ユースケース/録音を文字に起こす.yaml:test_file: 対応テストファイルがありません: tests/e2e/単一ユースケース/test_transcribe_recording.py
+dev/設計書/シナリオ/複合ユースケース/ほかのシステムから連続して録音し、区切りごとに文字で受け取る.yaml:test_file: 対応テストファイルがありません: tests/e2e/複合ユースケース/test_transcribe_continuously_from_other_system.py
+dev/設計書/シナリオ/複合ユースケース/ほかのシステムから録音を文字に起こす.yaml:test_file: 対応テストファイルがありません: tests/e2e/複合ユースケース/test_transcribe_from_other_system.py
+dev/設計書/シナリオ/複合ユースケース/声で入力した文字を貼り付ける.yaml:test_file: 対応テストファイルがありません: tests/e2e/複合ユースケース/test_paste_voice_text.py
+dev/設計書/シナリオ/複合ユースケース/外の端末のブラウザから音声を送信して文字で受け取る.yaml:test_file: 対応テストファイルがありません: tests/e2e/複合ユースケース/test_transcribe_from_browser.py
+dev/設計書/外部ライブラリ/pynput.yaml:limitations[Wayland のセッション].notes: 他の設計書をパスで指すリンクです（id: のリンクで書く）: ./evdev.yaml
+
+# 移した後（eb11ad2。ai-monitor の #3307 の worktree の validate）
+$ PYTHONPATH=src uv run python -m ai_monitor.design_docs validate --root {worktree}
+docs/pr/114/反映作業/index.yaml:items: 必須の項目が無い
+docs/pr/114/反映作業/index.yaml:summary: 必須の項目が無い
+docs/pr/114/反映作業/index.yaml:普段使いの環境の作り直し: Schema に無い項目
+docs/pr/142/反映作業/index.yaml:items: 必須の項目が無い
+docs/pr/142/反映作業/index.yaml:summary: 必須の項目が無い
+docs/pr/142/反映作業/index.yaml:普段使いのクローンの作業ツリーの書き出し直し: Schema に無い項目
+docs/pr/171/反映作業/index.yaml:items: 必須の項目が無い
+docs/pr/171/反映作業/index.yaml:summary: 必須の項目が無い
+docs/pr/171/反映作業/index.yaml:許す Origin の設定: Schema に無い項目
+docs/pr/235/反映作業/index.yaml:items: 必須の項目が無い
+docs/pr/235/反映作業/index.yaml:summary: 必須の項目が無い
+docs/pr/235/反映作業/index.yaml:設定スキーマの追従: Schema に無い項目
+docs/pr/264/反映作業/index.yaml:Haas のサーバーの起動の待ち時間の測定: Schema に無い項目
+docs/pr/264/反映作業/index.yaml:items: 必須の項目が無い
+docs/pr/264/反映作業/index.yaml:summary: 必須の項目が無い
+docs/scenario/SC-10.yaml:test_file: 対応テストファイルがありません: tests/e2e/複合ユースケース/test_transcribe_continuously_from_other_system.py
+docs/scenario/SC-11.yaml:test_file: 対応テストファイルがありません: tests/e2e/複合ユースケース/test_transcribe_from_other_system.py
+docs/scenario/SC-12.yaml:test_file: 対応テストファイルがありません: tests/e2e/複合ユースケース/test_paste_voice_text.py
+docs/scenario/SC-13.yaml:test_file: 対応テストファイルがありません: tests/e2e/複合ユースケース/test_transcribe_from_browser.py
+docs/scenario/SC-2.yaml:test_file: 対応テストファイルがありません: tests/e2e/単一ユースケース/test_operate_from_tray.py
+docs/scenario/SC-3.yaml:test_file: 対応テストファイルがありません: tests/e2e/単一ユースケース/test_send_audio_from_browser.py
+docs/scenario/SC-4.yaml:test_file: 対応テストファイルがありません: tests/e2e/単一ユースケース/test_receive_result_in_browser.py
+docs/scenario/SC-5.yaml:test_file: 対応テストファイルがありません: tests/e2e/単一ユースケース/test_start_resident_app.py
+docs/scenario/SC-6.yaml:test_file: 対応テストファイルがありません: tests/e2e/単一ユースケース/test_change_settings.py
+docs/scenario/SC-7.yaml:test_file: 対応テストファイルがありません: tests/e2e/単一ユースケース/test_deliver_transcript.py
+docs/scenario/SC-8.yaml:test_file: 対応テストファイルがありません: tests/e2e/単一ユースケース/test_record.py
+docs/scenario/SC-9.yaml:test_file: 対応テストファイルがありません: tests/e2e/単一ユースケース/test_transcribe_recording.py

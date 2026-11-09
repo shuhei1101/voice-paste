@@ -1,0 +1,6 @@
+summary: 採用済みの外部 API のリファレンス
+items:
+- page: API-1.yaml
+  summary: faster-whisper のモデルを取得する
+- page: API-2.yaml
+  summary: 録音を OpenAI API で文字に起こす

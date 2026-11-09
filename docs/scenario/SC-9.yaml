@@ -1,0 +1,780 @@
+id: SC-9
+visibility: internal
+title: "録音を文字に起こす"
+scenarios:
+  - name: 正常シナリオ
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は、音声合成の文の間に無音を挟んだ WAV（区間を 2 つ以上にする）
+      - name: 文字起こしのエンジン
+        description: ローカルの Whisper を使う設定にする
+        notes: '-'
+      - name: 用語集
+        description: 設定で選んでいる用語集のプリセットに用語集が 2 つある。1 つ目の用語集に、話す内容で起きる誤変換と正しい表記のオンの行と、話す内容に入る文言を誤変換にして正しい表記を空にしたオンの行（消す行）と、別の誤変換のオフの行がある。2 つ目の用語集に、話す内容で起きる別の誤変換と正しい表記のオンの行がある
+        notes: 選んでいないプリセットだけが使う用語集にも、話す内容で起きる誤変換の行を 1 つ置く
+      - name: 入口
+        description: ホットキーから始めた録音を確定する
+        notes: '-'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant GL as 用語集
+        participant TRAY as トレイ
+        participant OV as 文字起こし中の表示
+        participant WK as 文字起こしワーカー（子プロセス）
+        participant HIST as 履歴
+        actor U as ユーザー
+
+        SVC->>GL: 選んでいるプリセットの用語集を全て読み直す（オンの行だけ）
+        SVC->>TRAY: 文字起こし中のアイコンにする
+        SVC->>OV: 開く（経過と残りの時間・貼り付けたい場所にカーソルを合わせる案内）
+        U->>U: 貼り付けたいアプリの入力欄へカーソルを移す
+        SVC->>WK: 録音とローカルの Whisper の設定を送信する
+        loop 区間ごと
+          WK-->>SVC: 区間の終わりの時刻
+          SVC->>OV: 残りの時間を更新する
+        end
+        WK-->>SVC: 区間ごとの文字を改行でつないだ結果
+        SVC->>SVC: 文頭・文末から削除する文言の一覧を上から順に当て、文頭・文末に一致した文言を消す
+        SVC->>SVC: プリセットに並べた用語集の順に、行の順で誤変換を正しい表記へ置き換える（正しい表記が空の行は誤変換を消す）
+        SVC->>HIST: 起こした文字を録音と同じ履歴に追記する
+        SVC->>OV: 閉じる
+      ```
+    expected:
+      - 起こした文字の中の用語集の誤変換が、正しい表記に置き換わっている
+      - 2 つ目の用語集の誤変換も、正しい表記に置き換わっている
+      - 選んでいないプリセットだけが使う用語集の誤変換は、置き換わらずに残っている
+      - 消す行の誤変換が、起こした文字から消えている
+      - オフの行の誤変換は置き換わらずに残っている
+      - 起こした文字が区間ごとに改行で区切られている
+      - 履歴に録音と起こした文字がある
+      - 文字起こし中の表示が閉じている
+      - 起こした文字を届ける へ進む
+    notes:
+      API から始めた録音: API から始めた録音では、文字起こし中の表示を開かない。それ以外は同じ流れである。
+      録音の画面を出さない設定: 録音の画面を出さない設定でホットキー・トレイから始めた録音も、文字起こし中の表示を開かず、トレイのアイコンだけが状態を示す。
+      文字起こし中の表示: |-
+        フォーカスを取らずに開き、貼り付けたいアプリの入力欄からフォーカスを奪わない。
+        今の出力先を出し、届け始めるまで固定の出力先への切り替えを受ける（起こした文字を届ける の 正常シナリオ（文字起こし中にコピーのみへ切り替える））。
+      用語集の重なり: |-
+        プリセットの用語集の行は、用語集の並びの順・用語集の中の行の順に 1 本の並びとして当て、前の行で置き換えた結果へ次の行を当てる。
+        複数の用語集に同じ誤変換の行があるときは、先に並べた用語集の行で置き換わり、後の用語集の行は当たらない。
+        読めない用語集の CSV は空の用語集として飛ばし、残りの用語集で補正する。
+    test: test_normal
+  - name: 正常シナリオ（文字起こしワーカーが異常終了する）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は、文字起こしの途中でワーカーを停止できるよう、音声合成の文を繰り返した WAV
+      - name: 文字起こしのエンジン
+        description: ローカルの Whisper を使う設定にする
+      - name: ワーカーの停止
+        description: 文字起こしの途中で、文字起こしワーカーの子プロセスを外から終わらせる（再起動したワーカーは停止しない）
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant WK as 文字起こしワーカー（子プロセス）
+        participant WK2 as 新しい文字起こしワーカー
+
+        SVC->>WK: 録音と設定を送信する
+        WK--xSVC: 応答の途中で終わる
+        SVC->>WK2: 子プロセスを起動し直し、モデルを読み込ませる
+        WK2-->>SVC: ready
+        SVC->>WK2: 同じ録音を再送する（再試行は 1 回だけ）
+        WK2-->>SVC: 文字起こしの結果
+        Note over SVC: 用語集での補正から後は 正常シナリオ と同じ
+      ```
+    expected:
+      - 起こした文字が得られ、起こした文字を届ける へ進む
+      - 文字起こしワーカーが新しい子プロセスで動いている
+      - 常駐サービスのプロセスが動き続けている
+    test: test_normal_when_worker_dies
+  - name: 異常シナリオ（再起動したワーカーも異常終了する）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は、文字起こしの途中でワーカーを停止できるよう、音声合成の文を繰り返した WAV
+      - name: 文字起こしのエンジン
+        description: ローカルの Whisper を使う設定にする
+      - name: ワーカーの停止
+        description: 文字起こしの途中で文字起こしワーカーの子プロセスを終わらせ、再起動したワーカーも終わらせる
+      - name: 入口
+        description: ホットキーから始めた録音を確定する
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant WK2 as 再起動したワーカー
+        participant WK3 as 次の録音のためのワーカー
+        participant OV as 文字起こし中の表示
+        participant TRAY as トレイ
+        actor U as ユーザー
+
+        Note over SVC: 最初のワーカーが異常終了して再起動するまでは 正常シナリオ（文字起こしワーカーが異常終了する） と同じ
+        WK2--xSVC: 応答の途中で終わる
+        SVC->>WK3: 子プロセスを起動し直し、次の録音に備える
+        SVC->>OV: 閉じる
+        SVC->>TRAY: 待機中のアイコンにする
+        SVC-->>U: 文字起こしに失敗したことを通知する
+      ```
+    expected:
+      - 文字起こしに失敗したことがユーザーに知らされている
+      - 履歴にこの録音が残っている
+      - 常駐サービスのプロセスが動き続けている
+      - 文字起こしワーカーが新しい子プロセスで動いている
+    test: test_error_when_worker_dies_again
+  - name: 異常シナリオ（文字起こしに失敗）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV。保存した録音を読めない中身に書き換える
+      - name: 文字起こしの失敗
+        description: 中身の壊れた録音の WAV を確定し、文字起こしワーカーがエラーを返す状態にする
+      - name: 入口
+        description: ホットキーから始めた録音を確定する
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant WK as 文字起こしワーカー（子プロセス）
+        participant OV as 文字起こし中の表示
+        participant TRAY as トレイ
+        participant LOG as ログ
+        actor U as ユーザー
+
+        Note over SVC: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
+        SVC->>WK: 録音と設定を送信する
+        WK-->>SVC: エラー（読めない録音）
+        SVC->>LOG: 失敗した理由を書く
+        SVC->>OV: 閉じる
+        SVC->>TRAY: 待機中のアイコンにする
+        SVC-->>U: 文字起こしに失敗したことと理由を通知する
+      ```
+    expected:
+      - 文字起こしに失敗したことと理由がユーザーに知らされている
+      - 履歴にこの録音が残っている
+      - 起こした文字を届ける へ進まず、トレイのアイコンが待機中に戻っている
+    test: test_error_when_transcription_failed
+  - name: 異常シナリオ（文字起こしの結果が空）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は無音の WAV
+      - name: 文字起こしのエンジン
+        description: ローカルの Whisper で、無音の区間を除く設定にする
+      - name: 無音の録音
+        description: 何も話さずに録音を確定する
+      - name: 入口
+        description: ホットキーから始めた録音を確定する
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant WK as 文字起こしワーカー（子プロセス）
+        participant OV as 文字起こし中の表示
+        participant TRAY as トレイ
+        participant LOG as ログ
+
+        Note over SVC: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
+        SVC->>WK: 録音と設定を送信する
+        WK-->>SVC: 空の文字
+        SVC->>LOG: 結果が空だったことを書く
+        SVC->>OV: 閉じる
+        SVC->>TRAY: 待機中のアイコンにする
+      ```
+    expected:
+      - ダイアログが出ていない
+      - 起こした文字を届ける へ進まず、履歴にこの録音が残っている
+      - トレイのアイコンが待機中に戻っている
+    test: test_error_when_transcription_empty
+  - name: 正常シナリオ（API から始めた録音の結果が空）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は無音の WAV。返送先は 127.0.0.1 で待ち受けるテスト用のエンドポイント
+      - name: 文字起こしのエンジン
+        description: ローカルの Whisper で、無音の区間を除く設定にする
+      - name: 無音の録音
+        description: 何も話さずに録音を確定する
+      - name: 入口
+        description: API から始めた録音を、API の完了で確定する
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant WK as 文字起こしワーカー（子プロセス）
+        participant LOG as ログ
+
+        SVC->>WK: 録音と設定を送信する（文字起こし中の表示は開かない）
+        WK-->>SVC: 空の文字
+        SVC->>LOG: 結果が空だったことを書く
+        SVC->>SVC: 空の文字を 起こした文字を届ける へ渡す
+      ```
+    expected:
+      - 空の文字が 起こした文字を届ける へ渡されている
+      - 履歴にこの録音が残っている
+      - ダイアログも文字起こし中の表示も出ていない
+    test: test_normal_when_api_transcription_empty
+  - name: 異常シナリオ（API から始めた録音の文字起こしに失敗）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV。保存した録音を読めない中身に書き換える。返送先は 127.0.0.1 で待ち受けるテスト用のエンドポイント
+      - name: 文字起こしの失敗
+        description: 中身の壊れた録音の WAV を確定し、文字起こしワーカーがエラーを返す状態にする
+      - name: 入口
+        description: API から始めた録音を、API の完了で確定する
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant WK as 文字起こしワーカー（子プロセス）
+        participant LOG as ログ
+
+        SVC->>WK: 録音と設定を送信する（文字起こし中の表示は開かない）
+        WK-->>SVC: エラー（読めない録音）
+        SVC->>LOG: 失敗した理由を書く
+        SVC->>SVC: 文字起こしの失敗を 起こした文字を届ける へ渡す
+      ```
+    expected:
+      - 文字起こしの失敗が 起こした文字を届ける へ渡されている
+      - 履歴にこの録音が残っている
+      - ダイアログも文字起こし中の表示も出ていない
+    notes:
+      同じ扱いになる失敗: 再起動したワーカーも異常終了したときも同じ扱いになる。
+    test: test_error_when_api_transcription_failed
+  - name: 異常シナリオ（失敗の通知を押す）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV。保存した録音を読めない中身に書き換える
+      - name: 文字起こしの失敗
+        description: 異常シナリオ（文字起こしに失敗） と同じ状態にして失敗の通知を出す
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant TRAY as トレイ
+        participant EXP as エクスプローラー
+
+        Note over TRAY: 失敗を通知するまでは 異常シナリオ（文字起こしに失敗） と同じ
+        U->>TRAY: 畳まれる前の失敗の通知を押す
+        TRAY->>EXP: ログの置き場所を開く
+      ```
+    expected:
+      - エクスプローラーでログの置き場所が開いている
+      - トレイのアイコンが待機中である
+    test: test_error_when_failure_notification_clicked
+  - name: 正常シナリオ（区間を区切った順に起こす）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は、音声合成の文の間に無音を挟んだ WAV を実時間で流す。返送先は 127.0.0.1 で待ち受けるテスト用のエンドポイント
+      - name: 文字起こしのエンジン
+        description: ローカルの Whisper を使う設定にする
+      - name: 入口
+        description: 連続録音が、前の区間を起こしている間に次の区間を区切る
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant Q as 区間の待ち行列
+        participant GL as 用語集
+        participant WK as 文字起こしワーカー（子プロセス）
+        participant HIST as 履歴
+
+        SVC->>Q: 区切った区間を通し番号つきで積む（録音は続ける）
+        loop 待ち行列に区間がある間
+          Q-->>SVC: 区切った順に 1 つ取り出す
+          SVC->>WK: 区間の録音とローカルの Whisper の設定を送信する（文字起こし中の表示は開かない）
+          WK-->>SVC: 区間の文字
+          SVC->>SVC: 文頭・文末から削除する文言の一覧を、区間の文字の文頭・文末に当てる
+          SVC->>GL: 用語集の誤変換を正しい表記へ置き換える
+          SVC->>HIST: 起こした文字を区間の録音と同じ履歴に追記する
+          SVC->>SVC: 区間の文字を通し番号つきで 起こした文字を届ける へ渡す
+        end
+      ```
+    expected:
+      - 区間の文字が区切った順に 起こした文字を届ける へ渡されている
+      - 区間を起こしている間もマイクの録音が続いている
+      - 区間の文字の中の用語集の誤変換が、正しい表記に置き換わっている
+      - 履歴に区間ごとの録音と起こした文字がある
+      - 文字起こし中の表示が開いていない
+    test: test_normal_when_segments_in_order
+  - name: 異常シナリオ（区間の文字起こしに失敗）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は、音声合成の文の間に無音を挟んだ WAV を実時間で流す。文字起こしは通し番号 2 の区間だけ失敗を返す。返送先は 127.0.0.1 で待ち受けるテスト用のエンドポイント
+      - name: 入口
+        description: 連続録音が 3 つの区間を区切る
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant WK as 文字起こしワーカー（子プロセス）
+        participant LOG as ログ
+
+        SVC->>WK: 通し番号 2 の区間の録音を送信する
+        WK-->>SVC: エラー
+        SVC->>LOG: 失敗した理由と通し番号を書く
+        SVC->>SVC: 区間の失敗を通し番号つきで 起こした文字を届ける へ渡す
+        SVC->>WK: 通し番号 3 の区間の録音を送信する（連続録音は続ける）
+      ```
+    expected:
+      - 通し番号 2 の区間の失敗が 起こした文字を届ける へ渡されている
+      - 通し番号 3 の区間がその後に起こされている
+      - 履歴に通し番号 2 の区間の録音が残っている
+      - ログに失敗した理由と通し番号が書かれている
+    notes:
+      同じ扱いになる失敗: 再起動したワーカーも異常終了したときも同じ扱いになる。
+    test: test_error_when_segment_transcription_failed
+  - name: 正常シナリオ（文字起こしの手がかりを渡す）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 文字起こしのエンジン
+        description: ローカルの Whisper を使う設定にする
+      - name: 手がかりのプリセット
+        description: 語を 2 つずつ持つ有効な手がかりのプリセットが 2 つと、語を持つ無効の手がかりのプリセットが 1 つある
+        notes: 有効なプリセットの語を一覧の順に読点（、）でつなぐ
+      - name: 入口
+        description: ホットキーから始めた録音を確定する
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant WK as 文字起こしワーカー（子プロセス）
+
+        Note over SVC: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
+        SVC->>SVC: 設定の有効な手がかりのプリセットの語を一覧の順に読点（、）でつなぐ
+        SVC->>WK: 録音とローカルの Whisper の設定と、つないだ手がかりを送信する
+        WK->>WK: 手がかりを 30 秒のウィンドウごとに渡して起こす
+        WK-->>SVC: 区間ごとの文字を改行でつないだ結果
+        Note over SVC: 用語集での補正から後は 正常シナリオ と同じ
+      ```
+    expected:
+      - 文字起こしワーカーが受けた要求に、有効な 2 つのプリセットの 4 つの語が一覧の順に読点（、）でつながって載り、無効のプリセットの語が載っていない
+      - 文字起こしワーカーが faster-whisper の `transcribe` の `hotwords` に、受けた手がかりをそのまま渡している
+      - 履歴に録音と起こした文字がある
+      - 起こした文字を届ける へ進む
+    notes:
+      入口の違い: API から始めた録音と、連続録音の区間ごとの要求にも同じ手がかりを載せる。有効な手がかりのプリセットが無いときは手がかりを載せず、正常シナリオ と同じ要求になる。
+      手がかりの効き目: 手がかりが起こした文字にどう効くかは外部ライブラリ『faster-whisper』が持ち、このシナリオは渡した値を確かめる。
+    test: test_normal_when_hint
+  - name: 正常シナリオ（文頭・文末の決まった文言を消す）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー・文字起こし。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は、音声合成の文の間に無音を挟んだ WAV（中身は問わない）。文字起こしは、「えーと、ありがとうございました。本日の議題は予算です。\n以上です。ありがとうございました。ご視聴ありがとうございました。チャンネル登録よろしくお願いします。」（`\n` は改行）を返す
+      - name: 文頭・文末から削除する文言
+        description: 一覧に上から「チャンネル登録*」（文末）・「ご視聴ありがとうございました」（文末）・「ありがとうございました」（文末）・「えーと」（文頭）の行がある
+        notes: 反映は `immediate`
+      - name: 入口
+        description: ホットキーから始めた録音を確定する
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant ST as 設定
+        participant LOG as ログ
+
+        Note over SVC: 文字起こしの結果を受け取るまでは 正常シナリオ と同じ
+        SVC->>ST: 文頭・文末から削除する文言の一覧を読む
+        loop 一覧の行を上から順に
+          SVC->>SVC: 行の位置が文頭なら 1 行目の先頭、文末なら最後の行の末尾に文言が一致する間、一致した文言とその後ろに続く句読点・空白を消す
+        end
+        SVC->>LOG: 消した文字を位置（文頭・文末）つきで書く
+        Note over SVC: 用語集での補正から後は 正常シナリオ と同じ
+      ```
+    expected:
+      - 最後の行が「以上です。」になっている（「チャンネル登録よろしくお願いします。」「ご視聴ありがとうございました。」「ありがとうございました。」が一覧の順に消え、「ご視聴」が残っていない）
+      - 1 行目の先頭の「えーと、」が消え、続く「ありがとうございました。」は残っている（位置が文末の行は文頭に当てない）
+      - ログに、消した文字が位置つきで出ている
+      - 起こした文字を届ける へ進む
+    test: test_normal_when_edge_phrases_removed
+    notes:
+      一致の書き方: 文言は書いた文字との完全な一致で、`*` は 0 文字以上の任意の文字列として扱う。`*` は改行をまたがない。文言の末尾の `*` は行の末尾まで、先頭の `*` は行の先頭から一致させる（文頭の「字幕*」は 1 行目を「字幕」から行末まで消す）。途中の `*` は、消す文字が最も短い一致を使う。
+      文頭・文末の単位: 起こした文字は区間ごとの文字を改行でつないだもので、文頭は 1 行目の先頭、文末は最後の行の末尾とする。消して最後の行（1 行目）が空になったら、その行を除いて前（次）の行を最後の行（1 行目）として続ける。連続録音は区間の文字ごとに当てる。
+      消した結果が空: 起こした文字が全て消えたときは、異常シナリオ（文字起こしの結果が空）と同じに扱う（API から始めた録音は空の文字を返す）。
+  - name: 正常シナリオ（ブラウザから受けた音声）
+    setup:
+      - name: Mock
+        description: 常駐アプリを pytest のプロセスの中で起動し、テストから `POST /web/transcriptions` で音声を送信する
+        notes: 音声は SAPI で書き出した文を webm/opus にしたファイル
+      - name: 履歴の保存
+        description: 履歴を残す設定にする
+      - name: 用語集
+        description: 書き出した文の言葉を置き換える行を 1 つ入れる
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant WK as 文字起こしワーカー（子プロセス）
+        participant H as 履歴
+
+        SVC->>SVC: 受け付けたジョブを 1 件取り出す（state: running）
+        SVC->>H: 音声を録れた形式の拡張子のまま残す
+        SVC->>WK: 音声のパスと設定を送信する（セッションと順番に使う）
+        WK-->>SVC: 区間の進み（segment.end / duration）
+        SVC->>SVC: ジョブの progress を更新する
+        WK-->>SVC: 区間ごとの文字
+        SVC->>SVC: 用語集と文頭・文末の文言で補正する
+        SVC->>H: 起こした文字を同じ名前の .txt に書く
+        SVC->>SVC: ジョブを終える（state: done・text）
+      ```
+    expected:
+      - '`GET /web/transcriptions/{job_id}` が `done` を返し、`text` に用語集で補正した文字が入っている'
+      - 起こしている間、`GET /web/transcriptions/{job_id}` の `progress` が 0 から 1 の間で増えている
+      - 履歴に、webm のままの音声と同じ名前の .txt が残っている
+      - 文字起こし中の表示も出力先への貼り付けも起きていない
+    test: test_normal_when_browser_audio
+    notes:
+      セッションとの関係: ブラウザの音声はセッション（`/sessions`）とは別に扱い、ホットキー・API の録音中でも積める。文字起こしワーカーは 1 つで、セッションの録音と取り合うときは先に渡した方から順に起こす。
+      履歴を残さない設定: 履歴を残さない設定では、受けた音声は一時のファイルに置き、起こし終えたら消す。
+  - name: 異常シナリオ（ブラウザから受けた音声の文字起こしに失敗）
+    setup:
+      - name: Mock
+        description: 常駐アプリを pytest のプロセスの中で起動し、テストから `POST /web/transcriptions` で音声を送信する
+      - name: 文字起こしの失敗
+        description: 文字起こしのエンジンを失敗を返す関数に差し替える
+      - name: 履歴の保存
+        description: 履歴を残す設定にする
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant WK as 文字起こしワーカー（子プロセス）
+        participant H as 履歴
+        participant LOG as ログ
+
+        SVC->>SVC: 受け付けたジョブを 1 件取り出す（state: running）
+        SVC->>H: 音声を録れた形式の拡張子のまま残す
+        SVC->>WK: 音声のパスと設定を送信する
+        WK-->>SVC: エラー
+        SVC->>LOG: job_id と失敗した理由を書く
+        SVC->>SVC: ジョブを終える（state: failed・error）。次のジョブへ進む
+      ```
+    expected:
+      - '`GET /web/transcriptions/{job_id}` が `failed` を返し、`error` に文字起こしに失敗したことが入っている'
+      - 履歴にこの音声が残っている
+      - 続けて送信した音声（エンジンを戻した後）が `done` まで進む
+      - ダイアログも文字起こし中の表示もトレイの通知も出ていない
+    test: test_error_when_browser_audio_transcription_failed
+    notes:
+      同じ扱いになる失敗: 再起動したワーカーも異常終了したときも同じ扱いになる。
+  - name: 正常シナリオ（API で指定したプリセットで補正する）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の文の WAV。返送先は 127.0.0.1 で待ち受けるテスト用のエンドポイント
+      - name: 文字起こしのエンジン
+        description: ローカルの Whisper を使う設定にする
+        notes: '-'
+      - name: 用語集のプリセット
+        description: 用語集のプリセットが 2 つあり、それぞれが別の用語集を使う。2 つの用語集に、話す内容で起きる別々の誤変換と正しい表記のオンの行がある
+        notes: 設定で選んでいるのは 1 つ目のプリセット
+      - name: 入口
+        description: API の開始で 2 つ目のプリセットを指定して始めた録音を、API の完了で確定する
+        notes: '-'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant GL as 用語集
+        participant WK as 文字起こしワーカー（子プロセス）
+        participant HIST as 履歴
+
+        SVC->>GL: 開始で指定したプリセットの用語集を全て読み直す（オンの行だけ）
+        SVC->>WK: 録音と設定を送信する（文字起こし中の表示は開かない）
+        WK-->>SVC: 区間ごとの文字を改行でつないだ結果
+        Note over SVC: 文頭・文末の文言を消し、用語集で置き換える流れは 正常シナリオ と同じ
+        SVC->>HIST: 起こした文字を録音と同じ履歴に追記する
+      ```
+    expected:
+      - 起こした文字の中の、指定したプリセットの用語集の誤変換が正しい表記に置き換わっている
+      - 設定で選んでいるプリセットの用語集の誤変換は、置き換わらずに残っている
+      - 設定で選んでいるプリセットは変わっていない
+      - 起こした文字を届ける へ進む
+    test: test_normal_when_api_glossary_preset
+    notes:
+      指定が無いとき: |-
+        開始でプリセットを指定しない API の録音と、ホットキー・トレイの録音は、設定で選んでいるプリセットを使う（正常シナリオ）。ブラウザの音声は 正常シナリオ（ブラウザで選んだプリセットで補正する） のとおり。
+        開始の後に設定で選ぶプリセットを変えても、指定したプリセットで補正する。
+  - name: 正常シナリオ（ブラウザで選んだプリセットで補正する）
+    setup:
+      - name: Mock
+        description: 常駐アプリを pytest のプロセスの中で起動し、テストから `POST /web/transcriptions` で音声と 2 つ目のプリセットの名前を送信する
+        notes: 音声は SAPI で書き出した文を webm/opus にしたファイル
+      - name: 用語集のプリセット
+        description: 用語集のプリセットが 2 つあり、それぞれが別の用語集を使う。2 つの用語集に、書き出した文で起きる別々の誤変換と正しい表記のオンの行がある
+        notes: 設定で選んでいるのは 1 つ目のプリセット
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant GL as 用語集
+        participant WK as 文字起こしワーカー（子プロセス）
+
+        SVC->>SVC: 受け付けたジョブを 1 件取り出す（state: running）
+        SVC->>WK: 音声のパスと設定を送信する
+        WK-->>SVC: 区間ごとの文字
+        SVC->>GL: ジョブが持つプリセットの用語集を全て読み直す（オンの行だけ）
+        Note over SVC: 文頭・文末の文言を消し、用語集で置き換えて履歴とジョブに残す流れは 正常シナリオ（ブラウザから受けた音声） と同じ
+        SVC->>SVC: ジョブを終える（state: done・text）
+      ```
+    expected:
+      - '`GET /web/transcriptions/{job_id}` が `done` を返し、`text` の中の 2 つ目のプリセットの用語集の誤変換が正しい表記に置き換わっている'
+      - 1 つ目のプリセット（設定で選んでいるプリセット）の用語集の誤変換は、置き換わらずに残っている
+      - 設定で選んでいるプリセットは変わっていない
+    test: test_normal_when_browser_glossary_preset
+    notes:
+      指定が無いとき: |-
+        プリセットの名前を送信しないブラウザの音声は、起こし終えた時点で設定で選んでいるプリセットを使う（正常シナリオ（ブラウザから受けた音声））。
+        受け付けた後に設定で選ぶプリセットを変えても、送信した名前のプリセットで補正する。
+      起こす前に削除されたとき: 受け付けた後にそのプリセットが設定から削除されていたら、設定で選んでいるプリセットで補正する（API の録音と同じ拾い方）。
+  - name: 正常シナリオ（OpenAI API で起こす）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV。OpenAI API は、設定のベース URL を 127.0.0.1 で待ち受けるテスト用のエンドポイントに向け、受けた要求を控えて決まった文字を返す
+      - name: 文字起こしのエンジン
+        description: OpenAI API を使う設定にし、API キーを環境変数 `OPENAI_API_KEY` で渡す。モデルは既定のまま
+        notes: '`transcription.engine: openai`。既定のモデルは `gpt-transcribe`'
+      - name: 手がかりのプリセット
+        description: 語を持つ有効な手がかりのプリセットが 1 つある
+        notes: 語は 2 つ
+      - name: 入口
+        description: ホットキーから始めた録音を確定する
+        notes: '-'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant OV as 文字起こし中の表示
+        participant OAI as OpenAI API
+        participant HIST as 履歴
+
+        Note over SVC: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
+        SVC->>SVC: 録音が 25 MB 以下で、OpenAI API が受ける形式かを確かめる
+        SVC->>OAI: 録音・設定のモデル・言語（languages[]）・手がかりの語（keywords[]）を、API キーを付けて送信する
+        OAI-->>SVC: 起こした文字
+        SVC->>SVC: 文頭・文末の文言を消し、用語集で補正する
+        SVC->>HIST: 起こした文字を録音と同じ履歴に追記する
+        SVC->>OV: 閉じる
+      ```
+    expected:
+      - テスト用のエンドポイントが受けた要求に、録音・既定のモデル（`gpt-transcribe`）・設定の言語の `languages[]`・有効なプリセットの語を 1 つずつ並べた `keywords[]` が載り、`language`・`prompt` が無く、`Authorization` に API キーが付いている
+      - 起こした文字の中の用語集の誤変換が、正しい表記に置き換わっている
+      - 履歴に録音と起こした文字がある
+      - 文字起こしワーカーの子プロセスが動いていない
+      - 起こした文字を届ける へ進む
+    test: test_normal_when_openai
+    notes:
+      入口とエンジン: API から始めた録音・連続録音の区間・ブラウザから受けた音声も、設定のエンジンが OpenAI API なら同じ要求で起こす（ブラウザの音声は録れた形式のまま送信する）。区間ごとの進みは返らないため、文字起こし中の表示の残りの時間とブラウザのジョブの進みは、起こし終えるまで進まない（表示の出し方は 画面設計『文字起こし中の表示』）。
+      手がかりの渡し方: 設定のモデルが `gpt-transcribe`（名前が `gpt-transcribe` で始まるもの）なら、有効なプリセットの語を 1 語ずつ `keywords[]` に、設定の言語を `languages[]` に渡す。`<`・`>` を含む語は OpenAI API が要求ごと拒むため `keywords[]` に入れない。有効な語が無いときは `keywords[]` を送信しない。`prompt` は gpt-transcribe も受けるが、手がかりの文は同じ語を読点でつないだだけで `keywords[]` 以上の手がかりにならないため送信しない。ほかのモデルの渡し方は 正常シナリオ（OpenAI API の前のモデルで起こす）。
+  - name: 異常シナリオ（OpenAI API が失敗を返す）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV。テスト用のエンドポイントは 401（API キーの誤り）を返す
+      - name: 文字起こしのエンジン
+        description: OpenAI API を使う設定にし、ベース URL をテスト用のエンドポイントに向ける
+        notes: '-'
+      - name: 入口
+        description: ホットキーから始めた録音を確定する
+        notes: '-'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant OAI as OpenAI API
+        participant OV as 文字起こし中の表示
+        participant TRAY as トレイ
+        participant LOG as ログ
+        actor U as ユーザー
+
+        Note over SVC: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
+        SVC->>OAI: 録音を送信する
+        OAI-->>SVC: 401（API キーの誤り）
+        SVC->>LOG: 失敗した理由（ステータスとエラーの種類。API キーは書かない）を書く
+        SVC->>OV: 閉じる
+        SVC->>TRAY: 待機中のアイコンにする
+        SVC-->>U: 文字起こしに失敗したことと理由を通知する
+      ```
+    expected:
+      - 文字起こしに失敗したことと理由がユーザーに知らされている
+      - ログに失敗した理由が書かれ、API キーが書かれていない
+      - 履歴にこの録音が残っている
+      - 起こした文字を届ける へ進まず、トレイのアイコンが待機中に戻っている
+    test: test_error_when_openai_failed
+    notes:
+      失敗の種類: レートリミット（429）・サーバーの失敗（5xx）・タイムアウトは、非機能要件の回数まで待って送信し直し、それでも失敗したら同じ扱いになる。API から始めた録音・連続録音の区間・ブラウザから受けた音声の失敗は、ワーカーの失敗と同じく 起こした文字を届ける かジョブの `failed` へ渡す。
+  - name: 異常シナリオ（OpenAI API が受けられない音声）
+    setup:
+      - name: Mock
+        description: 常駐アプリを pytest のプロセスの中で起動し、テストから `POST /web/transcriptions` で音声を送信する
+        notes: 音声は 25 MB を超える webm のファイル。OpenAI API は、設定のベース URL を 127.0.0.1 で待ち受けるテスト用のエンドポイントに向け、受けた要求を控える
+      - name: 文字起こしのエンジン
+        description: OpenAI API を使う設定にし、API キーを環境変数 `OPENAI_API_KEY` で渡す
+        notes: '-'
+      - name: 履歴の保存
+        description: 履歴を残す設定にする
+        notes: '-'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant H as 履歴
+        participant LOG as ログ
+
+        SVC->>SVC: 受け付けたジョブを 1 件取り出す（state: running）
+        SVC->>H: 音声を録れた形式の拡張子のまま残す
+        SVC->>SVC: 音声が 25 MB を超えている（OpenAI API へ送信しない）
+        SVC->>LOG: job_id と、音声の大きさが OpenAI API の上限を超えたことを書く
+        SVC->>SVC: ジョブを終える（state: failed・error）。次のジョブへ進む
+      ```
+    expected:
+      - '`GET /web/transcriptions/{job_id}` が `failed` を返し、`error` に音声が OpenAI API の上限を超えたことが入っている'
+      - テスト用のエンドポイントが要求を受けていない
+      - 履歴にこの音声が残っている
+    test: test_error_when_openai_unsupported_audio
+    notes:
+      上限と形式: OpenAI API へ送信できるのは 25 MB 以下で、`mp3`・`mp4`・`mpeg`・`mpga`・`m4a`・`wav`・`webm` の音声に限る。形式が外れる音声（ブラウザの `ogg`）も同じ扱いになる。
+      入口ごとの結末: ホットキー・トレイから始めた録音（約 13 分で 25 MB を超える）は 異常シナリオ（OpenAI API が失敗を返す） と同じく失敗を通知し、API から始めた録音と連続録音の区間は文字起こしの失敗を 起こした文字を届ける へ渡す。
+  - name: 正常シナリオ（OpenAI API の前のモデルで起こす）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV。OpenAI API は、設定のベース URL を 127.0.0.1 で待ち受けるテスト用のエンドポイントに向け、受けた要求を控えて決まった文字を返す
+      - name: 文字起こしのエンジン
+        description: OpenAI API を使う設定にし、settings.yaml でモデルに前のモデルを指定する。API キーを環境変数 `OPENAI_API_KEY` で渡す
+        notes: '`transcription.openai.model: gpt-4o-mini-transcribe`'
+      - name: 手がかりのプリセット
+        description: 語を持つ有効な手がかりのプリセットが 1 つある
+        notes: 語は 2 つ
+      - name: 入口
+        description: ホットキーから始めた録音を確定する
+        notes: '-'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant OV as 文字起こし中の表示
+        participant OAI as OpenAI API
+        participant HIST as 履歴
+
+        Note over SVC: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
+        SVC->>SVC: 録音が 25 MB 以下で、OpenAI API が受ける形式かを確かめる
+        SVC->>OAI: 録音・設定のモデル・言語（language）・手がかり（prompt）を、API キーを付けて送信する
+        OAI-->>SVC: 起こした文字
+        SVC->>SVC: 文頭・文末の文言を消し、用語集で補正する
+        SVC->>HIST: 起こした文字を録音と同じ履歴に追記する
+        SVC->>OV: 閉じる
+      ```
+    expected:
+      - テスト用のエンドポイントが受けた要求に、録音・設定のモデル（`gpt-4o-mini-transcribe`）・言語（`language`）・有効なプリセットの語から作った手がかり（`prompt`）が載り、`languages[]`・`keywords[]` が無く、`Authorization` に API キーが付いている
+      - 履歴に録音と起こした文字がある
+      - 起こした文字を届ける へ進む
+    test: test_normal_when_openai_previous_model
+    notes:
+      手がかりの渡し方: 設定のモデルが `gpt-transcribe` で始まらないとき（`gpt-4o-mini-transcribe`・`gpt-4o-transcribe`・`whisper-1` など）は、ローカルの Whisper と同じ手がかりの文を `prompt` に、設定の言語を `language` に渡す。有効なプリセットが無いときは `prompt` を送信しない。
+  - name: 正常シナリオ（Haas で起こす）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV。Haas の文字起こしのサーバーは、設定の接続先を 127.0.0.1 で待ち受けるテスト用のエンドポイントに向け、受けた要求を控えて決まった文字を返す
+      - name: 文字起こしのエンジン
+        description: Haas を使う設定にする
+        notes: '`transcription.engine: haas`'
+      - name: 手がかりのプリセット
+        description: 有効な手がかりのプリセットが 1 つあり、読みを入れた語が 2 つと、読みを入れていない語が 1 つある
+        notes: '読みは かな（例: 「突合」に「とつごう」、「GitHub」に「ギットハブ」）'
+      - name: 入口
+        description: ホットキーから始めた録音を確定する
+        notes: '-'
+      - name: 調整の値
+        description: Haas の要求ごとの調整の値（手がかりの強さ・採否の守り・一度に起こす音声の長さの上限・区切る長さ・静かな箇所を探す幅・静かさを測る窓・区切りをつなぐ文字・バッチの大きさ）を既定と違う値にする
+        notes: '例: `transcription.haas.alpha: 3.0`・`guard: false`・`short_audio_limit_sec: 20.0`'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant OV as 文字起こし中の表示
+        participant HS as Haas の文字起こしのサーバー（WSL）
+        participant HIST as 履歴
+
+        Note over SVC: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
+        SVC->>HS: 録音と、有効なプリセットの語の表記と読みの組と、設定の要求ごとの調整の値を送信する
+        HS->>HS: 設定の上限の長さ以下は一度に、上限を超えるものは設定の区切りの値で静かな箇所で区切って起こす
+        HS-->>SVC: 起こした文字
+        SVC->>SVC: 文頭・文末の文言を消し、用語集で補正する
+        SVC->>HIST: 起こした文字を録音と同じ履歴に追記する
+        SVC->>OV: 閉じる
+      ```
+    expected:
+      - テスト用のエンドポイントが受けた要求に、録音と、読みを入れた 2 つの語の表記と読みの組と、読みを入れていない語の表記だけが載っている
+      - 起こした文字の中の用語集の誤変換が、正しい表記に置き換わっている
+      - 履歴に録音と起こした文字がある
+      - 文字起こしワーカーの子プロセスが動いていない
+      - 起こした文字を届ける へ進む
+      - テスト用のエンドポイントが受けた要求に、設定した要求ごとの調整の値が載っている
+    test: test_normal_when_haas
+    notes:
+      入口とエンジン: API から始めた録音・連続録音の区間・ブラウザから受けた音声も、設定のエンジンが Haas なら同じ要求で起こす。区間ごとの進みは返らないため、文字起こし中の表示の残りの時間とブラウザのジョブの進みは、起こし終えるまで進まない（OpenAI API と同じ。表示の出し方は 画面設計『文字起こし中の表示』）。ブラウザの音声を送信する形式はインターフェース定義で決める。
+      手がかりの渡し方: Haas は表記と読みの組で語の手がかりを受ける。読みを入れた語は表記と読みの組を、読みを入れていない語は表記だけを渡す（PoC で、読みを渡さない語は手がかりがほとんど効かなかった）。読みはエンジンが Haas のときだけ使い、ローカルの Whisper の `hotwords` と OpenAI API の `keywords[]`・`prompt` には今のとおり表記だけを渡す。有効な語が無いときは手がかりを送信しない。
+      起動の後にサーバーが落ちたとき: 起動の後にサーバーへ届かなくなった録音は、異常シナリオ（Haas のサーバーが失敗を返す） と同じく失敗にし、ローカルの Whisper へは切り戻さない（切り戻すのは起動のときだけ。常駐アプリを起動する の 正常シナリオ（Haas のサーバーへ接続できない））。
+      調整の値: 要求ごとの調整の値は、送信するたびに設定を参照する。設定画面で保存した値は、常駐アプリを起動し直さずに次の文字起こしから有効になる。モデル・計算の精度・装置はサーバーの起動のときに決まる（常駐アプリを起動する の 正常シナリオ（Haas を使う設定））。
+  - name: 異常シナリオ（Haas のサーバーが失敗を返す）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV。テスト用のエンドポイントは 500 を返す
+      - name: 文字起こしのエンジン
+        description: Haas を使う設定にし、接続先をテスト用のエンドポイントに向ける
+        notes: '-'
+      - name: 入口
+        description: ホットキーから始めた録音を確定する
+        notes: '-'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant SVC as 常駐サービス
+        participant HS as Haas の文字起こしのサーバー（WSL）
+        participant OV as 文字起こし中の表示
+        participant TRAY as トレイ
+        participant LOG as ログ
+        actor U as ユーザー
+
+        Note over SVC: 用語集を読み、表示を開くまでは 正常シナリオ と同じ
+        SVC->>HS: 録音を送信する
+        HS-->>SVC: 500
+        SVC->>LOG: 失敗した理由（ステータスとサーバーが返した理由）を書く
+        SVC->>OV: 閉じる
+        SVC->>TRAY: 待機中のアイコンにする
+        SVC-->>U: 文字起こしに失敗したことと理由を通知する
+      ```
+    expected:
+      - 文字起こしに失敗したことと理由がユーザーに知らされている
+      - ログに失敗した理由が書かれている
+      - 履歴にこの録音が残っている
+      - 起こした文字を届ける へ進まず、トレイのアイコンが待機中に戻っている
+    test: test_error_when_haas_failed
+    notes:
+      失敗の種類: 接続できない・非機能要件の応答のタイムアウトを過ぎたときも同じ扱いになる。API から始めた録音・連続録音の区間・ブラウザから受けた音声の失敗は、ワーカーの失敗と同じく 起こした文字を届ける かジョブの `failed` へ渡す。
+lead: 確定した録音を設定のエンジンで文字に起こし、文頭・文末の決まった文言を消して用語集で補正するまでの単一ユースケース。
+issue: 14
+primary_actor: 音声入力を使うユーザー
+trigger: 録音する で録音を確定する
+preconditions:
+  - 確定した録音が履歴か一時の音声にある
+  - 録音を始めた入口（ホットキー・トレイか API）が分かっている
+notes:
+  E2E のテスト: |-
+    E2E の常駐アプリの起こし方と差し替えは、録音する の補足『E2E のテスト』と同じ。
+    文字起こし中の表示は Qt の窓で、失敗を通知したことは通知のログで確かめる。ログの置き場所を開くことは開く呼び出しに渡されたパスで確かめる。
+    手がかりを渡すシナリオは、常駐アプリを pytest のプロセスの中で `build_handlers` で配線し、音声合成の WAV を録音の入力に差し替えて確かめる
+test_file: tests/e2e/単一ユースケース/test_transcribe_recording.py

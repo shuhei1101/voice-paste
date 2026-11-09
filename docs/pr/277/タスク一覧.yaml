@@ -1,0 +1,91 @@
+tasks:
+  - process: 初期構築
+    status: skipped
+    reason: 既存リポジトリのため対象外
+    updated_by: planner
+    updated_at: '2026-11-09T12:08:25.073387+00:00'
+  - process: リバースエンジニアリング
+    status: skipped
+    reason: 既存の設計書を移すだけで、棚卸しが要らない
+    updated_by: planner
+    updated_at: '2026-11-09T12:08:25.073387+00:00'
+  - process: 方針決め
+    status: skipped
+    reason: 方針決めを依頼する Issue でない
+    updated_by: planner
+    updated_at: '2026-11-09T12:08:25.073387+00:00'
+  - process: PoC 検証
+    status: skipped
+    reason: 未検証の技術機構に依存しない（構成は ai-monitor#3307 で検証済み）
+    updated_by: planner
+    updated_at: '2026-11-09T12:08:25.073387+00:00'
+  - process: 複合ユースケース設計
+    status: skipped
+    reason: アプリの動きを変えず、シナリオの中身が変わらない
+    updated_by: planner
+    updated_at: '2026-11-09T12:08:25.073387+00:00'
+  - process: デザインスタイル選定
+    status: skipped
+    reason: 画面を変えない
+    updated_by: planner
+    updated_at: '2026-11-09T12:08:25.073387+00:00'
+  - process: 画面一覧・画面遷移
+    status: skipped
+    reason: 画面を変えない
+    updated_by: planner
+    updated_at: '2026-11-09T12:08:25.073387+00:00'
+  - process: 単一ユースケース設計
+    status: skipped
+    reason: アプリの動きを変えず、シナリオの中身が変わらない
+    updated_by: planner
+    updated_at: '2026-11-09T12:08:25.073387+00:00'
+  - process: モック作成
+    status: skipped
+    reason: 画面を変えない（モックは置き場所だけを移す）
+    updated_by: planner
+    updated_at: '2026-11-09T12:08:25.073387+00:00'
+  - process: インターフェース定義設計
+    status: skipped
+    reason: インターフェースを変えない
+    updated_by: planner
+    updated_at: '2026-11-09T12:08:25.073387+00:00'
+  - process: 部品設計
+    status: skipped
+    reason: 画面の部品を変えない
+    updated_by: planner
+    updated_at: '2026-11-09T12:08:25.073387+00:00'
+  - process: 画面設計
+    status: skipped
+    reason: 画面を変えない
+    updated_by: planner
+    updated_at: '2026-11-09T12:08:25.073387+00:00'
+  - process: モジュール構成設計
+    status: skipped
+    reason: コードを変えない
+    updated_by: planner
+    updated_at: '2026-11-09T12:08:25.073387+00:00'
+  - process: ドキュメント修正
+    status: done
+    note: dev/ の文書を docs/・schemas/ へ移し、置き場所を記載するファイルを直す（要件.md）
+    updated_by: planner
+    updated_at: '2026-11-09T12:38:18.064277+00:00'
+  - process: 単体テスト作成
+    status: skipped
+    reason: コードを変えない
+    updated_by: planner
+    updated_at: '2026-11-09T12:08:25.073387+00:00'
+  - process: 実装
+    status: skipped
+    reason: src/ を変えない
+    updated_by: planner
+    updated_at: '2026-11-09T12:08:25.073387+00:00'
+  - process: 結合テスト作成
+    status: skipped
+    reason: コードを変えない
+    updated_by: planner
+    updated_at: '2026-11-09T12:08:25.073387+00:00'
+  - process: E2E テスト作成
+    status: skipped
+    reason: アプリの動きを変えない
+    updated_by: planner
+    updated_at: '2026-11-09T12:08:25.073387+00:00'

@@ -1,0 +1,98 @@
+title: 停止する
+entry:
+  kind: endpoint
+  value: POST /shutdown
+lead: 常駐アプリの終了・再起動のときに、常駐アプリが起動したサーバーを止める。
+test_file: tests/integration/haas_server/test_shutdown.py
+identifier: shutdown
+permissions: なし（トークンを求めない。Host と Origin だけを確かめる）
+idempotent: true
+side_effects: サーバーのプロセスが終わり、GPU のメモリを返す
+exclusivity: 起こしている要求があれば、その応答を返し終えてから終わる
+response_notes: 応答を返した後に待ち受けを止め、プロセスを終了コード 0 で終える。停止の後の要求は接続できない。
+status_codes:
+  - code: '202'
+    condition: 停止を受け付けた
+  - code: '403'
+    condition: Host が 127.0.0.1 でも localhost でもないか、Origin が付いている（停止しない）
+constraints:
+  - item: 待ち受け
+    constraint: 音声を文字に起こす と同じ
+  - item: 認可
+    constraint: 音声を文字に起こす と同じ（Host が `127.0.0.1:{ポート}` か `localhost:{ポート}` で、Origin が付いていないこと）
+    notes: 本文の無い POST はほかのサイトのページから preflight なしで送信できるため、Origin が付いた要求を断って止められないようにする
+  - item: 終わるまでの時間
+    constraint: 制限なし
+    notes: 起こしている要求の分だけ遅れる。常駐アプリは停止を送信した後に待たない
+flows:
+  - name: 正常系
+    summary: 停止を受け付けて 202 を返し、プロセスを終える
+    setup:
+      - name: Mock
+        description: Haas のモデルの読み込みを、決まったモデルを返す関数に差し替え、サーバーを別のプロセスで起動する
+        notes: GPU を使わない
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as 常駐アプリ
+        participant IF as POST /shutdown
+
+        C->>IF: 要求
+        IF-->>C: 202
+        IF->>IF: 待ち受けを止めてプロセスを終える
+      ```
+    expected:
+      - 202 が返る
+      - サーバーのプロセスが終了コード 0 で終わる
+      - 停止の後の GET /health に接続できない
+    test: test_normal
+  - name: 正常系（起こしている最中）
+    summary: 起こしている要求の応答を返し終えてから終わる
+    setup:
+      - name: Mock
+        description: Haas のモデルを、放すまで待ってから決まった文字を返す関数に差し替え、サーバーを別のプロセスで起動する
+      - name: 起こしている要求
+        description: POST /transcriptions を送信し、モデルで待たせておく
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as 常駐アプリ
+        participant IF as POST /shutdown
+        participant T as POST /transcriptions
+
+        C->>T: audio
+        C->>IF: 要求
+        IF-->>C: 202
+        T-->>C: 200・text
+        IF->>IF: 待ち受けを止めてプロセスを終える
+      ```
+    expected:
+      - 停止の要求に 202 が返る
+      - 起こしていた要求に 200 と決まった文字が返る
+      - その後にサーバーのプロセスが終了コード 0 で終わる
+    test: test_normal_when_transcribing
+  - name: 異常系（許されていない要求元・403）
+    summary: Origin が付いた停止の要求を断り、サーバーは動き続ける
+    setup:
+      - name: Mock
+        description: 正常系と同じ
+      - name: 要求のヘッダー
+        description: Origin を付ける
+        notes: '`Origin: http://evil.example`'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant C as ほかのサイトのページ
+        participant IF as POST /shutdown
+        participant LOG as ログ
+
+        C->>IF: 要求（Origin が付いている）
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書く
+        IF-->>C: 403（problem+json）
+      ```
+    expected:
+      - 403 の problem+json が返る
+      - サーバーのプロセスが動いていて、GET /health が 200 を返す
+    test: test_error_when_origin_not_allowed
+id: IF-14
+visibility: internal

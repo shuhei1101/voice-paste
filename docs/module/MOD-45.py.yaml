@@ -1,0 +1,17 @@
+id: MOD-45
+visibility: internal
+title: 常駐アプリ / ホットキーと画面 / busy_dialog.py
+functions:
+  - name: show_busy_dialog
+    title: 処理中のダイアログ
+    container: ui/windows/busy_dialog.py
+    usecase: 録音する
+    summary: 「常に手前に表示」の QMessageBox で、処理中のため録音を始められないことを知らせる。既に出ていれば前面に出すだけにする
+    kind: 関数
+    scope: public
+    returns:
+      type: None
+      description: なし（モーダルを open で開いてすぐ戻る。exec でメインスレッドを止めない）
+    refs:
+      - SCR-3#
+    status: implemented

@@ -1,0 +1,53 @@
+id: MOD-20
+visibility: internal
+title: 常駐アプリ / APIサーバー / error_handlers.py
+test_files:
+  - tests/unit/voice_paste/server/test_error_handlers.py
+functions:
+  - name: register_exception_handlers
+    title: 例外ハンドラの登録
+    kind: 関数
+    container: server/error_handlers.py
+    usecase: APIで録音を操作する
+    scope: public
+    summary: 共通の例外を RFC 9457 の application/problem+json へ変える。入力の検証の失敗（RequestValidationError）は既定の 422 でなく 400 にする
+    args:
+      - name: app
+        type: FastAPI
+        required: true
+        passing: positional
+        description: 登録先
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. CallbackNotAllowedError・GlossaryPresetNotFoundError・RequestValidationError → 400、SessionNotFoundError・WebJobNotFoundError → 404、SessionBusyError・SessionConflictError → 409、RequestBodyTooLargeError → 413、AudioUnreadableError → 415、MicrophoneUnavailableError・WebQueueFullError → 503 を登録する
+      2. Starlette の HTTPException（StaticFiles の 404 など）を、そのステータスの problem+json にする
+      3. それ以外の AppError と例外は 500 にする
+         - `[ERROR]` 想定していない例外（logger.exception）
+    unit_tests:
+      - name: test_register_exception_handlers_when_validation_error
+        case: 正常
+        summary: URI でない callback_url は 400
+        condition: TestClient で callback_url="nope" を送信する
+        mock: SessionManager
+        expected: 400 と application/problem+json が返る
+      - name: test_register_exception_handlers_when_busy
+        case: 正常
+        summary: SessionBusyError は 409
+        condition: start が SessionBusyError を送出する
+        mock: SessionManager
+        expected: 409 が返る
+      - name: test_register_exception_handlers_when_conflict
+        case: 正常
+        summary: SessionConflictError は 409
+        condition: stop が SessionConflictError を送出する
+        mock: SessionManager
+        expected: 409 が返り、detail に断った理由が入る
+      - name: test_register_exception_handlers_when_web_errors
+        case: 正常
+        summary: ブラウザの API の例外を対応するステータスにする
+        condition: route が WebJobNotFoundError・RequestBodyTooLargeError・AudioUnreadableError・WebQueueFullError を送出する
+        mock: WebJobQueue・probe_audio
+        expected: 順に 404・413・415・503 と application/problem+json が返る
+    status: implemented

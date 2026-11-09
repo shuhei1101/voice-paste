@@ -1,0 +1,37 @@
+$ BUNDLE_GEMFILE={ai-monitor の #3307 の worktree}/Gemfile bundle exec jekyll build --source docs --destination /tmp/vp277/site
+Configuration file: /mnt/c/Users/shuhe/repo/voice-paste/.claude/worktrees/chore-docs-merge-dev-into-docs/docs/_config.yml
+To use retry middleware with Faraday v2.0+, install `faraday-retry` gem
+            Source: /mnt/c/Users/shuhe/repo/voice-paste/.claude/worktrees/chore-docs-merge-dev-into-docs/docs
+       Destination: /tmp/vp277/site
+ Incremental build: disabled. Enable with --incremental
+      Generating... 
+[33m   GitHub Metadata: No GitHub API authentication could be found. Some fields may be missing or have incorrect data.[0m
+                    done in 3.589 seconds.
+ Auto-regeneration: disabled. Use --watch to enable.
+
+$ find /tmp/vp277/site -type f | sort
+assets/css/style.css
+guide/API.html
+guide/API.md
+guide/README.md
+guide/files.yml
+guide/index.html
+guide/index.yaml
+guide/変更履歴.html
+guide/変更履歴.md
+guide/外の端末から文字に起こす.html
+guide/外の端末から文字に起こす.md
+guide/起動と設定.html
+guide/起動と設定.md
+guide/録音して貼り付ける.html
+guide/録音して貼り付ける.md
+index.html
+index.md
+index.yaml
+rules.yaml
+はじめに/index.html
+リファレンス/index.html
+使い方/index.html
+
+$ grep -c -E '^(architecture|config|design-policy|dev-command|er|external-api|interface|library|module|nonfunctional|scenario|screen|test-procedure|pr|mock|generated)(/|\.)'
+0

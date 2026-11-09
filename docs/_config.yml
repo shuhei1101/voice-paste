@@ -1,0 +1,26 @@
+# GitHub Pages 用 Jekyll 設定
+# docs/ 配下を Jekyll サイトとしてビルドする
+
+title: voice-paste
+baseurl: /voice-paste
+
+# ビルドから除外するもの
+exclude:
+  # 公開ドキュメントの索引の起点（トップは index.md が持つ）
+  - README.md
+  - architecture/
+  - config/
+  - design-policy.md
+  - dev-command/
+  - er/
+  - external-api/
+  - interface/
+  - library/
+  - module/
+  - nonfunctional/
+  - scenario/
+  - screen/
+  - test-procedure/
+  - pr/
+  - mock/
+  - generated/

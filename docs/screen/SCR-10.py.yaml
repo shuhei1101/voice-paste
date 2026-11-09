@@ -1,0 +1,161 @@
+id: SCR-10
+visibility: internal
+title: "録音の画面"
+elements:
+  - name: 窓
+    id: recording_window
+    kind: window
+    position: 窓
+    description: 録音の画面の窓。`ui.follow_cursor` がオンならカーソルのあるモニター、オフなら主のモニターの `ui.position` の位置に出す。`ui.topmost` がオンなら `Qt.WindowStaysOnTopHint` で「常に手前に表示」でないほかのウィンドウより上に残す。出したときはフォーカスを取らず、窓を押したときに前面になってフォーカスを取る。タスクバーに出ない枠なしの窓のまま、見出しの行をつかんで動かす。動かした位置はその回だけ使い、次の録音は設定の位置に出す。面は `color.*.surface`、外側の縁は `color.*.frame` の 1px の線で描き、白い背景・黒い背景のアプリの上でも窓の範囲が分かるようにする（`*` は `ui.theme` で決まる明暗）
+    visible_when: ホットキー・トレイから始めたセッションが recording か paused の間（`recording.hide_window` がオフのとき）。API から始めた録音では出さない
+    action: 確定・取り消し・× で閉じ、前面を貼り付け先へ戻す。「隠す」でその回だけ隠し、前面を貼り付け先へ戻す。隠した窓は、トレイのアイコンの左クリック・トレイの「録音の画面を表示」・録音開始のホットキー（同じホットキーの出力先が無いとき）で、隠す前の位置にフォーカスを取らずに戻す
+    source: UiBridge.notified（state_changed）
+    refs:
+      - CFG-1#settings[ui.topmost]
+      - CFG-1#settings[ui.position]
+      - CFG-1#settings[ui.follow_cursor]
+      - CFG-1#settings[recording.hide_window]
+      - CFG-1#settings[ui.theme]
+  - name: 状態の表示
+    id: state_label
+    kind: label
+    position: 窓 > 見出し
+    description: 今の録音の状態を、マーカーと文字で出す（色だけで伝えない）
+    io: 表示
+    type: 文字列
+    visible_when: 常時
+    display_format: recording は「録音中」（赤の点）、paused は「一時停止中」
+    source: Session.state
+  - name: 経過時間
+    id: elapsed_label
+    kind: label
+    position: 窓 > 見出し
+    description: 録音を始めてからの経過時間。一時停止中は止めた時点のまま止まる
+    io: 表示
+    type: 時間
+    visible_when: 常時
+    display_format: 1 時間未満は `mm:ss`（例 00:42）、1 時間以上は `h:mm:ss`（例 1:02:37）。等幅の数字
+    align: 右
+    source: 録音の画面が数えるストップウォッチ（録音を始めて録音の画面を開いたときに 0 から始め、一時停止の間は止める。隠している間も止めず、戻したときに 0 へ戻さない）
+  - name: 波形
+    id: waveform
+    kind: canvas
+    position: 窓 > 見出しの下
+    description: 録音中の音量を棒の並びで流す。一時停止中は棒を止め、最後の形のまま出す
+    io: 表示
+    visible_when: 常時
+    source: UiDeps.level（Recorder.level。`ui.wave_gain` を掛けて高さを決める）
+    refs:
+      - CFG-1#settings[ui.wave_gain]
+  - name: 一時停止のボタン
+    id: pause_button
+    kind: button
+    position: 窓 > 操作の行
+    description: 録音を一時停止する。一時停止の間に話した声は録らない。名前の下に一時停止のホットキーを出す
+    label: 一時停止 [hotkeys.pause]
+    visible_when: 状態が recording のとき
+    action_ref: MOD-24#classes[SessionManager].methods[pause]
+    refs:
+      - CFG-1#settings[ui.show_hotkeys]
+  - name: 再開のボタン
+    id: resume_button
+    kind: button
+    position: 窓 > 操作の行
+    description: 一時停止した録音を再開する。一時停止のボタンと同じ場所に出し、同じホットキーを出す
+    label: 再開 [hotkeys.pause]
+    visible_when: 状態が paused のとき
+    action_ref: MOD-24#classes[SessionManager].methods[resume]
+    refs:
+      - CFG-1#settings[ui.show_hotkeys]
+  - name: 取り消しのボタン
+    id: cancel_button
+    kind: button
+    position: 窓 > 操作の行
+    description: 録音を捨てて窓を閉じ、待機中に戻す。名前の下に取り消しのホットキーを出す
+    label: 取り消し [hotkeys.cancel]
+    visible_when: 常時
+    action: 窓を閉じる
+    action_ref: MOD-24#classes[SessionManager].methods[cancel]
+    refs:
+      - CFG-1#settings[ui.show_hotkeys]
+  - name: 出力先の確定のボタン
+    id: output_button_{output_id}
+    kind: button
+    position: 窓 > 波形の下 > 出力先の並び
+    description: 出力先を選んで録音を確定し、文字起こし中の表示へ移る。一時停止中でも確定できる。設定でオンの出力先（`paste_and_send`・`paste_only`・`copy_only`）ごとに設定の並びで 1 つずつ、見出しを付けずに操作の行の下へ出し、オンのうち一番上のものを主の操作にする。名前の下にその出力先のホットキーを出す
+    label: 貼り付けて送信 / 貼り付けのみ / コピーのみ
+    visible_when: その出力先の `outputs[].enabled` がオンのとき
+    options: '`outputs[]` の並び（paste_and_send・paste_only・copy_only）のうちオンのもの'
+    target: SessionManager.complete.output_id（押したボタンの出力先の ID）
+    action: 窓を閉じる
+    action_ref: MOD-24#classes[SessionManager].methods[complete]
+    refs:
+      - CFG-1#settings[outputs[].enabled]
+      - CFG-1#settings[outputs[].hotkey]
+      - SCR-7#
+      - CFG-1#settings[ui.show_hotkeys]
+  - name: カスタムプリセットの見出し
+    id: presets_heading
+    kind: label
+    position: 窓 > カスタムプリセット
+    description: カスタムプリセットのボタンの並びの見出し。出力先の確定のボタンの並びの下に置く
+    label: カスタムプリセット
+    visible_when: 有効なプリセット（`presets[].enabled` がオン）が 1 つ以上あるとき。1 つも無ければ見出しごと出さない
+  - name: カスタムプリセットのボタン
+    id: preset_button_{n}
+    kind: button
+    position: 窓 > カスタムプリセット
+    description: プリセットを選んで録音を確定し、文字起こし中の表示へ移る。一時停止中でも確定できる。種類によらず同じボタンにする。有効なプリセットごとに 1 つずつ出し、3 件ずつ横に並べて 4 件目から次の行へ折り返す（種類の境目でも行を変えない）。タイトルはボタンの幅で `…` に省略し、かざすと全体を出す。名前の下にホットキーを省略せずに出し、空のプリセットはタイトルだけを同じ行のボタンと高さを揃えて上下の中央に出す
+    label: '{プリセットのタイトル} [プリセットのホットキー]'
+    visible_when: そのプリセットの `presets[].enabled` がオンのとき
+    options: '`presets[]` のうち `kind` が browser のものを並びのまま出し、続けて endpoint のものを並びのまま出す。無効のものは出さない'
+    target: SessionManager.complete（押したボタンのプリセット）
+    action: 窓を閉じる
+    action_ref: MOD-24#classes[SessionManager].methods[complete]
+    refs:
+      - CFG-1#settings[presets[].title]
+      - CFG-1#settings[presets[].hotkey]
+      - CFG-1#settings[presets[].enabled]
+      - SCR-7#
+      - CFG-1#settings[ui.show_hotkeys]
+  - name: 見出しの行
+    id: head_row
+    kind: drag_handle
+    position: 窓 > 見出し
+    description: 状態の表示・経過時間・隠すと×のボタンを並べる行。左端にドラッグのハンドルを置き、行のどこをつかんでも窓をドラッグで動かせる（隠す・× の上はつかめない）。かざすと行に面が付き、ドラッグのハンドルが濃くなり、カーソルが移動の形になる。動かしている間も録音と経過時間は止めない
+    visible_when: 常時
+    action: ドラッグで窓を動かし、放した位置に置く
+  - name: 隠すのボタン
+    id: hide_button
+    kind: button
+    position: 窓 > 見出し > 右端
+    description: その回だけ録音の画面を隠す。横線（最小化の形）のアイコンで、枠を持たずに見出しの行の中で目立たせない。隠してもセッションの状態・録音・経過時間は止めず、ホットキーの一時停止・取り消し・確定はそのまま効く。かざすと戻し方を添えた説明を出す（終わりの括弧の中は、録音開始と同じホットキーの出力先がある設定では「トレイのアイコンで戻す」、無い設定では「トレイのアイコンか {hotkeys.start} で戻す」）
+    label: 録音の画面を非表示にする（トレイのアイコンで再表示） / 録音の画面を非表示にする（トレイのアイコンか [hotkeys.start] で再表示）（かざしたときの説明）
+    visible_when: 常時
+    action: 窓を隠し、前面を貼り付け先へ戻す
+    refs:
+      - CFG-1#settings[hotkeys.start]
+      - SCR-1#
+  - name: 閉じるのボタン
+    id: close_button
+    kind: button
+    position: 窓 > 見出し > 右端
+    description: 「取り消し」のボタンと同じく、録音を捨てて窓を閉じ、待機中に戻す（確認を挟まない）。隠すのボタンの右に置き、押し違えないよう 2 つの間を空けて縦の区切りの線を置く。かざすと「取り消し」のボタンと同じ警告の色になり、取り消しのホットキーを添えた説明を出す
+    label: '×（かざしたときの説明: 取り消し [hotkeys.cancel]）'
+    visible_when: 常時
+    action: 窓を閉じる
+    action_ref: MOD-24#classes[SessionManager].methods[cancel]
+    refs:
+      - CFG-1#settings[hotkeys.cancel]
+screen: src/voice_paste/ui/windows/recording_window.py
+mock: docs/mock/pages/recording-window/94/a-cool-gray/
+lead: ホットキー・トレイから始めた録音の間だけ出る小さな窓。状態・経過時間・波形と、一時停止・取り消し・確定の操作を並べる。
+refs:
+  - SC-8#
+  - MOD-32#classes[UiBridge]
+notes:
+  ホットキー: ボタンと同じ操作は、どこにフォーカスがあってもホットキーで行える（`HotkeyListener`）。窓のキーボードの操作は持たず、窓を押してフォーカスを取った後に Tab で移ったときだけフォーカスの枠を出す
+  ボタンのホットキーの出し方: 一時停止・再開・取り消し・出力先の確定・カスタムプリセットのボタンは、名前を 1 行目に、同じ操作のホットキーを 2 行目に出す。ホットキーは `format_hotkey` で整えた全体を省略せず、枠で囲んだ等幅のキー（キーキャップ風）で出す。ボタンの大きさは中の名前とホットキーが要る大きさから決め、幅は名前とホットキーの長い方にする。窓は既定の幅（360px）より狭くせず、ボタンが要る幅まで広げる。プリセットの列は列ごとにいちばん広いボタンの幅に揃える。ホットキーが空のボタンは名前だけを出す。`ui.show_hotkeys` がオフのときは、全てのボタンをホットキーが空のボタンと同じく名前だけで出す（ホットキーでの操作はそのまま効く）
+  状態の受け取り: 画面はメインスレッドで `UiBridge.notified` の state_changed を受けて開く・閉じる・状態を替える。経過時間と波形はメインスレッドのタイマーで描き直す
+  隠して戻す: 隠すのはその回の録音の画面だけで、次の録音ではいつもどおり出す（`recording.hide_window` は変えない）。戻すときは、隠したときの経過時間・状態（録音中・一時停止中）のまま、隠す前の位置にフォーカスを取らずに出す。録音開始と同じホットキーの出力先がある設定（既定の設定）では、録音開始のホットキーは今どおりその出力先で確定し、戻すのはトレイだけになる。隠したまま確定した回も、文字起こし中の表示は隠す前の位置に出す
+test_file: tests/integration/ui/test_recording_window.py

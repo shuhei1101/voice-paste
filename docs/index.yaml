@@ -1,9 +1,33 @@
 title: voice-paste
-summary: voice-paste の公開ドキュメント全体の目次
+summary: voice-paste のドキュメント全体の目次
 items:
-  - page: はじめに/
-    summary: 概要・コアコンセプト・変更履歴
-  - page: 使い方/
-    summary: セットアップと日々の操作
-  - page: リファレンス/
-    summary: 設定・ホットキーなどの参照資料
+  - page: scenario/
+    summary: 単一 / 複合ユースケースの業務フロー設計（E2E テストの元）
+  - page: interface/
+    summary: サブシステムの外部インターフェースと処理フロー（サブシステム結合テストの元）
+  - page: module/
+    summary: クラス / 関数 / 関数型 インデックス（単体テストの元）
+  - page: screen/
+    summary: 画面ごとの要素の仕様と入力チェック（画面の結合テストの元）
+  - page: config/
+    summary: 設定と環境変数のキー定義
+  - page: er/
+    summary: データストアの定義
+  - page: architecture/
+    summary: システム全体構成（常駐アプリ・文字起こしの外部サービス・API の呼び出し元・貼り付け先の関係）
+  - page: nonfunctional/
+    summary: 外部の制約から逆算したアプリ側の決定値（非機能要件テストの元）
+  - page: external-api/
+    summary: 採用済みの外部 API のリファレンス
+  - page: library/
+    summary: 採用済みの外部ライブラリ / 外部ツールのリファレンス
+  - page: dev-command/
+    summary: 開発で使うコマンドの分類ごとの前提・順序・コマンド・料金や副作用・確かめた記録
+  - page: test-procedure/
+    summary: プロジェクト固有のテスト起動コマンドと前提条件
+  - page: design-policy.md
+    summary: voice-paste の画面全体に通すデザインの方向性
+  - page: guide/
+    summary: voice-paste の使い方（はじめに・使い方・リファレンス）
+  - page: index.md
+    summary: Pages のトップページ

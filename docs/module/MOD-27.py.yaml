@@ -1,0 +1,60 @@
+id: MOD-27
+visibility: internal
+title: 常駐アプリ / ブラウザの文字起こし / schemas.py
+data_models:
+  - name: CreateWebTranscriptionResponse
+    title: 音声の受け付けのレスポンス
+    container: features/web_transcription/schemas.py
+    usecase: ブラウザから音声を送信する
+    role: スキーマ
+    summary: '`POST /web/transcriptions` の 202 の本文'
+    inherits: pydantic.BaseModel
+    properties:
+      - name: job_id
+        type: str
+        description: 積んだジョブの ID
+    status: planned
+  - name: WebTranscriptionStatus
+    title: 文字起こしの結果のレスポンス
+    container: features/web_transcription/schemas.py
+    usecase: ブラウザで結果を受け取る
+    role: スキーマ
+    summary: '`GET /web/transcriptions/{job_id}` の 200 の本文'
+    inherits: pydantic.BaseModel
+    properties:
+      - name: job_id
+        type: str
+        description: ジョブの ID
+      - name: state
+        type: JobState
+        description: ジョブの状態
+      - name: progress
+        type: float
+        description: 進み具合（0.0〜1.0）
+      - name: reports_progress
+        type: bool
+        description: 設定の文字起こしのエンジンが途中の進みを返すか
+      - name: text
+        type: str | None
+        description: done のときの補正した文字
+      - name: error
+        type: str | None
+        description: failed のときの失敗の理由
+    status: planned
+  - name: WebGlossaryPresetsResponse
+    title: 用語集のプリセットの一覧のレスポンス
+    container: features/web_transcription/schemas.py
+    usecase: 用語集のプリセットを選んで送信する
+    role: スキーマ
+    summary: '`GET /web/glossary-presets` の 200 の本文'
+    inherits: pydantic.BaseModel
+    properties:
+      - name: presets
+        type: list[str]
+        description: 用語集のプリセットの名前の一覧（設定の並びのまま）
+      - name: active
+        type: str
+        description: 設定で選んでいるプリセットの名前
+    status: planned
+    introduced:
+      pr: 180

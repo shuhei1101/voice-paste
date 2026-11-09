@@ -1,0 +1,449 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: 共通の型
+description: |-
+  種別をまたいで使う型。各種別の Schema から `common.schema.yaml#/$defs/{名前}` の `$ref` で使う。
+  項目のキーは英語で書き、画面に出す日本語の名前は `title` で持つ。
+$defs:
+  markdown:
+    type: string
+    title: 本文
+    description: |-
+      Markdown で書く本文。
+      他の設計書を指すときは説明文の中にリンクを書かず、参照は `refs`（`ref` の配列）に持つ。
+      定数は `!{名前}` で埋め込める。
+  summary:
+    type: string
+    title: 概要
+    description: 1 行の要約。改行を含めない。
+    minLength: 1
+    pattern: "^[^\\n]+$"
+  id:
+    type: string
+    title: ID
+    description: |-
+      設計書の変わらない ID。最上位の `id` に持ち、設計書を改名・移動しても変えない。
+      書くツールの `create` が `{種別の接頭辞}-{作業 PR の番号}-{PR の中の連番}` で振る。Schema のバージョンアップの変換が振る既存の設計書は `{種別の接頭辞}-{連番}`。
+    pattern: "^[A-Z]+-\\d+(-\\d+)?$"
+    examples:
+      - "IF-12"
+      - "IF-3038-1"
+  ref:
+    type: string
+    title: 参照
+    description: |-
+      設計書の項目を指す。`{ID}#{項目のパス}` で書く。
+      ID は指す設計書の最上位の `id`。同じ設計書の中は `#{項目のパス}` だけでよい。
+      リストの項目は、その Schema の `x-key` で宣言したキーの値で `[{値}]` と指す（番号で指さない）。
+      設計書全体を指すときは `#` の後を空にする。
+      辞書のキーも `[{キー}]` で指し、`.` や空白を含むキーも 1 段になる（`notes[main.py の補足]`）。
+      同じ `x-key` の値の要素の 2 つ目以降は `[{値}#{順番}]` と指す（`functions[main#3]`）。同じ値の要素が無く末尾が `#{整数}` のときだけ、`[...]` の中の `#` を順番として読む。
+    pattern: "^(?:[A-Z]+-\\d+(?:-\\d+)?)?#(?:[^\\s\\[]|\\[[^\\]]*\\])*$"
+    examples:
+      - "IF-12#flows[正常系]"
+      - "#functions[resolve_base].exceptions"
+      - "CFG-3#"
+      - "#notes[main.py の補足]"
+      - "#functions[main#3]"
+  reason:
+    $ref: "#/$defs/markdown"
+    title: 理由
+    description: そうしている理由。読み手の判断が変わるものだけを書く。
+  status:
+    type: string
+    title: 状態
+    description: 項目の状態。`planned`（予定）/ `implemented`（実装済み）/ `deprecated`（非推奨）/ `removed`（廃止）。書かなければ実装済みとして扱う。
+    enum: [planned, implemented, deprecated, removed]
+  visibility:
+    type: string
+    title: 公開
+    description: |-
+      Pages に出すか。`user`（ユーザー向け。Pages に出す）/ `developer`（開発者向け。dev-docs の画面だけで出す）。
+      書かなければ親の値を引き継ぎ、最上位の既定は `developer`。
+    enum: [user, developer]
+  doc_visibility:
+    type: string
+    title: 公開範囲
+    description: 文書を Pages に出すか。`public`（出す）/ `internal`（出さない）。書かなければ `internal` として扱う。項目の公開（`visibility` の `user` / `developer`）とは別。
+    enum: [public, internal]
+  implementation:
+    type: string
+    title: 実装
+    description: 実装の場所。リポジトリの直下からのファイルのパスに、`#` とシンボルの名前を続けてよい。
+    pattern: "^[^#\\s]+(#\\S+)?$"
+    examples:
+      - "src/ai_monitor/features/design_docs/schemas.py#load_catalog"
+  test:
+    type: string
+    title: テスト
+    description: 対応するテスト関数の名前。
+    pattern: "^test_[A-Za-z0-9_]+$"
+  introduced:
+    type: object
+    title: 導入
+    description: 入ったバージョンと PR。
+    additionalProperties: false
+    properties:
+      version:
+        type: string
+        title: バージョン
+        description: 入ったバージョンのタグ（例 `v0.3.0`）。
+      pr:
+        type: integer
+        title: PR
+        description: 入れた PR の番号。
+  aliases:
+    type: array
+    title: 別名
+    description: 検索で当てたい言い換え。
+    items:
+      type: string
+  notes:
+    type: object
+    title: 補足
+    description: |-
+      項目に分けられない残り。節の名前 → 本文。
+      同じ名前の節が多くの設計書に出たら、標準の項目へ格上げする候補になる。
+    additionalProperties:
+      $ref: "#/$defs/markdown"
+  mermaid:
+    $ref: "#/$defs/markdown"
+    title: 図
+    description: |-
+      手で書く Mermaid の図。```mermaid のコードブロックで書く。
+      図の構文は検証で `mermaid.parse()` に通す。
+  glossary:
+    type: array
+    title: 用語
+    description: 図の中で `※{番号}` を付けた用語の定義。番号は図の中の登場順。
+    x-key: mark
+    items:
+      type: object
+      additionalProperties: false
+      required: [mark, term, definition]
+      properties:
+        mark:
+          type: string
+          title: 印
+          description: "`※1` の形。"
+          pattern: "^※[0-9]+$"
+        term:
+          type: string
+          title: 用語
+        definition:
+          $ref: "#/$defs/markdown"
+          title: 定義
+          description: 1 行の定義。
+  flowchart:
+    type: object
+    title: フローチャート
+    description: |-
+      `flowchart` の元のデータ。図はこのノード・辺・枠・リンクから生成する。
+      使う項目の `x-shape: diagram` と `x-diagram` で図の種類を決める。
+    additionalProperties: false
+    required: [nodes, edges]
+    properties:
+      direction:
+        type: string
+        title: 向き
+        description: 図の向き。`TD`（上から下）/ `LR`（左から右）。書かなければ図の種類の既定（判定は `TD`、データフロー・アーキテクチャは `LR`）。
+        enum: [TD, LR]
+      nodes:
+        type: array
+        title: ノード
+        x-key: id
+        items:
+          $ref: "#/$defs/flowchart_node"
+      edges:
+        type: array
+        title: 辺
+        description: 図に描く順の辺。
+        items:
+          type: object
+          additionalProperties: false
+          required: [from, to]
+          properties:
+            from:
+              type: string
+              title: 元
+              description: 元のノードの `id`。
+            to:
+              type: string
+              title: 先
+              description: 先のノードの `id`。
+            label:
+              type: string
+              title: ラベル
+              description: 矢印のラベル。判定は `YES` / `NO`、データフローは流れるデータの名前。
+            line:
+              type: string
+              title: 線
+              description: 線の意味。書かなければ `flow`（処理の流れ）。`read`（読む）/ `write`（書く）/ `reply`（返す）/ `loop`（戻る）。
+              enum: [flow, read, write, reply, loop]
+            tip:
+              type: string
+              title: 詳細
+              description: 線のツールチップに出す詳細。ラベルを短く保つために書く。
+      frame:
+        type: object
+        title: 枠
+        description: 図の中で 1 つのシステムを囲む枠。
+        additionalProperties: false
+        required: [label, nodes]
+        properties:
+          label:
+            type: string
+            title: 表示
+          nodes:
+            type: array
+            title: 中のノード
+            description: 枠の中に置くノードの `id`。
+            items:
+              type: string
+      clicks:
+        type: array
+        title: リンク
+        x-key: id
+        items:
+          type: object
+          additionalProperties: false
+          required: [id, href]
+          properties:
+            id:
+              type: string
+              title: ノード
+              description: リンクを付けるノードの `id`。
+            href:
+              type: string
+              title: リンク先
+              description: 押したときに開く先（相対パス + アンカー）。
+  flowchart_node:
+    type: object
+    title: ノード
+    additionalProperties: false
+    required: [id, label]
+    properties:
+      id:
+        type: string
+        title: ID
+        description: 図の中で一意なノードの ID。空白を含めない。
+        pattern: "^\\S+$"
+      label:
+        type: string
+        title: 表示
+        description: ノードに出す文言。半角の括弧は描画を崩すので全角で書く。
+      kind:
+        type: string
+        title: 要素の種類
+        description: |-
+          ノードが何を表すか。書かなければ `process`。
+          データフロー・アーキテクチャは `actor`（人・外部の相手）/ `process`（処理）/ `store`（データストア）/ `system`（システム・サブシステム）/ `external`（外部システム）。
+          判定は `start`（開始）/ `question`（質問）/ `action`（アクション）/ `result`（結果）。
+        enum: [actor, process, store, system, external, start, question, action, result]
+      hint:
+        type: string
+        title: 説明
+        description: 箱のツールチップに出す説明の文。表示を短く保つために書く。
+  state_transitions:
+    type: object
+    title: 状態遷移
+    description: |-
+      状態の一覧と遷移の表。状態遷移図はここから生成する。
+    additionalProperties: false
+    required: [states, initial, transitions]
+    properties:
+      states:
+        type: array
+        title: 状態
+        x-key: name
+        x-shape: table
+        minItems: 1
+        items:
+          type: object
+          additionalProperties: false
+          required: [name, identifier]
+          properties:
+            name:
+              type: string
+              title: 状態名
+              description: 業務用語での状態の名前。遷移の元・先はこの名前で指す。
+            identifier:
+              type: string
+              title: 識別子
+              description: 実装上の値・ラベル・フラグ（例 `status = draft`）。
+            sub_identifier:
+              type: string
+              title: 備考識別子
+              description: 複数の識別子で状態を表すときの補助の識別子（assignee・補助ラベル 等）。
+            entry_condition:
+              type: string
+              title: 入る条件
+              description: この状態に入る条件。
+            entry_value:
+              type: string
+              title: 入る値
+              description: この状態に入ったときに入る値（例 `started_at` が入る）。
+            on_enter:
+              type: string
+              title: 入る時の処理
+            on_exit:
+              type: string
+              title: 出る時の処理
+            notes:
+              $ref: "#/$defs/markdown"
+              title: 補足
+      initial:
+        type: string
+        title: 初期状態
+        description: 作成時に入る状態の名前。
+      final:
+        type: array
+        title: 終了状態
+        description: 消える前の最後の状態の名前。
+        items:
+          type: string
+      transitions:
+        type: array
+        title: 遷移
+        description: 許可された遷移。図はこの並びで描く。
+        x-shape: table
+        minItems: 1
+        items:
+          type: object
+          additionalProperties: false
+          required: [from, to]
+          properties:
+            from:
+              type: string
+              title: 元
+              description: 元の状態の名前。どの状態からも入る遷移は `全状態`。
+            to:
+              type: string
+              title: 先
+              description: 先の状態の名前。入る前の状態へ戻る遷移は `元の状態`。
+            trigger:
+              type: string
+              title: きっかけ
+              description: 遷移を起こす操作や出来事。
+            condition:
+              type: string
+              title: 条件
+              description: きっかけに付く条件。図では `{きっかけ} [{条件}]` と描く。
+            action:
+              type: string
+              title: そのときの処理
+            self:
+              type: boolean
+              title: 状態を出ない
+              description: 状態を出ずに処理だけを行う遷移（元と先が同じ）。
+            representative:
+              type: string
+              title: 代表
+              description: "`全状態` / `元の状態` の遷移を図で代表させる状態の名前。図には代表との遷移だけを描く。"
+            note:
+              type: string
+              title: 注記
+              description: "`全状態` の遷移に図で添える注記。"
+          allOf:
+            - if:
+                properties:
+                  from:
+                    const: 全状態
+                required: [from]
+              then:
+                required: [representative]
+            - if:
+                properties:
+                  to:
+                    const: 元の状態
+                required: [to]
+              then:
+                required: [representative]
+  er:
+    type: object
+    title: ER 図
+    description: 実体（テーブルとカラム）と関連。ER 図はここから生成する。
+    additionalProperties: false
+    required: [entities]
+    properties:
+      entities:
+        type: array
+        title: 実体
+        x-key: name
+        items:
+          type: object
+          additionalProperties: false
+          required: [name]
+          properties:
+            name:
+              type: string
+              title: 名前
+              description: 図に出すテーブルの論理名。他の分類のテーブルは名前だけで置く。
+            columns:
+              type: array
+              title: カラム
+              description: 図に描くカラム。書かなければ、同じ設計書のテーブルのカラムから作る。
+              items:
+                type: object
+                additionalProperties: false
+                required: [type, name]
+                properties:
+                  type:
+                    type: string
+                    title: 型
+                  name:
+                    type: string
+                    title: 名前
+                    pattern: "^\\S+$"
+                  key:
+                    type: string
+                    title: キー
+                    enum: [PK, FK, UK]
+                  comment:
+                    type: string
+                    title: 注記
+                    description: "外部キーの参照先（例 `参照: ユーザー.ID`）。"
+      relations:
+        type: array
+        title: 関連
+        items:
+          type: object
+          additionalProperties: false
+          required: [from, to, from_column, to_column, from_cardinality, to_cardinality]
+          properties:
+            from:
+              type: string
+              title: 元
+            to:
+              type: string
+              title: 先
+            from_column:
+              type: string
+              title: 元の列
+              description: 関連が結ぶ元の実体の列の名前。
+            to_column:
+              type: string
+              title: 先の列
+              description: 関連が結ぶ先の実体の列の名前。
+            from_cardinality:
+              $ref: "#/$defs/er_cardinality"
+              title: 元の多重度
+            to_cardinality:
+              $ref: "#/$defs/er_cardinality"
+              title: 先の多重度
+            label:
+              type: string
+              title: ラベル
+  er_cardinality:
+    type: string
+    title: 多重度
+    description: 関連の片端の多重度。`1`（ちょうど 1）/ `0..1`（0 か 1）/ `1..n`（1 以上）/ `0..n`（0 以上）。
+    enum: ["1", "0..1", "1..n", "0..n"]
+    examples:
+      - "0..n"
+  decision:
+    type: string
+    title: 検討事項
+    description: 話し合いの記録の検討事項の ID。本文の文の中に書かず、この項目に持つ。
+    pattern: "^[A-Z]+-[0-9]+$"
+    examples:
+      - "D-313"

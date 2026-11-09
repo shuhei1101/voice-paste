@@ -1,0 +1,338 @@
+id: SC-1
+visibility: internal
+title: "APIで録音を操作する"
+scenarios:
+  - name: 正常シナリオ
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行。返送先は 127.0.0.1 で待ち受けるテスト用のエンドポイント）
+      - name: 待機中
+        description: 常駐サービスが待機中で、ほかの録音・文字起こしを処理していない
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant P as 呼び出し元
+        participant API as API のサーバー
+        participant SVC as 常駐サービス
+
+        P->>API: 開始（トークン・返送先）
+        API->>API: Host・Origin・トークン・返送先を確かめる
+        API->>SVC: 画面を出さない録音を始める（返送先を渡す）
+        SVC-->>API: 録音を始めた（セッションの ID）
+        API-->>P: 受け付けた（セッションの ID）
+        P->>API: 停止（セッションの ID）
+        API->>SVC: 録音を停止する
+        API-->>P: 停止した
+        P->>API: 完了（セッションの ID）
+        API->>SVC: 録音を確定する
+        API-->>P: 受け付けた（結果は返送先へ届く）
+      ```
+    expected:
+      - 開始の応答にセッションの ID があり、非機能要件の決定値の時間内に返っている
+      - 停止と完了が受け付けられている
+      - 録音の画面が出ていない
+      - 確定した録音で 録音を文字に起こす へ進む
+  - name: 正常シナリオ（停止せずに完了する）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行。返送先は 127.0.0.1 で待ち受けるテスト用のエンドポイント）
+      - name: 録音中
+        description: API の開始で録音を始めている
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant P as 呼び出し元
+        participant API as API のサーバー
+        participant SVC as 常駐サービス
+
+        P->>API: 完了（セッションの ID）
+        API->>SVC: 録音を停止して確定する
+        API-->>P: 受け付けた（結果は返送先へ届く）
+      ```
+    expected:
+      - 完了が受け付けられている
+      - 確定した録音で 録音を文字に起こす へ進む
+  - name: 異常シナリオ（処理中に開始が来る）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 処理中の録音
+        description: ホットキーか API から始めた録音が、録音中か文字起こし中である
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant P as 呼び出し元
+        participant API as API のサーバー
+        participant SVC as 常駐サービス
+
+        P->>API: 開始（トークン・返送先）
+        API->>SVC: 画面を出さない録音を始める
+        SVC-->>API: ほかの録音が処理中で、受け付けない
+        API-->>P: 処理中を表すエラー（409）
+      ```
+    expected:
+      - 開始が処理中を表すエラー（409）で、非機能要件の決定値の時間内に返っている
+      - 2 つ目の録音が始まっていない
+      - 処理中の録音が続いている
+  - name: 異常シナリオ（トークンが合わない）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 古いトークン
+        description: 前の起動のトークンか、空のトークンで開始を呼ぶ
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant P as 呼び出し元
+        participant API as API のサーバー
+
+        P->>API: 開始（合わないトークン）
+        API->>API: トークンが今回の起動のものと合わない
+        API-->>P: 認証のエラー（401）
+      ```
+    expected:
+      - 開始が認証のエラー（401）で返っている
+      - 録音が始まっていない
+  - name: 異常シナリオ（ブラウザから呼ばれる）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: Origin の付いた要求
+        description: ブラウザのページからの要求と同じく、Origin を付けて開始を呼ぶ
+        notes: Host が 127.0.0.1 でも localhost でもない要求も同じ扱いになる
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant P as ブラウザのページ
+        participant API as API のサーバー
+
+        P->>API: 開始（Origin あり）
+        API->>API: Origin が付いている
+        API-->>P: 拒否のエラー（403）
+      ```
+    expected:
+      - 開始が拒否のエラー（403）で返っている
+      - 録音が始まっていない
+  - name: 異常シナリオ（返送先が許可されていない）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 許可していない返送先
+        description: loopback でも設定で許可したホストでもない返送先を指定して開始を呼ぶ
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant P as 呼び出し元
+        participant API as API のサーバー
+
+        P->>API: 開始（トークン・許可していない返送先）
+        API->>API: 返送先が loopback でも許可したホストでもない
+        API-->>P: 要求の誤りを表すエラー（400）
+      ```
+    expected:
+      - 開始が要求の誤りを表すエラー（400）で返っている
+      - 録音が始まっていない
+  - name: 異常シナリオ（知らないセッションを操作する）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 知らないセッション
+        description: 開始で受け取っていないセッションの ID か、既に完了したセッションの ID で停止か完了を呼ぶ
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant P as 呼び出し元
+        participant API as API のサーバー
+        participant SVC as 常駐サービス
+
+        P->>API: 完了（知らないセッションの ID）
+        API->>SVC: 録音を確定する
+        SVC-->>API: そのセッションは録音中でない
+        API-->>P: 見つからないことを表すエラー（404）
+      ```
+    expected:
+      - 完了が見つからないことを表すエラー（404）で返っている
+      - 処理中のほかの録音があれば、そのまま続いている
+  - name: 異常シナリオ（マイクを開けない）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 録音中の音量
+        description: 録音中にシステム音量を下げる設定にする
+      - name: マイクの欠落
+        description: 入力の音声デバイスを外しておき、録音の入力を開けないようにする
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant P as 呼び出し元
+        participant API as API のサーバー
+        participant SVC as 常駐サービス
+        participant LOG as ログ
+
+        P->>API: 開始（トークン・返送先）
+        API->>SVC: 画面を出さない録音を始める
+        SVC->>SVC: マイクを開けず、音量を戻して待機中に戻す
+        SVC->>LOG: マイクを開けなかった理由を書く
+        SVC-->>API: 録音を始められなかった
+        API-->>P: 録音を始められないことを表すエラー（503）
+      ```
+    expected:
+      - 開始が録音を始められないことを表すエラー（503）で返っている
+      - 録音が始まっていない
+      - システム音量が録音前の値に戻っている
+      - 続けて開始を呼ぶと、処理中として断られずに受け付けられる
+  - name: 異常シナリオ（完了が来ないまま上限に達する）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行。返送先は 127.0.0.1 で待ち受けるテスト用のエンドポイント）
+      - name: 上限の短縮
+        description: 非機能要件のセッションの上限時間（開始からの経過時間）を、テストで待てる短い値に差し替える
+      - name: 放置されたセッション
+        description: 開始を呼んだ後、停止も完了も呼ばない
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant P as 呼び出し元
+        participant API as API のサーバー
+        participant SVC as 常駐サービス
+        participant HIST as 履歴
+        participant CB as 返送先のエンドポイント
+
+        P->>API: 開始（トークン・返送先）
+        API-->>P: 受け付けた（セッションの ID）
+        SVC->>SVC: 完了が来ないままセッションの上限時間（開始からの経過時間）に達する
+        SVC->>SVC: 録音を停止し、音量を戻す
+        SVC->>HIST: 打ち切った録音を履歴に保存する
+        SVC->>CB: セッションの ID と、完了が来ないまま上限で打ち切ったことを送信する
+        SVC->>SVC: 待機中に戻す
+      ```
+    expected:
+      - 返送先のエンドポイントに、セッションの ID と上限で打ち切ったことが 1 回届いている
+      - 履歴に打ち切った録音が残っている
+      - システム音量が録音前の値に戻っている
+      - 続けて開始を呼ぶと、次の録音を始められる
+    notes:
+      上限時間: |-
+        セッションの上限時間は開始からの経過時間で数え、停止した後も数える（停止したまま完了が来ないセッションも打ち切る）。
+        値は非機能要件の API のセッションの上限時間に置く。
+  - name: 正常シナリオ（連続録音を始めて完了する）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行。返送先は 127.0.0.1 で待ち受けるテスト用のエンドポイント）
+      - name: 待機中
+        description: 常駐サービスが待機中で、ほかの録音・文字起こしを処理していない
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant P as 呼び出し元
+        participant API as API のサーバー
+        participant SVC as 常駐サービス
+
+        P->>API: 開始（トークン・返送先・連続録音の指定）
+        API->>API: Host・Origin・トークン・返送先を確かめる
+        API->>SVC: 画面を出さない連続録音を始める（返送先を渡す）
+        SVC-->>API: 録音を始めた（セッションの ID）
+        API-->>P: 受け付けた（セッションの ID）
+        Note over SVC: 話し声の後の無音ごとに区間を区切り、区間の文字を返送先へ届け続ける
+        P->>API: 完了（セッションの ID）
+        API->>SVC: 連続録音を終える
+        SVC->>SVC: 録音を停止し、区間に切り出していない話し声が残っていれば（話し終えて無音が区切りの長さに届く前の完了を含む）、そこまでを最後の区間として区切る
+        API-->>P: 受け付けた（残りの区間と終わりは返送先へ届く）
+      ```
+    expected:
+      - 開始の応答にセッションの ID があり、非機能要件の決定値の時間内に返っている
+      - 完了が受け付けられている
+      - 録音の画面が出ていない
+      - 区切った区間ごとに 録音を文字に起こす へ進み、完了の後に 起こした文字を届ける の連続録音の終わりへ進む
+    notes:
+      連続録音での停止: 連続録音のセッションへの停止は、録音を続けたまま断る（録音を停止する の 409）。連続録音を指定しない開始は 正常シナリオ のとおり。
+  - name: 異常シナリオ（連続録音が上限に達する）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行。返送先は 127.0.0.1 で待ち受けるテスト用のエンドポイント）
+      - name: 上限の短縮
+        description: 連続録音のセッションの上限時間を、テストで待てる短い値に差し替える
+      - name: 放置されたセッション
+        description: 連続録音を指定して開始を呼んだ後、完了を呼ばない
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant P as 呼び出し元
+        participant API as API のサーバー
+        participant SVC as 常駐サービス
+        participant CB as 返送先のエンドポイント
+
+        P->>API: 開始（トークン・返送先・連続録音の指定）
+        API-->>P: 受け付けた（セッションの ID）
+        Note over SVC: 区切った区間の文字を返送先へ届け続ける
+        SVC->>SVC: 完了が来ないまま連続録音の上限時間（開始からの経過時間）に達する
+        SVC->>SVC: 録音を停止し、音量を戻す。区間に切り出していない話し声が残っていれば、そこまでを最後の区間として区切る
+        SVC->>CB: 残りの区間の文字を届けた後、上限で打ち切ったことと区間の数を送信する
+        SVC->>SVC: 待機中に戻す
+      ```
+    expected:
+      - 返送先のエンドポイントに、上限までに区切った区間の文字が通し番号の順に届いている
+      - 最後に、上限で打ち切ったことと区間の数が 1 回届いている
+      - システム音量が録音前の値に戻っている
+      - 続けて開始を呼ぶと、次の録音を始められる
+    notes:
+      上限時間: 連続録音の上限時間は、開始からの経過時間で数える。値は設定の api.continuous.session_limit_sec（既定は非機能要件の連続録音のセッションの上限時間）。
+  - name: 正常シナリオ（用語集のプリセットを指定して始める）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行。返送先は 127.0.0.1 で待ち受けるテスト用のエンドポイント）
+      - name: 待機中
+        description: 常駐サービスが待機中で、ほかの録音・文字起こしを処理していない
+      - name: 用語集のプリセット
+        description: 設定に、設定で選んでいるプリセットとは別の用語集のプリセットがあり、その名前を指定して開始を呼ぶ
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant P as 呼び出し元
+        participant API as API のサーバー
+        participant SVC as 常駐サービス
+
+        P->>API: 開始（トークン・返送先・用語集のプリセットの名前）
+        API->>API: Host・Origin・トークン・返送先・プリセットが設定の一覧にあるかを確かめる
+        API->>SVC: 画面を出さない録音を始める（返送先とプリセットを渡す）
+        SVC-->>API: 録音を始めた（セッションの ID）
+        API-->>P: 受け付けた（セッションの ID）
+        Note over P,SVC: 停止と完了は 正常シナリオ と同じ
+      ```
+    expected:
+      - 開始の応答にセッションの ID がある
+      - 確定した録音で、指定したプリセットを持って 録音を文字に起こす へ進む（正常シナリオ（API で指定したプリセットで補正する））
+      - 設定で選んでいるプリセットは変わっていない
+    notes:
+      連続録音: 連続録音も同じ開始の要求でプリセットを指定でき、区間ごとの文字を指定したプリセットで補正する。
+  - name: 異常シナリオ（一覧に無い用語集のプリセットを指定する）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行）
+      - name: 無いプリセット
+        description: 設定の用語集のプリセットの一覧に無い名前を指定して開始を呼ぶ
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant P as 呼び出し元
+        participant API as API のサーバー
+
+        P->>API: 開始（トークン・返送先・一覧に無いプリセットの名前）
+        API->>API: プリセットが設定の一覧に無い
+        API-->>P: 要求の誤りを表すエラー（400。無いプリセットの名前を含む）
+      ```
+    expected:
+      - 開始が要求の誤りを表すエラー（400）で返っている
+      - 録音が始まっていない
+lead: 同じ端末のほかのプロセスが API の開始・停止・完了を呼び、画面を出さない録音を始めて確定するまでの単一ユースケース。
+issue: 14
+primary_actor: API を呼ぶほかのプロセス
+trigger: ほかのプロセスが、返送先のエンドポイントを指定して API の開始を呼ぶ
+preconditions:
+  - 常駐サービスが 127.0.0.1 で API の待ち受けを始めている
+  - 呼び出し元は同じ端末で動き、トークンのファイルから今回の起動のトークンを読んでいる
+notes:
+  停止と完了: |-
+    停止は録音を停止し（以降の音を貯めない）、完了を待つ。完了は停止した録音を確定し、録音を文字に起こす へ進める。
+    停止せずに完了を呼ぶと、録音を停止してから確定する。
+  守り: 待ち受けは 127.0.0.1 に限り、Host が 127.0.0.1 か localhost であること、Origin が付いていないこと、トークンが今回の起動のものと一致することを、どの要求でも確かめる。

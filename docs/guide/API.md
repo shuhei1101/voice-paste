@@ -110,7 +110,7 @@ print(json.load(urllib.request.urlopen(request)))
 
 成功は `202`。
 
-[インターフェース定義](https://github.com/shuhei1101/voice-paste/blob/develop/dev/%E8%A8%AD%E8%A8%88%E6%9B%B8/%E3%82%A4%E3%83%B3%E3%82%BF%E3%83%BC%E3%83%95%E3%82%A7%E3%83%BC%E3%82%B9%E5%AE%9A%E7%BE%A9/%E5%B8%B8%E9%A7%90%E3%82%A2%E3%83%97%E3%83%AA/%E9%8C%B2%E9%9F%B3%E3%82%92%E9%96%8B%E5%A7%8B%E3%81%99%E3%82%8B.py.yaml)
+[インターフェース定義](https://github.com/shuhei1101/voice-paste/blob/develop/docs/interface/IF-10.py.yaml)
 
 ## 録音を停止する
 
@@ -139,7 +139,7 @@ print(json.load(urllib.request.urlopen(request)))
 
 成功は `200`。
 
-[インターフェース定義](https://github.com/shuhei1101/voice-paste/blob/develop/dev/%E8%A8%AD%E8%A8%88%E6%9B%B8/%E3%82%A4%E3%83%B3%E3%82%BF%E3%83%BC%E3%83%95%E3%82%A7%E3%83%BC%E3%82%B9%E5%AE%9A%E7%BE%A9/%E5%B8%B8%E9%A7%90%E3%82%A2%E3%83%97%E3%83%AA/%E9%8C%B2%E9%9F%B3%E3%82%92%E5%81%9C%E6%AD%A2%E3%81%99%E3%82%8B.py.yaml)
+[インターフェース定義](https://github.com/shuhei1101/voice-paste/blob/develop/docs/interface/IF-8.py.yaml)
 
 ## 録音を完了する
 
@@ -169,7 +169,7 @@ print(json.load(urllib.request.urlopen(request)))
 
 成功は `202`。
 
-[インターフェース定義](https://github.com/shuhei1101/voice-paste/blob/develop/dev/%E8%A8%AD%E8%A8%88%E6%9B%B8/%E3%82%A4%E3%83%B3%E3%82%BF%E3%83%BC%E3%83%95%E3%82%A7%E3%83%BC%E3%82%B9%E5%AE%9A%E7%BE%A9/%E5%B8%B8%E9%A7%90%E3%82%A2%E3%83%97%E3%83%AA/%E9%8C%B2%E9%9F%B3%E3%82%92%E5%AE%8C%E4%BA%86%E3%81%99%E3%82%8B.py.yaml)
+[インターフェース定義](https://github.com/shuhei1101/voice-paste/blob/develop/docs/interface/IF-9.py.yaml)
 
 ## 結果を返送する
 
@@ -268,7 +268,7 @@ API から始めた録音の結果を、開始で指定した `callback_url` へ
 常駐サービスを終えたときに捨てた録音（録音中・停止中のセッション）は返送しない。
 呼び出し元は、返送が来ないことで気づく。
 
-[インターフェース定義](https://github.com/shuhei1101/voice-paste/blob/develop/dev/%E8%A8%AD%E8%A8%88%E6%9B%B8/%E3%82%A4%E3%83%B3%E3%82%BF%E3%83%BC%E3%83%95%E3%82%A7%E3%83%BC%E3%82%B9%E5%AE%9A%E7%BE%A9/%E5%B8%B8%E9%A7%90%E3%82%A2%E3%83%97%E3%83%AA/%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97%E5%85%83%E3%81%B8%E8%BF%94%E3%81%99.py.yaml)
+[インターフェース定義](https://github.com/shuhei1101/voice-paste/blob/develop/docs/interface/IF-3.py.yaml)
 
 ## 画面を開く
 
@@ -296,7 +296,7 @@ API から始めた録音の結果を、開始で指定した `callback_url` へ
 
 成功は `200`。
 
-[インターフェース定義](https://github.com/shuhei1101/voice-paste/blob/develop/dev/%E8%A8%AD%E8%A8%88%E6%9B%B8/%E3%82%A4%E3%83%B3%E3%82%BF%E3%83%BC%E3%83%95%E3%82%A7%E3%83%BC%E3%82%B9%E5%AE%9A%E7%BE%A9/%E5%B8%B8%E9%A7%90%E3%82%A2%E3%83%97%E3%83%AA/%E7%94%BB%E9%9D%A2%E3%82%92%E9%85%8D%E4%BF%A1%E3%81%99%E3%82%8B.py.yaml)
+[インターフェース定義](https://github.com/shuhei1101/voice-paste/blob/develop/docs/interface/IF-6.py.yaml)
 
 ## 用語集のプリセットの一覧を取得する
 
@@ -330,7 +330,7 @@ API から始めた録音の結果を、開始で指定した `callback_url` へ
 
 成功は `200`。
 
-[インターフェース定義](https://github.com/shuhei1101/voice-paste/blob/develop/dev/%E8%A8%AD%E8%A8%88%E6%9B%B8/%E3%82%A4%E3%83%B3%E3%82%BF%E3%83%BC%E3%83%95%E3%82%A7%E3%83%BC%E3%82%B9%E5%AE%9A%E7%BE%A9/%E5%B8%B8%E9%A7%90%E3%82%A2%E3%83%97%E3%83%AA/%E7%94%A8%E8%AA%9E%E9%9B%86%E3%81%AE%E3%83%97%E3%83%AA%E3%82%BB%E3%83%83%E3%83%88%E3%81%AE%E4%B8%80%E8%A6%A7%E3%82%92%E8%BF%94%E3%81%99.py.yaml)
+[インターフェース定義](https://github.com/shuhei1101/voice-paste/blob/develop/docs/interface/IF-5.py.yaml)
 
 ## 音声を送信する
 
@@ -393,7 +393,7 @@ Content-Disposition: form-data; name="glossary_preset"
 
 成功は `202`。
 
-[インターフェース定義](https://github.com/shuhei1101/voice-paste/blob/develop/dev/%E8%A8%AD%E8%A8%88%E6%9B%B8/%E3%82%A4%E3%83%B3%E3%82%BF%E3%83%BC%E3%83%95%E3%82%A7%E3%83%BC%E3%82%B9%E5%AE%9A%E7%BE%A9/%E5%B8%B8%E9%A7%90%E3%82%A2%E3%83%97%E3%83%AA/%E9%9F%B3%E5%A3%B0%E3%82%92%E5%8F%97%E3%81%91%E4%BB%98%E3%81%91%E3%82%8B.py.yaml)
+[インターフェース定義](https://github.com/shuhei1101/voice-paste/blob/develop/docs/interface/IF-11.py.yaml)
 
 ## 文字起こしの結果を取得する
 
@@ -442,4 +442,4 @@ Content-Disposition: form-data; name="glossary_preset"
 
 成功は `200`。
 
-[インターフェース定義](https://github.com/shuhei1101/voice-paste/blob/develop/dev/%E8%A8%AD%E8%A8%88%E6%9B%B8/%E3%82%A4%E3%83%B3%E3%82%BF%E3%83%BC%E3%83%95%E3%82%A7%E3%83%BC%E3%82%B9%E5%AE%9A%E7%BE%A9/%E5%B8%B8%E9%A7%90%E3%82%A2%E3%83%97%E3%83%AA/%E6%96%87%E5%AD%97%E8%B5%B7%E3%81%93%E3%81%97%E3%81%AE%E7%B5%90%E6%9E%9C%E3%82%92%E8%BF%94%E3%81%99.py.yaml)
+[インターフェース定義](https://github.com/shuhei1101/voice-paste/blob/develop/docs/interface/IF-4.py.yaml)

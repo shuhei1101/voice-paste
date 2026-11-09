@@ -8,7 +8,7 @@
 
 [#270](https://github.com/shuhei1101/voice-paste/issues/270) の要望。
 AI Monitor 自身の移行 [ai-monitor#3307](https://github.com/shuhei1101/ai-monitor/pull/3307) で、監視対象のプロジェクトも `docs/` だけで運用する前提に変わる。
-この PR は ai-monitor#3307 のマージの前にレビューに合格させ、マージは ai-monitor#3307 の反映作業『監視対象のプロジェクトの移行の PR のマージ』で ai-monitor の planner が行う。
+この PR は ai-monitor#3307 のマージを待たずに進め、レビューに合格したらこのプロジェクトでマージする（[進め方の変更](https://github.com/shuhei1101/voice-paste/issues/270#issuecomment-6740438867)）。
 [#257](https://github.com/shuhei1101/voice-paste/issues/257)（既存の文書の mdmark の記法への移行）がこの追従を前提にしている。
 
 ## 計画書

@@ -65,8 +65,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-09T12:08:25.073387+00:00'
   - process: ドキュメント修正
-    status: todo
+    status: done
     note: dev/ の文書を docs/・schemas/ へ移し、置き場所を記載するファイルを直す（要件.md）
+    updated_by: planner
+    updated_at: '2026-11-09T12:38:18.064277+00:00'
   - process: 単体テスト作成
     status: skipped
     reason: コードを変えない

@@ -23,47 +23,69 @@ docs:
   - page: dev-docs.yaml
     new: false
     change: 文書の paths・schema を docs/ と schemas/ の置き場所へ変え、visibility・category をメタデータに対応づける
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-09T12:38:03.410536+00:00'
   - page: dev/index.yaml
     new: false
     change: 行を docs/index.yaml へ合わせて削除する
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-09T12:38:03.410536+00:00'
   - page: docs/index.yaml
     new: false
     change: 種類のフォルダを指す目次にする
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-09T12:38:03.410536+00:00'
   - page: docs/_data/nav.project.yml
     new: false
-    change: docs/guide/ の category から書き出した上タブにする
-    status: todo
+    change: 削除し、publish が docs/guide/ の category から書き出す docs/_theme/_data/nav.project.yml へ移す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-09T12:38:03.410536+00:00'
   - page: docs/_config.yml
     new: true
     change: exclude に internal の種類のフォルダと pr/・mock/・generated/ を記載する
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-09T12:38:03.410536+00:00'
   - page: dev/テンプレート/共通.schema.yaml
     new: false
     change: schemas/common.schema.yaml へ移し、AI Monitor の配布物（ai-monitor#3104 の $defs/mermaid の変更を含む）で置き換える。他の Schema も schemas/{kind}.schema.yaml へ移す
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-09T12:38:03.410536+00:00'
   - page: dev/設計書/デザイン方針.md
     new: false
     change: docs/design-policy.md へ移す
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-09T12:38:03.410536+00:00'
   - page: docs/はじめに/変更履歴.md
     new: false
     change: docs/guide/ へ移し、category をはじめにする。使い方・リファレンスの文書も同様に移す
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-09T12:38:03.410536+00:00'
   - page: CLAUDE.md
     new: false
     change: 開発ドキュメント dev/ と公開ドキュメント docs/ の記述を docs/ 1 つにする
-    status: todo
-  - page: README.md
-    new: false
-    change: dev/ を指すリンクがあれば docs/ の置き場所にする
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-09T12:38:03.410536+00:00'
   - page: .gitignore
     new: false
     change: dev/generated/ を docs/generated/ にする
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-09T12:38:03.410536+00:00'
+  - page: docs/index.md
+    new: true
+    change: Pages のトップページ。分類のトップページ（はじめに・使い方・リファレンス）を並べる
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-09T12:38:03.410536+00:00'
 scope_out:
   - item: ai-monitor-version.ini の更新
     reason: ai-monitor#3104・ai-monitor#2973 を含むバージョンのタグがまだ無い。タグを打つと配布元が追従 Issue を起票し、そこで更新する

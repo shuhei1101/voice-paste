@@ -1,0 +1,76 @@
+use_cases:
+  - kind: composite
+    scenario: dev/設計書/シナリオ/複合ユースケース/声で入力した文字を貼り付ける.yaml
+    impact: none
+    detail: 置き場所だけが変わり、利用者の流れは変わらない
+    depends_on: []
+  - kind: composite
+    scenario: dev/設計書/シナリオ/複合ユースケース/ほかのシステムから録音を文字に起こす.yaml
+    impact: none
+    detail: 置き場所だけが変わり、利用者の流れは変わらない
+    depends_on: []
+  - kind: composite
+    scenario: dev/設計書/シナリオ/複合ユースケース/ほかのシステムから連続して録音し、区切りごとに文字で受け取る.yaml
+    impact: none
+    detail: 置き場所だけが変わり、利用者の流れは変わらない
+    depends_on: []
+  - kind: composite
+    scenario: dev/設計書/シナリオ/複合ユースケース/外の端末のブラウザから音声を送信して文字で受け取る.yaml
+    impact: none
+    detail: 置き場所だけが変わり、利用者の流れは変わらない
+    depends_on: []
+docs:
+  - page: dev-docs.yaml
+    new: false
+    change: 文書の paths・schema を docs/ と schemas/ の置き場所へ変え、visibility・category をメタデータに対応づける
+    status: todo
+  - page: dev/index.yaml
+    new: false
+    change: 行を docs/index.yaml へ合わせて削除する
+    status: todo
+  - page: docs/index.yaml
+    new: false
+    change: 種類のフォルダを指す目次にする
+    status: todo
+  - page: docs/_data/nav.project.yml
+    new: false
+    change: docs/guide/ の category から書き出した上タブにする
+    status: todo
+  - page: docs/_config.yml
+    new: true
+    change: exclude に internal の種類のフォルダと pr/・mock/・generated/ を記載する
+    status: todo
+  - page: dev/テンプレート/共通.schema.yaml
+    new: false
+    change: schemas/common.schema.yaml へ移し、AI Monitor の配布物（ai-monitor#3104 の $defs/mermaid の変更を含む）で置き換える。他の Schema も schemas/{kind}.schema.yaml へ移す
+    status: todo
+  - page: dev/設計書/デザイン方針.md
+    new: false
+    change: docs/design-policy.md へ移す
+    status: todo
+  - page: docs/はじめに/変更履歴.md
+    new: false
+    change: docs/guide/ へ移し、category をはじめにする。使い方・リファレンスの文書も同様に移す
+    status: todo
+  - page: CLAUDE.md
+    new: false
+    change: 開発ドキュメント dev/ と公開ドキュメント docs/ の記述を docs/ 1 つにする
+    status: todo
+  - page: README.md
+    new: false
+    change: dev/ を指すリンクがあれば docs/ の置き場所にする
+    status: todo
+  - page: .gitignore
+    new: false
+    change: dev/generated/ を docs/generated/ にする
+    status: todo
+scope_out:
+  - item: ai-monitor-version.ini の更新
+    reason: ai-monitor#3104・ai-monitor#2973 を含むバージョンのタグがまだ無い。タグを打つと配布元が追従 Issue を起票し、そこで更新する
+    plan: none
+  - item: この PR の PR ドキュメント dev/pr/277/ の docs/pr/ への移動
+    reason: ai-monitor#3307 の反映作業『open の作業 PR の PR ドキュメントの移動』が行う（#270 の本文の依頼）
+    plan: none
+  - item: 既存の文書の mdmark の記法・表し方の優先順位への書き換え
+    reason: この PR は置き場所だけを変える
+    plan: '#257'

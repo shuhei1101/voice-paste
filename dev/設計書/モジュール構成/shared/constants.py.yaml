@@ -13,7 +13,7 @@ data_models:
       resolve_app_paths で作る。
       既定値と checkout の上書きはリポジトリの直下（REPO_ROOT）から引き、環境の値はユーザーごとの設定のフォルダから引く。
       既定は platformdirs で、Windows は `%APPDATA%\voice-paste\`（設定）と `%LOCALAPPDATA%\voice-paste\`（それ以外）、Linux は `~/.config/voice-paste/`（設定）と `~/.local/share/voice-paste/`（それ以外）を引く。
-      データの置き場所（`--data-dir`）を渡したときは、既定値の他は全てをその下に置き、checkout の上書きを読まない（local_settings_file を None にする）。E2E・非機能要件テストはこれで普段使いの置き場所と手元の `settings.local.yaml` に触れない。
+      データの置き場所（`--data-dir`）を渡したときは、既定値の他は全てをその下に置き、checkout の上書きを読まない（local_settings_file を None にする）。非機能要件テストはこれで普段使いの置き場所と手元の `settings.local.yaml` に触れない。
       `@dataclass(frozen=True, slots=True, kw_only=True)`。
     properties:
       - name: defaults_file

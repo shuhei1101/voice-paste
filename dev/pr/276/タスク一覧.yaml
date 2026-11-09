@@ -65,8 +65,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-09T03:47:43.083837+00:00'
   - process: ドキュメント修正
-    status: todo
+    status: done
     note: テスト実行方法・開発コマンド・外部ライブラリ（Open_JTalk・Microsoft_Edge）・非機能要件・モジュール構成（main.py・single_instance.py）の E2E の記述と、tester の拡張のフェーズ『Linux での E2E の実行』と agent_context.yaml の行
+    updated_by: planner
+    updated_at: '2026-11-09T04:06:50.444676+00:00'
   - process: 単体テスト作成
     status: skipped
     reason: 新しい関数を足さない。既存の単体テストの全 pass を実装で確かめる

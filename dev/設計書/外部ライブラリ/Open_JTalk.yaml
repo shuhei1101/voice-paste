@@ -12,8 +12,8 @@ catalogs:
     entries:
       - name: open_jtalk
         kind: コマンド
-        purpose: E2E の録音の入力にする決めた文を、Linux で WAV に書き出す
-        description: 標準入力（またはファイル）で受けた UTF-8 の文を読み上げ、`-ow` のパスへ 16 bit・モノラル・48 kHz の WAV を書く。E2E は書き出した WAV を 16 kHz へ変換してから流す。Windows では使わず、SAPI で書き出す
+        purpose: 非機能要件テスト（区間の最大の長さ）の録音の入力にする決めた文を、Linux で WAV に書き出す
+        description: 標準入力（またはファイル）で受けた UTF-8 の文を読み上げ、`-ow` のパスへ 16 bit・モノラル・48 kHz の WAV を書く。テストは書き出した WAV を 16 kHz へ変換してから流す。Windows では使わず、SAPI で書き出す
         params:
           - name: -x
             type: パス
@@ -57,7 +57,7 @@ verification:
   detail: PoC [#242](https://github.com/shuhei1101/voice-paste/pull/242) で、検証環境の VM（Ubuntu 24.04）の `~/.local/opt/open-jtalk` に 4 つのパッケージを sudo を使わずに展開し、E2E の `SPEECH_TEXT`・`THREE_SENTENCES`・`LONG_READING` の 17 文を書き出して、CPU・int8 の large-v3 で起こした文字の全てに期待する言葉が含まれることを確かめた（[結果](https://github.com/shuhei1101/voice-paste/blob/8f763c9/dev/pr/241/%E5%B8%B8%E9%A7%90%E3%82%A2%E3%83%97%E3%83%AA.md#poc-%E7%B5%90%E6%9E%9C)）。2026-11-01 に VM（Ubuntu 24.04.5）の新しい一時フォルダへ『インストール手順』のコマンドで入れ直し、`こんにちは` を 16 bit・モノラル・48 kHz の WAV に書き出せることを確かめた
 license: Modified BSD（open-jtalk・libhtsengine1・open-jtalk-mecab-naist-jdic）、CC BY 3.0（hts-voice-nitech-jp-atr503-m001）。テストの中で呼ぶだけで、常駐アプリに同梱しない
 official_url: https://open-jtalk.sourceforge.net/
-install: Linux で E2E を流す環境だけに、sudo を使わずユーザーの配下（`~/.local/opt/open-jtalk`）へ入れる。コマンドは開発コマンドの『環境構築（クローン直後）』の手順 3。パッケージを入れずに `dpkg -x` で展開するため、`open_jtalk` が読む `libHTSEngine.so.1` は展開した `usr/lib/x86_64-linux-gnu` を `LD_LIBRARY_PATH` で渡す。置き場所は環境変数 `VOICE_PASTE_OPEN_JTALK_HOME` で替えられる
+install: Linux で非機能要件テストを流す環境だけに、sudo を使わずユーザーの配下（`~/.local/opt/open-jtalk`）へ入れる。コマンドは開発コマンドの『環境構築（クローン直後）』の手順 3。パッケージを入れずに `dpkg -x` で展開するため、`open_jtalk` が読む `libHTSEngine.so.1` は展開した `usr/lib/x86_64-linux-gnu` を `LD_LIBRARY_PATH` で渡す。置き場所は環境変数 `VOICE_PASTE_OPEN_JTALK_HOME` で替えられる
 refs:
-  - TP-1#layers[E2E テスト]
+  - TP-1#layers[非機能要件テスト]
   - CMD-1#categories[環境構築（クローン直後）]

@@ -455,7 +455,7 @@ requirements:
     unit: 分
     rationale: 'Issue #92 の要望の値。Edge の AAC（約 100 kbps）で録っても 30 分で約 22.5 MB で、ブラウザの本文の上限に収まる'
     overflow: 画面が録音を止め、そこまでの音声を端末に残して送信する（ブラウザから音声を送信する の上限のシナリオ）
-    measurement: E2E（ブラウザから音声を送信する の test_normal_when_recording_limit_reached）で、画面の時計を進めて確かめる
+    measurement: 外の端末の画面を開き、画面の時計を進めて確かめる（ブラウザから音声を送信する の上限のシナリオ）
     status: planned
     introduced:
       pr: 171

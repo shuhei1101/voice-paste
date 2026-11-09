@@ -11,36 +11,11 @@ catalogs:
       - name: msedge --app={URL}
         kind: コマンド
         purpose: ブラウザ添付のプリセットの画面をアプリのウィンドウとして開く（`msedge` が PATH に無ければ Program Files の既定の場所を探し、無ければ既定のブラウザで URL を開く。Linux では `google-chrome`・`chromium`・`chromium-browser`・`microsoft-edge` の順に PATH から探して同じ `--app` で開き、無ければ `webbrowser`（xdg-open）で開く）
-      - name: msedge --headless=new --remote-debugging-port={ポート} --user-data-dir={フォルダ} --use-fake-device-for-media-stream --use-fake-ui-for-media-stream --use-file-for-fake-audio-capture={WAV}
-        kind: コマンド
-        purpose: E2E で、窓を出さずに画面を開き、DevTools Protocol で操作できるようにする。マイクは偽物で許可の確認を自動で通し、渡した WAV を入力に流す（`--user-data-dir` はテストごとの一時のフォルダ）
-  - name: DevTools Protocol のメソッド
-    version: 端末に入っているバージョン
-    entries:
-      - name: Runtime.evaluate
-        kind: 関数
-        purpose: 画面で JS の式を評価し、要素の操作・観測と IndexedDB・localStorage の読み書きをする（`awaitPromise`・`returnByValue`・`userGesture`）
-      - name: Page.addScriptToEvaluateOnNewDocument
-        kind: 関数
-        purpose: 新しい文書ごとに、画面の時計（Date.now）を進められる JS を先に走らせる
-      - name: Emulation.setFocusEmulationEnabled
-        kind: 関数
-        purpose: headless でもフォーカスがある体にして、クリップボードへ書けるようにする
-      - name: Browser.grantPermissions
-        kind: 関数
-        purpose: 画面のオリジンに、クリップボードの読み書きを許す
-      - name: Browser.setDownloadBehavior
-        kind: 関数
-        purpose: ダウンロードを確認なしで決めたフォルダへ保存させる
-      - name: Page.navigate
-        kind: 関数
-        purpose: 画面を開く（`Page.reload` で再度開く）
 lead: Windows に入っている Web ブラウザ。`--app` でページをアプリのウィンドウとして開ける。
 dependency_scope: 任意
 adoption: 採用
 used_in:
   - src/voice_paste/integrations/browser/opener.py
-  - tests/support/browser.py
 verification:
   state: 済
   date: '2026-10-24'

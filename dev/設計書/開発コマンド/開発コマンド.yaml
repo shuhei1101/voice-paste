@@ -103,7 +103,7 @@ categories:
       uv sync --frozen --extra local-whisper
       ```
 
-      3. Ubuntu 24.04 で E2E を流す環境は、録音の入力の WAV を書き出す Open JTalk を、sudo を使わず `~/.local/opt/open-jtalk` へ展開する
+      3. Ubuntu 24.04 で非機能要件テストを流す環境は、録音の入力の WAV を書き出す Open JTalk を、sudo を使わず `~/.local/opt/open-jtalk` へ展開する
 
       ```bash
       mkdir -p ~/.local/opt/open-jtalk/debs

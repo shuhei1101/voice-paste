@@ -1,5 +1,5 @@
 id: TP-1
-title: "テスト実行方法"
+title: テスト実行方法
 layers:
   - name: 単体テスト（バック）
     run_all: |-
@@ -36,72 +36,6 @@ layers:
         ```bash
         .venv/Scripts/python.exe -m pytest {結合テストファイルパス}
         ```
-  - name: E2E テスト
-    run_all: |-
-      ```bash
-      .venv/Scripts/python.exe -m pytest tests/e2e --run-e2e
-      ```
-    description: pytest で実行する。`tests/e2e/` の下に、シナリオごとのファイルを置く（複合ユースケースは `tests/e2e/複合ユースケース/test_transcribe_from_other_system.py`）。
-    prerequisites:
-      - Windows の実機か、Ubuntu 24.04 の Xorg のセッション（検証環境の VM `voice-paste-ubuntu`）が要る。実機のマイクは開かない
-      - 複合ユースケースの E2E（`tests/e2e/複合ユースケース/`）は、常駐アプリを pytest のプロセスの中で `build_handlers` で配線し、録音の入力・システム音量・貼り付けのキー・通知を差し替える（起動・トレイ・ホットキーの受付は通さない）。録音の入力は、テストの中で決めた文を音声合成で書き出した WAV（16 kHz・モノラル・16 bit）を流す。音声合成は、Windows では Windows の音声合成（SAPI）、Linux では Open JTalk を使う。API は `build_fastapi` で組み立てた app を 127.0.0.1 で待ち受けさせる。実物のクリップボードを書き換える（テストの後に元の文字へ戻す）ため、実行中はクリップボードを使わない
-      - ローカルの Whisper で起こす。Windows では GPU で起こし、NVIDIA GPU が要り、CUDA の DLL は .venv の `Lib/site-packages/nvidia/` から読む。Linux では既定の設定（`local_whisper`・`device = "cpu"`・`compute_type = "int8"`）の CPU で起こし、GPU は要らない
-      - 返送先は 127.0.0.1 で待ち受けるテスト用のエンドポイントで、テストが立てて返送を受ける
-      - 常駐アプリを起動し、Windows では GPU を使う。誤実行を防ぐため `--run-e2e` を必須にする（付けなければ全て skip する）
-      - 画面・トレイの E2E（`tests/e2e/単一ユースケース/`）は、常駐アプリを pytest のプロセスの中で `main()` から起動し（`--data-dir {一時フォルダ}`、Qt は offscreen で画面に出さない）、実機のマウス・キーボードを使わない。トレイのメニューは項目を trigger して選び、画面のボタン・欄はクリックとキーを Qt のイベントで渡す。ホットキーの受付は差し替え、ホットキーが押された体で登録された関数を呼ぶ。トレイの状態はトレイのアイコンのヒントの文字で、知らせはログで、フォルダを開くのは開く呼び出しを差し替えて渡されたパスで確かめ、Windows のシェル（タスクバーのトレイ・通知・エクスプローラー）は読まない。流している間も PC の操作を止めずに使える
-      - 画面・トレイの E2E のうち、録音を始めるケースは、録音の入力を WAV を流すものに、システム音量を下げた値と戻した値を控えるものに差し替える（マイクを開かず、システム音量を変えない）。貼り付けのキーで届けるケースは、さらに貼り付けのキーを送信したキーを控えるものに差し替える（キーを送信しない）。ブラウザ添付のプリセットで届けるケースは、ブラウザを開く呼び出しを渡された URL を控えるものに差し替える（Microsoft Edge を開かない）。返送先と追加するプリセットの送信先は、テストが立てる 127.0.0.1 のエンドポイントにする。届けるケースは実物のクリップボードを書き換える（テストの後に元の文字へ戻す）ため、実行中はクリップボードを使わない
-      - 画面・トレイの E2E で、常駐アプリのプロセスが終わることは `main()` が戻ったことで、終了コードはその戻り値で、文字起こしワーカーが終わることは `main()` が戻った後に pytest のプロセスの子孫にワーカーが残っていないことで確かめる。Ctrl+Break は `signal.raise_signal(signal.SIGBREAK)` で自分のプロセスの中で上げる。ケースの後に、`main()` が入れた SIGINT・SIGTERM・SIGBREAK のハンドラとルートロガーのハンドラ・レベルを元に戻す。Linux には SIGBREAK が無いため、Ctrl+Break のケースは skip し、後片付けでは SIGINT・SIGTERM のハンドラだけを戻す
-      - 単一インスタンスの入れ替わりのケースと、再起動で起動する新しいプロセスは、別プロセスの `python -m voice_paste --data-dir {一時フォルダ}`（Qt は offscreen）で動かし、操作をせずにログ・トークンのファイル・プロセスで確かめる。別プロセスの常駐アプリは、録音開始のホットキーを普段使わない組み合わせにした設定で起動し、ユーザーの打鍵で録音を始めない。`--data-dir` の一時フォルダで起動した常駐アプリは普段使いと単一インスタンスの名前が違うため、普段使いの voice-paste を終わらせずに流せる
-      - Linux では、開発コマンド『環境構築（クローン直後）』の手順 2（`local-whisper` の extra）・手順 3（Open JTalk を sudo を使わず `~/.local/opt/open-jtalk` へ展開する）と、『起動・停止』の前提の OS のパッケージを済ませておき、Xorg のセッションの端末で流す（クリップボードの `xclip` が `DISPLAY` を要る）。Open JTalk の置き場所は環境変数 `VOICE_PASTE_OPEN_JTALK_HOME` で替えられる
-      - Linux では、常駐アプリがブラウザーの文字起こしを持たないため外の端末の画面のケースを skip し、録音中に音量を下げないため音量を確かめるケースは音量を下げないことを確かめる
-      - 検証環境の VM では、自動起動にした常駐アプリを終わらせてから流す（E2E のメモリの使用量は最大約 3.9 GB で、常駐アプリのワーカーの約 1.7 GB と合わせると OOM で止まる）
-      - スプリントの release の E2E の実行では、tester が Windows に加えて検証環境の VM でも全件流す（流し方は `notes` の『検証環境の VM で流す』、release の E2E の実行の手順は tester の拡張のフェーズ『Linux での E2E の実行』（`dev/エージェント運用/拡張/tester/LinuxでのE2Eの実行.md`））
-    run_one:
-      label: ファイル
-      command: |-
-        ```bash
-        .venv/Scripts/python.exe -m pytest {E2Eテストファイルパス} --run-e2e
-        ```
-    notes:
-      検証環境の VM で流す: |-
-        WSL から SSH で、VM の Xorg のセッションの画面を渡して流す。
-
-        前提:
-
-        - WSL の `~/.ssh/config` の `Host voice-paste-ubuntu` の鍵で、パスワードを聞かれずに VM へ入れる（`ssh -o BatchMode=yes voice-paste-ubuntu true` が終了コード 0）
-        - VM は別のホストの Hyper-V で動き、WSL からは起動できない。SSH が通らないときは、ユーザーに VM の起動を頼む
-        - VM は Xorg のセッションへ自動ログインし（`/etc/gdm3/custom.conf` の `AutomaticLogin`）、画面のロックを無効にしている
-        - VM の中の作業用のクローン（`~/vp-e2e`）は、手順 2 の bundle から 1 回だけ `git clone /tmp/vp-e2e.bundle ~/vp-e2e` で作り、開発コマンド『環境構築（クローン直後）』の手順 3（Open JTalk）を済ませておく
-
-        1. 自動起動の常駐アプリが動いていれば終わらせる。PID を確かめてから、出た PID だけを終わらせる
-
-        ```bash
-        ssh voice-paste-ubuntu 'pgrep -af "[-]m voice_paste"'
-        ssh voice-paste-ubuntu 'kill {PID}'
-        ```
-
-        2. 流すブランチを bundle にして VM へ送り、作業用のクローンをそのブランチにして環境を追従させる（VM の作業ツリーと `.venv/` が置き換わる）
-
-        ```bash
-        git bundle create /tmp/vp-e2e.bundle {ブランチ}
-        scp /tmp/vp-e2e.bundle voice-paste-ubuntu:/tmp/vp-e2e.bundle
-        ssh voice-paste-ubuntu 'cd ~/vp-e2e && git fetch /tmp/vp-e2e.bundle {ブランチ} && git checkout --force FETCH_HEAD && ~/.local/bin/uv sync --frozen --extra local-whisper'
-        ```
-
-        3. SSH が切れても止まらないよう `systemd-run --user` で流す（E2E の全件は約 36 分）
-
-        ```bash
-        ssh voice-paste-ubuntu 'systemd-run --user --unit=vp-e2e --collect --setenv=DISPLAY=:0 --setenv=XAUTHORITY=/run/user/1000/gdm/Xauthority --working-directory=$HOME/vp-e2e bash -c ".venv/bin/python -m pytest tests/e2e --run-e2e -v -rs -p no:cacheprovider > e2e.log 2>&1; echo exit=\$? >> e2e.log"'
-        ```
-
-        4. 終わり（`systemctl --user is-active vp-e2e` が `active` でなくなる）を待ち、ログを取ってくる
-
-        ```bash
-        until ! ssh voice-paste-ubuntu 'systemctl --user is-active --quiet vp-e2e'; do sleep 60; done
-        scp voice-paste-ubuntu:vp-e2e/e2e.log {保存先}
-        ```
-
-        特定のケースだけを流すときは、3 の `tests/e2e` を pytest のノード ID の並びに替える。
   - name: 非機能要件テスト
     run_all: |-
       ```bash
@@ -114,14 +48,55 @@ layers:
       - API の開始・処理中のテスト（`tests/nfr/test_api_start_response_time.py`・`test_busy_response_time.py`）は、常駐アプリを pytest のプロセスの中で `build_handlers` で配線し、録音の入力をテストの中で書き出した無音の WAV を流すものに、システム音量を何もしないものに差し替える（実機のマイクを開かない）。`--run-e2e` を付けたときだけ走る（付けなければ skip する）
       - セッションの上限時間のテスト（`tests/nfr/test_api_session_limit.py`）は、SessionManager を上限時間 3 秒で自分で組み、録音機の入力をテストの中で書き出した無音の WAV を流すものに、システム音量を何もしないものに差し替える（実機のマイクを開かず、GPU を使わない）。`--run-e2e` を付けたときだけ走る（付けなければ skip する）
       - 話し終えてから貼り付くまでの時間のテスト（`tests/nfr/test_paste_latency.py`）は実物のクリップボードを書き換える（測った後に元の文字へ戻す）ため、`--run-e2e` を付けたときだけ走る。測っている間はクリップボードを使わない
-      - 区間の最大の長さのテスト（`tests/nfr/test_max_segment_length.py`）の WAV は、E2E と同じ音声合成（Windows では SAPI、Linux では Open JTalk）で書き出す
-      - Ubuntu 24.04 の Xorg のセッション（検証環境の VM `voice-paste-ubuntu`）でも流せる（前提は『E2E テスト』の Linux の行と同じ。流し方は『E2E テスト』の `notes` の『検証環境の VM で流す』で、3 の `tests/e2e` を `tests/nfr` に、3・4 の `e2e.log` を `nfr.log` に替える）。GPU を前提にするテスト（`tests/support/whisper_fixtures.py` の `requires_real_whisper` を付けたテスト・`test_transcription_parity.py`・`test_segment_callback_latency.py`）と、外の端末のブラウザの文字起こしを使うテスト（`test_web_*.py`。常駐アプリが Linux でブラウザの文字起こしを持たない）は Linux では skip する。決定値は OS で分けない
+      - 区間の最大の長さのテスト（`tests/nfr/test_max_segment_length.py`）の WAV は、音声合成（Windows では Windows の音声合成（SAPI）、Linux では Open JTalk）で書き出す
+      - Ubuntu 24.04 の Xorg のセッション（検証環境の VM `voice-paste-ubuntu`）でも流せる（流し方は `notes` の『検証環境の VM で流す』）。GPU を前提にするテスト（`tests/support/whisper_fixtures.py` の `requires_real_whisper` を付けたテスト・`test_transcription_parity.py`・`test_segment_callback_latency.py`）と、外の端末のブラウザの文字起こしを使うテスト（`test_web_*.py`。常駐アプリが Linux でブラウザの文字起こしを持たない）は Linux では skip する。決定値は OS で分けない
+      - Linux では、開発コマンド『環境構築（クローン直後）』の手順 2（`local-whisper` の extra）・手順 3（Open JTalk を sudo を使わず `~/.local/opt/open-jtalk` へ展開する）と、『起動・停止』の前提の OS のパッケージを済ませておき、Xorg のセッションの端末で流す（クリップボードの `xclip` が `DISPLAY` を要る）。Open JTalk の置き場所は環境変数 `VOICE_PASTE_OPEN_JTALK_HOME` で替えられる
     run_one:
       label: ファイル
       command: |-
         ```bash
         .venv/Scripts/python.exe -m pytest {非機能要件テストファイルパス} --run-e2e
         ```
+    notes:
+      検証環境の VM で流す: |-
+        WSL から SSH で、VM の Xorg のセッションの画面を渡して流す。
+
+        前提:
+
+        - WSL の `~/.ssh/config` の `Host voice-paste-ubuntu` の鍵で、パスワードを聞かれずに VM へ入れる（`ssh -o BatchMode=yes voice-paste-ubuntu true` が終了コード 0）
+        - VM は別のホストの Hyper-V で動き、WSL からは起動できない。SSH が通らないときは、ユーザーに VM の起動を頼む
+        - VM は Xorg のセッションへ自動ログインし（`/etc/gdm3/custom.conf` の `AutomaticLogin`）、画面のロックを無効にしている
+        - VM の中の作業用のクローン（`~/vp-test`）は、手順 2 の bundle から 1 回だけ `git clone /tmp/vp-test.bundle ~/vp-test` で作り、開発コマンド『環境構築（クローン直後）』の手順 3（Open JTalk）を済ませておく
+
+        1. 自動起動の常駐アプリが動いていれば終わらせる。PID を確かめてから、出た PID だけを終わらせる
+
+        ```bash
+        ssh voice-paste-ubuntu 'pgrep -af "[-]m voice_paste"'
+        ssh voice-paste-ubuntu 'kill {PID}'
+        ```
+
+        2. 流すブランチを bundle にして VM へ送り、作業用のクローンをそのブランチにして環境を追従させる（VM の作業ツリーと `.venv/` が置き換わる）
+
+        ```bash
+        git bundle create /tmp/vp-test.bundle {ブランチ}
+        scp /tmp/vp-test.bundle voice-paste-ubuntu:/tmp/vp-test.bundle
+        ssh voice-paste-ubuntu 'cd ~/vp-test && git fetch /tmp/vp-test.bundle {ブランチ} && git checkout --force FETCH_HEAD && ~/.local/bin/uv sync --frozen --extra local-whisper'
+        ```
+
+        3. SSH が切れても止まらないよう `systemd-run --user` で流す
+
+        ```bash
+        ssh voice-paste-ubuntu 'systemd-run --user --unit=vp-nfr --collect --setenv=DISPLAY=:0 --setenv=XAUTHORITY=/run/user/1000/gdm/Xauthority --working-directory=$HOME/vp-test bash -c ".venv/bin/python -m pytest tests/nfr --run-e2e -v -rs -p no:cacheprovider > nfr.log 2>&1; echo exit=\$? >> nfr.log"'
+        ```
+
+        4. 終わり（`systemctl --user is-active vp-nfr` が `active` でなくなる）を待ち、ログを取ってくる
+
+        ```bash
+        until ! ssh voice-paste-ubuntu 'systemctl --user is-active --quiet vp-nfr'; do sleep 60; done
+        scp voice-paste-ubuntu:vp-test/nfr.log {保存先}
+        ```
+
+        特定のケースだけを流すときは、3 の `tests/nfr` を pytest のノード ID の並びに替える。
   - name: 外部疎通テスト
     run_all: |-
       ```bash
@@ -154,7 +129,7 @@ layers:
       ```
     results: '`uv lock --check` は食い違いがあれば差分を出して終了コード 1。`lint-imports` は契約ごとの KEPT / BROKEN と、破った import の行を標準出力に出す（破れていれば終了コード 1）。`npm run typecheck`・`npm run lint` は違反の行を出して終了コード 1。`git diff --exit-code` はコミットした `app.js` が再生成したものと違えば差分を出して終了コード 1'
 prerequisites:
-  - リポジトリの直下で Windows の uv（WSL からは `uv.exe`）の `uv sync --frozen --extra local-whisper` を流し、`.venv/` に環境を作る（`uv.lock` のバージョンで入る。pytest と import-linter と pywin32 は pyproject.toml の `[dependency-groups]` の dev から入る。`local-whisper` の extra は E2E・非機能要件テストがローカルの Whisper で起こすために含める。単体テストと結合テストは extra を含めない `uv sync --frozen` で作った環境でも通る）
-  - 実機のテスト（E2E・非機能要件テスト）が起こす常駐アプリは、`tests/conftest.py` の `QT_QPA_PLATFORM=offscreen` のまま起動し、実機の画面に出さない（別プロセスで起動するもの・再起動で起動するものも同じ）
+  - リポジトリの直下で Windows の uv（WSL からは `uv.exe`）の `uv sync --frozen --extra local-whisper` を流し、`.venv/` に環境を作る（`uv.lock` のバージョンで入る。pytest と import-linter と pywin32 は pyproject.toml の `[dependency-groups]` の dev から入る。`local-whisper` の extra は非機能要件テストがローカルの Whisper で起こすために含める。単体テストと結合テストは extra を含めない `uv sync --frozen` で作った環境でも通る）
+  - 実機のテスト（非機能要件テスト）が起こす常駐アプリは、`tests/conftest.py` の `QT_QPA_PLATFORM=offscreen` のまま起動し、実機の画面に出さない（別プロセスで起動するもの・再起動で起動するものも同じ）
   - Ubuntu 24.04 のクローンでは、リポジトリの直下で Linux の uv の `uv sync --frozen` を流して `.venv/` を作り（開発コマンド『環境構築（クローン直後）』）、種別のコマンドの `.venv/Scripts/python.exe` は `.venv/bin/python` に、`.venv/Scripts/lint-imports` は `.venv/bin/lint-imports` に読み替える
-  - E2E は Linux でも流す（前提は『E2E テスト』）。非機能要件テストも Linux で流す（Linux で skip するテストは『非機能要件テスト』）
+  - 非機能要件テストは Linux でも流す（Linux で skip するテストは『非機能要件テスト』）

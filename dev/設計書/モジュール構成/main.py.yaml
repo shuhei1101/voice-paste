@@ -648,7 +648,7 @@ functions:
       description: 起動の引数
     process: |-
       1. `--data-dir {フォルダ}` を読む（任意）
-         - `--data-dir` が無い場合、data_dir を None にする（設定は `%APPDATA%\voice-paste`、それ以外は `%LOCALAPPDATA%\voice-paste` の下。E2E・非機能要件テストは一時フォルダを渡して普段使いの置き場所に触れない）
+         - `--data-dir` が無い場合、data_dir を None にする（設定は `%APPDATA%\voice-paste`、それ以外は `%LOCALAPPDATA%\voice-paste` の下。非機能要件テストは一時フォルダを渡して普段使いの置き場所に触れない）
          - 知らない引数の場合、argparse が使い方を出して SystemExit(2) で終わる
     unit_tests:
       - name: test_parse_args

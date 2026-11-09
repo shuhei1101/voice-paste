@@ -1,0 +1,44 @@
+id: LIB-22
+visibility: internal
+title: "python-multipart"
+kind: "ライブラリ"
+version:
+  current: 0.0.32
+  latest: 0.0.32
+  checked_on: '2026-10-23'
+  source: pyproject.toml
+  pinning: パッチバージョンを含めて固定（~=0.0.32。0.0.x はパッチバージョンで互換の無い変更が入りうる）。0.0.18 未満にあった DoS（境界の前後の大量のデータで解析が遅くなる）の修正を含むバージョンを使う（fastapi の `standard` も >=0.0.18 を求める）
+catalogs:
+  - name: API
+    version: 0.0.32
+    entries:
+      - name: UploadFile
+        kind: クラス（FastAPI）
+        purpose: '`POST /web/transcriptions` の `audio` を受け取る。python-multipart が解析し、中身は `file`（SpooledTemporaryFile）から読む'
+      - name: UploadFile.file
+        kind: 属性
+        purpose: 受けた音声を PyAV で開いて形式を確かめ、一時のフォルダへ写す
+      - name: UploadFile.close
+        kind: メソッド
+        purpose: コピーし終えたら SpooledTemporaryFile を閉じて削除する
+lead: multipart/form-data の本文を流しながら解析する Python のライブラリ。Starlette の `request.form()` と FastAPI の `UploadFile`・`Form` が使う。
+purl: pkg:pypi/python-multipart
+supplier: Kludex（Starlette の保守者）
+dependency_scope: 必須
+adoption: 採用
+upstream: Kludex/python-multipart
+verification:
+  state: 済
+  date: '2026-10-23'
+  detail: 'WSL（Linux・Python 3.12）で fastapi 0.142.4・python-multipart 0.0.32 を入れ、`UploadFile` の引数 `audio` に 5,000,000 バイトのファイルを multipart で送信して 200・大きさ・ファイル名・Content-Type が受け取れ、中身が `SpooledTemporaryFile` に溜まること、`audio` が無いと入力の検証の失敗（missing）になることを確かめた。PR #171 の PoC（`poc/server.py`）で、95 MiB の multipart を 127.0.0.1 へ直接送信し、一時のファイルへコピーして 0.41 秒で返ることも確かめてある。Windows の実機では未確認'
+license: Apache-2.0（商用利用可）
+official_url: https://github.com/Kludex/python-multipart
+docs_url: https://kludex.github.io/python-multipart/
+selection:
+  candidates: 'python-multipart・streaming-form-data・multipart（defnull）を比べた。生の本文で受ける設計は、Issue #92 の「multipart の `audio` を受ける」に反するため外した'
+  decision: FastAPI の `UploadFile` がそのまま使え、FastAPI・Starlette が公式に使うため。ほかの 2 つは `request.stream()` を自分で流し込み、境界の解析の呼び出しと例外の変換を自作する分だけ重い。chunked の本文を上限で断る数え方は、どの候補でも ASGI の receive を包む自作で同じ量になる（[案のレビュー](https://github.com/shuhei1101/voice-paste/pull/171#discussion_r4360683160)）
+  consequences: ファイルの項目は SpooledTemporaryFile に溜まるため、大きな本文は一度 OS の一時フォルダに書かれる。上限で断る数え方は常駐アプリの API サーバーのモジュールに置く
+install: |-
+  ```bash
+  uv add 'python-multipart~=0.0.32'
+  ```

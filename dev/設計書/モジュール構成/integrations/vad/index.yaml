@@ -1,4 +1,0 @@
-summary: vad の設計書
-items:
-  - page: adapter.py.yaml
-    summary: 常駐アプリ / 外部連携 / adapter.py

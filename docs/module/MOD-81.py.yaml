@@ -1,0 +1,60 @@
+id: MOD-81
+visibility: internal
+title: 常駐アプリ / 外部連携 / active_window_linux.py
+test_files:
+  - tests/unit/voice_paste/integrations/keyboard/test_active_window_linux.py
+functions:
+  - name: read_active_wm_class
+    title: アクティブなウィンドウの WM_CLASS の読み取り
+    kind: 関数
+    container: integrations/keyboard/active_window_linux.py
+    usecase: 起こした文字を届ける
+    scope: public
+    summary: python-xlib で、Xorg のルートウィンドウの `_NET_ACTIVE_WINDOW` が指すウィンドウの WM_CLASS（インスタンス名・クラス名）を読む。python-xlib に触れるのはこのファイルだけ
+    returns:
+      type: tuple[str, ...]
+      description: WM_CLASS（インスタンス名, クラス名）。読めないときは空
+    process: |-
+      1. Xlib.display.Display() で DISPLAY の X サーバーへつなぐ
+      2. ルートウィンドウの `_NET_ACTIVE_WINDOW` を get_full_property で読む
+         - 無い・空の場合、空を返す
+      3. 指すウィンドウを create_resource_object("window", id) で作り、get_wm_class() を返す（None なら空）
+      4. 1〜3 で Xlib の例外（Xlib.error.DisplayError・Xlib.error.XError・Xlib.error.ConnectionClosedError）が出た場合、空を返す（貼り付けを止めない）
+         - `[WARNING]` アクティブなウィンドウの WM_CLASS を読めなかった（元の例外）
+      5. つないだ Display は最後に close する
+    refs:
+      - LIB-23#
+    status: planned
+    notes:
+      テスト: 単体テストのファイルは `tests/unit/voice_paste/integrations/keyboard/test_active_window_linux.py`。Windows では skip する（python-xlib を読み込まない）
+    unit_tests:
+      - name: test_read_active_wm_class
+        case: 正常
+        summary: アクティブなウィンドウの WM_CLASS を返す
+        condition: _NET_ACTIVE_WINDOW が 0x1234、そのウィンドウの get_wm_class が ("gnome-terminal-server", "Gnome-terminal")
+        mock: Xlib.display.Display
+        expected: ("gnome-terminal-server", "Gnome-terminal") が返り、create_resource_object に ("window", 0x1234) が渡り、close が呼ばれる
+      - name: test_read_active_wm_class_when_no_active_window
+        case: 正常
+        summary: アクティブなウィンドウが無ければ空を返す
+        condition: get_full_property が None を返す
+        mock: Xlib.display.Display
+        expected: () が返り、close が呼ばれる
+      - name: test_read_active_wm_class_when_no_wm_class
+        case: 正常
+        summary: WM_CLASS が無ければ空を返す
+        condition: get_wm_class が None を返す
+        mock: Xlib.display.Display
+        expected: () が返る
+      - name: test_read_active_wm_class_when_display_error
+        case: 異常
+        summary: X サーバーへつなげなければ空を返す
+        condition: Xlib.display.Display が Xlib.error.DisplayNameError を送出する
+        mock: Xlib.display.Display
+        expected: () が返り、WARNING のログが出る
+      - name: test_read_active_wm_class_when_x_error
+        case: 異常
+        summary: ウィンドウが読めなければ空を返して Display を閉じる
+        condition: get_wm_class が Xlib.error.BadWindow を送出する
+        mock: Xlib.display.Display
+        expected: () が返り、close が呼ばれる

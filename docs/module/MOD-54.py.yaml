@@ -1,0 +1,252 @@
+id: MOD-54
+visibility: internal
+title: 常駐アプリ / 出力先 / types.py
+test_files:
+  - tests/unit/voice_paste/features/outputs/test_types.py
+data_models:
+  - name: OutputSpec
+    title: 出力先の定義
+    container: features/outputs/types.py
+    usecase: 起こした文字を届ける
+    role: DTO
+    summary: 出力先の ID・表示名・届ける関数・設定のモデル・注入するものを選ぶ関数の組。出力先を追加するときに既存のモジュールが要る知識はここに全て持たせる
+    properties:
+      - name: id
+        type: str
+        description: 出力先の ID。設定の出力先の一覧と確定の操作がこの ID で指す
+        example: paste_and_send
+      - name: title
+        type: str
+        description: '画面に出す名前（文言は #21 で決める）'
+      - name: handler
+        type: OutputFn
+        description: 届ける関数
+      - name: api_only
+        type: bool
+        default: 'False'
+        description: API から始めた録音だけが使うか（呼び出し元へ返すだけが True）
+      - name: settings_model
+        type: type[OutputSettingsBase] | None
+        default: None
+        description: 出力先の設定のモデル（id の既定値が OutputSpec.id と同じ）。設定の outputs[] の検証・既定の一覧・設定画面の欄はこれから組み立てる。オン・オフを持たず設定の outputs[] に置かない出力先（API 専用の呼び出し元へ返す）は None
+      - name: inject
+        type: InjectFn
+        default: 注入するものの無い関数（空の dict を返す）
+        description: 配線で handler に部分適用するものを OutputDeps から選ぶ（_wire_outputs が呼ぶ）
+    status: implemented
+  - name: PresetKindSpec
+    title: プリセットの種類の定義
+    container: features/outputs/types.py
+    usecase: 起こした文字を届ける
+    role: DTO
+    summary: カスタムプリセットの種類・表示名・届ける関数の組
+    description: '`@dataclass(frozen=True, slots=True, kw_only=True)`。'
+    properties:
+      - name: kind
+        type: str
+        description: プリセットの種類。設定の presets[].kind がこの値で指す
+        example: browser
+      - name: title
+        type: str
+        description: 種類の名前（ブラウザ添付・エンドポイントへ送信）
+      - name: handler
+        type: PresetFn
+        description: 届ける関数
+    status: implemented
+  - name: ResultPayload
+    title: 送信する内容
+    container: features/outputs/types.py
+    usecase: 起こした文字を届ける
+    role: スキーマ
+    summary: 呼び出し元へ返す・エンドポイントへ送信が送信する JSON
+    inherits: pydantic.BaseModel
+    properties:
+      - name: session_id
+        type: str
+        description: セッションの ID
+      - name: result
+        type: Literal["transcribed", "failed", "truncated"]
+        description: 結果の種類
+      - name: text
+        type: str
+        description: 起こした文字（空もある）
+      - name: error
+        type: str | None
+        description: 失敗の理由
+    methods:
+      - name: from_outcome
+        title: 結果から作る
+        kind: メソッド
+        summary: 結果から送信する内容を作る（@classmethod）
+        args:
+          - name: outcome
+            type: TranscriptionOutcome
+            required: true
+            passing: positional
+            description: 届ける結果
+        returns:
+          type: ResultPayload
+          description: outcome の session_id・result・text・error をコピーした内容
+        unit_tests:
+          - name: test_result_payload_from_outcome
+            case: 正常
+            summary: 結果をコピーする
+            condition: session_id が s1・result が transcribed・text が「テスト」・error が None の outcome
+            mock: なし
+            expected: 'model_dump() が {session_id: s1, result: transcribed, text: テスト, error: None}'
+    refs:
+      - IF-3#
+      - IF-7#
+    status: implemented
+  - name: OutputDeps
+    title: 出力先の配線に渡すもの
+    container: features/outputs/types.py
+    usecase: 起こした文字を届ける
+    role: DTO
+    summary: main.py が組み、各出力先の InjectFn が handler に部分適用するものを選ぶ元にする、外部連携の関数と今の設定の束
+    description: '`@dataclass(frozen=True, slots=True, kw_only=True)`。出力先が増えても、新しい出力先が使う外部連携がここに無いときだけ項目を追加する（そのときは出力先の追加ではなく外部連携の追加として扱う）。'
+    properties:
+      - name: copy
+        type: Callable[[str], None]
+        description: クリップボードへ書く（copy_to_clipboard。書けなければ DeliveryError）
+      - name: paste
+        type: Callable[[], None]
+        description: 貼り付けのキーを送信する（呼ぶたびに設定の keyboard.paste_key を読んで OS ごとの貼り付けのキーの送信（PlatformAdapters.send_paste）を呼ぶ）
+      - name: send_enter
+        type: SendEnterFn
+        description: 渡した修飾キーを押したまま Enter を送信する（修飾キーを省くと Enter だけ）
+      - name: sleep
+        type: Callable[[float], None]
+        description: 間を置く（time.sleep）
+      - name: jitter
+        type: Callable[[float], float]
+        description: 0 以上この値以下の乱数を返す（random.uniform(0, x)）
+      - name: post
+        type: PostJsonFn
+        description: JSON を POST してステータスを返す（外部連携の post_json）
+      - name: get_settings
+        type: Callable[[], Settings]
+        description: 今の設定を返す（SettingsStore.get。届けるたびに読み、保存した immediate の項目を次の回から効かせる）
+      - name: notify_copied
+        type: Callable[[str], None]
+        description: コピーの完了を起こした文字と共に画面へ知らせる（ui の notify_copied に UiBridge を部分適用したもの）
+    status: planned
+  - name: CallbackPayload
+    title: 呼び出し元へ返す中身
+    container: features/outputs/types.py
+    usecase: 起こした文字を届ける
+    role: スキーマ
+    summary: 呼び出し元へ返すが送信する JSON。送信する内容に、連続録音の区間の通し番号と区間の数を追加する
+    description: 設定のエンドポイントへ送信する中身（ResultPayload）は変えないため、呼び出し元へ返すときだけこの子を使う。
+    inherits: ResultPayload
+    properties:
+      - name: result
+        type: Literal["transcribed", "failed", "truncated", "completed"]
+        description: 結果の種類（completed は連続録音だけ）
+      - name: segment_number
+        type: int | None
+        description: 連続録音の区間の通し番号。それ以外は None
+      - name: segment_count
+        type: int | None
+        description: 連続録音の終わり（completed・truncated）の区間の数。それ以外は None
+    methods:
+      - name: from_outcome
+        title: 結果から作る
+        kind: メソッド
+        summary: 結果から返す中身を作る（@classmethod）
+        args:
+          - name: outcome
+            type: TranscriptionOutcome
+            required: true
+            passing: positional
+            description: 届ける結果
+        returns:
+          type: CallbackPayload
+          description: outcome の session_id・result・text・error・segment_number・segment_count をコピーした内容
+        unit_tests:
+          - name: test_callback_payload_from_outcome
+            case: 正常
+            summary: 区間の結果をコピーする
+            condition: session_id が s1・result が transcribed・text が「テスト」・segment_number が 2 の outcome
+            mock: なし
+            expected: 'model_dump() が {session_id: s1, result: transcribed, text: テスト, error: None, segment_number: 2, segment_count: None}'
+          - name: test_callback_payload_from_outcome_when_single
+            case: 正常
+            summary: 1 回の録音の結果は通し番号と区間の数が None
+            condition: segment_number・segment_count を持たない transcribed の outcome
+            mock: なし
+            expected: segment_number・segment_count が None
+    refs:
+      - IF-3#
+    status: planned
+    introduced:
+      pr: 78
+function_types:
+  - name: OutputFn
+    title: 出力先
+    container: features/outputs/types.py
+    usecase: 起こした文字を届ける
+    summary: 1 つの出力先へ結果を届ける。届けられなければ DeliveryError
+    args:
+      - name: outcome
+        type: TranscriptionOutcome
+        description: 届ける結果
+      - name: target
+        type: str | None
+        description: 出力先に固有の宛先（返送先の URL）。持たない出力先は None
+    returns:
+      type: None
+      description: なし
+    implementations:
+      - target: paste_and_send
+        notes: クリップボードへ書き、貼り付けのキーと Enter を送信する
+      - target: paste_only
+        notes: クリップボードへ書き、貼り付けのキーを送信する
+      - target: copy_only
+        notes: クリップボードへ書く
+      - target: deliver_to_caller
+        notes: 返送先へ POST する。API から始めた録音だけが使う
+    status: implemented
+  - name: PresetFn
+    title: プリセットの種類
+    container: features/outputs/types.py
+    usecase: 起こした文字を届ける
+    summary: 確定の操作で選んだカスタムプリセット 1 つへ結果を届ける。届けられなければ DeliveryError
+    args:
+      - name: outcome
+        type: TranscriptionOutcome
+        description: 届ける結果
+      - name: preset
+        type: Preset
+        description: 確定の操作で選んだプリセット（確定したときの設定のコピー）
+    returns:
+      type: None
+      description: なし
+    implementations:
+      - target: send_to_browser
+        notes: ブラウザ添付。Edge のアプリの画面を開いて貼り付け、設定によって Enter まで送信する
+      - target: deliver_to_endpoint
+        notes: エンドポイントへ送信。プリセットの URL へ JSON を 1 回 POST する
+    status: implemented
+  - name: InjectFn
+    title: 注入するものの選び方
+    container: features/outputs/types.py
+    usecase: 起こした文字を届ける
+    summary: 配線に渡すものから、1 つの出力先の handler に部分適用するキーワード引数を選んで返す
+    args:
+      - name: deps
+        type: OutputDeps
+        description: 外部連携の関数と今の設定
+    returns:
+      type: Mapping[str, object]
+      description: handler の injected の引数名 → 渡すもの
+    implementations:
+      - target: inject_paste_and_send
+        notes: 貼り付けて送信
+      - target: inject_paste_only
+        notes: 貼り付けのみ
+      - target: inject_copy_only
+        notes: コピーのみ
+      - target: inject_callback
+        notes: 呼び出し元へ返す
+    status: planned

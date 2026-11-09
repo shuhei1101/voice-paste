@@ -1,6 +1,0 @@
-summary: データストアの定義
-items:
-  - page: 常駐アプリのファイル.yaml
-    summary: 履歴・一時の音声・トークン・ログのファイル
-  - page: ブラウザの端末のデータ.yaml
-    summary: 外の端末の画面が IndexedDB に残す音声と localStorage に残す結果

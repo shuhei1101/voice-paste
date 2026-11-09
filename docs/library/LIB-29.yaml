@@ -1,0 +1,39 @@
+id: LIB-29
+visibility: internal
+title: "uvicorn"
+kind: "ライブラリ"
+version:
+  current: 0.54.0
+  latest: 0.54.0
+  checked_on: '2026-10-01'
+  source: pyproject.toml
+  pinning: マイナーバージョンの中で固定（~=0.54.0。0.x はマイナーバージョンで互換の無い変更が入る）
+catalogs:
+  - name: API
+    version: 0.54.0
+    entries:
+      - name: Config
+        kind: クラス
+        purpose: 127.0.0.1 とポート、ログの設定を渡す
+      - name: Server.serve
+        kind: メソッド
+        purpose: 専用のスレッドのイベントループで API のサーバーを動かす
+      - name: Server.started
+        kind: 属性
+        purpose: 待ち受けを始められたかを起動後に確かめる
+      - name: Server.should_exit
+        kind: 属性
+        purpose: 常駐サービスの終了時にサーバーを止める
+lead: ASGI のアプリを待ち受ける Python の Web サーバー。
+purl: pkg:pypi/uvicorn
+dependency_scope: 必須
+adoption: 採用
+used_in:
+  - src/voice_paste/server/runner.py
+upstream: Kludex/uvicorn
+verification:
+  state: 済
+  date: '2026-10-01'
+  detail: WSL（Linux・Python 3.12）で、Server.serve() を専用のスレッドで動かし started が True になること、同じポートで 2 つ目を起こすと例外を出さずにスレッドが終わり started が False のままであること、should_exit で止まることを確かめた。Windows の実機では未確認
+license: BSD-3-Clause（商用利用可）
+official_url: https://www.uvicorn.org/

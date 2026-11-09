@@ -1,9 +1,0 @@
-id: MOD-14
-title: "文字起こしワーカー / ワーカー"
-lead: 常駐サービスの子プロセスとして faster-whisper のモデルを持ち、標準入出力の JSON Lines で受けた録音を文字に起こす。CUDA のクラッシュから常駐サービスを守るためにプロセスを分ける。
-directory: |-
-  ```
-  src/voice_paste/integrations/whisper/
-  ├── worker.py      # 子プロセスの入口（python -m voice_paste.integrations.whisper.worker）
-  └── protocol.py    # 常駐サービスとやり取りする 1 行の JSON の型（client.py と共有）
-  ```

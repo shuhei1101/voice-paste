@@ -1,0 +1,46 @@
+id: LIB-19
+visibility: internal
+title: "pynput"
+kind: "ライブラリ"
+version:
+  current: 1.8.2
+  checked_on: '2026-09-30'
+  source: pyproject.toml（~=1.7）と uv.lock のバージョン
+  pinning: 互換リリースで固定（~=1.7）
+catalogs:
+  - name: API
+    version: 1.8.1
+    entries:
+      - name: keyboard.GlobalHotKeys
+        kind: クラス
+        purpose: どのウィンドウにフォーカスがあっても、登録したホットキーで関数を呼ぶ（録音開始・録音の画面の確定と取り消し）
+      - name: keyboard.Listener
+        kind: クラス
+        purpose: 設定画面で、押したキーの組み合わせを拾う
+      - name: keyboard.Controller
+        kind: クラス
+        purpose: 貼り付けキーと Enter を仮想的に押して離す
+      - name: keyboard.Key / keyboard.KeyCode
+        kind: 列挙
+        purpose: 修飾キーと通常のキーを表す
+lead: キーボードとマウスの入力を監視し、仮想的に送信するライブラリ。
+purl: pkg:pypi/pynput
+dependency_scope: 必須
+adoption: 採用
+used_in:
+  - src/voice_paste/runtime/hotkey.py
+  - src/voice_paste/integrations/keyboard/sender.py
+  - src/voice_paste/integrations/keyboard/sender_linux.py
+upstream: moses-palmer/pynput
+verification:
+  state: 未確認
+  detail: keyboard.Controller の生成と keyboard.Key の ctrl・shift・alt・cmd・enter が 1.8.1 で引けることだけ確かめた（2026-10-02）。キーを送信して貼り付け先で受かるかは、今のアクティブなウィンドウへ入力が飛んで使っている画面を壊すため、動かしていない
+license: LGPL-3.0（商用利用可。ライブラリを差し替えられる形で配布する義務がある）
+official_url: https://github.com/moses-palmer/pynput
+limitations:
+  - item: Xorg のキーの送り方
+    content: Xorg の Controller は、vk を持つキー（修飾キー・`Key.insert` などの名前のあるキー・`KeyCode.from_vk` で作ったキー）を XTEST で、文字で渡したキー（`press("v")`）を XSendEvent で送る（1.8.2 の `pynput/keyboard/_xorg.py` の `Controller._handle`）。GTK4 のアプリ（GNOME Text Editor 等）は XSendEvent のキーを受け付けない
+    notes: 主キーを `KeyCode.from_vk(ord(文字))`（Xorg では vk が keysym）で渡すと XTEST で送られ、GTK4 のアプリも受け付ける（[#211](https://github.com/shuhei1101/voice-paste/pull/211) の PoC）。send_paste_linux がこの渡し方を使う
+  - item: Wayland のセッション
+    content: Wayland のセッションでは、pynput をホットキーの受付とキーの送信に使わない。pynput の Xorg のバックエンドは、ネイティブの Wayland のアプリにフォーカスがあるときのキー入力を受け取れず、送ったキーも届かない。pynput の uinput のバックエンドは root で動かす必要がある
+    notes: ホットキーは GNOME のカスタムショートカット、キーの送信は python-evdev の UInput に替える（[evdev](./evdev.yaml)）。Windows と Xorg のセッションは今のとおり pynput を使う

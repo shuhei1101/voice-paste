@@ -1,0 +1,381 @@
+id: MOD-31
+visibility: internal
+title: 常駐アプリ / ホットキーと画面 / tray.py
+test_files:
+  - tests/unit/voice_paste/ui/test_tray.py
+enums:
+  - name: TrayState
+    title: トレイの状態
+    container: ui/tray.py
+    usecase: トレイから操作する
+    summary: トレイのアイコンとヒントの出し分け。値は `resources/tray/{値}.png` のファイル名
+    values:
+      - value: starting
+        member: STARTING
+        title: 準備中
+        description: 起動してから待機中になるまで
+      - value: idle
+        member: IDLE
+        title: 待機中
+        description: セッションが無い
+      - value: recording
+        member: RECORDING
+        title: 録音中
+        description: recording・paused・stopped
+      - value: transcribing
+        member: TRANSCRIBING
+        title: 文字起こし中
+        description: transcribing・delivering
+      - value: failed
+        member: FAILED
+        title: 失敗
+        description: 文字起こしのエンジンを準備できなかった起動。次の起動まで続く
+    refs:
+      - SCR-1#
+    status: implemented
+  - name: RecordingWindowState
+    title: 録音の画面の状態
+    container: ui/tray.py
+    usecase: 録音する
+    summary: トレイの「録音の画面を表示」の出し分け
+    values:
+      - value: hidden
+        member: HIDDEN
+        title: 隠している
+        description: hotkey・tray の recording・paused で、その回の録音の画面を隠している。項目を押せる
+      - value: shown
+        member: SHOWN
+        title: 表示中
+        description: hotkey・tray の recording・paused で、録音の画面が出ている
+      - value: no_window
+        member: NO_WINDOW
+        title: 画面を出さない録音
+        description: '`recording.hide_window` がオンの録音か、api の録音'
+      - value: not_recording
+        member: NOT_RECORDING
+        title: 録音していない
+        description: 待機中・文字起こし中・準備に失敗した起動
+    refs:
+      - SCR-1#elements[録音の画面を表示]
+    status: implemented
+classes:
+  - name: Tray
+    title: トレイ
+    container: ui/tray.py
+    usecase: トレイから操作する
+    role: 画面
+    summary: QSystemTrayIcon で状態ごとのアイコン・メニュー・通知を出す。選ばれた操作は Signal で伝える
+    description: |-
+      メニューの並び・文言・押せない条件は画面設計「トレイ」、通知の文言は画面設計「トレイの通知」が持つ。
+      アイコンの画像は `resources/tray/{TrayState の値}.png` を起動時に読む。
+      アイコンの左クリックは、「録音の画面を表示」が押せれば show_window_requested、「録音を開始」が押せれば start_requested を emit し、どちらも押せなければ何もしない。
+      通知を押したとき（`messageClicked`）はどの通知かが渡らないため、最後に出した通知がコピーの完了ならその起こした文字を `_copied_text` に持ち、押されたときに出し分ける（_on_message_clicked）。
+    kind: クラス
+    inherits: PySide6.QtCore.QObject
+    properties:
+      - name: start_requested
+        type: Signal()
+        description: 「録音を開始」・アイコンの左クリック
+      - name: settings_requested
+        type: Signal()
+        description: 「設定…」
+      - name: restart_requested
+        type: Signal()
+        description: 「再起動」
+      - name: quit_requested
+        type: Signal()
+        description: 「終了」
+      - name: _icon
+        type: QSystemTrayIcon
+        access: 内部 (_)
+        description: トレイのアイコン
+      - name: _failed
+        type: bool
+        access: 内部 (_)
+        description: 起動に失敗した（文字起こしのエンジンを準備できなかったか、設定を読めなかった）か。立つと次の起動まで失敗のまま
+      - name: _failed_settings_enabled
+        type: bool
+        access: 内部 (_)
+        default: 'True'
+        description: 失敗の起動で「設定…」を押せるままにするか（set_failed の settings_enabled）
+      - name: show_window_requested
+        type: Signal()
+        description: 「録音の画面を表示」・録音の画面を隠している間のアイコンの左クリック
+      - name: recopy_requested
+        type: Signal(str)
+        access: '-'
+        description: コピーの完了の通知を押した（その通知のときに起こした文字を渡す）
+      - name: _copied_text
+        type: str | None
+        access: 内部 (_)
+        default: None
+        description: 最後に出した通知がコピーの完了のときの起こした文字。失敗の通知を出したら None に戻す
+    methods:
+      - name: set_state
+        title: 状態の切り替え
+        summary: アイコン・ヒント・メニューの押せる項目と文言を状態に合わせる
+        kind: メソッド
+        scope: public
+        args:
+          - name: state
+            type: TrayState
+            required: true
+            passing: positional
+            description: アイコンの状態
+          - name: busy
+            type: bool
+            required: true
+            passing: keyword
+            description: 録音から届けるまでの間か（「録音を開始」「設定…」を「（処理中）」で押せなくする）
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 失敗の起動なら、状態を FAILED のままにし、「録音を開始（準備に失敗）」を押せなくする。「設定…」は _failed_settings_enabled のときだけ押せるままにする
+          2. それ以外は、状態の画像とヒント（voice-paste: {状態の名前}）に替え、busy なら「録音を開始（処理中）」「設定…（処理中）」を押せなくする。STARTING（準備中）なら「録音を開始」「設定…」を押せなくする（配線が終わるまで受け手が無い）
+          3. 「録音を開始」は押せるときだけ太字にする
+        unit_tests:
+          - name: test_set_state_when_starting
+            case: 正常
+            summary: 準備中は録音と設定を押せず、再起動と終了は押せる
+            condition: set_state(STARTING, busy=False)
+            mock: なし（offscreen の QApplication）
+            expected: '「録音を開始」と「設定…」が押せず、「再起動」「終了」が押せ、ヒントが voice-paste: 準備中'
+          - name: test_set_state_when_busy
+            case: 正常
+            summary: 処理中は録音と設定を押せなくする
+            condition: set_state(TRANSCRIBING, busy=True)
+            mock: なし（offscreen の QApplication）
+            expected: '「録音を開始（処理中）」と「設定…（処理中）」が押せず、「録音を開始」が太字でなく、ヒントが voice-paste: 文字起こし中'
+          - name: test_set_state_when_failed
+            case: 正常
+            summary: エンジンを準備できなかった起動では設定だけ押せる
+            condition: set_failed(settings_enabled=True) の後に set_state(IDLE, busy=False)
+            mock: なし（offscreen の QApplication）
+            expected: '「録音を開始（準備に失敗）」が押せず、「設定…」が押せ、ヒントが voice-paste: 失敗'
+          - name: test_set_state_when_failed_without_settings
+            case: 正常
+            summary: 設定を読めなかった起動では録音も設定も押せない
+            condition: set_failed(settings_enabled=False) の後に set_state(IDLE, busy=False)
+            mock: なし（offscreen の QApplication）
+            expected: '「録音を開始（準備に失敗）」と「設定…」が押せず、「再起動」が押せ、ヒントが voice-paste: 失敗'
+      - name: set_failed
+        title: 失敗の起動にする
+        summary: 起動に失敗した起動として、アイコンを失敗にする
+        kind: メソッド
+        scope: public
+        args:
+          - name: settings_enabled
+            type: bool
+            required: true
+            passing: keyword
+            description: 「設定…」を押せるままにするか（文字起こしのエンジンを準備できなかった起動は True、設定を読めなかった起動は読んだ設定が無いため False）
+        returns:
+          type: None
+          description: なし
+      - name: set_start_hotkey
+        title: 録音開始のホットキーの表示
+        summary: 「録音を開始」の右に出すホットキーを替える（表示形式は format_hotkey）
+        kind: メソッド
+        scope: public
+        args:
+          - name: hotkey
+            type: str
+            required: true
+            passing: positional
+            description: pynput の書式のホットキー
+        returns:
+          type: None
+          description: なし
+      - name: show_failure
+        title: 失敗の通知
+        summary: 通知の種類の見出しと本文で、警告のアイコンの Windows の通知を出す（showMessage）。通知を押すとログフォルダを開くように _copied_text を None に戻す
+        kind: メソッド
+        scope: public
+        args:
+          - name: event
+            type: Literal["microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable", "engine_unavailable", "engine_fallback", "engine_settings_mismatch", "settings_invalid", "paste_unavailable"]
+            required: true
+            passing: positional
+            description: 通知の種類（engine_unavailable・engine_fallback・engine_settings_mismatch・settings_invalid・paste_unavailable は起動のときの失敗。engine_settings_mismatch は起動の前から動いている Haas のサーバーが設定と違うときで、理由は違う項目の名前（画面設計『トレイの通知』の {違う項目}）。見出しは FAILURE_TITLES、本文は STARTUP_BODY_FORMATS に画面設計の文面で加える。engine_fallback は Haas からローカルの Whisper へ切り戻したとき。paste_unavailable は Linux の Wayland のセッションでキーの送信の機器を開けないとき）
+          - name: detail
+            type: str | None
+            required: true
+            passing: positional
+            description: 理由
+          - name: paths
+            type: Sequence[Path]
+            required: false
+            default: ()
+            passing: keyword
+            description: settings_invalid の本文に出す、読めなかったファイルのパス（SettingsError.paths）。複数のときは「・」でつなぐ
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_show_failure_when_settings_invalid
+            case: 正常
+            summary: 設定を読めないときは、読めなかったファイルのパスを本文に出す
+            condition: parametrize で paths が (1) (C:/a/settings.yaml,) (2) (C:/a/settings.yaml, C:/r/settings.local.yaml) で show_failure("settings_invalid", "理由", paths=paths)
+            mock: QSystemTrayIcon.showMessage
+            expected: 見出し「起動できませんでした」、本文「設定ファイルを読み込めませんでした（理由）。{パス} を修正して再起動してください。」で呼ばれる（{パス} は (1) C:/a/settings.yaml (2) C:/a/settings.yaml・C:/r/settings.local.yaml）
+          - name: test_show_failure
+            case: 正常
+            summary: 種類ごとの文言で通知する
+            condition: show_failure("transcription_failed", "録音を読めませんでした")
+            mock: QSystemTrayIcon.showMessage
+            expected: 見出し「文字起こしできませんでした」、本文「録音を読めませんでした。録音は履歴に残っています。」で呼ばれる
+          - name: test_show_failure_when_paste_unavailable
+            case: 正常
+            summary: 貼り付けを使えないことを権限の設定の手順と共に通知する
+            condition: show_failure("paste_unavailable", "Permission denied")
+            mock: QSystemTrayIcon.showMessage
+            expected: 見出し「貼り付けを使用できません」、本文「貼り付けのキーを送信できません（Permission denied）。/dev/uinput の権限を設定して PC を再起動してください（使い方「起動と設定」）。「コピーのみ」は使えます。」で呼ばれる
+      - name: hide
+        title: アイコンの削除
+        summary: トレイのアイコンを消す（処理中に再起動・終了を選んだときと、終わるとき）
+        kind: メソッド
+        scope: public
+        returns:
+          type: None
+          description: なし
+      - name: set_recording_window
+        title: 「録音の画面を表示」の項目の切り替え
+        summary: 「録音の画面を表示」の文言・押せるか・太字を、録音の画面の状態に合わせる
+        kind: メソッド
+        scope: public
+        args:
+          - name: state
+            type: RecordingWindowState
+            required: true
+            passing: positional
+            description: 録音の画面の状態
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. hidden の場合、「録音の画面を表示」を押せるようにし、太字にする
+          2. それ以外の場合、押せなくして太字を外し、状態ごとの理由を添える（shown：（表示中）、no_window：（画面を表示しない録音）、not_recording：（録音していません））
+        unit_tests:
+          - name: test_set_recording_window_when_hidden
+            case: 正常
+            summary: 隠している間は項目を押せ、太字にする
+            condition: set_state(RECORDING, busy=True) の後に set_recording_window(hidden)
+            mock: なし（offscreen の QApplication）
+            expected: 「録音の画面を表示」が押せて太字、「録音を開始（処理中）」が太字でない
+          - name: test_set_recording_window_when_shown
+            case: 正常
+            summary: 画面が出ている間は理由を添えて押せなくする
+            condition: set_recording_window(shown)
+            mock: なし（offscreen の QApplication）
+            expected: 「録音の画面を表示（表示中）」が押せず、太字でない
+          - name: test_set_recording_window_when_no_window
+            case: 正常
+            summary: 画面を出さない録音では理由を添えて押せなくする
+            condition: set_recording_window(no_window)
+            mock: なし（offscreen の QApplication）
+            expected: 「録音の画面を表示（画面を表示しない録音）」が押せず、太字でない
+          - name: test_set_recording_window_when_not_recording
+            case: 正常
+            summary: 録音していないときは理由を添えて押せなくする
+            condition: set_recording_window(not_recording)
+            mock: なし（offscreen の QApplication）
+            expected: 「録音の画面を表示（録音していません）」が押せず、太字でない
+          - name: test_icon_click_when_window_hidden
+            case: 正常
+            summary: 隠している間のアイコンの左クリックは、録音の画面を戻す知らせを出す
+            condition: set_state(RECORDING, busy=True)・set_recording_window(hidden) の後、アイコンの activated(Trigger) を送信する
+            mock: なし（show_window_requested・start_requested に受け手をつなぐ）
+            expected: show_window_requested が 1 回 emit され、start_requested が emit されない
+          - name: test_icon_click_when_window_shown
+            case: 正常
+            summary: 録音の画面が出ている間のアイコンの左クリックは何もしない
+            condition: set_state(RECORDING, busy=True)・set_recording_window(shown) の後、アイコンの activated(Trigger) を送信する
+            mock: なし（show_window_requested・start_requested に受け手をつなぐ）
+            expected: show_window_requested も start_requested も emit されない
+        status: implemented
+      - name: show_copy_completed
+        title: コピーの完了の通知
+        summary: コピーの完了の見出しと本文で、情報のアイコンの Windows の通知を出し（showMessage）、起こした文字を _copied_text に持つ
+        description: 通知を出しておく時間は失敗の通知と同じ MESSAGE_MSEC（FAILURE_MESSAGE_MSEC を種類を含まない名前に改め、説明を「通知を出しておく時間」にする）。
+        kind: メソッド
+        scope: public
+        args:
+          - name: text
+            type: str
+            required: true
+            passing: positional
+            description: クリップボードへ書いた起こした文字（通知には出さない）
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_show_copy_completed
+            case: 正常
+            summary: コピーの完了の文言で情報の通知を出す
+            condition: show_copy_completed("テスト")
+            mock: QSystemTrayIcon.showMessage
+            expected: 見出し「コピーしました」、本文「任意の場所に貼り付けてください。この通知を押すと、もう一度コピーします。」、MessageIcon.Information で呼ばれる
+        status: planned
+        refs:
+          - SCR-2#notes
+      - name: _on_message_clicked
+        title: 通知の押下
+        summary: messageClicked のスロット。最後に出した通知の種類で、もう一度コピーするかログフォルダを開くかを出し分ける
+        kind: メソッド
+        scope: internal
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. _copied_text があれば、それを渡して recopy_requested を emit する
+          2. 無ければ、ログフォルダを開く
+        unit_tests:
+          - name: test_on_message_clicked_when_copy_completed
+            case: 正常
+            summary: コピーの完了の通知を押すとコピーし直しを頼む
+            condition: show_copy_completed("テスト") の後に messageClicked を emit する
+            mock: QDesktopServices.openUrl
+            expected: recopy_requested に "テスト" が 1 回届き、openUrl が呼ばれない
+          - name: test_on_message_clicked_when_failure_after_copy
+            case: 正常
+            summary: コピーの完了の後に出した失敗の通知を押すとログフォルダを開く
+            condition: show_copy_completed("テスト")・show_failure("delivery_failed", "理由") の後に messageClicked を emit する
+            mock: QDesktopServices.openUrl
+            expected: openUrl に log_dir が 1 回渡り、recopy_requested が emit されない
+        status: planned
+      - name: __init__
+        title: トレイの用意
+        summary: 設定とログのフォルダを受け、準備中のアイコンとメニューを出す
+        kind: メソッド
+        scope: public
+        args:
+          - name: settings_dir
+            type: Path
+            required: true
+            passing: positional
+            description: 「設定フォルダを開く」で開くフォルダ
+          - name: log_dir
+            type: Path
+            required: true
+            passing: positional
+            description: 「ログフォルダを開く」と、失敗の通知を押したときに開くフォルダ
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. メニューの項目を作り、Signal とアイコンの左クリック・通知の押下をつなぐ
+          2. 準備中のアイコンの画像だけを付け、ヒントを付けずにアイコンを出す（show）
+          3. 出した後に set_state(STARTING, busy=False) で準備中のヒントとメニューの文言を付け、「録音の画面を表示」を not_recording にする
+        reason: Windows はトレイのアイコンのボタンの名前（スクリーンリーダーが読む名前）を、アイコンを出した時点のヒントと今のヒントをつないで作るため、ヒントは出した後に付ける。Qt はアイコンの画像が無いと show で出さないため、画像は先に付ける
+        unit_tests:
+          - name: test_init_shows_icon_before_tooltip
+            case: 正常
+            summary: ヒントを付けずにアイコンを出し、出した後に準備中のヒントを付ける
+            condition: Tray(settings_dir, log_dir) を作る
+            mock: QSystemTrayIcon.show（呼ばれた時点のヒントとアイコンの画像の有無を控える）
+            expected: 'show が 1 回呼ばれ、その時点のヒントが空でアイコンの画像が付いている。作り終えた後のヒントが voice-paste: 準備中'
+    refs:
+      - SCR-1#
+      - SCR-2#
+    status: implemented

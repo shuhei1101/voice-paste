@@ -43,4 +43,4 @@ Thumbs.db
 *.local.*
 
 # YAML の設計書から生成した Markdown
-dev/generated/
+docs/generated/

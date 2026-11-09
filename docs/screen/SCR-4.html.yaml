@@ -1,0 +1,91 @@
+id: SCR-4
+visibility: internal
+title: "取り消せない操作の確認"
+elements:
+  - name: 削除の確認
+    id: delete_dialog
+    kind: dialog
+    position: 削除の確認
+    description: '`<dialog>` を `showModal()` で開く。`closedby="any"` で Esc・外側の押下でも閉じる（`closedby` を持たないブラウザは Esc とキャンセルで閉じる）。閉じたら押した削除ボタンへフォーカスを戻す'
+    visible_when: 結果の削除ボタンを押したとき
+  - name: 削除の確認の見出し
+    id: delete_title
+    kind: label
+    position: 削除の確認 > 本体
+    description: 結果を削除するかを問う
+    label: 結果を削除しますか
+    visible_when: 常時
+  - name: 削除の確認の本文
+    id: delete_body
+    kind: label
+    position: 削除の確認 > 本体
+    description: 元に戻せないことと、PC の履歴は残ること
+    label: この端末から削除（復元不可）。PC の履歴は保持
+    visible_when: 常時
+  - name: 削除する結果
+    id: delete_quote
+    kind: label
+    position: 削除の確認 > 本体
+    description: 削除する結果の起こした文字。長いときは 3 行で省く
+    io: 表示
+    visible_when: 常時
+    source: 文字起こしの結果を返す.text（端末に残した値）
+  - name: 削除のキャンセルボタン
+    id: delete_cancel
+    kind: button
+    position: 削除の確認 > フッター
+    description: 削除せずに閉じる。最初のフォーカスを置く
+    label: キャンセル
+    visible_when: 常時
+    autofocus: true
+    action: 確認を閉じる
+  - name: 削除ボタン
+    id: delete_confirm
+    kind: button
+    position: 削除の確認 > フッター
+    description: その結果を端末（localStorage）と一覧から消す。危険の塗りのボタン
+    label: 削除
+    visible_when: 常時
+    action: 確認を閉じ、端末と一覧からその件だけを消す
+  - name: 置換の確認
+    id: replace_dialog
+    kind: dialog
+    position: 置換の確認
+    description: 削除の確認と同じ開き方・閉じ方のモーダル。閉じたら録音開始ボタンへフォーカスを戻す
+    visible_when: 端末内の音声が「送信失敗」「文字起こし前」のときに録音開始ボタンを押したとき
+  - name: 置換の確認の見出し
+    id: replace_title
+    kind: label
+    position: 置換の確認 > 本体
+    description: '文字起こし前の音声を置換するかを問う。文節で折り返す（`text-wrap: balance`・`word-break: auto-phrase`）'
+    label: 文字起こし前の音声を置換しますか
+    visible_when: 常時
+  - name: 置換の確認の本文
+    id: replace_body
+    kind: label
+    position: 置換の確認 > 本体
+    description: 消える音声と、残す方法
+    label: '端末内の文字起こし前の音声（{MM/DD HH:mm}・{m:ss}）を削除して録音（復元不可）。保存する場合: キャンセル後にダウンロード'
+    visible_when: 常時
+  - name: 置換のキャンセルボタン
+    id: replace_cancel
+    kind: button
+    position: 置換の確認 > フッター
+    description: 録音を始めずに閉じる。最初のフォーカスを置く
+    label: キャンセル
+    visible_when: 常時
+    autofocus: true
+    action: 確認を閉じる
+  - name: 置換して録音ボタン
+    id: replace_confirm
+    kind: button
+    position: 置換の確認 > フッター
+    description: 録音を始める。端末内の音声は、新しい録音を止めて残すときに置き換わる。危険の塗りのボタン
+    label: 置換して録音
+    visible_when: 常時
+    action: 確認を閉じ、録音を始めて録音中の表示に替える
+screen: src/voice_paste/server/web/index.html
+mock: docs/mock/pages/web-confirm-dialog/171/a-standard/
+lead: 外の端末の文字起こしの画面で、結果の削除と、文字起こし前の音声を新しい録音で置換することを確かめるモーダル。
+refs:
+  - SC-4#

@@ -1,4 +1,0 @@
-summary: audio の設計書
-items:
-  - page: probe.py.yaml
-    summary: 常駐アプリ / 外部連携 / probe.py

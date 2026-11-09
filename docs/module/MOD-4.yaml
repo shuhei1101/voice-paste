@@ -1,0 +1,34 @@
+id: MOD-4
+visibility: internal
+title: "常駐アプリ / ブラウザの文字起こし"
+lead: 外の端末のブラウザから受けた音声のジョブを積み、1 件ずつ起こして補正し、状態と結果を返す feature（`features/web_transcription/`）。
+directory: |-
+  ```
+  src/voice_paste/features/web_transcription/
+  ├── __init__.py   # WebJobQueue・accept_audio・router の公開
+  ├── types.py      # ジョブの状態・ジョブ・用語集のプリセットの選択肢・ほかの feature を受け取る関数型・API の依存
+  ├── service.py    # WebJobQueue（ジョブの一覧とワーカースレッド）・accept_audio（受け付け）
+  ├── schemas.py    # API のレスポンス
+  └── route.py      # POST /web/transcriptions・GET /web/transcriptions/{job_id}・GET /web/glossary-presets
+  ```
+diagrams:
+  - name: 全体
+    diagram: |-
+      ```mermaid
+      classDiagram
+        direction LR
+        class ブラウザの文字起こしのroute
+        class 用語集のプリセットの一覧のroute
+        class 音声の受け付け
+        class ブラウザの音声のキュー
+        class ジョブ
+        class ブラウザの文字起こしの依存
+        class ブラウザの API の依存
+        ブラウザの文字起こしのroute --> 音声の受け付け : 受け付け
+        ブラウザの文字起こしのroute --> ブラウザの音声のキュー : 引く
+        用語集のプリセットの一覧のroute --> ブラウザの API の依存 : 一覧を引く
+        音声の受け付け --> ブラウザの API の依存 : プリセットを確かめる
+        音声の受け付け --> ブラウザの音声のキュー : 積む
+        ブラウザの音声のキュー --> ジョブ : 持つ（0..*）
+        ブラウザの音声のキュー --> ブラウザの文字起こしの依存 : 呼ぶ
+      ```

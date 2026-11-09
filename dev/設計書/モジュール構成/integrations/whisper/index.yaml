@@ -1,8 +1,0 @@
-summary: whisper の設計書
-items:
-  - page: client.py.yaml
-    summary: 常駐アプリ / 外部連携 / client.py
-  - page: protocol.py.yaml
-    summary: 文字起こしワーカー / ワーカー / protocol.py
-  - page: worker.py.yaml
-    summary: 文字起こしワーカー / ワーカー / worker.py

@@ -1,0 +1,216 @@
+id: MOD-59
+visibility: internal
+title: 常駐アプリ / 出力先 / service.py
+test_files:
+  - tests/unit/voice_paste/features/outputs/callback/test_service.py
+constants:
+  - name: CALLBACK_TIMEOUT_SEC
+    title: 返送のタイムアウト
+    container: features/outputs/callback/service.py
+    usecase: 起こした文字を届ける
+    summary: post_json へ渡す 1 回の POST のタイムアウト。非機能要件の返送のタイムアウトと再送の決定値
+    value: '1.5'
+    status: planned
+  - name: CALLBACK_RETRY_COUNT
+    title: 返送の再送回数
+    container: features/outputs/callback/service.py
+    usecase: 起こした文字を届ける
+    summary: 最初の 1 回の後に再送する回数。非機能要件の返送のタイムアウトと再送の決定値
+    value: '3'
+    status: planned
+  - name: CALLBACK_RETRY_BASE_SEC
+    title: 返送の再送の間隔の基数
+    container: features/outputs/callback/service.py
+    usecase: 起こした文字を届ける
+    summary: 再送の間隔の基数（回ごとに 2 倍にし、フルジッターをかける）。非機能要件の返送のタイムアウトと再送の決定値
+    value: '1.0'
+    status: planned
+functions:
+  - name: is_callback_allowed
+    title: 返送先の確かめ
+    kind: 関数
+    container: features/outputs/callback/service.py
+    usecase: APIで録音を操作する
+    scope: public
+    summary: 返送先のホストが loopback か設定で許可したホストかを確かめる
+    args:
+      - name: url
+        type: str
+        required: true
+        passing: positional
+        description: 返送先
+      - name: allowed_hosts
+        type: frozenset[str]
+        required: true
+        passing: injected
+        description: 設定で許可したホスト
+    returns:
+      type: bool
+      description: 許されるか
+    unit_tests:
+      - name: test_is_callback_allowed_when_loopback
+        case: 正常
+        summary: loopback は許す
+        condition: http://127.0.0.1:9000/x・http://localhost/x・http://[::1]/x
+        mock: なし
+        expected: どれも True
+      - name: test_is_callback_allowed_when_allowed_host
+        case: 正常
+        summary: 許可したホストは許す
+        condition: allowed_hosts にホストがある
+        mock: なし
+        expected: 'True'
+      - name: test_is_callback_allowed_when_other_host
+        case: 正常
+        summary: それ以外は許さない
+        condition: http://example.com/x
+        mock: なし
+        expected: 'False'
+    status: implemented
+  - name: deliver_to_caller
+    title: 呼び出し元へ返す
+    kind: 関数
+    container: features/outputs/callback/service.py
+    usecase: 起こした文字を届ける
+    scope: public
+    inherits: OutputFn
+    summary: 返送先へ結果を POST し、届かなければ決めた回数まで再送する
+    args:
+      - name: outcome
+        type: TranscriptionOutcome
+        required: true
+        passing: positional
+        description: 届ける結果
+      - name: target
+        type: str | None
+        required: true
+        passing: positional
+        description: 返送先
+      - name: post
+        type: Callable[[str, dict], PostResult]
+        required: true
+        passing: injected
+        description: 返送先へ JSON を POST してステータスと Retry-After を返す（非機能要件の返送のタイムアウトを部分適用した外部連携の post_json）
+      - name: allowed_hosts
+        type: frozenset[str]
+        required: true
+        passing: injected
+        description: 設定で許可したホスト
+      - name: retry_count
+        type: int
+        required: true
+        passing: injected
+        description: 非機能要件の返送の再送回数
+      - name: retry_base_sec
+        type: float
+        required: true
+        passing: injected
+        description: 非機能要件の返送の再送の間隔の基数（回ごとに 2 倍にする）
+      - name: sleep
+        type: Callable[[float], None]
+        required: true
+        passing: injected
+        description: 間を置く（time.sleep。テストで差し替える）
+      - name: jitter
+        type: Callable[[float], float]
+        required: true
+        passing: injected
+        description: 0 以上この値以下の乱数を返す（random.uniform(0, x)。テストで差し替える）
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. 返送先が許されるかをもう一度確かめる（返送先の確かめ）
+         - 許されない場合、DeliveryError を送出する
+      2. 返す中身（CallbackPayload.from_outcome）を作り、1 + 再送回数まで POST する
+         - 2xx なら終える
+           - `[INFO]` 返送先へ届けた（セッションの ID・result・区間の通し番号（あれば）・回数）
+         - 一時的な失敗（5xx・408・429 か DeliveryError。タイムアウト・接続できない）で次の回がある場合、待ちを置いて次へ
+           - 待ちは、Retry-After があればその秒数、無ければ jitter(retry_base_sec × 2^(回数−1))（指数バックオフとフルジッター）
+           - Retry-After が retry_base_sec × 2^(再送回数−1)（待ちの上限）を超える場合、待たずに 3 へ（返送の間はセッションが残り次の開始を断るため、待ちを決めた上限に収める）
+           - `[WARNING]` 返送に失敗した（セッションの ID・区間の通し番号（あれば）・回数・理由）
+         - それ以外のステータス（408・429 を除く 4xx など、再送しても変わらない応答）の場合、再送せずに 3 へ
+      3. 届かなかったらログに書いて終える（送出しない。履歴は残っている。連続録音は次の区間へ進む）
+         - `[ERROR]` 返送先に届かなかった（セッションの ID・区間の通し番号（あれば）・最後の理由）
+    exceptions:
+      - name: DeliveryError
+        condition: 返送先が許されない（開始の後に設定が変わった）
+    unit_tests:
+      - name: test_deliver_to_caller
+        case: 正常
+        summary: 1 回で届く
+        condition: post が 200
+        mock: post・sleep・jitter
+        expected: post が 1 回、session_id・result・text・error を持つ dict で呼ばれ、sleep が呼ばれない
+      - name: test_deliver_to_caller_when_retry_succeeds
+        case: 正常
+        summary: 再送で届く
+        condition: post が 500 → DeliveryError → 200、再送回数 2、retry_base_sec 1.0、jitter は受けた値をそのまま返す
+        mock: post・sleep・jitter
+        expected: post が 3 回呼ばれ、sleep に 1.0・2.0 がこの順で渡り、例外が出ない
+      - name: test_deliver_to_caller_when_retry_after
+        case: 正常
+        summary: Retry-After に従う
+        condition: post が 429（Retry-After 1.5）→ 200、再送回数 2、retry_base_sec 1.0
+        mock: post・sleep・jitter
+        expected: sleep に 1.5 が渡り、jitter が呼ばれず、post が 2 回呼ばれる
+      - name: test_deliver_to_caller_when_retry_after_too_long
+        case: 正常
+        summary: 待ちの上限を超える Retry-After は待たずに終える
+        condition: post が 503（Retry-After 60）、再送回数 2、retry_base_sec 1.0（待ちの上限 2.0）
+        mock: post・sleep・jitter
+        expected: post が 1 回だけ呼ばれ、sleep が呼ばれず、ERROR のログが 1 行出る
+      - name: test_deliver_to_caller_when_client_error
+        case: 正常
+        summary: 再送しても変わらない 4xx は再送しない
+        condition: post が 404、再送回数 2
+        mock: post・sleep・jitter
+        expected: post が 1 回だけ呼ばれ、sleep が呼ばれず、ERROR のログが 1 行出る
+      - name: test_deliver_to_caller_when_unreachable
+        case: 正常
+        summary: 届かなければログに書いて終える
+        condition: post が常に 500、再送回数 2
+        mock: post・sleep・jitter
+        expected: post が 3 回、sleep が 2 回呼ばれ、例外が出ず、ERROR のログが 1 行出る
+      - name: test_deliver_to_caller_when_not_allowed
+        case: 異常
+        summary: 許されない返送先へは送信しない
+        condition: target が http://example.com/x
+        mock: post・sleep・jitter
+        expected: DeliveryError が送出され、post が呼ばれない
+        exception: 返送先が許されない
+      - name: test_deliver_to_caller_when_segment
+        case: 正常
+        summary: 連続録音の区間は通し番号を付けて送信する
+        condition: segment_number=3 の transcribed の outcome。post が 200 を返す
+        mock: post・sleep・jitter
+        expected: post に segment_number=3・segment_count=None を含む中身が 1 回渡る
+    refs:
+      - LIB-9#
+      - IF-3#
+    status: implemented
+  - name: inject_callback
+    title: 呼び出し元へ返すの注入
+    kind: 関数
+    container: features/outputs/callback/service.py
+    usecase: 起こした文字を届ける
+    scope: public
+    inherits: InjectFn
+    summary: deliver_to_caller に部分適用する post・allowed_hosts・retry_count・retry_base_sec・sleep・jitter を返す
+    args:
+      - name: deps
+        type: OutputDeps
+        required: true
+        passing: positional
+        description: 外部連携の関数と今の設定
+    returns:
+      type: Mapping[str, object]
+      description: post は CALLBACK_TIMEOUT_SEC を timeout_sec に部分適用した deps.post、allowed_hosts はこの時点の deps.get_settings() の api.allowed_callback_hosts、retry_count・retry_base_sec は CALLBACK_RETRY_COUNT・CALLBACK_RETRY_BASE_SEC、sleep・jitter は deps のもの
+    unit_tests:
+      - name: test_inject_callback
+        case: 正常
+        summary: 返送の決定値と設定の許可ホストを渡す
+        condition: deps.get_settings が api.allowed_callback_hosts = ["host.local"] の設定を返す
+        mock: OutputDeps の全関数
+        expected: allowed_hosts が frozenset({"host.local"})、retry_count が 3、retry_base_sec が 1.0 で、post を呼ぶと deps.post に timeout_sec=1.5 が渡る
+    status: planned

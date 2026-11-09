@@ -1,6 +1,0 @@
-summary: http の設計書
-items:
-  - page: client.py.yaml
-    summary: 常駐アプリ / 外部連携 / client.py
-  - page: types.py.yaml
-    summary: 常駐アプリ / 外部連携 / types.py

@@ -1,8 +1,0 @@
-summary: haas_server の設計書
-items:
-  - page: app.py.yaml
-    summary: Haas の文字起こしのサーバー / サーバー / app.py
-  - page: audio.py.yaml
-    summary: Haas の文字起こしのサーバー / サーバー / audio.py
-  - page: main.py.yaml
-    summary: Haas の文字起こしのサーバー / サーバー / main.py

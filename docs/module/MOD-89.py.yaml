@@ -1,0 +1,70 @@
+id: MOD-89
+visibility: internal
+title: 常駐アプリ / 起動と配線 / process.py
+test_files:
+  - tests/unit/voice_paste/runtime/test_process.py
+constants:
+  - name: DETACHED_PROCESS
+    title: 親のコンソールから切り離すフラグ
+    container: runtime/process.py
+    usecase: トレイから操作する
+    summary: Windows で relaunch が渡す subprocess.DETACHED_PROCESS の値。Linux の subprocess には属性が無いため、値を定数で持つ
+    value: '0x00000008'
+    status: planned
+  - name: CREATE_NEW_PROCESS_GROUP
+    title: 新しいプロセスグループで起動するフラグ
+    container: runtime/process.py
+    usecase: トレイから操作する
+    summary: Windows で relaunch が渡す subprocess.CREATE_NEW_PROCESS_GROUP の値。DETACHED_PROCESS と同じ理由で定数で持つ
+    value: '0x00000200'
+    status: planned
+functions:
+  - name: relaunch
+    title: 再起動
+    container: runtime/process.py
+    usecase: トレイから操作する
+    summary: 同じ Python と引数で `python -m voice_paste` を切り離したプロセスとして起動する。片付けを終えた後に呼ぶ（API のポートとエンジンを放してから次を立てる）
+    kind: 関数
+    scope: public
+    args:
+      - name: argv
+        type: list[str]
+        required: true
+        passing: positional
+        description: 起動の引数（プログラム名を除く）
+      - name: os_kind
+        type: OsKind
+        required: true
+        passing: keyword
+        description: 動いている OS（select_platform_adapters が部分適用する）
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. os_kind に合わせて切り離して起動する
+         - OsKind.WINDOWS の場合、`subprocess.Popen([sys.executable, "-m", "voice_paste", *argv], creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP, close_fds=True)`（フラグは process.py の定数。Linux の subprocess には属性が無い）
+         - OsKind.LINUX の場合、`subprocess.Popen([sys.executable, "-m", "voice_paste", *argv], start_new_session=True, close_fds=True)`
+         - OSError の場合、ログに書いて握る（終わり方は変えない）
+           - `[ERROR]` 起動し直せなかった（logger.exception）
+         - `[INFO]` 起動し直した（引数）
+    unit_tests:
+      - name: test_relaunch
+        case: 正常
+        summary: Windows では同じ引数で切り離して起動する
+        condition: argv=["--data-dir", "C:/tmp/vp"]・os_kind=OsKind.WINDOWS
+        mock: subprocess.Popen
+        expected: Popen に [sys.executable, "-m", "voice_paste", "--data-dir", "C:/tmp/vp"] と DETACHED_PROCESS が渡る
+      - name: test_relaunch_when_linux
+        case: 正常
+        summary: Linux では新しいセッションで起動する
+        condition: argv=["--data-dir", "/tmp/vp"]・os_kind=OsKind.LINUX
+        mock: subprocess.Popen
+        expected: Popen に [sys.executable, "-m", "voice_paste", "--data-dir", "/tmp/vp"] と start_new_session=True が渡り、creationflags が渡らない
+      - name: test_relaunch_when_failed
+        case: 異常
+        summary: 起動できなくても例外を漏らさない
+        condition: Popen が OSError を送出する
+        mock: subprocess.Popen
+        expected: 例外が出ず、ERROR のログが 1 行出る
+        exception: 起動できない
+    status: implemented

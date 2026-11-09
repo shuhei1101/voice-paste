@@ -1,0 +1,64 @@
+id: LIB-3
+visibility: internal
+title: "Open JTalk"
+kind: "CLI"
+version:
+  current: 1.11-5（open-jtalk・open-jtalk-mecab-naist-jdic）、1.10-7build1（libhtsengine1）、1.05-8（hts-voice-nitech-jp-atr503-m001）
+  checked_on: '2026-11-01'
+  source: Ubuntu 24.04（noble）の universe・multiverse のパッケージ
+  pinning: 固定しない。`apt-get download` が取るその時点の noble のバージョンを使う
+catalogs:
+  - name: コマンド
+    version: 1.11-5
+    entries:
+      - name: open_jtalk
+        kind: コマンド
+        purpose: 非機能要件テスト（区間の最大の長さ）の録音の入力にする決めた文を、Linux で WAV に書き出す
+        description: 標準入力（またはファイル）で受けた UTF-8 の文を読み上げ、`-ow` のパスへ 16 bit・モノラル・48 kHz の WAV を書く。テストは書き出した WAV を 16 kHz へ変換してから流す。Windows では使わず、SAPI で書き出す
+        params:
+          - name: -x
+            type: パス
+            required: true
+            description: MeCab の辞書のフォルダ（展開した `var/lib/mecab/dic/open-jtalk/naist-jdic`）
+          - name: -m
+            type: パス
+            required: true
+            description: HTS voice のファイル（展開した `usr/share/hts-voice/nitech-jp-atr503-m001/nitech_jp_atr503_m001.htsvoice`）
+          - name: -ow
+            type: パス
+            required: true
+            description: 書き出す WAV のパス
+          - name: '{入力ファイル}'
+            type: パス
+            required: false
+            default: 標準入力
+            description: 読み上げる文のファイル。省くと標準入力から読む
+        params_example: |-
+          ```bash
+          H=~/.local/opt/open-jtalk
+          echo 'こんにちは' | LD_LIBRARY_PATH="$H/usr/lib/x86_64-linux-gnu" "$H/usr/bin/open_jtalk" \
+            -x "$H/var/lib/mecab/dic/open-jtalk/naist-jdic" \
+            -m "$H/usr/share/hts-voice/nitech-jp-atr503-m001/nitech_jp_atr503_m001.htsvoice" \
+            -ow out.wav
+          ```
+        returns:
+          - name: '-'
+            type: 終了コード
+            description: 書き出せたら 0
+lead: 日本語の文を読み上げた音声を WAV に書き出す音声合成の CLI。MeCab の辞書（NAIST Japanese Dictionary）で読みを付け、HTS の音響モデル（HTS voice）で音を作る。
+purl: pkg:deb/ubuntu/open-jtalk@1.11-5
+supplier: 名古屋工業大学 HTS ワーキンググループ（Ubuntu のパッケージは Debian のメンテナー）
+dependency_scope: 開発のみ
+adoption: 採用
+used_in:
+  - tests/support/inprocess.py
+verification:
+  state: 済
+  date: '2026-11-01'
+  detail: PoC [#242](https://github.com/shuhei1101/voice-paste/pull/242) で、検証環境の VM（Ubuntu 24.04）の `~/.local/opt/open-jtalk` に 4 つのパッケージを sudo を使わずに展開し、E2E の `SPEECH_TEXT`・`THREE_SENTENCES`・`LONG_READING` の 17 文を書き出して、CPU・int8 の large-v3 で起こした文字の全てに期待する言葉が含まれることを確かめた（[結果](https://github.com/shuhei1101/voice-paste/blob/8f763c9/dev/pr/241/%E5%B8%B8%E9%A7%90%E3%82%A2%E3%83%97%E3%83%AA.md#poc-%E7%B5%90%E6%9E%9C)）。2026-11-01 に VM（Ubuntu 24.04.5）の新しい一時フォルダへ『インストール手順』のコマンドで入れ直し、`こんにちは` を 16 bit・モノラル・48 kHz の WAV に書き出せることを確かめた
+license: Modified BSD（open-jtalk・libhtsengine1・open-jtalk-mecab-naist-jdic）、CC BY 3.0（hts-voice-nitech-jp-atr503-m001）。テストの中で呼ぶだけで、常駐アプリに同梱しない
+official_url: https://open-jtalk.sourceforge.net/
+install: Linux で非機能要件テストを流す環境だけに、sudo を使わずユーザーの配下（`~/.local/opt/open-jtalk`）へ入れる。コマンドは開発コマンドの『環境構築（クローン直後）』の手順 3。パッケージを入れずに `dpkg -x` で展開するため、`open_jtalk` が読む `libHTSEngine.so.1` は展開した `usr/lib/x86_64-linux-gnu` を `LD_LIBRARY_PATH` で渡す。置き場所は環境変数 `VOICE_PASTE_OPEN_JTALK_HOME` で替えられる
+refs:
+  - TP-1#layers[非機能要件テスト]
+  - CMD-1#categories[環境構築（クローン直後）]

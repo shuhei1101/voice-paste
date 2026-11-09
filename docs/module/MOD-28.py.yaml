@@ -1,0 +1,354 @@
+id: MOD-28
+visibility: internal
+title: 常駐アプリ / ブラウザの文字起こし / service.py
+test_files:
+  - tests/unit/voice_paste/features/web_transcription/test_service.py
+classes:
+  - name: WebJobQueue
+    title: ブラウザの音声のキュー
+    container: features/web_transcription/service.py
+    usecase: 共通
+    role: サービス
+    kind: クラス
+    summary: ジョブの一覧と待ち行列を持ち、ワーカースレッドで 1 件ずつ起こす
+    description: |-
+      長期に持つランタイム状態（ジョブの一覧・待ち行列・ワーカースレッド）を持つためクラスにする。
+      ジョブの一覧は `threading.Lock` の中で読み書きする（route は uvicorn のスレッド、起こすのはワーカースレッド）。
+      待ち行列は `queue.Queue`。終わったジョブは終わった順に `collections.deque` で控え、終わったジョブを持つ件数を超えたら古い順に一覧から捨てる。
+    properties:
+      - name: _deps
+        type: WebTranscriptionDeps
+        access: 内部 (_)
+        description: 呼ぶ関数
+      - name: _max_pending
+        type: int
+        access: 内部 (_)
+        default: WEB_QUEUE_LIMIT
+        description: 終わっていないジョブの上限
+      - name: _max_finished
+        type: int
+        access: 内部 (_)
+        default: WEB_FINISHED_JOBS_KEPT
+        description: 終わったジョブを持つ件数
+      - name: _jobs
+        type: dict[str, WebJob]
+        access: 内部 (_)
+        description: ジョブの ID → ジョブ
+      - name: _finished
+        type: deque[str]
+        access: 内部 (_)
+        description: 終わったジョブの ID（終わった順）
+      - name: _pending
+        type: queue.Queue[str | None]
+        access: 内部 (_)
+        description: 起こすジョブの ID の待ち行列。None は止める合図
+      - name: _lock
+        type: threading.Lock
+        access: 内部 (_)
+        description: _jobs・_finished を守る
+      - name: _thread
+        type: threading.Thread | None
+        access: 内部 (_)
+        description: ワーカースレッド
+    methods:
+      - name: start
+        title: 開始
+        kind: メソッド
+        scope: public
+        summary: 一時のフォルダに取り残された音声を消し、ワーカースレッドを立てる
+        args:
+          - name: tmp_dir
+            type: Path
+            required: true
+            description: 受けた音声の一時のフォルダ
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. tmp_dir の下のファイルを消す（前の起動で取り残された音声。消せないものは残す）
+             - `[WARNING]` 取り残された音声を削除できなかった（パス・理由）
+          2. tmp_dir を作る
+          3. _run を回すデーモンのスレッドを立てる
+        unit_tests:
+          - name: test_start
+            case: 正常
+            summary: 取り残しを消してスレッドを立てる
+            condition: tmp_dir に古い `.webm` が 1 つある
+            mock: WebTranscriptionDeps の全関数
+            expected: 古いファイルが消え、ワーカースレッドが動いている
+      - name: submit
+        title: 積む
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        summary: 終わっていないジョブが上限未満ならジョブを queued で積む
+        args:
+          - name: job_id
+            type: str
+            required: true
+            description: ジョブの ID
+          - name: audio_path
+            type: Path
+            required: true
+            description: 書いた一時のファイル
+          - name: audio
+            type: AudioProbe
+            required: true
+            description: 読んだ形式
+          - name: glossary_preset
+            type: str | None
+            required: true
+            description: 確かめ済みの用語集のプリセットの名前。None は指定なし
+        returns:
+          type: WebJob
+          description: 積んだジョブ（state は queued）
+        process: |-
+          1. ロックを取る
+          2. 終わっていないジョブ（queued・running）の数が _max_pending 以上なら WebQueueFullError を送出する
+          3. glossary_preset を持たせたジョブを作って _jobs に入れ、待ち行列に ID を積む
+             - `[INFO]` 音声を受け付けた（job_id・大きさ・形式・秒数・用語集のプリセット。指定なしは「設定に従う」）
+        exceptions:
+          - name: WebQueueFullError
+            condition: 終わっていないジョブが上限に達している
+        unit_tests:
+          - name: test_submit
+            case: 正常
+            summary: queued で積む
+            condition: ジョブが無い
+            mock: WebTranscriptionDeps の全関数（ワーカースレッドは立てない）
+            expected: queued のジョブが返り、get で同じジョブが引ける。glossary_preset に「会議」を渡したジョブは glossary_preset が「会議」、None を渡したジョブは None
+          - name: test_submit_when_queue_full
+            case: 異常
+            summary: 上限で断る
+            condition: _max_pending=2 で 2 件積んだ後に 3 件目
+            mock: WebTranscriptionDeps の全関数（ワーカースレッドは立てない）
+            expected: WebQueueFullError が送出され、ジョブは 2 件のまま
+            exception: 終わっていないジョブが上限に達している
+      - name: get
+        title: 引く
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        summary: ジョブの今の状態を返す
+        args:
+          - name: job_id
+            type: str
+            required: true
+            description: ジョブの ID
+        returns:
+          type: WebJob
+          description: 今のジョブ
+        process: |-
+          1. ロックを取る
+          2. _jobs に無ければ WebJobNotFoundError を送出する
+          3. ジョブを返す
+        exceptions:
+          - name: WebJobNotFoundError
+            condition: 受け付けていないか、件数を超えて捨てた
+        unit_tests:
+          - name: test_get_when_not_found
+            case: 異常
+            summary: 無い ID は断る
+            condition: 受け付けていない ID
+            mock: WebTranscriptionDeps の全関数
+            expected: WebJobNotFoundError が送出される
+            exception: 受け付けていないか、件数を超えて捨てた
+      - name: _run
+        title: ワーカースレッドの本体
+        kind: メソッド
+        scope: internal
+        summary: 待ち行列から ID を 1 つずつ取り出して _process を呼ぶ。None を取り出したら終わる
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 待ち行列から ID を取り出す
+             - None なら終わる
+          2. _process を呼ぶ（例外は _process の中で受け、スレッドを止めない）
+          3. 1 へ戻る
+      - name: _process
+        title: 1 件を起こす
+        kind: メソッド
+        scope: internal
+        summary: ジョブを running にして、履歴へ移し、起こして補正し、done か failed で終える
+        args:
+          - name: job_id
+            type: str
+            required: true
+            description: ジョブの ID
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. ジョブを running にする
+          2. 受けた音声を保存する（store_audio。履歴を残す設定なら履歴へ移し、audio_path を差し替える）
+          3. 起こす（transcribe。進みは progress に書く）
+          4. ジョブの glossary_preset で補正する（correct。None なら補正の時点で設定で選んでいるプリセット）
+          5. 起こした文字を履歴に追記する（append_text）
+          6. ジョブを done・progress 1.0・text で終える
+             - `[INFO]` 起こし終えた（job_id・秒数・文字数。起こした文字は書かない）
+             - 2〜5 で TranscriptionError・OSError の場合、ジョブを failed・error で終える
+               - `[ERROR]` 文字起こしに失敗した（job_id・理由）
+             - それ以外の例外の場合も failed・「想定していない問題」で終える
+               - `[ERROR]` 想定していない例外（job_id。スタックをログに書き、error には含めない）
+          7. 一時のファイルなら消す（discard_temporary。失敗しても通る）
+          8. 終わったジョブの一覧に追加し、_max_finished を超えたらいちばん古い件を _jobs から捨てる
+        unit_tests:
+          - name: test_process
+            case: 正常
+            summary: 起こして補正し、done で終える
+            condition: queued のジョブ 1 件。transcribe が進み 0.5 を知らせて文を返す
+            mock: WebTranscriptionDeps の全関数
+            expected: ジョブが done・progress 1.0・text は correct の戻り値で、correct が起こした文字と None で呼ばれ、store_audio・append_text・discard_temporary が 1 回ずつ呼ばれる。transcribe の途中に get すると running・progress 0.5
+          - name: test_process_when_transcription_failed
+            case: 異常
+            summary: 失敗は failed で終えて次へ進む
+            condition: transcribe が TranscriptionError を送出する
+            mock: WebTranscriptionDeps の全関数
+            expected: ジョブが failed・error に理由、text は None で、discard_temporary が呼ばれ、append_text は呼ばれない
+          - name: test_process_when_unexpected_error
+            case: 異常
+            summary: 想定していない例外も failed で終える
+            condition: correct が ValueError を送出する
+            mock: WebTranscriptionDeps の全関数
+            expected: ジョブが failed で、error に例外の中身が含まれない
+          - name: test_process_when_over_finished_limit
+            case: 正常
+            summary: 終わったジョブは件数で古い順に捨てる
+            condition: _max_finished=1 で 2 件を終える
+            mock: WebTranscriptionDeps の全関数
+            expected: 先に終えたジョブの get が WebJobNotFoundError、後のジョブは done
+          - name: test_process_when_glossary_preset
+            case: 正常
+            summary: ジョブのプリセットで補正する
+            condition: glossary_preset が「会議」の queued のジョブ 1 件
+            mock: WebTranscriptionDeps の全関数
+            expected: correct が起こした文字と「会議」で呼ばれ、ジョブが done・text は correct の戻り値
+      - name: close
+        title: 終了
+        kind: メソッド
+        scope: public
+        summary: 待ち行列に止める合図を積み、待ちのジョブの一時のファイルを消す。起こしている 1 件は待たない
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 待ち行列に残った ID を取り出し、そのジョブの一時のファイルを消す（discard_temporary）
+          2. 待ち行列に None を積む（ワーカースレッドはデーモンなので join しない）
+             - `[INFO]` ブラウザの音声のキューを閉じた（捨てた待ちの数）
+        unit_tests:
+          - name: test_close
+            case: 正常
+            summary: 待ちの一時のファイルを消す
+            condition: queued のジョブが 2 件（ワーカースレッドは立てない）
+            mock: WebTranscriptionDeps の全関数
+            expected: discard_temporary が 2 回呼ばれる
+    status: planned
+constants:
+  - name: WEB_QUEUE_LIMIT
+    title: ブラウザの音声の待ちの上限
+    container: features/web_transcription/service.py
+    usecase: ブラウザから音声を送信する
+    summary: 終わっていないジョブ（queued・running）の上限。非機能要件のブラウザの音声の待ちの上限
+    value: '10'
+    status: planned
+  - name: WEB_FINISHED_JOBS_KEPT
+    title: 終わったジョブを持つ件数
+    container: features/web_transcription/service.py
+    usecase: ブラウザで結果を受け取る
+    summary: 終わったジョブ（done・failed）をメモリに持つ件数。非機能要件の終わったジョブを持つ件数
+    value: '100'
+    status: planned
+  - name: JOB_ID_BYTES
+    title: ジョブの ID のバイト数
+    container: features/web_transcription/service.py
+    usecase: ブラウザから音声を送信する
+    summary: secrets.token_urlsafe に渡す乱数のバイト数（128 bit、22 文字）
+    value: '16'
+    status: planned
+functions:
+  - name: accept_audio
+    title: 音声の受け付け
+    kind: 関数
+    container: features/web_transcription/service.py
+    usecase: ブラウザから音声を送信する
+    scope: public
+    summary: 指定された用語集のプリセットと受けた音声の形式を確かめ、一時のファイルへ書いてジョブを積む
+    args:
+      - name: file
+        type: BinaryIO
+        required: true
+        passing: positional
+        description: 受けた音声（UploadFile.file）
+      - name: deps
+        type: WebApiDeps
+        required: true
+        passing: keyword
+        description: キュー・形式の読み取り・一時のフォルダ
+      - name: glossary_preset
+        type: str | None
+        required: false
+        default: None
+        passing: keyword
+        description: multipart の glossary_preset。None と空文字は指定なし
+    returns:
+      type: WebJob
+      description: 積んだジョブ
+    process: |-
+      1. glossary_preset が空文字なら None にする
+      2. None でなく、glossary_preset_exists が False なら GlossaryPresetNotFoundError を送出する（音声は読まず、書かない。メッセージに指定した名前を含める）
+         - `[WARNING]` 用語集のプリセットが無いため断った（指定した名前）
+      3. 音声の形式を読む（probe_audio。読めなければ AudioUnreadableError が伝わる）
+         - `[WARNING]` 読めない音声を断った（大きさ・理由）
+      4. ID を作り、`{tmp_dir}/{ID}{容れ物の拡張子}` へ頭からコピーする
+      5. glossary_preset と共にキューに積む（submit）
+         - WebQueueFullError の場合、コピーした一時のファイルを消してそのまま送出する
+           - `[WARNING]` 待ちが上限のため断った（待ちの数）
+    exceptions:
+      - name: AudioUnreadableError
+        condition: PyAV で開けないか、音声のストリームが無い
+      - name: WebQueueFullError
+        condition: 終わっていないジョブが上限に達している
+      - name: GlossaryPresetNotFoundError
+        condition: 指定した用語集のプリセットが今の設定の一覧に無い
+    unit_tests:
+      - name: test_accept_audio
+        case: 正常
+        summary: 容れ物の拡張子で書いて積む
+        condition: probe_audio が webm を返す
+        mock: probe_audio・WebJobQueue.submit
+        expected: tmp_dir に `{ID}.webm` が送信した内容で書かれ、submit がそのパスと glossary_preset None で呼ばれる
+      - name: test_accept_audio_when_unreadable
+        case: 異常
+        summary: 読めなければ書かない
+        condition: probe_audio が AudioUnreadableError を送出する
+        mock: probe_audio・WebJobQueue.submit
+        expected: AudioUnreadableError が伝わり、tmp_dir が空で submit が呼ばれない
+        exception: PyAV で開けないか、音声のストリームが無い
+      - name: test_accept_audio_when_queue_full
+        case: 異常
+        summary: 待ちが上限なら書いたファイルを消す
+        condition: submit が WebQueueFullError を送出する
+        mock: probe_audio・WebJobQueue.submit
+        expected: WebQueueFullError が伝わり、tmp_dir が空
+        exception: 終わっていないジョブが上限に達している
+      - name: test_accept_audio_when_glossary_preset
+        case: 正常
+        summary: 一覧にあるプリセットを持たせて積む
+        condition: glossary_preset に「会議」、glossary_preset_exists が True を返す
+        mock: probe_audio・glossary_preset_exists・WebJobQueue.submit
+        expected: glossary_preset_exists が「会議」で呼ばれ、submit が glossary_preset「会議」で呼ばれる
+      - name: test_accept_audio_when_glossary_preset_empty
+        case: 正常
+        summary: 空文字は指定なしとして積む
+        condition: glossary_preset に空文字
+        mock: probe_audio・glossary_preset_exists・WebJobQueue.submit
+        expected: glossary_preset_exists が呼ばれず、submit が glossary_preset None で呼ばれる
+      - name: test_accept_audio_when_glossary_preset_not_found
+        case: 異常
+        summary: 一覧に無いプリセットは音声を読まずに断る
+        condition: glossary_preset に「無いプリセット」、glossary_preset_exists が False を返す
+        mock: probe_audio・glossary_preset_exists・WebJobQueue.submit
+        expected: GlossaryPresetNotFoundError が送出され、メッセージに「無いプリセット」を含む。probe_audio・submit が呼ばれず、tmp_dir が空
+        exception: 指定した用語集のプリセットが今の設定の一覧に無い
+    status: planned

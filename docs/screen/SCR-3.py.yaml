@@ -1,0 +1,41 @@
+id: SCR-3
+visibility: internal
+title: "処理中のダイアログ"
+elements:
+  - name: ダイアログ
+    id: busy_dialog
+    kind: dialog
+    position: 処理中のダイアログ
+    description: 「常に手前に表示」のモーダル。ウィンドウのタイトルは voice-paste。処理中の録音はそのまま続き、閉じた後もトレイのアイコンは処理中の録音の状態のまま
+    visible_when: '`notify` で busy を受けたとき（API から始めた録音の間に録音開始のホットキーを押した）'
+    source: UiBridge.notified（busy）
+    action: Enter・Esc でも閉じる
+  - name: 見出し
+    id: busy_title
+    kind: label
+    position: 処理中のダイアログ > 本体
+    description: 始められないことを伝える
+    label: 録音を開始できませんでした
+    visible_when: 常時
+  - name: 本文
+    id: busy_body
+    kind: label
+    position: 処理中のダイアログ > 本体
+    description: 理由と次にすることを伝える
+    label: ほかのシステムから始めた録音を処理しています。終わってから、もう一度録音開始のホットキーを押してください。
+    visible_when: 常時
+  - name: 閉じるボタン
+    id: close_button
+    kind: button
+    position: 処理中のダイアログ > フッター
+    description: ダイアログを閉じる
+    label: 閉じる
+    visible_when: 常時
+    autofocus: true
+    action: ダイアログを閉じる
+screen: src/voice_paste/ui/windows/busy_dialog.py
+mock: docs/mock/pages/busy-dialog/37/a-standard/
+lead: API から始めた録音の処理中に録音開始のホットキーを押したとき、始められない理由を知らせるダイアログ。
+refs:
+  - MOD-32#functions[notify]
+test_file: tests/integration/ui/test_busy_dialog.py

@@ -1,0 +1,38 @@
+id: LIB-11
+visibility: internal
+title: "numpy"
+kind: "ライブラリ"
+version:
+  current: 2.5.4
+  checked_on: '2026-10-01'
+  source: pyproject.toml（scipy などの依存としても入る）と uv.lock の Python 3.14 で入るバージョン
+  pinning: 互換リリースで固定（~=2.4）
+catalogs:
+  - name: API
+    version: 2.4.4
+    entries:
+      - name: ndarray
+        kind: クラス
+        purpose: マイクから届いた 16 ビットの音を貯める
+      - name: concatenate
+        kind: 関数
+        purpose: 貯めた音の塊を 1 つの配列につなぐ
+      - name: zeros
+        kind: 関数
+        purpose: 音量の表示に使う直近の音を無音で初期化する
+      - name: sqrt / mean
+        kind: 関数
+        purpose: 直近の音の RMS を求め、波形の大きさに使う
+lead: 多次元配列と数値計算のライブラリ。
+purl: pkg:pypi/numpy
+dependency_scope: 必須
+adoption: 採用
+used_in:
+  - src/voice_paste/features/recording/service.py
+upstream: numpy/numpy
+verification:
+  state: 済
+  date: '2026-10-01'
+  detail: numpy 2.4.4 で、int16 の (n, 1) の配列を concatenate でつないで 1 次元にし、RMS を sqrt / mean で求め、長さ 0 の int16 の配列を zeros で作れることを最小のコードで動かした
+license: BSD-3-Clause ほか（0BSD・MIT・Zlib・CC0-1.0 を含む。商用利用可）
+official_url: https://numpy.org/

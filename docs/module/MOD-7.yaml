@@ -1,0 +1,31 @@
+id: MOD-7
+visibility: internal
+title: "常駐アプリ / 出力先"
+lead: 起こした文字の届け方を出力先ごと・カスタムプリセットの種類ごとのサブフォルダに分け、一覧への登録で追加できる構造にする。出力先どうしは import しない。
+directory: |-
+  ```
+  src/voice_paste/features/outputs/
+  ├── __init__.py          # deliver・OUTPUTS・PRESET_KINDS・is_callback_allowed の公開
+  ├── types.py             # 出力先・プリセットの種類の関数型と定義、配線に渡すもの（OutputDeps）、送信する内容（pydantic）
+  ├── registry.py          # OUTPUTS・PRESET_KINDS（出力先・プリセットの種類の一覧。追加するときはここに 1 行追加する）
+  ├── service.py           # deliver（入口と確定の操作で出力先かプリセットを選んで呼ぶ）
+  ├── paste_and_send/
+  │   ├── settings.py      # PasteAndSendSettings（貼り付けて送信の設定のモデル）
+  │   └── service.py       # paste_and_send・inject_paste_and_send・read_enter_delay_sec・read_enter_modifiers
+  ├── paste_only/
+  │   ├── settings.py      # PasteOnlySettings
+  │   └── service.py       # paste_only・inject_paste_only
+  ├── copy_only/
+  │   ├── settings.py      # CopyOnlySettings
+  │   └── service.py       # copy_only・inject_copy_only
+  ├── browser/
+  │   └── service.py       # send_to_browser（ブラウザ添付の種類のプリセット。Edge のアプリの画面）
+  ├── endpoint/
+  │   └── service.py       # deliver_to_endpoint（エンドポイントへ送信の種類のプリセット）
+  └── callback/
+      └── service.py       # deliver_to_caller・is_callback_allowed・inject_callback・返送の決定値（呼び出し元へ返す）
+  ```
+
+  出力先を 1 つ追加するときは、`features/outputs/{出力先}/` に届ける関数・注入するものを選ぶ関数（InjectFn）・設定のモデル（OutputSettingsBase を継ぐ。設定の outputs[] に置かない出力先は持たない）を置き、OUTPUTS に 1 件登録する。設定のモデル・既定の出力先の一覧・確定のホットキー・設定画面の欄・録音の画面のボタン・配線は OUTPUTS から組み立てるため、既存のモジュールは変えない。
+
+  各出力先・プリセットの種類はクリップボード・キー・ブラウザ・HTTP の操作を関数で受け取り、`integrations` の関数を import しない（main.py が外部連携の copy_to_clipboard・send_paste・send_enter・open_app_window・post_json を OutputDeps に束ねて渡し、各出力先の InjectFn がそこから選んで部分適用させる）。型注釈のために integrations の型（PostResult・PostJsonFn）だけを import する。

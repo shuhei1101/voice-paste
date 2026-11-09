@@ -1,0 +1,57 @@
+id: MOD-43
+visibility: internal
+title: 常駐アプリ / ホットキーと画面 / placement.py
+test_files:
+  - tests/unit/voice_paste/ui/test_placement.py
+constants:
+  - name: WINDOW_MARGIN_PX
+    title: 画面の端の余白
+    container: ui/placement.py
+    usecase: 録音する
+    summary: 録音の画面を作業領域の端に置くときに空ける余白（論理ピクセル）
+    value: '24'
+    status: implemented
+functions:
+  - name: place_window
+    title: 画面の配置
+    container: ui/placement.py
+    usecase: 録音する
+    summary: 設定のモニター（カーソルのあるモニターか主のモニター）の作業領域の、設定の位置に窓を置く左上の座標を返す
+    kind: 関数
+    scope: public
+    args:
+      - name: window_size
+        type: QSize
+        required: true
+        passing: positional
+        description: 窓の大きさ
+      - name: available
+        type: QRect
+        required: true
+        passing: positional
+        description: 置くモニターの作業領域（呼ぶ側が `QGuiApplication.screenAt(QCursor.pos())` か主のモニターから引く）
+      - name: position
+        type: Literal["center", "top-left", "top-right", "bottom-left", "bottom-right"]
+        required: true
+        passing: positional
+        description: ui.position
+    returns:
+      type: QPoint
+      description: 窓の左上。端に置くときは作業領域から WINDOW_MARGIN_PX だけ離す
+    unit_tests:
+      - name: test_place_window_when_center
+        case: 正常
+        summary: 中央に置く
+        condition: 窓 400x200、作業領域 (0, 0, 1920, 1040)、center
+        mock: なし
+        expected: (760, 420)
+      - name: test_place_window_when_bottom_right
+        case: 正常
+        summary: 右下に余白を空けて置く
+        condition: 窓 400x200、作業領域 (1920, 0, 2560, 1400)、bottom-right
+        mock: なし
+        expected: (1920 + 2560 - 400 - WINDOW_MARGIN_PX, 1400 - 200 - WINDOW_MARGIN_PX)
+    refs:
+      - CFG-1#settings[ui.position]
+      - CFG-1#settings[ui.follow_cursor]
+    status: implemented

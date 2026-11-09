@@ -1,4 +1,0 @@
-summary: 設定・ホットキーなどの参照資料
-items:
-  - page: API.md
-    summary: ほかのプロセスが録音を始めて確定し、起こした文字を受け取る API の一覧

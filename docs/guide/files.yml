@@ -1,0 +1,16 @@
+files:
+- path: 変更履歴.md
+  visibility: public
+  category: はじめに
+- path: 起動と設定.md
+  visibility: public
+  category: 使い方
+- path: 録音して貼り付ける.md
+  visibility: public
+  category: 使い方
+- path: 外の端末から文字に起こす.md
+  visibility: public
+  category: 使い方
+- path: API.md
+  visibility: public
+  category: リファレンス

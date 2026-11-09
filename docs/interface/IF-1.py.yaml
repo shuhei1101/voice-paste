@@ -1,0 +1,191 @@
+id: IF-1
+visibility: internal
+title: "ブラウザの音声を文字に起こす"
+entry:
+  kind: trigger
+  value: ブラウザの音声のキューにジョブがある間、常駐サービスの起動時に立てたワーカースレッドが 1 件ずつ取り出す
+flows:
+  - name: 正常系
+    summary: ジョブを 1 件起こし、補正した文字を履歴とジョブに残す
+    setup:
+      - name: Mock
+        description: 文字起こしのエンジンを、決めた文を 2 区間に分け、区間ごとに進みを返しながら返す関数に差し替える。履歴・一時のフォルダはテストの一時フォルダ
+      - name: 履歴の保存
+        description: 履歴を残す設定にする
+      - name: 用語集
+        description: 決めた文の言葉を置き換える行を 1 つ入れる
+      - name: 積んだジョブ
+        description: 音声を受け付ける で webm のジョブを 1 件積んでいる
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant Q as ブラウザの音声のキュー
+        participant IF as ブラウザの音声を文字に起こす
+        participant WK as 文字起こしワーカー
+        participant H as 履歴
+        participant LOG as ログ
+
+        Q-->>IF: ジョブを 1 件取り出す
+        IF->>IF: state を running にする
+        IF->>H: 音声を録れた形式の拡張子のまま移す
+        IF->>WK: 音声のパスと設定を渡す
+        WK-->>IF: 区間の進み（segment.end / duration）
+        IF->>IF: progress を更新する
+        WK-->>IF: 区間ごとの文字
+        IF->>IF: 用語集と文頭・文末の文言で補正する
+        IF->>H: 起こした文字を同じ名前の .txt に書く
+        IF->>IF: state を done・text を補正した文字にする
+        IF->>LOG: 起こし終えた（job_id・秒数）
+      ```
+    expected:
+      - ジョブの state が done、progress が 1.0、text が用語集で補正した文
+      - 起こしている間に progress が 0.5 になっていた
+      - 履歴に `.webm` の音声と同じ名前の `.txt` があり、一時のフォルダに音声が残っていない
+      - ログに起こし終えた job_id が書かれ、起こした文字は書かれていない
+      - 出力先への貼り付けと文字起こし中の表示が呼ばれていない
+    test: test_normal
+  - name: 正常系（履歴を残さない）
+    summary: 履歴を残さない設定では、起こし終えた後に一時のファイルを消す
+    setup:
+      - name: Mock
+        description: 文字起こしのエンジンを決めた文を返す関数に差し替える。履歴・一時のフォルダはテストの一時フォルダ
+      - name: 履歴の保存
+        description: 履歴を残さない設定にする
+      - name: 積んだジョブ
+        description: mp4 のジョブを 1 件積んでいる
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant Q as ブラウザの音声のキュー
+        participant IF as ブラウザの音声を文字に起こす
+        participant WK as 文字起こしワーカー
+
+        Q-->>IF: ジョブを 1 件取り出す
+        IF->>WK: 一時のファイルのパスと設定を渡す
+        WK-->>IF: 区間ごとの文字
+        IF->>IF: 補正して state を done にする
+        IF->>IF: 一時のファイルを消す
+      ```
+    expected:
+      - ジョブの state が done で text が補正した文
+      - 履歴に音声も `.txt` も無く、一時のフォルダが空
+    test: test_normal_when_history_disabled
+  - name: 正常系（受け付けた順）
+    summary: 積んだ順に 1 件ずつ起こし、後のジョブは queued のまま待つ
+    setup:
+      - name: Mock
+        description: 文字起こしのエンジンを、テストが放すまで戻らない関数に差し替える
+      - name: 積んだジョブ
+        description: ジョブを 2 件積んでいる
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant Q as ブラウザの音声のキュー
+        participant IF as ブラウザの音声を文字に起こす
+        participant WK as 文字起こしワーカー
+
+        Q-->>IF: 1 件目を取り出す
+        IF->>WK: 1 件目を渡す（2 件目は queued のまま）
+        WK-->>IF: 1 件目の文字
+        Q-->>IF: 2 件目を取り出す
+        IF->>WK: 2 件目を渡す
+        WK-->>IF: 2 件目の文字
+      ```
+    expected:
+      - 1 件目を起こしている間、2 件目の state が queued
+      - 両方が積んだ順に done になる
+    test: test_normal_when_queued_in_order
+  - name: 異常系（文字起こしに失敗）
+    summary: 文字起こしワーカーがエラーを返したジョブを failed にして、次のジョブへ進む
+    setup:
+      - name: Mock
+        description: 文字起こしのエンジンを、1 回目はエラー、2 回目は決めた文を返す関数に差し替える。履歴・一時のフォルダはテストの一時フォルダ
+      - name: 履歴の保存
+        description: 履歴を残す設定にする
+      - name: 積んだジョブ
+        description: ジョブを 2 件積んでいる
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant Q as ブラウザの音声のキュー
+        participant IF as ブラウザの音声を文字に起こす
+        participant WK as 文字起こしワーカー
+        participant H as 履歴
+        participant LOG as ログ
+
+        Q-->>IF: 1 件目を取り出す
+        IF->>H: 音声を録れた形式の拡張子のまま移す
+        IF->>WK: 音声のパスと設定を渡す
+        WK-->>IF: エラー
+        IF->>LOG: job_id と失敗した理由を書く
+        IF->>IF: state を failed・error を失敗の理由にする
+        Q-->>IF: 2 件目を取り出す
+      ```
+    expected:
+      - 1 件目の state が failed で、error に文字起こしに失敗したことが入り、text が null
+      - 履歴に 1 件目の音声が残っている
+      - 2 件目の state が done まで進む
+      - ダイアログも文字起こし中の表示もトレイの通知も出ていない
+    test: test_error_when_transcription_failed
+  - name: 正常系（用語集のプリセットを指定）
+    summary: ジョブが持つ用語集のプリセットで補正する
+    setup:
+      - name: Mock
+        description: 文字起こしのエンジンを決めた文を返す関数に差し替える。履歴・一時のフォルダはテストの一時フォルダ
+      - name: 用語集のプリセット
+        description: 設定に用語集のプリセット「既定」と「会議」があり、設定で選んでいるのは「既定」。決めた文の同じ言葉を、「既定」と「会議」で別の言葉へ置き換える
+      - name: 積んだジョブ
+        description: 用語集のプリセットの名前が「会議」のジョブと、空のジョブを 1 件ずつ積んでいる
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        participant Q as ブラウザの音声のキュー
+        participant IF as ブラウザの音声を文字に起こす
+        participant WK as 文字起こしワーカー
+
+        Q-->>IF: ジョブ（プリセット「会議」）を取り出す
+        IF->>WK: 音声のパスと設定を渡す
+        WK-->>IF: 区間ごとの文字
+        IF->>IF: 「会議」の用語集と文頭・文末の文言で補正する
+        IF->>IF: state を done・text を補正した文字にする
+        Q-->>IF: ジョブ（プリセットが空）を取り出す
+        IF->>WK: 音声のパスと設定を渡す
+        WK-->>IF: 区間ごとの文字
+        IF->>IF: 設定で選んでいる「既定」の用語集で補正する
+      ```
+    expected:
+      - 「会議」のジョブの text が「会議」の用語集で置き換えた文
+      - プリセットが空のジョブの text が「既定」の用語集で置き換えた文
+      - 設定で選んでいる用語集のプリセットは「既定」のまま
+    test: test_normal_when_glossary_preset
+lead: 受け付けたブラウザの音声を 1 件ずつ文字起こしワーカーで起こし、用語集で補正して履歴に残し、ジョブの状態と結果を更新する。
+identifier: run_web_transcription_worker
+idempotent: false
+side_effects: 履歴を残す設定なら、音声を録れた形式の拡張子のまま履歴へ移し、起こした文字を同じ名前の `.txt` に書く。残さない設定なら、起こし終えた後（失敗しても）に一時のファイルを消す。ジョブの state・progress・text・error を書き換える。起こし終わり・失敗を job_id と音声の秒数でログに 1 行ずつ書く（起こした文字は書かない）。文字起こし中の表示・出力先への貼り付け・トレイの通知は出さない。
+exclusivity: ワーカースレッドは 1 つで、ブラウザの音声は受け付けた順に 1 件ずつ起こす。文字起こしワーカー（子プロセス）はセッションと共有し、今のロックで先に渡した方から順に起こす（セッションの録音・確定は妨げない）
+exceptions:
+  - name: なし（正常終了）
+    condition: ジョブを起こし終え、state を done にした
+  - name: なし（ジョブを failed にして次へ進む）
+    condition: 文字起こしワーカーがエラーを返したか異常終了した
+    notes: 例外はワーカースレッドの外へ出さず、スレッドを停止しない
+constraints:
+  - item: 順番
+    constraint: 受け付けた順（FIFO）に 1 件ずつ
+  - item: 補正
+    constraint: ジョブの用語集のプリセットの用語集と、文頭・文末の文言の削除。ジョブのプリセットが空なら、起こし終えた時点で設定で選んでいるプリセットを使う。受け付けた後に設定からそのプリセットを消していたら、設定で選んでいるプリセットで補正する（`POST /sessions` の補正と同じ）
+  - item: 形式
+    constraint: 録れた形式（webm・ogg・mp4・MP3・WAV など）のまま faster-whisper（PyAV）へ渡し、WAV へ変えない
+  - item: タイムアウト
+    constraint: 制限なし
+    notes: 文字起こしワーカーの待ちは今の窓口（WhisperWorkerClient）のまま。ワーカーが異常終了したときは今の再起動で次のジョブへ進む
+  - item: 終わったジョブの保持
+    constraint: 終わったジョブを持つ件数を超えたら、いちばん古く終わったジョブを捨てる
+    decided_by: NFR-1#requirements[終わったジョブを持つ件数]
+  - item: 終了時
+    constraint: 常駐サービスの終了時は、起こしている 1 件の終わりを待たずにスレッドを停止し、待ちのジョブの一時のファイルを消す
+    notes: 履歴へ移した音声は残る
+  - item: 使える OS
+    constraint: 常駐サービスが Windows で動いているときだけ。Linux ではブラウザの音声のキューとワーカースレッドを立てない
+    notes: OS ごとに使える機能の表で、外の端末のブラウザの機能を Linux で使えない機能にしている
+test_file: tests/integration/test_transcribe_web_audio.py

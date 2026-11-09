@@ -1,0 +1,451 @@
+id: SC-6
+visibility: internal
+title: "設定を変える"
+scenarios:
+  - name: 正常シナリオ
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は無音の WAV を流す（マイクを開かない）。音量は下げた値と戻した値を控える
+      - name: 変える設定
+        description: 録音開始のホットキーを別のキーの組み合わせに変える
+        notes: '`hotkeys.start`。反映は `immediate`'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant TRAY as トレイ
+        participant SW as 設定画面
+        participant MDL as 設定のモデル
+        participant ENV as settings.yaml
+        participant APP as 常駐アプリ
+
+        U->>TRAY: 「設定…」を選ぶ
+        TRAY->>SW: 開く（設定のモデルから欄を組み立て、今の値を入れる）
+        U->>SW: 「ホットキー」のまとまりを選ぶ
+        U->>SW: 録音開始の欄で新しいキーの組み合わせを押す
+        SW-->>U: 押した組み合わせを欄に出す
+        U->>SW: 「保存」を押す
+        SW->>MDL: 欄の値を確かめる
+        MDL-->>SW: 通った
+        SW->>ENV: 変わった値を、コメントを保ったまま書く
+        SW->>APP: 反映が immediate の値を動いている常駐アプリに効かせる
+        SW-->>U: 開いたまま、保存できたことを出す
+        U->>SW: 「キャンセル」を押す
+        SW->>SW: 保存の後に欄を変えていないので、確かめずに閉じる
+        SW->>APP: 閉じたことを通知する
+        APP->>APP: ホットキーの受付を張り直す
+      ```
+    expected:
+      - '`settings.yaml` の `hotkeys.start` が新しい組み合わせになり、ほかのキーとコメントが変わっていない'
+      - 「保存」の後、設定画面が開いたまま、入れた値と選んでいたまとまりが残り、保存できたことが出ている
+      - 保存の後に欄を変えずに「キャンセル」を押すと、変えた値を捨てる確認を出さずに設定画面が閉じる
+      - 設定画面を閉じた後、再起動せずに、新しい組み合わせで録音が始まり、前の組み合わせでは始まらない
+    test: test_normal
+  - name: 正常シナリオ（保存して再起動する）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+      - name: 変える設定
+        description: ローカルの Whisper のモデルを別のモデルに変える
+        notes: '`transcription.local_whisper.model`。反映は `restart`'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SW as 設定画面
+        participant MDL as 設定のモデル
+        participant ENV as settings.yaml
+        participant APP as 常駐アプリ
+        participant NEW as 新しい常駐アプリ
+
+        Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
+        U->>SW: 「文字起こし」のまとまりで「ローカルの Whisper」を開き、モデルを変える
+        SW-->>U: 欄に「再起動で反映」を出し、「保存して再起動」を出す
+        U->>SW: 「保存して再起動」を押す
+        SW->>MDL: 欄の値を確かめる
+        MDL-->>SW: 通った
+        SW->>ENV: 変わった値を書く
+        SW->>APP: 閉じて再起動を求める
+        APP->>NEW: 同じ引数で新しいプロセスを起動する
+        APP->>APP: 自分のプロセスを終える
+        Note over NEW: 以降は 常駐アプリを起動する の 正常シナリオ（新しいモデルを読み込む）
+      ```
+    expected:
+      - '`settings.yaml` の `transcription.local_whisper.model` が新しいモデルになっている'
+      - 前の常駐アプリのプロセスが終わり、新しいプロセスが新しいモデルで文字を起こす
+    test: test_normal_when_save_and_restart
+  - name: 正常シナリオ（既定に戻す）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+      - name: 変えた設定
+        description: '`settings.yaml` に既定と違う値がある'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SW as 設定画面
+        participant DLG as 既定に戻す確認
+        participant ENV as settings.yaml
+        participant APP as 常駐アプリ
+
+        Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
+        U->>SW: 「既定に戻す」を押す
+        SW->>DLG: 全ての設定を既定の値へ戻すかを確かめる
+        U->>DLG: 「既定に戻す」を押す
+        DLG->>ENV: 設定のキーを全て外す
+        DLG->>APP: 反映が immediate の値を動いている常駐アプリに効かせる
+        DLG->>SW: 戻り、既定の値を欄に入れる
+      ```
+    expected:
+      - '`settings.yaml` に設定のキーが無く、全てのキーが `config/defaults.yaml` の値（`settings.local.yaml` があるキーはその値）で動いている'
+      - 反映が `immediate` のキーは動いている常駐アプリに効き、`restart` のキーは再起動するまで前の値のまま動く
+      - 設定画面が開いたまま、欄に既定の値（`settings.local.yaml` があるキーはその値）が入っている
+    test: test_normal_when_reset
+  - name: 正常シナリオ（取り消す）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+      - name: 取り消し
+        description: 欄を書き換えてから「キャンセル」を押し、確認で「破棄して閉じる」を選ぶ
+        notes: Esc・窓を閉じるでも同じ。欄を変えていなければ確認を出さずに閉じる
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SW as 設定画面
+        participant DLG as 変えた値を捨てる確認
+
+        Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
+        U->>SW: 欄を書き換えて「キャンセル」を押す
+        SW->>DLG: 変えた値を捨てて閉じるかを確かめる
+        U->>DLG: 「破棄して閉じる」を押す
+        DLG->>SW: 何も書かずに閉じる
+      ```
+    expected:
+      - '`settings.yaml` が変わっていない'
+      - 動いている常駐アプリの設定が変わっていない
+      - 設定画面が閉じている
+    test: test_normal_when_cancel
+  - name: 異常シナリオ（確かめに通らない値を入れる）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+      - name: 通らない値
+        description: 「出力先」のまとまりで、貼り付けて送信の Enter までの秒数に `abc` を入れて「保存」を押す
+        notes: '`outputs[].enter_delay_sec`'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SW as 設定画面
+        participant MDL as 設定のモデル
+        participant ENV as settings.yaml
+
+        Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
+        U->>SW: Enter までの秒数を abc にして「保存」を押す
+        SW->>MDL: 欄の値を確かめる
+        MDL-->>SW: 通らない（数値でない）
+        SW-->>U: その欄の下にエラーを出し、最初のエラーの欄へフォーカスを移す
+      ```
+    expected:
+      - '`settings.yaml` が変わっていない'
+      - 設定画面が開いたまま、Enter までの秒数の欄の下にエラーが出て、その欄にフォーカスがある
+      - 動いている常駐アプリの設定が変わっていない
+    test: test_error_when_invalid_value
+  - name: 正常シナリオ（カスタムプリセットを追加する）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: 録音の入力は、テストの中で Windows の音声合成（SAPI）で決めた文を書き出した WAV を流す（マイクを開かない）。音量は下げた値と戻した値を控える
+      - name: 追加するプリセット
+        description: 「エンドポイントへ送信」のまとまり（タブ）で、タイトル・URL・確定のホットキーを入れたプリセットを 1 つ追加する
+        notes: 反映は `immediate`。URL は 127.0.0.1 で待ち受けるテスト用のエンドポイント
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SW as 設定画面
+        participant MDL as 設定のモデル
+        participant ENV as settings.yaml
+        participant APP as 常駐アプリ
+
+        Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
+        U->>SW: 「エンドポイントへ送信」のまとまりで「プリセットを追加」を押す
+        U->>SW: タイトル・URL・確定のホットキーを入れる
+        U->>SW: 「保存」を押す
+        SW->>MDL: 欄の値を確かめる
+        MDL-->>SW: 通った
+        SW->>ENV: プリセットの一覧を、コメントを保ったまま書く
+        SW->>APP: 効かせる
+        SW-->>U: 開いたまま、保存できたことを出す
+        U->>SW: 「キャンセル」を押す
+        SW->>SW: 保存の後に欄を変えていないので、確かめずに閉じる
+        SW->>APP: 閉じたことを通知する
+        APP->>APP: プリセットのホットキーの受付を張り直す
+      ```
+    expected:
+      - '`settings.yaml` に追加したプリセットが書かれ、ほかのキーとコメントが変わっていない'
+      - 「保存」の後、設定画面が開いたまま、追加したプリセットが一覧に残り、保存できたことが出ている
+      - 設定画面を閉じた後、再起動せずに、次の録音の画面にそのプリセットのボタンが出、そのホットキーで確定できる
+    test: test_normal_when_add_custom_preset
+  - name: 正常シナリオ（用語集の行を編集する）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: '-'
+      - name: 用語集
+        description: 補正に使う用語集のプリセットが使う用語集に、誤変換と正しい表記の行が 2 つある
+        notes: 反映は `immediate`
+      - name: 変える行
+        description: 「用語集」のまとまりで、行を 2 つ追加し（1 つは誤変換だけを入れて正しい表記を空にする）、1 つ目の行の正しい表記を書き換え、2 つ目の行をオフにする
+        notes: 行を消すのも同じ流れ
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SW as 設定画面
+        participant MDL as 設定のモデル
+        participant GL as 用語集のファイル
+        participant ENV as settings.yaml
+        participant APP as 常駐アプリ
+
+        Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
+        U->>SW: 「用語集」のまとまりを選ぶ
+        U->>SW: 編集する用語集を選ぶ
+        SW-->>U: 選んだ用語集の行（誤変換・正しい表記・オン・オフ）を一覧に出す
+        U->>SW: 行を追加し、行を書き換え、行をオフにする
+        U->>SW: 「保存」を押す
+        SW->>MDL: 欄の値を確かめる
+        MDL-->>SW: 通った
+        SW->>GL: 用語集の行とオン・オフを書き戻す
+        SW->>ENV: 変わった値を、コメントを保ったまま書く
+        SW->>APP: 効かせる
+        SW-->>U: 開いたまま、保存できたことを出す
+      ```
+    expected:
+      - 用語集のファイルに、正しい表記を入れて追加した行と書き換えた正しい表記があり、正しい表記を空にして追加した行が空のまま書かれ、オフにした行がオフとして書かれている
+      - 再起動せずに、動いている常駐アプリの補正に文字を渡すと、正しい表記を入れて追加した行と書き換えた行の誤変換が置き換わり、正しい表記を空にして追加した行の誤変換が消え、オフにした行の誤変換は残る（マイクを開かずに確かめる。録音を通した補正は 録音を文字に起こす の 正常シナリオ）
+      - 設定画面が開いたまま、保存できたことが出ている
+    test: test_normal_when_edit_glossary
+  - name: 正常シナリオ（用語集のプリセットを追加して切り替える）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: '-'
+      - name: 今の用語集
+        description: 用語集が 1 つあり、補正に使う用語集のプリセットはその用語集だけを使う既定のプリセット
+        notes: '-'
+      - name: 追加する用語集とプリセット
+        description: 「用語集」のまとまりで、名前を付けた用語集を 1 つ追加して行を 1 つ入れ、名前を付けた用語集のプリセットを 1 つ追加して今の用語集と追加した用語集の両方を使う用語集に選び、補正に使うプリセットをそのプリセットに切り替える
+        notes: 補正に当てるプリセットは選んだ 1 つだけ。反映は `immediate`
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SW as 設定画面
+        participant MDL as 設定のモデル
+        participant GL as 用語集のファイル
+        participant ENV as settings.yaml
+        participant APP as 常駐アプリ
+
+        Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
+        U->>SW: 「用語集」のまとまりで用語集を追加し、名前と行を入れる
+        U->>SW: 用語集のプリセットを追加し、名前を入れる
+        U->>SW: 追加したプリセットで、今の用語集と追加した用語集を使う用語集に選ぶ
+        U->>SW: 補正に使うプリセットを追加したプリセットに切り替える
+        U->>SW: 「保存」を押す
+        SW->>MDL: 欄の値を確かめる
+        MDL-->>SW: 通った
+        SW->>GL: 追加した用語集の行を書く
+        SW->>ENV: 用語集の一覧・用語集のプリセットの一覧・補正に使うプリセットを、コメントを保ったまま書く
+        SW->>APP: 効かせる
+        SW-->>U: 開いたまま、保存できたことを出す
+      ```
+    expected:
+      - 追加した用語集のファイルに入れた行があり、今の用語集のファイルが変わっていない
+      - '`settings.yaml` に、追加した用語集と、両方の用語集を使う追加したプリセットと、補正に使うプリセットがそのプリセットであることが書かれ、ほかのキーとコメントが変わっていない'
+      - 再起動せずに、動いている常駐アプリの補正に文字を渡すと、今の用語集と追加した用語集の両方の行の誤変換が置き換わる（マイクを開かずに確かめる）
+      - 設定画面が開いたまま、保存できたことが出ている
+    test: test_normal_when_switch_glossary_preset
+    notes:
+      既定のプリセット: 用語集のプリセットのキーが無い設定は、今の補正に使う用語集（`active_glossary`。無ければ 1 つ目の用語集）だけを使うプリセットを 1 つ持ち、それを補正に使うとして読む。
+      入力の確かめ: |-
+        プリセットの名前が空・ほかのプリセットと同じ名前のときは、確かめに通らず保存しない（異常シナリオ（確かめに通らない値を入れる）と同じ流れ）。
+        使う用語集を 1 つも選ばないプリセットは保存でき、補正では何も置き換えない。
+        補正に使うプリセットは消せない。
+      用語集の削除・名前の変更: |-
+        用語集を一覧から削除すると、その用語集を使うプリセットからも外れる。
+        用語集の名前を変更すると、プリセットの使う用語集も新しい名前を指す。
+  - name: 正常シナリオ（文字起こしの手がかりのプリセットを編集する）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: '-'
+      - name: 手がかりのプリセット
+        description: 手がかりのプリセットが 1 つあり、語が 2 つ入っていて、有効になっている
+        notes: 反映は `immediate`
+      - name: 変えるプリセット
+        description: 手がかりのプリセットの一覧で、名前と語を 1 つ入れたプリセットを 1 つ追加し、前からあるプリセットに語を 1 つ追加して 1 つ目の語を書き換える。もう 1 つプリセットを追加して語を入れ、無効に切り替える
+        notes: 追加したプリセットは有効で始まる。語を消す・プリセットを消すのも同じ流れ
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SW as 設定画面
+        participant MDL as 設定のモデル
+        participant ENV as settings.yaml
+        participant APP as 常駐アプリ
+
+        Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
+        U->>SW: 手がかりのプリセットの一覧があるまとまりを選ぶ
+        SW-->>U: 手がかりのプリセット（名前・語の一覧・有効か）を一覧に出す
+        U->>SW: プリセットを追加し、語を追加して書き換え、有効・無効を切り替える
+        U->>SW: 「保存」を押す
+        SW->>MDL: 欄の値を確かめる
+        MDL-->>SW: 通った
+        SW->>ENV: 手がかりのプリセットの一覧を、コメントを保ったまま書く
+        SW->>APP: 効かせる
+        SW-->>U: 開いたまま、保存できたことを出す
+      ```
+    expected:
+      - '`settings.yaml` に、追加したプリセット・追加した語と書き換えた語・プリセットごとの有効か無効かが一覧の順に書かれ、ほかのキーとコメントが変わっていない'
+      - 再起動せずに、動いている常駐アプリが次に組み立てる文字起こしの要求に、有効なプリセットの語が一覧の順に読点（、）でつながって載り、無効のプリセットの語が載らない（マイクを開かずに確かめる。録音を通した文字起こしは 録音を文字に起こす の 正常シナリオ（文字起こしの手がかりを渡す））
+      - 設定画面が開いたまま、保存できたことが出ている
+    test: test_normal_when_edit_hint_presets
+  - name: 異常シナリオ（手がかりが上限を超える）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: '-'
+      - name: 上限を超える語
+        description: 有効な手がかりのプリセットに、読点（、）でつないだ長さが UTF-8 で 223 バイトになる語を入れて「保存」を押す
+        notes: 上限は 222 バイト
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SW as 設定画面
+        participant MDL as 設定のモデル
+        participant ENV as settings.yaml
+
+        Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
+        U->>SW: 有効なプリセットに語を追加して「保存」を押す
+        SW->>MDL: 欄の値を確かめる
+        MDL-->>SW: 通らない（有効な手がかりをつないだ長さが上限を超える）
+        SW-->>U: エラーの一覧と有効な手がかりの長さの行の下にエラーを出す
+      ```
+    expected:
+      - '`settings.yaml` が変わっていない'
+      - 設定画面が開いたまま、手がかりが長すぎることと、語を減らすかプリセットを無効にすることを求めるエラーが出ている
+      - 動いている常駐アプリの設定が変わっていない
+    test: test_error_when_hints_too_long
+    notes:
+      同じ扱いになる入力: 語が空のとき、語に読点（、）・句点（。）・改行が入っているときも、保存せずにその語の欄の下にエラーを出す。
+  - name: 正常シナリオ（文頭・文末から削除する文言を編集する）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+      - name: 文頭・文末から削除する文言
+        description: '`settings.yaml` に一覧のキーが無く、既定の一覧を使っている'
+        notes: 反映は `immediate`
+      - name: 変える行
+        description: 「ハルシネーション」のまとまりで、文言「お疲れ様でした」・位置「文頭」の行を追加して一覧の先頭へ動かし、既定の「ありがとうございました」の行を消す
+        notes: 行の文言・位置を書き換えるのも同じ流れ
+      - name: 補正に渡す文字
+        description: 「お疲れ様でした。本日はここまでです。ありがとうございました。」
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SW as 設定画面
+        participant MDL as 設定のモデル
+        participant ENV as settings.yaml
+        participant APP as 常駐アプリ
+
+        Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
+        U->>SW: 「ハルシネーション」のまとまりを選ぶ
+        SW-->>U: 一覧の行（文言・位置）を当てる順に出す
+        U->>SW: 行を追加して先頭へ動かし、行を消す
+        U->>SW: 「保存」を押す
+        SW->>MDL: 欄の値を確かめる
+        MDL-->>SW: 通った
+        SW->>ENV: 一覧を、コメントを保ったまま書く
+        SW->>APP: 効かせる
+        SW-->>U: 開いたまま、保存できたことを出す
+      ```
+    expected:
+      - '`settings.yaml` に、追加した行を先頭にして消した行を除いた一覧が、行ごとの文言と位置つきで一覧の順に書かれ、ほかのキーとコメントが変わっていない'
+      - 再起動せずに、動いている常駐アプリの補正に補正に渡す文字を渡すと、「本日はここまでです。ありがとうございました。」が返る（文頭の「お疲れ様でした。」が消え、消した行の「ありがとうございました。」は文末に残る。マイクを開かずに確かめる。録音を通した補正は 録音を文字に起こす の 正常シナリオ（文頭・文末の決まった文言を消す））
+      - 設定画面が開いたまま、保存できたことが出ている
+    test: test_normal_when_edit_edge_phrases
+    notes:
+      入力の確かめ: 文言が空の行は保存で捨てる。文言が `*` だけの行は文頭・文末の行を丸ごと消すため、異常シナリオ（確かめに通らない値を入れる）と同じく保存しない。
+      既定の一覧: キーが無いときは既定の一覧を出し、保存で一覧を書く。既定の値は 設定/常駐アプリ が持つ。
+  - name: 正常シナリオ（表記のヒントに読みを入れる）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        notes: '-'
+      - name: 手がかりのプリセット
+        description: 手がかりのプリセットが 1 つあり、読みの無い語が 2 つ入っていて、有効になっている
+        notes: 反映は `immediate`
+      - name: 変える読み
+        description: 1 つ目の語にひらがなの読みを、2 つ目の語にカタカナの読みを入れ、読みつきの語を 1 つ追加する
+        notes: '例: 「突合」に「とつごう」、「GitHub」に「ギットハブ」'
+    flow: |-
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SW as 設定画面
+        participant MDL as 設定のモデル
+        participant ENV as settings.yaml
+        participant APP as 常駐アプリ
+
+        Note over SW: 設定画面を開くまでは 正常シナリオ と同じ
+        U->>SW: 「表記のヒント」のまとまりを選ぶ
+        SW-->>U: プリセットの語を、語ごとの読みと並べて出す
+        U->>SW: 語に読みを入れ、読みつきの語を追加する
+        U->>SW: 「保存」を押す
+        SW->>MDL: 欄の値を確かめる
+        MDL-->>SW: 通った
+        SW->>ENV: 手がかりのプリセットの一覧を、語ごとの読みつきでコメントを保ったまま書く
+        SW->>APP: 効かせる
+        SW-->>U: 開いたまま、保存できたことを出す
+      ```
+    expected:
+      - '`settings.yaml` に、プリセットの語が語ごとの読みつきで一覧の順に書かれ、ほかのキーとコメントが変わっていない'
+      - 再起動せずに、動いている常駐アプリが次に組み立てる Haas への要求に、語の表記と読みの組が載る（マイクを開かずに確かめる。録音を通した文字起こしは 録音を文字に起こす の 正常シナリオ（Haas で起こす））
+      - ローカルの Whisper への要求の手がかりは、読みを入れる前と同じく表記だけを読点（、）でつないだ文になっている
+      - 設定画面が開いたまま、保存できたことが出ている
+    test: test_normal_when_edit_hint_readings
+    notes:
+      読みの確かめ: 読みは省ける。入れた読みにひらがな・カタカナ・長音符（ー）以外の文字が入っているときは、異常シナリオ（確かめに通らない値を入れる） と同じく保存せずにその読みの欄の下にエラーを出す。読みは異常シナリオ（手がかりが上限を超える） の長さに数えない。
+      読みを使うエンジン: 読みはエンジンが Haas のときだけ使う。今のエンジンが Haas でないときも読みの欄を出し、入れた読みを保存する。
+      前の形の設定: 読みの欄を足す前の `settings.yaml` の語は、読みの無い語として読む。
+lead: トレイの「設定…」から設定画面を開き、変えた設定を設定のモデルで確かめてから環境の値の `settings.yaml` に保存する単一ユースケース。
+issue: 21
+primary_actor: 音声入力を使うユーザー
+trigger: トレイのメニューの「設定…」を選ぶ
+preconditions:
+  - 常駐アプリが待機中である（録音から届けるまでの間は、API から始めた録音の間を含めて、トレイの「設定…」を押せない）
+notes:
+  画面の項目: '設定の全てのキーを、出力先・ホットキー・録音・文字起こし・表記のヒント・用語集・ハルシネーション・画面・履歴とログ・API のまとまりに分け、左のメニューで切り替える。欄は設定のモデルから組み立てる（キーの一覧は 設定/常駐アプリ）。「文字起こし」のまとまりは、エンジンの選択の下にエンジン（ローカルの Whisper・OpenAI API・Haas（WSL））ごとの欄の区画を配置し、今選んでいるエンジンに関係なく、どの区画の欄も変えて保存できる。手がかりのプリセットは、画面では「表記のヒント」のまとまりに「ヒントのプリセット」として出す。
+
+    用語集のプリセットは、「用語集」のまとまりに用語集の一覧と並べて出す。'
+  設定のレイヤー: |-
+    欄には、既定値 `config/defaults.yaml` → 環境の値 `settings.yaml` → checkout の上書き `settings.local.yaml` を重ねた値を入れる（常駐アプリを起動する の補足『設定のレイヤー』）。
+    保存は `settings.yaml` だけに書き、既定値と同じ値にしたキーは `settings.yaml` から外す。`config/defaults.yaml` と `settings.local.yaml` は書き換えない。
+    `settings.local.yaml` にあるキーは、保存しても `settings.local.yaml` の値で動く。
+  反映の種類: |-
+    キーごとの反映（`immediate` / `restart`）は 設定/常駐アプリ が持つ。反映が `restart` の欄には「再起動で反映」を出し、そうした欄を変えたときだけ「保存して再起動」を出す。`immediate` の値は保存した時点で動いている常駐アプリに効く。
+    ホットキーの欄の値は `immediate` でも、設定画面を開いている間はホットキーを受け付けないため、設定画面を閉じた時点で新しい組み合わせが効く。
+    「保存」で反映が `restart` の欄を書いた後は、「保存して再起動」の代わりに、再起動するまで前の値で動くことの通知と「今すぐ再起動」を出す（既定に戻した後と同じ）。
+  E2E のテスト: |-
+    正常シナリオと「カスタムプリセットを追加する」は、変えた設定で録音を始めるため、録音の入力を WAV を流すものに、システム音量を下げた値と戻した値を控えるものに差し替える（マイクを開かない）。
+
+    E2E の常駐アプリの起こし方と操作の渡し方は、常駐アプリを起動する の補足『E2E のテスト』と同じ。
+    設定画面はトレイの「設定…」を trigger して開き、まとまりのメニュー・欄・ボタンはクリックとキーを Qt のイベントで渡す。
+    「保存して再起動する」で起動し直す新しいプロセスは別プロセスで動き（Qt は offscreen）、ログとトークンのファイルで確かめる
+test_file: tests/e2e/単一ユースケース/test_change_settings.py

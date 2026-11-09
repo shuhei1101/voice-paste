@@ -1,0 +1,46 @@
+id: MOD-92
+visibility: internal
+title: 常駐アプリ / 録音 / client.py
+test_files:
+  - tests/unit/voice_paste/features/recording/test_client.py
+constants:
+  - name: SAMPLE_RATE
+    title: 録音のサンプルレート
+    container: features/recording/client.py
+    usecase: 録音する
+    summary: マイクの入力のサンプルレート（Hz）。刷新前と同じ値で、文字起こしと履歴が受ける形式
+    value: '16000'
+    status: implemented
+functions:
+  - name: open_input
+    title: マイクの入力を開く
+    kind: 関数
+    container: features/recording/client.py
+    usecase: 録音する
+    scope: public
+    inherits: OpenInputFn
+    summary: 既定の入力デバイスを 16 kHz・モノラル・int16 のコールバックのストリームで開いて始める
+    args:
+      - name: on_frames
+        type: Callable[[numpy.ndarray], None]
+        required: true
+        passing: positional
+        description: 届いた音（形状 (フレーム数, 1)）を受け取る
+    returns:
+      type: sounddevice.InputStream
+      description: 始めた入力
+    process: |-
+      1. sounddevice の InputStream を samplerate=SAMPLE_RATE・channels=1・dtype=int16 で作り、コールバックで届いた音のコピーを on_frames へ渡す
+         - コールバックに状態（オーバーフロー等）が付いていれば `[WARNING]` 入力の状態（状態）
+      2. start して返す
+         - 作る・始めるときの例外（PortAudioError 等）はそのまま上げる（Recorder が MicrophoneUnavailableError に変える）
+    unit_tests:
+      - name: test_open_input
+        case: 正常
+        summary: 決めた形式で開いて始め、届いた音を渡す
+        condition: InputStream の Mock のコールバックへ 160 フレームの音を渡す
+        mock: sounddevice.InputStream
+        expected: samplerate=16000・channels=1・dtype='int16' で作られて start が呼ばれ、on_frames に同じ値のコピーが渡る
+    refs:
+      - LIB-27#
+    status: implemented

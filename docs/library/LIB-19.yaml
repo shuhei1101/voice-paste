@@ -43,4 +43,4 @@ limitations:
     notes: 主キーを `KeyCode.from_vk(ord(文字))`（Xorg では vk が keysym）で渡すと XTEST で送られ、GTK4 のアプリも受け付ける（[#211](https://github.com/shuhei1101/voice-paste/pull/211) の PoC）。send_paste_linux がこの渡し方を使う
   - item: Wayland のセッション
     content: Wayland のセッションでは、pynput をホットキーの受付とキーの送信に使わない。pynput の Xorg のバックエンドは、ネイティブの Wayland のアプリにフォーカスがあるときのキー入力を受け取れず、送ったキーも届かない。pynput の uinput のバックエンドは root で動かす必要がある
-    notes: ホットキーは GNOME のカスタムショートカット、キーの送信は python-evdev の UInput に替える（[evdev](./evdev.yaml)）。Windows と Xorg のセッションは今のとおり pynput を使う
+    notes: ホットキーは GNOME のカスタムショートカット、キーの送信は python-evdev の UInput に替える（[evdev](id:LIB-6)）。Windows と Xorg のセッションは今のとおり pynput を使う

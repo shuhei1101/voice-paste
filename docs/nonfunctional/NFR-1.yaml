@@ -2,7 +2,8 @@ id: NFR-1
 visibility: internal
 title: "非機能要件"
 requirements:
-  - name: 対応 OS
+  - id: NFR-1
+    name: 対応 OS
     english_name: supported_os
     category: 動作環境
     external_constraint: 録音・貼り付け・システム音量の操作を Windows の機能（pycaw・Win32）で行う
@@ -10,21 +11,24 @@ requirements:
     source: https://github.com/shuhei1101/voice-paste/blob/develop/docs/pr/12/%E6%96%B9%E9%87%9D%E6%B1%BA%E3%82%81/1_%E7%9B%AE%E7%9A%84%E3%81%A8%E5%88%B6%E7%B4%84.md
     value: Windows・Linux（Ubuntu 24.04 の Xorg のセッションと Wayland のセッション）
     rationale: '方針の制約（Windows のショートカットから起動する・録音と貼り付けは端末の OS の機能）。Linux は #196 で起動までを対応し、Linux ではシステムの音量を変えない。Linux の起動の手段は起動のスクリプト（`voice-paste.sh`）とログイン時の自動起動の `.desktop` で、OS のパッケージ `xclip`・`libportaudio2`・`libxcb-cursor0` と、依存の `evdev` のビルドに使う `gcc`・`linux-libc-dev` が要る（#199・#222）。Wayland のセッションは、貼り付けのキーと Enter を uinput の仮想のキーボードから送信するため、`/dev/uinput` の権限（udev の規則と `input` グループへの追加の後に再起動）が要る（#200）。Wayland のセッションで端末アプリへ Ctrl+Shift+V で貼り付けるには、GNOME Shell の拡張 Focused Window D-Bus が要る（無ければ設定の貼り付けのキーを送信する。#223）。Mac は #9 で扱う'
-  - name: 入力方式
+  - id: NFR-2
+    name: 入力方式
     english_name: input_method
     category: 動作環境
     external_constraint: 未確定
     source_kind: 未確定
     value: 未確定
     rationale: ホットキーとマイクで操作する。対応するマイク・キーの組み合わせはリバースエンジニアリングで現状を起こし、方針決めで決める
-  - name: 通信
+  - id: NFR-3
+    name: 通信
     english_name: network
     category: 動作環境
     external_constraint: 未確定
     source_kind: 未確定
     value: 未確定
     rationale: 文字起こしはローカルの Whisper だけで、モデルを取得した後は通信なしで動く。通信なしでの利用を保証するか（モデルの取得を起動の前提にするか）は方針決めで決める
-  - name: API のセッションの上限時間
+  - id: NFR-4
+    name: API のセッションの上限時間
     english_name: api_session_limit
     category: 耐障害
     external_constraint: 制限なし
@@ -48,7 +52,8 @@ requirements:
         measurement: 開始から返送が届くまでの時間と、履歴の WAV の長さ・大きさから求めた 600 秒分の大きさを測る
         expected: 返送が上限時間（3 秒）以上、3 秒以内の遅れで届いて result=truncated で、600 秒分の大きさが 19.2 MB の 5% 以内
         notes: --run-e2e が無い環境では skip する
-  - name: API の開始の応答時間
+  - id: NFR-5
+    name: API の開始の応答時間
     english_name: api_start_response_time
     category: 性能
     external_constraint: 制限なし
@@ -66,7 +71,8 @@ requirements:
         measurement: 毎回の POST /sessions の応答時間（ミリ秒）を測り、返送先に届いた件数とセッションの ID の重なりを数える
         expected: 返送が 50 件届いて全て result=transcribed で ID が重ならず、開始の応答時間の最大が 500 ms 以下
         notes: --run-e2e が無い環境では skip する
-  - name: 処理中の開始へのエラーの応答時間
+  - id: NFR-6
+    name: 処理中の開始へのエラーの応答時間
     english_name: busy_response_time
     category: 性能
     external_constraint: 制限なし
@@ -84,7 +90,8 @@ requirements:
         measurement: 20 回の応答のステータスと応答時間（ミリ秒）を記録し、処理中のセッションを完了させた後に、常駐サービスのログでセッションを始めた回数を数える
         expected: 20 回とも 409 で、応答時間の最大が 1000 ms 以下。セッションを始めたのは 1 回だけで、処理中のセッションの返送が 1 件届く
         notes: 'ホットキーの受付が新しい構成に入る #21 までは、処理中を API で始めたセッションにする。--run-e2e が無い環境では skip する'
-  - name: 話し終えてから貼り付くまでの時間
+  - id: NFR-7
+    name: 話し終えてから貼り付くまでの時間
     english_name: paste_latency
     category: 性能
     external_constraint: 制限なし
@@ -102,7 +109,8 @@ requirements:
         expected: 20 回とも貼り付けのキーが押され、中央値が 1.59 秒以下
         notes: クリップボードは実物を書き換えるため、測る前の文字を控えて測った後に戻す。録音は特性テスト（test_transcription_parity）が拾わない `recordings/latency/` に置く。`--run-e2e` が無い環境・録音が無い環境・GPU が無い環境（Linux を含む）では skip する
     test_file: tests/nfr/test_paste_latency.py
-  - name: 文字起こしワーカーの立て直しの時間
+  - id: NFR-8
+    name: 文字起こしワーカーの立て直しの時間
     english_name: worker_recovery_time
     category: 耐障害
     external_constraint: 制限なし
@@ -130,7 +138,8 @@ requirements:
         expected: 20 回とも ready を受け、最大が 27 秒以内
         notes: 測った最大から規約『資源の値の決め方』で決定値を再決定する。`tests/nfr/fixtures/` が無い環境・GPU が無い環境（Linux を含む）では skip する
     test_file: tests/nfr/test_worker_recovery_time.py
-  - name: 刷新の前後での起こした文字の一致
+  - id: NFR-9
+    name: 刷新の前後での起こした文字の一致
     english_name: transcription_parity
     category: 機能適合性
     external_constraint: 制限なし
@@ -154,7 +163,8 @@ requirements:
         measurement: 入力ごとに補正の関数を呼び、返った文字をあらかじめ決めた出力と比べる
         expected: すべての入力で、返った文字が決めた出力と完全に一致する
         notes: '`tests/nfr/fixtures/` の用語集が無い環境では skip する'
-  - name: 返送のタイムアウトと再送
+  - id: NFR-10
+    name: 返送のタイムアウトと再送
     english_name: callback_retry
     category: 耐障害
     external_constraint: エンドポイントは受け取ってから 1 秒以内に 2xx を返す（インターフェース定義『呼び出し元へ返す』の取り決め）
@@ -185,7 +195,8 @@ requirements:
         value: 13 秒
         notes: 4 回 × 1.5 秒 + 待ち（1 + 2 + 4 秒）。待ちが全て上限のとき
     source: IF-3#constraints[エンドポイントの応答時間]
-  - name: 常駐中に古い履歴とログを削除する間隔
+  - id: NFR-11
+    name: 常駐中に古い履歴とログを削除する間隔
     english_name: purge_interval
     category: 保守性
     external_constraint: 制限なし
@@ -193,7 +204,8 @@ requirements:
     value: '24'
     unit: 時間
     rationale: 保持期間は日単位なので、1 日ごとに消せば保持期間を過ぎて残るのは最長 1 日に収まる。起動時にも削除する
-  - name: 出力先を追加するときに変える既存のモジュール
+  - id: NFR-12
+    name: 出力先を追加するときに変える既存のモジュール
     english_name: output_extensibility
     category: 保守性
     external_constraint: 制限なし
@@ -210,7 +222,8 @@ requirements:
         condition: 'OUTPUTS の後ろに、試しの設定のモデル（ID try_output・hotkey <ctrl>+<alt>+t・delay_sec: float = 1.0）と handler・inject を持つ OutputSpec を追加した一覧から、main.py と同じ手順で設定のモデル・配線・UiDeps を組む。src/ のファイルは変えない'
         measurement: 既定の設定を一時フォルダに書いて再読み込みし、build_hotkey_bindings・設定画面・録音の画面（offscreen）・deliver にその設定を渡す
         expected: 再読み込みした設定の outputs の最後が試しの出力先（delay_sec 1.0）、<ctrl>+<alt>+t がホットキーに登録され、設定画面に outputs[3].enabled・outputs[3].hotkey・outputs[3].delay_sec の欄があり、録音の画面に試しの出力先のボタンが出て、output_id=try_output で deliver すると試しの handler が inject の渡したものと共に呼ばれる
-  - name: 音量の操作のライブラリの変化の検知
+  - id: NFR-13
+    name: 音量の操作のライブラリの変化の検知
     english_name: volume_contract_detection
     category: 保守性
     external_constraint: pycaw は日付のバージョンで API が変わる
@@ -220,7 +233,8 @@ requirements:
     unit: '%'
     rationale: 品質シナリオ 7。pycaw を == で固定し、バージョンを上げたら Windows の実機で契約テストを回して API の変化を全て検知する
     measurement: 音量のアダプタの契約テスト（lower_volume・restore_volume の疎通テスト。`tests/external/voice_paste/integrations/volume/test_adapter.py`）を `--run-external` を付けて Windows の実機で回す
-  - name: 文字起こしワーカーの終わりを待つ時間
+  - id: NFR-14
+    name: 文字起こしワーカーの終わりを待つ時間
     english_name: worker_stop_timeout
     category: 保守性
     external_constraint: 制限なし
@@ -238,7 +252,8 @@ requirements:
         expected: 20 回とも terminate せずに終わり、最大が 2 秒以内
         notes: 測った最大から規約『資源の値の決め方』の下流を待つタイムアウトで決定値を再決定する。`tests/nfr/fixtures/` が無い環境・GPU が無い環境（Linux を含む）では skip する
     test_file: tests/nfr/test_worker_stop_timeout.py
-  - name: 前の常駐サービスの終わりを待つ時間
+  - id: NFR-15
+    name: 前の常駐サービスの終わりを待つ時間
     english_name: single_instance_timeout
     category: 可用性
     external_constraint: 制限なし
@@ -280,7 +295,8 @@ requirements:
         expected: 5 回とも後のプロセスが待機中になり、常駐サービスのプロセスが 1 つだけで、最大が 55 秒以内
         notes: '`--run-e2e` が無い環境・`tests/nfr/fixtures/` が無い環境・GPU が無い環境（Linux を含む）では skip する'
     test_file: tests/nfr/test_single_instance_timeout.py
-  - name: エンドポイントへ送信するときのタイムアウト
+  - id: NFR-16
+    name: エンドポイントへ送信するときのタイムアウト
     english_name: endpoint_timeout
     category: 耐障害
     external_constraint: 利用者が用意するエンドポイントは受け取ってから 1 秒以内に 2xx を返す（呼び出し元へ返すと同じ取り決め）。外のエンドポイント（Webhook 等）には課せない
@@ -306,7 +322,8 @@ requirements:
       - part: 下限
         value: 0.5 秒
         notes: 127.0.0.1 の往復の実測の最大 62.58 ms（「返送のタイムアウトと再送」の測り方）に余裕 50% を加算した約 94 ms を上回り、設定画面の欄の刻みとそろえる
-  - name: 連続録音のセッションの上限時間
+  - id: NFR-17
+    name: 連続録音のセッションの上限時間
     english_name: continuous_session_limit
     category: 耐障害
     external_constraint: 制限なし
@@ -328,7 +345,8 @@ requirements:
     status: planned
     introduced:
       pr: 78
-  - name: 区間の最大の長さ
+  - id: NFR-18
+    name: 区間の最大の長さ
     english_name: max_segment_length
     category: 性能
     external_constraint: Whisper は音を 30 秒の窓ごとに起こす（30 秒を超える音は窓をずらして繰り返し起こす）
@@ -350,7 +368,8 @@ requirements:
     status: planned
     introduced:
       pr: 78
-  - name: 区切ってから返送が届くまでの時間
+  - id: NFR-19
+    name: 区切ってから返送が届くまでの時間
     english_name: segment_callback_latency
     category: 性能
     external_constraint: 制限なし
@@ -383,7 +402,8 @@ requirements:
     status: planned
     introduced:
       pr: 78
-  - name: ブラウザの要求の応答時間
+  - id: NFR-20
+    name: ブラウザの要求の応答時間
     english_name: web_response_time
     category: 性能
     external_constraint: ゲートウェイ（shuhdev-gateway）の応答待ちの上限 83 秒
@@ -420,7 +440,8 @@ requirements:
     status: planned
     introduced:
       pr: 171
-  - name: ブラウザの本文の上限
+  - id: NFR-21
+    name: ブラウザの本文の上限
     english_name: web_body_limit
     category: レート制限
     external_constraint: Cloudflare の無料プランの要求の本文の上限 100 MB
@@ -446,7 +467,8 @@ requirements:
     status: planned
     introduced:
       pr: 171
-  - name: 画面の録音の上限時間
+  - id: NFR-22
+    name: 画面の録音の上限時間
     english_name: web_recording_limit
     category: 耐障害
     external_constraint: 制限なし
@@ -460,7 +482,8 @@ requirements:
     status: planned
     introduced:
       pr: 171
-  - name: 画面の録音のビットレート
+  - id: NFR-23
+    name: 画面の録音のビットレート
     english_name: web_recording_bitrate
     category: コスト
     external_constraint: 制限なし
@@ -473,7 +496,8 @@ requirements:
     status: planned
     introduced:
       pr: 171
-  - name: ブラウザの音声の待ちの上限
+  - id: NFR-24
+    name: ブラウザの音声の待ちの上限
     english_name: web_queue_limit
     category: 耐障害
     external_constraint: 制限なし
@@ -493,7 +517,8 @@ requirements:
     status: planned
     introduced:
       pr: 171
-  - name: 終わったジョブを持つ件数
+  - id: NFR-25
+    name: 終わったジョブを持つ件数
     english_name: web_finished_jobs_kept
     category: 保守性
     external_constraint: 制限なし
@@ -513,7 +538,8 @@ requirements:
     status: planned
     introduced:
       pr: 171
-  - name: ホットキーの受付の終わりを待つ時間
+  - id: NFR-26
+    name: ホットキーの受付の終わりを待つ時間
     english_name: hotkey_stop_timeout
     category: 可用性
     external_constraint: Linux（Xorg）の pynput 1.8.2 は、GlobalHotKeys.stop() の後も次のキー入力が届くまでリスナーのスレッドが終わらない（python-xlib の record の応答待ち）。Windows は停止がすぐに届く
@@ -527,7 +553,8 @@ requirements:
     refs:
       - MOD-33#constants[HOTKEY_STOP_TIMEOUT_SEC]
     status: planned
-  - name: OpenAIの文字起こしのタイムアウトと再送
+  - id: NFR-27
+    name: OpenAIの文字起こしのタイムアウトと再送
     english_name: openai_transcription_retry
     category: 耐障害
     external_constraint: OpenAI は文字起こしの応答時間を保証しない。公式の Python SDK は既定でタイムアウト 600 秒・接続 5 秒・再送 2 回・待ち 0.5 秒から上限 8 秒で、429・5xx・タイムアウト・接続の失敗を再送する
@@ -565,7 +592,8 @@ requirements:
     introduced:
       pr: 204
     test_file: tests/nfr/test_openai_transcription_retry.py
-  - name: OpenAIへ送信する音声の上限
+  - id: NFR-28
+    name: OpenAIへ送信する音声の上限
     english_name: openai_audio_limit
     category: 性能
     external_constraint: 音声のファイルは 25 MB 以下。形式はガイドでは mp3・mp4・mpeg・mpga・m4a・wav・webm（API リファレンスは flac・ogg も挙げる）
@@ -597,7 +625,8 @@ requirements:
         value: − 1,639 バイト
         notes: 固定の消費分の 20%（規約『資源の値の決め方』の既定値。1,638.4 を切り上げ）
     test_file: tests/nfr/test_openai_audio_limit.py
-  - name: OpenAIの文字起こしの料金
+  - id: NFR-29
+    name: OpenAIの文字起こしの料金
     english_name: openai_transcription_cost
     category: コスト
     external_constraint: gpt-transcribe は音声 1 分あたり $0.0045
@@ -610,7 +639,8 @@ requirements:
     status: planned
     introduced:
       pr: 204
-  - name: Haasの動作環境
+  - id: NFR-30
+    name: Haasの動作環境
     english_name: haas_environment
     category: 動作環境
     external_constraint: Haas-ja-v1.0 は Linux と NVIDIA GPU（Triton・CUDA）が必須で、Windows の常駐アプリの中では動かない
@@ -621,7 +651,8 @@ requirements:
     measurement: PoC の実測（計画書の `## PoC 結果`）
     overflow: 環境が合わずにサーバーへ接続できないときは、終了までローカルの Whisper で起こす
     status: planned
-  - name: Haasのサーバーの起動の待ち時間
+  - id: NFR-31
+    name: Haasのサーバーの起動の待ち時間
     english_name: haas_server_start_timeout
     category: 耐障害
     external_constraint: サーバーはモデルを読み込み終えてから待ち受ける。PoC の実測は WSL が起動済みで wsl.exe の起動から最初の応答まで 22.2 秒（うちモデルの読み込み 13.9 秒。1 回）。WSL が止まっている状態からの時間は測っていない
@@ -634,7 +665,8 @@ requirements:
     refs:
       - SC-5#
     status: planned
-  - name: Haasの文字起こしのタイムアウト
+  - id: NFR-32
+    name: Haasの文字起こしのタイムアウト
     english_name: haas_transcription_timeout
     category: 耐障害
     external_constraint: PoC の実測は約 176 秒の音声で 0.43 秒（HTTP の往復を含む中央値）。サーバーは 1 件ずつ起こす

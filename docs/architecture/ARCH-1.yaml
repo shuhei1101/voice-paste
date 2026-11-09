@@ -6,11 +6,9 @@ overview:
   nodes:
     - id: U
       label: ユーザー
-      shape: stadium
       kind: actor
     - id: CALLER
       label: API の呼び出し元（同じ端末のほかのプロセス）
-      shape: stadium
       kind: actor
     - id: APP
       label: 常駐アプリ（API・トレイ・ホットキー・画面）
@@ -20,11 +18,9 @@ overview:
       kind: process
     - id: ENV
       label: 設定（defaults.yaml・settings.yaml・settings.local.yaml）
-      shape: cylinder
       kind: store
     - id: HIST
       label: 履歴・ログ・トークン
-      shape: cylinder
       kind: store
     - id: TARGET
       label: アクティブなアプリ
@@ -40,7 +36,6 @@ overview:
       kind: external
     - id: WEB
       label: 外の端末のブラウザ（スマホ・iPad・外の PC）
-      shape: stadium
       kind: actor
     - id: GW
       label: ゲートウェイ（shuhdev-gateway・Cloudflare Access）
@@ -103,15 +98,14 @@ overview:
     - from: HAAS
       to: HF
       label: モデルの取得
-  subgraphs:
-    - id: SYS
-      label: voice-paste
-      nodes:
-        - APP
-        - WORKER
-        - ENV
-        - HIST
-        - HAAS
+  frame:
+    label: voice-paste
+    nodes:
+      - APP
+      - WORKER
+      - ENV
+      - HIST
+      - HAAS
 repository:
   style: モノレポ
   repositories:

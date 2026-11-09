@@ -2,7 +2,8 @@ id: TP-1
 visibility: internal
 title: テスト実行方法
 layers:
-  - name: 単体テスト（バック）
+  - id: TL-1
+    name: 単体テスト（バック）
     run_all: |-
       ```bash
       .venv/Scripts/python.exe -m pytest tests/unit
@@ -19,7 +20,8 @@ layers:
         ```bash
         .venv/Scripts/python.exe -m pytest {単体テストファイルパス}
         ```
-  - name: 結合テスト（バック）
+  - id: TL-2
+    name: 結合テスト（バック）
     run_all: |-
       ```bash
       .venv/Scripts/python.exe -m pytest tests/integration
@@ -37,7 +39,8 @@ layers:
         ```bash
         .venv/Scripts/python.exe -m pytest {結合テストファイルパス}
         ```
-  - name: 非機能要件テスト
+  - id: TL-3
+    name: 非機能要件テスト
     run_all: |-
       ```bash
       .venv/Scripts/python.exe -m pytest tests/nfr --run-e2e
@@ -98,7 +101,8 @@ layers:
         ```
 
         特定のケースだけを流すときは、3 の `tests/nfr` を pytest のノード ID の並びに替える。
-  - name: 外部疎通テスト
+  - id: TL-4
+    name: 外部疎通テスト
     run_all: |-
       ```bash
       .venv/Scripts/python.exe -m pytest tests/external --run-external
@@ -115,7 +119,8 @@ layers:
         ```bash
         .venv/Scripts/python.exe -m pytest {外部疎通テストファイルパス} --run-external
         ```
-  - name: lint
+  - id: TL-5
+    name: lint
     description: import-linter で pyproject.toml の `[tool.importlinter]` の契約（層・feature の独立・出力先の独立）を検査し、`uv lock --check` で pyproject.toml と uv.lock の食い違いを検査する。画面のスクリプト（`src/voice_paste/server/web/assets/app.ts`）は `tsc` の型検査と ESLint で検査し、コミットした `app.js` が `app.ts` から再生成したものと同じかを確かめる。単体テストと一緒に回す。
     prerequisites:
       - 外部依存なし

@@ -11,7 +11,7 @@ voice-paste の画面全体に通すデザインの方向性
 | スタイル | 開発者ツール | - |
 | 分類 | 業務系 | - |
 | 明暗 | 両方 | 設定 `ui.theme` で選ぶ。既定は OS の明暗に従う |
-| 見本（画面全体） | [dev/mock/styles/developer-tool/](./mock/styles/developer-tool/) | - |
+| 見本（画面全体） | [docs/mock/styles/developer-tool/](./mock/styles/developer-tool/) | - |
 | 見本（部品） | - | PySide6 の画面で、Storybook のストーリーとして描く部品を持たない |
 | 値の置き場所 | `src/voice_paste/ui/tokens.toml` | QSS はこの値で組み立てる |
 | 選んだ理由 | ジャンルはプログラミング（手元の道具）。利用者は開発者本人で、ほかのアプリで作業している最中にホットキーで録音する。操作の中心がホットキーで、設定画面では `settings.toml` の項目と欄を突き合わせる | [決着のスレッド](https://github.com/shuhei1101/voice-paste/pull/37#discussion_r4166019242) |

@@ -97,7 +97,7 @@ docs:
     updated_at: '2026-11-09T04:06:14.433642+00:00'
   - page: dev/設計書/非機能要件/非機能要件.yaml
     new: false
-    change: 『画面の録音の上限時間』の measurement が削除する E2E のケース（test_normal_when_recording_limit_reached）を指しているのを、外の端末の画面で画面の時計を進めて確認する方法へ書き換える
+    change: 『画面の録音の上限時間』の measurement が削除する E2E のケース（test_normal_when_recording_limit_reached）を指しているのを、「ブラウザから音声を送信する」の上限のシナリオの E2E で確認する旨へ書き換える
     status: done
     updated_by: planner
     updated_at: '2026-11-09T04:06:14.433642+00:00'
@@ -137,6 +137,12 @@ docs:
     status: done
     updated_by: planner
     updated_at: '2026-11-09T04:06:14.433642+00:00'
+  - page: dev/設計書/モジュール構成/分類/常駐アプリ/APIサーバー.yaml
+    new: false
+    change: notes『外の端末の画面』の「Edge で画面を開く E2E」を「E2E」に縮める（削除する headless の Edge のやり方を指さない）
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-09T04:14:53.657777+00:00'
 scope_out:
   - item: シナリオの `test_file`（tests/e2e/ を指す）の削除・書き換え
     reason: Issue の決定で、作り直すときのマーカーとして残す。設計書の検証が参照先の無い 12 件を誤りにする扱いは要件.md の `未確定`。検証の側の修正は AI Monitor で行う
@@ -147,8 +153,8 @@ scope_out:
   - item: dev/テンプレート/ のシナリオ・テスト実行方法のスキーマの E2E の記述
     reason: AI Monitor の配布物で、このリポジトリでは書き換えない（配布元の変更は shuhei1101/ai-monitor#3317 の側で扱う）
     plan: none
-  - item: 分類『APIサーバー』・外部ライブラリ『pyside6-essentials』の「E2E で確かめる」の記述
-    reason: 作り直す E2E で確かめることを書いた設計の記述と、過去の検証の記録で、今ある E2E のファイルを指していない
+  - item: 外部ライブラリ『pyside6-essentials』の「実機の E2E で確かめる」の記述
+    reason: 過去の検証の記録で、今ある E2E のファイルを指していない
     plan: none
   - item: docs/はじめに/変更履歴.md と過去の dev/pr/ の E2E のログ・記述
     reason: 過去の記録で、書き換えると履歴が崩れる

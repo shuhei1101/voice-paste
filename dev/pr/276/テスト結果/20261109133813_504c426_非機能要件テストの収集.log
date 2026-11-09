@@ -1,0 +1,5 @@
+$ .venv/Scripts/python.exe -m pytest tests/nfr tests/external --collect-only -q
+tests/external/voice_paste/integrations/volume/test_adapter.py::test_ext_lower_volume_when_fade
+tests/external/voice_paste/integrations/volume/test_adapter.py::test_ext_restore_volume_when_no_fade
+
+28 tests collected in 8.25s

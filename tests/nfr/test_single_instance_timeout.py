@@ -20,7 +20,7 @@ from tests.support.instances import (
     wait_for_takeover,
 )
 from tests.support.real_service import RealService, spawn_process
-from tests.support.resident_app import kill_service_processes_for
+from tests.support.processes import kill_service_processes_for
 from tests.support.whisper_fixtures import local_whisper_yaml, requires_real_whisper
 
 pytestmark = [pytest.mark.real_machine, requires_real_whisper]

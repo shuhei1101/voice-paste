@@ -1,0 +1,164 @@
+use_cases:
+  - kind: composite
+    scenario: dev/設計書/シナリオ/複合ユースケース/声で入力した文字を貼り付ける.yaml
+    impact: none
+    detail: シナリオと対応テストファイルの印は残す。対応する E2E のファイルを削除する
+    depends_on: []
+  - kind: composite
+    scenario: dev/設計書/シナリオ/複合ユースケース/ほかのシステムから録音を文字に起こす.yaml
+    impact: none
+    detail: シナリオと対応テストファイルの印は残す。対応する E2E のファイルを削除する
+    depends_on: []
+  - kind: composite
+    scenario: dev/設計書/シナリオ/複合ユースケース/ほかのシステムから連続して録音し、区切りごとに文字で受け取る.yaml
+    impact: none
+    detail: シナリオと対応テストファイルの印は残す。対応する E2E のファイルを削除する
+    depends_on: []
+  - kind: composite
+    scenario: dev/設計書/シナリオ/複合ユースケース/外の端末のブラウザから音声を送信して文字で受け取る.yaml
+    impact: none
+    detail: シナリオと対応テストファイルの印は残す。対応する E2E のファイルを削除する
+    depends_on: []
+  - kind: single
+    scenario: dev/設計書/シナリオ/単一ユースケース/常駐アプリを起動する.yaml
+    impact: none
+    detail: シナリオと対応テストファイルの印は残す。対応する E2E のファイルを削除する
+    depends_on: []
+  - kind: single
+    scenario: dev/設計書/シナリオ/単一ユースケース/録音する.yaml
+    impact: none
+    detail: シナリオと対応テストファイルの印は残す。対応する E2E のファイルを削除する
+    depends_on: []
+  - kind: single
+    scenario: dev/設計書/シナリオ/単一ユースケース/録音を文字に起こす.yaml
+    impact: none
+    detail: シナリオと対応テストファイルの印は残す。対応する E2E のファイルを削除する
+    depends_on: []
+  - kind: single
+    scenario: dev/設計書/シナリオ/単一ユースケース/起こした文字を届ける.yaml
+    impact: none
+    detail: シナリオと対応テストファイルの印は残す。対応する E2E のファイルを削除する
+    depends_on: []
+  - kind: single
+    scenario: dev/設計書/シナリオ/単一ユースケース/設定を変える.yaml
+    impact: none
+    detail: シナリオと対応テストファイルの印は残す。対応する E2E のファイルを削除する
+    depends_on: []
+  - kind: single
+    scenario: dev/設計書/シナリオ/単一ユースケース/トレイから操作する.yaml
+    impact: none
+    detail: シナリオと対応テストファイルの印は残す。対応する E2E のファイルを削除する
+    depends_on: []
+  - kind: single
+    scenario: dev/設計書/シナリオ/単一ユースケース/APIで録音を操作する.yaml
+    impact: none
+    detail: シナリオは残す
+    depends_on: []
+  - kind: single
+    scenario: dev/設計書/シナリオ/単一ユースケース/ブラウザから音声を送信する.yaml
+    impact: none
+    detail: シナリオと対応テストファイルの印は残す。対応する E2E のファイルを削除する
+    depends_on: []
+  - kind: single
+    scenario: dev/設計書/シナリオ/単一ユースケース/ブラウザで結果を受け取る.yaml
+    impact: none
+    detail: シナリオと対応テストファイルの印は残す。対応する E2E のファイルを削除する
+    depends_on: []
+docs:
+  - page: dev/設計書/テスト/テスト実行方法.yaml
+    new: false
+    change: 『E2E テスト』のレイヤーを削除する（要件.md の `未確定` の推奨 A）。非機能要件テストのレイヤーと共通の前提が『E2E テスト』の前提を参照している箇所（Linux の環境・Open JTalk・VM での実行方法）は、非機能要件テストのレイヤーへ必要な分だけ移す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-09T04:06:14.433642+00:00'
+  - page: dev/設計書/開発コマンド/開発コマンド.yaml
+    new: false
+    change: 『環境構築（クローン直後）』の手順 3（Open JTalk）の対象を「E2E を流す環境」から、音声合成を使用する非機能要件テストを流す環境へ書き換える
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-09T04:06:14.433642+00:00'
+  - page: dev/設計書/外部ライブラリ/Open_JTalk.yaml
+    new: false
+    change: 用途・入れ方・参照の E2E を、非機能要件テスト（区間の最大の長さ）の入力の WAV へ書き換える。参照 `TP-1#layers[E2E テスト]` を非機能要件テストのレイヤーへ変える
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-09T04:06:14.433642+00:00'
+  - page: dev/設計書/外部ライブラリ/index.yaml
+    new: false
+    change: Open_JTalk の行の概要の E2E を非機能要件テストへ書き換える（README は生成し直す）
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-09T04:06:14.433642+00:00'
+  - page: dev/設計書/外部ライブラリ/Microsoft_Edge.yaml
+    new: false
+    change: headless の Edge と DevTools Protocol の使い方を削除し、used_in から tests/support/browser.py を除外する（非機能要件テストは web_scene から STUB_TEXT だけを import し、Edge を開かない）
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-09T04:06:14.433642+00:00'
+  - page: dev/設計書/非機能要件/非機能要件.yaml
+    new: false
+    change: 『画面の録音の上限時間』の measurement が削除する E2E のケース（test_normal_when_recording_limit_reached）を指しているのを、「ブラウザから音声を送信する」の上限のシナリオの E2E で確認する旨へ書き換える
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-09T04:06:14.433642+00:00'
+  - page: dev/設計書/モジュール構成/runtime/single_instance.py.yaml
+    new: false
+    change: 「普段使いと E2E・非機能要件テスト」の E2E を外す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-09T04:06:14.433642+00:00'
+  - page: dev/設計書/モジュール構成/main.py.yaml
+    new: false
+    change: '`--data-dir` の説明の E2E に触れる文言を、残るテストに合わせて外す'
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-09T04:06:14.433642+00:00'
+  - page: dev/エージェント運用/拡張/tester/LinuxでのE2Eの実行.md
+    new: false
+    change: 流す E2E が無くなるため削除する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-09T04:06:14.433642+00:00'
+  - page: dev/エージェント運用/拡張/tester/index.yaml
+    new: false
+    change: 『Linux での E2E の実行』の行が無くなり、拡張のフェーズが他に無いため、`dev/エージェント運用/拡張/` をフォルダごと削除し、`dev/エージェント運用/index.yaml` の行も除外する（README は生成し直す）
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-09T04:06:14.433642+00:00'
+  - page: agent_context.yaml
+    new: false
+    change: tester へ足した拡張の行 `linux-e2e` が唯一の定義のため、ファイルごと削除する（無ければ AI Monitor は共通のエージェントだけで回す）
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-09T04:06:14.433642+00:00'
+  - page: dev/設計書/モジュール構成/shared/constants.py.yaml
+    new: false
+    change: '`--data-dir` の説明の「E2E・非機能要件テスト」の E2E を外す'
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-09T04:06:14.433642+00:00'
+  - page: dev/設計書/モジュール構成/分類/常駐アプリ/APIサーバー.yaml
+    new: false
+    change: notes『外の端末の画面』の「Edge で画面を開く E2E」を「E2E」に縮める（削除する headless の Edge のやり方を指さない）
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-09T04:14:53.657777+00:00'
+scope_out:
+  - item: シナリオの `test_file`（tests/e2e/ を指す）の削除・書き換え
+    reason: Issue の決定で、作り直すときのマーカーとして残す。設計書の検証が参照先の無い 12 件を誤りにする扱いは要件.md の `未確定`。検証の側の修正は AI Monitor で行う
+    plan: shuhei1101/ai-monitor#3330
+  - item: tests/conftest.py のオプション `--run-e2e` の改名
+    reason: 実機の非機能要件テスト（tests/nfr/）が前提にしており、改名は E2E の削除と目的が別。名前はそのまま、help の文言の E2E だけを外す。E2E を作り直すときにまた使用する
+    plan: none
+  - item: dev/テンプレート/ のシナリオ・テスト実行方法のスキーマの E2E の記述
+    reason: AI Monitor の配布物で、このリポジトリでは書き換えない（配布元の変更は shuhei1101/ai-monitor#3317 の側で扱う）
+    plan: none
+  - item: 外部ライブラリ『pyside6-essentials』の「実機の E2E で確かめる」の記述
+    reason: 過去の検証の記録で、今ある E2E のファイルを指していない
+    plan: none
+  - item: docs/はじめに/変更履歴.md と過去の dev/pr/ の E2E のログ・記述
+    reason: 過去の記録で、書き換えると履歴が崩れる
+    plan: none
+  - item: 開発コマンド『管理作業』の仮想マイクと tests/support/feed_mic.py
+    reason: VM で手で録音を確かめる管理作業が使用し、E2E だけの部品ではないため残す
+    plan: none

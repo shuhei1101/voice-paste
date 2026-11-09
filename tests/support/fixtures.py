@@ -8,11 +8,7 @@ from pathlib import Path
 import pytest
 
 from tests.integration.helpers import CallbackReceiver
-from tests.support.haas_endpoint import FakeHaasEndpoint
 from tests.support.inprocess import InProcessApp, WavInput, start_inprocess_app
-from tests.support.openai_endpoint import FakeOpenAIEndpoint
-from tests.support.real_service import RealService
-from tests.support.resident_app import kill_service_processes_for
 from voice_paste.shared.settings import Settings
 
 
@@ -23,55 +19,6 @@ def receiver() -> Iterator[CallbackReceiver]:
     callback_receiver.start()
     yield callback_receiver
     callback_receiver.stop()
-
-
-@pytest.fixture
-def haas_endpoint() -> Iterator[FakeHaasEndpoint]:
-    """Haas の文字起こしのサーバーの代わりのテスト用のエンドポイントを 127.0.0.1 に立てる。待ち受けはテストが始める。"""
-    endpoint = FakeHaasEndpoint()
-    yield endpoint
-    endpoint.stop()
-
-
-@pytest.fixture
-def openai_endpoint() -> Iterator[FakeOpenAIEndpoint]:
-    """OpenAI API の文字起こしの代わりのテスト用のエンドポイントを 127.0.0.1 に立てる。"""
-    endpoint = FakeOpenAIEndpoint()
-    endpoint.start()
-    yield endpoint
-    endpoint.stop()
-
-
-@pytest.fixture
-def start_service(tmp_path: Path) -> Iterator[Callable[..., RealService]]:
-    """本物の常駐サービスを起動する関数を返す。起動したサービスは、テストの後に終わらせる（同じ置き場所で後から起動したプロセスも止める）。"""
-    started: list[RealService] = []
-
-    def _start(
-        extra_settings: str = "",
-        *,
-        port: int | None = None,
-        wait_for_api: bool = True,
-        prepare: Callable[[Path], None] | None = None,
-    ) -> RealService:
-        """設定を追加して起動する。prepare は起動の前に、置き場所（空の一時フォルダ）へファイルを用意する関数。"""
-        data_dir = tmp_path / f"data{len(started)}"
-        data_dir.mkdir(parents=True, exist_ok=True)
-        if prepare is not None:
-            prepare(data_dir)
-        service = RealService.launch(
-            data_dir,
-            extra_settings=extra_settings,
-            port=port,
-            wait_for_api=wait_for_api,
-        )
-        started.append(service)
-        return service
-
-    yield _start
-    for service in started:
-        service.shutdown()
-        kill_service_processes_for(service.data_dir)
 
 
 @pytest.fixture

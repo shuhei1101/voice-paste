@@ -57,7 +57,7 @@ items:
   - page: Focused_Window_D-Bus.yaml
     summary: Linux の Wayland のセッションで、フォーカスしているウィンドウの wm_class を GNOME Shell の拡張から読む
   - page: Open_JTalk.yaml
-    summary: Linux の E2E で、録音の入力にする文を WAV に書き出す
+    summary: Linux の非機能要件テストで、録音の入力にする文を WAV に書き出す
   - page: haas_asr.yaml
     summary: WSL の文字起こしのサーバーで、Haas-ja-v1.0 のモデルで音声を文字に起こす
   - page: NeMo.yaml

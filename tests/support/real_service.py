@@ -1,4 +1,4 @@
-"""実機のテスト（E2E・実機の非機能要件テスト）が使う、本物の常駐サービスの起動と API の呼び出し。
+"""実機のテスト（実機の非機能要件テスト）が使う、本物の常駐サービスの起動と API の呼び出し。
 
 `python -m voice_paste --data-dir {一時フォルダ}` を子プロセスとして起動し（build_handlers の配線・
 ローカルの Whisper を通る。Qt は offscreen で、画面もトレイのアイコンも実機に出ない）、トークンのファイルを読んで API を叩く。
@@ -51,15 +51,6 @@ def free_port() -> int:
         return int(probe.getsockname()[1])
 
 
-def read_token_file(data_dir: Path) -> dict[str, Any] | None:
-    """data_dir の起動ごとのトークンのファイル（トークンとポート）を読む。まだ無い・書きかけなら None。"""
-    try:
-        info = json.loads((data_dir / TOKEN_FILE_NAME).read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
-    return dict(info) if isinstance(info, dict) else None
-
-
 def post_to_api(
     http: httpx.Client,
     token: str,
@@ -90,14 +81,6 @@ def settings_text(api_port: int, extra_settings: str = "", api_settings: str = "
     return (
         f"api:\n  port: {api_port}\n  allowed_web_origins:\n    - http://localhost:{api_port}\n{api_settings}"
         f'hotkeys:\n  start: "{UNUSED_START_HOTKEY}"\n{extra_settings}\n'
-    )
-
-
-def legacy_settings_text(api_port: int) -> str:
-    """前のバージョンの settings.toml の中身（settings_text と同じ API のポート・Origin・録音開始のホットキーを TOML で書く）。"""
-    return (
-        f'[api]\nport = {api_port}\nallowed_web_origins = ["http://localhost:{api_port}"]\n\n'
-        f'[hotkeys]\nstart = "{UNUSED_START_HOTKEY}"\n'
     )
 
 

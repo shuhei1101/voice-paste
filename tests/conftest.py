@@ -4,7 +4,6 @@ import os
 from typing import TYPE_CHECKING
 
 import pytest
-from unittest.mock import patch
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QApplication
@@ -26,7 +25,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         RUN_E2E_OPTION,
         action="store_true",
         default=False,
-        help="実機のマイク・システム音量・GPU を使うテスト（E2E・実機の非機能要件テスト）を実行する",
+        help="実機のマイク・システム音量・GPU を使うテスト（実機の非機能要件テスト）を実行する",
     )
 
 

@@ -1,0 +1,91 @@
+tasks:
+  - process: 初期構築
+    status: skipped
+    reason: 既存のリポジトリのため対象外
+    updated_by: planner
+    updated_at: '2026-11-09T03:47:43.083837+00:00'
+  - process: リバースエンジニアリング
+    status: skipped
+    reason: 設計書が揃っているため対象外
+    updated_by: planner
+    updated_at: '2026-11-09T03:47:43.083837+00:00'
+  - process: 方針決め
+    status: skipped
+    reason: 方針決めを依頼する Issue ではない
+    updated_by: planner
+    updated_at: '2026-11-09T03:47:43.083837+00:00'
+  - process: PoC 検証
+    status: skipped
+    reason: テストの削除だけで、未検証の技術機構に依存しない
+    updated_by: planner
+    updated_at: '2026-11-09T03:47:43.083837+00:00'
+  - process: 複合ユースケース設計
+    status: skipped
+    reason: シナリオは残す（D-311）。複合ユースケースの記述は変えない
+    updated_by: planner
+    updated_at: '2026-11-09T03:47:43.083837+00:00'
+  - process: デザインスタイル選定
+    status: skipped
+    reason: '画面を変えない（モック要否: 画面の変更なし）'
+    updated_by: planner
+    updated_at: '2026-11-09T03:47:43.083837+00:00'
+  - process: 画面一覧・画面遷移
+    status: skipped
+    reason: '画面を変えない（モック要否: 画面の変更なし）'
+    updated_by: planner
+    updated_at: '2026-11-09T03:47:43.083837+00:00'
+  - process: 単一ユースケース設計
+    status: skipped
+    reason: シナリオは残す（D-311）。単一ユースケースの記述は変えない
+    updated_by: planner
+    updated_at: '2026-11-09T03:47:43.083837+00:00'
+  - process: モック作成
+    status: skipped
+    reason: '画面を変えない（モック要否: 画面の変更なし）'
+    updated_by: planner
+    updated_at: '2026-11-09T03:47:43.083837+00:00'
+  - process: インターフェース定義設計
+    status: skipped
+    reason: インターフェースを変えない
+    updated_by: planner
+    updated_at: '2026-11-09T03:47:43.083837+00:00'
+  - process: 部品設計
+    status: skipped
+    reason: 画面の部品を変えない
+    updated_by: planner
+    updated_at: '2026-11-09T03:47:43.083837+00:00'
+  - process: 画面設計
+    status: skipped
+    reason: '画面を変えない（画面設計要否: 画面の要素の変更なし）'
+    updated_by: planner
+    updated_at: '2026-11-09T03:47:43.083837+00:00'
+  - process: モジュール構成設計
+    status: skipped
+    reason: src のクラス・関数を変えない。モジュール構成の設計書の E2E に触れる文言の修正はドキュメント修正で扱う
+    updated_by: planner
+    updated_at: '2026-11-09T03:47:43.083837+00:00'
+  - process: ドキュメント修正
+    status: done
+    note: テスト実行方法・開発コマンド・外部ライブラリ（Open_JTalk・Microsoft_Edge）・非機能要件・モジュール構成（main.py・single_instance.py）の E2E の記述と、tester の拡張のフェーズ『Linux での E2E の実行』と agent_context.yaml の行
+    updated_by: planner
+    updated_at: '2026-11-09T04:06:50.444676+00:00'
+  - process: 単体テスト作成
+    status: skipped
+    reason: 新しい関数を足さない。既存の単体テストの全 pass を実装で確かめる
+    updated_by: planner
+    updated_at: '2026-11-09T03:47:43.083837+00:00'
+  - process: 実装
+    status: done
+    note: tests/e2e/ と、E2E だけが使う tests/support の部品の削除。残す部品の docstring と src/voice_paste/main.py のコメントの E2E の記述の修正。単体・結合テストの全 pass を確かめる
+    updated_by: planner
+    updated_at: '2026-11-09T04:38:57.176080+00:00'
+  - process: 結合テスト作成
+    status: skipped
+    reason: 新しい結合テストを足さない。既存の結合テストの全 pass を実装で確かめる
+    updated_by: planner
+    updated_at: '2026-11-09T03:47:43.083837+00:00'
+  - process: E2E テスト作成
+    status: skipped
+    reason: 今ある E2E を削除する作業で、E2E は作らない（D-307 A）
+    updated_by: planner
+    updated_at: '2026-11-09T03:47:43.083837+00:00'

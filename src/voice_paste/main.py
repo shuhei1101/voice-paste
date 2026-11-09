@@ -375,7 +375,7 @@ def _create_pynput_listener(
 def parse_args(argv: list[str]) -> CliArgs:
     """argparse で `--data-dir` を読む。"""
     parser = argparse.ArgumentParser(prog="voice_paste")
-    # 置き場所が無ければ既定の置き場所を使う（E2E・非機能要件テストは一時フォルダを渡して普段使いに触れない）
+    # 置き場所が無ければ既定の置き場所を使う（非機能要件テストは一時フォルダを渡して普段使いに触れない）
     parser.add_argument(
         "--data-dir",
         type=Path,

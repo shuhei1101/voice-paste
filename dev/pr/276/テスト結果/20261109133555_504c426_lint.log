@@ -1,0 +1,19 @@
+$ uv.exe lock --check
+Resolved 76 packages in 1ms
+exit=0
+$ .venv/Scripts/lint-imports
+Contracts
+---------
+
+Analyzed 118 files, 258 dependencies.
+-------------------------------------
+
+‘w‚ÌŒü‚« KEPT
+feature ‚Ì“Æ—§ KEPT
+o—Íæ‚Ì“Æ—§ KEPT (13 ignored imports)
+‰æ–Ê‚©‚ç feature ‚Ì’†‚Ö KEPT (1 ignored import)
+
+Contracts: 4 kept, 0 broken.
+exit=0
+
+npm run typecheck / npm run lint / npm run build ã¯æµã—ã¦ã„ãªã„ï¼ˆä½œæ¥­ PR ã¯ src/voice_paste/server/web/assets/ ã® TypeScript ã«è§¦ã‚Œãªã„ï¼‰

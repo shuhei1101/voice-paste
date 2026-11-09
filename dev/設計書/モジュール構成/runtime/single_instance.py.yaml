@@ -193,7 +193,7 @@ functions:
       description: '`voice-paste-{ハッシュ}`（ハッシュは解決した絶対パスを小文字にした文字列の SHA-256 の先頭 16 文字）'
     process: |-
       1. settings_dir を解決した絶対パスを小文字にし、SHA-256 の 16 進の先頭 INSTANCE_HASH_LENGTH 文字を `{APP_NAME}-` に続けて返す
-         - 普段使い（既定の置き場所）と E2E・非機能要件テスト（`--data-dir` の一時フォルダ）は別の名前になり、テストの起動が普段使いを終わらせない
+         - 普段使い（既定の置き場所）と非機能要件テスト（`--data-dir` の一時フォルダ）は別の名前になり、テストの起動が普段使いを終わらせない
     unit_tests:
       - name: test_instance_name
         case: 正常

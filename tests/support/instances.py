@@ -1,4 +1,4 @@
-"""同じ置き場所で続けて起動した常駐サービスの入れ替えを、ログから観測する補助（E2E・実機の非機能要件テスト用）。
+"""同じ置き場所で続けて起動した常駐サービスの入れ替えを、ログから観測する補助（実機の非機能要件テスト用）。
 
 後から起動したプロセスは、前のプロセスに終わるよう頼み（「前の常駐サービスに終わるよう頼んだ」）、排他を取り
 （「単一インスタンスを確保した」）、立ち上がる（「常駐サービスを始めた」）。同じ置き場所のログには前のプロセスの
@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from tests.support.real_service import POLL_SEC, read_log_records
-from tests.support.resident_app import service_processes_for
+from tests.support.processes import service_processes_for
 
 ASKED_MESSAGE = "前の常駐サービスに終わるよう頼んだ"
 """後のプロセスが、前のプロセスの終了の依頼を立てたときのログの文。"""
@@ -105,13 +105,6 @@ def wait_for_acquired(data_dir: Path, process: subprocess.Popen[bytes], timeout_
         if process.poll() is not None or time.monotonic() > deadline:
             raise RuntimeError("最初に起動したプロセスが排他を取れなかった")
         time.sleep(POLL_SEC)
-
-
-def started_count(data_dir: Path) -> int:
-    """data_dir のログに「常駐サービスを始めた」が書かれた回数を返す（再起動で起動し直したプロセスの分を含む）。"""
-    return sum(
-        str(record["msg"]).startswith(STARTED_PREFIX) for record in read_log_records(data_dir)
-    )
 
 
 def service_root_count(data_dir: Path) -> int:

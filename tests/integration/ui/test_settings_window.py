@@ -435,7 +435,6 @@ def test_group_menu_keeps_values(open_window: Callable[..., Opened]) -> None:
 
 def test_field_for_every_setting_key(open_window: Callable[..., Opened]) -> None:
     """settings.yaml の全てのキーに欄がある（項目を追加しても画面の修正が増えない。出力先・プリセット・用語集は、それぞれのまとまりの一覧が持つ）。"""
-    from voice_paste.shared.settings import Settings
 
     # 実行
     window = open_window().window
@@ -1054,7 +1053,7 @@ KINDS = ("browser", "endpoint")
 
 def _settings_with_presets() -> Settings:
     """ブラウザ添付 2 件とエンドポイントへ送信 1 件のプリセットを持つ設定を作る。"""
-    from voice_paste.shared.settings import BrowserPreset, EndpointPreset, Settings
+    from voice_paste.shared.settings import BrowserPreset, EndpointPreset
 
     return make_settings(
         presets=[

@@ -36,7 +36,7 @@
 | [python-xlib](./python-xlib.yaml) | Linux でアクティブなウィンドウの WM_CLASS を Xorg から読む |
 | [evdev](./evdev.yaml) | Linux の Wayland のセッションで、仮想キーボードから貼り付けのキーと Enter を送信する |
 | [Focused_Window_D-Bus](./Focused_Window_D-Bus.yaml) | Linux の Wayland のセッションで、フォーカスしているウィンドウの wm_class を GNOME Shell の拡張から読む |
-| [Open_JTalk](./Open_JTalk.yaml) | Linux の E2E で、録音の入力にする文を WAV に書き出す |
+| [Open_JTalk](./Open_JTalk.yaml) | Linux の非機能要件テストで、録音の入力にする文を WAV に書き出す |
 | [haas_asr](./haas_asr.yaml) | WSL の文字起こしのサーバーで、Haas-ja-v1.0 のモデルで音声を文字に起こす |
 | [NeMo](./NeMo.yaml) | haas_asr がモデルの推論に使う |
 

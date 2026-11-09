@@ -1,4 +1,4 @@
-"""実機のテスト（E2E・実機の非機能要件テスト）が使う、プロセスの一覧と終了の補助。"""
+"""実機のテスト（実機の非機能要件テスト）が使う、プロセスの一覧と終了の補助。"""
 
 from __future__ import annotations
 
@@ -10,9 +10,13 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
+from voice_paste.integrations.whisper.client import WORKER_MODULE
 from voice_paste.shared.os_kind import CURRENT_OS, OsKind
 
 POWERSHELL_TIMEOUT_SEC = 30.0
+
+SERVICE_COMMAND = "-m voice_paste"
+"""常駐アプリのコマンドラインに含まれる言葉（venv の python.exe は本体のプロセスを子に持つ）。"""
 
 PROC_DIR = Path("/proc")
 """Linux でプロセスの一覧を読むフォルダ。"""
@@ -110,6 +114,18 @@ def kill_tree(pid: int) -> None:
     )
 
 
-def processes_with(command_fragment: str, tree_root_pid: int) -> list[ProcessInfo]:
-    """tree_root_pid の子孫のうち、コマンドラインに command_fragment を含むプロセスを返す。"""
-    return [p for p in descendants(tree_root_pid) if command_fragment in p.command_line]
+def service_processes_for(data_dir: Path) -> list[ProcessInfo]:
+    """data_dir で動いている常駐アプリのプロセス（再起動で起動し直したものを含む）を返す。"""
+    return [
+        p
+        for p in process_table()
+        if SERVICE_COMMAND in p.command_line
+        and str(data_dir) in p.command_line
+        and WORKER_MODULE not in p.command_line
+    ]
+
+
+def kill_service_processes_for(data_dir: Path) -> None:
+    """data_dir で動いている常駐アプリ（再起動で起動し直したものを含む）を全て止める。"""
+    for process in service_processes_for(data_dir):
+        kill_tree(process.pid)

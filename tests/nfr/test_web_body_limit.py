@@ -16,13 +16,13 @@ import pytest
 from tests.integration.helpers import make_audio
 from tests.support.fixtures import start_inprocess  # noqa: F401 フィクスチャとして使う
 from tests.support.inprocess import (
+    STUB_TEXT,
     InProcessApp,
     make_settings,
     silence_input,
     stub_transcription,
     requires_web_transcription,
 )
-from tests.support.web_scene import STUB_TEXT
 from tests.support.web_body import sized_multipart_body
 
 pytestmark = [pytest.mark.real_machine, requires_web_transcription]

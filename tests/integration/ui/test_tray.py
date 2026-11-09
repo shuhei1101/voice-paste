@@ -21,7 +21,7 @@ from tests.integration.ui.helpers import Ui, edge_and_face_colors
 from tests.support.settings import make_settings
 
 if TYPE_CHECKING:
-    from voice_paste.ui.tray import Tray, TrayState
+    from voice_paste.ui.tray import Tray
 
 MENU_ORDER = (
     "menu_start",

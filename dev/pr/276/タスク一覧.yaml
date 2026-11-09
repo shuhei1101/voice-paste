@@ -75,8 +75,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-09T03:47:43.083837+00:00'
   - process: 実装
-    status: todo
+    status: done
     note: tests/e2e/ と、E2E だけが使う tests/support の部品の削除。残す部品の docstring と src/voice_paste/main.py のコメントの E2E の記述の修正。単体・結合テストの全 pass を確かめる
+    updated_by: planner
+    updated_at: '2026-11-09T04:38:57.176080+00:00'
   - process: 結合テスト作成
     status: skipped
     reason: 新しい結合テストを足さない。既存の結合テストの全 pass を実装で確かめる

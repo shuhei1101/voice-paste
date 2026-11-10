@@ -1,0 +1,21 @@
+$ .venv/Scripts/python.exe -m pytest tests/unit   （Windows 11。worktree の Windows 用の仮想環境 .venv-win で実行）
+........................................................................ [  7%]
+........................................................................ [ 15%]
+........................................................................ [ 23%]
+....................................................................ssss [ 31%]
+s....................sssssssssssssssssss................................ [ 38%]
+......................................ssssssssssss...sss...........sssss [ 46%]
+sssssssss............................................................... [ 54%]
+........................................................................ [ 62%]
+.........................................................s............ss [ 69%]
+........................................................................ [ 77%]
+........................................................................ [ 85%]
+........................................................................ [ 93%]
+................................................................         [100%]
+============================== warnings summary ===============================
+.venv-win\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\shuhe\repo\voice-paste\.claude\worktrees\docs-glossary-rename-domain-terms\.venv-win\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+872 passed, 56 skipped, 1 warning in 357.32s (0:05:57)

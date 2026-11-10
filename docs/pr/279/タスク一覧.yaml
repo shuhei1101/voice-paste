@@ -75,8 +75,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-10T17:01:02.672235+00:00'
   - process: 実装
-    status: todo
+    status: done
     note: src/・tests/ のコメント・docstring と、API の応答・設定の説明の文字列の置き換え
+    updated_by: planner
+    updated_at: '2026-11-10T18:11:03.305644+00:00'
   - process: 結合テスト作成
     status: skipped
     reason: インターフェースと画面の UI 項目が変わらず、新しい結合テストは要らない

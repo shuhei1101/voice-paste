@@ -1,0 +1,87 @@
+tasks:
+  - process: 初期構築
+    status: skipped
+    reason: 既存リポジトリのため対象外
+    updated_by: planner
+    updated_at: '2026-11-10T17:01:02.672235+00:00'
+  - process: リバースエンジニアリング
+    status: skipped
+    reason: 設計書が揃っている既存リポジトリのため対象外
+    updated_by: planner
+    updated_at: '2026-11-10T17:01:02.672235+00:00'
+  - process: 方針決め
+    status: skipped
+    reason: 方針決めを依頼する Issue ではない
+    updated_by: planner
+    updated_at: '2026-11-10T17:01:02.672235+00:00'
+  - process: PoC 検証
+    status: skipped
+    reason: 語の置き換えだけで、未検証の技術機構に依存しない
+    updated_by: planner
+    updated_at: '2026-11-10T17:01:02.672235+00:00'
+  - process: 複合ユースケース設計
+    status: skipped
+    reason: 業務の流れは変えず、シナリオの語の置き換えはドキュメント修正で行う
+    updated_by: planner
+    updated_at: '2026-11-10T17:01:02.672235+00:00'
+  - process: デザインスタイル選定
+    status: skipped
+    reason: 'モック要否: 変わる画面の文言は Issue で決まっていて作り手が決める余地が無く、docs/design-policy.md があり見た目の方向を変えない'
+    updated_by: planner
+    updated_at: '2026-11-10T17:01:02.672235+00:00'
+  - process: 画面一覧・画面遷移
+    status: skipped
+    reason: 'モック要否: 画面の追加・削除と画面遷移の変更が無い'
+    updated_by: planner
+    updated_at: '2026-11-10T17:01:02.672235+00:00'
+  - process: 単一ユースケース設計
+    status: skipped
+    reason: 業務の流れは変えず、シナリオの語の置き換えはドキュメント修正で行う
+    updated_by: planner
+    updated_at: '2026-11-10T17:01:02.672235+00:00'
+  - process: モック作成
+    status: skipped
+    reason: 'モック要否: 変わる文言は Issue で決まっていて、見た目を作り手が決める余地が無い'
+    updated_by: planner
+    updated_at: '2026-11-10T17:01:02.672235+00:00'
+  - process: インターフェース定義設計
+    status: skipped
+    reason: API のパス・キー・形は変えず、インターフェース定義の語の置き換えはドキュメント修正で行う
+    updated_by: planner
+    updated_at: '2026-11-10T17:01:02.672235+00:00'
+  - process: 部品設計
+    status: skipped
+    reason: 画面の部品の追加・変更が無い
+    updated_by: planner
+    updated_at: '2026-11-10T17:01:02.672235+00:00'
+  - process: 画面設計
+    status: skipped
+    reason: '画面設計要否: UI 項目と操作は増減も変化もせず、画面設計の表示の条件の語の置き換えはドキュメント修正で行う'
+    updated_by: planner
+    updated_at: '2026-11-10T17:01:02.672235+00:00'
+  - process: モジュール構成設計
+    status: skipped
+    reason: クラス・関数の構成は変えず、モジュール構成の語の置き換えはドキュメント修正で行う
+    updated_by: planner
+    updated_at: '2026-11-10T17:01:02.672235+00:00'
+  - process: ドキュメント修正
+    status: todo
+    note: docs/（docs/pr を除く）の設計書・公開の文書の語の置き換えと、docs/terms.yaml の作成・dev-docs.yaml への登録
+  - process: 単体テスト作成
+    status: skipped
+    reason: 動きを変えないため新しいテストは要らない。既存のテストのコメント・文言の置き換えは実装で行い、単体テストを全件流して確かめる
+    updated_by: planner
+    updated_at: '2026-11-10T17:01:02.672235+00:00'
+  - process: 実装
+    status: todo
+    note: src/・tests/ のコメント・docstring と、API の応答・設定の説明の文字列の置き換え
+  - process: 結合テスト作成
+    status: skipped
+    reason: インターフェースと画面の UI 項目が変わらず、新しい結合テストは要らない
+    updated_by: planner
+    updated_at: '2026-11-10T17:01:02.672235+00:00'
+  - process: E2E テスト作成
+    status: skipped
+    reason: 業務の流れが変わらず、新しい E2E は要らない
+    updated_by: planner
+    updated_at: '2026-11-10T17:01:02.672235+00:00'

@@ -1,13 +1,13 @@
-"""結合テスト（常駐アプリの API とセッション）の偽物と組み立て。
+"""結合テスト（常駐アプリの API と録音セッション）の偽物と組み立て。
 
 本物の app（build_fastapi）を ApiServerRunner で 127.0.0.1 の空きポートに立て、httpx で叩く。
 マイク・システム音量・文字起こしのエンジンは偽物にし、履歴は一時フォルダに書く。
-返送先は、テストが 127.0.0.1 に立てる受信先にする。
+コールバック先は、テストが 127.0.0.1 に立てる受信先にする。
 
 外の端末のブラウザ向けの API（/web/）は、同じ app の ブラウザの音声のキュー（WebJobQueue）を本物のまま立て、
 文字起こしのエンジンだけを同じ偽物（FakeEngine）に差し替える。履歴は一時フォルダに書く。
 
-ホットキー・トレイのセッションが確定で選んだ出力先へ届く結合テストは、API を立てず、
+ホットキー・トレイの録音セッションが確定で選んだ出力先へ届く結合テストは、API を立てず、
 main.py の配線（_wire_outputs）で作った出力先を使い、キーボード・ブラウザのアダプタと間だけを偽物にする（build_output_stack）。
 """
 
@@ -90,10 +90,10 @@ SAMPLE_RATE = 16000
 CHUNK_SEC = 0.1
 START = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
 SESSION_LIMIT = timedelta(seconds=2)
-"""API のセッションの上限時間。テストで待たずに済むよう、時計を進める量に合わせて短くする。"""
+"""API の録音セッションの上限時間。テストで待たずに済むよう、時計を進める量に合わせて短くする。"""
 
 CONTINUOUS_SESSION_LIMIT = timedelta(seconds=5)
-"""連続録音のセッションの上限時間。1 回の録音の上限時間より長くし、時計を進める量で打ち切りを分ける。"""
+"""連続録音の録音セッションの上限時間。1 回の録音の上限時間より長くし、時計を進める量で打ち切りを分ける。"""
 
 SPEECH_SEC = 1.0
 """連続録音の区間の話し声の長さ（話し声の判定の偽物が返す）。"""
@@ -244,7 +244,7 @@ class VadScript:
 
 
 class CallbackReceiver:
-    """返送先のテスト用の受信先。127.0.0.1 で待ち受け、届いた JSON を覚えて決めたステータスを返す。"""
+    """コールバック先のテスト用の受信先。127.0.0.1 で待ち受け、届いた JSON を覚えて決めたステータスを返す。"""
 
     def __init__(self) -> None:
         self.received: list[dict[str, Any]] = []
@@ -278,7 +278,7 @@ class CallbackReceiver:
 
     @property
     def url(self) -> str:
-        """返送先として開始に渡す URL。"""
+        """コールバック先として開始に渡す URL。"""
         return f"http://{LOOPBACK}:{self._server.server_address[1]}/result"
 
     def start(self) -> None:
@@ -418,7 +418,7 @@ class Stack:
         return str(response.json()["job_id"])
 
     def start_session(self, *, continuous: bool = False) -> str:
-        """返送先を受信先にして API の開始（continuous なら連続録音）を呼び、202 を確かめてセッションの ID を返す。"""
+        """コールバック先を受信先にして API の開始（continuous なら連続録音）を呼び、202 を確かめて録音セッションの ID を返す。"""
         body: dict[str, object] = {"callback_url": self.receiver.url}
         if continuous:
             body["continuous"] = True
@@ -436,11 +436,11 @@ class Stack:
         self.microphone.feed(CUT_CYCLE_SEC * count)
 
     def session(self) -> Session | None:
-        """今のセッションを返す。無ければ None。"""
+        """今の録音セッションを返す。無ければ None。"""
         return self.manager._session
 
     def state(self) -> str | None:
-        """今のセッションの状態を返す。セッションが無ければ None。"""
+        """今の録音セッションの状態を返す。録音セッションが無ければ None。"""
         session = self.manager._session
         return None if session is None else str(session.state)
 
@@ -449,11 +449,11 @@ class Stack:
         return sorted(self.paths.history_dir.rglob("*.wav"))
 
     def wait_for_idle(self) -> bool:
-        """セッションが空（待機中）に戻るまで待ち、戻ったかを返す。"""
+        """録音セッションが空（待機中）に戻るまで待ち、戻ったかを返す。"""
         return wait_until(lambda: self.manager._session is None)
 
     def wait_for_received(self, count: int) -> bool:
-        """返送先に count 件届くまで待ち、届いたかを返す。"""
+        """コールバック先に count 件届くまで待ち、届いたかを返す。"""
         return wait_until(lambda: len(self.receiver.received) >= count)
 
 
@@ -524,7 +524,7 @@ def build_stack(
     settings: Settings | None = None,
     web_enabled: bool = True,
 ) -> Stack:
-    """偽物を差し込んだセッションを、本物の app と ApiServerRunner で立てる。
+    """偽物を差し込んだ録音セッションを、本物の app と ApiServerRunner で立てる。
 
     ブラウザの音声のキューは本物で、web_worker が偽ならワーカースレッドを立てない（積んだジョブは取り出されない）。
     web_enabled が偽なら、外の端末のブラウザの機能を組み込まない app（Linux の常駐サービス）を立て、キューも始めない。
@@ -563,7 +563,7 @@ def build_stack(
     outputs = (replace(callback_spec, handler=callback_handler),)
 
     def deliver_session(session: Session, outcome: TranscriptionOutcome) -> None:
-        """Session を入口・出力先・返送先に分けて出力先の deliver へ渡す。"""
+        """Session を入口・出力先・コールバック先に分けて出力先の deliver へ渡す。"""
         deliver(
             session.entry,
             session.output_id,
@@ -688,7 +688,7 @@ def build_stack(
 
 
 def stop_stack(stack: Stack) -> None:
-    """立てた app・受信先・クライアントを止める。残ったセッションの録音は捨てる。"""
+    """立てた app・受信先・クライアントを止める。残った録音セッションの録音は捨てる。"""
     stack.engine.release.set()
     stack.http.close()
     stack.runner.stop()
@@ -699,7 +699,7 @@ def stop_stack(stack: Stack) -> None:
 
 @dataclass
 class OutputStack:
-    """ホットキーのセッションを、配線した出力先へ届ける一式。キーボード・ブラウザのアダプタと間は偽物。"""
+    """ホットキーの録音セッションを、配線した出力先へ届ける一式。キーボード・ブラウザのアダプタと間は偽物。"""
 
     manager: SessionManager
     adapters: MagicMock
@@ -708,12 +708,12 @@ class OutputStack:
     engine: FakeEngine
 
     def confirm(self, output_id: str | None = None, preset: Preset | None = None) -> None:
-        """ホットキーのセッションを始め、固定の出力先かカスタムプリセットを選んで確定する。"""
+        """ホットキーの録音セッションを始め、固定の出力先かカスタムプリセットを選んで確定する。"""
         self.manager.start("hotkey")
         self.manager.complete(output_id=output_id, preset=preset)
 
     def wait_for_idle(self) -> bool:
-        """セッションが空（待機中）に戻るまで待ち、戻ったかを返す。"""
+        """録音セッションが空（待機中）に戻るまで待ち、戻ったかを返す。"""
         return wait_until(lambda: self.manager._session is None)
 
     def events(self) -> list[str]:
@@ -724,7 +724,7 @@ class OutputStack:
 def build_output_stack(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, settings: Settings | None = None
 ) -> OutputStack:
-    """ホットキーのセッションが、main.py の配線で作った出力先へ届く SessionManager を作る。"""
+    """ホットキーの録音セッションが、main.py の配線で作った出力先へ届く SessionManager を作る。"""
     settings = settings if settings is not None else load_test_default_settings()
     paths = resolve_app_paths(tmp_path)
     clock = Clock(START)

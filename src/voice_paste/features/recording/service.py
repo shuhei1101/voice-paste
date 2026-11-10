@@ -71,7 +71,7 @@ class Recorder:
 
     def start(self) -> None:
         """音量を下げてマイクを開く。開けなければ音量を戻して MicrophoneUnavailableError を送出する。"""
-        # 1. 録音中なら断る（呼び出し順の誤り。セッションが排他する）
+        # 1. 録音中なら断る（呼び出し順の誤り。録音セッションが排他する）
         if self._stream is not None:
             raise RuntimeError("すでに録音中です")
 
@@ -95,7 +95,7 @@ class Recorder:
         min_silence_sec: float,
     ) -> None:
         """音量を下げてマイクを開き、届いた音を区切りのスレッドで Segmenter へ流す。区切った区間は on_segment へ渡る。"""
-        # 1. 録音中なら断る（呼び出し順の誤り。セッションが排他する）
+        # 1. 録音中なら断る（呼び出し順の誤り。録音セッションが排他する）
         if self._stream is not None:
             raise RuntimeError("すでに録音中です")
 

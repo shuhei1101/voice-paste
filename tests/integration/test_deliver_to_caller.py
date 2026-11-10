@@ -1,6 +1,6 @@
-"""呼び出し元へ返す（返送先への POST）の結合テスト。
+"""呼び出し元へ返す（コールバック先への POST）の結合テスト。
 
-API の開始・停止・完了を本物の app へ呼んで、起こした文字などが返送先のテスト用の受信先へ届くまでを確かめる。
+API の開始・停止・完了を本物の app へ呼んで、起こした文字などがコールバック先のテスト用の受信先へ届くまでを確かめる。
 マイク・システム音量・文字起こしのエンジンは偽物。再送の間隔だけ短くしてある。
 """
 
@@ -25,7 +25,7 @@ RECEIVER_DELAY_SEC = 1.0
 
 
 def _complete_session(stack: Stack) -> str:
-    """API で開始・停止・完了を呼び、セッションの ID を返す。"""
+    """API で開始・停止・完了を呼び、録音セッションの ID を返す。"""
     session_id = stack.start_session()
     stack.post(f"/sessions/{session_id}/stop")
     assert stack.post(f"/sessions/{session_id}/complete").status_code == 202
@@ -33,7 +33,7 @@ def _complete_session(stack: Stack) -> str:
 
 
 def test_normal(stack: Stack) -> None:
-    """起こした文字を返送先へ送信する（正常系）。"""
+    """起こした文字をコールバック先へ送信する（正常系）。"""
     # 準備
     stack.engine.segments = ["てすと"]
 
@@ -55,7 +55,7 @@ def test_normal(stack: Stack) -> None:
 
 
 def test_normal_when_empty(stack: Stack) -> None:
-    """空の文字を返送先へ送信する（正常系）。"""
+    """空の文字をコールバック先へ送信する（正常系）。"""
     # 準備
     stack.engine.segments = []
 
@@ -77,7 +77,7 @@ def test_normal_when_empty(stack: Stack) -> None:
 
 
 def test_normal_when_transcription_failed(stack: Stack) -> None:
-    """文字起こしの失敗を返送先へ送信する（正常系）。"""
+    """文字起こしの失敗をコールバック先へ送信する（正常系）。"""
     # 準備
     stack.engine.error = EngineError("エンジンが落ちた")
 
@@ -95,7 +95,7 @@ def test_normal_when_transcription_failed(stack: Stack) -> None:
 
 
 def test_normal_when_truncated(stack: Stack) -> None:
-    """完了が来ないまま上限で打ち切ったことを返送先へ送信する（正常系）。"""
+    """完了が来ないまま上限で打ち切ったことをコールバック先へ送信する（正常系）。"""
     # 準備
     session_id = stack.start_session()
     stack.clock.current = START + SESSION_LIMIT
@@ -119,7 +119,7 @@ def test_normal_when_truncated(stack: Stack) -> None:
 
 
 def _rows(stack: Stack) -> list[tuple[str, int | None, int | None]]:
-    """返送先に届いた中身を届いた順に、(result, segment_number, segment_count) の並びで返す。"""
+    """コールバック先に届いた中身を届いた順に、(result, segment_number, segment_count) の並びで返す。"""
     return [
         (payload["result"], payload["segment_number"], payload["segment_count"])
         for payload in stack.receiver.received

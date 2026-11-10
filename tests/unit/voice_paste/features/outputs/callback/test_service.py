@@ -45,7 +45,7 @@ def _segment_outcome(segment_number: int) -> object:
 
 
 def _result(status: int, retry_after_sec: float | None = None) -> object:
-    """返送先の応答（ステータスと Retry-After の秒数）を作る。"""
+    """コールバック先の応答（ステータスと Retry-After の秒数）を作る。"""
     from voice_paste.integrations.http.types import PostResult
 
     return PostResult(status=status, retry_after_sec=retry_after_sec)
@@ -262,7 +262,7 @@ def test_deliver_to_caller_when_unreachable(caplog: pytest.LogCaptureFixture) ->
 
 
 def test_deliver_to_caller_when_not_allowed() -> None:
-    """許されない返送先へは送信しない（異常系）。"""
+    """許されないコールバック先へは送信しない（異常系）。"""
     # 準備
     post = MagicMock()
     sleep = MagicMock()

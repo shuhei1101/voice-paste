@@ -28,7 +28,7 @@ BROWSER_REQUEST_HEADERS = [
 
 
 def test_normal(stack: Stack) -> None:
-    """画面を出さない録音を始め、セッションの ID を返す（正常系）。"""
+    """画面を出さない録音を始め、録音セッションの ID を返す（正常系）。"""
     # 実行
     response = stack.post("/sessions", json_body={"callback_url": stack.receiver.url})
 
@@ -40,7 +40,7 @@ def test_normal(stack: Stack) -> None:
 
 
 def test_normal_when_continuous(stack: Stack) -> None:
-    """continuous を指定すると、完了が来るまで止めない録音を始め、セッションの ID を返す（正常系）。"""
+    """continuous を指定すると、完了が来るまで止めない録音を始め、録音セッションの ID を返す（正常系）。"""
     # 実行
     response = stack.post(
         "/sessions", json_body={"callback_url": stack.receiver.url, "continuous": True}
@@ -58,7 +58,7 @@ def test_normal_when_continuous(stack: Stack) -> None:
 
 
 def test_normal_when_glossary_preset(stack_with_settings: Callable[[Settings], Stack]) -> None:
-    """glossary_preset で指定した用語集のプリセットをセッションに持たせて録音を始め、セッションの ID を返す（正常系）。"""
+    """glossary_preset で指定した用語集のプリセットを録音セッションに持たせて録音を始め、録音セッションの ID を返す（正常系）。"""
     # 準備（設定に用語集のプリセット「既定」と「会議」があり、設定で選んでいるのは「既定」）
     settings = make_settings(
         glossary_presets=[
@@ -101,7 +101,7 @@ def test_error_when_glossary_preset_not_found(stack: Stack) -> None:
 
 
 def test_error_when_callback_not_allowed(stack: Stack) -> None:
-    """許可していない返送先では録音を始めない（異常系）。"""
+    """許可していないコールバック先では録音を始めない（異常系）。"""
     # 実行
     response = stack.post("/sessions", json_body={"callback_url": "http://example.com/result"})
 

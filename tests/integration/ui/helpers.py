@@ -231,7 +231,7 @@ class Ui:
         output_id: str | None = None,
         output_preset: Preset | None = None,
     ) -> None:
-        """今のセッションを入口・状態・確定で選んだ出力先かプリセットで差し替え、state_changed を受けさせる（None は待機中）。"""
+        """今の録音セッションを入口・状態・確定で選んだ出力先かプリセットで差し替え、state_changed を受けさせる（None は待機中）。"""
         session = (
             None
             if entry is None

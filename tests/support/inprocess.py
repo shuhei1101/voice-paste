@@ -124,7 +124,7 @@ SEGMENT_CALLBACK_LATENCY_SEC = 4.0
 """区切ってから返送が届くまでの時間の決定値。"""
 
 CONTINUOUS_END_TIMEOUT_SEC = 150.0
-"""連続録音の終わりが返送先へ届くまで待つ上限（区間の文字起こしと上限での打ち切りを含む）。"""
+"""連続録音の終わりがコールバック先へ届くまで待つ上限（区間の文字起こしと上限での打ち切りを含む）。"""
 
 CONTINUOUS_END_QUIET_SEC = 1.5
 """連続録音の終わりが届いた後、続きが届かないことを確かめるために待つ秒数。"""
@@ -514,9 +514,9 @@ def make_settings(
     vad_threshold: float | None = None,
     continuous_session_limit_sec: int | None = None,
 ) -> Settings:
-    """既定の設定から、出力先を貼り付けて送信だけにするか、無音の区間を除く閾値・連続録音のセッションの上限時間を変えた設定を作る。
+    """既定の設定から、出力先を貼り付けて送信だけにするか、無音の区間を除く閾値・連続録音の録音セッションの上限時間を変えた設定を作る。
 
-    連続録音のセッションの上限時間は、設定で許す下限（60 秒）より短い値も、テストで待てるよう検査を通さずに入れる。
+    連続録音の録音セッションの上限時間は、設定で許す下限（60 秒）より短い値も、テストで待てるよう検査を通さずに入れる。
     """
     outputs = (
         [default_output("paste_and_send")]
@@ -529,7 +529,7 @@ def make_settings(
     )
     if continuous_session_limit_sec is None:
         return settings
-    # 連続録音のセッションの上限時間は、検査を通さずに入れる
+    # 連続録音の録音セッションの上限時間は、検査を通さずに入れる
     continuous = settings.api.continuous.model_copy(
         update={"session_limit_sec": continuous_session_limit_sec}
     )
@@ -649,7 +649,7 @@ def serve_api(
 
 
 def start_continuous(api: InProcessApi, receiver: CallbackReceiver) -> str:
-    """連続録音を指定して API の開始を呼び、202 を確かめてセッションの ID を返す。"""
+    """連続録音を指定して API の開始を呼び、202 を確かめて録音セッションの ID を返す。"""
     response, _elapsed_ms = api.start_session(receiver.url, continuous=True)
     assert response.status_code == 202
     return str(response.json()["session_id"])
@@ -687,7 +687,7 @@ class InProcessApp:
 
     @property
     def manager(self) -> SessionManager:
-        """セッション管理。"""
+        """録音セッション管理。"""
         return self.handlers.session_manager
 
     def start_hotkey(self) -> None:
@@ -695,7 +695,7 @@ class InProcessApp:
         self.handlers.start_local_session(Entry.HOTKEY)
 
     def wait_idle(self, timeout_sec: float = PROCESSED_TIMEOUT_SEC) -> bool:
-        """セッションが空（待機中）に戻るまで待ち、戻ったかを返す。"""
+        """録音セッションが空（待機中）に戻るまで待ち、戻ったかを返す。"""
         return wait_until(lambda: self.manager.current() is None, timeout_sec)
 
     def web_temp_files(self) -> list[Path]:
@@ -736,7 +736,7 @@ class InProcessApp:
         return self.api
 
     def start_limit_timer(self) -> None:
-        """常駐中と同じ間隔で、上限時間を過ぎた API のセッションを打ち切るタイマーを回す。"""
+        """常駐中と同じ間隔で、上限時間を過ぎた API の録音セッションを打ち切るタイマーを回す。"""
         self.limit_timer = RepeatingTimer(
             self.manager.truncate_if_expired, main_module.SESSION_LIMIT_CHECK_INTERVAL_SEC
         )

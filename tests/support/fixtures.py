@@ -1,4 +1,4 @@
-"""実機のテストの共通フィクスチャ（返送先の受信先と、OpenAI API の代わりのエンドポイントと、本物の常駐サービスの起動と、pytest のプロセスの中で配線した常駐アプリ）。conftest が import して使う。"""
+"""実機のテストの共通フィクスチャ（コールバック先の受信先と、OpenAI API の代わりのエンドポイントと、本物の常駐サービスの起動と、pytest のプロセスの中で配線した常駐アプリ）。conftest が import して使う。"""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from voice_paste.shared.settings import Settings
 
 @pytest.fixture
 def receiver() -> Iterator[CallbackReceiver]:
-    """返送先のテスト用の受信先を 127.0.0.1 に立てる。"""
+    """コールバック先のテスト用の受信先を 127.0.0.1 に立てる。"""
     callback_receiver = CallbackReceiver()
     callback_receiver.start()
     yield callback_receiver

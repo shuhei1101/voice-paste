@@ -154,12 +154,12 @@ def _purge_expired_folders(retention_days: int, paths: AppPaths, now: datetime) 
 
 
 def _purge_leftover_temporary(paths: AppPaths, active_session_ids: set[str]) -> None:
-    """tmp/ の下に取り残された一時の音声のうち、処理中のセッションでないものを削除する。"""
+    """tmp/ の下に取り残された一時の音声のうち、処理中の録音セッションでないものを削除する。"""
     if not paths.tmp_dir.exists():
         return
 
     for audio_path in paths.tmp_dir.glob(f"*{AUDIO_SUFFIX}"):
-        # ファイル名の session_id（区間なら区切り文字より前）が処理中のセッションにあれば残す
+        # ファイル名の session_id（区間なら区切り文字より前）が処理中の録音セッションにあれば残す
         if audio_path.stem.split(SEGMENT_SEPARATOR)[0] in active_session_ids:
             continue
         try:
@@ -181,6 +181,6 @@ def purge_expired(
     removed = _purge_expired_folders(retention_days, paths, now())
     logger.info(f"古い履歴を削除した（{removed} 件）")
 
-    # 2. 取り残された一時の音声のうち、処理中のセッションでないものを削除する
+    # 2. 取り残された一時の音声のうち、処理中の録音セッションでないものを削除する
     _purge_leftover_temporary(paths, active_session_ids())
     return removed

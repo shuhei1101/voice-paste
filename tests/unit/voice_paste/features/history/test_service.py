@@ -221,7 +221,7 @@ def test_purge_expired_keeps_active_segments(paths: AppPaths) -> None:
     """処理中の連続録音の区間の一時の音声は残す（正常系）。"""
     from voice_paste.features.history.service import purge_expired
 
-    # 準備: 処理中のセッション s2 の区間と、終わったセッション s1 の区間
+    # 準備: 処理中の録音セッション s2 の区間と、終わった録音セッション s1 の区間
     paths.history_dir.mkdir(parents=True)
     finished = _touch(paths.tmp_dir / "s1_1.wav")
     active = _touch(paths.tmp_dir / "s2_3.wav")

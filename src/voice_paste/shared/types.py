@@ -42,7 +42,7 @@ class SendEnterFn(Protocol):
 
 
 class Entry(StrEnum):
-    """セッションを始めた入口。"""
+    """録音セッションを始めた入口。"""
 
     HOTKEY = "hotkey"
     """録音開始のホットキー。"""
@@ -59,7 +59,7 @@ class TranscriptionOutcome:
     """出力先へ渡す文字起こしの結果。"""
 
     session_id: str
-    """セッションの ID。"""
+    """録音セッションの ID。"""
 
     result: Literal["transcribed", "failed", "truncated", "completed"]
     """結果の種類。completed は連続録音を完了し、全ての区間を届け終えたときだけ。"""
@@ -107,7 +107,7 @@ class Recording:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Segment:
-    """連続録音で区切った 1 区間の音。録音が作り、セッションが受ける。"""
+    """連続録音で区切った 1 区間の音。録音が作り、録音セッションが受ける。"""
 
     recording: Recording
     """区間の音（16 kHz・モノラル・int16）。"""

@@ -1,4 +1,4 @@
-"""返送先の確かめと、起こした文字の呼び出し元への返送（再送つき）。"""
+"""コールバック先の確かめと、起こした文字の呼び出し元への返送（再送つき）。"""
 
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ CALLBACK_RETRY_BASE_SEC: float = 1.0
 
 
 def is_callback_allowed(url: str, allowed_hosts: frozenset[str]) -> bool:
-    """返送先のホストが loopback か、設定で許可したホストかを返す。"""
+    """コールバック先のホストが loopback か、設定で許可したホストかを返す。"""
     try:
         host = urlparse(url).hostname
     except ValueError:
@@ -61,14 +61,14 @@ def deliver_to_caller(
     sleep: Callable[[float], None],
     jitter: Callable[[float], float],
 ) -> None:
-    """返送先へ結果を POST し、届かなければ決めた回数まで再送する。届かなくてもログに書いて終える。"""
-    # 1. 返送先が許されるかをもう一度確かめる（開始の後に設定が変わったかもしれない）
+    """コールバック先へ結果を POST し、届かなければ決めた回数まで再送する。届かなくてもログに書いて終える。"""
+    # 1. コールバック先が許されるかをもう一度確かめる（開始の後に設定が変わったかもしれない）
     if target is None or not is_callback_allowed(target, allowed_hosts):
-        raise DeliveryError("返送先が許されていません")
+        raise DeliveryError("コールバック先が許されていません")
 
     # 2. 返送の中身（連続録音の区間なら通し番号つき）を作り、1 + 再送回数まで POST する
     payload = CallbackPayload.from_outcome(outcome).model_dump()
-    # 返送の間はセッションが残り次の開始を断るため、待ちはこの上限に収める
+    # 返送の間は録音セッションが残り次の開始を断るため、待ちはこの上限に収める
     max_wait_sec = retry_base_sec * BACKOFF_FACTOR ** (retry_count - 1)
     reason = ""
     for attempt in range(1, retry_count + 2):
@@ -83,7 +83,7 @@ def deliver_to_caller(
         else:
             if HTTPStatus.OK <= result.status < HTTPStatus.MULTIPLE_CHOICES:
                 logger.info(
-                    f"返送先へ届けた（{outcome.session_id}・{outcome.result}"
+                    f"コールバック先へ届けた（{outcome.session_id}・{outcome.result}"
                     f"・区間: {outcome.segment_number}・{attempt} 回目）"
                 )
                 return
@@ -110,7 +110,7 @@ def deliver_to_caller(
 
     # 3. 届かなかったらログに書いて終える（送出しない。履歴は残っている）
     logger.error(
-        f"返送先に届かなかった（{outcome.session_id}・区間: {outcome.segment_number}"
+        f"コールバック先に届かなかった（{outcome.session_id}・区間: {outcome.segment_number}"
         f"・最後の理由: {reason}）"
     )
 

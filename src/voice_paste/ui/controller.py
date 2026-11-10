@@ -36,7 +36,7 @@ FAILURE_EVENTS: frozenset[str] = frozenset(
 RECORDING_STATES: frozenset[SessionState] = frozenset(
     {SessionState.RECORDING, SessionState.PAUSED, SessionState.STOPPED}
 )
-"""トレイが「録音中」を示すセッションの状態。"""
+"""トレイが「録音中」を示す録音セッションの状態。"""
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -272,10 +272,10 @@ class UiController(QObject):
             self._deps.request_quit()
 
     def _apply_session(self) -> None:
-        """今のセッションの入口と状態に合わせて、トレイ・録音の画面・文字起こし中の表示を変える。"""
+        """今の録音セッションの入口と状態に合わせて、トレイ・録音の画面・文字起こし中の表示を変える。"""
         session = self._deps.current_session()
 
-        # セッションが無い: 待機中に戻し、画面を閉じ、待たせた再起動・終了があれば行う
+        # 録音セッションが無い: 待機中に戻し、画面を閉じ、待たせた再起動・終了があれば行う
         if session is None:
             self._tray.set_state(TrayState.IDLE, busy=False)
             self._close_recording()
@@ -286,7 +286,7 @@ class UiController(QObject):
                 self._exit(pending)
             return
 
-        # API のセッション: トレイだけが状態を示し、画面は出さない
+        # API の録音セッション: トレイだけが状態を示し、画面は出さない
         in_recording = session.state in RECORDING_STATES
         self._tray.set_state(
             TrayState.RECORDING if in_recording else TrayState.TRANSCRIBING, busy=True
@@ -300,7 +300,7 @@ class UiController(QObject):
             )
             return
 
-        # ホットキー・トレイのセッション: 画面を出さない設定でなければ、状態の画面を出す
+        # ホットキー・トレイの録音セッション: 画面を出さない設定でなければ、状態の画面を出す
         show_windows = not self._deps.get_settings().recording.hide_window
         if in_recording:
             self._close_indicator()

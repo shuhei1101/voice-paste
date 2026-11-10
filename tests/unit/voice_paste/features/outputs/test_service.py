@@ -13,7 +13,7 @@ CALLBACK_URL = "http://127.0.0.1:9000/result"
 
 
 def test_deliver_when_api_session() -> None:
-    """API のセッションは呼び出し元へ返すだけ（正常系）。"""
+    """API の録音セッションは呼び出し元へ返すだけ（正常系）。"""
     from voice_paste.features.outputs.service import deliver
     from voice_paste.features.outputs.types import OutputSpec, PresetKindSpec
     from voice_paste.shared.types import TranscriptionOutcome
@@ -50,7 +50,7 @@ def test_deliver_when_api_session() -> None:
 
 
 def test_deliver_when_hotkey_session() -> None:
-    """ホットキーのセッションは選んだ出力先へ届ける（正常系）。"""
+    """ホットキーの録音セッションは選んだ出力先へ届ける（正常系）。"""
     from voice_paste.features.outputs.service import deliver
     from voice_paste.features.outputs.types import OutputSpec, PresetKindSpec
     from voice_paste.shared.types import TranscriptionOutcome

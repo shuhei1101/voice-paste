@@ -1,4 +1,4 @@
-"""録音から出力先へ届けるまでのセッションの機能。"""
+"""録音から出力先へ届けるまでの録音セッションの機能。"""
 
 from voice_paste.features.session.route import router
 from voice_paste.features.session.service import SessionManager

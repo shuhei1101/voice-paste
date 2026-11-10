@@ -73,7 +73,7 @@ MIN_SEGMENTS = 7
 
 
 class _ArrivalList(list[dict[str, Any]]):
-    """返送先の受信先が受け取った中身を追加するとき、届いた時刻（time.perf_counter）も控える。"""
+    """コールバック先の受信先が受け取った中身を追加するとき、届いた時刻（time.perf_counter）も控える。"""
 
     def __init__(self) -> None:
         super().__init__()

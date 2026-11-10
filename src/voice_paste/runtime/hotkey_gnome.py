@@ -135,7 +135,7 @@ def _guard(handler: Callable[[], None]) -> Callable[[], None]:
 
 
 class GnomeShortcutListener:
-    """設定のホットキーを GNOME のカスタムショートカットへ登録し、押されたら配線された関数を呼ぶ。セッションは import しない。"""
+    """設定のホットキーを GNOME のカスタムショートカットへ登録し、押されたら配線された関数を呼ぶ。録音セッションは import しない。"""
 
     def __init__(self, name: str, lock: LinuxSingleInstanceLock) -> None:
         """排他の名前と単一インスタンスの排他を受け、排他の on_hotkey に _dispatch を渡す。登録はまだしない。"""

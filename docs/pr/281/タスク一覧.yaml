@@ -75,8 +75,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-10T18:33:05.954507+00:00'
   - process: 実装
-    status: todo
+    status: done
     note: 'dev-docs.yaml の id: index の行に docs/pr/ の下の反映作業の一覧の除外を追加し、search_docs で目次の一覧と notes を確認する'
+    updated_by: planner
+    updated_at: '2026-11-10T18:37:19.743722+00:00'
   - process: 結合テスト作成
     status: skipped
     reason: アプリのコードを変えない

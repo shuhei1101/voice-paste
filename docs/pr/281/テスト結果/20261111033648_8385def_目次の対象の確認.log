@@ -1,0 +1,56 @@
+# dev-docs（develop の worktree）の DocumentTable.matches で、作業ブランチの dev-docs.yaml の id: index の行に当たるファイルを集める
+$ cd /mnt/c/Users/shuhe/repo/dev-docs/.claude/worktrees/develop && uv run python -c "$SCRIPT" /mnt/c/Users/shuhe/repo/voice-paste/.claude/worktrees/fix-dev-docs-exclude-pr-deploy-index
+```python
+import sys
+from pathlib import Path
+from ruamel.yaml import YAML
+from dev_docs.features.sources.types import DocumentTable
+from dev_docs.features.documents.loader import collect_files
+root = Path(sys.argv[1])
+for label, paths in (("変更前", ["docs/**/index.yaml"]), ("変更後", None)):
+    row = next(r for r in YAML(typ="safe").load((root/"dev-docs.yaml").read_text(encoding="utf-8"))["documents"] if r["id"]=="index")
+    p = paths or row["paths"]
+    files = collect_files(root, DocumentTable(id="index", paths=p, schema_path=row["schema"], exclude=row.get("exclude", [])))
+    print(f"## {label}: paths={p} -> {len(files)} 件")
+    print("\n".join(files))
+```
+## 変更前: paths=['docs/**/index.yaml'] -> 21 件
+docs/architecture/index.yaml
+docs/config/index.yaml
+docs/dev-command/index.yaml
+docs/er/index.yaml
+docs/external-api/index.yaml
+docs/glossary/index.yaml
+docs/guide/index.yaml
+docs/index.yaml
+docs/interface/index.yaml
+docs/library/index.yaml
+docs/module/index.yaml
+docs/nonfunctional/index.yaml
+docs/pr/114/反映作業/index.yaml
+docs/pr/142/反映作業/index.yaml
+docs/pr/171/反映作業/index.yaml
+docs/pr/235/反映作業/index.yaml
+docs/pr/264/反映作業/index.yaml
+docs/pr/279/反映作業/index.yaml
+docs/scenario/index.yaml
+docs/screen/index.yaml
+docs/test-procedure/index.yaml
+## 変更後: paths=['docs/index.yaml', 'docs/*/index.yaml'] -> 15 件
+docs/architecture/index.yaml
+docs/config/index.yaml
+docs/dev-command/index.yaml
+docs/er/index.yaml
+docs/external-api/index.yaml
+docs/glossary/index.yaml
+docs/guide/index.yaml
+docs/index.yaml
+docs/interface/index.yaml
+docs/library/index.yaml
+docs/module/index.yaml
+docs/nonfunctional/index.yaml
+docs/scenario/index.yaml
+docs/screen/index.yaml
+docs/test-procedure/index.yaml
+
+# lint: TP-1 の lint 層の対象（uv.lock・Python の import・画面のスクリプト）に、変更したファイル（dev-docs.yaml）は当たらないため回していない

@@ -65,8 +65,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-10T17:01:02.672235+00:00'
   - process: ドキュメント修正
-    status: todo
+    status: done
     note: docs/（docs/pr を除く）の設計書・公開の文書の語の置き換えと、docs/terms.yaml の作成・dev-docs.yaml への登録
+    updated_by: planner
+    updated_at: '2026-11-10T17:30:12.735416+00:00'
   - process: 単体テスト作成
     status: skipped
     reason: 動きを変えないため新しいテストは要らない。既存のテストのコメント・文言の置き換えは実装で行い、単体テストを全件流して確かめる

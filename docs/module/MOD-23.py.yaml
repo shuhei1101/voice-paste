@@ -1,6 +1,6 @@
 id: MOD-23
 visibility: internal
-title: 常駐アプリ / セッション / schemas.py
+title: 常駐アプリ / 録音セッション / schemas.py
 data_models:
   - name: StartSessionRequest
     title: 開始のリクエスト
@@ -12,7 +12,7 @@ data_models:
     properties:
       - name: callback_url
         type: AnyHttpUrl
-        description: 返送先。ホストが許されるかは route が出力先の is_callback_allowed で確かめる
+        description: コールバック先。ホストが許されるかは route が出力先の is_callback_allowed で確かめる
       - name: continuous
         type: bool
         default: 'False'
@@ -34,5 +34,5 @@ data_models:
     properties:
       - name: session_id
         type: str
-        description: 始めたセッションの ID
+        description: 始めた録音セッションの ID
     status: implemented

@@ -103,17 +103,17 @@ classes:
     summary: UiBridge の知らせを受けて、トレイ・録音の画面・文字起こし中の表示・ダイアログを開く・閉じる・替える。処理中に選ばれた再起動・終了を待たせる
     description: |-
       画面とトレイを長く持つためクラスにする。全てのメソッドはメインスレッドで呼ぶ。
-      セッションの状態と画面の対応:
+      録音セッションの状態と画面の対応:
 
-      | 今のセッション | トレイ | 録音の画面 | 文字起こし中の表示 |
+      | 今の録音セッション | トレイ | 録音の画面 | 文字起こし中の表示 |
       | --- | --- | --- | --- |
       | 無い | 待機中（押せない項目を戻す） | 閉じる | 閉じる |
       | recording・paused（hotkey・tray） | 録音中・処理中 | `recording.hide_window` がオフなら出して状態を替える | 閉じる |
       | transcribing・delivering（hotkey・tray） | 文字起こし中・処理中 | 閉じる | `recording.hide_window` がオフなら出す |
-      | api のセッション | 録音中か文字起こし中・処理中 | 出さない | 出さない |
+      | api の録音セッション | 録音中か文字起こし中・処理中 | 出さない | 出さない |
 
-      録音の画面をその回だけ隠した間（`_recording_hidden`）は、recording・paused の知らせを受けても窓を出さず、状態の表示だけを替える（RecordingWindow.set_paused）。セッションが recording・paused を抜けたら隠したフラグを下ろす。
-      トレイの「録音の画面を表示」は、今のセッションと隠したフラグから RecordingWindowState を決めて Tray.set_recording_window で替える（hotkey・tray の recording・paused で隠していれば hidden、出していれば shown、`recording.hide_window` がオンか api の録音なら no_window、それ以外は not_recording）。
+      録音の画面をその回だけ隠した間（`_recording_hidden`）は、recording・paused の知らせを受けても窓を出さず、状態の表示だけを替える（RecordingWindow.set_paused）。録音セッションが recording・paused を抜けたら隠したフラグを下ろす。
+      トレイの「録音の画面を表示」は、今の録音セッションと隠したフラグから RecordingWindowState を決めて Tray.set_recording_window で替える（hotkey・tray の recording・paused で隠していれば hidden、出していれば shown、`recording.hide_window` がオンか api の録音なら no_window、それ以外は not_recording）。
       コンストラクタは UiDeps と、キーワードで tray・recording_window・indicator を受け、トレイの操作と録音の画面の「隠す」（Signal）をつなぐ。文字起こし中の表示の切り替えのボタン（TranscribingIndicator.output_selected）は UiDeps.switch_output へつなぐ。あわせて QApplication に自分をイベントフィルタとして入れ、アプリの終了で設定画面を確かめずに閉じる（eventFilter）。
     kind: クラス
     inherits: PySide6.QtCore.QObject
@@ -167,10 +167,10 @@ classes:
           type: None
           description: なし
         process: |-
-          1. state_changed の場合、今のセッションを引き（current_session）、説明の表のとおりにトレイ・録音の画面・文字起こし中の表示を変える
-             - セッションが無く、待たせた再起動・終了がある場合、それを行う（request_restart か request_quit）
+          1. state_changed の場合、今の録音セッションを引き（current_session）、説明の表のとおりにトレイ・録音の画面・文字起こし中の表示を変える
+             - 録音セッションが無く、待たせた再起動・終了がある場合、それを行う（request_restart か request_quit）
              - 録音の画面を隠している場合、窓は出さずに状態の表示だけを替える（RecordingWindow.set_paused）
-             - transcribing・delivering で文字起こし中の表示を出す場合、その回に録音の画面を動かしていれば動かした位置（RecordingWindow.moved_position）を渡す。動かしていなければ渡さず、設定の位置に出す。あわせてセッションの output_id と、カスタムプリセットで確定したならそのタイトル（output_preset.title）を渡す（TranscribingIndicator.open。文字起こし中の表示が既に出ている delivering の知らせでは開き直さない）
+             - transcribing・delivering で文字起こし中の表示を出す場合、その回に録音の画面を動かしていれば動かした位置（RecordingWindow.moved_position）を渡す。動かしていなければ渡さず、設定の位置に出す。あわせて録音セッションの output_id と、カスタムプリセットで確定したならそのタイトル（output_preset.title）を渡す（TranscribingIndicator.open。文字起こし中の表示が既に出ている delivering の知らせでは開き直さない）
              - 最後に、トレイの「録音の画面を表示」を今の状態に合わせる（Tray.set_recording_window）
           2. output_changed の場合、文字起こし中の表示の今の出力先を detail（切り替えた先の出力先の ID）に替える（TranscribingIndicator.set_output）
           3. busy の場合、処理中のダイアログを出す（show_busy_dialog）
@@ -291,9 +291,9 @@ classes:
           type: None
           description: なし
         process: |-
-          1. 今のセッションが無ければ、すぐに request_restart か request_quit を呼ぶ
+          1. 今の録音セッションが無ければ、すぐに request_restart か request_quit を呼ぶ
           2. あれば待たせる依頼に記録し、トレイのアイコンを消す（Tray.hide）
-             - `[INFO]` 処理中のため再起動・終了を待たせた（種類・セッションの ID）
+             - `[INFO]` 処理中のため再起動・終了を待たせた（種類・録音セッションの ID）
         unit_tests:
           - name: test_request_exit_when_idle
             case: 正常

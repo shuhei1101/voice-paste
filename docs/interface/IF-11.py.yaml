@@ -38,7 +38,7 @@ flows:
       - キューにその job_id のジョブが queued で 1 件積まれている
       - ログに job_id・大きさ・形式・秒数が書かれている
     test: test_normal
-  - name: 正常系（セッションの処理中）
+  - name: 正常系（録音セッションの処理中）
     summary: ホットキーの録音中でも音声を受け付ける
     setup:
       - name: Mock
@@ -275,7 +275,7 @@ identifier: create_web_transcription
 permissions: なし（外からの認証は Cloudflare Access が持つ。常駐アプリは Host と Origin だけを確かめる）
 idempotent: false
 side_effects: '受けた音声を一時のフォルダへ録れた形式の拡張子のまま書き、受け付けた時点の用語集のプリセットの名前（指定が無ければ空）を持たせたジョブ（state: queued）をブラウザの音声のキューに積む。受け付けたことを、job_id・大きさ・形式・秒数でログに 1 行書く（音声の中身は書かない）。積んだジョブは ブラウザの音声を文字に起こす が 1 件ずつ取り出す。'
-exclusivity: セッション（`/sessions`・ホットキー・トレイ）とは排他しない。録音・文字起こしの処理中も受け付け、終わっていないジョブが待ちの上限に達しているときだけ断る
+exclusivity: 録音セッション（`/sessions`・ホットキー・トレイ）とは排他しない。録音・文字起こしの処理中も受け付け、終わっていないジョブが待ちの上限に達しているときだけ断る
 request:
   - name: Host
     type: str

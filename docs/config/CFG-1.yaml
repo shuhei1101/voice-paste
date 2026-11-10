@@ -559,7 +559,7 @@ settings:
     introduced:
       pr: 78
   - key: api.continuous.session_limit_sec
-    title: 連続録音のセッションの上限時間
+    title: 連続録音の録音セッションの上限時間
     file: settings.yaml
     type: int（秒）
     default: '14400'
@@ -567,7 +567,7 @@ settings:
     reload: restart
     allowed: 60〜86400
     refs:
-      - NFR-1#requirements[連続録音のセッションの上限時間]
+      - NFR-1#requirements[連続録音の録音セッションの上限時間]
     status: planned
     implementation: src/voice_paste/shared/settings.py
     introduced:

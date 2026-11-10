@@ -43,219 +43,345 @@ docs:
   - page: docs/architecture/ARCH-1.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/config/CFG-1.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える。名前を変えた項目を指す他の設計書の参照のキーも同時に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/er/ER-2.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/guide/API.md
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/interface/IF-1.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/interface/IF-10.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/interface/IF-11.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/interface/IF-2.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/interface/IF-3.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/interface/IF-5.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/interface/IF-7.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/interface/IF-8.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/interface/IF-9.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/interface/index.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/interface/README.md
     new: false
     change: index.yaml の置き換えに合わせて生成し直す
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/library/LIB-18.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/library/LIB-7.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/library/LIB-9.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/MOD-11.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/MOD-12.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/MOD-19.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/MOD-22.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/MOD-23.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/MOD-24.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える。タイトルの「常駐アプリ / セッション / service.py」を「常駐アプリ / 録音セッション / service.py」にし、参照元も置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/MOD-25.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/MOD-26.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/MOD-3.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/MOD-30.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/MOD-31.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/MOD-33.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/MOD-42.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/MOD-48.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/MOD-50.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/MOD-52.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/MOD-54.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/MOD-59.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/MOD-60.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/MOD-64.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/MOD-65.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
-  - page: docs/module/MOD-68.py.yaml
-    new: false
-    change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/MOD-84.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/MOD-9.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/MOD-90.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/index.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/module/README.md
     new: false
     change: index.yaml の置き換えに合わせて生成し直す
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/nonfunctional/NFR-1.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える。名前を変えた要件を指す他の設計書の参照のキーも同時に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/screen/SCR-1.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/screen/SCR-10.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/screen/SCR-7.py.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/test-procedure/TP-1.yaml
     new: false
     change: ドメイン用語の「セッション」を「録音セッション」に、「返送先」を「コールバック先」に置き換える
-    status: todo
-  - page: docs/terms.yaml
-    new: true
-    change: 用語集を新しく作る。録音セッション・コールバック先を用語として意味つきで記載し、旧命名を avoid に入れる。変えないと決めた文字起こしワーカー・連続録音・区間も用語として記載する
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: dev-docs.yaml
     new: false
-    change: 'documents に docs/terms.yaml を alias_type: term・records: terms で読む行を追加する'
-    status: todo
+    change: 'documents に docs/glossary/*.yaml を alias_type: term・records: terms で読む行を追加する'
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/index.yaml
     new: false
-    change: terms.yaml の行を追加する
-    status: todo
+    change: glossary/ の行を追加する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
   - page: docs/README.md
     new: false
     change: docs/index.yaml の行の追加に合わせて生成し直す
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
+  - page: docs/glossary/GLO-1.yaml
+    new: true
+    change: 用語集を新しく作る。録音セッション・コールバック先を用語として意味つきで記載し、旧命名を avoid に入れる。変えないと決めた文字起こしワーカー・連続録音・区間も用語として記載する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
+  - page: docs/glossary/index.yaml
+    new: true
+    change: 用語集のフォルダの目次を作る
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
+  - page: docs/glossary/README.md
+    new: true
+    change: docs/glossary/index.yaml から生成する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
+  - page: schemas/glossary.schema.yaml
+    new: true
+    change: 用語集の種類（glossary）の Schema を作る。用語ごとに id・name・description・aliases・avoid を持つ
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
+  - page: docs/_config.yml
+    new: false
+    change: publish で Pages の exclude に glossary/ を加える（rules.yaml の行も生成で加わる）
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-10T17:29:44.940823+00:00'
 scope_out:
   - item: コードの識別子（session・callback_url・features/session・/sessions など）の改名
     reason: 英語の名前で旧命名の和語を含まない。API のパス・キーを変えると呼び出し元の互換を壊す

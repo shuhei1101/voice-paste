@@ -1,6 +1,6 @@
 id: MOD-25
 visibility: internal
-title: 常駐アプリ / セッション / route.py
+title: 常駐アプリ / 録音セッション / route.py
 test_files:
   - tests/unit/voice_paste/features/session/test_route.py
 functions:
@@ -12,7 +12,7 @@ functions:
     role: route
     scope: public
     is_async: false
-    summary: POST /sessions。返送先と用語集のプリセットを確かめて SessionManager.start(entry="api") を呼ぶ
+    summary: POST /sessions。コールバック先と用語集のプリセットを確かめて SessionManager.start(entry="api") を呼ぶ
     args:
       - name: body
         type: StartSessionRequest
@@ -23,21 +23,21 @@ functions:
         type: Annotated[SessionApiDeps, Depends(get_session_api_deps)]
         required: true
         passing: injected
-        description: セッションの API の依存。トークンは API サーバーの守りで照合済み
+        description: 録音セッションの API の依存。トークンは API サーバーの守りで照合済み
     returns:
       type: StartSessionResponse
       description: 202 で返す
     process: |-
-      1. 返送先のホストが許されるかを確かめる（出力先の is_callback_allowed）
+      1. コールバック先のホストが許されるかを確かめる（出力先の is_callback_allowed）
          - 許されない場合、CallbackNotAllowedError を送出する（400 に変わる）
       2. body.glossary_preset があれば、今の設定の用語集のプリセットの一覧にあるかを確かめる（glossary_preset_exists）
-         - 無い場合、その名前を含む GlossaryPresetNotFoundError を送出する（400 に変わる。録音を始めず、セッションも作らない）
+         - 無い場合、その名前を含む GlossaryPresetNotFoundError を送出する（400 に変わる。録音を始めず、録音セッションも作らない）
            - `[WARNING]` 用語集のプリセットが無いため開始を断った（指定された名前）
       3. SessionManager.start(entry="api", callback_url, continuous=body.continuous, glossary_preset=body.glossary_preset) を呼ぶ（SessionBusyError は 409、MicrophoneUnavailableError は 503 に変わる）
-      4. セッションの ID を返す
+      4. 録音セッションの ID を返す
     exceptions:
       - name: CallbackNotAllowedError
-        condition: 返送先のホストが loopback でも設定で許可したホストでもない
+        condition: コールバック先のホストが loopback でも設定で許可したホストでもない
       - name: GlossaryPresetNotFoundError
         condition: 指定した用語集のプリセットが今の設定の一覧に無い
     refs:
@@ -45,11 +45,11 @@ functions:
     unit_tests:
       - name: test_start_session_route_when_callback_not_allowed
         case: 異常
-        summary: 許されない返送先は開始しない
+        summary: 許されないコールバック先は開始しない
         condition: callback_url が http://example.com/result
         mock: SessionApiDeps の SessionManager
         expected: CallbackNotAllowedError が送出され、start が呼ばれない
-        exception: 返送先のホストが許されない
+        exception: コールバック先のホストが許されない
       - name: test_start_session_route_when_continuous
         case: 正常
         summary: continuous を SessionManager.start へ渡す
@@ -83,12 +83,12 @@ functions:
         type: str
         required: true
         passing: positional
-        description: パスのセッションの ID
+        description: パスの録音セッションの ID
       - name: deps
         type: Annotated[SessionApiDeps, Depends(get_session_api_deps)]
         required: true
         passing: injected
-        description: セッションの API の依存
+        description: 録音セッションの API の依存
     returns:
       type: None
       description: 200 で返す
@@ -108,12 +108,12 @@ functions:
         type: str
         required: true
         passing: positional
-        description: パスのセッションの ID
+        description: パスの録音セッションの ID
       - name: deps
         type: Annotated[SessionApiDeps, Depends(get_session_api_deps)]
         required: true
         passing: injected
-        description: セッションの API の依存
+        description: 録音セッションの API の依存
     returns:
       type: None
       description: 202 で返す
@@ -121,7 +121,7 @@ functions:
       - IF-9#
     status: implemented
   - name: get_session_api_deps
-    title: セッションの API の依存の取得
+    title: 録音セッションの API の依存の取得
     kind: 関数
     container: features/session/route.py
     usecase: APIで録音を操作する
@@ -135,5 +135,5 @@ functions:
         description: 要求
     returns:
       type: SessionApiDeps
-      description: セッションの API の依存
+      description: 録音セッションの API の依存
     status: implemented

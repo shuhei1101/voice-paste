@@ -10,13 +10,13 @@ functions:
     container: server/app.py
     usecase: 常駐アプリを起動する
     scope: public
-    summary: セッションとブラウザの文字起こしの route・画面の配信・要求の守り・本文の上限・例外ハンドラを組み込んだ app を返す
+    summary: 録音セッションとブラウザの文字起こしの route・画面の配信・要求の守り・本文の上限・例外ハンドラを組み込んだ app を返す
     args:
       - name: session_api
         type: SessionApiDeps
         required: true
         passing: positional
-        description: セッションの API の依存（app.state.session_api に置く）
+        description: 録音セッションの API の依存（app.state.session_api に置く）
       - name: token
         type: SecretStr
         required: true
@@ -43,7 +43,7 @@ functions:
     status: implemented
     process: |-
       1. 自動で作られる文書のページ（docs・redoc・openapi.json）を持たない FastAPI を作る
-      2. app.state.session_api にセッションの API の依存を置き、セッションの route（開始・停止・完了）を include_router で集める
+      2. app.state.session_api に録音セッションの API の依存を置き、録音セッションの route（開始・停止・完了）を include_router で集める
       3. web_api が None でなければ、app.state.web_api にブラウザの API の依存を置き、ブラウザの文字起こしの route（受け付け・結果の取得）と画面の配信（web_page_router）を集め、画面の素材を組み込む（mount_web_assets）
       4. 例外ハンドラを登録する（register_exception_handlers）
       5. 本文の上限（BodyLimitMiddleware）を組み込む
@@ -51,10 +51,10 @@ functions:
     unit_tests:
       - name: test_build_fastapi
         case: 正常
-        summary: 守りを通った開始がセッション管理へ届く
-        condition: TestClient（base_url は http://127.0.0.1:{ポート}）で正しいトークンと loopback の返送先を付けて POST /sessions
-        mock: SessionManager（start がセッションを返す）・is_callback_allowed
-        expected: 202 と session_id が返り、start が entry=api と返送先で 1 回呼ばれる
+        summary: 守りを通った開始が録音セッション管理へ届く
+        condition: TestClient（base_url は http://127.0.0.1:{ポート}）で正しいトークンと loopback のコールバック先を付けて POST /sessions
+        mock: SessionManager（start が録音セッションを返す）・is_callback_allowed
+        expected: 202 と session_id が返り、start が entry=api とコールバック先で 1 回呼ばれる
       - name: test_build_fastapi_when_docs_requested
         case: 正常
         summary: 文書のページを出さない

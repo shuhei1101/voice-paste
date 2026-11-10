@@ -23,5 +23,6 @@ voice-paste のドキュメント全体の目次
 | [design-policy](./design-policy.md) | voice-paste の画面全体に通すデザインの方向性 |
 | [guide](./guide/) | voice-paste の使い方（はじめに・使い方・リファレンス） |
 | [index](./index.md) | Pages のトップページ |
+| [glossary](./glossary/) | voice-paste のドメイン用語と、使用しない言い方の一覧 |
 
 <!-- /table -->

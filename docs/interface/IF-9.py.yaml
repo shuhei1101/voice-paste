@@ -10,8 +10,8 @@ flows:
     setup:
       - name: Mock
         description: マイク・システム音量・トレイ・文字起こしのエンジンを差し替える。履歴は一時フォルダに書く
-      - name: 停止中のセッション
-        description: 録音を開始する と 録音を停止する を呼んだセッション
+      - name: 停止中の録音セッション
+        description: 録音を開始する と 録音を停止する を呼んだ録音セッション
     flow: |-
       ```mermaid
       sequenceDiagram
@@ -35,8 +35,8 @@ flows:
     setup:
       - name: Mock
         description: マイク・システム音量・トレイ・文字起こしのエンジンを差し替える。履歴は一時フォルダに書く
-      - name: 録音中のセッション
-        description: 録音を開始する だけを呼んだセッション
+      - name: 録音中の録音セッション
+        description: 録音を開始する だけを呼んだ録音セッション
     flow: |-
       ```mermaid
       sequenceDiagram
@@ -62,7 +62,7 @@ flows:
     setup:
       - name: Mock
         description: マイク・システム音量・トレイ・文字起こしのエンジン・話し声の判定を差し替える。履歴は一時フォルダに書く
-      - name: 連続録音のセッション
+      - name: 連続録音の録音セッション
         description: 録音を開始する を continuous=true で呼び、区間を 1 つ区切った後、話し声が続いている間に完了を呼ぶ
         notes: 話し声の判定は、最初の話し声の後に区切りの無音を返し、その後は話し声を返し続ける
     flow: |-
@@ -85,14 +85,14 @@ flows:
       - システム音量が録音前の値に戻っている
       - 履歴に通し番号 1 と 2 の区間の録音がある
       - 文字起こしのエンジンに通し番号 2 の区間が通し番号 1 の後に渡っている
-      - 同じセッションへの 2 度目の完了が 404 になる
+      - 同じ録音セッションへの 2 度目の完了が 404 になる
     test: test_normal_when_continuous
   - name: 正常系（話し声が残っていない連続録音を完了する）
     summary: 区間に切り出していない話し声が無ければ、最後の区間を作らずに終える
     setup:
       - name: Mock
         description: マイク・システム音量・トレイ・文字起こしのエンジン・話し声の判定・返送を差し替える。履歴は一時フォルダに書く
-      - name: 連続録音のセッション
+      - name: 連続録音の録音セッション
         description: 録音を開始する を continuous=true で呼び、無音だけを流して完了を呼ぶ
         notes: 話し声の判定は無音だけを返す
     flow: |-
@@ -110,7 +110,7 @@ flows:
       ```
     expected:
       - 202 が返る
-      - 履歴にこのセッションの録音が無い
+      - 履歴にこの録音セッションの録音が無い
       - 文字起こしのエンジンに何も渡っていない
       - 呼び出し元へ返す に result=completed・segment_count=0 が渡っている
     test: test_normal_when_continuous_without_speech
@@ -119,8 +119,8 @@ flows:
     setup:
       - name: Mock
         description: マイク・システム音量・トレイ・文字起こしのエンジンを差し替える
-      - name: 停止中のセッション
-        description: 録音を開始する と 録音を停止する を呼んだセッション
+      - name: 停止中の録音セッション
+        description: 録音を開始する と 録音を停止する を呼んだ録音セッション
       - name: トークン
         description: 今回の起動のものと違うトークン
     flow: |-
@@ -136,7 +136,7 @@ flows:
       ```
     expected:
       - 401 が返る
-      - セッションが停止中のままで、文字起こしが始まっていない
+      - 録音セッションが停止中のままで、文字起こしが始まっていない
       - ログに断った理由と要求元が書かれ、トークンの値は書かれていない
     test: test_error_when_token_mismatch
   - name: 異常系（ブラウザからの要求・403）
@@ -144,8 +144,8 @@ flows:
     setup:
       - name: Mock
         description: マイク・システム音量・トレイ・文字起こしのエンジンを差し替える
-      - name: 停止中のセッション
-        description: 録音を開始する と 録音を停止する を呼んだセッション
+      - name: 停止中の録音セッション
+        description: 録音を開始する と 録音を停止する を呼んだ録音セッション
       - name: 要求のヘッダー
         description: 正しいトークンに Origin を付けるか、Host をほかのホスト名にする
     flow: |-
@@ -164,13 +164,13 @@ flows:
       - 文字起こしが始まっていない
       - ログに断った理由と要求元が書かれ、トークンの値は書かれていない
     test: test_error_when_browser_request
-  - name: 異常系（知らないセッション・404）
-    summary: 録音中でも停止中でもないセッションは断る
+  - name: 異常系（知らない録音セッション・404）
+    summary: 録音中でも停止中でもない録音セッションは断る
     setup:
       - name: Mock
         description: マイク・システム音量・トレイ・文字起こしのエンジンを差し替える
-      - name: セッションの ID
-        description: 開始で受け取っていない ID か、既に完了したセッションの ID
+      - name: 録音セッションの ID
+        description: 開始で受け取っていない ID か、既に完了した録音セッションの ID
     flow: |-
       ```mermaid
       sequenceDiagram
@@ -183,14 +183,14 @@ flows:
     expected:
       - 404 が返る
       - 文字起こしが始まっていない
-      - 処理中のほかのセッションがあれば、そのまま続いている
+      - 処理中のほかの録音セッションがあれば、そのまま続いている
     test: test_error_when_session_unknown
-lead: API から始めた録音を確定して履歴に残し、文字起こしを始める。連続録音では録音を停止し、区間に切り出していない話し声を最後の区間として区切る。結果は応答ではなく返送先へ届く。
+lead: API から始めた録音を確定して履歴に残し、文字起こしを始める。連続録音では録音を停止し、区間に切り出していない話し声を最後の区間として区切る。結果は応答ではなくコールバック先へ届く。
 identifier: complete_session
 permissions: 今回の起動のトークン
 idempotent: false
-side_effects: 録音中なら録音を停止して音量を戻す。確定した録音を履歴に保存し（履歴を残す設定のとき）、文字起こしを始める。終わったら 呼び出し元へ返す が返送先へ送信する。連続録音では、区間に切り出していない話し声が残っていれば最後の区間として履歴に保存して区切った順の待ちに積み、全ての区間を返した後に 呼び出し元へ返す が終わり（completed）を送信する。
-exclusivity: 完了したセッションは、返送を終えるまで（連続録音では残りの区間と終わりを返し終えるまで）処理中としてほかの開始を断る。同じセッションへの 2 度目の完了は 404。
+side_effects: 録音中なら録音を停止して音量を戻す。確定した録音を履歴に保存し（履歴を残す設定のとき）、文字起こしを始める。終わったら 呼び出し元へ返す がコールバック先へ送信する。連続録音では、区間に切り出していない話し声が残っていれば最後の区間として履歴に保存して区切った順の待ちに積み、全ての区間を返した後に 呼び出し元へ返す が終わり（completed）を送信する。
+exclusivity: 完了した録音セッションは、返送を終えるまで（連続録音では残りの区間と終わりを返し終えるまで）処理中としてほかの開始を断る。同じ録音セッションへの 2 度目の完了は 404。
 request:
   - name: Authorization
     type: str
@@ -203,12 +203,12 @@ request:
     type: str
     required: true
     location: path
-    description: 開始で受け取ったセッションの ID
+    description: 開始で受け取った録音セッションの ID
     format: uuid
     status: implemented
 response_notes: |-
   > [!NOTE]
-  > 202 は文字起こしを受け付けたことだけを表し、起こした文字・空の文字・失敗は 呼び出し元へ返す が返送先へ届ける。連続録音では、残りの区間の文字と終わり（completed）が返送先へ届く。
+  > 202 は文字起こしを受け付けたことだけを表し、起こした文字・空の文字・失敗は 呼び出し元へ返す がコールバック先へ届ける。連続録音では、残りの区間の文字と終わり（completed）がコールバック先へ届く。
 status_codes:
   - code: '202'
     condition: 録音を確定し、文字起こしを始めた（連続録音では、録音を停止して最後の区間を区切った）
@@ -217,7 +217,7 @@ status_codes:
   - code: '403'
     condition: Origin が付いているか、Host が 127.0.0.1 でも localhost でもない
   - code: '404'
-    condition: そのセッションが録音中でも停止中でもない（知らない ID・完了済み・上限で打ち切り済み）
+    condition: その録音セッションが録音中でも停止中でもない（知らない ID・完了済み・上限で打ち切り済み）
 error_format: 録音を開始する と同じ RFC 9457 の `application/problem+json`。
 constraints:
   - item: 待ち受け

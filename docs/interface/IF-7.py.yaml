@@ -62,13 +62,13 @@ flows:
       ```
     expected:
       - 送信先への送信が 1 回だけ行われている
-      - DeliveryError が送出され、セッションが届けられなかったことを通知して待機中に戻っている
+      - DeliveryError が送出され、録音セッションが届けられなかったことを通知して待機中に戻っている
     test: test_error_when_endpoint_unreachable
 lead: 起こした文字を、選んだ「エンドポイントへ送信」プリセットの送信先へ JSON で 1 回送信する。
 identifier: deliver_to_endpoint
 idempotent: false
-side_effects: 送信先へ HTTP で 1 回送信する。届かなければ再送せず DeliveryError にし、セッションがトレイで通知してログに理由を書く。
-exclusivity: 1 セッションにつき 1 回だけ送信する。
+side_effects: 送信先へ HTTP で 1 回送信する。届かなければ再送せず DeliveryError にし、録音セッションがトレイで通知してログに理由を書く。
+exclusivity: 1 録音セッションにつき 1 回だけ送信する。
 exceptions:
   - name: なし（正常終了）
     condition: 送信先が 2xx を返した

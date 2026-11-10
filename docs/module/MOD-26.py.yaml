@@ -50,7 +50,7 @@ data_models:
         description: 受けた音声を履歴へ移す（残さない設定なら一時のファイルのまま）
       - name: transcribe
         type: TranscribeFn
-        description: 音声を起こす（セッションと同じ文字起こしワーカーを、今のロックで順番に使う）
+        description: 音声を起こす（録音セッションと同じ文字起こしワーカーを、今のロックで順番に使う）
       - name: correct
         type: CorrectFn
         description: 用語集のプリセットの名前（None は設定で選んでいるプリセット）の用語集と、文頭・文末の文言で補正する
@@ -155,7 +155,7 @@ function_types:
       type: str
       description: 補正した文字
     implementations:
-      - target: main.py の build_handlers の correct（セッションと同じ）
+      - target: main.py の build_handlers の correct（録音セッションと同じ）
     status: planned
   - name: AppendTextFn
     title: 起こした文字の追記

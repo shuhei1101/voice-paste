@@ -17,7 +17,7 @@ catalogs:
         purpose: API のサーバーの app を組み立てる
       - name: APIRouter
         kind: クラス
-        purpose: セッションの開始・停止・完了の route を束ねる
+        purpose: 録音セッションの開始・停止・完了の route を束ねる
       - name: Depends / Header
         kind: 関数
         purpose: トークンの照合と Authorization ヘッダーの受け取り

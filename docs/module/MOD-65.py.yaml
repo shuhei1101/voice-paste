@@ -42,7 +42,7 @@ functions:
       3. post(preset.url, 中身, get_timeout_sec(), ヘッダー) で 1 回だけ送信する
          - post が DeliveryError を送出した（タイムアウト・接続できない）場合、再送せずにそのまま送出する
       4. 2xx なら終える
-         - `[INFO]` エンドポイントへ届けた（セッションの ID・プリセットのタイトル・ステータス）
+         - `[INFO]` エンドポイントへ届けた（録音セッションの ID・プリセットのタイトル・ステータス）
          - 2xx 以外（3xx を含む）の場合、再送せずに DeliveryError を送出する
          - Authorization の値はログと例外の文に書かない
     exceptions:

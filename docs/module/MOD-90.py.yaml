@@ -93,7 +93,7 @@ classes:
           type: None
           description: なし
         process: |-
-          1. 録音中（_stream がある）なら RuntimeError を送出する（呼び出し順の誤り。セッションが排他する）
+          1. 録音中（_stream がある）なら RuntimeError を送出する（呼び出し順の誤り。録音セッションが排他する）
           2. 設定を読み、貯めた音・一時停止・直近の音を空に戻す
           3. 設定の lower_volume が真なら、volume_percent / 100 の割合と fade_sec で音量を下げ、返った音量を _volume_before に持つ（音量を下げる）
              - VolumeControlError の場合、音量を下げずに続ける（_volume_before は None のまま）

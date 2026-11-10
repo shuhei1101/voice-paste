@@ -14,7 +14,7 @@ catalogs:
     entries:
       - name: Client.post
         kind: メソッド
-        purpose: 返送先のエンドポイントへ結果を JSON で送信する
+        purpose: コールバック先のエンドポイントへ結果を JSON で送信する
       - name: Timeout
         kind: クラス
         purpose: 返送のタイムアウトを渡す

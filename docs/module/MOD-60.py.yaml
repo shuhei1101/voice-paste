@@ -11,7 +11,7 @@ functions:
     usecase: 起こした文字を届ける
     role: サービス
     scope: public
-    inherits: DeliverFn（main.py でセッションを分けて渡す）
+    inherits: DeliverFn（main.py で録音セッションを分けて渡す）
     summary: 入口と確定の操作で、出力先かカスタムプリセットを 1 つ選んで届ける
     args:
       - name: entry
@@ -33,7 +33,7 @@ functions:
         type: str | None
         required: true
         passing: positional
-        description: 返送先（API のときだけ）
+        description: コールバック先（API のときだけ）
       - name: outcome
         type: TranscriptionOutcome
         required: true
@@ -58,25 +58,25 @@ functions:
       type: None
       description: なし
     process: |-
-      1. 入口が api なら、呼び出し元へ返す出力先を選び、返送先を宛先にして届ける（設定のオン・オフ・プリセットによらない）
+      1. 入口が api なら、呼び出し元へ返す出力先を選び、コールバック先を宛先にして届ける（設定のオン・オフ・プリセットによらない）
       2. preset があれば、preset.kind と同じ種類の関数で outcome と preset を届ける
          - 同じ種類が一覧に無い場合、UnknownOutputError を送出する
       3. それ以外は、output_id の出力先を選び、宛先を None にして届ける
          - 選んだ出力先が無いか、API 専用か、オフの場合、UnknownOutputError を送出する
-         - `[INFO]` 出力先へ渡した（セッションの ID・出力先の ID かプリセットの種類とタイトル）
+         - `[INFO]` 出力先へ渡した（録音セッションの ID・出力先の ID かプリセットの種類とタイトル）
     exceptions:
       - name: UnknownOutputError
         condition: 選んだ出力先・プリセットの種類が一覧に無いか、出力先が設定でオフ
     unit_tests:
       - name: test_deliver_when_api_session
         case: 正常
-        summary: API のセッションは呼び出し元へ返すだけ
+        summary: API の録音セッションは呼び出し元へ返すだけ
         condition: 入口が api、設定で paste_and_send がオン
         mock: 各出力先・各種類の handler
-        expected: callback の handler だけが返送先と共に呼ばれ、paste_and_send は呼ばれない
+        expected: callback の handler だけがコールバック先と共に呼ばれ、paste_and_send は呼ばれない
       - name: test_deliver_when_hotkey_session
         case: 正常
-        summary: ホットキーのセッションは選んだ出力先へ届ける
+        summary: ホットキーの録音セッションは選んだ出力先へ届ける
         condition: 入口が hotkey、output_id が paste_only でオン
         mock: 各出力先・各種類の handler
         expected: paste_only の handler だけが outcome と None で呼ばれる

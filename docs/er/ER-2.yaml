@@ -25,7 +25,7 @@ tables:
         title: 音
         type: array
         description: 16 ビット整数の音（一時停止の間の音は含まない）
-    description: 連続録音の区間は、同じセッションの区間を分けるためにファイル名の末尾へ通し番号を付ける（`{YYYYMMDDHHMMSS}_{session_id}_{通し番号}.wav`。日時は区間を区切った時刻）。
+    description: 連続録音の区間は、同じ録音セッションの区間を分けるためにファイル名の末尾へ通し番号を付ける（`{YYYYMMDDHHMMSS}_{session_id}_{通し番号}.wav`。日時は区間を区切った時刻）。
   - name: '%LOCALAPPDATA%\voice-paste\history\{YYYYMMDD}\{YYYYMMDDHHMMSS}_{session_id}.txt'
     title: 起こした文字の履歴
     datastore: ファイル（テキスト、UTF-8）
@@ -44,8 +44,8 @@ tables:
     datastore: ファイル（WAV）
     summary: 履歴を残さない設定のときに、確定した録音を文字に起こすまで置く
     growth: 録音を確定するたびに 1 つ増える（`history.enabled = false` のとき）
-    retention: そのセッションの確定後の流れが終わるまで（文字起こしに失敗しても結果が空でも、終わったら削除する）
-    deletion: 物理削除（確定後の流れの最後に一時の音声の削除で取り除く。常駐が落ちた・削除できなかったときの取り残しは、古い履歴の削除が処理中のセッションのものを除いて取り除く）
+    retention: その録音セッションの確定後の流れが終わるまで（文字起こしに失敗しても結果が空でも、終わったら削除する）
+    deletion: 物理削除（確定後の流れの最後に一時の音声の削除で取り除く。常駐が落ちた・削除できなかったときの取り残しは、古い履歴の削除が処理中の録音セッションのものを除いて取り除く）
     columns:
       - name: sample_rate
         title: サンプリングレート

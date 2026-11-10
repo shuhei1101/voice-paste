@@ -401,3 +401,6 @@ scope_out:
   - item: aituber の同じ置き換え
     reason: 別のリポジトリで、shuhei1101/aituber#127 が扱う
     plan: none
+  - item: dev-docs.yaml の目次の行（`docs/**/index.yaml`）が、PR ドキュメントの `反映作業/index.yaml` も目次として検査し、`summary`・`items` が無いと報告する
+    reason: この PR の語の置き換えと無関係の、配信元の設定の範囲の問題（既存の PR ドキュメントの反映作業でも起きる）
+    plan: to_file

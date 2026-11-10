@@ -119,7 +119,7 @@ documents:
     alias_type: term
   - id: index
     title: 目次
-    paths: ["docs/**/index.yaml"]
+    paths: ["docs/index.yaml", "docs/*/index.yaml"]
     schema: schemas/index.schema.yaml
     metadata:
       description: summary

@@ -16,7 +16,7 @@ tasks:
     updated_at: '2026-11-10T18:33:05.954507+00:00'
   - process: PoC 検証
     status: skipped
-    reason: dev-docs の既存の exclude の指定を使うだけで、未検証の技術機構に依存しない
+    reason: dev-docs の既存の paths の glob を絞るだけで、未検証の技術機構に依存しない
     updated_by: planner
     updated_at: '2026-11-10T18:33:05.954507+00:00'
   - process: 複合ユースケース設計
@@ -71,12 +71,12 @@ tasks:
     updated_at: '2026-11-10T18:33:05.954507+00:00'
   - process: 単体テスト作成
     status: skipped
-    reason: アプリのコードを変えない。確認は search_docs の結果で行う
+    reason: アプリのコードを変えない。確認は dev-docs の collect_files での照合で行う
     updated_by: planner
     updated_at: '2026-11-10T18:33:05.954507+00:00'
   - process: 実装
     status: done
-    note: 'dev-docs.yaml の id: index の行に docs/pr/ の下の反映作業の一覧の除外を追加し、search_docs で目次の一覧と notes を確認する'
+    note: 'dev-docs.yaml の id: index の行の paths を docs/index.yaml と docs/*/index.yaml に絞り、dev-docs の collect_files で対象の一覧を照合する'
     updated_by: planner
     updated_at: '2026-11-10T18:37:19.743722+00:00'
   - process: 結合テスト作成

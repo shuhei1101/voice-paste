@@ -1,7 +1,7 @@
-"""API のセッションの上限時間（api_session_limit）の非機能要件テスト。
+"""API の録音セッションの上限時間（api_session_limit）の非機能要件テスト。
 
 録音の入力を無音の WAV を実時間で流すもの、システム音量を何もしないものに差し替えた録音機（実機のマイクを開かず、
-GPU を使わない）で、上限時間を短い値に差し替えたセッションを、録音中と停止中の両方で打ち切り、返送先へ truncated が
+GPU を使わない）で、上限時間を短い値に差し替えた録音セッションを、録音中と停止中の両方で打ち切り、コールバック先へ truncated が
 届くことを確かめる。あわせて、履歴の WAV の大きさから 600 秒分の録音の大きさを求め、決定値の根拠（16 kHz・モノラル・
 16 bit で 19.2 MB）と合うことを確かめる。
 `--run-e2e` が無ければ skip する。
@@ -84,7 +84,7 @@ def _wav_seconds_and_bytes(wav_path: Path) -> tuple[float, int]:
 def _assert_truncated_in_time(
     receiver: CallbackReceiver, started_at: float, tmp_path: Path
 ) -> None:
-    """上限時間の近くで返送先に truncated が届き、実機の録音から求めた 600 秒分の大きさが根拠と合うことを確かめる。"""
+    """上限時間の近くでコールバック先に truncated が届き、実機の録音から求めた 600 秒分の大きさが根拠と合うことを確かめる。"""
     assert wait_until(lambda: len(receiver.received) >= 1, RECEIVE_TIMEOUT_SEC)
     elapsed = time.monotonic() - started_at
     assert receiver.received[0]["result"] == "truncated"
@@ -102,7 +102,7 @@ def _assert_truncated_in_time(
 def test_api_session_limit_when_recording(
     manager: SessionManager, receiver: CallbackReceiver, tmp_path: Path  # noqa: F811
 ) -> None:
-    """録音中のまま上限時間に達したセッションが打ち切られ、返送先へ truncated が届く（実機）。"""
+    """録音中のまま上限時間に達した録音セッションが打ち切られ、コールバック先へ truncated が届く（実機）。"""
     # 準備
     started_at = time.monotonic()
 
@@ -116,7 +116,7 @@ def test_api_session_limit_when_recording(
 def test_api_session_limit_when_stopped(
     manager: SessionManager, receiver: CallbackReceiver, tmp_path: Path  # noqa: F811
 ) -> None:
-    """停止中のまま上限時間に達したセッションも打ち切られ、返送先へ truncated が届く（実機）。"""
+    """停止中のまま上限時間に達した録音セッションも打ち切られ、コールバック先へ truncated が届く（実機）。"""
     # 準備
     started_at = time.monotonic()
     session = manager.start("api", callback_url=receiver.url)

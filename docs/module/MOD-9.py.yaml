@@ -24,7 +24,7 @@ functions:
         type: str
         required: true
         passing: positional
-        description: セッションの ID（ファイル名に含める）
+        description: 録音セッションの ID（ファイル名に含める）
       - name: recording
         type: Recording
         required: true
@@ -151,7 +151,7 @@ functions:
         type: Callable[[], set[str]]
         required: true
         passing: injected
-        description: 処理中のセッションの ID（セッションが渡す。セッションが無い間は空）
+        description: 処理中の録音セッションの ID（録音セッションが渡す。録音セッションが無い間は空）
     returns:
       type: int
       description: 消したフォルダの数
@@ -159,7 +159,7 @@ functions:
       1. history/ の下の `YYYYMMDD` のフォルダのうち、今日 − 保持日数より前のものを消す
          - 日付でない名前のフォルダは残す
          - `[INFO]` 古い履歴を削除した（消した数）
-      2. tmp/ の下に取り残された一時の音声（`{session_id}.wav` か、連続録音の区間の `{session_id}_{通し番号}.wav`。普段は discard_temporary が消し、常駐が落ちたとき・消せなかったときに残る）のうち、ファイル名の session_id（最初の `_` より前）が処理中のセッションに無いものを消す
+      2. tmp/ の下に取り残された一時の音声（`{session_id}.wav` か、連続録音の区間の `{session_id}_{通し番号}.wav`。普段は discard_temporary が消し、常駐が落ちたとき・消せなかったときに残る）のうち、ファイル名の session_id（最初の `_` より前）が処理中の録音セッションに無いものを消す
          - 消せないファイル・フォルダは残し、次へ進む
            - `[WARNING]` 古い履歴を削除できなかった（パス・理由）
     unit_tests:
@@ -194,7 +194,7 @@ functions:
     container: features/history/service.py
     usecase: 録音を文字に起こす
     scope: public
-    summary: 処理を終えた録音が一時の音声（履歴を残さない設定）なら消す。履歴の録音なら何もしない。セッションが確定後の流れの最後に呼ぶ
+    summary: 処理を終えた録音が一時の音声（履歴を残さない設定）なら消す。履歴の録音なら何もしない。録音セッションが確定後の流れの最後に呼ぶ
     args:
       - name: audio_path
         type: Path

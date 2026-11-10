@@ -59,14 +59,14 @@ def continuous_harness(audio_path: Path) -> Iterator[Harness]:
 
 
 def _confirm_hotkey(h: Harness, monkeypatch: pytest.MonkeyPatch) -> None:
-    """ホットキーのセッションを始めて確定し、文字起こしから届けるまでは動かさずに止めておく。"""
+    """ホットキーの録音セッションを始めて確定し、文字起こしから届けるまでは動かさずに止めておく。"""
     defer_workers(monkeypatch)
     h.manager.start("hotkey")
     h.manager.complete()
 
 
 def _confirm_api(h: Harness, monkeypatch: pytest.MonkeyPatch) -> None:
-    """API のセッションを始めて確定し、文字起こしから届けるまでは動かさずに止めておく。"""
+    """API の録音セッションを始めて確定し、文字起こしから届けるまでは動かさずに止めておく。"""
     defer_workers(monkeypatch)
     session = h.manager.start("api", callback_url=CALLBACK_URL)
     h.manager.complete(session.id)
@@ -149,7 +149,7 @@ def test_pause_when_recording(audio_path: Path) -> None:
 
 
 def test_pause_when_api_session(audio_path: Path) -> None:
-    """API のセッションに一時停止のホットキーが来ても変えない（正常系）。"""
+    """API の録音セッションに一時停止のホットキーが来ても変えない（正常系）。"""
     # 準備
     h = make_harness(audio_path)
     h.manager.start("api", callback_url=CALLBACK_URL)
@@ -180,7 +180,7 @@ def test_stop_when_recording(audio_path: Path) -> None:
 
 
 def test_stop_when_already_stopped(audio_path: Path) -> None:
-    """止めたセッションは何も変えない（正常系）。"""
+    """止めた録音セッションは何も変えない（正常系）。"""
     # 準備
     h = make_harness(audio_path)
     session = h.manager.start("api", callback_url=CALLBACK_URL)
@@ -271,7 +271,7 @@ def test_complete_when_preset(audio_path: Path, monkeypatch: pytest.MonkeyPatch)
 
 
 def test_complete_when_hotkey_on_api_session(audio_path: Path) -> None:
-    """API のセッションにホットキーの確定が来ても変えない（正常系）。"""
+    """API の録音セッションにホットキーの確定が来ても変えない（正常系）。"""
     # 準備
     h = make_harness(audio_path)
     h.manager.start("api", callback_url=CALLBACK_URL)
@@ -299,7 +299,7 @@ def test_complete_when_session_id_mismatch(audio_path: Path) -> None:
 
 
 def test_complete_when_session_unknown(audio_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """完了済みのセッションは断る（異常系）。"""
+    """完了済みの録音セッションは断る（異常系）。"""
     # 準備
     defer_workers(monkeypatch)
     h = make_harness(audio_path)
@@ -367,7 +367,7 @@ def test_cancel_when_recording(audio_path: Path) -> None:
 
 
 def test_cancel_when_api_session(audio_path: Path) -> None:
-    """API のセッションに取り消しのホットキーが来ても変えない（正常系）。"""
+    """API の録音セッションに取り消しのホットキーが来ても変えない（正常系）。"""
     # 準備
     h = make_harness(audio_path)
     h.manager.start("api", callback_url=CALLBACK_URL)
@@ -499,7 +499,7 @@ def test_truncate_if_expired_when_within_limit(audio_path: Path) -> None:
 
 
 def test_truncate_if_expired_when_hotkey_session(audio_path: Path) -> None:
-    """ホットキーのセッションは対象外（正常系）。"""
+    """ホットキーの録音セッションは対象外（正常系）。"""
     # 準備
     h = make_harness(audio_path)
     h.manager.start("hotkey")
@@ -630,7 +630,7 @@ def test_run_after_confirm_when_empty_from_api(
 def test_run_after_confirm_when_deliver_raised_unexpected(
     audio_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """想定外の例外でもセッションは空になる（正常系）。"""
+    """想定外の例外でも録音セッションは空になる（正常系）。"""
     # 準備
     h = make_harness(audio_path)
     h.deliver.side_effect = RuntimeError("想定外")
@@ -731,8 +731,8 @@ def test_switch_output_when_preset(audio_path: Path) -> None:
 
 
 def test_switch_output_when_api_session(audio_path: Path) -> None:
-    """API のセッションは差し替えない（正常系）。"""
-    # 準備: API のセッションを確定し、文字起こしで止まったままにする
+    """API の録音セッションは差し替えない（正常系）。"""
+    # 準備: API の録音セッションを確定し、文字起こしで止まったままにする
     h = make_harness(audio_path)
     transcribe_entered, release_transcribe = _block_until_released(h.transcribe, "てすと")
     session = h.manager.start("api", callback_url=CALLBACK_URL)
@@ -775,7 +775,7 @@ def test_switch_output_when_idle(audio_path: Path) -> None:
     # 準備
     h = make_harness(audio_path)
 
-    # 実行: セッションが無いときと、録音中に呼ぶ
+    # 実行: 録音セッションが無いときと、録音中に呼ぶ
     h.manager.switch_output("copy_only")
     h.manager.start("hotkey")
     h.manager.switch_output("copy_only")
@@ -789,7 +789,7 @@ def test_switch_output_when_idle(audio_path: Path) -> None:
 
 
 def test_close_when_recording(audio_path: Path) -> None:
-    """録音中のセッションは捨てる（正常系）。"""
+    """録音中の録音セッションは捨てる（正常系）。"""
     # 準備
     h = make_harness(audio_path)
     h.manager.start("api", callback_url=CALLBACK_URL)
@@ -820,7 +820,7 @@ def test_close_when_idle(audio_path: Path) -> None:
 
 
 def test_current_when_idle(audio_path: Path) -> None:
-    """セッションが無ければ None を返す（正常系）。"""
+    """録音セッションが無ければ None を返す（正常系）。"""
     # 準備
     h = make_harness(audio_path)
 
@@ -832,7 +832,7 @@ def test_current_when_idle(audio_path: Path) -> None:
 
 
 def test_current_when_recording(audio_path: Path) -> None:
-    """ホットキーで始めた後は、入口と状態を持つセッションを返す（正常系）。"""
+    """ホットキーで始めた後は、入口と状態を持つ録音セッションを返す（正常系）。"""
     # 準備
     h = make_harness(audio_path)
     h.manager.start("hotkey")
@@ -850,8 +850,8 @@ def test_current_when_recording(audio_path: Path) -> None:
 
 
 def test_complete_when_reports_progress(audio_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """ホットキーのセッションを complete すると、文字起こしへ進みを知らせる関数を渡す。API のセッションでは渡さない（正常系）。"""
-    # 準備: ホットキーのセッションと API のセッションを、それぞれ確定して文字起こしの流れを動かす
+    """ホットキーの録音セッションを complete すると、文字起こしへ進みを知らせる関数を渡す。API の録音セッションでは渡さない（正常系）。"""
+    # 準備: ホットキーの録音セッションと API の録音セッションを、それぞれ確定して文字起こしの流れを動かす
     report_progress = MagicMock()
     hotkey_harness = make_harness(audio_path, report_progress=report_progress)
     _confirm_hotkey(hotkey_harness, monkeypatch)
@@ -873,7 +873,7 @@ def test_complete_when_reports_progress(audio_path: Path, monkeypatch: pytest.Mo
 def _drive_single(
     h: Harness, monkeypatch: pytest.MonkeyPatch, glossary_preset: str | None
 ) -> Session:
-    """1 回の録音を API で始めて確定し、文字起こしから届けるまでを動かして、始めたセッションを返す。"""
+    """1 回の録音を API で始めて確定し、文字起こしから届けるまでを動かして、始めた録音セッションを返す。"""
     defer_workers(monkeypatch)
     session = h.manager.start(
         "api", callback_url=CALLBACK_URL, glossary_preset=glossary_preset
@@ -886,7 +886,7 @@ def _drive_single(
 def _drive_continuous(
     h: Harness, monkeypatch: pytest.MonkeyPatch, glossary_preset: str | None
 ) -> Session:
-    """連続録音を API で始めて区間を 1 つ渡し、確定して待機中に戻るまで待って、始めたセッションを返す。"""
+    """連続録音を API で始めて区間を 1 つ渡し、確定して待機中に戻るまで待って、始めた録音セッションを返す。"""
     session = h.manager.start(
         "api", callback_url=CALLBACK_URL, continuous=True, glossary_preset=glossary_preset
     )
@@ -911,7 +911,7 @@ def test_start_when_glossary_preset(
     glossary_preset: str | None,
     expected_preset: str | None,
 ) -> None:
-    """指定した用語集のプリセットをセッションに持たせ、補正へ渡す（正常系）。"""
+    """指定した用語集のプリセットを録音セッションに持たせ、補正へ渡す（正常系）。"""
     # 準備
     h = continuous_harness
     h.transcribe.return_value = "てすと"
@@ -1083,7 +1083,7 @@ def test_on_segment_numbers_in_order(continuous_harness: Harness) -> None:
 
 def test_on_segment_when_not_continuous(continuous_harness: Harness) -> None:
     """連続録音でなければ区間を捨てる（正常系）。"""
-    # 準備: 終了でセッションを空にした後にする
+    # 準備: 終了で録音セッションを空にした後にする
     h = continuous_harness
     h.manager.start("api", callback_url=CALLBACK_URL, continuous=True)
     on_segment = h.on_segment()
@@ -1176,7 +1176,7 @@ def test_run_segments_when_deliver_raised(
 
     def _raising_deliver(_session: Session, outcome: TranscriptionOutcome) -> None:
         if outcome.segment_number == 2:
-            raise RuntimeError("返送先に届かない")
+            raise RuntimeError("コールバック先に届かない")
 
     h.deliver.side_effect = _raising_deliver
     caplog.set_level(logging.ERROR)

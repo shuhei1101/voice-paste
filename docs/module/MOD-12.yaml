@@ -59,7 +59,7 @@ diagrams:
         class 起動と配線
         class APIサーバー
         class ホットキーと画面
-        class セッション
+        class 録音セッション
         class 録音
         class 文字起こし
         class 補正
@@ -69,10 +69,10 @@ diagrams:
         class 共通
         起動と配線 --> APIサーバー
         起動と配線 --> ホットキーと画面
-        起動と配線 --> セッション
+        起動と配線 --> 録音セッション
         起動と配線 --> 外部連携
-        APIサーバー --> セッション : route の集約
-        セッション --> 共通
+        APIサーバー --> 録音セッション : route の集約
+        録音セッション --> 共通
         録音 --> 共通
         文字起こし --> 共通
         補正 --> 共通
@@ -84,9 +84,9 @@ diagrams:
 notes:
   依存の向き: |-
     コーディング規約『依存関係管理』のとおり `features`・`server`・`ui` → `integrations`・`runtime` → `shared` とし、上の層へは import しない。
-    `features` どうしと、`features/outputs` の出力先どうしも import しない。セッションはほかの feature を SessionDeps の関数型で受け取り、`main.py` だけが全てを知る。
-    `server` はセッションの route を include_router で集め、SessionApiDeps を app.state に置くためだけに `features/session` を import する。route は `main.py`・`server` を import せず、SessionApiDeps を app.state から受け取る。
-    `ui` は `features` の中を直に呼ばず、UiDeps の関数と `shared` の設定のモデルだけを使う。型としては `features.session.types`（Session・SessionState）だけを import する。`runtime/hotkey.py` はセッションを import せず、`main.py` が渡す関数を呼ぶ。
+    `features` どうしと、`features/outputs` の出力先どうしも import しない。録音セッションはほかの feature を SessionDeps の関数型で受け取り、`main.py` だけが全てを知る。
+    `server` は録音セッションの route を include_router で集め、SessionApiDeps を app.state に置くためだけに `features/session` を import する。route は `main.py`・`server` を import せず、SessionApiDeps を app.state から受け取る。
+    `ui` は `features` の中を直に呼ばず、UiDeps の関数と `shared` の設定のモデルだけを使う。型としては `features.session.types`（Session・SessionState）だけを import する。`runtime/hotkey.py` は録音セッションを import せず、`main.py` が渡す関数を呼ぶ。
   依存の向きの検査: |-
     import-linter の契約を pyproject.toml の `[tool.importlinter]`（root_package は `voice_paste`）に置き、単体テストと一緒に `lint-imports` で回す（品質シナリオ 5。コマンドは設計書『テスト実行方法』）。
 

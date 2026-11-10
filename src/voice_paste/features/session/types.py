@@ -1,4 +1,4 @@
-"""セッションの状態・セッション・ほかの feature を受け取る関数型。"""
+"""録音セッションの状態・録音セッション・ほかの feature を受け取る関数型。"""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 
 class SessionState(StrEnum):
-    """セッションがどこまで進んだか。"""
+    """録音セッションがどこまで進んだか。"""
 
     RECORDING = "recording"
     """マイクで録音している（連続録音では、区切った区間を起こして返しながら録音を続けている）。"""
@@ -47,7 +47,7 @@ class Session:
     """動いている 1 回分の流れ。"""
 
     id: str
-    """セッションの ID（uuid4）。"""
+    """録音セッションの ID（uuid4）。"""
 
     entry: Entry
     """始めた入口。"""
@@ -56,10 +56,10 @@ class Session:
     """今の状態。"""
 
     started_at: datetime
-    """始めた時刻。API のセッションの上限時間をここから数える。"""
+    """始めた時刻。API の録音セッションの上限時間をここから数える。"""
 
     callback_url: str | None
-    """API から始めたときの返送先。それ以外は None。"""
+    """API から始めたときのコールバック先。それ以外は None。"""
 
     output_id: str | None
     """ホットキー・トレイから始めた録音で、確定の操作で選んだ出力先の ID。"""
@@ -68,7 +68,7 @@ class Session:
     """ホットキー・トレイから始めた録音で、確定の操作で選んだカスタムプリセット（確定したときの設定のコピー）。固定の出力先を選んだときと API のときは None。"""
 
     recording: Recording | None = None
-    """API の録音を止めた後、完了までセッションが持つ貯めた音。"""
+    """API の録音を止めた後、完了まで録音セッションが持つ貯めた音。"""
 
     continuous: bool = False
     """API の連続録音か。"""
@@ -87,7 +87,7 @@ type StopRecordingFn = Callable[[], Recording]
 """録音を止めて音量を戻し、貯めた音を返す。"""
 
 type SaveRecordingFn = Callable[[str, Recording, int | None], Path]
-"""セッションの ID と確定した録音（連続録音では区間の音）と区間の通し番号（連続録音でなければ None）を受け、履歴（残さない設定なら一時の音声）へ書いたパスを返す。"""
+"""録音セッションの ID と確定した録音（連続録音では区間の音）と区間の通し番号（連続録音でなければ None）を受け、履歴（残さない設定なら一時の音声）へ書いたパスを返す。"""
 
 type StartContinuousRecordingFn = Callable[[OnSegmentFn, OnContinuousFailedFn], None]
 """区間の渡し先と区切りの失敗の知らせ先を受け、音量を下げてマイクを開き、区切った区間を区切った順に渡す。開けなければ音量を戻して MicrophoneUnavailableError を送出する。"""
@@ -99,7 +99,7 @@ type AppendTextFn = Callable[[Path, str], None]
 """保存した録音のパスと起こした文字を受け、録音と同じ履歴に追記する。"""
 
 type DeliverFn = Callable[[Session, TranscriptionOutcome], None]
-"""届けるセッションと結果を受け、出力先へ届ける。API のセッションは呼び出し元へ返す出力先だけを使う。"""
+"""届ける録音セッションと結果を受け、出力先へ届ける。API の録音セッションは呼び出し元へ返す出力先だけを使う。"""
 
 type NotifyFn = Callable[
     [
@@ -147,7 +147,7 @@ class SessionDeps:
     """録音を文字に起こす（失敗は TranscriptionError）。"""
 
     correct: Callable[[str, str | None], str]
-    """起こした文字とセッションの glossary_preset を受け、その用語集のプリセットで補正する。"""
+    """起こした文字と録音セッションの glossary_preset を受け、その用語集のプリセットで補正する。"""
 
     append_text: AppendTextFn
     """起こした文字を履歴に追記する。"""
@@ -179,10 +179,10 @@ class SessionApiDeps:
     """route が使う配線済みのもの。main.py で組み、build_fastapi が app.state.session_api に置く。"""
 
     session_manager: SessionManager
-    """セッション管理。"""
+    """録音セッション管理。"""
 
     is_callback_allowed: Callable[[str], bool]
-    """設定の許可ホストを部分適用した返送先の確かめ（出力先の is_callback_allowed）。"""
+    """設定の許可ホストを部分適用したコールバック先の確かめ（出力先の is_callback_allowed）。"""
 
     glossary_preset_exists: Callable[[str], bool]
     """今の設定の用語集のプリセットの一覧に、その名前があるか（補正の resolve_glossary_presets で引いた一覧で判定する）。"""

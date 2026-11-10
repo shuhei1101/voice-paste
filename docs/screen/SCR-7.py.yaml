@@ -7,7 +7,7 @@ elements:
     kind: window
     position: 窓
     description: 文字起こし中の表示の窓。録音の画面と同じ設定の位置に出し、フォーカスを取らない（貼り付け先の入力欄からフォーカスを奪わない）。録音の画面を動かした回は、確定した時点の録音の画面の位置（隠したまま確定した回は隠す前の位置）に出す。録音の画面と同じく、面は `color.*.surface`、外側の縁は `color.*.frame` の 1px の線で描く（`*` は `ui.theme` で決まる明暗）。タスクバーに出ない枠なしの窓のまま、見出しの行をつかんで動かす。動かした位置はその回だけ使い、次の回は今までどおりの位置に出す。出力先の切り替えのボタンを出す回は、ボタンが名前を省かずに収まる幅（既定 380px）にする
-    visible_when: ホットキー・トレイから始めたセッションが transcribing か delivering の間（`recording.hide_window` がオフのとき）。API から始めた録音では出さない
+    visible_when: ホットキー・トレイから始めた録音セッションが transcribing か delivering の間（`recording.hide_window` がオフのとき）。API から始めた録音では出さない
     source: UiBridge.notified（state_changed）
     refs:
       - CFG-1#settings[recording.hide_window]
@@ -76,10 +76,10 @@ elements:
     description: 届ける出力先をその出力先へ切り替える。設定でオンの固定の出力先ごとに設定の並びで 1 つずつ、等しい幅で横に並べる。今の出力先のボタンは地と枠を強め、右上の角に丸いマーカー（チェック）を重ねる（色だけで伝えない。マーカーは名前の幅を取らず、選び直しで名前を動かさない）。マーカーは採用したモックのとおり右上の角から外へはみ出して置き、名前とホットキーの文字には重ねない（`ui.transcribing_show_hotkeys` のどちらでも）。録音の画面の出力先の確定のボタンと同じく名前の下にその出力先のホットキーを出し、同じホットキーを押しても切り替わる。今の出力先のボタンを押しても何もしない。押しても窓は前面にならず、貼り付け先のフォーカスは動かない
     label: 貼り付けて送信 / 貼り付けのみ / コピーのみ（名前の下に [outputs[].hotkey]）
     visible_when: 固定の出力先で確定した録音で、その出力先の `outputs[].enabled` がオンのとき
-    enabled_when: セッションが transcribing の間。届け始めた後（delivering）は押しても切り替えず、表示も変えない
+    enabled_when: 録音セッションが transcribing の間。届け始めた後（delivering）は押しても切り替えず、表示も変えない
     options: '`outputs[]` の並び（paste_and_send・paste_only・copy_only）のうちオンのもの'
     source: Session.output_id（今の出力先にマーカーを付ける）
-    target: 届ける出力先の差し替え（押したボタンの出力先の ID。入り口はモジュール構成『セッション』）
+    target: 届ける出力先の差し替え（押したボタンの出力先の ID。入り口はモジュール構成『録音セッション』）
     action: 今の出力先のマーカーと貼り付けの案内を切り替えた先に変える
     refs:
       - CFG-1#settings[outputs[].enabled]

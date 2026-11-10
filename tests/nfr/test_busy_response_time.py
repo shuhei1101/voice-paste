@@ -2,8 +2,8 @@
 
 常駐アプリを pytest のプロセスの中で `build_handlers` で配線し（録音の入力は無音の WAV を実時間で流すもの、システム音量は
 何もしないものに差し替えて、実機のマイクを開かない）、`build_fastapi` で組み立てた app を 127.0.0.1 で待ち受けさせる。
-API のセッションを処理中にしたまま開始を続けて呼び、409 が決定値以内に返り、2 つ目の録音が始まらないことを測る。
-ホットキーの受付はまだ新しい構成に無いため、処理中は API で始めたセッションにする。
+API の録音セッションを処理中にしたまま開始を続けて呼び、409 が決定値以内に返り、2 つ目の録音が始まらないことを測る。
+ホットキーの受付はまだ新しい構成に無いため、処理中は API で始めた録音セッションにする。
 `--run-e2e` が無ければ skip する。
 """
 
@@ -34,10 +34,10 @@ SILENCE_SEC = 2.0
 
 RECEIVE_TIMEOUT_SEC = 30.0
 SESSION_LOGGER = "voice_paste.features.session.service"
-"""セッションの管理のロガーの名前。"""
+"""録音セッションの管理のロガーの名前。"""
 
-SESSION_START_LOG = "セッションを始めた"
-"""セッションを始めたときのログの言葉。"""
+SESSION_START_LOG = "録音セッションを始めた"
+"""録音セッションを始めたときのログの言葉。"""
 
 NO_SPEECH_VAD_THRESHOLD = 1.0
 """どんな音も音声とみなさない無音の区間を除く閾値。"""
@@ -53,7 +53,7 @@ def _call_busy(api: InProcessApi, receiver: CallbackReceiver, trials: int) -> li
 
 
 def _count_session_starts(caplog: pytest.LogCaptureFixture) -> int:
-    """控えたログから、セッションを始めた回数を数える。"""
+    """控えたログから、録音セッションを始めた回数を数える。"""
     return sum(SESSION_START_LOG in record.getMessage() for record in caplog.records)
 
 
@@ -86,7 +86,7 @@ def test_busy_response_time(
     )
     assert [status for status, _elapsed_ms in results] == [409] * TRIALS
     assert max(elapsed_list) <= RESPONSE_LIMIT_MS
-    # 処理中のセッションが続いていて、録音を始めたのは 1 回だけである
+    # 処理中の録音セッションが続いていて、録音を始めたのは 1 回だけである
     time.sleep(RECORD_SEC)
     assert api.post(f"/sessions/{session_id}/stop").status_code == 200
     assert api.post(f"/sessions/{session_id}/complete").status_code == 202

@@ -67,7 +67,7 @@ functions:
       3. get_open_delay_sec() の秒数だけ待ち、貼り付けのキーを送信する
       4. preset.send_enter がオンなら、get_enter_delay_sec() の秒数だけ待ち、Enter を送信する（オフなら貼り付けで止める）
          - 1・2 が DeliveryError を送出した場合、そこで止めてそのまま送出する
-         - `[INFO]` ブラウザ添付で届けた（セッションの ID・プリセットのタイトル・Enter まで送信したか）
+         - `[INFO]` ブラウザ添付で届けた（録音セッションの ID・プリセットのタイトル・Enter まで送信したか）
     exceptions:
       - name: DeliveryError
         condition: クリップボードへ書けない・画面を開けない

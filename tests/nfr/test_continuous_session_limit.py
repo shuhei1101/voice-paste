@@ -1,8 +1,8 @@
-"""連続録音のセッションの上限時間（continuous_session_limit）の非機能要件テスト。
+"""連続録音の録音セッションの上限時間（continuous_session_limit）の非機能要件テスト。
 
 録音の入力を 1 秒ほどの話し声の後に無音が続く WAV を実時間で流すもの、システム音量を何もしないものに差し替えた録音機
 （実機のマイクを開かず、GPU を使わない。話し声の判定は本物、文字起こしは決まった文字を返すもの）で、連続録音の上限時間を
-短い値に差し替えた SessionManager を上限のタイマーで回し、完了を呼ばないまま打ち切られて、返送先へ区間の文字と、
+短い値に差し替えた SessionManager を上限のタイマーで回し、完了を呼ばないまま打ち切られて、コールバック先へ区間の文字と、
 truncated と区間の数が届くことを確かめる。
 `--run-e2e` が無ければ skip する。
 """
@@ -87,7 +87,7 @@ def session(
 def test_continuous_session_limit(
     session: tuple[SessionManager, InProcessApi], receiver: CallbackReceiver  # noqa: F811
 ) -> None:
-    """完了が来ないまま上限時間に達した連続録音が打ち切られ、返送先へ truncated と区間の数が届く（実機）。"""
+    """完了が来ないまま上限時間に達した連続録音が打ち切られ、コールバック先へ truncated と区間の数が届く（実機）。"""
     # 準備
     manager, api = session
     started_at = time.monotonic()

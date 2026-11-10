@@ -27,7 +27,7 @@ def deliver(
     """入口が api なら呼び出し元へ返す出力先へ、それ以外は選んだプリセットか出力先へ届ける。"""
     # 1. 入口が api か
     if Entry(entry) == Entry.API:
-        # api: 呼び出し元へ返す出力先を選び、返送先を宛先にする（設定のオン・オフ・プリセットによらない）
+        # api: 呼び出し元へ返す出力先を選び、コールバック先を宛先にする（設定のオン・オフ・プリセットによらない）
         spec = next((output for output in outputs if output.api_only), None)
         if spec is None:
             raise UnknownOutputError(f"出力先を選べません（入口: {entry}）")

@@ -1,4 +1,4 @@
-"""セッションの状態の遷移と排他、録音から出力までの流れ。"""
+"""録音セッションの状態の遷移と排他、録音から出力までの流れ。"""
 
 from __future__ import annotations
 
@@ -36,10 +36,10 @@ type SegmentQueue = queue.Queue[tuple[int, Segment] | ContinuousEnd | None]
 
 
 class SessionManager:
-    """セッションを同時に 1 つだけ持ち、入口からの操作で状態を進める。
+    """録音セッションを同時に 1 つだけ持ち、入口からの操作で状態を進める。
 
     全てのメソッドは Lock の中で状態を確かめて書き換える（API・ホットキー・トレイ・上限のタイマー・録音の区切りのスレッドが別のスレッドから呼ぶ）。
-    文字起こしから届けるまでは専用のワーカースレッドで動かし、終わったらセッションを空にして待機中に戻す。
+    文字起こしから届けるまでは専用のワーカースレッドで動かし、終わったら録音セッションを空にして待機中に戻す。
     API の連続録音では、開始でワーカースレッドを 1 つ立て、録音が区切った区間を待ち行列経由で区切った順に起こして返す（録音は続ける）。
     完了か上限で録音を止め、最後の区間の後ろに終わりを返してから待機中に戻す。
     """
@@ -47,7 +47,7 @@ class SessionManager:
     def __init__(
         self, deps: SessionDeps, session_limit: timedelta, continuous_session_limit: timedelta
     ) -> None:
-        """配線済みの依存と、API のセッションの上限時間・連続録音のセッションの上限時間を受ける。"""
+        """配線済みの依存と、API の録音セッションの上限時間・連続録音の録音セッションの上限時間を受ける。"""
         self._deps = deps
         self._session: Session | None = None
         self._lock = threading.Lock()
@@ -57,7 +57,7 @@ class SessionManager:
         self._segments: SegmentQueue | None = None
 
     def current(self) -> Session | None:
-        """今のセッションを返す（待機中は None）。画面が state_changed を受けたときに入口と状態を引く。"""
+        """今の録音セッションを返す（待機中は None）。画面が state_changed を受けたときに入口と状態を引く。"""
         with self._lock:
             return self._session
 
@@ -70,16 +70,16 @@ class SessionManager:
         continuous: bool = False,
         glossary_preset: str | None = None,
     ) -> Session:
-        """待機中なら新しいセッションを作り、録音（continuous なら連続録音）を始める。"""
+        """待機中なら新しい録音セッションを作り、録音（continuous なら連続録音）を始める。"""
         with self._lock:
-            # 1. セッションが残っていれば断る（処理中）
+            # 1. 録音セッションが残っていれば断る（処理中）
             if self._session is not None:
                 logger.info(
-                    f"処理中のため開始を断った（入口: {entry}・処理中のセッション: {self._session.id}）"
+                    f"処理中のため開始を断った（入口: {entry}・処理中の録音セッション: {self._session.id}）"
                 )
                 raise SessionBusyError("ほかの録音か文字起こしを処理中です")
 
-            # 2. 録音を始める（マイクを開けなければ例外のまま伝え、セッションは作らない）
+            # 2. 録音を始める（マイクを開けなければ例外のまま伝え、録音セッションは作らない）
             segments: SegmentQueue | None = None
             if continuous:
                 # 連続録音: 区間の待ち行列を作り、区切った区間と失敗の渡し先を録音に渡す
@@ -89,7 +89,7 @@ class SessionManager:
             else:
                 self._deps.start_recording()
 
-            # 3. セッションを作り、状態を recording にして知らせる
+            # 3. 録音セッションを作り、状態を recording にして知らせる
             session = Session(
                 id=str(uuid.uuid4()),
                 entry=Entry(entry),
@@ -103,7 +103,7 @@ class SessionManager:
             )
             self._session = session
             logger.info(
-                f"セッションを始めた（{session.id}・入口: {session.entry}・連続録音: {continuous}）"
+                f"録音セッションを始めた（{session.id}・入口: {session.entry}・連続録音: {continuous}）"
             )
 
             # 連続録音: 区間を起こして返すワーカースレッドを始める
@@ -116,7 +116,7 @@ class SessionManager:
         """ホットキー・トレイの録音を一時停止する（recording → paused）。"""
         with self._lock:
             session = self._session
-            # ホットキー・トレイの録音中だけ一時停止する（API のセッションなどは何もしない）
+            # ホットキー・トレイの録音中だけ一時停止する（API の録音セッションなどは何もしない）
             if session is None or session.entry == Entry.API or session.state != SessionState.RECORDING:
                 return
             self._deps.pause_recording()
@@ -138,19 +138,19 @@ class SessionManager:
         """API の録音を止めて完了を待つ（recording → stopped）。"""
         with self._lock:
             session = self._session
-            # 今のセッションで、録音中か停止中のときだけ受ける
+            # 今の録音セッションで、録音中か停止中のときだけ受ける
             if (
                 session is None
                 or session.id != session_id
                 or session.state not in (SessionState.RECORDING, SessionState.STOPPED)
             ):
-                raise SessionNotFoundError("止められるセッションがありません")
+                raise SessionNotFoundError("止められる録音セッションがありません")
 
             # 連続録音は止めずに断る（完了で終える）
             if session.continuous:
                 raise SessionConflictError("連続録音は止められません。完了で終えてください")
 
-            # 録音中なら止めて、貯めた音をセッションに持たせる（止めた後の停止は何もしない）
+            # 録音中なら止めて、貯めた音を録音セッションに持たせる（止めた後の停止は何もしない）
             if session.state == SessionState.RECORDING:
                 recording = self._deps.stop_recording()
                 self._session = replace(session, state=SessionState.STOPPED, recording=recording)
@@ -166,20 +166,20 @@ class SessionManager:
         with self._lock:
             session = self._session
             if session_id is not None:
-                # API: 今のセッションの ID と入口が合い、確定できる状態か
+                # API: 今の録音セッションの ID と入口が合い、確定できる状態か
                 if (
                     session is None
                     or session.id != session_id
                     or session.entry != Entry.API
                     or session.state not in (SessionState.RECORDING, SessionState.STOPPED)
                 ):
-                    raise SessionNotFoundError("完了できるセッションがありません")
+                    raise SessionNotFoundError("完了できる録音セッションがありません")
             elif (
                 session is None
                 or session.entry == Entry.API
                 or session.state not in (SessionState.RECORDING, SessionState.PAUSED)
             ):
-                # ホットキー・トレイ: 確定できる録音が無ければ何もしない（API のセッションへの確定のホットキーを含む）
+                # ホットキー・トレイ: 確定できる録音が無ければ何もしない（API の録音セッションへの確定のホットキーを含む）
                 return
 
             # 連続録音以外は、止めていなければ止めてから録音を保存して transcribing にする
@@ -189,7 +189,7 @@ class SessionManager:
 
         # 連続録音は、ロックを離してから録音を止めて終える（止めるときに最後の区間が _on_segment を呼ぶため）
         if not self._finish_continuous_recording(session.id, "completed"):
-            raise SessionNotFoundError("完了できるセッションがありません")
+            raise SessionNotFoundError("完了できる録音セッションがありません")
 
     def _confirm(self, session: Session, output_id: str | None, preset: Preset | None) -> None:
         """ロックを持って、録音を止めて保存し（失敗したら片付けて送出し直す）、transcribing にして文字起こしから届けるまでを始める。"""
@@ -219,7 +219,7 @@ class SessionManager:
         """固定の出力先で確定したホットキー・トレイの録音の文字起こし中に、届ける出力先を差し替える。"""
         with self._lock:
             session = self._session
-            # 文字起こし中の、固定の出力先で確定したホットキー・トレイのセッションだけ差し替える（届け始めた後・API・カスタムプリセットは何もしない）
+            # 文字起こし中の、固定の出力先で確定したホットキー・トレイの録音セッションだけ差し替える（届け始めた後・API・カスタムプリセットは何もしない）
             if (
                 session is None
                 or session.entry == Entry.API
@@ -238,7 +238,7 @@ class SessionManager:
         """ホットキー・トレイの録音を捨てて待機中に戻す。"""
         with self._lock:
             session = self._session
-            # ホットキー・トレイの録音中か一時停止中だけ捨てる（API のセッションは何もしない）
+            # ホットキー・トレイの録音中か一時停止中だけ捨てる（API の録音セッションは何もしない）
             if (
                 session is None
                 or session.entry == Entry.API
@@ -251,10 +251,10 @@ class SessionManager:
             self._deps.notify("state_changed", IDLE_DETAIL)
 
     def close(self) -> None:
-        """終了時に、残っているセッションの録音を捨てて待機中に戻す。"""
+        """終了時に、残っている録音セッションの録音を捨てて待機中に戻す。"""
         with self._lock:
             session = self._session
-            # 文字起こし中・届け中はワーカースレッドが終わり次第セッションを空にする
+            # 文字起こし中・届け中はワーカースレッドが終わり次第録音セッションを空にする
             if session is None or session.state in (
                 SessionState.TRANSCRIBING,
                 SessionState.DELIVERING,
@@ -279,10 +279,10 @@ class SessionManager:
     # === 上限での打ち切り ===
 
     def truncate_if_expired(self) -> bool:
-        """API のセッションが開始から上限時間（連続録音は連続録音の上限時間）を過ぎていれば打ち切り、打ち切ったかを返す。"""
+        """API の録音セッションが開始から上限時間（連続録音は連続録音の上限時間）を過ぎていれば打ち切り、打ち切ったかを返す。"""
         with self._lock:
             session = self._session
-            # API のセッションが録音中か停止中で、開始から上限時間を過ぎているか
+            # API の録音セッションが録音中か停止中で、開始から上限時間を過ぎているか
             if (
                 session is None
                 or session.entry != Entry.API
@@ -348,7 +348,7 @@ class SessionManager:
                 logger.info(f"文字起こしの結果が空だった（{session.id}）")
                 return
 
-            # 5〜6. 届ける（届けられなければ知らせる）。届け始めた後の出力先の切り替えは受けないので、delivering にしたときのセッションで届ける
+            # 5〜6. 届ける（届けられなければ知らせる）。届け始めた後の出力先の切り替えは受けないので、delivering にしたときの録音セッションで届ける
             delivering = self._start_delivering(session)
             stage = "delivery"
             outcome = TranscriptionOutcome(
@@ -359,14 +359,14 @@ class SessionManager:
             except DeliveryError as error:
                 logger.error(f"出力先へ届けられなかった（{session.id}・{error}）")
                 self._deps.notify("delivery_failed", str(error))
-        except Exception as error:  # noqa: BLE001 どの経路でもセッションを空にして待機中へ戻すため
+        except Exception as error:  # noqa: BLE001 どの経路でも録音セッションを空にして待機中へ戻すため
             logger.exception(f"確定後の流れで想定外の例外（{session.id}）")
             self._report_failure(session, str(error), stage)
         finally:
             self._finish(session, audio_path)
 
     def _announce_failure(self, session: Session, reason: str) -> None:
-        """確定できなかったセッションの失敗を知らせ、待機中を知らせる。"""
+        """確定できなかった録音セッションの失敗を知らせ、待機中を知らせる。"""
         try:
             self._report_failure(session, reason, "transcription")
         finally:
@@ -402,14 +402,14 @@ class SessionManager:
             self._deps.notify(event, reason)
 
     def _finish(self, session: Session, audio_path: Path) -> None:
-        """一時の音声を削除し、セッションを空にして待機中を知らせる。"""
+        """一時の音声を削除し、録音セッションを空にして待機中を知らせる。"""
         try:
             self._deps.discard_temporary(audio_path)
         finally:
             with self._lock:
                 self._session = None
             self._deps.notify("state_changed", IDLE_DETAIL)
-            logger.info(f"セッションを終えた（{session.id}）")
+            logger.info(f"録音セッションを終えた（{session.id}）")
 
     # === 連続録音 ===
 
@@ -419,10 +419,10 @@ class SessionManager:
         """連続録音を transcribing にしてからロックを離して録音を止め、最後の区間の後ろに終わりのマーカーを積む。終えられたかを返す。
 
         録音を止めると区切りのスレッドが最後の区間を _on_segment へ渡す（_on_segment はロックを取る）ため、
-        状態を書き換えた後にロックを離してから止める。先に transcribing にするので、同じセッションへの 2 度目の完了・打ち切りは通らない。
+        状態を書き換えた後にロックを離してから止める。先に transcribing にするので、同じ録音セッションへの 2 度目の完了・打ち切りは通らない。
         ロックを持たずに呼ぶ。
         """
-        # 1. 今のセッションが録音中の連続録音であることを確かめ、transcribing にして知らせる
+        # 1. 今の録音セッションが録音中の連続録音であることを確かめ、transcribing にして知らせる
         with self._lock:
             session = self._session
             segments = self._segments
@@ -498,7 +498,7 @@ class SessionManager:
         while True:
             item = segments.get()
 
-            # 終了で捨てた: 残りの区間も終わりも返さずに終える（セッションは close が空にしている）
+            # 終了で捨てた: 残りの区間も終わりも返さずに終える（録音セッションは close が空にしている）
             if item is None:
                 return
 
@@ -511,12 +511,12 @@ class SessionManager:
             segment_count = number
             self._process_segment(session, number, segment)
 
-        # セッションを空にして待機中を知らせる
+        # 録音セッションを空にして待機中を知らせる
         with self._lock:
             self._session = None
             self._segments = None
         self._deps.notify("state_changed", IDLE_DETAIL)
-        logger.info(f"セッションを終えた（{session.id}）")
+        logger.info(f"録音セッションを終えた（{session.id}）")
 
     def _deliver_continuous_end(
         self, session: Session, end: ContinuousEnd, segment_count: int
@@ -575,13 +575,13 @@ class SessionManager:
 
     def _stopped_recording(self, session: Session) -> Recording:
         """止めた録音を返す。止めていなければ録音を止めて返す。"""
-        # 停止中: 止めたときにセッションが持った貯めた音を使う
+        # 停止中: 止めたときに録音セッションが持った貯めた音を使う
         if session.state == SessionState.STOPPED and session.recording is not None:
             return session.recording
         return self._deps.stop_recording()
 
     def _fail_confirm(self, session: Session, error: Exception) -> None:
-        """録音の停止か保存に失敗したセッションを片付けて待機中に戻し、失敗の知らせをワーカースレッドで行う。ロックを持って呼ぶ。"""
+        """録音の停止か保存に失敗した録音セッションを片付けて待機中に戻し、失敗の知らせをワーカースレッドで行う。ロックを持って呼ぶ。"""
         # 1. 止めていない録音が残っているかもしれないので捨てる（音量も戻る。既に止まっていれば握る）
         if session.state != SessionState.STOPPED:
             try:
@@ -589,7 +589,7 @@ class SessionManager:
             except Exception:  # noqa: BLE001 失敗の片付けの中の失敗で元の失敗を隠さないため
                 logger.warning(f"録音を捨てられなかった（{session.id}）", exc_info=True)
 
-        # 2. セッションを空にする
+        # 2. 録音セッションを空にする
         self._session = None
         logger.exception(f"録音を確定できなかった（{session.id}・{error}）")
 
@@ -597,17 +597,17 @@ class SessionManager:
         self._start_worker(self._announce_failure, session, str(error))
 
     def _change_state(self, session: Session, state: SessionState) -> Session:
-        """ロックを持った状態で、セッションの状態を書き換えて知らせ、書き換えたセッションを返す。"""
+        """ロックを持った状態で、録音セッションの状態を書き換えて知らせ、書き換えた録音セッションを返す。"""
         changed = replace(session, state=state)
         self._session = changed
         self._deps.notify("state_changed", str(state))
         return changed
 
     def _start_delivering(self, session: Session) -> Session:
-        """ロックの中で、今のセッションが session なら状態を delivering にして知らせ、そのときの今のセッションを返す。
+        """ロックの中で、今の録音セッションが session なら状態を delivering にして知らせ、そのときの今の録音セッションを返す。
 
-        文字起こし中に switch_output で差し替えた出力先は、ここで引き直すセッションが持つ。
-        今のセッションが session でなければ（終了で空になったなど）session をそのまま返す。
+        文字起こし中に switch_output で差し替えた出力先は、ここで引き直す録音セッションが持つ。
+        今の録音セッションが session でなければ（終了で空になったなど）session をそのまま返す。
         """
         with self._lock:
             current = self._session

@@ -139,7 +139,7 @@ def test_error_when_browser_request(
 
 
 def test_error_when_session_unknown(stack: Stack) -> None:
-    """録音中でも停止中でもないセッションは断る（異常系）。"""
+    """録音中でも停止中でもない録音セッションは断る（異常系）。"""
     # 準備
     stack.manager.start("hotkey")
 

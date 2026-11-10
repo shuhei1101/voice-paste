@@ -2,7 +2,7 @@
 
 常駐アプリを pytest のプロセスの中で `build_handlers` で配線し（録音の入力は無音の WAV を実時間で流すもの、システム音量は
 何もしないものに差し替えて、実機のマイクを開かない）、`build_fastapi` で組み立てた app を 127.0.0.1 で待ち受けさせて、
-開始 → 停止 → 完了を 50 回続けて呼び、50 回とも返送先に文字が届き、開始の応答が決定値以内であることを測る。
+開始 → 停止 → 完了を 50 回続けて呼び、50 回ともコールバック先に文字が届き、開始の応答が決定値以内であることを測る。
 返送が速く終わるよう、どんな音も音声とみなさない設定（vad_threshold = 1.0）で起こす。
 `--run-e2e` が無ければ skip する。
 """
@@ -60,7 +60,7 @@ def test_api_start_response_time(
     tmp_path: Path,
     receiver: CallbackReceiver,  # noqa: F811
 ) -> None:
-    """開始 → 停止 → 完了を 50 回続け、50 回とも返送先に文字が届き、開始の応答が決定値以内である（実機）。"""
+    """開始 → 停止 → 完了を 50 回続け、50 回ともコールバック先に文字が届き、開始の応答が決定値以内である（実機）。"""
     # 準備
     app = start_inprocess(
         settings=make_settings(vad_threshold=NO_SPEECH_VAD_THRESHOLD),

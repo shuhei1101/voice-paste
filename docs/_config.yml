@@ -8,12 +8,14 @@ baseurl: /voice-paste
 exclude:
   # 公開ドキュメントの索引の起点（トップは index.md が持つ）
   - README.md
+  - rules.yaml
   - architecture/
   - config/
   - design-policy.md
   - dev-command/
   - er/
   - external-api/
+  - glossary/
   - interface/
   - library/
   - module/

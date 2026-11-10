@@ -9,7 +9,7 @@ classes:
     container: runtime/hotkey.py
     usecase: 録音する
     role: ランタイム
-    summary: 設定のホットキーを pynput で受け付け、押されたら配線された関数を呼ぶ。セッションは import しない
+    summary: 設定のホットキーを pynput で受け付け、押されたら配線された関数を呼ぶ。録音セッションは import しない
     description: |-
       受付のスレッド（`pynput.keyboard.GlobalHotKeys`）を 1 つだけ持ち、張り直すときは止めてから新しく立てる。
       呼ぶ関数は pynput のスレッドで動くため、例外を握ってログに書き、受付を止めない。

@@ -31,3 +31,5 @@ items:
     summary: voice-paste の使い方（はじめに・使い方・リファレンス）
   - page: index.md
     summary: Pages のトップページ
+  - page: glossary/
+    summary: voice-paste のドメイン用語と、使用しない言い方の一覧

@@ -26,10 +26,10 @@
 | [常駐アプリ / 録音 / segmenter.py](./MOD-91.py.yaml) | 常駐アプリ / 録音 / segmenter.py |
 | [常駐アプリ / 録音 / service.py](./MOD-90.py.yaml) | 常駐アプリ / 録音 / service.py |
 | [常駐アプリ / 録音 / types.py](./MOD-93.py.yaml) | 常駐アプリ / 録音 / types.py |
-| [常駐アプリ / セッション / route.py](./MOD-25.py.yaml) | 常駐アプリ / セッション / route.py |
-| [常駐アプリ / セッション / schemas.py](./MOD-23.py.yaml) | 常駐アプリ / セッション / schemas.py |
-| [常駐アプリ / セッション / service.py](./MOD-24.py.yaml) | 常駐アプリ / セッション / service.py |
-| [常駐アプリ / セッション / types.py](./MOD-22.py.yaml) | 常駐アプリ / セッション / types.py |
+| [常駐アプリ / 録音セッション / route.py](./MOD-25.py.yaml) | 常駐アプリ / 録音セッション / route.py |
+| [常駐アプリ / 録音セッション / schemas.py](./MOD-23.py.yaml) | 常駐アプリ / 録音セッション / schemas.py |
+| [常駐アプリ / 録音セッション / service.py](./MOD-24.py.yaml) | 常駐アプリ / 録音セッション / service.py |
+| [常駐アプリ / 録音セッション / types.py](./MOD-22.py.yaml) | 常駐アプリ / 録音セッション / types.py |
 | [常駐アプリ / 文字起こし / service.py](./MOD-83.py.yaml) | 常駐アプリ / 文字起こし / service.py |
 | [常駐アプリ / 文字起こし / types.py](./MOD-82.py.yaml) | 常駐アプリ / 文字起こし / types.py |
 | [常駐アプリ / ブラウザの文字起こし / route.py](./MOD-29.py.yaml) | 常駐アプリ / ブラウザの文字起こし / route.py |
@@ -98,7 +98,7 @@
 | [常駐アプリ / ホットキーと画面 / settings_window.py](./MOD-36.py.yaml) | 常駐アプリ / ホットキーと画面 / settings_window.py |
 | [常駐アプリ / ホットキーと画面 / transcribing_indicator.py](./MOD-35.py.yaml) | 常駐アプリ / ホットキーと画面 / transcribing_indicator.py |
 | [常駐アプリ / APIサーバー](./MOD-1.yaml) | FastAPI の app を組み立て、127.0.0.1 での待ち受け・Host・Origin・トークンの守りと、例外の HTTP への変換を持つ。uvicorn を専用のスレッドで動かす。 |
-| [常駐アプリ / セッション](./MOD-3.yaml) | 録音から出力までの 1 回分の流れ（セッション）の状態と、入口をまたいで同時に 1 つだけ動かす排他を持つ。録音・文字起こし・補正・出力先・履歴は関数型越しに受け取り、API の route もここに置く。API の連続録音では、区切った区間を区切った順に起こして返し、最後に終わりを返す。 |
+| [常駐アプリ / 録音セッション](./MOD-3.yaml) | 録音から出力までの 1 回分の流れ（録音セッション）の状態と、入口をまたいで同時に 1 つだけ動かす排他を持つ。録音・文字起こし・補正・出力先・履歴は関数型越しに受け取り、API の route もここに置く。API の連続録音では、区切った区間を区切った順に起こして返し、最後に終わりを返す。 |
 | [常駐アプリ / ブラウザの文字起こし](./MOD-4.yaml) | 外の端末のブラウザから受けた音声のジョブを積み、1 件ずつ起こして補正し、状態と結果を返す feature（`features/web_transcription/`）。 |
 | [常駐アプリ / ホットキーと画面](./MOD-5.yaml) | グローバルのホットキーの受付（runtime/hotkey）と、PySide6 の画面とトレイ（ui）の入口としての境界。画面の構成・見た目・部品は #21 のデザインの工程で起こす。 |
 | [常駐アプリ / 共通](./MOD-6.yaml) | どの層からも使う設定のモデル・ログ・例外・置き場所のパスと、feature の間を渡る型を持つ。ほかの層に依存しない。 |

@@ -63,7 +63,7 @@ data_models:
     properties:
       - name: session_id
         type: str
-        description: セッションの ID
+        description: 録音セッションの ID
       - name: result
         type: Literal["transcribed", "failed", "truncated"]
         description: 結果の種類
@@ -193,7 +193,7 @@ function_types:
         description: 届ける結果
       - name: target
         type: str | None
-        description: 出力先に固有の宛先（返送先の URL）。持たない出力先は None
+        description: 出力先に固有の宛先（コールバック先の URL）。持たない出力先は None
     returns:
       type: None
       description: なし
@@ -205,7 +205,7 @@ function_types:
       - target: copy_only
         notes: クリップボードへ書く
       - target: deliver_to_caller
-        notes: 返送先へ POST する。API から始めた録音だけが使う
+        notes: コールバック先へ POST する。API から始めた録音だけが使う
     status: implemented
   - name: PresetFn
     title: プリセットの種類

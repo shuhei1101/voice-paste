@@ -1,0 +1,93 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+title: 用語集
+description: |-
+  ドメイン用語と使用しない言い方の一覧。1 プロジェクト 1 ファイル。
+  dev-docs の文書の行が `alias_type: term`・`records: terms` で参照し、各要素を 1 件の用語にする。
+x-kind: glossary
+x-folder: docs/glossary
+x-id-prefix: GLO
+type: object
+additionalProperties: false
+required:
+- id
+- title
+- terms
+properties:
+  id:
+    $ref: common.schema.yaml#/$defs/id
+    title: ID
+    description: 設計書の変わらない ID。書くツールの `create` が振り、改名・移動でも変わらない。他の設計書からは `{ID}#{項目のパス}` で指す。
+  visibility:
+    $ref: common.schema.yaml#/$defs/doc_visibility
+    title: 公開範囲
+    description: 文書を Pages に出すか（`public` / `internal`）。
+  title:
+    type: string
+    title: タイトル
+    description: '`用語集`。'
+  lead:
+    $ref: common.schema.yaml#/$defs/markdown
+    title: 冒頭リード
+    description: 対象を 1〜3 行で説明する。
+  terms:
+    type: array
+    title: 用語
+    description: ドメイン用語の並び。1 要素が 1 件の用語。
+    x-heading: 用語
+    x-shape: table
+    x-key: id
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - name
+      - description
+      properties:
+        id:
+          type: string
+          title: ID
+          description: 用語の変わらない ID。英小文字とハイフンで記載する。
+          pattern: ^[a-z][a-z0-9-]*$
+          examples:
+          - recording-session
+        name:
+          type: string
+          title: 用語
+          description: 文書・画面の文言・コードのコメントで使用する正式な単語。
+          minLength: 1
+          examples:
+          - 録音セッション
+        description:
+          type: string
+          title: 意味
+          description: 用語が指すものを 1 文で記載する。
+          minLength: 1
+          examples:
+          - 録音から出力先までの流れを同時に 1 つだけ動かす単位。
+        aliases:
+          type: array
+          title: 別名
+          description: 正式な単語と並べて使用してよい言い方。
+          items:
+            type: string
+            minLength: 1
+        avoid:
+          type: array
+          title: 使用しない言い方
+          description: やめた言い方。文書・画面の文言・コードのコメントに記載せず、正式な単語に置き換える。
+          items:
+            type: string
+            minLength: 1
+          examples:
+          - - 返送先
+examples:
+- id: GLO-1
+  title: 用語集
+  terms:
+  - id: callback-target
+    name: コールバック先
+    description: 呼び出し元が指定し、起こした文字を受け取るエンドポイント（`callback_url`）。
+    avoid:
+    - 返送先

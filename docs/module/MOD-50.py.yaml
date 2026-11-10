@@ -387,7 +387,7 @@ data_models:
     role: 設定のモデル
     summary: ブラウザ添付の種類のプリセット 1 件
     inherits: pydantic.BaseModel
-    description: '`model_config = ConfigDict(extra="forbid", frozen=True)`（セッションがコピーとして持つため変えられないようにする）。'
+    description: '`model_config = ConfigDict(extra="forbid", frozen=True)`（録音セッションがコピーとして持つため変えられないようにする）。'
     properties:
       - name: kind
         type: Literal["browser"]
@@ -421,7 +421,7 @@ data_models:
     role: 設定のモデル
     summary: エンドポイントへ送信の種類のプリセット 1 件
     inherits: pydantic.BaseModel
-    description: '`model_config = ConfigDict(extra="forbid", frozen=True)`。authorization は `Field(repr=False)` にして、設定やセッションを repr でログに出しても値が出ないようにする（SecretStr は model_dump(mode="json") で伏せ字になり settings.toml へ書き戻せないため使わない）。'
+    description: '`model_config = ConfigDict(extra="forbid", frozen=True)`。authorization は `Field(repr=False)` にして、設定や録音セッションを repr でログに出しても値が出ないようにする（SecretStr は model_dump(mode="json") で伏せ字になり settings.toml へ書き戻せないため使わない）。'
     properties:
       - name: kind
         type: Literal["endpoint"]
@@ -796,7 +796,7 @@ enums:
     summary: プリセットの種類ごとの設定の判別共用体（`Annotated[... | ..., Field(discriminator="kind")]`）
     description: |-
       種類を追加するときは、種類の設定のモデルを 1 つ作ってここに追加し、出力先の PRESET_KINDS と画面の種類の名前に登録する。
-      セッションは確定の操作で選んだプリセットをこの型のコピーとして持ち、出力先へ渡す。
+      録音セッションは確定の操作で選んだプリセットをこの型のコピーとして持ち、出力先へ渡す。
     values:
       - value: browser
         title: ブラウザ添付

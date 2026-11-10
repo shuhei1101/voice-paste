@@ -31,7 +31,7 @@ layers:
       - 外部依存なし（GPU も実機のマイクも要らない）
       - マイク・システム音量・文字起こしのエンジンは Mock に差し替え、履歴は一時フォルダに書く
       - 画面のテスト（`tests/integration/ui/`）は offscreen（`QT_QPA_PLATFORM=offscreen`。`tests/conftest.py` が設定する）の QApplication で開き、操作は QtTest で行う。実機の画面・トレイ・ホットキーは使わず、UiDeps の関数は Mock で受ける
-      - 返送先は 127.0.0.1 で待ち受けるテスト用のエンドポイントで、テストが立てる
+      - コールバック先は 127.0.0.1 で待ち受けるテスト用のエンドポイントで、テストが立てる
       - Haas の文字起こしのサーバーの結合テスト（`tests/integration/haas_server/`）は、モデルを決まった文字を返す関数に差し替える。haas_asr・GPU は要らない
     run_one:
       label: ファイル
@@ -50,7 +50,7 @@ layers:
       - Windows と NVIDIA GPU が要る（無い環境では文字起こしのテストを skip する。CUDA の DLL は .venv の `Lib/site-packages/nvidia/` から読む）
       - '`tests/nfr/fixtures/` に録音・用語集・設定・期待値が要る（無ければ skip する）'
       - API の開始・処理中のテスト（`tests/nfr/test_api_start_response_time.py`・`test_busy_response_time.py`）は、常駐アプリを pytest のプロセスの中で `build_handlers` で配線し、録音の入力をテストの中で書き出した無音の WAV を流すものに、システム音量を何もしないものに差し替える（実機のマイクを開かない）。`--run-e2e` を付けたときだけ走る（付けなければ skip する）
-      - セッションの上限時間のテスト（`tests/nfr/test_api_session_limit.py`）は、SessionManager を上限時間 3 秒で自分で組み、録音機の入力をテストの中で書き出した無音の WAV を流すものに、システム音量を何もしないものに差し替える（実機のマイクを開かず、GPU を使わない）。`--run-e2e` を付けたときだけ走る（付けなければ skip する）
+      - 録音セッションの上限時間のテスト（`tests/nfr/test_api_session_limit.py`）は、SessionManager を上限時間 3 秒で自分で組み、録音機の入力をテストの中で書き出した無音の WAV を流すものに、システム音量を何もしないものに差し替える（実機のマイクを開かず、GPU を使わない）。`--run-e2e` を付けたときだけ走る（付けなければ skip する）
       - 話し終えてから貼り付くまでの時間のテスト（`tests/nfr/test_paste_latency.py`）は実物のクリップボードを書き換える（測った後に元の文字へ戻す）ため、`--run-e2e` を付けたときだけ走る。測っている間はクリップボードを使わない
       - 区間の最大の長さのテスト（`tests/nfr/test_max_segment_length.py`）の WAV は、音声合成（Windows では Windows の音声合成（SAPI）、Linux では Open JTalk）で書き出す
       - Ubuntu 24.04 の Xorg のセッション（検証環境の VM `voice-paste-ubuntu`）でも流せる（流し方は `notes` の『検証環境の VM で流す』）。GPU を前提にするテスト（`tests/support/whisper_fixtures.py` の `requires_real_whisper` を付けたテスト・`test_transcription_parity.py`・`test_segment_callback_latency.py`）と、外の端末のブラウザの文字起こしを使うテスト（`test_web_*.py`。常駐アプリが Linux でブラウザの文字起こしを持たない）は Linux では skip する。決定値は OS で分けない

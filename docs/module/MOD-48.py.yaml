@@ -7,7 +7,7 @@ data_models:
     container: shared/types.py
     usecase: 共通
     role: DTO
-    summary: 止めた録音の音と形式。録音・セッション・履歴が使う
+    summary: 止めた録音の音と形式。録音・録音セッション・履歴が使う
     properties:
       - name: samples
         type: numpy.ndarray
@@ -24,11 +24,11 @@ data_models:
     container: shared/types.py
     usecase: 共通
     role: DTO
-    summary: 出力先へ渡す結果。セッションと出力先が使う
+    summary: 出力先へ渡す結果。録音セッションと出力先が使う
     properties:
       - name: session_id
         type: str
-        description: セッションの ID
+        description: 録音セッションの ID
       - name: result
         type: Literal["transcribed", "failed", "truncated", "completed"]
         description: 結果の種類。completed は連続録音を完了し、全ての区間を届け終えたときだけ
@@ -52,7 +52,7 @@ data_models:
     container: shared/types.py
     usecase: 録音する
     role: DTO
-    summary: 連続録音で区切った 1 区間の音。録音が作り、セッションが受ける（feature の間を渡るため shared に置く）
+    summary: 連続録音で区切った 1 区間の音。録音が作り、録音セッションが受ける（feature の間を渡るため shared に置く）
     properties:
       - name: recording
         type: Recording
@@ -111,7 +111,7 @@ enums:
     title: 入口
     container: shared/types.py
     usecase: 共通
-    summary: セッションを始めた入口。セッションと出力先が使う
+    summary: 録音セッションを始めた入口。録音セッションと出力先が使う
     values:
       - value: hotkey
         title: ホットキー
@@ -162,7 +162,7 @@ function_types:
     title: 区間の受け取り先
     container: shared/types.py
     usecase: 録音する
-    summary: 区切った区間を区切った順に受け取る。録音の区切りのスレッドから呼ばれる。録音が呼び、セッションが渡す（feature の間を渡るため shared に置く）
+    summary: 区切った区間を区切った順に受け取る。録音の区切りのスレッドから呼ばれる。録音が呼び、録音セッションが渡す（feature の間を渡るため shared に置く）
     args:
       - name: segment
         type: Segment
@@ -177,7 +177,7 @@ function_types:
     title: 連続録音の失敗の知らせ先
     container: shared/types.py
     usecase: 録音する
-    summary: 区切りに失敗して連続録音を止めたことを、理由を添えて受け取る。録音の区切りのスレッドから呼ばれる。録音が呼び、セッションが渡す
+    summary: 区切りに失敗して連続録音を止めたことを、理由を添えて受け取る。録音の区切りのスレッドから呼ばれる。録音が呼び、録音セッションが渡す
     args:
       - name: reason
         type: str

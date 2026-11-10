@@ -477,7 +477,7 @@ class OutputSettingsBase(_SettingsModel):
 
 
 class _PresetModel(_SettingsModel):
-    """セッションが確定したときのコピーとして持つため、変えられないカスタムプリセットの共通の親。"""
+    """録音セッションが確定したときのコピーとして持つため、変えられないカスタムプリセットの共通の親。"""
 
     model_config = ConfigDict(frozen=True)
 
@@ -529,7 +529,7 @@ class EndpointPreset(_PresetModel):
     enabled: bool = _item(
         True, "録音の画面にボタンを出し、ホットキーを登録するか", reload=RELOAD_IMMEDIATE
     )
-    # repr に出さない: 設定やセッションを repr でログに出しても値が出ないようにする
+    # repr に出さない: 設定や録音セッションを repr でログに出しても値が出ないようにする
     authorization: str = _item(
         "",
         "空でなければ Authorization ヘッダーにそのまま入れる値（秘密）",
@@ -623,7 +623,7 @@ class UiSettings(_SettingsModel):
 
 
 class ContinuousSettings(_SettingsModel):
-    """API で始めた連続録音の、区切りの無音の長さとセッションの上限時間。"""
+    """API で始めた連続録音の、区切りの無音の長さと録音セッションの上限時間。"""
 
     min_silence_sec: float = _required(
         "連続録音を区切る無音の長さ（0.5〜10 秒）。話し声の後にこの秒数以上無音が続いたところで区間を区切る",
@@ -632,7 +632,7 @@ class ContinuousSettings(_SettingsModel):
         le=10,
     )
     session_limit_sec: int = _required(
-        "連続録音のセッションの上限時間（60〜86400 秒）。完了が来ないまま開始からこの秒数が経ったところで打ち切る",
+        "連続録音の録音セッションの上限時間（60〜86400 秒）。完了が来ないまま開始からこの秒数が経ったところで打ち切る",
         reload=RELOAD_RESTART,
         ge=60,
         le=86400,

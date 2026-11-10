@@ -10,7 +10,7 @@ class AppError(Exception):
 
 
 class CallbackNotAllowedError(AppError):
-    """返送先が許されない。"""
+    """コールバック先が許されない。"""
 
 
 class GlossaryPresetNotFoundError(AppError):
@@ -26,15 +26,15 @@ class ForbiddenRequestError(AppError):
 
 
 class SessionNotFoundError(AppError):
-    """セッションが無い・操作できない状態。"""
+    """録音セッションが無い・操作できない状態。"""
 
 
 class SessionBusyError(AppError):
-    """ほかのセッションが処理中。"""
+    """ほかの録音セッションが処理中。"""
 
 
 class SessionConflictError(AppError):
-    """セッションの種類がその操作を受けない（連続録音への停止）。"""
+    """録音セッションの種類がその操作を受けない（連続録音への停止）。"""
 
 
 class MicrophoneUnavailableError(AppError):

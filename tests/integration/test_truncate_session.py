@@ -1,6 +1,6 @@
 """上限で打ち切るの結合テスト。
 
-上限時間を短い値に差し替え、時計を進めて打ち切る。マイク・システム音量・返送先の受信先は偽物（受信先は 127.0.0.1 のテスト用）。
+上限時間を短い値に差し替え、時計を進めて打ち切る。マイク・システム音量・コールバック先の受信先は偽物（受信先は 127.0.0.1 のテスト用）。
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ from tests.integration.helpers import (
 
 
 def test_normal(stack: Stack, caplog: pytest.LogCaptureFixture) -> None:
-    """録音中のまま上限に達したセッションを打ち切る（正常系）。"""
+    """録音中のまま上限に達した録音セッションを打ち切る（正常系）。"""
     # 準備
     caplog.set_level(logging.WARNING)
     session_id = stack.start_session()
@@ -42,7 +42,7 @@ def test_normal(stack: Stack, caplog: pytest.LogCaptureFixture) -> None:
 
 
 def test_normal_when_stopped(stack: Stack) -> None:
-    """停止したまま完了が来ないセッションも、開始からの経過時間で打ち切る（正常系）。"""
+    """停止したまま完了が来ない録音セッションも、開始からの経過時間で打ち切る（正常系）。"""
     # 準備
     session_id = stack.start_session()
     stack.post(f"/sessions/{session_id}/stop")

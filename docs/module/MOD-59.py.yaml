@@ -27,18 +27,18 @@ constants:
     status: planned
 functions:
   - name: is_callback_allowed
-    title: 返送先の確かめ
+    title: コールバック先の確かめ
     kind: 関数
     container: features/outputs/callback/service.py
     usecase: APIで録音を操作する
     scope: public
-    summary: 返送先のホストが loopback か設定で許可したホストかを確かめる
+    summary: コールバック先のホストが loopback か設定で許可したホストかを確かめる
     args:
       - name: url
         type: str
         required: true
         passing: positional
-        description: 返送先
+        description: コールバック先
       - name: allowed_hosts
         type: frozenset[str]
         required: true
@@ -74,7 +74,7 @@ functions:
     usecase: 起こした文字を届ける
     scope: public
     inherits: OutputFn
-    summary: 返送先へ結果を POST し、届かなければ決めた回数まで再送する
+    summary: コールバック先へ結果を POST し、届かなければ決めた回数まで再送する
     args:
       - name: outcome
         type: TranscriptionOutcome
@@ -85,12 +85,12 @@ functions:
         type: str | None
         required: true
         passing: positional
-        description: 返送先
+        description: コールバック先
       - name: post
         type: Callable[[str, dict], PostResult]
         required: true
         passing: injected
-        description: 返送先へ JSON を POST してステータスと Retry-After を返す（非機能要件の返送のタイムアウトを部分適用した外部連携の post_json）
+        description: コールバック先へ JSON を POST してステータスと Retry-After を返す（非機能要件の返送のタイムアウトを部分適用した外部連携の post_json）
       - name: allowed_hosts
         type: frozenset[str]
         required: true
@@ -120,21 +120,21 @@ functions:
       type: None
       description: なし
     process: |-
-      1. 返送先が許されるかをもう一度確かめる（返送先の確かめ）
+      1. コールバック先が許されるかをもう一度確かめる（コールバック先の確かめ）
          - 許されない場合、DeliveryError を送出する
       2. 返す中身（CallbackPayload.from_outcome）を作り、1 + 再送回数まで POST する
          - 2xx なら終える
-           - `[INFO]` 返送先へ届けた（セッションの ID・result・区間の通し番号（あれば）・回数）
+           - `[INFO]` コールバック先へ届けた（録音セッションの ID・result・区間の通し番号（あれば）・回数）
          - 一時的な失敗（5xx・408・429 か DeliveryError。タイムアウト・接続できない）で次の回がある場合、待ちを置いて次へ
            - 待ちは、Retry-After があればその秒数、無ければ jitter(retry_base_sec × 2^(回数−1))（指数バックオフとフルジッター）
-           - Retry-After が retry_base_sec × 2^(再送回数−1)（待ちの上限）を超える場合、待たずに 3 へ（返送の間はセッションが残り次の開始を断るため、待ちを決めた上限に収める）
-           - `[WARNING]` 返送に失敗した（セッションの ID・区間の通し番号（あれば）・回数・理由）
+           - Retry-After が retry_base_sec × 2^(再送回数−1)（待ちの上限）を超える場合、待たずに 3 へ（返送の間は録音セッションが残り次の開始を断るため、待ちを決めた上限に収める）
+           - `[WARNING]` 返送に失敗した（録音セッションの ID・区間の通し番号（あれば）・回数・理由）
          - それ以外のステータス（408・429 を除く 4xx など、再送しても変わらない応答）の場合、再送せずに 3 へ
       3. 届かなかったらログに書いて終える（送出しない。履歴は残っている。連続録音は次の区間へ進む）
-         - `[ERROR]` 返送先に届かなかった（セッションの ID・区間の通し番号（あれば）・最後の理由）
+         - `[ERROR]` コールバック先に届かなかった（録音セッションの ID・区間の通し番号（あれば）・最後の理由）
     exceptions:
       - name: DeliveryError
-        condition: 返送先が許されない（開始の後に設定が変わった）
+        condition: コールバック先が許されない（開始の後に設定が変わった）
     unit_tests:
       - name: test_deliver_to_caller
         case: 正常
@@ -174,11 +174,11 @@ functions:
         expected: post が 3 回、sleep が 2 回呼ばれ、例外が出ず、ERROR のログが 1 行出る
       - name: test_deliver_to_caller_when_not_allowed
         case: 異常
-        summary: 許されない返送先へは送信しない
+        summary: 許されないコールバック先へは送信しない
         condition: target が http://example.com/x
         mock: post・sleep・jitter
         expected: DeliveryError が送出され、post が呼ばれない
-        exception: 返送先が許されない
+        exception: コールバック先が許されない
       - name: test_deliver_to_caller_when_segment
         case: 正常
         summary: 連続録音の区間は通し番号を付けて送信する

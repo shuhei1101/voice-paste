@@ -16,7 +16,7 @@ from tests.unit.voice_paste.server.helpers import (
 
 
 def test_build_fastapi() -> None:
-    """守りを通った開始がセッション管理へ届く（正常系）。"""
+    """守りを通った開始が録音セッション管理へ届く（正常系）。"""
     # 準備
     client, session_manager = make_client()
 

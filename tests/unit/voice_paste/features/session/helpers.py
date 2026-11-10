@@ -158,17 +158,17 @@ class Harness:
         return condition()
 
     def wait_until_idle(self, timeout: float = WAIT_SEC) -> bool:
-        """セッションが空（待機中）になるのを timeout 秒まで待ち、空になったかを返す。"""
+        """録音セッションが空（待機中）になるのを timeout 秒まで待ち、空になったかを返す。"""
         return self.wait_for(lambda: self.manager.current() is None, timeout)
 
     def current(self) -> Session:
-        """今のセッションを返す（無ければ失敗させる）。"""
+        """今の録音セッションを返す（無ければ失敗させる）。"""
         session = self.manager._session
         assert session is not None
         return session
 
     def state(self) -> str | None:
-        """今のセッションの状態を返す。セッションが無ければ None。"""
+        """今の録音セッションの状態を返す。録音セッションが無ければ None。"""
         session = self.manager._session
         return None if session is None else str(session.state)
 

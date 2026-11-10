@@ -1,4 +1,4 @@
-"""セッションとブラウザの文字起こしの route・画面の配信・要求の守り・本文の上限・例外ハンドラを組み込んだ FastAPI の app を組み立てる。"""
+"""録音セッションとブラウザの文字起こしの route・画面の配信・要求の守り・本文の上限・例外ハンドラを組み込んだ FastAPI の app を組み立てる。"""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ def build_fastapi(
     # 1. 自動で作られる文書のページ（docs・redoc・openapi.json）を持たない app を作る
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
-    # 2. セッションの API の依存を置き、セッションの route を集める
+    # 2. 録音セッションの API の依存を置き、録音セッションの route を集める
     app.state.session_api = session_api
     app.include_router(router)
 

@@ -13,7 +13,7 @@ from voice_paste.shared.settings import OutputSettingsBase, Preset, Settings
 from voice_paste.shared.types import SendEnterFn, TranscriptionOutcome
 
 type OutputFn = Callable[[TranscriptionOutcome, str | None], None]
-"""結果と出力先に固有の宛先（返送先の URL。持たない出力先は None）を受け、1 つの出力先へ届ける。届けられなければ DeliveryError。"""
+"""結果と出力先に固有の宛先（コールバック先の URL。持たない出力先は None）を受け、1 つの出力先へ届ける。届けられなければ DeliveryError。"""
 
 type PresetFn = Callable[[TranscriptionOutcome, Preset], None]
 """結果と確定の操作で選んだプリセット（確定したときの設定のコピー）を受け、1 つのプリセットへ届ける。届けられなければ DeliveryError。"""
@@ -98,7 +98,7 @@ class ResultPayload(BaseModel):
     """呼び出し元へ返す・エンドポイントへ送信が送信する JSON。"""
 
     session_id: str
-    """セッションの ID。"""
+    """録音セッションの ID。"""
 
     result: Literal["transcribed", "failed", "truncated"]
     """結果の種類。"""

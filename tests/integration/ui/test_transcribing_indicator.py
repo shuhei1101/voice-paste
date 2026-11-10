@@ -155,7 +155,7 @@ def _advance(indicator: TranscribingIndicator, clock: FakeClock, seconds: float)
 def test_transcribing_indicator_visible_when(
     make_ui: Callable[..., Ui], entry: str, state: str, hide_window: bool, shown: bool
 ) -> None:
-    """ホットキー・トレイのセッションが transcribing か delivering の間だけ出る。画面を出さない設定・API の録音では出さない（表示条件）。"""
+    """ホットキー・トレイの録音セッションが transcribing か delivering の間だけ出る。画面を出さない設定・API の録音では出さない（表示条件）。"""
     # 準備
     ui = make_ui(make_settings(recording=dict(hide_window=hide_window)))
 

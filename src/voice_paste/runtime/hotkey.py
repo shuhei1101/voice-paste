@@ -39,7 +39,7 @@ def validate_hotkeys(hotkeys: Iterable[str]) -> None:
 
 
 class HotkeyListener:
-    """設定のホットキーを pynput で受け付け、押されたら配線された関数を呼ぶ。セッションは import しない。"""
+    """設定のホットキーを pynput で受け付け、押されたら配線された関数を呼ぶ。録音セッションは import しない。"""
 
     def __init__(self) -> None:
         """受付はまだ始めない。"""

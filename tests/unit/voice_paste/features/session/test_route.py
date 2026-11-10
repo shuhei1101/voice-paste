@@ -11,7 +11,7 @@ from voice_paste.shared.errors import CallbackNotAllowedError
 
 
 def test_start_session_route_when_callback_not_allowed() -> None:
-    """許されない返送先は開始しない（異常系）。"""
+    """許されないコールバック先は開始しない（異常系）。"""
     from voice_paste.features.session.route import start_session_route
     from voice_paste.features.session.schemas import StartSessionRequest
     from voice_paste.features.session.types import SessionApiDeps

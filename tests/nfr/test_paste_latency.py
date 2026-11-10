@@ -3,7 +3,7 @@
 固めた設定（tests/nfr/fixtures/whisper.env の large-v3・cuda）と用語集（tests/nfr/fixtures/yogo.csv）で
 build_handlers を一時フォルダの置き場所で配線し、モデルの読み込みを待つ。マイクの入力は刷新前と同じ録音の先頭 10 秒を
 1024 フレームずつ渡すもの、音量の操作は何もしないもの、貼り付けのキーは押した時刻だけを控えるものに差し替える。
-ホットキーの入口でセッションを始め、録音が 10 秒分たまったら貼り付けのみ（paste_only）で確定する。
+ホットキーの入口で録音セッションを始め、録音が 10 秒分たまったら貼り付けのみ（paste_only）で確定する。
 クリップボードは実物を書き換えるため、測る前の文字を控えて測った後に戻す。
 `--run-e2e` が無い環境・固めた設定や録音が無い環境・GPU が無い環境では skip する。
 """
@@ -63,7 +63,7 @@ PASTE_TIMEOUT_SEC = 60.0
 """貼り付けのキーが押されるのを待つ上限。"""
 
 SETTLE_TIMEOUT_SEC = 10.0
-"""貼り付けのキーを押した後、セッションが終わって次の開始を受け付けるまで待つ上限。"""
+"""貼り付けのキーを押した後、録音セッションが終わって次の開始を受け付けるまで待つ上限。"""
 
 
 class _FinishedStream:
@@ -86,7 +86,7 @@ def _load_clip() -> np.ndarray:
 
 
 def _measure_once(handlers: Handlers, pressed_at: list[float], pasted: threading.Event) -> float:
-    """セッションを始めて確定し、確定を呼んでから貼り付けのキーが押されるまでの秒数を返す。"""
+    """録音セッションを始めて確定し、確定を呼んでから貼り付けのキーが押されるまでの秒数を返す。"""
     manager = handlers.session_manager
     pressed_at.clear()
     pasted.clear()

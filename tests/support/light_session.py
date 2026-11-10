@@ -1,7 +1,7 @@
 """文字起こしのエンジンを使わない SessionManager の組み立て（GPU を使わない非機能要件テストの補助）。
 
 録音の入力は WAV を流すもの、システム音量は何もしないものに差し替えた録音機（実機のマイクを開かない）で、
-話し声の判定（Silero VAD）は本物、返送は返送先の受信先へ届ける出力先だけを使う。
+話し声の判定（Silero VAD）は本物、返送はコールバック先の受信先へ届ける出力先だけを使う。
 文字起こしは、渡された関数（既定はエンジンが無いので呼ばれたら失敗させるもの）で起こす。
 """
 
@@ -54,7 +54,7 @@ def build_light_manager(
 ) -> SessionManager:
     """録音の入力に wav_input を流し、上限時間を短くした SessionManager を作る（履歴は tmp_path に残す）。
 
-    連続録音のセッションの上限時間は、渡さなければ設定の既定の値にする。文字起こしは、渡さなければ呼ばれたら失敗させる。
+    連続録音の録音セッションの上限時間は、渡さなければ設定の既定の値にする。文字起こしは、渡さなければ呼ばれたら失敗させる。
     """
     # 1. 録音機に、WAV を流す入力と何もしない音量と本物の話し声の判定を渡す
     paths = resolve_app_paths(tmp_path)
@@ -68,7 +68,7 @@ def build_light_manager(
         create_speech_detector=partial(StreamingVad, vad_session),
     )
 
-    # 2. 出力先は返送先へ届けるものだけにし、Session を入口・出力先・返送先に分けて渡す
+    # 2. 出力先はコールバック先へ届けるものだけにし、Session を入口・出力先・コールバック先に分けて渡す
     callback_spec = next(spec for spec in OUTPUTS if spec.id == CALLBACK_OUTPUT_ID)
     callback_handler = partial(
         callback_spec.handler,
@@ -82,7 +82,7 @@ def build_light_manager(
     outputs = (replace(callback_spec, handler=callback_handler),)
 
     def deliver_session(session: Session, outcome: TranscriptionOutcome) -> None:
-        """Session を入口・出力先・返送先に分けて出力先の deliver へ渡す。"""
+        """Session を入口・出力先・コールバック先に分けて出力先の deliver へ渡す。"""
         deliver(
             session.entry,
             session.output_id,

@@ -25,7 +25,7 @@ from voice_paste.shared.settings import Settings
 
 @pytest.fixture
 def stack(tmp_path: Path) -> Iterator[Stack]:
-    """本物の app を空きポートに立て、偽物のマイク・音量・エンジンと返送先の受信先を差した一式を返す。"""
+    """本物の app を空きポートに立て、偽物のマイク・音量・エンジンとコールバック先の受信先を差した一式を返す。"""
     built = build_stack(tmp_path)
     yield built
     stop_stack(built)
@@ -59,7 +59,7 @@ def stack_with_settings(tmp_path: Path) -> Iterator[Callable[[Settings], Stack]]
 def output_stack(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> Iterator[Callable[[Settings | None], OutputStack]]:
-    """設定を受けて、配線した出力先へ届く一式を作る関数を返す。テストの後に残ったセッションの録音を捨てる。"""
+    """設定を受けて、配線した出力先へ届く一式を作る関数を返す。テストの後に残った録音セッションの録音を捨てる。"""
     built: list[OutputStack] = []
 
     def _build(settings: Settings | None = None) -> OutputStack:

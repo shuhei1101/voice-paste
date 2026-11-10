@@ -89,7 +89,7 @@ class TrayState(StrEnum):
     """準備中（起動してから待機中になるまで）。"""
 
     IDLE = "idle"
-    """待機中（セッションが無い）。"""
+    """待機中（録音セッションが無い）。"""
 
     RECORDING = "recording"
     """録音中（recording・paused・stopped）。"""

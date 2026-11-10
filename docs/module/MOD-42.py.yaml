@@ -9,7 +9,7 @@ classes:
     container: runtime/hotkey_gnome.py
     usecase: 録音する
     role: ランタイム
-    summary: Wayland のセッションで HotkeyListener の代わりに使う。設定のホットキーを GNOME のカスタムショートカットへ登録し、押されたら配線された関数を呼ぶ。セッションは import しない
+    summary: Wayland のセッションで HotkeyListener の代わりに使う。設定のホットキーを GNOME のカスタムショートカットへ登録し、押されたら配線された関数を呼ぶ。録音セッションは import しない
     description: |-
       HotkeyListener と同じ start・stop を持ち、main・UiDeps はどちらも同じように扱う。
 

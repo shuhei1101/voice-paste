@@ -110,6 +110,13 @@ documents:
     metadata:
       name: title
       visibility: visibility
+  - id: glossary
+    title: 用語集
+    paths: ["docs/glossary/*.yaml"]
+    exclude: [index.yaml]
+    schema: schemas/glossary.schema.yaml
+    records: terms
+    alias_type: term
   - id: index
     title: 目次
     paths: ["docs/**/index.yaml"]

@@ -1,6 +1,6 @@
-"""ホットキーのセッションが、確定で選んだ出力先・ブラウザ添付のプリセットへ届ける結合テスト。
+"""ホットキーの録音セッションが、確定で選んだ出力先・ブラウザ添付のプリセットへ届ける結合テスト。
 
-SessionManager でホットキーのセッションを始めて確定し、main.py の配線（_wire_outputs）で作った出力先へ届くことを確かめる。
+SessionManager でホットキーの録音セッションを始めて確定し、main.py の配線（_wire_outputs）で作った出力先へ届くことを確かめる。
 マイク・システム音量・文字起こしのエンジンと、キーボード・ブラウザのアダプタ（copy_to_clipboard・send_paste・send_enter・open_app_window）・間（time.sleep）は偽物。
 """
 

@@ -20,7 +20,7 @@ catalogs:
         purpose: 設定の項目ごとに範囲と説明、再起動が要るかのマーカー（json_schema_extra）を持たせる
       - name: AnyHttpUrl
         kind: 型
-        purpose: 返送先の URL を検証する
+        purpose: コールバック先の URL を検証する
       - name: SecretStr
         kind: 型
         purpose: API キーをログに出さない

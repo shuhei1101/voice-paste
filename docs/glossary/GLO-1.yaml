@@ -1,0 +1,24 @@
+id: GLO-1
+visibility: internal
+title: 用語集
+lead: voice-paste のドメイン用語と、文書・画面の文言・コードのコメントで使用しない言い方。
+terms:
+  - id: recording-session
+    name: 録音セッション
+    description: 録音から出力先までの流れを同時に 1 つだけ動かす単位。
+    avoid:
+      - セッション
+  - id: callback-target
+    name: コールバック先
+    description: 録音の開始で呼び出し元が指定し、起こした文字を受け取るエンドポイント（`callback_url`）。
+    avoid:
+      - 返送先
+  - id: transcription-worker
+    name: 文字起こしワーカー
+    description: 常駐アプリの子プロセスとしてローカルの Whisper のモデルを持ち、録音を文字に起こすサブシステム。
+  - id: continuous-recording
+    name: 連続録音
+    description: 完了まで止めず、無音で区切った区間ごとに結果を返却する録音（`continuous`）。
+  - id: segment
+    name: 区間
+    description: 連続録音で、話し声の後の無音で区切った 1 つ分の録音。

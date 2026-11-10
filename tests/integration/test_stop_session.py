@@ -23,7 +23,7 @@ FED_SEC = 1.0
 
 
 def test_normal(stack: Stack) -> None:
-    """録音中のセッションを停止する（正常系）。"""
+    """録音中の録音セッションを停止する（正常系）。"""
     # 準備
     session_id = stack.start_session()
     stack.microphone.feed(FED_SEC)
@@ -40,7 +40,7 @@ def test_normal(stack: Stack) -> None:
 
 
 def test_error_when_continuous(stack: Stack) -> None:
-    """連続録音のセッションは停止せずに断る（異常系）。"""
+    """連続録音の録音セッションは停止せずに断る（異常系）。"""
     # 準備
     stack.set_segments(1)
     session_id = stack.start_session(continuous=True)
@@ -59,7 +59,7 @@ def test_error_when_continuous(stack: Stack) -> None:
 
 
 def test_normal_when_already_stopped(stack: Stack) -> None:
-    """停止したセッションへの停止は何も変えず 200 を返す（正常系）。"""
+    """停止した録音セッションへの停止は何も変えず 200 を返す（正常系）。"""
     # 準備
     session_id = stack.start_session()
     stack.post(f"/sessions/{session_id}/stop")
@@ -111,7 +111,7 @@ def test_error_when_browser_request(
 
 
 def test_error_when_session_unknown(stack: Stack) -> None:
-    """録音中でも停止中でもないセッションは断る（異常系）。"""
+    """録音中でも停止中でもない録音セッションは断る（異常系）。"""
     # 準備
     stack.manager.start("hotkey")
 

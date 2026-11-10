@@ -567,7 +567,7 @@ functions:
         required: false
         default: None
         passing: keyword
-        description: API の開始で指定した用語集のプリセットの名前（セッションの glossary_preset）。None は設定で選んでいるプリセット
+        description: API の開始で指定した用語集のプリセットの名前（録音セッションの glossary_preset）。None は設定で選んでいるプリセット
     returns:
       type: GlossaryPresetSettings
       description: 補正に使う用語集のプリセット

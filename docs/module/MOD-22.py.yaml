@@ -1,9 +1,9 @@
 id: MOD-22
 visibility: internal
-title: 常駐アプリ / セッション / types.py
+title: 常駐アプリ / 録音セッション / types.py
 data_models:
   - name: Session
-    title: セッション
+    title: 録音セッション
     container: features/session/types.py
     usecase: 共通
     role: DTO
@@ -11,7 +11,7 @@ data_models:
     properties:
       - name: id
         type: str
-        description: セッションの ID（uuid4）
+        description: 録音セッションの ID（uuid4）
       - name: entry
         type: Entry
         description: 始めた入口
@@ -20,17 +20,17 @@ data_models:
         description: 今の状態
       - name: started_at
         type: datetime
-        description: 始めた時刻。API のセッションの上限時間をここから数える
+        description: 始めた時刻。API の録音セッションの上限時間をここから数える
       - name: callback_url
         type: str | None
-        description: API から始めたときの返送先。それ以外は None
+        description: API から始めたときのコールバック先。それ以外は None
       - name: output_id
         type: str | None
         description: ホットキー・トレイから始めた録音で、確定の操作で選んだ出力先の ID
       - name: recording
         type: Recording | None
         default: None
-        description: API の録音を止めた後、完了までセッションが持つ貯めた音
+        description: API の録音を止めた後、完了まで録音セッションが持つ貯めた音
       - name: output_preset
         type: Preset | None
         description: ホットキー・トレイから始めた録音で、確定の操作で選んだカスタムプリセット（確定したときの設定のコピー）。固定の出力先を選んだときと API のときは None
@@ -48,7 +48,7 @@ data_models:
         description: API の開始で指定した用語集のプリセットの名前。None は設定で選んでいるプリセットで補正する（ホットキー・トレイの録音は常に None）
     status: implemented
   - name: SessionDeps
-    title: セッションの依存
+    title: 録音セッションの依存
     container: features/session/types.py
     usecase: 共通
     role: DTO
@@ -77,7 +77,7 @@ data_models:
         description: 録音を文字に起こす（失敗は TranscriptionError）
       - name: correct
         type: Callable[[str, str | None], str]
-        description: 起こした文字とセッションの glossary_preset を受け、その用語集のプリセットで補正する
+        description: 起こした文字と録音セッションの glossary_preset を受け、その用語集のプリセットで補正する
       - name: append_text
         type: AppendTextFn
         description: 起こした文字を履歴に追記する
@@ -104,7 +104,7 @@ data_models:
         description: 連続録音を止めて音量を戻し、区間に切り出していない話し声を最後の区間として渡し終えてから戻る（録音の stop_continuous）
     status: implemented
   - name: SessionApiDeps
-    title: セッションの API の依存
+    title: 録音セッションの API の依存
     container: features/session/types.py
     usecase: APIで録音を操作する
     role: DTO
@@ -112,10 +112,10 @@ data_models:
     properties:
       - name: session_manager
         type: SessionManager
-        description: セッション管理
+        description: 録音セッション管理
       - name: is_callback_allowed
         type: Callable[[str], bool]
-        description: 設定の許可ホストを部分適用した返送先の確かめ（出力先の is_callback_allowed）
+        description: 設定の許可ホストを部分適用したコールバック先の確かめ（出力先の is_callback_allowed）
       - name: glossary_preset_exists
         type: Callable[[str], bool]
         description: 今の設定の用語集のプリセットの一覧に、その名前があるか（補正の resolve_glossary_presets で引いた一覧で判定する）
@@ -139,10 +139,10 @@ data_models:
       pr: 78
 enums:
   - name: SessionState
-    title: セッションの状態
+    title: 録音セッションの状態
     container: features/session/types.py
     usecase: 共通
-    summary: セッションがどこまで進んだか
+    summary: 録音セッションがどこまで進んだか
     values:
       - value: recording
         title: 録音中
@@ -191,7 +191,7 @@ function_types:
     args:
       - name: session_id
         type: str
-        description: セッションの ID
+        description: 録音セッションの ID
       - name: recording
         type: Recording
         description: 確定した録音（連続録音では区間の音）
@@ -244,11 +244,11 @@ function_types:
     title: 出力先への配送
     container: features/session/types.py
     usecase: 共通
-    summary: 結果を出力先へ届ける。API のセッションは呼び出し元へ返す出力先だけを使う
+    summary: 結果を出力先へ届ける。API の録音セッションは呼び出し元へ返す出力先だけを使う
     args:
       - name: session
         type: Session
-        description: 届けるセッション（入口・選んだ出力先・返送先）
+        description: 届ける録音セッション（入口・選んだ出力先・コールバック先）
       - name: outcome
         type: TranscriptionOutcome
         description: 届ける結果
@@ -257,7 +257,7 @@ function_types:
       description: なし
     implementations:
       - target: 出力先の deliver
-        notes: main.py で Session を入口・選んだ出力先・返送先に分けて渡す（出力先はセッションを import しない）
+        notes: main.py で Session を入口・選んだ出力先・コールバック先に分けて渡す（出力先は録音セッションを import しない）
     status: implemented
   - name: NotifyFn
     title: ユーザーへの知らせ

@@ -98,7 +98,7 @@ identifier: list_web_glossary_presets
 permissions: なし（外からの認証は Cloudflare Access が持つ。常駐アプリは Host と Origin だけを確かめる）
 idempotent: true
 side_effects: なし（設定を読むだけで書き換えない）
-exclusivity: 制限なし（セッションやブラウザの音声の処理中も返す）
+exclusivity: 制限なし（録音セッションやブラウザの音声の処理中も返す）
 request:
   - name: Host
     type: str

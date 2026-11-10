@@ -165,7 +165,7 @@ SESSION_LIMIT_CHECK_INTERVAL_SEC: float = 1.0
 """上限での打ち切りを確かめる間隔。打ち切りの遅れはこの間隔までで、上限時間に対して無視できる。"""
 
 API_SESSION_LIMIT_SEC: int = 600
-"""API のセッションの上限時間。非機能要件の API のセッションの上限時間の決定値。"""
+"""API の録音セッションの上限時間。非機能要件の API の録音セッションの上限時間の決定値。"""
 
 WORKER_READY_TIMEOUT_SEC: float = 27.0
 """文字起こしワーカーの立て直しで ready を待つ上限。非機能要件の文字起こしワーカーの立て直しの時間の決定値。"""
@@ -261,10 +261,10 @@ class Handlers:
     """入口（API・ホットキー・画面）が使う配線済みのもの。"""
 
     session_manager: SessionManager
-    """セッション管理。"""
+    """録音セッション管理。"""
 
     session_api: SessionApiDeps
-    """API サーバーへ渡すセッションの API の依存（設定の許可ホストを部分適用した返送先の確かめを含む）。"""
+    """API サーバーへ渡す録音セッションの API の依存（設定の許可ホストを部分適用したコールバック先の確かめを含む）。"""
 
     web_api: WebApiDeps | None
     """API サーバーへ渡すブラウザの API の依存（WebJobQueue・probe_audio・一時のフォルダ）。WebJobQueue の開始と終了は main が呼ぶ。外の端末のブラウザの機能を使えない OS では None。"""
@@ -389,10 +389,10 @@ def parse_args(argv: list[str]) -> CliArgs:
 def _purge_while_running(
     settings_store: SettingsStore, session_manager: SessionManager, paths: AppPaths
 ) -> None:
-    """常駐中の定期の削除。今の設定と、処理中のセッションの ID（一時の音声を残す）を引いて purge_old_files を呼ぶ。"""
+    """常駐中の定期の削除。今の設定と、処理中の録音セッションの ID（一時の音声を残す）を引いて purge_old_files を呼ぶ。"""
 
     def _active_session_ids() -> set[str]:
-        """処理中のセッションの ID を返す（待機中は空）。"""
+        """処理中の録音セッションの ID を返す（待機中は空）。"""
         current = session_manager.current()
         return set() if current is None else {current.id}
 
@@ -460,7 +460,7 @@ def _deliver_session(
     outputs: tuple[OutputSpec, ...],
     preset_kinds: tuple[PresetKindSpec, ...],
 ) -> None:
-    """Session を入口・選んだ出力先・選んだプリセット・返送先に分けて、出力先の deliver へ渡す（出力先はセッションを import しない）。"""
+    """Session を入口・選んだ出力先・選んだプリセット・コールバック先に分けて、出力先の deliver へ渡す（出力先は録音セッションを import しない）。"""
     deliver(
         session.entry,
         session.output_id,
@@ -648,7 +648,7 @@ def build_handlers(
         presets = resolve_glossary_presets(store.get(), paths.settings_file.parent)
         return any(preset.name == name for preset in presets)
 
-    # 7. SessionDeps を組み、API のセッションの上限時間と連続録音の上限時間（起動時の設定。再起動で効く）と共に SessionManager を作る
+    # 7. SessionDeps を組み、API の録音セッションの上限時間と連続録音の上限時間（起動時の設定。再起動で効く）と共に SessionManager を作る
     deps = SessionDeps(
         start_recording=recorder.start,
         pause_recording=recorder.pause,
@@ -683,7 +683,7 @@ def build_handlers(
         timedelta(seconds=settings.api.continuous.session_limit_sec),
     )
 
-    # 8. SessionManager と、設定の許可ホストを部分適用した返送先の確かめと、用語集のプリセットの確かめを SessionApiDeps に束ねる
+    # 8. SessionManager と、設定の許可ホストを部分適用したコールバック先の確かめと、用語集のプリセットの確かめを SessionApiDeps に束ねる
     session_api = SessionApiDeps(
         session_manager=session_manager,
         is_callback_allowed=partial(
@@ -935,7 +935,7 @@ def build_hotkey_bindings(
         start_local_session(Entry.HOTKEY)
 
     def on_output(output_id: str) -> None:
-        """ホットキー・トレイの録音が文字起こし中ならその出力先へ差し替え、そうでなければその出力先で確定する（差し替えられないセッションは SessionManager が断る）。"""
+        """ホットキー・トレイの録音が文字起こし中ならその出力先へ差し替え、そうでなければその出力先で確定する（差し替えられない録音セッションは SessionManager が断る）。"""
         if is_local_transcribing():
             session_manager.switch_output(output_id)
         else:
@@ -1424,7 +1424,7 @@ def _start_services(
         tray.show_failure("settings_invalid", str(error), paths=error.paths)
         return
 
-    # 6. 設定の ui.theme で画面の明暗を当て直し、ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を削除する（処理中のセッションは無いため、一時の音声も全て削除する対象にする）
+    # 6. 設定の ui.theme で画面の明暗を当て直し、ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を削除する（処理中の録音セッションは無いため、一時の音声も全て削除する対象にする）
     apply_theme(app, settings.ui.theme, image_dir=paths.ui_image_dir)
     logging.getLogger().setLevel(settings.logging.level)
     purge_old_files(settings, paths=paths, active_session_ids=set)

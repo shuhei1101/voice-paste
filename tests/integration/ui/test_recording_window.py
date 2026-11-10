@@ -1102,7 +1102,7 @@ def test_hide_button_label_when_start_hotkey_is_free(make_ui: Callable[..., Ui])
 
 
 def test_hide_button_action(make_ui: Callable[..., Ui]) -> None:
-    """その回だけ録音の画面を隠す。セッションの状態・録音は止めず、確定・一時停止・取り消しを呼ばない。"""
+    """その回だけ録音の画面を隠す。録音セッションの状態・録音は止めず、確定・一時停止・取り消しを呼ばない。"""
     # 準備
     ui = make_ui()
     ui.notify_state("hotkey", "recording")

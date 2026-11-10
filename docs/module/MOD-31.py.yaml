@@ -17,7 +17,7 @@ enums:
       - value: idle
         member: IDLE
         title: 待機中
-        description: セッションが無い
+        description: 録音セッションが無い
       - value: recording
         member: RECORDING
         title: 録音中

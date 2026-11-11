@@ -17,7 +17,7 @@ catalogs:
         purpose: コールバック先のエンドポイントへ結果を JSON で送信する
       - name: Timeout
         kind: クラス
-        purpose: 返送のタイムアウトを渡す
+        purpose: 返送のタイムアウトを引き渡す
       - name: follow_redirects=False
         kind: 引数
         purpose: 許可していないホストへリダイレクトで流れるのを防ぐ（既定も追わない）
@@ -34,6 +34,6 @@ upstream: encode/httpx
 verification:
   state: 済
   date: '2026-10-01'
-  detail: WSL（Linux・Python 3.12）で、127.0.0.1 のエンドポイントへ結果の JSON（session_id・result・text）を POST して 200 と受け取りを確かめた。Windows の実機では未確認
+  detail: WSL（Linux・Python 3.12）で、127.0.0.1 のエンドポイントへ結果の JSON（session_id・result・text）を POST して 200 と受け取りを確認した。Windows の実機では未確認
 license: BSD-3-Clause（商用利用可）
 official_url: https://www.python-httpx.org/

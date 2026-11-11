@@ -10,14 +10,14 @@ functions:
     container: shared/logger.py
     usecase: 常駐アプリを起動する
     scope: public
-    summary: 標準の logging を日付ごとのファイルへ書くようにし、uvicorn のロガーもそこへ寄せる
+    summary: 標準の logging を日付ごとのファイルへ書き込むようにし、uvicorn のロガーもそこへ寄せる
     side_effects: ルートロガーと uvicorn のロガーのハンドラを入れ替える。log_dir が無ければ作る。
     args:
       - name: log_dir
         type: Path
         required: true
         passing: positional
-        description: ログの置き場所
+        description: ログの配置先
       - name: level
         type: Literal["DEBUG", "INFO", "WARNING", "ERROR"]
         required: true
@@ -28,30 +28,30 @@ functions:
       description: なし
     process: |-
       1. log_dir を作る
-      2. ルートロガーに既にこの関数が付けたハンドラがあれば外す（2 回呼んでも 1 組だけにする）
-      3. 日付ごとのファイルのハンドラ（_DailyFileHandler）を付ける。書くたびにモジュールの `_today()`（今日の `date` を返す内部の関数。単体テストが差し替える）を呼び、`{log_dir}/{YYYY-MM-DD}.log` が変わっていれば開き直す
+      2. ルートロガーに既にこの関数が付けたハンドラがあれば解除する（2 回呼んでも 1 組だけにする）
+      3. 日付ごとのファイルのハンドラ（_DailyFileHandler）を付ける。書き込むたびにモジュールの `_today()`（今日の `date` を返却する内部の関数。単体テストが差し替える）を呼び、`{log_dir}/{YYYY-MM-DD}.log` が変わっていれば開き直す
       4. 書式は 1 行 1 JSON（JSON Lines）で、ts（ローカルの時刻を UTC オフセット付きの ISO 8601）・level・name・msg・例外があれば exc を持つ（ensure_ascii=False）
       5. sys.stderr があれば同じ書式で stderr にも出す（pythonw では無い）
       6. ルートロガーのレベルを level にする
-      7. uvicorn・uvicorn.error・uvicorn.access のロガーのハンドラを外し、propagate を True にする
+      7. uvicorn・uvicorn.error・uvicorn.access のロガーのハンドラを解除し、propagate を True にする
     unit_tests:
       - name: test_setup_logging
         case: 正常
-        summary: 今日のファイルに JSON Lines で書く
+        summary: 今日のファイルに JSON Lines で書き込む
         condition: level=INFO、日本語の INFO と DEBUG を 1 行ずつ出す
         mock: なし（一時フォルダ）
-        expected: '{log_dir}/{今日}.log に INFO の 1 行だけがあり、JSON として読めて msg が日本語のまま、ts に UTC オフセットが付く'
+        expected: '{log_dir}/{今日}.log に INFO の 1 行だけがあり、JSON として読み込めて msg が日本語のまま、ts に UTC オフセットが付く'
       - name: test_setup_logging_when_called_twice
         case: 正常
-        summary: 2 回呼んでも二重に書かない
+        summary: 2 回呼んでも二重に書き込まない
         condition: setup_logging を 2 回呼んでから 1 行出す
         mock: なし（一時フォルダ）
         expected: ファイルに 1 行だけ
       - name: test_setup_logging_when_date_changed
         case: 正常
-        summary: 日付が変われば次のファイルへ書く
+        summary: 日付が変われば次のファイルへ書き込む
         condition: 1 行出した後に今日を翌日へ差し替えて 1 行出す
-        mock: 今日の日付を返す関数（monkeypatch）
+        mock: 今日の日付を返却する関数（monkeypatch）
         expected: 2 つの日付のファイルに 1 行ずつ
       - name: test_setup_logging_when_uvicorn_logger
         case: 正常
@@ -68,14 +68,14 @@ functions:
     container: shared/logger.py
     usecase: 常駐アプリを起動する
     scope: public
-    summary: 保持期間を過ぎた日付のログだけを消す（今日より前を全て消す今のやり方はやめる）
-    side_effects: log_dir の下のファイルを消す。
+    summary: 保持期間を過ぎた日付のログだけを削除する（今日より前を全て削除する今のやり方はやめる）
+    side_effects: log_dir の下のファイルを削除する。
     args:
       - name: log_dir
         type: Path
         required: true
         passing: positional
-        description: ログの置き場所
+        description: ログの配置先
       - name: retention_days
         type: int
         required: true
@@ -88,10 +88,10 @@ functions:
         description: 今日
     returns:
       type: int
-      description: 消したファイルの数
+      description: 削除したファイルの数
     process: |-
-      1. log_dir の直下の `YYYY-MM-DD.log` 形式の名前のファイルを拾う（それ以外の名前は触らない）
-      2. 日付が today − retention_days 日より前のものを消す
+      1. log_dir の直下の `YYYY-MM-DD.log` 形式の名前のファイルを取得する（それ以外の名前は触らない）
+      2. 日付が today − retention_days 日より前のものを削除する
          - `[INFO]` 古いログを削除した（件数）
     unit_tests:
       - name: test_purge_old_logs
@@ -102,7 +102,7 @@ functions:
         expected: 2 日前だけが消え、戻り値が 1
       - name: test_purge_old_logs_when_other_names
         case: 正常
-        summary: 日付の形式でない名前は消さない
+        summary: 日付の形式でない名前は削除しない
         condition: 保持 1 日、`notes.log`・`2026-13-40.log`・10 日前のログ
         mock: なし（一時フォルダ）
         expected: 10 日前だけが消え、戻り値が 1

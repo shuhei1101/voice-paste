@@ -25,15 +25,15 @@ classes:
       | `RequestBodyTooLargeError` | ブラウザの本文が上限以上 | 413 |
       | `AudioUnreadableError` | 受けた音声を PyAV で開けないか、音声のストリームが無い | 415 |
       | `WebQueueFullError` | 終わっていないブラウザの音声のジョブが上限に達している | 503 |
-      | `TranscriptionError` | 文字起こしに失敗した（API へは返さずコールバック先へ届ける） | - |
+      | `TranscriptionError` | 文字起こしに失敗した（API へは返却せずコールバック先へ届ける） | - |
       | `EngineError` | エンジンが失敗した（外部連携が送出し、文字起こしが TranscriptionError に変える） | - |
       | `DeliveryError` | 出力先へ届けられない | - |
       | `UnknownOutputError` | 選んだ出力先が一覧に無いかオフ（`DeliveryError` の子） | - |
       | `VolumeControlError` | システム音量を操作できない | - |
-      | `SettingsError` | 設定の値が合わない（合わないキーをメッセージに並べる）。読めなかったファイルのパスを `paths`（`tuple[Path, ...]`。キーワード引数で渡し、既定は空）に持ち、トレイの通知が本文に出す | - |
+      | `SettingsError` | 設定の値が合わない（合わないキーをメッセージに並べる）。読み込めなかったファイルのパスを `paths`（`tuple[Path, ...]`。キーワード引数で引き渡し、既定は空）に持ち、トレイの通知が本文に出す | - |
       | `StartupError` | 起動に失敗した（エンジンを準備できない・前のプロセスが排他を放さない） | - |
-      | `HotkeyError` | ホットキーの書式を pynput が読めない | - |
-      | `GlossaryReadError` | 用語集の CSV を読めない（開けない・UTF-8 でない・見出しの列が無い・csv が解釈できない。メッセージが設定画面に出す理由になる） | - |
+      | `HotkeyError` | ホットキーの書式を pynput が読み込めない | - |
+      | `GlossaryReadError` | 用語集の CSV を読み込めない（開けない・UTF-8 でない・見出しの列が無い・csv が解釈できない。メッセージが設定画面に出す理由になる） | - |
 
-      全ての例外は docstring だけを持つクラス（`SettingsError` の `paths` を除く）で `shared/errors.py` に置き、親は表に書かない限り `AppError`。
+      全ての例外は docstring だけを持つクラス（`SettingsError` の `paths` を除く）で `shared/errors.py` に配置し、親は表に書き込まない限り `AppError`。
     status: implemented

@@ -6,7 +6,7 @@ functions:
     title: ラジオボタンの組の組み立て
     container: ui/windows/settings_fields.py
     usecase: 設定を変える
-    summary: リテラルの列挙の 1 つを選ぶ欄のラジオボタンを、tokens.toml の `shape.choice_gap`（20px。マーカーと名前の間より広くする）を空けて横に並べた QWidget を返す。ボタンの名前は labels（無ければ値そのまま）にし、値はボタンに持たせて selected_radio で読む。単体テストは test_settings_window.py に置く
+    summary: リテラルの列挙の 1 つを選ぶ欄のラジオボタンを、tokens.toml の `shape.choice_gap`（20px。マーカーと名前の間より広くする）を空けて横に並べた QWidget を返却する。ボタンの名前は labels（無ければ値そのまま）にし、値はボタンに持たせて selected_radio で読み込む。単体テストは test_settings_window.py に配置する
     kind: 関数
     scope: public
     args:
@@ -53,7 +53,7 @@ functions:
     title: 選んだラジオボタンの値
     container: ui/windows/settings_fields.py
     usecase: 設定を変える
-    summary: make_radio_group の組で選んでいるボタンの値（名前ではなく列挙の値）を返す。単体テストは test_settings_window.py に置く
+    summary: make_radio_group の組で選んでいるボタンの値（名前ではなく列挙の値）を返却する。単体テストは test_settings_window.py に配置する
     kind: 関数
     scope: public
     args:
@@ -61,14 +61,14 @@ functions:
         type: QWidget
         required: true
         passing: positional
-        description: make_radio_group が返した組
+        description: make_radio_group が返却した組
     returns:
       type: str
       description: 選んでいるボタンの値。どれも選んでいなければ空の文字
     unit_tests:
       - name: test_selected_radio_when_labels
         case: 正常
-        summary: 名前ではなく値を返す
+        summary: 名前ではなく値を返却する
         condition: test_make_radio_group_when_labels と同じ組で「ダーク」を選ぶ。QT_QPA_PLATFORM=offscreen
         mock: なし
         expected: dark

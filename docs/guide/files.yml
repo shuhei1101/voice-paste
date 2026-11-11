@@ -2,15 +2,46 @@ files:
 - path: 変更履歴.md
   visibility: public
   category: はじめに
+  description: voice-paste のバージョンごとの変更を記載し、バージョンで何が変わったかを確認するときに参照する。
+  tags:
+  - topic:バージョン
+  - topic:リリース
 - path: 起動と設定.md
   visibility: public
   category: 使い方
+  description: 常駐アプリの環境の作り方・起動と終了・Linux での自動起動・設定と履歴とログの配置先を記載し、常駐アプリを導入・起動するときや設定を変えるときに参照する。
+  tags:
+  - topic:設定
+  - action:起動
+  - topic:セットアップ
+  - topic:環境
+  - topic:履歴
+  - topic:ログ
+  - topic:常駐
 - path: 録音して貼り付ける.md
   visibility: public
   category: 使い方
+  description: ホットキー・トレイ・録音の画面から録音し、出力先を選んで起こした文字を届ける操作を記載し、声で文字を入力するときに参照する。
+  tags:
+  - action:録音
+  - topic:ショートカット
+  - topic:画面
+  - action:出力
 - path: 外の端末から文字に起こす.md
   visibility: public
   category: 使い方
+  description: 外の端末のブラウザで画面を開き、録音か音声ファイルを送信して起こした文字をコピーする操作を記載し、スマホやほかの PC から文字に起こすときに参照する。
+  tags:
+  - topic:ブラウザ
+  - topic:端末
+  - action:録音
+  - action:送信
 - path: API.md
   visibility: public
   category: リファレンス
+  description: ほかのプロセスが録音を開始・停止・完了し、起こした文字を受け取る API のエンドポイントを記載し、API から録音を操作するときに参照する。
+  tags:
+  - topic:api
+  - topic:エンドポイント
+  - action:録音
+  - topic:http

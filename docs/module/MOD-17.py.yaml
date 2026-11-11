@@ -11,7 +11,7 @@ classes:
     role: middleware
     kind: クラス
     summary: '`POST /web/transcriptions` の本文が上限以上なら 413 で断る純粋な ASGI middleware'
-    description: BaseHTTPMiddleware は本文を流しながら数えられないため、ASGI の `receive` を包む純粋な middleware にする。外部ライブラリではなく API サーバーに置く。
+    description: BaseHTTPMiddleware は本文を受け取りながら数えられないため、ASGI の `receive` を包む純粋な middleware にする。外部ライブラリではなく API サーバーに配置する。
     properties:
       - name: _app
         type: ASGIApp
@@ -28,7 +28,7 @@ classes:
         kind: メソッド
         scope: public
         is_async: true
-        summary: 対象の要求の本文の大きさを確かめながら次へ渡す
+        summary: 対象の要求の本文の大きさを確認しながら次へ引き渡す
         args:
           - name: scope
             type: Scope
@@ -49,24 +49,24 @@ classes:
           type: None
           description: なし
         process: |-
-          1. http の `POST /web/transcriptions` でなければそのまま次へ渡す
-          2. Content-Length があり _limit 以上なら、本文を読まずに 413 の problem+json を返す
+          1. http の `POST /web/transcriptions` でなければそのまま次へ引き渡す
+          2. Content-Length があり _limit 以上なら、本文を読み込まずに 413 の problem+json を返却する
              - `[WARNING]` 本文が大きすぎるため断った（大きさ）
-          3. receive を包む関数を次へ渡す。包む関数は `http.request` の body のバイト数を加算し、_limit 以上になったら RequestBodyTooLargeError を送出する（例外ハンドラが 413 にする。読みかけの SpooledTemporaryFile は Starlette が閉じる）
+          3. receive を包む関数を次へ引き渡す。包む関数は `http.request` の body のバイト数を加算し、_limit 以上になったら RequestBodyTooLargeError を送出する（例外ハンドラが 413 にする。読み込みかけの SpooledTemporaryFile は Starlette が閉じる）
              - `[WARNING]` 同上
         exceptions:
           - name: RequestBodyTooLargeError
-            condition: Content-Length の無い本文が読んでいる途中で上限に達した
+            condition: Content-Length の無い本文が読み込んでいる途中で上限に達した
         unit_tests:
           - name: test_call
             case: 正常
-            summary: 上限未満は通す
+            summary: 上限未満は許可する
             condition: _limit=1000、999 バイトの本文（Content-Length あり・chunked の 2 通り）
-            mock: 次の ASGI アプリ（本文を最後まで読む）
+            mock: 次の ASGI アプリ（本文を最後まで読み込む）
             expected: 次のアプリが 999 バイトを受け取る
           - name: test_call_when_content_length_over
             case: 異常
-            summary: Content-Length が上限以上なら読まずに 413
+            summary: Content-Length が上限以上なら読み込まずに 413
             condition: _limit=1000、Content-Length 1000
             mock: 次の ASGI アプリ
             expected: 413 の problem+json が返り、次のアプリが呼ばれない
@@ -75,9 +75,9 @@ classes:
             case: 異常
             summary: chunked で上限に達したら送出する
             condition: _limit=1000、Content-Length 無しで 500 バイトを 2 回
-            mock: 次の ASGI アプリ（本文を最後まで読む）
+            mock: 次の ASGI アプリ（本文を最後まで読み込む）
             expected: 2 回目の receive で RequestBodyTooLargeError が送出される
-            exception: 読んでいる途中で上限に達した
+            exception: 読み込んでいる途中で上限に達した
           - name: test_call_when_other_path
             case: 正常
             summary: 対象外のパスは数えない
@@ -93,6 +93,6 @@ constants:
     title: ブラウザの本文の上限
     container: server/body_limit.py
     usecase: ブラウザから音声を送信する
-    summary: '`POST /web/transcriptions` の本文の上限（このバイト数以上を 413）。非機能要件のブラウザの本文の上限。画面の app.js も同じ値で送信前に確かめる'
+    summary: '`POST /web/transcriptions` の本文の上限（このバイト数以上を 413）。非機能要件のブラウザの本文の上限。画面の app.js も同じ値で送信前に確認する'
     value: '100_000_000'
     status: planned

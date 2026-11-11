@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=../schemas/files.schema.yaml
+files:
+  - path: app.py
+    related:
+      - to: MOD-99
+        type: implements
+  - path: audio.py
+    related:
+      - to: MOD-100
+        type: implements
+  - path: main.py
+    related:
+      - to: MOD-101
+        type: implements

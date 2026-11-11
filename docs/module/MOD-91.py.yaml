@@ -10,21 +10,21 @@ classes:
     usecase: 録音する
     role: サービス
     kind: クラス
-    summary: 届いた音を 512 サンプルの窓に組み直し、窓ごとの話し声の確率から区間を切り出して、通し番号の順に渡す。録音は止めない
+    summary: 届いた音を 512 サンプルの窓に組み直し、窓ごとの話し声の確率から区間を切り出して、通し番号の順に引き渡す。録音は止めない
     description: |-
       窓をまたいで区切りの状態（話し声の始まり・無音の候補・前の区切り）と、前の区切り以降の音を持ち続けるためクラスにする。
       区切ったら区切りより前の音を手放し、持つ音は区間の最大の長さ程度に収める（連続録音の長さで増えない）。
-      区切りの決め方は PoC #80 の Segmenter と同じ（faster-whisper の get_speech_timestamps と同じ閾値の決め方）。
+      区切りの決め方は PoC [#80 PoC: 録音を止めずに Silero VAD で区切り、区間ごとの文字起こしが追いつくかを確かめる](https://github.com/shuhei1101/voice-paste/issues/80) の Segmenter と同じ（faster-whisper の get_speech_timestamps と同じ閾値の決め方）。
       区切りのスレッドからだけ呼ぶ（並行で呼ばない）。
     properties:
       - name: _detect_speech
         type: SpeechProbabilityFn
         access: 内部 (_)
-        description: 1 窓の話し声の確率を返す（StreamingVad）
+        description: 1 窓の話し声の確率を返却する（StreamingVad）
       - name: _on_segment
         type: OnSegmentFn
         access: 内部 (_)
-        description: 区切った区間の渡し先
+        description: 区切った区間の引き渡し先
       - name: _min_silence_samples
         type: int
         access: 内部 (_)
@@ -82,7 +82,7 @@ classes:
           - name: block
             type: numpy.ndarray
             required: true
-            description: 入力から届いた音（形状 (フレーム数, 1) か (フレーム数,)・int16。長さは揃わない）
+            description: 入力から届いた音（形状 (フレーム数, 1) か (フレーム数,)・int16。長さは一定ではない）
         returns:
           type: None
           description: なし
@@ -94,7 +94,7 @@ classes:
           - name: test_feed_cuts_at_silence
             case: 正常
             summary: 話し声の後の無音が区切る長さに達したら区切る
-            condition: 確率を 0.5 秒分 0.0、1 秒分 0.9、続いて 2.5 秒分 0.0 にする（話し声の前の余白を取れるように先頭に無音を置く）。min_silence_sec=2.0。16 kHz の音を 1024 フレームずつ渡す
+            condition: 確率を 0.5 秒分 0.0、1 秒分 0.9、続いて 2.5 秒分 0.0 にする（話し声の前の余白を取れるように先頭に無音を挿入する）。min_silence_sec=2.0。16 kHz の音を 1024 フレームずつ引き渡す
             mock: detect_speech・on_segment
             expected: on_segment に reason=silence の区間が 1 つ渡り、その長さが「話し声の前の余白 SEGMENT_PAD_SEC + 1 秒 + 話し声の後の余白 SEGMENT_PAD_SEC」に 1 窓の誤差で合う
           - name: test_feed_keeps_short_pause
@@ -138,10 +138,10 @@ classes:
             summary: 無音で区切った後に無音が続いても、貯める音を余白 + 窓 1〜2 つ分に収める
             condition: 確率を 1 秒分 0.9、続いて 59 秒分 0.0 にする。min_silence_sec=2.0
             mock: detect_speech・on_segment
-            expected: on_segment に reason=silence の区間が 1 つ渡り、流し終えた後の _audio の長さが SEGMENT_PAD_SEC + 窓 2 つ分以下
+            expected: on_segment に reason=silence の区間が 1 つ渡り、供給し終えた後の _audio の長さが SEGMENT_PAD_SEC + 窓 2 つ分以下
           - name: test_feed_keeps_head_pad_after_trim
             case: 正常
-            summary: 無音を長く流して音を手放した後の話し声でも、話し声の前の余白まで区間に含める
+            summary: 無音を長く供給して音を手放した後の話し声でも、話し声の前の余白まで区間に含める
             condition: 確率を 30 秒分 0.0、1 秒分 0.9、続いて 2.5 秒分 0.0 にする。min_silence_sec=2.0。音には位置が分かる連番の値を入れる
             mock: detect_speech・on_segment
             expected: on_segment に reason=silence の区間が 1 つ渡り、長さが「SEGMENT_PAD_SEC + 1 秒 + SEGMENT_PAD_SEC」に 1 窓の誤差で合い、話し声の窓の値が全て区間に含まれる
@@ -149,19 +149,19 @@ classes:
         title: 残りを区切る
         kind: メソッド
         scope: public
-        summary: 話し声の途中なら、そこまでを最後の区間として渡す（話し終えて無音が区切る長さに届く前の完了を含む）
+        summary: 話し声の途中なら、そこまでを最後の区間として引き渡す（話し終えて無音が区切る長さに届く前の完了を含む）
         returns:
           type: None
           description: なし
         process: |-
           1. 窓に満たない末尾の音も判定せずに区間に含める
-          2. 話し声の途中なら、前の区切りから末尾までを reason=flush の区間として渡す
-             - 話し声の途中でなければ何も渡さない
+          2. 話し声の途中なら、前の区切りから末尾までを reason=flush の区間として引き渡す
+             - 話し声の途中でなければ何も引き渡さない
         unit_tests:
           - name: test_flush_when_speaking
             case: 正常
-            summary: 話し声の途中なら最後の区間を渡す
-            condition: 確率 0.9 を 1 秒と、窓に満たない 100 サンプルを流して flush
+            summary: 話し声の途中なら最後の区間を引き渡す
+            condition: 確率 0.9 を 1 秒と、窓に満たない 100 サンプルを実行して flush
             mock: detect_speech・on_segment
             expected: on_segment に reason=flush の区間が 1 つ渡り、末尾の 100 サンプルを含む
           - name: test_flush_when_silent_after_speech
@@ -172,7 +172,7 @@ classes:
             expected: on_segment に reason=flush の区間が 1 つ渡る
           - name: test_flush_when_idle
             case: 正常
-            summary: 話し声が残っていなければ何も渡さない
+            summary: 話し声が残っていなければ何も引き渡さない
             condition: 区切った直後に flush
             mock: detect_speech・on_segment
             expected: flush では on_segment が呼ばれない
@@ -205,13 +205,13 @@ classes:
           2. 話し声の途中でなければ何もしない
           3. 話し声の始まりから MAX_SEGMENT_SEC に達したら、直近の短い無音の中ほど（無ければ今の位置）で reason=max_length で区切り、そこを次の話し声の始まりにして終える
           4. 確率が NEG_THRESHOLD 未満なら無音の候補として続いた長さを数える
-             - SHORT_SILENCE_SEC 以上続いたら、その無音の中ほどを短い無音として控える
+             - SHORT_SILENCE_SEC 以上続いたら、その無音の中ほどを短い無音として記録する
              - 区切る無音の長さ以上続いたら、無音の始まり + SEGMENT_PAD_SEC で reason=silence で区切り、話し声の途中でなくする
       - name: _emit
         title: 区間を渡す
         kind: メソッド
         scope: internal
-        summary: 前の区切り（か話し声の始まり − SEGMENT_PAD_SEC の遅い方）から区切りまでの音を Segment にして on_segment へ渡し、区切りより前の音を手放す
+        summary: 前の区切り（か話し声の始まり − SEGMENT_PAD_SEC の遅い方）から区切りまでの音を Segment にして on_segment へ引き渡し、区切りより前の音を手放す
         args:
           - name: cut
             type: int
@@ -226,7 +226,7 @@ classes:
           description: なし
         process: |-
           1. 区間の始まりを「前の区切り」と「話し声の始まり − SEGMENT_PAD_SEC」の遅い方にし、_audio から始まりから cut までを切り出して Recording（16 kHz）にする
-          2. Segment（recording・reason）を on_segment へ渡す
+          2. Segment（recording・reason）を on_segment へ引き渡す
           3. cut を前の区切りにし、_audio から cut より前を捨てる
              - `[INFO]` 区間を区切った（理由・長さ）
     refs:
@@ -240,7 +240,7 @@ constants:
     title: 判定の窓のサンプル数
     container: features/recording/segmenter.py
     usecase: 録音する
-    summary: 話し声の判定に 1 回で渡すサンプル数（16 kHz で 32 ms。Silero VAD が受ける窓の大きさ）
+    summary: 話し声の判定に 1 回で引き渡すサンプル数（16 kHz で 32 ms。Silero VAD が受ける窓の大きさ）
     value: '512'
     status: planned
     introduced:
@@ -276,7 +276,7 @@ constants:
     title: 区間の余白
     container: features/recording/segmenter.py
     usecase: 録音する
-    summary: '話し声の前後に残す余白（秒。言葉の頭と尾を切らないため。PoC #80 と同じ）'
+    summary: '話し声の前後に残す余白（秒。言葉の頭と尾を切らないため。PoC [#80 PoC: 録音を止めずに Silero VAD で区切り、区間ごとの文字起こしが追いつくかを確かめる](https://github.com/shuhei1101/voice-paste/issues/80) と同じ）'
     value: '0.3'
     status: planned
     introduced:

@@ -24,9 +24,9 @@ data_models:
       - name: enter_delay_sec
         type: float
         default: '0.5'
-        description: 貼り付けてから Enter を送信するまで待つ秒数（0 以上）。設定画面の欄の下に、`json_schema_extra` の note の「「貼り付けて送信」と、「ブラウザ添付」の Enter まで送信するプリセットで使う。」を出す
+        description: 貼り付けてから Enter を送信するまで待つ秒数（0 以上）。設定画面の欄の下に、`json_schema_extra` の note の「「貼り付けて送信」と、「ブラウザ添付」の Enter まで送信するプリセットで使用する。」を出す
       - name: enter_modifiers
         type: list[EnterModifier]
         default: '[]'
-        description: Enter と一緒に押す修飾キー。設定画面は「。」までを欄の名前にし、`json_schema_extra` の choice_labels（ctrl → Ctrl・alt → Alt・shift → Shift）でチェックボックスの名前を出す。反映は immediate。並びと重なりはそのまま持ち、押す順は send_enter が揃える
+        description: Enter と一緒に押す修飾キー。設定画面は「。」までを欄の名前にし、`json_schema_extra` の choice_labels（ctrl → Ctrl・alt → Alt・shift → Shift）でチェックボックスの名前を出す。反映は immediate。並びと重なりはそのまま持ち、押す順は send_enter が統一する
     status: planned

@@ -1,0 +1,91 @@
+tasks:
+  - process: 初期構築
+    status: skipped
+    reason: 既存リポジトリのため対象外
+    updated_by: planner
+    updated_at: '2026-11-11T08:15:19.712772+00:00'
+  - process: リバースエンジニアリング
+    status: skipped
+    reason: 設計書は揃っており、起こし直す対象が無い
+    updated_by: planner
+    updated_at: '2026-11-11T08:15:19.712772+00:00'
+  - process: 方針決め
+    status: skipped
+    reason: 方針決めを依頼する Issue でない
+    updated_by: planner
+    updated_at: '2026-11-11T08:15:19.712772+00:00'
+  - process: PoC 検証
+    status: skipped
+    reason: 文書の表し方とメタデータだけを変え、未検証の技術機構に依存しない
+    updated_by: planner
+    updated_at: '2026-11-11T08:15:19.712772+00:00'
+  - process: 複合ユースケース設計
+    status: skipped
+    reason: 業務の流れを変えず、図・文の表し方とメタデータだけを変えるため、ドキュメント修正で扱う
+    updated_by: planner
+    updated_at: '2026-11-11T08:15:19.712772+00:00'
+  - process: デザインスタイル選定
+    status: skipped
+    reason: 画面を変えない
+    updated_by: planner
+    updated_at: '2026-11-11T08:15:19.712772+00:00'
+  - process: 画面一覧・画面遷移
+    status: skipped
+    reason: 画面を変えない
+    updated_by: planner
+    updated_at: '2026-11-11T08:15:19.712772+00:00'
+  - process: 単一ユースケース設計
+    status: skipped
+    reason: 業務の流れを変えず、図・文の表し方とメタデータだけを変えるため、ドキュメント修正で扱う
+    updated_by: planner
+    updated_at: '2026-11-11T08:15:19.712772+00:00'
+  - process: モック作成
+    status: skipped
+    reason: 画面を変えない
+    updated_by: planner
+    updated_at: '2026-11-11T08:15:19.712772+00:00'
+  - process: インターフェース定義設計
+    status: skipped
+    reason: 入出力・フローを変えず、図・文の表し方とメタデータだけを変えるため、ドキュメント修正で扱う
+    updated_by: planner
+    updated_at: '2026-11-11T08:15:19.712772+00:00'
+  - process: 部品設計
+    status: skipped
+    reason: 画面の部品を変えない
+    updated_by: planner
+    updated_at: '2026-11-11T08:15:19.712772+00:00'
+  - process: 画面設計
+    status: skipped
+    reason: 画面の要素の仕様を変えず、表し方とメタデータだけを変えるため、ドキュメント修正で扱う
+    updated_by: planner
+    updated_at: '2026-11-11T08:15:19.712772+00:00'
+  - process: モジュール構成設計
+    status: skipped
+    reason: 構成を変えず、表し方とメタデータだけを変えるため、ドキュメント修正で扱う
+    updated_by: planner
+    updated_at: '2026-11-11T08:15:19.712772+00:00'
+  - process: ドキュメント修正
+    status: done
+    note: 要件.md の工程 1〜8 で docs/ の文書を移行する
+    updated_by: planner
+    updated_at: '2026-11-11T12:33:04.631482+00:00'
+  - process: 単体テスト作成
+    status: skipped
+    reason: src/・tests/ を変えない
+    updated_by: planner
+    updated_at: '2026-11-11T08:15:19.712772+00:00'
+  - process: 実装
+    status: skipped
+    reason: src/・haas_server/ を変えない
+    updated_by: planner
+    updated_at: '2026-11-11T08:15:19.712772+00:00'
+  - process: 結合テスト作成
+    status: skipped
+    reason: src/・tests/ を変えない
+    updated_by: planner
+    updated_at: '2026-11-11T08:15:19.712772+00:00'
+  - process: E2E テスト作成
+    status: skipped
+    reason: 業務の流れを変えない
+    updated_by: planner
+    updated_at: '2026-11-11T08:15:19.712772+00:00'

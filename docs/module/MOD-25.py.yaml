@@ -12,7 +12,7 @@ functions:
     role: route
     scope: public
     is_async: false
-    summary: POST /sessions。コールバック先と用語集のプリセットを確かめて SessionManager.start(entry="api") を呼ぶ
+    summary: POST /sessions。コールバック先と用語集のプリセットを確認して SessionManager.start(entry="api") を呼ぶ
     args:
       - name: body
         type: StartSessionRequest
@@ -26,15 +26,15 @@ functions:
         description: 録音セッションの API の依存。トークンは API サーバーの守りで照合済み
     returns:
       type: StartSessionResponse
-      description: 202 で返す
+      description: 202 で返却する
     process: |-
-      1. コールバック先のホストが許されるかを確かめる（出力先の is_callback_allowed）
+      1. コールバック先のホストが許されるかを確認する（出力先の is_callback_allowed）
          - 許されない場合、CallbackNotAllowedError を送出する（400 に変わる）
-      2. body.glossary_preset があれば、今の設定の用語集のプリセットの一覧にあるかを確かめる（glossary_preset_exists）
+      2. body.glossary_preset があれば、今の設定の用語集のプリセットの一覧にあるかを確認する（glossary_preset_exists）
          - 無い場合、その名前を含む GlossaryPresetNotFoundError を送出する（400 に変わる。録音を始めず、録音セッションも作らない）
            - `[WARNING]` 用語集のプリセットが無いため開始を断った（指定された名前）
       3. SessionManager.start(entry="api", callback_url, continuous=body.continuous, glossary_preset=body.glossary_preset) を呼ぶ（SessionBusyError は 409、MicrophoneUnavailableError は 503 に変わる）
-      4. 録音セッションの ID を返す
+      4. 録音セッションの ID を返却する
     exceptions:
       - name: CallbackNotAllowedError
         condition: コールバック先のホストが loopback でも設定で許可したホストでもない
@@ -52,20 +52,20 @@ functions:
         exception: コールバック先のホストが許されない
       - name: test_start_session_route_when_continuous
         case: 正常
-        summary: continuous を SessionManager.start へ渡す
+        summary: continuous を SessionManager.start へ引き渡す
         condition: 'body が {callback_url: http://127.0.0.1:9000/r, continuous: true}。省いた body も送信する'
         mock: SessionApiDeps の SessionManager
         expected: start に continuous=True が渡り、省いたときは continuous=False が渡る
       - name: test_start_session_route_when_glossary_preset
         case: 正常
-        summary: 一覧にある用語集のプリセットを SessionManager.start へ渡す
-        condition: 'body が {callback_url: http://127.0.0.1:9000/r, glossary_preset: 会議} で、glossary_preset_exists が True を返す。glossary_preset を省いた body も送信する'
+        summary: 一覧にある用語集のプリセットを SessionManager.start へ引き渡す
+        condition: 'body が {callback_url: http://127.0.0.1:9000/r, glossary_preset: 会議} で、glossary_preset_exists が True を返却する。glossary_preset を省いた body も送信する'
         mock: SessionApiDeps の SessionManager・glossary_preset_exists
         expected: start に glossary_preset="会議" が渡る。省いたときは glossary_preset=None が渡り、glossary_preset_exists は呼ばれない
       - name: test_start_session_route_when_glossary_preset_not_found
         case: 異常
         summary: 一覧に無い用語集のプリセットでは開始しない
-        condition: 'body が {callback_url: http://127.0.0.1:9000/r, glossary_preset: 無い名前} で、glossary_preset_exists が False を返す'
+        condition: 'body が {callback_url: http://127.0.0.1:9000/r, glossary_preset: 無い名前} で、glossary_preset_exists が False を返却する'
         mock: SessionApiDeps の SessionManager・glossary_preset_exists
         expected: メッセージに「無い名前」を含む GlossaryPresetNotFoundError が送出され、start が呼ばれない
         exception: 指定した用語集のプリセットが一覧に無い
@@ -91,7 +91,7 @@ functions:
         description: 録音セッションの API の依存
     returns:
       type: None
-      description: 200 で返す
+      description: 200 で返却する
     refs:
       - IF-8#
     status: implemented
@@ -116,7 +116,7 @@ functions:
         description: 録音セッションの API の依存
     returns:
       type: None
-      description: 202 で返す
+      description: 202 で返却する
     refs:
       - IF-9#
     status: implemented
@@ -126,7 +126,7 @@ functions:
     container: features/session/route.py
     usecase: APIで録音を操作する
     scope: public
-    summary: Depends で使う。request.app.state.session_api を返す
+    summary: Depends で使用する。request.app.state.session_api を返却する
     args:
       - name: request
         type: Request

@@ -30,7 +30,7 @@ upstream: AndreMiras/pycaw
 verification:
   state: 済
   date: '2026-10-02'
-  detail: pycaw 20251023 で、Windows の実機の既定の再生デバイスに対し、音量のアダプタの契約テスト 3 件（tests/external/voice_paste/integrations/volume/test_adapter.py）を --run-external で通した。GetSpeakers().EndpointVolume の GetMasterVolumeLevelScalar で読み、SetMasterVolumeLevelScalar で割合を掛けた音量（0.6 → 0.3）へ下げ、下げた音量を 0.6 へ戻せることを、フェードなしと 0.3 秒のフェード（別スレッド）の両方で確かめた（誤差 0.01 以内）。実行前後でマスター音量は変わらない（0.06）
+  detail: pycaw 20251023 で、Windows の実機の既定の再生デバイスに対し、音量のアダプタの契約テスト 3 件（tests/external/voice_paste/integrations/volume/test_adapter.py）を --run-external で合格した。GetSpeakers().EndpointVolume の GetMasterVolumeLevelScalar で読み込み、SetMasterVolumeLevelScalar で割合を掛けた音量（0.6 → 0.3）へ下げ、下げた音量を 0.6 へ戻せることを、フェードなしと 0.3 秒のフェード（別スレッド）の両方で確認した（誤差 0.01 以内）。実行前後でマスター音量は変わらない（0.06）
 license: MIT（商用利用可）
 official_url: https://github.com/AndreMiras/pycaw
 install: |-

@@ -9,10 +9,12 @@ flows:
     summary: 停止した録音を確定し、文字起こしを始める
     setup:
       - name: Mock
-        description: マイク・システム音量・トレイ・文字起こしのエンジンを差し替える。履歴は一時フォルダに書く
+        description: マイク・システム音量・トレイ・文字起こしのエンジンを差し替える。履歴は一時フォルダに書き込む
       - name: 停止中の録音セッション
         description: 録音を開始する と 録音を停止する を呼んだ録音セッション
     flow: |-
+      <!-- map: {"title": "正常系"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -25,6 +27,8 @@ flows:
         IF->>ENG: 文字起こしを始める
         IF-->>C: 202
       ```
+
+      <!-- /map -->
     expected:
       - 202 が返る
       - 履歴に確定した録音がある
@@ -34,10 +38,12 @@ flows:
     summary: 停止せずに完了すると、録音を停止してから確定する
     setup:
       - name: Mock
-        description: マイク・システム音量・トレイ・文字起こしのエンジンを差し替える。履歴は一時フォルダに書く
+        description: マイク・システム音量・トレイ・文字起こしのエンジンを差し替える。履歴は一時フォルダに書き込む
       - name: 録音中の録音セッション
         description: 録音を開始する だけを呼んだ録音セッション
     flow: |-
+      <!-- map: {"title": "正常系（録音中から完了する）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -52,6 +58,8 @@ flows:
         IF->>ENG: 文字起こしを始める
         IF-->>C: 202
       ```
+
+      <!-- /map -->
     expected:
       - 202 が返る
       - システム音量が録音前の値に戻っている
@@ -61,11 +69,13 @@ flows:
     summary: 連続録音の録音を停止し、区間に切り出していない話し声を最後の区間として区切る
     setup:
       - name: Mock
-        description: マイク・システム音量・トレイ・文字起こしのエンジン・話し声の判定を差し替える。履歴は一時フォルダに書く
+        description: マイク・システム音量・トレイ・文字起こしのエンジン・話し声の判定を差し替える。履歴は一時フォルダに書き込む
       - name: 連続録音の録音セッション
         description: 録音を開始する を continuous=true で呼び、区間を 1 つ区切った後、話し声が続いている間に完了を呼ぶ
-        notes: 話し声の判定は、最初の話し声の後に区切りの無音を返し、その後は話し声を返し続ける
+        notes: 話し声の判定は、最初の話し声の後に区切りの無音を返却し、その後は話し声を返し続ける
     flow: |-
+      <!-- map: {"title": "正常系（連続録音を完了する）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -77,9 +87,11 @@ flows:
         C->>IF: トークン・連続録音の session_id
         IF->>MIC: 録音を停止する
         IF->>HIST: 区間に切り出していない話し声を最後の区間として保存する
-        IF->>ENG: 最後の区間を区切った順の待ちに積む
+        IF->>ENG: 最後の区間を区切った順の待ちに追加する
         IF-->>C: 202
       ```
+
+      <!-- /map -->
     expected:
       - 202 が返る
       - システム音量が録音前の値に戻っている
@@ -91,28 +103,32 @@ flows:
     summary: 区間に切り出していない話し声が無ければ、最後の区間を作らずに終える
     setup:
       - name: Mock
-        description: マイク・システム音量・トレイ・文字起こしのエンジン・話し声の判定・返送を差し替える。履歴は一時フォルダに書く
+        description: マイク・システム音量・トレイ・文字起こしのエンジン・話し声の判定・返送を差し替える。履歴は一時フォルダに書き込む
       - name: 連続録音の録音セッション
-        description: 録音を開始する を continuous=true で呼び、無音だけを流して完了を呼ぶ
-        notes: 話し声の判定は無音だけを返す
+        description: 録音を開始する を continuous=true で呼び、無音だけを供給して完了を呼ぶ
+        notes: 話し声の判定は無音だけを返却する
     flow: |-
+      <!-- map: {"title": "正常系（話し声が残っていない連続録音を完了する）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
         participant IF as POST /sessions/{session_id}/complete
         participant MIC as マイク
-        participant RET as 呼び出し元へ返す
+        participant RET as 呼び出し元へ返却する
 
         C->>IF: トークン・連続録音の session_id
         IF->>MIC: 録音を停止する
         IF->>RET: session_id・result=completed・segment_count=0
         IF-->>C: 202
       ```
+
+      <!-- /map -->
     expected:
       - 202 が返る
       - 履歴にこの録音セッションの録音が無い
       - 文字起こしのエンジンに何も渡っていない
-      - 呼び出し元へ返す に result=completed・segment_count=0 が渡っている
+      - 呼び出し元へ返却する に result=completed・segment_count=0 が渡っている
     test: test_normal_when_continuous_without_speech
   - name: 異常系（トークンが合わない・401）
     summary: トークンが合わなければ確定しない
@@ -124,6 +140,8 @@ flows:
       - name: トークン
         description: 今回の起動のものと違うトークン
     flow: |-
+      <!-- map: {"title": "異常系（トークンが合わない・401）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -131,13 +149,15 @@ flows:
         participant LOG as ログ
 
         C->>IF: 合わないトークン
-        IF->>LOG: 断った理由と要求元（Host・Origin）を書く（トークンは書かない）
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書き込む（トークンは書き込まない）
         IF-->>C: 401
       ```
+
+      <!-- /map -->
     expected:
       - 401 が返る
       - 録音セッションが停止中のままで、文字起こしが始まっていない
-      - ログに断った理由と要求元が書かれ、トークンの値は書かれていない
+      - ログに断った理由と要求元が書き込まれ、トークンの値は書き込まれていない
     test: test_error_when_token_mismatch
   - name: 異常系（ブラウザからの要求・403）
     summary: Origin の付いた要求と、Host が待ち受けのホストでない要求を断る
@@ -149,6 +169,8 @@ flows:
       - name: 要求のヘッダー
         description: 正しいトークンに Origin を付けるか、Host をほかのホスト名にする
     flow: |-
+      <!-- map: {"title": "異常系（ブラウザからの要求・403）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -156,13 +178,15 @@ flows:
         participant LOG as ログ
 
         C->>IF: Origin ありか、ほかの Host
-        IF->>LOG: 断った理由と要求元（Host・Origin）を書く（トークンは書かない）
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書き込む（トークンは書き込まない）
         IF-->>C: 403
       ```
+
+      <!-- /map -->
     expected:
       - 403 が返る
       - 文字起こしが始まっていない
-      - ログに断った理由と要求元が書かれ、トークンの値は書かれていない
+      - ログに断った理由と要求元が書き込まれ、トークンの値は書き込まれていない
     test: test_error_when_browser_request
   - name: 異常系（知らない録音セッション・404）
     summary: 録音中でも停止中でもない録音セッションは断る
@@ -172,6 +196,8 @@ flows:
       - name: 録音セッションの ID
         description: 開始で受け取っていない ID か、既に完了した録音セッションの ID
     flow: |-
+      <!-- map: {"title": "異常系（知らない録音セッション・404）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -180,6 +206,8 @@ flows:
         C->>IF: トークン・知らない session_id
         IF-->>C: 404
       ```
+
+      <!-- /map -->
     expected:
       - 404 が返る
       - 文字起こしが始まっていない
@@ -189,7 +217,7 @@ lead: API から始めた録音を確定して履歴に残し、文字起こし�
 identifier: complete_session
 permissions: 今回の起動のトークン
 idempotent: false
-side_effects: 録音中なら録音を停止して音量を戻す。確定した録音を履歴に保存し（履歴を残す設定のとき）、文字起こしを始める。終わったら 呼び出し元へ返す がコールバック先へ送信する。連続録音では、区間に切り出していない話し声が残っていれば最後の区間として履歴に保存して区切った順の待ちに積み、全ての区間を返した後に 呼び出し元へ返す が終わり（completed）を送信する。
+side_effects: 録音中なら録音を停止して音量を戻す。確定した録音を履歴に保存し（履歴を残す設定のとき）、文字起こしを始める。終わったら 呼び出し元へ返却する がコールバック先へ送信する。連続録音では、区間に切り出していない話し声が残っていれば最後の区間として履歴に保存して区切った順の待ちに追加し、全ての区間を返却した後に 呼び出し元へ返却する が終わり（completed）を送信する。
 exclusivity: 完了した録音セッションは、返送を終えるまで（連続録音では残りの区間と終わりを返し終えるまで）処理中としてほかの開始を断る。同じ録音セッションへの 2 度目の完了は 404。
 request:
   - name: Authorization
@@ -208,7 +236,7 @@ request:
     status: implemented
 response_notes: |-
   > [!NOTE]
-  > 202 は文字起こしを受け付けたことだけを表し、起こした文字・空の文字・失敗は 呼び出し元へ返す がコールバック先へ届ける。連続録音では、残りの区間の文字と終わり（completed）がコールバック先へ届く。
+  > 202 は文字起こしを受け付けたことだけを表し、起こした文字・空の文字・失敗は 呼び出し元へ返却する がコールバック先へ届ける。連続録音では、残りの区間の文字と終わり（completed）がコールバック先へ届く。
 status_codes:
   - code: '202'
     condition: 録音を確定し、文字起こしを始めた（連続録音では、録音を停止して最後の区間を区切った）
@@ -223,8 +251,8 @@ constraints:
   - item: 待ち受け
     constraint: 127.0.0.1 だけ
   - item: 認可
-    constraint: 起動ごとに作るトークンの一致。Host・Origin の確かめ方は 録音を開始する と同じ
+    constraint: 起動ごとに作るトークンの一致。Host・Origin の確認方法は 録音を開始する と同じ
   - item: タイムアウト
     constraint: 制限なし
-    notes: 文字起こしを待たずに 202 を返す
+    notes: 文字起こしを待たずに 202 を返却する
 test_file: tests/integration/test_complete_session.py

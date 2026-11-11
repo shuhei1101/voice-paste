@@ -45,12 +45,12 @@ functions:
       - name: test_open_app_window
         case: 正常
         summary: Edge があれば --app で開く
-        condition: shutil.which が msedge を返す
+        condition: shutil.which が msedge を返却する
         mock: shutil.which・subprocess.Popen・os.startfile
         expected: Popen に ["msedge", "--app=https://chatgpt.com"] が渡り、os.startfile が呼ばれない
       - name: test_open_app_window_when_installed_path
         case: 正常
-        summary: PATH に無くても既定の置き場所の Edge で開く
+        summary: PATH に無くても既定の配置先の Edge で開く
         condition: shutil.which が None で、EDGE_PATHS の 2 つ目だけが存在する
         mock: shutil.which・Path.exists・subprocess.Popen
         expected: Popen の先頭に EDGE_PATHS の 2 つ目が渡る

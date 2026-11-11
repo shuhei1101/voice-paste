@@ -29,7 +29,7 @@ function_types:
     args:
       - name: words
         type: dict[str, list[str]]
-        description: 表記 → 読みの一覧。読みが無い語は空の一覧
+        description: 表記 → 読みの一覧。読みが無い単語は空の一覧
       - name: alpha
         type: float
         description: 手がかりの強さ（Vocabulary の alpha）
@@ -43,7 +43,7 @@ data_models:
     container: haas_server/app.py
     usecase: 録音を文字に起こす
     role: DTO
-    summary: create_app に渡す、モデルの関数と、起動の引数で受けたモデル・計算の精度・装置
+    summary: create_app に引き渡す、モデルの関数と、起動の引数で受けたモデル・計算の精度・装置
     properties:
       - name: model_name
         type: str
@@ -151,7 +151,7 @@ constants:
     title: モデルのサンプリングレート
     container: haas_server/app.py
     usecase: 録音を文字に起こす
-    summary: 音声の長さを秒にするときに使う
+    summary: 音声の長さを秒にするときに使用する
     value: '16000'
     status: planned
 functions:
@@ -161,7 +161,7 @@ functions:
     container: haas_server/app.py
     usecase: 録音を文字に起こす
     scope: public
-    summary: multipart の項目の文字列から調整の値を読み、範囲を確かめて TranscribeOptions にする
+    summary: multipart の項目の文字列から調整の値を読み込み、範囲を確認して TranscribeOptions にする
     args:
       - name: fields
         type: Mapping[str, str | None]
@@ -172,18 +172,18 @@ functions:
       type: TranscribeOptions
       description: 無い項目は既定値にした調整の値
     process: |-
-      1. 小数の項目（TUNING_FLOAT_RANGES のキー）は float にし、範囲の中かを確かめる（NaN・無限大は外す）
-      2. batch_size は int にし、BATCH_SIZE_RANGE の中かを確かめる
+      1. 小数の項目（TUNING_FLOAT_RANGES のキー）は float にし、範囲の中かを確認する（NaN・無限大は除外する）
+      2. batch_size は int にし、BATCH_SIZE_RANGE の中かを確認する
       3. guard は `true` か `false`（小文字）だけを受ける
-      4. separator は SEPARATOR_MAX_LENGTH 文字以下かを確かめる
-         - どれかが外れる場合、TuningValueError（field にその項目の名前）を送出する
+      4. separator は SEPARATOR_MAX_LENGTH 文字以下かを確認する
+         - どれかが除外される場合、TuningValueError（field にその項目の名前）を送出する
     exceptions:
       - name: TuningValueError
-        condition: 数値に読めない・範囲の外・guard が true でも false でもない・separator が長い
+        condition: 数値に読み込めない・範囲の外・guard が true でも false でもない・separator が長い
     unit_tests:
       - name: test_parse_tuning
         case: 正常
-        summary: 全ての項目を読む
+        summary: 全ての項目を読み込む
         condition: short_audio_limit_sec=20・batch_size=8・alpha=3.0・guard=false・chunk_sec=15・search_sec=1・window_sec=0.05・separator=。
         mock: なし
         expected: それぞれの値を持つ TranscribeOptions
@@ -209,11 +209,11 @@ functions:
         exception: guard が true でも false でもない
       - name: test_parse_tuning_when_not_number
         case: 異常
-        summary: 数値に読めない
+        summary: 数値に読み込めない
         condition: alpha=abc
         mock: なし
         expected: TuningValueError。field が alpha
-        exception: 数値に読めない
+        exception: 数値に読み込めない
       - name: test_parse_tuning_when_separator_too_long
         case: 異常
         summary: separator が長い
@@ -241,35 +241,35 @@ functions:
         type: int
         required: true
         passing: keyword
-        description: 待ち受けのポート（Host の確かめに使う）
+        description: 待ち受けのポート（Host の確認に使用する）
       - name: request_shutdown
         type: Callable[[], None]
         required: true
         passing: keyword
-        description: サーバーを止める関数（uvicorn.Server.should_exit を立てる）
+        description: サーバーを止める関数（uvicorn.Server.should_exit を作成する）
     returns:
       type: fastapi.FastAPI
       description: app
     process: |-
-      1. 全ての要求の前に、Host が `127.0.0.1:{port}` か `localhost:{port}` で、Origin が付いていないかを確かめる
-         - 外れる場合、403 の problem+json を返す
+      1. 全ての要求の前に、Host が `127.0.0.1:{port}` か `localhost:{port}` で、Origin が付いていないかを確認する
+         - 除外される場合、403 の problem+json を返却する
            - `[WARNING]` 要求を断った（理由・Host・Origin）
-      2. GET /health: ok=True と engine.model_name・engine.dtype・engine.device を返す
-      3. POST /shutdown: 202 を返した後に request_shutdown を呼ぶ（uvicorn が処理中の要求を返し終えてから終わる）
+      2. GET /health: ok=True と engine.model_name・engine.dtype・engine.device を返却する
+      3. POST /shutdown: 202 を返却した後に request_shutdown を呼ぶ（uvicorn が処理中の要求を返し終えてから終わる）
       4. POST /transcriptions:
-         1. vocabulary を読む（JSON の配列で、各要素の written が空でない）
-            - 外れる場合、400 の problem+json を返す
-              - `[WARNING]` 手がかりの形が合わない
-         2. 調整の値の項目を `Form` の `str | None` で受け、parse_tuning で読む（bool・数値の型で受けると FastAPI が `yes` を通し、型の合わない値を 422 にするため）
-            - TuningValueError の場合、400 の problem+json（detail に項目の名前）を返す
+         1. vocabulary を読み込む（JSON の配列で、各要素の written が空でない）
+            - 除外される場合、400 の problem+json を返却する
+              - `[WARNING]` 手がかりの構造が合わない
+         2. 調整の値の項目を `Form` の `str | None` で受け、parse_tuning で読み込む（bool・数値の型で受けると FastAPI が `yes` を受け付け、型の合わない値を 422 にするため）
+            - TuningValueError の場合、400 の problem+json（detail に項目の名前）を返却する
               - `[WARNING]` 調整の値が合わない（項目の名前・理由）
          3. audio を decode_audio で復号する
-            - AudioDecodeError の場合、400 の problem+json を返す
+            - AudioDecodeError の場合、400 の problem+json を返却する
               - `[WARNING]` 音声を復号できない（理由）
-         4. threading.Lock を取り、長さが options.short_audio_limit_sec 以下なら engine.transcribe、超えるなら engine.transcribe_longform に音声・Vocabulary・options を渡して起こす（Vocabulary は語があるときだけ engine.build_vocabulary(words, options.alpha) で作る）。FastAPI のスレッドプールで動かす
-            - 例外の場合、500 の problem+json（detail に例外の文）を返す
+         4. threading.Lock を取り、長さが options.short_audio_limit_sec 以下なら engine.transcribe、超えるなら engine.transcribe_longform に音声・Vocabulary・options を引き渡して起こす（Vocabulary は単語があるときだけ engine.build_vocabulary(words, options.alpha) で作る）。FastAPI のスレッドプールで動かす
+            - 例外の場合、500 の problem+json（detail に例外の文）を返却する
               - `[ERROR]` 文字起こしに失敗した（スタックトレースつき）
-         5. text を返す
+         5. text を返却する
             - `[INFO]` 起こした（音声の秒・かかった秒）
     unit_tests:
       - name: test_create_app_when_host_not_allowed

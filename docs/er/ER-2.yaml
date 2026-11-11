@@ -2,13 +2,13 @@ id: ER-2
 visibility: internal
 title: "ER 図: 常駐アプリのファイル"
 lead: |-
-  常駐アプリが書き出して持つファイル（履歴・一時の音声・トークン・ログ）。データベースは持たない。`%LOCALAPPDATA%\voice-paste\` を基準にし、名前の先頭に置き場を書く。
-  Linux では `%LOCALAPPDATA%\voice-paste\` を `~/.local/share/voice-paste/`、`%APPDATA%\voice-paste\` を `~/.config/voice-paste/` に読み替え、区切りは `/` にする（platformdirs が引く）。
+  常駐アプリが書き出して持つファイル（履歴・一時の音声・トークン・ログ）。データベースは持たない。`%LOCALAPPDATA%\voice-paste\` を基準にし、名前の先頭に置き場を書き込む。
+  Linux では `%LOCALAPPDATA%\voice-paste\` を `~/.local/share/voice-paste/`、`%APPDATA%\voice-paste\` を `~/.config/voice-paste/` に読み替え、区切りは `/` にする（platformdirs が取得する）。
 tables:
   - name: '%LOCALAPPDATA%\voice-paste\history\{YYYYMMDD}\{YYYYMMDDHHMMSS}_{session_id}.wav'
     title: 録音の履歴
     datastore: ファイル（WAV）
-    summary: 確定した録音。文字起こしより先に書き、文字起こしに失敗しても結果が空でも残る
+    summary: 確定した録音。文字起こしより先に書き込み、文字起こしに失敗しても結果が空でも残る
     growth: 録音を確定するたびに 1 つ増える（`history.enabled = true` のとき）。連続録音では区間を区切るたびに 1 つ増える
     retention: '`history.retention_days` 日（日付のフォルダごと削除する）'
     deletion: 物理削除（起動時と、常駐中は非機能要件の削除の間隔ごと）
@@ -30,7 +30,7 @@ tables:
     title: 起こした文字の履歴
     datastore: ファイル（テキスト、UTF-8）
     summary: 起こした文字（用語集で補正した後）。同じ名前の録音の履歴と対になる
-    growth: 文字起こしを終えるたびに 1 つ増える（結果が空でも書く。失敗した回は無い）
+    growth: 文字起こしを終えるたびに 1 つ増える（結果が空でも書き込む。失敗した回は無い）
     retention: '`history.retention_days` 日（日付のフォルダごと削除する）'
     deletion: 物理削除（録音の履歴と同じ）
     columns:
@@ -38,11 +38,11 @@ tables:
         title: 起こした文字
         type: string
         description: 区間ごとに改行で区切った文字
-    description: 連続録音の区間は、区間の録音と同じ名前（`{YYYYMMDDHHMMSS}_{session_id}_{通し番号}.txt`）に書く。
+    description: 連続録音の区間は、区間の録音と同じ名前（`{YYYYMMDDHHMMSS}_{session_id}_{通し番号}.txt`）に書き込む。
   - name: '%LOCALAPPDATA%\voice-paste\tmp\{session_id}.wav'
     title: 一時の音声
     datastore: ファイル（WAV）
-    summary: 履歴を残さない設定のときに、確定した録音を文字に起こすまで置く
+    summary: 履歴を残さない設定のときに、確定した録音を文字に起こすまで配置する
     growth: 録音を確定するたびに 1 つ増える（`history.enabled = false` のとき）
     retention: その録音セッションの確定後の流れが終わるまで（文字起こしに失敗しても結果が空でも、終わったら削除する）
     deletion: 物理削除（確定後の流れの最後に一時の音声の削除で取り除く。常駐が落ちた・削除できなかったときの取り残しは、古い履歴の削除が処理中の録音セッションのものを除いて取り除く）
@@ -62,15 +62,15 @@ tables:
   - name: '%LOCALAPPDATA%\voice-paste\api_token'
     title: API のトークンのファイル
     datastore: JSON
-    summary: 起動ごとに作る API のトークンと待ち受けのポート。同じユーザーのほかのプロセスが読んで API を呼ぶ
+    summary: 起動ごとに作る API のトークンと待ち受けのポート。同じユーザーのほかのプロセスが読み込んで API を呼ぶ
     scale: 1 件
     growth: 増えない（起動のたびに上書きする）
     retention: 次の起動まで
-    deletion: 消さない（次の起動で上書きする。古いトークンは照合で 401 になる）
-    access: 全件（呼び出し元が丸ごと読む）
+    deletion: 削除しない（次の起動で上書きする。古いトークンは照合で 401 になる）
+    access: 全件（呼び出し元が丸ごと読み込む）
     description: |-
-      置き場所は `shared/constants.py` の `token_file`（`--data-dir` を渡したときはその下の `api_token`）。
-      同じフォルダの一時ファイルに書いてから置き換えるため、読む側が書きかけを読むことはない。
+      配置先は `shared/constants.py` の `token_file`（`--data-dir` を引き渡したときはその下の `api_token`）。
+      同じフォルダの一時ファイルに書き込んでから置き換えるため、読み込む側が書き込みかけを読み込むことはない。
     columns:
       - name: port
         title: ポート
@@ -101,7 +101,7 @@ tables:
       - name: name
         title: ロガー名
         type: string
-        description: 書いたロガーの名前
+        description: 書き込んだロガーの名前
       - name: msg
         title: 本文
         type: string
@@ -110,13 +110,13 @@ tables:
         title: 例外
         type: string
         description: 例外のスタックトレース（例外があるときだけ）
-    description: 1 行 1 JSON で書く。
+    description: 1 行 1 JSON で書き込む。
   - name: '%LOCALAPPDATA%\voice-paste\log\worker_crash.log ほか'
     title: クラッシュと起動の記録
     datastore: ファイル（テキスト）
-    summary: 文字起こしワーカーのネイティブのクラッシュのスタック（`worker_crash.log`）と、起動のバッチファイルと Linux の起動のスクリプト（`voice-paste.sh`）の記録（`launcher.log`。import の確かめの結果と `uv sync --frozen` の出力を含む。Linux は `~/.local/share/voice-paste/log/` の下）
+    summary: 文字起こしワーカーのネイティブのクラッシュのスタック（`worker_crash.log`）と、起動のバッチファイルと Linux の起動のスクリプト（`voice-paste.sh`）の記録（`launcher.log`。import の確認の結果と `uv sync --frozen` の出力を含む。Linux は `~/.local/share/voice-paste/log/` の下）
     growth: worker_crash.log は追記、launcher.log は起動ごとに上書きする
-    retention: 消さない（日付の名前を持たないため、ログの保持期間の削除の対象にならない）
+    retention: 削除しない（日付の名前を持たないため、ログの保持期間の削除の対象にならない）
     columns:
       - name: line
         title: 記録の行
@@ -124,31 +124,31 @@ tables:
         description: スタックトレースや起動の手順の行
   - name: '%APPDATA%\voice-paste\glossaries\glossary_{n}.csv'
     title: 用語集の CSV
-    datastore: ファイル（CSV、UTF-8。BOM はあり・なしの両方を読み、書くときはあり）
-    summary: 用語集 1 つの行（誤変換・正しい表記・補正に使うか）。1 行目は列名の見出し
-    growth: 設定画面で用語集を追加して保存するたびに 1 つ増える。n は 1 からの連番で、フォルダに残っているファイルの番号は使わない
+    datastore: ファイル（CSV、UTF-8。BOM はあり・なしの両方を読み込み、書き込むときはあり）
+    summary: 用語集 1 つの行（誤変換・正しい表記・補正に使用するか）。1 行目は列名の見出し
+    growth: 設定画面で用語集を追加して保存するたびに 1 つ増える。n は 1 からの連番で、フォルダに残っているファイルの番号は使用しない
     retention: 期限なし
     deletion: 削除しない（設定画面の一覧から用語集を削除しても、ファイルは残す）
-    access: 全件。補正は録音を確定するたびに、補正に使う用語集の CSV を再読み込みする
+    access: 全件。補正は録音を確定するたびに、補正に使用する用語集の CSV を再読み込みする
     description: |-
-      用語集ごとの場所は設定の `glossaries[].path` が持つ。設定画面で追加した用語集はこの名前で作り、今までの用語集（`glossary_path`。キーが無ければ settings.yaml と同じフォルダの `yogo.csv`）も同じ列で読む。
-      手で書いた CSV は列 `使う` が無くても読める。設定画面でその用語集の行を変えて保存すると、3 つの列だけの CSV に書き換える（ほかの列と、誤変換と正しい表記の両方が空の行は残らない）。行を変えていない用語集の CSV は書き換えない。
+      用語集ごとの場所は設定の `glossaries[].path` が持つ。設定画面で追加した用語集はこの名前で作り、今までの用語集（`glossary_path`。キーが無ければ settings.yaml と同じフォルダの `yogo.csv`）も同じ列で読み込む。
+      手で書き込んだ CSV は列 `使う` が無くても読み込める。設定画面でその用語集の行を変えて保存すると、3 つの列だけの CSV に書き換える（ほかの列と、誤変換と正しい表記の両方が空の行は残らない）。行を変えていない用語集の CSV は書き換えない。
     columns:
       - name: 誤変換
         title: 誤変換
         type: string
-        description: 置き換える前の文字。前後の空白は除いて読む
+        description: 置き換える前の文字。前後の空白は除いて読み込む
         example: くろーど
       - name: 正しい表記
         title: 正しい表記
         type: string
-        description: 置き換えた後の文字。空の行は、起こした文字から誤変換を削除する。前後の空白は除いて読む
+        description: 置き換えた後の文字。空の行は、起こした文字から誤変換を削除する。前後の空白は除いて読み込む
         example: Claude
       - name: 使う
         title: 補正に使うか
         type: string
         default: （列が無い・空はオン）
-        description: その行を補正に使うか。`0` の行だけがオフで、列が無い・空・ほかの値はオン
+        description: その行を補正に使用するか。`0` の行だけがオフで、列が無い・空・ほかの値はオン
         enum_values: "'1' = オン / '0' = オフ"
         example: '1'
     status: implemented
@@ -161,11 +161,11 @@ tables:
     summary: 選択欄の開くマーカー（V 字）の画像。スタイルシートの `::down-arrow` が指す
     scale: 明暗ごとに 1 件
     growth: tokens.toml の text_muted が変わったときだけ増える（ファイル名は中身のハッシュ）
-    retention: 消さない
-    deletion: 消さない（同じ中身なら書き直さず使う）
+    retention: 削除しない
+    deletion: 削除しない（同じ中身なら書き直さず使用する）
     description: |-
-      置き場所は `shared/constants.py` の `ui_image_dir`（`--data-dir` を渡したときはその下の `ui`）。
-      write_arrow_image が明暗を当てるたびに無ければ書く。
+      配置先は `shared/constants.py` の `ui_image_dir`（`--data-dir` を引き渡したときはその下の `ui`）。
+      write_arrow_image が明暗を適用するたびに無ければ書き込む。
     columns:
       - name: svg
         title: 画像
@@ -185,19 +185,19 @@ tables:
       - name: container
         title: 容れ物
         type: string
-        description: 受け付けで PyAV が読んだ容れ物の形式。拡張子になる
+        description: 受け付けで PyAV が読み込んだ容れ物の形式。拡張子になる
       - name: audio
         title: 音声
         type: array
         description: 録れた形式のままの音声（WAV へ変えない）
-    description: 起こした文字は同じ名前の `.txt`（起こした文字の履歴）に書く。日時は履歴へ移した時刻。
+    description: 起こした文字は同じ名前の `.txt`（起こした文字の履歴）に書き込む。日時は履歴へ移した時刻。
     status: planned
     introduced:
       pr: 171
   - name: '%LOCALAPPDATA%\voice-paste\tmp\web\{job_id}.{webm|ogg|mp4|mp3|wav}'
     title: ブラウザの音声の一時のファイル
     datastore: ファイル（録れた形式の音声）
-    summary: 受け付けた音声を起こすまで置く。履歴を残す設定なら起こす前に履歴へ移し、残さない設定なら起こし終えた後に削除する
+    summary: 受け付けた音声を起こすまで配置する。履歴を残す設定なら起こす前に履歴へ移し、残さない設定なら起こし終えた後に削除する
     scale: 最大でブラウザの音声の待ちの上限（10 件）。合計で最大 1 GB
     growth: 音声を受け付けるたびに 1 つ増え、起こし始めるか起こし終えると消える
     retention: 起こし終えるまで
@@ -214,12 +214,12 @@ tables:
     title: Linux の単一インスタンスのロックファイル
     datastore: ファイル
     summary: Linux で常駐サービスが fcntl.flock で排他を取るための空のファイル
-    scale: データの置き場所ごとに 1 つ
+    scale: データの配置先ごとに 1 つ
     growth: 初めて起動したときに作る（権限 0o600）
-    retention: 消さない
-    deletion: 常駐サービスは消さない（消すと、待っているプロセスと別のファイルで取り合う）
+    retention: 削除しない
+    deletion: 常駐サービスは削除しない（削除すると、待っているプロセスと別のファイルで取り合う）
     description: |-
-      Linux だけが使う（置き場所は AppPaths.lock_file。Linux は `~/.local/share/voice-paste/instance.lock`、`--data-dir` を渡したときはその下）。環境変数によらず置き場所が 1 つに決まるため、起動した環境が違っても同じロックを取り合う。
+      Linux だけが使用する（配置先は AppPaths.lock_file。Linux は `~/.local/share/voice-paste/instance.lock`、`--data-dir` を引き渡したときはその下）。環境変数によらず配置先が 1 つに決まるため、起動した環境が違っても同じロックを取り合う。
       中身は読み書きしない。プロセスが落ちると OS がロックを放す。終了の依頼のソケットは抽象名前空間に作り、ファイルを残さない。Windows は名前付きミューテックスで、このファイルを作らない。
     columns:
       - name: '-'
@@ -232,7 +232,7 @@ tables:
     status: planned
   - name: ~/.local/state/voice-paste/haas_server.log
     title: Haas の文字起こしのサーバーのログ
-    summary: WSL の中のサーバーが書くログ
+    summary: WSL の中のサーバーが書き込むログ
     datastore: ファイル
     description: WSL の中のファイルで、常駐アプリは読み書きしない。
     columns:
@@ -242,8 +242,8 @@ tables:
         description: logging の 1 行。[ERROR] はスタックトレースつき
     growth: 要求ごとに追記する
     scale: 1 MB を 3 世代（RotatingFileHandler）
-    retention: 世代を超えた分を消す
-    deletion: RotatingFileHandler が古い世代を消す。常駐アプリの保持期間の削除の対象にしない
+    retention: 世代を超えた分を削除する
+    deletion: RotatingFileHandler が古い世代を削除する。常駐アプリの保持期間の削除の対象にしない
     implementation: haas_server/main.py
     refs:
       - MOD-101#functions[main]

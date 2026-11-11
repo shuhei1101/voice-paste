@@ -14,10 +14,10 @@ catalogs:
     entries:
       - name: parse
         kind: 関数
-        purpose: 前のバージョンの settings.toml を、settings.yaml へ移すために読む
+        purpose: 前のバージョンの settings.toml を、settings.yaml へ移すために読み込む
       - name: TOMLDocument.unwrap
         kind: メソッド
-        purpose: 読んだ文書を素の dict に戻し、既定値との差分を求める
+        purpose: 読み込んだ文書を素の dict に戻し、既定値との差分を求める
       - name: TOMLKitError
         kind: 例外
         purpose: 書式の壊れた settings.toml を移すときに送出される（SettingsError に変え、settings.yaml を作らない）
@@ -31,7 +31,7 @@ upstream: python-poetry/tomlkit
 verification:
   state: 済
   date: '2026-10-01'
-  detail: WSL（Linux・Python 3.12）で、コメント付きの TOML を parse して値を書き換え、dumps で行頭・行末のコメントが残ることと、表の配列（aot）を丸ごと入れ替えられることを確かめた。Windows（Python 3.14.3の一時の venv、tomlkit 0.15.1）で、設定の書き戻しを単体テストで動かし、コメントを保った値の置き換えと、`unwrap()` で素の dict に戻しての検証を確かめた
+  detail: WSL（Linux・Python 3.12）で、コメント付きの TOML を parse して値を書き換え、dumps で行頭・行末のコメントが残ることと、表の配列（aot）を丸ごと入れ替えられることを確認した。Windows（Python 3.14.3の一時の venv、tomlkit 0.15.1）で、設定の書き戻しを単体テストで動かし、コメントを保った値の置き換えと、`unwrap()` で素の dict に戻しての検証を確認した
 license: MIT（商用利用可）
 official_url: https://github.com/python-poetry/tomlkit
 docs_url: https://tomlkit.readthedocs.io/

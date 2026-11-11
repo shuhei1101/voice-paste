@@ -6,7 +6,7 @@ directory: |-
   ```
   src/voice_paste/features/outputs/
   ├── __init__.py          # deliver・OUTPUTS・PRESET_KINDS・is_callback_allowed の公開
-  ├── types.py             # 出力先・プリセットの種類の関数型と定義、配線に渡すもの（OutputDeps）、送信する内容（pydantic）
+  ├── types.py             # 出力先・プリセットの種類の関数型と定義、配線に引き渡すもの（OutputDeps）、送信する内容（pydantic）
   ├── registry.py          # OUTPUTS・PRESET_KINDS（出力先・プリセットの種類の一覧。追加するときはここに 1 行追加する）
   ├── service.py           # deliver（入口と確定の操作で出力先かプリセットを選んで呼ぶ）
   ├── paste_and_send/
@@ -23,9 +23,9 @@ directory: |-
   ├── endpoint/
   │   └── service.py       # deliver_to_endpoint（エンドポイントへ送信の種類のプリセット）
   └── callback/
-      └── service.py       # deliver_to_caller・is_callback_allowed・inject_callback・返送の決定値（呼び出し元へ返す）
+      └── service.py       # deliver_to_caller・is_callback_allowed・inject_callback・返送の決定値（呼び出し元へ返却する）
   ```
 
-  出力先を 1 つ追加するときは、`features/outputs/{出力先}/` に届ける関数・注入するものを選ぶ関数（InjectFn）・設定のモデル（OutputSettingsBase を継ぐ。設定の outputs[] に置かない出力先は持たない）を置き、OUTPUTS に 1 件登録する。設定のモデル・既定の出力先の一覧・確定のホットキー・設定画面の欄・録音の画面のボタン・配線は OUTPUTS から組み立てるため、既存のモジュールは変えない。
+  出力先を 1 つ追加するときは、`features/outputs/{出力先}/` に届ける関数・注入するものを選ぶ関数（InjectFn）・設定のモデル（OutputSettingsBase を継ぐ。設定の outputs[] に配置しない出力先は持たない）を配置し、OUTPUTS に 1 件登録する。設定のモデル・既定の出力先の一覧・確定のホットキー・設定画面の欄・録音の画面のボタン・配線は OUTPUTS から組み立てるため、既存のモジュールは変えない。
 
-  各出力先・プリセットの種類はクリップボード・キー・ブラウザ・HTTP の操作を関数で受け取り、`integrations` の関数を import しない（main.py が外部連携の copy_to_clipboard・send_paste・send_enter・open_app_window・post_json を OutputDeps に束ねて渡し、各出力先の InjectFn がそこから選んで部分適用させる）。型注釈のために integrations の型（PostResult・PostJsonFn）だけを import する。
+  各出力先・プリセットの種類はクリップボード・キー・ブラウザ・HTTP の操作を関数で受け取り、`integrations` の関数を import しない（main.py が外部連携の copy_to_clipboard・send_paste・send_enter・open_app_window・post_json を OutputDeps にまとめて引き渡し、各出力先の InjectFn がそこから選んで部分適用させる）。型注釈のために integrations の型（PostResult・PostJsonFn）だけを import する。

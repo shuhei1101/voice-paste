@@ -67,7 +67,7 @@ classes:
     summary: QSystemTrayIcon で状態ごとのアイコン・メニュー・通知を出す。選ばれた操作は Signal で伝える
     description: |-
       メニューの並び・文言・押せない条件は画面設計「トレイ」、通知の文言は画面設計「トレイの通知」が持つ。
-      アイコンの画像は `resources/tray/{TrayState の値}.png` を起動時に読む。
+      アイコンの画像は `resources/tray/{TrayState の値}.png` を起動時に読み込む。
       アイコンの左クリックは、「録音の画面を表示」が押せれば show_window_requested、「録音を開始」が押せれば start_requested を emit し、どちらも押せなければ何もしない。
       通知を押したとき（`messageClicked`）はどの通知かが渡らないため、最後に出した通知がコピーの完了ならその起こした文字を `_copied_text` に持ち、押されたときに出し分ける（_on_message_clicked）。
     kind: クラス
@@ -92,7 +92,7 @@ classes:
       - name: _failed
         type: bool
         access: 内部 (_)
-        description: 起動に失敗した（文字起こしのエンジンを準備できなかったか、設定を読めなかった）か。立つと次の起動まで失敗のまま
+        description: 起動に失敗した（文字起こしのエンジンを準備できなかったか、設定を読み込めなかった）か。立つと次の起動まで失敗のまま
       - name: _failed_settings_enabled
         type: bool
         access: 内部 (_)
@@ -104,7 +104,7 @@ classes:
       - name: recopy_requested
         type: Signal(str)
         access: '-'
-        description: コピーの完了の通知を押した（その通知のときに起こした文字を渡す）
+        description: コピーの完了の通知を押した（その通知のときに起こした文字を引き渡す）
       - name: _copied_text
         type: str | None
         access: 内部 (_)
@@ -155,7 +155,7 @@ classes:
             expected: '「録音を開始（準備に失敗）」が押せず、「設定…」が押せ、ヒントが voice-paste: 失敗'
           - name: test_set_state_when_failed_without_settings
             case: 正常
-            summary: 設定を読めなかった起動では録音も設定も押せない
+            summary: 設定を読み込めなかった起動では録音も設定も押せない
             condition: set_failed(settings_enabled=False) の後に set_state(IDLE, busy=False)
             mock: なし（offscreen の QApplication）
             expected: '「録音を開始（準備に失敗）」と「設定…」が押せず、「再起動」が押せ、ヒントが voice-paste: 失敗'
@@ -169,7 +169,7 @@ classes:
             type: bool
             required: true
             passing: keyword
-            description: 「設定…」を押せるままにするか（文字起こしのエンジンを準備できなかった起動は True、設定を読めなかった起動は読んだ設定が無いため False）
+            description: 「設定…」を押せるままにするか（文字起こしのエンジンを準備できなかった起動は True、設定を読み込めなかった起動は読み込んだ設定が無いため False）
         returns:
           type: None
           description: なし
@@ -208,32 +208,32 @@ classes:
             required: false
             default: ()
             passing: keyword
-            description: settings_invalid の本文に出す、読めなかったファイルのパス（SettingsError.paths）。複数のときは「・」でつなぐ
+            description: settings_invalid の本文に出す、読み込めなかったファイルのパス（SettingsError.paths）。複数のときは「・」でつなぐ
         returns:
           type: None
           description: なし
         unit_tests:
           - name: test_show_failure_when_settings_invalid
             case: 正常
-            summary: 設定を読めないときは、読めなかったファイルのパスを本文に出す
+            summary: 設定を読み込めないときは、読み込めなかったファイルのパスを本文に出す
             condition: parametrize で paths が (1) (C:/a/settings.yaml,) (2) (C:/a/settings.yaml, C:/r/settings.local.yaml) で show_failure("settings_invalid", "理由", paths=paths)
             mock: QSystemTrayIcon.showMessage
             expected: 見出し「起動できませんでした」、本文「設定ファイルを読み込めませんでした（理由）。{パス} を修正して再起動してください。」で呼ばれる（{パス} は (1) C:/a/settings.yaml (2) C:/a/settings.yaml・C:/r/settings.local.yaml）
           - name: test_show_failure
             case: 正常
             summary: 種類ごとの文言で通知する
-            condition: show_failure("transcription_failed", "録音を読めませんでした")
+            condition: show_failure("transcription_failed", "録音を読み込めませんでした")
             mock: QSystemTrayIcon.showMessage
             expected: 見出し「文字起こしできませんでした」、本文「録音を読めませんでした。録音は履歴に残っています。」で呼ばれる
           - name: test_show_failure_when_paste_unavailable
             case: 正常
-            summary: 貼り付けを使えないことを権限の設定の手順と共に通知する
+            summary: 貼り付けを使用できないことを権限の設定の手順と共に通知する
             condition: show_failure("paste_unavailable", "Permission denied")
             mock: QSystemTrayIcon.showMessage
-            expected: 見出し「貼り付けを使用できません」、本文「貼り付けのキーを送信できません（Permission denied）。/dev/uinput の権限を設定して PC を再起動してください（使い方「起動と設定」）。「コピーのみ」は使えます。」で呼ばれる
+            expected: 見出し「貼り付けを使用できません」、本文「貼り付けのキーを送信できません（Permission denied）。/dev/uinput の権限を設定して PC を再起動してください（使い方「起動と設定」）。「コピーのみ」は使用できます。」で呼ばれる
       - name: hide
         title: アイコンの削除
-        summary: トレイのアイコンを消す（処理中に再起動・終了を選んだときと、終わるとき）
+        summary: トレイのアイコンを非表示にする（処理中に再起動・終了を選んだときと、終わるとき）
         kind: メソッド
         scope: public
         returns:
@@ -255,7 +255,7 @@ classes:
           description: なし
         process: |-
           1. hidden の場合、「録音の画面を表示」を押せるようにし、太字にする
-          2. それ以外の場合、押せなくして太字を外し、状態ごとの理由を添える（shown：（表示中）、no_window：（画面を表示しない録音）、not_recording：（録音していません））
+          2. それ以外の場合、押せなくして太字を除外し、状態ごとの理由を添える（shown：（表示中）、no_window：（画面を表示しない録音）、not_recording：（録音していません））
         unit_tests:
           - name: test_set_recording_window_when_hidden
             case: 正常
@@ -283,7 +283,7 @@ classes:
             expected: 「録音の画面を表示（録音していません）」が押せず、太字でない
           - name: test_icon_click_when_window_hidden
             case: 正常
-            summary: 隠している間のアイコンの左クリックは、録音の画面を戻す知らせを出す
+            summary: 隠している間のアイコンの左クリックは、録音の画面を戻す通知を出す
             condition: set_state(RECORDING, busy=True)・set_recording_window(hidden) の後、アイコンの activated(Trigger) を送信する
             mock: なし（show_window_requested・start_requested に受け手をつなぐ）
             expected: show_window_requested が 1 回 emit され、start_requested が emit されない
@@ -305,7 +305,7 @@ classes:
             type: str
             required: true
             passing: positional
-            description: クリップボードへ書いた起こした文字（通知には出さない）
+            description: クリップボードへ書き込んだ起こした文字（通知には出さない）
         returns:
           type: None
           description: なし
@@ -328,7 +328,7 @@ classes:
           type: None
           description: なし
         process: |-
-          1. _copied_text があれば、それを渡して recopy_requested を emit する
+          1. _copied_text があれば、それを引き渡して recopy_requested を emit する
           2. 無ければ、ログフォルダを開く
         unit_tests:
           - name: test_on_message_clicked_when_copy_completed
@@ -367,13 +367,13 @@ classes:
           1. メニューの項目を作り、Signal とアイコンの左クリック・通知の押下をつなぐ
           2. 準備中のアイコンの画像だけを付け、ヒントを付けずにアイコンを出す（show）
           3. 出した後に set_state(STARTING, busy=False) で準備中のヒントとメニューの文言を付け、「録音の画面を表示」を not_recording にする
-        reason: Windows はトレイのアイコンのボタンの名前（スクリーンリーダーが読む名前）を、アイコンを出した時点のヒントと今のヒントをつないで作るため、ヒントは出した後に付ける。Qt はアイコンの画像が無いと show で出さないため、画像は先に付ける
+        reason: Windows はトレイのアイコンのボタンの名前（スクリーンリーダーが読み込む名前）を、アイコンを出した時点のヒントと今のヒントをつないで作るため、ヒントは出した後に付ける。Qt はアイコンの画像が無いと show で出さないため、画像は先に付ける
         unit_tests:
           - name: test_init_shows_icon_before_tooltip
             case: 正常
             summary: ヒントを付けずにアイコンを出し、出した後に準備中のヒントを付ける
             condition: Tray(settings_dir, log_dir) を作る
-            mock: QSystemTrayIcon.show（呼ばれた時点のヒントとアイコンの画像の有無を控える）
+            mock: QSystemTrayIcon.show（呼ばれた時点のヒントとアイコンの画像の有無を記録する）
             expected: 'show が 1 回呼ばれ、その時点のヒントが空でアイコンの画像が付いている。作り終えた後のヒントが voice-paste: 準備中'
     refs:
       - SCR-1#

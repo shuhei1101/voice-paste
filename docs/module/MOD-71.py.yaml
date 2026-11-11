@@ -24,7 +24,7 @@ constants:
     title: 1 回で書く音量の差
     container: integrations/volume/adapter.py
     usecase: 録音する
-    summary: 今の音量と目標の差がこの値未満なら、分けず 1 回で書く
+    summary: 今の音量と目標の差がこの値未満なら、分けず 1 回で書き込む
     value: '0.005'
     status: implemented
 functions:
@@ -37,7 +37,7 @@ functions:
     inherits: LowerVolumeFn
     thread_safe: true
     side_effects: 既定の再生デバイスのマスター音量を変える
-    summary: pycaw で今のマスター音量を読み、割合を掛けた音量へ fade_sec をかけて下げ始める
+    summary: pycaw で今のマスター音量を読み込み、割合を掛けた音量へ fade_sec をかけて下げ始める
     args:
       - name: ratio
         type: float
@@ -55,20 +55,20 @@ functions:
     process: |-
       1. 音量のロックを取り、以降をその中で行う
       2. 進行中のフェードを打ち切る（_cancel_fade）
-      3. 打ち切ったフェードがあればその目標の音量を、無ければ既定の再生デバイスのマスター音量（0.0〜1.0）を COM を初期化して読んだ値を、下げる前の音量にする（_open_endpoint_volume）
+      3. 打ち切ったフェードがあればその目標の音量を、無ければ既定の再生デバイスのマスター音量（0.0〜1.0）を COM を初期化して読み込んだ値を、下げる前の音量にする（_open_endpoint_volume）
          - 戻している途中に始まった録音でも、戻しの目標（元の音量）を下げる前の音量にする。下げている途中にもう一度下げることは、Recorder が録音中の開始を断るため起きない
          - pycaw・COM が例外を出した場合、VolumeControlError を送出する（理由に元の例外を残す）
       4. 下げる前の音量 × ratio を 0.0〜1.0 に収め、その音量へ変える（_fade_to）
-      5. 下げる前の音量を返す
+      5. 下げる前の音量を返却する
     exceptions:
       - name: VolumeControlError
-        condition: 音量を読むときに pycaw・COM が例外を出した
+        condition: 音量を読み込むときに pycaw・COM が例外を出した
       - name: VolumeControlError
-        condition: fade_sec が 0 以下で、音量を書くときに pycaw・COM が例外を出した（_fade_to から伝わる）
+        condition: fade_sec が 0 以下で、音量を書き込むときに pycaw・COM が例外を出した（_fade_to から伝わる）
     unit_tests:
       - name: test_lower_volume
         case: 正常
-        summary: 今の音量を返し、割合を掛けた音量へ書く
+        summary: 今の音量を返却し、割合を掛けた音量へ書き込む
         condition: 今の音量 0.8、ratio=0.5・fade_sec=0
         mock: _open_endpoint_volume（音量を持つ偽のインターフェース）
         expected: 0.8 が返り、偽のインターフェースの音量が 0.4 になっている
@@ -80,29 +80,29 @@ functions:
         expected: 0.8 が返り、偽のインターフェースの音量が 0.4 で終わり、その後に書き換わらない
       - name: test_lower_volume_when_read_failed
         case: 異常
-        summary: 読めなければ VolumeControlError
+        summary: 読み込めなければ VolumeControlError
         condition: GetMasterVolumeLevelScalar が COMError を送出する
         mock: _open_endpoint_volume
-        expected: VolumeControlError が送出され、音量が書かれない
-        exception: 音量を読むときに pycaw・COM が例外を出した
+        expected: VolumeControlError が送出され、音量が書き込まれない
+        exception: 音量を読み込むときに pycaw・COM が例外を出した
       - name: test_lower_volume_when_api_changed
         case: 異常
         summary: pycaw の API が変わって属性が無ければ VolumeControlError
         condition: _open_endpoint_volume が AttributeError を送出する
         mock: _open_endpoint_volume
         expected: VolumeControlError が送出される
-        exception: 音量を読むときに pycaw・COM が例外を出した
+        exception: 音量を読み込むときに pycaw・COM が例外を出した
     connectivity_tests:
       - name: test_ext_lower_volume_when_no_fade
         api: pycaw AudioUtilities.GetSpeakers().EndpointVolume の GetMasterVolumeLevelScalar / SetMasterVolumeLevelScalar
-        summary: 実機の既定の再生デバイスで、下げる前の音量を返して割合を掛けた音量へ変える
-        checks: pycaw で音量を 0.6 にしてから lower_volume(0.5, 0) を呼び、0.6 が返り、pycaw で読んだ音量が 0.3（誤差 0.01 以内）
+        summary: 実機の既定の再生デバイスで、下げる前の音量を返却して割合を掛けた音量へ変える
+        checks: pycaw で音量を 0.6 にしてから lower_volume(0.5, 0) を呼び、0.6 が返り、pycaw で読み込んだ音量が 0.3（誤差 0.01 以内）
         cost: 料金なし。実行中はシステム音量が変わり、終わりに実行前の音量へ戻す
         notes: 既定の再生デバイスが無い環境では skip する
       - name: test_ext_lower_volume_when_fade
         api: pycaw AudioUtilities.GetSpeakers().EndpointVolume の GetMasterVolumeLevelScalar / SetMasterVolumeLevelScalar
         summary: フェードをかけても割合を掛けた音量に届く（別のスレッドでの COM の初期化を含む）
-        checks: 音量 0.6 から lower_volume(0.5, 0.3) を呼び、2 秒以内に pycaw で読んだ音量が 0.3（誤差 0.01 以内）になる
+        checks: 音量 0.6 から lower_volume(0.5, 0.3) を呼び、2 秒以内に pycaw で読み込んだ音量が 0.3（誤差 0.01 以内）になる
         cost: 料金なし。実行中はシステム音量が変わり、終わりに実行前の音量へ戻す
         notes: 既定の再生デバイスが無い環境では skip する
     notes:
@@ -141,7 +141,7 @@ functions:
       3. volume を 0.0〜1.0 に収め、その音量へ変える（_fade_to）
     exceptions:
       - name: VolumeControlError
-        condition: fade_sec が 0 以下で、音量を書くときに pycaw・COM が例外を出した（_fade_to から伝わる）
+        condition: fade_sec が 0 以下で、音量を書き込むときに pycaw・COM が例外を出した（_fade_to から伝わる）
     unit_tests:
       - name: test_restore_volume_when_lowering
         case: 正常
@@ -153,7 +153,7 @@ functions:
       - name: test_ext_restore_volume_when_no_fade
         api: pycaw AudioUtilities.GetSpeakers().EndpointVolume の SetMasterVolumeLevelScalar
         summary: 実機の既定の再生デバイスで、下げた音量を戻す
-        checks: 音量 0.6 から lower_volume(0.5, 0) の後に restore_volume(0.6, 0) を呼び、pycaw で読んだ音量が 0.6（誤差 0.01 以内）
+        checks: 音量 0.6 から lower_volume(0.5, 0) の後に restore_volume(0.6, 0) を呼び、pycaw で読み込んだ音量が 0.6（誤差 0.01 以内）
         cost: 料金なし。実行中はシステム音量が変わり、終わりに実行前の音量へ戻す
         notes: 既定の再生デバイスが無い環境では skip する
     status: implemented
@@ -179,30 +179,30 @@ functions:
       type: None
       description: なし
     process: |-
-      1. fade_sec が 0 以下なら、COM を初期化して target を書き、解放する
+      1. fade_sec が 0 以下なら、COM を初期化して target を書き込み、解放する
          - pycaw・COM が例外を出した場合、VolumeControlError を送出する
       2. fade_sec が正なら、target を進行中のフェードの目標として持ち、新しい打ち切りの合図を作ってデーモンのスレッドを始める
-         - スレッドの中で COM を初期化し、今の音量から target までを FADE_STEPS 回に分け、fade_sec / FADE_STEPS 秒ごとに 1 回分ずつ書く（今の音量と target の差が 0.005 未満なら 1 回で書く）
-         - 打ち切りを知らされたら、次の回を書かずに終わる
+         - スレッドの中で COM を初期化し、今の音量から target までを FADE_STEPS 回に分け、fade_sec / FADE_STEPS 秒ごとに 1 回分ずつ書き込む（今の音量と target の差が 0.005 未満なら 1 回で書き込む）
+         - 打ち切りを通知されたら、次の回を書き込まずに終わる
          - pycaw・COM が例外を出した場合、そこで終わる
            - `[ERROR]` 音量を変えられなかった（理由）
     exceptions:
       - name: VolumeControlError
-        condition: fade_sec が 0 以下で、音量を書くときに pycaw・COM が例外を出した
+        condition: fade_sec が 0 以下で、音量を書き込むときに pycaw・COM が例外を出した
     unit_tests:
       - name: test_fade_to
         case: 正常
         summary: FADE_STEPS 回で目標の音量に届く
         condition: 今の音量 0.8、target=0.4・fade_sec=0.1 で呼び、1 秒待つ
         mock: _open_endpoint_volume
-        expected: 書かれた音量が FADE_STEPS 個で単調に減り、最後が 0.4
+        expected: 書き込まれた音量が FADE_STEPS 個で単調に減り、最後が 0.4
       - name: test_fade_to_when_write_failed
         case: 異常
-        summary: すぐ変えるときに書けなければ VolumeControlError
+        summary: すぐ変えるときに書き込めなければ VolumeControlError
         condition: fade_sec=0、SetMasterVolumeLevelScalar が COMError を送出する
         mock: _open_endpoint_volume
         expected: VolumeControlError が送出される
-        exception: fade_sec が 0 以下で、音量を書くときに pycaw・COM が例外を出した
+        exception: fade_sec が 0 以下で、音量を書き込むときに pycaw・COM が例外を出した
     status: implemented
   - name: _open_endpoint_volume
     title: 音量のインターフェースを引く
@@ -210,7 +210,7 @@ functions:
     container: integrations/volume/adapter.py
     usecase: 録音する
     scope: internal
-    summary: pycaw の AudioUtilities.GetSpeakers() の EndpointVolume を返す。pycaw の API に触れるのはこの関数と音量の読み書きの 2 つのメソッドだけにする（バージョンを上げたときに直す場所）
+    summary: pycaw の AudioUtilities.GetSpeakers() の EndpointVolume を返却する。pycaw の API に触れるのはこの関数と音量の読み書きの 2 つのメソッドだけにする（バージョンを上げたときに修正する場所）
     returns:
       type: IAudioEndpointVolume
       description: 既定の再生デバイスの音量のインターフェース（呼ぶスレッドで COM を初期化しておく）
@@ -223,14 +223,14 @@ functions:
     container: integrations/volume/adapter.py
     usecase: 録音する
     scope: internal
-    summary: 進行中のフェードに打ち切りを知らせて終わりを待ち、そのフェードの目標の音量を返す。音量のロックを持って呼ぶ（フェードのスレッド・打ち切りの合図・目標は _ 付きのモジュール変数で持ち、この関数と _fade_to だけが触る）
+    summary: 進行中のフェードに打ち切りを通知して終わりを待ち、そのフェードの目標の音量を返却する。音量のロックを持って呼ぶ（フェードのスレッド・打ち切りの合図・目標は _ 付きのモジュール変数で持ち、この関数と _fade_to だけが触る）
     returns:
       type: float | None
       description: 打ち切ったフェードの目標の音量。進行中のフェードが無ければ None
     process: |-
-      1. フェードのスレッドが動いていなければ、目標を None にして None を返す
-      2. 打ち切りを知らせ、スレッドの終わりを FADE_JOIN_TIMEOUT_SEC まで待つ
-      3. 目標を返し、None に戻す
+      1. フェードのスレッドが動いていなければ、目標を None にして None を返却する
+      2. 打ち切りを通知し、スレッドの終わりを FADE_JOIN_TIMEOUT_SEC まで待つ
+      3. 目標を返却し、None に戻す
     unit_tests:
       - name: test_cancel_fade_when_idle
         case: 正常

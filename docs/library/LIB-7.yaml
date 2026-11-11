@@ -17,13 +17,13 @@ catalogs:
         purpose: API のサーバーの app を組み立てる
       - name: APIRouter
         kind: クラス
-        purpose: 録音セッションの開始・停止・完了の route を束ねる
+        purpose: 録音セッションの開始・停止・完了の route をまとめる
       - name: Depends / Header
         kind: 関数
         purpose: トークンの照合と Authorization ヘッダーの受け取り
       - name: Request / middleware
         kind: クラス
-        purpose: Host・Origin を確かめて断る
+        purpose: Host・Origin を確認して断る
       - name: exception_handler / RequestValidationError
         kind: 関数
         purpose: 例外を RFC 9457 の応答に変える。入力の検証の失敗を既定の 422 でなく 400 にする
@@ -33,11 +33,11 @@ catalogs:
         status: planned
       - name: StaticFiles / FastAPI.mount
         kind: クラス
-        purpose: '`/web/assets/` に外の端末の画面の JS・CSS を返す。置き場所の外を指す `..` と無いファイルは 404 にする'
+        purpose: '`/web/assets/` に外の端末の画面の JS・CSS を返却する。配置先の外を指す `..` と無いファイルは 404 にする'
         status: planned
       - name: FileResponse
         kind: クラス
-        purpose: '`GET /web/` で画面の HTML を `Cache-Control: no-cache` で返す'
+        purpose: '`GET /web/` で画面の HTML を `Cache-Control: no-cache` で返却する'
         status: planned
       - name: Form
         kind: 関数
@@ -56,6 +56,6 @@ upstream: fastapi/fastapi
 verification:
   state: 済
   date: '2026-10-25'
-  detail: 'WSL（Linux・Python 3.12）の一時の仮想環境で、POST /sessions に当たる最小の app を uvicorn で動かした。トークンの一致で 202・不一致で 401、Origin 付きとほかの Host で 403、URI でない callback_url で既定の 422 が返ることを確かめた（2026-10-01）。PR #171 で、fastapi 0.142.4・python-multipart 0.0.32 の最小の app を TestClient で動かし、`UploadFile` で 1,000 バイトを受け取れること、`/web/assets` に mount した StaticFiles が app.js を 200・`text/javascript` で返し、無いファイルと `..%2F..%2F` で置き場所の外を指すパスを 404 にすることを確かめた（2026-10-24）。PR #180 で、同じ fastapi 0.142.4・python-multipart 0.0.32 の最小の app を TestClient で動かし、`UploadFile` と同時に `Annotated[str | None, Form()]` の文字の項目を受けられること（項目を付けないときと空文字は None、日本語の名前は欠けずに届く）を確かめた（2026-10-25）。Windows の実機では未確認'
+  detail: 'WSL（Linux・Python 3.12）の一時の仮想環境で、POST /sessions に当たる最小の app を uvicorn で動かした。トークンの一致で 202・不一致で 401、Origin 付きとほかの Host で 403、URI でない callback_url で既定の 422 が返ることを確認した（2026-10-01）。PR [#171 外の端末のブラウザから音声を送って文字に起こす画面とエンドポイントを追加する](https://github.com/shuhei1101/voice-paste/issues/171) で、fastapi 0.142.4・python-multipart 0.0.32 の最小の app を TestClient で動かし、`UploadFile` で 1,000 バイトを受け取れること、`/web/assets` に mount した StaticFiles が app.js を 200・`text/javascript` で返却し、無いファイルと `..%2F..%2F` で配置先の外を指すパスを 404 にすることを確認した（2026-10-24）。PR [#180 外の端末のブラウザの画面から送信する音声で、補正に使う用語集のプリセットを選択できるようにする](https://github.com/shuhei1101/voice-paste/issues/180) で、同じ fastapi 0.142.4・python-multipart 0.0.32 の最小の app を TestClient で動かし、`UploadFile` と同時に `Annotated[str | None, Form()]` の文字の項目を受けられること（項目を付けないときと空文字は None、日本語の名前は欠けずに届く）を確認した（2026-10-25）。Windows の実機では未確認'
 license: MIT（商用利用可）
 official_url: https://fastapi.tiangolo.com/

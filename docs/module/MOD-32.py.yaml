@@ -11,7 +11,7 @@ classes:
     role: アダプタ
     kind: クラス
     inherits: PySide6.QtCore.QObject
-    summary: ほかのスレッド（API・ホットキー・ワーカースレッド）からの知らせを Signal でメインスレッドへ渡す。画面の部品はメインスレッドだけが触る
+    summary: ほかのスレッド（API・ホットキー・ワーカースレッド）からの通知を Signal でメインスレッドへ引き渡す。画面の部品はメインスレッドだけが触る
     properties:
       - name: notified
         type: Signal(str, object)
@@ -59,17 +59,17 @@ functions:
     status: implemented
     process: |-
       1. `bridge.notified.emit(event, detail)` を呼ぶ
-         - `[INFO]` / `[WARNING]` ユーザーへの知らせ（種類・理由。state_changed・show_recording_window・output_changed は INFO、それ以外は WARNING）
+         - `[INFO]` / `[WARNING]` ユーザーへの通知（種類・理由。state_changed・show_recording_window・output_changed は INFO、それ以外は WARNING）
     unit_tests:
       - name: test_notify
         case: 正常
-        summary: 知らせを Signal で渡す
-        condition: event=delivery_failed、detail="クリップボードに書けない"
+        summary: 通知を Signal で引き渡す
+        condition: event=delivery_failed、detail="クリップボードに書き込めない"
         mock: なし（notified に受け手をつなぐ）
-        expected: 受け手に (delivery_failed, クリップボードに書けない) が届き、WARNING のログが 1 行出る
+        expected: 受け手に (delivery_failed, クリップボードに書き込めない) が届き、WARNING のログが 1 行出る
       - name: test_notify_from_other_thread
         case: 正常
-        summary: ほかのスレッドからの知らせをメインスレッドで受ける
+        summary: ほかのスレッドからの通知をメインスレッドで受ける
         condition: threading.Thread から notify(state_changed) を呼び、イベントループを回す
         mock: なし（QueuedConnection の受け手）
         expected: 受け手がメインスレッドで 1 回呼ばれる
@@ -104,7 +104,7 @@ functions:
     unit_tests:
       - name: test_report_progress
         case: 正常
-        summary: 進みを Signal で渡す
+        summary: 進みを Signal で引き渡す
         condition: position_sec=3.1、duration_sec=5.0
         mock: なし（progressed に受け手をつなぐ）
         expected: 受け手に (3.1, 5.0) が届く
@@ -114,7 +114,7 @@ functions:
     container: ui/bridge.py
     usecase: 起こした文字を届ける
     summary: UiBridge.copied を emit して、メインスレッドでトレイにコピーの完了の通知を出す
-    description: 起こした文字は「理由」を運ぶ notify の detail と分けて渡し、ログに書かない。
+    description: 起こした文字は「理由」を運ぶ notify の detail と分けて引き渡し、ログに書き込まない。
     kind: 関数
     scope: public
     thread_safe: true
@@ -123,7 +123,7 @@ functions:
         type: str
         required: true
         passing: positional
-        description: クリップボードへ書いた起こした文字
+        description: クリップボードへ書き込んだ起こした文字
       - name: bridge
         type: UiBridge
         required: true
@@ -134,11 +134,11 @@ functions:
       description: なし
     process: |-
       1. `bridge.copied.emit(text)` を呼ぶ
-         - `[INFO]` ユーザーへの知らせ（copy_completed。起こした文字は書かない）
+         - `[INFO]` ユーザーへの通知（copy_completed。起こした文字は書き込まない）
     unit_tests:
       - name: test_notify_copied
         case: 正常
-        summary: 起こした文字を Signal で渡し、ログには書かない
+        summary: 起こした文字を Signal で引き渡し、ログには書き込まない
         condition: text="テストの文字"
         mock: なし（copied に受け手をつなぐ）
         expected: 受け手に "テストの文字" が届き、INFO のログが 1 行出て、ログに "テストの文字" が含まれない

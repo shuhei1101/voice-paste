@@ -22,11 +22,11 @@ catalogs:
         purpose: 書き込んだイベントを SYN_REPORT で確定する
       - name: evdev.ecodes
         kind: 定数
-        purpose: キーコード（KEY_LEFTCTRL・KEY_V・KEY_ENTER など）と、名前からキーコードを引く ecodes.ecodes
+        purpose: キーコード（KEY_LEFTCTRL・KEY_V・KEY_ENTER など）と、名前からキーコードを取得する ecodes.ecodes
       - name: evdev.uinput.UInputError
         kind: 例外
         purpose: uinput の機器を作れないときに送出される（権限が無いときは OSError）
-lead: Linux の evdev（入力の機器）を読み、uinput で仮想の入力の機器を作ってイベントを書き込む Python のバインディング（python-evdev）。
+lead: Linux の evdev（入力の機器）を読み込み、uinput で仮想の入力の機器を作ってイベントを書き込む Python のバインディング（python-evdev）。
 purl: pkg:pypi/evdev
 dependency_scope: 必須
 adoption: 採用

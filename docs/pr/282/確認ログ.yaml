@@ -1,0 +1,7 @@
+confirmations:
+  - topic: 今の Schema では YAML の設計書にタグ・エイリアス・関連を記載できないときの PR の範囲
+    decision: 今の Schema で記載できる分をこの PR で移行し、YAML の設計書のタグ・エイリアス・関連は ai-monitor#3188 の後に別の Issue で移行する（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/282#discussion_r4535513983

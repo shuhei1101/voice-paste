@@ -13,17 +13,17 @@ data_models:
     inherits: pydantic.BaseModel
     description: |-
       キーの一つ一つ（型・既定値・範囲・反映）は設計書『設定』の行が持つ。
-      表のまとまりのモデル（このモデルと、TranscriptionSettings・HotkeySettings など表で持つモデル）は既定値を持たず、全ての項目を必須にする。既定値は `config/defaults.yaml` が持ち（既定値のファイルにキーが欠けていれば、起動の検証で分かる）、これらのモデルの項目の `default` はそのファイルに書く値を示す。
-      一覧の要素のモデル（出力先の設定のモデル・BrowserPreset・EndpointPreset・GlossarySettings・GlossaryPresetSettings・HintPresetSettings・EdgePhraseSettings）は、項目の既定値をモデルに持つ。一覧はレイヤーの間で丸ごと置き換わり、`config/defaults.yaml` に行ごとの既定を置けないため、項目を省いた行（前のバージョンの settings.toml の行・手で書いた行）を既定値で補う。ただし出力先の `hotkey` は OS で既定が変わるため既定値を持たず必須にし、出力先の `id` は判別子として既定値を持つ。
-      まとまりのモデルも全て `pydantic.BaseModel` で、どれも `model_config = ConfigDict(extra="forbid")` にして知らないキー（書き間違い）を断る。
+      表のまとまりのモデル（このモデルと、TranscriptionSettings・HotkeySettings など表で持つモデル）は既定値を持たず、全ての項目を必須にする。既定値は `config/defaults.yaml` が持ち（既定値のファイルにキーが欠けていれば、起動の検証で分かる）、これらのモデルの項目の `default` はそのファイルに書き込む値を示す。
+      一覧の要素のモデル（出力先の設定のモデル・BrowserPreset・EndpointPreset・GlossarySettings・GlossaryPresetSettings・HintPresetSettings・EdgePhraseSettings）は、項目の既定値をモデルに持つ。一覧はレイヤーの間で丸ごと置き換わり、`config/defaults.yaml` に行ごとの既定を設定できないため、項目を省いた行（前のバージョンの settings.toml の行・手で書き込んだ行）を既定値で補う。ただし出力先の `hotkey` は OS で既定が変わるため既定値を持たず必須にし、出力先の `id` は判別子として既定値を持つ。
+      まとまりのモデルも全て `pydantic.BaseModel` で、どれも `model_config = ConfigDict(extra="forbid")` にして知らないキー（綴りの誤り）を断る。
       各項目は `Field(description=..., json_schema_extra={"reload": "immediate" | "restart"})` で再起動が要るかのマーカーを持つ。
-      出力先ごとの設定のモデルは出力先が持ち（shared は features を import しない）、アプリが使う設定のモデルは build_settings_model がこのモデルを継いで組み立てる（main.py の SETTINGS_MODEL）。既定の設定は load_default_settings で既定値のファイルから作る。
+      出力先ごとの設定のモデルは出力先が持ち（shared は features を import しない）、アプリが使用する設定のモデルは build_settings_model がこのモデルを継いで組み立てる（main.py の SETTINGS_MODEL）。既定の設定は load_default_settings で既定値のファイルから作る。
       `model_validator(mode="after")` が、`transcription.haas.port` と `api.port` が同じ番号の設定を `PydanticCustomError`（type `haas_port_overlap`、場所 `transcription.haas.port`）にする。
-      設定を受ける関数・画面は型としては Settings を使い、検証には受けた設定のモデル（`type(settings)`）を使う。
+      設定を受ける関数・画面は型としては Settings を使用し、検証には受けた設定のモデル（`type(settings)`）を使用する。
     properties:
       - name: transcription
         type: TranscriptionSettings
-        description: 使うエンジンと、エンジンごとの設定
+        description: 使用するエンジンと、エンジンごとの設定
       - name: recording
         type: RecordingSettings
         description: 録音中の音量・画面を出さない設定
@@ -62,7 +62,7 @@ data_models:
       - name: output_models
         type: ClassVar[Mapping[str, type[OutputSettingsBase]]]
         default: '{}'
-        description: 出力先の ID → 設定のモデル。build_settings_model が組み立てたモデルに入る。設定画面が失敗の場所の判別子の値から出力先のモデルを引く
+        description: 出力先の ID → 設定のモデル。build_settings_model が組み立てたモデルに入る。設定画面が失敗の場所の判別子の値から出力先のモデルを取得する
       - name: glossaries
         type: list[GlossarySettings]
         default: '[]'
@@ -70,23 +70,23 @@ data_models:
       - name: active_glossary
         type: str | None
         default: None
-        description: 補正に使う用語集の名前。glossary_presets が空のときだけ、resolve_glossary_presets が「既定」のプリセットの用語集を決めるのに読む（非推奨。設定画面で保存すると None にしてキーを消す）
+        description: 補正に使用する用語集の名前。glossary_presets が空のときだけ、resolve_glossary_presets が「既定」のプリセットの用語集を決めるのに読み込む（非推奨。設定画面で保存すると None にしてキーを削除する）
       - name: hint_presets
         type: list[HintPresetSettings]
         default: '[]'
-        description: 表記のヒント（文字起こしの手がかり）のプリセットの一覧。並びが設定画面の一覧と語をつなぐ順になる。既定値は空の一覧。名前の重なり（find_hint_preset_name_overlaps）と、有効な語をつないだ長さが HINT_MAX_BYTES を超える設定は検証で断る
+        description: 表記のヒント（文字起こしの手がかり）のプリセットの一覧。並びが設定画面の一覧と単語をつなぐ順になる。既定値は空の一覧。名前の重なり（find_hint_preset_name_overlaps）と、有効な単語をつないだ長さが HINT_MAX_BYTES を超える設定は検証で断る
       - name: edge_phrases
         type: list[EdgePhraseSettings]
         default: チャンネル登録*・ご視聴ありがとうございました・ありがとうございました（位置は全て end）
-        description: 文頭・文末から削除する文言の一覧。並びが当てる順と設定画面の一覧の並びになる。文言が空の行は `field_validator(mode="after")` で一覧から除く（各行の失敗の場所は、除く前の並びの番号のまま）
+        description: 文頭・文末から削除する文言の一覧。並びが適用する順と設定画面の一覧の並びになる。文言が空の行は `field_validator(mode="after")` で一覧から除く（各行の失敗の場所は、除く前の並びの番号のまま）
       - name: glossary_presets
         type: list[GlossaryPresetSettings]
         default: '[]'
-        description: 用語集のプリセットの一覧。空なら「既定」の 1 件として読む（resolve_glossary_presets）
+        description: 用語集のプリセットの一覧。空なら「既定」の 1 件として読み込む（resolve_glossary_presets）
       - name: active_glossary_preset
         type: str | None
         default: None
-        description: 補正に使う用語集のプリセットの名前。None か一覧に無い名前のときは 1 件目のプリセットを使う（pick_glossary_preset）
+        description: 補正に使用する用語集のプリセットの名前。None か一覧に無い名前のときは 1 件目のプリセットを使用する（pick_glossary_preset）
     refs:
       - LIB-18#
       - CFG-1#
@@ -96,13 +96,13 @@ data_models:
     container: shared/settings.py
     usecase: 共通
     role: 設定のモデル
-    summary: 使うエンジンと、エンジンごとの設定
+    summary: 使用するエンジンと、エンジンごとの設定
     inherits: pydantic.BaseModel
     properties:
       - name: engine
         type: Literal["local_whisper", "openai", "haas"]
         default: local_whisper
-        description: 使う文字起こしのエンジン（文字起こしの EngineName）。反映は restart。設定画面は `json_schema_extra` の choice_labels（local_whisper → ローカルの Whisper・openai → OpenAI API・haas → Haas（WSL））で選択の欄の名前を出す
+        description: 使用する文字起こしのエンジン（文字起こしの EngineName）。反映は restart。設定画面は `json_schema_extra` の choice_labels（local_whisper → ローカルの Whisper・openai → OpenAI API・haas → Haas（WSL））で選択の欄の名前を出す
       - name: local_whisper
         type: LocalWhisperSettings
         description: ローカルの Whisper の設定
@@ -118,7 +118,7 @@ data_models:
     container: shared/settings.py
     usecase: 共通
     role: 設定のモデル
-    summary: 文字起こしワーカーへ渡すモデル・デバイス・量子化・言語・ビーム幅・温度・VAD
+    summary: 文字起こしワーカーへ引き渡すモデル・デバイス・量子化・言語・ビーム幅・温度・VAD
     inherits: pydantic.BaseModel
     properties:
       - name: model
@@ -172,7 +172,7 @@ data_models:
       - name: condition_on_previous_text
         type: bool
         default: 'False'
-        description: 前の区間の文字を次の区間の文脈に使うか
+        description: 前の区間の文字を次の区間の文脈に使用するか
       - name: temperature
         type: float
         default: '0.0'
@@ -193,7 +193,7 @@ data_models:
       - name: lower_volume
         type: bool
         default: True（Linux は False。os_overrides）
-        description: 録音中にシステム音量を下げるか。Linux では使わない（音量の外部連携が何もしない実装で、設定画面に出さない）
+        description: 録音中にシステム音量を下げるか。Linux では使用しない（音量の外部連携が何もしない実装で、設定画面に出さない）
       - name: volume_percent
         type: float
         default: '50'
@@ -317,7 +317,7 @@ data_models:
         title: 文字起こし中の表示のホットキーの引き継ぎ
         container: shared/settings.py
         usecase: 設定を変える
-        summary: transcribing_show_hotkeys を持たない画面の設定へ、show_hotkeys の値を入れる。既定値を重ねた後の検証では transcribing_show_hotkeys が必ずあって働かないため、移すときの settings.toml の dict に当てる inherit_transcribing_show_hotkeys へ移す
+        summary: transcribing_show_hotkeys を持たない画面の設定へ、show_hotkeys の値を入れる。既定値を重ねた後の検証では transcribing_show_hotkeys が必ずあって働かないため、移すときの settings.toml の dict に適用する inherit_transcribing_show_hotkeys へ移す
         kind: メソッド
         scope: internal
         returns:
@@ -349,12 +349,12 @@ data_models:
       - name: allowed_web_origins
         type: list[str]
         default: '[]'
-        description: '外の端末に許す Origin。`/web/` の下に許すオリジン（設定 api.allowed_web_origins。`scheme://host[:port]` の形式だけを通し、末尾の `/` とパスは SettingsError）。pydantic の Field の description の最初の 1 文を「外の端末に許す Origin」にし、設定画面の欄の名前にする'
+        description: '外の端末に許す Origin。`/web/` の下に許すオリジン（設定 api.allowed_web_origins。`scheme://host[:port]` の形式だけを許可し、末尾の `/` とパスは SettingsError）。pydantic の Field の description の最初の 1 文を「外の端末に許す Origin」にし、設定画面の欄の名前にする'
     status: implemented
     methods:
       - name: _origins_must_be_origin_form
         title: 許す Origin の形式の確かめ
-        summary: 許す Origin の全ての行が `scheme://host[:port]` の形式（ORIGIN_PATTERN に全体が一致する）であることを確かめる（`field_validator("allowed_web_origins")` のクラスメソッド）
+        summary: 許す Origin の全ての行が `scheme://host[:port]` の形式（ORIGIN_PATTERN に全体が一致する）であることを確認する（`field_validator("allowed_web_origins")` のクラスメソッド）
         description: 一致しない行があれば `PydanticCustomError` を投げる。type は WEB_ORIGIN_FORM_ERROR_TYPE、文は「`scheme://host[:port]` の形式で、末尾の `/` とパスを付けない（{origins}）」、ctx は `origins`（一致しない行を `, ` でつないだ文字列。文に埋める）と `invalid`（一致しない行の tuple。入れた順）。失敗の場所は ("api", "allowed_web_origins")。
         kind: メソッド
         scope: internal
@@ -370,7 +370,7 @@ data_models:
         unit_tests:
           - name: test_api_settings_when_web_origin_form
             case: 正常
-            summary: 形式の合う Origin を通す
+            summary: 形式の合う Origin を許可する
             condition: allowed_web_origins が ["https://voice.example.com", "http://localhost:47823"]
             mock: なし
             expected: allowed_web_origins がそのまま
@@ -453,7 +453,7 @@ data_models:
     container: shared/settings.py
     usecase: 共通
     role: 設定のモデル
-    summary: 種類ごとに、その種類の全てのプリセットで使う設定
+    summary: 種類ごとに、その種類の全てのプリセットで使用する設定
     inherits: pydantic.BaseModel
     properties:
       - name: browser
@@ -468,7 +468,7 @@ data_models:
     container: shared/settings.py
     usecase: 共通
     role: 設定のモデル
-    summary: ブラウザ添付の全てのプリセットで使う、開いてから貼り付けるまでの間
+    summary: ブラウザ添付の全てのプリセットで使用する、開いてから貼り付けるまでの間
     inherits: pydantic.BaseModel
     properties:
       - name: open_delay_sec
@@ -483,7 +483,7 @@ data_models:
     container: shared/settings.py
     usecase: 共通
     role: 設定のモデル
-    summary: エンドポイントへ送信の全てのプリセットで使う、送信するときのタイムアウト
+    summary: エンドポイントへ送信の全てのプリセットで使用する、送信するときのタイムアウト
     inherits: pydantic.BaseModel
     properties:
       - name: timeout_sec
@@ -500,7 +500,7 @@ data_models:
     usecase: 共通
     role: 設定のモデル
     summary: 出力先ごとの設定のモデルが継ぐ、どの出力先も持つ ID・オン・オフ・確定のホットキー
-    description: 出力先のモデルは `id` を `Literal["{出力先の ID}"]` に絞り、全ての項目に既定値を持たせる（既定の出力先の一覧は各モデルを引数なしで作る）。ホットキーの重なり・確定のホットキー・設定画面の共通の欄はこの 3 項目だけを読む。このほかの項目は設定画面が型から欄を組み立て、`json_schema_extra` の note があれば欄の下に出す
+    description: 出力先のモデルは `id` を `Literal["{出力先の ID}"]` に絞り、全ての項目に既定値を持たせる（既定の出力先の一覧は各モデルを引数なしで作る）。ホットキーの重なり・確定のホットキー・設定画面の共通の欄はこの 3 項目だけを読み込む。このほかの項目は設定画面が型から欄を組み立て、`json_schema_extra` の note があれば欄の下に出す
     inherits: pydantic.BaseModel
     properties:
       - name: id
@@ -559,8 +559,8 @@ data_models:
     container: shared/settings.py
     usecase: 設定を変える
     role: 設定のモデル
-    summary: 表記のヒントのプリセット 1 つの名前・語の並び・有効か
-    description: 語は `field_validator` で 1 つずつ前後の空白を除いて確かめる。空の語は `PydanticCustomError`（type `hint_word_empty`）、読点（、）・句点（。）・改行を含む語は `PydanticCustomError`（type `hint_word_separator`）にし、失敗の場所を `words[{m}]` にする。無効のプリセットの語も確かめる。読みも `field_validator` で 1 つずつ前後の空白を除き、ひらがな・カタカナ・長音符（ー）以外の文字を含むものは `PydanticCustomError`（type `hint_reading_not_kana`）にし、失敗の場所を `readings[{m}]` にする。`model_validator(mode="after")` が、readings が空でなく長さが words と違う設定を `PydanticCustomError`（type `hint_readings_length`、場所 `readings`）に、同じ語に違う読み（空を除く）がある設定を、後ろの語の読みの場所の `PydanticCustomError`（type `hint_reading_conflict`、場所 `readings[{m}]`）にする。
+    summary: 表記のヒントのプリセット 1 つの名前・単語の並び・有効か
+    description: 単語は `field_validator` で 1 つずつ前後の空白を除いて確認する。空の単語は `PydanticCustomError`（type `hint_word_empty`）、読点（、）・句点（。）・改行を含む単語は `PydanticCustomError`（type `hint_word_separator`）にし、失敗の場所を `words[{m}]` にする。無効のプリセットの単語も確認する。読みも `field_validator` で 1 つずつ前後の空白を除き、ひらがな・カタカナ・長音符（ー）以外の文字を含むものは `PydanticCustomError`（type `hint_reading_not_kana`）にし、失敗の場所を `readings[{m}]` にする。`model_validator(mode="after")` が、readings が空でなく長さが words と違う設定を `PydanticCustomError`（type `hint_readings_length`、場所 `readings`）に、同じ単語に違う読み（空を除く）がある設定を、後ろの単語の読みの場所の `PydanticCustomError`（type `hint_reading_conflict`、場所 `readings[{m}]`）にする。
     inherits: pydantic.BaseModel
     properties:
       - name: name
@@ -569,15 +569,15 @@ data_models:
       - name: words
         type: list[str]
         default: '[]'
-        description: 文字起こしに渡す語の並び（各語の前後の空白を除く）
+        description: 文字起こしに引き渡す単語の並び（各語の前後の空白を除く）
       - name: enabled
         type: bool
         default: 'True'
-        description: このプリセットの語を文字起こしに渡すか
+        description: このプリセットの単語を文字起こしに引き渡すか
       - name: readings
         type: list[str]
         default: '[]'
-        description: words と同じ並びの読み（各読みの前後の空白を除く）。空の一覧か words と同じ長さ。空文字は読みが無い語
+        description: words と同じ並びの読み（各読みの前後の空白を除く）。空の一覧か words と同じ長さ。空文字は読みが無い単語
     refs:
       - CFG-1#settings[hint_presets[].name]
       - CFG-1#settings[hint_presets[].words]
@@ -589,34 +589,34 @@ data_models:
     container: shared/settings.py
     usecase: 設定を変える
     role: Protocol
-    summary: join_hint_words が読む、有効かと語の並びだけを持つ型。HintPresetSettings と、設定画面の入力の途中の値（確かめを通らない値も含む）が共に満たす
-    description: '`typing.Protocol`。確かめを通らない空の名前・空の語・区切りを含む語もそのまま持てる。'
+    summary: join_hint_words が読み込む、有効かと単語の並びだけを持つ型。HintPresetSettings と、設定画面の入力の途中の値（確認を通らない値も含む）が共に満たす
+    description: '`typing.Protocol`。確認を通らない空の名前・空の単語・区切りを含む単語もそのまま持てる。'
     properties:
       - name: enabled
         type: bool
-        description: 語をつなぐか
+        description: 単語をつなぐか
       - name: words
         type: Sequence[str]
-        description: 語の並び
+        description: 単語の並び
     status: implemented
   - name: EdgePhraseSettings
     title: 文頭・文末から削除する文言の設定
     container: shared/settings.py
     usecase: 録音を文字に起こす
     role: 設定のモデル
-    summary: 文頭・文末から削除する文言 1 行の文言と当てる位置
+    summary: 文頭・文末から削除する文言 1 行の文言と適用する位置
     description: |-
       `model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)`。
-      文言は前後の空白を除いて確かめる。`*` だけの文言は `PydanticCustomError`（type は EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE）にし、失敗の場所を `edge_phrases[{n}].text` にする。空の文言はこのモデルでは断らず、Settings が一覧から除く。
+      文言は前後の空白を除いて確認する。`*` だけの文言は `PydanticCustomError`（type は EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE）にし、失敗の場所を `edge_phrases[{n}].text` にする。空の文言はこのモデルでは断らず、Settings が一覧から除く。
     inherits: pydantic.BaseModel
     properties:
       - name: text
         type: str
-        description: 消す文言（前後の空白を除く。`*` は任意の文字列）
+        description: 削除する文言（前後の空白を除く。`*` は任意の文字列）
       - name: position
         type: Literal["start", "end", "both"]
         default: '"end"'
-        description: 当てる位置（文頭・文末・両方）
+        description: 適用する位置（文頭・文末・両方）
     methods:
       - name: _reject_wildcard_only
         title: 文言の確かめ
@@ -635,7 +635,7 @@ data_models:
         unit_tests:
           - name: test_edge_phrase_settings
             case: 正常
-            summary: 文言と位置を読む
+            summary: 文言と位置を読み込む
             condition: text 「 ご視聴ありがとうございました 」・position 無し
             mock: なし
             expected: text が「ご視聴ありがとうございました」、position が end
@@ -654,16 +654,16 @@ data_models:
     container: shared/settings.py
     usecase: 共通
     role: 設定のモデル
-    summary: 用語集のプリセット 1 つの名前と、補正に使う用語集の名前の並び
+    summary: 用語集のプリセット 1 つの名前と、補正に使用する用語集の名前の並び
     inherits: pydantic.BaseModel
     properties:
       - name: name
         type: str
-        description: 設定画面の用語集のプリセットの一覧と `POST /sessions` の `glossary_preset` で指す名前（前後の空白を除く。空は、重なりと同じ回に欄ごとのエラーとして出すため、Settings の確かめが種類 `string_too_short` で断る）
+        description: 設定画面の用語集のプリセットの一覧と `POST /sessions` の `glossary_preset` で指す名前（前後の空白を除く。空は、重なりと同じ回に欄ごとのエラーとして出すため、Settings の確認が種類 `string_too_short` で断る）
       - name: glossaries
         type: list[str]
         default: '[]'
-        description: 補正に使う用語集の名前（`glossaries[].name`）の並び。補正はこの順に当てる。同じ名前を 2 回並べると検証に通さない（`field_validator`）。一覧に無い名前は検証では断らず、resolve_glossary_presets が外す
+        description: 補正に使用する用語集の名前（`glossaries[].name`）の並び。補正はこの順に適用する。同じ名前を 2 回並べると検証に通さない（`field_validator`）。一覧に無い名前は検証では断らず、resolve_glossary_presets が除外する
     refs:
       - CFG-1#settings[glossary_presets[].name]
       - CFG-1#settings[glossary_presets[].glossaries]
@@ -675,14 +675,14 @@ data_models:
     container: shared/settings.py
     usecase: 共通
     role: 設定のモデル
-    summary: OpenAI API の文字起こしへ渡すモデル・言語・送信先のベース URL。API キーは持たない
+    summary: OpenAI API の文字起こしへ引き渡すモデル・言語・送信先のベース URL。API キーは持たない
     inherits: pydantic.BaseModel
-    description: API キーは設定のファイルに置かず、起動の配線が外部連携の read_openai_api_key で環境変数か秘匿のファイルから読む。反映は全て restart。
+    description: API キーは設定のファイルに配置せず、起動の配線が外部連携の read_openai_api_key で環境変数か秘匿のファイルから読み込む。反映は全て restart。
     properties:
       - name: model
         type: str
         default: gpt-transcribe
-        description: 文字起こしに使うモデル。設定画面は `json_schema_extra` の note で、まとまりの補助文（「文字起こしのエンジンが OpenAI API のときに使う。API キーはここでは入れず、環境変数 OPENAI_API_KEY か、settings.toml と同じフォルダの secrets/openai_api_key に置く。」）を欄の下に出す
+        description: 文字起こしに使用するモデル。設定画面は `json_schema_extra` の note で、まとまりの補助文（「文字起こしのエンジンが OpenAI API のときに使う。API キーはここでは入れず、環境変数 OPENAI_API_KEY か、settings.toml と同じフォルダの secrets/openai_api_key に置く。」）を欄の下に出す
       - name: language
         type: str
         default: ja
@@ -701,7 +701,7 @@ data_models:
     role: 設定のモデル
     summary: Haas の文字起こしのサーバーを動かす WSL のディストリビューション・待ち受けのポートと、認識の調整の値
     description: |-
-      反映は distribution・port・model・dtype・device が restart（サーバーの起動で決まる）、ほかは immediate（送信するたびに読む）。設定画面は `json_schema_extra` の note で、欄ごとの補助文（画面設計『設定画面』の補足『まとまりと欄』）を欄の下に出し、dtype は choice_labels（HAAS_DTYPE_LABELS）でラジオボタンの名前を出す。
+      反映は distribution・port・model・dtype・device が restart（サーバーの起動で決まる）、ほかは immediate（送信するたびに読み込む）。設定画面は `json_schema_extra` の note で、欄ごとの補助文（画面設計『設定画面』の補足『まとまりと欄』）を欄の下に出し、dtype は choice_labels（HAAS_DTYPE_LABELS）でラジオボタンの名前を出す。
       `field_validator` が、前後の空白を除いて空の model を `PydanticCustomError`（type `haas_model_empty`）、HAAS_DEVICE_PATTERN に合わない device を（type `haas_device_form`）、HAAS_SEPARATOR_MAX_LENGTH 文字を超える separator を（type `haas_separator_too_long`）にする。数値の範囲は `Field` の ge・le で断る。
       範囲はインターフェース定義『音声を文字に起こす』『準備できたかを返す』の制約と同じにする（サーバーは別のサブシステムで import できないため、値は両方に持つ）。
     inherits: pydantic.BaseModel
@@ -709,7 +709,7 @@ data_models:
       - name: distribution
         type: str
         default: "''"
-        description: '`wsl.exe -d` に渡すディストリビューションの名前。空なら `-d` を付けない'
+        description: '`wsl.exe -d` に引き渡すディストリビューションの名前。空なら `-d` を付けない'
       - name: port
         type: int
         default: '47824'
@@ -778,15 +778,15 @@ data_models:
     container: shared/settings.py
     usecase: 録音を文字に起こす
     role: DTO
-    summary: Haas へ渡す語 1 つの表記と読み
+    summary: Haas へ引き渡す単語 1 つの表記と読み
     description: '`NamedTuple`。'
     properties:
       - name: written
         type: str
-        description: 語の表記
+        description: 単語の表記
       - name: reading
         type: str | None
-        description: 読み。読みの無い語は None
+        description: 読み。読みの無い単語は None
     status: planned
 enums:
   - name: Preset
@@ -796,7 +796,7 @@ enums:
     summary: プリセットの種類ごとの設定の判別共用体（`Annotated[... | ..., Field(discriminator="kind")]`）
     description: |-
       種類を追加するときは、種類の設定のモデルを 1 つ作ってここに追加し、出力先の PRESET_KINDS と画面の種類の名前に登録する。
-      録音セッションは確定の操作で選んだプリセットをこの型のコピーとして持ち、出力先へ渡す。
+      録音セッションは確定の操作で選んだプリセットをこの型のコピーとして持ち、出力先へ引き渡す。
     values:
       - value: browser
         title: ブラウザ添付
@@ -812,14 +812,14 @@ constants:
     title: 表記のヒントの長さの上限
     container: shared/settings.py
     usecase: 設定を変える
-    summary: 有効なプリセットの語をつないだ手がかりの UTF-8 のバイト数の上限。faster-whisper が hotwords を先頭の 223 トークンに切ることから、頭に追加する空白の 1 バイトを引いた値（導き方は PR の要件と外部ライブラリ『faster-whisper』）
+    summary: 有効なプリセットの単語をつないだ手がかりの UTF-8 のバイト数の上限。faster-whisper が hotwords を先頭の 223 トークンに切ることから、頭に追加する空白の 1 バイトを取得した値（導き方は PR の要件と外部ライブラリ『faster-whisper』）
     value: '222'
     status: implemented
   - name: DEFAULT_EDGE_PHRASES
     title: 既定の文頭・文末から削除する文言
     container: shared/settings.py
     usecase: 録音を文字に起こす
-    summary: '`edge_phrases` のキーが無いときに使う一覧（出所は外部ライブラリ『faster-whisper』の不具合「話していない定型句が文末に入る」）'
+    summary: '`edge_phrases` のキーが無いときに使用する一覧（出所は外部ライブラリ『faster-whisper』の不具合「話していない定型句が文末に入る」）'
     value: (EdgePhraseSettings(text="チャンネル登録*"), EdgePhraseSettings(text="ご視聴ありがとうございました"), EdgePhraseSettings(text="ありがとうございました"))（位置は全て end）
     status: removed
   - name: EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE
@@ -833,21 +833,21 @@ constants:
     title: 文言の任意の文字列を表す文字
     container: shared/settings.py
     usecase: 録音を文字に起こす
-    summary: 文頭・文末から削除する文言で、0 文字以上の任意の文字列を表す文字（EdgePhraseSettings の確かめと strip_edge_phrases が使う）
+    summary: 文頭・文末から削除する文言で、0 文字以上の任意の文字列を表す文字（EdgePhraseSettings の確認と strip_edge_phrases が使用する）
     value: '"*"'
     status: implemented
   - name: EDGE_PHRASES_FIELD_NAME
     title: 文頭・文末から削除する文言の一覧のキー
     container: shared/settings.py
     usecase: 設定を変える
-    summary: 設定のキー `edge_phrases`。設定画面がまとまりの欄と失敗の場所を引くのに使う
+    summary: 設定のキー `edge_phrases`。設定画面がまとまりの欄と失敗の場所を取得するのに使用する
     value: '"edge_phrases"'
     status: implemented
   - name: GLOSSARY_PRESET_NAME_OVERLAP_ERROR_TYPE
     title: 用語集のプリセットの名前の重なりのエラーの種類
     container: shared/settings.py
     usecase: 設定を変える
-    summary: 用語集のプリセットの名前の重なりで Settings の確かめが出す `PydanticCustomError` の type。設定画面がエラーの文言を引くのに使う
+    summary: 用語集のプリセットの名前の重なりで Settings の確認が出す `PydanticCustomError` の type。設定画面がエラーの文言を取得するのに使用する
     value: '"glossary_preset_name_overlap"'
     status: planned
     introduced:
@@ -856,7 +856,7 @@ constants:
     title: 用語集のプリセットの一覧のキー
     container: shared/settings.py
     usecase: 設定を変える
-    summary: 設定のキー `glossary_presets`。設定画面が収集の値と失敗の場所を引くのに使う
+    summary: 設定のキー `glossary_presets`。設定画面が収集の値と失敗の場所を取得するのに使用する
     value: '"glossary_presets"'
     status: planned
     introduced:
@@ -873,7 +873,7 @@ constants:
         description: Linux では音量を変えない
       - key: linux / transcription.local_whisper.device
         value: '"cpu"'
-        description: Linux では CUDA のライブラリを読ませる手当てが無く、cuda では文字起こしワーカーが起動に失敗する
+        description: Linux では CUDA のライブラリを読み込ませる手当てが無く、cuda では文字起こしワーカーが起動に失敗する
       - key: linux / transcription.local_whisper.compute_type
         value: '"int8"'
         description: CPU で動く精度
@@ -958,35 +958,35 @@ functions:
     usecase: 常駐アプリを起動する
     scope: public
     summary: 既定値 → 環境の値 → checkout の上書きの順に重ねて検証する。環境の値が無く settings.toml があれば、先に移す
-    side_effects: settings_file が無く legacy_settings_file があるときだけ、settings_file を書く（migrate_settings_toml）。それ以外はどのファイルも書かない。
+    side_effects: settings_file が無く legacy_settings_file があるときだけ、settings_file を書き込む（migrate_settings_toml）。それ以外はどのファイルも書き込まない。
     args:
       - name: paths
         type: AppPaths
         required: true
         passing: positional
-        description: 置き場所（defaults_file・settings_file・local_settings_file・legacy_settings_file を使う）
+        description: 配置先（defaults_file・settings_file・local_settings_file・legacy_settings_file を使用する）
       - name: model
         type: type[Settings]
         required: true
         passing: positional
-        description: 検証に使う設定のモデル（main.py の SETTINGS_MODEL）
+        description: 検証に使用する設定のモデル（main.py の SETTINGS_MODEL）
     returns:
       type: Settings
       description: 検証した設定
     process: |-
-      1. 既定値を読む（_read_defaults(paths.defaults_file)）
+      1. 既定値を読み込む（_read_defaults(paths.defaults_file)）
          - SettingsError の場合、そのまま送出する
       2. settings_file が無く legacy_settings_file があれば、settings.toml を移す（migrate_settings_toml(legacy_settings_file, settings_file, 既定値)）
          - SettingsError の場合、settings_file を作らずにそのまま送出する
-      3. 環境の値と checkout の上書きを読み（read_yaml_mapping。無いファイルは空の dict にする。local_settings_file が None なら読まない）、レイヤーごとに古い AI チャットの設定を読み替える（migrate_ai_chat。ファイルは書き換えない。重ねた後では既定値の preset_options.browser.open_delay_sec が先にあり、移す値が負けるため）
+      3. 環境の値と checkout の上書きを読み込み（read_yaml_mapping。無いファイルは空の dict にする。local_settings_file が None なら読み込まない）、レイヤーごとに古い AI チャットの設定を読み替える（migrate_ai_chat。ファイルは書き換えない。重ねた後では既定値の preset_options.browser.open_delay_sec が先にあり、移す値が負けるため）
          - SettingsError の場合、そのまま送出する
       4. 既定値 → 環境の値 → checkout の上書きの順に重ねる（merge_layers）
-      5. model.model_validate で検証して返す
-         - pydantic.ValidationError の場合、合わないキーをドット区切り（例 `transcription.local_whisper.beam_size`、出力先は `outputs[0].hotkey`、プリセットは `presets[0].url`）で並べた SettingsError を送出する（paths は読んだ環境の値・checkout の上書きのファイル。どちらも読んでいなければ既定値のファイル）
-         - `[INFO]` 設定を読んだレイヤー（既定値・環境の値・checkout の上書きのうち読んだファイルのパス）
+      5. model.model_validate で検証して返却する
+         - pydantic.ValidationError の場合、合わないキーをドット区切り（例 `transcription.local_whisper.beam_size`、出力先は `outputs[0].hotkey`、プリセットは `presets[0].url`）で並べた SettingsError を送出する（paths は読み込んだ環境の値・checkout の上書きのファイル。どちらも読み込んでいなければ既定値のファイル）
+         - `[INFO]` 設定を読み込んだレイヤー（既定値・環境の値・checkout の上書きのうち読んだファイルのパス）
     exceptions:
       - name: SettingsError
-        condition: 既定値が無い・YAML として読めない・あるのに読めない環境の値か checkout の上書き・移すときに読めない settings.toml（paths は読めなかったファイル 1 つ）
+        condition: 既定値が無い・YAML として読み込めない・あるのに読み込めない環境の値か checkout の上書き・移すときに読み込めない settings.toml（paths は読み込めなかったファイル 1 つ）
         message: '設定ファイルを読めない（{path}: {理由}）'
       - name: SettingsError
         condition: 重ねた値がモデルに合わない・知らないキーがある・出力先の ID が重なる
@@ -1000,52 +1000,52 @@ functions:
         expected: load_default_settings と等しい設定が返り、settings_file ができていない
       - name: test_load_settings
         case: 正常
-        summary: 環境の値に書いたキーだけが既定値に勝つ
-        condition: settings_file に transcription.local_whisper.model = small と、outputs が copy_only だけの一覧を書く
+        summary: 環境の値に書き込んだキーだけが既定値に勝つ
+        condition: settings_file に transcription.local_whisper.model = small と、outputs が copy_only だけの一覧を書き込む
         mock: なし（一時フォルダ）
-        expected: local_whisper.model が small、outputs が CopyOnlySettings 1 件、書いていない項目は既定値
+        expected: local_whisper.model が small、outputs が CopyOnlySettings 1 件、書き込んでいない項目は既定値
       - name: test_load_settings_when_local_override
         case: 正常
         summary: checkout の上書きが環境の値に勝つ
-        condition: settings_file に hotkeys.start = A、local_settings_file に hotkeys.start = B、両方に書いていない hotkeys.cancel は既定値
+        condition: settings_file に hotkeys.start = A、local_settings_file に hotkeys.start = B、両方に書き込んでいない hotkeys.cancel は既定値
         mock: なし（一時フォルダ）
         expected: hotkeys.start が B、hotkeys.cancel が既定値。どのファイルも書き換わっていない
       - name: test_load_settings_when_local_override_disabled
         case: 正常
-        summary: local_settings_file が None なら checkout の上書きを読まない
-        condition: local_settings_file を None にした AppPaths（同じフォルダに settings.local.yaml を置いておく）
+        summary: local_settings_file が None なら checkout の上書きを読み込まない
+        condition: local_settings_file を None にした AppPaths（同じフォルダに settings.local.yaml を配置しておく）
         mock: なし（一時フォルダ）
-        expected: settings.local.yaml の値が効いていない
+        expected: settings.local.yaml の値が有効になっていない
       - name: test_load_settings_when_only_settings_toml
         case: 正常
-        summary: settings.yaml が無く settings.toml があれば移してから読む
+        summary: settings.yaml が無く settings.toml があれば移してから読み込む
         condition: legacy_settings_file に hotkeys.start を既定と違う値にした settings.toml
         mock: なし（一時フォルダ）
-        expected: settings_file ができて hotkeys.start が書かれ、既定値と同じキーが無い。返った設定の hotkeys.start が settings.toml の値。settings.toml が変わっていない
+        expected: settings_file ができて hotkeys.start が書き込まれ、既定値と同じキーが無い。返った設定の hotkeys.start が settings.toml の値。settings.toml が変わっていない
       - name: test_load_settings_when_both_files
         case: 正常
-        summary: settings.yaml があれば settings.toml を読まない
+        summary: settings.yaml があれば settings.toml を読み込まない
         condition: settings_file に hotkeys.start = A、legacy_settings_file に hotkeys.start = B
         mock: なし（一時フォルダ）
         expected: hotkeys.start が A。settings_file が変わっていない
       - name: test_load_settings_when_invalid_value
         case: 異常
         summary: 合わない値はキーを示して断る
-        condition: parametrize で (1) transcription.local_whisper.beam_size = "x" (2) transcription.engine = "gemini"（作らないエンジン）を settings_file に書く
+        condition: parametrize で (1) transcription.local_whisper.beam_size = "x" (2) transcription.engine = "gemini"（作らないエンジン）を settings_file に書き込む
         mock: なし（一時フォルダ）
         expected: SettingsError。メッセージに (1) transcription.local_whisper.beam_size (2) transcription.engine を含む
         exception: 値がモデルに合わない
       - name: test_load_settings_when_invalid_value_paths
         case: 異常
-        summary: 重ねた値が合わないときは、読んだ環境の値と checkout の上書きのファイルを paths に持つ
-        condition: parametrize で (1) settings_file だけ (2) settings_file と local_settings_file の両方 (3) どちらも無い（defaults_file の beam_size を "x" にする）で、transcription.local_whisper.beam_size = "x" を置く
+        summary: 重ねた値が合わないときは、読み込んだ環境の値と checkout の上書きのファイルを paths に持つ
+        condition: parametrize で (1) settings_file だけ (2) settings_file と local_settings_file の両方 (3) どちらも無い（defaults_file の beam_size を "x" にする）で、transcription.local_whisper.beam_size = "x" を配置する
         mock: なし（一時フォルダ）
         expected: SettingsError。paths が (1) (settings_file,) (2) (settings_file, local_settings_file) (3) (defaults_file,)
         exception: 値がモデルに合わない
       - name: test_load_settings_when_unknown_key
         case: 異常
         summary: 知らないキーを断る
-        condition: parametrize で (1) recording.volum_percent = 30（書き間違い） (2) transcription.openai.modle = gpt-4o-mini-transcribe（書き間違い）を settings_file に書く
+        condition: parametrize で (1) recording.volum_percent = 30（綴りの誤り） (2) transcription.openai.modle = gpt-4o-mini-transcribe（綴りの誤り）を settings_file に書き込む
         mock: なし（一時フォルダ）
         expected: SettingsError。メッセージに (1) recording.volum_percent (2) transcription.openai.modle を含む
         exception: 知らないキーがある
@@ -1058,11 +1058,11 @@ functions:
         exception: 出力先の ID が重なる
       - name: test_load_settings_when_broken_yaml
         case: 異常
-        summary: 読めない YAML は、読めなかったファイルと行・列を示して断る
+        summary: 読み込めない YAML は、読み込めなかったファイルと行・列を示して断る
         condition: parametrize で settings_file・local_settings_file・defaults_file のそれぞれを、字下げの崩れた YAML にする
         mock: なし（一時フォルダ）
         expected: SettingsError。メッセージにそのファイルのパスと行・列を含み、paths がそのファイルだけで、settings_file が書き換わっていない
-        exception: YAML として読めない
+        exception: YAML として読み込めない
       - name: test_load_settings_when_defaults_missing
         case: 異常
         summary: 既定値が無ければ断る
@@ -1072,17 +1072,17 @@ functions:
         exception: 既定値が無い
       - name: test_load_settings_when_broken_settings_toml
         case: 異常
-        summary: 移すときに settings.toml を読めなければ、settings.yaml を作らずに断る
+        summary: 移すときに settings.toml を読み込めなければ、settings.yaml を作らずに断る
         condition: settings_file が無く、legacy_settings_file が `[recording` で閉じていない
         mock: なし（一時フォルダ）
         expected: SettingsError。settings_file ができていない
-        exception: 移すときに読めない settings.toml
+        exception: 移すときに読み込めない settings.toml
       - name: test_load_settings_when_ai_chat_remains
         case: 正常
-        summary: 古い AI チャットの設定が残っていても読め、プリセットに読み替える
-        condition: settings_file の outputs に id = ai_chat・open_delay_sec = 2.0・targets に ChatGPT（enabled true）と Claude（enabled false）を書く
+        summary: 古い AI チャットの設定が残っていても読み込め、プリセットに読み替える
+        condition: settings_file の outputs に id = ai_chat・open_delay_sec = 2.0・targets に ChatGPT（enabled true）と Claude（enabled false）を書き込む
         mock: なし（一時フォルダ）
-        expected: outputs に ai_chat が無く、presets が ChatGPT（enabled True）・Claude（enabled False）の BrowserPreset 2 件（同じ title・url・hotkey、send_enter True）、preset_options.browser.open_delay_sec が 2.0。settings_file の中身は読む前と同じ
+        expected: outputs に ai_chat が無く、presets が ChatGPT（enabled True）・Claude（enabled False）の BrowserPreset 2 件（同じ title・url・hotkey、send_enter True）、preset_options.browser.open_delay_sec が 2.0。settings_file の中身は読み込む前と同じ
       - name: test_load_settings_when_invalid_preset
         case: 異常
         summary: 合わないプリセットはキーを示して断る
@@ -1098,8 +1098,8 @@ functions:
         expected: SettingsError にならない
       - name: test_load_settings_when_only_show_hotkeys
         case: 正常
-        summary: 録音の画面のホットキーの表示だけを書いたレイヤーは、文字起こし中の表示を既定値で読む
-        condition: parametrize で (1) settings_file (2) local_settings_file に ui.show_hotkeys = false だけを書く
+        summary: 録音の画面のホットキーの表示だけを書き込んだレイヤーは、文字起こし中の表示を既定値で読み込む
+        condition: parametrize で (1) settings_file (2) local_settings_file に ui.show_hotkeys = false だけを書き込む
         mock: なし（一時フォルダ）
         expected: ui.show_hotkeys が False、ui.transcribing_show_hotkeys が既定値の True
     refs:
@@ -1111,7 +1111,7 @@ functions:
     container: shared/settings.py
     usecase: 設定を変える
     scope: public
-    summary: 既定値のファイルに、動いている OS の上書きを重ねて検証した既定の設定を返す
+    summary: 既定値のファイルに、動いている OS の上書きを重ねて検証した既定の設定を返却する
     args:
       - name: defaults_file
         type: Path
@@ -1122,22 +1122,22 @@ functions:
         type: type[Settings]
         required: true
         passing: positional
-        description: 検証に使う設定のモデル
+        description: 検証に使用する設定のモデル
       - name: os_kind
         type: OsKind
         required: false
         default: CURRENT_OS
         passing: keyword
-        description: 上書きを当てる OS
+        description: 上書きを適用する OS
     returns:
       type: Settings
       description: 既定の設定
     process: |-
-      1. 既定値を読み（_read_defaults(defaults_file, os_kind=os_kind)）、model.model_validate で検証して返す
+      1. 既定値を読み込み（_read_defaults(defaults_file, os_kind=os_kind)）、model.model_validate で検証して返却する
          - pydantic.ValidationError の場合、合わないキーを並べた SettingsError を送出する
     exceptions:
       - name: SettingsError
-        condition: 既定値が無い・読めない・モデルに合わない（キーが欠けている）
+        condition: 既定値が無い・読み込めない・モデルに合わない（キーが欠けている）
     unit_tests:
       - name: test_load_default_settings
         case: 正常
@@ -1165,7 +1165,7 @@ functions:
     container: shared/settings.py
     usecase: 常駐アプリを起動する
     scope: internal
-    summary: 既定値のファイルを読み、os_overrides のうち動いている OS の分を重ねて、os_overrides を外した dict を返す
+    summary: 既定値のファイルを読み込み、os_overrides のうち動いている OS の分を重ねて、os_overrides を除外した dict を返却する
     args:
       - name: defaults_file
         type: Path
@@ -1177,17 +1177,17 @@ functions:
         required: false
         default: CURRENT_OS
         passing: keyword
-        description: 上書きを当てる OS
+        description: 上書きを適用する OS
     returns:
       type: dict[str, Any]
       description: OS の上書きを重ねた既定値
     process: |-
       1. defaults_file が無ければ SettingsError を送出する
-      2. read_yaml_mapping で読む
-      3. DEFAULTS_OS_OVERRIDES_KEY のキーを取り外し、その中の os_kind の値（OsKind の値の文字列のキー）があれば merge_layers で重ねて返す
+      2. read_yaml_mapping で読み込む
+      3. DEFAULTS_OS_OVERRIDES_KEY のキーを取り外し、その中の os_kind の値（OsKind の値の文字列のキー）があれば merge_layers で重ねて返却する
     exceptions:
       - name: SettingsError
-        condition: 既定値が無い・読めない
+        condition: 既定値が無い・読み込めない
     status: planned
   - name: save_settings
     title: 設定の書き戻し
@@ -1195,14 +1195,14 @@ functions:
     container: shared/settings.py
     usecase: 設定を変える
     scope: public
-    summary: 前の設定から変わったキーだけを環境の値に書き、既定値と同じ値にしたキーは外す。再起動が要る項目が変わったかを返す
-    side_effects: settings_file を書く（親のフォルダが無ければ作る）。defaults_file と local_settings_file は書かない。
+    summary: 前の設定から変わったキーだけを環境の値に書き込み、既定値と同じ値にしたキーは除外する。再起動が要る項目が変わったかを返却する
+    side_effects: settings_file を書き込む（親のフォルダが無ければ作る）。defaults_file と local_settings_file は書き込まない。
     args:
       - name: paths
         type: AppPaths
         required: true
         passing: positional
-        description: 置き場所（defaults_file・settings_file を使う）
+        description: 配置先（defaults_file・settings_file を使用する）
       - name: previous
         type: Settings
         required: true
@@ -1212,109 +1212,109 @@ functions:
         type: Settings
         required: true
         passing: positional
-        description: 書く設定（検証済み）
+        description: 書き込む設定（検証済み）
     returns:
       type: bool
       description: 再起動が要る項目が変わったか
     process: |-
       1. previous と settings と既定の設定（load_default_settings(paths.defaults_file, type(settings))）を `model_dump(mode="json")` する。`glossaries[].path` は、settings_file の親のフォルダの下にある場所ならそのフォルダからの相対パス（区切りは `/`）にし、それ以外は絶対パスのままにする
       2. previous と settings で値が変わったキーを集める（changed_keys。表はキーごと、一覧と値は丸ごとで比べる）
-      3. settings_file を読む（read_yaml_document。無ければ空の文書）
-         - SettingsError の場合、そのまま送出する（読めない settings.yaml は書き換えない）
-         - 文書の outputs に `id = "ai_chat"` の項目がある場合、outputs・presets・preset_options を変わったキーに加える（読み替えた値を書き、古い項目を残さない）
-      4. 変わったキーごとに、新しい値が既定の設定の値と等しければ文書から外し（delete_key。中のキーが無くなった表も外す）、違えば書く（set_key。無い表は作る）
-      5. None の項目（glossary_path・active_glossary・active_glossary_preset）を変えたときは、キーを書かずに外す
-      6. 親のフォルダを作り、同じフォルダの一時ファイルに UTF-8 で書いて os.replace で置き換える（write_yaml_document）
-      7. has_restart_change(previous, settings) を返す
+      3. settings_file を読み込む（read_yaml_document。無ければ空の文書）
+         - SettingsError の場合、そのまま送出する（読み込めない settings.yaml は書き換えない）
+         - 文書の outputs に `id = "ai_chat"` の項目がある場合、outputs・presets・preset_options を変わったキーに加える（読み替えた値を書き込み、古い項目を残さない）
+      4. 変わったキーごとに、新しい値が既定の設定の値と等しければ文書から除外し（delete_key。中のキーが無くなった表も除外する）、違えば書き込む（set_key。無い表は作る）
+      5. None の項目（glossary_path・active_glossary・active_glossary_preset）を変えたときは、キーを書き込まずに除外する
+      6. 親のフォルダを作り、同じフォルダの一時ファイルに UTF-8 で書き込んで os.replace で置き換える（write_yaml_document）
+      7. has_restart_change(previous, settings) を返却する
     exceptions:
       - name: SettingsError
-        condition: settings_file があるのに読めない（書き換えない）
+        condition: settings_file があるのに読み込めない（書き換えない）
     unit_tests:
       - name: test_save_settings_when_comments
         case: 正常
         summary: 変えたキーの行だけを書き換え、コメントと空行を保つ
-        condition: コメントと空行のある settings_file に、hotkeys.start を既定と違う値に変えた設定を書く
+        condition: コメントと空行のある settings_file に、hotkeys.start を既定と違う値に変えた設定を書き込む
         mock: なし（一時フォルダ）
-        expected: 書いた後のファイルで、hotkeys.start の行の他の行が書く前と一致し、load_settings で新しい値が読める
+        expected: 書き込んだ後のファイルで、hotkeys.start の行の他の行が書き込む前と一致し、load_settings で新しい値が読み込める
       - name: test_save_settings_when_reset_to_default
         case: 正常
-        summary: 既定値と同じ値にしたキーを外し、外したキーの後ろのコメントを残す
-        condition: hotkeys.cancel を既定と違う値にし、その後ろにコメントと空行を置いた settings_file に、hotkeys.cancel を既定値に戻した設定を書く。parametrize で、まとまりの中のキーを全て既定値に戻して表ごと外すときも書く
+        summary: 既定値と同じ値にしたキーを除外し、除外したキーの後ろのコメントを残す
+        condition: hotkeys.cancel を既定と違う値にし、その後ろにコメントと空行を配置した settings_file に、hotkeys.cancel を既定値に戻した設定を書き込む。parametrize で、まとまりの中のキーを全て既定値に戻して表ごと除外するときも書き込む
         mock: なし（一時フォルダ）
-        expected: 書いた後のファイルに hotkeys.cancel（表ごと外すときは hotkeys の表）が無く、外したキーの行末のコメントの他のコメントが残り、YAML として読める
+        expected: 書き込んだ後のファイルに hotkeys.cancel（表ごと除外するときは hotkeys の表）が無く、除外したキーの行末のコメントの他のコメントが残り、YAML として読み込める
       - name: test_save_settings_when_added_key
         case: 正常
-        summary: 書いていなかったキーを、次の表の見出しのコメントより前に追加する
-        condition: hotkeys の表の後ろに「# 文字起こし」のコメントと transcription の表がある settings_file に、hotkeys.pause を既定と違う値にした設定を書く
+        summary: 書き込んでいなかったキーを、次の表の見出しのコメントより前に追加する
+        condition: hotkeys の表の後ろに「# 文字起こし」のコメントと transcription の表がある settings_file に、hotkeys.pause を既定と違う値にした設定を書き込む
         mock: なし（一時フォルダ）
         expected: hotkeys.pause の行が「# 文字起こし」の行より前にあり、既存の行が全て残る
       - name: test_save_settings_when_unchanged_keys
         case: 正常
-        summary: 変えていないキーは、既定値と同じでも外さない
-        condition: hotkeys.start を既定値と同じ値で書いた settings_file に、recording.fade_sec だけを変えた設定を書く
+        summary: 変えていないキーは、既定値と同じでも除外しない
+        condition: hotkeys.start を既定値と同じ値で書き込んだ settings_file に、recording.fade_sec だけを変えた設定を書き込む
         mock: なし（一時フォルダ）
-        expected: hotkeys.start の行が残り、recording.fade_sec が書かれる
+        expected: hotkeys.start の行が残り、recording.fade_sec が書き込まれる
       - name: test_save_settings_when_quoted_strings
         case: 正常
-        summary: YAML 1.1 で文字列でなくなる値を引用符で囲んで書く
-        condition: edge_phrases に文言 yes・on・*ご視聴 の 3 行を持つ設定を書く
+        summary: YAML 1.1 で文字列でなくなる値を引用符で囲んで書き込む
+        condition: edge_phrases に文言 yes・on・*ご視聴 の 3 行を持つ設定を書き込む
         mock: なし（一時フォルダ）
-        expected: ファイルに 'yes'・'on'・'*ご視聴' が単引用符つきで書かれ、load_settings で文字列のまま読める
+        expected: ファイルに 'yes'・'on'・'*ご視聴' が単引用符つきで書き込まれ、load_settings で文字列のまま読み込める
       - name: test_save_settings_when_restart_item_changed
         case: 正常
         summary: 再起動が要る項目が変われば True
-        condition: transcription.local_whisper.model を large-v3 から small へ変えて書く
+        condition: transcription.local_whisper.model を large-v3 から small へ変えて書き込む
         mock: なし（一時フォルダ）
         expected: 'True'
       - name: test_save_settings_when_immediate_item_changed
         case: 正常
-        summary: 即時に効く項目だけなら False
-        condition: hotkeys.start だけを変えて書く
+        summary: 即時に有効になる項目だけなら False
+        condition: hotkeys.start だけを変えて書き込む
         mock: なし（一時フォルダ）
         expected: 'False'
       - name: test_save_settings_when_missing
         case: 正常
-        summary: 無ければフォルダごと作り、変えたキーだけを書く
-        condition: 存在しないフォルダの下の settings_file に、hotkeys.start だけを変えた設定を書く
+        summary: 無ければフォルダごと作り、変えたキーだけを書き込む
+        condition: 存在しないフォルダの下の settings_file に、hotkeys.start だけを変えた設定を書き込む
         mock: なし（一時フォルダ）
-        expected: False。ファイルができ、hotkeys.start だけが書かれている
+        expected: False。ファイルができ、hotkeys.start だけが書き込まれている
       - name: test_save_settings_when_invalid_existing
         case: 異常
-        summary: 読めない settings.yaml は書き換えずに断る
-        condition: 字下げの崩れた settings_file に設定を書く
+        summary: 読み込めない settings.yaml は書き換えずに断る
+        condition: 字下げの崩れた settings_file に設定を書き込む
         mock: なし（一時フォルダ）
-        expected: SettingsError。ファイルが書く前と同じ
-        exception: settings_file があるのに読めない
+        expected: SettingsError。ファイルが書き込む前と同じ
+        exception: settings_file があるのに読み込めない
       - name: test_save_settings_when_glossary_reset
         case: 正常
-        summary: 用語集の場所を既定（None）に戻すとキーを外す
-        condition: glossary_path = C:/x/yogo.csv を持つ settings_file に、glossary_path を None にした設定を書く
+        summary: 用語集の場所を既定（None）に戻すとキーを除外する
+        condition: glossary_path = C:/x/yogo.csv を持つ settings_file に、glossary_path を None にした設定を書き込む
         mock: なし（一時フォルダ）
-        expected: 書いた後のファイルに glossary_path のキーが無く、load_settings の glossary_path が None
+        expected: 書き込んだ後のファイルに glossary_path のキーが無く、load_settings の glossary_path が None
       - name: test_save_settings_when_ai_chat_remains
         case: 正常
-        summary: 読み替えた設定を保存すると、ai_chat の項目が消えてプリセットとして書かれる
-        condition: outputs に id = ai_chat と送信先 2 件を書いた settings_file を load_settings で読み、outputs と presets を変えずに recording.fade_sec だけを変えて書く
+        summary: 読み替えた設定を保存すると、ai_chat の項目が消えてプリセットとして書き込まれる
+        condition: outputs に id = ai_chat と送信先 2 件を書き込んだ settings_file を load_settings で読み込み、outputs と presets を変えずに recording.fade_sec だけを変えて書き込む
         mock: なし（一時フォルダ）
-        expected: 書いた後のファイルの outputs に ai_chat が無く、presets に同じ title・url・hotkey・enabled の kind = browser が 2 件あり、preset_options.browser.open_delay_sec が読み替えた値
+        expected: 書き込んだ後のファイルの outputs に ai_chat が無く、presets に同じ title・url・hotkey・enabled の kind = browser が 2 件あり、preset_options.browser.open_delay_sec が読み替えた値
       - name: test_save_settings_when_glossaries
         case: 正常
-        summary: 用語集の一覧を書き、設定のフォルダの下の場所は相対パスにする
-        condition: path が設定のフォルダの下の glossaries/glossary_1.csv と、別のフォルダの絶対パスの 2 件の glossaries と active_glossary を持つ設定を書く
+        summary: 用語集の一覧を書き込み、設定のフォルダの下の場所は相対パスにする
+        condition: path が設定のフォルダの下の glossaries/glossary_1.csv と、別のフォルダの絶対パスの 2 件の glossaries と active_glossary を持つ設定を書き込む
         mock: なし（一時フォルダ）
-        expected: ファイルの 1 件目の path が `glossaries/glossary_1.csv`、2 件目が絶対パス。load_settings で同じ名前の並びと active_glossary が読める
+        expected: ファイルの 1 件目の path が `glossaries/glossary_1.csv`、2 件目が絶対パス。load_settings で同じ名前の並びと active_glossary が読み込める
       - name: test_save_settings_when_glossary_presets
         case: 正常
-        summary: 用語集のプリセットを書き、今までの active_glossary のキーを外す
-        condition: active_glossary = 会議用 を持つ settings_file に、active_glossary が None で、2 件の glossary_presets と active_glossary_preset を持つ設定を書く
+        summary: 用語集のプリセットを書き込み、今までの active_glossary のキーを除外する
+        condition: active_glossary = 会議用 を持つ settings_file に、active_glossary が None で、2 件の glossary_presets と active_glossary_preset を持つ設定を書き込む
         mock: なし（一時フォルダ）
-        expected: 書いた後のファイルに active_glossary のキーが無く、load_settings で同じ glossary_presets の並びと active_glossary_preset が読める
+        expected: 書き込んだ後のファイルに active_glossary のキーが無く、load_settings で同じ glossary_presets の並びと active_glossary_preset が読み込める
       - name: test_save_settings_when_local_override
         case: 正常
         summary: checkout の上書きのファイルは書き換えない
-        condition: local_settings_file に hotkeys.start = B を置き、hotkeys.start を C にした設定を書く
+        condition: local_settings_file に hotkeys.start = B を設定し、hotkeys.start を C にした設定を書き込む
         mock: なし（一時フォルダ）
-        expected: settings_file に hotkeys.start = C が書かれ、local_settings_file が書く前と同じ
+        expected: settings_file に hotkeys.start = C が書き込まれ、local_settings_file が書き込む前と同じ
     refs:
       - LIB-25#
     status: planned
@@ -1324,7 +1324,7 @@ functions:
     container: shared/settings.py
     usecase: 設定を変える
     scope: public
-    summary: reload が restart の項目のうち、2 つの設定で値が違うものがあるかを返す
+    summary: reload が restart の項目のうち、2 つの設定で値が違うものがあるかを返却する
     args:
       - name: previous
         type: Settings
@@ -1347,8 +1347,8 @@ functions:
     container: shared/settings.py
     usecase: 設定を変える
     scope: public
-    summary: 環境の値から全てのキーを外す
-    side_effects: settings_file を書く（無ければ何もしない）。
+    summary: 環境の値から全てのキーを除外する
+    side_effects: settings_file を書き込む（無ければ何もしない）。
     args:
       - name: settings_file
         type: Path
@@ -1359,16 +1359,16 @@ functions:
       type: None
       description: なし
     process: |-
-      1. settings_file が無ければ何もせずに返す
-      2. 読み（read_yaml_document）、一番上の表のキーを全て外して（delete_key）、書く（write_yaml_document）
-         - SettingsError の場合、読めないファイルを空の文書で置き換える
+      1. settings_file が無ければ何もせずに返却する
+      2. 読み込み（read_yaml_document）、一番上の表のキーを全て除外して（delete_key）、書き込む（write_yaml_document）
+         - SettingsError の場合、読み込めないファイルを空の文書で置き換える
     unit_tests:
       - name: test_reset_settings
         case: 正常
-        summary: キーを全て外し、先頭のコメントを残す
+        summary: キーを全て除外し、先頭のコメントを残す
         condition: 先頭のコメントと 3 つの表を持つ settings_file
         mock: なし（一時フォルダ）
-        expected: 書いた後のファイルにキーが無く、先頭のコメントが残る。load_settings が load_default_settings と等しい設定を返す
+        expected: 書き込んだ後のファイルにキーが無く、先頭のコメントが残る。load_settings が load_default_settings と等しい設定を返却する
       - name: test_reset_settings_when_missing
         case: 正常
         summary: 無ければ作らない
@@ -1382,8 +1382,8 @@ functions:
     container: shared/settings.py
     usecase: 常駐アプリを起動する
     scope: public
-    summary: 前のバージョンの settings.toml を読み、既定値と違うキーだけを settings.yaml に書く。settings.toml は残す
-    side_effects: settings_file を書く。legacy_settings_file は書き換えない。
+    summary: 前のバージョンの settings.toml を読み込み、既定値と違うキーだけを settings.yaml に書き込む。settings.toml は残す
+    side_effects: settings_file を書き込む。legacy_settings_file は書き換えない。
     args:
       - name: legacy_settings_file
         type: Path
@@ -1404,11 +1404,11 @@ functions:
       type: None
       description: なし
     process: |-
-      1. legacy_settings_file を UTF-8 で読み、tomlkit で解釈して素の dict にする（unwrap）
+      1. legacy_settings_file を UTF-8 で読み込み、tomlkit で解釈して素の dict にする（unwrap）
          - TOMLKitError の場合、SettingsError を送出する（settings_file を作らない）
       2. 古い AI チャットの設定を読み替え（migrate_ai_chat）、文字起こし中の表示のホットキーを引き継ぐ（inherit_transcribing_show_hotkeys）
       3. 既定値と違うキーだけを集める（diff_from_defaults。表はキーごと、一覧と値は丸ごとで比べる）
-      4. 集めた dict を書く（write_yaml_document）
+      4. 集めた dict を書き込む（write_yaml_document）
          - `[INFO]` settings.toml から settings.yaml へ移した（移した元と先のパス・移したキーの数）
     exceptions:
       - name: SettingsError
@@ -1418,39 +1418,39 @@ functions:
       - name: test_migrate_settings_toml
         case: 正常
         summary: 既定値と違うキーだけを移し、既定値に重ねると TOML の値と等しい
-        condition: hotkeys.start と transcription.engine を既定と違う値にし、他のキーを既定値で全て書いた settings.toml
+        condition: hotkeys.start と transcription.engine を既定と違う値にし、他のキーを既定値で全て書き込んだ settings.toml
         mock: なし（一時フォルダ）
-        expected: settings_file に hotkeys.start と transcription.engine だけが書かれ、既定値に重ねた値が TOML の値と等しい。settings.toml が変わっていない
+        expected: settings_file に hotkeys.start と transcription.engine だけが書き込まれ、既定値に重ねた値が TOML の値と等しい。settings.toml が変わっていない
       - name: test_migrate_settings_toml_when_lists
         case: 正常
         summary: 一覧は一部だけ違っても丸ごと移す
         condition: edge_phrases の 1 行だけを既定と違う値にした settings.toml
         mock: なし（一時フォルダ）
-        expected: settings_file の edge_phrases に一覧の全ての行が書かれる
+        expected: settings_file の edge_phrases に一覧の全ての行が書き込まれる
       - name: test_migrate_settings_toml_when_special_strings
         case: 正常
         summary: YAML で特別な意味を持つ文字列を文字列のまま移す
-        condition: 'edge_phrases の文言に `*`・yes・no・on・off・0123・`a: b`・null・`~`・日本語の文字列を書いた settings.toml'
+        condition: 'edge_phrases の文言に `*`・yes・no・on・off・0123・`a: b`・null・`~`・日本語の文字列を書き込んだ settings.toml'
         mock: なし（一時フォルダ）
-        expected: settings_file を読み直した文言が全て文字列で、TOML の値と等しい
+        expected: settings_file を読み込み直した文言が全て文字列で、TOML の値と等しい
       - name: test_migrate_settings_toml_when_ai_chat_remains
         case: 正常
         summary: 古い AI チャットの設定はプリセットに読み替えて移す
-        condition: outputs に id = "ai_chat" を書いた settings.toml
+        condition: outputs に id = "ai_chat" を書き込んだ settings.toml
         mock: なし（一時フォルダ）
-        expected: settings_file の outputs に ai_chat が無く、presets に読み替えたプリセットが書かれる
+        expected: settings_file の outputs に ai_chat が無く、presets に読み替えたプリセットが書き込まれる
       - name: test_migrate_settings_toml_when_only_show_hotkeys
         case: 正常
         summary: 録音の画面のホットキーの表示だけが既定と違えば、文字起こし中の表示も同じ値で移す
-        condition: '[ui] に show_hotkeys = false だけを書き、transcribing_show_hotkeys を書いていない settings.toml'
+        condition: '[ui] に show_hotkeys = false だけを書き込み、transcribing_show_hotkeys を書き込んでいない settings.toml'
         mock: なし（一時フォルダ）
-        expected: settings_file に ui.show_hotkeys と ui.transcribing_show_hotkeys が false で書かれ、load_settings の ui.transcribing_show_hotkeys が False
+        expected: settings_file に ui.show_hotkeys と ui.transcribing_show_hotkeys が false で書き込まれ、load_settings の ui.transcribing_show_hotkeys が False
       - name: test_migrate_settings_toml_when_transcribing_show_hotkeys_default
         case: 正常
-        summary: 文字起こし中の表示が既定値と同じなら外して移し、読み直しても既定値のまま
-        condition: '[ui] に show_hotkeys = false・transcribing_show_hotkeys = true を書いた settings.toml'
+        summary: 文字起こし中の表示が既定値と同じなら除外して移し、読み込み直しても既定値のまま
+        condition: '[ui] に show_hotkeys = false・transcribing_show_hotkeys = true を書き込んだ settings.toml'
         mock: なし（一時フォルダ）
-        expected: settings_file に ui.show_hotkeys だけが false で書かれ、load_settings の ui.transcribing_show_hotkeys が True
+        expected: settings_file に ui.show_hotkeys だけが false で書き込まれ、load_settings の ui.transcribing_show_hotkeys が True
     refs:
       - LIB-28#
     status: planned
@@ -1466,30 +1466,30 @@ functions:
         type: dict[str, Any]
         required: true
         passing: positional
-        description: 移すときに読んだ settings.toml の素の dict
+        description: 移すときに読み込んだ settings.toml の素の dict
     returns:
       type: dict[str, Any]
-      description: transcribing_show_hotkeys を入れたコピー。入れる必要が無いときは layer をそのまま返す
+      description: transcribing_show_hotkeys を入れたコピー。入れる必要が無いときは layer をそのまま返却する
     process: |-
-      1. layer の `ui` が dict でないか、transcribing_show_hotkeys を持つか、show_hotkeys を持たないときは layer をそのまま返す（両方を持たないときは既定値に任せる）
-      2. layer のコピーの `ui` に transcribing_show_hotkeys として show_hotkeys の値を入れて返す（layer は書き換えない）
+      1. layer の `ui` が dict でないか、transcribing_show_hotkeys を持つか、show_hotkeys を持たないときは layer をそのまま返却する（両方を持たないときは既定値に任せる）
+      2. layer のコピーの `ui` に transcribing_show_hotkeys として show_hotkeys の値を入れて返却する（layer は書き換えない）
     unit_tests:
       - name: test_inherit_transcribing_show_hotkeys_when_missing
         case: 正常
         summary: 文字起こし中の表示の項目が無ければ録音の画面の値を入れる
-        condition: '{"ui": {"show_hotkeys": false}} を渡す'
+        condition: '{"ui": {"show_hotkeys": false}} を引き渡す'
         mock: なし
-        expected: '{"ui": {"show_hotkeys": false, "transcribing_show_hotkeys": false}}。渡した dict が変わっていない'
+        expected: '{"ui": {"show_hotkeys": false, "transcribing_show_hotkeys": false}}。引き渡した dict が変わっていない'
       - name: test_inherit_transcribing_show_hotkeys_when_both_missing
         case: 正常
-        summary: どちらの項目も無ければそのまま返す
-        condition: 'parametrize で (1) {} (2) {"ui": {"theme": "dark"}} を渡す'
+        summary: どちらの項目も無ければそのまま返却する
+        condition: 'parametrize で (1) {} (2) {"ui": {"theme": "dark"}} を引き渡す'
         mock: なし
-        expected: 渡した dict と等しい
+        expected: 引き渡した dict と等しい
       - name: test_inherit_transcribing_show_hotkeys_when_set
         case: 正常
         summary: 文字起こし中の表示の項目があればその値を保つ
-        condition: '{"ui": {"show_hotkeys": false, "transcribing_show_hotkeys": true}} を渡す'
+        condition: '{"ui": {"show_hotkeys": false, "transcribing_show_hotkeys": true}} を引き渡す'
         mock: なし
         expected: transcribing_show_hotkeys が true のまま
     status: planned
@@ -1497,7 +1497,7 @@ functions:
     title: ホットキーの重なりの検出
     container: shared/settings.py
     usecase: 設定を変える
-    summary: 受け付けるホットキーのうち、前に並んだものと重なるものを返す。Settings の確かめ（`model_validator(mode="after")`）が呼ぶ
+    summary: 受け付けるホットキーのうち、前に並んだものと重なるものを返却する。Settings の確認（`model_validator(mode="after")`）が呼ぶ
     kind: 関数
     scope: public
     args:
@@ -1505,7 +1505,7 @@ functions:
         type: Settings
         required: true
         passing: positional
-        description: 確かめる設定
+        description: 確認する設定
     returns:
       type: list[tuple[str, str]]
       description: （重なったキー, 先に並んだ同じホットキーのキー）の並び。キーは format_error_location と同じ書式（例 `presets[2].hotkey`）
@@ -1517,17 +1517,17 @@ functions:
       - SCR-9#
     status: implemented
     notes:
-      補足: Settings に `model_validator(mode="after")` を追加し、この関数が返した重なりごとに `PydanticCustomError` を集めた ValidationError を送出する（場所は重なったキー、理由は「{先のキー}と同じホットキー」）。設定画面は list_validation_failures で欄ごとのエラーにする
+      補足: Settings に `model_validator(mode="after")` を追加し、この関数が返却した重なりごとに `PydanticCustomError` を集めた ValidationError を送出する（場所は重なったキー、理由は「{先のキー}と同じホットキー」）。設定画面は list_validation_failures で欄ごとのエラーにする
     unit_tests:
       - name: test_find_hotkey_overlaps
         case: 正常
-        summary: 前に並んだホットキーと重なるキーを、重なった組で返す
-        condition: 出力先の hotkey を <ctrl>+<alt>+d・v・c に固定し、presets に 2 件を置き、2 件目の hotkey を <ctrl>+<alt>+v（貼り付けのみと同じ）にした設定（model_construct で確かめを飛ばして作る）
+        summary: 前に並んだホットキーと重なるキーを、重なった組で返却する
+        condition: 出力先の hotkey を <ctrl>+<alt>+d・v・c に固定し、presets に 2 件を配置し、2 件目の hotkey を <ctrl>+<alt>+v（貼り付けのみと同じ）にした設定（model_construct で確認を飛ばして作る）
         mock: なし
         expected: '[("presets[1].hotkey", "outputs[1].hotkey")]'
       - name: test_find_hotkey_overlaps_when_presets_of_different_kinds
         case: 正常
-        summary: 種類をまたいだプリセットどうしの重なりを返す
+        summary: 種類をまたいだプリセットどうしの重なりを返却する
         condition: presets が [browser（<ctrl>+<alt>+3）, endpoint（<ctrl>+<alt>+3）]
         mock: なし
         expected: '[("presets[1].hotkey", "presets[0].hotkey")]'
@@ -1552,7 +1552,7 @@ functions:
       - name: test_settings_when_hotkeys_overlap
         case: 異常
         summary: ホットキーが重なる設定は、重なったキーと先のキーを持つ ValidationError で断る
-        condition: hotkeys.pause と hotkeys.cancel を同じ <ctrl>+<alt>+z にした dict を Settings.model_validate に渡す
+        condition: hotkeys.pause と hotkeys.cancel を同じ <ctrl>+<alt>+z にした dict を Settings.model_validate に引き渡す
         mock: なし
         expected: ValidationError。list_validation_failures のキーに hotkeys.cancel、理由に hotkeys.pause
         exception: ホットキーが重なる
@@ -1562,7 +1562,7 @@ functions:
     container: shared/settings.py
     usecase: 常駐アプリを起動する
     scope: public
-    summary: 重ねた設定の dict から `id = "ai_chat"` の出力先を外し、送信先をブラウザ添付のプリセットへ読み替えた dict を返す。load_settings と migrate_settings_toml が呼ぶ
+    summary: 重ねた設定の dict から `id = "ai_chat"` の出力先を除外し、送信先をブラウザ添付のプリセットへ読み替えた dict を返却する。load_settings と migrate_settings_toml が呼ぶ
     args:
       - name: document
         type: dict[str, Any]
@@ -1574,15 +1574,15 @@ functions:
       description: 読み替えた dict。ai_chat の項目が無ければ document と同じ中身
     process: |-
       1. outputs の中の `id = "ai_chat"` の項目を探す
-         - 無い場合（outputs が無い・配列でないも含む）、document をそのまま返す（検証は Settings に任せる）
+         - 無い場合（outputs が無い・配列でないも含む）、document をそのまま返却する（検証は Settings に任せる）
       2. その項目の targets（無ければ、前の既定の ChatGPT・Google AI・Claude の 3 件）を並びのまま、`{kind: "browser", title: name, url, hotkey, enabled: 項目の enabled かつ target の enabled, send_enter: true}` にして、既にある presets の後ろに追加する
       3. その項目に open_delay_sec があり、preset_options.browser.open_delay_sec が無ければ、その値を入れる
-      4. outputs からその項目を外した新しい dict を返す
+      4. outputs からその項目を除外した新しい dict を返却する
          - `[INFO]` 古い AI チャットの設定をプリセットへ読み替えた（件数）
     unit_tests:
       - name: test_migrate_ai_chat
         case: 正常
-        summary: 送信先をブラウザ添付のプリセットにし、ai_chat を外す
+        summary: 送信先をブラウザ添付のプリセットにし、ai_chat を除外する
         condition: outputs が [paste_and_send, ai_chat（open_delay_sec 2.0、targets に ChatGPT と Claude（enabled false））]
         mock: なし
         expected: outputs が [paste_and_send]、presets が ChatGPT（enabled true）・Claude（enabled false）の kind browser・send_enter true の 2 件、preset_options.browser.open_delay_sec が 2.0。元の dict は変わらない
@@ -1611,7 +1611,7 @@ functions:
     container: shared/settings.py
     usecase: 共通
     scope: public
-    summary: 出力先の設定のモデルを受け、outputs をその判別共用体にした Settings の子のモデルを返す
+    summary: 出力先の設定のモデルを受け、outputs をその判別共用体にした Settings の子のモデルを返却する
     args:
       - name: output_models
         type: Sequence[type[OutputSettingsBase]]
@@ -1624,35 +1624,35 @@ functions:
     process: |-
       1. 各モデルの id の既定値を集める
          - 空か、重なる ID がある場合、ValueError を送出する（登録の誤り。起動の前に単体テストで止める）
-      2. outputs の型を、モデルの数によらず `list[Annotated[Union[...], Field(discriminator="id")]]` にする（モデルが 1 つでも判別共用体にし、失敗の場所に添字の次の判別子の値を入れる。format_error_location がそれを外す）
+      2. outputs の型を、モデルの数によらず `list[Annotated[Union[...], Field(discriminator="id")]]` にする（モデルが 1 つでも判別共用体にし、失敗の場所に添字の次の判別子の値を入れる。format_error_location がそれを除外する）
       3. outputs は既定値を持たない必須の項目にする（既定の一覧は `config/defaults.yaml` が持つ）。説明・反映のマーカーは Settings の outputs のものを引き継ぐ
-      4. Settings を継いだモデルを `pydantic.create_model` で作り、output_models に ID → モデルを入れて返す（確かめは Settings のものを引き継ぐ）
+      4. Settings を継いだモデルを `pydantic.create_model` で作り、output_models に ID → モデルを入れて返却する（確認は Settings のものを引き継ぐ）
     exceptions:
       - name: ValueError
         condition: モデルが空か、ID が重なる
     unit_tests:
       - name: test_build_settings_model
         case: 正常
-        summary: 渡したモデルで outputs を検証する
-        condition: '試しのモデル 2 つ（ID a・b。b だけ delay_sec: float = 1.0 を持つ）を渡し、リポジトリの config/defaults.yaml を _read_defaults で読んだ dict の outputs を [{id: b, hotkey: <ctrl>+<alt>+b, delay_sec: 2.0}] に替えて、返ったモデルで model_validate する'
+        summary: 引き渡したモデルで outputs を検証する
+        condition: '試しのモデル 2 つ（ID a・b。b だけ delay_sec: float = 1.0 を持つ）を引き渡し、リポジトリの config/defaults.yaml を _read_defaults で読み込んだ dict の outputs を [{id: b, hotkey: <ctrl>+<alt>+b, delay_sec: 2.0}] に替えて、返ったモデルで model_validate する'
         mock: なし
         expected: 'model_validate の outputs[0] が b のモデル（delay_sec 2.0）、model_dump(mode="json") の outputs[0] に delay_sec があり、output_models が {a: a のモデル, b: b のモデル}'
       - name: test_build_settings_model_when_unknown_output
         case: 異常
-        summary: 渡していない出力先の ID を断る
-        condition: '試しのモデル a・b で組み立て、_read_defaults で読んだ dict の outputs を [{id: c}] に替えて model_validate する'
+        summary: 引き渡していない出力先の ID を断る
+        condition: '試しのモデル a・b で組み立て、_read_defaults で読み込んだ dict の outputs を [{id: c}] に替えて model_validate する'
         mock: なし
         expected: ValidationError。list_validation_failures のキーが outputs[0] で始まる
       - name: test_build_settings_model_when_single_output
         case: 正常
         summary: 出力先が 1 つでも組み立てられる
-        condition: '試しのモデル a だけを渡して組み立て、_read_defaults で読んだ dict の outputs を [{id: a, hotkey: 1}]（hotkey が文字列でない）に替えて model_validate する'
+        condition: '試しのモデル a だけを引き渡して組み立て、_read_defaults で読み込んだ dict の outputs を [{id: a, hotkey: 1}]（hotkey が文字列でない）に替えて model_validate する'
         mock: なし
         expected: model_validate は ValidationError で、list_validation_failures のキーが outputs[0].hotkey
       - name: test_build_settings_model_when_duplicate_id
         case: 異常
         summary: ID が重なる登録を断る
-        condition: ID がどちらも a の試しのモデル 2 つを渡す
+        condition: ID がどちらも a の試しのモデル 2 つを引き渡す
         mock: なし
         expected: ValueError
         exception: ID が重なる
@@ -1661,7 +1661,7 @@ functions:
     title: 用語集の名前の重なりの検出
     container: shared/settings.py
     usecase: 設定を変える
-    summary: 用語集の一覧のうち、前に並んだ用語集と名前が同じものを返す。Settings の確かめ（`model_validator(mode="after")`）が呼ぶ
+    summary: 用語集の一覧のうち、前に並んだ用語集と名前が同じものを返却する。Settings の確認（`model_validator(mode="after")`）が呼ぶ
     kind: 関数
     scope: public
     args:
@@ -1669,17 +1669,17 @@ functions:
         type: Settings
         required: true
         passing: positional
-        description: 確かめる設定
+        description: 確認する設定
     returns:
       type: list[tuple[str, str]]
       description: （重なったキー, 重なった名前）の並び。キーは format_error_location と同じ書式（例 `glossaries[2].name`）
-    process: 1. `glossaries` を並びの順に見て、名前が先に並んだ用語集と同じものを集める（大文字と小文字は区別する。前後の空白は GlossarySettings が除いている）
+    process: 1. `glossaries` を並びの順に確認して、名前が先に並んだ用語集と同じものを集める（大文字と小文字は区別する。前後の空白は GlossarySettings が除いている）
     notes:
-      補足: Settings の `model_validator(mode="after")` が、この関数が返した重なりごとに `PydanticCustomError` を集めた ValidationError を送出する（場所は重なったキー、理由は「用語集「{名前}」と同じ名前」）。ホットキーの重なり（find_hotkey_overlaps）と同じ確かめの中で集め、1 回の ValidationError にまとめる
+      補足: Settings の `model_validator(mode="after")` が、この関数が返却した重なりごとに `PydanticCustomError` を集めた ValidationError を送出する（場所は重なったキー、理由は「用語集「{名前}」と同じ名前」）。ホットキーの重なり（find_hotkey_overlaps）と同じ確かめの中で集め、1 回の ValidationError にまとめる
     unit_tests:
       - name: test_find_glossary_name_overlaps
         case: 正常
-        summary: 後ろにある側を重なりとして返す
+        summary: 後ろにある側を重なりとして返却する
         condition: 名前が「yogo」「会議用」「会議用」の 3 件の glossaries
         mock: なし
         expected: '[("glossaries[2].name", "会議用")] が返る'
@@ -1692,13 +1692,13 @@ functions:
       - name: test_settings_when_glossary_names_overlap
         case: 異常
         summary: 名前が重なる設定は検証に通らない
-        condition: 名前が同じ 2 件の glossaries を SETTINGS_MODEL.model_validate に渡す
+        condition: 名前が同じ 2 件の glossaries を SETTINGS_MODEL.model_validate に引き渡す
         mock: なし
         expected: ValidationError。失敗の場所が glossaries[1].name
       - name: test_settings_when_glossary_name_blank
         case: 異常
         summary: 空白だけの名前は検証に通らない
-        condition: 名前が「  」の glossaries を SETTINGS_MODEL.model_validate に渡す
+        condition: 名前が「  」の glossaries を SETTINGS_MODEL.model_validate に引き渡す
         mock: なし
         expected: ValidationError。失敗の場所が glossaries[0].name
     refs:
@@ -1708,7 +1708,7 @@ functions:
     title: 表記のヒントの語のつなぎ
     container: shared/settings.py
     usecase: 録音を文字に起こす
-    summary: 有効なプリセットの語を、一覧の上から順に読点（、）でつなぐ。Settings の長さの確かめと、文字起こしに渡す手がかりの組み立て（main.py）が共に使う
+    summary: 有効なプリセットの単語を、一覧の上から順に読点（、）でつなぐ。Settings の長さの確認と、文字起こしに引き渡す手がかりの組み立て（main.py）が共に使用する
     kind: 関数
     scope: public
     args:
@@ -1716,89 +1716,89 @@ functions:
         type: Sequence[HintWordSource]
         required: true
         passing: positional
-        description: 設定の hint_presets、または設定画面の入力の途中の値（確かめを通らない値もそのままつなぐ）
+        description: 設定の hint_presets、または設定画面の入力の途中の値（確認を通らない値もそのままつなぐ）
     returns:
       type: str
-      description: つないだ手がかり。有効な語が無ければ空文字
+      description: つないだ手がかり。有効な単語が無ければ空文字
     process: 1. enabled が True のプリセットの words を一覧の順に並べ、読点（、）でつなぐ
     notes:
-      補足: Settings の `model_validator(mode="after")` が、返した文字の UTF-8 のバイト数が HINT_MAX_BYTES を超えたら `PydanticCustomError`（type `hint_too_long`、場所 `hint_presets`、ctx に今のバイト数）を集める。ホットキー・用語集の名前の重なりと同じ確かめの中で集め、1 回の ValidationError にまとめる
+      補足: Settings の `model_validator(mode="after")` が、返却した文字の UTF-8 のバイト数が HINT_MAX_BYTES を超えたら `PydanticCustomError`（type `hint_too_long`、場所 `hint_presets`、ctx に今のバイト数）を集める。ホットキー・用語集の名前の重なりと同じ確かめの中で集め、1 回の ValidationError にまとめる
     unit_tests:
       - name: test_join_hint_words
         case: 正常
-        summary: 有効なプリセットの語を一覧の順につなぐ
-        condition: 有効な A（語 voice-paste・Whisper）・無効な B（語 議事録）・有効な C（語 返信）
+        summary: 有効なプリセットの単語を一覧の順につなぐ
+        condition: 有効な A（単語 voice-paste・Whisper）・無効な B（単語 議事録）・有効な C（単語 返信）
         mock: なし
         expected: '"voice-paste、Whisper、返信" が返る'
       - name: test_join_hint_words_when_none_enabled
         case: 正常
-        summary: 有効な語が無ければ空文字
+        summary: 有効な単語が無ければ空文字
         condition: プリセットが空、または全て無効
         mock: なし
         expected: '"" が返る'
       - name: test_settings_when_hint_at_limit
         case: 正常
         summary: つないだ長さが上限ちょうどなら通る
-        condition: 有効な語をつないだ長さが 222 バイトの hint_presets を SETTINGS_MODEL.model_validate に渡す
+        condition: 有効な単語をつないだ長さが 222 バイトの hint_presets を SETTINGS_MODEL.model_validate に引き渡す
         mock: なし
         expected: 検証に通る
       - name: test_settings_when_hint_too_long
         case: 異常
         summary: 上限を 1 バイトでも超えたら通らない
-        condition: 有効な語をつないだ長さが 223 バイトの hint_presets を SETTINGS_MODEL.model_validate に渡す
+        condition: 有効な単語をつないだ長さが 223 バイトの hint_presets を SETTINGS_MODEL.model_validate に引き渡す
         mock: なし
         expected: ValidationError。type が hint_too_long、失敗の場所が hint_presets
       - name: test_settings_when_disabled_hint_long
         case: 正常
-        summary: 無効のプリセットの語は長さに数えない
-        condition: 有効な語は 100 バイト、無効なプリセットに 300 バイトの語を持つ hint_presets を SETTINGS_MODEL.model_validate に渡す
+        summary: 無効のプリセットの単語は長さに数えない
+        condition: 有効な単語は 100 バイト、無効なプリセットに 300 バイトの単語を持つ hint_presets を SETTINGS_MODEL.model_validate に引き渡す
         mock: なし
         expected: 検証に通る
       - name: test_settings_when_hint_word_has_separator
         case: 異常
-        summary: 読点・句点・改行を含む語は通らない
-        condition: 語「A、B」「C。」「D\nE」をそれぞれ持つ無効のプリセットを SETTINGS_MODEL.model_validate に渡す
+        summary: 読点・句点・改行を含む単語は通らない
+        condition: 単語「A、B」「C。」「D\nE」をそれぞれ持つ無効のプリセットを SETTINGS_MODEL.model_validate に引き渡す
         mock: なし
-        expected: ValidationError。type がどれも hint_word_separator、失敗の場所が hint_presets[0].words[0] などその語
+        expected: ValidationError。type がどれも hint_word_separator、失敗の場所が hint_presets[0].words[0] などその単語
       - name: test_settings_when_hint_word_blank
         case: 異常
-        summary: 空白だけの語は通らない
-        condition: 語「  」を持つ hint_presets を SETTINGS_MODEL.model_validate に渡す
+        summary: 空白だけの単語は通らない
+        condition: 単語「  」を持つ hint_presets を SETTINGS_MODEL.model_validate に引き渡す
         mock: なし
         expected: ValidationError。type が hint_word_empty、失敗の場所が hint_presets[0].words[0]
       - name: test_load_settings_when_no_hint_presets
         case: 正常
-        summary: hint_presets のキーが無い settings.yaml を読める
-        condition: hint_presets を持たない settings.yaml を load_settings で読む
+        summary: hint_presets のキーが無い settings.yaml を読み込める
+        condition: hint_presets を持たない settings.yaml を load_settings で読み込む
         mock: なし（tmp_path）
         expected: hint_presets が空の一覧
       - name: test_join_hint_words_when_unvalidated
         case: 正常
-        summary: 確かめを通らない値もそのままつなぐ
-        condition: enabled True・words ["", "A、B"] を持つ（HintPresetSettings でない）値を渡す
+        summary: 確認を通らない値もそのままつなぐ
+        condition: enabled True・words ["", "A、B"] を持つ（HintPresetSettings でない）値を引き渡す
         mock: なし
         expected: '"、A、B" が返り、例外が出ない'
       - name: test_settings_when_hint_reading_not_kana
         case: 異常
         summary: 読みにかな以外の文字が入っている
-        condition: readings が ["totsugou"] の hint_presets を SETTINGS_MODEL.model_validate に渡す
+        condition: readings が ["totsugou"] の hint_presets を SETTINGS_MODEL.model_validate に引き渡す
         mock: なし
         expected: ValidationError。type が hint_reading_not_kana、失敗の場所が hint_presets[0].readings[0]
       - name: test_settings_when_hint_readings_length
         case: 異常
-        summary: 読みの数が語の数と違う
+        summary: 読みの数が単語の数と違う
         condition: words が 2 つ、readings が 1 つ
         mock: なし
         expected: ValidationError。type が hint_readings_length、失敗の場所が hint_presets[0].readings
       - name: test_settings_when_hint_reading_conflict
         case: 異常
-        summary: 同じ語に違う読みがある
+        summary: 同じ単語に違う読みがある
         condition: words が 突合・突合、readings が とつごう・とつあわせ
         mock: なし
         expected: ValidationError。type が hint_reading_conflict、失敗の場所が hint_presets[0].readings[1]
       - name: test_settings_when_hint_reading_blank_on_duplicate_word
         case: 正常
-        summary: 同じ語で片方の読みが空なら通る
+        summary: 同じ単語で片方の読みが空なら通る
         condition: words が 突合・突合、readings が とつごう・空文字
         mock: なし
         expected: 検証を通る
@@ -1845,7 +1845,7 @@ functions:
     title: 表記のヒントのプリセットの名前の重なりの検出
     container: shared/settings.py
     usecase: 設定を変える
-    summary: 表記のヒントのプリセットのうち、前に並んだプリセットと名前が同じものを返す。Settings の確かめ（`model_validator(mode="after")`）が呼ぶ
+    summary: 表記のヒントのプリセットのうち、前に並んだプリセットと名前が同じものを返却する。Settings の確認（`model_validator(mode="after")`）が呼ぶ
     kind: 関数
     scope: public
     args:
@@ -1853,30 +1853,30 @@ functions:
         type: Settings
         required: true
         passing: positional
-        description: 確かめる設定
+        description: 確認する設定
     returns:
       type: list[tuple[str, str]]
       description: （重なったキー, 重なった名前）の並び。キーは format_error_location と同じ書式（例 `hint_presets[2].name`）
-    process: 1. `hint_presets` を並びの順に見て、名前が先に並んだプリセットと同じものを集める（前後の空白は HintPresetSettings が除いている）
+    process: 1. `hint_presets` を並びの順に確認して、名前が先に並んだプリセットと同じものを集める（前後の空白は HintPresetSettings が除いている）
     notes:
       補足: Settings の `model_validator(mode="after")` が、重なりごとに `PydanticCustomError`（type `hint_preset_name_overlap`、場所は重なったキー）を集める。find_glossary_name_overlaps と同じ確かめの中で集める
     unit_tests:
       - name: test_find_hint_preset_name_overlaps
         case: 正常
-        summary: 後ろにある側を重なりとして返す
+        summary: 後ろにある側を重なりとして返却する
         condition: 名前が「開発」「会議」「開発」の 3 件の hint_presets
         mock: なし
         expected: '[("hint_presets[2].name", "開発")] が返る'
       - name: test_settings_when_hint_preset_names_overlap
         case: 異常
         summary: 名前が重なる設定は検証に通らない
-        condition: 名前が同じ 2 件の hint_presets を SETTINGS_MODEL.model_validate に渡す
+        condition: 名前が同じ 2 件の hint_presets を SETTINGS_MODEL.model_validate に引き渡す
         mock: なし
         expected: ValidationError。失敗の場所が hint_presets[1].name
       - name: test_settings_when_hint_preset_name_blank
         case: 異常
         summary: 空白だけの名前は検証に通らない
-        condition: 名前が「  」の hint_presets を SETTINGS_MODEL.model_validate に渡す
+        condition: 名前が「  」の hint_presets を SETTINGS_MODEL.model_validate に引き渡す
         mock: なし
         expected: ValidationError。失敗の場所が hint_presets[0].name
     refs:
@@ -1886,7 +1886,7 @@ functions:
     title: 用語集のプリセットの名前の重なりの検出
     container: shared/settings.py
     usecase: 設定を変える
-    summary: 用語集のプリセットのうち、前に並んだプリセットと名前が同じものを返す。Settings の確かめ（`model_validator(mode="after")`）が呼ぶ
+    summary: 用語集のプリセットのうち、前に並んだプリセットと名前が同じものを返却する。Settings の確認（`model_validator(mode="after")`）が呼ぶ
     kind: 関数
     scope: public
     args:
@@ -1894,36 +1894,36 @@ functions:
         type: Settings
         required: true
         passing: positional
-        description: 確かめる設定
+        description: 確認する設定
     returns:
       type: list[tuple[str, str]]
       description: （重なったキー, 重なった名前）の並び。キーは format_error_location と同じ書式（例 `glossary_presets[2].name`）
-    process: 1. `glossary_presets` を並びの順に見て、名前が先に並んだプリセットと同じものを集める（前後の空白は GlossaryPresetSettings が除いている）
+    process: 1. `glossary_presets` を並びの順に確認して、名前が先に並んだプリセットと同じものを集める（前後の空白は GlossaryPresetSettings が除いている）
     notes:
       補足: Settings の `model_validator(mode="after")` が、重なりごとに `PydanticCustomError`（type GLOSSARY_PRESET_NAME_OVERLAP_ERROR_TYPE、文言「用語集のプリセット「{name}」と同じ名前」、場所は重なったキー）を集める。find_glossary_name_overlaps・find_hint_preset_name_overlaps と同じ確かめの中で集める
     unit_tests:
       - name: test_find_glossary_preset_name_overlaps
         case: 正常
-        summary: 後ろにある側を重なりとして返す
+        summary: 後ろにある側を重なりとして返却する
         condition: 名前が「既定」「会議」「既定」の 3 件の glossary_presets
         mock: なし
         expected: '[("glossary_presets[2].name", "既定")] が返る'
       - name: test_settings_when_glossary_preset_names_overlap
         case: 異常
         summary: 名前が重なる設定は検証に通らない
-        condition: 名前が同じ 2 件の glossary_presets を SETTINGS_MODEL.model_validate に渡す
+        condition: 名前が同じ 2 件の glossary_presets を SETTINGS_MODEL.model_validate に引き渡す
         mock: なし
         expected: ValidationError。失敗の場所が glossary_presets[1].name、type が glossary_preset_name_overlap
       - name: test_settings_when_glossary_preset_name_blank
         case: 異常
         summary: 空白だけの名前は検証に通らない
-        condition: 名前が「  」の glossary_presets を SETTINGS_MODEL.model_validate に渡す
+        condition: 名前が「  」の glossary_presets を SETTINGS_MODEL.model_validate に引き渡す
         mock: なし
         expected: ValidationError。失敗の場所が glossary_presets[0].name
       - name: test_settings_when_glossary_preset_glossaries_duplicated
         case: 異常
         summary: 1 つのプリセットに同じ用語集を 2 回並べた設定は検証に通らない
-        condition: glossaries が ["yogo", "yogo"] の glossary_presets を SETTINGS_MODEL.model_validate に渡す
+        condition: glossaries が ["yogo", "yogo"] の glossary_presets を SETTINGS_MODEL.model_validate に引き渡す
         mock: なし
         expected: ValidationError。失敗の場所が glossary_presets[0].glossaries
     refs:
@@ -1937,8 +1937,8 @@ functions:
     container: shared/settings.py
     usecase: 設定を変える
     role: 設定のモデル
-    summary: 設定のキーの既定値を、OS_DEFAULT_OVERRIDES にその OS の上書きがあればその値、無ければ共通の既定値で返す
-    description: 設定のモデルの項目の既定値（_item の default）に使う。スキーマ（項目・型・範囲）は OS で変えない。
+    summary: 設定のキーの既定値を、OS_DEFAULT_OVERRIDES にその OS の上書きがあればその値、無ければ共通の既定値で返却する
+    description: 設定のモデルの項目の既定値（_item の default）に使用する。スキーマ（項目・型・範囲）は OS で変えない。
     scope: public
     args:
       - name: key
@@ -1952,18 +1952,18 @@ functions:
         type: T
         required: true
         passing: positional
-        description: どの OS でも使う既定値
+        description: どの OS でも使用する既定値
       - name: os_kind
         title: OS
         type: OsKind
         required: false
         default: CURRENT_OS
         passing: keyword
-        description: 既定値を引く OS
+        description: 既定値を取得する OS
     returns:
       type: T
       description: その OS の既定値
-    process: 1. OS_DEFAULT_OVERRIDES[os_kind] に key があればその値、無ければ common を返す
+    process: 1. OS_DEFAULT_OVERRIDES[os_kind] に key があればその値、無ければ common を返却する
     status: removed
   - name: collect_hint_vocabulary
     title: 表記のヒントの表記と読みの集め
@@ -1971,7 +1971,7 @@ functions:
     usecase: 録音を文字に起こす
     kind: 関数
     scope: public
-    summary: 有効なプリセットの語を、一覧の上から順に表記と読みの組で返す。同じ表記は 1 つにまとめる
+    summary: 有効なプリセットの単語を、一覧の上から順に表記と読みの組で返却する。同じ表記は 1 つにまとめる
     args:
       - name: presets
         type: Sequence[HintPresetSettings]
@@ -1980,15 +1980,15 @@ functions:
         description: 設定の hint_presets
     returns:
       type: list[HintVocabularyWord]
-      description: 表記と読みの組。有効な語が無ければ空の一覧
+      description: 表記と読みの組。有効な単語が無ければ空の一覧
     process: |-
       1. enabled が True のプリセットの words と readings を一覧の順に並べる（readings が空の一覧なら読みは全て None、空文字の読みも None）
-      2. 同じ表記は最初の位置に 1 つにまとめ、読みが None で後の語に読みがあればその読みを使う
+      2. 同じ表記は最初の位置に 1 つにまとめ、読みが None で後の単語に読みがあればその読みを使用する
     unit_tests:
       - name: test_collect_hint_vocabulary
         case: 正常
-        summary: 有効なプリセットの語を表記と読みの組で返す
-        condition: 有効なプリセットに語 突合（読み とつごう）・voice-paste（読み 空）、無効なプリセットに語 議事録
+        summary: 有効なプリセットの単語を表記と読みの組で返却する
+        condition: 有効なプリセットに単語 突合（読み とつごう）・voice-paste（読み 空）、無効なプリセットに単語 議事録
         mock: なし
         expected: '[("突合", "とつごう"), ("voice-paste", None)]'
       - name: test_collect_hint_vocabulary_when_no_readings

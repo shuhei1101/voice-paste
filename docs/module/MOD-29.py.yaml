@@ -8,7 +8,7 @@ functions:
     container: features/web_transcription/route.py
     usecase: ブラウザから音声を送信する
     scope: public
-    summary: '`POST /web/transcriptions`。UploadFile の audio と glossary_preset を accept_audio に渡し、202 と job_id を返す'
+    summary: '`POST /web/transcriptions`。UploadFile の audio と glossary_preset を accept_audio に引き渡し、202 と job_id を返却する'
     args:
       - name: audio
         type: UploadFile
@@ -30,8 +30,8 @@ functions:
       type: CreateWebTranscriptionResponse
       description: 202 の本文
     process: |-
-      1. accept_audio に audio.file・glossary_preset・依存を渡す（例外は例外ハンドラが HTTP に変える。GlossaryPresetNotFoundError は 400）
-      2. job_id を返す
+      1. accept_audio に audio.file・glossary_preset・依存を引き渡す（例外は例外ハンドラが HTTP に変える。GlossaryPresetNotFoundError は 400）
+      2. job_id を返却する
     status: planned
   - name: get_web_transcription_route
     title: 文字起こしの結果の route
@@ -39,7 +39,7 @@ functions:
     container: features/web_transcription/route.py
     usecase: ブラウザで結果を受け取る
     scope: public
-    summary: '`GET /web/transcriptions/{job_id}`。キューからジョブを引いて状態を返す'
+    summary: '`GET /web/transcriptions/{job_id}`。キューからジョブを取得して状態を返却する'
     args:
       - name: job_id
         type: str
@@ -55,8 +55,8 @@ functions:
       type: WebTranscriptionStatus
       description: 200 の本文
     process: |-
-      1. queue.get でジョブを引く（無ければ WebJobNotFoundError を例外ハンドラが 404 にする）
-      2. job_id・state・progress・text・error と、deps.reports_progress を返す
+      1. queue.get でジョブを取得する（無ければ WebJobNotFoundError を例外ハンドラが 404 にする）
+      2. job_id・state・progress・text・error と、deps.reports_progress を返却する
     status: planned
   - name: get_web_api_deps
     title: ブラウザの API の依存の取得
@@ -64,7 +64,7 @@ functions:
     container: features/web_transcription/route.py
     usecase: 共通
     scope: public
-    summary: app.state.web_api に置かれた WebApiDeps を返す（Depends）
+    summary: app.state.web_api に配置された WebApiDeps を返却する（Depends）
     args:
       - name: request
         type: Request
@@ -79,7 +79,7 @@ functions:
     title: 用語集のプリセットの一覧の route
     container: features/web_transcription/route.py
     usecase: 用語集のプリセットを選んで送信する
-    summary: '`GET /web/glossary-presets`。list_glossary_presets で引いた名前の一覧と設定で選んでいるプリセットの名前を返す'
+    summary: '`GET /web/glossary-presets`。list_glossary_presets で取得した名前の一覧と設定で選んでいるプリセットの名前を返却する'
     kind: 関数
     scope: public
     args:
@@ -92,8 +92,8 @@ functions:
       type: WebGlossaryPresetsResponse
       description: 200 の本文
     process: |-
-      1. list_glossary_presets で今の設定の選択肢を引く
-      2. presets・active を返す（Host・Origin の守りは要求の守りのミドルウェアが `/web/` の下として持つ）
+      1. list_glossary_presets で今の設定の選択肢を取得する
+      2. presets・active を返却する（Host・Origin の守りは要求の守りのミドルウェアが `/web/` の下として持つ）
     status: planned
     introduced:
       pr: 180

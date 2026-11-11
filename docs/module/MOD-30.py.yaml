@@ -9,7 +9,7 @@ data_models:
     container: ui/controller.py
     usecase: 共通
     role: DTO
-    summary: 画面・トレイが呼ぶ配線済みの関数。ui は features を import せず、main.py がこの束を渡す
+    summary: 画面・トレイが呼ぶ配線済みの関数。ui は features を import せず、main.py がこの束を引き渡す
     description: '`@dataclass(frozen=True, slots=True, kw_only=True)`。'
     properties:
       - name: start
@@ -38,13 +38,13 @@ data_models:
         description: 今効いている設定（SettingsStore.get）
       - name: save_settings
         type: Callable[[Settings, Mapping[Path, Sequence[GlossaryEntry]]], bool]
-        description: 設定と、行を変えた用語集の CSV（場所 → 行）を書いて効かせ、再起動が要る項目が変わったかを返す（apply_settings）
+        description: 設定と、行を変えた用語集の CSV（場所 → 行）を書き込んで有効にし、再起動が要る項目が変わったかを返却する（apply_settings）
       - name: reset_settings
         type: Callable[[], tuple[Settings, bool]]
-        description: 環境の値を空にして読み直した設定を効かせ、その設定と再起動が要る項目が変わったかを返す（reset_applied_settings）
+        description: 環境の値を空にして読み込み直した設定を有効にし、その設定と再起動が要る項目が変わったかを返却する（reset_applied_settings）
       - name: default_settings
         type: Callable[[], Settings]
-        description: 既定の設定（load_default_settings）。設定画面の入力エラーの数値の例に使う
+        description: 既定の設定（load_default_settings）。設定画面の入力エラーの数値の例に使用する
       - name: settings_dir
         type: Path
         description: settings.yaml のあるフォルダ
@@ -65,34 +65,34 @@ data_models:
         description: 今の設定でホットキーの受付を始める（build_hotkey_bindings → HotkeyListener.start か GnomeShortcutListener.start）。設定画面を閉じたときに呼ぶ
       - name: output_titles
         type: Mapping[str, str]
-        description: 画面に出す出力先の名前（出力先の ID → OUTPUTS の title。API 専用の出力先を除く）。設定画面の欄と録音の画面のボタンが引く
+        description: 画面に出す出力先の名前（出力先の ID → OUTPUTS の title。API 専用の出力先を除く）。設定画面の欄と録音の画面のボタンが取得する
       - name: apply_theme
         type: Callable[[], None]
-        description: 今の設定の ui.theme で画面の明暗を当て直す（配線で apply_theme に QApplication と SettingsStore.get の ui.theme を渡したもの）
+        description: 今の設定の ui.theme で画面の明暗を当て直す（配線で apply_theme に QApplication と SettingsStore.get の ui.theme を引き渡したもの）
       - name: list_glossaries
         type: Callable[[], list[GlossarySettings]]
         description: 今の設定の用語集の一覧（path は絶対パス。glossaries が空なら今までの用語集の 1 件。resolve_glossaries）
       - name: read_glossary
         type: Callable[[Path], list[GlossaryEntry]]
-        description: 用語集の CSV の行を、オン・オフと片方が空の行も含めて読む（read_glossary_rows）。読めなければ GlossaryReadError を送出する
+        description: 用語集の CSV の行を、オン・オフと片方が空の行も含めて読み込む（read_glossary_rows）。読み込めなければ GlossaryReadError を送出する
       - name: new_glossary_path
         type: Callable[[Collection[Path]], Path]
         description: 追加する用語集の CSV の場所を、一覧にある場所と重ならないように決める（フォルダを部分適用した next_glossary_path）
       - name: copy
         type: Callable[[str], None]
-        description: クリップボードへ書く（copy_to_clipboard。書けなければ DeliveryError）。コピーの完了の通知を押したときにもう一度コピーする
+        description: クリップボードへ書き込む（copy_to_clipboard。書き込めなければ DeliveryError）。コピーの完了の通知を押したときにもう一度コピーする
       - name: switch_output
         type: Callable[[str], None]
         description: 文字起こし中に届ける出力先を差し替える（SessionManager.switch_output）。文字起こし中の表示の切り替えのボタンが呼ぶ
       - name: list_glossary_presets
         type: Callable[[], list[GlossaryPresetSettings]]
-        description: 今の設定の用語集のプリセットの一覧（glossary_presets が空なら「既定」の 1 件。一覧に無い用語集の名前は外す。resolve_glossary_presets）
+        description: 今の設定の用語集のプリセットの一覧（glossary_presets が空なら「既定」の 1 件。一覧に無い用語集の名前は除外する。resolve_glossary_presets）
       - name: hidden_setting_keys
         type: frozenset[str]
         description: 設定画面で出さない設定のキー（hidden_setting_keys(unavailable_features(CURRENT_OS))）。Linux では録音中の音量のキーと api.allowed_web_origins
       - name: reports_progress
         type: bool
-        description: 動いているエンジンが区間ごとの進みを知らせるか（local_whisper は True、openai・haas は False。haas から切り戻した起動は local_whisper として True）。engine の反映は再起動のため、保存した設定ではなく起動の配線で決めた値を持つ
+        description: 動いているエンジンが区間ごとの進みを通知するか（local_whisper は True、openai・haas は False。haas から切り戻した起動は local_whisper として True）。engine の反映は再起動のため、保存した設定ではなく起動の配線で決めた値を持つ
     status: implemented
 classes:
   - name: UiController
@@ -100,7 +100,7 @@ classes:
     container: ui/controller.py
     usecase: 共通
     role: ランタイム
-    summary: UiBridge の知らせを受けて、トレイ・録音の画面・文字起こし中の表示・ダイアログを開く・閉じる・替える。処理中に選ばれた再起動・終了を待たせる
+    summary: UiBridge の通知を受けて、トレイ・録音の画面・文字起こし中の表示・ダイアログを開く・閉じる・替える。処理中に選ばれた再起動・終了を待たせる
     description: |-
       画面とトレイを長く持つためクラスにする。全てのメソッドはメインスレッドで呼ぶ。
       録音セッションの状態と画面の対応:
@@ -112,9 +112,9 @@ classes:
       | transcribing・delivering（hotkey・tray） | 文字起こし中・処理中 | 閉じる | `recording.hide_window` がオフなら出す |
       | api の録音セッション | 録音中か文字起こし中・処理中 | 出さない | 出さない |
 
-      録音の画面をその回だけ隠した間（`_recording_hidden`）は、recording・paused の知らせを受けても窓を出さず、状態の表示だけを替える（RecordingWindow.set_paused）。録音セッションが recording・paused を抜けたら隠したフラグを下ろす。
+      録音の画面をその回だけ隠した間（`_recording_hidden`）は、recording・paused の通知を受けても窓を出さず、状態の表示だけを替える（RecordingWindow.set_paused）。録音セッションが recording・paused を抜けたら隠したフラグを下ろす。
       トレイの「録音の画面を表示」は、今の録音セッションと隠したフラグから RecordingWindowState を決めて Tray.set_recording_window で替える（hotkey・tray の recording・paused で隠していれば hidden、出していれば shown、`recording.hide_window` がオンか api の録音なら no_window、それ以外は not_recording）。
-      コンストラクタは UiDeps と、キーワードで tray・recording_window・indicator を受け、トレイの操作と録音の画面の「隠す」（Signal）をつなぐ。文字起こし中の表示の切り替えのボタン（TranscribingIndicator.output_selected）は UiDeps.switch_output へつなぐ。あわせて QApplication に自分をイベントフィルタとして入れ、アプリの終了で設定画面を確かめずに閉じる（eventFilter）。
+      コンストラクタは UiDeps と、キーワードで tray・recording_window・indicator を受け、トレイの操作と録音の画面の「隠す」（Signal）をつなぐ。文字起こし中の表示の切り替えのボタン（TranscribingIndicator.output_selected）は UiDeps.switch_output へつなぐ。あわせて QApplication に自分をイベントフィルタとして入れ、アプリの終了で設定画面を確認せずに閉じる（eventFilter）。
     kind: クラス
     inherits: PySide6.QtCore.QObject
     properties:
@@ -170,19 +170,19 @@ classes:
           1. state_changed の場合、今の録音セッションを引き（current_session）、説明の表のとおりにトレイ・録音の画面・文字起こし中の表示を変える
              - 録音セッションが無く、待たせた再起動・終了がある場合、それを行う（request_restart か request_quit）
              - 録音の画面を隠している場合、窓は出さずに状態の表示だけを替える（RecordingWindow.set_paused）
-             - transcribing・delivering で文字起こし中の表示を出す場合、その回に録音の画面を動かしていれば動かした位置（RecordingWindow.moved_position）を渡す。動かしていなければ渡さず、設定の位置に出す。あわせて録音セッションの output_id と、カスタムプリセットで確定したならそのタイトル（output_preset.title）を渡す（TranscribingIndicator.open。文字起こし中の表示が既に出ている delivering の知らせでは開き直さない）
+             - transcribing・delivering で文字起こし中の表示を出す場合、その回に録音の画面を動かしていれば動かした位置（RecordingWindow.moved_position）を引き渡す。動かしていなければ引き渡さず、設定の位置に出す。あわせて録音セッションの output_id と、カスタムプリセットで確定したならそのタイトル（output_preset.title）を引き渡す（TranscribingIndicator.open。文字起こし中の表示が既に出ている delivering の通知では開き直さない）
              - 最後に、トレイの「録音の画面を表示」を今の状態に合わせる（Tray.set_recording_window）
           2. output_changed の場合、文字起こし中の表示の今の出力先を detail（切り替えた先の出力先の ID）に替える（TranscribingIndicator.set_output）
           3. busy の場合、処理中のダイアログを出す（show_busy_dialog）
           4. show_recording_window の場合、隠した録音の画面を戻す（show_recording）
           5. microphone_unavailable・transcription_failed・delivery_failed・api_unavailable の場合、トレイの通知を出す（Tray.show_failure）
              - それ以外の種類の場合、何もしない
-               - `[WARNING]` 知らない知らせを受けた（種類）
+               - `[WARNING]` 知らない通知を受けた（種類）
         unit_tests:
           - name: test_on_notified_when_recording
             case: 正常
             summary: ホットキーの録音で録音の画面を表示する
-            condition: current_session が hotkey・recording を返す。hide_window はオフ
+            condition: current_session が hotkey・recording を返却する。hide_window はオフ
             mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
             expected: Tray.set_state(RECORDING, busy=True)・RecordingWindow.open・TranscribingIndicator.close が呼ばれる
           - name: test_on_notified_when_hidden_window
@@ -194,7 +194,7 @@ classes:
           - name: test_on_notified_when_api_session
             case: 正常
             summary: API の録音では画面を出さない
-            condition: current_session が api・transcribing を返す
+            condition: current_session が api・transcribing を返却する
             mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
             expected: Tray.set_state(TRANSCRIBING, busy=True) が呼ばれ、TranscribingIndicator.open が呼ばれない
           - name: test_on_notified_when_idle_with_pending_quit
@@ -211,20 +211,20 @@ classes:
             expected: show_busy_dialog が 1 回呼ばれる
           - name: test_on_notified_when_failure
             case: 正常
-            summary: 失敗をトレイの通知で知らせる
-            condition: event=delivery_failed、detail="クリップボードに書けない"
+            summary: 失敗をトレイの通知で通知する
+            condition: event=delivery_failed、detail="クリップボードに書き込めない"
             mock: Tray
-            expected: Tray.show_failure(delivery_failed, クリップボードに書けない) が呼ばれる
+            expected: Tray.show_failure(delivery_failed, クリップボードに書き込めない) が呼ばれる
           - name: test_on_notified_when_recording_hidden
             case: 正常
             summary: 隠した録音の画面は、一時停止しても出さずに状態だけ替える
-            condition: hide_recording の後、current_session が hotkey・paused を返す state_changed を受ける
+            condition: hide_recording の後、current_session が hotkey・paused を返却する state_changed を受ける
             mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
             expected: RecordingWindow.set_paused(True) が呼ばれ、RecordingWindow.open・restore が呼ばれず、Tray.set_recording_window(hidden) が呼ばれる
           - name: test_on_notified_when_transcribing_after_hidden
             case: 正常
             summary: 動かして隠したまま確定した回も、文字起こし中の表示を動かした位置に出す
-            condition: hide_recording の後、current_session が hotkey・transcribing を返す state_changed を受ける。RecordingWindow.moved_position が QPoint(300, 200) を返す
+            condition: hide_recording の後、current_session が hotkey・transcribing を返却する state_changed を受ける。RecordingWindow.moved_position が QPoint(300, 200) を返却する
             mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
             expected: TranscribingIndicator.open(at=QPoint(300, 200)) が呼ばれ、Tray.set_recording_window(not_recording) が呼ばれる
           - name: test_on_notified_when_show_recording_window
@@ -236,30 +236,30 @@ classes:
           - name: test_on_notified_when_transcribing_without_move
             case: 正常
             summary: 動かしていない回は、文字起こし中の表示を設定の位置に出す
-            condition: current_session が hotkey・recording を返す state_changed の後、hotkey・transcribing を返す state_changed を受ける。RecordingWindow.moved_position が None を返す
+            condition: current_session が hotkey・recording を返却する state_changed の後、hotkey・transcribing を返却する state_changed を受ける。RecordingWindow.moved_position が None を返却する
             mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
             expected: TranscribingIndicator.open(at=None) が呼ばれる
           - name: test_on_notified_when_output_changed
             case: 正常
-            summary: 出力先の差し替えを文字起こし中の表示へ渡す
-            condition: current_session が hotkey・transcribing を返す state_changed の後、event=output_changed、detail="copy_only"
+            summary: 出力先の差し替えを文字起こし中の表示へ引き渡す
+            condition: current_session が hotkey・transcribing を返却する state_changed の後、event=output_changed、detail="copy_only"
             mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
             expected: TranscribingIndicator.set_output("copy_only") が呼ばれ、TranscribingIndicator.open は state_changed の 1 回だけ
           - name: test_on_notified_when_transcribing_with_output
             case: 正常
-            summary: 文字起こし中の表示へ確定した出力先・プリセットを渡して開く
-            condition: current_session が output_id=paste_and_send の hotkey・transcribing を返す state_changed と、output_preset=BrowserPreset(title="ChatGPT", url="https://chatgpt.com") の hotkey・transcribing を返す state_changed を別々に受ける
+            summary: 文字起こし中の表示へ確定した出力先・プリセットを引き渡して開く
+            condition: current_session が output_id=paste_and_send の hotkey・transcribing を返却する state_changed と、output_preset=BrowserPreset(title="ChatGPT", url="https://chatgpt.com") の hotkey・transcribing を返却する state_changed を別々に受ける
             mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
             expected: TranscribingIndicator.open に output_id="paste_and_send"・preset_title=None と、output_id=None・preset_title="ChatGPT" が渡る
           - name: test_on_notified_when_output_selected
             case: 正常
-            summary: 文字起こし中の表示で選んだ出力先を差し替えへ渡す
+            summary: 文字起こし中の表示で選んだ出力先を差し替えへ引き渡す
             condition: UiController を作った後、TranscribingIndicator.output_selected に "paste_only" を emit する
             mock: UiDeps の全関数・Tray・RecordingWindow
             expected: UiDeps.switch_output("paste_only") が 1 回呼ばれる
       - name: on_progressed
         title: 進みの受け取り
-        summary: UiBridge.progressed のスロット。文字起こし中の表示が出ていれば進みを渡す
+        summary: UiBridge.progressed のスロット。文字起こし中の表示が出ていれば進みを引き渡す
         kind: メソッド
         scope: public
         args:
@@ -278,7 +278,7 @@ classes:
           description: なし
       - name: request_exit
         title: 再起動・終了の依頼
-        summary: トレイ・設定画面からの再起動・終了。待機中ならすぐ行い、処理中ならアイコンを消してその回が終わるまで待つ
+        summary: トレイ・設定画面からの再起動・終了。待機中ならすぐ行い、処理中ならアイコンを非表示にしてその回が終わるまで待つ
         kind: メソッド
         scope: public
         args:
@@ -292,7 +292,7 @@ classes:
           description: なし
         process: |-
           1. 今の録音セッションが無ければ、すぐに request_restart か request_quit を呼ぶ
-          2. あれば待たせる依頼に記録し、トレイのアイコンを消す（Tray.hide）
+          2. あれば待たせる依頼に記録し、トレイのアイコンを非表示にする（Tray.hide）
              - `[INFO]` 処理中のため再起動・終了を待たせた（種類・録音セッションの ID）
         unit_tests:
           - name: test_request_exit_when_idle
@@ -303,13 +303,13 @@ classes:
             expected: request_restart が 1 回呼ばれ、Tray.hide が呼ばれない
           - name: test_request_exit_when_busy
             case: 正常
-            summary: 処理中はアイコンを消して待たせる
+            summary: 処理中はアイコンを非表示にして待たせる
             condition: current_session が hotkey・transcribing、kind=quit
             mock: UiDeps の全関数・Tray
             expected: Tray.hide が呼ばれ、request_quit が呼ばれない
       - name: open_settings
         title: 設定画面を開く
-        summary: 設定画面を開く。開いていれば前面に出すだけにする。新しく開くときはホットキーの受付を止め、設定画面が閉じたら（保存して再起動・今すぐ再起動・取り消し・窓の閉じるのどの経路でも）on_settings_closed を呼ぶ。「保存」では閉じないため、保存したホットキーは閉じたときに効く
+        summary: 設定画面を開く。開いていれば前面に出すだけにする。新しく開くときはホットキーの受付を止め、設定画面が閉じたら（保存して再起動・今すぐ再起動・取り消し・窓の閉じるのどの経路でも）on_settings_closed を呼ぶ。「保存」では閉じないため、保存したホットキーは閉じたときに有効になる
         kind: メソッド
         scope: public
         returns:
@@ -330,8 +330,8 @@ classes:
             expected: SettingsWindow が 1 つだけで、suspend_hotkeys が 1 回だけ呼ばれる
           - name: test_open_settings_when_reopened
             case: 正常
-            summary: 開き閉めを繰り返しても窓が積もらない
-            condition: open_settings を呼んで設定画面を取り消しで閉じるのを 5 回繰り返し、毎回 deleteLater の破棄を流して gc.collect する
+            summary: 開き閉めを繰り返しても窓が重ならない
+            condition: open_settings を呼んで設定画面を取り消しで閉じるのを 5 回繰り返し、毎回 deleteLater の破棄を実行して gc.collect する
             mock: UiDeps の全関数
             expected: 毎回新しい SettingsWindow が開き、5 回目を閉じた後の QApplication.topLevelWidgets の数が開く前と同じで、SettingsWindow が 1 つも残らない
       - name: on_settings_saved
@@ -346,7 +346,7 @@ classes:
           - name: test_on_settings_saved
             case: 正常
             summary: 保存したら明暗を当て直す
-            condition: UiDeps の get_settings が ui.theme=dark の設定を返す
+            condition: UiDeps の get_settings が ui.theme=dark の設定を返却する
             mock: UiDeps.apply_theme・Tray
             expected: UiDeps.apply_theme が 1 回呼ばれ、Tray.set_start_hotkey に設定の hotkeys.start が渡る
       - name: on_settings_closed
@@ -361,7 +361,7 @@ classes:
           1. 設定画面を手放し、deleteLater で破棄する（中のコンボボックスのポップアップの窓も一緒に消える）
              - 欄のシグナルに SettingsWindow のメソッドをつないでいるため、参照を手放しただけでは GC で消えず、トップレベルの窓が開くたびに積もる
           2. resume_hotkeys を呼ぶ
-             - HotkeyError の場合、ホットキーを受け付けないまま続ける（保存した設定は、保存の前に動いているセッションのホットキーの受付で受け付けられることを確かめているため（PlatformAdapters.validate_hotkeys）、ここに来るのは手で書いた設定のファイルだけ）
+             - HotkeyError の場合、ホットキーを受け付けないまま続ける（保存した設定は、保存の前に動いているセッションのホットキーの受付で受け付けられることを確認しているため（PlatformAdapters.validate_hotkeys）、ここに来るのは手で書き込んだ設定のファイルだけ）
                - `[ERROR]` ホットキーを受け付けられなかった（理由）
       - name: hide_recording
         title: 録音の画面を隠す
@@ -373,19 +373,19 @@ classes:
           description: なし
         process: |-
           1. 録音の画面が出ていない場合、何もしない
-          2. 窓を隠し（RecordingWindow.hide_window）、隠したフラグを立てる
+          2. 窓を隠し（RecordingWindow.hide_window）、隠したフラグを作成する
           3. トレイを hidden にする（Tray.set_recording_window）
         unit_tests:
           - name: test_hide_recording
             case: 正常
             summary: 録音の画面を隠してトレイの項目を押せるようにする
-            condition: current_session が hotkey・recording を返す state_changed で画面を出した後、hide_recording を呼ぶ
+            condition: current_session が hotkey・recording を返却する state_changed で画面を出した後、hide_recording を呼ぶ
             mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
             expected: RecordingWindow.hide_window が 1 回呼ばれ、Tray.set_recording_window(hidden) が呼ばれる
         status: implemented
       - name: show_recording
         title: 隠した録音の画面を戻す
-        summary: トレイの「録音の画面を表示」・アイコンの左クリック（Tray.show_window_requested）と、録音開始のホットキー（show_recording_window の知らせ）から呼ぶ。隠した録音の画面を、隠す前の位置にフォーカスを取らずに戻す
+        summary: トレイの「録音の画面を表示」・アイコンの左クリック（Tray.show_window_requested）と、録音開始のホットキー（show_recording_window の通知）から呼ぶ。隠した録音の画面を、隠す前の位置にフォーカスを取らずに戻す
         kind: メソッド
         scope: public
         returns:
@@ -399,13 +399,13 @@ classes:
           - name: test_show_recording_when_not_hidden
             case: 正常
             summary: 隠していなければ何もしない
-            condition: current_session が hotkey・recording を返す state_changed で画面を出した後、show_recording を呼ぶ
+            condition: current_session が hotkey・recording を返却する state_changed で画面を出した後、show_recording を呼ぶ
             mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
             expected: RecordingWindow.restore が呼ばれない
         status: implemented
       - name: eventFilter
         title: アプリの終了を受ける
-        summary: QApplication に届く QEvent.Quit を受け、開いている設定画面を確かめずに閉じる（イベントは止めない）。コンストラクタで QApplication に自分を入れる
+        summary: QApplication に届く QEvent.Quit を受け、開いている設定画面を確認せずに閉じる（イベントは止めない）。コンストラクタで QApplication に自分を入れる
         kind: メソッド
         scope: public
         args:
@@ -421,25 +421,25 @@ classes:
             description: 届いたイベント
         returns:
           type: bool
-          description: 常に False（イベントを先へ渡す）
+          description: 常に False（イベントを先へ引き渡す）
         process: |-
           1. QEvent.Quit で、設定画面を開いていれば SettingsWindow.close_without_confirm を呼ぶ
-             - QApplication.quit は窓へ閉じる要求を送信する前に QEvent.Quit をアプリのイベントフィルタへ渡すため、トレイの「終了」・「再起動」・SIGINT・SIGBREAK・後から起動したプロセスからの依頼のどれでも、変えた値を捨てる確認を出さずに閉じてイベントループを抜ける
+             - QApplication.quit は窓へ閉じる要求を送信する前に QEvent.Quit をアプリのイベントフィルタへ引き渡すため、トレイの「終了」・「再起動」・SIGINT・SIGBREAK・後から起動したプロセスからの依頼のどれでも、変えた値を捨てる確認を出さずに閉じてイベントループを抜ける
              - 閉じると on_settings_closed がホットキーの受付を張り直すが、抜けた後の片付け（_stop_all）で止める
-          2. False を返す
+          2. False を返却する
         unit_tests:
           - name: test_event_filter_when_quit_with_settings_open
             case: 正常
-            summary: 設定画面を開いて欄を変えたまま終了しても、確かめずに閉じてイベントループを抜ける
+            summary: 設定画面を開いて欄を変えたまま終了しても、確認せずに閉じてイベントループを抜ける
             condition: open_settings で開いて欄の値を変え、イベントループを回して QApplication.quit を呼ぶ
             mock: UiDeps の全関数・confirm_discard
             expected: confirm_discard が呼ばれず、設定画面が閉じ、イベントループを抜け、save_settings が呼ばれない
           - name: test_event_filter_when_quit_without_settings
             case: 正常
             summary: 設定画面を開いていなければ何もしない
-            condition: 設定画面を開かずに QEvent.Quit を渡す
+            condition: 設定画面を開かずに QEvent.Quit を引き渡す
             mock: UiDeps の全関数
-            expected: False を返し、resume_hotkeys が呼ばれない
+            expected: False を返却し、resume_hotkeys が呼ばれない
         status: implemented
       - name: on_copied
         title: コピーの完了の受け取り
@@ -451,7 +451,7 @@ classes:
             type: str
             required: true
             passing: positional
-            description: クリップボードへ書いた起こした文字
+            description: クリップボードへ書き込んだ起こした文字
         returns:
           type: None
           description: なし
@@ -459,7 +459,7 @@ classes:
         unit_tests:
           - name: test_on_copied
             case: 正常
-            summary: コピーの完了をトレイの通知で知らせる
+            summary: コピーの完了をトレイの通知で通知する
             condition: text="テスト"
             mock: Tray
             expected: Tray.show_copy_completed("テスト") が 1 回呼ばれる
@@ -478,7 +478,7 @@ classes:
           type: None
           description: なし
         process: |-
-          1. 起こした文字をクリップボードへ書く（UiDeps.copy）
+          1. 起こした文字をクリップボードへ書き込む（UiDeps.copy）
              - DeliveryError の場合、トレイに届けられなかったことを通知する（Tray.show_failure(delivery_failed, 理由)）
                - `[ERROR]` コピーし直せなかった（理由）
         unit_tests:
@@ -490,10 +490,10 @@ classes:
             expected: UiDeps.copy("テスト") が 1 回呼ばれ、Tray.show_failure が呼ばれない
           - name: test_recopy_when_copy_failed
             case: 異常
-            summary: コピーし直せなければ届けられなかったことを知らせる
-            condition: UiDeps.copy が DeliveryError("クリップボードへ書けませんでした") を送出する
+            summary: コピーし直せなければ届けられなかったことを通知する
+            condition: UiDeps.copy が DeliveryError("クリップボードへ書き込めませんでした") を送出する
             mock: UiDeps の全関数・Tray
-            expected: Tray.show_failure(delivery_failed, クリップボードへ書けませんでした) が呼ばれ、ERROR のログが 1 行出て、例外が外へ出ない
+            expected: Tray.show_failure(delivery_failed, クリップボードへ書き込めませんでした) が呼ばれ、ERROR のログが 1 行出て、例外が外へ出ない
     refs:
       - SCR-10#
       - SCR-7#

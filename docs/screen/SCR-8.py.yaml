@@ -26,7 +26,7 @@ elements:
     id: back_button
     kind: button
     position: 既定に戻す確認 > フッター
-    description: 戻さずにダイアログを閉じる。最初のフォーカスを置く
+    description: 戻さずにダイアログを閉じる。最初のフォーカスを配置する
     label: 設定画面へ戻る
     visible_when: 常時
     autofocus: true
@@ -35,13 +35,13 @@ elements:
     id: reset_button
     kind: button
     position: 既定に戻す確認 > フッター
-    description: settings.yaml から全てのキーを外し、設定画面に戻って既定の値（settings.local.yaml にあるキーはその値）を欄に入れる。反映が immediate の設定はすぐに効かせる
+    description: settings.yaml から全てのキーを除外し、設定画面に戻って既定の値（settings.local.yaml にあるキーはその値）を欄に入れる。反映が immediate の設定はすぐに有効にする
     label: 既定に戻す
     visible_when: 常時
     action: ダイアログを閉じ、設定画面に「既定に戻したメッセージ」を出す
 screen: src/voice_paste/ui/windows/settings_window.py
 mock: docs/mock/pages/settings-reset-dialog/37/a-standard/
-lead: 設定画面の「既定に戻す」で、全ての設定を既定の値へ戻すかを確かめるダイアログ。
+lead: 設定画面の「既定に戻す」で、全ての設定を既定の値へ戻すかを確認するダイアログ。
 refs:
   - SC-6#
 test_file: tests/integration/ui/test_settings_window.py

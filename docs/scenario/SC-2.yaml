@@ -5,8 +5,10 @@ scenarios:
   - name: 正常シナリオ（ログフォルダを開く）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
     flow: |-
+      <!-- map: {"title": "正常シナリオ（ログフォルダを開く）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -14,17 +16,21 @@ scenarios:
         participant EXP as エクスプローラー
 
         U->>TRAY: 「ログフォルダを開く」を選ぶ
-        TRAY->>TRAY: ログの置き場所が無ければ作る
-        TRAY->>EXP: ログの置き場所を開く
+        TRAY->>TRAY: ログの配置先が無ければ作る
+        TRAY->>EXP: ログの配置先を開く
       ```
+
+      <!-- /map -->
     expected:
-      - エクスプローラーでログの置き場所（`%LOCALAPPDATA%\voice-paste\log\`。データの置き場所を渡した起動ではその下の `log\`）が開いている
+      - エクスプローラーでログの配置先（`%LOCALAPPDATA%\voice-paste\log\`。データの配置先を引き渡した起動ではその下の `log\`）が開いている
     test: test_normal_when_open_log_folder
   - name: 正常シナリオ（設定フォルダを開く）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
     flow: |-
+      <!-- map: {"title": "正常シナリオ（設定フォルダを開く）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -34,16 +40,20 @@ scenarios:
         U->>TRAY: 「設定フォルダを開く」を選ぶ
         TRAY->>EXP: settings.yaml のあるフォルダを開く
       ```
+
+      <!-- /map -->
     expected:
-      - エクスプローラーで `settings.yaml` のあるフォルダ（`%APPDATA%\voice-paste\`。データの置き場所を渡した起動ではそのフォルダ）が開いている
+      - エクスプローラーで `settings.yaml` のあるフォルダ（`%APPDATA%\voice-paste\`。データの配置先を引き渡した起動ではそのフォルダ）が開いている
     test: test_normal_when_open_settings_folder
   - name: 正常シナリオ（再起動する）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
       - name: 待機中
         description: 録音も設定画面も開いていない
     flow: |-
+      <!-- map: {"title": "正常シナリオ（再起動する）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -52,12 +62,14 @@ scenarios:
         participant NEW as 新しい常駐アプリ
 
         U->>TRAY: 「再起動」を選ぶ
-        TRAY->>APP: 再起動を求め、アイコンを消す
+        TRAY->>APP: 再起動を求め、アイコンを非表示にする
         APP->>APP: ホットキーの受付・API の待ち受け・文字起こしワーカーを停止する
         APP->>NEW: 同じ引数で新しいプロセスを起動する
         APP->>APP: 自分のプロセスを終える
         Note over NEW: 以降は 常駐アプリを起動する の 正常シナリオ
       ```
+
+      <!-- /map -->
     expected:
       - 前の常駐アプリのプロセスが終わっている
       - 新しい常駐アプリが待機中になり、今の設定（`config/defaults.yaml`・`settings.yaml`・`settings.local.yaml` を重ねた値）で動いている
@@ -65,10 +77,12 @@ scenarios:
   - name: 正常シナリオ（終了する）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
       - name: 待機中
         description: 録音も設定画面も開いていない
     flow: |-
+      <!-- map: {"title": "正常シナリオ（終了する）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -79,7 +93,7 @@ scenarios:
         participant HS as Haas の文字起こしのサーバー（WSL）
 
         U->>TRAY: 「終了」を選ぶ
-        TRAY->>APP: 終了を求め、アイコンを消す
+        TRAY->>APP: 終了を求め、アイコンを非表示にする
         APP->>APP: ホットキーの受付を停止する
         APP->>API: 待ち受けを停止する
         APP->>WK: 終了を送信し、終わらなければ停止する
@@ -88,23 +102,27 @@ scenarios:
         end
         APP->>APP: プロセスを終える
       ```
+
+      <!-- /map -->
     expected:
       - トレイから voice-paste のアイコンが消えている
       - 常駐アプリと文字起こしワーカーのプロセスが終わり、常駐アプリの終了コードが 0 である
       - 127.0.0.1 の API が応えない
     test: test_normal_when_quit
     notes:
-      Haas のサーバー: 止めるのは常駐サービスが起動したサーバーだけで、起動の前から動いていたサーバーは止めない（常駐アプリを起動する の 正常シナリオ（Haas を使う設定））。再起動と、新しい常駐サービスからの終わる依頼で終わるときも同じく止める。
+      Haas のサーバー: 止めるのは常駐サービスが起動したサーバーだけで、起動の前から動いていたサーバーは止めない（常駐アプリを起動する の 正常シナリオ（Haas を使用する設定））。再起動と、新しい常駐サービスからの終わる依頼で終わるときも同じく止める。
   - name: 正常シナリオ（設定画面で値を変えたまま終了する）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
       - name: 設定画面
         description: 設定画面を開いて欄の値を変え、保存していない
       - name: 終え方
         description: トレイの「終了」と、起動したコンソールの Ctrl+Break の 2 通り
         notes: parametrize で並べる
     flow: |-
+      <!-- map: {"title": "正常シナリオ（設定画面で値を変えたまま終了する）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -118,16 +136,20 @@ scenarios:
         APP->>APP: プロセスを終える
         Note over APP: 以降は 正常シナリオ（終了する） と同じ
       ```
+
+      <!-- /map -->
     expected:
       - 変えた値を捨てる確認を出さずに、常駐アプリのプロセスが終わり、終了コードが 0 である
     test: test_normal_when_quit_with_unsaved_settings
   - name: 正常シナリオ（設定画面で値を変えたまま再起動する）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
       - name: 設定画面
         description: 設定画面を開いて欄の値を変え、保存していない
     flow: |-
+      <!-- map: {"title": "正常シナリオ（設定画面で値を変えたまま再起動する）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -137,19 +159,21 @@ scenarios:
         participant NEW as 新しい常駐アプリ
 
         U->>TRAY: 「再起動」を選ぶ
-        TRAY->>APP: 再起動を求め、アイコンを消す
+        TRAY->>APP: 再起動を求め、アイコンを非表示にする
         APP->>SW: 変えた値を捨てる確認を出さずに閉じる
         APP->>NEW: 同じ引数で新しいプロセスを起動する
         APP->>APP: 自分のプロセスを終える
         Note over NEW: 以降は 正常シナリオ（再起動する） と同じ
       ```
+
+      <!-- /map -->
     expected:
       - 変えた値を捨てる確認を出さずに、前の常駐アプリのプロセスが終わっている
       - 新しい常駐アプリが待機中になり、設定画面で変えた値は `settings.yaml` に保存されていない
     test: test_normal_when_restart_with_unsaved_settings
 lead: トレイのアイコンのメニューから、フォルダを開く・再起動する・終了する単一ユースケース。
 issue: 21
-primary_actor: 音声入力を使うユーザー
+primary_actor: 音声入力を使用するユーザー
 trigger: トレイの voice-paste のアイコンを右クリックしてメニューを開く
 preconditions:
   - 常駐アプリが動いていて、トレイにアイコンが出ている
@@ -163,10 +187,10 @@ notes:
     ホットキー・トレイから始めた録音の間は、アイコンの左クリックと「録音の画面を表示」で、隠した録音の画面を戻す（録音する）。
     戻すのはその回に隠した録音の画面だけで、録音の画面を出さない設定の録音と API から始めた録音では、アイコンの左クリックは何もせず、「録音の画面を表示」は押せない。
   E2E のテスト: |-
-    E2E の常駐アプリの起こし方と操作の渡し方は、常駐アプリを起動する の補足『E2E のテスト』と同じ。メニューは項目を trigger して選ぶ。
-    フォルダが開いたことは、エクスプローラーを開かず、フォルダを開く呼び出しを差し替えて渡されたパスで確かめる。
-    トレイのアイコンが消えたことは、トレイのアイコンが出ていない状態になったことで、終了コードは `main()` の戻り値で確かめる。
-    常駐アプリのプロセスが終わることは、終了・再起動とも `main()` が戻ったことで確かめる。文字起こしワーカーのプロセスが終わることは、`main()` が戻った後に pytest のプロセスの子孫にワーカーが残っていないことで確かめる。
-    Ctrl+Break は、テストが自分のプロセスの中で SIGBREAK を上げて（`signal.raise_signal`）渡す。
-    再起動で起動し直す新しいプロセスは別プロセスで動き（Qt は offscreen）、待機中になったことをログとトークンのファイルで確かめる
+    E2E の常駐アプリの起こし方と操作の引き渡し方は、常駐アプリを起動する の補足『E2E のテスト』と同じ。メニューは項目を trigger して選ぶ。
+    フォルダが開いたことは、エクスプローラーを開かず、フォルダを開く呼び出しを差し替えて引き渡されたパスで確認する。
+    トレイのアイコンが消えたことは、トレイのアイコンが出ていない状態になったことで、終了コードは `main()` の戻り値で確認する。
+    常駐アプリのプロセスが終わることは、終了・再起動とも `main()` が戻ったことで確認する。文字起こしワーカーのプロセスが終わることは、`main()` が戻った後に pytest のプロセスの子孫にワーカーが残っていないことで確認する。
+    Ctrl+Break は、テストが自分のプロセスの中で SIGBREAK を上げて（`signal.raise_signal`）引き渡す。
+    再起動で起動し直す新しいプロセスは別プロセスで動き（Qt は offscreen）、待機中になったことをログとトークンのファイルで確認する
 test_file: tests/e2e/単一ユースケース/test_operate_from_tray.py

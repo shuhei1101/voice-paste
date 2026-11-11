@@ -7,7 +7,7 @@ data_models:
     container: shared/types.py
     usecase: 共通
     role: DTO
-    summary: 止めた録音の音と形式。録音・録音セッション・履歴が使う
+    summary: 止めた録音の音と形式。録音・録音セッション・履歴が使用する
     properties:
       - name: samples
         type: numpy.ndarray
@@ -24,7 +24,7 @@ data_models:
     container: shared/types.py
     usecase: 共通
     role: DTO
-    summary: 出力先へ渡す結果。録音セッションと出力先が使う
+    summary: 出力先へ引き渡す結果。録音セッションと出力先が使用する
     properties:
       - name: session_id
         type: str
@@ -52,7 +52,7 @@ data_models:
     container: shared/types.py
     usecase: 録音する
     role: DTO
-    summary: 連続録音で区切った 1 区間の音。録音が作り、録音セッションが受ける（feature の間を渡るため shared に置く）
+    summary: 連続録音で区切った 1 区間の音。録音が作り、録音セッションが受ける（feature の間を渡るため shared に配置する）
     properties:
       - name: recording
         type: Recording
@@ -68,8 +68,8 @@ data_models:
     container: shared/types.py
     usecase: 共通
     role: DTO
-    summary: 誤変換と正しい表記の組と、補正に使うか。補正と設定画面の間を渡る
-    description: '`@dataclass(frozen=True, slots=True, kw_only=True)`。今の features/correction/types.py から移し（設定画面は features を import しないため）、enabled を追加する。features/correction/types.py は消す。'
+    summary: 誤変換と正しい表記の組と、補正に使用するか。補正と設定画面の間を渡る
+    description: '`@dataclass(frozen=True, slots=True, kw_only=True)`。今の features/correction/types.py から移し（設定画面は features を import しないため）、enabled を追加する。features/correction/types.py は削除する。'
     properties:
       - name: wrong
         type: str
@@ -80,7 +80,7 @@ data_models:
       - name: enabled
         type: bool
         default: 'True'
-        description: 補正に使うか（CSV の列 `使う`。`0` がオフ）
+        description: 補正に使用するか（CSV の列 `使う`。`0` がオフ）
     refs:
       - ER-2#tables[%APPDATA%\voice-paste\glossaries\glossary_{n}.csv]
     status: implemented
@@ -89,7 +89,7 @@ data_models:
     container: shared/types.py
     usecase: ブラウザから音声を送信する
     role: DTO
-    summary: 受けた音声を PyAV で開いて読んだ容れ物の形式・秒数・大きさ。外部連携が作り、ブラウザの文字起こしが受ける（feature と integration の間を渡るため shared に置く）
+    summary: 受けた音声を PyAV で開いて読み込んだ容れ物の形式・秒数・大きさ。外部連携が作り、ブラウザの文字起こしが受ける（feature と integration の間を渡るため shared に配置する）
     properties:
       - name: container
         type: str
@@ -111,7 +111,7 @@ enums:
     title: 入口
     container: shared/types.py
     usecase: 共通
-    summary: 録音セッションを始めた入口。録音セッションと出力先が使う
+    summary: 録音セッションを始めた入口。録音セッションと出力先が使用する
     values:
       - value: hotkey
         title: ホットキー
@@ -127,7 +127,7 @@ enums:
     title: Enter と一緒に押す修飾キー
     container: shared/types.py
     usecase: 起こした文字を届ける
-    summary: 貼り付けて送信が Enter と一緒に押す修飾キー（`Literal["ctrl", "alt", "shift"]`）。出力先の設定と integrations/keyboard が使う（integrations は features を import できないため shared に置く）
+    summary: 貼り付けて送信が Enter と一緒に押す修飾キー（`Literal["ctrl", "alt", "shift"]`）。出力先の設定と integrations/keyboard が使用する（integrations は features を import できないため shared に配置する）
     values:
       - value: ctrl
         title: Ctrl
@@ -146,7 +146,7 @@ function_types:
     title: 文字起こしの進みの知らせ先
     container: shared/types.py
     usecase: 共通
-    summary: 文字起こしの区間の終わりの時刻と録音の長さ（秒）を受け取る。features/transcription と integrations/whisper が使う（integrations は features を import できないため shared に置く）
+    summary: 文字起こしの区間の終わりの時刻と録音の長さ（秒）を受け取る。features/transcription と integrations/whisper が使用する（integrations は features を import できないため shared に配置する）
     args:
       - name: end
         type: float
@@ -162,7 +162,7 @@ function_types:
     title: 区間の受け取り先
     container: shared/types.py
     usecase: 録音する
-    summary: 区切った区間を区切った順に受け取る。録音の区切りのスレッドから呼ばれる。録音が呼び、録音セッションが渡す（feature の間を渡るため shared に置く）
+    summary: 区切った区間を区切った順に受け取る。録音の区切りのスレッドから呼ばれる。録音が呼び、録音セッションが引き渡す（feature の間を渡るため shared に配置する）
     args:
       - name: segment
         type: Segment
@@ -177,7 +177,7 @@ function_types:
     title: 連続録音の失敗の知らせ先
     container: shared/types.py
     usecase: 録音する
-    summary: 区切りに失敗して連続録音を止めたことを、理由を添えて受け取る。録音の区切りのスレッドから呼ばれる。録音が呼び、録音セッションが渡す
+    summary: 区切りに失敗して連続録音を止めたことを、理由を添えて受け取る。録音の区切りのスレッドから呼ばれる。録音が呼び、録音セッションが引き渡す
     args:
       - name: reason
         type: str
@@ -192,7 +192,7 @@ function_types:
     title: Enter の送信方法
     container: shared/types.py
     usecase: 起こした文字を届ける
-    summary: 渡した修飾キーを押したまま Enter を送信する（`Protocol`。修飾キーを省いて呼べるため、`Callable[[], None]` を受ける側にも渡せる）。integrations/keyboard が満たし、出力先が受ける
+    summary: 引き渡した修飾キーを押したまま Enter を送信する（`Protocol`。修飾キーを省いて呼べるため、`Callable[[], None]` を受ける側にも引き渡せる）。integrations/keyboard が満たし、出力先が受ける
     args:
       - name: modifiers
         type: Sequence[EnterModifier]

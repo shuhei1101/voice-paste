@@ -1,0 +1,119 @@
+use_cases:
+  - kind: composite
+    scenario: docs/scenario/SC-10.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+  - kind: composite
+    scenario: docs/scenario/SC-11.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+  - kind: composite
+    scenario: docs/scenario/SC-12.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+  - kind: composite
+    scenario: docs/scenario/SC-13.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-1.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-2.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-3.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-4.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-5.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-6.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-7.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-8.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-9.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+docs:
+  - page: docs/guide/files.yml
+    new: false
+    change: 公開ドキュメントのタグ・description を再設定する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-11T10:32:31.113036+00:00'
+  - page: docs/mock/files.yml
+    new: false
+    change: モックの画面のタグ・description を再設定する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-11T10:32:31.113036+00:00'
+  - page: dev-docs.yaml
+    new: false
+    change: コード（src/・haas_server/）とテスト（tests/）の files.yml を配信する行を追加する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-11T10:32:36.375716+00:00'
+  - page: src/files.yml
+    new: true
+    change: コードからモジュール構成への related（implements）を記載する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-11T10:32:36.375716+00:00'
+  - page: haas_server/files.yml
+    new: true
+    change: コードからモジュール構成への related（implements）を記載する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-11T10:32:36.375716+00:00'
+  - page: tests/files.yml
+    new: true
+    change: 単体テストからコードへの related（tests）を記載する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-11T10:32:36.375716+00:00'
+scope_out:
+  - item: schemas/ の Schema の変更
+    reason: AI Monitor の配布物で、手で変更すると次の配布物への追従で上書きされる
+    plan: none
+  - item: rules.yaml からの旧規約（markdown マーメイド・判定フローチャート）の除外
+    reason: origin/develop の rules.yaml の rules は空で、除外する ID が無い
+    plan: none
+  - item: 過去の PR ドキュメント（docs/pr/）の文・メタデータの移行
+    reason: PR ドキュメントはマージした時点の計画の記録で、文を書き換えると記録の意味が変わる。Mermaid の図だけを map で囲み、文・メタデータは変えない（ドキュメント修正のレビューで決定）
+    plan: none
+  - item: YAML の設計書のタグ・エイリアス・descriptionと、コード・テストの files.yml の行のタグ・description
+    reason: YAML の設計書は今の Schema がキーを持たない。コード・テストの行は設計書のタグと同じ語彙で付けるため、ai-monitor#3188 の後にまとめて移行する（確認ログの推奨案 A）
+    plan: '#285'
+  - item: モジュール構成『常駐アプリ / 録音セッション / service.py』の状態遷移図（stateDiagram-v2）の置き換え
+    reason: mdmark に状態遷移図の部品が無く、map は flowchart・sequenceDiagram だけを描くため、Mermaid のまま残す
+    plan: '#284'

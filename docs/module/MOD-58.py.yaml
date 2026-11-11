@@ -19,7 +19,7 @@ constants:
         description: コピーのみ
       - key: '3'
         value: OutputSpec(id="callback", title="呼び出し元へ返す", handler=deliver_to_caller, inject=inject_callback, api_only=True)
-        description: 呼び出し元へ返す
+        description: 呼び出し元へ返却する
     status: implemented
     notes:
       配線: 各 handler が受け取るクリップボード・キー・HTTP の操作と設定の値は、各出力先の inject が OutputDeps から選び、main.py の _wire_outputs が部分適用する（main.py は出力先の ID ごとの表を持たない）。

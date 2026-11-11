@@ -22,17 +22,17 @@ functions:
         type: EndpointPreset
         required: true
         passing: positional
-        description: 確定の操作で選んだエンドポイントへ送信のプリセット（url・authorization・title を使う）
+        description: 確定の操作で選んだエンドポイントへ送信のプリセット（url・authorization・title を使用する）
       - name: post
         type: PostJsonFn
         required: true
         passing: injected
-        description: 送信先へ JSON を POST してステータスを返す（外部連携の post_json。タイムアウト・接続できないことは DeliveryError）
+        description: 送信先へ JSON を POST してステータスを返却する（外部連携の post_json。タイムアウト・接続できないことは DeliveryError）
       - name: get_timeout_sec
         type: Callable[[], float]
         required: true
         passing: injected
-        description: 送信するときのタイムアウトの秒数を返す（呼ぶたびに設定の preset_options.endpoint.timeout_sec を読む）
+        description: 送信するときのタイムアウトの秒数を返却する（呼ぶたびに設定の preset_options.endpoint.timeout_sec を読み込む）
     returns:
       type: None
       description: なし
@@ -44,7 +44,7 @@ functions:
       4. 2xx なら終える
          - `[INFO]` エンドポイントへ届けた（録音セッションの ID・プリセットのタイトル・ステータス）
          - 2xx 以外（3xx を含む）の場合、再送せずに DeliveryError を送出する
-         - Authorization の値はログと例外の文に書かない
+         - Authorization の値はログと例外の文に書き込まない
     exceptions:
       - name: DeliveryError
         condition: タイムアウト・接続できない・2xx 以外
@@ -52,19 +52,19 @@ functions:
       - name: test_deliver_to_endpoint
         case: 正常
         summary: 送信する内容を 1 回送信する
-        condition: post が 200 を返す、preset の url が http://127.0.0.1:9000/hook・authorization が空、get_timeout_sec が 1.5 を返す
+        condition: post が 200 を返却する、preset の url が http://127.0.0.1:9000/hook・authorization が空、get_timeout_sec が 1.5 を返却する
         mock: post・get_timeout_sec
         expected: post が 1 回、url・session_id・result・text・error を持つ dict・1.5・空のヘッダーで呼ばれる
       - name: test_deliver_to_endpoint_when_authorization
         case: 正常
-        summary: Authorization を付けて送信し、ログに書かない
+        summary: Authorization を付けて送信し、ログに書き込まない
         condition: preset の authorization が Bearer test-token、post が 204
         mock: post・get_timeout_sec
         expected: 'post に {"Authorization": "Bearer test-token"} が渡り、ログに test-token が出ない'
       - name: test_deliver_to_endpoint_when_error_status
         case: 異常
         summary: 2xx 以外は再送せず DeliveryError
-        condition: post が 500 を返す
+        condition: post が 500 を返却する
         mock: post・get_timeout_sec
         expected: DeliveryError が送出され、post が 1 回だけ呼ばれる
         exception: 2xx 以外

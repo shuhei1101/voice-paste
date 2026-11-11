@@ -11,11 +11,11 @@ classes:
     role: 画面の部品
     kind: クラス
     inherits: PySide6.QtWidgets.QWidget
-    summary: 設定画面の 1 つの種類のタブに置く、プリセットのまとまりの縦の並びと「プリセットを追加」。追加・削除・上へ・下へを受ける
+    summary: 設定画面の 1 つの種類のタブに配置する、プリセットのまとまりの縦の並びと「プリセットを追加」。追加・削除・上へ・下へを受ける
     description: |-
       要素（有効の切り替え・タイトル・URL・Enter まで送信・Authorization・確定のホットキー・上へ・下へ・削除・追加・空の案内）と読み上げの名前は画面設計「設定画面」が持つ。
       種類ごとに違う欄（browser は Enter まで送信、endpoint は Authorization）は、種類の設定のモデル（BrowserPreset・EndpointPreset）の共通でない項目から組み立てる。
-      並べ替え・追加・削除はこの部品の中だけを変え、settings.yaml へは設定画面の保存で書く。
+      並べ替え・追加・削除はこの部品の中だけを変え、settings.yaml へは設定画面の保存で書き込む。
       変えた欄の数えのため、プリセットごとに、開いたとき・保存したときのプリセットを追う番号を持つ。set_presets と mark_saved で今の並びの順に 0 から振り直し、追加したプリセットには振ったどの番号より大きい番号を振る。削除・並べ替えで一覧を作り直しても番号を引き継ぐ。
     properties:
       - name: kind
@@ -23,13 +23,13 @@ classes:
         description: この一覧が持つプリセットの種類（browser・endpoint）
       - name: changed
         type: Signal()
-        description: 追加・削除・並べ替え・欄の入力で値が変わった（設定画面が変えた欄の数えに使う）
+        description: 追加・削除・並べ替え・欄の入力で値が変わった（設定画面が変えた欄の数えに使用する）
     methods:
       - name: set_presets
         title: 一覧に入れる
         kind: メソッド
         scope: public
-        summary: 渡したプリセット（この種類のものだけ）で一覧を作り直す。空なら空の案内を出す
+        summary: 引き渡したプリセット（この種類のものだけ）で一覧を作り直す。空なら空の案内を出す
         args:
           - name: presets
             type: Sequence[Preset]
@@ -53,7 +53,7 @@ classes:
             summary: 入れたプリセットをそのまま集める
             condition: kind endpoint の一覧に、hotkey <ctrl>+<alt>+4・authorization Bearer x のプリセットと hotkey が空のプリセットを set_presets する
             mock: なし（offscreen）
-            expected: collect が 2 件を同じ並びで返し、kind が endpoint、1 件目の hotkey が <ctrl>+<alt>+4・authorization が Bearer x、2 件目の hotkey が空文字
+            expected: collect が 2 件を同じ並びで返却し、kind が endpoint、1 件目の hotkey が <ctrl>+<alt>+4・authorization が Bearer x、2 件目の hotkey が空文字
           - name: test_preset_list_panel_move
             case: 正常
             summary: 下へで並びを入れ替える
@@ -74,7 +74,7 @@ classes:
             summary: 追加したプリセットは有効で Enter まで送信する
             condition: kind browser の空の一覧で add_preset を呼ぶ
             mock: なし（offscreen）
-            expected: collect が 1 件（enabled True・send_enter True・title・url・hotkey が空）を返し、changed が 1 回 emit される
+            expected: collect が 1 件（enabled True・send_enter True・title・url・hotkey が空）を返却し、changed が 1 回 emit される
       - name: focus_field
         title: 欄へフォーカスを移す
         kind: メソッド
@@ -98,17 +98,17 @@ classes:
         title: 変えた件数を数える値
         kind: メソッド
         scope: public
-        summary: 変えた欄の数えに使う値を、プリセット 1 つ = 1 キーと、並べ替えの 1 キーで返す（SettingsWindow が開いたとき・保存したときの値と比べて件数にする）
+        summary: 変えた欄の数えに使用する値を、プリセット 1 つ = 1 キーと、並べ替えの 1 キーで返却する（SettingsWindow が開いたとき・保存したときの値と比べて件数にする）
         returns:
           type: dict[str, object]
           description: '`presets.{種類}[{番号}]` → そのプリセットの collect と同じ値、`presets.{種類}.order` → 開いたとき・保存したときからあって今も残っているプリセットが、番号の小さい順に並んでいるか'
         process: |-
           1. 今の並びのプリセットごとに、番号をキーにして collect と同じ値を入れる
-          2. set_presets か mark_saved で番号を振ったプリセット（追加したプリセットを除く）を今の並びで取り出し、番号の小さい順に並んでいるかを `presets.{種類}.order` に入れる（消したプリセットは入らず、追加したプリセットも見ないため、追加・削除だけでは変わらない）
+          2. set_presets か mark_saved で番号を振ったプリセット（追加したプリセットを除く）を今の並びで取り出し、番号の小さい順に並んでいるかを `presets.{種類}.order` に入れる（削除したプリセットは入らず、追加したプリセットも確認しないため、追加・削除だけでは変わらない）
         unit_tests:
           - name: test_preset_list_panel_change_values
             case: 正常
-            summary: プリセットごとの値と並びの値を返す
+            summary: プリセットごとの値と並びの値を返却する
             condition: kind endpoint の一覧に、タイトル A・B の 2 件を set_presets する
             mock: なし（offscreen）
             expected: キーは 3 つで、presets.endpoint[0] が A の collect の値、presets.endpoint[1] が B の collect の値、presets.endpoint.order が True
@@ -120,13 +120,13 @@ classes:
             expected: presets.{kind}[0]・[1]・[2] が並べ替える前と同じ値で、presets.{kind}.order が False
           - name: test_preset_list_panel_change_values_when_removed
             case: 正常
-            summary: 途中のプリセットを消しても並びの値は変わらない
+            summary: 途中のプリセットを削除しても並びの値は変わらない
             condition: A・B・C の 3 件を set_presets し、B の「削除」を押す
             mock: なし（offscreen）
             expected: キーは presets.{kind}[0]・presets.{kind}[2]・presets.{kind}.order の 3 つで、presets.{kind}[2] が C の値、presets.{kind}.order が True
           - name: test_preset_list_panel_change_values_when_added
             case: 正常
-            summary: 追加したプリセットは新しい番号で返し、並びの値に入れない
+            summary: 追加したプリセットは新しい番号で返却し、並びの値に入れない
             condition: A の 1 件を set_presets し、add_preset を呼んでから、追加したプリセットの「上へ」を押す
             mock: なし（offscreen）
             expected: presets.{kind}[0] が A の値、presets.{kind}[1] が追加した空のプリセットの値、presets.{kind}.order が True
@@ -135,7 +135,7 @@ classes:
         title: 保存したプリセットを基準にする
         kind: メソッド
         scope: public
-        summary: 今の並びの順にプリセットの番号を 0 から振り直し、追加したプリセットも保存したプリセットとして扱う。SettingsWindow.save が書けた後に呼ぶ
+        summary: 今の並びの順にプリセットの番号を 0 から振り直し、追加したプリセットも保存したプリセットとして扱う。SettingsWindow.save が書き込めた後に呼ぶ
         returns:
           type: None
           description: なし

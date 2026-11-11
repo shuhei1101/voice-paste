@@ -12,7 +12,7 @@ data_models:
     properties:
       - name: callback_url
         type: AnyHttpUrl
-        description: コールバック先。ホストが許されるかは route が出力先の is_callback_allowed で確かめる
+        description: コールバック先。ホストが許されるかは route が出力先の is_callback_allowed で確認する
       - name: continuous
         type: bool
         default: 'False'
@@ -20,7 +20,7 @@ data_models:
       - name: glossary_preset
         type: str | None
         default: None
-        description: 補正に使う用語集のプリセットの名前（省略時は設定で選んでいるプリセット）。一覧にあるかは route が glossary_preset_exists で確かめる
+        description: 補正に使用する用語集のプリセットの名前（省略時は設定で選んでいるプリセット）。一覧にあるかは route が glossary_preset_exists で確認する
     refs:
       - LIB-18#
     status: implemented

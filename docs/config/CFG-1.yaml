@@ -1,29 +1,29 @@
 id: CFG-1
 visibility: internal
 title: '設定: 常駐アプリ'
-lead: 常駐アプリが既定値（`config/defaults.yaml`）・環境の値（`settings.yaml`）・checkout の上書き（`settings.local.yaml`）の順に重ねて読む設定の一覧。読み書きは `src/voice_paste/shared/settings.py`、見本は `settings.sample.yaml`。
+lead: 常駐アプリが既定値（`config/defaults.yaml`）・環境の値（`settings.yaml`）・checkout の上書き（`settings.local.yaml`）の順に重ねて読み込む設定の一覧。読み書きは `src/voice_paste/shared/settings.py`、見本は `settings.sample.yaml`。
 files:
   - file: resources/yogo.csv
-    manages: 用語集（誤変換 → 正しい表記。正しい表記が空の行は誤変換を消す）
-    notes: 列は `誤変換`・`正しい表記` と、行のオン・オフの `使う`（`0` がオフ。列が無い行はオン）。録音を確定するたびに読み直す。置き場所は `glossary_path` で変えられる。設定画面で追加した用語集は `glossaries[].path` の CSV に同じ列で持つ（列の定義は ER 図『常駐アプリのファイル』の用語集の CSV）。
+    manages: 用語集（誤変換 → 正しい表記。正しい表記が空の行は誤変換を削除する）
+    notes: 列は `誤変換`・`正しい表記` と、行のオン・オフの `使う`（`0` がオフ。列が無い行はオン）。録音を確定するたびに読み直す。配置先は `glossary_path` で変えられる。設定画面で追加した用語集は `glossaries[].path` の CSV に同じ列で持つ（列の定義は ER 図『常駐アプリのファイル』の用語集の CSV）。
   - file: config/defaults.yaml
     manages: 設定の全てのキーの既定値と、OS ごとの既定値の上書き（`os_overrides.{windows|linux}`）
-    notes: git で管理する。3 レイヤーの 1 つ目で、全てのキーを持つ（欠けていれば起動時に設定を読めない扱い）。`os_overrides` の中は動いている OS の分だけを共通の既定値に重ねる（表はキーごと、一覧は丸ごと）。
+    notes: git で管理する。3 レイヤーの 1 つ目で、全てのキーを持つ（欠けていれば起動時に設定を読み込めない扱い）。`os_overrides` の中は動いている OS の分だけを共通の既定値に重ねる（表はキーごと、一覧は丸ごと）。
   - file: settings.yaml
     manages: 環境の値（この端末で既定値から変えたキー）
-    notes: git の管理外。3 レイヤーの 2 つ目。既定は `%APPDATA%\voice-paste\settings.yaml`（Linux は `~/.config/voice-paste/settings.yaml`）、`--data-dir` を渡したときはその下。起動では作らない（`settings.toml` だけがあるときに移すのを除く）。設定画面の保存は、変えたキーのうち既定値と違うものを書き、既定値と同じにしたキーは外す（コメントは保つ）。「既定に戻す」は全てのキーを外す。
+    notes: git の管理外。3 レイヤーの 2 つ目。既定は `%APPDATA%\voice-paste\settings.yaml`（Linux は `~/.config/voice-paste/settings.yaml`）、`--data-dir` を引き渡したときはその下。起動では作らない（`settings.toml` だけがあるときに移すのを除く）。設定画面の保存は、変えたキーのうち既定値と違うものを書き込み、既定値と同じにしたキーは除外する（コメントは保つ）。「既定に戻す」は全てのキーを除外する。
   - file: settings.local.yaml
     manages: checkout の上書き（この checkout でだけ変えたいキー）
-    notes: git の管理外。リポジトリの直下に置く 3 レイヤーの 3 つ目で、settings.yaml の値に勝つ。`--data-dir` を渡した起動では読まない。常駐アプリは書かない。
+    notes: git の管理外。リポジトリの直下に配置する 3 レイヤーの 3 つ目で、settings.yaml の値に勝つ。`--data-dir` を引き渡した起動では読み込まない。常駐アプリは書き込まない。
   - file: settings.toml
     manages: 前のバージョンの設定
-    notes: settings.yaml が無く、同じフォルダにこのファイルがあれば、起動時に既定値と違うキーだけを settings.yaml へ移す（このファイルは残す）。settings.yaml があれば読まない。
+    notes: settings.yaml が無く、同じフォルダにこのファイルがあれば、起動時に既定値と違うキーだけを settings.yaml へ移す（このファイルは残す）。settings.yaml があれば読み込まない。
   - file: settings.sample.yaml
     manages: settings.yaml・settings.local.yaml の見本
-    notes: git で管理する。よく変えるキーを、コメントにした行で並べる（コメントを外したキーだけが既定値に勝つ）。既定値に重ねて設定のモデルの検証に通ることを単体テストで確かめる。
+    notes: git で管理する。よく変えるキーを、コメントにした行で並べる（コメントを除外したキーだけが既定値に勝つ）。既定値に重ねて設定のモデルの検証に通ることを単体テストで確認する。
   - file: secrets/openai_api_key
     manages: OpenAI API の API キー（中身はキーの文字列だけ）
-    notes: git の管理外。`settings.yaml` と同じフォルダの下（Windows は `%APPDATA%\voice-paste\secrets\openai_api_key`、Linux は `~/.config/voice-paste/secrets/openai_api_key`、`--data-dir` を渡したときはその下）。ユーザーが置き、常駐アプリは読むだけで作らない。環境変数 `OPENAI_API_KEY` があればそちらを使う。`transcription.engine` が `openai` のときだけ読む
+    notes: git の管理外。`settings.yaml` と同じフォルダの下（Windows は `%APPDATA%\voice-paste\secrets\openai_api_key`、Linux は `~/.config/voice-paste/secrets/openai_api_key`、`--data-dir` を引き渡したときはその下）。ユーザーが配置し、常駐アプリは読み込むだけで作らない。環境変数 `OPENAI_API_KEY` があればそちらを使用する。`transcription.engine` が `openai` のときだけ読む
 settings:
   - key: transcription.engine
     title: 使う文字起こしのエンジン
@@ -52,7 +52,7 @@ settings:
     reload: restart
     status: implemented
     implementation: src/voice_paste/shared/settings.py
-    per_env: 'Windows: cuda。Linux: cpu（config/defaults.yaml の os_overrides。Linux では CUDA のライブラリを読ませる手当てが無い）'
+    per_env: 'Windows: cuda。Linux: cpu（config/defaults.yaml の os_overrides。Linux では CUDA のライブラリを読み込ませる手当てが無い）'
   - key: transcription.local_whisper.compute_type
     title: ローカルの Whisper の量子化タイプ
     file: settings.yaml
@@ -68,7 +68,7 @@ settings:
     file: settings.yaml
     type: int
     default: '0'
-    description: 使う CPU のスレッド数（0 は自動）。
+    description: 使用する CPU のスレッド数（0 は自動）。
     reload: restart
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -146,7 +146,7 @@ settings:
     file: settings.yaml
     type: int（ミリ秒）
     default: '2000'
-    description: これ以上の無音で区間を区切る（起こした文字の改行の位置に効く）。
+    description: これ以上の無音で区間を区切る（起こした文字の改行の位置に有効になる）。
     reload: restart
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -156,7 +156,7 @@ settings:
     file: settings.yaml
     type: bool
     default: 'false'
-    description: 前の区間の文字を次の区間の文脈に使うか。
+    description: 前の区間の文字を次の区間の文脈に使用するか。
     reload: restart
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -200,7 +200,7 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
     allowed: 0〜100
-    per_env: Linux では使わず、設定画面にも出さない（settings.yaml の値は保つ）
+    per_env: Linux では使用せず、設定画面にも出さない（settings.yaml の値は保つ）
   - key: recording.fade_sec
     title: 音量を変えるときの秒数
     file: settings.yaml
@@ -211,7 +211,7 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
     allowed: '>= 0'
-    per_env: Linux では使わず、設定画面にも出さない（settings.yaml の値は保つ）
+    per_env: Linux では使用せず、設定画面にも出さない（settings.yaml の値は保つ）
   - key: recording.hide_window
     title: 録音中に画面を出さないか
     file: settings.yaml
@@ -265,7 +265,7 @@ settings:
     file: settings.yaml
     type: "'paste_and_send' | 'paste_only' | 'copy_only'"
     default: 3 件（paste_and_send・paste_only・copy_only の順）
-    description: 出力先の一覧の 1 件がどの出力先かを表す。一覧の中で重ならない。`id = "ai_chat"` の項目は、読み込むときに送信先（`targets[]`）をブラウザ添付種類のカスタムプリセットへ読み替えて外す。
+    description: 出力先の一覧の 1 件がどの出力先かを表す。一覧の中で重ならない。`id = "ai_chat"` の項目は、読み込むときに送信先（`targets[]`）をブラウザ添付種類のカスタムプリセットへ読み替えて除外する。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -295,7 +295,7 @@ settings:
     file: settings.yaml
     type: float（秒）
     default: '0.5'
-    description: paste_and_send だけが持つ。貼り付けてから Enter を送信するまで待つ秒数。ブラウザ添付種類の、Enter まで送信するプリセットでも使う。
+    description: paste_and_send だけが持つ。貼り付けてから Enter を送信するまで待つ秒数。ブラウザ添付種類の、Enter まで送信するプリセットでも使用する。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/features/outputs/paste_and_send/settings.py
@@ -305,7 +305,7 @@ settings:
     file: settings.yaml
     type: float（秒）
     default: '3.0'
-    description: ai_chat だけが持つ。読み込むときに `preset_options.browser.open_delay_sec` へ読み替え、保存では書かない。
+    description: ai_chat だけが持つ。読み込むときに `preset_options.browser.open_delay_sec` へ読み替え、保存では書き込まない。
     reload: immediate
     status: deprecated
     implementation: src/voice_paste/shared/settings.py
@@ -315,7 +315,7 @@ settings:
     file: settings.yaml
     type: string
     default: '（1: ChatGPT / 2: Google AI / 3: Claude）'
-    description: ai_chat だけが持つ。読み込むときにブラウザ添付種類のプリセットの `presets[].title` へ読み替え、保存では書かない。
+    description: ai_chat だけが持つ。読み込むときにブラウザ添付種類のプリセットの `presets[].title` へ読み替え、保存では書き込まない。
     reload: immediate
     status: deprecated
     implementation: src/voice_paste/shared/settings.py
@@ -325,7 +325,7 @@ settings:
     file: settings.yaml
     type: string（URL）
     default: '（1: https://chatgpt.com / 2: https://gemini.google.com/app / 3: https://claude.ai/new）'
-    description: ai_chat だけが持つ。読み込むときにブラウザ添付種類のプリセットの `presets[].url` へ読み替え、保存では書かない。
+    description: ai_chat だけが持つ。読み込むときにブラウザ添付種類のプリセットの `presets[].url` へ読み替え、保存では書き込まない。
     reload: immediate
     status: deprecated
     implementation: src/voice_paste/shared/settings.py
@@ -335,7 +335,7 @@ settings:
     file: settings.yaml
     type: string（pynput の GlobalHotKeys 形式）
     default: <ctrl>+<alt>+{n}
-    description: ai_chat だけが持つ。読み込むときにブラウザ添付種類のプリセットの `presets[].hotkey` へ読み替え、保存では書かない。
+    description: ai_chat だけが持つ。読み込むときにブラウザ添付種類のプリセットの `presets[].hotkey` へ読み替え、保存では書き込まない。
     reload: immediate
     status: deprecated
     implementation: src/voice_paste/shared/settings.py
@@ -344,7 +344,7 @@ settings:
     file: settings.yaml
     type: bool
     default: 'true'
-    description: ai_chat だけが持つ。読み込むときにブラウザ添付種類のプリセットの `presets[].enabled` へ読み替え、保存では書かない。
+    description: ai_chat だけが持つ。読み込むときにブラウザ添付種類のプリセットの `presets[].enabled` へ読み替え、保存では書き込まない。
     reload: immediate
     status: deprecated
     implementation: src/voice_paste/shared/settings.py
@@ -362,7 +362,7 @@ settings:
     file: settings.yaml
     type: int（日）
     default: '1'
-    description: この日数より前の日付の履歴を、起動時と常駐中に消す。
+    description: この日数より前の日付の履歴を、起動時と常駐中に削除する。
     reload: restart
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -372,7 +372,7 @@ settings:
     file: settings.yaml
     type: "'DEBUG' | 'INFO' | 'WARNING' | 'ERROR'"
     default: INFO
-    description: ログに書くレベル。
+    description: ログに書き込むレベル。
     reload: restart
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -381,7 +381,7 @@ settings:
     file: settings.yaml
     type: int（日）
     default: '7'
-    description: この日数より前の日付のログを、起動時と常駐中に消す。
+    description: この日数より前の日付のログを、起動時と常駐中に削除する。
     reload: restart
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -428,7 +428,7 @@ settings:
     file: settings.yaml
     type: string（パス）
     default: （無し。settings.yaml と同じフォルダの yogo.csv）
-    description: 用語集の CSV の場所。`glossaries` が空のときだけ読み、この CSV を 1 つ目の用語集として扱う（名前は CSV のファイル名から拡張子を除いたもの）。キーが無いときは settings.yaml と同じフォルダの `yogo.csv` を使う。設定画面で保存すると `glossaries` へ書き、このキーは消す。
+    description: 用語集の CSV の場所。`glossaries` が空のときだけ読み、この CSV を 1 つ目の用語集として扱う（名前は CSV のファイル名から拡張子を除いたもの）。キーが無いときは settings.yaml と同じフォルダの `yogo.csv` を使用する。設定画面で保存すると `glossaries` へ書き込み、このキーは削除する。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -504,7 +504,7 @@ settings:
     file: settings.yaml
     type: bool
     default: 'true'
-    description: browser だけが持つ。`true` なら貼り付けてから `outputs[paste_and_send].enter_delay_sec` の秒数を置いて Enter を送信し、`false` なら貼り付けで止める。
+    description: browser だけが持つ。`true` なら貼り付けてから `outputs[paste_and_send].enter_delay_sec` の秒数を待って Enter を送信し、`false` なら貼り付けで止める。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -513,7 +513,7 @@ settings:
     file: settings.yaml
     type: string
     default: 空文字
-    description: endpoint だけが持つ。空でなければ `Authorization` ヘッダーにそのまま入れて送る（例 `Bearer {トークン}`）。空なら付けない。
+    description: endpoint だけが持つ。空でなければ `Authorization` ヘッダーにそのまま入れて送信する（例 `Bearer {トークン}`）。空なら付けない。
     secret: true
     reload: immediate
     status: implemented
@@ -525,7 +525,7 @@ settings:
     file: settings.yaml
     type: float（秒）
     default: '3.0'
-    description: ブラウザ添付種類の全てのプリセットで使う。画面を開いてから貼り付けるまで待つ秒数。
+    description: ブラウザ添付種類の全てのプリセットで使用する。画面を開いてから貼り付けるまで待つ秒数。
     reload: immediate
     allowed: '>= 0'
     status: implemented
@@ -535,7 +535,7 @@ settings:
     file: settings.yaml
     type: float（秒）
     default: '1.5'
-    description: エンドポイントへ送信の種類の全てのプリセットで使う。この秒数で届かなければ再送せず、届けられなかったことを知らせる。
+    description: エンドポイントへ送信の種類の全てのプリセットで使用する。この秒数で届かなければ再送せず、届けられなかったことを通知する。
     reload: immediate
     allowed: 0.5〜10
     status: implemented
@@ -551,7 +551,7 @@ settings:
     description: API で始めた連続録音で、話し声の後にこの秒数以上無音が続いたところで区間を区切る。
     reload: restart
     allowed: 0.5〜10
-    reason: PoC（#80）で 2.0 秒のとき、間 2.1 秒の文は区切り、間 1.0 秒の文は区切らないことを確かめた
+    reason: 'PoC（[#80 PoC: 録音を止めずに Silero VAD で区切り、区間ごとの文字起こしが追いつくかを確かめる](https://github.com/shuhei1101/voice-paste/issues/80)）で 2.0 秒のとき、間 2.1 秒の文は区切り、間 1.0 秒の文は区切らないことを確認した'
     refs:
       - IF-10#
     status: planned
@@ -577,10 +577,10 @@ settings:
     file: settings.yaml
     type: list['ctrl' | 'alt' | 'shift']
     default: '[]'
-    description: paste_and_send だけが持つ。貼り付けて `enter_delay_sec` の秒数を置いた後、並べた修飾キーを押したまま Enter を送信する。空なら Enter だけを送る。ブラウザ添付種類の、Enter まで送信するプリセットには当てない。
-    missing: 空として読む
+    description: paste_and_send だけが持つ。貼り付けて `enter_delay_sec` の秒数を待った後、並べた修飾キーを押したまま Enter を送信する。空なら Enter だけを送信する。ブラウザ添付種類の、Enter まで送信するプリセットには適用しない。
+    missing: 空として読み込む
     reload: immediate
-    allowed: "'ctrl'・'alt'・'shift' の値だけ。並びと重なりは問わず、押す順は Ctrl・Alt・Shift に揃える"
+    allowed: "'ctrl'・'alt'・'shift' の値だけ。並びと重なりは問わず、押す順は Ctrl・Alt・Shift に統一する"
     status: planned
     implementation: src/voice_paste/features/outputs/paste_and_send/settings.py
   - key: ui.theme
@@ -590,7 +590,7 @@ settings:
     default: system
     description: 全ての画面（録音の画面・文字起こし中の表示・設定画面・ダイアログ・トレイのメニュー）の明暗。`system` は Windows の明暗に従い、常駐中に Windows の明暗が変わると画面も切り替わる。`light`・`dark` は Windows の明暗によらずその配色にする。
     reload: immediate
-    missing: 項目が無い `settings.yaml` は `system` として読む
+    missing: 項目が無い `settings.yaml` は `system` として読み込む
     status: implemented
     implementation: src/voice_paste/shared/settings.py
     introduced:
@@ -602,7 +602,7 @@ settings:
     default: 'true'
     description: '`true` のとき、録音の画面の一時停止・再開・取り消し・出力先の確定・カスタムプリセットのボタンの名前の下にホットキーを出す。`false` のときは名前だけを出す。ホットキーの受付は変えない。文字起こし中の表示のボタンは `ui.transcribing_show_hotkeys` で決める。'
     reload: immediate
-    missing: 項目が無い `settings.yaml` は `true` として読む
+    missing: 項目が無い `settings.yaml` は `true` として読み込む
     status: planned
     implementation: src/voice_paste/shared/settings.py
     introduced:
@@ -620,17 +620,17 @@ settings:
     title: 用語集の CSV の場所（用語集ごと）
     file: settings.yaml
     type: string（パス）
-    description: その用語集の CSV の場所。相対パスは settings.yaml のフォルダから読む。設定画面で追加した用語集の CSV は、settings.yaml と同じフォルダの `glossaries/glossary_{n}.csv`（n は 1 からの連番。フォルダに残っているファイルの番号は使わない）に作る。一覧から消しても CSV のファイルは消さない。
+    description: その用語集の CSV の場所。相対パスは settings.yaml のフォルダから読み込む。設定画面で追加した用語集の CSV は、settings.yaml と同じフォルダの `glossaries/glossary_{n}.csv`（n は 1 からの連番。フォルダに残っているファイルの番号は使用しない）に作る。一覧から削除しても CSV のファイルは削除しない。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
-    allowed: settings.yaml のフォルダからの相対パスか、絶対パス。設定画面の保存は、settings.yaml のフォルダの下の場所を相対パス（区切りは `/`。例 `glossaries/glossary_1.csv`・`yogo.csv`）で、それ以外を絶対パスで書く
+    allowed: settings.yaml のフォルダからの相対パスか、絶対パス。設定画面の保存は、settings.yaml のフォルダの下の場所を相対パス（区切りは `/`。例 `glossaries/glossary_1.csv`・`yogo.csv`）で、それ以外を絶対パスで書き込む
   - key: active_glossary
     title: 補正に使う用語集
     file: settings.yaml
     type: string
     default: （無し。1 つ目の用語集）
-    description: 補正に使う用語集の名前（`glossaries[].name`）。`glossary_presets` のキーが無い settings.yaml でだけ読み、この用語集（キーが無いとき・名前が一覧に無いときは 1 つ目の用語集）だけを使う「既定」のプリセットを作る。設定画面で保存すると `glossary_presets`・`active_glossary_preset` へ書き、このキーは消す。
+    description: 補正に使用する用語集の名前（`glossaries[].name`）。`glossary_presets` のキーが無い settings.yaml でだけ読み、この用語集（キーが無いとき・名前が一覧に無いときは 1 つ目の用語集）だけを使用する「既定」のプリセットを作る。設定画面で保存すると `glossary_presets`・`active_glossary_preset` へ書き込み、このキーは削除する。
     reload: immediate
     status: deprecated
     implementation: src/voice_paste/shared/settings.py
@@ -640,7 +640,7 @@ settings:
     title: 表記のヒントのプリセットの名前
     file: settings.yaml
     type: string
-    description: 設定画面の表記のヒントの一覧に出す名前。`hint_presets` のキーが無い settings.yaml は、プリセットの無い空の一覧として読む。
+    description: 設定画面の表記のヒントの一覧に出す名前。`hint_presets` のキーが無い settings.yaml は、プリセットの無い空の一覧として読み込む。
     reload: immediate
     allowed: 1 文字以上（前後の空白を除いて）。ほかのヒントのプリセットと同じ名前にできない
     status: implemented
@@ -650,9 +650,9 @@ settings:
     file: settings.yaml
     type: list[string]
     default: '[]'
-    description: 文字起こしに渡す、間違えやすい語の正しい表記の並び。有効なプリセットの語を一覧の上から順に読点（、）でつなぎ、faster-whisper の `hotwords` に渡す。
+    description: 文字起こしに引き渡す、間違えやすい単語の正しい表記の並び。有効なプリセットの単語を一覧の上から順に読点（、）でつなぎ、faster-whisper の `hotwords` に引き渡す。
     reload: immediate
-    allowed: 1 つの語は空にできず、読点（、）・句点（。）・改行を含められない。有効なプリセットの語をつないだ長さは UTF-8 で 222 バイト以下
+    allowed: 1 つの単語は空にできず、読点（、）・句点（。）・改行を含められない。有効なプリセットの単語をつないだ長さは UTF-8 で 222 バイト以下
     status: implemented
     implementation: src/voice_paste/shared/settings.py
     refs:
@@ -662,7 +662,7 @@ settings:
     file: settings.yaml
     type: bool
     default: 'true'
-    description: '`false` のとき、そのプリセットの語を文字起こしに渡さない。全てのプリセットが無効か、プリセットが無いときは、手がかりを渡さずに文字を起こす。'
+    description: '`false` のとき、そのプリセットの単語を文字起こしに引き渡さない。全てのプリセットが無効か、プリセットが無いときは、手がかりを引き渡さずに文字を起こす。'
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -673,7 +673,7 @@ settings:
     default: 'true'
     description: '`true` のとき、文字起こし中の表示の出力先の切り替えのボタンの名前の下にホットキーを出す。`false` のときは名前だけを出す。ホットキーでの切り替えは変えない。'
     reload: immediate
-    missing: 前のバージョンの `settings.toml` を移すとき、この項目が無ければ `ui.show_hotkeys` の値で移す（`ui.show_hotkeys` も無ければ `true`）。`settings.yaml`・`settings.local.yaml` に無ければ既定値で読む
+    missing: 前のバージョンの `settings.toml` を移すとき、この項目が無ければ `ui.show_hotkeys` の値で移す（`ui.show_hotkeys` も無ければ `true`）。`settings.yaml`・`settings.local.yaml` に無ければ既定値で読み込む
     reason: 1 つだった `ui.show_hotkeys` を分けた後も、更新した直後の文字起こし中の表示の出し方を今の値のとおりにするため
     status: planned
     implementation: src/voice_paste/shared/settings.py
@@ -684,9 +684,9 @@ settings:
     file: settings.yaml
     type: string
     default: （キーが無いときは既定の一覧。上から「チャンネル登録*」「ご視聴ありがとうございました」「ありがとうございました」で、位置は全て `end`）
-    description: 起こした文字の文頭・文末に一致したときに消す文言。書いた文字との完全な一致で、`*` は 0 文字以上の任意の文字列に一致する（端の `*` は行の端まで）。`edge_phrases` の並びの上から順に当てる。`edge_phrases` のキーが無い settings.yaml は既定の一覧として読む。キーがあって空の一覧なら何も消さない
+    description: 起こした文字の文頭・文末に一致したときに削除する文言。書き込んだ文字との完全な一致で、`*` は 0 文字以上の任意の文字列に一致する（端の `*` は行の端まで）。`edge_phrases` の並びの上から順に適用する。`edge_phrases` のキーが無い settings.yaml は既定の一覧として読み込む。キーがあって空の一覧なら何も削除しない
     reload: immediate
-    allowed: 1 文字以上（前後の空白を除いて）。`*` だけの文言は入れられない（文頭・文末の行を丸ごと消すため）
+    allowed: 1 文字以上（前後の空白を除いて）。`*` だけの文言は入れられない（文頭・文末の行を丸ごと削除するため）
     refs:
       - SC-9#scenarios[正常シナリオ（文頭・文末の決まった文言を消す）]
       - LIB-8#
@@ -697,7 +697,7 @@ settings:
     file: settings.yaml
     type: "'start' | 'end' | 'both'"
     default: end
-    description: その行の文言を当てる位置。`start` は文頭（1 行目の先頭）、`end` は文末（最後の行の末尾）、`both` はその両方。設定画面では「文頭」「文末」「両方」と出す
+    description: その行の文言を適用する位置。`start` は文頭（1 行目の先頭）、`end` は文末（最後の行の末尾）、`both` はその両方。設定画面では「文頭」「文末」「両方」と出す
     reload: immediate
     allowed: '`start` / `end` / `both`'
     status: implemented
@@ -707,7 +707,7 @@ settings:
     file: settings.yaml
     type: list[string]
     default: '[]'
-    description: '`/web/` の下へ要求を送ってよいブラウザのオリジン（`https://{ゲートウェイの公開のサブドメイン}` の形式）。`/web/` の下の要求は、Origin が無いか、この一覧にあるときだけ通す。空なら外の端末の画面から送信できない'
+    description: '`/web/` の下へ要求を送信してよいブラウザのオリジン（`https://{ゲートウェイの公開のサブドメイン}` の形式）。`/web/` の下の要求は、Origin が無いか、この一覧にあるときだけ通す。空なら外の端末の画面から送信できない'
     allowed: '`scheme://host[:port]` の形式のオリジン。末尾の `/` とパスを付けない'
     reload: restart
     status: planned
@@ -719,7 +719,7 @@ settings:
     title: 用語集のプリセットの名前
     file: settings.yaml
     type: string
-    description: 設定画面の用語集のプリセットの一覧に出す名前。`POST /sessions` の `glossary_preset` でもこの名前で指す。`glossary_presets` のキーが無い・空の settings.yaml は、`active_glossary` の用語集（無ければ 1 つ目の用語集。用語集が無ければ空）だけを使う「既定」のプリセットを 1 つ持つとして読む。
+    description: 設定画面の用語集のプリセットの一覧に出す名前。`POST /sessions` の `glossary_preset` でもこの名前で指す。`glossary_presets` のキーが無い・空の settings.yaml は、`active_glossary` の用語集（無ければ 1 つ目の用語集。用語集が無ければ空）だけを使用する「既定」のプリセットを 1 つ持つとして読み込む。
     reload: immediate
     allowed: 1 文字以上（前後の空白を除いて）。ほかの用語集のプリセットと同じ名前にできない（大文字と小文字は区別する）
     status: planned
@@ -733,7 +733,7 @@ settings:
     file: settings.yaml
     type: list[string]
     default: '[]'
-    description: そのプリセットで補正に使う用語集の名前（`glossaries[].name`）の並び。補正は、この並びの順・用語集の中の行の順に、オンの行を 1 本の並びとして続けて当て、前の行で置き換えた結果へ次の行を当てる。空なら何も置き換えない。読めない CSV の用語集は飛ばし、残りの用語集で補正する。一覧に無い名前は読むときに外す。用語集を一覧から消すと、その名前を全てのプリセットから外し、用語集の名前を変えるとプリセットの指す名前も変える。
+    description: そのプリセットで補正に使用する用語集の名前（`glossaries[].name`）の並び。補正は、この並びの順・用語集の中の行の順に、オンの行を 1 本の並びとして続けて当て、前の行で置き換えた結果へ次の行を適用する。空なら何も置き換えない。読み込めない CSV の用語集は飛ばし、残りの用語集で補正する。一覧に無い名前は読み込むときに除外する。用語集を一覧から削除すると、その名前を全てのプリセットから除外し、用語集の名前を変えるとプリセットの指す名前も変える。
     reload: immediate
     allowed: '`glossaries[].name` にある名前。同じ名前を 2 回並べられない'
     status: planned
@@ -745,7 +745,7 @@ settings:
     file: settings.yaml
     type: string
     default: （無し。1 つ目の用語集のプリセット）
-    description: 補正に使う用語集のプリセットの名前（`glossary_presets[].name`）。ホットキー・トレイ・ブラウザの音声の録音と、`glossary_preset` を指定しない API の録音がこのプリセットで補正する。キーが無いとき・名前が一覧に無いときは 1 つ目のプリセットを使う。
+    description: 補正に使用する用語集のプリセットの名前（`glossary_presets[].name`）。ホットキー・トレイ・ブラウザの音声の録音と、`glossary_preset` を指定しない API の録音がこのプリセットで補正する。キーが無いとき・名前が一覧に無いときは 1 つ目のプリセットを使用する。
     reload: immediate
     status: planned
     implementation: src/voice_paste/shared/settings.py
@@ -755,7 +755,7 @@ settings:
     title: OpenAI のモデル
     file: settings.yaml
     type: string
-    description: OpenAI API の文字起こしに使うモデル。`gpt-transcribe` で始まるモデルは手がかりを `keywords[]`、言語を `languages[]` で、それ以外のモデル（`gpt-4o-mini-transcribe` など）は `prompt`・`language` で渡す。
+    description: OpenAI API の文字起こしに使用するモデル。`gpt-transcribe` で始まるモデルは手がかりを `keywords[]`、言語を `languages[]` で、それ以外のモデル（`gpt-4o-mini-transcribe` など）は `prompt`・`language` で引き渡す。
     reload: restart
     status: planned
     implementation: src/voice_paste/shared/settings.py
@@ -793,7 +793,7 @@ settings:
     file: settings.yaml
     type: int
     default: "'47824'"
-    description: Haas の文字起こしのサーバーが WSL の中の 127.0.0.1 で待ち受けるポート。常駐アプリは起動のときにサーバーへこのポートを渡し、`http://127.0.0.1:{ポート}` へ接続する。`transcription.engine` が `haas` のときだけ使う。
+    description: Haas の文字起こしのサーバーが WSL の中の 127.0.0.1 で待ち受けるポート。常駐アプリは起動のときにサーバーへこのポートを引き渡し、`http://127.0.0.1:{ポート}` へ接続する。`transcription.engine` が `haas` のときだけ使う。
     reload: restart
     allowed: 1024〜65535。`api.port` と同じ番号にできない
     status: planned
@@ -803,18 +803,18 @@ settings:
     file: settings.yaml
     type: list[string]
     default: "'[]'"
-    description: '`words` と同じ並びの読み。空文字はその語に読みが無いことを表す。エンジンが `haas` のときだけ、語の表記と読みの組を Haas の Vocabulary に渡す。読みの無い語は表記だけを渡す。`local_whisper`・`openai` は読みを使わない。キーが無い settings.yaml は、全ての語が読みを持たないものとして読む。'
+    description: '`words` と同じ並びの読み。空文字はその単語に読みが無いことを表す。エンジンが `haas` のときだけ、単語の表記と読みの組を Haas の Vocabulary に引き渡す。読みの無い単語は表記だけを引き渡す。`local_whisper`・`openai` は読みを使用しない。キーが無い settings.yaml は、全ての単語が読みを持たないものとして読み込む。'
     reload: immediate
-    allowed: 空の一覧か、`words` と同じ長さ。読みはひらがな・カタカナ・長音符（ー）だけか空文字。同じプリセットの同じ語に違う読みを持てない（片方が空なら持てる）。有効なヒントの長さ（222 バイト）に数えない
+    allowed: 空の一覧か、`words` と同じ長さ。読みはひらがな・カタカナ・長音符（ー）だけか空文字。同じプリセットの同じ単語に違う読みを持てない（片方が空なら持てる）。有効なヒントの長さ（222 バイト）に数えない
     status: planned
     implementation: src/voice_paste/shared/settings.py
-    reason: 読みの確かめの失敗を、語と同じく `readings[{m}]` の場所で読みの欄へ出すため、語をキーにした対応ではなく語と同じ並びの一覧にした
+    reason: 読みの確認の失敗を、単語と同じく `readings[{m}]` の場所で読みの欄へ出すため、単語をキーにした対応ではなく単語と同じ並びの一覧にした
   - key: transcription.haas.model
     title: Haas のモデル
     file: settings.yaml
     type: string
     default: third-intelligence/Haas-ja-v1.0
-    description: Haas の文字起こしのサーバーが起動のときに読み込むモデル。Hugging Face Hub のモデルの名前か、WSL の中の .nemo ファイルのパス。常駐アプリがサーバーを起動するときの引数で渡す。起動の前から動いているサーバーが違う値ならトレイで知らせ、そのサーバーのまま起こす。
+    description: Haas の文字起こしのサーバーが起動のときに読み込むモデル。Hugging Face Hub のモデルの名前か、WSL の中の .nemo ファイルのパス。常駐アプリがサーバーを起動するときの引数で引き渡す。起動の前から動いているサーバーが違う値ならトレイで通知し、そのサーバーのまま起こす。
     reload: restart
     allowed: 前後の空白を除いて空でない
     status: planned
@@ -843,7 +843,7 @@ settings:
     file: settings.yaml
     type: float
     default: '30.0'
-    description: これ以下の長さの音声は一度に（transcribe）、超える音声は静かな箇所で区切って（transcribe_longform）起こす。Haas-ja-v1.0 が学習した発話は約 30 秒まで。文字起こしのたびに要求で渡す。
+    description: これ以下の長さの音声は一度に（transcribe）、超える音声は静かな箇所で区切って（transcribe_longform）起こす。Haas-ja-v1.0 が学習した発話は約 30 秒まで。文字起こしのたびに要求で引き渡す。
     reload: immediate
     allowed: 1.0〜60.0
     status: planned
@@ -863,7 +863,7 @@ settings:
     file: settings.yaml
     type: float
     default: '2.0'
-    description: 表記のヒントの語をどれだけ強く優先するか（haas_asr.Vocabulary の alpha）。上げると聞き逃した語を拾いやすくなるが、言っていない語を書くことも増える。語が無いときは使わない。
+    description: 表記のヒントの単語をどれだけ強く優先するか（haas_asr.Vocabulary の alpha）。上げると聞き逃した単語を検出しやすくなるが、言っていない単語を書き込むことも増える。単語が無いときは使用しない。
     reload: immediate
     allowed: 0.0〜10.0
     status: planned
@@ -873,7 +873,7 @@ settings:
     file: settings.yaml
     type: bool
     default: 'true'
-    description: 手がかりなしでも起こし、ヒントの語が丸ごと入った変化だけを採る（haas_asr の guard）。
+    description: 手がかりなしでも起こし、ヒントの単語が丸ごと入った変化だけを採る（haas_asr の guard）。
     reload: immediate
     status: planned
     implementation: src/voice_paste/shared/settings.py
@@ -912,10 +912,10 @@ settings:
     file: settings.yaml
     type: string
     default: "''"
-    description: 区切って起こした文字をつなぐ文字（transcribe_longform の separator）。日本語は語の間を空けないため既定は空。
+    description: 区切って起こした文字をつなぐ文字（transcribe_longform の separator）。日本語は単語の間を空けないため既定は空。
     reload: immediate
     allowed: 16 文字以下
     status: planned
     implementation: src/voice_paste/shared/settings.py
 notes:
-  反映の列の読み方: '`immediate` は設定画面で保存すると動いている常駐アプリに効く項目。`settings.yaml`・`settings.local.yaml` を直接書き換えたときは、どの項目も再起動まで効かない（起動時に 1 度だけ読む）。'
+  反映の列の読み方: '`immediate` は設定画面で保存すると動いている常駐アプリに有効になる項目。`settings.yaml`・`settings.local.yaml` を直接書き換えたときは、どの項目も再起動まで有効にならない（起動時に 1 度だけ読む）。'

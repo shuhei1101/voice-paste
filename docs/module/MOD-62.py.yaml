@@ -11,7 +11,7 @@ functions:
     usecase: 起こした文字を届ける
     scope: public
     inherits: OutputFn
-    summary: クリップボードへ書き、貼り付けのキーを送信する
+    summary: クリップボードへ書き込み、貼り付けのキーを送信する
     args:
       - name: outcome
         type: TranscriptionOutcome
@@ -22,12 +22,12 @@ functions:
         type: str | None
         required: true
         passing: positional
-        description: 使わない（OutputFn に合わせて受ける）
+        description: 使用しない（OutputFn に合わせて受ける）
       - name: copy
         type: Callable[[str], None]
         required: true
         passing: injected
-        description: クリップボードへ書く（copy_to_clipboard）
+        description: クリップボードへ書き込む（copy_to_clipboard）
       - name: paste
         type: Callable[[], None]
         required: true
@@ -37,12 +37,12 @@ functions:
       type: None
       description: なし
     process: |-
-      1. outcome.text をクリップボードへ書く
+      1. outcome.text をクリップボードへ書き込む
       2. 貼り付けのキーを送信する
          - 1 が DeliveryError を送出した場合、キーを送信せずにそのまま送出する
     exceptions:
       - name: DeliveryError
-        condition: クリップボードへ書けない
+        condition: クリップボードへ書き込めない
     unit_tests:
       - name: test_paste_only
         case: 正常
@@ -52,11 +52,11 @@ functions:
         expected: copy("テスト")・paste() の順に 1 回ずつ呼ばれる
       - name: test_paste_only_when_copy_failed
         case: 異常
-        summary: クリップボードへ書けなければ貼り付けない
+        summary: クリップボードへ書き込めなければ貼り付けない
         condition: copy が DeliveryError を送出する
         mock: copy・paste
         expected: DeliveryError が送出され、paste が呼ばれない
-        exception: クリップボードへ書けない
+        exception: クリップボードへ書き込めない
     status: implemented
   - name: inject_paste_only
     title: 貼り付けのみの注入
@@ -65,7 +65,7 @@ functions:
     usecase: 起こした文字を届ける
     scope: public
     inherits: InjectFn
-    summary: paste_only に部分適用する copy・paste を返す
+    summary: paste_only に部分適用する copy・paste を返却する
     args:
       - name: deps
         type: OutputDeps
@@ -78,8 +78,8 @@ functions:
     unit_tests:
       - name: test_inject_paste_only
         case: 正常
-        summary: copy・paste だけを渡す
-        condition: OutputDeps を渡す
+        summary: copy・paste だけを引き渡す
+        condition: OutputDeps を引き渡す
         mock: OutputDeps の全関数
         expected: キーが copy・paste だけで、値が deps のものと同じ
     status: planned

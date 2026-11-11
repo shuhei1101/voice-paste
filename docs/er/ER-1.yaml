@@ -12,7 +12,7 @@ tables:
     growth: 増えない（録音を止めるたびに置き換える。選んだファイルは残さない）
     retention: 保存日時から 7 日
     deletion: 物理削除（画面を開いたときに期限を過ぎていれば削除する）
-    access: キーで引く
+    access: キーで取得する
     columns:
       - name: blob
         title: 音声
@@ -63,14 +63,14 @@ tables:
     growth: 送信が 202 になるたびに 1 件増え、10 件を超えたらいちばん古い件を削除する
     retention: 保存日時から 7 日
     deletion: 物理削除（削除の確認で削除したとき・件数を超えたとき・画面を開いたときに期限を過ぎていたとき。文字起こし失敗・404 になった件も削除する）
-    access: 全件（画面を開いたときに読み、変えるたびに全件を書き換える）
+    access: 全件（画面を開いたときに読み込み、変えるたびに全件を書き換える）
     columns:
       - name: job_id
         title: ジョブの ID
         type: string
         not_null: true
         primary_key: true
-        description: 音声を受け付ける が返した job_id
+        description: 音声を受け付ける が返却した job_id
       - name: state
         title: 状態
         type: string
@@ -107,13 +107,13 @@ tables:
     growth: 増えない（選ぶたびに置き換える）
     retention: 期限なし
     deletion: 上書き（覚えた名前が一覧に無いとき・一覧に無いプリセットで 400 になったときは空文字に戻す）
-    access: キーで引く（画面を開いたときに読み、選ぶたびに書く）
+    access: キーで取得する（画面を開いたときに読み込み、選ぶたびに書き込む）
     columns:
       - name: value
         title: プリセットの名前
         type: string
         not_null: true
-        description: 選んだ用語集のプリセットの名前（用語集のプリセットの一覧を返す の presets の名前）。「設定に従う」は空文字。JSON ではなく文字列のまま置く
+        description: 選んだ用語集のプリセットの名前（用語集のプリセットの一覧を返却する の presets の名前）。「設定に従う」は空文字。JSON ではなく文字列のまま配置する
         example: 会議
     refs:
       - SCR-6#elements[用語集のプリセットの選択欄]

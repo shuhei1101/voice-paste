@@ -8,14 +8,14 @@ constants:
     title: 親のコンソールから切り離すフラグ
     container: runtime/process.py
     usecase: トレイから操作する
-    summary: Windows で relaunch が渡す subprocess.DETACHED_PROCESS の値。Linux の subprocess には属性が無いため、値を定数で持つ
+    summary: Windows で relaunch が引き渡す subprocess.DETACHED_PROCESS の値。Linux の subprocess には属性が無いため、値を定数で持つ
     value: '0x00000008'
     status: planned
   - name: CREATE_NEW_PROCESS_GROUP
     title: 新しいプロセスグループで起動するフラグ
     container: runtime/process.py
     usecase: トレイから操作する
-    summary: Windows で relaunch が渡す subprocess.CREATE_NEW_PROCESS_GROUP の値。DETACHED_PROCESS と同じ理由で定数で持つ
+    summary: Windows で relaunch が引き渡す subprocess.CREATE_NEW_PROCESS_GROUP の値。DETACHED_PROCESS と同じ理由で定数で持つ
     value: '0x00000200'
     status: planned
 functions:
@@ -23,7 +23,7 @@ functions:
     title: 再起動
     container: runtime/process.py
     usecase: トレイから操作する
-    summary: 同じ Python と引数で `python -m voice_paste` を切り離したプロセスとして起動する。片付けを終えた後に呼ぶ（API のポートとエンジンを放してから次を立てる）
+    summary: 同じ Python と引数で `python -m voice_paste` を切り離したプロセスとして起動する。片付けを終えた後に呼ぶ（API のポートとエンジンを放してから次を作成する）
     kind: 関数
     scope: public
     args:
@@ -44,7 +44,7 @@ functions:
       1. os_kind に合わせて切り離して起動する
          - OsKind.WINDOWS の場合、`subprocess.Popen([sys.executable, "-m", "voice_paste", *argv], creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP, close_fds=True)`（フラグは process.py の定数。Linux の subprocess には属性が無い）
          - OsKind.LINUX の場合、`subprocess.Popen([sys.executable, "-m", "voice_paste", *argv], start_new_session=True, close_fds=True)`
-         - OSError の場合、ログに書いて握る（終わり方は変えない）
+         - OSError の場合、ログに書き込んで握る（終わり方は変えない）
            - `[ERROR]` 起動し直せなかった（logger.exception）
          - `[INFO]` 起動し直した（引数）
     unit_tests:

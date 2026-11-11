@@ -24,15 +24,15 @@ functions:
       description: 終了コード（引数の数が違えば 2、それ以外は 0）
     process: |-
       1. 引数が排他の名前・ホットキーの 2 つか
-         - 違う場合、2 を返す
+         - 違う場合、2 を返却する
       2. 抽象名前空間の `\0{排他の名前}-quit` へ接続し、HOTKEY_REQUEST_PREFIX にホットキーの UTF-8 をつないだバイト列を送信する
          - OSError の場合（常駐サービスが動いていない）、何もせず進む
-      3. 0 を返す
+      3. 0 を返却する
     unit_tests:
       - name: test_main
         case: 正常
         summary: 常駐サービスへホットキーを送信する
-        condition: 一意の名前で LinuxSingleInstanceLock を取り、on_hotkey に受け手を渡してから、argv=[名前, "<cmd>+<alt>+d"] で呼ぶ
+        condition: 一意の名前で LinuxSingleInstanceLock を取り、on_hotkey に受け手を引き渡してから、argv=[名前, "<cmd>+<alt>+d"] で呼ぶ
         mock: ホットキーの受け手（実物の抽象名前空間のソケット）
         expected: 0 が返り、受け手が "<cmd>+<alt>+d" で 1 秒以内に 1 回呼ばれる
       - name: test_main_when_not_running

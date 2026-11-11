@@ -52,7 +52,7 @@ data_models:
     container: features/session/types.py
     usecase: 共通
     role: DTO
-    summary: ほかの feature と入口を関数型で束ねたもの。main.py で配線する
+    summary: ほかの feature と入口を関数型でまとめたもの。main.py で配線する
     properties:
       - name: start_recording
         type: StartRecordingFn
@@ -65,7 +65,7 @@ data_models:
         description: 録音した音を貯めるのを再び始める
       - name: stop_recording
         type: StopRecordingFn
-        description: 録音を止めて音量を戻し、録音を返す
+        description: 録音を止めて音量を戻し、録音を返却する
       - name: discard_recording
         type: Callable[[], None]
         description: 録音を止めて音量を戻し、貯めた音を捨てる
@@ -86,46 +86,46 @@ data_models:
         description: 結果を出力先へ届ける
       - name: notify
         type: NotifyFn
-        description: ユーザーへ知らせる（画面・トレイ。メインスレッドへは Signal で渡す）
+        description: ユーザーへ通知する（画面・トレイ。メインスレッドへは Signal で引き渡す）
       - name: now
         type: Callable[[], datetime]
         description: 今の時刻（テストで差し替える）
       - name: discard_temporary
         type: Callable[[Path], None]
-        description: 処理を終えた録音が一時の音声なら消す（履歴の discard_temporary）
+        description: 処理を終えた録音が一時の音声なら削除する（履歴の discard_temporary）
       - name: report_progress
         type: ProgressFn
-        description: ホットキー・トレイの録音で、文字起こしの進みを画面へ知らせる（配線では ui の report_progress）
+        description: ホットキー・トレイの録音で、文字起こしの進みを画面へ通知する（配線では ui の report_progress）
       - name: start_continuous_recording
         type: StartContinuousRecordingFn
-        description: 連続録音を始める（音量を下げ、マイクを開き、区切った区間を渡し先へ渡す）
+        description: 連続録音を始める（音量を下げ、マイクを開き、区切った区間を引き渡し先へ引き渡す）
       - name: stop_continuous_recording
         type: Callable[[], None]
-        description: 連続録音を止めて音量を戻し、区間に切り出していない話し声を最後の区間として渡し終えてから戻る（録音の stop_continuous）
+        description: 連続録音を止めて音量を戻し、区間に切り出していない話し声を最後の区間として引き渡し終えてから戻る（録音の stop_continuous）
     status: implemented
   - name: SessionApiDeps
     title: 録音セッションの API の依存
     container: features/session/types.py
     usecase: APIで録音を操作する
     role: DTO
-    summary: route が使う配線済みのもの。main.py で組み、build_fastapi が app.state.session_api に置く
+    summary: route が使用する配線済みのもの。main.py で組み、build_fastapi が app.state.session_api に配置する
     properties:
       - name: session_manager
         type: SessionManager
         description: 録音セッション管理
       - name: is_callback_allowed
         type: Callable[[str], bool]
-        description: 設定の許可ホストを部分適用したコールバック先の確かめ（出力先の is_callback_allowed）
+        description: 設定の許可ホストを部分適用したコールバック先の確認（出力先の is_callback_allowed）
       - name: glossary_preset_exists
         type: Callable[[str], bool]
-        description: 今の設定の用語集のプリセットの一覧に、その名前があるか（補正の resolve_glossary_presets で引いた一覧で判定する）
+        description: 今の設定の用語集のプリセットの一覧に、その名前があるか（補正の resolve_glossary_presets で取得した一覧で判定する）
     status: implemented
   - name: ContinuousEnd
     title: 連続録音の終わりのマーカー
     container: features/session/types.py
     usecase: APIで録音を操作する
     role: DTO
-    summary: 連続録音の区間の待ち行列へ、全ての区間の後ろに積む終わりのマーカー。終わった理由を持つ
+    summary: 連続録音の区間の待ち行列へ、全ての区間の後ろに追加する終わりのマーカー。終わった理由を持つ
     properties:
       - name: result
         type: Literal["completed", "truncated", "failed"]
@@ -146,7 +146,7 @@ enums:
     values:
       - value: recording
         title: 録音中
-        description: マイクで録音している（連続録音では、区切った区間を起こして返しながら録音を続けている）
+        description: マイクで録音している（連続録音では、区切った区間を起こして返却しながら録音を続けている）
       - value: paused
         title: 一時停止中
         description: ホットキー・トレイから始めた録音を一時停止している（再開できる）
@@ -155,7 +155,7 @@ enums:
         description: API から始めた録音を止め、完了を待っている
       - value: transcribing
         title: 文字起こし中
-        description: 確定した録音を文字に起こしている（連続録音では、完了か上限の後に残りの区間と終わりを返している）
+        description: 確定した録音を文字に起こしている（連続録音では、完了か上限の後に残りの区間と終わりを返却している）
       - value: delivering
         title: 届け中
         description: 出力先へ届けている
@@ -176,7 +176,7 @@ function_types:
     title: 録音の停止
     container: features/session/types.py
     usecase: 共通
-    summary: 録音を止めて音量を戻し、貯めた音を返す
+    summary: 録音を止めて音量を戻し、貯めた音を返却する
     returns:
       type: Recording
       description: 貯めた音（サンプルレートと長さつき）
@@ -187,7 +187,7 @@ function_types:
     title: 録音の保存
     container: features/session/types.py
     usecase: 共通
-    summary: 確定した録音を履歴（残さない設定なら一時の音声）へ書き、そのパスを返す
+    summary: 確定した録音を履歴（残さない設定なら一時の音声）へ書き込み、そのパスを返却する
     args:
       - name: session_id
         type: str
@@ -200,7 +200,7 @@ function_types:
         description: 連続録音の区間の通し番号。それ以外は None
     returns:
       type: Path
-      description: 書いた WAV のパス
+      description: 書き込んだ WAV のパス
     implementations:
       - target: 履歴の save_recording
     status: implemented
@@ -208,7 +208,7 @@ function_types:
     title: 文字起こし
     container: features/session/types.py
     usecase: 共通
-    summary: 録音のファイルを文字に起こす。進みは on_progress で知らせる
+    summary: 録音のファイルを文字に起こす。進みは on_progress で通知する
     args:
       - name: audio_path
         type: Path
@@ -244,7 +244,7 @@ function_types:
     title: 出力先への配送
     container: features/session/types.py
     usecase: 共通
-    summary: 結果を出力先へ届ける。API の録音セッションは呼び出し元へ返す出力先だけを使う
+    summary: 結果を出力先へ届ける。API の録音セッションは呼び出し元へ返却する出力先だけを使用する
     args:
       - name: session
         type: Session
@@ -257,13 +257,13 @@ function_types:
       description: なし
     implementations:
       - target: 出力先の deliver
-        notes: main.py で Session を入口・選んだ出力先・コールバック先に分けて渡す（出力先は録音セッションを import しない）
+        notes: main.py で Session を入口・選んだ出力先・コールバック先に分けて引き渡す（出力先は録音セッションを import しない）
     status: implemented
   - name: NotifyFn
     title: ユーザーへの知らせ
     container: features/session/types.py
     usecase: 共通
-    summary: 状態の変化と失敗を画面・トレイへ渡す
+    summary: 状態の変化と失敗を画面・トレイへ引き渡す
     args:
       - name: event
         type: Literal["state_changed", "busy", "microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable", "engine_fallback", "engine_settings_mismatch", "output_changed"]
@@ -281,14 +281,14 @@ function_types:
     title: 連続録音の開始
     container: features/session/types.py
     usecase: APIで録音を操作する
-    summary: 音量を下げてマイクを開き、区切った区間を区切った順に on_segment へ渡す。開けなければ音量を戻して MicrophoneUnavailableError を送出する
+    summary: 音量を下げてマイクを開き、区切った区間を区切った順に on_segment へ引き渡す。開けなければ音量を戻して MicrophoneUnavailableError を送出する
     args:
       - name: on_segment
         type: OnSegmentFn
-        description: 区切った区間の渡し先（録音の区切りのスレッドから呼ばれる）
+        description: 区切った区間の引き渡し先（録音の区切りのスレッドから呼ばれる）
       - name: on_failed
         type: OnContinuousFailedFn
-        description: 区切りに失敗して録音を止めたことの知らせ先（録音の区切りのスレッドから呼ばれる）
+        description: 区切りに失敗して録音を止めたことの通知先（録音の区切りのスレッドから呼ばれる）
     returns:
       type: None
       description: なし

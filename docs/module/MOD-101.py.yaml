@@ -98,9 +98,12 @@ functions:
       1. haas_asr と torch を import し、load_model(args.model, device=args.device, dtype=…) で読み込む（dtype は `auto` ならそのまま、ほかは getattr(torch, args.dtype)）
          - `[INFO]` モデルを読み込んだ（モデル・計算の精度・装置・かかった秒）
       2. 次の関数を HaasEngine に束ねる
-         - transcribe: haas_asr.transcribe(model, [samples], batch_size=options.batch_size, vocabulary=vocabulary, guard=options.guard)[0]
-         - transcribe_longform: haas_asr.transcribe_longform(model, samples, batch_size=options.batch_size, separator=options.separator, vocabulary=vocabulary, guard=options.guard, chunk_seconds=options.chunk_sec, search_seconds=options.search_sec, window_seconds=options.window_sec)
-         - build_vocabulary: haas_asr.Vocabulary(words, alpha=alpha)
+
+         | 関数 | 呼ぶ処理 |
+         | --- | --- |
+         | transcribe | haas_asr.transcribe(model, [samples], batch_size=options.batch_size, vocabulary=vocabulary, guard=options.guard)[0] |
+         | transcribe_longform | haas_asr.transcribe_longform(model, samples, batch_size=options.batch_size, separator=options.separator, vocabulary=vocabulary, guard=options.guard, chunk_seconds=options.chunk_sec, search_seconds=options.search_sec, window_seconds=options.window_sec) |
+         | build_vocabulary | haas_asr.Vocabulary(words, alpha=alpha) |
     unit_tests:
       - name: test_load_engine
         case: 正常

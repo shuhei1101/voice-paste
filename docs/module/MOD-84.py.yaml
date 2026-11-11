@@ -1100,10 +1100,14 @@ functions:
       description: handler を配線した種類の一覧（PRESET_KINDS と同じ並び）
     process: |-
       1. 呼ぶたびに get_settings() を読み込む関数を作る（届けるたびに読み込む）
-         - paste: keyboard.paste_key で引数の send_paste を呼ぶ
-         - get_enter_delay_sec: read_enter_delay_sec(get_settings())（貼り付けて送信の秒数）
-         - get_open_delay_sec: preset_options.browser.open_delay_sec を返却する
-         - get_timeout_sec: preset_options.endpoint.timeout_sec を返却する
+
+         | 関数 | 中身 |
+         | --- | --- |
+         | paste | keyboard.paste_key で引数の send_paste を呼ぶ |
+         | get_enter_delay_sec | read_enter_delay_sec(get_settings())（貼り付けて送信の秒数） |
+         | get_open_delay_sec | preset_options.browser.open_delay_sec を返却する |
+         | get_timeout_sec | preset_options.endpoint.timeout_sec を返却する |
+
       2. PRESET_KINDS を順に見て、種類ごとに build_handlers の 4 のとおり部分適用した handler に差し替える
          - 部分適用の対象に無い種類はそのまま残す
     unit_tests:

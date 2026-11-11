@@ -621,26 +621,29 @@ functions:
       description: 欄の下とエラーの一覧に出す文言
     process: |-
       1. type と場所で文言を選ぶ
-         - float_parsing・int_parsing・int_from_float: 「数値を入れてください（例: {既定の値}）。」。既定の値は、項目が既定値を持てば（一覧の要素のモデル）その値、持たなければ defaults の同じキーの値
-         - greater_than_equal・less_than_equal・greater_than: 「{最小}〜{最大} の値を入れてください。」（上限が無ければ「{最小} 以上の値を入れてください。」）
-         - string_too_short（プリセットのタイトル）: 「タイトルを入れてください。」
-         - string_too_short（表記のヒントのプリセットの名前）: 「名前を入れてください。」
-         - URL の形式が合わない（プリセットの URL）: 空なら「URL を入れてください（例: https://example.com/hook）。」、空でなければ「http:// か https:// で始まる URL を入れてください。」
-         - URL の形式が合わない（transcription.openai.base_url）: 空なら「API の URL を入れてください（例: https://api.openai.com/v1）。」、空でなければ「http:// か https:// で始まる URL を入れてください。」
-         - hotkey_overlap（find_hotkey_overlaps）: 重なった先がプリセットなら「プリセット「{タイトル}」と同じキーです。別のキーにしてください。」（もう一方の種類のプリセットなら「「{種類}」のプリセット「{タイトル}」と同じキーです。別のキーにしてください。」）、それ以外は「「{重なった欄の名前}」と同じホットキーです。別のキーにしてください。」
-         - hint_too_long: 「有効なヒントが長すぎます（{今の長さ} / 222 バイト）。語を減らすか、プリセットを無効にしてください。」
-         - hint_word_empty: 「語を入れるか、この欄を削除してください。」
-         - hint_word_separator: 「読点（、）・句点（。）・改行は入れられません。語を分けて追加してください。」
-         - hint_reading_not_kana: 「読みはひらがなかカタカナで入れてください。」
-         - hint_reading_conflict: 「同じ語に違う読みが入っています。読みを揃えるか、語を削除してください。」
-         - hint_readings_length: 「読みの数が語の数と合いません。settings.yaml の readings を修正してください。」
-         - haas_port_overlap: 「API を待ち受けるポートと同じ番号です。別の番号を入れてください。」
-         - haas_model_empty: 「モデルの名前かパスを入れてください。」
-         - haas_device_form: 「cuda・cuda:0 のような番号つきの cuda・cpu のどれかを入れてください。」
-         - haas_separator_too_long: 「16 文字以内で入れてください。」
-         - hint_preset_name_overlap（find_hint_preset_name_overlaps）: 「プリセット「{名前}」と同じ名前です。別の名前にしてください。」
-         - WEB_ORIGIN_FORM_ERROR_TYPE（ApiSettings._origins_must_be_origin_form）: 「形式の違うオリジンがあります（{ctx の invalid を読点でつないだもの}）。https://example.com のように、http:// か https:// で始め、末尾の / とパスを付けずに入れてください。」
-         - それ以外: pydantic の msg をそのまま出す
+
+         | エラー | 文言 |
+         | --- | --- |
+         | float_parsing・int_parsing・int_from_float | 「数値を入れてください（例: {既定の値}）。」。既定の値は、項目が既定値を持てば（一覧の要素のモデル）その値、持たなければ defaults の同じキーの値 |
+         | greater_than_equal・less_than_equal・greater_than | 「{最小}〜{最大} の値を入れてください。」（上限が無ければ「{最小} 以上の値を入れてください。」） |
+         | string_too_short（プリセットのタイトル） | 「タイトルを入れてください。」 |
+         | string_too_short（表記のヒントのプリセットの名前） | 「名前を入れてください。」 |
+         | URL の形式が合わない（プリセットの URL） | 空なら「URL を入れてください（例: https://example.com/hook）。」、空でなければ「http:// か https:// で始まる URL を入れてください。」 |
+         | URL の形式が合わない（transcription.openai.base_url） | 空なら「API の URL を入れてください（例: https://api.openai.com/v1）。」、空でなければ「http:// か https:// で始まる URL を入れてください。」 |
+         | hotkey_overlap（find_hotkey_overlaps） | 重なった先がプリセットなら「プリセット「{タイトル}」と同じキーです。別のキーにしてください。」（もう一方の種類のプリセットなら「「{種類}」のプリセット「{タイトル}」と同じキーです。別のキーにしてください。」）、それ以外は「「{重なった欄の名前}」と同じホットキーです。別のキーにしてください。」 |
+         | hint_too_long | 「有効なヒントが長すぎます（{今の長さ} / 222 バイト）。語を減らすか、プリセットを無効にしてください。」 |
+         | hint_word_empty | 「語を入れるか、この欄を削除してください。」 |
+         | hint_word_separator | 「読点（、）・句点（。）・改行は入れられません。語を分けて追加してください。」 |
+         | hint_reading_not_kana | 「読みはひらがなかカタカナで入れてください。」 |
+         | hint_reading_conflict | 「同じ語に違う読みが入っています。読みを揃えるか、語を削除してください。」 |
+         | hint_readings_length | 「読みの数が語の数と合いません。settings.yaml の readings を修正してください。」 |
+         | haas_port_overlap | 「API を待ち受けるポートと同じ番号です。別の番号を入れてください。」 |
+         | haas_model_empty | 「モデルの名前かパスを入れてください。」 |
+         | haas_device_form | 「cuda・cuda:0 のような番号つきの cuda・cpu のどれかを入れてください。」 |
+         | haas_separator_too_long | 「16 文字以内で入れてください。」 |
+         | hint_preset_name_overlap（find_hint_preset_name_overlaps） | 「プリセット「{名前}」と同じ名前です。別の名前にしてください。」 |
+         | WEB_ORIGIN_FORM_ERROR_TYPE（ApiSettings._origins_must_be_origin_form） | 「形式の違うオリジンがあります（{ctx の invalid を読点でつないだもの}）。https://example.com のように、http:// か https:// で始め、末尾の / とパスを付けずに入れてください。」 |
+         | それ以外 | pydantic の msg をそのまま出す |
     unit_tests:
       - name: test_to_field_message_when_not_number
         case: 正常

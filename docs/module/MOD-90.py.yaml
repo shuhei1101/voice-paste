@@ -231,7 +231,7 @@ classes:
           - name: test_discard
             case: 正常
             summary: 音を捨てて音量を戻す
-            condition: lower_volume が 0.8 を返却する。1 秒実行した後に discard、続けて start・stop
+            condition: lower_volume が 0.8 を返却する。1 秒供給した後に discard、続けて start・stop
             mock: lower_volume・restore_volume・open_input・get_settings
             expected: restore_volume に (0.8, fade_sec) が渡り、後の stop の duration_sec に捨てた 1 秒が入らない
           - name: test_discard_when_not_recording

@@ -41,7 +41,7 @@ elements:
     id: waveform
     kind: canvas
     position: 窓 > 見出しの下
-    description: 録音中の音量を棒の並びで実行する。一時停止中は棒を止め、最後の形状のまま出す
+    description: 録音中の音量を棒の並びで表示する。一時停止中は棒を止め、最後の形状のまま出す
     io: 表示
     visible_when: 常時
     source: UiDeps.level（Recorder.level。`ui.wave_gain` を掛けて高さを決める）

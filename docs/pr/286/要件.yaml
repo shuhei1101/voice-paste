@@ -1,0 +1,20 @@
+docs:
+  - page: docs/mock/components/check-indicator/index.html
+    new: false
+    change: 今の描画の <img> 2 つの参照先を、docs/pr/159/スクリーンショット/ から images/ へ移した qt-now-light.png・qt-now-dark.png へ書き換える
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-11T14:37:17.610225+00:00'
+scope_out:
+  - item: docs/pr/*/ のスクリーンショット以外の画像（docs/pr/202/テスト結果/・docs/pr/238/VM確認/ の PNG など）の削除
+    reason: 要望はスクリーンショットのフォルダの画像に限る。テスト結果・VM 確認の画像は検証の記録で、Git 管理外へ移す方針の対象に入っていない
+    plan: none
+  - item: PR ドキュメントの中から削除した画像への参照（docs/pr/159/常駐アプリ.md など）の書き換え
+    reason: 過去の PR の記録で、書き換えると記録が変わる
+    plan: none
+  - item: これからのスクリーンショットが commit されないようにする .gitignore の追加
+    reason: 置き場所 tmp/screenshots/ へ .gitignore を置く手順は AI Monitor 側で扱った（shuhei1101/ai-monitor#3355）
+    plan: none
+  - item: master に入っている画像の削除
+    reason: develop へ入れた削除の commit が release で master へ入る
+    plan: none

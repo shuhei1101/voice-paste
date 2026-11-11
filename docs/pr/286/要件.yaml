@@ -2,7 +2,9 @@ docs:
   - page: docs/mock/components/check-indicator/index.html
     new: false
     change: 今の描画の <img> 2 つの参照先を、docs/pr/159/スクリーンショット/ から同じフォルダへ移した qt-now-light.png・qt-now-dark.png へ書き換える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-11T14:37:17.610225+00:00'
 scope_out:
   - item: docs/pr/*/ のスクリーンショット以外の画像（docs/pr/202/テスト結果/・docs/pr/238/VM確認/ の PNG など）の削除
     reason: 要望はスクリーンショットのフォルダの画像に限る。テスト結果・VM 確認の画像は検証の記録で、Git 管理外へ移す方針の対象に入っていない

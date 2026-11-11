@@ -65,8 +65,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-11T14:34:04.579885+00:00'
   - process: ドキュメント修正
-    status: todo
+    status: done
     note: docs/pr/*/スクリーンショット/ の画像の削除と、docs/mock/components/check-indicator/index.html の画像 2 枚の移動・参照先の書き換え
+    updated_by: planner
+    updated_at: '2026-11-11T14:37:20.478308+00:00'
   - process: 単体テスト作成
     status: skipped
     reason: コードを変えない

@@ -1,0 +1,17 @@
+$ cd /mnt/c/Users/shuhe/repo/ai-monitor/.claude/worktrees/develop && PYTHONPATH=src uv run python -m ai_monitor.design_docs validate --root {作業ツリーの直下}
+docs/scenario/SC-10.yaml:test_file: 対応テストファイルがありません: tests/e2e/複合ユースケース/test_transcribe_continuously_from_other_system.py
+docs/scenario/SC-11.yaml:test_file: 対応テストファイルがありません: tests/e2e/複合ユースケース/test_transcribe_from_other_system.py
+docs/scenario/SC-12.yaml:test_file: 対応テストファイルがありません: tests/e2e/複合ユースケース/test_paste_voice_text.py
+docs/scenario/SC-13.yaml:test_file: 対応テストファイルがありません: tests/e2e/複合ユースケース/test_transcribe_from_browser.py
+docs/scenario/SC-2.yaml:test_file: 対応テストファイルがありません: tests/e2e/単一ユースケース/test_operate_from_tray.py
+docs/scenario/SC-3.yaml:test_file: 対応テストファイルがありません: tests/e2e/単一ユースケース/test_send_audio_from_browser.py
+docs/scenario/SC-4.yaml:test_file: 対応テストファイルがありません: tests/e2e/単一ユースケース/test_receive_result_in_browser.py
+docs/scenario/SC-5.yaml:test_file: 対応テストファイルがありません: tests/e2e/単一ユースケース/test_start_resident_app.py
+docs/scenario/SC-6.yaml:test_file: 対応テストファイルがありません: tests/e2e/単一ユースケース/test_change_settings.py
+docs/scenario/SC-7.yaml:test_file: 対応テストファイルがありません: tests/e2e/単一ユースケース/test_deliver_transcript.py
+docs/scenario/SC-8.yaml:test_file: 対応テストファイルがありません: tests/e2e/単一ユースケース/test_record.py
+docs/scenario/SC-9.yaml:test_file: 対応テストファイルがありません: tests/e2e/単一ユースケース/test_transcribe_recording.py
+exit 1
+
+$ git -C {作業ツリーの直下} grep -c '<!-- map:' -- docs   # map で囲んだ図の数
+242

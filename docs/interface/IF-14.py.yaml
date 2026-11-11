@@ -5,11 +5,11 @@ entry:
 lead: 常駐アプリの終了・再起動のときに、常駐アプリが起動したサーバーを止める。
 test_file: tests/integration/haas_server/test_shutdown.py
 identifier: shutdown
-permissions: なし（トークンを求めない。Host と Origin だけを確かめる）
+permissions: なし（トークンを求めない。Host と Origin だけを確認する）
 idempotent: true
-side_effects: サーバーのプロセスが終わり、GPU のメモリを返す
+side_effects: サーバーのプロセスが終わり、GPU のメモリを返却する
 exclusivity: 起こしている要求があれば、その応答を返し終えてから終わる
-response_notes: 応答を返した後に待ち受けを止め、プロセスを終了コード 0 で終える。停止の後の要求は接続できない。
+response_notes: 応答を返却した後に待ち受けを止め、プロセスを終了コード 0 で終える。停止の後の要求は接続できない。
 status_codes:
   - code: '202'
     condition: 停止を受け付けた
@@ -26,11 +26,11 @@ constraints:
     notes: 起こしている要求の分だけ遅れる。常駐アプリは停止を送信した後に待たない
 flows:
   - name: 正常系
-    summary: 停止を受け付けて 202 を返し、プロセスを終える
+    summary: 停止を受け付けて 202 を返却し、プロセスを終える
     setup:
       - name: Mock
-        description: Haas のモデルの読み込みを、決まったモデルを返す関数に差し替え、サーバーを別のプロセスで起動する
-        notes: GPU を使わない
+        description: Haas のモデルの読み込みを、決まったモデルを返却する関数に差し替え、サーバーを別のプロセスで起動する
+        notes: GPU を使用しない
     flow: |-
       <!-- map: {"title": "正常系"} -->
 
@@ -54,7 +54,7 @@ flows:
     summary: 起こしている要求の応答を返し終えてから終わる
     setup:
       - name: Mock
-        description: Haas のモデルを、放すまで待ってから決まった文字を返す関数に差し替え、サーバーを別のプロセスで起動する
+        description: Haas のモデルを、放すまで待ってから決まった文字を返却する関数に差し替え、サーバーを別のプロセスで起動する
       - name: 起こしている要求
         description: POST /transcriptions を送信し、モデルで待たせておく
     flow: |-
@@ -97,14 +97,14 @@ flows:
         participant LOG as ログ
 
         C->>IF: 要求（Origin が付いている）
-        IF->>LOG: 断った理由と要求元（Host・Origin）を書く
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書き込む
         IF-->>C: 403（problem+json）
       ```
 
       <!-- /map -->
     expected:
       - 403 の problem+json が返る
-      - サーバーのプロセスが動いていて、GET /health が 200 を返す
+      - サーバーのプロセスが動いていて、GET /health が 200 を返却する
     test: test_error_when_origin_not_allowed
 id: IF-14
 visibility: internal

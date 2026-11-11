@@ -13,7 +13,7 @@ classes:
     summary: ジョブの一覧と待ち行列を持ち、ワーカースレッドで 1 件ずつ起こす
     description: |-
       長期に持つランタイム状態（ジョブの一覧・待ち行列・ワーカースレッド）を持つためクラスにする。
-      ジョブの一覧は `threading.Lock` の中で読み込み書きする（route は uvicorn のスレッド、起こすのはワーカースレッド）。
+      ジョブの一覧は `threading.Lock` の中で読み書きする（route は uvicorn のスレッド、起こすのはワーカースレッド）。
       待ち行列は `queue.Queue`。終わったジョブは終わった順に `collections.deque` で控え、終わったジョブを持つ件数を超えたら古い順に一覧から捨てる。
     properties:
       - name: _deps

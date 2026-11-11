@@ -16,7 +16,7 @@ catalogs:
         purpose: サンプリングレート・チャンネル数・型・コールバックを指定して既定のマイクの入力を開く
       - name: InputStream.start
         kind: メソッド
-        purpose: 入力を始め、届いた音をコールバックへ渡す
+        purpose: 入力を始め、届いた音をコールバックへ引き渡す
       - name: InputStream.stop
         kind: メソッド
         purpose: 入力を止める

@@ -98,7 +98,7 @@ scenarios:
       - name: Mock
         description: 常駐アプリを pytest のプロセスの中で build_handlers で配線し、API を build_fastapi で組み立てた app で 127.0.0.1 に待ち受けさせる。ブラウザは Windows の Edge で開き、Origin の許可リストにテスト用の Origin を入れる
       - name: 用語集のプリセット
-        description: 用語集のプリセットが 2 つあり、それぞれが別の用語集を使う。2 つの用語集に、書き出した文で起きる別々の誤変換の行を置く
+        description: 用語集のプリセットが 2 つあり、それぞれが別の用語集を使用する。2 つの用語集に、書き出した文で起きる別々の誤変換の行を配置する
         notes: 設定で選んでいるのは 1 つ目のプリセット
       - name: 音声ファイル
         description: Windows の音声合成（SAPI）で決めた文を書き出し、MP3 に変えたファイルを選ぶ
@@ -120,7 +120,7 @@ scenarios:
       <!-- /map -->
     expected:
       - 画面の結果の一覧の先頭に出た文字で、2 つ目のプリセットの用語集の誤変換が正しい表記に置き換わっている
-      - 1 つ目のプリセット（設定で選んでいるプリセット）だけが使う用語集の誤変換は、置き換わらずに残っている
+      - 1 つ目のプリセット（設定で選んでいるプリセット）だけが使用する用語集の誤変換は、置き換わらずに残っている
       - 設定で選んでいるプリセットは変わっていない
     test: test_normal_when_select_glossary_preset
   - name: 異常シナリオ（読めない形式を送信する）
@@ -134,15 +134,15 @@ scenarios:
 
       ```mermaid
       flowchart TD
-        U0([ユーザー]) -->|音声でないファイルを送信する| UC1([ブラウザから音声を送信する:異常シナリオ（読めない形式）])
-        UC1 --> DONE([画面に読めない形式のエラーが出て<br>常駐サービスは次の送信を待つ])
+        U0([ユーザー]) -->|音声でないファイルを送信する| UC1([ブラウザから音声を送信する:異常シナリオ（読み込めない形式）])
+        UC1 --> DONE([画面に読み込めない形式のエラーが出て<br>常駐サービスは次の送信を待つ])
 
         click UC1 "../単一ユースケース/ブラウザから音声を送信する.yaml#異常シナリオ読めない形式"
       ```
 
       <!-- /map -->
     expected:
-      - 送信が `415` の problem+json で返り、画面に読めない形式であることが出る
+      - 送信が `415` の problem+json で返り、画面に読み込めない形式であることが出る
       - 結果の一覧に件が増えていない
       - 続けて正しい音声ファイルを送信すると、受け付けられる
     test: test_error_when_unreadable_format
@@ -151,8 +151,8 @@ scenarios:
       - name: Mock
         description: 常駐アプリを pytest のプロセスの中で build_handlers で配線し、API を build_fastapi で組み立てた app で 127.0.0.1 に待ち受けさせる。ブラウザは Windows の Edge を偽のマイクで起動する
       - name: 文字起こしの失敗
-        description: 文字起こしのエンジンが失敗を返す状態にする
-        notes: エンジンの関数を失敗を返す関数に差し替える
+        description: 文字起こしのエンジンが失敗を返却する状態にする
+        notes: エンジンの関数を失敗を返却する関数に差し替える
     flow: |-
       <!-- map: {"title": "異常シナリオ（文字起こしに失敗）"} -->
 
@@ -179,7 +179,7 @@ scenarios:
       - name: Mock
         description: 常駐アプリを pytest のプロセスの中で build_handlers で配線し、API を build_fastapi で組み立てた app で 127.0.0.1 に待ち受けさせる
       - name: 許可リスト
-        description: Origin の許可リストに、送信に使う Origin を入れない
+        description: Origin の許可リストに、送信に使用する Origin を入れない
     flow: |-
       <!-- map: {"title": "異常シナリオ（許可されていない Origin から送信する）"} -->
 
@@ -206,7 +206,7 @@ stakeholders:
     interest: ブラウザから送信した音声の文字起こしが、ホットキーの録音を止めたり断ったりしないこと
 trigger: ユーザーが外の端末のブラウザで、ゲートウェイの公開のサブドメインの `/web/` を開く
 preconditions:
-  - Windows の端末で、ショートカットから常駐サービスを起動している（常駐サービスが Linux で動いているときは、外の端末のブラウザの機能を使えない）
+  - Windows の端末で、ショートカットから常駐サービスを起動している（常駐サービスが Linux で動いているときは、外の端末のブラウザの機能を使用できない）
   - 設定の文字起こしのエンジンに要るものがそろっている（ローカルの Whisper のモデルと GPU）
   - ゲートウェイ（shuhdev-gateway）に常駐アプリのポートを `--rewrite-origin` なしで登録し、ユーザーが Cloudflare Access でログインしている
   - ゲートウェイの公開のサブドメインが、設定の `/web/` の下に許す Origin の一覧にある

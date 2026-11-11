@@ -14,11 +14,11 @@ catalogs:
     entries:
       - name: user_config_dir
         kind: 関数
-        purpose: 環境の値の `settings.yaml`（と移す元の `settings.toml`）の置き場所（Windows で roaming=True は `%APPDATA%\voice-paste`、Linux は `~/.config/voice-paste`）を引く
+        purpose: 環境の値の `settings.yaml`（と移す元の `settings.toml`）の配置先（Windows で roaming=True は `%APPDATA%\voice-paste`、Linux は `~/.config/voice-paste`）を引く
       - name: user_data_dir
         kind: 関数
-        purpose: 履歴・ログ・一時の音声・トークンの置き場所（Windows で `%LOCALAPPDATA%\voice-paste`、Linux は `~/.local/share/voice-paste`）を引く
-lead: OS ごとの慣習に沿った設定・データ・キャッシュの置き場所を返すライブラリ。
+        purpose: 履歴・ログ・一時の音声・トークンの配置先（Windows で `%LOCALAPPDATA%\voice-paste`、Linux は `~/.local/share/voice-paste`）を引く
+lead: OS ごとの慣習に沿った設定・データ・キャッシュの配置先を返却するライブラリ。
 purl: pkg:pypi/platformdirs
 dependency_scope: 必須
 adoption: 採用
@@ -28,7 +28,7 @@ upstream: tox-dev/platformdirs
 verification:
   state: 済
   date: '2026-10-01'
-  detail: Windows（普段使いの venv の Python 3.14.3）で、一時フォルダへ `pip install --target` で入れた 4.12.2 を使い、`user_config_dir("voice-paste", appauthor=False, roaming=True)` が `C:\Users\{ユーザー}\AppData\Roaming\voice-paste`（`%APPDATA%` の下）、`user_data_dir("voice-paste", appauthor=False)` が `C:\Users\{ユーザー}\AppData\Local\voice-paste`（`%LOCALAPPDATA%` の下）を返すことを確かめた。venv には入れていない
+  detail: Windows（普段使いの venv の Python 3.14.3）で、一時フォルダへ `pip install --target` で入れた 4.12.2 を使用し、`user_config_dir("voice-paste", appauthor=False, roaming=True)` が `C:\Users\{ユーザー}\AppData\Roaming\voice-paste`（`%APPDATA%` の下）、`user_data_dir("voice-paste", appauthor=False)` が `C:\Users\{ユーザー}\AppData\Local\voice-paste`（`%LOCALAPPDATA%` の下）を返却することを確認した。venv には入れていない
 license: MIT（商用利用可）
 official_url: https://github.com/tox-dev/platformdirs
 docs_url: https://platformdirs.readthedocs.io/

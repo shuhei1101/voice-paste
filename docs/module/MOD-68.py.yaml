@@ -13,7 +13,7 @@ classes:
     summary: Silero VAD の ONNX のセッションで、512 サンプルの窓ごとに話し声の確率を返却する。LSTM の状態と前の窓の末尾を次の窓へ持ち越す
     description: |-
       窓をまたいで状態（h・c・前の 64 サンプル）を持ち越すためクラスにする。連続録音を始めるたびに新しく作り、状態を持ち越さない。
-      セッションへの入出力の形式は faster-whisper の SileroVADModel と同じで、状態を呼ぶたびに 0 に戻さずに持ち越す点だけが違う（PoC #80 で、一度に引き渡した `get_speech_timestamps` と同じ区切りになることを確認した）。
+      セッションへの入出力の形式は faster-whisper の SileroVADModel と同じで、状態を呼ぶたびに 0 に戻さずに持ち越す点だけが違う（PoC [#80 PoC: 録音を止めずに Silero VAD で区切り、区間ごとの文字起こしが追いつくかを確かめる](https://github.com/shuhei1101/voice-paste/issues/80) で、一度に引き渡した `get_speech_timestamps` と同じ区切りになることを確認した）。
       録音の区切りのスレッドからだけ呼ぶ（並行で呼ばない）。
     properties:
       - name: _session

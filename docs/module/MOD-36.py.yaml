@@ -38,7 +38,7 @@ classes:
       - name: _deps
         type: UiDeps
         access: 内部 (_)
-        description: 設定の読み込み書き
+        description: 設定の読み書き
       - name: _original
         type: Settings
         access: 内部 (_)
@@ -400,7 +400,7 @@ constants:
     usecase: 設定を変える
     summary: まとまりのメニューの幅の下限（px）。Windows の項目は縦のスクロールバーが出ていなければこの幅に収まる（Yu Gothic UI 9pt で実測 155px）
     value: '160'
-    reason: 今までの固定の幅。Windows の表示を変えない（#218）
+    reason: 今までの固定の幅。Windows の表示を変えない（[#218 Linux で設定画面の左の一覧の「エンドポイントへ送信」の末尾が切れ、横のスクロールバーが出る](https://github.com/shuhei1101/voice-paste/issues/218)）
     status: planned
   - name: GROUP_MENU_MARGIN_PX
     title: まとまりのメニューの幅の余白

@@ -1,7 +1,7 @@
 id: MOD-11
 visibility: internal
 title: 常駐アプリ / 補正 / service.py
-lead: 用語集の CSV を読み込み書きし、補正に使用する用語集の誤変換を正しい表記へ置き換える。決まった入力に決まった出力を返却し、特性テストの基準になる。
+lead: 用語集の CSV を読み書きし、補正に使用する用語集の誤変換を正しい表記へ置き換える。決まった入力に決まった出力を返却し、特性テストの基準になる。
 test_files:
   - tests/unit/voice_paste/features/correction/test_service.py
 directory: |-
@@ -147,7 +147,7 @@ functions:
         mock: なし
         expected: 「今日はここまで。」が返る
     notes:
-      特性テスト: 置き換えの結果は、#15 で固める特性テスト（今の実装の入出力）と一致させる（品質シナリオ 2）。
+      特性テスト: 置き換えの結果は、[#15 今のコードを voice_paste_legacy へ移し、刷新前の値を測って特性テストを固める](https://github.com/shuhei1101/voice-paste/issues/15) で固める特性テスト（今の実装の入出力）と一致させる（品質シナリオ 2）。
     status: implemented
     process: |-
       1. 用語集の行の順に、誤変換を含むなら全て正しい表記へ置き換える（正しい表記が空の行は空文字へ置き換えて削除する）
@@ -339,7 +339,7 @@ functions:
     container: features/correction/service.py
     usecase: 録音を文字に起こす
     scope: public
-    summary: 補正に使用する単位が用語集のプリセットになったため、pick_glossary_preset と list_preset_glossaries に置き換える（#173）
+    summary: 補正に使用する単位が用語集のプリセットになったため、pick_glossary_preset と list_preset_glossaries に置き換える（[#173 補正に使う用語集を複数まとめて選べる用語集のプリセットを追加し、API からも選べるようにする](https://github.com/shuhei1101/voice-paste/issues/173)）
     args:
       - name: settings
         type: Settings

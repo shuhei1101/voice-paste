@@ -2,10 +2,10 @@ title: 音声を文字に起こす
 entry:
   kind: endpoint
   value: POST /transcriptions
-lead: 常駐アプリから受けた音声を Haas-ja-v1.0 で文字に起こし、起こした文字を返す。
+lead: 常駐アプリから受けた音声を Haas-ja-v1.0 で文字に起こし、起こした文字を返却する。
 test_file: tests/integration/haas_server/test_transcribe.py
 identifier: transcribe
-permissions: なし（トークンを求めない。Host と Origin だけを確かめる）
+permissions: なし（トークンを求めない。Host と Origin だけを確認する）
 idempotent: true
 side_effects: なし（受けた音声を保存しない）
 exclusivity: 1 件ずつ起こす。起こしている間に届いた要求は、前の要求が終わるまで待たせる（GPU のモデルを 1 つだけ持つ）
@@ -93,7 +93,7 @@ response_example: |-
   ```
 status_codes:
   - code: '200'
-    condition: 起こした文字を返した
+    condition: 起こした文字を返却した
   - code: '400'
     condition: 音声を復号できない、vocabulary が JSON の配列でないか written が空の要素がある、または調整の値が範囲の外か型が合わない
   - code: '500'
@@ -118,15 +118,15 @@ constraints:
     constraint: 設けない
     notes: 待つ時間の上限は呼び出し元の常駐アプリが持つ
   - item: 途中の進み
-    constraint: 返さない
+    constraint: 返却しない
     notes: 起こし終えたときに 1 回だけ応答する
 flows:
   - name: 正常系
     summary: 短い WAV を、読みのある単語と読みの無い単語の手がかりつきで起こす
     setup:
       - name: Mock
-        description: Haas のモデルを、決まった文字を返す関数に差し替え、受けた音声の長さと Vocabulary を記録する
-        notes: GPU を使わない
+        description: Haas のモデルを、決まった文字を返却する関数に差し替え、受けた音声の長さと Vocabulary を記録する
+        notes: GPU を使用しない
       - name: 音声
         description: 約 3 秒の 16 bit・モノラル・48 kHz の WAV
       - name: 手がかり
@@ -153,7 +153,7 @@ flows:
     expected:
       - 200 で text が決まった文字
       - モデルが受けた音声が 16 kHz のモノラルで、長さが約 3 秒
-      - モデルが受けた Vocabulary が「突合」に読み「とつごう」を持ち、「voice-paste」が読みを持たない
+      - モデルが受けた Vocabulary が「突合」に読み込み「とつごう」を持ち、「voice-paste」が読みを持たない
       - 30 秒を超える音声の起こし方（transcribe_longform）が呼ばれていない
     test: test_normal
   - name: 正常系（30 秒を超える音声）
@@ -218,7 +218,7 @@ flows:
         description: 正常系と同じ
       - name: 音声
         description: 約 3 秒の webm（Opus）の音声
-        notes: テストの資材として置く
+        notes: テストの資材として配置する
     flow: |-
       <!-- map: {"title": "正常系（ブラウザの形式の音声）"} -->
 
@@ -241,7 +241,7 @@ flows:
       - モデルが受けた音声が 16 kHz のモノラルで、長さが約 3 秒
     test: test_normal_when_browser_audio
   - name: 異常系（音声を復号できない・400）
-    summary: 音声として読めないファイルを断る
+    summary: 音声として読み込めないファイルを断る
     setup:
       - name: Mock
         description: 正常系と同じ
@@ -262,7 +262,7 @@ flows:
 
       <!-- /map -->
     expected:
-      - 400 の problem+json が返り、detail に音声を読めないことが入っている
+      - 400 の problem+json が返り、detail に音声を読み込めないことが入っている
       - モデルが呼ばれていない
     test: test_error_when_audio_unreadable
   - name: 異常系（手がかりの形が合わない・400）
@@ -292,10 +292,10 @@ flows:
       - モデルが呼ばれていない
     test: test_error_when_vocabulary_invalid
   - name: 異常系（文字起こしに失敗・500）
-    summary: モデルが例外を送出したら 500 を返し、次の要求は受け付ける
+    summary: モデルが例外を送出したら 500 を返却し、次の要求は受け付ける
     setup:
       - name: Mock
-        description: Haas のモデルを、1 回目は例外を送出し 2 回目は決まった文字を返す関数に差し替える
+        description: Haas のモデルを、1 回目は例外を送出し 2 回目は決まった文字を返却する関数に差し替える
       - name: 音声
         description: 約 3 秒の WAV を 2 回送信する
     flow: |-
@@ -311,7 +311,7 @@ flows:
         C->>IF: audio
         IF->>M: 起こす
         M--xIF: 例外
-        IF->>LOG: [ERROR] 例外（スタックトレースつき）を書く
+        IF->>LOG: [ERROR] 例外（スタックトレースつき）を書き込む
         IF-->>C: 500（problem+json）
         C->>IF: audio
         IF->>M: 起こす
@@ -323,17 +323,17 @@ flows:
     expected:
       - 1 回目は 500 の problem+json が返り、detail に失敗した理由が入っている
       - 2 回目は 200 で text が決まった文字
-      - サーバーのログに `[ERROR]` で例外がスタックトレースつきで書かれている
+      - サーバーのログに `[ERROR]` で例外がスタックトレースつきで書き込まれている
     test: test_error_when_transcription_failed
     notes:
-      ログの書き先: サーバーのログの書き先（WSL の中のログファイルか、常駐アプリが wsl.exe の標準エラーを受けて常駐アプリのログへ書くか）はモジュール構成設計で決める。400 は `[WARNING]` で理由だけを書く。
+      ログの書き先: サーバーのログの書き先（WSL の中のログファイルか、常駐アプリが wsl.exe の標準エラーを受けて常駐アプリのログへ書き込むか）はモジュール構成設計で決める。400 は `[WARNING]` で理由だけを書き込む。
   - name: 異常系（許されていない要求元・403）
     summary: Host が合わない要求と、Origin が付いた要求を、起こさずに断る
     setup:
       - name: Mock
         description: 正常系と同じ
       - name: 要求のヘッダー
-        description: Host をほかのホストにした要求と、Origin を付けた要求の 2 つを送る
+        description: Host をほかのホストにした要求と、Origin を付けた要求の 2 つを送信する
         notes: '`Host: evil.example:{ポート}`、`Origin: http://evil.example`'
     flow: |-
       <!-- map: {"title": "異常系（許されていない要求元・403）"} -->
@@ -345,7 +345,7 @@ flows:
         participant LOG as ログ
 
         C->>IF: audio（Host が合わない・Origin が付いている）
-        IF->>LOG: 断った理由と要求元（Host・Origin）を書く
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書き込む
         IF-->>C: 403（problem+json）
       ```
 
@@ -353,7 +353,7 @@ flows:
     expected:
       - どちらの要求にも 403 の problem+json が返る
       - モデルが呼ばれていない
-      - サーバーのログに断った理由と要求元が書かれている
+      - サーバーのログに断った理由と要求元が書き込まれている
     test: test_error_when_origin_not_allowed
   - name: 正常系（調整の値を指定）
     summary: 要求の調整の値を、起こし方の選択と haas_asr の引数に使用する
@@ -407,7 +407,7 @@ flows:
 
         C->>IF: audio・範囲の外の調整の値
         IF->>IF: 調整の値の検証に失敗する
-        IF->>LOG: [WARNING] 合わない項目の名前と理由を書く
+        IF->>LOG: [WARNING] 合わない項目の名前と理由を書き込む
         IF-->>C: 400（problem+json）
       ```
 

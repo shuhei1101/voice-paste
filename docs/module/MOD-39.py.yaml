@@ -87,7 +87,7 @@ classes:
           - name: test_hint_preset_panel_collect_when_word_removed
             case: 正常
             summary: 単語を削除すると読みも消える
-            condition: 単語 A（読み込み あ）・B（読み込み い）の A を削除する
+            condition: 単語 A（読み あ）・B（読み い）の A を削除する
             mock: なし
             expected: words が ["B"]、readings が ["い"]
       - name: add_preset

@@ -31,7 +31,7 @@ classes:
       - name: _lock
         type: threading.Lock
         access: 内部 (_)
-        description: start・stop・_dispatch の _bindings の読み込み書きを 1 つずつにする
+        description: start・stop・_dispatch の _bindings の読み書きを 1 つずつにする
     methods:
       - name: __init__
         title: 受付の用意

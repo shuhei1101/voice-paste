@@ -13,10 +13,10 @@ catalogs:
     entries:
       - name: scipy.io.wavfile.write
         kind: 関数
-        purpose: 録音した音の配列を、サンプリングレートを指定して WAV に書く
+        purpose: 録音した音の配列を、サンプリングレートを指定して WAV に書き込む
       - name: scipy.io.wavfile.read
         kind: 関数
-        purpose: WAV を読み、サンプリングレートと音の配列を返す（録音の長さを求めるのに使う）
+        purpose: WAV を読み込み、サンプリングレートと音の配列を返却する（録音の長さを求めるのに使用する）
 lead: 科学技術計算のライブラリ。音声ファイルの読み書きも持つ。
 purl: pkg:pypi/scipy
 dependency_scope: 必須
@@ -27,6 +27,6 @@ upstream: scipy/scipy
 verification:
   state: 済
   date: '2026-10-01'
-  detail: scipy.io.wavfile.read / write で 16 kHz・モノラル・16 bit の WAV を読み書きできることを確かめた
+  detail: scipy.io.wavfile.read / write で 16 kHz・モノラル・16 bit の WAV を読み書きできることを確認した
 license: BSD-3-Clause（商用利用可）
 official_url: https://scipy.org/

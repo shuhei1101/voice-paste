@@ -5,7 +5,7 @@ scenarios:
   - name: 正常シナリオ
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は音声合成の WAV
       - name: 出力先
         description: 「貼り付けて送信」をオンにし、録音する で「貼り付けて送信」を選んだ
@@ -23,10 +23,10 @@ scenarios:
         participant TGT as 貼り付け先のアプリ
         participant TRAY as トレイ
 
-        SVC->>OUT: 起こした文字を渡す
+        SVC->>OUT: 起こした文字を引き渡す
         OUT->>CB: 起こした文字をコピーする
         OUT->>TGT: 貼り付けのキーを送信する
-        OUT->>TGT: 設定の間を置いて Enter を送信する
+        OUT->>TGT: 設定の間を配置して Enter を送信する
         SVC->>SVC: 待機中に戻す
         SVC->>TRAY: 待機中のアイコンにする
       ```
@@ -40,7 +40,7 @@ scenarios:
   - name: 正常シナリオ（貼り付けのみ）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は音声合成の WAV
       - name: 出力先
         description: 「貼り付けのみ」をオンにし、録音する で「貼り付けのみ」を選んだ
@@ -54,7 +54,7 @@ scenarios:
         participant CB as クリップボード
         participant TGT as 貼り付け先のアプリ
 
-        SVC->>OUT: 起こした文字を渡す
+        SVC->>OUT: 起こした文字を引き渡す
         OUT->>CB: 起こした文字をコピーする
         OUT->>TGT: 貼り付けのキーを送信する
         Note over SVC: 待機中に戻すのは 正常シナリオ と同じ
@@ -68,7 +68,7 @@ scenarios:
   - name: 正常シナリオ（コピーのみ）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は音声合成の WAV
       - name: 出力先
         description: 「コピーのみ」をオンにし、録音する で「コピーのみ」を選んだ
@@ -82,7 +82,7 @@ scenarios:
         participant CB as クリップボード
         participant TRAY as トレイ
 
-        SVC->>OUT: 起こした文字を渡す
+        SVC->>OUT: 起こした文字を引き渡す
         OUT->>CB: 起こした文字をコピーする
         OUT->>TRAY: コピーの完了と起こした文字を通知する
         TRAY->>TRAY: コピーの完了の通知を出す
@@ -98,8 +98,8 @@ scenarios:
   - name: 正常シナリオ（ブラウザ添付のプリセット）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー・ブラウザを開く呼び出し。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
-        notes: 録音の入力は音声合成の WAV。ブラウザを開く呼び出しは渡された URL を控え、Microsoft Edge を開かない
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー・ブラウザを開く呼び出し。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV。ブラウザを開く呼び出しは引き渡された URL を控え、Microsoft Edge を開かない
       - name: プリセット
         description: 種類「ブラウザ添付」・Enter まで送信をオンにしたプリセットを 1 つ追加し、録音する でそのプリセットを選んだ
       - name: Enter と一緒に押す修飾キー
@@ -115,11 +115,11 @@ scenarios:
         participant CB as クリップボード
         participant EDGE as Microsoft Edge
 
-        SVC->>OUT: 起こした文字と選んだプリセットを渡す
+        SVC->>OUT: 起こした文字と選んだプリセットを引き渡す
         OUT->>CB: 起こした文字をコピーする
         OUT->>EDGE: プリセットの URL をアプリのウィンドウとして開く（Edge が見つからなければ既定のブラウザで開く）
-        OUT->>OUT: 設定の間を置く
-        OUT->>EDGE: 貼り付けのキーを送信し、設定の間を置いて Enter を送信する
+        OUT->>OUT: 設定の間を配置する
+        OUT->>EDGE: 貼り付けのキーを送信し、設定の間を配置して Enter を送信する
         Note over SVC: 待機中に戻すのは 正常シナリオ と同じ
       ```
 
@@ -132,7 +132,7 @@ scenarios:
   - name: 正常シナリオ（呼び出し元へ返す）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は音声合成の WAV。コールバック先は 127.0.0.1 で待ち受けるテスト用のエンドポイント
       - name: 入口
         description: API から始めた録音で、起こした文字が得られた
@@ -144,12 +144,12 @@ scenarios:
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
-        participant OUT as 出力先（呼び出し元へ返す）
+        participant OUT as 出力先（呼び出し元へ返却する）
         participant CB as コールバック先のエンドポイント
         participant TRAY as トレイ
 
-        SVC->>OUT: 起こした文字とコールバック先を渡す
-        OUT->>OUT: コールバック先が loopback か設定で許可したホストであることを確かめる
+        SVC->>OUT: 起こした文字とコールバック先を引き渡す
+        OUT->>OUT: コールバック先が loopback か設定で許可したホストであることを確認する
         OUT->>CB: 録音セッションの ID と起こした文字を送信する
         CB-->>OUT: 受け取った
         SVC->>SVC: 待機中に戻す
@@ -165,7 +165,7 @@ scenarios:
   - name: 正常シナリオ（呼び出し元へ空の文字を返す）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は無音の WAV。コールバック先は 127.0.0.1 で待ち受けるテスト用のエンドポイント
       - name: 入口
         description: API から始めた録音で、文字起こしの結果が空だった
@@ -175,13 +175,13 @@ scenarios:
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
-        participant OUT as 出力先（呼び出し元へ返す）
+        participant OUT as 出力先（呼び出し元へ返却する）
         participant CB as コールバック先のエンドポイント
 
-        SVC->>OUT: 空の文字とコールバック先を渡す
+        SVC->>OUT: 空の文字とコールバック先を引き渡す
         OUT->>CB: 録音セッションの ID と空の文字を送信する
         CB-->>OUT: 受け取った
-        Note over SVC: 待機中に戻すのは 正常シナリオ（呼び出し元へ返す） と同じ
+        Note over SVC: 待機中に戻すのは 正常シナリオ（呼び出し元へ返却する） と同じ
       ```
 
       <!-- /map -->
@@ -192,8 +192,8 @@ scenarios:
   - name: 異常シナリオ（呼び出し元へ失敗を返す）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
-        notes: 録音の入力は音声合成の WAV。保存した録音を読めない中身に書き換える。コールバック先は 127.0.0.1 で待ち受けるテスト用のエンドポイント
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV。保存した録音を読み込めない中身に書き換える。コールバック先は 127.0.0.1 で待ち受けるテスト用のエンドポイント
       - name: 入口
         description: API から始めた録音で、文字起こしに失敗した
     flow: |-
@@ -202,13 +202,13 @@ scenarios:
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
-        participant OUT as 出力先（呼び出し元へ返す）
+        participant OUT as 出力先（呼び出し元へ返却する）
         participant CB as コールバック先のエンドポイント
 
-        SVC->>OUT: 文字起こしの失敗とコールバック先を渡す
+        SVC->>OUT: 文字起こしの失敗とコールバック先を引き渡す
         OUT->>CB: 録音セッションの ID と文字起こしに失敗したことを送信する
         CB-->>OUT: 受け取った
-        Note over SVC: 待機中に戻すのは 正常シナリオ（呼び出し元へ返す） と同じ
+        Note over SVC: 待機中に戻すのは 正常シナリオ（呼び出し元へ返却する） と同じ
       ```
 
       <!-- /map -->
@@ -219,7 +219,7 @@ scenarios:
   - name: 異常シナリオ（コールバック先に届かない）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は音声合成の WAV
       - name: 入口
         description: API から始めた録音で、起こした文字が得られた
@@ -231,23 +231,23 @@ scenarios:
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
-        participant OUT as 出力先（呼び出し元へ返す）
+        participant OUT as 出力先（呼び出し元へ返却する）
         participant CB as コールバック先のエンドポイント
         participant LOG as ログ
 
-        SVC->>OUT: 起こした文字とコールバック先を渡す
+        SVC->>OUT: 起こした文字とコールバック先を引き渡す
         loop 決めた回数まで
           OUT->>CB: 録音セッションの ID と起こした文字を送信する
           CB--xOUT: 届かない（タイムアウトか接続できない）
-          OUT->>OUT: 決めた間を置く
+          OUT->>OUT: 決めた間を配置する
         end
-        OUT->>LOG: コールバック先に届かなかったことと録音セッションの ID を書く
-        Note over SVC: 待機中に戻すのは 正常シナリオ（呼び出し元へ返す） と同じ
+        OUT->>LOG: コールバック先に届かなかったことと録音セッションの ID を書き込む
+        Note over SVC: 待機中に戻すのは 正常シナリオ（呼び出し元へ返却する） と同じ
       ```
 
       <!-- /map -->
     expected:
-      - ログにコールバック先に届かなかったことと録音セッションの ID が書かれている
+      - ログにコールバック先に届かなかったことと録音セッションの ID が書き込まれている
       - 履歴に録音と起こした文字が残っている
       - トレイのアイコンが待機中に戻り、次の録音を始められる
     notes:
@@ -256,7 +256,7 @@ scenarios:
   - name: 正常シナリオ（エンドポイントへ送信のプリセット）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は音声合成の WAV。送信先は 127.0.0.1 で待ち受けるテスト用のエンドポイント
       - name: プリセット
         description: 種類「エンドポイントへ送信」で URL にテスト用のエンドポイントを設定したプリセットを 1 つ追加し、録音する でそのプリセットを選んだ
@@ -270,7 +270,7 @@ scenarios:
         participant EP as 送信先のエンドポイント
         participant TRAY as トレイ
 
-        SVC->>OUT: 起こした文字と選んだプリセットを渡す
+        SVC->>OUT: 起こした文字と選んだプリセットを引き渡す
         OUT->>EP: 録音セッションの ID と起こした文字を送信する
         EP-->>OUT: 受け取った
         SVC->>SVC: 待機中に戻す
@@ -286,7 +286,7 @@ scenarios:
   - name: 異常シナリオ（送信先に届かない）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は音声合成の WAV
       - name: プリセット
         description: 種類「エンドポイントへ送信」で URL にテスト用のエンドポイントを設定したプリセットを 1 つ追加し、録音する でそのプリセットを選んだ
@@ -304,19 +304,19 @@ scenarios:
         participant TRAY as トレイ
         participant LOG as ログ
 
-        SVC->>OUT: 起こした文字と選んだプリセットを渡す
+        SVC->>OUT: 起こした文字と選んだプリセットを引き渡す
         OUT->>EP: 録音セッションの ID と起こした文字を送信する
         EP--xOUT: 届かない（タイムアウトか接続できないか、2xx 以外）
         OUT-->>SVC: 届けられなかった
         SVC->>TRAY: 届けられなかったことを通知する
-        SVC->>LOG: 届けられなかった理由と録音セッションの ID を書く
+        SVC->>LOG: 届けられなかった理由と録音セッションの ID を書き込む
         SVC->>SVC: 待機中に戻す
       ```
 
       <!-- /map -->
     expected:
       - トレイで届けられなかったことが知らされている
-      - ログに届けられなかった理由と録音セッションの ID が書かれている
+      - ログに届けられなかった理由と録音セッションの ID が書き込まれている
       - 送信先へ送信したのは 1 回だけである（再送しない）
       - 履歴に録音と起こした文字が残っている
       - トレイのアイコンが待機中に戻り、次の録音を始められる
@@ -324,8 +324,8 @@ scenarios:
   - name: 正常シナリオ（ブラウザ添付のプリセット・貼り付けだけ）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー・ブラウザを開く呼び出し。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
-        notes: 録音の入力は音声合成の WAV。ブラウザを開く呼び出しは渡された URL を控え、Microsoft Edge を開かない
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー・ブラウザを開く呼び出し。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV。ブラウザを開く呼び出しは引き渡された URL を控え、Microsoft Edge を開かない
       - name: プリセット
         description: 種類「ブラウザ添付」・Enter まで送信をオフにしたプリセットを 1 つ追加し、録音する でそのプリセットを選んだ
     flow: |-
@@ -338,10 +338,10 @@ scenarios:
         participant CB as クリップボード
         participant EDGE as Microsoft Edge
 
-        SVC->>OUT: 起こした文字と選んだプリセットを渡す
+        SVC->>OUT: 起こした文字と選んだプリセットを引き渡す
         OUT->>CB: 起こした文字をコピーする
         OUT->>EDGE: プリセットの URL をアプリのウィンドウとして開く
-        OUT->>OUT: 設定の間を置く
+        OUT->>OUT: 設定の間を配置する
         OUT->>EDGE: 貼り付けのキーを送信する（Enter は送信しない）
         Note over SVC: 待機中に戻すのは 正常シナリオ と同じ
       ```
@@ -354,7 +354,7 @@ scenarios:
   - name: 正常シナリオ（区間ごとに呼び出し元へ返す）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は、音声合成の文の間に無音を挟んだ WAV を実時間で流す。コールバック先は 127.0.0.1 で待ち受けるテスト用のエンドポイント
       - name: 入口
         description: 連続録音で、区間の文字が通し番号つきで得られた
@@ -364,12 +364,12 @@ scenarios:
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
-        participant OUT as 出力先（呼び出し元へ返す）
+        participant OUT as 出力先（呼び出し元へ返却する）
         participant CB as コールバック先のエンドポイント
 
         loop 区間ごと（通し番号の順）
-          SVC->>OUT: 区間の文字・通し番号・コールバック先を渡す
-          OUT->>OUT: コールバック先が loopback か設定で許可したホストであることを確かめる
+          SVC->>OUT: 区間の文字・通し番号・コールバック先を引き渡す
+          OUT->>OUT: コールバック先が loopback か設定で許可したホストであることを確認する
           OUT->>CB: 録音セッションの ID・通し番号・区間の文字を送信する
           CB-->>OUT: 受け取った
         end
@@ -386,7 +386,7 @@ scenarios:
   - name: 正常シナリオ（連続録音の終わりを返す）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は、音声合成の文の間に無音を挟んだ WAV を実時間で流す。コールバック先は 127.0.0.1 で待ち受けるテスト用のエンドポイント
       - name: 入口
         description: 連続録音が完了か上限で終わり、最後の区間まで届け終えた（区間が 1 つも無い場合を含む）
@@ -396,11 +396,11 @@ scenarios:
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
-        participant OUT as 出力先（呼び出し元へ返す）
+        participant OUT as 出力先（呼び出し元へ返却する）
         participant CB as コールバック先のエンドポイント
         participant TRAY as トレイ
 
-        SVC->>OUT: 終わった理由（完了か上限での打ち切り）と区間の数を渡す
+        SVC->>OUT: 終わった理由（完了か上限での打ち切り）と区間の数を引き渡す
         OUT->>CB: 録音セッションの ID・終わった理由・区間の数を送信する
         CB-->>OUT: 受け取った
         SVC->>SVC: 待機中に戻す
@@ -416,8 +416,8 @@ scenarios:
   - name: 異常シナリオ（区間の失敗を呼び出し元へ返す）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
-        notes: 録音の入力は、音声合成の文の間に無音を挟んだ WAV を実時間で流す。文字起こしは通し番号 2 の区間だけ失敗を返す。コールバック先は 127.0.0.1 で待ち受けるテスト用のエンドポイント
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
+        notes: 録音の入力は、音声合成の文の間に無音を挟んだ WAV を実時間で流す。文字起こしは通し番号 2 の区間だけ失敗を返却する。コールバック先は 127.0.0.1 で待ち受けるテスト用のエンドポイント
       - name: 入口
         description: 連続録音で、ある区間の文字起こしが失敗した
     flow: |-
@@ -426,13 +426,13 @@ scenarios:
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
-        participant OUT as 出力先（呼び出し元へ返す）
+        participant OUT as 出力先（呼び出し元へ返却する）
         participant CB as コールバック先のエンドポイント
 
-        SVC->>OUT: 区間の失敗・通し番号・コールバック先を渡す
+        SVC->>OUT: 区間の失敗・通し番号・コールバック先を引き渡す
         OUT->>CB: 録音セッションの ID・通し番号・失敗した理由を送信する
         CB-->>OUT: 受け取った
-        Note over SVC: 連続録音は続け、次の区間を 正常シナリオ（区間ごとに呼び出し元へ返す） のとおり届ける
+        Note over SVC: 連続録音は続け、次の区間を 正常シナリオ（区間ごとに呼び出し元へ返却する） のとおり届ける
       ```
 
       <!-- /map -->
@@ -443,8 +443,8 @@ scenarios:
   - name: 異常シナリオ（区間のコールバック先に届かない）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
-        notes: 録音の入力は、音声合成の文の間に無音を挟んだ WAV を実時間で流す。コールバック先のエンドポイントは、通し番号 2 の区間の返送にだけ常に 500 を返す
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
+        notes: 録音の入力は、音声合成の文の間に無音を挟んだ WAV を実時間で流す。コールバック先のエンドポイントは、通し番号 2 の区間の返送にだけ常に 500 を返却する
       - name: 再送の設定
         description: 返送の再送の間隔をテストで待てる短い値に差し替える
       - name: 入口
@@ -455,18 +455,18 @@ scenarios:
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
-        participant OUT as 出力先（呼び出し元へ返す）
+        participant OUT as 出力先（呼び出し元へ返却する）
         participant CB as コールバック先のエンドポイント
         participant LOG as ログ
 
-        SVC->>OUT: 通し番号 2 の区間の文字を渡す
+        SVC->>OUT: 通し番号 2 の区間の文字を引き渡す
         loop 決めた回数まで
           OUT->>CB: 録音セッションの ID・通し番号 2・区間の文字を送信する
           CB-->>OUT: 500
-          OUT->>OUT: 決めた間を置く
+          OUT->>OUT: 決めた間を配置する
         end
-        OUT->>LOG: コールバック先に届かなかったことと録音セッションの ID・通し番号を書く
-        SVC->>OUT: 通し番号 3 の区間の文字を渡す
+        OUT->>LOG: コールバック先に届かなかったことと録音セッションの ID・通し番号を書き込む
+        SVC->>OUT: 通し番号 3 の区間の文字を引き渡す
         OUT->>CB: 録音セッションの ID・通し番号 3・区間の文字を送信する
         CB-->>OUT: 受け取った
       ```
@@ -474,16 +474,16 @@ scenarios:
       <!-- /map -->
     expected:
       - 通し番号 2 の区間の返送が、決めた回数だけ送信されている
-      - ログに、届かなかったことと録音セッションの ID・通し番号 2 が書かれている
+      - ログに、届かなかったことと録音セッションの ID・通し番号 2 が書き込まれている
       - 通し番号 3 の区間の文字がその後に届いている
       - 連続録音は停止していない
     notes:
-      再送の回数と間: 再送の回数・間・タイムアウトは 1 回の録音の返送と同じ非機能要件の値を使う。
+      再送の回数と間: 再送の回数・間・タイムアウトは 1 回の録音の返送と同じ非機能要件の値を使用する。
     test: test_error_when_segment_callback_unreachable
   - name: 正常シナリオ（Enter と一緒に修飾キーを押す）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は音声合成の WAV
       - name: 出力先
         description: 「貼り付けて送信」をオンにし、録音する で「貼り付けて送信」を選んだ
@@ -500,10 +500,10 @@ scenarios:
         participant CB as クリップボード
         participant TGT as 貼り付け先のアプリ
 
-        SVC->>OUT: 起こした文字を渡す
+        SVC->>OUT: 起こした文字を引き渡す
         OUT->>CB: 起こした文字をコピーする
         OUT->>TGT: 貼り付けのキーを送信する
-        OUT->>TGT: 設定の間を置いて、Ctrl を押したまま Enter を送信する
+        OUT->>TGT: 設定の間を配置して、Ctrl を押したまま Enter を送信する
         Note over SVC: 待機中に戻すのは 正常シナリオ と同じ
       ```
 
@@ -516,7 +516,7 @@ scenarios:
   - name: 正常シナリオ（コピーの完了の通知を押してもう一度コピーする）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は音声合成の WAV
       - name: 出力先
         description: 「コピーのみ」をオンにし、録音する で「コピーのみ」を選んで届け、コピーの完了の通知が出ている
@@ -545,7 +545,7 @@ scenarios:
   - name: 正常シナリオ（文字起こし中にコピーのみへ切り替える）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は、切り替えるまで文字起こしが続くよう、音声合成の文を繰り返した WAV
       - name: 出力先
         description: 「貼り付けて送信」「コピーのみ」をオンにし、録音する で「貼り付けて送信」を選んで確定した
@@ -564,10 +564,10 @@ scenarios:
 
         IND->>USER: 今の出力先（貼り付けて送信）を出す
         USER->>IND: 「コピーのみ」へ切り替える
-        IND->>SVC: 切り替えた出力先を渡す
+        IND->>SVC: 切り替えた出力先を引き渡す
         SVC->>SVC: 届ける出力先を「コピーのみ」に差し替える
         SVC->>IND: 今の出力先（コピーのみ）を出す
-        SVC->>OUT: 起こし終えた文字を渡す
+        SVC->>OUT: 起こし終えた文字を引き渡す
         OUT->>CB: 起こした文字をコピーする
         Note over SVC: 以降は 正常シナリオ（コピーのみ） と同じ
       ```
@@ -582,12 +582,12 @@ scenarios:
   - name: 正常シナリオ（文字起こし中に貼り付けのみへ切り替える）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は、切り替えるまで文字起こしが続くよう、音声合成の文を繰り返した WAV
       - name: 出力先
         description: 「貼り付けのみ」「コピーのみ」をオンにし、録音する で「コピーのみ」を選んで確定した
       - name: 貼り付け先
-        description: 確定した後、貼り付けたいアプリの入力欄にフォーカスを置いた
+        description: 確定した後、貼り付けたいアプリの入力欄にフォーカスを配置した
       - name: 切り替え
         description: 文字起こし中の表示が出ている間に、「貼り付けのみ」へ切り替える
     flow: |-
@@ -603,11 +603,11 @@ scenarios:
         participant TGT as 貼り付け先のアプリ
 
         USER->>IND: 「貼り付けのみ」へ切り替える
-        IND->>SVC: 切り替えた出力先を渡す
+        IND->>SVC: 切り替えた出力先を引き渡す
         SVC->>SVC: 届ける出力先を「貼り付けのみ」に差し替える
         SVC->>IND: 今の出力先（貼り付けのみ）を出す
         Note over TGT: フォーカスは貼り付け先の入力欄に残っている
-        SVC->>OUT: 起こし終えた文字を渡す
+        SVC->>OUT: 起こし終えた文字を引き渡す
         OUT->>CB: 起こした文字をコピーする
         OUT->>TGT: 貼り付けのキーを送信する
         Note over SVC: 待機中に戻すのは 正常シナリオ と同じ
@@ -640,7 +640,7 @@ scenarios:
         participant CB as クリップボード
         participant TGT as 貼り付け先のアプリ（端末）
 
-        SVC->>OUT: 起こした文字を渡す
+        SVC->>OUT: 起こした文字を引き渡す
         OUT->>CB: 起こした文字をコピーする
         OUT->>OUT: アクティブなウィンドウが端末アプリかを見る
         OUT->>TGT: 設定の貼り付けのキーに代えて Ctrl+Shift+V を送信する
@@ -653,7 +653,7 @@ scenarios:
   - name: 正常シナリオ（Wayland のセッションで貼り付けて送信する）
     setup:
       - name: Mock
-        description: なし（検証環境の VM を Ubuntu 24.04 の Wayland のセッションで起動し、実機で確かめる）
+        description: なし（検証環境の VM を Ubuntu 24.04 の Wayland のセッションで起動し、実機で確認する）
       - name: 出力先
         description: 録音する で「貼り付けて送信」を選んだ
       - name: 貼り付け先
@@ -670,11 +670,11 @@ scenarios:
         participant KB as 仮想のキーボード（uinput）
         participant TGT as 貼り付け先のアプリ
 
-        SVC->>OUT: 起こした文字を渡す
+        SVC->>OUT: 起こした文字を引き渡す
         OUT->>CB: 起こした文字をコピーする
-        OUT->>KB: Xorg のセッションと同じ間を置いて、設定の貼り付けのキーを送信する
+        OUT->>KB: Xorg のセッションと同じ間を配置して、設定の貼り付けのキーを送信する
         KB->>TGT: 貼り付けのキーが届く
-        OUT->>KB: 設定の間を置いて Enter を送信する
+        OUT->>KB: 設定の間を配置して Enter を送信する
         KB->>TGT: Enter が届く
       ```
 
@@ -685,9 +685,9 @@ scenarios:
   - name: 異常シナリオ（Wayland のセッションで貼り付けのキーを送信できない）
     setup:
       - name: Mock
-        description: なし（検証環境の VM を Ubuntu 24.04 の Wayland のセッションで起動し、実機で確かめる）
+        description: なし（検証環境の VM を Ubuntu 24.04 の Wayland のセッションで起動し、実機で確認する）
       - name: 権限
-        description: '`/dev/uinput` に書けず、起動のときに仮想のキーボードを作れなかった（常駐アプリを起動する の「Wayland のセッションで /dev/uinput に書けない」）'
+        description: '`/dev/uinput` に書き込めず、起動のときに仮想のキーボードを作れなかった（常駐アプリを起動する の「Wayland のセッションで /dev/uinput に書けない」）'
       - name: 出力先
         description: 録音する で「貼り付けて送信」を選んだ
     flow: |-
@@ -701,10 +701,10 @@ scenarios:
         participant TRAY as トレイ
         participant LOG as ログ
 
-        SVC->>OUT: 起こした文字を渡す
+        SVC->>OUT: 起こした文字を引き渡す
         OUT->>CB: 起こした文字をコピーする
         OUT->>OUT: 貼り付けのキーを送信できない
-        OUT->>LOG: 送信できなかった理由を書く
+        OUT->>LOG: 送信できなかった理由を書き込む
         OUT->>TRAY: 貼り付けられず、クリップボードに入っていることを通知する
         SVC->>SVC: 待機中に戻す
       ```
@@ -714,11 +714,11 @@ scenarios:
       - クリップボードに起こした文字が入っている
       - トレイで、貼り付けられずクリップボードに入っていることが知らされている
       - Enter は送信されていない
-      - ログに送信できなかった理由が書かれている
+      - ログに送信できなかった理由が書き込まれている
   - name: 正常シナリオ（Wayland のセッションで端末アプリへ貼り付ける）
     setup:
       - name: Mock
-        description: なし（検証環境の VM を Ubuntu 24.04 の Wayland のセッションで起動し、実機で確かめる）
+        description: なし（検証環境の VM を Ubuntu 24.04 の Wayland のセッションで起動し、実機で確認する）
       - name: 拡張
         description: GNOME Shell の拡張 Focused Window D-Bus を入れて有効にしてある
       - name: 出力先
@@ -727,7 +727,7 @@ scenarios:
         description: 設定の貼り付けのキーは既定（`<ctrl>+v`）
       - name: 貼り付け先
         description: GNOME Terminal の入力欄にフォーカスがある
-        notes: 拡張が返す `wm_class` は `gnome-terminal-server`
+        notes: 拡張が返却する `wm_class` は `gnome-terminal-server`
     flow: |-
       sequenceDiagram
         participant SVC as 常駐サービス
@@ -737,9 +737,9 @@ scenarios:
         participant KB as 仮想のキーボード（uinput）
         participant TGT as 貼り付け先のアプリ（端末）
 
-        SVC->>OUT: 起こした文字を渡す
+        SVC->>OUT: 起こした文字を引き渡す
         OUT->>CB: 起こした文字をコピーする
-        OUT->>EXT: Xorg のセッションと同じ間を置いて、フォーカスしているウィンドウを読む
+        OUT->>EXT: Xorg のセッションと同じ間を配置して、フォーカスしているウィンドウを読み込む
         EXT-->>OUT: wm_class は gnome-terminal-server
         OUT->>KB: 設定の貼り付けのキーに代えて Ctrl+Shift+V を送信する
         KB->>TGT: Ctrl+Shift+V が届く
@@ -748,28 +748,28 @@ scenarios:
       - クリップボードに起こした文字が入っている
 lead: 起こした文字を、ホットキーから始めた録音は選んだ出力先へ、API から始めた録音は呼び出し元のエンドポイントへ届ける単一ユースケース。
 issue: 14
-primary_actor: 音声入力を使うユーザー
-trigger: 録音を文字に起こす で空でない文字が起きるか、API から始めた録音で空の文字・文字起こしの失敗が渡される
+primary_actor: 音声入力を使用するユーザー
+trigger: 録音を文字に起こす で空でない文字が起きるか、API から始めた録音で空の文字・文字起こしの失敗が引き渡される
 preconditions:
   - ホットキー・トレイから始めた録音では、貼り付けたいアプリの入力欄にフォーカスがある（貼り付けはその時点のアクティブなウィンドウへ入る）
   - API から始めた録音では、開始で指定されたコールバック先のエンドポイントがある
 notes:
   出力先の選ばれ方: |-
     ホットキー・トレイから始めた録音は、設定でオンにした固定の出力先（貼り付けて送信・貼り付けのみ・コピーのみ）と、有効にしたカスタムプリセット（ブラウザ添付・エンドポイントへ送信）のうち、録音する で選んだものへ届ける。
-    API から始めた録音は、呼び出し元へ返す出力先だけを使い、そのほかの出力先とプリセットはオンでも通さない。
+    API から始めた録音は、呼び出し元へ返却する出力先だけを使用し、そのほかの出力先とプリセットはオンでも通さない。
     文字起こし中の表示が出ている間は、届け始めるまで、設定でオンにした固定の出力先へ切り替えられ、切り替えた先へ届ける（カスタムプリセットで確定した録音は切り替えない。カスタムプリセットへは切り替えない）。
   クリップボードに書けないとき: |-
-    ほかのアプリがクリップボードを開いたままで書けないときは、届けられなかったことをユーザーに通知し、ログに理由を書く。
+    ほかのアプリがクリップボードを開いたままで書き込めないときは、届けられなかったことをユーザーに通知し、ログに理由を書き込む。
     録音と起こした文字は履歴に残っている。
     実機で決定的に起こせないため、シナリオにはしていない。
   E2E のテスト: |-
     E2E の常駐アプリの起こし方と差し替えは、録音する の補足『E2E のテスト』と同じ。
-    貼り付け先の入力欄に入ることは、クリップボードの文字と、控えた貼り付けのキー・Enter・Enter に添えた修飾キーで確かめる。
-    ブラウザ添付のプリセットは、ブラウザを開く呼び出しを渡された URL を控えるものに差し替え、Microsoft Edge を開かない。アプリのウィンドウとして開くことは控えた URL で、入力欄に入って送信されることはクリップボードと控えたキーで確かめる。
-    コピーの完了の通知が出たことは通知のログで確かめる。
-    「Enter と一緒に修飾キーを押す」の「Ctrl が押されたままになっていない」は E2E で確かめない（キーを送信する部品の単体テストが確かめる）
+    貼り付け先の入力欄に入ることは、クリップボードの文字と、控えた貼り付けのキー・Enter・Enter に添えた修飾キーで確認する。
+    ブラウザ添付のプリセットは、ブラウザを開く呼び出しを引き渡された URL を控えるものに差し替え、Microsoft Edge を開かない。アプリのウィンドウとして開くことは控えた URL で、入力欄に入って送信されることはクリップボードと控えたキーで確認する。
+    コピーの完了の通知が出たことは通知のログで確認する。
+    「Enter と一緒に修飾キーを押す」の「Ctrl が押されたままになっていない」は E2E で確認しない（キーを送信する部品の単体テストが確認する）
   コピーし直せないとき: |-
-    コピーの完了の通知を押してもクリップボードに書けないときは、届けられなかったことをトレイに通知し、ログに理由を書く。
+    コピーの完了の通知を押してもクリップボードに書き込めないときは、届けられなかったことをトレイに通知し、ログに理由を書き込む。
     実機で決定的に起こせないため、シナリオにはしていない。
     通知は数秒で畳まれ通知センターに残らないため、畳まれた後はコピーし直せない（Win+V のクリップボードの履歴で代える）。
   届け始めた後の切り替え: |-
@@ -779,13 +779,13 @@ notes:
     Linux では、貼り付けのキーを送信する直前にアクティブなウィンドウを見て、端末アプリなら設定の貼り付けのキーに代えて `Ctrl+Shift+V` を送信する（端末アプリでは `Ctrl+V` が貼り付けにならない）。
     「貼り付けて送信」も同じキーで貼り付けてから Enter を送信する。
     Windows は、貼り付け先によらず設定の貼り付けのキーを送信する。
-    Xorg のセッションは X の WM_CLASS を読む。Wayland のセッションは GNOME にアクティブなウィンドウを読む標準のインターフェースが無いため、ユーザーが入れた GNOME Shell の拡張 Focused Window D-Bus から `wm_class`・`wm_class_instance` を D-Bus で読み、Xorg と同じ端末アプリの一覧と照らす。
-    拡張が入っていない・無効で読めないときは、貼り付け先によらず設定の貼り付けのキーを送信する（エラーにしない）。
+    Xorg のセッションは X の WM_CLASS を読み込む。Wayland のセッションは GNOME にアクティブなウィンドウを読み込む標準のインターフェースが無いため、ユーザーが入れた GNOME Shell の拡張 Focused Window D-Bus から `wm_class`・`wm_class_instance` を D-Bus で読み込み、Xorg と同じ端末アプリの一覧と照らす。
+    拡張が入っていない・無効で読み込めないときは、貼り付け先によらず設定の貼り付けのキーを送信する（エラーにしない）。
     このシナリオの E2E は、Linux で E2E を動かす仕組み（[#199](https://github.com/shuhei1101/voice-paste/issues/199)）ができるまで持たない。
   Wayland のセッションの貼り付け: |-
-    Linux の Wayland のセッションでは、クリップボードへ XWayland の `xclip` で書き、貼り付けのキーと Enter（修飾キーつき）を uinput の仮想のキーボードから送信する。
-    ネイティブの Wayland のアプリにも XWayland のアプリにも同じに届く（GNOME が X のクリップボードを Wayland のクリップボードへ渡す）。
-    `wl-copy` は、GNOME がクリップボードを外から書くプロトコルを持たないため書くたびに貼り付け先のフォーカスを取り、貼り付けのキーが落ちるため使わない。
-    「コピーのみ」で書いた文字は、常駐サービスの終了後も貼り付けられる。
-    Wayland のセッションのシナリオの E2E は、Linux で E2E を自動で流す仕組み（[#219](https://github.com/shuhei1101/voice-paste/issues/219)）ができるまで持たず、検証環境の VM で確かめる。
+    Linux の Wayland のセッションでは、クリップボードへ XWayland の `xclip` で書き込み、貼り付けのキーと Enter（修飾キーつき）を uinput の仮想のキーボードから送信する。
+    ネイティブの Wayland のアプリにも XWayland のアプリにも同じに届く（GNOME が X のクリップボードを Wayland のクリップボードへ引き渡す）。
+    `wl-copy` は、GNOME がクリップボードを外から書き込むプロトコルを持たないため書くたびに貼り付け先のフォーカスを取り、貼り付けのキーが落ちるため使わない。
+    「コピーのみ」で書き込んだ文字は、常駐サービスの終了後も貼り付けられる。
+    Wayland のセッションのシナリオの E2E は、Linux で E2E を自動で流す仕組み（[#219](https://github.com/shuhei1101/voice-paste/issues/219)）ができるまで持たず、検証環境の VM で確認する。
 test_file: tests/e2e/単一ユースケース/test_deliver_transcript.py

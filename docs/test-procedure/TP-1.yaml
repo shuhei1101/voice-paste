@@ -11,7 +11,7 @@ layers:
     description: pytest で実行する。`tests/unit` は `src/voice_paste/` をミラーした並びの単体テスト。
     prerequisites:
       - 外部依存なし（GPU も録音も要らない）
-      - Linux では、Win32 の単一インスタンス（`tests/unit/voice_paste/runtime/test_single_instance.py`）・pycaw の音量のアダプタ（`tests/unit/voice_paste/integrations/volume/test_adapter.py`）・読み込み時に `ctypes.WinDLL` を呼ぶ `tests/unit/voice_paste/runtime/helpers.py` に依存するテスト（`tests/unit/voice_paste/conftest.py` の該当のフィクスチャを使うものと `tests/unit/voice_paste/test_main.py` の該当のケースを含む）を skip する
+      - Linux では、Win32 の単一インスタンス（`tests/unit/voice_paste/runtime/test_single_instance.py`）・pycaw の音量のアダプタ（`tests/unit/voice_paste/integrations/volume/test_adapter.py`）・読み込み時に `ctypes.WinDLL` を呼ぶ `tests/unit/voice_paste/runtime/helpers.py` に依存するテスト（`tests/unit/voice_paste/conftest.py` の該当のフィクスチャを使用するものと `tests/unit/voice_paste/test_main.py` の該当のケースを含む）を skip する
       - Linux の単一インスタンス（`src/voice_paste/runtime/single_instance_linux.py`）の単体テスト（`tests/unit/voice_paste/runtime/test_single_instance_linux.py`）は Linux でだけ流す（Windows では skip する）
       - Haas の文字起こしのサーバーの単体テスト（`tests/unit/haas_server/`）も同じ `.venv` で流す。haas_asr・GPU は要らない
     run_one:
@@ -26,13 +26,13 @@ layers:
       ```bash
       .venv/Scripts/python.exe -m pytest tests/integration
       ```
-    description: pytest で実行する。`tests/integration/` の下に、インターフェース定義ごとのファイルを置き、`tests/integration/ui/` の下に画面設計ごとのファイルを置く。
+    description: pytest で実行する。`tests/integration/` の下に、インターフェース定義ごとのファイルを配置し、`tests/integration/ui/` の下に画面設計ごとのファイルを配置する。
     prerequisites:
       - 外部依存なし（GPU も実機のマイクも要らない）
-      - マイク・システム音量・文字起こしのエンジンは Mock に差し替え、履歴は一時フォルダに書く
-      - 画面のテスト（`tests/integration/ui/`）は offscreen（`QT_QPA_PLATFORM=offscreen`。`tests/conftest.py` が設定する）の QApplication で開き、操作は QtTest で行う。実機の画面・トレイ・ホットキーは使わず、UiDeps の関数は Mock で受ける
+      - マイク・システム音量・文字起こしのエンジンは Mock に差し替え、履歴は一時フォルダに書き込む
+      - 画面のテスト（`tests/integration/ui/`）は offscreen（`QT_QPA_PLATFORM=offscreen`。`tests/conftest.py` が設定する）の QApplication で開き、操作は QtTest で行う。実機の画面・トレイ・ホットキーは使用せず、UiDeps の関数は Mock で受ける
       - コールバック先は 127.0.0.1 で待ち受けるテスト用のエンドポイントで、テストが立てる
-      - Haas の文字起こしのサーバーの結合テスト（`tests/integration/haas_server/`）は、モデルを決まった文字を返す関数に差し替える。haas_asr・GPU は要らない
+      - Haas の文字起こしのサーバーの結合テスト（`tests/integration/haas_server/`）は、モデルを決まった文字を返却する関数に差し替える。haas_asr・GPU は要らない
     run_one:
       label: ファイル
       command: |-
@@ -45,16 +45,16 @@ layers:
       ```bash
       .venv/Scripts/python.exe -m pytest tests/nfr --run-e2e
       ```
-    description: pytest で実行する。録音・用語集・設定・期待値は git 管理外の `tests/nfr/fixtures/` から読み、今のローカルの Whisper（GPU）で起こす。
+    description: pytest で実行する。録音・用語集・設定・期待値は git 管理外の `tests/nfr/fixtures/` から読み込み、今のローカルの Whisper（GPU）で起こす。
     prerequisites:
-      - Windows と NVIDIA GPU が要る（無い環境では文字起こしのテストを skip する。CUDA の DLL は .venv の `Lib/site-packages/nvidia/` から読む）
+      - Windows と NVIDIA GPU が要る（無い環境では文字起こしのテストを skip する。CUDA の DLL は .venv の `Lib/site-packages/nvidia/` から読み込む）
       - '`tests/nfr/fixtures/` に録音・用語集・設定・期待値が要る（無ければ skip する）'
       - API の開始・処理中のテスト（`tests/nfr/test_api_start_response_time.py`・`test_busy_response_time.py`）は、常駐アプリを pytest のプロセスの中で `build_handlers` で配線し、録音の入力をテストの中で書き出した無音の WAV を流すものに、システム音量を何もしないものに差し替える（実機のマイクを開かない）。`--run-e2e` を付けたときだけ走る（付けなければ skip する）
-      - 録音セッションの上限時間のテスト（`tests/nfr/test_api_session_limit.py`）は、SessionManager を上限時間 3 秒で自分で組み、録音機の入力をテストの中で書き出した無音の WAV を流すものに、システム音量を何もしないものに差し替える（実機のマイクを開かず、GPU を使わない）。`--run-e2e` を付けたときだけ走る（付けなければ skip する）
-      - 話し終えてから貼り付くまでの時間のテスト（`tests/nfr/test_paste_latency.py`）は実物のクリップボードを書き換える（測った後に元の文字へ戻す）ため、`--run-e2e` を付けたときだけ走る。測っている間はクリップボードを使わない
+      - 録音セッションの上限時間のテスト（`tests/nfr/test_api_session_limit.py`）は、SessionManager を上限時間 3 秒で自分で組み、録音機の入力をテストの中で書き出した無音の WAV を流すものに、システム音量を何もしないものに差し替える（実機のマイクを開かず、GPU を使用しない）。`--run-e2e` を付けたときだけ走る（付けなければ skip する）
+      - 話し終えてから貼り付くまでの時間のテスト（`tests/nfr/test_paste_latency.py`）は実物のクリップボードを書き換える（測った後に元の文字へ戻す）ため、`--run-e2e` を付けたときだけ走る。測っている間はクリップボードを使用しない
       - 区間の最大の長さのテスト（`tests/nfr/test_max_segment_length.py`）の WAV は、音声合成（Windows では Windows の音声合成（SAPI）、Linux では Open JTalk）で書き出す
-      - Ubuntu 24.04 の Xorg のセッション（検証環境の VM `voice-paste-ubuntu`）でも流せる（流し方は `notes` の『検証環境の VM で流す』）。GPU を前提にするテスト（`tests/support/whisper_fixtures.py` の `requires_real_whisper` を付けたテスト・`test_transcription_parity.py`・`test_segment_callback_latency.py`）と、外の端末のブラウザの文字起こしを使うテスト（`test_web_*.py`。常駐アプリが Linux でブラウザの文字起こしを持たない）は Linux では skip する。決定値は OS で分けない
-      - Linux では、開発コマンド『環境構築（クローン直後）』の手順 2（`local-whisper` の extra）・手順 3（Open JTalk を sudo を使わず `~/.local/opt/open-jtalk` へ展開する）と、『起動・停止』の前提の OS のパッケージを済ませておき、Xorg のセッションの端末で流す（クリップボードの `xclip` が `DISPLAY` を要る）。Open JTalk の置き場所は環境変数 `VOICE_PASTE_OPEN_JTALK_HOME` で替えられる
+      - Ubuntu 24.04 の Xorg のセッション（検証環境の VM `voice-paste-ubuntu`）でも流せる（流し方は `notes` の『検証環境の VM で流す』）。GPU を前提にするテスト（`tests/support/whisper_fixtures.py` の `requires_real_whisper` を付けたテスト・`test_transcription_parity.py`・`test_segment_callback_latency.py`）と、外の端末のブラウザの文字起こしを使用するテスト（`test_web_*.py`。常駐アプリが Linux でブラウザの文字起こしを持たない）は Linux では skip する。決定値は OS で分けない
+      - Linux では、開発コマンド『環境構築（クローン直後）』の手順 2（`local-whisper` の extra）・手順 3（Open JTalk を sudo を使用せず `~/.local/opt/open-jtalk` へ展開する）と、『起動・停止』の前提の OS のパッケージを済ませておき、Xorg のセッションの端末で流す（クリップボードの `xclip` が `DISPLAY` を要る）。Open JTalk の配置先は環境変数 `VOICE_PASTE_OPEN_JTALK_HOME` で替えられる
     run_one:
       label: ファイル
       command: |-
@@ -63,7 +63,7 @@ layers:
         ```
     notes:
       検証環境の VM で流す: |-
-        WSL から SSH で、VM の Xorg のセッションの画面を渡して流す。
+        WSL から SSH で、VM の Xorg のセッションの画面を引き渡して流す。
 
         前提:
 
@@ -72,14 +72,14 @@ layers:
         - VM は Xorg のセッションへ自動ログインし（`/etc/gdm3/custom.conf` の `AutomaticLogin`）、画面のロックを無効にしている
         - VM の中の作業用のクローン（`~/vp-test`）は、手順 2 の bundle から 1 回だけ `git clone /tmp/vp-test.bundle ~/vp-test` で作り、開発コマンド『環境構築（クローン直後）』の手順 3（Open JTalk）を済ませておく
 
-        1. 自動起動の常駐アプリが動いていれば終わらせる。PID を確かめてから、出た PID だけを終わらせる
+        1. 自動起動の常駐アプリが動いていれば終わらせる。PID を確認してから、出た PID だけを終わらせる
 
         ```bash
         ssh voice-paste-ubuntu 'pgrep -af "[-]m voice_paste"'
         ssh voice-paste-ubuntu 'kill {PID}'
         ```
 
-        2. 流すブランチを bundle にして VM へ送り、作業用のクローンをそのブランチにして環境を追従させる（VM の作業ツリーと `.venv/` が置き換わる）
+        2. 流すブランチを bundle にして VM へ送信し、作業用のクローンをそのブランチにして環境を追従させる（VM の作業ツリーと `.venv/` が置き換わる）
 
         ```bash
         git bundle create /tmp/vp-test.bundle {ブランチ}
@@ -109,7 +109,7 @@ layers:
       ```
     description: pytest で実行する。`tests/external/` のテストは `--run-external` を付けたときだけ走り、付けなければ全て skip する。
     prerequisites:
-      - 接続先の外部サービスの認証情報（API キーなど）を環境変数で渡す（無ければそのテストは skip する）
+      - 接続先の外部サービスの認証情報（API キーなど）を環境変数で引き渡す（無ければそのテストは skip する）
       - 従量課金のかかる外部サービスは、実行のたびに課金がかかる
       - 音量の契約テスト（`tests/external/voice_paste/integrations/volume/`）は Windows の実機の既定の再生デバイスが要る（無ければ skip する）。実行中はシステム音量が変わり、終わりに実行前の音量へ戻す
       - AI はユーザーが実行を許可したときだけ実行する（CI では実行しない）
@@ -121,7 +121,7 @@ layers:
         ```
   - id: TL-5
     name: lint
-    description: import-linter で pyproject.toml の `[tool.importlinter]` の契約（層・feature の独立・出力先の独立）を検査し、`uv lock --check` で pyproject.toml と uv.lock の食い違いを検査する。画面のスクリプト（`src/voice_paste/server/web/assets/app.ts`）は `tsc` の型検査と ESLint で検査し、コミットした `app.js` が `app.ts` から再生成したものと同じかを確かめる。単体テストと一緒に回す。
+    description: import-linter で pyproject.toml の `[tool.importlinter]` の契約（層・feature の独立・出力先の独立）を検査し、`uv lock --check` で pyproject.toml と uv.lock の食い違いを検査する。画面のスクリプト（`src/voice_paste/server/web/assets/app.ts`）は `tsc` の型検査と ESLint で検査し、コミットした `app.js` が `app.ts` から再生成したものと同じかを確認する。単体テストと一緒に回す。
     prerequisites:
       - 外部依存なし
       - 画面のスクリプトの検査は、開発コマンド『ビルド・生成』の前提（`npm ci`）を満たしておく

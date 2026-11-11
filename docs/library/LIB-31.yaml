@@ -1,6 +1,6 @@
 title: NeMo
 kind: ライブラリ
-lead: haas_asr がモデルの推論に使う音声認識のフレームワーク。voice-paste のコードからは直接呼ばない。
+lead: haas_asr がモデルの推論に使用する音声認識のフレームワーク。voice-paste のコードからは直接呼ばない。
 used_in:
   - haas_server/pyproject.toml
 version:
@@ -13,7 +13,7 @@ official_url: https://github.com/NVIDIA-NeMo/NeMo
 verification:
   state: 済
   date: '2026-11-05'
-  detail: PoC（#265）で haas_asr の依存として WSL の torch 2.14.0+cu130 と動かした
+  detail: 'PoC（[#265 PoC: WSL の Haas-ja-v1.0 と faster-whisper の文字起こしの比較](https://github.com/shuhei1101/voice-paste/issues/265)）で haas_asr の依存として WSL の torch 2.14.0+cu130 と動かした'
 catalogs:
   - name: API
     version: '2.7'

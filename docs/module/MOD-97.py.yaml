@@ -88,7 +88,7 @@ classes:
           - name: test_transcribe
             case: 正常
             summary: 録音と単語を送信して起こした文字を返却する
-            condition: 'サーバーが 200 と {"text": " 今日は晴れ "} を返却する。単語は 突合（とつごう）と voice-paste（読み込み None）'
+            condition: 'サーバーが 200 と {"text": " 今日は晴れ "} を返却する。単語は 突合（とつごう）と voice-paste（読み None）'
             mock: httpx.MockTransport
             expected: '["今日は晴れ"] が返り、multipart に audio と vocabulary（written・reading の配列）が届いている'
           - name: test_transcribe_when_no_vocabulary

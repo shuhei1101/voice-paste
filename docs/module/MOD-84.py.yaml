@@ -131,7 +131,7 @@ classes:
       - name: _lock
         type: threading.Lock
         access: 内部 (_)
-        description: _stop_engine・_cancelled の読み込み書きと done の送出を 1 つずつにする
+        description: _stop_engine・_cancelled の読み書きと done の送出を 1 つずつにする
     methods:
       - name: start
         title: 配線の開始

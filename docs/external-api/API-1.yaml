@@ -15,7 +15,7 @@ endpoints:
       - code: '200'
         condition: モデルを取得できた
       - code: 取得できない
-        condition: 文字起こしワーカーがモデルを読み込めず ready を返さないため、起動の処理が止まる
+        condition: 文字起こしワーカーがモデルを読み込めず ready を返却しないため、起動の処理が止まる
 lead: 機械学習のモデルを配るリポジトリのサービス。
 used_in:
   - src/voice_paste/integrations/whisper/worker.py

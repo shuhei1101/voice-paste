@@ -1,7 +1,7 @@
 id: MOD-5
 visibility: internal
 title: "常駐アプリ / ホットキーと画面"
-lead: 'グローバルのホットキーの受付（runtime/hotkey）と、PySide6 の画面とトレイ（ui）の入口としての境界。画面の構成・見た目・部品は #21 のデザインの工程で起こす。'
+lead: 'グローバルのホットキーの受付（runtime/hotkey）と、PySide6 の画面とトレイ（ui）の入口としての境界。画面の構成・見た目・部品は [#21 画面・トレイ・ホットキーを新しい構成で作り直す](https://github.com/shuhei1101/voice-paste/issues/21) のデザインの工程で起こす。'
 directory: |-
   ```
   src/voice_paste/runtime/
@@ -32,7 +32,7 @@ directory: |-
   ```
 notes:
   画面が触ってよいもの: |-
-    ui は UiDeps の関数（配線された SessionManager のメソッド・音量・設定の読み込み書き・再起動と終了）と、共通の設定のモデルだけを呼ぶ。録音・文字起こし・出力先を直に呼ばない。
+    ui は UiDeps の関数（配線された SessionManager のメソッド・音量・設定の読み書き・再起動と終了）と、共通の設定のモデルだけを呼ぶ。録音・文字起こし・出力先を直に呼ばない。
     設定画面の欄は Settings のモデルから組み立て、項目を追加しても画面の直しが増えないようにする。
   スレッド: |-
     画面の部品はメインスレッド（Qt のイベントループ）だけが触る。API・ホットキー・ワーカーのスレッドからは notify・report_progress で UiBridge の Signal を emit するだけにする。

@@ -25,8 +25,8 @@ scenarios:
         U->>PG: 録音を停止する
         PG->>DB: 録った音声を保存日時つきで残す（前の 1 件を置き換える）
         PG->>API: 音声を送信する（multipart の audio）
-        API->>API: Origin・大きさ・形式を確かめる
-        API->>SVC: 一時のファイルに書いてジョブを積む
+        API->>API: Origin・大きさ・形式を確認する
+        API->>SVC: 一時のファイルに書き込んでジョブを積む
         API-->>PG: 202（job_id）
         PG->>PG: 結果の一覧に待ちの件を出す
       ```
@@ -35,7 +35,7 @@ scenarios:
     expected:
       - 送信が `202` で返り、応答に `job_id` がある
       - 端末（IndexedDB）に録った音声が 1 件だけ、保存日時つきで残っている
-      - '`GET /web/transcriptions/{job_id}` がそのジョブ（`queued` か `running`）を返す'
+      - '`GET /web/transcriptions/{job_id}` がそのジョブ（`queued` か `running`）を返却する'
       - 結果の一覧の先頭に待ちの件が出ている
       - 録った音声で 録音を文字に起こす へ進む
     test: test_normal_when_record_in_page
@@ -57,8 +57,8 @@ scenarios:
 
         U->>PG: 音声ファイルを選んで送信する
         PG->>API: 音声を送信する（multipart の audio）
-        API->>API: Origin・大きさ・形式を確かめる
-        API->>SVC: 一時のファイルに書いてジョブを積む
+        API->>API: Origin・大きさ・形式を確認する
+        API->>SVC: 一時のファイルに書き込んでジョブを積む
         API-->>PG: 202（job_id）
         PG->>PG: 結果の一覧に待ちの件を出す
       ```
@@ -66,7 +66,7 @@ scenarios:
       <!-- /map -->
     expected:
       - 送信が `202` で返り、応答に `job_id` がある
-      - '`GET /web/transcriptions/{job_id}` がそのジョブ（`queued` か `running`）を返す'
+      - '`GET /web/transcriptions/{job_id}` がそのジョブ（`queued` か `running`）を返却する'
       - 端末（IndexedDB）に残した音声は置き換わっていない
       - 選んだ音声で 録音を文字に起こす へ進む
     test: test_normal_when_select_file
@@ -126,8 +126,8 @@ scenarios:
         U->>PG: 2 つ目のプリセットを選択する
         U->>PG: 音声ファイルを選んで送信する
         PG->>API: 音声を送信する（multipart の audio・選択したプリセットの名前）
-        API->>API: Origin・大きさ・形式と、プリセットの名前が一覧にあるかを確かめる
-        API->>SVC: 一時のファイルに書き、プリセットの名前を持たせてジョブを積む
+        API->>API: Origin・大きさ・形式と、プリセットの名前が一覧にあるかを確認する
+        API->>SVC: 一時のファイルに書き込み、プリセットの名前を持たせてジョブを積む
         API-->>PG: 202（job_id）
         PG->>PG: 結果の一覧に待ちの件を出す
       ```
@@ -136,7 +136,7 @@ scenarios:
     expected:
       - 選択欄に、既定の項目と、設定の用語集のプリセットが設定の並びで出ている
       - 送信が `202` で返り、応答に `job_id` がある
-      - '`GET /web/transcriptions/{job_id}` がそのジョブ（`queued` か `running`）を返す'
+      - '`GET /web/transcriptions/{job_id}` がそのジョブ（`queued` か `running`）を返却する'
       - 起こし終えた後、補正の控えに選択したプリセットの名前が残っている
     test: test_normal_when_select_glossary_preset
     notes:
@@ -164,7 +164,7 @@ scenarios:
         PG-xAPI: 音声を送信する（届かない）
         PG->>PG: 送信に失敗したことを出す
         U->>PG: 再送信する（待ち受けを戻した後）
-        PG->>DB: 残した音声を読む
+        PG->>DB: 残した音声を読み込む
         PG->>API: 音声を送信する
         API-->>PG: 202（job_id）
       ```
@@ -193,16 +193,16 @@ scenarios:
 
         U->>PG: ファイルを選んで送信する
         PG->>API: 音声を送信する
-        API->>API: 形式を確かめる（読めない）
+        API->>API: 形式を確認する（読み込めない）
         API-->>PG: 415（problem+json）
-        PG->>PG: 読めない形式であることを出す
+        PG->>PG: 読み込めない形式であることを出す
       ```
 
       <!-- /map -->
     expected:
       - 送信が `415` の problem+json で返っている
-      - 画面に読めない形式であることが出て、結果の一覧に件が増えていない
-      - 応答に `job_id` が無く、一時のファイルも書かれていない
+      - 画面に読み込めない形式であることが出て、結果の一覧に件が増えていない
+      - 応答に `job_id` が無く、一時のファイルも書き込まれていない
     test: test_error_when_unreadable_format
   - name: 異常シナリオ（大きすぎる）
     setup:
@@ -221,7 +221,7 @@ scenarios:
 
         U->>PG: ファイルを選んで送信する
         PG->>API: 音声を送信する
-        API->>API: 大きさを確かめる（上限を超える）
+        API->>API: 大きさを確認する（上限を超える）
         API-->>PG: 413（problem+json）
         PG->>PG: 大きすぎることを出す
       ```
@@ -230,7 +230,7 @@ scenarios:
     expected:
       - 送信が `413` の problem+json で返っている
       - 画面に大きすぎることが出て、結果の一覧に件が増えていない
-      - 応答に `job_id` が無く、一時のファイルも書かれていない
+      - 応答に `job_id` が無く、一時のファイルも書き込まれていない
     test: test_error_when_too_large
   - name: 異常シナリオ（許可されていない Origin）
     setup:
@@ -247,14 +247,14 @@ scenarios:
         participant API as API のサーバー
 
         C->>API: 音声を送信する（許可されていない Origin）
-        API->>API: Origin を確かめる（一覧に無い）
+        API->>API: Origin を確認する（一覧に無い）
         API-->>C: 403（problem+json）
       ```
 
       <!-- /map -->
     expected:
       - 送信が `403` の problem+json で返っている
-      - 応答に `job_id` が無く、一時のファイルも履歴も書かれていない
+      - 応答に `job_id` が無く、一時のファイルも履歴も書き込まれていない
     test: test_error_when_origin_not_allowed
   - name: 異常シナリオ（一覧に無いプリセット）
     setup:
@@ -275,7 +275,7 @@ scenarios:
 
         U->>PG: 音声ファイルを選んで送信する
         PG->>API: 音声を送信する（multipart の audio・削除されたプリセットの名前）
-        API->>API: プリセットの名前を確かめる（一覧に無い）
+        API->>API: プリセットの名前を確認する（一覧に無い）
         API-->>PG: 400（problem+json）
         PG->>PG: 選択したプリセットが見つからないことを出す
         PG->>API: 用語集のプリセットの一覧を取得し直す
@@ -287,7 +287,7 @@ scenarios:
     expected:
       - 送信が `400` の problem+json で返っている
       - 画面に選択したプリセットが見つからないことが出て、結果の一覧に件が増えていない
-      - 応答に `job_id` が無く、一時のファイルも書かれていない
+      - 応答に `job_id` が無く、一時のファイルも書き込まれていない
       - 選択欄から削除したプリセットが消え、既定が選択されている
     test: test_error_when_glossary_preset_not_found
 lead: 外の端末のブラウザの画面で録るか音声ファイルを選び、端末に残してから常駐アプリへ送信して、受け付けた `job_id` を受け取る。

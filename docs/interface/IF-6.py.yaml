@@ -6,12 +6,12 @@ entry:
   value: GET /web/
 flows:
   - name: 正常系
-    summary: ゲートウェイを通した画面の要求に、画面の HTML を返す
+    summary: ゲートウェイを通した画面の要求に、画面の HTML を返却する
     setup:
       - name: Mock
         description: なし（常駐アプリの app を TestClient で立てる。音声のキューは空）
       - name: 要求のヘッダー
-        description: ゲートウェイが渡す構造にする
+        description: ゲートウェイが引き渡す構造にする
         notes: '`Host: localhost:{ポート}`・Origin 無し'
     flow: |-
       <!-- map: {"title": "正常系"} -->
@@ -22,14 +22,14 @@ flows:
         participant IF as GET /web/
 
         C->>IF: 画面を開く（Host・Origin 無し）
-        IF->>IF: Host・Origin を確かめる
+        IF->>IF: Host・Origin を確認する
         IF-->>C: 200・画面の HTML
       ```
 
       <!-- /map -->
     expected:
       - 200 と `text/html` の画面が返る
-      - HTML が読む `/web/assets/` の下の JS・CSS も 200 で返る
+      - HTML が読み込む `/web/assets/` の下の JS・CSS も 200 で返る
       - トークン無しで通る
     test: test_normal
   - name: 正常系（許す Origin）
@@ -48,8 +48,8 @@ flows:
         participant C as ブラウザ
         participant IF as GET /web/assets/{ファイル}
 
-        C->>IF: 素材を読む（許す Origin）
-        IF->>IF: Host・Origin を確かめる
+        C->>IF: 素材を読み込む（許す Origin）
+        IF->>IF: Host・Origin を確認する
         IF-->>C: 200・素材
       ```
 
@@ -74,15 +74,15 @@ flows:
         participant IF as GET /web/
         participant LOG as ログ
 
-        C->>IF: 画面を読む（許していない Origin）
-        IF->>LOG: 断った理由と要求元（Host・Origin）を書く
+        C->>IF: 画面を読み込む（許していない Origin）
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書き込む
         IF-->>C: 403（problem+json）
       ```
 
       <!-- /map -->
     expected:
       - 403 の problem+json が返る
-      - ログに断った理由と要求元が書かれている
+      - ログに断った理由と要求元が書き込まれている
     test: test_error_when_origin_not_allowed
   - name: 異常系（待ち受けでない Host・403）
     summary: Host が待ち受けのホストでない要求を断る（DNS リバインディング）
@@ -102,7 +102,7 @@ flows:
         participant LOG as ログ
 
         C->>IF: 画面を開く（ほかの Host）
-        IF->>LOG: 断った理由と要求元（Host・Origin）を書く
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書き込む
         IF-->>C: 403（problem+json）
       ```
 
@@ -111,12 +111,12 @@ flows:
       - 403 の problem+json が返る
     test: test_error_when_host_not_loopback
   - name: 異常系（同梱していない素材・404）
-    summary: 画面の置き場所に無いパスと、置き場所の外を指すパスを 404 にする
+    summary: 画面の配置先に無いパスと、配置先の外を指すパスを 404 にする
     setup:
       - name: Mock
         description: なし（常駐アプリの app を TestClient で立てる）
       - name: パス
-        description: 無いファイル名と、`..` で置き場所の外を指すパス
+        description: 無いファイル名と、`..` で配置先の外を指すパス
         notes: '`/web/assets/none.js`・`/web/assets/..%2F..%2Fsettings.yaml`'
     flow: |-
       <!-- map: {"title": "異常系（同梱していない素材・404）"} -->
@@ -126,22 +126,22 @@ flows:
         participant C as ブラウザ
         participant IF as GET /web/assets/{ファイル}
 
-        C->>IF: 無い素材を読む
+        C->>IF: 無い素材を読み込む
         IF-->>C: 404（problem+json）
       ```
 
       <!-- /map -->
     expected:
-      - どちらも 404 が返り、置き場所の外のファイルの中身を返していない
+      - どちらも 404 が返り、配置先の外のファイルの中身を返却していない
     test: test_error_when_asset_not_found
   - name: 異常系（Linux で動いている・404）
-    summary: 常駐サービスが Linux で動いているときは `/web/` の下のルートが無く、Origin によらず 404 を返す
+    summary: 常駐サービスが Linux で動いているときは `/web/` の下のルートが無く、Origin によらず 404 を返却する
     setup:
       - name: Mock
-        description: なし（常駐アプリの app を、Linux で使えない機能を外して TestClient で立てる）
+        description: なし（常駐アプリの app を、Linux で使用できない機能を外して TestClient で立てる）
         notes: 動いている OS を Linux にする
       - name: 要求のヘッダー
-        description: Origin を付けない要求と、許す Origin に無い Origin を付けた要求の 2 つを送る
+        description: Origin を付けない要求と、許す Origin に無い Origin を付けた要求の 2 つを送信する
         notes: '`Origin: http://evil.example`'
     flow: |-
       <!-- map: {"title": "異常系（Linux で動いている・404）"} -->
@@ -152,7 +152,7 @@ flows:
         participant IF as GET /web/
 
         C->>IF: 画面を開く（Origin なし・許す Origin に無い Origin）
-        IF->>IF: Host を確かめる（Origin は確かめない）
+        IF->>IF: Host を確認する（Origin は確認しない）
         IF-->>C: 404（problem+json）
       ```
 
@@ -160,18 +160,18 @@ flows:
     expected:
       - Origin を付けない要求と、許す Origin に無い Origin を付けた要求のどちらにも 404（problem+json）が返る
     test: test_error_when_running_on_linux
-lead: 外の端末のブラウザで開く文字起こしの画面（HTML）と、画面が読む JS・CSS を返す。
+lead: 外の端末のブラウザで開く文字起こしの画面（HTML）と、画面が読み込む JS・CSS を返却する。
 identifier: serve_web_page
-permissions: なし（外からの認証は Cloudflare Access が持つ。常駐アプリは Host と Origin だけを確かめる）
+permissions: なし（外からの認証は Cloudflare Access が持つ。常駐アプリは Host と Origin だけを確認する）
 idempotent: true
 side_effects: なし
-exclusivity: 制限なし（録音・文字起こしの処理中も返す）
+exclusivity: 制限なし（録音・文字起こしの処理中も返却する）
 request:
   - name: Host
     type: str
     required: true
     location: header
-    description: 待ち受けのホスト。ゲートウェイは `localhost:{ポート}` に書き換えて渡す
+    description: 待ち受けのホスト。ゲートウェイは `localhost:{ポート}` に書き換えて引き渡す
     constraints: '`127.0.0.1:{ポート}` か `localhost:{ポート}`'
     status: planned
   - name: Origin
@@ -188,20 +188,20 @@ request:
     default: なし（`/web/` は HTML を返す）
     location: path
     description: '`/web/` の下の画面の素材のパス（`/web/assets/{ファイル}`）'
-    constraints: 常駐アプリに同梱した画面のファイルだけ。`..` で置き場所の外を指せない
+    constraints: 常駐アプリに同梱した画面のファイルだけ。`..` で配置先の外を指せない
     status: planned
 response:
   - name: '-'
     type: bytes
-    description: '`/web/` は画面の HTML（`text/html; charset=utf-8`）。`/web/assets/` の下は JS・CSS・アイコンを拡張子に合う Content-Type で返す'
-response_notes: '画面は常駐アプリのバージョンごとに変わるため、HTML は `Cache-Control: no-cache` で返す。`/web`（末尾の `/` が無い）は `/web/` への 307 で返す。'
+    description: '`/web/` は画面の HTML（`text/html; charset=utf-8`）。`/web/assets/` の下は JS・CSS・アイコンを拡張子に合う Content-Type で返却する'
+response_notes: '画面は常駐アプリのバージョンごとに変わるため、HTML は `Cache-Control: no-cache` で返却する。`/web`（末尾の `/` が無い）は `/web/` への 307 で返却する。'
 status_codes:
   - code: '200'
-    condition: 画面の HTML か素材を返した
+    condition: 画面の HTML か素材を返却した
   - code: '307'
     condition: '`/web` を開いた（`/web/` へ移す）'
   - code: '403'
-    condition: Host が 127.0.0.1 でも localhost でもないか、Origin が付いていて許す Origin に無い（Linux では Origin を確かめず、Host が合わないときだけ）
+    condition: Host が 127.0.0.1 でも localhost でもないか、Origin が付いていて許す Origin に無い（Linux では Origin を確認せず、Host が合わないときだけ）
   - code: '404'
     condition: 同梱していない素材のパス。または、常駐サービスが Linux で動いている（`/web/` の下のルートを登録していない。Origin によらない）
 error_format: RFC 9457 の `application/problem+json`（`type`・`title`・`status`・`detail`）で返す。今の API の `problem_response` に揃える。
@@ -216,7 +216,7 @@ constraints:
     decided_by: NFR-1#requirements[ブラウザの要求の応答時間]
   - item: レート制限
     constraint: 制限なし
-  - item: 使える OS
-    constraint: 常駐サービスが Windows で動いているときだけ。Linux では `/web/` の下のルートを登録せず、Origin によらず 404 を返す（要求の守りは Host だけを確かめ、Origin を確かめずにルートへ渡す）
-    notes: OS ごとに使える機能の表で、外の端末のブラウザの機能を Linux で使えない機能にしている。Host が合わない要求は Linux でも 403
+  - item: 使用できる OS
+    constraint: 常駐サービスが Windows で動いているときだけ。Linux では `/web/` の下のルートを登録せず、Origin によらず 404 を返却する（要求の守りは Host だけを確かめ、Origin を確認せずにルートへ引き渡す）
+    notes: OS ごとに使用できる機能の表で、外の端末のブラウザの機能を Linux で使用できない機能にしている。Host が合わない要求は Linux でも 403
 test_file: tests/integration/test_serve_web_page.py

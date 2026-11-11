@@ -8,7 +8,7 @@ auth:
   method: Bearer
   steps: |-
     1. https://platform.openai.com/api-keys で API キーを発行する
-    2. 開発の端末と常駐アプリを動かす端末の `~/.config/voice-paste/secrets/openai_api_key`（Windows は設定のフォルダの `secrets/openai_api_key`）に、キーだけを書いた権限 600 のファイルとして置く。環境変数で渡すときは OPENAI_API_KEY
+    2. 開発の端末と常駐アプリを動かす端末の `~/.config/voice-paste/secrets/openai_api_key`（Windows は設定のフォルダの `secrets/openai_api_key`）に、キーだけを書き込んだ権限 600 のファイルとして配置する。環境変数で引き渡すときは OPENAI_API_KEY
   env_vars:
     - OPENAI_API_KEY
   usage: |-
@@ -33,7 +33,7 @@ endpoints:
         type: string
         required: true
         location: body
-        description: モデル（gpt-transcribe・gpt-4o-mini-transcribe・gpt-4o-transcribe・whisper-1 など）。gpt-4o-mini-transcribe・gpt-4o-transcribe・whisper-1 は 2027-02-26 に提供が終わる（https://developers.openai.com/api/docs/deprecations）。gpt-live-transcribe は Realtime だけでこのエンドポイントでは使えない
+        description: モデル（gpt-transcribe・gpt-4o-mini-transcribe・gpt-4o-transcribe・whisper-1 など）。gpt-4o-mini-transcribe・gpt-4o-transcribe・whisper-1 は 2027-02-26 に提供が終わる（https://developers.openai.com/api/docs/deprecations）。gpt-live-transcribe は Realtime だけでこのエンドポイントでは使用できない
       - name: language
         type: string
         required: false
@@ -61,7 +61,7 @@ endpoints:
         required: false
         location: body
         description: gpt-transcribe・gpt-live-transcribe で、発話に出る用語の手がかり。multipart では同じ項目名を繰り返す
-        constraints: 語ごとに 1 行で、`<`・`>`・改行を含まない。違反すると要求ごと拒まれる。数・長さの上限は公開されていない（https://developers.openai.com/api/docs/guides/speech-to-text）
+        constraints: 単語ごとに 1 行で、`<`・`>`・改行を含まない。違反すると要求ごと拒まれる。数・長さの上限は公開されていない（https://developers.openai.com/api/docs/guides/speech-to-text）
     response:
       - name: text
         type: string

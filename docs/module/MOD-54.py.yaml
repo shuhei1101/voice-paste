@@ -17,7 +17,7 @@ data_models:
         example: paste_and_send
       - name: title
         type: str
-        description: '画面に出す名前（文言は #21 で決める）'
+        description: '画面に出す名前（文言は [#21 画面・トレイ・ホットキーを新しい構成で作り直す](https://github.com/shuhei1101/voice-paste/issues/21) で決める）'
       - name: handler
         type: OutputFn
         description: 届ける関数

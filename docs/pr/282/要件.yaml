@@ -65,10 +65,6 @@ use_cases:
     detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
     depends_on: []
 docs:
-  - page: docs/glossary/GLO-1.yaml
-    new: false
-    change: 判定フローチャート『用語の登録』の結果の用語を登録する
-    status: todo
   - page: docs/guide/files.yml
     new: false
     change: 公開ドキュメントのタグ・description を再設定する

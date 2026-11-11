@@ -75,8 +75,8 @@ scenarios:
       - name: 履歴の保存
         description: 履歴を残す設定にする
       - name: 文字起こしの失敗
-        description: 文字起こしのエンジンが失敗を返す状態にする
-        notes: 中身の壊れた録音の WAV を確定し、文字起こしワーカーがエラーを返す状態にする
+        description: 文字起こしのエンジンが失敗を返却する状態にする
+        notes: 中身の壊れた録音の WAV を確定し、文字起こしワーカーがエラーを返却する状態にする
     flow: |-
       <!-- map: {"title": "異常シナリオ（文字起こしに失敗）"} -->
 
@@ -190,7 +190,7 @@ scenarios:
     test: test_error_when_api_session_busy
 lead: 常駐サービスがホットキーで録音を始め、話した内容を文字に起こしてアクティブなアプリへ届けるまでの複合ユースケース。
 issue: 14
-primary_actor: 音声入力を使うユーザー
+primary_actor: 音声入力を使用するユーザー
 stakeholders:
   - name: ユーザー
     interest: 話した内容が打ち直しなしで貼り付け先に入り、失敗しても話した内容が消えないこと

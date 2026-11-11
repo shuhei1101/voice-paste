@@ -13,12 +13,12 @@ catalogs:
     entries:
       - name: copy
         kind: 関数
-        purpose: 起こした文字をクリップボードへ書く
+        purpose: 起こした文字をクリップボードへ書き込む
       - name: set_clipboard
         kind: 関数
-        purpose: クリップボードの書き先を指定する（Wayland のセッションで `"xclip"` を渡し、`wl-copy` を使わない）
+        purpose: クリップボードの書き先を指定する（Wayland のセッションで `"xclip"` を引き渡し、`wl-copy` を使用しない）
         status: planned
-lead: OS のクリップボードへ文字を書き、読むライブラリ。
+lead: OS のクリップボードへ文字を書き込み、読み込むライブラリ。
 purl: pkg:pypi/pyperclip
 dependency_scope: 必須
 adoption: 採用
@@ -28,7 +28,7 @@ upstream: asweigart/pyperclip
 verification:
   state: 済
   date: '2026-10-01'
-  detail: Windows で pyperclip.copy / paste を呼び、起こした文字をクリップボードへ書いて元の文字へ戻せることを確かめた
+  detail: Windows で pyperclip.copy / paste を呼び、起こした文字をクリップボードへ書き込んで元の文字へ戻せることを確認した
 license: BSD（商用利用可）
 official_url: https://github.com/asweigart/pyperclip
 install: |-

@@ -20,19 +20,19 @@ elements:
     id: record_button
     kind: button
     position: 音声送信 > 操作
-    description: 画面での録音を始める。MediaRecorder の形式を `isTypeSupported` で webm/opus・mp4・ogg の順に選び、audioBitsPerSecond に画面の録音のビットレートを渡す。マイクの許可はブラウザ標準の確認に任せる。端末内の音声が「送信失敗」「未送信」「文字起こし前」のときは塗りを外し、主の操作を再送信ボタンへ移す
+    description: 画面での録音を始める。MediaRecorder の形式を `isTypeSupported` で webm/opus・mp4・ogg の順に選び、audioBitsPerSecond に画面の録音のビットレートを引き渡す。マイクの許可はブラウザ標準の確認に任せる。端末内の音声が「送信失敗」「未送信」「文字起こし前」のときは塗りを外し、主の操作を再送信ボタンへ移す
     label: 録音開始
     visible_when: 録音中でないとき
     enabled_when: 送信中でないとき
     error_message: マイクを開けないときは、音声送信のエラーに「マイク使用不可」「ブラウザのマイクの許可を確認」を出す
-    action: 端末内の音声が「送信失敗」「未送信」「文字起こし前」なら置換の確認を開く。それ以外（音声が無い・送信済み）なら確かめずに録音を始め、録音中の表示に替える
+    action: 端末内の音声が「送信失敗」「未送信」「文字起こし前」なら置換の確認を開く。それ以外（音声が無い・送信済み）なら確認せずに録音を始め、録音中の表示に替える
     action_ref: SCR-4#
     status: planned
   - name: ファイル送信ボタン
     id: file_input
     kind: input
     position: 音声送信 > 操作
-    description: 録ってある音声ファイルを選ぶ。選んだら確かめずにすぐ送信し、送信している間はファイルの送信中の行を出す。選んだファイルは端末内の音声に残さない（元が端末にあるため）
+    description: 録ってある音声ファイルを選ぶ。選んだら確認せずにすぐ送信し、送信している間はファイルの送信中の行を出す。選んだファイルは端末内の音声に残さない（元が端末にあるため）
     label: ファイル送信
     io: 入力
     type: File
@@ -107,7 +107,7 @@ elements:
     id: send_error
     kind: label
     position: 音声送信
-    description: 送信の失敗を、見出しと本文で出す（role=alert）。次の送信か録音を始めると消す
+    description: 送信の失敗を、見出しと本文で出す（role=alert）。次の送信か録音を始めると削除する
     io: 表示
     visible_when: 直前の送信か録音の開始が失敗したとき
     error_message: '415: 「非対応形式」「{ファイル名} は未送信。対応形式: WAV・MP3・webm・ogg・mp4」。413（送信前に大きさで弾いたときも）: 「ファイルサイズ超過」「{ファイル名}（{大きさ}）は未送信。上限: 100 MB 未満。MP3 等に圧縮して再選択」。届かない・403・503・504・そのほか（一覧に無いプリセットの 400 は除く。一覧に無いプリセットのエラー に出す）: 「送信失敗」「PC の voice-paste に接続不可。音声は端末内に保存済み。PC の起動を確認後に再送信」（選んだファイルのときは「音声は端末内に保存済み」を出さない）。マイクを開けない: 「マイク使用不可」「ブラウザのマイクの許可を確認」'
@@ -116,7 +116,7 @@ elements:
     id: kept_meta
     kind: label
     position: 音声送信 > 端末内の音声
-    description: 画面で録った直近 1 件の音声の録った日時・長さ・形式・大きさ。送信中は、送信した時点の用語集のプリセット（選択欄の表示文言のまま）を末尾に添え、次に送る音声の選択と分ける。見出しは「端末内の音声」
+    description: 画面で録った直近 1 件の音声の録った日時・長さ・形式・大きさ。送信中は、送信した時点の用語集のプリセット（選択欄の表示文言のまま）を末尾に添え、次に送信する音声の選択と分ける。見出しは「端末内の音声」
     io: 表示
     visible_when: 端末（IndexedDB）に音声があるとき
     display_format: '`MM/DD HH:mm 録音・{m:ss}・{形式}・{大きさ}`（例 `10/23 14:05 録音・2:14・webm・540 KB`）。送信中は末尾に `・プリセット「{名前}」`'
@@ -132,7 +132,7 @@ elements:
     id: kept_progress
     kind: progress
     position: 音声送信 > 端末内の音声
-    description: 送ったバイト数の割合（XMLHttpRequest の upload の progress）。読み上げ名は「送信の進捗」
+    description: 送信したバイト数の割合（XMLHttpRequest の upload の progress）。読み上げ名は「送信の進捗」
     io: 表示
     visible_when: 送信中
     range:
@@ -182,10 +182,10 @@ elements:
     id: results_list
     kind: list
     position: 結果
-    description: 新しい件を先頭に並べる（aria-live=polite）。終わっていない件（文字起こし待ち・文字起こし中）は 2 秒ごとに結果を取りに行き、done・failed・404 で取りに行くのをやめる。取りに行けなかったとき（届かない・5xx）は次の間隔で取りに行く。終わっていない件の job_id も端末（localStorage）に持ち、画面を開き直したら取りに行くのを続ける。画面を開いたときに、保存日時から 7 日を過ぎた結果と端末内の音声を消す。結果は直近 10 件を残し、超えたらいちばん古い件を消す
+    description: 新しい件を先頭に並べる（aria-live=polite）。終わっていない件（文字起こし待ち・文字起こし中）は 2 秒ごとに結果を取りに行き、done・failed・404 で取りに行くのをやめる。取りに行けなかったとき（届かない・5xx）は次の間隔で取りに行く。終わっていない件の job_id も端末（localStorage）に持ち、画面を開き直したら取りに行くのを続ける。画面を開いたときに、保存日時から 7 日を過ぎた結果と端末内の音声を削除する。結果は直近 10 件を残し、超えたらいちばん古い件を削除する
     io: 表示
     visible_when: 一覧に件があるとき
-    source: 文字起こしの結果を返す.state
+    source: 文字起こしの結果を返却する.state
     action_ref: IF-4#
     status: planned
   - name: 結果の日時
@@ -211,7 +211,7 @@ elements:
     io: 表示
     visible_when: state が queued・running・failed か 404 のとき
     options: 'queued: 「文字起こし待ち」。running: reports_progress が true なら「文字起こし中 {n}%」、false なら「文字起こし中」。failed: 「文字起こし失敗」。404: 「結果消失」'
-    source: 文字起こしの結果を返す.state・文字起こしの結果を返す.reports_progress
+    source: 文字起こしの結果を返却する.state・文字起こしの結果を返却する.reports_progress
   - name: 文字起こしの進捗
     id: result_progress
     kind: progress
@@ -222,15 +222,15 @@ elements:
     range:
       min: '0'
       max: '100'
-    source: 文字起こしの結果を返す.progress（× 100 して整数に丸める）
+    source: 文字起こしの結果を返却する.progress（× 100 して整数に丸める）
   - name: 起こした文字
     id: result_text
     kind: label
     position: 結果 > 結果の 1 件
-    description: 用語集で補正した文字。改行を保ち、長い語も折り返す。done を受けたら保存日時つきで端末（localStorage）に残す
+    description: 用語集で補正した文字。改行を保ち、長い単語も折り返す。done を受けたら保存日時つきで端末（localStorage）に残す
     io: 表示
     visible_when: state が done のとき
-    source: 文字起こしの結果を返す.text
+    source: 文字起こしの結果を返却する.text
   - name: 失敗の詳細
     id: result_detail
     kind: label
@@ -239,7 +239,7 @@ elements:
     io: 表示
     visible_when: state が failed か 404 のとき
     error_message: 'failed: 「PC の voice-paste で文字起こしが停止。端末内の音声から再送信可」と「詳細: {error}」。404: 「PC の voice-paste の再起動で結果が消失。端末内の音声から再送信可」'
-    source: 文字起こしの結果を返す.error
+    source: 文字起こしの結果を返却する.error
   - name: コピーボタン
     id: copy_button
     kind: button
@@ -252,22 +252,22 @@ elements:
     id: delete_button
     kind: button
     position: 結果 > 結果の 1 件 > 操作
-    description: その結果を端末から消す確認を開く。アイコンだけのボタンで、読み上げ名は「この結果を削除」
+    description: その結果を端末から削除する確認を開く。アイコンだけのボタンで、読み上げ名は「この結果を削除」
     visible_when: state が done のとき
     action_ref: SCR-4#
   - name: 送信中のファイル名
     id: file_sending_name
     kind: label
     position: 音声送信 > ファイルの送信中
-    description: 選んで送っているファイルの名前と大きさ。操作のすぐ下に出し、録音開始ボタンとファイル送信ボタンが押せない理由をその場で読めるようにする。長い名前は名前だけを 1 行で末尾を `…` で省き、大きさは省かずに残す
+    description: 選んで送信しているファイルの名前と大きさ。操作のすぐ下に出し、録音開始ボタンとファイル送信ボタンが押せない理由をその場で読めるようにする。長い名前は名前だけを 1 行で末尾を `…` で省き、大きさは省かずに残す
     io: 表示
-    visible_when: 選んだファイルを送信している間（202 か失敗を受けたら消す）
+    visible_when: 選んだファイルを送信している間（202 か失敗を受けたら削除する）
     display_format: '`{ファイル名}・{大きさ}`（例 `interview-part2.m4a・38.4 MB`）'
   - name: ファイルの送信の状態
     id: file_sending_state
     kind: label
     position: 音声送信 > ファイルの送信中
-    description: 送ったバイト数の割合（role=status）。202 を受けたらこの行を消し、結果の一覧の先頭に待ちの件を出す。失敗したらこの行を消し、音声送信のエラーを出す
+    description: 送信したバイト数の割合（role=status）。202 を受けたらこの行を削除し、結果の一覧の先頭に待ちの件を出す。失敗したらこの行を削除し、音声送信のエラーを出す
     label: 送信中 {n}%
     io: 表示
     visible_when: 選んだファイルを送信している間
@@ -275,7 +275,7 @@ elements:
     id: file_sending_progress
     kind: progress
     position: 音声送信 > ファイルの送信中
-    description: 送ったバイト数の割合（XMLHttpRequest の upload の progress）。読み上げ名は「送信の進捗」
+    description: 送信したバイト数の割合（XMLHttpRequest の upload の progress）。読み上げ名は「送信の進捗」
     io: 表示
     visible_when: 選んだファイルを送信している間
     range:
@@ -285,7 +285,7 @@ elements:
     id: preset_select
     kind: select
     position: 音声送信 > 用語集のプリセット
-    description: 次に送信する音声の補正に使う用語集のプリセットを選ぶ。録音開始ボタン・ファイル送信ボタンの上に置く。録音停止・送信・ファイル送信・再送信のどれも、送信した時点の選択を送る。送信中も次に送る音声のために変えられる
+    description: 次に送信する音声の補正に使用する用語集のプリセットを選ぶ。録音開始ボタン・ファイル送信ボタンの上に配置する。録音停止・送信・ファイル送信・再送信のどれも、送信した時点の選択を送信する。送信中も次に送信する音声のために変えられる
     label: 用語集のプリセット
     io: 入力
     type: 文字列
@@ -294,7 +294,7 @@ elements:
     required: false
     initial_value: 端末（localStorage voice-paste.glossary_preset）に覚えた名前が presets にあればその名前。覚えた名前が無い・一覧に無いときは「設定に従う」
     options: 先頭に「設定に従う（{active}）」（値は空文字。既定）、続けて presets を一覧の並びのまま並べる。一覧を取得できないときは「設定に従う」だけ。複数選択はしない
-    source: 用語集のプリセットの一覧を返す.presets・用語集のプリセットの一覧を返す.active（画面を開いたときに 1 回取得する）
+    source: 用語集のプリセットの一覧を返却する.presets・用語集のプリセットの一覧を返却する.active（画面を開いたときに 1 回取得する）
     target: 音声を受け付ける.glossary_preset（「設定に従う」は空文字）
     action: 選んだら、その名前を端末（localStorage voice-paste.glossary_preset）に覚える（「設定に従う」は空文字）
     action_ref: IF-5#
@@ -314,13 +314,13 @@ elements:
     description: 用語集のプリセットの一覧を取得できなかったこと（role=status）。送信は続けられるため、注意ではなく知らせの色にする。取得し直すのは画面を開き直したとき。選択欄の aria-describedby で読み上げにも伝える
     label: プリセットの一覧を取得できませんでした。送信した音声は、PC の設定で選択中のプリセットで補正します。
     visible_when: 画面を開いたときの一覧の取得が失敗したとき（届かない・403・5xx）
-    source: 用語集のプリセットの一覧を返す の応答のステータス
+    source: 用語集のプリセットの一覧を返却する の応答のステータス
     status: planned
   - name: 一覧に無いプリセットのエラー
     id: preset_not_found_error
     kind: label
     position: 音声送信 > 用語集のプリセット
-    description: 選んだプリセットが PC の設定から削除済みで、音声を受け付ける が 400 を返したことを、見出しと本文で選択欄のすぐ下に出す（role=alert）。glossary_preset を付けた送信の 400 をこのエラーとして扱う。出す前に一覧を取得し直し、選択と端末に覚えた名前を「設定に従う」へ戻す。録った音声は端末内の音声に「未送信」で残る。次の送信か録音を始めると消す
+    description: 選んだプリセットが PC の設定から削除済みで、音声を受け付ける が 400 を返却したことを、見出しと本文で選択欄のすぐ下に出す（role=alert）。glossary_preset を付けた送信の 400 をこのエラーとして扱う。出す前に一覧を取得し直し、選択と端末に覚えた名前を「設定に従う」へ戻す。録った音声は端末内の音声に「未送信」で残る。次の送信か録音を始めると削除する
     visible_when: 直前の送信が一覧に無いプリセットで 400 になったとき
     error_message: '見出しは「選択したプリセットが見つかりません」。選んだファイル: 「「{名前}」は PC の設定から削除済みのため、{ファイル名} は未送信です。一覧を再取得し、「設定に従う」に戻しました。プリセットを確認して、ファイルをもう一度選択してください。」。録った音声: 「「{名前}」は PC の設定から削除済みのため、録った音声は未送信です。一覧を再取得し、「設定に従う」に戻しました。プリセットを確認して、再送信してください。」'
     source: 音声を受け付ける の応答のステータス
@@ -330,7 +330,7 @@ elements:
     id: file_sending_preset
     kind: label
     position: 音声送信 > ファイルの送信中
-    description: 送っているファイルに付けた用語集のプリセット。送信した時点の選択欄の表示文言をそのまま出し、次に送る音声の選択と分ける。ファイル名が長いと省かれるため、送信中のファイル名とは別の行に出す
+    description: 送信しているファイルに付けた用語集のプリセット。送信した時点の選択欄の表示文言をそのまま出し、次に送信する音声の選択と分ける。ファイル名が長いと省かれるため、送信中のファイル名とは別の行に出す
     io: 表示
     visible_when: 選んだファイルを送信している間
     display_format: プリセット「{名前}」（例 プリセット「下書き」）

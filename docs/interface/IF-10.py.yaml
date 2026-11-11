@@ -6,7 +6,7 @@ entry:
   value: POST /sessions
 flows:
   - name: 正常系
-    summary: 画面を出さない録音を始め、録音セッションの ID を返す
+    summary: 画面を出さない録音を始め、録音セッションの ID を返却する
     setup:
       - name: Mock
         description: マイク・システム音量・トレイを差し替える（マイクは開ける）
@@ -22,7 +22,7 @@ flows:
         participant MIC as マイク
 
         C->>IF: トークン・callback_url
-        IF->>IF: Host・Origin・トークン・コールバック先を確かめる
+        IF->>IF: Host・Origin・トークン・コールバック先を確認する
         IF->>MIC: 録音を始める
         IF-->>C: 202・session_id
       ```
@@ -34,7 +34,7 @@ flows:
       - 録音の画面を開いていない
     test: test_normal
   - name: 正常系（連続録音）
-    summary: continuous=true で、完了が来るまで停止しない画面を出さない録音を始め、録音セッションの ID を返す
+    summary: continuous=true で、完了が来るまで停止しない画面を出さない録音を始め、録音セッションの ID を返却する
     setup:
       - name: Mock
         description: マイク・システム音量・トレイを差し替える（マイクは開ける）
@@ -53,7 +53,7 @@ flows:
         participant MIC as マイク
 
         C->>IF: トークン・callback_url・continuous=true
-        IF->>IF: Host・Origin・トークン・コールバック先を確かめる
+        IF->>IF: Host・Origin・トークン・コールバック先を確認する
         IF->>MIC: 録音を始める（無音での区切りを始める）
         IF-->>C: 202・session_id
       ```
@@ -107,7 +107,7 @@ flows:
         participant LOG as ログ
 
         C->>IF: 合わないトークン
-        IF->>LOG: 断った理由と要求元（Host・Origin）を書く（トークンは書かない）
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書き込む（トークンは書き込まない）
         IF-->>C: 401
       ```
 
@@ -115,7 +115,7 @@ flows:
     expected:
       - 401 が返る
       - 録音が始まっていない
-      - ログに断った理由と要求元が書かれ、トークンの値は書かれていない
+      - ログに断った理由と要求元が書き込まれ、トークンの値は書き込まれていない
     test: test_error_when_token_mismatch
   - name: 異常系（ブラウザからの要求・403）
     summary: Origin の付いた要求と、Host が待ち受けのホストでない要求を断る
@@ -135,7 +135,7 @@ flows:
         participant LOG as ログ
 
         C->>IF: Origin ありか、ほかの Host
-        IF->>LOG: 断った理由と要求元（Host・Origin）を書く（トークンは書かない）
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書き込む（トークンは書き込まない）
         IF-->>C: 403
       ```
 
@@ -143,7 +143,7 @@ flows:
     expected:
       - 403 が返る
       - 録音が始まっていない
-      - ログに断った理由と要求元が書かれ、トークンの値は書かれていない
+      - ログに断った理由と要求元が書き込まれ、トークンの値は書き込まれていない
     test: test_error_when_browser_request
   - name: 異常系（処理中・409）
     summary: ほかの録音・文字起こしの処理中は開始を断る
@@ -188,7 +188,7 @@ flows:
         C->>IF: トークン・callback_url
         IF->>MIC: 録音を始める
         MIC-->>IF: 開けない
-        IF->>LOG: マイクを開けなかった理由を書く
+        IF->>LOG: マイクを開けなかった理由を書き込む
         IF-->>C: 503
       ```
 
@@ -197,10 +197,10 @@ flows:
       - 503 が返る
       - システム音量が録音前の値に戻っている
       - 待機中に戻り、続く開始が 409 にならない
-      - ログにマイクを開けなかった理由が書かれている
+      - ログにマイクを開けなかった理由が書き込まれている
     test: test_error_when_microphone_unavailable
   - name: 正常系（用語集のプリセットを指定）
-    summary: glossary_preset で指定した用語集のプリセットを持たせて画面を出さない録音を始め、録音セッションの ID を返す
+    summary: glossary_preset で指定した用語集のプリセットを持たせて画面を出さない録音を始め、録音セッションの ID を返却する
     setup:
       - name: Mock
         description: マイク・システム音量・トレイを差し替える（マイクは開ける）
@@ -219,7 +219,7 @@ flows:
         participant MIC as マイク
 
         C->>IF: トークン・callback_url・glossary_preset
-        IF->>IF: Host・Origin・トークン・コールバック先・プリセットが設定の一覧にあるかを確かめる
+        IF->>IF: Host・Origin・トークン・コールバック先・プリセットが設定の一覧にあるかを確認する
         IF->>MIC: 録音を始める（録音セッションにプリセットを持たせる）
         IF-->>C: 202・session_id
       ```
@@ -227,7 +227,7 @@ flows:
       <!-- /map -->
     expected:
       - 202 と session_id が返る
-      - 録音セッションが録音中で、補正に使う用語集のプリセットとして「会議」を持っている
+      - 録音セッションが録音中で、補正に使用する用語集のプリセットとして「会議」を持っている
       - 設定で選んでいる用語集のプリセットは「既定」のまま変わっていない
     test: test_normal_when_glossary_preset
   - name: 異常系（一覧に無い用語集のプリセット・400）
@@ -255,11 +255,11 @@ flows:
       - 400 が返り、detail に指定したプリセットの名前が含まれている
       - 録音が始まっていない
     test: test_error_when_glossary_preset_not_found
-lead: コールバック先のエンドポイントを受け取り、画面を出さない録音を始めて録音セッションの ID を返す。continuous を指定すると、完了が来るまで録音を停止せず、無音で区切った区間ごとに返す連続録音を始める。
+lead: コールバック先のエンドポイントを受け取り、画面を出さない録音を始めて録音セッションの ID を返却する。continuous を指定すると、完了が来るまで録音を停止せず、無音で区切った区間ごとに返却する連続録音を始める。
 identifier: start_session
-permissions: 今回の起動のトークン（トークンのファイルを読める、同じ端末・同じユーザーのプロセス）
+permissions: 今回の起動のトークン（トークンのファイルを読み込める、同じ端末・同じユーザーのプロセス）
 idempotent: false
-side_effects: マイクの録音を始め、設定で録音中の音量を下げるようにしていればシステム音量を下げる。トレイのアイコンを録音中にする。連続録音では、区切った区間ごとに履歴へ保存し（履歴を残す設定のとき）、文字に起こして 呼び出し元へ返す がコールバック先へ送信する。
+side_effects: マイクの録音を始め、設定で録音中の音量を下げるようにしていればシステム音量を下げる。トレイのアイコンを録音中にする。連続録音では、区切った区間ごとに履歴へ保存し（履歴を残す設定のとき）、文字に起こして 呼び出し元へ返却する がコールバック先へ送信する。
 exclusivity: 録音・文字起こしは入口（ホットキー・トレイ・API）をまたいで同時に 1 つだけ。処理中に来た開始は 409 で断る。
 request:
   - name: Authorization
@@ -287,7 +287,7 @@ request:
     type: str
     required: true
     location: body
-    description: 起こした文字・空の文字・失敗を返すエンドポイント
+    description: 起こした文字・空の文字・失敗を返却するエンドポイント
     constraints: ホストが loopback（127.0.0.0/8・::1・localhost）か、設定で許可したホスト
     format: uri
     example: http://127.0.0.1:9000/voice-paste/result
@@ -305,7 +305,7 @@ request:
     required: false
     default: なし（設定で選んでいる用語集のプリセットを使う）
     location: body
-    description: この録音セッションの補正に使う用語集のプリセットの名前。開始の時点で決まり、後から設定で選ぶプリセットを変えてもこの録音セッションは指定したプリセットで補正する。連続録音では区間ごとの文字に当てる
+    description: この録音セッションの補正に使用する用語集のプリセットの名前。開始の時点で決まり、後から設定で選ぶプリセットを変えてもこの録音セッションは指定したプリセットで補正する。連続録音では区間ごとの文字に当てる
     constraints: 設定の用語集のプリセットの一覧にある名前（大文字と小文字を区別する）
     example: 会議
     status: planned
@@ -320,7 +320,7 @@ request_example: |-
 response:
   - name: session_id
     type: str
-    description: 始めた録音セッションの ID。停止・完了と返送で使う
+    description: 始めた録音セッションの ID。停止・完了と返送で使用する
     format: uuid
     example: 3f1c2a9e-8d4b-4c4e-9a0b-2f7d1e6c5b10
 response_example: |-

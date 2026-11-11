@@ -210,7 +210,7 @@ functions:
     container: integrations/volume/adapter.py
     usecase: 録音する
     scope: internal
-    summary: pycaw の AudioUtilities.GetSpeakers() の EndpointVolume を返却する。pycaw の API に触れるのはこの関数と音量の読み込み書きの 2 つのメソッドだけにする（バージョンを上げたときに修正する場所）
+    summary: pycaw の AudioUtilities.GetSpeakers() の EndpointVolume を返却する。pycaw の API に触れるのはこの関数と音量の読み書きの 2 つのメソッドだけにする（バージョンを上げたときに修正する場所）
     returns:
       type: IAudioEndpointVolume
       description: 既定の再生デバイスの音量のインターフェース（呼ぶスレッドで COM を初期化しておく）

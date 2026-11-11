@@ -1,64 +1,64 @@
 summary: 採用済みの外部ライブラリ / 外部ツールのリファレンス
 items:
-- page: LIB-8.yaml
-  summary: ローカルの Whisper で音声を文字に起こす
-- page: LIB-27.yaml
-  summary: マイクの入力を開いて録音する
-- page: LIB-26.yaml
-  summary: 録音を WAV に読み書きする
-- page: LIB-11.yaml
-  summary: 録音した音を配列で貯め、音量を求める
-- page: LIB-20.yaml
-  summary: 起こした文字をクリップボードへ書く
-- page: LIB-19.yaml
-  summary: ホットキーを受け付け、貼り付けのキーを仮想的に送信する
-- page: LIB-17.yaml
-  summary: Windows のシステム音量を読み書きする
-- page: LIB-5.yaml
-  summary: 音量を操作するスレッドで COM を初期化する
-- page: LIB-12.yaml
-  summary: GPU での文字起こしに使う cuBLAS の DLL
-- page: LIB-14.yaml
-  summary: GPU での文字起こしに使う cuDNN の DLL
-- page: LIB-13.yaml
-  summary: GPU での文字起こしに使う NVRTC の DLL
-- page: LIB-2.yaml
-  summary: ブラウザ添付のプリセットの画面をアプリのウィンドウとして開く
-- page: LIB-7.yaml
-  summary: 常駐サービスの API のルートと入出力の検証を組み立てる
-- page: LIB-29.yaml
-  summary: API を 127.0.0.1 で待ち受ける
-- page: LIB-9.yaml
-  summary: 起こした文字を呼び出し元のエンドポイントへ返す
-- page: LIB-18.yaml
-  summary: 設定と API の入出力を検証する
-- page: LIB-21.yaml
-  summary: 画面とトレイを出し、ほかのスレッドからメインスレッドへ操作を渡す
-- page: LIB-28.yaml
-  summary: 前のバージョンの settings.toml を、settings.yaml へ移すために読む
-- page: LIB-25.yaml
-  summary: 設定をコメントを保ったまま YAML で読み書きする
-- page: LIB-16.yaml
-  summary: 設定・履歴・ログの置き場所を Windows の慣習で引く
-- page: LIB-10.yaml
-  summary: 新しい構成の import の向きを検査する
-- page: LIB-4.yaml
-  summary: faster-whisper が録音を読むために使う、FFmpeg の Python バインディング
-- page: LIB-24.yaml
-  summary: テストが Windows のウィンドウ・マウス・キーを操作する
-- page: LIB-15.yaml
-  summary: 連続録音の話し声を Silero VAD の ONNX で判定する
-- page: LIB-22.yaml
-  summary: ブラウザから送信された multipart の音声を FastAPI の UploadFile で受け取る
-- page: LIB-23.yaml
-  summary: Linux でアクティブなウィンドウの WM_CLASS を Xorg から読む
-- page: LIB-6.yaml
-  summary: Linux の Wayland のセッションで、仮想キーボードから貼り付けのキーと Enter を送信する
-- page: LIB-1.yaml
-  summary: Linux の Wayland のセッションで、フォーカスしているウィンドウの wm_class を GNOME Shell の拡張から読む
-- page: LIB-3.yaml
-  summary: Linux の非機能要件テストで、録音の入力にする文を WAV に書き出す
-- page: LIB-30.yaml
-  summary: WSL の文字起こしのサーバーで、Haas-ja-v1.0 のモデルで音声を文字に起こす
-- page: LIB-31.yaml
-  summary: haas_asr がモデルの推論に使う
+  - page: LIB-8.yaml
+    summary: ローカルの Whisper で音声を文字に起こす
+  - page: LIB-27.yaml
+    summary: マイクの入力を開いて録音する
+  - page: LIB-26.yaml
+    summary: 録音を WAV に読み書きする
+  - page: LIB-11.yaml
+    summary: 録音した音を配列で貯め、音量を求める
+  - page: LIB-20.yaml
+    summary: 起こした文字をクリップボードへ書き込む
+  - page: LIB-19.yaml
+    summary: ホットキーを受け付け、貼り付けのキーを仮想的に送信する
+  - page: LIB-17.yaml
+    summary: Windows のシステム音量を読み書きする
+  - page: LIB-5.yaml
+    summary: 音量を操作するスレッドで COM を初期化する
+  - page: LIB-12.yaml
+    summary: GPU での文字起こしに使用する cuBLAS の DLL
+  - page: LIB-14.yaml
+    summary: GPU での文字起こしに使用する cuDNN の DLL
+  - page: LIB-13.yaml
+    summary: GPU での文字起こしに使用する NVRTC の DLL
+  - page: LIB-2.yaml
+    summary: ブラウザ添付のプリセットの画面をアプリのウィンドウとして開く
+  - page: LIB-7.yaml
+    summary: 常駐サービスの API のルートと入出力の検証を組み立てる
+  - page: LIB-29.yaml
+    summary: API を 127.0.0.1 で待ち受ける
+  - page: LIB-9.yaml
+    summary: 起こした文字を呼び出し元のエンドポイントへ返却する
+  - page: LIB-18.yaml
+    summary: 設定と API の入出力を検証する
+  - page: LIB-21.yaml
+    summary: 画面とトレイを出し、ほかのスレッドからメインスレッドへ操作を引き渡す
+  - page: LIB-28.yaml
+    summary: 前のバージョンの settings.toml を、settings.yaml へ移すために読み込む
+  - page: LIB-25.yaml
+    summary: 設定をコメントを保ったまま YAML で読み書きする
+  - page: LIB-16.yaml
+    summary: 設定・履歴・ログの配置先を Windows の慣習で引く
+  - page: LIB-10.yaml
+    summary: 新しい構成の import の向きを検査する
+  - page: LIB-4.yaml
+    summary: faster-whisper が録音を読み込むために使用する、FFmpeg の Python バインディング
+  - page: LIB-24.yaml
+    summary: テストが Windows のウィンドウ・マウス・キーを操作する
+  - page: LIB-15.yaml
+    summary: 連続録音の話し声を Silero VAD の ONNX で判定する
+  - page: LIB-22.yaml
+    summary: ブラウザから送信された multipart の音声を FastAPI の UploadFile で受け取る
+  - page: LIB-23.yaml
+    summary: Linux でアクティブなウィンドウの WM_CLASS を Xorg から読み込む
+  - page: LIB-6.yaml
+    summary: Linux の Wayland のセッションで、仮想キーボードから貼り付けのキーと Enter を送信する
+  - page: LIB-1.yaml
+    summary: Linux の Wayland のセッションで、フォーカスしているウィンドウの wm_class を GNOME Shell の拡張から読み込む
+  - page: LIB-3.yaml
+    summary: Linux の非機能要件テストで、録音の入力にする文を WAV に書き出す
+  - page: LIB-30.yaml
+    summary: WSL の文字起こしのサーバーで、Haas-ja-v1.0 のモデルで音声を文字に起こす
+  - page: LIB-31.yaml
+    summary: haas_asr がモデルの推論に使用する

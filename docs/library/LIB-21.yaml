@@ -20,7 +20,7 @@ catalogs:
         purpose: トレイのアイコン・メニュー・通知を出す
       - name: QtCore.QObject / Signal
         kind: クラス
-        purpose: ほかのスレッド（API・ホットキー・ワーカーの監視）から画面の操作をメインスレッドへ渡す
+        purpose: ほかのスレッド（API・ホットキー・ワーカーの監視）から画面の操作をメインスレッドへ引き渡す
       - name: QtWidgets.QMessageBox
         kind: クラス
         purpose: 処理中に開始が来た・起動に失敗したなどのダイアログを出す
@@ -35,7 +35,7 @@ catalogs:
         purpose: カーソルのあるモニターを引く
       - name: QtTest.QTest
         kind: クラス
-        purpose: 画面の結合テストでボタンを押し、キーを送信する（pytest-qt は使わない）
+        purpose: 画面の結合テストでボタンを押し、キーを送信する（pytest-qt は使用しない）
       - name: QtGui.QWindow.startSystemMove
         kind: 関数
         purpose: 録音の画面を見出しの行のドラッグで動かす（枠なしの窓を `QWidget.windowHandle()` から動かす）
@@ -48,7 +48,7 @@ used_in:
 verification:
   state: 済
   date: '2026-10-05'
-  detail: 'Windows の実機（拡大率 150% のモニター 1 枚）で 6.11.2 を動かした PoC（#39）で、ホットキー・API のスレッドから emit した Signal がメインスレッドのスロットで受け取られること（100/100）、画面が固まらないこと（発火の間隔の最大 123 ms）、トレイのアイコンとメニューが出ること、`screenAt(QCursor.pos())` の作業領域に窓が出ること、`WindowStaysOnTopHint` の窓が「常に手前に表示」でない窓より上に残ること、200 ms の空のタイマーがあれば Ctrl+Break で 0.3 秒で終わることを確かめた（結果は PR #37 の計画書の PoC 結果）。`QWindow.startSystemMove` は同じ実機で、枠なしの Tool 窓（RecordingWindow）の見出しの行を押したまま 20 回に分けて右へ 100・下へ 80 動かすと、窓が (300, 300) から (400, 380) へ動くことを確かめた（2026-10-05。PR #48 の実装）。複数のモニター・拡大率の違うモニターでの表示位置と、窓を別のモニターへまたいで動かす操作は測れていない（実機の E2E で確かめる）。Linux の Wayland のセッションでは、Qt のプラットフォームのプラグインに XWayland の `xcb` を使う（`wayland` を選ぶと、録音の画面と文字起こし中の表示が設定の位置に置けず、貼り付け先のフォーカスを取る。PoC #221 の VM で確かめた）'
+  detail: 'Windows の実機（拡大率 150% のモニター 1 枚）で 6.11.2 を動かした PoC（[#39 PySide6 のイベントループとホットキー・API のスレッドの受け渡し・録音の画面の最前面を確かめる](https://github.com/shuhei1101/voice-paste/issues/39)）で、ホットキー・API のスレッドから emit した Signal がメインスレッドのスロットで受け取られること（100/100）、画面が固まらないこと（発火の間隔の最大 123 ms）、トレイのアイコンとメニューが出ること、`screenAt(QCursor.pos())` の作業領域に窓が出ること、`WindowStaysOnTopHint` の窓が「常に手前に表示」でない窓より上に残ること、200 ms の空のタイマーがあれば Ctrl+Break で 0.3 秒で終わることを確認した（結果は PR [#37 画面・トレイ・ホットキーを新しい構成で作り直す](https://github.com/shuhei1101/voice-paste/issues/37) の計画書の PoC 結果）。`QWindow.startSystemMove` は同じ実機で、枠なしの Tool 窓（RecordingWindow）の見出しの行を押したまま 20 回に分けて右へ 100・下へ 80 動かすと、窓が (300, 300) から (400, 380) へ動くことを確認した（2026-10-05。PR [#48 録音の画面をドラッグで動かし、録音中に隠して戻し、× で取り消せるようにする](https://github.com/shuhei1101/voice-paste/issues/48) の実装）。複数のモニター・拡大率の違うモニターでの表示位置と、窓を別のモニターへまたいで動かす操作は測れていない（実機の E2E で確認する）。Linux の Wayland のセッションでは、Qt のプラットフォームのプラグインに XWayland の `xcb` を使用する（`wayland` を選ぶと、録音の画面と文字起こし中の表示が設定の位置に配置できず、貼り付け先のフォーカスを取る。PoC [#221 PoC: Ubuntu 24.04 の Wayland のセッションのホットキー・キーの送信・クリップボード・画面](https://github.com/shuhei1101/voice-paste/issues/221) の VM で確認した）'
 license: LGPL-3.0（商用利用可。ライブラリを差し替えられる形で配布する義務があるが、配布用のビルドは持たない）
 official_url: https://doc.qt.io/qtforpython-6/
 install: |-

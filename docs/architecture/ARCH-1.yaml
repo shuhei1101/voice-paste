@@ -136,7 +136,7 @@ external_systems:
     direction: 受信のみ
     protocol: HTTPS（faster-whisper が取得する）
     notes:
-      事前確認: 文字起こしワーカーの起動時に、モデルを読み込めることを確かめる（手元に無ければその時点で取得する）。
+      事前確認: 文字起こしワーカーの起動時に、モデルを読み込めることを確認する（手元に無ければその時点で取得する）。
     detail: API-1#
   - name: Microsoft Edge
     purpose: ブラウザ添付のプリセットで確定したときに、プリセットの URL の画面を開く
@@ -150,7 +150,7 @@ external_systems:
     direction: 双方向
     protocol: HTTP（127.0.0.1・Bearer のトークン。返送は呼び出し元のエンドポイントへ POST）
     notes:
-      事前確認: 起動時に API の待ち受けを始められたか（uvicorn の started）を確かめ、始められなければトレイで知らせてホットキーだけで続ける。コールバック先は開始の要求を受けたときに許されるホストかを確かめる。届くかは返送のたびに確かめ、届かなくても常駐アプリを止めない。
+      事前確認: 起動時に API の待ち受けを始められたか（uvicorn の started）を確かめ、始められなければトレイで知らせてホットキーだけで続ける。コールバック先は開始の要求を受けたときに許されるホストかを確認する。届くかは返送のたびに確かめ、届かなくても常駐アプリを止めない。
     detail: IF-10#
   - name: 設定の送信先のエンドポイント
     purpose: ホットキー・トレイから始めた録音を「エンドポイントへ送信」種類のカスタムプリセットで確定したときに、起こした文字を受け取る
@@ -162,14 +162,14 @@ external_systems:
   - name: ゲートウェイ（shuhdev-gateway）
     purpose: 外の端末のブラウザの要求を、Cloudflare Access で認証してから 127.0.0.1 の API の `/web/` の下へ中継する
     direction: 双方向
-    protocol: HTTPS（外）→ HTTP（127.0.0.1。Host を `localhost:{ポート}` に書き換え、Origin はそのまま渡す）。常駐アプリは受けて応答を返すだけで、自分からは接続しない
+    protocol: HTTPS（外）→ HTTP（127.0.0.1。Host を `localhost:{ポート}` に書き換え、Origin はそのまま渡す）。常駐アプリは受けて応答を返却するだけで、自分からは接続しない
     detail: IF-11#
     cost: 無料。本文は 100 MB まで（Cloudflare の無料プラン）・応答待ちは 83 秒まで（ゲートウェイの `upstream.header_timeout_sec`）
     refs:
       - NFR-1#requirements[ブラウザの要求の応答時間]
       - NFR-1#requirements[ブラウザの本文の上限]
     notes:
-      事前確認: 常駐アプリはゲートウェイへ問い合わせない（受ける側のため）。公開の登録は反映作業『ゲートウェイへの登録』で行い、外の端末から `/web/` が画面を返すことで確かめる。
+      事前確認: 常駐アプリはゲートウェイへ問い合わせない（受ける側のため）。公開の登録は反映作業『ゲートウェイへの登録』で行い、外の端末から `/web/` が画面を返却することで確認する。
     status: planned
     introduced:
       pr: 171
@@ -187,12 +187,12 @@ external_systems:
     introduced:
       pr: 204
   - name: Focused Window D-Bus（GNOME Shell の拡張）
-    purpose: Linux の Wayland のセッションで、貼り付けのキーを送信する直前にフォーカスしているウィンドウの wm_class を読み、端末アプリかを見分ける
+    purpose: Linux の Wayland のセッションで、貼り付けのキーを送信する直前にフォーカスしているウィンドウの wm_class を読み込み、端末アプリかを見分ける
     direction: 双方向
     protocol: D-Bus（セッションバス。`gdbus call` を子プロセスで起動する）
     detail: LIB-1#
     notes:
-      事前確認: 不要。読めない（拡張が無い・無効）ときは設定の貼り付けのキーを送信し、貼り付けを止めない。
+      事前確認: 不要。読み込めない（拡張が無い・無効）ときは設定の貼り付けのキーを送信し、貼り付けを止めない。
     status: planned
     introduced:
       pr: 238
@@ -201,7 +201,7 @@ constraints: |-
   - Linux（Ubuntu 24.04 の Xorg のセッションと Wayland のセッション）でも起動できる。OS で分かれる実装は配線で選び、Linux ではシステムの音量を変えず、ローカルの文字起こしの既定は CPU にする
   - Windows のショートカットから起動できる（手段はバッチファイルに限らない）。Linux は起動のスクリプト（`voice-paste.sh`）から起動でき、ログイン時の自動起動とアプリの一覧の `.desktop` の雛形を持つ
   - ビルドせず、master のソースをそのまま動かす
-  - Python で書く
+  - Python で書き込む
   - API は 127.0.0.1 だけで待ち受ける。`/web/` の外は起動ごとのトークンで照合し、`/web/` の下はトークンを求めず Host と Origin の許可リストで通し、Origin の無い要求も通す（外からの認証はゲートウェイの Cloudflare Access が持つ）
   - ローカルの文字起こしは GPU（CUDA）で動かす
   - ユーザーは master のコードをビルドせずに普段使いしている（ショートカットは起動のバッチファイルから常駐アプリを起動する）

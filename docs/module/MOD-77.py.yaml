@@ -17,7 +17,7 @@ constants:
     usecase: 起こした文字を届ける
     summary: gdbus の応答を待つ秒数。超えたら読み込めなかったとして設定の貼り付けのキーを送信する
     value: '1.0'
-    reason: 'PoC #239 で読み込む時間は 0.006〜0.009 秒だった。応答しない GNOME Shell で貼り付けを長く止めない上限にする'
+    reason: 'PoC [#239 PoC: 初回の起動のトレイのアイコンと、Wayland の端末アプリの見分け](https://github.com/shuhei1101/voice-paste/issues/239) で読み込む時間は 0.006〜0.009 秒だった。応答しない GNOME Shell で貼り付けを長く止めない上限にする'
     status: planned
 functions:
   - name: read_focused_wm_class

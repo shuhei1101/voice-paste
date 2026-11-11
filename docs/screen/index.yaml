@@ -1,22 +1,22 @@
 summary: 画面ごとの要素の仕様と入力チェック（画面の結合テストの元）
 items:
-- page: SCR-10.py.yaml
-  summary: 録音中の状態・経過時間・波形と、一時停止・取り消し・出力先を選んでの確定
-- page: SCR-7.py.yaml
-  summary: 確定から届けるまでの経過と残りの時間を、フォーカスを取らずに出す
-- page: SCR-1.py.yaml
-  summary: 状態ごとのアイコンと、録音・設定・フォルダ・再起動・終了のメニュー
-- page: SCR-2.py.yaml
-  summary: 裏の処理で起きた失敗と、「コピーのみ」のコピーの完了を Windows の通知で知らせる
-- page: SCR-3.py.yaml
-  summary: API の録音の処理中に録音開始のホットキーを押したときに、始められない理由を知らせる
-- page: SCR-9.py.yaml
-  summary: 設定の全てのキーをまとまりに並べ、確かめてから保存する
-- page: SCR-5.py.yaml
-  summary: 設定画面で変えた値を捨てて閉じるかを確かめる
-- page: SCR-8.py.yaml
-  summary: 全ての設定を既定の値へ戻すかを確かめる
-- page: SCR-6.html.yaml
-  summary: 外の端末のブラウザで録るかファイルを送信し、文字起こしの結果を受け取ってコピーする
-- page: SCR-4.html.yaml
-  summary: 外の端末の画面で、結果の削除と文字起こし前の音声の置換を確かめる
+  - page: SCR-10.py.yaml
+    summary: 録音中の状態・経過時間・波形と、一時停止・取り消し・出力先を選んでの確定
+  - page: SCR-7.py.yaml
+    summary: 確定から届けるまでの経過と残りの時間を、フォーカスを取らずに出す
+  - page: SCR-1.py.yaml
+    summary: 状態ごとのアイコンと、録音・設定・フォルダ・再起動・終了のメニュー
+  - page: SCR-2.py.yaml
+    summary: 裏の処理で起きた失敗と、「コピーのみ」のコピーの完了を Windows の通知で知らせる
+  - page: SCR-3.py.yaml
+    summary: API の録音の処理中に録音開始のホットキーを押したときに、始められない理由を知らせる
+  - page: SCR-9.py.yaml
+    summary: 設定の全てのキーをまとまりに並べ、確認してから保存する
+  - page: SCR-5.py.yaml
+    summary: 設定画面で変えた値を捨てて閉じるかを確認する
+  - page: SCR-8.py.yaml
+    summary: 全ての設定を既定の値へ戻すかを確認する
+  - page: SCR-6.html.yaml
+    summary: 外の端末のブラウザで録るかファイルを送信し、文字起こしの結果を受け取ってコピーする
+  - page: SCR-4.html.yaml
+    summary: 外の端末の画面で、結果の削除と文字起こし前の音声の置換を確認する

@@ -577,7 +577,7 @@ data_models:
       - name: readings
         type: list[str]
         default: '[]'
-        description: words と同じ並びの読み込み（各読みの前後の空白を除く）。空の一覧か words と同じ長さ。空文字は読みが無い単語
+        description: words と同じ並びの読み（各読みの前後の空白を除く）。空の一覧か words と同じ長さ。空文字は読みが無い単語
     refs:
       - CFG-1#settings[hint_presets[].name]
       - CFG-1#settings[hint_presets[].words]
@@ -778,7 +778,7 @@ data_models:
     container: shared/settings.py
     usecase: 録音を文字に起こす
     role: DTO
-    summary: Haas へ引き渡す単語 1 つの表記と読み込み
+    summary: Haas へ引き渡す単語 1 つの表記と読み
     description: '`NamedTuple`。'
     properties:
       - name: written
@@ -786,7 +786,7 @@ data_models:
         description: 単語の表記
       - name: reading
         type: str | None
-        description: 読み込み。読みの無い単語は None
+        description: 読み。読みの無い単語は None
     status: planned
 enums:
   - name: Preset
@@ -1988,7 +1988,7 @@ functions:
       - name: test_collect_hint_vocabulary
         case: 正常
         summary: 有効なプリセットの単語を表記と読みの組で返却する
-        condition: 有効なプリセットに単語 突合（読み込み とつごう）・voice-paste（読み込み 空）、無効なプリセットに単語 議事録
+        condition: 有効なプリセットに単語 突合（読み とつごう）・voice-paste（読み 空）、無効なプリセットに単語 議事録
         mock: なし
         expected: '[("突合", "とつごう"), ("voice-paste", None)]'
       - name: test_collect_hint_vocabulary_when_no_readings
@@ -2000,7 +2000,7 @@ functions:
       - name: test_collect_hint_vocabulary_when_duplicate_word
         case: 正常
         summary: 同じ表記は 1 つにまとめ、読みのある方を残す
-        condition: 1 つ目のプリセットに 突合（読み込み 空）、2 つ目のプリセットに 突合（読み込み とつごう）
+        condition: 1 つ目のプリセットに 突合（読み 空）、2 つ目のプリセットに 突合（読み とつごう）
         mock: なし
         expected: '[("突合", "とつごう")]'
     status: planned

@@ -6,7 +6,7 @@ entry:
   value: GET /web/transcriptions/{job_id}
 flows:
   - name: 正常系
-    summary: 文字起こしが終わったジョブの、補正した文字を返す
+    summary: 文字起こしが終わったジョブの、補正した文字を返却する
     setup:
       - name: Mock
         description: ブラウザの音声のジョブの一覧に、ジョブを直接入れる
@@ -31,10 +31,10 @@ flows:
       - もう一度取りに来ても同じ内容が返る
     test: test_normal
   - name: 正常系（文字起こし中）
-    summary: 文字起こし待ち・文字起こし中のジョブの進み具合を返す
+    summary: 文字起こし待ち・文字起こし中のジョブの進み具合を返却する
     setup:
       - name: Mock
-        description: ブラウザの音声のジョブの一覧に、ジョブを直接入れる。進みを返すかを true（設定のエンジンが `local_whisper`）にして app を立てる
+        description: ブラウザの音声のジョブの一覧に、ジョブを直接入れる。進みを返却するかを true（設定のエンジンが `local_whisper`）にして app を立てる
       - name: 終わっていないジョブ
         description: state が queued のジョブと、state が running・progress が 0.42 のジョブ
     flow: |-
@@ -56,7 +56,7 @@ flows:
       - どちらも reports_progress が true
     test: test_normal_when_in_progress
   - name: 正常系（文字起こし失敗）
-    summary: 文字起こしに失敗したジョブの理由を返す
+    summary: 文字起こしに失敗したジョブの理由を返却する
     setup:
       - name: Mock
         description: ブラウザの音声のジョブの一覧に、ジョブを直接入れる
@@ -79,10 +79,10 @@ flows:
       - 200 で state が failed、error が失敗の理由、text が null
     test: test_normal_when_failed
   - name: 正常系（進みを返さないエンジン）
-    summary: 設定のエンジンが進みを返さないとき、文字起こし中のジョブに進みを返さないことを添えて返す
+    summary: 設定のエンジンが進みを返却しないとき、文字起こし中のジョブに進みを返却しないことを添えて返却する
     setup:
       - name: Mock
-        description: ブラウザの音声のジョブの一覧に、ジョブを直接入れる。進みを返すかを false（設定のエンジンが `openai`）にして app を立てる
+        description: ブラウザの音声のジョブの一覧に、ジョブを直接入れる。進みを返却するかを false（設定のエンジンが `openai`）にして app を立てる
       - name: 終わっていないジョブ
         description: state が running・progress が 0.0 のジョブ
     flow: |-
@@ -119,7 +119,7 @@ flows:
         participant LOG as ログ
 
         C->>IF: job_id（許していない Origin）
-        IF->>LOG: 断った理由と要求元（Host・Origin）を書く
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書き込む
         IF-->>C: 403（problem+json）
       ```
 
@@ -152,13 +152,13 @@ flows:
       - 後に終わったジョブは 200 で返る
     test: test_error_when_job_not_found
   - name: 異常系（Linux で動いている・404）
-    summary: 常駐サービスが Linux で動いているときは `/web/` の下のルートが無く、Origin によらず 404 を返す
+    summary: 常駐サービスが Linux で動いているときは `/web/` の下のルートが無く、Origin によらず 404 を返却する
     setup:
       - name: Mock
-        description: なし（常駐アプリの app を、Linux で使えない機能を外して TestClient で立てる）
+        description: なし（常駐アプリの app を、Linux で使用できない機能を外して TestClient で立てる）
         notes: 動いている OS を Linux にする
       - name: 要求のヘッダー
-        description: Origin を付けない要求と、許す Origin に無い Origin を付けた要求の 2 つを送る
+        description: Origin を付けない要求と、許す Origin に無い Origin を付けた要求の 2 つを送信する
         notes: '`Origin: http://evil.example`'
     flow: |-
       <!-- map: {"title": "異常系（Linux で動いている・404）"} -->
@@ -169,7 +169,7 @@ flows:
         participant IF as GET /web/transcriptions/{job_id}
 
         C->>IF: 結果を取りに行く（Origin なし・許す Origin に無い Origin）
-        IF->>IF: Host を確かめる（Origin は確かめない）
+        IF->>IF: Host を確認する（Origin は確認しない）
         IF-->>C: 404（problem+json）
       ```
 
@@ -177,18 +177,18 @@ flows:
     expected:
       - Origin を付けない要求と、許す Origin に無い Origin を付けた要求のどちらにも 404（problem+json）が返る
     test: test_error_when_running_on_linux
-lead: 受け付けたジョブの状態・進み具合と、終わっていれば起こした文字か失敗の理由を返す。
+lead: 受け付けたジョブの状態・進み具合と、終わっていれば起こした文字か失敗の理由を返却する。
 identifier: get_web_transcription
-permissions: job_id を知っていること（外からの認証は Cloudflare Access が持つ。常駐アプリは Host と Origin だけを確かめる）
+permissions: job_id を知っていること（外からの認証は Cloudflare Access が持つ。常駐アプリは Host と Origin だけを確認する）
 idempotent: true
-side_effects: なし（取りに来てもジョブは消さない）
-exclusivity: 制限なし（文字起こしの途中も返す）
+side_effects: なし（取りに来てもジョブは削除しない）
+exclusivity: 制限なし（文字起こしの途中も返却する）
 request:
   - name: Host
     type: str
     required: true
     location: header
-    description: 待ち受けのホスト。ゲートウェイは `localhost:{ポート}` に書き換えて渡す
+    description: 待ち受けのホスト。ゲートウェイは `localhost:{ポート}` に書き換えて引き渡す
     constraints: '`127.0.0.1:{ポート}` か `localhost:{ポート}`'
     status: planned
   - name: Origin
@@ -203,7 +203,7 @@ request:
     type: str
     required: true
     location: path
-    description: 音声を受け付ける が返したジョブの ID
+    description: 音声を受け付ける が返却したジョブの ID
     example: q3Vb8sXk2mJf0tLw9eRzAg
     status: planned
 response:
@@ -219,7 +219,7 @@ response:
     constraints: 0.0〜1.0。`queued` は 0.0、`done` は 1.0、`failed` は失敗した時点の値。`reports_progress` が false のときは `running` の間も 0.0
   - name: reports_progress
     type: bool
-    description: 設定の文字起こしのエンジンが、起こしている途中の進みを返すか。`local_whisper` は true、`openai`・`haas` は false
+    description: 設定の文字起こしのエンジンが、起こしている途中の進みを返却するか。`local_whisper` は true、`openai`・`haas` は false
     notes: ジョブの状態によらず同じ値。常駐サービスの起動時の設定（`transcription.engine`。反映は再起動）で決まる。デスクトップの文字起こし中の表示と同じ判定
   - name: text
     type: str | None
@@ -228,7 +228,7 @@ response:
   - name: error
     type: str | None
     description: 文字起こしに失敗した理由
-    notes: '`failed` のときだけ文字列。それ以外は null。音声の置き場所や例外のスタックを含めない'
+    notes: '`failed` のときだけ文字列。それ以外は null。音声の配置先や例外のスタックを含めない'
 response_example: |-
   ```json
   {
@@ -240,12 +240,12 @@ response_example: |-
     "error": null
   }
   ```
-response_notes: 終わったジョブは、終わったジョブを持つ件数を超えるまで、何度取りに来ても同じ内容を返す。常駐サービスを再起動すると、それまでのジョブは全て 404 になる。
+response_notes: 終わったジョブは、終わったジョブを持つ件数を超えるまで、何度取りに来ても同じ内容を返却する。常駐サービスを再起動すると、それまでのジョブは全て 404 になる。
 status_codes:
   - code: '200'
-    condition: ジョブがあり、状態を返した
+    condition: ジョブがあり、状態を返却した
   - code: '403'
-    condition: Host が 127.0.0.1 でも localhost でもないか、Origin が付いていて許す Origin に無い（Linux では Origin を確かめず、Host が合わないときだけ）
+    condition: Host が 127.0.0.1 でも localhost でもないか、Origin が付いていて許す Origin に無い（Linux では Origin を確認せず、Host が合わないときだけ）
   - code: '404'
     condition: job_id のジョブが無い（受け付けていない・常駐サービスを再起動した・終わったジョブを持つ件数を超えて捨てた）。または、常駐サービスが Linux で動いている（`/web/` の下のルートを登録していない。Origin によらない）
 error_format: RFC 9457 の `application/problem+json`（`type`・`title`・`status`・`detail`）で返す。今の API の `problem_response` に揃える。
@@ -256,7 +256,7 @@ constraints:
     constraint: トークンを求めない。Host が待ち受けのホストで、Origin が無いか許す Origin にあること
     notes: 画面と同じオリジンの fetch の GET には Origin が付かないため、Origin が無い要求を通す。ほかのオリジンのページからの fetch にはブラウザが Origin を付けるため 403 で断れる。job_id は推測できない乱数で、知らなければ結果を引けない
   - item: 応答時間
-    constraint: ブラウザの要求の応答時間以内。文字起こしを待たずに今の状態を返す
+    constraint: ブラウザの要求の応答時間以内。文字起こしを待たずに今の状態を返却する
     decided_by: NFR-1#requirements[ブラウザの要求の応答時間]
   - item: 終わったジョブの保持
     constraint: 終わったジョブ（done・failed）を終わったジョブを持つ件数までメモリに持ち、超えたらいちばん古く終わったジョブを捨てる
@@ -264,7 +264,7 @@ constraints:
   - item: 取りに来る間隔
     constraint: 制限なし
     notes: 画面は取りに来る間隔を画面設計で決める
-  - item: 使える OS
-    constraint: 常駐サービスが Windows で動いているときだけ。Linux では `/web/` の下のルートを登録せず、Origin によらず 404 を返す（要求の守りは Host だけを確かめ、Origin を確かめずにルートへ渡す）
-    notes: OS ごとに使える機能の表で、外の端末のブラウザの機能を Linux で使えない機能にしている。Host が合わない要求は Linux でも 403
+  - item: 使用できる OS
+    constraint: 常駐サービスが Windows で動いているときだけ。Linux では `/web/` の下のルートを登録せず、Origin によらず 404 を返却する（要求の守りは Host だけを確かめ、Origin を確認せずにルートへ引き渡す）
+    notes: OS ごとに使用できる機能の表で、外の端末のブラウザの機能を Linux で使用できない機能にしている。Host が合わない要求は Linux でも 403
 test_file: tests/integration/test_get_web_transcription.py

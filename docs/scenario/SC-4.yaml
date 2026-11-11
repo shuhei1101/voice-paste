@@ -5,7 +5,7 @@ scenarios:
   - name: 正常シナリオ
     setup:
       - name: Mock
-        description: Windows の Edge で画面を開く。常駐アプリは pytest のプロセスの中で起動し、文字起こしのエンジンは決めた文を区間ごとに進みを返しながら返す関数に差し替える
+        description: Windows の Edge で画面を開く。常駐アプリは pytest のプロセスの中で起動し、文字起こしのエンジンは決めた文を区間ごとに進みを返却しながら返却する関数に差し替える
       - name: 受け付けたジョブ
         description: ブラウザから音声を送信する でジョブを 1 件受け付けている
     flow: |-
@@ -55,8 +55,8 @@ scenarios:
 
         U->>PG: 1 件の削除ボタンを押す
         PG->>PG: 削除の確認のモーダルを出す
-        U->>PG: 消す
-        PG->>LS: その件を消す
+        U->>PG: 削除する
+        PG->>LS: その件を削除する
         PG->>PG: 一覧からその件を外す
       ```
 
@@ -67,7 +67,7 @@ scenarios:
   - name: 正常シナリオ（残す件数を超える）
     setup:
       - name: Mock
-        description: Windows の Edge で画面を開き、文字起こしのエンジンは決めた文を返す関数に差し替える
+        description: Windows の Edge で画面を開き、文字起こしのエンジンは決めた文を返却する関数に差し替える
       - name: 残っている結果
         description: 端末（localStorage）に結果を 10 件入れておく
     flow: |-
@@ -81,7 +81,7 @@ scenarios:
 
         PG->>API: 結果を取りに行く（job_id）
         API-->>PG: state（done）・text
-        PG->>LS: 結果を残し、いちばん古い 1 件を消す
+        PG->>LS: 結果を残し、いちばん古い 1 件を削除する
       ```
 
       <!-- /map -->
@@ -106,8 +106,8 @@ scenarios:
         participant DB as 端末（IndexedDB）
 
         U->>PG: 画面を開く
-        PG->>LS: 期限を過ぎた結果を消す
-        PG->>DB: 期限を過ぎた音声を消す
+        PG->>LS: 期限を過ぎた結果を削除する
+        PG->>DB: 期限を過ぎた音声を削除する
         PG->>PG: 残った結果を一覧に出す
       ```
 
@@ -119,9 +119,9 @@ scenarios:
   - name: 正常シナリオ（進みを返さないエンジン）
     setup:
       - name: Mock
-        description: Windows の Edge で画面を開く。常駐アプリは pytest のプロセスの中で起動し、文字起こしは進みを知らせずに、放すまで待ってから決めた文を返す関数に差し替える
+        description: Windows の Edge で画面を開く。常駐アプリは pytest のプロセスの中で起動し、文字起こしは進みを知らせずに、放すまで待ってから決めた文を返却する関数に差し替える
       - name: 文字起こしのエンジン
-        description: OpenAI API を使う設定にし、API キーを環境変数 `OPENAI_API_KEY` にテスト用の値で渡す。文字起こしは差し替えるため、OpenAI API へは送信しない
+        description: OpenAI API を使用する設定にし、API キーを環境変数 `OPENAI_API_KEY` にテスト用の値で引き渡す。文字起こしは差し替えるため、OpenAI API へは送信しない
         notes: '`transcription.engine: openai`'
       - name: 受け付けたジョブ
         description: ブラウザから音声を送信する でジョブを 1 件受け付けている
@@ -135,7 +135,7 @@ scenarios:
 
         loop 終わるまで
           PG->>API: 結果を取りに行く（job_id）
-          API-->>PG: state（running）・進みを返さないこと
+          API-->>PG: state（running）・進みを返却しないこと
           PG->>PG: 待ちの件に「文字起こし中」だけを出す
         end
         PG->>API: 結果を取りに行く（job_id）
@@ -149,11 +149,11 @@ scenarios:
       - 終わると、件に起こした文字が出ている
     test: test_normal_when_engine_reports_no_progress
     notes:
-      進みを返さないエンジン: 進みを返さないのは OpenAI API と Haas のエンジン。どちらも同じ出し方になるため、このシナリオは OpenAI API の設定で確かめる。
+      進みを返さないエンジン: 進みを返却しないのは OpenAI API と Haas のエンジン。どちらも同じ出し方になるため、このシナリオは OpenAI API の設定で確認する。
   - name: 異常シナリオ（文字起こしに失敗）
     setup:
       - name: Mock
-        description: Windows の Edge で画面を開き、文字起こしのエンジンは失敗を返す関数に差し替える
+        description: Windows の Edge で画面を開き、文字起こしのエンジンは失敗を返却する関数に差し替える
       - name: 受け付けたジョブ
         description: 画面で録った音声を送信し、ジョブを 1 件受け付けている
     flow: |-

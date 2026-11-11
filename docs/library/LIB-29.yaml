@@ -14,13 +14,13 @@ catalogs:
     entries:
       - name: Config
         kind: クラス
-        purpose: 127.0.0.1 とポート、ログの設定を渡す
+        purpose: 127.0.0.1 とポート、ログの設定を引き渡す
       - name: Server.serve
         kind: メソッド
         purpose: 専用のスレッドのイベントループで API のサーバーを動かす
       - name: Server.started
         kind: 属性
-        purpose: 待ち受けを始められたかを起動後に確かめる
+        purpose: 待ち受けを始められたかを起動後に確認する
       - name: Server.should_exit
         kind: 属性
         purpose: 常駐サービスの終了時にサーバーを止める
@@ -34,6 +34,6 @@ upstream: Kludex/uvicorn
 verification:
   state: 済
   date: '2026-10-01'
-  detail: WSL（Linux・Python 3.12）で、Server.serve() を専用のスレッドで動かし started が True になること、同じポートで 2 つ目を起こすと例外を出さずにスレッドが終わり started が False のままであること、should_exit で止まることを確かめた。Windows の実機では未確認
+  detail: WSL（Linux・Python 3.12）で、Server.serve() を専用のスレッドで動かし started が True になること、同じポートで 2 つ目を起こすと例外を出さずにスレッドが終わり started が False のままであること、should_exit で止まることを確認した。Windows の実機では未確認
 license: BSD-3-Clause（商用利用可）
 official_url: https://www.uvicorn.org/

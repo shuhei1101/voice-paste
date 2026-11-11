@@ -34,7 +34,7 @@ flows:
       - 停止した後に入った音が録音に貯まっていない
     test: test_normal
   - name: 正常系（既に停止している）
-    summary: 停止した録音セッションへの停止は何も変えず 200 を返す
+    summary: 停止した録音セッションへの停止は何も変えず 200 を返却する
     setup:
       - name: Mock
         description: マイク・システム音量・トレイを差し替える
@@ -76,7 +76,7 @@ flows:
         participant LOG as ログ
 
         C->>IF: 合わないトークン
-        IF->>LOG: 断った理由と要求元（Host・Origin）を書く（トークンは書かない）
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書き込む（トークンは書き込まない）
         IF-->>C: 401
       ```
 
@@ -84,7 +84,7 @@ flows:
     expected:
       - 401 が返る
       - 録音セッションが録音中のままである
-      - ログに断った理由と要求元が書かれ、トークンの値は書かれていない
+      - ログに断った理由と要求元が書き込まれ、トークンの値は書き込まれていない
     test: test_error_when_token_mismatch
   - name: 異常系（ブラウザからの要求・403）
     summary: Origin の付いた要求と、Host が待ち受けのホストでない要求を断る
@@ -105,7 +105,7 @@ flows:
         participant LOG as ログ
 
         C->>IF: Origin ありか、ほかの Host
-        IF->>LOG: 断った理由と要求元（Host・Origin）を書く（トークンは書かない）
+        IF->>LOG: 断った理由と要求元（Host・Origin）を書き込む（トークンは書き込まない）
         IF-->>C: 403
       ```
 
@@ -113,7 +113,7 @@ flows:
     expected:
       - 403 が返る
       - 録音セッションが録音中のままである
-      - ログに断った理由と要求元が書かれ、トークンの値は書かれていない
+      - ログに断った理由と要求元が書き込まれ、トークンの値は書き込まれていない
     test: test_error_when_browser_request
   - name: 異常系（知らない録音セッション・404）
     summary: 録音中でも停止中でもない録音セッションは断る
@@ -160,7 +160,7 @@ flows:
 
       <!-- /map -->
     expected:
-      - 409 が返り、detail に連続録音は完了で終えることが書かれている
+      - 409 が返り、detail に連続録音は完了で終えることが書き込まれている
       - 録音セッションが録音中のままで、区切りを続けている
     test: test_error_when_continuous
 lead: API から始めた録音を停止し、完了を待つ状態にする。停止した後の音は貯めない。連続録音の録音セッションは停止せずに 409 で断る。
@@ -186,7 +186,7 @@ request:
     status: implemented
 response_notes: |-
   > [!NOTE]
-  > 停止した録音セッションへもう一度停止を呼んでも 200 を返し、状態は変わらない。
+  > 停止した録音セッションへもう一度停止を呼んでも 200 を返却し、状態は変わらない。
 status_codes:
   - code: '200'
     condition: 録音を停止した（既に停止していたときも）

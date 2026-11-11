@@ -285,7 +285,7 @@ classes:
         title: 補正に使う用語集の名前
         kind: メソッド
         scope: public
-        summary: 補正に使用する単位が用語集のプリセットになったため、active_preset_name に置き換える（#173）
+        summary: 補正に使用する単位が用語集のプリセットになったため、active_preset_name に置き換える（[#173 補正に使う用語集を複数まとめて選べる用語集のプリセットを追加し、API からも選べるようにする](https://github.com/shuhei1101/voice-paste/issues/173)）
         returns:
           type: str
           description: 補正に使用する用語集の名前

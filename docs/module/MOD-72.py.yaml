@@ -24,7 +24,7 @@ constants:
     title: 端末アプリの WM_CLASS
     container: integrations/keyboard/sender.py
     usecase: 起こした文字を届ける
-    summary: 'send_paste_linux（Xorg）と UInputKeyboard.send_paste（Wayland）が端末アプリと見なす WM_CLASS の名前（小文字）。インスタンス名かクラス名を小文字にした値がどれかに当たれば端末アプリとする。Wayland では拡張 Focused Window D-Bus が Xorg と同じ名前を返却する（PoC #239）'
+    summary: 'send_paste_linux（Xorg）と UInputKeyboard.send_paste（Wayland）が端末アプリと見なす WM_CLASS の名前（小文字）。インスタンス名かクラス名を小文字にした値がどれかに当たれば端末アプリとする。Wayland では拡張 Focused Window D-Bus が Xorg と同じ名前を返却する（PoC [#239 PoC: 初回の起動のトレイのアイコンと、Wayland の端末アプリの見分け](https://github.com/shuhei1101/voice-paste/issues/239)）'
     value: frozenset({"gnome-terminal-server", "gnome-terminal", "kgx", "org.gnome.console", "ptyxis", "org.gnome.ptyxis", "tilix", "terminator", "konsole", "xfce4-terminal", "alacritty", "kitty"})
     reason: 設定のスキーマを変えないため定数で持つ。Ctrl+Shift+V がクリップボードの貼り付けになる端末を並べる。実際に確認したのは GNOME Terminal（`gnome-terminal-server`。[#211](https://github.com/shuhei1101/voice-paste/pull/211)）だけで、ほかの端末のクラス名と貼り付けのキーは未確認。Ctrl+Shift+V で貼り付けない xterm は入れない
     status: planned

@@ -14,7 +14,7 @@ classes:
     description: |-
       窓をまたいで区切りの状態（話し声の始まり・無音の候補・前の区切り）と、前の区切り以降の音を持ち続けるためクラスにする。
       区切ったら区切りより前の音を手放し、持つ音は区間の最大の長さ程度に収める（連続録音の長さで増えない）。
-      区切りの決め方は PoC #80 の Segmenter と同じ（faster-whisper の get_speech_timestamps と同じ閾値の決め方）。
+      区切りの決め方は PoC [#80 PoC: 録音を止めずに Silero VAD で区切り、区間ごとの文字起こしが追いつくかを確かめる](https://github.com/shuhei1101/voice-paste/issues/80) の Segmenter と同じ（faster-whisper の get_speech_timestamps と同じ閾値の決め方）。
       区切りのスレッドからだけ呼ぶ（並行で呼ばない）。
     properties:
       - name: _detect_speech
@@ -276,7 +276,7 @@ constants:
     title: 区間の余白
     container: features/recording/segmenter.py
     usecase: 録音する
-    summary: '話し声の前後に残す余白（秒。言葉の頭と尾を切らないため。PoC #80 と同じ）'
+    summary: '話し声の前後に残す余白（秒。言葉の頭と尾を切らないため。PoC [#80 PoC: 録音を止めずに Silero VAD で区切り、区間ごとの文字起こしが追いつくかを確かめる](https://github.com/shuhei1101/voice-paste/issues/80) と同じ）'
     value: '0.3'
     status: planned
     introduced:

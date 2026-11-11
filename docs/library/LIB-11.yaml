@@ -19,10 +19,10 @@ catalogs:
         purpose: 貯めた音の塊を 1 つの配列につなぐ
       - name: zeros
         kind: 関数
-        purpose: 音量の表示に使う直近の音を無音で初期化する
+        purpose: 音量の表示に使用する直近の音を無音で初期化する
       - name: sqrt / mean
         kind: 関数
-        purpose: 直近の音の RMS を求め、波形の大きさに使う
+        purpose: 直近の音の RMS を求め、波形の大きさに使用する
 lead: 多次元配列と数値計算のライブラリ。
 purl: pkg:pypi/numpy
 dependency_scope: 必須

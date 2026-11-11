@@ -113,7 +113,7 @@ scope_out:
     plan: none
   - item: YAML の設計書のタグ・エイリアス・descriptionと、コード・テストの files.yml の行のタグ・description
     reason: YAML の設計書は今の Schema がキーを持たない。コード・テストの行は設計書のタグと同じ語彙で付けるため、ai-monitor#3188 の後にまとめて移行する（確認ログの推奨案 A）
-    plan: to_file
+    plan: '#285'
   - item: モジュール構成『常駐アプリ / 録音セッション / service.py』の状態遷移図（stateDiagram-v2）の置き換え
     reason: mdmark に状態遷移図の部品が無く、map は flowchart・sequenceDiagram だけを描くため、Mermaid のまま残す
-    plan: to_file
+    plan: '#284'

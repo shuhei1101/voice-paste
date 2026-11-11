@@ -1,7 +1,7 @@
 docs:
   - page: docs/mock/components/check-indicator/index.html
     new: false
-    change: 今の描画の <img> 2 つの参照先を、docs/pr/159/スクリーンショット/ から同じフォルダへ移した qt-now-light.png・qt-now-dark.png へ書き換える
+    change: 今の描画の <img> 2 つの参照先を、docs/pr/159/スクリーンショット/ から images/ へ移した qt-now-light.png・qt-now-dark.png へ書き換える
     status: done
     updated_by: planner
     updated_at: '2026-11-11T14:37:17.610225+00:00'

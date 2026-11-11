@@ -16,7 +16,7 @@ catalogs:
         purpose: どのウィンドウにフォーカスがあっても、登録したホットキーで関数を呼ぶ（録音開始・録音の画面の確定と取り消し）
       - name: keyboard.Listener
         kind: クラス
-        purpose: 設定画面で、押したキーの組み合わせを拾う
+        purpose: 設定画面で、押したキーの組み合わせを検出する
       - name: keyboard.Controller
         kind: クラス
         purpose: 貼り付けキーと Enter を仮想的に押して離す
@@ -34,11 +34,11 @@ used_in:
 upstream: moses-palmer/pynput
 verification:
   state: 未確認
-  detail: keyboard.Controller の生成と keyboard.Key の ctrl・shift・alt・cmd・enter が 1.8.1 で引けることだけ確かめた（2026-10-02）。キーを送信して貼り付け先で受かるかは、今のアクティブなウィンドウへ入力が飛んで使用している画面を壊すため、動かしていない
-license: LGPL-3.0（商用利用可。ライブラリを差し替えられる形で配布する義務がある）
+  detail: keyboard.Controller の生成と keyboard.Key の ctrl・shift・alt・cmd・enter が 1.8.1 で取得できることだけ確かめた（2026-10-02）。キーを送信して貼り付け先で受かるかは、今のアクティブなウィンドウへ入力が飛んで使用している画面を壊すため、動かしていない
+license: LGPL-3.0（商用利用可。ライブラリを差し替えられる形式で配布する義務がある）
 official_url: https://github.com/moses-palmer/pynput
 limitations:
-  - item: Xorg のキーの送り方
+  - item: Xorg のキーの送信方法
     content: Xorg の Controller は、vk を持つキー（修飾キー・`Key.insert` などの名前のあるキー・`KeyCode.from_vk` で作ったキー）を XTEST で、文字で引き渡したキー（`press("v")`）を XSendEvent で送信する（1.8.2 の `pynput/keyboard/_xorg.py` の `Controller._handle`）。GTK4 のアプリ（GNOME Text Editor 等）は XSendEvent のキーを受け付けない
     notes: 主キーを `KeyCode.from_vk(ord(文字))`（Xorg では vk が keysym）で引き渡すと XTEST で送信され、GTK4 のアプリも受け付ける（[#211](https://github.com/shuhei1101/voice-paste/pull/211) の PoC）。send_paste_linux がこの引き渡し方を使用する
   - item: Wayland のセッション

@@ -281,7 +281,7 @@ exceptions:
     notes: 連続録音は停止せず、次の区間と終わりは送信する。終わりの返送が届かないときは、上の「届かなかったことをログに書いて終える」
 constraints:
   - item: 送信先
-    constraint: 開始で受け取った callback_url だけ。ホストが loopback か設定で許可したホストであることを送信する前にもう一度確かめる
+    constraint: 開始で受け取った callback_url だけ。ホストが loopback か設定で許可したホストであることを送信する前にもう一度確認する
   - item: タイムアウト
     constraint: 非機能要件の返送のタイムアウト
     decided_by: NFR-1#requirements[返送のタイムアウトと再送]

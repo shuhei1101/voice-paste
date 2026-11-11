@@ -18,11 +18,11 @@ directory: |-
 
   リポジトリの直下は `pyproject.toml`・`uv.lock`・`.python-version`・起動のバッチファイル（`voice-paste.bat`）・Linux の起動のスクリプト（`voice-paste.sh`）・自動起動の雛形（`voice-paste.desktop`）・`config/`・`settings.sample.yaml`・`README.md`・`CLAUDE.md`・`src/`・`resources/`・`tests/`・`dev/`・`docs/` に絞る。
 
-  動かす環境は、リポジトリの直下で Windows の uv（WSL からは `uv.exe`）で `uv sync --frozen` を流して `.venv/` に作り、ローカルの Whisper（faster-whisper・nvidia-*）を使用する環境は `--extra local-whisper` を付けて流す（`uv.lock` のバージョンで入り、Python のバージョンは `.python-version` の 3.14）。
+  動かす環境は、リポジトリの直下で Windows の uv（WSL からは `uv.exe`）で `uv sync --frozen` を実行して `.venv/` に作り、ローカルの Whisper（faster-whisper・nvidia-*）を使用する環境は `--extra local-whisper` を付けて流す（`uv.lock` のバージョンで入り、Python のバージョンは `.python-version` の 3.14）。
   Windows のクローンで WSL の uv で実行すると `.venv/` を Linux の構成に作り直すため、Windows のクローンの環境を作るコマンドと環境で実行するコマンドは Windows の uv で実行する（`uv lock` はどちらでもよい）。
-  Ubuntu のクローンでは、Linux の起動のスクリプトが Linux の uv で `uv sync --frozen --extra local-whisper` を流して `.venv/` を作り、`.venv/bin/python -m voice_paste` で起動する（`pycaw`・`comtypes`・`pywin32` は `sys_platform == "win32"` の条件で入らない）。
-  起動のバッチファイル（`voice-paste.bat`）は、起動のたびにリポジトリの直下で `uv sync --frozen --extra local-whisper` を流し、`.venv/` を `uv.lock` に合わせる（揃っていれば何も書き換えずに終わる）。uv は PATH から探し、無ければ `%USERPROFILE%\.local\bin\uv.exe` を使用する。
-  `uv sync --frozen` を流す前に、コンソールに `Syncing .venv with uv sync --frozen. See log: {launcher.log のパス}` を表示する。
+  Ubuntu のクローンでは、Linux の起動のスクリプトが Linux の uv で `uv sync --frozen --extra local-whisper` を実行して `.venv/` を作り、`.venv/bin/python -m voice_paste` で起動する（`pycaw`・`comtypes`・`pywin32` は `sys_platform == "win32"` の条件で入らない）。
+  起動のバッチファイル（`voice-paste.bat`）は、起動のたびにリポジトリの直下で `uv sync --frozen --extra local-whisper` を実行し、`.venv/` を `uv.lock` に合わせる（合っていれば何も書き換えずに終わる）。uv は PATH から探し、無ければ `%USERPROFILE%\.local\bin\uv.exe` を使用する。
+  `uv sync --frozen` を実行する前に、コンソールに `Syncing .venv with uv sync --frozen. See log: {launcher.log のパス}` を表示する。
   続けて `.venv\Scripts\python.exe -c "import voice_paste"` で `.venv` から voice_paste を import できるかを確認する（`.venv` のフォルダや `python.exe` があるかでは判定しない）。
   uv が見つからないときは `uv sync --frozen` を飛ばして `launcher.log` にその旨を書き込み、import できれば起動する。
   import できたら、`.venv` を有効にし、CUDA の DLL（`.venv` の `Lib/site-packages/nvidia/` の `cublas`・`cudnn`・`cuda_nvrtc` の `bin`）を `PATH` に追加して、`.venv\Scripts\pythonw.exe -m voice_paste` を引数なしで起動する（コンソールを出さない）。システムの `pythonw` では起動しない。
@@ -34,14 +34,14 @@ directory: |-
   | `uv sync --frozen` が 0 以外で終わる | `[ERROR] uv sync --frozen failed with code {終了コード}.` |
   | `uv sync --frozen` の後も import できない | `[ERROR] voice_paste cannot be imported from .venv after uv sync.` |
 
-  起動の記録（起動した時刻・import の確かめの結果・`uv sync --frozen` の出力・使用した Python・起動の終了コード）は `%LOCALAPPDATA%\voice-paste\log\launcher.log` へ起動ごとに上書きで書き込む。
+  起動の記録（起動した時刻・import の確認の結果・`uv sync --frozen` の出力・使用した Python・起動の終了コード）は `%LOCALAPPDATA%\voice-paste\log\launcher.log` へ起動ごとに上書きで書き込む。
   ログの保持期間の削除（purge_old_logs）は日付の名前のログだけを削除するため、上書きで大きさを保ち、日付でログを削除する処理は持たない。
   Linux の起動のスクリプト（`voice-paste.sh`。bash、`set -euo pipefail`、git で実行権限を付ける）は、スクリプトの場所へ移り、`voice-paste.bat` と同じ順で動く。
 
   | 手順 | Linux での動き |
   | --- | --- |
   | uv を探す | PATH（`command -v uv`）から探し、無ければ `~/.local/bin/uv` を使用する |
-  | 環境を統一する | 標準出力に `Syncing .venv with uv sync --frozen. See log: {launcher.log のパス}` を出し、`uv sync --frozen --extra local-whisper` を流す |
+  | 環境を統一する | 標準出力に `Syncing .venv with uv sync --frozen. See log: {launcher.log のパス}` を出し、`uv sync --frozen --extra local-whisper` を実行する |
   | import を確認する | `.venv/bin/python -c "import voice_paste"` |
   | 起動する | `setsid -f .venv/bin/python -m voice_paste "$@"` で端末から切り離し（標準入出力は `/dev/null`）、0 で終わる。`setsid -f` が 0 以外で終わったときは、理由の行 `[ERROR] failed to launch voice_paste with code {終了コード}.` で「起動しない」と同じ終わり方をする。CUDA のライブラリのパスは追加しない（Linux の既定は cpu） |
   | 起動しない | 上の表の理由の行（`voice-paste.bat` は `voice-paste.sh` に読み替える）と `See log: {launcher.log のパス}` を標準エラーに出し、同じ終了コードで終わる。`pause` に当たる止めは持たず、標準エラーが端末でなく `notify-send` があるときは同じ 2 行を通知する |

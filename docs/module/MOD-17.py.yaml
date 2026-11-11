@@ -11,7 +11,7 @@ classes:
     role: middleware
     kind: クラス
     summary: '`POST /web/transcriptions` の本文が上限以上なら 413 で断る純粋な ASGI middleware'
-    description: BaseHTTPMiddleware は本文を流しながら数えられないため、ASGI の `receive` を包む純粋な middleware にする。外部ライブラリではなく API サーバーに配置する。
+    description: BaseHTTPMiddleware は本文を受け取りながら数えられないため、ASGI の `receive` を包む純粋な middleware にする。外部ライブラリではなく API サーバーに配置する。
     properties:
       - name: _app
         type: ASGIApp
@@ -28,7 +28,7 @@ classes:
         kind: メソッド
         scope: public
         is_async: true
-        summary: 対象の要求の本文の大きさを確かめながら次へ引き渡す
+        summary: 対象の要求の本文の大きさを確認しながら次へ引き渡す
         args:
           - name: scope
             type: Scope
@@ -60,7 +60,7 @@ classes:
         unit_tests:
           - name: test_call
             case: 正常
-            summary: 上限未満は通す
+            summary: 上限未満は許可する
             condition: _limit=1000、999 バイトの本文（Content-Length あり・chunked の 2 通り）
             mock: 次の ASGI アプリ（本文を最後まで読み込む）
             expected: 次のアプリが 999 バイトを受け取る

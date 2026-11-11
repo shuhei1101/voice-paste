@@ -1,5 +1,17 @@
 # yaml-language-server: $schema=../schemas/files.schema.yaml
 files:
+  - path: external/voice_paste/integrations/keyboard/test_sender.py
+    related:
+      - to: src/voice_paste/integrations/keyboard/sender.py
+        type: tests
+  - path: external/voice_paste/integrations/openai/test_transcriber.py
+    related:
+      - to: src/voice_paste/integrations/openai/transcriber.py
+        type: tests
+  - path: external/voice_paste/integrations/volume/test_adapter.py
+    related:
+      - to: src/voice_paste/integrations/volume/adapter.py
+        type: tests
   - path: unit/haas_server/test_app.py
     related:
       - to: haas_server/app.py

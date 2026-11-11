@@ -12,7 +12,7 @@ tables:
     growth: 増えない（録音を止めるたびに置き換える。選んだファイルは残さない）
     retention: 保存日時から 7 日
     deletion: 物理削除（画面を開いたときに期限を過ぎていれば削除する）
-    access: キーで引く
+    access: キーで取得する
     columns:
       - name: blob
         title: 音声
@@ -107,13 +107,13 @@ tables:
     growth: 増えない（選ぶたびに置き換える）
     retention: 期限なし
     deletion: 上書き（覚えた名前が一覧に無いとき・一覧に無いプリセットで 400 になったときは空文字に戻す）
-    access: キーで引く（画面を開いたときに読み込み、選ぶたびに書き込む）
+    access: キーで取得する（画面を開いたときに読み込み、選ぶたびに書き込む）
     columns:
       - name: value
         title: プリセットの名前
         type: string
         not_null: true
-        description: 選んだ用語集のプリセットの名前（用語集のプリセットの一覧を返却する の presets の名前）。「設定に従う」は空文字。JSON ではなく文字列のまま置く
+        description: 選んだ用語集のプリセットの名前（用語集のプリセットの一覧を返却する の presets の名前）。「設定に従う」は空文字。JSON ではなく文字列のまま配置する
         example: 会議
     refs:
       - SCR-6#elements[用語集のプリセットの選択欄]

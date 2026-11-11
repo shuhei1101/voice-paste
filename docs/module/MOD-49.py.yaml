@@ -12,8 +12,8 @@ data_models:
     summary: 設定の 3 レイヤーのファイル・settings.toml・履歴・ログ・一時の音声・トークン・画面の画像の配置先
     description: |-
       resolve_app_paths で作る。
-      既定値と checkout の上書きはリポジトリの直下（REPO_ROOT）から引き、環境の値はユーザーごとの設定のフォルダから引く。
-      既定は platformdirs で、Windows は `%APPDATA%\voice-paste\`（設定）と `%LOCALAPPDATA%\voice-paste\`（それ以外）、Linux は `~/.config/voice-paste/`（設定）と `~/.local/share/voice-paste/`（それ以外）を引く。
+      既定値と checkout の上書きはリポジトリの直下（REPO_ROOT）から引き、環境の値はユーザーごとの設定のフォルダから取得する。
+      既定は platformdirs で、Windows は `%APPDATA%\voice-paste\`（設定）と `%LOCALAPPDATA%\voice-paste\`（それ以外）、Linux は `~/.config/voice-paste/`（設定）と `~/.local/share/voice-paste/`（それ以外）を取得する。
       データの配置先（`--data-dir`）を引き渡したときは、既定値の他は全てをその下に配置し、checkout の上書きを読み込まない（local_settings_file を None にする）。非機能要件テストはこれで普段使いの配置先と手元の `settings.local.yaml` に触れない。
       `@dataclass(frozen=True, slots=True, kw_only=True)`。
     properties:
@@ -66,7 +66,7 @@ constants:
     container: shared/constants.py
     usecase: 常駐アプリを起動する
     role: 配置先
-    summary: config/defaults.yaml と settings.local.yaml を引く、リポジトリの直下のフォルダ
+    summary: config/defaults.yaml と settings.local.yaml を取得する、リポジトリの直下のフォルダ
     value: Path(__file__).resolve().parents[3]
     status: planned
   - name: DEFAULTS_FILE_NAME
@@ -108,7 +108,7 @@ functions:
     container: shared/constants.py
     usecase: 共通
     scope: public
-    summary: データの配置先が引き渡されればその下、無ければ platformdirs で引いた既定の配置先で AppPaths を作る。フォルダは作らない
+    summary: データの配置先が引き渡されればその下、無ければ platformdirs で取得した既定の配置先で AppPaths を作る。フォルダは作らない
     args:
       - name: data_dir
         type: Path | None

@@ -9,8 +9,8 @@ classes:
     role: アダプタ
     kind: クラス
     inherits: PySide6.QtWidgets.QProxyStyle
-    summary: チェックボックスの箱・ラジオボタンの丸を、Qt の既定のスタイルに任せず theme_color の色で描く。それ以外の部品は包んだスタイルのまま描く
-    description: アプリ全体のスタイルシートを適用すると、Windows 11 のスタイルはオンのチェックボックスの箱と選んだラジオボタンのマーカーを描かなくなる。マーカーはこのスタイルが QPainter で描き、スタイルシートは `::indicator` の規則を持たない（規則が無いマーカーはスタイルシートがこのスタイルの drawPrimitive へ回す）。選択欄の開くマーカーは、`::drop-down` に規則を配置するとこのスタイルへ回らないため、build_stylesheet が `::down-arrow` の画像で描く。色は描くたびに theme_color で引くため、明暗を当て直しても作り直さない。大きさは tokens.toml の `[shape]` の `indicator`（箱と丸の一辺、16px）と `indicator_dot`（選んだ点の直径、8px）。色の役割は画面設計『設定画面』の補足「マーカーの見え方」のとおり。単体テストは test_style.py に配置する
+    summary: チェックボックスのインジケーター・ラジオボタンの丸を、Qt の既定のスタイルに任せず theme_color の色で描く。それ以外の部品は包んだスタイルのまま描く
+    description: アプリ全体のスタイルシートを適用すると、Windows 11 のスタイルはオンのチェックボックスのインジケーターと選んだラジオボタンのマーカーを描かなくなる。マーカーはこのスタイルが QPainter で描き、スタイルシートは `::indicator` の規則を持たない（規則が無いマーカーはスタイルシートがこのスタイルの drawPrimitive へ回す）。選択欄の開くマーカーは、`::drop-down` に規則を配置するとこのスタイルへ回らないため、build_stylesheet が `::down-arrow` の画像で描く。色は描くたびに theme_color で取得するため、明暗を当て直しても作り直さない。大きさは tokens.toml の `[shape]` の `indicator`（インジケーターと丸の一辺、16px）と `indicator_dot`（選んだ点の直径、8px）。色の役割は画面設計『設定画面』の補足「マーカーの見え方」のとおり。単体テストは test_style.py に配置する
     methods:
       - name: drawPrimitive
         title: マーカーの描画
@@ -45,28 +45,28 @@ classes:
           description: なし
         process: |-
           1. 要素で分ける
-             - PE_IndicatorCheckBox: 角を 4px 丸めた箱を描く。オンなら箱を accent_fg で塗り、surface の線でチェックを描く。オフなら sunken で塗り text_muted の線で囲む（マウスを重ねていれば線を accent_fg）。使用できなければ線を border にし、オンの箱を border で塗りチェックを text_muted で描く
+             - PE_IndicatorCheckBox: 角を 4px 丸めたインジケーターを描く。オンならインジケーターを accent_fg で塗り、surface の線でチェックを描く。オフなら sunken で塗り text_muted の線で囲む（マウスを重ねていれば線を accent_fg）。使用できなければ線を border にし、オンのインジケーターを border で塗りチェックを text_muted で描く
              - PE_IndicatorRadioButton: 丸を描く。選んでいれば線を accent_fg にし、中に accent_fg の点を描く。選んでいなければ sunken で塗り text_muted の線で囲む（マウスを重ねていれば線を accent_fg）。使用できなければ線を border にし、選んだ点を text_muted で描き丸の中は塗らない
              - それ以外: 包んだスタイルの drawPrimitive へ引き渡す
         unit_tests:
           - name: test_draw_checkbox_when_on
             case: 正常
-            summary: オンの箱を accent_fg で塗りチェックを surface で描く
+            summary: オンのインジケーターを accent_fg で塗りチェックを surface で描く
             condition: apply_theme(app, "light") の後、オンの QCheckBox を grab した画像。QT_QPA_PLATFORM=offscreen
             mock: なし
-            expected: 箱の中に tokens.toml の light の accent_fg と surface の色の画素がある
+            expected: インジケーターの中に tokens.toml の light の accent_fg と surface の色の画素がある
           - name: test_draw_checkbox_when_off
             case: 正常
-            summary: オフの箱は塗らず text_muted の線で囲む
+            summary: オフのインジケーターは塗らず text_muted の線で囲む
             condition: apply_theme(app, "dark") の後、オフの QCheckBox を grab した画像。QT_QPA_PLATFORM=offscreen
             mock: なし
-            expected: 箱の縁に dark の text_muted の画素があり、accent_fg の画素が無い
+            expected: インジケーターの縁に dark の text_muted の画素があり、accent_fg の画素が無い
           - name: test_draw_checkbox_when_disabled
             case: 正常
-            summary: 使用できないオンの箱を border で塗りチェックを text_muted で描く
+            summary: 使用できないオンのインジケーターを border で塗りチェックを text_muted で描く
             condition: apply_theme(app, "light") の後、使用できないオンの QCheckBox を grab した画像。QT_QPA_PLATFORM=offscreen
             mock: なし
-            expected: 箱の中に light の border と text_muted の画素があり、accent_fg の画素が無い
+            expected: インジケーターの中に light の border と text_muted の画素があり、accent_fg の画素が無い
           - name: test_draw_radio_when_checked
             case: 正常
             summary: 選んだラジオボタンに accent_fg の点を描く
@@ -81,7 +81,7 @@ classes:
             expected: 包んだスタイルの drawPrimitive が同じ引数で 1 回呼ばれる
       - name: pixelMetric
         title: マーカーの大きさ
-        summary: チェックボックスの箱とラジオボタンの丸の幅・高さを tokens.toml の `shape.indicator` にし、ほかは包んだスタイルの値を返却する
+        summary: チェックボックスのインジケーターとラジオボタンの丸の幅・高さを tokens.toml の `shape.indicator` にし、ほかは包んだスタイルの値を返却する
         kind: メソッド
         scope: public
         inherits: QProxyStyle.pixelMetric

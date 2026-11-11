@@ -7,7 +7,7 @@ version:
   latest: 19.0.1
   checked_on: '2026-10-05'
   source: pyproject.toml（`av>=11,<19`）と uv.lock のバージョン
-  pinning: '`>=11,<19`。下限は faster-whisper 1.2.1 の `Requires-Dist: av>=11` に揃え、上限は av 19 が faster-whisper 1.2.1 の `av.open(..., metadata_errors="ignore")` を受け付けない不具合のため（faster-whisper の設計書の不具合一覧）。faster-whisper が av 19 に対応したバージョンを出したら上限を外す'
+  pinning: '`>=11,<19`。下限は faster-whisper 1.2.1 の `Requires-Dist: av>=11` に揃え、上限は av 19 が faster-whisper 1.2.1 の `av.open(..., metadata_errors="ignore")` を受け付けない不具合のため（faster-whisper の設計書の不具合一覧）。faster-whisper が av 19 に対応したバージョンを出したら上限を解除する'
 catalogs:
   - name: API
     version: 18.1.0
@@ -23,7 +23,7 @@ catalogs:
           - name: mode
             type: '"r" | "w"'
             default: '"r"'
-            description: 読み込みか書きか
+            description: 読み込みか書き込みか
           - name: format
             type: str | None
             default: None（自動判定）

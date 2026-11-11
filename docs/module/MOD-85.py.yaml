@@ -61,7 +61,7 @@ classes:
         title: 停止
         kind: メソッド
         scope: public
-        summary: 終わりの合図を立て、スレッドの終わりを待つ
+        summary: 終わりの合図を設定し、スレッドの終わりを待つ
         returns:
           type: None
           description: なし

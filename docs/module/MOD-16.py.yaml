@@ -54,7 +54,7 @@ classes:
           description: なし
         process: |-
           1. スレッドが無ければ何もしない
-          2. should_exit を立て、スレッドの終わりを待つ
+          2. should_exit を設定し、スレッドの終わりを待つ
              - `[INFO]` API の待ち受けを止めた（ポート）
         unit_tests:
           - name: test_stop

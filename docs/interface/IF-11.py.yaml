@@ -318,7 +318,7 @@ lead: 外の端末のブラウザから送信された音声を受け、一時�
 identifier: create_web_transcription
 permissions: なし（外からの認証は Cloudflare Access が持つ。常駐アプリは Host と Origin だけを確認する）
 idempotent: false
-side_effects: '受けた音声を一時のフォルダへ録れた形式の拡張子のまま書き、受け付けた時点の用語集のプリセットの名前（指定が無ければ空）を持たせたジョブ（state: queued）をブラウザの音声のキューに追加する。受け付けたことを、job_id・大きさ・形式・秒数でログに 1 行書く（音声の中身は書き込まない）。追加したジョブは ブラウザの音声を文字に起こす が 1 件ずつ取り出す。'
+side_effects: '受けた音声を一時のフォルダへ録れた形式の拡張子のまま書き込み、受け付けた時点の用語集のプリセットの名前（指定が無ければ空）を持たせたジョブ（state: queued）をブラウザの音声のキューに追加する。受け付けたことを、job_id・大きさ・形式・秒数でログに 1 行書く（音声の中身は書き込まない）。追加したジョブは ブラウザの音声を文字に起こす が 1 件ずつ取り出す。'
 exclusivity: 録音セッション（`/sessions`・ホットキー・トレイ）とは排他しない。録音・文字起こしの処理中も受け付け、終わっていないジョブが待ちの上限に達しているときだけ断る
 request:
   - name: Host
@@ -336,11 +336,11 @@ request:
     constraints: 付いていれば、設定の許す Origin（api.allowed_web_origins）にあること
     example: https://voice.example.com
     status: planned
-    default: なし（Origin を確かめずに通す）
+    default: なし（Origin を確認せずに通す）
   - name: Content-Length
     type: int
     required: false
-    default: なし（読みながら数えて上限で断る）
+    default: なし（読み込みながら数えて上限で断る）
     location: header
     description: 本文の大きさ。付いていれば本文を読み込む前に上限と比べる
     constraints: ブラウザの本文の上限未満
@@ -357,7 +357,7 @@ request:
   - name: glossary_preset
     type: str
     required: false
-    default: なし（補正の時点で設定で選んでいる用語集のプリセットを使う）
+    default: なし（補正の時点で設定で選んでいる用語集のプリセットを使用する）
     location: body
     description: この音声の補正に使用する用語集のプリセットの名前。`multipart/form-data` の文字の項目。受け付けの時点で決まり、後から設定で選ぶプリセットを変えても、この音声は指定したプリセットで補正する
     constraints: 設定の用語集のプリセットの一覧にある名前（大文字と小文字を区別する）。空文字は指定なしとして扱う
@@ -394,7 +394,7 @@ response_example: |-
     "job_id": "q3Vb8sXk2mJf0tLw9eRzAg"
   }
   ```
-response_notes: 同じ音声を 2 回送信すると、別のジョブが 2 つ積まれる（画面の再送信は新しい job_id を受け取る）。
+response_notes: 同じ音声を 2 回送信すると、別のジョブが 2 つ追加される（画面の再送信は新しい job_id を受け取る）。
 status_codes:
   - code: '202'
     condition: 音声を受け付けてジョブを追加した

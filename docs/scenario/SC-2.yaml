@@ -62,7 +62,7 @@ scenarios:
         participant NEW as 新しい常駐アプリ
 
         U->>TRAY: 「再起動」を選ぶ
-        TRAY->>APP: 再起動を求め、アイコンを消す
+        TRAY->>APP: 再起動を求め、アイコンを非表示にする
         APP->>APP: ホットキーの受付・API の待ち受け・文字起こしワーカーを停止する
         APP->>NEW: 同じ引数で新しいプロセスを起動する
         APP->>APP: 自分のプロセスを終える
@@ -93,7 +93,7 @@ scenarios:
         participant HS as Haas の文字起こしのサーバー（WSL）
 
         U->>TRAY: 「終了」を選ぶ
-        TRAY->>APP: 終了を求め、アイコンを消す
+        TRAY->>APP: 終了を求め、アイコンを非表示にする
         APP->>APP: ホットキーの受付を停止する
         APP->>API: 待ち受けを停止する
         APP->>WK: 終了を送信し、終わらなければ停止する
@@ -159,7 +159,7 @@ scenarios:
         participant NEW as 新しい常駐アプリ
 
         U->>TRAY: 「再起動」を選ぶ
-        TRAY->>APP: 再起動を求め、アイコンを消す
+        TRAY->>APP: 再起動を求め、アイコンを非表示にする
         APP->>SW: 変えた値を捨てる確認を出さずに閉じる
         APP->>NEW: 同じ引数で新しいプロセスを起動する
         APP->>APP: 自分のプロセスを終える

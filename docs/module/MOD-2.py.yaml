@@ -22,7 +22,7 @@ functions:
       description: typ="rt" の YAML
     process: |-
       1. `YAML(typ="rt")` を作り、`preserve_quotes = True`・`indent(mapping=2, sequence=4, offset=2)`・`width` を十分大きな値にする
-      2. 文字列の representer を、YAML 1.1 で文字列でなくなる値（yes・no・on・off・y・n と大文字の形・null・`~`・数・`*` で始まる値）を単引用符で囲むものに替える
+      2. 文字列の representer を、YAML 1.1 で文字列でなくなる値（yes・no・on・off・y・n と大文字の表記・null・`~`・数・`*` で始まる値）を単引用符で囲むものに替える
     refs:
       - LIB-25#
     status: planned

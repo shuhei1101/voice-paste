@@ -16,7 +16,7 @@ data_models:
         description: 録音セッション管理
       - name: session_api
         type: SessionApiDeps
-        description: API サーバーへ引き渡す録音セッションの API の依存（設定の許可ホストを部分適用したコールバック先の確かめを含む）
+        description: API サーバーへ引き渡す録音セッションの API の依存（設定の許可ホストを部分適用したコールバック先の確認を含む）
       - name: settings_store
         type: SettingsStore
         description: 今効いている設定。出力先・録音・画面はここから読み込むため、保存した immediate の項目が次の回から有効になる
@@ -105,7 +105,7 @@ classes:
     usecase: 常駐アプリを起動する
     role: ランタイム
     kind: クラス
-    summary: 配線（build_handlers）をメインスレッドの外のスレッドで流し、結果を Qt のシグナルでメインスレッドへ戻す。配線の間に抜けたときはエンジンを止める
+    summary: 配線（build_handlers）をメインスレッドの外のスレッドで実行し、結果を Qt のシグナルでメインスレッドへ戻す。配線の間に抜けたときはエンジンを止める
     description: |-
       QObject を継承し、`done = Signal(object)` を持つ。main は done を結果の扱いへ QueuedConnection でつなぎ、受け取りをメインスレッドで行う。
       参照が切れて消えないよう、main は片付けまで持つ。
@@ -137,7 +137,7 @@ classes:
         title: 配線の開始
         kind: メソッド
         scope: public
-        summary: 引き渡した配線の関数をデーモンスレッド（名前 `startup-build`）で流し、結果を done で引き渡す
+        summary: 引き渡した配線の関数をデーモンスレッド（名前 `startup-build`）で実行し、結果を done で引き渡す
         args:
           - name: build
             type: Callable[[Callable[[Callable[[], None]], None]], Handlers]
@@ -206,7 +206,7 @@ classes:
           type: None
           description: なし
         process: |-
-          1. ロックを取り、cancel が呼ばれたことにして、記録したエンジンを止める関数を引く
+          1. ロックを取り、cancel が呼ばれたことにして、記録したエンジンを止める関数を取得する
           2. ロックを放してから、記録した関数があれば呼ぶ（ワーカーが終わり、配線は StartupError で終わる）
           3. スレッドの終わりを timeout_sec だけ待つ
              - 待ちきれない場合、そのまま戻る
@@ -221,7 +221,7 @@ classes:
           - name: test_cancel_when_not_registered
             case: 正常
             summary: 記録する前に取り消されたら、記録したときに止める
-            condition: build が Event を待ってから止める関数を控え、Handlers を返却する。start の後に cancel(0.01) を呼んでから Event を作成する
+            condition: build が Event を待ってから止める関数を記録し、Handlers を返却する。start の後に cancel(0.01) を呼んでから Event を作成する
             mock: build・止める関数・Handlers.stop_engine・done を受ける関数
             expected: 止める関数が記録したときに呼ばれ、返った Handlers の stop_engine が呼ばれ、done が送出されない
           - name: test_cancel_when_thread_not_finished
@@ -340,12 +340,12 @@ functions:
         type: ProgressFn
         required: true
         passing: positional
-        description: 文字起こしの進みの知らせ（ui の report_progress）
+        description: 文字起こしの進みの通知（ui の report_progress）
       - name: notify_copied
         type: Callable[[str], None]
         required: true
         passing: positional
-        description: コピーの完了の知らせ（ui の notify_copied）
+        description: コピーの完了の通知（ui の notify_copied）
       - name: adapters
         type: PlatformAdapters
         required: true
@@ -371,9 +371,9 @@ functions:
       type: Handlers
       description: 配線済みの関数の束
     process: |-
-      1. 設定を SettingsStore に入れる。以降の配線は設定を値でなく SettingsStore.get から読み込む（保存した immediate の項目を次の回から効かせる）
+      1. 設定を SettingsStore に入れる。以降の配線は設定を値でなく SettingsStore.get から読み込む（保存した immediate の項目を次の回から有効にする）
       2. 設定のエンジンで文字起こしの engine と stop_engine を作り、engine を文字起こしに引き渡す。get_hint には、SettingsStore.get の hint_presets を join_hint_words でつなぎ、空なら None を返却する関数を引き渡す
-         - local_whisper の場合、ensure_local_whisper_installed で確かめ（StartupError はそのまま送出する）、WhisperWorkerClient を adapters.worker_creationflags で作り、on_engine_created にその stop を引き渡してから起動する。engine はその transcribe、stop_engine はその stop
+         - local_whisper の場合、ensure_local_whisper_installed で確認（StartupError はそのまま送出する）、WhisperWorkerClient を adapters.worker_creationflags で作り、on_engine_created にその stop を引き渡してから起動する。engine はその transcribe、stop_engine はその stop
            - EngineError の場合、StartupError を送出する
          - openai の場合、read_openai_api_key（paths.openai_api_key_file・environ）で読み込んだ API キーと設定の transcription.openai で OpenAITranscriber を作る（文字起こしワーカーは起動しない）。engine はその transcribe、stop_engine は何もしない関数（StartupError はそのまま送出する）。on_engine_created には stop_engine を引き渡す
          - haas の場合、設定の transcription.haas で HaasServer を作り、on_engine_created にその stop を引き渡してから ensure_started を呼ぶ。unavailable に Feature.HAAS_ENGINE があれば ensure_started を呼ばずに次の切り戻しへ進む
@@ -382,7 +382,7 @@ functions:
              - `[WARNING]` Haas のサーバーへ接続できないためローカルの Whisper で起こす（理由）
       3. 連続録音の話し声の判定に使用する VAD のセッションを 1 回だけ読む（load_vad_session。StartupError はそのまま送出する）
       4. Recorder に音量の関数（unavailable に Feature.LOWER_VOLUME があれば integrations/volume/noop.py の lower_volume_noop・restore_volume_noop、無ければ adapters の lower_volume・restore_volume）と、SettingsStore から録音の設定を返却する関数と、VAD のセッションを部分適用した StreamingVad（話し声の判定を作る）を引き渡す
-      5. 出力先の deliver に、配線した OUTPUTS（_wire_outputs）・配線した PRESET_KINDS（_wire_preset_kinds。open_window に adapters.open_app_window、send_paste に adapters.send_paste、send_enter_fn に adapters.send_enter）と、届けるたびに SettingsStore からオンの出力先の ID を引く関数を部分適用し、Session を入口・出力先の ID・選んだプリセット・コールバック先に分けて引き渡すアダプタを作る
+      5. 出力先の deliver に、配線した OUTPUTS（_wire_outputs）・配線した PRESET_KINDS（_wire_preset_kinds。open_window に adapters.open_app_window、send_paste に adapters.send_paste、send_enter_fn に adapters.send_enter）と、届けるたびに SettingsStore からオンの出力先の ID を取得する関数を部分適用し、Session を入口・出力先の ID・選んだプリセット・コールバック先に分けて引き渡すアダプタを作る
          - 出力先には OutputDeps（copy_to_clipboard・設定の keyboard.paste_key で adapters.send_paste を呼ぶ関数・adapters.send_enter・time.sleep・random.uniform(0, x)・post_json・SettingsStore.get・notify_copied）を引き渡し、各出力先の inject が選ぶ
          - ブラウザ添付（種類）: copy_to_clipboard・adapters.open_app_window・adapters.send_paste を呼ぶ関数・adapters.send_enter・time.sleep・設定の preset_options.browser.open_delay_sec を返却する関数・貼り付けて送信の enter_delay_sec を返却する関数（read_enter_delay_sec）
          - エンドポイントへ送信（種類）: post_json・設定の preset_options.endpoint.timeout_sec を返却する関数
@@ -391,7 +391,7 @@ functions:
       7. SessionDeps を組み（report_progress、起動時の設定の api.continuous.min_silence_sec を部分適用した Recorder.start_continuous、Recorder.stop_continuous を含む）、API の録音セッションの上限時間と、起動時の設定の api.continuous.session_limit_sec の連続録音の上限時間と共に SessionManager を作る（api.continuous.* は再起動で有効になる）
       8. SessionManager と、設定の許可ホストを部分適用した is_callback_allowed と、SettingsStore の設定と settings.yaml のフォルダで resolve_glossary_presets した一覧にその名前があるかを返却する glossary_preset_exists を SessionApiDeps にまとめる
       9. start_local_session に SessionManager と notify を部分適用する
-      10. unavailable に Feature.WEB_TRANSCRIPTION があれば、ブラウザの文字起こしを配線せず web_api を None にする。無ければブラウザの文字起こしを配線する。WebTranscriptionDeps に、履歴を残すかをそのたびに SettingsStore.get から引いて引き渡す store_web_audio、7 と同じ transcribe、6 の correct（ジョブの用語集のプリセットの名前を受ける）・append_text・discard_temporary を部分適用して引き渡し、WebJobQueue を作る。WebJobQueue・probe_audio・`{tmp_dir}/web`・8 と同じ glossary_preset_exists・そのたびに SettingsStore の設定と settings.yaml のフォルダで resolve_glossary_presets した名前の一覧と pick_glossary_preset（requested なし）の名前を GlossaryPresetChoices で返却する list_glossary_preset_choices・2 で決まった動いているエンジンが local_whisper か（reports_progress。build_ui_deps の reports_progress と同じ判定）を WebApiDeps にまとめる（ワーカースレッドはまだ立てない）
+      10. unavailable に Feature.WEB_TRANSCRIPTION があれば、ブラウザの文字起こしを配線せず web_api を None にする。無ければブラウザの文字起こしを配線する。WebTranscriptionDeps に、履歴を残すかをそのたびに SettingsStore.get から取得して引き渡す store_web_audio、7 と同じ transcribe、6 の correct（ジョブの用語集のプリセットの名前を受ける）・append_text・discard_temporary を部分適用して引き渡し、WebJobQueue を作る。WebJobQueue・probe_audio・`{tmp_dir}/web`・8 と同じ glossary_preset_exists・そのたびに SettingsStore の設定と settings.yaml のフォルダで resolve_glossary_presets した名前の一覧と pick_glossary_preset（requested なし）の名前を GlossaryPresetChoices で返却する list_glossary_preset_choices・2 で決まった動いているエンジンが local_whisper か（reports_progress。build_ui_deps の reports_progress と同じ判定）を WebApiDeps にまとめる（ワーカースレッドはまだ起動しない）
     exceptions:
       - name: StartupError
         condition: 文字起こしのエンジンを準備できない（ローカルの Whisper の依存が無い（Haas から切り戻した先でも同じ）・ワーカーが立たない・OpenAI の API キーが無い・VAD を読み込めない）
@@ -437,20 +437,20 @@ functions:
       3. デスクトップのセッションを判定して OS に合った実装を選び（select_platform_adapters(CURRENT_OS, lock_file=paths.lock_file, display_session=detect_display_session(os.environ))）、OS で使用できない機能を引き（unavailable_features(CURRENT_OS)）、配置先ごとの名前で単一インスタンスを確保する（instance_name・PlatformAdapters.acquire_single_instance(SINGLE_INSTANCE_TIMEOUT_SEC)）
          - StartupError の場合、1 を返却する（トレイを出す前のため、ログにだけ残す）
            - `[ERROR]` 起動に失敗した（理由）
-      4. PlatformAdapters.qt_platform が None でなく、環境変数に QT_QPA_PLATFORM が無ければ、QT_QPA_PLATFORM にその値を入れる（Wayland のセッションの xcb）。QApplication（最後の窓を閉じても終わらない）・UiBridge・Tray を作り、apply_theme(app, "system", image_dir=paths.ui_image_dir) で画面の明暗を適用してトレイに準備中を出す。WAKE_INTERVAL_MS ごとの空の QTimer を作成し、SIGINT・SIGBREAK・SIGTERM で QApplication.quit を呼ぶ（SIGTERM はログアウト・systemctl stop で届き、12 の片付けを通す）。後から起動したプロセスに終わるよう頼まれたら、QApplication.quit をメインスレッドで呼ぶ（SingleInstanceLock.on_quit_requested に、QMetaObject.invokeMethod で QApplication.quit をキューに入れる関数を引き渡す）。トレイの「再起動」「終了」を _ExitRequest の request_restart・request_quit へつなぐ（7 の配線の間も抜けられるようにする。7 の結果を受けたら除外する）
+      4. PlatformAdapters.qt_platform が None でなく、環境変数に QT_QPA_PLATFORM が無ければ、QT_QPA_PLATFORM にその値を入れる（Wayland のセッションの xcb）。QApplication（最後の窓を閉じても終わらない）・UiBridge・Tray を作り、apply_theme(app, "system", image_dir=paths.ui_image_dir) で画面の明暗を適用してトレイに準備中を出す。WAKE_INTERVAL_MS ごとの空の QTimer を作成し、SIGINT・SIGBREAK・SIGTERM で QApplication.quit を呼ぶ（SIGTERM はログアウト・systemctl stop で届き、12 の片付けを実行する）。後から起動したプロセスに終わるよう頼まれたら、QApplication.quit をメインスレッドで呼ぶ（SingleInstanceLock.on_quit_requested に、QMetaObject.invokeMethod で QApplication.quit をキューに入れる関数を引き渡す）。トレイの「再起動」「終了」を _ExitRequest の request_restart・request_quit へつなぐ（7 の配線の間も抜けられるようにする。7 の結果を受けたら除外する）
       5. 設定を読み込む（load_settings(paths, SETTINGS_MODEL)。--data-dir を引き渡したときは checkout の上書きを読み込まない）
          - SettingsError の場合、トレイを失敗にして設定を読み込めないことを通知し（Tray.set_failed(settings_enabled=False)・Tray.show_failure(settings_invalid, 理由, paths=SettingsError.paths)）、「録音を開始」「設定…」を押せないまま 11 へ（フォルダを開いて読み込めなかったファイルを修正し、再起動できる）
            - `[ERROR]` 起動に失敗した（理由）
       6. 設定の ui.theme で画面の明暗を当て直し（apply_theme。image_dir は paths.ui_image_dir）、QStyleHints.colorSchemeChanged に、SettingsStore.get の ui.theme で apply_theme を呼ぶ関数をつなぐ（OS の明暗が変わったときに当て直す）。ルートロガーのレベルを設定のログのレベルにし、保持期間で古いログと履歴を削除する（purge_old_files。処理中の録音セッションは無いため、一時の音声も全て削除する対象にする）
          - `[INFO]` 設定を読み込んだ（設定ファイルのパス・エンジン・オンの出力先の ID）
-      7. 配線を、_StartupBuild でメインスレッドの外のスレッドに流す（build_handlers。notify・report_progress・notify_copied は UiBridge を部分適用した ui のもの、adapters は 3 で選んだ PlatformAdapters、environ は os.environ、unavailable は 3 で引いた使えない機能、on_engine_created は _StartupBuild がエンジンを止める関数を記録する関数）。配線の間の知らせ（engine_fallback・engine_settings_mismatch）は、受ける UiController がまだ無いため、UiBridge.notified を Tray.show_failure へ queued でつなぎ、配線の結果を受けたときに除外する。流している間も 11 のイベントループを回し、トレイを準備中のまま出す（モデルの取得の間もトレイのアイコンが出て、メニューを操作できる）。結果は _StartupBuild.done でメインスレッドへ戻り、4 でつないだ「再起動」「終了」を除外してから、8〜10 か下の StartupError の扱いをメインスレッドで行う
+      7. 配線を、_StartupBuild でメインスレッドの外のスレッドに流す（build_handlers。notify・report_progress・notify_copied は UiBridge を部分適用した ui のもの、adapters は 3 で選んだ PlatformAdapters、environ は os.environ、unavailable は 3 で取得した使用できない機能、on_engine_created は _StartupBuild がエンジンを止める関数を記録する関数）。配線の間の通知（engine_fallback・engine_settings_mismatch）は、受ける UiController がまだ無いため、UiBridge.notified を Tray.show_failure へ queued でつなぎ、配線の結果を受けたときに除外する。実行している間も 11 のイベントループを回し、トレイを準備中のまま出す（モデルの取得の間もトレイのアイコンが出て、メニューを操作できる）。結果は _StartupBuild.done でメインスレッドへ戻り、4 でつないだ「再起動」「終了」を除外してから、8〜10 か下の StartupError の扱いをメインスレッドで行う
          - StartupError の場合、トレイを失敗にして起動の失敗を通知し（Tray.set_failed(settings_enabled=True)・Tray.show_failure(engine_unavailable, 理由)）、「設定…」だけを押せるまま 11 へ（設定画面は読み込んだ設定で開き、保存は settings.yaml へ書き込むだけにする。Handlers が無いため、UiDeps のうち録音・ホットキーの関数（start・pause・resume・complete・cancel・current_session・level・suspend_hotkeys・resume_hotkeys）は何もしない関数にし、設定画面を閉じてもホットキーの受付を始めない）
            - `[ERROR]` 起動に失敗した（理由）
-      8. ホットキーの受付を作り（PlatformAdapters.create_hotkey_listener(排他の名前, 3 で取った排他)）、UiController を作り（build_ui_deps）、UiBridge の知らせの受け手につなぐ（notified → on_notified・progressed → on_progressed・copied → on_copied。9 で待ち受けを始められない知らせを取りこぼさないよう、API より先に作る）
+      8. ホットキーの受付を作り（PlatformAdapters.create_hotkey_listener(排他の名前, 3 で取った排他)）、UiController を作り（build_ui_deps）、UiBridge の通知の受け手につなぐ（notified → on_notified・progressed → on_progressed・copied → on_copied。9 で待ち受けを始められない通知を取りこぼさないよう、API より先に作る）
       9. Handlers.web_api が None でなければブラウザの音声のキューを始め（WebJobQueue.start(`{tmp_dir}/web`)）、トークンを作り、API サーバーを起動する（create_token・build_fastapi（Handlers.web_api と設定の api.allowed_web_origins を引き渡す。web_api が None なら `/web/` の下のルートを持たない）・ApiServerRunner.start(API_START_TIMEOUT_SEC)）
          - True の場合だけ、トークンのファイルを書き込む（write_token_file）
          - False の場合、トークンのファイルを書き込まずに api_unavailable を通知して続ける（ホットキーとトレイからの録音は使用できる）。理由は「ポート {ポート} で待ち受けを始められません」の 1 文にする
-      10. ホットキーの受付を始め（8 で作った受付の start(build_hotkey_bindings(設定))。Wayland のセッションでは GNOME のカスタムショートカットへ登録する）、上限の打ち切りを RepeatingTimer で SESSION_LIMIT_CHECK_INTERVAL_SEC ごとに呼ぶ（SessionManager.truncate_if_expired）。古いログと履歴の削除を RepeatingTimer で PURGE_INTERVAL_SEC ごとに呼ぶ（purge_old_files。設定は呼ぶたびに SettingsStore.get から引き、設定画面で変えた保持期間・履歴を残すかを次の回から効かせる。処理中の録音セッションの ID は SessionManager.current から引く）。トレイを待機中にする
+      10. ホットキーの受付を始め（8 で作った受付の start(build_hotkey_bindings(設定))。Wayland のセッションでは GNOME のカスタムショートカットへ登録する）、上限の打ち切りを RepeatingTimer で SESSION_LIMIT_CHECK_INTERVAL_SEC ごとに呼ぶ（SessionManager.truncate_if_expired）。古いログと履歴の削除を RepeatingTimer で PURGE_INTERVAL_SEC ごとに呼ぶ（purge_old_files。設定は呼ぶたびに SettingsStore.get から引き、設定画面で変えた保持期間・履歴を残すかを次の回から有効にする。処理中の録音セッションの ID は SessionManager.current から取得する）。トレイを待機中にする
          - HotkeyError の場合、ホットキーを受け付けずに続ける（トレイから録音でき、設定画面で修正できる）
            - `[ERROR]` ホットキーを受け付けられなかった（理由）
          - キーの送信の機器を開く（PlatformAdapters.open_key_sender）
@@ -458,7 +458,7 @@ functions:
              - `[ERROR]` キーの送信の機器を開けなかった（理由）
          - `[INFO]` 常駐サービスを始めた（API のポート）
       11. イベントループを回す（exec_loop）
-      12. 抜けたら、新しい開始が来ないように入口とタイマー（ホットキー・API サーバー・2 つのタイマー）を先に止め、録音を捨て（SessionManager.close）、ブラウザの音声のキューを始めていれば閉じ（WebJobQueue.close。待ちの一時のファイルを削除する）、エンジンを止め、キーの送信の機器を閉じ（PlatformAdapters.close_key_sender）、トレイを削除する（8 までで作成したものだけ）。7 の配線を流している間に抜けた場合は、_StartupBuild.cancel(STARTUP_CANCEL_TIMEOUT_SEC) でエンジンを止め、配線のスレッドの終わりを待つ。最後に単一インスタンスの排他を放す（SingleInstanceLock.release）
+      12. 抜けたら、新しい開始が来ないように入口とタイマー（ホットキー・API サーバー・2 つのタイマー）を先に止め、録音を捨て（SessionManager.close）、ブラウザの音声のキューを始めていれば閉じ（WebJobQueue.close。待ちの一時のファイルを削除する）、エンジンを止め、キーの送信の機器を閉じ（PlatformAdapters.close_key_sender）、トレイを削除する（8 までで作成したものだけ）。7 の配線を実行している間に抜けた場合は、_StartupBuild.cancel(STARTUP_CANCEL_TIMEOUT_SEC) でエンジンを止め、配線のスレッドの終わりを待つ。最後に単一インスタンスの排他を放す（SingleInstanceLock.release）
           - `[INFO]` 常駐サービスを終えた
       13. 再起動を頼まれていれば、同じ引数で起動し直す（PlatformAdapters.relaunch。排他を放した後に呼ぶため、次のプロセスは待たずに排他を取れる）
       14. 0 を返却する
@@ -479,14 +479,14 @@ functions:
     unit_tests:
       - name: test_main
         case: 正常
-        summary: 設定を読み込んで API・ホットキー・トレイを立て、イベントループが抜けたら片付けて 0 を返却する
+        summary: 設定を読み込んで API・ホットキー・トレイを起動し、イベントループが抜けたら片付けて 0 を返却する
         condition: --data-dir に空の一時フォルダ。QT_QPA_PLATFORM=offscreen、exec_loop は _StartupBuild.done を受けて 10 が終わるまでイベントを処理してから 0 を返却する
         mock: build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray
         expected: 0。{data_dir}/settings.yaml ができず（既定値で動く）、token_file があり、HotkeyListener が引数なしで作られ、HotkeyListener.start に既定のホットキーが渡り、RepeatingTimer が SESSION_LIMIT_CHECK_INTERVAL_SEC と PURGE_INTERVAL_SEC の 2 つ作られ、HotkeyListener.stop・2 つの RepeatingTimer.stop・ApiServerRunner.stop・SessionManager.close・stop_engine・Tray.hide がこの順に 1 回ずつ呼ばれ、最後に単一インスタンスの排他が放される（同じ data_dir でもう一度取れる）
       - name: test_main_when_building_off_main_thread
         case: 正常
-        summary: 配線をメインスレッドの外で流し、その間もイベントループを回す
-        condition: --data-dir に空の一時フォルダ。build_handlers が threading.Event を待ってから Handlers を返却する。exec_loop の中でイベントを処理し、トレイが準備中のままであることを確認してから Event を立て、10 が終わるまでイベントを処理して抜ける
+        summary: 配線をメインスレッドの外で実行し、その間もイベントループを回す
+        condition: --data-dir に空の一時フォルダ。build_handlers が threading.Event を待ってから Handlers を返却する。exec_loop の中でイベントを処理し、トレイが準備中のままであることを確認してから Event を設定し、10 が終わるまでイベントを処理して抜ける
         mock: build_handlers・ApiServerRunner（start が True）・RepeatingTimer・HotkeyListener・Tray
         expected: 0。build_handlers がスレッド名 `startup-build` のスレッドで呼ばれ、Event を作成する前は Tray.set_state(IDLE) と HotkeyListener.start が呼ばれておらず、作成した後に呼ばれる
       - name: test_main_when_quit_while_building
@@ -573,7 +573,7 @@ functions:
         expected: QApplication を作る時点で環境変数 QT_QPA_PLATFORM が "xcb"。あらかじめ QT_QPA_PLATFORM=offscreen を入れたときは offscreen のまま
       - name: test_main_when_engine_fallback
         case: 正常
-        summary: 配線の間の知らせをトレイの通知で出す
+        summary: 配線の間の通知をトレイの通知で出す
         condition: build_handlers の中で notify に engine_fallback と文を引き渡す
         mock: select_platform_adapters・build_handlers・ApiServerRunner・RepeatingTimer・HotkeyListener・Tray
         expected: 0。Tray.show_failure に engine_fallback と文が渡る
@@ -752,7 +752,7 @@ functions:
       3. `hotkeys.cancel`: cancel を呼ぶ
       4. オンの出力先の `hotkey`（1 と同じホットキーを除く）: ホットキー・トレイの録音が transcribing なら switch_output(その出力先の ID) を、それ以外は complete(output_id=その出力先の ID) を呼ぶ（差し替えられない録音セッションは SessionManager が断る）
       5. 有効なプリセットの `hotkey`: complete(preset=そのプリセット) を呼ぶ
-         - 空のホットキーは登録しない（重なりは Settings の確かめが断っている）
+         - 空のホットキーは登録しない（重なりは Settings の確認が断っている）
 
       apply_settings が確認する受け付けるホットキーの並び（_collect_hotkeys）も、同じく有効なプリセットの空でない `hotkey` を含める
     unit_tests:
@@ -817,7 +817,7 @@ functions:
     title: 設定の保存と反映
     container: main.py
     usecase: 設定を変える
-    summary: 設定画面で確認した設定と、行を変えた用語集の CSV を書き込み、反映が immediate の項目を動いている常駐アプリに効かせる（UiDeps.save_settings）
+    summary: 設定画面で確認した設定と、行を変えた用語集の CSV を書き込み、反映が immediate の項目を動いている常駐アプリに適用する（UiDeps.save_settings）
     kind: 関数
     scope: public
     args:
@@ -840,7 +840,7 @@ functions:
         type: Callable[[Iterable[str]], None]
         required: true
         passing: injected
-        description: ホットキーを動いているセッションの受付で受け付けられるかの確かめ（PlatformAdapters.validate_hotkeys）
+        description: ホットキーを動いているセッションの受付で受け付けられるかの確認（PlatformAdapters.validate_hotkeys）
       - name: glossary_rows
         type: Mapping[Path, Sequence[GlossaryEntry]]
         required: true

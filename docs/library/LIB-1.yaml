@@ -44,6 +44,6 @@ verification:
   detail: PoC [#239](https://github.com/shuhei1101/voice-paste/pull/239) で、Ubuntu 24.04・GNOME 46 の Wayland のセッションに拡張を入れ、`gdbus call` で `Get` を呼んだ。GNOME Terminal は `gnome-terminal-server`、GNOME テキストエディターは `org.gnome.TextEditor`、Qt の Wayland のウィンドウは `python3`、XWayland のウィンドウはスクリプト名を `wm_class`・`wm_class_instance` に返却し、読み込む時間は 0.006〜0.009 秒だった。拡張を無効にすると `gdbus` が終了コード 1 を返却する（[結果の記録](https://github.com/shuhei1101/voice-paste/blob/9ae7a3f4a19829ae3396ce1878d2400c11fa205f/poc/linux_tray_and_wayland_terminal/223_poc_results.txt)）
 license: MIT（常駐アプリに同梱せず、D-Bus で呼ぶだけ）
 official_url: https://extensions.gnome.org/extension/5592/focused-window-d-bus/
-install: ユーザーが GNOME の拡張のページ（公式 URL）か「拡張機能マネージャー」で入れて有効にする。対応する GNOME Shell のバージョンは公式 URL のページで確かめる。呼び出しに使う `gdbus` は Ubuntu の `libglib2.0-bin` に入っている
+install: ユーザーが GNOME の拡張のページ（公式 URL）か「拡張機能マネージャー」で入れて有効にする。対応する GNOME Shell のバージョンは公式 URL のページで確認する。呼び出しに使用する `gdbus` は Ubuntu の `libglib2.0-bin` に入っている
 refs:
   - SC-7#

@@ -808,7 +808,7 @@ settings:
     allowed: 空の一覧か、`words` と同じ長さ。読みはひらがな・カタカナ・長音符（ー）だけか空文字。同じプリセットの同じ単語に違う読みを持てない（片方が空なら持てる）。有効なヒントの長さ（222 バイト）に数えない
     status: planned
     implementation: src/voice_paste/shared/settings.py
-    reason: 読みの確かめの失敗を、単語と同じく `readings[{m}]` の場所で読みの欄へ出すため、単語をキーにした対応ではなく単語と同じ並びの一覧にした
+    reason: 読みの確認の失敗を、単語と同じく `readings[{m}]` の場所で読みの欄へ出すため、単語をキーにした対応ではなく単語と同じ並びの一覧にした
   - key: transcription.haas.model
     title: Haas のモデル
     file: settings.yaml
@@ -863,7 +863,7 @@ settings:
     file: settings.yaml
     type: float
     default: '2.0'
-    description: 表記のヒントの単語をどれだけ強く優先するか（haas_asr.Vocabulary の alpha）。上げると聞き逃した単語を拾いやすくなるが、言っていない単語を書き込むことも増える。単語が無いときは使用しない。
+    description: 表記のヒントの単語をどれだけ強く優先するか（haas_asr.Vocabulary の alpha）。上げると聞き逃した単語を検出しやすくなるが、言っていない単語を書き込むことも増える。単語が無いときは使用しない。
     reload: immediate
     allowed: 0.0〜10.0
     status: planned

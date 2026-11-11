@@ -135,7 +135,7 @@ classes:
             expected: 一覧が [ユーザーのパス] で 1 回だけ書かれ、2 回目は一覧を書き込まない。stop の後に受けたホットキーでは関数が呼ばれない
           - name: test_stop_when_gsettings_failed
             case: 正常
-            summary: 外せなくても例外を出さない
+            summary: 除外できなくても例外を出さない
             condition: start の後、gsettings が FileNotFoundError を送出する状態で stop を呼ぶ
             mock: subprocess.run（gsettings）
             expected: 例外が出ず、WARNING のログが 1 行出る
@@ -246,7 +246,7 @@ functions:
     unit_tests:
       - name: test_validate_gnome_hotkeys
         case: 正常
-        summary: 替えられるホットキーは通す
+        summary: 替えられるホットキーは許可する
         condition: '["<cmd>+<alt>+d", "<ctrl>+<f9>"]'
         mock: なし
         expected: 例外が出ない

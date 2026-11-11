@@ -20,5 +20,5 @@ used_in:
 verification:
   state: 済
   date: '2026-10-24'
-  detail: 'PR [#171 外の端末のブラウザから音声を送って文字に起こす画面とエンドポイントを追加する](https://github.com/shuhei1101/voice-paste/issues/171) の E2E の補助（`tests/support/browser.py`）で、headless・偽のマイク（SAPI で書き出した WAV）の Edge を起動し、DevTools Protocol で `http://localhost:{ポート}/web/` を開いて、録音から送信・起こした文字の表示まで動くことを確認した（`test_send_audio_from_browser.py::test_normal_when_record_in_page` が pass）。`--app` で窓を開く使い方は、使用しているデスクトップに窓が出るため動かしていない（単体テストで Mock にして確認している）'
+  detail: 'PR [#171 外の端末のブラウザから音声を送って文字に起こす画面とエンドポイントを追加する](https://github.com/shuhei1101/voice-paste/issues/171) の E2E の補助（`tests/support/browser.py`）で、headless・偽のマイク（SAPI で書き出した WAV）の Edge を起動し、DevTools Protocol で `http://localhost:{ポート}/web/` を開いて、録音から送信・起こした文字の表示まで動くことを確認した（`test_send_audio_from_browser.py::test_normal_when_record_in_page` が pass）。`--app` で窓を開く使用方法は、使用しているデスクトップに窓が出るため動かしていない（単体テストで Mock にして確認している）'
 official_url: https://www.microsoft.com/edge

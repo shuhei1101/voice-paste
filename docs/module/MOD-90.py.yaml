@@ -33,7 +33,7 @@ classes:
       - name: _get_settings
         type: Callable[[], RecordingSettings]
         access: 内部 (_)
-        description: 今の録音の設定を返却する（main.py が設定の持ち主から引く関数を引き渡す）
+        description: 今の録音の設定を返却する（main.py が設定の持ち主から取得する関数を引き渡す）
       - name: _stream
         type: sounddevice.InputStream | None
         access: 内部 (_)
@@ -186,7 +186,7 @@ classes:
           - name: test_stop
             case: 正常
             summary: 貯めた音を返却して音量を戻す
-            condition: lower_volume が 0.8 を返却する。入力に 1 秒分の音を流した後に止める
+            condition: lower_volume が 0.8 を返却する。入力に 1 秒分の音を供給した後に止める
             mock: lower_volume・restore_volume・open_input・get_settings
             expected: duration_sec が 1.0・sample_rate が 16000 の Recording が返り、入力の stop・close が呼ばれ、restore_volume に (0.8, fade_sec) が渡る
           - name: test_stop_when_paused_between
@@ -231,7 +231,7 @@ classes:
           - name: test_discard
             case: 正常
             summary: 音を捨てて音量を戻す
-            condition: lower_volume が 0.8 を返却する。1 秒流した後に discard、続けて start・stop
+            condition: lower_volume が 0.8 を返却する。1 秒実行した後に discard、続けて start・stop
             mock: lower_volume・restore_volume・open_input・get_settings
             expected: restore_volume に (0.8, fade_sec) が渡り、後の stop の duration_sec に捨てた 1 秒が入らない
           - name: test_discard_when_not_recording
@@ -243,7 +243,7 @@ classes:
           - name: test_discard_when_continuous
             case: 正常
             summary: 連続録音を捨てると残りの音を区間にしない
-            condition: 話し声の判定が常に 0.9 を返却する。start_continuous で 1 秒分の音を流して discard
+            condition: 話し声の判定が常に 0.9 を返却する。start_continuous で 1 秒分の音を供給して discard
             mock: lower_volume・restore_volume・open_input・get_settings・create_speech_detector・on_segment
             expected: on_segment が呼ばれず、restore_volume が呼ばれ、区切りのスレッドが残らず、続く start が通る
       - name: level
@@ -258,13 +258,13 @@ classes:
           - name: test_level
             case: 正常
             summary: 直近の音の大きさを返却する
-            condition: 振幅 16384 の矩形の音を流す
+            condition: 振幅 16384 の矩形の音を供給する
             mock: lower_volume・restore_volume・open_input・get_settings
             expected: 0.5 に近い値（誤差 0.01 以内）が返る
           - name: test_level_when_paused
             case: 正常
             summary: 一時停止中は 0
-            condition: 音を流した後に pause
+            condition: 音を供給した後に pause
             mock: lower_volume・restore_volume・open_input・get_settings
             expected: 0.0 が返る
       - name: _close
@@ -324,7 +324,7 @@ classes:
           - name: test_start_continuous
             case: 正常
             summary: 届いた音が区切りへ流れ、区間が on_segment へ渡る
-            condition: 話し声の判定を「最初の 1 秒は 0.9、その後は 0.0」を返却するものにし、min_silence_sec=0.5 で始めて入力へ 2 秒分の音を流す
+            condition: 話し声の判定を「最初の 1 秒は 0.9、その後は 0.0」を返却するものにし、min_silence_sec=0.5 で始めて入力へ 2 秒分の音を供給する
             mock: lower_volume・restore_volume・open_input・get_settings・create_speech_detector・on_segment
             expected: on_segment に reason=silence の区間が 1 つ渡り、lower_volume が呼ばれ、入力が開いたままである
           - name: test_start_continuous_when_microphone_unavailable
@@ -337,7 +337,7 @@ classes:
           - name: test_start_continuous_when_segmenter_failed
             case: 異常
             summary: 区切りに失敗したら入力を閉じて音量を戻し、on_failed に通知する
-            condition: 話し声の判定が 3 窓目で RuntimeError を送出する。lower_volume が 0.8 を返却する。1 秒分の音を流す
+            condition: 話し声の判定が 3 窓目で RuntimeError を送出する。lower_volume が 0.8 を返却する。1 秒分の音を供給する
             mock: lower_volume・restore_volume・open_input・get_settings・create_speech_detector・on_segment・on_failed
             expected: on_failed に理由が 1 回渡り、入力の stop・close が呼ばれ、restore_volume に (0.8, fade_sec) が渡り、その後に入力へ流した音が待ち行列に貯まらず、続く start が通る
       - name: stop_continuous
@@ -362,13 +362,13 @@ classes:
           - name: test_stop_continuous
             case: 正常
             summary: 話し声の途中で止めると、残りを最後の区間として引き渡してから戻る
-            condition: 話し声の判定が常に 0.9 を返却する。lower_volume が 0.8 を返却する。1 秒分の音を流した直後に stop_continuous を呼ぶ
+            condition: 話し声の判定が常に 0.9 を返却する。lower_volume が 0.8 を返却する。1 秒分の音を供給した直後に stop_continuous を呼ぶ
             mock: lower_volume・restore_volume・open_input・get_settings・create_speech_detector・on_segment
             expected: stop_continuous が戻るまでに on_segment へ reason=flush の区間が 1 つ渡り、入力の stop・close が呼ばれ、restore_volume に (0.8, fade_sec) が渡り、続く start が通る
           - name: test_stop_continuous_when_no_speech
             case: 正常
             summary: 話し声が無ければ区間を引き渡さない
-            condition: 話し声の判定が常に 0.0 を返却する。2 秒分の音を流して止める
+            condition: 話し声の判定が常に 0.0 を返却する。2 秒分の音を供給して止める
             mock: lower_volume・restore_volume・open_input・get_settings・create_speech_detector・on_segment
             expected: on_segment が呼ばれない
           - name: test_stop_continuous_when_not_recording

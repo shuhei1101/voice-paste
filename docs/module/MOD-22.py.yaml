@@ -115,10 +115,10 @@ data_models:
         description: 録音セッション管理
       - name: is_callback_allowed
         type: Callable[[str], bool]
-        description: 設定の許可ホストを部分適用したコールバック先の確かめ（出力先の is_callback_allowed）
+        description: 設定の許可ホストを部分適用したコールバック先の確認（出力先の is_callback_allowed）
       - name: glossary_preset_exists
         type: Callable[[str], bool]
-        description: 今の設定の用語集のプリセットの一覧に、その名前があるか（補正の resolve_glossary_presets で引いた一覧で判定する）
+        description: 今の設定の用語集のプリセットの一覧に、その名前があるか（補正の resolve_glossary_presets で取得した一覧で判定する）
     status: implemented
   - name: ContinuousEnd
     title: 連続録音の終わりのマーカー
@@ -288,7 +288,7 @@ function_types:
         description: 区切った区間の引き渡し先（録音の区切りのスレッドから呼ばれる）
       - name: on_failed
         type: OnContinuousFailedFn
-        description: 区切りに失敗して録音を止めたことの知らせ先（録音の区切りのスレッドから呼ばれる）
+        description: 区切りに失敗して録音を止めたことの通知先（録音の区切りのスレッドから呼ばれる）
     returns:
       type: None
       description: なし

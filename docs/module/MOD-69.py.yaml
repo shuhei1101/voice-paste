@@ -32,7 +32,7 @@ classes:
         type: Callable[[float, float], float]
         access: 内部 (_)
         default: random.uniform
-        description: 待つ秒数のジッターを引く関数（テストで差し替える）
+        description: 待つ秒数のジッターを取得する関数（テストで差し替える）
       - name: _transport
         type: httpx.BaseTransport | None
         access: 内部 (_)
@@ -71,7 +71,7 @@ classes:
             condition: 音声が上限を超えるか受けられない形式・4xx（429 を除く。リダイレクトを含む）・送信し直しても 429・5xx・タイムアウト・接続できない
         process: |-
           1. 音声の大きさが OPENAI_MAX_AUDIO_BYTES 以下で、拡張子（小文字）が OPENAI_AUDIO_SUFFIXES にあるかを確認する
-             - 外れる場合、送信せずに EngineError を送出する（理由は「音声が OpenAI API の上限（25 MB）を超えています」か「OpenAI API が受けられない形式です（{拡張子}）」）
+             - 除外される場合、送信せずに EngineError を送出する（理由は「音声が OpenAI API の上限（25 MB）を超えています」か「OpenAI API が受けられない形式です（{拡張子}）」）
                - `[WARNING]` OpenAI API へ送信しない音声（大きさ・拡張子）
           2. httpx.Client（timeout=None でアプリ側では待つ時間の上限を設けない、follow_redirects=False、transport=_transport）で `{base_url}/audio/transcriptions` へ POST する。ヘッダーは `Authorization: Bearer {API キー}`、本文は multipart の file（音声）・model・response_format=json と、_build_form が返却する言語と手がかりの項目
           3. 応答を確認する
@@ -266,7 +266,7 @@ constants:
     title: OpenAI API へ送信できる音声の大きさ
     container: integrations/openai/transcriber.py
     usecase: 録音を文字に起こす
-    summary: 送信する前に確認する音声の上限（25 MB から要求の本文の固定の消費分を引いた値。非機能要件の OpenAIへ送信する音声の上限）
+    summary: 送信する前に確認する音声の上限（25 MB から要求の本文の固定の消費分を差し引いた値。非機能要件の OpenAIへ送信する音声の上限）
     value: '26_204_569'
     status: planned
     introduced:

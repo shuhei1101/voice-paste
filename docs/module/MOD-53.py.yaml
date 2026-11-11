@@ -90,7 +90,7 @@ functions:
       type: int
       description: 削除したファイルの数
     process: |-
-      1. log_dir の直下の `YYYY-MM-DD.log` 形式の名前のファイルを拾う（それ以外の名前は触らない）
+      1. log_dir の直下の `YYYY-MM-DD.log` 形式の名前のファイルを取得する（それ以外の名前は触らない）
       2. 日付が today − retention_days 日より前のものを削除する
          - `[INFO]` 古いログを削除した（件数）
     unit_tests:

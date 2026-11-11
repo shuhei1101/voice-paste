@@ -105,7 +105,7 @@ flows:
       - name: Mock
         description: マイク・システム音量・トレイ・文字起こしのエンジン・話し声の判定・返送を差し替える。履歴は一時フォルダに書き込む
       - name: 連続録音の録音セッション
-        description: 録音を開始する を continuous=true で呼び、無音だけを流して完了を呼ぶ
+        description: 録音を開始する を continuous=true で呼び、無音だけを供給して完了を呼ぶ
         notes: 話し声の判定は無音だけを返却する
     flow: |-
       <!-- map: {"title": "正常系（話し声が残っていない連続録音を完了する）"} -->
@@ -251,7 +251,7 @@ constraints:
   - item: 待ち受け
     constraint: 127.0.0.1 だけ
   - item: 認可
-    constraint: 起動ごとに作るトークンの一致。Host・Origin の確かめ方は 録音を開始する と同じ
+    constraint: 起動ごとに作るトークンの一致。Host・Origin の確認方法は 録音を開始する と同じ
   - item: タイムアウト
     constraint: 制限なし
     notes: 文字起こしを待たずに 202 を返却する

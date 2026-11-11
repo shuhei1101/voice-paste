@@ -11,7 +11,7 @@ classes:
     role: middleware
     kind: クラス
     inherits: starlette.middleware.base.BaseHTTPMiddleware
-    summary: 全ての要求で Host を確認する。`/web/` の外は Origin・トークンを、`/web/` の下は Origin の許可リストを確認し、当たらなければ 403・401 で断る
+    summary: 全ての要求で Host を確認する。`/web/` の外は Origin・トークンを、`/web/` の下は Origin の許可リストを確認し、一致しなければ 403・401 で断る
     properties:
       - name: _token
         type: SecretStr
@@ -68,7 +68,7 @@ classes:
         unit_tests:
           - name: test_dispatch
             case: 正常
-            summary: 正しい要求は通す
+            summary: 正しい要求は許可する
             condition: Origin 無し、Host 127.0.0.1:{ポート}、正しいトークン
             mock: call_next
             expected: call_next が呼ばれる
@@ -92,13 +92,13 @@ classes:
             expected: どちらも 401 が返る
           - name: test_dispatch_when_web_get_without_origin
             case: 正常
-            summary: /web/ の下の Origin の無い GET はトークン無しで通す
+            summary: /web/ の下の Origin の無い GET はトークン無しで許可する
             condition: GET /web/、Host localhost:{ポート}、Origin と Authorization 無し
             mock: call_next
             expected: call_next が呼ばれる
           - name: test_dispatch_when_web_post_with_allowed_origin
             case: 正常
-            summary: /web/ の下の許す Origin の POST を通す
+            summary: /web/ の下の許す Origin の POST を許可する
             condition: POST /web/transcriptions、Origin https://voice.example.com（許可リストにある）、Authorization 無し
             mock: call_next
             expected: call_next が呼ばれる
@@ -124,7 +124,7 @@ classes:
             expected: call_next が呼ばれる
           - name: test_dispatch_when_web_post_without_origin
             case: 正常
-            summary: /web/ の下の Origin の無い POST をトークン無しで通す
+            summary: /web/ の下の Origin の無い POST をトークン無しで許可する
             condition: POST /web/transcriptions、Host localhost:{ポート}、Origin と Authorization 無し
             mock: call_next
             expected: call_next が呼ばれる

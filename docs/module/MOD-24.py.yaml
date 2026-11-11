@@ -15,7 +15,7 @@ classes:
       長期に持つランタイム状態（今の録音セッションとロック）を持つためクラスにする。
       全てのメソッドは `threading.Lock` の中で状態を確認して書き換える（API・ホットキー・トレイ・上限のタイマー・録音の区切りのスレッドが別のスレッドから呼ぶ）。
       文字起こしから届けるまでは専用のワーカースレッドで動かし、終わったら録音セッションを空にして待機中に戻す。
-      API の連続録音では、開始でワーカースレッドを 1 つ立て、録音が区切った区間を待ち行列経由で区切った順に起こして返却する（録音は続ける）。完了か上限で録音を止め、最後の区間の後ろに終わりを返却してから待機中に戻す。
+      API の連続録音では、開始でワーカースレッドを 1 つ起動し、録音が区切った区間を待ち行列経由で区切った順に起こして返却する（録音は続ける）。完了か上限で録音を止め、最後の区間の後ろに終わりを返却してから待機中に戻す。
 
       ```mermaid
       stateDiagram-v2
@@ -37,7 +37,7 @@ classes:
       - name: _lock
         type: threading.Lock
         access: 内部 (_)
-        description: 状態の確かめと書き換えを 1 つずつにする
+        description: 状態の確認と書き換えを 1 つずつにする
       - name: _session_limit
         type: timedelta
         access: 内部 (_)
@@ -87,12 +87,12 @@ classes:
              - 残っている場合、SessionBusyError を送出する
                - `[INFO]` 処理中のため開始を断った（入口・処理中の録音セッションの ID）
           3. 録音を始める
-             - continuous が True の場合、区間の待ち行列を作り、連続録音を始める（連続録音の開始。区間の引き渡し先は _on_segment、失敗の知らせ先は _on_continuous_failed）
+             - continuous が True の場合、区間の待ち行列を作り、連続録音を始める（連続録音の開始。区間の引き渡し先は _on_segment、失敗の通知先は _on_continuous_failed）
              - それ以外の場合、録音を始める（録音の開始）
              - MicrophoneUnavailableError の場合、待ち行列を捨て、そのまま送出する（音量は録音の開始が戻している。録音セッションは作らない）
           4. 録音セッションを作り（continuous・glossary_preset を持たせる）、状態を recording にする
           5. continuous が True なら、区間を起こして返却するワーカースレッドを始める（_run_segments）
-          6. 状態の変化を通知する（ユーザーへの知らせ）
+          6. 状態の変化を通知する（ユーザーへの通知）
              - `[INFO]` 録音セッションを始めた（録音セッションの ID・入口・連続録音か）
         exceptions:
           - name: SessionBusyError
@@ -128,7 +128,7 @@ classes:
           - name: test_start_when_glossary_preset
             case: 正常
             summary: 指定した用語集のプリセットを録音セッションに持たせ、補正へ引き渡す
-            condition: 録音セッションが無い。entry=api・glossary_preset="会議" で始め、完了して文字起こしを終える。continuous=True で始めた場合も区間を 1 つ渡して確認する（parametrize）
+            condition: 録音セッションが無い。entry=api・glossary_preset="会議" で始め、完了して文字起こしを終える。continuous=True で始めた場合も区間を 1 つ引き渡して確認する（parametrize）
             mock: SessionDeps の全関数
             expected: 返った録音セッションの glossary_preset が "会議"。correct が (起こした文字, "会議") で呼ばれる。glossary_preset を省いて始めたときは (起こした文字, None) で呼ばれる
       - name: pause
@@ -247,9 +247,9 @@ classes:
           description: なし（結果は出力先へ届く）
         process: |-
           1. session_id がある場合（API）、今の録音セッションの ID と一致し、入口が api で、recording か stopped であることを確認する
-             - 当たらない場合、SessionNotFoundError を送出する
+             - 一致しない場合、SessionNotFoundError を送出する
           2. session_id が None の場合（ホットキー・トレイ）、今の録音セッションの入口が api でなく、recording か paused であることを確認する
-             - 当たらない場合、何もしない（API の録音セッションに確定のホットキーが来ても変えない）
+             - 一致しない場合、何もしない（API の録音セッションに確定のホットキーが来ても変えない）
           3. 連続録音なら、連続録音の終わり方（_finish_continuous_recording、終わった理由は completed）で終え、以降は行わない
           4. stopped でなければ録音を止める（録音の停止）
           5. 録音を保存し（録音の保存。segment_number は None）、状態を transcribing にして output_id と preset（output_preset）を録音セッションに持たせる
@@ -321,7 +321,7 @@ classes:
           - name: test_complete_when_continuous
             case: 正常
             summary: 連続録音を完了すると、最後の区間の後ろに completed を届けて待機中に戻る
-            condition: 連続録音の録音セッションが recording で区間を 1 つ受けた後。stop_continuous_recording は引き渡された on_segment へ区間を 1 つ渡してから戻る。ワーカースレッドの終わりを待つ
+            condition: 連続録音の録音セッションが recording で区間を 1 つ受けた後。stop_continuous_recording は引き渡された on_segment へ区間を 1 つ引き渡してから戻る。ワーカースレッドの終わりを待つ
             mock: SessionDeps の全関数
             expected: deliver に segment_number=1・2 の transcribed と、その後に result=completed・segment_count=2 がこの順に渡り、録音セッションが空になる。同じ ID への 2 度目の complete は SessionNotFoundError
           - name: test_complete_when_continuous_without_segments
@@ -367,7 +367,7 @@ classes:
           description: 打ち切ったか
         process: |-
           1. API の録音セッションが recording か stopped で、今の時刻 − started_at が上限時間（連続録音は _continuous_session_limit、それ以外は _session_limit）以上であることを確認する
-             - 当たらない場合、False を返却する
+             - 一致しない場合、False を返却する
           2. 連続録音なら、連続録音の終わり方（_finish_continuous_recording、終わった理由は truncated）で終え、True を返却する
              - `[WARNING]` 完了が来ないまま上限で打ち切った（録音セッションの ID・経過時間）
           3. recording なら録音を止める（録音の停止）
@@ -423,14 +423,14 @@ classes:
           - name: test_truncate_if_expired_when_continuous
             case: 正常
             summary: 連続録音は連続録音の上限時間で打ち切り、残りの区間の後ろに truncated を届ける
-            condition: 1 回の録音の上限 600 秒・連続録音の上限 3600 秒。連続録音の録音セッションが recording で、now を started_at + 601 秒と + 3600 秒にして呼ぶ。stop_continuous_recording は区間を 1 つ渡してから戻る
+            condition: 1 回の録音の上限 600 秒・連続録音の上限 3600 秒。連続録音の録音セッションが recording で、now を started_at + 601 秒と + 3600 秒にして呼ぶ。stop_continuous_recording は区間を 1 つ引き渡してから戻る
             mock: SessionDeps の全関数
             expected: 601 秒では False が返って recording のまま、3600 秒では True が返り、deliver に segment_number=1 の transcribed の後で result=truncated・segment_count=1 が渡る
       - name: _run_after_confirm
         title: 確定後の流れ
         kind: メソッド
         scope: internal
-        summary: 文字起こし → 補正 → 履歴への追記 → 届けるを行い、待機中に戻す
+        summary: 文字起こし → 補正 → 履歴への追記 → 届けるを実行し、待機中に戻す
         args:
           - name: session
             type: Session
@@ -457,7 +457,7 @@ classes:
              - DeliveryError（UnknownOutputError を含む）の場合、delivery_failed を通知する
              - 2〜6 で想定外の例外が出た場合、入口が api なら result=failed を届け、それ以外は文字起こしの前後に応じて transcription_failed か delivery_failed を通知する
                - `[ERROR]` 確定後の流れで想定外の例外（logger.exception）
-          7. どの経路でも必ず（finally）一時の音声を消し（一時の音声の削除）、録音セッションを空にして待機中を通知する
+          7. どの経路でも必ず（finally）一時の音声を削除し（一時の音声の削除）、録音セッションを空にして待機中を通知する
         unit_tests:
           - name: test_run_after_confirm
             case: 正常
@@ -514,7 +514,7 @@ classes:
           1. ロックを取る
           2. recording・paused・stopped の録音セッションが残っていれば、録音セッションを空にする
              - `[WARNING]` 終了のため録音を捨てた（録音セッションの ID・入口）
-             - 連続録音の場合、区間の待ち行列へ None を積み（ワーカースレッドは残りの区間と終わりを返却せずに終える）、ロックを離してから録音を捨てる（録音した音を捨てる。区切りのスレッドの終わりを待つため、ロックを持ったまま待つと _on_segment と待ち合う。離した後に届いた区間は、_on_segment が録音セッションが空なので捨てる）
+             - 連続録音の場合、区間の待ち行列へ None を追加し（ワーカースレッドは残りの区間と終わりを返却せずに終える）、ロックを離してから録音を捨てる（録音した音を捨てる。区切りのスレッドの終わりを待つため、ロックを持ったまま待つと _on_segment と待ち合う。離した後に届いた区間は、_on_segment が録音セッションが空なので捨てる）
              - それ以外で stopped でなければ、ロックを持ったまま録音を捨てる（録音した音を捨てる）
              - transcribing・delivering の場合、何もしない（ワーカースレッドが終わり次第録音セッションを空にする）
         unit_tests:
@@ -557,7 +557,7 @@ classes:
           1. result=truncated を届ける（出力先への配送）
              - DeliveryError や想定外の例外の場合、ログに書き込む
                - `[ERROR]` 打ち切りを届けられなかった（logger.exception）
-          2. どの経路でも必ず（finally）一時の音声を消し（一時の音声の削除）、録音セッションを空にして待機中を通知する
+          2. どの経路でも必ず（finally）一時の音声を削除し（一時の音声の削除）、録音セッションを空にして待機中を通知する
       - name: _fail_confirm
         title: 確定の失敗
         kind: メソッド
@@ -576,7 +576,7 @@ classes:
           type: None
           description: なし
         process: |-
-          1. 録音セッションが stopped でなければ、止めていない録音が残っているかもしれないので録音を捨てる（録音した音を捨てる。音量も戻る）
+          1. 録音セッションが stopped でなければ、止めていない録音が残っている場合に備えて録音を捨てる（録音した音を捨てる。音量も戻る）
              - 捨てるのに失敗した場合（既に止まっている等）、握る
           2. 録音セッションを空にする
              - `[ERROR]` 録音を確定できなかった（録音セッションの ID・理由。logger.exception）
@@ -605,7 +605,7 @@ classes:
         status: implemented
       - name: current
         title: 今の録音セッション
-        summary: 今の録音セッションを返却する。画面が state_changed を受けたときに入口と状態を引く
+        summary: 今の録音セッションを返却する。画面が state_changed を受けたときに入口と状態を取得する
         kind: メソッド
         scope: public
         thread_safe: true
@@ -647,7 +647,7 @@ classes:
           description: 終えられたか（既に終えていれば False。呼び元は完了なら SessionNotFoundError、打ち切りなら何もしない）
         process: |-
           1. ロックを取り、今の録音セッションが session_id の連続録音で recording であることを確認する
-             - 当たらない場合（既に終えている）、False を返却する
+             - 一致しない場合（既に終えている）、False を返却する
           2. 状態を transcribing にして通知し、区間の待ち行列を記録してロックを離す
           3. 連続録音を止める（stop_continuous_recording。戻るまでに最後の区間が _on_segment へ渡る）
              - 例外の場合、そのまま 4 へ進む（そこまでに区切った区間と終わりは返却する）
@@ -673,7 +673,7 @@ classes:
           description: なし
         process: |-
           1. ロックを取り、今の録音セッションが連続録音で recording か transcribing（完了・上限で止めている最中）であることを確認する
-             - 当たらない場合（終了で捨てた後など）、区間を捨てる
+             - 一致しない場合（終了で捨てた後など）、区間を捨てる
                - `[WARNING]` 連続録音でないため区間を捨てた
           2. segment_count を 1 つ増やして録音セッションに持たせ、(通し番号, 区間) を待ち行列へ追加する
              - `[INFO]` 区間を受けた（録音セッションの ID・通し番号・長さ・区切った理由）
@@ -681,7 +681,7 @@ classes:
           - name: test_on_segment_numbers_in_order
             case: 正常
             summary: 区間に 1 から順に通し番号を付ける
-            condition: 連続録音の録音セッションが recording。start_continuous_recording に引き渡された on_segment へ区間を 3 つ渡す。ワーカースレッドの処理を待つ
+            condition: 連続録音の録音セッションが recording。start_continuous_recording に引き渡された on_segment へ区間を 3 つ引き渡す。ワーカースレッドの処理を待つ
             mock: SessionDeps の全関数
             expected: save_recording に segment_number=1・2・3 がこの順に渡り、録音セッションの segment_count が 3
           - name: test_on_segment_when_not_continuous
@@ -725,20 +725,20 @@ classes:
           - name: test_run_segments_when_transcription_failed
             case: 異常
             summary: 区間の文字起こしに失敗しても、その区間の failed を返却して次の区間へ進む
-            condition: 連続録音で区間を 3 つ渡し、transcribe が 2 つ目だけ TranscriptionError を送出する。その後に complete
+            condition: 連続録音で区間を 3 つ引き渡し、transcribe が 2 つ目だけ TranscriptionError を送出する。その後に complete
             mock: SessionDeps の全関数
             expected: deliver に segment_number=1 の transcribed・2 の failed（理由つき）・3 の transcribed・completed（segment_count=3）がこの順に渡る
             exception: '-'
           - name: test_run_segments_when_deliver_blocks
             case: 正常
             summary: 前の区間の返送を待つ間も区間を受け、順を崩さずに返却する
-            condition: deliver が 1 つ目の区間だけ threading.Event を待って止まる。その間に区間を 2 つ渡してから Event を作成する
+            condition: deliver が 1 つ目の区間だけ threading.Event を待って止まる。その間に区間を 2 つ引き渡してから Event を作成する
             mock: SessionDeps の全関数
             expected: on_segment が待たずに戻り、deliver に segment_number=1・2・3 がこの順に渡る
           - name: test_run_segments_when_deliver_raised
             case: 異常
             summary: 区間を届けるときに例外が出ても、ログに書き込んで次の区間へ進む
-            condition: deliver が segment_number=2 の区間だけ RuntimeError を送出する。区間を 3 つ渡す
+            condition: deliver が segment_number=2 の区間だけ RuntimeError を送出する。区間を 3 つ引き渡す
             mock: SessionDeps の全関数
             expected: deliver に segment_number=3 の区間が渡り、`[ERROR]` 区間を届けられなかったことがログに書き込まれ、連続録音は録音中のまま
         status: planned
@@ -794,7 +794,7 @@ classes:
           description: なし
         process: |-
           1. ロックを取り、今の録音セッションが連続録音で recording であることを確認する
-             - 当たらない場合（完了・上限・終了で既に終えている）、何もしない
+             - 一致しない場合（完了・上限・終了で既に終えている）、何もしない
           2. 状態を transcribing にして通知し、区間の待ち行列へ ContinuousEnd(result=failed, error=理由) を追加する（録音は録音が止めている）
              - `[ERROR]` 連続録音が区切りの失敗で止まった（録音セッションの ID・理由）
         unit_tests:
@@ -824,7 +824,7 @@ classes:
         process: |-
           1. ロックを取る
           2. 今の録音セッションの入口が api でなく、状態が transcribing で、output_preset が None（固定の出力先で確定した）であることを確認する
-             - 当たらない場合（待機中・録音中・届け始めた後の delivering・API の録音セッション・カスタムプリセットで確定した録音セッション）、何もしない
+             - 一致しない場合（待機中・録音中・届け始めた後の delivering・API の録音セッション・カスタムプリセットで確定した録音セッション）、何もしない
           3. output_id が今の output_id と同じなら、何もしない
           4. 録音セッションの output_id を差し替える
              - `[INFO]` 出力先を切り替えた（録音セッションの ID・切り替える前と後の出力先の ID）

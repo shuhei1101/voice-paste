@@ -31,7 +31,7 @@ functions:
       type: tuple[str, ...]
       description: （wm_class_instance, wm_class）のうち空でないもの。読み込めないときは空
     process: |-
-      1. FOCUSED_WINDOW_COMMAND を subprocess.run（capture_output・text・check=True・timeout=FOCUSED_WINDOW_TIMEOUT_SEC）で流す
+      1. FOCUSED_WINDOW_COMMAND を subprocess.run（capture_output・text・check=True・timeout=FOCUSED_WINDOW_TIMEOUT_SEC）で実行する
       2. 標準出力（`('{...}',)` の GVariant の書式）を ast.literal_eval でタプルにし、先頭の文字列を json.loads で読み込む
       3. wm_class_instance・wm_class のうち空でない文字列をこの順に返却する
       4. 1〜3 で OSError（`gdbus` が無い）・subprocess.SubprocessError（拡張が無い・無効で終了コードが 0 でない・時間切れ）・ValueError・SyntaxError（出力の書式が違う）が出た場合、空を返却する（貼り付けを止めない）

@@ -288,7 +288,7 @@ flows:
 
       <!-- /map -->
     expected:
-      - 400 の problem+json が返り、detail に手がかりの形が合わないことが入っている
+      - 400 の problem+json が返り、detail に手がかりの構造が合わないことが入っている
       - モデルが呼ばれていない
     test: test_error_when_vocabulary_invalid
   - name: 異常系（文字起こしに失敗・500）

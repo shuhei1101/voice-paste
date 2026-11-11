@@ -32,7 +32,7 @@ verification:
 license: BSD（商用利用可）
 official_url: https://github.com/asweigart/pyperclip
 install: |-
-  `uv sync --frozen` で入る。Linux（Xorg）ではクリップボードを `xclip` か `xsel` で扱うため、OS のパッケージを入れる。Wayland のセッションも `xclip`（XWayland）で書く（`set_clipboard("xclip")`）。pyperclip は `WAYLAND_DISPLAY` を見て `wl-copy` を選ぶが、GNOME の `wl-copy` は書くたびに貼り付け先のフォーカスを取り、貼り付けのキーが落ちる（[#221](https://github.com/shuhei1101/voice-paste/pull/221) の PoC）。
+  `uv sync --frozen` で入る。Linux（Xorg）ではクリップボードを `xclip` か `xsel` で扱うため、OS のパッケージを入れる。Wayland のセッションも `xclip`（XWayland）で書き込む（`set_clipboard("xclip")`）。pyperclip は `WAYLAND_DISPLAY` を確認して `wl-copy` を選ぶが、GNOME の `wl-copy` は書き込むたびに貼り付け先のフォーカスを取り、貼り付けのキーが落ちる（[#221](https://github.com/shuhei1101/voice-paste/pull/221) の PoC）。
 
   ```bash
   sudo apt install xclip

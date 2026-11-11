@@ -176,7 +176,7 @@ functions:
       2. batch_size は int にし、BATCH_SIZE_RANGE の中かを確認する
       3. guard は `true` か `false`（小文字）だけを受ける
       4. separator は SEPARATOR_MAX_LENGTH 文字以下かを確認する
-         - どれかが外れる場合、TuningValueError（field にその項目の名前）を送出する
+         - どれかが除外される場合、TuningValueError（field にその項目の名前）を送出する
     exceptions:
       - name: TuningValueError
         condition: 数値に読み込めない・範囲の外・guard が true でも false でもない・separator が長い
@@ -241,7 +241,7 @@ functions:
         type: int
         required: true
         passing: keyword
-        description: 待ち受けのポート（Host の確かめに使用する）
+        description: 待ち受けのポート（Host の確認に使用する）
       - name: request_shutdown
         type: Callable[[], None]
         required: true
@@ -252,15 +252,15 @@ functions:
       description: app
     process: |-
       1. 全ての要求の前に、Host が `127.0.0.1:{port}` か `localhost:{port}` で、Origin が付いていないかを確認する
-         - 外れる場合、403 の problem+json を返却する
+         - 除外される場合、403 の problem+json を返却する
            - `[WARNING]` 要求を断った（理由・Host・Origin）
       2. GET /health: ok=True と engine.model_name・engine.dtype・engine.device を返却する
       3. POST /shutdown: 202 を返却した後に request_shutdown を呼ぶ（uvicorn が処理中の要求を返し終えてから終わる）
       4. POST /transcriptions:
          1. vocabulary を読み込む（JSON の配列で、各要素の written が空でない）
-            - 外れる場合、400 の problem+json を返却する
-              - `[WARNING]` 手がかりの形が合わない
-         2. 調整の値の項目を `Form` の `str | None` で受け、parse_tuning で読み込む（bool・数値の型で受けると FastAPI が `yes` を通し、型の合わない値を 422 にするため）
+            - 除外される場合、400 の problem+json を返却する
+              - `[WARNING]` 手がかりの構造が合わない
+         2. 調整の値の項目を `Form` の `str | None` で受け、parse_tuning で読み込む（bool・数値の型で受けると FastAPI が `yes` を受け付け、型の合わない値を 422 にするため）
             - TuningValueError の場合、400 の problem+json（detail に項目の名前）を返却する
               - `[WARNING]` 調整の値が合わない（項目の名前・理由）
          3. audio を decode_audio で復号する

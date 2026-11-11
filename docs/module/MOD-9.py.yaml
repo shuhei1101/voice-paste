@@ -70,7 +70,7 @@ functions:
       - name: test_save_recording_when_segment
         case: 正常
         summary: 区間は通し番号を付けた名前で書き込み、同じ秒に書き込んでも重ならない
-        condition: history_enabled=True、now を同じ時刻にして segment_number=1 と 2 を続けて書き込む。history_enabled=False でも同じく書く
+        condition: history_enabled=True、now を同じ時刻にして segment_number=1 と 2 を続けて書き込む。history_enabled=False でも同じく書き込む
         mock: なし（一時フォルダ）
         expected: '`{日時}_{session_id}_1.wav` と `_2.wav` が別々にあり、tmp/ でも `{session_id}_1.wav` と `_2.wav` が別々にある'
     status: implemented
@@ -251,7 +251,7 @@ functions:
         type: bool
         required: true
         passing: keyword
-        description: 履歴を残す設定か（main.py が今の設定を引いて引き渡す）
+        description: 履歴を残す設定か（main.py が今の設定を取得して引き渡す）
       - name: paths
         type: AppPaths
         required: true
@@ -266,7 +266,7 @@ functions:
       type: Path
       description: 文字起こしに引き渡す音声のパス
     process: |-
-      1. 履歴を残さない設定なら source をそのまま返す（起こし終えた後に discard_temporary が削除する）
+      1. 履歴を残さない設定なら source をそのまま返却する（起こし終えた後に discard_temporary が削除する）
       2. 日付のフォルダの下に `{日時}_web_{job_id}{source の拡張子}` の名前で移す（shutil.move）
          - `[INFO]` ブラウザの音声を残した（パス）
       3. 移した先のパスを返却する

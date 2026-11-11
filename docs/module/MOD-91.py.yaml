@@ -82,7 +82,7 @@ classes:
           - name: block
             type: numpy.ndarray
             required: true
-            description: 入力から届いた音（形状 (フレーム数, 1) か (フレーム数,)・int16。長さは揃わない）
+            description: 入力から届いた音（形状 (フレーム数, 1) か (フレーム数,)・int16。長さは一定ではない）
         returns:
           type: None
           description: なし
@@ -94,7 +94,7 @@ classes:
           - name: test_feed_cuts_at_silence
             case: 正常
             summary: 話し声の後の無音が区切る長さに達したら区切る
-            condition: 確率を 0.5 秒分 0.0、1 秒分 0.9、続いて 2.5 秒分 0.0 にする（話し声の前の余白を取れるように先頭に無音を挿入する）。min_silence_sec=2.0。16 kHz の音を 1024 フレームずつ渡す
+            condition: 確率を 0.5 秒分 0.0、1 秒分 0.9、続いて 2.5 秒分 0.0 にする（話し声の前の余白を取れるように先頭に無音を挿入する）。min_silence_sec=2.0。16 kHz の音を 1024 フレームずつ引き渡す
             mock: detect_speech・on_segment
             expected: on_segment に reason=silence の区間が 1 つ渡り、その長さが「話し声の前の余白 SEGMENT_PAD_SEC + 1 秒 + 話し声の後の余白 SEGMENT_PAD_SEC」に 1 窓の誤差で合う
           - name: test_feed_keeps_short_pause
@@ -138,10 +138,10 @@ classes:
             summary: 無音で区切った後に無音が続いても、貯める音を余白 + 窓 1〜2 つ分に収める
             condition: 確率を 1 秒分 0.9、続いて 59 秒分 0.0 にする。min_silence_sec=2.0
             mock: detect_speech・on_segment
-            expected: on_segment に reason=silence の区間が 1 つ渡り、流し終えた後の _audio の長さが SEGMENT_PAD_SEC + 窓 2 つ分以下
+            expected: on_segment に reason=silence の区間が 1 つ渡り、供給し終えた後の _audio の長さが SEGMENT_PAD_SEC + 窓 2 つ分以下
           - name: test_feed_keeps_head_pad_after_trim
             case: 正常
-            summary: 無音を長く流して音を手放した後の話し声でも、話し声の前の余白まで区間に含める
+            summary: 無音を長く供給して音を手放した後の話し声でも、話し声の前の余白まで区間に含める
             condition: 確率を 30 秒分 0.0、1 秒分 0.9、続いて 2.5 秒分 0.0 にする。min_silence_sec=2.0。音には位置が分かる連番の値を入れる
             mock: detect_speech・on_segment
             expected: on_segment に reason=silence の区間が 1 つ渡り、長さが「SEGMENT_PAD_SEC + 1 秒 + SEGMENT_PAD_SEC」に 1 窓の誤差で合い、話し声の窓の値が全て区間に含まれる
@@ -161,7 +161,7 @@ classes:
           - name: test_flush_when_speaking
             case: 正常
             summary: 話し声の途中なら最後の区間を引き渡す
-            condition: 確率 0.9 を 1 秒と、窓に満たない 100 サンプルを流して flush
+            condition: 確率 0.9 を 1 秒と、窓に満たない 100 サンプルを実行して flush
             mock: detect_speech・on_segment
             expected: on_segment に reason=flush の区間が 1 つ渡り、末尾の 100 サンプルを含む
           - name: test_flush_when_silent_after_speech

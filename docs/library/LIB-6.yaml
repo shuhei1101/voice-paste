@@ -22,7 +22,7 @@ catalogs:
         purpose: 書き込んだイベントを SYN_REPORT で確定する
       - name: evdev.ecodes
         kind: 定数
-        purpose: キーコード（KEY_LEFTCTRL・KEY_V・KEY_ENTER など）と、名前からキーコードを引く ecodes.ecodes
+        purpose: キーコード（KEY_LEFTCTRL・KEY_V・KEY_ENTER など）と、名前からキーコードを取得する ecodes.ecodes
       - name: evdev.uinput.UInputError
         kind: 例外
         purpose: uinput の機器を作れないときに送出される（権限が無いときは OSError）

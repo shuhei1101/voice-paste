@@ -126,7 +126,7 @@ request:
   - name: Origin
     type: str
     required: false
-    default: なし（通す）
+    default: なし（許可する）
     location: header
     description: ブラウザが付ける要求元。画面と同じオリジンの GET には付かない
     constraints: 付いていれば設定の許す Origin（api.allowed_web_origins）にあること
@@ -164,7 +164,7 @@ constraints:
     constraint: 127.0.0.1 だけ。外からはゲートウェイ（shuhdev-gateway、Cloudflare Access）を経由して届く
   - item: 認可
     constraint: トークンを求めない。Host が待ち受けのホストで、Origin が無いか許す Origin にあること
-    notes: 文字起こしの結果を返却する と同じ守り。画面と同じオリジンの fetch の GET には Origin が付かないため、Origin が無い要求を通す
+    notes: 文字起こしの結果を返却する と同じ守り。画面と同じオリジンの fetch の GET には Origin が付かないため、Origin が無い要求を許可する
   - item: 応答時間
     constraint: ブラウザの要求の応答時間以内
     decided_by: NFR-1#requirements[ブラウザの要求の応答時間]

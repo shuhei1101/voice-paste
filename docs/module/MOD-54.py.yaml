@@ -31,7 +31,7 @@ data_models:
         description: 出力先の設定のモデル（id の既定値が OutputSpec.id と同じ）。設定の outputs[] の検証・既定の一覧・設定画面の欄はこれから組み立てる。オン・オフを持たず設定の outputs[] に配置しない出力先（API 専用の呼び出し元へ返却する）は None
       - name: inject
         type: InjectFn
-        default: 注入するものの無い関数（空の dict を返す）
+        default: 注入するものの無い関数（空の dict を返却する）
         description: 配線で handler に部分適用するものを OutputDeps から選ぶ（_wire_outputs が呼ぶ）
     status: implemented
   - name: PresetKindSpec
@@ -126,7 +126,7 @@ data_models:
         description: JSON を POST してステータスを返却する（外部連携の post_json）
       - name: get_settings
         type: Callable[[], Settings]
-        description: 今の設定を返却する（SettingsStore.get。届けるたびに読み込み、保存した immediate の項目を次の回から効かせる）
+        description: 今の設定を返却する（SettingsStore.get。届けるたびに読み込み、保存した immediate の項目を次の回から有効にする）
       - name: notify_copied
         type: Callable[[str], None]
         description: コピーの完了を起こした文字と共に画面へ通知する（ui の notify_copied に UiBridge を部分適用したもの）

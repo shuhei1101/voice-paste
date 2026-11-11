@@ -11,11 +11,11 @@ classes:
     role: 画面
     summary: 確定から届けるまで、経過と残りの時間・進みをフォーカスを取らずに出す
     description: |
-      要素は画面設計「文字起こし中の表示」が持つ。窓は `Qt.Tool | Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus` と `WA_ShowWithoutActivating` で出す。窓の外側の枠の role は `window` にし、縁を frame で描かせる。
+      要素は画面設計「文字起こし中の表示」が持つ。窓は `Qt.Tool | Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus` と `WA_ShowWithoutActivating` で出す。窓の外側の枠線の role は `window` にし、縁を frame で描かせる。
       `WindowDoesNotAcceptFocus` のため、切り替えのボタンを押しても見出しの行をつかんでも窓は前面にならず、貼り付け先の入力欄のフォーカスはそのまま残る（前面を戻す処理は持たない）。
       見出しの行・ドラッグのハンドル・名前の下にホットキーを出すボタンは、録音の画面と同じ部品（window_parts.py の HeadRow・GripIcon・HotkeyButton。recording_window.py から移す）を使用する。見出しの行を押したまま動かすと `QWindow.startSystemMove` で窓を動かす。
-      切り替えのボタンは、設定でオンの固定の出力先（`outputs[]` の並び。名前は UiDeps.output_titles、ホットキーは format_hotkey で整えた `outputs[].hotkey`）ごとに open で組み直す。`ui.transcribing_show_hotkeys` がオフのときはホットキーを空で引き渡し、名前だけを出す（録音の画面の `ui.show_hotkeys` は確認しない）。今の出力先でないボタンを押すと output_selected を emit する（差し替えるのは UiController。マーカーは output_changed の知らせを受けて set_output で替える）。
-      切り替えのボタンは、`ui.transcribing_show_hotkeys` のどちらでも等しい幅で並べる。全てのボタンを同じ固定の幅（setFixedWidth）にし、行の右に stretch を 1 つ置く。組み直したときは、固定の幅をボタンの sizeHint の幅のうち最も大きい値にする（前の回の窓の幅を引き継がず、窓の最小の幅はその幅のボタンの行と SWITCH_WINDOW_WIDTH_PX から決まる）。窓の resizeEvent と、レイアウトの組み直し（QEvent.LayoutRequest。最初に表示を出した回は resizeEvent の時点で行に幅が割り当てられていない）のたびに、「（行の幅（切り替えのボタンの行のレイアウトに割り当てられた幅。テーマの枠の線と余白を除いた幅） − 間隔 ×（ボタンの数 − 1））÷ ボタンの数」の切り捨てと、その最も大きい値の、大きい方に取り直す（割り切れない数 px だけが行の右の stretch に残る）。
+      切り替えのボタンは、設定でオンの固定の出力先（`outputs[]` の並び。名前は UiDeps.output_titles、ホットキーは format_hotkey で整えた `outputs[].hotkey`）ごとに open で組み直す。`ui.transcribing_show_hotkeys` がオフのときはホットキーを空で引き渡し、名前だけを出す（録音の画面の `ui.show_hotkeys` は確認しない）。今の出力先でないボタンを押すと output_selected を emit する（差し替えるのは UiController。マーカーは output_changed の通知を受けて set_output で替える）。
+      切り替えのボタンは、`ui.transcribing_show_hotkeys` のどちらでも等しい幅で並べる。全てのボタンを同じ固定の幅（setFixedWidth）にし、行の右に stretch を 1 つ配置する。組み直したときは、固定の幅をボタンの sizeHint の幅のうち最も大きい値にする（前の回の窓の幅を引き継がず、窓の最小の幅はその幅のボタンの行と SWITCH_WINDOW_WIDTH_PX から決まる）。窓の resizeEvent と、レイアウトの組み直し（QEvent.LayoutRequest。最初に表示を出した回は resizeEvent の時点で行に幅が割り当てられていない）のたびに、「（行の幅（切り替えのボタンの行のレイアウトに割り当てられた幅。テーマの枠の線と余白を除いた幅） − 間隔 ×（ボタンの数 − 1））÷ ボタンの数」の切り捨てと、その最も大きい値の、大きい方に取り直す（割り切れない数 px だけが行の右の stretch に残る）。
       切り替えのボタンは、右と上にマーカーがはみ出す分の余白を枠の外に取り、選んだときの丸いマーカーを枠の右上の角からその余白へはみ出して描く。名前とホットキーの文字の範囲にはマーカーを重ねない。
       残りの時間は、進み（区間の終わり ÷ 録音の長さ）と経過から「経過 ÷ 進み − 経過」で見積もる。UiDeps.reports_progress が False なら、進みが届かないため、open で「残りを計っています」を出さず「経過 {秒}」だけを出す。
       コンストラクタは UiDeps と、経過を数える時計 clock（秒を返却する関数。既定は time.monotonic）を受ける。
@@ -52,10 +52,10 @@ classes:
         unit_tests:
           - name: test_open_when_window_role
             case: 正常
-            summary: 窓の外側の枠の role が window
+            summary: 窓の外側の枠線の role が window
             condition: open する。QT_QPA_PLATFORM=offscreen
             mock: UiDeps
-            expected: 外側の枠の property("role") が window
+            expected: 外側の枠線の property("role") が window
           - name: test_open_when_preset
             case: 正常
             summary: カスタムプリセットで確定したときは名前だけを出す

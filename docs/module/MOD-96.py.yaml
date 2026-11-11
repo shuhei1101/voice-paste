@@ -68,7 +68,7 @@ classes:
         title: サーバーの起動の確認
         kind: メソッド
         scope: public
-        summary: 接続先が応答すれば設定と起動の引数を比べてそのまま使い、応答が無ければ wsl.exe で設定の値を引数にして起動し、応答を待つ
+        summary: 接続先が応答すれば設定と起動の引数を比べてそのまま使用し、応答が無ければ wsl.exe で設定の値を引数にして起動し、応答を待つ
         returns:
           type: tuple[Literal["model", "dtype", "device"], ...]
           description: 起動の前から動いていたサーバーのうち設定と違う項目を model・dtype・device の順で。起動したときと全て同じときは空
@@ -85,7 +85,7 @@ classes:
                - `[INFO]` Haas のサーバーを起動した（かかった秒・ポート）
              - 起動した wsl.exe が 0 以外で終わった場合、EngineError を送出する
              - stop が呼ばれた場合、_process.terminate で wsl.exe を終わらせ（stop が _process を確認した後に起動しても残さない）、EngineError を送出する
-          4. _process.terminate で wsl.exe を終わらせ、EngineError を送出する（理由は待ち時間までに応答が無いこと。読み込み中のサーバーが残って GPU を使い続けないようにする）
+          4. _process.terminate で wsl.exe を終わらせ、EngineError を送出する（理由は待ち時間までに応答が無いこと。読み込み中のサーバーが残って GPU を使用し続けないようにする）
         exceptions:
           - name: EngineError
             condition: wsl.exe を起動できない・起動スクリプトが失敗して終わった・待ち時間までに応答が無い・起動の待ちの間に stop された

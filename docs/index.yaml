@@ -22,13 +22,13 @@ items:
   - page: library/
     summary: 採用済みの外部ライブラリ / 外部ツールのリファレンス
   - page: dev-command/
-    summary: 開発で使うコマンドの分類ごとの前提・順序・コマンド・料金や副作用・確かめた記録
+    summary: 開発で使用するコマンドの分類ごとの前提・順序・コマンド・料金や副作用・確認した記録
   - page: test-procedure/
     summary: プロジェクト固有のテスト起動コマンドと前提条件
   - page: design-policy.md
     summary: voice-paste の画面全体に通すデザインの方向性
   - page: guide/
-    summary: voice-paste の使い方（はじめに・使い方・リファレンス）
+    summary: voice-paste の使用方法（はじめに・使い方・リファレンス）
   - page: index.md
     summary: Pages のトップページ
   - page: glossary/

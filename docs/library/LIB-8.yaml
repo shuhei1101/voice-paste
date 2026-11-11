@@ -22,9 +22,9 @@ catalogs:
             type: str | None
             required: false
             default: None
-            description: 記載方法を寄せたい単語の並び。録音の長さによらず 30 秒のウィンドウごとに、頭に半角の空白を追加して前の文脈の枠へ入る
+            description: 表記を合わせたい単語の並び。録音の長さによらず 30 秒のウィンドウごとに、頭に半角の空白を追加して前の文脈の範囲へ入る
             constraints: トークンが 224 以上なら先頭の 223 トークン（`max_length // 2 - 1`、`max_length = 448`）に切られる（v1.2.1 の transcribe.py L1542-1548）
-            notes: prefix を引き渡すと使用されない。引き渡すと句読点が付く・区間ごとの改行がまとまる・口癖が一部消える、など書き方も変わる（[#99 文字起こしに渡す手がかりの語をプリセットで保存して切り替え、設定画面から編集できるようにする](https://github.com/shuhei1101/voice-paste/issues/99) の PoC）
+            notes: prefix を引き渡すと使用されない。引き渡すと句読点が付く・区間ごとの改行がまとまる・口癖が一部消える、など記載方法も変わる（[#99 文字起こしに渡す手がかりの語をプリセットで保存して切り替え、設定画面から編集できるようにする](https://github.com/shuhei1101/voice-paste/issues/99) の PoC）
       - name: assets/silero_vad_v6.onnx
         kind: ファイル
         purpose: 同梱の Silero VAD のモデル。常駐アプリは同じファイルを `src/voice_paste/integrations/vad/assets/` に同梱して開く

@@ -38,7 +38,7 @@ voice-paste の画面全体に通すデザインの方向性
 | 主 | 地・窓の面・本文・線 | `color.*.bg` / `color.*.surface` / `color.*.sunken` / `color.*.text` / `color.*.text_muted` / `color.*.border` | 窓の面は真っ白・真っ黒にしない |
 | 窓の縁 | 枠なしの窓（録音の画面・文字起こし中の表示）とメニューの外側の線 | `color.*.frame` | 白・黒の背景のアプリに対して 3:1 以上 |
 | 差し色 | 主の操作のボタン | `color.*.primary` / `color.*.primary_hover` / `color.*.on_primary` / `color.*.on_primary_line` | 1 画面に 1 か所 |
-| リンク・選択 | リンクの文字・選択中のマーカー（オンのチェックボックスの箱・選んだラジオボタンの点）・フォーカスの枠 | `color.*.accent_fg` | オンの箱のチェックは `color.*.surface` で描く。オフの箱と丸の線は `color.*.text_muted`。使用できないマーカーは線とオンの箱の塗りを `color.*.border`、チェック・点・名前を `color.*.text_muted` にする |
+| リンク・選択 | リンクの文字・選択中のマーカー（オンのチェックボックスのインジケーター・選んだラジオボタンの点）・フォーカスの枠線 | `color.*.accent_fg` | オンのインジケーターのチェックは `color.*.surface` で描く。オフのインジケーターと丸の線は `color.*.text_muted`。使用できないマーカーは線とオンのインジケーターの塗りを `color.*.border`、チェック・点・名前を `color.*.text_muted` にする |
 | 状態色 | 録音中・一時停止中・文字起こし中の表示、成功・エラーの表示だけ | `color.*.recording` / `color.*.paused` / `color.*.busy` / `color.*.success` / `color.*.danger` | - |
 | 通知の地 | エラーの文の地・再起動が要る変更の通知 | `color.*.danger_bg` / `color.*.notice_bg` | - |
 

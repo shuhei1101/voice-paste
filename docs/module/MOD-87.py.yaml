@@ -154,7 +154,7 @@ functions:
       - name: test_acquire_single_instance_when_held
         case: 正常
         summary: 持っている側に終わるよう頼み、放されたら取れる
-        condition: 別のスレッドで同じ名前の SingleInstanceLock を先に取り、その on_quit_requested には呼ばれたことを通知するだけの関数を引き渡す。知らせを受けたら、取ったスレッドが release する（名前付きのミューテックスは取ったスレッドだけが放せる）。テストのスレッドで timeout_sec=5 で取る
+        condition: 別のスレッドで同じ名前の SingleInstanceLock を先に取り、その on_quit_requested には呼ばれたことを通知するだけの関数を引き渡す。通知を受けたら、取ったスレッドが release する（名前付きのミューテックスは取ったスレッドだけが放せる）。テストのスレッドで timeout_sec=5 で取る
         mock: なし（実物の Win32 の名前付きのミューテックスとイベント）
         expected: 先の on_quit_requested が 1 回呼ばれ、後の呼び出しが SingleInstanceLock を返却する
       - name: test_acquire_single_instance_when_not_released
@@ -167,7 +167,7 @@ functions:
       - name: test_acquire_single_instance_when_taken_over
         case: 正常
         summary: 前の持ち主が依頼を受けて放した直後に取ったロックは、受け手を呼ばない
-        condition: test_acquire_single_instance_when_held の流れで後から取ったロックに受け手を引き渡す。先のロックを取ったスレッドは、依頼の知らせを受けたら、同じ名前のイベントのハンドルを開いたまま、3 つ目の依頼として同じ名前のイベントをもう 1 回立ててから release する（立ったままの依頼が残り、acquire_single_instance の ResetEvent が無ければ後のロックの受け手が呼ばれる）
+        condition: test_acquire_single_instance_when_held の流れで後から取ったロックに受け手を引き渡す。先のロックを取ったスレッドは、依頼の通知を受けたら、同じ名前のイベントのハンドルを開いたまま、3 つ目の依頼として同じ名前のイベントをもう 1 回立ててから release する（立ったままの依頼が残り、acquire_single_instance の ResetEvent が無ければ後のロックの受け手が呼ばれる）
         mock: なし（実物の Win32 の名前付きのミューテックスとイベント）
         expected: 後から取ったロックの受け手が 1 秒呼ばれない
       - name: test_acquire_single_instance_when_event_not_ready

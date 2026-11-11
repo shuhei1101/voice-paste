@@ -8,7 +8,7 @@ functions:
     title: スタイルシートの組み立て
     container: ui/style.py
     usecase: 共通
-    summary: tokens.toml（デザイン方針の色・書体・余白）を QSS に埋め、アプリ全体のスタイルシートを返却する。部品ごとに色・書体を直書きしない。枠なしの窓（録音の画面・文字起こし中の表示）の外側の枠 `QFrame[role="window"]` と `QMenu` は、面を surface、縁を frame の 1px の線で描き、ほかの線は border のままにする。チェックボックス・ラジオボタンはマーカーと名前の組に透明の 1px の枠を持たせ、フォーカスで枠を accent_fg、使用できないとき名前を text_muted にする。マーカーと名前の間は `shape.indicator_gap`。選択欄の開くマーカーは、区画（`::drop-down`）に枠を持たせず、`::down-arrow` に write_arrow_image が書き込んだ V 字の画像を適用する（`url()` には `/` 区切りのパス（`Path.as_posix()`）を `"` で囲んで入れる。`\` 区切りでは描かれない）。チェックボックス・ラジオボタンのマーカー（`::indicator`）の規則は持たず IndicatorStyle が描く
+    summary: tokens.toml（デザイン方針の色・書体・余白）を QSS に埋め、アプリ全体のスタイルシートを返却する。部品ごとに色・書体を直書きしない。枠なしの窓（録音の画面・文字起こし中の表示）の外側の枠線 `QFrame[role="window"]` と `QMenu` は、面を surface、縁を frame の 1px の線で描き、ほかの線は border のままにする。チェックボックス・ラジオボタンはマーカーと名前の組に透明の 1px の枠線を持たせ、フォーカスで枠を accent_fg、使用できないとき名前を text_muted にする。マーカーと名前の間は `shape.indicator_gap`。選択欄の開くマーカーは、区画（`::drop-down`）に枠を持たせず、`::down-arrow` に write_arrow_image が書き込んだ V 字の画像を適用する（`url()` には `/` 区切りのパス（`Path.as_posix()`）を `"` で囲んで入れる。`\` 区切りでは描かれない）。チェックボックス・ラジオボタンのマーカー（`::indicator`）の規則は持たず IndicatorStyle が描く
     kind: 関数
     scope: public
     args:
@@ -40,7 +40,7 @@ functions:
         expected: '`QFrame[role="window"]` と `QMenu` の規則に tokens.toml の light の frame の色が入り、`QFrame[role="surface"]` の規則には border の色が入る。置き換えていない `@` の場所が残らない'
       - name: test_build_stylesheet_when_check_indicator
         case: 正常
-        summary: チェックボックス・ラジオボタンのフォーカスの枠と選択欄の開くマーカーの区画の規則を持ち、マーカーの規則を持たない
+        summary: チェックボックス・ラジオボタンのフォーカスの枠線と選択欄の開くマーカーの区画の規則を持ち、マーカーの規則を持たない
         condition: dark=False、image_dir=tmp_path の下の空白を含むフォルダ
         mock: なし
         expected: '`QCheckBox:focus`・`QRadioButton:focus` の規則に light の accent_fg の色が入り、`QComboBox::drop-down` の規則があり、`QComboBox::down-arrow` の `url("...")` が image_dir に書き込んだ light の画像の `as_posix()` を指し、`\` を含まない。`::indicator` の規則が無い'
@@ -92,9 +92,9 @@ functions:
     title: 明暗の適用
     container: ui/style.py
     usecase: 共通
-    summary: ui.theme で Qt の明暗を揃え、決めた明暗のスタイルシートをアプリ全体に当て、開いている窓を描き直す
+    summary: ui.theme で Qt の明暗を統一し、決めた明暗のスタイルシートをアプリ全体に当て、開いている窓を描き直す
     description: |-
-      今の明暗はモジュールの `_current_dark` に控え、theme_color が読み込む（書き込むのはこの関数だけ）。適用した IndicatorStyle はモジュールの `_indicator_style` に記録する（書き込むのはこの関数だけ）。メインスレッドから呼ぶ。
+      今の明暗はモジュールの `_current_dark` に記録し、theme_color が読み込む（書き込むのはこの関数だけ）。適用した IndicatorStyle はモジュールの `_indicator_style` に記録する（書き込むのはこの関数だけ）。メインスレッドから呼ぶ。
       スタイルシートで塗らない部品（設定画面のスクロールバーなど）は style がパレットで描くため、Qt の明暗（`QStyleHints.setColorScheme`。Qt 6.8 から）も統一する。setColorScheme・unsetColorScheme で colorSchemeChanged が出て main からもう一度呼ばれるが、2 回目は同じ値を入れ直すだけでシグナルは出ない。
     kind: 関数
     scope: public
@@ -121,7 +121,7 @@ functions:
     process: |-
       1. Qt の明暗を統一する。`light`・`dark` は app.styleHints().setColorScheme(Qt.ColorScheme.Light / Dark)、`system` は app.styleHints().unsetColorScheme() で上書きを除外する（除外した後に 2 で OS の明暗を読み込む）
       2. resolve_dark(theme, is_dark_theme()) で暗い組を使用するかを決め、`_current_dark` に記録する
-      3. モジュールの `_indicator_style` が None のときだけ、app.style() を包んだ IndicatorStyle を作って `_indicator_style` に控え、app.setStyle で適用する（スタイルシートを適用すると app.style() は Qt の内部のスタイルに差し替わるため、app.style() では適用したかを確認しない）。続けて app.setStyleSheet(build_stylesheet(決めた明暗, image_dir=引数の image_dir)) を適用する
+      3. モジュールの `_indicator_style` が None のときだけ、app.style() を包んだ IndicatorStyle を作って `_indicator_style` に記録し、app.setStyle で適用する（スタイルシートを適用すると app.style() は Qt の内部のスタイルに差し替わるため、app.style() では適用したかを確認しない）。続けて app.setStyleSheet(build_stylesheet(決めた明暗, image_dir=引数の image_dir)) を適用する
       4. 開いている窓（QApplication.topLevelWidgets）を update で描き直す（theme_color で描く状態のマーカー・波形・回るマーカーを新しい組の色にする）
          - `[INFO]` 画面の明暗を適用した（theme・暗い組か）
     unit_tests:

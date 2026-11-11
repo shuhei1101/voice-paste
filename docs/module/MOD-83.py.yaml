@@ -24,7 +24,7 @@ functions:
         required: false
         default: None
         passing: keyword
-        description: 進みの知らせ先
+        description: 進みの通知先
       - name: engine
         type: EngineFn
         required: true
@@ -39,7 +39,7 @@ functions:
       type: str
       description: 区間ごとの文字を改行でつないだもの。無音なら空文字
     process: |-
-      1. get_hint で今の設定の手がかりを引く
+      1. get_hint で今の設定の手がかりを取得する
          - 手がかりがある場合、`[INFO]` 手がかりを引き渡す（UTF-8 のバイト数）
       2. エンジンに録音と手がかりを引き渡して起こす（エンジン）
          - EngineError の場合、理由を持たせた TranscriptionError を送出する

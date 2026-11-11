@@ -6,7 +6,7 @@ entry:
   value: GET /web/
 flows:
   - name: 正常系
-    summary: ゲートウェイを通した画面の要求に、画面の HTML を返却する
+    summary: ゲートウェイを経由した画面の要求に、画面の HTML を返却する
     setup:
       - name: Mock
         description: なし（常駐アプリの app を TestClient で作成する。音声のキューは空）
@@ -33,7 +33,7 @@ flows:
       - トークン無しで通る
     test: test_normal
   - name: 正常系（許す Origin）
-    summary: 許す Origin が付いた画面の素材の要求を通す
+    summary: 許す Origin が付いた画面の素材の要求を許可する
     setup:
       - name: Mock
         description: なし（常駐アプリの app を TestClient で作成する）
@@ -177,7 +177,7 @@ request:
   - name: Origin
     type: str
     required: false
-    default: なし（通す）
+    default: なし（許可する）
     location: header
     description: ブラウザが付ける要求元。画面を開くときと同じオリジンの GET には付かない
     constraints: 付いていれば設定の許す Origin（api.allowed_web_origins）にあること
@@ -185,7 +185,7 @@ request:
   - name: path
     type: str
     required: false
-    default: なし（`/web/` は HTML を返す）
+    default: なし（`/web/` は HTML を返却する）
     location: path
     description: '`/web/` の下の画面の素材のパス（`/web/assets/{ファイル}`）'
     constraints: 常駐アプリに同梱した画面のファイルだけ。`..` で配置先の外を指せない

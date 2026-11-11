@@ -162,7 +162,7 @@ external_systems:
   - name: ゲートウェイ（shuhdev-gateway）
     purpose: 外の端末のブラウザの要求を、Cloudflare Access で認証してから 127.0.0.1 の API の `/web/` の下へ中継する
     direction: 双方向
-    protocol: HTTPS（外）→ HTTP（127.0.0.1。Host を `localhost:{ポート}` に書き換え、Origin はそのまま渡す）。常駐アプリは受けて応答を返却するだけで、自分からは接続しない
+    protocol: HTTPS（外）→ HTTP（127.0.0.1。Host を `localhost:{ポート}` に書き換え、Origin はそのまま引き渡す）。常駐アプリは受けて応答を返却するだけで、自分からは接続しない
     detail: IF-11#
     cost: 無料。本文は 100 MB まで（Cloudflare の無料プラン）・応答待ちは 83 秒まで（ゲートウェイの `upstream.header_timeout_sec`）
     refs:
@@ -202,6 +202,6 @@ constraints: |-
   - Windows のショートカットから起動できる（手段はバッチファイルに限らない）。Linux は起動のスクリプト（`voice-paste.sh`）から起動でき、ログイン時の自動起動とアプリの一覧の `.desktop` の雛形を持つ
   - ビルドせず、master のソースをそのまま動かす
   - Python で書き込む
-  - API は 127.0.0.1 だけで待ち受ける。`/web/` の外は起動ごとのトークンで照合し、`/web/` の下はトークンを求めず Host と Origin の許可リストで通し、Origin の無い要求も通す（外からの認証はゲートウェイの Cloudflare Access が持つ）
+  - API は 127.0.0.1 だけで待ち受ける。`/web/` の外は起動ごとのトークンで照合し、`/web/` の下はトークンを求めず Host と Origin の許可リストで許可し、Origin の無い要求も許可する（外からの認証はゲートウェイの Cloudflare Access が持つ）
   - ローカルの文字起こしは GPU（CUDA）で動かす
   - ユーザーは master のコードをビルドせずに普段使いしている（ショートカットは起動のバッチファイルから常駐アプリを起動する）

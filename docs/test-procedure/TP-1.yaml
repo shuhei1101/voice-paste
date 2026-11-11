@@ -13,7 +13,7 @@ layers:
       - 外部依存なし（GPU も録音も要らない）
       - Linux では、Win32 の単一インスタンス（`tests/unit/voice_paste/runtime/test_single_instance.py`）・pycaw の音量のアダプタ（`tests/unit/voice_paste/integrations/volume/test_adapter.py`）・読み込み時に `ctypes.WinDLL` を呼ぶ `tests/unit/voice_paste/runtime/helpers.py` に依存するテスト（`tests/unit/voice_paste/conftest.py` の該当のフィクスチャを使用するものと `tests/unit/voice_paste/test_main.py` の該当のケースを含む）を skip する
       - Linux の単一インスタンス（`src/voice_paste/runtime/single_instance_linux.py`）の単体テスト（`tests/unit/voice_paste/runtime/test_single_instance_linux.py`）は Linux でだけ流す（Windows では skip する）
-      - Haas の文字起こしのサーバーの単体テスト（`tests/unit/haas_server/`）も同じ `.venv` で流す。haas_asr・GPU は要らない
+      - Haas の文字起こしのサーバーの単体テスト（`tests/unit/haas_server/`）も同じ `.venv` で実行する。haas_asr・GPU は要らない
     run_one:
       label: ファイル
       command: |-
@@ -53,8 +53,8 @@ layers:
       - 録音セッションの上限時間のテスト（`tests/nfr/test_api_session_limit.py`）は、SessionManager を上限時間 3 秒で自分で組み、録音機の入力をテストの中で書き出した無音の WAV を実行するものに、システム音量を何もしないものに差し替える（実機のマイクを開かず、GPU を使用しない）。`--run-e2e` を付けたときだけ走る（付けなければ skip する）
       - 話し終えてから貼り付くまでの時間のテスト（`tests/nfr/test_paste_latency.py`）は実物のクリップボードを書き換える（測った後に元の文字へ戻す）ため、`--run-e2e` を付けたときだけ走る。測っている間はクリップボードを使用しない
       - 区間の最大の長さのテスト（`tests/nfr/test_max_segment_length.py`）の WAV は、音声合成（Windows では Windows の音声合成（SAPI）、Linux では Open JTalk）で書き出す
-      - Ubuntu 24.04 の Xorg のセッション（検証環境の VM `voice-paste-ubuntu`）でも流せる（流し方は `notes` の『検証環境の VM で流す』）。GPU を前提にするテスト（`tests/support/whisper_fixtures.py` の `requires_real_whisper` を付けたテスト・`test_transcription_parity.py`・`test_segment_callback_latency.py`）と、外の端末のブラウザの文字起こしを使用するテスト（`test_web_*.py`。常駐アプリが Linux でブラウザの文字起こしを持たない）は Linux では skip する。決定値は OS で分けない
-      - Linux では、開発コマンド『環境構築（クローン直後）』の手順 2（`local-whisper` の extra）・手順 3（Open JTalk を sudo を使用せず `~/.local/opt/open-jtalk` へ展開する）と、『起動・停止』の前提の OS のパッケージを済ませておき、Xorg のセッションの端末で流す（クリップボードの `xclip` が `DISPLAY` を要る）。Open JTalk の配置先は環境変数 `VOICE_PASTE_OPEN_JTALK_HOME` で替えられる
+      - Ubuntu 24.04 の Xorg のセッション（検証環境の VM `voice-paste-ubuntu`）でも実行できる（実行方法は `notes` の『検証環境の VM で流す』）。GPU を前提にするテスト（`tests/support/whisper_fixtures.py` の `requires_real_whisper` を付けたテスト・`test_transcription_parity.py`・`test_segment_callback_latency.py`）と、外の端末のブラウザの文字起こしを使用するテスト（`test_web_*.py`。常駐アプリが Linux でブラウザの文字起こしを持たない）は Linux では skip する。決定値は OS で分けない
+      - Linux では、開発コマンド『環境構築（クローン直後）』の手順 2（`local-whisper` の extra）・手順 3（Open JTalk を sudo を使用せず `~/.local/opt/open-jtalk` へ展開する）と、『起動・停止』の前提の OS のパッケージを済ませておき、Xorg のセッションの端末で実行する（クリップボードの `xclip` が `DISPLAY` を要る）。Open JTalk の配置先は環境変数 `VOICE_PASTE_OPEN_JTALK_HOME` で替えられる
     run_one:
       label: ファイル
       command: |-
@@ -79,7 +79,7 @@ layers:
         ssh voice-paste-ubuntu 'kill {PID}'
         ```
 
-        2. 流すブランチを bundle にして VM へ送信し、作業用のクローンをそのブランチにして環境を追従させる（VM の作業ツリーと `.venv/` が置き換わる）
+        2. 実行するブランチを bundle にして VM へ送信し、作業用のクローンをそのブランチにして環境を追従させる（VM の作業ツリーと `.venv/` が置き換わる）
 
         ```bash
         git bundle create /tmp/vp-test.bundle {ブランチ}
@@ -87,7 +87,7 @@ layers:
         ssh voice-paste-ubuntu 'cd ~/vp-test && git fetch /tmp/vp-test.bundle {ブランチ} && git checkout --force FETCH_HEAD && ~/.local/bin/uv sync --frozen --extra local-whisper'
         ```
 
-        3. SSH が切れても止まらないよう `systemd-run --user` で流す
+        3. SSH が切れても止まらないよう `systemd-run --user` で実行する
 
         ```bash
         ssh voice-paste-ubuntu 'systemd-run --user --unit=vp-nfr --collect --setenv=DISPLAY=:0 --setenv=XAUTHORITY=/run/user/1000/gdm/Xauthority --working-directory=$HOME/vp-test bash -c ".venv/bin/python -m pytest tests/nfr --run-e2e -v -rs -p no:cacheprovider > nfr.log 2>&1; echo exit=\$? >> nfr.log"'
@@ -100,7 +100,7 @@ layers:
         scp voice-paste-ubuntu:vp-test/nfr.log {保存先}
         ```
 
-        特定のケースだけを流すときは、3 の `tests/nfr` を pytest のノード ID の並びに替える。
+        特定のケースだけを実行するときは、3 の `tests/nfr` を pytest のノード ID の並びに替える。
   - id: TL-4
     name: 外部疎通テスト
     run_all: |-
@@ -135,7 +135,7 @@ layers:
       ```
     results: '`uv lock --check` は食い違いがあれば差分を出して終了コード 1。`lint-imports` は契約ごとの KEPT / BROKEN と、破った import の行を標準出力に出す（破れていれば終了コード 1）。`npm run typecheck`・`npm run lint` は違反の行を出して終了コード 1。`git diff --exit-code` はコミットした `app.js` が再生成したものと違えば差分を出して終了コード 1'
 prerequisites:
-  - リポジトリの直下で Windows の uv（WSL からは `uv.exe`）の `uv sync --frozen --extra local-whisper` を流し、`.venv/` に環境を作る（`uv.lock` のバージョンで入る。pytest と import-linter と pywin32 は pyproject.toml の `[dependency-groups]` の dev から入る。`local-whisper` の extra は非機能要件テストがローカルの Whisper で起こすために含める。単体テストと結合テストは extra を含めない `uv sync --frozen` で作った環境でも通る）
+  - リポジトリの直下で Windows の uv（WSL からは `uv.exe`）の `uv sync --frozen --extra local-whisper` を実行し、`.venv/` に環境を作る（`uv.lock` のバージョンで入る。pytest と import-linter と pywin32 は pyproject.toml の `[dependency-groups]` の dev から入る。`local-whisper` の extra は非機能要件テストがローカルの Whisper で起こすために含める。単体テストと結合テストは extra を含めない `uv sync --frozen` で作った環境でも通る）
   - 実機のテスト（非機能要件テスト）が起こす常駐アプリは、`tests/conftest.py` の `QT_QPA_PLATFORM=offscreen` のまま起動し、実機の画面に出さない（別プロセスで起動するもの・再起動で起動するものも同じ）
-  - Ubuntu 24.04 のクローンでは、リポジトリの直下で Linux の uv の `uv sync --frozen` を流して `.venv/` を作り（開発コマンド『環境構築（クローン直後）』）、種別のコマンドの `.venv/Scripts/python.exe` は `.venv/bin/python` に、`.venv/Scripts/lint-imports` は `.venv/bin/lint-imports` に読み替える
+  - Ubuntu 24.04 のクローンでは、リポジトリの直下で Linux の uv の `uv sync --frozen` を実行して `.venv/` を作り（開発コマンド『環境構築（クローン直後）』）、種別のコマンドの `.venv/Scripts/python.exe` は `.venv/bin/python` に、`.venv/Scripts/lint-imports` は `.venv/bin/lint-imports` に読み替える
   - 非機能要件テストは Linux でも実行する（Linux で skip するテストは『非機能要件テスト』）

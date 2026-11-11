@@ -109,7 +109,7 @@ scope_out:
     reason: origin/develop の rules.yaml の rules は空で、除外する ID が無い
     plan: none
   - item: 過去の PR ドキュメント（docs/pr/）の文・メタデータの移行
-    reason: 判断が分かれる。今の判断は Mermaid の図だけを置き換え、文・メタデータはマージ時点の記録として変えない（要件.md の未確定）。ドキュメント修正のレビューで確定する
+    reason: PR ドキュメントはマージした時点の計画の記録で、文を書き換えると記録の意味が変わる。Mermaid の図だけを map で囲み、文・メタデータは変えない（ドキュメント修正のレビューで決定）
     plan: none
   - item: YAML の設計書のタグ・エイリアス・descriptionと、コード・テストの files.yml の行のタグ・description
     reason: YAML の設計書は今の Schema がキーを持たない。コード・テストの行は設計書のタグと同じ語彙で付けるため、ai-monitor#3188 の後にまとめて移行する（確認ログの推奨案 A）

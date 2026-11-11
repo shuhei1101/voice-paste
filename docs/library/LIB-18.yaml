@@ -27,7 +27,7 @@ catalogs:
       - name: ValidationError
         kind: 例外
         purpose: 設定の値が合わないときに書き込まずに通知する
-lead: 型ヒントからデータの検証と変換を行う Python のライブラリ。
+lead: 型ヒントからデータの検証と変換をする Python のライブラリ。
 purl: pkg:pypi/pydantic
 dependency_scope: 必須
 adoption: 採用

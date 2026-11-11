@@ -7,7 +7,7 @@ version:
   latest: '312'
   checked_on: '2026-10-05'
   source: pyproject.toml の [dependency-groups].dev（~=312.0）
-  pinning: 互換リリースの範囲で固定（~=312.0。dev グループの既存の行に揃える。pywin32 のバージョンは整数 1 つなので、小数点以下を添えて 312.* の範囲にする）
+  pinning: 互換リリースの範囲で固定（~=312.0。dev グループの既存の行に統一する。pywin32 のバージョンは整数 1 つなので、小数点以下を添えて 312.* の範囲にする）
 catalogs:
   - name: API
     version: '312'
@@ -34,5 +34,5 @@ install: |-
   uv sync --frozen
   ```
 
-  リポジトリの直下で Windows の uv（WSL からは `uv.exe`）で流す。
-  dev グループに `; sys_platform == "win32"` を付けて宣言し、Linux の `uv sync --frozen` では入らない（Linux の wheel が無い）。使うテストは Linux で skip する。
+  リポジトリの直下で Windows の uv（WSL からは `uv.exe`）で実行する。
+  dev グループに `; sys_platform == "win32"` を付けて宣言し、Linux の `uv sync --frozen` では入らない（Linux の wheel が無い）。使用するテストは Linux で skip する。

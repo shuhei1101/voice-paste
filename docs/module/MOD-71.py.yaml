@@ -182,7 +182,7 @@ functions:
       1. fade_sec が 0 以下なら、COM を初期化して target を書き込み、解放する
          - pycaw・COM が例外を出した場合、VolumeControlError を送出する
       2. fade_sec が正なら、target を進行中のフェードの目標として持ち、新しい打ち切りの合図を作ってデーモンのスレッドを始める
-         - スレッドの中で COM を初期化し、今の音量から target までを FADE_STEPS 回に分け、fade_sec / FADE_STEPS 秒ごとに 1 回分ずつ書く（今の音量と target の差が 0.005 未満なら 1 回で書き込む）
+         - スレッドの中で COM を初期化し、今の音量から target までを FADE_STEPS 回に分け、fade_sec / FADE_STEPS 秒ごとに 1 回分ずつ書き込む（今の音量と target の差が 0.005 未満なら 1 回で書き込む）
          - 打ち切りを通知されたら、次の回を書き込まずに終わる
          - pycaw・COM が例外を出した場合、そこで終わる
            - `[ERROR]` 音量を変えられなかった（理由）

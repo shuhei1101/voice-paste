@@ -113,7 +113,7 @@ functions:
         expected: load_model に x/model・device=cpu・dtype=torch.float32 が渡る。transcribe_longform に batch_size=8・chunk_seconds=15 が渡る。HaasEngine の dtype が "float32"
       - name: test_load_engine_when_auto
         case: 正常
-        summary: auto はそのまま渡す
+        summary: auto はそのまま引き渡す
         condition: ServerArgs(dtype="auto")
         mock: haas_asr・torch
         expected: load_model に dtype="auto" が渡る
@@ -130,7 +130,7 @@ functions:
         type: list[str]
         required: true
         passing: positional
-        description: 引数（ポート・モデル・計算の精度・装置。start.sh が受けた引数をそのまま渡す）
+        description: 引数（ポート・モデル・計算の精度・装置。start.sh が受けた引数をそのまま引き渡す）
     returns:
       type: None
       description: サーバーが止まると戻る（終了コード 0）

@@ -21,7 +21,7 @@ flows:
         participant IF as GET /web/transcriptions/{job_id}
 
         C->>IF: job_id（Origin 無し）
-        IF->>IF: Host・Origin を確認し、ジョブを引く
+        IF->>IF: Host・Origin を確認し、ジョブを取得する
         IF-->>C: 200・state=done・progress=1.0・text
       ```
 
@@ -194,7 +194,7 @@ request:
   - name: Origin
     type: str
     required: false
-    default: なし（通す）
+    default: なし（許可する）
     location: header
     description: ブラウザが付ける要求元。画面と同じオリジンの GET には付かない
     constraints: 付いていれば設定の許す Origin（api.allowed_web_origins）にあること
@@ -254,7 +254,7 @@ constraints:
     constraint: 127.0.0.1 だけ。外からはゲートウェイ（shuhdev-gateway、Cloudflare Access）を経由して届く
   - item: 認可
     constraint: トークンを求めない。Host が待ち受けのホストで、Origin が無いか許す Origin にあること
-    notes: 画面と同じオリジンの fetch の GET には Origin が付かないため、Origin が無い要求を通す。ほかのオリジンのページからの fetch にはブラウザが Origin を付けるため 403 で断れる。job_id は推測できない乱数で、知らなければ結果を引けない
+    notes: 画面と同じオリジンの fetch の GET には Origin が付かないため、Origin が無い要求を許可する。ほかのオリジンのページからの fetch にはブラウザが Origin を付けるため 403 で断れる。job_id は推測できない乱数で、知らなければ結果を取得できない
   - item: 応答時間
     constraint: ブラウザの要求の応答時間以内。文字起こしを待たずに今の状態を返却する
     decided_by: NFR-1#requirements[ブラウザの要求の応答時間]

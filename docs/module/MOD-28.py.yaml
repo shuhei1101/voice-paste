@@ -14,7 +14,7 @@ classes:
     description: |-
       長期に持つランタイム状態（ジョブの一覧・待ち行列・ワーカースレッド）を持つためクラスにする。
       ジョブの一覧は `threading.Lock` の中で読み書きする（route は uvicorn のスレッド、起こすのはワーカースレッド）。
-      待ち行列は `queue.Queue`。終わったジョブは終わった順に `collections.deque` で控え、終わったジョブを持つ件数を超えたら古い順に一覧から捨てる。
+      待ち行列は `queue.Queue`。終わったジョブは終わった順に `collections.deque` で記録し、終わったジョブを持つ件数を超えたら古い順に一覧から捨てる。
     properties:
       - name: _deps
         type: WebTranscriptionDeps
@@ -98,7 +98,7 @@ classes:
           - name: glossary_preset
             type: str | None
             required: true
-            description: 確かめ済みの用語集のプリセットの名前。None は指定なし
+            description: 確認済みの用語集のプリセットの名前。None は指定なし
         returns:
           type: WebJob
           description: 追加したジョブ（state は queued）
@@ -116,7 +116,7 @@ classes:
             summary: queued で追加する
             condition: ジョブが無い
             mock: WebTranscriptionDeps の全関数（ワーカースレッドは起動しない）
-            expected: queued のジョブが返り、get で同じジョブが引ける。glossary_preset に「会議」を引き渡したジョブは glossary_preset が「会議」、None を引き渡したジョブは None
+            expected: queued のジョブが返り、get で同じジョブが取得できる。glossary_preset に「会議」を引き渡したジョブは glossary_preset が「会議」、None を引き渡したジョブは None
           - name: test_submit_when_queue_full
             case: 異常
             summary: 上限で断る

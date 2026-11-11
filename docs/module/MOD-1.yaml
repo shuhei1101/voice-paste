@@ -11,8 +11,8 @@ directory: |-
   ├── web_page.py         # web_page_router（GET /web/・/web の移し）・mount_web_assets（/web/assets/）
   ├── web/                # 外の端末の画面（index.html・assets/app.ts と tsc が出す assets/app.js・assets/style.css）
   ├── error_handlers.py   # register_exception_handlers（RFC 9457）
-  ├── token.py            # create_token・write_token_file（起動ごとのトークンを作り、待ち受けを始めてからファイルへ書く）
-  └── runner.py           # ApiServerRunner（uvicorn をスレッドで動かし started を確かめる）
+  ├── token.py            # create_token・write_token_file（起動ごとのトークンを作り、待ち受けを始めてからファイルへ書き込む）
+  └── runner.py           # ApiServerRunner（uvicorn をスレッドで動かし started を確認する）
   ```
 notes:
   外の端末の画面: |-

@@ -18,10 +18,10 @@ voice-paste のドキュメント全体の目次
 | [nonfunctional](./nonfunctional/) | 外部の制約から逆算したアプリ側の決定値（非機能要件テストの元） |
 | [external-api](./external-api/) | 採用済みの外部 API のリファレンス |
 | [library](./library/) | 採用済みの外部ライブラリ / 外部ツールのリファレンス |
-| [dev-command](./dev-command/) | 開発で使うコマンドの分類ごとの前提・順序・コマンド・料金や副作用・確かめた記録 |
+| [dev-command](./dev-command/) | 開発で使用するコマンドの分類ごとの前提・順序・コマンド・料金や副作用・確認した記録 |
 | [test-procedure](./test-procedure/) | プロジェクト固有のテスト起動コマンドと前提条件 |
 | [design-policy](./design-policy.md) | voice-paste の画面全体に通すデザインの方向性 |
-| [guide](./guide/) | voice-paste の使い方（はじめに・使い方・リファレンス） |
+| [guide](./guide/) | voice-paste の使用方法（はじめに・使い方・リファレンス） |
 | [index](./index.md) | Pages のトップページ |
 | [glossary](./glossary/) | voice-paste のドメイン用語と、使用しない言い方の一覧 |
 

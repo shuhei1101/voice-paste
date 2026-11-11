@@ -233,7 +233,7 @@ classes:
             expected: 見出し「貼り付けを使用できません」、本文「貼り付けのキーを送信できません（Permission denied）。/dev/uinput の権限を設定して PC を再起動してください（使い方「起動と設定」）。「コピーのみ」は使用できます。」で呼ばれる
       - name: hide
         title: アイコンの削除
-        summary: トレイのアイコンを消す（処理中に再起動・終了を選んだときと、終わるとき）
+        summary: トレイのアイコンを非表示にする（処理中に再起動・終了を選んだときと、終わるとき）
         kind: メソッド
         scope: public
         returns:
@@ -283,7 +283,7 @@ classes:
             expected: 「録音の画面を表示（録音していません）」が押せず、太字でない
           - name: test_icon_click_when_window_hidden
             case: 正常
-            summary: 隠している間のアイコンの左クリックは、録音の画面を戻す知らせを出す
+            summary: 隠している間のアイコンの左クリックは、録音の画面を戻す通知を出す
             condition: set_state(RECORDING, busy=True)・set_recording_window(hidden) の後、アイコンの activated(Trigger) を送信する
             mock: なし（show_window_requested・start_requested に受け手をつなぐ）
             expected: show_window_requested が 1 回 emit され、start_requested が emit されない

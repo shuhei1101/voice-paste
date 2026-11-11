@@ -11,7 +11,7 @@ classes:
     role: ランタイム
     summary: 設定のホットキーを pynput で受け付け、押されたら配線された関数を呼ぶ。録音セッションは import しない
     description: |-
-      受付のスレッド（`pynput.keyboard.GlobalHotKeys`）を 1 つだけ持ち、張り直すときは止めてから新しく立てる。
+      受付のスレッド（`pynput.keyboard.GlobalHotKeys`）を 1 つだけ持ち、張り直すときは止めてから新しく作成する。
       呼ぶ関数は pynput のスレッドで動くため、例外を握ってログに書き込み、受付を止めない。
     kind: クラス
     properties:
@@ -149,7 +149,7 @@ functions:
     unit_tests:
       - name: test_validate_hotkeys
         case: 正常
-        summary: 読み込める書式は通す
+        summary: 読み込める書式は許可する
         condition: '["<ctrl>+<alt>+d", "<ctrl>+<shift>+<f5>"]'
         mock: なし
         expected: 例外が出ない

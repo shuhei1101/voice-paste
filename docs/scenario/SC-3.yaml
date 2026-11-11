@@ -6,7 +6,7 @@ scenarios:
     setup:
       - name: Mock
         description: Windows の Edge を偽のマイクで起動し、画面を開く。常駐アプリは pytest のプロセスの中で起動し、文字起こしのエンジンは受けたパスを記録する関数に差し替える
-        notes: 偽のマイクには SAPI で書き出した WAV を流す
+        notes: 偽のマイクには SAPI で書き出した WAV を供給する
       - name: 許す Origin
         description: 画面を開いたオリジンを許す Origin の一覧に入れる
     flow: |-
@@ -137,7 +137,7 @@ scenarios:
       - 選択欄に、既定の項目と、設定の用語集のプリセットが設定の並びで出ている
       - 送信が `202` で返り、応答に `job_id` がある
       - '`GET /web/transcriptions/{job_id}` がそのジョブ（`queued` か `running`）を返却する'
-      - 起こし終えた後、補正の控えに選択したプリセットの名前が残っている
+      - 起こし終えた後、補正の記録に選択したプリセットの名前が残っている
     test: test_normal_when_select_glossary_preset
     notes:
       選択の使われ方: |-

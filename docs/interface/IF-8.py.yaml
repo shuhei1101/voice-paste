@@ -204,7 +204,7 @@ constraints:
   - item: 待ち受け
     constraint: 127.0.0.1 だけ
   - item: 認可
-    constraint: 起動ごとに作るトークンの一致。Host・Origin の確かめ方は 録音を開始する と同じ
+    constraint: 起動ごとに作るトークンの一致。Host・Origin の確認方法は 録音を開始する と同じ
   - item: タイムアウト
     constraint: 制限なし
     notes: マイクを停止するだけで待ちが無い

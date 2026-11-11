@@ -11,7 +11,7 @@ classes:
     role: アダプタ
     kind: クラス
     inherits: PySide6.QtCore.QObject
-    summary: ほかのスレッド（API・ホットキー・ワーカースレッド）からの知らせを Signal でメインスレッドへ引き渡す。画面の部品はメインスレッドだけが触る
+    summary: ほかのスレッド（API・ホットキー・ワーカースレッド）からの通知を Signal でメインスレッドへ引き渡す。画面の部品はメインスレッドだけが触る
     properties:
       - name: notified
         type: Signal(str, object)
@@ -59,17 +59,17 @@ functions:
     status: implemented
     process: |-
       1. `bridge.notified.emit(event, detail)` を呼ぶ
-         - `[INFO]` / `[WARNING]` ユーザーへの知らせ（種類・理由。state_changed・show_recording_window・output_changed は INFO、それ以外は WARNING）
+         - `[INFO]` / `[WARNING]` ユーザーへの通知（種類・理由。state_changed・show_recording_window・output_changed は INFO、それ以外は WARNING）
     unit_tests:
       - name: test_notify
         case: 正常
-        summary: 知らせを Signal で引き渡す
+        summary: 通知を Signal で引き渡す
         condition: event=delivery_failed、detail="クリップボードに書き込めない"
         mock: なし（notified に受け手をつなぐ）
         expected: 受け手に (delivery_failed, クリップボードに書き込めない) が届き、WARNING のログが 1 行出る
       - name: test_notify_from_other_thread
         case: 正常
-        summary: ほかのスレッドからの知らせをメインスレッドで受ける
+        summary: ほかのスレッドからの通知をメインスレッドで受ける
         condition: threading.Thread から notify(state_changed) を呼び、イベントループを回す
         mock: なし（QueuedConnection の受け手）
         expected: 受け手がメインスレッドで 1 回呼ばれる
@@ -134,7 +134,7 @@ functions:
       description: なし
     process: |-
       1. `bridge.copied.emit(text)` を呼ぶ
-         - `[INFO]` ユーザーへの知らせ（copy_completed。起こした文字は書き込まない）
+         - `[INFO]` ユーザーへの通知（copy_completed。起こした文字は書き込まない）
     unit_tests:
       - name: test_notify_copied
         case: 正常

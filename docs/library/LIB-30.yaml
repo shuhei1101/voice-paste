@@ -34,6 +34,6 @@ catalogs:
         kind: 関数
         purpose: 音声を chunk_seconds（既定 30.0）ごとに、前後 search_seconds（既定 2.0）の範囲で window_seconds（既定 0.1）の窓のいちばん静かな箇所で区切る。transcribe_longform が使用する
 notes:
-  制限: load_audio は soundfile で読み込むため webm・mp4 を読み込めない。voice-paste は PyAV で復号した配列を引き渡す。Haas-ASR の pyproject.toml の `[tool.uv]`（compile-bytecode・override-dependencies）は依存へ伝わらないため `haas_server/pyproject.toml` へ写す。flash-linear-attention 0.5.2 は triton 3.9 でモデルの読み込みに失敗するため torch・triton を PoC の版に固定する
+  制限: load_audio は soundfile で読み込むため webm・mp4 を読み込めない。voice-paste は PyAV で復号した配列を引き渡す。Haas-ASR の pyproject.toml の `[tool.uv]`（compile-bytecode・override-dependencies）は依存へ伝わらないため `haas_server/pyproject.toml` へ写す。flash-linear-attention 0.5.2 は triton 3.9 でモデルの読み込みに失敗するため torch・triton を PoC のバージョンに固定する
 id: LIB-30
 visibility: internal

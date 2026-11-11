@@ -9,7 +9,7 @@ directory: |-
   ├── settings.py       # 設定のモデル（pydantic）と出力先の設定の共通の親・設定のモデルの組み立て、3 レイヤーの読み込みと環境の値の書き戻し・settings.toml からの移行
   ├── logger.py         # 標準の logging の設定。日付ごとのファイルと保持期間での削除
   ├── errors.py         # 例外の階層
-  ├── constants.py      # アプリ名と置き場所のパス（platformdirs）・リポジトリの直下の既定値と checkout の上書きのパス
-  ├── os_kind.py        # 動いている OS とデスクトップのセッションの判定と、OS ごとに使えない機能（OS ごとの実装・既定値・機能を選ぶ唯一の場所）
+  ├── constants.py      # アプリ名と配置先のパス（platformdirs）・リポジトリの直下の既定値と checkout の上書きのパス
+  ├── os_kind.py        # 動いている OS とデスクトップのセッションの判定と、OS ごとに使用できない機能（OS ごとの実装・既定値・機能を選ぶ唯一の場所）
   └── types.py          # feature の間を渡る型（入口・録音・文字起こしの結果・用語集の行）
   ```

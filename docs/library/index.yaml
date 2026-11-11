@@ -39,7 +39,7 @@ items:
   - page: LIB-25.yaml
     summary: 設定をコメントを保ったまま YAML で読み書きする
   - page: LIB-16.yaml
-    summary: 設定・履歴・ログの配置先を Windows の慣習で引く
+    summary: 設定・履歴・ログの配置先を Windows の慣習で取得する
   - page: LIB-10.yaml
     summary: 新しい構成の import の向きを検査する
   - page: LIB-4.yaml

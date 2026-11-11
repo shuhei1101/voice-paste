@@ -322,7 +322,7 @@ functions:
         expected: 名前が「terms」、path が C:/x/terms.csv の 1 件
       - name: test_resolve_glossaries_when_relative_path
         case: 正常
-        summary: 相対パスを設定のフォルダから解決し、絶対パスはそのまま返す
+        summary: 相対パスを設定のフォルダから解決し、絶対パスはそのまま返却する
         condition: path が `glossaries/glossary_1.csv` と絶対パスの 2 件の glossaries
         mock: なし
         expected: 1 件目は settings_dir の下の絶対パス、2 件目は元のまま。並びと名前は変わらない
@@ -355,7 +355,7 @@ functions:
       type: GlossarySettings
       description: 補正に使用する用語集（path は絶対パス）
     process: |-
-      1. resolve_glossaries で一覧を引く
+      1. resolve_glossaries で一覧を取得する
       2. `active_glossary` と同じ名前の用語集を返却する
          - None か、同じ名前が無い場合、1 件目を返却する
     status: removed
@@ -381,7 +381,7 @@ functions:
       type: Path
       description: '`{directory}/glossary_{n}.csv`（絶対パス）'
     process: 1. n を 1 から順に上げ、`glossary_{n}.csv` が directory に無く、taken にも無い最初の場所を返却する（削除した用語集の CSV が残っていれば、その番号は使用しない。ファイルは作らない）
-    reason: ファイル名を用語集の名前から作ると、名前を変えたときと、削除した用語集と同じ名前を再追加したときに、残った CSV と重なる。Windows はファイル名の大文字と小文字を区別しないので、名前の重なりの確かめとも食い違う
+    reason: ファイル名を用語集の名前から作ると、名前を変えたときと、削除した用語集と同じ名前を再追加したときに、残った CSV と重なる。Windows はファイル名の大文字と小文字を区別しないので、名前の重なりの確認とも食い違う
     unit_tests:
       - name: test_next_glossary_path
         case: 正常
@@ -534,8 +534,8 @@ functions:
         expected: glossaries が ["yogo"] の「既定」の 1 件が返る
       - name: test_resolve_glossary_presets
         case: 正常
-        summary: プリセットの並びと、プリセットの中の用語集の並びをそのまま返し、一覧に無い名前を除外する
-        condition: 「yogo」「会議用」の 2 件の glossaries と、「既定」（["yogo"]）・「会議」（["会議用", "消した", "yogo"]）の 2 件の glossary_presets
+        summary: プリセットの並びと、プリセットの中の用語集の並びをそのまま返却し、一覧に無い名前を除外する
+        condition: 「yogo」「会議用」の 2 件の glossaries と、「既定」（["yogo"]）・「会議」（["会議用", "削除した", "yogo"]）の 2 件の glossary_presets
         mock: なし
         expected: 「既定」（["yogo"]）・「会議」（["会議用", "yogo"]）の 2 件が返る
     refs:
@@ -572,7 +572,7 @@ functions:
       type: GlossaryPresetSettings
       description: 補正に使用する用語集のプリセット
     process: |-
-      1. resolve_glossary_presets で一覧を引く
+      1. resolve_glossary_presets で一覧を取得する
       2. requested があるかを確認する
          - 一覧に同じ名前がある場合、そのプリセットを返却する
          - 一覧に同じ名前が無い場合（開始の後に設定でそのプリセットを削除した）、3 へ進む
@@ -637,7 +637,7 @@ functions:
     returns:
       type: list[GlossarySettings]
       description: プリセットの glossaries の順の用語集。一覧に無い名前は飛ばす。glossaries が空なら空
-    process: 1. preset.glossaries の順に、同じ名前の用語集を一覧から引いて並べる（一覧に無い名前は飛ばす）
+    process: 1. preset.glossaries の順に、同じ名前の用語集を一覧から取得して並べる（一覧に無い名前は飛ばす）
     unit_tests:
       - name: test_list_preset_glossaries
         case: 正常

@@ -120,7 +120,7 @@ functions:
       type: None
       description: なし
     process: |-
-      1. コールバック先が許されるかをもう一度確かめる（コールバック先の確かめ）
+      1. コールバック先が許されるかをもう一度確認する（コールバック先の確認）
          - 許されない場合、DeliveryError を送出する
       2. 返却する中身（CallbackPayload.from_outcome）を作り、1 + 再送回数まで POST する
          - 2xx なら終える
@@ -145,7 +145,7 @@ functions:
       - name: test_deliver_to_caller_when_retry_succeeds
         case: 正常
         summary: 再送で届く
-        condition: post が 500 → DeliveryError → 200、再送回数 2、retry_base_sec 1.0、jitter は受けた値をそのまま返す
+        condition: post が 500 → DeliveryError → 200、再送回数 2、retry_base_sec 1.0、jitter は受けた値をそのまま返却する
         mock: post・sleep・jitter
         expected: post が 3 回呼ばれ、sleep に 1.0・2.0 がこの順で渡り、例外が出ない
       - name: test_deliver_to_caller_when_retry_after

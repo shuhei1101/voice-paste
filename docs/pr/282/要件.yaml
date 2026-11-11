@@ -1,0 +1,93 @@
+use_cases:
+  - kind: composite
+    scenario: docs/scenario/SC-10.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+  - kind: composite
+    scenario: docs/scenario/SC-11.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+  - kind: composite
+    scenario: docs/scenario/SC-12.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+  - kind: composite
+    scenario: docs/scenario/SC-13.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-1.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-2.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-3.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-4.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-5.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-6.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-7.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-8.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-9.yaml
+    impact: none
+    detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
+    depends_on: []
+docs:
+  - page: dev-docs.yaml
+    new: false
+    change: コード（src/・haas_server/）とテスト（tests/）の行を追加し、設計書への related（implements・tests）を張る
+    status: todo
+  - page: docs/glossary/GLO-1.yaml
+    new: false
+    change: 判定フローチャート『用語の登録』の結果の用語を登録する
+    status: todo
+  - page: docs/guide/files.yml
+    new: false
+    change: 公開ドキュメントのタグ・description を再設定する
+    status: todo
+  - page: docs/mock/files.yml
+    new: false
+    change: モックの画面のタグ・description を再設定する
+    status: todo
+scope_out:
+  - item: schemas/ の Schema の変更
+    reason: AI Monitor の配布物で、手で変更すると次の配布物への追従で上書きされる
+    plan: none
+  - item: rules.yaml からの旧規約（markdown マーメイド・判定フローチャート）の除外
+    reason: origin/develop の rules.yaml の rules は空で、除外する ID が無い
+    plan: none
+  - item: 過去の PR ドキュメント（docs/pr/）の文・メタデータの移行
+    reason: 判断が分かれる。今の判断は Mermaid の図だけを置き換え、文・メタデータはマージ時点の記録として変えない（要件.md の未確定）。ドキュメント修正のレビューで確定する
+    plan: none

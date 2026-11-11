@@ -65,8 +65,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-11T08:15:19.712772+00:00'
   - process: ドキュメント修正
-    status: todo
+    status: done
     note: 要件.md の工程 1〜8 で docs/ の文書を移行する
+    updated_by: planner
+    updated_at: '2026-11-11T12:33:04.631482+00:00'
   - process: 単体テスト作成
     status: skipped
     reason: src/・tests/ を変えない

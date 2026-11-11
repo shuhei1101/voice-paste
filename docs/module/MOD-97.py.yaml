@@ -25,7 +25,7 @@ classes:
     usecase: 録音を文字に起こす
     role: アダプタ
     kind: クラス
-    summary: 録音を Haas の文字起こしのサーバー（POST /transcriptions）へ httpx の multipart で送信し、起こした文字を返す
+    summary: 録音を Haas の文字起こしのサーバー（POST /transcriptions）へ httpx の multipart で送信し、起こした文字を返却する
     properties:
       - name: _port
         type: int
@@ -34,23 +34,23 @@ classes:
       - name: _get_vocabulary
         type: Callable[[], list[HintVocabularyWord]]
         access: 内部 (_)
-        description: 送信するたびに表記と読みの組を読む関数
+        description: 送信するたびに表記と読みの組を読み込む関数
       - name: _transport
         type: httpx.BaseTransport | None
         access: 内部 (_)
         default: None
-        description: httpx.Client に渡すトランスポート（テストで差し替える）
+        description: httpx.Client に引き渡すトランスポート（テストで差し替える）
       - name: _get_settings
         type: Callable[[], HaasSettings]
         access: 内部 (_)
-        description: 送信するたびに要求ごとの調整の値を読む関数（設定画面で保存した値が再起動せずに次の送信から効く）
+        description: 送信するたびに要求ごとの調整の値を読み込む関数（設定画面で保存した値が再起動せずに次の送信から効く）
     methods:
       - name: transcribe
         title: 文字起こし
         kind: メソッド
         inherits: 文字起こしの EngineFn
         scope: public
-        summary: 録音を送信し、起こした文字を 1 区間の並びで返す
+        summary: 録音を送信し、起こした文字を 1 区間の並びで返却する
         args:
           - name: audio_path
             type: Path
@@ -62,13 +62,13 @@ classes:
             required: false
             default: None
             passing: keyword
-            description: 受けるが呼ばない（サーバーは途中の進みを返さない）
+            description: 受けるが呼ばない（サーバーは途中の進みを返却しない）
           - name: hint
             type: str | None
             required: false
             default: None
             passing: keyword
-            description: 受けるが使わない（読みを持たないため、_get_vocabulary の組を送信する）
+            description: 受けるが使用しない（読みを持たないため、_get_vocabulary の組を送信する）
         returns:
           type: list[str]
           description: 起こした文字の 1 要素の並び。起こした文字が空なら空の並び
@@ -77,36 +77,36 @@ classes:
             condition: 接続できない・タイムアウト・200 以外の応答
         process: |-
           1. _get_vocabulary を呼び、空でなければ `[{"written", "reading"}]` の JSON にする
-          2. _get_settings を呼び、要求ごとの調整の値（short_audio_limit_sec・batch_size・alpha・guard・chunk_sec・search_sec・window_sec・separator）を multipart の項目の文字列にする（guard は `true` / `false`）。語が無くても全て送信する
-          3. httpx.Client（timeout は接続 HAAS_CONNECT_TIMEOUT_SEC・応答 HAAS_RESPONSE_TIMEOUT_SEC、transport=_transport）で `http://127.0.0.1:{port}/transcriptions` へ POST する。本文は multipart の audio・調整の値と、語があれば vocabulary
+          2. _get_settings を呼び、要求ごとの調整の値（short_audio_limit_sec・batch_size・alpha・guard・chunk_sec・search_sec・window_sec・separator）を multipart の項目の文字列にする（guard は `true` / `false`）。単語が無くても全て送信する
+          3. httpx.Client（timeout は接続 HAAS_CONNECT_TIMEOUT_SEC・応答 HAAS_RESPONSE_TIMEOUT_SEC、transport=_transport）で `http://127.0.0.1:{port}/transcriptions` へ POST する。本文は multipart の audio・調整の値と、単語があれば vocabulary
           4. 応答を見る
-             - 200 の場合、text の前後の空白を除き、空でなければ [text]、空なら [] を返す
+             - 200 の場合、text の前後の空白を除き、空でなければ [text]、空なら [] を返却する
                - `[INFO]` Haas で起こした（音声のバイト数・かかった秒）
-             - それ以外の応答か httpx.HTTPError の場合、EngineError を送出する（理由はステータスと problem+json の detail、読めなければステータスか例外の種類）
+             - それ以外の応答か httpx.HTTPError の場合、EngineError を送出する（理由はステータスと problem+json の detail、読み込めなければステータスか例外の種類）
                - `[ERROR]` Haas の文字起こしに失敗した（ステータスか例外の種類・detail）
         unit_tests:
           - name: test_transcribe
             case: 正常
-            summary: 録音と語を送信して起こした文字を返す
-            condition: 'サーバーが 200 と {"text": " 今日は晴れ "} を返す。語は 突合（とつごう）と voice-paste（読み None）'
+            summary: 録音と単語を送信して起こした文字を返却する
+            condition: 'サーバーが 200 と {"text": " 今日は晴れ "} を返却する。単語は 突合（とつごう）と voice-paste（読み込み None）'
             mock: httpx.MockTransport
             expected: '["今日は晴れ"] が返り、multipart に audio と vocabulary（written・reading の配列）が届いている'
           - name: test_transcribe_when_no_vocabulary
             case: 正常
-            summary: 語が無ければ vocabulary を送信しない
-            condition: _get_vocabulary が空の一覧を返す
+            summary: 単語が無ければ vocabulary を送信しない
+            condition: _get_vocabulary が空の一覧を返却する
             mock: httpx.MockTransport
             expected: 本文に vocabulary が無い
           - name: test_transcribe_when_empty_text
             case: 正常
             summary: 起こした文字が空なら空の並び
-            condition: 'サーバーが 200 と {"text": ""} を返す'
+            condition: 'サーバーが 200 と {"text": ""} を返却する'
             mock: httpx.MockTransport
             expected: '[] が返る'
           - name: test_transcribe_when_server_error
             case: 異常
-            summary: サーバーが失敗を返す
-            condition: サーバーが 500 と detail を返す
+            summary: サーバーが失敗を返却する
+            condition: サーバーが 500 と detail を返却する
             mock: httpx.MockTransport
             expected: EngineError。文に 500 と detail が入っている
             exception: 200 以外の応答
@@ -127,7 +127,7 @@ classes:
           - name: test_transcribe_when_tuning
             case: 正常
             summary: 調整の値を送信する
-            condition: _get_settings が short_audio_limit_sec=20・batch_size=8・alpha=3.0・guard=False・chunk_sec=15・search_sec=1・window_sec=0.05・separator=「。」の設定を返す。語は無い
+            condition: _get_settings が short_audio_limit_sec=20・batch_size=8・alpha=3.0・guard=False・chunk_sec=15・search_sec=1・window_sec=0.05・separator=「。」の設定を返却する。単語は無い
             mock: httpx.MockTransport
             expected: multipart に short_audio_limit_sec=20.0・batch_size=8・alpha=3.0・guard=false・chunk_sec=15.0・search_sec=1.0・window_sec=0.05・separator=。が届いている
         status: planned

@@ -10,7 +10,7 @@ classes:
     usecase: 録音を文字に起こす
     role: アダプタ
     kind: クラス
-    summary: 文字起こしワーカーの子プロセスを持ち、標準入出力の JSON Lines で録音を渡して結果を受け取る。落ちたら 1 回だけ立て直してやり直す
+    summary: 文字起こしワーカーの子プロセスを持ち、標準入出力の JSON Lines で録音を引き渡して結果を受け取る。落ちたら 1 回だけ立て修正してやり直す
     properties:
       - name: _process
         type: subprocess.Popen | None
@@ -23,24 +23,24 @@ classes:
       - name: _ready_timeout_sec
         type: float
         access: 内部 (_)
-        description: 立て直しで ready を待つ上限（非機能要件の文字起こしワーカーの立て直しの時間。main.py が渡す）。起動時の 1 回目にはかけない
+        description: 立て直しで ready を待つ上限（非機能要件の文字起こしワーカーの立て直しの時間。main.py が引き渡す）。起動時の 1 回目にはかけない
       - name: _log_dir
         type: Path
         access: 内部 (_)
-        description: ワーカーが落ちたときのスタックを書くログの置き場所（AppPaths.log_dir）
+        description: ワーカーが落ちたときのスタックを書き込むログの配置先（AppPaths.log_dir）
       - name: _stop_timeout_sec
         type: float
         access: 内部 (_)
-        description: 終わりを待つ時間（非機能要件の文字起こしワーカーの終わりを待つ時間。main.py が渡す）
+        description: 終わりを待つ時間（非機能要件の文字起こしワーカーの終わりを待つ時間。main.py が引き渡す）
       - name: _stopping
         type: bool
         access: 内部 (_)
         default: 'False'
-        description: stop で止めている最中か。立っている間は子プロセスが終わっても立て直さず、start は子プロセスを起動しない。一度立てたら下ろさない
+        description: stop で止めている最中か。立っている間は子プロセスが終わっても立て修正せず、start は子プロセスを起動しない。一度立てたら下ろさない
       - name: _creationflags
         type: int
         access: 内部 (_)
-        description: 子プロセスの起動のフラグ。main.py が PlatformAdapters.worker_creationflags（Windows は CREATE_NO_WINDOW、Linux は 0）を渡す
+        description: 子プロセスの起動のフラグ。main.py が PlatformAdapters.worker_creationflags（Windows は CREATE_NO_WINDOW、Linux は 0）を引き渡す
     methods:
       - name: start
         title: 起動
@@ -58,37 +58,37 @@ classes:
           2. 子プロセスの環境を作る
              - venv の `Lib/site-packages/nvidia/{cublas,cudnn,cuda_nvrtc}/bin` のうち存在するものを PATH の先頭へ追加する（CUDA の DLL を子プロセスが見つけられるようにする）
              - 標準入出力を UTF-8 にする
-          3. `python -u -m voice_paste.integrations.whisper.worker` を _creationflags で起動し（Windows ではコンソールを出さない。sys.platform は見ない）、標準エラーを別のスレッドで読んでロガーへ流す
+          3. `python -u -m voice_paste.integrations.whisper.worker` を _creationflags で起動し（Windows ではコンソールを出さない。sys.platform は見ない）、標準エラーを別のスレッドで読み込んでロガーへ流す
              - 起動した後に _stopping が立っていた場合（起動の間に stop が呼ばれ、stop が子プロセスを見つけられなかった）、子プロセスを止めて EngineError を送出する
-          4. config（モデル・デバイス・量子化・スレッド数・ワーカー数・ログの置き場所）を送信し、ready・error・子プロセスの終了のどれかを待つ
-             - ready_timeout_sec が渡されていれば、その間だけ待つ（立て直しの経路）
+          4. config（モデル・デバイス・量子化・スレッド数・ワーカー数・ログの配置先）を送信し、ready・error・子プロセスの終了のどれかを待つ
+             - ready_timeout_sec が引き渡されていれば、その間だけ待つ（立て直しの経路）
              - error が届いた・子プロセスが終わった・上限を過ぎた場合、子プロセスを止めて EngineError を送出する
              - `[INFO]` 文字起こしワーカーが立ち上がった（pid・かかった秒）
         unit_tests:
           - name: test_start
             case: 正常
             summary: config を送信し ready を受けて立ち上がる
-            condition: 子プロセスが ready を返す
+            condition: 子プロセスが ready を返却する
             mock: subprocess.Popen
             expected: 最初に送信した行が config で、Popen の環境の PATH の先頭に存在する nvidia の bin がある
           - name: test_start_when_model_load_failed
             case: 異常
             summary: ready の代わりに error が届いたら EngineError
-            condition: 子プロセスが error を返して終わる
+            condition: 子プロセスが error を返却して終わる
             mock: subprocess.Popen
             expected: EngineError が送出され、理由に error の中身が残る
             exception: モデルを読み込めず ready が届かない
           - name: test_start_when_ready_timeout
             case: 異常
             summary: 立て直しで ready を待ちきれなければ子プロセスを止めて EngineError
-            condition: ready_timeout_sec=0.1 を渡し（立て直しの経路）、子プロセスは何も返さない
+            condition: ready_timeout_sec=0.1 を引き渡し（立て直しの経路）、子プロセスは何も返却しない
             mock: subprocess.Popen
             expected: EngineError が送出され、子プロセスの kill か terminate が呼ばれる
             exception: モデルを読み込めず ready が届かない（error が届いた・子プロセスが終わった・立て直しで上限を過ぎた）
           - name: test_start_when_first_ready_is_slow
             case: 正常
             summary: 起動時の 1 回目は上限をかけずに ready を待つ
-            condition: ready_timeout_sec を渡さず、子プロセスは _ready_timeout_sec（0.1 にする）より遅れて 0.3 秒後に ready を返す
+            condition: ready_timeout_sec を引き渡さず、子プロセスは _ready_timeout_sec（0.1 にする）より遅れて 0.3 秒後に ready を返却する
             mock: subprocess.Popen
             expected: 例外が出ずに立ち上がり、子プロセスが止められない
           - name: test_start_when_stopped
@@ -109,7 +109,7 @@ classes:
             required: false
             default: None
             passing: keyword
-            description: ready を待つ上限。None（起動時の 1 回目）は上限をかけない。立て直しでは transcribe が _ready_timeout_sec を渡す
+            description: ready を待つ上限。None（起動時の 1 回目）は上限をかけない。立て直しでは transcribe が _ready_timeout_sec を引き渡す
       - name: transcribe
         title: 文字起こし
         kind: メソッド
@@ -138,23 +138,23 @@ classes:
           type: list[str]
           description: 区間ごとの文字
         process: |-
-          1. 録音と設定を 1 行の JSON で送信し、区間の進みと結果を読む。hint が None でなければ hotwords に載せる（立て直して再送するときも同じ手がかりを載せる）
-             - 子プロセスが応答の途中で終わった場合、_stopping が立っていれば立て直さずに EngineError を送出する（常駐の終了で止めた）
+          1. 録音と設定を 1 行の JSON で送信し、区間の進みと結果を読み込む。hint が None でなければ hotwords に載せる（立て修正して再送するときも同じ手がかりを載せる）
+             - 子プロセスが応答の途中で終わった場合、_stopping が立っていれば立て修正せずに EngineError を送出する（常駐の終了で止めた）
              - それ以外で子プロセスが応答の途中で終わった場合、子プロセスを start(ready_timeout_sec=_ready_timeout_sec) で起動し直して同じ録音をもう一度送信する（やり直しは 1 回だけ）
-               - `[WARNING]` 文字起こしワーカーが落ちたので立て直す（終了コード）
+               - `[WARNING]` 文字起こしワーカーが落ちたので立て修正する（終了コード）
                - 立て直しで ready が上限までに届かなければ、start が子プロセスを止めて EngineError を送出する
              - やり直しも異常終了した場合、子プロセスを同じ上限でもう一度起動して次の録音に備え、EngineError を送出する
-             - ワーカーがエラーを返した場合、起動し直さずに EngineError を送出する
+             - ワーカーがエラーを返却した場合、起動し直さずに EngineError を送出する
         exceptions:
           - name: EngineError
             condition: やり直したワーカーも異常終了した
           - name: EngineError
-            condition: ワーカーがエラーを返した
+            condition: ワーカーがエラーを返却した
         unit_tests:
           - name: test_transcribe_when_worker_crashed_once
             case: 正常
             summary: 1 回落ちてもやり直しで結果を得る
-            condition: 1 つ目の子プロセスは応答の途中で終わり、2 つ目は結果を返す
+            condition: 1 つ目の子プロセスは応答の途中で終わり、2 つ目は結果を返却する
             mock: subprocess.Popen
             expected: 結果が返り、Popen が 2 回呼ばれる
           - name: test_transcribe_when_retry_crashed
@@ -166,28 +166,28 @@ classes:
             exception: やり直したワーカーも異常終了した
           - name: test_transcribe
             case: 正常
-            summary: 進みを知らせ、区間ごとの文字を返す
-            condition: 子プロセスが progress（end=1.0, duration=2.0）・result（["今日は", "晴れ"]）を返す
+            summary: 進みを知らせ、区間ごとの文字を返却する
+            condition: 子プロセスが progress（end=1.0, duration=2.0）・result（["今日は", "晴れ"]）を返却する
             mock: subprocess.Popen
             expected: '["今日は", "晴れ"] が返り、on_progress が (1.0, 2.0) で 1 回呼ばれ、送信した transcribe に設定の言語・ビーム幅・温度・VAD が入る'
           - name: test_transcribe_when_worker_error
             case: 異常
-            summary: ワーカーが error を返したら起動し直さずに EngineError
-            condition: 子プロセスが error を返し、動き続ける
+            summary: ワーカーが error を返却したら起動し直さずに EngineError
+            condition: 子プロセスが error を返却し、動き続ける
             mock: subprocess.Popen
             expected: EngineError が送出され、Popen が 1 回だけ呼ばれる
-            exception: ワーカーがエラーを返した
+            exception: ワーカーがエラーを返却した
           - name: test_transcribe_when_restart_ready_timeout
             case: 異常
             summary: 立て直しで ready を待ちきれなければ _ready_timeout_sec の後に EngineError
-            condition: _ready_timeout_sec=0.1。1 つ目の子プロセスは応答の途中で終わり、2 つ目は ready を返さない
+            condition: _ready_timeout_sec=0.1。1 つ目の子プロセスは応答の途中で終わり、2 つ目は ready を返却しない
             mock: subprocess.Popen
             expected: EngineError が送出され、2 つ目の子プロセスが止められ、待ちが 1 秒未満で終わる
             exception: やり直したワーカーも異常終了した
           - name: test_transcribe_when_hint
             case: 正常
             summary: 手がかりを hotwords に載せて送信する
-            condition: hint="voice-paste、Whisper" で transcribe を呼ぶ。子プロセスは result（["今日は"]）を返す
+            condition: hint="voice-paste、Whisper" で transcribe を呼ぶ。子プロセスは result（["今日は"]）を返却する
             mock: subprocess.Popen
             expected: 送信した transcribe の payload の hotwords が "voice-paste、Whisper"
           - name: test_transcribe_when_no_hint
@@ -205,7 +205,7 @@ classes:
           type: None
           description: なし
         process: |-
-          1. 文字起こしが持つロックを取らずに _stopping を立てる（文字起こしの最中でも待たない。止めた子プロセスを transcribe が「落ちた」と受けて立て直さないようにする）
+          1. 文字起こしが持つロックを取らずに _stopping を立てる（文字起こしの最中でも待たない。止めた子プロセスを transcribe が「落ちた」と受けて立て修正しないようにする）
           2. 子プロセスが無ければ何もしない
           3. 標準入力を閉じ、終わりを _stop_timeout_sec 待つ
              - 終わらなければ terminate して同じ時間待ち、それでも終わらなければ kill する
@@ -225,8 +225,8 @@ classes:
             expected: terminate の後に kill が呼ばれ、wait がどちらも 0.1 秒で呼ばれる
           - name: test_stop_when_transcribing
             case: 正常
-            summary: 文字起こしの最中に止めても _stop_timeout_sec で止まり、立て直さない
-            condition: _stop_timeout_sec=0.1。子プロセスは transcribe に何も返さず、標準入力を閉じても終わらない。別のスレッドで transcribe を呼んでから stop を呼ぶ
+            summary: 文字起こしの最中に止めても _stop_timeout_sec で止まり、立て修正しない
+            condition: _stop_timeout_sec=0.1。子プロセスは transcribe に何も返却せず、標準入力を閉じても終わらない。別のスレッドで transcribe を呼んでから stop を呼ぶ
             mock: subprocess.Popen
             expected: stop が 1 秒未満で戻り、terminate が呼ばれ、transcribe が EngineError を送出し、Popen が 1 回だけ呼ばれる
     refs:
@@ -239,7 +239,7 @@ functions:
     container: integrations/whisper/client.py
     usecase: 常駐アプリを起動する
     scope: public
-    summary: faster-whisper のパッケージが仮想環境にあるかを import せずに確かめる。設定のエンジンが local_whisper のとき、文字起こしワーカーを起動する前に起動の配線が呼ぶ
+    summary: faster-whisper のパッケージが仮想環境にあるかを import せずに確認する。設定のエンジンが local_whisper のとき、文字起こしワーカーを起動する前に起動の配線が呼ぶ
     returns:
       type: None
       description: なし
@@ -254,13 +254,13 @@ functions:
       - name: test_ensure_local_whisper_installed
         case: 正常
         summary: パッケージがあれば何もしない
-        condition: find_spec が spec を返す
+        condition: find_spec が spec を返却する
         mock: importlib.util.find_spec
         expected: 送出しない。sys.modules に faster_whisper が入っていない
       - name: test_ensure_local_whisper_installed_when_missing
         case: 異常
         summary: パッケージが無ければ extra を入れるよう示して起動の失敗にする
-        condition: find_spec が None を返す
+        condition: find_spec が None を返却する
         mock: importlib.util.find_spec
         expected: StartupError が送出され、理由に local-whisper が入る
         exception: faster-whisper のパッケージが見つからない

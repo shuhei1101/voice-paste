@@ -1,7 +1,7 @@
 id: MOD-6
 visibility: internal
 title: "常駐アプリ / 共通"
-lead: どの層からも使う設定のモデル・ログ・例外・置き場所のパスと、feature の間を渡る型を持つ。ほかの層に依存しない。
+lead: どの層からも使用する設定のモデル・ログ・例外・配置先のパスと、feature の間を渡る型を持つ。ほかの層に依存しない。
 directory: |-
   ```
   src/voice_paste/shared/

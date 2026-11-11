@@ -9,23 +9,23 @@ classes:
     container: ui/windows/settings_window.py
     usecase: 設定を変える
     role: 画面
-    summary: Settings のモデルから欄を組み立ててまとまりに並べ、保存で確かめてから書く
+    summary: Settings のモデルから欄を組み立ててまとまりに並べ、保存で確認してから書き込む
     description: |-
       要素と入力チェックは画面設計「設定画面」が持つ。
-      欄は `Settings.model_fields` を辿って型から部品を決め、欄の名前は各項目の `description`、「再起動で反映」のマーカーは `json_schema_extra` の reload から出す。まとまりと型から決まらない部品は画面設計の補足「まとまりと欄」の表を FIELD_LAYOUT にコピーする（「画面」のまとまりは `ui.theme` を先頭に置く）。
-      設定のモデルは開いたときの設定のモデル（`type(設定)`。main.py の SETTINGS_MODEL）を使い、失敗の場所の判別子の値から出力先のモデルをその output_models で引く。
-      出力先は outputs[] の 1 件ごとに、名前を UiDeps.output_titles から引いて「オン」と「ホットキー」の欄を置き、その出力先のモデルが id・enabled・hotkey のほかに持つ項目（貼り付けて送信の enter_delay_sec など）を型から決めた部品で並べる。その項目の `json_schema_extra` に note があれば欄の下に出す（出力先の ID ごとの分け方を持たない）。
+      欄は `Settings.model_fields` を辿って型から部品を決め、欄の名前は各項目の `description`、「再起動で反映」のマーカーは `json_schema_extra` の reload から出す。まとまりと型から決まらない部品は画面設計の補足「まとまりと欄」の表を FIELD_LAYOUT にコピーする（「画面」のまとまりは `ui.theme` を先頭に配置する）。
+      設定のモデルは開いたときの設定のモデル（`type(設定)`。main.py の SETTINGS_MODEL）を使用し、失敗の場所の判別子の値から出力先のモデルをその output_models で引く。
+      出力先は outputs[] の 1 件ごとに、名前を UiDeps.output_titles から引いて「オン」と「ホットキー」の欄を配置し、その出力先のモデルが id・enabled・hotkey のほかに持つ項目（貼り付けて送信の enter_delay_sec など）を型から決めた部品で並べる。その項目の `json_schema_extra` に note があれば欄の下に出す（出力先の ID ごとの分け方を持たない）。
       リテラルの列挙の一覧（貼り付けて送信の enter_modifiers など）は、列挙の値ごとのチェックボックスを欄の名前の下の行に横に並べ、オンにした値を列挙の並びで一覧にする。チェックボックスの名前はその項目の `json_schema_extra` の choice_labels（無ければ値そのまま）、objectName は `field_{キー}_{値}`。
-      リテラルの列挙の 1 つを選ぶ欄（ui.position・ui.theme など）は make_radio_group にその項目の choice_labels を渡してラジオボタンの名前にし、保存では selected_radio が返す値を設定に入れる。COMBO_KEYS の欄（transcription.engine など）は、選択肢の名前をその項目の choice_labels（無ければ値そのまま）にし、保存では選んだ項目の値を設定に入れる。出力先のほかの欄も、その項目の `json_schema_extra` に note があれば欄の下に出す（transcription.openai.model の API キーの置き場所の補助文）。
-      カスタムプリセットは、PRESET_KIND_NAMES の種類ごとにまとまり（「出力先」のすぐ下のタブ）を 1 つ作り、その中に PresetListPanel とその種類の preset_options の欄を置く。Authorization の欄は `QLineEdit.EchoMode.Password` にする。
+      リテラルの列挙の 1 つを選ぶ欄（ui.position・ui.theme など）は make_radio_group にその項目の choice_labels を引き渡してラジオボタンの名前にし、保存では selected_radio が返却する値を設定に入れる。COMBO_KEYS の欄（transcription.engine など）は、選択肢の名前をその項目の choice_labels（無ければ値そのまま）にし、保存では選んだ項目の値を設定に入れる。出力先のほかの欄も、その項目の `json_schema_extra` に note があれば欄の下に出す（transcription.openai.model の API キーの配置先の補助文）。
+      カスタムプリセットは、PRESET_KIND_NAMES の種類ごとにまとまり（「出力先」のすぐ下のタブ）を 1 つ作り、その中に PresetListPanel とその種類の preset_options の欄を配置する。Authorization の欄は `QLineEdit.EchoMode.Password` にする。
       変えた欄の数えには、種類ごとの PresetListPanel.change_values のキーごとの変更を 1 件として含める。追加・削除した・有効かタイトルか URL かホットキーか種類ごとの欄を変えたプリセット 1 つが 1 件（1 つのプリセットで何度変えても 1 件）、種類のタブごとに、開いたとき・保存したときからあって今も残っているプリセットどうしの順が変わったら並べ替えが 1 件になる（追加・削除だけでは並べ替えに数えない）。
       保存したメッセージのホットキーの文を出すかは、変えた欄の数えの値ではなく、ホットキーの欄の値（`hotkeys.*`・`outputs[].hotkey`・種類ごとのタブの中の何件目かのプリセットの hotkey）を開いたときの値と比べて決める。
       エラーの一覧の表記のヒントの行は、失敗の場所 `hint_presets[{n}].readings[{m}]` を「プリセット {n+1} 件目の {m+1} つ目の語の読み」にし、押すと HintPresetPanel.focus_field で読みの欄へフォーカスを移す（HINT_KEY_PATTERN に readings を加える）。「文字起こし」のまとまりは、`transcription.engine` の欄の下に ENGINE_TAB_LAYOUT のエンジンごとのタブ（_add_engine_tabs）を配置し、エンジンの欄はそのエンジンのタブの中に並べる。欄の名前と補助文は画面設計が持つ。欄は hidden_setting_keys にある OS では出さない。transcription.engine の選択欄は、`transcription.haas.port` が hidden_setting_keys にあるとき選択肢「Haas（WSL）」を出さない（今の値が haas のときだけ出す）。
       エラーの一覧の文字起こしのエンジンの欄の行は、押すと「文字起こし」のまとまりとその欄のエンジンのタブへ切り替えて欄へフォーカスを移す（_focus_field）。エラーの一覧を出すときは、エンジンのタブごとにそのタブの欄のエラーの件数を「エラー {件数} 件」のラベル（`engine_error_count_{エンジン}`）に出し、_clear_errors で隠す。
       エラーの一覧のプリセットの行は、失敗の場所 `presets[{n}].{項目}` を「プリセット「{タイトル}」の{欄の名前}」（タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」）にし、押すとそのタブへ切り替えて PresetListPanel.focus_field で欄へフォーカスを移す。
       ホットキーの欄は押したキーを format_hotkey の形式で出し、parse_hotkey で pynput の書式に戻す。
-      UiDeps.hidden_setting_keys のキーは欄を置かず、開いたときの値を collect でそのまま返す（設定の値を保つ）。変えた欄の数えにも入らない。既定に戻すと、そのキーも既定値になる。
-      コンストラクタは UiDeps を受ける。欄の部品は設定のキーを使った objectName（`field_{キー}`。プリセットの欄は画面設計の項目 ID）を持つ。窓が閉じたら（保存して再起動・今すぐ再起動・取り消し・窓の閉じるのどの経路でも。「保存」では閉じない）closed を emit する。
+      UiDeps.hidden_setting_keys のキーは欄を配置せず、開いたときの値を collect でそのまま返す（設定の値を保つ）。変えた欄の数えにも入らない。既定に戻すと、そのキーも既定値になる。
+      コンストラクタは UiDeps を受ける。欄の部品は設定のキーを使用した objectName（`field_{キー}`。プリセットの欄は画面設計の項目 ID）を持つ。窓が閉じたら（保存して再起動・今すぐ再起動・取り消し・窓の閉じるのどの経路でも。「保存」では閉じない）closed を emit する。
     kind: クラス
     inherits: PySide6.QtWidgets.QWidget
     properties:
@@ -38,11 +38,11 @@ classes:
       - name: _deps
         type: UiDeps
         access: 内部 (_)
-        description: 設定の読み書き
+        description: 設定の読み込み書き
       - name: _original
         type: Settings
         access: 内部 (_)
-        description: 開いたときの設定（変えた欄の数えと「再起動で反映」の変更の判定に使う）
+        description: 開いたときの設定（変えた欄の数えと「再起動で反映」の変更の判定に使用する）
       - name: closed
         type: Signal()
         description: 窓が閉じた（UiController.on_settings_closed へ）
@@ -54,17 +54,17 @@ classes:
         scope: internal
         returns:
           type: dict[str, Any]
-          description: Settings.model_validate へ渡す値。presets はブラウザ添付のタブの並び → エンドポイントへ送信のタブの並びの順（各 PresetListPanel.collect をつなぐ）。glossaries は GlossaryPanel.collect、glossary_presets は GlossaryPanel.collect_presets、active_glossary_preset は GlossaryPanel.active_preset_name。hint_presets は HintPresetPanel.collect。edge_phrases は EdgePhrasePanel.collect。glossary_path と active_glossary は None を入れる（表のモデルの項目は必須のため。None は既定値と同じで、保存でキーが外れる）
+          description: Settings.model_validate へ引き渡す値。presets はブラウザ添付のタブの並び → エンドポイントへ送信のタブの並びの順（各 PresetListPanel.collect をつなぐ）。glossaries は GlossaryPanel.collect、glossary_presets は GlossaryPanel.collect_presets、active_glossary_preset は GlossaryPanel.active_preset_name。hint_presets は HintPresetPanel.collect。edge_phrases は EdgePhrasePanel.collect。glossary_path と active_glossary は None を入れる（表のモデルの項目は必須のため。None は既定値と同じで、保存でキーが外れる）
         unit_tests:
           - name: test_collect_when_hidden_keys
             case: 正常
-            summary: 出さないキーは欄を置かず、開いたときの値を返す
+            summary: 出さないキーは欄を配置せず、開いたときの値を返却する
             condition: hidden_setting_keys に recording.lower_volume・recording.volume_percent・recording.fade_sec を入れ、recording.volume_percent=40 の設定で開いて collect を呼ぶ。QT_QPA_PLATFORM=offscreen
             mock: UiDeps の全関数
             expected: objectName が field_recording.lower_volume・field_recording.volume_percent・field_recording.fade_sec の欄が無く、collect の recording.volume_percent が 40 で lower_volume・fade_sec も開いたときの値
       - name: save
         title: 保存
-        summary: 欄の値を設定のモデルで確かめ、通れば書いて効かせ、窓を開いたまま保存したメッセージを出す（restart のときだけ閉じる）。通らなければエラーを出す
+        summary: 欄の値を設定のモデルで確かめ、通れば書き込んで効かせ、窓を開いたまま保存したメッセージを出す（restart のときだけ閉じる）。通らなければエラーを出す
         kind: メソッド
         scope: public
         args:
@@ -77,31 +77,31 @@ classes:
           type: bool
           description: 保存できたか
         process: |-
-          1. collect した値を Settings.model_validate に渡し、あわせて GlossaryPanel.row_errors で用語集の行（正しい表記が入っていて誤変換が空）を確かめる
-             - ValidationError か行の失敗がある場合、失敗ごとに to_field_message（defaults は UiDeps.default_settings）で欄ごとのエラーにし（行の失敗は「誤変換を入れてください。」）、エラーの一覧と欄の下のエラーを出して一覧へフォーカスを移し、False を返す（入れた値は消さない）
+          1. collect した値を Settings.model_validate に引き渡し、あわせて GlossaryPanel.row_errors で用語集の行（正しい表記が入っていて誤変換が空）を確認する
+             - ValidationError か行の失敗がある場合、失敗ごとに to_field_message（defaults は UiDeps.default_settings）で欄ごとのエラーにし（行の失敗は「誤変換を入れてください。」）、エラーの一覧と欄の下のエラーを出して一覧へフォーカスを移し、False を返却する（入れた値は削除しない）
                - `[INFO]` 設定画面の値が確かめに通らなかった（キーの一覧）
-          2. save_settings（UiDeps）に、確かめた設定と GlossaryPanel.changed_rows（行を変えた用語集と追加した用語集の場所 → 行）を渡して書いて効かせる
-             - HotkeyError の場合、エラーの一覧に「ホットキーを受け付けられませんでした（{理由}）。別のキーにしてください。」を出し、False を返す（settings.yaml も用語集の CSV も書かれていない）
+          2. save_settings（UiDeps）に、確認した設定と GlossaryPanel.changed_rows（行を変えた用語集と追加した用語集の場所 → 行）を引き渡して書き込んで効かせる
+             - HotkeyError の場合、エラーの一覧に「ホットキーを受け付けられませんでした（{理由}）。別のキーにしてください。」を出し、False を返却する（settings.yaml も用語集の CSV も書き込まれていない）
                - `[WARNING]` 保存するホットキーを受け付けられなかった（理由）
-             - OSError の場合、エラーの一覧に「設定ファイルを書けませんでした（{理由}）」を出し、False を返す（用語集の CSV を書けないときも同じ文言で、理由にそのパスが出る）
-               - `[ERROR]` 設定ファイルを書けなかった（logger.exception）
+             - OSError の場合、エラーの一覧に「設定ファイルを書けませんでした（{理由}）」を出し、False を返却する（用語集の CSV を書き込めないときも同じ文言で、理由にそのパスが出る）
+               - `[ERROR]` 設定ファイルを書き込めなかった（logger.exception）
           3. _clear_errors で前の保存で出したエラーの一覧と欄の下のエラーを消し、GlossaryPanel.mark_saved で用語集の書き戻しの基準を保存した行へ置き直し、HintPresetPanel.mark_saved と種類ごとの PresetListPanel.mark_saved でプリセットの番号を保存した並びで振り直し、変えた欄の数えの基準（`_baseline`）を今の欄の値へ置き直す（「再起動で反映」の件数の基準は開いたときの値のまま）
           4. saved を emit する
-             - restart の場合、restart_requested を emit して窓を閉じ、True を返す
-          5. 窓を開いたまま、保存したメッセージを出して、同じ文を `QAccessible.updateAccessibility(QAccessibleAnnouncementEvent(メッセージ, 文))` で読み上げにも伝え、True を返す（入れた値・選んでいたまとまり・欄のフォーカスはそのまま）
+             - restart の場合、restart_requested を emit して窓を閉じ、True を返却する
+          5. 窓を開いたまま、保存したメッセージを出して、同じ文を `QAccessible.updateAccessibility(QAccessibleAnnouncementEvent(メッセージ, 文))` で読み上げにも伝え、True を返却する（入れた値・選んでいたまとまり・欄のフォーカスはそのまま）
              - 保存したメッセージの文は「保存しました。」。ホットキーの欄（`hotkeys.*`・`outputs[].hotkey`・`presets[].hotkey`。`keyboard.paste_key` は含めない）のどれかが開いたときの値から変わっていれば「新しいホットキーは、設定画面を閉じると効きます。」を続ける
              - 開いたときの値から変わった「再起動で反映」の欄がある場合、「「再起動で反映」の設定 {件数} 件は、再起動するまで前の値で動きます。」を続け、今すぐ再起動のボタンを出して、再起動のメッセージと保存して再起動のボタンを隠す
-             - 欄を変えると保存したメッセージ（と今すぐ再起動のボタン）を消し、開いたときの値から数えた再起動のメッセージと保存して再起動のボタンを出し直す
+             - 欄を変えると保存したメッセージ（と今すぐ再起動のボタン）を削除し、開いたときの値から数えた再起動のメッセージと保存して再起動のボタンを出し直す
         unit_tests:
           - name: test_save
             case: 正常
-            summary: 通った値を書く
+            summary: 通った値を書き込む
             condition: 「録音中の音量の割合」を 30 にして save(restart=False)
-            mock: UiDeps.save_settings・QAccessible.updateAccessibility（渡したイベントを控える）
-            expected: True。save_settings に recording.volume_percent=30 の Settings が渡り、saved が 1 回 emit される。窓が開いたままで closed が知らされず、保存したメッセージが「保存しました。」で、欄の値と選んでいたまとまりがそのまま。QAccessible.updateAccessibility が 1 回呼ばれ、渡したイベントの文が「保存しました。」
+            mock: UiDeps.save_settings・QAccessible.updateAccessibility（引き渡したイベントを控える）
+            expected: True。save_settings に recording.volume_percent=30 の Settings が渡り、saved が 1 回 emit される。窓が開いたままで closed が知らされず、保存したメッセージが「保存しました。」で、欄の値と選んでいたまとまりがそのまま。QAccessible.updateAccessibility が 1 回呼ばれ、引き渡したイベントの文が「保存しました。」
           - name: test_save_when_invalid
             case: 異常
-            summary: 通らなければ書かずにエラーを出す
+            summary: 通らなければ書き込まずにエラーを出す
             condition: 「貼り付けてから Enter を送信するまで待つ秒数」に abc
             mock: UiDeps.save_settings
             expected: False。save_settings が呼ばれず、エラーの一覧に outputs[0].enter_delay_sec の行が出て、欄の値が abc のまま
@@ -115,20 +115,20 @@ classes:
             exception: ホットキーを受け付けられない
           - name: test_save_when_presets
             case: 正常
-            summary: タブごとのプリセットを 1 つの一覧にして書く
+            summary: タブごとのプリセットを 1 つの一覧にして書き込む
             condition: エンドポイントへ送信のタブでプリセットを 1 件追加し、ブラウザ添付のタブでも 1 件追加して（どちらもタイトル・URL を入れる）save(restart=False)
             mock: UiDeps.save_settings
             expected: True。save_settings に渡った Settings の presets が [browser の 1 件, endpoint の 1 件] の順
           - name: test_save_when_preset_invalid
             case: 異常
-            summary: タイトルが空のプリセットは書かずにエラーを出す
+            summary: タイトルが空のプリセットは書き込まずにエラーを出す
             condition: ブラウザ添付のタブでプリセットを 1 件追加し、URL だけ入れて save(restart=False)
             mock: UiDeps.save_settings
             expected: 'False。save_settings が呼ばれず、エラーの一覧に「プリセット 1 件目のタイトル: タイトルを入れてください。」の行が出る'
             exception: 確かめに通らない
           - name: test_save_when_enter_modifiers
             case: 正常
-            summary: オンにした修飾キーを一覧にして書く
+            summary: オンにした修飾キーを一覧にして書き込む
             condition: 「Enter と一緒に押す修飾キー」の「Shift」と「Ctrl」をこの順にオンにして save(restart=False)
             mock: UiDeps.save_settings
             expected: True。save_settings に渡った Settings の貼り付けて送信の enter_modifiers が ["ctrl", "shift"]。チェックボックスの名前が「Ctrl」「Alt」「Shift」
@@ -140,16 +140,16 @@ classes:
             expected: save_settings に ui.theme=light の設定が渡る
           - name: test_save_when_glossaries
             case: 正常
-            summary: 用語集の一覧と補正に使うプリセットを設定に入れ、行を変えた用語集だけを書き戻しに渡す
-            condition: 2 件の用語集と 2 件のプリセットを持つ設定で開き、2 件目の用語集の行を 1 つオフにし、補正に使うプリセットを 2 件目にして保存する
-            mock: UiDeps.save_settings（引数を控える）・list_glossaries・list_glossary_presets・read_glossary（決まった一覧と行を返す）
-            expected: 渡した設定の glossaries が 2 件で active_glossary_preset が 2 件目のプリセットの名前、glossary_path と active_glossary が None。書き戻しの引数は 2 件目の場所だけを持ち、その行がオフになっている
+            summary: 用語集の一覧と補正に使用するプリセットを設定に入れ、行を変えた用語集だけを書き戻しに引き渡す
+            condition: 2 件の用語集と 2 件のプリセットを持つ設定で開き、2 件目の用語集の行を 1 つオフにし、補正に使用するプリセットを 2 件目にして保存する
+            mock: UiDeps.save_settings（引数を控える）・list_glossaries・list_glossary_presets・read_glossary（決まった一覧と行を返却する）
+            expected: 引き渡した設定の glossaries が 2 件で active_glossary_preset が 2 件目のプリセットの名前、glossary_path と active_glossary が None。書き戻しの引数は 2 件目の場所だけを持ち、その行がオフになっている
           - name: test_save_when_glossaries_untouched
             case: 正常
             summary: 用語集を変えずに保存すると、書き戻す CSV は無い
             condition: 今までの用語集 1 件だけの設定で開き、ホットキーだけを変えて保存する
             mock: UiDeps.save_settings（引数を控える）・list_glossaries・read_glossary
-            expected: 書き戻しの引数が空。渡した設定の glossaries がその 1 件
+            expected: 書き戻しの引数が空。引き渡した設定の glossaries がその 1 件
           - name: test_save_when_glossary_invalid
             case: 異常
             summary: 名前の重なりと片方が空の行では保存せず、エラーを出す
@@ -158,27 +158,27 @@ classes:
             expected: 'False。save_settings は呼ばれず、エラーの一覧に「用語集 3 件目の名前: …」と「用語集 3 件目の 2 行目の誤変換: 誤変換を入れてください」が出る'
           - name: test_save_when_hint_presets
             case: 正常
-            summary: 表記のヒントのプリセットを設定に入れて書く
-            condition: 「表記のヒント」でプリセットを 1 件追加して名前「開発」と語 voice-paste を入れ、save(restart=False)
+            summary: 表記のヒントのプリセットを設定に入れて書き込む
+            condition: 「表記のヒント」でプリセットを 1 件追加して名前「開発」と単語 voice-paste を入れ、save(restart=False)
             mock: UiDeps.save_settings
             expected: True。save_settings に渡った Settings の hint_presets が [「開発」（words ["voice-paste"]・enabled True）]
           - name: test_save_when_hint_too_long
             case: 異常
-            summary: 有効なヒントが上限を超えたら書かずにエラーを出す
-            condition: 有効なプリセットにつないだ長さが 223 バイトになる語を入れ、save(restart=False)
+            summary: 有効なヒントが上限を超えたら書き込まずにエラーを出す
+            condition: 有効なプリセットにつないだ長さが 223 バイトになる単語を入れ、save(restart=False)
             mock: UiDeps.save_settings
             expected: False。save_settings が呼ばれず、エラーの一覧と長さの行の下に「有効なヒントが長すぎます（223 / 222 バイト）。…」が出る
             exception: 確かめに通らない
           - name: test_save_when_hint_word_invalid
             case: 異常
-            summary: 空の語と区切りを含む語では保存せず、エラーを出す
-            condition: プリセット 1 件目の 1 つ目の語を空にし、2 つ目の語を「A、B」にして save(restart=False)
+            summary: 空の単語と区切りを含む単語では保存せず、エラーを出す
+            condition: プリセット 1 件目の 1 つ目の単語を空にし、2 つ目の単語を「A、B」にして save(restart=False)
             mock: UiDeps.save_settings
             expected: 'False。save_settings が呼ばれず、エラーの一覧に「プリセット 1 件目の 1 つ目の語: 語を入れるか、この欄を削除してください。」「プリセット 1 件目の 2 つ目の語: 読点（、）・句点（。）・改行は入れられません。語を分けて追加してください。」が出る'
             exception: 確かめに通らない
           - name: test_save_when_restart
             case: 正常
-            summary: 「保存して再起動」は書いてから窓を閉じ、再起動を頼む
+            summary: 「保存して再起動」は書き込んでから窓を閉じ、再起動を頼む
             condition: モデルを変えて save(restart=True)
             mock: UiDeps.save_settings
             expected: True。saved と restart_requested が 1 回ずつ emit され、closed が 1 回知らされる
@@ -205,18 +205,18 @@ classes:
             summary: 保存の後に欄を変えずに閉じると確認を出さずに閉じ、保存の後に欄を変えると保存したメッセージが消える
             condition: 「録音中の音量の割合」を 30 にして save(restart=False) し、try_close を呼ぶ。別のケースで用語集の行を 1 つオフにして save(restart=False) し、欄を変えずに try_close を呼ぶ。もう 1 つのケースで保存の後に`recording.hide_window` の欄をオンにする
             mock: UiDeps.save_settings・list_glossaries・read_glossary・confirm_discard
-            expected: 音量のケースと用語集のケースのどちらも、try_close が True を返し、confirm_discard が呼ばれず、closed が 1 回知らされる。欄を変えたケースは保存したメッセージが隠れる
+            expected: 音量のケースと用語集のケースのどちらも、try_close が True を返却し、confirm_discard が呼ばれず、closed が 1 回知らされる。欄を変えたケースは保存したメッセージが隠れる
           - name: test_save_when_glossary_right_empty
             case: 正常
-            summary: 正しい表記だけが空の行は確かめに通し、空のまま書き戻しに渡す
+            summary: 正しい表記だけが空の行は確かめに通し、空のまま書き戻しに引き渡す
             condition: 1 件目の用語集に行を追加して誤変換「ご視聴ありがとうございました」だけを入れ、save(restart=False)
             mock: UiDeps.save_settings（引数を控える）・list_glossaries・read_glossary
             expected: True。エラーの一覧が出ず、書き戻しの引数が 1 件目の場所を持ち、追加した行が wrong="ご視聴ありがとうございました"・right=""
             exception: '-'
           - name: test_save_when_edge_phrases
             case: 正常
-            summary: 文言の一覧を並びのまま設定に入れ、空の行を捨てて書く
-            condition: edge_phrases が既定の設定で開き、「ハルシネーション」で行を 2 つ追加して 1 つ目に「お疲れ様でした」（文頭）を入れ、2 つ目を空のままにして「お疲れ様でした」の行を先頭へ動かし、「ありがとうございました」の行を消して save(restart=False)
+            summary: 文言の一覧を並びのまま設定に入れ、空の行を捨てて書き込む
+            condition: edge_phrases が既定の設定で開き、「ハルシネーション」で行を 2 つ追加して 1 つ目に「お疲れ様でした」（文頭）を入れ、2 つ目を空のままにして「お疲れ様でした」の行を先頭へ動かし、「ありがとうございました」の行を削除して save(restart=False)
             mock: UiDeps.save_settings
             expected: True。save_settings に渡った Settings の edge_phrases が「お疲れ様でした」（start）・「チャンネル登録*」（end）・「ご視聴ありがとうございました」（end）の 3 件
           - name: test_save_when_edge_phrase_wildcard_only
@@ -228,10 +228,10 @@ classes:
             exception: 確かめに通らない
           - name: test_save_when_glossary_presets
             case: 正常
-            summary: 用語集のプリセットを使う用語集の順のまま設定に入れる
-            condition: glossary_presets が空で active_glossary = "会議用" の設定で開き（「既定」（["会議用"]）が出る）、プリセットを追加して名前を「議事録」にし、「yogo」、「会議用」の順に追加して、補正に使うプリセットに選んで保存する
+            summary: 用語集のプリセットを使用する用語集の順のまま設定に入れる
+            condition: glossary_presets が空で active_glossary = "会議用" の設定で開き（「既定」（["会議用"]）が出る）、プリセットを追加して名前を「議事録」にし、「yogo」、「会議用」の順に追加して、補正に使用するプリセットに選んで保存する
             mock: UiDeps.save_settings（引数を控える）・list_glossaries・list_glossary_presets・read_glossary
-            expected: 渡した設定の glossary_presets が [{既定, ["会議用"]}, {議事録, ["yogo", "会議用"]}]、active_glossary_preset が「議事録」、active_glossary が None
+            expected: 引き渡した設定の glossary_presets が [{既定, ["会議用"]}, {議事録, ["yogo", "会議用"]}]、active_glossary_preset が「議事録」、active_glossary が None
           - name: test_save_when_glossary_preset_invalid
             case: 異常
             summary: 用語集のプリセットの名前が空・重なるときは保存せず、エラーを出す
@@ -240,8 +240,8 @@ classes:
             expected: 'False。save_settings は呼ばれず、エラーの一覧に「用語集のプリセット 2 件目の名前: 用語集のプリセット「既定」と同じ名前です。別の名前にしてください。」と「用語集のプリセット 3 件目の名前: 名前を入れてください。」が出る。前者を押すと「用語集」のまとまりで 2 件目のプリセットの名前の欄にフォーカスが移る'
           - name: test_save_when_fixed_after_invalid
             case: 正常
-            summary: 直して保存し直すと、前に出したエラーを消す
-            condition: 「貼り付けてから Enter を送信するまで待つ秒数」に abc を入れて save(restart=False) した後、欄を 0.5 に直してもう一度 save(restart=False)
+            summary: 修正して保存し直すと、前に出したエラーを削除する
+            condition: 「貼り付けてから Enter を送信するまで待つ秒数」に abc を入れて save(restart=False) した後、欄を 0.5 に修正してもう一度 save(restart=False)
             mock: UiDeps.save_settings
             expected: 2 回目は True。エラーの一覧が隠れて行が残らず、outputs[0].enter_delay_sec の欄の下のエラーが空で隠れ、保存したメッセージが「保存しました。」
           - name: test_save_when_unselected_engine_invalid
@@ -253,22 +253,22 @@ classes:
             exception: 確かめに通らない
       - name: reset_to_defaults
         title: 既定に戻す
-        summary: confirm_reset で確かめ、戻すなら UiDeps.reset_settings で環境の値を空にして読み直した設定を欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す
+        summary: confirm_reset で確かめ、戻すなら UiDeps.reset_settings で環境の値を空にして読み込み直した設定を欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す
         kind: メソッド
         scope: public
         returns:
           type: None
           description: なし
         process: |-
-          1. confirm_reset で確かめる
+          1. confirm_reset で確認する
              - 戻さない場合、何もせずに終える
           2. UiDeps.reset_settings で戻す（用語集の CSV は書き換えない）
              - SettingsError の場合、欄を変えずにエラーの一覧に理由を出して終える
-          3. 返った設定（既定値。checkout の上書きにあるキーはその値）を欄に入れ、用語集の一覧と用語集のプリセットを UiDeps.list_glossaries・list_glossary_presets で引き直して GlossaryPanel.set_glossaries に入れ直す（設定ファイルと同じフォルダの yogo.csv の 1 件と、それを使う「既定」のプリセットに戻る）
+          3. 返った設定（既定値。checkout の上書きにあるキーはその値）を欄に入れ、用語集の一覧と用語集のプリセットを UiDeps.list_glossaries・list_glossary_presets で引き直して GlossaryPanel.set_glossaries に入れ直す（設定ファイルと同じフォルダの yogo.csv の 1 件と、それを使用する「既定」のプリセットに戻る）
           4. 再起動が要る設定が変わっていれば、件数と「今すぐ再起動」を出す
       - name: try_close
         title: 取り消し
-        summary: 欄を変えていなければ閉じ、変えていれば confirm_discard で確かめて捨てるなら閉じる。closeEvent・Esc・キャンセルが呼ぶ
+        summary: 欄を変えていなければ閉じ、変えていれば confirm_discard で確認して捨てるなら閉じる。closeEvent・Esc・キャンセルが呼ぶ
         kind: メソッド
         scope: public
         returns:
@@ -330,7 +330,7 @@ classes:
             expected: engine_tabs のタブの名前が「ローカルの Whisper」「OpenAI API」「Haas（WSL）」の順で、出しているタブが「Haas（WSL）」。field_transcription.local_whisper.beam_size が「ローカルの Whisper」のタブ、field_transcription.openai.base_url が「OpenAI API」のタブにある。「使用中」は engine_in_use_haas だけが出ている
           - name: test_add_engine_tabs_when_haas_hidden
             case: 正常
-            summary: 全ての欄を出さないエンジンのタブは置かない
+            summary: 全ての欄を出さないエンジンのタブは配置しない
             condition: hidden_setting_keys に transcription.haas.distribution・transcription.haas.port を入れ、transcription.engine=local_whisper の設定で開く。QT_QPA_PLATFORM=offscreen
             mock: UiDeps の全関数
             expected: engine_tabs のタブが「ローカルの Whisper」「OpenAI API」の 2 つで、出しているタブが「ローカルの Whisper」
@@ -370,18 +370,18 @@ classes:
     status: implemented
     notes:
       用語集のまとまり: |-
-        「文字起こし」の次のまとまり「用語集」に GlossaryPanel を 1 つ置く（今の `glossary_path` の欄と「選ぶ…」は消す）。開くときに UiDeps.list_glossaries の一覧と、UiDeps.list_glossary_presets の一覧と、補正に使うプリセットの名前（設定の active_glossary_preset。None か一覧に無ければ 1 件目）を GlossaryPanel.set_glossaries に渡す。
+        「文字起こし」の次のまとまり「用語集」に GlossaryPanel を 1 つ置く（今の `glossary_path` の欄と「選ぶ…」は削除する）。開くときに UiDeps.list_glossaries の一覧と、UiDeps.list_glossary_presets の一覧と、補正に使用するプリセットの名前（設定の active_glossary_preset。None か一覧に無ければ 1 件目）を GlossaryPanel.set_glossaries に引き渡す。
         収集では `glossaries` に GlossaryPanel.collect、`glossary_presets` に GlossaryPanel.collect_presets、`active_glossary_preset` に GlossaryPanel.active_preset_name を入れ、`glossary_path` と `active_glossary` は None を入れる（保存でキーが外れる）。
-        変えた欄の数えには、GlossaryPanel.change_values のキーごとの変更を 1 件として含める（反映はどれも immediate）。追加・削除した・名前か行を変えた用語集 1 つが 1 件（1 つの用語集で何度変えても 1 件）、追加・削除した・名前か使う用語集を変えたプリセット 1 つが 1 件、補正に使うプリセットの切り替えが 1 件になる。
+        変えた欄の数えには、GlossaryPanel.change_values のキーごとの変更を 1 件として含める（反映はどれも immediate）。追加・削除した・名前か行を変えた用語集 1 つが 1 件（1 つの用語集で何度変えても 1 件）、追加・削除した・名前か使う用語集を変えたプリセット 1 つが 1 件、補正に使用するプリセットの切り替えが 1 件になる。
         エラーの一覧の用語集の行は、失敗の場所 `glossaries[{n}].name` を「用語集 {n+1} 件目の名前」、行の失敗を「用語集 {n+1} 件目の {m+1} 行目の誤変換」にし、押すと「用語集」のまとまりへ切り替えて GlossaryPanel.focus_field でその用語集の行の表を出し、欄へフォーカスを移す。
         失敗の場所 `glossary_presets[{n}].name` は「用語集のプリセット {n+1} 件目の名前」にし、欄の下に GlossaryPanel.show_preset_error で出し、押すと「用語集」のまとまりへ切り替えて GlossaryPanel.focus_preset_name でそのプリセットの名前の欄へフォーカスを移す。文言は画面設計「設定画面」の入力チェック（空は「名前を入れてください。」、重なり（GLOSSARY_PRESET_NAME_OVERLAP_ERROR_TYPE）は「用語集のプリセット「{名前}」と同じ名前です。別の名前にしてください。」）。
       表記のヒントのまとまり: |-
-        「文字起こし」の次、「用語集」の前のまとまり「表記のヒント」に HintPresetPanel を 1 つ置き、開くときに設定の hint_presets を HintPresetPanel.set_presets に渡す。
-        収集では `hint_presets` に HintPresetPanel.collect を入れる。変えた欄の数えには、HintPresetPanel.change_values のキーごとの変更を 1 件として含める（反映は immediate）。追加・削除した・名前か語か有効を変えたプリセット 1 つが 1 件（1 つのプリセットで何度変えても 1 件）、開いたとき・保存したときからあって今も残っているプリセットどうしの順が変わったら並べ替えが 1 件になる（追加・削除だけでは並べ替えに数えない）。
+        「文字起こし」の次、「用語集」の前のまとまり「表記のヒント」に HintPresetPanel を 1 つ置き、開くときに設定の hint_presets を HintPresetPanel.set_presets に引き渡す。
+        収集では `hint_presets` に HintPresetPanel.collect を入れる。変えた欄の数えには、HintPresetPanel.change_values のキーごとの変更を 1 件として含める（反映は immediate）。追加・削除した・名前か単語か有効を変えたプリセット 1 つが 1 件（1 つのプリセットで何度変えても 1 件）、開いたとき・保存したときからあって今も残っているプリセットどうしの順が変わったら並べ替えが 1 件になる（追加・削除だけでは並べ替えに数えない）。
         エラーの一覧の表記のヒントの行は、失敗の場所 `hint_presets` を「有効なヒントの長さ」、`hint_presets[{n}].name` を「プリセット {n+1} 件目の名前」、`hint_presets[{n}].words[{m}]` を「プリセット {n+1} 件目の {m+1} つ目の語」にし、押すと「表記のヒント」のまとまりへ切り替えて HintPresetPanel.focus_field で欄へフォーカスを移す。長さの失敗は長さの行の下にも出す。
         既定に戻すと、表記のヒントのプリセットは空になる。
       ハルシネーションのまとまり: |-
-        「用語集」の次のまとまり「ハルシネーション」に EdgePhrasePanel を 1 つ置き、開くときに設定の edge_phrases を EdgePhrasePanel.set_phrases に渡す。
+        「用語集」の次のまとまり「ハルシネーション」に EdgePhrasePanel を 1 つ置き、開くときに設定の edge_phrases を EdgePhrasePanel.set_phrases に引き渡す。
         収集では `edge_phrases` に EdgePhrasePanel.collect を入れる。変えた欄の数えには、EdgePhrasePanel.change_values のキーごとの変更を 1 件として含める（反映は immediate）。追加・削除した・文言か位置を変えた行 1 つが 1 件、残っている行どうしの順が変わったら並べ替えが 1 件になる。
         エラーの一覧の行は、失敗の場所 `edge_phrases[{n}].text` を「ハルシネーションの {n+1} 行目の文言」にし、押すと「ハルシネーション」のまとまりへ切り替えて EdgePhrasePanel.focus_field で欄へフォーカスを移す。to_field_message は EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE を「* だけの文言は、文頭・文末の行を丸ごと削除します。削除したい文言を入れてください。」にする。
         既定に戻すと、文言の一覧は config/defaults.yaml の edge_phrases に戻る。
@@ -390,7 +390,7 @@ constants:
     title: OS ごとの修飾キーの画面の名前
     container: ui/windows/settings_window.py
     usecase: 設定を変える
-    summary: format_hotkey が引く、pynput の修飾キーの名前ごとの画面の名前。OS は shared/os_kind.py の OsKind で引き、sys.platform を直に読まない。今の MODIFIER_NAMES（OS によらない表）はこれに置き換える
+    summary: format_hotkey が引く、pynput の修飾キーの名前ごとの画面の名前。OS は shared/os_kind.py の OsKind で引き、sys.platform を直に読み込まない。今の MODIFIER_NAMES（OS によらない表）はこれに置き換える
     value: '{OsKind.WINDOWS: {"ctrl": "Ctrl", "alt": "Alt", "shift": "Shift", "cmd": "Win"}, OsKind.LINUX: {"ctrl": "Ctrl", "alt": "Alt", "shift": "Shift", "cmd": "Super"}}'
     reason: Ubuntu（GNOME）は Windows キーを Super と表す（[#198](https://github.com/shuhei1101/voice-paste/issues/198)）
     status: planned
@@ -443,7 +443,7 @@ functions:
     title: 変えた値を捨てる確認
     container: ui/windows/settings_window.py
     usecase: 設定を変える
-    summary: 変えた値を捨てて閉じるかを QMessageBox で確かめる。最初のフォーカスと Esc は「設定画面へ戻る」
+    summary: 変えた値を捨てて閉じるかを QMessageBox で確認する。最初のフォーカスと Esc は「設定画面へ戻る」
     kind: 関数
     scope: public
     args:
@@ -467,7 +467,7 @@ functions:
     title: 既定に戻す確認
     container: ui/windows/settings_window.py
     usecase: 設定を変える
-    summary: 全ての設定を既定に戻すかを QMessageBox で確かめる。最初のフォーカスと Esc は「設定画面へ戻る」
+    summary: 全ての設定を既定に戻すかを QMessageBox で確認する。最初のフォーカスと Esc は「設定画面へ戻る」
     kind: 関数
     scope: public
     args:
@@ -502,7 +502,7 @@ functions:
       1. menu.ensurePolished() でスタイルシート（項目の余白）を当ててから、sizeHintForColumn(0) で最も長い項目の幅を測る
       2. 1 の幅に、枠の幅（frameWidth の 2 倍）と GROUP_MENU_MARGIN_PX を加える
          - 縦のスクロールバーが出ている（verticalScrollBar().maximum() が 0 より大きい）場合、その幅（verticalScrollBar().sizeHint().width()）も加える
-      3. 2 と GROUP_MENU_MIN_WIDTH_PX の大きい方を返す
+      3. 2 と GROUP_MENU_MIN_WIDTH_PX の大きい方を返却する
     refs:
       - SCR-9#elements[まとまりのメニュー]
     status: planned
@@ -531,7 +531,7 @@ functions:
     title: ホットキーの表示形式
     container: ui/windows/settings_window.py
     usecase: 設定を変える
-    summary: pynput の書式（`<ctrl>+<alt>+d`）を画面の表示形式（`Ctrl+Alt+D`）にする。録音の画面・トレイも使う。修飾キーの名前は OS ごとに MODIFIER_NAMES_BY_OS から引く（`<cmd>` は Windows で `Win`、Linux で `Super`）
+    summary: pynput の書式（`<ctrl>+<alt>+d`）を画面の表示形式（`Ctrl+Alt+D`）にする。録音の画面・トレイも使用する。修飾キーの名前は OS ごとに MODIFIER_NAMES_BY_OS から引く（`<cmd>` は Windows で `Win`、Linux で `Super`）
     kind: 関数
     scope: public
     args:
@@ -545,7 +545,7 @@ functions:
         required: false
         default: CURRENT_OS
         passing: keyword
-        description: 修飾キーの名前を引く OS（画面からは渡さず、動いている OS を使う。テストが OS を指定する）
+        description: 修飾キーの名前を引く OS（画面からは引き渡さず、動いている OS を使用する。テストが OS を指定する）
     returns:
       type: str
       description: 画面の表示形式
@@ -559,7 +559,7 @@ functions:
       - name: test_format_hotkey_when_cmd
         case: 正常
         summary: '`<cmd>` を OS ごとの名前にする'
-        condition: <cmd>+<alt>+d を os_kind=OsKind.WINDOWS、os_kind=OsKind.LINUX で渡す
+        condition: <cmd>+<alt>+d を os_kind=OsKind.WINDOWS、os_kind=OsKind.LINUX で引き渡す
         mock: なし
         expected: Win+Alt+D、Super+Alt+D
     status: implemented
@@ -610,7 +610,7 @@ functions:
         type: type[Settings]
         required: true
         passing: keyword
-        description: 失敗の場所から項目（既定値・範囲）を引く設定のモデル。出力先の項目はその output_models から引く。SettingsWindow は開いたときの設定のモデル（`type(設定)`）を渡す（ui は features・main を import しない）
+        description: 失敗の場所から項目（既定値・範囲）を引く設定のモデル。出力先の項目はその output_models から引く。SettingsWindow は開いたときの設定のモデル（`type(設定)`）を引き渡す（ui は features・main を import しない）
       - name: defaults
         type: Settings
         required: true
@@ -645,85 +645,85 @@ functions:
       - name: test_to_field_message_when_not_number
         case: 正常
         summary: 数値でない文字
-        condition: outputs[0].enter_delay_sec に abc を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL・defaults=既定の設定で渡す
+        condition: outputs[0].enter_delay_sec に abc を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL・defaults=既定の設定で引き渡す
         mock: なし
         expected: '数値を入れてください（例: 0.5）。'
       - name: test_to_field_message_when_not_number_in_table
         case: 正常
         summary: 表のまとまりの項目の数値の例は、既定の設定の値から引く
-        condition: transcription.local_whisper.beam_size に abc を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL・defaults=beam_size を 7 にした既定の設定で渡す
+        condition: transcription.local_whisper.beam_size に abc を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL・defaults=beam_size を 7 にした既定の設定で引き渡す
         mock: なし
         expected: '数値を入れてください（例: 7）。'
       - name: test_to_field_message_when_out_of_range
         case: 正常
         summary: 範囲の外
-        condition: api.port に 80 を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
+        condition: api.port に 80 を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で引き渡す
         mock: なし
         expected: 1024〜65535 の値を入れてください。
       - name: test_to_field_message_when_preset_url_empty
         case: 正常
         summary: プリセットの URL が空
-        condition: presets[0] を kind endpoint・url が空にした SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
+        condition: presets[0] を kind endpoint・url が空にした SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で引き渡す
         mock: なし
         expected: 'URL を入れてください（例: https://example.com/hook）。'
       - name: test_to_field_message_when_hint_too_long
         case: 正常
         summary: 有効なヒントが長すぎる
-        condition: 有効な語をつないだ長さが 258 バイトの hint_presets を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
+        condition: 有効な単語をつないだ長さが 258 バイトの hint_presets を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で引き渡す
         mock: なし
-        expected: 有効なヒントが長すぎます（258 / 222 バイト）。語を減らすか、プリセットを無効にしてください。
+        expected: 有効なヒントが長すぎます（258 / 222 バイト）。単語を減らすか、プリセットを無効にしてください。
       - name: test_to_field_message_when_hint_preset_name_overlap
         case: 正常
         summary: 表記のヒントのプリセットの名前が重なる
-        condition: 名前が「開発」の 2 件の hint_presets を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
+        condition: 名前が「開発」の 2 件の hint_presets を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で引き渡す
         mock: なし
         expected: プリセット「開発」と同じ名前です。別の名前にしてください。
       - name: test_to_field_message_when_openai_base_url_empty
         case: 正常
         summary: OpenAI の API の URL が空
-        condition: transcription.openai.base_url を空にした SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
+        condition: transcription.openai.base_url を空にした SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で引き渡す
         mock: なし
         expected: 'API の URL を入れてください（例: https://api.openai.com/v1）。'
       - name: test_to_field_message_when_web_origin_not_form
         case: 正常
         summary: 形式の違う許す Origin
-        condition: api.allowed_web_origins に ["https://voice.example.com/", "voice.example.com"] を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で渡す
+        condition: api.allowed_web_origins に ["https://voice.example.com/", "voice.example.com"] を入れた SETTINGS_MODEL.model_validate の失敗を、model=SETTINGS_MODEL で引き渡す
         mock: なし
         expected: 形式の違うオリジンがあります（https://voice.example.com/、voice.example.com）。https://example.com のように、http:// か https:// で始め、末尾の / とパスを付けずに入れてください。
       - name: test_to_field_message_when_hint_reading_not_kana
         case: 正常
         summary: 読みにかな以外の文字が入っている
-        condition: hint_presets[0].readings[0] が totsugou の SETTINGS_MODEL.model_validate の失敗を渡す
+        condition: hint_presets[0].readings[0] が totsugou の SETTINGS_MODEL.model_validate の失敗を引き渡す
         mock: なし
         expected: 読みはひらがなかカタカナで入れてください。
       - name: test_to_field_message_when_hint_reading_conflict
         case: 正常
-        summary: 同じ語に違う読みが入っている
-        condition: words が 突合・突合、readings が とつごう・とつあわせ の SETTINGS_MODEL.model_validate の失敗を渡す
+        summary: 同じ単語に違う読みが入っている
+        condition: words が 突合・突合、readings が とつごう・とつあわせ の SETTINGS_MODEL.model_validate の失敗を引き渡す
         mock: なし
-        expected: 同じ語に違う読みが入っています。読みを揃えるか、語を削除してください。（失敗の場所は後ろの語の readings[1]）
+        expected: 同じ単語に違う読みが入っています。読みを揃えるか、単語を削除してください。（失敗の場所は後ろの単語の readings[1]）
       - name: test_to_field_message_when_haas_port_overlap
         case: 正常
         summary: Haas のポートが API のポートと同じ
-        condition: transcription.haas.port と api.port が同じ番号の SETTINGS_MODEL.model_validate の失敗を渡す
+        condition: transcription.haas.port と api.port が同じ番号の SETTINGS_MODEL.model_validate の失敗を引き渡す
         mock: なし
         expected: API を待ち受けるポートと同じ番号です。別の番号を入れてください。（失敗の場所は transcription.haas.port）
       - name: test_to_field_message_when_haas_device_form
         case: 正常
         summary: Haas の装置の形式が違う
-        condition: transcription.haas.device が gpu の SETTINGS_MODEL.model_validate の失敗を渡す
+        condition: transcription.haas.device が gpu の SETTINGS_MODEL.model_validate の失敗を引き渡す
         mock: なし
         expected: cuda・cuda:0 のような番号つきの cuda・cpu のどれかを入れてください。（失敗の場所は transcription.haas.device）
       - name: test_to_field_message_when_haas_model_empty
         case: 正常
         summary: Haas のモデルが空
-        condition: transcription.haas.model が空の SETTINGS_MODEL.model_validate の失敗を渡す
+        condition: transcription.haas.model が空の SETTINGS_MODEL.model_validate の失敗を引き渡す
         mock: なし
         expected: モデルの名前かパスを入れてください。（失敗の場所は transcription.haas.model）
       - name: test_to_field_message_when_haas_separator_too_long
         case: 正常
         summary: Haas の区切りをつなぐ文字が長い
-        condition: transcription.haas.separator が 17 文字の SETTINGS_MODEL.model_validate の失敗を渡す
+        condition: transcription.haas.separator が 17 文字の SETTINGS_MODEL.model_validate の失敗を引き渡す
         mock: なし
         expected: 16 文字以内で入れてください。（失敗の場所は transcription.haas.separator）
     refs:

@@ -9,7 +9,7 @@ enums:
     container: shared/os_kind.py
     usecase: 常駐アプリを起動する
     role: OS の判定
-    summary: 動いている OS。main.py の配線が OS ごとの実装を、設定のモデルが OS ごとの既定値を選ぶのに使う
+    summary: 動いている OS。main.py の配線が OS ごとの実装を、設定のモデルが OS ごとの既定値を選ぶのに使用する
     description: '`enum.StrEnum`。'
     values:
       - value: windows
@@ -26,7 +26,7 @@ enums:
     container: shared/os_kind.py
     usecase: 常駐アプリを起動する
     role: OS の判定
-    summary: Linux のデスクトップのセッションの種類。main.py の配線が、Linux のホットキー・貼り付けのキー・画面の実装を選ぶのに使う（Windows では使わない）
+    summary: Linux のデスクトップのセッションの種類。main.py の配線が、Linux のホットキー・貼り付けのキー・画面の実装を選ぶのに使用する（Windows では使用しない）
     description: '`enum.StrEnum`。'
     values:
       - value: x11
@@ -43,7 +43,7 @@ enums:
     container: shared/os_kind.py
     usecase: 常駐アプリを起動する
     role: OS ごとの機能
-    summary: OS によって使えないことがある機能。OS_UNAVAILABLE_FEATURES と FEATURE_SETTING_KEYS のキー
+    summary: OS によって使用できないことがある機能。OS_UNAVAILABLE_FEATURES と FEATURE_SETTING_KEYS のキー
     description: '`enum.StrEnum`。'
     values:
       - value: lower_volume
@@ -65,7 +65,7 @@ constants:
     container: shared/os_kind.py
     usecase: 常駐アプリを起動する
     role: OS の判定
-    summary: 読み込んだときに detect_os で決めた、動いている OS。OS を見る処理は sys.platform を直に読まず、これを読むか main.py の配線で渡される
+    summary: 読み込んだときに detect_os で決めた、動いている OS。OS を見る処理は sys.platform を直に読み込まず、これを読み込むか main.py の配線で引き渡される
     value: detect_os()
     status: planned
   - name: OS_UNAVAILABLE_FEATURES
@@ -73,19 +73,19 @@ constants:
     container: shared/os_kind.py
     usecase: 常駐アプリを起動する
     role: OS ごとの機能
-    summary: その OS では使えない機能。載っていない OS は全ての機能を使える。OS で機能を止めるのはこの表だけで決める
+    summary: その OS では使用できない機能。載っていない OS は全ての機能を使用できる。OS で機能を止めるのはこの表だけで決める
     entries:
       - key: linux
         value: frozenset({Feature.LOWER_VOLUME, Feature.WEB_TRANSCRIPTION, Feature.HAAS_ENGINE})
         description: Linux では音量を変えず、外の端末のブラウザの機能と Haas のエンジンを持たない
-    description: 型は `Mapping[OsKind, frozenset[Feature]]`。macOS などの OS は、OsKind と表の行の追加で足す。
+    description: 型は `Mapping[OsKind, frozenset[Feature]]`。macOS などの OS は、OsKind と表の行の追加で加える。
     status: planned
   - name: FEATURE_SETTING_KEYS
     title: 機能ごとの設定のキー
     container: shared/os_kind.py
     usecase: 設定を変える
     role: OS ごとの機能
-    summary: 機能だけが使う設定のキー。その機能を使えない OS では、設定画面にこれらの欄を出さない
+    summary: 機能だけが使用する設定のキー。その機能を使用できない OS では、設定画面にこれらの欄を出さない
     entries:
       - key: lower_volume
         value: frozenset({"recording.lower_volume", "recording.volume_percent", "recording.fade_sec"})
@@ -107,7 +107,7 @@ functions:
     container: shared/os_kind.py
     usecase: 常駐アプリを起動する
     role: OS の判定
-    summary: sys.platform の値から OsKind を返す
+    summary: sys.platform の値から OsKind を返却する
     scope: public
     args:
       - name: platform
@@ -122,8 +122,8 @@ functions:
       description: 動いている OS
     process: |-
       1. platform が `win32` か
-         - そうである場合、OsKind.WINDOWS を返す
-         - それ以外の場合、OsKind.LINUX を返す
+         - そうである場合、OsKind.WINDOWS を返却する
+         - それ以外の場合、OsKind.LINUX を返却する
     unit_tests:
       - name: test_detect_os_when_windows
         case: 正常
@@ -144,7 +144,7 @@ functions:
     container: shared/os_kind.py
     usecase: 常駐アプリを起動する
     role: OS の判定
-    summary: 環境変数 `XDG_SESSION_TYPE` から DisplaySession を返す
+    summary: 環境変数 `XDG_SESSION_TYPE` から DisplaySession を返却する
     scope: public
     args:
       - name: environ
@@ -152,14 +152,14 @@ functions:
         type: Mapping[str, str]
         required: true
         passing: positional
-        description: 環境変数（main が os.environ を渡す）
+        description: 環境変数（main が os.environ を引き渡す）
     returns:
       type: DisplaySession
       description: デスクトップのセッションの種類
     process: |-
       1. environ の `XDG_SESSION_TYPE` が `wayland` か
-         - そうである場合、DisplaySession.WAYLAND を返す
-         - それ以外の場合（無いときを含む）、DisplaySession.X11 を返す
+         - そうである場合、DisplaySession.WAYLAND を返却する
+         - それ以外の場合（無いときを含む）、DisplaySession.X11 を返却する
     unit_tests:
       - name: test_detect_display_session_when_wayland
         case: 正常
@@ -186,7 +186,7 @@ functions:
     container: shared/os_kind.py
     usecase: 常駐アプリを起動する
     role: OS ごとの機能
-    summary: その OS で使えない機能を OS_UNAVAILABLE_FEATURES から返す
+    summary: その OS で使用できない機能を OS_UNAVAILABLE_FEATURES から返却する
     scope: public
     args:
       - name: os_kind
@@ -194,21 +194,21 @@ functions:
         type: OsKind
         required: true
         passing: positional
-        description: 動いている OS（main は CURRENT_OS を渡す）
+        description: 動いている OS（main は CURRENT_OS を引き渡す）
     returns:
       type: frozenset[Feature]
-      description: 使えない機能（無ければ空）
-    process: 1. OS_UNAVAILABLE_FEATURES に os_kind があればその集合、無ければ空の集合を返す
+      description: 使用できない機能（無ければ空）
+    process: 1. OS_UNAVAILABLE_FEATURES に os_kind があればその集合、無ければ空の集合を返却する
     unit_tests:
       - name: test_unavailable_features_when_linux
         case: 正常
-        summary: Linux は音量と外の端末のブラウザの機能を使えない
+        summary: Linux は音量と外の端末のブラウザの機能を使用できない
         condition: os_kind=OsKind.LINUX
         mock: なし
         expected: frozenset({Feature.LOWER_VOLUME, Feature.WEB_TRANSCRIPTION})
       - name: test_unavailable_features_when_windows
         case: 正常
-        summary: Windows は全ての機能を使える
+        summary: Windows は全ての機能を使用できる
         condition: os_kind=OsKind.WINDOWS
         mock: なし
         expected: 空の frozenset
@@ -219,7 +219,7 @@ functions:
     container: shared/os_kind.py
     usecase: 設定を変える
     role: OS ごとの機能
-    summary: 使えない機能の設定のキーを FEATURE_SETTING_KEYS から集めて返す（設定画面で出さない欄）
+    summary: 使用できない機能の設定のキーを FEATURE_SETTING_KEYS から集めて返却する（設定画面で出さない欄）
     scope: public
     args:
       - name: features
@@ -227,21 +227,21 @@ functions:
         type: Iterable[Feature]
         required: true
         passing: positional
-        description: 使えない機能（unavailable_features の戻り値）
+        description: 使用できない機能（unavailable_features の戻り値）
     returns:
       type: frozenset[str]
       description: 出さない設定のキー
-    process: 1. features の各機能の FEATURE_SETTING_KEYS の集合をつないだ集合を返す（FEATURE_SETTING_KEYS に無い機能は空として扱う）
+    process: 1. features の各機能の FEATURE_SETTING_KEYS の集合をつないだ集合を返却する（FEATURE_SETTING_KEYS に無い機能は空として扱う）
     unit_tests:
       - name: test_hidden_setting_keys
         case: 正常
-        summary: 使えない機能の設定のキーを集める
+        summary: 使用できない機能の設定のキーを集める
         condition: features=unavailable_features(OsKind.LINUX)
         mock: なし
         expected: frozenset({"recording.lower_volume", "recording.volume_percent", "recording.fade_sec", "api.allowed_web_origins"})
       - name: test_hidden_setting_keys_when_empty
         case: 正常
-        summary: 使えない機能が無ければ空
+        summary: 使用できない機能が無ければ空
         condition: features=frozenset()
         mock: なし
         expected: 空の frozenset

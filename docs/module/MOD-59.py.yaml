@@ -8,7 +8,7 @@ constants:
     title: 返送のタイムアウト
     container: features/outputs/callback/service.py
     usecase: 起こした文字を届ける
-    summary: post_json へ渡す 1 回の POST のタイムアウト。非機能要件の返送のタイムアウトと再送の決定値
+    summary: post_json へ引き渡す 1 回の POST のタイムアウト。非機能要件の返送のタイムアウトと再送の決定値
     value: '1.5'
     status: planned
   - name: CALLBACK_RETRY_COUNT
@@ -32,7 +32,7 @@ functions:
     container: features/outputs/callback/service.py
     usecase: APIで録音を操作する
     scope: public
-    summary: コールバック先のホストが loopback か設定で許可したホストかを確かめる
+    summary: コールバック先のホストが loopback か設定で許可したホストかを確認する
     args:
       - name: url
         type: str
@@ -90,7 +90,7 @@ functions:
         type: Callable[[str, dict], PostResult]
         required: true
         passing: injected
-        description: コールバック先へ JSON を POST してステータスと Retry-After を返す（非機能要件の返送のタイムアウトを部分適用した外部連携の post_json）
+        description: コールバック先へ JSON を POST してステータスと Retry-After を返却する（非機能要件の返送のタイムアウトを部分適用した外部連携の post_json）
       - name: allowed_hosts
         type: frozenset[str]
         required: true
@@ -110,27 +110,27 @@ functions:
         type: Callable[[float], None]
         required: true
         passing: injected
-        description: 間を置く（time.sleep。テストで差し替える）
+        description: 間を配置する（time.sleep。テストで差し替える）
       - name: jitter
         type: Callable[[float], float]
         required: true
         passing: injected
-        description: 0 以上この値以下の乱数を返す（random.uniform(0, x)。テストで差し替える）
+        description: 0 以上この値以下の乱数を返却する（random.uniform(0, x)。テストで差し替える）
     returns:
       type: None
       description: なし
     process: |-
       1. コールバック先が許されるかをもう一度確かめる（コールバック先の確かめ）
          - 許されない場合、DeliveryError を送出する
-      2. 返す中身（CallbackPayload.from_outcome）を作り、1 + 再送回数まで POST する
+      2. 返却する中身（CallbackPayload.from_outcome）を作り、1 + 再送回数まで POST する
          - 2xx なら終える
            - `[INFO]` コールバック先へ届けた（録音セッションの ID・result・区間の通し番号（あれば）・回数）
-         - 一時的な失敗（5xx・408・429 か DeliveryError。タイムアウト・接続できない）で次の回がある場合、待ちを置いて次へ
+         - 一時的な失敗（5xx・408・429 か DeliveryError。タイムアウト・接続できない）で次の回がある場合、待ちを配置して次へ
            - 待ちは、Retry-After があればその秒数、無ければ jitter(retry_base_sec × 2^(回数−1))（指数バックオフとフルジッター）
            - Retry-After が retry_base_sec × 2^(再送回数−1)（待ちの上限）を超える場合、待たずに 3 へ（返送の間は録音セッションが残り次の開始を断るため、待ちを決めた上限に収める）
            - `[WARNING]` 返送に失敗した（録音セッションの ID・区間の通し番号（あれば）・回数・理由）
          - それ以外のステータス（408・429 を除く 4xx など、再送しても変わらない応答）の場合、再送せずに 3 へ
-      3. 届かなかったらログに書いて終える（送出しない。履歴は残っている。連続録音は次の区間へ進む）
+      3. 届かなかったらログに書き込んで終える（送出しない。履歴は残っている。連続録音は次の区間へ進む）
          - `[ERROR]` コールバック先に届かなかった（録音セッションの ID・区間の通し番号（あれば）・最後の理由）
     exceptions:
       - name: DeliveryError
@@ -168,7 +168,7 @@ functions:
         expected: post が 1 回だけ呼ばれ、sleep が呼ばれず、ERROR のログが 1 行出る
       - name: test_deliver_to_caller_when_unreachable
         case: 正常
-        summary: 届かなければログに書いて終える
+        summary: 届かなければログに書き込んで終える
         condition: post が常に 500、再送回数 2
         mock: post・sleep・jitter
         expected: post が 3 回、sleep が 2 回呼ばれ、例外が出ず、ERROR のログが 1 行出る
@@ -182,7 +182,7 @@ functions:
       - name: test_deliver_to_caller_when_segment
         case: 正常
         summary: 連続録音の区間は通し番号を付けて送信する
-        condition: segment_number=3 の transcribed の outcome。post が 200 を返す
+        condition: segment_number=3 の transcribed の outcome。post が 200 を返却する
         mock: post・sleep・jitter
         expected: post に segment_number=3・segment_count=None を含む中身が 1 回渡る
     refs:
@@ -196,7 +196,7 @@ functions:
     usecase: 起こした文字を届ける
     scope: public
     inherits: InjectFn
-    summary: deliver_to_caller に部分適用する post・allowed_hosts・retry_count・retry_base_sec・sleep・jitter を返す
+    summary: deliver_to_caller に部分適用する post・allowed_hosts・retry_count・retry_base_sec・sleep・jitter を返却する
     args:
       - name: deps
         type: OutputDeps
@@ -209,8 +209,8 @@ functions:
     unit_tests:
       - name: test_inject_callback
         case: 正常
-        summary: 返送の決定値と設定の許可ホストを渡す
-        condition: deps.get_settings が api.allowed_callback_hosts = ["host.local"] の設定を返す
+        summary: 返送の決定値と設定の許可ホストを引き渡す
+        condition: deps.get_settings が api.allowed_callback_hosts = ["host.local"] の設定を返却する
         mock: OutputDeps の全関数
         expected: allowed_hosts が frozenset({"host.local"})、retry_count が 3、retry_base_sec が 1.0 で、post を呼ぶと deps.post に timeout_sec=1.5 が渡る
     status: planned

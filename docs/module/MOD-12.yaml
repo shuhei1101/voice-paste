@@ -18,13 +18,13 @@ directory: |-
 
   リポジトリの直下は `pyproject.toml`・`uv.lock`・`.python-version`・起動のバッチファイル（`voice-paste.bat`）・Linux の起動のスクリプト（`voice-paste.sh`）・自動起動の雛形（`voice-paste.desktop`）・`config/`・`settings.sample.yaml`・`README.md`・`CLAUDE.md`・`src/`・`resources/`・`tests/`・`dev/`・`docs/` に絞る。
 
-  動かす環境は、リポジトリの直下で Windows の uv（WSL からは `uv.exe`）で `uv sync --frozen` を流して `.venv/` に作り、ローカルの Whisper（faster-whisper・nvidia-*）を使う環境は `--extra local-whisper` を付けて流す（`uv.lock` のバージョンで入り、Python のバージョンは `.python-version` の 3.14）。
+  動かす環境は、リポジトリの直下で Windows の uv（WSL からは `uv.exe`）で `uv sync --frozen` を流して `.venv/` に作り、ローカルの Whisper（faster-whisper・nvidia-*）を使用する環境は `--extra local-whisper` を付けて流す（`uv.lock` のバージョンで入り、Python のバージョンは `.python-version` の 3.14）。
   Windows のクローンで WSL の uv で流すと `.venv/` を Linux の構成に作り直すため、Windows のクローンの環境を作るコマンドと環境で流すコマンドは Windows の uv で流す（`uv lock` はどちらでもよい）。
   Ubuntu のクローンでは、Linux の起動のスクリプトが Linux の uv で `uv sync --frozen --extra local-whisper` を流して `.venv/` を作り、`.venv/bin/python -m voice_paste` で起動する（`pycaw`・`comtypes`・`pywin32` は `sys_platform == "win32"` の条件で入らない）。
-  起動のバッチファイル（`voice-paste.bat`）は、起動のたびにリポジトリの直下で `uv sync --frozen --extra local-whisper` を流し、`.venv/` を `uv.lock` に揃える（揃っていれば何も書き換えずに終わる）。uv は PATH から探し、無ければ `%USERPROFILE%\.local\bin\uv.exe` を使う。
+  起動のバッチファイル（`voice-paste.bat`）は、起動のたびにリポジトリの直下で `uv sync --frozen --extra local-whisper` を流し、`.venv/` を `uv.lock` に揃える（揃っていれば何も書き換えずに終わる）。uv は PATH から探し、無ければ `%USERPROFILE%\.local\bin\uv.exe` を使用する。
   `uv sync --frozen` を流す前に、コンソールに `Syncing .venv with uv sync --frozen. See log: {launcher.log のパス}` を表示する。
-  続けて `.venv\Scripts\python.exe -c "import voice_paste"` で `.venv` から voice_paste を import できるかを確かめる（`.venv` のフォルダや `python.exe` があるかでは判定しない）。
-  uv が見つからないときは `uv sync --frozen` を飛ばして `launcher.log` にその旨を書き、import できれば起動する。
+  続けて `.venv\Scripts\python.exe -c "import voice_paste"` で `.venv` から voice_paste を import できるかを確認する（`.venv` のフォルダや `python.exe` があるかでは判定しない）。
+  uv が見つからないときは `uv sync --frozen` を飛ばして `launcher.log` にその旨を書き込み、import できれば起動する。
   import できたら、`.venv` を有効にし、CUDA の DLL（`.venv` の `Lib/site-packages/nvidia/` の `cublas`・`cudnn`・`cuda_nvrtc` の `bin`）を `PATH` に追加して、`.venv\Scripts\pythonw.exe -m voice_paste` を引数なしで起動する（コンソールを出さない）。システムの `pythonw` では起動しない。
   次のときは起動せず、コンソールに理由の 1 行と `See log: {launcher.log のパス}` を表示して `pause` で止まり、0 以外の終了コードで終わる（`uv sync` の失敗はその終了コード、ほかは 1）。
 
@@ -34,21 +34,21 @@ directory: |-
   | `uv sync --frozen` が 0 以外で終わる | `[ERROR] uv sync --frozen failed with code {終了コード}.` |
   | `uv sync --frozen` の後も import できない | `[ERROR] voice_paste cannot be imported from .venv after uv sync.` |
 
-  起動の記録（起動した時刻・import の確かめの結果・`uv sync --frozen` の出力・使った Python・起動の終了コード）は `%LOCALAPPDATA%\voice-paste\log\launcher.log` へ起動ごとに上書きで書く。
-  ログの保持期間の削除（purge_old_logs）は日付の名前のログだけを消すため、上書きで大きさを保ち、日付でログを消す処理は持たない。
+  起動の記録（起動した時刻・import の確かめの結果・`uv sync --frozen` の出力・使用した Python・起動の終了コード）は `%LOCALAPPDATA%\voice-paste\log\launcher.log` へ起動ごとに上書きで書き込む。
+  ログの保持期間の削除（purge_old_logs）は日付の名前のログだけを削除するため、上書きで大きさを保ち、日付でログを削除する処理は持たない。
   Linux の起動のスクリプト（`voice-paste.sh`。bash、`set -euo pipefail`、git で実行権限を付ける）は、スクリプトの場所へ移り、`voice-paste.bat` と同じ順で動く。
 
   | 手順 | Linux での動き |
   | --- | --- |
-  | uv を探す | PATH（`command -v uv`）から探し、無ければ `~/.local/bin/uv` を使う |
+  | uv を探す | PATH（`command -v uv`）から探し、無ければ `~/.local/bin/uv` を使用する |
   | 環境を揃える | 標準出力に `Syncing .venv with uv sync --frozen. See log: {launcher.log のパス}` を出し、`uv sync --frozen --extra local-whisper` を流す |
-  | import を確かめる | `.venv/bin/python -c "import voice_paste"` |
+  | import を確認する | `.venv/bin/python -c "import voice_paste"` |
   | 起動する | `setsid -f .venv/bin/python -m voice_paste "$@"` で端末から切り離し（標準入出力は `/dev/null`）、0 で終わる。`setsid -f` が 0 以外で終わったときは、理由の行 `[ERROR] failed to launch voice_paste with code {終了コード}.` で「起動しない」と同じ終わり方をする。CUDA のライブラリのパスは追加しない（Linux の既定は cpu） |
   | 起動しない | 上の表の理由の行（`voice-paste.bat` は `voice-paste.sh` に読み替える）と `See log: {launcher.log のパス}` を標準エラーに出し、同じ終了コードで終わる。`pause` に当たる止めは持たず、標準エラーが端末でなく `notify-send` があるときは同じ 2 行を通知する |
-  | 起動の記録 | `${XDG_DATA_HOME:-~/.local/share}/voice-paste/log/launcher.log` へ起動ごとに上書きで書く（platformdirs の user_data_dir の `log/` と同じ場所） |
+  | 起動の記録 | `${XDG_DATA_HOME:-~/.local/share}/voice-paste/log/launcher.log` へ起動ごとに上書きで書き込む（platformdirs の user_data_dir の `log/` と同じ場所） |
 
   自動起動の雛形（`voice-paste.desktop`）は `Type=Application`・`Name=voice-paste`・`Exec="@REPO_DIR@/voice-paste.sh"`・`Icon=@REPO_DIR@/resources/tray/idle.png`・`Terminal=false`・`X-GNOME-Autostart-enabled=true` を持つ。手順のページの `sed` で `@REPO_DIR@` をクローンの絶対パスに置き換えて、`~/.config/autostart/`（ログイン時の自動起動）と `~/.local/share/applications/`（アプリの一覧）へ書き出す。
-  起動のスクリプトと雛形は単体テストを持たず、検証環境の VM での起動から貼り付けまでの通しの確認で確かめる（`voice-paste.bat` と同じ）。
+  起動のスクリプトと雛形は単体テストを持たず、検証環境の VM での起動から貼り付けまでの通しの確認で確認する（`voice-paste.bat` と同じ）。
   `pyproject.toml` の `[project.scripts]` の `voice-paste` は `voice_paste.main:main` を指す。
 diagrams:
   - name: 依存の向き
@@ -88,10 +88,10 @@ notes:
   依存の向き: |-
     コーディング規約『依存関係管理』のとおり `features`・`server`・`ui` → `integrations`・`runtime` → `shared` とし、上の層へは import しない。
     `features` どうしと、`features/outputs` の出力先どうしも import しない。録音セッションはほかの feature を SessionDeps の関数型で受け取り、`main.py` だけが全てを知る。
-    `server` は録音セッションの route を include_router で集め、SessionApiDeps を app.state に置くためだけに `features/session` を import する。route は `main.py`・`server` を import せず、SessionApiDeps を app.state から受け取る。
-    `ui` は `features` の中を直に呼ばず、UiDeps の関数と `shared` の設定のモデルだけを使う。型としては `features.session.types`（Session・SessionState）だけを import する。`runtime/hotkey.py` は録音セッションを import せず、`main.py` が渡す関数を呼ぶ。
+    `server` は録音セッションの route を include_router で集め、SessionApiDeps を app.state に配置するためだけに `features/session` を import する。route は `main.py`・`server` を import せず、SessionApiDeps を app.state から受け取る。
+    `ui` は `features` の中を直に呼ばず、UiDeps の関数と `shared` の設定のモデルだけを使用する。型としては `features.session.types`（Session・SessionState）だけを import する。`runtime/hotkey.py` は録音セッションを import せず、`main.py` が引き渡す関数を呼ぶ。
   依存の向きの検査: |-
-    import-linter の契約を pyproject.toml の `[tool.importlinter]`（root_package は `voice_paste`）に置き、単体テストと一緒に `lint-imports` で回す（品質シナリオ 5。コマンドは設計書『テスト実行方法』）。
+    import-linter の契約を pyproject.toml の `[tool.importlinter]`（root_package は `voice_paste`）に配置し、単体テストと一緒に `lint-imports` で回す（品質シナリオ 5。コマンドは設計書『テスト実行方法』）。
 
     | 契約 | 種類 | 中身 |
     | --- | --- | --- |
@@ -100,9 +100,9 @@ notes:
     | 出力先の独立 | independence | `voice_paste.features.outputs.*`。ignore_imports で `voice_paste.features.outputs.registry -> voice_paste.features.outputs.*`・`voice_paste.features.outputs.service -> voice_paste.features.outputs.registry`・`voice_paste.features.outputs.** -> voice_paste.features.outputs.types` を除く |
     | 画面から feature の中へ | forbidden | source_modules は `voice_paste.ui`、forbidden_modules は `voice_paste.features`・`voice_paste.integrations`。ignore_imports で `voice_paste.ui.** -> voice_paste.features.session.types` を除く |
 
-    出力先を追加するときは `features/outputs/` にサブフォルダを追加するだけで契約の対象に入り、契約は直さない。
+    出力先を追加するときは `features/outputs/` にサブフォルダを追加するだけで契約の対象に入り、契約は修正しない。
   OS ごとの実装: |-
-    OS で分かれる実装は、Windows と Linux で別のファイルに置き、select_platform_adapters だけが CURRENT_OS で選んで import する（Windows 専用のライブラリ・ctypes の Win32 を Linux で import しない）。
+    OS で分かれる実装は、Windows と Linux で別のファイルに配置し、select_platform_adapters だけが CURRENT_OS で選んで import する（Windows 専用のライブラリ・ctypes の Win32 を Linux で import しない）。
     Linux のうちデスクトップのセッションで分かれる実装は、select_platform_adapters が DisplaySession でさらに選ぶ。
 
     | 対象 | Windows | Linux |
@@ -115,7 +115,7 @@ notes:
     | ホットキーの受付 | runtime/hotkey.py（pynput） | Xorg: Windows と同じ。Wayland: runtime/hotkey_gnome.py（GNOME のカスタムショートカット） |
     | 貼り付けのキー | integrations/keyboard/sender.py（pynput） | Xorg: integrations/keyboard/sender_linux.py（XTEST）。Wayland: integrations/keyboard/sender_wayland.py（uinput） |
     | Enter | integrations/keyboard/sender.py（pynput） | Xorg: Windows と同じ。Wayland: integrations/keyboard/sender_wayland.py（uinput） |
-    | クリップボード | pyperclip（Windows の API） | Xorg: pyperclip（xclip）。Wayland: pyperclip の書き先を xclip に指定（XWayland） |
+    | クリップボード | pyperclip（Windows の API） | Xorg: pyperclip（xclip）。Wayland: pyperclip の書き込み先を xclip に指定（XWayland） |
     | Qt のプラットフォーム | Qt に任せる | Xorg: Qt に任せる。Wayland: xcb（XWayland） |
 
     OS に固有の実装の単体テストは、テストファイルの先頭の `pytestmark = pytest.mark.skipif(...)` で、対象でない OS では飛ばす（Windows 専用: 単一インスタンス・音量のアダプタ。Linux 専用: single_instance_linux.py・sender_linux.py・sender_wayland.py・hotkey_gnome.py・send_hotkey.py）。

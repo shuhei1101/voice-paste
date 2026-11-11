@@ -1,7 +1,7 @@
 id: MOD-4
 visibility: internal
 title: "常駐アプリ / ブラウザの文字起こし"
-lead: 外の端末のブラウザから受けた音声のジョブを積み、1 件ずつ起こして補正し、状態と結果を返す feature（`features/web_transcription/`）。
+lead: 外の端末のブラウザから受けた音声のジョブを積み、1 件ずつ起こして補正し、状態と結果を返却する feature（`features/web_transcription/`）。
 directory: |-
   ```
   src/voice_paste/features/web_transcription/
@@ -28,7 +28,7 @@ diagrams:
         n1 -->|受け付け| n3
         n1 -->|引く| n4
         n2 -->|一覧を引く| n7
-        n3 -->|プリセットを確かめる| n7
+        n3 -->|プリセットを確認する| n7
         n3 -->|積む| n4
         n4 -->|持つ（0..*）| n5
         n4 -->|呼ぶ| n6

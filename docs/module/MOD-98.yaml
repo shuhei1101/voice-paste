@@ -12,10 +12,10 @@ directory: |-
   └── audio.py       # 音声の 16 kHz モノラルへの復号
   ```
 notes:
-  ログ: ログは WSL の中の `~/.local/state/voice-paste/haas_server.log` に書く（logging の RotatingFileHandler。1 MB を 3 世代）。起動の前から動いているサーバーでは常駐アプリが標準エラーを受けられないため、WSL の中のファイルにする。
+  ログ: ログは WSL の中の `~/.local/state/voice-paste/haas_server.log` に書き込む（logging の RotatingFileHandler。1 MB を 3 世代）。起動の前から動いているサーバーでは常駐アプリが標準エラーを受けられないため、WSL の中のファイルにする。
   テスト: 単体テストと結合テストは Windows の常駐アプリと同じ `.venv` で流す。haas_asr は main.py の load_engine の中でだけ import し、app.py・audio.py は関数を受けるため、GPU も haas_asr も要らない。
-  起動スクリプト: '`wsl.exe -e bash` は `.profile` を読まず `uv` が見つからないため、start.sh は `uv` を使わず `$HOME/.local/share/voice-paste/haas_server/.venv/bin/python` を起動する。`python -m haas_server.main` は `haas_server` の親フォルダで流すため、start.sh が `cd "$(dirname "$0")/.."` する。同じ構成の最小のスクリプトを 2026-11-06 に `wsl.exe -d Ubuntu-24.04 --cd {Windows のパス} -e bash start.sh 47825` で流し、終了コード 0 で haas_server.main が引数を受けて動くことを確かめた（このとき HOME は入り、`uv` は見つからなかった）'
-  環境の置き場所: 環境は WSL の ext4 の `~/.local/share/voice-paste/haas_server/.venv` に置く（`UV_PROJECT_ENVIRONMENT`）。PoC の実測は ext4 の環境の値で、`/mnt/c` の下に置くと NeMo・torch の import が延びて起動の待ち時間を超えうるため
-  Python の版: サーバーの環境は Python 3.11 で動くため、haas_server の下では 3.12 の構文（`type` 文）を使わない
+  起動スクリプト: '`wsl.exe -e bash` は `.profile` を読み込まず `uv` が見つからないため、start.sh は `uv` を使用せず `$HOME/.local/share/voice-paste/haas_server/.venv/bin/python` を起動する。`python -m haas_server.main` は `haas_server` の親フォルダで流すため、start.sh が `cd "$(dirname "$0")/.."` する。同じ構成の最小のスクリプトを 2026-11-06 に `wsl.exe -d Ubuntu-24.04 --cd {Windows のパス} -e bash start.sh 47825` で流し、終了コード 0 で haas_server.main が引数を受けて動くことを確認した（このとき HOME は入り、`uv` は見つからなかった）'
+  環境の置き場所: 環境は WSL の ext4 の `~/.local/share/voice-paste/haas_server/.venv` に配置する（`UV_PROJECT_ENVIRONMENT`）。PoC の実測は ext4 の環境の値で、`/mnt/c` の下に配置すると NeMo・torch の import が延びて起動の待ち時間を超えうるため
+  Python の版: サーバーの環境は Python 3.11 で動くため、haas_server の下では 3.12 の構文（`type` 文）を使用しない
 id: MOD-98
 visibility: internal

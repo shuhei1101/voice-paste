@@ -1,7 +1,7 @@
 id: MOD-10
 visibility: internal
 title: "常駐アプリ / 文字起こし"
-lead: 設定で選んだエンジンで録音を文字に起こす。エンジンは関数型で受け取り、エンジンごとの設定を渡す。
+lead: 設定で選んだエンジンで録音を文字に起こす。エンジンは関数型で受け取り、エンジンごとの設定を引き渡す。
 directory: |-
   ```
   src/voice_paste/features/transcription/

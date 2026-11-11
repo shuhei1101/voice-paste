@@ -33,7 +33,7 @@ function_types:
         description: 経過秒と録音の長さ
       - name: hint
         type: str | None
-        description: 文字起こしの手がかり（有効な表記のヒントの語を読点でつないだもの）。None なら手がかりを渡さずに起こす。キーワード引数で、省いたら None
+        description: 文字起こしの手がかり（有効な表記のヒントの単語を読点でつないだもの）。None なら手がかりを引き渡さずに起こす。キーワード引数で、省いたら None
     returns:
       type: list[str]
       description: 区間ごとの文字
@@ -41,7 +41,7 @@ function_types:
       - target: 外部連携の WhisperWorkerClient.transcribe
         notes: エンジンが local_whisper のとき
       - target: 外部連携の OpenAITranscriber.transcribe
-        notes: エンジンが openai のとき。on_progress を呼ばない（OpenAI API は途中の進みを返さない）
+        notes: エンジンが openai のとき。on_progress を呼ばない（OpenAI API は途中の進みを返却しない）
       - target: 外部連携の HaasTranscriber.transcribe
-        notes: エンジンが haas のとき。on_progress を呼ばず（サーバーは途中の進みを返さない）、hint を使わない（表記と読みの組を get_vocabulary で読む）
+        notes: エンジンが haas のとき。on_progress を呼ばず（サーバーは途中の進みを返却しない）、hint を使用しない（表記と読みの組を get_vocabulary で読み込む）
     status: implemented

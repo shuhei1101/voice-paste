@@ -7,22 +7,22 @@ data_models:
     container: integrations/http/types.py
     usecase: 起こした文字を届ける
     role: DTO
-    summary: post_json が返す、送信先のステータスと再送までに待つ秒数
+    summary: post_json が返却する、送信先のステータスと再送までに待つ秒数
     description: '`@dataclass(frozen=True, slots=True, kw_only=True)`。'
     properties:
       - name: status
         type: int
-        description: 送信先が返したステータス
+        description: 送信先が返却したステータス
       - name: retry_after_sec
         type: float | None
-        description: Retry-After を秒に直した値。無い・読めないときは None
+        description: Retry-After を秒に修正した値。無い・読み込めないときは None
     status: implemented
 function_types:
   - name: PostJsonFn
     title: JSON の POST
     container: integrations/http/types.py
     usecase: 起こした文字を届ける
-    summary: 送信先へ JSON を POST してステータスと Retry-After を返す。タイムアウト・接続できないことは DeliveryError
+    summary: 送信先へ JSON を POST してステータスと Retry-After を返却する。タイムアウト・接続できないことは DeliveryError
     args:
       - name: url
         type: str
@@ -38,7 +38,7 @@ function_types:
         description: 付けるヘッダー
     returns:
       type: PostResult
-      description: 送信先が返したステータスと Retry-After
+      description: 送信先が返却したステータスと Retry-After
     implementations:
       - target: post_json
         notes: httpx で送信する

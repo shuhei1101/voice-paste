@@ -11,7 +11,7 @@ functions:
     usecase: 起こした文字を届ける
     scope: public
     inherits: OutputFn
-    summary: クリップボードへ書き、コピーの完了を知らせる
+    summary: クリップボードへ書き込み、コピーの完了を知らせる
     args:
       - name: outcome
         type: TranscriptionOutcome
@@ -22,12 +22,12 @@ functions:
         type: str | None
         required: true
         passing: positional
-        description: 使わない（OutputFn に合わせて受ける）
+        description: 使用しない（OutputFn に合わせて受ける）
       - name: copy
         type: Callable[[str], None]
         required: true
         passing: injected
-        description: クリップボードへ書く（copy_to_clipboard）
+        description: クリップボードへ書き込む（copy_to_clipboard）
       - name: notify_copied
         type: Callable[[str], None]
         required: true
@@ -37,26 +37,26 @@ functions:
       type: None
       description: なし
     process: |-
-      1. outcome.text をクリップボードへ書く
+      1. outcome.text をクリップボードへ書き込む
          - DeliveryError はそのまま送出する（完了を知らせない）
-      2. outcome.text を渡してコピーの完了を知らせる（notify_copied）
+      2. outcome.text を引き渡してコピーの完了を知らせる（notify_copied）
     exceptions:
       - name: DeliveryError
-        condition: クリップボードへ書けない
+        condition: クリップボードへ書き込めない
     unit_tests:
       - name: test_copy_only
         case: 正常
-        summary: クリップボードへ書き、完了を知らせる
+        summary: クリップボードへ書き込み、完了を知らせる
         condition: outcome.text が「テスト」
         mock: copy・notify_copied
         expected: copy("テスト")・notify_copied("テスト") の順に 1 回ずつ呼ばれる
       - name: test_copy_only_when_copy_failed
         case: 異常
-        summary: クリップボードへ書けなければ完了を知らせない
+        summary: クリップボードへ書き込めなければ完了を知らせない
         condition: copy が DeliveryError を送出する
         mock: copy・notify_copied
         expected: DeliveryError が送出され、notify_copied が呼ばれない
-        exception: クリップボードへ書けない
+        exception: クリップボードへ書き込めない
     status: implemented
   - name: inject_copy_only
     title: コピーのみの注入
@@ -65,7 +65,7 @@ functions:
     usecase: 起こした文字を届ける
     scope: public
     inherits: InjectFn
-    summary: copy_only に部分適用する copy・notify_copied を返す
+    summary: copy_only に部分適用する copy・notify_copied を返却する
     args:
       - name: deps
         type: OutputDeps
@@ -78,8 +78,8 @@ functions:
     unit_tests:
       - name: test_inject_copy_only
         case: 正常
-        summary: copy・notify_copied だけを渡す
-        condition: OutputDeps を渡す
+        summary: copy・notify_copied だけを引き渡す
+        condition: OutputDeps を引き渡す
         mock: OutputDeps の全関数
         expected: キーが copy・notify_copied だけで、値が deps のものと同じ
     status: planned

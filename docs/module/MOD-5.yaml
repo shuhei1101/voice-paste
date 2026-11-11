@@ -32,11 +32,11 @@ directory: |-
   ```
 notes:
   画面が触ってよいもの: |-
-    ui は UiDeps の関数（配線された SessionManager のメソッド・音量・設定の読み書き・再起動と終了）と、共通の設定のモデルだけを呼ぶ。録音・文字起こし・出力先を直に呼ばない。
+    ui は UiDeps の関数（配線された SessionManager のメソッド・音量・設定の読み込み書き・再起動と終了）と、共通の設定のモデルだけを呼ぶ。録音・文字起こし・出力先を直に呼ばない。
     設定画面の欄は Settings のモデルから組み立て、項目を追加しても画面の直しが増えないようにする。
   スレッド: |-
     画面の部品はメインスレッド（Qt のイベントループ）だけが触る。API・ホットキー・ワーカーのスレッドからは notify・report_progress で UiBridge の Signal を emit するだけにする。
     ホットキーが呼ぶ関数は SessionManager（ロックで守られている）だけを呼び、画面は state_changed の知らせで変える。
   テスト: |-
-    画面を使う単体テスト・結合テストは `QT_QPA_PLATFORM=offscreen` で QApplication を 1 つ作り、操作は PySide6 の QtTest（QTest）で行う。画面の振る舞いは画面設計を元にした結合テスト（`tests/integration/ui/`）で確かめる。
-    runtime/hotkey_gnome.py・runtime/send_hotkey.py の単体テストのファイルは `tests/unit/voice_paste/runtime/test_hotkey_gnome.py`・`tests/unit/voice_paste/runtime/test_send_hotkey.py`。Windows では skip する（single_instance_linux.py の fcntl を読み込む）。gsettings は subprocess.run を差し替えて呼び出しの引数で確かめ、実物の GNOME のショートカットは検証環境の VM での通しの確認で確かめる。
+    画面を使用する単体テスト・結合テストは `QT_QPA_PLATFORM=offscreen` で QApplication を 1 つ作り、操作は PySide6 の QtTest（QTest）で行う。画面の振る舞いは画面設計を元にした結合テスト（`tests/integration/ui/`）で確認する。
+    runtime/hotkey_gnome.py・runtime/send_hotkey.py の単体テストのファイルは `tests/unit/voice_paste/runtime/test_hotkey_gnome.py`・`tests/unit/voice_paste/runtime/test_send_hotkey.py`。Windows では skip する（single_instance_linux.py の fcntl を読み込む）。gsettings は subprocess.run を差し替えて呼び出しの引数で確かめ、実物の GNOME のショートカットは検証環境の VM での通しの確認で確認する。

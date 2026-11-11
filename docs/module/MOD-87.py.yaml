@@ -11,7 +11,7 @@ classes:
     role: ランタイム
     summary: 取った名前付きのミューテックスと、終了の依頼を待つスレッドを持つ
     description: |-
-      終了の依頼のイベント（名前付き）と停止のイベント（名前の無い自分専用）を専用のデーモンスレッドで待ち、終了の依頼が立ったら on_quit_requested で渡された関数を 1 回呼んでスレッドを終える（呼ぶのはそのスレッド。メインスレッドへ渡すのは渡す側の関数が行う）。
+      終了の依頼のイベント（名前付き）と停止のイベント（名前の無い自分専用）を専用のデーモンスレッドで待ち、終了の依頼が立ったら on_quit_requested で引き渡された関数を 1 回呼んでスレッドを終える（呼ぶのはそのスレッド。メインスレッドへ引き渡すのは引き渡す側の関数が行う）。
       名前付きのイベントは自分では立てない（立てると、ハンドルが残る間に次のプロセスへ依頼が引き継がれる）。
       ミューテックスは取ったスレッド（メインスレッド）で放す。
     kind: クラス
@@ -27,7 +27,7 @@ classes:
       - name: _on_quit
         type: Callable[[], None] | None
         access: 内部 (_)
-        description: 終了を頼まれたときに呼ぶ関数。on_quit_requested の前は None（その間に頼まれたら、渡された時点で呼ぶ）
+        description: 終了を頼まれたときに呼ぶ関数。on_quit_requested の前は None（その間に頼まれたら、引き渡された時点で呼ぶ）
       - name: _thread
         type: threading.Thread
         access: 内部 (_)
@@ -39,7 +39,7 @@ classes:
     methods:
       - name: on_quit_requested
         title: 終了の依頼の受け手の登録
-        summary: 終了を頼まれたときに呼ぶ関数を渡す
+        summary: 終了を頼まれたときに呼ぶ関数を引き渡す
         kind: メソッド
         scope: public
         thread_safe: true
@@ -59,15 +59,15 @@ classes:
           - name: test_on_quit_requested
             case: 正常
             summary: 頼まれたら受け手を呼ぶ
-            condition: 取った後に受け手を渡し、同じ名前のイベントを立てる
+            condition: 取った後に受け手を引き渡し、同じ名前のイベントを立てる
             mock: 受け手
             expected: 受け手が 1 秒以内に 1 回呼ばれる
           - name: test_on_quit_requested_when_already_requested
             case: 正常
-            summary: 受け手を渡す前に頼まれていても取りこぼさない
-            condition: 取った後、受け手を渡す前にイベントを立てる
+            summary: 受け手を引き渡す前に頼まれていても取りこぼさない
+            condition: 取った後、受け手を引き渡す前にイベントを立てる
             mock: 受け手
-            expected: 受け手を渡した時点で 1 回呼ばれる
+            expected: 受け手を引き渡した時点で 1 回呼ばれる
       - name: release
         title: 排他の解放
         summary: 待つスレッドを止め、ミューテックスを放してハンドルを閉じる
@@ -93,7 +93,7 @@ constants:
     title: 単一インスタンスの名前のハッシュの長さ
     container: runtime/single_instance.py
     usecase: 常駐アプリを起動する
-    summary: instance_name が名前に使う SHA-256 の 16 進の文字数。置き場所が 1 台に数個のため、16 文字（64 ビット）で重ならない
+    summary: instance_name が名前に使用する SHA-256 の 16 進の文字数。配置先が 1 台に数個のため、16 文字（64 ビット）で重ならない
     value: '16'
     status: implemented
   - name: OPEN_EVENT_RETRY_INTERVAL_SEC
@@ -137,10 +137,10 @@ functions:
          - ある場合、前のプロセスの終了の依頼のイベントを開いて立て（OpenEventW・SetEvent）、ミューテックスの解放を timeout_sec まで待つ（WaitForSingleObject。前のプロセスが片付けずに落ちて放棄されたミューテックス（WAIT_ABANDONED）も取れたものとして扱う）
            - イベントを開けない場合（前のプロセスがミューテックスを作ってからイベントを作るまでの間）、OPEN_EVENT_RETRY_INTERVAL_SEC ごとに開き直しながら、同じ上限までミューテックスの解放を待つ（開けたらその時点で立てる）
            - `[INFO]` 前の常駐サービスに終わるよう頼んだ
-           - 上限まで取れない場合、ミューテックスのハンドルを閉じて StartupError を送出する。上限まで一度もイベントを開けなかったときは、理由にその旨を書く
+           - 上限まで取れない場合、ミューテックスのハンドルを閉じて StartupError を送出する。上限まで一度もイベントを開けなかったときは、理由にその旨を書き込む
          - 無い場合、そのまま取れている
-      3. 自分の終了の依頼のイベント（自動リセット）を作り、作った直後に ResetEvent で立ったまま残っていた依頼を消す（同じ名前のイベントは前のプロセスのハンドルが残る間は引き継がれ、取る前に立った依頼は前のプロセス宛てのため）
-      4. 終了の依頼のイベントと、名前の無い自分専用の停止のイベントを WaitForMultipleObjects で待つデーモンスレッドを始めて SingleInstanceLock を返す
+      3. 自分の終了の依頼のイベント（自動リセット）を作り、作った直後に ResetEvent で立ったまま残っていた依頼を削除する（同じ名前のイベントは前のプロセスのハンドルが残る間は引き継がれ、取る前に立った依頼は前のプロセス宛てのため）
+      4. 終了の依頼のイベントと、名前の無い自分専用の停止のイベントを WaitForMultipleObjects で待つデーモンスレッドを始めて SingleInstanceLock を返却する
          - 終了の依頼のイベントが立った場合、受け手を 1 回呼んでスレッドを終える（2 回目以降の依頼は、既に終わりに向かっているため受けない）
          - 停止のイベントが立った場合、受け手を呼ばずにスレッドを終える
          - `[INFO]` 単一インスタンスを確保した（名前）
@@ -154,9 +154,9 @@ functions:
       - name: test_acquire_single_instance_when_held
         case: 正常
         summary: 持っている側に終わるよう頼み、放されたら取れる
-        condition: 別のスレッドで同じ名前の SingleInstanceLock を先に取り、その on_quit_requested には呼ばれたことを知らせるだけの関数を渡す。知らせを受けたら、取ったスレッドが release する（名前付きのミューテックスは取ったスレッドだけが放せる）。テストのスレッドで timeout_sec=5 で取る
+        condition: 別のスレッドで同じ名前の SingleInstanceLock を先に取り、その on_quit_requested には呼ばれたことを知らせるだけの関数を引き渡す。知らせを受けたら、取ったスレッドが release する（名前付きのミューテックスは取ったスレッドだけが放せる）。テストのスレッドで timeout_sec=5 で取る
         mock: なし（実物の Win32 の名前付きのミューテックスとイベント）
-        expected: 先の on_quit_requested が 1 回呼ばれ、後の呼び出しが SingleInstanceLock を返す
+        expected: 先の on_quit_requested が 1 回呼ばれ、後の呼び出しが SingleInstanceLock を返却する
       - name: test_acquire_single_instance_when_not_released
         case: 異常
         summary: 上限まで放されなければ StartupError
@@ -167,7 +167,7 @@ functions:
       - name: test_acquire_single_instance_when_taken_over
         case: 正常
         summary: 前の持ち主が依頼を受けて放した直後に取ったロックは、受け手を呼ばない
-        condition: test_acquire_single_instance_when_held の流れで後から取ったロックに受け手を渡す。先のロックを取ったスレッドは、依頼の知らせを受けたら、同じ名前のイベントのハンドルを開いたまま、3 つ目の依頼として同じ名前のイベントをもう 1 回立ててから release する（立ったままの依頼が残り、acquire_single_instance の ResetEvent が無ければ後のロックの受け手が呼ばれる）
+        condition: test_acquire_single_instance_when_held の流れで後から取ったロックに受け手を引き渡す。先のロックを取ったスレッドは、依頼の知らせを受けたら、同じ名前のイベントのハンドルを開いたまま、3 つ目の依頼として同じ名前のイベントをもう 1 回立ててから release する（立ったままの依頼が残り、acquire_single_instance の ResetEvent が無ければ後のロックの受け手が呼ばれる）
         mock: なし（実物の Win32 の名前付きのミューテックスとイベント）
         expected: 後から取ったロックの受け手が 1 秒呼ばれない
       - name: test_acquire_single_instance_when_event_not_ready
@@ -180,7 +180,7 @@ functions:
     title: 単一インスタンスの名前
     container: runtime/single_instance.py
     usecase: 常駐アプリを起動する
-    summary: 設定の置き場所から、単一インスタンスの排他の名前を作る
+    summary: 設定の配置先から、単一インスタンスの排他の名前を作る
     kind: 関数
     scope: public
     args:
@@ -188,13 +188,13 @@ functions:
         type: Path
         required: true
         passing: positional
-        description: 設定ファイルを置くフォルダ（AppPaths.settings_file の親）
+        description: 設定ファイルを配置するフォルダ（AppPaths.settings_file の親）
     returns:
       type: str
       description: '`voice-paste-{ハッシュ}`（ハッシュは解決した絶対パスを小文字にした文字列の SHA-256 の先頭 16 文字）'
     process: |-
-      1. settings_dir を解決した絶対パスを小文字にし、SHA-256 の 16 進の先頭 INSTANCE_HASH_LENGTH 文字を `{APP_NAME}-` に続けて返す
-         - 普段使い（既定の置き場所）と非機能要件テスト（`--data-dir` の一時フォルダ）は別の名前になり、テストの起動が普段使いを終わらせない
+      1. settings_dir を解決した絶対パスを小文字にし、SHA-256 の 16 進の先頭 INSTANCE_HASH_LENGTH 文字を `{APP_NAME}-` に続けて返却する
+         - 普段使い（既定の配置先）と非機能要件テスト（`--data-dir` の一時フォルダ）は別の名前になり、テストの起動が普段使いを終わらせない
     unit_tests:
       - name: test_instance_name
         case: 正常
@@ -205,7 +205,7 @@ functions:
       - name: test_instance_name_when_other_folder
         case: 正常
         summary: 違うフォルダは違う名前になる
-        condition: 既定の置き場所と一時フォルダ
+        condition: 既定の配置先と一時フォルダ
         mock: なし
         expected: 名前が違う
     status: implemented

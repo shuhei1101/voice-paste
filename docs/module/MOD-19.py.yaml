@@ -10,13 +10,13 @@ functions:
     container: server/app.py
     usecase: 常駐アプリを起動する
     scope: public
-    summary: 録音セッションとブラウザの文字起こしの route・画面の配信・要求の守り・本文の上限・例外ハンドラを組み込んだ app を返す
+    summary: 録音セッションとブラウザの文字起こしの route・画面の配信・要求の守り・本文の上限・例外ハンドラを組み込んだ app を返却する
     args:
       - name: session_api
         type: SessionApiDeps
         required: true
         passing: positional
-        description: 録音セッションの API の依存（app.state.session_api に置く）
+        description: 録音セッションの API の依存（app.state.session_api に配置する）
       - name: token
         type: SecretStr
         required: true
@@ -31,7 +31,7 @@ functions:
         type: WebApiDeps | None
         required: true
         passing: keyword
-        description: ブラウザの API の依存（app.state.web_api に置く）。None なら外の端末のブラウザの機能を組み込まない（Linux）
+        description: ブラウザの API の依存（app.state.web_api に配置する）。None なら外の端末のブラウザの機能を組み込まない（Linux）
       - name: allowed_web_origins
         type: Sequence[str]
         required: true
@@ -43,17 +43,17 @@ functions:
     status: implemented
     process: |-
       1. 自動で作られる文書のページ（docs・redoc・openapi.json）を持たない FastAPI を作る
-      2. app.state.session_api に録音セッションの API の依存を置き、録音セッションの route（開始・停止・完了）を include_router で集める
-      3. web_api が None でなければ、app.state.web_api にブラウザの API の依存を置き、ブラウザの文字起こしの route（受け付け・結果の取得）と画面の配信（web_page_router）を集め、画面の素材を組み込む（mount_web_assets）
+      2. app.state.session_api に録音セッションの API の依存を配置し、録音セッションの route（開始・停止・完了）を include_router で集める
+      3. web_api が None でなければ、app.state.web_api にブラウザの API の依存を配置し、ブラウザの文字起こしの route（受け付け・結果の取得）と画面の配信（web_page_router）を集め、画面の素材を組み込む（mount_web_assets）
       4. 例外ハンドラを登録する（register_exception_handlers）
       5. 本文の上限（BodyLimitMiddleware）を組み込む
-      6. 要求の守り（RequestGuardMiddleware）にトークン・ポート・許す Origin・ブラウザの機能を組み込んだか（web_api が None でないか）を渡して組み込む（最後に追加するため、本文の上限より先に動き、断る要求の本文を読まない）
+      6. 要求の守り（RequestGuardMiddleware）にトークン・ポート・許す Origin・ブラウザの機能を組み込んだか（web_api が None でないか）を引き渡して組み込む（最後に追加するため、本文の上限より先に動き、断る要求の本文を読み込まない）
     unit_tests:
       - name: test_build_fastapi
         case: 正常
         summary: 守りを通った開始が録音セッション管理へ届く
         condition: TestClient（base_url は http://127.0.0.1:{ポート}）で正しいトークンと loopback のコールバック先を付けて POST /sessions
-        mock: SessionManager（start が録音セッションを返す）・is_callback_allowed
+        mock: SessionManager（start が録音セッションを返却する）・is_callback_allowed
         expected: 202 と session_id が返り、start が entry=api とコールバック先で 1 回呼ばれる
       - name: test_build_fastapi_when_docs_requested
         case: 正常
@@ -64,6 +64,6 @@ functions:
       - name: test_build_fastapi_when_web_disabled
         case: 正常
         summary: web_api が None ならブラウザの画面と API を持たない
-        condition: 'web_api=None で組み立て、GET /web/ を Origin 無しと Origin: http://evil.example で、POST /web/transcriptions を Origin 無しで送る'
+        condition: 'web_api=None で組み立て、GET /web/ を Origin 無しと Origin: http://evil.example で、POST /web/transcriptions を Origin 無しで送信する'
         mock: SessionManager
         expected: どれも 404

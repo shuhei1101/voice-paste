@@ -22,7 +22,7 @@ constants:
     title: Haas のサーバーのフォルダ
     container: integrations/haas/server.py
     usecase: 常駐アプリを起動する
-    summary: リポジトリの haas_server フォルダ。wsl.exe の --cd に渡す
+    summary: リポジトリの haas_server フォルダ。wsl.exe の --cd に引き渡す
     value: REPO_ROOT / "haas_server"
     status: planned
 classes:
@@ -33,7 +33,7 @@ classes:
     role: アダプタ
     kind: クラス
     summary: WSL の中の Haas の文字起こしのサーバーを、必要なら wsl.exe で起動して応答を待ち、自分が起動したサーバーだけを止める
-    description: 起動の前から応答するサーバーは使うだけで止めない。止めるのは POST /shutdown で、モデルの読み込み中など /shutdown が届かないときだけ wsl.exe のプロセスを終わらせる。wsl.exe を終わらせると WSL の中のプロセスも終わることを、2026-11-06 に Windows の Stop-Process で確かめた（torch を import した python。wsl.exe を止めた直後に終了した）。
+    description: 起動の前から応答するサーバーは使用するだけで止めない。止めるのは POST /shutdown で、モデルの読み込み中など /shutdown が届かないときだけ wsl.exe のプロセスを終わらせる。wsl.exe を終わらせると WSL の中のプロセスも終わることを、2026-11-06 に Windows の Stop-Process で確認した（torch を import した python。wsl.exe を止めた直後に終了した）。
     properties:
       - name: _settings
         type: HaasSettings
@@ -57,7 +57,7 @@ classes:
         type: httpx.BaseTransport | None
         access: 内部 (_)
         default: None
-        description: httpx.Client に渡すトランスポート（テストで差し替える）
+        description: httpx.Client に引き渡すトランスポート（テストで差し替える）
       - name: _process
         type: subprocess.Popen | None
         access: 内部 (_)
@@ -74,14 +74,14 @@ classes:
           description: 起動の前から動いていたサーバーのうち設定と違う項目を model・dtype・device の順で。起動したときと全て同じときは空
         process: |-
           1. GET /health を送信する（_read_health）
-             - 200 の場合、応答の model・dtype・device を設定の値と文字列で比べ、違う項目（応答に無い項目も違うものとする）を返して終える
-               - `[INFO]` 動いている Haas のサーバーを使う（ポート）
+             - 200 の場合、応答の model・dtype・device を設定の値と文字列で比べ、違う項目（応答に無い項目も違うものとする）を返却して終える
+               - `[INFO]` 動いている Haas のサーバーを使用する（ポート）
                - 違う項目がある場合
                  - `[WARNING]` 動いている Haas のサーバーが設定と違う（項目ごとのサーバーの値と設定の値。設定の値で動かすにはサーバーを止めてから起動し直す）
           2. `wsl.exe [-d {distribution}] --cd {HAAS_SERVER_DIR} -e bash start.sh {port} {model} {dtype} {device}` を _popen で起動し、_process に持つ（標準入出力は開かない。Windows では CREATE_NO_WINDOW）
              - wsl.exe を起動できない（OSError）場合、EngineError を送出する
           3. HAAS_START_TIMEOUT_SEC まで、HAAS_HEALTH_INTERVAL_SEC ごとに _read_health を呼ぶ
-             - 200 の場合、空を返して終える
+             - 200 の場合、空を返却して終える
                - `[INFO]` Haas のサーバーを起動した（かかった秒・ポート）
              - 起動した wsl.exe が 0 以外で終わった場合、EngineError を送出する
              - stop が呼ばれた場合、_process.terminate で wsl.exe を終わらせ（stop が _process を見た後に起動しても残さない）、EngineError を送出する
@@ -118,7 +118,7 @@ classes:
           - name: test_ensure_started_when_script_failed
             case: 異常
             summary: 起動スクリプトが失敗して終わる
-            condition: Popen.poll が 1 を返す
+            condition: Popen.poll が 1 を返却する
             mock: httpx.MockTransport・_popen・_clock
             expected: EngineError
             exception: 起動スクリプトが失敗して終わった
@@ -137,8 +137,8 @@ classes:
             expected: ("dtype", "device") が返る。_popen が呼ばれない。[WARNING] のログがある
           - name: test_ensure_started_when_running_without_fields
             case: 正常
-            summary: 動いているサーバーが dtype・device を返さない
-            condition: /health が 200 で model だけを返す（前のバージョンのサーバー）。model は設定と同じ
+            summary: 動いているサーバーが dtype・device を返却しない
+            condition: /health が 200 で model だけを返却する（前のバージョンのサーバー）。model は設定と同じ
             mock: httpx.MockTransport・_popen
             expected: ("dtype", "device") が返る
         status: planned
@@ -180,14 +180,14 @@ classes:
         title: 準備の確認の応答の読み取り
         kind: メソッド
         scope: internal
-        summary: GET /health を送信し、200 なら応答の JSON を返す
+        summary: GET /health を送信し、200 なら応答の JSON を返却する
         returns:
           type: dict[str, object] | None
           description: 200 の応答の JSON。接続できない・200 以外・JSON でないときは None
         process: |-
           1. httpx.Client（接続 HAAS_CONNECT_TIMEOUT_SEC）で GET /health を送信する
-             - 200 で JSON のオブジェクトの場合、それを返す
-             - httpx.HTTPError・200 以外・JSON でない場合、None を返す
+             - 200 で JSON のオブジェクトの場合、それを返却する
+             - httpx.HTTPError・200 以外・JSON でない場合、None を返却する
         status: planned
     refs:
       - SC-5#

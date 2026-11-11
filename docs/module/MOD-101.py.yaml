@@ -29,7 +29,7 @@ constants:
     title: 計算の精度の名前
     container: haas_server/main.py
     usecase: 常駐アプリを起動する
-    summary: 起動の引数で受ける計算の精度。`auto` はそのまま、ほかは同じ名前の torch の型にして load_model に渡す（load_model は `auto` 以外の文字列を受けない）
+    summary: 起動の引数で受ける計算の精度。`auto` はそのまま、ほかは同じ名前の torch の型にして load_model に引き渡す（load_model は `auto` 以外の文字列を受けない）
     value: ("auto", "bfloat16", "float16", "float32")
     refs:
       - LIB-30#
@@ -41,7 +41,7 @@ functions:
     container: haas_server/main.py
     usecase: 常駐アプリを起動する
     scope: public
-    summary: argparse で位置の引数（ポート・モデル・計算の精度・装置）を読む
+    summary: argparse で位置の引数（ポート・モデル・計算の精度・装置）を読み込む
     args:
       - name: argv
         type: list[str]
@@ -52,15 +52,15 @@ functions:
       type: ServerArgs
       description: 省いた引数は DEFAULT_MODEL_NAME・DEFAULT_DTYPE・DEFAULT_DEVICE
     process: |-
-      1. ポート（int）、モデル、計算の精度（choices は DTYPE_NAMES）、装置を位置の引数で読む（モデル以降は nargs="?"）
-         - 読めない場合、argparse が終了コード 2 で終える
+      1. ポート（int）、モデル、計算の精度（choices は DTYPE_NAMES）、装置を位置の引数で読み込む（モデル以降は nargs="?"）
+         - 読み込めない場合、argparse が終了コード 2 で終える
     exceptions:
       - name: SystemExit
         condition: ポートが無いか数値でない、計算の精度が DTYPE_NAMES に無い
     unit_tests:
       - name: test_parse_args
         case: 正常
-        summary: 全ての引数を読む
+        summary: 全ての引数を読み込む
         condition: '["47824", "x/model", "float32", "cpu"]'
         mock: なし
         expected: ServerArgs(port=47824, model="x/model", dtype="float32", device="cpu")
@@ -72,7 +72,7 @@ functions:
         expected: model・dtype・device が DEFAULT_MODEL_NAME・auto・cuda
       - name: test_parse_args_when_dtype_invalid
         case: 異常
-        summary: 計算の精度が読めない
+        summary: 計算の精度が読み込めない
         condition: '["47824", "x/model", "int8", "cuda"]'
         mock: なし
         expected: SystemExit（コード 2）
@@ -104,7 +104,7 @@ functions:
     unit_tests:
       - name: test_load_engine
         case: 正常
-        summary: 引数と調整の値を haas_asr に渡す
+        summary: 引数と調整の値を haas_asr に引き渡す
         condition: ServerArgs(model="x/model", dtype="float32", device="cpu")。作った transcribe_longform を batch_size=8・chunk_sec=15 の TranscribeOptions で呼ぶ
         mock: haas_asr（sys.modules に差し替える）・torch
         expected: load_model に x/model・device=cpu・dtype=torch.float32 が渡る。transcribe_longform に batch_size=8・chunk_seconds=15 が渡る。HaasEngine の dtype が "float32"
@@ -132,17 +132,17 @@ functions:
       type: None
       description: サーバーが止まると戻る（終了コード 0）
     process: |-
-      1. parse_args で引数を読む
+      1. parse_args で引数を読み込む
       2. ログの設定をする（分類『サーバー』の補足『ログ』）
       3. load_engine でモデルを読み込む（読み込みの間は待ち受けない）
-         - 例外の場合（読めないモデル・使えない装置を含む）、終了コード 1 で終える
+         - 例外の場合（読み込めないモデル・使用できない装置を含む）、終了コード 1 で終える
            - `[ERROR]` モデルの読み込みに失敗した（スタックトレースつき）
       4. create_app で app を作り、uvicorn.Server を 127.0.0.1:{ポート} で動かす。request_shutdown は should_exit を True にする
     status: planned
     unit_tests:
       - name: test_main_when_load_failed
         case: 異常
-        summary: モデルの読み込みの失敗をログへ書いて終わる
+        summary: モデルの読み込みの失敗をログへ書き込んで終わる
         condition: load_engine が RuntimeError を送出する
         mock: load_engine・LOG_FILE
         expected: 終了コード 1。ログのファイルに [ERROR] と例外の文がある
@@ -178,4 +178,4 @@ data_models:
       - IF-13#constraints[起動の引数]
     status: planned
 notes:
-  起動スクリプト: '`haas_server/start.sh` は受けた引数を全て（`"$@"`）`python -m haas_server.main` へ渡す。'
+  起動スクリプト: '`haas_server/start.sh` は受けた引数を全て（`"$@"`）`python -m haas_server.main` へ引き渡す。'

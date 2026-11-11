@@ -12,7 +12,7 @@ classes:
     kind: クラス
     summary: Wayland のセッションで、python-evdev の UInput の仮想キーボードから貼り付けのキーと Enter を送信する。起動のときに 1 回開き、終了のときに閉じる
     description: |-
-      Wayland のセッションでは pynput・XTEST のキーがネイティブのアプリへ届かないため、カーネルの uinput で入力の機器を作ってキーを送信する。`/dev/uinput` を開く権限（udev の規則と `input` グループ）が要り、無ければ open が DeliveryError を送出する（配線がトレイで知らせ、「コピーのみ」は使える）。
+      Wayland のセッションでは pynput・XTEST のキーがネイティブのアプリへ届かないため、カーネルの uinput で入力の機器を作ってキーを送信する。`/dev/uinput` を開く権限（udev の規則と `input` グループ）が要り、無ければ open が DeliveryError を送出する（配線がトレイで知らせ、「コピーのみ」は使用できる）。
 
       send_paste は sender.py の send_paste の代わりに、send_enter は SendEnterFn として配線する。
     properties:
@@ -79,10 +79,10 @@ classes:
           3. 修飾キーを EVDEV_MODIFIER_CODES で、主キーを `ecodes.ecodes["KEY_" + 主キーの大文字]` でキーコードに替える
              - 替えられない場合、DeliveryError を送出する
           4. FOCUS_SETTLE_SEC だけ待つ
-          5. read_focused_wm_class でフォーカスしているウィンドウの wm_class を読み、小文字にしたどれかの名前が TERMINAL_WM_CLASSES にあるかを見る
+          5. read_focused_wm_class でフォーカスしているウィンドウの wm_class を読み込み、小文字にしたどれかの名前が TERMINAL_WM_CLASSES にあるかを見る
              - ある場合、修飾キーを KEY_LEFTCTRL・KEY_LEFTSHIFT、主キーを KEY_V に替える
                - `[INFO]` 端末アプリなので Ctrl+Shift+V を送信する（wm_class）
-             - 無い場合（読めずに空のときを含む）、3 のキーのまま
+             - 無い場合（読み込めずに空のときを含む）、3 のキーのまま
           6. 修飾キーを順に押し、主キーを押して離し、修飾キーを逆順に離してから syn で確定する（EV_KEY を write）
              - write が OSError を送出した場合、押した修飾キーを離してから DeliveryError を送出する（押されたままにしない）
              - `[INFO]` 貼り付けのキーを送信した（送信したキー、uinput）
@@ -110,7 +110,7 @@ classes:
             expected: KEY_LEFTSHIFT 1 の write が呼ばれる
           - name: test_send_paste_when_wm_class_unreadable
             case: 正常
-            summary: wm_class を読めなければ設定のキーを送信する
+            summary: wm_class を読み込めなければ設定のキーを送信する
             condition: open の後、paste_key が `<ctrl>+v`、read_focused_wm_class が ()
             mock: evdev.UInput・time.sleep・read_focused_wm_class
             expected: write が KEY_LEFTCTRL 1・KEY_V 1・KEY_V 0・KEY_LEFTCTRL 0 の順に呼ばれ、KEY_LEFTSHIFT の write が呼ばれない
@@ -141,7 +141,7 @@ classes:
         scope: public
         inherits: SendEnterFn
         thread_safe: true
-        summary: 渡した修飾キーを押したまま Enter を仮想キーボードで送信する（待ちは呼ぶ側が置く）
+        summary: 引き渡した修飾キーを押したまま Enter を仮想キーボードで送信する（待ちは呼ぶ側が配置する）
         args:
           - name: modifiers
             type: Sequence[EnterModifier]

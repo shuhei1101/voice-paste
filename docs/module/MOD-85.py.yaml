@@ -10,7 +10,7 @@ classes:
     usecase: APIで録音を操作する
     role: ランタイム
     kind: クラス
-    summary: 渡された関数を専用のデーモンスレッドで一定の間隔ごとに呼ぶ
+    summary: 引き渡された関数を専用のデーモンスレッドで一定の間隔ごとに呼ぶ
     description: |-
       終わりの合図を threading.Event で持ち、Event.wait(間隔) で待つ。
       呼んだ関数が例外を出してもスレッドを止めず、logger.exception で残して次の回を待つ（上限での打ち切りが 1 回の失敗で止まらない）。

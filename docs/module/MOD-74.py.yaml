@@ -18,7 +18,7 @@ functions:
     kind: 関数
     container: integrations/browser/opener_linux.py
     usecase: 起こした文字を届ける
-    summary: Linux で open_app_window の代わりに渡す。URL を Chromium 系のブラウザの `--app` で開き、見つからなければ既定のブラウザで開く
+    summary: Linux で open_app_window の代わりに引き渡す。URL を Chromium 系のブラウザの `--app` で開き、見つからなければ既定のブラウザで開く
     scope: public
     args:
       - name: url
@@ -34,7 +34,7 @@ functions:
       2. 見つかった場合、`[{ブラウザ}, "--app={url}"]` を subprocess.Popen で起動する
          - `[INFO]` ブラウザ添付のプリセットの画面をアプリのウィンドウで開いた（ブラウザ・url）
       3. 見つからない場合、webbrowser.open で既定のブラウザ（xdg-open）で開く
-         - webbrowser.open が False を返した場合、DeliveryError を送出する。理由は `ブラウザ添付のプリセットの画面を開けませんでした（開けるブラウザが見つかりません）`
+         - webbrowser.open が False を返却した場合、DeliveryError を送出する。理由は `ブラウザ添付のプリセットの画面を開けませんでした（開けるブラウザが見つかりません）`
          - `[INFO]` ブラウザ添付のプリセットの画面を既定のブラウザで開いた（url）
          - 2 で OSError が出た場合、DeliveryError を送出する。理由は `ブラウザ添付のプリセットの画面を開けませんでした（{元の例外}）` にし、元の例外を連鎖して残す（open_app_window と同じ）
     exceptions:
@@ -46,26 +46,26 @@ functions:
       - name: test_open_app_window_linux
         case: 正常
         summary: 先に見つかった Chromium 系の --app で開く
-        condition: shutil.which が chromium と microsoft-edge だけでパスを返す
+        condition: shutil.which が chromium と microsoft-edge だけでパスを返却する
         mock: shutil.which・subprocess.Popen・webbrowser.open
         expected: Popen に ["/usr/bin/chromium", "--app=https://chatgpt.com"] が渡り、webbrowser.open が呼ばれない
       - name: test_open_app_window_linux_when_browser_missing
         case: 正常
         summary: Chromium 系が無ければ既定のブラウザで開く
-        condition: shutil.which が全て None、webbrowser.open が True を返す
+        condition: shutil.which が全て None、webbrowser.open が True を返却する
         mock: shutil.which・subprocess.Popen・webbrowser.open
         expected: webbrowser.open に URL が渡り、Popen が呼ばれない
       - name: test_open_app_window_linux_when_no_browser
         case: 異常
         summary: 既定のブラウザも開けなければ DeliveryError
-        condition: shutil.which が全て None、webbrowser.open が False を返す
+        condition: shutil.which が全て None、webbrowser.open が False を返却する
         mock: shutil.which・webbrowser.open
         expected: DeliveryError が送出され、理由が `ブラウザ添付のプリセットの画面を開けませんでした（` で始まる
         exception: Chromium 系のブラウザが無く、既定のブラウザも開けない
       - name: test_open_app_window_linux_when_failed
         case: 異常
         summary: 起動できなければ DeliveryError
-        condition: shutil.which が chromium を返し、subprocess.Popen が OSError を送出する
+        condition: shutil.which が chromium を返却し、subprocess.Popen が OSError を送出する
         mock: shutil.which・subprocess.Popen
         expected: DeliveryError が送出され、元の OSError が連鎖している
         exception: 見つかったブラウザを起動できない

@@ -33,7 +33,7 @@ data_models:
         description: 進み具合（0.0〜1.0）
       - name: reports_progress
         type: bool
-        description: 設定の文字起こしのエンジンが途中の進みを返すか
+        description: 設定の文字起こしのエンジンが途中の進みを返却するか
       - name: text
         type: str | None
         description: done のときの補正した文字

@@ -13,7 +13,7 @@ classes:
     summary: ジョブの一覧と待ち行列を持ち、ワーカースレッドで 1 件ずつ起こす
     description: |-
       長期に持つランタイム状態（ジョブの一覧・待ち行列・ワーカースレッド）を持つためクラスにする。
-      ジョブの一覧は `threading.Lock` の中で読み書きする（route は uvicorn のスレッド、起こすのはワーカースレッド）。
+      ジョブの一覧は `threading.Lock` の中で読み込み書きする（route は uvicorn のスレッド、起こすのはワーカースレッド）。
       待ち行列は `queue.Queue`。終わったジョブは終わった順に `collections.deque` で控え、終わったジョブを持つ件数を超えたら古い順に一覧から捨てる。
     properties:
       - name: _deps
@@ -55,7 +55,7 @@ classes:
         title: 開始
         kind: メソッド
         scope: public
-        summary: 一時のフォルダに取り残された音声を消し、ワーカースレッドを立てる
+        summary: 一時のフォルダに取り残された音声を削除し、ワーカースレッドを立てる
         args:
           - name: tmp_dir
             type: Path
@@ -65,14 +65,14 @@ classes:
           type: None
           description: なし
         process: |-
-          1. tmp_dir の下のファイルを消す（前の起動で取り残された音声。消せないものは残す）
+          1. tmp_dir の下のファイルを削除する（前の起動で取り残された音声。削除できないものは残す）
              - `[WARNING]` 取り残された音声を削除できなかった（パス・理由）
           2. tmp_dir を作る
           3. _run を回すデーモンのスレッドを立てる
         unit_tests:
           - name: test_start
             case: 正常
-            summary: 取り残しを消してスレッドを立てる
+            summary: 取り残しを削除してスレッドを立てる
             condition: tmp_dir に古い `.webm` が 1 つある
             mock: WebTranscriptionDeps の全関数
             expected: 古いファイルが消え、ワーカースレッドが動いている
@@ -90,11 +90,11 @@ classes:
           - name: audio_path
             type: Path
             required: true
-            description: 書いた一時のファイル
+            description: 書き込んだ一時のファイル
           - name: audio
             type: AudioProbe
             required: true
-            description: 読んだ形式
+            description: 読み込んだ形式
           - name: glossary_preset
             type: str | None
             required: true
@@ -116,7 +116,7 @@ classes:
             summary: queued で積む
             condition: ジョブが無い
             mock: WebTranscriptionDeps の全関数（ワーカースレッドは立てない）
-            expected: queued のジョブが返り、get で同じジョブが引ける。glossary_preset に「会議」を渡したジョブは glossary_preset が「会議」、None を渡したジョブは None
+            expected: queued のジョブが返り、get で同じジョブが引ける。glossary_preset に「会議」を引き渡したジョブは glossary_preset が「会議」、None を引き渡したジョブは None
           - name: test_submit_when_queue_full
             case: 異常
             summary: 上限で断る
@@ -129,7 +129,7 @@ classes:
         kind: メソッド
         scope: public
         thread_safe: true
-        summary: ジョブの今の状態を返す
+        summary: ジョブの今の状態を返却する
         args:
           - name: job_id
             type: str
@@ -141,7 +141,7 @@ classes:
         process: |-
           1. ロックを取る
           2. _jobs に無ければ WebJobNotFoundError を送出する
-          3. ジョブを返す
+          3. ジョブを返却する
         exceptions:
           - name: WebJobNotFoundError
             condition: 受け付けていないか、件数を超えて捨てた
@@ -182,22 +182,22 @@ classes:
         process: |-
           1. ジョブを running にする
           2. 受けた音声を保存する（store_audio。履歴を残す設定なら履歴へ移し、audio_path を差し替える）
-          3. 起こす（transcribe。進みは progress に書く）
+          3. 起こす（transcribe。進みは progress に書き込む）
           4. ジョブの glossary_preset で補正する（correct。None なら補正の時点で設定で選んでいるプリセット）
           5. 起こした文字を履歴に追記する（append_text）
           6. ジョブを done・progress 1.0・text で終える
-             - `[INFO]` 起こし終えた（job_id・秒数・文字数。起こした文字は書かない）
+             - `[INFO]` 起こし終えた（job_id・秒数・文字数。起こした文字は書き込まない）
              - 2〜5 で TranscriptionError・OSError の場合、ジョブを failed・error で終える
                - `[ERROR]` 文字起こしに失敗した（job_id・理由）
              - それ以外の例外の場合も failed・「想定していない問題」で終える
-               - `[ERROR]` 想定していない例外（job_id。スタックをログに書き、error には含めない）
-          7. 一時のファイルなら消す（discard_temporary。失敗しても通る）
+               - `[ERROR]` 想定していない例外（job_id。スタックをログに書き込み、error には含めない）
+          7. 一時のファイルなら削除する（discard_temporary。失敗しても通る）
           8. 終わったジョブの一覧に追加し、_max_finished を超えたらいちばん古い件を _jobs から捨てる
         unit_tests:
           - name: test_process
             case: 正常
             summary: 起こして補正し、done で終える
-            condition: queued のジョブ 1 件。transcribe が進み 0.5 を知らせて文を返す
+            condition: queued のジョブ 1 件。transcribe が進み 0.5 を知らせて文を返却する
             mock: WebTranscriptionDeps の全関数
             expected: ジョブが done・progress 1.0・text は correct の戻り値で、correct が起こした文字と None で呼ばれ、store_audio・append_text・discard_temporary が 1 回ずつ呼ばれる。transcribe の途中に get すると running・progress 0.5
           - name: test_process_when_transcription_failed
@@ -228,18 +228,18 @@ classes:
         title: 終了
         kind: メソッド
         scope: public
-        summary: 待ち行列に止める合図を積み、待ちのジョブの一時のファイルを消す。起こしている 1 件は待たない
+        summary: 待ち行列に止める合図を積み、待ちのジョブの一時のファイルを削除する。起こしている 1 件は待たない
         returns:
           type: None
           description: なし
         process: |-
-          1. 待ち行列に残った ID を取り出し、そのジョブの一時のファイルを消す（discard_temporary）
+          1. 待ち行列に残った ID を取り出し、そのジョブの一時のファイルを削除する（discard_temporary）
           2. 待ち行列に None を積む（ワーカースレッドはデーモンなので join しない）
              - `[INFO]` ブラウザの音声のキューを閉じた（捨てた待ちの数）
         unit_tests:
           - name: test_close
             case: 正常
-            summary: 待ちの一時のファイルを消す
+            summary: 待ちの一時のファイルを削除する
             condition: queued のジョブが 2 件（ワーカースレッドは立てない）
             mock: WebTranscriptionDeps の全関数
             expected: discard_temporary が 2 回呼ばれる
@@ -263,7 +263,7 @@ constants:
     title: ジョブの ID のバイト数
     container: features/web_transcription/service.py
     usecase: ブラウザから音声を送信する
-    summary: secrets.token_urlsafe に渡す乱数のバイト数（128 bit、22 文字）
+    summary: secrets.token_urlsafe に引き渡す乱数のバイト数（128 bit、22 文字）
     value: '16'
     status: planned
 functions:
@@ -273,7 +273,7 @@ functions:
     container: features/web_transcription/service.py
     usecase: ブラウザから音声を送信する
     scope: public
-    summary: 指定された用語集のプリセットと受けた音声の形式を確かめ、一時のファイルへ書いてジョブを積む
+    summary: 指定された用語集のプリセットと受けた音声の形式を確かめ、一時のファイルへ書き込んでジョブを積む
     args:
       - name: file
         type: BinaryIO
@@ -296,13 +296,13 @@ functions:
       description: 積んだジョブ
     process: |-
       1. glossary_preset が空文字なら None にする
-      2. None でなく、glossary_preset_exists が False なら GlossaryPresetNotFoundError を送出する（音声は読まず、書かない。メッセージに指定した名前を含める）
+      2. None でなく、glossary_preset_exists が False なら GlossaryPresetNotFoundError を送出する（音声は読み込まず、書き込まない。メッセージに指定した名前を含める）
          - `[WARNING]` 用語集のプリセットが無いため断った（指定した名前）
-      3. 音声の形式を読む（probe_audio。読めなければ AudioUnreadableError が伝わる）
-         - `[WARNING]` 読めない音声を断った（大きさ・理由）
+      3. 音声の形式を読み込む（probe_audio。読み込めなければ AudioUnreadableError が伝わる）
+         - `[WARNING]` 読み込めない音声を断った（大きさ・理由）
       4. ID を作り、`{tmp_dir}/{ID}{容れ物の拡張子}` へ頭からコピーする
       5. glossary_preset と共にキューに積む（submit）
-         - WebQueueFullError の場合、コピーした一時のファイルを消してそのまま送出する
+         - WebQueueFullError の場合、コピーした一時のファイルを削除してそのまま送出する
            - `[WARNING]` 待ちが上限のため断った（待ちの数）
     exceptions:
       - name: AudioUnreadableError
@@ -314,20 +314,20 @@ functions:
     unit_tests:
       - name: test_accept_audio
         case: 正常
-        summary: 容れ物の拡張子で書いて積む
-        condition: probe_audio が webm を返す
+        summary: 容れ物の拡張子で書き込んで積む
+        condition: probe_audio が webm を返却する
         mock: probe_audio・WebJobQueue.submit
-        expected: tmp_dir に `{ID}.webm` が送信した内容で書かれ、submit がそのパスと glossary_preset None で呼ばれる
+        expected: tmp_dir に `{ID}.webm` が送信した内容で書き込まれ、submit がそのパスと glossary_preset None で呼ばれる
       - name: test_accept_audio_when_unreadable
         case: 異常
-        summary: 読めなければ書かない
+        summary: 読み込めなければ書き込まない
         condition: probe_audio が AudioUnreadableError を送出する
         mock: probe_audio・WebJobQueue.submit
         expected: AudioUnreadableError が伝わり、tmp_dir が空で submit が呼ばれない
         exception: PyAV で開けないか、音声のストリームが無い
       - name: test_accept_audio_when_queue_full
         case: 異常
-        summary: 待ちが上限なら書いたファイルを消す
+        summary: 待ちが上限なら書き込んだファイルを削除する
         condition: submit が WebQueueFullError を送出する
         mock: probe_audio・WebJobQueue.submit
         expected: WebQueueFullError が伝わり、tmp_dir が空
@@ -335,7 +335,7 @@ functions:
       - name: test_accept_audio_when_glossary_preset
         case: 正常
         summary: 一覧にあるプリセットを持たせて積む
-        condition: glossary_preset に「会議」、glossary_preset_exists が True を返す
+        condition: glossary_preset に「会議」、glossary_preset_exists が True を返却する
         mock: probe_audio・glossary_preset_exists・WebJobQueue.submit
         expected: glossary_preset_exists が「会議」で呼ばれ、submit が glossary_preset「会議」で呼ばれる
       - name: test_accept_audio_when_glossary_preset_empty
@@ -346,8 +346,8 @@ functions:
         expected: glossary_preset_exists が呼ばれず、submit が glossary_preset None で呼ばれる
       - name: test_accept_audio_when_glossary_preset_not_found
         case: 異常
-        summary: 一覧に無いプリセットは音声を読まずに断る
-        condition: glossary_preset に「無いプリセット」、glossary_preset_exists が False を返す
+        summary: 一覧に無いプリセットは音声を読み込まずに断る
+        condition: glossary_preset に「無いプリセット」、glossary_preset_exists が False を返却する
         mock: probe_audio・glossary_preset_exists・WebJobQueue.submit
         expected: GlossaryPresetNotFoundError が送出され、メッセージに「無いプリセット」を含む。probe_audio・submit が呼ばれず、tmp_dir が空
         exception: 指定した用語集のプリセットが今の設定の一覧に無い

@@ -12,7 +12,7 @@ classes:
     summary: 設定のホットキーを pynput で受け付け、押されたら配線された関数を呼ぶ。録音セッションは import しない
     description: |-
       受付のスレッド（`pynput.keyboard.GlobalHotKeys`）を 1 つだけ持ち、張り直すときは止めてから新しく立てる。
-      呼ぶ関数は pynput のスレッドで動くため、例外を握ってログに書き、受付を止めない。
+      呼ぶ関数は pynput のスレッドで動くため、例外を握ってログに書き込み、受付を止めない。
     kind: クラス
     properties:
       - name: _listener
@@ -44,14 +44,14 @@ classes:
           2. 各関数を例外を握る関数で包む
              - 呼んだ関数が例外を出した場合、握って受付を続ける
                - `[ERROR]` ホットキーの処理で想定外の例外（ホットキー。logger.exception）
-          3. 新しい受付を先に作る（`GlobalHotKeys(包んだ組)`。作るときに pynput が書式を確かめる）
-             - ValueError（書式を読めない）の場合、動いている受付をそのままにして HotkeyError を送出する
+          3. 新しい受付を先に作る（`GlobalHotKeys(包んだ組)`。作るときに pynput が書式を確認する）
+             - ValueError（書式を読み込めない）の場合、動いている受付をそのままにして HotkeyError を送出する
           4. 動いている受付があれば止め、スレッドの終わりを HOTKEY_STOP_TIMEOUT_SEC まで待つ（上限を過ぎたら stop と同じく手放して進む）
           5. 新しい受付を始める
              - `[INFO]` ホットキーの受付を始めた（ホットキーの一覧）
         exceptions:
           - name: HotkeyError
-            condition: ホットキーの書式を pynput が読めない
+            condition: ホットキーの書式を pynput が読み込めない
         unit_tests:
           - name: test_start
             case: 正常
@@ -73,21 +73,21 @@ classes:
             expected: 例外が漏れず、ERROR のログが 1 行出て、もう一度呼ぶとまた呼ばれる
           - name: test_start_when_invalid_hotkey
             case: 異常
-            summary: 読めない書式は断る
+            summary: 読み込めない書式は断る
             condition: '{"<ctrl>+<nokey>": 関数}'
             mock: なし
             expected: HotkeyError が送出される
-            exception: 書式を読めない
+            exception: 書式を読み込めない
           - name: test_start_when_invalid_hotkey_while_running
             case: 異常
             summary: 張り直しに失敗しても前の受付を止めない
             condition: '{"<ctrl>+<alt>+d": 関数} で始めた後、{"<ctrl>+<nokey>": 関数} で start を呼ぶ'
             mock: keyboard.GlobalHotKeys（2 回目の生成が ValueError）
             expected: HotkeyError が送出され、1 つ目の受付の stop が呼ばれず、動いたまま
-            exception: 書式を読めない
+            exception: 書式を読み込めない
       - name: stop
         title: 受付の停止
-        summary: 受付を止め、スレッドの終わりを HOTKEY_STOP_TIMEOUT_SEC まで待つ。上限を過ぎたら WARNING のログを書き、スレッドを手放して戻る。動いていなければ何もしない
+        summary: 受付を止め、スレッドの終わりを HOTKEY_STOP_TIMEOUT_SEC まで待つ。上限を過ぎたら WARNING のログを書き込み、スレッドを手放して戻る。動いていなければ何もしない
         kind: メソッド
         scope: public
         thread_safe: true
@@ -104,7 +104,7 @@ classes:
           - name: test_stop_when_join_timed_out
             case: 正常
             summary: スレッドが上限までに終わらなくても戻る
-            condition: start の後、差し替えた GlobalHotKeys の join が戻っても is_alive が True を返す状態で stop を呼ぶ
+            condition: start の後、差し替えた GlobalHotKeys の join が戻っても is_alive が True を返却する状態で stop を呼ぶ
             mock: keyboard.GlobalHotKeys
             expected: join に timeout=HOTKEY_STOP_TIMEOUT_SEC が渡り、例外が出ず、WARNING のログが 1 行出て、もう一度 start すると新しい受付だけが動いている
       - name: __init__
@@ -131,7 +131,7 @@ functions:
     title: ホットキーの書式の確かめ
     container: runtime/hotkey.py
     usecase: 設定を変える
-    summary: ホットキーを pynput が読めるかを、受付を始めずに確かめる（`keyboard.HotKey.parse`）
+    summary: ホットキーを pynput が読み込めるかを、受付を始めずに確認する（`keyboard.HotKey.parse`）
     kind: 関数
     scope: public
     args:
@@ -145,21 +145,21 @@ functions:
       description: なし
     exceptions:
       - name: HotkeyError
-        condition: 読めないホットキーがある（メッセージにそのホットキーを出す）
+        condition: 読み込めないホットキーがある（メッセージにそのホットキーを出す）
     unit_tests:
       - name: test_validate_hotkeys
         case: 正常
-        summary: 読める書式は通す
+        summary: 読み込める書式は通す
         condition: '["<ctrl>+<alt>+d", "<ctrl>+<shift>+<f5>"]'
         mock: なし
         expected: 例外が出ない
       - name: test_validate_hotkeys_when_invalid
         case: 異常
-        summary: 読めない書式を断る
+        summary: 読み込めない書式を断る
         condition: '["<ctrl>+<nokey>"]'
         mock: なし
         expected: HotkeyError が送出され、メッセージに <ctrl>+<nokey> が出る
-        exception: 読めないホットキーがある
+        exception: 読み込めないホットキーがある
     refs:
       - LIB-19#
     status: implemented

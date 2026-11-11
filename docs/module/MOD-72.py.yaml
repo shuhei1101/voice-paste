@@ -24,9 +24,9 @@ constants:
     title: 端末アプリの WM_CLASS
     container: integrations/keyboard/sender.py
     usecase: 起こした文字を届ける
-    summary: 'send_paste_linux（Xorg）と UInputKeyboard.send_paste（Wayland）が端末アプリと見なす WM_CLASS の名前（小文字）。インスタンス名かクラス名を小文字にした値がどれかに当たれば端末アプリとする。Wayland では拡張 Focused Window D-Bus が Xorg と同じ名前を返す（PoC #239）'
+    summary: 'send_paste_linux（Xorg）と UInputKeyboard.send_paste（Wayland）が端末アプリと見なす WM_CLASS の名前（小文字）。インスタンス名かクラス名を小文字にした値がどれかに当たれば端末アプリとする。Wayland では拡張 Focused Window D-Bus が Xorg と同じ名前を返却する（PoC #239）'
     value: frozenset({"gnome-terminal-server", "gnome-terminal", "kgx", "org.gnome.console", "ptyxis", "org.gnome.ptyxis", "tilix", "terminator", "konsole", "xfce4-terminal", "alacritty", "kitty"})
-    reason: 設定のスキーマを変えないため定数で持つ。Ctrl+Shift+V がクリップボードの貼り付けになる端末を並べる。実際に確かめたのは GNOME Terminal（`gnome-terminal-server`。[#211](https://github.com/shuhei1101/voice-paste/pull/211)）だけで、ほかの端末のクラス名と貼り付けのキーは未確認。Ctrl+Shift+V で貼り付けない xterm は入れない
+    reason: 設定のスキーマを変えないため定数で持つ。Ctrl+Shift+V がクリップボードの貼り付けになる端末を並べる。実際に確認したのは GNOME Terminal（`gnome-terminal-server`。[#211](https://github.com/shuhei1101/voice-paste/pull/211)）だけで、ほかの端末のクラス名と貼り付けのキーは未確認。Ctrl+Shift+V で貼り付けない xterm は入れない
     status: planned
 functions:
   - name: copy_to_clipboard
@@ -35,45 +35,45 @@ functions:
     container: integrations/keyboard/sender.py
     usecase: 起こした文字を届ける
     scope: public
-    summary: pyperclip でクリップボードへ書く
+    summary: pyperclip でクリップボードへ書き込む
     args:
       - name: text
         type: str
         required: true
         passing: positional
-        description: 書く文字
+        description: 書き込む文字
     returns:
       type: None
       description: なし
     process: |-
-      1. pyperclip.copy で text を書く
+      1. pyperclip.copy で text を書き込む
          - pyperclip が例外を出した場合、DeliveryError を送出する（理由に元の例外を残す）
-         - `[INFO]` クリップボードへ書いた（文字数）
+         - `[INFO]` クリップボードへ書き込んだ（文字数）
     exceptions:
       - name: DeliveryError
-        condition: ほかのアプリがクリップボードを開いたままで書けない
+        condition: ほかのアプリがクリップボードを開いたままで書き込めない
     refs:
       - LIB-20#
     status: implemented
     unit_tests:
       - name: test_copy_to_clipboard
         case: 正常
-        summary: クリップボードへ書く
+        summary: クリップボードへ書き込む
         condition: text が「テスト」
         mock: pyperclip.copy
         expected: pyperclip.copy に「テスト」が 1 回渡る
       - name: test_copy_to_clipboard_when_failed
         case: 異常
-        summary: 書けなければ DeliveryError
+        summary: 書き込めなければ DeliveryError
         condition: pyperclip.copy が pyperclip.PyperclipException を送出する
         mock: pyperclip.copy
         expected: DeliveryError が送出される
-        exception: ほかのアプリがクリップボードを開いたままで書けない
+        exception: ほかのアプリがクリップボードを開いたままで書き込めない
     connectivity_tests:
       - name: test_ext_copy_to_clipboard
         api: pyperclip.copy / pyperclip.paste
-        summary: 実機のクリップボードへ書いて読み戻せる
-        checks: copy_to_clipboard("voice-paste のテスト") の後に pyperclip.paste で読んだ文字が一致する
+        summary: 実機のクリップボードへ書き込んで読み込み戻せる
+        checks: copy_to_clipboard("voice-paste のテスト") の後に pyperclip.paste で読み込んだ文字が一致する
         cost: 料金なし。実行中はクリップボードの中身が変わり、終わりに実行前の中身へ戻す
         notes: クリップボードを持たない環境では skip する
   - name: send_paste
@@ -94,7 +94,7 @@ functions:
       description: なし
     process: |-
       1. split_paste_key で paste_key を修飾キーと主キーに分ける（DeliveryError はそのまま送出し、キーを送信しない）
-      2. 主キーは文字のまま pynput に渡す（Windows の送り方。Linux は send_paste_linux を使う）
+      2. 主キーは文字のまま pynput に引き渡す（Windows の送り方。Linux は send_paste_linux を使用する）
       3. FOCUS_SETTLE_SEC だけ待つ（貼り付け先のフォーカスが落ち着くのを待つ）
       4. 修飾キーを順に押し、主キーを押して離し、修飾キーを逆順に離す
          - `[INFO]` 貼り付けのキーを送信した（paste_key）
@@ -137,7 +137,7 @@ functions:
     usecase: 起こした文字を届ける
     scope: public
     inherits: SendEnterFn
-    summary: pynput で、渡した修飾キーを押したまま Enter を今のアクティブなウィンドウへ送信する（待ちは呼ぶ側が置く）
+    summary: pynput で、引き渡した修飾キーを押したまま Enter を今のアクティブなウィンドウへ送信する（待ちは呼ぶ側が配置する）
     args:
       - name: modifiers
         type: Sequence[EnterModifier]
@@ -182,7 +182,7 @@ functions:
     container: integrations/keyboard/sender.py
     usecase: 起こした文字を届ける
     scope: public
-    summary: 設定の貼り付けのキーを、押す修飾キーの並びと主キーに分ける。send_paste と send_paste_linux が使う
+    summary: 設定の貼り付けのキーを、押す修飾キーの並びと主キーに分ける。send_paste と send_paste_linux が使用する
     args:
       - name: paste_key
         type: str
@@ -226,8 +226,8 @@ functions:
     container: integrations/keyboard/sender.py
     usecase: 起こした文字を届ける
     scope: public
-    summary: pyperclip の書き先を xclip（XWayland）に固定する。Wayland のセッションの配線が起動のときに 1 回呼ぶ
-    description: pyperclip は `WAYLAND_DISPLAY` を見て `wl-copy` を選ぶが、GNOME の `wl-copy` は書くたびに貼り付け先のフォーカスを取り、貼り付けのキーが落ちる。xclip はフォーカスを取らず、GNOME が X のクリップボードを Wayland のアプリへ渡す。
+    summary: pyperclip の書き込み先を xclip（XWayland）に固定する。Wayland のセッションの配線が起動のときに 1 回呼ぶ
+    description: pyperclip は `WAYLAND_DISPLAY` を見て `wl-copy` を選ぶが、GNOME の `wl-copy` は書き込むたびに貼り付け先のフォーカスを取り、貼り付けのキーが落ちる。xclip はフォーカスを取らず、GNOME が X のクリップボードを Wayland のアプリへ引き渡す。
     returns:
       type: None
       description: なし
@@ -237,7 +237,7 @@ functions:
     unit_tests:
       - name: test_use_xclip_clipboard
         case: 正常
-        summary: 書き先を xclip に固定する
+        summary: 書き込み先を xclip に固定する
         condition: 引数なし
         mock: pyperclip.set_clipboard
         expected: set_clipboard("xclip") が 1 回呼ばれる

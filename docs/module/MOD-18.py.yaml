@@ -8,7 +8,7 @@ constants:
     title: トークンのバイト数
     container: server/token.py
     usecase: 常駐アプリを起動する
-    summary: secrets.token_urlsafe に渡す乱数のバイト数。256 bit で推測できない長さにする
+    summary: secrets.token_urlsafe に引き渡す乱数のバイト数。256 bit で推測できない長さにする
     value: '32'
     status: implemented
 functions:
@@ -18,7 +18,7 @@ functions:
     container: server/token.py
     usecase: 常駐アプリを起動する
     scope: public
-    summary: 待ち受けを始めた後に、今回のトークンとポートをトークンのファイル（置き場所の token_file）へ書く
+    summary: 待ち受けを始めた後に、今回のトークンとポートをトークンのファイル（配置先の token_file）へ書き込む
     args:
       - name: token_file
         type: Path
@@ -40,15 +40,15 @@ functions:
       description: なし
     status: implemented
     process: |-
-      1. `{"port": {ポート}, "token": "{トークン}"}` の JSON を、同じフォルダの一時ファイルに UTF-8 で書いてから token_file へ置き換える（読む側が書きかけを読まない）
-         - `[INFO]` トークンのファイルを書いた（パス・ポート。トークンは書かない）
+      1. `{"port": {ポート}, "token": "{トークン}"}` の JSON を、同じフォルダの一時ファイルに UTF-8 で書き込んでから token_file へ置き換える（読み込む側が書き込みかけを読み込まない）
+         - `[INFO]` トークンのファイルを書き込んだ（パス・ポート。トークンは書き込まない）
     unit_tests:
       - name: test_write_token_file
         case: 正常
-        summary: トークンとポートを書く
+        summary: トークンとポートを書き込む
         condition: 一時フォルダの token_file、ポート 47823、create_token で作ったトークン
         mock: なし（一時フォルダ）
-        expected: token_file の JSON の port が 47823、token が渡したトークンの値と一致し、INFO のログにトークンが含まれない
+        expected: token_file の JSON の port が 47823、token が引き渡したトークンの値と一致し、INFO のログにトークンが含まれない
       - name: test_write_token_file_when_exists
         case: 正常
         summary: 前の起動のファイルを置き換える
@@ -61,7 +61,7 @@ functions:
     container: server/token.py
     usecase: 常駐アプリを起動する
     scope: public
-    summary: secrets.token_urlsafe(TOKEN_BYTES) で起動ごとのトークンを作る。ファイルには書かない（待ち受けを始めてから write_token_file で書く）
+    summary: secrets.token_urlsafe(TOKEN_BYTES) で起動ごとのトークンを作る。ファイルには書き込まない（待ち受けを始めてから write_token_file で書き込む）
     returns:
       type: SecretStr
       description: 作ったトークン

@@ -10,7 +10,7 @@ classes:
     usecase: 設定を変える
     role: ランタイム
     summary: 動いている間の今の設定を 1 つ持ち、設定画面で保存した設定に入れ替える
-    description: 出力先・録音・用語集・画面は設定を値で持たず、使うたびに get で読む。Settings は不変として扱い、入れ替えるだけにする。
+    description: 出力先・録音・用語集・画面は設定を値で持たず、使用するたびに get で読み込む。Settings は不変として扱い、入れ替えるだけにする。
     kind: クラス
     properties:
       - name: _settings
@@ -20,11 +20,11 @@ classes:
       - name: _lock
         type: threading.Lock
         access: 内部 (_)
-        description: 入れ替えと読み出しを 1 つずつにする
+        description: 入れ替えと読み込み出しを 1 つずつにする
     methods:
       - name: get
         title: 読む
-        summary: 今の設定を返す
+        summary: 今の設定を返却する
         kind: メソッド
         scope: public
         thread_safe: true
@@ -49,7 +49,7 @@ classes:
         unit_tests:
           - name: test_replace
             case: 正常
-            summary: 入れ替えた設定を読める
+            summary: 入れ替えた設定を読み込める
             condition: SETTINGS_MODEL() で作り、recording.volume_percent=30 の設定に replace する
             mock: なし
             expected: get().recording.volume_percent が 30

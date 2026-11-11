@@ -10,16 +10,16 @@ classes:
     usecase: 録音する
     role: アダプタ
     kind: クラス
-    summary: Silero VAD の ONNX のセッションで、512 サンプルの窓ごとに話し声の確率を返す。LSTM の状態と前の窓の末尾を次の窓へ持ち越す
+    summary: Silero VAD の ONNX のセッションで、512 サンプルの窓ごとに話し声の確率を返却する。LSTM の状態と前の窓の末尾を次の窓へ持ち越す
     description: |-
       窓をまたいで状態（h・c・前の 64 サンプル）を持ち越すためクラスにする。連続録音を始めるたびに新しく作り、状態を持ち越さない。
-      セッションへの入出力の形式は faster-whisper の SileroVADModel と同じで、状態を呼ぶたびに 0 に戻さずに持ち越す点だけが違う（PoC #80 で、一度に渡した `get_speech_timestamps` と同じ区切りになることを確かめた）。
+      セッションへの入出力の形式は faster-whisper の SileroVADModel と同じで、状態を呼ぶたびに 0 に戻さずに持ち越す点だけが違う（PoC #80 で、一度に引き渡した `get_speech_timestamps` と同じ区切りになることを確認した）。
       録音の区切りのスレッドからだけ呼ぶ（並行で呼ばない）。
     properties:
       - name: _session
         type: onnxruntime.InferenceSession
         access: 内部 (_)
-        description: Silero VAD のセッション（load_vad_session が読んだものを共有する）
+        description: Silero VAD のセッション（load_vad_session が読み込んだものを共有する）
       - name: _h
         type: numpy.ndarray
         access: 内部 (_)
@@ -38,7 +38,7 @@ classes:
         kind: メソッド
         scope: public
         inherits: SpeechProbabilityFn
-        summary: 1 窓（512 サンプル・float32・-1.0〜1.0）の話し声の確率を返し、状態を次の窓へ持ち越す
+        summary: 1 窓（512 サンプル・float32・-1.0〜1.0）の話し声の確率を返却し、状態を次の窓へ持ち越す
         args:
           - name: window
             type: numpy.ndarray
@@ -50,18 +50,18 @@ classes:
         process: |-
           1. 前の窓の末尾と窓をつないだ (1, 576) の入力を作る
           2. セッションを input・h・c で動かし、確率と新しい h・c を受ける
-          3. 窓の末尾 VAD_CONTEXT サンプルを持ち越し、確率を返す
+          3. 窓の末尾 VAD_CONTEXT サンプルを持ち越し、確率を返却する
         unit_tests:
           - name: test_streaming_vad_carries_state
             case: 正常
             summary: 状態を次の窓へ持ち越す
-            condition: セッションの Mock が確率 0.9 と、呼ぶたびに違う h・c を返す。2 窓を続けて渡す
+            condition: セッションの Mock が確率 0.9 と、呼ぶたびに違う h・c を返却する。2 窓を続けて引き渡す
             mock: onnxruntime.InferenceSession
-            expected: 0.9 が返り、2 回目の run に 1 回目が返した h・c と、1 窓目の末尾 64 サンプルで始まる形状 (1, 576) の入力が渡る
+            expected: 0.9 が返り、2 回目の run に 1 回目が返却した h・c と、1 窓目の末尾 64 サンプルで始まる形状 (1, 576) の入力が渡る
           - name: test_streaming_vad_starts_fresh
             case: 正常
             summary: 新しく作ると状態を持ち越さない
-            condition: 同じセッションで 2 つ作り、それぞれに 1 窓を渡す
+            condition: 同じセッションで 2 つ作り、それぞれに 1 窓を引き渡す
             mock: onnxruntime.InferenceSession
             expected: どちらの run にも 0 の h・c が渡る
     refs:
@@ -92,7 +92,7 @@ constants:
     title: VAD のモデルの置き場所
     container: integrations/vad/adapter.py
     usecase: 録音する
-    summary: 常駐アプリのパッケージ（voice_paste.integrations.vad）に同梱した Silero VAD のモデルの置き場所（faster-whisper 1.2.1 の get_vad_model が開くものと同じファイル）
+    summary: 常駐アプリのパッケージ（voice_paste.integrations.vad）に同梱した Silero VAD のモデルの配置先（faster-whisper 1.2.1 の get_vad_model が開くものと同じファイル）
     value: '"assets/silero_vad_v6.onnx"'
     refs:
       - LIB-8#
@@ -107,16 +107,16 @@ functions:
     role: アダプタ
     kind: 関数
     scope: public
-    summary: 常駐アプリのパッケージに同梱した Silero VAD（ONNX）を onnxruntime の CPU で開き、セッションを返す。faster-whisper が入っていない環境でも開ける
-    description: モデルは faster-whisper 1.2.1 が同梱する `assets/silero_vad_v6.onnx` と同じファイルを `integrations/vad/assets/` に、Silero VAD の LICENSE の全文（`LICENSE.silero-vad`）と並べて置き、pyproject.toml の `[tool.setuptools.package-data]` の voice_paste に `"integrations/vad/assets/*.onnx"`・`"integrations/vad/assets/LICENSE.*"` を追加して常駐アプリのパッケージに含める（faster-whisper は `local-whisper` の extra へ移り、`openai` のエンジンでは入れない環境があるため）。faster_whisper を import しない（`__init__` が ctranslate2 と CUDA の DLL を常駐サービスに読み込み、文字起こしワーカーを子プロセスに隔離した構造の決定（`docs/pr/12/方針決め/4_構造の決定.md`）に反する）。起動の配線で 1 回だけ呼ぶ。
+    summary: 常駐アプリのパッケージに同梱した Silero VAD（ONNX）を onnxruntime の CPU で開き、セッションを返却する。faster-whisper が入っていない環境でも開ける
+    description: モデルは faster-whisper 1.2.1 が同梱する `assets/silero_vad_v6.onnx` と同じファイルを `integrations/vad/assets/` に、Silero VAD の LICENSE の全文（`LICENSE.silero-vad`）と並べて配置し、pyproject.toml の `[tool.setuptools.package-data]` の voice_paste に `"integrations/vad/assets/*.onnx"`・`"integrations/vad/assets/LICENSE.*"` を追加して常駐アプリのパッケージに含める（faster-whisper は `local-whisper` の extra へ移り、`openai` のエンジンでは入れない環境があるため）。faster_whisper を import しない（`__init__` が ctranslate2 と CUDA の DLL を常駐サービスに読み込み、文字起こしワーカーを子プロセスに隔離した構造の決定（`docs/pr/12/方針決め/4_構造の決定.md`）に反する）。起動の配線で 1 回だけ呼ぶ。
     returns:
       type: onnxruntime.InferenceSession
       description: Silero VAD のセッション
     process: |-
       1. `importlib.resources.files("voice_paste.integrations.vad")` から VAD_MODEL_RESOURCE を引き、`as_file` でファイルのパスにする
-      2. onnxruntime の SessionOptions（inter_op_num_threads=1・intra_op_num_threads=1・enable_cpu_mem_arena=False・log_severity_level=4）と CPUExecutionProvider で InferenceSession を開いて返す
+      2. onnxruntime の SessionOptions（inter_op_num_threads=1・intra_op_num_threads=1・enable_cpu_mem_arena=False・log_severity_level=4）と CPUExecutionProvider で InferenceSession を開いて返却する
          - モデルのファイルが無い・開けない場合、StartupError を送出する（理由に元の例外を残す）
-           - `[ERROR]` VAD を読めなかった（理由）
+           - `[ERROR]` VAD を読み込めなかった（理由）
     exceptions:
       - name: StartupError
         condition: VAD のモデルを開けない（モデルのファイルが無い・onnxruntime が開けない）

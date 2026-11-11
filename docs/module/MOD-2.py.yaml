@@ -1,7 +1,7 @@
 id: MOD-2
 visibility: internal
 title: 常駐アプリ / YAML の文書 / yaml_document.py
-lead: コメントを保った YAML の読み書き（ruamel.yaml）と、キーの追加・削除でのコメントの付け替え・レイヤーの重ね合わせを持つ。設定の読み書き（共通 の shared/settings.py）が使う。
+lead: コメントを保った YAML の読み込み書き（ruamel.yaml）と、キーの追加・削除でのコメントの付け替え・レイヤーの重ね合わせを持つ。設定の読み込み書き（共通 の shared/settings.py）が使用する。
 test_files:
   - tests/unit/voice_paste/shared/test_yaml_document.py
 directory: |-
@@ -16,7 +16,7 @@ functions:
     container: shared/yaml_document.py
     usecase: 設定を変える
     scope: internal
-    summary: コメントと引用符を保って読み書きする ruamel.yaml の YAML を、字下げと引用符の決まりを当てて返す
+    summary: コメントと引用符を保って読み込み書きする ruamel.yaml の YAML を、字下げと引用符の決まりを当てて返却する
     returns:
       type: ruamel.yaml.YAML
       description: typ="rt" の YAML
@@ -32,33 +32,33 @@ functions:
     container: shared/yaml_document.py
     usecase: 設定を変える
     scope: public
-    summary: YAML のファイルを、コメントを保った文書（CommentedMap）として UTF-8 で読む。無ければ空の文書を返す
+    summary: YAML のファイルを、コメントを保った文書（CommentedMap）として UTF-8 で読み込む。無ければ空の文書を返却する
     args:
       - name: path
         type: Path
         required: true
         passing: positional
-        description: 読むファイル
+        description: 読み込むファイル
     returns:
       type: CommentedMap
-      description: 読んだ文書（空のファイルは空の文書）
+      description: 読み込んだ文書（空のファイルは空の文書）
     process: |-
-      1. path が無ければ空の CommentedMap を返す
-      2. UTF-8 で読み、make_yaml の YAML で解釈する
-         - YAMLError の場合、パスと行・列（problem_mark の line と column に 1 を足した値）を示した SettingsError を送出する
+      1. path が無ければ空の CommentedMap を返却する
+      2. UTF-8 で読み込み、make_yaml の YAML で解釈する
+         - YAMLError の場合、パスと行・列（problem_mark の line と column に 1 を加えた値）を示した SettingsError を送出する
          - 一番上が表でない場合、SettingsError を送出する
     exceptions:
       - name: SettingsError
-        condition: YAML として読めない・一番上が表でない・UTF-8 で読めない
+        condition: YAML として読み込めない・一番上が表でない・UTF-8 で読み込めない
         message: '設定ファイルを読めない（{path}: {行}行目 {列}列目: {理由}）'
     unit_tests:
       - name: test_read_yaml_document_when_broken
         case: 異常
-        summary: 読めない YAML はパスと行・列を示して断る
+        summary: 読み込めない YAML はパスと行・列を示して断る
         condition: 3 行目の字下げが崩れたファイル
         mock: なし（一時フォルダ）
         expected: SettingsError。メッセージにパスと「3行目」を含む
-        exception: YAML として読めない
+        exception: YAML として読み込めない
       - name: test_read_yaml_document_when_not_mapping
         case: 異常
         summary: 一番上が一覧のファイルを断る
@@ -73,17 +73,17 @@ functions:
     container: shared/yaml_document.py
     usecase: 常駐アプリを起動する
     scope: public
-    summary: YAML のファイルを、コメントを持たない素の dict として読む。無ければ空の dict を返す
+    summary: YAML のファイルを、コメントを持たない素の dict として読み込む。無ければ空の dict を返却する
     args:
       - name: path
         type: Path
         required: true
         passing: positional
-        description: 読むファイル
+        description: 読み込むファイル
     returns:
       type: dict[str, Any]
       description: 素の dict・list・値に変えた中身
-    process: 1. read_yaml_document で読み、表と一覧を素の dict と list へ再帰で変えて返す
+    process: 1. read_yaml_document で読み込み、表と一覧を素の dict と list へ再帰で変えて返却する
     exceptions:
       - name: SettingsError
         condition: read_yaml_document と同じ
@@ -94,25 +94,25 @@ functions:
     container: shared/yaml_document.py
     usecase: 設定を変える
     scope: public
-    summary: 文書か dict を UTF-8 の YAML として、同じフォルダの一時ファイルに書いてから置き換える
-    side_effects: path を書く（親のフォルダが無ければ作る）。
+    summary: 文書か dict を UTF-8 の YAML として、同じフォルダの一時ファイルに書き込んでから置き換える
+    side_effects: path を書き込む（親のフォルダが無ければ作る）。
     args:
       - name: path
         type: Path
         required: true
         passing: positional
-        description: 書くファイル
+        description: 書き込むファイル
       - name: document
         type: Mapping[str, Any]
         required: true
         passing: positional
-        description: 書く文書（CommentedMap か dict）
+        description: 書き込む文書（CommentedMap か dict）
     returns:
       type: None
       description: なし
     process: |-
       1. 親のフォルダを作る
-      2. 同じフォルダの一時ファイルへ make_yaml の YAML で UTF-8 で書き、os.replace で path に置き換える
+      2. 同じフォルダの一時ファイルへ make_yaml の YAML で UTF-8 で書き込み、os.replace で path に置き換える
          - OSError の場合、一時ファイルを削除してから送出する
     status: planned
   - name: set_key
@@ -121,7 +121,7 @@ functions:
     container: shared/yaml_document.py
     usecase: 設定を変える
     scope: public
-    summary: ドット区切りのキーの値を文書に書く。無い表は作り、新しく追加するキーは次のキーの前のコメントより前に置く
+    summary: ドット区切りのキーの値を文書に書き込む。無い表は作り、新しく追加するキーは次のキーの前のコメントより前に配置する
     side_effects: document を書き換える。
     args:
       - name: document
@@ -138,7 +138,7 @@ functions:
         type: Any
         required: true
         passing: positional
-        description: 書く値（素の dict・list・値）
+        description: 書き込む値（素の dict・list・値）
     returns:
       type: None
       description: なし
@@ -150,19 +150,19 @@ functions:
       - name: test_set_key_when_added
         case: 正常
         summary: 追加したキーが、次の表の見出しのコメントより前に入る
-        condition: 'hotkeys の表（start だけ）の後ろに「# 文字起こし」と transcription の表がある文書に ("hotkeys", "pause") を書く'
+        condition: 'hotkeys の表（start だけ）の後ろに「# 文字起こし」と transcription の表がある文書に ("hotkeys", "pause") を書き込む'
         mock: なし
         expected: 書き出した YAML で hotkeys.pause の行が「# 文字起こし」の行より前にあり、他の行が全て残る
       - name: test_set_key_when_nested_table_added
         case: 正常
-        summary: 無い表を作って書く
-        condition: 空の文書に ("transcription", "local_whisper", "model") を書く
+        summary: 無い表を作って書き込む
+        condition: 空の文書に ("transcription", "local_whisper", "model") を書き込む
         mock: なし
-        expected: 'transcription.local_whisper.model が書いた値'
+        expected: 'transcription.local_whisper.model が書き込んだ値'
       - name: test_set_key_when_existing
         case: 正常
         summary: 既にあるキーは値だけを替え、行末のコメントを残す
-        condition: '`start: a  # 録音の開始` の行を持つ文書に ("hotkeys", "start") を b で書く'
+        condition: '`start: a  # 録音の開始` の行を持つ文書に ("hotkeys", "start") を b で書き込む'
         mock: なし
         expected: 書き出した行に b と「# 録音の開始」がある
     refs:
@@ -207,7 +207,7 @@ functions:
         summary: 中のキーが無くなった表を外し、表の後ろのコメントを前の表へ付け直す
         condition: recording・hotkeys（start だけ）・transcription の表の順で、hotkeys の後ろに「# 文字起こし」がある文書から ("hotkeys", "start") を外す
         mock: なし
-        expected: 書き出した YAML に hotkeys の表が無く、「# 文字起こし」の行が transcription の表の直前に残り、YAML として読める
+        expected: 書き出した YAML に hotkeys の表が無く、「# 文字起こし」の行が transcription の表の直前に残り、YAML として読み込める
       - name: test_delete_key_when_missing
         case: 正常
         summary: 無いキーは何もしない
@@ -223,7 +223,7 @@ functions:
     container: shared/yaml_document.py
     usecase: 常駐アプリを起動する
     scope: public
-    summary: 後ろのレイヤーの値で前のレイヤーを上書きした新しい dict を返す。表はキーごとに重ね、一覧と値は丸ごと替える
+    summary: 後ろのレイヤーの値で前のレイヤーを上書きした新しい dict を返却する。表はキーごとに重ね、一覧と値は丸ごと替える
     args:
       - name: layers
         type: Mapping[str, Any]
@@ -232,15 +232,15 @@ functions:
         description: 前から順に重ねるレイヤー（可変長の位置引数 `*layers`）
     returns:
       type: dict[str, Any]
-      description: 重ねた dict（渡した dict は書き換えない）
-    process: 1. 前から順に、両方が表のキーは再帰で重ね、それ以外は後ろの値を深いコピーで置く
+      description: 重ねた dict（引き渡した dict は書き換えない）
+    process: 1. 前から順に、両方が表のキーは再帰で重ね、それ以外は後ろの値を深いコピーで配置する
     unit_tests:
       - name: test_merge_layers
         case: 正常
         summary: 表はキーごと、一覧は丸ごと上書きする
         condition: 'layers が ({"a": {"x": 1, "y": 2}, "l": [1, 2]}, {"a": {"y": 3}, "l": [9]})'
         mock: なし
-        expected: '{"a": {"x": 1, "y": 3}, "l": [9]}。渡した dict が変わっていない'
+        expected: '{"a": {"x": 1, "y": 3}, "l": [9]}。引き渡した dict が変わっていない'
     status: planned
   - name: changed_keys
     title: 変わったキーの洗い出し
@@ -248,7 +248,7 @@ functions:
     container: shared/yaml_document.py
     usecase: 設定を変える
     scope: public
-    summary: 2 つの dict で値が違うキーを、表はキーごとにたどって、一覧と値は丸ごと比べて返す
+    summary: 2 つの dict で値が違うキーを、表はキーごとにたどって、一覧と値は丸ごと比べて返却する
     args:
       - name: before
         type: Mapping[str, Any]
@@ -267,7 +267,7 @@ functions:
     unit_tests:
       - name: test_changed_keys
         case: 正常
-        summary: 表の中の違うキーと、一覧の違いを返す
+        summary: 表の中の違うキーと、一覧の違いを返却する
         condition: 'before {"a": {"x": 1, "y": 2}, "l": [1, 2]}・after {"a": {"x": 1, "y": 3}, "l": [1]}'
         mock: なし
         expected: '[("a", "y"), ("l",)]'
@@ -278,7 +278,7 @@ functions:
     container: shared/yaml_document.py
     usecase: 常駐アプリを起動する
     scope: public
-    summary: 値のうち既定値と違うキーだけを残した dict を返す。表はキーごとに比べ、一覧と値は丸ごと比べる
+    summary: 値のうち既定値と違うキーだけを残した dict を返却する。表はキーごとに比べ、一覧と値は丸ごと比べる
     args:
       - name: values
         type: Mapping[str, Any]

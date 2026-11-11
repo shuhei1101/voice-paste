@@ -10,7 +10,7 @@ classes:
     usecase: 常駐アプリを起動する
     role: ランタイム
     kind: クラス
-    summary: uvicorn.Server を専用のスレッドで動かし、待ち受けを始められたかを確かめる
+    summary: uvicorn.Server を専用のスレッドで動かし、待ち受けを始められたかを確認する
     methods:
       - name: start
         title: 起動
@@ -29,18 +29,18 @@ classes:
         process: |-
           1. スレッドで asyncio.run(server.serve()) を始める
           2. started が True になるか、スレッドが終わるか、timeout_sec が過ぎるまで待つ
-             - started が False のままの場合、False を返す
+             - started が False のままの場合、False を返却する
                - `[ERROR]` API の待ち受けを始められなかった（ポート）
         unit_tests:
           - name: test_start
             case: 正常
             summary: 空きポートなら待ち受けを始める
             condition: 127.0.0.1 の空きポート
-            mock: なし（GET だけを返す小さな app）
+            mock: なし（GET だけを返却する小さな app）
             expected: True が返り、そのポートへの要求に応答が返る
           - name: test_start_when_port_in_use
             case: 正常
-            summary: ポートが使われていれば False
+            summary: ポートが使用されていれば False
             condition: 先に同じポートを開いておく
             mock: なし（127.0.0.1 の空きポート）
             expected: False が返り、ERROR のログが 1 行出る
@@ -74,7 +74,7 @@ classes:
     status: implemented
     description: |-
       app とポートを受けて `uvicorn.Server`（host は `127.0.0.1` 固定、アクセスログを出さない）を作る。
-      待ち受けの成否を戻り値で返すのは、uvicorn が待ち受けに失敗しても例外を出さずスレッドを終えるため。
+      待ち受けの成否を戻り値で返却するのは、uvicorn が待ち受けに失敗しても例外を出さずスレッドを終えるため。
     properties:
       - name: _server
         type: uvicorn.Server

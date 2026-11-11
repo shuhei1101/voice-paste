@@ -24,7 +24,7 @@ data_models:
       - name: enter_delay_sec
         type: float
         default: '0.5'
-        description: 貼り付けてから Enter を送信するまで待つ秒数（0 以上）。設定画面の欄の下に、`json_schema_extra` の note の「「貼り付けて送信」と、「ブラウザ添付」の Enter まで送信するプリセットで使う。」を出す
+        description: 貼り付けてから Enter を送信するまで待つ秒数（0 以上）。設定画面の欄の下に、`json_schema_extra` の note の「「貼り付けて送信」と、「ブラウザ添付」の Enter まで送信するプリセットで使用する。」を出す
       - name: enter_modifiers
         type: list[EnterModifier]
         default: '[]'

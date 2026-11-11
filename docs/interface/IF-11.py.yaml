@@ -9,7 +9,7 @@ flows:
     summary: 許す Origin から送信された音声を受け付け、job_id を返却する
     setup:
       - name: Mock
-        description: ブラウザの音声のキューを、積まれたジョブを控えて取り出さないものに差し替える。一時のフォルダはテストの一時フォルダ
+        description: ブラウザの音声のキューを、追加されたジョブを記録して取り出さないものに差し替える。一時のフォルダはテストの一時フォルダ
       - name: 許す Origin
         description: api.allowed_web_origins に要求の Origin を入れる
         notes: '`https://voice.example.com`'
@@ -30,7 +30,7 @@ flows:
         IF->>IF: Host・Origin・大きさ・待ちの数を確認する
         IF->>IF: PyAV で開いて形式と秒数を読み込む
         IF->>TMP: 録れた形式の拡張子で書き込む
-        IF->>Q: ジョブを積む（queued）
+        IF->>Q: ジョブを追加する（queued）
         IF->>LOG: 受け付けた（job_id・大きさ・形式・秒数）
         IF-->>C: 202・job_id
       ```
@@ -46,7 +46,7 @@ flows:
     summary: ホットキーの録音中でも音声を受け付ける
     setup:
       - name: Mock
-        description: マイク・システム音量・トレイを差し替える。ブラウザの音声のキューは積まれたジョブを控えるもの
+        description: マイク・システム音量・トレイを差し替える。ブラウザの音声のキューは追加されたジョブを記録するもの
       - name: 処理中
         description: ホットキーから始めた録音が録音中である
     flow: |-
@@ -59,7 +59,7 @@ flows:
         participant Q as ブラウザの音声のキュー
 
         C->>IF: audio（許す Origin）
-        IF->>Q: ジョブを積む（queued）
+        IF->>Q: ジョブを追加する（queued）
         IF-->>C: 202・job_id
       ```
 
@@ -72,7 +72,7 @@ flows:
     summary: '`audio` の項目が無い要求を断る'
     setup:
       - name: Mock
-        description: ブラウザの音声のキューは積まれたジョブを控えるもの
+        description: ブラウザの音声のキューは追加されたジョブを記録するもの
       - name: 要求
         description: 許す Origin で、multipart の項目名を `file` にする
     flow: |-
@@ -90,13 +90,13 @@ flows:
       <!-- /map -->
     expected:
       - 400 の problem+json が返る
-      - キューにジョブが積まれていない
+      - キューにジョブが追加されていない
     test: test_error_when_audio_missing
   - name: 異常系（許されていない Origin・403）
     summary: 許す Origin に無い Origin が付いた要求を、本文を読み込まずに断る
     setup:
       - name: Mock
-        description: ブラウザの音声のキューは積まれたジョブを控えるもの。一時のフォルダはテストの一時フォルダ
+        description: ブラウザの音声のキューは追加されたジョブを記録するもの。一時のフォルダはテストの一時フォルダ
       - name: 要求のヘッダー
         description: 許す Origin に無い Origin を付ける
         notes: '`Origin: http://evil.example`'
@@ -117,7 +117,7 @@ flows:
       <!-- /map -->
     expected:
       - 403 の problem+json が返る
-      - 一時のフォルダにファイルが無く、キューにジョブが積まれていない
+      - 一時のフォルダにファイルが無く、キューにジョブが追加されていない
       - ログに断った理由と要求元が書き込まれている
     test: test_error_when_origin_not_allowed
   - name: 異常系（大きすぎる・413）
@@ -145,7 +145,7 @@ flows:
       <!-- /map -->
     expected:
       - どちらも 413 の problem+json が返る
-      - 一時のフォルダにファイルが残らず、キューにジョブが積まれていない
+      - 一時のフォルダにファイルが残らず、キューにジョブが追加されていない
     test: test_error_when_too_large
   - name: 異常系（読めない形式・415）
     summary: PyAV で開けない中身と、音声のストリームの無い中身を断る
@@ -172,7 +172,7 @@ flows:
       <!-- /map -->
     expected:
       - どちらも 415 の problem+json が返る
-      - 一時のフォルダにファイルが残らず、キューにジョブが積まれていない
+      - 一時のフォルダにファイルが残らず、キューにジョブが追加されていない
     test: test_error_when_unreadable_format
   - name: 異常系（待ちが上限・503）
     summary: 終わっていないジョブが待ちの上限に達していれば断る
@@ -202,10 +202,10 @@ flows:
       - 一時のフォルダのファイルが 2 つのままで、キューのジョブも 2 件のまま
     test: test_error_when_queue_full
   - name: 正常系（用語集のプリセットを指定）
-    summary: glossary_preset で指定した用語集のプリセットの名前をジョブに持たせて積む
+    summary: glossary_preset で指定した用語集のプリセットの名前をジョブに持たせて追加する
     setup:
       - name: Mock
-        description: ブラウザの音声のキューを、積まれたジョブを控えて取り出さないものに差し替える。一時のフォルダはテストの一時フォルダ
+        description: ブラウザの音声のキューを、追加されたジョブを記録して取り出さないものに差し替える。一時のフォルダはテストの一時フォルダ
       - name: 用語集のプリセット
         description: 設定に用語集のプリセット「既定」と「会議」があり、設定で選んでいるのは「既定」
         notes: multipart の `glossary_preset` に「会議」を入れる
@@ -222,7 +222,7 @@ flows:
 
         C->>IF: audio・glossary_preset（許す Origin）
         IF->>IF: glossary_preset が設定の一覧にあるかを確認する
-        IF->>Q: プリセットの名前を持たせたジョブを積む（queued）
+        IF->>Q: プリセットの名前を持たせたジョブを追加する（queued）
         IF-->>C: 202・job_id
       ```
 
@@ -233,10 +233,10 @@ flows:
       - glossary_preset を付けない要求と空文字の要求は、ジョブの用語集のプリセットの名前が空
     test: test_normal_when_glossary_preset
   - name: 異常系（一覧に無い用語集のプリセット・400）
-    summary: 設定の一覧に無い用語集のプリセットを指定した音声を、積まずに断る
+    summary: 設定の一覧に無い用語集のプリセットを指定した音声を、追加せずに断る
     setup:
       - name: Mock
-        description: ブラウザの音声のキューは積まれたジョブを控えるもの。一時のフォルダはテストの一時フォルダ
+        description: ブラウザの音声のキューは追加されたジョブを記録するもの。一時のフォルダはテストの一時フォルダ
       - name: 無いプリセット
         description: 設定の用語集のプリセットの一覧に無い名前を指定する
         notes: multipart の `glossary_preset` に「無いプリセット」を入れる
@@ -256,13 +256,13 @@ flows:
       <!-- /map -->
     expected:
       - 400 の problem+json が返り、detail に指定したプリセットの名前が含まれている
-      - 一時のフォルダにファイルが残らず、キューにジョブが積まれていない
+      - 一時のフォルダにファイルが残らず、キューにジョブが追加されていない
     test: test_error_when_glossary_preset_not_found
   - name: 異常系（Linux で動いている・404）
     summary: 常駐サービスが Linux で動いているときは `/web/` の下のルートが無く、Origin によらず 404 を返却する
     setup:
       - name: Mock
-        description: なし（常駐アプリの app を、Linux で使用できない機能を外して TestClient で立てる）
+        description: なし（常駐アプリの app を、Linux で使用できない機能を除外して TestClient で作成する）
         notes: 動いている OS を Linux にする
       - name: 要求のヘッダー
         description: Origin を付けない要求と、許す Origin に無い Origin を付けた要求の 2 つを送信する
@@ -283,13 +283,13 @@ flows:
       <!-- /map -->
     expected:
       - Origin を付けない要求と、許す Origin に無い Origin を付けた要求のどちらにも 404（problem+json）が返る
-      - ジョブを積んでいない（ブラウザの音声のキューを立てていない）
+      - ジョブを追加していない（ブラウザの音声のキューを作成していない）
     test: test_error_when_running_on_linux
   - name: 正常系（Origin が無い）
     summary: 同じ端末のほかのプロセスが Origin を付けずに送信した音声を受け付け、job_id を返却する
     setup:
       - name: Mock
-        description: ブラウザの音声のキューを、積まれたジョブを控えて取り出さないものに差し替える。一時のフォルダはテストの一時フォルダ
+        description: ブラウザの音声のキューを、追加されたジョブを記録して取り出さないものに差し替える。一時のフォルダはテストの一時フォルダ
       - name: 要求のヘッダー
         description: Origin を付けない。Host は `localhost:{ポート}`
       - name: 音声
@@ -304,8 +304,8 @@ flows:
         participant Q as ブラウザの音声のキュー
 
         C->>IF: audio（Origin なし）
-        IF->>IF: Host を確認する（Origin が無いため許可リストを見ない）
-        IF->>Q: ジョブを積む（queued）
+        IF->>IF: Host を確認する（Origin が無いため許可リストを確認しない）
+        IF->>Q: ジョブを追加する（queued）
         IF-->>C: 202・job_id
       ```
 
@@ -314,11 +314,11 @@ flows:
       - 202 と 22 文字の job_id が返る
       - キューにその job_id のジョブが queued で 1 件積まれている
     test: test_normal_when_no_origin
-lead: 外の端末のブラウザから送信された音声を受け、一時のファイルに書き込んで文字起こしのジョブを積み、ジョブの ID を返却する。
+lead: 外の端末のブラウザから送信された音声を受け、一時のファイルに書き込んで文字起こしのジョブを追加し、ジョブの ID を返却する。
 identifier: create_web_transcription
 permissions: なし（外からの認証は Cloudflare Access が持つ。常駐アプリは Host と Origin だけを確認する）
 idempotent: false
-side_effects: '受けた音声を一時のフォルダへ録れた形式の拡張子のまま書き、受け付けた時点の用語集のプリセットの名前（指定が無ければ空）を持たせたジョブ（state: queued）をブラウザの音声のキューに積む。受け付けたことを、job_id・大きさ・形式・秒数でログに 1 行書く（音声の中身は書き込まない）。積んだジョブは ブラウザの音声を文字に起こす が 1 件ずつ取り出す。'
+side_effects: '受けた音声を一時のフォルダへ録れた形式の拡張子のまま書き、受け付けた時点の用語集のプリセットの名前（指定が無ければ空）を持たせたジョブ（state: queued）をブラウザの音声のキューに追加する。受け付けたことを、job_id・大きさ・形式・秒数でログに 1 行書く（音声の中身は書き込まない）。追加したジョブは ブラウザの音声を文字に起こす が 1 件ずつ取り出す。'
 exclusivity: 録音セッション（`/sessions`・ホットキー・トレイ）とは排他しない。録音・文字起こしの処理中も受け付け、終わっていないジョブが待ちの上限に達しているときだけ断る
 request:
   - name: Host
@@ -385,7 +385,7 @@ request_example: |-
 response:
   - name: job_id
     type: str
-    description: 積んだジョブの ID。文字起こしの結果を返却する で結果を取りに行くときに使用する
+    description: 追加したジョブの ID。文字起こしの結果を返却する で結果を取りに行くときに使用する
     constraints: 推測できない乱数（`secrets.token_urlsafe(16)`、22 文字）
     example: q3Vb8sXk2mJf0tLw9eRzAg
 response_example: |-
@@ -397,7 +397,7 @@ response_example: |-
 response_notes: 同じ音声を 2 回送信すると、別のジョブが 2 つ積まれる（画面の再送信は新しい job_id を受け取る）。
 status_codes:
   - code: '202'
-    condition: 音声を受け付けてジョブを積んだ
+    condition: 音声を受け付けてジョブを追加した
   - code: '400'
     condition: multipart でないか、`audio` の項目が無い。または、glossary_preset が設定の用語集のプリセットの一覧に無い
   - code: '403'
@@ -413,7 +413,7 @@ status_codes:
 error_format: RFC 9457 の `application/problem+json`（`type`・`title`・`status`・`detail`）で返す。今の API の `problem_response` に揃える。`detail` には断った理由を書き、音声の中身やファイルの置き場所を含めない。
 constraints:
   - item: 待ち受け
-    constraint: 127.0.0.1 だけ。外からはゲートウェイ（shuhdev-gateway、Cloudflare Access）を通して届く
+    constraint: 127.0.0.1 だけ。外からはゲートウェイ（shuhdev-gateway、Cloudflare Access）を経由して届く
   - item: 認可
     constraint: トークンを求めない。Host が待ち受けのホストで、Origin が無いか許す Origin にあること
   - item: 応答時間
@@ -432,6 +432,6 @@ constraints:
     constraint: 制限なし
     notes: 待ちの上限で足りる
   - item: 使用できる OS
-    constraint: 常駐サービスが Windows で動いているときだけ。Linux では `/web/` の下のルートを登録せず、Origin によらず 404 を返却する（要求の守りは Host だけを確かめ、Origin を確認せずにルートへ引き渡す）
+    constraint: 常駐サービスが Windows で動いているときだけ。Linux では `/web/` の下のルートを登録せず、Origin によらず 404 を返却する（要求の守りは Host だけを確認し、Origin を確認せずにルートへ引き渡す）
     notes: OS ごとに使用できる機能の表で、外の端末のブラウザの機能を Linux で使用できない機能にしている。Host が合わない要求は Linux でも 403
 test_file: tests/integration/test_accept_web_audio.py

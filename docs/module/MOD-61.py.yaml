@@ -11,7 +11,7 @@ functions:
     usecase: 起こした文字を届ける
     scope: public
     inherits: OutputFn
-    summary: クリップボードへ書き込み、貼り付けのキーと、設定の間を配置して設定の修飾キーを押したまま Enter を送信する
+    summary: クリップボードへ書き込み、貼り付けのキーと、設定の間を空けて設定の修飾キーを押したまま Enter を送信する
     args:
       - name: outcome
         type: TranscriptionOutcome
@@ -42,7 +42,7 @@ functions:
         type: Callable[[float], None]
         required: true
         passing: injected
-        description: 間を配置する（time.sleep。テストで差し替える）
+        description: 間を空ける（time.sleep。テストで差し替える）
       - name: get_enter_delay_sec
         type: Callable[[], float]
         required: true

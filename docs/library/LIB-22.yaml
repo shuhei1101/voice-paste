@@ -17,7 +17,7 @@ catalogs:
         purpose: '`POST /web/transcriptions` の `audio` を受け取る。python-multipart が解析し、中身は `file`（SpooledTemporaryFile）から読み込む'
       - name: UploadFile.file
         kind: 属性
-        purpose: 受けた音声を PyAV で開いて形式を確かめ、一時のフォルダへ写す
+        purpose: 受けた音声を PyAV で開いて形式を確認し、一時のフォルダへ写す
       - name: UploadFile.close
         kind: メソッド
         purpose: コピーし終えたら SpooledTemporaryFile を閉じて削除する

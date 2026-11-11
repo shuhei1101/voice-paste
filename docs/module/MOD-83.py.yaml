@@ -34,7 +34,7 @@ functions:
         type: Callable[[], str | None]
         required: true
         passing: injected
-        description: 今の設定の手がかりを返却する（main.py で partial で引き渡す。SettingsStore.get の hint_presets を join_hint_words でつなぎ、空なら None）。録音を起こすたびに呼ぶので、保存した設定が再起動せずに次の確定から効く
+        description: 今の設定の手がかりを返却する（main.py で partial で引き渡す。SettingsStore.get の hint_presets を join_hint_words でつなぎ、空なら None）。録音を起こすたびに呼ぶので、保存した設定が再起動せずに次の確定から有効になる
     returns:
       type: str
       description: 区間ごとの文字を改行でつないだもの。無音なら空文字

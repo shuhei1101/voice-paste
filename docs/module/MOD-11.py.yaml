@@ -106,7 +106,7 @@ functions:
     container: features/correction/service.py
     usecase: 録音を文字に起こす
     scope: public
-    summary: 誤変換を正しい表記へ置き換える（正しい表記が空の行は誤変換を削除する。用語集の行の順に、前の行で置き換えた結果へ次の行を当てる）
+    summary: 誤変換を正しい表記へ置き換える（正しい表記が空の行は誤変換を削除する。用語集の行の順に、前の行で置き換えた結果へ次の行を適用する）
     args:
       - name: text
         type: str
@@ -130,7 +130,7 @@ functions:
         expected: 「Claude Code」に置き換わった文が返る
       - name: test_apply_glossary_when_chained
         case: 正常
-        summary: 前の行で置き換えた結果に次の行を当てる
+        summary: 前の行で置き換えた結果に次の行を適用する
         condition: 「A」→「B」、「B」→「C」の順の 2 行と文字「A」
         mock: なし
         expected: 「C」が返る
@@ -423,13 +423,13 @@ functions:
         type: Sequence[EdgePhraseSettings]
         required: true
         passing: positional
-        description: 設定の edge_phrases（当てる順）
+        description: 設定の edge_phrases（適用する順）
     returns:
       type: str
       description: 文頭・文末の文言を削除した文字。全て消えたら空文字
     process: |-
       1. 文字を改行で行に分ける
-      2. 一覧の行を上から順に、前の行で削除した結果へ当てる
+      2. 一覧の行を上から順に、前の行で削除した結果へ適用する
          - 位置が start か both の場合、1 行目の先頭に文言が一致する間、一致した文字を削除する。1 行目が空になったらその行を除き、次の行を 1 行目として続ける
          - 位置が end か both の場合、最後の行の末尾に文言が一致する間、一致した文字を削除する。最後の行が空になったらその行を除き、前の行を最後の行として続ける
       3. 行を改行でつないで返却する
@@ -437,7 +437,7 @@ functions:
     unit_tests:
       - name: test_strip_edge_phrases
         case: 正常
-        summary: 一覧の順に文末から削除し、文頭の行は文頭だけに当てる
+        summary: 一覧の順に文末から削除し、文頭の行は文頭だけに適用する
         condition: 一覧が上から「チャンネル登録*」（end）・「ご視聴ありがとうございました」（end）・「ありがとうございました」（end）・「えーと」（start）。文字は「えーと、ありがとうございました。本日の議題は予算です。\n以上です。ありがとうございました。ご視聴ありがとうございました。チャンネル登録よろしくお願いします。」
         mock: なし
         expected: 「ありがとうございました。本日の議題は予算です。\n以上です。」が返る
@@ -490,7 +490,7 @@ functions:
     title: 用語集のプリセットの一覧の解決
     container: features/correction/service.py
     usecase: 共通
-    summary: 設定から用語集のプリセットの一覧を返却する。`glossary_presets` が空なら、`active_glossary` の用語集だけを使用する「既定」のプリセット 1 件にする。用語集の一覧に無い名前はプリセットから外す
+    summary: 設定から用語集のプリセットの一覧を返却する。`glossary_presets` が空なら、`active_glossary` の用語集だけを使用する「既定」のプリセット 1 件にする。用語集の一覧に無い名前はプリセットから除外する
     kind: 関数
     scope: public
     args:
@@ -511,8 +511,8 @@ functions:
       1. resolve_glossaries で用語集の一覧を引き、名前の並びにする
       2. `glossary_presets` が空かを確認する
          - 空の場合、`active_glossary` が名前の並びにあればその名前、無い（None・一覧に無い）なら 1 つ目の名前だけを glossaries に持つ、名前が DEFAULT_GLOSSARY_PRESET_NAME の 1 件を返却する
-      3. `glossary_presets` の並びのまま、各プリセットの glossaries から用語集の一覧に無い名前を外して返却する（並びは変えない）
-         - `[WARNING]` 用語集の一覧に無い名前をプリセットから外した（プリセットの名前・外した名前。外したものが無ければ出さない）
+      3. `glossary_presets` の並びのまま、各プリセットの glossaries から用語集の一覧に無い名前を除外して返却する（並びは変えない）
+         - `[WARNING]` 用語集の一覧に無い名前をプリセットから除外した（プリセットの名前・除外した名前。除外したものが無ければ出さない）
     unit_tests:
       - name: test_resolve_glossary_presets_when_empty
         case: 正常
@@ -534,7 +534,7 @@ functions:
         expected: glossaries が ["yogo"] の「既定」の 1 件が返る
       - name: test_resolve_glossary_presets
         case: 正常
-        summary: プリセットの並びと、プリセットの中の用語集の並びをそのまま返し、一覧に無い名前を外す
+        summary: プリセットの並びと、プリセットの中の用語集の並びをそのまま返し、一覧に無い名前を除外する
         condition: 「yogo」「会議用」の 2 件の glossaries と、「既定」（["yogo"]）・「会議」（["会議用", "消した", "yogo"]）の 2 件の glossary_presets
         mock: なし
         expected: 「既定」（["yogo"]）・「会議」（["会議用", "yogo"]）の 2 件が返る

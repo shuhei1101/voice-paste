@@ -94,7 +94,7 @@ flows:
         T->>IF: 開始から連続録音の上限時間が経った
         IF->>MIC: 録音を停止する
         IF->>HIST: 区間に切り出していない話し声を最後の区間として保存する
-        IF->>ENG: 最後の区間を区切った順の待ちに積む
+        IF->>ENG: 最後の区間を区切った順の待ちに追加する
         IF->>LOG: 打ち切ったことと session_id を書き込む
         ENG-->>RET: 通し番号 2 の区間の文字
         IF->>RET: session_id・result=truncated・segment_count=2（全ての区間の後）

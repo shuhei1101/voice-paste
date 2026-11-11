@@ -110,7 +110,7 @@ functions:
         type: Callable[[float], None]
         required: true
         passing: injected
-        description: 間を配置する（time.sleep。テストで差し替える）
+        description: 間を空ける（time.sleep。テストで差し替える）
       - name: jitter
         type: Callable[[float], float]
         required: true

@@ -11,7 +11,7 @@ classes:
     role: middleware
     kind: クラス
     inherits: starlette.middleware.base.BaseHTTPMiddleware
-    summary: 全ての要求で Host を確認する。`/web/` の外は Origin・トークンを、`/web/` の下は Origin の許可リストを確かめ、当たらなければ 403・401 で断る
+    summary: 全ての要求で Host を確認する。`/web/` の外は Origin・トークンを、`/web/` の下は Origin の許可リストを確認し、当たらなければ 403・401 で断る
     properties:
       - name: _token
         type: SecretStr
@@ -28,7 +28,7 @@ classes:
       - name: _web_enabled
         type: bool
         access: 内部 (_)
-        description: ブラウザの機能を組み込んだか。False なら `/web/` の下に許す Origin を見ない
+        description: ブラウザの機能を組み込んだか。False なら `/web/` の下に許す Origin を確認しない
     methods:
       - name: dispatch
         title: 要求の確かめ
@@ -54,7 +54,7 @@ classes:
           1. Host が `127.0.0.1:{ポート}` か `localhost:{ポート}` でなければ 403 を返却する
              - `[WARNING]` 断った要求（理由・Host・Origin。トークンは書き込まない）
           2. パスが `/web` か `/web/` で始まるかで分ける
-             - `/web/` の下で _web_enabled が False の場合、次へ引き渡す（route が無いため 404 になる。Origin とトークンを見ない）
+             - `/web/` の下で _web_enabled が False の場合、次へ引き渡す（route が無いため 404 になる。Origin とトークンを確認しない）
              - `/web/` の下の場合
                - Origin が無いか、Origin が _allowed_web_origins にあれば、メソッドによらず次へ引き渡す（トークンは求めない）
                - それ以外（Origin が付いていて _allowed_web_origins に無い）は 403 を返却する
@@ -118,7 +118,7 @@ classes:
             exception: Origin が付いている
           - name: test_dispatch_when_web_disabled
             case: 正常
-            summary: ブラウザの機能が無ければ /web/ の下は Origin を見ずに次へ引き渡す
+            summary: ブラウザの機能が無ければ /web/ の下は Origin を確認せずに次へ引き渡す
             condition: _web_enabled が False で、GET /web/ を Origin http://evil.example・Authorization 無しで送信する
             mock: call_next
             expected: call_next が呼ばれる

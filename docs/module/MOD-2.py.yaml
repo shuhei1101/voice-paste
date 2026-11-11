@@ -16,7 +16,7 @@ functions:
     container: shared/yaml_document.py
     usecase: 設定を変える
     scope: internal
-    summary: コメントと引用符を保って読み書きする ruamel.yaml の YAML を、字下げと引用符の決まりを当てて返却する
+    summary: コメントと引用符を保って読み書きする ruamel.yaml の YAML を、字下げと引用符の決まりを適用して返却する
     returns:
       type: ruamel.yaml.YAML
       description: typ="rt" の YAML
@@ -145,7 +145,7 @@ functions:
     process: |-
       1. 途中の表をたどり、無い表は CommentedMap を作って追加する
       2. 末尾のキーがあれば値だけを置き換える（行末のコメントは残す）
-      3. 無ければ追加する。追加の前に、表の最後のキーに付いた後ろのコメント（ruamel.yaml が `ca.items[key][2]` に持つ、次の表の見出しのコメント）を外し、追加したキーの後ろへ付け直す
+      3. 無ければ追加する。追加の前に、表の最後のキーに付いた後ろのコメント（ruamel.yaml が `ca.items[key][2]` に持つ、次の表の見出しのコメント）を除外し、追加したキーの後ろへ付け直す
     unit_tests:
       - name: test_set_key_when_added
         case: 正常
@@ -174,7 +174,7 @@ functions:
     container: shared/yaml_document.py
     usecase: 設定を変える
     scope: public
-    summary: ドット区切りのキーを文書から外し、中のキーが無くなった表も外す。外したキーの後ろのコメントは前のキーへ付け直す
+    summary: ドット区切りのキーを文書から除外し、中のキーが無くなった表も除外する。除外したキーの後ろのコメントは前のキーへ付け直す
     side_effects: document を書き換える。
     args:
       - name: document
@@ -192,26 +192,26 @@ functions:
       description: なし
     process: |-
       1. キーが無ければ何もしない
-      2. 外すキーに付いた後ろのコメント（行末のコメントを除く。入れ子の表なら、その表の最後のキーに付いたもの）を取り出してからキーを外す
+      2. 除外するキーに付いた後ろのコメント（行末のコメントを除く。入れ子の表なら、その表の最後のキーに付いたもの）を取り出してからキーを除外する
       3. 取り出したコメントを、同じ表の前のキー（前のキーが表ならその最後のキー）の後ろへ付け直す。前のキーが無ければ、表の先頭のコメントに付ける
-      4. 外した後に空になった表を、親から同じ手順で外す
+      4. 除外した後に空になった表を、親から同じ手順で除外する
     unit_tests:
       - name: test_delete_key_when_trailing_comment
         case: 正常
-        summary: 外したキーの後ろのコメントと空行が残る
-        condition: hotkeys.cancel の後ろに空行と「# 文字起こし」がある文書から ("hotkeys", "cancel") を外す
+        summary: 除外したキーの後ろのコメントと空行が残る
+        condition: hotkeys.cancel の後ろに空行と「# 文字起こし」がある文書から ("hotkeys", "cancel") を除外する
         mock: なし
         expected: 書き出した YAML に cancel の行が無く、空行と「# 文字起こし」の行が transcription の表の前に残る
       - name: test_delete_key_when_table_emptied
         case: 正常
-        summary: 中のキーが無くなった表を外し、表の後ろのコメントを前の表へ付け直す
-        condition: recording・hotkeys（start だけ）・transcription の表の順で、hotkeys の後ろに「# 文字起こし」がある文書から ("hotkeys", "start") を外す
+        summary: 中のキーが無くなった表を除外し、表の後ろのコメントを前の表へ付け直す
+        condition: recording・hotkeys（start だけ）・transcription の表の順で、hotkeys の後ろに「# 文字起こし」がある文書から ("hotkeys", "start") を除外する
         mock: なし
         expected: 書き出した YAML に hotkeys の表が無く、「# 文字起こし」の行が transcription の表の直前に残り、YAML として読み込める
       - name: test_delete_key_when_missing
         case: 正常
         summary: 無いキーは何もしない
-        condition: 空の文書から ("hotkeys", "start") を外す
+        condition: 空の文書から ("hotkeys", "start") を除外する
         mock: なし
         expected: 文書が空のまま
     refs:

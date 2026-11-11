@@ -7,9 +7,9 @@ items:
   - page: SCR-1.py.yaml
     summary: 状態ごとのアイコンと、録音・設定・フォルダ・再起動・終了のメニュー
   - page: SCR-2.py.yaml
-    summary: 裏の処理で起きた失敗と、「コピーのみ」のコピーの完了を Windows の通知で知らせる
+    summary: 裏の処理で起きた失敗と、「コピーのみ」のコピーの完了を Windows の通知で通知する
   - page: SCR-3.py.yaml
-    summary: API の録音の処理中に録音開始のホットキーを押したときに、始められない理由を知らせる
+    summary: API の録音の処理中に録音開始のホットキーを押したときに、始められない理由を通知する
   - page: SCR-9.py.yaml
     summary: 設定の全てのキーをまとまりに並べ、確認してから保存する
   - page: SCR-5.py.yaml

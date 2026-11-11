@@ -6,7 +6,7 @@ functions:
     title: 処理中のダイアログ
     container: ui/windows/busy_dialog.py
     usecase: 録音する
-    summary: 「常に手前に表示」の QMessageBox で、処理中のため録音を始められないことを知らせる。既に出ていれば前面に出すだけにする
+    summary: 「常に手前に表示」の QMessageBox で、処理中のため録音を始められないことを通知する。既に出ていれば前面に出すだけにする
     kind: 関数
     scope: public
     returns:

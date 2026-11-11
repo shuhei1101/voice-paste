@@ -52,7 +52,7 @@ data_models:
     container: features/session/types.py
     usecase: 共通
     role: DTO
-    summary: ほかの feature と入口を関数型で束ねたもの。main.py で配線する
+    summary: ほかの feature と入口を関数型でまとめたもの。main.py で配線する
     properties:
       - name: start_recording
         type: StartRecordingFn
@@ -86,7 +86,7 @@ data_models:
         description: 結果を出力先へ届ける
       - name: notify
         type: NotifyFn
-        description: ユーザーへ知らせる（画面・トレイ。メインスレッドへは Signal で引き渡す）
+        description: ユーザーへ通知する（画面・トレイ。メインスレッドへは Signal で引き渡す）
       - name: now
         type: Callable[[], datetime]
         description: 今の時刻（テストで差し替える）
@@ -95,7 +95,7 @@ data_models:
         description: 処理を終えた録音が一時の音声なら削除する（履歴の discard_temporary）
       - name: report_progress
         type: ProgressFn
-        description: ホットキー・トレイの録音で、文字起こしの進みを画面へ知らせる（配線では ui の report_progress）
+        description: ホットキー・トレイの録音で、文字起こしの進みを画面へ通知する（配線では ui の report_progress）
       - name: start_continuous_recording
         type: StartContinuousRecordingFn
         description: 連続録音を始める（音量を下げ、マイクを開き、区切った区間を引き渡し先へ引き渡す）
@@ -125,7 +125,7 @@ data_models:
     container: features/session/types.py
     usecase: APIで録音を操作する
     role: DTO
-    summary: 連続録音の区間の待ち行列へ、全ての区間の後ろに積む終わりのマーカー。終わった理由を持つ
+    summary: 連続録音の区間の待ち行列へ、全ての区間の後ろに追加する終わりのマーカー。終わった理由を持つ
     properties:
       - name: result
         type: Literal["completed", "truncated", "failed"]
@@ -208,7 +208,7 @@ function_types:
     title: 文字起こし
     container: features/session/types.py
     usecase: 共通
-    summary: 録音のファイルを文字に起こす。進みは on_progress で知らせる
+    summary: 録音のファイルを文字に起こす。進みは on_progress で通知する
     args:
       - name: audio_path
         type: Path

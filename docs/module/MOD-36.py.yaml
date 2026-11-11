@@ -64,7 +64,7 @@ classes:
             expected: objectName が field_recording.lower_volume・field_recording.volume_percent・field_recording.fade_sec の欄が無く、collect の recording.volume_percent が 40 で lower_volume・fade_sec も開いたときの値
       - name: save
         title: 保存
-        summary: 欄の値を設定のモデルで確かめ、通れば書き込んで効かせ、窓を開いたまま保存したメッセージを出す（restart のときだけ閉じる）。通らなければエラーを出す
+        summary: 欄の値を設定のモデルで確認し、通れば書き込んで効かせ、窓を開いたまま保存したメッセージを出す（restart のときだけ閉じる）。通らなければエラーを出す
         kind: メソッド
         scope: public
         args:
@@ -97,8 +97,8 @@ classes:
             case: 正常
             summary: 通った値を書き込む
             condition: 「録音中の音量の割合」を 30 にして save(restart=False)
-            mock: UiDeps.save_settings・QAccessible.updateAccessibility（引き渡したイベントを控える）
-            expected: True。save_settings に recording.volume_percent=30 の Settings が渡り、saved が 1 回 emit される。窓が開いたままで closed が知らされず、保存したメッセージが「保存しました。」で、欄の値と選んでいたまとまりがそのまま。QAccessible.updateAccessibility が 1 回呼ばれ、引き渡したイベントの文が「保存しました。」
+            mock: UiDeps.save_settings・QAccessible.updateAccessibility（引き渡したイベントを記録する）
+            expected: True。save_settings に recording.volume_percent=30 の Settings が渡り、saved が 1 回 emit される。窓が開いたままで closed が通知されず、保存したメッセージが「保存しました。」で、欄の値と選んでいたまとまりがそのまま。QAccessible.updateAccessibility が 1 回呼ばれ、引き渡したイベントの文が「保存しました。」
           - name: test_save_when_invalid
             case: 異常
             summary: 通らなければ書き込まずにエラーを出す
@@ -142,19 +142,19 @@ classes:
             case: 正常
             summary: 用語集の一覧と補正に使用するプリセットを設定に入れ、行を変えた用語集だけを書き戻しに引き渡す
             condition: 2 件の用語集と 2 件のプリセットを持つ設定で開き、2 件目の用語集の行を 1 つオフにし、補正に使用するプリセットを 2 件目にして保存する
-            mock: UiDeps.save_settings（引数を控える）・list_glossaries・list_glossary_presets・read_glossary（決まった一覧と行を返却する）
+            mock: UiDeps.save_settings（引数を記録する）・list_glossaries・list_glossary_presets・read_glossary（決まった一覧と行を返却する）
             expected: 引き渡した設定の glossaries が 2 件で active_glossary_preset が 2 件目のプリセットの名前、glossary_path と active_glossary が None。書き戻しの引数は 2 件目の場所だけを持ち、その行がオフになっている
           - name: test_save_when_glossaries_untouched
             case: 正常
             summary: 用語集を変えずに保存すると、書き戻す CSV は無い
             condition: 今までの用語集 1 件だけの設定で開き、ホットキーだけを変えて保存する
-            mock: UiDeps.save_settings（引数を控える）・list_glossaries・read_glossary
+            mock: UiDeps.save_settings（引数を記録する）・list_glossaries・read_glossary
             expected: 書き戻しの引数が空。引き渡した設定の glossaries がその 1 件
           - name: test_save_when_glossary_invalid
             case: 異常
             summary: 名前の重なりと片方が空の行では保存せず、エラーを出す
             condition: 追加した用語集の名前を 2 件目と同じにし、その 2 行目の誤変換を空にして保存する
-            mock: UiDeps.save_settings（呼ばれたかを控える）・list_glossaries・read_glossary
+            mock: UiDeps.save_settings（呼ばれたかを記録する）・list_glossaries・read_glossary
             expected: 'False。save_settings は呼ばれず、エラーの一覧に「用語集 3 件目の名前: …」と「用語集 3 件目の 2 行目の誤変換: 誤変換を入れてください」が出る'
           - name: test_save_when_hint_presets
             case: 正常
@@ -184,7 +184,7 @@ classes:
             expected: True。saved と restart_requested が 1 回ずつ emit され、closed が 1 回知らされる
           - name: test_save_when_hotkey_changed
             case: 正常
-            summary: ホットキーを変えた保存では、閉じると効くことを添える
+            summary: ホットキーを変えた保存では、閉じると有効になることを添える
             condition: 録音開始のホットキーを変えて save(restart=False)。別のケースで出力先の確定のホットキーを変えて save(restart=False)。別のケースでカスタムプリセットの確定のホットキーを変えて save(restart=False)。もう 1 つのケースで貼り付けに送信するキーだけを変えて save(restart=False)
             mock: UiDeps.save_settings
             expected: 録音開始か出力先の確定かカスタムプリセットの確定のホットキーを変えたときは保存したメッセージが「保存しました。新しいホットキーは、設定画面を閉じると効きます。」。貼り付けに送信するキーだけのときは「保存しました。」
@@ -198,7 +198,7 @@ classes:
             case: 正常
             summary: 開いたままの 2 回目の保存で、開いたときの行へ戻した用語集も書き戻す
             condition: 1 件目の用語集の行を 1 つオフにして保存し、開いたままその行をオンに戻してもう一度保存する
-            mock: UiDeps.save_settings（引数を控える）・list_glossaries・read_glossary
+            mock: UiDeps.save_settings（引数を記録する）・list_glossaries・read_glossary
             expected: 2 回目の書き戻しの引数が 1 件目の場所を持ち、その行がオン
           - name: test_save_then_close
             case: 正常
@@ -210,7 +210,7 @@ classes:
             case: 正常
             summary: 正しい表記だけが空の行は確かめに通し、空のまま書き戻しに引き渡す
             condition: 1 件目の用語集に行を追加して誤変換「ご視聴ありがとうございました」だけを入れ、save(restart=False)
-            mock: UiDeps.save_settings（引数を控える）・list_glossaries・read_glossary
+            mock: UiDeps.save_settings（引数を記録する）・list_glossaries・read_glossary
             expected: True。エラーの一覧が出ず、書き戻しの引数が 1 件目の場所を持ち、追加した行が wrong="ご視聴ありがとうございました"・right=""
             exception: '-'
           - name: test_save_when_edge_phrases
@@ -230,13 +230,13 @@ classes:
             case: 正常
             summary: 用語集のプリセットを使用する用語集の順のまま設定に入れる
             condition: glossary_presets が空で active_glossary = "会議用" の設定で開き（「既定」（["会議用"]）が出る）、プリセットを追加して名前を「議事録」にし、「yogo」、「会議用」の順に追加して、補正に使用するプリセットに選んで保存する
-            mock: UiDeps.save_settings（引数を控える）・list_glossaries・list_glossary_presets・read_glossary
+            mock: UiDeps.save_settings（引数を記録する）・list_glossaries・list_glossary_presets・read_glossary
             expected: 引き渡した設定の glossary_presets が [{既定, ["会議用"]}, {議事録, ["yogo", "会議用"]}]、active_glossary_preset が「議事録」、active_glossary が None
           - name: test_save_when_glossary_preset_invalid
             case: 異常
             summary: 用語集のプリセットの名前が空・重なるときは保存せず、エラーを出す
             condition: 「既定」の 1 件のプリセットでプリセットを 2 つ追加し、2 件目の名前を「既定」に、3 件目の名前を空のままで保存する
-            mock: UiDeps.save_settings（呼ばれたかを控える）・list_glossaries・list_glossary_presets・read_glossary
+            mock: UiDeps.save_settings（呼ばれたかを記録する）・list_glossaries・list_glossary_presets・read_glossary
             expected: 'False。save_settings は呼ばれず、エラーの一覧に「用語集のプリセット 2 件目の名前: 用語集のプリセット「既定」と同じ名前です。別の名前にしてください。」と「用語集のプリセット 3 件目の名前: 名前を入れてください。」が出る。前者を押すと「用語集」のまとまりで 2 件目のプリセットの名前の欄にフォーカスが移る'
           - name: test_save_when_fixed_after_invalid
             case: 正常
@@ -253,7 +253,7 @@ classes:
             exception: 確かめに通らない
       - name: reset_to_defaults
         title: 既定に戻す
-        summary: confirm_reset で確かめ、戻すなら UiDeps.reset_settings で環境の値を空にして読み込み直した設定を欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す
+        summary: confirm_reset で確認し、戻すなら UiDeps.reset_settings で環境の値を空にして読み込み直した設定を欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す
         kind: メソッド
         scope: public
         returns:
@@ -282,7 +282,7 @@ classes:
         returns:
           type: None
           description: なし
-        process: 1. 強制で閉じるフラグ（`_force_close`）を立てて窓を閉じる。closeEvent は確認を出さずに閉じ、closed を知らせる
+        process: 1. 強制で閉じるフラグ（`_force_close`）を作成して窓を閉じる。closeEvent は確認を出さずに閉じ、closed を通知する
         unit_tests:
           - name: test_close_without_confirm
             case: 正常
@@ -499,7 +499,7 @@ functions:
       type: int
       description: メニューの幅（px）
     process: |-
-      1. menu.ensurePolished() でスタイルシート（項目の余白）を当ててから、sizeHintForColumn(0) で最も長い項目の幅を測る
+      1. menu.ensurePolished() でスタイルシート（項目の余白）を適用してから、sizeHintForColumn(0) で最も長い項目の幅を測る
       2. 1 の幅に、枠の幅（frameWidth の 2 倍）と GROUP_MENU_MARGIN_PX を加える
          - 縦のスクロールバーが出ている（verticalScrollBar().maximum() が 0 より大きい）場合、その幅（verticalScrollBar().sizeHint().width()）も加える
       3. 2 と GROUP_MENU_MIN_WIDTH_PX の大きい方を返却する
@@ -704,7 +704,7 @@ functions:
         summary: 同じ単語に違う読みが入っている
         condition: words が 突合・突合、readings が とつごう・とつあわせ の SETTINGS_MODEL.model_validate の失敗を引き渡す
         mock: なし
-        expected: 同じ単語に違う読みが入っています。読みを揃えるか、単語を削除してください。（失敗の場所は後ろの単語の readings[1]）
+        expected: 同じ単語に違う読みが入っています。読みを統一するか、単語を削除してください。（失敗の場所は後ろの単語の readings[1]）
       - name: test_to_field_message_when_haas_port_overlap
         case: 正常
         summary: Haas のポートが API のポートと同じ

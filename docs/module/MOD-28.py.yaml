@@ -55,7 +55,7 @@ classes:
         title: 開始
         kind: メソッド
         scope: public
-        summary: 一時のフォルダに取り残された音声を削除し、ワーカースレッドを立てる
+        summary: 一時のフォルダに取り残された音声を削除し、ワーカースレッドを起動する
         args:
           - name: tmp_dir
             type: Path
@@ -68,11 +68,11 @@ classes:
           1. tmp_dir の下のファイルを削除する（前の起動で取り残された音声。削除できないものは残す）
              - `[WARNING]` 取り残された音声を削除できなかった（パス・理由）
           2. tmp_dir を作る
-          3. _run を回すデーモンのスレッドを立てる
+          3. _run を回すデーモンのスレッドを起動する
         unit_tests:
           - name: test_start
             case: 正常
-            summary: 取り残しを削除してスレッドを立てる
+            summary: 取り残しを削除してスレッドを起動する
             condition: tmp_dir に古い `.webm` が 1 つある
             mock: WebTranscriptionDeps の全関数
             expected: 古いファイルが消え、ワーカースレッドが動いている
@@ -81,7 +81,7 @@ classes:
         kind: メソッド
         scope: public
         thread_safe: true
-        summary: 終わっていないジョブが上限未満ならジョブを queued で積む
+        summary: 終わっていないジョブが上限未満ならジョブを queued で追加する
         args:
           - name: job_id
             type: str
@@ -101,11 +101,11 @@ classes:
             description: 確かめ済みの用語集のプリセットの名前。None は指定なし
         returns:
           type: WebJob
-          description: 積んだジョブ（state は queued）
+          description: 追加したジョブ（state は queued）
         process: |-
           1. ロックを取る
           2. 終わっていないジョブ（queued・running）の数が _max_pending 以上なら WebQueueFullError を送出する
-          3. glossary_preset を持たせたジョブを作って _jobs に入れ、待ち行列に ID を積む
+          3. glossary_preset を持たせたジョブを作って _jobs に入れ、待ち行列に ID を追加する
              - `[INFO]` 音声を受け付けた（job_id・大きさ・形式・秒数・用語集のプリセット。指定なしは「設定に従う」）
         exceptions:
           - name: WebQueueFullError
@@ -113,15 +113,15 @@ classes:
         unit_tests:
           - name: test_submit
             case: 正常
-            summary: queued で積む
+            summary: queued で追加する
             condition: ジョブが無い
-            mock: WebTranscriptionDeps の全関数（ワーカースレッドは立てない）
+            mock: WebTranscriptionDeps の全関数（ワーカースレッドは起動しない）
             expected: queued のジョブが返り、get で同じジョブが引ける。glossary_preset に「会議」を引き渡したジョブは glossary_preset が「会議」、None を引き渡したジョブは None
           - name: test_submit_when_queue_full
             case: 異常
             summary: 上限で断る
             condition: _max_pending=2 で 2 件積んだ後に 3 件目
-            mock: WebTranscriptionDeps の全関数（ワーカースレッドは立てない）
+            mock: WebTranscriptionDeps の全関数（ワーカースレッドは起動しない）
             expected: WebQueueFullError が送出され、ジョブは 2 件のまま
             exception: 終わっていないジョブが上限に達している
       - name: get
@@ -197,7 +197,7 @@ classes:
           - name: test_process
             case: 正常
             summary: 起こして補正し、done で終える
-            condition: queued のジョブ 1 件。transcribe が進み 0.5 を知らせて文を返却する
+            condition: queued のジョブ 1 件。transcribe が進み 0.5 を通知して文を返却する
             mock: WebTranscriptionDeps の全関数
             expected: ジョブが done・progress 1.0・text は correct の戻り値で、correct が起こした文字と None で呼ばれ、store_audio・append_text・discard_temporary が 1 回ずつ呼ばれる。transcribe の途中に get すると running・progress 0.5
           - name: test_process_when_transcription_failed
@@ -228,19 +228,19 @@ classes:
         title: 終了
         kind: メソッド
         scope: public
-        summary: 待ち行列に止める合図を積み、待ちのジョブの一時のファイルを削除する。起こしている 1 件は待たない
+        summary: 待ち行列に止める合図を追加し、待ちのジョブの一時のファイルを削除する。起こしている 1 件は待たない
         returns:
           type: None
           description: なし
         process: |-
           1. 待ち行列に残った ID を取り出し、そのジョブの一時のファイルを削除する（discard_temporary）
-          2. 待ち行列に None を積む（ワーカースレッドはデーモンなので join しない）
+          2. 待ち行列に None を追加する（ワーカースレッドはデーモンなので join しない）
              - `[INFO]` ブラウザの音声のキューを閉じた（捨てた待ちの数）
         unit_tests:
           - name: test_close
             case: 正常
             summary: 待ちの一時のファイルを削除する
-            condition: queued のジョブが 2 件（ワーカースレッドは立てない）
+            condition: queued のジョブが 2 件（ワーカースレッドは起動しない）
             mock: WebTranscriptionDeps の全関数
             expected: discard_temporary が 2 回呼ばれる
     status: planned
@@ -273,7 +273,7 @@ functions:
     container: features/web_transcription/service.py
     usecase: ブラウザから音声を送信する
     scope: public
-    summary: 指定された用語集のプリセットと受けた音声の形式を確かめ、一時のファイルへ書き込んでジョブを積む
+    summary: 指定された用語集のプリセットと受けた音声の形式を確認し、一時のファイルへ書き込んでジョブを追加する
     args:
       - name: file
         type: BinaryIO
@@ -293,7 +293,7 @@ functions:
         description: multipart の glossary_preset。None と空文字は指定なし
     returns:
       type: WebJob
-      description: 積んだジョブ
+      description: 追加したジョブ
     process: |-
       1. glossary_preset が空文字なら None にする
       2. None でなく、glossary_preset_exists が False なら GlossaryPresetNotFoundError を送出する（音声は読み込まず、書き込まない。メッセージに指定した名前を含める）
@@ -301,7 +301,7 @@ functions:
       3. 音声の形式を読み込む（probe_audio。読み込めなければ AudioUnreadableError が伝わる）
          - `[WARNING]` 読み込めない音声を断った（大きさ・理由）
       4. ID を作り、`{tmp_dir}/{ID}{容れ物の拡張子}` へ頭からコピーする
-      5. glossary_preset と共にキューに積む（submit）
+      5. glossary_preset と共にキューに追加する（submit）
          - WebQueueFullError の場合、コピーした一時のファイルを削除してそのまま送出する
            - `[WARNING]` 待ちが上限のため断った（待ちの数）
     exceptions:
@@ -314,7 +314,7 @@ functions:
     unit_tests:
       - name: test_accept_audio
         case: 正常
-        summary: 容れ物の拡張子で書き込んで積む
+        summary: 容れ物の拡張子で書き込んで追加する
         condition: probe_audio が webm を返却する
         mock: probe_audio・WebJobQueue.submit
         expected: tmp_dir に `{ID}.webm` が送信した内容で書き込まれ、submit がそのパスと glossary_preset None で呼ばれる
@@ -334,13 +334,13 @@ functions:
         exception: 終わっていないジョブが上限に達している
       - name: test_accept_audio_when_glossary_preset
         case: 正常
-        summary: 一覧にあるプリセットを持たせて積む
+        summary: 一覧にあるプリセットを持たせて追加する
         condition: glossary_preset に「会議」、glossary_preset_exists が True を返却する
         mock: probe_audio・glossary_preset_exists・WebJobQueue.submit
         expected: glossary_preset_exists が「会議」で呼ばれ、submit が glossary_preset「会議」で呼ばれる
       - name: test_accept_audio_when_glossary_preset_empty
         case: 正常
-        summary: 空文字は指定なしとして積む
+        summary: 空文字は指定なしとして追加する
         condition: glossary_preset に空文字
         mock: probe_audio・glossary_preset_exists・WebJobQueue.submit
         expected: glossary_preset_exists が呼ばれず、submit が glossary_preset None で呼ばれる

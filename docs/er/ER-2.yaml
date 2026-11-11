@@ -165,7 +165,7 @@ tables:
     deletion: 削除しない（同じ中身なら書き直さず使う）
     description: |-
       配置先は `shared/constants.py` の `ui_image_dir`（`--data-dir` を引き渡したときはその下の `ui`）。
-      write_arrow_image が明暗を当てるたびに無ければ書き込む。
+      write_arrow_image が明暗を適用するたびに無ければ書き込む。
     columns:
       - name: svg
         title: 画像

@@ -68,7 +68,7 @@ data_models:
         description: 画面に出す出力先の名前（出力先の ID → OUTPUTS の title。API 専用の出力先を除く）。設定画面の欄と録音の画面のボタンが引く
       - name: apply_theme
         type: Callable[[], None]
-        description: 今の設定の ui.theme で画面の明暗を当て修正する（配線で apply_theme に QApplication と SettingsStore.get の ui.theme を引き渡したもの）
+        description: 今の設定の ui.theme で画面の明暗を当て直す（配線で apply_theme に QApplication と SettingsStore.get の ui.theme を引き渡したもの）
       - name: list_glossaries
         type: Callable[[], list[GlossarySettings]]
         description: 今の設定の用語集の一覧（path は絶対パス。glossaries が空なら今までの用語集の 1 件。resolve_glossaries）
@@ -86,13 +86,13 @@ data_models:
         description: 文字起こし中に届ける出力先を差し替える（SessionManager.switch_output）。文字起こし中の表示の切り替えのボタンが呼ぶ
       - name: list_glossary_presets
         type: Callable[[], list[GlossaryPresetSettings]]
-        description: 今の設定の用語集のプリセットの一覧（glossary_presets が空なら「既定」の 1 件。一覧に無い用語集の名前は外す。resolve_glossary_presets）
+        description: 今の設定の用語集のプリセットの一覧（glossary_presets が空なら「既定」の 1 件。一覧に無い用語集の名前は除外する。resolve_glossary_presets）
       - name: hidden_setting_keys
         type: frozenset[str]
         description: 設定画面で出さない設定のキー（hidden_setting_keys(unavailable_features(CURRENT_OS))）。Linux では録音中の音量のキーと api.allowed_web_origins
       - name: reports_progress
         type: bool
-        description: 動いているエンジンが区間ごとの進みを知らせるか（local_whisper は True、openai・haas は False。haas から切り戻した起動は local_whisper として True）。engine の反映は再起動のため、保存した設定ではなく起動の配線で決めた値を持つ
+        description: 動いているエンジンが区間ごとの進みを通知するか（local_whisper は True、openai・haas は False。haas から切り戻した起動は local_whisper として True）。engine の反映は再起動のため、保存した設定ではなく起動の配線で決めた値を持つ
     status: implemented
 classes:
   - name: UiController
@@ -211,7 +211,7 @@ classes:
             expected: show_busy_dialog が 1 回呼ばれる
           - name: test_on_notified_when_failure
             case: 正常
-            summary: 失敗をトレイの通知で知らせる
+            summary: 失敗をトレイの通知で通知する
             condition: event=delivery_failed、detail="クリップボードに書き込めない"
             mock: Tray
             expected: Tray.show_failure(delivery_failed, クリップボードに書き込めない) が呼ばれる
@@ -309,7 +309,7 @@ classes:
             expected: Tray.hide が呼ばれ、request_quit が呼ばれない
       - name: open_settings
         title: 設定画面を開く
-        summary: 設定画面を開く。開いていれば前面に出すだけにする。新しく開くときはホットキーの受付を止め、設定画面が閉じたら（保存して再起動・今すぐ再起動・取り消し・窓の閉じるのどの経路でも）on_settings_closed を呼ぶ。「保存」では閉じないため、保存したホットキーは閉じたときに効く
+        summary: 設定画面を開く。開いていれば前面に出すだけにする。新しく開くときはホットキーの受付を止め、設定画面が閉じたら（保存して再起動・今すぐ再起動・取り消し・窓の閉じるのどの経路でも）on_settings_closed を呼ぶ。「保存」では閉じないため、保存したホットキーは閉じたときに有効になる
         kind: メソッド
         scope: public
         returns:
@@ -345,7 +345,7 @@ classes:
         unit_tests:
           - name: test_on_settings_saved
             case: 正常
-            summary: 保存したら明暗を当て修正する
+            summary: 保存したら明暗を当て直す
             condition: UiDeps の get_settings が ui.theme=dark の設定を返却する
             mock: UiDeps.apply_theme・Tray
             expected: UiDeps.apply_theme が 1 回呼ばれ、Tray.set_start_hotkey に設定の hotkeys.start が渡る
@@ -373,7 +373,7 @@ classes:
           description: なし
         process: |-
           1. 録音の画面が出ていない場合、何もしない
-          2. 窓を隠し（RecordingWindow.hide_window）、隠したフラグを立てる
+          2. 窓を隠し（RecordingWindow.hide_window）、隠したフラグを作成する
           3. トレイを hidden にする（Tray.set_recording_window）
         unit_tests:
           - name: test_hide_recording
@@ -459,7 +459,7 @@ classes:
         unit_tests:
           - name: test_on_copied
             case: 正常
-            summary: コピーの完了をトレイの通知で知らせる
+            summary: コピーの完了をトレイの通知で通知する
             condition: text="テスト"
             mock: Tray
             expected: Tray.show_copy_completed("テスト") が 1 回呼ばれる
@@ -490,7 +490,7 @@ classes:
             expected: UiDeps.copy("テスト") が 1 回呼ばれ、Tray.show_failure が呼ばれない
           - name: test_recopy_when_copy_failed
             case: 異常
-            summary: コピーし直せなければ届けられなかったことを知らせる
+            summary: コピーし直せなければ届けられなかったことを通知する
             condition: UiDeps.copy が DeliveryError("クリップボードへ書き込めませんでした") を送出する
             mock: UiDeps の全関数・Tray
             expected: Tray.show_failure(delivery_failed, クリップボードへ書き込めませんでした) が呼ばれ、ERROR のログが 1 行出て、例外が外へ出ない

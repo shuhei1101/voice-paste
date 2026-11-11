@@ -97,7 +97,7 @@ functions:
     process: |-
       1. haas_asr と torch を import し、load_model(args.model, device=args.device, dtype=…) で読み込む（dtype は `auto` ならそのまま、ほかは getattr(torch, args.dtype)）
          - `[INFO]` モデルを読み込んだ（モデル・計算の精度・装置・かかった秒）
-      2. 次の関数を HaasEngine に束ねる
+      2. 次の関数を HaasEngine にまとめる
 
          | 関数 | 呼ぶ処理 |
          | --- | --- |

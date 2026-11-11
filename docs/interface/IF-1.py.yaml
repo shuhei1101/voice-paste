@@ -79,7 +79,7 @@ flows:
       - 履歴に音声も `.txt` も無く、一時のフォルダが空
     test: test_normal_when_history_disabled
   - name: 正常系（受け付けた順）
-    summary: 積んだ順に 1 件ずつ起こし、後のジョブは queued のまま待つ
+    summary: 追加した順に 1 件ずつ起こし、後のジョブは queued のまま待つ
     setup:
       - name: Mock
         description: 文字起こしのエンジンを、テストが放すまで戻らない関数に差し替える
@@ -105,7 +105,7 @@ flows:
       <!-- /map -->
     expected:
       - 1 件目を起こしている間、2 件目の state が queued
-      - 両方が積んだ順に done になる
+      - 両方が追加した順に done になる
     test: test_normal_when_queued_in_order
   - name: 異常系（文字起こしに失敗）
     summary: 文字起こしワーカーがエラーを返却したジョブを failed にして、次のジョブへ進む
@@ -206,6 +206,6 @@ constraints:
     constraint: 常駐サービスの終了時は、起こしている 1 件の終わりを待たずにスレッドを停止し、待ちのジョブの一時のファイルを削除する
     notes: 履歴へ移した音声は残る
   - item: 使用できる OS
-    constraint: 常駐サービスが Windows で動いているときだけ。Linux ではブラウザの音声のキューとワーカースレッドを立てない
+    constraint: 常駐サービスが Windows で動いているときだけ。Linux ではブラウザの音声のキューとワーカースレッドを起動しない
     notes: OS ごとに使用できる機能の表で、外の端末のブラウザの機能を Linux で使用できない機能にしている
 test_file: tests/integration/test_transcribe_web_audio.py

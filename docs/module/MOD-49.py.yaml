@@ -90,7 +90,7 @@ constants:
     container: shared/constants.py
     usecase: 常駐アプリを起動する
     role: 配置先
-    summary: リポジトリの直下に配置する checkout の上書きのファイル（git の管理から外す）
+    summary: リポジトリの直下に配置する checkout の上書きのファイル（git の管理から除外する）
     value: '"settings.local.yaml"'
     status: planned
   - name: LEGACY_SETTINGS_FILE_NAME

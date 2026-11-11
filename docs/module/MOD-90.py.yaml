@@ -15,8 +15,8 @@ classes:
       マイクの入力（コールバックのストリーム）を長く持つためクラスにする。
       入力のスレッドが音を貯める処理と、呼び出し元のスレッドの操作を 1 つのロックで守る。
       どの終わり方（停止・破棄・開始の失敗・連続録音の停止）でも、下げた音量を 1 回だけ戻す。
-      設定は録音を始めるたびに読み込み直す（`recording.*` は再起動なしで効く）。
-      連続録音では、入力のスレッドは届いた音を待ち行列へ積むだけにし、話し声の判定と区切りは区切りのスレッドで行う（入力のコールバックを遅らせない）。音は貯めず、区間は Segmenter が引き渡す。
+      設定は録音を始めるたびに読み込み直す（`recording.*` は再起動なしで有効になる）。
+      連続録音では、入力のスレッドは届いた音を待ち行列へ追加するだけにし、話し声の判定と区切りは区切りのスレッドで行う（入力のコールバックを遅らせない）。音は貯めず、区間は Segmenter が引き渡す。
     properties:
       - name: _lower_volume
         type: LowerVolumeFn
@@ -311,7 +311,7 @@ classes:
           3. 区切りのスレッドを始める（待ち行列から音を取り出して Segmenter.feed へ引き渡し、終わりのマーカーで Segmenter.flush を呼んで終える。捨てるマーカーでは flush せずに終える）
              - feed・flush の例外の場合、そこで連続録音を終える。入力を閉じて音量を戻し（_close。入力は待ち行列へ積めなくなり、音は貯まらない）、待ち行列を空にして、on_failed に理由を引き渡してスレッドを終える（それまでに引き渡した区間はそのまま）
                - `[ERROR]` 連続録音の区切りに失敗したため録音を止めた（logger.exception）
-          4. マイクの入力を開く（_on_frames は音を待ち行列へ積む）
+          4. マイクの入力を開く（_on_frames は音を待ち行列へ追加する）
              - 例外の場合、区切りのスレッドを flush せずに止め、音量を戻して MicrophoneUnavailableError を送出する
                - `[ERROR]` マイクを開けなかった（理由）
           5. `[INFO]` 連続録音を始めた（区切る無音の長さ・音量を下げたか）
@@ -336,7 +336,7 @@ classes:
             exception: マイクの入力を開けない
           - name: test_start_continuous_when_segmenter_failed
             case: 異常
-            summary: 区切りに失敗したら入力を閉じて音量を戻し、on_failed に知らせる
+            summary: 区切りに失敗したら入力を閉じて音量を戻し、on_failed に通知する
             condition: 話し声の判定が 3 窓目で RuntimeError を送出する。lower_volume が 0.8 を返却する。1 秒分の音を流す
             mock: lower_volume・restore_volume・open_input・get_settings・create_speech_detector・on_segment・on_failed
             expected: on_failed に理由が 1 回渡り、入力の stop・close が呼ばれ、restore_volume に (0.8, fade_sec) が渡り、その後に入力へ流した音が待ち行列に貯まらず、続く start が通る
@@ -352,7 +352,7 @@ classes:
         process: |-
           1. 連続録音していなければ RuntimeError を送出する（区切りに失敗して自ら止めた後を含む）
           2. 入力を閉じて音量を戻す（_close）
-          3. 待ち行列へ終わりのマーカーを積み、区切りのスレッドの終わりを待つ（スレッドが残りの音を feed し、flush で最後の区間を引き渡す）
+          3. 待ち行列へ終わりのマーカーを追加し、区切りのスレッドの終わりを待つ（スレッドが残りの音を feed し、flush で最後の区間を引き渡す）
           4. 待ち行列とスレッドを手放す
              - `[INFO]` 連続録音を止めた
         exceptions:

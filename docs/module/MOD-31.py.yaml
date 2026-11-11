@@ -255,7 +255,7 @@ classes:
           description: なし
         process: |-
           1. hidden の場合、「録音の画面を表示」を押せるようにし、太字にする
-          2. それ以外の場合、押せなくして太字を外し、状態ごとの理由を添える（shown：（表示中）、no_window：（画面を表示しない録音）、not_recording：（録音していません））
+          2. それ以外の場合、押せなくして太字を除外し、状態ごとの理由を添える（shown：（表示中）、no_window：（画面を表示しない録音）、not_recording：（録音していません））
         unit_tests:
           - name: test_set_recording_window_when_hidden
             case: 正常
@@ -373,7 +373,7 @@ classes:
             case: 正常
             summary: ヒントを付けずにアイコンを出し、出した後に準備中のヒントを付ける
             condition: Tray(settings_dir, log_dir) を作る
-            mock: QSystemTrayIcon.show（呼ばれた時点のヒントとアイコンの画像の有無を控える）
+            mock: QSystemTrayIcon.show（呼ばれた時点のヒントとアイコンの画像の有無を記録する）
             expected: 'show が 1 回呼ばれ、その時点のヒントが空でアイコンの画像が付いている。作り終えた後のヒントが voice-paste: 準備中'
     refs:
       - SCR-1#

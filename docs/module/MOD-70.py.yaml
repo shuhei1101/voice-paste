@@ -12,7 +12,7 @@ classes:
     kind: クラス
     summary: Wayland のセッションで、python-evdev の UInput の仮想キーボードから貼り付けのキーと Enter を送信する。起動のときに 1 回開き、終了のときに閉じる
     description: |-
-      Wayland のセッションでは pynput・XTEST のキーがネイティブのアプリへ届かないため、カーネルの uinput で入力の機器を作ってキーを送信する。`/dev/uinput` を開く権限（udev の規則と `input` グループ）が要り、無ければ open が DeliveryError を送出する（配線がトレイで知らせ、「コピーのみ」は使用できる）。
+      Wayland のセッションでは pynput・XTEST のキーがネイティブのアプリへ届かないため、カーネルの uinput で入力の機器を作ってキーを送信する。`/dev/uinput` を開く権限（udev の規則と `input` グループ）が要り、無ければ open が DeliveryError を送出する（配線がトレイで通知し、「コピーのみ」は使用できる）。
 
       send_paste は sender.py の send_paste の代わりに、send_enter は SendEnterFn として配線する。
     properties:
@@ -79,7 +79,7 @@ classes:
           3. 修飾キーを EVDEV_MODIFIER_CODES で、主キーを `ecodes.ecodes["KEY_" + 主キーの大文字]` でキーコードに替える
              - 替えられない場合、DeliveryError を送出する
           4. FOCUS_SETTLE_SEC だけ待つ
-          5. read_focused_wm_class でフォーカスしているウィンドウの wm_class を読み込み、小文字にしたどれかの名前が TERMINAL_WM_CLASSES にあるかを見る
+          5. read_focused_wm_class でフォーカスしているウィンドウの wm_class を読み込み、小文字にしたどれかの名前が TERMINAL_WM_CLASSES にあるかを確認する
              - ある場合、修飾キーを KEY_LEFTCTRL・KEY_LEFTSHIFT、主キーを KEY_V に替える
                - `[INFO]` 端末アプリなので Ctrl+Shift+V を送信する（wm_class）
              - 無い場合（読み込めずに空のときを含む）、3 のキーのまま

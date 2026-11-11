@@ -12,7 +12,7 @@ classes:
     summary: 取った名前付きのミューテックスと、終了の依頼を待つスレッドを持つ
     description: |-
       終了の依頼のイベント（名前付き）と停止のイベント（名前の無い自分専用）を専用のデーモンスレッドで待ち、終了の依頼が立ったら on_quit_requested で引き渡された関数を 1 回呼んでスレッドを終える（呼ぶのはそのスレッド。メインスレッドへ引き渡すのは引き渡す側の関数が行う）。
-      名前付きのイベントは自分では立てない（立てると、ハンドルが残る間に次のプロセスへ依頼が引き継がれる）。
+      名前付きのイベントは自分では作成しない（作成すると、ハンドルが残る間に次のプロセスへ依頼が引き継がれる）。
       ミューテックスは取ったスレッド（メインスレッド）で放す。
     kind: クラス
     properties:
@@ -59,13 +59,13 @@ classes:
           - name: test_on_quit_requested
             case: 正常
             summary: 頼まれたら受け手を呼ぶ
-            condition: 取った後に受け手を引き渡し、同じ名前のイベントを立てる
+            condition: 取った後に受け手を引き渡し、同じ名前のイベントを作成する
             mock: 受け手
             expected: 受け手が 1 秒以内に 1 回呼ばれる
           - name: test_on_quit_requested_when_already_requested
             case: 正常
             summary: 受け手を引き渡す前に頼まれていても取りこぼさない
-            condition: 取った後、受け手を引き渡す前にイベントを立てる
+            condition: 取った後、受け手を引き渡す前にイベントを作成する
             mock: 受け手
             expected: 受け手を引き渡した時点で 1 回呼ばれる
       - name: release
@@ -77,7 +77,7 @@ classes:
           type: None
           description: なし
         process: |-
-          1. 停止のイベント（名前の無い自分専用）を立てて待つスレッドを抜けさせ、終わりを待つ（名前付きの終了の依頼のイベントは立てない）
+          1. 停止のイベント（名前の無い自分専用）を作成して待つスレッドを抜けさせ、終わりを待つ（名前付きの終了の依頼のイベントは作成しない）
           2. ミューテックスを放し（ReleaseMutex）、ミューテックス・終了の依頼のイベント・停止のイベントのハンドルを閉じる（CloseHandle）
              - 2 回目以降の呼び出しは何もしない
         unit_tests:
@@ -135,7 +135,7 @@ functions:
       1. 名前付きのミューテックスを作る（ctypes で Win32 の CreateMutexW。kernel32 は最初の呼び出しで読み込み、single_instance.py を Linux でも import できるようにする）
       2. 既にあった（ERROR_ALREADY_EXISTS）か
          - ある場合、前のプロセスの終了の依頼のイベントを開いて立て（OpenEventW・SetEvent）、ミューテックスの解放を timeout_sec まで待つ（WaitForSingleObject。前のプロセスが片付けずに落ちて放棄されたミューテックス（WAIT_ABANDONED）も取れたものとして扱う）
-           - イベントを開けない場合（前のプロセスがミューテックスを作ってからイベントを作るまでの間）、OPEN_EVENT_RETRY_INTERVAL_SEC ごとに開き直しながら、同じ上限までミューテックスの解放を待つ（開けたらその時点で立てる）
+           - イベントを開けない場合（前のプロセスがミューテックスを作ってからイベントを作るまでの間）、OPEN_EVENT_RETRY_INTERVAL_SEC ごとに開き直しながら、同じ上限までミューテックスの解放を待つ（開けたらその時点で作成する）
            - `[INFO]` 前の常駐サービスに終わるよう頼んだ
            - 上限まで取れない場合、ミューテックスのハンドルを閉じて StartupError を送出する。上限まで一度もイベントを開けなかったときは、理由にその旨を書き込む
          - 無い場合、そのまま取れている
@@ -154,7 +154,7 @@ functions:
       - name: test_acquire_single_instance_when_held
         case: 正常
         summary: 持っている側に終わるよう頼み、放されたら取れる
-        condition: 別のスレッドで同じ名前の SingleInstanceLock を先に取り、その on_quit_requested には呼ばれたことを知らせるだけの関数を引き渡す。知らせを受けたら、取ったスレッドが release する（名前付きのミューテックスは取ったスレッドだけが放せる）。テストのスレッドで timeout_sec=5 で取る
+        condition: 別のスレッドで同じ名前の SingleInstanceLock を先に取り、その on_quit_requested には呼ばれたことを通知するだけの関数を引き渡す。知らせを受けたら、取ったスレッドが release する（名前付きのミューテックスは取ったスレッドだけが放せる）。テストのスレッドで timeout_sec=5 で取る
         mock: なし（実物の Win32 の名前付きのミューテックスとイベント）
         expected: 先の on_quit_requested が 1 回呼ばれ、後の呼び出しが SingleInstanceLock を返却する
       - name: test_acquire_single_instance_when_not_released

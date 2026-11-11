@@ -38,4 +38,4 @@ directory: |-
       └── client.py     # post_json（httpx）
   ```
 notes:
-  Wayland のキーの送信のテスト: integrations/keyboard/sender_wayland.py の単体テストのファイルは `tests/unit/voice_paste/integrations/keyboard/test_sender_wayland.py`。evdev は Linux だけの依存のため、Windows では skip する。evdev.UInput を差し替えて write の並びで確かめ、実物の `/dev/uinput` は検証環境の VM での通しの確認で確認する。
+  Wayland のキーの送信のテスト: integrations/keyboard/sender_wayland.py の単体テストのファイルは `tests/unit/voice_paste/integrations/keyboard/test_sender_wayland.py`。evdev は Linux だけの依存のため、Windows では skip する。evdev.UInput を差し替えて write の並びで確認し、実物の `/dev/uinput` は検証環境の VM での通しの確認で確認する。

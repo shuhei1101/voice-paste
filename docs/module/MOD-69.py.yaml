@@ -74,7 +74,7 @@ classes:
              - 外れる場合、送信せずに EngineError を送出する（理由は「音声が OpenAI API の上限（25 MB）を超えています」か「OpenAI API が受けられない形式です（{拡張子}）」）
                - `[WARNING]` OpenAI API へ送信しない音声（大きさ・拡張子）
           2. httpx.Client（timeout=None でアプリ側では待つ時間の上限を設けない、follow_redirects=False、transport=_transport）で `{base_url}/audio/transcriptions` へ POST する。ヘッダーは `Authorization: Bearer {API キー}`、本文は multipart の file（音声）・model・response_format=json と、_build_form が返却する言語と手がかりの項目
-          3. 応答を見る
+          3. 応答を確認する
              - 200 の場合、JSON の text の前後の空白を除き、空でなければ [text]、空なら [] を返却する
                - `[INFO]` OpenAI API で起こした（モデル・音声のバイト数・かかった秒・試した回数）
              - 429・500 以上か、httpx.TimeoutException・httpx.TransportError の場合、送信し直した回数が OPENAI_MAX_RETRIES 未満なら待ってから 2 へ戻る。待つ秒数は Retry-After（秒数）があればそれ、無ければ _uniform(0, OPENAI_RETRY_BASE_SEC × 2^回数)。どちらも OPENAI_RETRY_MAX_SEC で頭打ちにする
@@ -170,7 +170,7 @@ classes:
         title: 言語と手がかりの項目の組み立て
         kind: メソッド
         scope: internal
-        summary: 設定のモデルに合わせて、言語と手がかりを載せる multipart の項目を返却する
+        summary: 設定のモデルに合わせて、言語と手がかりを記載する multipart の項目を返却する
         args:
           - name: hint
             type: str | None
@@ -181,7 +181,7 @@ classes:
           type: dict[str, str | list[str]]
           description: multipart の項目名 → 値。list の値は同じ項目名で繰り返し送信する
         process: |-
-          1. 設定のモデルが OPENAI_KEYWORDS_MODEL_PREFIX で始まるかを見る
+          1. 設定のモデルが OPENAI_KEYWORDS_MODEL_PREFIX で始まるかを確認する
              - 始まる場合、`languages[]` に [設定の言語] を入れる。hint があれば HINT_SEPARATOR で単語に分け、OPENAI_KEYWORD_FORBIDDEN_CHARS のどれかを含む単語を除いた単語を `keywords[]` に入れる（残る単語が無ければ `keywords[]` を入れない）。`language`・`prompt` は入れない
                - `[WARNING]` keywords[] に入れない単語がある（除いた単語の数。単語そのものは書き込まない）
              - 始まらない場合、`language` に設定の言語を入れ、hint があれば `prompt` に hint をそのまま入れる

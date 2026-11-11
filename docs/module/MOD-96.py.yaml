@@ -84,7 +84,7 @@ classes:
              - 200 の場合、空を返却して終える
                - `[INFO]` Haas のサーバーを起動した（かかった秒・ポート）
              - 起動した wsl.exe が 0 以外で終わった場合、EngineError を送出する
-             - stop が呼ばれた場合、_process.terminate で wsl.exe を終わらせ（stop が _process を見た後に起動しても残さない）、EngineError を送出する
+             - stop が呼ばれた場合、_process.terminate で wsl.exe を終わらせ（stop が _process を確認した後に起動しても残さない）、EngineError を送出する
           4. _process.terminate で wsl.exe を終わらせ、EngineError を送出する（理由は待ち時間までに応答が無いこと。読み込み中のサーバーが残って GPU を使い続けないようにする）
         exceptions:
           - name: EngineError

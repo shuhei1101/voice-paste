@@ -112,7 +112,7 @@ enums:
     values:
       - value: queued
         title: 文字起こし待ち
-        description: 受け付けてキューに積んだ
+        description: 受け付けてキューに追加した
       - value: running
         title: 文字起こし中
         description: ワーカースレッドが起こしている
@@ -139,7 +139,7 @@ function_types:
     title: 文字起こし
     container: features/web_transcription/types.py
     usecase: 共通
-    summary: 音声のファイルと進みを知らせる関数を受け、起こした文字を返却する。失敗は TranscriptionError
+    summary: 音声のファイルと進みを通知する関数を受け、起こした文字を返却する。失敗は TranscriptionError
     returns:
       type: str
       description: 区間を改行でつないだ文字

@@ -8,7 +8,7 @@ functions:
     title: スタイルシートの組み立て
     container: ui/style.py
     usecase: 共通
-    summary: tokens.toml（デザイン方針の色・書体・余白）を QSS に埋め、アプリ全体のスタイルシートを返却する。部品ごとに色・書体を直書きしない。枠なしの窓（録音の画面・文字起こし中の表示）の外側の枠 `QFrame[role="window"]` と `QMenu` は、面を surface、縁を frame の 1px の線で描き、ほかの線は border のままにする。チェックボックス・ラジオボタンはマーカーと名前の組に透明の 1px の枠を持たせ、フォーカスで枠を accent_fg、使用できないとき名前を text_muted にする。マーカーと名前の間は `shape.indicator_gap`。選択欄の開くマーカーは、区画（`::drop-down`）に枠を持たせず、`::down-arrow` に write_arrow_image が書き込んだ V 字の画像を当てる（`url()` には `/` 区切りのパス（`Path.as_posix()`）を `"` で囲んで入れる。`\` 区切りでは描かれない）。チェックボックス・ラジオボタンのマーカー（`::indicator`）の規則は持たず IndicatorStyle が描く
+    summary: tokens.toml（デザイン方針の色・書体・余白）を QSS に埋め、アプリ全体のスタイルシートを返却する。部品ごとに色・書体を直書きしない。枠なしの窓（録音の画面・文字起こし中の表示）の外側の枠 `QFrame[role="window"]` と `QMenu` は、面を surface、縁を frame の 1px の線で描き、ほかの線は border のままにする。チェックボックス・ラジオボタンはマーカーと名前の組に透明の 1px の枠を持たせ、フォーカスで枠を accent_fg、使用できないとき名前を text_muted にする。マーカーと名前の間は `shape.indicator_gap`。選択欄の開くマーカーは、区画（`::drop-down`）に枠を持たせず、`::down-arrow` に write_arrow_image が書き込んだ V 字の画像を適用する（`url()` には `/` 区切りのパス（`Path.as_posix()`）を `"` で囲んで入れる。`\` 区切りでは描かれない）。チェックボックス・ラジオボタンのマーカー（`::indicator`）の規則は持たず IndicatorStyle が描く
     kind: 関数
     scope: public
     args:
@@ -94,8 +94,8 @@ functions:
     usecase: 共通
     summary: ui.theme で Qt の明暗を揃え、決めた明暗のスタイルシートをアプリ全体に当て、開いている窓を描き直す
     description: |-
-      今の明暗はモジュールの `_current_dark` に控え、theme_color が読み込む（書き込むのはこの関数だけ）。当てた IndicatorStyle はモジュールの `_indicator_style` に控える（書き込むのはこの関数だけ）。メインスレッドから呼ぶ。
-      スタイルシートで塗らない部品（設定画面のスクロールバーなど）は style がパレットで描くため、Qt の明暗（`QStyleHints.setColorScheme`。Qt 6.8 から）も揃える。setColorScheme・unsetColorScheme で colorSchemeChanged が出て main からもう一度呼ばれるが、2 回目は同じ値を入れ直すだけでシグナルは出ない。
+      今の明暗はモジュールの `_current_dark` に控え、theme_color が読み込む（書き込むのはこの関数だけ）。適用した IndicatorStyle はモジュールの `_indicator_style` に記録する（書き込むのはこの関数だけ）。メインスレッドから呼ぶ。
+      スタイルシートで塗らない部品（設定画面のスクロールバーなど）は style がパレットで描くため、Qt の明暗（`QStyleHints.setColorScheme`。Qt 6.8 から）も統一する。setColorScheme・unsetColorScheme で colorSchemeChanged が出て main からもう一度呼ばれるが、2 回目は同じ値を入れ直すだけでシグナルは出ない。
     kind: 関数
     scope: public
     side_effects: QApplication の明暗（styleHints の colorScheme）とスタイルシートを替え、`_current_dark` を書き換える
@@ -104,7 +104,7 @@ functions:
         type: QApplication
         required: true
         passing: positional
-        description: 当てる先
+        description: 適用する先
       - name: theme
         type: Literal["system", "light", "dark"]
         required: true
@@ -119,15 +119,15 @@ functions:
       type: None
       description: なし
     process: |-
-      1. Qt の明暗を揃える。`light`・`dark` は app.styleHints().setColorScheme(Qt.ColorScheme.Light / Dark)、`system` は app.styleHints().unsetColorScheme() で上書きを外す（外した後に 2 で OS の明暗を読み込む）
-      2. resolve_dark(theme, is_dark_theme()) で暗い組を使用するかを決め、`_current_dark` に控える
-      3. モジュールの `_indicator_style` が None のときだけ、app.style() を包んだ IndicatorStyle を作って `_indicator_style` に控え、app.setStyle で当てる（スタイルシートを当てると app.style() は Qt の内部のスタイルに差し替わるため、app.style() では当てたかを確認しない）。続けて app.setStyleSheet(build_stylesheet(決めた明暗, image_dir=引数の image_dir)) を当てる
+      1. Qt の明暗を統一する。`light`・`dark` は app.styleHints().setColorScheme(Qt.ColorScheme.Light / Dark)、`system` は app.styleHints().unsetColorScheme() で上書きを除外する（除外した後に 2 で OS の明暗を読み込む）
+      2. resolve_dark(theme, is_dark_theme()) で暗い組を使用するかを決め、`_current_dark` に記録する
+      3. モジュールの `_indicator_style` が None のときだけ、app.style() を包んだ IndicatorStyle を作って `_indicator_style` に控え、app.setStyle で適用する（スタイルシートを適用すると app.style() は Qt の内部のスタイルに差し替わるため、app.style() では適用したかを確認しない）。続けて app.setStyleSheet(build_stylesheet(決めた明暗, image_dir=引数の image_dir)) を適用する
       4. 開いている窓（QApplication.topLevelWidgets）を update で描き直す（theme_color で描く状態のマーカー・波形・回るマーカーを新しい組の色にする）
-         - `[INFO]` 画面の明暗を当てた（theme・暗い組か）
+         - `[INFO]` 画面の明暗を適用した（theme・暗い組か）
     unit_tests:
       - name: test_apply_theme_when_dark
         case: 正常
-        summary: dark を当てると OS が明るくても暗い組になる
+        summary: dark を適用すると OS が明るくても暗い組になる
         condition: theme=dark。QT_QPA_PLATFORM=offscreen
         mock: is_dark_theme（False）
         expected: QApplication.styleSheet() に tokens.toml の dark の bg が入り、theme_color("surface") が dark の surface の色を返却する
@@ -139,20 +139,20 @@ functions:
         expected: QApplication.styleSheet() に dark の bg が入り、theme_color("surface") が dark の surface の色を返却する
       - name: test_apply_theme_when_switched
         case: 正常
-        summary: 当て修正すると開いている窓の色も変わる
-        condition: theme=dark を当てて QWidget を 1 つ出した後、theme=light を当てる。QT_QPA_PLATFORM=offscreen
+        summary: 当て直すと開いている窓の色も変わる
+        condition: theme=dark を適用して QWidget を 1 つ出した後、theme=light を適用する。QT_QPA_PLATFORM=offscreen
         mock: is_dark_theme（False）・QWidget.update
         expected: QApplication.styleSheet() に light の bg が入り、theme_color("surface") が light の surface を返却し、出した QWidget.update が呼ばれる
       - name: test_apply_theme_when_color_scheme
         case: 正常
-        summary: light・dark は Qt の明暗を上書きし、system は上書きを外してから OS の明暗を読み込む
+        summary: light・dark は Qt の明暗を上書きし、system は上書きを除外してから OS の明暗を読み込む
         condition: theme=light・dark・system をそれぞれ当てる。QT_QPA_PLATFORM=offscreen
         mock: app.styleHints()（setColorScheme・unsetColorScheme）・is_dark_theme（False）
         expected: light は setColorScheme(Qt.ColorScheme.Light)、dark は setColorScheme(Qt.ColorScheme.Dark) が 1 回呼ばれ、unsetColorScheme は呼ばれない。system は unsetColorScheme が is_dark_theme より先に 1 回呼ばれ、setColorScheme は呼ばれない
       - name: test_apply_theme_when_indicator_style
         case: 正常
         summary: IndicatorStyle を 1 回だけ当てる
-        condition: image_dir=tmp_path。theme=light を当てた後、theme=dark を当てる。QT_QPA_PLATFORM=offscreen
+        condition: image_dir=tmp_path。theme=light を適用した後、theme=dark を適用する。QT_QPA_PLATFORM=offscreen
         mock: is_dark_theme（False）
         expected: 1 回目の後に `_indicator_style` が IndicatorStyle のインスタンスになり、2 回目の後も同じインスタンスのまま（app.setStyle は 1 回だけ呼ばれる）。fixture は終わりに `_indicator_style` を None に戻し、アプリのスタイルを元に戻す
     refs:
@@ -162,8 +162,8 @@ functions:
     title: 今の明暗の色
     container: ui/style.py
     usecase: 共通
-    summary: apply_theme で当てた明暗の組の色のトークンを、描画に使用する色で返却する
-    description: 録音の画面の状態のマーカー・波形・閉じるボタンと、文字起こし中の表示の回るマーカーが描くたびに呼ぶ。apply_theme が控えた `_current_dark` の組を返却する。apply_theme をまだ呼んでいなければ OS の明暗（is_dark_theme）の組を使用する
+    summary: apply_theme で適用した明暗の組の色のトークンを、描画に使用する色で返却する
+    description: 録音の画面の状態のマーカー・波形・閉じるボタンと、文字起こし中の表示の回るマーカーが描くたびに呼ぶ。apply_theme が記録した `_current_dark` の組を返却する。apply_theme をまだ呼んでいなければ OS の明暗（is_dark_theme）の組を使用する
     kind: 関数
     scope: public
     args:
@@ -184,7 +184,7 @@ functions:
         expected: tokens.toml の dark の busy の色
       - name: test_theme_color_when_applied
         case: 正常
-        summary: apply_theme の後は当てた明暗の組
+        summary: apply_theme の後は適用した明暗の組
         condition: name=busy。apply_theme(app, "light") の後。QT_QPA_PLATFORM=offscreen
         mock: is_dark_theme（True）
         expected: tokens.toml の light の busy の色

@@ -35,7 +35,7 @@ elements:
     id: reset_button
     kind: button
     position: 既定に戻す確認 > フッター
-    description: settings.yaml から全てのキーを外し、設定画面に戻って既定の値（settings.local.yaml にあるキーはその値）を欄に入れる。反映が immediate の設定はすぐに効かせる
+    description: settings.yaml から全てのキーを除外し、設定画面に戻って既定の値（settings.local.yaml にあるキーはその値）を欄に入れる。反映が immediate の設定はすぐに効かせる
     label: 既定に戻す
     visible_when: 常時
     action: ダイアログを閉じ、設定画面に「既定に戻したメッセージ」を出す

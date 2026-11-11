@@ -94,7 +94,7 @@ classes:
           - name: test_feed_cuts_at_silence
             case: 正常
             summary: 話し声の後の無音が区切る長さに達したら区切る
-            condition: 確率を 0.5 秒分 0.0、1 秒分 0.9、続いて 2.5 秒分 0.0 にする（話し声の前の余白を取れるように先頭に無音を配置する）。min_silence_sec=2.0。16 kHz の音を 1024 フレームずつ渡す
+            condition: 確率を 0.5 秒分 0.0、1 秒分 0.9、続いて 2.5 秒分 0.0 にする（話し声の前の余白を取れるように先頭に無音を挿入する）。min_silence_sec=2.0。16 kHz の音を 1024 フレームずつ渡す
             mock: detect_speech・on_segment
             expected: on_segment に reason=silence の区間が 1 つ渡り、その長さが「話し声の前の余白 SEGMENT_PAD_SEC + 1 秒 + 話し声の後の余白 SEGMENT_PAD_SEC」に 1 窓の誤差で合う
           - name: test_feed_keeps_short_pause
@@ -205,7 +205,7 @@ classes:
           2. 話し声の途中でなければ何もしない
           3. 話し声の始まりから MAX_SEGMENT_SEC に達したら、直近の短い無音の中ほど（無ければ今の位置）で reason=max_length で区切り、そこを次の話し声の始まりにして終える
           4. 確率が NEG_THRESHOLD 未満なら無音の候補として続いた長さを数える
-             - SHORT_SILENCE_SEC 以上続いたら、その無音の中ほどを短い無音として控える
+             - SHORT_SILENCE_SEC 以上続いたら、その無音の中ほどを短い無音として記録する
              - 区切る無音の長さ以上続いたら、無音の始まり + SEGMENT_PAD_SEC で reason=silence で区切り、話し声の途中でなくする
       - name: _emit
         title: 区間を渡す

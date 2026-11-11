@@ -10,7 +10,7 @@ classes:
     kind: クラス
     inherits: PySide6.QtWidgets.QProxyStyle
     summary: チェックボックスの箱・ラジオボタンの丸を、Qt の既定のスタイルに任せず theme_color の色で描く。それ以外の部品は包んだスタイルのまま描く
-    description: アプリ全体のスタイルシートを当てると、Windows 11 のスタイルはオンのチェックボックスの箱と選んだラジオボタンのマーカーを描かなくなる。マーカーはこのスタイルが QPainter で描き、スタイルシートは `::indicator` の規則を持たない（規則が無いマーカーはスタイルシートがこのスタイルの drawPrimitive へ回す）。選択欄の開くマーカーは、`::drop-down` に規則を配置するとこのスタイルへ回らないため、build_stylesheet が `::down-arrow` の画像で描く。色は描くたびに theme_color で引くため、明暗を当て修正しても作り直さない。大きさは tokens.toml の `[shape]` の `indicator`（箱と丸の一辺、16px）と `indicator_dot`（選んだ点の直径、8px）。色の役割は画面設計『設定画面』の補足「マーカーの見え方」のとおり。単体テストは test_style.py に配置する
+    description: アプリ全体のスタイルシートを適用すると、Windows 11 のスタイルはオンのチェックボックスの箱と選んだラジオボタンのマーカーを描かなくなる。マーカーはこのスタイルが QPainter で描き、スタイルシートは `::indicator` の規則を持たない（規則が無いマーカーはスタイルシートがこのスタイルの drawPrimitive へ回す）。選択欄の開くマーカーは、`::drop-down` に規則を配置するとこのスタイルへ回らないため、build_stylesheet が `::down-arrow` の画像で描く。色は描くたびに theme_color で引くため、明暗を当て直しても作り直さない。大きさは tokens.toml の `[shape]` の `indicator`（箱と丸の一辺、16px）と `indicator_dot`（選んだ点の直径、8px）。色の役割は画面設計『設定画面』の補足「マーカーの見え方」のとおり。単体テストは test_style.py に配置する
     methods:
       - name: drawPrimitive
         title: マーカーの描画

@@ -5,7 +5,7 @@ scenarios:
   - name: 正常シナリオ（画面で録る）
     setup:
       - name: Mock
-        description: Windows の Edge を偽のマイクで起動し、画面を開く。常駐アプリは pytest のプロセスの中で起動し、文字起こしのエンジンは受けたパスを控える関数に差し替える
+        description: Windows の Edge を偽のマイクで起動し、画面を開く。常駐アプリは pytest のプロセスの中で起動し、文字起こしのエンジンは受けたパスを記録する関数に差し替える
         notes: 偽のマイクには SAPI で書き出した WAV を流す
       - name: 許す Origin
         description: 画面を開いたオリジンを許す Origin の一覧に入れる
@@ -26,7 +26,7 @@ scenarios:
         PG->>DB: 録った音声を保存日時つきで残す（前の 1 件を置き換える）
         PG->>API: 音声を送信する（multipart の audio）
         API->>API: Origin・大きさ・形式を確認する
-        API->>SVC: 一時のファイルに書き込んでジョブを積む
+        API->>SVC: 一時のファイルに書き込んでジョブを追加する
         API-->>PG: 202（job_id）
         PG->>PG: 結果の一覧に待ちの件を出す
       ```
@@ -42,7 +42,7 @@ scenarios:
   - name: 正常シナリオ（ファイルを選ぶ）
     setup:
       - name: Mock
-        description: Windows の Edge で画面を開く。常駐アプリは pytest のプロセスの中で起動し、文字起こしのエンジンは受けたパスを控える関数に差し替える
+        description: Windows の Edge で画面を開く。常駐アプリは pytest のプロセスの中で起動し、文字起こしのエンジンは受けたパスを記録する関数に差し替える
       - name: 音声ファイル
         description: SAPI で書き出した文を MP3 にしたファイルを選ぶ
     flow: |-
@@ -58,7 +58,7 @@ scenarios:
         U->>PG: 音声ファイルを選んで送信する
         PG->>API: 音声を送信する（multipart の audio）
         API->>API: Origin・大きさ・形式を確認する
-        API->>SVC: 一時のファイルに書き込んでジョブを積む
+        API->>SVC: 一時のファイルに書き込んでジョブを追加する
         API-->>PG: 202（job_id）
         PG->>PG: 結果の一覧に待ちの件を出す
       ```
@@ -103,7 +103,7 @@ scenarios:
   - name: 正常シナリオ（用語集のプリセットを選ぶ）
     setup:
       - name: Mock
-        description: Windows の Edge で画面を開く。常駐アプリは pytest のプロセスの中で起動し、文字起こしのエンジンは受けたパスを控える関数に差し替える。補正は受けたプリセットの名前を控える関数に差し替える
+        description: Windows の Edge で画面を開く。常駐アプリは pytest のプロセスの中で起動し、文字起こしのエンジンは受けたパスを記録する関数に差し替える。補正は受けたプリセットの名前を記録する関数に差し替える
       - name: 用語集のプリセット
         description: 用語集のプリセットが 2 つある
         notes: 設定で選んでいるのは 1 つ目のプリセット
@@ -127,7 +127,7 @@ scenarios:
         U->>PG: 音声ファイルを選んで送信する
         PG->>API: 音声を送信する（multipart の audio・選択したプリセットの名前）
         API->>API: Origin・大きさ・形式と、プリセットの名前が一覧にあるかを確認する
-        API->>SVC: 一時のファイルに書き込み、プリセットの名前を持たせてジョブを積む
+        API->>SVC: 一時のファイルに書き込み、プリセットの名前を持たせてジョブを追加する
         API-->>PG: 202（job_id）
         PG->>PG: 結果の一覧に待ちの件を出す
       ```

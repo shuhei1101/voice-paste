@@ -28,5 +28,5 @@ data_models:
       - name: enter_modifiers
         type: list[EnterModifier]
         default: '[]'
-        description: Enter と一緒に押す修飾キー。設定画面は「。」までを欄の名前にし、`json_schema_extra` の choice_labels（ctrl → Ctrl・alt → Alt・shift → Shift）でチェックボックスの名前を出す。反映は immediate。並びと重なりはそのまま持ち、押す順は send_enter が揃える
+        description: Enter と一緒に押す修飾キー。設定画面は「。」までを欄の名前にし、`json_schema_extra` の choice_labels（ctrl → Ctrl・alt → Alt・shift → Shift）でチェックボックスの名前を出す。反映は immediate。並びと重なりはそのまま持ち、押す順は send_enter が統一する
     status: planned

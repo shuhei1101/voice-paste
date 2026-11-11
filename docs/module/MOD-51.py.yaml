@@ -65,7 +65,7 @@ constants:
     container: shared/os_kind.py
     usecase: 常駐アプリを起動する
     role: OS の判定
-    summary: 読み込んだときに detect_os で決めた、動いている OS。OS を見る処理は sys.platform を直に読み込まず、これを読み込むか main.py の配線で引き渡される
+    summary: 読み込んだときに detect_os で決めた、動いている OS。OS を確認する処理は sys.platform を直に読み込まず、これを読み込むか main.py の配線で引き渡される
     value: detect_os()
     status: planned
   - name: OS_UNAVAILABLE_FEATURES

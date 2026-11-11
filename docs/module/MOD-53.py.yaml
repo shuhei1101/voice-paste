@@ -28,12 +28,12 @@ functions:
       description: なし
     process: |-
       1. log_dir を作る
-      2. ルートロガーに既にこの関数が付けたハンドラがあれば外す（2 回呼んでも 1 組だけにする）
+      2. ルートロガーに既にこの関数が付けたハンドラがあれば解除する（2 回呼んでも 1 組だけにする）
       3. 日付ごとのファイルのハンドラ（_DailyFileHandler）を付ける。書き込むたびにモジュールの `_today()`（今日の `date` を返却する内部の関数。単体テストが差し替える）を呼び、`{log_dir}/{YYYY-MM-DD}.log` が変わっていれば開き直す
       4. 書式は 1 行 1 JSON（JSON Lines）で、ts（ローカルの時刻を UTC オフセット付きの ISO 8601）・level・name・msg・例外があれば exc を持つ（ensure_ascii=False）
       5. sys.stderr があれば同じ書式で stderr にも出す（pythonw では無い）
       6. ルートロガーのレベルを level にする
-      7. uvicorn・uvicorn.error・uvicorn.access のロガーのハンドラを外し、propagate を True にする
+      7. uvicorn・uvicorn.error・uvicorn.access のロガーのハンドラを解除し、propagate を True にする
     unit_tests:
       - name: test_setup_logging
         case: 正常

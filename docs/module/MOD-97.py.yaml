@@ -43,7 +43,7 @@ classes:
       - name: _get_settings
         type: Callable[[], HaasSettings]
         access: 内部 (_)
-        description: 送信するたびに要求ごとの調整の値を読み込む関数（設定画面で保存した値が再起動せずに次の送信から効く）
+        description: 送信するたびに要求ごとの調整の値を読み込む関数（設定画面で保存した値が再起動せずに次の送信から有効になる）
     methods:
       - name: transcribe
         title: 文字起こし
@@ -79,7 +79,7 @@ classes:
           1. _get_vocabulary を呼び、空でなければ `[{"written", "reading"}]` の JSON にする
           2. _get_settings を呼び、要求ごとの調整の値（short_audio_limit_sec・batch_size・alpha・guard・chunk_sec・search_sec・window_sec・separator）を multipart の項目の文字列にする（guard は `true` / `false`）。単語が無くても全て送信する
           3. httpx.Client（timeout は接続 HAAS_CONNECT_TIMEOUT_SEC・応答 HAAS_RESPONSE_TIMEOUT_SEC、transport=_transport）で `http://127.0.0.1:{port}/transcriptions` へ POST する。本文は multipart の audio・調整の値と、単語があれば vocabulary
-          4. 応答を見る
+          4. 応答を確認する
              - 200 の場合、text の前後の空白を除き、空でなければ [text]、空なら [] を返却する
                - `[INFO]` Haas で起こした（音声のバイト数・かかった秒）
              - それ以外の応答か httpx.HTTPError の場合、EngineError を送出する（理由はステータスと problem+json の detail、読み込めなければステータスか例外の種類）

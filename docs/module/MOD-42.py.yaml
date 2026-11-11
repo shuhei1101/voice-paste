@@ -13,7 +13,7 @@ classes:
     description: |-
       HotkeyListener と同じ start・stop を持ち、main・UiDeps はどちらも同じように扱う。
 
-      ショートカットのコマンドは send_hotkey を流し、send_hotkey が単一インスタンスの終了の依頼のソケットへ押されたホットキーを送信する。LinuxSingleInstanceLock の待つスレッドが on_hotkey で引き渡した _dispatch を呼ぶ。
+      ショートカットのコマンドは send_hotkey を実行し、send_hotkey が単一インスタンスの終了の依頼のソケットへ押されたホットキーを送信する。LinuxSingleInstanceLock の待つスレッドが on_hotkey で引き渡した _dispatch を呼ぶ。
 
       登録は gsettings（`org.gnome.settings-daemon.plugins.media-keys` の `custom-keybindings` の一覧と、ショートカットごとの name・command・binding）で行う。常駐サービスの登録はパスが CUSTOM_KEYBINDING_PATH_PREFIX で始まり、ユーザーが自分で作ったショートカットは一覧に残す。
 
@@ -57,7 +57,7 @@ classes:
         kind: メソッド
         scope: public
         thread_safe: true
-        summary: 常駐サービスの前の登録を外してから、ホットキーごとにカスタムショートカットを登録する
+        summary: 常駐サービスの前の登録を解除してから、ホットキーごとにカスタムショートカットを登録する
         args:
           - name: bindings
             type: dict[str, Callable[[], None]]
@@ -74,9 +74,9 @@ classes:
           3. 各関数を例外を握る関数で包む
              - 呼んだ関数が例外を出した場合、握って受付を続ける
                - `[ERROR]` ホットキーの処理で想定外の例外（ホットキー。logger.exception）
-          4. `custom-keybindings` の一覧を読み込み、常駐サービスの登録（CUSTOM_KEYBINDING_PATH_PREFIX で始まるパス）を除いた一覧を書き戻す（前の起動の残りと、張り直す前の登録を外す）
+          4. `custom-keybindings` の一覧を読み込み、常駐サービスの登録（CUSTOM_KEYBINDING_PATH_PREFIX で始まるパス）を除いた一覧を書き戻す（前の起動の残りと、張り直す前の登録を解除する）
           5. ホットキーごとに `{CUSTOM_KEYBINDING_PATH_PREFIX}{番号}/` のショートカットへ、name（`voice-paste {ホットキー}`）・command（`shlex.join([sys.executable, "-m", "voice_paste.runtime.send_hotkey", 排他の名前, ホットキー])`）・binding（2 のアクセラレーター）を書き込み、4 の一覧の後ろに追加して書き込む
-             - gsettings が 0 以外で終わるか見つからない場合、5 で書き込んだ登録を外してから HotkeyError を送出する（理由に gsettings の標準エラーを残す）
+             - gsettings が 0 以外で終わるか見つからない場合、5 で書き込んだ登録を解除してから HotkeyError を送出する（理由に gsettings の標準エラーを残す）
           6. 包んだ関数を _bindings に入れる
              - `[INFO]` GNOME のショートカットを登録した（ホットキーの一覧）
         exceptions:
@@ -93,7 +93,7 @@ classes:
             expected: '`voice-paste-0/`・`voice-paste-1/` の binding に `<Super><Alt>d`・`<Super><Alt>v`、command に send_hotkey と排他の名前とホットキーが書き込まれ、一覧が [ユーザーのパス, voice-paste-0/, voice-paste-1/] で書き込まれる'
           - name: test_start_when_leftover
             case: 正常
-            summary: 前の起動の登録の残りを外してから登録する
+            summary: 前の起動の登録の残りを解除してから登録する
             condition: 一覧が [ユーザーのパス, voice-paste-0/, voice-paste-1/, voice-paste-2/] の状態で、ホットキー 1 つで始める
             mock: subprocess.run（gsettings）
             expected: 最後に書き込まれた一覧が [ユーザーのパス, voice-paste-0/]
@@ -112,7 +112,7 @@ classes:
             exception: GNOME のアクセラレーターに替えられないキー
           - name: test_start_when_gsettings_failed
             case: 異常
-            summary: gsettings で登録できなければ書き込んだ登録を外して断る
+            summary: gsettings で登録できなければ書き込んだ登録を解除して断る
             condition: 2 つ目のショートカットの binding の set が CalledProcessError を送出する
             mock: subprocess.run（gsettings）
             expected: HotkeyError が送出され、最後に書き込まれた一覧に常駐サービスのパスが無い
@@ -122,14 +122,14 @@ classes:
         kind: メソッド
         scope: public
         thread_safe: true
-        summary: 常駐サービスの登録を一覧から外し、_bindings を空にする。gsettings が失敗しても送出せず WARNING のログを書き込む（終了の片付けで呼ぶため）。登録が無ければ一覧を書き込まない
+        summary: 常駐サービスの登録を一覧から解除し、_bindings を空にする。gsettings が失敗しても送出せず WARNING のログを書き込む（終了の片付けで呼ぶため）。登録が無ければ一覧を書き込まない
         returns:
           type: None
           description: なし
         unit_tests:
           - name: test_stop
             case: 正常
-            summary: 常駐サービスの登録を外し、ユーザーの登録を残す
+            summary: 常駐サービスの登録を解除し、ユーザーの登録を残す
             condition: start の後に stop を 2 回呼ぶ
             mock: subprocess.run（gsettings）
             expected: 一覧が [ユーザーのパス] で 1 回だけ書かれ、2 回目は一覧を書き込まない。stop の後に受けたホットキーでは関数が呼ばれない

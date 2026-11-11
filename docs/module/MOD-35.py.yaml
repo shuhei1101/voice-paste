@@ -14,7 +14,7 @@ classes:
       要素は画面設計「文字起こし中の表示」が持つ。窓は `Qt.Tool | Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus` と `WA_ShowWithoutActivating` で出す。窓の外側の枠の role は `window` にし、縁を frame で描かせる。
       `WindowDoesNotAcceptFocus` のため、切り替えのボタンを押しても見出しの行をつかんでも窓は前面にならず、貼り付け先の入力欄のフォーカスはそのまま残る（前面を戻す処理は持たない）。
       見出しの行・ドラッグのハンドル・名前の下にホットキーを出すボタンは、録音の画面と同じ部品（window_parts.py の HeadRow・GripIcon・HotkeyButton。recording_window.py から移す）を使用する。見出しの行を押したまま動かすと `QWindow.startSystemMove` で窓を動かす。
-      切り替えのボタンは、設定でオンの固定の出力先（`outputs[]` の並び。名前は UiDeps.output_titles、ホットキーは format_hotkey で整えた `outputs[].hotkey`）ごとに open で組み直す。`ui.transcribing_show_hotkeys` がオフのときはホットキーを空で引き渡し、名前だけを出す（録音の画面の `ui.show_hotkeys` は見ない）。今の出力先でないボタンを押すと output_selected を emit する（差し替えるのは UiController。マーカーは output_changed の知らせを受けて set_output で替える）。
+      切り替えのボタンは、設定でオンの固定の出力先（`outputs[]` の並び。名前は UiDeps.output_titles、ホットキーは format_hotkey で整えた `outputs[].hotkey`）ごとに open で組み直す。`ui.transcribing_show_hotkeys` がオフのときはホットキーを空で引き渡し、名前だけを出す（録音の画面の `ui.show_hotkeys` は確認しない）。今の出力先でないボタンを押すと output_selected を emit する（差し替えるのは UiController。マーカーは output_changed の知らせを受けて set_output で替える）。
       切り替えのボタンは、`ui.transcribing_show_hotkeys` のどちらでも等しい幅で並べる。全てのボタンを同じ固定の幅（setFixedWidth）にし、行の右に stretch を 1 つ置く。組み直したときは、固定の幅をボタンの sizeHint の幅のうち最も大きい値にする（前の回の窓の幅を引き継がず、窓の最小の幅はその幅のボタンの行と SWITCH_WINDOW_WIDTH_PX から決まる）。窓の resizeEvent と、レイアウトの組み直し（QEvent.LayoutRequest。最初に表示を出した回は resizeEvent の時点で行に幅が割り当てられていない）のたびに、「（行の幅（切り替えのボタンの行のレイアウトに割り当てられた幅。テーマの枠の線と余白を除いた幅） − 間隔 ×（ボタンの数 − 1））÷ ボタンの数」の切り捨てと、その最も大きい値の、大きい方に取り直す（割り切れない数 px だけが行の右の stretch に残る）。
       切り替えのボタンは、右と上にマーカーがはみ出す分の余白を枠の外に取り、選んだときの丸いマーカーを枠の右上の角からその余白へはみ出して描く。名前とホットキーの文字の範囲にはマーカーを重ねない。
       残りの時間は、進み（区間の終わり ÷ 録音の長さ）と経過から「経過 ÷ 進み − 経過」で見積もる。UiDeps.reports_progress が False なら、進みが届かないため、open で「残りを計っています」を出さず「経過 {秒}」だけを出す。
@@ -71,13 +71,13 @@ classes:
           - name: test_open_when_window_widened
             case: 正常
             summary: 窓を広げても切り替えのボタンの幅が全て同じで、行からはみ出さない
-            condition: paste_and_send・paste_only・copy_only をオンにした回と、paste_only・copy_only だけをオンにした回で open し、窓を minimumSizeHint の幅から 1 px・2 px・3 px・4 px 広げる。`ui.transcribing_show_hotkeys` が true と false の両方。テーマを当てない回と apply_theme(light) を当てた回の両方。QT_QPA_PLATFORM=offscreen
+            condition: paste_and_send・paste_only・copy_only をオンにした回と、paste_only・copy_only だけをオンにした回で open し、窓を minimumSizeHint の幅から 1 px・2 px・3 px・4 px 広げる。`ui.transcribing_show_hotkeys` が true と false の両方。テーマを適用しない回と apply_theme(light) を適用した回の両方。QT_QPA_PLATFORM=offscreen
             mock: UiDeps
             expected: どの幅でも switch_button_* の width() が全て同じ値で、最後のボタンの右端が行の右端を超えず、最後のボタンの右に残る空きがボタンの数より小さい px
           - name: test_open_when_previous_window_wide
             case: 正常
             summary: 前の回の広い窓の幅を引き継がず、切り替えのボタンを名前の最も長いボタンの幅で並べる
-            condition: paste_and_send・paste_only・copy_only をオンにして open し、窓を 800 px に広げてから、もう一度 open して窓を minimumSizeHint の幅にする。`ui.transcribing_show_hotkeys` が true と false の両方。テーマを当てない回と apply_theme(light) を当てた回の両方。QT_QPA_PLATFORM=offscreen
+            condition: paste_and_send・paste_only・copy_only をオンにして open し、窓を 800 px に広げてから、もう一度 open して窓を minimumSizeHint の幅にする。`ui.transcribing_show_hotkeys` が true と false の両方。テーマを適用しない回と apply_theme(light) を適用した回の両方。QT_QPA_PLATFORM=offscreen
             mock: UiDeps
             expected: switch_button_* の width() が全て、各ボタンの sizeHint の幅の最大と等しく、最後のボタンの右端が行の右端を超えない
           - name: test_open_when_reopened
@@ -88,7 +88,7 @@ classes:
             expected: 開き直した後の窓の width() がどの回も最初に開いた幅と同じで、最後のボタンの右端が行の右端を超えない
           - name: test_open_when_progress_not_reported
             case: 正常
-            summary: 進みを知らせないエンジンのときは経過だけを出す
+            summary: 進みを通知しないエンジンのときは経過だけを出す
             condition: UiDeps.reports_progress を False にし、設定の transcription.engine は local_whisper のままで open し、経過 1.4 秒で時間の文字を書き換える。QT_QPA_PLATFORM=offscreen
             mock: UiDeps・経過を返却する時計
             expected: 経過と残りの時間が「経過 1.4 秒」で、進みのバーが表示されない

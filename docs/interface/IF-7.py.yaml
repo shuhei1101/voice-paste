@@ -89,7 +89,7 @@ exceptions:
     notes: 再送しない。履歴は残り、常駐サービスは届けられなかったことを通知して待機中に戻る
 constraints:
   - item: 送信先
-    constraint: 確定で選んだ「エンドポイントへ送信」プリセットの URL（http か https）だけ。ホストは制限しない。確定したときの設定のプリセット（URL・Authorization）で送信し、届けるまでに設定を変えてもその録音には効かない
+    constraint: 確定で選んだ「エンドポイントへ送信」プリセットの URL（http か https）だけ。ホストは制限しない。確定したときの設定のプリセット（URL・Authorization）で送信し、届けるまでに設定を変えてもその録音には有効にならない
   - item: 送信先が無いとき
     constraint: プリセットの URL は必須で、空や http / https 以外では保存できない（設定の確かめが断る）
   - item: 認証

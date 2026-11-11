@@ -23,7 +23,7 @@ functions:
     title: 再起動
     container: runtime/process.py
     usecase: トレイから操作する
-    summary: 同じ Python と引数で `python -m voice_paste` を切り離したプロセスとして起動する。片付けを終えた後に呼ぶ（API のポートとエンジンを放してから次を立てる）
+    summary: 同じ Python と引数で `python -m voice_paste` を切り離したプロセスとして起動する。片付けを終えた後に呼ぶ（API のポートとエンジンを放してから次を作成する）
     kind: 関数
     scope: public
     args:

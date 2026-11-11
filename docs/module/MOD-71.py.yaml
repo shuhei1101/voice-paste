@@ -183,7 +183,7 @@ functions:
          - pycaw・COM が例外を出した場合、VolumeControlError を送出する
       2. fade_sec が正なら、target を進行中のフェードの目標として持ち、新しい打ち切りの合図を作ってデーモンのスレッドを始める
          - スレッドの中で COM を初期化し、今の音量から target までを FADE_STEPS 回に分け、fade_sec / FADE_STEPS 秒ごとに 1 回分ずつ書く（今の音量と target の差が 0.005 未満なら 1 回で書き込む）
-         - 打ち切りを知らされたら、次の回を書き込まずに終わる
+         - 打ち切りを通知されたら、次の回を書き込まずに終わる
          - pycaw・COM が例外を出した場合、そこで終わる
            - `[ERROR]` 音量を変えられなかった（理由）
     exceptions:
@@ -223,13 +223,13 @@ functions:
     container: integrations/volume/adapter.py
     usecase: 録音する
     scope: internal
-    summary: 進行中のフェードに打ち切りを知らせて終わりを待ち、そのフェードの目標の音量を返却する。音量のロックを持って呼ぶ（フェードのスレッド・打ち切りの合図・目標は _ 付きのモジュール変数で持ち、この関数と _fade_to だけが触る）
+    summary: 進行中のフェードに打ち切りを通知して終わりを待ち、そのフェードの目標の音量を返却する。音量のロックを持って呼ぶ（フェードのスレッド・打ち切りの合図・目標は _ 付きのモジュール変数で持ち、この関数と _fade_to だけが触る）
     returns:
       type: float | None
       description: 打ち切ったフェードの目標の音量。進行中のフェードが無ければ None
     process: |-
       1. フェードのスレッドが動いていなければ、目標を None にして None を返却する
-      2. 打ち切りを知らせ、スレッドの終わりを FADE_JOIN_TIMEOUT_SEC まで待つ
+      2. 打ち切りを通知し、スレッドの終わりを FADE_JOIN_TIMEOUT_SEC まで待つ
       3. 目標を返却し、None に戻す
     unit_tests:
       - name: test_cancel_fade_when_idle

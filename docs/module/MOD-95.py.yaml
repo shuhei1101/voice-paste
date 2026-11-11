@@ -34,8 +34,8 @@ functions:
       1. config を読み込み、log_dir の `worker_crash.log` へ faulthandler を向けてからモデルを読み込む
          - 最初の行が config でない・モデルを読み込めない場合、error を書き込んで 1 を返却する
       2. ready を書き込む
-      3. transcribe を読み込むたびに、faster-whisper を刷新前と同じ引数（VAD がオフなら vad_parameters は引き渡さない）と hotwords（payload に無ければ None）で呼び、区間ごとに progress、最後に result を書き込む。prefix は引き渡さない（引き渡すと hotwords が効かない）
-         - 例外・JSON として読み込めない行・知らない種類の場合、error を書き込んで次の行を待つ（CUDA のクラッシュはプロセスごと落ち、常駐側が立て修正する）
+      3. transcribe を読み込むたびに、faster-whisper を刷新前と同じ引数（VAD がオフなら vad_parameters は引き渡さない）と hotwords（payload に無ければ None）で呼び、区間ごとに progress、最後に result を書き込む。prefix は引き渡さない（引き渡すと hotwords が有効にならない）
+         - 例外・JSON として読み込めない行・知らない種類の場合、error を書き込んで次の行を待つ（CUDA のクラッシュはプロセスごと落ち、常駐側が立て直す）
          - ログは標準エラーへ書き込み、標準出力にはメッセージだけを書き込む
       4. 標準入力が閉じたら 0 を返却する
     unit_tests:

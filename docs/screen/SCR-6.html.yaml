@@ -20,7 +20,7 @@ elements:
     id: record_button
     kind: button
     position: 音声送信 > 操作
-    description: 画面での録音を始める。MediaRecorder の形式を `isTypeSupported` で webm/opus・mp4・ogg の順に選び、audioBitsPerSecond に画面の録音のビットレートを引き渡す。マイクの許可はブラウザ標準の確認に任せる。端末内の音声が「送信失敗」「未送信」「文字起こし前」のときは塗りを外し、主の操作を再送信ボタンへ移す
+    description: 画面での録音を始める。MediaRecorder の形式を `isTypeSupported` で webm/opus・mp4・ogg の順に選び、audioBitsPerSecond に画面の録音のビットレートを引き渡す。マイクの許可はブラウザ標準の確認に任せる。端末内の音声が「送信失敗」「未送信」「文字起こし前」のときは塗りを除外し、主の操作を再送信ボタンへ移す
     label: 録音開始
     visible_when: 録音中でないとき
     enabled_when: 送信中でないとき
@@ -150,7 +150,7 @@ elements:
     id: resend_button
     kind: button
     position: 音声送信 > 端末内の音声
-    description: 端末内の音声を、再送信した時点の用語集のプリセットの選択でもう一度送信する。このときの主の操作（塗り）。新しい job_id で結果の一覧に待ちの件を追加し、失敗した前の件は一覧から外す
+    description: 端末内の音声を、再送信した時点の用語集のプリセットの選択でもう一度送信する。このときの主の操作（塗り）。新しい job_id で結果の一覧に待ちの件を追加し、失敗した前の件は一覧から除外する
     label: 再送信
     visible_when: 端末内の音声が「送信失敗」「未送信」「文字起こし前」のとき
     target: 音声を受け付ける.audio

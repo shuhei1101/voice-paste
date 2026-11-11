@@ -48,7 +48,7 @@ classes:
         title: 停止
         kind: メソッド
         scope: public
-        summary: should_exit を立ててスレッドの終わりを待つ
+        summary: should_exit を作成してスレッドの終わりを待つ
         returns:
           type: None
           description: なし

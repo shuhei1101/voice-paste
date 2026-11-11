@@ -11,7 +11,7 @@ functions:
     usecase: 起こした文字を届ける
     scope: public
     inherits: OutputFn
-    summary: クリップボードへ書き込み、コピーの完了を知らせる
+    summary: クリップボードへ書き込み、コピーの完了を通知する
     args:
       - name: outcome
         type: TranscriptionOutcome
@@ -32,27 +32,27 @@ functions:
         type: Callable[[str], None]
         required: true
         passing: injected
-        description: コピーの完了を起こした文字と共に知らせる（OutputDeps.notify_copied）
+        description: コピーの完了を起こした文字と共に通知する（OutputDeps.notify_copied）
     returns:
       type: None
       description: なし
     process: |-
       1. outcome.text をクリップボードへ書き込む
-         - DeliveryError はそのまま送出する（完了を知らせない）
-      2. outcome.text を引き渡してコピーの完了を知らせる（notify_copied）
+         - DeliveryError はそのまま送出する（完了を通知しない）
+      2. outcome.text を引き渡してコピーの完了を通知する（notify_copied）
     exceptions:
       - name: DeliveryError
         condition: クリップボードへ書き込めない
     unit_tests:
       - name: test_copy_only
         case: 正常
-        summary: クリップボードへ書き込み、完了を知らせる
+        summary: クリップボードへ書き込み、完了を通知する
         condition: outcome.text が「テスト」
         mock: copy・notify_copied
         expected: copy("テスト")・notify_copied("テスト") の順に 1 回ずつ呼ばれる
       - name: test_copy_only_when_copy_failed
         case: 異常
-        summary: クリップボードへ書き込めなければ完了を知らせない
+        summary: クリップボードへ書き込めなければ完了を通知しない
         condition: copy が DeliveryError を送出する
         mock: copy・notify_copied
         expected: DeliveryError が送出され、notify_copied が呼ばれない

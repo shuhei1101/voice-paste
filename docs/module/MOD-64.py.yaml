@@ -11,7 +11,7 @@ functions:
     usecase: 起こした文字を届ける
     scope: public
     inherits: PresetFn
-    summary: 選んだブラウザ添付のプリセットの URL を Edge のアプリの画面で開き、設定の間を配置して貼り付け、プリセットが Enter まで送信するなら Enter を送信する
+    summary: 選んだブラウザ添付のプリセットの URL を Edge のアプリの画面で開き、設定の間を空けて貼り付け、プリセットが Enter まで送信するなら Enter を送信する
     args:
       - name: outcome
         type: TranscriptionOutcome
@@ -47,7 +47,7 @@ functions:
         type: Callable[[float], None]
         required: true
         passing: injected
-        description: 間を配置する（time.sleep。テストで差し替える）
+        description: 間を空ける（time.sleep。テストで差し替える）
       - name: get_open_delay_sec
         type: Callable[[], float]
         required: true

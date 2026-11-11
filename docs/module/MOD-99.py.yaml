@@ -172,7 +172,7 @@ functions:
       type: TranscribeOptions
       description: 無い項目は既定値にした調整の値
     process: |-
-      1. 小数の項目（TUNING_FLOAT_RANGES のキー）は float にし、範囲の中かを確認する（NaN・無限大は外す）
+      1. 小数の項目（TUNING_FLOAT_RANGES のキー）は float にし、範囲の中かを確認する（NaN・無限大は除外する）
       2. batch_size は int にし、BATCH_SIZE_RANGE の中かを確認する
       3. guard は `true` か `false`（小文字）だけを受ける
       4. separator は SEPARATOR_MAX_LENGTH 文字以下かを確認する
@@ -246,7 +246,7 @@ functions:
         type: Callable[[], None]
         required: true
         passing: keyword
-        description: サーバーを止める関数（uvicorn.Server.should_exit を立てる）
+        description: サーバーを止める関数（uvicorn.Server.should_exit を作成する）
     returns:
       type: fastapi.FastAPI
       description: app

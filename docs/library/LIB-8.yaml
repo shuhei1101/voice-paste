@@ -63,7 +63,7 @@ issues:
       - av 19 以降（19.0.1 で確認）
     workarounds:
       - method: '`pyproject.toml` の `dependencies` に `av>=11,<19` を宣言する'
-        result: 新しく作った venv でも av 19 未満が入り、文字起こしが通る。faster-whisper が av 19 に対応したバージョンを出すまで av の上限を外せない
+        result: 新しく作った venv でも av 19 未満が入り、文字起こしが通る。faster-whisper が av 19 に対応したバージョンを出すまで av の上限を解除できない
         recommended: true
     upstream_issue: https://github.com/SYSTRAN/faster-whisper/issues/1589
     refs:

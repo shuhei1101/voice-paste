@@ -12,7 +12,7 @@ data_models:
     properties:
       - name: job_id
         type: str
-        description: 積んだジョブの ID
+        description: 追加したジョブの ID
     status: planned
   - name: WebTranscriptionStatus
     title: 文字起こしの結果のレスポンス

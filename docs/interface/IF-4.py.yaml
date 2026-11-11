@@ -21,7 +21,7 @@ flows:
         participant IF as GET /web/transcriptions/{job_id}
 
         C->>IF: job_id（Origin 無し）
-        IF->>IF: Host・Origin を確かめ、ジョブを引く
+        IF->>IF: Host・Origin を確認し、ジョブを引く
         IF-->>C: 200・state=done・progress=1.0・text
       ```
 
@@ -34,7 +34,7 @@ flows:
     summary: 文字起こし待ち・文字起こし中のジョブの進み具合を返却する
     setup:
       - name: Mock
-        description: ブラウザの音声のジョブの一覧に、ジョブを直接入れる。進みを返却するかを true（設定のエンジンが `local_whisper`）にして app を立てる
+        description: ブラウザの音声のジョブの一覧に、ジョブを直接入れる。進みを返却するかを true（設定のエンジンが `local_whisper`）にして app を作成する
       - name: 終わっていないジョブ
         description: state が queued のジョブと、state が running・progress が 0.42 のジョブ
     flow: |-
@@ -82,7 +82,7 @@ flows:
     summary: 設定のエンジンが進みを返却しないとき、文字起こし中のジョブに進みを返却しないことを添えて返却する
     setup:
       - name: Mock
-        description: ブラウザの音声のジョブの一覧に、ジョブを直接入れる。進みを返却するかを false（設定のエンジンが `openai`）にして app を立てる
+        description: ブラウザの音声のジョブの一覧に、ジョブを直接入れる。進みを返却するかを false（設定のエンジンが `openai`）にして app を作成する
       - name: 終わっていないジョブ
         description: state が running・progress が 0.0 のジョブ
     flow: |-
@@ -155,7 +155,7 @@ flows:
     summary: 常駐サービスが Linux で動いているときは `/web/` の下のルートが無く、Origin によらず 404 を返却する
     setup:
       - name: Mock
-        description: なし（常駐アプリの app を、Linux で使用できない機能を外して TestClient で立てる）
+        description: なし（常駐アプリの app を、Linux で使用できない機能を除外して TestClient で作成する）
         notes: 動いている OS を Linux にする
       - name: 要求のヘッダー
         description: Origin を付けない要求と、許す Origin に無い Origin を付けた要求の 2 つを送信する
@@ -251,7 +251,7 @@ status_codes:
 error_format: RFC 9457 の `application/problem+json`（`type`・`title`・`status`・`detail`）で返す。今の API の `problem_response` に揃える。
 constraints:
   - item: 待ち受け
-    constraint: 127.0.0.1 だけ。外からはゲートウェイ（shuhdev-gateway、Cloudflare Access）を通して届く
+    constraint: 127.0.0.1 だけ。外からはゲートウェイ（shuhdev-gateway、Cloudflare Access）を経由して届く
   - item: 認可
     constraint: トークンを求めない。Host が待ち受けのホストで、Origin が無いか許す Origin にあること
     notes: 画面と同じオリジンの fetch の GET には Origin が付かないため、Origin が無い要求を通す。ほかのオリジンのページからの fetch にはブラウザが Origin を付けるため 403 で断れる。job_id は推測できない乱数で、知らなければ結果を引けない
@@ -265,6 +265,6 @@ constraints:
     constraint: 制限なし
     notes: 画面は取りに来る間隔を画面設計で決める
   - item: 使用できる OS
-    constraint: 常駐サービスが Windows で動いているときだけ。Linux では `/web/` の下のルートを登録せず、Origin によらず 404 を返却する（要求の守りは Host だけを確かめ、Origin を確認せずにルートへ引き渡す）
+    constraint: 常駐サービスが Windows で動いているときだけ。Linux では `/web/` の下のルートを登録せず、Origin によらず 404 を返却する（要求の守りは Host だけを確認し、Origin を確認せずにルートへ引き渡す）
     notes: OS ごとに使用できる機能の表で、外の端末のブラウザの機能を Linux で使用できない機能にしている。Host が合わない要求は Linux でも 403
 test_file: tests/integration/test_get_web_transcription.py

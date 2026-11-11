@@ -14,7 +14,7 @@ data_models:
     description: |-
       キーの一つ一つ（型・既定値・範囲・反映）は設計書『設定』の行が持つ。
       表のまとまりのモデル（このモデルと、TranscriptionSettings・HotkeySettings など表で持つモデル）は既定値を持たず、全ての項目を必須にする。既定値は `config/defaults.yaml` が持ち（既定値のファイルにキーが欠けていれば、起動の検証で分かる）、これらのモデルの項目の `default` はそのファイルに書き込む値を示す。
-      一覧の要素のモデル（出力先の設定のモデル・BrowserPreset・EndpointPreset・GlossarySettings・GlossaryPresetSettings・HintPresetSettings・EdgePhraseSettings）は、項目の既定値をモデルに持つ。一覧はレイヤーの間で丸ごと置き換わり、`config/defaults.yaml` に行ごとの既定を配置できないため、項目を省いた行（前のバージョンの settings.toml の行・手で書き込んだ行）を既定値で補う。ただし出力先の `hotkey` は OS で既定が変わるため既定値を持たず必須にし、出力先の `id` は判別子として既定値を持つ。
+      一覧の要素のモデル（出力先の設定のモデル・BrowserPreset・EndpointPreset・GlossarySettings・GlossaryPresetSettings・HintPresetSettings・EdgePhraseSettings）は、項目の既定値をモデルに持つ。一覧はレイヤーの間で丸ごと置き換わり、`config/defaults.yaml` に行ごとの既定を設定できないため、項目を省いた行（前のバージョンの settings.toml の行・手で書き込んだ行）を既定値で補う。ただし出力先の `hotkey` は OS で既定が変わるため既定値を持たず必須にし、出力先の `id` は判別子として既定値を持つ。
       まとまりのモデルも全て `pydantic.BaseModel` で、どれも `model_config = ConfigDict(extra="forbid")` にして知らないキー（綴りの誤り）を断る。
       各項目は `Field(description=..., json_schema_extra={"reload": "immediate" | "restart"})` で再起動が要るかのマーカーを持つ。
       出力先ごとの設定のモデルは出力先が持ち（shared は features を import しない）、アプリが使用する設定のモデルは build_settings_model がこのモデルを継いで組み立てる（main.py の SETTINGS_MODEL）。既定の設定は load_default_settings で既定値のファイルから作る。
@@ -78,7 +78,7 @@ data_models:
       - name: edge_phrases
         type: list[EdgePhraseSettings]
         default: チャンネル登録*・ご視聴ありがとうございました・ありがとうございました（位置は全て end）
-        description: 文頭・文末から削除する文言の一覧。並びが当てる順と設定画面の一覧の並びになる。文言が空の行は `field_validator(mode="after")` で一覧から除く（各行の失敗の場所は、除く前の並びの番号のまま）
+        description: 文頭・文末から削除する文言の一覧。並びが適用する順と設定画面の一覧の並びになる。文言が空の行は `field_validator(mode="after")` で一覧から除く（各行の失敗の場所は、除く前の並びの番号のまま）
       - name: glossary_presets
         type: list[GlossaryPresetSettings]
         default: '[]'
@@ -317,7 +317,7 @@ data_models:
         title: 文字起こし中の表示のホットキーの引き継ぎ
         container: shared/settings.py
         usecase: 設定を変える
-        summary: transcribing_show_hotkeys を持たない画面の設定へ、show_hotkeys の値を入れる。既定値を重ねた後の検証では transcribing_show_hotkeys が必ずあって働かないため、移すときの settings.toml の dict に当てる inherit_transcribing_show_hotkeys へ移す
+        summary: transcribing_show_hotkeys を持たない画面の設定へ、show_hotkeys の値を入れる。既定値を重ねた後の検証では transcribing_show_hotkeys が必ずあって働かないため、移すときの settings.toml の dict に適用する inherit_transcribing_show_hotkeys へ移す
         kind: メソッド
         scope: internal
         returns:
@@ -604,7 +604,7 @@ data_models:
     container: shared/settings.py
     usecase: 録音を文字に起こす
     role: 設定のモデル
-    summary: 文頭・文末から削除する文言 1 行の文言と当てる位置
+    summary: 文頭・文末から削除する文言 1 行の文言と適用する位置
     description: |-
       `model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)`。
       文言は前後の空白を除いて確認する。`*` だけの文言は `PydanticCustomError`（type は EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE）にし、失敗の場所を `edge_phrases[{n}].text` にする。空の文言はこのモデルでは断らず、Settings が一覧から除く。
@@ -616,7 +616,7 @@ data_models:
       - name: position
         type: Literal["start", "end", "both"]
         default: '"end"'
-        description: 当てる位置（文頭・文末・両方）
+        description: 適用する位置（文頭・文末・両方）
     methods:
       - name: _reject_wildcard_only
         title: 文言の確かめ
@@ -663,7 +663,7 @@ data_models:
       - name: glossaries
         type: list[str]
         default: '[]'
-        description: 補正に使用する用語集の名前（`glossaries[].name`）の並び。補正はこの順に当てる。同じ名前を 2 回並べると検証に通さない（`field_validator`）。一覧に無い名前は検証では断らず、resolve_glossary_presets が外す
+        description: 補正に使用する用語集の名前（`glossaries[].name`）の並び。補正はこの順に適用する。同じ名前を 2 回並べると検証に通さない（`field_validator`）。一覧に無い名前は検証では断らず、resolve_glossary_presets が除外する
     refs:
       - CFG-1#settings[glossary_presets[].name]
       - CFG-1#settings[glossary_presets[].glossaries]
@@ -1015,7 +1015,7 @@ functions:
         summary: local_settings_file が None なら checkout の上書きを読み込まない
         condition: local_settings_file を None にした AppPaths（同じフォルダに settings.local.yaml を配置しておく）
         mock: なし（一時フォルダ）
-        expected: settings.local.yaml の値が効いていない
+        expected: settings.local.yaml の値が有効になっていない
       - name: test_load_settings_when_only_settings_toml
         case: 正常
         summary: settings.yaml が無く settings.toml があれば移してから読み込む
@@ -1128,7 +1128,7 @@ functions:
         required: false
         default: CURRENT_OS
         passing: keyword
-        description: 上書きを当てる OS
+        description: 上書きを適用する OS
     returns:
       type: Settings
       description: 既定の設定
@@ -1165,7 +1165,7 @@ functions:
     container: shared/settings.py
     usecase: 常駐アプリを起動する
     scope: internal
-    summary: 既定値のファイルを読み込み、os_overrides のうち動いている OS の分を重ねて、os_overrides を外した dict を返却する
+    summary: 既定値のファイルを読み込み、os_overrides のうち動いている OS の分を重ねて、os_overrides を除外した dict を返却する
     args:
       - name: defaults_file
         type: Path
@@ -1177,7 +1177,7 @@ functions:
         required: false
         default: CURRENT_OS
         passing: keyword
-        description: 上書きを当てる OS
+        description: 上書きを適用する OS
     returns:
       type: dict[str, Any]
       description: OS の上書きを重ねた既定値
@@ -1195,7 +1195,7 @@ functions:
     container: shared/settings.py
     usecase: 設定を変える
     scope: public
-    summary: 前の設定から変わったキーだけを環境の値に書き込み、既定値と同じ値にしたキーは外す。再起動が要る項目が変わったかを返却する
+    summary: 前の設定から変わったキーだけを環境の値に書き込み、既定値と同じ値にしたキーは除外する。再起動が要る項目が変わったかを返却する
     side_effects: settings_file を書き込む（親のフォルダが無ければ作る）。defaults_file と local_settings_file は書き込まない。
     args:
       - name: paths
@@ -1222,8 +1222,8 @@ functions:
       3. settings_file を読み込む（read_yaml_document。無ければ空の文書）
          - SettingsError の場合、そのまま送出する（読み込めない settings.yaml は書き換えない）
          - 文書の outputs に `id = "ai_chat"` の項目がある場合、outputs・presets・preset_options を変わったキーに加える（読み替えた値を書き込み、古い項目を残さない）
-      4. 変わったキーごとに、新しい値が既定の設定の値と等しければ文書から外し（delete_key。中のキーが無くなった表も外す）、違えば書き込む（set_key。無い表は作る）
-      5. None の項目（glossary_path・active_glossary・active_glossary_preset）を変えたときは、キーを書き込まずに外す
+      4. 変わったキーごとに、新しい値が既定の設定の値と等しければ文書から外し（delete_key。中のキーが無くなった表も除外する）、違えば書き込む（set_key。無い表は作る）
+      5. None の項目（glossary_path・active_glossary・active_glossary_preset）を変えたときは、キーを書き込まずに除外する
       6. 親のフォルダを作り、同じフォルダの一時ファイルに UTF-8 で書き込んで os.replace で置き換える（write_yaml_document）
       7. has_restart_change(previous, settings) を返却する
     exceptions:
@@ -1238,10 +1238,10 @@ functions:
         expected: 書き込んだ後のファイルで、hotkeys.start の行の他の行が書き込む前と一致し、load_settings で新しい値が読み込める
       - name: test_save_settings_when_reset_to_default
         case: 正常
-        summary: 既定値と同じ値にしたキーを外し、外したキーの後ろのコメントを残す
-        condition: hotkeys.cancel を既定と違う値にし、その後ろにコメントと空行を配置した settings_file に、hotkeys.cancel を既定値に戻した設定を書き込む。parametrize で、まとまりの中のキーを全て既定値に戻して表ごと外すときも書き込む
+        summary: 既定値と同じ値にしたキーを除外し、除外したキーの後ろのコメントを残す
+        condition: hotkeys.cancel を既定と違う値にし、その後ろにコメントと空行を配置した settings_file に、hotkeys.cancel を既定値に戻した設定を書き込む。parametrize で、まとまりの中のキーを全て既定値に戻して表ごと除外するときも書き込む
         mock: なし（一時フォルダ）
-        expected: 書き込んだ後のファイルに hotkeys.cancel（表ごと外すときは hotkeys の表）が無く、外したキーの行末のコメントの他のコメントが残り、YAML として読み込める
+        expected: 書き込んだ後のファイルに hotkeys.cancel（表ごと除外するときは hotkeys の表）が無く、除外したキーの行末のコメントの他のコメントが残り、YAML として読み込める
       - name: test_save_settings_when_added_key
         case: 正常
         summary: 書き込んでいなかったキーを、次の表の見出しのコメントより前に追加する
@@ -1250,7 +1250,7 @@ functions:
         expected: hotkeys.pause の行が「# 文字起こし」の行より前にあり、既存の行が全て残る
       - name: test_save_settings_when_unchanged_keys
         case: 正常
-        summary: 変えていないキーは、既定値と同じでも外さない
+        summary: 変えていないキーは、既定値と同じでも除外しない
         condition: hotkeys.start を既定値と同じ値で書き込んだ settings_file に、recording.fade_sec だけを変えた設定を書き込む
         mock: なし（一時フォルダ）
         expected: hotkeys.start の行が残り、recording.fade_sec が書き込まれる
@@ -1268,7 +1268,7 @@ functions:
         expected: 'True'
       - name: test_save_settings_when_immediate_item_changed
         case: 正常
-        summary: 即時に効く項目だけなら False
+        summary: 即時に有効になる項目だけなら False
         condition: hotkeys.start だけを変えて書き込む
         mock: なし（一時フォルダ）
         expected: 'False'
@@ -1287,7 +1287,7 @@ functions:
         exception: settings_file があるのに読み込めない
       - name: test_save_settings_when_glossary_reset
         case: 正常
-        summary: 用語集の場所を既定（None）に戻すとキーを外す
+        summary: 用語集の場所を既定（None）に戻すとキーを除外する
         condition: glossary_path = C:/x/yogo.csv を持つ settings_file に、glossary_path を None にした設定を書き込む
         mock: なし（一時フォルダ）
         expected: 書き込んだ後のファイルに glossary_path のキーが無く、load_settings の glossary_path が None
@@ -1305,14 +1305,14 @@ functions:
         expected: ファイルの 1 件目の path が `glossaries/glossary_1.csv`、2 件目が絶対パス。load_settings で同じ名前の並びと active_glossary が読み込める
       - name: test_save_settings_when_glossary_presets
         case: 正常
-        summary: 用語集のプリセットを書き込み、今までの active_glossary のキーを外す
+        summary: 用語集のプリセットを書き込み、今までの active_glossary のキーを除外する
         condition: active_glossary = 会議用 を持つ settings_file に、active_glossary が None で、2 件の glossary_presets と active_glossary_preset を持つ設定を書き込む
         mock: なし（一時フォルダ）
         expected: 書き込んだ後のファイルに active_glossary のキーが無く、load_settings で同じ glossary_presets の並びと active_glossary_preset が読み込める
       - name: test_save_settings_when_local_override
         case: 正常
         summary: checkout の上書きのファイルは書き換えない
-        condition: local_settings_file に hotkeys.start = B を配置し、hotkeys.start を C にした設定を書き込む
+        condition: local_settings_file に hotkeys.start = B を設定し、hotkeys.start を C にした設定を書き込む
         mock: なし（一時フォルダ）
         expected: settings_file に hotkeys.start = C が書き込まれ、local_settings_file が書き込む前と同じ
     refs:
@@ -1347,7 +1347,7 @@ functions:
     container: shared/settings.py
     usecase: 設定を変える
     scope: public
-    summary: 環境の値から全てのキーを外す
+    summary: 環境の値から全てのキーを除外する
     side_effects: settings_file を書き込む（無ければ何もしない）。
     args:
       - name: settings_file
@@ -1360,12 +1360,12 @@ functions:
       description: なし
     process: |-
       1. settings_file が無ければ何もせずに返却する
-      2. 読み込み（read_yaml_document）、一番上の表のキーを全て外して（delete_key）、書き込む（write_yaml_document）
+      2. 読み込み（read_yaml_document）、一番上の表のキーを全て除外して（delete_key）、書き込む（write_yaml_document）
          - SettingsError の場合、読み込めないファイルを空の文書で置き換える
     unit_tests:
       - name: test_reset_settings
         case: 正常
-        summary: キーを全て外し、先頭のコメントを残す
+        summary: キーを全て除外し、先頭のコメントを残す
         condition: 先頭のコメントと 3 つの表を持つ settings_file
         mock: なし（一時フォルダ）
         expected: 書き込んだ後のファイルにキーが無く、先頭のコメントが残る。load_settings が load_default_settings と等しい設定を返却する
@@ -1447,7 +1447,7 @@ functions:
         expected: settings_file に ui.show_hotkeys と ui.transcribing_show_hotkeys が false で書き込まれ、load_settings の ui.transcribing_show_hotkeys が False
       - name: test_migrate_settings_toml_when_transcribing_show_hotkeys_default
         case: 正常
-        summary: 文字起こし中の表示が既定値と同じなら外して移し、読み込み直しても既定値のまま
+        summary: 文字起こし中の表示が既定値と同じなら除外して移し、読み込み直しても既定値のまま
         condition: '[ui] に show_hotkeys = false・transcribing_show_hotkeys = true を書き込んだ settings.toml'
         mock: なし（一時フォルダ）
         expected: settings_file に ui.show_hotkeys だけが false で書き込まれ、load_settings の ui.transcribing_show_hotkeys が True
@@ -1562,7 +1562,7 @@ functions:
     container: shared/settings.py
     usecase: 常駐アプリを起動する
     scope: public
-    summary: 重ねた設定の dict から `id = "ai_chat"` の出力先を外し、送信先をブラウザ添付のプリセットへ読み替えた dict を返却する。load_settings と migrate_settings_toml が呼ぶ
+    summary: 重ねた設定の dict から `id = "ai_chat"` の出力先を除外し、送信先をブラウザ添付のプリセットへ読み替えた dict を返却する。load_settings と migrate_settings_toml が呼ぶ
     args:
       - name: document
         type: dict[str, Any]
@@ -1577,12 +1577,12 @@ functions:
          - 無い場合（outputs が無い・配列でないも含む）、document をそのまま返す（検証は Settings に任せる）
       2. その項目の targets（無ければ、前の既定の ChatGPT・Google AI・Claude の 3 件）を並びのまま、`{kind: "browser", title: name, url, hotkey, enabled: 項目の enabled かつ target の enabled, send_enter: true}` にして、既にある presets の後ろに追加する
       3. その項目に open_delay_sec があり、preset_options.browser.open_delay_sec が無ければ、その値を入れる
-      4. outputs からその項目を外した新しい dict を返却する
+      4. outputs からその項目を除外した新しい dict を返却する
          - `[INFO]` 古い AI チャットの設定をプリセットへ読み替えた（件数）
     unit_tests:
       - name: test_migrate_ai_chat
         case: 正常
-        summary: 送信先をブラウザ添付のプリセットにし、ai_chat を外す
+        summary: 送信先をブラウザ添付のプリセットにし、ai_chat を除外する
         condition: outputs が [paste_and_send, ai_chat（open_delay_sec 2.0、targets に ChatGPT と Claude（enabled false））]
         mock: なし
         expected: outputs が [paste_and_send]、presets が ChatGPT（enabled true）・Claude（enabled false）の kind browser・send_enter true の 2 件、preset_options.browser.open_delay_sec が 2.0。元の dict は変わらない
@@ -1624,7 +1624,7 @@ functions:
     process: |-
       1. 各モデルの id の既定値を集める
          - 空か、重なる ID がある場合、ValueError を送出する（登録の誤り。起動の前に単体テストで止める）
-      2. outputs の型を、モデルの数によらず `list[Annotated[Union[...], Field(discriminator="id")]]` にする（モデルが 1 つでも判別共用体にし、失敗の場所に添字の次の判別子の値を入れる。format_error_location がそれを外す）
+      2. outputs の型を、モデルの数によらず `list[Annotated[Union[...], Field(discriminator="id")]]` にする（モデルが 1 つでも判別共用体にし、失敗の場所に添字の次の判別子の値を入れる。format_error_location がそれを除外する）
       3. outputs は既定値を持たない必須の項目にする（既定の一覧は `config/defaults.yaml` が持つ）。説明・反映のマーカーは Settings の outputs のものを引き継ぐ
       4. Settings を継いだモデルを `pydantic.create_model` で作り、output_models に ID → モデルを入れて返却する（確かめは Settings のものを引き継ぐ）
     exceptions:
@@ -1673,7 +1673,7 @@ functions:
     returns:
       type: list[tuple[str, str]]
       description: （重なったキー, 重なった名前）の並び。キーは format_error_location と同じ書式（例 `glossaries[2].name`）
-    process: 1. `glossaries` を並びの順に見て、名前が先に並んだ用語集と同じものを集める（大文字と小文字は区別する。前後の空白は GlossarySettings が除いている）
+    process: 1. `glossaries` を並びの順に確認して、名前が先に並んだ用語集と同じものを集める（大文字と小文字は区別する。前後の空白は GlossarySettings が除いている）
     notes:
       補足: Settings の `model_validator(mode="after")` が、この関数が返却した重なりごとに `PydanticCustomError` を集めた ValidationError を送出する（場所は重なったキー、理由は「用語集「{名前}」と同じ名前」）。ホットキーの重なり（find_hotkey_overlaps）と同じ確かめの中で集め、1 回の ValidationError にまとめる
     unit_tests:
@@ -1857,7 +1857,7 @@ functions:
     returns:
       type: list[tuple[str, str]]
       description: （重なったキー, 重なった名前）の並び。キーは format_error_location と同じ書式（例 `hint_presets[2].name`）
-    process: 1. `hint_presets` を並びの順に見て、名前が先に並んだプリセットと同じものを集める（前後の空白は HintPresetSettings が除いている）
+    process: 1. `hint_presets` を並びの順に確認して、名前が先に並んだプリセットと同じものを集める（前後の空白は HintPresetSettings が除いている）
     notes:
       補足: Settings の `model_validator(mode="after")` が、重なりごとに `PydanticCustomError`（type `hint_preset_name_overlap`、場所は重なったキー）を集める。find_glossary_name_overlaps と同じ確かめの中で集める
     unit_tests:
@@ -1898,7 +1898,7 @@ functions:
     returns:
       type: list[tuple[str, str]]
       description: （重なったキー, 重なった名前）の並び。キーは format_error_location と同じ書式（例 `glossary_presets[2].name`）
-    process: 1. `glossary_presets` を並びの順に見て、名前が先に並んだプリセットと同じものを集める（前後の空白は GlossaryPresetSettings が除いている）
+    process: 1. `glossary_presets` を並びの順に確認して、名前が先に並んだプリセットと同じものを集める（前後の空白は GlossaryPresetSettings が除いている）
     notes:
       補足: Settings の `model_validator(mode="after")` が、重なりごとに `PydanticCustomError`（type GLOSSARY_PRESET_NAME_OVERLAP_ERROR_TYPE、文言「用語集のプリセット「{name}」と同じ名前」、場所は重なったキー）を集める。find_glossary_name_overlaps・find_hint_preset_name_overlaps と同じ確かめの中で集める
     unit_tests:

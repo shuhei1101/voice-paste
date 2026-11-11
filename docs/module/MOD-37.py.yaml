@@ -104,7 +104,7 @@ classes:
           description: '`presets.{種類}[{番号}]` → そのプリセットの collect と同じ値、`presets.{種類}.order` → 開いたとき・保存したときからあって今も残っているプリセットが、番号の小さい順に並んでいるか'
         process: |-
           1. 今の並びのプリセットごとに、番号をキーにして collect と同じ値を入れる
-          2. set_presets か mark_saved で番号を振ったプリセット（追加したプリセットを除く）を今の並びで取り出し、番号の小さい順に並んでいるかを `presets.{種類}.order` に入れる（削除したプリセットは入らず、追加したプリセットも見ないため、追加・削除だけでは変わらない）
+          2. set_presets か mark_saved で番号を振ったプリセット（追加したプリセットを除く）を今の並びで取り出し、番号の小さい順に並んでいるかを `presets.{種類}.order` に入れる（削除したプリセットは入らず、追加したプリセットも確認しないため、追加・削除だけでは変わらない）
         unit_tests:
           - name: test_preset_list_panel_change_values
             case: 正常

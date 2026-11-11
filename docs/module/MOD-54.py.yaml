@@ -117,7 +117,7 @@ data_models:
         description: 引き渡した修飾キーを押したまま Enter を送信する（修飾キーを省くと Enter だけ）
       - name: sleep
         type: Callable[[float], None]
-        description: 間を配置する（time.sleep）
+        description: 間を空ける（time.sleep）
       - name: jitter
         type: Callable[[float], float]
         description: 0 以上この値以下の乱数を返却する（random.uniform(0, x)）
@@ -129,7 +129,7 @@ data_models:
         description: 今の設定を返却する（SettingsStore.get。届けるたびに読み込み、保存した immediate の項目を次の回から効かせる）
       - name: notify_copied
         type: Callable[[str], None]
-        description: コピーの完了を起こした文字と共に画面へ知らせる（ui の notify_copied に UiBridge を部分適用したもの）
+        description: コピーの完了を起こした文字と共に画面へ通知する（ui の notify_copied に UiBridge を部分適用したもの）
     status: planned
   - name: CallbackPayload
     title: 呼び出し元へ返す中身

@@ -11,7 +11,7 @@ files:
     notes: git で管理する。3 レイヤーの 1 つ目で、全てのキーを持つ（欠けていれば起動時に設定を読み込めない扱い）。`os_overrides` の中は動いている OS の分だけを共通の既定値に重ねる（表はキーごと、一覧は丸ごと）。
   - file: settings.yaml
     manages: 環境の値（この端末で既定値から変えたキー）
-    notes: git の管理外。3 レイヤーの 2 つ目。既定は `%APPDATA%\voice-paste\settings.yaml`（Linux は `~/.config/voice-paste/settings.yaml`）、`--data-dir` を引き渡したときはその下。起動では作らない（`settings.toml` だけがあるときに移すのを除く）。設定画面の保存は、変えたキーのうち既定値と違うものを書き込み、既定値と同じにしたキーは外す（コメントは保つ）。「既定に戻す」は全てのキーを外す。
+    notes: git の管理外。3 レイヤーの 2 つ目。既定は `%APPDATA%\voice-paste\settings.yaml`（Linux は `~/.config/voice-paste/settings.yaml`）、`--data-dir` を引き渡したときはその下。起動では作らない（`settings.toml` だけがあるときに移すのを除く）。設定画面の保存は、変えたキーのうち既定値と違うものを書き込み、既定値と同じにしたキーは除外する（コメントは保つ）。「既定に戻す」は全てのキーを除外する。
   - file: settings.local.yaml
     manages: checkout の上書き（この checkout でだけ変えたいキー）
     notes: git の管理外。リポジトリの直下に配置する 3 レイヤーの 3 つ目で、settings.yaml の値に勝つ。`--data-dir` を引き渡した起動では読み込まない。常駐アプリは書き込まない。
@@ -20,7 +20,7 @@ files:
     notes: settings.yaml が無く、同じフォルダにこのファイルがあれば、起動時に既定値と違うキーだけを settings.yaml へ移す（このファイルは残す）。settings.yaml があれば読み込まない。
   - file: settings.sample.yaml
     manages: settings.yaml・settings.local.yaml の見本
-    notes: git で管理する。よく変えるキーを、コメントにした行で並べる（コメントを外したキーだけが既定値に勝つ）。既定値に重ねて設定のモデルの検証に通ることを単体テストで確認する。
+    notes: git で管理する。よく変えるキーを、コメントにした行で並べる（コメントを除外したキーだけが既定値に勝つ）。既定値に重ねて設定のモデルの検証に通ることを単体テストで確認する。
   - file: secrets/openai_api_key
     manages: OpenAI API の API キー（中身はキーの文字列だけ）
     notes: git の管理外。`settings.yaml` と同じフォルダの下（Windows は `%APPDATA%\voice-paste\secrets\openai_api_key`、Linux は `~/.config/voice-paste/secrets/openai_api_key`、`--data-dir` を引き渡したときはその下）。ユーザーが配置し、常駐アプリは読み込むだけで作らない。環境変数 `OPENAI_API_KEY` があればそちらを使用する。`transcription.engine` が `openai` のときだけ読む
@@ -146,7 +146,7 @@ settings:
     file: settings.yaml
     type: int（ミリ秒）
     default: '2000'
-    description: これ以上の無音で区間を区切る（起こした文字の改行の位置に効く）。
+    description: これ以上の無音で区間を区切る（起こした文字の改行の位置に有効になる）。
     reload: restart
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -265,7 +265,7 @@ settings:
     file: settings.yaml
     type: "'paste_and_send' | 'paste_only' | 'copy_only'"
     default: 3 件（paste_and_send・paste_only・copy_only の順）
-    description: 出力先の一覧の 1 件がどの出力先かを表す。一覧の中で重ならない。`id = "ai_chat"` の項目は、読み込むときに送信先（`targets[]`）をブラウザ添付種類のカスタムプリセットへ読み替えて外す。
+    description: 出力先の一覧の 1 件がどの出力先かを表す。一覧の中で重ならない。`id = "ai_chat"` の項目は、読み込むときに送信先（`targets[]`）をブラウザ添付種類のカスタムプリセットへ読み替えて除外する。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -504,7 +504,7 @@ settings:
     file: settings.yaml
     type: bool
     default: 'true'
-    description: browser だけが持つ。`true` なら貼り付けてから `outputs[paste_and_send].enter_delay_sec` の秒数を配置して Enter を送信し、`false` なら貼り付けで止める。
+    description: browser だけが持つ。`true` なら貼り付けてから `outputs[paste_and_send].enter_delay_sec` の秒数を待って Enter を送信し、`false` なら貼り付けで止める。
     reload: immediate
     status: implemented
     implementation: src/voice_paste/shared/settings.py
@@ -535,7 +535,7 @@ settings:
     file: settings.yaml
     type: float（秒）
     default: '1.5'
-    description: エンドポイントへ送信の種類の全てのプリセットで使用する。この秒数で届かなければ再送せず、届けられなかったことを知らせる。
+    description: エンドポイントへ送信の種類の全てのプリセットで使用する。この秒数で届かなければ再送せず、届けられなかったことを通知する。
     reload: immediate
     allowed: 0.5〜10
     status: implemented
@@ -577,10 +577,10 @@ settings:
     file: settings.yaml
     type: list['ctrl' | 'alt' | 'shift']
     default: '[]'
-    description: paste_and_send だけが持つ。貼り付けて `enter_delay_sec` の秒数を配置した後、並べた修飾キーを押したまま Enter を送信する。空なら Enter だけを送信する。ブラウザ添付種類の、Enter まで送信するプリセットには当てない。
+    description: paste_and_send だけが持つ。貼り付けて `enter_delay_sec` の秒数を待った後、並べた修飾キーを押したまま Enter を送信する。空なら Enter だけを送信する。ブラウザ添付種類の、Enter まで送信するプリセットには適用しない。
     missing: 空として読み込む
     reload: immediate
-    allowed: "'ctrl'・'alt'・'shift' の値だけ。並びと重なりは問わず、押す順は Ctrl・Alt・Shift に揃える"
+    allowed: "'ctrl'・'alt'・'shift' の値だけ。並びと重なりは問わず、押す順は Ctrl・Alt・Shift に統一する"
     status: planned
     implementation: src/voice_paste/features/outputs/paste_and_send/settings.py
   - key: ui.theme
@@ -684,7 +684,7 @@ settings:
     file: settings.yaml
     type: string
     default: （キーが無いときは既定の一覧。上から「チャンネル登録*」「ご視聴ありがとうございました」「ありがとうございました」で、位置は全て `end`）
-    description: 起こした文字の文頭・文末に一致したときに削除する文言。書き込んだ文字との完全な一致で、`*` は 0 文字以上の任意の文字列に一致する（端の `*` は行の端まで）。`edge_phrases` の並びの上から順に当てる。`edge_phrases` のキーが無い settings.yaml は既定の一覧として読み込む。キーがあって空の一覧なら何も削除しない
+    description: 起こした文字の文頭・文末に一致したときに削除する文言。書き込んだ文字との完全な一致で、`*` は 0 文字以上の任意の文字列に一致する（端の `*` は行の端まで）。`edge_phrases` の並びの上から順に適用する。`edge_phrases` のキーが無い settings.yaml は既定の一覧として読み込む。キーがあって空の一覧なら何も削除しない
     reload: immediate
     allowed: 1 文字以上（前後の空白を除いて）。`*` だけの文言は入れられない（文頭・文末の行を丸ごと削除するため）
     refs:
@@ -697,7 +697,7 @@ settings:
     file: settings.yaml
     type: "'start' | 'end' | 'both'"
     default: end
-    description: その行の文言を当てる位置。`start` は文頭（1 行目の先頭）、`end` は文末（最後の行の末尾）、`both` はその両方。設定画面では「文頭」「文末」「両方」と出す
+    description: その行の文言を適用する位置。`start` は文頭（1 行目の先頭）、`end` は文末（最後の行の末尾）、`both` はその両方。設定画面では「文頭」「文末」「両方」と出す
     reload: immediate
     allowed: '`start` / `end` / `both`'
     status: implemented
@@ -733,7 +733,7 @@ settings:
     file: settings.yaml
     type: list[string]
     default: '[]'
-    description: そのプリセットで補正に使用する用語集の名前（`glossaries[].name`）の並び。補正は、この並びの順・用語集の中の行の順に、オンの行を 1 本の並びとして続けて当て、前の行で置き換えた結果へ次の行を当てる。空なら何も置き換えない。読み込めない CSV の用語集は飛ばし、残りの用語集で補正する。一覧に無い名前は読み込むときに外す。用語集を一覧から削除すると、その名前を全てのプリセットから外し、用語集の名前を変えるとプリセットの指す名前も変える。
+    description: そのプリセットで補正に使用する用語集の名前（`glossaries[].name`）の並び。補正は、この並びの順・用語集の中の行の順に、オンの行を 1 本の並びとして続けて当て、前の行で置き換えた結果へ次の行を適用する。空なら何も置き換えない。読み込めない CSV の用語集は飛ばし、残りの用語集で補正する。一覧に無い名前は読み込むときに除外する。用語集を一覧から削除すると、その名前を全てのプリセットから除外し、用語集の名前を変えるとプリセットの指す名前も変える。
     reload: immediate
     allowed: '`glossaries[].name` にある名前。同じ名前を 2 回並べられない'
     status: planned
@@ -814,7 +814,7 @@ settings:
     file: settings.yaml
     type: string
     default: third-intelligence/Haas-ja-v1.0
-    description: Haas の文字起こしのサーバーが起動のときに読み込むモデル。Hugging Face Hub のモデルの名前か、WSL の中の .nemo ファイルのパス。常駐アプリがサーバーを起動するときの引数で引き渡す。起動の前から動いているサーバーが違う値ならトレイで知らせ、そのサーバーのまま起こす。
+    description: Haas の文字起こしのサーバーが起動のときに読み込むモデル。Hugging Face Hub のモデルの名前か、WSL の中の .nemo ファイルのパス。常駐アプリがサーバーを起動するときの引数で引き渡す。起動の前から動いているサーバーが違う値ならトレイで通知し、そのサーバーのまま起こす。
     reload: restart
     allowed: 前後の空白を除いて空でない
     status: planned
@@ -918,4 +918,4 @@ settings:
     status: planned
     implementation: src/voice_paste/shared/settings.py
 notes:
-  反映の列の読み方: '`immediate` は設定画面で保存すると動いている常駐アプリに効く項目。`settings.yaml`・`settings.local.yaml` を直接書き換えたときは、どの項目も再起動まで効かない（起動時に 1 度だけ読む）。'
+  反映の列の読み方: '`immediate` は設定画面で保存すると動いている常駐アプリに有効になる項目。`settings.yaml`・`settings.local.yaml` を直接書き換えたときは、どの項目も再起動まで有効にならない（起動時に 1 度だけ読む）。'

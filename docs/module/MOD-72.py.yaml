@@ -116,7 +116,7 @@ functions:
         expected: sleep(0.1)・press(ctrl)・press(shift)・press('v')・release('v')・release(shift)・release(ctrl) の順に呼ばれる
       - name: test_send_paste_when_spaced_and_uppercase
         case: 正常
-        summary: キーの前後の空白と大文字を揃えて同じキーとして送信する
+        summary: キーの前後の空白と大文字を統一して同じキーとして送信する
         condition: paste_key が `<Ctrl> + V`
         mock: pynput.keyboard.Controller・time.sleep
         expected: sleep(0.1)・press(ctrl)・press('v')・release('v')・release(ctrl) の順に呼ばれる
@@ -206,7 +206,7 @@ functions:
         expected: ([Key.ctrl, Key.shift], "v") が返る
       - name: test_split_paste_key_when_spaced_and_uppercase
         case: 正常
-        summary: 前後の空白と大文字を揃える
+        summary: 前後の空白と大文字を統一する
         condition: paste_key が `<Ctrl> + V`
         mock: なし
         expected: ([Key.ctrl], "v") が返る
@@ -227,7 +227,7 @@ functions:
     usecase: 起こした文字を届ける
     scope: public
     summary: pyperclip の書き込み先を xclip（XWayland）に固定する。Wayland のセッションの配線が起動のときに 1 回呼ぶ
-    description: pyperclip は `WAYLAND_DISPLAY` を見て `wl-copy` を選ぶが、GNOME の `wl-copy` は書き込むたびに貼り付け先のフォーカスを取り、貼り付けのキーが落ちる。xclip はフォーカスを取らず、GNOME が X のクリップボードを Wayland のアプリへ引き渡す。
+    description: pyperclip は `WAYLAND_DISPLAY` を確認して `wl-copy` を選ぶが、GNOME の `wl-copy` は書き込むたびに貼り付け先のフォーカスを取り、貼り付けのキーが落ちる。xclip はフォーカスを取らず、GNOME が X のクリップボードを Wayland のアプリへ引き渡す。
     returns:
       type: None
       description: なし

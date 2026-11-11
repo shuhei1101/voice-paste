@@ -90,7 +90,7 @@ classes:
             case: 正常
             summary: Alt+↑ で行を上へ動かし、フォーカスを動かした行に残す
             condition: A・B の 2 行で、B の文言の欄に Alt+↑ を送信する
-            mock: QAccessible.updateAccessibility（引き渡したイベントを控える）
+            mock: QAccessible.updateAccessibility（引き渡したイベントを記録する）
             expected: collect の文言が B・A の順。フォーカスが 1 行目の文言の欄にあり、読み上げの文が「1 行目へ動かしました」
           - name: test_edge_phrase_panel_move_phrase_when_edge
             case: 正常

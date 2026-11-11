@@ -25,7 +25,7 @@ functions:
       1. split_paste_key で paste_key を修飾キーと主キーに分ける（DeliveryError はそのまま送出し、キーを送信しない）
          - 主キーが 1 文字でない場合、DeliveryError を送出する。理由は `貼り付けのキーの主キーは 1 文字にしてください（{paste_key}）`
       2. FOCUS_SETTLE_SEC だけ待つ（貼り付け先のフォーカスが落ち着くのを待つ）
-      3. read_active_wm_class でアクティブなウィンドウの WM_CLASS を読み込み、小文字にしたどれかの名前が TERMINAL_WM_CLASSES にあるかを見る
+      3. read_active_wm_class でアクティブなウィンドウの WM_CLASS を読み込み、小文字にしたどれかの名前が TERMINAL_WM_CLASSES にあるかを確認する
          - ある場合、修飾キーを Ctrl・Shift、主キーを `v` に替える
            - `[INFO]` 端末アプリなので Ctrl+Shift+V を送信する（WM_CLASS）
          - 無い場合（読み込めずに空のときを含む）、1 のキーのまま

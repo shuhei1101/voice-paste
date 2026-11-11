@@ -23,7 +23,7 @@ catalogs:
       - name: InputStream.close
         kind: メソッド
         purpose: 入力を閉じる
-lead: PortAudio を通して、マイクやスピーカーの音を NumPy の配列で扱うライブラリ。
+lead: PortAudio を経由して、マイクやスピーカーの音を NumPy の配列で扱うライブラリ。
 purl: pkg:pypi/sounddevice
 dependency_scope: 必須
 adoption: 採用

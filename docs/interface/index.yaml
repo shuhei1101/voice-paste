@@ -15,7 +15,7 @@ items:
   - page: IF-6.py.yaml
     summary: GET /web/。外の端末のブラウザで開く文字起こしの画面と素材を返却する
   - page: IF-11.py.yaml
-    summary: POST /web/transcriptions。ブラウザから送信された音声を積んでジョブの ID を返却する
+    summary: POST /web/transcriptions。ブラウザから送信された音声を追加してジョブの ID を返却する
   - page: IF-4.py.yaml
     summary: GET /web/transcriptions/{job_id}。ジョブの状態・進み具合と、起こした文字か失敗の理由を返却する
   - page: IF-1.py.yaml

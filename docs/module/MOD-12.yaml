@@ -53,25 +53,26 @@ directory: |-
 diagrams:
   - name: 依存の向き
     diagram: |-
+      <!-- map: {"title": "依存の向き"} -->
+
       ```mermaid
-      classDiagram
-        direction TB
-        class 起動と配線
-        class APIサーバー
-        class ホットキーと画面
-        class 録音セッション
-        class 録音
-        class 文字起こし
-        class 補正
-        class 出力先
-        class 履歴
-        class 外部連携
-        class 共通
+      flowchart TB
+        起動と配線["起動と配線"]
+        APIサーバー["APIサーバー"]
+        ホットキーと画面["ホットキーと画面"]
+        録音セッション["録音セッション"]
+        録音["録音"]
+        文字起こし["文字起こし"]
+        補正["補正"]
+        出力先["出力先"]
+        履歴["履歴"]
+        外部連携["外部連携"]
+        共通["共通"]
         起動と配線 --> APIサーバー
         起動と配線 --> ホットキーと画面
         起動と配線 --> 録音セッション
         起動と配線 --> 外部連携
-        APIサーバー --> 録音セッション : route の集約
+        APIサーバー -->|route の集約| 録音セッション
         録音セッション --> 共通
         録音 --> 共通
         文字起こし --> 共通
@@ -81,6 +82,8 @@ diagrams:
         ホットキーと画面 --> 共通
         外部連携 --> 共通
       ```
+
+      <!-- /map -->
 notes:
   依存の向き: |-
     コーディング規約『依存関係管理』のとおり `features`・`server`・`ui` → `integrations`・`runtime` → `shared` とし、上の層へは import しない。

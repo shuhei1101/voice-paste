@@ -14,6 +14,8 @@ scenarios:
       - name: 確定
         description: 録音の画面で「貼り付けて送信」を選んで確定する
     flow: |-
+      <!-- map: {"title": "正常シナリオ"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -37,6 +39,8 @@ scenarios:
         SVC->>VOL: 録音前の音量へ戻す
         SVC->>HIST: 確定した録音を履歴に保存する
       ```
+
+      <!-- /map -->
     expected:
       - 録音の画面が閉じている
       - 履歴に話した録音が保存されている
@@ -51,6 +55,8 @@ scenarios:
       - name: 一時停止
         description: 話している途中で一時停止し、一時停止の間も話し、再開する
     flow: |-
+      <!-- map: {"title": "正常シナリオ（一時停止して再開する）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -68,6 +74,8 @@ scenarios:
         SVC->>MIC: 録音した音を貯めるのを再び始める
         Note over GUI: 確定から後は 正常シナリオ と同じ
       ```
+
+      <!-- /map -->
     expected:
       - 履歴に保存した録音に、一時停止の間に話した声が入っていない
       - 経過時間が、一時停止の間を除いた長さを示している
@@ -85,6 +93,8 @@ scenarios:
         description: 録音の画面で取り消す
         notes: 「取り消し」のボタンと閉じるボタン（×）の 2 通り。parametrize で並べる
     flow: |-
+      <!-- map: {"title": "正常シナリオ（録音を取り消す）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -102,6 +112,8 @@ scenarios:
         SVC->>SVC: 待機中に戻す
         SVC->>TRAY: 待機中のアイコンにする
       ```
+
+      <!-- /map -->
     expected:
       - 録音の画面が閉じている
       - 履歴にこの録音が残っていない
@@ -118,6 +130,8 @@ scenarios:
         description: APIで録音を操作する が録音を始めるか、録音の画面を出さない設定でホットキーかトレイから始める
         notes: API から始めた録音は、設定によらず画面を出さない
     flow: |-
+      <!-- map: {"title": "正常シナリオ（録音の画面を出さない）"} -->
+
       ```mermaid
       sequenceDiagram
         participant IN as 入口（API・ホットキー・トレイ）
@@ -137,6 +151,8 @@ scenarios:
         SVC->>VOL: 録音前の音量へ戻す
         SVC->>HIST: 確定した録音を履歴に保存する
       ```
+
+      <!-- /map -->
     expected:
       - 録音中に録音の画面が出ていない
       - 履歴に録音が保存されている
@@ -151,6 +167,8 @@ scenarios:
       - name: 履歴の保存
         description: 履歴を残さない設定にする
     flow: |-
+      <!-- map: {"title": "正常シナリオ（履歴を残さない）"} -->
+
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
@@ -159,6 +177,8 @@ scenarios:
         Note over SVC: 録音を停止して音量を戻すまでは 正常シナリオ と同じ
         SVC->>TMP: 確定した録音を一時の音声として保存する
       ```
+
+      <!-- /map -->
     expected:
       - 履歴にこの録音が残っていない
       - 一時の音声（`%LOCALAPPDATA%\voice-paste\` の下）に録音があり、録音を文字に起こす へ進む
@@ -171,6 +191,8 @@ scenarios:
       - name: 処理中の録音
         description: API から始めた録音が録音中のときに、録音開始のホットキーを押す
     flow: |-
+      <!-- map: {"title": "異常シナリオ（処理中に開始が来る）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -181,6 +203,8 @@ scenarios:
         SVC->>SVC: ほかの録音が処理中で、開始を受け付けない
         SVC->>DLG: 処理中のため録音を始められないことを通知する
       ```
+
+      <!-- /map -->
     expected:
       - 処理中のため録音を始められないことがダイアログで知らされている
       - 2 つ目の録音が始まっていない
@@ -198,6 +222,8 @@ scenarios:
       - name: マイクの欠落
         description: 録音の入力を、開くとマイクを開けないエラーを出すものに差し替え、録音の入力を開けないようにする
     flow: |-
+      <!-- map: {"title": "異常シナリオ（マイクを開けない）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -217,6 +243,8 @@ scenarios:
         SVC->>SVC: 待機中に戻す
         SVC->>TRAY: 待機中のアイコンにし、録音を始められなかったことを通知する
       ```
+
+      <!-- /map -->
     expected:
       - 録音の画面が開いていない
       - システム音量が録音前の値に戻っている
@@ -233,6 +261,8 @@ scenarios:
       - name: ほかの窓
         description: 「常に手前に表示」でない窓（貼り付け先の入力欄）を開いておく
     flow: |-
+      <!-- map: {"title": "正常シナリオ（ほかの窓を前面に出す）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -246,6 +276,8 @@ scenarios:
         GUI->>GUI: ほかの窓より上に残る
         U->>GUI: 「取り消し」で閉じる
       ```
+
+      <!-- /map -->
     expected:
       - ほかの窓を前面に出すたびに、録音の画面がその窓より上にある
   - name: 正常シナリオ（主のモニターに出す）
@@ -259,6 +291,8 @@ scenarios:
         description: カーソルのあるモニターに出さない設定にし、カーソルを主でないモニターに置く
         notes: '`ui.follow_cursor: false`'
     flow: |-
+      <!-- map: {"title": "正常シナリオ（主のモニターに出す）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -269,6 +303,8 @@ scenarios:
         SVC->>GUI: 主のモニターの作業領域の、設定の位置に開く
         U->>GUI: 「取り消し」で閉じる
       ```
+
+      <!-- /map -->
     expected:
       - 録音の画面が主のモニターの作業領域の中にある
   - name: 正常シナリオ（カーソルのあるモニターに出す）
@@ -284,6 +320,8 @@ scenarios:
       - name: 入口
         description: 主のモニターと、それ以外のモニターの中央にカーソルを置いて、それぞれ録音開始のホットキーを押す
     flow: |-
+      <!-- map: {"title": "正常シナリオ（カーソルのあるモニターに出す）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -294,6 +332,8 @@ scenarios:
         SVC->>GUI: カーソルのあるモニターの作業領域の、設定の位置に開く
         U->>GUI: 「取り消し」で閉じる
       ```
+
+      <!-- /map -->
     expected:
       - 録音の画面が、録音を始めたときにカーソルのあったモニターの作業領域の中にある（主のモニターとそれ以外のモニターの両方）
   - name: 正常シナリオ（録音の画面を動かす）
@@ -303,6 +343,8 @@ scenarios:
       - name: 動かす先
         description: 録音の画面を、開いた位置から同じモニターの作業領域の中の別の位置へドラッグする
     flow: |-
+      <!-- map: {"title": "正常シナリオ（録音の画面を動かす）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -317,6 +359,8 @@ scenarios:
         U->>MIC: 話し続ける
         Note over GUI: 確定から後は 正常シナリオ と同じ
       ```
+
+      <!-- /map -->
     expected:
       - 録音の画面が、ドラッグを放した位置にある
       - 動かしている間も録音が続き、経過時間が進み続けている
@@ -335,6 +379,8 @@ scenarios:
         description: 隠した録音の画面を戻す
         notes: トレイのアイコンの左クリック・トレイのメニューの「録音の画面を表示」・録音開始のホットキーの 3 通り。parametrize で並べる。録音開始のホットキーと同じホットキーの出力先を持たない設定にする
     flow: |-
+      <!-- map: {"title": "正常シナリオ（録音の画面を隠して戻す）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -355,6 +401,8 @@ scenarios:
         GUI-->>U: 隠していた間を含む経過時間と、今の状態を示す
         Note over GUI: 確定から後は 正常シナリオ と同じ
       ```
+
+      <!-- /map -->
     expected:
       - 隠している間、録音の画面が出ておらず、トレイのアイコンが録音中のまま
       - 隠したときに、前面が録音を始める前の貼り付け先の窓に戻っている
@@ -372,6 +420,8 @@ scenarios:
       - name: 確定
         description: 録音の画面を隠した後、戻さずに確定のホットキー（貼り付けて送信）で確定する
     flow: |-
+      <!-- map: {"title": "正常シナリオ（隠したまま確定する）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -387,6 +437,8 @@ scenarios:
         U->>SVC: 届け終えた後、録音開始のホットキーで次の録音を始める
         SVC->>GUI: 録音の画面を開く
       ```
+
+      <!-- /map -->
     expected:
       - 隠したままでも確定のホットキーで確定でき、選んだ出力先で 録音を文字に起こす へ進む
       - 次の録音では、録音の画面がいつもどおり出ている
@@ -399,6 +451,8 @@ scenarios:
       - name: 取り消し
         description: 録音の画面を隠した後、戻さずに取り消しのホットキーで取り消す
     flow: |-
+      <!-- map: {"title": "正常シナリオ（隠したまま取り消す）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -415,6 +469,8 @@ scenarios:
         U->>SVC: 録音開始のホットキーで次の録音を始める
         SVC->>GUI: 録音の画面を開く
       ```
+
+      <!-- /map -->
     expected:
       - 履歴にこの録音が残っておらず、文字起こしへ進まない
       - トレイのアイコンが待機中に戻っている
@@ -430,6 +486,8 @@ scenarios:
       - name: 話し声
         description: 文を話し、区切りの無音の長さより長い間を置いて次の文を話す
     flow: |-
+      <!-- map: {"title": "正常シナリオ（録音を停止せずに無音で区切る）"} -->
+
       ```mermaid
       sequenceDiagram
         participant IN as 入口（API）
@@ -460,6 +518,8 @@ scenarios:
           SVC->>HIST: そこまでを最後の区間として履歴に保存し、録音を文字に起こす へ渡す
         end
       ```
+
+      <!-- /map -->
     expected:
       - 区間を切り出している間もマイクの録音が停止していない
       - 話した文ごとに区間が切り出され、通し番号が 1 から 1 ずつ増えている
@@ -481,6 +541,8 @@ scenarios:
       - name: 話し続ける声
         description: 区切りの無音の長さに届かない間だけで、区間の最大の長さを超えて話し続ける
     flow: |-
+      <!-- map: {"title": "正常シナリオ（話し続けて最大の長さで区切る）"} -->
+
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
@@ -497,6 +559,8 @@ scenarios:
           end
         end
       ```
+
+      <!-- /map -->
     expected:
       - 切り出した区間の長さが、どれも区間の最大の長さに話し声の前の余白を加えた長さ以下である
       - 区間を通し番号の順につなぐと、話した声が欠けていない
@@ -513,6 +577,8 @@ scenarios:
       - name: フォーカス
         description: ネイティブの Wayland のアプリ（GNOME のテキストエディター）の入力欄にフォーカスがある
     flow: |-
+      <!-- map: {"title": "正常シナリオ（Wayland のセッションでホットキーから録音する）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -530,6 +596,8 @@ scenarios:
         SVC->>GUI: 録音の画面を閉じる
         Note over SVC: 録音の停止から履歴への保存までは 正常シナリオ と同じ
       ```
+
+      <!-- /map -->
     expected:
       - 録音の画面が画面の中央に開き、貼り付け先のアプリがフォーカスを保っている
       - 履歴に話した録音が保存されている

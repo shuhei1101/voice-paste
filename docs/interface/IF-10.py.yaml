@@ -13,6 +13,8 @@ flows:
       - name: 待機中
         description: ほかの録音・文字起こしを処理していない
     flow: |-
+      <!-- map: {"title": "正常系"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -24,6 +26,8 @@ flows:
         IF->>MIC: 録音を始める
         IF-->>C: 202・session_id
       ```
+
+      <!-- /map -->
     expected:
       - 202 と session_id が返る
       - 録音セッションが録音中になっている
@@ -40,6 +44,8 @@ flows:
         description: continuous を true にする
         notes: '`{"callback_url": "http://127.0.0.1:9000/voice-paste/result", "continuous": true}`'
     flow: |-
+      <!-- map: {"title": "正常系（連続録音）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -51,6 +57,8 @@ flows:
         IF->>MIC: 録音を始める（無音での区切りを始める）
         IF-->>C: 202・session_id
       ```
+
+      <!-- /map -->
     expected:
       - 202 と session_id が返る
       - 録音セッションが連続録音の録音中になっている
@@ -66,6 +74,8 @@ flows:
         description: loopback でも許可したホストでもない URL
         notes: '`http://example.com/result`'
     flow: |-
+      <!-- map: {"title": "異常系（コールバック先が許可されていない・400）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -74,6 +84,8 @@ flows:
         C->>IF: トークン・許可していない callback_url
         IF-->>C: 400
       ```
+
+      <!-- /map -->
     expected:
       - 400 が返る
       - 録音が始まっていない
@@ -86,6 +98,8 @@ flows:
       - name: トークン
         description: 今回の起動のものと違うトークンか、Authorization 無し
     flow: |-
+      <!-- map: {"title": "異常系（トークンが合わない・401）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -96,6 +110,8 @@ flows:
         IF->>LOG: 断った理由と要求元（Host・Origin）を書く（トークンは書かない）
         IF-->>C: 401
       ```
+
+      <!-- /map -->
     expected:
       - 401 が返る
       - 録音が始まっていない
@@ -110,6 +126,8 @@ flows:
         description: 正しいトークンに Origin を付けるか、Host をほかのホスト名にする
         notes: '`Origin: http://evil.example`・`Host: evil.example`'
     flow: |-
+      <!-- map: {"title": "異常系（ブラウザからの要求・403）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -120,6 +138,8 @@ flows:
         IF->>LOG: 断った理由と要求元（Host・Origin）を書く（トークンは書かない）
         IF-->>C: 403
       ```
+
+      <!-- /map -->
     expected:
       - 403 が返る
       - 録音が始まっていない
@@ -133,6 +153,8 @@ flows:
       - name: 処理中
         description: ホットキーから始めた録音が録音中である
     flow: |-
+      <!-- map: {"title": "異常系（処理中・409）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -141,6 +163,8 @@ flows:
         C->>IF: トークン・callback_url
         IF-->>C: 409
       ```
+
+      <!-- /map -->
     expected:
       - 409 が返る
       - 処理中の録音が続いている
@@ -152,6 +176,8 @@ flows:
       - name: Mock
         description: マイクを開くと例外になるように差し替える。システム音量・トレイも差し替える
     flow: |-
+      <!-- map: {"title": "異常系（マイクを開けない・503）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -165,6 +191,8 @@ flows:
         IF->>LOG: マイクを開けなかった理由を書く
         IF-->>C: 503
       ```
+
+      <!-- /map -->
     expected:
       - 503 が返る
       - システム音量が録音前の値に戻っている
@@ -182,6 +210,8 @@ flows:
         description: 設定に用語集のプリセット「既定」と「会議」があり、設定で選んでいるのは「既定」
         notes: '`{"callback_url": "http://127.0.0.1:9000/voice-paste/result", "glossary_preset": "会議"}`'
     flow: |-
+      <!-- map: {"title": "正常系（用語集のプリセットを指定）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -193,6 +223,8 @@ flows:
         IF->>MIC: 録音を始める（録音セッションにプリセットを持たせる）
         IF-->>C: 202・session_id
       ```
+
+      <!-- /map -->
     expected:
       - 202 と session_id が返る
       - 録音セッションが録音中で、補正に使う用語集のプリセットとして「会議」を持っている
@@ -207,6 +239,8 @@ flows:
         description: 設定の用語集のプリセットの一覧に無い名前を指定する
         notes: '`{"callback_url": "http://127.0.0.1:9000/voice-paste/result", "glossary_preset": "無いプリセット"}`'
     flow: |-
+      <!-- map: {"title": "異常系（一覧に無い用語集のプリセット・400）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -215,6 +249,8 @@ flows:
         C->>IF: トークン・callback_url・一覧に無い glossary_preset
         IF-->>C: 400（detail に指定したプリセットの名前）
       ```
+
+      <!-- /map -->
     expected:
       - 400 が返り、detail に指定したプリセットの名前が含まれている
       - 録音が始まっていない

@@ -9,6 +9,8 @@ scenarios:
       - name: 受け付けたジョブ
         description: ブラウザから音声を送信する でジョブを 1 件受け付けている
     flow: |-
+      <!-- map: {"title": "正常シナリオ"} -->
+
       ```mermaid
       sequenceDiagram
         participant U as ユーザー
@@ -28,6 +30,8 @@ scenarios:
         U->>PG: コピーボタンを押す
         PG->>PG: 起こした文字をクリップボードへ入れる
       ```
+
+      <!-- /map -->
     expected:
       - 待ちの間、件に進み具合が出ている
       - 終わると、件に用語集で補正した文字が出ている
@@ -41,6 +45,8 @@ scenarios:
       - name: 残っている結果
         description: 端末（localStorage）に結果を 2 件入れておく
     flow: |-
+      <!-- map: {"title": "正常シナリオ（結果を消す）"} -->
+
       ```mermaid
       sequenceDiagram
         participant U as ユーザー
@@ -53,6 +59,8 @@ scenarios:
         PG->>LS: その件を消す
         PG->>PG: 一覧からその件を外す
       ```
+
+      <!-- /map -->
     expected:
       - 一覧と端末（localStorage）からその 1 件だけが消え、もう 1 件は残っている
     test: test_normal_when_delete_result
@@ -63,6 +71,8 @@ scenarios:
       - name: 残っている結果
         description: 端末（localStorage）に結果を 10 件入れておく
     flow: |-
+      <!-- map: {"title": "正常シナリオ（残す件数を超える）"} -->
+
       ```mermaid
       sequenceDiagram
         participant PG as 画面（ブラウザ）
@@ -73,6 +83,8 @@ scenarios:
         API-->>PG: state（done）・text
         PG->>LS: 結果を残し、いちばん古い 1 件を消す
       ```
+
+      <!-- /map -->
     expected:
       - 端末（localStorage）の結果が 10 件のままで、新しい件が先頭にあり、いちばん古い件が消えている
     test: test_normal_when_over_result_limit
@@ -84,6 +96,8 @@ scenarios:
         description: 端末に、保存日時が期限より前の結果 1 件と音声 1 件、期限内の結果 1 件を入れておく
         notes: 期限は非機能要件の決定値
     flow: |-
+      <!-- map: {"title": "正常シナリオ（期限を過ぎた件を消す）"} -->
+
       ```mermaid
       sequenceDiagram
         participant U as ユーザー
@@ -96,6 +110,8 @@ scenarios:
         PG->>DB: 期限を過ぎた音声を消す
         PG->>PG: 残った結果を一覧に出す
       ```
+
+      <!-- /map -->
     expected:
       - 期限を過ぎた結果と音声が端末から消えている
       - 期限内の結果は一覧に出ている
@@ -110,6 +126,8 @@ scenarios:
       - name: 受け付けたジョブ
         description: ブラウザから音声を送信する でジョブを 1 件受け付けている
     flow: |-
+      <!-- map: {"title": "正常シナリオ（進みを返さないエンジン）"} -->
+
       ```mermaid
       sequenceDiagram
         participant PG as 画面（ブラウザ）
@@ -124,6 +142,8 @@ scenarios:
         API-->>PG: state（done）・text
         PG->>PG: 待ちの件を起こした文字に置き換える
       ```
+
+      <!-- /map -->
     expected:
       - 文字起こし中の間、件に「文字起こし中」が出て、% と進みのバーが出ていない
       - 終わると、件に起こした文字が出ている
@@ -137,6 +157,8 @@ scenarios:
       - name: 受け付けたジョブ
         description: 画面で録った音声を送信し、ジョブを 1 件受け付けている
     flow: |-
+      <!-- map: {"title": "異常シナリオ（文字起こしに失敗）"} -->
+
       ```mermaid
       sequenceDiagram
         participant PG as 画面（ブラウザ）
@@ -148,6 +170,8 @@ scenarios:
         PG->>PG: 件に失敗を出す
         PG->>DB: 残した音声はそのままにする
       ```
+
+      <!-- /map -->
     expected:
       - 件に文字起こしに失敗したことが出ている
       - 端末（IndexedDB）に録った音声が残り、再送信ボタンとダウンロードボタンを押せる
@@ -160,6 +184,8 @@ scenarios:
       - name: 忘れられたジョブ
         description: ジョブを受け付けた後、結果を取りに行く前に常駐アプリを起動し直す
     flow: |-
+      <!-- map: {"title": "異常シナリオ（ジョブが見つからない）"} -->
+
       ```mermaid
       sequenceDiagram
         participant PG as 画面（ブラウザ）
@@ -169,6 +195,8 @@ scenarios:
         API-->>PG: 404（problem+json）
         PG->>PG: 件に結果が見つからないことを出し、取りに行くのをやめる
       ```
+
+      <!-- /map -->
     expected:
       - 結果の取得が `404` の problem+json で返っている
       - 件に結果が見つからないことが出て、画面が取りに行くのをやめている

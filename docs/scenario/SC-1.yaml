@@ -9,6 +9,8 @@ scenarios:
       - name: 待機中
         description: 常駐サービスが待機中で、ほかの録音・文字起こしを処理していない
     flow: |-
+      <!-- map: {"title": "正常シナリオ"} -->
+
       ```mermaid
       sequenceDiagram
         participant P as 呼び出し元
@@ -27,6 +29,8 @@ scenarios:
         API->>SVC: 録音を確定する
         API-->>P: 受け付けた（結果はコールバック先へ届く）
       ```
+
+      <!-- /map -->
     expected:
       - 開始の応答に録音セッションの ID があり、非機能要件の決定値の時間内に返っている
       - 停止と完了が受け付けられている
@@ -39,6 +43,8 @@ scenarios:
       - name: 録音中
         description: API の開始で録音を始めている
     flow: |-
+      <!-- map: {"title": "正常シナリオ（停止せずに完了する）"} -->
+
       ```mermaid
       sequenceDiagram
         participant P as 呼び出し元
@@ -49,6 +55,8 @@ scenarios:
         API->>SVC: 録音を停止して確定する
         API-->>P: 受け付けた（結果はコールバック先へ届く）
       ```
+
+      <!-- /map -->
     expected:
       - 完了が受け付けられている
       - 確定した録音で 録音を文字に起こす へ進む
@@ -59,6 +67,8 @@ scenarios:
       - name: 処理中の録音
         description: ホットキーか API から始めた録音が、録音中か文字起こし中である
     flow: |-
+      <!-- map: {"title": "異常シナリオ（処理中に開始が来る）"} -->
+
       ```mermaid
       sequenceDiagram
         participant P as 呼び出し元
@@ -70,6 +80,8 @@ scenarios:
         SVC-->>API: ほかの録音が処理中で、受け付けない
         API-->>P: 処理中を表すエラー（409）
       ```
+
+      <!-- /map -->
     expected:
       - 開始が処理中を表すエラー（409）で、非機能要件の決定値の時間内に返っている
       - 2 つ目の録音が始まっていない
@@ -81,6 +93,8 @@ scenarios:
       - name: 古いトークン
         description: 前の起動のトークンか、空のトークンで開始を呼ぶ
     flow: |-
+      <!-- map: {"title": "異常シナリオ（トークンが合わない）"} -->
+
       ```mermaid
       sequenceDiagram
         participant P as 呼び出し元
@@ -90,6 +104,8 @@ scenarios:
         API->>API: トークンが今回の起動のものと合わない
         API-->>P: 認証のエラー（401）
       ```
+
+      <!-- /map -->
     expected:
       - 開始が認証のエラー（401）で返っている
       - 録音が始まっていない
@@ -101,6 +117,8 @@ scenarios:
         description: ブラウザのページからの要求と同じく、Origin を付けて開始を呼ぶ
         notes: Host が 127.0.0.1 でも localhost でもない要求も同じ扱いになる
     flow: |-
+      <!-- map: {"title": "異常シナリオ（ブラウザから呼ばれる）"} -->
+
       ```mermaid
       sequenceDiagram
         participant P as ブラウザのページ
@@ -110,6 +128,8 @@ scenarios:
         API->>API: Origin が付いている
         API-->>P: 拒否のエラー（403）
       ```
+
+      <!-- /map -->
     expected:
       - 開始が拒否のエラー（403）で返っている
       - 録音が始まっていない
@@ -120,6 +140,8 @@ scenarios:
       - name: 許可していないコールバック先
         description: loopback でも設定で許可したホストでもないコールバック先を指定して開始を呼ぶ
     flow: |-
+      <!-- map: {"title": "異常シナリオ（コールバック先が許可されていない）"} -->
+
       ```mermaid
       sequenceDiagram
         participant P as 呼び出し元
@@ -129,6 +151,8 @@ scenarios:
         API->>API: コールバック先が loopback でも許可したホストでもない
         API-->>P: 要求の誤りを表すエラー（400）
       ```
+
+      <!-- /map -->
     expected:
       - 開始が要求の誤りを表すエラー（400）で返っている
       - 録音が始まっていない
@@ -139,6 +163,8 @@ scenarios:
       - name: 知らない録音セッション
         description: 開始で受け取っていない録音セッションの ID か、既に完了した録音セッションの ID で停止か完了を呼ぶ
     flow: |-
+      <!-- map: {"title": "異常シナリオ（知らない録音セッションを操作する）"} -->
+
       ```mermaid
       sequenceDiagram
         participant P as 呼び出し元
@@ -150,6 +176,8 @@ scenarios:
         SVC-->>API: その録音セッションは録音中でない
         API-->>P: 見つからないことを表すエラー（404）
       ```
+
+      <!-- /map -->
     expected:
       - 完了が見つからないことを表すエラー（404）で返っている
       - 処理中のほかの録音があれば、そのまま続いている
@@ -162,6 +190,8 @@ scenarios:
       - name: マイクの欠落
         description: 入力の音声デバイスを外しておき、録音の入力を開けないようにする
     flow: |-
+      <!-- map: {"title": "異常シナリオ（マイクを開けない）"} -->
+
       ```mermaid
       sequenceDiagram
         participant P as 呼び出し元
@@ -176,6 +206,8 @@ scenarios:
         SVC-->>API: 録音を始められなかった
         API-->>P: 録音を始められないことを表すエラー（503）
       ```
+
+      <!-- /map -->
     expected:
       - 開始が録音を始められないことを表すエラー（503）で返っている
       - 録音が始まっていない
@@ -190,6 +222,8 @@ scenarios:
       - name: 放置された録音セッション
         description: 開始を呼んだ後、停止も完了も呼ばない
     flow: |-
+      <!-- map: {"title": "異常シナリオ（完了が来ないまま上限に達する）"} -->
+
       ```mermaid
       sequenceDiagram
         participant P as 呼び出し元
@@ -206,6 +240,8 @@ scenarios:
         SVC->>CB: 録音セッションの ID と、完了が来ないまま上限で打ち切ったことを送信する
         SVC->>SVC: 待機中に戻す
       ```
+
+      <!-- /map -->
     expected:
       - コールバック先のエンドポイントに、録音セッションの ID と上限で打ち切ったことが 1 回届いている
       - 履歴に打ち切った録音が残っている
@@ -222,6 +258,8 @@ scenarios:
       - name: 待機中
         description: 常駐サービスが待機中で、ほかの録音・文字起こしを処理していない
     flow: |-
+      <!-- map: {"title": "正常シナリオ（連続録音を始めて完了する）"} -->
+
       ```mermaid
       sequenceDiagram
         participant P as 呼び出し元
@@ -239,6 +277,8 @@ scenarios:
         SVC->>SVC: 録音を停止し、区間に切り出していない話し声が残っていれば（話し終えて無音が区切りの長さに届く前の完了を含む）、そこまでを最後の区間として区切る
         API-->>P: 受け付けた（残りの区間と終わりはコールバック先へ届く）
       ```
+
+      <!-- /map -->
     expected:
       - 開始の応答に録音セッションの ID があり、非機能要件の決定値の時間内に返っている
       - 完了が受け付けられている
@@ -255,6 +295,8 @@ scenarios:
       - name: 放置された録音セッション
         description: 連続録音を指定して開始を呼んだ後、完了を呼ばない
     flow: |-
+      <!-- map: {"title": "異常シナリオ（連続録音が上限に達する）"} -->
+
       ```mermaid
       sequenceDiagram
         participant P as 呼び出し元
@@ -270,6 +312,8 @@ scenarios:
         SVC->>CB: 残りの区間の文字を届けた後、上限で打ち切ったことと区間の数を送信する
         SVC->>SVC: 待機中に戻す
       ```
+
+      <!-- /map -->
     expected:
       - コールバック先のエンドポイントに、上限までに区切った区間の文字が通し番号の順に届いている
       - 最後に、上限で打ち切ったことと区間の数が 1 回届いている
@@ -286,6 +330,8 @@ scenarios:
       - name: 用語集のプリセット
         description: 設定に、設定で選んでいるプリセットとは別の用語集のプリセットがあり、その名前を指定して開始を呼ぶ
     flow: |-
+      <!-- map: {"title": "正常シナリオ（用語集のプリセットを指定して始める）"} -->
+
       ```mermaid
       sequenceDiagram
         participant P as 呼び出し元
@@ -299,6 +345,8 @@ scenarios:
         API-->>P: 受け付けた（録音セッションの ID）
         Note over P,SVC: 停止と完了は 正常シナリオ と同じ
       ```
+
+      <!-- /map -->
     expected:
       - 開始の応答に録音セッションの ID がある
       - 確定した録音で、指定したプリセットを持って 録音を文字に起こす へ進む（正常シナリオ（API で指定したプリセットで補正する））
@@ -312,6 +360,8 @@ scenarios:
       - name: 無いプリセット
         description: 設定の用語集のプリセットの一覧に無い名前を指定して開始を呼ぶ
     flow: |-
+      <!-- map: {"title": "異常シナリオ（一覧に無い用語集のプリセットを指定する）"} -->
+
       ```mermaid
       sequenceDiagram
         participant P as 呼び出し元
@@ -321,6 +371,8 @@ scenarios:
         API->>API: プリセットが設定の一覧に無い
         API-->>P: 要求の誤りを表すエラー（400。無いプリセットの名前を含む）
       ```
+
+      <!-- /map -->
     expected:
       - 開始が要求の誤りを表すエラー（400）で返っている
       - 録音が始まっていない

@@ -65,10 +65,6 @@ use_cases:
     detail: 図と文の表し方・メタデータだけを変え、業務の流れは変えない
     depends_on: []
 docs:
-  - page: dev-docs.yaml
-    new: false
-    change: コード（src/・haas_server/）とテスト（tests/）の行を追加し、設計書への related（implements・tests）を張る
-    status: todo
   - page: docs/glossary/GLO-1.yaml
     new: false
     change: 判定フローチャート『用語の登録』の結果の用語を登録する
@@ -76,11 +72,39 @@ docs:
   - page: docs/guide/files.yml
     new: false
     change: 公開ドキュメントのタグ・description を再設定する
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-11T10:32:31.113036+00:00'
   - page: docs/mock/files.yml
     new: false
     change: モックの画面のタグ・description を再設定する
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-11T10:32:31.113036+00:00'
+  - page: dev-docs.yaml
+    new: false
+    change: コード（src/・haas_server/）とテスト（tests/）の files.yml を配信する行を追加する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-11T10:32:36.375716+00:00'
+  - page: src/files.yml
+    new: true
+    change: コードからモジュール構成への related（implements）を記載する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-11T10:32:36.375716+00:00'
+  - page: haas_server/files.yml
+    new: true
+    change: コードからモジュール構成への related（implements）を記載する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-11T10:32:36.375716+00:00'
+  - page: tests/files.yml
+    new: true
+    change: 単体テストからコードへの related（tests）を記載する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-11T10:32:36.375716+00:00'
 scope_out:
   - item: schemas/ の Schema の変更
     reason: AI Monitor の配布物で、手で変更すると次の配布物への追従で上書きされる
@@ -91,3 +115,9 @@ scope_out:
   - item: 過去の PR ドキュメント（docs/pr/）の文・メタデータの移行
     reason: 判断が分かれる。今の判断は Mermaid の図だけを置き換え、文・メタデータはマージ時点の記録として変えない（要件.md の未確定）。ドキュメント修正のレビューで確定する
     plan: none
+  - item: YAML の設計書のタグ・エイリアス・descriptionと、コード・テストの files.yml の行のタグ・description
+    reason: YAML の設計書は今の Schema がキーを持たない。コード・テストの行は設計書のタグと同じ語彙で付けるため、ai-monitor#3188 の後にまとめて移行する（確認ログの推奨案 A）
+    plan: to_file
+  - item: モジュール構成『常駐アプリ / 録音セッション / service.py』の状態遷移図（stateDiagram-v2）の置き換え
+    reason: mdmark に状態遷移図の部品が無く、map は flowchart・sequenceDiagram だけを描くため、Mermaid のまま残す
+    plan: to_file

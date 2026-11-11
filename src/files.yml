@@ -1,0 +1,346 @@
+# yaml-language-server: $schema=../schemas/files.schema.yaml
+files:
+  - path: voice_paste/features/correction/service.py
+    related:
+      - to: MOD-11
+        type: implements
+  - path: voice_paste/features/history/service.py
+    related:
+      - to: MOD-9
+        type: implements
+  - path: voice_paste/features/outputs/browser/service.py
+    related:
+      - to: MOD-64
+        type: implements
+  - path: voice_paste/features/outputs/callback/service.py
+    related:
+      - to: MOD-59
+        type: implements
+  - path: voice_paste/features/outputs/copy_only/service.py
+    related:
+      - to: MOD-63
+        type: implements
+  - path: voice_paste/features/outputs/copy_only/settings.py
+    related:
+      - to: MOD-57
+        type: implements
+  - path: voice_paste/features/outputs/endpoint/service.py
+    related:
+      - to: MOD-65
+        type: implements
+  - path: voice_paste/features/outputs/paste_and_send/service.py
+    related:
+      - to: MOD-61
+        type: implements
+  - path: voice_paste/features/outputs/paste_and_send/settings.py
+    related:
+      - to: MOD-55
+        type: implements
+  - path: voice_paste/features/outputs/paste_only/service.py
+    related:
+      - to: MOD-62
+        type: implements
+  - path: voice_paste/features/outputs/paste_only/settings.py
+    related:
+      - to: MOD-56
+        type: implements
+  - path: voice_paste/features/outputs/registry.py
+    related:
+      - to: MOD-58
+        type: implements
+  - path: voice_paste/features/outputs/service.py
+    related:
+      - to: MOD-60
+        type: implements
+  - path: voice_paste/features/outputs/types.py
+    related:
+      - to: MOD-54
+        type: implements
+  - path: voice_paste/features/recording/client.py
+    related:
+      - to: MOD-92
+        type: implements
+  - path: voice_paste/features/recording/segmenter.py
+    related:
+      - to: MOD-91
+        type: implements
+  - path: voice_paste/features/recording/service.py
+    related:
+      - to: MOD-90
+        type: implements
+  - path: voice_paste/features/recording/types.py
+    related:
+      - to: MOD-93
+        type: implements
+  - path: voice_paste/features/session/route.py
+    related:
+      - to: MOD-25
+        type: implements
+  - path: voice_paste/features/session/schemas.py
+    related:
+      - to: MOD-23
+        type: implements
+  - path: voice_paste/features/session/service.py
+    related:
+      - to: MOD-24
+        type: implements
+  - path: voice_paste/features/session/types.py
+    related:
+      - to: MOD-22
+        type: implements
+  - path: voice_paste/features/transcription/service.py
+    related:
+      - to: MOD-83
+        type: implements
+  - path: voice_paste/features/transcription/types.py
+    related:
+      - to: MOD-82
+        type: implements
+  - path: voice_paste/features/web_transcription/route.py
+    related:
+      - to: MOD-29
+        type: implements
+  - path: voice_paste/features/web_transcription/schemas.py
+    related:
+      - to: MOD-27
+        type: implements
+  - path: voice_paste/features/web_transcription/service.py
+    related:
+      - to: MOD-28
+        type: implements
+  - path: voice_paste/features/web_transcription/types.py
+    related:
+      - to: MOD-26
+        type: implements
+  - path: voice_paste/integrations/audio/probe.py
+    related:
+      - to: MOD-79
+        type: implements
+  - path: voice_paste/integrations/browser/opener.py
+    related:
+      - to: MOD-73
+        type: implements
+  - path: voice_paste/integrations/browser/opener_linux.py
+    related:
+      - to: MOD-74
+        type: implements
+  - path: voice_paste/integrations/haas/server.py
+    related:
+      - to: MOD-96
+        type: implements
+  - path: voice_paste/integrations/haas/transcriber.py
+    related:
+      - to: MOD-97
+        type: implements
+  - path: voice_paste/integrations/http/client.py
+    related:
+      - to: MOD-78
+        type: implements
+  - path: voice_paste/integrations/http/types.py
+    related:
+      - to: MOD-66
+        type: implements
+  - path: voice_paste/integrations/keyboard/active_window_linux.py
+    related:
+      - to: MOD-81
+        type: implements
+  - path: voice_paste/integrations/keyboard/active_window_wayland.py
+    related:
+      - to: MOD-77
+        type: implements
+  - path: voice_paste/integrations/keyboard/sender.py
+    related:
+      - to: MOD-72
+        type: implements
+  - path: voice_paste/integrations/keyboard/sender_linux.py
+    related:
+      - to: MOD-80
+        type: implements
+  - path: voice_paste/integrations/keyboard/sender_wayland.py
+    related:
+      - to: MOD-70
+        type: implements
+  - path: voice_paste/integrations/openai/credentials.py
+    related:
+      - to: MOD-76
+        type: implements
+  - path: voice_paste/integrations/openai/transcriber.py
+    related:
+      - to: MOD-69
+        type: implements
+  - path: voice_paste/integrations/vad/adapter.py
+    related:
+      - to: MOD-68
+        type: implements
+  - path: voice_paste/integrations/volume/adapter.py
+    related:
+      - to: MOD-71
+        type: implements
+  - path: voice_paste/integrations/volume/noop.py
+    related:
+      - to: MOD-75
+        type: implements
+  - path: voice_paste/integrations/whisper/client.py
+    related:
+      - to: MOD-67
+        type: implements
+  - path: voice_paste/integrations/whisper/protocol.py
+    related:
+      - to: MOD-94
+        type: implements
+  - path: voice_paste/integrations/whisper/worker.py
+    related:
+      - to: MOD-95
+        type: implements
+  - path: voice_paste/main.py
+    related:
+      - to: MOD-84
+        type: implements
+  - path: voice_paste/runtime/hotkey.py
+    related:
+      - to: MOD-33
+        type: implements
+  - path: voice_paste/runtime/hotkey_gnome.py
+    related:
+      - to: MOD-42
+        type: implements
+  - path: voice_paste/runtime/process.py
+    related:
+      - to: MOD-89
+        type: implements
+  - path: voice_paste/runtime/send_hotkey.py
+    related:
+      - to: MOD-47
+        type: implements
+  - path: voice_paste/runtime/settings_store.py
+    related:
+      - to: MOD-86
+        type: implements
+  - path: voice_paste/runtime/single_instance.py
+    related:
+      - to: MOD-87
+        type: implements
+  - path: voice_paste/runtime/single_instance_linux.py
+    related:
+      - to: MOD-88
+        type: implements
+  - path: voice_paste/runtime/timer.py
+    related:
+      - to: MOD-85
+        type: implements
+  - path: voice_paste/server/app.py
+    related:
+      - to: MOD-19
+        type: implements
+  - path: voice_paste/server/body_limit.py
+    related:
+      - to: MOD-17
+        type: implements
+  - path: voice_paste/server/error_handlers.py
+    related:
+      - to: MOD-20
+        type: implements
+  - path: voice_paste/server/middleware.py
+    related:
+      - to: MOD-15
+        type: implements
+  - path: voice_paste/server/runner.py
+    related:
+      - to: MOD-16
+        type: implements
+  - path: voice_paste/server/token.py
+    related:
+      - to: MOD-18
+        type: implements
+  - path: voice_paste/server/web_page.py
+    related:
+      - to: MOD-21
+        type: implements
+  - path: voice_paste/shared/constants.py
+    related:
+      - to: MOD-49
+        type: implements
+  - path: voice_paste/shared/errors.py
+    related:
+      - to: MOD-52
+        type: implements
+  - path: voice_paste/shared/logger.py
+    related:
+      - to: MOD-53
+        type: implements
+  - path: voice_paste/shared/os_kind.py
+    related:
+      - to: MOD-51
+        type: implements
+  - path: voice_paste/shared/settings.py
+    related:
+      - to: MOD-50
+        type: implements
+  - path: voice_paste/shared/types.py
+    related:
+      - to: MOD-48
+        type: implements
+  - path: voice_paste/shared/yaml_document.py
+    related:
+      - to: MOD-2
+        type: implements
+  - path: voice_paste/ui/bridge.py
+    related:
+      - to: MOD-32
+        type: implements
+  - path: voice_paste/ui/controller.py
+    related:
+      - to: MOD-30
+        type: implements
+  - path: voice_paste/ui/indicator_style.py
+    related:
+      - to: MOD-40
+        type: implements
+  - path: voice_paste/ui/placement.py
+    related:
+      - to: MOD-43
+        type: implements
+  - path: voice_paste/ui/style.py
+    related:
+      - to: MOD-44
+        type: implements
+  - path: voice_paste/ui/tray.py
+    related:
+      - to: MOD-31
+        type: implements
+  - path: voice_paste/ui/windows/busy_dialog.py
+    related:
+      - to: MOD-45
+        type: implements
+  - path: voice_paste/ui/windows/recording_window.py
+    related:
+      - to: MOD-34
+        type: implements
+  - path: voice_paste/ui/windows/settings_edge_phrases.py
+    related:
+      - to: MOD-41
+        type: implements
+  - path: voice_paste/ui/windows/settings_fields.py
+    related:
+      - to: MOD-46
+        type: implements
+  - path: voice_paste/ui/windows/settings_glossaries.py
+    related:
+      - to: MOD-38
+        type: implements
+  - path: voice_paste/ui/windows/settings_hints.py
+    related:
+      - to: MOD-39
+        type: implements
+  - path: voice_paste/ui/windows/settings_presets.py
+    related:
+      - to: MOD-37
+        type: implements
+  - path: voice_paste/ui/windows/settings_window.py
+    related:
+      - to: MOD-36
+        type: implements
+  - path: voice_paste/ui/windows/transcribing_indicator.py
+    related:
+      - to: MOD-35
+        type: implements

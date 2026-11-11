@@ -13,6 +13,8 @@ scenarios:
         description: 設定画面で Ctrl・Alt・Shift を全てオフにした（既定）
         notes: '`outputs[paste_and_send]` の修飾キーの項目'
     flow: |-
+      <!-- map: {"title": "正常シナリオ"} -->
+
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
@@ -28,6 +30,8 @@ scenarios:
         SVC->>SVC: 待機中に戻す
         SVC->>TRAY: 待機中のアイコンにする
       ```
+
+      <!-- /map -->
     expected:
       - 貼り付け先の入力欄に起こした文字が入り、Enter が送信されている
       - クリップボードに起こした文字が入っている
@@ -41,6 +45,8 @@ scenarios:
       - name: 出力先
         description: 「貼り付けのみ」をオンにし、録音する で「貼り付けのみ」を選んだ
     flow: |-
+      <!-- map: {"title": "正常シナリオ（貼り付けのみ）"} -->
+
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
@@ -53,6 +59,8 @@ scenarios:
         OUT->>TGT: 貼り付けのキーを送信する
         Note over SVC: 待機中に戻すのは 正常シナリオ と同じ
       ```
+
+      <!-- /map -->
     expected:
       - 貼り付け先の入力欄に起こした文字が入り、Enter は送信されていない
       - クリップボードに起こした文字が入っている
@@ -65,6 +73,8 @@ scenarios:
       - name: 出力先
         description: 「コピーのみ」をオンにし、録音する で「コピーのみ」を選んだ
     flow: |-
+      <!-- map: {"title": "正常シナリオ（コピーのみ）"} -->
+
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
@@ -78,6 +88,8 @@ scenarios:
         TRAY->>TRAY: コピーの完了の通知を出す
         Note over SVC: 待機中に戻すのは 正常シナリオ と同じ
       ```
+
+      <!-- /map -->
     expected:
       - クリップボードに起こした文字が入っている
       - 貼り付けのキーも Enter も送信されていない
@@ -94,6 +106,8 @@ scenarios:
         description: 設定画面の「貼り付けて送信」で Ctrl をオンにした（ブラウザ添付のプリセットには当てない）
         notes: '`outputs[paste_and_send]` の修飾キーの項目'
     flow: |-
+      <!-- map: {"title": "正常シナリオ（ブラウザ添付のプリセット）"} -->
+
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
@@ -108,6 +122,8 @@ scenarios:
         OUT->>EDGE: 貼り付けのキーを送信し、設定の間を置いて Enter を送信する
         Note over SVC: 待機中に戻すのは 正常シナリオ と同じ
       ```
+
+      <!-- /map -->
     expected:
       - プリセットの URL の画面がアプリのウィンドウとして開いている
       - その画面の入力欄に起こした文字が入り、送信されている
@@ -123,6 +139,8 @@ scenarios:
       - name: ほかの出力先
         description: 「貼り付けて送信」をオンにしている
     flow: |-
+      <!-- map: {"title": "正常シナリオ（呼び出し元へ返す）"} -->
+
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
@@ -137,6 +155,8 @@ scenarios:
         SVC->>SVC: 待機中に戻す
         SVC->>TRAY: 待機中のアイコンにする
       ```
+
+      <!-- /map -->
     expected:
       - コールバック先のエンドポイントに、録音セッションの ID と起こした文字が 1 回届いている
       - クリップボードと貼り付け先が届ける前のままである
@@ -150,6 +170,8 @@ scenarios:
       - name: 入口
         description: API から始めた録音で、文字起こしの結果が空だった
     flow: |-
+      <!-- map: {"title": "正常シナリオ（呼び出し元へ空の文字を返す）"} -->
+
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
@@ -161,6 +183,8 @@ scenarios:
         CB-->>OUT: 受け取った
         Note over SVC: 待機中に戻すのは 正常シナリオ（呼び出し元へ返す） と同じ
       ```
+
+      <!-- /map -->
     expected:
       - コールバック先のエンドポイントに、録音セッションの ID と空の文字が 1 回届いている
       - トレイのアイコンが待機中に戻っている
@@ -173,6 +197,8 @@ scenarios:
       - name: 入口
         description: API から始めた録音で、文字起こしに失敗した
     flow: |-
+      <!-- map: {"title": "異常シナリオ（呼び出し元へ失敗を返す）"} -->
+
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
@@ -184,6 +210,8 @@ scenarios:
         CB-->>OUT: 受け取った
         Note over SVC: 待機中に戻すのは 正常シナリオ（呼び出し元へ返す） と同じ
       ```
+
+      <!-- /map -->
     expected:
       - コールバック先のエンドポイントに、録音セッションの ID と文字起こしに失敗したことが 1 回届いている
       - トレイのアイコンが待機中に戻っている
@@ -198,6 +226,8 @@ scenarios:
       - name: コールバック先の停止
         description: コールバック先のエンドポイントを停止しておき、送信しても届かないようにする
     flow: |-
+      <!-- map: {"title": "異常シナリオ（コールバック先に届かない）"} -->
+
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
@@ -214,6 +244,8 @@ scenarios:
         OUT->>LOG: コールバック先に届かなかったことと録音セッションの ID を書く
         Note over SVC: 待機中に戻すのは 正常シナリオ（呼び出し元へ返す） と同じ
       ```
+
+      <!-- /map -->
     expected:
       - ログにコールバック先に届かなかったことと録音セッションの ID が書かれている
       - 履歴に録音と起こした文字が残っている
@@ -229,6 +261,8 @@ scenarios:
       - name: プリセット
         description: 種類「エンドポイントへ送信」で URL にテスト用のエンドポイントを設定したプリセットを 1 つ追加し、録音する でそのプリセットを選んだ
     flow: |-
+      <!-- map: {"title": "正常シナリオ（エンドポイントへ送信のプリセット）"} -->
+
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
@@ -242,6 +276,8 @@ scenarios:
         SVC->>SVC: 待機中に戻す
         SVC->>TRAY: 待機中のアイコンにする
       ```
+
+      <!-- /map -->
     expected:
       - 送信先のエンドポイントに、録音セッションの ID と起こした文字が 1 回届いている
       - クリップボードと貼り付け先が届ける前のままである
@@ -258,6 +294,8 @@ scenarios:
         description: 送信先のエンドポイントが、受け取っても設定のタイムアウトより長く応えないようにしておき、送信しても届かない（タイムアウト）ようにする
         notes: エンドポイントは動かしたままにして、送信した回数を数える（既定のタイムアウト 1.5 秒に対し 3 秒応えない）
     flow: |-
+      <!-- map: {"title": "異常シナリオ（送信先に届かない）"} -->
+
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
@@ -274,6 +312,8 @@ scenarios:
         SVC->>LOG: 届けられなかった理由と録音セッションの ID を書く
         SVC->>SVC: 待機中に戻す
       ```
+
+      <!-- /map -->
     expected:
       - トレイで届けられなかったことが知らされている
       - ログに届けられなかった理由と録音セッションの ID が書かれている
@@ -289,6 +329,8 @@ scenarios:
       - name: プリセット
         description: 種類「ブラウザ添付」・Enter まで送信をオフにしたプリセットを 1 つ追加し、録音する でそのプリセットを選んだ
     flow: |-
+      <!-- map: {"title": "正常シナリオ（ブラウザ添付のプリセット・貼り付けだけ）"} -->
+
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
@@ -303,6 +345,8 @@ scenarios:
         OUT->>EDGE: 貼り付けのキーを送信する（Enter は送信しない）
         Note over SVC: 待機中に戻すのは 正常シナリオ と同じ
       ```
+
+      <!-- /map -->
     expected:
       - プリセットの URL の画面がアプリのウィンドウとして開いている
       - その画面の入力欄に起こした文字が入り、送信はされていない
@@ -315,6 +359,8 @@ scenarios:
       - name: 入口
         description: 連続録音で、区間の文字が通し番号つきで得られた
     flow: |-
+      <!-- map: {"title": "正常シナリオ（区間ごとに呼び出し元へ返す）"} -->
+
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
@@ -328,6 +374,8 @@ scenarios:
           CB-->>OUT: 受け取った
         end
       ```
+
+      <!-- /map -->
     expected:
       - コールバック先のエンドポイントに、区間ごとに録音セッションの ID・通し番号・区間の文字が 1 回ずつ届いている
       - 届いた順が通し番号の順である
@@ -343,6 +391,8 @@ scenarios:
       - name: 入口
         description: 連続録音が完了か上限で終わり、最後の区間まで届け終えた（区間が 1 つも無い場合を含む）
     flow: |-
+      <!-- map: {"title": "正常シナリオ（連続録音の終わりを返す）"} -->
+
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
@@ -356,6 +406,8 @@ scenarios:
         SVC->>SVC: 待機中に戻す
         SVC->>TRAY: 待機中のアイコンにする
       ```
+
+      <!-- /map -->
     expected:
       - コールバック先のエンドポイントに、最後の区間の返送の後で、録音セッションの ID・終わった理由・区間の数が 1 回届いている
       - 区間の数が、届けた区間の通し番号の最後の値と一致する（区間が無ければ 0）
@@ -369,6 +421,8 @@ scenarios:
       - name: 入口
         description: 連続録音で、ある区間の文字起こしが失敗した
     flow: |-
+      <!-- map: {"title": "異常シナリオ（区間の失敗を呼び出し元へ返す）"} -->
+
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
@@ -380,6 +434,8 @@ scenarios:
         CB-->>OUT: 受け取った
         Note over SVC: 連続録音は続け、次の区間を 正常シナリオ（区間ごとに呼び出し元へ返す） のとおり届ける
       ```
+
+      <!-- /map -->
     expected:
       - コールバック先のエンドポイントに、失敗した区間の録音セッションの ID・通し番号・失敗した理由が 1 回届いている
       - その後の区間の文字が通し番号の順に届いている
@@ -394,6 +450,8 @@ scenarios:
       - name: 入口
         description: 連続録音で、通し番号 1・2・3 の区間の文字が得られた
     flow: |-
+      <!-- map: {"title": "異常シナリオ（区間のコールバック先に届かない）"} -->
+
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
@@ -412,6 +470,8 @@ scenarios:
         OUT->>CB: 録音セッションの ID・通し番号 3・区間の文字を送信する
         CB-->>OUT: 受け取った
       ```
+
+      <!-- /map -->
     expected:
       - 通し番号 2 の区間の返送が、決めた回数だけ送信されている
       - ログに、届かなかったことと録音セッションの ID・通し番号 2 が書かれている
@@ -431,6 +491,8 @@ scenarios:
         description: 設定画面で Ctrl をオンにし、Alt・Shift をオフにした
         notes: '`outputs[paste_and_send]` の修飾キーの項目'
     flow: |-
+      <!-- map: {"title": "正常シナリオ（Enter と一緒に修飾キーを押す）"} -->
+
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
@@ -444,6 +506,8 @@ scenarios:
         OUT->>TGT: 設定の間を置いて、Ctrl を押したまま Enter を送信する
         Note over SVC: 待機中に戻すのは 正常シナリオ と同じ
       ```
+
+      <!-- /map -->
     expected:
       - 貼り付け先の入力欄に起こした文字が入り、Ctrl+Enter が送信されている
       - Enter を送信し終えた後、Ctrl が押されたままになっていない
@@ -460,6 +524,8 @@ scenarios:
         description: 通知が出ている間に、ほかのアプリで別の文字をクリップボードへコピーした
         notes: 起こした文字と重ならない文字にする
     flow: |-
+      <!-- map: {"title": "正常シナリオ（コピーの完了の通知を押してもう一度コピーする）"} -->
+
       ```mermaid
       sequenceDiagram
         actor USER as ユーザー
@@ -469,6 +535,8 @@ scenarios:
         USER->>TRAY: コピーの完了の通知を押す
         TRAY->>CB: その通知のときに起こした文字をもう一度コピーする
       ```
+
+      <!-- /map -->
     expected:
       - クリップボードに、上書きした文字ではなく起こした文字が入っている
       - ログフォルダは開かれていない
@@ -484,6 +552,8 @@ scenarios:
       - name: 切り替え
         description: 文字起こし中の表示が出ている間に、「コピーのみ」へ切り替える
     flow: |-
+      <!-- map: {"title": "正常シナリオ（文字起こし中にコピーのみへ切り替える）"} -->
+
       ```mermaid
       sequenceDiagram
         actor USER as ユーザー
@@ -501,6 +571,8 @@ scenarios:
         OUT->>CB: 起こした文字をコピーする
         Note over SVC: 以降は 正常シナリオ（コピーのみ） と同じ
       ```
+
+      <!-- /map -->
     expected:
       - 文字起こし中の表示の今の出力先が「コピーのみ」に変わっている
       - クリップボードに起こした文字が入っている
@@ -519,6 +591,8 @@ scenarios:
       - name: 切り替え
         description: 文字起こし中の表示が出ている間に、「貼り付けのみ」へ切り替える
     flow: |-
+      <!-- map: {"title": "正常シナリオ（文字起こし中に貼り付けのみへ切り替える）"} -->
+
       ```mermaid
       sequenceDiagram
         actor USER as ユーザー
@@ -538,6 +612,8 @@ scenarios:
         OUT->>TGT: 貼り付けのキーを送信する
         Note over SVC: 待機中に戻すのは 正常シナリオ と同じ
       ```
+
+      <!-- /map -->
     expected:
       - 貼り付け先の入力欄に起こした文字が入り、Enter は送信されていない
       - クリップボードに起こした文字が入っている
@@ -555,6 +631,8 @@ scenarios:
         description: GNOME Terminal の入力欄にフォーカスがある
         notes: アクティブなウィンドウの WM_CLASS は `gnome-terminal-server`
     flow: |-
+      <!-- map: {"title": "正常シナリオ（Linux の端末アプリへ貼り付ける）"} -->
+
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
@@ -567,6 +645,8 @@ scenarios:
         OUT->>OUT: アクティブなウィンドウが端末アプリかを見る
         OUT->>TGT: 設定の貼り付けのキーに代えて Ctrl+Shift+V を送信する
       ```
+
+      <!-- /map -->
     expected:
       - 端末の入力欄に起こした文字が入っている
       - クリップボードに起こした文字が入っている
@@ -580,6 +660,8 @@ scenarios:
         description: ネイティブの Wayland のアプリ（GNOME のテキストエディター）の入力欄にフォーカスがある
         notes: XWayland のアプリでも同じに届く
     flow: |-
+      <!-- map: {"title": "正常シナリオ（Wayland のセッションで貼り付けて送信する）"} -->
+
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
@@ -595,6 +677,8 @@ scenarios:
         OUT->>KB: 設定の間を置いて Enter を送信する
         KB->>TGT: Enter が届く
       ```
+
+      <!-- /map -->
     expected:
       - 貼り付け先の入力欄に起こした文字が入り、Enter が送信されている
       - クリップボードに起こした文字が入っている
@@ -607,6 +691,8 @@ scenarios:
       - name: 出力先
         description: 録音する で「貼り付けて送信」を選んだ
     flow: |-
+      <!-- map: {"title": "異常シナリオ（Wayland のセッションで貼り付けのキーを送信できない）"} -->
+
       ```mermaid
       sequenceDiagram
         participant SVC as 常駐サービス
@@ -622,6 +708,8 @@ scenarios:
         OUT->>TRAY: 貼り付けられず、クリップボードに入っていることを通知する
         SVC->>SVC: 待機中に戻す
       ```
+
+      <!-- /map -->
     expected:
       - クリップボードに起こした文字が入っている
       - トレイで、貼り付けられずクリップボードに入っていることが知らされている

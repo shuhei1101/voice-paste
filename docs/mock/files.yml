@@ -1,61 +1,302 @@
 files:
 - path: components/index.md
+  description: '新しく追加・変更する部品のモックの一覧を記載し、部品の状態ごとの案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:部品
 - path: index.md
+  description: 'モックの画面・部品・デザインスタイル・作業 PR ごとのリンク集への入口を記載し、モックを探すときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/busy-dialog/37/index.md
+  description: '#37（画面・トレイ・ホットキーを PySide6 の新しい構成で作り直す）で作った処理中のダイアログのモックの案を記載し、その変更の処理中のダイアログの案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/busy-dialog/index.md
+  description: '処理中のダイアログのモックの案を作業 PR ごとに記載し、処理中のダイアログの見た目の変遷を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/index.md
+  description: '画面ごとのモックと現役の案の一覧を記載し、画面のモックを探すときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/recording-window/37/index.md
+  description: '#37（画面・トレイ・ホットキーを PySide6 の新しい構成で作り直す）で作った録音の画面のモックの案を記載し、その変更の録音の画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/recording-window/44/index.md
+  description: '#44（AI チャットの送り先をカスタムプリセットにし、エンドポイントへ送る種類を足す）で作った録音の画面のモックの案を記載し、その変更の録音の画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/recording-window/48/index.md
+  description: '#48（録音の画面をドラッグで動かし、録音中に隠して戻し、× で取り消せるようにする）で作った録音の画面のモックの案を記載し、その変更の録音の画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/recording-window/82/index.md
+  description: '#82（録音の画面のホットキーを見切れずに出し、「確定して届ける」の見出しを消す）で作った録音の画面のモックの案を記載し、その変更の録音の画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/recording-window/94/index.md
+  description: '#94（アプリの明暗を設定で選べるようにし、録音の画面を背景から見分けやすい配色にする）で作った録音の画面のモックの案を記載し、その変更の録音の画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/recording-window/index.md
+  description: '録音の画面のモックの案を作業 PR ごとに記載し、録音の画面の見た目の変遷を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/settings-discard-dialog/37/index.md
+  description: '#37（画面・トレイ・ホットキーを PySide6 の新しい構成で作り直す）で作った変えた値を捨てる確認のモックの案を記載し、その変更の変えた値を捨てる確認の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/settings-discard-dialog/index.md
+  description: '変えた値を捨てる確認のモックの案を作業 PR ごとに記載し、変えた値を捨てる確認の見た目の変遷を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/settings-reset-dialog/37/index.md
+  description: '#37（画面・トレイ・ホットキーを PySide6 の新しい構成で作り直す）で作った既定に戻す確認のモックの案を記載し、その変更の既定に戻す確認の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/settings-reset-dialog/index.md
+  description: '既定に戻す確認のモックの案を作業 PR ごとに記載し、既定に戻す確認の見た目の変遷を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/settings/101/index.md
+  description: '#101（設定画面で保存しても画面を閉じないようにする）で作った設定画面のモックの案を記載し、その変更の設定画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/settings/152/index.md
+  description: '#152（用語集の正しい表記を空にした行で、誤変換を消せるようにする）で作った設定画面のモックの案を記載し、その変更の設定画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/settings/159/index.md
+  description: '#159（設定画面のチェックボックスなどの印を、選んだ状態が見分けられるように表示する）で作った設定画面のモックの案を記載し、その変更の設定画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/settings/166/index.md
+  description: '#166（起こした文字の文頭・文末に紛れ込む決まった文言を、登録した一覧で消せるようにする）で作った設定画面のモックの案を記載し、その変更の設定画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/settings/173/index.md
+  description: '#173（補正に使う用語集を複数まとめて選べる用語集のプリセットを追加し、API からも選べるようにする）で作った設定画面のモックの案を記載し、その変更の設定画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/settings/264/index.md
+  description: '#264（文字起こしのエンジンに WSL で動かす日本語の音声認識モデル Haas-ja-v1.0 を追加する）で作った設定画面のモックの案を記載し、その変更の設定画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/settings/274/index.md
+  description: '#274（設定画面の文字起こしの設定をエンジンごとのタブに分け、選んでいないエンジンの設定も変えられるようにする）で作った設定画面のモックの案を記載し、その変更の設定画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/settings/37/index.md
+  description: '#37（画面・トレイ・ホットキーを PySide6 の新しい構成で作り直す）で作った設定画面のモックの案を記載し、その変更の設定画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/settings/44/index.md
+  description: '#44（AI チャットの送り先をカスタムプリセットにし、エンドポイントへ送る種類を足す）で作った設定画面のモックの案を記載し、その変更の設定画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/settings/94/index.md
+  description: '#94（アプリの明暗を設定で選べるようにし、録音の画面を背景から見分けやすい配色にする）で作った設定画面のモックの案を記載し、その変更の設定画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/settings/97/index.md
+  description: '#97（用語集を設定画面で編集し、プリセットで切り替えて行ごとにオン・オフできるようにする）で作った設定画面のモックの案を記載し、その変更の設定画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/settings/99/index.md
+  description: '#99（文字起こしに渡す手がかりの語をプリセットで保存して切り替え、設定画面から編集できるようにする）で作った設定画面のモックの案を記載し、その変更の設定画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/settings/index.md
+  description: '設定画面のモックの案を作業 PR ごとに記載し、設定画面の見た目の変遷を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/transcribing-indicator/108/index.md
+  description: '#108（文字起こし中に、確定で選んだ出力先を固定の出力先の間で切り替えられるようにする）で作った文字起こし中の表示のモックの案を記載し、その変更の文字起こし中の表示の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/transcribing-indicator/37/index.md
+  description: '#37（画面・トレイ・ホットキーを PySide6 の新しい構成で作り直す）で作った文字起こし中の表示のモックの案を記載し、その変更の文字起こし中の表示の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/transcribing-indicator/index.md
+  description: '文字起こし中の表示のモックの案を作業 PR ごとに記載し、文字起こし中の表示の見た目の変遷を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/tray-notification/37/index.md
+  description: '#37（画面・トレイ・ホットキーを PySide6 の新しい構成で作り直す）で作ったトレイの通知のモックの案を記載し、その変更のトレイの通知の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/tray-notification/index.md
+  description: 'トレイの通知のモックの案を作業 PR ごとに記載し、トレイの通知の見た目の変遷を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/tray/37/index.md
+  description: '#37（画面・トレイ・ホットキーを PySide6 の新しい構成で作り直す）で作ったトレイのモックの案を記載し、その変更のトレイの案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/tray/48/index.md
+  description: '#48（録音の画面をドラッグで動かし、録音中に隠して戻し、× で取り消せるようにする）で作ったトレイのモックの案を記載し、その変更のトレイの案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/tray/index.md
+  description: 'トレイのモックの案を作業 PR ごとに記載し、トレイの見た目の変遷を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/web-confirm-dialog/171/index.md
+  description: '#171（外の端末のブラウザから音声を送って文字に起こす画面とエンドポイントを追加する）で作った外の端末の取り消せない操作の確認のモックの案を記載し、その変更の外の端末の取り消せない操作の確認の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/web-confirm-dialog/index.md
+  description: '外の端末の取り消せない操作の確認のモックの案を作業 PR ごとに記載し、外の端末の取り消せない操作の確認の見た目の変遷を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/web-transcription/171/index.md
+  description: '#171（外の端末のブラウザから音声を送って文字に起こす画面とエンドポイントを追加する）で作った外の端末の文字起こしの画面のモックの案を記載し、その変更の外の端末の文字起こしの画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/web-transcription/180/index.md
+  description: '#180（外の端末のブラウザの画面から送信する音声で、補正に使う用語集のプリセットを選択できるようにする）で作った外の端末の文字起こしの画面のモックの案を記載し、その変更の外の端末の文字起こしの画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/web-transcription/index.md
+  description: '外の端末の文字起こしの画面のモックの案を作業 PR ごとに記載し、外の端末の文字起こしの画面の見た目の変遷を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: refs/101/index.md
+  description: '#101（設定画面で保存しても画面を閉じないようにする）で作った画面のモックへのリンクを記載し、その作業 PR の画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:pr
 - path: refs/108/index.md
+  description: '#108（文字起こし中に、確定で選んだ出力先を固定の出力先の間で切り替えられるようにする）で作った画面のモックへのリンクを記載し、その作業 PR の画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:pr
 - path: refs/152/index.md
+  description: '#152（用語集の正しい表記を空にした行で、誤変換を消せるようにする）で作った画面のモックへのリンクを記載し、その作業 PR の画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:pr
 - path: refs/159/index.md
+  description: '#159（設定画面のチェックボックスなどの印を、選んだ状態が見分けられるように表示する）で作った画面のモックへのリンクを記載し、その作業 PR の画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:pr
 - path: refs/166/index.md
+  description: '#166（起こした文字の文頭・文末に紛れ込む決まった文言を、登録した一覧で消せるようにする）で作った画面のモックへのリンクを記載し、その作業 PR の画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:pr
 - path: refs/171/index.md
+  description: '#171（外の端末のブラウザから音声を送って文字に起こす画面とエンドポイントを追加する）で作った画面のモックへのリンクを記載し、その作業 PR の画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:pr
 - path: refs/173/index.md
+  description: '#173（補正に使う用語集を複数まとめて選べる用語集のプリセットを追加し、API からも選べるようにする）で作った画面のモックへのリンクを記載し、その作業 PR の画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:pr
 - path: refs/180/index.md
+  description: '#180（外の端末のブラウザの画面から送信する音声で、補正に使う用語集のプリセットを選択できるようにする）で作った画面のモックへのリンクを記載し、その作業 PR の画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:pr
 - path: refs/264/index.md
+  description: '#264（文字起こしのエンジンに WSL で動かす日本語の音声認識モデル Haas-ja-v1.0 を追加する）で作った画面のモックへのリンクを記載し、その作業 PR の画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:pr
 - path: refs/274/index.md
+  description: '#274（設定画面の文字起こしの設定をエンジンごとのタブに分け、選んでいないエンジンの設定も変えられるようにする）で作った画面のモックへのリンクを記載し、その作業 PR の画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:pr
 - path: refs/37/index.md
+  description: '#37（画面・トレイ・ホットキーを PySide6 の新しい構成で作り直す）で作った画面のモックへのリンクを記載し、その作業 PR の画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:pr
 - path: refs/44/index.md
+  description: '#44（AI チャットの送り先をカスタムプリセットにし、エンドポイントへ送る種類を足す）で作った画面のモックへのリンクを記載し、その作業 PR の画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:pr
 - path: refs/48/index.md
+  description: '#48（録音の画面をドラッグで動かし、録音中に隠して戻し、× で取り消せるようにする）で作った画面のモックへのリンクを記載し、その作業 PR の画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:pr
 - path: refs/82/index.md
+  description: '#82（録音の画面のホットキーを見切れずに出し、「確定して届ける」の見出しを消す）で作った画面のモックへのリンクを記載し、その作業 PR の画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:pr
 - path: refs/94/index.md
+  description: '#94（アプリの明暗を設定で選べるようにし、録音の画面を背景から見分けやすい配色にする）で作った画面のモックへのリンクを記載し、その作業 PR の画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:pr
 - path: refs/97/index.md
+  description: '#97（用語集を設定画面で編集し、プリセットで切り替えて行ごとにオン・オフできるようにする）で作った画面のモックへのリンクを記載し、その作業 PR の画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:pr
 - path: refs/99/index.md
+  description: '#99（文字起こしに渡す手がかりの語をプリセットで保存して切り替え、設定画面から編集できるようにする）で作った画面のモックへのリンクを記載し、その作業 PR の画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:pr
 - path: refs/index.md
+  description: 'モックを作った作業 PR の一覧を記載し、作業 PR から画面のモックを探すときに参照する。'
+  tags:
+  - topic:モック
+  - topic:pr
 - path: styles/index.md
+  description: '画面全体のデザインスタイルの採用案と候補を記載し、デザインスタイルを見比べるときに参照する。'
+  tags:
+  - topic:モック
+  - topic:デザインスタイル
+  - topic:スタイル

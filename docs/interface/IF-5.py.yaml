@@ -13,6 +13,8 @@ flows:
       - name: 用語集のプリセット
         description: 設定に用語集のプリセット「既定」「会議」をこの並びで入れ、active_glossary_preset を「会議」にする
     flow: |-
+      <!-- map: {"title": "正常系"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ブラウザ
@@ -24,6 +26,8 @@ flows:
         IF->>S: 用語集のプリセットの一覧と選んでいるプリセットを読む
         IF-->>C: 200・presets・active
       ```
+
+      <!-- /map -->
     expected:
       - 200 で presets が ["既定", "会議"]、active が「会議」
       - 応答に用語集の名前や中身が含まれていない
@@ -37,6 +41,8 @@ flows:
       - name: 設定
         description: glossary_presets と active_glossary_preset のキーが無い settings.yaml（既定値の config/defaults.yaml の値で動く）
     flow: |-
+      <!-- map: {"title": "正常系（プリセットの設定が無い）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ブラウザ
@@ -45,6 +51,8 @@ flows:
         C->>IF: 要求
         IF-->>C: 200・presets=["既定"]・active="既定"
       ```
+
+      <!-- /map -->
     expected:
       - 200 で presets が ["既定"]、active が「既定」
     test: test_normal_when_presets_not_configured
@@ -57,6 +65,8 @@ flows:
         description: 許す Origin に無い Origin を付ける
         notes: '`Origin: http://evil.example`'
     flow: |-
+      <!-- map: {"title": "異常系（許されていない Origin・403）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ほかのオリジンのページ
@@ -67,6 +77,8 @@ flows:
         IF->>LOG: 断った理由と要求元（Host・Origin）を書く
         IF-->>C: 403（problem+json）
       ```
+
+      <!-- /map -->
     expected:
       - 403 の problem+json が返り、プリセットの名前を含まない
       - ログに断った理由と要求元が書かれている
@@ -81,6 +93,8 @@ flows:
         description: Origin を付けない要求と、許す Origin に無い Origin を付けた要求の 2 つを送る
         notes: '`Origin: http://evil.example`'
     flow: |-
+      <!-- map: {"title": "異常系（Linux で動いている・404）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ブラウザ
@@ -90,6 +104,8 @@ flows:
         IF->>IF: Host を確かめる（Origin は確かめない）
         IF-->>C: 404（problem+json）
       ```
+
+      <!-- /map -->
     expected:
       - Origin を付けない要求と、許す Origin に無い Origin を付けた要求のどちらにも 404（problem+json）が返る
     test: test_error_when_running_on_linux

@@ -13,6 +13,8 @@ flows:
       - name: 停止中の録音セッション
         description: 録音を開始する と 録音を停止する を呼んだ録音セッション
     flow: |-
+      <!-- map: {"title": "正常系"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -25,6 +27,8 @@ flows:
         IF->>ENG: 文字起こしを始める
         IF-->>C: 202
       ```
+
+      <!-- /map -->
     expected:
       - 202 が返る
       - 履歴に確定した録音がある
@@ -38,6 +42,8 @@ flows:
       - name: 録音中の録音セッション
         description: 録音を開始する だけを呼んだ録音セッション
     flow: |-
+      <!-- map: {"title": "正常系（録音中から完了する）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -52,6 +58,8 @@ flows:
         IF->>ENG: 文字起こしを始める
         IF-->>C: 202
       ```
+
+      <!-- /map -->
     expected:
       - 202 が返る
       - システム音量が録音前の値に戻っている
@@ -66,6 +74,8 @@ flows:
         description: 録音を開始する を continuous=true で呼び、区間を 1 つ区切った後、話し声が続いている間に完了を呼ぶ
         notes: 話し声の判定は、最初の話し声の後に区切りの無音を返し、その後は話し声を返し続ける
     flow: |-
+      <!-- map: {"title": "正常系（連続録音を完了する）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -80,6 +90,8 @@ flows:
         IF->>ENG: 最後の区間を区切った順の待ちに積む
         IF-->>C: 202
       ```
+
+      <!-- /map -->
     expected:
       - 202 が返る
       - システム音量が録音前の値に戻っている
@@ -96,6 +108,8 @@ flows:
         description: 録音を開始する を continuous=true で呼び、無音だけを流して完了を呼ぶ
         notes: 話し声の判定は無音だけを返す
     flow: |-
+      <!-- map: {"title": "正常系（話し声が残っていない連続録音を完了する）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -108,6 +122,8 @@ flows:
         IF->>RET: session_id・result=completed・segment_count=0
         IF-->>C: 202
       ```
+
+      <!-- /map -->
     expected:
       - 202 が返る
       - 履歴にこの録音セッションの録音が無い
@@ -124,6 +140,8 @@ flows:
       - name: トークン
         description: 今回の起動のものと違うトークン
     flow: |-
+      <!-- map: {"title": "異常系（トークンが合わない・401）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -134,6 +152,8 @@ flows:
         IF->>LOG: 断った理由と要求元（Host・Origin）を書く（トークンは書かない）
         IF-->>C: 401
       ```
+
+      <!-- /map -->
     expected:
       - 401 が返る
       - 録音セッションが停止中のままで、文字起こしが始まっていない
@@ -149,6 +169,8 @@ flows:
       - name: 要求のヘッダー
         description: 正しいトークンに Origin を付けるか、Host をほかのホスト名にする
     flow: |-
+      <!-- map: {"title": "異常系（ブラウザからの要求・403）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -159,6 +181,8 @@ flows:
         IF->>LOG: 断った理由と要求元（Host・Origin）を書く（トークンは書かない）
         IF-->>C: 403
       ```
+
+      <!-- /map -->
     expected:
       - 403 が返る
       - 文字起こしが始まっていない
@@ -172,6 +196,8 @@ flows:
       - name: 録音セッションの ID
         description: 開始で受け取っていない ID か、既に完了した録音セッションの ID
     flow: |-
+      <!-- map: {"title": "異常系（知らない録音セッション・404）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -180,6 +206,8 @@ flows:
         C->>IF: トークン・知らない session_id
         IF-->>C: 404
       ```
+
+      <!-- /map -->
     expected:
       - 404 が返る
       - 文字起こしが始まっていない

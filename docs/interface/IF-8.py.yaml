@@ -13,6 +13,8 @@ flows:
       - name: 録音中の録音セッション
         description: 録音を開始する で始めた録音セッションが録音中
     flow: |-
+      <!-- map: {"title": "正常系"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -23,6 +25,8 @@ flows:
         IF->>MIC: 録音を停止する
         IF-->>C: 200
       ```
+
+      <!-- /map -->
     expected:
       - 200 が返る
       - 録音セッションが停止中（完了待ち）になっている
@@ -37,6 +41,8 @@ flows:
       - name: 停止中の録音セッション
         description: 一度停止を呼んだ録音セッション
     flow: |-
+      <!-- map: {"title": "正常系（既に停止している）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -45,6 +51,8 @@ flows:
         C->>IF: トークン・session_id
         IF-->>C: 200
       ```
+
+      <!-- /map -->
     expected:
       - 200 が返る
       - 録音セッションが停止中のままである
@@ -59,6 +67,8 @@ flows:
       - name: トークン
         description: 今回の起動のものと違うトークン
     flow: |-
+      <!-- map: {"title": "異常系（トークンが合わない・401）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -69,6 +79,8 @@ flows:
         IF->>LOG: 断った理由と要求元（Host・Origin）を書く（トークンは書かない）
         IF-->>C: 401
       ```
+
+      <!-- /map -->
     expected:
       - 401 が返る
       - 録音セッションが録音中のままである
@@ -84,6 +96,8 @@ flows:
       - name: 要求のヘッダー
         description: 正しいトークンに Origin を付けるか、Host をほかのホスト名にする
     flow: |-
+      <!-- map: {"title": "異常系（ブラウザからの要求・403）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -94,6 +108,8 @@ flows:
         IF->>LOG: 断った理由と要求元（Host・Origin）を書く（トークンは書かない）
         IF-->>C: 403
       ```
+
+      <!-- /map -->
     expected:
       - 403 が返る
       - 録音セッションが録音中のままである
@@ -107,6 +123,8 @@ flows:
       - name: 録音セッションの ID
         description: 開始で受け取っていない ID か、完了した録音セッションの ID
     flow: |-
+      <!-- map: {"title": "異常系（知らない録音セッション・404）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -115,6 +133,8 @@ flows:
         C->>IF: トークン・知らない session_id
         IF-->>C: 404
       ```
+
+      <!-- /map -->
     expected:
       - 404 が返る
       - 処理中のほかの録音セッションがあれば、そのまま続いている
@@ -127,6 +147,8 @@ flows:
       - name: 連続録音の録音セッション
         description: 録音を開始する を continuous=true で呼んだ録音セッションが録音中
     flow: |-
+      <!-- map: {"title": "異常系（連続録音の録音セッション・409）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as クライアント
@@ -135,6 +157,8 @@ flows:
         C->>IF: トークン・連続録音の session_id
         IF-->>C: 409
       ```
+
+      <!-- /map -->
     expected:
       - 409 が返り、detail に連続録音は完了で終えることが書かれている
       - 録音セッションが録音中のままで、区切りを続けている

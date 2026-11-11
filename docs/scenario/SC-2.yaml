@@ -7,6 +7,8 @@ scenarios:
       - name: Mock
         description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
     flow: |-
+      <!-- map: {"title": "正常シナリオ（ログフォルダを開く）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -17,6 +19,8 @@ scenarios:
         TRAY->>TRAY: ログの置き場所が無ければ作る
         TRAY->>EXP: ログの置き場所を開く
       ```
+
+      <!-- /map -->
     expected:
       - エクスプローラーでログの置き場所（`%LOCALAPPDATA%\voice-paste\log\`。データの置き場所を渡した起動ではその下の `log\`）が開いている
     test: test_normal_when_open_log_folder
@@ -25,6 +29,8 @@ scenarios:
       - name: Mock
         description: マウス・キーボード・Windows のシェル。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで渡す（補足『E2E のテスト』）
     flow: |-
+      <!-- map: {"title": "正常シナリオ（設定フォルダを開く）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -34,6 +40,8 @@ scenarios:
         U->>TRAY: 「設定フォルダを開く」を選ぶ
         TRAY->>EXP: settings.yaml のあるフォルダを開く
       ```
+
+      <!-- /map -->
     expected:
       - エクスプローラーで `settings.yaml` のあるフォルダ（`%APPDATA%\voice-paste\`。データの置き場所を渡した起動ではそのフォルダ）が開いている
     test: test_normal_when_open_settings_folder
@@ -44,6 +52,8 @@ scenarios:
       - name: 待機中
         description: 録音も設定画面も開いていない
     flow: |-
+      <!-- map: {"title": "正常シナリオ（再起動する）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -58,6 +68,8 @@ scenarios:
         APP->>APP: 自分のプロセスを終える
         Note over NEW: 以降は 常駐アプリを起動する の 正常シナリオ
       ```
+
+      <!-- /map -->
     expected:
       - 前の常駐アプリのプロセスが終わっている
       - 新しい常駐アプリが待機中になり、今の設定（`config/defaults.yaml`・`settings.yaml`・`settings.local.yaml` を重ねた値）で動いている
@@ -69,6 +81,8 @@ scenarios:
       - name: 待機中
         description: 録音も設定画面も開いていない
     flow: |-
+      <!-- map: {"title": "正常シナリオ（終了する）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -88,6 +102,8 @@ scenarios:
         end
         APP->>APP: プロセスを終える
       ```
+
+      <!-- /map -->
     expected:
       - トレイから voice-paste のアイコンが消えている
       - 常駐アプリと文字起こしワーカーのプロセスが終わり、常駐アプリの終了コードが 0 である
@@ -105,6 +121,8 @@ scenarios:
         description: トレイの「終了」と、起動したコンソールの Ctrl+Break の 2 通り
         notes: parametrize で並べる
     flow: |-
+      <!-- map: {"title": "正常シナリオ（設定画面で値を変えたまま終了する）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -118,6 +136,8 @@ scenarios:
         APP->>APP: プロセスを終える
         Note over APP: 以降は 正常シナリオ（終了する） と同じ
       ```
+
+      <!-- /map -->
     expected:
       - 変えた値を捨てる確認を出さずに、常駐アプリのプロセスが終わり、終了コードが 0 である
     test: test_normal_when_quit_with_unsaved_settings
@@ -128,6 +148,8 @@ scenarios:
       - name: 設定画面
         description: 設定画面を開いて欄の値を変え、保存していない
     flow: |-
+      <!-- map: {"title": "正常シナリオ（設定画面で値を変えたまま再起動する）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -143,6 +165,8 @@ scenarios:
         APP->>APP: 自分のプロセスを終える
         Note over NEW: 以降は 正常シナリオ（再起動する） と同じ
       ```
+
+      <!-- /map -->
     expected:
       - 変えた値を捨てる確認を出さずに、前の常駐アプリのプロセスが終わっている
       - 新しい常駐アプリが待機中になり、設定画面で変えた値は `settings.yaml` に保存されていない

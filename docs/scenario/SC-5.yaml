@@ -10,6 +10,8 @@ scenarios:
       - name: 文字起こしのエンジン
         description: ローカルの Whisper を使う設定にする
     flow: |-
+      <!-- map: {"title": "正常シナリオ"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -34,6 +36,8 @@ scenarios:
         SVC->>SVC: 録音開始のホットキーの受付を始める
         SVC->>TRAY: 待機中のアイコンにする
       ```
+
+      <!-- /map -->
     expected:
       - トレイのアイコンが待機中になっている
       - 録音開始のホットキーを押すと録音が始まる
@@ -50,6 +54,8 @@ scenarios:
       - name: 前のプロセス
         description: 常駐サービスが 1 つ動いており、名前付きの排他を持っている
     flow: |-
+      <!-- map: {"title": "正常シナリオ（前の常駐サービスが動いている）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -63,6 +69,8 @@ scenarios:
         NEW->>NEW: 名前付きの排他を取る
         Note over NEW: 以降は 正常シナリオ と同じ
       ```
+
+      <!-- /map -->
     expected:
       - 前の常駐サービスのプロセスが終わり、トレイに前のアイコンが残っていない
       - 新しい常駐サービスのアイコンが待機中で出ている
@@ -79,6 +87,8 @@ scenarios:
       - name: 古い履歴とログ
         description: 今日から 2 日前の日付の履歴とログと、今日の日付の履歴とログがある
     flow: |-
+      <!-- map: {"title": "正常シナリオ（保持期間を過ぎた履歴とログがある）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -92,6 +102,8 @@ scenarios:
           SVC->>FS: 同じ条件で古い履歴とログを消す
         end
       ```
+
+      <!-- /map -->
     expected:
       - 2 日前の日付の履歴とログが消えている
       - 今日の日付の履歴とログが残っている
@@ -103,6 +115,8 @@ scenarios:
       - name: モデルの読み込みの失敗
         description: ローカルの Whisper のモデルに存在しない名前を設定し、文字起こしワーカーがモデルを読み込めずに error を返す状態にする
     flow: |-
+      <!-- map: {"title": "異常シナリオ（文字起こしのエンジンを準備できない）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -118,6 +132,8 @@ scenarios:
         SVC->>LOG: 起動に失敗した理由を書く
         SVC->>TRAY: 失敗のアイコンにし、起動に失敗したことを通知する
       ```
+
+      <!-- /map -->
     expected:
       - トレイで起動に失敗したことが知らされている
       - ログに起動に失敗した理由が書かれている
@@ -134,6 +150,8 @@ scenarios:
       - name: ポートの使用中
         description: API の待ち受けのポートを、ほかのプロセスが先に使っている
     flow: |-
+      <!-- map: {"title": "異常シナリオ（API の待ち受けを始められない）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -150,6 +168,8 @@ scenarios:
         SVC->>TRAY: API を使えないことを通知する
         SVC->>SVC: 録音開始のホットキーの受付を始める
       ```
+
+      <!-- /map -->
     expected:
       - トレイで API を使えないことが知らされている
       - ログに待ち受けに失敗した理由が書かれている
@@ -163,6 +183,8 @@ scenarios:
       - name: 古い設定
         description: '`settings.yaml` の `outputs` に `id: ai_chat` の項目と送信先（`targets[]`）を 2 つ書いておく（うち 1 つは出さない）'
     flow: |-
+      <!-- map: {"title": "正常シナリオ（古い AI チャットの設定が残っている）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -176,6 +198,8 @@ scenarios:
         Note over SVC: 以降は 正常シナリオ と同じ
         SVC->>TRAY: 待機中のアイコンにする
       ```
+
+      <!-- /map -->
     expected:
       - トレイのアイコンが待機中になっている（起動が中断されない）
       - 録音の画面に、出すとした送信先と同じタイトル・ホットキーのプリセットのボタンだけが出る
@@ -189,6 +213,8 @@ scenarios:
       - name: 前のバージョンの設定
         description: 設定の置き場所に `settings.yaml` が無く、`settings.toml` があり、録音開始のホットキー（`hotkeys.start`）を既定と違う組み合わせにしてある
     flow: |-
+      <!-- map: {"title": "正常シナリオ（settings.toml だけが残っている）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -206,6 +232,8 @@ scenarios:
         Note over SVC: 以降は 正常シナリオ と同じ
         SVC->>TRAY: 待機中のアイコンにする
       ```
+
+      <!-- /map -->
     expected:
       - '`settings.yaml` に `hotkeys.start` の組み合わせが書かれ、既定値と同じキーが書かれていない'
       - '`settings.toml` が変わらずに残っている'
@@ -223,6 +251,8 @@ scenarios:
       - name: checkout の上書き
         description: リポジトリ直下の `settings.local.yaml` で、`hotkeys.start` を組み合わせ B にしてある
     flow: |-
+      <!-- map: {"title": "正常シナリオ（checkout の上書きがある）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -238,6 +268,8 @@ scenarios:
         SVC->>SVC: 重ねた値を設定のモデルで確かめる
         Note over SVC: 以降は 正常シナリオ と同じ
       ```
+
+      <!-- /map -->
     expected:
       - 組み合わせ B で録音が始まり、組み合わせ A では始まらない
       - '`settings.yaml` と `settings.local.yaml` が書き換わっていない'
@@ -250,6 +282,8 @@ scenarios:
       - name: 読めない設定
         description: '`settings.yaml` を YAML として読めない中身にする'
     flow: |-
+      <!-- map: {"title": "異常シナリオ（設定を読めない）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -264,6 +298,8 @@ scenarios:
         SVC->>LOG: 読めなかったファイルのパスと理由を書く
         SVC->>TRAY: 失敗のアイコンにし、設定を読めないことを通知する
       ```
+
+      <!-- /map -->
     expected:
       - トレイで設定を読めないことが知らされている
       - ログに読めなかったファイルのパスと理由が書かれている
@@ -281,6 +317,8 @@ scenarios:
         description: OpenAI API を使う設定にし、設定の置き場所の `secrets/openai_api_key` に API キーの文字列だけを書いたファイルを置く
         notes: 環境変数 `OPENAI_API_KEY` は渡さない
     flow: |-
+      <!-- map: {"title": "正常シナリオ（OpenAI API を使う設定）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -297,6 +335,8 @@ scenarios:
         Note over SVC: トークンを作るところからは 正常シナリオ と同じ
         SVC->>TRAY: 待機中のアイコンにする
       ```
+
+      <!-- /map -->
     expected:
       - トレイのアイコンが待機中になっている
       - 録音開始のホットキーを押すと録音が始まる
@@ -315,6 +355,8 @@ scenarios:
         description: OpenAI API を使う設定にし、環境変数 `OPENAI_API_KEY` も `secrets/openai_api_key` も置かない
         notes: '-'
     flow: |-
+      <!-- map: {"title": "異常シナリオ（OpenAI の API キーが無い）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -328,6 +370,8 @@ scenarios:
         SVC->>LOG: 起動に失敗した理由（読んだ環境変数の名前とファイルのパス）を書く
         SVC->>TRAY: 失敗のアイコンにし、起動に失敗したことを通知する
       ```
+
+      <!-- /map -->
     expected:
       - トレイで起動に失敗したことが知らされている
       - ログに、API キーを読む環境変数の名前とファイルのパスが書かれている
@@ -345,6 +389,8 @@ scenarios:
         description: ローカルの Whisper を使う設定にする
         notes: '-'
     flow: |-
+      <!-- map: {"title": "異常シナリオ（ローカルの Whisper の依存が入っていない）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -358,6 +404,8 @@ scenarios:
         SVC->>LOG: 起動に失敗した理由と、local-whisper の extra を含めて環境を作り直すことを書く
         SVC->>TRAY: 失敗のアイコンにし、起動に失敗したことを通知する
       ```
+
+      <!-- /map -->
     expected:
       - トレイで起動に失敗したことが知らされている
       - ログに、local-whisper の extra を含めて環境を作り直すことが書かれている
@@ -374,6 +422,8 @@ scenarios:
         description: 前の常駐サービスが SIGTERM で終わり、GNOME のカスタムショートカットに常駐サービスの登録が残っている
         notes: ユーザーが自分で作ったカスタムショートカットも 1 つある
     flow: |-
+      <!-- map: {"title": "正常シナリオ（Wayland のセッション）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -388,6 +438,8 @@ scenarios:
         SVC->>GN: 設定のホットキーをカスタムショートカットへ登録する
         SVC->>TRAY: 待機中のアイコンにする
       ```
+
+      <!-- /map -->
     expected:
       - GNOME のカスタムショートカットに、設定のホットキーのうち異なる組み合わせごとに 1 つずつ（既定の設定で 5 つ）常駐サービスの登録があり、前の登録の残りが無い
       - ユーザーが自分で作ったカスタムショートカットが残っている
@@ -400,6 +452,8 @@ scenarios:
       - name: 権限
         description: ユーザーが `input` グループに入っておらず、`/dev/uinput` に書けない
     flow: |-
+      <!-- map: {"title": "異常シナリオ（Wayland のセッションで /dev/uinput に書けない）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -414,6 +468,8 @@ scenarios:
         SVC->>TRAY: 貼り付けのキーを送信できないことと、権限の設定の手順を通知する
         SVC->>TRAY: 待機中のアイコンにする
       ```
+
+      <!-- /map -->
     expected:
       - トレイで、貼り付けのキーを送信できないことと権限の設定の手順が知らされている
       - ログに仮想のキーボードを作れなかった理由が書かれている
@@ -458,6 +514,8 @@ scenarios:
         description: Haas のモデル・計算の精度・装置を既定と違う値にする
         notes: '例: `transcription.haas.dtype: float32`・`device: cpu`'
     flow: |-
+      <!-- map: {"title": "正常シナリオ（Haas を使う設定）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -480,6 +538,8 @@ scenarios:
         Note over SVC: トークンを作るところからは 正常シナリオ と同じ
         SVC->>TRAY: 待機中のアイコンにする
       ```
+
+      <!-- /map -->
     expected:
       - トレイのアイコンが待機中になっている
       - 録音開始のホットキーを押すと録音が始まる
@@ -501,6 +561,8 @@ scenarios:
         description: Haas を使う設定にし、ローカルの Whisper の設定は既定のままにする
         notes: '`transcription.engine: haas`。起動の待ち時間はテストのために短くする'
     flow: |-
+      <!-- map: {"title": "正常シナリオ（Haas のサーバーへ接続できない）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -521,6 +583,8 @@ scenarios:
         Note over SVC: トークンを作るところからは 正常シナリオ と同じ
         SVC->>TRAY: 待機中のアイコンにする
       ```
+
+      <!-- /map -->
     expected:
       - トレイで、Haas のサーバーへ接続できないためローカルの Whisper で起こすことが知らされている
       - ログに、接続できなかった理由とローカルの Whisper で起こすことが書かれている
@@ -544,6 +608,8 @@ scenarios:
         description: Haas を使う設定にする
         notes: '`transcription.engine: haas`'
     flow: |-
+      <!-- map: {"title": "正常シナリオ（動いている Haas のサーバーが設定と違う）"} -->
+
       ```mermaid
       sequenceDiagram
         actor U as ユーザー
@@ -563,6 +629,8 @@ scenarios:
         Note over SVC: トークンを作るところからは 正常シナリオ と同じ
         SVC->>TRAY: 待機中のアイコンにする
       ```
+
+      <!-- /map -->
     expected:
       - トレイで、動いている Haas のサーバーが設定と違う値で動いていることが知らされている
       - ログに、違う値と、設定の値で動かすにはサーバーを止めてから起動し直すことが書かれている

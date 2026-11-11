@@ -16,6 +16,8 @@ flows:
       - name: 音声
         description: テストの中で書き出した短い webm/opus
     flow: |-
+      <!-- map: {"title": "正常系"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ブラウザ
@@ -32,6 +34,8 @@ flows:
         IF->>LOG: 受け付けた（job_id・大きさ・形式・秒数）
         IF-->>C: 202・job_id
       ```
+
+      <!-- /map -->
     expected:
       - 202 と 22 文字の job_id が返る
       - 一時のフォルダに `.webm` のファイルが 1 つあり、中身が送信した音声と同じ
@@ -46,6 +50,8 @@ flows:
       - name: 処理中
         description: ホットキーから始めた録音が録音中である
     flow: |-
+      <!-- map: {"title": "正常系（録音セッションの処理中）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ブラウザ
@@ -56,6 +62,8 @@ flows:
         IF->>Q: ジョブを積む（queued）
         IF-->>C: 202・job_id
       ```
+
+      <!-- /map -->
     expected:
       - 202 と job_id が返る
       - ホットキーの録音が録音中のまま続いている
@@ -68,6 +76,8 @@ flows:
       - name: 要求
         description: 許す Origin で、multipart の項目名を `file` にする
     flow: |-
+      <!-- map: {"title": "異常系（audio が無い・400）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ブラウザ
@@ -76,6 +86,8 @@ flows:
         C->>IF: audio の無い multipart
         IF-->>C: 400（problem+json）
       ```
+
+      <!-- /map -->
     expected:
       - 400 の problem+json が返る
       - キューにジョブが積まれていない
@@ -89,6 +101,8 @@ flows:
         description: 許す Origin に無い Origin を付ける
         notes: '`Origin: http://evil.example`'
     flow: |-
+      <!-- map: {"title": "異常系（許されていない Origin・403）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ほかのオリジンのページ
@@ -99,6 +113,8 @@ flows:
         IF->>LOG: 断った理由と要求元（Host・Origin）を書く
         IF-->>C: 403（problem+json）
       ```
+
+      <!-- /map -->
     expected:
       - 403 の problem+json が返る
       - 一時のフォルダにファイルが無く、キューにジョブが積まれていない
@@ -112,6 +128,8 @@ flows:
       - name: 要求
         description: 本文が 1,000 バイトになる音声を、Content-Length を付けて送信するものと、chunked で送信するものの 2 通り
     flow: |-
+      <!-- map: {"title": "異常系（大きすぎる・413）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ブラウザ
@@ -123,6 +141,8 @@ flows:
         IF->>LOG: 断った理由と大きさを書く
         IF-->>C: 413（problem+json）
       ```
+
+      <!-- /map -->
     expected:
       - どちらも 413 の problem+json が返る
       - 一時のフォルダにファイルが残らず、キューにジョブが積まれていない
@@ -135,6 +155,8 @@ flows:
       - name: 音声
         description: 拡張子を `.mp3` にしたテキストの中身と、音声の無い映像だけの mp4 の 2 通り
     flow: |-
+      <!-- map: {"title": "異常系（読めない形式・415）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ブラウザ
@@ -146,6 +168,8 @@ flows:
         IF->>LOG: 断った理由と大きさを書く
         IF-->>C: 415（problem+json）
       ```
+
+      <!-- /map -->
     expected:
       - どちらも 415 の problem+json が返る
       - 一時のフォルダにファイルが残らず、キューにジョブが積まれていない
@@ -158,6 +182,8 @@ flows:
       - name: 待ちのジョブ
         description: 音声を 2 件受け付けておく
     flow: |-
+      <!-- map: {"title": "異常系（待ちが上限・503）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ブラウザ
@@ -169,6 +195,8 @@ flows:
         IF->>LOG: 断った理由と待ちの数を書く
         IF-->>C: 503（problem+json）
       ```
+
+      <!-- /map -->
     expected:
       - 503 の problem+json が返る
       - 一時のフォルダのファイルが 2 つのままで、キューのジョブも 2 件のまま
@@ -184,6 +212,8 @@ flows:
       - name: 音声
         description: テストの中で書き出した短い webm/opus
     flow: |-
+      <!-- map: {"title": "正常系（用語集のプリセットを指定）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ブラウザ
@@ -195,6 +225,8 @@ flows:
         IF->>Q: プリセットの名前を持たせたジョブを積む（queued）
         IF-->>C: 202・job_id
       ```
+
+      <!-- /map -->
     expected:
       - 202 と job_id が返る
       - キューにその job_id のジョブが queued で 1 件積まれ、用語集のプリセットの名前が「会議」
@@ -209,6 +241,8 @@ flows:
         description: 設定の用語集のプリセットの一覧に無い名前を指定する
         notes: multipart の `glossary_preset` に「無いプリセット」を入れる
     flow: |-
+      <!-- map: {"title": "異常系（一覧に無い用語集のプリセット・400）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ブラウザ
@@ -218,6 +252,8 @@ flows:
         IF->>IF: glossary_preset が設定の一覧にあるかを確かめる（無い）
         IF-->>C: 400（detail に指定したプリセットの名前）
       ```
+
+      <!-- /map -->
     expected:
       - 400 の problem+json が返り、detail に指定したプリセットの名前が含まれている
       - 一時のフォルダにファイルが残らず、キューにジョブが積まれていない
@@ -232,6 +268,8 @@ flows:
         description: Origin を付けない要求と、許す Origin に無い Origin を付けた要求の 2 つを送る
         notes: '`Origin: http://evil.example`'
     flow: |-
+      <!-- map: {"title": "異常系（Linux で動いている・404）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ブラウザ
@@ -241,6 +279,8 @@ flows:
         IF->>IF: Host を確かめる（Origin は確かめない）
         IF-->>C: 404（problem+json）
       ```
+
+      <!-- /map -->
     expected:
       - Origin を付けない要求と、許す Origin に無い Origin を付けた要求のどちらにも 404（problem+json）が返る
       - ジョブを積んでいない（ブラウザの音声のキューを立てていない）
@@ -255,6 +295,8 @@ flows:
       - name: 音声
         description: テストの中で書き出した短い webm/opus
     flow: |-
+      <!-- map: {"title": "正常系（Origin が無い）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as 同じ端末のほかのプロセス
@@ -266,6 +308,8 @@ flows:
         IF->>Q: ジョブを積む（queued）
         IF-->>C: 202・job_id
       ```
+
+      <!-- /map -->
     expected:
       - 202 と 22 文字の job_id が返る
       - キューにその job_id のジョブが queued で 1 件積まれている

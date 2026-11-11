@@ -14,6 +14,8 @@ flows:
         description: ゲートウェイが渡す構造にする
         notes: '`Host: localhost:{ポート}`・Origin 無し'
     flow: |-
+      <!-- map: {"title": "正常系"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ブラウザ
@@ -23,6 +25,8 @@ flows:
         IF->>IF: Host・Origin を確かめる
         IF-->>C: 200・画面の HTML
       ```
+
+      <!-- /map -->
     expected:
       - 200 と `text/html` の画面が返る
       - HTML が読む `/web/assets/` の下の JS・CSS も 200 で返る
@@ -37,6 +41,8 @@ flows:
         description: api.allowed_web_origins に要求の Origin を入れる
         notes: '`https://voice.example.com`'
     flow: |-
+      <!-- map: {"title": "正常系（許す Origin）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ブラウザ
@@ -46,6 +52,8 @@ flows:
         IF->>IF: Host・Origin を確かめる
         IF-->>C: 200・素材
       ```
+
+      <!-- /map -->
     expected:
       - 200 と拡張子に合う Content-Type の素材が返る
     test: test_normal_when_allowed_origin
@@ -58,6 +66,8 @@ flows:
         description: 許す Origin に無い Origin を付ける
         notes: '`Origin: http://evil.example`'
     flow: |-
+      <!-- map: {"title": "異常系（許されていない Origin・403）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ほかのオリジンのページ
@@ -68,6 +78,8 @@ flows:
         IF->>LOG: 断った理由と要求元（Host・Origin）を書く
         IF-->>C: 403（problem+json）
       ```
+
+      <!-- /map -->
     expected:
       - 403 の problem+json が返る
       - ログに断った理由と要求元が書かれている
@@ -81,6 +93,8 @@ flows:
         description: Host をほかのホスト名にする
         notes: '`Host: evil.example`'
     flow: |-
+      <!-- map: {"title": "異常系（待ち受けでない Host・403）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ブラウザ
@@ -91,6 +105,8 @@ flows:
         IF->>LOG: 断った理由と要求元（Host・Origin）を書く
         IF-->>C: 403（problem+json）
       ```
+
+      <!-- /map -->
     expected:
       - 403 の problem+json が返る
     test: test_error_when_host_not_loopback
@@ -103,6 +119,8 @@ flows:
         description: 無いファイル名と、`..` で置き場所の外を指すパス
         notes: '`/web/assets/none.js`・`/web/assets/..%2F..%2Fsettings.yaml`'
     flow: |-
+      <!-- map: {"title": "異常系（同梱していない素材・404）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ブラウザ
@@ -111,6 +129,8 @@ flows:
         C->>IF: 無い素材を読む
         IF-->>C: 404（problem+json）
       ```
+
+      <!-- /map -->
     expected:
       - どちらも 404 が返り、置き場所の外のファイルの中身を返していない
     test: test_error_when_asset_not_found
@@ -124,6 +144,8 @@ flows:
         description: Origin を付けない要求と、許す Origin に無い Origin を付けた要求の 2 つを送る
         notes: '`Origin: http://evil.example`'
     flow: |-
+      <!-- map: {"title": "異常系（Linux で動いている・404）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ブラウザ
@@ -133,6 +155,8 @@ flows:
         IF->>IF: Host を確かめる（Origin は確かめない）
         IF-->>C: 404（problem+json）
       ```
+
+      <!-- /map -->
     expected:
       - Origin を付けない要求と、許す Origin に無い Origin を付けた要求のどちらにも 404（problem+json）が返る
     test: test_error_when_running_on_linux

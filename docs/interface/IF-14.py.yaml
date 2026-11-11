@@ -32,6 +32,8 @@ flows:
         description: Haas のモデルの読み込みを、決まったモデルを返す関数に差し替え、サーバーを別のプロセスで起動する
         notes: GPU を使わない
     flow: |-
+      <!-- map: {"title": "正常系"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as 常駐アプリ
@@ -41,6 +43,8 @@ flows:
         IF-->>C: 202
         IF->>IF: 待ち受けを止めてプロセスを終える
       ```
+
+      <!-- /map -->
     expected:
       - 202 が返る
       - サーバーのプロセスが終了コード 0 で終わる
@@ -54,6 +58,8 @@ flows:
       - name: 起こしている要求
         description: POST /transcriptions を送信し、モデルで待たせておく
     flow: |-
+      <!-- map: {"title": "正常系（起こしている最中）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as 常駐アプリ
@@ -66,6 +72,8 @@ flows:
         T-->>C: 200・text
         IF->>IF: 待ち受けを止めてプロセスを終える
       ```
+
+      <!-- /map -->
     expected:
       - 停止の要求に 202 が返る
       - 起こしていた要求に 200 と決まった文字が返る
@@ -80,6 +88,8 @@ flows:
         description: Origin を付ける
         notes: '`Origin: http://evil.example`'
     flow: |-
+      <!-- map: {"title": "異常系（許されていない要求元・403）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ほかのサイトのページ
@@ -90,6 +100,8 @@ flows:
         IF->>LOG: 断った理由と要求元（Host・Origin）を書く
         IF-->>C: 403（problem+json）
       ```
+
+      <!-- /map -->
     expected:
       - 403 の problem+json が返る
       - サーバーのプロセスが動いていて、GET /health が 200 を返す

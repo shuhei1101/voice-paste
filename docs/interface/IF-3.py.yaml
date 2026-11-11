@@ -13,6 +13,8 @@ flows:
       - name: 文字起こしの結果
         description: API から始めた録音で、空でない文字が得られた
     flow: |-
+      <!-- map: {"title": "正常系"} -->
+
       ```mermaid
       sequenceDiagram
         participant IF as 呼び出し元へ返す
@@ -21,6 +23,8 @@ flows:
         IF->>CB: POST session_id・result=transcribed・text
         CB-->>IF: 200
       ```
+
+      <!-- /map -->
     expected:
       - コールバック先に result=transcribed と起こした文字が 1 回届いている
       - 録音セッションが終わり、待機中に戻っている
@@ -33,6 +37,8 @@ flows:
       - name: 文字起こしの結果
         description: API から始めた録音で、結果が空だった
     flow: |-
+      <!-- map: {"title": "正常系（結果が空）"} -->
+
       ```mermaid
       sequenceDiagram
         participant IF as 呼び出し元へ返す
@@ -41,6 +47,8 @@ flows:
         IF->>CB: POST session_id・result=transcribed・text=""
         CB-->>IF: 200
       ```
+
+      <!-- /map -->
     expected:
       - コールバック先に result=transcribed と空の text が 1 回届いている
     test: test_normal_when_empty
@@ -52,6 +60,8 @@ flows:
       - name: 文字起こしの結果
         description: API から始めた録音で、文字起こしに失敗した
     flow: |-
+      <!-- map: {"title": "正常系（文字起こしに失敗）"} -->
+
       ```mermaid
       sequenceDiagram
         participant IF as 呼び出し元へ返す
@@ -60,6 +70,8 @@ flows:
         IF->>CB: POST session_id・result=failed・error
         CB-->>IF: 200
       ```
+
+      <!-- /map -->
     expected:
       - コールバック先に result=failed と失敗の理由が 1 回届いている
     test: test_normal_when_transcription_failed
@@ -71,6 +83,8 @@ flows:
       - name: 打ち切り
         description: 上限で打ち切る が、完了が来ないまま録音セッションの上限時間（開始からの経過時間）に達した録音セッションを打ち切った
     flow: |-
+      <!-- map: {"title": "正常系（上限で打ち切った）"} -->
+
       ```mermaid
       sequenceDiagram
         participant IF as 呼び出し元へ返す
@@ -79,6 +93,8 @@ flows:
         IF->>CB: POST session_id・result=truncated
         CB-->>IF: 200
       ```
+
+      <!-- /map -->
     expected:
       - コールバック先に result=truncated が 1 回届いている
     test: test_normal_when_truncated
@@ -90,6 +106,8 @@ flows:
       - name: 文字起こしの結果
         description: 連続録音で、通し番号 1 と 2 の区間の文字がこの順に得られた
     flow: |-
+      <!-- map: {"title": "正常系（連続録音の区間）"} -->
+
       ```mermaid
       sequenceDiagram
         participant IF as 呼び出し元へ返す
@@ -100,6 +118,8 @@ flows:
         IF->>CB: POST session_id・result=transcribed・segment_number=2・text
         CB-->>IF: 200
       ```
+
+      <!-- /map -->
     expected:
       - コールバック先に segment_number=1 と segment_number=2 の区間の文字が、この順に 1 回ずつ届いている
       - segment_count が null である
@@ -113,6 +133,8 @@ flows:
       - name: 文字起こしの結果
         description: 連続録音で、通し番号 2 の区間の文字起こしに失敗し、通し番号 3 の区間の文字が得られた
     flow: |-
+      <!-- map: {"title": "正常系（連続録音の区間の文字起こしに失敗）"} -->
+
       ```mermaid
       sequenceDiagram
         participant IF as 呼び出し元へ返す
@@ -123,6 +145,8 @@ flows:
         IF->>CB: POST session_id・result=transcribed・segment_number=3・text
         CB-->>IF: 200
       ```
+
+      <!-- /map -->
     expected:
       - コールバック先に segment_number=2 の result=failed と失敗の理由が 1 回届いている
       - その後に segment_number=3 の区間の文字が届いている
@@ -135,6 +159,8 @@ flows:
       - name: 連続録音の終わり
         description: 連続録音が完了し、通し番号 1・2 の区間を送信し終えた
     flow: |-
+      <!-- map: {"title": "正常系（連続録音を完了した）"} -->
+
       ```mermaid
       sequenceDiagram
         participant IF as 呼び出し元へ返す
@@ -145,6 +171,8 @@ flows:
         IF->>CB: POST session_id・result=completed・segment_count=2
         CB-->>IF: 200
       ```
+
+      <!-- /map -->
     expected:
       - コールバック先に、segment_number=2 の区間の後で result=completed・segment_count=2 が 1 回届いている
       - 録音セッションが終わり、待機中に戻っている
@@ -157,6 +185,8 @@ flows:
       - name: 連続録音の終わり
         description: 連続録音で通し番号 1・2 の区間を送信した後、区切り（話し声の判定）が例外を送出して録音が停止した
     flow: |-
+      <!-- map: {"title": "正常系（連続録音が区切りの失敗で停止した）"} -->
+
       ```mermaid
       sequenceDiagram
         participant IF as 呼び出し元へ返す
@@ -167,6 +197,8 @@ flows:
         IF->>CB: POST session_id・result=failed・segment_count=2・error
         CB-->>IF: 200
       ```
+
+      <!-- /map -->
     expected:
       - コールバック先に、segment_number=2 の区間の後で result=failed・segment_number=null・segment_count=2 と失敗の理由が 1 回届いている
       - 録音セッションが終わり、待機中に戻っている（同じ ID への完了は 404）
@@ -181,6 +213,8 @@ flows:
       - name: 文字起こしの結果
         description: 連続録音で、通し番号 2 と 3 の区間の文字がこの順に得られた
     flow: |-
+      <!-- map: {"title": "異常系（連続録音の区間がコールバック先に届かない・ログに書いて次の区間へ進む）"} -->
+
       ```mermaid
       sequenceDiagram
         participant IF as 呼び出し元へ返す
@@ -195,6 +229,8 @@ flows:
         IF->>CB: POST session_id・result=transcribed・segment_number=3・text
         CB-->>IF: 200
       ```
+
+      <!-- /map -->
     expected:
       - segment_number=2 の送信が決めた回数だけ行われている
       - ログに届かなかったことと session_id・segment_number=2 が書かれている
@@ -209,6 +245,8 @@ flows:
       - name: 再送の設定
         description: 再送の間隔をテストで待てる短い値に差し替える
     flow: |-
+      <!-- map: {"title": "異常系（コールバック先に届かない・ログに書いて終える）"} -->
+
       ```mermaid
       sequenceDiagram
         participant IF as 呼び出し元へ返す
@@ -220,6 +258,8 @@ flows:
         end
         IF->>IF: 届かなかったことと session_id をログに書く
       ```
+
+      <!-- /map -->
     expected:
       - コールバック先への送信が決めた回数だけ行われている
       - ログに届かなかったことと session_id が書かれている

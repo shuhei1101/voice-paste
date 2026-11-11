@@ -13,6 +13,8 @@ flows:
       - name: 終わったジョブ
         description: state が done、text が補正した文のジョブ
     flow: |-
+      <!-- map: {"title": "正常系"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ブラウザ
@@ -22,6 +24,8 @@ flows:
         IF->>IF: Host・Origin を確かめ、ジョブを引く
         IF-->>C: 200・state=done・progress=1.0・text
       ```
+
+      <!-- /map -->
     expected:
       - 200 で state が done、progress が 1.0、text が補正した文、error が null
       - もう一度取りに来ても同じ内容が返る
@@ -34,6 +38,8 @@ flows:
       - name: 終わっていないジョブ
         description: state が queued のジョブと、state が running・progress が 0.42 のジョブ
     flow: |-
+      <!-- map: {"title": "正常系（文字起こし中）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ブラウザ
@@ -42,6 +48,8 @@ flows:
         C->>IF: job_id
         IF-->>C: 200・state=running・progress=0.42
       ```
+
+      <!-- /map -->
     expected:
       - queued のジョブは 200 で progress が 0.0、text と error が null
       - running のジョブは 200 で progress が 0.42、text と error が null
@@ -55,6 +63,8 @@ flows:
       - name: 失敗したジョブ
         description: state が failed、error が「文字起こしワーカー無応答」のジョブ
     flow: |-
+      <!-- map: {"title": "正常系（文字起こし失敗）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ブラウザ
@@ -63,6 +73,8 @@ flows:
         C->>IF: job_id
         IF-->>C: 200・state=failed・error
       ```
+
+      <!-- /map -->
     expected:
       - 200 で state が failed、error が失敗の理由、text が null
     test: test_normal_when_failed
@@ -74,6 +86,8 @@ flows:
       - name: 終わっていないジョブ
         description: state が running・progress が 0.0 のジョブ
     flow: |-
+      <!-- map: {"title": "正常系（進みを返さないエンジン）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ブラウザ
@@ -82,6 +96,8 @@ flows:
         C->>IF: job_id
         IF-->>C: 200・state=running・progress=0.0・reports_progress=false
       ```
+
+      <!-- /map -->
     expected:
       - 200 で state が running、progress が 0.0、reports_progress が false、text と error が null
     test: test_normal_when_engine_reports_no_progress
@@ -94,6 +110,8 @@ flows:
         description: 許す Origin に無い Origin を付ける
         notes: '`Origin: http://evil.example`'
     flow: |-
+      <!-- map: {"title": "異常系（許されていない Origin・403）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ほかのオリジンのページ
@@ -104,6 +122,8 @@ flows:
         IF->>LOG: 断った理由と要求元（Host・Origin）を書く
         IF-->>C: 403（problem+json）
       ```
+
+      <!-- /map -->
     expected:
       - 403 の problem+json が返り、起こした文字を含まない
     test: test_error_when_origin_not_allowed
@@ -115,6 +135,8 @@ flows:
       - name: ジョブ
         description: 受け付けていない job_id と、終わったジョブ 2 件のうち先に終わった方の job_id
     flow: |-
+      <!-- map: {"title": "異常系（ジョブが無い・404）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ブラウザ
@@ -123,6 +145,8 @@ flows:
         C->>IF: 無い job_id
         IF-->>C: 404（problem+json）
       ```
+
+      <!-- /map -->
     expected:
       - どちらも 404 の problem+json が返る
       - 後に終わったジョブは 200 で返る
@@ -137,6 +161,8 @@ flows:
         description: Origin を付けない要求と、許す Origin に無い Origin を付けた要求の 2 つを送る
         notes: '`Origin: http://evil.example`'
     flow: |-
+      <!-- map: {"title": "異常系（Linux で動いている・404）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ブラウザ
@@ -146,6 +172,8 @@ flows:
         IF->>IF: Host を確かめる（Origin は確かめない）
         IF-->>C: 404（problem+json）
       ```
+
+      <!-- /map -->
     expected:
       - Origin を付けない要求と、許す Origin に無い Origin を付けた要求のどちらにも 404（problem+json）が返る
     test: test_error_when_running_on_linux

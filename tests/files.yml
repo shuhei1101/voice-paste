@@ -1,0 +1,282 @@
+# yaml-language-server: $schema=../schemas/files.schema.yaml
+files:
+  - path: unit/haas_server/test_app.py
+    related:
+      - to: haas_server/app.py
+        type: tests
+  - path: unit/haas_server/test_audio.py
+    related:
+      - to: haas_server/audio.py
+        type: tests
+  - path: unit/haas_server/test_main.py
+    related:
+      - to: haas_server/main.py
+        type: tests
+  - path: unit/voice_paste/features/correction/test_service.py
+    related:
+      - to: src/voice_paste/features/correction/service.py
+        type: tests
+  - path: unit/voice_paste/features/history/test_service.py
+    related:
+      - to: src/voice_paste/features/history/service.py
+        type: tests
+  - path: unit/voice_paste/features/outputs/browser/test_service.py
+    related:
+      - to: src/voice_paste/features/outputs/browser/service.py
+        type: tests
+  - path: unit/voice_paste/features/outputs/callback/test_service.py
+    related:
+      - to: src/voice_paste/features/outputs/callback/service.py
+        type: tests
+  - path: unit/voice_paste/features/outputs/copy_only/test_service.py
+    related:
+      - to: src/voice_paste/features/outputs/copy_only/service.py
+        type: tests
+  - path: unit/voice_paste/features/outputs/endpoint/test_service.py
+    related:
+      - to: src/voice_paste/features/outputs/endpoint/service.py
+        type: tests
+  - path: unit/voice_paste/features/outputs/paste_and_send/test_service.py
+    related:
+      - to: src/voice_paste/features/outputs/paste_and_send/service.py
+        type: tests
+  - path: unit/voice_paste/features/outputs/paste_only/test_service.py
+    related:
+      - to: src/voice_paste/features/outputs/paste_only/service.py
+        type: tests
+  - path: unit/voice_paste/features/outputs/test_service.py
+    related:
+      - to: src/voice_paste/features/outputs/service.py
+        type: tests
+  - path: unit/voice_paste/features/outputs/test_types.py
+    related:
+      - to: src/voice_paste/features/outputs/types.py
+        type: tests
+  - path: unit/voice_paste/features/recording/test_client.py
+    related:
+      - to: src/voice_paste/features/recording/client.py
+        type: tests
+  - path: unit/voice_paste/features/recording/test_segmenter.py
+    related:
+      - to: src/voice_paste/features/recording/segmenter.py
+        type: tests
+  - path: unit/voice_paste/features/recording/test_service.py
+    related:
+      - to: src/voice_paste/features/recording/service.py
+        type: tests
+  - path: unit/voice_paste/features/session/test_route.py
+    related:
+      - to: src/voice_paste/features/session/route.py
+        type: tests
+  - path: unit/voice_paste/features/session/test_service.py
+    related:
+      - to: src/voice_paste/features/session/service.py
+        type: tests
+  - path: unit/voice_paste/features/transcription/test_service.py
+    related:
+      - to: src/voice_paste/features/transcription/service.py
+        type: tests
+  - path: unit/voice_paste/features/web_transcription/test_service.py
+    related:
+      - to: src/voice_paste/features/web_transcription/service.py
+        type: tests
+  - path: unit/voice_paste/integrations/audio/test_probe.py
+    related:
+      - to: src/voice_paste/integrations/audio/probe.py
+        type: tests
+  - path: unit/voice_paste/integrations/browser/test_opener.py
+    related:
+      - to: src/voice_paste/integrations/browser/opener.py
+        type: tests
+  - path: unit/voice_paste/integrations/browser/test_opener_linux.py
+    related:
+      - to: src/voice_paste/integrations/browser/opener_linux.py
+        type: tests
+  - path: unit/voice_paste/integrations/haas/test_server.py
+    related:
+      - to: src/voice_paste/integrations/haas/server.py
+        type: tests
+  - path: unit/voice_paste/integrations/haas/test_transcriber.py
+    related:
+      - to: src/voice_paste/integrations/haas/transcriber.py
+        type: tests
+  - path: unit/voice_paste/integrations/http/test_client.py
+    related:
+      - to: src/voice_paste/integrations/http/client.py
+        type: tests
+  - path: unit/voice_paste/integrations/keyboard/test_active_window_linux.py
+    related:
+      - to: src/voice_paste/integrations/keyboard/active_window_linux.py
+        type: tests
+  - path: unit/voice_paste/integrations/keyboard/test_active_window_wayland.py
+    related:
+      - to: src/voice_paste/integrations/keyboard/active_window_wayland.py
+        type: tests
+  - path: unit/voice_paste/integrations/keyboard/test_sender.py
+    related:
+      - to: src/voice_paste/integrations/keyboard/sender.py
+        type: tests
+  - path: unit/voice_paste/integrations/keyboard/test_sender_linux.py
+    related:
+      - to: src/voice_paste/integrations/keyboard/sender_linux.py
+        type: tests
+  - path: unit/voice_paste/integrations/keyboard/test_sender_wayland.py
+    related:
+      - to: src/voice_paste/integrations/keyboard/sender_wayland.py
+        type: tests
+  - path: unit/voice_paste/integrations/openai/test_credentials.py
+    related:
+      - to: src/voice_paste/integrations/openai/credentials.py
+        type: tests
+  - path: unit/voice_paste/integrations/openai/test_transcriber.py
+    related:
+      - to: src/voice_paste/integrations/openai/transcriber.py
+        type: tests
+  - path: unit/voice_paste/integrations/vad/test_adapter.py
+    related:
+      - to: src/voice_paste/integrations/vad/adapter.py
+        type: tests
+  - path: unit/voice_paste/integrations/volume/test_adapter.py
+    related:
+      - to: src/voice_paste/integrations/volume/adapter.py
+        type: tests
+  - path: unit/voice_paste/integrations/volume/test_noop.py
+    related:
+      - to: src/voice_paste/integrations/volume/noop.py
+        type: tests
+  - path: unit/voice_paste/integrations/whisper/test_client.py
+    related:
+      - to: src/voice_paste/integrations/whisper/client.py
+        type: tests
+  - path: unit/voice_paste/integrations/whisper/test_worker.py
+    related:
+      - to: src/voice_paste/integrations/whisper/worker.py
+        type: tests
+  - path: unit/voice_paste/runtime/test_hotkey.py
+    related:
+      - to: src/voice_paste/runtime/hotkey.py
+        type: tests
+  - path: unit/voice_paste/runtime/test_hotkey_gnome.py
+    related:
+      - to: src/voice_paste/runtime/hotkey_gnome.py
+        type: tests
+  - path: unit/voice_paste/runtime/test_process.py
+    related:
+      - to: src/voice_paste/runtime/process.py
+        type: tests
+  - path: unit/voice_paste/runtime/test_send_hotkey.py
+    related:
+      - to: src/voice_paste/runtime/send_hotkey.py
+        type: tests
+  - path: unit/voice_paste/runtime/test_settings_store.py
+    related:
+      - to: src/voice_paste/runtime/settings_store.py
+        type: tests
+  - path: unit/voice_paste/runtime/test_single_instance.py
+    related:
+      - to: src/voice_paste/runtime/single_instance.py
+        type: tests
+  - path: unit/voice_paste/runtime/test_single_instance_linux.py
+    related:
+      - to: src/voice_paste/runtime/single_instance_linux.py
+        type: tests
+  - path: unit/voice_paste/runtime/test_timer.py
+    related:
+      - to: src/voice_paste/runtime/timer.py
+        type: tests
+  - path: unit/voice_paste/server/test_app.py
+    related:
+      - to: src/voice_paste/server/app.py
+        type: tests
+  - path: unit/voice_paste/server/test_body_limit.py
+    related:
+      - to: src/voice_paste/server/body_limit.py
+        type: tests
+  - path: unit/voice_paste/server/test_error_handlers.py
+    related:
+      - to: src/voice_paste/server/error_handlers.py
+        type: tests
+  - path: unit/voice_paste/server/test_middleware.py
+    related:
+      - to: src/voice_paste/server/middleware.py
+        type: tests
+  - path: unit/voice_paste/server/test_runner.py
+    related:
+      - to: src/voice_paste/server/runner.py
+        type: tests
+  - path: unit/voice_paste/server/test_token.py
+    related:
+      - to: src/voice_paste/server/token.py
+        type: tests
+  - path: unit/voice_paste/server/test_web_page.py
+    related:
+      - to: src/voice_paste/server/web_page.py
+        type: tests
+  - path: unit/voice_paste/shared/test_constants.py
+    related:
+      - to: src/voice_paste/shared/constants.py
+        type: tests
+  - path: unit/voice_paste/shared/test_logger.py
+    related:
+      - to: src/voice_paste/shared/logger.py
+        type: tests
+  - path: unit/voice_paste/shared/test_os_kind.py
+    related:
+      - to: src/voice_paste/shared/os_kind.py
+        type: tests
+  - path: unit/voice_paste/shared/test_settings.py
+    related:
+      - to: src/voice_paste/shared/settings.py
+        type: tests
+  - path: unit/voice_paste/shared/test_yaml_document.py
+    related:
+      - to: src/voice_paste/shared/yaml_document.py
+        type: tests
+  - path: unit/voice_paste/test_main.py
+    related:
+      - to: src/voice_paste/main.py
+        type: tests
+  - path: unit/voice_paste/ui/test_bridge.py
+    related:
+      - to: src/voice_paste/ui/bridge.py
+        type: tests
+  - path: unit/voice_paste/ui/test_controller.py
+    related:
+      - to: src/voice_paste/ui/controller.py
+        type: tests
+  - path: unit/voice_paste/ui/test_placement.py
+    related:
+      - to: src/voice_paste/ui/placement.py
+        type: tests
+  - path: unit/voice_paste/ui/test_style.py
+    related:
+      - to: src/voice_paste/ui/style.py
+        type: tests
+  - path: unit/voice_paste/ui/test_tray.py
+    related:
+      - to: src/voice_paste/ui/tray.py
+        type: tests
+  - path: unit/voice_paste/ui/windows/test_settings_edge_phrases.py
+    related:
+      - to: src/voice_paste/ui/windows/settings_edge_phrases.py
+        type: tests
+  - path: unit/voice_paste/ui/windows/test_settings_glossaries.py
+    related:
+      - to: src/voice_paste/ui/windows/settings_glossaries.py
+        type: tests
+  - path: unit/voice_paste/ui/windows/test_settings_hints.py
+    related:
+      - to: src/voice_paste/ui/windows/settings_hints.py
+        type: tests
+  - path: unit/voice_paste/ui/windows/test_settings_presets.py
+    related:
+      - to: src/voice_paste/ui/windows/settings_presets.py
+        type: tests
+  - path: unit/voice_paste/ui/windows/test_settings_window.py
+    related:
+      - to: src/voice_paste/ui/windows/settings_window.py
+        type: tests
+  - path: unit/voice_paste/ui/windows/test_transcribing_indicator.py
+    related:
+      - to: src/voice_paste/ui/windows/transcribing_indicator.py
+        type: tests

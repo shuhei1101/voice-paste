@@ -133,6 +133,8 @@ flows:
         description: 読みのある単語 1 つと、reading が null の単語 1 つ
         notes: '`[{"written": "突合", "reading": "とつごう"}, {"written": "voice-paste", "reading": null}]`'
     flow: |-
+      <!-- map: {"title": "正常系"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as 常駐アプリ
@@ -146,6 +148,8 @@ flows:
         M-->>IF: 起こした文字
         IF-->>C: 200・text
       ```
+
+      <!-- /map -->
     expected:
       - 200 で text が決まった文字
       - モデルが受けた音声が 16 kHz のモノラルで、長さが約 3 秒
@@ -161,6 +165,8 @@ flows:
         description: 約 40 秒の WAV
         notes: 30 秒を超える
     flow: |-
+      <!-- map: {"title": "正常系（30 秒を超える音声）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as 常駐アプリ
@@ -172,6 +178,8 @@ flows:
         M-->>IF: 起こした文字
         IF-->>C: 200・text
       ```
+
+      <!-- /map -->
     expected:
       - 200 で text が決まった文字
       - transcribe_longform が 1 回呼ばれ、transcribe が呼ばれていない
@@ -184,6 +192,8 @@ flows:
       - name: 要求
         description: vocabulary の項目を付けない
     flow: |-
+      <!-- map: {"title": "正常系（手がかりが無い）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as 常駐アプリ
@@ -195,6 +205,8 @@ flows:
         M-->>IF: 起こした文字
         IF-->>C: 200・text
       ```
+
+      <!-- /map -->
     expected:
       - 200 で text が決まった文字
       - モデルが受けた Vocabulary が無い（None）
@@ -208,6 +220,8 @@ flows:
         description: 約 3 秒の webm（Opus）の音声
         notes: テストの資材として置く
     flow: |-
+      <!-- map: {"title": "正常系（ブラウザの形式の音声）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as 常駐アプリ
@@ -220,6 +234,8 @@ flows:
         M-->>IF: 起こした文字
         IF-->>C: 200・text
       ```
+
+      <!-- /map -->
     expected:
       - 200 で text が決まった文字
       - モデルが受けた音声が 16 kHz のモノラルで、長さが約 3 秒
@@ -232,6 +248,8 @@ flows:
       - name: 音声
         description: 音声でないテキストのファイル
     flow: |-
+      <!-- map: {"title": "異常系（音声を復号できない・400）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as 常駐アプリ
@@ -241,6 +259,8 @@ flows:
         IF->>IF: 復号に失敗する
         IF-->>C: 400（problem+json）
       ```
+
+      <!-- /map -->
     expected:
       - 400 の problem+json が返り、detail に音声を読めないことが入っている
       - モデルが呼ばれていない
@@ -254,6 +274,8 @@ flows:
         description: vocabulary に written が空の要素を入れる
         notes: '`[{"written": "", "reading": "から"}]`'
     flow: |-
+      <!-- map: {"title": "異常系（手がかりの形が合わない・400）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as 常駐アプリ
@@ -263,6 +285,8 @@ flows:
         IF->>IF: 手がかりの検証に失敗する
         IF-->>C: 400（problem+json）
       ```
+
+      <!-- /map -->
     expected:
       - 400 の problem+json が返り、detail に手がかりの形が合わないことが入っている
       - モデルが呼ばれていない
@@ -275,6 +299,8 @@ flows:
       - name: 音声
         description: 約 3 秒の WAV を 2 回送信する
     flow: |-
+      <!-- map: {"title": "異常系（文字起こしに失敗・500）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as 常駐アプリ
@@ -292,6 +318,8 @@ flows:
         M-->>IF: 起こした文字
         IF-->>C: 200・text
       ```
+
+      <!-- /map -->
     expected:
       - 1 回目は 500 の problem+json が返り、detail に失敗した理由が入っている
       - 2 回目は 200 で text が決まった文字
@@ -308,6 +336,8 @@ flows:
         description: Host をほかのホストにした要求と、Origin を付けた要求の 2 つを送る
         notes: '`Host: evil.example:{ポート}`、`Origin: http://evil.example`'
     flow: |-
+      <!-- map: {"title": "異常系（許されていない要求元・403）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as ほかのサイトのページ
@@ -318,6 +348,8 @@ flows:
         IF->>LOG: 断った理由と要求元（Host・Origin）を書く
         IF-->>C: 403（problem+json）
       ```
+
+      <!-- /map -->
     expected:
       - どちらの要求にも 403 の problem+json が返る
       - モデルが呼ばれていない
@@ -334,6 +366,8 @@ flows:
         description: 手がかりと、既定と違う調整の値を付ける
         notes: '`short_audio_limit_sec=20`・`batch_size=8`・`alpha=3.0`・`guard=false`・`chunk_sec=15`・`search_sec=1`・`window_sec=0.05`・`separator=。`'
     flow: |-
+      <!-- map: {"title": "正常系（調整の値を指定）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as 常駐アプリ
@@ -347,6 +381,8 @@ flows:
         M-->>IF: 起こした文字
         IF-->>C: 200・text
       ```
+
+      <!-- /map -->
     expected:
       - 200 で text が決まった文字
       - transcribe_longform が 1 回呼ばれ、batch_size が 8、guard が false、chunk_seconds が 15、search_seconds が 1、window_seconds が 0.05、separator が「。」
@@ -361,6 +397,8 @@ flows:
       - name: 要求
         description: batch_size を 0 にした要求と、guard を `yes` にした要求の 2 つを送信する
     flow: |-
+      <!-- map: {"title": "異常系（調整の値が範囲の外・400）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as 常駐アプリ
@@ -372,6 +410,8 @@ flows:
         IF->>LOG: [WARNING] 合わない項目の名前と理由を書く
         IF-->>C: 400（problem+json）
       ```
+
+      <!-- /map -->
     expected:
       - どちらの要求にも 400 の problem+json が返り、detail に合わない項目の名前が入っている
       - モデルが呼ばれていない

@@ -13,6 +13,8 @@ flows:
       - name: プリセット
         description: 「エンドポイントへ送信」種類で、URL にテスト用のエンドポイント、Authorization を空にした有効なプリセットを選んで確定する
     flow: |-
+      <!-- map: {"title": "正常系"} -->
+
       ```mermaid
       sequenceDiagram
         participant IF as 設定のエンドポイントへ送信する
@@ -21,6 +23,8 @@ flows:
         IF->>EP: POST session_id・result=transcribed・text
         EP-->>IF: 200
       ```
+
+      <!-- /map -->
     expected:
       - 送信先に result=transcribed と起こした文字が 1 回届いている
       - 送信先に `Authorization` ヘッダーが届いていない
@@ -33,6 +37,8 @@ flows:
       - name: プリセット
         description: 選んだプリセットの Authorization に `Bearer test-token` を入れる
     flow: |-
+      <!-- map: {"title": "正常系（認証のヘッダーを付ける）"} -->
+
       ```mermaid
       sequenceDiagram
         participant IF as 設定のエンドポイントへ送信する
@@ -41,6 +47,8 @@ flows:
         IF->>EP: POST（Authorization: Bearer test-token）session_id・result・text
         EP-->>IF: 200
       ```
+
+      <!-- /map -->
     expected:
       - '送信先に `Authorization: Bearer test-token` が付いて 1 回届いている'
       - ログに `test-token` が書かれていない
@@ -51,6 +59,8 @@ flows:
       - name: Mock
         description: 送信先を 127.0.0.1 のテスト用のエンドポイントにし、常に 500 を返す
     flow: |-
+      <!-- map: {"title": "異常系（送信先に届かない）"} -->
+
       ```mermaid
       sequenceDiagram
         participant IF as 設定のエンドポイントへ送信する
@@ -60,6 +70,8 @@ flows:
         EP-->>IF: 500
         IF->>IF: DeliveryError を送出する
       ```
+
+      <!-- /map -->
     expected:
       - 送信先への送信が 1 回だけ行われている
       - DeliveryError が送出され、録音セッションが届けられなかったことを通知して待機中に戻っている

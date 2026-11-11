@@ -10,6 +10,8 @@ scenarios:
       - name: 許す Origin
         description: 画面を開いたオリジンを許す Origin の一覧に入れる
     flow: |-
+      <!-- map: {"title": "正常シナリオ（画面で録る）"} -->
+
       ```mermaid
       sequenceDiagram
         participant U as ユーザー
@@ -28,6 +30,8 @@ scenarios:
         API-->>PG: 202（job_id）
         PG->>PG: 結果の一覧に待ちの件を出す
       ```
+
+      <!-- /map -->
     expected:
       - 送信が `202` で返り、応答に `job_id` がある
       - 端末（IndexedDB）に録った音声が 1 件だけ、保存日時つきで残っている
@@ -42,6 +46,8 @@ scenarios:
       - name: 音声ファイル
         description: SAPI で書き出した文を MP3 にしたファイルを選ぶ
     flow: |-
+      <!-- map: {"title": "正常シナリオ（ファイルを選ぶ）"} -->
+
       ```mermaid
       sequenceDiagram
         participant U as ユーザー
@@ -56,6 +62,8 @@ scenarios:
         API-->>PG: 202（job_id）
         PG->>PG: 結果の一覧に待ちの件を出す
       ```
+
+      <!-- /map -->
     expected:
       - 送信が `202` で返り、応答に `job_id` がある
       - '`GET /web/transcriptions/{job_id}` がそのジョブ（`queued` か `running`）を返す'
@@ -70,6 +78,8 @@ scenarios:
         description: Windows の Edge を偽のマイクで起動し、画面を開く。画面の時計を進められるようにする
         notes: 録音の上限時間は非機能要件の決定値（30 分）
     flow: |-
+      <!-- map: {"title": "正常シナリオ（録音時間の上限に達する）"} -->
+
       ```mermaid
       sequenceDiagram
         participant U as ユーザー
@@ -84,6 +94,8 @@ scenarios:
         PG->>API: 音声を送信する
         API-->>PG: 202（job_id）
       ```
+
+      <!-- /map -->
     expected:
       - 上限時間で録音が停止し、そこまでの音声が端末に残って送信されている
       - 録音が上限で停止したことが画面に出ている
@@ -98,6 +110,8 @@ scenarios:
       - name: 音声ファイル
         description: SAPI で書き出した文を MP3 にしたファイルを選ぶ
     flow: |-
+      <!-- map: {"title": "正常シナリオ（用語集のプリセットを選ぶ）"} -->
+
       ```mermaid
       sequenceDiagram
         participant U as ユーザー
@@ -117,6 +131,8 @@ scenarios:
         API-->>PG: 202（job_id）
         PG->>PG: 結果の一覧に待ちの件を出す
       ```
+
+      <!-- /map -->
     expected:
       - 選択欄に、既定の項目と、設定の用語集のプリセットが設定の並びで出ている
       - 送信が `202` で返り、応答に `job_id` がある
@@ -134,6 +150,8 @@ scenarios:
       - name: 届かない送信
         description: 録音を停止する前に常駐アプリの API の待ち受けを停止し、送信が届かないようにする
     flow: |-
+      <!-- map: {"title": "異常シナリオ（送信に失敗する）"} -->
+
       ```mermaid
       sequenceDiagram
         participant U as ユーザー
@@ -150,6 +168,8 @@ scenarios:
         PG->>API: 音声を送信する
         API-->>PG: 202（job_id）
       ```
+
+      <!-- /map -->
     expected:
       - 送信に失敗したことが画面に出て、再送信ボタンとダウンロードボタンを押せる
       - 端末（IndexedDB）に録った音声が残っている
@@ -163,6 +183,8 @@ scenarios:
       - name: 壊れたファイル
         description: 拡張子を `.mp3` にした、音声でない中身のファイルを選ぶ
     flow: |-
+      <!-- map: {"title": "異常シナリオ（読めない形式）"} -->
+
       ```mermaid
       sequenceDiagram
         participant U as ユーザー
@@ -175,6 +197,8 @@ scenarios:
         API-->>PG: 415（problem+json）
         PG->>PG: 読めない形式であることを出す
       ```
+
+      <!-- /map -->
     expected:
       - 送信が `415` の problem+json で返っている
       - 画面に読めない形式であることが出て、結果の一覧に件が増えていない
@@ -187,6 +211,8 @@ scenarios:
       - name: 大きすぎるファイル
         description: 非機能要件の本文の上限（100MB 未満）を超える音声ファイルを選ぶ
     flow: |-
+      <!-- map: {"title": "異常シナリオ（大きすぎる）"} -->
+
       ```mermaid
       sequenceDiagram
         participant U as ユーザー
@@ -199,6 +225,8 @@ scenarios:
         API-->>PG: 413（problem+json）
         PG->>PG: 大きすぎることを出す
       ```
+
+      <!-- /map -->
     expected:
       - 送信が `413` の problem+json で返っている
       - 画面に大きすぎることが出て、結果の一覧に件が増えていない
@@ -211,6 +239,8 @@ scenarios:
       - name: 許可リスト
         description: 許す Origin の一覧に、送信の Origin を入れない
     flow: |-
+      <!-- map: {"title": "異常シナリオ（許可されていない Origin）"} -->
+
       ```mermaid
       sequenceDiagram
         participant C as 許可されていないオリジンのページ
@@ -220,6 +250,8 @@ scenarios:
         API->>API: Origin を確かめる（一覧に無い）
         API-->>C: 403（problem+json）
       ```
+
+      <!-- /map -->
     expected:
       - 送信が `403` の problem+json で返っている
       - 応答に `job_id` が無く、一時のファイルも履歴も書かれていない
@@ -233,6 +265,8 @@ scenarios:
       - name: 音声ファイル
         description: SAPI で書き出した文を MP3 にしたファイルを選ぶ
     flow: |-
+      <!-- map: {"title": "異常シナリオ（一覧に無いプリセット）"} -->
+
       ```mermaid
       sequenceDiagram
         participant U as ユーザー
@@ -248,6 +282,8 @@ scenarios:
         API-->>PG: 200（プリセットの名前の一覧）
         PG->>PG: 選択欄を取得し直した一覧にし、既定を選択する
       ```
+
+      <!-- /map -->
     expected:
       - 送信が `400` の problem+json で返っている
       - 画面に選択したプリセットが見つからないことが出て、結果の一覧に件が増えていない

@@ -149,3 +149,21 @@ documents:
     schema: schemas/files.schema.yaml
     records: files
     body_file: path
+  - id: files_src
+    title: 常駐アプリのコード
+    paths: ["src/files.yml"]
+    schema: schemas/files.schema.yaml
+    records: files
+    body_file: path
+  - id: files_haas_server
+    title: Haas の文字起こしのサーバーのコード
+    paths: ["haas_server/files.yml"]
+    schema: schemas/files.schema.yaml
+    records: files
+    body_file: path
+  - id: files_tests
+    title: テスト
+    paths: ["tests/files.yml"]
+    schema: schemas/files.schema.yaml
+    records: files
+    body_file: path

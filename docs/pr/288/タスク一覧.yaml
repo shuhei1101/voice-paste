@@ -55,9 +55,9 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-12T16:14:40.860521+00:00'
   - process: 画面設計
-    status: todo
+    status: done
     updated_by: planner
-    updated_at: '2026-11-12T17:45:09.715187+00:00'
+    updated_at: '2026-11-12T18:42:39.171990+00:00'
     note: 設定画面（SCR-9）に猶予の秒数を追加。処理中のダイアログ（SCR-3）は設計済み
   - process: モジュール構成設計
     status: todo

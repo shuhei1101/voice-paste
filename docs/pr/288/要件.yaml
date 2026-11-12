@@ -1,0 +1,27 @@
+use_cases:
+  - kind: single
+    scenario: docs/scenario/SC-8.yaml
+    impact: changed
+    detail: 録音を開始した直後に取り消しても待機中に戻る異常シナリオと、取り消し・確定の後の終了の処理の間に録音を始めようとしたとき、終了の処理中で今は始められないことが示される異常シナリオを追加する
+    depends_on: []
+  - kind: composite
+    scenario: docs/scenario/SC-12.yaml
+    impact: run_only
+    detail: シナリオの記述は変わらないが、録音の取り消しと開始の流れの修正が、声で入力した文字を貼り付ける流れを壊しうる
+    depends_on: []
+docs:
+  - page: docs/guide/録音して貼り付ける.md
+    new: false
+    change: 処理中のダイアログで通知される場面に、取り消し・確定の後の終了の処理中を追加する
+    status: todo
+  - page: docs/mock/pages/busy-dialog/index.md
+    new: false
+    change: この作業 PR の処理中のダイアログのモックの案の行を追加する
+    status: todo
+scope_out:
+  - item: SessionManager の状態遷移図を mdmark の部品で描き直す
+    reason: 別の Issue の要望。この作業 PR で録音セッションの状態が変わった後に描き直す
+    plan: '#284'
+  - item: API の録音セッションの取り消し・停止の待ち合わせ
+    reason: 要望はホットキー・トレイから始めた録音の取り消しで、API の録音セッションは取り消しの操作を持たない
+    plan: none

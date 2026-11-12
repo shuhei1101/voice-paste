@@ -26,7 +26,7 @@ data_models:
         description: 固定の出力先の ID かカスタムプリセットのどちらかで確定する（SessionManager.complete を output_id・preset で呼ぶ）
       - name: cancel
         type: Callable[[], None]
-        description: SessionManager.cancel
+        description: 録音の取り消しを画面のスレッドの外で始める関数（SessionManager.cancel を cancel_in_background に部分適用したもの。取り消しの終わりを待たずに戻る）
       - name: current_session
         type: Callable[[], Session | None]
         description: SessionManager.current
@@ -173,7 +173,7 @@ classes:
              - transcribing・delivering で文字起こし中の表示を出す場合、その回に録音の画面を動かしていれば動かした位置（RecordingWindow.moved_position）を引き渡す。動かしていなければ引き渡さず、設定の位置に出す。あわせて録音セッションの output_id と、カスタムプリセットで確定したならそのタイトル（output_preset.title）を引き渡す（TranscribingIndicator.open。文字起こし中の表示が既に出ている delivering の通知では開き直さない）
              - 最後に、トレイの「録音の画面を表示」を今の状態に合わせる（Tray.set_recording_window）
           2. output_changed の場合、文字起こし中の表示の今の出力先を detail（切り替えた先の出力先の ID）に替える（TranscribingIndicator.set_output）
-          3. busy の場合、処理中のダイアログを出す（show_busy_dialog）
+          3. busy の場合、detail（始められない理由）を引き渡して処理中のダイアログを出す（show_busy_dialog）
           4. show_recording_window の場合、隠した録音の画面を戻す（show_recording）
           5. microphone_unavailable・transcription_failed・delivery_failed・api_unavailable の場合、トレイの通知を出す（Tray.show_failure）
              - それ以外の種類の場合、何もしない
@@ -206,9 +206,9 @@ classes:
           - name: test_on_notified_when_busy
             case: 正常
             summary: 処理中のダイアログを出す
-            condition: event=busy
+            condition: event=busy、detail="finishing"
             mock: show_busy_dialog・Tray
-            expected: show_busy_dialog が 1 回呼ばれる
+            expected: show_busy_dialog が "finishing" で 1 回呼ばれる
           - name: test_on_notified_when_failure
             case: 正常
             summary: 失敗をトレイの通知で通知する

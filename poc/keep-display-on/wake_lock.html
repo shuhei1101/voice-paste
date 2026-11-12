@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ja">
+<head><meta charset="utf-8"><title>Wake Lock PoC</title></head>
+<body>
+<p id="status">開始前</p>
+<script>
+const status = document.getElementById("status");
+const log = (event, extra = "") =>
+  fetch(`/log?event=${event}&${extra}`).catch(() => {});
+
+async function run() {
+  log("start", `secure=${window.isSecureContext}&supported=${"wakeLock" in navigator}`);
+  try {
+    const sentinel = await navigator.wakeLock.request("screen");
+    status.textContent = "取得した";
+    await log("acquired", `released=${sentinel.released}`);
+    for (const sec of [1, 3, 6, 10]) {
+      await new Promise((r) => setTimeout(r, sec === 1 ? 1000 : (sec === 3 ? 2000 : (sec === 6 ? 3000 : 4000))));
+      await log("holding", `sec=${sec}&released=${sentinel.released}`);
+    }
+    await sentinel.release();
+    status.textContent = "解放した";
+    await log("released", `released=${sentinel.released}`);
+  } catch (e) {
+    status.textContent = `失敗: ${e.name}`;
+    log("error", `name=${e.name}`);
+  }
+}
+run();
+</script>
+</body>
+</html>

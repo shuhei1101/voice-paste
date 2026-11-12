@@ -437,6 +437,11 @@ class RecordingSettings(_SettingsModel):
         le=100,
     )
     fade_sec: float = _required("音量を下げる・戻すときにかける秒数", reload=RELOAD_IMMEDIATE, ge=0)
+    cancel_grace_sec: float = _required(
+        "取り消しの猶予の秒数。録音を始めてからこの秒数の間に取り消すと、録音の画面をすぐ閉じ、録音はこの秒数が経ってから捨てる（0 は猶予を持たない）",
+        reload=RELOAD_IMMEDIATE,
+        ge=0,
+    )
     hide_window: bool = _required(
         "録音の画面も文字起こし中の表示も表示せず、トレイとホットキーだけで操作するか",
         reload=RELOAD_IMMEDIATE,

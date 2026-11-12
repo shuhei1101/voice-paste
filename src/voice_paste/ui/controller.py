@@ -169,7 +169,7 @@ class UiController(QObject):
         elif event == "output_changed":
             self._indicator.set_output(detail)  # type: ignore[arg-type]
         elif event == "busy":
-            show_busy_dialog()
+            show_busy_dialog(detail)
         elif event == "show_recording_window":
             self.show_recording()
         elif event in FAILURE_EVENTS:
@@ -204,7 +204,8 @@ class UiController(QObject):
     def request_exit(self, kind: Literal["restart", "quit"]) -> None:
         """トレイ・設定画面からの再起動・終了。待機中ならすぐ行い、処理中ならアイコンを削除してその回が終わるまで待つ。"""
         session = self._deps.current_session()
-        if session is None:
+        # 待機中か取り消しの猶予中: 猶予中の録音は終了の片付け（SessionManager.close）が捨てるため待たない
+        if session is None or session.state == SessionState.CANCEL_PENDING:
             self._exit(kind)
             return
         self._pending_exit = kind
@@ -275,8 +276,8 @@ class UiController(QObject):
         """今の録音セッションの入口と状態に合わせて、トレイ・録音の画面・文字起こし中の表示を変える。"""
         session = self._deps.current_session()
 
-        # 録音セッションが無い: 待機中に戻し、画面を閉じ、待たせた再起動・終了があれば行う
-        if session is None:
+        # 録音セッションが無いか取り消しの猶予中: 待機中に戻し、画面を閉じ、待たせた再起動・終了があれば行う
+        if session is None or session.state == SessionState.CANCEL_PENDING:
             self._tray.set_state(TrayState.IDLE, busy=False)
             self._close_recording()
             self._close_indicator()

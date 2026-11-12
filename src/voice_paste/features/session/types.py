@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
@@ -31,6 +31,9 @@ class SessionState(StrEnum):
 
     PAUSED = "paused"
     """ホットキー・トレイから始めた録音を一時停止している（再開できる）。"""
+
+    CANCEL_PENDING = "cancel_pending"
+    """ホットキー・トレイから始めた録音を、始めてから猶予の秒数の間に取り消した。画面とトレイには待機中に見せ、入力は開いたまま猶予が終わるのを待つ。"""
 
     STOPPED = "stopped"
     """API から始めた録音を止め、完了を待っている。"""
@@ -92,6 +95,9 @@ type SaveRecordingFn = Callable[[str, Recording, int | None], Path]
 type StartContinuousRecordingFn = Callable[[OnSegmentFn, OnContinuousFailedFn], None]
 """区間の渡し先と区切りの失敗の知らせ先を受け、音量を下げてマイクを開き、区切った区間を区切った順に渡す。開けなければ音量を戻して MicrophoneUnavailableError を送出する。"""
 
+type StartCancelTimerFn = Callable[[float, Callable[[], None]], Callable[[], None]]
+"""delay_sec 秒後に新しいスレッドで callback を 1 回呼ぶタイマーを始め、予約を取りやめる関数を返す（配線では threading.Timer）。"""
+
 type TranscribeFn = Callable[[Path, ProgressFn | None], str]
 """録音のファイルと進みを知らせる関数を受け、起こした文字を返す。失敗は TranscriptionError。"""
 
@@ -139,6 +145,21 @@ class SessionDeps:
 
     discard_recording: Callable[[], None]
     """録音を止めて音量を戻し、貯めた音を捨てる。"""
+
+    restore_recording_volume: Callable[[], None]
+    """入力は開いたまま、下げた音量だけを録音前の値に戻す（録音の restore_volume）。"""
+
+    lower_recording_volume: Callable[[], None]
+    """入力は開いたまま、今の設定で音量をもう一度下げる（録音の lower_volume）。"""
+
+    clear_recording: Callable[[], None]
+    """入力は開いたまま、貯めた音を捨てる（録音の clear）。"""
+
+    get_cancel_grace: Callable[[], timedelta]
+    """今の設定の取り消しの猶予の秒数（recording.cancel_grace_sec。保存した値が次の取り消しから効く）。"""
+
+    start_cancel_timer: StartCancelTimerFn
+    """猶予が終わったときに呼ぶ関数を、新しいスレッドのタイマーで予約する。"""
 
     save_recording: SaveRecordingFn
     """確定した録音を履歴か一時の音声へ保存する。"""

@@ -8,6 +8,7 @@ import threading
 import uuid
 from collections.abc import Callable
 from dataclasses import replace
+from functools import partial
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, Literal
@@ -30,6 +31,9 @@ IDLE_DETAIL: str = "idle"
 
 WORKER_THREAD_NAME: str = "session-worker"
 """文字起こしから届けるまでを動かすワーカースレッドの名前。"""
+
+CANCEL_THREAD_NAME: str = "session-cancel"
+"""取り消しの判定（_cancel）を動かすスレッドの名前。"""
 
 type SegmentQueue = queue.Queue[tuple[int, Segment] | ContinuousEnd | None]
 """連続録音の区間（通し番号つき）を区切った順に、ワーカースレッドへ渡す待ち行列。ContinuousEnd は終わりのマーカー、None は終了で返さずにやめるマーカー。"""
@@ -55,6 +59,10 @@ class SessionManager:
         self._continuous_session_limit = continuous_session_limit
         # 連続録音の区間をワーカースレッドへ渡す待ち行列。連続録音でなければ None
         self._segments: SegmentQueue | None = None
+        # 猶予の間の録音セッションの、猶予の終わりのタイマーを取りやめる関数。猶予の間でなければ None
+        self._cancel_timer: Callable[[], None] | None = None
+        # 猶予にするたびに 1 増やす番号。猶予の終わりのタイマーに渡し、取りやめが間に合わなかった古いタイマーを見分ける
+        self._cancel_generation = 0
 
     def current(self) -> Session | None:
         """今の録音セッションを返す（待機中は None）。画面が state_changed を受けたときに入口と状態を引く。"""
@@ -72,7 +80,19 @@ class SessionManager:
     ) -> Session:
         """待機中なら新しい録音セッションを作り、録音（continuous なら連続録音）を始める。"""
         with self._lock:
-            # 1. 録音セッションが残っていれば断る（処理中）
+            # 1. 取り消しの猶予中の録音セッションが残っていれば、入口で分ける
+            pending = self._session
+            if pending is not None and pending.state == SessionState.CANCEL_PENDING:
+                # ホットキー・トレイ: 内部の録音を引き継いで始め直す（マイクを閉じて開き直さない）
+                if Entry(entry) != Entry.API:
+                    return self._restart_pending(pending, Entry(entry))
+                # API: 内部の録音を捨ててから、新しい録音を始める
+                self._drop_cancel_timer()
+                self._deps.discard_recording()
+                self._session = None
+                logger.info(f"猶予の間に API の開始が来たため録音を取り消した（{pending.id}）")
+
+            # 2. 録音セッションが残っていれば断る（処理中）
             if self._session is not None:
                 logger.info(
                     f"処理中のため開始を断った（入口: {entry}・処理中の録音セッション: {self._session.id}）"
@@ -235,20 +255,78 @@ class SessionManager:
             self._deps.notify("output_changed", output_id)
 
     def cancel(self) -> None:
-        """ホットキー・トレイの録音を捨てて待機中に戻す。"""
+        """ホットキー・トレイの録音の取り消しを新しいスレッドで始めて戻る（画面のスレッド・pynput のスレッドは待たない）。"""
+        threading.Thread(target=self._cancel, name=CANCEL_THREAD_NAME, daemon=True).start()
+
+    def _cancel(self) -> None:
+        """猶予の間なら画面だけを待機中に見せて猶予の終わりを予約し、猶予の後ならその場で録音を捨てる。"""
         with self._lock:
             session = self._session
-            # ホットキー・トレイの録音中か一時停止中だけ捨てる（API の録音セッションは何もしない）
+            # ホットキー・トレイの録音中か一時停止中だけ取り消す（API の録音セッション・猶予中は何もしない）
             if (
                 session is None
                 or session.entry == Entry.API
                 or session.state not in (SessionState.RECORDING, SessionState.PAUSED)
             ):
                 return
+
+            # 始めてから猶予の秒数が経っていなければ猶予にする
+            remaining = self._deps.get_cancel_grace() - (self._deps.now() - session.started_at)
+            if remaining > timedelta(0):
+                self._session = replace(session, state=SessionState.CANCEL_PENDING)
+                self._deps.restore_recording_volume()
+                self._cancel_generation += 1
+                self._cancel_timer = self._deps.start_cancel_timer(
+                    remaining.total_seconds(),
+                    partial(self._expire_cancel, self._cancel_generation),
+                )
+                logger.info(
+                    f"録音の取り消しを猶予にした（{session.id}・残り {remaining.total_seconds():.1f} 秒）"
+                )
+                self._deps.notify("state_changed", str(SessionState.CANCEL_PENDING))
+                return
+
+            # 猶予の後: その場で捨てる
             self._deps.discard_recording()
             self._session = None
             logger.info(f"録音を取り消した（{session.id}）")
             self._deps.notify("state_changed", IDLE_DETAIL)
+
+    def _expire_cancel(self, generation: int) -> None:
+        """猶予のタイマーのスレッドから呼ばれ、予約したときの猶予のままなら録音を捨てて待機中に戻す。"""
+        with self._lock:
+            session = self._session
+            # 始め直した・もう一度取り消した・API の開始で捨てた・終了で捨てた後の古いタイマーは何もしない
+            if (
+                session is None
+                or session.state != SessionState.CANCEL_PENDING
+                or generation != self._cancel_generation
+            ):
+                return
+            self._deps.discard_recording()
+            self._session = None
+            self._cancel_timer = None
+            logger.info(f"猶予が終わったため録音を取り消した（{session.id}）")
+            self._deps.notify("state_changed", IDLE_DETAIL)
+
+    def _restart_pending(self, pending: Session, entry: Entry) -> Session:
+        """ロックを持って、猶予中の録音セッションの内部の録音を引き継ぎ、貯めた音を捨てて始め直す。"""
+        self._drop_cancel_timer()
+        self._deps.clear_recording()
+        self._deps.lower_recording_volume()
+        session = replace(
+            pending, state=SessionState.RECORDING, entry=entry, started_at=self._deps.now()
+        )
+        self._session = session
+        logger.info(f"猶予の間に録音を始め直した（{session.id}・入口: {entry}）")
+        self._deps.notify("state_changed", str(session.state))
+        return session
+
+    def _drop_cancel_timer(self) -> None:
+        """ロックを持って、猶予の終わりの予約があれば取りやめる。"""
+        if self._cancel_timer is not None:
+            self._cancel_timer()
+            self._cancel_timer = None
 
     def close(self) -> None:
         """終了時に、残っている録音セッションの録音を捨てて待機中に戻す。"""
@@ -261,6 +339,8 @@ class SessionManager:
             ):
                 return
             self._session = None
+            # 猶予中なら、猶予の終わりの予約も取りやめる
+            self._drop_cancel_timer()
             logger.warning(f"終了のため録音を捨てた（{session.id}・入口: {session.entry}）")
 
             if session.continuous:

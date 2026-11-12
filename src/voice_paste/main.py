@@ -134,6 +134,7 @@ from voice_paste.ui.bridge import UiBridge, notify, notify_copied, report_progre
 from voice_paste.ui.controller import UiController, UiDeps
 from voice_paste.ui.style import apply_theme
 from voice_paste.ui.tray import Tray, TrayState
+from voice_paste.ui.windows.busy_dialog import BUSY_REASON_API, BUSY_REASON_FINISHING
 from voice_paste.ui.windows.recording_window import RecordingWindow
 from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
 
@@ -676,6 +677,11 @@ def build_handlers(
             min_silence_sec=settings.api.continuous.min_silence_sec,
         ),
         stop_continuous_recording=recorder.stop_continuous,
+        restore_recording_volume=recorder.restore_volume,
+        lower_recording_volume=recorder.lower_volume,
+        clear_recording=recorder.clear,
+        get_cancel_grace=lambda: timedelta(seconds=store.get().recording.cancel_grace_sec),
+        start_cancel_timer=_start_cancel_timer,
     )
     session_manager = SessionManager(
         deps,
@@ -861,6 +867,14 @@ def _stop_nothing() -> None:
     """止めるものが無いエンジン（OpenAI API）の停止の代わりに、何もしない。"""
 
 
+def _start_cancel_timer(delay_sec: float, callback: Callable[[], None]) -> Callable[[], None]:
+    """猶予の終わりを daemon の threading.Timer で予約し、予約を取りやめる関数を返す（SessionDeps.start_cancel_timer）。"""
+    timer = threading.Timer(delay_sec, callback)
+    timer.daemon = True
+    timer.start()
+    return timer.cancel
+
+
 def start_local_session(
     entry: Entry | str, *, session_manager: SessionManager, notify: NotifyFn
 ) -> None:
@@ -868,8 +882,12 @@ def start_local_session(
     try:
         session_manager.start(entry)
     except SessionBusyError:
-        # 処理中: 処理中のダイアログで知らせる
-        notify("busy", None)
+        # 処理中: API の録音の処理中か、ホットキー・トレイの録音の終了の処理中かを、処理中のダイアログで知らせる
+        current = session_manager.current()
+        reason = (
+            BUSY_REASON_API if current is not None and current.entry == Entry.API else BUSY_REASON_FINISHING
+        )
+        notify("busy", reason)
     except MicrophoneUnavailableError:
         # マイクを開けない: トレイの通知で知らせる
         notify("microphone_unavailable", None)

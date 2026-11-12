@@ -376,6 +376,36 @@ scenarios:
     expected:
       - 開始が要求の誤りを表すエラー（400）で返っている
       - 録音が始まっていない
+  - name: 正常シナリオ（取り消しの猶予の間に開始する）
+    setup:
+      - name: Mock
+        description: なし（実機の Windows で実行。コールバック先は 127.0.0.1 で待ち受けるテスト用のエンドポイント）
+      - name: 取り消しの猶予の間
+        description: ホットキーで始めた録音を、取り消しの猶予の間に取り消した直後（利用者からは待機中、内部では録音中）
+        notes: '`recording.cancel_grace_sec: 2.0`'
+    flow: |-
+      <!-- map: {"title": "正常シナリオ（取り消しの猶予の間に開始する）"} -->
+
+      ```mermaid
+      sequenceDiagram
+        participant P as 呼び出し元
+        participant API as API のサーバー
+        participant SVC as 常駐サービス
+
+        P->>API: 開始（トークン・コールバック先）
+        API->>SVC: 画面を出さない録音を始める
+        SVC->>SVC: 取り消した録音をその場で捨てる
+        SVC-->>API: 録音を始めた（録音セッションの ID）
+        API-->>P: 受け付けた（録音セッションの ID）
+        Note over P,SVC: 停止から後は 正常シナリオ と同じ
+      ```
+
+      <!-- /map -->
+    expected:
+      - 開始の応答に新しい録音セッションの ID があり、非機能要件の決定値の時間内に返っている（処理中を表すエラーでない）
+      - 取り消した録音が履歴に残っていない
+      - 確定した録音に、API の開始より前に貯めた音が入っていない
+    test: test_normal_when_started_within_cancel_grace
 lead: 同じ端末のほかのプロセスが API の開始・停止・完了を呼び、画面を出さない録音を始めて確定するまでの単一ユースケース。
 issue: 14
 primary_actor: API を呼ぶほかのプロセス

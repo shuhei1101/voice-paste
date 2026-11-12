@@ -2,7 +2,7 @@ use_cases:
   - kind: single
     scenario: docs/scenario/SC-8.yaml
     impact: changed
-    detail: 録音を開始してから猶予の秒数の間に取り消すと画面だけを閉じ、猶予が経ってから内部で録音を捨てる正常シナリオと、確定の後の終了の処理の間に録音を始めようとしたとき、終了の処理中で今は始められないことが示される異常シナリオを追加する
+    detail: 取り消しの猶予の間に取り消すと画面だけを閉じて猶予が経ってから内部で録音を捨てる正常シナリオ、猶予の間に録音を始め直す正常シナリオ、猶予の間の確定・一時停止を受け付けない異常シナリオ、確定の後の終了の処理の間に録音を始めようとしたときに理由が示される異常シナリオを追加する。既存の「録音を取り消す」は猶予を 0 にした場合にする
     depends_on: []
   - kind: composite
     scenario: docs/scenario/SC-12.yaml
@@ -11,13 +11,13 @@ use_cases:
     depends_on: []
   - kind: single
     scenario: docs/scenario/SC-6.yaml
-    impact: changed
-    detail: 設定画面の録音のまとまりで、取り消しの猶予の秒数を変えて保存できる
+    impact: run_only
+    detail: シナリオの記述は変わらない（設定画面の欄は設定のモデルから組み立てる）が、録音のまとまりに取り消しの猶予の秒数の欄が加わる
     depends_on: []
   - kind: single
     scenario: docs/scenario/SC-1.yaml
     impact: changed
-    detail: 利用者がホットキー・トレイの録音を取り消した後の猶予の間に、ほかのシステムが API で録音を始めたときの動き（猶予の間の API の開始の `未確定` の決着に従う）
+    detail: 利用者がホットキー・トレイの録音を取り消した後の猶予の間に、ほかのシステムが API で録音を始めると、取り消した録音をその場で捨てて新しい録音を始める正常シナリオを追加する
     depends_on:
       - docs/scenario/SC-8.yaml
 docs:

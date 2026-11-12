@@ -15,7 +15,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-12T19:33:58.582409+00:00'
   - process: PoC 検証
-    status: todo
+    status: done
+    reason: Windows（PowerSetRequest）・Linux（gnome-session-inhibit）・外の端末の画面（Screen Wake Lock）で抑止と解除が成立した
+    updated_by: planner
+    updated_at: '2026-11-12T23:55:25.695409+00:00'
   - process: 複合ユースケース設計
     status: skipped
     reason: ユースケースの連鎖は変わらず、画面の消灯の抑止は単一 UC『録音する』『ブラウザから音声を送信する』『設定を変える』に閉じるため

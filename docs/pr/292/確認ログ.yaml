@@ -1,0 +1,7 @@
+confirmations:
+  - topic: PoC のユーザーに依頼する観点（管理者権限の powercfg /requests の突き合わせと、消灯の目視）を実行するか
+    decision: 実行せず、AI の観測だけで成立とする（別案 B）
+    decided_by: reply
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/292#discussion_r4557681921

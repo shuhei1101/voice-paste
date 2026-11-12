@@ -35,7 +35,9 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-12T16:14:40.860521+00:00'
   - process: 単一ユースケース設計
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-12T16:20:59.375542+00:00'
   - process: モック作成
     status: todo
     note: 処理中のダイアログ（終了の処理中の本文）だけ作る

@@ -7,23 +7,30 @@ elements:
     kind: dialog
     position: 処理中のダイアログ
     description: 「常に手前に表示」のモーダル。ウィンドウのタイトルは voice-paste。処理中の録音はそのまま続き、閉じた後もトレイのアイコンは処理中の録音の状態のまま
-    visible_when: '`notify` で busy を受けたとき（API から始めた録音の間に録音開始のホットキーを押した）'
-    source: UiBridge.notified（busy）
+    visible_when: '`notify` で busy を受けたとき（API から始めた録音の間か、ホットキー・トレイから始めた録音の確定後の文字起こし中・届け中に、録音開始のホットキーを押した）'
+    source: UiBridge.notified（busy。理由は detail）
     action: Enter・Esc でも閉じる
   - name: 見出し
     id: busy_title
     kind: label
     position: 処理中のダイアログ > 本体
-    description: 始められないことを伝える
+    description: 始められないことを伝える。理由によらず同じ
     label: 録音を開始できませんでした
     visible_when: 常時
-  - name: 本文
+  - name: 本文（API の録音の処理中）
     id: busy_body
     kind: label
     position: 処理中のダイアログ > 本体
     description: 理由と次にすることを伝える
     label: ほかのシステムから始めた録音を処理しています。終わってから、もう一度録音開始のホットキーを押してください。
-    visible_when: 常時
+    visible_when: 処理中の録音の入口が api
+  - name: 本文（前の録音の終了の処理中）
+    id: busy_body_finishing
+    kind: label
+    position: 処理中のダイアログ > 本体
+    description: 理由と次にすることを伝える
+    label: 前の録音を文字に起こして届けています。終わってから、もう一度録音開始のホットキーを押してください。
+    visible_when: 処理中の録音の入口が hotkey か tray で、文字起こし中か届け中
   - name: 閉じるボタン
     id: close_button
     kind: button
@@ -34,8 +41,8 @@ elements:
     autofocus: true
     action: ダイアログを閉じる
 screen: src/voice_paste/ui/windows/busy_dialog.py
-mock: docs/mock/pages/busy-dialog/37/a-standard/
-lead: API から始めた録音の処理中に録音開始のホットキーを押したとき、始められない理由を通知するダイアログ。
+mock: docs/mock/pages/busy-dialog/288/a-reason-by-cause/
+lead: 録音を始められないとき（API から始めた録音の処理中・前の録音の終了の処理中）に録音開始のホットキーを押したとき、始められない理由を通知するダイアログ。
 refs:
   - MOD-32#functions[notify]
 test_file: tests/integration/ui/test_busy_dialog.py

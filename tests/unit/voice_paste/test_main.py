@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from tests.unit.voice_paste.runtime.helpers import BackgroundAcquire
     from voice_paste.features.outputs import OutputSpec, PresetKindSpec
     from voice_paste.features.outputs.types import OutputDeps
+    from voice_paste.features.session.types import Session
     from voice_paste.shared.constants import AppPaths
     from voice_paste.main import Handlers
     from voice_paste.shared.os_kind import DisplaySession, Feature, OsKind
@@ -1265,21 +1266,56 @@ def test_select_platform_adapters_when_wayland(
 # === start_local_session ===
 
 
-def test_start_local_session_when_busy() -> None:
-    """処理中なら busy を知らせる（正常系）。"""
+def test_start_local_session_when_busy_with_api() -> None:
+    """API の録音の処理中なら、その理由で busy を通知する（正常系）。"""
     from voice_paste.main import start_local_session
     from voice_paste.shared.errors import SessionBusyError
+    from voice_paste.ui.windows.busy_dialog import BUSY_REASON_API
 
     # 準備
     session_manager = MagicMock()
     session_manager.start.side_effect = SessionBusyError("処理中")
+    session_manager.current.return_value = make_session("api", "recording")
     notify = MagicMock()
 
     # 実行
     start_local_session("hotkey", session_manager=session_manager, notify=notify)
 
     # 検証
-    assert [c.args[0] for c in notify.call_args_list] == ["busy"]
+    assert [c.args for c in notify.call_args_list] == [("busy", BUSY_REASON_API)]
+
+
+def _hotkey_transcribing() -> Session:
+    """ホットキーの録音セッションで、文字起こし中のものを作る。"""
+    return make_session("hotkey", "transcribing")
+
+
+@pytest.mark.parametrize(
+    "current_factory",
+    [
+        pytest.param(_hotkey_transcribing, id="hotkey-transcribing"),
+        pytest.param(lambda: None, id="idle"),
+    ],
+)
+def test_start_local_session_when_busy_finishing(
+    current_factory: Callable[[], Session | None],
+) -> None:
+    """ホットキー・トレイの録音の終了の処理中なら、その理由で busy を通知する（正常系）。"""
+    from voice_paste.main import start_local_session
+    from voice_paste.shared.errors import SessionBusyError
+    from voice_paste.ui.windows.busy_dialog import BUSY_REASON_FINISHING
+
+    # 準備
+    session_manager = MagicMock()
+    session_manager.start.side_effect = SessionBusyError("処理中")
+    session_manager.current.return_value = current_factory()
+    notify = MagicMock()
+
+    # 実行
+    start_local_session("hotkey", session_manager=session_manager, notify=notify)
+
+    # 検証
+    assert [c.args for c in notify.call_args_list] == [("busy", BUSY_REASON_FINISHING)]
 
 
 def test_start_local_session_when_microphone_unavailable() -> None:

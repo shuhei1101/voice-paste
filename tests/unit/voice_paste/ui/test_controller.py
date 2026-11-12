@@ -154,10 +154,28 @@ def test_on_notified_when_busy(
     parts = _make_controller(tmp_path)
 
     # 実行
-    parts.controller.on_notified("busy", None)
+    parts.controller.on_notified("busy", "finishing")
 
     # 検証
-    show_busy_dialog.assert_called_once()
+    show_busy_dialog.assert_called_once_with("finishing")
+
+
+def test_on_notified_when_cancel_pending(qapp: QApplication, tmp_path: Path) -> None:
+    """取り消しの猶予中は待機中に見せる（正常系）。"""
+    from voice_paste.ui.tray import TrayState
+
+    # 準備
+    parts = _make_controller(tmp_path)
+    _open_recording_window(parts)
+    parts.deps.current_session.return_value = make_session("hotkey", "cancel_pending")
+
+    # 実行
+    parts.controller.on_notified("state_changed", "cancel_pending")
+
+    # 検証
+    parts.tray.set_state.assert_called_with(TrayState.IDLE, busy=False)
+    parts.recording_window.close_window.assert_called_once()
+    parts.recording_window.open.assert_called_once()
 
 
 def test_on_notified_when_failure(qapp: QApplication, tmp_path: Path) -> None:
@@ -393,6 +411,20 @@ def test_request_exit_when_busy(qapp: QApplication, tmp_path: Path) -> None:
     # 検証
     parts.tray.hide.assert_called_once()
     parts.deps.request_quit.assert_not_called()
+
+
+def test_request_exit_when_cancel_pending(qapp: QApplication, tmp_path: Path) -> None:
+    """取り消しの猶予中は待たずに終了する（正常系）。"""
+    # 準備
+    parts = _make_controller(tmp_path)
+    parts.deps.current_session.return_value = make_session("hotkey", "cancel_pending")
+
+    # 実行
+    parts.controller.request_exit("quit")
+
+    # 検証
+    parts.deps.request_quit.assert_called_once()
+    parts.tray.hide.assert_not_called()
 
 
 # === open_settings ===

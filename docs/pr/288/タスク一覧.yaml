@@ -39,8 +39,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-12T16:20:59.375542+00:00'
   - process: モック作成
-    status: todo
+    status: done
     note: 処理中のダイアログ（終了の処理中の本文）だけ作る
+    updated_by: planner
+    updated_at: '2026-11-12T16:50:28.223499+00:00'
   - process: インターフェース定義設計
     status: skipped
     reason: API のワイヤ上の形は変わらないため対象外

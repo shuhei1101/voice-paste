@@ -26,7 +26,7 @@ data_models:
         description: 固定の出力先の ID かカスタムプリセットのどちらかで確定する（SessionManager.complete を output_id・preset で呼ぶ）
       - name: cancel
         type: Callable[[], None]
-        description: 録音の取り消しを画面のスレッドの外で始める関数（SessionManager.cancel を cancel_in_background に部分適用したもの。取り消しの終わりを待たずに戻る）
+        description: SessionManager.cancel
       - name: current_session
         type: Callable[[], Session | None]
         description: SessionManager.current

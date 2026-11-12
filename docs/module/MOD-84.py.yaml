@@ -311,13 +311,6 @@ constants:
     refs:
       - SCR-2#
     status: planned
-  - name: CANCEL_THREAD_NAME
-    title: 取り消しのスレッドの名前
-    container: main.py
-    usecase: 録音する
-    summary: 画面からの取り消しを動かすスレッドの名前
-    value: "'session-cancel'"
-    status: planned
 functions:
   - name: build_handlers
     title: 配線
@@ -972,7 +965,7 @@ functions:
       type: UiDeps
       description: 画面の依存
     process: |-
-      1. start に start_local_session(tray)、pause・resume・current_session・switch_output に SessionManager のメソッド、cancel に SessionManager.cancel を部分適用した cancel_in_background、complete に output_id・preset で SessionManager.complete を呼ぶ関数、level に recorder_level、get_settings に SettingsStore.get を引き渡す（エンジンを準備できなかった起動の UiDeps の switch_output は、ほかの録音の関数と同じく何もしない関数）
+      1. start に start_local_session(tray)、pause・resume・cancel・current_session・switch_output に SessionManager のメソッド、complete に output_id・preset で SessionManager.complete を呼ぶ関数、level に recorder_level、get_settings に SettingsStore.get を引き渡す（エンジンを準備できなかった起動の UiDeps の switch_output は、ほかの録音の関数と同じく何もしない関数）
       2. suspend_hotkeys に hotkey_listener.stop、resume_hotkeys に SettingsStore.get の設定と show_recording_window で build_hotkey_bindings して hotkey_listener.start を呼ぶ関数を引き渡す（Wayland のセッションの GnomeShortcutListener では、設定画面を開いている間はカスタムショートカットの登録を解除する）
       3. settings_dir に settings.yaml のフォルダ、log_dir にログのフォルダを引き渡す
       4. output_titles に、OUTPUTS のうち api_only でない出力先の ID → title を引き渡す（エンジンを準備できなかった起動の UiDeps も同じ）
@@ -981,7 +974,7 @@ functions:
       7. copy に copy_to_clipboard、reset_settings に引数の reset_settings、default_settings に paths.defaults_file と SETTINGS_MODEL で load_default_settings を呼ぶ関数を引き渡す（エンジンを準備できなかった起動の UiDeps も同じ）
       8. hidden_setting_keys に hidden_setting_keys(unavailable_features(CURRENT_OS)) を引き渡す（エンジンを準備できなかった起動の UiDeps も同じ）
       9. reports_progress に、Handlers.active_engine が local_whisper かを引き渡す（切り戻した起動では進みを通知する。エンジンを準備できなかった起動の UiDeps は、このときの SettingsStore.get の transcription.engine が local_whisper か）
-    status: planned
+    status: implemented
   - name: reset_applied_settings
     title: 設定を既定に戻して反映
     container: main.py
@@ -1191,38 +1184,4 @@ functions:
         condition: os_kind=OsKind.LINUX・display_session=DisplaySession.WAYLAND（Windows では skip）
         mock: pyperclip.set_clipboard・evdev.UInput
         expected: send_paste・send_enter・open_key_sender・close_key_sender が同じ UInputKeyboard のメソッドで、UInput が作られていない（open の前）。create_hotkey_listener(名前, 排他) が GnomeShortcutListener を返却し、qt_platform が "xcb"、validate_hotkeys が validate_gnome_hotkeys、pyperclip.set_clipboard に "xclip" が 1 回渡る。voice_paste.integrations.keyboard.sender_linux が sys.modules に無い
-    status: planned
-  - name: cancel_in_background
-    title: 画面からの取り消し
-    kind: 関数
-    container: main.py
-    usecase: 録音する
-    scope: public
-    summary: 録音の取り消しを別のスレッドで始め、終わりを待たずに戻る。画面のスレッドが、録音セッションのロックの待ち・マイクの入力を閉じる処理・音量のフェードの終わりの待ち（最大 FADE_JOIN_TIMEOUT_SEC）で止まらないようにする（UiDeps.cancel）
-    args:
-      - name: cancel
-        type: Callable[[], None]
-        required: true
-        passing: injected
-        description: SessionManager.cancel
-    returns:
-      type: None
-      description: なし（取り消しの結果は state_changed の通知で画面へ届く）
-    process: |-
-      1. CANCEL_THREAD_NAME の daemon のスレッドで cancel を呼ぶ。スレッドの終わりは待たない
-         - cancel が例外を送出した場合、ログに書き込んで握る
-           - `[ERROR]` 録音を取り消せなかった（logger.exception）
-    unit_tests:
-      - name: test_cancel_in_background_when_cancel_blocks
-        case: 正常
-        summary: 取り消しの終わりを待たずに戻る
-        condition: cancel が Event を待ち続ける。戻った後に Event を立てる
-        mock: cancel
-        expected: cancel_in_background が Event を立てる前に戻り、cancel が CANCEL_THREAD_NAME のスレッドで 1 回呼ばれる
-      - name: test_cancel_in_background_when_cancel_raises
-        case: 異常
-        summary: 取り消しの例外を漏らさない
-        condition: cancel が RuntimeError を送出する
-        mock: cancel
-        expected: スレッドの終わりを待つと ERROR のログが 1 行出ている
     status: planned

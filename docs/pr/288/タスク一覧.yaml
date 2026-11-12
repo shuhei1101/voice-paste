@@ -60,10 +60,10 @@ tasks:
     updated_at: '2026-11-12T18:42:39.171990+00:00'
     note: 設定画面（SCR-9）に猶予の秒数を追加。処理中のダイアログ（SCR-3）は設計済み
   - process: モジュール構成設計
-    status: todo
+    status: done
     updated_by: planner
-    updated_at: '2026-11-12T17:09:00.892489+00:00'
-    note: 処理中のダイアログへ断った理由を引き渡す分は設計済み。取り消しの猶予（SessionManager・UiController・main.py）と設定のモデル（settings.py）を設計する
+    updated_at: '2026-11-12T18:53:50.434424+00:00'
+    note: 取り消しの猶予（SessionManager・Recorder・UiController・main.py・型）、処理中のダイアログへ断った理由を引き渡す分、猶予の秒数の設定（settings.py・CFG-1）
   - process: ドキュメント修正
     status: todo
     note: docs/guide/録音して貼り付ける.md の処理中のダイアログの説明

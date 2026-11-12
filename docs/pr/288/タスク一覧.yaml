@@ -58,9 +58,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-12T16:52:00.895664+00:00'
   - process: モジュール構成設計
-    status: done
+    status: todo
     updated_by: planner
-    updated_at: '2026-11-12T17:01:51.508652+00:00'
+    updated_at: '2026-11-12T17:09:00.892489+00:00'
+    note: 処理中のダイアログへ断った理由を引き渡す分は設計済み。開始の直後の取り消しの対策は、止まる箇所を特定してから設計する
   - process: ドキュメント修正
     status: todo
     note: docs/guide/録音して貼り付ける.md の処理中のダイアログの説明

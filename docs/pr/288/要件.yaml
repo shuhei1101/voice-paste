@@ -2,7 +2,7 @@ use_cases:
   - kind: single
     scenario: docs/scenario/SC-8.yaml
     impact: changed
-    detail: 録音を開始した直後に取り消しても待機中に戻る異常シナリオと、取り消し・確定の後の終了の処理の間に録音を始めようとしたとき、終了の処理中で今は始められないことが示される異常シナリオを追加する
+    detail: 録音を開始した直後に取り消しても待機中に戻る正常シナリオと、取り消し・確定の後の終了の処理の間に録音を始めようとしたとき、終了の処理中で今は始められないことが示される異常シナリオを追加する
     depends_on: []
   - kind: composite
     scenario: docs/scenario/SC-12.yaml

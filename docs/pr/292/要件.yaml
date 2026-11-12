@@ -1,0 +1,72 @@
+use_cases:
+  - kind: single
+    scenario: docs/scenario/SC-8.yaml
+    impact: changed
+    detail: 設定で有効にしていれば、録音を始めてから確定・取り消し・失敗で終えるまで、PC の画面が自動で暗くならない
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-6.yaml
+    impact: changed
+    detail: 設定画面で、録音中に画面を暗くしないかをオン・オフで選んで保存する
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-3.yaml
+    impact: changed
+    detail: 外の端末のブラウザで録音している間、端末の画面が自動で暗くならない
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-1.yaml
+    impact: following
+    detail: API から始めた録音でも、録音の間は PC の画面が暗くならず、停止・完了で元に戻る
+    depends_on:
+      - docs/scenario/SC-8.yaml
+  - kind: single
+    scenario: docs/scenario/SC-5.yaml
+    impact: run_only
+    detail: 起動時に OS ごとの画面の消灯の抑止の実装を選んで配線するため、起動が壊れないことを確かめる
+    depends_on: []
+  - kind: composite
+    scenario: docs/scenario/SC-12.yaml
+    impact: run_only
+    detail: ホットキーで録音して貼り付ける流れの途中で画面の消灯の抑止と解除が入るため、流れが壊れないことを確かめる
+    depends_on: []
+  - kind: composite
+    scenario: docs/scenario/SC-10.yaml
+    impact: run_only
+    detail: 連続録音の間も画面の消灯を抑止するため、区切りごとの受け取りが壊れないことを確かめる
+    depends_on: []
+  - kind: composite
+    scenario: docs/scenario/SC-11.yaml
+    impact: run_only
+    detail: API で録音して文字を受け取る流れの途中で画面の消灯の抑止と解除が入るため、流れが壊れないことを確かめる
+    depends_on: []
+  - kind: composite
+    scenario: docs/scenario/SC-13.yaml
+    impact: run_only
+    detail: 外の端末のブラウザの録音で画面の消灯を抑止するため、送信から結果の受け取りまでが壊れないことを確かめる
+    depends_on: []
+docs:
+  - page: docs/config/CFG-1.yaml
+    new: false
+    change: 録音中に画面を暗くしないかの設定のキーを `recording` に追加する
+    status: todo
+  - page: docs/guide/録音して貼り付ける.md
+    new: false
+    change: 録音中は設定でオンにしていれば画面が自動で暗くならず、録音を終えると戻ることを書き足す
+    status: todo
+  - page: docs/guide/起動と設定.md
+    new: false
+    change: 設定画面の新しい欄と、OS ごとに使えるかを書き足す
+    status: todo
+  - page: docs/guide/外の端末から文字に起こす.md
+    new: false
+    change: 録音している間は端末の画面が自動で暗くならないことと、ブラウザが対応しないときの振る舞いを書き足す
+    status: todo
+  - page: docs/guide/API.md
+    new: false
+    change: 録音の開始・停止・完了の説明に、設定に従って画面の消灯を抑止・解除することを書き足す
+    status: todo
+scope_out:
+  - item: voice-paste の API を呼ぶほかのシステム（MindStella の音声入力など）のブラウザの画面での画面の消灯の抑止（Screen Wake Lock）
+    reason: 画面を持つのは呼び出し元のリポジトリで、voice-paste の変更では届かない。ただし PC 上のブラウザから API で録音している場合は常駐アプリの抑止で PC の画面は暗くならないため、起票が要るのはスマートフォンなど別の端末のブラウザから呼ぶ場合だけ。起票の要否は単一ユースケース設計のレビューで確定する
+    plan: to_file

@@ -1,0 +1,56 @@
+tasks:
+  - process: 初期構築
+    status: skipped
+    reason: 既存リポジトリへの機能の追加のため
+    updated_by: planner
+    updated_at: '2026-11-12T19:33:58.582409+00:00'
+  - process: リバースエンジニアリング
+    status: skipped
+    reason: 設計書が揃っているため
+    updated_by: planner
+    updated_at: '2026-11-12T19:33:58.582409+00:00'
+  - process: 方針決め
+    status: skipped
+    reason: 方針決めを依頼する Issue ではないため
+    updated_by: planner
+    updated_at: '2026-11-12T19:33:58.582409+00:00'
+  - process: PoC 検証
+    status: todo
+  - process: 複合ユースケース設計
+    status: skipped
+    reason: ユースケースの連鎖は変わらず、画面の消灯の抑止は単一 UC『録音する』『ブラウザから音声を送信する』『設定を変える』に閉じるため
+    updated_by: planner
+    updated_at: '2026-11-12T19:33:58.582409+00:00'
+  - process: デザインスタイル選定
+    status: skipped
+    reason: docs/design-policy.md があり、Issue は見た目の方向を変えないため（判定フローチャート『モック要否』Q4）
+    updated_by: planner
+    updated_at: '2026-11-12T19:33:58.582409+00:00'
+  - process: 画面一覧・画面遷移
+    status: skipped
+    reason: 画面の追加・削除と画面遷移の変更が無いため（判定フローチャート『モック要否』Q2）
+    updated_by: planner
+    updated_at: '2026-11-12T19:33:58.582409+00:00'
+  - process: 単一ユースケース設計
+    status: todo
+  - process: モック作成
+    status: todo
+  - process: インターフェース定義設計
+    status: todo
+  - process: 部品設計
+    status: skipped
+    reason: プロジェクトが部品設計（docs/component）を持たないため
+    updated_by: planner
+    updated_at: '2026-11-12T19:33:58.582409+00:00'
+  - process: 画面設計
+    status: todo
+  - process: モジュール構成設計
+    status: todo
+  - process: ドキュメント修正
+    status: todo
+  - process: 単体テスト作成
+    status: todo
+  - process: 実装
+    status: todo
+  - process: 結合テスト作成
+    status: todo

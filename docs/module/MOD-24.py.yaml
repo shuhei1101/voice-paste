@@ -56,6 +56,11 @@ classes:
         access: 内部 (_)
         default: None
         description: 猶予の間の録音セッションの、猶予の終わりのタイマーを取りやめる関数。猶予の間でなければ None
+      - name: _cancel_generation
+        type: int
+        access: 内部 (_)
+        default: '0'
+        description: 猶予にするたびに 1 増やす番号。猶予の終わりのタイマーに部分適用し、取りやめが間に合わなかった古いタイマーを見分ける
     methods:
       - name: start
         title: 開始
@@ -395,7 +400,7 @@ classes:
           2. 入口が api でなく、recording か paused であることを確認する
              - それ以外の場合（API の録音セッション・猶予中を含む）、何もしない
           3. 今の時刻 − started_at が猶予の秒数（get_cancel_grace）より短ければ、猶予にする
-             - 状態を cancel_pending にし、下げた音量だけを戻し（restore_recording_volume）、猶予の残りの秒数で猶予の終わり（_expire_cancel、録音セッションの ID を部分適用）を予約して（start_cancel_timer）取りやめる関数を持つ
+             - 状態を cancel_pending にし、下げた音量だけを戻し（restore_recording_volume）、_cancel_generation を 1 増やし、猶予の残りの秒数で猶予の終わり（_expire_cancel、増やした番号を部分適用）を予約して（start_cancel_timer）取りやめる関数を持つ
              - 状態の変化を通知する（cancel_pending）
                - `[INFO]` 録音の取り消しを猶予にした（録音セッションの ID・猶予の残りの秒数）
           4. それ以外の場合、録音を捨てて（discard_recording）録音セッションを空にし、待機中を通知する
@@ -429,20 +434,20 @@ classes:
         title: 猶予の終わり
         kind: メソッド
         scope: internal
-        summary: 猶予のタイマーのスレッドから呼ばれ、猶予中の録音セッションのままなら録音を捨てて待機中に戻す
+        summary: 猶予のタイマーのスレッドから呼ばれ、予約したときの猶予のままなら録音を捨てて待機中に戻す
         args:
-          - name: session_id
-            type: str
+          - name: generation
+            type: int
             required: true
             passing: positional
-            description: 猶予にした録音セッションの ID
+            description: 予約したときの _cancel_generation
         returns:
           type: None
           description: なし
         process: |-
           1. ロックを取る
-          2. 今の録音セッションの ID が session_id と合い、cancel_pending であることを確認する
-             - 合わない場合（始め直した・API の開始で捨てた・終了で捨てた）、何もしない
+          2. 録音セッションが cancel_pending で、_cancel_generation が generation と合うことを確認する
+             - 合わない場合（始め直した・始め直した後にもう一度取り消した・API の開始で捨てた・終了で捨てた）、何もしない
           3. 録音を捨てて（discard_recording）録音セッションを空にし、_cancel_timer を None にして、待機中を通知する
              - `[INFO]` 猶予が終わったため録音を取り消した（録音セッションの ID）
         unit_tests:
@@ -458,6 +463,12 @@ classes:
             condition: cancel_pending から start で始め直した後に _expire_cancel を呼ぶ
             mock: SessionDeps の全関数
             expected: discard_recording が呼ばれず、状態が recording のまま
+          - name: test_expire_cancel_after_recancel
+            case: 正常
+            summary: 始め直した後にもう一度取り消したとき、古いタイマーでは捨てない
+            condition: cancel_pending → start で始め直し → もう一度猶予の間に取り消した後、最初の予約の番号で _expire_cancel を呼ぶ
+            mock: SessionDeps の全関数
+            expected: discard_recording が呼ばれず、状態が cancel_pending のまま
       - name: truncate_if_expired
         title: 上限での打ち切り
         kind: メソッド

@@ -1208,6 +1208,7 @@ notes:
     | 録音 | `recording.lower_volume`・`recording.hide_window` | チェックボックス |
     | 録音 | `recording.volume_percent` | つまみ（0〜100、右に %） |
     | 録音 | `recording.fade_sec` | 数値の欄 |
+    | 録音 | `recording.cancel_grace_sec` | 数値の欄。`recording.fade_sec` の下に配置する。欄の名前「取り消しの猶予の秒数」。補助文「録音を始めてからこの秒数の間に取り消すと、録音の画面をすぐ閉じ、録音はこの秒数が経ってから捨てる。0 にすると、取り消したその場で捨てる。」 |
     | 文字起こし | `transcription.engine` | 選択の欄。選択肢は「ローカルの Whisper」（`local_whisper`）・「OpenAI API」（`openai`）・「Haas（WSL）」（`haas`）。まとまりの先頭に配置し、下にエンジンのタブを配置する |
     | 文字起こし（ローカルの Whisper のタブ） | `transcription.local_whisper.model` | 選択の欄 |
     | 文字起こし（ローカルの Whisper のタブ） | `transcription.local_whisper.device`・`transcription.local_whisper.compute_type` | ラジオボタン |

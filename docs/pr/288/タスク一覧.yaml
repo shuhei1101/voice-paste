@@ -35,14 +35,15 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-12T16:14:40.860521+00:00'
   - process: 単一ユースケース設計
-    status: done
+    status: todo
     updated_by: planner
-    updated_at: '2026-11-12T16:20:59.375542+00:00'
+    updated_at: '2026-11-12T17:45:09.715187+00:00'
+    note: 録音する（SC-8）に取り消しの猶予のシナリオを追加し、設定を変える（SC-6）に猶予の秒数を追加する
   - process: モック作成
-    status: done
-    note: 処理中のダイアログ（終了の処理中の本文）だけ作る
+    status: todo
+    note: 設定画面の録音のまとまりの猶予の秒数の入力欄。処理中のダイアログは合意済み
     updated_by: planner
-    updated_at: '2026-11-12T16:50:28.223499+00:00'
+    updated_at: '2026-11-12T17:45:09.715187+00:00'
   - process: インターフェース定義設計
     status: skipped
     reason: API のワイヤ上の形は変わらないため対象外
@@ -54,14 +55,15 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-12T16:14:40.860521+00:00'
   - process: 画面設計
-    status: done
+    status: todo
     updated_by: planner
-    updated_at: '2026-11-12T16:52:00.895664+00:00'
+    updated_at: '2026-11-12T17:45:09.715187+00:00'
+    note: 設定画面（SCR-9）に猶予の秒数を追加。処理中のダイアログ（SCR-3）は設計済み
   - process: モジュール構成設計
     status: todo
     updated_by: planner
     updated_at: '2026-11-12T17:09:00.892489+00:00'
-    note: 処理中のダイアログへ断った理由を引き渡す分は設計済み。開始の直後の取り消しの対策は、止まる箇所を特定してから設計する
+    note: 処理中のダイアログへ断った理由を引き渡す分は設計済み。取り消しの猶予（SessionManager・UiController・main.py）と設定のモデル（settings.py）を設計する
   - process: ドキュメント修正
     status: todo
     note: docs/guide/録音して貼り付ける.md の処理中のダイアログの説明

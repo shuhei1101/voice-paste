@@ -35,3 +35,9 @@ confirmations:
     approver: shuhei1101
     commit:
     thread: https://github.com/shuhei1101/voice-paste/pull/288#discussion_r4554240565
+  - topic: 猶予の間のシステム音量
+    decision: 取り消した時点で音量だけを録音前の値に戻し、入力は猶予が終わるまで開いたままにする。猶予の間に始め直したら音量をもう一度下げる（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/288#discussion_r4554448351

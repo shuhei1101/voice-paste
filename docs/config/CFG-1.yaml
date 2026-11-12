@@ -219,7 +219,7 @@ settings:
     default: '5.0'
     description: 録音を始めてからこの秒数の間に取り消すと、録音の画面をすぐ閉じ、録音はこの秒数が経ってから捨てる。0 にすると、取り消したその場で捨てる。
     reload: immediate
-    status: planned
+    status: implemented
     implementation: src/voice_paste/shared/settings.py
     allowed: '>= 0'
   - key: recording.hide_window

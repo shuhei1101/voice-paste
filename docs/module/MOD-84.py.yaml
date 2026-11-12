@@ -636,7 +636,7 @@ functions:
         condition: start が RuntimeError を送出する
         mock: session_manager・notify
         expected: 例外が出ず、ERROR のログが 1 行出る
-    status: planned
+    status: implemented
   - name: parse_args
     title: 起動の引数の解釈
     kind: 関数

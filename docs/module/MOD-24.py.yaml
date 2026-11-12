@@ -996,4 +996,4 @@ constants:
     usecase: 録音する
     summary: 取り消しの判定（_cancel）を動かすスレッドの名前
     value: "'session-cancel'"
-    status: planned
+    status: implemented

@@ -14,7 +14,7 @@ functions:
       description: なし（モーダルを open で開いてすぐ戻る。exec でメインスレッドを止めない）
     refs:
       - SCR-3#
-    status: planned
+    status: implemented
     args:
       - name: reason
         type: str | None
@@ -28,11 +28,11 @@ constants:
     usecase: 録音する
     summary: 録音を始められない理由のうち、API から始めた録音の処理中。busy の通知の detail に使用する
     value: "'api'"
-    status: planned
+    status: implemented
   - name: BUSY_REASON_FINISHING
     title: 前の録音の終了の処理中
     container: ui/windows/busy_dialog.py
     usecase: 録音する
     summary: 録音を始められない理由のうち、ホットキー・トレイから始めた録音の確定後の文字起こし中・届け中。busy の通知の detail に使用する
     value: "'finishing'"
-    status: planned
+    status: implemented

@@ -334,4 +334,4 @@ function_types:
     returns:
       type: Callable[[], None]
       description: 予約を取りやめる関数（呼ばれた後は callback を呼ばない）
-    status: planned
+    status: implemented

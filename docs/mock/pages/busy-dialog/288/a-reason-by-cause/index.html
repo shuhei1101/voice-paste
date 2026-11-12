@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>処理中のダイアログ | voice-paste のモック</title>
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+</head>
+<body>
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">busy-dialog</a> / <a href="../">288</a> / <span>a-reason-by-cause</span></nav>
+
+    <!-- 画面の説明 -->
+    <header class="intro">
+      <h1>処理中のダイアログ</h1>
+      <p>録音を始められないときに、録音開始のホットキーを押すと出る。始められない理由ごとに本文を分ける。「常に手前に表示」で出し、処理中の録音はそのまま続く。</p>
+    </header>
+
+    <div class="desk">
+
+      <!-- 場面: 前の録音の終了の処理中に録音開始のホットキーを押した -->
+      <section class="specimen" aria-labelledby="h-finishing">
+        <h2 id="h-finishing">前の録音の終了の処理中に録音開始のホットキーを押した</h2>
+        <div class="win dialog" role="alertdialog" aria-labelledby="d-finishing" aria-describedby="b-finishing">
+          <div class="titlebar"><span class="titlebar__app">voice-paste</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="dialog__main">
+            <svg class="dialog__icon dialog__icon--info" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg>
+            <div>
+              <h3 id="d-finishing">録音を開始できませんでした</h3>
+              <p id="b-finishing">前の録音を文字に起こして届けています。終わってから、もう一度録音開始のホットキーを押してください。</p>
+            </div>
+          </div>
+          <div class="dialog__actions">
+            <a class="btn btn--primary" href="../../../tray/37/a-standard/index.html">閉じる</a>
+          </div>
+        </div>
+        <p class="scene-note">ホットキー・トレイから始めた録音を確定した後の、文字起こし中・届け中に出る。閉じた後も、トレイのアイコンは文字起こし中のまま。</p>
+      </section>
+
+      <!-- 場面: API から始めた録音の処理中に録音開始のホットキーを押した（#37 から変えない） -->
+      <section class="specimen" aria-labelledby="h-api">
+        <h2 id="h-api">API から始めた録音の処理中に録音開始のホットキーを押した</h2>
+        <div class="win dialog" role="alertdialog" aria-labelledby="d-api" aria-describedby="b-api">
+          <div class="titlebar"><span class="titlebar__app">voice-paste</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="dialog__main">
+            <svg class="dialog__icon dialog__icon--info" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg>
+            <div>
+              <h3 id="d-api">録音を開始できませんでした</h3>
+              <p id="b-api">ほかのシステムから始めた録音を処理しています。終わってから、もう一度録音開始のホットキーを押してください。</p>
+            </div>
+          </div>
+          <div class="dialog__actions">
+            <a class="btn btn--primary" href="../../../tray/37/a-standard/index.html">閉じる</a>
+          </div>
+        </div>
+        <p class="scene-note">#37 の本文から変えない。Enter・Esc でも閉じる。</p>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

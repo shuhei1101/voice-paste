@@ -14,6 +14,12 @@ use_cases:
     impact: changed
     detail: 設定画面の録音のまとまりで、取り消しの猶予の秒数を変えて保存できる
     depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-1.yaml
+    impact: changed
+    detail: 利用者がホットキー・トレイの録音を取り消した後の猶予の間に、ほかのシステムが API で録音を始めたときの動き（猶予の間の API の開始の `未確定` の決着に従う）
+    depends_on:
+      - docs/scenario/SC-8.yaml
 docs:
   - page: docs/guide/録音して貼り付ける.md
     new: false

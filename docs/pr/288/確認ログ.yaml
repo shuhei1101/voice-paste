@@ -11,3 +11,27 @@ confirmations:
     approver: shuhei1101
     commit:
     thread: https://github.com/shuhei1101/voice-paste/pull/288#discussion_r4553455028
+  - topic: 猶予の間にもう一度録音開始を押したときの動き
+    decision: 内部で続いている録音を引き継ぎ、貯めた音を捨てて経過時間を 0 に戻し、録音の画面を開き直す（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/288#discussion_r4554237018
+  - topic: 猶予の間に API の開始が届いたときの動き
+    decision: 内部の録音をその場で捨ててから、API の録音を始める（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/288#discussion_r4554238351
+  - topic: 猶予を適用する取り消しの操作
+    decision: 録音の画面の「×」・「取り消し」のボタンと、取り消しのホットキーの全てに適用する（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/288#discussion_r4554239610
+  - topic: 猶予の間のトレイの表示
+    decision: 取り消した時点でトレイを待機中のアイコンにし、「録音開始」も押せるようにする（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/288#discussion_r4554240565

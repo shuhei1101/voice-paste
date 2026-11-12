@@ -24,11 +24,15 @@ docs:
   - page: docs/guide/録音して貼り付ける.md
     new: false
     change: 処理中のダイアログで通知される場面に、確定の後の終了の処理中を追加する。取り消しの行に、開始の直後の取り消しは画面だけを閉じ、猶予の秒数が経ってから録音を捨てることを追加する
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-12T19:05:26.868625+00:00'
   - page: docs/mock/pages/busy-dialog/index.md
     new: false
     change: この作業 PR の処理中のダイアログのモックの案の行を追加する
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-12T19:05:26.868625+00:00'
 scope_out:
   - item: SessionManager の状態遷移図を mdmark の部品で描き直す
     reason: 別の Issue の要望。この作業 PR で録音セッションの状態が変わった後に描き直す

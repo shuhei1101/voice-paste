@@ -65,8 +65,10 @@ tasks:
     updated_at: '2026-11-12T18:53:50.434424+00:00'
     note: 取り消しの猶予（SessionManager・Recorder・UiController・main.py・型）、処理中のダイアログへ断った理由を引き渡す分、猶予の秒数の設定（settings.py・CFG-1）
   - process: ドキュメント修正
-    status: todo
+    status: done
     note: docs/guide/録音して貼り付ける.md の処理中のダイアログの説明
+    updated_by: planner
+    updated_at: '2026-11-12T19:05:51.338384+00:00'
   - process: 単体テスト作成
     status: todo
   - process: 実装

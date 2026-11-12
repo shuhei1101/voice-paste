@@ -114,6 +114,11 @@ files:
   tags:
   - topic:モック
   - topic:画面
+- path: pages/settings/288/index.md
+  description: '#288（録音を開始した直後の取り消しで固まらないようにし、終了の処理中に録音を始められない理由を示す）で作った設定画面のモックの案を記載し、その変更の設定画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/settings/37/index.md
   description: '#37（画面・トレイ・ホットキーを PySide6 の新しい構成で作り直す）で作った設定画面のモックの案を記載し、その変更の設定画面の案を確認するときに参照する。'
   tags:

@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>設定画面 | voice-paste のモック</title>
+  <!-- 採用スタイル「開発者ツール」の部品は #37、一覧の部品は #44 の共有 CSS に置く -->
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/44/assets/style.css">
+</head>
+<body>
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">settings</a> / <a href="../">288</a> / <span>a-grace-row</span></nav>
+
+    <!-- 画面の説明 -->
+    <header class="intro">
+      <h1>設定画面</h1>
+      <p>「録音」のまとまりの「音量を変えるときの秒数」の下に、取り消しの猶予の秒数の欄を足す。ほかのまとまり・欄はこれまでのモックのまま。</p>
+    </header>
+
+    <div class="desk desk--single">
+
+      <!-- 場面: 録音のまとまりを開いた -->
+      <section class="specimen" aria-labelledby="h-normal">
+        <h2 id="h-normal">録音のまとまりを開いた</h2>
+        <div class="win settings settings--full">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり（録音のまとまりを開いた）">
+              <ul><li><a href="../../37/a-standard/index.html">出力先</a></li><li><a href="../../37/a-standard/index.html">ホットキー</a></li><li><a href="#n-recording" aria-current="page">録音</a></li><li><a href="../../274/a-engine-tabs/index.html">文字起こし</a></li><li><a href="../../99/a-hint-group/index.html">表記のヒント</a></li><li><a href="../../97/a-glossary-group/index.html">用語集</a></li><li><a href="../../37/a-standard/index.html">画面</a></li><li><a href="../../37/a-standard/index.html">履歴とログ</a></li><li><a href="../../37/a-standard/index.html">API</a></li></ul>
+            </nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（録音のまとまりを開いた）">
+              <fieldset id="n-recording" data-group>
+                <legend>録音</legend>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="n-lower"><input type="checkbox" id="n-lower" name="recording.lower_volume" checked> 録音中に音量を下げる</label>
+                  <code class="key">recording.lower_volume</code>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="n-volume">録音中の音量の割合</label>
+                  <code class="key">recording.volume_percent</code>
+                  <span class="range"><input type="range" id="n-volume" name="recording.volume_percent" min="0" max="100" value="50"><output class="num">50%</output></span>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="n-fade">音量を変えるときの秒数</label>
+                  <code class="key">recording.fade_sec</code>
+                  <input type="number" id="n-fade" name="recording.fade_sec" value="0.5" step="0.1" min="0">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="n-grace">取り消しの猶予の秒数</label>
+                  <code class="key">recording.cancel_grace_sec</code>
+                  <input type="number" id="n-grace" name="recording.cancel_grace_sec" value="5" step="0.5" min="0">
+                  <p class="field-help">録音を始めてからこの秒数の間に取り消すと、録音の画面をすぐ閉じ、録音はこの秒数が経ってから捨てる。0 にすると、取り消したその場で捨てる。</p>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="n-hide"><input type="checkbox" id="n-hide" name="recording.hide_window"> 録音の画面を出さない</label>
+                  <code class="key">recording.hide_window</code>
+                  <p class="field-help">オンにすると、録音と文字起こしの間はトレイのアイコンとホットキーだけで操作する。</p>
+                </div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <div class="settings__actions">
+              <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn btn--primary" href="../../../tray/37/a-standard/index.html">保存</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">既定は 5 秒。保存するとすぐに効く（再起動は要らない）。</p>
+      </section>
+
+      <!-- 場面: 負の値を入れて保存した -->
+      <section class="specimen" aria-labelledby="h-error">
+        <h2 id="h-error">負の値を入れて保存した</h2>
+        <div class="win settings settings--full">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり（負の値を入れて保存した）">
+              <ul><li><a href="../../37/a-standard/index.html">出力先</a></li><li><a href="../../37/a-standard/index.html">ホットキー</a></li><li><a href="#e-recording" aria-current="page">録音</a></li><li><a href="../../274/a-engine-tabs/index.html">文字起こし</a></li><li><a href="../../99/a-hint-group/index.html">表記のヒント</a></li><li><a href="../../97/a-glossary-group/index.html">用語集</a></li><li><a href="../../37/a-standard/index.html">画面</a></li><li><a href="../../37/a-standard/index.html">履歴とログ</a></li><li><a href="../../37/a-standard/index.html">API</a></li></ul>
+            </nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定（負の値を入れて保存した）">
+              <div class="error-summary" role="alert" tabindex="-1">
+                保存できませんでした。1 件の欄を直してください。
+                <ul>
+                  <li><a href="#e-grace">取り消しの猶予の秒数: 0 以上の数値を入れてください</a></li>
+                </ul>
+              </div>
+              <fieldset id="e-recording" data-group>
+                <legend>録音</legend>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="e-lower"><input type="checkbox" id="e-lower" name="recording.lower_volume" checked> 録音中に音量を下げる</label>
+                  <code class="key">recording.lower_volume</code>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="e-volume">録音中の音量の割合</label>
+                  <code class="key">recording.volume_percent</code>
+                  <span class="range"><input type="range" id="e-volume" name="recording.volume_percent" min="0" max="100" value="50"><output class="num">50%</output></span>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="e-fade">音量を変えるときの秒数</label>
+                  <code class="key">recording.fade_sec</code>
+                  <input type="number" id="e-fade" name="recording.fade_sec" value="0.5" step="0.1" min="0">
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="e-grace">取り消しの猶予の秒数</label>
+                  <code class="key">recording.cancel_grace_sec</code>
+                  <input type="number" id="e-grace" name="recording.cancel_grace_sec" value="-1" step="0.5" min="0" aria-invalid="true" aria-describedby="e-grace-err">
+                  <p class="field-error" id="e-grace-err">0 以上の数値を入れてください（例: 5）。</p>
+                  <p class="field-help">録音を始めてからこの秒数の間に取り消すと、録音の画面をすぐ閉じ、録音はこの秒数が経ってから捨てる。0 にすると、取り消したその場で捨てる。</p>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="e-hide"><input type="checkbox" id="e-hide" name="recording.hide_window"> 録音の画面を出さない</label>
+                  <code class="key">recording.hide_window</code>
+                  <p class="field-help">オンにすると、録音と文字起こしの間はトレイのアイコンとホットキーだけで操作する。</p>
+                </div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <div class="settings__actions">
+              <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <a class="btn btn--primary" href="../../../tray/37/a-standard/index.html">保存</a>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">設定のモデルの確かめ（0 以上）に通らないと、ほかの欄と同じく保存せずに欄の下へ理由を出す。</p>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

@@ -2,4 +2,4 @@
 
 | 案 | 説明 |
 | --- | --- |
-| [a-grace-row](./a-grace-row/index.html) | 「録音」のまとまりに、取り消しの猶予の秒数の欄を足す |
+| [a-grace-row](./a-grace-row/index.html) `採用` | 「録音」のまとまりに、取り消しの猶予の秒数の欄を足す |

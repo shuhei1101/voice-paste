@@ -41,3 +41,9 @@ confirmations:
     approver: shuhei1101
     commit:
     thread: https://github.com/shuhei1101/voice-paste/pull/288#discussion_r4554448351
+  - topic: 設定画面の取り消しの猶予の秒数の欄の見出しと補足の文
+    decision: 見出し「取り消しの猶予の秒数」、補足「録音を始めてからこの秒数の間に取り消すと、録音の画面をすぐ閉じ、録音はこの秒数が経ってから捨てる。0 にすると、取り消したその場で捨てる。」（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/288#discussion_r4554690442

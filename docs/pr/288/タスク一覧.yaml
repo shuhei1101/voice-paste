@@ -40,10 +40,10 @@ tasks:
     updated_at: '2026-11-12T18:01:11.338220+00:00'
     note: 録音する（SC-8）に取り消しの猶予のシナリオを追加し、設定を変える（SC-6）に猶予の秒数を追加する
   - process: モック作成
-    status: todo
+    status: done
     note: 設定画面の録音のまとまりの猶予の秒数の入力欄。処理中のダイアログは合意済み
     updated_by: planner
-    updated_at: '2026-11-12T17:45:09.715187+00:00'
+    updated_at: '2026-11-12T18:40:02.579401+00:00'
   - process: インターフェース定義設計
     status: skipped
     reason: API のワイヤ上の形は変わらないため対象外

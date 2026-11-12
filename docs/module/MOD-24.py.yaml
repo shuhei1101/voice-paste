@@ -51,6 +51,11 @@ classes:
         access: 内部 (_)
         default: None
         description: 連続録音の区間（通し番号つき）を区切った順にワーカースレッドへ引き渡す待ち行列。ContinuousEnd は終わりのマーカー、None は終了で返却せずにやめるマーカー。連続録音でなければ None
+      - name: _cancel_timer
+        type: Callable[[], None] | None
+        access: 内部 (_)
+        default: None
+        description: 猶予の間の録音セッションの、猶予の終わりのタイマーを取りやめる関数。猶予の間でなければ None
     methods:
       - name: start
         title: 開始
@@ -84,7 +89,12 @@ classes:
         process: |-
           1. ロックを取る
           2. 録音セッションが残っているかを確認する
-             - 残っている場合、SessionBusyError を送出する
+             - cancel_pending で入口が hotkey か tray の場合、内部の録音を引き継いで始め直す
+               - 猶予の終わりの予約を取りやめ（_cancel_timer）、貯めた音を捨て（clear_recording）、音量を下げ直し（lower_recording_volume）、started_at を今の時刻、入口を entry、状態を recording にして、状態の変化を通知し、録音セッションを返却する
+                 - `[INFO]` 猶予の間に録音を始め直した（録音セッションの ID・入口）
+             - cancel_pending で入口が api の場合、予約を取りやめ、録音を捨てて（discard_recording）録音セッションを空にしてから、3 へ進む
+               - `[INFO]` 猶予の間に API の開始が来たため録音を取り消した（録音セッションの ID）
+             - それ以外で残っている場合、SessionBusyError を送出する
                - `[INFO]` 処理中のため開始を断った（入口・処理中の録音セッションの ID）
           3. 録音を始める
              - continuous が True の場合、区間の待ち行列を作り、連続録音を始める（連続録音の開始。区間の引き渡し先は _on_segment、失敗の通知先は _on_continuous_failed）
@@ -131,6 +141,18 @@ classes:
             condition: 録音セッションが無い。entry=api・glossary_preset="会議" で始め、完了して文字起こしを終える。continuous=True で始めた場合も区間を 1 つ引き渡して確認する（parametrize）
             mock: SessionDeps の全関数
             expected: 返った録音セッションの glossary_preset が "会議"。correct が (起こした文字, "会議") で呼ばれる。glossary_preset を省いて始めたときは (起こした文字, None) で呼ばれる
+          - name: test_start_when_cancel_pending
+            case: 正常
+            summary: 猶予の間の開始は内部の録音を引き継いで始め直す
+            condition: ホットキーの録音セッションが cancel_pending、entry=tray で start
+            mock: SessionDeps の全関数
+            expected: 同じ ID の recording の録音セッションが返り、start_recording が呼ばれず、clear_recording・lower_recording_volume が 1 回ずつ呼ばれ、予約の取りやめが呼ばれ、started_at が今の時刻、入口が tray
+          - name: test_start_api_when_cancel_pending
+            case: 正常
+            summary: 猶予の間の API の開始は内部の録音を捨ててから始める
+            condition: ホットキーの録音セッションが cancel_pending、entry=api で start
+            mock: SessionDeps の全関数
+            expected: discard_recording と予約の取りやめが 1 回ずつ呼ばれた後に start_recording が 1 回呼ばれ、新しい ID の api の録音セッションが返る
       - name: pause
         title: 一時停止
         kind: メソッド
@@ -156,6 +178,12 @@ classes:
             condition: API の録音セッションが recording
             mock: SessionDeps の全関数
             expected: pause_recording が呼ばれず、状態が recording のまま
+          - name: test_pause_when_cancel_pending
+            case: 正常
+            summary: 猶予中の録音は一時停止しない
+            condition: ホットキーの録音セッションが cancel_pending
+            mock: SessionDeps の全関数
+            expected: pause_recording が呼ばれず、状態が cancel_pending のまま
       - name: resume
         title: 再開
         kind: メソッド
@@ -330,30 +358,104 @@ classes:
             condition: 連続録音の録音セッションが recording で区間を受けていない。stop_continuous_recording は区間を引き渡さない
             mock: SessionDeps の全関数
             expected: deliver に result=completed・segment_count=0 だけが渡り、save_recording・transcribe が呼ばれない
+          - name: test_complete_when_cancel_pending
+            case: 正常
+            summary: 猶予中の録音は確定しない
+            condition: ホットキーの録音セッションが cancel_pending、output_id を渡して complete
+            mock: SessionDeps の全関数
+            expected: stop_recording・save_recording が呼ばれず、状態が cancel_pending のまま
       - name: cancel
         title: 取り消し
         kind: メソッド
         scope: public
         thread_safe: true
-        summary: ホットキー・トレイの録音を捨てて待機中に戻す
+        summary: ホットキー・トレイの録音の取り消しを、新しいスレッドで始めて戻る（画面のスレッド・pynput のスレッドは待たない）
         returns:
           type: None
           description: なし
         process: |-
-          1. 入口が api でなく、recording か paused なら、録音を捨てて録音セッションを空にする
-             - `[INFO]` 録音を取り消した（録音セッションの ID）
-             - それ以外の場合（API の録音セッションを含む）、何もしない
+          1. CANCEL_THREAD_NAME の新しいスレッドで _cancel を呼び、終わりを待たずに戻る
         unit_tests:
-          - name: test_cancel_when_recording
+          - name: test_cancel_returns_without_waiting
             case: 正常
-            summary: 録音を捨てて待機中に戻す
-            condition: ホットキーの録音セッションが recording
+            summary: 取り消しの終わりを待たずに戻る
+            condition: 別のスレッドがロックを持ち続ける間に cancel を呼ぶ
             mock: SessionDeps の全関数
-            expected: discard_recording が呼ばれ、save_recording が呼ばれず、録音セッションが空になる
+            expected: cancel がロックを待たずに戻り、ロックを離した後に録音セッションが猶予中か空になる
+      - name: _cancel
+        title: 取り消しの判定
+        kind: メソッド
+        scope: internal
+        summary: 猶予の間なら画面だけを待機中に見せて猶予の終わりを予約し、猶予の後ならその場で録音を捨てる
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. ロックを取る
+          2. 入口が api でなく、recording か paused であることを確認する
+             - それ以外の場合（API の録音セッション・猶予中を含む）、何もしない
+          3. 今の時刻 − started_at が猶予の秒数（get_cancel_grace）より短ければ、猶予にする
+             - 状態を cancel_pending にし、下げた音量だけを戻し（restore_recording_volume）、猶予の残りの秒数で猶予の終わり（_expire_cancel、録音セッションの ID を部分適用）を予約して（start_cancel_timer）取りやめる関数を持つ
+             - 状態の変化を通知する（cancel_pending）
+               - `[INFO]` 録音の取り消しを猶予にした（録音セッションの ID・猶予の残りの秒数）
+          4. それ以外の場合、録音を捨てて（discard_recording）録音セッションを空にし、待機中を通知する
+             - `[INFO]` 録音を取り消した（録音セッションの ID）
+        unit_tests:
+          - name: test_cancel_within_grace
+            case: 正常
+            summary: 猶予の間の取り消しは画面だけを待機中にして猶予の終わりを予約する
+            condition: ホットキーの録音セッションが recording、now が started_at + 1 秒、猶予が 5 秒
+            mock: SessionDeps の全関数
+            expected: 状態が cancel_pending、restore_recording_volume が 1 回、start_cancel_timer に 4 秒が渡り、discard_recording が呼ばれない。notify に state_changed・cancel_pending が渡る
+          - name: test_cancel_after_grace
+            case: 正常
+            summary: 猶予の後の取り消しはその場で捨てる
+            condition: ホットキーの録音セッションが recording、now が started_at + 6 秒、猶予が 5 秒
+            mock: SessionDeps の全関数
+            expected: discard_recording が 1 回呼ばれ、録音セッションが空になり、start_cancel_timer が呼ばれない
+          - name: test_cancel_when_grace_zero
+            case: 正常
+            summary: 猶予が 0 ならその場で捨てる
+            condition: 猶予が 0 秒、開始の直後に取り消す
+            mock: SessionDeps の全関数
+            expected: discard_recording が 1 回呼ばれ、start_cancel_timer が呼ばれない
           - name: test_cancel_when_api_session
             case: 正常
             summary: API の録音セッションに取り消しのホットキーが来ても変えない
             condition: API の録音セッションが recording
+            mock: SessionDeps の全関数
+            expected: discard_recording が呼ばれず、状態が recording のまま
+      - name: _expire_cancel
+        title: 猶予の終わり
+        kind: メソッド
+        scope: internal
+        summary: 猶予のタイマーのスレッドから呼ばれ、猶予中の録音セッションのままなら録音を捨てて待機中に戻す
+        args:
+          - name: session_id
+            type: str
+            required: true
+            passing: positional
+            description: 猶予にした録音セッションの ID
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. ロックを取る
+          2. 今の録音セッションの ID が session_id と合い、cancel_pending であることを確認する
+             - 合わない場合（始め直した・API の開始で捨てた・終了で捨てた）、何もしない
+          3. 録音を捨てて（discard_recording）録音セッションを空にし、_cancel_timer を None にして、待機中を通知する
+             - `[INFO]` 猶予が終わったため録音を取り消した（録音セッションの ID）
+        unit_tests:
+          - name: test_expire_cancel_when_pending
+            case: 正常
+            summary: 猶予が終わったら捨てる
+            condition: ホットキーの録音セッションが cancel_pending
+            mock: SessionDeps の全関数
+            expected: discard_recording が 1 回呼ばれ、録音セッションが空になり、notify に state_changed・idle が渡る
+          - name: test_expire_cancel_after_restart
+            case: 正常
+            summary: 始め直した後の古いタイマーでは捨てない
+            condition: cancel_pending から start で始め直した後に _expire_cancel を呼ぶ
             mock: SessionDeps の全関数
             expected: discard_recording が呼ばれず、状態が recording のまま
       - name: truncate_if_expired
@@ -512,7 +614,7 @@ classes:
           description: なし
         process: |-
           1. ロックを取る
-          2. recording・paused・stopped の録音セッションが残っていれば、録音セッションを空にする
+          2. recording・paused・cancel_pending・stopped の録音セッションが残っていれば、録音セッションを空にする（cancel_pending なら、猶予の終わりの予約を取りやめる）
              - `[WARNING]` 終了のため録音を捨てた（録音セッションの ID・入口）
              - 連続録音の場合、区間の待ち行列へ None を追加し（ワーカースレッドは残りの区間と終わりを返却せずに終える）、ロックを離してから録音を捨てる（録音した音を捨てる。区切りのスレッドの終わりを待つため、ロックを持ったまま待つと _on_segment と待ち合う。離した後に届いた区間は、_on_segment が録音セッションが空なので捨てる）
              - それ以外で stopped でなければ、ロックを持ったまま録音を捨てる（録音した音を捨てる）
@@ -536,6 +638,12 @@ classes:
             condition: 連続録音の録音セッションが recording。discard_recording は、別のスレッドから start_continuous_recording に引き渡された on_segment を呼んで、その終わりを待ってから戻る（区切りのスレッドの終わりを待つ Recorder.discard を模す）。close には 5 秒の制限をかける
             mock: SessionDeps の全関数
             expected: close が 5 秒以内に戻り、discard_recording が 1 回呼ばれ、save_recording と deliver（completed・truncated を含む）が呼ばれず、録音セッションが空になる
+          - name: test_close_when_cancel_pending
+            case: 正常
+            summary: 猶予中の録音は猶予を待たずに捨てる
+            condition: ホットキーの録音セッションが cancel_pending
+            mock: SessionDeps の全関数
+            expected: discard_recording と予約の取りやめが 1 回ずつ呼ばれ、録音セッションが空になる
       - name: _deliver_truncated
         title: 打ち切りの返送
         kind: メソッド
@@ -870,3 +978,11 @@ classes:
         introduced:
           pr: 108
     status: implemented
+constants:
+  - name: CANCEL_THREAD_NAME
+    title: 取り消しのスレッドの名前
+    container: features/session/service.py
+    usecase: 録音する
+    summary: 取り消しの判定（_cancel）を動かすスレッドの名前
+    value: "'session-cancel'"
+    status: planned

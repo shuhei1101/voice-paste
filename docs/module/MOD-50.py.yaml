@@ -202,6 +202,10 @@ data_models:
         type: float
         default: '0.5'
         description: 音量を下げる・戻すときにかける秒数（0 以上）
+      - name: cancel_grace_sec
+        type: float
+        default: '5.0'
+        description: 取り消しの猶予の秒数（0 以上。0 は猶予を持たない）。設定画面の欄の名前は 設定/常駐アプリ の title
       - name: hide_window
         type: bool
         default: 'False'

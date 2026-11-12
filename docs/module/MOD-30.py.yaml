@@ -168,6 +168,7 @@ classes:
           description: なし
         process: |-
           1. state_changed の場合、今の録音セッションを引き（current_session）、説明の表のとおりにトレイ・録音の画面・文字起こし中の表示を変える
+             - 録音セッションが cancel_pending（取り消しの猶予中）の場合、録音セッションが無いときと同じに見せる（トレイを待機中・録音の画面を閉じる・「録音の画面を表示」を NOT_RECORDING）。待たせた再起動・終了は行う
              - 録音セッションが無く、待たせた再起動・終了がある場合、それを行う（request_restart か request_quit）
              - 録音の画面を隠している場合、窓は出さずに状態の表示だけを替える（RecordingWindow.set_paused）
              - transcribing・delivering で文字起こし中の表示を出す場合、その回に録音の画面を動かしていれば動かした位置（RecordingWindow.moved_position）を引き渡す。動かしていなければ引き渡さず、設定の位置に出す。あわせて録音セッションの output_id と、カスタムプリセットで確定したならそのタイトル（output_preset.title）を引き渡す（TranscribingIndicator.open。文字起こし中の表示が既に出ている delivering の通知では開き直さない）
@@ -257,6 +258,12 @@ classes:
             condition: UiController を作った後、TranscribingIndicator.output_selected に "paste_only" を emit する
             mock: UiDeps の全関数・Tray・RecordingWindow
             expected: UiDeps.switch_output("paste_only") が 1 回呼ばれる
+          - name: test_on_notified_when_cancel_pending
+            case: 正常
+            summary: 取り消しの猶予中は待機中に見せる
+            condition: current_session が hotkey・cancel_pending を返却する
+            mock: UiDeps の全関数・Tray・RecordingWindow・TranscribingIndicator
+            expected: Tray.set_state(IDLE, busy=False)・RecordingWindow.close_window が呼ばれ、RecordingWindow.open が呼ばれない
       - name: on_progressed
         title: 進みの受け取り
         summary: UiBridge.progressed のスロット。文字起こし中の表示が出ていれば進みを引き渡す
@@ -291,8 +298,8 @@ classes:
           type: None
           description: なし
         process: |-
-          1. 今の録音セッションが無ければ、すぐに request_restart か request_quit を呼ぶ
-          2. あれば待たせる依頼に記録し、トレイのアイコンを非表示にする（Tray.hide）
+          1. 今の録音セッションが無いか cancel_pending（取り消しの猶予中）なら、すぐに request_restart か request_quit を呼ぶ（猶予中の録音は終了の片付けの SessionManager.close が捨てる）
+          2. それ以外なら待たせる依頼に記録し、トレイのアイコンを非表示にする（Tray.hide）
              - `[INFO]` 処理中のため再起動・終了を待たせた（種類・録音セッションの ID）
         unit_tests:
           - name: test_request_exit_when_idle
@@ -307,6 +314,12 @@ classes:
             condition: current_session が hotkey・transcribing、kind=quit
             mock: UiDeps の全関数・Tray
             expected: Tray.hide が呼ばれ、request_quit が呼ばれない
+          - name: test_request_exit_when_cancel_pending
+            case: 正常
+            summary: 取り消しの猶予中は待たずに終了する
+            condition: current_session が hotkey・cancel_pending、kind=quit
+            mock: UiDeps の全関数・Tray
+            expected: request_quit が 1 回呼ばれ、Tray.hide が呼ばれない
       - name: open_settings
         title: 設定画面を開く
         summary: 設定画面を開く。開いていれば前面に出すだけにする。新しく開くときはホットキーの受付を止め、設定画面が閉じたら（保存して再起動・今すぐ再起動・取り消し・窓の閉じるのどの経路でも）on_settings_closed を呼ぶ。「保存」では閉じないため、保存したホットキーは閉じたときに有効になる

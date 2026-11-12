@@ -69,6 +69,21 @@ data_models:
       - name: discard_recording
         type: Callable[[], None]
         description: 録音を止めて音量を戻し、貯めた音を捨てる
+      - name: restore_recording_volume
+        type: Callable[[], None]
+        description: 入力は開いたまま、下げた音量だけを録音前の値に戻す（録音の restore_volume）
+      - name: lower_recording_volume
+        type: Callable[[], None]
+        description: 入力は開いたまま、今の設定で音量をもう一度下げる（録音の lower_volume）
+      - name: clear_recording
+        type: Callable[[], None]
+        description: 入力は開いたまま、貯めた音を捨てる（録音の clear）
+      - name: get_cancel_grace
+        type: Callable[[], timedelta]
+        description: 今の設定の取り消しの猶予の秒数（recording.cancel_grace_sec。保存した値が次の取り消しから効く）
+      - name: start_cancel_timer
+        type: StartCancelTimerFn
+        description: 猶予が終わったときに呼ぶ関数を、新しいスレッドのタイマーで予約する
       - name: save_recording
         type: SaveRecordingFn
         description: 確定した録音を履歴か一時の音声へ保存する
@@ -150,6 +165,9 @@ enums:
       - value: paused
         title: 一時停止中
         description: ホットキー・トレイから始めた録音を一時停止している（再開できる）
+      - value: cancel_pending
+        title: 取り消しの猶予中
+        description: ホットキー・トレイから始めた録音を、始めてから猶予の秒数の間に取り消した。画面とトレイには待機中に見せ、入力は開いたまま猶予が終わるのを待つ（猶予が終わると捨てて待機中に戻る）
       - value: stopped
         title: 停止中
         description: API から始めた録音を止め、完了を待っている
@@ -297,3 +315,23 @@ function_types:
     status: planned
     introduced:
       pr: 78
+  - name: StartCancelTimerFn
+    title: 猶予のタイマーの予約
+    container: features/session/types.py
+    usecase: 録音する
+    summary: delay_sec 秒後に新しいスレッドで callback を 1 回呼ぶタイマーを始め、予約を取りやめる関数を返す（配線では threading.Timer）
+    args:
+      - name: delay_sec
+        type: float
+        required: true
+        passing: positional
+        description: callback を呼ぶまでの秒数
+      - name: callback
+        type: Callable[[], None]
+        required: true
+        passing: positional
+        description: 猶予が終わったときに呼ぶ関数
+    returns:
+      type: Callable[[], None]
+      description: 予約を取りやめる関数（呼ばれた後は callback を呼ばない）
+    status: planned

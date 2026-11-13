@@ -70,7 +70,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-13T02:54:09.395508+00:00'
   - process: 単体テスト作成
-    status: todo
+    status: done
+    reason: 画面の消灯の抑止のアダプタ 2 本・録音機・OS ごとの実装の選択の単体テストを追加し、実装が無いことだけによる Red を確認した
+    updated_by: planner
+    updated_at: '2026-11-13T03:08:57.731040+00:00'
   - process: 実装
     status: todo
   - process: 結合テスト作成

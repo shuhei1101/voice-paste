@@ -55,7 +55,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-12T19:33:58.582409+00:00'
   - process: 画面設計
-    status: todo
+    status: done
+    reason: SCR-9 に recording.keep_display_on の欄、SCR-6 に画面を暗くしないかのチェックと対応しないことの補足、ER-1 に localStorage voice-paste.keep_screen_on を追加した
+    updated_by: planner
+    updated_at: '2026-11-13T02:34:24.243217+00:00'
   - process: モジュール構成設計
     status: todo
   - process: ドキュメント修正

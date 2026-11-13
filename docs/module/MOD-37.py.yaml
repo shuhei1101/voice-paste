@@ -24,6 +24,9 @@ classes:
       - name: changed
         type: Signal()
         description: 追加・削除・並べ替え・欄の入力で値が変わった（設定画面が変えた欄の数えに使用する）
+      - name: capturing
+        type: Signal(bool)
+        description: 確定のホットキーの欄が入力待ちに入った（True）・出た（False）。SettingsWindow.hotkey_capturing へ
     methods:
       - name: set_presets
         title: 一覧に入れる

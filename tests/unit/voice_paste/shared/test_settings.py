@@ -1245,6 +1245,26 @@ def test_find_hotkey_overlaps(default_settings: Settings) -> None:
     assert overlaps == [("presets[1].hotkey", "outputs[1].hotkey")]
 
 
+
+def test_find_hotkey_overlaps_when_glossary_preset_hotkey(default_settings: Settings) -> None:
+    """ショートカットの行のキーと既存のホットキーの重なりを返却する（正常系）。"""
+    from voice_paste.shared.settings import GlossaryPresetHotkeySettings, find_hotkey_overlaps
+
+    # 準備: 録音開始と同じキーのショートカットの行を入れる（確認を飛ばして作る）
+    settings = default_settings.model_copy(
+        update={
+            "glossary_preset_hotkeys": [
+                GlossaryPresetHotkeySettings(hotkey="<ctrl>+<alt>+d", preset="既定")
+            ]
+        }
+    )
+
+    # 実行
+    overlaps = find_hotkey_overlaps(settings)
+
+    # 検証
+    assert overlaps == [("glossary_preset_hotkeys[0].hotkey", "hotkeys.start")]
+
 def test_find_hotkey_overlaps_when_presets_of_different_kinds(default_settings: Settings) -> None:
     """種類をまたいだプリセットどうしの重なりを返す（正常系）。"""
     from voice_paste.shared.settings import BrowserPreset, EndpointPreset, find_hotkey_overlaps
@@ -1679,6 +1699,33 @@ def test_settings_when_glossary_preset_names_overlap(settings_model: type[Settin
     ]
     assert GLOSSARY_PRESET_NAME_OVERLAP_ERROR_TYPE == "glossary_preset_name_overlap"
 
+
+
+def test_settings_when_glossary_preset_missing(settings_model: type[Settings]) -> None:
+    """用語集のプリセットの一覧に無い名前を指す行を断る（異常系）。"""
+    from pydantic import ValidationError
+
+    from voice_paste.shared.settings import (
+        GLOSSARY_PRESET_MISSING_ERROR_TYPE,
+        list_validation_failures,
+    )
+
+    # 実行・検証（glossary_presets に無い「会議」を指すショートカットの行）
+    with pytest.raises(ValidationError) as exc_info:
+        settings_model.model_validate(
+            make_test_document(
+                {
+                    "glossary_presets": [{"name": "既定", "glossaries": []}],
+                    "glossary_preset_hotkeys": [{"hotkey": "<ctrl>+<alt>+s", "preset": "会議"}],
+                }
+            )
+        )
+    failures = list_validation_failures(exc_info.value)
+    assert [key for key, _reason in failures] == ["glossary_preset_hotkeys[0].preset"]
+    assert [error["type"] for error in exc_info.value.errors()] == [
+        GLOSSARY_PRESET_MISSING_ERROR_TYPE
+    ]
+    assert GLOSSARY_PRESET_MISSING_ERROR_TYPE == "glossary_preset_missing"
 
 def test_settings_when_glossary_preset_name_blank(settings_model: type[Settings]) -> None:
     """空白だけの名前は検証に通らない（異常系）。"""

@@ -115,7 +115,7 @@ def test_output_extensibility(tmp_path: Path, qapp: QApplication) -> None:
         assert settings.outputs[-1].delay_sec == TRIAL_DELAY_SEC
 
     # 実行・検証: 確定のホットキー
-    bindings = build_hotkey_bindings(reloaded, MagicMock(), MagicMock(), MagicMock())
+    bindings = build_hotkey_bindings(reloaded, MagicMock(), MagicMock(), MagicMock(), MagicMock())
     assert TRIAL_HOTKEY in bindings
 
     # 実行・検証: 設定画面の欄（試しの出力先の名前は UiDeps.output_titles から引く）

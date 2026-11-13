@@ -815,63 +815,44 @@ def test_save_when_restart(opened: Opened) -> None:
     assert closed_count == [1]
 
 
-def _no_preset(window: SettingsWindow) -> None:
-    """カスタムプリセットを追加しない（ホットキーを変える前の準備が要らないケース）。"""
-
-
-def _add_browser_preset(window: SettingsWindow) -> None:
-    """「ブラウザ添付」にカスタムプリセットを 1 件追加する（保存できるタイトルと URL を入れる）。"""
-    _add_preset(window, "browser", title="A", url="https://a.example")
-
-
-@pytest.mark.parametrize(
-    ("group", "prepare", "hotkey_name", "expected_notice"),
-    [
-        pytest.param(
-            "ホットキー",
-            _no_preset,
-            "hotkey_hotkeys.start",
-            "保存しました。新しいホットキーは、設定画面を閉じると効きます。",
-            id="recording_hotkey",
-        ),
-        pytest.param(
-            "出力先",
-            _no_preset,
-            "hotkey_outputs[0].hotkey",
-            "保存しました。新しいホットキーは、設定画面を閉じると効きます。",
-            id="output_hotkey",
-        ),
-        pytest.param(
-            "ブラウザ添付",
-            _add_browser_preset,
-            "preset_hotkey_0",
-            "保存しました。新しいホットキーは、設定画面を閉じると効きます。",
-            id="custom_preset_hotkey",
-        ),
-        pytest.param(
-            "ホットキー", _no_preset, "hotkey_keyboard.paste_key", "保存しました。", id="paste_key"
-        ),
-    ],
-)
-def test_save_when_hotkey_changed(
-    opened: Opened,
-    group: str,
-    prepare: Callable[[SettingsWindow], None],
-    hotkey_name: str,
-    expected_notice: str,
-) -> None:
-    """ホットキーを変えた保存では、閉じると効くことを添える（正常系）。"""
-    # 準備（録音開始・出力先の確定・カスタムプリセットの確定のホットキーか、貼り付けに送信するキーだけを変える）
-    _select_group(opened.window, group)
-    prepare(opened.window)
-    _press_hotkey(opened.window, hotkey_name)
+def test_save_when_hotkey_changed(opened: Opened) -> None:
+    """ホットキーを変えた保存でも、保存したメッセージに閉じると有効になる旨を添えない（正常系）。"""
+    # 準備
+    _select_group(opened.window, "ホットキー")
+    _press_hotkey(opened.window, "hotkey_hotkeys.start")
 
     # 実行
     result = opened.window.save(restart=False)
 
     # 検証
     assert result is True
-    assert _label(opened.window, "saved_notice").text() == expected_notice
+    assert _label(opened.window, "saved_notice").text() == "保存しました。"
+
+
+def test_save_when_shortcut_added(opened: Opened) -> None:
+    """ショートカットの行を保存する（正常系）。"""
+    from voice_paste.shared.settings import GlossaryPresetHotkeySettings
+
+    # 準備: 行を追加し（プリセットは補正に使う「既定」）、キーの欄に Ctrl+Alt+S を押して入れる
+    opened.window.show_group("ショートカット", add_shortcut_row=True)
+    preset = opened.window.findChild(QComboBox, "shortcut_preset_0")
+    assert preset is not None
+    assert preset.currentText() == "既定"
+    hotkey = opened.window.findChild(QLineEdit, "shortcut_hotkey_0")
+    assert hotkey is not None
+    QTest.keyClick(
+        hotkey, Qt.Key.Key_S, Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier
+    )
+
+    # 実行
+    result = opened.window.save(restart=False)
+
+    # 検証
+    assert result is True
+    saved_settings = opened.deps.save_settings.call_args.args[0]
+    assert saved_settings.glossary_preset_hotkeys == [
+        GlossaryPresetHotkeySettings(hotkey="<ctrl>+<alt>+s", preset="既定")
+    ]
 
 
 def test_save_when_restart_field_changed(opened: Opened) -> None:
@@ -1212,6 +1193,43 @@ def test_save_when_unselected_engine_invalid(open_with_engine: Callable[..., Ope
     base_url.setText("https://api.openai.com/v1")
     assert opened.window.save(restart=False) is True
     assert _shown_labels(opened.window, "engine_error_count_") == []
+
+
+# === show_group ===
+
+
+def test_show_group(opened: Opened) -> None:
+    """指定のまとまりを選び、ショートカットの行を追加する（正常系）。"""
+    # 実行
+    opened.window.show_group("ショートカット", add_shortcut_row=True)
+
+    # 検証
+    menu = opened.window.findChild(QListWidget, "group_menu")
+    assert menu is not None
+    assert menu.currentItem().text() == "ショートカット"
+    rows = opened.window.findChildren(QLineEdit, QRegularExpression("^shortcut_hotkey_"))
+    assert len(rows) == 1
+    assert opened.window.focusWidget() is rows[0]
+    assert opened.window._changed_count() == 1
+
+
+def test_hotkey_capturing(opened: Opened) -> None:
+    """ホットキーの欄の入力待ちを知らせる（正常系）。"""
+    # 準備
+    capturing: list[bool] = []
+    opened.window.hotkey_capturing.connect(capturing.append)
+    _select_group(opened.window, "ホットキー")
+    edit = opened.window.findChild(QLineEdit, "hotkey_hotkeys.start")
+    assert edit is not None
+
+    # 実行: 欄を押して入力待ちにし、キーを押して入力待ちを抜ける
+    QTest.mouseClick(edit, Qt.MouseButton.LeftButton)
+    QTest.keyClick(
+        edit, Qt.Key.Key_9, Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier
+    )
+
+    # 検証
+    assert capturing == [True, False]
 
 
 # === close_without_confirm ===

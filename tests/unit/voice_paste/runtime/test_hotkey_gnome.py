@@ -328,3 +328,26 @@ def test_validate_gnome_hotkeys_when_unsupported() -> None:
     # 実行・検証
     with pytest.raises(HotkeyError, match=r"<ctrl>\+<page_up>"):
         validate_gnome_hotkeys(["<ctrl>+<page_up>"])
+
+
+# === GnomeShortcutListener.set_suspended ===
+
+
+def test_set_suspended(unique_name: str, gsettings: Callable[[list[str]], FakeGsettings]) -> None:
+    """伝えない間は登録を外し、戻すと同じ組で登録し直す（正常系）。"""
+    from voice_paste.runtime.hotkey_gnome import GnomeShortcutListener
+
+    # 準備
+    fake = gsettings([USER_PATH])
+    listener = GnomeShortcutListener(unique_name, MagicMock())
+    listener.start({START_KEY: CountingHandler()})
+
+    # 実行
+    listener.set_suspended(True)
+    paths_while_suspended = list(fake.paths)
+    listener.set_suspended(False)
+
+    # 検証
+    assert paths_while_suspended == [USER_PATH]
+    assert fake.paths == [USER_PATH, f"{PATH_PREFIX}0/"]
+    assert fake.value_of(0, "binding") == "<Super><Alt>d"

@@ -1,0 +1,3 @@
+前提確認: failed
+gh pr view 297 -R shuhei1101/voice-paste --json state
+shuhei1101/voice-paste#297 の状態が MERGED ではありません: OPEN

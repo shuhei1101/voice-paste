@@ -60,7 +60,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-13T02:34:24.243217+00:00'
   - process: モジュール構成設計
-    status: todo
+    status: done
+    reason: integrations/display/ の Windows・Linux のアダプタ（MOD-102・MOD-103）を追加し、録音機・types・配線・設定・例外と外部 API（LIB-32・LIB-33）を修正した
+    updated_by: planner
+    updated_at: '2026-11-13T02:43:58.738154+00:00'
   - process: ドキュメント修正
     status: todo
   - process: 単体テスト作成

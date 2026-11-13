@@ -9,7 +9,7 @@ flows:
     summary: 画面を出さない録音を始め、録音セッションの ID を返却する
     setup:
       - name: Mock
-        description: マイク・システム音量・トレイを差し替える（マイクは開ける）
+        description: マイク・システム音量・画面の消灯の抑止・トレイを差し替える（マイクは開ける）
       - name: 待機中
         description: ほかの録音・文字起こしを処理していない
     flow: |-
@@ -32,12 +32,13 @@ flows:
       - 202 と session_id が返る
       - 録音セッションが録音中になっている
       - 録音の画面を開いていない
+      - 録音中に画面を暗くしない設定がオンのとき、画面の消灯を 1 回抑止している
     test: test_normal
   - name: 正常系（連続録音）
     summary: continuous=true で、完了が来るまで停止しない画面を出さない録音を始め、録音セッションの ID を返却する
     setup:
       - name: Mock
-        description: マイク・システム音量・トレイを差し替える（マイクは開ける）
+        description: マイク・システム音量・画面の消灯の抑止・トレイを差し替える（マイクは開ける）
       - name: 待機中
         description: ほかの録音・文字起こしを処理していない
       - name: 要求
@@ -69,7 +70,7 @@ flows:
     summary: 許可していないコールバック先では録音を始めない
     setup:
       - name: Mock
-        description: マイク・システム音量・トレイを差し替える
+        description: マイク・システム音量・画面の消灯の抑止・トレイを差し替える
       - name: コールバック先
         description: loopback でも許可したホストでもない URL
         notes: '`http://example.com/result`'
@@ -94,7 +95,7 @@ flows:
     summary: トークンが合わなければ録音を始めない
     setup:
       - name: Mock
-        description: マイク・システム音量・トレイを差し替える
+        description: マイク・システム音量・画面の消灯の抑止・トレイを差し替える
       - name: トークン
         description: 今回の起動のものと違うトークンか、Authorization 無し
     flow: |-
@@ -121,7 +122,7 @@ flows:
     summary: Origin の付いた要求と、Host が待ち受けのホストでない要求を断る
     setup:
       - name: Mock
-        description: マイク・システム音量・トレイを差し替える
+        description: マイク・システム音量・画面の消灯の抑止・トレイを差し替える
       - name: 要求のヘッダー
         description: 正しいトークンに Origin を付けるか、Host をほかのホスト名にする
         notes: '`Origin: http://evil.example`・`Host: evil.example`'
@@ -149,7 +150,7 @@ flows:
     summary: ほかの録音・文字起こしの処理中は開始を断る
     setup:
       - name: Mock
-        description: マイク・システム音量・トレイを差し替える
+        description: マイク・システム音量・画面の消灯の抑止・トレイを差し替える
       - name: 処理中
         description: ホットキーから始めた録音が録音中である
     flow: |-
@@ -171,7 +172,7 @@ flows:
       - 2 つ目の録音が始まっていない
     test: test_error_when_busy
   - name: 異常系（マイクを開けない・503）
-    summary: マイクを開けなければ音量を戻して断る
+    summary: マイクを開けなければ音量と画面の消灯の抑止を戻して断る
     setup:
       - name: Mock
         description: マイクを開くと例外になるように差し替える。システム音量・トレイも差し替える
@@ -196,6 +197,7 @@ flows:
     expected:
       - 503 が返る
       - システム音量が録音前の値に戻っている
+      - 画面の消灯の抑止が解除されている
       - 待機中に戻り、続く開始が 409 にならない
       - ログにマイクを開けなかった理由が書き込まれている
     test: test_error_when_microphone_unavailable
@@ -203,7 +205,7 @@ flows:
     summary: glossary_preset で指定した用語集のプリセットを持たせて画面を出さない録音を始め、録音セッションの ID を返却する
     setup:
       - name: Mock
-        description: マイク・システム音量・トレイを差し替える（マイクは開ける）
+        description: マイク・システム音量・画面の消灯の抑止・トレイを差し替える（マイクは開ける）
       - name: 待機中
         description: ほかの録音・文字起こしを処理していない
       - name: 用語集のプリセット
@@ -234,7 +236,7 @@ flows:
     summary: 設定の一覧に無い用語集のプリセットを指定したら録音を始めない
     setup:
       - name: Mock
-        description: マイク・システム音量・トレイを差し替える
+        description: マイク・システム音量・画面の消灯の抑止・トレイを差し替える
       - name: 無いプリセット
         description: 設定の用語集のプリセットの一覧に無い名前を指定する
         notes: '`{"callback_url": "http://127.0.0.1:9000/voice-paste/result", "glossary_preset": "無いプリセット"}`'
@@ -259,7 +261,7 @@ lead: コールバック先のエンドポイントを受け取り、画面を�
 identifier: start_session
 permissions: 今回の起動のトークン（トークンのファイルを読み込める、同じ端末・同じユーザーのプロセス）
 idempotent: false
-side_effects: マイクの録音を始め、設定で録音中の音量を下げるようにしていればシステム音量を下げる。トレイのアイコンを録音中にする。連続録音では、区切った区間ごとに履歴へ保存し（履歴を残す設定のとき）、文字に起こして 呼び出し元へ返却する がコールバック先へ送信する。
+side_effects: マイクの録音を始め、設定で録音中の音量を下げるようにしていればシステム音量を下げ、録音中に画面を暗くしないようにしていれば画面の消灯を抑止する（抑止に失敗しても録音は始め、警告をログに残す）。トレイのアイコンを録音中にする。連続録音では、区切った区間ごとに履歴へ保存し（履歴を残す設定のとき）、文字に起こして 呼び出し元へ返却する がコールバック先へ送信する。
 exclusivity: 録音・文字起こしは入口（ホットキー・トレイ・API）をまたいで同時に 1 つだけ。処理中に来た開始は 409 で断る。
 request:
   - name: Authorization

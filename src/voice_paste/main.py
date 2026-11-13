@@ -580,12 +580,12 @@ def _wire_preset_kinds(
 def _pin_settings_while_recording(
     event: str, detail: str | None, *, store: SettingsStore, notify: NotifyFn
 ) -> None:
-    """録音セッションが録音を始めたら設定を固定し、待機中に戻ったら固定を解いてから知らせる（録音を始めた時点の設定でその回を確定まで動かす）。"""
-    # 録音を始めた: その回の設定を固定する
+    """録音セッションが録音を始めたら設定を固定し、待機中に戻るか取り消しの猶予にしたら固定を解いてから知らせる（録音を始めた時点の設定でその回を確定まで動かす）。"""
+    # 録音を始めた（猶予の間の始め直しを含む）: その回の設定を固定する
     if event == "state_changed" and detail == SessionState.RECORDING:
         store.pin()
-    # 待機中に戻った: 固定を解く
-    elif event == "state_changed" and detail == IDLE_DETAIL:
+    # 待機中に戻った・取り消しの猶予にした: 固定を解く（猶予の間は利用者に待機中と見せる）
+    elif event == "state_changed" and detail in (IDLE_DETAIL, SessionState.CANCEL_PENDING):
         store.unpin()
     notify(event, detail)  # type: ignore[arg-type]
 

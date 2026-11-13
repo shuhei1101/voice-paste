@@ -1,0 +1,14 @@
+mdmarkへの完了の連絡:
+  説明: "起点 Issue shuhei1101/mdmark#478 へ、voice-paste の文書のマーカーを JSON の記載へ移し終え、develop で mdmark check が legacy_mark を出さないことをコメントする"
+  タグ: [他のリポジトリへの連絡]
+  実行者: tester
+  時期: マージの後
+  回数: 1 回限り
+  可逆: true
+  疎通確認: null
+  実行: null
+  確認: null
+  切り戻し: null
+  失敗時: 既定の対処を 1 回、2 回連続で失敗したら依頼元へ返す
+  確認方法: "shuhei1101/mdmark#478 の会話欄に、voice-paste の移行を終えた旨と作業 PR #297 へのリンクを持つコメントがある"
+  状態: "-"

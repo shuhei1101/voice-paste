@@ -1,0 +1,84 @@
+tasks:
+  - process: 初期構築
+    status: skipped
+    reason: 既存リポジトリのため対象外
+    updated_by: planner
+    updated_at: '2026-11-13T16:34:52.443009+00:00'
+  - process: リバースエンジニアリング
+    status: skipped
+    reason: 設計書が揃っているため対象外
+    updated_by: planner
+    updated_at: '2026-11-13T16:34:52.443009+00:00'
+  - process: 方針決め
+    status: skipped
+    reason: 方針決めを依頼する Issue ではない
+    updated_by: planner
+    updated_at: '2026-11-13T16:34:52.443009+00:00'
+  - process: PoC 検証
+    status: skipped
+    reason: 移行は mdmark upgrade が担い、未検証の技術機構に依存しない
+    updated_by: planner
+    updated_at: '2026-11-13T16:34:52.443009+00:00'
+  - process: 複合ユースケース設計
+    status: skipped
+    reason: 文書のマーカーの記載だけを変え、振る舞いは変えない
+    updated_by: planner
+    updated_at: '2026-11-13T16:34:52.443009+00:00'
+  - process: デザインスタイル選定
+    status: skipped
+    reason: 画面を変えない
+    updated_by: planner
+    updated_at: '2026-11-13T16:34:52.443009+00:00'
+  - process: 画面一覧・画面遷移
+    status: skipped
+    reason: 画面を変えない
+    updated_by: planner
+    updated_at: '2026-11-13T16:34:52.443009+00:00'
+  - process: 単一ユースケース設計
+    status: skipped
+    reason: 文書のマーカーの記載だけを変え、振る舞いは変えない
+    updated_by: planner
+    updated_at: '2026-11-13T16:34:52.443009+00:00'
+  - process: モック作成
+    status: skipped
+    reason: 画面を変えない
+    updated_by: planner
+    updated_at: '2026-11-13T16:34:52.443009+00:00'
+  - process: インターフェース定義設計
+    status: skipped
+    reason: インターフェースを変えない
+    updated_by: planner
+    updated_at: '2026-11-13T16:34:52.443009+00:00'
+  - process: 部品設計
+    status: skipped
+    reason: 画面を変えない
+    updated_by: planner
+    updated_at: '2026-11-13T16:34:52.443009+00:00'
+  - process: 画面設計
+    status: skipped
+    reason: 画面を変えない
+    updated_by: planner
+    updated_at: '2026-11-13T16:34:52.443009+00:00'
+  - process: モジュール構成設計
+    status: skipped
+    reason: コードを変えない
+    updated_by: planner
+    updated_at: '2026-11-13T16:34:52.443009+00:00'
+  - process: ドキュメント修正
+    status: todo
+    note: mdmark upgrade を Markdown の文書へ適用し、移行の報告に挙がる記載を JSON の記載で記載し直す
+  - process: 単体テスト作成
+    status: skipped
+    reason: コードを変えない
+    updated_by: planner
+    updated_at: '2026-11-13T16:34:52.443009+00:00'
+  - process: 実装
+    status: skipped
+    reason: コードを変えない
+    updated_by: planner
+    updated_at: '2026-11-13T16:34:52.443009+00:00'
+  - process: 結合テスト作成
+    status: skipped
+    reason: コードを変えない
+    updated_by: planner
+    updated_at: '2026-11-13T16:34:52.443009+00:00'

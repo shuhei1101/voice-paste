@@ -35,7 +35,7 @@ functions:
     process: |-
       1. 抑止のロックを取り、以降をその中で行う
       2. 持っている子プロセスが動いていれば何もしない（抑止は 1 つだけ持つ）
-      3. INHIBIT_COMMAND を subprocess.Popen で起動する（stdin=PIPE・stdout と stderr は DEVNULL）
+      3. INHIBIT_COMMAND を subprocess.Popen で起動する（stdin=PIPE・stdout は DEVNULL・stderr は PIPE。stderr は子プロセスが終わった後に理由として読む）
          - OSError（gnome-session-inhibit が無い等）の場合、DisplayInhibitError を送出する（理由に元の例外を残す）
       4. 子プロセスを持つ
     exceptions:
@@ -47,7 +47,7 @@ functions:
         summary: 標準入力をパイプにして子プロセスを起動する
         condition: 抑止していない状態で呼ぶ
         mock: subprocess.Popen（起動の引数を記録し、動いている偽の子プロセスを返却する）
-        expected: Popen に INHIBIT_COMMAND と stdin=PIPE が渡る
+        expected: Popen に INHIBIT_COMMAND と stdin=PIPE・stderr=PIPE が渡る
       - name: test_inhibit_display_linux_when_already_inhibited
         case: 正常
         summary: 抑止中にもう一度呼んでも子プロセスを増やさない
@@ -73,14 +73,16 @@ functions:
     inherits: ReleaseDisplayFn
     thread_safe: true
     side_effects: 抑止の子プロセスを終わらせ、GNOME のセッションのアイドルの抑止を解く
-    summary: 子プロセスの標準入力を閉じ、終わりを RELEASE_WAIT_SEC まで待つ。過ぎたら強制終了する。抑止していなければ何もしない
+    summary: 子プロセスが先に終わっていれば抑止できていなかったとして DisplayInhibitError を送出する。動いていれば標準入力を閉じ、終わりを RELEASE_WAIT_SEC まで待ち、過ぎたら強制終了する。抑止していなければ何もしない
     returns:
       type: None
       description: なし
     process: |-
       1. 抑止のロックを取り、以降をその中で行う
       2. 子プロセスが無ければ何もしない
-      3. 子プロセスを手放し（モジュール変数を None にする）、標準入力を閉じて、終わりを RELEASE_WAIT_SEC まで待つ
+      3. 子プロセスを手放す（モジュール変数を None にする）
+      4. poll() で子プロセスが既に終わっていれば、stderr を読み、終了コードと stderr の内容を理由にした DisplayInhibitError を送出する（GNOME のセッションでない・Inhibit() が断られた等で、録音の間に抑止できていなかった）
+      5. 標準入力を閉じて、終わりを RELEASE_WAIT_SEC まで待つ
          - 待っても終わらない場合、kill して終わりを待つ
            - `[WARNING]` 画面の消灯の抑止の子プロセスが終わらず強制終了した
     unit_tests:
@@ -96,16 +98,27 @@ functions:
         condition: inhibit_display_linux の前に呼ぶ
         mock: subprocess.Popen
         expected: 例外が出ない
+      - name: test_release_display_linux_when_exited_early
+        case: 異常
+        summary: 子プロセスが先に終わっていれば、抑止できていなかったとして DisplayInhibitError
+        condition: 偽の子プロセスの poll が 1 を返却し、stderr が「Failed to inhibit」で始まる文を返却する
+        mock: subprocess.Popen
+        expected: DisplayInhibitError が送出され、理由に終了コード 1 と stderr の内容が含まれ、stdin の close と kill が呼ばれず、続く release_display_linux が何もしない
+        exception: 子プロセスが先に終わっていた
       - name: test_release_display_linux_when_timeout
         case: 正常
         summary: 終わらなければ強制終了する
         condition: 偽の子プロセスの wait が初回だけ subprocess.TimeoutExpired を送出する
         mock: subprocess.Popen
         expected: kill が 1 回呼ばれ、警告がログに出る
+    exceptions:
+      - name: DisplayInhibitError
+        condition: 子プロセスが先に終わっていた（抑止できていなかった）
     status: planned
 notes:
   子プロセスの持ち方: |-
     子プロセスとロックは _ 付きのモジュール変数で持ち、inhibit_display_linux・release_display_linux だけが触る。
     抑止は子プロセスの `cat` が標準入力のパイプを読んでいる間だけ続き、パイプが閉じると `cat` と gnome-session-inhibit が終わって解ける。
     常駐アプリが強制終了してもパイプが閉じるため、抑止は残らない（PoC #293 で、親の `kill -9` の後に抑止の一覧が空になることを確かめた）。
+    子プロセスが先に終わったこと（GNOME のセッションでない等）は、録音の開始を遅らせないよう解除のときに検出し、Recorder の _close が警告としてログに残す。
     Xorg と Wayland のどちらのセッションでも同じ実装を使用し、実物の確認は検証環境の VM での通しの確認で行う。

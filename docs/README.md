@@ -4,7 +4,7 @@ voice-paste のドキュメント全体の目次
 
 ## 目次
 
-<!-- table: data -->
+<!-- table: {"kind": "data"} -->
 
 | ページ | 概要 |
 | --- | --- |

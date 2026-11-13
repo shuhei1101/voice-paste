@@ -1,6 +1,6 @@
 # Issue / PR
 
-<!-- table: data -->
+<!-- table: {"kind": "data"} -->
 
 | 番号 | 概要 |
 | --- | --- |

@@ -28,7 +28,7 @@ Linux では `Origin` によらず 404 を返却する。
 
 ## 一覧
 
-<!-- table: data -->
+<!-- table: {"kind": "data"} -->
 
 | 名前 | エンドポイント | 説明 |
 | --- | --- | --- |
@@ -197,7 +197,7 @@ API から始めた録音の結果を、開始で指定した `callback_url` へ
 }
 ```
 
-<!-- table: data -->
+<!-- table: {"kind": "data"} -->
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
@@ -423,7 +423,7 @@ Content-Disposition: form-data; name="glossary_preset"
 }
 ```
 
-<!-- table: data -->
+<!-- table: {"kind": "data"} -->
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |

@@ -1,0 +1,111 @@
+use_cases: []
+docs:
+  - page: docs/README.md
+    new: false
+    change: マーカーを JSON の記載へ移す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T16:43:55.554206+00:00'
+  - page: docs/design-policy.md
+    new: false
+    change: マーカーを JSON の記載へ移す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T16:43:55.554206+00:00'
+  - page: docs/guide/API.md
+    new: false
+    change: マーカーを JSON の記載へ移す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T16:43:55.554206+00:00'
+  - page: docs/guide/変更履歴.md
+    new: false
+    change: マーカーを JSON の記載へ移す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T16:43:55.554206+00:00'
+  - page: docs/guide/外の端末から文字に起こす.md
+    new: false
+    change: マーカーを JSON の記載へ移す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T16:43:55.554206+00:00'
+  - page: docs/guide/起動と設定.md
+    new: false
+    change: マーカーを JSON の記載へ移す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T16:43:55.554206+00:00'
+  - page: docs/interface/README.md
+    new: false
+    change: マーカーを JSON の記載へ移す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T16:43:55.554206+00:00'
+  - page: docs/library/README.md
+    new: false
+    change: マーカーを JSON の記載へ移す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T16:43:55.554206+00:00'
+  - page: docs/mock/components/index.md
+    new: false
+    change: マーカーを JSON の記載へ移す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T16:43:55.554206+00:00'
+  - page: docs/mock/pages/index.md
+    new: false
+    change: マーカーを JSON の記載へ移す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T16:43:55.554206+00:00'
+  - page: docs/mock/pages/settings/index.md
+    new: false
+    change: マーカーを JSON の記載へ移す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T16:43:55.554206+00:00'
+  - page: docs/mock/refs/37/index.md
+    new: false
+    change: マーカーを JSON の記載へ移す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T16:43:55.554206+00:00'
+  - page: docs/mock/refs/index.md
+    new: false
+    change: マーカーを JSON の記載へ移す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T16:43:55.554206+00:00'
+  - page: docs/module/README.md
+    new: false
+    change: マーカーを JSON の記載へ移す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T16:43:55.554206+00:00'
+  - page: docs/scenario/README.md
+    new: false
+    change: マーカーを JSON の記載へ移す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T16:43:55.554206+00:00'
+  - page: docs/screen/README.md
+    new: false
+    change: マーカーを JSON の記載へ移す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T16:43:55.554206+00:00'
+  - page: docs/pr
+    new: false
+    change: 今の書き方のマーカーを持つ PR ドキュメントの Markdown（origin/develop で 32 ファイル）のマーカーを JSON の記載へ移す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T16:43:55.554206+00:00'
+scope_out:
+  - item: AI Monitor が配布する規約・テンプレート（PR ドキュメントのテンプレートを含む）の今の書き方のマーカー
+    reason: AI Monitor のリポジトリの文書で、このリポジトリの変更では届かない
+    plan: shuhei1101/ai-monitor#3418
+  - item: 'YAML の設計書の `<!-- map: {...} -->`'
+    reason: 既に JSON の記載で、移す対象が無い
+    plan: none

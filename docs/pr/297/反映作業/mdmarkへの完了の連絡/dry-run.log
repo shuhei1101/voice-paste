@@ -1,0 +1,3 @@
+前提確認: ok
+コメントの本文: voice-paste の文書のマーカーを JSON の記載へ移し終えました（https://github.com/shuhei1101/voice-paste/pull/297）。develop で mdmark check は legacy_mark を出しません。
+shuhei1101/mdmark#478 へのコメント: changed

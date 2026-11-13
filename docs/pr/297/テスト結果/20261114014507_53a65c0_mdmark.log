@@ -1,0 +1,23 @@
+$ mdmark upgrade --yes   # 53a65c0 を作った実行（設定の version: v0.10.0。出力をそのまま写す）
+手元のバージョン: v0.10.0
+目標のバージョン: v0.11.0
+v0.11.0:
+  call（壊す手順）: 文書のマーカーの今の書き方の引数を JSON のオブジェクトへ書き換える（書き出さない記載と拡張・`libraries` のマーカーは移行の報告に挙げる）
+v0.11.0 の手順「文書のマーカーの今の書き方の引数を JSON のオブジェクトへ書き換える（書き出さない記載と拡張・`libraries` のマーカーは移行の報告に挙げる）」:
+  48 件の文書のマーカーを書き換えました。
+コピー: .mdmark/backup/20261114014111
+バージョンを v0.11.0 にしました
+$ cat mdmark.config.yaml  # コミットしない一時的な設定（このリポジトリは mdmark.config.yaml を持たない）
+version: v0.11.0
+build:
+  include: ["**/*.md"]
+  exclude: ["node_modules/**", ".venv/**", "**/node_modules/**", ".mdmark/**"]
+  out: /tmp/mdmark-v011/out/index.html
+$ mdmark check   # mdmark v0.11.0（tag v0.11.0 の dist/cli.js）
+ずれ 0 件
+exit=0
+$ git grep -n "<!-- table: data -->" -- "*.md"
+docs/pr/235/要件.md:44:| `docs/`・`dev/mock/`・`dev/設計書/デザイン方針.md` の手で書いた 6 行以上の表（10 ページ） | 規約『ドキュメント管理』（v0.3.0）の `### 表の種類` に従い `<!-- table: data -->` で包む | 済 |
+docs/pr/282/常駐アプリ.md:29:| 表 | 同じ属性を持つ項目が 2 件以上ある文・箇条書きを表にする | 6 行以上の表は `<!-- table: data -->` で囲む |
+docs/pr/297/README.md:5:このリポジトリの Markdown の文書のマーカーを、今の書き方（`<!-- table: data -->`）から mdmark v0.11.0 の JSON の記載へ移す。
+docs/pr/297/要件.md:6:  - 対象は origin/develop で今の書き方のマーカー `<!-- table: data -->` を持つ 48 ファイル（83 か所。インラインコードの中の言及は除く）。置き場所は `docs/` の直下・`docs/guide/`・`docs/interface/`・`docs/library/`・`docs/mock/`・`docs/module/`・`docs/pr/`・`docs/scenario/`・`docs/screen/`

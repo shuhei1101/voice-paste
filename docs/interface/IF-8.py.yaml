@@ -9,7 +9,7 @@ flows:
     summary: 録音中の録音セッションを停止する
     setup:
       - name: Mock
-        description: マイク・システム音量・トレイを差し替える
+        description: マイク・システム音量・画面の消灯の抑止・トレイを差し替える
       - name: 録音中の録音セッション
         description: 録音を開始する で始めた録音セッションが録音中
     flow: |-
@@ -31,13 +31,14 @@ flows:
       - 200 が返る
       - 録音セッションが停止中（完了待ち）になっている
       - システム音量が録音前の値に戻っている
+      - 画面の消灯の抑止が解除されている
       - 停止した後に入った音が録音に貯まっていない
     test: test_normal
   - name: 正常系（既に停止している）
     summary: 停止した録音セッションへの停止は何も変えず 200 を返却する
     setup:
       - name: Mock
-        description: マイク・システム音量・トレイを差し替える
+        description: マイク・システム音量・画面の消灯の抑止・トレイを差し替える
       - name: 停止中の録音セッション
         description: 一度停止を呼んだ録音セッション
     flow: |-
@@ -56,12 +57,13 @@ flows:
     expected:
       - 200 が返る
       - 録音セッションが停止中のままである
+      - 画面の消灯の抑止の解除が、最初の停止の 1 回だけ呼ばれている
     test: test_normal_when_already_stopped
   - name: 異常系（トークンが合わない・401）
     summary: トークンが合わなければ停止しない
     setup:
       - name: Mock
-        description: マイク・システム音量・トレイを差し替える
+        description: マイク・システム音量・画面の消灯の抑止・トレイを差し替える
       - name: 録音中の録音セッション
         description: 録音を開始する で始めた録音セッションが録音中
       - name: トークン
@@ -90,7 +92,7 @@ flows:
     summary: Origin の付いた要求と、Host が待ち受けのホストでない要求を断る
     setup:
       - name: Mock
-        description: マイク・システム音量・トレイを差し替える
+        description: マイク・システム音量・画面の消灯の抑止・トレイを差し替える
       - name: 録音中の録音セッション
         description: 録音を開始する で始めた録音セッションが録音中
       - name: 要求のヘッダー
@@ -119,7 +121,7 @@ flows:
     summary: 録音中でも停止中でもない録音セッションは断る
     setup:
       - name: Mock
-        description: マイク・システム音量・トレイを差し替える
+        description: マイク・システム音量・画面の消灯の抑止・トレイを差し替える
       - name: 録音セッションの ID
         description: 開始で受け取っていない ID か、完了した録音セッションの ID
     flow: |-
@@ -143,7 +145,7 @@ flows:
     summary: 連続録音の録音セッションは停止せずに断る
     setup:
       - name: Mock
-        description: マイク・システム音量・トレイを差し替える
+        description: マイク・システム音量・画面の消灯の抑止・トレイを差し替える
       - name: 連続録音の録音セッション
         description: 録音を開始する を continuous=true で呼んだ録音セッションが録音中
     flow: |-
@@ -167,7 +169,7 @@ lead: API から始めた録音を停止し、完了を待つ状態にする。�
 identifier: stop_session
 permissions: 今回の起動のトークン
 idempotent: true
-side_effects: マイクの録音を停止し、システム音量を録音前の値へ戻す。録音はまだ確定せず、履歴にも残さない。
+side_effects: マイクの録音を停止し、システム音量を録音前の値へ戻して、画面の消灯の抑止を解除する。録音はまだ確定せず、履歴にも残さない。
 exclusivity: 録音セッションは同時に 1 つだけ。停止した録音セッションも、完了するか 上限で打ち切る（非機能要件の録音セッションの上限時間。開始からの経過時間で、停止中も数える）で終わるまでは処理中としてほかの開始を断る。
 request:
   - name: Authorization

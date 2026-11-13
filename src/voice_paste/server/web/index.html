@@ -30,6 +30,13 @@
           <p class="preset-field__help" id="preset-help" data-element="preset_help" hidden>録音中は変更不可</p>
         </div>
 
+        <!-- 画面を暗くしないかのチェック: 録音の前に選ぶ設定のため、プリセットの選択欄のすぐ下に置く。選択は端末（localStorage）に残す。録音中と、対応しないブラウザでは押せない -->
+        <div class="keep-field">
+          <label class="keep-field__label" for="keep-screen-check"><input type="checkbox" id="keep-screen-check" name="keep_screen_on" data-element="keep_screen_check" checked> 録音中は画面を暗くしない</label>
+          <!-- 対応しないブラウザの補足: navigator.wakeLock が無いときだけ出す -->
+          <p class="keep-field__help" id="keep-screen-unsupported" data-element="keep_screen_unsupported" hidden>このブラウザでは使えません。録音はできます</p>
+        </div>
+
         <!-- 一覧を取得できなかった知らせ: 取得が失敗したときだけ出す。送信は続けられるため注意ではなく知らせの色にする -->
         <div class="web-notice" role="status" id="preset-fetch-notice" data-element="preset_fetch_notice" hidden>
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/></svg>

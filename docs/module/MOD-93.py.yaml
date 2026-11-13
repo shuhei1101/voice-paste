@@ -38,6 +38,30 @@ function_types:
     implementations:
       - target: 外部連携の restore_volume（pycaw のアダプタ）
     status: implemented
+  - name: InhibitDisplayFn
+    title: 画面の消灯を抑止する
+    container: features/recording/types.py
+    usecase: 録音する
+    summary: 画面の消灯とアイドルによるスリープの抑止を始める。抑止中に呼んでも抑止は 1 つのまま。抑止できなければ DisplayInhibitError を送出する
+    returns:
+      type: None
+      description: なし
+    implementations:
+      - target: 外部連携の inhibit_display（Windows の電源要求のアダプタ）
+      - target: 外部連携の inhibit_display_linux（gnome-session-inhibit のアダプタ）
+    status: planned
+  - name: ReleaseDisplayFn
+    title: 画面の消灯の抑止を解除する
+    container: features/recording/types.py
+    usecase: 録音する
+    summary: 画面の消灯の抑止を解く。抑止していなければ何もしない。解けなければ DisplayInhibitError を送出する
+    returns:
+      type: None
+      description: なし
+    implementations:
+      - target: 外部連携の release_display（Windows の電源要求のアダプタ）
+      - target: 外部連携の release_display_linux（gnome-session-inhibit のアダプタ）
+    status: planned
   - name: OpenInputFn
     title: マイクの入力を開く
     container: features/recording/types.py

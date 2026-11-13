@@ -1,4 +1,4 @@
-"""録音が受け取る関数の型（音量の操作・マイクの入力を開く・話し声の判定）。"""
+"""録音が受け取る関数の型（音量の操作・画面の消灯の抑止・マイクの入力を開く・話し声の判定）。"""
 
 from __future__ import annotations
 
@@ -12,6 +12,12 @@ type LowerVolumeFn = Callable[[float, float], float]
 
 type RestoreVolumeFn = Callable[[float, float], None]
 """戻す音量（0.0〜1.0）と秒数を受け、その音量へ戻し始める関数。"""
+
+type InhibitDisplayFn = Callable[[], None]
+"""画面の消灯とアイドルによるスリープの抑止を始める関数。抑止中に呼んでも抑止は 1 つのまま。抑止できなければ DisplayInhibitError を送出する。"""
+
+type ReleaseDisplayFn = Callable[[], None]
+"""画面の消灯の抑止を解く関数。抑止していなければ何もしない。解けなければ DisplayInhibitError を送出する。"""
 
 type OpenInputFn = Callable[[Callable[[np.ndarray], None]], sd.InputStream]
 """届いた音を受け取る関数を受け、マイクの入力を開いて始めたストリームを返す関数。"""

@@ -96,6 +96,10 @@ items:
     summary: 常駐アプリ / 外部連携 / adapter.py
   - page: MOD-75.py.yaml
     summary: 常駐アプリ / 外部連携 / noop.py
+  - page: MOD-102.py.yaml
+    summary: 常駐アプリ / 外部連携 / display/adapter.py
+  - page: MOD-103.py.yaml
+    summary: 常駐アプリ / 外部連携 / display/adapter_linux.py
   - page: MOD-67.py.yaml
     summary: 常駐アプリ / 外部連携 / client.py
   - page: MOD-94.py.yaml
@@ -168,7 +172,7 @@ items:
     summary: 常駐アプリ / ホットキーと画面 / settings_edge_phrases.py
   - page: MOD-46.py.yaml
     summary: 常駐アプリ / ホットキーと画面 / settings_fields.py
-  - page: MOD-102.py.yaml
+  - page: MOD-104.py.yaml
     summary: 常駐アプリ / ホットキーと画面 / settings_shortcuts.py
   - page: MOD-38.py.yaml
     summary: 常駐アプリ / ホットキーと画面 / settings_glossaries.py

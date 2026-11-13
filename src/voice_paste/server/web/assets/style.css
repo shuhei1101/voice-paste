@@ -334,6 +334,41 @@ progress {
   color: var(--text-2);
 }
 
+/* 画面を暗くしないかのチェックのまとまり: チェックと補足を縦に積む */
+.keep-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* チェックとラベル: 押せる範囲をタップの高さにそろえ、スマホで拡大されない文字の大きさにする */
+.keep-field__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--touch-h);
+  font-size: 16px;
+  cursor: pointer;
+  & input {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+  }
+  /* 録音中・対応しないブラウザの押せないチェック: 文字を補足の色にする */
+  &:has(input:disabled) {
+    color: var(--text-2);
+    cursor: not-allowed;
+  }
+}
+
+/* 対応しないブラウザで使えない理由 */
+.keep-field__help {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
 /* 録音とファイルの上限 */
 .send-hint {
   margin: 0;

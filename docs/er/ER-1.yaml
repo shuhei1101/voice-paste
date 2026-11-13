@@ -1,7 +1,7 @@
 id: ER-1
 visibility: internal
 title: "ER 図: ブラウザの端末のデータ"
-lead: 外の端末の文字起こしの画面が、その端末のブラウザに残す音声（IndexedDB）と、結果・選んだ用語集のプリセット（localStorage）。どちらもオリジン（ゲートウェイの公開のサブドメイン）ごとに分かれる。
+lead: 外の端末の文字起こしの画面が、その端末のブラウザに残す音声（IndexedDB）と、結果・選んだ用語集のプリセット・画面を暗くしないかの選択（localStorage）。どちらもオリジン（ゲートウェイの公開のサブドメイン）ごとに分かれる。
 tables:
   - name: IndexedDB voice-paste / kept_audio（キー latest）
     title: 端末内の音声
@@ -120,5 +120,26 @@ tables:
     status: planned
     introduced:
       pr: 180
+  - name: localStorage voice-paste.keep_screen_on
+    title: 録音中に画面を暗くしないか
+    datastore: localStorage
+    summary: 「録音中は画面を暗くしない」のチェックの値。画面を再度開いたときにチェックを戻す
+    scale: 1 件
+    growth: 増えない（変えるたびに置き換える）
+    retention: 期限なし
+    deletion: 上書き
+    access: キーで取得する（画面を開いたときに読み込み、変えるたびに書き込む）
+    columns:
+      - name: value
+        title: 画面を暗くしないか
+        type: string
+        not_null: true
+        description: オンは `1`、オフは `0`。JSON ではなく文字列のまま配置する。キーが無いときはオンとして扱う
+        example: '1'
+    refs:
+      - SCR-6#elements[画面を暗くしないかのチェック]
+    status: planned
+    introduced:
+      pr: 292
 refs:
   - SCR-6#

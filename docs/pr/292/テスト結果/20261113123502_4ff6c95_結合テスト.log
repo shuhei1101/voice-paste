@@ -1,0 +1,8 @@
+$ .venv/Scripts/python.exe -m pytest tests/integration/test_start_session.py tests/integration/test_stop_session.py tests/integration/test_complete_session.py tests/integration/test_truncate_session.py tests/integration/ui/test_settings_window.py -p no:cacheprovider -q
+........................................................................ [ 17%]
+.............s.......................................................... [ 35%]
+........................................................................ [ 52%]
+........................................................................ [ 70%]
+........................................................................ [ 87%]
+..................................................                       [100%]
+409 passed, 1 skipped in 56.88s

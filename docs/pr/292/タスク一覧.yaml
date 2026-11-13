@@ -1,0 +1,86 @@
+tasks:
+  - process: 初期構築
+    status: skipped
+    reason: 既存リポジトリへの機能の追加のため
+    updated_by: planner
+    updated_at: '2026-11-12T19:33:58.582409+00:00'
+  - process: リバースエンジニアリング
+    status: skipped
+    reason: 設計書が揃っているため
+    updated_by: planner
+    updated_at: '2026-11-12T19:33:58.582409+00:00'
+  - process: 方針決め
+    status: skipped
+    reason: 方針決めを依頼する Issue ではないため
+    updated_by: planner
+    updated_at: '2026-11-12T19:33:58.582409+00:00'
+  - process: PoC 検証
+    status: done
+    reason: Windows（PowerSetRequest）・Linux（gnome-session-inhibit）・外の端末の画面（Screen Wake Lock）で抑止と解除が成立した
+    updated_by: planner
+    updated_at: '2026-11-12T23:55:25.695409+00:00'
+  - process: 複合ユースケース設計
+    status: skipped
+    reason: ユースケースの連鎖は変わらず、画面の消灯の抑止は単一 UC『録音する』『ブラウザから音声を送信する』『設定を変える』に閉じるため
+    updated_by: planner
+    updated_at: '2026-11-12T19:33:58.582409+00:00'
+  - process: デザインスタイル選定
+    status: skipped
+    reason: docs/design-policy.md があり、Issue は見た目の方向を変えないため（判定フローチャート『モック要否』Q4）
+    updated_by: planner
+    updated_at: '2026-11-12T19:33:58.582409+00:00'
+  - process: 画面一覧・画面遷移
+    status: skipped
+    reason: 画面の追加・削除と画面遷移の変更が無いため（判定フローチャート『モック要否』Q2）
+    updated_by: planner
+    updated_at: '2026-11-12T19:33:58.582409+00:00'
+  - process: 単一ユースケース設計
+    status: done
+    reason: SC-8・SC-1・SC-6・SC-3 に画面の消灯の抑止と解除を追加した
+    updated_by: planner
+    updated_at: '2026-11-13T00:01:30.417440+00:00'
+  - process: モック作成
+    status: done
+    reason: 設定画面（settings/292）と外の端末の画面（web-transcription/292）のモックにユーザーが合意した
+    updated_by: planner
+    updated_at: '2026-11-13T02:24:04.453536+00:00'
+  - process: インターフェース定義設計
+    status: done
+    reason: IF-10・IF-8・IF-9 の副作用と期待値に画面の消灯の抑止と解除を追加し、CFG-1 に recording.keep_display_on を追加した
+    updated_by: planner
+    updated_at: '2026-11-13T02:26:07.744796+00:00'
+  - process: 部品設計
+    status: skipped
+    reason: プロジェクトが部品設計（docs/component）を持たないため
+    updated_by: planner
+    updated_at: '2026-11-12T19:33:58.582409+00:00'
+  - process: 画面設計
+    status: done
+    reason: SCR-9 に recording.keep_display_on の欄、SCR-6 に画面を暗くしないかのチェックと対応しないことの補足、ER-1 に localStorage voice-paste.keep_screen_on を追加した
+    updated_by: planner
+    updated_at: '2026-11-13T02:34:24.243217+00:00'
+  - process: モジュール構成設計
+    status: done
+    reason: integrations/display/ の Windows・Linux のアダプタ（MOD-102・MOD-103）を追加し、録音機・types・配線・設定・例外と外部 API（LIB-32・LIB-33）を修正した
+    updated_by: planner
+    updated_at: '2026-11-13T02:43:58.738154+00:00'
+  - process: ドキュメント修正
+    status: done
+    reason: docs/guide/ の録音して貼り付ける・起動と設定・外の端末から文字に起こす・API に、録音中に画面を暗くしない設定と動きを追記した
+    updated_by: planner
+    updated_at: '2026-11-13T02:54:09.395508+00:00'
+  - process: 単体テスト作成
+    status: done
+    reason: 画面の消灯の抑止のアダプタ 2 本・録音機・OS ごとの実装の選択の単体テストを追加し、実装が無いことだけによる Red を確認した
+    updated_by: planner
+    updated_at: '2026-11-13T03:08:57.731040+00:00'
+  - process: 実装
+    status: done
+    reason: 録音機・画面の消灯の抑止のアダプタ・配線・設定・設定画面・外の端末の画面を実装し、単体テストの全 pass と lint を確認した
+    updated_by: planner
+    updated_at: '2026-11-13T03:23:42.176331+00:00'
+  - process: 結合テスト作成
+    status: done
+    reason: IF-10・IF-8・IF-9 と設定画面の結合テストに画面の消灯の抑止を追加し、関係する 5 ファイルの全 pass を確認した
+    updated_by: planner
+    updated_at: '2026-11-13T03:35:17.361404+00:00'

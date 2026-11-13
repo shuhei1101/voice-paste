@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>設定画面 | voice-paste のモック</title>
+  <!-- 採用スタイル「開発者ツール」の部品は #37、一覧の部品は #44 の共有 CSS に置く -->
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/44/assets/style.css">
+</head>
+<body>
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">settings</a> / <a href="../">292</a> / <span>a-group-top</span></nav>
+
+    <!-- 画面の説明 -->
+    <header class="intro">
+      <h1>設定画面</h1>
+      <p>「録音」のまとまりの先頭に「録音中に画面を暗くしない」を追加する。既定はオン。ほかのまとまり・欄とフッターはこれまでのモックのまま。</p>
+    </header>
+
+    <div class="desk desk--single">
+      <section class="specimen" aria-labelledby="h-rec">
+        <h2 id="h-rec">「録音」のまとまりを開いたところ</h2>
+        <div class="win settings settings--full">
+          <div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+          <div class="settings__body">
+            <nav class="settings__nav" aria-label="設定のまとまり">
+              <ul><li><a href="../../44/a-inline/kind-tabs/index.html">出力先</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">ブラウザ添付</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">エンドポイントへ送信</a></li><li><a href="../../101/a-footer-notice/index.html">ホットキー</a></li><li><a href="#rec" aria-current="page">録音</a></li><li><a href="../../274/a-engine-tabs/index.html">文字起こし</a></li><li><a href="../../99/a-hint-group/index.html">表記のヒント</a></li><li><a href="../../97/a-glossary-group/index.html">用語集</a></li><li><a href="../../166/b-drag-handle/index.html">ハルシネーション</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">画面</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">履歴とログ</a></li><li><a href="../../44/a-inline/kind-tabs/index.html">API</a></li></ul>
+            </nav>
+            <form class="settings__form" action="#" method="post" aria-label="設定">
+              <fieldset id="rec" data-group>
+                <legend>録音</legend>
+                <!-- 追加する欄: 録音の間の画面の動きを決めるため、音量の欄より上に置く -->
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="r0"><input type="checkbox" id="r0" name="recording.keep_display_on" checked aria-describedby="r0-help"> 録音中に画面を暗くしない</label>
+                  <code class="key">recording.keep_display_on</code>
+                  <p class="field-help" id="r0-help">オンにすると、録音を始めてから終えるまで、PC の画面が自動で暗くならず、スクリーンセーバーも動かない。録音を終えると OS の設定どおりに戻る。</p>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="r1"><input type="checkbox" id="r1" name="recording.lower_volume" checked> 録音中に音量を下げる</label>
+                  <code class="key">recording.lower_volume</code>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label class="check" for="r4"><input type="checkbox" id="r4" name="recording.hide_window" aria-describedby="r4-help"> 録音の画面を出さない</label>
+                  <code class="key">recording.hide_window</code>
+                  <p class="field-help" id="r4-help">オンにすると、録音と文字起こしの間はトレイのアイコンとホットキーだけで操作する。</p>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="r2">録音中の音量の割合</label>
+                  <code class="key">recording.volume_percent</code>
+                  <span class="range"><input type="range" id="r2" name="recording.volume_percent" min="0" max="100" value="50"><output class="num" for="r2">50%</output></span>
+                </div>
+                <div class="row" data-reload="immediate">
+                  <label for="r3">音量を変えるときの秒数</label>
+                  <code class="key">recording.fade_sec</code>
+                  <input type="number" id="r3" name="recording.fade_sec" value="0.5" step="0.1" min="0">
+                </div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="settings__foot">
+            <div class="settings__actions">
+              <a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+              <span class="spacer"></span>
+              <a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+              <button type="button" class="btn btn--primary">保存</button>
+            </div>
+          </div>
+        </div>
+        <p class="scene-note">新しい欄は「再起動で反映」ではないため、「保存」で動いている常駐アプリに適用し、次の録音から有効になる。Windows と Linux のどちらでも同じ欄を出す。</p>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,72 @@
+$ .venv/Scripts/python.exe -m pytest tests/unit -p no:cacheprovider -q --continue-on-collection-errors
+........................................................................ [  7%]
+........................................................................ [ 15%]
+........................................................................ [ 23%]
+..............................................sssss....................s [ 31%]
+ssssssssssssssssss...................................................... [ 39%]
+................ssssssssssss...sss...........ssssssssssssss............. [ 47%]
+........................................................................ [ 55%]
+........................................................................ [ 63%]
+...................................s...........Fss...................... [ 71%]
+........................................................................ [ 79%]
+........................................................................ [ 87%]
+........................................................................ [ 95%]
+..........................................                               [100%]
+=================================== ERRORS ====================================
+_ ERROR collecting tests/unit/voice_paste/features/recording/test_service.py __
+ImportError while importing test module 'C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-recording-keep-display-on\tests\unit\voice_paste\features\recording\test_service.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\voice_paste\features\recording\test_service.py:27: in <module>
+    from voice_paste.shared.errors import (
+E   ImportError: cannot import name 'DisplayInhibitError' from 'voice_paste.shared.errors' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-recording-keep-display-on\src\voice_paste\shared\errors.py)
+_ ERROR collecting tests/unit/voice_paste/integrations/display/test_adapter.py _
+ImportError while importing test module 'C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-recording-keep-display-on\tests\unit\voice_paste\integrations\display\test_adapter.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\voice_paste\integrations\display\test_adapter.py:15: in <module>
+    from voice_paste.shared.errors import DisplayInhibitError
+E   ImportError: cannot import name 'DisplayInhibitError' from 'voice_paste.shared.errors' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-recording-keep-display-on\src\voice_paste\shared\errors.py)
+_ ERROR collecting tests/unit/voice_paste/integrations/display/test_adapter_linux.py _
+ImportError while importing test module 'C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-recording-keep-display-on\tests\unit\voice_paste\integrations\display\test_adapter_linux.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\voice_paste\integrations\display\test_adapter_linux.py:18: in <module>
+    from voice_paste.shared.errors import DisplayInhibitError
+E   ImportError: cannot import name 'DisplayInhibitError' from 'voice_paste.shared.errors' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-recording-keep-display-on\src\voice_paste\shared\errors.py)
+================================== FAILURES ===================================
+_________________ test_select_platform_adapters_when_windows __________________
+
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2094/test_select_platform_adapters_0')
+
+    @pytest.mark.skipif(sys.platform != "win32", reason="Windows 専用の実装を読み込むため Linux では流さない")
+    def test_select_platform_adapters_when_windows(tmp_path: Path) -> None:
+        """Windows は pycaw の音量・Edge・Win32 の排他を選ぶ（正常系）。"""
+        import subprocess
+    
+        from voice_paste.integrations.browser.opener import open_app_window
+>       from voice_paste.integrations.display.adapter import inhibit_display, release_display
+E       ModuleNotFoundError: No module named 'voice_paste.integrations.display'
+
+tests\unit\voice_paste\test_main.py:1167: ModuleNotFoundError
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-recording-keep-display-on\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/unit/voice_paste/test_main.py::test_select_platform_adapters_when_windows
+ERROR tests/unit/voice_paste/features/recording/test_service.py
+ERROR tests/unit/voice_paste/integrations/display/test_adapter.py
+ERROR tests/unit/voice_paste/integrations/display/test_adapter_linux.py
+1 failed, 849 passed, 56 skipped, 1 warning, 3 errors in 368.25s (0:06:08)

@@ -1307,6 +1307,7 @@ notes:
     | エンドポイントへ送信（カスタムプリセット） | `presets[]` のうち `kind = "endpoint"` の enabled・title・url・authorization・hotkey | プリセットの一覧 |
     | エンドポイントへ送信（オプション） | `preset_options.endpoint.timeout_sec` | 数値の欄（0.5 刻み）。補助文「既定は 1.5 秒で、10 秒まで入れられる。この秒数で届かなければ、再送せずにトレイで通知する。」 |
     | ホットキー | `hotkeys.start`・`hotkeys.pause`・`hotkeys.cancel`・`keyboard.paste_key` | ホットキーの欄 |
+    | 録音 | `recording.keep_display_on` | チェックボックス。まとまりの先頭に配置する。欄の名前「録音中に画面を暗くしない」。補助文「オンにすると、録音を始めてから終えるまで、PC の画面が自動で暗くならず、スクリーンセーバーも動かない。録音を終えると OS の設定どおりに戻る。」。Windows と Linux のどちらでも出す（モック `docs/mock/pages/settings/292/a-group-top/`） |
     | 録音 | `recording.lower_volume`・`recording.hide_window` | チェックボックス |
     | 録音 | `recording.volume_percent` | つまみ（0〜100、右に %） |
     | 録音 | `recording.fade_sec` | 数値の欄 |

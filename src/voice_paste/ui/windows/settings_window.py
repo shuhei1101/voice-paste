@@ -205,6 +205,7 @@ FIELD_LAYOUT: dict[str, tuple[str, ...]] = {
     PRESET_KIND_NAMES["endpoint"]: (PRESETS_FIELD_NAME, "preset_options.endpoint.timeout_sec"),
     "ホットキー": ("hotkeys.start", "hotkeys.pause", "hotkeys.cancel", "keyboard.paste_key"),
     "録音": (
+        "recording.keep_display_on",
         "recording.lower_volume",
         "recording.hide_window",
         "recording.volume_percent",
@@ -365,6 +366,10 @@ PRESET_URL_EXAMPLE: str = "https://example.com/hook"
 """プリセットの URL が空のときの文言に出す例。"""
 
 OPTION_NOTES: dict[str, str] = {
+    "recording.keep_display_on": (
+        "オンにすると、録音を始めてから終えるまで、PC の画面が自動で暗くならず、スクリーンセーバーも動かない。"
+        "録音を終えると OS の設定どおりに戻る。"
+    ),
     "preset_options.browser.open_delay_sec": "貼り付けてから Enter を送信するまでの秒数は「出力先」の値を使う。",
     "preset_options.endpoint.timeout_sec": (
         "既定は 1.5 秒で、10 秒まで入れられる。この秒数で届かなければ、再送せずにトレイで通知する。"

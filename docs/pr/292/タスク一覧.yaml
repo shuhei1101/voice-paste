@@ -80,4 +80,7 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-13T03:23:42.176331+00:00'
   - process: 結合テスト作成
-    status: todo
+    status: done
+    reason: IF-10・IF-8・IF-9 と設定画面の結合テストに画面の消灯の抑止を追加し、関係する 5 ファイルの全 pass を確認した
+    updated_by: planner
+    updated_at: '2026-11-13T03:35:17.361404+00:00'

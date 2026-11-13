@@ -49,7 +49,9 @@ docs:
   - page: docs/config/CFG-1.yaml
     new: false
     change: 録音中に画面を暗くしないかの設定のキーを `recording` に追加する
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T02:26:04.593505+00:00'
   - page: docs/guide/録音して貼り付ける.md
     new: false
     change: 録音中は設定でオンにしていれば画面が自動で暗くならず、録音を終えると戻ることを書き足す

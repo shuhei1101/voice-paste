@@ -45,7 +45,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-13T02:24:04.453536+00:00'
   - process: インターフェース定義設計
-    status: todo
+    status: done
+    reason: IF-10・IF-8・IF-9 の副作用と期待値に画面の消灯の抑止と解除を追加し、CFG-1 に recording.keep_display_on を追加した
+    updated_by: planner
+    updated_at: '2026-11-13T02:26:07.744796+00:00'
   - process: 部品設計
     status: skipped
     reason: プロジェクトが部品設計（docs/component）を持たないため

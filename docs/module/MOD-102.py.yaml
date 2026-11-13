@@ -106,6 +106,13 @@ classes:
         returns:
           type: list[dict[str, str]]
           description: hotkey・preset の dict の並び
+        unit_tests:
+          - name: test_collect
+            case: 正常
+            summary: 行を pynput の書式とそのときの名前で返却する
+            condition: （<ctrl>+<alt>+1、会議）の行と、キーが空の追加した行
+            mock: なし（offscreen の QApplication）
+            expected: '[{"hotkey": "<ctrl>+<alt>+1", "preset": "会議"}, {"hotkey": "", "preset": "既定"}]'
       - name: change_count
         title: 変えた数
         kind: メソッド
@@ -114,6 +121,13 @@ classes:
         returns:
           type: int
           description: 変えた行の数
+        unit_tests:
+          - name: test_change_count
+            case: 正常
+            summary: 追加・削除・キーかプリセットを変えた行を 1 件ずつ数える
+            condition: 3 行を set_rows した後、1 行目のキーを変え、2 行目を削除し、行を 1 つ追加する。別のケースで 1 行目のキーを変えてから元のキーに戻す
+            mock: なし（offscreen の QApplication）
+            expected: 3。元に戻したケースは 0
       - name: mark_saved
         title: 保存した行を基準にする
         kind: メソッド
@@ -122,6 +136,13 @@ classes:
         returns:
           type: None
           description: なし
+        unit_tests:
+          - name: test_mark_saved
+            case: 正常
+            summary: 保存した行を基準にし直す
+            condition: add_row の後に mark_saved を呼ぶ
+            mock: なし（offscreen の QApplication）
+            expected: change_count が 0 で、追加した行の背景が通常の行と同じ
       - name: focus_field
         title: 欄へのフォーカス
         kind: メソッド
@@ -141,6 +162,13 @@ classes:
         returns:
           type: None
           description: なし
+        unit_tests:
+          - name: test_focus_field
+            case: 正常
+            summary: 指定の行の欄へフォーカスを移す
+            condition: 2 行を set_rows した後、focus_field(1, "preset")
+            mock: なし（offscreen の QApplication）
+            expected: 2 行目の切り替える用語集のプリセットの選択欄にフォーカスがある
     refs:
       - SCR-9#elements[ショートカットの一覧]
     status: planned

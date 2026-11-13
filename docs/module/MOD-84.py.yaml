@@ -447,7 +447,7 @@ functions:
       7. 配線を、_StartupBuild でメインスレッドの外のスレッドに流す（build_handlers。notify・report_progress・notify_copied は UiBridge を部分適用した ui のもの、adapters は 3 で選んだ PlatformAdapters、environ は os.environ、unavailable は 3 で取得した使用できない機能、on_engine_created は _StartupBuild がエンジンを止める関数を記録する関数）。配線の間の通知（engine_fallback・engine_settings_mismatch）は、受ける UiController がまだ無いため、UiBridge.notified を Tray.show_failure へ queued でつなぎ、配線の結果を受けたときに除外する。実行している間も 11 のイベントループを回し、トレイを準備中のまま出す（モデルの取得の間もトレイのアイコンが出て、メニューを操作できる）。結果は _StartupBuild.done でメインスレッドへ戻り、4 でつないだ「再起動」「終了」を除外してから、8〜10 か下の StartupError の扱いをメインスレッドで行う
          - StartupError の場合、トレイを失敗にして起動の失敗を通知し（Tray.set_failed(settings_enabled=True)・Tray.show_failure(engine_unavailable, 理由)）、「設定…」だけを押せるまま 11 へ（設定画面は読み込んだ設定で開き、保存は settings.yaml へ書き込むだけにする。Handlers が無いため、UiDeps のうち録音・ホットキーの関数（start・pause・resume・complete・cancel・current_session・level・set_hotkey_capturing・reload_hotkeys）は何もしない関数にし、設定画面で保存してもホットキーの受付を始めない）
            - `[ERROR]` 起動に失敗した（理由）
-      8. ホットキーの受付を作り（PlatformAdapters.create_hotkey_listener(排他の名前, 3 で取った排他)）、UiController を作り（build_ui_deps）、UiBridge の通知の受け手につなぐ（notified → on_notified・progressed → on_progressed・copied → on_copied・glossary_preset_switched → on_glossary_preset_switched。9 で待ち受けを始められない通知を取りこぼさないよう、API より先に作る）
+      8. ホットキーの受付を作り（PlatformAdapters.create_hotkey_listener(排他の名前, 3 で取った排他)）、UiController を作り（build_ui_deps）、UiBridge の通知の受け手につなぐ（notified → on_notified・progressed → on_progressed・copied → on_copied・glossary_preset_switch_requested → on_glossary_preset_switch_requested。9 で待ち受けを始められない通知を取りこぼさないよう、API より先に作る）
       9. Handlers.web_api が None でなければブラウザの音声のキューを始め（WebJobQueue.start(`{tmp_dir}/web`)）、トークンを作り、API サーバーを起動する（create_token・build_fastapi（Handlers.web_api と設定の api.allowed_web_origins を引き渡す。web_api が None なら `/web/` の下のルートを持たない）・ApiServerRunner.start(API_START_TIMEOUT_SEC)）
          - True の場合だけ、トークンのファイルを書き込む（write_token_file）
          - False の場合、トークンのファイルを書き込まずに api_unavailable を通知して続ける（ホットキーとトレイからの録音は使用できる）。理由は「ポート {ポート} で待ち受けを始められません」の 1 文にする
@@ -748,7 +748,7 @@ functions:
         type: Callable[[str], None]
         required: true
         passing: positional
-        description: 補正に使用する用語集のプリセットを切り替える（switch_glossary_preset を部分適用したもの。ホットキーのスレッドから呼ぶ）
+        description: 補正に使用する用語集のプリセットの切り替えをメインスレッドへ頼む（ui の request_glossary_preset_switch に UiBridge を部分適用したもの。ホットキーのスレッドから呼ぶ）
     returns:
       type: dict[str, Callable[[], None]]
       description: pynput の書式のホットキー → 呼ぶ関数
@@ -919,10 +919,9 @@ functions:
     title: 用語集のプリセットの切り替え
     container: main.py
     usecase: 録音する
-    summary: 補正に使用する用語集のプリセット（`active_glossary_preset`）を指定のプリセットへ切り替えて settings.yaml に保存し、トレイで通知する。ショートカットのホットキーが呼ぶ
+    summary: 補正に使用する用語集のプリセット（`active_glossary_preset`）を指定のプリセットへ切り替えて settings.yaml に保存する（UiDeps.switch_glossary_preset）。apply_settings と同じくメインスレッドで呼び、設定の読み・書き・入れ替えを設定画面の保存と直列にする
     kind: 関数
     scope: public
-    thread_safe: true
     args:
       - name: name
         type: str
@@ -939,42 +938,43 @@ functions:
         required: true
         passing: injected
         description: 今の設定
-      - name: notify_switched
-        type: Callable[[str], None]
-        required: true
-        passing: injected
-        description: 切り替えの通知（ui の notify_glossary_preset_switched に UiBridge を部分適用したもの）
     returns:
-      type: None
-      description: なし
+      type: bool
+      description: 切り替えられたか（すでにそのプリセットのときも True）
     process: |-
       1. 最新の設定（store.latest()）の active_glossary_preset を name にした設定を作る（`model_copy(update=...)`）
-         - すでに name なら、書き込まずに 4 へ
+         - すでに name なら、書き込まずに True を返却する
       2. settings.yaml へ変わったキーだけを書き込む（save_settings(paths, store.latest(), 新しい設定)）
-         - OSError の場合、入れ替えずに通知もしない
+         - OSError の場合、入れ替えずに False を返却する
            - `[ERROR]` 用語集のプリセットを切り替えられなかった（理由。logger.exception）
       3. SettingsStore を入れ替える（録音セッションが固定している間は、その回は前のプリセットで補正する）
          - `[INFO]` 用語集のプリセットを切り替えた（プリセットの名前）
-      4. notify_switched(name) を呼ぶ
+      4. True を返却する
     unit_tests:
       - name: test_switch_glossary_preset
         case: 正常
         summary: 補正に使用するプリセットを切り替えて保存し、通知する
         condition: 一時フォルダの settings.yaml、glossary_presets に既定・会議、active_glossary_preset が既定の設定で name="会議"
-        mock: notify_switched
-        expected: settings.yaml の active_glossary_preset が 会議、store.latest().active_glossary_preset が 会議、notify_switched("会議") が 1 回呼ばれる
+        mock: なし
+        expected: True。settings.yaml の active_glossary_preset が 会議、store.latest().active_glossary_preset が 会議
       - name: test_switch_glossary_preset_when_already_active
         case: 正常
-        summary: すでにそのプリセットなら書き込まずに通知だけ出す
+        summary: すでにそのプリセットなら書き込まない
         condition: active_glossary_preset が 会議 の設定で name="会議"
-        mock: notify_switched・save_settings（呼ばれた回数を記録する）
-        expected: save_settings が呼ばれず、notify_switched("会議") が 1 回呼ばれる
+        mock: save_settings（呼ばれた回数を記録する）
+        expected: True。save_settings が呼ばれない
       - name: test_switch_glossary_preset_when_write_fails
         case: 異常
         summary: 書き込めなければ切り替えない
         condition: save_settings が OSError を送出する
-        mock: notify_switched・save_settings
-        expected: 例外が外へ出ず、store.latest().active_glossary_preset が前のまま、notify_switched が呼ばれず、ERROR のログが 1 行出る
+        mock: save_settings
+        expected: False。例外が外へ出ず、store.latest().active_glossary_preset が前のまま、ERROR のログが 1 行出る
+      - name: test_switch_glossary_preset_after_apply_settings
+        case: 正常
+        summary: 設定画面の保存の直後に切り替えても、保存した値を失わない
+        condition: 一時フォルダの settings.yaml で、apply_settings で recording.volume_percent=30 の設定を保存した直後に、同じスレッドで switch_glossary_preset("会議") を呼ぶ（ショートカットの依頼が保存とメインスレッドのイベントで続いた順）
+        mock: check_hotkeys
+        expected: store.latest() と settings.yaml の recording.volume_percent が 30 で、active_glossary_preset が 会議
     refs:
       - SC-8#
     status: planned
@@ -1038,7 +1038,7 @@ functions:
       description: 画面の依存
     process: |-
       1. start に start_local_session(tray)、pause・resume・cancel・current_session・switch_output に SessionManager のメソッド、complete に output_id・preset で SessionManager.complete を呼ぶ関数、level に recorder_level、get_settings に SettingsStore.latest を引き渡す（エンジンを準備できなかった起動の UiDeps の switch_output は、ほかの録音の関数と同じく何もしない関数）
-      2. set_hotkey_capturing に hotkey_listener.set_suspended、reload_hotkeys に SettingsStore.latest の設定と show_recording_window と switch_glossary_preset で build_hotkey_bindings して hotkey_listener.start を呼ぶ関数を引き渡す（Wayland のセッションの GnomeShortcutListener では、入力待ちの間だけカスタムショートカットの登録を解除する）
+      2. set_hotkey_capturing に hotkey_listener.set_suspended、reload_hotkeys に SettingsStore.latest の設定と show_recording_window と request_glossary_preset_switch（UiBridge を部分適用したもの）で build_hotkey_bindings して hotkey_listener.start を呼ぶ関数、switch_glossary_preset に paths と SettingsStore を部分適用した switch_glossary_preset を引き渡す（エンジンを準備できなかった起動の UiDeps の switch_glossary_preset は False を返却する関数）（Wayland のセッションの GnomeShortcutListener では、入力待ちの間だけカスタムショートカットの登録を解除する）
       3. settings_dir に settings.yaml のフォルダ、log_dir にログのフォルダを引き渡す
       4. output_titles に、OUTPUTS のうち api_only でない出力先の ID → title を引き渡す（エンジンを準備できなかった起動の UiDeps も同じ）
       5. apply_theme に引数の apply_theme を引き渡す（エンジンを準備できなかった起動の UiDeps も同じ）

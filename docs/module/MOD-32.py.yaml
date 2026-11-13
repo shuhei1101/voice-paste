@@ -19,9 +19,9 @@ classes:
       - name: progressed
         type: Signal(float, float)
         description: 文字起こしの区間の終わりの時刻と録音の長さ（秒）
-      - name: glossary_preset_switched
+      - name: glossary_preset_switch_requested
         type: Signal(str)
-        description: ショートカットで補正に使用する用語集のプリセットを切り替えた（切り替えたプリセットの名前）。UiController.on_glossary_preset_switched へ
+        description: ショートカットが押され、補正に使用する用語集のプリセットの切り替えを頼んだ（切り替えるプリセットの名前）。UiController.on_glossary_preset_switch_requested へ（設定の書き込みを設定画面の保存と同じメインスレッドで直列にする）
       - name: copied
         type: Signal(str)
         description: コピーの完了と起こした文字
@@ -148,11 +148,11 @@ functions:
     status: planned
     refs:
       - SCR-2#elements[もう一度コピー]
-  - name: notify_glossary_preset_switched
-    title: 用語集のプリセットの切り替えの知らせ
+  - name: request_glossary_preset_switch
+    title: 用語集のプリセットの切り替えの依頼
     container: ui/bridge.py
     usecase: 録音する
-    summary: UiBridge.glossary_preset_switched を emit して、メインスレッドでトレイに切り替えの通知を出す
+    summary: UiBridge.glossary_preset_switch_requested を emit して、メインスレッドで用語集のプリセットを切り替える（ホットキーのスレッドから呼ぶ）
     kind: 関数
     scope: public
     thread_safe: true
@@ -161,7 +161,7 @@ functions:
         type: str
         required: true
         passing: positional
-        description: 切り替えた用語集のプリセットの名前
+        description: 切り替える用語集のプリセットの名前
       - name: bridge
         type: UiBridge
         required: true
@@ -171,14 +171,14 @@ functions:
       type: None
       description: なし
     process: |-
-      1. `bridge.glossary_preset_switched.emit(name)` を呼ぶ
-         - `[INFO]` ユーザーへの通知（glossary_preset_switched・プリセットの名前）
+      1. `bridge.glossary_preset_switch_requested.emit(name)` を呼ぶ
+         - `[INFO]` 用語集のプリセットの切り替えを頼んだ（プリセットの名前）
     unit_tests:
-      - name: test_notify_glossary_preset_switched
+      - name: test_request_glossary_preset_switch
         case: 正常
         summary: プリセットの名前を Signal で引き渡す
         condition: name="会議"
-        mock: なし（glossary_preset_switched に受け手をつなぐ）
+        mock: なし（glossary_preset_switch_requested に受け手をつなぐ）
         expected: 受け手に "会議" が届き、INFO のログが 1 行出る
     refs:
       - SCR-2#notes

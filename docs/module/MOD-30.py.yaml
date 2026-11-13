@@ -60,6 +60,9 @@ data_models:
       - name: set_hotkey_capturing
         type: Callable[[bool], None]
         description: 設定画面のホットキーの欄が入力待ちに入る（True）・出る（False）ことを伝える（HotkeyListener.set_suspended か GnomeShortcutListener.set_suspended）。入力待ちの間に押したキーで録音・確定・一時停止・取り消し・ショートカットが動かないようにする
+      - name: switch_glossary_preset
+        type: Callable[[str], bool]
+        description: 補正に使用する用語集のプリセットを切り替えて保存し、切り替えられたかを返却する（main の switch_glossary_preset を部分適用したもの。メインスレッドで呼ぶ）
       - name: reload_hotkeys
         type: Callable[[], None]
         description: 最新の設定でホットキーの受付を張り直す（SettingsStore.latest で build_hotkey_bindings → HotkeyListener.start か GnomeShortcutListener.start）。設定画面の保存・既定に戻すの後に呼ぶ
@@ -390,9 +393,9 @@ classes:
           1. UiDeps.set_hotkey_capturing(False) を呼ぶ
           2. 設定画面を手放し、deleteLater で破棄する（中のコンボボックスのポップアップの窓も一緒に消える）
              - 欄のシグナルに SettingsWindow のメソッドをつないでいるため、参照を手放しただけでは GC で消えず、トップレベルの窓が開くたびに積もる
-      - name: on_glossary_preset_switched
-        title: 用語集のプリセットを切り替えた
-        summary: UiBridge.glossary_preset_switched のスロット。トレイに切り替えの通知を出す（Tray.show_glossary_preset_switched）。設定画面が開いていても、画面の「補正に使うプリセット」の選択は変えない
+      - name: on_glossary_preset_switch_requested
+        title: 用語集のプリセットの切り替え
+        summary: UiBridge.glossary_preset_switch_requested のスロット（メインスレッド）。UiDeps.switch_glossary_preset で切り替え、切り替えられたらトレイに切り替えの通知を出す（Tray.show_glossary_preset_switched）。設定画面が開いていても、画面の「補正に使うプリセット」の選択は変えない
         kind: メソッド
         scope: public
         args:
@@ -400,17 +403,23 @@ classes:
             type: str
             required: true
             passing: positional
-            description: 切り替えた用語集のプリセットの名前
+            description: 切り替える用語集のプリセットの名前
         returns:
           type: None
           description: なし
         unit_tests:
-          - name: test_on_glossary_preset_switched
+          - name: test_on_glossary_preset_switch_requested
             case: 正常
-            summary: トレイに切り替えの通知を出す
-            condition: name="会議"
+            summary: 切り替えてトレイに通知を出す
+            condition: name="会議"、UiDeps.switch_glossary_preset が True を返却する
             mock: UiDeps の全関数・Tray
-            expected: Tray.show_glossary_preset_switched("会議") が 1 回呼ばれる
+            expected: UiDeps.switch_glossary_preset("会議") と Tray.show_glossary_preset_switched("会議") が 1 回ずつ呼ばれる
+          - name: test_on_glossary_preset_switch_requested_when_failed
+            case: 異常
+            summary: 切り替えられなければ通知しない
+            condition: UiDeps.switch_glossary_preset が False を返却する
+            mock: UiDeps の全関数・Tray
+            expected: Tray.show_glossary_preset_switched が呼ばれない
         status: planned
         introduced:
           pr: 291

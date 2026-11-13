@@ -79,4 +79,4 @@ docs:
 scope_out:
   - item: voice-paste の API を呼ぶほかのシステム（MindStella の音声入力など）のブラウザの画面での画面の消灯の抑止（Screen Wake Lock）
     reason: 画面を持つのは呼び出し元のリポジトリで、voice-paste の変更では届かない。ただし PC 上のブラウザから API で録音している場合は常駐アプリの抑止で PC の画面は暗くならないため、起票が要るのはスマートフォンなど別の端末のブラウザから呼ぶ場合だけ。起票の要否は単一ユースケース設計のレビューで確定する
-    plan: to_file
+    plan: '295'

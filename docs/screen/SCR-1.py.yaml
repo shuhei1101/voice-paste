@@ -35,15 +35,33 @@ elements:
     id: menu_settings
     kind: menu_item
     position: メニュー > 区切りの後 > 3 番目
-    description: 設定画面を開く。文字起こしのエンジンを準備できなかった起動でも、設定を修正して再起動できるよう押せるまま残す。設定を読み込めなかった起動では、読み込んだ設定が無いため押せない
-    label: 設定…（処理中は「設定…（処理中）」）
+    description: 設定画面を出力先のまとまりを選んで開く。設定画面が開いていれば、新しい窓を作らずに最小化を戻して最前面に出し、まとまりは変えない。文字起こしのエンジンを準備できなかった起動でも、設定を修正して再起動できるよう押せるまま残す。設定を読み込めなかった起動では、読み込んだ設定が無いため押せない
+    label: 設定…
     visible_when: 常時
-    enabled_when: 準備中（起動してから待機中か失敗になるまで）でなく、録音から届けるまでの間（API から始めた録音の間を含む）でもなく、設定を読み込めなかった起動でもないとき
+    enabled_when: 準備中（起動してから待機中か失敗になるまで）でなく、設定を読み込めなかった起動でもないとき。録音から届けるまでの間（API から始めた録音の間を含む）も押せる
     action_ref: SCR-9#
+  - name: 用語集の設定…
+    id: menu_settings_glossary
+    kind: menu_item
+    position: メニュー > 4 番目
+    description: 設定画面を用語集のまとまりを選んで開く。設定画面が開いていれば、新しい窓を作らずに最小化を戻して最前面に出し、用語集のまとまりへ切り替える
+    label: 用語集の設定…
+    visible_when: 常時
+    enabled_when: 「設定…」と同じ
+    action_ref: SCR-9#elements[用語集のプリセットの一覧]
+  - name: ショートカットの設定…
+    id: menu_settings_shortcuts
+    kind: menu_item
+    position: メニュー > 5 番目
+    description: 設定画面をショートカットのまとまりを選んで開き、ショートカットの一覧の末尾に行を 1 つ追加する（追加した行の初期値は 設定画面 の行の追加ボタン）。設定画面が開いていれば、新しい窓を作らずに最小化を戻して最前面に出し、ショートカットのまとまりへ切り替えて行を 1 つ追加する
+    label: ショートカットの設定…
+    visible_when: 常時
+    enabled_when: 「設定…」と同じ
+    action_ref: SCR-9#elements[ショートカットの一覧]
   - name: 設定フォルダを開く
     id: menu_open_settings_folder
     kind: menu_item
-    position: メニュー > 4 番目
+    position: メニュー > 6 番目
     description: settings.yaml のあるフォルダをエクスプローラーで開く
     label: 設定フォルダを開く
     visible_when: 常時
@@ -51,7 +69,7 @@ elements:
   - name: ログフォルダを開く
     id: menu_open_log_folder
     kind: menu_item
-    position: メニュー > 5 番目
+    position: メニュー > 7 番目
     description: ログのフォルダをエクスプローラーで開く
     label: ログフォルダを開く
     visible_when: 常時
@@ -59,7 +77,7 @@ elements:
   - name: 再起動
     id: menu_restart
     kind: menu_item
-    position: メニュー > 区切りの後 > 6 番目
+    position: メニュー > 区切りの後 > 8 番目
     description: 常駐アプリを再起動する（処理中の扱いは補足）
     label: 再起動
     visible_when: 常時
@@ -67,7 +85,7 @@ elements:
   - name: 終了
     id: menu_quit
     kind: menu_item
-    position: メニュー > 7 番目
+    position: メニュー > 9 番目
     description: 常駐アプリを終了する（処理中の扱いは補足）
     label: 終了
     visible_when: 常時
@@ -84,7 +102,7 @@ elements:
     refs:
       - SCR-10#
 screen: src/voice_paste/ui/tray.py
-mock: docs/mock/pages/tray/48/a-show-item/
+mock: docs/mock/pages/tray/291/a-menu-items/
 lead: 常駐アプリの入口。アイコンで状態を示し、右クリックでメニューを開く。
 refs:
   - SC-2#

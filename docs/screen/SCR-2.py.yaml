@@ -6,10 +6,10 @@ elements:
     id: tray_notification
     kind: notification
     position: 通知
-    description: トレイのアイコンから出す Windows の通知。アプリ名は voice-paste。モーダルにせず、作業中のアプリの入力を遮らない。失敗の通知は警告のアイコン、コピーの完了の通知は情報のアイコンで出す
-    visible_when: '`notify` で microphone_unavailable・transcription_failed・delivery_failed・api_unavailable・engine_fallback・engine_settings_mismatch を受けたとき、`notify_copied` でコピーの完了を受けたときと、文字起こしのエンジンを準備できなかった・設定ファイルを読み込めなかった・Linux の Wayland のセッションで貼り付けのキーを送信する仮想のキーボードを作れなかった（`paste_unavailable`）起動のとき'
+    description: トレイのアイコンから出す Windows の通知。アプリ名は voice-paste。モーダルにせず、作業中のアプリの入力を遮らない。失敗の通知は警告のアイコン、コピーの完了と用語集のプリセットの切り替えの通知は情報のアイコンで出す
+    visible_when: '`notify` で microphone_unavailable・transcription_failed・delivery_failed・api_unavailable・engine_fallback・engine_settings_mismatch を受けたとき、`notify_copied` でコピーの完了を受けたとき、`notify_glossary_preset_switched` で用語集のプリセットの切り替えを受けたときと、文字起こしのエンジンを準備できなかった・設定ファイルを読み込めなかった・Linux の Wayland のセッションで貼り付けのキーを送信する仮想のキーボードを作れなかった（`paste_unavailable`）起動のとき'
     source: UiBridge.notified（通知の種類と理由）・UiBridge.copied（起こした文字）
-    action: 押すと、失敗の通知はログフォルダを開き、コピーの完了の通知は起こした文字をもう一度コピーする。閉じると待機中（トレイ）に戻る
+    action: 押すと、失敗の通知はログフォルダを開き、コピーの完了の通知は起こした文字をもう一度コピーする。用語集のプリセットの切り替えの通知は押しても何もしない。閉じると待機中（トレイ）に戻る
   - name: 見出し
     id: notification_title
     kind: label
@@ -34,7 +34,7 @@ elements:
     position: 通知 > 下
     description: 失敗の通知の操作。ログのフォルダをエクスプローラーで開く
     label: ログフォルダを開く
-    visible_when: 失敗の通知（コピーの完了の通知を除く全ての通知）
+    visible_when: 失敗の通知（コピーの完了と用語集のプリセットの切り替えの通知を除く全ての通知）
     action: ログのフォルダを開く
   - name: もう一度コピー
     id: recopy
@@ -46,7 +46,7 @@ elements:
     action: 起こした文字をクリップボードへ書き込む
 screen: src/voice_paste/ui/tray.py
 mock: docs/mock/pages/tray-notification/37/a-notification/
-lead: 裏の処理で起きた失敗と、「コピーのみ」のコピーの完了を Windows の通知で通知する。通知は数秒で畳まれ、通知センターには残らない。畳まれた後は、失敗の理由をトレイのメニューの「ログフォルダを開く」から確認する。
+lead: 裏の処理で起きた失敗と、「コピーのみ」のコピーの完了と、ショートカットでの用語集のプリセットの切り替えを Windows の通知で通知する。通知は数秒で畳まれ、通知センターには残らない。畳まれた後は、失敗の理由をトレイのメニューの「ログフォルダを開く」から確認する。
 refs:
   - MOD-32#functions[notify]
   - SC-5#
@@ -64,6 +64,7 @@ notes:
     | 文字起こしのエンジンを準備できない（`engine_unavailable`） | 起動できませんでした | 文字起こしのエンジンを準備できませんでした（{理由}）。設定を修正して再起動してください。 |
     | 設定ファイルを読めない（`settings_invalid`） | 起動できませんでした | 設定ファイルを読み込めませんでした（{理由}）。{読めなかったファイルのパス} を修正して再起動してください。 |
     | コピーの完了（`notify_copied`） | コピーしました | 任意の場所に貼り付けてください。この通知を押すと、もう一度コピーします。 |
+    | 用語集のプリセットの切り替え（`notify_glossary_preset_switched`） | 用語集のプリセットを切り替えました | 次の録音から「{プリセットの名前}」で補正します。 |
 
     {理由} は `notify` の `detail` を 1 文で出し、詳しい内容はログに書く。{読めなかったファイルのパス} は、重ねた設定がモデルに合わないときは読んだ `settings.yaml`・`settings.local.yaml` を「・」でつないで出す。{違う項目} は、設定と違うものを「モデル」「計算の精度」「装置」の順に「・」でつないで出す。届けられないときは、どの出力先でも同じ見出しで出し、理由を変える。
     Linux の Wayland のセッションで貼り付けのキーを送信できないときは、`delivery_failed` の {理由} を「貼り付けのキーを送信できません。起こした文字はクリップボードにあります」にする。

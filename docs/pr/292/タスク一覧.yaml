@@ -40,7 +40,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-13T00:01:30.417440+00:00'
   - process: モック作成
-    status: todo
+    status: done
+    reason: 設定画面（settings/292）と外の端末の画面（web-transcription/292）のモックにユーザーが合意した
+    updated_by: planner
+    updated_at: '2026-11-13T02:24:04.453536+00:00'
   - process: インターフェース定義設計
     status: todo
   - process: 部品設計

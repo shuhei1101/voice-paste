@@ -424,8 +424,12 @@ class TranscriptionSettings(_SettingsModel):
 
 
 class RecordingSettings(_SettingsModel):
-    """録音中のシステム音量と、画面を出さない設定。"""
+    """録音中のシステム音量・画面の消灯の抑止と、画面を出さない設定。"""
 
+    keep_display_on: bool = _required(
+        "録音中に画面を暗くしない。録音の間、画面の消灯とアイドルによるスリープを抑止するか",
+        reload=RELOAD_IMMEDIATE,
+    )
     lower_volume: bool = _required(
         "録音中にシステム音量を下げるか",
         reload=RELOAD_IMMEDIATE,
@@ -854,7 +858,7 @@ class Settings(_SettingsModel):
     """3 レイヤーを重ねた設定の全体。項目ごとに範囲・説明・再起動が要るかのマーカーを持つ。"""
 
     transcription: TranscriptionSettings = _group("使うエンジンと、エンジンごとの設定")
-    recording: RecordingSettings = _group("録音中の音量・画面を出さない設定")
+    recording: RecordingSettings = _group("録音中の音量・画面の消灯の抑止・画面を出さない設定")
     hotkeys: HotkeySettings = _group("録音の開始・一時停止・取り消しのホットキー")
     keyboard: KeyboardSettings = _group("貼り付けのキー")
     outputs: list[SerializeAsAny[OutputSettingsBase]] = Field(

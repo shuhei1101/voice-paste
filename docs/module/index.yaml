@@ -96,6 +96,10 @@ items:
     summary: 常駐アプリ / 外部連携 / adapter.py
   - page: MOD-75.py.yaml
     summary: 常駐アプリ / 外部連携 / noop.py
+  - page: MOD-102.py.yaml
+    summary: 常駐アプリ / 外部連携 / display/adapter.py
+  - page: MOD-103.py.yaml
+    summary: 常駐アプリ / 外部連携 / display/adapter_linux.py
   - page: MOD-67.py.yaml
     summary: 常駐アプリ / 外部連携 / client.py
   - page: MOD-94.py.yaml

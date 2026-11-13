@@ -37,6 +37,7 @@ def test_normal(stack: Stack) -> None:
     assert response.json()["session_id"] == stack.session().id
     assert stack.state() == "recording"
     assert len(stack.microphone.streams) == 1
+    assert stack.display.calls == ["inhibit"]
 
 
 def test_normal_when_continuous(stack: Stack) -> None:
@@ -173,6 +174,8 @@ def test_error_when_busy(stack: Stack) -> None:
     assert stack.state() == "recording"
     assert stack.session().entry == "hotkey"
     assert len(stack.microphone.streams) == 1
+    # 断った開始では抑止も解除も呼ばれず、処理中の録音の抑止が続いている
+    assert stack.display.calls == ["inhibit"]
 
 
 def test_error_when_microphone_unavailable(
@@ -189,6 +192,7 @@ def test_error_when_microphone_unavailable(
     # 検証
     assert response.status_code == 503
     assert stack.volume.level == VOLUME_BEFORE
+    assert stack.display.calls == ["inhibit", "release"]
     assert stack.state() is None
     stack.microphone.open_error = None
     assert stack.post("/sessions", json_body={"callback_url": stack.receiver.url}).status_code == 202

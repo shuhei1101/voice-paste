@@ -15,7 +15,12 @@ from datetime import UTC, datetime, timedelta
 from functools import partial
 from pathlib import Path
 
-from tests.support.inprocess import WavInput, ignore_lower_volume, ignore_restore_volume
+from tests.support.inprocess import (
+    WavInput,
+    ignore_display,
+    ignore_lower_volume,
+    ignore_restore_volume,
+)
 from tests.support.settings import load_test_default_settings
 from voice_paste.features.history import append_text, discard_temporary, save_recording
 from voice_paste.features.outputs import OUTPUTS, deliver
@@ -73,6 +78,8 @@ def build_light_manager(
     recorder = Recorder(
         lower_volume=ignore_lower_volume,
         restore_volume=ignore_restore_volume,
+        inhibit_display=ignore_display,
+        release_display=ignore_display,
         open_input=wav_input,
         get_settings=lambda: settings.recording,
         create_speech_detector=partial(StreamingVad, vad_session),

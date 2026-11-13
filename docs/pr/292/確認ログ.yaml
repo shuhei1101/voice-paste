@@ -1,0 +1,31 @@
+confirmations:
+  - topic: PoC のユーザーに依頼する観点（管理者権限の powercfg /requests の突き合わせと、消灯の目視）を実行するか
+    decision: 実行せず、AI の観測だけで成立とする（別案 B）
+    decided_by: reply
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/292#discussion_r4557681921
+  - topic: 「録音中に画面を暗くしない」設定の既定値
+    decision: オン（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/292#discussion_r4558053414
+  - topic: 外の端末の画面での画面を暗くしないかのオン・オフの選び方
+    decision: 外の端末の画面にオン・オフを配置し、端末ごとに保存する。既定はオン（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/292#discussion_r4558053980
+  - topic: 設定画面の「録音中に画面を暗くしない」の欄の位置と文言
+    decision: 「録音」のまとまりの先頭に、モックの文言で配置する（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit: d0d1d16
+    thread: https://github.com/shuhei1101/voice-paste/pull/292#discussion_r4558867344
+  - topic: 外の端末の画面の「録音中は画面を暗くしない」のチェックの位置と表示
+    decision: 用語集のプリセットの選択欄のすぐ下に配置し、録音中は変更不可、対応しないブラウザでは押せなくして使えないことを添える（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit: 0b54f59
+    thread: https://github.com/shuhei1101/voice-paste/pull/292#discussion_r4558868155

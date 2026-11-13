@@ -116,6 +116,8 @@ files:
   - topic:画面
 - path: pages/settings/288/index.md
   description: '#288（録音を開始した直後の取り消しで固まらないようにし、終了の処理中に録音を始められない理由を示す）で作った設定画面のモックの案を記載し、その変更の設定画面の案を確認するときに参照する。'
+- path: pages/settings/292/index.md
+  description: '#292（録音している間、画面が自動で暗くならないようにする設定を追加する）で作った設定画面のモックの案を記載し、その変更の設定画面の案を確認するときに参照する。'
   tags:
   - topic:モック
   - topic:画面
@@ -209,6 +211,11 @@ files:
   tags:
   - topic:モック
   - topic:画面
+- path: pages/web-transcription/292/index.md
+  description: '#292（録音している間、画面が自動で暗くならないようにする設定を追加する）で作った外の端末の文字起こしの画面のモックの案を記載し、その変更の外の端末の文字起こしの画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/web-transcription/index.md
   description: '外の端末の文字起こしの画面のモックの案を作業 PR ごとに記載し、外の端末の文字起こしの画面の見た目の変遷を確認するときに参照する。'
   tags:
@@ -266,6 +273,8 @@ files:
   - topic:pr
 - path: refs/288/index.md
   description: '#288（録音を開始した直後の取り消しで固まらないようにし、終了の処理中に録音を始められない理由を示す）で作った画面のモックへのリンクを記載し、その作業 PR の画面の案を確認するときに参照する。'
+- path: refs/292/index.md
+  description: '#292（録音している間、画面が自動で暗くならないようにする設定を追加する）で作った画面のモックへのリンクを記載し、その作業 PR の画面の案を確認するときに参照する。'
   tags:
   - topic:モック
   - topic:pr

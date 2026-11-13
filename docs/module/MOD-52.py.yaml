@@ -30,6 +30,7 @@ classes:
       | `DeliveryError` | 出力先へ届けられない | - |
       | `UnknownOutputError` | 選んだ出力先が一覧に無いかオフ（`DeliveryError` の子） | - |
       | `VolumeControlError` | システム音量を操作できない | - |
+      | `DisplayInhibitError` | 画面の消灯を抑止できない・抑止を解除できない | - |
       | `SettingsError` | 設定の値が合わない（合わないキーをメッセージに並べる）。読み込めなかったファイルのパスを `paths`（`tuple[Path, ...]`。キーワード引数で引き渡し、既定は空）に持ち、トレイの通知が本文に出す | - |
       | `StartupError` | 起動に失敗した（エンジンを準備できない・前のプロセスが排他を放さない） | - |
       | `HotkeyError` | ホットキーの書式を pynput が読み込めない | - |

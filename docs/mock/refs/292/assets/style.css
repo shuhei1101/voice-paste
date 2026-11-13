@@ -1,0 +1,36 @@
+/* ===== PR 292 の画面モック: 外の端末の文字起こしの画面の「録音中は画面を暗くしない」のチェック（refs/37・refs/171・refs/180 の style.css に重ねる） ===== */
+
+/* チェックのまとまり: チェックと補足を縦に積む */
+.keep-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* チェックとラベル: 押せる範囲をタップの高さにそろえ、スマホで拡大されない文字の大きさにする */
+.keep-field__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--touch-h);
+  font-size: 16px;
+  cursor: pointer;
+  & input {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    accent-color: var(--accent);
+  }
+  &:has(input:disabled) {
+    color: var(--text-2);
+    cursor: not-allowed;
+  }
+}
+
+/* 変えられない理由・使えない理由 */
+.keep-field__help {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-2);
+}

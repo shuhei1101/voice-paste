@@ -48,6 +48,7 @@ def test_normal_when_recording(stack: Stack) -> None:
     # 検証
     assert response.status_code == 202
     assert stack.volume.level == VOLUME_BEFORE
+    assert stack.display.calls == ["inhibit", "release"]
     assert stack.wait_for_received(1)
     assert len(stack.recordings()) == 1
 
@@ -69,6 +70,7 @@ def test_normal_when_continuous(stack: Stack) -> None:
     assert response.status_code == 202
     assert stack.microphone.streams[0].closed
     assert stack.volume.level == VOLUME_BEFORE
+    assert stack.display.calls == ["inhibit", "release"]
     assert stack.wait_for_idle()
     recordings = stack.recordings()
     assert [path.stem.rsplit("_", 1)[1] for path in recordings] == ["1", "2"]

@@ -54,6 +54,10 @@ items:
     summary: Linux でアクティブなウィンドウの WM_CLASS を Xorg から読み込む
   - page: LIB-6.yaml
     summary: Linux の Wayland のセッションで、仮想キーボードから貼り付けのキーと Enter を送信する
+  - page: LIB-33.yaml
+    summary: Windows で録音の間、画面の消灯とアイドルによるスリープを抑止する
+  - page: LIB-32.yaml
+    summary: Linux の GNOME のセッションで録音の間、アイドル（画面の消灯）を抑止する
   - page: LIB-1.yaml
     summary: Linux の Wayland のセッションで、フォーカスしているウィンドウの wm_class を GNOME Shell の拡張から読み込む
   - page: LIB-3.yaml

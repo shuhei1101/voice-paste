@@ -1,6 +1,6 @@
 """features/recording/service.py（Recorder の start・pause・resume・stop・discard・level・start_continuous・stop_continuous）の単体テスト。
 
-音量の操作・マイクの入力を開く関数・設定を返す関数・話し声の判定を作る関数は、呼び出しを記録する偽物に差し替える。
+音量の操作・画面の消灯の抑止・マイクの入力を開く関数・設定を返す関数・話し声の判定を作る関数は、呼び出しを記録する偽物に差し替える。
 マイクの入力は、入力のスレッドの代わりにテストが on_frames へ音を流す。
 連続録音の区切りのスレッドは本物を動かし、区間や失敗の知らせが届くのを待って確かめる。
 """
@@ -24,7 +24,11 @@ from tests.unit.voice_paste.features.recording.helpers import (
     segmenter_threads_gone,
     windows,
 )
-from voice_paste.shared.errors import MicrophoneUnavailableError, VolumeControlError
+from voice_paste.shared.errors import (
+    DisplayInhibitError,
+    MicrophoneUnavailableError,
+    VolumeControlError,
+)
 
 if TYPE_CHECKING:
     from voice_paste.features.recording.service import Recorder
@@ -64,6 +68,8 @@ class Harness:
     streams: list[FakeStream] = field(default_factory=list)
     lower_error: Exception | None = None
     restore_error: Exception | None = None
+    inhibit_error: Exception | None = None
+    release_error: Exception | None = None
     open_error: Exception | None = None
     # 連続録音を始めるたびに呼ばれ、新しい話し声の判定を返す（既定は常に無音と判定する）
     detector_factory: Callable[[], Callable[[np.ndarray], float]] = field(
@@ -93,6 +99,7 @@ def harness_factory() -> Iterator[Callable[..., Harness]]:
         lower_volume: bool = True,
         volume_percent: float = 50,
         fade_sec: float = FADE_SEC,
+        keep_display_on: bool = False,
     ) -> Harness:
         from tests.unit.voice_paste.settings_helpers import make_test_settings
         from voice_paste.features.recording.service import Recorder
@@ -103,6 +110,7 @@ def harness_factory() -> Iterator[Callable[..., Harness]]:
                     "lower_volume": lower_volume,
                     "volume_percent": volume_percent,
                     "fade_sec": fade_sec,
+                    "keep_display_on": keep_display_on,
                 }
             }
         ).recording
@@ -121,6 +129,16 @@ def harness_factory() -> Iterator[Callable[..., Harness]]:
             if harness.restore_error is not None:
                 raise harness.restore_error
 
+        def fake_inhibit_display() -> None:
+            harness.events.append("inhibit_display")
+            if harness.inhibit_error is not None:
+                raise harness.inhibit_error
+
+        def fake_release_display() -> None:
+            harness.events.append("release_display")
+            if harness.release_error is not None:
+                raise harness.release_error
+
         def fake_open_input(on_frames: Callable[[np.ndarray], None]) -> FakeStream:
             harness.events.append("open_input")
             if harness.open_error is not None:
@@ -132,6 +150,8 @@ def harness_factory() -> Iterator[Callable[..., Harness]]:
         harness.recorder = Recorder(
             lower_volume=fake_lower_volume,
             restore_volume=fake_restore_volume,
+            inhibit_display=fake_inhibit_display,
+            release_display=fake_release_display,
             open_input=fake_open_input,
             get_settings=lambda: settings,
             create_speech_detector=lambda: harness.detector_factory(),
@@ -219,6 +239,64 @@ def test_start_when_already_recording(harness_factory: Callable[..., Harness]) -
     assert harness.events == ["lower_volume", "open_input"]
 
 
+def test_start_when_keep_display_on(harness_factory: Callable[..., Harness]) -> None:
+    """画面を暗くしない設定なら抑止してからマイクを開く（正常系）。"""
+    # 準備
+    harness = harness_factory(keep_display_on=True)
+
+    # 実行
+    harness.recorder.start()
+
+    # 検証
+    assert harness.events == ["lower_volume", "inhibit_display", "open_input"]
+
+
+def test_start_when_keep_display_off(harness_factory: Callable[..., Harness]) -> None:
+    """画面を暗くしない設定でなければ抑止に触れない（正常系）。"""
+    # 準備
+    harness = harness_factory(keep_display_on=False)
+
+    # 実行
+    harness.recorder.start()
+    harness.recorder.stop()
+
+    # 検証
+    assert "inhibit_display" not in harness.events
+    assert "release_display" not in harness.events
+
+
+def test_start_when_inhibit_failed(
+    harness_factory: Callable[..., Harness], caplog: pytest.LogCaptureFixture
+) -> None:
+    """抑止できなくても録音は始め、解除しない（正常系）。"""
+    # 準備
+    harness = harness_factory(keep_display_on=True)
+    harness.inhibit_error = DisplayInhibitError("電源要求を作れない")
+
+    # 実行
+    harness.recorder.start()
+    harness.recorder.stop()
+
+    # 検証
+    assert len(harness.streams) == 1
+    assert "release_display" not in harness.events
+    assert "画面の消灯を抑止できなかった" in caplog.text
+
+
+def test_start_when_microphone_unavailable_with_display(
+    harness_factory: Callable[..., Harness],
+) -> None:
+    """マイクを開けなければ抑止も解除する（異常系）。"""
+    # 準備
+    harness = harness_factory(keep_display_on=True)
+    harness.open_error = OSError("マイクが無い")
+
+    # 実行・検証
+    with pytest.raises(MicrophoneUnavailableError):
+        harness.recorder.start()
+    assert harness.events.count("release_display") == 1
+
+
 # === pause ===
 
 
@@ -303,6 +381,42 @@ def test_stop_when_restore_failed(harness_factory: Callable[..., Harness]) -> No
 
     # 検証
     assert recording.duration_sec == pytest.approx(1.0)
+
+
+def test_stop_when_display_inhibited(harness_factory: Callable[..., Harness]) -> None:
+    """抑止の解除は 1 回だけで、一時停止の間は解除しない（正常系）。"""
+    # 準備
+    harness = harness_factory(keep_display_on=True)
+    harness.recorder.start()
+    harness.recorder.pause()
+    paused_events = list(harness.events)
+    harness.recorder.resume()
+
+    # 実行
+    harness.recorder.stop()
+    harness.recorder.discard()
+
+    # 検証
+    assert "release_display" not in paused_events
+    assert harness.events.count("release_display") == 1
+
+
+def test_stop_when_release_failed(
+    harness_factory: Callable[..., Harness], caplog: pytest.LogCaptureFixture
+) -> None:
+    """抑止を解除できなくても録音は返す（正常系）。"""
+    # 準備
+    harness = harness_factory(keep_display_on=True)
+    harness.recorder.start()
+    harness.feed(1.0)
+    harness.release_error = DisplayInhibitError("抑止を解けない")
+
+    # 実行
+    recording = harness.recorder.stop()
+
+    # 検証
+    assert recording.duration_sec == pytest.approx(1.0)
+    assert "画面の消灯の抑止を解除できなかった" in caplog.text
 
 
 def test_stop_when_not_recording(harness_factory: Callable[..., Harness]) -> None:

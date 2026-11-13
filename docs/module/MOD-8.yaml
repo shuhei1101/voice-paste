@@ -1,7 +1,7 @@
 id: MOD-8
 visibility: internal
 title: "常駐アプリ / 外部連携"
-lead: 文字起こしワーカーの子プロセス・OpenAI API の文字起こし・システム音量・キーボードとクリップボード・ブラウザ添付の画面を開くブラウザ・HTTP の POST・話し声の判定（Silero VAD）を包むアダプタ。feature の関数型を満たし、外の例外をアプリの例外に変える。
+lead: 文字起こしワーカーの子プロセス・OpenAI API の文字起こし・システム音量・画面の消灯の抑止・キーボードとクリップボード・ブラウザ添付の画面を開くブラウザ・HTTP の POST・話し声の判定（Silero VAD）を包むアダプタ。feature の関数型を満たし、外の例外をアプリの例外に変える。
 directory: |-
   ```
   src/voice_paste/integrations/
@@ -24,6 +24,9 @@ directory: |-
   ├── volume/
   │   ├── adapter.py    # lower_volume・restore_volume（pycaw を == で固定して包む。Windows だけが読み込む）
   │   └── noop.py       # lower_volume_noop・restore_volume_noop（Linux の、音量を変えない実装）
+  ├── display/
+  │   ├── adapter.py    # inhibit_display・release_display（Windows。電源要求の API を ctypes で呼ぶ。Windows だけが読み込む）
+  │   └── adapter_linux.py # inhibit_display_linux・release_display_linux（Linux。gnome-session-inhibit の子プロセス）
   ├── keyboard/
   │   ├── sender.py     # copy_to_clipboard・use_xclip_clipboard・split_paste_key・send_paste・send_enter・TERMINAL_WM_CLASSES
   │   ├── sender_linux.py # send_paste_linux（Linux。端末アプリなら Ctrl+Shift+V にし、主キーを XTEST で送信する）

@@ -1,0 +1,51 @@
+id: LIB-33
+visibility: internal
+title: "Windows の電源要求の API"
+kind: "標準ライブラリ"
+version:
+  current: Windows 7 以降の kernel32.dll
+  checked_on: '2026-11-13'
+  pinning: 固定しない。OS に入っている
+catalogs:
+  - name: kernel32 の関数
+    version: Windows 7 以降
+    entries:
+      - name: PowerCreateRequest
+        kind: 関数
+        purpose: 電源要求のオブジェクトを作る
+        description: '`REASON_CONTEXT`（Version 0・Flags `POWER_REQUEST_CONTEXT_SIMPLE_STRING`・理由の文字列）を受け、電源要求のハンドルを返却する。失敗すると `INVALID_HANDLE_VALUE` を返却する。常駐アプリは標準ライブラリの ctypes で呼ぶ'
+        returns:
+          - name: '-'
+            type: HANDLE
+            description: 電源要求のハンドル。使用し終えたら CloseHandle で閉じる
+      - name: PowerSetRequest
+        kind: 関数
+        purpose: 画面の消灯とアイドルによるスリープを抑止する
+        description: ハンドルと要求の種類を受ける。常駐アプリは `PowerRequestDisplayRequired`（0）と `PowerRequestSystemRequired`（1）の 2 つを設定する。要求はハンドルに紐づき、呼んだスレッドに紐づかない（`SetThreadExecutionState` と違い、呼んだスレッドが終わっても続く）。プロセスが終わるとハンドルとともに OS が解く
+        returns:
+          - name: '-'
+            type: BOOL
+            description: 0 なら失敗（理由は GetLastError）
+      - name: PowerClearRequest
+        kind: 関数
+        purpose: 抑止を解く
+        description: PowerSetRequest と同じ種類を受け、その要求を解く
+        returns:
+          - name: '-'
+            type: BOOL
+            description: 0 なら失敗
+lead: 画面の消灯・アイドルによるスリープを抑止する Windows の電源要求の API（kernel32.dll）。要求はハンドルで持ち、呼んだスレッドに紐づかない。
+supplier: Microsoft
+dependency_scope: 必須
+adoption: 採用
+used_in:
+  - src/voice_paste/integrations/display/adapter.py
+verification:
+  state: 済
+  date: '2026-11-13'
+  detail: PoC [#293](https://github.com/shuhei1101/voice-paste/pull/293) で、Windows の Python の ctypes から呼び、依頼したスレッドが終わった後も非昇格の `CallNtPowerInformation(SystemExecutionState)` に `ES_DISPLAY_REQUIRED` が残り、PowerClearRequest とプロセスの強制終了で消えることを確かめた。スクリーンセーバーを 1 分にして 90 秒無操作のとき、抑止の間は動かず、抑止なしでは動いた（[検証コード](https://github.com/shuhei1101/voice-paste/blob/93b1ef1/poc/keep-display-on/windows_inhibit.py)）。昇格した `powercfg /requests` での突き合わせと消灯の目視は、ユーザーの判断で行っていない
+license: Windows の一部（常駐アプリに同梱しない）
+official_url: https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-powersetrequest
+install: 不要（Windows に入っている）
+refs:
+  - SC-8#

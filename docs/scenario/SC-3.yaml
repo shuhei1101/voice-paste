@@ -5,7 +5,7 @@ scenarios:
   - name: 正常シナリオ（画面で録る）
     setup:
       - name: Mock
-        description: Windows の Edge を偽のマイクで起動し、画面を開く。常駐アプリは pytest のプロセスの中で起動し、文字起こしのエンジンは受けたパスを記録する関数に差し替える
+        description: Windows の Edge を偽のマイクで起動し、画面を開く。Screen Wake Lock は取得と解放を記録するものに差し替える。常駐アプリは pytest のプロセスの中で起動し、文字起こしのエンジンは受けたパスを記録する関数に差し替える
         notes: 偽のマイクには SAPI で書き出した WAV を供給する
       - name: 許す Origin
         description: 画面を開いたオリジンを許す Origin の一覧に入れる
@@ -21,8 +21,10 @@ scenarios:
         participant SVC as 常駐サービス
 
         U->>PG: 録音を始める
+        PG->>PG: 画面の消灯を抑止する（Screen Wake Lock を取得する）
         PG->>PG: MediaRecorder の形式を選んで録り、残り時間を出す
         U->>PG: 録音を停止する
+        PG->>PG: Screen Wake Lock を解放する
         PG->>DB: 録った音声を保存日時つきで残す（前の 1 件を置き換える）
         PG->>API: 音声を送信する（multipart の audio）
         API->>API: Origin・大きさ・形式を確認する
@@ -37,6 +39,7 @@ scenarios:
       - 端末（IndexedDB）に録った音声が 1 件だけ、保存日時つきで残っている
       - '`GET /web/transcriptions/{job_id}` がそのジョブ（`queued` か `running`）を返却する'
       - 結果の一覧の先頭に待ちの件が出ている
+      - 録音を始めたときに Screen Wake Lock を 1 回取得し、停止したときに解放している
       - 録った音声で 録音を文字に起こす へ進む
     test: test_normal_when_record_in_page
   - name: 正常シナリオ（ファイルを選ぶ）
@@ -75,7 +78,7 @@ scenarios:
   - name: 正常シナリオ（録音時間の上限に達する）
     setup:
       - name: Mock
-        description: Windows の Edge を偽のマイクで起動し、画面を開く。画面の時計を進められるようにする
+        description: Windows の Edge を偽のマイクで起動し、画面を開く。画面の時計を進められるようにする。Screen Wake Lock は取得と解放を記録するものに差し替える
         notes: 録音の上限時間は非機能要件の決定値（30 分）
     flow: |-
       <!-- map: {"title": "正常シナリオ（録音時間の上限に達する）"} -->
@@ -89,7 +92,7 @@ scenarios:
 
         U->>PG: 録音を始める
         PG->>PG: 残り時間を出して録る
-        PG->>PG: 上限時間に達して録音を停止する
+        PG->>PG: 上限時間に達して録音を停止し、Screen Wake Lock を解放する
         PG->>DB: 録った音声を残す
         PG->>API: 音声を送信する
         API-->>PG: 202（job_id）
@@ -99,7 +102,91 @@ scenarios:
     expected:
       - 上限時間で録音が停止し、そこまでの音声が端末に残って送信されている
       - 録音が上限で停止したことが画面に出ている
+      - 上限で停止したときに Screen Wake Lock を解放している
     test: test_normal_when_recording_limit_reached
+  - name: 正常シナリオ（録音中に画面を離れて戻る）
+    setup:
+      - name: Mock
+        description: Windows の Edge を偽のマイクで起動し、画面を開く。Screen Wake Lock は取得と解放を記録するものに差し替える
+    flow: |-
+      <!-- map: {"title": "正常シナリオ（録音中に画面を離れて戻る）"} -->
+
+      ```mermaid
+      sequenceDiagram
+        participant U as ユーザー
+        participant PG as 画面（ブラウザ）
+        participant BR as ブラウザ
+
+        U->>PG: 録音を始める
+        PG->>PG: Screen Wake Lock を取得する
+        U->>BR: ほかのタブ・アプリへ切り替える
+        BR->>PG: 画面が隠れたことを伝え、Screen Wake Lock を解放する
+        U->>BR: 画面へ戻る
+        BR->>PG: 画面が見えるようになったことを伝える
+        PG->>PG: 録音中なので Screen Wake Lock を取得し直す
+        U->>PG: 録音を停止する
+        PG->>PG: Screen Wake Lock を解放する
+      ```
+
+      <!-- /map -->
+    expected:
+      - 画面へ戻ったときに、録音が続いていて Screen Wake Lock を取得し直している
+      - 停止した後に Screen Wake Lock を解放している
+    test: test_normal_when_leave_and_return_while_recording
+  - name: 正常シナリオ（画面を暗くしないかをオフにする）
+    setup:
+      - name: Mock
+        description: Windows の Edge を偽のマイクで起動し、画面を開く。Screen Wake Lock は取得と解放を記録するものに差し替える
+    flow: |-
+      <!-- map: {"title": "正常シナリオ（画面を暗くしないかをオフにする）"} -->
+
+      ```mermaid
+      sequenceDiagram
+        participant U as ユーザー
+        participant PG as 画面（ブラウザ）
+        participant LS as 端末（localStorage）
+
+        U->>PG: 録音中に画面を暗くしないかのチェックを外す
+        PG->>LS: オフを残す
+        U->>PG: 画面を開き直す
+        LS-->>PG: オフを読む
+        PG-->>U: チェックを外した状態で出す
+        U->>PG: 録音を始めて停止する
+        PG->>PG: Screen Wake Lock を取得しない
+      ```
+
+      <!-- /map -->
+    expected:
+      - 画面を開き直しても、チェックが外れたままである
+      - 録音の間に Screen Wake Lock を 1 回も取得していない
+    test: test_normal_when_turn_off_keep_screen_on
+  - name: 異常シナリオ（Screen Wake Lock を取得できない）
+    setup:
+      - name: Mock
+        description: Windows の Edge を偽のマイクで起動し、画面を開く。Screen Wake Lock は、取得すると拒否するものに差し替える
+        notes: 対応しないブラウザ（`navigator.wakeLock` が無い）と、取得が拒否されるとき（省電力のモードなど）の 2 通り。parametrize で並べる
+    flow: |-
+      <!-- map: {"title": "異常シナリオ（Screen Wake Lock を取得できない）"} -->
+
+      ```mermaid
+      sequenceDiagram
+        participant U as ユーザー
+        participant PG as 画面（ブラウザ）
+        participant API as API のサーバー
+
+        U->>PG: 録音を始める
+        PG->>PG: Screen Wake Lock を取得できず、ブラウザのコンソールに警告を出す
+        PG->>PG: 録音を続ける
+        U->>PG: 録音を停止する
+        PG->>API: 音声を送信する
+        API-->>PG: 202（job_id）
+      ```
+
+      <!-- /map -->
+    expected:
+      - 録音が止まらず、停止した後に送信が `202` で返っている
+      - 画面にエラーが出ていない
+    test: test_error_when_wake_lock_unavailable
   - name: 正常シナリオ（用語集のプリセットを選ぶ）
     setup:
       - name: Mock
@@ -297,4 +384,10 @@ trigger: ユーザーが画面で録音を停止するか、音声ファイル�
 preconditions:
   - 常駐サービスが Windows で起動しており、`/web/` でブラウザの音声を受け付けている（Linux で動いているときは `/web/` の下の要求を受け付けない）
   - 画面（`GET /web/`）を、設定の許す Origin の一覧にあるオリジンから開いている
+notes:
+  画面の消灯の抑止: |-
+    録音中に画面を暗くしないかのチェック（端末ごとに localStorage に残す。既定はオン）がオンのとき、画面で録っている間は Screen Wake Lock で端末の画面の消灯を抑止する。
+    録音の停止・上限での停止で解放する。画面が隠れるとブラウザが解放し、録音中に画面へ戻ったときに取得し直す。
+    録音中はチェックを変更できない（用語集のプリセットの選択欄と同じ）。
+    取得できないとき（対応しないブラウザ・拒否）は抑止せずに録音を続ける。対応しないブラウザ（`navigator.wakeLock` が無い）では、チェックを外して押せなくし、使えないことを添える。ファイルを選んで送信するときは抑止しない。
 test_file: tests/e2e/単一ユースケース/test_send_audio_from_browser.py

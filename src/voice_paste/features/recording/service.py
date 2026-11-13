@@ -1,4 +1,4 @@
-"""録音の開始・一時停止・再開・停止・破棄と、録音中の音の大きさ。連続録音では録音を止めずに区間を区切る。"""
+"""録音の開始・一時停止・再開・停止・破棄と、録音中の音の大きさ。録音の間は設定に従って音量を下げ、画面の消灯を抑止する。連続録音では録音を止めずに区間を区切る。"""
 
 from __future__ import annotations
 
@@ -14,11 +14,17 @@ from voice_paste.features.recording.client import DTYPE, SAMPLE_RATE
 from voice_paste.features.recording.segmenter import Segmenter
 from voice_paste.features.recording.types import (
     CreateSpeechDetectorFn,
+    InhibitDisplayFn,
     LowerVolumeFn,
     OpenInputFn,
+    ReleaseDisplayFn,
     RestoreVolumeFn,
 )
-from voice_paste.shared.errors import MicrophoneUnavailableError, VolumeControlError
+from voice_paste.shared.errors import (
+    DisplayInhibitError,
+    MicrophoneUnavailableError,
+    VolumeControlError,
+)
 from voice_paste.shared.settings import RecordingSettings
 from voice_paste.shared.types import OnContinuousFailedFn, OnSegmentFn, Recording
 
@@ -38,20 +44,24 @@ _DISCARD_MARK: np.ndarray = np.zeros(0, dtype=np.int16)
 
 
 class Recorder:
-    """開いているマイクの入力と貯めた音、下げる前の音量を持つ録音機。"""
+    """開いているマイクの入力と貯めた音、下げる前の音量、画面の消灯を抑止しているかを持つ録音機。"""
 
     def __init__(
         self,
         *,
         lower_volume: LowerVolumeFn,
         restore_volume: RestoreVolumeFn,
+        inhibit_display: InhibitDisplayFn,
+        release_display: ReleaseDisplayFn,
         open_input: OpenInputFn,
         get_settings: Callable[[], RecordingSettings],
         create_speech_detector: CreateSpeechDetectorFn,
     ) -> None:
-        """音量を下げる・戻す関数、マイクの入力を開く関数、今の録音の設定を返す関数、連続録音用の話し声の判定を作る関数を受ける。"""
+        """音量を下げる・戻す関数、画面の消灯を抑止する・解除する関数、マイクの入力を開く関数、今の録音の設定を返す関数、連続録音用の話し声の判定を作る関数を受ける。"""
         self._lower_volume = lower_volume
         self._restore_volume = restore_volume
+        self._inhibit_display = inhibit_display
+        self._release_display = release_display
         self._open_input = open_input
         self._get_settings = get_settings
         self._create_speech_detector = create_speech_detector
@@ -61,6 +71,8 @@ class Recorder:
         self._latest_frame: np.ndarray | None = None
         # 下げる前の音量。下げていなければ None
         self._volume_before: float | None = None
+        # この録音で画面の消灯を抑止しているか（抑止できたときだけ真。解除は真のときだけ 1 回）
+        self._display_inhibited = False
         # 始めたときに読んだ、音量を変えるときの秒数（戻すときも同じ値を使う）
         self._fade_sec = 0.0
         # 連続録音で、入力のスレッドから区切りのスレッドへ渡す音の待ち行列（None は残りを区切って終えるマーカー）と、そのスレッド。連続録音でなければ None
@@ -84,8 +96,12 @@ class Recorder:
         except Exception as error:  # noqa: BLE001 sounddevice が送出する例外の型は決まっていない
             logger.exception(f"マイクを開けなかった（{error}）")
             self._restore_volume_once()
+            self._release_display_once()
             raise MicrophoneUnavailableError(f"マイクを開けませんでした: {error}") from error
-        logger.info(f"録音を始めた（音量を下げた: {self._volume_before is not None}）")
+        logger.info(
+            f"録音を始めた（音量を下げた: {self._volume_before is not None}・"
+            f"画面の消灯を抑止した: {self._display_inhibited}）"
+        )
 
     def start_continuous(
         self,
@@ -127,9 +143,11 @@ class Recorder:
             logger.exception(f"マイクを開けなかった（{error}）")
             self._stop_segment_thread(flush=False)
             self._restore_volume_once()
+            self._release_display_once()
             raise MicrophoneUnavailableError(f"マイクを開けませんでした: {error}") from error
         logger.info(
-            f"連続録音を始めた（区切る無音: {min_silence_sec} 秒・音量を下げた: {self._volume_before is not None}）"
+            f"連続録音を始めた（区切る無音: {min_silence_sec} 秒・音量を下げた: {self._volume_before is not None}・"
+            f"画面の消灯を抑止した: {self._display_inhibited}）"
         )
 
     def stop_continuous(self) -> None:
@@ -249,7 +267,7 @@ class Recorder:
             self._latest_frame = frames
 
     def _prepare_recording(self) -> None:
-        """設定を読み直し、貯めた音・一時停止・直近の音を空に戻して、設定が音量を下げるなら下げる。"""
+        """設定を読み直し、貯めた音・一時停止・直近の音を空に戻して、設定が音量を下げるなら下げ、画面を暗くしないなら抑止する。"""
         # 1. 設定を読み直し、貯めた音・一時停止・直近の音を空に戻す
         settings = self._get_settings()
         with self._lock:
@@ -267,6 +285,15 @@ class Recorder:
             except VolumeControlError as error:
                 # 音量を操作できなくても録音は止めない
                 logger.warning(f"音量を下げられなかった（{error}）")
+
+        # 3. 設定が画面を暗くしないなら、画面の消灯を抑止する
+        if settings.keep_display_on:
+            try:
+                self._inhibit_display()
+                self._display_inhibited = True
+            except DisplayInhibitError as error:
+                # 抑止できなくても録音は止めない
+                logger.warning(f"画面の消灯を抑止できなかった（{error}）")
 
     def _run_segmenter(
         self,
@@ -319,7 +346,7 @@ class Recorder:
         thread.join()
 
     def _close(self) -> None:
-        """入力を止めて閉じ、下げた音量があれば戻す。"""
+        """入力を止めて閉じ、下げた音量があれば戻し、画面の消灯を抑止していれば解除する。"""
         # 1. 入力を止めて閉じる。ロックは持たない（止めるときに入力のスレッドの終わりを待つため）
         stream = self._stream
         if stream is not None:
@@ -333,8 +360,9 @@ class Recorder:
             self._stream = None
             self._latest_frame = None
 
-        # 2. 下げた音量があれば戻す
+        # 2. 下げた音量があれば戻し、画面の消灯を抑止していれば解除する
         self._restore_volume_once()
+        self._release_display_once()
 
     def _restore_volume_once(self) -> None:
         """下げる前の音量があれば戻し、持っていた音量を捨てる（戻すのは 1 回だけ）。"""
@@ -346,3 +374,13 @@ class Recorder:
             self._restore_volume(volume, self._fade_sec)
         except VolumeControlError as error:
             logger.warning(f"音量を戻せなかった（{error}）")
+
+    def _release_display_once(self) -> None:
+        """画面の消灯を抑止していれば解除する（解除は 1 回だけ）。"""
+        if not self._display_inhibited:
+            return
+        self._display_inhibited = False
+        try:
+            self._release_display()
+        except DisplayInhibitError as error:
+            logger.warning(f"画面の消灯の抑止を解除できなかった（{error}）")

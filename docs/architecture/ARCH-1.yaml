@@ -46,6 +46,12 @@ overview:
     - id: FWD
       label: Focused Window D-Bus（GNOME Shell の拡張）
       kind: external
+    - id: PWR
+      label: Windows の電源要求の API
+      kind: external
+    - id: GSI
+      label: gnome-session-inhibit
+      kind: external
     - id: HAAS
       label: Haas の文字起こしのサーバー（WSL）
       kind: process
@@ -92,6 +98,12 @@ overview:
     - from: APP
       to: FWD
       label: フォーカスしているウィンドウの読み取り（Wayland）
+    - from: APP
+      to: PWR
+      label: 録音の間の画面の消灯の抑止（Windows）
+    - from: APP
+      to: GSI
+      label: 録音の間のアイドルの抑止（Linux。子プロセス）
     - from: APP
       to: HAAS
       label: 起動（wsl.exe）・録音（HTTP・127.0.0.1。エンジンが haas のとき）
@@ -196,6 +208,26 @@ external_systems:
     status: planned
     introduced:
       pr: 238
+  - name: Windows の電源要求の API
+    purpose: 録音中に画面を暗くしない設定がオンのとき、録音の間だけ画面の消灯とアイドルによるスリープを抑止する
+    direction: 送信のみ
+    protocol: kernel32.dll の関数（ctypes）
+    detail: LIB-33#
+    notes:
+      事前確認: 不要。抑止できないときは警告をログに残して録音を続ける。
+    status: planned
+    introduced:
+      pr: 292
+  - name: gnome-session-inhibit
+    purpose: Linux の GNOME のセッション（Xorg・Wayland）で、録音中に画面を暗くしない設定がオンのとき、録音の間だけアイドル（画面の消灯）を抑止する
+    direction: 送信のみ
+    protocol: 子プロセスの起動（`gnome-session-inhibit --inhibit idle ... cat`。標準入力のパイプを閉じると終わる）
+    detail: LIB-32#
+    notes:
+      事前確認: 不要。起動できないとき・GNOME のセッションでないときは、警告をログに残して録音を続ける（GNOME のセッションでないことは、子プロセスが先に終わっていたことで録音を終えたときに検出する）。
+    status: planned
+    introduced:
+      pr: 292
 constraints: |-
   - Windows で動かす（トレイ・ホットキー・クリップボード・キー入力・システムの音量を Windows の機能で扱う）
   - Linux（Ubuntu 24.04 の Xorg のセッションと Wayland のセッション）でも起動できる。OS で分かれる実装は配線で選び、Linux ではシステムの音量を変えず、ローカルの文字起こしの既定は CPU にする

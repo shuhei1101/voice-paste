@@ -109,6 +109,7 @@ notes:
     | --- | --- | --- |
     | 単一インスタンス | runtime/single_instance.py（名前付きミューテックスとイベント） | runtime/single_instance_linux.py（flock のロックファイルと抽象名前空間のソケット） |
     | システム音量 | integrations/volume/adapter.py（pycaw） | integrations/volume/noop.py（下げない） |
+    | 画面の消灯の抑止 | integrations/display/adapter.py（電源要求の API） | integrations/display/adapter_linux.py（gnome-session-inhibit。Xorg と Wayland で同じ） |
     | ブラウザ添付のアプリのウィンドウ | integrations/browser/opener.py（Microsoft Edge の `--app`） | integrations/browser/opener_linux.py（Chromium 系の `--app`。無ければ既定のブラウザ） |
     | 文字起こしワーカーの起動 | CREATE_NO_WINDOW | 0 |
     | 再起動 | DETACHED_PROCESS・CREATE_NEW_PROCESS_GROUP | start_new_session |
@@ -118,4 +119,4 @@ notes:
     | クリップボード | pyperclip（Windows の API） | Xorg: pyperclip（xclip）。Wayland: pyperclip の書き込み先を xclip に指定（XWayland） |
     | Qt のプラットフォーム | Qt に任せる | Xorg: Qt に任せる。Wayland: xcb（XWayland） |
 
-    OS に固有の実装の単体テストは、テストファイルの先頭の `pytestmark = pytest.mark.skipif(...)` で、対象でない OS では飛ばす（Windows 専用: 単一インスタンス・音量のアダプタ。Linux 専用: single_instance_linux.py・sender_linux.py・sender_wayland.py・hotkey_gnome.py・send_hotkey.py）。
+    OS に固有の実装の単体テストは、テストファイルの先頭の `pytestmark = pytest.mark.skipif(...)` で、対象でない OS では飛ばす（Windows 専用: 単一インスタンス・音量のアダプタ・画面の消灯の抑止のアダプタ。Linux 専用: single_instance_linux.py・sender_linux.py・sender_wayland.py・hotkey_gnome.py・send_hotkey.py）。

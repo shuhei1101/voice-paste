@@ -119,4 +119,4 @@ notes:
     | クリップボード | pyperclip（Windows の API） | Xorg: pyperclip（xclip）。Wayland: pyperclip の書き込み先を xclip に指定（XWayland） |
     | Qt のプラットフォーム | Qt に任せる | Xorg: Qt に任せる。Wayland: xcb（XWayland） |
 
-    OS に固有の実装の単体テストは、テストファイルの先頭の `pytestmark = pytest.mark.skipif(...)` で、対象でない OS では飛ばす（Windows 専用: 単一インスタンス・音量のアダプタ・画面の消灯の抑止のアダプタ。Linux 専用: single_instance_linux.py・display/adapter_linux.py・sender_linux.py・sender_wayland.py・hotkey_gnome.py・send_hotkey.py）。
+    OS に固有の実装の単体テストは、テストファイルの先頭の `pytestmark = pytest.mark.skipif(...)` で、対象でない OS では飛ばす（Windows 専用: 単一インスタンス・音量のアダプタ・画面の消灯の抑止のアダプタ。Linux 専用: single_instance_linux.py・sender_linux.py・sender_wayland.py・hotkey_gnome.py・send_hotkey.py）。

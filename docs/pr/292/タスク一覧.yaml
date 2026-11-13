@@ -35,7 +35,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-12T19:33:58.582409+00:00'
   - process: 単一ユースケース設計
-    status: todo
+    status: done
+    reason: SC-8・SC-1・SC-6・SC-3 に画面の消灯の抑止と解除を追加した
+    updated_by: planner
+    updated_at: '2026-11-13T00:01:30.417440+00:00'
   - process: モック作成
     status: todo
   - process: インターフェース定義設計

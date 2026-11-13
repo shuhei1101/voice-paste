@@ -18,7 +18,7 @@ from PySide6.QtWidgets import QSystemTrayIcon
 
 from tests.integration.ui.helpers import Ui
 from voice_paste.shared.errors import DeliveryError
-from voice_paste.ui.bridge import UiBridge, notify_copied
+from voice_paste.ui.bridge import UiBridge, notify_copied, request_glossary_preset_switch
 
 NOTIFICATIONS = [
     pytest.param(
@@ -73,6 +73,13 @@ def notify_copy_completed(ui: Ui, text: str) -> None:
     bridge = UiBridge()
     bridge.copied.connect(ui.controller.on_copied)
     notify_copied(text, bridge=bridge)
+
+
+def request_switch(ui: Ui, name: str) -> None:
+    """UiBridge.glossary_preset_switch_requested を UiController.on_glossary_preset_switch_requested につなぎ（main.py の配線と同じ向き）、ショートカットの切り替えを頼む。"""
+    bridge = UiBridge()
+    bridge.glossary_preset_switch_requested.connect(ui.controller.on_glossary_preset_switch_requested)
+    request_glossary_preset_switch(name, bridge=bridge)
 
 
 # === tray_notification ===
@@ -143,6 +150,36 @@ def test_tray_notification_when_copy_completed(make_ui: Callable[..., Ui], shown
     # 検証
     shown.assert_called_once()
     assert shown.call_args.args[2] == QSystemTrayIcon.MessageIcon.Information
+
+
+def test_tray_notification_when_glossary_preset_switched(
+    make_ui: Callable[..., Ui], shown: MagicMock
+) -> None:
+    """ショートカットで用語集のプリセットを切り替えたとき、情報のアイコンの通知を 1 つ出す（表示条件）。"""
+    # 準備
+    ui = make_ui()
+
+    # 実行
+    request_switch(ui, "会議")
+
+    # 検証
+    ui.deps.switch_glossary_preset.assert_called_once_with("会議")
+    shown.assert_called_once()
+    assert shown.call_args.args[2] == QSystemTrayIcon.MessageIcon.Information
+
+
+def test_tray_notification_when_glossary_preset_not_switched(
+    make_ui: Callable[..., Ui], shown: MagicMock
+) -> None:
+    """切り替えられなかった（settings.yaml に書き込めなかった）ときは通知を出さない（表示条件）。"""
+    # 準備
+    ui = make_ui(switch_glossary_preset=MagicMock(return_value=False))
+
+    # 実行
+    request_switch(ui, "会議")
+
+    # 検証
+    shown.assert_not_called()
 
 
 @pytest.mark.parametrize("event", ["microphone_unavailable", "delivery_failed"])
@@ -275,6 +312,23 @@ def test_notification_body_when_paste_unavailable(
     )
 
 
+def test_notification_title_and_body_when_glossary_preset_switched(
+    make_ui: Callable[..., Ui], shown: MagicMock
+) -> None:
+    """用語集のプリセットの切り替えの通知の見出しと本文に、切り替えたプリセットの名前を出す。"""
+    # 準備
+    ui = make_ui()
+
+    # 実行
+    request_switch(ui, "会議")
+
+    # 検証
+    assert shown.call_args.args[:2] == (
+        "用語集のプリセットを切り替えました",
+        "次の録音から「会議」で補正します。",
+    )
+
+
 # === open_log_folder ===
 
 
@@ -329,6 +383,25 @@ def test_open_log_folder_when_clicked_after_failure_following_copy_completed(
 
     # 検証
     assert [Path(url.toLocalFile()) for url in urls] == [ui.deps.log_dir]
+    ui.deps.copy.assert_not_called()
+
+
+def test_open_log_folder_when_clicked_glossary_preset_switched(
+    make_ui: Callable[..., Ui], shown: MagicMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """用語集のプリセットの切り替えの通知を押しても、ログのフォルダを開かず、もう一度コピーもしない。"""
+    # 準備
+    open_url = MagicMock()
+    monkeypatch.setattr(QDesktopServices, "openUrl", open_url)
+    ui = make_ui()
+    notify_copy_completed(ui, "起こした文字")
+    request_switch(ui, "会議")
+
+    # 実行
+    ui.tray._icon.messageClicked.emit()
+
+    # 検証
+    open_url.assert_not_called()
     ui.deps.copy.assert_not_called()
 
 

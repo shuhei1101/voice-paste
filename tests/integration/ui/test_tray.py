@@ -28,6 +28,8 @@ MENU_ORDER = (
     "menu_show_window",
     "",
     "menu_settings",
+    "menu_settings_glossary",
+    "menu_settings_shortcuts",
     "menu_open_settings_folder",
     "menu_open_log_folder",
     "",
@@ -202,7 +204,7 @@ def test_tray_icon_left_click_when_not_hidden(
 
 
 def test_menu_order(make_ui: Callable[..., Ui]) -> None:
-    """メニューは、録音を開始・録音の画面を表示・区切り・設定…・設定フォルダを開く・ログフォルダを開く・区切り・再起動・終了の順に並ぶ。"""
+    """メニューは、録音を開始・録音の画面を表示・区切り・設定…・用語集の設定…・ショートカットの設定…・設定フォルダを開く・ログフォルダを開く・区切り・再起動・終了の順に並ぶ。"""
     # 実行
     ui = make_ui()
 
@@ -474,8 +476,16 @@ def test_menu_settings_enabled_when_starting(make_ui: Callable[..., Ui]) -> None
     assert not action.isEnabled()
 
 
-def test_menu_settings_when_busy(make_ui: Callable[..., Ui]) -> None:
-    """録音から届けるまでの間（API から始めた録音の間を含む）は「設定…（処理中）」にして押せない。"""
+@pytest.mark.parametrize(
+    ("name", "label"),
+    [
+        pytest.param("menu_settings", "設定…", id="settings"),
+        pytest.param("menu_settings_glossary", "用語集の設定…", id="glossary"),
+        pytest.param("menu_settings_shortcuts", "ショートカットの設定…", id="shortcuts"),
+    ],
+)
+def test_menu_settings_when_busy(make_ui: Callable[..., Ui], name: str, label: str) -> None:
+    """録音から届けるまでの間（API から始めた録音の間を含む）も、設定の 3 項目は文言を変えずに押せる。"""
     # 準備
     ui = make_ui()
 
@@ -483,9 +493,133 @@ def test_menu_settings_when_busy(make_ui: Callable[..., Ui]) -> None:
     ui.notify_state("hotkey", "transcribing")
 
     # 検証
-    action = _action(ui.tray, "menu_settings")
-    assert _label(action) == "設定…（処理中）"
-    assert not action.isEnabled()
+    action = _action(ui.tray, name)
+    assert _label(action) == label
+    assert action.isEnabled()
+
+
+@pytest.mark.parametrize("name", ["menu_settings_glossary", "menu_settings_shortcuts"])
+def test_menu_settings_group_enabled_when_starting_or_failed(
+    make_ui: Callable[..., Ui], name: str
+) -> None:
+    """用語集の設定…・ショートカットの設定…は「設定…」と同じく、準備中は押せず、準備に失敗した起動では押せる。"""
+    # 準備
+    ui = make_ui()
+    enabled_while_starting = _action(ui.tray, name).isEnabled()
+
+    # 実行
+    ui.tray.set_failed(settings_enabled=True)
+
+    # 検証
+    assert not enabled_while_starting
+    assert _action(ui.tray, name).isEnabled()
+
+
+# === menu_settings_glossary ===
+
+
+def _current_group(window: object) -> str:
+    """設定画面のまとまりのメニューで選んでいるまとまりの名前を返す。"""
+    from PySide6.QtWidgets import QListWidget, QWidget
+
+    assert isinstance(window, QWidget)
+    menu = window.findChild(QListWidget, "group_menu")
+    assert menu is not None
+    return menu.currentItem().text()
+
+
+def _shortcut_rows(window: object) -> int:
+    """設定画面のショートカットの行の数（キーの欄の数）を返す。"""
+    from PySide6.QtCore import QRegularExpression
+    from PySide6.QtWidgets import QLineEdit, QWidget
+
+    assert isinstance(window, QWidget)
+    return len(window.findChildren(QLineEdit, QRegularExpression("^shortcut_hotkey_")))
+
+
+def test_menu_settings_glossary_action(make_ui: Callable[..., Ui]) -> None:
+    """「用語集の設定…」を選ぶと、設定画面を用語集のまとまりを選んで開く。"""
+    from voice_paste.ui.tray import TrayState
+
+    # 準備
+    ui = make_ui()
+    ui.tray.set_state(TrayState.IDLE, busy=False)
+
+    # 実行
+    _action(ui.tray, "menu_settings_glossary").trigger()
+
+    # 検証
+    window = ui.controller._settings_window
+    assert window is not None
+    assert window.isVisible()
+    assert _current_group(window) == "用語集"
+    window.try_close()
+
+
+def test_menu_settings_glossary_action_when_minimized(make_ui: Callable[..., Ui]) -> None:
+    """設定画面が最小化していれば、新しい窓を作らずに最小化を戻し、用語集のまとまりへ切り替える。"""
+    from PySide6.QtCore import Qt
+
+    from voice_paste.ui.tray import TrayState
+
+    # 準備
+    ui = make_ui()
+    ui.tray.set_state(TrayState.IDLE, busy=False)
+    _action(ui.tray, "menu_settings").trigger()
+    window = ui.controller._settings_window
+    assert window is not None
+    window.showMinimized()
+
+    # 実行
+    _action(ui.tray, "menu_settings_glossary").trigger()
+
+    # 検証
+    assert ui.controller._settings_window is window
+    assert not window.windowState() & Qt.WindowState.WindowMinimized
+    assert _current_group(window) == "用語集"
+    window.try_close()
+
+
+# === menu_settings_shortcuts ===
+
+
+def test_menu_settings_shortcuts_action(make_ui: Callable[..., Ui]) -> None:
+    """「ショートカットの設定…」を選ぶと、ショートカットのまとまりを選んで開き、行を 1 つ追加する。"""
+    from voice_paste.ui.tray import TrayState
+
+    # 準備
+    ui = make_ui()
+    ui.tray.set_state(TrayState.IDLE, busy=False)
+
+    # 実行
+    _action(ui.tray, "menu_settings_shortcuts").trigger()
+
+    # 検証
+    window = ui.controller._settings_window
+    assert window is not None
+    assert _current_group(window) == "ショートカット"
+    assert _shortcut_rows(window) == 1
+    window.close_without_confirm()
+
+
+def test_menu_settings_shortcuts_action_when_open(make_ui: Callable[..., Ui]) -> None:
+    """設定画面が開いていれば、同じ窓でショートカットのまとまりへ切り替えて行を 1 つ追加する。"""
+    from voice_paste.ui.tray import TrayState
+
+    # 準備
+    ui = make_ui()
+    ui.tray.set_state(TrayState.IDLE, busy=False)
+    _action(ui.tray, "menu_settings_shortcuts").trigger()
+    window = ui.controller._settings_window
+
+    # 実行
+    _action(ui.tray, "menu_settings_shortcuts").trigger()
+
+    # 検証
+    assert ui.controller._settings_window is window
+    assert _shortcut_rows(window) == 2
+    assert window is not None
+    window.close_without_confirm()
 
 
 # === menu_open_settings_folder・menu_open_log_folder ===
@@ -583,7 +717,7 @@ def test_menu_exit_when_busy(make_ui: Callable[..., Ui], menu: str, requested: s
 
 
 def test_menu_settings_action(make_ui: Callable[..., Ui], tmp_path: Path) -> None:
-    """「設定…」を選ぶと設定画面を開く。"""
+    """「設定…」を選ぶと設定画面を出力先のまとまりを選んで開く。"""
     from voice_paste.ui.tray import TrayState
 
     # 準備
@@ -595,6 +729,7 @@ def test_menu_settings_action(make_ui: Callable[..., Ui], tmp_path: Path) -> Non
 
     # 検証
     assert ui.controller._settings_window is not None
+    assert _current_group(ui.controller._settings_window) == "出力先"
     ui.controller._settings_window.try_close()
 
 

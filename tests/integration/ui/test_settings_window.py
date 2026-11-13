@@ -449,6 +449,7 @@ def test_field_for_every_setting_key(open_window: Callable[..., Opened]) -> None
 @pytest.mark.parametrize(
     ("key", "cls"),
     [
+        ("recording.keep_display_on", QCheckBox),
         ("recording.lower_volume", QCheckBox),
         ("recording.volume_percent", QSlider),
         ("recording.fade_sec", QLineEdit),
@@ -2091,6 +2092,58 @@ def test_field_when_hidden_keys(open_window: Callable[..., Opened]) -> None:
     assert saved.volume_percent == 40
     assert saved.fade_sec == 1.5
     opened.saved.assert_called_once()
+
+
+KEEP_DISPLAY_ON_NOTE = (
+    "オンにすると、録音を始めてから終えるまで、PC の画面が自動で暗くならず、スクリーンセーバーも動かない。"
+    "録音を終えると OS の設定どおりに戻る。"
+)
+"""「録音中に画面を暗くしない」の欄の下の補助文（画面設計『設定画面』の補足『まとまりと欄』）。"""
+
+
+def test_field_keep_display_on(open_window: Callable[..., Opened]) -> None:
+    """「録音」のまとまりの先頭に「録音中に画面を暗くしない」のチェックボックスを既定のオンで置き、欄の下に補助文を出す（正常系）。"""
+    # 準備
+    window = open_window().window
+
+    # 実行
+    checkbox = _show_field(window, "recording.keep_display_on", QCheckBox)
+
+    # 検証
+    assert checkbox.isChecked()
+    assert _top_of(checkbox, window) < _top_of(
+        _field(window, "recording.lower_volume", QCheckBox), window
+    )
+    assert _label_with_text(window, "録音中に画面を暗くしない").isVisible()
+    assert _label_with_text(window, KEEP_DISPLAY_ON_NOTE).isVisible()
+
+
+def test_field_keep_display_on_when_saved(open_window: Callable[..., Opened]) -> None:
+    """「録音中に画面を暗くしない」を外して保存すると、settings.yaml の recording.keep_display_on が false になる（正常系）。"""
+    # 準備
+    opened = open_window()
+    checkbox = _field(opened.window, "recording.keep_display_on", QCheckBox)
+
+    # 実行
+    checkbox.setChecked(False)
+    _click(opened.window, "save_button")
+
+    # 検証
+    opened.deps.save_settings.assert_called_once()
+    assert opened.deps.save_settings.call_args.args[0].recording.keep_display_on is False
+
+
+def test_field_keep_display_on_when_linux(open_window: Callable[..., Opened]) -> None:
+    """Linux で出さないキーを渡しても、「録音中に画面を暗くしない」の欄は出す（正常系）。"""
+    from voice_paste.shared.os_kind import OsKind, hidden_setting_keys, unavailable_features
+
+    # 実行
+    window = open_window(
+        hidden_setting_keys=hidden_setting_keys(unavailable_features(OsKind.LINUX))
+    ).window
+
+    # 検証
+    assert _field(window, "recording.keep_display_on", QCheckBox) is not None
 
 
 def test_field_when_hidden_keys_of_linux(open_window: Callable[..., Opened]) -> None:

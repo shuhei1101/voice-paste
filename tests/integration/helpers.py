@@ -196,6 +196,21 @@ class FakeVolume:
         self.level = volume
 
 
+class FakeDisplay:
+    """画面の消灯の抑止の偽物。抑止と解除の呼び出しを順に覚える（OS の抑止をかけない）。"""
+
+    def __init__(self) -> None:
+        self.calls: list[str] = []
+
+    def inhibit(self) -> None:
+        """抑止したことを覚える。"""
+        self.calls.append("inhibit")
+
+    def release(self) -> None:
+        """解除したことを覚える。"""
+        self.calls.append("release")
+
+
 class FakeEngine:
     """文字起こしのエンジンの偽物。渡された録音のパスを覚え、決めた区間か例外を返す。"""
 
@@ -314,6 +329,7 @@ class Stack:
     manager: SessionManager
     microphone: FakeMicrophone
     volume: FakeVolume
+    display: FakeDisplay
     engine: FakeEngine
     receiver: CallbackReceiver
     clock: Clock
@@ -534,18 +550,19 @@ def build_stack(
     clock = Clock(START)
     microphone = FakeMicrophone()
     volume = FakeVolume()
+    display = FakeDisplay()
     engine = FakeEngine()
     receiver = CallbackReceiver()
     receiver.start()
     notify = MagicMock()
     vad = VadScript()
 
-    # 録音機には偽物の音量とマイクと、話し声の判定を作る関数を渡す
+    # 録音機には偽物の音量と画面の消灯の抑止とマイクと、話し声の判定を作る関数を渡す
     recorder = Recorder(
         lower_volume=volume.lower_volume,
         restore_volume=volume.restore_volume,
-        inhibit_display=lambda: None,
-        release_display=lambda: None,
+        inhibit_display=display.inhibit,
+        release_display=display.release,
         open_input=microphone.open_input,
         get_settings=lambda: settings.recording,
         create_speech_detector=vad.create,
@@ -674,6 +691,7 @@ def build_stack(
         manager=manager,
         microphone=microphone,
         volume=volume,
+        display=display,
         engine=engine,
         receiver=receiver,
         clock=clock,

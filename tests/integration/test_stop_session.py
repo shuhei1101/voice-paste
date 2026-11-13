@@ -36,6 +36,7 @@ def test_normal(stack: Stack) -> None:
     assert response.status_code == 200
     assert stack.state() == "stopped"
     assert stack.volume.level == VOLUME_BEFORE
+    assert stack.display.calls == ["inhibit", "release"]
     assert stack.session().recording.samples.size == int(SAMPLE_RATE * FED_SEC)
 
 
@@ -70,6 +71,7 @@ def test_normal_when_already_stopped(stack: Stack) -> None:
     # 検証
     assert response.status_code == 200
     assert stack.state() == "stopped"
+    assert stack.display.calls.count("release") == 1
 
 
 @pytest.mark.parametrize("headers", TOKEN_MISMATCH_HEADERS)

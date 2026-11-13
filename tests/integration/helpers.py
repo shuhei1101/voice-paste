@@ -544,6 +544,8 @@ def build_stack(
     recorder = Recorder(
         lower_volume=volume.lower_volume,
         restore_volume=volume.restore_volume,
+        inhibit_display=lambda: None,
+        release_display=lambda: None,
         open_input=microphone.open_input,
         get_settings=lambda: settings.recording,
         create_speech_detector=vad.create,
@@ -743,6 +745,8 @@ def build_output_stack(
     recorder = Recorder(
         lower_volume=volume.lower_volume,
         restore_volume=volume.restore_volume,
+        inhibit_display=lambda: None,
+        release_display=lambda: None,
         open_input=microphone.open_input,
         get_settings=lambda: settings.recording,
         create_speech_detector=VadScript().create,

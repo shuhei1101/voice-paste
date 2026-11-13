@@ -409,6 +409,25 @@ def ignore_restore_volume(_volume: float, _fade_sec: float) -> None:
     """システム音量を何もしない。"""
 
 
+def ignore_display() -> None:
+    """画面の消灯の抑止・解除を何もしない。"""
+
+
+@dataclass
+class DisplayLog:
+    """画面の消灯の抑止の代わり。抑止と解除の呼び出しを順に控える（OS の抑止をかけない）。"""
+
+    calls: list[str] = field(default_factory=list)
+
+    def inhibit(self) -> None:
+        """抑止したことを控える。"""
+        self.calls.append("inhibit")
+
+    def release(self) -> None:
+        """解除したことを控える。"""
+        self.calls.append("release")
+
+
 @dataclass
 class VolumeLog:
     """システム音量の操作の代わり。下げた割合と、戻した音量を控える。"""
@@ -680,6 +699,7 @@ class InProcessApp:
     paths: AppPaths
     wav_input: WavInput
     volume: VolumeLog
+    display: DisplayLog
     keys: KeyLog
     notifications: Notifications
     api: InProcessApi | None = None
@@ -765,6 +785,7 @@ def start_inprocess_app(
 ) -> InProcessApp:
     """録音の入力・システム音量・貼り付けのキー・通知を差し替えて build_handlers で配線し、モデルの読み込みを待つ。"""
     volume = VolumeLog()
+    display = DisplayLog()
     keys = KeyLog()
     notifications = Notifications()
     monkeypatch.setattr(main_module, "open_input", wav_input)
@@ -778,6 +799,8 @@ def start_inprocess_app(
         ),
         lower_volume=volume.lower,
         restore_volume=volume.restore,
+        inhibit_display=display.inhibit,
+        release_display=display.release,
         send_paste=keys.send_paste,
         send_enter=keys.send_enter,
     )
@@ -796,6 +819,7 @@ def start_inprocess_app(
         paths=paths,
         wav_input=wav_input,
         volume=volume,
+        display=display,
         keys=keys,
         notifications=notifications,
     )

@@ -1,0 +1,12 @@
+use_cases: []
+docs:
+  - page: docs/guide/API.md
+    new: false
+    change: 「録音を開始する」へ、別の端末のブラウザで開いた呼び出し元の画面から録音を操作するときは、常駐アプリの抑止がその端末の画面に効かないため、呼び出し元の画面が録音している間 Screen Wake Lock を取得・解放することを記載する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T10:03:03.917635+00:00'
+scope_out:
+  - item: 呼び出し元の画面（MindStella の音声入力）での Screen Wake Lock の取得・解放
+    reason: voice-paste のリポジトリの外の画面で、voice-paste の変更では届かない
+    plan: shuhei1101/mindstella#513

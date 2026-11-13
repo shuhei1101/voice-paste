@@ -1,0 +1,22 @@
+/* PR 291 の画面モックの共有 CSS（#37・#264・#274 の assets の上に重ねる） */
+
+/* ショートカットの見出しの行: 見出しの右に行の追加ボタンを配置する */
+.shortcuts__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  .subhead { margin: 0; }
+}
+
+/* ショートカットの一覧: キーの欄と用語集のプリセットの欄を並べる */
+.shortcuts {
+  min-width: 32rem;
+  td:first-child { width: 45%; }
+  input.hotkey, select { width: 100%; min-width: 9em; }
+  tr[data-added="true"] td { background: color-mix(in oklab, var(--accent-fg) 10%, var(--surface)); }
+  .field-error { margin: 4px 0 0; text-align: left; }
+}
+
+/* 行が無いときの文 */
+.shortcuts__empty { margin: 8px 0; color: var(--text-2); font-size: 13px; }

@@ -76,6 +76,12 @@ classes:
       - name: start_requested
         type: Signal()
         description: 「録音を開始」・アイコンの左クリック
+      - name: settings_glossary_requested
+        type: Signal()
+        description: 「用語集の設定…」を選んだ（UiController.open_settings(group=用語集) へ）
+      - name: settings_shortcuts_requested
+        type: Signal()
+        description: 「ショートカットの設定…」を選んだ（UiController.open_settings(group=ショートカット, add_shortcut_row=True) へ）
       - name: settings_requested
         type: Signal()
         description: 「設定…」
@@ -126,13 +132,13 @@ classes:
             type: bool
             required: true
             passing: keyword
-            description: 録音から届けるまでの間か（「録音を開始」「設定…」を「（処理中）」で押せなくする）
+            description: 録音から届けるまでの間か（「録音を開始」を「（処理中）」で押せなくする。設定の 3 項目は押せるまま）
         returns:
           type: None
           description: なし
         process: |-
-          1. 失敗の起動なら、状態を FAILED のままにし、「録音を開始（準備に失敗）」を押せなくする。「設定…」は _failed_settings_enabled のときだけ押せるままにする
-          2. それ以外は、状態の画像とヒント（voice-paste: {状態の名前}）に替え、busy なら「録音を開始（処理中）」「設定…（処理中）」を押せなくする。STARTING（準備中）なら「録音を開始」「設定…」を押せなくする（配線が終わるまで受け手が無い）
+          1. 失敗の起動なら、状態を FAILED のままにし、「録音を開始（準備に失敗）」を押せなくする。設定の 3 項目（「設定…」「用語集の設定…」「ショートカットの設定…」）は _failed_settings_enabled のときだけ押せるままにする
+          2. それ以外は、状態の画像とヒント（voice-paste: {状態の名前}）に替え、busy なら「録音を開始（処理中）」を押せなくする（設定の 3 項目は押せるまま）。STARTING（準備中）なら「録音を開始」と設定の 3 項目を押せなくする（配線が終わるまで受け手が無い）
           3. 「録音を開始」は押せるときだけ太字にする
         unit_tests:
           - name: test_set_state_when_starting
@@ -140,13 +146,13 @@ classes:
             summary: 準備中は録音と設定を押せず、再起動と終了は押せる
             condition: set_state(STARTING, busy=False)
             mock: なし（offscreen の QApplication）
-            expected: '「録音を開始」と「設定…」が押せず、「再起動」「終了」が押せ、ヒントが voice-paste: 準備中'
+            expected: '「録音を開始」と設定の 3 項目が押せず、「再起動」「終了」が押せ、ヒントが voice-paste: 準備中'
           - name: test_set_state_when_busy
             case: 正常
-            summary: 処理中は録音と設定を押せなくする
+            summary: 処理中は録音を押せなくし、設定の 3 項目は押せるままにする
             condition: set_state(TRANSCRIBING, busy=True)
             mock: なし（offscreen の QApplication）
-            expected: '「録音を開始（処理中）」と「設定…（処理中）」が押せず、「録音を開始」が太字でなく、ヒントが voice-paste: 文字起こし中'
+            expected: '「録音を開始（処理中）」が押せず、「録音を開始」が太字でなく、「設定…」「用語集の設定…」「ショートカットの設定…」が押せ、ヒントが voice-paste: 文字起こし中'
           - name: test_set_state_when_failed
             case: 正常
             summary: エンジンを準備できなかった起動では設定だけ押せる
@@ -319,9 +325,35 @@ classes:
         status: planned
         refs:
           - SCR-2#notes
+      - name: show_glossary_preset_switched
+        title: 用語集のプリセットの切り替えの通知
+        summary: 切り替えの見出しと本文（プリセットの名前を入れる）で、情報のアイコンの Windows の通知を出す。_copied_text を空にし、通知を押しても何もしない
+        kind: メソッド
+        scope: public
+        args:
+          - name: name
+            type: str
+            required: true
+            passing: positional
+            description: 切り替えた用語集のプリセットの名前
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_show_glossary_preset_switched
+            case: 正常
+            summary: 切り替えの文言で情報の通知を出し、押しても再コピーしない
+            condition: show_copy_completed("テスト") の後に show_glossary_preset_switched("会議") を呼び、通知を押す
+            mock: QSystemTrayIcon.showMessage
+            expected: 見出し「用語集のプリセットを切り替えました」、本文「次の録音から「会議」で補正します。」、MessageIcon.Information で呼ばれ、押しても recopy_requested が emit されない
+        status: planned
+        introduced:
+          pr: 291
+        refs:
+          - SCR-2#notes
       - name: _on_message_clicked
         title: 通知の押下
-        summary: messageClicked のスロット。最後に出した通知の種類で、もう一度コピーするかログフォルダを開くかを出し分ける
+        summary: messageClicked のスロット。最後に出した通知の種類で、もう一度コピーするか、ログフォルダを開くか、何もしないかを出し分ける
         kind: メソッド
         scope: internal
         returns:
@@ -329,7 +361,8 @@ classes:
           description: なし
         process: |-
           1. _copied_text があれば、それを引き渡して recopy_requested を emit する
-          2. 無ければ、ログフォルダを開く
+          2. 最後に出した通知が失敗の通知（show_failure）なら、ログフォルダを開く
+          3. それ以外（用語集のプリセットの切り替えの通知）は何もしない
         unit_tests:
           - name: test_on_message_clicked_when_copy_completed
             case: 正常

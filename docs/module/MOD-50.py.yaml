@@ -87,6 +87,10 @@ data_models:
         type: str | None
         default: None
         description: 補正に使用する用語集のプリセットの名前。None か一覧に無い名前のときは 1 件目のプリセットを使用する（pick_glossary_preset）
+      - name: glossary_preset_hotkeys
+        type: list[GlossaryPresetHotkeySettings]
+        default: '[]'
+        description: 用語集のプリセットを切り替えるショートカットの一覧。並びが設定画面の一覧の並びになる。キーは find_hotkey_overlaps で重なりを確かめ、preset が用語集のプリセットの一覧（resolve_glossary_presets の名前）に無い行は `model_validator(mode="after")` が `PydanticCustomError`（type `glossary_preset_missing`、場所 `glossary_preset_hotkeys[{n}].preset`）で断る
     refs:
       - LIB-18#
       - CFG-1#
@@ -678,6 +682,26 @@ data_models:
     status: planned
     introduced:
       pr: 173
+  - name: GlossaryPresetHotkeySettings
+    title: 用語集のプリセットを切り替えるショートカットの設定
+    container: shared/settings.py
+    usecase: 共通
+    role: 設定のモデル
+    summary: ショートカット 1 つのキーと、切り替える用語集のプリセットの名前
+    inherits: pydantic.BaseModel
+    properties:
+      - name: hotkey
+        type: str
+        description: pynput の書式のホットキー（前後の空白を除く。空は Settings の確認が種類 `string_too_short` で断る）
+      - name: preset
+        type: str
+        description: 切り替える用語集のプリセットの名前（`glossary_presets[].name`）
+    refs:
+      - CFG-1#settings[glossary_preset_hotkeys[].hotkey]
+      - CFG-1#settings[glossary_preset_hotkeys[].preset]
+    status: planned
+    introduced:
+      pr: 291
   - name: OpenAISettings
     title: OpenAI API の設定
     container: shared/settings.py
@@ -1518,7 +1542,7 @@ functions:
       type: list[tuple[str, str]]
       description: （重なったキー, 先に並んだ同じホットキーのキー）の並び。キーは format_error_location と同じ書式（例 `presets[2].hotkey`）
     process: |-
-      1. 受け付けるホットキーを（キー, 値）でこの順に並べる: `hotkeys.start`・`hotkeys.pause`・`hotkeys.cancel`、オンの出力先の `outputs[].hotkey`、有効なプリセットの `presets[].hotkey`（種類をまたいで 1 つの並び。空のホットキーは受け付けないので並べない）
+      1. 受け付けるホットキーを（キー, 値）でこの順に並べる: `hotkeys.start`・`hotkeys.pause`・`hotkeys.cancel`、オンの出力先の `outputs[].hotkey`、有効なプリセットの `presets[].hotkey`（種類をまたいで 1 つの並び。空のホットキーは受け付けないので並べない）、`glossary_preset_hotkeys[].hotkey`
       2. 値を小文字にして、先に並んだものと同じものを集める
          - `hotkeys.start` と「貼り付けて送信」の `hotkey` が同じ組は重なりにしない（録音中に押すとその出力先で確定する既定）
     refs:
@@ -1533,6 +1557,19 @@ functions:
         condition: 出力先の hotkey を <ctrl>+<alt>+d・v・c に固定し、presets に 2 件を配置し、2 件目の hotkey を <ctrl>+<alt>+v（貼り付けのみと同じ）にした設定（model_construct で確認を飛ばして作る）
         mock: なし
         expected: '[("presets[1].hotkey", "outputs[1].hotkey")]'
+      - name: test_find_hotkey_overlaps_when_glossary_preset_hotkey
+        case: 正常
+        summary: ショートカットの行のキーと既存のホットキーの重なりを返却する
+        condition: glossary_preset_hotkeys に（<ctrl>+<alt>+d、既定）を入れた設定（model_construct）
+        mock: なし
+        expected: '[("glossary_preset_hotkeys[0].hotkey", "hotkeys.start")]'
+      - name: test_settings_when_glossary_preset_missing
+        case: 異常
+        summary: 用語集のプリセットの一覧に無い名前を指す行を断る
+        condition: glossary_presets が [既定] で、glossary_preset_hotkeys に（<ctrl>+<alt>+s、会議）を入れた dict を Settings.model_validate に引き渡す
+        mock: なし
+        expected: ValidationError。list_validation_failures のキーに glossary_preset_hotkeys[0].preset、種類が glossary_preset_missing
+        exception: 用語集のプリセットが無い
       - name: test_find_hotkey_overlaps_when_presets_of_different_kinds
         case: 正常
         summary: 種類をまたいだプリセットどうしの重なりを返却する

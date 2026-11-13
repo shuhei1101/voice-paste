@@ -20,6 +20,9 @@ classes:
       コンストラクタは、行を読み込む関数（UiDeps.read_glossary）と、追加する用語集の場所を決める関数（UiDeps.new_glossary_path）を受ける。
       単体テストは tests/unit/voice_paste/ui/windows/test_settings_glossaries.py に配置する（ファイルを作った時点で、この設計書の対応テストファイルに追加する）。
     properties:
+      - name: presets_changed
+        type: Signal(list, object)
+        description: 用語集のプリセットの一覧か補正に使用するプリセットの選択が変わった（プリセットの識別子と名前の組の並び、補正に使用するプリセットの識別子）。プリセットの識別子は画面の中だけの値で、名前を変えても変わらない。ShortcutPanel.set_presets へ
       - name: changed
         type: Signal()
         description: 用語集・行・プリセットを追加・削除する、補正に使用するプリセットの切り替え、プリセットの用語集の追加・除外・並べ替え、欄の入力、行のオン・オフで値が変わった（設定画面が変えた欄の数えに使用する）

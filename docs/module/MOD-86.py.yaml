@@ -10,13 +10,19 @@ classes:
     usecase: 設定を変える
     role: ランタイム
     summary: 動いている間の今の設定を 1 つ持ち、設定画面で保存した設定に入れ替える
-    description: 出力先・録音・用語集・画面は設定を値で持たず、使用するたびに get で読み込む。Settings は不変として扱い、入れ替えるだけにする。
+    description: |-
+      出力先・録音・用語集・画面は設定を値で持たず、使用するたびに get で読み込む。Settings は不変として扱い、入れ替えるだけにする。
+      録音セッションが録音を始めてから待機中に戻るまでは、始めた時点の設定を固定し（pin）、get はその設定を返却する。固定している間に入れ替えた設定は latest で読め、固定を解くと（unpin）get も新しい設定を返却する。設定画面・トレイ・ホットキーの割り当て・設定の保存は latest を読む（設計書『設定を変える』の補足『録音中の設定画面』）。
     kind: クラス
     properties:
       - name: _settings
         type: Settings
         access: 内部 (_)
         description: 今の設定
+      - name: _pinned
+        type: Settings | None
+        access: 内部 (_)
+        description: 録音セッションが固定した設定。固定していなければ None
       - name: _lock
         type: threading.Lock
         access: 内部 (_)
@@ -24,13 +30,56 @@ classes:
     methods:
       - name: get
         title: 読む
-        summary: 今の設定を返却する
+        summary: 録音セッションが使用する設定を返却する。固定していれば固定した設定、していなければ今の設定
         kind: メソッド
         scope: public
         thread_safe: true
         returns:
           type: Settings
-          description: 今の設定
+          description: 録音セッションが使用する設定
+        unit_tests:
+          - name: test_get_when_pinned
+            case: 正常
+            summary: 固定している間は入れ替えた設定を返却しない
+            condition: pin の後に recording.volume_percent=30 の設定に replace し、get と latest を呼んでから unpin して get を呼ぶ
+            mock: なし
+            expected: 固定している間の get は pin の前の設定、latest は 30 の設定、unpin の後の get は 30 の設定
+      - name: latest
+        title: 最新を読む
+        summary: 固定によらず、最後に入れ替えた設定を返却する（設定画面・トレイ・ホットキーの割り当て・設定の保存が読む）
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        returns:
+          type: Settings
+          description: 最後に入れ替えた設定
+        status: planned
+        introduced:
+          pr: 291
+      - name: pin
+        title: 固定する
+        summary: 今の設定を固定する。固定していれば何もしない（録音セッションが recording になったとき）
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        returns:
+          type: None
+          description: なし
+        status: planned
+        introduced:
+          pr: 291
+      - name: unpin
+        title: 固定を解く
+        summary: 固定を解く。固定していなければ何もしない（録音セッションが待機中に戻ったとき）
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        returns:
+          type: None
+          description: なし
+        status: planned
+        introduced:
+          pr: 291
       - name: replace
         title: 入れ替える
         summary: 今の設定を入れ替える

@@ -1,4 +1,4 @@
-"""main.py（parse_args・main・_StartupBuild・select_platform_adapters・start_local_session・build_hotkey_bindings・apply_settings・reset_applied_settings・_wire_outputs・_wire_preset_kinds）の単体テスト。
+"""main.py（parse_args・main・_StartupBuild・select_platform_adapters・start_local_session・build_hotkey_bindings・apply_settings・switch_glossary_preset・reset_applied_settings・_wire_outputs・_wire_preset_kinds）の単体テスト。
 
 main の配線（build_handlers）・API サーバー（ApiServerRunner）・上限の打ち切りのタイマー（RepeatingTimer）・
 ホットキーの受付（PlatformAdapters.create_hotkey_listener）・トレイ（Tray）・再起動（PlatformAdapters.relaunch）は偽物に差し替え、
@@ -1634,7 +1634,7 @@ def test_build_hotkey_bindings_when_idle(make_settings: Callable[..., Settings])
     session_manager.current.return_value = None
     start_local_session = MagicMock()
     bindings = build_hotkey_bindings(
-        _fixed_hotkey_settings(make_settings), session_manager, start_local_session, MagicMock()
+        _fixed_hotkey_settings(make_settings), session_manager, start_local_session, MagicMock(), MagicMock()
     )
 
     # 実行
@@ -1655,7 +1655,7 @@ def test_build_hotkey_bindings_when_recording(make_settings: Callable[..., Setti
     start_local_session = MagicMock()
     show_recording_window = MagicMock()
     bindings = build_hotkey_bindings(
-        _fixed_hotkey_settings(make_settings), session_manager, start_local_session, show_recording_window
+        _fixed_hotkey_settings(make_settings), session_manager, start_local_session, show_recording_window, MagicMock()
     )
 
     # 実行
@@ -1680,7 +1680,7 @@ def test_build_hotkey_bindings_when_recording_without_confirm_output(
     start_local_session = MagicMock()
     show_recording_window = MagicMock()
     bindings = build_hotkey_bindings(
-        settings, session_manager, start_local_session, show_recording_window
+        settings, session_manager, start_local_session, show_recording_window, MagicMock()
     )
 
     # 実行
@@ -1705,6 +1705,7 @@ def test_build_hotkey_bindings_when_preset(default_settings: Settings) -> None:
         default_settings.model_copy(update={"presets": [preset]}),
         session_manager,
         start_local_session,
+        MagicMock(),
         MagicMock(),
     )
 
@@ -1736,12 +1737,42 @@ def test_build_hotkey_bindings_when_preset_not_bound(default_settings: Settings)
     )
 
     # 実行
-    bindings = build_hotkey_bindings(settings, MagicMock(), MagicMock(), MagicMock())
+    bindings = build_hotkey_bindings(settings, MagicMock(), MagicMock(), MagicMock(), MagicMock())
 
     # 検証
     assert "<ctrl>+<alt>+7" not in bindings
     assert "" not in bindings
 
+
+
+def test_build_hotkey_bindings_when_glossary_preset_hotkey(default_settings: Settings) -> None:
+    """ショートカットの行のホットキーはそのプリセットへ切り替える（正常系）。"""
+    from voice_paste.main import build_hotkey_bindings
+    from voice_paste.shared.settings import GlossaryPresetHotkeySettings
+
+    # 準備（録音中に押す）
+    session_manager = MagicMock()
+    session_manager.current.return_value = make_session("hotkey", "recording")
+    start_local_session = MagicMock()
+    switch_glossary_preset = MagicMock()
+    settings = default_settings.model_copy(
+        update={
+            "glossary_preset_hotkeys": [
+                GlossaryPresetHotkeySettings(hotkey="<ctrl>+<alt>+s", preset="会議")
+            ]
+        }
+    )
+    bindings = build_hotkey_bindings(
+        settings, session_manager, start_local_session, MagicMock(), switch_glossary_preset
+    )
+
+    # 実行
+    bindings["<ctrl>+<alt>+s"]()
+
+    # 検証
+    switch_glossary_preset.assert_called_once_with("会議")
+    session_manager.complete.assert_not_called()
+    start_local_session.assert_not_called()
 
 def test_build_hotkey_bindings_when_paused(make_settings: Callable[..., Settings]) -> None:
     """一時停止中の一時停止のホットキーは再開する（正常系）。"""
@@ -1750,7 +1781,7 @@ def test_build_hotkey_bindings_when_paused(make_settings: Callable[..., Settings
     # 準備
     session_manager = MagicMock()
     session_manager.current.return_value = make_session("hotkey", "paused")
-    bindings = build_hotkey_bindings(_fixed_hotkey_settings(make_settings), session_manager, MagicMock(), MagicMock())
+    bindings = build_hotkey_bindings(_fixed_hotkey_settings(make_settings), session_manager, MagicMock(), MagicMock(), MagicMock())
 
     # 実行
     bindings["<ctrl>+<alt>+z"]()
@@ -1768,7 +1799,7 @@ def test_build_hotkey_bindings_when_output_disabled(make_settings: Callable[...,
     settings = _fixed_hotkey_settings(make_settings, copy_enabled=False)
 
     # 実行
-    bindings = build_hotkey_bindings(settings, MagicMock(), MagicMock(), MagicMock())
+    bindings = build_hotkey_bindings(settings, MagicMock(), MagicMock(), MagicMock(), MagicMock())
 
     # 検証
     assert "<ctrl>+<alt>+c" not in bindings
@@ -1781,7 +1812,7 @@ def test_build_hotkey_bindings_when_transcribing(make_settings: Callable[..., Se
     # 準備
     session_manager = MagicMock()
     session_manager.current.return_value = make_session("hotkey", "transcribing")
-    bindings = build_hotkey_bindings(_fixed_hotkey_settings(make_settings), session_manager, MagicMock(), MagicMock())
+    bindings = build_hotkey_bindings(_fixed_hotkey_settings(make_settings), session_manager, MagicMock(), MagicMock(), MagicMock())
 
     # 実行
     bindings["<ctrl>+<alt>+c"]()
@@ -1802,7 +1833,7 @@ def test_build_hotkey_bindings_when_transcribing_start_hotkey(
     session_manager.current.return_value = make_session("hotkey", "transcribing")
     start_local_session = MagicMock()
     bindings = build_hotkey_bindings(
-        _fixed_hotkey_settings(make_settings), session_manager, start_local_session, MagicMock()
+        _fixed_hotkey_settings(make_settings), session_manager, start_local_session, MagicMock(), MagicMock()
     )
 
     # 実行
@@ -2002,6 +2033,137 @@ def test_apply_settings_when_glossary_write_fails(
     assert not paths.settings_file.exists()
     assert store.get() == default_settings
 
+
+
+# === switch_glossary_preset ===
+
+GLOSSARY_PRESETS_FOR_SWITCH: list[dict[str, Any]] = [
+    {"name": "既定", "glossaries": []},
+    {"name": "会議", "glossaries": []},
+]
+"""切り替えのテストの用語集のプリセット（既定・会議）。"""
+
+
+def test_switch_glossary_preset(
+    tmp_path: Path, make_settings: Callable[..., Settings]
+) -> None:
+    """補正に使用するプリセットを切り替えて保存する（正常系）。"""
+    from voice_paste.main import switch_glossary_preset
+    from voice_paste.runtime.settings_store import SettingsStore
+    from voice_paste.shared.yaml_document import read_yaml_mapping
+
+    # 準備
+    paths = _settings_paths(tmp_path)
+    store = SettingsStore(
+        make_settings(
+            {"glossary_presets": GLOSSARY_PRESETS_FOR_SWITCH, "active_glossary_preset": "既定"}
+        )
+    )
+
+    # 実行
+    result = switch_glossary_preset("会議", paths=paths, store=store)
+
+    # 検証
+    assert result is True
+    assert read_yaml_mapping(paths.settings_file)["active_glossary_preset"] == "会議"
+    assert store.latest().active_glossary_preset == "会議"
+
+
+def test_switch_glossary_preset_when_already_active(
+    tmp_path: Path, make_settings: Callable[..., Settings], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """すでにそのプリセットなら書き込まない（正常系）。"""
+    import voice_paste.main as main_module
+    from voice_paste.main import switch_glossary_preset
+    from voice_paste.runtime.settings_store import SettingsStore
+
+    # 準備
+    save_settings = MagicMock()
+    monkeypatch.setattr(main_module, "save_settings", save_settings)
+    paths = _settings_paths(tmp_path)
+    store = SettingsStore(
+        make_settings(
+            {"glossary_presets": GLOSSARY_PRESETS_FOR_SWITCH, "active_glossary_preset": "会議"}
+        )
+    )
+
+    # 実行
+    result = switch_glossary_preset("会議", paths=paths, store=store)
+
+    # 検証
+    assert result is True
+    save_settings.assert_not_called()
+
+
+def test_switch_glossary_preset_when_write_fails(
+    tmp_path: Path,
+    make_settings: Callable[..., Settings],
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """書き込めなければ切り替えない（異常系）。"""
+    import voice_paste.main as main_module
+    from voice_paste.main import switch_glossary_preset
+    from voice_paste.runtime.settings_store import SettingsStore
+
+    # 準備
+    monkeypatch.setattr(main_module, "save_settings", MagicMock(side_effect=OSError("disk full")))
+    caplog.set_level(logging.ERROR)
+    paths = _settings_paths(tmp_path)
+    store = SettingsStore(
+        make_settings(
+            {"glossary_presets": GLOSSARY_PRESETS_FOR_SWITCH, "active_glossary_preset": "既定"}
+        )
+    )
+
+    # 実行
+    result = switch_glossary_preset("会議", paths=paths, store=store)
+
+    # 検証
+    assert result is False
+    assert store.latest().active_glossary_preset == "既定"
+    assert [record.levelno for record in caplog.records] == [logging.ERROR]
+
+
+def test_switch_glossary_preset_after_apply_settings(
+    tmp_path: Path, make_settings: Callable[..., Settings]
+) -> None:
+    """設定画面の保存の直後に切り替えても、保存した値を失わない（正常系）。"""
+    from voice_paste.main import apply_settings, switch_glossary_preset
+    from voice_paste.runtime.settings_store import SettingsStore
+    from voice_paste.shared.yaml_document import read_yaml_mapping
+
+    # 準備: 音量を 30 にした設定を保存する
+    paths = _settings_paths(tmp_path)
+    store = SettingsStore(
+        make_settings(
+            {"glossary_presets": GLOSSARY_PRESETS_FOR_SWITCH, "active_glossary_preset": "既定"}
+        )
+    )
+    apply_settings(
+        make_settings(
+            {
+                "glossary_presets": GLOSSARY_PRESETS_FOR_SWITCH,
+                "active_glossary_preset": "既定",
+                "recording": {"volume_percent": 30},
+            }
+        ),
+        {},
+        paths=paths,
+        store=store,
+        check_hotkeys=MagicMock(),
+        save_glossary=MagicMock(),
+    )
+
+    # 実行
+    switch_glossary_preset("会議", paths=paths, store=store)
+
+    # 検証
+    written = read_yaml_mapping(paths.settings_file)
+    assert store.latest().recording.volume_percent == 30
+    assert written["recording"]["volume_percent"] == 30
+    assert store.latest().active_glossary_preset == "会議"
+    assert written["active_glossary_preset"] == "会議"
 
 # === reset_applied_settings ===
 

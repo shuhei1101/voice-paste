@@ -51,6 +51,7 @@ QFrame[role="window"] {
     border: 1px solid @frame@;
     border-radius: @radius@px;
 }
+QFrame[role="shortcut_row"][added="true"] { background-color: @added_bg@; border-radius: @radius@px; }
 QFrame[role="alert"] {
     background-color: @danger_bg@;
     border: 1px solid @danger@;

@@ -1,0 +1,78 @@
+tasks:
+  - process: 初期構築
+    status: skipped
+    reason: 既存のリポジトリのため対象外
+    updated_by: planner
+    updated_at: '2026-11-12T19:26:35.530278+00:00'
+  - process: リバースエンジニアリング
+    status: skipped
+    reason: 設計書が揃っている既存のリポジトリのため対象外
+    updated_by: planner
+    updated_at: '2026-11-12T19:26:35.530278+00:00'
+  - process: 方針決め
+    status: skipped
+    reason: 方針決めを依頼する Issue ではない
+    updated_by: planner
+    updated_at: '2026-11-12T19:26:35.530278+00:00'
+  - process: PoC 検証
+    status: skipped
+    reason: Qt の窓の前面化・ホットキーの受付・トレイのメニューの既存の機構の組み合わせで実現でき、未検証の技術機構に依存しない
+    updated_by: planner
+    updated_at: '2026-11-12T19:26:35.530278+00:00'
+  - process: 複合ユースケース設計
+    status: skipped
+    reason: ユースケースの連鎖は変わらない。声で入力した文字を貼り付けるは実行のみ
+    updated_by: planner
+    updated_at: '2026-11-12T19:26:35.530278+00:00'
+  - process: デザインスタイル選定
+    status: skipped
+    reason: docs/design-policy.md があり、Issue は見た目の方向を変えない
+    updated_by: planner
+    updated_at: '2026-11-12T19:26:35.530278+00:00'
+  - process: 画面一覧・画面遷移
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T02:01:35.983217+00:00'
+  - process: 単一ユースケース設計
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T02:05:09.885227+00:00'
+  - process: モック作成
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T03:20:09.906830+00:00'
+  - process: インターフェース定義設計
+    status: skipped
+    reason: API（インターフェース定義）は変わらない
+    updated_by: planner
+    updated_at: '2026-11-12T19:26:35.530278+00:00'
+  - process: 部品設計
+    status: skipped
+    reason: PySide6 の画面で、部品設計（docs/component）を持たない
+    updated_by: planner
+    updated_at: '2026-11-12T19:26:35.530278+00:00'
+  - process: 画面設計
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T03:23:55.231737+00:00'
+  - process: モジュール構成設計
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T03:40:48.055598+00:00'
+  - process: ドキュメント修正
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T03:51:43.361380+00:00'
+  - process: 単体テスト作成
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T04:24:46.449428+00:00'
+  - process: 実装
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T04:36:29.130774+00:00'
+  - process: 結合テスト作成
+    status: done
+    状態: done
+    updated_by: planner
+    updated_at: '2026-11-13T15:02:40.097993+00:00'

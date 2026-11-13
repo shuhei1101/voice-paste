@@ -1,0 +1,55 @@
+use_cases:
+  - kind: single
+    scenario: docs/scenario/SC-6.yaml
+    impact: changed
+    detail: ショートカットの行と行の追加を設定画面の上のほうに置き、用語集のプリセットを切り替えるショートカットを登録できるようにする。トレイから開いたときは行を 1 つ追加し、用語集の欄に既定のプリセットを入れた状態で開く
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-2.yaml
+    impact: changed
+    detail: トレイのメニューから設定画面の「用語集」「ショートカット」の箇所を直接開く。設定画面が既にあるときは、隠れていても最小化していても最前面に戻す
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-8.yaml
+    impact: changed
+    detail: 設定画面を開いたまま、ホットキー・トレイから録音できる。登録したショートカットで補正に使う用語集のプリセットを切り替える
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-9.yaml
+    impact: changed
+    detail: 設定画面で保存した値は次の録音から使用する（録音中に保存した値はその回に使用しない）。ショートカットで切り替えた用語集のプリセットで補正する
+    depends_on:
+      - docs/scenario/SC-8.yaml
+  - kind: composite
+    scenario: docs/scenario/SC-12.yaml
+    impact: run_only
+    detail: ホットキーで録音して届ける流れは変わらないが、ホットキーの受付の変更が壊しうる
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-5.yaml
+    impact: changed
+    detail: Linux の Wayland のセッションで、設定画面を開いている間も GNOME のショートカットの登録を残し、ホットキーの欄が入力待ちの間だけ除外する
+    depends_on: []
+docs:
+  - page: docs/config/CFG-1.yaml
+    new: false
+    change: 用語集のプリセットを切り替えるショートカットの設定のキー（`glossary_preset_hotkeys[].hotkey`・`glossary_preset_hotkeys[].preset`）を追加する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T02:05:06.725899+00:00'
+  - page: docs/guide/起動と設定.md
+    new: false
+    change: 「設定画面を開いている間は登録が解除される」の説明を新しい動きに修正し、トレイのメニューの表に設定画面の「用語集」「ショートカット」を開く項目を追加する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T03:51:41.112560+00:00'
+  - page: docs/guide/録音して貼り付ける.md
+    new: false
+    change: 用語集のプリセットを切り替えるショートカットの操作を追加し、用語集・文頭と文末の文言・表記のヒントの保存した値が有効になる時期を「次に始める録音から」に修正する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T03:51:41.112560+00:00'
+scope_out:
+  - item: 1 つの出力先に対する機能（依頼の原文 TH-922 の最後で言いかけた件）
+    reason: 利用者が依頼の中で「無視してもらっていい」と取り下げた
+    plan: none

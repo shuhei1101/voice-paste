@@ -771,6 +771,28 @@ settings:
     implementation: src/voice_paste/shared/settings.py
     introduced:
       pr: 173
+  - key: glossary_preset_hotkeys[].hotkey
+    title: 用語集のプリセットを切り替えるショートカットのキー
+    file: settings.yaml
+    type: string（pynput の GlobalHotKeys 形式）
+    description: 押すと、補正に使用する用語集のプリセット（`active_glossary_preset`）を同じ行の `preset` へ切り替えて保存し、トレイで通知する。`glossary_preset_hotkeys` のキーが無い settings.yaml は、ショートカットを 1 つも持たないとして読み込む。
+    reload: immediate
+    allowed: ほかのホットキー（`hotkeys.*`・`outputs[].hotkey`・`outputs[].targets[].hotkey`・`presets[].hotkey`・ほかの行）と重ならない組み合わせ。空にできない
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+    introduced:
+      pr: 291
+  - key: glossary_preset_hotkeys[].preset
+    title: ショートカットで切り替える用語集のプリセット
+    file: settings.yaml
+    type: string
+    description: ショートカットで切り替える先の用語集のプリセットの名前（`glossary_presets[].name`）。プリセットの名前を変えると新しい名前を指し、プリセットを削除するとその行を削除する。
+    reload: immediate
+    allowed: '`glossary_presets[].name` にある名前'
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+    introduced:
+      pr: 291
   - key: transcription.openai.model
     title: OpenAI のモデル
     file: settings.yaml

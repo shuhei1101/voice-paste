@@ -61,8 +61,6 @@ def make_ui_deps(
         "log_dir": tmp_path / "log",
         "request_restart": MagicMock(return_value=None),
         "request_quit": MagicMock(return_value=None),
-        "suspend_hotkeys": MagicMock(return_value=None),
-        "resume_hotkeys": MagicMock(return_value=None),
         "output_titles": OUTPUT_TITLES,
         "list_glossaries": MagicMock(
             return_value=[GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")]
@@ -71,6 +69,11 @@ def make_ui_deps(
         "new_glossary_path": MagicMock(return_value=tmp_path / "glossaries" / "glossary_1.csv"),
         "copy": MagicMock(return_value=None),
     }
+    for name in ("suspend_hotkeys", "resume_hotkeys", "set_hotkey_capturing", "reload_hotkeys"):
+        if name in {field.name for field in dataclasses.fields(UiDepsModel)}:
+            fields[name] = MagicMock(return_value=None)
+    if "switch_glossary_preset" in {field.name for field in dataclasses.fields(UiDepsModel)}:
+        fields["switch_glossary_preset"] = MagicMock(return_value=True)
     if "apply_theme" in {field.name for field in dataclasses.fields(UiDepsModel)}:
         fields["apply_theme"] = MagicMock(return_value=None)
     if "switch_output" in {field.name for field in dataclasses.fields(UiDepsModel)}:

@@ -14,8 +14,8 @@ from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock
 
 import pytest
-from PySide6.QtCore import QEvent, QPoint, QTimer
-from PySide6.QtWidgets import QSlider, QWidget
+from PySide6.QtCore import QEvent, QPoint, QRegularExpression, QTimer
+from PySide6.QtWidgets import QLineEdit, QListWidget, QSlider, QWidget
 
 from tests.unit.voice_paste.ui.helpers import FakeClock, make_session, make_ui_deps
 from voice_paste.shared.errors import DeliveryError
@@ -73,6 +73,18 @@ def _open_recording_window(parts: Parts) -> None:
     """ホットキーの録音を知らせて、録音の画面を出した状態にする。"""
     parts.deps.current_session.return_value = make_session("hotkey", "recording")
     parts.controller.on_notified("state_changed", None)
+
+
+def _current_group(window: QWidget) -> str:
+    """設定画面のまとまりのメニュー（group_menu）で選んでいるまとまりの名前を返す。"""
+    menu = window.findChild(QListWidget, "group_menu")
+    assert menu is not None
+    return menu.currentItem().text()
+
+
+def _shortcut_rows(window: QWidget) -> list[QLineEdit]:
+    """設定画面のショートカットのキーの欄（objectName が shortcut_hotkey_{n}）を返す。"""
+    return window.findChildren(QLineEdit, QRegularExpression("^shortcut_hotkey_"))
 
 
 # === on_notified ===
@@ -431,21 +443,59 @@ def test_request_exit_when_cancel_pending(qapp: QApplication, tmp_path: Path) ->
 
 
 def test_open_settings(qapp: QApplication, tmp_path: Path) -> None:
-    """開いている間はホットキーを止め、閉じると張り直す（正常系）。"""
+    """開いてもホットキーの受付を止めない（正常系）。"""
     # 準備
     parts = _make_controller(tmp_path)
 
-    # 実行: 開いた時点ではホットキーを止めただけで、取り消しで閉じると張り直す
+    # 実行: 開いて、ホットキーの欄を入力待ちにしてから出し、取り消しで閉じる
     parts.controller.open_settings()
-    suspended_when_open = parts.deps.suspend_hotkeys.call_count
-    resumed_when_open = parts.deps.resume_hotkeys.call_count
-    parts.controller._settings_window.try_close()
+    window = parts.controller._settings_window
+    assert window is not None
+    window.hotkey_capturing.emit(True)
+    window.hotkey_capturing.emit(False)
+    window.try_close()
 
     # 検証
-    assert suspended_when_open == 1
-    assert resumed_when_open == 0
-    parts.deps.suspend_hotkeys.assert_called_once()
-    parts.deps.resume_hotkeys.assert_called_once()
+    calls = [call.args for call in parts.deps.set_hotkey_capturing.call_args_list]
+    assert calls[:2] == [(True,), (False,)]
+    parts.deps.reload_hotkeys.assert_not_called()
+
+
+def test_open_settings_with_group(qapp: QApplication, tmp_path: Path) -> None:
+    """まとまりを指定して開き、ショートカットの行を追加する（正常系）。"""
+    # 準備
+    parts = _make_controller(tmp_path)
+
+    # 実行
+    parts.controller.open_settings(group="ショートカット", add_shortcut_row=True)
+
+    # 検証
+    window = parts.controller._settings_window
+    assert window is not None
+    assert _current_group(window) == "ショートカット"
+    assert len(_shortcut_rows(window)) == 1
+    window.close_without_confirm()
+
+
+def test_open_settings_when_minimized(qapp: QApplication, tmp_path: Path) -> None:
+    """最小化した設定画面を戻し、まとまりを切り替える（正常系）。"""
+    from PySide6.QtCore import Qt
+
+    # 準備
+    parts = _make_controller(tmp_path)
+    parts.controller.open_settings()
+    first_window = parts.controller._settings_window
+    assert first_window is not None
+    first_window.showMinimized()
+
+    # 実行
+    parts.controller.open_settings(group="用語集")
+
+    # 検証
+    assert parts.controller._settings_window is first_window
+    assert not first_window.windowState() & Qt.WindowState.WindowMinimized
+    assert _current_group(first_window) == "用語集"
+    first_window.close_without_confirm()
 
 
 def test_open_settings_when_already_open(qapp: QApplication, tmp_path: Path) -> None:
@@ -454,13 +504,15 @@ def test_open_settings_when_already_open(qapp: QApplication, tmp_path: Path) -> 
     parts = _make_controller(tmp_path)
     parts.controller.open_settings()
     first_window = parts.controller._settings_window
+    assert first_window is not None
+    first_window.show_group("表記のヒント")
 
     # 実行
     parts.controller.open_settings()
 
     # 検証
     assert parts.controller._settings_window is first_window
-    parts.deps.suspend_hotkeys.assert_called_once()
+    assert _current_group(first_window) == "表記のヒント"
     first_window.try_close()
 
 
@@ -523,8 +575,37 @@ def test_on_settings_saved(qapp: QApplication, tmp_path: Path, make_settings: Ma
     parts.controller.on_settings_saved()
 
     # 検証
+    parts.deps.reload_hotkeys.assert_called_once_with()
     apply_theme.assert_called_once_with()
     parts.tray.set_start_hotkey.assert_called_once_with(settings.hotkeys.start)
+
+
+# === on_glossary_preset_switch_requested ===
+
+
+def test_on_glossary_preset_switch_requested(qapp: QApplication, tmp_path: Path) -> None:
+    """切り替えてトレイに通知を出す（正常系）。"""
+    # 準備
+    parts = _make_controller(tmp_path)
+
+    # 実行
+    parts.controller.on_glossary_preset_switch_requested("会議")
+
+    # 検証
+    parts.deps.switch_glossary_preset.assert_called_once_with("会議")
+    parts.tray.show_glossary_preset_switched.assert_called_once_with("会議")
+
+
+def test_on_glossary_preset_switch_requested_when_failed(qapp: QApplication, tmp_path: Path) -> None:
+    """切り替えられなければ通知しない（異常系）。"""
+    # 準備
+    parts = _make_controller(tmp_path, switch_glossary_preset=MagicMock(return_value=False))
+
+    # 実行
+    parts.controller.on_glossary_preset_switch_requested("会議")
+
+    # 検証
+    parts.tray.show_glossary_preset_switched.assert_not_called()
 
 
 # === hide_recording ===
@@ -606,4 +687,4 @@ def test_event_filter_when_quit_without_settings(qapp: QApplication, tmp_path: P
 
     # 検証
     assert result is False
-    parts.deps.resume_hotkeys.assert_not_called()
+    parts.deps.set_hotkey_capturing.assert_not_called()

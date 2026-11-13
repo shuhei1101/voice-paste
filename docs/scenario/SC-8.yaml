@@ -5,10 +5,13 @@ scenarios:
   - name: 正常シナリオ
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・画面の消灯の抑止・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は音声合成の WAV
       - name: 録音中の音量
         description: 録音中にシステム音量を今の音量の半分へ下げる設定にする
+      - name: 録音中の画面
+        description: 録音中に画面を暗くしない設定をオンにする
+        notes: '`recording.keep_display_on: true`（既定値）'
       - name: 履歴の保存
         description: 履歴を残す設定にする
       - name: 確定
@@ -22,6 +25,7 @@ scenarios:
         participant SVC as 常駐サービス
         participant TRAY as トレイ
         participant VOL as システム音量
+        participant DISP as 画面の消灯
         participant MIC as マイク
         participant GUI as 録音の画面
         participant HIST as 履歴
@@ -30,6 +34,7 @@ scenarios:
         SVC->>SVC: ほかの録音・文字起こしが動いていないことを確認し、処理中にする
         SVC->>TRAY: 録音中のアイコンにする
         SVC->>VOL: 録音中の音量へ下げる
+        SVC->>DISP: 画面の消灯を抑止する
         SVC->>MIC: 録音を始める
         SVC->>GUI: 録音の画面を開く（表示中は最前面を保つ）
         U->>MIC: 話す
@@ -37,6 +42,7 @@ scenarios:
         GUI->>SVC: 選んだ出力先を引き渡して閉じる
         SVC->>MIC: 録音を停止する
         SVC->>VOL: 録音前の音量へ戻す
+        SVC->>DISP: 画面の消灯の抑止を解除する
         SVC->>HIST: 確定した録音を履歴に保存する
       ```
 
@@ -46,11 +52,12 @@ scenarios:
       - 履歴に話した録音が保存されている
       - システム音量が録音前の値に戻っている
       - 選んだ出力先（貼り付けて送信）で 録音を文字に起こす へ進む
+      - 画面の消灯が、録音を始めたときに 1 回抑止され、録音を停止した後に 1 回解除されている
     test: test_normal
   - name: 正常シナリオ（一時停止して再開する）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・画面の消灯の抑止・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は、音声合成の文を実時間で供給する WAV
       - name: 一時停止
         description: 話している途中で一時停止し、一時停止の間も話し、再開する
@@ -79,11 +86,12 @@ scenarios:
     expected:
       - 履歴に保存した録音に、一時停止の間に話した声が入っていない
       - 経過時間が、一時停止の間を除いた長さを示している
+      - 一時停止の間も画面の消灯の抑止が解除されていない
     test: test_normal_when_pause_and_resume
   - name: 正常シナリオ（録音を取り消す）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・画面の消灯の抑止・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は無音の WAV
       - name: 録音中の音量
         description: 録音中にシステム音量を下げる設定にする
@@ -102,6 +110,7 @@ scenarios:
         participant SVC as 常駐サービス
         participant MIC as マイク
         participant VOL as システム音量
+        participant DISP as 画面の消灯
         participant TRAY as トレイ
 
         Note over GUI: 録音の画面を開くまでは 正常シナリオ と同じ
@@ -109,6 +118,7 @@ scenarios:
         GUI->>SVC: 取り消しを引き渡して閉じる
         SVC->>MIC: 録音を停止し、貯めた音を捨てる
         SVC->>VOL: 録音前の音量へ戻す
+        SVC->>DISP: 画面の消灯の抑止を解除する
         SVC->>SVC: 待機中に戻す
         SVC->>TRAY: 待機中のアイコンにする
       ```
@@ -120,11 +130,12 @@ scenarios:
       - システム音量が録音前の値に戻っている
       - トレイのアイコンが待機中に戻り、文字起こしへ進まない
       - 前面が録音を始める前の貼り付け先の窓に戻っている
+      - 画面の消灯の抑止が解除されている
     test: test_normal_when_cancel
   - name: 正常シナリオ（録音の画面を出さない）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・画面の消灯の抑止・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は音声合成の WAV。入口は、API と、録音の画面を出さない設定での録音開始のホットキーの 2 通り。parametrize で並べる
       - name: 画面を出さない録音
         description: APIで録音を操作する が録音を始めるか、録音の画面を出さない設定でホットキーかトレイから始める
@@ -138,6 +149,7 @@ scenarios:
         participant SVC as 常駐サービス
         participant TRAY as トレイ
         participant VOL as システム音量
+        participant DISP as 画面の消灯
         participant MIC as マイク
         participant HIST as 履歴
 
@@ -145,10 +157,12 @@ scenarios:
         SVC->>SVC: ほかの録音・文字起こしが動いていないことを確認し、処理中にする
         SVC->>TRAY: 録音中のアイコンにする
         SVC->>VOL: 録音中の音量へ下げる
+        SVC->>DISP: 画面の消灯を抑止する
         SVC->>MIC: 録音を始める（画面は開かない）
         IN->>SVC: 確定する（API の完了か、確定のホットキー）
         SVC->>MIC: 録音を停止する
         SVC->>VOL: 録音前の音量へ戻す
+        SVC->>DISP: 画面の消灯の抑止を解除する
         SVC->>HIST: 確定した録音を履歴に保存する
       ```
 
@@ -158,11 +172,12 @@ scenarios:
       - 履歴に録音が保存されている
       - システム音量が録音前の値に戻っている
       - 録音を文字に起こす へ進む
+      - 画面の消灯が、録音を始めたときに 1 回抑止され、確定した後に 1 回解除されている
     test: test_normal_when_no_window
   - name: 正常シナリオ（履歴を残さない）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・画面の消灯の抑止・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は音声合成の WAV
       - name: 履歴の保存
         description: 履歴を残さない設定にする
@@ -186,7 +201,7 @@ scenarios:
   - name: 異常シナリオ（処理中に開始が来る）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・画面の消灯の抑止・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は無音の WAV を実時間で供給する。API から始める録音のコールバック先は 127.0.0.1 で待ち受けるテスト用のエンドポイント
       - name: 処理中の録音
         description: API から始めた録音が録音中のときに、録音開始のホットキーを押す
@@ -215,7 +230,7 @@ scenarios:
   - name: 異常シナリオ（マイクを開けない）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・画面の消灯の抑止・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は、開くとマイクを開けないエラーを出すもの（マイクの欠落 の行）
       - name: 録音中の音量
         description: 録音中にシステム音量を下げる設定にする
@@ -230,15 +245,18 @@ scenarios:
         participant SVC as 常駐サービス
         participant TRAY as トレイ
         participant VOL as システム音量
+        participant DISP as 画面の消灯
         participant MIC as マイク
         participant LOG as ログ
 
         U->>SVC: 録音開始のホットキーを押す
         SVC->>TRAY: 録音中のアイコンにする
         SVC->>VOL: 録音中の音量へ下げる
+        SVC->>DISP: 画面の消灯を抑止する
         SVC->>MIC: 録音を始めようとする
         MIC-->>SVC: 入力を開けない
         SVC->>VOL: 録音前の音量へ戻す
+        SVC->>DISP: 画面の消灯の抑止を解除する
         SVC->>LOG: マイクを開けなかった理由を書き込む
         SVC->>SVC: 待機中に戻す
         SVC->>TRAY: 待機中のアイコンにし、録音を始められなかったことを通知する
@@ -251,6 +269,7 @@ scenarios:
       - トレイのアイコンが待機中に戻り、録音を始められなかったことが通知されている
       - ログにマイクを開けなかった理由が書き込まれている
       - 録音開始のホットキーをもう一度受け付ける
+      - 画面の消灯の抑止が解除されている
     notes:
       API から来たとき: API の開始でマイクを開けなかったときは、APIで録音を操作する の 異常シナリオ（マイクを開けない） がエラーを返却する。
     test: test_error_when_microphone_unavailable
@@ -368,7 +387,7 @@ scenarios:
   - name: 正常シナリオ（録音の画面を隠して戻す）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・画面の消灯の抑止・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は、音声合成の文を実時間で供給する WAV
       - name: 貼り付け先
         description: 「常に手前に表示」でない窓（貼り付け先の入力欄）を前面に出してから、録音開始のホットキーで録音を始める
@@ -415,7 +434,7 @@ scenarios:
   - name: 正常シナリオ（隠したまま確定する）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・画面の消灯の抑止・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は音声合成の WAV
       - name: 確定
         description: 録音の画面を隠した後、戻さずに確定のホットキー（貼り付けて送信）で確定する
@@ -446,7 +465,7 @@ scenarios:
   - name: 正常シナリオ（隠したまま取り消す）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・画面の消灯の抑止・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は無音の WAV
       - name: 取り消し
         description: 録音の画面を隠した後、戻さずに取り消しのホットキーで取り消す
@@ -459,11 +478,13 @@ scenarios:
         participant SVC as 常駐サービス
         participant GUI as 録音の画面
         participant MIC as マイク
+        participant DISP as 画面の消灯
         participant TRAY as トレイ
 
         Note over GUI: 録音の画面を隠すまでは 正常シナリオ（録音の画面を隠して戻す） と同じ
         U->>SVC: 取り消しのホットキーを押す
         SVC->>MIC: 録音を停止し、貯めた音を捨てる
+        SVC->>DISP: 画面の消灯の抑止を解除する
         SVC->>SVC: 待機中に戻す
         SVC->>TRAY: 待機中のアイコンにする
         U->>SVC: 録音開始のホットキーで次の録音を始める
@@ -475,11 +496,12 @@ scenarios:
       - 履歴にこの録音が残っておらず、文字起こしへ進まない
       - トレイのアイコンが待機中に戻っている
       - 次の録音では、録音の画面がいつもどおり出ている
+      - 画面の消灯の抑止が解除されている
     test: test_normal_when_cancel_while_hidden
   - name: 正常シナリオ（録音を停止せずに無音で区切る）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・画面の消灯の抑止・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は、音声合成の文の間に無音を挟んだ WAV を実時間で供給する。コールバック先は 127.0.0.1 で待ち受けるテスト用のエンドポイント
       - name: 連続録音
         description: APIで録音を操作する が連続録音を始める（画面は出さない）
@@ -494,6 +516,7 @@ scenarios:
         participant SVC as 常駐サービス
         participant TRAY as トレイ
         participant VOL as システム音量
+        participant DISP as 画面の消灯
         participant MIC as マイク
         participant HIST as 履歴
 
@@ -501,6 +524,7 @@ scenarios:
         SVC->>SVC: ほかの録音・文字起こしが動いていないことを確認し、処理中にする
         SVC->>TRAY: 録音中のアイコンにする
         SVC->>VOL: 録音中の音量へ下げる
+        SVC->>DISP: 画面の消灯を抑止する
         SVC->>MIC: 録音を始める（画面は開かない）
         loop 完了が来るまで
           MIC-->>SVC: 録った音
@@ -514,6 +538,7 @@ scenarios:
         IN->>SVC: 完了する
         SVC->>MIC: 録音を停止する
         SVC->>VOL: 録音前の音量へ戻す
+        SVC->>DISP: 画面の消灯の抑止を解除する
         opt 区間に切り出していない話し声が残っている（話し終えて無音が区切りの長さに届く前の完了を含む）
           SVC->>HIST: そこまでを最後の区間として履歴に保存し、録音を文字に起こす へ引き渡す
         end
@@ -528,13 +553,14 @@ scenarios:
       - 区間ごとの録音が履歴に保存されている
       - 完了の後、システム音量が録音前の値に戻っている
       - 最後の文を話し終えて無音が区切りの長さに届く前に完了すると、その文が最後の区間として切り出されている
+      - 区間を切り出しても画面の消灯の抑止が解除されず、完了の後に 1 回解除されている
     notes:
       区切りの見つけ方: 話し声か無音かは Silero VAD で判定する。背景にノイズがあると、区切りの無音をわずかに超える間では区切れず、区間が長くなることがある。背景に人の声があると話し声と見分けられない。
     test: test_normal_when_split_by_silence
   - name: 正常シナリオ（話し続けて最大の長さで区切る）
     setup:
       - name: Mock
-        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・画面の消灯の抑止・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
         notes: 録音の入力は、音声合成の文を区切りの無音に届かない間でつないだ WAV を実時間で供給する。コールバック先は 127.0.0.1 で待ち受けるテスト用のエンドポイント
       - name: 連続録音
         description: APIで録音を操作する が連続録音を始める（画面は出さない）
@@ -566,6 +592,71 @@ scenarios:
       - 区間を通し番号の順につなぐと、話した声が欠けていない
       - 区切った後もマイクの録音が停止していない
     test: test_normal_when_split_by_max_length
+  - name: 正常シナリオ（録音中に画面を暗くしない設定がオフ）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・画面の消灯の抑止・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV
+      - name: 録音中の画面
+        description: 録音中に画面を暗くしない設定をオフにする
+        notes: '`recording.keep_display_on: false`'
+    flow: |-
+      <!-- map: {"title": "正常シナリオ（録音中に画面を暗くしない設定がオフ）"} -->
+
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SVC as 常駐サービス
+        participant MIC as マイク
+        participant GUI as 録音の画面
+
+        U->>SVC: 録音開始のホットキーを押す
+        SVC->>MIC: 録音を始める（画面の消灯は抑止しない）
+        SVC->>GUI: 録音の画面を開く
+        U->>GUI: 「貼り付けて送信」で確定する
+        SVC->>MIC: 録音を停止する
+        Note over SVC: 履歴への保存から後は 正常シナリオ と同じ
+      ```
+
+      <!-- /map -->
+    expected:
+      - 録音の間、画面の消灯の抑止と解除が 1 回も呼ばれていない
+      - 選んだ出力先（貼り付けて送信）で 録音を文字に起こす へ進む
+    test: test_normal_when_keep_display_off
+  - name: 異常シナリオ（画面の消灯を抑止できない）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・録音の入力・システム音量・画面の消灯の抑止・貼り付けのキー。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
+        notes: 録音の入力は音声合成の WAV
+      - name: 抑止の失敗
+        description: 画面の消灯の抑止を、抑止すると OS のエラーを出すものに差し替える
+    flow: |-
+      <!-- map: {"title": "異常シナリオ（画面の消灯を抑止できない）"} -->
+
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant SVC as 常駐サービス
+        participant DISP as 画面の消灯
+        participant LOG as ログ
+        participant MIC as マイク
+        participant GUI as 録音の画面
+
+        U->>SVC: 録音開始のホットキーを押す
+        SVC->>DISP: 画面の消灯を抑止しようとする
+        DISP-->>SVC: 抑止できない
+        SVC->>LOG: 抑止できなかった理由を警告として書き込む
+        SVC->>MIC: 録音を始める
+        SVC->>GUI: 録音の画面を開く
+        Note over SVC: 確定から後は 正常シナリオ と同じ
+      ```
+
+      <!-- /map -->
+    expected:
+      - 録音の画面が開き、録音が続いている
+      - ログに画面の消灯を抑止できなかった理由が警告として書き込まれている
+      - 確定すると、選んだ出力先で 録音を文字に起こす へ進む
+    test: test_error_when_keep_display_on_fails
   - name: 正常シナリオ（Wayland のセッションでホットキーから録音する）
     setup:
       - name: Mock
@@ -619,11 +710,15 @@ notes:
     隠した録音の画面は、トレイのアイコンの左クリック・トレイのメニューの「録音の画面を表示」・録音開始のホットキー（同じホットキーの出力先が無いとき）で戻す。
   E2E のテスト: |-
     E2E の常駐アプリの起こし方と操作の引き渡し方は、常駐アプリを起動する の補足『E2E のテスト』と同じ。
-    録音の入力は WAV を供給するもの（音声合成の文か無音）に、システム音量は下げた値と戻した値を記録するものに、貼り付けのキーは送信したキーを記録するものに差し替える（マイクを開かず、システム音量を変えず、キーを送信しない）。
+    録音の入力は WAV を供給するもの（音声合成の文か無音）に、システム音量は下げた値と戻した値を記録するものに、画面の消灯の抑止は抑止と解除の呼び出しを記録するものに、貼り付けのキーは送信したキーを記録するものに差し替える（マイクを開かず、システム音量を変えず、画面の消灯を抑止せず、キーを送信しない）。
     API から始める録音は起動した常駐アプリの API を呼び、コールバック先はテストが 127.0.0.1 に作成するエンドポイントにする。
     トレイのアイコンの左クリックと通知を押す操作は、アイコンが押されたシグナルと通知が押されたシグナルを引き渡す。
     「ほかの窓を前面に出す」「主のモニターに出す」「カーソルのあるモニターに出す」「録音の画面を動かす」は、Windows の窓の重なり・モニター・窓の移動を使用し offscreen の Qt では起こせないため、E2E を作成しない（画面の結合テストが、最前面を保つ指定・表示位置・ドラッグで動かす呼び出しを確認する）。
     「録音を取り消す」「録音の画面を隠して戻す」の期待値のうち、前面の窓（Windows のフォアグラウンド）は E2E で確認しない。フォーカスを取らないことは、Qt のアクティブな窓が録音の画面でないことで確認する
+  画面の消灯の抑止: |-
+    録音中に画面を暗くしない設定（`recording.keep_display_on`）がオンのとき、録音を始めるときに画面の消灯とアイドルによるスリープを抑止し、確定・取り消し・失敗で録音を終えるときに解除する。
+    一時停止中・録音の画面を隠している間・連続録音の区間を切り出す間も抑止を続ける。抑止・解除に失敗しても録音は止めず、警告をログに残す。
+    Windows は電源要求、Linux（Xorg と Wayland の GNOME のセッション）は gnome-session のアイドルの抑止で抑止する。常駐アプリが異常終了したときは OS が抑止を解く（[#292](https://github.com/shuhei1101/voice-paste/pull/292) の PoC で確認した）。
   Wayland のセッション: |-
     Linux の Wayland のセッションでは、押されたホットキーを GNOME のカスタムショートカットが受け、常駐サービスへ伝える（常駐アプリを起動する の補足『Wayland のセッションのホットキー』）。
     伝えられたホットキーは、Windows と Xorg のセッションと同じく、そのときの状態で録音開始・確定・一時停止・取り消しに振り分ける。

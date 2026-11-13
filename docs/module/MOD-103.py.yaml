@@ -1,0 +1,111 @@
+id: MOD-103
+visibility: internal
+title: 常駐アプリ / 外部連携 / display/adapter_linux.py
+test_files:
+  - tests/unit/voice_paste/integrations/display/test_adapter_linux.py
+constants:
+  - name: INHIBIT_COMMAND
+    title: 抑止の子プロセスのコマンド
+    container: integrations/display/adapter_linux.py
+    usecase: 録音する
+    summary: gnome-session のアイドルを抑止し、標準入力のパイプが閉じるまで続ける子プロセス。`--inhibit-only` は自分から終わらず、常駐アプリの異常終了で抑止が残るため使用しない
+    value: '("gnome-session-inhibit", "--inhibit", "idle", "--app-id", "voice-paste", "--reason", "recording", "cat")'
+    status: planned
+  - name: RELEASE_WAIT_SEC
+    title: 解除で子プロセスの終わりを待つ秒数
+    container: integrations/display/adapter_linux.py
+    usecase: 録音する
+    summary: パイプを閉じた後に子プロセスの終わりを待つ上限。過ぎたら強制終了する
+    value: '2.0'
+    status: planned
+functions:
+  - name: inhibit_display_linux
+    title: 画面の消灯を抑止する（Linux）
+    kind: 関数
+    container: integrations/display/adapter_linux.py
+    usecase: 録音する
+    scope: public
+    inherits: InhibitDisplayFn
+    thread_safe: true
+    side_effects: gnome-session-inhibit の子プロセスを起動し、GNOME のセッションのアイドル（画面の消灯）を抑止する
+    summary: INHIBIT_COMMAND を標準入力をパイプにして起動し、子プロセスをモジュール変数に持つ
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. 抑止のロックを取り、以降をその中で行う
+      2. 持っている子プロセスが動いていれば何もしない（抑止は 1 つだけ持つ）
+      3. INHIBIT_COMMAND を subprocess.Popen で起動する（stdin=PIPE・stdout と stderr は DEVNULL）
+         - OSError（gnome-session-inhibit が無い等）の場合、DisplayInhibitError を送出する（理由に元の例外を残す）
+      4. 子プロセスを持つ
+    exceptions:
+      - name: DisplayInhibitError
+        condition: 子プロセスを起動できない
+    unit_tests:
+      - name: test_inhibit_display_linux
+        case: 正常
+        summary: 標準入力をパイプにして子プロセスを起動する
+        condition: 抑止していない状態で呼ぶ
+        mock: subprocess.Popen（起動の引数を記録し、動いている偽の子プロセスを返却する）
+        expected: Popen に INHIBIT_COMMAND と stdin=PIPE が渡る
+      - name: test_inhibit_display_linux_when_already_inhibited
+        case: 正常
+        summary: 抑止中にもう一度呼んでも子プロセスを増やさない
+        condition: inhibit_display_linux を 2 回呼ぶ
+        mock: subprocess.Popen
+        expected: Popen が 1 回だけ呼ばれる
+      - name: test_inhibit_display_linux_when_command_missing
+        case: 異常
+        summary: gnome-session-inhibit が無ければ DisplayInhibitError
+        condition: Popen が FileNotFoundError を送出する
+        mock: subprocess.Popen
+        expected: DisplayInhibitError が送出され、続く release_display_linux が何もしない
+        exception: 子プロセスを起動できない
+    refs:
+      - LIB-32#
+    status: planned
+  - name: release_display_linux
+    title: 画面の消灯の抑止を解除する（Linux）
+    kind: 関数
+    container: integrations/display/adapter_linux.py
+    usecase: 録音する
+    scope: public
+    inherits: ReleaseDisplayFn
+    thread_safe: true
+    side_effects: 抑止の子プロセスを終わらせ、GNOME のセッションのアイドルの抑止を解く
+    summary: 子プロセスの標準入力を閉じ、終わりを RELEASE_WAIT_SEC まで待つ。過ぎたら強制終了する。抑止していなければ何もしない
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. 抑止のロックを取り、以降をその中で行う
+      2. 子プロセスが無ければ何もしない
+      3. 子プロセスを手放し（モジュール変数を None にする）、標準入力を閉じて、終わりを RELEASE_WAIT_SEC まで待つ
+         - 待っても終わらない場合、kill して終わりを待つ
+           - `[WARNING]` 画面の消灯の抑止の子プロセスが終わらず強制終了した
+    unit_tests:
+      - name: test_release_display_linux
+        case: 正常
+        summary: 標準入力を閉じて子プロセスの終わりを待つ
+        condition: inhibit_display_linux の後に呼ぶ
+        mock: subprocess.Popen（stdin の close と wait を記録する偽の子プロセス）
+        expected: stdin の close の後に wait(RELEASE_WAIT_SEC) が呼ばれ、kill が呼ばれず、続く release_display_linux が何もしない
+      - name: test_release_display_linux_when_not_inhibited
+        case: 正常
+        summary: 抑止していなければ何もしない
+        condition: inhibit_display_linux の前に呼ぶ
+        mock: subprocess.Popen
+        expected: 例外が出ない
+      - name: test_release_display_linux_when_timeout
+        case: 正常
+        summary: 終わらなければ強制終了する
+        condition: 偽の子プロセスの wait が初回だけ subprocess.TimeoutExpired を送出する
+        mock: subprocess.Popen
+        expected: kill が 1 回呼ばれ、警告がログに出る
+    status: planned
+notes:
+  子プロセスの持ち方: |-
+    子プロセスとロックは _ 付きのモジュール変数で持ち、inhibit_display_linux・release_display_linux だけが触る。
+    抑止は子プロセスの `cat` が標準入力のパイプを読んでいる間だけ続き、パイプが閉じると `cat` と gnome-session-inhibit が終わって解ける。
+    常駐アプリが強制終了してもパイプが閉じるため、抑止は残らない（PoC #293 で、親の `kill -9` の後に抑止の一覧が空になることを確かめた）。
+    Xorg と Wayland のどちらのセッションでも同じ実装を使用し、実物の確認は検証環境の VM での通しの確認で行う。

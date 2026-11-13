@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: スマホ・iPad の幅でも 1 カラムで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>文字起こし | voice-paste のモック</title>
+  <!-- 採用スタイル「開発者ツール」の部品は #37、画面の部品は #171、用語集のプリセットの選択欄は #180、画面を暗くしないかのチェックは #292 の共有 CSS に置く -->
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/171/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/180/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/292/assets/style.css">
+  <!-- 場面の切り替えとコピーした直後の表示は #171 の共有 JS が受ける -->
+  <script type="module" src="../../../../refs/171/assets/app.js"></script>
+</head>
+<body>
+  <!-- モック専用の操作列: 場面の切り替え（data-scene と data-scene-panel の場面名を合わせる） -->
+  <nav class="mock-bar" aria-label="場面の切り替え（モック専用）">
+    <span class="mock-bar__label">場面</span>
+    <ul><li><button type="button" data-scene="default">既定のまま（オン）</button></li><li><button type="button" data-scene="off">オフにした</button></li><li><button type="button" data-scene="recording">録音中</button></li><li><button type="button" data-scene="unsupported">対応しないブラウザ</button></li></ul>
+  </nav>
+
+  <main class="web-main">
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">web-transcription</a> / <a href="../">292</a> / <span>a-below-preset</span></nav>
+
+    <div class="web">
+      <!-- 画面の頭 -->
+      <header class="web-top">
+        <h1>voice-paste</h1>
+        <span class="web-top__sub">文字起こし</span>
+      </header>
+
+      <!-- 送信の区画 -->
+      <section class="web-panel" aria-labelledby="h-send">
+        <h2 id="h-send">音声送信</h2>
+
+        <!-- 用語集のプリセットの選択欄: #180 のまま -->
+        <div class="preset-field" data-scene-panel="default off unsupported" hidden>
+          <label class="preset-field__label" for="preset-main">用語集のプリセット</label>
+          <select id="preset-main" name="glossary_preset"><option value="" selected>設定に従う（会議）</option><option value="既定">既定</option><option value="会議">会議</option><option value="下書き">下書き</option></select>
+        </div>
+        <div class="preset-field" data-scene-panel="recording" hidden>
+          <label class="preset-field__label" for="preset-rec">用語集のプリセット</label>
+          <select id="preset-rec" name="glossary_preset" disabled aria-describedby="preset-rec-help"><option value="" selected>設定に従う（会議）</option><option value="既定">既定</option><option value="会議">会議</option><option value="下書き">下書き</option></select>
+          <p class="preset-field__help" id="preset-rec-help">録音中は変更不可</p>
+        </div>
+
+        <!-- 画面を暗くしないかのチェック: 録音の前に選ぶ設定のため、プリセットの選択欄のすぐ下に置く。選択は端末（localStorage）に残す -->
+        <div class="keep-field" data-scene-panel="default" hidden>
+          <label class="keep-field__label" for="keep-on"><input type="checkbox" id="keep-on" name="keep_screen_on" checked> 録音中は画面を暗くしない</label>
+        </div>
+        <div class="keep-field" data-scene-panel="off" hidden>
+          <label class="keep-field__label" for="keep-off"><input type="checkbox" id="keep-off" name="keep_screen_on"> 録音中は画面を暗くしない</label>
+        </div>
+        <div class="keep-field" data-scene-panel="recording" hidden>
+          <label class="keep-field__label" for="keep-rec"><input type="checkbox" id="keep-rec" name="keep_screen_on" checked disabled aria-describedby="keep-rec-help"> 録音中は画面を暗くしない</label>
+          <p class="keep-field__help" id="keep-rec-help">録音中は変更不可</p>
+        </div>
+        <div class="keep-field" data-scene-panel="unsupported" hidden>
+          <label class="keep-field__label" for="keep-na"><input type="checkbox" id="keep-na" name="keep_screen_on" disabled aria-describedby="keep-na-help"> 録音中は画面を暗くしない</label>
+          <p class="keep-field__help" id="keep-na-help">このブラウザは画面を暗くしない機能に対応していません。録音はできます</p>
+        </div>
+
+        <!-- 録る・ファイルを選ぶ -->
+        <div class="send-actions" data-scene-panel="default off unsupported" hidden>
+          <button type="button" class="btn btn--lg btn--primary"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle class="fill" cx="12" cy="12" r="6"/></svg>録音開始</button>
+          <label class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>ファイル送信<input type="file" accept="audio/*" class="sr-only"></label>
+        </div>
+        <p class="send-hint" data-scene-panel="default off unsupported" hidden>録音 最大 30 分・ファイル 100 MB 未満</p>
+
+        <!-- 録音中の表示: 画面の消灯を抑止している間も表示は変えない -->
+        <div class="recorder" data-scene-panel="recording" hidden>
+          <div class="recorder__head">
+            <span class="state state--rec"><span class="dot" aria-hidden="true"></span>録音中</span>
+            <span class="recorder__time num" role="timer" aria-label="経過時間 2 分 14 秒">02:14</span>
+          </div>
+          <progress max="1800" value="134" aria-label="上限までの録音時間"></progress>
+          <div class="recorder__meta"><span>上限 <span class="num">30:00</span></span><span>残り <span class="num">27:46</span></span></div>
+          <button type="button" class="btn btn--lg btn--primary btn--block"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect class="fill" x="7" y="7" width="10" height="10" rx="1"/></svg>録音停止・送信</button>
+        </div>
+      </section>
+
+      <!-- 結果の区画: この PR では変えないため、前に届いた件だけを並べる -->
+      <section class="web-panel" aria-labelledby="h-results">
+        <div class="web-panel__head">
+          <h2 id="h-results">結果</h2>
+          <span class="web-panel__meta"><span class="num">1</span> 件・最大 10 件・保存 7 日</span>
+        </div>
+        <ul class="results" aria-live="polite">
+          <li class="result">
+            <div class="result__head"><span class="result__time num">10/23 13:52</span><span class="result__src">画面録音・<span class="num">0:41</span></span></div>
+            <p class="result__text">ホットキーの録音中でもブラウザから送れるかを確かめる。</p>
+            <div class="result__actions">
+              <button type="button" class="btn" data-copy data-copied="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg><span data-copy-label aria-live="polite">コピー</span></button>
+              <a class="btn btn--icon btn--danger" href="../../../web-confirm-dialog/171/a-standard/index.html?scene=delete" aria-label="この結果を削除"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></a>
+            </div>
+          </li>
+        </ul>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
